@@ -109,6 +109,7 @@ func TestReleaseMilestone2Groups1155(t *testing.T) {
 				}
 				return s
 			}
+			f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 			current := checkCurrent(f)
 			if err := os.Remove(sourcePath); err != nil {
 				t.Fatal(err)

@@ -99,6 +99,7 @@ func TestGroups1155DyingBothDoorsRetainSourceAndCurrentGraph(t *testing.T) {
 				store = SaveStore{Dir: t.TempDir()}
 				save, list, load = f.SaveSeams(store, OriginalStore{}, nil)
 				app.SetSaveSeams(save, list, load)
+				f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 				groups, orders, _ = f.live.world.SavedGroups()
 				if err := app.HeadlessKey("escape"); err != nil {
 					t.Fatal(err)

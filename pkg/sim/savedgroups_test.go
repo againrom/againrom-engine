@@ -3,6 +3,7 @@ package sim
 import (
 	"encoding/binary"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -149,17 +150,22 @@ func TestSavedGroupsPlayerCommandMovesCurrentMembership(t *testing.T) {
 	}
 }
 
-func TestSavedGroupsAmbiguousAndUnboundRefuseAtomically(t *testing.T) {
+func TestSavedGroupsLaterCarrierAndUnboundRefuseAtomically(t *testing.T) {
 	w := savedGroupWorld(t)
 	w.savedGroups.Groups[1].Selector = 19
-	before := w.Hash()
+	first := w.savedGroups.Groups[0]
 	w.cmdSavedGroupOrder(ScriptInstant{HasGroup: true, Group: 19, Args: [10]int32{4, 1, 1}})
-	if before != w.Hash() || len(w.SavedGroupIssues()) == 0 {
-		t.Fatal("ambiguous selector silently applied")
+	if later := w.savedGroups.Groups[1]; !reflect.DeepEqual(first, w.savedGroups.Groups[0]) || later.AI[0x20] != 4 || later.AI[10] != 1 || later.AI[11] != 1 {
+		t.Fatal("a selector two Groups carry did not reach the later one alone")
+	}
+	for _, issue := range w.SavedGroupIssues() {
+		if strings.Contains(issue, "selector") {
+			t.Fatal("a selector two Groups carry is still reported:", issue)
+		}
 	}
 	w.savedGroups.Groups[1].Selector = 88
 	w.savedGroups.Groups[0].Members = append(w.savedGroups.Groups[0].Members, SavedGroupMember{Archive: 90})
-	before = w.Hash()
+	before := w.Hash()
 	w.savedGroupPass(nil)
 	// The separately empty Group may set ff; the affected Group is unchanged.
 	if w.savedGroups.Groups[0].AI[0x20] != 4 || w.entities[0].HasTarget {
@@ -229,10 +235,10 @@ func TestSavedScriptSelectorResolvesToLaterOwner(t *testing.T) {
 		w = &cold
 	}
 	w.savedGroups.Groups[1].Owner = w.savedGroups.Groups[0].Owner
-	before := w.Hash()
+	earlier := w.savedGroups.Groups[0]
 	w.cmdSavedGroupOrder(ScriptInstant{HasGroup: true, Group: 19, Args: [10]int32{4, 1, 1}})
-	if before != w.Hash() {
-		t.Fatal("same-owner selector ambiguity applied partially")
+	if later := w.savedGroups.Groups[1]; !reflect.DeepEqual(earlier, w.savedGroups.Groups[0]) || later.AI[10] != 1 || later.AI[11] != 1 {
+		t.Fatal("a selector one owner's two Groups carry did not reach the later Group alone")
 	}
 }
 

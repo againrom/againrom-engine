@@ -46,6 +46,9 @@ func init() {
 	// Mission completion is an explicit boundary writer, never a tick API.
 	worldMethods = append(worldMethods, "NormalizeMissionSurvivors")
 	worldWriters = append(worldWriters, "NormalizeMissionSurvivors")
+	// SAVE prunes the live Group lists before it writes.
+	worldMethods = append(worldMethods, "PruneGroupsForSave", "PruneGroupsForSaveUndo")
+	worldWriters = append(worldWriters, "PruneGroupsForSave", "PruneGroupsForSaveUndo")
 	worldMethods = append(worldMethods, "PublishSessionEntry", "PublishSessionEntryWithCarried")
 	worldWriters = append(worldWriters, "PublishSessionEntry", "PublishSessionEntryWithCarried")
 	worldMethods = append(worldMethods, "SavedWorldEffectDrivers", "ImportOriginalWorldEffectDrivers")

@@ -128,16 +128,21 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 			if _, err := namedSaveDirectory(request.Directory, fences, store.profile); err != nil {
 				return ui.PreparedSave{}, err
 			}
-			s, _, err := f.Snapshot(request.OnMap)
-			if err != nil {
-				return ui.PreparedSave{}, err
-			}
-			notifySaveCapture(observers, "f2", s)
 			label := request.Label
 			if label == "" {
 				label = string(name)
 			}
-			raw, notice, err := f.playerMissionSave(s, label)
+			// The file is built from the pruned lists, but the live World is
+			// pruned only when the file is written (SAV-1251): a cancelled
+			// overwrite must leave the World and its hash as they were.
+			var raw []byte
+			var notice string
+			err = f.playerSnapshotUnwritten(request.OnMap, func(s Snapshot) error {
+				notifySaveCapture(observers, "f2", s)
+				var err error
+				raw, notice, err = f.playerMissionSave(s, label)
+				return err
+			})
 			if err != nil {
 				return ui.PreparedSave{}, err
 			}
@@ -147,6 +152,15 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 				return prepared, err
 			}
 			prepared.Notice = notice
+			if commit := prepared.Commit; commit != nil {
+				prepared.Commit = func(overwrite bool) ([]string, error) {
+					paths, err := commit(overwrite)
+					if err == nil {
+						_, _ = pruneGroupsForSave(f, request.OnMap)
+					}
+					return paths, err
+				}
+			}
 			return prepared, nil
 		}}
 }

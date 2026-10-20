@@ -74,6 +74,7 @@ func TestReleaseSourceBoundDeadVIPSurvivesSAV(t *testing.T) {
 		!row.Source.ContainerPresent || row.Source.ContainerTail != [2]uint32{10000, 0} {
 		t.Fatalf("removed source-bound actor has no current retained row: %+v", row)
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)

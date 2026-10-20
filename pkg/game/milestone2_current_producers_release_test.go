@@ -94,6 +94,7 @@ func producer1162Snapshot(t *testing.T, f *FrontEnd) Snapshot {
 
 func producer1162Fresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, path string) *FrontEnd {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	hash := f.live.world.Hash()
 	_, nativeList, nativeLoad := f.SaveSeams(store, OriginalStore{}, nil)
 	app.SetSaveSeams(nativeCheckpoint1170(f, store), nativeList, nativeLoad)
@@ -127,6 +128,7 @@ func producer1162Fresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, 
 
 func producerSAVFresh(t *testing.T, f *FrontEnd, app *ui.App, path string) (*FrontEnd, []byte) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	hash := f.live.world.Hash()
 	mover1160Menu(t, app)
 	store := SaveStore{Dir: t.TempDir()}

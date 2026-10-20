@@ -151,6 +151,7 @@ func currentActionCold(t *testing.T, path string) {
 
 func currentActionSaveProof(t *testing.T, f *FrontEnd, runtime uint32, actor sim.EntityID, mode string) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := f.live.world.Hash()
 	path := saveCorpseMission(t, f, t.TempDir())
 	if f.live.world.Hash() != before {

@@ -2556,6 +2556,10 @@ package storyguard
 // pkg/sim/pursuitsearch.go) and its witness in pkg/sim/refusedmove_test.go,
 // this note included.
 //
+// CommentBytes rose 1542 bytes over five files, this note included, all comments of the save
+// dialog's deferred prune: pkg/sim/savedgroupplayers.go (PruneGroupsForSaveUndo),
+// pkg/game/resume.go (pruneGroupsForSave, playerSnapshotUnwritten),
+// pkg/game/savedialog.go and pkg/game/savedialogcancel_test.go.
 // CommentBytes rose by the doc comments of the staff-less mage engage refusal
 // in pkg/sim (reacquire.go, escort.go, guardarm.go, savedgroupsai.go) and its
 // tests, and this paragraph.
@@ -2673,6 +2677,9 @@ package storyguard
 // body's terminal tests, plus this note.
 // CommentBytes rises for the campaign tail's position word and append-order
 // markers (pkg/game/campaigntail.go), their tests, plus this note.
+// CommentBytes rises for the script Group selector rule and SAVE's empty-Group
+// prune (pkg/sim/savedgroupcommands.go, pkg/sim/savedgroupplayers.go,
+// pkg/game/resume.go, pkg/game/citygroupcarry.go), their tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2696,5 +2703,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1703,
 	},
-	CommentBytes: 9300396,
+	CommentBytes: 9308520,
 }

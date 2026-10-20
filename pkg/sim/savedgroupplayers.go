@@ -187,3 +187,108 @@ func (w *World) appendSavedCommandGroup(g SavedGroup) {
 	}
 	w.savedGroups.Groups = append(w.savedGroups.Groups, g)
 }
+
+// SaveKeepsGroup is the SAVE writer's Group rule: a Player whose participant
+// word +28 is zero loses its empty Groups before the file is built (SAV-1251);
+// every other Group is written, an empty one empty (SAV-1234).
+func SaveKeepsGroup(participant uint32, members int) bool {
+	return members != 0 || participant != 0
+}
+
+// PruneGroupsForSave applies SaveKeepsGroup to the live lists, as the
+// original's SAVE removes the Groups from its live Player lists before it
+// opens the file (SAV-1251). The World half and the document a SAVE writes
+// then hold the lists play continues with, so a LOAD resumes the same World.
+// Only a LOADed registry is pruned: the one a map start built stays as it is,
+// so a run that never LOADs saves what it saved before. It reports whether a
+// Group was removed.
+func (w *World) PruneGroupsForSave() bool {
+	pruned, _ := w.PruneGroupsForSaveUndo()
+	return pruned
+}
+
+// PruneGroupsForSaveUndo is PruneGroupsForSave and also returns the function
+// that puts the World back as it was before the prune. A save dialog builds
+// the file from the pruned lists but writes nothing until the player has
+// confirmed an overwrite, so it undoes the prune after the build and prunes
+// again when the file is written. The undo is never nil.
+func (w *World) PruneGroupsForSaveUndo() (bool, func()) {
+	if w.groupDialectNative() || w.savedGroups.fresh || !slices.ContainsFunc(w.savedGroups.Groups, w.saveDropsGroup) {
+		return false, func() {}
+	}
+	before := w.savedGroups
+	bindings := make([]SourceBinding, len(w.entities))
+	for i := range w.entities {
+		bindings[i] = w.entities[i].SourceBinding
+	}
+	dropped := map[uint32]bool{}
+	for _, g := range w.savedGroups.Groups {
+		if w.saveDropsGroup(g) {
+			dropped[g.ID] = true
+		}
+	}
+	s := cloneSavedGroups(w.savedGroups)
+	s.Groups = slices.DeleteFunc(s.Groups, w.saveDropsGroup)
+	w.savedGroups = s
+	w.rebindDroppedSourceGroups(dropped)
+	w.syncSourceGroupSelectors()
+	return true, func() {
+		w.savedGroups = before
+		for i := range bindings {
+			if i < len(w.entities) {
+				w.entities[i].SourceBinding = bindings[i]
+			}
+		}
+	}
+}
+
+// rebindDroppedSourceGroups moves an actor's source Group from a dropped
+// Group to the Group that holds it, or to none, and copies that Group's
+// selector and owner as a LOAD reads them, so the World a SAVE writes and the
+// World its LOAD builds name the same source Group.
+func (w *World) rebindDroppedSourceGroups(dropped map[uint32]bool) {
+	for i := range w.entities {
+		e := &w.entities[i]
+		if !dropped[e.SourceBinding.GroupIndex] {
+			continue
+		}
+		b := &e.SourceBinding
+		b.GroupIndex, b.GroupSelector, b.GroupOwnerKey, b.GroupOwnerSlot, b.GroupOwnerResolved = 0, 0, 0, 0, false
+		if g := w.savedGroupFor(e.ID); g != nil {
+			b.GroupIndex, b.GroupSelector, b.GroupOwnerKey = g.ID, g.Selector, g.Owner.Key
+			b.GroupOwnerSlot, b.GroupOwnerResolved = uint16(g.Owner.Owner), g.Owner.Class != 0
+		}
+	}
+}
+
+func (w *World) saveDropsGroup(g SavedGroup) bool {
+	participant, held := w.savedGroupParticipant(&g)
+	return held && !SaveKeepsGroup(participant, len(g.Members))
+}
+
+// savedGroupParticipant answers the participant word of the Player whose list
+// holds g: the exact container's current word when the World holds one, else
+// zero for the slot the human-participant rule selects and one for any other.
+// A Group no Player holds answers false.
+func (w *World) savedGroupParticipant(g *SavedGroup) (uint32, bool) {
+	if s := w.currentPlayers; s != nil && s.ParticipantsPresent && g.ContainerID != 0 {
+		for _, row := range s.Participants {
+			if row.PlayerID == g.ContainerID {
+				return row.Value, true
+			}
+		}
+	}
+	slot := uint32(0)
+	if p, found := w.savedPlayerByID(g.ContainerID); found && g.ContainerID != 0 {
+		slot = p.Slot
+	} else if g.Owner.Class == 1 {
+		slot = g.Owner.Owner
+	}
+	if slot == 0 {
+		return 0, false
+	}
+	if w.humanParticipantSlot(slot) {
+		return 0, true
+	}
+	return 1, true
+}

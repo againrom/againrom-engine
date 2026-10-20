@@ -269,7 +269,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	s.Town.knowledge = savedPlayerDiary(src.diaryPlayerRec)
 	// A current SAV binds its group actors through its document, an
 	// original file through its provenance.
-	s.Town.cityGroups = nil
+	s.Town.cityGroups, s.Town.cityGroupsLoaded = nil, true
 	if hasCurrent && cityErr == nil {
 		if p, ok := cityDocument.(interface{ Data() sav.CityData }); ok {
 			s.Town.cityGroups = cityGroupsFromCurrent(p.Data(), currentActions)

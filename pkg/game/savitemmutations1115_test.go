@@ -181,6 +181,7 @@ func itemMutationSame1115(t *testing.T, want, got Snapshot) {
 
 func itemMutationCheckpoint(t *testing.T, f *FrontEnd, app *ui.App, defensive int32) (*FrontEnd, *ui.App) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := snapshotCurrentObjects(t, f)
 	if _, err := f.ExportCurrentSave(before, "current item continuation"); err != nil {
 		t.Fatal("current item SAV projection", err)

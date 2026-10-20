@@ -43,6 +43,7 @@ func saveDialogMission(t *testing.T, f *FrontEnd, app *ui.App, out string) {
 	if err := app.HeadlessKey("escape"); err != nil {
 		t.Fatal(err)
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)

@@ -125,6 +125,7 @@ func milestone2WriterRoundTrip(t *testing.T, assets string, mf milestone2File, c
 		changes = writerCensusChange(f, view, xerr == nil && yerr == nil).changes
 	}
 	for cycle := 0; cycle < 2; cycle++ {
+		f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 		before := f.live.world.Hash()
 		savedTick := f.live.world.Tick()
 		g, _, written, refusal := savGateSaveLoad(t, assets, c, f)

@@ -145,6 +145,10 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	if err := validateSavedObjectBindingWorld(after.SavedDocument, f.live.world); err != nil {
 		t.Fatal("post-pickup exact object pairing", err)
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
+	if after, _, err = f.Snapshot(true); err != nil {
+		t.Fatal(err)
+	}
 	fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	reloaded, _, err := fresh.Snapshot(true)
 	if err != nil || !bytes.Equal(after.World, reloaded.World) || !sameResave(t, f, fresh) {

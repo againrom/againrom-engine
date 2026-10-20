@@ -424,6 +424,7 @@ func TestReleaseOriginalGround1076GoldEffectsAndStackSurviveNativeContinuation(t
 			}
 		}
 	}
+	w.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	hash := w.Hash()
 	store, name, written := menuSAVE(t, f, app, OriginalStore{})
 	writtenDoc, err := sav.DecodeDocumentData(written)

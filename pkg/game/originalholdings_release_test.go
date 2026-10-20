@@ -14,6 +14,7 @@ import (
 
 func holdingsNativeFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, terminalSave ui.SaveGame) (*FrontEnd, *ui.App) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	hash := f.live.world.Hash()
 	native := nativeCheckpoint1170(f, store)
 	_, nativeList, nativeLoad := f.SaveSeams(store, OriginalStore{}, nil)

@@ -149,17 +149,16 @@ func cityGroupsEqual(a, b []cityLiveGroup) bool {
 // continues on the live World's hashes.
 func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 	plans := [][]int{{14, 1, 14, 6}, {14, 6, 10, 6, 1}, {6, 2, 14}}
-	// A refunded squad removes its hire group; mission losses keep theirs.
+	// A refunded squad removes its hire group; a mission loss empties its own.
 	hired := [][]int{{1, 6}, {14, 10, 1}, {6, 2, 14}}
 	lineage := releaseFront(t)
 	reachabilityWalkArrive(t, lineage, "Group Cycles")
-	// prior lists the squad groups the town already holds, a returned or lost
-	// squad's group among them, empty.
-	var prior []int
+	// Each cycle's town is a LOADed one: its SAVE drops a lost squad's
+	// emptied group (SAV-1251), so no squad group outlives its cycle.
 	for cycle, plan := range plans {
 		lineage.Town.gold = 5_000_000
 		seed := currentTownSave(t, lineage)
-		cityGroupsWant(t, seed, lineage.Carried, prior)
+		cityGroupsWant(t, seed, lineage.Carried, nil)
 		live, app, store := cityGroupsColdApp(t, seed)
 		if cycle == 0 {
 			if len(live.Carried) != len(lineage.Carried)+1 {
@@ -179,7 +178,7 @@ func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 			cityGroupsToggle(t, live, typ)
 		}
 		raw := cityRosterF2Save(t, app, store, fmt.Sprintf("groups-%d", cycle))
-		slots := slices.Concat(prior, hired[cycle])
+		slots := hired[cycle]
 		saved := cityGroupsWant(t, raw, live.Carried, slots)
 		t.Logf("cycle %d chapter %d: %d members, SAV groups %q", cycle, live.Town.Chapter(), len(live.Carried), saved)
 
@@ -233,6 +232,6 @@ func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
 				t.Fatalf("cycle %d: a hired member %s returned from the mission", cycle, member.ID)
 			}
 		}
-		lineage, prior = cold, slots
+		lineage = cold
 	}
 }

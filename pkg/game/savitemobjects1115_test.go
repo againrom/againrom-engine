@@ -215,6 +215,7 @@ func TestItemObjects1115StackPickupMergeCurrentGraphAndFreshLoad(t *testing.T) {
 	if err := w.TakeSack(dst.Owner.Entity, 15, 16); err != nil {
 		t.Fatal(err)
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	after := snapshotCurrentObjects(t, f)
 	r := w.SavedObjects()
 	retained := itemObjectByKey(t, r, 0x420001)

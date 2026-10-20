@@ -384,6 +384,9 @@ func formation1159SaveCycle(t *testing.T, raw []byte, front func(*testing.T) *Fr
 			if err := app2.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
+			// The SAVE removed the emptied Groups from fresh's live lists.
+			rightPlayers, _ = fresh.live.world.SavedPlayerFormations()
+			rightGroups, _, _ = fresh.live.world.SavedGroups()
 			nextEntries, err := localSAVRows(store)
 			if err != nil || len(nextEntries) != 2 {
 				t.Fatal("second ordinary menu SAVE", nextEntries, err)

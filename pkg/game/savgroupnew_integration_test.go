@@ -84,7 +84,8 @@ func newGroupSetValue1115(t *testing.T, record *sav.DocumentRecordData, name str
 // Two different Player objects have repeated root references. Empty Groups
 // and actor identities are spelled by the independent archive writer. Group 5
 // deliberately resolves its owner to LEFT while its enclosing Player is RIGHT.
-func newGroupLiteral(t *testing.T, f *FrontEnd, duplicateSlot bool) []byte {
+// words, when given, set the two Players' participant words (+28).
+func newGroupLiteral(t *testing.T, f *FrontEnd, duplicateSlot bool, words ...uint32) []byte {
 	t.Helper()
 	load, runtime := &[4]int16{100, 0, 0, 300}, &[3]byte{1, 8, 4}
 	a := &poolFixtureActor{mapID: 91, cell: 0x100f, hp: 7, maxHP: 31, name: "New group A", loadWords: load, equipmentRuntime: runtime}
@@ -117,6 +118,9 @@ func newGroupLiteral(t *testing.T, f *FrontEnd, duplicateSlot bool) []byte {
 		newGroupSetValue1115(t, p, "Slot", slot)
 		newGroupSetValue1115(t, p, "SlotAgain", slot)
 		newGroupSetValue1115(t, p, "This", key)
+		if len(words) == 2 {
+			mustSetValue(p, "Participant", words[i])
+		}
 		for j := range p.Groups {
 			newGroupSetValue1115(t, &p.Groups[j], "G1C", selector)
 			owner := key

@@ -52,7 +52,8 @@ type Snapshot struct {
 	mapMotion     []currentAnimationClock
 	CityObjects   *cityObjectTopology
 	// cityGroups is the town's live Player group membership at capture.
-	cityGroups []cityLiveGroup
+	cityGroups       []cityLiveGroup
+	cityGroupsLoaded bool
 	// knowledge is the town's carried Player Diary at capture (UNIT-148,
 	// SAV-847). The town SAV writes it into the Player's Diary record.
 	knowledge []sim.SavedDiary
@@ -273,7 +274,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 	s.SelectedMission = t.selectedMission()
 	s.OfferLabels = snapshotOfferLabels(t)
 	s.CityObjects = t.cityObjects.Clone()
-	s.cityGroups = slices.Clone(t.cityGroups)
+	s.cityGroups, s.cityGroupsLoaded = slices.Clone(t.cityGroups), t.cityGroupsLoaded
 	s.knowledge = slices.Clone(t.knowledge)
 	s.HeroGrantState = true
 	for chapter, consumed := range t.heroGrants {
@@ -379,7 +380,7 @@ func restoreTown(c Campaign, s Snapshot) *Town {
 	}
 	t.cityObjects = s.CityObjects.Clone()
 	t.guest = s.guest.clone()
-	t.cityGroups = slices.Clone(s.cityGroups)
+	t.cityGroups, t.cityGroupsLoaded = slices.Clone(s.cityGroups), s.cityGroupsLoaded
 	t.knowledge = slices.Clone(s.knowledge)
 	t.gold = s.Gold
 	if s.MercenaryState && !restoredCampaign {

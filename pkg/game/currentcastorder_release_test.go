@@ -59,6 +59,7 @@ func castOrderSession(t *testing.T, dir string) (*FrontEnd, *ui.App) {
 // directory and returns that directory and the file's bytes.
 func castOrderF2Save(t *testing.T, f *FrontEnd, app *ui.App, name string) (string, []byte) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := f.live.world.Hash()
 	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("F2 SAVE", err, app.Screen())

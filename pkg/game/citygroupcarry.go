@@ -37,11 +37,11 @@ type cityLiveGroup struct {
 
 // reconcileCityGroups returns the live groups over the current party and the
 // party index of each member, group by group. A member who left the party
-// leaves its group; the group stays, empty, and is written as the original's
-// serializers write every listed group (SAV-1234). A member in no group joins
-// a new one: a hire the group of its mercenary type, one group per hired type
-// (PARTY-040), and any other member a group of its own (PARTY-039), each
-// appended in party order. A town with no group yet holds every member who is
+// leaves its group; the group stays listed, empty (writeCityGroups decides
+// whether a SAVE writes it). A member in no group joins a new one: a hire
+// the group of its mercenary type, one group per hired type (PARTY-040), and
+// any other member a group of its own (PARTY-039), each appended in party
+// order. A town with no group yet holds every member who is
 // not a hire in one constructed group (DIV-1686).
 func reconcileCityGroups(groups []cityLiveGroup, party []mapload.PartyMember) ([]cityLiveGroup, [][]int) {
 	index := make(map[string]int, len(party))
@@ -162,15 +162,35 @@ func (t *Town) settleCityGroups(party []mapload.PartyMember) {
 	t.cityGroups, _ = reconcileCityGroups(t.cityGroups, party)
 }
 
+// pruneCityGroupsForSave removes from groups a LOAD read each group left with
+// no party member, as SAVE removes the empty Groups of a Player whose
+// participant word +28 is zero; the town's Player is that Player. Groups a
+// campaign built without a LOAD stay listed.
+func (t *Town) pruneCityGroupsForSave(party []mapload.PartyMember) {
+	if t == nil || !t.cityGroupsLoaded {
+		return
+	}
+	groups, order := reconcileCityGroups(t.cityGroups, party)
+	kept := groups[:0:0]
+	for g := range groups {
+		if sim.SaveKeepsGroup(0, len(order[g])) {
+			kept = append(kept, groups[g])
+		}
+	}
+	t.cityGroups = kept
+}
+
 // writeCityGroups replaces the constructed single town group with the live
 // groups. Each group keeps its own field values and holds its members in live
-// order, and a group left with no member is not written. The owner and group
-// keys were remapped to the written Player or cleared when the group was
-// recorded.
+// order. When loaded, the groups came from a LOADed file and a group left with
+// no member is not written if the written Player's participant word +28 is
+// zero (sim.SaveKeepsGroup); a campaign that never LOADed writes every group.
+// The owner and group keys were remapped to the written Player or cleared
+// when the group was recorded.
 //
 // It returns the party index of each written actor in group order, the order
 // the document lists them in, or nil when the town has no single Player.
-func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cityLiveGroup) []int {
+func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cityLiveGroup, loaded bool) []int {
 	if city == nil || len(city.Players) != 1 {
 		return nil
 	}
@@ -179,16 +199,23 @@ func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cit
 		return nil
 	}
 	actors := written.Groups[0].Actors
+	participant := uint32(1)
+	if len(written.Fixed) == 51 {
+		participant = binary.LittleEndian.Uint32(written.Fixed[15:19])
+	}
 	groups, order := reconcileCityGroups(live, party)
-	written.Groups = make([]sav.CityGroupData, len(groups))
+	written.Groups = nil
 	for g := range groups {
+		if loaded && !sim.SaveKeepsGroup(participant, len(order[g])) {
+			continue
+		}
 		p := groups[g].Payload
 		out := sav.CityGroupData{Words20: slices.Clone(p.Words20), Raw80: slices.Clone(p.Raw80),
 			Words3c: slices.Clone(p.Words3c), F1c: p.F1c, F40: p.F40, F44: p.F44}
 		for _, i := range order[g] {
 			out.Actors = append(out.Actors, actors[i])
 		}
-		written.Groups[g] = out
+		written.Groups = append(written.Groups, out)
 	}
 	return slices.Concat(order...)
 }

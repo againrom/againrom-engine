@@ -83,6 +83,7 @@ func itemScrollBinding1115(t *testing.T, rows []SnapshotSAVObjectBinding, id sim
 
 func currentItemMenuCheckpoint(t *testing.T, f *FrontEnd, app *ui.App, fronts ...func(*testing.T) *FrontEnd) (*FrontEnd, *ui.App) {
 	t.Helper()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := snapshotCurrentObjects(t, f)
 	store := SaveStore{Dir: t.TempDir()}
 	save, list, load := f.SaveSeams(store, OriginalStore{}, nil)

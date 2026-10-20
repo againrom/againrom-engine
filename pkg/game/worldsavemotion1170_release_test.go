@@ -82,6 +82,7 @@ func worldMotionContinuation(t *testing.T, mode string) {
 	}
 	var native *FrontEnd
 	var encoded []byte
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	if !savOnlyHealing {
 		s, _, err := f.Snapshot(true)
 		if err != nil {

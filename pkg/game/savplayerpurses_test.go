@@ -157,6 +157,7 @@ func TestSavedPlayerPurses1115OriginalDoorsNativeSaveAndNextGoldAction(t *testin
 					f.live.tick()
 				}
 				want := [2]uint32{initial[0] + 5, initial[1] + 17}
+				f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 				before := purseCheck1115(t, f, want)
 				name := crossingMenuSave(t, app, store)
 				fresh := purseFront1115(t)

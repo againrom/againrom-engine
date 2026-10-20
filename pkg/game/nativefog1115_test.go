@@ -34,6 +34,7 @@ func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
 	if bytes.Equal(newSample.visible, visible) {
 		t.Fatal("movement did not discriminate saved visibility from a fresh sample")
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)

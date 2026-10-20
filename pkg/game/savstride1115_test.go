@@ -83,6 +83,7 @@ func TestSavedStride1115BothDoorsMenuSaveAndContinuation(t *testing.T) {
 						t.Fatalf("replacement command rewrote the accepted crossing: %+v", e)
 					}
 				}
+				f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 				before := groupDocumentSnapshot(t, f)
 				if err := app.HeadlessKey("escape"); err != nil {
 					t.Fatal(err)

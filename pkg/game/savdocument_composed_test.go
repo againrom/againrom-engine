@@ -207,13 +207,15 @@ func TestDocument1115ComposedGroupsStructuresMenuSaveFreshProcess(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			worldHash := fmt.Sprintf("%x", f.live.world.Hash())
 			if err := app.HeadlessKey("escape"); err != nil {
 				t.Fatal(err)
 			}
 			if err := app.HeadlessGameMenuAction("save"); err != nil {
 				t.Fatal(err)
 			}
+			// SAVE prunes the human Player's empty Groups from the live World
+			// before it writes; the World it wrote is the one after.
+			worldHash := fmt.Sprintf("%x", f.live.world.Hash())
 			entries, err := store.List()
 			if err != nil || len(entries) != 1 {
 				t.Fatal("ordinary SAVE", entries, err, app.HeadlessMessage())

@@ -389,6 +389,7 @@ func TestSavedCrossing1115OriginalDoorsMenuSaveFineContinuation(t *testing.T) {
 					f.live.tick()
 					tick++
 				}
+				f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 				before := crossingCheck1115(t, f, tick, replace)
 				name := crossingMenuSave(t, app, store)
 				fresh := crossingNativeDoor(t, store, name)
@@ -458,6 +459,7 @@ func TestSavedCrossing1115EmptyOldCellKeepsLifecycleIssueAcrossNativeLoad(t *tes
 		t.Fatal("empty-old-cell literal did not enter the active subset", e, motion)
 	}
 	f.live.tick()
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	before := groupDocumentSnapshot(t, f)
 	name := crossingMenuSave(t, app, store)
 	fresh := crossingNativeDoor(t, store, name)

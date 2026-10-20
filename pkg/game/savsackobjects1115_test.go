@@ -140,6 +140,7 @@ func TestSackObjects1115ExactGoldOwnerPickupNativeContinuation(t *testing.T) {
 	if f.live.world.Purse(e.Owner) != purse+23 || len(f.live.world.Sacks()) != 0 || f.live.world.SavedSackCellKey(0x100f) != 0 {
 		t.Fatal("actual pickup did not credit/remove the exact source Sack")
 	}
+	f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 	after := snapshotCurrentObjects(t, f)
 	if after.SavedDocument.Objects.Sacks[0].ObjectIndex != 0 || len(after.SavedDocument.Document.World.Sacks) != 0 || len(after.SavedDocument.Document.Objects) != len(initial.SavedDocument.Document.Objects)-1 {
 		t.Fatal("pickup did not explicitly retire source graph/binding")

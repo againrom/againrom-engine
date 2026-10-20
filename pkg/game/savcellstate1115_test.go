@@ -432,6 +432,7 @@ func TestSavedCellState1115OriginalDoorsConstructorDeletionNativeContinuation(t 
 						cellStateCheck1115(t, f, bit4, tick)
 						f.live.tick()
 					}
+					f.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 					before := cellStateCheck1115(t, f, bit4, saveAt)
 					hash := f.live.world.Hash()
 					name := crossingMenuSave(t, app, store)

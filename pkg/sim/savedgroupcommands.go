@@ -6,53 +6,33 @@ import (
 	"slices"
 )
 
-// resolveSavedGroups answers the one saved Group a script selector names. A
-// selector carried by Groups of different owners resolves to the later one in
-// the player-then-group walk, the original's id-only map with the last write
-// winning (AI-366); the earlier is unreachable by selector. Two Groups of one
-// owner, or an owner no Player row names, stay ambiguous and refuse. Whether a
-// SAV restore rebuilds the walk order is open, so the order here is the order
-// the document stores its Players and Groups in. A selector no Group carries
-// names no Group: a count reads zero and a command changes nothing.
+// resolveSavedGroups answers the one saved Group a script selector names: of
+// the Groups carrying it, the last in the Player-then-Group walk. The
+// original's id-only map keeps the last Group inserted (AI-366) and LOAD
+// rebuilds the lists in file order (SAV-1337), so after LOAD the later carrier
+// wins whether it belongs to a later Player or to the same one (SAV-1338); the
+// earlier is unreachable by selector. The walk order here is the order the
+// document stores its Players and Groups in. A selector no Group carries names
+// no Group: a count reads zero and a command changes nothing.
 func (w *World) resolveSavedGroups(selector uint32) ([]*SavedGroup, error) {
-	var found []*SavedGroup
-	var at []int
+	var found *SavedGroup
+	rank := 0
 	for i := range w.savedGroups.Groups {
 		g := &w.savedGroups.Groups[i]
 		if g.Selector != selector {
 			continue
 		}
-		found = append(found, g)
-		at = append(at, i)
+		if r := w.savedWalkRank(g, i); found == nil || r > rank {
+			found, rank = g, r
+		}
 	}
-	if len(found) == 0 {
+	if found == nil {
 		return nil, nil
 	}
-	if len(found) > 1 {
-		owners := map[uint32]bool{}
-		for _, g := range found {
-			owner, known := g.Owner.Owner, g.Owner.Class == 1
-			if g.OwnerID != 0 {
-				p, ok := w.savedPlayerByID(g.OwnerID)
-				owner, known = p.Slot, ok
-			}
-			if !known || owners[owner] {
-				return nil, fmt.Errorf("saved Group selector %d is ambiguous", selector)
-			}
-			owners[owner] = true
-		}
-		last := 0
-		for k := 1; k < len(found); k++ {
-			if w.savedWalkRank(found[k], at[k]) > w.savedWalkRank(found[last], at[last]) {
-				last = k
-			}
-		}
-		found = found[last : last+1]
-	}
-	if _, ok := w.savedLiving(found[0]); !ok {
+	if _, ok := w.savedLiving(found); !ok {
 		return nil, fmt.Errorf("saved Group selector %d has unmaterialized members", selector)
 	}
-	return found, nil
+	return []*SavedGroup{found}, nil
 }
 
 // savedWalkRank orders saved Groups as the original's list walk visits them:

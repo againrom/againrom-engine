@@ -94,6 +94,7 @@ func TestReleaseVirtualDeadSourceStateFollowsCurrentSave(t *testing.T) {
 			if before == loadedBody {
 				t.Fatal("play did not change the body record")
 			}
+			first.live.world.PruneGroupsForSave() // SAVE prunes first; the rest of it changes nothing
 			beforeHash := first.live.world.Hash()
 			dir := t.TempDir()
 			prepared, err := first.SaveDialogSeams(SaveStore{Dir: dir}, OriginalStore{}).Prepare(ui.SaveRequest{
