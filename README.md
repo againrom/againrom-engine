@@ -1,7 +1,8 @@
 # AgainROM
 
 AgainROM is a new engine for **Rage of Mages** (Allods, 1998). You play the
-original game's campaign with your own copy of the game, on Windows or macOS.
+original game's campaign with your own copy of the game, on Windows, macOS or
+Linux.
 
 It ships no game files. It reads the maps, graphics, sounds, music and movies
 from the files of a Rage of Mages copy that you already own. Both the English
@@ -13,7 +14,9 @@ original. Each known difference is listed in `docs/divergences/`.
 
 ## What you need
 
-- 64-bit Windows, or macOS on Intel or Apple Silicon.
+- 64-bit Windows, or macOS on Intel or Apple Silicon, or Linux. The releases carry
+  no Linux package; build it from source, see
+  [Install on Linux](#install-on-linux).
 - The game files of Rage of Mages, English or Russian, from a Windows install
   or the CD. The game is sold digitally, for example on GOG.
 
