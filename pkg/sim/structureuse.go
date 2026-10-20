@@ -3,7 +3,6 @@ package sim
 import (
 	"encoding/binary"
 	"slices"
-	"sort"
 )
 
 // StructureUse is one explicit command, independent of overlapping unit IDs.
@@ -152,23 +151,8 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 	if a.HasTarget && (cell{a.TargetX, a.TargetY}).chebyshevTo(goal) <= radius && w.open(scratch, terrainRelation, i, a.TargetX, a.TargetY) {
 		return false
 	}
-	var candidates []cell
-	for y := max(int64(0), int64(goal.y)-radius); y <= min(int64(w.bounds.Height)-1, int64(goal.y)+radius); y++ {
-		for x := max(int64(0), int64(goal.x)-radius); x <= min(int64(w.bounds.Width)-1, int64(goal.x)+radius); x++ {
-			if w.open(scratch, terrainRelation, i, int32(x), int32(y)) && w.restFree(scratch, i, int32(x), int32(y)) {
-				candidates = append(candidates, cell{int32(x), int32(y)})
-			}
-		}
-	}
-	sort.SliceStable(candidates, func(i, j int) bool {
-		return candidates[i].chebyshevTo(cellOf(&a)) < candidates[j].chebyshevTo(cellOf(&a))
-	})
-	for _, next := range candidates {
-		if route, found := w.searchRoute(scratch, i, terrainRelation, noWindow, w.farBudgetFor(i), exactGoal, next.x, next.y); found && len(route) > 0 {
-			w.walkTo(scratch, i, next.x, next.y)
-			w.routes[i] = route
-			return false
-		}
+	if w.approachCell(scratch, i, goal, radius, nil) {
+		return false
 	}
 	w.finishStructureUse(i)
 	w.restAt(scratch, i)

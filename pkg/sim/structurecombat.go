@@ -1,7 +1,5 @@
 package sim
 
-import "sort"
-
 // AttackTargetKind tags the handle stored in Entity.AttackTarget. Unit and
 // structure handles overlap, including zero. The zero tag preserves old saves.
 type AttackTargetKind uint8
@@ -56,25 +54,13 @@ func (w *World) approachStructure(scratch *routeScratch, i int) {
 			return
 		}
 	}
-	var candidates []cell
-	r := structureAttackRadius(a)
-	for y := max(int64(0), int64(s.Row)-r); y <= min(int64(w.bounds.Height)-1, int64(s.Row)+r); y++ {
-		for x := max(int64(0), int64(s.Col)-r); x <= min(int64(w.bounds.Width)-1, int64(s.Col)+r); x++ {
-			at := a
-			at.X, at.Y = int32(x), int32(y)
-			if InStructureReach(at, s) && w.open(scratch, terrainRelation, i, at.X, at.Y) && w.restFree(scratch, i, at.X, at.Y) {
-				candidates = append(candidates, cell{x: at.X, y: at.Y})
-			}
-		}
+	reaches := func(at cell) bool {
+		e := a
+		e.X, e.Y = at.x, at.y
+		return InStructureReach(e, s)
 	}
-	start := cellOf(&a)
-	sort.SliceStable(candidates, func(i, j int) bool { return candidates[i].chebyshevTo(start) < candidates[j].chebyshevTo(start) })
-	for _, goal := range candidates {
-		if route, ok := w.searchRoute(scratch, i, terrainRelation, noWindow, w.farBudgetFor(i), exactGoal, goal.x, goal.y); ok && len(route) > 0 {
-			w.walkTo(scratch, i, goal.x, goal.y)
-			w.routes[i] = route
-			return
-		}
+	if w.approachCell(scratch, i, cell{s.Col, s.Row}, structureAttackRadius(a), reaches) {
+		return
 	}
 	// A completely unreachable target cannot run an eternal ready cycle.
 	w.entities[i].clearAttack()
