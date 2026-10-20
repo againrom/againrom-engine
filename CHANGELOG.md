@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [BASE] The README now explains how to build and run the game on Linux.
+
 ## 0.128.0
 
 - [BASE] Message lines now say who they are about. A skill-raise line ends with

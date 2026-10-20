@@ -87,9 +87,38 @@ The ZIP preserves executable permissions and contains no game assets or player
 profiles. It holds three command-line-launched executables, without an `.app`
 bundle. Alternatively, run `./againrom -assets "/path/to/game folder"`.
 
+## Install on Linux
+
+The releases carry no Linux package. Build the three programs from source and
+run them from one folder. The build needs no C compiler.
+
+1. Install Go, at the version named in `go.mod`. Copy the files listed under
+   [Game files](#game-files) from a Windows install or the CD into one folder,
+   with `Allods` as a folder inside it. File names are found in any letter
+   case, so nothing needs renaming.
+2. In a clone of the source repository, build:
+
+   ```sh
+   CGO_ENABLED=0 go build -o bin/ ./cmd/againrom ./cmd/starter ./cmd/mapedit
+   ```
+
+3. Run `./bin/starter`. Under **Base game**, type the absolute path of the game
+   folder, press **Add**, then **Play**. The Linux starter has no clipboard
+   paste and no folder browser. Alternatively, run
+   `./bin/againrom -assets "/path/to/game folder"`.
+
+At run time Ebitengine loads these libraries
+from the system. Install the typical distribution packages for them:
+
+- OpenGL: `libGL`, `libOpenGL`, `libGLX` or `libEGL`.
+- X11: `libX11`, `libXcursor`, `libXext`, `libXi`, `libXinerama`, `libXrandr`
+  and `libXrender`.
+- Sound: a PulseAudio server, which PipeWire also provides. Without a
+  reachable server, sound falls back to `libasound.so.2` (ALSA).
+
 ## Map editor
 
-The map editor, `mapedit.exe` (`./mapedit` on macOS), comes in the same
+The map editor, `mapedit.exe` (`./mapedit` on macOS and Linux), comes in the same
 folder. Select a base in the starter and press **Map editor** (**Редактор карт** on a Russian install). See
 `docs/MODS.md` in the source repository for its keys.
 
@@ -113,8 +142,10 @@ By default, saves go to the `saves` folder beside `againrom.exe`. If the game
 runs from inside an install folder, they go to `Againrom\saves` there instead,
 or to the user configuration directory's `Againrom` when that folder is
 read-only (`%APPDATA%\Againrom` on Windows,
-`~/Library/Application Support/Againrom` on macOS). The Mac executable is named
-`againrom`; its install-local profile is `Againrom/saves` beside it.
+`~/Library/Application Support/Againrom` on macOS, `~/.config/Againrom` on
+Linux unless `XDG_CONFIG_HOME` names another folder). The Mac and Linux
+executable is named `againrom`; its install-local profile is `Againrom/saves`
+beside it.
 
 ## Mods
 
@@ -147,6 +178,8 @@ Requests about pirated copies of the game are closed without reply.
 
 You need Go, at the version named in `go.mod`.
 macOS builds also require Xcode Command Line Tools and `CGO_ENABLED=1`.
+Linux builds use `CGO_ENABLED=0` and need no C compiler; see
+[Install on Linux](#install-on-linux).
 
 ```
 go build ./...
