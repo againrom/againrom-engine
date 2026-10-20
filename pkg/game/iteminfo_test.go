@@ -74,8 +74,9 @@ func TestItemInfoLinesStatesAResolvableWeaponsDamageAndCombat(t *testing.T) {
 	want := []string{
 		"Sword",
 		fmt.Sprintf("#Damage: %d-%d", w.DamageBase, w.DamageBase+w.DamageSpread),
-		fmt.Sprintf("#To-hit: %d", w.ToHit),
-		fmt.Sprintf("#Defence: %d", w.Defence),
+		fmt.Sprintf("#To-hit %+d", w.ToHit),
+		fmt.Sprintf("#Defence %+d", w.Defence),
+		fmt.Sprintf("#Item lore %d", w.Range),
 	}
 	if !slices.Equal(got, want) {
 		t.Errorf("itemInfoLines(eqSwordCode) = %v, want %v", got, want)
@@ -486,51 +487,56 @@ func TestPackInfoLinesWithNoStacksAnswersNil(t *testing.T) {
 	}
 }
 
-// A ranged weapon's description ends with its range column; a melee weapon of
-// the same table states none. The caption is the installed range caption when
-// the words carry one.
-func TestItemInfoLinesStatesARangedWeaponsRange(t *testing.T) {
-	table := eqDefsTable(t)
-	bow, err := data.WeaponFromCode(data.ItemCode(eqBowCode), table.Shapes, table.Materials, table.Weapons)
-	if err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-	got := itemInfoLines(data.ItemCode(eqBowCode), table)
-	want := fmt.Sprintf("Range: %d", bow.Range)
-	if bow.Range != 6 || got[len(got)-1] != want {
-		t.Errorf("bow lines = %v, want last %q", got, want)
-	}
-	words := ui.AuthoredWords()
-	words.Hover[123] = "Installed Range"
-	got = itemInstanceInfoLines(sim.ItemInstance{Code: eqBowCode}, table, words)
-	if want = "Installed Range: 6"; got[len(got)-1] != want {
-		t.Errorf("installed caption lines = %v, want last %q", got, want)
-	}
-	for _, line := range itemInfoLines(data.ItemCode(eqSwordCode), table) {
-		if strings.Contains(line, "Range") {
-			t.Errorf("melee weapon states a range line %q", line)
-		}
-	}
-}
-
-// A shooting-skill weapon takes the melee equip arm yet is ranged: its range
-// column is stated, and a melee weapon with the same column is not.
-func TestItemInfoLinesStatesAShootingSkillWeaponsRange(t *testing.T) {
-	rowParams := func(kind int32) []int32 {
-		return []int32{-1, -1, -1, -1, -1, kind, 10, 20, 5, 3, -1, 6, 6, 4, -1, eqSuitAny}
+// A weapon's base pairs follow the formatter's stream order (ITEM-211): damage
+// as [base, base+spread], to-hit and defence only when positive, the range
+// byte whenever it exceeds 1 and whatever the attack type, all only when
+// sutableFor has bit 0. The range pair uses the stats label of tag 38.
+func TestItemInfoLinesBasePairsFollowTheWeaponStream(t *testing.T) {
+	row := func(kind, toHit, defence, rng, suit int32) []int32 {
+		return []int32{-1, -1, -1, -1, -1, kind, 10, 20, toHit, defence, -1, rng, 6, 4, -1, suit}
 	}
 	table := &mapload.Table{
 		Shapes: emptyScale{}, Materials: emptyScale{},
-		Weapons: dbCollection{{}, {name: "Crossbow", params: rowParams(data.SkillShoot)}, {name: "Spear", params: rowParams(data.SkillPike)}},
+		Weapons: dbCollection{{},
+			{name: "Bow", params: row(data.SkillShoot, 0, 0, 6, 1)},
+			{name: "Sword", params: row(data.SkillBlade, 5, 3, 1, 3)},
+			{name: "Spear", params: row(data.SkillPike, 0, 0, 2, 3)},
+			{name: "Wand", params: row(data.SkillBlade, 5, 3, 5, 2)},
+			{name: "Flamer", params: row(11, 0, 0, 8, 1)},
+			{name: "Beam", params: row(data.SkillShoot, 0, 0, 4, 0)},
+			{name: "Mace", params: row(data.SkillBlade, 0, 0, 3, 0)},
+		},
 	}
-	got := itemInfoLines(data.ComposeItemCode(0, 1, 0, 1), table)
-	if want := "Range: 6"; got[len(got)-1] != want {
-		t.Errorf("crossbow lines = %v, want last %q", got, want)
-	}
-	for _, line := range itemInfoLines(data.ComposeItemCode(0, 1, 0, 2), table) {
-		if strings.Contains(line, "Range") {
-			t.Errorf("melee weapon states a range line %q", line)
+	for _, tc := range []struct {
+		row  int
+		want []string
+	}{
+		{1, []string{"Bow", "#Damage: 10-20", "#Item lore 6"}},
+		{2, []string{"Sword", "#Damage: 10-20", "#To-hit +5", "#Defence +3"}},
+		{3, []string{"Spear", "#Damage: 10-20", "#Item lore 2"}},
+		{4, []string{"Wand"}},
+		{5, []string{"Flamer", "#Damage: 10-20", "#Item lore 8"}},
+		{6, []string{"Beam", "#Item lore 4"}},
+		{7, []string{"Mace"}},
+	} {
+		code := data.ComposeItemCode(0, 1, 0, tc.row)
+		if got := itemInfoLines(code, table); !slices.Equal(got, tc.want) {
+			t.Errorf("row %d lines = %q, want %q", tc.row, got, tc.want)
 		}
+		if got := itemInstanceInfoLines(sim.ItemInstance{Code: uint16(code)}, table); !slices.Equal(got, tc.want) {
+			t.Errorf("row %d instance lines = %q, want %q", tc.row, got, tc.want)
+		}
+	}
+	words := ui.AuthoredWords()
+	words.ItemStats[38] = "Installed Range"
+	code := data.ComposeItemCode(0, 1, 0, 1)
+	if got := itemInstanceInfoLines(sim.ItemInstance{Code: uint16(code)}, table, words); got[len(got)-1] != "#Installed Range 6" {
+		t.Errorf("installed caption lines = %q", got)
+	}
+	// Effects follow the base pairs under the magic heading.
+	with := itemInstanceInfoLines(sim.ItemInstance{Code: uint16(code), Effects: []sim.ItemEffect{{Kind: 2, Operand: 3}}}, table)
+	if len(with) != 5 || with[2] != "#Item lore 6" || with[3] != words.ItemMagic || !strings.HasPrefix(with[4], "#") {
+		t.Errorf("effect lines = %q", with)
 	}
 }
 

@@ -163,10 +163,24 @@ func missionCharacters(m *alm.Map, t *mapload.Table, ms *Mission) map[sim.Entity
 // zero. A mage without such a Weapon has no damage row. The row reads neither
 // the Weapon's built Spell nor the wearer's state.
 func mageCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
+	return castCardDamage(weapon, rules, spells, false)
+}
+
+// generatorCardDamage is the generator preview's damage row: the character
+// generation fill takes the first castSpell Effect of the template weapon, not
+// the last (HERO-172).
+func generatorCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule) (base, spread int64, ok bool) {
+	return castCardDamage(weapon, rules, spells, true)
+}
+
+func castCardDamage(weapon sim.ItemInstance, rules sim.Rules, spells []sim.SpellRule, first bool) (base, spread int64, ok bool) {
 	var cast sim.ItemEffect
 	for _, effect := range weapon.Effects {
 		if effect.Kind == 41 {
 			cast, ok = effect, true
+			if first {
+				break
+			}
 		}
 	}
 	if !ok {

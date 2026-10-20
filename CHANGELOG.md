@@ -8,6 +8,16 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+- [ROM1] A weapon's description now lists what the original lists, in its
+  order: the damage, the attack and defence bonuses when they are above zero,
+  and the range of every weapon whose range is above 1, bows and crossbows
+  included. A weapon that fighters may not wield, such as the Staff, lists
+  none of these; the Sonic Beam, Flame Thrower and Boulder Thrower keep their
+  range line. The character creation screen shows the damage of the first
+  spell a mage's weapon casts.
+- [ROM2] A weapon's description follows the same rule as the first game's: the
+  damage, the attack and defence bonuses when above zero and the range when
+  above 1; the Staff and the Shaman Staff list none of these.
 - [ROM1] A mage whose staff lost its spell, as in a game loaded from a save
   that holds the staff without it, now makes its ordinary ranged attack (the
   shot looks like Fire Arrows) instead of casting the staff's spell, as in the

@@ -4003,3 +4003,21 @@ func TestTheHeroLossBannerOpensOnceAndDismissingGoesToTheMenu(t *testing.T) {
 		t.Fatal("dismissing the loss banner left it open")
 	}
 }
+
+// A weapon with two castSpell Effects: the mission card reads the last, the
+// generator preview the first (HERO-172).
+func TestGeneratorCardTakesTheFirstCastSpellAndTheMissionCardTheLast(t *testing.T) {
+	fire := sim.SpellRule{ID: 1, DamageMin: 15, DamageMax: 18, MaxRange: 5, TargetsUnit: true, Damaging: true}
+	big := sim.SpellRule{ID: 2, DamageMin: 30, DamageMax: 40, MaxRange: 5, TargetsUnit: true, Damaging: true}
+	staff := sim.ItemInstance{Code: 0x0101, Kind: 2, Effects: []sim.ItemEffect{
+		{Kind: 41, Operand: 1 | 10<<16}, {Kind: 41, Operand: 2 | 10<<16}}}
+	rules, spells := sim.Rules{}, []sim.SpellRule{fire, big}
+	fb, fs, fok := generatorCardDamage(staff, rules, spells)
+	lb, ls, lok := mageCardDamage(staff, rules, spells)
+	if !fok || !lok || fb == lb || fs == ls {
+		t.Fatalf("first %d+%d (%v), last %d+%d (%v): the two must read different Effects", fb, fs, fok, lb, ls, lok)
+	}
+	if fb != 20 || lb != 40 {
+		t.Errorf("generator base %d, mission base %d, want 20 and 40", fb, lb)
+	}
+}

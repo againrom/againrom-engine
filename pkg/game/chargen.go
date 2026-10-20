@@ -323,6 +323,12 @@ func (f *FrontEnd) ChargenPreview(res ui.ChargenResult) ui.ChargenPreview {
 	// production panel owns the corresponding CELL -, - rendering; prediction
 	// of the mission's spawn cell would be a second placement path.
 	preview.Subject.Unplaced = true
+	if member.Mage && !tableFiles(f.Table).releasedSpellReadout {
+		worn := mapload.MemberItemEquipment(member, f.Table)
+		base, spread, ok := generatorCardDamage(worn[0], mapload.TableRules(f.Table), mapload.SpellRules(f.Table))
+		preview.Subject.Combat.WeaponSpellDamageKnown = ok
+		preview.Subject.Combat.SpellDamageBase, preview.Subject.Combat.SpellDamageSpread = base, spread
+	}
 	if f.Archives == nil {
 		return preview
 	}

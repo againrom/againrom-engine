@@ -105,18 +105,14 @@ func itemBaseInfoLines(code data.ItemCode, table *mapload.Table, words *ui.Words
 		return lines
 	}
 	if w, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons); err == nil {
-		// THE SHEET'S OWN COMPOSITION (panel.go's PanelFieldDamage): the
-		// first number is the base and the second is base + spread, the
-		// roll's own bounds (data.Combat's own doc — the roll is
-		// `base + U[0, spread]`, not a minimum and a maximum). Stating the
-		// spread itself, as "base + spread", would read as a range the roll
-		// cannot produce; the panel and the popup must agree.
-		base, spread := int64(w.DamageBase), int64(w.DamageSpread)
-		lines = append(lines, fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread))
-		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[12], w.ToHit))
-		lines = append(lines, fmt.Sprintf("#%s: %d", words.ItemStats[15], w.Defence))
-		if w.Ranged() || w.AttackType == data.SkillShoot {
-			lines = append(lines, weaponRangeLine(w.Range, words))
+		if base := weaponBaseLines(code, w, table, *words); len(base) > 0 {
+			return append(lines, base...)
+		}
+		// A ranged row no character may wield (sutableFor 0) has no base pair
+		// in the original. The owner's direction to state a ranged weapon's
+		// range keeps that one line for it (DIV-1757).
+		if (w.Ranged() || w.AttackType == data.SkillShoot) && uint8(w.Range) > 1 {
+			lines = append(lines, fmt.Sprintf("#%s %d", words.ItemStats[38], uint8(w.Range)))
 		}
 		return lines
 	}
@@ -126,6 +122,31 @@ func itemBaseInfoLines(code data.ItemCode, table *mapload.Table, words *ui.Words
 		if s, err := data.ShieldFromCode(code, table.Shapes, table.Materials, table.Shields); err == nil {
 			lines = append(lines, wornProtectionLines(s.Defence, s.Absorption, words)...)
 		}
+	}
+	return lines
+}
+
+// weaponBaseLines are the base pairs a Weapon writes after its name, in the
+// formatter's order (ITEM-211): only when sutableFor has bit 0 (a Staff and a
+// Shaman Staff have 2 and get none), the damage pair as `[base, base+spread]`
+// (ITEM-PANEL-022), then to-hit and defence when positive and the range when
+// it exceeds 1, for any attack type. The elemental pair needs the Weapon's
+// +0x66 byte, which the constructors zero (ITEM-157) and no item here carries.
+func weaponBaseLines(code data.ItemCode, w data.Weapon, table *mapload.Table, words ui.Words) []string {
+	suitable, known := data.SuitabilityFromCode(code, table.Weapons, table.Shields, table.Armors)
+	if !known || !suitable.Fighter {
+		return nil
+	}
+	base, spread := int64(w.DamageBase), int64(w.DamageSpread)
+	lines := []string{fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread)}
+	if w.ToHit > 0 {
+		lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[12], uint8(w.ToHit)))
+	}
+	if w.Defence > 0 {
+		lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[15], uint8(w.Defence)))
+	}
+	if uint8(w.Range) > 1 {
+		lines = append(lines, fmt.Sprintf("#%s %d", words.ItemStats[38], uint8(w.Range)))
 	}
 	return lines
 }
@@ -166,19 +187,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 	}
 	labels := castWeaponWords(words)
 	lines := []string{itemName(code, table)}
-	if suitable, known := data.SuitabilityFromCode(code, table.Weapons, table.Shields, table.Armors); known && suitable.Fighter {
-		base, spread := int64(w.DamageBase), int64(w.DamageSpread)
-		lines = append(lines, fmt.Sprintf("#%s: %d-%d", words.ItemStats[43], base, base+spread))
-		if w.ToHit > 0 {
-			lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[12], uint8(w.ToHit)))
-		}
-		if w.Defence > 0 {
-			lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[15], uint8(w.Defence)))
-		}
-		if uint8(w.Range) > 1 {
-			lines = append(lines, fmt.Sprintf("#%s %d", words.ItemStats[38], uint8(w.Range)))
-		}
-	}
+	lines = append(lines, weaponBaseLines(code, w, table, words)...)
 	lines = append(lines, labels.Hover[189])
 	rules := mapload.SpellRules(table)
 	for _, effect := range item.Effects {
@@ -287,19 +296,6 @@ func wornProtectionLines(defence, absorption int32, words *ui.Words) []string {
 		lines = append(lines, fmt.Sprintf("#%s %+d", words.ItemStats[16], uint8(absorption)))
 	}
 	return lines
-}
-
-// weaponRangeLine states a ranged weapon's own range column. A weapon is
-// ranged when its attack type is the shooting skill or takes the projectile
-// equip arm; a melee row's range column is reach and has no line. The caption is
-// the install's spellbook range caption, the one label the installed text
-// tables carry for a range; without an install it is the authored "Range".
-func weaponRangeLine(rng int32, words *ui.Words) string {
-	label := words.Hover[spellLabelRange]
-	if label == "" {
-		label = "Range"
-	}
-	return fmt.Sprintf("%s: %d", label, rng)
 }
 
 func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload.Table,
