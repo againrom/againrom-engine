@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.129.0
+
 - [ROM1] A hero whose pack holds items weighed by the game's item table now
   keeps his load when a save Againrom wrote is saved again by the original game
   and loaded back. Before, the save recorded such a pack as weightless, so
