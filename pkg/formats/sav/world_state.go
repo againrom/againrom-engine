@@ -1,6 +1,7 @@
 package sav
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"sort"
@@ -27,7 +28,87 @@ func parseWorldState(raw []byte) (*cityState, error) {
 	if len(raw) > maxWorldStateBytes {
 		return nil, fmt.Errorf("sav: world state store has %d bytes, exceeds %d", len(raw), maxWorldStateBytes)
 	}
-	return parseStateStore(raw, -1, -1, validateWorldState)
+	state, err := parseStateStore(raw, -1, -1, validateWorldState)
+	if err != nil {
+		return nil, err
+	}
+	return narrowWorldProjectiles(state)
+}
+
+// narrowProjectileLeaf is the width a record holds a Prj leaf in: action and
+// actiondir are bytes and actiontarget a word. SAVE writes the bytes
+// sign-extended and the word zero-extended, LOAD keeps the low byte or word
+// (SAV-1322); the other thirteen leaves are dwords (SAV-1202).
+func narrowProjectileLeaf(name string, v int32) int32 {
+	switch name {
+	case "action", "actiondir":
+		return int32(int8(v))
+	case "actiontarget":
+		return int32(uint16(v))
+	}
+	return v
+}
+
+// narrowWorldProjectiles gives a world state store the values the original's
+// LOAD keeps and its SAVE writes back: the low word of FreeIndex (SAV-1191),
+// each IDs element once as a zero-extended word, because a repeated ID
+// replaces the earlier record in the one record map SAVE walks (SAV-1322,
+// SAV-PROJLOAD-429), and the record widths of narrowProjectileLeaf. A state
+// that already holds those values is returned unchanged; otherwise a copy is.
+func narrowWorldProjectiles(state *cityState) (*cityState, error) {
+	if _, present := state.directoryKinds["/Projectiles"]; !present {
+		return state, nil
+	}
+	lookup := state.leafIndex()
+	changed := map[string]cityStateValue{}
+	if r, ok, err := lookup.read("/Projectiles/FreeIndex"); err != nil {
+		return nil, err
+	} else if ok && r.Value.Kind == 2 && r.Value.Int32 != int32(uint16(r.Value.Int32)) {
+		changed[r.Path] = cityStateValue{kind: 2, int32: int32(uint16(r.Value.Int32))}
+	}
+	var ids []uint16
+	if r, ok, err := lookup.read("/Projectiles/IDs"); err != nil {
+		return nil, err
+	} else if ok && r.Value.Kind == 2 {
+		ids = []uint16{uint16(r.Value.Int32)}
+	} else if ok && r.Value.Kind == 6 && len(r.Value.Bytes)%4 == 0 {
+		seen := map[uint16]bool{}
+		var kept []byte
+		for at := 0; at < len(r.Value.Bytes); at += 4 {
+			id := uint16(binary.LittleEndian.Uint32(r.Value.Bytes[at:]))
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			ids = append(ids, id)
+			kept = binary.LittleEndian.AppendUint32(kept, uint32(id))
+		}
+		if !bytes.Equal(kept, r.Value.Bytes) {
+			changed[r.Path] = cityStateValue{kind: 6, int32: r.Value.Int32, bytes: kept}
+		}
+	}
+	for _, id := range ids {
+		for _, name := range []string{"action", "actiondir", "actiontarget"} {
+			r, ok, err := lookup.read("/Prj" + strconv.FormatUint(uint64(id), 10) + "/" + name)
+			if err != nil {
+				return nil, err
+			}
+			if ok && r.Value.Kind == 2 && r.Value.Int32 != narrowProjectileLeaf(name, r.Value.Int32) {
+				changed[r.Path] = cityStateValue{kind: 2, int32: narrowProjectileLeaf(name, r.Value.Int32)}
+			}
+		}
+	}
+	if len(changed) == 0 {
+		return state, nil
+	}
+	out := &cityState{rootKind: state.rootKind, directoryKinds: state.directoryKinds, values: make(map[string]cityStateValue, len(state.values))}
+	for path, v := range state.values {
+		out.values[path] = v
+	}
+	for path, v := range changed {
+		out.values[path] = v
+	}
+	return out, nil
 }
 
 // worldStateSerializedSize bounds the record table and all retained leaf bytes
@@ -59,6 +140,10 @@ func worldStateSerializedSize(state *cityState) (uint64, error) {
 }
 
 func serializeWorldState(state *cityState) ([]byte, error) {
+	state, err := narrowWorldProjectiles(state)
+	if err != nil {
+		return nil, err
+	}
 	shape, err := worldStateShape(state)
 	if err != nil {
 		return nil, err
@@ -129,14 +214,14 @@ func worldStateShape(state *cityState) ([]stateDirectory, error) {
 		seen := make(map[uint16]bool, len(ids))
 		for _, id := range ids {
 			if seen[id] {
-				continue // Repeated IDs remain in the value; YA1 has one named section.
+				continue // A repeated ID names the same section; narrowWorldProjectiles drops it.
 			}
 			seen[id] = true
 			shape = append(shape, stateDirectory{"Prj" + strconv.FormatUint(uint64(id), 10), worldProjectileLeaves})
 		}
 	}
 	// Stable name order is transport, not projectile traversal order. The IDs
-	// array is never sorted, deduplicated, narrowed or reconstructed on output.
+	// array keeps its order; only narrowWorldProjectiles drops a repeat.
 	sort.Slice(shape, func(i, j int) bool { return shape[i].directory < shape[j].directory })
 	return shape, nil
 }

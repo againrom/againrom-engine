@@ -161,12 +161,40 @@ func projectile1157Read(raw []byte) (projectile1157Source, error) {
 			return bad("IDs is not an integer or integer array")
 		}
 	}
+	// SAV-1322, SAV-1191: LOAD keeps a word allocator, each ID once as a word,
+	// action and actiondir as signed bytes and actiontarget as a word.
+	if hasFree && free.kind&14 == 2 {
+		free.word = uint32(uint16(free.word))
+		s.values["/Projectiles/FreeIndex"] = free
+	}
 	unique := map[uint16]bool{}
+	var ids1 []uint16
 	for _, id := range s.ids {
-		if unique[id] {
-			continue
+		if !unique[id] {
+			unique[id] = true
+			ids1 = append(ids1, id)
 		}
-		unique[id] = true
+	}
+	if hasIDs && ids.kind&14 == 6 {
+		ids.data = nil
+		for _, id := range ids1 {
+			ids.data = binary.LittleEndian.AppendUint32(ids.data, uint32(id))
+		}
+		s.values["/Projectiles/IDs"] = ids
+	}
+	s.ids = ids1
+	for _, id := range s.ids {
+		for name, keep := range map[string]func(uint32) uint32{
+			"action":       func(w uint32) uint32 { return uint32(int32(int8(w))) },
+			"actiondir":    func(w uint32) uint32 { return uint32(int32(int8(w))) },
+			"actiontarget": func(w uint32) uint32 { return w & 0xffff },
+		} {
+			path := fmt.Sprintf("/Prj%d/%s", id, name)
+			if v, present := s.values[path]; present && v.kind&14 == 2 {
+				v.word = keep(v.word)
+				s.values[path] = v
+			}
+		}
 		item := projectile1157Item{id: id}
 		for i, name := range projectile1157Names {
 			path := fmt.Sprintf("/Prj%d/%s", id, name)

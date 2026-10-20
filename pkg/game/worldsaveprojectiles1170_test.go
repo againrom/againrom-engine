@@ -27,8 +27,8 @@ func TestWorld1170ProjectileConstructorAndRetirement(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, present, err := file.Projectiles()
-	if err != nil || !present || got.FreeIndex != 713 || !slices.Equal(got.IDs, current.IDs) || len(got.Items) != 2 {
-		t.Fatal("current allocator/order/multiplicity/sections lost", got, err)
+	if err != nil || !present || got.FreeIndex != 713 || !slices.Equal(got.IDs, []uint16{11, 7}) || len(got.Items) != 2 {
+		t.Fatal("current allocator/order/sections lost or a repeated ID written twice (SAV-1322)", got, err)
 	}
 	for _, p := range got.Items {
 		if p.ID == 11 && (p.X != 9 || p.Y != 10 || p.ActionTarget != 73 || p.ActionSegments != 3) {

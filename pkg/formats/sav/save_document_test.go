@@ -10,7 +10,7 @@ import (
 func worldDocumentLiteral(t *testing.T) ([]byte, []byte, []byte, []byte) {
 	t.Helper()
 	body, _ := archiveDocument1115Fixture()
-	state := literalStateStore(literalWorldDirectories(266, 7, 266))
+	state := literalStateStore(literalWorldDirectories(266, 7))
 	_, campaign := campaignProjectionFixture()
 	blob := Compress(body)
 	file := make([]byte, 16)

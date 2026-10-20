@@ -64,6 +64,23 @@ func counterRawFreeIndex(t *testing.T, raw []byte) (uint32, bool) {
 	return binary.LittleEndian.Uint32(leaf[4:]), true
 }
 
+// counterWideFreeIndex stores a FreeIndex dword the SAV writer, which writes
+// only the counter's word (SAV-1191), cannot produce.
+func counterWideFreeIndex(t *testing.T, raw []byte, value uint32) []byte {
+	t.Helper()
+	file, err := sav.Open(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file.Store = bytes.Clone(file.Store)
+	at := bytes.Index(file.Store, append([]byte("FreeIndex"), make([]byte, 7)...))
+	if at < 12 {
+		t.Fatal("counter witness has no FreeIndex node")
+	}
+	binary.LittleEndian.PutUint32(file.Store[at-12:], value)
+	return file.Marshal()
+}
+
 func TestProcessProjectileCounterMissionLoadUsesItsCompleteStore(t *testing.T) {
 	for _, present := range []bool{true, false} {
 		t.Run(fmt.Sprint(present), func(t *testing.T) {
@@ -87,6 +104,9 @@ func TestProcessProjectileCounterMissionLoadUsesItsCompleteStore(t *testing.T) {
 				}
 				return false
 			})
+			if present {
+				source = counterWideFreeIndex(t, source, 0x10049)
+			}
 			wire, found := counterRawFreeIndex(t, source)
 			if found != present || present && wire != 0x10049 {
 				t.Fatal("controlled raw FreeIndex input", wire, found)

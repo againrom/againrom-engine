@@ -56,7 +56,7 @@ func literalWorldDirectories(ids ...uint32) []literalStateDirectory {
 		seen[id] = true
 		d := literalStateDirectory{name: fmt.Sprintf("Prj%d", id)}
 		for i, name := range []string{"x", "y", "z", "picture", "dir", "phase", "lastaction", "action", "actiondir", "actiontarget", "actionx", "actiony", "actionz", "actionphase", "actionsegments", "actionspell"} {
-			d.leaves = append(d.leaves, literalStateLeaf{name: name, kind: 2, word: uint32(id)*100 + uint32(i)})
+			d.leaves = append(d.leaves, literalStateLeaf{name: name, kind: 2, word: uint32(narrowProjectileLeaf(name, int32(id)*100+int32(i)))})
 		}
 		dirs = append(dirs, d)
 	}
@@ -159,6 +159,10 @@ func TestWorldStateLiteralEmptyAndProjectileValues(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := literalStateStore(literalWorldDirectories(tc.ids...))
 			want, _ := literalReadState(raw)
+			if tc.name == "ordered-repeated-low-word" {
+				// SAV-1322: a repeated ID builds one record, and only the low word is kept.
+				want["/Projectiles/IDs"] = literalStateValue{kind: 6, data: string(literalStateWords(266, 7))}
+			}
 			state, err := parseWorldState(raw)
 			if err != nil {
 				t.Fatal(err)

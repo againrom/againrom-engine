@@ -9,19 +9,9 @@ import (
 )
 
 // The Projectiles state-store subtree (SAV-PROJSTORE-428, SAV-PROJLOAD-429):
-// the manager's allocator word, the live id set in wire order, and one
-// Prj<decimal u16 id> section per distinct id with its own sixteen kind-2
-// leaves. world_state.go's worldProjectileLeaves already names the shape for
-// parseWorldState/serializeWorldState (save_document.go's own codec); this
-// file is the typed read/write projection File.Open's own Marshal round trip
-// actually uses.
-//
-// No claim narrows any leaf's range: SAV-PROJSTORE-428 names what the
-// producer writes and SAV-PROJLOAD-429 what the loader reads, and neither
-// gives this project a flight model to simulate the leaves against. So this
-// package carries the sixteen fields opaquely, unnarrowed int32 — the same
-// choice Fog.FirstState already made for a leaf this package does not
-// interpret either.
+// the manager's allocator word, the live IDs in wire order, and one
+// Prj<decimal u16 id> section per ID with sixteen kind-2 leaves. Values carry
+// the widths of narrowProjectileLeaf (SAV-1322); the rest stay int32.
 
 const projectilesSection = "Projectiles"
 const (
@@ -29,21 +19,15 @@ const (
 	projectilesIDs       = "IDs"
 )
 
-// projectileLeafNames is worldProjectileLeaves' own name order, spelled once
-// more so the reader and writer below read as direct field-by-field
-// mirrors of each other. projectile_test.go pins this list against
-// worldProjectileLeaves directly, so the two can never silently drift apart.
+// projectileLeafNames is worldProjectileLeaves' name order (pinned by
+// projectile_test.go).
 var projectileLeafNames = []string{
 	"x", "y", "z", "picture", "dir", "phase", "lastaction", "action",
 	"actiondir", "actiontarget", "actionx", "actiony", "actionz",
 	"actionphase", "actionsegments", "actionspell",
 }
 
-// Projectile is one Prj<id> section's sixteen leaves: a spawned bolt's
-// position, facing, and sequencing/action state (SAV-PROJSTORE-428). This
-// build has no live projectile registry (pkg/game/projectiles.go is a
-// cosmetic renderer only), so every leaf stays an opaque carried value —
-// never simulated, never given a narrower range than the wire int it is.
+// Projectile is one Prj<id> section's sixteen leaves (SAV-PROJSTORE-428).
 type Projectile struct {
 	ID uint16
 
@@ -65,32 +49,19 @@ type Projectile struct {
 
 // ProjectileStore is one world save's whole Projectiles subtree.
 //
-// IDs is the wire array's own order and multiplicity, exactly as read — the
-// world-state writer never sorts, dedupes or narrows it (world_state.go).
-// Items holds one entry per DISTINCT id named by IDs, first-occurrence
-// order: YA1 has one Prj<id> section regardless of how many times its id
-// repeats in IDs, so a repeat reads the same section again rather than
-// producing a second Items entry.
+// IDs keeps the wire array's order and names each ID once: a repeated ID
+// replaces the earlier record in the original's one record map, which SAVE
+// walks (SAV-1322). Items holds one entry per ID, in that order.
 type ProjectileStore struct {
 	FreeIndex uint16
 	IDs       []uint16
 	Items     []Projectile
 }
 
-// Projectiles reads the Projectiles state-store subtree through the same
-// loader-tolerant path SAV-PROJLOAD-429 describes: FreeIndex and IDs each
-// default independently when absent, IDs accepts both its canonical kind-6
-// array form and the kind-2 singleton compatibility arm, and this reports
-// false — not an error — where the tail carries a store but neither leaf is
-// present at all, which is a between-mission save's own shape.
-//
-// A present id whose Prj<id> section lacks one of the sixteen leaves is
-// accepted rather than refused, defaulting the missing leaf to zero: the
-// loader itself reads a missing leaf as "the constructed object's own
-// field", which this package cannot reproduce byte for byte with no live
-// object to default from, and SAV-PROJCORP-430's exhaustive corpus audit
-// never exercises this arm — every observed Prj<id> section carries all
-// sixteen leaves.
+// Projectiles reads the subtree as SAV-PROJLOAD-429's loader does: FreeIndex
+// and IDs default independently, IDs may be kind 6 or a kind-2 singleton, and
+// a store with neither leaf reports false. A missing Prj leaf reads as zero;
+// the original's constructed default is not established.
 func (f *File) Projectiles() (ProjectileStore, bool, error) {
 	r := f.StateLeaves()
 	free, hasFree, err := r.ReadLeaf("/Projectiles/FreeIndex")
@@ -115,17 +86,16 @@ func (f *File) Projectiles() (ProjectileStore, bool, error) {
 		if ids.Type == reg.TypeIntArray {
 			array = ids.Ints
 		}
-		store.IDs = make([]uint16, len(array))
-		for i, v := range array {
-			store.IDs[i] = uint16(v)
+		seen := make(map[uint16]bool, len(array))
+		store.IDs = make([]uint16, 0, len(array))
+		for _, v := range array {
+			if !seen[uint16(v)] {
+				seen[uint16(v)] = true
+				store.IDs = append(store.IDs, uint16(v))
+			}
 		}
 	}
-	seen := make(map[uint16]bool, len(store.IDs))
 	for _, id := range store.IDs {
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
 		section := "Prj" + strconv.FormatUint(uint64(id), 10)
 		var leafErr error
 		leaf := func(name string) int32 {
@@ -136,7 +106,7 @@ func (f *File) Projectiles() (ProjectileStore, bool, error) {
 			if !present || v.Dir || v.Type != reg.TypeInt {
 				return 0
 			}
-			return v.Int
+			return narrowProjectileLeaf(name, v.Int)
 		}
 		store.Items = append(store.Items, Projectile{
 			ID: id,
@@ -155,29 +125,10 @@ func (f *File) Projectiles() (ProjectileStore, bool, error) {
 	return store, true, nil
 }
 
-// SetProjectiles replaces the Projectiles state-store subtree with a
-// canonical encoding of store: FreeIndex and IDs both present, IDs kind 6
-// (SAV-PROJSTORE-428's own canonical producer shape, taken even where the
-// loader would also accept the singleton compatibility arm), and one whole
-// Prj<id> section per distinct id named by store.IDs.
-//
-// It targets a world-present save's own state store; a between-mission save
-// (f.World == nil) has no Projectiles subtree to hold and refuses. It builds
-// on parseWorldState/serializeWorldState — the shape-strict codec — because
-// a producer always emits the complete canonical form, never the partial
-// shapes the loader-tolerant reader above accepts.
-//
-// A Prj<id> section this write keeps (its id named by both the previous and
-// the new store) has its sixteen leaf VALUES overwritten but its own
-// DIRECTORY KIND WORD left exactly as parsed: leaf kinds are fully
-// determined by worldProjectileLeaves and validateStateShape compares them
-// by strict equality, but a directory's kind word may carry flag bits (e.g.
-// 0x10) validateStateShape never inspects, and this write must not invent a
-// value for one it did not read. Only a section actually created here (its
-// id absent from the file before this call) gets a fresh kind word, and
-// exactly the shape validateStateShape already accepts (1: a plain
-// directory, none of its own checked bits set). The Projectiles directory
-// itself follows the same rule.
+// SetProjectiles replaces the subtree with the canonical producer shape
+// (SAV-PROJSTORE-428): FreeIndex, IDs kind 6 and one whole Prj<id> section per
+// ID. A between-mission save has no world half and refuses. A directory kind
+// word already in the file is kept; a created directory gets kind 1.
 func (f *File) SetProjectiles(store ProjectileStore) error {
 	if f.World == nil {
 		return fmt.Errorf("sav: SetProjectiles requires a world-half save")

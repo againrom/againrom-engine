@@ -135,7 +135,7 @@ func TestProjectiles1157LossControls(t *testing.T) {
 			case "ID-high-level-order":
 				got.IDs[0], got.IDs[1] = got.IDs[1], got.IDs[0]
 			case "ID-multiplicity":
-				got.IDs = got.IDs[:2]
+				got.IDs = append(got.IDs, got.IDs[0])
 			case "distinct-population":
 				got.Items = got.Items[:1]
 			case "item-order":
@@ -253,7 +253,7 @@ func TestProjectiles1157IndependentState(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			raw := projectile1157Fixture(t, mode)
 			want, _ := projectile1157Resume(t, raw)
-			if mode == "array" && (want.free != 0xfedc || !slices.Equal(want.ids, []uint16{266, 7, 266}) || len(want.items) != 2 || uint32(want.items[0].fields[0]) != 0x81235282 || len(want.values) != 34) {
+			if mode == "array" && (want.free != 0xfedc || !slices.Equal(want.ids, []uint16{266, 7}) || len(want.items) != 2 || uint32(want.items[0].fields[0]) != 0x81235282 || len(want.values) != 34) {
 				t.Fatalf("literal allocator/IDs/fields differ before App import: %+v", want)
 			}
 		})

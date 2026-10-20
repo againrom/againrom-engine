@@ -35,8 +35,8 @@ func TestProjectilesDecodesAllocatorAndSections(t *testing.T) {
 	if store.FreeIndex != 0x1234 {
 		t.Fatalf("FreeIndex = %#x, want 0x1234", store.FreeIndex)
 	}
-	if !reflect.DeepEqual(store.IDs, []uint16{266, 7, 266}) {
-		t.Fatalf("IDs = %v, want [266 7 266] (wire order and multiplicity preserved)", store.IDs)
+	if !reflect.DeepEqual(store.IDs, []uint16{266, 7}) {
+		t.Fatalf("IDs = %v, want [266 7] (wire order, each ID once)", store.IDs)
 	}
 	if len(store.Items) != 2 {
 		t.Fatalf("Items has %d entries, want 2 (one per distinct id)", len(store.Items))
@@ -54,7 +54,8 @@ func TestProjectilesDecodesAllocatorAndSections(t *testing.T) {
 		want := Projectile{
 			ID: id,
 			X:  base, Y: base + 1, Z: base + 2, Picture: base + 3, Dir: base + 4, Phase: base + 5,
-			LastAction: base + 6, Action: base + 7, ActionDir: base + 8, ActionTarget: base + 9,
+			LastAction: base + 6, Action: narrowProjectileLeaf("action", base+7),
+			ActionDir: narrowProjectileLeaf("actiondir", base+8), ActionTarget: narrowProjectileLeaf("actiontarget", base+9),
 			ActionX: base + 10, ActionY: base + 11, ActionZ: base + 12, ActionPhase: base + 13,
 			ActionSegments: base + 14, ActionSpell: base + 15,
 		}
@@ -209,7 +210,11 @@ func TestSetProjectilesRoundTripsThroughReopen(t *testing.T) {
 			if got.FreeIndex != tc.store.FreeIndex {
 				t.Fatalf("FreeIndex = %#x, want %#x", got.FreeIndex, tc.store.FreeIndex)
 			}
-			if !reflect.DeepEqual(got.IDs, tc.store.IDs) && !(len(got.IDs) == 0 && len(tc.store.IDs) == 0) {
+			wantIDs := tc.store.IDs
+			if tc.name == "repeated id" {
+				wantIDs = []uint16{5, 9} // SAVE names a repeated ID once (SAV-1322).
+			}
+			if !reflect.DeepEqual(got.IDs, wantIDs) && !(len(got.IDs) == 0 && len(wantIDs) == 0) {
 				t.Fatalf("IDs = %v, want %v", got.IDs, tc.store.IDs)
 			}
 			if len(got.Items) != len(tc.store.Items) {
