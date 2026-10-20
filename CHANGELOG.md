@@ -8,6 +8,8 @@ Each entry starts with its scope: [BASE] for the engine under both games,
 
 ## Unreleased
 
+## 0.128.0
+
 - [BASE] Message lines now say who they are about. A skill-raise line ends with
   the character's name in parentheses, as in `Blade skill improved: 11 (Gord)`,
   and a pickup line names the character who picked the item up:
