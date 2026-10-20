@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 )
 
 // initialPlayerPurse is written when the campaign participant is created. It
@@ -110,22 +111,15 @@ type Town struct {
 
 	available map[int]bool
 
-	// taken records consumed stable offer indices. Native authored lists use
-	// it as their removal set; ordinary arrays already contain the removals.
-	taken       map[offerRef]bool
+	// townState is the state of the town the party belongs to: its consumed
+	// offers and its tavern's mercenaries, keyed by the town's catalog ID.
+	townState
+
 	offerLabels *currentOfferLabels
 
 	// Consumed native campaign grants, separate from the immutable registry.
 	// Original campaigns keep their current AddHero array in progress.
 	heroGrants map[int]bool
-
-	// mercPool, mercEnabled and mercHired are the tavern economy's three
-	// independent per-type records. Index zero is unused because the shipped
-	// type ids are one-based.
-	mercPool     [16]int
-	mercCapacity [16]int
-	mercEnabled  [16]bool
-	mercHired    [16]bool
 
 	// cityGroups is the Player's group membership, replaced and never edited
 	// in place so a copied Town shares it.
@@ -196,6 +190,62 @@ const (
 	DocumentText    = 1
 )
 
+// townState is one town's own state: what its buildings handed out and what
+// its tavern holds. newTownState is its one builder.
+type townState struct {
+	// id is the town's catalog ID.
+	id int
+
+	// taken records consumed stable offer indices. Native authored lists use
+	// it as their removal set; ordinary arrays already contain the removals.
+	taken map[offerRef]bool
+
+	// mercPool, mercEnabled and mercHired are the tavern economy's three
+	// independent per-type records. Index zero is unused because the shipped
+	// type ids are one-based.
+	mercPool     [16]int
+	mercCapacity [16]int
+	mercEnabled  [16]bool
+	mercHired    [16]bool
+}
+
+// newTownState builds the state of catalog town e over campaign c, with no
+// offer taken. A town whose offers are the chapter keys starts its tavern's
+// pools at the campaign's MercenaryCount. A town whose offers are the
+// scenario bank holds no pool: the bank holds its inn and the shop records
+// hold its shop, both indexed by its ID.
+func newTownState(e town.Entry, c Campaign) townState {
+	s := townState{id: e.ID, taken: make(map[offerRef]bool)}
+	if e.Offers != townOffersChapterKeys {
+		return s
+	}
+	for i, n := range c.MercenaryCount {
+		if i+1 >= len(s.mercPool) {
+			break
+		}
+		if n > 0 {
+			s.mercPool[i+1] = n
+			s.mercCapacity[i+1] = n
+		}
+	}
+	return s
+}
+
+// chapterTownEntry is the catalog entry of the town a chapter campaign's
+// party belongs to. NewTown builds over a campaign without a profile, so it
+// states the entry each chapter catalog lists: town 1, offers from the
+// chapter keys.
+var chapterTownEntry = town.Entry{ID: chapterTown, Offers: townOffersChapterKeys}
+
+// townID is the catalog ID of the town the state belongs to; a Town built by
+// hand without one belongs to the chapter town.
+func (t *Town) townID() int {
+	if t == nil || t.id == 0 {
+		return chapterTown
+	}
+	return t.id
+}
+
 // NewTown builds the town over a campaign. The zero campaign is legal and
 // yields a town with no chapter, which is what an install declaring no campaign
 // has always meant one level up.
@@ -205,21 +255,12 @@ func NewTown(c Campaign) *Town {
 		gold:      initialPlayerPurse,
 		won:       make(map[int]bool),
 		available: make(map[int]bool),
-		taken:     make(map[offerRef]bool),
+		townState: newTownState(chapterTownEntry, c),
 	}
 	if len(c.Main) != 0 {
 		t.main = c.Main[0]
 	}
 	t.records = newCampaignRecords(c, t.main)
-	for i, n := range c.MercenaryCount {
-		if i+1 >= len(t.mercPool) {
-			break
-		}
-		if n > 0 {
-			t.mercPool[i+1] = n
-			t.mercCapacity[i+1] = n
-		}
-	}
 	return t
 }
 

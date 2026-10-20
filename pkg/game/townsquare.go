@@ -11,6 +11,16 @@ import (
 	"againrom/pkg/ui"
 )
 
+// rom1TownCatalogJSON is the first game's town catalog: its one town.
+//
+//go:embed towncatalogs/rom1.json
+var rom1TownCatalogJSON []byte
+
+// rom2TownCatalogJSON is the second game's town catalog: its three towns.
+//
+//go:embed towncatalogs/rom2.json
+var rom2TownCatalogJSON []byte
+
 // rom1TownJSON is the ROM1 town square as data for the town composer. Every
 // value in it carries the claim, divergence row or owner ruling behind it.
 //
@@ -38,39 +48,13 @@ var rom2Town2JSON []byte
 //go:embed towns/rom2-town3.json
 var rom2Town3JSON []byte
 
-// townDescriptions are the town descriptions a profile's edition can name, by
-// that name. A description that does not decode, or names a hook or condition
-// the campaign does not answer, is a build defect, so it stops the process at
-// start. They are decoded in init because the hooks they are checked against
-// reach the descriptions themselves.
-var townDescriptions map[string]*town.Description
-
-func init() {
-	townDescriptions = map[string]*town.Description{
-		"rom1":       mustDecodeTown(rom1TownJSON, townVocabulary()),
-		"rom2-town1": mustDecodeTown(rom2Town1JSON, secondTownVocabulary()),
-		"rom2-town2": mustDecodeTown(rom2Town2JSON, secondTownVocabulary()),
-		"rom2-town3": mustDecodeTown(rom2Town3JSON, secondTownVocabulary()),
-	}
-}
-
-// TownDescription is the town description the profile's edition names, or
-// nil when its game's town is not a composed square. Callers must not change
-// it.
-func TownDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Town] }
-
-// RoomDescription is the town description whose rooms the profile reads: the
-// first game's tavern, shop and school pages and their scene art,
-// as the edition's Rooms names them; nil for the second game, whose towns
-// name their rooms in their own descriptions. Callers must not change it.
-func RoomDescription(p base.Profile) *town.Description { return townDescriptions[p.Edition().Rooms] }
-
-func mustDecodeTown(data []byte, vocab town.Vocabulary) *town.Description {
-	d, err := town.Decode(data, vocab)
-	if err != nil {
-		panic(err)
-	}
-	return d
+// TownDescription is the description of the town the first game's town
+// screen composes: the profile's catalog town under the chapters hook set,
+// town 1, the town a chapter party stands in; nil when the profile's catalog
+// has no such town. It names the rooms the tavern, shop and school pages and
+// their scene art are read from as well. Callers must not change it.
+func TownDescription(p base.Profile) *town.Description {
+	return townDescriptionOf(TownCatalog(p), chapterTown, townHooksChapters)
 }
 
 // townPages are the page kinds the ROM1 town screen draws its rooms with.
@@ -109,13 +93,20 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 	return town.LoadArt(d.SquareScene(), screenArtOf(src))
 }
 
-// townDescription is the town description of the install's profile; a screen
-// bound to no install is the zero profile's, the first game's.
-func (t *townScreen) townDescription() *town.Description { return TownDescription(t.profile()) }
-
-// roomDescription is the description the screen's rooms read, by the
-// install's profile as RoomDescription states it.
-func (t *townScreen) roomDescription() *town.Description { return RoomDescription(t.profile()) }
+// townDescription is the description of the town the party stands in, from
+// the install profile's catalog; a screen bound to no install is the zero
+// profile's, the first game's. Where the party stands in no town (a mission,
+// or a campaign that has not reached its town) it is the chapter town's. The
+// screen's rooms read it too.
+func (t *townScreen) townDescription() *town.Description {
+	id := chapterTown
+	if t != nil {
+		if here, ok := campaignOf(t.profile().GameOf()).place(t.sess).town(); ok {
+			id = here
+		}
+	}
+	return townDescriptionOf(TownCatalog(t.profile()), id, townHooksChapters)
+}
 
 func (t *townScreen) profile() base.Profile {
 	if t == nil {

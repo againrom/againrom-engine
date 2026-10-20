@@ -16,7 +16,7 @@ import (
 // code does not choose by game, however the choice is written.
 //
 // A game identity is a base.Game or base.Campaign value, an Edition identity
-// field (Game, SaveTag, Campaign, CutsceneArchive, Town), a conversion of one,
+// field (Game, SaveTag, Campaign, CutsceneArchive, Towns), a conversion of one,
 // its string form (fmt.Sprint, String, a case or space change), a
 // concatenation holding one, a local defined from one, or a string constant
 // some edition carries as an identity. Reading Edition data that is not an
@@ -132,7 +132,7 @@ func LoadProfileFindings(root string) ([]ProfileFinding, error) {
 
 // profileIdentityFields are the Edition fields that say which game an edition
 // is, as against what it holds.
-var profileIdentityFields = map[string]bool{"Game": true, "SaveTag": true, "Campaign": true, "CutsceneArchive": true, "Town": true}
+var profileIdentityFields = map[string]bool{"Game": true, "SaveTag": true, "Campaign": true, "CutsceneArchive": true, "Towns": true}
 
 // profileIdentityStrings are the string values pkg/base gives a game: its
 // Game constants and every string an Edition literal sets in an identity
@@ -420,7 +420,7 @@ func (s *profileScan) editionDatum(e ast.Expr) bool {
 
 // profileDataNames are the identity fields that name data: a lookup keyed by
 // one reads the data the edition names.
-var profileDataNames = map[string]bool{"Town": true, "CutsceneArchive": true}
+var profileDataNames = map[string]bool{"Towns": true, "CutsceneArchive": true}
 
 // dataName reports whether e is an Edition field naming data, read as is.
 func (s *profileScan) dataName(e ast.Expr) bool {

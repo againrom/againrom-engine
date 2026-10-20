@@ -446,7 +446,7 @@ func TestInstallShareReadsTownArtOnFirstUse(t *testing.T) {
 		t.Fatal("a fresh share read a town picture before any front end asked")
 	}
 	profile := share.archives.Base.Profile
-	rooms, src := RoomDescription(profile), share.archives.Containers
+	rooms, src := TownDescription(profile), share.archives.Containers
 	school, schoolErr := LoadTownSchoolArt(rooms, src)
 	tavern, tavernErr := LoadTownTavernArt(rooms, src)
 	square, squareErr := LoadTownSquareArtFor(TownDescription(profile), src)

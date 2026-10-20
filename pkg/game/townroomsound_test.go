@@ -265,7 +265,7 @@ func TestShopRoomRequestsTheCensusSounds(t *testing.T) {
 // source of these sounds.
 func TestShopRoomSoundRowsAreTheRequestSource(t *testing.T) {
 	_, a, s, rec := shopSoundFixture(t)
-	withShopTriggers(t, s.roomDescription(), nil)
+	withShopTriggers(t, s.townDescription(), nil)
 	base := len(rec.requests)
 	roomShopPointer(t, a, "shelf", 0, "press", "release")
 	roomShopPointer(t, a, "table", 0, "press", "release")
@@ -340,8 +340,8 @@ func TestTavernAndSchoolRoomSoundRowsAreTheRequestSource(t *testing.T) {
 	f := shellFrontEnd()
 	s := f.townUI
 	rec := addRoomSounds(f)
-	withRoomTriggers(t, s.roomDescription(), "tavern", nil)
-	withRoomTriggers(t, s.roomDescription(), "school", nil)
+	withRoomTriggers(t, s.townDescription(), "tavern", nil)
+	withRoomTriggers(t, s.townDescription(), "school", nil)
 	s.TownSurfacePress(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: 0})
 	s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: 0}, false)
 	f.Town.mercPool[3], f.Town.gold = 2, 1000
@@ -357,7 +357,7 @@ func TestTavernAndSchoolRoomSoundRowsAreTheRequestSource(t *testing.T) {
 // TestRoomSoundTriggersValidate refuses a trigger on a slot the table does
 // not hold.
 func TestRoomSoundTriggersValidate(t *testing.T) {
-	d := RoomDescription(shellFrontEnd().townUI.profile())
+	d := TownDescription(shellFrontEnd().townUI.profile())
 	if err := d.Validate(); err != nil {
 		t.Fatalf("the shipped description fails validation: %v", err)
 	}

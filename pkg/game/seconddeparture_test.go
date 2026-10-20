@@ -16,7 +16,7 @@ func TestSecondCampaignTwentyAcknowledgementProductionRoute(t *testing.T) {
 	f, app, _ := secondCampaignFixture(t, true)
 	c := newSecondCampaign()
 	c.bank[768] = 20
-	c.current, c.available = secondLocation{1, 20}, []secondLocation{{1, 20}}
+	c.current, c.available = partyPlace{1, 20}, []partyPlace{{1, 20}}
 	f.Town.second = c
 	w := secondGameScriptWorld(t, []sim.ScriptInstant{{Op: sim.ScriptInstantWin}}, []sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
 	w.SetROM2ScenarioState(c.bank)
@@ -39,7 +39,7 @@ func TestSecondCampaignTwentyAcknowledgementProductionRoute(t *testing.T) {
 	if err := app.HeadlessActivate("notice"); err != nil {
 		t.Fatal(err)
 	}
-	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}}) || c.bank[916] != 1 || c.bank[768] != 30 {
+	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}}) || c.bank[916] != 1 || c.bank[768] != 30 {
 		t.Fatalf("M20 acknowledgement did not reach town2: screen=%v live=%v current=%v available=%v stage=%d completed=%d message=%q", app.Screen(), f.live != nil, c.current, c.available, c.bank[768], c.bank[916], app.HeadlessMessage())
 	}
 }
@@ -50,7 +50,7 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if err := app.HeadlessActivate("new game"); err != nil {
 			t.Fatal(err)
 		}
-		c := &secondCampaign{current: secondLocation{1, 20}, available: []secondLocation{{1, 20}}}
+		c := &secondCampaign{current: partyPlace{1, 20}, available: []partyPlace{{1, 20}}}
 		f.Town.second = c
 		var incoming [1024]int32
 		for i := range incoming {
@@ -94,9 +94,9 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 				t.Fatalf("gate%d bank[%d]=%d want%d", gate, slot, got, want)
 			}
 		}
-		want := []secondLocation{{2, 2}}
+		want := []partyPlace{{2, 2}}
 		if gate != 0 {
-			want = append(want, secondLocation{1, 21})
+			want = append(want, partyPlace{1, 21})
 		}
 		if !reflect.DeepEqual(c.available, want) {
 			t.Fatal("native append order", c.available, want)
@@ -117,10 +117,10 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 			}
 			return fmt.Errorf("unavailable row %s", target)
 		}
-		if err := secondMapTravel(app, screen, secondLocation{2, 2}); err != nil {
+		if err := secondMapTravel(app, screen, partyPlace{2, 2}); err != nil {
 			t.Fatal(err)
 		}
-		if c.current != (secondLocation{2, 2}) || !screen.CanSave() || screen.Header() != "ROM2 campaign: town 2" {
+		if c.current != (partyPlace{2, 2}) || !screen.CanSave() || screen.Header() != "ROM2 campaign: town 2" {
 			t.Fatal("quiet town2", c)
 		}
 		if choose("mission 10") == nil {
@@ -151,17 +151,17 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if err := choose("GATES"); err != nil {
 			t.Fatal(err)
 		}
-		if c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, want) {
+		if c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, want) {
 			t.Fatal("town2 departure removed available node")
 		}
 		if gate != 0 {
-			if secondMapTravel(app, screen, secondLocation{1, 21}) == nil {
+			if secondMapTravel(app, screen, partyPlace{1, 21}) == nil {
 				t.Fatal("absent mission map admitted")
 			}
-			if c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, want) {
+			if c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, want) {
 				t.Fatal("failed installed entry changed campaign")
 			}
-		} else if secondMapTravel(app, screen, secondLocation{1, 21}) == nil {
+		} else if secondMapTravel(app, screen, partyPlace{1, 21}) == nil {
 			t.Fatal("zero772 enabled21")
 		}
 	}
@@ -192,7 +192,7 @@ func TestCurrentSecondLaterAdmissionIsAtomic(t *testing.T) {
 }
 
 func TestSecondCampaignOptionalMissionDepartureRetainsTown(t *testing.T) {
-	c := &secondCampaign{current: secondLocation{1, 21}, available: []secondLocation{{2, 2}, {1, 21}}}
+	c := &secondCampaign{current: partyPlace{1, 21}, available: []partyPlace{{2, 2}, {1, 21}}}
 	c.bank[768], c.bank[772], c.bank[916] = 30, -4, 1
 	c.bank[512], c.bank[513], c.bank[515] = 3, -1, 4
 	c.bank[532], c.bank[533], c.bank[534], c.bank[773] = -7, 6, 2, 19
@@ -210,10 +210,10 @@ func TestSecondCampaignOptionalMissionDepartureRetainsTown(t *testing.T) {
 		t.Fatal(err)
 	}
 	c.complete(w)
-	if c.bank != want || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}}) {
+	if c.bank != want || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}}) {
 		t.Fatal("optional ordinary departure invented a successor", c)
 	}
-	c.current = secondLocation{2, 2}
+	c.current = partyPlace{2, 2}
 	if !c.savePoint() {
 		t.Fatal("completed optional mission lost quiet town2 save point")
 	}

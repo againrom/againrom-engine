@@ -161,7 +161,7 @@ func secondShopColdProof(t *testing.T, path string, id int) {
 	c := f.Town.second
 	got := captureSecondCampaign(c)
 	equal := reflect.DeepEqual(got.Shop, proof.Shop) && secondPartyJSON(got.Party) == secondPartyJSON(proof.Party)
-	if c.current != (secondLocation{2, id}) || c.room != secondTownShop || f.Town.gold != proof.Gold || !equal {
+	if c.current != (partyPlace{2, id}) || c.room != secondTownShop || f.Town.gold != proof.Gold || !equal {
 		t.Fatalf("cold LOAD: current %v room %d gold %d/%d shop and hero equal %v", c.current, c.room, f.Town.gold, proof.Gold, equal)
 	}
 	tables, ok := secondShopTables(f.Table)

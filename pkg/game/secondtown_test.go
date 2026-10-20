@@ -68,7 +68,7 @@ func checkSecondTownCites(t *testing.T, data []byte) {
 // lists TAVERN then GATES by hotspot row, and its music is the track the
 // game's music description names for town 1.
 func TestRom2TownDescriptionShape(t *testing.T) {
-	d := townDescriptions[secondTownDescriptions[1]]
+	d := secondTownDescription(1)
 	if d == nil {
 		t.Fatal("town 1 has no description")
 	}
@@ -99,7 +99,7 @@ func TestRom2TownDescriptionShape(t *testing.T) {
 	if r := d.Room("inn"); r == nil || r.Page != "inn" || r.Seats == nil || r.Seats.Count() != 18 || len(r.Buttons) != 3 {
 		t.Fatal("the inn is not an inn page with 18 seats and 3 buttons")
 	}
-	if RoomDescription(p) != nil {
+	if TownDescription(p) != nil {
 		t.Error("the second game reads a room description")
 	}
 }
@@ -109,7 +109,7 @@ func TestRom2TownDescriptionShape(t *testing.T) {
 // stage-keyed section, its music is the track the game's music description
 // names for town 2, and its inn is the same page kind as town 1's.
 func TestRom2TownTwoDescriptionShape(t *testing.T) {
-	d := townDescriptions[secondTownDescriptions[2]]
+	d := secondTownDescription(2)
 	if d == nil {
 		t.Fatal("town 2 has no description")
 	}
@@ -144,7 +144,7 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 	if track, ok := GameMusic(p).TownTrack(2); !ok || track != d.Music.Track {
 		t.Errorf("music %q, game music names %q", d.Music.Track, track)
 	}
-	one := townDescriptions[secondTownDescriptions[1]].Room("inn")
+	one := secondTownDescription(1).Room("inn")
 	r := d.Room("inn")
 	if r == nil || r.Page != one.Page || r.Seats == nil || len(r.Buttons) != len(one.Buttons) {
 		t.Fatal("the inn is not town 1's inn page kind")
@@ -172,7 +172,7 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 // track the game's music description names for town 3, and its inn is the
 // same page kind as town 1's (R2-ENGINE-258).
 func TestRom2TownThreeDescriptionShape(t *testing.T) {
-	d := townDescriptions[secondTownDescriptions[3]]
+	d := secondTownDescription(3)
 	if d == nil {
 		t.Fatal("town 3 has no description")
 	}
@@ -210,7 +210,7 @@ func TestRom2TownThreeDescriptionShape(t *testing.T) {
 	if track, ok := GameMusic(p).TownTrack(3); !ok || track != d.Music.Track {
 		t.Errorf("music %q, game music names %q", d.Music.Track, track)
 	}
-	one := townDescriptions[secondTownDescriptions[1]].Room("inn")
+	one := secondTownDescription(1).Room("inn")
 	r := d.Room("inn")
 	if r == nil || r.Page != one.Page || r.Seats == nil || len(r.Buttons) != len(one.Buttons) {
 		t.Fatal("the inn is not town 1's inn page kind")

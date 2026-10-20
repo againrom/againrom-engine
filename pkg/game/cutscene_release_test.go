@@ -212,7 +212,7 @@ func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
 func roomTablePCM(t *testing.T, f *FrontEnd) [][]byte {
 	t.Helper()
 	roomPCM := [][]byte{}
-	for _, room := range RoomDescription(f.Base().Profile).Rooms {
+	for _, room := range TownDescription(f.Base().Profile).Rooms {
 		if room.Scene == nil {
 			continue
 		}

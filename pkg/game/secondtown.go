@@ -13,10 +13,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// secondTownDescriptions names the composed description of each second-game
-// town by its ID. A town without one keeps the row list.
-var secondTownDescriptions = map[int]string{1: "rom2-town1", 2: "rom2-town2", 3: "rom2-town3"}
-
 // secondTownPages are the page kinds the second game's town screen draws.
 var secondTownPages = []string{"inn", "shop"}
 
@@ -128,14 +124,15 @@ func newSecondTownState(f *FrontEnd) *secondTownState {
 		art: map[string]*secondTownArt{}, seat: -1}
 }
 
-// composedTown answers the description of the current town when it is
-// composed.
+// composedTown answers the description of the current town when the
+// install profile's catalog composes it under the second game's hook set. A
+// town the catalog does not list keeps the row list.
 func (t *secondCampaignScreen) composedTown() (*town.Description, bool) {
 	c := t.state()
-	if c == nil || c.current.kind != 2 || t.composed == nil {
+	if c == nil || c.current.kind != placeTown || t.composed == nil {
 		return nil, false
 	}
-	d := townDescriptions[secondTownDescriptions[c.current.id]]
+	d := townDescriptionOf(TownCatalog(t.install.profile()), c.current.id, townHooksDestinations)
 	return d, d != nil
 }
 

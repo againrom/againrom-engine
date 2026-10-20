@@ -17,6 +17,8 @@ import (
 type campaignService interface {
 	// townScreen is the screen the town is shown on.
 	townScreen(f *FrontEnd) ui.TownScreen
+	// place is where the session's party stands: a town or a mission.
+	place(s *CampaignSession) partyPlace
 	// townSavePoint refuses a save taken off the map when the town is not
 	// at a save point.
 	townSavePoint(f *FrontEnd) error

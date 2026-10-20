@@ -440,7 +440,7 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 	if ca.Screen() != ui.ScreenMap || cold.live == cw || cold.liveMission != 20 || !cold.Town.Done(10) {
 		t.Fatalf("#victory Victory reached screen=%s mission=%d done=%v", ca.Screen(), cold.liveMission, cold.Town.Done(10))
 	}
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (partyPlace{kind: placeMission, id: 20}) || len(c.available) != 1 || c.available[0] != (partyPlace{kind: placeMission, id: 20}) {
 		t.Fatal("#victory did not advance the campaign exactly once", c)
 	}
 }

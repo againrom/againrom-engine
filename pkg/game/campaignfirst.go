@@ -66,6 +66,21 @@ func (firstCampaignRules) statesCampaign(*currentSessionData) bool { return fals
 
 func (firstCampaignRules) canEnter(*Town, int) bool { return true }
 
+// place: the party stands in its live mission while one is open, and
+// otherwise in the town its town state belongs to once the campaign has
+// reached the town; before that it stands nowhere.
+func (firstCampaignRules) place(s *CampaignSession) partyPlace {
+	switch {
+	case s == nil:
+		return partyPlace{}
+	case s.live != nil && s.liveMission > 0:
+		return partyPlace{kind: placeMission, id: s.liveMission}
+	case s.Town.Open():
+		return partyPlace{kind: placeTown, id: s.Town.townID()}
+	}
+	return partyPlace{}
+}
+
 func (firstCampaignRules) enterMission(*Town, int) {}
 
 func (firstCampaignRules) seatWorld(missionRequest, *Mission) error { return nil }

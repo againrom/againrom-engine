@@ -156,7 +156,7 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 		return nil
 	}
 	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop, c.legacyHero), Party: captureSecondParty(c)}
-	if c.current.kind == 2 {
+	if c.current.kind == placeTown {
 		room := c.room
 		out.Room = &room
 	}
@@ -192,7 +192,7 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &secondCampaign{bank: c.Bank, current: secondLocation{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party)}
+	out := &secondCampaign{bank: c.Bank, current: partyPlace{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party)}
 	if c.Shop != nil {
 		out.legacyHero = slices.Clone(c.Shop.Hero)
 	}
@@ -205,7 +205,7 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 		out.room = *c.Room
 	}
 	for _, l := range c.Available {
-		out.available = append(out.available, secondLocation{l.Kind, l.ID})
+		out.available = append(out.available, partyPlace{l.Kind, l.ID})
 	}
 	return out
 }

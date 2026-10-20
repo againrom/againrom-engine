@@ -221,9 +221,9 @@ func TestSecondMapRouteModeTravelsToTheFirstRecord(t *testing.T) {
 func TestSecondMapArrivalEntersTheFirstRecordAtTheTarget(t *testing.T) {
 	f, _, screen := secondCampaignFixture(t, true)
 	c := newSecondCampaign()
-	c.current, c.available = secondLocation{2, 3}, []secondLocation{{2, 3}, {2, 2}, {1, 30}}
+	c.current, c.available = partyPlace{2, 3}, []partyPlace{{2, 3}, {2, 2}, {1, 30}}
 	f.Town.second = c
-	if !c.leaveTown() || c.mapOpen.route || c.mapOpen.from != (secondLocation{2, 3}) || !screen.AtWorldMap() {
+	if !c.leaveTown() || c.mapOpen.route || c.mapOpen.from != (partyPlace{2, 3}) || !screen.AtWorldMap() {
 		t.Fatal("leaving town 3 did not open the map in select mode")
 	}
 	s := screen.worldMapNow()
@@ -233,13 +233,13 @@ func TestSecondMapArrivalEntersTheFirstRecordAtTheTarget(t *testing.T) {
 	s.missions[2].Anchor = s.missions[1].Anchor
 	s.startTravel(2)
 	s.skipTravel()
-	if act := screen.WorldMapTick(); act.Open != nil || c.current != (secondLocation{2, 2}) || c.room != secondTownSquare || screen.AtWorldMap() {
+	if act := screen.WorldMapTick(); act.Open != nil || c.current != (partyPlace{2, 2}) || c.room != secondTownSquare || screen.AtWorldMap() {
 		t.Fatalf("arrival entered %v, want town 2, the first record at the target", c.current)
 	}
-	c.current = secondLocation{2, 1}
+	c.current = partyPlace{2, 1}
 	c.bank[769] = 1
-	c.available = []secondLocation{{2, 1}, {1, 10}}
-	if !c.leaveTown() || !c.mapOpen.route || !reflect.DeepEqual(c.available, []secondLocation{{1, 10}}) {
+	c.available = []partyPlace{{2, 1}, {1, 10}}
+	if !c.leaveTown() || !c.mapOpen.route || !reflect.DeepEqual(c.available, []partyPlace{{1, 10}}) {
 		t.Fatal("leaving town 1 did not open route mode")
 	}
 	if s := screen.worldMapNow(); s.modeSpec().Name != secondMapRoute || s.selected != 0 {
@@ -253,15 +253,15 @@ func TestSecondMapArrivalEntersTheFirstRecordAtTheTarget(t *testing.T) {
 func TestSecondVictoryEntersWithoutTheMapWhenNoTownIsAvailable(t *testing.T) {
 	c := newSecondCampaign()
 	c.bank[768] = 20
-	c.available = []secondLocation{{1, 20}}
+	c.available = []partyPlace{{1, 20}}
 	if got := c.enteredWithoutMap(); got != 20 {
 		t.Fatalf("no town available enters %d, want 20", got)
 	}
-	c.available = []secondLocation{{1, 21}, {2, 2}}
+	c.available = []partyPlace{{1, 21}, {2, 2}}
 	if got := c.enteredWithoutMap(); got != 0 {
 		t.Fatal("a town available entered without the map")
 	}
-	c.available, c.bank[768] = []secondLocation{{1, 20}}, 120
+	c.available, c.bank[768] = []partyPlace{{1, 20}}, 120
 	if got := c.enteredWithoutMap(); got != 0 {
 		t.Fatal("the credits stage entered a record")
 	}

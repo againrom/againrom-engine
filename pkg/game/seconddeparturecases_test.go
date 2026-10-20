@@ -31,23 +31,23 @@ var (
 		80: 800000, 90: 1500000, 100: 5000000, 110: 10000000}
 )
 
-func departureAdds(n int, bank [1024]int32) []secondLocation {
+func departureAdds(n int, bank [1024]int32) []partyPlace {
 	switch n {
 	case 10:
-		return []secondLocation{{1, 20}}
+		return []partyPlace{{1, 20}}
 	case 20:
 		if bank[772] != 0 {
-			return []secondLocation{{2, 2}, {1, 21}}
+			return []partyPlace{{2, 2}, {1, 21}}
 		}
-		return []secondLocation{{2, 2}}
+		return []partyPlace{{2, 2}}
 	case 31:
-		return []secondLocation{{1, 32}}
+		return []partyPlace{{1, 32}}
 	case 40:
-		return []secondLocation{{1, 50}, {1, 60}}
+		return []partyPlace{{1, 50}, {1, 60}}
 	case 50:
-		return []secondLocation{{2, 3}}
+		return []partyPlace{{2, 3}}
 	case 60:
-		return []secondLocation{{1, 80}}
+		return []partyPlace{{1, 80}}
 	}
 	return nil
 }
@@ -131,9 +131,9 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 		for _, stage := range []int32{20, 100, 110} {
 			for gates := 0; gates < 32; gates++ {
 				incoming, aux := departureIncoming(stage, gates)
-				other := secondLocation{2, 2}
-				c := &secondCampaign{bank: incoming, shop: shopWithAux(aux), current: secondLocation{1, n},
-					available: []secondLocation{other, {1, n}}}
+				other := partyPlace{2, 2}
+				c := &secondCampaign{bank: incoming, shop: shopWithAux(aux), current: partyPlace{1, n},
+					available: []partyPlace{other, {1, n}}}
 				output := c.completeBank(incoming)
 				want := incoming
 				want[773] = 0
@@ -178,9 +178,9 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 						wantAux[0][0], wantAux[1][0], wantAux[3][0] = extra, extra, extra
 					}
 				}
-				wantAvailable := append([]secondLocation{other}, departureAdds(n, incoming)...)
+				wantAvailable := append([]partyPlace{other}, departureAdds(n, incoming)...)
 				if n == 20 {
-					wantAvailable = append([]secondLocation{other}, departureAdds(n, incoming)[1:]...)
+					wantAvailable = append([]partyPlace{other}, departureAdds(n, incoming)[1:]...)
 				}
 				name := fmt.Sprintf("ID %d stage %d gates %05b", n, stage, gates)
 				if c.bank != want {
@@ -199,7 +199,7 @@ func TestSecondDepartureCaseBodies(t *testing.T) {
 				if output != departureOutput(n, incoming) {
 					t.Fatalf("%s: output %d want %d", name, output, departureOutput(n, incoming))
 				}
-				if c.current != (secondLocation{}) {
+				if c.current != (partyPlace{}) {
 					t.Fatalf("%s: current kept", name)
 				}
 			}
@@ -218,7 +218,7 @@ func TestSecondDepartureJoinAndStageSwitch(t *testing.T) {
 		{10, 10, 20}, {20, 20, 30}, {21, 30, 30}, {90, 80, 90}, {120, 100, 110}, {25, 40, 40},
 		{41, 35, 35}, {30, 110, 120}, {31, 0, 0}, {100, -10, 0},
 	} {
-		c := &secondCampaign{current: secondLocation{1, tc.n}, available: []secondLocation{{1, tc.n}}}
+		c := &secondCampaign{current: partyPlace{1, tc.n}, available: []partyPlace{{1, tc.n}}}
 		var bank [1024]int32
 		bank[768] = tc.stage
 		c.completeBank(bank)
@@ -266,7 +266,7 @@ func TestSecondDepartureMovieExitsFollowTheirGates(t *testing.T) {
 		{110, map[int]int32{779: 0}, 4},
 		{20, nil, -1}, {90, nil, -1}, {100, nil, -1}, {41, nil, -1},
 	} {
-		c := &secondCampaign{current: secondLocation{1, tc.n}, available: []secondLocation{{1, tc.n}}}
+		c := &secondCampaign{current: partyPlace{1, tc.n}, available: []partyPlace{{1, tc.n}}}
 		var bank [1024]int32
 		bank[768] = 20
 		for slot, value := range tc.slots {
@@ -302,7 +302,7 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 			app.SetCutscenes(movies)
 			c := newSecondCampaign()
 			c.bank[768] = int32(tc.n - tc.n%10)
-			c.current, c.available = secondLocation{1, tc.n}, []secondLocation{{1, tc.n}, {2, 2}}
+			c.current, c.available = partyPlace{1, tc.n}, []partyPlace{{1, tc.n}, {2, 2}}
 			f.Town.second = c
 			w := secondGameScriptWorld(t, []sim.ScriptInstant{{Op: sim.ScriptInstantWin}}, []sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
 			bank := c.bank
@@ -329,7 +329,7 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 			if err := app.HeadlessActivate("notice"); err != nil {
 				t.Fatal(err)
 			}
-			if app.Screen() != ui.ScreenTown || c.current != (secondLocation{}) || c.bank[896+tc.n] != 1 {
+			if app.Screen() != ui.ScreenTown || c.current != (partyPlace{}) || c.bank[896+tc.n] != 1 {
 				t.Fatalf("acknowledgement did not depart: screen=%v current=%v message=%q", app.Screen(), c.current, app.HeadlessMessage())
 			}
 			if tc.movie == "" {
@@ -350,7 +350,7 @@ func TestSecondDepartureMovieAtAcknowledgement(t *testing.T) {
 // departures, and capture writes the records in the shop, not the array.
 // Malformed arrays refuse without replacing the target.
 func TestCurrentSecondLegacyAuxiliaryArrayRebuildsRecords(t *testing.T) {
-	c := &secondCampaign{current: secondLocation{1, 31}, available: []secondLocation{{2, 2}, {1, 31}}, shop: newSecondShop()}
+	c := &secondCampaign{current: partyPlace{1, 31}, available: []partyPlace{{2, 2}, {1, 31}}, shop: newSecondShop()}
 	c.bank[768] = 30
 	plain, err := json.Marshal(captureSecondCampaign(c))
 	if err != nil || strings.Contains(string(plain), "Aux") {
@@ -400,12 +400,12 @@ func TestCurrentSecondLegacyAuxiliaryArrayRebuildsRecords(t *testing.T) {
 // departure keeps its node (R2-ENGINE-144).
 func TestSecondCampaignThirdTown(t *testing.T) {
 	f, app, screen := secondCampaignFixture(t, true)
-	c := &secondCampaign{current: secondLocation{1, 50}, available: []secondLocation{{2, 2}, {1, 50}, {1, 60}}}
+	c := &secondCampaign{current: partyPlace{1, 50}, available: []partyPlace{{2, 2}, {1, 50}, {1, 60}}}
 	c.bank[768] = 40
 	f.Town.second = c
 	app.SetTown(screen)
 	c.completeBank(c.bank)
-	want := []secondLocation{{2, 2}, {1, 60}, {2, 3}}
+	want := []partyPlace{{2, 2}, {1, 60}, {2, 3}}
 	if !reflect.DeepEqual(c.available, want) || c.bank[768] != 50 {
 		t.Fatal("mission 50 departure", c.available, c.bank[768])
 	}
@@ -419,10 +419,10 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 		}
 		t.Fatalf("unavailable row %s in %v", target, screen.Rows())
 	}
-	if err := secondMapTravel(app, screen, secondLocation{2, 3}); err != nil {
+	if err := secondMapTravel(app, screen, partyPlace{2, 3}); err != nil {
 		t.Fatal(err)
 	}
-	if c.current != (secondLocation{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}, {Text: "SHOP", Choosable: true}}) {
+	if c.current != (partyPlace{2, 3}) || screen.Header() != "ROM2 campaign: town 3" || !reflect.DeepEqual(screen.Rows(), []ui.TownRow{{Text: "TAVERN", Choosable: true}, {Text: "GATES", Choosable: true}, {Text: "INNKEEPER", Choosable: true}, {Text: "SHOPKEEPER", Choosable: true}, {Text: "SHOP", Choosable: true}}) {
 		t.Fatal("town 3 screen", c.current, screen.Header(), screen.Rows())
 	}
 	if got := screen.Footer(); !reflect.DeepEqual(got, []string{"Town 2 services are unavailable.", "Town 3 services are unavailable."}) {
@@ -440,7 +440,7 @@ func TestSecondCampaignThirdTown(t *testing.T) {
 		t.Fatal("town 3 restoration", err)
 	}
 	choose("GATES")
-	if c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, want) {
+	if c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, want) {
 		t.Fatal("town 3 departure changed availability", c.available)
 	}
 	for _, bad := range []func(*currentSecondCampaign){

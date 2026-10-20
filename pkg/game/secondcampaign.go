@@ -11,11 +11,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-type secondLocation struct {
-	kind int
-	id   int
-}
-
 type secondTownRoom uint8
 
 const (
@@ -33,8 +28,8 @@ type secondAux [8][5]int32
 
 type secondCampaign struct {
 	bank      [1024]int32
-	available []secondLocation
-	current   secondLocation
+	available []partyPlace
+	current   partyPlace
 	room      secondTownRoom
 	payload   []byte
 	part      int
@@ -53,13 +48,13 @@ type secondCampaign struct {
 }
 
 func newSecondCampaign() *secondCampaign {
-	initial := secondLocation{kind: 2, id: 1}
-	c := &secondCampaign{available: []secondLocation{initial}, current: initial, shop: newSecondShop()}
+	initial := partyPlace{kind: placeTown, id: 1}
+	c := &secondCampaign{available: []partyPlace{initial}, current: initial, shop: newSecondShop()}
 	c.bank[768] = 10
 	return c
 }
 
-func (c *secondCampaign) has(location secondLocation) bool {
+func (c *secondCampaign) has(location partyPlace) bool {
 	for _, candidate := range c.available {
 		if candidate == location {
 			return true
@@ -71,7 +66,7 @@ func (c *secondCampaign) has(location secondLocation) bool {
 // leaveTown is the type-2 departure: town 1 removes its node, a later town
 // keeps it, and both clear current (R2-ENGINE-144).
 func (c *secondCampaign) leaveTown() bool {
-	if c.current.kind != 2 || !c.gateOpen() {
+	if c.current.kind != placeTown || !c.gateOpen() {
 		return false
 	}
 	if c.current.id == 1 {
@@ -84,7 +79,7 @@ func (c *secondCampaign) leaveTown() bool {
 		c.available = remaining
 	}
 	c.openMap(c.current)
-	c.current = secondLocation{}
+	c.current = partyPlace{}
 	return true
 }
 
@@ -95,14 +90,14 @@ func (c *secondCampaign) gateOpen() bool {
 }
 
 func (c *secondCampaign) canEnter(n int) bool {
-	return c.current == (secondLocation{}) && c.has(secondLocation{kind: 1, id: n})
+	return c.current == (partyPlace{}) && c.has(partyPlace{kind: placeMission, id: n})
 }
 
 // finish admits the ordinary completion of mission n. won is the front end's
 // one win predicate: the script outcome or the announced client outcome, which
 // the victory command reaches through the same completion (R2-ENGINE-303).
 func (c *secondCampaign) finish(n int, w *sim.World, won bool) error {
-	if !secondContinues(n) || c.current != (secondLocation{kind: 1, id: n}) || !c.has(c.current) || w == nil || !won {
+	if !secondContinues(n) || c.current != (partyPlace{kind: placeMission, id: n}) || !c.has(c.current) || w == nil || !won {
 		return fmt.Errorf("campaign continuation after mission %d is unavailable", n)
 	}
 	bank, ok := w.ROM2ScenarioState()
@@ -147,36 +142,36 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 		}
 	}
 	c.available = remaining
-	add := func(l secondLocation) {
+	add := func(l partyPlace) {
 		if !c.has(l) {
 			c.available = append(c.available, l)
 		}
 	}
 	switch n {
 	case 10:
-		add(secondLocation{1, 20})
+		add(partyPlace{1, 20})
 		output = 1
 	case 20:
-		add(secondLocation{2, 2})
+		add(partyPlace{2, 2})
 		if c.bank[772] != 0 {
-			add(secondLocation{1, 21})
+			add(partyPlace{1, 21})
 		}
 		c.bank[532], c.bank[552] = 1, 2
 	case 30:
 		output = 2
 	case 31:
-		add(secondLocation{1, 32})
+		add(partyPlace{1, 32})
 	case 40:
-		add(secondLocation{1, 50})
-		add(secondLocation{1, 60})
+		add(partyPlace{1, 50})
+		add(partyPlace{1, 60})
 		c.bank[773] = 23
 	case 50:
 		// The bank780-gated fixed record has no resolved type or ID and is
 		// not appended (DIV-2629).
-		add(secondLocation{2, 3})
+		add(partyPlace{2, 3})
 		c.bank[771], c.bank[534], c.bank[554] = 1, 1, 3
 	case 60:
-		add(secondLocation{1, 80})
+		add(partyPlace{1, 80})
 		c.bank[537], c.bank[557], c.bank[774] = 1, 2, 1
 	case 70:
 		c.bank[535], c.bank[555] = 1, 3
@@ -203,7 +198,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	}
 	c.shop.stage(c.bank[768])
 	c.openMap(c.current)
-	c.current, c.room = secondLocation{}, secondTownSquare
+	c.current, c.room = partyPlace{}, secondTownSquare
 	return output
 }
 
@@ -268,7 +263,7 @@ func (t *secondCampaignScreen) state() *secondCampaign {
 }
 
 func (t *secondCampaignScreen) Header() string {
-	if c := t.state(); c != nil && c.current.kind == 2 {
+	if c := t.state(); c != nil && c.current.kind == placeTown {
 		if c.room == secondTownInn {
 			return "ROM2 campaign: tavern"
 		}
@@ -288,7 +283,7 @@ func (t *secondCampaignScreen) Rows() []ui.TownRow {
 	if d, ok := t.composedTown(); ok {
 		return t.composedRows(d, c)
 	}
-	if c.current.kind == 2 {
+	if c.current.kind == placeTown {
 		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
 		if c.room != secondTownInn {
 			return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
@@ -305,7 +300,7 @@ func (t *secondCampaignScreen) Footer() []string {
 	}
 	var out []string
 	for id := 2; id <= 3; id++ { // DIV-2438, DIV-2631
-		if town := (secondLocation{2, id}); c.current == town || c.has(town) {
+		if town := (partyPlace{2, id}); c.current == town || c.has(town) {
 			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
 		}
 	}
@@ -321,7 +316,7 @@ func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
 	if d, ok := t.composedTown(); ok {
 		return t.chooseComposed(d, c, i)
 	}
-	if c.current.kind != 2 {
+	if c.current.kind != placeTown {
 		return ui.TownAction{}
 	}
 	if i == len(rows)-1 {
@@ -454,7 +449,7 @@ func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 // TownMusic is the scene the campaign screen requests: a town while one is
 // current, else the destination map (R2-ENGINE-335).
 func (t *secondCampaignScreen) TownMusic() (ui.MusicScene, bool) {
-	if c := t.state(); c != nil && c.current.kind == 2 {
+	if c := t.state(); c != nil && c.current.kind == placeTown {
 		return ui.MusicTown, false
 	}
 	return ui.MusicCampaign, false
@@ -465,7 +460,7 @@ func (t *secondCampaignScreen) TownMusic() (ui.MusicScene, bool) {
 // tavern body requests music (R2-ENGINE-335).
 func (t *secondCampaignScreen) TownMusicTrack() (string, bool) {
 	c := t.state()
-	if c == nil || c.current.kind != 2 {
+	if c == nil || c.current.kind != placeTown {
 		return "", false
 	}
 	return GameMusic(t.install.profile()).TownTrack(c.current.id)

@@ -64,12 +64,12 @@ func TestReleaseSecondTownKaargDepartureStale(t *testing.T) {
 	if c.shop.filled != 2 {
 		t.Fatal("a departure that changes no record marked the stock stale")
 	}
-	c.current = secondLocation{1, 30}
+	c.current = partyPlace{1, 30}
 	c.completeBank(c.bank)
 	if c.shop.filled == 2 || c.bank[768] != 40 {
 		t.Fatalf("mission 30 departure: filled %d, stage %d", c.shop.filled, c.bank[768])
 	}
-	c.current = secondLocation{2, 2}
+	c.current = partyPlace{2, 2}
 	secondShopEnter(t, f, app, s)
 	if c.shop.filled != 2 || len(c.shop.shelves[0]) == 0 || reflect.DeepEqual(first, c.shop.shelves) {
 		t.Fatalf("next entry did not draw again: filled %d", c.shop.filled)

@@ -114,14 +114,13 @@ type Edition struct {
 	Game Game
 	SaveTag Game
 	Campaign Campaign
-	Town string
-	Rooms string
+	Towns string
 	CutsceneArchive string
 	CompanionObjectiveMission int
 	SecondMaps bool
 }
-var first = Edition{Game: GameROM1, Town: "rom1", Rooms: "rom1", CompanionObjectiveMission: 40}
-var second = Edition{Game: GameROM2, SaveTag: GameROM2, Campaign: CampaignDestinations, Rooms: "rom1", CutsceneArchive: "video", SecondMaps: true}
+var first = Edition{Game: GameROM1, Towns: "rom1", CompanionObjectiveMission: 40}
+var second = Edition{Game: GameROM2, SaveTag: GameROM2, Campaign: CampaignDestinations, Towns: "rom2", CutsceneArchive: "video", SecondMaps: true}
 func (g Game) Edition() Edition {
 	if g == GameROM2 {
 		return second
@@ -236,8 +235,8 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 			`func f(g base.Game, x string) bool { return fmt.Sprint(g) == x }`},
 		{"deep equality of two games", "compares a game",
 			`func f(a, b base.Game) bool { return reflect.DeepEqual(a, b) }`},
-		{"length of the edition town", "measures a game",
-			`func f(g base.Game) bool { return len(g.Edition().Town) > 0 }`},
+		{"length of the edition town catalog", "measures a game",
+			`func f(g base.Game) bool { return len(g.Edition().Towns) > 0 }`},
 		{"length of the edition cutscene archive", "measures a game",
 			`func f(g base.Game) bool { return len(g.Edition().CutsceneArchive) == 0 }`},
 		{"games ordered", "compares a game",
@@ -245,7 +244,7 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 		{"int edition field used as a flag", "tests edition data as a flag",
 			`func f(g base.Game) bool { return g.Edition().CompanionObjectiveMission > 0 }`},
 		{"concatenations holding a game compared", "compares a game",
-			`func f(g, h base.Game) bool { return g.Edition().Town+"x" == h.Edition().Town+"x" }`},
+			`func f(g, h base.Game) bool { return g.Edition().Towns+"x" == h.Edition().Towns+"x" }`},
 	}
 	for _, m := range mutations {
 		got := profileMutationScan(t, m.body)
@@ -259,7 +258,7 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 	}
 	clean := `func f(g base.Game, rooms map[string]int) (string, int, base.Game) {
 	e := g.Edition()
-	return e.CutsceneArchive + ".res", rooms[e.Rooms] + rooms[e.Town] + e.CompanionObjectiveMission, e.SaveTag
+	return e.CutsceneArchive + ".res", rooms[e.Towns] + e.CompanionObjectiveMission, e.SaveTag
 }`
 	if got := profileMutationScan(t, clean); len(got) != 0 {
 		t.Errorf("reading edition data was found as a choice: %v", got)

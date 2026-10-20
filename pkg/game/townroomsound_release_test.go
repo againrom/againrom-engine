@@ -392,7 +392,7 @@ func TestReleaseTownRoomsRequestTheCensusSounds(t *testing.T) {
 	// nothing from the shop's table.
 	enterTownRoom(t, a, s, "SHOP", roomShop)
 	rec.endAll()
-	withShopTriggers(t, s.roomDescription(), nil)
+	withShopTriggers(t, s.townDescription(), nil)
 	base = len(rec.requests)
 	shop("shelf", 0, "press", "release")
 	shop("table", 0, "press", "release")

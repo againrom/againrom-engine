@@ -187,7 +187,7 @@ func (c *secondCampaign) talkTo(o secondInnOption) {
 	if o.kind != 3 {
 		return
 	}
-	mission := secondLocation{kind: 1, id: o.topic}
+	mission := partyPlace{kind: placeMission, id: o.topic}
 	if !c.has(mission) {
 		c.available = append(c.available, mission)
 	}

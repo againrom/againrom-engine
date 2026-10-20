@@ -16,23 +16,23 @@ import (
 // whose point is the party's point on the map (R2-SESSION-177; DIV-3071), and
 // the route mode leaving town 1 selects (R2-ENGINE-272).
 type secondMapOpening struct {
-	from  secondLocation
+	from  partyPlace
 	route bool
 }
 
-func (c *secondCampaign) openMap(from secondLocation) {
-	c.mapOpen = &secondMapOpening{from: from, route: from == (secondLocation{kind: 2, id: 1})}
+func (c *secondCampaign) openMap(from partyPlace) {
+	c.mapOpen = &secondMapOpening{from: from, route: from == (partyPlace{kind: placeTown, id: 1})}
 }
 
 // enteredWithoutMap is the mission a victory enters without the map: the
 // first available record when no town is available and the stage is below
 // the credits (R2-ENGINE-422 step 5); zero when the map opens.
 func (c *secondCampaign) enteredWithoutMap() int {
-	if c.bank[768] >= 120 || len(c.available) == 0 || c.available[0].kind != 1 {
+	if c.bank[768] >= 120 || len(c.available) == 0 || c.available[0].kind != placeMission {
 		return 0
 	}
 	for _, l := range c.available {
-		if l.kind == 2 {
+		if l.kind == placeTown {
 			return 0
 		}
 	}
@@ -47,7 +47,7 @@ const (
 
 func (t *secondCampaignScreen) AtWorldMap() bool {
 	c := t.state()
-	return c != nil && c.current == (secondLocation{}) && c.payload == nil
+	return c != nil && c.current == (partyPlace{}) && c.payload == nil
 }
 
 // worldMapNow is the open map, built once per opening from the available
@@ -60,7 +60,7 @@ func (t *secondCampaignScreen) worldMapNow() *worldMapState {
 	if c.mapOpen == nil {
 		// A LOAD at the map keeps no opening: the map opens in select mode
 		// with the party at the first available record (DIV-3071).
-		from := secondLocation{}
+		from := partyPlace{}
 		if len(c.available) > 0 {
 			from = c.available[0]
 		}
@@ -142,9 +142,9 @@ func (t *secondCampaignScreen) arriveWorldMap() ui.TownAction {
 
 // enterLocation is EnterLocation and the 0x468 arm: a town becomes current on
 // its square; a mission opens (R2-ENGINE-272).
-func (t *secondCampaignScreen) enterLocation(l secondLocation) ui.TownAction {
+func (t *secondCampaignScreen) enterLocation(l partyPlace) ui.TownAction {
 	c := t.state()
-	if l.kind == 2 {
+	if l.kind == placeTown {
 		c.current, c.room, c.mapOpen = l, secondTownSquare, nil
 		return ui.TownAction{}
 	}

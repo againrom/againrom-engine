@@ -431,11 +431,11 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						secondLaterChoose(t, app, "notice")
 					}
 					c := f.Town.second
-					want := []secondLocation{{2, 2}}
+					want := []partyPlace{{2, 2}}
 					if unlock {
-						want = append(want, secondLocation{1, 21})
+						want = append(want, partyPlace{1, 21})
 					}
-					if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, want) || c.bank[916] != 1 || c.bank[768] != 30 || c.bank[532] != 1 || c.bank[552] != 2 || f.Town.gold != purse {
+					if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, want) || c.bank[916] != 1 || c.bank[768] != 30 || c.bank[532] != 1 || c.bank[552] != 2 || f.Town.gold != purse {
 						t.Fatalf("M20 destination/carry: screen=%v current=%v available=%v stage=%d completed=%d purse=%d", app.Screen(), c.current, c.available, c.bank[768], c.bank[916], f.Town.gold)
 					}
 					if len(f.Carried) != len(carried) {

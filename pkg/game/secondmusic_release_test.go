@@ -381,7 +381,7 @@ func TestReleaseSecondGameMusicStops(t *testing.T) {
 	f, app, m := firstSuccessApp(t)
 	// A town available after the victory makes the map its destination
 	// (R2-ENGINE-422); mission 10 alone enters mission 20.
-	f.Town.second.available = append(f.Town.second.available, secondLocation{kind: 2, id: 2})
+	f.Town.second.available = append(f.Town.second.available, partyPlace{kind: placeTown, id: 2})
 	device := secondMusicDevice(t, f)
 	tail := &secondMusicTail{app: app, device: device, log: len(app.MusicRequestLog()), events: len(device.events)}
 	if err := app.HeadlessActivate("notice"); err != nil {

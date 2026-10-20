@@ -92,7 +92,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 	cs := cold.TownScreen().(*secondCampaignScreen)
 	coldApp.SetTown(cs)
 	cc := cold.Town.second
-	if cc.current != (secondLocation{2, 2}) || cc.room != secondTownInn || cc.bank[512] != 1 || cc.bank[532] != 1 || cc.bank[552] != 2 {
+	if cc.current != (partyPlace{2, 2}) || cc.room != secondTownInn || cc.bank[512] != 1 || cc.bank[532] != 1 || cc.bank[552] != 2 {
 		t.Fatalf("cold LOAD current %v room %v slots 512/532/552 = %d/%d/%d", cc.current, cc.room, cc.bank[512], cc.bank[532], cc.bank[552])
 	}
 	cs.TownSquareActive(true)

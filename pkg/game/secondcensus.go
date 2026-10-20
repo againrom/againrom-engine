@@ -671,8 +671,8 @@ func secondProducer(n int) string {
 	return ""
 }
 
-func secondLocationName(l secondLocation) string {
-	if l.kind == 2 {
+func secondLocationName(l partyPlace) string {
+	if l.kind == placeTown {
 		return fmt.Sprintf("town %d", l.id)
 	}
 	return fmt.Sprintf("mission %d", l.id)
@@ -711,7 +711,7 @@ func secondEngineReachFrom(c *secondCampaign) map[int]bool {
 	for progressed := true; progressed; {
 		progressed = false
 		for _, l := range slices.Clone(c.available) {
-			if l.kind != 2 {
+			if l.kind != placeTown {
 				continue
 			}
 			before := len(c.available)
@@ -720,7 +720,7 @@ func secondEngineReachFrom(c *secondCampaign) map[int]bool {
 			progressed = progressed || len(c.available) != before
 		}
 		for _, l := range slices.Clone(c.available) {
-			if l.kind != 1 || reach[l.id] || !c.canEnter(l.id) {
+			if l.kind != placeMission || reach[l.id] || !c.canEnter(l.id) {
 				continue
 			}
 			reach[l.id], progressed = true, true
@@ -773,8 +773,8 @@ func secondEngineDeparture(n int, bank [1024]int32) ([]string, string) {
 		return nil, ""
 	}
 	c := newSecondCampaign()
-	c.current = secondLocation{kind: 1, id: n}
-	c.available = []secondLocation{c.current}
+	c.current = partyPlace{kind: placeMission, id: n}
+	c.available = []partyPlace{c.current}
 	output := c.completeBank(bank)
 	var out []string
 	for _, l := range c.available {

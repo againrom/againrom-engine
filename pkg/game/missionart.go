@@ -69,7 +69,7 @@ func (s viewerArtSource) resolve() viewerArt {
 		Font:        art.cardFont,
 		CloseLabel:  s.in.Words.TipClose,
 		ToggleLabel: s.in.Words.TipShowNext,
-		CloseClick:  RoomDescription(s.in.profile()) != nil,
+		CloseClick:  TownDescription(s.in.profile()) != nil,
 	}
 	if row := TipTable(s.in.profile().Edition()).Row("dialogue-close", "", ""); row != nil {
 		art.missionTip.Rect, art.missionTip.Owner = row.Rectangle(), row.Owner()

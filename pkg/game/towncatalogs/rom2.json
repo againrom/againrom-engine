@@ -1,0 +1,12 @@
+{
+  "catalog": "rom2",
+  "cite": ["R2-ENGINE-231"],
+  "towns": [
+    {"id": 1, "description": "rom2-town1", "hooks": "destinations", "offers": "scenario-bank", "map-point": {"record": true},
+     "cite": ["R2-ENGINE-231", "R2-ENGINE-239", "R2-ENGINE-144"]},
+    {"id": 2, "description": "rom2-town2", "hooks": "destinations", "offers": "scenario-bank", "map-point": {"record": true},
+     "cite": ["R2-ENGINE-231", "R2-ENGINE-237", "R2-ENGINE-374"]},
+    {"id": 3, "description": "rom2-town3", "hooks": "destinations", "offers": "scenario-bank", "map-point": {"record": true},
+     "cite": ["R2-ENGINE-251", "R2-ENGINE-257", "R2-ENGINE-374"]}
+  ]
+}

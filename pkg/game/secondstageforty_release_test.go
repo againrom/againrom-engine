@@ -19,15 +19,15 @@ import (
 func secondStageFortyInn(t *testing.T, f *FrontEnd, app *ui.App) *secondCampaign {
 	t.Helper()
 	c := secondStageThirtyVisit(t, f, app)
-	c.current = secondLocation{1, 30}
+	c.current = partyPlace{1, 30}
 	if output := c.completeBank(c.bank); output != 2 || c.bank[768] != 40 || c.bank[896+30] != 1 {
 		t.Fatalf("mission 30 departure: output=%d stage=%d", output, c.bank[768])
 	}
-	if !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 31}}) {
+	if !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 31}}) {
 		t.Fatal("mission 30 departure availability", c.available)
 	}
 	secondLaterChoose(t, app, "town 2", "TAVERN")
-	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || c.bank[768] != 40 {
+	if c.current != (partyPlace{2, 2}) || c.room != secondTownInn || c.bank[768] != 40 {
 		t.Fatalf("town 2 inn: current=%v room=%d stage=%d", c.current, c.room, c.bank[768])
 	}
 	return c
@@ -36,10 +36,10 @@ func secondStageFortyInn(t *testing.T, f *FrontEnd, app *ui.App) *secondCampaign
 // secondStageFortyTalks talks to every stage 40 speaker in row order and
 // returns the availability after each (R2-ENGINE-223, R2-ENGINE-229,
 // R2-ENGINE-230).
-func secondStageFortyTalks(t *testing.T, f *FrontEnd, app *ui.App) [][]secondLocation {
+func secondStageFortyTalks(t *testing.T, f *FrontEnd, app *ui.App) [][]partyPlace {
 	t.Helper()
 	c := f.Town.second
-	var out [][]secondLocation
+	var out [][]partyPlace
 	for _, target := range []string{"TALK 22", "TALK 2108", "TALK 2015", "TALK 2111", "TALK 2004"} {
 		bank := c.bank
 		secondLaterChoose(t, app, target)
@@ -52,7 +52,7 @@ func secondStageFortyTalks(t *testing.T, f *FrontEnd, app *ui.App) [][]secondLoc
 		if c.bank != bank {
 			t.Fatal(target, "changed the bank")
 		}
-		out = append(out, append([]secondLocation(nil), c.available...))
+		out = append(out, append([]partyPlace(nil), c.available...))
 		t.Logf("%s: %d dialogue pages, available %v", target, pages, c.available)
 	}
 	return out
@@ -83,7 +83,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 		t.Fatal("cold stage 40 inn rows", got)
 	}
 
-	want := [][]secondLocation{
+	want := [][]partyPlace{
 		{{2, 2}, {1, 31}, {1, 40}},
 		{{2, 2}, {1, 31}, {1, 40}},
 		{{2, 2}, {1, 31}, {1, 40}, {1, 41}},
@@ -112,7 +112,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 		t.Fatal("mission 40 entry differs after the cold LOAD")
 	}
 	bank, _ := f.live.world.ROM2ScenarioState()
-	if c.current != (secondLocation{1, 40}) || bank[768] != 40 {
+	if c.current != (partyPlace{1, 40}) || bank[768] != 40 {
 		t.Fatal("mission 40 did not open at stage 40", c.current, bank[768])
 	}
 	if _, err := os.Stat(filepath.Join(out, secondSaveFile(t, out, "Stage forty inn"))); err != nil {

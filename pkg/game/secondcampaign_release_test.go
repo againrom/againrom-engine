@@ -113,14 +113,14 @@ func enterSecondCampaignNextMission(t *testing.T, f *FrontEnd, app *ui.App, cont
 		t.Fatalf("ordinary move did not produce first victory: outcome=%v notice=%v/%v actor=%d,%d", live.world.Outcome(), live.mission.open, live.mission.kind, e.X, e.Y)
 	}
 	bank, _ := live.world.ROM2ScenarioState()
-	if f.Town.second.current != (secondLocation{kind: 1, id: 10}) || f.Town.second.has(secondLocation{kind: 1, id: 20}) {
+	if f.Town.second.current != (partyPlace{kind: placeMission, id: 10}) || f.Town.second.has(partyPlace{kind: placeMission, id: 20}) {
 		t.Fatal("campaign left before victory acknowledgement")
 	}
 	if continued {
 		if err := app.HeadlessKey("escape"); err != nil {
 			t.Fatal(err)
 		}
-		if live.mission.open || !live.mission.delayedVictory || f.Town.second.has(secondLocation{kind: 1, id: 20}) {
+		if live.mission.open || !live.mission.delayedVictory || f.Town.second.has(partyPlace{kind: placeMission, id: 20}) {
 			t.Fatal("Continue completed or retained the victory panel")
 		}
 		if err := app.HeadlessKey("escape"); err != nil {
@@ -150,7 +150,7 @@ func enterSecondCampaignNextMission(t *testing.T, f *FrontEnd, app *ui.App, cont
 		t.Fatalf("victory did not enter the first available record: %v mission%d %q", app.Screen(), f.liveMission, app.HeadlessMessage())
 	}
 	c := f.Town.second
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (partyPlace{kind: placeMission, id: 20}) || len(c.available) != 1 || c.available[0] != (partyPlace{kind: placeMission, id: 20}) {
 		t.Fatalf("first Leave state: current=%+v available=%v stage=%d completed=%d", c.current, c.available, c.bank[768], c.bank[906])
 	}
 	for i := 0; i < 1024; i++ {

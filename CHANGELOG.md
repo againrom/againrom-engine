@@ -24,6 +24,10 @@ modder or developer can notice gets no entry.
 - [ROM1] In the map editor, a unit given Health 0 starts the mission fallen and is drawn fallen on the map.
 - [ROM1] Every window of the map editor, the Add window and the map name among them, moves by its title bar.
 
+### For developers
+
+- [BASE] Each game now lists its towns in one town catalog, one entry per town naming its town screen, room hooks, offer source and world map point, so a later mod can add a town in the same format.
+
 ## 0.129.0
 
 ### For players

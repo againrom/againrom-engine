@@ -2694,6 +2694,10 @@ package storyguard
 // (pkg/game/savactioncurrent.go), the carrier instrument test and the terrain
 // instrument helper it shares (pkg/game/milestone2_acceptance_*_test.go), the
 // second-game witness (pkg/game/secondmissionsave_release_test.go), plus this note.
+// CommentBytes rises for the town catalog (pkg/town/catalog.go,
+// pkg/game/towncatalog.go), the town state builder (pkg/game/town.go), the
+// place model (pkg/game/place.go and both campaign services), their tests,
+// plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2717,5 +2721,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9327861,
+	CommentBytes: 9335077,
 }

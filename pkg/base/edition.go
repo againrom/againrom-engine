@@ -19,9 +19,9 @@ type Edition struct {
 	// service from.
 	Campaign Campaign
 
-	// Town names the town description the square is composed from; empty
-	// when the game's town is not a composed square.
-	Town string
+	// Towns names the game's town catalog: every town the game offers, each
+	// with its description, hook set, offer source and world-map point.
+	Towns string
 
 	// Generator names the character generator description; empty when the
 	// game has none.
@@ -30,12 +30,6 @@ type Edition struct {
 	// Music names the music description: the archive, the scene lists and
 	// the rules the music controller plays them by.
 	Music string
-
-	// Rooms names the town description whose rooms the first game's tavern,
-	// shop and school pages and their scene art are read from;
-	// empty when the game has no such pages. The second game's towns name
-	// their rooms in their own descriptions.
-	Rooms string
 
 	// Screens names the screen art description: the art manifest of every
 	// screen no town or generator description names.
@@ -112,7 +106,7 @@ type Campaign int
 
 const (
 	// CampaignChapters is the first game's campaign: numbered chapters over
-	// one town, opened from the world map.
+	// the towns of its catalog, opened from the world map.
 	CampaignChapters Campaign = iota
 	// CampaignDestinations is the second game's campaign: a scenario bank
 	// that names the towns and missions the party may travel to.
@@ -123,10 +117,9 @@ var firstEdition = Edition{
 	TextCodePage:              FontText,
 	Game:                      GameROM1,
 	Campaign:                  CampaignChapters,
-	Town:                      "rom1",
+	Towns:                     "rom1",
 	Generator:                 "rom1",
 	Music:                     "rom1",
-	Rooms:                     "rom1",
 	Screens:                   "rom1",
 	WorldMap:                  "rom1",
 	CreatureResistanceHeading: true,
@@ -148,6 +141,7 @@ var secondEdition = Edition{
 	Game:         GameROM2,
 	SaveTag:      GameROM2,
 	Campaign:     CampaignDestinations,
+	Towns:        "rom2",
 	Generator:    "rom2",
 	Music:        "rom2",
 	Screens:      "rom2",

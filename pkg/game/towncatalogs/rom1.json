@@ -1,0 +1,8 @@
+{
+  "catalog": "rom1",
+  "cite": ["TOWN-489"],
+  "towns": [
+    {"id": 1, "description": "rom1", "hooks": "chapters", "offers": "chapter-keys", "map-point": {"object": 1},
+     "cite": ["TOWN-489", "REG-GMAP-066", "REG-SCN-064"]}
+  ]
+}

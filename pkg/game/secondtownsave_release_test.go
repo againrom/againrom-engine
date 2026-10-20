@@ -221,7 +221,7 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 	secondTownTalk(t, app)
 	// The initial record stores slot 769 (R2-SESSION-110).
 	bank[769] = 1
-	if c.bank != bank || !reflect.DeepEqual(c.available, []secondLocation{{2, 1}, {1, 10}}) {
+	if c.bank != bank || !reflect.DeepEqual(c.available, []partyPlace{{2, 1}, {1, 10}}) {
 		t.Fatal("ordinary TALK changed bank or duplicated unlock")
 	}
 	secondTownTalk(t, app)
@@ -234,7 +234,7 @@ func secondTownEnter(t *testing.T, f *FrontEnd, app *ui.App) {
 		}
 	}
 	party := mapload.CloneParty(f.Carried)
-	if c.bank != bank || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{1, 10}}) || !reflect.DeepEqual(party, f.Carried) {
+	if c.bank != bank || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{1, 10}}) || !reflect.DeepEqual(party, f.Carried) {
 		t.Fatal("leaving town 1 changed town inputs")
 	}
 	if err := app.HeadlessActivate("mission 10"); err != nil {
@@ -469,7 +469,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if f.Town.second.current != (secondLocation{}) {
+	if f.Town.second.current != (partyPlace{}) {
 		t.Fatal("the global map did not open")
 	}
 	if err := app.HeadlessKey("f3"); err != nil || app.Screen() != ui.ScreenLoad {
@@ -488,7 +488,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 	if err := app.HeadlessActivate(label); err != nil {
 		t.Fatal(err)
 	}
-	if f.Town.second.current == (secondLocation{}) {
+	if f.Town.second.current == (partyPlace{}) {
 		t.Fatal("ordinary named LOAD kept the global map open")
 	}
 	secondTownDismissAck(t, app)
@@ -737,7 +737,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	if !bytes.Equal(c.payload, payload) || c.part != part || !reflect.DeepEqual(c.available, []secondLocation{{2, 1}, {1, 10}}) {
+	if !bytes.Equal(c.payload, payload) || c.part != part || !reflect.DeepEqual(c.available, []partyPlace{{2, 1}, {1, 10}}) {
 		t.Fatal("refusal changed TALK modal/unlock")
 	}
 	if files, err := os.ReadDir(out); err != nil || len(files) != 0 {

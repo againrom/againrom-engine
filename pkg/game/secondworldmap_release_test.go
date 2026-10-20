@@ -113,7 +113,7 @@ func TestReleaseSecondCampaignWorldMapSkip(t *testing.T) {
 	if a := screen.WorldMapTick(); a.Open == nil {
 		t.Fatal("the paint after a skip did not end the travel", a.Msg)
 	}
-	if f.Town.second.mapOpen != nil && f.Town.second.current != (secondLocation{}) {
+	if f.Town.second.mapOpen != nil && f.Town.second.current != (partyPlace{}) {
 		t.Fatal("the entry kept the opening")
 	}
 }
@@ -127,8 +127,8 @@ func TestReleaseSecondCampaignWorldMapSkip(t *testing.T) {
 func TestReleaseSecondCampaignWorldMapSelectMode(t *testing.T) {
 	f, app, screen := secondMapAtTownOne(t)
 	c := f.Town.second
-	c.current, c.available = secondLocation{}, []secondLocation{{2, 1}, {1, 93}, {1, 94}, {1, 21}}
-	c.openMap(secondLocation{1, 10})
+	c.current, c.available = partyPlace{}, []partyPlace{{2, 1}, {1, 93}, {1, 94}, {1, 21}}
+	c.openMap(partyPlace{1, 10})
 	if app.Screen() != ui.ScreenTown || !screen.AtWorldMap() {
 		t.Fatal("the map is not open")
 	}
@@ -181,7 +181,7 @@ func TestReleaseSecondCampaignWorldMapSelectMode(t *testing.T) {
 			t.Fatal("the town opened a mission")
 		}
 	}
-	if c.current != (secondLocation{2, 1}) || c.room != secondTownSquare || c.mapOpen != nil || app.Screen() != ui.ScreenTown {
+	if c.current != (partyPlace{2, 1}) || c.room != secondTownSquare || c.mapOpen != nil || app.Screen() != ui.ScreenTown {
 		t.Fatalf("the travel's end entered %v room %v", c.current, c.room)
 	}
 }

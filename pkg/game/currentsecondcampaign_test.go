@@ -11,7 +11,7 @@ import (
 )
 
 func TestCurrentSecondCampaignJSONBoundsAndDetachment(t *testing.T) {
-	source := &secondCampaign{current: secondLocation{1, 10}, available: []secondLocation{{1, 10}}}
+	source := &secondCampaign{current: partyPlace{1, 10}, available: []partyPlace{{1, 10}}}
 	for i := range source.bank {
 		source.bank[i] = int32(i) * -101
 	}
@@ -104,7 +104,7 @@ func TestCurrentSecondTownRoomAndAvailabilityBounds(t *testing.T) {
 				t.Fatal("foreign logical room admitted")
 			}
 			c.room = secondTownRoom(8)
-			c.available[0] = secondLocation{2, 2}
+			c.available[0] = partyPlace{2, 2}
 			if *a.Room != room || !reflect.DeepEqual(a, clone) {
 				t.Fatal("captured room/list aliases live or cloned state")
 			}
@@ -114,11 +114,11 @@ func TestCurrentSecondTownRoomAndAvailabilityBounds(t *testing.T) {
 
 func TestCurrentSecondOrdinaryMissionsKeepTheirCampaign(t *testing.T) {
 	for mission := 1; mission <= 127; mission++ {
-		source := &secondCampaign{current: secondLocation{1, mission}, available: []secondLocation{{1, mission}}}
+		source := &secondCampaign{current: partyPlace{1, mission}, available: []partyPlace{{1, mission}}}
 		source.bank[768], source.bank[1000] = 50, -113
 		if mission == 21 {
 			source.bank[768], source.bank[916], source.bank[772] = 30, 1, 1
-			source.available = []secondLocation{{2, 2}, {1, 21}}
+			source.available = []partyPlace{{2, 2}, {1, 21}}
 		}
 		captured := captureSecondCampaign(source)
 		raw, err := json.Marshal(captured)
@@ -141,12 +141,12 @@ func TestCurrentSecondOrdinaryMissionsKeepTheirCampaign(t *testing.T) {
 }
 
 func TestCurrentSecondLaterMissionKeepsEveryAvailableRecordInOrder(t *testing.T) {
-	source := &secondCampaign{current: secondLocation{1, 31}, shop: newSecondShop()}
+	source := &secondCampaign{current: partyPlace{1, 31}, shop: newSecondShop()}
 	for id := 3; id > 0; id-- {
-		source.available = append(source.available, secondLocation{2, id})
+		source.available = append(source.available, partyPlace{2, id})
 	}
 	for id := 127; id > 0; id-- {
-		source.available = append(source.available, secondLocation{1, id})
+		source.available = append(source.available, partyPlace{1, id})
 	}
 	for i := range source.bank {
 		source.bank[i] = int32(i) * -101

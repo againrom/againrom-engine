@@ -19,7 +19,7 @@ func (t *townScreen) roomPage(room string) *town.Scene {
 	if t.pages == nil {
 		t.pages = map[string]*town.Scene{}
 	}
-	p := town.NewScene(t.roomDescription(), room, townSceneHost{t: t, room: room}, t.townProcess)
+	p := town.NewScene(t.townDescription(), room, townSceneHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }
@@ -29,12 +29,12 @@ func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
 // TownClickSounds: the first game's tip Close and dialogue page presses
 // request click01 and its tavern and school buttons request none (TOWN-547,
 // TOWN-548, DIALOGUE-080); no second-game claim names these.
-func (t *townScreen) TownClickSounds() bool { return t.roomDescription() != nil }
+func (t *townScreen) TownClickSounds() bool { return t.townDescription() != nil }
 
 // roomSound requests what the room description's sound table binds to one
 // named room event. Every town room interface sound goes through it.
 func (t *townScreen) roomSound(room, on string) {
-	if t == nil || t.sess == nil || t.roomDescription() == nil {
+	if t == nil || t.sess == nil || t.townDescription() == nil {
 		return
 	}
 	t.roomPage(room).Trigger(on)

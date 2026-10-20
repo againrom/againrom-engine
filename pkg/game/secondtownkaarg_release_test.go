@@ -28,14 +28,14 @@ func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *ti
 		t.Fatal(err)
 	}
 	c := f.Town.second
-	c.current, c.available, c.room = secondLocation{}, []secondLocation{{2, 2}}, secondTownSquare
+	c.current, c.available, c.room = partyPlace{}, []partyPlace{{2, 2}}, secondTownSquare
 	c.bank[768] = 30
 	for _, row := range []string{"town 2"} {
 		if err := app.HeadlessActivate(row); err != nil {
 			t.Fatal(row, err)
 		}
 	}
-	if c.current != (secondLocation{2, 2}) || !s.AtTownSquare() {
+	if c.current != (partyPlace{2, 2}) || !s.AtTownSquare() {
 		d, _ := s.composedTown()
 		t.Fatalf("town 2 is not composed: current %v, %v", c.current, s.roomArt(d, "square").err)
 	}
@@ -425,7 +425,7 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare || app.Screen() != ui.ScreenTown {
 		t.Fatalf("Escape: %v room %v screen %v", err, c.room, app.Screen())
 	}
-	if err := app.HeadlessActivate("GATES"); err != nil || c.current != (secondLocation{}) || !c.has(secondLocation{2, 2}) {
+	if err := app.HeadlessActivate("GATES"); err != nil || c.current != (partyPlace{}) || !c.has(partyPlace{2, 2}) {
 		t.Fatalf("GATES: %v current %v available %v", err, c.current, c.available)
 	}
 	t.Logf("inn rows %v", rows)
@@ -443,7 +443,7 @@ func TestReleaseSecondTownKaargColdLoadKeepsTheRoom(t *testing.T) {
 	s := cold.TownScreen().(*secondCampaignScreen)
 	coldApp.SetTown(s)
 	c := cold.Town.second
-	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || !s.AtTownSquare() {
+	if c.current != (partyPlace{2, 2}) || c.room != secondTownInn || !s.AtTownSquare() {
 		t.Fatalf("cold LOAD current %v room %v composed %v", c.current, c.room, s.AtTownSquare())
 	}
 	if d, _ := s.composedTown(); d.Town != "rom2-town2" {

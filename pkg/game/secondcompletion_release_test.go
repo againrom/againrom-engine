@@ -257,7 +257,7 @@ func checkCompletionDestination(t *testing.T, f *FrontEnd, a *ui.App, m *mapWorl
 		t.Fatalf("movie destination=%s mission=%d tick=%d/%d", a.Screen(), f.liveMission, m.world.Tick(), tick)
 	}
 	c := f.Town.second
-	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (secondLocation{kind: 1, id: 20}) || len(c.available) != 1 || c.available[0] != (secondLocation{kind: 1, id: 20}) {
+	if c.bank[768] != 20 || c.bank[906] != 1 || c.current != (partyPlace{kind: placeMission, id: 20}) || len(c.available) != 1 || c.available[0] != (partyPlace{kind: placeMission, id: 20}) {
 		t.Fatal("campaign did not advance exactly once", c)
 	}
 	before, live := *c, f.live

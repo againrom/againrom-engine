@@ -93,7 +93,7 @@ func secondMapFixturePoints(screen *secondCampaignScreen) {
 // targets it, a press starts the travel and paints run to its end. It answers
 // the opener's error for a mission and an error when l is not on the map or
 // the travel ends nowhere.
-func secondMapTravel(app *ui.App, screen *secondCampaignScreen, l secondLocation) error {
+func secondMapTravel(app *ui.App, screen *secondCampaignScreen, l partyPlace) error {
 	if !screen.AtWorldMap() {
 		return fmt.Errorf("the map is not open for %v", l)
 	}
@@ -140,7 +140,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	}
 	// The closed gate is a hotspot like any other: it opens the guard's
 	// text and keeps the party in town (R2-ENGINE-241).
-	if err := app.HeadlessActivate("GATES"); err != nil || c.current != (secondLocation{kind: 2, id: 1}) || c.bank[769] != 0 {
+	if err := app.HeadlessActivate("GATES"); err != nil || c.current != (partyPlace{kind: placeTown, id: 1}) || c.bank[769] != 0 {
 		t.Fatalf("closed gate: err %v, current %v", err, c.current)
 	}
 	for _, target := range []string{"TAVERN", "TALK 517"} {
@@ -148,7 +148,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if !c.has(secondLocation{kind: 1, id: 10}) || c.current != (secondLocation{kind: 2, id: 1}) {
+	if !c.has(partyPlace{kind: placeMission, id: 10}) || c.current != (partyPlace{kind: placeTown, id: 1}) {
 		t.Fatal("TALK did not unlock before acknowledgement")
 	}
 	if body, ok := screen.dialogueBody(); !ok || !strings.Contains(body, "First page") {
@@ -182,7 +182,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 		}
 	}
 	beforeBank, beforeCurrent := c.bank, c.current
-	beforeAvailable := append([]secondLocation(nil), c.available...)
+	beforeAvailable := append([]partyPlace(nil), c.available...)
 	beforeParty := mapload.CloneParty(f.Carried)
 	if !screen.AtWorldMap() || screen.WorldMapView().Selected != 0 {
 		t.Fatal("leaving town 1 did not open the map travelling to its first record")
@@ -233,7 +233,7 @@ func TestSecondCampaignLeaveBankAlgebraAndUnknownBoundary(t *testing.T) {
 		sim.Step(w, nil)
 	}
 	c := newSecondCampaign()
-	c.current, c.available = secondLocation{kind: 1, id: 10}, []secondLocation{{kind: 1, id: 10}}
+	c.current, c.available = partyPlace{kind: placeMission, id: 10}, []partyPlace{{kind: 1, id: 10}}
 	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err != nil {
 		t.Fatal(err)
 	}
@@ -262,11 +262,11 @@ func TestSecondCampaignLeaveBankAlgebraAndUnknownBoundary(t *testing.T) {
 	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err == nil {
 		t.Fatal("duplicate Leave admitted")
 	}
-	c.current = secondLocation{kind: 1, id: 30}
+	c.current = partyPlace{kind: placeMission, id: 30}
 	if err := c.finish(30, w, w.Outcome() == sim.OutcomeWon); err == nil {
 		t.Fatal("unclaimed successor inferred")
 	}
-	c.current = secondLocation{kind: 1, id: 10}
+	c.current = partyPlace{kind: placeMission, id: 10}
 	incoming[775] = 1
 	w.SetROM2ScenarioState(incoming)
 	if err := c.finish(10, w, w.Outcome() == sim.OutcomeWon); err == nil {
@@ -284,7 +284,7 @@ func TestSecondCampaignUnclaimedVictoryRetainsPanel(t *testing.T) {
 			if restored {
 				n = 10
 			}
-			c.current, c.available = secondLocation{kind: 1, id: n}, []secondLocation{{kind: 1, id: n}}
+			c.current, c.available = partyPlace{kind: placeMission, id: n}, []partyPlace{{kind: 1, id: n}}
 			f.Town.second = c
 			w := secondGameScriptWorld(t, []sim.ScriptInstant{{Op: sim.ScriptInstantWin}}, []sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
 			if restored {

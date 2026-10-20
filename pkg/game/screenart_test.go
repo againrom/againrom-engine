@@ -28,9 +28,6 @@ func editionArt(p base.Profile) map[string][]screenart.Entry {
 	if l := GeneratorDescription(p); l != nil {
 		out["generator"] = generatorArt(l)
 	}
-	if d := TownDescription(p); d != nil {
-		out["square"] = d.SquareScene().Art
-	}
 	rooms := func(prefix string, d *town.Description) {
 		for _, r := range d.Rooms {
 			out[prefix+r.Name] = r.Art
@@ -39,14 +36,15 @@ func editionArt(p base.Profile) map[string][]screenart.Entry {
 			}
 		}
 	}
-	if d := RoomDescription(p); d != nil {
+	if d := TownDescription(p); d != nil {
+		out["square"] = d.SquareScene().Art
 		rooms("", d)
 	}
-	if p.GameOf() == base.GameROM2 {
-		for _, name := range secondTownDescriptions {
-			d := townDescriptions[name]
-			out[name+" square"] = d.SquareScene().Art
-			rooms(name+" ", d)
+	for _, e := range TownCatalog(p).Towns {
+		if e.Hooks == townHooksDestinations {
+			d := townDescriptions[e.Description]
+			out[e.Description+" square"] = d.SquareScene().Art
+			rooms(e.Description+" ", d)
 		}
 	}
 	return out

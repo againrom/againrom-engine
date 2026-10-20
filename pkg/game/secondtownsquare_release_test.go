@@ -189,7 +189,7 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 		}
 		sq.Click(sq.Hover())
 		want := map[string]secondTownRoom{"school": secondTownSquare, "shop": secondTownShop}[name]
-		if c.room != want || c.current != (secondLocation{2, 1}) || c.payload != nil {
+		if c.room != want || c.current != (partyPlace{2, 1}) || c.payload != nil {
 			t.Errorf("%s click: room %v current %v, want room %v", name, c.room, c.current, want)
 		}
 		if name == "shop" {
@@ -209,7 +209,7 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 	if err != nil || want == nil {
 		t.Fatalf("installed %s section: %v", secondGateText, err)
 	}
-	if !open || c.current != (secondLocation{2, 1}) || !strings.Contains(string(want), strings.TrimSpace(strings.SplitN(body, "\n", 2)[0])) {
+	if !open || c.current != (partyPlace{2, 1}) || !strings.Contains(string(want), strings.TrimSpace(strings.SplitN(body, "\n", 2)[0])) {
 		t.Fatalf("closed gate: open %v current %v body %q", open, c.current, body)
 	}
 	t.Logf("closed gate shows %s (%d bytes) and keeps town 1", secondGateText, len(want))
@@ -381,7 +381,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
-	if !c.has(secondLocation{1, 10}) || c.bank[769] != 1 || c.payload == nil {
+	if !c.has(partyPlace{1, 10}) || c.bank[769] != 1 || c.payload == nil {
 		t.Fatal("TALK 517 did not run TalkTo or show its section")
 	}
 	for app.HeadlessActivate("notice") == nil {

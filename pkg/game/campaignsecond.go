@@ -119,13 +119,22 @@ func (secondCampaignRules) statesCampaign(s *currentSessionData) bool {
 	return s != nil && s.Second != nil
 }
 
+// place is the destinations campaign's current place; a session that holds
+// no such campaign yet answers as the first game.
+func (r secondCampaignRules) place(s *CampaignSession) partyPlace {
+	if s != nil && s.Town != nil && s.Town.second != nil {
+		return s.Town.second.current
+	}
+	return r.firstCampaignRules.place(s)
+}
+
 func (secondCampaignRules) canEnter(town *Town, n int) bool {
 	return town == nil || town.second == nil || town.second.canEnter(n)
 }
 
 func (secondCampaignRules) enterMission(town *Town, n int) {
 	if town != nil && town.second != nil {
-		town.second.current, town.second.mapOpen = secondLocation{kind: 1, id: n}, nil
+		town.second.current, town.second.mapOpen = partyPlace{kind: placeMission, id: n}, nil
 	}
 }
 
@@ -160,7 +169,7 @@ func (r secondCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 	if ok {
 		second.adoptLegacyHero(tables)
 	}
-	if second.current.kind != 2 {
+	if second.current.kind != placeTown {
 		return
 	}
 	if ok {
@@ -211,7 +220,7 @@ func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, st
 	town.won[n] = true
 	f.Offered = 0
 	for _, l := range town.second.available {
-		if l.kind == 1 {
+		if l.kind == placeMission {
 			f.Offered = l.id
 			break
 		}

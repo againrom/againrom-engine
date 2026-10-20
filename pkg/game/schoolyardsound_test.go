@@ -244,7 +244,7 @@ func TestSchoolYardSoundLossControls(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s, now, rec := yardFixture(t, tc.high, tc.mage)
-			spec := s.roomDescription().Scene("school")
+			spec := s.townDescription().Scene("school")
 			backup, err := json.Marshal(spec)
 			if err != nil {
 				t.Fatal(err)

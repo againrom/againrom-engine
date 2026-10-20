@@ -31,12 +31,12 @@ func secondLaterEntry(t *testing.T, f *FrontEnd, app *ui.App, n int, stage int32
 		t.Fatal(err)
 	}
 	c := f.Town.second
-	c.current, c.available, c.room = secondLocation{2, 2}, []secondLocation{{2, 2}, {1, n}}, secondTownSquare
+	c.current, c.available, c.room = partyPlace{2, 2}, []partyPlace{{2, 2}, {1, n}}, secondTownSquare
 	c.bank[768] = stage
 	if err := app.HeadlessActivate("GATES"); err != nil {
 		t.Fatal(err)
 	}
-	if c.current != (secondLocation{}) {
+	if c.current != (partyPlace{}) {
 		t.Fatal("town 2 GATES did not depart", c.current)
 	}
 	secondLaterEnter(t, f, app, n)
@@ -53,7 +53,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 	secondTwentyWin(t, f, app, false)
 	secondLaterChoose(t, app, "notice", "town 2", "TAVERN")
 	c := f.Town.second
-	if c.current != (secondLocation{2, 2}) || c.room != secondTownInn || c.bank[768] != 30 {
+	if c.current != (partyPlace{2, 2}) || c.room != secondTownInn || c.bank[768] != 30 {
 		t.Fatalf("town 2 inn: current=%v room=%d stage=%d", c.current, c.room, c.bank[768])
 	}
 	var npcs []int
@@ -65,11 +65,11 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 	}
 	for _, step := range []struct {
 		target string
-		want   []secondLocation
+		want   []partyPlace
 	}{
-		{"TALK 22", []secondLocation{{2, 2}, {1, 30}}},
-		{"TALK 2108", []secondLocation{{2, 2}, {1, 30}, {1, 31}}},
-		{"TALK 2110", []secondLocation{{2, 2}, {1, 30}, {1, 31}}},
+		{"TALK 22", []partyPlace{{2, 2}, {1, 30}}},
+		{"TALK 2108", []partyPlace{{2, 2}, {1, 30}, {1, 31}}},
+		{"TALK 2110", []partyPlace{{2, 2}, {1, 30}, {1, 31}}},
 	} {
 		secondLaterChoose(t, app, step.target)
 		pages := 0
@@ -87,7 +87,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 		t.Fatal("TALK 22 did not store slots 533 and 553")
 	}
 	secondLaterChoose(t, app, "EXIT", "GATES")
-	if c.current != (secondLocation{}) || app.Screen() != ui.ScreenTown {
+	if c.current != (partyPlace{}) || app.Screen() != ui.ScreenTown {
 		t.Fatal("town 2 GATES did not depart", c.current)
 	}
 	return c
@@ -95,7 +95,7 @@ func secondStageThirtyVisit(t *testing.T, f *FrontEnd, app *ui.App) *secondCampa
 
 func secondLaterEnter(t *testing.T, f *FrontEnd, app *ui.App, n int) {
 	t.Helper()
-	for _, target := range []string{secondLocationName(secondLocation{1, n})} {
+	for _, target := range []string{secondLocationName(partyPlace{1, n})} {
 		if err := app.HeadlessActivate(target); err != nil {
 			t.Fatal(target, err)
 		}
@@ -187,7 +187,7 @@ func TestReleaseSecondLaterDepartureReachesTheNextMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := f.Town.second
-	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 30}, {1, 32}}) {
+	if app.Screen() != ui.ScreenTown || f.live != nil || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 30}, {1, 32}}) {
 		t.Fatalf("mission 31 departure: screen=%v current=%v available=%v message=%q", app.Screen(), c.current, c.available, app.HeadlessMessage())
 	}
 	want := bank
@@ -231,7 +231,7 @@ func TestReleaseSecondStageThirtyInnOpensMissionThirty(t *testing.T) {
 	c := secondStageThirtyVisit(t, f, app)
 	secondLaterEnter(t, f, app, 30)
 	bank, _ := f.live.world.ROM2ScenarioState()
-	if c.current != (secondLocation{1, 30}) || bank[533] != 1 || bank[553] != 2 || bank[768] != 30 {
+	if c.current != (partyPlace{1, 30}) || bank[533] != 1 || bank[553] != 2 || bank[768] != 30 {
 		t.Fatal("mission 30 did not open from the stage 30 campaign", c.current)
 	}
 	t.Logf("new game -> stage 30 inn TALK 22 -> M30 opens, tick %d", f.live.world.Tick())
@@ -292,7 +292,7 @@ func TestReleaseSecondMovieExitAtLaterDeparture(t *testing.T) {
 				}
 			}
 			c := f.Town.second
-			if app.Screen() != ui.ScreenTown || c.bank[896+110] != 1 || c.bank[768] != 110 || c.current != (secondLocation{}) || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}}) {
+			if app.Screen() != ui.ScreenTown || c.bank[896+110] != 1 || c.bank[768] != 110 || c.current != (partyPlace{}) || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}}) {
 				t.Fatalf("after movie: screen=%v current=%v available=%v stage=%d", app.Screen(), c.current, c.available, c.bank[768])
 			}
 			t.Logf("installed M110 victory with 779=%d -> output %d -> %s", bank[779], output, movie)

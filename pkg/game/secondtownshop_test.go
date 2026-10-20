@@ -25,7 +25,7 @@ var secondShopTestTables = secondshop.Tables{Armors: secondShopTestCollection{3:
 // secondShopSample is a campaign in a mission whose shop holds a drawn
 // stock and whose hero carries four potions.
 func secondShopSample() *secondCampaign {
-	c := &secondCampaign{current: secondLocation{1, 10}, available: []secondLocation{{1, 10}}, shop: newSecondShop()}
+	c := &secondCampaign{current: partyPlace{1, 10}, available: []partyPlace{{1, 10}}, shop: newSecondShop()}
 	c.shop.filled, c.shop.tables = 1, secondShopTestTables
 	c.shop.records[3][3].Mask |= secondShopClass4
 	c.shop.shelves[0] = secondShopItems(secondShopTestTables, []secondshop.Item{{Kind: secondshop.Armor, Row: 3, Class: 1, Material: 2, Quantity: 3, Price: 125}})

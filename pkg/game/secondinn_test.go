@@ -12,7 +12,7 @@ import (
 )
 
 func innAt(town int, stage int32, slots map[int]int32) *secondCampaign {
-	c := &secondCampaign{current: secondLocation{2, town}, available: []secondLocation{{2, town}}}
+	c := &secondCampaign{current: partyPlace{2, town}, available: []partyPlace{{2, town}}}
 	c.bank[768] = stage
 	for slot, value := range slots {
 		c.bank[slot] = value
@@ -223,10 +223,10 @@ func TestSecondInnDynamicTail(t *testing.T) {
 		t.Fatal("tail options became talk actors", got)
 	}
 	// After Leave20 town 2 offers kind 1, ID 1 (R2-ENGINE-221).
-	l := &secondCampaign{current: secondLocation{1, 20}, available: []secondLocation{{1, 20}}}
+	l := &secondCampaign{current: partyPlace{1, 20}, available: []partyPlace{{1, 20}}}
 	l.bank[768] = 20
 	l.completeBank(l.bank)
-	l.current = secondLocation{2, 2}
+	l.current = partyPlace{2, 2}
 	tail := l.innOptions()
 	if tail[len(tail)-1] != (secondInnOption{kind: 1, npc: 1}) {
 		t.Fatal("post-Leave20 tail", tail)
@@ -240,13 +240,13 @@ func TestSecondInnDynamicTail(t *testing.T) {
 func TestSecondInnTalkEffects(t *testing.T) {
 	for _, tc := range []struct {
 		o     secondInnOption
-		add   []secondLocation
+		add   []partyPlace
 		slots map[int]int32
 	}{
-		{secondInnOption{kind: 3, topic: 30, npc: 22}, []secondLocation{{1, 30}}, map[int]int32{533: 1, 553: 2}},
-		{secondInnOption{kind: 3, topic: 31, npc: 2108}, []secondLocation{{1, 31}}, nil},
-		{secondInnOption{kind: 3, topic: 10, npc: 517}, []secondLocation{{1, 10}}, map[int]int32{769: 1}},
-		{secondInnOption{kind: 3, topic: 30, npc: 23}, []secondLocation{{1, 30}}, nil},
+		{secondInnOption{kind: 3, topic: 30, npc: 22}, []partyPlace{{1, 30}}, map[int]int32{533: 1, 553: 2}},
+		{secondInnOption{kind: 3, topic: 31, npc: 2108}, []partyPlace{{1, 31}}, nil},
+		{secondInnOption{kind: 3, topic: 10, npc: 517}, []partyPlace{{1, 10}}, map[int]int32{769: 1}},
+		{secondInnOption{kind: 3, topic: 30, npc: 23}, []partyPlace{{1, 30}}, nil},
 		{secondInnOption{kind: 0, topic: 39, npc: 2110}, nil, nil},
 		{secondInnOption{kind: 0, topic: 30, npc: 22}, nil, nil},
 		{secondInnOption{kind: 1, topic: 0, npc: 1}, nil, map[int]int32{512: 0}},
@@ -257,7 +257,7 @@ func TestSecondInnTalkEffects(t *testing.T) {
 		{secondInnOption{kind: 0, topic: 48, npc: 2108}, nil, nil},
 		{secondInnOption{kind: 0, topic: 49, npc: 23}, nil, nil},
 		{secondInnOption{kind: 0, topic: 78, npc: 675}, nil, map[int]int32{770: 2}},
-		{secondInnOption{kind: 3, topic: 78, npc: 675}, []secondLocation{{1, 78}}, nil},
+		{secondInnOption{kind: 3, topic: 78, npc: 675}, []partyPlace{{1, 78}}, nil},
 		{secondInnOption{kind: 0, topic: 79, npc: 5}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
 		{secondInnOption{kind: 0, topic: 3, npc: 5, high: true}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
 	} {
@@ -274,7 +274,7 @@ func TestSecondInnTalkEffects(t *testing.T) {
 		if class4 := c.shop.records[3][3].Mask == mask|secondShopClass4; class4 != (tc.slots[770] == 2) {
 			t.Errorf("%+v: record 3 category 3 mask %#x", tc.o, c.shop.records[3][3].Mask)
 		}
-		if c.bank != want || !reflect.DeepEqual(c.available, append([]secondLocation{{2, 2}}, tc.add...)) {
+		if c.bank != want || !reflect.DeepEqual(c.available, append([]partyPlace{{2, 2}}, tc.add...)) {
 			t.Errorf("%+v: available %v", tc.o, c.available)
 		}
 	}
@@ -286,7 +286,7 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	text := synth.File{Path: "text/town.txt", Data: []byte("#npc517talk10\r\n<NPC=517,PART=1>\r\nFirst page.\r\n#npc2108talk31\r\n<NPC=2108,PART=1>\r\nThirty-one.\r\n#other\r\n")}
 	f, app, screen := secondCampaignFixtureFiles(t, false, text)
 	c := innAt(2, 30, nil)
-	c.available = []secondLocation{{2, 2}, {1, 21}}
+	c.available = []partyPlace{{2, 2}, {1, 21}}
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
@@ -295,12 +295,12 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 		t.Fatal("inn rows", screen.Rows())
 	}
 	screen.Choose(1)
-	if body, ok := screen.dialogueBody(); !ok || body == "" || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 21}, {1, 31}}) {
+	if body, ok := screen.dialogueBody(); !ok || body == "" || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 21}, {1, 31}}) {
 		t.Fatal("TALK 2108", c.available, body)
 	}
 	screen.AdvanceTownDialogue()
 	screen.Choose(0)
-	if _, ok := screen.dialogueBody(); ok || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, 21}, {1, 31}, {1, 30}}) || c.bank[533] != 1 || c.bank[553] != 2 {
+	if _, ok := screen.dialogueBody(); ok || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 21}, {1, 31}, {1, 30}}) || c.bank[533] != 1 || c.bank[553] != 2 {
 		t.Fatal("TALK 22 without a section", c.available)
 	}
 	// Slots 533 and 553 make hire 2 a town 2 hire actor, seated first
@@ -316,11 +316,11 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 		t.Fatal("quiet town 2 inn is not a save point")
 	}
 	screen.Choose(4)
-	if c.room != secondTownSquare || c.current != (secondLocation{2, 2}) {
+	if c.room != secondTownSquare || c.current != (partyPlace{2, 2}) {
 		t.Fatal("EXIT from the inn", c)
 	}
 	screen.Choose(1)
-	if c.current != (secondLocation{}) || c.room != secondTownSquare || len(c.available) != 4 {
+	if c.current != (partyPlace{}) || c.room != secondTownSquare || len(c.available) != 4 {
 		t.Fatal("GATES from the square", c)
 	}
 }
@@ -341,7 +341,7 @@ func TestSecondInnLaterTalksAdmitTheirTopic(t *testing.T) {
 			want := c.bank
 			c.talkTo(e.secondInnOption)
 			c.talkTo(e.secondInnOption)
-			if c.bank != want || !reflect.DeepEqual(c.available, []secondLocation{{2, 2}, {1, e.topic}}) {
+			if c.bank != want || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, e.topic}}) {
 				t.Errorf("TALK %d topic %d: available %v", e.npc, e.topic, c.available)
 			}
 		}
@@ -358,7 +358,7 @@ func TestSecondInnLaterTalksAdmitTheirTopic(t *testing.T) {
 func TestSecondLeaveThirtiesStage(t *testing.T) {
 	for _, s := range []int32{0, 10, 30, 40, 70, -10, 35, math.MaxInt32 - 5, math.MinInt32} {
 		for _, n := range []int{30, 31, 32} {
-			c := &secondCampaign{current: secondLocation{1, n}, available: []secondLocation{{1, n}}}
+			c := &secondCampaign{current: partyPlace{1, n}, available: []partyPlace{{1, n}}}
 			var bank [1024]int32
 			bank[768] = s
 			c.completeBank(bank)

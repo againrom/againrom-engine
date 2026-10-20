@@ -100,7 +100,7 @@ func (p *Presentation) shopArt(in *InstallResources) *ui.ShopScreenArt {
 	if s := in.Archives.artSource(); s != nil {
 		src = s
 	}
-	art := p.shopArtCache.store(loadShopArt(RoomDescription(in.profile()), src))
+	art := p.shopArtCache.store(loadShopArt(TownDescription(in.profile()), src))
 	art.Book = in.BottomHUDArt.Value()
 	return art
 }
