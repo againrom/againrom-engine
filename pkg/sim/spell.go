@@ -2539,7 +2539,8 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 	var bestDeficit int64
 	found := false
 	for i := range w.entities {
-		if !w.withinCastReach(&caster, &w.entities[i], reach) {
+		// An off-map actor is no candidate (TRIG-OFFMAP-041, AI-LIST-003).
+		if w.entities[i].OffMap || !w.withinCastReach(&caster, &w.entities[i], reach) {
 			continue
 		}
 		t := w.entities[i]

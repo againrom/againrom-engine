@@ -2,6 +2,7 @@ package sim
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sort"
 )
 
@@ -10,6 +11,32 @@ import (
 // appearance remains that BaseItem, and a retained Weapon is never refilled.
 func (w *World) sourceConstructItem(item ItemInstance) ItemInstance {
 	return constructItemWith(w.itemWeights, item)
+}
+
+// bindConstructedRow gives a plain row the operands of the item being worn;
+// a row that does not construct to it is stale.
+func (w *World) bindConstructedRow(item ItemInstance) bool {
+	row := w.savedObjects.item(item.ObjectID)
+	if item.ObjectID == 0 || row == nil || row.Value.WeightPresent || row.Value.SourceEquipment.Class != 0 {
+		return true
+	}
+	built := StackItem(w.sourceConstructItem(row.Value.Instance()), row.Value.Count)
+	if built.SourceEquipment.Class == 0 {
+		return true
+	}
+	if !StackStateEqual(built, w.savedObjects.stackForItem(item)) {
+		return false
+	}
+	before := row.Value.Clone()
+	err := w.savedObjects.mutate(func(r *SavedObjects) error {
+		row := r.item(item.ObjectID)
+		if row == nil {
+			return fmt.Errorf("sim: constructed Item row is absent")
+		}
+		row.Value, row.Token.T0C = built.Clone(), built.SourceEquipment.DefinitionRow
+		return nil
+	})
+	return err == nil && w.syncSavedItemViews(item.ObjectID, before, -1)
 }
 
 // constructItemWith fills a plain item from the constructor row ws holds for
@@ -326,7 +353,7 @@ func (w *World) sourceAttachEquipment(i int, item ItemInstance) (ItemInstance, b
 func (w *World) sourceAttachEquipmentTraced(i int, item ItemInstance, trace *sourceEquipmentTrace, ticket uint32) (ItemInstance, uint32, bool) {
 	item = w.sourceConstructItem(item)
 	slot, valid := sourceEquipmentSlot(item, w.entities[i].SourceNow())
-	if !valid {
+	if !valid || !w.bindConstructedRow(item) {
 		return ItemInstance{}, 0, false
 	}
 	if slot == 1 && !w.sourcePrepareWeaponTraced(&item, trace, ticket) {
