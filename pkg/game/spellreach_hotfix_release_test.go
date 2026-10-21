@@ -44,7 +44,7 @@ func TestReleaseFireballUsesPartyVisiblePointFromOwnerSave(t *testing.T) {
 	if got := sim.SpellCharacteristicsFor(sim.Rules{}, caster, rule).Range; got != 12 {
 		t.Fatalf("Owner's cached Fireball range=%d, want12", got)
 	}
-	book, _ := selectedSpellbook(sim.Rules{}, []sim.Entity{caster}, w.Spells(), live.spellNames, live.view.Words(), nil)
+	book, _ := selectedSpellbook(sim.Rules{}, []sim.Entity{caster}, w.Spells(), live.spellNames, live.view.Words(), nil, originalBookIDs)
 	for _, entry := range book {
 		if entry.ID == 2 && (!entry.PointTarget || entry.Unavailable) {
 			t.Fatal("Installed Fireball did not retain its point-target type")

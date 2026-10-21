@@ -416,8 +416,7 @@ func (t *secondCampaignScreen) openTownText(key string) ui.TownAction {
 		return ui.TownAction{Msg: err.Error()}
 	}
 	if payload != nil {
-		c := t.state()
-		c.payload, c.part = payload, 1
+		t.setTownDialogue(payload)
 	}
 	return ui.TownAction{}
 }

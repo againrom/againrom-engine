@@ -86,10 +86,7 @@ func (mw *mapWorld) spellIcon(id uint16) *image.RGBA {
 	if pic, tried := mw.spellIcons[id]; tried {
 		return pic
 	}
-	var pic *image.RGBA
-	if slot, ok := data.SpellIconSlot(int32(id)); ok {
-		pic = cutSpellIcon(mw.spellAtlas(), slot)
-	}
+	pic := cutBookIcon(mw.spellAtlas(), mw.spells().BookRows, id)
 	if mw.spellIcons == nil {
 		mw.spellIcons = make(map[uint16]*image.RGBA)
 	}
@@ -113,13 +110,19 @@ func (t *shopController) shopSpellIcon(id uint16) *image.RGBA {
 			t.shopSpellAtlasImg = loadSpellAtlas(t.in.Archives.Containers)
 		}
 	}
-	var pic *image.RGBA
-	if slot, ok := data.SpellIconSlot(int32(id)); ok {
-		pic = cutSpellIcon(t.shopSpellAtlasImg, slot)
-	}
+	pic := cutBookIcon(t.shopSpellAtlasImg, spellBookRows(t.in.Table), id)
 	if t.shopSpellIcons == nil {
 		t.shopSpellIcons = make(map[uint16]*image.RGBA)
 	}
 	t.shopSpellIcons[id] = pic
 	return pic
+}
+
+func cutBookIcon(atlas *bmp.Image, rows []uint16, id uint16) *image.RGBA {
+	for slot, row := range rows {
+		if row == id {
+			return cutSpellIcon(atlas, slot)
+		}
+	}
+	return nil
 }

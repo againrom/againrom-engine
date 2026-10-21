@@ -17,6 +17,11 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] A new mage's Heal and Shield appear in the spell bar and spellbook and can be cast, including after loading a save.
+- [ROM2] Clicking OK advances or closes town conversations, including Talk in the inn.
+
 ## 0.131.0
 
 ### For players

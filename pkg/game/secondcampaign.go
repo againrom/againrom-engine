@@ -220,7 +220,10 @@ type secondCampaignScreen struct {
 	worldMap   *worldMapState
 	worldMapOf *secondCampaign
 	// worldMapAt is the opening worldMap was built for.
-	worldMapAt *secondMapOpening
+	worldMapAt          *secondMapOpening
+	dialogueRevision    uint64
+	dialogueButtonState ui.DialogueButtonState
+	dialoguePolicy      ui.DialogueBackdrop
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -353,7 +356,7 @@ func (t *secondCampaignScreen) talk(c *secondCampaign, o secondInnOption) ui.Tow
 	}
 	c.talkTo(o)
 	if payload != nil {
-		c.payload, c.part = payload, 1
+		t.setTownDialogue(payload)
 	}
 	return ui.TownAction{}
 }
@@ -393,7 +396,30 @@ func (t *secondCampaignScreen) dialogueBody() (string, bool) {
 func (t *secondCampaignScreen) dialogueLayout() ui.NoticeLayout {
 	layout := t.install.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(false)
 	layout.Frame = t.frame()
-	return layout
+	return layout.WithDialogueButtonState(t.dialogueButtonState).WithDialogueBackdrop(t.dialoguePolicy)
+}
+
+func (t *secondCampaignScreen) setTownDialogue(payload []byte) {
+	c := t.state()
+	c.payload, c.part = payload, 1
+	t.dialogueRevision++
+}
+
+func (t *secondCampaignScreen) TownDialogueRevision() uint64 { return t.dialogueRevision }
+
+func (t *secondCampaignScreen) TownDialogueButtonState() ui.DialogueButtonState {
+	return t.dialogueButtonState
+}
+
+func (t *secondCampaignScreen) TownDialogueVisual(state ui.DialogueButtonState, policy ui.DialogueBackdrop) {
+	t.dialogueButtonState, t.dialoguePolicy = state, policy
+}
+
+func (t *secondCampaignScreen) TownDialogueShows() uint64 {
+	if _, open := t.dialogueBody(); open {
+		return 1
+	}
+	return 0
 }
 
 func (t *secondCampaignScreen) TownDialogue() (*image.RGBA, bool) {
@@ -414,6 +440,7 @@ func (t *secondCampaignScreen) AdvanceTownDialogue() ui.TownAction {
 	if c == nil {
 		return ui.TownAction{}
 	}
+	t.dialogueRevision++
 	c.part++
 	if _, ok := t.dialogueBody(); !ok {
 		c.payload, c.part = nil, 0

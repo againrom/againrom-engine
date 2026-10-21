@@ -14,6 +14,13 @@ import (
 	"againrom/pkg/ui"
 )
 
+func spellBookRows(t *mapload.Table) []uint16 {
+	if t != nil && t.Edition != nil {
+		return data.SpellPresentationNamed(t.Edition.Spells).BookRows
+	}
+	return originalBookIDs
+}
+
 // spellNamesFrom resolves the fixed book's installed cell names by spell ID.
 // A custom or incomplete spell catalog keeps the Spells collection names.
 // Missing or invalid Spells data leaves book entries unnamed.
@@ -27,7 +34,7 @@ func spellNamesFrom(t *mapload.Table, bookNames [29]string) map[uint16]string {
 		return nil
 	}
 	fixedBookCatalog := true
-	for _, id := range originalBookIDs {
+	for _, id := range spellBookRows(t) {
 		if int(id) > len(spells) {
 			fixedBookCatalog = false
 			break
@@ -110,12 +117,10 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 	return book
 }
 
-// selectedSpellbook uses AI-SPELLIDENT-286's fixed catalog when the table
-// supplies all its IDs. An incomplete/custom table keeps its own row order;
-// no compact position is ever translated into a spell identity. Availability
-// is the union of accepted selected books (AI-SPELLPOP-287). Information comes
-// from the first knower, or the primary when the cell is unavailable.
-func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA) ([]ui.SpellEntry, bool) {
+// selectedSpellbook uses the supplied cell order when every row exists.
+// Custom tables keep their row order. Availability is the selected books'
+// union; information comes from the first knower, or the primary otherwise.
+func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule, names map[uint16]string, w ui.Words, icon func(uint16) *image.RGBA, rows []uint16) ([]ui.SpellEntry, bool) {
 	if len(selected) == 0 {
 		return nil, false
 	}
@@ -123,13 +128,13 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 	for _, rule := range table {
 		byID[rule.ID] = rule
 	}
-	ordered := make([]sim.SpellRule, 0, len(originalBookIDs))
-	for _, id := range originalBookIDs {
+	ordered := make([]sim.SpellRule, 0, len(rows))
+	for _, id := range rows {
 		if rule, ok := byID[id]; ok {
 			ordered = append(ordered, rule)
 		}
 	}
-	fixed := len(ordered) == len(originalBookIDs)
+	fixed := len(rows) != 0 && len(ordered) == len(rows)
 	if !fixed {
 		ordered = table
 	}
@@ -181,7 +186,7 @@ func (mw *mapWorld) pushSpellbook() {
 		}
 	}
 	if len(selected) != 0 {
-		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon)
+		book, fixed := selectedSpellbook(mw.world.Rules(), selected, mw.world.Spells(), mw.spellNames, mw.view.Words(), mw.spellIcon, mw.spells().BookRows)
 		if fixed {
 			mw.view.SetSpellbookCatalog(uint32(selected[0].ID), book)
 		} else {

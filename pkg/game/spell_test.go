@@ -348,14 +348,14 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 		{ID: 89, Name: "Custom", Unavailable: true, Icon: pic, Info: []string{"Custom", "Mana cost: 2", "Range: 3"}},
 		{ID: 1, Name: "Fire Arrow", Icon: pic, Info: []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 7"}},
 	}
-	got, fixed := selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), icon)
+	got, fixed := selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), icon, originalBookIDs)
 	if fixed || !reflect.DeepEqual(got, want) {
 		t.Fatalf("union book = %+v fixed=%v, want %+v custom", got, fixed, want)
 	}
 	if !reflect.DeepEqual(icons, []uint16{26, 6, 89, 1}) {
 		t.Fatalf("icon lookups = %v, want one per catalog entry", icons)
 	}
-	got, fixed = selectedSpellbook(sim.Rules{}, selected[:1], table, names, testSpellPopupWords(), nil)
+	got, fixed = selectedSpellbook(sim.Rules{}, selected[:1], table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want[0] = ui.SpellEntry{ID: 26, Name: "Teleport", Unavailable: true,
 		Info: []string{"Teleport", "Mana cost: 30", "Range: 9"}}
 	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Unavailable: true,
@@ -366,7 +366,7 @@ func TestSelectedSpellbookFoldsEveryKnowerAndKeepsPrimaryUnavailableEntries(t *t
 	}
 	selected[0].AutoSpell = 6
 	selected[1].Book.Slots[5] = sim.BookSpell{Range: 11, ManaCost: 5}
-	got, _ = selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), nil)
+	got, _ = selectedSpellbook(sim.Rules{}, selected, table, names, testSpellPopupWords(), nil, originalBookIDs)
 	want[0] = ui.SpellEntry{ID: 26, Name: "Teleport", PointTarget: true,
 		Info: []string{"Teleport", "Mana cost: 90", "Range: 13-90"}}
 	want[1] = ui.SpellEntry{ID: 6, Name: "Heal", Autocast: true,

@@ -68,7 +68,7 @@ func TestQuickSpellsCatalogIdentityUnionAndCustomTable(t *testing.T) {
 		table = append(table, sim.SpellRule{ID: uint16(id)})
 	}
 	selected := []sim.Entity{{KnownSpells: 1 << 23}, {KnownSpells: 1<<16 | 1<<18}}
-	book, fixed := selectedSpellbook(sim.Rules{}, selected, table, nil, ui.Words{}, nil)
+	book, fixed := selectedSpellbook(sim.Rules{}, selected, table, nil, ui.Words{}, nil, originalBookIDs)
 	if !fixed || len(book) != 24 {
 		t.Fatalf("catalog fixed%v len%d", fixed, len(book))
 	}
@@ -78,12 +78,12 @@ func TestQuickSpellsCatalogIdentityUnionAndCustomTable(t *testing.T) {
 			t.Fatalf("cell%d=%+v want ID%d availability%v", i, entry, want[i], available)
 		}
 	}
-	book, fixed = selectedSpellbook(sim.Rules{}, selected[1:], table, nil, ui.Words{}, nil)
+	book, fixed = selectedSpellbook(sim.Rules{}, selected[1:], table, nil, ui.Words{}, nil, originalBookIDs)
 	if !book[5].Unavailable || book[7].Unavailable || !fixed {
 		t.Fatal("changing selection retained an old union member")
 	}
 	custom := []sim.SpellRule{{ID: 89}, {ID: 16}, {ID: 3}}
-	book, fixed = selectedSpellbook(sim.Rules{}, selected, custom, nil, ui.Words{}, nil)
+	book, fixed = selectedSpellbook(sim.Rules{}, selected, custom, nil, ui.Words{}, nil, originalBookIDs)
 	if fixed || len(book) != 3 || book[0].ID != 89 || !book[0].Unavailable || book[1].ID != 16 || book[1].Unavailable {
 		t.Fatalf("custom table identity/order lost: %+v fixed%v", book, fixed)
 	}
