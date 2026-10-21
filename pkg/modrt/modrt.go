@@ -54,24 +54,9 @@ type Result struct {
 	Set mod.Set
 	// Ordered are the mods in load order.
 	Ordered []mod.Entry
-	// Items are the items the mods add and edit, in load order.
-	Items mod.ItemData
-	// Characters are the character edits the mods make, in load order.
-	Characters mod.CharacterData
-	// Screens are the screens the mods declare, in load order.
-	Screens mod.ScreenData
-	// Companions are the join conditions the mods declare, in load order.
-	Companions mod.CompanionData
-	Spells     mod.SpellData
-	// Bodies are the weapon mappings and body sheets the mods declare, in
-	// load order.
-	Bodies mod.BodyData
-	// Missions are the missions the mods add, in load order, with their map
-	// and texts read.
-	Missions mod.MissionData
-	// Towns are the mods' layers over the town catalog, in load order, with
-	// the order the mods state.
-	Towns mod.TownData
+	// Data is what the mods' data files declare, each kind of
+	// mod.DataKinds in load order, with the order the mods state.
+	mod.Data
 	// Files are the install files the mods carry for the base's language, in
 	// load order, with the order the mods state.
 	Files mod.FileData
@@ -108,7 +93,7 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		}
 		byMod[g.Mod][g.Key] = g.Value
 	}
-	sh := &shared{params: rules.Defaults(), lang: LanguageFor(base), spellGlobals: map[string]string{}, spellFields: map[string]string{}}
+	sh := &shared{params: rules.Defaults(), lang: LanguageFor(base)}
 	set := mod.Set{Base: base}
 	for _, m := range ordered {
 		id := m.Manifest.ID
@@ -140,13 +125,11 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	if err != nil {
 		return Result{}, fmt.Errorf("the mods set rules the game refuses: %w", err)
 	}
-	if !sh.towns.Empty() {
-		sh.towns.Order = mod.PrecedenceOf(ordered)
-	}
+	sh.data.SetOrder(mod.PrecedenceOf(ordered))
 	if !sh.files.Empty() {
 		sh.files.Order = mod.PrecedenceOf(ordered)
 	}
-	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies, Missions: sh.missions, Towns: sh.towns, Files: sh.files}, nil
+	return Result{Rules: r, Set: set, Ordered: ordered, Data: sh.data, Files: sh.files}, nil
 }
 
 // LanguageFor is the language a mod's text is read in on a base: the locale
@@ -160,19 +143,10 @@ func LanguageFor(base string) string {
 
 // shared holds what every mod's game handle edits.
 type shared struct {
-	params       rules.Params
-	lang         string
-	items        mod.ItemData
-	characters   mod.CharacterData
-	screens      mod.ScreenData
-	companions   mod.CompanionData
-	spells       mod.SpellData
-	bodies       mod.BodyData
-	missions     mod.MissionData
-	towns        mod.TownData
-	files        mod.FileData
-	spellGlobals map[string]string
-	spellFields  map[string]string
+	params rules.Params
+	lang   string
+	data   mod.Data
+	files  mod.FileData
 }
 
 // ruleField declares one parameter of game.rules. Adding a parameter is adding

@@ -27,20 +27,27 @@ import (
 // drawn with it never reads the archive for it. The class key stays the
 // shipped body's (data.HeroAppearance): the mods change pictures only.
 func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
+	_, err := f.setModBodies(bodies)
+	return err
+}
+
+// setModBodies is SetModBodies answering the fields a later mod set over an
+// earlier one.
+func (f *FrontEnd) setModBodies(bodies mod.BodyData) ([]mod.Override, error) {
 	if bodies.Empty() {
-		return nil
+		return nil, nil
 	}
 	if f.Table == nil || f.Table.Weapons == nil || f.Archives == nil || f.Archives.Containers == nil || f.Units == nil {
-		return errors.New("the install has no weapon table, archives or unit bundle for the mods' bodies")
+		return nil, errors.New("the install has no weapon table, archives or unit bundle for the mods' bodies")
 	}
 	src := f.Archives.Containers
-	list, built, err := resolveModBodies(src, f.Units, f.Table.Weapons, f.Bodies, bodies)
+	list, built, overrides, err := layerModBodies(src, f.Units, f.Table.Weapons, f.Bodies, bodies)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
-		return err
+		return nil, err
 	}
 	f.Bodies = list
 	f.Table.Mods.Bodies = list
@@ -58,7 +65,7 @@ func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
 		units.Bodies[key] = class
 	}
 	f.Units = units
-	return nil
+	return overrides, nil
 }
 
 // resolveModBodies checks the mods' bodies against the install and answers the
@@ -66,51 +73,93 @@ func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
 // body directories, keyed as the unit bundle keys bodies.
 func resolveModBodies(src entrySource, units *terrain.UnitSet, weapons data.Collection, list data.BodyList,
 	bodies mod.BodyData) (data.BodyList, map[string]*terrain.UnitClass, error) {
+	list, built, _, err := layerModBodies(src, units, weapons, list, bodies)
+	return list, built, err
+}
+
+// weaponBodyKind names a weapon body record in a refusal and an override.
+const weaponBodyKind = "weapon row"
+
+// layerModBodies is resolveModBodies answering, too, the fields a later mod
+// set over an earlier one. The body sheets merge through
+// mod.MergeBodySheets; the weapon bodies merge through mod.Merge over layer
+// 0, the shipped body list, keyed by weapon row.
+func layerModBodies(src entrySource, units *terrain.UnitSet, weapons data.Collection, list data.BodyList,
+	bodies mod.BodyData) (data.BodyList, map[string]*terrain.UnitClass, []mod.Override, error) {
 	if list.Len() == 0 {
-		return list, nil, errors.New("the install has no body list for the mods' bodies")
+		return list, nil, nil, errors.New("the install has no body list for the mods' bodies")
+	}
+	sheets, overrides, err := mod.MergeBodySheets(bodies)
+	if err != nil {
+		return list, nil, nil, err
 	}
 	built := map[string]*terrain.UnitClass{}
-	for _, b := range bodies.Bodies {
+	for _, b := range sheets {
 		name := data.HeroBody(b.Name)
 		if shippedBody(src, name) {
-			return list, nil, itemFileError(b.Mod, b.File, b.NameLine, "body %q is a body the install ships; a supplied body takes a name of its own", b.Name)
+			return list, nil, nil, itemFileError(b.Mod, b.File, b.NameLine, "body %q is a body the install ships; a supplied body takes a name of its own", b.Name)
 		}
 		for _, dir := range []string{data.HeroDirHeroes, data.HeroDirHeroesLight} {
 			class, err := modBodyClass(src, units, b, dir)
 			if err != nil {
-				return list, nil, err
+				return list, nil, nil, err
 			}
 			built[data.HeroBodyKey(dir, name)] = class
 		}
 		list = list.WithModBody(name, data.ModBody{WeaponLast: b.WeaponLast})
 	}
+	type weaponBody struct {
+		row  int
+		body string
+	}
+	var layer0 []weaponBody
+	for row := 1; row <= list.Len(); row++ {
+		if b := list.Entry(row - 1); b != "" {
+			layer0 = append(layer0, weaponBody{row: row, body: string(b)})
+		}
+	}
 	chosen := map[int]mod.WeaponBody{}
+	patches := make([]mod.Patch[int, weaponBody], 0, len(bodies.Weapons))
 	for _, w := range bodies.Weapons {
 		row, err := modWeaponRow(weapons, w)
 		if err != nil {
-			return list, nil, err
+			return list, nil, nil, err
 		}
-		if first, dup := chosen[row]; dup {
-			return list, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d already has a body from mod %q (%s:%d)", row, first.Mod, first.File, first.Line)
+		if first, dup := chosen[row]; dup && first.Mod == w.Mod {
+			return list, nil, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d already has a body from mod %q (%s:%d)", row, first.Mod, first.File, first.Line)
 		}
 		if list.Entry(row-1) == "" {
-			return list, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d has no body in the install's body list; a mapping changes the body of a weapon the game draws", row)
+			return list, nil, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d has no body in the install's body list; a mapping changes the body of a weapon the game draws", row)
 		}
 		body := data.HeroBody(w.Body)
 		if strings.HasSuffix(w.Body, string(data.HeroShieldSuffix)) {
-			return list, nil, itemFileError(w.Mod, w.File, w.BodyLine, "body %q ends in the shield suffix; the shield slot chooses the shield form", w.Body)
+			return list, nil, nil, itemFileError(w.Mod, w.File, w.BodyLine, "body %q ends in the shield suffix; the shield slot chooses the shield form", w.Body)
 		}
 		if _, modded := list.ModBodyOf(body); !modded && !shippedBodyInBoth(src, body) {
-			return list, nil, itemFileError(w.Mod, w.File, w.BodyLine, "body %q is not a body the install ships under both %s and %s, nor one a loaded mod supplies", w.Body, data.HeroDirHeroes, data.HeroDirHeroesLight)
-		}
-		if _, modded := list.ModBodyOf(body); !modded && !shippedShieldFormInBoth(src, body) {
-			list = list.WithoutShieldForm(body)
+			return list, nil, nil, itemFileError(w.Mod, w.File, w.BodyLine, "body %q is not a body the install ships under both %s and %s, nor one a loaded mod supplies", w.Body, data.HeroDirHeroes, data.HeroDirHeroesLight)
 		}
 		chosen[row] = w
-		list = list.WithWeaponBody(row, body)
+		patches = append(patches, mod.Patch[int, weaponBody]{Source: mod.Source{Mod: w.Mod, File: w.File, Line: w.Line}, Key: row,
+			Fields: []mod.PatchField{{Name: "body", Line: w.BodyLine}}, Apply: func(r *weaponBody) { r.body = w.Body }})
 	}
-
-	return list, built, nil
+	if len(patches) > 0 {
+		l, err := mod.Merge(weaponBodyKind, layer0, func(r weaponBody) int { return r.row }, patches, bodies.Order, nil)
+		if err != nil {
+			return list, nil, nil, err
+		}
+		overrides = append(overrides, l.Overrides...)
+		for _, r := range l.Records {
+			if _, named := l.Named[r.row]; !named {
+				continue
+			}
+			body := data.HeroBody(r.body)
+			if _, modded := list.ModBodyOf(body); !modded && !shippedShieldFormInBoth(src, body) {
+				list = list.WithoutShieldForm(body)
+			}
+			list = list.WithWeaponBody(r.row, body)
+		}
+	}
+	return list, built, overrides, nil
 }
 
 // shippedBody reports whether name is a body the original's name chain knows

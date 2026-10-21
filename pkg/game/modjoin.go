@@ -7,17 +7,28 @@ import (
 	"againrom/pkg/mod"
 )
 
-// SetModCompanions records the join conditions the mods declare. Each names a
-// companion the campaign's town grants and a tavern conversation of that
-// town's own list; a condition the campaign does not bear out is refused with
-// the mod, the file and the line. It runs once, after SetMods and before any
-// game is opened.
+// SetModCompanions records the join conditions the mods declare, merged by
+// mod.MergeCompanions. Each names a companion the campaign's town grants and
+// a tavern conversation of that town's own list; a condition the campaign
+// does not bear out is refused with the mod, the file and the line. It runs
+// once, after SetMods and before any game is opened.
 func (f *FrontEnd) SetModCompanions(d mod.CompanionData) error {
+	_, err := f.setModCompanions(d)
+	return err
+}
+
+// setModCompanions is SetModCompanions answering the fields a later mod
+// set over an earlier one.
+func (f *FrontEnd) setModCompanions(d mod.CompanionData) ([]mod.Override, error) {
 	if d.Empty() {
-		return nil
+		return nil, nil
 	}
 	if f == nil || f.Table == nil {
-		return fmt.Errorf("the front end has no definition table to carry the mods")
+		return nil, fmt.Errorf("the front end has no definition table to carry the mods")
+	}
+	d, overrides, err := mod.MergeCompanions(d)
+	if err != nil {
+		return nil, err
 	}
 	c := f.Campaign.Value()
 	for _, j := range d.Joins {
@@ -26,20 +37,20 @@ func (f *FrontEnd) SetModCompanions(d mod.CompanionData) error {
 		}
 		ch, ok := c.Chapters[j.Chapter]
 		if !ok {
-			return bad("chapter %d is not a chapter of this install's campaign", j.Chapter)
+			return nil, bad("chapter %d is not a chapter of this install's campaign", j.Chapter)
 		}
 		if !c.townGrants(j.Companion) {
-			return bad("companion %d joins on a map, not in a town; no AddHero of this install's campaign grants it", j.Companion)
+			return nil, bad("companion %d joins on a map, not in a town; no AddHero of this install's campaign grants it", j.Companion)
 		}
 		if !slices.Contains(ch.AddHero, j.Companion) {
-			return bad("the town of chapter %d does not grant companion %d", j.Chapter, j.Companion)
+			return nil, bad("the town of chapter %d does not grant companion %d", j.Chapter, j.Companion)
 		}
 		if !slices.Contains(ch.InnNPC, j.Talk) {
-			return bad("the tavern of chapter %d has no conversation with record %d (it has %v)", j.Chapter, j.Talk, ch.InnNPC)
+			return nil, bad("the tavern of chapter %d has no conversation with record %d (it has %v)", j.Chapter, j.Talk, ch.InnNPC)
 		}
 	}
 	f.Table.Mods.Companions = d
-	return nil
+	return overrides, nil
 }
 
 // joinOnTalk joins the held companions whose tavern conversation talk has just

@@ -1,0 +1,5 @@
+[fire_ball_mana]
+type = "int"
+default = 6
+min = 0
+max = 100

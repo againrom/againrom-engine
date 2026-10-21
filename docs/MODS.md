@@ -10,17 +10,32 @@ A mod's `files` folder replaces install pictures, sounds and texts (section
 Install files). A mod folder packs into one file, `mod-<id>.res`, that the
 game reads as the folder (section Packed mods).
 
-| file | what it changes | keys and rules |
-|---|---|---|
-| `data/items.toml` | items in free code rows and edits of shipped rows | `DIV-1861`, `docs/1272/story.md` |
-| `data/characters.toml` | tavern characters | `docs/1278/story.md` |
-| `data/companions.toml` | join conditions | `docs/1280/story.md` |
-| `data/missions.toml` | missions a guest party plays between two campaign missions | below, `docs/1408/story.md` |
-| `data/screens.toml` | information screens and menu actions | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
-| `data/spells.toml` | spell values and formula tables | `docs/1341/story.md`, `DIV-2364` |
-| `data/wpnbodies.toml` | the body a weapon is drawn with (a mod folder may still use the long name `data/weapon-bodies.toml`) | below, `DIV-2912` |
-| `data/bodies.toml` | body sheets the mod supplies | below, `DIV-2913`, `DIV-2914` |
-| `data/towns.toml` | towns: add, change named fields, switch off | below, `docs/1486/story.md` |
+## Data kinds
+
+Every kind of data a mod carries is declared once in `pkg/mod/kinds.go`, and
+a test holds this table to those declarations. A catalog kind is game data
+the base holds as layer 0; each mod is a layer over it, keyed by the record
+key. A merged kind combines the mods through one layer step: a record adds,
+changes the fields it names, or switches a record off. A kept kind keeps its
+own rules until the story named migrates it. A configuration kind has no base
+catalog. Data files other than `settings.toml` are loaded by the entry script
+with `game.data.add`.
+
+| kind | file | key | layer | two mods on one record | see |
+|---|---|---|---|---|---|
+| items | `data/items.toml` | `key` (an added item), `item` (a change of a shipped row) | catalog, kept until T9 | added items are each mod's own; two changes of one shipped row both apply, the later's values last, unnamed | `DIV-1861`, `docs/1272/story.md` |
+| characters | `data/characters.toml` | `target` (a definition row or a family of tier rows) | catalog, kept until T6 | both edits apply in load order, the later's values last, unnamed | `docs/1278/story.md` |
+| screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
+| companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
+| spells | `data/spells.toml` | `target` and the field; `[global]` keys | catalog, kept until an unscheduled spell catalog story | no: one field of one spell, and one global key, is set by one mod | Spell damage columns, `docs/1341/story.md`, `DIV-2364` |
+| body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
+| weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
+| missions | `data/missions.toml` | `number`; `key` within the mod | catalog, kept until T6 | no: one mission number, and one guest mission after one campaign mission, per mod set | Missions, `docs/1408/story.md` |
+| towns | `data/towns.toml` | `id` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town off | Towns, `docs/1486/story.md` |
+| settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
+
+The base dump writes layer 0 of towns only; the other catalog kinds have no
+dump yet (`docs/1496/story.md`).
 
 ## mod.toml
 
@@ -219,7 +234,10 @@ A table gives `weapon`, `row` or both; both must name the same row. `body`
 names the base body. A hero with a shield takes the `_` form of a chosen body when a `_` sheet
 exists (under both directories for a shipped body, supplied by the mod for a
 supplied one), else the body itself. A row the shipped body list leaves blank, two choices for one
-row, and an unknown weapon, row or body are refused.
+row in one mod, and an unknown weapon, row or body are refused. Two mods that
+choose a body for one row need `load-after`: the later choice is drawn and
+`againrom -check` names the override; without an order the launch is refused
+naming both mods.
 
 The choice changes the picture only: the sheet, its geometry and the order the
 doll paints the weapon and shield layers in. Sound, attack timing, casting,
@@ -249,6 +267,7 @@ directories, one PNG per directory.
 | `idle` | optional, as `move`, with 0 to 64 frames |
 | `weapon-last` | optional, `true` to paint the weapon layer after the shield layer on the doll |
 | `selection` | optional `[x1, y1, x2, y2]`, the selection box inside the frame |
+| `off` | `true` switches off a sheet an earlier mod supplies and stands alone with `name` |
 
 The PNG is a grid of `frame`-sized cells. Row 0 holds the standing frames, one
 per facing: 16, or 9 at 5 directions. Then, for `move`, `attack` and `idle` in
@@ -256,6 +275,10 @@ that order, one row per direction holds that action's frames from column 0.
 A pixel with alpha 0 is background; every other pixel is opaque, and a sheet
 is reduced to at most 256 colours. A cell outside the picture, or a cell with
 no visible pixel, is refused, naming the action, direction and cell.
+
+Two mods that supply one `name` need `load-after`: the later mod's sheet
+replaces the whole sheet and `againrom -check` names the override; without an
+order the launch is refused naming both mods.
 
 A fallen hero is drawn with the shipped dying body of the directory. A
 supplied body has no owner shading and no silhouette sheet. A shield form is a

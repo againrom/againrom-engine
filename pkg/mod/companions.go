@@ -2,6 +2,7 @@ package mod
 
 import (
 	"fmt"
+	"slices"
 )
 
 // CompanionsFile is the data file that holds companion join conditions. A mod
@@ -22,7 +23,9 @@ const (
 
 // CompanionJoin is one join condition: the campaign companion Companion, whom
 // the town of chapter Chapter grants on arrival, joins the party only when the
-// player opens the conversation Talk of Building in that town.
+// player opens the conversation Talk of Building in that town. As a layer
+// record it names its condition by Chapter and Companion; Fields are the
+// fields it sets, and Off switches the condition off.
 type CompanionJoin struct {
 	Mod  string
 	File string
@@ -33,12 +36,75 @@ type CompanionJoin struct {
 	Chapter   int
 	Building  string
 	Talk      int
+
+	Fields []PatchField
+	Off    bool
+}
+
+// CompanionKey names one join condition: the companion and the chapter whose
+// town grants it.
+type CompanionKey struct {
+	Companion, Chapter int
+}
+
+func (k CompanionKey) String() string {
+	return fmt.Sprintf("%d of chapter %d", k.Companion, k.Chapter)
+}
+
+// companionFields are the fields a new join condition sets.
+var companionFields = []string{"key", "building", "talk"}
+
+// RecordKey is the condition the record names.
+func (j CompanionJoin) RecordKey() CompanionKey {
+	return CompanionKey{Companion: j.Companion, Chapter: j.Chapter}
+}
+
+// PatchFields are the fields the record sets. A record built without Fields
+// sets every field.
+func (j CompanionJoin) PatchFields() []PatchField {
+	if j.Fields != nil {
+		return j.Fields
+	}
+	out := make([]PatchField, 0, len(companionFields))
+	for _, f := range companionFields {
+		out = append(out, PatchField{Name: f, Line: j.Line})
+	}
+	return out
+}
+
+// Missing is the first field a new condition needs that the record does not
+// set; "" when it sets them all.
+func (j CompanionJoin) Missing() string {
+	for _, need := range companionFields {
+		if !slices.ContainsFunc(j.PatchFields(), func(f PatchField) bool { return f.Name == need }) {
+			return need
+		}
+	}
+	return ""
+}
+
+// Apply writes the fields the record sets into c, with the record's source.
+func (j CompanionJoin) Apply(c *CompanionJoin) {
+	c.Mod, c.File, c.Line = j.Mod, j.File, j.Line
+	c.Companion, c.Chapter = j.Companion, j.Chapter
+	for _, f := range j.PatchFields() {
+		switch f.Name {
+		case "key":
+			c.Key = j.Key
+		case "building":
+			c.Building = j.Building
+		case "talk":
+			c.Talk = j.Talk
+		}
+	}
+	c.Fields, c.Off = nil, false
 }
 
 // CompanionData is the join conditions the mods of a set declare, in load
-// order.
+// order, with the load order the mods state.
 type CompanionData struct {
 	Joins []CompanionJoin
+	Order Precedence
 }
 
 // Empty reports that no mod declares a join condition.
@@ -67,8 +133,9 @@ func (d CompanionData) ForTalk(chapter int, building string, talk int) []Compani
 }
 
 // ParseCompanions reads data/companions.toml of the mod id: [[join]] tables
-// with the keys key, companion, chapter, building and talk. A refusal names the
-// file and the line.
+// with the keys key, companion, chapter, building, talk and off. A table names
+// its condition by chapter and companion; one that adds a condition sets every
+// key, which the layer step judges. A refusal names the file and the line.
 func ParseCompanions(id, file string, data []byte) (CompanionData, error) {
 	tables, err := parseTOMLWith(data, tomlOptions{arrays: true})
 	if err != nil {
@@ -88,10 +155,13 @@ func ParseCompanions(id, file string, data []byte) (CompanionData, error) {
 		if t.name != "join" || !t.array {
 			return CompanionData{}, bad(t.line, "unknown table %q (this file holds [[join]])", t.name)
 		}
-		j := CompanionJoin{Mod: id, File: file, Line: t.line}
+		j := CompanionJoin{Mod: id, File: file, Line: t.line, Fields: []PatchField{}}
 		have := map[string]bool{}
 		for _, p := range t.pairs {
 			have[p.key] = true
+			if p.key != "companion" && p.key != "chapter" {
+				j.Fields = append(j.Fields, PatchField{Name: p.key, Line: p.line})
+			}
 			number := func(dst *int) error {
 				if p.val.kind != tomlInt {
 					return bad(p.line, "%s must be an integer, not %s", p.key, p.val.kind)
@@ -122,6 +192,11 @@ func ParseCompanions(id, file string, data []byte) (CompanionData, error) {
 				} else if j.Building = p.val.str; j.Building != BuildingTavern {
 					err = bad(p.line, "building is %q; only %q conversations can start a join", j.Building, BuildingTavern)
 				}
+			case OffField:
+				if p.val.kind != tomlBool {
+					err = bad(p.line, "off must be true or false, not %s", p.val.kind)
+				}
+				j.Off = p.val.flag
 			default:
 				err = bad(p.line, "unknown key %q in [[join]]", p.key)
 			}
@@ -129,15 +204,23 @@ func ParseCompanions(id, file string, data []byte) (CompanionData, error) {
 				return CompanionData{}, err
 			}
 		}
-		for _, need := range []string{"key", "companion", "chapter", "building", "talk"} {
+		for _, need := range []string{"companion", "chapter"} {
 			if !have[need] {
 				return CompanionData{}, bad(t.line, "[[join]] has no %s", need)
 			}
 		}
-		if first, dup := keys[j.Key]; dup {
-			return CompanionData{}, bad(t.line, "join key %q is already used at line %d", j.Key, first)
+		switch {
+		case len(j.Fields) == 0:
+			return CompanionData{}, bad(t.line, "[[join]] for companion %d of chapter %d changes nothing", j.Companion, j.Chapter)
+		case j.Off && len(j.Fields) > 1:
+			return CompanionData{}, bad(t.line, "[[join]] for companion %d of chapter %d switches the condition off and sets other keys; off = true stands alone", j.Companion, j.Chapter)
 		}
-		keys[j.Key] = t.line
+		if have["key"] {
+			if first, dup := keys[j.Key]; dup {
+				return CompanionData{}, bad(t.line, "join key %q is already used at line %d", j.Key, first)
+			}
+			keys[j.Key] = t.line
+		}
 		pair := [2]int{j.Chapter, j.Companion}
 		if first, dup := granted[pair]; dup {
 			return CompanionData{}, bad(t.line, "companion %d of chapter %d already has a join condition at line %d", j.Companion, j.Chapter, first)
@@ -146,4 +229,30 @@ func ParseCompanions(id, file string, data []byte) (CompanionData, error) {
 		out.Joins = append(out.Joins, j)
 	}
 	return out, nil
+}
+
+// MergeCompanions merges the mods' join records, in load order, over layer
+// 0, which holds no condition: the base grants every town companion on
+// arrival. A record that adds a condition sets every field; a later mod's
+// record of the same companion and chapter changes the fields it names when
+// load-after orders it after the earlier one, and off = true switches the
+// condition off. It answers the conditions in the order they were added and
+// the fields a later mod set over an earlier one.
+func MergeCompanions(d CompanionData) (CompanionData, []Override, error) {
+	patches := make([]Patch[CompanionKey, CompanionJoin], 0, len(d.Joins))
+	held := map[CompanionKey]bool{}
+	for _, j := range d.Joins {
+		k := j.RecordKey()
+		if need := j.Missing(); !held[k] && !j.Off && need != "" {
+			return CompanionData{}, nil, Source{Mod: j.Mod, File: j.File, Line: j.Line}.Errorf("[[join]] has no %s", need)
+		}
+		held[k] = true
+		patches = append(patches, Patch[CompanionKey, CompanionJoin]{Source: Source{Mod: j.Mod, File: j.File, Line: j.Line},
+			Key: k, Fields: j.PatchFields(), Off: j.Off, Apply: j.Apply})
+	}
+	l, err := Merge("companion", nil, CompanionJoin.RecordKey, patches, d.Order, nil)
+	if err != nil {
+		return CompanionData{}, nil, err
+	}
+	return CompanionData{Joins: l.Records, Order: d.Order}, l.Overrides, nil
 }

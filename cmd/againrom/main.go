@@ -269,27 +269,10 @@ func modLines(res modrt.Result) []string {
 			strings.Join(settings, ","), m.Dir))
 	}
 	lines = append(lines, fmt.Sprintf("againrom: rules skill_cap=%d", res.Rules.SkillCap()))
-	if !res.Items.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: items added=%d changed=%d", len(res.Items.Rows), len(res.Items.Changes)))
-	}
-	if !res.Characters.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: characters edited=%d", len(res.Characters.Rows)))
-	}
-	if !res.Screens.Empty() {
-		main, gameMenu := res.Screens.Count()
-		lines = append(lines, fmt.Sprintf("againrom: screens=%d main-menu=%d game-menu=%d", len(res.Screens.Screens), main, gameMenu))
-	}
-	if !res.Companions.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: companion joins=%d", len(res.Companions.Joins)))
-	}
-	if !res.Spells.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: spells edited=%d global=%d", len(res.Spells.Rows), len(res.Spells.Global.Globals())))
-	}
-	if !res.Bodies.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: weapon bodies=%d body sheets=%d", len(res.Bodies.Weapons), len(res.Bodies.Bodies)))
-	}
-	if !res.Towns.Empty() {
-		lines = append(lines, fmt.Sprintf("againrom: town records=%d", len(res.Towns.Records)))
+	for _, k := range mod.DataKinds() {
+		if line := k.Summary(res.Data); line != "" {
+			lines = append(lines, "againrom: "+line)
+		}
 	}
 	if !res.Files.Empty() {
 		var free []string
@@ -928,40 +911,15 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 1
 		}
-		if err := front.SetModItems(modRun.Items); err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		if err := front.SetModCharacters(modRun.Characters); err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		if err := front.SetModCompanions(modRun.Companions); err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		if err := front.SetModSpells(modRun.Spells); err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		if err := front.SetModBodies(modRun.Bodies); err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		warnings, err := front.SetModMissions(modRun.Missions)
-		if err != nil {
-			fmt.Fprintln(stderr, "againrom:", err)
-			return 2
-		}
-		for _, w := range warnings {
+		report, err := front.SetModData(modRun.Data)
+		for _, w := range report.Warnings {
 			fmt.Fprintln(stderr, "againrom: warning:", w)
 		}
-		overrides, err := front.SetModTowns(modRun.Towns)
 		if err != nil {
 			fmt.Fprintln(stderr, "againrom:", err)
 			return 2
 		}
-		for _, o := range overrides {
+		for _, o := range report.Overrides {
 			fmt.Fprintln(stderr, "againrom: override:", o)
 		}
 		for _, o := range front.ModFileOverrides() {

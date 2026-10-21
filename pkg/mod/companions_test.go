@@ -56,12 +56,17 @@ func TestParseCompanionsRefusalsNameFileAndLine(t *testing.T) {
 		{"too large", strings.Replace(goodJoin, "talk      = 22", "talk      = 70000", 1), "data/companions.toml:7: talk is 70000; use 1 to 65535"},
 		{"building", strings.Replace(goodJoin, `"tavern"`, `"shop"`, 1), `data/companions.toml:6: building is "shop"; only "tavern" conversations can start a join`},
 		{"bad key", strings.Replace(goodJoin, `"mage"`, `"Mage"`, 1), `data/companions.toml:3: key "Mage" must be 1 to 32 of a-z`},
-		{"missing talk", strings.Replace(goodJoin, "talk      = 22\n", "", 1), "data/companions.toml:2: [[join]] has no talk"},
+		{"missing talk", strings.Replace(goodJoin, "talk      = 22\n", "", 1), `mod "m": data/companions.toml:2: [[join]] has no talk`},
+		{"missing chapter", strings.Replace(goodJoin, "chapter   = 30\n", "", 1), "data/companions.toml:2: [[join]] has no chapter"},
+		{"off with keys", strings.Replace(goodJoin, "talk      = 22\n", "talk      = 22\noff = true\n", 1), "data/companions.toml:2: [[join]] for companion 22 of chapter 30 switches the condition off and sets other keys"},
 		{"duplicate key", goodJoin + strings.Replace(goodJoin, "companion = 22", "companion = 25", 1), `data/companions.toml:9: join key "mage" is already used at line 2`},
 		{"duplicate companion", goodJoin + strings.Replace(goodJoin, `"mage"`, `"other"`, 1), "data/companions.toml:9: companion 22 of chapter 30 already has a join condition at line 2"},
 	}
 	for _, c := range cases {
-		_, err := ParseCompanions("m", CompanionsFile, []byte(c.src))
+		d, err := ParseCompanions("m", CompanionsFile, []byte(c.src))
+		if err == nil {
+			_, _, err = MergeCompanions(d)
+		}
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: err %v, want %q", c.name, err, c.want)
 		}

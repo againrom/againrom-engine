@@ -79,15 +79,19 @@ func TestBodyFileRefusalsNameModFileAndLine(t *testing.T) {
 	}
 }
 
-func TestTwoModsCannotSupplyOneBody(t *testing.T) {
+func TestTwoModsOnOneBodyNeedLoadAfter(t *testing.T) {
 	only := "def init(game, settings):\n    game.data.add(\"data/bodies.toml\")\n"
 	mods := makeMods(t, map[string]map[string]string{
 		"m1": {"main.star": only, "data/bodies.toml": bodySrc},
 		"m2": {"main.star": only, "data/bodies.toml": bodySrc},
 	})
-	_, err := Load(mods, "rom1-en", nil, Options{})
-	want := `data/bodies.toml:1: body "hammer2h" is already supplied by mod "m1"`
-	if err == nil || !strings.Contains(err.Error(), want) {
+	res, err := Load(mods, "rom1-en", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = mod.MergeBodySheets(res.Bodies)
+	want := `mod "m2": data/bodies.toml:1: body hammer2h is added by mod "m1" and named by mod "m2", and neither loads after the other: add load-after to one of them`
+	if err == nil || err.Error() != want {
 		t.Fatalf("%v, want %q", err, want)
 	}
 }

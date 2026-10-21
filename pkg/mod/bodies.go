@@ -20,21 +20,6 @@ const (
 // WeaponBodiesFiles lists every name the weapon bodies file is read under.
 var WeaponBodiesFiles = []string{WeaponBodiesFile, WeaponBodiesLongFile}
 
-// checkWeaponBodiesNames refuses a mod that holds the weapon bodies file under
-// both of its names, naming both.
-func checkWeaponBodiesNames(t Tree) error {
-	var held []string
-	for _, n := range WeaponBodiesFiles {
-		if st, err := t.Stat(n); err == nil && !st.IsDir() {
-			held = append(held, n)
-		}
-	}
-	if len(held) > 1 {
-		return fmt.Errorf("the mod holds both %s and %s; keep one of them", held[0], held[1])
-	}
-	return nil
-}
-
 var bodyNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
 // Bounds of a body sheet's geometry.
@@ -106,6 +91,11 @@ type BodySheet struct {
 	Selection     [4]int
 	HasSelection  bool
 	SelectionLine int
+
+	// Off switches the body an earlier mod supplies off; OffLine is the
+	// line that sets off, 0 when the table does not.
+	Off     bool
+	OffLine int
 }
 
 // StandingFrames is how many standing frames the sheet's row 0 holds.
@@ -117,10 +107,42 @@ func (b BodySheet) StandingFrames() int {
 }
 
 // BodyData is the weapon mappings and body sheets the mods of a set declare,
-// in load order.
+// in load order, with the load order the mods state.
 type BodyData struct {
 	Weapons []WeaponBody
 	Bodies  []BodySheet
+	Order   Precedence
+}
+
+// bodySheetField is the one field a body sheet record sets: a sheet is
+// replaced whole, since its geometry is read against its own pictures.
+const bodySheetField = "sheet"
+
+// MergeBodySheets merges the mods' body sheet records, in load order, over
+// layer 0, which holds no sheet: a record adds the body its name names, a
+// later mod's record of that name replaces the whole sheet when load-after
+// orders it after the earlier one, and off = true switches the body off.
+// It answers the bodies in the order they were first supplied and the
+// sheets a later mod replaced.
+func MergeBodySheets(d BodyData) ([]BodySheet, []Override, error) {
+	patches := make([]Patch[string, BodySheet], 0, len(d.Bodies))
+	for _, b := range d.Bodies {
+		p := Patch[string, BodySheet]{Source: Source{Mod: b.Mod, File: b.File, Line: b.Line}, Key: b.Name, Off: b.Off}
+		if !b.Off {
+			p.Fields = append(p.Fields, PatchField{Name: bodySheetField, Line: b.Line})
+			sheet := b
+			p.Apply = func(r *BodySheet) { *r = sheet; r.OffLine = 0 }
+		}
+		if b.OffLine != 0 {
+			p.Fields = append(p.Fields, PatchField{Name: OffField, Line: b.OffLine})
+		}
+		patches = append(patches, p)
+	}
+	l, err := Merge("body", nil, func(b BodySheet) string { return b.Name }, patches, d.Order, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	return l.Records, l.Overrides, nil
 }
 
 // Empty reports that no mod maps a weapon or supplies a body.
@@ -188,8 +210,9 @@ func ParseWeaponBodies(id, file string, data []byte) ([]WeaponBody, error) {
 	return out, nil
 }
 
-// ParseBodies reads data/bodies.toml of the mod id: [[body]] tables. A refusal
-// names the file and line. Whether the sheets exist and cover every frame is
+// ParseBodies reads data/bodies.toml of the mod id: [[body]] tables. A table
+// that switches a body off holds name and off = true only. A refusal names
+// the file and line. Whether the sheets exist and cover every frame is
 // decided where the pictures are read.
 func ParseBodies(id, file string, data []byte) ([]BodySheet, error) {
 	tables, err := parseTOMLWith(data, tomlOptions{arrays: true})
@@ -286,12 +309,32 @@ func ParseBodies(id, file string, data []byte) ([]BodySheet, error) {
 					copy(b.Selection[:], v)
 					b.HasSelection = true
 				}
+			case OffField:
+				b.OffLine = p.line
+				if p.val.kind != tomlBool {
+					err = bad(p.line, "off must be true or false, not %s", p.val.kind)
+				}
+				b.Off = p.val.flag
 			default:
 				err = bad(p.line, "unknown key %q in [[body]]", p.key)
 			}
 			if err != nil {
 				return nil, err
 			}
+		}
+		if b.Off {
+			if !have["name"] {
+				return nil, bad(t.line, "[[body]] has no name")
+			}
+			if len(t.pairs) > 2 {
+				return nil, bad(t.line, "[[body]] %q switches the body off and sets other keys; off = true stands alone with name", b.Name)
+			}
+			if first, dup := names[b.Name]; dup {
+				return nil, bad(t.line, "body %q is already supplied at line %d", b.Name, first)
+			}
+			names[b.Name] = t.line
+			out = append(out, b)
+			continue
 		}
 		for _, need := range []string{"name", "heroes", "heroes_l", "frame", "origin", "directions", "move", "attack"} {
 			if !have[need] {

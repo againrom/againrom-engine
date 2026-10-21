@@ -1,0 +1,8 @@
+id          = "fire-ball-tune"
+title       = "Fire Ball tune"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Fire Ball costs the mana the setting gives and burns a wider area; every spell's mana is scaled."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

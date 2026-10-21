@@ -2796,6 +2796,12 @@ package storyguard
 // CommentBytes rises for the doc comments of the weapon bodies file's second
 // name (pkg/mod bodies.go, tree_test.go, modrt wpnbodies_test.go), this note
 // included.
+//
+// CommentBytes rises for the one declaration of every mod data kind, all new
+// code: the declarations and their readers (pkg/mod/kinds.go, kindread.go),
+// the merges of companions and body sheets (companions.go, bodies.go), the
+// one apply step and the weapon body merge (pkg/game/moddata.go,
+// modbodies.go), the recorded merged data, their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2819,5 +2825,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9486911,
+	CommentBytes: 9496622,
 }

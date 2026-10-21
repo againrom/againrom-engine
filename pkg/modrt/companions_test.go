@@ -52,15 +52,32 @@ func TestCompanionFileRefusalsNameModFileAndLine(t *testing.T) {
 	}
 }
 
-func TestTwoModsCannotHoldTheSameCompanion(t *testing.T) {
+func TestTwoModsOnOneCompanionNeedLoadAfter(t *testing.T) {
 	second := strings.Replace(joinSrc, `"a"`, `"b"`, 1)
 	mods := makeMods(t, map[string]map[string]string{
 		"m1": {"main.star": companionsMain, "data/companions.toml": joinSrc},
 		"m2": {"main.star": companionsMain, "data/companions.toml": second},
 	})
-	_, err := Load(mods, "rom1-en", nil, Options{})
-	want := `data/companions.toml:1: companion 22 of chapter 30 already has a join condition from mod "m1"`
-	if err == nil || !strings.Contains(err.Error(), want) {
+	res, err := Load(mods, "rom1-en", nil, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = mod.MergeCompanions(res.Companions)
+	want := `mod "m2": data/companions.toml:1: companion 22 of chapter 30 is added by mod "m1" and named by mod "m2", and neither loads after the other: add load-after to one of them`
+	if err == nil || err.Error() != want {
 		t.Fatalf("%v, want %q", err, want)
+	}
+	mods = makeMods(t, map[string]map[string]string{
+		"m1": {"main.star": companionsMain, "data/companions.toml": joinSrc},
+		"m2": {"main.star": companionsMain, "data/companions.toml": second,
+			"mod.toml": "id = \"m2\"\ntitle = \"m2\"\nversion = \"1.0\"\nload-after = [\"m1\"]\n"},
+	})
+	if res, err = Load(mods, "rom1-en", nil, Options{}); err != nil {
+		t.Fatal(err)
+	}
+	merged, overrides, err := mod.MergeCompanions(res.Companions)
+	if err != nil || len(merged.Joins) != 1 || merged.Joins[0].Key != "b" || len(overrides) != 3 ||
+		overrides[0].String() != `companion 22 of chapter 30 key: mod "m2" (data/companions.toml:2) overrides mod "m1"` {
+		t.Fatalf("%v %+v %v", err, merged.Joins, overrides)
 	}
 }

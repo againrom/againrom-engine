@@ -1,0 +1,8 @@
+# Every spell costs three quarters of its mana; Fire Ball costs the setting.
+[global]
+mana_mul = [3, 4]
+
+[[spell]]
+target = "Fire_Ball"
+mana   = "@fire_ball_mana"
+radius = 4

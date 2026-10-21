@@ -35,10 +35,11 @@ type baseDumpLayer struct {
 	note string
 }
 
-// baseDumpLayers are the layered catalogs a base dump writes, each by its
-// kind's own code beside its layer step, in this order.
-var baseDumpLayers = []func(*FrontEnd, string) (baseDumpLayer, error){
-	(*FrontEnd).baseTownLayer,
+// baseDumpLayers write layer 0 of each kind of mod.DataKinds that declares
+// a dump, by the kind's name, each by its kind's own code beside its layer
+// step; the dump writes them in the declarations' order.
+var baseDumpLayers = map[string]func(*FrontEnd, string) (baseDumpLayer, error){
+	"towns": (*FrontEnd).baseTownLayer,
 }
 
 // BaseDumpReport is what a base dump wrote: its folder, the base it was
@@ -78,8 +79,15 @@ func (f *FrontEnd) WriteBaseDump(dir string) (BaseDumpReport, error) {
 	var read, unread []string
 	files := map[string][]byte{}
 	var order []string
-	for _, kind := range baseDumpLayers {
-		l, err := kind(f, report.Base)
+	for _, k := range mod.DataKinds() {
+		if !k.Dump {
+			continue
+		}
+		layer, ok := baseDumpLayers[k.Name]
+		if !ok {
+			return BaseDumpReport{}, fmt.Errorf("base dump: the game cannot write layer 0 of the mods' %s", k.Name)
+		}
+		l, err := layer(f, report.Base)
 		if err != nil {
 			return BaseDumpReport{}, fmt.Errorf("base dump: %w", err)
 		}
