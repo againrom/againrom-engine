@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"againrom/pkg/installpath"
+	"againrom/pkg/mod"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -67,6 +68,14 @@ func installShareKey(root string) (string, bool) {
 
 // loadInstallShare reads a share with no cache.
 func loadInstallShare(root string) (*installShare, error) {
+	return loadModInstallShare(root, mod.FileData{}, nil)
+}
+
+// loadModInstallShare reads a share with no cache whose archives serve the
+// install files the mods carry, checked against the install, before anything
+// is read from them. sounds is the sound archive the files of sfx/ go to.
+// With no file it is loadInstallShare.
+func loadModInstallShare(root string, files mod.FileData, sounds *SoundBank) (*installShare, error) {
 	archives, err := OpenArchives(root)
 	if err != nil {
 		return nil, err
@@ -76,6 +85,16 @@ func loadInstallShare(root string) (*installShare, error) {
 		return nil, err
 	}
 	archives.Base = match
+	if !files.Empty() {
+		b := &modFiles{fs: archives.Containers, order: files.Order, owners: map[string]modFileEntry{}}
+		if sounds != nil {
+			b.sounds = sounds.src
+		}
+		archives.mods = b
+		if err := b.serveInstallFiles(archives, files.Files); err != nil {
+			return nil, err
+		}
+	}
 	s := &installShare{archives: archives}
 	s.statics, s.staticsErr = LoadStatics(archives.Containers)
 	s.structures, s.structuresErr = LoadStructures(archives.Containers)

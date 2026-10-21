@@ -102,6 +102,11 @@ type Archives struct {
 	// townArt is the town art of each description other than the starting
 	// town's, read on a party's first visit (townart.go).
 	townArt map[*town.Description]*townArtLoads
+
+	// mods is the boundary the front end's mods serve files through, nil
+	// while no mod serves one (modfiles.go). Archives that carry it belong
+	// to one front end.
+	mods *modFiles
 }
 
 // InstallPath is the host path of the install file rel names under Root,

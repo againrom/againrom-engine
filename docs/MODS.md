@@ -6,6 +6,8 @@ Every refusal stops the launch and names the mod, the file and the line.
 `againrom -dump-base <folder>` writes the install's own records in this
 format (section Base dump). `againrom --headless <scenario.json>` runs the
 game with no window and writes the frame of a town (section Headless runs).
+A mod's `files` folder replaces install pictures, sounds and texts (section
+Install files).
 
 | file | what it changes | keys and rules |
 |---|---|---|
@@ -53,6 +55,67 @@ The script's `print` output is discarded, in `againrom -check` and in play.
 A script reports a problem with `fail("text")`; the refusal names the mod,
 the file and the line (`mod "m": main.star:3: fail: text`), and it stops the
 check or the launch.
+
+## Install files
+
+A mod replaces an install's picture, sound or text by carrying a file at the
+same install path under its `files` folder. No script line is needed: the
+game reads the mod's file wherever it reads the install's.
+
+```
+my-mod/
+  mod.toml
+  files/
+    common/graphics/interface/town/townmain.bmp   every install
+    common/sfx/<path of a sound>.wav               every install
+    en/main/text/sites.txt                         English installs
+    ru/main/text/sites.txt                         Russian installs
+```
+
+The install path is the archive name and the path inside it, as the
+install's resource files hold it: `main/`, `graphics/`, `scenario/`,
+`world/`, `movies/` or `sfx/`, then the path. Case does not matter.
+
+Language folders are `common`, `en` and `ru`. On an install the game reads
+the folder of the install's language (`en` on `rom1-en` and `rom2-en`, `ru`
+on `rom1-ru` and `rom2-ru`) and `common`; for one path the language folder's
+file wins over `common`'s. The other language's folder is held to the folder
+rules below and not read; only the files the install reads are
+checked against the install. Names that start with a dot are skipped.
+
+| kind | extension | rule |
+|---|---|---|
+| picture | `.bmp` | the bit depth (8 or 24) and the size of the install's picture at that path |
+| sound | `.wav` | a WAV the game decodes |
+| text | `.txt` | UTF-8; the game writes it into the install's bytes, so one file reads right on English and Russian. A character the install's alphabet has no byte for is refused |
+
+Each file is at most 16 MiB. `againrom -check` and the launch refuse, naming
+the mod and the file: a file outside a language folder, a folder that is not
+a language, a file directly under a language folder, another extension, a
+path the install does not hold, a picture of another depth or size, a sound
+the game cannot decode, a text that is not UTF-8 or holds a character the
+install cannot write. On success `-check` prints
+`againrom: install files=<count> state-free=<mods> (<the rule>)`.
+
+Two mods may serve one path only when one loads after the other (`requires`
+or `load-after`). The later mod's file is read and the check prints
+`againrom: override: install file <path>: mod "b" (<file>) overrides mod "a"
+(<file>)`. Without an order the launch is refused naming both mods.
+
+A mod that sets no rule, adds no data file and serves no text file
+(`.txt`) changes no game state: it is listed after `state-free=`. A text
+feeds the definitions the game builds its state from (the body list, item
+names, class and spell tables), so a mod that serves any text is marked even
+when that text changes nothing. A picture or a sound is only drawn and
+played. A state-free mod is not written into a save's mod mark, so a save
+made with a mod of pictures and sounds loads without it. A mod that changes
+game state is marked, and its save is refused without it. A save whose mark
+names a mod loads while every mod it names is active, whether or not that
+mod is state-free now.
+
+Not served: `speech.res`, `music.res`, loose files beside the install's
+resource files, and pictures in `.256`, `.16a`, `.16`, `.pal`, `.reg`,
+`.alm` form.
 
 ## Spell damage columns
 

@@ -280,6 +280,15 @@ func modLines(res modrt.Result) []string {
 	if !res.Towns.Empty() {
 		lines = append(lines, fmt.Sprintf("againrom: town records=%d", len(res.Towns.Records)))
 	}
+	if !res.Files.Empty() {
+		var free []string
+		for _, m := range res.Set.Mods {
+			if m.StateFree {
+				free = append(free, m.ID)
+			}
+		}
+		lines = append(lines, fmt.Sprintf("againrom: install files=%d state-free=%s (a mod with no rule, no data file and no text file; the others are in a save's mod mark)", len(res.Files.Files), strings.Join(free, ",")))
+	}
 	return lines
 }
 
@@ -579,6 +588,12 @@ func loadSources(root string, o options, executable, userConfigDir string) (game
 // can drive it against a synthetic install where run() would try to open a
 // window.
 func frontEnd(root string, o options, preferences game.OptionsStore) (*game.FrontEnd, error) {
+	return modFrontEnd(root, o, preferences, mod.FileData{})
+}
+
+// modFrontEnd is frontEnd with the install files the mods carry served in
+// place of the install's own.
+func modFrontEnd(root string, o options, preferences game.OptionsStore, files mod.FileData) (*game.FrontEnd, error) {
 	// -skill, BEFORE game.NewFrontEnd: NewFrontEnd calls LoadDefinitions, which
 	// resolves the party's starting weapon against whatever game.PartySkillSlot
 	// answers AT THAT MOMENT (table.go's own resolveStartingWeapon). Setting it
@@ -596,7 +611,7 @@ func frontEnd(root string, o options, preferences game.OptionsStore) (*game.Fron
 	game.SetSoundOptions(sound)
 	channels, _ := preferences.SoundChannelVolumes()
 	game.SetSoundChannelVolumes(channels)
-	front, err := game.NewFrontEnd(root)
+	front, err := game.NewModFrontEnd(root, files)
 	if err != nil {
 		return nil, err
 	}
@@ -865,7 +880,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			fmt.Fprintln(stderr, "againrom: profile unavailable:", err)
 		}
 	}
-	front, err := frontEnd(root, o, profile.Options)
+	front, err := modFrontEnd(root, o, profile.Options, modRun.Files)
 	if err != nil {
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 1
@@ -909,6 +924,9 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 			return 2
 		}
 		for _, o := range overrides {
+			fmt.Fprintln(stderr, "againrom: override:", o)
+		}
+		for _, o := range front.ModFileOverrides() {
 			fmt.Fprintln(stderr, "againrom: override:", o)
 		}
 	}

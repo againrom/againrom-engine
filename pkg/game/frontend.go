@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/random"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/terrain"
@@ -585,7 +586,24 @@ func (f *FrontEnd) SetDeterministicFrames(on bool) {
 // window opens rather than after. Both loads are headless and GPU-free, so
 // -check reaches them with no graphics context.
 func NewFrontEnd(root string) (*FrontEnd, error) {
-	share, err := sharedInstall(root)
+	return NewModFrontEnd(root, mod.FileData{})
+}
+
+// NewModFrontEnd is NewFrontEnd over the install with the install files the
+// mods carry served in place of the install's own (modfiles.go): every
+// picture, sound and text the front end reads is read through them. A file
+// the game cannot use is refused, naming the mod and the file. With no file
+// it is NewFrontEnd.
+func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
+	var share *installShare
+	var soundBank *SoundBank
+	var err error
+	if files.Empty() {
+		share, err = sharedInstall(root)
+	} else {
+		soundBank = OpenSounds(root)
+		share, err = loadModInstallShare(root, files, soundBank)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -633,7 +651,9 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	// cmd/againrom's SetSoundOptions call, when there is one, has already run
 	// by the time this line does (main.go's own ordering, mirroring
 	// SetPartySkill's).
-	soundBank := OpenSounds(root)
+	if files.Empty() {
+		soundBank = OpenSounds(root)
+	}
 	soundClasses := share.unitSounds
 	audioSettings := audio.Settings{
 		Master: soundOptions.Volume,

@@ -20,3 +20,5 @@ import "againrom/pkg/formats/res"
 func DecodeText(b []byte) string { return res.DecodeCP866(b) }
 
 func WindowsCyrillicToDOS(b []byte) []byte { return res.WindowsCyrillicToDOS(b) }
+
+func DOSCyrillicToWindows(b []byte) []byte { return res.DOSCyrillicToWindows(b) }

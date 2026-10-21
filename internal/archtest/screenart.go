@@ -35,6 +35,8 @@ var screenArtOtherKinds = map[string]string{
 	"pkg/game/cursorregistry.go":    "cursors",
 	"pkg/game/font.go":              "fonts",
 	"pkg/game/inventory.go":         "item icons",
+	"pkg/game/modfiles.go":          "a mod's install picture checked against the install's before it is served",
+	"pkg/mod/files.go":              "the kinds of install file a mod may carry",
 	"pkg/game/nativecity.go":        "campaign marker names a save carries",
 	"pkg/game/portrait.go":          "hero figure composed from unit sheets",
 	"pkg/game/projectiles.go":       "projectile and spell effect sheets",

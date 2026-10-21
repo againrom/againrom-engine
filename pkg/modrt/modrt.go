@@ -74,6 +74,9 @@ type Result struct {
 	// Towns are the mods' layers over the town catalog, in load order, with
 	// the order the mods state.
 	Towns mod.TownData
+	// Files are the install files the mods carry for the base's language, in
+	// load order, with the order the mods state.
+	Files mod.FileData
 }
 
 // Load orders mods for the base, resolves their settings from given and runs
@@ -123,10 +126,17 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 		if err != nil {
 			return Result{}, fmt.Errorf("mod %q: %w", id, err)
 		}
-		if err := runMod(m, values, sh, opt); err != nil {
+		files, err := mod.ReadInstallFiles(id, m.Dir, sh.lang)
+		if err != nil {
 			return Result{}, err
 		}
-		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values})
+		sh.files.Files = append(sh.files.Files, files...)
+		state, err := runMod(m, values, sh, opt)
+		if err != nil {
+			return Result{}, err
+		}
+		state = state || mod.FilesChangeState(files)
+		set.Mods = append(set.Mods, mod.SetEntry{ID: id, Version: m.Manifest.Version, Digest: digest, Settings: values, StateFree: !state})
 	}
 	r, err := rules.New(sh.params)
 	if err != nil {
@@ -135,7 +145,10 @@ func Load(mods []mod.Entry, base string, given []mod.SettingFlag, opt Options) (
 	if !sh.towns.Empty() {
 		sh.towns.Order = mod.PrecedenceOf(ordered)
 	}
-	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies, Missions: sh.missions, Towns: sh.towns}, nil
+	if !sh.files.Empty() {
+		sh.files.Order = mod.PrecedenceOf(ordered)
+	}
+	return Result{Rules: r, Set: set, Ordered: ordered, Items: sh.items, Characters: sh.characters, Screens: sh.screens, Companions: sh.companions, Spells: sh.spells, Bodies: sh.bodies, Missions: sh.missions, Towns: sh.towns, Files: sh.files}, nil
 }
 
 // LanguageFor is the language a mod's text is read in on a base: the locale
@@ -159,6 +172,7 @@ type shared struct {
 	bodies       mod.BodyData
 	missions     mod.MissionData
 	towns        mod.TownData
+	files        mod.FileData
 	spellGlobals map[string]string
 	spellFields  map[string]string
 }
@@ -226,6 +240,8 @@ func (g *gameValue) Attr(name string) (starlark.Value, error) {
 type rulesValue struct {
 	sh     *shared
 	frozen bool
+	// state is set when the script sets a rule.
+	state *bool
 }
 
 func (r *rulesValue) String() string        { return "<game.rules>" }
@@ -265,18 +281,22 @@ func (r *rulesValue) SetField(name string, val starlark.Value) error {
 		return fmt.Errorf("game.rules.%s: %s is outside the declared range %d..%d", name, i.String(), f.min, f.max)
 	}
 	f.set(&r.sh.params, n)
+	if r.state != nil {
+		*r.state = true
+	}
 	return nil
 }
 
 var fileOptions = &syntax.FileOptions{}
 
-// runMod executes one mod's entry file and its init.
-func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) error {
+// runMod executes one mod's entry file and its init, and reports whether the
+// script changed game state: set a rule or added a data file.
+func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) (state bool, err error) {
 	id := m.Manifest.ID
 	entry := m.Manifest.Entry
 	if entry == "" {
 		if _, err := os.Stat(filepath.Join(m.Dir, EntryName)); err != nil {
-			return nil
+			return false, nil
 		}
 		entry = EntryName
 	}
@@ -284,15 +304,15 @@ func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) err
 	thread := l.newThread()
 	src, rel, err := l.read(entry)
 	if err != nil {
-		return fmt.Errorf("mod %q: entry %s: %w", id, entry, err)
+		return false, fmt.Errorf("mod %q: entry %s: %w", id, entry, err)
 	}
 	globals, err := starlark.ExecFileOptions(fileOptions, thread, rel, src, nil)
 	if err != nil {
-		return describe(id, err)
+		return false, describe(id, err)
 	}
 	initFn, ok := globals["init"].(starlark.Callable)
 	if !ok {
-		return fmt.Errorf("mod %q: %s defines no init(game, settings)", id, rel)
+		return false, fmt.Errorf("mod %q: %s defines no init(game, settings)", id, rel)
 	}
 	dict := starlark.StringDict{}
 	for _, v := range values {
@@ -306,14 +326,14 @@ func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) err
 		}
 	}
 	settings := starlarkstruct.FromStringDict(starlarkstruct.Default, dict)
-	game := &gameValue{rules: &rulesValue{sh: sh}, data: &dataValue{sh: sh, id: id, dir: m.Dir, loader: l, loaded: map[string]bool{}, settings: values}}
+	game := &gameValue{rules: &rulesValue{sh: sh, state: &state}, data: &dataValue{sh: sh, id: id, dir: m.Dir, loader: l, loaded: map[string]bool{}, settings: values, state: &state}}
 	if _, err := starlark.Call(thread, initFn, starlark.Tuple{game, settings}, nil); err != nil {
 		game.Freeze()
-		return describe(id, err)
+		return false, describe(id, err)
 	}
 	game.Freeze()
 	settings.Freeze()
-	return nil
+	return state, nil
 }
 
 // module is a loaded file's globals, or the error loading it gave.

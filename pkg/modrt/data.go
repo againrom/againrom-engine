@@ -45,6 +45,8 @@ type dataValue struct {
 	loaded   map[string]bool
 	frozen   bool
 	settings []mod.SettingValue
+	// state is set when the script adds a data file.
+	state *bool
 }
 
 func (d *dataValue) String() string        { return "<game.data>" }
@@ -82,6 +84,9 @@ func (d *dataValue) add(_ *starlark.Thread, fn *starlark.Builtin, args starlark.
 		return nil, fmt.Errorf("game.data.add(%q): the file is already loaded", path)
 	}
 	d.loaded[rel] = true
+	if d.state != nil {
+		*d.state = true
+	}
 	if err := read(d, rel, src); err != nil {
 		return nil, err
 	}

@@ -2745,6 +2745,18 @@ package storyguard
 // TestIdentCount falls by ten: the numbered drop-cell helper of the cell
 // entry release tests became pressDropCell, which the right-click deselect
 // release test also uses. CommentBytes rises for that test and this paragraph.
+//
+// CommentBytes rises for the mods' install files, all new code: the folder
+// reader (pkg/mod/files.go), the mark set (pkg/mod/digest.go), the one
+// boundary the overlay owners serve through (pkg/game/modfiles.go), the text
+// file bytes (pkg/game/installtext.go), the launcher lines, their tests, and
+// this paragraph.
+//
+// CommentBytes rises a further 2157 bytes for the correction of that landing, all new
+// code: the kind rule that marks a mod serving a text (pkg/mod/files.go), the
+// mark comparison for a mod that is state-free now (pkg/game/modmark.go), the
+// language folder spelling, their tests, the release test of a text mod, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4509,
 	TestFileCount:  264,
@@ -2768,5 +2780,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9411727,
+	CommentBytes: 9424988,
 }

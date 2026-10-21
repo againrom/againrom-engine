@@ -281,15 +281,17 @@ func modMarkRefusal(format string, args ...any) error {
 
 // applyModMark checks a save's mod mark against the active mod set and returns
 // the bytes to load: the save itself, or with the true values of every field
-// beyond the original domain restored. The rules:
+// beyond the original domain restored. Only the mods that change game state
+// count (mod.Set.Marked). The rules:
 //
 //   - no mods active and no mark: the bytes are returned untouched;
 //   - no mods active and a mark: refused, naming the mods the save used;
 //   - mods active and no mark: refused unless the context accepts unmarked saves;
 //   - mods active and a mark of the same set: the true values are restored;
+//   - a mark that names a mod now state-free counts that mod while it is active;
 //   - mods active and a mark of another set: refused, naming each difference.
 func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer, error) {
-	active := ctx.Set
+	active := ctx.Set.Marked()
 	if active.Empty() && !sav.MayCarryNativeMods(saved) {
 		return saved, nil, nil
 	}
@@ -313,6 +315,18 @@ func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer,
 	saw, err := mark.SetRecord.Set()
 	if err != nil {
 		return nil, nil, modMarkRefusal("the mod mark is unreadable: %v", err)
+	}
+	// A mod the save names stays in the comparison while it is active, even if
+	// it changes no state now: the save was marked under it.
+	named := map[string]bool{}
+	for _, m := range saw.Mods {
+		named[m.ID] = true
+	}
+	active = mod.Set{Base: ctx.Set.Base}
+	for _, m := range ctx.Set.Mods {
+		if !m.StateFree || named[m.ID] {
+			active.Mods = append(active.Mods, m)
+		}
 	}
 	if active.Empty() {
 		return nil, nil, modMarkRefusal("this save was written with mods active (%s); start with the same mods to load it", modNames(saw))

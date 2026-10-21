@@ -301,6 +301,16 @@ func (c TextCode) Bytes(b []byte) []byte {
 	return vfs.WindowsCyrillicToDOS(b)
 }
 
+// FileBytes is Bytes' inverse: text in the font's code page as the install's
+// text files hold it, so a file a mod serves reads back through Bytes as
+// written.
+func (c TextCode) FileBytes(b []byte) []byte {
+	if c.From != 1251 || c.To != 866 {
+		return b
+	}
+	return vfs.DOSCyrillicToWindows(b)
+}
+
 // textCode is the install's text code; an install with no archives keeps
 // every byte.
 func (in *InstallResources) textCode() TextCode {

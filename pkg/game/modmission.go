@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -119,26 +120,31 @@ func (f *FrontEnd) SetModMissions(d mod.MissionData) (warnings []string, err err
 	if err != nil {
 		return nil, err
 	}
-	fs := src.Fork()
-	own := *f.Archives
-	own.Containers = fs
-	f.Archives = &own
+	files := f.modFileLayer()
 	selector := LanguageSelector(src)
-	serve := func(address string, b []byte) {
-		fs.Overlay(address, func() ([]byte, error) { return slices.Clone(b), nil })
-	}
 	for _, m := range d.Missions {
+		serve := func(address string, b []byte) error {
+			return files.serveBytes(m.Mod, m.File, address, b)
+		}
 		address, _ := MissionMap(m.Number)
-		serve(address, m.MapBytes)
+		if err := serve(address, m.MapBytes); err != nil {
+			return nil, err
+		}
 		dir := mainPrefix + "text/battle/m" + strconv.Itoa(m.Number) + "/"
-		for name, b := range m.TextFiles {
-			serve(dir+name, EncodeInstallTextFile(b, selector))
+		for _, name := range slices.Sorted(maps.Keys(m.TextFiles)) {
+			if err := serve(dir+name, EncodeInstallTextFile(m.TextFiles[name], selector)); err != nil {
+				return nil, err
+			}
 		}
 		if m.Title != "" {
-			serve(dir+"title.txt", []byte(EncodeModText(m.Title, selector)))
+			if err := serve(dir+"title.txt", []byte(EncodeModText(m.Title, selector))); err != nil {
+				return nil, err
+			}
 		}
 		if m.Brief != "" {
-			serve(dir+"briefing.txt", []byte(EncodeModText(m.Brief, selector)))
+			if err := serve(dir+"briefing.txt", []byte(EncodeModText(m.Brief, selector))); err != nil {
+				return nil, err
+			}
 		}
 	}
 	f.Table.Mods.Missions = d

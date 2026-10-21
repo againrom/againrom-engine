@@ -39,12 +39,9 @@ func (f *FrontEnd) SetModBodies(bodies mod.BodyData) error {
 		return err
 	}
 
-	fs := src.Fork()
-	own := *f.Archives
-	own.Containers = fs
-	f.Archives = &own
-	choice := encodeBodyChoice(list)
-	fs.Overlay(ModBodyChoiceAddress, func() ([]byte, error) { return append([]byte(nil), choice...), nil })
+	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
+		return err
+	}
 	f.Bodies = list
 	f.Table.Mods.Bodies = list
 	if f.Table.FlightInputs != nil {

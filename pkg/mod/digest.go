@@ -67,6 +67,11 @@ type SetEntry struct {
 	Version  string
 	Digest   string // ContentDigest of the mod folder
 	Settings []SettingValue
+	// StateFree reports that the mod changes no game state: its script sets
+	// no rule and adds no data file, and it serves no text file, so it
+	// carries pictures and sounds at most. It
+	// is not part of the set's canonical form.
+	StateFree bool
 }
 
 // Set is the resolved mod set a game runs under: the base it applies to, and
@@ -79,6 +84,18 @@ type Set struct {
 
 // Empty reports whether no mod is active.
 func (s Set) Empty() bool { return len(s.Mods) == 0 }
+
+// Marked is the set a save's mod mark records: the mods that change game
+// state, in load order. A set of state-free mods alone marks nothing.
+func (s Set) Marked() Set {
+	out := Set{Base: s.Base}
+	for _, m := range s.Mods {
+		if !m.StateFree {
+			out.Mods = append(out.Mods, m)
+		}
+	}
+	return out
+}
 
 // Canonical is the one text form of the set that the digest is taken over.
 func (s Set) Canonical() string {

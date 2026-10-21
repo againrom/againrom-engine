@@ -160,20 +160,19 @@ func (f *FrontEnd) SetModItems(items mod.ItemData) error {
 	t.Mods.Items = append(t.Mods.Items[:0:0], added...)
 
 	if f.Archives != nil && f.Archives.Containers != nil {
-		// The archives are shared by every front end over this install, so the
-		// overlay goes on this front end's own filesystem.
-		fs := f.Archives.Containers.Fork()
-		own := *f.Archives
-		own.Containers = fs
-		f.Archives = &own
+		files := f.modFileLayer()
+		fs := files.fs
 		for _, p := range pictures {
 			icon := graphicsPrefix + data.ItemIconPath(p.code)
 			if p.icon != nil {
-				bytes := p.icon
-				fs.Overlay(icon, func() ([]byte, error) { return append([]byte(nil), bytes...), nil })
+				if err := files.serveBytes(p.row.Mod, p.row.File, icon, p.icon); err != nil {
+					return err
+				}
 			} else {
 				from := graphicsPrefix + data.ItemIconPath(p.in)
-				fs.Overlay(icon, func() ([]byte, error) { return fs.ReadFile(from) })
+				if err := files.serve(modFileEntry{mod: p.row.Mod, file: p.row.File, address: icon, read: func() ([]byte, error) { return fs.ReadFile(from) }}); err != nil {
+					return err
+				}
 			}
 			for _, dir := range []data.FigureDir{data.FigureDirManFighter, data.FigureDirManMage, data.FigureDirWomanFighter, data.FigureDirWomanMage} {
 				other := counterpartDir(dir)
@@ -185,13 +184,16 @@ func (f *FrontEnd) SetModItems(items mod.ItemData) error {
 					if p.row.Figure != "" {
 						alt = graphicsPrefix + paths[2]
 					}
-					fs.Overlay(graphicsPrefix+paths[0], func() ([]byte, error) {
+					read := func() ([]byte, error) {
 						b, err := fs.ReadFile(from)
 						if err != nil && alt != "" {
 							b, err = fs.ReadFile(alt)
 						}
 						return b, err
-					})
+					}
+					if err := files.serve(modFileEntry{mod: p.row.Mod, file: p.row.File, address: graphicsPrefix + paths[0], read: read}); err != nil {
+						return err
+					}
 				}
 			}
 		}
