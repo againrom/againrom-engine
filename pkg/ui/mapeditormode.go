@@ -24,6 +24,8 @@ const (
 	// pickArea is the draw tool: the next drag on the map draws a new
 	// trigger area.
 	pickArea pickKind = "area"
+	// pickWizardUnit is a unit on the map for the trigger wizard's row.
+	pickWizardUnit pickKind = "wizardunit"
 )
 
 // promptKind is the text prompt in the rail.
@@ -162,6 +164,10 @@ func (e *MapEditor) enterCatalog() {
 func (e *MapEditor) armPick(kind pickKind) {
 	e.pick, e.message = kind, ""
 }
+
+// keepPick keeps kind armed after a pick that does not end it, the message
+// the pick left standing.
+func (e *MapEditor) keepPick(kind pickKind) { e.pick = kind }
 
 // openPrompt replaces the prompt.
 func (e *MapEditor) openPrompt(p editorPrompt) {

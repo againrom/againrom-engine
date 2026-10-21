@@ -324,6 +324,10 @@ func (e *MapEditor) nodeFields(v scriptView, types [10]uint32, opcode, command u
 // loadScriptObject fills the edit state of a script record.
 func (e *MapEditor) loadScriptObject(v scriptView) {
 	o := &e.obj
+	if v.trigger != nil && !e.triggerDetailsShown(v) {
+		e.loadWizard(v)
+		return
+	}
 	if v.node != nil {
 		o.types = v.node.Types
 		o.signature = [2]int64{int64(v.node.Opcode), int64(groupCommand(v.condition, v.node.Opcode, v.node.Values))}
@@ -341,6 +345,10 @@ func (e *MapEditor) loadScriptObject(v scriptView) {
 func (e *MapEditor) retypeNode() {
 	o := &e.obj
 	v, ok := e.scriptPopup()
+	if ok && v.trigger != nil && o.wiz != nil {
+		e.rewizard()
+		return
+	}
 	if !ok || v.node == nil {
 		return
 	}
@@ -453,7 +461,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			add(popupRow{Kind: popupText, Label: indent + part, Ink: inspectionRoleColor(ink)}, -1)
 		}
 	}
-	if v.trigger != nil {
+	if v.trigger != nil && o.wiz != nil {
+		e.wizardSpec(v, &s, add, text)
+	} else if v.trigger != nil {
 		s.Title = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1)
 		add(popupRow{Kind: popupEdit, Label: o.fields[trigName].Label, Value: e.editorHostText(o.buf[trigName])}, trigName)
 		once := e.word("editor.trigger.once.no")
@@ -508,8 +518,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		if acts < 4 {
 			add(popupRow{Kind: popupText}, -1, actAddAct)
 		}
-		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete")}
-		s.Disabled = []bool{!e.objectDirty(), false, false, false}
+		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back")}
+		s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
+		fitButtons(&s)
 	} else {
 		s.Title = fmt.Sprintf(e.word("editor.node.action"), v.node.ID)
 		if v.condition {
@@ -567,12 +578,20 @@ func (e *MapEditor) actWord(a string) string {
 	switch a {
 	case actEdit:
 		return e.word("editor.trigger.edit")
-	case actRemovePair, actRemoveAct:
+	case actRemovePair, actRemoveAct, actRemoveRow:
 		return e.word("editor.trigger.remove")
 	case actAddPair:
+		if e.obj.wiz != nil {
+			return e.word("editor.wizard.addcondition")
+		}
 		return e.word("editor.trigger.addpair")
 	case actAddAct:
+		if e.obj.wiz != nil {
+			return e.word("editor.wizard.addaction")
+		}
 		return e.word("editor.trigger.addaction")
+	case actDraw:
+		return e.word("editor.wizard.draw")
 	}
 	return e.word("editor.object.pick")
 }
@@ -604,6 +623,10 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 	}
 	f, hasField := o.rowField[r]
 	o.note, o.open = "", -1
+	if o.wiz != nil {
+		e.wizardRowButton(acts[k], f, hasField)
+		return
+	}
 	switch acts[k] {
 	case actEdit:
 		e.editSlotNode(f)
@@ -668,6 +691,10 @@ func (e *MapEditor) scriptCellPicked(cell image.Point) {
 
 // scriptButton is a press on the popup's button row.
 func (e *MapEditor) scriptButton(v scriptView, n int) {
+	if v.trigger != nil && e.obj.wiz != nil {
+		e.wizardButton(v, n)
+		return
+	}
 	switch {
 	case n == 0:
 		e.applyObject()
@@ -677,6 +704,12 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 		e.newTrigger()
 	case v.trigger != nil && n == 3:
 		e.deleteTrigger(v)
+	case v.trigger != nil && n == 4:
+		if e.objectDirty() {
+			e.obj.note = e.word("editor.trigger.applyfirst")
+			return
+		}
+		e.ShowTriggerDetails(false)
 	case v.node != nil && n == 2:
 		e.backObject()
 	}
@@ -810,6 +843,9 @@ func (e *MapEditor) scriptValues(v scriptView) ([]InspectionFieldValue, error) {
 // scriptDirty reports a script popup with changes not applied.
 func (e *MapEditor) scriptDirty(v scriptView) bool {
 	o := &e.obj
+	if v.trigger != nil && o.wiz != nil {
+		return o.wiz.dirty()
+	}
 	if v.trigger != nil {
 		for _, a := range o.added {
 			if a {

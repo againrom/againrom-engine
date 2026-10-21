@@ -141,7 +141,10 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	author := c.Document().Edits.(*mapInspectionEdits)
 	trigger := func() ui.InspectionTrigger { return e.Document().Script.Triggers[ti] }
 	trigIndex := e.Document().Records[trigger().Record].Index
-	selectTrigger := func() { e.Select(e.Document().Script.Triggers[ti].Record, true) }
+	selectTrigger := func() {
+		e.Select(e.Document().Script.Triggers[ti].Record, true)
+		trigDetails(t, e)
+	}
 	check := func(what string, before []byte, want *ui.InspectionDocument) {
 		t.Helper()
 		got := e.Document().SourceBytes
@@ -532,6 +535,7 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 
 	e = open(key)
 	e.Select(e.Document().Script.Triggers[ti].Record, true)
+	trigDetails(t, e)
 	r, ok = e.RowButtonRect(11+cellAct, 0, false)
 	trigClick(t, e, r, ok, "Edit the action")
 	r, ok = e.FieldRect(1)
@@ -545,6 +549,7 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 
 	e = open(key)
 	e.Select(e.Document().Script.Triggers[ti].Record, true)
+	trigDetails(t, e)
 	r, ok = e.RowButtonRect(11+cellAct, 0, false)
 	trigClick(t, e, r, ok, "Edit the action")
 	n, _ := scriptNodeOf(e.Document().Script, false, e.Document().Script.Triggers[ti].Acts[cellAct])

@@ -206,7 +206,7 @@ func TestScriptUsedByBackPreservesDraft(t *testing.T) {
 	if e.Selected() != e.Document().Script.Triggers[0].Record {
 		t.Fatal("draft prevented navigation", e.PopupLines())
 	}
-	r, ok = e.PopupButtonRect(4)
+	r, ok = e.PopupButtonRect(5) // after the wizard's Apply, Cancel, New, Delete and Details
 	trigClick(t, e, r, ok, "Back")
 	if e.Document().Records[e.Selected()].Kind != "Unit" || !strings.Contains(trigLines(e), draft) {
 		t.Fatal("draft lost", draft, e.PopupLines())

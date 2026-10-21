@@ -54,6 +54,17 @@ func trigClick(t *testing.T, e *ui.MapEditor, r image.Rectangle, ok bool, what s
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)
 }
 
+// trigDetails presses the trigger wizard's Details: the pair view the
+// tests below drive.
+func trigDetails(t *testing.T, e *ui.MapEditor) {
+	t.Helper()
+	r, ok := e.PopupButtonRect(4)
+	trigClick(t, e, r, ok, "Details")
+	if e.WizardShown() {
+		t.Fatal("Details did not open the pair view")
+	}
+}
+
 // trigRecord is the document record of the script record kind index.
 func trigRecord(t *testing.T, e *ui.MapEditor, kind string, index int) int {
 	t.Helper()
@@ -91,6 +102,7 @@ func trigLines(e *ui.MapEditor) string { return strings.Join(e.PopupLines(), "\n
 func TestTriggerPopupReadsAsTheRule(t *testing.T) {
 	e, _ := openGoalMap(t, triggerMap(t))
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
+	trigDetails(t, e)
 	got := trigLines(e)
 	for _, want := range []string{
 		"Name Far", "Fire once Yes: fires once", "Conditions: all must hold",
@@ -117,6 +129,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	set := c.Document().Edits.(ui.InspectionFieldSet)
 	author := c.Document().Edits.(*mapInspectionEdits)
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
+	trigDetails(t, e)
 	apply := func(want func() *ui.InspectionDocument) {
 		t.Helper()
 		before := e.Document().SourceBytes
@@ -191,7 +204,7 @@ func TestTriggerPopupApplyWritesTheFieldCallBytes(t *testing.T) {
 	if err != nil || !bytes.Equal(e.Document().SourceBytes, d.SourceBytes) {
 		t.Fatal("New wrote other bytes than AddScript", err)
 	}
-	if !strings.Contains(trigLines(e), "Name Trigger") || !strings.Contains(trigLines(e), "never runs") {
+	if !strings.Contains(trigLines(e), "Name Trigger") || !e.WizardShown() {
 		t.Fatalf("the new trigger's popup:\n%s", trigLines(e))
 	}
 	r, ok = e.PopupButtonRect(3)
@@ -206,6 +219,7 @@ func TestTriggerPopupRefusesAHalfPairWithItsReason(t *testing.T) {
 	b := triggerMap(t)
 	e, _ := openGoalMap(t, b)
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
+	trigDetails(t, e)
 	r, ok := e.RowButtonRect(-1, 0, false)
 	trigClick(t, e, r, ok, "Add condition pair")
 	trigChoose(t, e, 5, "#3 Distance")
@@ -228,6 +242,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	e, _ := openGoalMap(t, b)
 	c, _ := openGoalMap(t, b)
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
+	trigDetails(t, e)
 	r, ok := e.RowButtonRect(2, 0, false)
 	trigClick(t, e, r, ok, "Edit pair 1 left")
 	got := trigLines(e)
@@ -327,6 +342,7 @@ func newFollowEditor(t *testing.T) (e, c *ui.MapEditor, b []byte) {
 func TestNodePopupWritesFollowInTheShippedLayout(t *testing.T) {
 	e, c, b := newFollowEditor(t)
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
+	trigDetails(t, e)
 	r, ok := e.RowButtonRect(11, 0, false)
 	trigClick(t, e, r, ok, "Edit action 1")
 	trigChoose(t, e, 1, "Group command")
@@ -381,6 +397,7 @@ func TestNodePopupRefusesAnUnsetReferenceInTheEditorsWords(t *testing.T) {
 		e.SetWords(book)
 		e.SetHostTextEncoder(func(s string) string { return s })
 		e.Select(trigRecord(t, e, "Trigger", 0), true)
+		trigDetails(t, e)
 		r, ok := e.RowButtonRect(11, 0, false)
 		trigClick(t, e, r, ok, "Edit action 1")
 		trigChoose(t, e, 1, book.Text("editor.action.op23"))

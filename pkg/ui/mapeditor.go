@@ -257,6 +257,7 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 		return false
 	}
 	e.selected, e.objectTop, e.objectHidden = index, 0, false
+	e.triggerDetails = 0
 	e.focusedReference, e.objectWheel = 0, 0
 	e.groupSel, e.objectBack = editorGroup{}, nil
 	e.selection.refs = nil
@@ -648,8 +649,9 @@ func (e *MapEditor) markerLines() []editorLine {
 		x, y := v.cam.WorldToScreen(wx, wy)
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), editorGold}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), editorGold})
 	}
+	out = append(out, e.dropToolLines()...)
 	for _, cell := range e.dropMarkers() {
-		if e.view.hideDrops {
+		if e.view.hideDrops && !e.dropToolOn() {
 			break
 		}
 		wx, wy := e.cellCenter(cell)
@@ -660,6 +662,7 @@ func (e *MapEditor) markerLines() []editorLine {
 	}
 	out = append(out, e.borderLines()...)
 	out = append(out, e.areaLines()...)
+	out = append(out, e.wizardAreaLines()...)
 	out = append(out, e.referenceMarkerLines()...)
 	out = append(out, e.brushMarkerLines()...)
 	out = append(out, e.groupMarkerLines()...)

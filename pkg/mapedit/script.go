@@ -250,3 +250,102 @@ func (e *Editor) SetDropCell(x, y uint32) error {
 	_, err = e.Place(KindAction, rec)
 	return err
 }
+
+// SetScriptNode rewrites node i of array k (actions or conditions) as one
+// edit: its opcode and parameter slots become opcode and params, the slots
+// past params are cleared, and its label becomes label when label is not
+// empty. Its id and the slot names stay.
+func (e *Editor) SetScriptNode(k Kind, i int, label string, opcode uint32, params ...ScriptParam) error {
+	if k != KindAction && k != KindCondition {
+		return fmt.Errorf("mapedit: %s holds no script node", sectionName(k))
+	}
+	if len(params) > nodeSlots {
+		return fmt.Errorf("mapedit: a node holds %d parameters, not %d", nodeSlots, len(params))
+	}
+	if len(label) >= nodeLabelLen {
+		return fmt.Errorf("mapedit: a node label is under %d bytes", nodeLabelLen)
+	}
+	w, err := e.walkIndex(k, "rewrite", i)
+	if err != nil {
+		return err
+	}
+	at, l := w.at(i)
+	rec := e.data[at : at+l]
+	next := cloneBytes(rec)
+	if label != "" {
+		clear(next[:nodeLabelLen])
+		copy(next, label)
+	}
+	binary.LittleEndian.PutUint32(next[nodeOpcode:], opcode)
+	for s := 0; s < nodeSlots; s++ {
+		var p ScriptParam
+		if s < len(params) {
+			p = params[s]
+		}
+		binary.LittleEndian.PutUint32(next[nodeValues+4*s:], p.Value)
+		binary.LittleEndian.PutUint32(next[nodeTypes+4*s:], p.Type)
+	}
+	if string(next) == string(rec) {
+		return nil
+	}
+	e.apply(edit{replace(at, rec, next)})
+	return nil
+}
+
+// The drop zone as the shipped maps write it: an action named "Drop
+// Location" holding the cell as an X and a Y slot, and a trigger with no
+// condition pair whose first action names it, firing once (scenario 10's
+// "Deploy Location"). The builder collects the action whatever trigger names
+// it (TRIG-DROP-013); the trigger never runs for want of a pair.
+const (
+	dropLabel   = "Drop Location"
+	dropTrigger = "Deploy Location"
+)
+
+// AddDropZone appends a drop action at x, y and its trigger as one edit, and
+// returns the new zone's index among the drop actions.
+func (e *Editor) AddDropZone(x, y uint32) (int, error) {
+	if x > 255 || y > 255 {
+		return 0, fmt.Errorf("mapedit: a drop cell %d,%d is outside 0..255", x, y)
+	}
+	if e.Count(KindTrigger)+1 > scriptTriggers {
+		return 0, fmt.Errorf("mapedit: the script already holds %d of %d triggers", e.Count(KindTrigger), scriptTriggers)
+	}
+	zones, err := e.DropZones()
+	if err != nil {
+		return 0, err
+	}
+	id, err := e.NextScriptID(KindAction)
+	if err != nil {
+		return 0, err
+	}
+	action, err := NewScriptNode(dropLabel, dropOpcode, id, ScriptParam{paramX, x}, ScriptParam{paramY, y})
+	if err != nil {
+		return 0, err
+	}
+	trigger := make([]byte, scriptTriggerSize)
+	copy(trigger, dropTrigger)
+	binary.LittleEndian.PutUint32(trigger[triggerActions:], id)
+	binary.LittleEndian.PutUint32(trigger[triggerOnce:], 1)
+	if _, err := e.PlaceAll([]Placement{{KindAction, action}, {KindTrigger, trigger}}); err != nil {
+		return 0, err
+	}
+	return len(zones), nil
+}
+
+// DropZones are the indices, among the actions, of the drop actions in file
+// order: zone z is action DropZones()[z].
+func (e *Editor) DropZones() ([]int, error) {
+	w, err := e.walkSection(KindAction, "list the drop zones")
+	if err != nil {
+		return nil, err
+	}
+	var out []int
+	for i := 0; i < w.n(); i++ {
+		at, _ := w.at(i)
+		if e.u32(at+nodeOpcode) == dropOpcode {
+			out = append(out, i)
+		}
+	}
+	return out, nil
+}

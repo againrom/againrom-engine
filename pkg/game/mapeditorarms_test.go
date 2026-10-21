@@ -62,8 +62,10 @@ func TestArmRoutesByteHashes(t *testing.T) {
 			driven, _ := openGoalMap(t, goalMap(t, true))
 			driven.Layout(1600, 900)
 			if route == "drop" {
+				// The drop tool moves the map's one zone by a drag; a click
+				// on an empty cell would add a second zone.
 				_ = driven.Key("drop")
-				clickCell(driven, image.Pt(8, 9))
+				dragCell(driven, driven.Document().Drops[0], image.Pt(8, 9))
 			} else {
 				_ = driven.Key("goals")
 				cell := image.Pt(21, 14)

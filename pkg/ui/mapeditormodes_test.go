@@ -647,7 +647,7 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		{"full", "unit-pick", "ui:click-cell", keys, "", "", false, false},
 		{"full", "unit-pick", "escape", add, "", "Add unit", false, false},
 		{"plain", "list", "unit", keys, "", "", false, false},
-		{"full", "list", "drop", "Drop cell: click a cell", "", "", false, false},
+		{"full", "list", "drop", "Drop zones: click / drag / Del", "", "", false, false},
 		{"full", "list", "goals", "Enter: pick a target", "", "", true, false},
 		{"full", "goals", "enter", "Target: click a unit or", "", "", true, false},
 		{"full", "goals", "goals", keys, "", "", false, false},

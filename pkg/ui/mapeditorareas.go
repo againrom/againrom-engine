@@ -124,7 +124,7 @@ func (e *MapEditor) areaLines() []editorLine {
 			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
 		}
 	}
-	if drag != nil && drag.kind == handleDraw {
+	if drag != nil && (drag.kind == handleDraw || drag.kind == handleDrawSquare) {
 		for _, l := range e.areaOutline(e.areaPreview(drag), editorGold) {
 			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
 		}

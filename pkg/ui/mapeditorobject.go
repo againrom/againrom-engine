@@ -66,6 +66,8 @@ type objectEdit struct {
 	pickField int
 	// signature is the operation and group command types was set for.
 	signature [2]int64
+	// wiz is the trigger wizard's rows, nil when the popup is no wizard.
+	wiz *wizardState
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -510,6 +512,10 @@ func (e *MapEditor) applyObject() {
 	o := &e.obj
 	kind, index := e.selectedRecord()
 	if index < 0 || len(o.fields) == 0 {
+		return
+	}
+	if v, ok := e.scriptPopup(); ok && v.trigger != nil && o.wiz != nil {
+		e.applyWizard(v)
 		return
 	}
 	if v, ok := e.scriptPopup(); ok {

@@ -171,6 +171,7 @@ func TestScriptNewVariableSkipsConditionSlots(t *testing.T) {
 func TestScriptParameterOpenBackStack(t *testing.T) {
 	e := parameterEditor(t)
 	e.Select(trigRecord(t, e, "Trigger", 0), false)
+	trigDetails(t, e)
 	r, ok := e.RowButtonRect(11, 0, false)
 	trigClick(t, e, r, ok, "Edit")
 	if e.Document().Records[e.Selected()].Kind != "Action" {
@@ -201,6 +202,9 @@ func TestScriptParameterOpenBackStack(t *testing.T) {
 	trigClick(t, e, r, ok, "Back to trigger")
 	if e.Document().Records[e.Selected()].Kind != "Trigger" {
 		t.Fatal("no trigger after Back")
+	}
+	if e.WizardShown() {
+		t.Fatal("Back left the Details view for the wizard")
 	}
 }
 

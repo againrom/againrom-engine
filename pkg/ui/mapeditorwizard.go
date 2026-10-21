@@ -1,0 +1,1146 @@
+package ui
+
+import (
+	"fmt"
+	"image"
+	"math"
+	"strconv"
+	"strings"
+)
+
+// The trigger wizard: a trigger read as When (its first condition), And if
+// (the others) and Do (its actions), each row an item of a ready list in
+// plain words with its parameters in the row. Picking an item makes its
+// nodes; the host writes the row's check, the constant it is compared with
+// and the pair, or its action, on Apply. A pair or action no item reads
+// stays as it is and shows as "Other"; Details opens the pair view.
+
+// wizParamKind is what a row parameter names, and so how it is edited.
+type wizParamKind uint8
+
+const (
+	wpUnit    wizParamKind = iota + 1 // a choice of units, or a click on one
+	wpPlayer                          // a choice of players
+	wpGroup                           // a choice of groups
+	wpNumber                          // a typed number
+	wpCell                            // "x,y", or a click on the map
+	wpBox                             // "x1,y1,x2,y2", or a box drawn on the map
+	wpMessage                         // a choice of message pages
+)
+
+// wizParam is one parameter of an item: its kind, its label's word, its
+// default number, and whether a node slot holds it (else the constant the
+// check is compared with does).
+type wizParam struct {
+	kind      wizParamKind
+	labelWord string
+	def       int64
+	inNode    bool
+}
+
+// wizItem is one entry of the ready list. A condition is its check compared
+// with a constant: by cmp with right, or, cmp -1, by the comparison the row
+// chooses; rightParam names the parameter that holds the constant, -1 for
+// right. fixed are node slots after the parameters', as type and value.
+type wizItem struct {
+	labelWord  string
+	opcode     uint32
+	params     []wizParam
+	cmp        int
+	right      int64
+	rightParam int
+	fixed      [][2]uint32
+}
+
+var (
+	pUnit   = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit", inNode: true}
+	pPlayer = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player", def: 1, inNode: true}
+	pGroup  = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true}
+	pPoint  = wizParam{kind: wpCell, labelWord: "editor.wizard.p.point", inNode: true}
+	pArea   = wizParam{kind: wpBox, labelWord: "editor.wizard.p.area", inNode: true}
+)
+
+// wizConditions are the ready conditions. Check 2 is a unit in a box
+// (TRIG-CHECKGEOM-130), 3 a unit within a radius of a cell (TRIG-DIST-014),
+// 15 the distance from a cell to a player's nearest unit (TRIG-NEAREST-029),
+// 5 a unit alive, 1 a group's living count (TRIG-COUNT-015), 8 a player's
+// (TRIG-LISTREAD-131); a constant is preset to its value (TRIG-COND-003).
+var wizConditions = []wizItem{
+	{labelWord: "editor.wizard.c.heroarea", opcode: 2, params: []wizParam{pUnit, pArea}, cmp: 0, right: 1, rightParam: -1},
+	{labelWord: "editor.wizard.c.playernear", opcode: 15, params: []wizParam{pPlayer, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3}}, cmp: 5, rightParam: 2},
+	{labelWord: "editor.wizard.c.unitnear", opcode: 3, params: []wizParam{pUnit, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3, inNode: true}}, cmp: 0, right: 1, rightParam: -1},
+	{labelWord: "editor.wizard.c.unitdead", opcode: 5, params: []wizParam{pUnit}, cmp: 0, right: 0, rightParam: -1},
+	{labelWord: "editor.wizard.c.groupcount", opcode: 1, params: []wizParam{pGroup, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
+	{labelWord: "editor.wizard.c.playercount", opcode: 8, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
+	{labelWord: "editor.wizard.c.always", opcode: scriptConstantOp, cmp: 0, right: 1, rightParam: -1, fixed: [][2]uint32{{scriptInt, 1}}},
+}
+
+// wizActions are the ready actions, with the claims that state their
+// parameters: give money (TRIG-MONEY-028), win and lose (TRIG-ACT-004), a
+// message (TRIG-MSG-023), give a unit or group to a player
+// (PARTY-JOIN-025), move a unit (AI-SCRIPTGUARD-625), a unit or group off
+// and back on the map (TRIG-OFFMAP-041, TRIG-RETURN-042, TRIG-MAPGROUP-043)
+// and the drop cell the builder takes (TRIG-DROP-013).
+var wizActions = []wizItem{
+	{labelWord: "editor.wizard.a.gold", opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
+	{labelWord: "editor.wizard.a.win", opcode: 4},
+	{labelWord: "editor.wizard.a.lose", opcode: 5},
+	{labelWord: "editor.wizard.a.message", opcode: 2, params: []wizParam{{kind: wpMessage, labelWord: "editor.wizard.p.message", def: 1, inNode: true}}},
+	{labelWord: "editor.wizard.a.giveunit", opcode: 19, params: []wizParam{pUnit, pPlayer}},
+	{labelWord: "editor.wizard.a.givegroup", opcode: 22, params: []wizParam{pGroup, pPlayer}},
+	{labelWord: "editor.wizard.a.move", opcode: 27, params: []wizParam{pUnit, pPoint}},
+	{labelWord: "editor.wizard.a.unitoff", opcode: 16, params: []wizParam{pUnit}},
+	{labelWord: "editor.wizard.a.unitback", opcode: 17, params: []wizParam{pUnit}},
+	{labelWord: "editor.wizard.a.groupoff", opcode: 32, params: []wizParam{pGroup}},
+	{labelWord: "editor.wizard.a.groupback", opcode: 33, params: []wizParam{pGroup}},
+	{labelWord: "editor.wizard.a.drop", opcode: scriptConstantOp, params: []wizParam{pPoint}},
+}
+
+// scriptConstantOp is the build-time operation: a preset condition, or the
+// drop cell action.
+const scriptConstantOp = 0x10002
+
+func wizItems(condition bool) []wizItem {
+	if condition {
+		return wizConditions
+	}
+	return wizActions
+}
+
+// paramTypes are the slot types a parameter kind fills.
+func paramTypes(k wizParamKind) []uint32 {
+	switch k {
+	case wpUnit:
+		return []uint32{scriptUnit}
+	case wpPlayer:
+		return []uint32{scriptPlayer}
+	case wpGroup:
+		return []uint32{scriptGroup}
+	case wpCell:
+		return []uint32{scriptX, scriptY}
+	case wpBox:
+		return []uint32{scriptX, scriptY, scriptX, scriptY}
+	}
+	return []uint32{scriptInt}
+}
+
+// hasRadius reports an item whose point has a radius: a square on the map.
+func (it wizItem) hasRadius() bool {
+	for _, p := range it.params {
+		if p.labelWord == wizRadiusWord {
+			return true
+		}
+	}
+	return false
+}
+
+// wizRadiusWord is the label word of a square's radius parameter.
+const wizRadiusWord = "editor.wizard.p.radius"
+
+// itemTypes are the slot types an item's node carries.
+func (it wizItem) itemTypes() []uint32 {
+	var out []uint32
+	for _, p := range it.params {
+		if p.inNode {
+			out = append(out, paramTypes(p.kind)...)
+		}
+	}
+	for _, f := range it.fixed {
+		out = append(out, f[0])
+	}
+	return out
+}
+
+// wizRow is one row: its item (-1 a pair or action kept as it stands), the
+// nodes it names now and, for a kept pair, its comparison; vals are its
+// field texts (the item, each parameter, then a chosen comparison) and orig
+// those it was read with, so an unchanged row keeps its nodes.
+type wizRow struct {
+	condition        bool
+	item, origItem   int
+	left, right, act uint32
+	cmp              uint32
+	vals, orig       []string
+}
+
+// wizardState is the wizard's rows, whether a row was added or removed,
+// and the fields a drawing or a unit pick on the map fills (-1 none).
+type wizardState struct {
+	rows       []wizRow
+	changed    bool
+	draw       int
+	drawRadius int
+	square     bool
+	unit       int
+}
+
+// triggerDetailsShown reports that trigger v shows the pair view.
+func (e *MapEditor) triggerDetailsShown(v scriptView) bool {
+	return v.trigger != nil && e.triggerDetails == v.index+1
+}
+
+// wizardOpen is the wizard of the shown trigger popup, nil for none.
+func (e *MapEditor) wizardOpen() *wizardState {
+	if v, ok := e.scriptPopup(); ok && v.trigger != nil && e.obj.doc == e.doc && e.obj.record == e.selected {
+		return e.obj.wiz
+	}
+	return nil
+}
+
+// loadWizard reads trigger v into rows.
+func (e *MapEditor) loadWizard(v scriptView) {
+	w := &wizardState{draw: -1, drawRadius: -1, unit: -1}
+	t := v.trigger
+	for k := range t.Left {
+		if t.Left[k] == 0 && t.Right[k] == 0 {
+			continue
+		}
+		r := wizRow{condition: true, item: -1, left: t.Left[k], right: t.Right[k], cmp: t.Cmp[k]}
+		r.item, r.vals = e.readCondition(t.Left[k], t.Right[k], t.Cmp[k])
+		w.rows = append(w.rows, r)
+	}
+	for _, id := range t.Acts {
+		if id == 0 {
+			continue
+		}
+		r := wizRow{item: -1, act: id}
+		r.item, r.vals = e.readAction(id)
+		w.rows = append(w.rows, r)
+	}
+	for i := range w.rows {
+		w.rows[i].origItem = w.rows[i].item
+		w.rows[i].orig = append([]string(nil), w.rows[i].vals...)
+	}
+	e.obj.wiz = w
+	e.wizardFields(v)
+}
+
+// constantValue is the value of the constant condition id, false when id
+// names no single constant.
+func (e *MapEditor) constantValue(id uint32) (int64, bool) {
+	n, ok := e.nodeByID(true, id)
+	if !ok || n.Opcode != scriptConstantOp || n.Types[0] != scriptInt && n.Types[0] != scriptConst {
+		return 0, false
+	}
+	return int64(int32(n.Values[0])), true
+}
+
+// readParams are a node's parameter texts as item it reads them, false when
+// its slots are not the item's.
+func readParams(it wizItem, n InspectionScriptNode) ([]string, bool) {
+	if n.Opcode != it.opcode {
+		return nil, false
+	}
+	want := it.itemTypes()
+	for s := range n.Types {
+		t := uint32(0)
+		if s < len(want) {
+			t = want[s]
+		}
+		if n.Types[s] != t {
+			return nil, false
+		}
+	}
+	s := 0
+	var out []string
+	for _, p := range it.params {
+		if !p.inNode {
+			out = append(out, "")
+			continue
+		}
+		v := n.Values[s:]
+		switch p.kind {
+		case wpCell:
+			out = append(out, fmt.Sprintf("%d,%d", v[0], v[1]))
+		case wpBox:
+			out = append(out, fmt.Sprintf("%d,%d,%d,%d", v[0], v[1], v[2], v[3]))
+		case wpNumber, wpMessage:
+			out = append(out, strconv.FormatInt(int64(int32(v[0])), 10))
+		default:
+			out = append(out, strconv.FormatUint(uint64(v[0]), 10))
+		}
+		s += len(paramTypes(p.kind))
+	}
+	for k, f := range it.fixed {
+		if n.Values[s+k] != f[1] {
+			return nil, false
+		}
+	}
+	return out, true
+}
+
+// readCondition is the item and field texts of the pair left cmp right, -1
+// when no item reads it.
+func (e *MapEditor) readCondition(left, right, cmp uint32) (int, []string) {
+	n, ok := e.nodeByID(true, left)
+	v, constant := e.constantValue(right)
+	if !ok || !constant {
+		return -1, []string{"-1"}
+	}
+	for i, it := range wizConditions {
+		params, ok := readParams(it, n)
+		if !ok || it.cmp >= 0 && uint32(it.cmp) != cmp || it.cmp < 0 && cmp > 5 {
+			continue
+		}
+		if it.rightParam < 0 {
+			if v != it.right {
+				continue
+			}
+		} else {
+			params[it.rightParam] = strconv.FormatInt(v, 10)
+		}
+		out := append([]string{strconv.Itoa(i)}, params...)
+		if it.cmp < 0 {
+			out = append(out, strconv.FormatUint(uint64(cmp), 10))
+		}
+		return i, out
+	}
+	return -1, []string{"-1"}
+}
+
+// readAction is the item and field texts of action id, -1 when no item
+// reads it.
+func (e *MapEditor) readAction(id uint32) (int, []string) {
+	n, ok := e.nodeByID(false, id)
+	if ok {
+		for i, it := range wizActions {
+			if params, ok := readParams(it, n); ok {
+				return i, append([]string{strconv.Itoa(i)}, params...)
+			}
+		}
+	}
+	return -1, []string{"-1"}
+}
+
+// wizardDefaults are a fresh row's field texts for item i.
+func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
+	it := wizItems(condition)[i]
+	out := []string{strconv.Itoa(i)}
+	mid := image.Pt(min(e.doc.Width, 256)/2, min(e.doc.Height, 256)/2)
+	for _, p := range it.params {
+		switch p.kind {
+		case wpUnit:
+			out = append(out, strconv.FormatInt(e.defaultUnit(), 10))
+		case wpGroup:
+			out = append(out, strconv.FormatInt(e.firstTarget(scriptGroup, 0), 10))
+		case wpMessage:
+			out = append(out, strconv.FormatInt(e.firstTarget(ScriptMessageParameter, p.def), 10))
+		case wpCell:
+			out = append(out, fmt.Sprintf("%d,%d", mid.X, mid.Y))
+		case wpBox:
+			out = append(out, fmt.Sprintf("%d,%d,%d,%d", max(0, mid.X-2), max(0, mid.Y-2), mid.X+2, mid.Y+2))
+		default:
+			out = append(out, strconv.FormatInt(p.def, 10))
+		}
+	}
+	if it.cmp < 0 {
+		out = append(out, "0")
+	}
+	return out
+}
+
+// multiplayer reports a map whose player capacity is above one: a hero
+// number names no unit there (TRIG-HEROORD-075).
+func (e *MapEditor) multiplayer() bool {
+	p, ok := e.mapPanel()
+	return ok && p.MapFacts().Mode > 1
+}
+
+// defaultUnit is hero 1, or on a multiplayer map the first placed unit a
+// script can name.
+func (e *MapEditor) defaultUnit() int64 {
+	if e.multiplayer() {
+		for _, t := range e.doc.Script.Targets[scriptUnit] {
+			if t.Record >= 0 {
+				return int64(t.Value)
+			}
+		}
+	}
+	return 10001
+}
+
+// firstTarget is the first value parameter kind can name, else def.
+func (e *MapEditor) firstTarget(kind uint32, def int64) int64 {
+	for _, t := range e.doc.Script.Targets[kind] {
+		if !t.NewMessage {
+			return int64(t.Value)
+		}
+	}
+	return def
+}
+
+// wizardKey is the key of field part of row r: "c0.item", "a1.p0", "c2.cmp".
+func (w *wizardState) wizardKey(r int, part string) string {
+	n := 0
+	for k := 0; k < r; k++ {
+		if w.rows[k].condition == w.rows[r].condition {
+			n++
+		}
+	}
+	family := "a"
+	if w.rows[r].condition {
+		family = "c"
+	}
+	return fmt.Sprintf("%s%d.%s", family, n, part)
+}
+
+// pullWizard copies the field texts into the rows.
+func (e *MapEditor) pullWizard() {
+	o := &e.obj
+	w := o.wiz
+	at := map[string]int{}
+	for i, f := range o.fields {
+		at[f.Key] = i
+	}
+	for r := range w.rows {
+		for k := range w.rows[r].vals {
+			if i, ok := at[w.wizardKey(r, wizPart(w.rows[r], k))]; ok && i < len(o.buf) {
+				w.rows[r].vals[k] = o.buf[i]
+			}
+		}
+	}
+}
+
+// wizPart is the key part of field text k of row r.
+func wizPart(r wizRow, k int) string {
+	switch {
+	case k == 0:
+		return "item"
+	case r.item >= 0 && k > len(wizItems(r.condition)[r.item].params):
+		return "cmp"
+	}
+	return fmt.Sprintf("p%d", k-1)
+}
+
+// wizardFields builds the fields from the rows: the name, the once switch,
+// then each row's item, parameters and comparison. A field's value is the
+// text the row was read with, so only an edit makes it dirty.
+func (e *MapEditor) wizardFields(v scriptView) {
+	o := &e.obj
+	w := o.wiz
+	t := v.trigger
+	o.fields = []InspectionField{{Key: "name", Label: e.word("editor.trigger.name"), Text: true, TextValue: t.Name},
+		{Key: "once", Label: e.word("editor.trigger.once"), Value: int64(t.Once), Choices: []InspectionChoice{{1, e.word("editor.trigger.once.yes")}, {0, e.word("editor.trigger.once.no")}}}}
+	keep := []string{o.bufAt(0, t.Name), o.bufAt(1, strconv.FormatUint(uint64(t.Once), 10))}
+	o.buf = o.buf[:0]
+	o.buf = append(o.buf, keep...)
+	for r, row := range w.rows {
+		items := wizItems(row.condition)
+		var choices []InspectionChoice
+		for i, it := range items {
+			choices = append(choices, InspectionChoice{int64(i), e.word(it.labelWord)})
+		}
+		if row.origItem < 0 {
+			choices = append(choices, InspectionChoice{-1, e.keptText(row)})
+		}
+		orig := row.orig
+		if row.item != row.origItem {
+			orig = nil
+		}
+		text := func(k int) string {
+			if k < len(orig) {
+				return orig[k]
+			}
+			return row.vals[k]
+		}
+		label := e.word("editor.wizard.condition")
+		if !row.condition {
+			label = e.word("editor.wizard.action")
+		}
+		o.fields = append(o.fields, InspectionField{Key: w.wizardKey(r, "item"), Label: label, Value: int64(row.origItem), Choices: choices})
+		o.buf = append(o.buf, row.vals[0])
+		if row.item < 0 {
+			continue
+		}
+		it := items[row.item]
+		for k, p := range it.params {
+			f := InspectionField{Key: w.wizardKey(r, fmt.Sprintf("p%d", k)), Label: e.word(p.labelWord)}
+			value := text(k + 1)
+			switch p.kind {
+			case wpUnit, wpPlayer, wpGroup, wpMessage:
+				n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+				f.Value = n
+				f.Choices = e.wizardChoices(p.kind, n)
+			default:
+				f.Text, f.TextValue = true, value
+			}
+			o.fields = append(o.fields, f)
+			o.buf = append(o.buf, row.vals[k+1])
+		}
+		if it.cmp < 0 {
+			var cmps []InspectionChoice
+			for c := int64(0); c <= 5; c++ {
+				cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
+			}
+			n, _ := strconv.ParseInt(text(len(it.params)+1), 10, 64)
+			o.fields = append(o.fields, InspectionField{Key: w.wizardKey(r, "cmp"), Label: e.word("editor.trigger.comparison"), Value: n, Choices: cmps})
+			o.buf = append(o.buf, row.vals[len(it.params)+1])
+		}
+	}
+}
+
+// bufAt is field i's text, or def when there is none yet.
+func (o *objectEdit) bufAt(i int, def string) string {
+	if i < len(o.buf) && i < len(o.fields) {
+		return o.buf[i]
+	}
+	return def
+}
+
+// wizardChoices are the values a row parameter of kind can name: for a
+// unit the placed units a script can name and heroes 1 to 8, with value
+// kept when it is none of them.
+func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionChoice {
+	var out []InspectionChoice
+	found := false
+	add := func(v int64, label string) {
+		out = append(out, InspectionChoice{v, label})
+		found = found || v == value
+	}
+	switch kind {
+	case wpUnit:
+		for _, t := range e.doc.Script.Targets[scriptUnit] {
+			if t.Record >= 0 {
+				add(int64(t.Value), t.ChoiceText())
+			}
+		}
+		for h := int64(1); h <= 8; h++ {
+			add(10000+h, fmt.Sprintf(e.word("editor.param.hero"), h))
+		}
+	case wpPlayer:
+		for _, t := range e.doc.Script.Targets[scriptPlayer] {
+			add(int64(t.Value), t.ChoiceText())
+		}
+	case wpGroup:
+		for _, t := range e.doc.Script.Targets[scriptGroup] {
+			add(int64(t.Value), t.ChoiceText())
+		}
+	case wpMessage:
+		for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
+			if !t.NewMessage {
+				add(int64(t.Value), t.ChoiceText())
+			}
+		}
+	}
+	if !found {
+		label := strconv.FormatInt(value, 10)
+		if kind == wpUnit && value > 10000 {
+			label = fmt.Sprintf(e.word("editor.param.hero"), value-10000)
+		}
+		out = append(out, InspectionChoice{value, label})
+	}
+	return out
+}
+
+// keptText is a kept row in words: "Other: #3 Distance ... is at most #4
+// Number", or the action's title.
+func (e *MapEditor) keptText(r wizRow) string {
+	if !r.condition {
+		title, _ := e.slotText(false, strconv.FormatUint(uint64(r.act), 10))
+		return fmt.Sprintf(e.word("editor.wizard.other"), title)
+	}
+	left, _ := e.slotText(true, strconv.FormatUint(uint64(r.left), 10))
+	right, _ := e.slotText(true, strconv.FormatUint(uint64(r.right), 10))
+	return fmt.Sprintf(e.word("editor.wizard.other"), left+" "+e.cmpWord(int64(r.cmp))+" "+right)
+}
+
+// rewizard follows a changed item: the row takes the item's fields, a row
+// back on the item it was read with its texts.
+func (e *MapEditor) rewizard() {
+	o := &e.obj
+	w := o.wiz
+	v, ok := e.scriptPopup()
+	if !ok || v.trigger == nil || w == nil {
+		return
+	}
+	e.pullWizard()
+	rebuilt := false
+	for r := range w.rows {
+		row := &w.rows[r]
+		item, err := strconv.Atoi(strings.TrimSpace(row.vals[0]))
+		if err != nil || item < -1 || item >= len(wizItems(row.condition)) || item == -1 && row.origItem >= 0 {
+			item = row.item
+		}
+		if item == row.item {
+			continue
+		}
+		row.item, rebuilt = item, true
+		switch {
+		case item == row.origItem:
+			row.vals = append([]string(nil), row.orig...)
+		default:
+			row.vals = e.wizardDefaults(row.condition, item)
+		}
+	}
+	if rebuilt {
+		e.wizardFields(v)
+		o.open = -1
+	}
+}
+
+// wizardDirty reports a row added, removed or given another item.
+func (w *wizardState) dirty() bool {
+	if w.changed {
+		return true
+	}
+	for _, r := range w.rows {
+		if r.item != r.origItem {
+			return true
+		}
+	}
+	return false
+}
+
+// Row actions of the wizard.
+const (
+	actRemoveRow = "removerow"
+	actDraw      = "draw"
+	actPickUnit  = "pickunit"
+)
+
+// wizardSpec is the wizard as a popup: the name, the once switch, When, And
+// if and Do with their rows, and the buttons Apply, Cancel, New, Delete and
+// Details.
+func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, int, ...string), text func(string, string)) {
+	o := &e.obj
+	w := o.wiz
+	s.Title = fmt.Sprintf(e.word("editor.trigger.title"), v.index+1)
+	add(popupRow{Kind: popupEdit, Label: o.fields[trigName].Label, Value: e.editorHostText(o.buf[trigName])}, trigName)
+	once := e.word("editor.trigger.once.no")
+	if strings.TrimSpace(o.buf[trigOnce]) != "0" {
+		once = e.word("editor.trigger.once.yes")
+	}
+	add(popupRow{Kind: popupSwitch, Label: o.fields[trigOnce].Label, Value: once}, trigOnce)
+	at := map[string]int{}
+	for i, f := range o.fields {
+		at[f.Key] = i
+	}
+	conds, acts, heroes, drops := 0, 0, false, 0
+	row := func(r int) {
+		wr := w.rows[r]
+		f := at[w.wizardKey(r, "item")]
+		label := o.fields[f].Label
+		ink := editorCondition
+		if !wr.condition {
+			ink = editorGold
+		}
+		add(popupRow{Kind: popupChoice, Label: label, Value: choiceText(o.fields[f], o.buf[f]), Ink: ink}, f, actRemoveRow)
+		if wr.item < 0 {
+			if wr.condition {
+				_, lp := e.slotText(true, strconv.FormatUint(uint64(wr.left), 10))
+				_, rp := e.slotText(true, strconv.FormatUint(uint64(wr.right), 10))
+				for _, p := range []string{lp, rp} {
+					if p != "" {
+						text("    "+p, "")
+					}
+				}
+			} else if _, p := e.slotText(false, strconv.FormatUint(uint64(wr.act), 10)); p != "" {
+				text("    "+p, "")
+			}
+			text("    "+e.word("editor.wizard.otherhint"), "")
+			return
+		}
+		it := wizItems(wr.condition)[wr.item]
+		if !wr.condition && it.opcode == scriptConstantOp {
+			drops++
+		}
+		for k, p := range it.params {
+			i := at[w.wizardKey(r, fmt.Sprintf("p%d", k))]
+			pr := popupRow{Kind: popupEdit, Label: "  " + o.fields[i].Label, Value: o.buf[i]}
+			var buttons []string
+			switch p.kind {
+			case wpUnit, wpPlayer, wpGroup, wpMessage:
+				pr.Kind, pr.Value = popupChoice, choiceText(o.fields[i], o.buf[i])
+				if p.kind == wpUnit {
+					buttons = []string{actPickUnit}
+					if n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64); err == nil && n > 10000 {
+						heroes = true
+					}
+				}
+			case wpCell:
+				buttons = []string{actPick}
+				if wr.condition && it.hasRadius() {
+					buttons = []string{actDraw}
+				}
+			case wpBox:
+				buttons = []string{actDraw}
+			}
+			add(pr, i, buttons...)
+		}
+		if it.cmp < 0 {
+			i := at[w.wizardKey(r, "cmp")]
+			add(popupRow{Kind: popupChoice, Label: "  " + o.fields[i].Label, Value: choiceText(o.fields[i], o.buf[i])}, i)
+		}
+	}
+	for r, wr := range w.rows {
+		if !wr.condition {
+			continue
+		}
+		switch conds {
+		case 0:
+			add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.when")}, -1)
+		case 1:
+			add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.andif")}, -1)
+		}
+		conds++
+		row(r)
+	}
+	if conds == 0 {
+		add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.when")}, -1)
+	}
+	if conds < 3 {
+		add(popupRow{Kind: popupText}, -1, actAddPair)
+	}
+	add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.do")}, -1)
+	for r, wr := range w.rows {
+		if !wr.condition {
+			acts++
+			row(r)
+		}
+	}
+	if acts < 4 {
+		add(popupRow{Kind: popupText}, -1, actAddAct)
+	}
+	if conds == 0 && acts > drops {
+		text(e.word("editor.wizard.nocondition"), "warning")
+	}
+	if heroes && e.multiplayer() {
+		text(e.word("editor.wizard.multiplayer"), "warning")
+	}
+	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.details")}
+	s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
+	fitButtons(s)
+}
+
+// wizardRowButton is a press on button k of a wizard row: remove the row,
+// add one, draw its area, or pick its cell or unit on the map.
+func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
+	o := &e.obj
+	w := o.wiz
+	v, _ := e.scriptPopup()
+	e.pullWizard()
+	switch act {
+	case actRemoveRow:
+		key := o.fields[f].Key
+		for r := range w.rows {
+			if w.wizardKey(r, "item") == key {
+				w.rows = append(w.rows[:r], w.rows[r+1:]...)
+				w.changed = true
+				break
+			}
+		}
+		o.focus = -1
+		e.wizardFields(v)
+	case actAddPair, actAddAct:
+		condition := act == actAddPair
+		r := wizRow{condition: condition, origItem: -2}
+		r.item, r.vals = 0, e.wizardDefaults(condition, 0)
+		// A condition goes after the last condition, an action last.
+		at := len(w.rows)
+		if condition {
+			at = 0
+			for k, x := range w.rows {
+				if x.condition {
+					at = k + 1
+				}
+			}
+		}
+		w.rows = append(w.rows[:at], append([]wizRow{r}, w.rows[at:]...)...)
+		w.changed = true
+		e.wizardFields(v)
+	case actDraw:
+		if !hasField {
+			return
+		}
+		w.draw, w.drawRadius, w.square = f, -1, e.wizardSquare(f)
+		if w.square {
+			w.drawRadius = e.wizardRadiusField(f)
+		}
+		o.focus = f
+		e.leave(leaveDrag)
+		e.armPick(pickArea)
+	case actPickUnit:
+		if hasField {
+			w.unit, o.focus = f, f
+			e.leave(leaveDrag)
+			e.armPick(pickWizardUnit)
+		}
+	case actPick:
+		if hasField {
+			o.focus, o.pickField = f, f
+			e.leave(leaveDrag)
+			e.armPick(pickScriptCell)
+		}
+	}
+}
+
+// wizardRowOf is the row and parameter index field f edits, -1 for none.
+func (e *MapEditor) wizardRowOf(f int) (int, int) {
+	w := e.obj.wiz
+	key := e.obj.fields[f].Key
+	for r := range w.rows {
+		for k := range w.rows[r].vals {
+			if w.wizardKey(r, wizPart(w.rows[r], k)) == key {
+				return r, k - 1
+			}
+		}
+	}
+	return -1, -1
+}
+
+// wizardSquare reports that field f is the point of a point-and-radius
+// condition: a drawing gives it its radius too.
+func (e *MapEditor) wizardSquare(f int) bool {
+	r, p := e.wizardRowOf(f)
+	if r < 0 || p < 0 {
+		return false
+	}
+	row := e.obj.wiz.rows[r]
+	it := wizItems(row.condition)[row.item]
+	return it.params[p].kind == wpCell && e.wizardRadiusField(f) >= 0
+}
+
+// wizardRadiusField is the radius field of the row field f is in, -1 for
+// none.
+func (e *MapEditor) wizardRadiusField(f int) int {
+	r, _ := e.wizardRowOf(f)
+	if r < 0 {
+		return -1
+	}
+	w := e.obj.wiz
+	row := w.rows[r]
+	if !row.condition || row.item < 0 {
+		return -1
+	}
+	for k, p := range wizItems(true)[row.item].params {
+		if p.labelWord == wizRadiusWord {
+			key := w.wizardKey(r, fmt.Sprintf("p%d", k))
+			for i, fl := range e.obj.fields {
+				if fl.Key == key {
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// wizardDrawing reports that the next drag on the map draws a wizard area.
+func (e *MapEditor) wizardDrawing() (*wizardState, bool) {
+	w := e.obj.wiz
+	if e.pick != pickArea || w == nil || w.draw < 0 || e.obj.doc != e.doc || e.obj.record != e.selected || w.draw >= len(e.obj.buf) {
+		return nil, false
+	}
+	return w, true
+}
+
+// wizardAreaDrawn writes the drawn box, or the point and radius, into the
+// row's fields and returns to the wizard.
+func (e *MapEditor) wizardAreaDrawn(h *areaHandle) {
+	w, ok := e.wizardDrawing()
+	e.leave(leavePick)
+	if !ok {
+		return
+	}
+	o := &e.obj
+	if h.kind == handleDrawSquare {
+		o.buf[w.draw] = fmt.Sprintf("%d,%d", h.from[0], h.from[1])
+		if w.drawRadius >= 0 {
+			o.buf[w.drawRadius] = strconv.Itoa(h.radius)
+		}
+	} else {
+		o.buf[w.draw] = fmt.Sprintf("%d,%d,%d,%d", h.box[0], h.box[1], h.box[2], h.box[3])
+	}
+	w.draw, w.drawRadius = -1, -1
+}
+
+// wizardUnitAt gives the waiting unit field the unit under p, when a script
+// can name it.
+func (e *MapEditor) wizardUnitAt(p image.Point) {
+	w := e.obj.wiz
+	if w == nil || w.unit < 0 || w.unit >= len(e.obj.buf) {
+		return
+	}
+	f := w.unit
+	w.unit = -1
+	for _, id := range e.hitsAt(p) {
+		if e.doc.Records[id].Kind != "Unit" {
+			continue
+		}
+		for _, t := range e.doc.Script.Targets[scriptUnit] {
+			if t.Record == id {
+				e.obj.buf[f] = strconv.FormatUint(uint64(t.Value), 10)
+				e.obj.fields[f].Choices = e.wizardChoices(wpUnit, int64(t.Value))
+				return
+			}
+		}
+		e.obj.note = e.word("editor.wizard.nounit")
+		return
+	}
+	e.obj.note = e.word("editor.wizard.nounit")
+}
+
+// wizardPlan is the trigger the rows say, for the host to write.
+func (e *MapEditor) wizardPlan(v scriptView) (WizardTrigger, error) {
+	o := &e.obj
+	w := o.wiz
+	e.pullWizard()
+	once, _ := strconv.ParseInt(strings.TrimSpace(o.buf[trigOnce]), 10, 64)
+	t := WizardTrigger{Index: v.index, Name: o.buf[trigName], Once: uint32(once)}
+	for r, row := range w.rows {
+		unchanged := row.item == row.origItem && len(row.vals) == len(row.orig)
+		for k := range row.vals {
+			unchanged = unchanged && strings.TrimSpace(row.vals[k]) == strings.TrimSpace(row.orig[k])
+		}
+		if row.item < 0 || unchanged {
+			if row.condition {
+				t.Pairs = append(t.Pairs, WizardPair{Left: WizardNode{ID: row.left, Keep: true}, Right: WizardNode{ID: row.right, Keep: true}, Cmp: row.cmp})
+			} else {
+				t.Actions = append(t.Actions, WizardNode{ID: row.act, Keep: true})
+			}
+			continue
+		}
+		node, right, cmp, err := e.wizardNode(r, row)
+		if err != nil {
+			return t, err
+		}
+		if row.condition {
+			p := WizardPair{Left: node, Cmp: cmp, Right: WizardNode{ID: row.right, Opcode: scriptConstantOp}}
+			p.Left.ID = row.left
+			p.Right.Types[0], p.Right.Values[0] = scriptInt, uint32(int32(right))
+			t.Pairs = append(t.Pairs, p)
+		} else {
+			node.ID = row.act
+			t.Actions = append(t.Actions, node)
+		}
+	}
+	if len(t.Pairs) > 3 || len(t.Actions) > 4 {
+		return t, fmt.Errorf("%s", e.word("editor.wizard.full"))
+	}
+	return t, nil
+}
+
+// wizardNode is the node row r says, the constant it is compared with and
+// the comparison.
+func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, error) {
+	it := wizItems(row.condition)[row.item]
+	n := WizardNode{Opcode: it.opcode}
+	label := func(k int) string { return e.word(it.params[k].labelWord) }
+	s := 0
+	var right int64
+	for k, p := range it.params {
+		text := strings.TrimSpace(row.vals[k+1])
+		var nums []int64
+		for _, part := range strings.Split(text, ",") {
+			x, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+			if err != nil {
+				nums = nil
+				break
+			}
+			if x < math.MinInt32 || x > math.MaxInt32 {
+				return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.range"))
+			}
+			nums = append(nums, x)
+		}
+		want := len(paramTypes(p.kind))
+		if len(nums) != want {
+			switch p.kind {
+			case wpCell:
+				return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.node.cell"))
+			case wpBox:
+				return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.badbox"))
+			}
+			return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.object.number"))
+		}
+		switch p.kind {
+		case wpCell, wpBox:
+			for c, x := range nums {
+				limit := e.doc.Width
+				if c%2 == 1 {
+					limit = e.doc.Height
+				}
+				if x < 0 || x >= int64(min(limit, 256)) {
+					return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.outside"))
+				}
+			}
+			if p.kind == wpBox && (nums[0] > nums[2] || nums[1] > nums[3]) {
+				return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.badbox"))
+			}
+		case wpUnit, wpPlayer:
+			if nums[0] <= 0 {
+				return n, 0, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.node.unset"))
+			}
+		}
+		if !p.inNode {
+			if k == it.rightParam {
+				right = nums[0]
+			}
+			continue
+		}
+		for c, t := range paramTypes(p.kind) {
+			n.Types[s], n.Values[s] = t, uint32(int32(nums[c]))
+			s++
+		}
+	}
+	for _, f := range it.fixed {
+		n.Types[s], n.Values[s] = f[0], f[1]
+		s++
+	}
+	if !row.condition {
+		return n, 0, 0, nil
+	}
+	cmp := uint32(max(it.cmp, 0))
+	if it.rightParam < 0 {
+		right = it.right
+	}
+	if it.cmp < 0 {
+		c, err := strconv.ParseInt(strings.TrimSpace(row.vals[len(it.params)+1]), 10, 64)
+		if err != nil || c < 0 || c > 5 {
+			return n, 0, 0, fmt.Errorf("%s: %s", e.word("editor.trigger.comparison"), e.word("editor.object.number"))
+		}
+		cmp = uint32(c)
+	}
+	return n, right, cmp, nil
+}
+
+// applyWizard writes the rows through the host as one edit.
+func (e *MapEditor) applyWizard(v scriptView) {
+	o := &e.obj
+	host, ok := e.doc.Edits.(InspectionTriggerWizard)
+	if !ok {
+		return
+	}
+	t, err := e.wizardPlan(v)
+	var next *InspectionDocument
+	if err == nil {
+		next, err = host.WriteTrigger(t)
+	}
+	if err != nil {
+		o.note = e.editorHostText(err.Error())
+		return
+	}
+	o.open, o.note = -1, ""
+	if next == nil {
+		e.obj.doc = nil // nothing written: read the trigger again
+		return
+	}
+	_ = e.adoptEdit(next, nil)
+}
+
+// wizardButton is a press on the wizard's button row.
+func (e *MapEditor) wizardButton(v scriptView, n int) {
+	switch n {
+	case 0:
+		e.applyWizard(v)
+	case 1:
+		e.cancelPopup()
+	case 2:
+		e.newTrigger()
+	case 3:
+		e.deleteTrigger(v)
+	case 4:
+		if e.objectDirty() {
+			e.obj.note = e.word("editor.trigger.applyfirst")
+			return
+		}
+		e.triggerDetails = v.index + 1
+		e.obj.doc = nil
+	}
+}
+
+// wizardAreaLines outline the areas the open wizard's rows draw, in gold.
+func (e *MapEditor) wizardAreaLines() []editorLine {
+	w := e.wizardOpen()
+	if w == nil || e.objectHidden {
+		return nil
+	}
+	e.pullWizard()
+	var out []editorLine
+	bounds := image.Rect(0, 0, e.doc.Width, e.doc.Height)
+	for _, row := range w.rows {
+		if !row.condition || row.item < 0 {
+			continue
+		}
+		it := wizConditions[row.item]
+		var r image.Rectangle
+		var centre image.Point
+		radius := -1
+		for k, p := range it.params {
+			var nums []int
+			for _, part := range strings.Split(row.vals[k+1], ",") {
+				x, err := strconv.Atoi(strings.TrimSpace(part))
+				if err != nil {
+					nums = nil
+					break
+				}
+				nums = append(nums, x)
+			}
+			switch {
+			case p.kind == wpBox && len(nums) == 4:
+				r = image.Rect(nums[0], nums[1], nums[2]+1, nums[3]+1)
+			case p.kind == wpCell && len(nums) == 2:
+				centre = image.Pt(nums[0], nums[1])
+				r = image.Rect(centre.X, centre.Y, centre.X+1, centre.Y+1)
+			case p.labelWord == wizRadiusWord && len(nums) == 1:
+				radius = nums[0]
+				if it.cmp == 3 || it.cmp == 4 {
+					radius--
+				}
+			}
+		}
+		if radius >= 0 && radius <= maxAreaRadius {
+			r = image.Rect(centre.X-radius, centre.Y-radius, centre.X+radius+1, centre.Y+radius+1)
+		}
+		if r = r.Intersect(bounds); !r.Empty() {
+			out = append(out, e.areaOutline(r, editorGold)...)
+		}
+	}
+	return out
+}
+
+// WizardShown reports that the selected trigger's popup is the wizard.
+func (e *MapEditor) WizardShown() bool {
+	e.loadObject()
+	return e.wizardOpen() != nil
+}
+
+// WizardField is the field index of wizard field key ("c0.item", "a1.p0",
+// "c0.cmp"), -1 when the wizard shows none.
+func (e *MapEditor) WizardField(key string) int {
+	if !e.WizardShown() {
+		return -1
+	}
+	for i, f := range e.obj.fields {
+		if f.Key == key {
+			return i
+		}
+	}
+	return -1
+}
+
+// WizardRowCounts are the shown wizard's rows and those of them it keeps as
+// they stand: a trigger shows fully as rows when kept is 0.
+func (e *MapEditor) WizardRowCounts() (rows, kept int) {
+	if !e.WizardShown() {
+		return 0, 0
+	}
+	for _, r := range e.obj.wiz.rows {
+		rows++
+		if r.item < 0 {
+			kept++
+		}
+	}
+	return rows, kept
+}
+
+// ShowTriggerDetails switches the shown trigger popup between the wizard
+// and the pair view, as the Details button and its way back do.
+func (e *MapEditor) ShowTriggerDetails(on bool) {
+	if v, ok := e.scriptPopup(); ok && v.trigger != nil {
+		e.triggerDetails = 0
+		if on {
+			e.triggerDetails = v.index + 1
+		}
+		e.obj.doc = nil
+	}
+}

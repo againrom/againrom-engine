@@ -21,8 +21,16 @@ func (e *MapEditor) scriptKey(key string) {
 		return
 	}
 	if key == "drop" {
+		if e.pick == pickDrop {
+			e.leave(leavePick)
+			return
+		}
 		e.leave(leaveDrag | leaveReport)
 		e.armPick(pickDrop)
+		e.dropSel = 0
+		if len(e.doc.Drops) == 1 {
+			e.dropSel = 1
+		}
 		return
 	}
 	if len(e.report.goals) > 0 {
@@ -144,16 +152,6 @@ func (e *MapEditor) openGoal(row int) {
 	if len(e.objectBack) > 0 {
 		e.objectBack[len(e.objectBack)-1] = p
 	}
-}
-
-// dropAt moves the drop cell onto cell.
-func (e *MapEditor) dropAt(cell image.Point) {
-	s, ok := e.script()
-	if !ok {
-		return
-	}
-	next, err := s.SetDropCell(cell)
-	_ = e.adoptEdit(next, err)
 }
 
 // armGoal arms the pick of the selected script arm's target.

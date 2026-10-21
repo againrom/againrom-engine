@@ -25,11 +25,12 @@ type InspectionAreaAuthor interface {
 type areaHandleKind uint8
 
 const (
-	handleCorner areaHandleKind = iota + 1 // a box corner: two sides
-	handleEdge                             // a box edge: one side
-	handleRim                              // a square's rim: its radius
-	handleCell                             // a cell: the whole cell
-	handleDraw                             // a new box from the draw tool
+	handleCorner     areaHandleKind = iota + 1 // a box corner: two sides
+	handleEdge                                 // a box edge: one side
+	handleRim                                  // a square's rim: its radius
+	handleCell                                 // a cell: the whole cell
+	handleDraw                                 // a new box from the draw tool
+	handleDrawSquare                           // a new square for the wizard: centre and radius
 )
 
 // The sides of a box a corner or an edge moves, as bits.
@@ -238,6 +239,9 @@ func (e *MapEditor) areaPress(p image.Point) (*areaHandle, bool) {
 		}
 		c := e.clampAreaCell(image.Pt(x, y))
 		from := [4]int{c.X, c.Y, c.X, c.Y}
+		if w, ok := e.wizardDrawing(); ok && w.square {
+			return &areaHandle{kind: handleDrawSquare, area: -1, box: from, from: from}, true
+		}
 		return &areaHandle{kind: handleDraw, area: -1, box: from, from: from}, true
 	}
 	if !e.free() {
@@ -288,6 +292,8 @@ func (e *MapEditor) areaDragTo(h *areaHandle, c image.Point) {
 		h.box = [4]int{c.X, c.Y, -1, -1}
 	case handleDraw:
 		h.box = [4]int{min(h.from[0], c.X), min(h.from[1], c.Y), max(h.from[0], c.X), max(h.from[1], c.Y)}
+	case handleDrawSquare:
+		h.radius = min(maxAreaRadius, max(absInt(c.X-h.from[0]), absInt(c.Y-h.from[1])))
 	}
 }
 
@@ -300,6 +306,9 @@ func (e *MapEditor) areaPreview(h *areaHandle) image.Rectangle {
 		r = image.Rect(c.X-h.radius, c.Y-h.radius, c.X+h.radius+1, c.Y+h.radius+1)
 	case handleCell:
 		r = image.Rect(h.box[0], h.box[1], h.box[0]+1, h.box[1]+1)
+	case handleDrawSquare:
+		c := image.Pt(h.from[0], h.from[1])
+		r = image.Rect(c.X-h.radius, c.Y-h.radius, c.X+h.radius+1, c.Y+h.radius+1)
 	default:
 		r = image.Rect(h.box[0], h.box[1], h.box[2]+1, h.box[3]+1)
 	}
@@ -331,7 +340,13 @@ func (e *MapEditor) dragArea(d *editorRecordDrag, in Input, p image.Point, insid
 	}
 	e.recordDrag = nil
 	switch {
+	case h.kind == handleDrawSquare:
+		e.wizardAreaDrawn(h)
 	case h.kind == handleDraw:
+		if _, ok := e.wizardDrawing(); ok {
+			e.wizardAreaDrawn(h)
+			return true
+		}
 		e.areaDrawn(h)
 	case d.moved:
 		e.areaRelease(h)
@@ -461,6 +476,9 @@ func (e *MapEditor) areaSharedContinue() {
 // keyDrawArea arms the draw tool, or disarms it; the areas show while it is
 // armed.
 func (e *MapEditor) keyDrawArea(string) error {
+	if e.obj.wiz != nil {
+		e.obj.wiz.draw = -1
+	}
 	if e.pick == pickArea {
 		e.leave(leavePick)
 		return nil

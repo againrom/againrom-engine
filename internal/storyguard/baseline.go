@@ -2746,6 +2746,19 @@ package storyguard
 // entry release tests became pressDropCell, which the right-click deselect
 // release test also uses. CommentBytes rises for that test and this paragraph.
 //
+// CommentBytes rises for the map editor's trigger wizard and drop-zone tool,
+// all new code: the wizard and its host (pkg/ui/mapeditorwizard.go,
+// pkg/ui/mapeditorwizardhost.go, pkg/game/mapinspectionwizard.go), the drop
+// tool (pkg/ui/mapeditordrop.go), the drop zone and node writers
+// (pkg/mapedit/script.go), their tests, and this paragraph.
+//
+// The merge of main into that branch resets these counts to the measured
+// counts of the merged tree.
+//
+// CommentBytes rises for the correction of that wizard, all new code: the
+// slot-keeping writer and the drop-cell refusal in pkg/game/mapinspectionwizard.go,
+// the tests in pkg/game/mapeditorwizardkeep_test.go and
+// pkg/game/mapeditorwizardkeep_release_test.go, and this paragraph.
 // CommentBytes rises for the mods' install files, all new code: the folder
 // reader (pkg/mod/files.go), the mark set (pkg/mod/digest.go), the one
 // boundary the overlay owners serve through (pkg/game/modfiles.go), the text
@@ -2780,5 +2793,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9425630,
+	CommentBytes: 9444509,
 }

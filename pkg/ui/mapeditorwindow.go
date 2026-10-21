@@ -39,6 +39,11 @@ const (
 // editorChrome is the chrome's state: the fonts, where each popup stands, the
 // list popup's model, the open menu and a press in progress.
 type editorChrome struct {
+	// triggerDetails is the trigger, plus one, whose popup shows the pair
+	// view instead of the wizard; 0 shows the wizard.
+	triggerDetails int
+	// dropSel is the drop zone, plus one, the drop tool has selected.
+	dropSel                int
 	body                   *text.Font
 	cardFont               *text.Font
 	book                   words.Book
@@ -150,6 +155,7 @@ func (e *MapEditor) barEntries() []barEntry {
 		{key: "scripts", label: e.word("editor.list.scripts")},
 		{key: "view", label: e.word("editor.bar.view"), menu: true},
 		{key: "brushes", label: e.word("editor.bar.brushes"), menu: true, disabled: e.brushHost() == nil},
+		{key: "tools", label: e.word("editor.bar.tools"), menu: true, disabled: !e.editable()},
 		{key: "undo", label: e.word("editor.bar.undo"), disabled: !e.editable() || !e.doc.Edits.CanUndo()},
 		{key: "redo", label: e.word("editor.bar.redo"), disabled: !e.editable() || !e.doc.Edits.CanRedo()},
 		{key: "save", label: e.word("editor.bar.save"), disabled: !e.editable()},
@@ -298,6 +304,12 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"drawarea", e.word("editor.view.drawarea")},
 			{"records", e.word("editor.view.records")},
 		}
+	case "tools":
+		return []menuItem{
+			{"newtrigger", e.word("editor.tools.newtrigger")},
+			{"drop", mark(e.pick == pickDrop, e.word("editor.tools.dropzones"))},
+			{"drawarea", mark(e.pick == pickArea, e.word("editor.tools.drawarea"))},
+		}
 	case "brushes":
 		var items []menuItem
 		for _, m := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
@@ -343,7 +355,7 @@ func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 func (e *MapEditor) barAct(key string) {
 	e.endFieldTyping()
 	switch key {
-	case "map", "view", "brushes":
+	case "map", "view", "brushes", "tools":
 		if e.menu == key {
 			e.menu = ""
 		} else {
@@ -408,6 +420,11 @@ func (e *MapEditor) menuAct(key string) {
 		}
 	case "areas":
 		e.view.hideAreas = !e.view.hideAreas
+	case "newtrigger":
+		if e.editable() && !e.catalog {
+			e.leave(leaveDrag | leavePick)
+			e.newTrigger()
+		}
 	default:
 		if e.Key(key) == ebiten.Termination {
 			e.exitAsked = true
@@ -1247,7 +1264,16 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 	if e.pick == pickScriptCell {
 		parts = append(parts, e.word("editor.trigger.pickcell"))
 	}
-	if e.pick == pickArea {
+	switch {
+	case e.pick == pickDrop:
+		parts = append(parts, e.dropToolStatus())
+	case e.pick == pickWizardUnit:
+		parts = append(parts, e.word("editor.wizard.pickunit"))
+	case e.pick == pickArea && e.obj.wiz != nil && e.obj.wiz.draw >= 0 && e.obj.wiz.square:
+		parts = append(parts, e.word("editor.wizard.drawsquare"))
+	case e.pick == pickArea && e.obj.wiz != nil && e.obj.wiz.draw >= 0:
+		parts = append(parts, e.word("editor.wizard.drawbox"))
+	case e.pick == pickArea:
 		parts = append(parts, e.word("editor.area.draw"))
 	}
 	parts = append(parts, e.selectionStatus(note)...)

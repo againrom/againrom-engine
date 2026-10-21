@@ -15,6 +15,7 @@ type objectPlace struct {
 	listTop    int
 	goalRow    int
 	hidden     bool
+	details    int // the trigger details view shown, as triggerDetails
 }
 
 func objectParameter(t uint32) bool {
@@ -22,7 +23,7 @@ func objectParameter(t uint32) bool {
 }
 
 func (e *MapEditor) objectPlace() objectPlace {
-	p := objectPlace{index: -1, top: e.objectTop, group: e.groupSel}
+	p := objectPlace{index: -1, top: e.objectTop, group: e.groupSel, details: e.triggerDetails}
 	if v, ok := e.scriptVariableRow(e.selected); ok {
 		p.kind, p.register = "Variable", v.register
 		return p
@@ -59,6 +60,16 @@ func (e *MapEditor) objectBackButton(s *popupSpec) {
 	}
 	s.Buttons = append(s.Buttons, e.word("editor.trigger.back"))
 	s.Disabled = append(s.Disabled, false)
+	fitButtons(s)
+}
+
+// fitButtons widens s so its whole button row lies inside the popup.
+func fitButtons(s *popupSpec) {
+	bw := popupButtonW
+	if s.ButtonW > 0 {
+		bw = s.ButtonW
+	}
+	s.Width = max(s.Width, len(s.Buttons)*(bw+popupPad)+popupPad)
 }
 
 func (e *MapEditor) backObject() {
@@ -100,7 +111,7 @@ func (e *MapEditor) backObject() {
 			}
 		}
 	}
-	e.objectBack, e.objectTop = back, p.top
+	e.objectBack, e.objectTop, e.triggerDetails = back, p.top, p.details
 	e.obj.doc = nil
 	e.loadObject()
 	if p.draft != nil {

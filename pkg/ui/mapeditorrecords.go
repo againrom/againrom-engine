@@ -92,6 +92,9 @@ func (e *MapEditor) recordKey(key string) error {
 		e.scriptKey(key)
 		return nil
 	}
+	if key == "delete" && e.deleteDropZone() {
+		return nil
+	}
 	if key == "delete" && e.selectionShown() {
 		return e.deleteSelection()
 	}
@@ -248,6 +251,10 @@ func (e *MapEditor) pickAt(p image.Point) {
 	e.leave(leavePick)
 	if pick == pickGoal {
 		e.goalAt(p)
+		return
+	}
+	if pick == pickWizardUnit {
+		e.wizardUnitAt(p)
 		return
 	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))

@@ -23,6 +23,8 @@ type goalTrigger struct {
 	name        string
 	left, right uint32
 	actions     []uint32
+	cmp         uint32         // the first pair's comparison
+	raw         map[int]uint32 // words written at record offsets last
 }
 
 func goalScript(actions, conditions []scriptNode, triggers []goalTrigger) []byte {
@@ -34,10 +36,14 @@ func goalScript(actions, conditions []scriptNode, triggers []goalTrigger) []byte
 		copy(rec, t.name)
 		binary.LittleEndian.PutUint32(rec[0x80:], t.left)
 		binary.LittleEndian.PutUint32(rec[0x84:], t.right)
+		binary.LittleEndian.PutUint32(rec[0xa8:], t.cmp)
 		for i, id := range t.actions {
 			binary.LittleEndian.PutUint32(rec[0x98+4*i:], id)
 		}
 		binary.LittleEndian.PutUint32(rec[0xb4:], 1)
+		for at, v := range t.raw {
+			binary.LittleEndian.PutUint32(rec[at:], v)
+		}
 		b = append(b, rec...)
 	}
 	return b
@@ -280,7 +286,8 @@ func TestWindowKeysMoveTheDropCellAndRetargetAnArm(t *testing.T) {
 	b := goalMap(t, true)
 	e, _ := openGoalMap(t, b)
 	_ = e.Key("drop")
-	clickCell(e, image.Pt(22, 20))
+	dragCell(e, e.Document().Drops[0], image.Pt(22, 20))
+	_ = e.Key("drop")
 	if d := e.Document().Drops; !e.Dirty() || len(d) != 1 || d[0] != image.Pt(22, 20) {
 		t.Fatalf("drop cell after the click: %v", d)
 	}
