@@ -2786,6 +2786,10 @@ package storyguard
 // CommentBytes rises again for the packed mod's name rules, all new code: the
 // dotted-path refusal and the Cyrillic case fold of the mod tree
 // (pkg/mod/tree.go, pkg/mod/pack.go), their tests, and this paragraph.
+//
+// CommentBytes rises for the doc comments of the weapon bodies file's second
+// name (pkg/mod bodies.go, tree_test.go, modrt wpnbodies_test.go), this note
+// included.
 var Committed = Baseline{
 	TestIdentCount: 4509,
 	TestFileCount:  264,
@@ -2809,5 +2813,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9467919,
+	CommentBytes: 9468874,
 }

@@ -1,3 +1,3 @@
-# Draws the War Hammer with the mace body: data/weapon-bodies.toml.
+# Draws the War Hammer with the mace body: data/wpnbodies.toml.
 def init(game, settings):
-    game.data.add("data/weapon-bodies.toml")
+    game.data.add("data/wpnbodies.toml")

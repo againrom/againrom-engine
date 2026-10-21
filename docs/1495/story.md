@@ -142,8 +142,9 @@ DIV-3908 are unused.
 
 ## Open debt
 
-- `data/weapon-bodies.toml` is 18 bytes, over the 15-byte name bound: a mod with weapon bodies
-  cannot be packed and stays a folder. Renaming the data file, or an alias, is an owner decision.
+- Closed by a hotfix: `data/weapon-bodies.toml` is 18 bytes, over the 15-byte name bound. The
+  owner added the short name `data/wpnbodies.toml`; the long name is still read in a folder, and a
+  mod holding both names is refused.
 - The map editor edits and test-plays mod folders only.
 - Case folding in the mod tree covers ASCII and the CP866 Cyrillic letters; another Unicode case
   pair cannot occur in a RES name.

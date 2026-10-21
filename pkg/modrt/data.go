@@ -16,15 +16,16 @@ import (
 // dataFiles are the data files game.data.add reads, each with the function
 // that turns its bytes into game data.
 var dataFiles = map[string]func(d *dataValue, rel string, src []byte) error{
-	mod.BodiesFile:       (*dataValue).loadBodies,
-	mod.WeaponBodiesFile: (*dataValue).loadWeaponBodies,
-	mod.CharactersFile:   (*dataValue).loadCharacters,
-	mod.CompanionsFile:   (*dataValue).loadCompanions,
-	mod.ItemsFile:        (*dataValue).loadItems,
-	mod.MissionsFile:     (*dataValue).loadMissions,
-	mod.ScreensFile:      (*dataValue).loadScreens,
-	mod.SpellsFile:       (*dataValue).loadSpells,
-	mod.TownsFile:        (*dataValue).loadTowns,
+	mod.BodiesFile:           (*dataValue).loadBodies,
+	mod.WeaponBodiesFile:     (*dataValue).loadWeaponBodies,
+	mod.WeaponBodiesLongFile: (*dataValue).loadWeaponBodies,
+	mod.CharactersFile:       (*dataValue).loadCharacters,
+	mod.CompanionsFile:       (*dataValue).loadCompanions,
+	mod.ItemsFile:            (*dataValue).loadItems,
+	mod.MissionsFile:         (*dataValue).loadMissions,
+	mod.ScreensFile:          (*dataValue).loadScreens,
+	mod.SpellsFile:           (*dataValue).loadSpells,
+	mod.TownsFile:            (*dataValue).loadTowns,
 }
 
 func dataFileNames() string {

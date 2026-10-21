@@ -396,6 +396,9 @@ func Load(dir string) Entry {
 	if e.Manifest, e.Err = ParseManifest(data); e.Err == nil && e.Manifest.ID != e.Folder {
 		e.Err = fmt.Errorf("manifest id %q does not match the %s name %q", e.Manifest.ID, what, filepath.Base(dir))
 	}
+	if e.Err == nil {
+		e.Err = checkWeaponBodiesNames(t)
+	}
 	return e
 }
 

@@ -423,8 +423,8 @@ func shieldMod(t *testing.T) (string, string) {
 		"mod.toml": "id = \"short-sword-axeman\"\ntitle = \"Short Sword as an axeman\"\nversion = \"1.0.0\"\nauthor = \"Againrom\"\n" +
 			"description = \"Draws the Short Sword with the two-handed axe body.\"\napi = 1\n" +
 			"applies-to = [\"rom1\", \"rom2-en\", \"rom2-ru\"]\nentry = \"main.star\"\n",
-		"main.star":               "def init(game, settings):\n    game.data.add(\"data/weapon-bodies.toml\")\n",
-		"data/weapon-bodies.toml": shieldMapping,
+		"main.star":           "def init(game, settings):\n    game.data.add(\"data/wpnbodies.toml\")\n",
+		"data/wpnbodies.toml": shieldMapping,
 	}
 	for name, text := range files {
 		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(text), 0o644); err != nil {

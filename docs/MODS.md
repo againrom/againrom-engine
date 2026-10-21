@@ -18,7 +18,7 @@ game reads as the folder (section Packed mods).
 | `data/missions.toml` | missions a guest party plays between two campaign missions | below, `docs/1408/story.md` |
 | `data/screens.toml` | information screens and menu actions | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | `data/spells.toml` | spell values and formula tables | `docs/1341/story.md`, `DIV-2364` |
-| `data/weapon-bodies.toml` | the body a weapon is drawn with | below, `DIV-2912` |
+| `data/wpnbodies.toml` | the body a weapon is drawn with (a mod folder may still use the long name `data/weapon-bodies.toml`) | below, `DIV-2912` |
 | `data/bodies.toml` | body sheets the mod supplies | below, `DIV-2913`, `DIV-2914` |
 | `data/towns.toml` | towns: add, change named fields, switch off | below, `docs/1486/story.md` |
 
@@ -162,8 +162,7 @@ the reason and, for a file, the file:
 - the `-pack-out` folder is a game folder or lies inside one (a folder
   holding the game's archives);
 - a file or folder name is longer than 15 bytes, the longest name a RES
-  holds (`data/weapon-bodies.toml` is 18: a mod with weapon bodies stays a
-  folder);
+  holds;
 - a name holds a character the RES's code page, CP866, has no byte for.
   Latin and Cyrillic letters, digits and `. _ -` are one byte each;
 - a link or another non-regular file, or a file larger than 16 MiB;
@@ -204,8 +203,11 @@ cold LOAD applies those saved bytes (`DIV-3002`, `DIV-2224`, `DIV-2327`).
 
 ## Weapon bodies
 
-`data/weapon-bodies.toml` holds `[[weapon]]` tables. Each draws one weapon row
-with another body.
+`data/wpnbodies.toml` holds `[[weapon]]` tables. Each draws one weapon row
+with another body. The first name of this file, `data/weapon-bodies.toml`, is
+still read in a mod folder, but it is 18 bytes and a packed mod holds names of
+at most 15, so use the short name. A mod that holds both names is refused,
+naming both files.
 
 | key | value |
 |---|---|
@@ -264,8 +266,8 @@ second body named with the `_` suffix.
 # per direction for each of move, attack and idle (25 rows of 64x80 cells).
 [[body]]
 name        = "hammer2h"
-heroes      = "bodies/hammer2h-heroes.png"
-heroes_l    = "bodies/hammer2h-heroes_l.png"
+heroes      = "bodies/hammer2h.png"
+heroes_l    = "bodies/hammer2h_l.png"
 frame       = [64, 80]
 origin      = [32, 70]
 directions  = 8

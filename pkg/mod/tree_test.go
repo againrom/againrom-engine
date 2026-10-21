@@ -353,3 +353,29 @@ func TestDottedPathsAreRefusedByEveryReader(t *testing.T) {
 		}
 	}
 }
+
+// The weapon bodies file is read under its short and its first name; a mod
+// holding both is refused by Load, naming both files, in a folder and in a
+// packed file's reading alike. The short name packs.
+func TestWeaponBodiesNames(t *testing.T) {
+	both := filepath.Join(t.TempDir(), "wb")
+	writeTreeFile(t, both, "mod.toml", good("wb"))
+	writeTreeFile(t, both, WeaponBodiesFile, "x")
+	if e := Load(both); e.Err != nil {
+		t.Fatalf("the short name alone: %v", e.Err)
+	}
+	if _, _, err := Pack(both); err != nil {
+		t.Fatalf("the short name did not pack: %v", err)
+	}
+	writeTreeFile(t, both, WeaponBodiesLongFile, "x")
+	want := "the mod holds both " + WeaponBodiesFile + " and " + WeaponBodiesLongFile
+	if e := Load(both); e.Err == nil || !strings.Contains(e.Err.Error(), want) {
+		t.Fatalf("both names: %v", e.Err)
+	}
+	long := filepath.Join(t.TempDir(), "wl")
+	writeTreeFile(t, long, "mod.toml", good("wl"))
+	writeTreeFile(t, long, WeaponBodiesLongFile, "x")
+	if e := Load(long); e.Err != nil {
+		t.Fatalf("the long name alone: %v", e.Err)
+	}
+}

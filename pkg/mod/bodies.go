@@ -8,10 +8,32 @@ import (
 // WeaponBodiesFile is the data file that chooses the hero body a weapon is
 // drawn with, and BodiesFile the one that supplies a body sheet of the mod's
 // own. A mod loads each from its entry script with game.data.add.
+// WeaponBodiesLongFile is the first name of the weapon bodies file; it is 18
+// bytes, too long for a packed mod, and a mod folder may still use it. A mod
+// holds one of the two names, never both.
 const (
-	WeaponBodiesFile = "data/weapon-bodies.toml"
-	BodiesFile       = "data/bodies.toml"
+	WeaponBodiesFile     = "data/wpnbodies.toml"
+	WeaponBodiesLongFile = "data/weapon-bodies.toml"
+	BodiesFile           = "data/bodies.toml"
 )
+
+// WeaponBodiesFiles lists every name the weapon bodies file is read under.
+var WeaponBodiesFiles = []string{WeaponBodiesFile, WeaponBodiesLongFile}
+
+// checkWeaponBodiesNames refuses a mod that holds the weapon bodies file under
+// both of its names, naming both.
+func checkWeaponBodiesNames(t Tree) error {
+	var held []string
+	for _, n := range WeaponBodiesFiles {
+		if st, err := t.Stat(n); err == nil && !st.IsDir() {
+			held = append(held, n)
+		}
+	}
+	if len(held) > 1 {
+		return fmt.Errorf("the mod holds both %s and %s; keep one of them", held[0], held[1])
+	}
+	return nil
+}
 
 var bodyNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
@@ -104,7 +126,7 @@ type BodyData struct {
 // Empty reports that no mod maps a weapon or supplies a body.
 func (d BodyData) Empty() bool { return len(d.Weapons) == 0 && len(d.Bodies) == 0 }
 
-// ParseWeaponBodies reads data/weapon-bodies.toml of the mod id: [[weapon]]
+// ParseWeaponBodies reads the weapon bodies file (WeaponBodiesFiles) of the mod id: [[weapon]]
 // tables with weapon and/or row, and body. A refusal names the file and line.
 func ParseWeaponBodies(id, file string, data []byte) ([]WeaponBody, error) {
 	tables, err := parseTOMLWith(data, tomlOptions{arrays: true})

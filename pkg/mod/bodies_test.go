@@ -44,15 +44,15 @@ func TestParseWeaponBodiesReadsAMapping(t *testing.T) {
 
 func TestParseWeaponBodiesRefusalsNameFileAndLine(t *testing.T) {
 	cases := []struct{ name, src, want string }{
-		{"outside a table", "body = \"clubman\"\n", "data/weapon-bodies.toml:1: body is outside a [[weapon]] table"},
-		{"unknown table", "[[mace]]\n", `data/weapon-bodies.toml:1: unknown table "mace"`},
-		{"unknown key", goodWeaponBody + "shield = 1\n", `data/weapon-bodies.toml:6: unknown key "shield" in [[weapon]]`},
-		{"empty weapon", strings.Replace(goodWeaponBody, `"War Hammer"`, `""`, 1), "data/weapon-bodies.toml:3: weapon must be the name of a weapon table row"},
-		{"row zero", strings.Replace(goodWeaponBody, "row    = 19", "row    = 0", 1), "data/weapon-bodies.toml:4: row is 0; a weapon row is 1 to 31"},
-		{"row text", strings.Replace(goodWeaponBody, "row    = 19", `row    = "19"`, 1), "data/weapon-bodies.toml:4: row must be an integer, not a string"},
-		{"bad body name", strings.Replace(goodWeaponBody, `"clubman"`, `"Club Man"`, 1), `data/weapon-bodies.toml:5: body "Club Man" is not a body name`},
-		{"no body", strings.Replace(goodWeaponBody, "body   = \"clubman\"\n", "", 1), "data/weapon-bodies.toml:2: [[weapon]] has no body"},
-		{"no weapon", "[[weapon]]\nbody = \"clubman\"\n", "data/weapon-bodies.toml:1: [[weapon]] names no weapon"},
+		{"outside a table", "body = \"clubman\"\n", "data/wpnbodies.toml:1: body is outside a [[weapon]] table"},
+		{"unknown table", "[[mace]]\n", `data/wpnbodies.toml:1: unknown table "mace"`},
+		{"unknown key", goodWeaponBody + "shield = 1\n", `data/wpnbodies.toml:6: unknown key "shield" in [[weapon]]`},
+		{"empty weapon", strings.Replace(goodWeaponBody, `"War Hammer"`, `""`, 1), "data/wpnbodies.toml:3: weapon must be the name of a weapon table row"},
+		{"row zero", strings.Replace(goodWeaponBody, "row    = 19", "row    = 0", 1), "data/wpnbodies.toml:4: row is 0; a weapon row is 1 to 31"},
+		{"row text", strings.Replace(goodWeaponBody, "row    = 19", `row    = "19"`, 1), "data/wpnbodies.toml:4: row must be an integer, not a string"},
+		{"bad body name", strings.Replace(goodWeaponBody, `"clubman"`, `"Club Man"`, 1), `data/wpnbodies.toml:5: body "Club Man" is not a body name`},
+		{"no body", strings.Replace(goodWeaponBody, "body   = \"clubman\"\n", "", 1), "data/wpnbodies.toml:2: [[weapon]] has no body"},
+		{"no weapon", "[[weapon]]\nbody = \"clubman\"\n", "data/wpnbodies.toml:1: [[weapon]] names no weapon"},
 	}
 	for _, c := range cases {
 		_, err := ParseWeaponBodies("m", WeaponBodiesFile, []byte(c.src))
