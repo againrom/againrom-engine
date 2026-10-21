@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"slices"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -75,6 +76,16 @@ type popupSpec struct {
 	PickArmed bool
 	// LabelWidth is the label column; zero is two fifths of the width.
 	LabelWidth int
+	// Size is the outer size the user dragged the popup to; zero keeps the
+	// size the content gives. The popup then spans that size, no smaller than
+	// popupMinSize: a list shows as many rows as fit, a row-scrolled popup
+	// shows as many rows, a multi-line field takes the free height and the
+	// buttons stay on the bottom edge.
+	Size image.Point
+	// MinWidth caps the least width a sized popup is held to: a popup
+	// whose own width was narrower than popupMinWidth keeps that width as
+	// its least.
+	MinWidth int
 }
 
 // popupRowRect is the geometry of one shown row.
@@ -97,6 +108,9 @@ type popupLayout struct {
 	Notes              []image.Rectangle
 	Buttons            []image.Rectangle
 	Pitch              int
+	// ListRows and RowsFit are the list rows and the scrolled rows the
+	// layout shows: the spec's own, or the ones a sized popup fits.
+	ListRows, RowsFit int
 }
 
 const (
@@ -120,14 +134,154 @@ func fontHeight(f *text.Font, fallback int) int {
 	return fallback
 }
 
+// popupMinField is the narrowest a row's field is kept in a sized popup.
+const popupMinField = 60
+
+// popupMinRows is the fewest list or scrolled rows a sized popup keeps.
+const popupMinRows = 3
+
+// popupMinWidth is the narrowest a sized popup gets: the width where its
+// buttons and each row's own buttons still fit beside a label and a field.
+func popupMinWidth(s popupSpec, body *text.Font) int {
+	w := 240
+	if n := len(s.Buttons); n > 0 {
+		bw := popupButtonW
+		if s.ButtonW > 0 {
+			bw = s.ButtonW
+		}
+		w = max(w, n*(bw+popupPad)+popupPad)
+	}
+	for _, row := range s.Rows {
+		caps := rowButtons(s, row)
+		if len(caps) == 0 {
+			continue
+		}
+		need := 0
+		for _, c := range caps {
+			bw := popupButtonW
+			if len(row.Buttons) > 0 && body != nil {
+				bw = max(48, body.Advance(c)+16)
+			}
+			need += bw + 4
+		}
+		// A label, a field of at least popupMinField and the buttons.
+		if s.LabelWidth > 0 {
+			w = max(w, s.LabelWidth+4+popupMinField+need+2*popupPad)
+		} else {
+			w = max(w, (4+popupMinField+need)*5/3+2*popupPad)
+		}
+	}
+	if s.Card != nil {
+		w += compactPanelW + popupPad
+	}
+	return w
+}
+
+// popupFit is a sized popup's flexible part for outer height h: the list rows,
+// the scrolled rows and the extra lines of the first multi-line field, and the
+// least height that keeps them usable. s.Rows is not modified.
+func popupFit(s popupSpec, body *text.Font, pitch, titleH, h int) (listRows, rowsFit, extraLines, minH int) {
+	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad
+	if len(s.Buttons) > 0 {
+		fixed += pitch + 4 + popupPad
+	}
+	top := max(0, min(s.Top, len(s.Rows)))
+	rowH := func(r popupRow) int {
+		if r.Kind == popupMultiline {
+			return multilineRows(r) * pitch
+		}
+		return pitch
+	}
+	flexRows := s.MaxRows > 0
+	if !flexRows {
+		for _, r := range s.Rows[top:] {
+			fixed += rowH(r)
+		}
+	}
+	lp, listBase := 0, 0
+	if s.List != nil {
+		listBase = newListBox(image.Rect(0, 0, 10, 0), 0, body).Rect.Dy()
+		lp = newListBox(image.Rect(0, 0, 10, 0), 1, body).Rect.Dy() - listBase
+		fixed += listBase + popupPad
+	}
+	// The least height holds the flexible part at its least rows.
+	least := fixed
+	if s.List != nil {
+		least += popupMinRows * lp
+	}
+	if flexRows {
+		for i, r := range s.Rows[top:] {
+			if i == popupMinRows {
+				break
+			}
+			least += rowH(r)
+		}
+	}
+	minH = least
+	h = max(h, minH)
+	avail := h - fixed
+	switch {
+	case s.List != nil:
+		listRows = max(popupMinRows, avail/lp)
+	case flexRows:
+		used := 0
+		for _, r := range s.Rows[top:] {
+			if used+rowH(r) > avail && rowsFit >= popupMinRows {
+				break
+			}
+			used += rowH(r)
+			rowsFit++
+		}
+		rowsFit = min(rowsFit, len(s.Rows)-top)
+	default:
+		extraLines = max(0, avail/pitch)
+	}
+	return listRows, rowsFit, extraLines, minH
+}
+
 // layoutPopup builds the popup's geometry: title bar with its close button,
-// the shown rows, the list box, the note lines and the button row.
+// the shown rows, the list box, the note lines and the button row. A spec
+// with a Size takes that size (no smaller than its content allows) and
+// fits its flexible rows to it.
 func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := fontHeight(title, 15) + popupRowExtra
 	w := max(160, s.Width)
 	if s.MaxRows > 0 && len(s.Rows) > s.MaxRows {
 		w += widgetSpriteSize + 2
+	}
+	sized := popupResizeEnabled && s.Size.X > 0 && s.Size.Y > 0
+	sizedH := 0
+	if sized {
+		least := popupMinWidth(s, body)
+		if s.MinWidth > 0 {
+			least = min(least, s.MinWidth)
+		}
+		w = max(s.Size.X, least)
+		if !s.Bounds.Empty() {
+			w = min(w, s.Bounds.Dx())
+		}
+		lr, rf, extra, minH := popupFit(s, body, pitch, titleH, s.Size.Y)
+		sizedH = max(s.Size.Y, minH)
+		if !s.Bounds.Empty() {
+			sizedH = min(sizedH, max(minH, s.Bounds.Dy()))
+		}
+		lr, rf, extra, _ = popupFit(s, body, pitch, titleH, sizedH)
+		if s.List != nil {
+			s.ListRows = lr
+		}
+		if s.MaxRows > 0 {
+			s.MaxRows = rf
+		}
+		if extra > 0 {
+			s.Rows = slices.Clone(s.Rows)
+			for i := max(0, s.Top); i < len(s.Rows); i++ {
+				if s.Rows[i].Kind == popupMultiline {
+					s.Rows[i].Lines = multilineRows(s.Rows[i]) + extra
+					break
+				}
+			}
+		}
 	}
 	if !s.Bounds.Empty() {
 		w = min(w, s.Bounds.Dx())
@@ -152,6 +306,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	if len(s.Buttons) > 0 {
 		h += pitch + 4 + popupPad
 	}
+	if sized {
+		h = max(h, sizedH)
+	}
 	r := image.Rectangle{Min: s.At, Max: s.At.Add(image.Pt(w, h))}
 	if !s.Bounds.Empty() {
 		if r.Max.X > s.Bounds.Max.X {
@@ -167,7 +324,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			r = r.Add(image.Pt(0, s.Bounds.Min.Y-r.Min.Y))
 		}
 	}
-	l := popupLayout{Rect: r, Pitch: pitch}
+	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.ListRows, RowsFit: s.MaxRows}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
 	l.Close = image.Rect(r.Max.X-titleH, r.Min.Y+2, r.Max.X-2, r.Min.Y+titleH-2)
 	contentRight := r.Max.X - popupPad
@@ -238,6 +395,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	}
 	if n := len(s.Buttons); n > 0 {
 		y += popupPad
+		if sized {
+			y = r.Max.Y - popupPad - (pitch + 4)
+		}
 		x := r.Max.X - popupPad
 		bw := popupButtonW
 		if s.ButtonW > 0 {
@@ -329,6 +489,42 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	return popupBody, 0
 }
 
+// popupEdge is the border of a popup a press lands on, as bits: a corner is
+// two of them. A drag from a border resizes the popup.
+type popupEdge uint8
+
+const (
+	edgeLeft popupEdge = 1 << iota
+	edgeRight
+	edgeTop
+	edgeBottom
+)
+
+// popupEdgeBand is how many pixels inside the border count as the border.
+const popupEdgeBand = 4
+
+// edgeAt is the border under p, none for a press inside the popup's body or
+// on its close button.
+func (l popupLayout) edgeAt(p image.Point) popupEdge {
+	if !p.In(l.Rect) || p.In(l.Close) {
+		return 0
+	}
+	var e popupEdge
+	switch {
+	case p.X < l.Rect.Min.X+popupEdgeBand:
+		e |= edgeLeft
+	case p.X >= l.Rect.Max.X-popupEdgeBand:
+		e |= edgeRight
+	}
+	switch {
+	case p.Y < l.Rect.Min.Y+popupEdgeBand:
+		e |= edgeTop
+	case p.Y >= l.Rect.Max.Y-popupEdgeBand:
+		e |= edgeBottom
+	}
+	return e
+}
+
 // popupInk is the editor popup's palette.
 // popupHintInk is the grey of an empty field's hint.
 var popupHintInk = color.RGBA{0x8a, 0x80, 0x6c, 255}
@@ -361,6 +557,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 	}
 	drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
+	drawPopupGrip(dst, l.Rect, ink.Edge)
 	if title != nil {
 		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
 		title.Draw(clip, s.Title, l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
@@ -445,5 +642,18 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	for i, r := range l.Buttons {
 		disabled := i < len(s.Disabled) && s.Disabled[i]
 		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Hover: pointerOK && pointer.In(r)})
+	}
+}
+
+// drawPopupGrip marks the bottom-right corner where a drag resizes the popup:
+// three short diagonal strokes.
+func drawPopupGrip(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
+	for k := 1; k <= 3; k++ {
+		for i := 0; i < 2*k; i++ {
+			p := image.Pt(r.Max.X-3-2*k+i+1, r.Max.Y-3-i)
+			if p.In(dst.Bounds()) {
+				dst.SetRGBA(p.X, p.Y, c)
+			}
+		}
 	}
 }

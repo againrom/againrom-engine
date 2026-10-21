@@ -422,10 +422,10 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	if !e.objPlaced {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-scriptPopupWidth, e.barHeight()+8), true
 	}
-	s := popupSpec{At: e.objectAt, Width: scriptPopupWidth, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
+	s := popupSpec{At: e.objectAt, Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
 	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
 	var links []int
-	width := scriptPopupWidth - 2*popupPad - 8
+	width := e.popupWide(popObject, scriptPopupWidth) - 2*popupPad - 8
 	add := func(row popupRow, field int, acts ...string) {
 		if field >= 0 {
 			o.rowField[len(s.Rows)] = field

@@ -99,7 +99,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	if e.messagePage == NewMessagePage {
 		title = e.word("editor.message.new")
 	}
-	s := popupSpec{Title: title, At: e.objectAt, Width: 660, Bounds: e.popupBounds(), LabelWidth: 135, NoteInk: editorWarning,
+	s := popupSpec{Title: title, At: e.objectAt, Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 135, NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
 	o.rowField = map[int]int{0: 0, 1: 1}
 	lines := strings.Split(o.buf[0], "\n")

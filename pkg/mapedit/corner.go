@@ -273,7 +273,10 @@ type TileFix struct {
 	quads   map[int]quad // corners of each cell the stroke has read
 	known   map[int]bool // the cell's word has a terrain class
 	painted map[int]bool
-	near    map[int]int // 1 + the ring of each corner within Reach rings of the painted cells
+	// Fill chooses the word of a painted cell that shows only the painted
+	// class; the zero value keeps the position pattern.
+	Fill Fill
+	near map[int]int // 1 + the ring of each corner within Reach rings of the painted cells
 	// Seams counts cells left with corners no word shows, where the bound
 	// stops the rule; each takes the word nearest its corners.
 	Seams int
@@ -352,7 +355,9 @@ func (f *TileFix) Paint(cells []int, c uint8) []TileChange {
 			q = nearestQuad(q, old, f.class)
 		}
 		next := old
-		if cur, ok := wordQuad(old, f.class); !ok || cur != q && (f.painted[i] || seen(cur) != seen(q)) {
+		if w, ok := f.centreWord(i, q, prefer); ok {
+			next = w
+		} else if cur, ok := wordQuad(old, f.class); !ok || cur != q && (f.painted[i] || seen(cur) != seen(q)) {
 			next = quadWord(q, prefer, i%f.w, i/f.w)
 		}
 		next &^= blockedBit
@@ -492,4 +497,17 @@ func (f *TileFix) set(i, k int, x uint8, queue []int) []int {
 		}
 	}
 	return queue
+}
+
+// centreWord is the fill's word for painted cell i showing only one class, and
+// false for any other cell or for the pattern.
+func (f *TileFix) centreWord(i int, q quad, prefer uint8) (uint16, bool) {
+	if !f.painted[i] || f.Fill.Mode == FillPattern {
+		return 0, false
+	}
+	fam, ws, ok := quadWords(q, prefer)
+	if !ok || ws != nil {
+		return 0, false
+	}
+	return f.fillWord(fam.primary)
 }

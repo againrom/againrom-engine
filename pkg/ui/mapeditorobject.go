@@ -689,7 +689,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 	if !e.objPlaced {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
-	s := popupSpec{Title: e.groupLabel(g), At: e.objectAt, Width: 420, Bounds: e.popupBounds()}
+	s := popupSpec{Title: e.groupLabel(g), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
 	links := []int{0, 0}
 	s.Rows = []popupRow{{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)}, {Kind: popupHeading, Label: e.word("editor.group.members")}}
 	for _, id := range g.members {

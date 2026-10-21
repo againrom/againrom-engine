@@ -54,7 +54,13 @@ type editorChrome struct {
 	menuModel              *Picker
 	drag                   editorPopupID
 	dragFrom               image.Point
-	promptShift            image.Point // a dragged prompt's offset from its own place
+	promptShift            image.Point              // a dragged prompt's offset from its own place
+	sizes                  [popArea + 1]image.Point // the size a popup was dragged to; zero is its natural size
+	minWide                [popArea + 1]int         // the width a popup had when it was first sized
+	sizeKey                [popArea + 1]string      // the window a popup was sized for
+	promptAbs              image.Point              // a sized prompt's corner
+	listFit                int                      // the list rows a sized list popup fits
+	dragEdge               popupEdge                // the border a resize drag holds; zero is a move
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -643,6 +649,9 @@ func (e *MapEditor) syncList(kind string, window int) *Picker {
 
 // listWindow is how many rows the list popup shows at this window size.
 func (e *MapEditor) listWindow() int {
+	if e.sizes[popList] != (image.Point{}) && e.listFit > 0 {
+		return e.listFit
+	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
 	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40
 	return max(3, min(18, avail/pitch))
@@ -656,7 +665,7 @@ func (e *MapEditor) popupBounds() image.Rectangle {
 }
 
 // listSpec is the list popup as data.
-func (e *MapEditor) listSpec() (popupSpec, bool) {
+func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	kind := e.listKind()
 	if kind == "" {
 		return popupSpec{}, false
@@ -669,7 +678,7 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 	if !e.listPlaced {
 		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
 	}
-	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: 400, Bounds: e.popupBounds(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
 	s.ListText = func(row, width int) string {
 		rows := m.Rows()
 		if row < 0 || row >= len(rows) {
@@ -680,11 +689,12 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 	switch kind {
 	case "report":
 		if len(e.report.goals) > 0 {
-			s.Width, s.ListAside = 560, 84
+			s.Width, s.ListAside = e.popupWide(popList, 560), 84
 			s.Notes = []string{e.word("editor.arms.hint")}
 		}
 	case "brush":
 		s.Rows = e.brushPopupRows()
+		s.Width, s.LabelWidth = e.popupWide(popList, 520), 90
 	case "catalog":
 		if e.doc == nil {
 			s.Notes = []string{e.word("editor.picker.hint")}
@@ -796,7 +806,7 @@ func (e *MapEditor) catalogOpen() {
 
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
-func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
+func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.messagePage != 0 && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
 		return e.messageSpec()
 	}
@@ -828,7 +838,8 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	if e.obj.move != nil {
 		r.Cell = *e.obj.move
 	}
-	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.objectAt, Width: 420, Bounds: e.popupBounds(), NoteInk: editorWarning}
+	wide := e.popupWide(popObject, 420)
+	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.objectAt, Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)
@@ -842,7 +853,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	}
 	e.obj.data = len(s.Rows)
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
-	width := 420 - 2*popupPad - 4
+	width := wide - 2*popupPad - 4
 	if r.Preview != nil {
 		width -= previewW + popupPad // the picture's column
 	}
@@ -895,7 +906,7 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 }
 
 // promptSpec is the prompt and the message as one popup.
-func (e *MapEditor) promptSpec() (popupSpec, bool) {
+func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	if !e.prompt.open() && e.message == "" {
 		e.promptShift = image.Point{}
 		return popupSpec{}, false
@@ -916,7 +927,7 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 	case promptAreaShared:
 		return e.areaSharedSpec(), true
 	}
-	w := min(560, e.window.X-16)
+	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
 	text := w - 2*popupPad - 60
 	if e.prompt.open() {
@@ -1014,7 +1025,7 @@ func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
 	if part, _ := layoutPopup(s, e.font, e.bodyFont()).hit(p); part != popupTitle {
 		return false
 	}
-	e.drag, e.dragFrom = id, p
+	e.drag, e.dragFrom, e.dragEdge = id, p, 0
 	return true
 }
 
@@ -1035,7 +1046,11 @@ func (e *MapEditor) dragPopup(d image.Point) {
 	case popObject:
 		e.objectAt = to
 	case popPrompt:
-		e.promptShift = e.promptShift.Add(to.Sub(from))
+		if e.sizes[popPrompt] != (image.Point{}) {
+			e.promptAbs = to
+		} else {
+			e.promptShift = e.promptShift.Add(to.Sub(from))
+		}
 	}
 }
 
@@ -1315,9 +1330,13 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		if in.PrimaryDown {
 			d := p.Sub(e.dragFrom)
 			e.dragFrom = p
-			e.dragPopup(d)
+			if e.dragEdge != 0 {
+				e.resizePopup(d)
+			} else {
+				e.dragPopup(d)
+			}
 		} else {
-			e.drag = popNone
+			e.drag, e.dragEdge = popNone, 0
 			e.uiDown = false
 		}
 		e.down = in.PrimaryDown
@@ -1388,7 +1407,7 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 
 // chromePress is a press on a chrome part.
 func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool) {
-	if e.titlePress(target, p) {
+	if e.resizePress(target, p) || e.titlePress(target, p) {
 		return
 	}
 	switch target {

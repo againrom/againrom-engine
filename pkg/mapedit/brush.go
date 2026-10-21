@@ -48,6 +48,9 @@ type Brush struct {
 	Radius  int
 	Shape   BrushShape
 	Falloff Falloff
+	// Fill chooses the words of the tile plane's centre cells; the zero value
+	// is the position pattern.
+	Fill Fill
 }
 
 // Cell is a grid position.
@@ -205,7 +208,9 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 		})
 	}
 	next := append([]uint16(nil), old...)
-	for _, ch := range NewTileFix(old, w, h, class).Paint(cells, c) {
+	fix := NewTileFix(old, w, h, class)
+	fix.Fill = b.Fill
+	for _, ch := range fix.Paint(cells, c) {
 		next[ch.Cell] = ch.Word
 	}
 	last := len(next) - 1

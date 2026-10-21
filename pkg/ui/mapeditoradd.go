@@ -586,7 +586,7 @@ func (e *MapEditor) addValueText(r *addRun, i int) string {
 // addSpec is the Add window as data, with what each row does.
 func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	r, _ := e.addRunning()
-	w := min(480, e.window.X-16)
+	w := e.popupWide(popPrompt, min(480, e.window.X-16))
 	s := popupSpec{Title: r.title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, PickLabel: e.word("editor.object.pick"), PickArmed: e.addPicking()}
 	var acts []addRowAct
 	body := e.bodyFont()
@@ -700,6 +700,7 @@ func (e *MapEditor) addSpecOK() (popupSpec, []addRowAct) {
 func (e *MapEditor) addPress(p image.Point, double bool) {
 	r, _ := e.addRunning()
 	s, acts := e.addSpec()
+	s = e.sizedPrompt(s)
 	l := layoutPopup(s, e.font, e.bodyFont())
 	switch part, n := l.hit(p); part {
 	case popupClose:

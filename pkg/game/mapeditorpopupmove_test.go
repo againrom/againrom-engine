@@ -26,19 +26,20 @@ func titleDrag(t *testing.T, e *ui.MapEditor, d image.Point) (image.Rectangle, i
 	return before, after
 }
 
-// Every editor popup and input window moves by its title bar and stays in
-// the window: a drag by d moves it by d, a drag far past the corner stops at
-// the window's edge, and the next window of the same place opens where its
-// own place is.
-func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
+// popupCase is one editor window and how to open it.
+type popupCase struct {
+	name string
+	open func(t *testing.T) *ui.MapEditor
+}
+
+// popupCases lists every kind of editor window the editor opens as a popup,
+// list or dialog.
+func popupCases() []popupCase {
 	scriptMap := func(t *testing.T) *ui.MapEditor {
 		e, _ := messagePopupFixture(t, 77)
 		return e
 	}
-	for _, c := range []struct {
-		name string
-		open func(t *testing.T) *ui.MapEditor
-	}{
+	return []popupCase{
 		{"record list", func(t *testing.T) *ui.MapEditor {
 			e := scriptMap(t)
 			_ = e.Key("escape")
@@ -117,7 +118,15 @@ func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
 			areaPress(e, e.CellPoint(a.Rect.Min), e.CellPoint(image.Pt(10, 28)), true)
 			return e
 		}},
-	} {
+	}
+}
+
+// Every editor popup and input window moves by its title bar and stays in
+// the window: a drag by d moves it by d, a drag far past the corner stops at
+// the window's edge, and the next window of the same place opens where its
+// own place is.
+func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
+	for _, c := range popupCases() {
 		t.Run(c.name, func(t *testing.T) {
 			e := c.open(t)
 			d := image.Pt(-40, 30)

@@ -441,7 +441,8 @@ func (e *MapEditor) areaSharedSpec() popupSpec {
 
 // areaSharedPress is a press on the shared-node notice.
 func (e *MapEditor) areaSharedPress(p image.Point) {
-	part, n := layoutPopup(e.areaSharedSpec(), e.font, e.bodyFont()).hit(p)
+	s, _ := e.promptSpec()
+	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == areaSharedStay:
 		e.cancelPopup()
@@ -532,7 +533,7 @@ func (e *MapEditor) areaDropdown() (dropdown, bool) {
 		return dropdown{}, false
 	}
 	a := e.prompt.area
-	s := e.areaTriggerSpec()
+	s := e.sizedPrompt(e.areaTriggerSpec())
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == 0 {
 			return dropdown{Rect: rr.Control, Text: s.Rows[0].Value, Open: a.open, List: a.choice, Rows: min(10, a.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}, true
@@ -576,7 +577,8 @@ func (e *MapEditor) areaTriggerPress(p image.Point) {
 		}
 		a.open = false
 	}
-	part, n := layoutPopup(e.areaTriggerSpec(), e.font, e.bodyFont()).hit(p)
+	s, _ := e.promptSpec()
+	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == areaCreateStay:
 		e.cancelPopup()

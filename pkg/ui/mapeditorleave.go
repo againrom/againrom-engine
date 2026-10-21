@@ -83,8 +83,8 @@ func (e *MapEditor) leaveName(source string) string {
 
 // leavePress is a press on the question.
 func (e *MapEditor) leavePress(p image.Point) {
-	l := layoutPopup(e.leaveSpec(), e.font, e.bodyFont())
-	part, n := l.hit(p)
+	s, _ := e.promptSpec()
+	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == leaveStay:
 		e.cancelPopup()

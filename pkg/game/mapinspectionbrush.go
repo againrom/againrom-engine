@@ -5,11 +5,13 @@ import (
 	"image"
 	"image/draw"
 	"slices"
+	"sync/atomic"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -78,6 +80,27 @@ func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (*ui.InspectionDocument, e
 	return s.change(func(m *mapedit.Editor) (bool, error) { return paintStroke(m, op) })
 }
 
+// BrushVariants is how many look-alike tiles the terrain class has.
+func (s *mapInspectionEdits) BrushVariants(class int) int {
+	return len(mapedit.Variants(uint8(class)))
+}
+
+// strokes counts the random fills of this process, so two strokes in one clock
+// tick still take different seeds.
+var strokes atomic.Uint64
+
+// strokeSeed is the seed of one random fill: the session clock's reading and
+// the stroke's number, so no two strokes of a process share an interior.
+// Tests replace it.
+var strokeSeed = func() uint64 { return clockSessionSeed() + strokes.Add(1) }
+
+// brushFills maps the window's fill modes to the model's.
+var brushFills = map[ui.BrushFillMode]mapedit.FillMode{
+	ui.BrushFillPattern: mapedit.FillPattern,
+	ui.BrushFillRandom:  mapedit.FillRandom,
+	ui.BrushFillVariant: mapedit.FillVariant,
+}
+
 // brushPlanes maps the window's plane to the model's, with the fall-off the
 // plane's brush takes.
 var brushPlanes = map[ui.BrushPlane]mapedit.Brush{
@@ -94,6 +117,12 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke) (bool, error) {
 		return false, fmt.Errorf("no brush plane %d", op.Plane)
 	}
 	b.Value, b.Radius, b.Shape = op.Value, op.Radius, brushShapes[op.Shape]
+	if op.Plane == ui.BrushPlaneTerrain {
+		b.Fill = mapedit.Fill{Mode: brushFills[op.Fill.Mode], Variant: op.Fill.Variant}
+		if b.Fill.Mode == mapedit.FillRandom {
+			b.Fill.Draw = random.NewGo(int64(strokeSeed())).Intn
+		}
+	}
 	return m.Paint(b, strokeCells(op), mapload.TileClass)
 }
 

@@ -42,16 +42,43 @@ const (
 	BrushSquare                   // the cells within the radius on both axes
 )
 
+// BrushFillMode names how a terrain stroke fills the centre of the brush:
+// the tile pattern the document chooses by position, one named variant of the
+// terrain's tiles, or a variant drawn at random for each cell.
+type BrushFillMode uint8
+
+const (
+	BrushFillPattern BrushFillMode = iota
+	BrushFillRandom
+	BrushFillVariant
+)
+
+// BrushFill is the centre fill of a terrain stroke; Variant counts from 0 and
+// is read only for BrushFillVariant.
+type BrushFill struct {
+	Mode    BrushFillMode
+	Variant int
+}
+
 // BrushStroke is one pointer stroke as data: the plane, the value at each cell
 // (a terrain class, a height change, an object class code, or 1 to set and 0
 // to clear the tile word's impassable flag), the brush radius in cells, its
-// shape and the cells the pointer visited.
+// shape, the centre fill of a terrain stroke and the cells the pointer
+// visited.
 type BrushStroke struct {
 	Plane  BrushPlane
 	Value  int
 	Radius int
 	Shape  BrushShape
+	Fill   BrushFill
 	Cells  []image.Point
+}
+
+// InspectionBrushFill is the optional seam of a host that offers more than
+// one tile for a terrain: BrushVariants is how many look-alike tiles the
+// terrain class has.
+type InspectionBrushFill interface {
+	BrushVariants(class int) int
 }
 
 // InspectionBrush is the optional seam of a host whose document paints terrain,
@@ -147,6 +174,8 @@ type brushState struct {
 	sel     [brushModeCount]int // selected row per mode
 	radius  int                 // meaningful once radiusSet
 	shape   BrushShape
+	fill    BrushFill // the terrain brush's centre fill, kept for the session
+	fillSet bool      // the fill was chosen; until then the brush fills at random
 	stroke  []image.Point
 	down    bool
 	hover   image.Point
@@ -243,11 +272,82 @@ func (e *MapEditor) brushShapeWord(shape BrushShape) string {
 // brushPopupRows are the list's rows above the palette: the size with its
 // minus and plus buttons, and the shape with a button for each.
 func (e *MapEditor) brushPopupRows() []popupRow {
-	return []popupRow{
+	rows := []popupRow{
 		{Kind: popupText, Label: e.word("editor.brush.size"), Value: fmt.Sprint(e.brushRadius()), Buttons: []string{"-", "+"}},
 		{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
 			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}},
 	}
+	if e.brush.mode == brushTerrain && e.brushVariants() > 1 {
+		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.fill"), Value: e.brushFillWord(),
+			Buttons: []string{e.word("editor.brush.fill.pattern"), e.word("editor.brush.fill.random"), "-", "+"}})
+	}
+	return rows
+}
+
+// brushVariants is how many look-alike tiles the selected terrain has, 0 when
+// the host offers no choice. A class with one has nothing to choose from: the
+// fill row is not shown and the stroke keeps the pattern.
+func (e *MapEditor) brushVariants() int {
+	h, _ := e.brushHost().(InspectionBrushFill)
+	terrains := []BrushTerrain(nil)
+	if b := e.brushHost(); b != nil {
+		terrains = b.BrushTerrains()
+	}
+	if sel := e.brush.sel[brushTerrain]; h != nil && sel < len(terrains) {
+		return h.BrushVariants(terrains[sel].Class)
+	}
+	return 0
+}
+
+// brushFill is the fill a stroke takes: the kept choice with its variant held
+// inside the selected terrain's variants.
+func (e *MapEditor) brushFill() BrushFill {
+	f := e.brush.fill
+	if !e.brush.fillSet {
+		f = BrushFill{Mode: BrushFillRandom}
+	}
+	if n := e.brushVariants(); n < 2 {
+		return BrushFill{}
+	} else if f.Mode == BrushFillVariant {
+		f.Variant = max(0, min(f.Variant, n-1))
+	}
+	return f
+}
+
+// brushFillWord is the word the fill row gives the current fill.
+func (e *MapEditor) brushFillWord() string {
+	switch f := e.brushFill(); f.Mode {
+	case BrushFillRandom:
+		return e.word("editor.brush.fill.random")
+	case BrushFillVariant:
+		return fmt.Sprintf(e.word("editor.brush.fill.variant"), f.Variant+1, e.brushVariants())
+	}
+	return e.word("editor.brush.fill.pattern")
+}
+
+// setBrushFillButton is a press on button k of the fill row: Pattern, Random,
+// and minus or plus through the variants (plus from Pattern or Random starts
+// at the first, minus at the last).
+func (e *MapEditor) setBrushFillButton(k int) {
+	n := e.brushVariants()
+	f := e.brushFill()
+	switch k {
+	case 0:
+		f = BrushFill{}
+	case 1:
+		f = BrushFill{Mode: BrushFillRandom}
+	case 2, 3:
+		step := 2*k - 5
+		switch {
+		case f.Mode != BrushFillVariant && step > 0:
+			f = BrushFill{Mode: BrushFillVariant}
+		case f.Mode != BrushFillVariant:
+			f = BrushFill{Mode: BrushFillVariant, Variant: n - 1}
+		default:
+			f.Variant = (f.Variant + step + n) % n
+		}
+	}
+	e.brush.fill, e.brush.fillSet = f, true
 }
 
 // brushRowButton is a press on button k of the list's row: minus or plus on
@@ -258,6 +358,8 @@ func (e *MapEditor) brushRowButton(row, k int) {
 		e.setBrushRadius(e.brushRadius() + 2*k - 1)
 	case 1:
 		e.brush.shape = BrushShape(k)
+	case 2:
+		e.setBrushFillButton(k)
 	}
 }
 
@@ -418,7 +520,7 @@ func (e *MapEditor) brushCommit() {
 		if sel >= len(terrains) {
 			return
 		}
-		op.Value = terrains[sel].Class
+		op.Plane, op.Value, op.Fill = BrushPlaneTerrain, terrains[sel].Class, e.brushFill()
 	}
 	next, err := host.Paint(op)
 	_ = e.adoptTerrainEdit(next, err)

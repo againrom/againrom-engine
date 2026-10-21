@@ -38,7 +38,7 @@ func (e *MapEditor) cancelCheckpoint() func() {
 			restoreCamera()
 		}
 		e.scroll = editorScroll{}
-		e.drag, e.uiDown = popNone, false
+		e.drag, e.dragEdge, e.uiDown = popNone, 0, false
 	}
 }
 

@@ -189,13 +189,13 @@ func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
 	if !e.listPlaced {
 		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
 	}
-	s := popupSpec{Title: e.word("editor.panel.title"), At: e.listAt, Width: panelWidth, Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
+	s := popupSpec{Title: e.word("editor.panel.title"), At: e.listAt, Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
 	p, ok := e.mapPanel()
 	if !ok {
 		return s, nil
 	}
 	var links []panelLink
-	width := panelWidth - 2*popupPad - panelLabelWidth - 8
+	width := e.popupWide(popList, panelWidth) - 2*popupPad - panelLabelWidth - 8
 	for _, l := range e.panelLines(p.MapFacts(), e.panelFindings()) {
 		kind := popupText
 		if l.link != linkNone {
@@ -213,7 +213,7 @@ func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
 			s.Rows, links = append(s.Rows, popupRow{Kind: kind, Label: label, Value: part, Ink: ink}), append(links, l.link)
 		}
 	}
-	s.Notes = editorWrap(e.bodyFont(), e.word("editor.panel.hint"), panelWidth-2*popupPad-4)
+	s.Notes = editorWrap(e.bodyFont(), e.word("editor.panel.hint"), e.popupWide(popList, panelWidth)-2*popupPad-4)
 	return s, links
 }
 
@@ -261,7 +261,7 @@ func (e *MapEditor) PanelRowRect(n int) (image.Rectangle, bool) {
 	if !e.PanelOpen() {
 		return image.Rectangle{}, false
 	}
-	s, _ := e.panelSpec()
+	s, _ := e.listSpec()
 	row := panelLineRow(s, n)
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if r.Index == row {
@@ -273,7 +273,8 @@ func (e *MapEditor) PanelRowRect(n int) (image.Rectangle, bool) {
 
 // panelPress is a press on the panel.
 func (e *MapEditor) panelPress(p image.Point) {
-	s, links := e.panelSpec()
+	_, links := e.panelSpec()
+	s, _ := e.listSpec()
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.cancelPopup(popList)
@@ -443,7 +444,8 @@ func (e *MapEditor) noticeSpec() popupSpec {
 
 // noticePress is a press on the notice.
 func (e *MapEditor) noticePress(p image.Point) {
-	part, n := layoutPopup(e.noticeSpec(), e.font, e.bodyFont()).hit(p)
+	s, _ := e.promptSpec()
+	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == noticeStay:
 		e.cancelPopup()
@@ -484,7 +486,8 @@ func (e *MapEditor) newModeSpec() popupSpec {
 
 // newModePress is a press on the new-map question.
 func (e *MapEditor) newModePress(p image.Point) {
-	part, n := layoutPopup(e.newModeSpec(), e.font, e.bodyFont()).hit(p)
+	s, _ := e.promptSpec()
+	part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
 	switch {
 	case part == popupClose || part == popupButton && n == newModeStay:
 		e.cancelPopup()
@@ -496,7 +499,7 @@ func (e *MapEditor) newModePress(p image.Point) {
 // questionSpec is a question in the window's middle: a title, wrapped note
 // lines and a row of buttons wide enough for the longest caption.
 func (e *MapEditor) questionSpec(title string, notes, buttons []string) popupSpec {
-	w := min(560, e.window.X-16)
+	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1, Buttons: buttons}
 	if f := e.bodyFont(); f != nil {
 		for _, b := range s.Buttons {
