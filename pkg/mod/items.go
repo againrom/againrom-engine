@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -91,7 +90,7 @@ type ItemRow struct {
 	Mod  string
 	File string
 	Line int
-	// Dir is the mod folder, set by the loader that read the file.
+	// Dir is the mod's folder or RES file, set by the loader that read the file.
 	Dir string
 
 	Key     string
@@ -206,14 +205,18 @@ func fileError(file string, err error) error {
 	return &ItemFileError{File: file, Msg: msg}
 }
 
-// LoadStrings reads the strings of lang from the mod folder dir. A mod without
-// the file has no text in that language.
+// LoadStrings reads the strings of lang from the mod at dir, its folder or
+// its RES file. A mod without the file has no text in that language.
 func LoadStrings(dir, lang string) (Strings, error) {
 	file := StringsFile(lang)
-	if _, err := os.Lstat(filepath.Join(dir, filepath.FromSlash(file))); errors.Is(err, os.ErrNotExist) {
+	t, err := OpenTree(dir)
+	if err != nil {
+		return nil, &ItemFileError{File: file, Msg: err.Error()}
+	}
+	if _, err := t.Lstat(file); errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
-	data, _, err := ReadInside(dir, file)
+	data, _, err := t.ReadInside(file)
 	if err != nil {
 		return nil, &ItemFileError{File: file, Msg: err.Error()}
 	}

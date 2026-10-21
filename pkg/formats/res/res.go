@@ -38,6 +38,8 @@ type Archive struct {
 	data    []byte
 	entries []Entry        // file entries in registry (node) order
 	index   map[string]int // normalized path -> position in entries
+	nodes   []node
+	roots   []int
 }
 
 // Open reads and indexes the .res archive at path. The whole file is read into
@@ -85,16 +87,17 @@ func OpenBytes(b []byte) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, index, err := indexNodes(nodes)
+	entries, index, roots, err := indexNodes(nodes)
 	if err != nil {
 		return nil, err
 	}
-	return &Archive{data: b, entries: entries, index: index}, nil
+	return &Archive{data: b, entries: entries, index: index, nodes: nodes, roots: roots}, nil
 }
 
-// indexNodes validates the registry tree and builds its file index. Both the
-// in-memory reader and the disk-indexed reader use this one walk.
-func indexNodes(nodes []node) ([]Entry, map[string]int, error) {
+// indexNodes validates the registry tree and builds its file index and the
+// list of top-level nodes. Both the in-memory reader and the disk-indexed
+// reader use this one walk.
+func indexNodes(nodes []node) ([]Entry, map[string]int, []int, error) {
 	nodeCount := len(nodes)
 	// Roots are nodes never referenced as a child of any directory (the header
 	// root count is a cross-check we deliberately do not consume).
@@ -139,15 +142,17 @@ func indexNodes(nodes []node) ([]Entry, map[string]int, error) {
 		paths[i] = normalize(full)
 		return nil
 	}
+	var roots []int
 	for i := 0; i < nodeCount; i++ {
 		if !referenced[i] {
+			roots = append(roots, i)
 			if err := walk(i, "", 0); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 	}
 	if visitedCount != nodeCount {
-		return nil, nil, fmt.Errorf("res: %d of %d nodes unreachable from any root", nodeCount-visitedCount, nodeCount)
+		return nil, nil, nil, fmt.Errorf("res: %d of %d nodes unreachable from any root", nodeCount-visitedCount, nodeCount)
 	}
 
 	// Build the file index in registry (node) order.
@@ -163,7 +168,7 @@ func indexNodes(nodes []node) ([]Entry, map[string]int, error) {
 		}
 		entries = append(entries, e)
 	}
-	return entries, index, nil
+	return entries, index, roots, nil
 }
 
 // node is a decoded 32-byte registry record. The opaque word at 0x00 is read and

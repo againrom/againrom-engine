@@ -358,30 +358,50 @@ func DefaultDir(programDir string) string {
 	return filepath.Join(programDir, "mods")
 }
 
-// Entry is one mod folder and what reading it gave.
+// Entry is one mod, a folder or a packed RES file, and what reading it gave.
 type Entry struct {
-	Folder   string // folder name, which is the mod's id when the entry is valid
-	Dir      string // full path of the folder
+	// Folder is the mod's name in the mods directory: the folder's name, or
+	// the id a packed mod's file name mod-<id>.res names. It is the mod's id
+	// when the entry is valid.
+	Folder   string
+	Dir      string // full path of the folder or of the RES file
 	Manifest Manifest
 	Err      error // non-nil when the manifest cannot be used
 }
 
-// Load reads the mod in dir. The folder name must equal the manifest id.
+// Load reads the mod at dir: a folder, whose name must equal the manifest
+// id, or a packed mod's RES file, whose name must be mod-<id>.res.
 func Load(dir string) Entry {
 	e := Entry{Folder: filepath.Base(dir), Dir: dir}
-	data, err := os.ReadFile(filepath.Join(dir, ManifestName))
+	t, err := OpenTree(dir)
+	what := "folder"
+	// OpenTree fails only on a file: a RES it cannot read.
+	if err != nil || t.Packed() {
+		id, ok := packedID(e.Folder)
+		if !ok {
+			e.Err = fmt.Errorf("a packed mod's file is named %s<id>%s with a valid id, not %q", PackedPrefix, PackedExt, e.Folder)
+			return e
+		}
+		e.Folder, what = id, "file"
+	}
+	if err != nil {
+		e.Err = err
+		return e
+	}
+	data, err := t.ReadFile(ManifestName)
 	if err != nil {
 		e.Err = err
 		return e
 	}
 	if e.Manifest, e.Err = ParseManifest(data); e.Err == nil && e.Manifest.ID != e.Folder {
-		e.Err = fmt.Errorf("manifest id %q does not match the folder name %q", e.Manifest.ID, e.Folder)
+		e.Err = fmt.Errorf("manifest id %q does not match the %s name %q", e.Manifest.ID, what, filepath.Base(dir))
 	}
 	return e
 }
 
-// Scan lists the subfolders of modsDir that hold a mod.toml, sorted by folder
-// name. A missing modsDir lists nothing.
+// Scan lists the mods of modsDir, sorted by name: the subfolders that hold a
+// mod.toml and the files named mod*.res. A folder and a packed file of one
+// mod id are both refused, naming both. A missing modsDir lists nothing.
 func Scan(modsDir string) ([]Entry, error) {
 	entries, err := os.ReadDir(modsDir)
 	if err != nil {
@@ -390,24 +410,42 @@ func Scan(modsDir string) ([]Entry, error) {
 		}
 		return nil, err
 	}
-	var out []Entry
+	var out, packed []Entry
 	for _, d := range entries {
-		if !d.IsDir() {
-			continue
+		p := filepath.Join(modsDir, d.Name())
+		switch {
+		case d.IsDir():
+			if _, err := os.Stat(filepath.Join(p, ManifestName)); err != nil {
+				continue
+			}
+			out = append(out, Load(p))
+		case d.Type().IsRegular() && looksPacked(d.Name()):
+			packed = append(packed, Load(p))
 		}
-		dir := filepath.Join(modsDir, d.Name())
-		if _, err := os.Stat(filepath.Join(dir, ManifestName)); err != nil {
-			continue
-		}
-		out = append(out, Load(dir))
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Folder < out[j].Folder })
+	// A folder sorts before the packed file of its id.
+	out = append(out, packed...)
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Folder < out[j].Folder })
+	for i := 0; i+1 < len(out); i++ {
+		if out[i].Folder != out[i+1].Folder {
+			continue
+		}
+		err := twoForms(out[i].Folder, out[i].Dir, out[i+1].Dir)
+		out[i].Err, out[i+1].Err = err, err
+	}
 	return out, nil
 }
 
+// twoForms refuses a mod id the mods directory holds twice: as the folder or
+// packed file a and as b.
+func twoForms(id, a, b string) error {
+	return fmt.Errorf("mod %q is both %s and %s; keep one of them", id, a, b)
+}
+
 // Resolve loads the named mods from modsDir in the order given. A name that is
-// not a valid id, is repeated, has no folder, or whose manifest cannot be used
-// is an error naming the mod.
+// not a valid id, is repeated, has neither a folder nor a packed file
+// mod-<id>.res, has both, or whose manifest cannot be used is an error naming
+// the mod.
 func Resolve(modsDir string, ids []string) ([]Entry, error) {
 	seen := map[string]bool{}
 	var out []Entry
@@ -420,8 +458,18 @@ func Resolve(modsDir string, ids []string) ([]Entry, error) {
 		}
 		seen[id] = true
 		dir := filepath.Join(modsDir, id)
-		if st, err := os.Stat(dir); err != nil || !st.IsDir() {
-			return nil, fmt.Errorf("mod %q: no folder %s", id, dir)
+		packed := filepath.Join(modsDir, PackedName(id))
+		st, err := os.Stat(dir)
+		isDir := err == nil && st.IsDir()
+		st, err = os.Stat(packed)
+		isPacked := err == nil && st.Mode().IsRegular()
+		switch {
+		case isDir && isPacked:
+			return nil, twoForms(id, dir, packed)
+		case isPacked:
+			dir = packed
+		case !isDir:
+			return nil, fmt.Errorf("mod %q: no folder %s and no packed file %s", id, dir, PackedName(id))
 		}
 		e := Load(dir)
 		if e.Err != nil {

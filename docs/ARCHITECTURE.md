@@ -13,7 +13,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 
 | Tier | Package | Responsibility |
 |---|---|---|
-| formats | `pkg/formats/res` | `.res` archive container |
+| formats | `pkg/formats/res` | `.res` archive container: reader, and the writer a packed mod uses |
 | formats | `pkg/formats/reg` | `.reg` registry |
 | formats | `pkg/formats/alm` | `.alm` map |
 | formats | `pkg/formats/spr256` | `.256` paletted sprite decoder |

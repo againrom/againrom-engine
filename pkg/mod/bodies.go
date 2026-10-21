@@ -56,7 +56,7 @@ type BodySheet struct {
 	Mod  string
 	File string
 	Line int
-	// Dir is the mod folder, set by the loader that read the file.
+	// Dir is the mod's folder or RES file, set by the loader that read the file.
 	Dir string
 
 	Name     string

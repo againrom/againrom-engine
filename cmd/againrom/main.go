@@ -32,6 +32,11 @@
 // install and exits without a window: a mod folder holding layer 0 of every
 // layered catalog in the format a mod reads, for a modder to copy.
 //
+// -pack-mod packs a mod folder into one file, mod-<id>.res, in the existing
+// folder -pack-out names, and exits without a window or an install. It
+// writes over an existing file only with -pack-replace and never below a
+// folder that holds an install's archives.
+//
 // -mission is a direct entry for development: GIVEN EXPLICITLY, it bypasses the
 // main menu and opens character generation for that campaign mission number
 // immediately, then that mission's map screen on a legal confirm — the same
@@ -101,7 +106,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir>] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -192,11 +197,17 @@ var baseUsage = "refuse to run unless the asset root is detected as this base pr
 
 // The mod flags' own help text. Mods are resolved, ordered and run before the
 // front end is built; -check lists them.
+const (
+	packModUsage     = "pack this mod folder into one file, mod-<id>.res, in the -pack-out folder, and exit without a window"
+	packOutUsage     = "the existing folder -pack-mod writes mod-<id>.res into, outside any install"
+	packReplaceUsage = "let -pack-mod write over an existing mod-<id>.res"
+)
+
 const dumpBaseUsage = "write the base dump, a mod folder holding the install's towns in the format a mod reads, into this new or empty folder outside the install, and exit without a window"
 
 const (
-	modsUsage               = "comma-separated ids of the mods to load; each is a folder with a mod.toml in the mods directory (the load order follows requires and load-after, not this list)"
-	modsDirUsage            = "directory holding the mod folders (default: mods beside this binary)"
+	modsUsage               = "comma-separated ids of the mods to load; each is a folder with a mod.toml or a packed file mod-<id>.res in the mods directory (the load order follows requires and load-after, not this list)"
+	modsDirUsage            = "directory holding the mod folders and packed mods (default: mods beside this binary)"
 	modSettingUsage         = "a mod setting as <mod>.<key>=<value>; repeat the flag for several (a setting not given keeps the mod's default)"
 	modsAcceptUnmarkedUsage = "let a saved game that carries no mod mark start under the active mods (without it such a save is refused)"
 )
@@ -452,6 +463,12 @@ type options struct {
 
 	// dumpBase is -dump-base: the folder the base dump is written into.
 	dumpBase string
+
+	// packMod, packOut and packReplace are -pack-mod, -pack-out and
+	// -pack-replace.
+	packMod     string
+	packOut     string
+	packReplace bool
 }
 
 // parse reads the command line. Split out of run so a test can read the
@@ -464,6 +481,9 @@ func parse(args []string) (options, error) {
 	fs.StringVar(&o.assets, "assets", "", "path to the game asset root (overrides AGAINROM_ASSETS, which overrides the install found at the working directory or beside this binary)")
 	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
 	fs.StringVar(&o.dumpBase, "dump-base", "", dumpBaseUsage)
+	fs.StringVar(&o.packMod, "pack-mod", "", packModUsage)
+	fs.StringVar(&o.packOut, "pack-out", "", packOutUsage)
+	fs.BoolVar(&o.packReplace, "pack-replace", false, packReplaceUsage)
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
 	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
 	fs.BoolVar(&o.window, "window", false, "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two")
@@ -543,6 +563,15 @@ func parse(args []string) (options, error) {
 	}
 	if o.dumpBase != "" && (o.check || o.headless != "" || strings.TrimSpace(mods) != "" || o.mediaCheck || o.cutsceneCheck != "" || o.soundCheck != "" || o.fidelityCheck != "") {
 		return o, errors.New("-dump-base excludes -check, -headless, -mods and the other check modes")
+	}
+	if (o.packOut != "" || o.packReplace) && o.packMod == "" {
+		return o, errors.New("-pack-out and -pack-replace need -pack-mod")
+	}
+	if o.packMod != "" && o.packOut == "" {
+		return o, errors.New("-pack-mod needs -pack-out, the folder the packed file is written into")
+	}
+	if o.packMod != "" && (o.check || o.headless != "" || o.dumpBase != "" || strings.TrimSpace(mods) != "" || o.mediaCheck || o.cutsceneCheck != "" || o.soundCheck != "" || o.fidelityCheck != "") {
+		return o, errors.New("-pack-mod excludes -check, -headless, -dump-base, -mods and the other check modes")
 	}
 	if (o.cutsceneCheck != "" || o.mediaCheck) && (o.check || o.headless != "" || !o.movies) {
 		return o, errors.New("media checks require movies and exclude -check/-headless")
@@ -766,6 +795,15 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	}
 	if o.version {
 		fmt.Fprintln(stdout, versionLine())
+		return 0
+	}
+	if o.packMod != "" {
+		path, err := game.PackMod(o.packMod, o.packOut, o.packReplace)
+		if err != nil {
+			fmt.Fprintln(stderr, "againrom: -pack-mod:", err)
+			return 1
+		}
+		fmt.Fprintln(stdout, "againrom: packed", o.packMod, "into", path)
 		return 0
 	}
 	mods, err := resolveMods(o, executable)

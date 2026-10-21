@@ -135,7 +135,7 @@ type TownRecord struct {
 type TownDescriptionFile struct {
 	Path string
 	Data []byte
-	// Dir is the mod folder its "mod:" art keys read from.
+	// Dir is the mod's folder or RES file its "mod:" art keys read from.
 	Dir string
 }
 

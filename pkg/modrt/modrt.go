@@ -20,8 +20,6 @@ package modrt
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -295,7 +293,11 @@ func runMod(m mod.Entry, values []mod.SettingValue, sh *shared, opt Options) (st
 	id := m.Manifest.ID
 	entry := m.Manifest.Entry
 	if entry == "" {
-		if _, err := os.Stat(filepath.Join(m.Dir, EntryName)); err != nil {
+		t, err := mod.OpenTree(m.Dir)
+		if err != nil {
+			return false, fmt.Errorf("mod %q: %w", id, err)
+		}
+		if _, err := t.Stat(EntryName); err != nil {
 			return false, nil
 		}
 		entry = EntryName
@@ -362,8 +364,8 @@ func (l *loader) newThread() *starlark.Thread {
 	return t
 }
 
-// read returns the bytes of a file of the mod folder and its clean relative
-// slash path; see mod.ReadInside.
+// read returns the bytes of a file of the mod, its folder or its RES file,
+// and its clean relative slash path; see mod.ReadInside.
 func (l *loader) read(name string) ([]byte, string, error) {
 	return mod.ReadInside(l.dir, name)
 }

@@ -1,61 +1,25 @@
 package mod
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 )
 
-// ContentDigest fingerprints the files of a mod folder: every regular file
-// under it by slash-separated path and content, in path order, except README.md
-// and names that start with a dot. Text files (.toml, .star, .txt, .md) are
-// hashed with line ends read as LF so a checkout's line-end setting does not
-// change the digest. The result is lowercase hex SHA-256.
+// ContentDigest fingerprints the files of the mod at dir, its folder or its
+// RES file: every regular file under it by slash-separated path and content,
+// in path order, except README.md and names that start with a dot. Text
+// files (.toml, .star, .txt, .md) are hashed with line ends read as LF so a
+// checkout's line-end setting does not change the digest. A mod and its
+// packed RES give one digest. The result is lowercase hex SHA-256.
 func ContentDigest(dir string) (string, error) {
-	var paths []string
-	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		name := d.Name()
-		if p != dir && strings.HasPrefix(name, ".") {
-			if d.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if d.IsDir() || !d.Type().IsRegular() || strings.EqualFold(name, "README.md") && filepath.Dir(p) == dir {
-			return nil
-		}
-		paths = append(paths, p)
-		return nil
-	})
+	t, err := OpenTree(dir)
 	if err != nil {
 		return "", err
 	}
-	sort.Slice(paths, func(i, j int) bool { return filepath.ToSlash(paths[i]) < filepath.ToSlash(paths[j]) })
-	h := sha256.New()
-	for _, p := range paths {
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return "", err
-		}
-		switch strings.ToLower(filepath.Ext(p)) {
-		case ".toml", ".star", ".txt", ".md":
-			data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
-		}
-		rel, _ := filepath.Rel(dir, p)
-		fmt.Fprintf(h, "%s\x00%d\x00", filepath.ToSlash(rel), len(data))
-		h.Write(data)
-	}
-	return hex.EncodeToString(h.Sum(nil)), nil
+	return t.Digest()
 }
 
 // SetFormat is the version of the mod-set description.

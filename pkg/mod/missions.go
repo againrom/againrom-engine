@@ -330,6 +330,10 @@ func (m Mission) ReadTexts(dir, lang string) (map[string][]byte, error) {
 }
 
 func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byte, error) {
+	t, err := OpenTree(dir)
+	if err != nil {
+		return nil, err
+	}
 	files := map[string][]byte{}
 	found := false
 	if fallback != "" {
@@ -339,7 +343,7 @@ func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byt
 		if !insidePath(folder) && !(folder == "." && folder == fallback) {
 			return nil, fmt.Errorf("texts %q is not a path inside its folder", folder)
 		}
-		entries, err := os.ReadDir(filepath.Join(dir, filepath.FromSlash(folder)))
+		entries, err := t.ReadDir(folder)
 		if os.IsNotExist(err) {
 			continue
 		}
@@ -363,7 +367,7 @@ func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byt
 			if len(files) >= MaxMissionTexts {
 				return nil, fmt.Errorf("at most %d files", MaxMissionTexts)
 			}
-			b, _, err := ReadInside(dir, folder+"/"+e.Name())
+			b, _, err := t.ReadInside(folder + "/" + e.Name())
 			if err != nil {
 				return nil, err
 			}

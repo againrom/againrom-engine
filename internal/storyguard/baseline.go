@@ -2771,11 +2771,21 @@ package storyguard
 // language folder spelling, their tests, the release test of a text mod, and
 // this paragraph.
 //
+// CommentBytes rises for the packed mod, all new code: the mod tree every
+// mod reader reads through and the pack (pkg/mod/tree.go, pkg/mod/pack.go),
+// the RES writer and node tree (pkg/formats/res/write.go,
+// pkg/formats/res/tree.go), the pack command (pkg/game/modpack.go,
+// cmd/againrom/main.go), their tests, and this paragraph.
+//
 // CommentBytes rises for the mod mismatch window at LOAD, all new code: the
 // differences as data (pkg/mod/digest.go), the refusal that carries them
 // (pkg/game/modmark.go), the menu notice window builder (pkg/ui/widgetnotice.go)
 // and its use on the Load page (pkg/ui/modmismatch.go, pkg/ui/save.go), their
 // tests, the release tests on both games, and this paragraph.
+//
+// CommentBytes rises again for the packed mod's name rules, all new code: the
+// dotted-path refusal and the Cyrillic case fold of the mod tree
+// (pkg/mod/tree.go, pkg/mod/pack.go), their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4509,
 	TestFileCount:  264,
@@ -2799,5 +2809,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9454716,
+	CommentBytes: 9467928,
 }

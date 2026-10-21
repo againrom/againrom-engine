@@ -29,6 +29,9 @@ type editorMod struct {
 // the edited map to the path the mod's mission entry for that map names. dir
 // must be a mod folder outside the install whose data/missions.toml reads.
 func (x *MapInspector) SetMod(dir string) error {
+	if t, err := mod.OpenTree(dir); err == nil && t.Packed() {
+		return fmt.Errorf("%s is a packed mod; the editor saves into a mod folder", dir)
+	}
 	e := mod.Load(dir)
 	if e.Err != nil {
 		return fmt.Errorf("mod folder %s: %v", dir, e.Err)

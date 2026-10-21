@@ -389,10 +389,11 @@ var allow = map[string][]string{
 	// The launcher edits an ini file and lists mod folders: pkg/ini and pkg/mod
 	// are leaves, and pkg/game answers whether a folder is an install. It never
 	// reaches the simulation. pkg/mod reads the names a base answers to in a
-	// mod's applies-to list from pkg/base, and writes a towns layer in the
-	// town catalog's entry format from pkg/town.
+	// mod's applies-to list from pkg/base, writes a towns layer in the
+	// town catalog's entry format from pkg/town, and reads and writes a
+	// packed mod's RES through pkg/formats/res.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town"},
+	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res"},
 	// The install languages: one record per language, read by every surface
 	// that depends on the install's language. A stdlib-only leaf.
 	"pkg/locale": {},

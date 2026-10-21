@@ -107,8 +107,11 @@ func FoldAddress(a string) string {
 // is not UTF-8, two files one install path names, and anything that is not a
 // regular file. A mod with no files/ folder carries none.
 func ReadInstallFiles(id, dir, lang string) ([]InstallFile, error) {
-	root := filepath.Join(dir, FilesDir)
-	st, err := os.Lstat(root)
+	t, err := OpenTree(dir)
+	if err != nil {
+		return nil, Source{Mod: id, File: FilesDir}.Errorf("%v", err)
+	}
+	st, err := t.Lstat(FilesDir)
 	switch {
 	case os.IsNotExist(err):
 		return nil, nil
@@ -121,7 +124,7 @@ func ReadInstallFiles(id, dir, lang string) ([]InstallFile, error) {
 	for _, l := range locale.All() {
 		langs = append(langs, l.Code)
 	}
-	return readInstallFiles(id, os.DirFS(dir), langs, lang)
+	return readInstallFiles(id, t.FS(), langs, lang)
 }
 
 // readInstallFiles is ReadInstallFiles over the mod folder fsys, whose files/

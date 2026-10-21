@@ -16,6 +16,8 @@ type FileArchive struct {
 	path    string
 	entries []Entry
 	index   map[string]int
+	nodes   []node
+	roots   []int
 }
 
 // OpenFileIndex reads only the fixed header and registry from path.
@@ -61,11 +63,11 @@ func OpenFileIndex(path string) (*FileArchive, error) {
 	if err != nil {
 		return nil, err
 	}
-	entries, index, err := indexNodes(nodes)
+	entries, index, roots, err := indexNodes(nodes)
 	if err != nil {
 		return nil, err
 	}
-	return &FileArchive{path: path, entries: entries, index: index}, nil
+	return &FileArchive{path: path, entries: entries, index: index, nodes: nodes, roots: roots}, nil
 }
 
 func (a *FileArchive) Entries() []Entry {
@@ -86,17 +88,22 @@ func (a *FileArchive) ReadFile(name string) ([]byte, error) {
 		return nil, &fs.PathError{Op: "readfile", Path: name, Err: fs.ErrNotExist}
 	}
 	e := a.entries[i]
+	return a.readRange(name, e.Offset, e.Size)
+}
+
+// readRange reads size bytes at offset of the archive's file.
+func (a *FileArchive) readRange(name string, offset, size int64) ([]byte, error) {
 	f, err := os.Open(a.path)
 	if err != nil {
 		return nil, &fs.PathError{Op: "readfile", Path: name, Err: err}
 	}
 	defer f.Close()
-	out := make([]byte, int(e.Size))
-	n, err := f.ReadAt(out, e.Offset)
+	out := make([]byte, int(size))
+	n, err := f.ReadAt(out, offset)
 	if err != nil && err != io.EOF {
 		return nil, &fs.PathError{Op: "readfile", Path: name, Err: err}
 	}
-	if int64(n) != e.Size {
+	if int64(n) != size {
 		return nil, &fs.PathError{Op: "readfile", Path: name, Err: io.ErrUnexpectedEOF}
 	}
 	return out, nil

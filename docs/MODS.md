@@ -7,7 +7,8 @@ Every refusal stops the launch and names the mod, the file and the line.
 format (section Base dump). `againrom --headless <scenario.json>` runs the
 game with no window and writes the frame of a town (section Headless runs).
 A mod's `files` folder replaces install pictures, sounds and texts (section
-Install files).
+Install files). A mod folder packs into one file, `mod-<id>.res`, that the
+game reads as the folder (section Packed mods).
 
 | file | what it changes | keys and rules |
 |---|---|---|
@@ -29,7 +30,7 @@ file and line. A list may span lines.
 
 | key | value |
 |---|---|
-| `id` | required string; the mod's name, equal to its folder name, 1 to 64 characters of `a-z 0-9 . _ -` starting with a letter or digit |
+| `id` | required string; the mod's name, equal to its folder name (a packed mod: the `<id>` of `mod-<id>.res`), 1 to 64 characters of `a-z 0-9 . _ -` starting with a letter or digit |
 | `title` | required string; the name shown to the player |
 | `version` | required string, not empty |
 | `author` | optional string for people; the game does not read it |
@@ -81,7 +82,8 @@ the folder of the install's language (`en` on `rom1-en` and `rom2-en`, `ru`
 on `rom1-ru` and `rom2-ru`) and `common`; for one path the language folder's
 file wins over `common`'s. The other language's folder is held to the folder
 rules below and not read; only the files the install reads are
-checked against the install. Names that start with a dot are skipped.
+checked against the install. Names that start with a dot are skipped in this folder, and no
+mod reader takes a path with such a component (see "Packed mods").
 
 | kind | extension | rule |
 |---|---|---|
@@ -127,6 +129,60 @@ the one line of text that names the same differences.
 Not served: `speech.res`, `music.res`, loose files beside the install's
 resource files, and pictures in `.256`, `.16a`, `.16`, `.pal`, `.reg`,
 `.alm` form.
+
+## Packed mods
+
+A mod ships as its folder or as one file: the folder packed into a RES
+file, the archive format of the game's own `.res` files, named
+`mod-<id>.res` and put in the mods folder beside the mod folders. The game
+reads the file as the folder it was packed from: the same `mod.toml`,
+scripts, settings, data files, texts and `files` folder, under the same
+checks, with the same refusals. `-mods <id>` finds either form, and
+`againrom -check` reports a packed mod as its folder, with `dir=` naming the
+file. A save's mod mark records the mod's files, not its form, so a save
+made with the folder loads with the packed file and the reverse.
+
+Pack a mod folder from a terminal:
+
+```
+againrom.exe -pack-mod C:\Mods\east-town -pack-out C:\Games\Againrom\mods
+```
+
+`-pack-out` names an existing folder; the game writes
+`mod-<id>.res` there, prints `againrom: packed <folder> into <file>`, and
+exits. It needs no install and opens no window. Every folder and file of
+the mod is packed except names that start with a dot (`.git`), which no mod
+reader takes: a script or data path with a dotted component is refused naming the path, for a
+folder and for the packed file alike. Names match without case, as on Windows: ASCII and
+Cyrillic letters (`Ё` too) of another case name the same file, and a pack holding two names equal
+that way is refused naming both. The pack is refused, writing nothing, and the refusal names
+the reason and, for a file, the file:
+
+- the file exists; `-pack-replace` writes over it;
+- the `-pack-out` folder is a game folder or lies inside one (a folder
+  holding the game's archives);
+- a file or folder name is longer than 15 bytes, the longest name a RES
+  holds (`data/weapon-bodies.toml` is 18: a mod with weapon bodies stays a
+  folder);
+- a name holds a character the RES's code page, CP866, has no byte for.
+  Latin and Cyrillic letters, digits and `. _ -` are one byte each;
+- a link or another non-regular file, or a file larger than 16 MiB;
+- the folder is not a mod `-check` would take: no `mod.toml`, or an `id`
+  other than the folder's name.
+
+In the mods folder:
+
+- a folder and a packed file of one `id` are both refused, naming both;
+  keep one of them;
+- a file named `mod*.res` that is not `mod-<id>.res` with a valid `id`, a
+  packed file whose `mod.toml` names another `id`, and a file the game
+  cannot read as a RES are refused naming the file; other `.res` files are
+  not mods and are left alone;
+- names inside a packed mod match without regard to the case of `A`-`Z`,
+  as a folder's names do on Windows.
+
+The map editor saves into a mod folder: `mapedit -mod` refuses a packed
+mod. To change a packed mod, change its folder and pack it again.
 
 ## Spell damage columns
 

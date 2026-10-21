@@ -103,10 +103,14 @@ func (s Setting) Parse(text string) (Value, error) {
 	return Value{}, fmt.Errorf("%q is not one of %s", text, strings.Join(s.Choices, ", "))
 }
 
-// LoadSettings reads settings.toml of the mod folder dir. A mod without the
-// file declares no settings.
+// LoadSettings reads settings.toml of the mod at dir, its folder or its RES
+// file. A mod without the file declares no settings.
 func LoadSettings(dir string) ([]Setting, error) {
-	data, err := os.ReadFile(filepath.Join(dir, SettingsName))
+	t, err := OpenTree(dir)
+	if err != nil {
+		return nil, err
+	}
+	data, err := t.ReadFile(SettingsName)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, nil
