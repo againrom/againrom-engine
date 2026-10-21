@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [ROM1] The map editor's brush list shows the brush size with - and + buttons; Alt with the mouse wheel, or [ and ], change it from 0 to 16. Every brush is a Circle or a Square, and its outline shows exactly the cells a stroke will paint.
 - [ROM1] The map editor shades the map's impassable border with a line at the playable edge; View > Map border hides it.
 - [ROM1] A mod can add, rename, change or switch off towns in `data/towns.toml`; a new town has its own pictures, place on the world map, opening mission and offers. When two mods change the same town, the later wins only if it loads after the other with `load-after`. A town name may be written in Russian; a town that could never open is refused at launch.
+- [BASE] `againrom -dump-base <folder>` writes the installed game's towns as a ready mod folder, every town with every key at the game's own value, to copy and change; it never writes into the game folder, a folder that is not empty, or over a file.
 
 ### For developers
 

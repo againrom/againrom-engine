@@ -287,6 +287,22 @@ func encodeSaveLabel(label string, selector int) (string, error) {
 	return encoded, err
 }
 
+// decodeSaveLabel is encodeSaveLabel's inverse: text in the install's
+// alphabet as UTF-8. It answers false when a byte has no rune or the UTF-8
+// does not encode back to s.
+func decodeSaveLabel(s string, selector int) (string, bool) {
+	runes := make([]rune, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		r, ok := textinput.DecodeByte(s[i], selector)
+		if !ok {
+			return "", false
+		}
+		runes = append(runes, r)
+	}
+	back, err := encodeSaveLabel(string(runes), selector)
+	return string(runes), err == nil && back == s
+}
+
 // playerCitySave retains the existing dialog seam and shares the current
 // save-point and label policy with playerMissionSave.
 func (f *FrontEnd) playerCitySave(captured Snapshot, label string) ([]byte, string, error) {

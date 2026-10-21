@@ -28,6 +28,10 @@
 // reports the former one-line install summary instead, because the picker
 // route opens nothing on its own.
 //
+// -dump-base writes the base dump into a new or empty folder outside the
+// install and exits without a window: a mod folder holding layer 0 of every
+// layered catalog in the format a mod reads, for a modder to copy.
+//
 // -mission is a direct entry for development: GIVEN EXPLICITLY, it bypasses the
 // main menu and opens character generation for that campaign mission number
 // immediately, then that mission's map screen on a legal confirm — the same
@@ -97,7 +101,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json>] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir>] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -188,6 +192,8 @@ var baseUsage = "refuse to run unless the asset root is detected as this base pr
 
 // The mod flags' own help text. Mods are resolved, ordered and run before the
 // front end is built; -check lists them.
+const dumpBaseUsage = "write the base dump, a mod folder holding the install's towns in the format a mod reads, into this new or empty folder outside the install, and exit without a window"
+
 const (
 	modsUsage               = "comma-separated ids of the mods to load; each is a folder with a mod.toml in the mods directory (the load order follows requires and load-after, not this list)"
 	modsDirUsage            = "directory holding the mod folders (default: mods beside this binary)"
@@ -217,6 +223,24 @@ func resolveMods(o options, executable string) ([]mod.Entry, error) {
 func activateMods(o options, mods []mod.Entry, root string) (modrt.Result, error) {
 	base := game.BaseID(game.InspectInstall(root))
 	return modrt.Load(mods, base, o.modSettings, modrt.Options{})
+}
+
+// dumpBase writes the base dump into dir and reports each file written and
+// each note, or the refusal.
+func dumpBase(front *game.FrontEnd, dir string, stdout, stderr io.Writer) int {
+	report, err := front.WriteBaseDump(dir)
+	if err != nil {
+		fmt.Fprintln(stderr, "againrom: -dump-base:", err)
+		return 1
+	}
+	fmt.Fprintf(stdout, "againrom: base dump of %s in %s\n", report.Base, report.Dir)
+	for _, file := range report.Files {
+		fmt.Fprintln(stdout, "againrom: wrote", file)
+	}
+	for _, note := range report.Notes {
+		fmt.Fprintln(stdout, "againrom: note:", note)
+	}
+	return 0
 }
 
 // modLines is the -check report of the active mods: one line for the set, one
@@ -416,6 +440,9 @@ type options struct {
 
 	// version asks for the version line and nothing else.
 	version bool
+
+	// dumpBase is -dump-base: the folder the base dump is written into.
+	dumpBase string
 }
 
 // parse reads the command line. Split out of run so a test can read the
@@ -427,6 +454,7 @@ func parse(args []string) (options, error) {
 	fs.SetOutput(io.Discard) // the error is reported once, by run
 	fs.StringVar(&o.assets, "assets", "", "path to the game asset root (overrides AGAINROM_ASSETS, which overrides the install found at the working directory or beside this binary)")
 	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
+	fs.StringVar(&o.dumpBase, "dump-base", "", dumpBaseUsage)
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
 	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
 	fs.BoolVar(&o.window, "window", false, "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two")
@@ -503,6 +531,9 @@ func parse(args []string) (options, error) {
 	}
 	if o.check && o.headless != "" {
 		return o, errors.New("-check and -headless are mutually exclusive")
+	}
+	if o.dumpBase != "" && (o.check || o.headless != "" || strings.TrimSpace(mods) != "" || o.mediaCheck || o.cutsceneCheck != "" || o.soundCheck != "" || o.fidelityCheck != "") {
+		return o, errors.New("-dump-base excludes -check, -headless, -mods and the other check modes")
 	}
 	if (o.cutsceneCheck != "" || o.mediaCheck) && (o.check || o.headless != "" || !o.movies) {
 		return o, errors.New("media checks require movies and exclude -check/-headless")
@@ -818,13 +849,17 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		return 0
 	}
 
+	if o.dumpBase != "" {
+		// The dump plays nothing and reads no profile.
+		o.sound = false
+	}
 	profileOptions := o
 	if o.headless != "" && scenario.Saves != "" {
 		profileOptions.saves = scenario.Saves
 	}
 	var profile game.RuntimeProfile
 	orig := game.OriginalStore{Dir: root}
-	if profileOptions.saves != "" || !o.check && !o.mediaCheck && o.cutsceneCheck == "" {
+	if profileOptions.saves != "" || !o.check && !o.mediaCheck && o.cutsceneCheck == "" && o.dumpBase == "" {
 		profile, orig, err = loadSources(root, profileOptions, executable, userConfigDir)
 		if err != nil {
 			fmt.Fprintln(stderr, "againrom: profile unavailable:", err)
@@ -876,6 +911,9 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		for _, o := range overrides {
 			fmt.Fprintln(stderr, "againrom: override:", o)
 		}
+	}
+	if o.dumpBase != "" {
+		return dumpBase(front, o.dumpBase, stdout, stderr)
 	}
 	if o.fidelityCheck != "" {
 		fmt.Fprintf(stdout, "againrom: owner fidelity witness build=%s assets=%s\n", launchStamp(), root)

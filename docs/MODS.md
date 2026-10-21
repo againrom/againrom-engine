@@ -3,6 +3,8 @@
 A mod is one folder with `mod.toml` and a Starlark entry script. The script's
 `init(game, settings)` loads each data file once with `game.data.add(path)`.
 Every refusal stops the launch and names the mod, the file and the line.
+`againrom -dump-base <folder>` writes the install's own records in this
+format (section Base dump).
 
 | file | what it changes | keys and rules |
 |---|---|---|
@@ -311,6 +313,63 @@ Refused, naming the mod, the file and the line:
 
 A save written with a towns mod carries the mod mark. A LOAD without the mod
 refuses with the mod named.
+
+## Base dump
+
+The base dump writes what the installed game holds, in the format a mod
+reads, so a mod starts from the game's own values instead of guessed ones.
+Run the game from a terminal with `-dump-base` and a folder outside the
+game folder:
+
+```
+againrom.exe -assets C:\Games\Rage -dump-base C:\Mods\base-dump
+```
+
+Without `-assets` the game uses the install it finds in the working folder
+or beside `againrom.exe`. The game opens no window: it writes the folder,
+prints one line per file, and exits.
+
+The folder is a mod. Its name is the mod's `id`, so it may hold only `a-z`,
+`0-9`, `.`, `_` and `-`. It holds:
+
+| file | what it holds |
+|---|---|
+| `mod.toml` | the manifest: `id` (the folder's name), a title, version `1.0.0`, `applies-to` naming the install it was taken from, and `entry = "main.star"` |
+| `main.star` | the entry script: `game.data.add("data/towns.toml")` |
+| `data/towns.toml` | every town of the install as a `[[town]]` table with every key of the Towns section: `id`, `description`, `hooks`, `offers`, `map-point`, `name`, `opens-after`, `missions`, `cite`, and `off = false` |
+
+Values are the game's own. `description` names the installed description
+(`rom1`) and `map-point` the world-map object (`{ object = 1 }`); no picture
+or text is copied out of the install. `name` is the title the world map
+draws for the town, written in UTF-8, so the Russian game's dump holds it in
+Cyrillic letters. Loaded unchanged, the dump changes nothing a player sees
+or a save holds, besides the mod mark every active mod puts in a save.
+
+To make a mod from the dump:
+
+1. Copy the folder and give the copy the mod's name. Set `id` in `mod.toml`
+   to that name and change `title`.
+2. In `data/towns.toml`, keep the `[[town]]` tables you change and delete
+   the rest. In a table you keep, keep `id` and the keys you change and
+   delete the others: each key a table names counts as set by your mod, and
+   two mods that set one key of one town need `load-after`.
+3. Change the values, and add tables for new towns as the Towns section
+   shows.
+4. Run `againrom.exe -check -mods <name> -mods-dir <folder holding it>`; a
+   refusal names the file and the line.
+
+The second game reads no towns layer. Its dump still lists its three towns
+in `data/towns.toml`, for reading, and says so in the file and in the
+printed lines; its `main.star` adds no file. A second-game town has no
+`name` key: the second game draws no name from its catalog.
+
+The dump refuses, writes nothing and names the reason when the folder:
+
+- is the game folder, lies inside it, or lies inside any folder holding a
+  game's archives;
+- exists and is not empty;
+- is an existing file;
+- has a name that is not a mod `id`.
 
 ## Map editor
 

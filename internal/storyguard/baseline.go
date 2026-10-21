@@ -2724,6 +2724,12 @@ package storyguard
 // reachability walk and its error in pkg/game/towntravel.go, the name
 // encoding and first-game refusals in pkg/game/townlayer.go, their tests,
 // and this paragraph.
+//
+// CommentBytes rises for the base dump, all new code: the town key list and
+// the towns file writer (pkg/mod/towns.go), the dump folder and its refusals
+// (pkg/game/basedump.go), the towns layer 0 and the label decoder
+// (pkg/game/townlayer.go, pkg/game/savedialog.go), the -dump-base flag
+// (cmd/againrom/main.go), their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2747,5 +2753,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9377082,
+	CommentBytes: 9386234,
 }

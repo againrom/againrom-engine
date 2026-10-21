@@ -2,7 +2,11 @@ package mod
 
 import (
 	"fmt"
+	"reflect"
+	"slices"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"againrom/pkg/town"
 )
@@ -15,9 +19,101 @@ const TownsFile = "data/towns.toml"
 // a file inside the mod folder; every other key names an installed entry.
 const ModArtPrefix = "mod:"
 
-// townFields are the keys of a [[town]] table: the catalog entry's fields,
-// and OffField.
-var townFields = []string{"id", "description", "hooks", "offers", "map-point", "name", "opens-after", "missions", "cite", OffField}
+// townKey is one key of a [[town]] table besides id and off: how the
+// decoder reads it into an entry, how a record copies it into a catalog
+// entry, and how a dump writes an entry's value as TOML text. write answers
+// false when the entry holds no value the decoder accepts.
+type townKey struct {
+	name  string
+	read  func(file string, p tomlPair, e *town.Entry) error
+	copy  func(dst *town.Entry, src town.Entry)
+	write func(e town.Entry) (string, bool)
+}
+
+// townKeys are the catalog entry's fields a [[town]] table sets, in the
+// order a dump writes them. The decoder, Apply and WriteTowns read only this
+// list.
+var townKeys = []townKey{
+	townStringKey("description", func(e *town.Entry) *string { return &e.Description }),
+	townStringKey("hooks", func(e *town.Entry) *string { return &e.Hooks }),
+	townStringKey("offers", func(e *town.Entry) *string { return &e.Offers }),
+	{
+		name: "map-point",
+		read: func(file string, p tomlPair, e *town.Entry) (err error) {
+			e.MapPoint, err = townMapPoint(file, p)
+			return err
+		},
+		copy:  func(dst *town.Entry, src town.Entry) { dst.MapPoint = src.MapPoint },
+		write: func(e town.Entry) (string, bool) { return writeTownMapPoint(e.MapPoint) },
+	},
+	townStringKey("name", func(e *town.Entry) *string { return &e.Name }),
+	{
+		name: "opens-after",
+		read: func(file string, p tomlPair, e *town.Entry) (err error) {
+			e.OpensAfter, err = townInt(file, p, 0)
+			return err
+		},
+		copy:  func(dst *town.Entry, src town.Entry) { dst.OpensAfter = src.OpensAfter },
+		write: func(e town.Entry) (string, bool) { return strconv.Itoa(e.OpensAfter), e.OpensAfter >= 0 },
+	},
+	{
+		name: "missions",
+		read: func(file string, p tomlPair, e *town.Entry) (err error) {
+			e.Missions, err = intList(file, p, 1)
+			return err
+		},
+		copy: func(dst *town.Entry, src town.Entry) { dst.Missions = src.Missions },
+		write: func(e town.Entry) (string, bool) {
+			return writeIntList(e.Missions), !slices.ContainsFunc(e.Missions, func(n int) bool { return n < 1 })
+		},
+	},
+	{
+		name: "cite",
+		read: func(file string, p tomlPair, e *town.Entry) (err error) {
+			e.Cite, err = stringList(file, p)
+			return err
+		},
+		copy:  func(dst *town.Entry, src town.Entry) { dst.Cite = src.Cite },
+		write: func(e town.Entry) (string, bool) { return writeStringList(e.Cite) },
+	},
+}
+
+// townFields are the keys of a [[town]] table: id, townKeys and OffField.
+var townFields = func() []string {
+	out := []string{"id"}
+	for _, k := range townKeys {
+		out = append(out, k.name)
+	}
+	return append(out, OffField)
+}()
+
+// townKeyNamed is the key of townKeys named name.
+func townKeyNamed(name string) (townKey, bool) {
+	i := slices.IndexFunc(townKeys, func(k townKey) bool { return k.name == name })
+	if i < 0 {
+		return townKey{}, false
+	}
+	return townKeys[i], true
+}
+
+// townStringKey is a key holding a non-empty string field of the entry.
+func townStringKey(name string, field func(*town.Entry) *string) townKey {
+	return townKey{
+		name: name,
+		read: func(file string, p tomlPair, e *town.Entry) (err error) {
+			*field(e), err = townString(file, p)
+			return err
+		},
+		copy: func(dst *town.Entry, src town.Entry) { *field(dst) = *field(&src) },
+		write: func(e town.Entry) (string, bool) {
+			s := *field(&e)
+			if strings.TrimSpace(s) == "" {
+				return "", false
+			}
+			return writeTOMLString(s)
+		},
+	}
+}
 
 // TownRecord is one [[town]] table: the town ID it names and the catalog
 // entry fields it sets, in the catalog's entry format. Entry holds the
@@ -101,51 +197,18 @@ func townRecordFrom(id, file string, t tomlTable) (TownRecord, error) {
 	r := TownRecord{Source: Source{Mod: id, File: file, Line: t.line}}
 	hasID := false
 	for _, p := range t.pairs {
-		str := func() (string, error) {
-			if p.val.kind != tomlString {
-				return "", bad(p.line, "%s must be a string, not %s", p.key, p.val.kind)
-			}
-			if strings.TrimSpace(p.val.str) == "" {
-				return "", bad(p.line, "%s is empty", p.key)
-			}
-			return p.val.str, nil
-		}
-		integer := func(min int64) (int, error) {
-			if p.val.kind != tomlInt {
-				return 0, bad(p.line, "%s must be an integer, not %s", p.key, p.val.kind)
-			}
-			if p.val.num < min || p.val.num > 1<<20 {
-				return 0, bad(p.line, "%s is %d, outside %d..%d", p.key, p.val.num, min, 1<<20)
-			}
-			return int(p.val.num), nil
-		}
 		var err error
-		e := &r.Entry
-		switch p.key {
-		case "id":
+		switch k, ok := townKeyNamed(p.key); {
+		case p.key == "id":
 			hasID = true
-			e.ID, err = integer(1)
-		case "description":
-			e.Description, err = str()
-		case "hooks":
-			e.Hooks, err = str()
-		case "offers":
-			e.Offers, err = str()
-		case "name":
-			e.Name, err = str()
-		case "opens-after":
-			e.OpensAfter, err = integer(0)
-		case "missions":
-			e.Missions, err = intList(file, p, 1)
-		case "cite":
-			e.Cite, err = stringList(file, p)
-		case "map-point":
-			e.MapPoint, err = townMapPoint(file, p)
-		case OffField:
+			r.Entry.ID, err = townInt(file, p, 1)
+		case p.key == OffField:
 			if p.val.kind != tomlBool {
 				err = bad(p.line, "off must be true or false, not %s", p.val.kind)
 			}
 			r.Off = p.val.flag
+		case ok:
+			err = k.read(file, p, &r.Entry)
 		default:
 			err = bad(p.line, "unknown key %q in [[town]] (keys: %s)", p.key, strings.Join(townFields, ", "))
 		}
@@ -167,27 +230,34 @@ func townRecordFrom(id, file string, t tomlTable) (TownRecord, error) {
 	return r, nil
 }
 
+// townString reads a non-empty string value.
+func townString(file string, p tomlPair) (string, error) {
+	switch {
+	case p.val.kind != tomlString:
+		return "", &ItemFileError{File: file, Line: p.line, Msg: fmt.Sprintf("%s must be a string, not %s", p.key, p.val.kind)}
+	case strings.TrimSpace(p.val.str) == "":
+		return "", &ItemFileError{File: file, Line: p.line, Msg: fmt.Sprintf("%s is empty", p.key)}
+	}
+	return p.val.str, nil
+}
+
+// townInt reads an integer value from min to 1<<20.
+func townInt(file string, p tomlPair, min int64) (int, error) {
+	switch {
+	case p.val.kind != tomlInt:
+		return 0, &ItemFileError{File: file, Line: p.line, Msg: fmt.Sprintf("%s must be an integer, not %s", p.key, p.val.kind)}
+	case p.val.num < min || p.val.num > 1<<20:
+		return 0, &ItemFileError{File: file, Line: p.line, Msg: fmt.Sprintf("%s is %d, outside %d..%d", p.key, p.val.num, min, 1<<20)}
+	}
+	return int(p.val.num), nil
+}
+
 // Apply writes the fields the record sets into e.
 func (r TownRecord) Apply(e *town.Entry) {
 	e.ID = r.Entry.ID
 	for _, f := range r.Fields {
-		switch f.Name {
-		case "description":
-			e.Description = r.Entry.Description
-		case "hooks":
-			e.Hooks = r.Entry.Hooks
-		case "offers":
-			e.Offers = r.Entry.Offers
-		case "map-point":
-			e.MapPoint = r.Entry.MapPoint
-		case "name":
-			e.Name = r.Entry.Name
-		case "opens-after":
-			e.OpensAfter = r.Entry.OpensAfter
-		case "missions":
-			e.Missions = r.Entry.Missions
-		case "cite":
-			e.Cite = r.Entry.Cite
+		if k, ok := townKeyNamed(f.Name); ok {
+			k.copy(e, r.Entry)
 		}
 	}
 }
@@ -272,4 +342,131 @@ func townMapPoint(file string, p tomlPair) (town.MapPoint, error) {
 		}
 	}
 	return mp, nil
+}
+
+// WriteTowns writes entries as a towns file ParseTowns reads: the lines of
+// head as comments, then one [[town]] table per entry holding its id, every
+// key of townKeys the entry has a value for, and off = false. The file is
+// read back through ParseTowns, and an entry it does not give back unchanged
+// is an error, so the file never holds a value its entry does not.
+func WriteTowns(head []string, entries []town.Entry) ([]byte, error) {
+	var b strings.Builder
+	for _, l := range head {
+		if strings.ContainsAny(l, "\r\n") {
+			return nil, fmt.Errorf("a comment line of %s holds a line break", TownsFile)
+		}
+		b.WriteString(strings.TrimRight("# "+l, " ") + "\n")
+	}
+	for i, e := range entries {
+		if i > 0 || len(head) > 0 {
+			b.WriteString("\n")
+		}
+		fmt.Fprintf(&b, "[[town]]\n%-11s = %d\n", "id", e.ID)
+		for _, k := range townKeys {
+			if v, ok := k.write(e); ok {
+				fmt.Fprintf(&b, "%-11s = %s\n", k.name, v)
+			}
+		}
+		fmt.Fprintf(&b, "%-11s = false\n", OffField)
+	}
+	out := []byte(b.String())
+	records, err := ParseTowns("", TownsFile, out)
+	if err != nil {
+		return nil, fmt.Errorf("the written %s does not read back: %w", TownsFile, err)
+	}
+	if len(records) != len(entries) {
+		return nil, fmt.Errorf("the written %s reads back %d towns, not %d", TownsFile, len(records), len(entries))
+	}
+	for i, r := range records {
+		var got town.Entry
+		r.Apply(&got)
+		if r.Off || !sameTownEntry(got, entries[i]) {
+			return nil, fmt.Errorf("town %d of the written %s does not read back as its entry", entries[i].ID, TownsFile)
+		}
+	}
+	return out, nil
+}
+
+// sameTownEntry reports whether a and b hold the same values, an empty list
+// the same as none.
+func sameTownEntry(a, b town.Entry) bool {
+	norm := func(e town.Entry) town.Entry {
+		for _, l := range []*[]int{&e.Missions, &e.MapPoint.Point, &e.MapPoint.Rect} {
+			if len(*l) == 0 {
+				*l = nil
+			}
+		}
+		if len(e.Cite) == 0 {
+			e.Cite = nil
+		}
+		return e
+	}
+	return reflect.DeepEqual(norm(a), norm(b))
+}
+
+// writeTOMLString is s as a basic string readString reads back; false for
+// text that is not UTF-8 or holds a control character other than tab.
+func writeTOMLString(s string) (string, bool) {
+	if !utf8.ValidString(s) {
+		return "", false
+	}
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r == '\t':
+			b.WriteString(`\t`)
+		case r < 0x20 || r == 0x7f:
+			return "", false
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String(), true
+}
+
+func writeIntList(list []int) string {
+	parts := make([]string, len(list))
+	for i, n := range list {
+		parts[i] = strconv.Itoa(n)
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
+func writeStringList(list []string) (string, bool) {
+	parts := make([]string, len(list))
+	for i, s := range list {
+		q, ok := writeTOMLString(s)
+		if !ok {
+			return "", false
+		}
+		parts[i] = q
+	}
+	return "[" + strings.Join(parts, ", ") + "]", true
+}
+
+// writeTownMapPoint is p as the inline table townMapPoint reads; false when
+// p names no source.
+func writeTownMapPoint(p town.MapPoint) (string, bool) {
+	var parts []string
+	if p.Object != 0 {
+		parts = append(parts, "object = "+strconv.Itoa(p.Object))
+	}
+	if p.Record {
+		parts = append(parts, "record = true")
+	}
+	if p.Point != nil {
+		parts = append(parts, "point = "+writeIntList(p.Point))
+	}
+	if p.Rect != nil {
+		parts = append(parts, "rect = "+writeIntList(p.Rect))
+	}
+	if len(parts) == 0 {
+		return "", false
+	}
+	return "{ " + strings.Join(parts, ", ") + " }", true
 }

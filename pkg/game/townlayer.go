@@ -69,7 +69,7 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 	if base == nil {
 		return nil, nil, first.Errorf("this base has no town catalog to layer")
 	}
-	if slices.ContainsFunc(base.catalog.Towns, func(e town.Entry) bool { return e.Offers != townOffersChapterKeys }) {
+	if !townCatalogTakesLayer(base.catalog) {
 		return nil, nil, first.Errorf("town layers apply to the first game's catalog; catalog %s is not one", base.catalog.Catalog)
 	}
 	data := maps.Clone(townDescriptionData)
@@ -182,6 +182,50 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 		book.art[desc] = art
 	}
 	return book, l.Overrides, nil
+}
+
+// townCatalogTakesLayer reports whether a mod's towns layer applies over c:
+// only a catalog of chapter towns, the first game's, takes one.
+func townCatalogTakesLayer(c *town.Catalog) bool {
+	return !slices.ContainsFunc(c.Towns, func(e town.Entry) bool { return e.Offers != townOffersChapterKeys })
+}
+
+// baseTownLayer is layer 0 of the town catalog as the towns file a mod
+// carries: the install's catalog, every town with every key. A first-game
+// town with no name of its own is drawn with the install's home title, so
+// its name is that title as UTF-8 that encodes back to the same bytes; a
+// title that does not is left out with a note. The second game's catalog
+// takes no layer: its file is for reading.
+func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
+	book := townBookOf(f.Base().Profile)
+	if book == nil {
+		return baseDumpLayer{}, fmt.Errorf("%s has no town catalog", baseID)
+	}
+	layer := baseDumpLayer{file: mod.TownsFile, read: townCatalogTakesLayer(book.catalog)}
+	head := []string{
+		fmt.Sprintf("Layer 0 of the town catalog of %s: every town with every key, at its value.", baseID),
+		"Keep the [[town]] tables you change and, in each, id and the keys you change.",
+	}
+	entries := slices.Clone(book.catalog.Towns)
+	if !layer.read {
+		layer.note = mod.TownsFile + ": the second game reads no towns layer; the file is for reading, and main.star does not add it"
+		head = append(head, layer.note+".")
+	} else if name, ok := decodeSaveLabel(f.Words.WorldHomeTitle, f.textSelector()); ok && strings.TrimSpace(name) != "" {
+		for i := range entries {
+			if entries[i].Name == "" {
+				entries[i].Name = name
+			}
+		}
+	} else {
+		layer.note = fmt.Sprintf("%s: the install's town title % x does not read back from UTF-8; name is left out", mod.TownsFile, f.Words.WorldHomeTitle)
+		head = append(head, layer.note+".")
+	}
+	data, err := mod.WriteTowns(head, entries)
+	if err != nil {
+		return baseDumpLayer{}, err
+	}
+	layer.data = data
+	return layer, nil
 }
 
 // shippedTownHooks is the hook set every shipped catalog names each of its
