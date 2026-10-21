@@ -2770,6 +2770,12 @@ package storyguard
 // mark comparison for a mod that is state-free now (pkg/game/modmark.go), the
 // language folder spelling, their tests, the release test of a text mod, and
 // this paragraph.
+//
+// CommentBytes rises for the mod mismatch window at LOAD, all new code: the
+// differences as data (pkg/mod/digest.go), the refusal that carries them
+// (pkg/game/modmark.go), the menu notice window builder (pkg/ui/widgetnotice.go)
+// and its use on the Load page (pkg/ui/modmismatch.go, pkg/ui/save.go), their
+// tests, the release tests on both games, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4509,
 	TestFileCount:  264,
@@ -2793,5 +2799,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9444509,
+	CommentBytes: 9454716,
 }

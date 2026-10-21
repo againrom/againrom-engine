@@ -81,6 +81,23 @@
 "save.key_hint" = "Tab: выбор   Enter: действие   Esc: отмена"
 "save.latin_name_hint" = "Используйте символы игрового шрифта."
 
+# Load page: the window listing a refusal over the mods.
+"load.mods.title" = "Сохранение сделано с другими модами"
+"load.mods.ok" = "OK"
+"load.mods.hint" = "Чтобы загрузить это сохранение, запустите игру с теми модами и настройками, с которыми оно было сделано."
+"load.mods.hint_unmarked" = "Чтобы все-таки загрузить его, запустите игру с ключом -mods-accept-unmarked или без модов."
+"load.mods.unmarked" = "[В сохранении нет записи о модах,] а сейчас включены:"
+"load.mods.unreadable" = "[Запись о модах в сохранении не читается или не подходит к нему.]"
+"load.mods.base" = "Игра: в сохранении [{saved}], сейчас [{current}]"
+"load.mods.missing" = "Мод {mod} {saved}: [не включен]"
+"load.mods.added" = "Мод {mod} {current}: [включен, но в сохранении не использовался]"
+"load.mods.version" = "Мод {mod}: в сохранении [{saved}], сейчас [{current}]"
+"load.mods.files" = "Мод {mod} {saved}: [файлы отличаются от тех, с которыми сделано сохранение]"
+"load.mods.setting" = "Мод {mod}, настройка {setting}: в сохранении [{saved}], сейчас [{current}]"
+"load.mods.setting_gone" = "Мод {mod}, настройка {setting} = {saved}: [такой настройки сейчас нет]"
+"load.mods.setting_new" = "Мод {mod}, настройка {setting} = {current}: [в сохранении не записана]"
+"load.mods.order" = "Порядок загрузки: в сохранении [{saved}], сейчас [{current}]"
+
 # Sound Options words the install does not state.
 "sound.master" = "Общая громкость"
 "sound.enabled" = "Звук включен"

@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/rules"
+	"againrom/pkg/ui"
 )
 
 // modMarkFormat is the version of the mod mark's payload.
@@ -275,8 +276,51 @@ func modNames(set mod.Set) string {
 // ErrModMark is wrapped by every refusal of a save over its mod mark.
 var ErrModMark = errors.New("mod set mismatch")
 
+// modMarkError is a refusal of a save over its mod mark: the prose every text
+// output shows, and the same refusal as data for the Load page's window. The
+// differences are mod.Compare's, the list the prose is written from.
+type modMarkError struct {
+	text   string
+	reason ui.ModMismatchReason
+	diffs  []mod.Difference
+}
+
+func (e *modMarkError) Error() string { return ErrModMark.Error() + ": " + e.text }
+
+func (e *modMarkError) Unwrap() error { return ErrModMark }
+
+// modMismatchKinds maps each difference kind to the window's row kind.
+var modMismatchKinds = map[mod.DifferenceKind]ui.ModMismatchKind{
+	mod.DifferenceBase:        ui.ModMismatchBase,
+	mod.DifferenceMissing:     ui.ModMismatchMissing,
+	mod.DifferenceAdded:       ui.ModMismatchAdded,
+	mod.DifferenceVersion:     ui.ModMismatchVersion,
+	mod.DifferenceFiles:       ui.ModMismatchFiles,
+	mod.DifferenceSettingGone: ui.ModMismatchSettingGone,
+	mod.DifferenceSetting:     ui.ModMismatchSetting,
+	mod.DifferenceSettingNew:  ui.ModMismatchSettingNew,
+	mod.DifferenceOrder:       ui.ModMismatchOrder,
+}
+
+// ModMismatch is the refusal as the Load page's window lists it.
+func (e *modMarkError) ModMismatch() ui.ModMismatch {
+	out := ui.ModMismatch{Reason: e.reason}
+	for _, d := range e.diffs {
+		out.Rows = append(out.Rows, ui.ModMismatchRow{Kind: modMismatchKinds[d.Kind], Mod: d.Mod, Setting: d.Setting, Saved: d.Saved, Current: d.Current})
+	}
+	return out
+}
+
+// modMarkRefusal refuses a mark that cannot be read or does not fit the save.
 func modMarkRefusal(format string, args ...any) error {
-	return fmt.Errorf("%w: "+format, append([]any{ErrModMark}, args...)...)
+	return &modMarkError{text: fmt.Sprintf(format, args...), reason: ui.ModMismatchMark}
+}
+
+// unmarkedRefusal refuses a save without a readable mark while mods are
+// active: each active mod is one the save did not use.
+func unmarkedRefusal(format string, active mod.Set) error {
+	return &modMarkError{text: fmt.Sprintf(format, modNames(active)), reason: ui.ModMismatchUnmarked,
+		diffs: mod.Compare(mod.Set{Base: active.Base}, active)}
 }
 
 // applyModMark checks a save's mod mark against the active mod set and returns
@@ -300,7 +344,7 @@ func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer,
 		if active.Empty() || ctx.AcceptUnmarked {
 			return saved, nil, nil
 		}
-		return nil, nil, modMarkRefusal("this save has no readable mod mark and mods are active (%s); start with -mods-accept-unmarked to load it anyway", modNames(active))
+		return nil, nil, unmarkedRefusal("this save has no readable mod mark and mods are active (%s); start with -mods-accept-unmarked to load it anyway", active)
 	}
 	mark, present, err := readModMark(doc)
 	if err != nil {
@@ -310,7 +354,7 @@ func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer,
 		if active.Empty() || ctx.AcceptUnmarked {
 			return saved, nil, nil
 		}
-		return nil, nil, modMarkRefusal("this save carries no mod mark and mods are active (%s); start with -mods-accept-unmarked to load it anyway", modNames(active))
+		return nil, nil, unmarkedRefusal("this save carries no mod mark and mods are active (%s); start with -mods-accept-unmarked to load it anyway", active)
 	}
 	saw, err := mark.SetRecord.Set()
 	if err != nil {
@@ -329,10 +373,12 @@ func applyModMark(saved []byte, ctx mapload.ModContext) ([]byte, []modMarkLayer,
 		}
 	}
 	if active.Empty() {
-		return nil, nil, modMarkRefusal("this save was written with mods active (%s); start with the same mods to load it", modNames(saw))
+		return nil, nil, &modMarkError{reason: ui.ModMismatchSet, diffs: mod.Compare(saw, mod.Set{Base: saw.Base}),
+			text: fmt.Sprintf("this save was written with mods active (%s); start with the same mods to load it", modNames(saw))}
 	}
-	if diffs := mod.Differences(saw, active); len(diffs) != 0 {
-		return nil, nil, modMarkRefusal("this save was written under a different mod set: %s", strings.Join(diffs, "; "))
+	if diffs := mod.Compare(saw, active); len(diffs) != 0 {
+		return nil, nil, &modMarkError{reason: ui.ModMismatchSet, diffs: diffs,
+			text: "this save was written under a different mod set: " + strings.Join(mod.Differences(saw, active), "; ")}
 	}
 	if mark.SetDigest != saw.Digest() {
 		return nil, nil, modMarkRefusal("the mod mark's digest does not match its own mod list")

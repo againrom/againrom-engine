@@ -66,6 +66,7 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 			a.drawPageName(pix, v)
 		}
 		pointer, pointerOK := a.pointerFrame()
+		pointerOK = pointerOK && v.ui.mismatch == nil
 		list := v.list
 		drawListBox(pix, font, a.media.scroll, a.pageListBox(v), list, func(row, width int) string {
 			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
@@ -85,10 +86,16 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 		}
 	}
 	pointer, pointerOK := a.pointerFrame()
+	window := v.save == nil && v.ui.mismatch != nil
+	pageHover := pointerOK && !window
 	for i, b := range v.page.Buttons {
-		inside := pointerOK && pointer.In(b.Rect)
+		inside := pageHover && pointer.In(b.Rect)
 		drawPushButton(pix, font, pushButton{Rect: b.Rect, Label: b.Caption, Hover: inside, Inside: inside,
 			Pressed: v.ui.press.Pressed(i), Disabled: a.flow.pageButtonDisabled(v, i)})
+	}
+	if window {
+		l := newNoticeWindowLayout(font, v.page.Panel)
+		v.ui.mismatch.compose(pix, font, l, a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
 	}
 	return pix, nil
 }
@@ -126,21 +133,27 @@ func (f *flow) pageMessage(v pageView) string {
 // The installed font is proportional, so a row is clipped by measured pixels
 // inside the shared row rectangles. The disk token is never clipped.
 func (a *App) fitLoadText(value string, width int) string {
-	// The EN font's non-ASCII records do not reproduce Unicode Cyrillic.
-	// Keep its visible fallback while preserving the exact UTF-8 disk token.
-	if !locale.FontRemaps(a.flow.menuFont.Selector) {
-		var ascii strings.Builder
-		for _, r := range value {
-			if r > 0x7e {
-				r = '?'
-			}
-			ascii.WriteRune(r)
-		}
-		value = ascii.String()
-	}
+	value = a.drawableLoadText(value)
 	measure := func(s string) int {
 		w, _ := a.flow.menuFont.Measure(a.flow.menuDisplayText(s))
 		return w
 	}
 	return textfit.Spec{Measure: measure, Unit: textfit.Rune, Side: textfit.End}.Fit(value, width)
+}
+
+// drawableLoadText is value as the menu font can show it. The EN font's
+// non-ASCII records do not reproduce Unicode Cyrillic, so it shows '?' for
+// them; the exact UTF-8 disk token is kept apart.
+func (a *App) drawableLoadText(value string) string {
+	if locale.FontRemaps(a.flow.menuFont.Selector) {
+		return value
+	}
+	var ascii strings.Builder
+	for _, r := range value {
+		if r > 0x7e {
+			r = '?'
+		}
+		ascii.WriteRune(r)
+	}
+	return ascii.String()
 }

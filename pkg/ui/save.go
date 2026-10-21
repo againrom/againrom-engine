@@ -591,6 +591,7 @@ func (f *flow) takeMenuExit() bool {
 func (f *flow) openLoad(back Screen) {
 	f.loadUI.resetPointer()
 	f.loadUI.confirm = false
+	f.loadUI.mismatch = nil
 	f.loadUI.remove = nil
 	f.saves = nil
 	if f.saveList != nil {
@@ -654,6 +655,13 @@ func (f *flow) chooseLoad() {
 	open, town, err := f.loadGame(f.saves[i].Name)
 	if err == nil {
 		err = f.loadPrepared(open, town)
+	}
+	// A refusal over the mods opens the window that lists every difference;
+	// a build without the installed font keeps the message line.
+	if m, ok := modMismatchOf(err); ok && f.menuFont != nil {
+		f.loadUI.resetPointer()
+		f.loadUI.mismatch = f.modMismatchWindow(m)
+		return
 	}
 	if err != nil {
 		f.msg = loadFailure(f.saves[i].Name, err)

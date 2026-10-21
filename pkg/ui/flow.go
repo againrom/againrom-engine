@@ -1601,7 +1601,10 @@ func (f *flow) escape() (exit bool) {
 		}
 		return false
 	case ScreenLoad:
-		if f.loadUI.confirm {
+		if f.loadUI.mismatch != nil {
+			f.loadUI.mismatch = nil
+			f.loadUI.resetPointer()
+		} else if f.loadUI.confirm {
 			f.loadUI.confirm = false
 			f.msg = ""
 		} else {

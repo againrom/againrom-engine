@@ -32,6 +32,9 @@ type loadWindow struct {
 	// completed counts the loads that replaced the session, so presentation can
 	// tell a fresh load from an unchanged screen. It is never reset.
 	completed uint32
+	// mismatch is the open window listing a refusal over the mods; it owns
+	// the page's input until it closes.
+	mismatch *noticeWindow
 }
 
 func (w *loadWindow) resetPointer() {
@@ -192,6 +195,10 @@ func (a *App) stepLoadWindow(in appInput, now time.Time) { a.stepPage(a.flow.loa
 func (a *App) stepPage(v pageView, in appInput) {
 	f := a.flow
 	l := v.list
+	if v.ui.mismatch != nil {
+		a.stepModMismatch(v, in)
+		return
+	}
 	if in.Unfocused || l == nil {
 		v.ui.resetPointer()
 		return

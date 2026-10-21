@@ -2,6 +2,8 @@ package game
 
 import (
 	"bytes"
+	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -11,6 +13,7 @@ import (
 	"againrom/pkg/mod"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 func modTestSet(cap int64) mod.Set {
@@ -404,5 +407,79 @@ func TestTheModMarkHoldsAModItemsStandInAndRestoresIt(t *testing.T) {
 	}
 	if got, _ := savedStructureValue(&doc.Objects[bystander], "F40"); got != 0x0a09 {
 		t.Fatalf("an item the mods do not add holds %#x", got)
+	}
+}
+
+// TestLoadRefusalsCarryTheirDifferencesAsData: each refusal answers the Load
+// page's window with the same differences its prose names, and the prose stays
+// the error's text.
+func TestLoadRefusalsCarryTheirDifferencesAsData(t *testing.T) {
+	plain := modTestSAV(t)
+	mark := func(set mod.Set) []byte {
+		d, err := sav.DecodeDocumentData(plain)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := markDocumentForMods(&d, set, nil, nil); err != nil {
+			t.Fatal(err)
+		}
+		b, err := sav.EncodeDocumentData(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
+	}
+	newer := modTestSet(150)
+	newer.Mods[0].Version, newer.Mods[0].Digest = "1.1.0", "abd"
+	other := modTestSet(150)
+	other.Mods = append(other.Mods, mod.SetEntry{ID: "extra", Version: "2", Digest: "e"})
+	for _, c := range []struct {
+		name  string
+		saved []byte
+		ctx   mapload.ModContext
+		want  ui.ModMismatch
+	}{
+		{"no mods", mark(modTestSet(150)), mapload.ModContext{},
+			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchMissing, Mod: "skill-cap", Saved: "1.0.0"}}}},
+		{"other version", mark(modTestSet(150)), mapload.ModContext{Set: newer},
+			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchVersion, Mod: "skill-cap", Saved: "1.0.0", Current: "1.1.0"}}}},
+		{"other setting", mark(modTestSet(150)), mapload.ModContext{Set: modTestSet(140)},
+			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchSetting, Mod: "skill-cap", Setting: "skill_cap", Saved: "150", Current: "140"}}}},
+		{"extra mod", mark(modTestSet(150)), mapload.ModContext{Set: other},
+			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchAdded, Mod: "extra", Current: "2"}}}},
+		{"one mod fewer", mark(other), mapload.ModContext{Set: modTestSet(150)},
+			ui.ModMismatch{Reason: ui.ModMismatchSet, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchMissing, Mod: "extra", Saved: "2"}}}},
+		{"unmarked", plain, mapload.ModContext{Set: modTestSet(150)},
+			ui.ModMismatch{Reason: ui.ModMismatchUnmarked, Rows: []ui.ModMismatchRow{{Kind: ui.ModMismatchAdded, Mod: "skill-cap", Current: "1.0.0"}}}},
+	} {
+		_, _, err := applyModMark(c.saved, c.ctx)
+		var refusal interface{ ModMismatch() ui.ModMismatch }
+		if !errors.As(err, &refusal) || !errors.Is(err, ErrModMark) {
+			t.Fatalf("%s: %v carries no mismatch", c.name, err)
+		}
+		if got := refusal.ModMismatch(); !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: %+v, want %+v", c.name, got, c.want)
+		}
+		for _, r := range c.want.Rows {
+			if !strings.Contains(err.Error(), r.Mod) {
+				t.Errorf("%s: the prose %q does not name %s", c.name, err, r.Mod)
+			}
+		}
+	}
+	doc, err := sav.DecodeDocumentData(plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sav.SetNativeMods(&doc.State, []byte("not json")); err != nil {
+		t.Fatal(err)
+	}
+	broken, err := sav.EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = applyModMark(broken, mapload.ModContext{Set: modTestSet(150)})
+	var refusal interface{ ModMismatch() ui.ModMismatch }
+	if !errors.As(err, &refusal) || refusal.ModMismatch().Reason != ui.ModMismatchMark || len(refusal.ModMismatch().Rows) != 0 {
+		t.Fatalf("an unreadable mark: %v", err)
 	}
 }

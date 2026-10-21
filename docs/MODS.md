@@ -113,6 +113,17 @@ game state is marked, and its save is refused without it. A save whose mark
 names a mod loads while every mod it names is active, whether or not that
 mod is state-free now.
 
+A LOAD the mark refuses opens a window on the Load page of either game that
+lists every difference, one row each: a mod the save used that is not active,
+an active mod the save did not use, another version (both shown), the same
+version with other files, a setting with another value (both shown), another
+base game, another load order, a save without a mark while mods are active, and
+a mark that cannot be read. The differing values are drawn in red. The window
+says how to start the game to load the save (with the save's mods, or with
+`-mods-accept-unmarked` for a save without a mark) and closes with OK or
+Escape. A refusal outside the Load page, such as a headless run's, keeps
+the one line of text that names the same differences.
+
 Not served: `speech.res`, `music.res`, loose files beside the install's
 resource files, and pictures in `.256`, `.16a`, `.16`, `.pal`, `.reg`,
 `.alm` form.
