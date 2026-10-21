@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.130.0
+
 ### For map makers and modders
 
 - [ROM1] In the map editor, a Show message action shows the whole message, and Cancel in New message no longer leaves an empty message behind.
