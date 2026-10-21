@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM1] A right click after casting a spell from the spell book, or after a cast from F5 to F8, now drops the mage's selection, as in the original; before, the first right click only closed the book and the mage stayed selected.
+
 ### For map makers and modders
 
 - [ROM1] The mod check refuses, naming the file and the reason, a town description the game cannot play (it stopped on entering the town or left the party on the world map), a town name the font cannot draw, a picture, track or sound the install does not have, and an unknown key in mod.toml. A refusal of an unknown value now lists the values the game accepts. The mod guide now lists the mod.toml keys, the town description format with a working example, and what print does.

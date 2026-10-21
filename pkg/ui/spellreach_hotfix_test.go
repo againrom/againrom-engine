@@ -19,6 +19,7 @@ func TestBookPointSpellKeepsClickedGroundUnderCreature(t *testing.T) {
 	for _, point := range []bool{true, false} {
 		book := []SpellEntry{{ID: 2, Name: "Fire Ball", PointTarget: point}}
 		v.cancelMapCommand()
+		v.selectedSpell, v.spellArmed = 0, false
 		if !v.hudShown(hudPanelBook) {
 			v.toggleHudPanel(hudPanelBook)
 		}

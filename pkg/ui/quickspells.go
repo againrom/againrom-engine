@@ -42,8 +42,9 @@ func (v *Viewer) quickSpell(slot int, ctrl bool, x, y int) {
 	// Ctrl also reaches this test. A closed book never opens as a side effect.
 	if id := v.quickSpells[slot]; id != 0 && !v.hudShown(hudPanelBook) && v.spellAvailable(id) &&
 		canArmAttack(v.sel, v.entities, v.localOwner) && v.commandCastActive() {
+		// The same one-shot arm as C (AI-QUICKINVOKE-279).
 		v.armSpell()
-		v.spellNeedsBook = false
+		v.spellNeedsBook, v.castOnce = false, true
 	}
 }
 
@@ -117,7 +118,7 @@ func (v *Viewer) spellModeLive() bool {
 }
 
 func (v *Viewer) armSpell() {
-	v.spellArmed, v.castOnce = true, false
+	v.spellArmed, v.castOnce, v.spellRestored = true, false, false
 	v.armed, v.attackHeld, v.aimed = false, false, commandNone
 	v.cmdOverlayHidden = false
 }

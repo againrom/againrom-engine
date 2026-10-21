@@ -187,6 +187,12 @@ func TestReleaseQuickSpellsSaveFreshLoadAndCast(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	if selected, ok := f.live.view.SelectedUnit(); ok {
+		t.Fatalf("right click left the mage %d selected", selected)
+	}
+	if err := a.HeadlessSelectEntity(uint32(id)); err != nil {
+		t.Fatal(err)
+	}
 	key(a, "book")
 	want := [4]uint32{16, 1, 6, 19}
 	for slot, spell := range want {

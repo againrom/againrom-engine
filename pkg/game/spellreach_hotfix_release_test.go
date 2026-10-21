@@ -86,7 +86,7 @@ func TestReleaseFireballUsesPartyVisiblePointFromOwnerSave(t *testing.T) {
 		t.Fatal("The book click did not arm Fireball")
 	}
 	inspectionCentre(live, int(targetX), int(targetY))
-	entryPointer1084(t, a, int(targetX), int(targetY))
+	pressDropCell(t, a, int(targetX), int(targetY))
 	if len(live.pending) != 1 || live.pending[0].Kind != sim.KindCastAt ||
 		live.pending[0].Spell != 2 || live.pending[0].X != targetX || live.pending[0].Y != targetY {
 		t.Fatalf("Ordinary pointer produced wrong order: %+v", live.pending)

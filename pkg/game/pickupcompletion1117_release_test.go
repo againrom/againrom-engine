@@ -50,7 +50,7 @@ func TestReleasePickup1117ClickKeyAndNativeBoundaries(t *testing.T) {
 				t.Fatal(err)
 			}
 			if route == "click-walk" {
-				entryPointer1084(t, app, 22, 60)
+				pressDropCell(t, app, 22, 60)
 				if !mw.pickup.set || mw.pickup.id != hero || mw.pickup.x != 22 || mw.pickup.y != 60 {
 					t.Fatalf("map pointer did not arm ordinary pickup: %+v", mw.pickup)
 				}

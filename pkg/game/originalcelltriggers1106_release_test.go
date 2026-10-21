@@ -112,7 +112,7 @@ func TestReleaseOriginalCellTriggers1106AppOverlayAndNativeEntry(t *testing.T) {
 				if err := pair.app.HeadlessSelectEntity(uint32(id)); err != nil {
 					t.Fatal(err)
 				}
-				entryPointer1084(t, pair.app, 21, 63)
+				pressDropCell(t, pair.app, 21, 63)
 			}
 			entered := false
 			for tick := 0; tick < 100; tick++ {

@@ -54,7 +54,8 @@ func TestMissionCharacterPaneRightUpSharesTheMapCancelDecision(t *testing.T) {
 	}{
 		{"attack", func(v *Viewer) { v.armed = true }, true},
 		{"aimed order", func(v *Viewer) { v.aimed = commandMove }, true},
-		{"selected spell", func(v *Viewer) { v.selectedSpell = 17 }, true},
+		{"key-armed spell", func(v *Viewer) { v.selectedSpell, v.spellArmed = 17, true }, true},
+		{"book-chosen spell", func(v *Viewer) { v.selectedSpell, v.spellArmed, v.spellNeedsBook = 17, true, true }, false},
 		{"no mode", func(*Viewer) {}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -69,7 +70,7 @@ func TestMissionCharacterPaneRightUpSharesTheMapCancelDecision(t *testing.T) {
 			if ords, ordered := rightUpAt(v, p.X, p.Y); ordered || len(ords) != 0 {
 				t.Fatalf("right-up issued orders %+v (ok=%v)", ords, ordered)
 			}
-			if v.armed || v.aimed != commandNone || v.selectedSpell != 0 {
+			if tc.wantSelected && (v.armed || v.aimed != commandNone || v.selectedSpell != 0) {
 				t.Fatalf("right-up left state armed: attack=%v aimed=%d spell=%d",
 					v.armed, v.aimed, v.selectedSpell)
 			}

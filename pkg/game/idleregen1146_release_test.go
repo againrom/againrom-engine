@@ -65,7 +65,7 @@ func TestReleaseIdleRegenerationAfterManualCast(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	entryPointer1084(t, a, 30, 50)
+	pressDropCell(t, a, 30, 50)
 	if live.world.Tick() != 0 || len(live.pending) != 1 {
 		t.Fatal("fixture advanced before cast")
 	}

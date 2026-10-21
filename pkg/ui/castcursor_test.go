@@ -311,8 +311,8 @@ func TestRightClickCancelClosesTheBookWhenCastIsArmedWhoeverOpenedIt(t *testing.
 	chooseSpell(t, v, castTarget)
 	x, y := cellPoint(v, castCells.ground[0], castCells.ground[1])
 	rightUpAt(v, x, y)
-	if v.hudShown(hudPanelBook) || v.spellArmed || v.selectedSpell != 0 || !slices.Equal(v.sel, selection{panelCasterID}) {
-		t.Fatalf("cancel of a hand-opened book with a spell chosen: book %v armed %v spell %d sel %v",
+	if !v.hudShown(hudPanelBook) || v.selectedSpell != castTarget || len(v.sel) != 0 {
+		t.Fatalf("right click with a hand-opened book and a spell chosen: book %v armed %v spell %d sel %v",
 			v.hudShown(hudPanelBook), v.spellArmed, v.selectedSpell, v.sel)
 	}
 	if _, book := panelsOpen(v); book != v.characterPaneView(false).BookOpen {

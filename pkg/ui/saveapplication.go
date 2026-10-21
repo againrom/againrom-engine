@@ -115,6 +115,7 @@ func (v *Viewer) RestoreSaveApplication(s SaveApplicationState) error {
 	if s.PressedSpell != 0 && v.spellAvailable(s.PressedSpell) && canArmAttack(v.sel, v.entities, v.localOwner) {
 		v.armSpell()
 		v.spellNeedsBook = s.SpellBookOpen
+		v.spellRestored = true
 	}
 	v.applicationRestored = true
 	return nil

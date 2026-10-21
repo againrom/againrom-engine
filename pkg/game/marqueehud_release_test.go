@@ -62,7 +62,7 @@ func TestReleaseMapMarqueeEndsOnCommandPanel(t *testing.T) {
 	}
 	// A subsequent plain ground tap must still be an ordinary move. Crossing
 	// the active Attack button while dragging must not arm attack mode.
-	entryPointer1084(t, a, int(actor.X)+1, int(actor.Y))
+	pressDropCell(t, a, int(actor.X)+1, int(actor.Y))
 	if len(live.pending) != 2 || live.pending[0].Kind != sim.KindGroupMoveTo || live.pending[1].Kind != sim.KindGroupMoveTo {
 		t.Fatalf("post-marquee ground tap queued %v", live.pending)
 	}

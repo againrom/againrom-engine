@@ -65,7 +65,7 @@ func TestReleaseRepeatedTeleportKeepsCastMode(t *testing.T) {
 	}
 	for n, cell := range [][2]int{{30, 50}, {29, 50}} {
 		inspectionCentre(live, 29, 50)
-		entryPointer1084(t, a, cell[0], cell[1])
+		pressDropCell(t, a, cell[0], cell[1])
 		if got := live.pending; len(got) != 1 || got[0].Kind != sim.KindCastAt || got[0].Spell != 26 {
 			t.Fatalf("cast%d queued %v, want Teleport without another book click", n+1, got)
 		}
@@ -104,11 +104,11 @@ func TestReleaseRepeatedTeleportKeepsCastMode(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, current, armed := live.view.QuickSpellState(); current != 0 || armed {
-		t.Fatal("right click did not cancel the persistent cast mode")
+	if _, current, _ := live.view.QuickSpellState(); current == 0 {
+		t.Fatal("right click dropped the book-chosen spell")
 	}
-	if selected, ok := live.view.SelectedUnit(); !ok || selected != uint32(id) {
-		t.Fatal("cancelling cast deselected the mage")
+	if selected, ok := live.view.SelectedUnit(); ok {
+		t.Fatalf("right click left the mage %d selected", selected)
 	}
-	t.Log("one book click, two pointer Teleports interrupting recovery, then right-click cancellation")
+	t.Log("one book click, two pointer Teleports interrupting recovery, then right-click deselection")
 }

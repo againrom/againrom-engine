@@ -70,7 +70,7 @@ func rawCellBindings1084(t *testing.T, raw []byte) []sim.CellTail {
 	return out
 }
 
-func entryPointer1084(t *testing.T, app *ui.App, x, y int) {
+func pressDropCell(t *testing.T, app *ui.App, x, y int) {
 	t.Helper()
 	for i := 0; i < 16 && app.HeadlessNoticeOpen(); i++ {
 		if err := app.HeadlessKey("enter"); err != nil {
@@ -197,7 +197,7 @@ func entryApp1084(t *testing.T, f *FrontEnd, binding sim.CellTail, want []sim.Ce
 	}
 	checkEntryNative1084(t, f, "before-entry")
 	before, _ := live.entity(id)
-	entryPointer1084(t, app, x, y)
+	pressDropCell(t, app, x, y)
 	if len(live.pending) == 0 || live.pending[len(live.pending)-1].X != int32(x) || live.pending[len(live.pending)-1].Y != int32(y) {
 		t.Fatalf("pointer did not queue the authored cell: %+v", live.pending)
 	}
@@ -292,7 +292,7 @@ func entryApp1084(t *testing.T, f *FrontEnd, binding sim.CellTail, want []sim.Ce
 	// Leave through a nearby non-hazard, then reenter with another pointer
 	// order. No setup teleport is used for either half of this repeat control.
 	live.view.Camera().CenterOn(22*32, 64*32)
-	entryPointer1084(t, app, 21, 64)
+	pressDropCell(t, app, 21, 64)
 	for tick := 0; tick < 150; tick++ {
 		if err := entryStep1084(app); err != nil {
 			t.Fatal(err)
@@ -309,7 +309,7 @@ func entryApp1084(t *testing.T, f *FrontEnd, binding sim.CellTail, want []sim.Ce
 		}
 	}
 	live.view.Camera().CenterOn(22*32, 64*32)
-	entryPointer1084(t, app, x, y)
+	pressDropCell(t, app, x, y)
 	repeated := false
 	for tick := 0; tick < 150; tick++ {
 		if err := entryStep1084(app); err != nil {

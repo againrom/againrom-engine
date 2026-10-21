@@ -1584,7 +1584,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 // the pane cannot grow a second interpretation of the map message it posts.
 func (v *Viewer) cancelMapCommand() {
 	switch {
-	case v.armed || v.aimed != commandNone || v.spellArmed || v.selectedSpell != 0 || v.itemCast != nil:
+	case v.armed || v.aimed != commandNone || v.spellCancelable() || v.itemCast != nil:
 		// An armed Cast closes the spell popup whoever opened it
 		// (`AI-CURSOR-177`).
 		if v.spellArmed && v.hudShown(hudPanelBook) {
@@ -1601,6 +1601,11 @@ func (v *Viewer) cancelMapCommand() {
 		v.sel = nil
 		v.selStructure = InspectionSubject{}
 	}
+}
+
+// spellCancelable: a one-shot Cast arm the right click absorbs (DIV-2265).
+func (v *Viewer) spellCancelable() bool {
+	return v.spellArmed && !v.spellNeedsBook && !v.spellRestored
 }
 
 // armAttack is the arming key's whole effect: it TOGGLES the attack mode,

@@ -99,7 +99,7 @@ func TestQuickSpellCtrlClosedBookStillRequestsCapabilityGatedCast(t *testing.T) 
 	if slots[2] != 3 || v.spellArmed {
 		t.Fatal("Ctrl unavailable assignment armed")
 	}
-	v.cancelMapCommand()
+	v.selectedSpell, v.sel = 0, selection{sbUnitID}
 	// Ctrl with no current/hover source leaves a populated binding intact,
 	// but still reaches its closed-book availability gate (AI-QUICKASSIGN-278).
 	// Cast mode must remain cancellable even when current is independently 0.

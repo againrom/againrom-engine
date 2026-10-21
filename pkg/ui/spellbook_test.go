@@ -215,10 +215,9 @@ func TestTheSpellSelectionStaysArmedForRepeatedCasts(t *testing.T) {
 			t.Fatalf("area repeat at %v produced %v/%v", target, ords, ok)
 		}
 	}
-	// A right click still cancels casting without deselecting the mage.
 	v.command(appInput{SecondaryReleased: true, CursorX: vx, CursorY: vy})
-	if v.selectedSpell != 0 || v.spellArmed || !slices.Equal(v.sel, selection{casterID}) {
-		t.Fatal("right click failed to cancel only the cast mode")
+	if v.selectedSpell == 0 || len(v.sel) != 0 {
+		t.Fatal("right click did not deselect and keep the chosen spell")
 	}
 }
 

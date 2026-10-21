@@ -2736,8 +2736,12 @@ package storyguard
 // (pkg/game/towncatalog.go, pkg/game/townlayer.go, pkg/game/sound.go), the
 // accepted-value lists (pkg/town/validate.go, pkg/screenart/entry.go), their
 // tests and fixture, and this paragraph.
+//
+// TestIdentCount falls by ten: the numbered drop-cell helper of the cell
+// entry release tests became pressDropCell, which the right-click deselect
+// release test also uses. CommentBytes rises for that test and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4519,
+	TestIdentCount: 4509,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -2759,5 +2763,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9390043,
+	CommentBytes: 9390425,
 }
