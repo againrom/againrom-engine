@@ -119,7 +119,9 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	}
 }
 
-func TestMapEditor1118GroundDragStillPans(t *testing.T) {
+// A left drag on bare ground draws a selection box: it pans nothing and
+// edits nothing. The middle button drags the map.
+func TestMapEditorGroundDragDrawsABoxAndTheMiddleButtonPans(t *testing.T) {
 	e := editor1092(t)
 	e.Layout(1024, 768)
 	e.doc.Edits = &editorMoveProbe{doc: e.doc}
@@ -131,9 +133,18 @@ func TestMapEditor1118GroundDragStillPans(t *testing.T) {
 	at := mapPoint(e, image.Pt(int(sx), int(sy)))
 	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, PrimaryDown: true}, now)
 	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y, PrimaryDown: true}, now)
+	if e.selection.marquee == nil || !e.selection.marquee.box {
+		t.Fatal("a ground drag draws no selection box")
+	}
+	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y}, now)
+	if e.doc.Viewer.cam.X != before || e.Dirty() || e.selection.marquee != nil {
+		t.Fatal("a ground drag panned, edited a unit or left its box")
+	}
+	e.Pointer(Input{CursorX: at.X, CursorY: at.Y, MiddleDown: true}, now)
+	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y, MiddleDown: true}, now)
 	e.Pointer(Input{CursorX: at.X - 32, CursorY: at.Y}, now)
 	if e.doc.Viewer.cam.X <= before || e.Dirty() {
-		t.Fatal("ground drag no longer pans or edited a unit")
+		t.Fatal("a middle drag does not pan the map")
 	}
 }
 

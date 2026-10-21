@@ -155,14 +155,6 @@ func addCases(in addInputs) []addCase {
 		script(1, "Condition", nil),
 		script(2, "Trigger", map[string]string{"name": "Gate", "once": "0"},
 			ui.InspectionFieldValue{Key: "name", Text: true, TextValue: "Gate"}, ui.InspectionFieldValue{Key: "once", Value: 0}),
-		{"group", []string{"groups", "player"}, map[string]string{"owner": "1", "group": fmt.Sprint(in.group), "member": fmt.Sprintf("%d|%d", in.members[0], in.members[1])},
-			func(t *testing.T, s *mapInspectionEdits) {
-				for _, i := range in.members {
-					if _, err := s.SetFields("Unit", i, []ui.InspectionFieldValue{{Key: "group", Value: in.group}}); err != nil {
-						t.Fatal(err)
-					}
-				}
-			}},
 	}
 }
 
@@ -194,7 +186,7 @@ func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.Map
 }
 
 // TestReleaseMapEditorAddWindowWritesTheRouteBytes adds a unit, a
-// structure, a sack, a player, an action, a condition, a trigger and a group
+// structure, a sack, a player, an action, a condition and a trigger
 // through the Add window on an installed map: the map's bytes are those of
 // the existing host calls with the same values, one Undo restores the source
 // bytes, and leaving the window at any step changes nothing. A window that

@@ -148,16 +148,7 @@ func (e *MapEditor) areaLabels() []areaLabel {
 	if !e.areasShown() {
 		return nil
 	}
-	var popups []image.Rectangle
-	if s, ok := e.listSpec(); ok {
-		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
-	}
-	if s, _, ok := e.objectSpec(); ok {
-		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
-	}
-	if s, ok := e.promptSpec(); ok {
-		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
-	}
+	popups := e.popupRects()
 	f := e.bodyFont()
 	h := fontHeight(f, 15) + 2
 	area := e.mapArea()
@@ -218,6 +209,22 @@ func (e *MapEditor) drawAreaLabels(pic *image.RGBA) {
 			f.Draw(pic.SubImage(l.rect).(*image.RGBA), l.text, l.rect.Min.X+4, l.rect.Min.Y+1, ink)
 		}
 	}
+}
+
+// popupRects are the window rectangles of the open list, object and prompt
+// popups: a label on the map is left out where one covers it.
+func (e *MapEditor) popupRects() []image.Rectangle {
+	var popups []image.Rectangle
+	if s, ok := e.listSpec(); ok {
+		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
+	}
+	if s, _, ok := e.objectSpec(); ok {
+		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
+	}
+	if s, ok := e.promptSpec(); ok {
+		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
+	}
+	return popups
 }
 
 // areaLabelAt is the trigger whose label is under the window point p.

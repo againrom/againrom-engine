@@ -159,6 +159,8 @@ type MapEditor struct {
 	cancelRestore               func()
 	listRestore                 func()
 	selection                   selectionState
+	place                       placeGrid
+	groupsTop                   int // the Groups window's first shown row
 	editorChrome
 }
 
@@ -355,6 +357,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	rail := e.doc.Viewer.cam.ViewW
 	p := image.Pt(x, y)
 	e.hoverAt(p)
+	if e.placePointer(in, p, rail) {
+		return
+	}
 	if e.brushPointer(in, p, rail) {
 		return
 	}
@@ -362,6 +367,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		return
 	}
 	if e.dragRecord(in, p, rail) {
+		return
+	}
+	if e.boxPointer(in, p, rail) {
 		return
 	}
 	if in.PrimaryDown && !e.down {
@@ -453,6 +461,15 @@ func (e *MapEditor) Update() error {
 			}
 			if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 				_ = e.Key("paste")
+			}
+		}
+		for n := 0; n < 9; n++ {
+			if inpututil.IsKeyJustPressed(ebiten.KeyDigit1 + ebiten.Key(n)) {
+				key := "group"
+				if heldkey.Pressed(ebiten.KeyControl) {
+					key = "togroup"
+				}
+				_ = e.Key(key + string(rune('1'+n)))
 			}
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyO) {
@@ -601,7 +618,7 @@ type editorLine struct {
 func (e *MapEditor) markerLines() []editorLine {
 	v := e.doc.Viewer
 	var out []editorLine
-	if f, ok := e.placement(); ok {
+	if f, ok := e.placement(); ok && !f.Dragged {
 		c := editorGold
 		if f.Refused {
 			c = editorWarning

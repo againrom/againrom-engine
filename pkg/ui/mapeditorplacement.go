@@ -23,6 +23,9 @@ type placementFrame struct {
 	Cell    image.Point
 	Refused bool
 	Sprites []staticScreenRect
+	// Dragged marks a record drag's silhouettes: the drag marks its cells
+	// itself, so no cell box is drawn.
+	Dragged bool
 }
 
 func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
@@ -65,6 +68,9 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 }
 
 func (e *MapEditor) placement() (placementFrame, bool) {
+	if f, ok := e.dragPlacement(); ok {
+		return f, true
+	}
 	if e.pick == pickNone || e.pick == pickArea || e.pick == pickGoal || e.doc == nil || !e.hoverOK {
 		return placementFrame{}, false
 	}
@@ -74,35 +80,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 		if host, ok := e.doc.Edits.(InspectionCellCheck); ok {
 			f.Refused = host.CheckObjectCell(r.Kind, r.Index, f.Cell) != nil
 		}
-		v := e.doc.Viewer
-		delta := e.CellPoint(f.Cell).Sub(e.CellPoint(r.Cell))
-		add := func(s staticScreenRect) {
-			s.X += float64(delta.X) / v.place.Scale()
-			s.Y += float64(delta.Y) / v.place.Scale()
-			f.Sprites = append(f.Sprites, s)
-		}
-		for _, s := range v.planeSprites() {
-			if (r.Kind == "Unit" && s.Inspection.Kind == InspectionUnit || r.Kind == "Structure" && s.Inspection.Kind == InspectionStructure) && int(s.Inspection.ID) == r.Index {
-				add(s)
-			}
-		}
-		if r.Kind == "Sack" {
-			for _, s := range v.sackLayer() {
-				if s.Cell == r.Cell {
-					if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
-						add(staticScreenRect{screenRect: rect, Frame: s.Frame})
-					}
-					break
-				}
-			}
-		}
-		for _, s := range v.structurePlacements() {
-			if r.Kind == "Structure" && int(s.StructureID) == r.Index && s.Class != nil && s.Class.Flat {
-				if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
-					add(staticScreenRect{screenRect: rect, Frame: s.Frame})
-				}
-			}
-		}
+		f.Sprites = e.recordSprites(r, f.Cell.Sub(r.Cell))
 		if f.Refused {
 			f.Sprites = nil
 		}
@@ -181,4 +159,62 @@ func (e *MapEditor) placementPicture() *image.RGBA {
 		editorBlit(pic, ghost, s.screenRect, s.Mirror)
 	}
 	return pic
+}
+
+// dragPlacement is a record drag that has moved: a translucent silhouette of
+// each dragged record where the release would put it, the whole selection
+// when the drag holds it. The records themselves stay until the release.
+func (e *MapEditor) dragPlacement() (placementFrame, bool) {
+	d := e.recordDrag
+	if d == nil || !d.moved || d.area != nil || d.drop > 0 || d.record < 0 || e.doc == nil || d.record >= len(e.doc.Records) {
+		return placementFrame{}, false
+	}
+	f := placementFrame{Cell: d.cell, Dragged: true}
+	offset := d.cell.Sub(d.origin)
+	for i, r := range e.doc.Records {
+		if i == d.record || d.group && e.inSelection(i) {
+			f.Sprites = append(f.Sprites, e.recordSprites(r, offset)...)
+		}
+	}
+	for i := range f.Sprites {
+		f.Sprites[i].Translucent = true
+	}
+	return f, true
+}
+
+// recordSprites are the map sprites of record r, shifted by offset cells: the
+// unit or structure body, a flat structure's floor and a sack, as the map
+// draws them.
+func (e *MapEditor) recordSprites(r InspectionRecord, offset image.Point) []staticScreenRect {
+	v := e.doc.Viewer
+	delta := e.CellPoint(r.Cell.Add(offset)).Sub(e.CellPoint(r.Cell))
+	var out []staticScreenRect
+	add := func(s staticScreenRect) {
+		s.X += float64(delta.X) / v.place.Scale()
+		s.Y += float64(delta.Y) / v.place.Scale()
+		out = append(out, s)
+	}
+	for _, s := range v.planeSprites() {
+		if (r.Kind == "Unit" && s.Inspection.Kind == InspectionUnit || r.Kind == "Structure" && s.Inspection.Kind == InspectionStructure) && int(s.Inspection.ID) == r.Index {
+			add(s)
+		}
+	}
+	if r.Kind == "Sack" {
+		for _, s := range v.sackLayer() {
+			if s.Cell == r.Cell {
+				if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
+					add(staticScreenRect{screenRect: rect, Frame: s.Frame})
+				}
+				break
+			}
+		}
+	}
+	for _, s := range v.structurePlacements() {
+		if r.Kind == "Structure" && int(s.StructureID) == r.Index && s.Class != nil && s.Class.Flat {
+			if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
+				add(staticScreenRect{screenRect: rect, Frame: s.Frame})
+			}
+		}
+	}
+	return out
 }

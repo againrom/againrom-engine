@@ -670,7 +670,7 @@ func (e *MapEditor) listWindow() int {
 		return e.listFit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -689,6 +689,10 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	}
 	if kind == "panel" {
 		s, _ := e.panelSpec()
+		return s, true
+	}
+	if e.groupsShown() {
+		s, _ := e.groupsSpec()
 		return s, true
 	}
 	m := e.syncList(kind, e.listWindow())
@@ -726,6 +730,10 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 		if _, ok := e.listAdd(); ok {
 			s.Buttons = []string{e.word("editor.button.add")}
+		}
+		if g, note, ok := e.placeGridSpec(); ok {
+			s.Grid = g
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
 		}
 	}
 	if m.Len() > 0 {
@@ -779,7 +787,7 @@ func (e *MapEditor) listChoose(n int, open bool) {
 		}
 		if e.filter == editorGroupsFilter {
 			if gs := e.groups(); n >= 0 && n < len(gs) {
-				e.chooseGroup(gs[n])
+				e.chooseGroup(gs[n], true)
 			}
 			return
 		}
@@ -835,6 +843,9 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if s, links, ok := e.groupSpec(); ok {
 		e.objectBackButton(&s)
 		return s, links, true
+	}
+	if s, ok := e.selectionSpec(); ok {
+		return s, nil, true
 	}
 	// A cell pick moves the object popup aside: the pick is a click on the map.
 	// The Add window stands in its place until it closes.
@@ -943,6 +954,10 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		return e.areaTriggerSpec(), true
 	case promptAreaShared:
 		return e.areaSharedSpec(), true
+	case promptToGroup:
+		return e.toGroupSpec(), true
+	case promptGroupWarn:
+		return e.groupWarnSpec(), true
 	}
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
 	s := popupSpec{Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1}
@@ -1112,6 +1127,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
 	e.drawAreaLabels(pic)
+	e.drawGroupBadges(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawGoalLinks(pic, s)
@@ -1408,6 +1424,16 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 	switch target {
 	case popList:
+		if e.groupsShown() {
+			e.groupsTop = max(0, e.groupsTop+editorWheelRows(&e.listWheel, wheel))
+			return
+		}
+		if s, ok := e.listSpec(); ok && s.Grid != nil {
+			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
+				e.placeGridWheel(l, editorWheelRows(&e.listWheel, wheel))
+				return
+			}
+		}
 		if e.model != nil && e.listKind() != "panel" {
 			rows := editorWheelRows(&e.listWheel, wheel)
 			if e.listKind() == "catalog" {
@@ -1476,6 +1502,12 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		case promptAreaShared:
 			e.areaSharedPress(p)
 			return
+		case promptToGroup:
+			e.toGroupPress(p, double)
+			return
+		case promptGroupWarn:
+			e.groupWarnPress(p)
+			return
 		}
 		s, _ := e.promptSpec()
 		part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p)
@@ -1500,6 +1532,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.panelPress(p)
 			return
 		}
+		if e.groupsShown() {
+			e.groupsPress(p)
+			return
+		}
 		s, _ := e.listSpec()
 		l := layoutPopup(s, e.font, e.bodyFont())
 		if len(e.report.goals) > 0 {
@@ -1517,6 +1553,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			if row, k, ok := l.rowButtonAt(p); ok && e.listKind() == "brush" {
 				e.brushRowButton(row, k)
 			}
+		case popupGridPart:
+			e.placeChoose(n)
 		case popupListRow:
 			top, count := e.model.Visible()
 			if n >= count {
@@ -1543,6 +1581,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 // objectPress is a press on the object popup.
 func (e *MapEditor) objectPress(p image.Point) {
 	if e.openDropdownPress(p) {
+		return
+	}
+	if _, ok := e.selectionSpec(); ok {
+		e.selectionPress(p)
 		return
 	}
 	s, links, _ := e.objectSpec()

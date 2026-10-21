@@ -337,12 +337,17 @@ func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 	e, _ := popupEditor(t)
 	_ = e.Open("popups")
 	chromeClick(e, barPoint(t, e, "groups"))
-	e.listSpec()
-	rows := e.model.Rows()
-	if len(rows) != 4 {
-		t.Fatalf("groups %v", rows)
+	s0, acts := e.groupsSpec()
+	n := 0
+	for _, a := range acts {
+		if a.group.set {
+			n++
+		}
 	}
-	chromeClick(e, listRowPoint(t, e, 0)) // player 1, group 1: units 0 and 2
+	if n != 4 {
+		t.Fatalf("groups %+v", s0.Rows)
+	}
+	openGroup(t, e) // player 1, group 1: units 0 and 2
 	if got := fmt.Sprint(e.GroupMembers()); got != "[0 2]" {
 		t.Fatalf("group members %s", got)
 	}

@@ -127,7 +127,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	e = opened()
 	r, ok = e.BarRect("groups")
 	click(e, r, ok, "the Groups entry")
-	r, ok = e.ListRowRect(1)
+	r, ok = e.GroupsRowRect(2, 15, false)
 	click(e, r, ok, "the second group")
 	if len(e.GroupMembers()) == 0 {
 		t.Fatal("the second group has no members")

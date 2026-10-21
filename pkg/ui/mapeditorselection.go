@@ -50,6 +50,7 @@ type selectionState struct {
 	refusals []string
 	clip     InspectionClip
 	marquee  *selectionMarquee
+	hidden   bool // the selection's popup is closed
 }
 
 // selectionMarquee is a Shift press on the map: the frame point it began at
@@ -58,6 +59,9 @@ type selectionMarquee struct {
 	start    image.Point
 	from, to image.Point
 	moved    bool
+	// box is a plain press: its drag selects the open tab's kinds and its
+	// click selects as a click on the map does.
+	box bool
 }
 
 // selectable reports a record kind the group selection takes: the kinds a
@@ -103,6 +107,7 @@ func (e *MapEditor) setSelection(refs []RecordRef) {
 		e.selected = -1
 	}
 	e.selection.refs = slices.Clone(refs)
+	e.selection.hidden = false
 	e.objectHidden = len(refs) > 1
 }
 
@@ -146,13 +151,56 @@ func (e *MapEditor) marqueePointer(in Input, p image.Point, rail int) bool {
 	}
 	if !in.PrimaryDown {
 		e.selection.marquee = nil
-		if m.moved {
+		switch {
+		case m.box && m.moved:
+			e.selectCellsOf(m.from, m.to, e.boxKinds())
+		case m.box:
+			e.selectAt(m.start)
+		case m.moved:
 			e.selectCells(m.from, m.to)
-		} else {
+		default:
 			e.toggleAt(m.start)
 		}
 	}
 	return true
+}
+
+// boxPointer starts a selection box: a plain press on the map that no tool,
+// pick or record drag took. Its drag draws the box; a press that does not
+// move is a click on the map. The map pans with the middle button and the
+// arrow keys.
+func (e *MapEditor) boxPointer(in Input, p image.Point, rail int) bool {
+	if in.Shift || !in.PrimaryDown || e.down || e.recordDrag != nil || e.cancelledDrag || !e.free() || e.blocksCanvas() || e.brushActive() {
+		return false
+	}
+	if !p.In(image.Rect(0, 0, rail, e.doc.Viewer.cam.ViewH)) {
+		return false
+	}
+	cell, ok := e.selectionCell(p)
+	if !ok {
+		return false
+	}
+	e.selection.marquee = &selectionMarquee{start: p, from: cell, to: cell, box: true}
+	e.down = true
+	e.doc.Viewer.dragging = false
+	return true
+}
+
+// boxKinds are the record kinds a selection box takes: the open tab's kind
+// on the Units, Structures and Sacks tabs, units on the Groups tab, else
+// every kind a selection takes.
+func (e *MapEditor) boxKinds() []string {
+	if e.listShown && e.listKind() == "records" {
+		switch e.filter {
+		case 1, editorGroupsFilter:
+			return []string{"Unit"}
+		case 2:
+			return []string{"Structure"}
+		case 3:
+			return []string{"Sack"}
+		}
+	}
+	return nil
 }
 
 // cellBox is the cell rectangle with corners a and b, both inside it.
@@ -162,11 +210,15 @@ func cellBox(a, b image.Point) image.Rectangle {
 
 // selectCells makes the group every unit, structure and sack whose cell lies
 // in the rectangle with corners a and b.
-func (e *MapEditor) selectCells(a, b image.Point) {
+func (e *MapEditor) selectCells(a, b image.Point) { e.selectCellsOf(a, b, nil) }
+
+// selectCellsOf is selectCells over kinds only; no kinds is every kind a
+// selection takes.
+func (e *MapEditor) selectCellsOf(a, b image.Point, kinds []string) {
 	box := cellBox(a, b)
 	var refs []RecordRef
 	for _, r := range e.doc.Records {
-		if selectable(r.Kind) && r.Spatial && r.Cell.In(box) {
+		if selectable(r.Kind) && r.Spatial && r.Cell.In(box) && (len(kinds) == 0 || slices.Contains(kinds, r.Kind)) {
 			refs = append(refs, RecordRef{r.Kind, r.Index})
 		}
 	}
@@ -222,6 +274,10 @@ func (e *MapEditor) selectionRefs() []RecordRef {
 	return nil
 }
 
+// SelectedRecords are the records the selection holds, else the selected
+// record when a selection can hold it: what a group action takes.
+func (e *MapEditor) SelectedRecords() []RecordRef { return slices.Clone(e.selectionRefs()) }
+
 func (e *MapEditor) selectionHost() (InspectionSelection, bool) {
 	if !e.editable() {
 		return nil, false
@@ -268,8 +324,17 @@ func (e *MapEditor) selectionKey(key string) error {
 	return e.adoptSelection(h.PasteRecords(e.selection.clip, e.hoverCell))
 }
 
-// deleteSelection removes the group as one edit.
+// deleteSelection removes the group as one edit, after asking when it empties
+// a group a trigger names.
 func (e *MapEditor) deleteSelection() error {
+	if _, ok := e.selectionHost(); ok && e.askDelete(e.selection.refs, false) {
+		return nil
+	}
+	return e.deleteRecords()
+}
+
+// deleteRecords removes the group as one edit.
+func (e *MapEditor) deleteRecords() error {
 	h, ok := e.selectionHost()
 	if !ok {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)

@@ -53,8 +53,11 @@ func (e *MapEditor) objectUses() []InspectionScriptUse {
 	return nil
 }
 
-func (e *MapEditor) usedByRows() []scriptPopupLink {
-	uses := e.objectUses()
+func (e *MapEditor) usedByRows() []scriptPopupLink { return e.usesRows(e.objectUses()) }
+
+// usesRows are the rows naming uses: one per trigger whose nodes name the
+// value, with those nodes, then one per node no trigger runs.
+func (e *MapEditor) usesRows(uses []InspectionScriptUse) []scriptPopupLink {
 	var rows []scriptPopupLink
 	if e.doc.Script != nil {
 		for _, trigger := range e.doc.Script.Triggers {

@@ -95,9 +95,6 @@ var addKinds = []addKindRow{
 		{Key: "kind", Word: "editor.add.kind", Control: addSprites}, addOwner, addAt}},
 	{Kind: "Sack", Word: "editor.add.sack", Filters: []int{3}, Steps: []addStep{
 		addAt, {Key: "item", Word: "editor.add.items", Control: addMany}}},
-	{Kind: "Group", Word: "editor.add.group", Filters: []int{editorGroupsFilter}, Steps: []addStep{
-		addOwner, {Key: "group", Word: "editor.add.number", Control: addNumber},
-		{Key: "member", Word: "editor.group.members", Control: addMany}}},
 	{Kind: "Player", Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
 		addNamed, {Key: "colour", Word: "editor.add.colour", Control: addNumber},
 		{Key: "control", Word: "editor.add.control", Control: addChoice}}},
@@ -148,6 +145,12 @@ type addRun struct {
 	offer      InspectionNewStep
 	list       *Picker
 	note       string
+	// repeat keeps the window and its cell pick after each record it adds,
+	// so the map takes copy after copy; placed counts them and stroke is a
+	// press held over the map.
+	repeat bool
+	placed int
+	stroke *placeStroke
 }
 
 func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
@@ -467,24 +470,7 @@ func (e *MapEditor) addFinish() {
 		}
 		return
 	}
-	if r.kind != "Group" {
-		e.selectNewest(r.kind)
-		return
-	}
-	var owner, group int64
-	for _, v := range rec.Values {
-		switch v.Key {
-		case "owner":
-			owner = v.Value
-		case "group":
-			group = v.Value
-		}
-	}
-	for _, g := range e.groups() {
-		if int64(g.player) == owner && int64(g.group) == group {
-			e.chooseGroup(g)
-		}
-	}
+	e.selectNewest(r.kind)
 }
 
 // addMove steps the asked step's list by delta and takes its value.
@@ -538,6 +524,11 @@ func (e *MapEditor) addPicked(cell image.Point) {
 		return
 	}
 	if next != nil && e.adoptEdit(next, nil) == nil {
+		if r.repeat {
+			e.placedNote(r)
+			e.keepPick(pickAddCell)
+			return
+		}
 		e.leave(leavePrompt)
 		e.selectNewest(r.kind)
 	}

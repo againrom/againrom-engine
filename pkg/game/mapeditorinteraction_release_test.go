@@ -75,7 +75,7 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 				}
 				check(selected, mark)
 			}
-			for _, bar := range []string{"groups", "players", "scripts"} {
+			for _, bar := range []string{"players", "scripts"} {
 				r, ok := e.BarRect(bar)
 				trigClick(t, e, r, ok, bar)
 				selected, mark := e.Selected(), s.model.Mark()

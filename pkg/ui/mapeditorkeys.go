@@ -70,6 +70,7 @@ const (
 	unlistedPrompt   = "the prompt names it"
 	unlistedRail     = "the rail has a button for it"
 	unlistedWindow   = "a window control, not a map edit"
+	unlistedGroups   = "the 1..9 and Ctrl+1..9 help lines name it"
 )
 
 var (
@@ -116,6 +117,10 @@ var (
 	lineBack          = helpLine{Word: "editor.keys.back"}
 	lineSelectionMove = helpLine{Word: "editor.keys.selectionmove"}
 	lineSelectionEsc  = helpLine{Word: "editor.keys.selectionclear"}
+	lineSelectBox     = helpLine{Word: "editor.keys.selectbox"}
+	lineGroups        = helpLine{Word: "editor.keys.groups"}
+	lineToGroup       = helpLine{Word: "editor.keys.togroup"}
+	linePlace         = helpLine{Word: "editor.keys.place"}
 )
 
 func init() {
@@ -154,6 +159,9 @@ func init() {
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
 		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
+		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenAddCell, linePlace}}},
+		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},
+		{label: "Ctrl+1..9", help: []helpEntry{{screenKeys, lineToGroup}, {screenSelection, lineToGroup}}},
 		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},
 		{key: "copy", label: "Ctrl+C", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
 		{key: "paste", label: "Ctrl+V", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
@@ -176,6 +184,12 @@ func init() {
 		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "home", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 		{key: "end", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
+	}
+	// 1..9 choose a group and frame it; Ctrl+1..9 put the selection in it.
+	for n := '1'; n <= '9'; n++ {
+		editorKeyRows = append(editorKeyRows,
+			keyRow{key: "group" + string(n), act: (*MapEditor).groupKey, unlisted: unlistedGroups},
+			keyRow{key: "togroup" + string(n), act: (*MapEditor).groupKey, unlisted: unlistedGroups})
 	}
 	editorKeyByName = map[string]*keyRow{}
 	for i := range editorKeyRows {
@@ -428,6 +442,12 @@ func (e *MapEditor) keyEnter(string) error {
 		return nil
 	case promptAreaShared:
 		e.areaSharedContinue()
+		return nil
+	case promptToGroup:
+		e.toGroupChosen()
+		return nil
+	case promptGroupWarn:
+		e.groupWarnGo()
 		return nil
 	case promptAdd:
 		e.addNext()

@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"sort"
 	"testing"
 	"time"
 
@@ -19,31 +18,6 @@ func groupMembersOf(d *ui.InspectionDocument, player, group int) []int {
 		}
 	}
 	return out
-}
-
-// groupRowOf is the Groups list row of one player's group.
-func groupRowOf(d *ui.InspectionDocument, player, group int) int {
-	type pg struct{ p, g int }
-	seen := map[pg]bool{}
-	var all []pg
-	for _, r := range d.Records {
-		if r.Kind == "Unit" && r.Group != 0 && !seen[pg{r.Player, r.Group}] {
-			seen[pg{r.Player, r.Group}] = true
-			all = append(all, pg{r.Player, r.Group})
-		}
-	}
-	sort.SliceStable(all, func(a, b int) bool {
-		if all[a].p != all[b].p {
-			return all[a].p < all[b].p
-		}
-		return all[a].g < all[b].g
-	})
-	for n, k := range all {
-		if k.p == player && k.g == group {
-			return n
-		}
-	}
-	return -1
 }
 
 func clickRect(e *ui.MapEditor, r image.Rectangle, ok bool, now *time.Time) bool {
@@ -78,15 +52,11 @@ func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
 	if len(e.Document().Records) != records-1 {
 		t.Fatal("the deletion did not remove record 0")
 	}
-	row := groupRowOf(e.Document(), 2, 2)
-	if row < 0 {
-		t.Fatal("player 2 has no group 2 after the deletion")
-	}
 	r, ok := e.BarRect("groups")
 	clickRect(e, r, ok, &now)
-	r, ok = e.ListRowRect(row)
+	r, ok = e.GroupsRowRect(2, 2, false)
 	if !clickRect(e, r, ok, &now) {
-		t.Fatalf("group row %d is not shown", row)
+		t.Fatal("the Groups window shows no row of player 2's group 2 after the deletion")
 	}
 	check := func(step string) {
 		t.Helper()

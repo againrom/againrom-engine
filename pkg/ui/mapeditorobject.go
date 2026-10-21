@@ -608,6 +608,7 @@ func (e *MapEditor) closeObject() {
 	e.obj.open, e.obj.focus = -1, -1
 	e.groupSel = editorGroup{}
 	e.objectBack = nil
+	e.selection.hidden = true
 }
 
 // followReference frames reference n and, when it names one record's cell,
@@ -673,15 +674,26 @@ func (e *MapEditor) groupLabel(g editorGroup) string {
 	return fmt.Sprintf("%s %d  P%d  %d %s", e.word("editor.group.group"), g.group, g.player, len(g.members), e.word("editor.group.units"))
 }
 
-// chooseGroup highlights a group's members, frames them and opens the group
-// popup.
-func (e *MapEditor) chooseGroup(g editorGroup) {
+// chooseGroup selects a group's members, highlights them and opens the
+// group popup; with frame set the view centres on the members' middle.
+func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
 	e.messagePage = 0
 	e.selected, e.focusedReference = -1, 0
 	e.objectBack = nil
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0
-	if len(g.members) > 0 {
-		e.centerOn(e.doc.Records[g.members[0]].Cell)
+	e.selection.refs, e.selection.marquee, e.selection.hidden = nil, nil, false
+	var box image.Rectangle
+	for k, id := range g.members {
+		r := e.doc.Records[id]
+		e.selection.refs = append(e.selection.refs, RecordRef{r.Kind, r.Index})
+		if cell := (image.Rectangle{Min: r.Cell, Max: r.Cell.Add(image.Pt(1, 1))}); k == 0 {
+			box = cell
+		} else {
+			box = box.Union(cell)
+		}
+	}
+	if frame && len(g.members) > 0 {
+		e.centerOn(image.Pt((box.Min.X+box.Max.X-1)/2, (box.Min.Y+box.Max.Y-1)/2))
 	}
 }
 

@@ -101,7 +101,7 @@ func (e *MapEditor) backObject() {
 			}
 		}
 	} else if p.group.set {
-		e.chooseGroup(p.group)
+		e.chooseGroup(p.group, true)
 		e.refreshGroup()
 	} else {
 		for i, r := range e.doc.Records {
@@ -179,7 +179,7 @@ func (e *MapEditor) openParameter(field int) {
 	}
 	if len(g.members) > 0 {
 		back := append(e.objectBack, e.objectPlace())
-		e.chooseGroup(g)
+		e.chooseGroup(g, true)
 		e.objectBack = back
 	}
 }

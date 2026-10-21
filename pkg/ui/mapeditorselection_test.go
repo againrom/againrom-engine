@@ -65,11 +65,21 @@ func TestMapEditorRectangleSelectsExactlyTheRecordsInside(t *testing.T) {
 			t.Errorf("rectangle %v-%v selected %v, want %v", c.a, c.b, e.selection.refs, c.want)
 		}
 	}
-	// Control: the same drag without Shift selects nothing.
+	// A plain drag from bare ground draws the same box; with a brush on, the
+	// drag is the brush's and selects nothing.
 	e, _ := newModesEditor(t, "full")
 	selectionDrag(e, image.Pt(9, 9), image.Pt(20, 10), false)
+	if !slices.Equal(e.selection.refs, []RecordRef{refUnit0, refUnit1}) {
+		t.Errorf("a plain drag selected %v", e.selection.refs)
+	}
+	e, _ = newModesEditor(t, "full")
+	e.brush.mode = brushTerrain
+	if !e.brushActive() {
+		t.Fatal("the fixture has no terrain brush")
+	}
+	selectionDrag(e, image.Pt(9, 9), image.Pt(20, 10), false)
 	if len(e.selection.refs) != 0 {
-		t.Errorf("a drag without Shift selected %v", e.selection.refs)
+		t.Errorf("a brush drag selected %v", e.selection.refs)
 	}
 }
 
@@ -182,7 +192,7 @@ func russianWord(s string) bool {
 	cyrillic := false
 	for _, f := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '+' && !unicode.IsDigit(r) }) {
 		switch f {
-		case "Shift", "Alt", "Ctrl+C", "Ctrl+V", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
+		case "Shift", "Alt", "Ctrl+C", "Ctrl+V", "Ctrl+1", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
 			continue
 		}
 		if len(f) == 1 && f[0] >= 'A' && f[0] <= 'Z' {

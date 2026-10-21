@@ -81,7 +81,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 			filters[f] = k.Kind
 		}
 	}
-	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"}
+	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script"}
 	for f, kind := range want {
 		if filters[f] != kind {
 			t.Errorf("list %d adds %q, want %q", f, filters[f], kind)
@@ -124,7 +124,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("key %s opened %q, wrote %v", c.key, addKindNow(e), calls.lines)
 		}
 	}
-	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script", editorGroupsFilter: "Group"} {
+	for f, kind := range map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script"} {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		_ = e.Key("player")
@@ -320,9 +320,9 @@ func TestMapEditorAddTierBackAndRefusal(t *testing.T) {
 }
 
 // A many step adds each value once, removes one by its button, and does not
-// go on empty. A group adds its members; a script record names its kind
-// first and then asks that kind's steps.
-func TestMapEditorAddManyGroupAndScriptKinds(t *testing.T) {
+// go on empty. A script record names its kind first and then asks that
+// kind's steps.
+func TestMapEditorAddManyAndScriptKinds(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("sack")
 	addAdvance(t, e, 1)
@@ -352,16 +352,6 @@ func TestMapEditorAddManyGroupAndScriptKinds(t *testing.T) {
 	_ = e.Key("enter")
 	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Sack (25,20) true [{item 2 false  false}]") {
 		t.Fatal("the sack add is wrong", calls.lines)
-	}
-
-	e, calls = newModesEditor(t, "full")
-	e.showRecords(editorGroupsFilter)
-	_ = e.Key("player")
-	for n := 0; n < 8 && addKindNow(e) != ""; n++ {
-		addAdvance(t, e, 1)
-	}
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Group (0,0) false [{owner 1 false  false} {group 1 false  false} {member 1 false  false}]") {
-		t.Fatal("the group add is wrong", calls.lines)
 	}
 
 	e, calls = newModesEditor(t, "full")

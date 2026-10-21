@@ -12,7 +12,11 @@ func openGroup(t *testing.T, e *MapEditor) {
 	t.Helper()
 	chromeClick(e, barPoint(t, e, "groups"))
 	e.listSpec()
-	chromeClick(e, listRowPoint(t, e, 0)) // player 1, group 1: units 0 and 2
+	r, ok := e.GroupsRowRect(1, 1, false) // player 1, group 1: units 0 and 2
+	if !ok {
+		t.Fatal("the Groups window shows no row of player 1's group 1")
+	}
+	chromeClick(e, center(r))
 }
 
 // groupLinks are the records the group popup's member rows open.
@@ -40,7 +44,7 @@ func TestEditorLargeGroupKeepsBackInsidePopup(t *testing.T) {
 		for i := 0; i < 32; i++ {
 			g.members = append(g.members, 0)
 		}
-		e.chooseGroup(g)
+		e.chooseGroup(g, true)
 		e.objectBack = []objectPlace{{kind: "Unit", index: 0}}
 		_, l := objectLayout(t, e)
 		if len(l.Buttons) != 1 || !l.Buttons[0].In(l.Rect) || !l.Buttons[0].In(e.popupBounds()) {
@@ -92,9 +96,9 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 	if _, _, ok := e.groupSpec(); ok || len(e.GroupMembers()) != 0 {
 		t.Fatal("the group popup stayed open with no member")
 	}
-	// The Groups list is rebuilt from the document.
-	if e.model.Len() != 1 || e.listKind() != "records" {
-		t.Logf("list kind %q rows %d", e.listKind(), e.model.Len())
+	// The Groups window is rebuilt from the document: group 1 is gone.
+	if _, ok := e.GroupsRowRect(1, 1, false); ok || !e.groupsShown() {
+		t.Fatalf("the Groups window still shows group 1: %q", e.GroupsText())
 	}
 }
 

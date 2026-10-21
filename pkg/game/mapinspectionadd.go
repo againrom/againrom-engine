@@ -56,16 +56,6 @@ var newRecordKinds = map[string]newRecordKind{
 			}
 			return nil
 		}},
-	// A group is its members' group field, set as each unit's popup sets it.
-	"Group": {required: []string{"owner", "group", "member"},
-		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
-			for _, i := range recordValues(r, "member") {
-				if _, err := s.SetFields("Unit", int(i), []ui.InspectionFieldValue{{Key: "group", Value: recordValue(r, "group")}}); err != nil {
-					return err
-				}
-			}
-			return nil
-		}},
 	"Player": {edit: "Player", add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
 		_, err := s.AddPlayer()
 		return err
@@ -217,7 +207,6 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	if err != nil {
 		return err
 	}
-	owner := recordValue(r, "owner")
 	for _, v := range recordValues(r, key) {
 		switch key {
 		case "class":
@@ -255,32 +244,6 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 			if err := s.inspector.checkItem(v); err != nil {
 				return err
 			}
-		case "group":
-			if v < 1 || v > math.MaxUint32 {
-				return fmt.Errorf("group number %d is outside 1..%d", v, uint32(math.MaxUint32))
-			}
-			other := int64(-1)
-			for _, u := range view.AuthoredUnits {
-				if int64(u.GroupID) != v {
-					continue
-				}
-				if int64(u.Owner) == owner {
-					return fmt.Errorf("player %d already has group %d", owner, v)
-				}
-				if other < 0 {
-					other = int64(u.Owner)
-				}
-			}
-			if other >= 0 {
-				return fmt.Errorf(s.inspector.word("editor.add.group.other"), v, other)
-			}
-		case "member":
-			if v < 0 || v >= int64(len(view.AuthoredUnits)) {
-				return fmt.Errorf("no unit %d", v)
-			}
-			if u := view.AuthoredUnits[v]; int64(u.Owner) != owner {
-				return fmt.Errorf("unit %d belongs to player %d, not %d", v, u.Owner, owner)
-			}
 		}
 	}
 	if key == "cell" && r.HasCell {
@@ -310,19 +273,12 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		first()
 	case "item":
 		out.Choices = s.RecordChoices("Sack", -1, "item")
-	case "group":
-		out.Value = s.freeGroup()
-	case "member":
-		out.Choices = s.memberChoices(recordValue(r, "owner"), recordValue(r, "group"))
 	case "cell":
 	default:
 		out.Value, out.Text = s.newFieldDefault(r, key)
 		switch key {
 		case "owner":
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
-			if r.Kind == "Group" {
-				first()
-			}
 		case "control":
 			out.Choices = []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.human"))},
 				{Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.computer"))}}
@@ -390,29 +346,6 @@ func (s *mapInspectionEdits) freeGroup() int64 {
 		n++
 	}
 	return n
-}
-
-// memberChoices are owner's units outside group, by index: "<index>: <class
-// name>  <x>,<y>".
-func (s *mapInspectionEdits) memberChoices(owner, group int64) []ui.InspectionChoice {
-	view, err := s.model.Map()
-	if err != nil {
-		return nil
-	}
-	var out []ui.InspectionChoice
-	for i, u := range view.AuthoredUnits {
-		if int64(u.Owner) != owner || int64(u.GroupID) == group {
-			continue
-		}
-		name := fmt.Sprintf("class %d", u.ClassID)
-		if s.inspector.units != nil {
-			if c := s.inspector.units.Classes[int32(u.ClassID)]; c != nil {
-				name = c.Name
-			}
-		}
-		out = append(out, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("%d: %s  %d,%d", i, name, u.X>>8, u.Y>>8)})
-	}
-	return out
 }
 
 // NewRecordPreview is a unit class's standing sprite or a structure kind's

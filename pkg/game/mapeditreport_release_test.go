@@ -137,8 +137,15 @@ func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
 	}
 	postStock := bytes.Clone(e.Document().SourceBytes)
 	e.Select(recordOf(e.Document(), "Unit", unit), false)
-	if err := e.Key("delete"); err != nil || !e.Dirty() {
+	if err := e.Key("delete"); err != nil {
 		t.Fatalf("delete: %v", err)
+	}
+	if len(e.PromptNotes()) > 0 {
+		r, ok := e.PromptButtonRect(0)
+		(&editorClicker{t: t}).click(e, r, ok, "Empty it")
+	}
+	if !e.Dirty() {
+		t.Fatal("delete changed nothing")
 	}
 	dir := filepath.Join(t.TempDir(), "mod")
 	if err := os.Mkdir(dir, 0o755); err != nil {

@@ -52,6 +52,10 @@ const (
 	// promptAreaShared warns that an area drag changes a node other
 	// triggers or pairs share, before it writes.
 	promptAreaShared
+	// promptToGroup asks which group the selection's units go to.
+	promptToGroup
+	// promptGroupWarn warns before an edit empties a group a trigger names.
+	promptGroupWarn
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it
@@ -68,6 +72,8 @@ type editorPrompt struct {
 	notice noticeStep
 	// area is what an area prompt holds: the drawn box or the held edit.
 	area *areaPrompt
+	// group is what a group prompt holds: the units and their group.
+	group *groupPrompt
 }
 
 func (p editorPrompt) open() bool { return p.kind != promptNone }

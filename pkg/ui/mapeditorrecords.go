@@ -113,16 +113,10 @@ func (e *MapEditor) recordKey(key string) error {
 		e.armPick(pickClone)
 	case "delete":
 		e.leave(leavePick)
-		next, err := e.doc.Edits.Delete(kind, index)
-		if err := e.adoptEdit(next, err); err != nil {
-			return err
+		if kind == "Unit" && e.askDelete([]RecordRef{{kind, index}}, true) {
+			return nil
 		}
-		e.selected = -1
-		if kind == "Player" && e.filter == editorPlayersFilter {
-			if rows := e.rows(); len(rows) > 0 {
-				e.Select(rows[min(index, len(rows)-1)], false)
-			}
-		}
+		return e.deleteSelected(kind, index)
 	case "field":
 		e.leave(leavePick | leavePrompt)
 		fields := e.promptFields()
@@ -314,4 +308,19 @@ func (e *MapEditor) selectNewest(kind string) {
 		}
 		e.Select(best, false)
 	}
+}
+
+// deleteSelected removes the selected record.
+func (e *MapEditor) deleteSelected(kind string, index int) error {
+	next, err := e.doc.Edits.Delete(kind, index)
+	if err := e.adoptEdit(next, err); err != nil {
+		return err
+	}
+	e.selected = -1
+	if kind == "Player" && e.filter == editorPlayersFilter {
+		if rows := e.rows(); len(rows) > 0 {
+			e.Select(rows[min(index, len(rows)-1)], false)
+		}
+	}
+	return nil
 }

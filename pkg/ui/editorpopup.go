@@ -44,6 +44,56 @@ type popupRow struct {
 	Lines, First int
 	// Hint is an empty edit row's grey text: the value it stands for.
 	Hint string
+	// Icons are pictures drawn after the value, left to right, each square
+	// at the row's height.
+	Icons []*image.RGBA
+}
+
+// popupGrid is a grid of picture cells as data: one widget for every grid
+// of pictures a popup shows. A cell is drawn pressed while it is the chosen
+// one and carries a tick while it is marked. Rows is how many rows show and
+// Top the first row shown; the columns follow the popup's width.
+type popupGrid struct {
+	Cells []popupGridCell
+	Side  int // a cell's side in pixels; zero is gridCellSide
+	Rows  int
+	Top   int
+}
+
+// popupGridCell is one cell of a grid.
+type popupGridCell struct {
+	Icon    *image.RGBA
+	Pressed bool
+	Ticked  bool
+}
+
+// gridCellSide is a grid cell's side when the grid names none.
+const gridCellSide = 44
+
+func (g *popupGrid) side() int {
+	if g.Side > 0 {
+		return g.Side
+	}
+	return gridCellSide
+}
+
+// height is the grid's height in the popup, its gap below included.
+func (g *popupGrid) height() int {
+	if g == nil {
+		return 0
+	}
+	return max(1, g.Rows)*g.side() + popupPad
+}
+
+// columns is how many cells a row of a grid width wide holds, its scroll bar
+// aside.
+func (g *popupGrid) columns(width int) int {
+	return max(1, (width-widgetSpriteSize-2)/g.side())
+}
+
+// totalRows is how many rows the grid's cells fill at cols columns.
+func (g *popupGrid) totalRows(cols int) int {
+	return (len(g.Cells) + cols - 1) / cols
 }
 
 // popupSpec is a popup as data. At is its top-left corner in window pixels,
@@ -86,6 +136,8 @@ type popupSpec struct {
 	// whose own width was narrower than popupMinWidth keeps that width as
 	// its least.
 	MinWidth int
+	// Grid, when set, stands between the rows and the list.
+	Grid *popupGrid
 }
 
 // popupRowRect is the geometry of one shown row.
@@ -111,6 +163,12 @@ type popupLayout struct {
 	// ListRows and RowsFit are the list rows and the scrolled rows the
 	// layout shows: the spec's own, or the ones a sized popup fits.
 	ListRows, RowsFit int
+	// Grid is the grid's box, GridBar its scroll bar, GridCells the shown
+	// cells' boxes from cell GridFirst on, GridCols its columns and GridTop
+	// its first shown row.
+	Grid, GridBar                image.Rectangle
+	GridCells                    []image.Rectangle
+	GridFirst, GridCols, GridTop int
 }
 
 const (
@@ -181,7 +239,7 @@ func popupMinWidth(s popupSpec, body *text.Font) int {
 // the scrolled rows and the extra lines of the first multi-line field, and the
 // least height that keeps them usable. s.Rows is not modified.
 func popupFit(s popupSpec, body *text.Font, pitch, titleH, h int) (listRows, rowsFit, extraLines, minH int) {
-	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad
+	fixed := titleH + popupPad + len(s.Notes)*pitch + popupPad + s.Grid.height()
 	if len(s.Buttons) > 0 {
 		fixed += pitch + 4 + popupPad
 	}
@@ -297,6 +355,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			h += (multilineRows(row) - 1) * pitch
 		}
 	}
+	h += s.Grid.height()
 	var list listBox
 	if s.List != nil {
 		list = newListBox(image.Rect(0, 0, w-2*popupPad-widgetSpriteSize, 0), max(1, s.ListRows), body)
@@ -381,6 +440,22 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		l.Rows = append(l.Rows, rr)
 		y += rowH
 	}
+	if g := s.Grid; g != nil {
+		side, shown := g.side(), max(1, g.Rows)
+		l.GridCols = g.columns(r.Dx() - 2*popupPad)
+		total := g.totalRows(l.GridCols)
+		l.GridTop = max(0, min(g.Top, total-shown))
+		l.Grid = image.Rect(r.Min.X+popupPad, y, r.Min.X+popupPad+l.GridCols*side, y+shown*side)
+		if total > shown {
+			l.GridBar = image.Rect(r.Max.X-popupPad-widgetSpriteSize, y, r.Max.X-popupPad, l.Grid.Max.Y)
+		}
+		l.GridFirst = l.GridTop * l.GridCols
+		for i := l.GridFirst; i < len(g.Cells) && i < l.GridFirst+shown*l.GridCols; i++ {
+			at := image.Pt(l.Grid.Min.X+(i-l.GridFirst)%l.GridCols*side, y+(i-l.GridFirst)/l.GridCols*side)
+			l.GridCells = append(l.GridCells, image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}.Inset(1))
+		}
+		y += g.height()
+	}
 	if s.List != nil {
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
 		l.HasList = true
@@ -449,6 +524,8 @@ const (
 	popupListRow                     // a list row
 	popupListBar                     // the list's scroll bar
 	popupButton                      // a button of the button row
+	popupGridPart                    // a grid cell; the index is the cell's
+	popupGridBar                     // the grid's scroll bar
 )
 
 // hit reports the part under p and its row, list or button index.
@@ -471,6 +548,14 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 			return popupRowControl, r.Index
 		case p.In(r.Rect):
 			return popupRowLine, r.Index
+		}
+	}
+	if p.In(l.GridBar) {
+		return popupGridBar, 0
+	}
+	for i, c := range l.GridCells {
+		if p.In(c) {
+			return popupGridPart, l.GridFirst + i
 		}
 	}
 	if l.HasList {
@@ -629,9 +714,13 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		default:
 			bodyText(rr.Control, row.Value, value)
 		}
+		drawRowIcons(dst, body, l, rr, row)
 		for k, b := range rr.Buttons {
 			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
 		}
+	}
+	if g := s.Grid; g != nil {
+		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK)
 	}
 	if l.HasList && s.ListText != nil {
 		drawListBox(dst, body, frames, l.List, s.List, s.ListText, pointer, pointerOK)
@@ -642,6 +731,72 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	for i, r := range l.Buttons {
 		disabled := i < len(s.Disabled) && s.Disabled[i]
 		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Hover: pointerOK && pointer.In(r)})
+	}
+}
+
+// drawRowIcons draws a row's pictures after its value, each square at the
+// control's height, as many as the control holds.
+func drawRowIcons(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRect, row popupRow) {
+	if len(row.Icons) == 0 || rr.Control.Empty() {
+		return
+	}
+	x := rr.Control.Min.X + 2
+	if body != nil && row.Value != "" {
+		x += body.Advance(row.Value) + popupPad
+	}
+	side := rr.Control.Dy()
+	clip := dst.SubImage(rr.Control.Intersect(l.Rect)).(*image.RGBA)
+	for _, icon := range row.Icons {
+		if x+side > rr.Control.Max.X {
+			return
+		}
+		if icon != nil && !icon.Bounds().Empty() {
+			editorBlit(clip, icon, addPreviewRect(icon.Bounds().Size(), image.Rect(x, rr.Control.Min.Y, x+side, rr.Control.Max.Y)), false)
+		}
+		x += side + 2
+	}
+}
+
+// drawPopupGrid paints a grid's shown cells, each a push button holding its
+// picture, sunk and framed while chosen and ticked while marked, and the
+// grid's bar.
+func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *popupGrid, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool) {
+	for i, c := range l.GridCells {
+		cell := g.Cells[l.GridFirst+i]
+		drawPushButton(dst, body, pushButton{Rect: c, Literal: true, Pressed: cell.Pressed, Inside: cell.Pressed, Hover: pointerOK && pointer.In(c)})
+		if cell.Pressed {
+			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
+		}
+		if icon := cell.Icon; icon != nil && !icon.Bounds().Empty() {
+			box := c.Inset(4)
+			if cell.Pressed {
+				box = box.Add(image.Pt(1, 1))
+			}
+			editorBlit(dst.SubImage(c.Inset(2)).(*image.RGBA), icon, addPreviewRect(icon.Bounds().Size(), box), false)
+		}
+		if cell.Ticked {
+			drawGridTick(dst, c, ink.Edge)
+		}
+	}
+	if !l.GridBar.Empty() {
+		bar := vScrollBar{Rect: l.GridBar, Pos: l.GridTop, Count: g.totalRows(l.GridCols) - max(1, g.Rows) + 1}
+		drawVScrollBar(dst, frames, bar.withPointer(pointer, pointerOK))
+	}
+}
+
+// drawGridTick draws a tick in the top-right corner of cell c.
+func drawGridTick(dst *image.RGBA, c image.Rectangle, ink color.RGBA) {
+	x, y := c.Max.X-13, c.Min.Y+6
+	for i := 0; i < 10; i++ {
+		py := y - i/2 + 2
+		if i < 3 {
+			py = y + i
+		}
+		for d := 0; d < 2; d++ {
+			if p := image.Pt(x+i, py+d); p.In(dst.Bounds()) {
+				dst.SetRGBA(p.X, p.Y, ink)
+			}
+		}
 	}
 }
 
