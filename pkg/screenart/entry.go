@@ -10,6 +10,7 @@ package screenart
 import (
 	"fmt"
 	"image"
+	"strings"
 )
 
 // Point is a width and height, or an x and y.
@@ -101,7 +102,7 @@ func Check(entries []Entry) error {
 			known = known || e.Format == f
 		}
 		if !known {
-			return fmt.Errorf("art %q has unknown format %q", e.Name, e.Format)
+			return fmt.Errorf("art %q has unknown format %q; accepted: %s", e.Name, e.Format, strings.Join(Formats, ", "))
 		}
 		if e.Name == "" || e.Key == "" {
 			return fmt.Errorf("art entry without name or key")

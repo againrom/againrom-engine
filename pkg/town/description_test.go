@@ -119,3 +119,31 @@ func TestDecodeAcceptsUnequalPicksThatCanDiffer(t *testing.T) {
 			obj{"position": "d", "unequal": "b", "pick": obj{"draw": "g", "n": 2}}}})
 	mustDecode(t, d)
 }
+
+// A refusal of a name the format does not take lists the values it does.
+func TestDecodeRefusalsListTheAcceptedValues(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		mutate func(obj)
+		want   string
+	}{
+		{"clock compare", func(d obj) { d["clock"].(obj)["compare"] = "x" },
+			`clock compare "x"; accepted: greater, at-least`},
+		{"art format", func(d obj) { d["art"].(list)[0].(obj)["format"] = "" },
+			`has unknown format ""; accepted: picture, series, sprites, frame, mask`},
+		{"layer mode", func(d obj) { d["layers"].(list)[0].(obj)["mode"] = "" },
+			`has unknown mode ""; accepted: copy, over`},
+		{"square hook", func(d obj) { d["square"].(obj)["enter"].(list)[1].(obj)["hook"] = "zzz" },
+			`square names unknown hook "zzz"; accepted: closed, enter-hook, leave-hook`},
+		{"room page", func(d obj) { d["rooms"].(list)[0].(obj)["page"] = "zzz" },
+			`names unknown page "zzz"; accepted: inn`},
+		{"actor program", func(d obj) { d["actors"].(list)[0].(obj)["program"] = "zzz" },
+			`has unknown program "zzz"; accepted: episode, pendulum,`},
+	} {
+		d := baseTown()
+		c.mutate(d)
+		if _, err := decodeJSON(t, d); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v, want %q", c.name, err, c.want)
+		}
+	}
+}

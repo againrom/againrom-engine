@@ -2,6 +2,7 @@ package town
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"againrom/pkg/screenart"
@@ -23,7 +24,7 @@ func (d *Description) Validate() error {
 		return fail("view size %v", d.View.Size)
 	}
 	if d.Clock.Compare != "greater" && d.Clock.Compare != "at-least" {
-		return fail("clock compare %q", d.Clock.Compare)
+		return fail("clock compare %q%s", d.Clock.Compare, accepted(compares...))
 	}
 	if d.Clock.PeriodMS <= 0 {
 		return fail("clock period %d ms", d.Clock.PeriodMS)
@@ -58,7 +59,7 @@ func validateStep(s Step, where string, fail func(string, ...any) error) error {
 		return fail("%s has a step with neither or both of composer and hook", where)
 	}
 	if s.Composer != "" && s.Composer != "reset" {
-		return fail("%s has unknown composer step %q", where, s.Composer)
+		return fail("%s has unknown composer step %q%s", where, s.Composer, accepted("reset"))
 	}
 	return nil
 }
@@ -107,7 +108,7 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 			return fail("seats need columns, rows and a first seat")
 		}
 		if s.FrameMS <= 0 || s.Compare != "greater" && s.Compare != "at-least" {
-			return fail("seats need a frame period and its compare")
+			return fail("seats need a frame period and its compare, one of %s", strings.Join(compares, ", "))
 		}
 		for _, name := range []string{s.Back, s.Actor} {
 			if err := needArt("seats", name); err != nil {
@@ -263,7 +264,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 				return fail("mask art %q in a scene without a view size", a.Name)
 			}
 		default:
-			return fail("art %q has unknown format %q", a.Name, a.Format)
+			return fail("art %q has unknown format %q%s", a.Name, a.Format, accepted(screenart.Formats...))
 		}
 		if a.Name == "" || a.Key == "" {
 			return fail("art entry without name or key")
@@ -327,18 +328,18 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 			return fail("clock %q period %d ms", c.Name, *c.PeriodMS)
 		}
 		if c.Compare != "greater" && c.Compare != "at-least" {
-			return fail("clock %q compare %q", c.Name, c.Compare)
+			return fail("clock %q compare %q%s", c.Name, c.Compare, accepted(compares...))
 		}
 		switch c.Rebase {
 		case "", "every", "after-first":
 		default:
-			return fail("clock %q rebase %q", c.Name, c.Rebase)
+			return fail("clock %q rebase %q%s", c.Name, c.Rebase, accepted("every", "after-first"))
 		}
 		n.clocks[c.Name] = c
 	}
 	for _, a := range s.Actors {
 		if !listed(programs, a.Program) {
-			return fail("actor %q has unknown program %q", a.Name, a.Program)
+			return fail("actor %q has unknown program %q%s", a.Name, a.Program, accepted(programs...))
 		}
 		n.programs[a.Name] = a.Program
 		n.endpoints[a.Name] = len(a.Endpoints)
@@ -400,7 +401,7 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 			return fail("%s names unknown actor %q", where, l.Actor)
 		}
 		if l.Mode != "copy" && l.Mode != "over" {
-			return fail("%s has unknown mode %q", where, l.Mode)
+			return fail("%s has unknown mode %q%s", where, l.Mode, accepted("copy", "over"))
 		}
 		if l.When != nil {
 			if err := n.checkWhen(where, *l.When); err != nil {
@@ -825,7 +826,7 @@ func (n *sceneNames) validateFamilies(a ActorSpec, where string, fail func(strin
 			return err
 		}
 		if m.Mode != "episode" && m.Mode != "loop" {
-			return fail("member %q has unknown mode %q", m.Name, m.Mode)
+			return fail("member %q has unknown mode %q%s", m.Name, m.Mode, accepted("episode", "loop"))
 		}
 		if m.Mode == "episode" && (m.Later == nil || m.Sheets > 0 && m.SheetPick == nil) {
 			return fail("member %q needs later, and sheet-pick when it has sheets", m.Name)
@@ -952,10 +953,10 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 			continue
 		}
 		if w.Compare != "greater" && w.Compare != "at-least" {
-			return fail("wait compare %q", w.Compare)
+			return fail("wait compare %q%s", w.Compare, accepted(compares...))
 		}
 		if w.Form != "" && w.Form != "scaled" && w.Form != "masked" {
-			return fail("wait form %q", w.Form)
+			return fail("wait form %q%s", w.Form, accepted("scaled", "masked"))
 		}
 		if w.BaseMS < 0 || w.SpanMS < 0 {
 			return fail("negative wait %d+%d ms", w.BaseMS, w.SpanMS)
@@ -971,7 +972,7 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 			continue
 		}
 		if p.Form != "" && p.Form != "scaled" && p.Form != "masked" && p.Form != "modulo" {
-			return fail("pick form %q", p.Form)
+			return fail("pick form %q%s", p.Form, accepted("scaled", "masked", "modulo"))
 		}
 		if p.Form == "modulo" && (p.Raw <= 0 || p.N <= 0) {
 			return fail("a modulo pick needs raw and n")
@@ -999,6 +1000,24 @@ func onlyEqual(p, o PickSpec) bool {
 	return plo == phi && plo >= olo && plo <= ohi
 }
 
+// compares are the comparisons a clock or wait takes.
+var compares = []string{"greater", "at-least"}
+
+// accepted ends a refusal of a name with the values the field takes.
+func accepted(values ...string) string {
+	if len(values) == 0 {
+		return "; this game answers none"
+	}
+	return "; accepted: " + strings.Join(values, ", ")
+}
+
+// sorted is a sorted copy of list.
+func sorted(list []string) []string {
+	out := slices.Clone(list)
+	slices.Sort(out)
+	return out
+}
+
 // checkVocabulary refuses a hook, condition, value, event or page kind name
 // the game does not answer.
 func (d *Description) checkVocabulary(vocab Vocabulary) error {
@@ -1006,7 +1025,7 @@ func (d *Description) checkVocabulary(vocab Vocabulary) error {
 		"event": vocab.Events, "page": vocab.Pages}
 	for _, u := range d.uses() {
 		if !vocab.has(lists[u.kind], u.name) {
-			return fmt.Errorf("town %s: %s names unknown %s %q", d.Town, u.where, u.kind, u.name)
+			return fmt.Errorf("town %s: %s names unknown %s %q%s", d.Town, u.where, u.kind, u.name, accepted(sorted(lists[u.kind])...))
 		}
 	}
 	return nil

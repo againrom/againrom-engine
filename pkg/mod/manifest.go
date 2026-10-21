@@ -19,9 +19,9 @@
 //   - a table header ("[name]" or "[[name]]") ends the top-level keys; every
 //     line after it is ignored.
 //
-// Top-level keys other than those named are skipped without interpreting their
-// values, except that a multi-line array is skipped to its closing bracket.
-// id, title and version are required strings; applies-to is a string or an
+// A top-level key that is not one of manifestKeys is an error. author and
+// description are for people and are not read. id, title and version are
+// required strings; applies-to is a string or an
 // array of strings and defaults to ["common"]. A key given twice is an error.
 package mod
 
@@ -150,12 +150,10 @@ func ParseManifest(data []byte) (Manifest, error) {
 				return Manifest{}, fmt.Errorf("line %d: api: %w", n+1, err)
 			}
 			m.API = v
+		case "author", "description":
+			// Read by people, not by the game.
 		default:
-			depth := bracketDepth(val)
-			for depth > 0 && n+1 < len(lines) {
-				n++
-				depth += bracketDepth(lines[n])
-			}
+			return Manifest{}, fmt.Errorf("line %d: %q is not a mod.toml key; the keys are %s", n+1, key, strings.Join(manifestKeys, ", "))
 		}
 	}
 	for _, f := range []struct{ name, v string }{{"id", m.ID}, {"title", m.Title}, {"version", m.Version}} {
@@ -177,6 +175,10 @@ func ParseManifest(data []byte) (Manifest, error) {
 	}
 	return m, nil
 }
+
+// manifestKeys are the top-level keys of mod.toml, in the order the
+// documentation lists them.
+var manifestKeys = []string{"id", "title", "version", "author", "description", "api", "applies-to", "entry", "requires", "conflicts", "load-after"}
 
 func validKey(k string) bool {
 	if k == "" {

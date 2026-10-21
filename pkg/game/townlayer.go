@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"io/fs"
 	"maps"
 	"slices"
 	"strings"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/render/text"
 	"againrom/pkg/town"
 )
 
@@ -44,9 +46,34 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 		}
 		return b, ok
 	}
-	// A panel draws the install's own byte alphabet, not UTF-8.
-	encode := func(name string) (string, error) { return encodeSaveLabel(name, f.textSelector()) }
-	book, list, err := layerTownBook(townBookOf(f.Archives.Base.Profile), d, c, bounds, encode)
+	// A panel draws the install's own byte alphabet, not UTF-8, and only
+	// with the characters its font has a glyph for.
+	encode := func(name string) (string, error) {
+		shown, err := encodeSaveLabel(name, f.textSelector())
+		if err != nil {
+			return "", err
+		}
+		if font := f.Font.Value(); font != nil {
+			for i, r := range []rune(name) {
+				if g := font.GlyphFor(shown[i]); r != ' ' && (g == nil || !slices.ContainsFunc(g.Pixels, func(p text.Pixel) bool { return p.Painted })) {
+					return "", fmt.Errorf("the install's font has no glyph for %q (%U)", r, r)
+				}
+			}
+		}
+		return shown, nil
+	}
+	profile := f.Archives.Base.Profile
+	in := modTownInstall{
+		Entry: func(key string) bool {
+			_, err := f.Archives.Containers.ReadFile(key)
+			return !errors.Is(err, fs.ErrNotExist)
+		},
+		Track: func(name string) bool { return GameMusic(profile).Known(name) },
+	}
+	if f.SoundBank != nil && f.SoundBank.src != nil {
+		in.Sound = f.SoundBank.holdsNamed
+	}
+	book, list, err := layerTownBook(townBookOf(profile), d, c, bounds, encode, in)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +90,9 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 // applied through the one layer step and judged after each mod. bounds
 // answers the world map's picture bounds for a stated point; encode turns a
 // record's UTF-8 name into the install's alphabet, refusing a character
-// the alphabet lacks.
-func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (image.Rectangle, bool), encode func(string) (string, error)) (*townBook, []mod.Override, error) {
+// the alphabet lacks, and in answers what the install holds for the art,
+// music and sounds a mod's description names.
+func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (image.Rectangle, bool), encode func(string) (string, error), in modTownInstall) (*townBook, []mod.Override, error) {
 	first := d.Records[0]
 	if base == nil {
 		return nil, nil, first.Errorf("this base has no town catalog to layer")
@@ -171,6 +199,9 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 		file := files[e.Description]
 		if file == nil || book.art[desc] != nil {
 			continue
+		}
+		if err := in.check(desc); err != nil {
+			return nil, nil, described[e.Description].Errorf("description %s: %v", file.Path, err)
 		}
 		art, err := readModTownArt(desc, file)
 		if err != nil {
@@ -295,4 +326,77 @@ func (s modTownArtSource) ReadFile(key string) ([]byte, error) {
 		return nil, fmt.Errorf("%s: no archive", key)
 	}
 	return s.install.ReadFile(key)
+}
+
+// modTownInstall answers whether the install holds what a mod's description
+// names. A nil function skips its check: the install has no such archive, or
+// the caller is a test over a bare filesystem.
+type modTownInstall struct {
+	// Entry reports whether the install holds an art address.
+	Entry func(key string) bool
+	// Track reports whether the install's music names a track.
+	Track func(name string) bool
+	// Sound reports whether the install's sounds hold a named sample.
+	Sound func(key string) bool
+}
+
+// check refuses a description that names an art entry, a music track or a
+// sound the install does not hold, naming the field and the value. A "mod:"
+// key names a file of the mod and is read separately.
+func (in modTownInstall) check(d *town.Description) error {
+	if in.Entry != nil {
+		for _, e := range townArtEntries(d) {
+			for _, key := range e.Keys() {
+				if !strings.HasPrefix(key, mod.ModArtPrefix) && !in.Entry(key) {
+					return fmt.Errorf("art %q: key %q is not an entry of the install; use %q for a file of the mod", e.Name, key, mod.ModArtPrefix+"path")
+				}
+			}
+		}
+	}
+	if in.Track != nil {
+		tracks := func(where string, m town.MusicSpec) error {
+			for _, name := range append([]string{m.Track}, m.Tracks...) {
+				if name != "" && !in.Track(name) {
+					return fmt.Errorf("%s: track %q is not a track of the install's music", where, name)
+				}
+			}
+			return nil
+		}
+		if err := tracks("music", d.Music); err != nil {
+			return err
+		}
+		for _, r := range d.Rooms {
+			if r.Music != nil {
+				if err := tracks("room "+r.Name+" music", *r.Music); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	if in.Sound != nil {
+		sounds := func(where string, s town.SoundSpec) error {
+			for _, slot := range s.Slots {
+				if slot.Key != "" && !in.Sound(slot.Key) {
+					return fmt.Errorf("%s: slot %q key %q is not a sound of the install", where, slot.Name, slot.Key)
+				}
+			}
+			for _, t := range s.Triggers {
+				if t.Key != "" && !in.Sound(t.Key) {
+					return fmt.Errorf("%s: trigger %q key %q is not a sound of the install", where, t.On, t.Key)
+				}
+			}
+			return nil
+		}
+		if err := sounds("sounds", d.Sounds); err != nil {
+			return err
+		}
+		for _, r := range d.Rooms {
+			if r.Scene != nil {
+				if err := sounds("room "+r.Name+" sounds", r.Scene.Sounds); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }

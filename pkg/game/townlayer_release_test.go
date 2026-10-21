@@ -198,6 +198,18 @@ func writeTownModPNG(t *testing.T, path string, pix image.Image) {
 func TestReleaseModTownNameDrawsInTheInstallAlphabet(t *testing.T) {
 	mods := eastTownMods(t)
 	setEastTowns(t, mods, strings.NewReplacer(`"West"`, `"Запад"`, `"East"`, `"Восток"`).Replace)
+	if releaseFront(t).textSelector() != text.SelectorConverting {
+		g := releaseFront(t)
+		res := runTownModsFor(t, BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))), mods, "east-town")
+		if err := g.SetMods(res.Rules, res.Set, false); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := g.SetModTowns(res.Towns); err == nil ||
+			!strings.Contains(err.Error(), `mod "east-town": data/towns.toml:4: the name "Запад" cannot be drawn by this install: the install's font has no glyph for`) {
+			t.Fatalf("a Cyrillic name on an install whose font lacks it: %v", err)
+		}
+		return
+	}
 	f := townModFront(t, mods, "east-town")
 	encode := func(name string) string {
 		t.Helper()

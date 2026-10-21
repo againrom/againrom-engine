@@ -246,6 +246,15 @@ func TestCheckRefusesMalformedManifests(t *testing.T) {
 	}
 }
 
+// The refusal of an unknown format lists the formats Load reads.
+func TestCheckListsTheFormatsItAccepts(t *testing.T) {
+	err := Check([]Entry{{Name: "a", Format: "video", Key: "a"}})
+	want := `art "a" has unknown format "video"; accepted: picture, series, sprites, frame, mask`
+	if err == nil || err.Error() != want {
+		t.Fatalf("%v, want %q", err, want)
+	}
+}
+
 // An indexed series takes its first number by its last index: member 0 of
 // series 1 is s1000.bmp and member 0 of series 2 is s2001.bmp.
 func TestIndexedSeriesTakesItsFirstNumberByIndex(t *testing.T) {

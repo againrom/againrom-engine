@@ -1,7 +1,9 @@
 package game
 
 import (
+	"errors"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/base"
 	"againrom/pkg/town"
@@ -192,6 +194,11 @@ func checkTownCatalog(c *town.Catalog, data map[string][]byte, decoded map[strin
 				return town.EntryErrorf(e.ID, "town catalog %s: town %d has no usable description: %s has no room %q", c.Catalog, e.ID, e.Description, room)
 			}
 		}
+		if e.Hooks == townHooksChapters {
+			if err := checkChapterDescription(d); err != nil {
+				return town.EntryErrorf(e.ID, "town catalog %s: town %d has no usable description: %s %v", c.Catalog, e.ID, e.Description, err)
+			}
+		}
 		decoded[e.Description] = d
 	}
 	return nil
@@ -247,4 +254,47 @@ func (b *townBook) chapterTowns() []town.Entry {
 		return []town.Entry{chapterTownEntry}
 	}
 	return out
+}
+
+// chapterSchoolActors are the actors, by name, that the first game's school
+// page drives, each with the program it must run.
+var chapterSchoolActors = []struct{ name, program string }{
+	{"column", "target"}, {"training", "training"}, {"diamond", "bounce"}, {"shine", "cycle"},
+}
+
+// checkChapterDescription is what the first game's town screen needs of a
+// description beyond its rooms, each of which, missing, leaves the party
+// stuck or stops the game on entry: the steps that move the screen between
+// rooms, the scenes of the tavern, shop and school pages, and the school
+// page's four actors. The refusal names the first thing missing.
+func checkChapterDescription(d *town.Description) error {
+	if !runsHook(d.Square.Enter, "set-room") {
+		return errors.New(`square enter steps do not run hook "set-room", so the party never stands on the square`)
+	}
+	for _, name := range townHookSetRooms[townHooksChapters] {
+		r := d.Room(name)
+		if !runsHook(r.Enter, "set-room") {
+			return fmt.Errorf(`room %q enter steps do not run hook "set-room", so the party never enters it`, name)
+		}
+	}
+	if !runsHook(d.Room("gates").Enter, "navigate") {
+		return errors.New(`room "gates" enter steps do not run hook "navigate", so the gates never open the world map`)
+	}
+	for _, name := range []string{"tavern", "shop", "school"} {
+		if d.Room(name).Scene == nil {
+			return fmt.Errorf("room %q has no scene; the %s page is drawn from it", name, name)
+		}
+	}
+	scene := d.Room("school").Scene
+	for _, want := range chapterSchoolActors {
+		if !slices.ContainsFunc(scene.Actors, func(a town.ActorSpec) bool { return a.Name == want.name && a.Program == want.program }) {
+			return fmt.Errorf("room %q scene has no actor %q running program %q; the school page drives it", "school", want.name, want.program)
+		}
+	}
+	return nil
+}
+
+// runsHook reports whether steps run the named campaign hook.
+func runsHook(steps []town.Step, hook string) bool {
+	return slices.ContainsFunc(steps, func(s town.Step) bool { return s.Hook == hook })
 }

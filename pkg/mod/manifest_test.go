@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseManifestReadsTheFourFields(t *testing.T) {
-	src := "# a mod\nid = \"dark-rules\"   # trailing\ntitle = 'Dark \"rules\"'\nversion = \"1.2.0\"\napplies-to = [\"en\", \"ru\"]\nrequires = [\n  \"base\", # multi\n  \"other\",\n]\nflag = true\n\n[extra]\nid = \"ignored\"\nnot a pair at all\n"
+	src := "# a mod\nid = \"dark-rules\"   # trailing\ntitle = 'Dark \"rules\"'\nversion = \"1.2.0\"\napplies-to = [\"en\", \"ru\"]\nrequires = [\n  \"base\", # multi\n  \"other\",\n]\nauthor = \"A\"\n\n[extra]\nid = \"ignored\"\nnot a pair at all\n"
 	m, err := ParseManifest([]byte(src))
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +33,7 @@ func TestParseManifestDefaultsAndScalarAppliesTo(t *testing.T) {
 
 func TestParseManifestRefusals(t *testing.T) {
 	cases := []struct{ name, src, want string }{
+		{"unknown key", "id = \"a\"\ntitle = \"A\"\nversion = \"1\"\nbogus = 1\n", `line 4: "bogus" is not a mod.toml key; the keys are id, title, version, author, description, api, applies-to, entry, requires, conflicts, load-after`},
 		{"no id", "title = \"A\"\nversion = \"1\"\n", "id is missing"},
 		{"no version", "id = \"a\"\ntitle = \"A\"\n", "version is missing"},
 		{"bad id", "id = \"../x\"\ntitle = \"A\"\nversion = \"1\"\n", "not valid"},

@@ -1,0 +1,83 @@
+{
+  "town": "east",
+  "view": { "size": [640, 480] },
+  "clock": { "period-ms": 100, "compare": "greater" },
+  "art": [
+    { "name": "square", "format": "picture", "key": "mod:art/square.bmp" },
+    { "name": "mask", "format": "mask", "key": "mod:art/mask.bmp" }
+  ],
+  "layers": [{ "art": "square", "mode": "copy" }],
+  "mask": {
+    "art": "mask",
+    "bytes": [
+      { "byte": 128, "hotspot": "tavern" },
+      { "byte": 144, "hotspot": "shop" },
+      { "byte": 160, "hotspot": "school" },
+      { "byte": 176, "hotspot": "gates" }
+    ]
+  },
+  "hotspots": [
+    { "name": "tavern", "row": 0, "no-tip": true, "click": [{ "room": "tavern" }] },
+    { "name": "shop", "row": 1, "no-tip": true, "click": [{ "room": "shop" }] },
+    { "name": "school", "row": 2, "no-tip": true, "click": [{ "room": "school" }] },
+    { "name": "gates", "row": 3, "no-tip": true, "click": [{ "room": "gates" }] }
+  ],
+  "square": { "name": "square", "enter": [{ "hook": "set-room" }] },
+  "rooms": [
+    {
+      "name": "tavern", "page": "tavern",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "art": [{ "name": "inside", "format": "picture", "key": "mod:art/room.bmp" }],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "shop", "page": "shop",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "art": [{ "name": "inside", "format": "picture", "key": "mod:art/room.bmp" }],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "school", "page": "school",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "random": [{ "name": "training", "source": "host" }],
+        "art": [
+          { "name": "inside", "format": "picture", "key": "mod:art/room.bmp" },
+          { "name": "column", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 2 },
+          { "name": "diamond", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 2 },
+          { "name": "fighter-tr", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "fighter-m", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "mage-tr", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "mage-m", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 }
+        ],
+        "sounds": { "slots": [{ "name": "rotate", "source": "school-training", "key": "town/school/rotate.wav", "untracked": true }] },
+        "clocks": [{ "name": "gate", "period-ms": 83, "compare": "greater", "rebase": "every" }],
+        "actors": [
+          { "name": "column", "program": "target", "art": "column", "frames": 2, "endpoints": [0, 1],
+            "value": "member-class", "wait": { "base-ms": 83, "compare": "greater" } },
+          { "name": "training", "program": "training", "clock": "gate", "column": "column", "slot": "rotate",
+            "value": "member-class", "delay": { "draw": "training", "raw": 32768, "divide": 10 }, "delay-ms": 3000,
+            "hold-pick": { "draw": "training", "raw": 32768, "form": "scaled", "n": 20, "base": 20 },
+            "variants": [
+              { "name": "fighter", "transition": "fighter-tr", "transition-count": 1, "idle": "fighter-m", "idle-count": 1, "column-at": 0 },
+              { "name": "mage", "transition": "mage-tr", "transition-count": 1, "idle": "mage-m", "idle-count": 1, "column-at": 0 }
+            ] },
+          { "name": "diamond", "program": "bounce", "art": "diamond", "frames": 2 },
+          { "name": "shine", "program": "cycle", "frames": 1, "wait": { "base-ms": 300, "compare": "greater" } }
+        ],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "gates", "page": "world-map",
+      "enter": [{ "hook": "set-room" }, { "hook": "navigate" }]
+    }
+  ]
+}

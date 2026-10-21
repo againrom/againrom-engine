@@ -179,8 +179,37 @@ func layerFront(t *testing.T) *FrontEnd {
 	c := townCampaign(t)
 	c.MercenaryCount = []int{4}
 	c.Towns = townBooks["rom1"]
-	return &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Archives: &Archives{Containers: travelMapFS(t)},
-		Font: resolved(missionFont(), nil)}, CampaignSession: CampaignSession{Town: NewTown(c)}}
+	containers := travelMapFS(t)
+	// The shipped description's art is the install's, which a copy of it
+	// names: the fixture install holds each key.
+	for _, key := range shippedTownArtKeys(townBooks["rom1"].descriptions["rom1"]) {
+		containers.Overlay(key, func() ([]byte, error) { return []byte{0}, nil })
+	}
+	return &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Archives: &Archives{Containers: containers},
+		Font: resolved(alphabetFont(), nil)}, CampaignSession: CampaignSession{Town: NewTown(c)}}
+}
+
+// shippedTownArtKeys are every install key description d reads.
+func shippedTownArtKeys(d *town.Description) []string {
+	var keys []string
+	for _, e := range townArtEntries(d) {
+		keys = append(keys, e.Keys()...)
+	}
+	return keys
+}
+
+// alphabetFont is a font of the English install's shape: selector 0, a drawn
+// glyph for every record but the lowercase Cyrillic bytes 0xE0 to 0xFF, whose
+// records are blank.
+func alphabetFont() *text.Font {
+	f := missionFont()
+	for i := range f.Glyphs {
+		if i+text.FirstChar >= 0xE0 {
+			continue
+		}
+		f.Glyphs[i].Pixels[0] = text.Pixel{Level: text.MaxLevel, Painted: true}
+	}
+	return f
 }
 
 // layeredFront is layerFront with the town layers of mods ids of dir set.
@@ -419,7 +448,7 @@ func TestTownLayerRefusals(t *testing.T) {
 		t.Fatalf("missing art: %v", err)
 	}
 	res := runTownMods(t, eastTownMods(t), "east-town")
-	if _, _, err := layerTownBook(townBooks["rom2"], res.Towns, Campaign{}, nil, nil); err == nil || !strings.Contains(err.Error(), "first game's catalog") {
+	if _, _, err := layerTownBook(townBooks["rom2"], res.Towns, Campaign{}, nil, nil, modTownInstall{}); err == nil || !strings.Contains(err.Error(), "first game's catalog") {
 		t.Fatalf("the second game's catalog took a layer: %v", err)
 	}
 }
@@ -455,7 +484,10 @@ func TestModTownNameDrawsInTheInstallAlphabet(t *testing.T) {
 	dir := eastTownMods(t)
 	setEastTowns(t, dir, strings.NewReplacer(`"West"`, `"Запад"`, `"East"`, `"Восток"`).Replace)
 	f := layerFront(t)
-	font := missionFont()
+	font := alphabetFont()
+	for i := range font.Glyphs {
+		font.Glyphs[i].Pixels[0] = text.Pixel{Level: text.MaxLevel, Painted: true}
+	}
 	font.Selector = text.SelectorConverting
 	f.Font = resolved(font, nil)
 	if _, err := f.SetModTowns(runTownMods(t, dir, "east-town").Towns); err != nil {
@@ -481,6 +513,29 @@ func TestModTownNameDrawsInTheInstallAlphabet(t *testing.T) {
 	if _, _, err := layeredFront(t, dir, "east-town"); err == nil ||
 		!strings.Contains(err.Error(), `mod "east-town": data/towns.toml:15: the name "East Ω" cannot be drawn by this install`) {
 		t.Fatalf("a name the install cannot draw: %v", err)
+	}
+}
+
+// A name made of characters the install encodes but its font draws blank is
+// refused at the record, naming the character: the English install stores
+// every Windows-1251 byte, and its font draws the Cyrillic capitals but not
+// the lowercase letters. A space is no glyph and passes.
+func TestModTownNameWithNoGlyphIsRefused(t *testing.T) {
+	for _, c := range []struct{ name, want string }{
+		{"Восток", `the name "Восток" cannot be drawn by this install: the install's font has no glyph for 'о' (U+043E)`},
+		{"East Ω", `the name "East Ω" cannot be drawn by this install: SAV label cannot represent U+03A9`},
+		{"Big East", ""},
+		{"ВОСТОК", ""},
+	} {
+		dir := eastTownMods(t)
+		setEastTowns(t, dir, strings.NewReplacer(`"East"`, `"`+c.name+`"`).Replace)
+		_, _, err := layeredFront(t, dir, "east-town")
+		switch {
+		case c.want == "" && err != nil:
+			t.Errorf("%q: %v", c.name, err)
+		case c.want != "" && (err == nil || !strings.Contains(err.Error(), c.want)):
+			t.Errorf("%q: %v, want %q", c.name, err, c.want)
+		}
 	}
 }
 

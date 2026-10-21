@@ -1,6 +1,8 @@
 package game
 
 import (
+	"errors"
+	"io/fs"
 	"strconv"
 	"strings"
 
@@ -134,6 +136,16 @@ func (b *SoundBank) namedSample(path string) (audio.Sample, bool) {
 	}
 	b.named[path] = c
 	return c.sample, c.ok
+}
+
+// holdsNamed reports whether the sound archive holds the sample path names.
+func (b *SoundBank) holdsNamed(path string) bool {
+	if b == nil || b.src == nil {
+		return true
+	}
+	path = strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	_, err := b.src.ReadFile(sfxPrefix + path)
+	return !errors.Is(err, fs.ErrNotExist)
 }
 
 // VoiceSample satisfies ui.VoiceBank: one recording of a human voice bank by

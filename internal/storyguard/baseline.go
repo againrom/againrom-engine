@@ -2730,6 +2730,12 @@ package storyguard
 // (pkg/game/basedump.go), the towns layer 0 and the label decoder
 // (pkg/game/townlayer.go, pkg/game/savedialog.go), the -dump-base flag
 // (cmd/againrom/main.go), their tests, and this paragraph.
+//
+// CommentBytes rises for the mod checks, all new code: the manifest key list
+// (pkg/mod/manifest.go), the chapter description and install name checks
+// (pkg/game/towncatalog.go, pkg/game/townlayer.go, pkg/game/sound.go), the
+// accepted-value lists (pkg/town/validate.go, pkg/screenart/entry.go), their
+// tests and fixture, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2753,5 +2759,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9386234,
+	CommentBytes: 9390043,
 }

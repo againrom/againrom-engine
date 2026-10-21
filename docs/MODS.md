@@ -18,6 +18,41 @@ format (section Base dump).
 | `data/bodies.toml` | body sheets the mod supplies | below, `DIV-2913`, `DIV-2914` |
 | `data/towns.toml` | towns: add, change named fields, switch off | below, `docs/1486/story.md` |
 
+## mod.toml
+
+`mod.toml` holds top-level `key = value` lines; a `[table]` header ends the
+keys. A key twice, a key not listed here and a wrong type are refused with the
+file and line. A list may span lines.
+
+| key | value |
+|---|---|
+| `id` | required string; the mod's name, equal to its folder name, 1 to 64 characters of `a-z 0-9 . _ -` starting with a letter or digit |
+| `title` | required string; the name shown to the player |
+| `version` | required string, not empty |
+| `author` | optional string for people; the game does not read it |
+| `description` | optional string for people; the game does not read it |
+| `api` | integer, default 1; this build runs api 1 and refuses any other |
+| `applies-to` | a string or list; default `["common"]`. Entries are `common` (every install), an install id such as `rom1-en`, or the family word `rom1` (every first-game install). The mod is refused on an install none of them names |
+| `entry` | the Starlark file; default `main.star` when the folder holds one |
+| `requires` | ids the mod needs, each with an optional constraint such as `"base>=1.0"` (operators `>=`, `<=`, `>`, `<`, `=`, dotted numbers). The required mod must be enabled and loads before this one |
+| `conflicts` | ids that must not be enabled together with this mod |
+| `load-after` | ids this mod loads after when they are enabled; it orders and does not require |
+
+```toml
+id          = "second-town"
+title       = "Second Town"
+version     = "1.0"
+author      = "A. Modder"
+applies-to  = ["rom1"]
+requires    = ["base-art>=1.0"]
+load-after  = ["other-mod"]
+```
+
+The script's `print` output is discarded, in `againrom -check` and in play.
+A script reports a problem with `fail("text")`; the refusal names the mod,
+the file and the line (`mod "m": main.star:3: fail: text`), and it stops the
+check or the launch.
+
 ## Spell damage columns
 
 For the first game, `data/spells.toml` accepts `damage = { min = N, max = N }`
@@ -245,7 +280,7 @@ off with `off = true`. The second game's catalog takes no layer.
 | `hooks` | `"chapters"`; any other value is refused |
 | `offers` | `"chapter-keys"`; any other value is refused |
 | `map-point` | one source: `{ object = n }` (an object of the world map), `{ record = true }` (the map description's record), or `{ point = [x, y], rect = [x, y, w, h] }`, a point and its click rect stated in world-map pixels |
-| `name` | the town's title on the map and on the home scroll, in UTF-8; the game draws it in the install's alphabet, and a character that alphabet lacks is refused |
+| `name` | the town's title on the map and on the home scroll, in UTF-8; the game draws it in the install's font, and a character the font has no glyph for is refused |
 | `opens-after` | the mission whose win opens the town; 0 is open from the start |
 | `missions` | the missions the town's buildings offer |
 | `cite` | the sources the record rests on, a list of strings |
@@ -289,6 +324,155 @@ opens-after = 20
 missions    = [31]
 ```
 
+### Town description format
+
+A description is one JSON object, read by the game's one town description
+decoder. A field the format does not name is refused with the file and the
+reason.
+
+| field | what it holds |
+|---|---|
+| `town` | the description's name, a string |
+| `view` | `{ "size": [w, h] }`, the picture size in pixels |
+| `clock` | `{ "period-ms": n, "compare": "greater" }`; `compare` is `greater` or `at-least` |
+| `random` | named random sources: `name`, `source` (`host`, or a generator with `multiplier`, `increment`, `shift`, `mask`) |
+| `art` | named pictures: `name`, `format`, `key`, and for a series `first` and `count` |
+| `mask` | `art` (a mask picture) and `bytes`: each `{ "byte": n, "hotspot": name }` maps a mask byte to a hotspot |
+| `hotspots` | `name`, `row` (the row of the keyboard order), `tip` or `no-tip`, `click` and `hover` lists of operations |
+| `pointer`, `sounds`, `actors`, `step` | the pointer shapes, sound slots and triggers, animated actors and the per-tick steps of a scene |
+| `layers` | the order the scene is drawn in: `art` or `actor`, `mode`, `at`, `clip`, `when` |
+| `music` | `track`, or `tracks` with `by` naming the value that chooses |
+| `square` | `name` and `enter`, the steps that put the party on the square |
+| `rooms` | the rooms reached from the square, below |
+| `save` | `admitted-when`, a condition |
+
+Art `format` is one of `picture`, `series`, `sprites`, `frame`, `mask`. A
+layer `mode` is `copy` or `over`. A key that starts with `mod:` reads a file of
+the mod; any other key must be an entry of the install, and a key the install
+does not hold is refused at `-check`. A `music` track and a sound slot `key`
+are likewise checked against the install's music and sounds.
+
+A click operation is an object with one of `room` (go to the named room),
+`hook`, `menu`, `dialogue`, or `if` with `then` and `else` lists. A room has
+`name`, `page`, `enter` and `exit` step lists, an optional `scene` (the same
+fields as the top level: `view`, `random`, `art`, `sounds`, `clocks`, `actors`,
+`layers`), `art`, `music`, `seats` and `buttons`. A step is `{ "hook": name }`
+or `{ "composer": "reset" }`.
+
+`page` is `tavern`, `shop`, `school` or `world-map`. Hooks are
+`gate-closed`, `release-audio`, `set-room`, `talk-clear`, `tip`,
+`school-reset`, `shop-shelf`, `shop-interior`, `faces`, `offer-on-entry`,
+`tavern-interior`, `tavern-detail-clear`, `tavern-selection`, `navigate`,
+`inn-queue-commit`, `trade-cancel`, `dialogue-reset`, `tavern-leave`,
+`shop-reset` and `school-leave`. The conditions are `gate-open` and
+`save-admitted`; the values are `shop-chosen`, `member-class` and
+`school-hover`; the events are `rack`, `merchant-yes`, `merchant-no`,
+`train` and `class-change`. An unknown name is refused with this list.
+
+A town with `hooks = "chapters"` needs the rooms `tavern`, `shop`, `school`
+and `gates`, and the check refuses a description the game cannot play:
+
+- the square's `enter` and every room's `enter` run the hook `set-room`, or
+  the party never stands on the square or in the room;
+- the `gates` room's `enter` runs the hook `navigate`, or the gates never
+  open the world map;
+- the `tavern`, `shop` and `school` rooms each have a `scene`, because their
+  pages are drawn from it;
+- the `school` scene has the actors `column` (program `target`), `training`
+  (`training`), `diamond` (`bounce`) and `shine` (`cycle`).
+
+The smallest working description follows. It draws the square from
+`art/square.bmp` (24-bit BMP), the rooms from `art/room.bmp`, the hotspot mask
+from `art/mask.bmp` (8-bit BMP, using the bytes 128, 144, 160 and 176) and the
+school actors from `art/frame0000.bmp` and `art/frame0001.bmp`. The square,
+room and mask pictures are the full 640 by 480 view; the frames may be any size.
+
+```json
+{
+  "town": "east",
+  "view": { "size": [640, 480] },
+  "clock": { "period-ms": 100, "compare": "greater" },
+  "art": [
+    { "name": "square", "format": "picture", "key": "mod:art/square.bmp" },
+    { "name": "mask", "format": "mask", "key": "mod:art/mask.bmp" }
+  ],
+  "layers": [{ "art": "square", "mode": "copy" }],
+  "mask": {
+    "art": "mask",
+    "bytes": [
+      { "byte": 128, "hotspot": "tavern" },
+      { "byte": 144, "hotspot": "shop" },
+      { "byte": 160, "hotspot": "school" },
+      { "byte": 176, "hotspot": "gates" }
+    ]
+  },
+  "hotspots": [
+    { "name": "tavern", "row": 0, "no-tip": true, "click": [{ "room": "tavern" }] },
+    { "name": "shop", "row": 1, "no-tip": true, "click": [{ "room": "shop" }] },
+    { "name": "school", "row": 2, "no-tip": true, "click": [{ "room": "school" }] },
+    { "name": "gates", "row": 3, "no-tip": true, "click": [{ "room": "gates" }] }
+  ],
+  "square": { "name": "square", "enter": [{ "hook": "set-room" }] },
+  "rooms": [
+    {
+      "name": "tavern", "page": "tavern",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "art": [{ "name": "inside", "format": "picture", "key": "mod:art/room.bmp" }],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "shop", "page": "shop",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "art": [{ "name": "inside", "format": "picture", "key": "mod:art/room.bmp" }],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "school", "page": "school",
+      "enter": [{ "hook": "set-room" }],
+      "scene": {
+        "view": { "size": [640, 480] },
+        "random": [{ "name": "training", "source": "host" }],
+        "art": [
+          { "name": "inside", "format": "picture", "key": "mod:art/room.bmp" },
+          { "name": "column", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 2 },
+          { "name": "diamond", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 2 },
+          { "name": "fighter-tr", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "fighter-m", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "mage-tr", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 },
+          { "name": "mage-m", "format": "series", "key": "mod:art/frame%04d.bmp", "first": 0, "count": 1 }
+        ],
+        "sounds": { "slots": [{ "name": "rotate", "source": "school-training", "key": "town/school/rotate.wav", "untracked": true }] },
+        "clocks": [{ "name": "gate", "period-ms": 83, "compare": "greater", "rebase": "every" }],
+        "actors": [
+          { "name": "column", "program": "target", "art": "column", "frames": 2, "endpoints": [0, 1],
+            "value": "member-class", "wait": { "base-ms": 83, "compare": "greater" } },
+          { "name": "training", "program": "training", "clock": "gate", "column": "column", "slot": "rotate",
+            "value": "member-class", "delay": { "draw": "training", "raw": 32768, "divide": 10 }, "delay-ms": 3000,
+            "hold-pick": { "draw": "training", "raw": 32768, "form": "scaled", "n": 20, "base": 20 },
+            "variants": [
+              { "name": "fighter", "transition": "fighter-tr", "transition-count": 1, "idle": "fighter-m", "idle-count": 1, "column-at": 0 },
+              { "name": "mage", "transition": "mage-tr", "transition-count": 1, "idle": "mage-m", "idle-count": 1, "column-at": 0 }
+            ] },
+          { "name": "diamond", "program": "bounce", "art": "diamond", "frames": 2 },
+          { "name": "shine", "program": "cycle", "frames": 1, "wait": { "base-ms": 300, "compare": "greater" } }
+        ],
+        "layers": [{ "art": "inside", "mode": "copy" }]
+      }
+    },
+    {
+      "name": "gates", "page": "world-map",
+      "enter": [{ "hook": "set-room" }, { "hook": "navigate" }]
+    }
+  ]
+}
+```
+
 Two mods that set one field of one town, or add the same new `id`: the later
 mod wins only when it loads after the earlier one through `load-after` or
 `requires`, directly or through another mod, and `againrom -check` prints
@@ -304,9 +488,11 @@ Refused, naming the mod, the file and the line:
 - an unknown key, a wrong type, a table that changes nothing, `off = true`
   with other keys, and one `id` twice in a file;
 - a description file the mod does not hold, a description that is not shipped,
-  and a `mod:` picture the mod does not carry;
+  a `mod:` picture the mod does not carry, a picture key, music track or sound
+  key the install does not hold, and a description the game cannot play (see
+  Town description format);
 - `hooks` other than `"chapters"`, `offers` other than `"chapter-keys"`, and
-  a `name` with a character the install's alphabet lacks;
+  a `name` with a character the install's font has no glyph for;
 - a merged catalog that fails a catalog check, a town that can never open,
   towns open from the start that offer no mission, and a stated point or
   rect outside the world map.
