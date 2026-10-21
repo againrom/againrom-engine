@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A controlled creature saved while walking to cast a spell from its book now keeps that cast as a single cast when the original game loads the save.
 - [ROM1] A right click after casting a spell from the spell book, or after a cast from F5 to F8, now drops the mage's selection, as in the original; before, the first right click only closed the book and the mage stayed selected.
 - [ROM1] Idle mages that cast a spell on their own now aim at enemies on the map, such as a dragon in reach; before, they could keep casting at an empty spot where a unit had been taken off the map.
 - [ROM1] A mage can put on a staff from the pack that the game had refused before, such as a staff of Stone Curse found in a city mission; it is worn with its spell, as in the original.

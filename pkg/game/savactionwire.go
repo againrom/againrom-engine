@@ -220,8 +220,12 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 		copy(raw[:], order)
 		raw = sim.ProjectCastOrderOperands(raw, key, spellKey, x, y, rangeByte, atCell)
 		if retain {
-			// The creature cast selectors store 1 in the order's retention flag.
+			// MAGIC-253: manual walks clear the flag; selectors keep 1.
+			e, _ := w.Entity(caster)
 			raw[0x60] = 1
+			if !w.SecondGame() && armed && !e.HasAttackTarget {
+				raw[0x60] = 0
+			}
 		}
 		copy(order, raw[:])
 		for _, e := range w.Entities() {

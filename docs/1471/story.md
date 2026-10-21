@@ -140,6 +140,19 @@ player cast as action 0xd or 0xe with order kind 8 or 9 at progress 0 and the
 retention flag 0x60 at zero; the walk itself is the engine's move order
 (`DIV-3681`).
 
+`projectCurrentCastWire` (`pkg/game/savactionwire.go`) also writes zero for
+a controlled creature's manual walking book order (`MAGIC-253`, High).
+The creature's pursuing and charging retained casts keep one (`MAGIC-240`).
+`TestWalkingManualBookCastSAVRetention` saves unit and cell orders through
+`ExportCurrentSave`; both creature cases fail with flag one before the fix.
+Fixed LOAD, the old-byte LOAD with its producer's projection metadata, and
+uninterrupted play keep equal hashes for 300 ticks and cast on tick 139.
+`TestRetainedCreatureBookCastSAVRetention` keeps one for retained charging
+and pursuing casts. The EN/RU Human and automatic-creature witnesses remain
+`TestReleasePlayerCastApproachSaveColdLoad`,
+`TestReleaseCreatureArmedCastSaveColdLoad` and
+`TestReleaseCreatureSpellSaveColdLoadCastsNext`.
+
 ## Proof
 
 Focused tests, `pkg/sim/castapproach_test.go`:
@@ -246,9 +259,5 @@ Two release tests changed their choreography, not their claim:
 - `DIV-3682`: what ends an approach whose target dies or leaves is the
   engine's rule.
 - `DIV-1310`: the compressed fog's mixed aggregate stays.
-- A controlled creature with class spells saves its walking book order with
-  the retention flag 0x60 at 1, since the SAV writer sets it for any retained
-  cast of a slot holder; the original's manual setter writes 0. The order
-  round-trips; the byte differs.
 - Script orders given to a walking player caster were not traced; only the
   player order arms listed above drop the approach.
