@@ -45,12 +45,15 @@ type Snapshot struct {
 	// randomSession is the random session at capture; the SAV records it.
 	randomSession random.Session
 	second        *currentSecondCampaign
-	noticeOpen    bool
-	shop          *Shop
-	terrainBase   *sim.Terrain
-	mapAnimation  *ui.AnimationState
-	mapMotion     []currentAnimationClock
-	CityObjects   *cityObjectTopology
+	// towns is the first game's town record: nil while the party belongs to
+	// town 1 and every other town keeps its fresh state.
+	towns        *currentTowns
+	noticeOpen   bool
+	shop         *Shop
+	terrainBase  *sim.Terrain
+	mapAnimation *ui.AnimationState
+	mapMotion    []currentAnimationClock
+	CityObjects  *cityObjectTopology
 	// cityGroups is the town's live Player group membership at capture.
 	cityGroups       []cityLiveGroup
 	cityGroupsLoaded bool
@@ -268,6 +271,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 		return
 	}
 	s.second = captureSecondCampaign(t.second)
+	s.towns = t.townsRecord()
 	s.noticeOpen = t.second.noticePending()
 	s.Open, s.Gold = t.open, t.gold
 	s.MainMission = t.currentMain()
@@ -364,7 +368,8 @@ func snapshotWorldSelectedOnce(t *townScreen, s *Snapshot) {
 
 // restoreTown builds a detached current town over c. Ordinary campaign records
 // own represented fields; legacy inputs recover native identity from history.
-func restoreTown(c Campaign, s Snapshot) *Town {
+// A town record the campaign cannot restore is an error.
+func restoreTown(c Campaign, s Snapshot) (*Town, error) {
 	t := NewTown(c)
 	t.second = s.second.restore()
 	restoredCampaign := false
@@ -415,6 +420,9 @@ func restoreTown(c Campaign, s Snapshot) *Town {
 		t.taken[offerRef{chapter: r.Chapter, building: TownBuilding(r.Building), index: r.Index}] = true
 	}
 	t.offerLabels = cloneOfferLabels(s.OfferLabels)
+	if err := t.restoreTowns(s.towns); err != nil {
+		return nil, err
+	}
 	if !restoredCampaign {
 		restoreNativeHeroGrants(t, s)
 	}
@@ -429,7 +437,7 @@ func restoreTown(c Campaign, s Snapshot) *Town {
 	}
 	t.lastMap = s.LastMap
 	t.docPayload = s.DocPayload.Clone()
-	return t
+	return t, nil
 }
 
 // sortInts is sort.Ints under another name, kept here so this file states its

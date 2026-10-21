@@ -288,6 +288,10 @@ func mustNewDiaryRecord(count int, owner uint32) sav.DocumentRecordData {
 	return r
 }
 
-func (f *FrontEnd) generatedCampaignChapter(s Snapshot) int {
-	return restoreTown(f.Campaign.Value(), s).Chapter()
+func (f *FrontEnd) generatedCampaignChapter(s Snapshot) (int, error) {
+	t, err := restoreTown(f.Campaign.Value(), s)
+	if err != nil {
+		return 0, err
+	}
+	return t.Chapter(), nil
 }

@@ -156,6 +156,10 @@ type Campaign struct {
 	// is a configurable product rule and must never make an absent Payment key
 	// look present.
 	TransitionRewards map[int]int
+
+	// Towns is the town catalog the campaign's party travels between, as the
+	// install's edition names it; nil holds town 1 alone.
+	Towns *townBook
 }
 
 // firstTownTransitionReward is the owner's authored reward for completing the

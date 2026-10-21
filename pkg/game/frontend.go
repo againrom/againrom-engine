@@ -657,6 +657,8 @@ func NewFrontEnd(root string) (*FrontEnd, error) {
 	campaign, campaignErr := LoadCampaign(archives.Containers)
 	if campaignErr == nil {
 		campaign = WithDefaultTransitionRewards(campaign)
+		campaign.Towns = townBookOf(archives.Base.Profile)
+		campaignErr = campaign.checkTowns()
 	}
 
 	// Off the same container filesystem as everything above, and its error is

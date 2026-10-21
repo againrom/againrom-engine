@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/installpath"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
+	"againrom/pkg/town"
 	"againrom/pkg/vfs"
 )
 
@@ -97,6 +98,10 @@ type Archives struct {
 	// art is the library every screen of this install reads its art
 	// through: one picture is read and validated once (screenart.go).
 	art *screenart.Library
+
+	// townArt is the town art of each description other than the starting
+	// town's, read on a party's first visit (townart.go).
+	townArt map[*town.Description]*townArtLoads
 }
 
 // InstallPath is the host path of the install file rel names under Root,

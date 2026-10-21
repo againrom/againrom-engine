@@ -16,10 +16,14 @@ func (t *townScreen) roomPage(room string) *town.Scene {
 	if p := t.pages[room]; p != nil {
 		return p
 	}
+	d := t.townDescription()
+	if d == nil {
+		return nil
+	}
 	if t.pages == nil {
 		t.pages = map[string]*town.Scene{}
 	}
-	p := town.NewScene(t.townDescription(), room, townSceneHost{t: t, room: room}, t.townProcess)
+	p := town.NewScene(d, room, townSceneHost{t: t, room: room}, t.townProcess)
 	t.pages[room] = p
 	return p
 }

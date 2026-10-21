@@ -96,12 +96,12 @@ func TestGateSnapshotRecordsAndHistoricalDefault(t *testing.T) {
 	town.Won(30)
 	var s Snapshot
 	snapshotTown(town, &s)
-	back := restoreTown(town.camp, s)
+	back := testRestoreTown(town.camp, s)
 	if !reflect.DeepEqual(town.records, back.records) || back.gateMission() != 31 {
 		t.Fatal("detached snapshot lost current records", back.records)
 	}
 	s.CampaignRecords = nil
-	legacy := restoreTown(town.camp, s)
+	legacy := testRestoreTown(town.camp, s)
 	if r := legacy.records.record(31); r == nil || r.age != 1 || !r.announced || legacy.gateMission() != 31 {
 		t.Fatal("historical accepted previous-chapter default", r)
 	}
@@ -118,7 +118,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		town.Arrive()
 		var s Snapshot
 		snapshotTown(town, &s)
-		back := restoreTown(c, s)
+		back := testRestoreTown(c, s)
 		if town.currentMain() != 30 || !reflect.DeepEqual(town.records, back.records) || back.gateMission() != -1 {
 			t.Fatal("Arrive record authority changed", town.records, back.records)
 		}
@@ -139,7 +139,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		if s.MainMission != 10 || s.CampaignRecords.Main.Mission != 10 {
 			t.Fatal("fixture did not preserve stale prologue identity")
 		}
-		back := restoreTown(c, s)
+		back := testRestoreTown(c, s)
 		if back.currentMain() != 30 || back.records.main.mission != 30 || back.records.record(31) == nil || back.records.record(31).age != 0 || back.gateMission() != -1 {
 			t.Fatal("resolved town retained stale records", back.records)
 		}
@@ -159,7 +159,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		if _, err := campaignProgressFromSAV(changed, projection); err != nil {
 			t.Fatal("changed campaign rejected current SAV state", err)
 		}
-		back := restoreTown(changed, s)
+		back := testRestoreTown(changed, s)
 		if back.currentMain() != 30 || back.records.main.mission != 30 || back.records.record(31) == nil || len(back.Offers(TownShop)) != 1 || back.Offers(TownShop)[0].Mission != 31 || back.gold != s.Gold {
 			t.Fatal("changed campaign did not use configured rows", back.records)
 		}
@@ -182,7 +182,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		if _, err := campaignProgressFromSAV(changed, projection); err == nil || !strings.Contains(err.Error(), "mission 31 is not a declared side mission") {
 			t.Fatal("current SAV accepted a retained child absent from the campaign declaration", err)
 		}
-		back := restoreTown(changed, s)
+		back := testRestoreTown(changed, s)
 		if !reflect.DeepEqual(town.records, back.records) || back.gateMission() != 31 {
 			t.Fatal("compatible age/latch/payment rebuilt from definitions", back.records)
 		}
@@ -194,7 +194,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		var s Snapshot
 		snapshotTown(town, &s)
 		s.CampaignRecords = nil
-		back := restoreTown(town.camp, s)
+		back := testRestoreTown(town.camp, s)
 		child := back.records.record(39)
 		if child == nil || child.age != 1 || !child.announced || child.payment != 0 || back.gateMission() != 39 {
 			t.Fatal("historical missing-section fallback", child)

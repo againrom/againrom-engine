@@ -34,6 +34,15 @@ type Entry struct {
 	Offers string `json:"offers"`
 	// MapPoint is where the town stands on the world map.
 	MapPoint MapPoint `json:"map-point"`
+	// Name is the town's title on the world map's travel card; empty draws
+	// the map's own town word.
+	Name string `json:"name,omitempty"`
+	// OpensAfter is the mission whose win opens the town to travel; zero
+	// opens it from the start.
+	OpensAfter int `json:"opens-after,omitempty"`
+	// Missions are the missions the town's buildings offer. An empty list
+	// offers every mission no other entry lists.
+	Missions []int    `json:"missions,omitempty"`
 	Cite     []string `json:"cite"`
 }
 
@@ -84,7 +93,8 @@ func DecodeCatalog(data []byte, vocab CatalogVocabulary) (*Catalog, error) {
 
 // Validate checks the catalog's own rules: a name, at least one town, and
 // for each town a positive unique ID, a description, a hook set, an offer
-// source and exactly one map point source.
+// source, exactly one map point source, no negative opening mission and
+// positive missions no other town lists.
 func (c *Catalog) Validate() error {
 	if c.Catalog == "" {
 		return fmt.Errorf("town catalog: no name")
@@ -93,6 +103,7 @@ func (c *Catalog) Validate() error {
 		return fmt.Errorf("town catalog %s: no town", c.Catalog)
 	}
 	seen := map[int]bool{}
+	listed := map[int]int{}
 	for _, e := range c.Towns {
 		switch {
 		case e.ID <= 0:
@@ -107,6 +118,17 @@ func (c *Catalog) Validate() error {
 			return fmt.Errorf("town catalog %s: town %d names no offer source", c.Catalog, e.ID)
 		case e.MapPoint.Object < 0, (e.MapPoint.Object > 0) == e.MapPoint.Record:
 			return fmt.Errorf("town catalog %s: town %d must name exactly one map point source", c.Catalog, e.ID)
+		case e.OpensAfter < 0:
+			return fmt.Errorf("town catalog %s: town %d opens after mission %d", c.Catalog, e.ID, e.OpensAfter)
+		}
+		for _, m := range e.Missions {
+			if m <= 0 {
+				return fmt.Errorf("town catalog %s: town %d offers mission %d", c.Catalog, e.ID, m)
+			}
+			if other, ok := listed[m]; ok {
+				return fmt.Errorf("town catalog %s: mission %d is listed by towns %d and %d", c.Catalog, m, other, e.ID)
+			}
+			listed[m] = e.ID
 		}
 		seen[e.ID] = true
 	}

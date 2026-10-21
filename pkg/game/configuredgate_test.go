@@ -103,7 +103,7 @@ func TestConfiguredMainRecordAcceptanceAndCompatibility(t *testing.T) {
 				}
 				var s Snapshot
 				snapshotTown(town, &s)
-				back := restoreTown(c, s)
+				back := testRestoreTown(c, s)
 				if !reflect.DeepEqual(before, back.currentRecords().snapshot()) || back.gateMission() != 40 || back.Gold() != 100 || !back.taken[offerRef{30, building, 0}] {
 					t.Fatal("additive continuation loses record or provenance")
 				}
@@ -142,7 +142,7 @@ func TestConfiguredMainRecordInvalidAndHistoricalControls(t *testing.T) {
 		}
 	}
 	c = configuredGateCampaign(TownShop)
-	legacy := restoreTown(c, Snapshot{Open: true, MainMission: 30, SelectedMission: 40, Available: []int{31, 40}, Taken: []SnapshotOffer{{Chapter: 30, Building: int(TownShop), Index: 0}}})
+	legacy := testRestoreTown(c, Snapshot{Open: true, MainMission: 30, SelectedMission: 40, Available: []int{31, 40}, Taken: []SnapshotOffer{{Chapter: 30, Building: int(TownShop), Index: 0}}})
 	if legacy.currentMain() != 40 || legacy.gateMission() != 40 || legacy.currentRecords().record(31).age != 1 || !legacy.taken[offerRef{30, TownShop, 0}] {
 		t.Fatal("historical accepted future main lost", legacy.currentRecords(), legacy.Available())
 	}

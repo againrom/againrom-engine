@@ -193,6 +193,11 @@ func (s *installShare) matchReads(shared *installShare) {
 	s.townSchool = matchRead(s.townSchool, shared.townSchool)
 	s.townTavern = matchRead(s.townTavern, shared.townTavern)
 	s.townSquare = matchRead(s.townSquare, shared.townSquare)
+	for d, l := range shared.archives.townArt {
+		f := s.archives.townArtOf(d)
+		f.square, f.tavern = matchRead(f.square, l.square), matchRead(f.tavern, l.tavern)
+		f.school, f.shop = matchRead(f.school, l.school), matchRead(f.shop, l.shop)
+	}
 }
 
 func matchRead[T any](fresh, shared *lazyLoad[T]) *lazyLoad[T] {

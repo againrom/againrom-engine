@@ -98,7 +98,7 @@ func TestVictoryLegacySnapshotReturnResolvesWithoutReplay(t *testing.T) {
 	}
 	snap.WorldMapReturn = &pending
 	g, _ := victoryWorldMapFront(t)
-	g.Town = restoreTown(g.Campaign.Value(), snap)
+	g.Town = testRestoreTown(g.Campaign.Value(), snap)
 	g.restoreWorldMapReturn(&restoreCandidate{worldMapReturn: snap.WorldMapReturn})
 
 	back := g.TownScreen().(*townScreen)
@@ -187,7 +187,7 @@ func TestVictory1088ImportedAwayMapReturnsAndPersistsHome(t *testing.T) {
 	if err != nil || !snap.Campaign.FirstMapPoint || snap.WorldMapReturn != nil {
 		t.Fatalf("home snapshot=%+v err=%v", snap.Campaign, err)
 	}
-	f.Town = restoreTown(f.Campaign.Value(), snap)
+	f.Town = testRestoreTown(f.Campaign.Value(), snap)
 	f.resetTownSurface(&restoreCandidate{town: f.Town, townOnly: true})
 	s.Choose(3)
 	if !s.WorldMapView().AtHome || s.WorldMapView().Returning {

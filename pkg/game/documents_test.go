@@ -172,7 +172,7 @@ func TestTheSaveCarriesTheCollectionInGrantOrder(t *testing.T) {
 		t.Fatalf("Snapshot.Documents = %v, want %v", s.Documents, wantPairs)
 	}
 
-	back := restoreTown(camp, s)
+	back := testRestoreTown(camp, s)
 	if !reflect.DeepEqual(back.Documents(), town.Documents()) {
 		t.Errorf("restored collection = %v, want %v", back.Documents(), town.Documents())
 	}
@@ -182,12 +182,12 @@ func TestTheSaveCarriesTheCollectionInGrantOrder(t *testing.T) {
 
 	// A payload carrying the same pair twice restores as one element.
 	s.Documents = append(s.Documents, SnapshotDocument{1, DocumentText})
-	if got := restoreTown(camp, s).Documents(); !reflect.DeepEqual(got, town.Documents()) {
+	if got := testRestoreTown(camp, s).Documents(); !reflect.DeepEqual(got, town.Documents()) {
 		t.Errorf("a duplicated pair restored as %v, want %v", got, town.Documents())
 	}
 
 	// An old payload declares neither field and restores an empty collection.
-	if got := restoreTown(camp, Snapshot{}); got.Documents() != nil || got.DocumentMission() != 0 {
+	if got := testRestoreTown(camp, Snapshot{}); got.Documents() != nil || got.DocumentMission() != 0 {
 		t.Errorf("an empty payload restored %v at guard %d, want no collection",
 			got.Documents(), got.DocumentMission())
 	}

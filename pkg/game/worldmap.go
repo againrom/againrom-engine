@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/screenart"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -336,21 +337,59 @@ func (a *worldMapAssets) missionText(src entrySource, mission int) worldMapText 
 	return t
 }
 
-// worldMapHomePoint is the first MapObject's own point: the party's home
-// position before any travel this game, and what AtHome compares the
-// current-position field against for the Flag1 hover gate (`TOWN-120`/
-// `TOWN-122`, High).
-func worldMapHomePoint(a *worldMapAssets) image.Point {
-	if a != nil && a.data != nil && len(a.data.Objects) > 0 && a.data.Objects[0].Valid {
-		return a.data.Objects[0].Point
+// worldMapNoPoint is where a party whose town has no readable point stands:
+// the map's centre.
+var worldMapNoPoint = image.Pt(320, 240)
+
+// townMapPoint is where catalog town e stands on map a, by its entry's
+// map point: the point of the registry object it names, or the point of the
+// description's catalog record of the town. region is the object's region,
+// empty for a record.
+func townMapPoint(e town.Entry, a *worldMapAssets) (point image.Point, region image.Rectangle, ok bool) {
+	switch {
+	case a == nil:
+	case e.MapPoint.Object > 0:
+		if a.data != nil && e.MapPoint.Object <= len(a.data.Objects) && a.data.Objects[e.MapPoint.Object-1].Valid {
+			obj := a.data.Objects[e.MapPoint.Object-1]
+			return obj.Point, obj.Region, true
+		}
+	case e.MapPoint.Record:
+		if a.desc != nil {
+			point, ok = a.desc.point(placeTown, e.ID)
+			return point, image.Rectangle{}, ok
+		}
 	}
-	return image.Pt(320, 240)
+	return image.Point{}, image.Rectangle{}, false
+}
+
+// worldMapHome is the point of the party's town e, the zero entry being the
+// starting town: the party's home position, where a homeward trip ends, and
+// what AtHome compares the current-position field against for the Flag1
+// hover gate (`TOWN-120`/`TOWN-122`, High). The first game's one town stands
+// at the first MapObject.
+func worldMapHome(e town.Entry, a *worldMapAssets) image.Point {
+	if e.ID == 0 {
+		e = chapterTownEntry
+	}
+	if p, _, ok := townMapPoint(e, a); ok {
+		return p
+	}
+	return worldMapNoPoint
+}
+
+// partyTown is the catalog entry of the party's town.
+func (t *townScreen) partyTown() town.Entry {
+	if t.sess == nil {
+		return chapterTownEntry
+	}
+	return t.sess.Town.townEntry()
 }
 
 func (t *townScreen) enterWorldMap() {
 	a := t.art.worldMap()
+	home := worldMapHome(t.partyTown(), a)
 	if !t.worldPositionSet {
-		t.worldPosition, t.worldPositionSet = worldMapHomePoint(a), true
+		t.worldPosition, t.worldPositionSet = home, true
 		if first, restored := t.sess.Town.firstMapPoint(); restored && !first && a != nil && a.data != nil {
 			if object, ok := a.data.Missions[t.sess.Town.selectedMission()]; ok && object >= 0 && object < len(a.data.Objects) && a.data.Objects[object].Valid {
 				t.worldPosition = a.data.Objects[object].Point
@@ -362,7 +401,7 @@ func (t *townScreen) enterWorldMap() {
 			t.markWorldSelected(mission)
 		}
 	}
-	s := &worldMapState{assets: a, selected: -1, hovered: -1, current: t.worldPosition}
+	s := &worldMapState{assets: a, selected: -1, hovered: -1, current: t.worldPosition, homeTown: t.partyTown()}
 	var src entrySource
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
@@ -395,26 +434,41 @@ func (t *townScreen) enterWorldMap() {
 		}
 		s.missions = append(s.missions, m)
 	}
+	// The other open towns follow the missions, each a record of the town
+	// kind at its entry's map point.
+	for _, e := range t.sess.Town.travelTowns() {
+		m := ui.WorldMapMission{Number: e.ID, Kind: placeTown, Title: e.Name, Enabled: true}
+		if m.Title == "" {
+			m.Title = t.in.Words.WorldHomeTitle
+		}
+		if p, region, ok := townMapPoint(e, a); ok {
+			m.Anchor, m.Region = p, region
+		} else {
+			m.Enabled, m.Problem = false, fmt.Sprintf("Town %d has no valid map location", e.ID)
+		}
+		s.missions = append(s.missions, m)
+	}
 	t.worldMap = s
 	// An imported away-from-home relation has the selected mission's point
 	// (SAV-CAMPPOS-072). Apply the same homeward presentation rather than
 	// offering inaccessible scrolls indefinitely (DIV-137).
-	if s.current != worldMapHomePoint(a) && t.sess.Town.restoredCampaign() {
+	if s.current != home && t.sess.Town.restoredCampaign() {
 		s.returnMission = t.sess.Town.selectedMission()
-		s.route = worldMapRoute(a.mode(s.mode).graph, s.current, worldMapHomePoint(a), worldMapFallbackStep)
+		s.route = worldMapRoute(a.mode(s.mode).graph, s.current, home, worldMapFallbackStep)
 	}
 }
 
 func (t *townScreen) AtWorldMap() bool { return t != nil && t.room == roomGates }
 
 // beginWorldMapReturn is the owner-directed post-Victory trigger (DIV-137).
-// TOWN-121 supplies route completion into destination object zero. Campaign
-// completion has already happened; neither this method nor arrival pays again.
+// TOWN-121 supplies route completion into the party's town: the town it left
+// for the mission. Campaign completion has already happened; neither this
+// method nor arrival pays again.
 func (t *townScreen) beginWorldMapReturn(mission int) {
 	a := t.art.worldMap()
 	t.atSquare()
 	t.worldMap = nil
-	t.worldPosition, t.worldPositionSet = worldMapHomePoint(a), true
+	t.worldPosition, t.worldPositionSet = worldMapHome(t.partyTown(), a), true
 	if a.data == nil {
 		return // Registry-less diagnostics have no mission location to traverse.
 	}
@@ -426,7 +480,7 @@ func (t *townScreen) beginWorldMapReturn(mission int) {
 	t.room = roomGates
 	t.enterWorldMap() // Town.Available now excludes the completed mission.
 	t.worldMap.returnMission = mission
-	t.worldMap.route = worldMapRoute(a.mode(t.worldMap.mode).graph, t.worldPosition, worldMapHomePoint(a), worldMapFallbackStep)
+	t.worldMap.route = worldMapRoute(a.mode(t.worldMap.mode).graph, t.worldPosition, t.worldMap.home(), worldMapFallbackStep)
 }
 
 func (t *townScreen) WorldMapView() ui.WorldMapView {
@@ -438,12 +492,18 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
 	}
-	v := s.view(worldMapViewInput{font: t.art.documentFont(), detail: t.in.tipFont(), words: t.in.Words, task: t.worldFlag1Frame})
+	// The home scroll names the party's town by its entry's name, when the
+	// entry gives one; the install's home title otherwise.
+	words := t.in.Words
+	if name := s.homeTown.Name; name != "" {
+		words.WorldHomeTitle = name
+	}
+	v := s.view(worldMapViewInput{font: t.art.documentFont(), detail: t.in.tipFont(), words: words, task: t.worldFlag1Frame})
 	for i := range v.Missions {
 		// `DIV-128`: a picture-bearing mission's own marker paints only once
 		// it has been selected at least once this game (`TOWN-123`/
 		// `TOWN-040`, High).
-		if v.Missions[i].Enabled && src != nil && t.worldSelectedOnce[v.Missions[i].Number] {
+		if v.Missions[i].Enabled && v.Missions[i].Kind != placeTown && src != nil && t.worldSelectedOnce[v.Missions[i].Number] {
 			obj := a.data.Objects[v.Missions[i].Object]
 			v.Missions[i].Marker = worldMapOptionalImage(a.marker(v.Missions[i].Number, obj))
 		}
@@ -451,7 +511,9 @@ func (t *townScreen) WorldMapView() ui.WorldMapView {
 	if src != nil && a.data != nil {
 		shown := make(map[int]bool, len(v.Missions))
 		for _, m := range v.Missions {
-			shown[m.Number] = true
+			if m.Kind != placeTown {
+				shown[m.Number] = true
+			}
 		}
 		for _, mission := range sortedSelectedMissions(t.worldSelectedOnce) {
 			object, ok := a.data.Missions[mission]
@@ -520,7 +582,7 @@ func (t *townScreen) arriveWorldMap() ui.TownAction {
 	s.route, s.shown, s.selected = nil, 0, -1
 	if s.returnMission != 0 {
 		s.returnMission = 0
-		s.current = worldMapHomePoint(s.assets)
+		s.current = s.home()
 		t.worldPosition, t.worldPositionSet = s.current, true
 		if t.sess.Town.progress != nil {
 			t.sess.Town.progress.firstMapPoint = true
@@ -532,12 +594,40 @@ func (t *townScreen) arriveWorldMap() ui.TownAction {
 		return ui.TownAction{}
 	}
 	m := s.missions[i]
+	if m.Kind == placeTown {
+		return t.arriveInTown(m)
+	}
 	s.current = m.Anchor
 	t.worldPosition = m.Anchor
 	if !m.Enabled {
 		return ui.TownAction{Msg: m.Problem}
 	}
 	return t.worldMapMissionAction(m.Number)
+}
+
+// arriveInTown ends a travel to town record m: the town becomes the party's
+// town and its home, with its own state, and the party stands on its square
+// as on a return home. A town the party cannot enter leaves the party where
+// it stood.
+func (t *townScreen) arriveInTown(m ui.WorldMapMission) ui.TownAction {
+	if !m.Enabled {
+		return ui.TownAction{Msg: m.Problem}
+	}
+	before := t.townDescription()
+	if !t.sess.Town.travelTo(m.Number) {
+		return ui.TownAction{Msg: fmt.Sprintf("Town %d is not open", m.Number)}
+	}
+	s := t.worldMap
+	s.current, s.homeTown = m.Anchor, t.sess.Town.townEntry()
+	t.worldPosition, t.worldPositionSet = m.Anchor, true
+	if t.sess.Town.progress != nil {
+		t.sess.Town.progress.firstMapPoint = true
+	}
+	if t.townDescription() != before {
+		t.square, t.pages = nil, nil
+	}
+	t.atSquare()
+	return ui.TownAction{}
 }
 
 // selectWorldMission (re)starts travel to mission i from the party's own
@@ -549,7 +639,7 @@ func (t *townScreen) selectWorldMission(i int) {
 		return
 	}
 	m := t.worldMap.missions[i]
-	if !t.worldMap.startTravel(i) {
+	if !t.worldMap.startTravel(i) || m.Kind == placeTown {
 		return
 	}
 	if t.sess != nil {

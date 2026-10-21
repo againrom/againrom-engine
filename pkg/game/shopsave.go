@@ -146,8 +146,11 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 		return s, nil
 	}
 	in := f.InstallResources
-	n := &CampaignSession{
-		Town: restoreTown(f.Campaign.Value(), s), Carried: mapload.CloneParty(s.Party), Shop: cloneShopMutation(s.shop)}
+	restored, err := restoreTown(f.Campaign.Value(), s)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	n := &CampaignSession{Town: restored, Carried: mapload.CloneParty(s.Party), Shop: cloneShopMutation(s.shop)}
 	t := &townScreen{shopController: shopController{sess: n, in: &in}, pc: &PersistenceContext{}, room: roomShop}
 	t.bindServices(&RuntimeServices{}, &in, &Presentation{})
 	t.bindShop()

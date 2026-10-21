@@ -373,14 +373,21 @@ const generatedCityTrailerLen = 400
 //
 // DIV-890, DIV-884, DIV-903
 func nativeCampaignProjection(f *FrontEnd, s Snapshot) (sav.CampaignProjection, error) {
-	return nativeCampaignProjectionForChapter(f, s, restoreTown(f.Campaign.Value(), s).currentMain())
+	t, err := restoreTown(f.Campaign.Value(), s)
+	if err != nil {
+		return sav.CampaignProjection{}, err
+	}
+	return nativeCampaignProjectionForChapter(f, s, t.currentMain())
 }
 
 // The first playable world precedes the town-offer boundary. Its active main
 // record is the mission being played; all arrays use this same producer.
 func nativeCampaignProjectionForChapter(f *FrontEnd, s Snapshot, chapter int) (sav.CampaignProjection, error) {
 	fame := fameFromSnapshot(s)
-	t := restoreTown(f.Campaign.Value(), s)
+	t, err := restoreTown(f.Campaign.Value(), s)
+	if err != nil {
+		return sav.CampaignProjection{}, err
+	}
 	ch := f.Campaign.Value().Chapters[chapter]
 	main := progressRecordFromCampaign(f.Campaign.Value(), chapter).savRecord(false)
 	if record := t.currentRecords().record(chapter); record != nil {

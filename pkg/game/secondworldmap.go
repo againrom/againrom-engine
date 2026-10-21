@@ -83,10 +83,10 @@ func (t *secondCampaignScreen) worldMapNow() *worldMapState {
 			s.mode = i
 		}
 	}
-	s.current, _ = a.desc.point(c.mapOpen.from.kind, c.mapOpen.from.id)
+	s.current, _ = t.placePoint(a, c.mapOpen.from)
 	for _, l := range c.available {
 		m := ui.WorldMapMission{Number: l.id, Kind: l.kind, Enabled: true}
-		if p, ok := a.desc.point(l.kind, l.id); ok {
+		if p, ok := t.placePoint(a, l); ok {
 			m.Anchor = p
 		} else {
 			m.Enabled, m.Problem = false, fmt.Sprintf("Destination %d/%d has no map point", l.kind, l.id)
@@ -96,6 +96,20 @@ func (t *secondCampaignScreen) worldMapNow() *worldMapState {
 	s.openTravel()
 	t.worldMap, t.worldMapOf, t.worldMapAt = s, c, c.mapOpen
 	return s
+}
+
+// placePoint is where place l stands on map a: a town at its catalog
+// entry's map point, a mission at its record.
+func (t *secondCampaignScreen) placePoint(a *worldMapAssets, l partyPlace) (image.Point, bool) {
+	if l.kind != placeTown {
+		return a.desc.point(l.kind, l.id)
+	}
+	e, ok := TownCatalog(t.install.profile()).Town(l.id)
+	if !ok {
+		return image.Point{}, false
+	}
+	p, _, ok := townMapPoint(e, a)
+	return p, ok
 }
 
 func (t *secondCampaignScreen) WorldMapView() ui.WorldMapView {

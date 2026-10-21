@@ -185,7 +185,10 @@ func saveDialogDeleteToken(name string) string {
 // advance campaign selection, or touch the running driver.
 func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapshot, *sim.World, error) {
 	n := *f
-	n.Town = restoreTown(f.Campaign.Value(), captured)
+	var err error
+	if n.Town, err = restoreTown(f.Campaign.Value(), captured); err != nil {
+		return nil, Snapshot{}, nil, err
+	}
 	n.townUI = nil
 	// The emitted header is a city header. Apply the same location admission
 	// as cold LOAD before normalizing any survivor or preparing output. A
@@ -199,7 +202,6 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 		screen.worldSelectedOnce, _ = worldSelectedOnceFromSnapshot(captured.WorldSelectedOnce)
 		screen.worldSelectedOrder = append([]int(nil), captured.WorldSelectedOnce...)
 	}
-	var err error
 	n.originalCity, err = originalCityFromSnapshot(captured)
 	if err != nil {
 		return nil, Snapshot{}, nil, err

@@ -225,7 +225,10 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	if s.SavedDocument != nil && !s.CampaignState {
 		for _, e := range f.live.world.Entities() {
 			if e.SourceBinding.Generated() {
-				chapter := f.generatedCampaignChapter(s)
+				chapter, err := f.generatedCampaignChapter(s)
+				if err != nil {
+					return Snapshot{}, "", err
+				}
 				s.Campaign, err = nativeCampaignProjectionForChapter(f, s, chapter)
 				if err != nil {
 					return Snapshot{}, "", err

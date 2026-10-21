@@ -28,7 +28,7 @@ func TestWorldMarkerHistoryRoundTripsAndReplacesThePreviousGame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g.installCandidate(&restoreCandidate{townOnly: true, town: restoreTown(campaign, snapshot), worldSelectedOnce: history})
+	g.installCandidate(&restoreCandidate{townOnly: true, town: testRestoreTown(campaign, snapshot), worldSelectedOnce: history})
 
 	if want := map[int]bool{10: true, 20: true}; !reflect.DeepEqual(g.townUI.worldSelectedOnce, want) {
 		t.Fatalf("restored marker history = %v, want %v", g.townUI.worldSelectedOnce, want)

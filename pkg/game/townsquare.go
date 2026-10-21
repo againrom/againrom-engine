@@ -48,13 +48,13 @@ var rom2Town2JSON []byte
 //go:embed towns/rom2-town3.json
 var rom2Town3JSON []byte
 
-// TownDescription is the description of the town the first game's town
-// screen composes: the profile's catalog town under the chapters hook set,
-// town 1, the town a chapter party stands in; nil when the profile's catalog
-// has no such town. It names the rooms the tavern, shop and school pages and
-// their scene art are read from as well. Callers must not change it.
+// TownDescription is the description of the town a first-game party starts
+// in: the profile's catalog town 1 under the chapters hook set; nil when the
+// profile's catalog has no such town. Its art is the install's town art
+// every front end shares; a screen reads the party's town's own
+// (townScreen.townDescription). Callers must not change it.
 func TownDescription(p base.Profile) *town.Description {
-	return townDescriptionOf(TownCatalog(p), chapterTown, townHooksChapters)
+	return townBookOf(p).description(chapterTown, townHooksChapters)
 }
 
 // townPages are the page kinds the ROM1 town screen draws its rooms with.
@@ -93,19 +93,21 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 	return town.LoadArt(d.SquareScene(), screenArtOf(src))
 }
 
-// townDescription is the description of the town the party stands in, from
-// the install profile's catalog; a screen bound to no install is the zero
-// profile's, the first game's. Where the party stands in no town (a mission,
-// or a campaign that has not reached its town) it is the chapter town's. The
-// screen's rooms read it too.
+// townDescription is the description of the party's town, the town it
+// stands in or left for its mission, from its campaign's catalog; a
+// campaign with none reads the install profile's, and a screen bound to no
+// install the zero profile's, the first game's. The screen's rooms and
+// their art read it too.
 func (t *townScreen) townDescription() *town.Description {
 	id := chapterTown
-	if t != nil {
-		if here, ok := campaignOf(t.profile().GameOf()).place(t.sess).town(); ok {
-			id = here
-		}
+	var book *townBook
+	if t != nil && t.sess != nil && t.sess.Town != nil {
+		id, book = t.sess.Town.townID(), t.sess.Town.camp.Towns
 	}
-	return townDescriptionOf(TownCatalog(t.profile()), id, townHooksChapters)
+	if book == nil {
+		book = townBookOf(t.profile())
+	}
+	return book.description(id, townHooksChapters)
 }
 
 func (t *townScreen) profile() base.Profile {
@@ -135,7 +137,10 @@ func townRoomName(r townRoom) string {
 
 // townConditions answers the conditions the description names.
 var townConditions = map[string]func(t *townScreen) bool{
-	"gate-open":     func(t *townScreen) bool { return t.sess.Town.gateMission() != -1 },
+	// The gate opens on a mission to play or a town to travel to.
+	"gate-open": func(t *townScreen) bool {
+		return t.sess.Town.gateMission() != -1 || len(t.sess.Town.travelTowns()) > 0
+	},
 	"save-admitted": func(t *townScreen) bool { return t.saveAdmitted() },
 }
 

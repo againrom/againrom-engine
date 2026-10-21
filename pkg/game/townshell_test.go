@@ -104,7 +104,7 @@ func TestTavernWholeSquadHireAndReturnAreImmediate(t *testing.T) {
 	}
 	other := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(shellCampaign(), nil), Table: f.Table, Humans: f.Humans}, CampaignSession: CampaignSession{Town: NewTown(shellCampaign())}}
 	other.TownScreen()
-	other.Town, other.Carried = restoreTown(shellCampaign(), snap), mapload.OwnParty(snap.Party)
+	other.Town, other.Carried = testRestoreTown(shellCampaign(), snap), mapload.OwnParty(snap.Party)
 	if other.Town.Gold() != 950 || !other.Town.MercenaryHired(3) || other.Town.MercenaryPool(3) != 2 || len(other.Carried) != 3 {
 		t.Fatalf("restored hire = gold %d hired %v working %d party %d", other.Town.Gold(),
 			other.Town.MercenaryHired(3), other.Town.MercenaryPool(3), len(other.Carried))

@@ -24,7 +24,7 @@ func TestCityTopologySnapshotAndRestoreOwnTheirGraph(t *testing.T) {
 	town.cityObjects = g
 	var snapshot Snapshot
 	snapshotTown(town, &snapshot)
-	restored := restoreTown(Campaign{}, snapshot)
+	restored := testRestoreTown(Campaign{}, snapshot)
 	if !reflect.DeepEqual(restored.cityObjects, original) {
 		t.Fatal("city topology lost through Snapshot")
 	}
@@ -38,7 +38,7 @@ func TestCityTopologySnapshotAndRestoreOwnTheirGraph(t *testing.T) {
 	if !reflect.DeepEqual(town.cityObjects, original) {
 		t.Fatal("restored candidate shared live topology")
 	}
-	if restoreTown(Campaign{}, Snapshot{}).cityObjects != nil {
+	if testRestoreTown(Campaign{}, Snapshot{}).cityObjects != nil {
 		t.Fatal("legacy empty snapshot invented city object identities")
 	}
 }

@@ -147,8 +147,11 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 		s.CampaignState, second = true, true
 	}
 	if !s.CampaignState {
-		var err error
-		s.Campaign, err = nativeCampaignProjectionForChapter(f, s, f.generatedCampaignChapter(s))
+		chapter, err := f.generatedCampaignChapter(s)
+		if err != nil {
+			return sav.DocumentData{}, err
+		}
+		s.Campaign, err = nativeCampaignProjectionForChapter(f, s, chapter)
 		if err != nil {
 			return sav.DocumentData{}, err
 		}

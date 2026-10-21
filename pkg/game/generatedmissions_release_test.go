@@ -155,7 +155,11 @@ func generatedMissionSample(t *testing.T, f *FrontEnd) map[string]json.RawMessag
 	}
 	campaign := s.Campaign
 	if !s.CampaignState {
-		campaign, err = nativeCampaignProjectionForChapter(f, s, f.generatedCampaignChapter(s))
+		chapter, err := f.generatedCampaignChapter(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		campaign, err = nativeCampaignProjectionForChapter(f, s, chapter)
 		if err != nil {
 			t.Fatal(err)
 		}

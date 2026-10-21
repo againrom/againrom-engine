@@ -220,7 +220,7 @@ func (t *townScreen) bindShop() {
 		speak: t.shopItemResponse,
 		fresh: t.nextParty,
 		dress: func(v *ui.ShopScreenView) {
-			v.Art = t.art.shopScreen()
+			v.Art = t.shopArt()
 			v.Scene = roomScene{t.shopPage()}
 			v.TipPanel = t.roomTipView(roomShop, t.shopTip)
 			v.Character = t.townCharacterView()

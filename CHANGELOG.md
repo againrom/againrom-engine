@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 ### For developers
 
 - [BASE] Each game now lists its towns in one town catalog, one entry per town naming its town screen, room hooks, offer source and world map point, so a later mod can add a town in the same format.
+- [BASE] A town catalog entry can now name its town, the mission that opens it and the missions it offers, and the first game's world map shows every open town, so the party can travel between towns and return from a mission to the town it left.
 
 ## 0.129.0
 

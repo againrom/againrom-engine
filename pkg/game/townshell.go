@@ -87,7 +87,7 @@ func (t *townScreen) tavernCandidates() []tavernCandidate {
 	offers := t.tavernVisibleOffers()
 	mercenaries := t.tavernMercenaries()
 	out := make([]tavernCandidate, 0, len(offers)+len(mercenaries))
-	art := t.in.TownTavernArt.Value()
+	art := t.tavernArt()
 	for _, o := range mercenaries {
 		cell := ui.TownSurfaceCell{Detail: fmt.Sprintf("%d/%d", o.Count, o.Capacity),
 			Price: ui.GroupDigits(int64(o.Price)), Semantic: fmt.Sprintf("Mercenary %d", o.Type),
@@ -248,7 +248,7 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 	}
 	t.tavernDetailType, t.tavernDetail, t.tavernDetailMask, t.tavernDetailInfo = typ, v, hoverMask, info
 	t.tavernDetailText = text.Record(func() {
-		t.tavernDetailPixels = ui.RenderTownCandidateInspection(v, t.in.TownTavernArt.Value())
+		t.tavernDetailPixels = ui.RenderTownCandidateInspection(v, t.tavernArt())
 	})
 	return v, hoverMask, info, true
 }
@@ -346,7 +346,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	v.Hero.NoBook, v.Hero.BookOpen = true, false
 	if t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool {
 		v.Kind, v.Title, v.Cells = ui.TownSurfaceSchool, "", t.schoolSurfaceCells()
-		v.SchoolArt = t.in.TownSchoolArt.Value()
+		v.SchoolArt = t.schoolArt()
 		v.Scene = roomScene{t.schoolPage()}
 		v.SchoolClass = t.schoolPanelClass()
 		v.SchoolColumnFrame, v.SchoolColumnSet = t.schoolColumnShown()
@@ -369,7 +369,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	v.Kind, v.Title = ui.TownSurfaceTavern, "TAVERN"
 	cells, selected, hasSelection := t.tavernSnapshot(candidates)
 	v.Cells = cells
-	v.TavernArt = t.in.TownTavernArt.Value()
+	v.TavernArt = t.tavernArt()
 	v.Scene = roomScene{t.tavernPage()}
 	o, merc := selected.merc, hasSelection && selected.key.kind == tavernCandidateMercenary
 	value := ""

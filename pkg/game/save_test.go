@@ -260,7 +260,7 @@ func TestTheCampaignIsNotInTheSave(t *testing.T) {
 	other := Campaign{Main: []int{30}, Offered: []int{30},
 		Chapters: map[int]Chapter{30: {Mission: 30, Shop: []int{31}}}}
 	g := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(other, nil)}}
-	g.Town = restoreTown(other, snap)
+	g.Town = testRestoreTown(other, snap)
 	offers := g.Town.Offers(TownShop)
 	if len(offers) != 1 || offers[0].Mission != 31 {
 		t.Fatalf("the restored town offers %+v, want the NEW install's own shop row", offers)

@@ -108,7 +108,7 @@ func TestTownArrivalUsesADeclaredMainWhenAnEarlierSideIsOffered(t *testing.T) {
 	if town.Chapter() != 30 {
 		t.Fatalf("first arrival chose %d, want declared main 30", town.Chapter())
 	}
-	legacy := restoreTown(c, Snapshot{Open: true, Mission: 31})
+	legacy := testRestoreTown(c, Snapshot{Open: true, Mission: 31})
 	if legacy.Chapter() != 30 || !legacy.Open() {
 		t.Fatalf("legacy side entry lost its reached main: %d/%v", legacy.Chapter(), legacy.Open())
 	}
@@ -147,12 +147,12 @@ func TestTownLegacyMainAndOrdinaryPreTownProjectionAgree(t *testing.T) {
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil)}}
 	for _, mission := range []int{10, 20} {
 		legacy := Snapshot{Mission: mission}
-		town := restoreTown(c, legacy)
+		town := testRestoreTown(c, legacy)
 		requireClosedTown(t, town, mission)
 		var current Snapshot
 		snapshotTown(town, &current)
 		current.Mission = mission
-		if current.MainMission != mission || f.generatedCampaignChapter(current) != mission {
+		if chapter, err := f.generatedCampaignChapter(current); current.MainMission != mission || err != nil || chapter != mission {
 			t.Fatalf("mission %d capture lost current main", mission)
 		}
 		projection, err := nativeCampaignProjection(f, current)
@@ -193,7 +193,7 @@ func TestTownConsumedOffersSurviveArrivalAndColdCampaignRecords(t *testing.T) {
 	for cycle := 0; cycle < 2; cycle++ {
 		snapshot := Snapshot{Mission: 31}
 		snapshotTown(f.Town, &snapshot)
-		assertConsumed(restoreTown(c, snapshot))
+		assertConsumed(testRestoreTown(c, snapshot))
 		projection := snapshot.Campaign
 		if !snapshot.CampaignState {
 			var err error
@@ -214,7 +214,7 @@ func TestTownConsumedOffersSurviveArrivalAndColdCampaignRecords(t *testing.T) {
 		if decoded.Main.Mission != 30 || len(decoded.ShopMission) != 0 || !reflect.DeepEqual(decoded.InnMission, []uint16{0}) || !reflect.DeepEqual(decoded.InnNPC, []uint16{90}) {
 			t.Fatalf("ordinary consumed rows changed: %+v", decoded)
 		}
-		f.Town = restoreTown(c, Snapshot{Mission: 31, MainMission: 10, CampaignState: true, Campaign: decoded})
+		f.Town = testRestoreTown(c, Snapshot{Mission: 31, MainMission: 10, CampaignState: true, Campaign: decoded})
 		assertConsumed(f.Town)
 	}
 }

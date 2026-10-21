@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	rendertext "againrom/pkg/render/text"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -24,8 +25,13 @@ type worldMapState struct {
 	route         []image.Point
 	shown         int
 	// returnMission identifies a completed mission's pending homeward trip.
-	// It is separate from selected: home is MapObject 0, not a mission scroll.
+	// It is separate from selected: home is the party's town, not a mission
+	// scroll.
 	returnMission int
+	// homeTown is the catalog entry of the party's town, whose point is
+	// home: where a homeward trip ends and the map's at-home rules hold. The
+	// zero entry is the starting town's.
+	homeTown town.Entry
 	// current is the party's own current-position field (`TOWN-120`/
 	// `TOWN-121`, High), copied in from the campaign on entry and written
 	// back only at arrival.
@@ -41,6 +47,14 @@ type worldMapState struct {
 	// frame count plus the description's hold, and arrival waits for that as
 	// well as for the reveal (`TOWN-121`, R2-ENGINE-432; DIV-1545).
 	cross int
+}
+
+// home is the party's town's point on the map.
+func (s *worldMapState) home() image.Point {
+	if s == nil {
+		return worldMapNoPoint
+	}
+	return worldMapHome(s.homeTown, s.assets)
 }
 
 // desc is the description the state follows, or nil.
@@ -121,7 +135,7 @@ func (s *worldMapState) hideScrolls() bool {
 	if d := s.desc(); d != nil && d.Cards == nil {
 		return true
 	}
-	return s.returnMission != 0 || s.current != worldMapHomePoint(s.assets)
+	return s.returnMission != 0 || s.current != s.home()
 }
 
 // travellingTo reports whether the party is on its way to mission i: the
@@ -204,11 +218,11 @@ func (s *worldMapState) crossDrawn() bool {
 	if !s.travelling() {
 		return false
 	}
-	destination := worldMapHomePoint(s.assets)
+	destination := s.home()
 	if s.returnMission == 0 && s.selected < len(s.missions) {
 		destination = s.missions[s.selected].Anchor
 	}
-	return destination != s.current || s.current != worldMapHomePoint(s.assets)
+	return destination != s.current || s.current != s.home()
 }
 
 // openTravel starts the travel to the first record when the mode says so
@@ -246,9 +260,9 @@ func (s *worldMapState) view(in worldMapViewInput) ui.WorldMapView {
 		Font: in.font, DetailFont: in.detail, ScrollHovered: s.scrollHovered, Words: in.words,
 		Missions: append([]ui.WorldMapMission(nil), s.missions...), CardBase: ui.WorldMapCardPageBase(s.selected),
 		Hovered: s.hovered, Selected: s.selected, Route: append([]image.Point(nil), s.route...),
-		RouteShown: min(s.shown, len(s.route)), Position: s.current, AtHome: s.current == worldMapHomePoint(a),
+		RouteShown: min(s.shown, len(s.route)), Position: s.current, AtHome: s.current == s.home(),
 		HideScrolls: s.hideScrolls(),
-		Returning:   s.returnMission != 0, Destination: worldMapHomePoint(a),
+		Returning:   s.returnMission != 0, Destination: s.home(),
 		Problem: a.problem,
 	}
 	if d == nil {

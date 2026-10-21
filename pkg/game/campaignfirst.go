@@ -30,7 +30,14 @@ func (firstCampaignRules) captureMission(_ *FrontEnd, s *Snapshot) { s.noticeOpe
 func (firstCampaignRules) exportable(Snapshot) error { return nil }
 
 func (firstCampaignRules) refuseCompleted(f *FrontEnd, s Snapshot) error {
-	if s.Mission == 0 && f.Campaign.Value().completedBy(restoreTown(f.Campaign.Value(), s)) {
+	if s.Mission != 0 {
+		return nil
+	}
+	t, err := restoreTown(f.Campaign.Value(), s)
+	if err != nil {
+		return err
+	}
+	if f.Campaign.Value().completedBy(t) {
 		return errCompletedCampaignSave
 	}
 	return nil

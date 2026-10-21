@@ -354,7 +354,7 @@ func TestRestoredTownPrefersTheCampaignProjectionOverLegacyFields(t *testing.T) 
 	decoded.Available = append(decoded.Available, 30, 40)
 	decoded.Documents = append(decoded.Documents, SnapshotDocument{Value: 999, Kind: DocumentText})
 	decoded.MercenaryPool[3] = 999
-	back := restoreTown(c, decoded)
+	back := testRestoreTown(c, decoded)
 	if back == nil || back.Chapter() != 50 || back.selectedMission() != 41 || !reflect.DeepEqual(back.Available(), []int{41}) {
 		t.Fatalf("restored envelope town = %#v", back)
 	}

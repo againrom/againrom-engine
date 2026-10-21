@@ -518,7 +518,7 @@ func TestWorldMapArrivalClearsSelectionMovesPositionAndOpensWithNoSecondClick(t 
 // on another mission's scroll behave as before: each starts travel from the
 // party's own position with nothing revealed.
 func TestWorldMapRepeatedScrollClickKeepsTravelRunning(t *testing.T) {
-	home := image.Pt(320, 240) // worldMapHomePoint with no registry loaded
+	home := image.Pt(320, 240) // the starting town's home with no registry loaded
 	anchors := map[int]image.Point{30: image.Pt(0, 0), 40: image.Pt(620, 470)}
 	newScreen := func() *townScreen {
 		return (&FrontEnd{}).bindTown(&townScreen{worldMap: &worldMapState{

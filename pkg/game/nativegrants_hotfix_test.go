@@ -15,7 +15,7 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 		20: {Mission: 20}, 30: {Mission: 30, AddHero: []int{22}}, 40: {Mission: 40, AddHero: []int{25}},
 	}}
 	legacy := Snapshot{Open: true, Won: []int{20}}
-	back := restoreTown(c, legacy)
+	back := testRestoreTown(c, legacy)
 	if got := back.takeAddHeroes(30); len(got) != 0 {
 		t.Fatal("old reached-town default reissued its companion", got)
 	}
@@ -23,11 +23,11 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 		t.Fatal("old default consumed a future chapter", got)
 	}
 	legacy.Open = false
-	if got := restoreTown(c, legacy).takeAddHeroes(30); !reflect.DeepEqual(got, []int{22}) {
+	if got := testRestoreTown(c, legacy).takeAddHeroes(30); !reflect.DeepEqual(got, []int{22}) {
 		t.Fatal("unopened old town lost its grant", got)
 	}
 	legacy.Open, legacy.HeroGrantState = true, true
-	if got := restoreTown(c, legacy).takeAddHeroes(30); !reflect.DeepEqual(got, []int{22}) {
+	if got := testRestoreTown(c, legacy).takeAddHeroes(30); !reflect.DeepEqual(got, []int{22}) {
 		t.Fatal("explicit current pending state was treated as legacy", got)
 	}
 	for _, bad := range []Snapshot{
@@ -50,7 +50,7 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 	if err := validateSnapshotHeroGrants(c, current); err != nil {
 		t.Fatal("current campaign rejected independent consumed-grant history", err)
 	}
-	if got := restoreTown(c, current).takeAddHeroes(30); len(got) != 0 {
+	if got := testRestoreTown(c, current).takeAddHeroes(30); len(got) != 0 {
 		t.Fatal("current campaign reissued a consumed grant", got)
 	}
 	// Map insertion order must not change persisted grant bytes.
@@ -82,7 +82,7 @@ func TestNativeCompanionGrantIsConsumedAndPersisted(t *testing.T) {
 	}
 	var snapshot Snapshot
 	snapshotTown(town, &snapshot)
-	if got := restoreTown(c, snapshot).takeAddHeroes(30); len(got) != 0 {
+	if got := testRestoreTown(c, snapshot).takeAddHeroes(30); len(got) != 0 {
 		t.Fatal("AGS restored a consumed grant", got)
 	}
 	if got := NewTown(c).takeAddHeroes(30); !reflect.DeepEqual(got, []int{22}) {

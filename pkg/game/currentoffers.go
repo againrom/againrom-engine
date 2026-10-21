@@ -15,7 +15,7 @@ func snapshotOfferLabels(t *Town) *currentOfferLabels {
 	}
 	r := &currentOfferLabels{Chapter: t.Chapter()}
 	for b := TownTavern; b <= TownSchool; b++ {
-		r.Buildings[b] = t.Offers(b)
+		r.Buildings[b] = t.chapterOffers(b)
 	}
 	return r
 }

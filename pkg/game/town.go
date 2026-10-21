@@ -111,9 +111,18 @@ type Town struct {
 
 	available map[int]bool
 
+	// mercEnabled is the campaign's mercenary unlocks, one flag per type,
+	// index zero unused. A won mission's unlock enables the type in every
+	// chapter town, as the original keeps one PermanentMercenaries list.
+	mercEnabled [16]bool
+
 	// townState is the state of the town the party belongs to: its consumed
 	// offers and its tavern's mercenaries, keyed by the town's catalog ID.
 	townState
+	// others are the states of the campaign's other chapter towns, by town
+	// ID. Travel swaps the party's town in and out; the map is replaced,
+	// never edited in place, so a copied Town keeps its own.
+	others map[int]townState
 
 	offerLabels *currentOfferLabels
 
@@ -200,12 +209,11 @@ type townState struct {
 	// it as their removal set; ordinary arrays already contain the removals.
 	taken map[offerRef]bool
 
-	// mercPool, mercEnabled and mercHired are the tavern economy's three
-	// independent per-type records. Index zero is unused because the shipped
-	// type ids are one-based.
+	// mercPool, mercCapacity and mercHired are the town's tavern records per
+	// type; Town.mercEnabled is the campaign's. Index zero is unused because
+	// the shipped type ids are one-based.
 	mercPool     [16]int
 	mercCapacity [16]int
-	mercEnabled  [16]bool
 	mercHired    [16]bool
 }
 
@@ -231,11 +239,11 @@ func newTownState(e town.Entry, c Campaign) townState {
 	return s
 }
 
-// chapterTownEntry is the catalog entry of the town a chapter campaign's
-// party belongs to. NewTown builds over a campaign without a profile, so it
-// states the entry each chapter catalog lists: town 1, offers from the
-// chapter keys.
-var chapterTownEntry = town.Entry{ID: chapterTown, Offers: townOffersChapterKeys}
+// chapterTownEntry is the catalog entry of the town a chapter campaign
+// without a catalog holds: town 1, offers from the chapter keys, standing at
+// the world map's first object, as the first game's catalog lists it.
+var chapterTownEntry = town.Entry{ID: chapterTown, Hooks: townHooksChapters, Offers: townOffersChapterKeys,
+	MapPoint: town.MapPoint{Object: 1}}
 
 // townID is the catalog ID of the town the state belongs to; a Town built by
 // hand without one belongs to the chapter town.
@@ -255,7 +263,16 @@ func NewTown(c Campaign) *Town {
 		gold:      initialPlayerPurse,
 		won:       make(map[int]bool),
 		available: make(map[int]bool),
-		townState: newTownState(chapterTownEntry, c),
+	}
+	for _, e := range c.Towns.chapterTowns() {
+		if e.ID == chapterTown {
+			t.townState = newTownState(e, c)
+			continue
+		}
+		if t.others == nil {
+			t.others = map[int]townState{}
+		}
+		t.others[e.ID] = newTownState(e, c)
 	}
 	if len(c.Main) != 0 {
 		t.main = c.Main[0]
@@ -551,9 +568,24 @@ func (t *Town) MercenaryHired(typ int) bool {
 	return t != nil && typ > 0 && typ < len(t.mercHired) && t.mercHired[typ]
 }
 
+// mercenaryHiredElsewhere reports whether another chapter town holds type
+// typ hired. That squad marches with the party until the mission ends, so
+// no other town offers the type meanwhile.
+func (t *Town) mercenaryHiredElsewhere(typ int) bool {
+	if t == nil || typ <= 0 || typ >= len(t.mercHired) {
+		return false
+	}
+	for _, s := range t.others {
+		if s.mercHired[typ] {
+			return true
+		}
+	}
+	return false
+}
+
 // mercenaryHire sets the hired flag and charges the fee; pool untouched until merge.
 func (t *Town) mercenaryHire(typ, cost int) (count int, ok bool) {
-	if t == nil || typ <= 0 || typ >= len(t.mercPool) || t.mercHired[typ] ||
+	if t == nil || typ <= 0 || typ >= len(t.mercPool) || t.mercHired[typ] || t.mercenaryHiredElsewhere(typ) ||
 		t.mercPool[typ] <= 0 || cost < 0 || t.gold < cost {
 		return 0, false
 	}
@@ -589,20 +621,38 @@ func (t *Town) mercenaryReturn(typ, count, refund int) bool {
 //
 // Then all fifteen hire flags are zeroed, so no hire survives a mission.
 // That is the same fact DropHired states from the party's side.
+//
+// Every chapter town's tavern runs the merge, the party's and each other's:
+// a squad hired in one town goes home to that town's pool wherever the
+// mission ended. No type is hired in two towns at once, so each live count
+// has one owner.
 func (t *Town) mercenaryBoundary(live [16]int) {
 	if t == nil {
 		return
 	}
-	for typ := 1; typ < len(t.mercPool); typ++ {
-		if t.mercHired[typ] {
-			t.mercPool[typ] = live[typ]
+	t.townState.mercenaryBoundary(live)
+	if len(t.others) == 0 {
+		return
+	}
+	others := make(map[int]townState, len(t.others))
+	for id, s := range t.others {
+		s.mercenaryBoundary(live)
+		others[id] = s
+	}
+	t.others = others
+}
+
+func (s *townState) mercenaryBoundary(live [16]int) {
+	for typ := 1; typ < len(s.mercPool); typ++ {
+		if s.mercHired[typ] {
+			s.mercPool[typ] = live[typ]
 			continue
 		}
-		if t.mercPool[typ] < t.mercCapacity[typ] {
-			t.mercPool[typ]++
+		if s.mercPool[typ] < s.mercCapacity[typ] {
+			s.mercPool[typ]++
 		}
 	}
-	t.mercHired = [16]bool{}
+	s.mercHired = [16]bool{}
 }
 
 func (t *Town) spend(cost int) bool {
@@ -708,6 +758,17 @@ func (t *Town) Available() []int {
 // dropped, because those two arrays have no positional partner for a hole to
 // mean anything against.
 func (t *Town) Offers(b TownBuilding) []TownOffer {
+	rows := t.chapterOffers(b)
+	// A campaign of several towns shows each town its own missions' rows.
+	if !t.manyTowns() {
+		return rows
+	}
+	return slices.DeleteFunc(rows, func(o TownOffer) bool { return !t.offeredHere(o.Mission) })
+}
+
+// chapterOffers is the live chapter's un-taken rows for one building, every
+// town's together.
+func (t *Town) chapterOffers(b TownBuilding) []TownOffer {
 	if !t.Open() || b < TownTavern || b > TownSchool {
 		return nil
 	}
@@ -768,6 +829,9 @@ func (t *Town) TavernRoster() []TownOffer {
 	next := 0
 	for i := 0; i < rows; i++ {
 		npc, mission := registry.InnNPC[i], registry.Inn[i]
+		if !t.offeredHere(mission) {
+			continue
+		}
 		found := -1
 		for j := next; j < len(live); j++ {
 			if live[j].NPC == npc && live[j].Mission == mission {
@@ -803,6 +867,9 @@ func (t *Town) TavernRoster() []TownOffer {
 // arrays translate that label to the current row before consumption.
 func (t *Town) Take(b TownBuilding, index int) (int, bool) {
 	if !t.Open() || index < 0 {
+		return 0, false
+	}
+	if t.manyTowns() && !slices.ContainsFunc(t.Offers(b), func(o TownOffer) bool { return o.Index == index }) {
 		return 0, false
 	}
 	if t.progress != nil {

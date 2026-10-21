@@ -27,7 +27,7 @@ func (t *townScreen) tavernMercenaries() []TavernOffer {
 	}
 	var out []TavernOffer
 	for _, typ := range tavernStockWalk() {
-		if !listed[typ] || !t.sess.Town.MercenaryEnabled(typ) {
+		if !listed[typ] || !t.sess.Town.MercenaryEnabled(typ) || t.sess.Town.mercenaryHiredElsewhere(typ) {
 			continue
 		}
 		count := t.sess.Town.MercenaryPool(typ)

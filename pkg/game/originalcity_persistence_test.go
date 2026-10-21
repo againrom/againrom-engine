@@ -257,7 +257,7 @@ func TestOriginalCityNoProvenanceAndNewSessionNeverInheritBindings(t *testing.T)
 		t.Fatal(err)
 	}
 	s.OriginalCity = nil
-	f.installCandidate(&restoreCandidate{town: restoreTown(f.Campaign.Value(), s), carried: mapload.CloneParty(s.Party), townOnly: true})
+	f.installCandidate(&restoreCandidate{town: testRestoreTown(f.Campaign.Value(), s), carried: mapload.CloneParty(s.Party), townOnly: true})
 	if f.originalCity != nil {
 		t.Fatal("current candidate inherited provenance")
 	}

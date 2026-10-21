@@ -69,17 +69,17 @@ func (t *townScreen) sceneArt(name string) *town.Art {
 	}
 	switch room {
 	case roomSquare:
-		return t.in.TownSquareArt.Value()
+		return t.squareArt()
 	case roomTavern:
-		if a := t.in.TownTavernArt.Value(); a != nil {
+		if a := t.tavernArt(); a != nil {
 			return &town.Art{Frames: a.Scene}
 		}
 	case roomShop:
-		if a := t.art.shopScreen(); a != nil {
+		if a := t.shopArt(); a != nil {
 			return &town.Art{Frames: a.Scene}
 		}
 	case roomSchool:
-		if a := t.in.TownSchoolArt.Value(); a != nil {
+		if a := t.schoolArt(); a != nil {
 			return &town.Art{Frames: a.Scene}
 		}
 	}

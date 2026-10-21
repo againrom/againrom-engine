@@ -2703,6 +2703,17 @@ package storyguard
 // pkg/game/towncatalog.go), the town state builder (pkg/game/town.go), the
 // place model (pkg/game/place.go and both campaign services), their tests,
 // plus this note.
+// CommentBytes rises for world map travel between catalog towns: the entry
+// fields (pkg/town/catalog.go), the catalog's decode rules
+// (pkg/game/towncatalog.go), travel and the town record
+// (pkg/game/towntravel.go), the per-description town art
+// (pkg/game/townart.go), the map's town records and home
+// (pkg/game/worldmap.go, pkg/game/worldmapstate.go), their tests, plus this
+// note.
+// CommentBytes rises for mercenaries across catalog towns: the campaign-wide
+// unlock set and the per-town hire and merge (pkg/game/town.go), the town
+// record's bounds and the catalog's opening check (pkg/game/towntravel.go),
+// the restore error (pkg/game/save.go), their tests, plus this note.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2726,5 +2737,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9348985,
+	CommentBytes: 9361209,
 }

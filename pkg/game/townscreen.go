@@ -583,7 +583,7 @@ func (t *townScreen) TownSquareView() ui.TownSquareView {
 		Font: t.in.Font.Value(),
 		Tip:  t.roomTipView(roomSquare, t.townTip),
 	}
-	if t.in.TownSquareArt.Value() != nil {
+	if t.squareArt() != nil {
 		v.Scene = townSquareScene{t}
 	}
 	return v

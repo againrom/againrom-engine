@@ -12,7 +12,7 @@ import (
 // secondTownDescription is the second game's description of town id, read
 // through its catalog.
 func secondTownDescription(id int) *town.Description {
-	return townDescriptionOf(townCatalogs["rom2"], id, townHooksDestinations)
+	return townBooks["rom2"].description(id, townHooksDestinations)
 }
 
 func findProfile(t *testing.T, id string) base.Profile {

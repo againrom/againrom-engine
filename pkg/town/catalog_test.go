@@ -11,14 +11,16 @@ var catalogVocab = CatalogVocabulary{HookSets: []string{"square-hooks"}, OfferSo
 func TestCatalogDecodesTheEntryFormat(t *testing.T) {
 	raw := `{"catalog": "fixture", "cite": ["C-1"], "towns": [
   {"id": 2, "description": "two", "hooks": "square-hooks", "offers": "bank", "map-point": {"record": true}, "cite": ["C-2"]},
-  {"id": 1, "description": "one", "hooks": "square-hooks", "offers": "keys", "map-point": {"object": 3}, "cite": []}]}`
+  {"id": 1, "description": "one", "hooks": "square-hooks", "offers": "keys", "map-point": {"object": 3},
+   "name": "One", "opens-after": 30, "missions": [31, 32], "cite": []}]}`
 	c, err := DecodeCatalog([]byte(raw), catalogVocab)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := &Catalog{Catalog: "fixture", Cite: []string{"C-1"}, Towns: []Entry{
 		{ID: 2, Description: "two", Hooks: "square-hooks", Offers: "bank", MapPoint: MapPoint{Record: true}, Cite: []string{"C-2"}},
-		{ID: 1, Description: "one", Hooks: "square-hooks", Offers: "keys", MapPoint: MapPoint{Object: 3}, Cite: []string{}},
+		{ID: 1, Description: "one", Hooks: "square-hooks", Offers: "keys", MapPoint: MapPoint{Object: 3},
+			Name: "One", OpensAfter: 30, Missions: []int{31, 32}, Cite: []string{}},
 	}}
 	if !reflect.DeepEqual(c, want) {
 		t.Fatalf("decoded %+v, want %+v", c, want)
@@ -53,6 +55,10 @@ func TestCatalogRejectsBrokenEntries(t *testing.T) {
 		{"no map point", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{}`, 1) + `]}`, "exactly one map point"},
 		{"two map points", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"object": 1, "record": true}`, 1) + `]}`, "exactly one map point"},
 		{"negative object", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"object": -1, "record": true}`, 1) + `]}`, "exactly one map point"},
+		{"negative opening", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"cite"`, `"opens-after": -1, "cite"`, 1) + `]}`, "opens after"},
+		{"zero mission", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"cite"`, `"missions": [0], "cite"`, 1) + `]}`, "offers mission 0"},
+		{"mission listed twice", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"cite"`, `"missions": [31], "cite"`, 1) + `,` +
+			strings.Replace(strings.Replace(entry, `"id": 1`, `"id": 2`, 1), `"cite"`, `"missions": [31], "cite"`, 1) + `]}`, "listed by towns 1 and 2"},
 		{"unknown hook set", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"square-hooks"`, `"other"`, 1) + `]}`, "hook set"},
 		{"unknown offer source", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"keys"`, `"other"`, 1) + `]}`, "offer source"},
 	} {

@@ -874,6 +874,9 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 			restoredTown.taken[offerRef{r.Chapter, TownBuilding(r.Building), r.Index}] = true
 		}
 		restoredTown.offerLabels = cloneOfferLabels(currentSession.OfferLabels)
+		if err := restoredTown.restoreTowns(currentSession.Towns); err != nil {
+			return nil, err
+		}
 		for _, n := range currentSession.Won {
 			restoredTown.won[n] = true
 		}

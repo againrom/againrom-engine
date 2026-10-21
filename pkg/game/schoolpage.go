@@ -113,7 +113,7 @@ func (t *townScreen) schoolColumnShown() (int, bool) {
 	if !col.Ready {
 		return col.Frame, false
 	}
-	art := t.in.TownSchoolArt.Value()
+	art := t.schoolArt()
 	if art == nil {
 		return col.Frame, false
 	}
