@@ -2539,8 +2539,11 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 	var bestDeficit int64
 	found := false
 	for i := range w.entities {
-		// An off-map actor is no candidate (TRIG-OFFMAP-041, AI-LIST-003).
-		if w.entities[i].OffMap || !w.withinCastReach(&caster, &w.entities[i], reach) {
+		if !autoCastTargetAdmitted(w.entities[i]) {
+			continue
+		}
+		// Legacy policy applies the spell's reach, health and primary-target rules.
+		if !w.withinCastReach(&caster, &w.entities[i], reach) {
 			continue
 		}
 		t := w.entities[i]
@@ -2550,22 +2553,14 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 		distance := (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: t.X, y: t.Y})
 		var key int64
 		tier := 0
+		// Legacy policy selects bodies, friends or foes by the spell's arm.
 		if rule.arm() == 25 {
 			if t.Alive() || t.Decay != DecayBones {
 				continue
 			}
 			key = distance
 		} else if rule.Defensive && !rule.Restorative && !rule.Damaging {
-			// A LASTING BUFF GOES TO THE FRIENDLY ACTOR IT WOULD ACTUALLY IMPROVE
-			// (owner). Own team first, then a locked ally; a neutral is not a
-			// candidate, because a buff is a standing mana drain rather than the
-			// bounded one an idle heal takes, and the owner asked for allies.
-			//
-			// THE ROW'S OWN RANGE DECIDES WHETHER THIS IS A SELF-CAST AT ALL.
-			// Shield ships MaxRange 0, so spellRange answers 0 and the reach
-			// test above leaves the caster as the only candidate; the four
-			// protections ship 5 and reach the party. Nothing here names a
-			// spell id.
+			// Buffs require improvement and own or allied actors; range decides self-casting.
 			if t.Owner != caster.Owner && !w.relations.Locked(caster.Owner, t.Owner) {
 				continue
 			}
@@ -2608,6 +2603,7 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 			}
 			key = int64(t.HP) - int64(t.MaxHP)
 		}
+		// Legacy policy requires sight even for self.
 		if visible == nil {
 			visible = w.actorSight(ci)
 		}

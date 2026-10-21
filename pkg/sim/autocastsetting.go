@@ -216,11 +216,14 @@ func (w *World) autoCastCandidates(ci int, s AutoCastSetting) []int {
 	var out []int
 	for i := range w.entities {
 		t := w.entities[i]
-		// A fallen body Heal can raise stays a candidate, as it was for the
-		// idle heal; the cast's own admission refuses a buff on it.
-		if t.OffMap || !t.Alive() && !(t.OrdinaryTargetable() && t.restorativeTargetable()) || t.MaxHP <= 0 {
+		if !autoCastTargetAdmitted(t) {
 			continue
 		}
+		// Support policy keeps living or raisable actors with health.
+		if !t.Alive() && !(t.OrdinaryTargetable() && t.restorativeTargetable()) || t.MaxHP <= 0 {
+			continue
+		}
+		// Support policy exempts self from target bits, hostility and sight.
 		if i != ci {
 			switch {
 			case w.hostileTo(&caster, &t):
