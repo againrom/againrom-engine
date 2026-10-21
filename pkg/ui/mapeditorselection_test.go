@@ -182,7 +182,7 @@ func russianWord(s string) bool {
 	cyrillic := false
 	for _, f := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '+' && !unicode.IsDigit(r) }) {
 		switch f {
-		case "Shift", "Ctrl+C", "Ctrl+V", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
+		case "Shift", "Alt", "Ctrl+C", "Ctrl+V", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
 			continue
 		}
 		if len(f) == 1 && f[0] >= 'A' && f[0] <= 'Z' {

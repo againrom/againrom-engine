@@ -1,9 +1,6 @@
 package mapedit
 
-import (
-	"slices"
-	"strings"
-)
+import "slices"
 
 // The terrain classes, numbered as the movement classifier numbers them
 // (TERR-PASS-050). The editor never classifies a word itself: a caller hands
@@ -88,19 +85,6 @@ var strips = [...]strip{
 // groups 8 to 11 draw one image set in turn, and every one of them reads as
 // water (TERR-PASS-050).
 const waterGroup = 8
-
-// hub is the class a cell blends toward when a neighbour's class shares no
-// strip with its own: the neighbour is drawn as the hub. Land has none.
-var hub = [ClassCount]uint8{
-	ClassGrass:    ClassLand,
-	ClassCracked:  ClassLand,
-	ClassSand:     ClassLand,
-	ClassSavanna:  ClassLand,
-	ClassStones:   ClassLand,
-	ClassRoad:     ClassLand,
-	ClassFlowers:  ClassSavanna,
-	ClassMountain: ClassStones,
-}
 
 // word is the in-strip part of a tile word: blend column and sub-cell.
 type word struct{ b, s uint8 }
@@ -241,88 +225,6 @@ func pickVariant(ws []word, x, y int) word {
 	return ws[h%uint32(len(ws))]
 }
 
-// Blend is what a cell's word depends on: the strip group it blends in, whether
-// the cell is that strip's primary class, the mask of its neighbours of the
-// other class (bits in reading order NW, N, NE, W, E, SW, S, SE) and whether the
-// strip is water. Active is false for a cell with no neighbour of another class
-// that it blends toward.
-type Blend struct {
-	Group   uint16
-	Primary bool
-	Mask    int
-	Water   bool
-	Active  bool
-}
-
-// BlendOf reduces a cell of class c and the classes of its eight neighbours
-// (reading order; 0 or a class beyond ClassRoad is ignored, as is water for a
-// land cell) to a Blend.
-//
-// The cell blends toward at most one other class: the one most neighbours
-// name, the lower class number winning a tie. A neighbour whose class shares no
-// strip with c is read as c's hub. A water cell blends toward every neighbour
-// that is not water.
-func BlendOf(c uint8, around [8]uint8) Blend {
-	if c == 0 || int(c) >= ClassCount {
-		return Blend{}
-	}
-	if c == ClassWater {
-		var mask int
-		for d, n := range around {
-			if n != 0 && int(n) < ClassCount && n != ClassWater {
-				mask |= 1 << d
-			}
-		}
-		return Blend{Group: waterGroup, Primary: true, Mask: mask, Water: true, Active: mask != 0}
-	}
-	var count [ClassCount]int
-	var masks [ClassCount]int
-	for d, n := range around {
-		if n == 0 || int(n) >= ClassCount || n == ClassWater || n == c {
-			continue
-		}
-		if _, ok := stripOf(c, n); !ok {
-			if n = hub[c]; n == 0 || n == c {
-				continue
-			}
-		}
-		count[n]++
-		masks[n] |= 1 << d
-	}
-	best := uint8(0)
-	for n := 1; n < ClassCount; n++ {
-		if count[n] > count[best] {
-			best = uint8(n)
-		}
-	}
-	if best == 0 {
-		return Blend{}
-	}
-	s, _ := stripOf(c, best)
-	return Blend{Group: s.group, Primary: s.primary == c, Mask: masks[best], Active: true}
-}
-
-// Derive returns the tile word of the cell at (x, y) whose class is c and whose
-// eight neighbours' classes are around. The result keeps the class of c: a
-// primary cell takes an edge or corner word, a secondary cell takes a tip word
-// or its pure word. The shape comes from the transition table (DIV-3199) and the
-// cell's position picks among the shape's look-alike words.
-func Derive(c uint8, around [8]uint8, x, y int) uint16 {
-	if c == 0 || int(c) >= ClassCount {
-		return 0
-	}
-	b := BlendOf(c, around)
-	switch {
-	case !b.Active:
-		return pureWord(c, x, y)
-	case b.Water:
-		return deriveIn(&waterLayout, b.Group, shapeTable.water, b.Mask, x, y, c)
-	case b.Primary:
-		return deriveIn(&landLayout, b.Group, shapeTable.primary, b.Mask, x, y, c)
-	}
-	return deriveIn(&landLayout, b.Group, shapeTable.secondary, b.Mask, x, y, c)
-}
-
 func pureWord(c uint8, x, y int) uint16 {
 	if c == ClassWater {
 		return compose(waterGroup, pickVariant(waterLayout.pureP, x, y))
@@ -333,7 +235,7 @@ func pureWord(c uint8, x, y int) uint16 {
 	return compose(ownStrip(c).group, pickVariant(landLayout.pureP, x, y))
 }
 
-// Code numbers a shape for the transition table: 0 pure, 1 to 4 an edge, 5 to 8
+// Code numbers a shape: 0 pure, 1 to 4 an edge, 5 to 8
 // an inner corner, 9 to 12 an outer corner, 13 to 16 a tip, each in direction
 // table order.
 func (s Shape) Code() int {
@@ -349,33 +251,3 @@ func (s Shape) Code() int {
 	}
 	return 0
 }
-
-// codeWords is the words a table code shows in one layout, nil for a pure cell
-// or a shape the layout has no word for.
-func (l *layout) codeWords(code int) []word {
-	switch {
-	case code >= 13:
-		return l.tip[code-13]
-	case code >= 9:
-		return l.outer[code-9]
-	case code >= 5:
-		return l.inner[code-5]
-	case code >= 1:
-		return l.edge[code-1]
-	}
-	return nil
-}
-
-// deriveIn picks the word of one strip family for a cell on its primary or
-// secondary side, from the mask of neighbours of the other class: the table
-// names the shape and the cell's position picks among the shape's look-alike
-// words.
-func deriveIn(l *layout, group uint16, table string, mask, x, y int, c uint8) uint16 {
-	code := strings.IndexByte(codeDigits, table[mask])
-	if ws := l.codeWords(code); ws != nil {
-		return compose(group, pickVariant(ws, x, y))
-	}
-	return pureWord(c, x, y)
-}
-
-const codeDigits = "0123456789abcdefg"

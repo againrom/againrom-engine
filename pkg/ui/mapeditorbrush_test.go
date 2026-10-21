@@ -30,6 +30,35 @@ func (p *brushProbe) BrushObjects() []BrushObject {
 	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
 }
 func (p *brushProbe) Move(string, int, image.Point) (*InspectionDocument, error) { return nil, nil }
+func (p *brushProbe) BrushMaxRadius() int                                        { return 16 }
+func (p *brushProbe) BrushCells(s BrushStroke) []image.Point {
+	return probeBrushCells(s, p.doc.Width, p.doc.Height)
+}
+
+// probeBrushCells is a fake host's brush walk, written apart from the
+// model's: within the radius of a centre by Euclidean distance for a circle,
+// by the larger axis distance for a square, on a w x h grid, each cell once.
+func probeBrushCells(s BrushStroke, w, h int) []image.Point {
+	seen := map[image.Point]bool{}
+	var out []image.Point
+	for _, c := range s.Cells {
+		for y := c.Y - s.Radius; y <= c.Y+s.Radius; y++ {
+			for x := c.X - s.Radius; x <= c.X+s.Radius; x++ {
+				dx, dy := x-c.X, y-c.Y
+				in := dx*dx+dy*dy <= s.Radius*s.Radius
+				if s.Shape == BrushSquare {
+					in = true
+				}
+				p := image.Pt(x, y)
+				if in && !seen[p] && x >= 0 && y >= 0 && x < w && y < h {
+					seen[p] = true
+					out = append(out, p)
+				}
+			}
+		}
+	}
+	return out
+}
 
 func (p *brushProbe) Paint(s BrushStroke) (*InspectionDocument, error) {
 	p.strokes = append(p.strokes, s)

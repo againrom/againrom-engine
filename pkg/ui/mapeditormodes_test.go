@@ -130,6 +130,8 @@ func (p *modesFull) BrushTerrains() []BrushTerrain {
 func (p *modesFull) BrushObjects() []BrushObject {
 	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
 }
+func (p *modesFull) BrushMaxRadius() int                    { return 16 }
+func (p *modesFull) BrushCells(s BrushStroke) []image.Point { return probeBrushCells(s, 64, 64) }
 func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
 	return p.next("Paint %v %d %d %d", s.Plane == BrushPlaneHeight, s.Value, s.Radius, len(s.Cells))
 }
@@ -693,7 +695,13 @@ func TestMapEditorModesReadableTable(t *testing.T) {
 		}
 		modesAct(e, r.action)
 		_, report := e.ReportOpen()
-		if help := e.helpLines()[0]; help != r.help || e.Message() != r.message || modesTitle(e) != r.title || report != r.report || e.brushActive() != r.brush {
+		// A brush screen leads with the size line all brushes share; the
+		// brush's own line follows it.
+		lines := e.helpLines()
+		if e.brushActive() && len(lines) > 1 {
+			lines = lines[1:]
+		}
+		if help := lines[0]; help != r.help || e.Message() != r.message || modesTitle(e) != r.title || report != r.report || e.brushActive() != r.brush {
 			t.Errorf("%s %s then %s: help %q message %q title %q report %v brush %v; recorded %q %q %q %v %v", r.host, r.path, r.action, help, e.Message(), modesTitle(e), report, e.brushActive(), r.help, r.message, r.title, r.report, r.brush)
 		}
 	}

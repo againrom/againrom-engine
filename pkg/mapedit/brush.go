@@ -1,8 +1,10 @@
 package mapedit
 
 import (
+	"cmp"
 	"encoding/binary"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 )
@@ -17,24 +19,34 @@ const (
 	PlaneImpassable                  // type 1, bit 13 of each tile word alone
 )
 
+// BrushShape names the cells a brush covers around a centre.
+type BrushShape uint8
+
+const (
+	BrushCircle BrushShape = iota // the cells within the radius of the centre
+	BrushSquare                   // the cells within the radius on both axes: a square of side 2*radius+1
+)
+
 // Falloff names how a brush's effect fades from its centre to its rim.
 type Falloff uint8
 
 const (
-	FalloffNone   Falloff = iota // every cell of the disc takes the full effect
+	FalloffNone   Falloff = iota // every cell of the brush takes the full effect
 	FalloffCosine                // the effect follows a quarter cosine wave to zero one cell past the radius
 )
 
 // Brush is the one operation the grid planes share, as data. On the tile plane
-// Value is the terrain class the disc takes (a Palette entry's Class); on the
-// height plane Value is the signed height change at the centre; on the object
-// plane Value is the class code every cell of the disc takes, 0 clearing it;
-// on the impassable plane Value 1 sets and 0 clears the tile word's bit 13. A
-// stroke is a Brush and the centres the pointer visited.
+// Value is the terrain class the brush cells take (a Palette entry's Class);
+// on the height plane Value is the signed height change at the centre; on the
+// object plane Value is the class code every brush cell takes, 0 clearing it;
+// on the impassable plane Value 1 sets and 0 clears the tile word's bit 13.
+// Radius and Shape give the cells around each centre (walk). A stroke is a
+// Brush and the centres the pointer visited.
 type Brush struct {
 	Plane   Plane
 	Value   int
 	Radius  int
+	Shape   BrushShape
 	Falloff Falloff
 }
 
@@ -43,10 +55,10 @@ type Cell struct{ X, Y int }
 
 // Limits of a stroke. Heights are the 0..alm.MaxHeight the format holds; a row step
 // above rowStep between a cell and the one below it is bounded after a height
-// stroke; maxRadius and maxCentres keep one call's work bounded.
+// stroke; MaxRadius and maxCentres keep one call's work bounded.
 const (
 	rowStep    = 31
-	maxRadius  = 16
+	MaxRadius  = 16
 	maxCentres = 1 << 16
 )
 
@@ -67,28 +79,56 @@ func weight(f Falloff, d2, r int) int {
 	return cosineWeight[k]
 }
 
-// disc calls fn for each cell of the brush's disc around c that lies on the
-// grid, with its squared distance from c.
-func disc(c Cell, r, w, h int, fn func(x, y, d2 int)) {
+// walk calls fn for each cell the brush covers around c that lies on the
+// grid, in row order, with its squared distance from c: the Euclidean one for
+// a circle, the larger axis distance for a square. The fall-off reads that
+// distance, so a square brush fades by rings of squares.
+func (b Brush) walk(c Cell, w, h int, fn func(x, y, d2 int)) {
+	r := b.Radius
 	for dy := -r; dy <= r; dy++ {
 		for dx := -r; dx <= r; dx++ {
-			x, y := c.X+dx, c.Y+dy
-			if d2 := dx*dx + dy*dy; d2 <= r*r && x >= 0 && y >= 0 && x < w && y < h {
+			d2 := dx*dx + dy*dy
+			if b.Shape == BrushSquare {
+				d2 = max(dx*dx, dy*dy)
+			}
+			if x, y := c.X+dx, c.Y+dy; d2 <= r*r && x >= 0 && y >= 0 && x < w && y < h {
 				fn(x, y, d2)
 			}
 		}
 	}
 }
 
+// GridSize is the map's width and height in cells.
+func (e *Editor) GridSize() (w, h int) {
+	meta := e.locate().required(metaTypeID)
+	return int(e.u32(meta.abs(metaW))), int(e.u32(meta.abs(metaH)))
+}
+
+// Footprint is every cell of a w x h grid a stroke of b through the centres
+// at covers, each once, in row order.
+func (b Brush) Footprint(at []Cell, w, h int) []Cell {
+	in := map[Cell]bool{}
+	var out []Cell
+	for _, c := range at {
+		b.walk(c, w, h, func(x, y, _ int) {
+			if cell := (Cell{x, y}); !in[cell] {
+				in[cell] = true
+				out = append(out, cell)
+			}
+		})
+	}
+	slices.SortFunc(out, func(a, b Cell) int { return cmp.Or(a.Y-b.Y, a.X-b.X) })
+	return out
+}
+
 // Paint applies one stroke as one edit and reports whether it changed a byte.
 // A stroke that changes nothing records nothing; a rejected one writes nothing.
 //
-// A tile stroke sets the class of every cell of the disc and re-derives the
-// words of those cells and their eight-neighbourhoods (Derive); a neighbour
-// already showing the shape it would get keeps its word. The plane then takes
-// the save normalisation (ALM-SAVE-238): the top eight rows take the last
-// cell's word when the stroke touched either, and the type-0 tile-group mask
-// is recomputed. A height stroke adds the brush's change, faded by its
+// A tile stroke gives every brush cell the class and rewrites the cells whose
+// corners that moves (TileFix); a cell still showing its corners keeps its
+// word. The plane then takes the save normalisation (ALM-SAVE-238): the top
+// eight rows take the last cell's word when the stroke touched either, and
+// the type-0 tile-group mask is recomputed. A height stroke adds the brush's change, faded by its
 // fall-off, clamps to 0..127 and bounds the row step at 31 (TERR-245). class
 // is the classifier a tile stroke reads classes with.
 func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, error) {
@@ -98,8 +138,10 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 	switch {
 	case len(at) == 0 || len(at) > maxCentres:
 		return false, fmt.Errorf("mapedit: a stroke needs between 1 and %d cells", maxCentres)
-	case b.Radius < 0 || b.Radius > maxRadius:
-		return false, fmt.Errorf("mapedit: brush radius %d is outside 0..%d", b.Radius, maxRadius)
+	case b.Radius < 0 || b.Radius > MaxRadius:
+		return false, fmt.Errorf("mapedit: brush radius %d is outside 0..%d", b.Radius, MaxRadius)
+	case b.Shape != BrushCircle && b.Shape != BrushSquare:
+		return false, fmt.Errorf("mapedit: no brush shape %d", b.Shape)
 	}
 	for _, c := range at {
 		if c.X < 0 || c.Y < 0 || c.X >= w || c.Y >= h {
@@ -152,56 +194,19 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	for i := range old {
 		old[i] = binary.LittleEndian.Uint16(e.data[span.abs(2*i):])
 	}
-	cls := make([]uint8, len(old))
-	for i, v := range old {
-		cls[i] = class(v)
-	}
 	painted := make([]bool, len(old))
+	var cells []int
 	for _, cell := range at {
-		disc(cell, b.Radius, w, h, func(x, y, _ int) {
-			painted[y*w+x] = true
-			cls[y*w+x] = c
+		b.walk(cell, w, h, func(x, y, _ int) {
+			if i := y*w + x; !painted[i] {
+				painted[i] = true
+				cells = append(cells, i)
+			}
 		})
 	}
-	reach := make([]bool, len(old))
-	for i, p := range painted {
-		if !p {
-			continue
-		}
-		x, y := i%w, i/w
-		for dy := -1; dy <= 1; dy++ {
-			for dx := -1; dx <= 1; dx++ {
-				if nx, ny := x+dx, y+dy; nx >= 0 && ny >= 0 && nx < w && ny < h {
-					reach[ny*w+nx] = true
-				}
-			}
-		}
-	}
 	next := append([]uint16(nil), old...)
-	for i, r := range reach {
-		if !r || cls[i] == 0 || int(cls[i]) >= ClassCount {
-			continue
-		}
-		x, y := i%w, i/w
-		var around [8]uint8
-		for d, o := range neighbourOffset {
-			if nx, ny := x+o[0], y+o[1]; nx >= 0 && ny >= 0 && nx < w && ny < h {
-				around[d] = cls[ny*w+nx]
-			}
-		}
-		derived := Derive(cls[i], around, x, y)
-		if !painted[i] && keepsShape(old[i], derived) {
-			continue
-		}
-		if !painted[i] {
-			if _, _, ok := WordShape(old[i]); !ok {
-				continue
-			}
-		}
-		next[i] = derived
-		if !painted[i] {
-			next[i] |= old[i] & blockedBit
-		}
+	for _, ch := range NewTileFix(old, w, h, class).Paint(cells, c) {
+		next[ch.Cell] = ch.Word
 	}
 	last := len(next) - 1
 	touched := next[last] != old[last]
@@ -248,21 +253,13 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 // blockedBit is the tile word's impassable flag, kept on unpainted cells.
 const blockedBit = 0x2000
 
-// keepsShape reports whether the word a cell shows already has the shape and
-// strip pairing of the word the rule would give it.
-func keepsShape(cur, derived uint16) bool {
-	s1, g1, ok1 := WordShape(cur)
-	s2, g2, ok2 := WordShape(derived)
-	return ok1 && ok2 && s1 == s2 && (s1.Kind == ShapePure || g1 == g2)
-}
-
 func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 	span := f.required(altitudeTypeID)
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
 	next := append([]byte(nil), old...)
 	in := make([]bool, len(old))
 	for _, cell := range at {
-		disc(cell, b.Radius, w, h, func(x, y, d2 int) {
+		b.walk(cell, w, h, func(x, y, d2 int) {
 			i := y*w + x
 			in[i] = true
 			v := int(next[i]) + b.Value*weight(b.Falloff, d2, b.Radius)/64
@@ -298,7 +295,7 @@ func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 	return ed
 }
 
-// objectStroke writes the class code (0..255) into every cell of the disc.
+// objectStroke writes the class code (0..255) into every brush cell.
 // Which codes name a class is the host's knowledge (the object registry); the
 // model refuses a code a byte cannot hold and a map with no type-3 record.
 func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, error) {
@@ -312,7 +309,7 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
 	next := append([]byte(nil), old...)
 	for _, cell := range at {
-		disc(cell, b.Radius, w, h, func(x, y, _ int) { next[y*w+x] = byte(b.Value) })
+		b.walk(cell, w, h, func(x, y, _ int) { next[y*w+x] = byte(b.Value) })
 	}
 	var ed edit
 	for i := 0; i < len(next); {
@@ -330,7 +327,7 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 }
 
 // impassableStroke sets (Value 1) or clears (Value 0) bit 13 of the tile word
-// of every cell of the disc (ALM-GRID-012) and writes no other bit, cell or
+// of every brush cell (ALM-GRID-012) and writes no other bit, cell or
 // record: the tile-group mask reads bits 0-9 alone, so it cannot move.
 func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, error) {
 	if b.Value != 0 && b.Value != 1 {
@@ -343,7 +340,7 @@ func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, 
 	}
 	next := append([]uint16(nil), old...)
 	for _, cell := range at {
-		disc(cell, b.Radius, w, h, func(x, y, _ int) {
+		b.walk(cell, w, h, func(x, y, _ int) {
 			i := y*w + x
 			next[i] = old[i] &^ blockedBit
 			if b.Value == 1 {

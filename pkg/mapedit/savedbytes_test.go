@@ -14,12 +14,13 @@ import (
 // of the session's bytes after each step, taken from the engine before the
 // terrain table, the tile-group mask and the height limits were unified, then
 // repinned for the new map's two players and zeroed text region (ALM-NEWMAP-257,
-// ALM-NEWMAP-258), which change every new map's bytes.
+// ALM-NEWMAP-258), which change every new map's bytes, and for the corner rule
+// of terrain strokes, which changes the painted plane the later steps carry.
 var savedBytesWant = map[string]string{
-	"height -17":     "0cde342373a3fee751fbcdc54f68f6d0f3cea529d83448177bd739d913316b75",
-	"height -300":    "1a9b47c5680196c6fefd6cfa00d71b768d4f4297418488a2d0746be458bf40d8",
-	"height 300":     "5f2cba580fb4f3b57fb1b6128f8ee71f3aed13a3cfb1edaf89fac1f16d307787",
-	"height 40":      "30b2b443130906f0d4e3979de60a1f71b7e8a039eb5c9ff1655ed27108dd170d",
+	"height -17":     "0213ebfb624b77e877ccc017d859bcca22248c446905d232cd3f440da761e18c",
+	"height -300":    "7321f7a6a7196fb7d1a7a3c085eec42171d27d564ca8cbdfa246457ad3116af5",
+	"height 300":     "851efcb7ef7104ae3ea857fa7e95412b98b9abfb77245047d20434455eba0510",
+	"height 40":      "f3150b94b83ae43d89af7a4d9efafed66c8463753a7aae689d42743cab5549ae",
 	"new 0x11/0":     "e5a0279651977f6affd8e972d1b8e5f53468661d87484069a06db3a1bbef5b48",
 	"new 0x11/126":   "b21ed29a3b2ae2dd81c6a99ccb0664aa807601165d651e9fd61403609a8634b1",
 	"new 0x11/64":    "587a33023c1c6f9f95e44e3f4b4ad00547419fd71759a7e918952b0ba2e94d54",
@@ -47,16 +48,16 @@ var savedBytesWant = map[string]string{
 	"new 0xd1/0":     "b4786b85b43d0e20d7ac1c25e711a6e19bbdfd4b1253b7ccd2d9a0ed52670402",
 	"new 0xd1/126":   "9f3322eeed3cfd88f335c638f542f1764767709aa2be841dd77f67efddda944f",
 	"new 0xd1/64":    "b38b38e053288e18684aabcbc932882728e4573c6a7869ea1fad2c482c4f0de1",
-	"paint class 1":  "50ac403550caa849944fc38d720ef614c770a272c5b32574259a2427fb193e6a",
-	"paint class 10": "c88d24a5add5cfb5dbe81eabf892e208d9b8b2ac71c9627a2fab87780a9d9856",
-	"paint class 2":  "9231aed5bd9201a8077bd636102af341b8fee6c985d478c9132335c8bca7e0d9",
-	"paint class 3":  "72b8aa3822b84ddb235a98647697377c48c6123e64be5fafcc851c8d4837d20b",
-	"paint class 4":  "b8ff3f5b1905f755b5ed30f0eb789351eecbc81312d8705041712cf85154ae12",
-	"paint class 5":  "3d4e5a1d1e4a4fcd581b4e7659a62e48ce09a072a4016240a541146a795bb092",
-	"paint class 6":  "763c49f52ff54c917f637282dcbb80cf8ac7f032a35a965d09edfa14be18d20e",
-	"paint class 7":  "fa4f01625e467b2156518df214e5c129ebfc691d15452a9f11c8f383f6393f00",
-	"paint class 8":  "cb45c577b9e2e23caa9295acd8a6687a3800a33f1e4c14bea715bdf2185b1cb1",
-	"paint class 9":  "7dcfe3b6e78e4c1afd341b2937da16760ba151df19bf801df2848f77524b9724",
+	"paint class 1":  "c9ccfe7f4901f0ba910c86f70bb43856f5b22cc01ee89e428d5a481594bf8443",
+	"paint class 10": "e1bf19fc5978277c7b2a2d314f447cc756ed2a9d09f50cf474cd977e910c2a1b",
+	"paint class 2":  "1cc38662494ce155c2cee98e94bb570c888f38cf1225059ad92348978ea1fa16",
+	"paint class 3":  "581e98e3317116beb3042810e20c7460db9070e3de6632f6ea9ca52d76f17565",
+	"paint class 4":  "e813fc0661775839acc5552d484687b152d4a472eb5c997264790bcd55deb5f3",
+	"paint class 5":  "c2eb4e3ecbc4bf82d326058bfbc72bfa0036148d9bcd29a86b6b7f58ecd675a3",
+	"paint class 6":  "ad44b4094e8b003192ac25c7130e7b6cb83bc44d49a2d5af39f7676281c7af94",
+	"paint class 7":  "7fffb88a021618c0beeb3e7d443c90d0cbcb4abcdcbbfd8c33fe777f03146c4d",
+	"paint class 8":  "bdb940910db0f749538613fdb86e3e825b2732e1bed199fbd61acb97a04662fd",
+	"paint class 9":  "58d5d398195ccbfe99f24902103879d1835edcbcbd5f5cd15fa4d3084b0a8ca0",
 }
 
 func savedBytesHashes(t *testing.T) map[string]string {
@@ -107,7 +108,7 @@ func TestSavedBytesAreThoseOfTheEngineBeforeUnification(t *testing.T) {
 	}
 	for k, want := range savedBytesWant {
 		if got[k] != want {
-			t.Errorf("%s: saved bytes changed", k)
+			t.Errorf("%s: saved bytes changed to %s", k, got[k])
 		}
 	}
 }

@@ -80,7 +80,7 @@ type editorChrome struct {
 // editorView is the View menu's switches over the map's annotations.
 type editorView struct {
 	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
-	passability                                            bool
+	passability, hideBorder                                bool
 }
 
 // SetBodyFont sets the plain font of rows, labels, values and report text.
@@ -202,6 +202,21 @@ func (e *MapEditor) ListRowRect(n int) (image.Rectangle, bool) {
 	return layoutPopup(s, e.font, e.bodyFont()).List.Row(n - top), true
 }
 
+// ListButtonRect is the window rectangle of button k of row n above the open
+// list popup's list: the brush list's size and shape buttons.
+func (e *MapEditor) ListButtonRect(n, k int) (image.Rectangle, bool) {
+	s, ok := e.listSpec()
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if r.Index == n && k >= 0 && k < len(r.Buttons) {
+			return r.Buttons[k], true
+		}
+	}
+	return image.Rectangle{}, false
+}
+
 func (e *MapEditor) ListRowCount() int {
 	if s, ok := e.listSpec(); ok && s.List != nil {
 		return s.List.Len()
@@ -270,6 +285,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
 			{"grid", mark(e.view.grid, e.word("editor.view.grid"))},
 			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
+			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
 			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
@@ -376,6 +392,8 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.grid = !e.view.grid
 	case "passview":
 		e.view.passability = !e.view.passability
+	case "border":
+		e.view.hideBorder = !e.view.hideBorder
 	case "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.off":
 		for mode, k := range brushMenuKeys {
 			if k == key {
@@ -665,6 +683,8 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 			s.Width, s.ListAside = 560, 84
 			s.Notes = []string{e.word("editor.arms.hint")}
 		}
+	case "brush":
+		s.Rows = e.brushPopupRows()
 	case "catalog":
 		if e.doc == nil {
 			s.Notes = []string{e.word("editor.picker.hint")}
@@ -1448,6 +1468,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		switch part, n := l.hit(p); part {
 		case popupClose:
 			e.cancelPopup(popList)
+		case popupRowButton:
+			if row, k, ok := l.rowButtonAt(p); ok && e.listKind() == "brush" {
+				e.brushRowButton(row, k)
+			}
 		case popupListRow:
 			top, count := e.model.Visible()
 			if n >= count {

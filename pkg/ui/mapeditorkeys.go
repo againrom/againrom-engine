@@ -104,6 +104,7 @@ var (
 	lineHeight        = helpLine{Word: "editor.keys.height"}
 	lineObjects       = helpLine{Word: "editor.keys.objects"}
 	linePassBrush     = helpLine{Word: "editor.keys.passbrush"}
+	lineBrushSize     = helpLine{Word: "editor.keys.brushsize"}
 	lineCloneCell     = helpLine{Word: "editor.keys.clonecell"}
 	lineDropCell      = helpLine{Word: "editor.keys.dropcell"}
 	lineTargetCell    = helpLine{Word: "editor.keys.targetcell"}
@@ -129,6 +130,9 @@ func init() {
 		{key: "report", label: "R", act: (*MapEditor).keyReport, help: keys(lineFields)},
 		{key: "drop", label: "D", act: (*MapEditor).recordKey, help: keys(lineBrush)},
 		{key: "goals", label: "G", act: (*MapEditor).recordKey, help: []helpEntry{{screenKeys, lineBrush}, {screenGoals, lineArms}}},
+		// The size line leads each brush screen, so a status strip too narrow
+		// for both drops it and keeps the brush's own line.
+		{label: "Alt+wheel", help: []helpEntry{{screenTerrain, lineBrushSize}, {screenHeight, lineBrushSize}, {screenObjects, lineBrushSize}, {screenPassability, lineBrushSize}}},
 		{key: "terrain", label: "T", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenTerrain, lineTerrain}}},
 		{key: "height", label: "H", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenHeight, lineHeight}}},
 		{key: "objects", label: "B", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenObjects, lineObjects}}},

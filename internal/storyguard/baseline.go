@@ -2694,6 +2694,11 @@ package storyguard
 // (pkg/game/savactioncurrent.go), the carrier instrument test and the terrain
 // instrument helper it shares (pkg/game/milestone2_acceptance_*_test.go), the
 // second-game witness (pkg/game/secondmissionsave_release_test.go), plus this note.
+// CommentBytes rises for the terrain stroke's corner rule (pkg/mapedit/corner.go),
+// the brush shape and size controls and the border view (pkg/ui), their tests,
+// plus this note.
+// CommentBytes rises for the stroke's reach bound (Reach, ring, nearestQuad in
+// pkg/mapedit/corner.go), its unit and release tests, plus this note.
 // CommentBytes rises for the town catalog (pkg/town/catalog.go,
 // pkg/game/towncatalog.go), the town state builder (pkg/game/town.go), the
 // place model (pkg/game/place.go and both campaign services), their tests,
@@ -2721,5 +2726,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9335077,
+	CommentBytes: 9348985,
 }

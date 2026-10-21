@@ -334,6 +334,11 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	if e.pathDialog.pending != nil {
 		return
 	}
+	if in.Alt && in.WheelY != 0 && e.brushActive() {
+		// Alt+wheel sizes the brush; the plain wheel still zooms and scrolls.
+		e.brushWheel(in.WheelY)
+		in.WheelY = 0
+	}
 	if e.chromePointer(in, now) {
 		e.hoverOK = false
 		if e.doc != nil {
@@ -653,6 +658,7 @@ func (e *MapEditor) markerLines() []editorLine {
 			out = append(out, editorLine{float32(x) + d[0], float32(y) + d[1], float32(x) + d[2], float32(y) + d[3], editorCondition})
 		}
 	}
+	out = append(out, e.borderLines()...)
 	out = append(out, e.areaLines()...)
 	out = append(out, e.referenceMarkerLines()...)
 	out = append(out, e.brushMarkerLines()...)

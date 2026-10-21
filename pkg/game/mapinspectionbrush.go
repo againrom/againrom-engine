@@ -93,13 +93,35 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke) (bool, error) {
 	if !ok {
 		return false, fmt.Errorf("no brush plane %d", op.Plane)
 	}
-	b.Value, b.Radius = op.Value, op.Radius
+	b.Value, b.Radius, b.Shape = op.Value, op.Radius, brushShapes[op.Shape]
+	return m.Paint(b, strokeCells(op), mapload.TileClass)
+}
+
+// brushShapes is the model's shape of each window shape.
+var brushShapes = map[ui.BrushShape]mapedit.BrushShape{ui.BrushCircle: mapedit.BrushCircle, ui.BrushSquare: mapedit.BrushSquare}
+
+func strokeCells(op ui.BrushStroke) []mapedit.Cell {
 	cells := make([]mapedit.Cell, len(op.Cells))
 	for i, c := range op.Cells {
 		cells[i] = mapedit.Cell{X: c.X, Y: c.Y}
 	}
-	return m.Paint(b, cells, mapload.TileClass)
+	return cells
 }
+
+// BrushCells is every cell of the map a stroke touches, each once: the
+// model's own brush walk, so the marker shows what Paint writes.
+func (s *mapInspectionEdits) BrushCells(op ui.BrushStroke) []image.Point {
+	w, h := s.model.GridSize()
+	b := mapedit.Brush{Radius: op.Radius, Shape: brushShapes[op.Shape]}
+	var out []image.Point
+	for _, c := range b.Footprint(strokeCells(op), w, h) {
+		out = append(out, image.Pt(c.X, c.Y))
+	}
+	return out
+}
+
+// BrushMaxRadius is the largest radius the model takes.
+func (s *mapInspectionEdits) BrushMaxRadius() int { return mapedit.MaxRadius }
 
 // objectBrushRows builds the objects list: the clear row, then every class of
 // the object registry the game can draw (a class with a frame), in placement

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 )
 
 // BrushTerrain is one terrain the host lets the window paint. Swatch is a
@@ -33,23 +34,36 @@ const (
 	BrushPlanePassability
 )
 
+// BrushShape names the cells a brush covers around each centre.
+type BrushShape uint8
+
+const (
+	BrushCircle BrushShape = iota // the cells within the radius of the centre
+	BrushSquare                   // the cells within the radius on both axes
+)
+
 // BrushStroke is one pointer stroke as data: the plane, the value at each cell
 // (a terrain class, a height change, an object class code, or 1 to set and 0
-// to clear the tile word's impassable flag), the brush radius
-// in cells and the cells the pointer visited.
+// to clear the tile word's impassable flag), the brush radius in cells, its
+// shape and the cells the pointer visited.
 type BrushStroke struct {
 	Plane  BrushPlane
 	Value  int
 	Radius int
+	Shape  BrushShape
 	Cells  []image.Point
 }
 
 // InspectionBrush is the optional seam of a host whose document paints terrain,
 // heights and objects. A stroke is one edit: one undo step, one document.
+// BrushCells is every map cell a stroke touches, each once, and
+// BrushMaxRadius the largest radius a stroke takes.
 type InspectionBrush interface {
 	BrushTerrains() []BrushTerrain
 	BrushObjects() []BrushObject
 	Paint(BrushStroke) (*InspectionDocument, error)
+	BrushCells(BrushStroke) []image.Point
+	BrushMaxRadius() int
 }
 
 type brushMode int
@@ -64,10 +78,9 @@ const (
 )
 
 // The brush settings the window offers: the radius a stroke starts with and
-// its bounds, and the height change each visited cell adds or takes.
+// the height change each visited cell adds or takes.
 const (
 	brushDefaultRadius = 2
-	brushMaxRadius     = 8
 	brushHeightStep    = 8
 )
 
@@ -133,10 +146,12 @@ type brushState struct {
 	mode    brushMode
 	sel     [brushModeCount]int // selected row per mode
 	radius  int                 // meaningful once radiusSet
+	shape   BrushShape
 	stroke  []image.Point
 	down    bool
 	hover   image.Point
 	hovered bool
+	wheel   float64 // the Alt+wheel's turn not yet a whole step
 
 	radiusSet bool
 }
@@ -184,9 +199,66 @@ func (e *MapEditor) brushRows() []string {
 
 func (e *MapEditor) brushRadius() int {
 	if !e.brush.radiusSet {
-		return brushDefaultRadius
+		return min(brushDefaultRadius, e.brushMaxRadius())
 	}
 	return e.brush.radius
+}
+
+// brushMaxRadius is the largest radius the host takes.
+func (e *MapEditor) brushMaxRadius() int {
+	if h := e.brushHost(); h != nil {
+		return max(0, h.BrushMaxRadius())
+	}
+	return 0
+}
+
+// setBrushRadius is the one way the size changes: the bracket keys, the
+// Alt+wheel and the list's minus and plus buttons all come here.
+func (e *MapEditor) setBrushRadius(r int) {
+	e.brush.radius, e.brush.radiusSet = min(e.brushMaxRadius(), max(0, r)), true
+}
+
+// brushWheel turns the Alt+wheel into size steps, one per notch, up for a
+// turn away from the user.
+func (e *MapEditor) brushWheel(wheel float64) {
+	if math.IsNaN(wheel) || math.IsInf(wheel, 0) {
+		return
+	}
+	e.brush.wheel += max(-1000, min(1000, wheel))
+	steps := int(e.brush.wheel)
+	e.brush.wheel -= float64(steps)
+	if steps != 0 {
+		e.setBrushRadius(e.brushRadius() + steps)
+	}
+}
+
+// brushShapeWord is the word the list gives shape.
+func (e *MapEditor) brushShapeWord(shape BrushShape) string {
+	if shape == BrushSquare {
+		return e.word("editor.brush.square")
+	}
+	return e.word("editor.brush.circle")
+}
+
+// brushPopupRows are the list's rows above the palette: the size with its
+// minus and plus buttons, and the shape with a button for each.
+func (e *MapEditor) brushPopupRows() []popupRow {
+	return []popupRow{
+		{Kind: popupText, Label: e.word("editor.brush.size"), Value: fmt.Sprint(e.brushRadius()), Buttons: []string{"-", "+"}},
+		{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
+			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}},
+	}
+}
+
+// brushRowButton is a press on button k of the list's row: minus or plus on
+// the size row, Circle or Square on the shape row.
+func (e *MapEditor) brushRowButton(row, k int) {
+	switch row {
+	case 0:
+		e.setBrushRadius(e.brushRadius() + 2*k - 1)
+	case 1:
+		e.brush.shape = BrushShape(k)
+	}
 }
 
 // brushKey handles the keys that choose a brush: T, H, B and Q switch their
@@ -206,7 +278,7 @@ func (e *MapEditor) brushKey(key string) bool {
 			if key == "radiusdown" {
 				r -= 2
 			}
-			e.brush.radius, e.brush.radiusSet = min(brushMaxRadius, max(0, r)), true
+			e.setBrushRadius(r)
 		}
 		return true
 	case "up", "down":
@@ -322,7 +394,7 @@ func (e *MapEditor) brushCommit() {
 	if host == nil || len(cells) == 0 {
 		return
 	}
-	op := BrushStroke{Radius: e.brushRadius(), Cells: cells}
+	op := BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: cells}
 	sel := e.brush.sel[e.brush.mode]
 	switch e.brush.mode {
 	case brushHeight:
@@ -434,8 +506,9 @@ func (e *MapEditor) ShowCell(cell image.Point) {
 	}
 }
 
-// brushMarkerLines outlines the cells the brush covers: the stroke so far, or
-// the cells under the pointer.
+// brushMarkerLines outlines the cells the brush covers, as the host's own
+// brush walk gives them: the stroke so far, or the cells under the pointer.
+// Only the outline's outer edges are drawn.
 func (e *MapEditor) brushMarkerLines() []editorLine {
 	if !e.brushActive() {
 		return nil
@@ -447,29 +520,30 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 		}
 		centres = []image.Point{e.brush.hover}
 	}
-	r := e.brushRadius()
-	seen := map[image.Point]bool{}
+	cells := e.brushHost().BrushCells(BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: centres})
+	in := make(map[image.Point]bool, len(cells))
+	for _, c := range cells {
+		in[c] = true
+	}
 	var out []editorLine
 	v := e.doc.Viewer
 	c := color.RGBA{editorGold.R, editorGold.G, editorGold.B, 255}
-	for _, ctr := range centres {
-		for dy := -r; dy <= r; dy++ {
-			for dx := -r; dx <= r; dx++ {
-				cell := ctr.Add(image.Pt(dx, dy))
-				if dx*dx+dy*dy > r*r || seen[cell] || cell.X < 0 || cell.Y < 0 || cell.X >= e.doc.Width || cell.Y >= e.doc.Height {
-					continue
-				}
-				seen[cell] = true
-				verts := v.cellSpace().vertices(v.cam, cell.X, cell.Y)
-				for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
-					a, b := verts[edge[0]], verts[edge[1]]
-					out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
-				}
+	for _, cell := range cells {
+		verts := v.cellSpace().vertices(v.cam, cell.X, cell.Y)
+		for k, edge := range [4][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
+			if in[cell.Add(cellSides[k])] {
+				continue
 			}
+			a, b := verts[edge[0]], verts[edge[1]]
+			out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
 		}
 	}
 	return out
 }
+
+// cellSides is the neighbour across each edge of a cell's vertices: north,
+// east, south and west.
+var cellSides = [4]image.Point{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
 
 // endStroke drops the stroke in progress.
 func (b *brushState) endStroke() { b.stroke, b.down = nil, false }

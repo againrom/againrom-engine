@@ -226,19 +226,37 @@ func TestReleaseMapEditorPaintedTerrainChangesWhereAPartyWalks(t *testing.T) {
 	if !reflect.DeepEqual(plainMap.Altitudes, mountainMap.Altitudes) || !reflect.DeepEqual(plainMap.Overlay, mountainMap.Overlay) || !reflect.DeepEqual(plainMap.Units, mountainMap.Units) {
 		t.Fatal("a terrain stroke changed another plane or the units")
 	}
-	changed := 0
+	// The stroke rewrites the band and, ring by ring, the cells the classes
+	// it inserts reach: every rewritten cell joins the band through
+	// rewritten cells.
+	w := plainMap.Width
+	rewritten := map[image.Point]bool{}
 	for i := range plainMap.Tiles {
-		if plainMap.Tiles[i] == mountainMap.Tiles[i] {
-			continue
+		if plainMap.Tiles[i] != mountainMap.Tiles[i] {
+			rewritten[image.Pt(i%w, i/w)] = true
 		}
-		changed++
-		cx, cy := i%plainMap.Width, i/plainMap.Width
-		near := false
-		for _, c := range band {
-			near = near || (c.X-cx) <= 1 && (cx-c.X) <= 1 && (c.Y-cy) <= 1 && (cy-c.Y) <= 1
+	}
+	changed := len(rewritten)
+	reached := map[image.Point]bool{}
+	queue := append([]image.Point(nil), band...)
+	for _, c := range band {
+		reached[c] = true
+	}
+	for len(queue) > 0 {
+		c := queue[0]
+		queue = queue[1:]
+		for dy := -1; dy <= 1; dy++ {
+			for dx := -1; dx <= 1; dx++ {
+				if n := c.Add(image.Pt(dx, dy)); rewritten[n] && !reached[n] {
+					reached[n] = true
+					queue = append(queue, n)
+				}
+			}
 		}
-		if !near {
-			t.Fatalf("tile (%d,%d) changed away from the stroke", cx, cy)
+	}
+	for c := range rewritten {
+		if !reached[c] {
+			t.Fatalf("tile %v changed away from the stroke", c)
 		}
 	}
 	t.Logf("a 7-cell mountain band rewrote %d tile words", changed)

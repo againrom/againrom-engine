@@ -83,110 +83,6 @@ func planes(t *testing.T, data []byte) (tiles []uint16, alts []byte, mask uint32
 	return tiles, data[af.payloadOff : af.payloadOff+brushSide*brushSide], u32At(data, mf.payloadOff+metaBitmask)
 }
 
-// Derive keeps the class of the cell it words, whatever surrounds it.
-func TestDeriveKeepsTheCellsClass(t *testing.T) {
-	for c := uint8(1); c <= mapedit.ClassRoad; c++ {
-		for x := uint8(1); x <= mapedit.ClassRoad; x++ {
-			for mask := 0; mask < 256; mask++ {
-				var around [8]uint8
-				for d := range around {
-					around[d] = c
-					if mask>>d&1 == 1 {
-						around[d] = x
-					}
-				}
-				w := mapedit.Derive(c, around, mask, int(x))
-				if got := testClass(w); got != c {
-					t.Fatalf("class %d with %d at %08b: word %#x classifies as %d", c, x, mask, w, got)
-				}
-			}
-		}
-	}
-}
-
-func TestDeriveShapes(t *testing.T) {
-	g, l := mapedit.ClassGrass, mapedit.ClassLand
-	around := func(c uint8, at ...int) (a [8]uint8) {
-		for i := range a {
-			a[i] = c
-		}
-		for _, d := range at {
-			a[d] = l
-		}
-		return a
-	}
-	// Directions in reading order: NW N NE W E SW S SE.
-	const nw, n, ne, w, e, sw, s, se = 0, 1, 2, 3, 4, 5, 6, 7
-	shape := func(c uint8, a [8]uint8) (mapedit.Shape, uint16) {
-		word := mapedit.Derive(c, a, 3, 5)
-		sh, group, ok := mapedit.WordShape(word)
-		if !ok {
-			t.Fatalf("Derive gave %#x, which has no shape", word)
-		}
-		return sh, group
-	}
-	for _, tc := range []struct {
-		name string
-		got  mapedit.Shape
-		want mapedit.Shape
-	}{
-		{"uniform", must(shape(g, around(g)))(), mapedit.Shape{Primary: true, Kind: mapedit.ShapePure}},
-		{"Land at N side", must(shape(g, around(g, nw, n, ne)))(), mapedit.Shape{Primary: true, Kind: mapedit.ShapeEdge, Dir: 0}},
-		{"Land at E side", must(shape(g, around(g, ne, e, se)))(), mapedit.Shape{Primary: true, Kind: mapedit.ShapeEdge, Dir: 1}},
-		{"Land at W side", must(shape(g, around(g, nw, w, sw)))(), mapedit.Shape{Primary: true, Kind: mapedit.ShapeEdge, Dir: 3}},
-		{"Land cell, Grass at W SW S", must(shape(l, with(around(l), g, w, sw, s)))(), mapedit.Shape{Kind: mapedit.ShapeTip, Dir: 2}},
-		{"Land cell, no Grass", must(shape(l, around(l)))(), mapedit.Shape{Kind: mapedit.ShapePure}},
-		{"Land at S plus corners", must(shape(g, around(g, sw, s, se)))(), mapedit.Shape{Primary: true, Kind: mapedit.ShapeEdge, Dir: 2}},
-		{"Land cell, Grass at E S SE", must(shape(l, with(around(l), g, e, s, se)))(), mapedit.Shape{Kind: mapedit.ShapeTip, Dir: 3}},
-	} {
-		if tc.got != tc.want {
-			t.Errorf("%s: shape %+v, want %+v", tc.name, tc.got, tc.want)
-		}
-	}
-	// A water cell shows an outer corner where land lies at two adjacent
-	// cardinals; a land cell has no such word and takes the inner corner.
-	wt := mapedit.ClassWater
-	if sh, _ := shape(wt, around(wt, se)); sh != (mapedit.Shape{Primary: true, Kind: mapedit.ShapeInner, Dir: 3}) {
-		t.Errorf("water with land at SE only: %+v", sh)
-	}
-	if sh, _ := shape(wt, around(wt, n, w)); sh != (mapedit.Shape{Primary: true, Kind: mapedit.ShapeOuter, Dir: 0}) {
-		t.Errorf("water with land at N and W: %+v", sh)
-	}
-}
-
-func with(a [8]uint8, c uint8, at ...int) [8]uint8 {
-	for _, d := range at {
-		a[d] = c
-	}
-	return a
-}
-
-// A neighbour whose class shares no strip is read as the cell's hub, and a
-// water neighbour is ignored by a land cell.
-func TestDeriveHubAndWater(t *testing.T) {
-	var uniform [8]uint8
-	for i := range uniform {
-		uniform[i] = mapedit.ClassGrass
-	}
-	toSand, toLand, toWater := uniform, uniform, uniform
-	toSand[1], toLand[1], toWater[1] = mapedit.ClassSand, mapedit.ClassLand, mapedit.ClassWater
-	if a, b := mapedit.Derive(mapedit.ClassGrass, toSand, 1, 1), mapedit.Derive(mapedit.ClassGrass, toLand, 1, 1); a != b {
-		t.Errorf("Grass beside Sand %#x, beside Land %#x: the same hub reading is expected", a, b)
-	}
-	if got, want := mapedit.Derive(mapedit.ClassGrass, toWater, 1, 1), mapedit.Derive(mapedit.ClassGrass, uniform, 1, 1); got != want {
-		t.Errorf("Grass beside Water %#x, uniform %#x", got, want)
-	}
-	// Flowers and Mountain have no Land strip; their hubs are Savanna and Stones.
-	flowersLand := [8]uint8{mapedit.ClassFlowers, mapedit.ClassLand, mapedit.ClassFlowers, mapedit.ClassFlowers, mapedit.ClassFlowers, mapedit.ClassFlowers, mapedit.ClassFlowers, mapedit.ClassFlowers}
-	flowersSav := flowersLand
-	flowersSav[1] = mapedit.ClassSavanna
-	if a, b := mapedit.Derive(mapedit.ClassFlowers, flowersLand, 1, 1), mapedit.Derive(mapedit.ClassFlowers, flowersSav, 1, 1); a != b {
-		t.Errorf("Flowers beside Land %#x, beside Savanna %#x", a, b)
-	}
-}
-
-func must[A, B any](a A, b B) func() A { return func() A { return a } }
-
 // A stroke is one history step that writes the tile plane, and the type-0 mask
 // word when the planes' groups change, and nothing else.
 func TestTileStrokeWritesOnlyTheTilePlane(t *testing.T) {
@@ -215,34 +111,29 @@ func TestTileStrokeWritesOnlyTheTilePlane(t *testing.T) {
 		}
 	}
 	tiles, _, mask := planes(t, out)
-	if mask != 1|1<<7 {
-		t.Errorf("mask = %#x, want groups 0 and 7", mask)
+	// Mountain shares no strip with Land: Stones is inserted, so the plane
+	// holds Land (group 0), Stones and Land (4) and Mountain and Stones (7).
+	if mask != 1|1<<4|1<<7 {
+		t.Errorf("mask = %#x, want groups 0, 4 and 7", mask)
 	}
-	mountain := 0
 	for y := 0; y < brushSide; y++ {
 		for x := 0; x < brushSide; x++ {
-			c := testClass(tiles[y*brushSide+x])
+			w := tiles[y*brushSide+x]
 			inDisc := (x-12)*(x-12)+(y-12)*(y-12) <= 4
-			if inDisc != (c == mapedit.ClassMountain) {
-				t.Fatalf("cell (%d,%d): class %d, in disc %v", x, y, c, inDisc)
+			if inDisc && (testClass(w) != mapedit.ClassMountain || quadOf(w) != [4]uint8{8, 8, 8, 8}) {
+				t.Fatalf("disc cell (%d,%d): word %#x is not pure Mountain", x, y, w)
 			}
-			if c == mapedit.ClassMountain {
-				mountain++
+			if w&^0x23ff != 0 {
+				t.Fatalf("cell (%d,%d) word %#x carries bits 10..12 or 14..15", x, y, w)
 			}
-			if tiles[y*brushSide+x]&^0x23ff != 0 {
-				t.Fatalf("cell (%d,%d) word %#x carries bits 10..12 or 14..15", x, y, tiles[y*brushSide+x])
+			// Cells beyond the disc's two rings are untouched.
+			if max(abs(x-12), abs(y-12)) > 4 && w != 0x14 {
+				t.Fatalf("cell (%d,%d) outside the stroke's reach changed to %#x", x, y, w)
 			}
 		}
 	}
-	if mountain != 13 {
-		t.Errorf("%d mountain cells, want the 13 of a radius-2 disc", mountain)
-	}
-	// Cells beyond the disc and its ring are untouched.
-	for i := 0; i < brushSide*brushSide; i++ {
-		x, y := i%brushSide, i/brushSide
-		if (x-12)*(x-12)+(y-12)*(y-12) > 2*2+2*2+2 && tiles[i] != 0x14 {
-			t.Fatalf("cell (%d,%d) outside the stroke's reach changed to %#x", x, y, tiles[i])
-		}
+	if n := seams(tiles, brushSide); n != 0 {
+		t.Errorf("%d corners disagree after the stroke", n)
 	}
 	if !ed.Undo() || !bytes.Equal(ed.Bytes(), in) || ed.CanUndo() {
 		t.Fatal("one Undo does not restore the exact bytes as the only step")

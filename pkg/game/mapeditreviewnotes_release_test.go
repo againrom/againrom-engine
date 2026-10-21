@@ -45,7 +45,10 @@ func TestReleaseMapEditorStrokeKeepsTheAuthorsClosedCell(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, class := range []uint8{mapedit.ClassGrass, mapedit.ClassWater} {
+			// Sand, which no class blocks: a shore word beside Water would
+			// close the cell by its class alone, and the control would
+			// measure nothing.
+			for _, class := range []uint8{mapedit.ClassGrass, mapedit.ClassSand} {
 				if _, err := ed.Paint(mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(class)},
 					[]mapedit.Cell{{X: cx - 1, Y: cy}}, mapload.TileClass); err != nil {
 					t.Fatalf("%s: %v", key, err)

@@ -378,8 +378,8 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 	shot(e, "height-brush-status")
 }
 
-// At 1280x800 the status strip holds its whole line in the editor's ordinary
-// states: the keys help with the pointer on a cell, and each brush's help.
+// At 1280x800 the status strip holds its whole line with the keys help and
+// the pointer on a cell, and each brush's own help line whole.
 // With the passability view naming every terrain arm of the hovered cell, the
 // keys help gives up its leading lines and keeps the F1 line, which leads to
 // the rest. Its control: that whole line, measured in the same font, is
@@ -412,11 +412,20 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	if line := check("keys, view off", true); !strings.HasSuffix(line, tail) {
 		t.Fatalf("keys line %q", line)
 	}
+	// A brush leads its help with the size line every brush shares; the strip
+	// may drop it, and keeps the brush's own line whole.
+	own := map[string]string{"terrain": "editor.keys.terrain", "height": "editor.keys.height", "objects": "editor.keys.objects", "passability": "editor.keys.passbrush"}
+	brushCheck := func(key, what string) {
+		t.Helper()
+		if line := check(key+" brush"+what, false); !strings.HasSuffix(line, x.inspectionUTF8(x.word(own[key]))) {
+			t.Fatalf("%s brush%s: %q does not end with the brush's own line", key, what, line)
+		}
+	}
 	for _, key := range []string{"terrain", "height", "objects", "passability"} {
 		if err := e.Key(key); err != nil {
 			t.Fatal(err)
 		}
-		check(key+" brush", true)
+		brushCheck(key, "")
 		if err := e.Key(key); err != nil {
 			t.Fatal(err)
 		}
@@ -438,7 +447,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 		if err := e.Key(key); err != nil {
 			t.Fatal(err)
 		}
-		check(key+" brush, view on", true)
+		brushCheck(key, ", view on")
 		if err := e.Key(key); err != nil {
 			t.Fatal(err)
 		}

@@ -41,10 +41,14 @@ func (e *MapEditor) passArmWord(arm PassArm) string {
 }
 
 // The passability view's two fills, straight alpha: an open cell is washed
-// white, a closed one red, both light enough for the art to read through.
+// white, a closed one red, both light enough for the art to read through. The
+// border view dims the map's border cells and draws a line where the playable
+// cells begin.
 var (
 	passOpenFill   = color.RGBA{0xff, 0xff, 0xff, 0x40}
 	passClosedFill = color.RGBA{0xe0, 0x20, 0x20, 0x60}
+	borderFill     = color.RGBA{0x00, 0x00, 0x00, 0x70}
+	borderEdge     = color.RGBA{0xff, 0x70, 0x30, 0xff}
 )
 
 // passabilityShown reports whether the map carries the passability fills:
@@ -54,6 +58,77 @@ func (e *MapEditor) passabilityShown() bool {
 		return false
 	}
 	return e.view.passability || e.brushActive() && e.brush.mode == brushPassability
+}
+
+// borderShown reports whether the map carries the border view: the View
+// menu's switch is on, which it is until the user turns it off. The border
+// cells are those the host's world closes by its border arm.
+func (e *MapEditor) borderShown() bool {
+	if e.doc == nil || len(e.doc.Passability) != e.doc.Width*e.doc.Height || len(e.doc.Passability) == 0 {
+		return false
+	}
+	return !e.view.hideBorder
+}
+
+// inBorder reports whether the host's world closes cell by its border arm.
+func (e *MapEditor) inBorder(cell image.Point) bool {
+	return e.passArmAt(cell)&PassBorder != 0
+}
+
+// borderQuads is a dimming fill for every drawn border cell, while the
+// passability view, which already fills those cells, is off.
+func (e *MapEditor) borderQuads() []passQuad {
+	if !e.borderShown() || e.passabilityShown() {
+		return nil
+	}
+	v := e.doc.Viewer
+	var out []passQuad
+	v.forEachDrawnTile(func(col, row int) {
+		if e.inBorder(image.Pt(col, row)) {
+			out = append(out, passQuad{verts: v.cellSpace().vertices(v.cam, col, row), fill: borderFill})
+		}
+	})
+	return out
+}
+
+// borderLines is the line between the border and the playable cells: each
+// drawn edge of a playable cell whose neighbour is a border cell.
+func (e *MapEditor) borderLines() []editorLine {
+	if !e.borderShown() {
+		return nil
+	}
+	v := e.doc.Viewer
+	var out []editorLine
+	v.forEachDrawnTile(func(col, row int) {
+		cell := image.Pt(col, row)
+		if col < 0 || row < 0 || col >= e.doc.Width || row >= e.doc.Height || e.inBorder(cell) {
+			return
+		}
+		verts := v.cellSpace().vertices(v.cam, col, row)
+		for k, edge := range [4][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
+			if !e.inBorder(cell.Add(cellSides[k])) {
+				continue
+			}
+			a, b := verts[edge[0]], verts[edge[1]]
+			out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, borderEdge})
+		}
+	})
+	return out
+}
+
+// BorderCell reports whether the border view dims cell, for a headless
+// driver.
+func (e *MapEditor) BorderCell(cell image.Point) bool {
+	return e.borderShown() && !e.passabilityShown() && e.inBorder(cell)
+}
+
+// overlayQuads is the cell fills the map carries: the passability view's, or
+// else the border view's.
+func (e *MapEditor) overlayQuads() []passQuad {
+	if q := e.passabilityQuads(); len(q) > 0 {
+		return q
+	}
+	return e.borderQuads()
 }
 
 // passArmAt is the arms closing cell, zero for an open cell.
@@ -131,7 +206,7 @@ func (e *MapEditor) passabilityQuads() []passQuad {
 // grid's outline would not, so the cost is held down by drawing them in a
 // few batches instead of one call per cell.
 func (e *MapEditor) drawPassability(dst *ebiten.Image) {
-	quads := e.passabilityQuads()
+	quads := e.overlayQuads()
 	if len(quads) == 0 {
 		return
 	}
@@ -181,7 +256,7 @@ func passBatches(quads []passQuad) ([][]ebiten.Vertex, [][]uint16) {
 // paintPassability is drawPassability on the CPU frame: each cell's two
 // triangles, quadIndices' split, blended over canvas at pixel centres.
 func (e *MapEditor) paintPassability(canvas *image.RGBA) {
-	for _, q := range e.passabilityQuads() {
+	for _, q := range e.overlayQuads() {
 		var p [4][2]float64
 		for i, v := range q.verts {
 			p[i] = [2]float64{float64(v.DstX), float64(v.DstY)}

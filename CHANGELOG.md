@@ -23,6 +23,9 @@ modder or developer can notice gets no entry.
 - [ROM1] The map editor's unit settings are grouped into Health and mana, Attributes, Defence, Weapon skills, Protections and Equipment. Leave a field empty to keep the game's value, shown greyed, or type a value to change it; Inherit takes the change back.
 - [ROM1] In the map editor, a unit given Health 0 starts the mission fallen and is drawn fallen on the map.
 - [ROM1] Every window of the map editor, the Add window and the map name among them, moves by its title bar.
+- [ROM1] In the map editor, painted terrain blends into its neighbours with no hard square edges, and where two terrains have no blend between them the brush puts one in between (Land between Sand and Stones). A stroke changes terrain no more than 4 cells from the brush; where three terrains meet there, one hard corner may remain.
+- [ROM1] The map editor's brush list shows the brush size with - and + buttons; Alt with the mouse wheel, or [ and ], change it from 0 to 16. Every brush is a Circle or a Square, and its outline shows exactly the cells a stroke will paint.
+- [ROM1] The map editor shades the map's impassable border with a line at the playable edge; View > Map border hides it.
 
 ### For developers
 
