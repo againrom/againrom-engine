@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.131.0
+
 ### For players
 
 - [ROM1] A controlled creature saved while walking to cast a spell from its book now keeps that cast as a single cast when the original game loads the save.
