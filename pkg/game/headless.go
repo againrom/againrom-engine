@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,7 +74,10 @@ const (
 // for a choosable list control. It adds no simulation action to that stage.
 // Version 8 adds quick-spell observations and a book-cell pointer address.
 // These reach ordinary App input; no simulation or binding setter is added.
-const HeadlessScenarioVersion = 9
+// Version 10 adds the frame command, which writes the current frame as a PNG
+// to a new file outside every install, and makes a capture on a town screen
+// name the town: its ID, its name as drawn and the art its square draws.
+const HeadlessScenarioVersion = 10
 
 // HeadlessScenario is the versioned declarative input accepted by againrom's
 // production no-window runner. Paths are resolved relative to the scenario.
@@ -136,6 +140,10 @@ type HeadlessStep struct {
 	Name      string `json:"name,omitempty"`
 	ID        string `json:"id,omitempty"`
 	Directory string `json:"directory,omitempty"`
+
+	// Path is the file the frame command writes, relative to the scenario
+	// file unless absolute.
+	Path string `json:"path,omitempty"`
 
 	// Unit is a mission-stage unit reference: uNN for the identifier the map's
 	// script uses, pN for the party's Nth member, eNN for a raw entity id.
@@ -277,6 +285,8 @@ type HeadlessDocumentAssertion struct {
 // per-slot residues are included separately so an array can never obscure who
 // owns the total.
 type HeadlessState struct {
+	// town is the town a capture names; it is printed through the capture event.
+	town           *HeadlessTown
 	Tooltip        ui.HeadlessTooltipState  `json:"tooltip"`
 	ScorchedGround int                      `json:"scorched_ground,omitempty"`
 	BurnedObjects  int                      `json:"burned_objects,omitempty"`
@@ -369,16 +379,23 @@ type HeadlessEvent struct {
 	Name    string              `json:"name,omitempty"`
 	State   *HeadlessState      `json:"state,omitempty"`
 	World   *HeadlessWorldState `json:"world,omitempty"`
+
+	// Town is the town a version-10 capture on a town screen names; Frame is
+	// the picture a frame command wrote.
+	Town  *HeadlessTown  `json:"town,omitempty"`
+	Frame *HeadlessFrame `json:"frame,omitempty"`
 }
 
 // ReadHeadlessScenario strictly decodes and validates a scenario file.
 func ReadHeadlessScenario(path string) (HeadlessScenario, error) {
-	f, err := os.Open(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		return HeadlessScenario{}, err
 	}
-	defer f.Close()
-	dec := json.NewDecoder(f)
+	if err := checkScenarioKeys(raw); err != nil {
+		return HeadlessScenario{}, fmt.Errorf("decode scenario: %w", err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.DisallowUnknownFields()
 	var s HeadlessScenario
 	if err := dec.Decode(&s); err != nil {
@@ -403,6 +420,11 @@ func ReadHeadlessScenario(path string) (HeadlessScenario, error) {
 	}
 	if s.Saves != "" && !filepath.IsAbs(s.Saves) {
 		s.Saves = filepath.Clean(filepath.Join(base, s.Saves))
+	}
+	for i := range s.Steps {
+		if p := s.Steps[i].Path; p != "" && !filepath.IsAbs(p) {
+			s.Steps[i].Path = filepath.Clean(filepath.Join(base, p))
+		}
 	}
 	return s, nil
 }
@@ -439,6 +461,7 @@ var headlessCommands = map[string]headlessCommandSpec{
 	"select_control": {stages: frontEndAt(1), params: []string{"target"}, required: []string{"target"}},
 	"open_menu":      {stages: frontEndAt(1), params: []string{"target"}, required: []string{"target"}},
 	"capture":        {stages: frontEndAt(1), params: []string{"name"}, required: []string{"name"}},
+	"frame":          {stages: frontEndAt(10), params: []string{"path"}, required: []string{"path"}},
 	"select_member":  {stages: frontEndAt(1), params: []string{"id"}, required: []string{"id"}},
 	"save":           {stages: frontEndAt(1)},
 	"save_open":      {stages: frontEndAt(9)},
@@ -500,6 +523,19 @@ func commandStages(spec headlessCommandSpec) string {
 		return "stage " + out[0]
 	}
 	return "stages " + strings.Join(out, " and ")
+}
+
+// headlessCommandNames are the commands a file at version on stage may use,
+// sorted.
+func headlessCommandNames(stage string, version int) []string {
+	var names []string
+	for name, spec := range headlessCommands {
+		if at, runs := spec.stages[stage]; runs && version >= at {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 // StageName is the stage this scenario runs on, with the default applied.
@@ -577,7 +613,7 @@ func (s HeadlessScenario) Validate() error {
 			return err
 		}
 	default:
-		return fmt.Errorf("unknown stage %q", s.Stage)
+		return fmt.Errorf("unknown stage %q; accepted stages: %s, %s", s.Stage, StageFrontEnd, StageMission)
 	}
 	if len(s.Steps) == 0 {
 		return errors.New("scenario has no steps")
@@ -605,6 +641,7 @@ func (s HeadlessStep) present() map[string]bool {
 	add("name", s.Name != "")
 	add("id", s.ID != "")
 	add("directory", s.Directory != "")
+	add("path", s.Path != "")
 	add("unit", s.Unit != "")
 	add("order", s.Order != "")
 	add("x", s.X != nil)
@@ -630,7 +667,8 @@ func (s HeadlessStep) validate(version int, stage string) error {
 	}
 	spec, known := headlessCommands[command]
 	if !known {
-		return fmt.Errorf("unknown command %q", s.Command)
+		return fmt.Errorf("unknown command %q; accepted commands on stage %q at version %d: %s",
+			s.Command, stage, version, strings.Join(headlessCommandNames(stage, version), ", "))
 	}
 	got, runs := spec.stages[stage]
 	if !runs {
@@ -705,6 +743,10 @@ func (s HeadlessStep) validate(version int, stage string) error {
 		return s.Inventory.validate()
 	case "assert_shop":
 		return s.Shop.validate()
+	case "frame":
+		if !strings.EqualFold(filepath.Ext(s.Path), ".png") {
+			return fmt.Errorf("frame path %q: the file must end in .png", s.Path)
+		}
 	}
 	return nil
 }
@@ -745,6 +787,7 @@ func (f *FrontEnd) HeadlessSnapshot(screen ui.Screen) HeadlessState {
 	} else if f.Town != nil {
 		state.Purse = uint32(f.Town.Gold())
 		if screen == ui.ScreenTown && f.townUI != nil {
+			state.town = headlessTown(f.Town, f.townUI, f.Words.WorldHomeTitle, f.textSelector())
 			switch {
 			case f.townUI.AtWorldMap():
 				state.TownPlace = "world_map"
@@ -1003,7 +1046,7 @@ func headlessScreenNamed(name string) (ui.Screen, error) {
 			return s, nil
 		}
 	}
-	return 0, fmt.Errorf("unknown screen %q", name)
+	return 0, fmt.Errorf("unknown screen %q; accepted screens: menu, picker, map, chargen, town, gamemenu, load, documents, ending", name)
 }
 
 // frontEndHolds reports whether a front-end condition is satisfied right now.
@@ -1080,17 +1123,42 @@ func RunHeadlessScenario(front *FrontEnd, app *ui.App, scenario HeadlessScenario
 	if scenario.Window != nil {
 		app.Layout(scenario.Window.W, scenario.Window.H)
 	}
+	// Every frame path is judged before the first step, so a refusal leaves
+	// the saves, the install and the disk as the run found them.
+	if err := front.checkHeadlessFramePaths(scenario.Steps); err != nil {
+		return err
+	}
+	// From version 10 a run can write frames, and a frame must be the same on
+	// a slow and a fast machine: the town's ambient animation reads the
+	// scenario's own clock, which only a dispatched step advances, instead of
+	// the wall clock. A front end that already has a clock keeps it.
+	if scenario.Version >= 10 && front.TownAnimationNow == nil {
+		front.TownAnimationNow = app.HeadlessSceneNow
+	}
 	captures := make(map[string]HeadlessState)
 	enc := json.NewEncoder(machine)
 	for i, step := range scenario.Steps {
 		command := strings.ToLower(strings.TrimSpace(step.Command))
-		if err := runHeadlessStep(front, app, step, captures); err != nil {
+		var frame *HeadlessFrame
+		if command == "frame" {
+			written, note, err := front.writeHeadlessFrame(app, step.Path)
+			if err != nil {
+				return fmt.Errorf("step %d (%s): %w", i+1, step.Command, err)
+			}
+			frame = &written
+			if note != "" {
+				fmt.Fprintf(human, "    note: %s\n", note)
+			}
+		} else if err := runHeadlessStep(front, app, step, captures); err != nil {
 			return fmt.Errorf("step %d (%s): %w", i+1, step.Command, err)
 		}
 		state := headlessAppSnapshot(front, app)
-		event := HeadlessEvent{Step: i + 1, Command: command, State: &state}
+		event := HeadlessEvent{Step: i + 1, Command: command, State: &state, Frame: frame}
 		if command == "capture" {
 			event.Name = step.Name
+			if scenario.Version >= 10 {
+				event.Town = state.town
+			}
 		}
 		if err := enc.Encode(event); err != nil {
 			return fmt.Errorf("step %d output: %w", i+1, err)
@@ -1128,7 +1196,7 @@ func runHeadlessStep(front *FrontEnd, app *ui.App, step HeadlessStep, captures m
 		case "load":
 			return headlessOpenLoad(app)
 		default:
-			return fmt.Errorf("unknown menu %q", step.Target)
+			return fmt.Errorf("unknown menu %q; accepted menus: game, load", step.Target)
 		}
 	case "wait_ticks":
 		if app.Screen() != ui.ScreenMap {
@@ -1255,6 +1323,9 @@ func runHeadlessStep(front *FrontEnd, app *ui.App, step HeadlessStep, captures m
 		return assertHeadlessInventory(front.headlessInventory(), *step.Inventory)
 	case "assert_shop":
 		return assertHeadlessShop(front.headlessShop(), *step.Shop)
+	case "frame":
+		_, _, err := front.writeHeadlessFrame(app, step.Path)
+		return err
 	}
 	return fmt.Errorf("unknown command %q", step.Command)
 }

@@ -1,0 +1,15 @@
+{
+  "version": 10,
+  "saves": "saves",
+  "steps": [
+    { "command": "load", "target": "east test" },
+    { "command": "activate", "target": "GATES" },
+    { "command": "activate", "target": "town 2" },
+    { "command": "capture", "name": "east" },
+    { "command": "pointer", "action": "press", "at": { "tip_close": true } },
+    { "command": "pointer", "action": "release", "at": { "tip_close": true } },
+    { "command": "frame", "path": "east-square.png" },
+    { "command": "activate", "target": "GATES" },
+    { "command": "frame", "path": "east-map.png" }
+  ]
+}

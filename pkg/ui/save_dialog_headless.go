@@ -121,7 +121,7 @@ func (a *App) HeadlessSaveAction(action string) error {
 	case "select-all":
 		return a.HeadlessKey("ctrl-a")
 	default:
-		return fmt.Errorf("save dialog: unknown action %q", action)
+		return fmt.Errorf("save dialog: unknown action %q; accepted actions: save, overwrite, confirm, delete, back, cancel, up, open, select-all", action)
 	}
 	if h.Confirmation && c != saveWriteControl && c != saveDeleteControl && c != saveCancelControl {
 		return saveDialogError(action)
@@ -227,7 +227,7 @@ func (a *App) headlessSavePageAction(action string) error {
 	case "select-all":
 		return a.HeadlessKey("ctrl-a")
 	default:
-		return fmt.Errorf("save page: unknown action %q", action)
+		return fmt.Errorf("save page: unknown action %q; accepted actions: save, confirm, delete, back, cancel, select-all", action)
 	}
 	if a.flow.screen == ScreenSave && a.flow.msg != "" {
 		return fmt.Errorf("save page: %s", a.flow.msg)

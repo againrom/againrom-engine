@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 
 	"againrom/pkg/render/frame"
@@ -38,6 +39,20 @@ func (v *Viewer) frameToWindow(p image.Point, what string) (int, int, error) {
 	return wx, wy, nil
 }
 
+var HeadlessPointerActions = []string{
+	"hover", "press", "move", "release", "right-press", "right-move", "right-release",
+	"middle-press", "middle-move", "middle-release", "wheel-up", "wheel-down",
+}
+
+func ParseHeadlessPointerAction(action string) (edge string, shifted, ctrled bool, err error) {
+	edge, shifted = strings.CutPrefix(action, "shift-")
+	edge, ctrled = strings.CutPrefix(edge, "ctrl-")
+	if !slices.Contains(HeadlessPointerActions, edge) {
+		return "", false, false, fmt.Errorf("headless pointer: unknown action %q; use %s, each with an optional shift- prefix and then an optional ctrl- prefix", action, strings.Join(HeadlessPointerActions[:len(HeadlessPointerActions)-1], ", ")+" or "+HeadlessPointerActions[len(HeadlessPointerActions)-1])
+	}
+	return edge, shifted, ctrled, nil
+}
+
 // HeadlessPointer dispatches one pointer edge at one window pixel through
 // App.step, the same dispatch a windowed session's Update produces.
 //
@@ -60,10 +75,12 @@ func (a *App) HeadlessPointer(action string, x, y int) error {
 		return fmt.Errorf("headless pointer: nil application")
 	}
 	in := appInput{CursorX: x, CursorY: y, Viewer: Input{CursorX: x, CursorY: y}, Unfocused: a.headlessUnfocused}
-	edge, shifted := strings.CutPrefix(action, "shift-")
+	edge, shifted, ctrled, err := ParseHeadlessPointerAction(action)
+	if err != nil {
+		return err
+	}
 	in.ShiftHeld, in.Viewer.Shift = shifted, shifted
 	// A `ctrl-` prefix holds Ctrl on the map's read, the cursor cascade's Ctrl.
-	edge, ctrled := strings.CutPrefix(edge, "ctrl-")
 	in.Viewer.Ctrl = ctrled
 	switch edge {
 	case "hover":
@@ -89,8 +106,6 @@ func (a *App) HeadlessPointer(action string, x, y int) error {
 		in.WheelY, in.Viewer.WheelY = 1, 1
 	case "wheel-down":
 		in.WheelY, in.Viewer.WheelY = -1, -1
-	default:
-		return fmt.Errorf("headless pointer: unknown action %q; use hover, press, move, release, right-press, right-move, right-release, middle-press, middle-move, middle-release, wheel-up or wheel-down, each with an optional shift- prefix", action)
 	}
 	a.headlessPointer, a.hasHeadlessPointer = image.Pt(x, y), true
 	if a.step(in, a.headlessAt()) {
@@ -695,4 +710,23 @@ func (a *App) HeadlessCellPoint(col, row int) (int, int, error) {
 		return 0, 0, fmt.Errorf("headless cell point: cell (%d,%d) is not under frame point (%.0f,%.0f)", col, row, sx, sy)
 	}
 	return v.frameToWindow(image.Pt(int(sx), int(sy)), "headless cell point")
+}
+
+// HeadlessTipClosePoint is a window pixel on the Close button of the tip
+// panel showing over the town or the generation screen, found from the same
+// panel the production hit test reads.
+func (a *App) HeadlessTipClosePoint() (int, int, error) {
+	if a == nil || a.flow == nil {
+		return 0, 0, fmt.Errorf("headless tip close point: nil application")
+	}
+	v, _ := a.currentTownTip()
+	if !v.Showing() {
+		return 0, 0, fmt.Errorf("headless tip close point: no tip panel is showing on screen %s", a.flow.screen)
+	}
+	r := TipPanelCloseRect(v.Rect)
+	x, y, ok := a.nativeFrameToWindow(image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2))
+	if !ok {
+		return 0, 0, fmt.Errorf("headless tip close point: the button stands outside the placed frame")
+	}
+	return x, y, nil
 }

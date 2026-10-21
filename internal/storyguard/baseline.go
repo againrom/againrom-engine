@@ -291,6 +291,11 @@ package storyguard
 // leaf package and the one new PersistenceContext field), plus this
 // paragraph's own bytes.
 //
+// CommentBytes rose for the headless frame clock: App.HeadlessSceneNow, the
+// RunHeadlessScenario note that installs it, and one focused test with a
+// loss control, all new code, so a scenario's frame no longer depends on wall
+// time.
+//
 // CommentBytes rose a further 333 bytes: pkg/ui/townshell.go's
 // drawCharacterPaneBody now shifts the statistics card's captured glyphs by
 // its own paste offset (capture.go's ShiftCaptured doc already named this
@@ -2763,5 +2768,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9403312,
+	CommentBytes: 9411727,
 }

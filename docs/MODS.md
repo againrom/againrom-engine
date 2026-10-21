@@ -4,7 +4,8 @@ A mod is one folder with `mod.toml` and a Starlark entry script. The script's
 `init(game, settings)` loads each data file once with `game.data.add(path)`.
 Every refusal stops the launch and names the mod, the file and the line.
 `againrom -dump-base <folder>` writes the install's own records in this
-format (section Base dump).
+format (section Base dump). `againrom --headless <scenario.json>` runs the
+game with no window and writes the frame of a town (section Headless runs).
 
 | file | what it changes | keys and rules |
 |---|---|---|
@@ -556,6 +557,262 @@ The dump refuses, writes nothing and names the reason when the folder:
 - exists and is not empty;
 - is an existing file;
 - has a name that is not a mod `id`.
+
+## Headless runs
+
+A headless run drives the game from a scenario file, opens no window, plays
+no sound, and prints what the game shows. It runs a mod's town through the
+game's own screens and writes the frame the game draws, so a mod can be
+checked on a machine with no display.
+
+```
+againrom.exe -assets C:\Games\Rage -mods east-town -mods-dir C:\Mods --headless scenario.json
+```
+
+`-assets`, `-mods`, `-mods-dir` and `-mods-accept-unmarked` mean what they mean
+for a normal launch. Without `-assets` the game uses the install it finds in
+the working folder or beside `againrom.exe`. The scenario file is read first:
+a scenario the game refuses stops the run with exit code 2 before any install
+is read. A step that fails stops the run with exit code 1 and the step's
+number and command. A run that ends exits 0.
+
+The output is split. The standard output holds one JSON line per step, in
+order. The error output holds one trace line per step and the lines the game
+itself prints when it loads, and begins with
+`againrom: headless saves in <folder>` when the run has a saves folder.
+
+### The scenario file
+
+One JSON object. A key the format does not name is refused with the keys the
+format accepts at that place. A path that is not absolute is read relative to
+the folder of the scenario file.
+
+| key | value |
+|---|---|
+| `version` | required; 1 to 10 in this build. A file keeps the commands of its version, so write 10 |
+| `stage` | `frontend` (default) or `mission` |
+| `assets` | `install` (default) or `synthetic`; `synthetic` is for the mission stage and reads no install |
+| `window` | `{ "w": 1280, "h": 960 }`, the window's size in pixels; front-end stage, version 4 and later |
+| `original_saves` | a folder; front-end stage only |
+| `saves` | a folder; front-end stage only |
+| `steps` | required; a list of steps, run in order |
+| `mission`, `difficulty`, `mage`, `world` | the mission stage's own inputs, below |
+
+The front-end stage drives the game as a player does: the main menu, the LOAD
+list, the town, the world map, the generation screen, the game menu. It is
+the stage a mod's town is checked on. The mission stage plays one campaign
+mission's simulation with no screen above it: `mission` is the campaign
+mission number (required with `assets` `install`), `difficulty` is `easy`,
+`normal` or `hard`, `mage` is `true` when the hero opens as a caster, and
+`world` is the authored world of an `assets` `synthetic` scenario. `-mods` does
+not apply to the mission stage, and `original_saves`, `saves` and `window`
+are refused there.
+
+### Saves
+
+The `saves` key is the folder the run saves into and lists first in the LOAD
+list. Without it the run uses the player profile's saves folder as the game
+does, the `Againrom` folder beside the program when the program sits in the
+install folder, and the run prints that folder on its first error-output line.
+Name a folder of your own so that a test run writes nothing beside the program.
+
+The `original_saves` key is the folder of original-format saves the LOAD list
+shows after yours; the run only reads it. Without it that folder is the install
+folder, so the install's own saves are listed. The `-saves` option sets the
+saves folder too; the `saves` key wins when both are given.
+
+A save row reads `<name> - between missions` for a save made in a town and
+`<name> - mission <n>` for one made in a mission. The `load` command names a
+row by that text or by the start of it (below).
+
+### Steps
+
+A step is one object with a `command` and the keys that command takes. A key
+a command does not take is refused. Commands of the front-end stage:
+
+| command | keys | what it does |
+|---|---|---|
+| `load` | `target` | opens the LOAD list and loads the row `target` names; refused when the game does not open |
+| `activate` | `target` | presses the control `target` names on the screen shown; `select_control` is the same |
+| `open_menu` | `target` | `game` opens the game menu from the map or a town; `load` opens the LOAD list |
+| `key` | `key` | presses a key |
+| `pointer` | `action`, `at` | one edge of a mouse gesture at a place the game's own hit test finds |
+| `select_member` | `id` | selects a party member on the map by the `id` a capture shows |
+| `wait_ticks` | `ticks` | steps the map screen that many ticks; the map screen only |
+| `wait_until` | `until`, `ticks` | steps the game until `until` holds or `ticks` steps pass (default 40000) |
+| `create_character` | `character` | sets the generation screen's character |
+| `save`, `save_open`, `save_edit`, `save_action`, `save_select` | `directory`, `name`, `target` | the SAVE dialog: `save` saves as `scenario-save-<time>` in one step; the others drive each step of the dialog |
+| `abort_game` | none | ABORT GAME from the game menu, back to the main menu |
+| `capture` | `name` | records the state under `name`, once per name, and prints it with the town (below) |
+| `frame` | `path` | writes the frame the game shows as a PNG (below) |
+| `assert_state`, `assert_member`, `assert_inventory`, `assert_shop` | `state`, `member`, `inventory`, `shop` | fail the run when the state differs from what the key names |
+
+Commands of the mission stage, which the refusal of an unknown command also
+lists: `order`, `kill`, `kill_player`, `place`, `pick_item`, `heal`,
+`assert_unit`, `assert_world`, `report`, `wait_ticks` and `wait_until`. A
+refusal of an unknown key inside one of them lists its keys.
+
+### Forms of each argument
+
+`target` of `load` and `activate` on a list (the LOAD list, the game menu, the
+picker, a town's rows): the text of the row, matched without regard to case,
+or the start of it when the next character is a space (`GATES` for
+`GATES     1 mission(s) available`); `@first` is the first row that can be
+chosen. A row that cannot be chosen, or two rows that match, are refused with
+the rows on the screen.
+
+`target` of `activate` elsewhere:
+
+| screen | forms |
+|---|---|
+| main menu | the name of a button; the refusal lists them |
+| a town's square | the row text, as above: `TAVERN`, `SHOP`, `SCHOOL`, `GATES` |
+| a town's tavern, shop and school | the label of a visible cell or button; the refusal lists them |
+| the world map (after `GATES`) | `mission N` or `town N`, the number the card shows; `walk out to mission N` and `travelling to mission N` mean `mission N`. The party travels and the step ends when it arrives |
+| a town's conversation | `dialogue` or `notice` closes it |
+| the mission screen's outcome panel | `victory`, `continue`, `exit to main menu`, `load game`, or `notice` |
+
+`target` of `open_menu`: `game` or `load`.
+
+`key` takes a name from this list, not case-sensitive: `enter`, `numpad-enter`,
+`escape`, `esc`, `load`, `l`, `f1` to `f9`, `f11`, `f12`, `shift-f4`, `ctrl-f5`
+to `ctrl-f8`, `help`, `readout`, `fps`, `alt-enter`, `alt-backspace`,
+`alt-f12`, `numpad-plus`, `numpad-minus`, `ctrl-numpad-plus`,
+`ctrl-numpad-minus`, `c`, `cast`, `pageup`, `pagedown`, `up`, `down`, `left`,
+`right`, `shift-left`, `shift-right`, `shift-home`, `shift-end`, `space`, `0`,
+`numpad-0`, `ctrl-n`, `ctrl-o`, `ctrl-u`, `ctrl-h`, `ctrl-l`, `ctrl-f`,
+`ctrl-w`, `ctrl-a`, `a`, `attack`, `r`, `retreat`, `d`, `defend`, `p`,
+`patrol`, `f`, `grab`, `e`, `select-all`, `tab`, `shift-tab`, `backspace`,
+`delete`, `home`, `end`, `autocast`, `w`, `weapon-swap`, `zoom-reset`,
+`speed-reset`, `book`, `b`, `q`, `inventory`, `i`, `backquote`, `` ` ``,
+`doll`, `j`, and `alt-` followed by a letter `a` to `z`. The refusal of
+another name lists them.
+
+`action` of `pointer`: `hover`, `press`, `move`, `release`, `right-press`,
+`right-move`, `right-release`, `middle-press`, `middle-move`,
+`middle-release`, `wheel-up` and `wheel-down`, each with an optional `shift-`
+prefix and then an optional `ctrl-` prefix (the map reads `ctrl-`; other
+screens ignore it). The scenario runner and the game take this one list.
+
+`at` of `pointer` names one place with exactly one of these keys, and may add
+`offset_x` and `offset_y`, pixels added to the place it found. Naming none or
+two is refused with this list.
+
+| key | place |
+|---|---|
+| `spell` | the spellbook cell of this spell number (1 to 65535) |
+| `doll_slot` | slot 1 to 12 of the map screen's doll |
+| `doll_box` | the doll box, on no slot |
+| `pack_cell` | the pack bar's cell, counted from 0 |
+| `pack_code` | the pack bar's cell holding this item code |
+| `ground` | a place on the map no box claims |
+| `shop` | `{ "surface": s, "index": n, "code": c }`; `s` is `doll`, `doll_box`, `shelf`, `pack`, `table`, `picker_prev`, `picker_next`, `shelf_pick`, `button` or `merchant`; `index` counts from 0 (from 1 for `doll`) and `code` names a `shelf`, `pack` or `table` cell by its item |
+| `shop_idle` | a place on the shop's frame that is no control |
+| `world_map_mission` | the world-map card of this mission number |
+| `world_map_town` | the world map's return-to-town card |
+| `world_map_miss` | a place on the world map that is no card and no region |
+| `document` | `left`, `right` or `ok` of the documents panel |
+| `tip_close` | the Close button of the tip panel a town opens with |
+
+`until` of `wait_until` names exactly one of `screen` (`menu`, `picker`,
+`map`, `chargen`, `town`, `gamemenu`, `load`, `documents`, `ending`),
+`notice` (`true` or `false`: a notice is open over the map) or `control` (a
+row text, as for `target`).
+
+`character` of `create_character` takes `difficulty`, `name`, `sex`, `class`,
+`skill` (the labels the generation screen shows) and `stats` (a statistic's
+name and the value to buy it to); it names at least one.
+
+`save_edit` takes `name` (the file name), `directory` (the folder) and `target`
+(the format, `SAV`). `save_action` takes `save`, `overwrite`, `confirm`,
+`delete`, `back`, `cancel`, `up`, `open` or `select-all` in its `target`;
+`save_select` takes the row index, as a string, in its `target`.
+
+`state` of `assert_state` takes any of `screen`, `mission`, `notice`,
+`town_place`, `purse`, `documents`, `collected_documents`, `member_count`,
+`difficulty`, `quick_spells`, `current_spell`, `spell_armed`, `members` and
+`document`; a key it does not name is not checked. `town_place` is `square`
+or `world_map`.
+
+### What capture prints
+
+Each step prints one line: `step`, `command`, and `state`, the game's state
+after the step: `screen` (`menu`, `town`, `map`, `chargen`, `gamemenu`,
+`load` and the others above), `town_place` on a town screen (`square`,
+`world_map`), `purse`, `members` (each with `id`, `name`, `xp`, skills,
+equipment, load and capacity) and the open dialog or panel, if any.
+
+A `capture` step also prints `name`, and from version 10, on a town screen and
+on the game menu opened over a town, `town`:
+
+```
+"town":{"id":2,"name":"East","art":["mod:art/east-square.bmp","graphics/interface/town/town_add.bmp","graphics/interface/town/shop_l.bmp","graphics/interface/town/tavern_l.bmp","graphics/interface/town/trener_l.bmp"]}
+```
+
+`id` is the ID of the town the party stands in, `name` is that town's name as
+the game draws it, in UTF-8 (the install's own town word when the town has no
+`name`), and `art` lists the keys of every picture the square can draw, conditional ones
+included (a label drawn only while its building is hovered, a picture drawn
+only while an actor is active), the square's own picture first: an install
+key, or `mod:` and the path inside the mod folder. A version 9 or earlier file
+prints no `town`, and the second game prints none at any version.
+
+### The frame
+
+A `frame` step, version 10 and later, writes the game's current frame as a PNG
+to `path`, which must end in `.png`, and prints `frame`: the full `path`, the
+`width` and the `height` in pixels. The frame is the one the game's headless
+renderer composes for that state: a town, the world map, the main menu, the
+LOAD list, the generation screen. The mission screen and the mission picker are
+drawn straight to the window and have no frame; the step is refused on both.
+The game menu over a town is drawn with its authored panel; the error output
+carries a note only when the install has no authored panel to draw.
+
+The folders of `path` are made. The step is refused, and nothing is written,
+when `path` is inside the install folder, inside a preserved install beside
+it, or inside any folder that holds a game's archives; when a file or folder
+already stands at `path`; when two `frame` steps name one path; or when it
+does not end in `.png`. The paths are judged before the first step runs, so a
+refused scenario saves nothing either.
+
+The first visit to a town opens a welcome tip over its square. To see the
+square's picture, close it with a `pointer` `press` and `release` at
+`tip_close`, as the example does.
+
+### Example: a mod's town
+
+The scenario below goes to the second town of the `east-town` mod and writes
+its square and the world map seen from it. It needs a save made in the first
+town after the mission that opens the second was won, named `east test` in
+the game's SAVE dialog and kept in a folder `saves` beside the scenario; the
+mod's `opens-after` decides which mission that is. The save holds the mod's
+mark, so run it with the same `-mods`.
+
+```json
+{
+  "version": 10,
+  "saves": "saves",
+  "steps": [
+    { "command": "load", "target": "east test" },
+    { "command": "activate", "target": "GATES" },
+    { "command": "activate", "target": "town 2" },
+    { "command": "capture", "name": "east" },
+    { "command": "pointer", "action": "press", "at": { "tip_close": true } },
+    { "command": "pointer", "action": "release", "at": { "tip_close": true } },
+    { "command": "frame", "path": "east-square.png" },
+    { "command": "activate", "target": "GATES" },
+    { "command": "frame", "path": "east-map.png" }
+  ]
+}
+```
+
+The steps load the save, press `GATES`, travel to town 2, capture (the
+`town` it prints names town 2, its name and the mod's picture), close the
+welcome tip, write `east-square.png`, return to the world map, and write
+`east-map.png`, in which the name of the town the party stands in is on the
+card at the top right. A mod town that does not open, a name the font cannot
+draw or a picture that is not found shows in the capture or the frame, or the
+run stops at the step that failed.
 
 ## Map editor
 

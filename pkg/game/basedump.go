@@ -105,34 +105,38 @@ func (f *FrontEnd) WriteBaseDump(dir string) (BaseDumpReport, error) {
 // a preserved install beside it, or below any folder that holds an install's
 // archives.
 func refuseBaseDumpInInstall(root, dir string) error {
-	refuse := func(install string) error {
-		return fmt.Errorf("%s is inside the install %s: %w", dir, install, ErrBaseDumpInstall)
-	}
-	resolvedRoot, err := resolvePathForSaveSafety(root)
+	install, inside, err := insideInstall(root, dir)
 	if err != nil {
 		return err
+	}
+	if inside {
+		return fmt.Errorf("%s is inside the install %s: %w", dir, install, ErrBaseDumpInstall)
+	}
+	return nil
+}
+
+// insideInstall reports whether the absolute path dir is inside the install
+// at root, inside a preserved install beside it, or below any folder that
+// holds an install's archives, and which install that is.
+func insideInstall(root, dir string) (install string, inside bool, err error) {
+	resolvedRoot, err := resolvePathForSaveSafety(root)
+	if err != nil {
+		return "", false, err
 	}
 	for _, r := range append([]string{root}, preservedPairRoots(resolvedRoot)...) {
 		inside, err := pathWithin(r, dir)
 		if err != nil {
-			return err
+			return "", false, err
 		}
 		if inside {
-			return refuse(r)
+			return r, true, nil
 		}
 	}
 	resolved, err := resolvePathForSaveSafety(dir)
 	if err != nil {
-		return err
+		return "", false, err
 	}
-	install, found, err := requiredArchiveAncestor(resolved)
-	if err != nil {
-		return err
-	}
-	if found {
-		return refuse(install)
-	}
-	return nil
+	return requiredArchiveAncestor(resolved)
 }
 
 // baseDumpFolderState refuses an existing file at dir and a folder there

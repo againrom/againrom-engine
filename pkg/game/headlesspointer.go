@@ -82,6 +82,10 @@ type HeadlessPoint struct {
 	// `left`, `right` or `ok`.
 	Document string `json:"document,omitempty"`
 
+	// TipClose is the Close button of the tip panel showing over a town
+	// room: the welcome tip a town opens with.
+	TipClose bool `json:"tip_close,omitempty"`
+
 	// OffsetX and OffsetY displace the resolved pixel (round-2 adversarial
 	// review, tenth pass, counterexample 2): every form above answers ONE pixel
 	// — a slot's own middle, a cell's own centre — and no prior version of
@@ -146,6 +150,9 @@ func (p *HeadlessPoint) validate() error {
 	if p.Ground {
 		forms++
 	}
+	if p.TipClose {
+		forms++
+	}
 	if p.ShopIdle {
 		forms++
 	}
@@ -183,7 +190,7 @@ func (p *HeadlessPoint) validate() error {
 		}
 	}
 	if forms != 1 {
-		return fmt.Errorf("at names %d forms; exactly one is required", forms)
+		return fmt.Errorf("at names %d forms; exactly one is required of: %s", forms, headlessPointForms())
 	}
 	return nil
 }
@@ -218,6 +225,8 @@ func (p *HeadlessPoint) resolveBase(front *FrontEnd, app *ui.App) (int, int, err
 		return app.HeadlessPackCellPoint(idx)
 	case p.Ground:
 		return app.HeadlessGroundPoint()
+	case p.TipClose:
+		return app.HeadlessTipClosePoint()
 	case p.ShopIdle:
 		return app.HeadlessShopIdlePoint()
 	case p.WorldMapMission != nil:
@@ -297,10 +306,8 @@ func (f *FrontEnd) headlessShopCell(surface string, code uint16) (int, error) {
 // headlessPointer dispatches one pointer edge at a resolved surface.
 func headlessPointer(front *FrontEnd, app *ui.App, step HeadlessStep) error {
 	action := strings.ToLower(strings.TrimSpace(step.Action))
-	switch action {
-	case "hover", "press", "move", "release", "right-press", "right-move", "right-release":
-	default:
-		return fmt.Errorf("pointer action %q: use hover, press, move, release, right-press, right-move or right-release", step.Action)
+	if _, _, _, err := ui.ParseHeadlessPointerAction(action); err != nil {
+		return err
 	}
 	x, y, err := step.At.resolve(front, app)
 	if err != nil {

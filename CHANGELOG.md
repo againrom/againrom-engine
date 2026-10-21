@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] The map editor's terrain brush has a Centre row that chooses how the middle of a large area is filled: Random (different every stroke, the default), the usual pattern, or one named variant of the terrain; the edges still join as before. Every editor window can now be resized by dragging its edge or corner, and its list, rows and fields follow its size.
 - [ROM1] The mod check refuses, naming the file and the reason, a town description the game cannot play (it stopped on entering the town or left the party on the world map), a town name the font cannot draw, a picture, track or sound the install does not have, and an unknown key in mod.toml. A refusal of an unknown value now lists the values the game accepts. The mod guide now lists the mod.toml keys, the town description format with a working example, and what print does.
+- [BASE] `againrom --headless <scenario.json>` is documented for modders in `docs/MODS.md`. From scenario version 10 a `capture` on a town screen names the town's ID, its name as drawn and its pictures, and a new `frame` step writes the current frame as a PNG (never into an install or over a file); an unknown key or argument is refused with the accepted ones listed.
 
 ## 0.130.0
 

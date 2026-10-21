@@ -217,7 +217,8 @@ func (a *App) HeadlessKey(name string) error {
 	default:
 		key := strings.ToLower(strings.TrimSpace(name))
 		if len(key) != 5 || key[:4] != "alt-" || key[4] < 'a' || key[4] > 'z' {
-			return fmt.Errorf("headless key: unknown key %q", name)
+			return fmt.Errorf("headless key: unknown key %q; accepted keys: %s, and alt- followed by a letter a to z",
+				name, strings.Join(headlessKeyNames, ", "))
 		}
 		in.Viewer.Alt = true
 		in.AltLetter = readAltLetter(true, onlyKey(altLetterKeys[key[4]-'a']))
@@ -227,6 +228,19 @@ func (a *App) HeadlessKey(name string) error {
 		return fmt.Errorf("headless key %q requested application exit", name)
 	}
 	return nil
+}
+
+// headlessKeyNames are the names HeadlessKey accepts, besides alt- followed
+// by one letter, a to z.
+var headlessKeyNames = []string{
+	"enter", "numpad-enter", "escape", "esc", "load", "l", "f2", "f3", "f4", "shift-f4", "f9", "f11", "readout",
+	"f12", "fps", "alt-enter", "alt-backspace", "alt-f12", "f5", "f6", "f7", "f8", "ctrl-f5", "ctrl-f6",
+	"ctrl-f7", "ctrl-f8", "numpad-plus", "numpad-minus", "ctrl-numpad-plus", "ctrl-numpad-minus", "f1", "help",
+	"c", "cast", "pageup", "pagedown", "up", "down", "left", "right", "shift-left", "shift-right", "shift-home",
+	"shift-end", "space", "0", "numpad-0", "ctrl-n", "ctrl-o", "ctrl-u", "ctrl-h", "ctrl-l", "ctrl-f", "ctrl-w",
+	"a", "attack", "r", "retreat", "d", "defend", "p", "patrol", "f", "grab", "e", "select-all", "tab",
+	"shift-tab", "backspace", "delete", "home", "end", "ctrl-a", "autocast", "w", "weapon-swap", "zoom-reset",
+	"speed-reset", "book", "b", "q", "inventory", "i", "backquote", "`", "doll", "j",
 }
 
 // HeadlessSelection reports the map controller's current selection without
@@ -1031,7 +1045,7 @@ func (a *App) headlessActivateWorldMap(world TownWorldMapScreen, target string) 
 	}
 	number, town, ok := headlessWorldMapRecord(target)
 	if !ok {
-		return fmt.Errorf("headless activate %q: town world map has no such control; available missions: %v", target, available)
+		return fmt.Errorf("headless activate %q: town world map has no such control; accepted forms: mission N, town N, walk out to mission N or travelling to mission N; available missions: %v", target, available)
 	}
 	want := -1
 	for i, m := range view.Missions {

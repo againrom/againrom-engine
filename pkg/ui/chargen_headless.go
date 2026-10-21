@@ -39,6 +39,18 @@ func (a *App) headlessAt() time.Time {
 	return t
 }
 
+// HeadlessSceneNow is the headless run's presentation time: the instant the
+// next dispatch will carry, which only a dispatch advances. A frame asked for
+// twice without a step between is therefore the same picture, and the town's
+// ambient animation depends on the steps taken and never on how fast the
+// machine took them.
+func (a *App) HeadlessSceneNow() time.Time {
+	if a == nil || a.headlessClock.IsZero() {
+		return headlessNow
+	}
+	return a.headlessClock
+}
+
 // The kinds a HeadlessChargenControl reports. They name what the control
 // does, not where it is drawn: a scenario reaches a control by the focus
 // index this package hands it and never by a coordinate.
