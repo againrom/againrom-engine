@@ -3,6 +3,7 @@ package game
 import (
 	"sync"
 
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -16,7 +17,7 @@ type townArtLoads struct {
 	shop   *lazyLoad[*ui.ShopScreenArt]
 }
 
-// townArtMu guards every Archives' townArt map.
+// townArtMu guards every Archives' townArt map and every book's loads.
 var townArtMu sync.Mutex
 
 // townArtOf is description d's art over the archives, built once per
@@ -28,8 +29,43 @@ func (a *Archives) townArtOf(d *town.Description) *townArtLoads {
 	if l := a.townArt[d]; l != nil {
 		return l
 	}
-	src := a.artSource()
-	l := &townArtLoads{
+	l := newTownArtLoads(d, a.artSource())
+	if a.townArt == nil {
+		a.townArt = map[*town.Description]*townArtLoads{}
+	}
+	a.townArt[d] = l
+	return l
+}
+
+// modTownArtOf is the art of description d, which a mod carries, read from
+// the mod's files for its "mod:" keys and from the install otherwise. It is
+// built once per description and held by the book, never by the shared
+// archives, so no other front end of the install sees it.
+func (b *townBook) modTownArtOf(d *town.Description, a *Archives) *townArtLoads {
+	files := b.modArt(d)
+	if files == nil {
+		return nil
+	}
+	townArtMu.Lock()
+	defer townArtMu.Unlock()
+	if l := b.loads[d]; l != nil {
+		return l
+	}
+	var install terrain.EntrySource
+	if a != nil && a.Containers != nil {
+		install = a.Containers
+	}
+	l := newTownArtLoads(d, modTownArtSource{install: install, files: files})
+	if b.loads == nil {
+		b.loads = map[*town.Description]*townArtLoads{}
+	}
+	b.loads[d] = l
+	return l
+}
+
+// newTownArtLoads are description d's deferred art reads from src.
+func newTownArtLoads(d *town.Description, src terrain.EntrySource) *townArtLoads {
+	return &townArtLoads{
 		square: deferredRead(func() (*town.Art, error) { return LoadTownSquareArtFor(d, src) }),
 		tavern: deferredRead(func() (*ui.TownTavernArt, error) { return LoadTownTavernArt(d, src) }),
 		school: deferredRead(func() (*ui.TownSchoolArt, error) { return LoadTownSchoolArt(d, src) }),
@@ -41,11 +77,6 @@ func (a *Archives) townArtOf(d *town.Description) *townArtLoads {
 			return loadShopArt(d, from), nil
 		}),
 	}
-	if a.townArt == nil {
-		a.townArt = map[*town.Description]*townArtLoads{}
-	}
-	a.townArt[d] = l
-	return l
 }
 
 // partyTownArt is the art of the party's town's description when it is not
@@ -58,6 +89,9 @@ func (t *townScreen) partyTownArt() *townArtLoads {
 	d := t.townDescription()
 	if d == nil || d == TownDescription(t.profile()) {
 		return nil
+	}
+	if l := t.townBook().modTownArtOf(d, t.in.Archives); l != nil {
+		return l
 	}
 	return t.in.Archives.townArtOf(d)
 }

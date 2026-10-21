@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
 	"slices"
 )
 
@@ -47,7 +48,7 @@ type Entry struct {
 }
 
 // MapPoint says where a town's world-map point is read from: exactly one of
-// Object and Record is set.
+// Object, Record and Point is set.
 type MapPoint struct {
 	// Object is the number of the world-map registry object whose point the
 	// town stands at, counted from 1.
@@ -55,6 +56,64 @@ type MapPoint struct {
 	// Record is true when the point is the world-map description's catalog
 	// record of this town: the record of the town kind and the town's ID.
 	Record bool `json:"record,omitempty"`
+	// Point and Rect state the point as a registry object states it: the
+	// route point [x, y] and the clickable rectangle [x, y, width, height],
+	// in map pixels. Rect is given with Point and only with it.
+	Point []int `json:"point,omitempty"`
+	Rect  []int `json:"rect,omitempty"`
+}
+
+// sources counts the point sources the map point names.
+func (p MapPoint) sources() int {
+	n := 0
+	for _, set := range []bool{p.Object != 0, p.Record, p.Point != nil} {
+		if set {
+			n++
+		}
+	}
+	return n
+}
+
+// check is the map point's own rule: exactly one source, a positive
+// object, and a stated point of two coordinates with a rectangle of four,
+// none negative and the rectangle not empty.
+func (p MapPoint) check() error {
+	switch {
+	case p.sources() != 1, p.Object < 0:
+		return fmt.Errorf("must name exactly one map point source")
+	case p.Point == nil && p.Rect != nil:
+		return fmt.Errorf("states a map rect without a point")
+	case p.Point == nil:
+		return nil
+	case len(p.Point) != 2 || p.Point[0] < 0 || p.Point[1] < 0:
+		return fmt.Errorf("map point %v is not [x, y] of two coordinates from 0", p.Point)
+	case len(p.Rect) != 4 || p.Rect[0] < 0 || p.Rect[1] < 0 || p.Rect[2] <= 0 || p.Rect[3] <= 0:
+		return fmt.Errorf("map rect %v is not [x, y, width, height] with coordinates from 0 and a positive size", p.Rect)
+	}
+	return nil
+}
+
+// Stated answers a stated point and its rectangle; false for a point read
+// from the install.
+func (p MapPoint) Stated() (point image.Point, rect image.Rectangle, ok bool) {
+	if len(p.Point) != 2 || len(p.Rect) != 4 {
+		return image.Point{}, image.Rectangle{}, false
+	}
+	return image.Pt(p.Point[0], p.Point[1]), image.Rect(p.Rect[0], p.Rect[1], p.Rect[0]+p.Rect[2], p.Rect[1]+p.Rect[3]), true
+}
+
+// EntryError is a refusal of one town's entry: Town names the town.
+type EntryError struct {
+	Town int
+	Err  error
+}
+
+func (e *EntryError) Error() string { return e.Err.Error() }
+func (e *EntryError) Unwrap() error { return e.Err }
+
+// EntryErrorf is a refusal of town id's entry.
+func EntryErrorf(id int, format string, args ...any) error {
+	return &EntryError{Town: id, Err: fmt.Errorf(format, args...)}
 }
 
 // CatalogVocabulary is the hook set and offer source names a campaign
@@ -77,24 +136,34 @@ func DecodeCatalog(data []byte, vocab CatalogVocabulary) (*Catalog, error) {
 	if rest := bytes.TrimSpace(data[dec.InputOffset():]); len(rest) > 0 {
 		return nil, fmt.Errorf("town catalog %s: trailing data %q", c.Catalog, firstBytes(rest))
 	}
-	if err := c.Validate(); err != nil {
+	if err := c.Check(vocab); err != nil {
 		return nil, err
-	}
-	for _, e := range c.Towns {
-		if !slices.Contains(vocab.HookSets, e.Hooks) {
-			return nil, fmt.Errorf("town catalog %s: town %d names hook set %q the campaign does not answer", c.Catalog, e.ID, e.Hooks)
-		}
-		if !slices.Contains(vocab.OfferSources, e.Offers) {
-			return nil, fmt.Errorf("town catalog %s: town %d names offer source %q the campaign does not answer", c.Catalog, e.ID, e.Offers)
-		}
 	}
 	return &c, nil
 }
 
+// Check is the decode's rules over a catalog built in memory: Validate, and
+// every hook set and offer source inside vocab.
+func (c *Catalog) Check(vocab CatalogVocabulary) error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	for _, e := range c.Towns {
+		if !slices.Contains(vocab.HookSets, e.Hooks) {
+			return EntryErrorf(e.ID, "town catalog %s: town %d names hook set %q the campaign does not answer", c.Catalog, e.ID, e.Hooks)
+		}
+		if !slices.Contains(vocab.OfferSources, e.Offers) {
+			return EntryErrorf(e.ID, "town catalog %s: town %d names offer source %q the campaign does not answer", c.Catalog, e.ID, e.Offers)
+		}
+	}
+	return nil
+}
+
 // Validate checks the catalog's own rules: a name, at least one town, and
 // for each town a positive unique ID, a description, a hook set, an offer
-// source, exactly one map point source, no negative opening mission and
-// positive missions no other town lists.
+// source, exactly one well-formed map point source, no negative opening
+// mission and positive missions no other town lists. A refusal of one entry
+// is an EntryError.
 func (c *Catalog) Validate() error {
 	if c.Catalog == "" {
 		return fmt.Errorf("town catalog: no name")
@@ -105,28 +174,30 @@ func (c *Catalog) Validate() error {
 	seen := map[int]bool{}
 	listed := map[int]int{}
 	for _, e := range c.Towns {
+		bad := func(format string, args ...any) error { return EntryErrorf(e.ID, format, args...) }
 		switch {
 		case e.ID <= 0:
-			return fmt.Errorf("town catalog %s: town ID %d is not positive", c.Catalog, e.ID)
+			return bad("town catalog %s: town ID %d is not positive", c.Catalog, e.ID)
 		case seen[e.ID]:
-			return fmt.Errorf("town catalog %s: town ID %d repeats", c.Catalog, e.ID)
+			return bad("town catalog %s: town ID %d repeats", c.Catalog, e.ID)
 		case e.Description == "":
-			return fmt.Errorf("town catalog %s: town %d names no description", c.Catalog, e.ID)
+			return bad("town catalog %s: town %d names no description", c.Catalog, e.ID)
 		case e.Hooks == "":
-			return fmt.Errorf("town catalog %s: town %d names no hook set", c.Catalog, e.ID)
+			return bad("town catalog %s: town %d names no hook set", c.Catalog, e.ID)
 		case e.Offers == "":
-			return fmt.Errorf("town catalog %s: town %d names no offer source", c.Catalog, e.ID)
-		case e.MapPoint.Object < 0, (e.MapPoint.Object > 0) == e.MapPoint.Record:
-			return fmt.Errorf("town catalog %s: town %d must name exactly one map point source", c.Catalog, e.ID)
+			return bad("town catalog %s: town %d names no offer source", c.Catalog, e.ID)
 		case e.OpensAfter < 0:
-			return fmt.Errorf("town catalog %s: town %d opens after mission %d", c.Catalog, e.ID, e.OpensAfter)
+			return bad("town catalog %s: town %d opens after mission %d", c.Catalog, e.ID, e.OpensAfter)
+		}
+		if err := e.MapPoint.check(); err != nil {
+			return bad("town catalog %s: town %d %v", c.Catalog, e.ID, err)
 		}
 		for _, m := range e.Missions {
 			if m <= 0 {
-				return fmt.Errorf("town catalog %s: town %d offers mission %d", c.Catalog, e.ID, m)
+				return bad("town catalog %s: town %d offers mission %d", c.Catalog, e.ID, m)
 			}
 			if other, ok := listed[m]; ok {
-				return fmt.Errorf("town catalog %s: mission %d is listed by towns %d and %d", c.Catalog, m, other, e.ID)
+				return bad("town catalog %s: mission %d is listed by towns %d and %d", c.Catalog, m, other, e.ID)
 			}
 			listed[m] = e.ID
 		}

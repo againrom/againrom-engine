@@ -258,3 +258,29 @@ func TestModLinesCountTheSpellEdits(t *testing.T) {
 		t.Fatalf("%q", lines)
 	}
 }
+
+const townModScript = "def init(game, settings):\n    game.data.add(\"data/towns.toml\")\n"
+
+// Two town mods that set one field: with load-after the launch prints the
+// override naming the town, the field and both mods; switching off the
+// starting town stops the launch naming the mod, the file and the line.
+func TestReleaseCheckReportsTownOverridesAndRefusals(t *testing.T) {
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("no AGAINROM_ASSETS: the town layer needs the install's campaign")
+	}
+	mods := t.TempDir()
+	writeModFiles(t, mods, "west", map[string]string{"main.star": townModScript, "data/towns.toml": "[[town]]\nid = 1\nname = \"West\"\n"})
+	writeModFiles(t, mods, "east", map[string]string{"main.star": townModScript, "data/towns.toml": "[[town]]\nid = 1\nname = \"East\"\n",
+		"mod.toml": goodManifest("east") + "load-after = [\"west\"]\n"})
+	code, out, stderr := checkRun(t, []string{"-assets", root, "-check", "-picker", "-mods", "west,east", "-mods-dir", mods}, "")
+	if code != 0 || !strings.Contains(out, "againrom: town records=2") ||
+		!strings.Contains(stderr, `againrom: override: town 1 name: mod "east" (data/towns.toml:3) overrides mod "west"`) {
+		t.Fatalf("exit %d out %q err %q", code, out, stderr)
+	}
+	writeModFiles(t, mods, "off", map[string]string{"main.star": townModScript, "data/towns.toml": "# off\n[[town]]\nid = 1\noff = true\n"})
+	code, out, stderr = checkRun(t, []string{"-assets", root, "-check", "-picker", "-mods", "off", "-mods-dir", mods}, "")
+	if code != 2 || !strings.Contains(stderr, `mod "off": data/towns.toml:2: town 1 is the campaign's starting town`) {
+		t.Fatalf("exit %d out %q err %q", code, out, stderr)
+	}
+}

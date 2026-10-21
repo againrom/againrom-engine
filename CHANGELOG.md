@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 - [ROM1] In the map editor, painted terrain blends into its neighbours with no hard square edges, and where two terrains have no blend between them the brush puts one in between (Land between Sand and Stones). A stroke changes terrain no more than 4 cells from the brush; where three terrains meet there, one hard corner may remain.
 - [ROM1] The map editor's brush list shows the brush size with - and + buttons; Alt with the mouse wheel, or [ and ], change it from 0 to 16. Every brush is a Circle or a Square, and its outline shows exactly the cells a stroke will paint.
 - [ROM1] The map editor shades the map's impassable border with a line at the playable edge; View > Map border hides it.
+- [ROM1] A mod can add, rename, change or switch off towns in `data/towns.toml`; a new town has its own pictures, place on the world map, opening mission and offers. When two mods change the same town, the later wins only if it loads after the other with `load-after`. A town name may be written in Russian; a town that could never open is refused at launch.
 
 ### For developers
 

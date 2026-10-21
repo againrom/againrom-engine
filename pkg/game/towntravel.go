@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
+	"strings"
 
 	"againrom/pkg/town"
 )
@@ -69,15 +71,109 @@ func (t *Town) travelTo(id int) bool {
 	return true
 }
 
-// checkTowns refuses a catalog whose chapter town opens after a mission the
-// campaign does not hold: that town would never open.
+// checkTowns refuses a catalog the campaign cannot play through: a chapter
+// town opening after a mission the campaign does not hold, towns open from
+// the start that offer no mission, or a town that can never open. A town
+// opens once a town already open offers the mission it opens after; a
+// mission no building offers is the campaign's own and counts as open from
+// the start. A town offers what offeredHere gives it. One town offers
+// every mission, so only a catalog of several towns is walked.
 func (c Campaign) checkTowns() error {
-	for _, e := range c.Towns.chapterTowns() {
+	towns := c.Towns.chapterTowns()
+	for _, e := range towns {
 		if _, ok := c.Chapters[e.OpensAfter]; e.OpensAfter != 0 && !ok {
-			return fmt.Errorf("town catalog: town %d opens after mission %d, which the campaign does not hold", e.ID, e.OpensAfter)
+			return town.EntryErrorf(e.ID, "town catalog: town %d opens after mission %d, which the campaign does not hold", e.ID, e.OpensAfter)
 		}
 	}
+	if len(towns) < 2 || len(c.Offered) == 0 {
+		return nil
+	}
+	listed := map[int]bool{}
+	for _, e := range towns {
+		for _, m := range e.Missions {
+			listed[m] = true
+		}
+	}
+	reached := map[int]bool{}
+	open := make([]bool, len(towns))
+	var start []int
+	enter := func(i int) {
+		open[i] = true
+		for _, m := range c.Offered {
+			if own := towns[i].Missions; len(own) > 0 && slices.Contains(own, m) || len(own) == 0 && !listed[m] {
+				reached[m] = true
+			}
+		}
+	}
+	for i, e := range towns {
+		if e.OpensAfter == 0 {
+			start = append(start, e.ID)
+			enter(i)
+		}
+	}
+	if len(start) == 0 {
+		return townCheckErrorf(towns, nil, "town catalog: no chapter town is open from the start")
+	}
+	if len(reached) == 0 {
+		return townCheckErrorf(towns, start, "town catalog: the towns open from the start (%s) offer no mission", joinInts(start))
+	}
+	for grown := true; grown; {
+		grown = false
+		for i, e := range towns {
+			if _, offered := slices.BinarySearch(c.Offered, e.OpensAfter); !open[i] && (!offered || reached[e.OpensAfter]) {
+				enter(i)
+				grown = true
+			}
+		}
+	}
+	for i, e := range towns {
+		if open[i] {
+			continue
+		}
+		first := []int{e.ID}
+		for _, o := range towns {
+			if slices.Contains(o.Missions, e.OpensAfter) {
+				first = append(first, o.ID)
+			}
+		}
+		return townCheckErrorf(towns, append(first, start...), "town catalog: town %d can never open: no town that opens offers mission %d, which it opens after", e.ID, e.OpensAfter)
+	}
 	return nil
+}
+
+// townCheckError is a refusal of a catalog that bears on several towns, in
+// the order they explain it; EntryError names the first. A layer blames the
+// first of them its mod names.
+type townCheckError struct {
+	*town.EntryError
+	towns []int
+}
+
+func (e *townCheckError) Unwrap() error { return e.EntryError }
+
+// townCheckErrorf is a refusal bearing on towns first, then on the rest of
+// towns in catalog order.
+func townCheckErrorf(towns []town.Entry, first []int, format string, args ...any) error {
+	order := slices.Clone(first)
+	for _, e := range towns {
+		order = append(order, e.ID)
+	}
+	var ids []int
+	for _, id := range order {
+		if !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
+	return &townCheckError{EntryError: &town.EntryError{Town: ids[0], Err: fmt.Errorf(format, args...)}, towns: ids}
+}
+
+// joinInts is ns written "1, 2".
+func joinInts(ns []int) string {
+	out := make([]string, len(ns))
+	for i, n := range ns {
+		out[i] = strconv.Itoa(n)
+	}
+	return strings.Join(out, ", ")
 }
 
 // offeredHere reports whether the party's town offers mission m: a town

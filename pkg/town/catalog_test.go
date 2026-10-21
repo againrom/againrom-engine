@@ -1,6 +1,7 @@
 package town
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -61,10 +62,39 @@ func TestCatalogRejectsBrokenEntries(t *testing.T) {
 			strings.Replace(strings.Replace(entry, `"id": 1`, `"id": 2`, 1), `"cite"`, `"missions": [31], "cite"`, 1) + `]}`, "listed by towns 1 and 2"},
 		{"unknown hook set", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"square-hooks"`, `"other"`, 1) + `]}`, "hook set"},
 		{"unknown offer source", `{"catalog": "f", "towns": [` + strings.Replace(entry, `"keys"`, `"other"`, 1) + `]}`, "offer source"},
+		{"point and object", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"object": 1, "point": [1, 2], "rect": [0, 0, 4, 4]}`, 1) + `]}`, "exactly one map point"},
+		{"rect without point", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"object": 1, "rect": [0, 0, 4, 4]}`, 1) + `]}`, "map rect without a point"},
+		{"point without rect", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"point": [1, 2]}`, 1) + `]}`, "map rect [] is not"},
+		{"short point", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"point": [1], "rect": [0, 0, 4, 4]}`, 1) + `]}`, "map point [1] is not"},
+		{"negative point", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"point": [-1, 2], "rect": [0, 0, 4, 4]}`, 1) + `]}`, "map point [-1 2] is not"},
+		{"empty rect", `{"catalog": "f", "towns": [` + strings.Replace(entry, `{"object": 1}`, `{"point": [1, 2], "rect": [0, 0, 0, 4]}`, 1) + `]}`, "map rect [0 0 0 4] is not"},
 	} {
 		_, err := DecodeCatalog([]byte(c.raw), catalogVocab)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: error %v, want one naming %q", c.name, err, c.want)
 		}
+	}
+}
+
+// A stated map point decodes as the point and rectangle a registry object
+// states, and every refusal of one entry names its town.
+func TestCatalogStatesAMapPoint(t *testing.T) {
+	raw := `{"catalog": "f", "towns": [{"id": 4, "description": "one", "hooks": "square-hooks", "offers": "keys",
+  "map-point": {"point": [430, 230], "rect": [410, 205, 40, 30]}, "cite": []}]}`
+	c, err := DecodeCatalog([]byte(raw), catalogVocab)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, r, ok := c.Towns[0].MapPoint.Stated()
+	if !ok || p.X != 430 || p.Y != 230 || r.Min.X != 410 || r.Min.Y != 205 || r.Dx() != 40 || r.Dy() != 30 {
+		t.Fatalf("stated point %v rect %v %v", p, r, ok)
+	}
+	if _, _, ok := (MapPoint{Object: 1}).Stated(); ok {
+		t.Fatal("an object point reads as stated")
+	}
+	_, err = DecodeCatalog([]byte(strings.Replace(raw, `[410, 205, 40, 30]`, `[410, 205, 40]`, 1)), catalogVocab)
+	var ee *EntryError
+	if !errors.As(err, &ee) || ee.Town != 4 {
+		t.Fatalf("a broken entry's error %v names no town 4", err)
 	}
 }

@@ -14,6 +14,7 @@ Every refusal stops the launch and names the mod, the file and the line.
 | `data/spells.toml` | spell values and formula tables | `docs/1341/story.md`, `DIV-2364` |
 | `data/weapon-bodies.toml` | the body a weapon is drawn with | below, `DIV-2912` |
 | `data/bodies.toml` | body sheets the mod supplies | below, `DIV-2913`, `DIV-2914` |
+| `data/towns.toml` | towns: add, change named fields, switch off | below, `docs/1486/story.md` |
 
 ## Spell damage columns
 
@@ -225,6 +226,91 @@ briefmap texts into `mission/<lang>/` of a mod folder, the texts as UTF-8, and
 writes nothing else. When the map editor saves into a mod, its map report warns
 about a message the map's script sends for which neither the mod's `texts`
 folder nor, for a replacing mission, the install holds an `eventNN.txt`.
+
+## Towns
+
+`data/towns.toml` holds `[[town]]` tables. Each is a layer record over the
+first game's town catalog, keyed by `id`, in the catalog's entry format
+(`docs/1485/story.md`). The install's catalog is layer 0; each mod's file is
+applied in load order. A table adds a town when no earlier layer holds its
+`id`, changes only the fields it names when one does, or switches the town
+off with `off = true`. The second game's catalog takes no layer.
+
+| key | value |
+|---|---|
+| `id` | required; the town ID, 1 or more; one table per ID in a file |
+| `description` | an installed description (`rom1`), or a `.json` file inside the mod read by the game's one town description decoder |
+| `hooks` | `"chapters"`; any other value is refused |
+| `offers` | `"chapter-keys"`; any other value is refused |
+| `map-point` | one source: `{ object = n }` (an object of the world map), `{ record = true }` (the map description's record), or `{ point = [x, y], rect = [x, y, w, h] }`, a point and its click rect stated in world-map pixels |
+| `name` | the town's title on the map and on the home scroll, in UTF-8; the game draws it in the install's alphabet, and a character that alphabet lacks is refused |
+| `opens-after` | the mission whose win opens the town; 0 is open from the start |
+| `missions` | the missions the town's buildings offer |
+| `cite` | the sources the record rests on, a list of strings |
+| `off` | `true` switches the town off and stands alone in its table; `false` with other keys switches a town an earlier layer switched off back on |
+
+A new town names `description`, `hooks`, `offers` and `map-point`. The merged
+catalog passes the same checks as a shipped one, after each mod: the entry
+format, the description and its rooms, the campaign's opening missions, one
+town per mission, and a stated point and rect inside the picture of every
+world-map mode.
+
+Every town must be able to open. The towns with `opens-after = 0` are open
+from the start, and they must offer at least one mission. A town opens when a
+town already open offers its `opens-after` mission. A town that lists
+`missions` offers those; a town that lists none offers every mission no town
+lists. A mission no building of the campaign offers (missions 10 and 20 of
+the stock campaign) is the campaign's own and counts as open from the start.
+A town that lists the mission it opens after, or whose mission only such a
+town offers, never opens and is refused.
+
+A description file of the mod names its pictures by art key. A key that
+starts with `mod:` reads a file inside the mod folder (`mod:art/east.bmp`);
+every other key reads the install. A picture is a 24-bit BMP and a mask an
+8-bit BMP, as in the install. A run-time-bound art entry cannot name a mod
+file.
+
+```toml
+# Town 1 keeps everything but its name.
+[[town]]
+id   = 1
+name = "West"
+
+[[town]]
+id          = 2
+description = "towns/east.json"
+hooks       = "chapters"
+offers      = "chapter-keys"
+map-point   = { point = [430, 230], rect = [410, 205, 40, 30] }
+name        = "East"
+opens-after = 20
+missions    = [31]
+```
+
+Two mods that set one field of one town, or add the same new `id`: the later
+mod wins only when it loads after the earlier one through `load-after` or
+`requires`, directly or through another mod, and `againrom -check` prints
+an `override:` line naming the town, the field and both mods. Otherwise the
+launch is refused naming both mods and the field. Two mods that set
+different fields of one town need no order, except a town another mod adds:
+a mod that changes that town must load after the mod that adds it.
+
+Refused, naming the mod, the file and the line:
+
+- switching off town 1, the campaign's starting town, or switching off a town
+  no layer holds;
+- an unknown key, a wrong type, a table that changes nothing, `off = true`
+  with other keys, and one `id` twice in a file;
+- a description file the mod does not hold, a description that is not shipped,
+  and a `mod:` picture the mod does not carry;
+- `hooks` other than `"chapters"`, `offers` other than `"chapter-keys"`, and
+  a `name` with a character the install's alphabet lacks;
+- a merged catalog that fails a catalog check, a town that can never open,
+  towns open from the start that offer no mission, and a stated point or
+  rect outside the world map.
+
+A save written with a towns mod carries the mod mark. A LOAD without the mod
+refuses with the mod named.
 
 ## Map editor
 

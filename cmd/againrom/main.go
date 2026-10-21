@@ -253,6 +253,9 @@ func modLines(res modrt.Result) []string {
 	if !res.Bodies.Empty() {
 		lines = append(lines, fmt.Sprintf("againrom: weapon bodies=%d body sheets=%d", len(res.Bodies.Weapons), len(res.Bodies.Bodies)))
 	}
+	if !res.Towns.Empty() {
+		lines = append(lines, fmt.Sprintf("againrom: town records=%d", len(res.Towns.Records)))
+	}
 	return lines
 }
 
@@ -864,6 +867,14 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		}
 		for _, w := range warnings {
 			fmt.Fprintln(stderr, "againrom: warning:", w)
+		}
+		overrides, err := front.SetModTowns(modRun.Towns)
+		if err != nil {
+			fmt.Fprintln(stderr, "againrom:", err)
+			return 2
+		}
+		for _, o := range overrides {
+			fmt.Fprintln(stderr, "againrom: override:", o)
 		}
 	}
 	if o.fidelityCheck != "" {

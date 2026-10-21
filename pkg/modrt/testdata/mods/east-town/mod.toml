@@ -1,0 +1,8 @@
+id          = "east-town"
+title       = "East town"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Names the first town West and adds East, a second town with its own square, opened by mission 20 and offering mission 31."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

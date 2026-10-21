@@ -57,10 +57,23 @@ var townCatalogData = map[string][]byte{
 }
 
 // townBook is a decoded catalog with every description its entries name,
-// each decoded under its entry's hook set.
+// each decoded under its entry's hook set. art holds, for a description a
+// mod carries, the files its "mod:" art keys name.
 type townBook struct {
 	catalog      *town.Catalog
 	descriptions map[string]*town.Description
+	art          map[*town.Description]map[string][]byte
+	// loads are the deferred art reads of each description in art.
+	loads map[*town.Description]*townArtLoads
+}
+
+// modArt is the files a mod carries for description d's art; nil for a
+// shipped description.
+func (b *townBook) modArt(d *town.Description) map[string][]byte {
+	if b == nil {
+		return nil
+	}
+	return b.art[d]
 }
 
 // townBooks are the shipped catalogs by name, and townDescriptions every
@@ -132,23 +145,34 @@ func decodeTownCatalog(raw []byte, data map[string][]byte, decoded map[string]*t
 	if err != nil {
 		return nil, err
 	}
+	if err := checkTownCatalog(c, data, decoded, hooks); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// checkTownCatalog is decodeTownCatalog's rules past the catalog's own, for
+// a catalog read from data or built by a layer: every description it names
+// decoded from data into decoded under its entry's hook set. A refusal of
+// one entry is a town.EntryError.
+func checkTownCatalog(c *town.Catalog, data map[string][]byte, decoded map[string]*town.Description, hooks map[string]string) error {
 	chapters := false
 	for _, e := range c.Towns {
 		if want := townOfferHooks[e.Offers]; want != e.Hooks {
-			return nil, fmt.Errorf("town catalog %s: town %d has no usable description: offers %s compose under hook set %s, not %s",
+			return town.EntryErrorf(e.ID, "town catalog %s: town %d has no usable description: offers %s compose under hook set %s, not %s",
 				c.Catalog, e.ID, e.Offers, want, e.Hooks)
 		}
 		if e.Offers == townOffersScenarioBank && (e.OpensAfter != 0 || len(e.Missions) != 0) {
-			return nil, fmt.Errorf("town catalog %s: town %d takes its opening and missions from the scenario bank", c.Catalog, e.ID)
+			return town.EntryErrorf(e.ID, "town catalog %s: town %d takes its opening and missions from the scenario bank", c.Catalog, e.ID)
 		}
 		chapters = chapters || e.Offers == townOffersChapterKeys
 	}
 	if start, ok := c.Town(chapterTown); chapters && (!ok || start.Offers != townOffersChapterKeys || start.OpensAfter != 0) {
-		return nil, fmt.Errorf("town catalog %s: chapter towns start in town %d, open from the start", c.Catalog, chapterTown)
+		return town.EntryErrorf(chapterTown, "town catalog %s: chapter towns start in town %d, open from the start", c.Catalog, chapterTown)
 	}
 	for _, e := range c.Towns {
 		if prior, ok := hooks[e.Description]; ok && prior != e.Hooks {
-			return nil, fmt.Errorf("town catalog %s: description %s named under hook sets %s and %s", c.Catalog, e.Description, prior, e.Hooks)
+			return town.EntryErrorf(e.ID, "town catalog %s: description %s named under hook sets %s and %s", c.Catalog, e.Description, prior, e.Hooks)
 		}
 		hooks[e.Description] = e.Hooks
 		if _, ok := decoded[e.Description]; ok {
@@ -156,21 +180,21 @@ func decodeTownCatalog(raw []byte, data map[string][]byte, decoded map[string]*t
 		}
 		src, ok := data[e.Description]
 		if !ok {
-			return nil, fmt.Errorf("town catalog %s: town %d names description %q that is not shipped", c.Catalog, e.ID, e.Description)
+			return town.EntryErrorf(e.ID, "town catalog %s: town %d names description %q that is not shipped", c.Catalog, e.ID, e.Description)
 		}
 		vocab, _ := townHookSetVocabulary(e.Hooks)
 		d, err := town.Decode(src, vocab)
 		if err != nil {
-			return nil, fmt.Errorf("town catalog %s: town %d: %w", c.Catalog, e.ID, err)
+			return town.EntryErrorf(e.ID, "town catalog %s: town %d: %w", c.Catalog, e.ID, err)
 		}
 		for _, room := range townHookSetRooms[e.Hooks] {
 			if d.Room(room) == nil {
-				return nil, fmt.Errorf("town catalog %s: town %d has no usable description: %s has no room %q", c.Catalog, e.ID, e.Description, room)
+				return town.EntryErrorf(e.ID, "town catalog %s: town %d has no usable description: %s has no room %q", c.Catalog, e.ID, e.Description, room)
 			}
 		}
 		decoded[e.Description] = d
 	}
-	return c, nil
+	return nil
 }
 
 // TownCatalog is the town catalog the profile's edition names; nil when it

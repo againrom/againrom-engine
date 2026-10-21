@@ -342,10 +342,14 @@ func (a *worldMapAssets) missionText(src entrySource, mission int) worldMapText 
 var worldMapNoPoint = image.Pt(320, 240)
 
 // townMapPoint is where catalog town e stands on map a, by its entry's
-// map point: the point of the registry object it names, or the point of the
-// description's catalog record of the town. region is the object's region,
-// empty for a record.
+// map point: the point and rectangle the entry states, the point of the
+// registry object it names, or the point of the description's catalog
+// record of the town. region is the stated or the object's region, empty
+// for a record.
 func townMapPoint(e town.Entry, a *worldMapAssets) (point image.Point, region image.Rectangle, ok bool) {
+	if p, r, ok := e.MapPoint.Stated(); ok {
+		return p, r, true
+	}
 	switch {
 	case a == nil:
 	case e.MapPoint.Object > 0:

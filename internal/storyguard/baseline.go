@@ -2714,6 +2714,16 @@ package storyguard
 // unlock set and the per-town hire and merge (pkg/game/town.go), the town
 // record's bounds and the catalog's opening check (pkg/game/towntravel.go),
 // the restore error (pkg/game/save.go), their tests, plus this note.
+// CommentBytes rises for towns in a mod, all new code: the layer step
+// (pkg/mod/layer.go), the towns file (pkg/mod/towns.go), the stated map point
+// (pkg/town/catalog.go), the merged town catalog and its art
+// (pkg/game/townlayer.go, pkg/game/townart.go), their tests and fixture, and
+// this paragraph.
+//
+// CommentBytes rises again for the town checks, all new code: the
+// reachability walk and its error in pkg/game/towntravel.go, the name
+// encoding and first-game refusals in pkg/game/townlayer.go, their tests,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4519,
 	TestFileCount:  264,
@@ -2737,5 +2747,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9361209,
+	CommentBytes: 9377082,
 }

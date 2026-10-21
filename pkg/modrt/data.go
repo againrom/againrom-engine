@@ -3,6 +3,7 @@ package modrt
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -23,6 +24,7 @@ var dataFiles = map[string]func(d *dataValue, rel string, src []byte) error{
 	mod.MissionsFile:     (*dataValue).loadMissions,
 	mod.ScreensFile:      (*dataValue).loadScreens,
 	mod.SpellsFile:       (*dataValue).loadSpells,
+	mod.TownsFile:        (*dataValue).loadTowns,
 }
 
 func dataFileNames() string {
@@ -184,6 +186,33 @@ func (d *dataValue) loadMissions(rel string, src []byte) error {
 		}
 		d.sh.missions.Missions = append(d.sh.missions.Missions, m)
 	}
+	return nil
+}
+
+// loadTowns reads the mod's layer over the town catalog. A description
+// that names a file of the mod is read here, so a missing or unreadable one
+// refuses the launch at its line; the catalog decoder judges it when the
+// layer is applied.
+func (d *dataValue) loadTowns(rel string, src []byte) error {
+	records, err := mod.ParseTowns(d.id, rel, src)
+	if err != nil {
+		return err
+	}
+	for i := range records {
+		r := &records[i]
+		r.Dir = d.dir
+		if !slices.ContainsFunc(r.Fields, func(f mod.PatchField) bool { return f.Name == "description" }) ||
+			!mod.IsTownDescriptionFile(r.Entry.Description) {
+			continue
+		}
+		data, path, err := d.loader.read(r.Entry.Description)
+		if err != nil {
+			return &mod.ItemFileError{File: rel, Line: r.LineOf("description"), Msg: fmt.Sprintf("description %q: %v", r.Entry.Description, err)}
+		}
+		r.Description = &mod.TownDescriptionFile{Path: path, Data: data, Dir: d.dir}
+		r.Entry.Description = mod.ModDescriptionName(d.id, path)
+	}
+	d.sh.towns.Records = append(d.sh.towns.Records, records...)
 	return nil
 }
 

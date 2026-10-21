@@ -1,0 +1,17 @@
+# The first town keeps everything but its name.
+[[town]]
+id   = 1
+name = "West"
+
+# East is the mod's own town: its description and art are files of the mod
+# (towns/east.json names its pictures as "mod:art/..."), and it stands at a
+# point of the world map where the install has no object.
+[[town]]
+id          = 2
+description = "towns/east.json"
+hooks       = "chapters"
+offers      = "chapter-keys"
+map-point   = { point = [430, 230], rect = [410, 205, 40, 30] }
+name        = "East"
+opens-after = 20
+missions    = [31]

@@ -100,14 +100,19 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 // their art read it too.
 func (t *townScreen) townDescription() *town.Description {
 	id := chapterTown
-	var book *townBook
 	if t != nil && t.sess != nil && t.sess.Town != nil {
-		id, book = t.sess.Town.townID(), t.sess.Town.camp.Towns
+		id = t.sess.Town.townID()
 	}
-	if book == nil {
-		book = townBookOf(t.profile())
+	return t.townBook().description(id, townHooksChapters)
+}
+
+// townBook is the book of the party's campaign; a campaign with none reads
+// the install profile's.
+func (t *townScreen) townBook() *townBook {
+	if t != nil && t.sess != nil && t.sess.Town != nil && t.sess.Town.camp.Towns != nil {
+		return t.sess.Town.camp.Towns
 	}
-	return book.description(id, townHooksChapters)
+	return townBookOf(t.profile())
 }
 
 func (t *townScreen) profile() base.Profile {
