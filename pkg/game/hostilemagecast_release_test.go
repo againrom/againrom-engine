@@ -51,6 +51,12 @@ func TestReleaseHostileMageCastRunNeverDrawsAWalk(t *testing.T) {
 		if len(casters) == 0 {
 			t.Fatalf("%s: no hostile book caster", run.save)
 		}
+		releases := make(map[sim.EntityID]int)
+		closest := make(map[sim.EntityID]int32)
+		for _, id := range casters {
+			e, _ := w.Entity(id)
+			closest[id] = max(e.X-hero.X, hero.X-e.X, e.Y-hero.Y, hero.Y-e.Y)
+		}
 		for _, id := range run.party {
 			f.LiveOrder(uint32(id), run.moves[0][0], run.moves[0][1])
 		}
@@ -59,6 +65,7 @@ func TestReleaseHostileMageCastRunNeverDrawsAWalk(t *testing.T) {
 			for _, ev := range f.LiveAdvanceCasts(1) {
 				if c, ok := w.Entity(ev.Caster); ok && c.Owner != hero.Owner {
 					hostileCasts++
+					releases[ev.Caster]++
 				}
 			}
 			mw.entityDraws()
@@ -69,6 +76,9 @@ func TestReleaseHostileMageCastRunNeverDrawsAWalk(t *testing.T) {
 				next++
 			}
 			for _, id := range casters {
+				e, _ := w.Entity(id)
+				h, _ := w.Entity(run.party[0])
+				closest[id] = min(closest[id], max(e.X-h.X, h.X-e.X, e.Y-h.Y, h.Y-e.Y))
 				if !mw.casting(id) {
 					continue
 				}
@@ -83,5 +93,8 @@ func TestReleaseHostileMageCastRunNeverDrawsAWalk(t *testing.T) {
 			t.Fatalf("%s: the mages cast nothing (%d cast-run ticks, %d releases)", run.save, castTicks, hostileCasts)
 		}
 		t.Logf("%s party %v: %d cast-run ticks, %d hostile releases, none drawn walking", run.save, run.party, castTicks, hostileCasts)
+		for _, id := range casters {
+			t.Logf("%s party %v mage %d: %d releases, closest hero distance %d cells", run.save, run.party, id, releases[id], closest[id])
+		}
 	}
 }

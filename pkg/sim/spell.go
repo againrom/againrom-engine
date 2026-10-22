@@ -1850,14 +1850,15 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if rule.Restorative && target.MaxHP <= 0 {
 		return "heal target has no health system"
 	}
-	if !skipRange && !w.actorSeesEntity(ci, vi) {
-		return refusalTargetNotVisible
-	}
 	var level int32
 	if rule.School < skillSlots {
 		level = caster.Skill[rule.School]
 	}
-	if !skipRange && !w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast)) {
+	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast))
+	if !skipRange && !w.actorSeesEntity(ci, vi) && !(inReach && w.computerMageGroupSees(ci, vi)) {
+		return refusalTargetNotVisible
+	}
+	if !skipRange && !inReach {
 		return refusalTargetOutOfRange
 	}
 	if r := w.pointEffectRefusal(ci, vi, rule, spellPowerUnder(w.rules, rule, level, caster.Mind)); r != "" {
@@ -1876,6 +1877,18 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 		return "insufficient mana"
 	}
 	return ""
+}
+
+func (w *World) computerMageGroupSees(ci, vi int) bool {
+	caster, target := w.entities[ci], w.entities[vi]
+	if w.SecondGame() || w.humanParticipantUnit(caster) || !isMage(caster) {
+		return false
+	}
+	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
+	stamp := w.groupSight(aiSight, members)
+	w.stampAttackNotices(stamp, members, false)
+	return w.sightShows(stamp, cellOf(&target)) &&
+		(!w.hasAttachedSpell(target.ID, w.armSpellID(15)) || w.groupDetectsInvisible(members, cellOf(&target)))
 }
 
 func (w *World) beginBookSpellAt(ci int, x, y int32, spellID uint32) bool {

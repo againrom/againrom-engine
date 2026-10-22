@@ -2843,6 +2843,8 @@ package storyguard
 // binary.go, hash.go), its SAV writer and reader (pkg/game/passivebody.go,
 // currentterminalbody.go, currentdeadconstruct.go, savactioncurrent.go), their
 // tests, and this paragraph.
+//
+// CommentBytes falls as actorSight's comment names its admission exception.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2866,5 +2868,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9519704,
+	CommentBytes: 9519631,
 }

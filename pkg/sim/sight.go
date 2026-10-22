@@ -505,11 +505,9 @@ func containsEntityID(ids []EntityID, id EntityID) bool {
 	return false
 }
 
-// actorSight is the current perception of one actor, rebuilt from canonical
-// terrain and actor state for every admission decision. Actor-directed spells
-// use the AI reader rather than a participant's union: a hidden patient or
-// enemy another unit can see is not thereby visible to this caster. It is not
-// persisted because it is a pure projection of hashed state.
+// actorSight rebuilds one actor's perception from canonical terrain and actor
+// state. Unit casts use this map, with a ROM1 computer-mage group exception at
+// admission. This hashed-state projection is not persisted.
 func (w *World) actorSight(i int) []byte {
 	stamp := make([]byte, len(w.grid))
 	if i < 0 || i >= len(w.entities) || !w.entities[i].Alive() {

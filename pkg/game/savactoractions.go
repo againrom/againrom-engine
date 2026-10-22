@@ -525,13 +525,17 @@ func originalAttackCycle(phase, complete, action uint32, progress byte, countdow
 // it: no order cycle reads them before a charge start overwrites them
 // (HERO-CROSSHOLD-146, HERO-CADENCE-112).
 func holdOrderResidues(state *SnapshotSAVDocument, w *sim.World, held map[sim.EntityID]sim.HeldOrder) error {
+	var books map[uint16]uint32
+	if !w.SecondGame() {
+		books, _ = currentCastObjects(state.Document)
+	}
 	byID := map[sim.EntityID]sim.Entity{}
 	for _, e := range w.Entities() {
 		byID[e.ID] = e
 	}
 	for _, b := range state.Actors {
 		e, ok := byID[b.EntityID]
-		if _, taken := held[b.EntityID]; b.Retired || !ok || taken || !e.Alive() {
+		if _, taken := held[b.EntityID]; b.Retired || !ok || taken || !e.Alive() || books[b.ObjectIndex] != 0 {
 			continue
 		}
 		r := &state.Document.Objects[b.ObjectIndex-1]
