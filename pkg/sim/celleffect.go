@@ -392,7 +392,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 	// id 19 gave Wall of Fire a 25-cell diamond.
 	if rule.Distribution == distributionWall {
 		e.Cells = w.wallCells(x, y, e.Direction)
-		if rule.arm() == 19 {
+		if areaArmBlocks(rule.arm()) {
 			e.Cells = w.skipOccupiedGround(e.Cells)
 		}
 	} else {
@@ -569,11 +569,15 @@ func (w *World) blastCellsInMap(cx, cy, r int32) []uint16 {
 // static cloud and wall helpers, order is significant here: an accepted cell is
 // painted and its occupant slots are applied before the next offset is read.
 func (w *World) ringStageCells(e cellEffect, stage int) []uint16 {
-	cx, cy := keyCell(e.Key)
 	var offsets [][2]int32
 	if a, _ := areaArmOf(w.spellArm(e.Spell)); a.stage != nil {
 		offsets = a.stage(w, e, stage)
 	}
+	return w.ringCellsAtOffsets(e, offsets)
+}
+
+func (w *World) ringCellsAtOffsets(e cellEffect, offsets [][2]int32) []uint16 {
+	cx, cy := keyCell(e.Key)
 	out := make([]uint16, 0, len(offsets))
 	for _, d := range offsets {
 		// The coordinate arithmetic is byte arithmetic before the inset test.
@@ -849,7 +853,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				if !spellTargetable(a, rule) || !w.areaHitAllowed(ci, rule, a) {
 					continue
 				}
-				if rule.arm() == 19 {
+				if areaArmBlocks(rule.arm()) {
 					continue
 				}
 				// No walker-level object deduplication. Damage objects apply on

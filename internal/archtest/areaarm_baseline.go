@@ -11,7 +11,7 @@ var CommittedAreaArmSites = map[string]int{
 	"pkg/game/world.go":              1,
 	"pkg/sim/areasave.go":            1,
 	"pkg/sim/castbinary.go":          1,
-	"pkg/sim/celleffect.go":          9,
+	"pkg/sim/celleffect.go":          7,
 	"pkg/sim/creaturecast.go":        9,
 	"pkg/sim/currentareas.go":        1,
 	"pkg/sim/currentdeliveries.go":   2,

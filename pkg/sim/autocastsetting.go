@@ -199,6 +199,9 @@ func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
 	if _, standing := effectIndex(w.attached, w.entities[ti].ID, id); buff && standing {
 		return false
 	}
+	if w.unsafeUnorderedArea(ci, ti, rule) {
+		return false
+	}
 	return w.castOrder(ci, Cast(w.entities[ci].ID, w.entities[ti].ID, SpellID(id)))
 }
 

@@ -47,12 +47,16 @@ func (w *World) nativeAreaCellPresent(key uint16) bool {
 // Each independent pulse scans the full square in x/y order, using any current
 // same-spell pointer as its gate and its own payload (MAGIC-CLOUDVISIT-156).
 func (w *World) cloudPulseCells(key, spell uint16, radius int32) []uint16 {
+	return w.cloudPulseCellsWithPaint(key, spell, radius, nil)
+}
+
+func (w *World) cloudPulseCellsWithPaint(key, spell uint16, radius int32, paint []uint16) []uint16 {
 	x, y := keyCell(key)
 	var out []uint16
 	for cx := max(0, x-radius); cx <= min(255, w.bounds.Width-1, x+radius); cx++ {
 		for cy := max(0, y-radius); cy <= min(255, w.bounds.Height-1, y+radius); cy++ {
 			key := cellKey(cx, cy)
-			if w.areaLayerPresent(key, spell) {
+			if containsKey(paint, key) || w.areaLayerPresent(key, spell) {
 				out = append(out, key)
 			}
 		}

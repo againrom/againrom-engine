@@ -142,6 +142,7 @@ copying those counts.
 | `docs/divergences/inventory-messages.md` |
 | `docs/divergences/inventory.md` |
 | `docs/divergences/magic-area-movement-cost.md` |
+| `docs/divergences/magic-automatic-casting.md` |
 | `docs/divergences/magic.md` |
 | `docs/divergences/magic-spell-geometry.md` |
 | `docs/divergences/magic-spellbooks-and-quick-spells.md` |

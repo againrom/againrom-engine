@@ -670,6 +670,15 @@ func (w *World) advanceAttack(i int, obs *castObs) {
 		}
 		return
 	}
+	if !structure && (e.AttackPhase == AttackReady || e.AttackPhase == AttackCasting) {
+		if rule, casting := w.weaponSpell(*e); casting && w.unsafeUnorderedArea(i, ti, rule) {
+			e.AttackPhase, e.AttackCountdown = AttackReady, 0
+			if target, safe := w.autoCastTargetWithin(i, rule, int64(e.Reach), e.WeaponSpellLevel); safe {
+				e.AttackTarget = target
+			}
+			return
+		}
+	}
 
 	// HERO-CROSSHOLD-146: action state 1 is "moving", and a tick spent there
 	// cancels the attack cycle's own phase back to AttackReady rather than

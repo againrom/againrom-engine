@@ -68,6 +68,11 @@ func layerSpell(arm uint16) bool {
 	return a.layer != noAreaLayer
 }
 
+func areaArmBlocks(arm uint16) bool {
+	a, _ := areaArmOf(arm)
+	return a.blocks
+}
+
 // areaArmClearsLayers reports an arm whose landing clears some layer.
 func areaArmClearsLayers(arm uint16) bool {
 	a, _ := areaArmOf(arm)
@@ -164,10 +169,23 @@ func acidStreamStage(_ *World, e cellEffect, stage int) [][2]int32 {
 	return offsets
 }
 
+const meteorStormRadius = 2
+const meteorStormSpan = 5
+
+func meteorStormFootprint() [][2]int32 {
+	var offsets [][2]int32
+	for x := int32(-meteorStormRadius); x <= meteorStormSpan-meteorStormRadius; x++ {
+		for y := int32(-meteorStormRadius); y <= meteorStormSpan-meteorStormRadius; y++ {
+			offsets = append(offsets, [2]int32{x, y})
+		}
+	}
+	return offsets
+}
+
 // Meteor Storm: one independently sampled cell per stage.
 func meteorStormStage(w *World, _ cellEffect, stage int) [][2]int32 {
 	if stage >= 0 && stage < 32 {
-		return [][2]int32{{w.rng.uniform(5) - 2, w.rng.uniform(5) - 2}}
+		return [][2]int32{{w.rng.uniform(meteorStormSpan) - meteorStormRadius, w.rng.uniform(meteorStormSpan) - meteorStormRadius}}
 	}
 	return nil
 }

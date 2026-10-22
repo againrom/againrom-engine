@@ -2531,7 +2531,11 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 		level = caster.Skill[rule.School]
 	}
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
-	reach := spellRangeOf(w.rules, rule, power, rangeCast)
+	return w.autoCastTargetWithin(ci, rule, spellRangeOf(w.rules, rule, power, rangeCast), power)
+}
+
+func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power int32) (EntityID, bool) {
+	caster := w.entities[ci]
 	var visible []byte
 	var best EntityID
 	var bestTier int
@@ -2548,6 +2552,9 @@ func (w *World) autoCastTarget(ci int, rule SpellRule) (EntityID, bool) {
 		}
 		t := w.entities[i]
 		if !spellTargetable(t, rule) || prismaticBodyPrimary(t, rule) {
+			continue
+		}
+		if w.unsafeUnorderedArea(ci, i, rule) {
 			continue
 		}
 		distance := (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: t.X, y: t.Y})

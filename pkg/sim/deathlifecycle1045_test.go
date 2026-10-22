@@ -147,9 +147,9 @@ func TestCadence1045SelfKillingApplicationsDoNotRestoreRecovery(t *testing.T) {
 		}},
 		{"one-shot autocast", func(t *testing.T) (*World, []Command) {
 			caster := spMage(1, 0, 0, 30, 20, 20, 1<<2)
-			caster.HP, caster.AttackCharge, caster.AttackRelax, caster.AutoSpell, caster.Owner = 5, 1, 12, 2, 1
+			caster.HP, caster.AttackCharge, caster.AttackRelax, caster.AutoSpell, caster.Owner = 5, 1, 12, 2, 2
 			victim := spEnt(2, 1, 0)
-			victim.Owner = 2
+			victim.Owner = SelfSlot
 			return hlWorld(t, 1045, acEnemies(t), []SpellRule{rule}, caster, victim), nil
 		}},
 		{"mage weapon diversion", func(t *testing.T) (*World, []Command) {
