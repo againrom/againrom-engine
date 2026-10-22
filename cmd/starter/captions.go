@@ -44,25 +44,27 @@ const (
 	cTickHint           captionID = "tick-hint"
 	cModsFound          captionID = "mods-found"
 
-	cSound          captionID = "sound"
-	cVolume         captionID = "volume"
-	cMovies         captionID = "movies"
-	cMissionMovies  captionID = "mission-movies"
-	cMarkers        captionID = "markers"
-	cSavesFolder    captionID = "saves-folder"
-	cWindowed       captionID = "windowed"
-	cMissionNumber  captionID = "mission-number"
-	cMapPicker      captionID = "map-picker"
-	cChicken        captionID = "chicken"
-	cSkill          captionID = "skill"
-	cExtraArgs      captionID = "extra-args"
-	cCloseAfterPlay captionID = "close-after-play"
-	cGameProgram    captionID = "game-program"
-	cLoadUnmarked   captionID = "load-unmarked"
-	cOn             captionID = "on"
-	cOff            captionID = "off"
-	cValueDefault   captionID = "value-default"
-	cValueNormal    captionID = "value-normal"
+	cSound                  captionID = "sound"
+	cVolume                 captionID = "volume"
+	cMovies                 captionID = "movies"
+	cMissionMovies          captionID = "mission-movies"
+	cMarkers                captionID = "markers"
+	cSavesFolder            captionID = "saves-folder"
+	cWindowed               captionID = "windowed"
+	cMissionNumber          captionID = "mission-number"
+	cMapPicker              captionID = "map-picker"
+	cChicken                captionID = "chicken"
+	cSkill                  captionID = "skill"
+	cShopStockMultiplier    captionID = "shop-stock-multiplier"
+	cBadShopStockMultiplier captionID = "bad-shop-stock-multiplier"
+	cExtraArgs              captionID = "extra-args"
+	cCloseAfterPlay         captionID = "close-after-play"
+	cGameProgram            captionID = "game-program"
+	cLoadUnmarked           captionID = "load-unmarked"
+	cOn                     captionID = "on"
+	cOff                    captionID = "off"
+	cValueDefault           captionID = "value-default"
+	cValueNormal            captionID = "value-normal"
 
 	cSelectMod     captionID = "select-mod"
 	cModState      captionID = "mod-state"
@@ -180,6 +182,8 @@ var captionRows = []captionRow{
 	row(cMapPicker, "Map picker", "Выбор карты", "dialogs.txt: Select map to play"),
 	row(cChicken, "#Chicken each mission", "#Chicken за миссию", ""),
 	row(cSkill, "Skill", "Навык", "main.txt: Skills"),
+	row(cShopStockMultiplier, "Shop stock multiplier (1..%d, ROM1)", "Множитель товаров (1..%d, ROM1)", ""),
+	row(cBadShopStockMultiplier, "shop stock multiplier %q must be a whole number from 1 to %d", "множитель товаров %q должен быть целым числом от 1 до %d", ""),
 	row(cExtraArgs, "Extra arguments", "Доп. аргументы", ""),
 	row(cCloseAfterPlay, "Close after Play", "Закрыть после запуска", "main.txt: Close"),
 	row(cGameProgram, "Game program", "Программа игры", ""),

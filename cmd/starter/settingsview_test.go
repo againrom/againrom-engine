@@ -11,7 +11,7 @@ import (
 
 // settingsFields are the fields and actions the settings view owns.
 var (
-	settingsFieldIDs = []fieldID{fVolume, fSaves, fMission, fSkill, fExtra, fAgainrom}
+	settingsFieldIDs = []fieldID{fVolume, fSaves, fMission, fSkill, fShopStockMultiplier, fExtra, fAgainrom}
 	settingsActions  = []actionKind{aSound, aMovies, aVideo, aMarkers, aPicker, aChicken, aCloseOnPlay, aAcceptUnmarked}
 )
 

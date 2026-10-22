@@ -184,7 +184,8 @@ type Shop struct {
 	inputEpoch *byte // transient click scope, replaced on stock regeneration
 	// ceiling is the value window's upper bound in coins — shop+0x70, the
 	// original's one per-shop parameter (SHOP-CAP-004, SHOP-MISSION-018).
-	ceiling int32
+	ceiling         int32
+	stockMultiplier int32
 
 	// shopDeal holds the shelves and the table; rules are the first game's
 	// values.
@@ -399,6 +400,11 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	items = shopStackShelf(items)
 	shopSortShelf(items, t)
 	s.shelves[ShelfBooks] = items
+	for shelf := range s.shelves {
+		for i := range s.shelves[shelf] {
+			s.shelves[shelf][i].Count *= max(1, s.stockMultiplier)
+		}
+	}
 }
 
 // The Armor class field range the weapons and armour shelves drop (SHOP-118,

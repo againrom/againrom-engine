@@ -45,6 +45,7 @@ const (
 	fSaves
 	fMission
 	fSkill
+	fShopStockMultiplier
 	fExtra
 	fAgainrom
 	fSetting0 // fSetting0..fSetting0+settingRows-1 edit the panel's integer settings
@@ -383,6 +384,8 @@ func (a *app) field(id fieldID) *string {
 		return &a.s.Mission
 	case fSkill:
 		return &a.s.Skill
+	case fShopStockMultiplier:
+		return &a.s.ShopStockMultiplier
 	case fExtra:
 		return &a.s.Extra
 	case fAgainrom:
@@ -495,14 +498,16 @@ func (a *app) layout() []item {
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
 		y = row(11, a.t(cSkill))
 		field(ctl(y), fSkill)
-		y = row(12, a.t(cExtraArgs))
+		y = row(12, a.t(cShopStockMultiplier, game.MaxShopStockMultiplier))
+		field(ctl(y), fShopStockMultiplier)
+		y = row(13, a.t(cExtraArgs))
 		field(ctl(y), fExtra)
-		heading(10, 380, a.t(cHeadStarter))
-		y = row(14, a.t(cCloseAfterPlay))
+		heading(10, 404, a.t(cHeadStarter))
+		y = row(15, a.t(cCloseAfterPlay))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
-		y = row(15, a.t(cGameProgram))
+		y = row(16, a.t(cGameProgram))
 		field(ctl(y), fAgainrom)
-		y = row(16, a.t(cLoadUnmarked))
+		y = row(17, a.t(cLoadUnmarked))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.AcceptUnmarked), checked: a.s.AcceptUnmarked, act: action{kind: aAcceptUnmarked}})
 	} else {
 		// Base games.
@@ -831,7 +836,7 @@ func (a *app) setView(v viewKind) {
 // fieldShown reports whether the current view shows the field id.
 func (a *app) fieldShown(id fieldID) bool {
 	switch id {
-	case fVolume, fSaves, fMission, fSkill, fExtra, fAgainrom:
+	case fVolume, fSaves, fMission, fSkill, fShopStockMultiplier, fExtra, fAgainrom:
 		return a.view == viewSettings
 	}
 	return a.view == viewMain

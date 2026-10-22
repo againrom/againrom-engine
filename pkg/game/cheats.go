@@ -17,6 +17,7 @@ import (
 type runtimeSwitches struct {
 	deterministicFrames bool
 	chicken             bool
+	shopStockMultiplier int32
 }
 
 type cheatConsole struct {

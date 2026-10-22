@@ -22,7 +22,7 @@ func TestLoadSettingsReadsEveryKey(t *testing.T) {
 		Bases:   []base{{"en", `C:\games\en`}, {"ru", `C:\games\ru`}},
 		ModsDir: `D:\mods`, Enabled: []string{"b", "a"},
 		Sound: soundOff, Volume: "40", Movies: false, Video: video8x, Markers: true,
-		Saves: `D:\saves`, Mission: "12", Skill: "axe", Extra: `-foo "a b"`,
+		Saves: `D:\saves`, Mission: "12", Skill: "axe", ShopStockMultiplier: "1", Extra: `-foo "a b"`,
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v\nwant %+v", got, want)
@@ -83,7 +83,7 @@ func TestStoreWritesAFreshFileInDocumentedOrder(t *testing.T) {
 	s.addBase(root)
 	s.LastBase = "en"
 	s.store(f)
-	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nextra =\n"
+	want := "[starter]\nagainrom =\nclose-on-play = false\nlast-base = en\n[bases]\nen = " + root + "\n[mods]\ndir =\nenabled =\naccept-unmarked = false\n[options]\nsound = default\nvolume =\nmovies = true\nvideo = normal\nmarkers = false\nchicken = false\nwindow = false\nsaves =\nmission =\npicker = false\nskill =\nshop-stock-multiplier = 1\nextra =\n"
 	if got := string(f.Bytes()); got != want {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}

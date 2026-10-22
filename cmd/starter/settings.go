@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode"
 
+	"againrom/pkg/game"
 	"againrom/pkg/ini"
 	"againrom/pkg/launch"
 	"againrom/pkg/mod"
@@ -57,24 +58,25 @@ type settings struct {
 	AcceptUnmarked bool     // pass -mods-accept-unmarked: load saves written without a mod mark
 	ModSettings    []modSetting
 
-	Sound   string // soundDefault, soundOn or soundOff
-	Volume  string // empty means the saved preference; else 0-100
-	Movies  bool
-	Video   string // videoNormal, video4x or video8x
-	Markers bool
-	Chicken bool
-	Saves   string
-	Mission string // empty means the game's default
-	Picker  bool
-	Skill   string
-	Extra   string // free arguments, split like a command line
+	Sound               string // soundDefault, soundOn or soundOff
+	Volume              string // empty means the saved preference; else 0-100
+	Movies              bool
+	Video               string // videoNormal, video4x or video8x
+	Markers             bool
+	Chicken             bool
+	Saves               string
+	Mission             string // empty means the game's default
+	Picker              bool
+	Skill               string
+	ShopStockMultiplier string
+	Extra               string // free arguments, split like a command line
 	// Windowed opens the game in a decorated window rather than over the
 	// whole screen.
 	Windowed bool
 }
 
 func defaultSettings() settings {
-	return settings{Sound: soundDefault, Movies: true, Video: videoNormal}
+	return settings{Sound: soundDefault, Movies: true, Video: videoNormal, ShopStockMultiplier: "1"}
 }
 
 // load reads settings from f; a missing or unrecognised value keeps its default.
@@ -119,6 +121,9 @@ func loadSettings(f *ini.File) settings {
 	s.Mission = get(secOptions, "mission")
 	s.Picker = parseBool(get(secOptions, "picker"), false)
 	s.Skill = get(secOptions, "skill")
+	if v := get(secOptions, "shop-stock-multiplier"); v != "" {
+		s.ShopStockMultiplier = v
+	}
 	s.Extra = get(secOptions, "extra")
 	return s
 }
@@ -167,6 +172,7 @@ func (s settings) store(f *ini.File) {
 	f.Set(secOptions, "mission", s.Mission)
 	f.Set(secOptions, "picker", formatBool(s.Picker))
 	f.Set(secOptions, "skill", s.Skill)
+	f.Set(secOptions, "shop-stock-multiplier", s.ShopStockMultiplier)
 	f.Set(secOptions, "extra", s.Extra)
 }
 
@@ -375,6 +381,17 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 	}
 	if v := strings.TrimSpace(s.Skill); v != "" {
 		args = append(args, "-skill", v)
+	}
+	v := strings.TrimSpace(s.ShopStockMultiplier)
+	if v == "" {
+		v = "1"
+	}
+	n, err := game.ParseShopStockMultiplier(v)
+	if err != nil {
+		return nil, captionErr(cBadShopStockMultiplier, v, game.MaxShopStockMultiplier)
+	}
+	if n != 1 {
+		args = append(args, "-shop-stock-multiplier", strconv.Itoa(n))
 	}
 	extra, err := splitArgs(s.Extra)
 	if err != nil {

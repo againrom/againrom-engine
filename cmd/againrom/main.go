@@ -106,7 +106,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <1..10>] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
 // markersUsage is the -markers flag's own help text. Named rather than
 // written inline so the wording has ONE home, mirroring cmd/mapview's flag
@@ -377,10 +377,11 @@ func launchSource() string {
 
 // options is this command's parsed command line.
 type options struct {
-	assets  string
-	check   bool
-	markers bool
-	chicken bool
+	assets              string
+	check               bool
+	markers             bool
+	chicken             bool
+	shopStockMultiplier int
 	// window opens the game in a decorated window instead of over the whole
 	// screen; Alt+Enter switches between the two while the game runs.
 	window bool
@@ -469,6 +470,14 @@ func parse(args []string) (options, error) {
 	fs.BoolVar(&o.packReplace, "pack-replace", false, packReplaceUsage)
 	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
 	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
+	o.shopStockMultiplier = 1
+	fs.Func("shop-stock-multiplier", "multiply ROM1 shop stock by a whole number from 1 to 10", func(v string) error {
+		n, err := game.ParseShopStockMultiplier(v)
+		if err == nil {
+			o.shopStockMultiplier = n
+		}
+		return err
+	})
 	fs.BoolVar(&o.window, "window", false, "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two")
 	fs.Func("seed", "fix the session seed every new game draws from (default: the clock at each new game)", func(v string) error {
 		n, err := strconv.ParseUint(v, 0, 64)
@@ -637,6 +646,9 @@ func modFrontEnd(root string, o options, preferences game.OptionsStore, files mo
 	// path, so -markers=false leaves them on screen and takes the crosses off.
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
 	front.SetChickenAtMissionStart(o.chicken)
+	if err := front.SetShopStockMultiplier(max(1, o.shopStockMultiplier)); err != nil {
+		return nil, err
+	}
 	front.SetRandomLaunch(o.seed, o.seedSet, o.originalRandom)
 	front.Options = preferences
 	front.LoadOptions()
