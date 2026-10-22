@@ -1271,6 +1271,9 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	matchCurrentManaReserves(ms, a)
+	if tableFiles(table).orderThresholds {
+		matchCurrentWithdrawalThresholds(ms, a)
+	}
 	if err := matchCurrentBookSelection(ms.savedDocument.Document, a); err != nil {
 		return err
 	}

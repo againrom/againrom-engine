@@ -55,10 +55,15 @@ type gameFiles struct {
 	savePages       func(*FrontEnd) *ui.SavePages
 	ownSaves        bool
 	boundedSaveView bool
+	// orderThresholds keeps each actor's Withdraw and Wimpy in its SAV Order
+	// block, written on SAVE and read on LOAD (AI-WITHDRAW-027); no
+	// second-game claim places them there.
+	orderThresholds bool
 }
 
 var firstGameFiles = gameFiles{
 	boundedSaveView: true,
+	orderThresholds: true,
 	table:           databin.ROM1Layout,
 	openMap:         alm.Open,
 	compileScript:   mapload.CompileScript,

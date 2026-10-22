@@ -2802,6 +2802,16 @@ package storyguard
 // the merges of companions and body sheets (companions.go, bodies.go), the
 // one apply step and the weapon body merge (pkg/game/moddata.go,
 // modbodies.go), the recorded merged data, their tests, and this paragraph.
+//
+// CommentBytes rises for the doc comments of the SAV withdrawal thresholds,
+// all new code: the Order codec (pkg/formats/sav/orderthresholds.go), the
+// writer and LOAD match (pkg/game/savwithdrawal.go), the registry restore in
+// pkg/game/originalactorregistry.go, their tests, and this paragraph.
+//
+// CommentBytes rises again for the first-game scope of those thresholds, all
+// new code: the orderThresholds file rule (pkg/game/gamefiles.go), the
+// second-game control in pkg/game/savwithdrawal_release_test.go, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2825,5 +2835,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9496468,
+	CommentBytes: 9500597,
 }

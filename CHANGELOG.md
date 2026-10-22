@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM1] A save made in Againrom no longer crashes the original game when loaded from its in-game menu.
 - [ROM1] Your mages casting an area spell on their own now choose an enemy whose blast spares them and their own or allied units. If no safe enemy is available, they wait or use another spell; casts and attacks you order still work as ordered.
+- [ROM1] Monsters in a game saved by Againrom flee at low health again when that save is loaded in the original game.
 - [ROM2] A new mage's Heal and Shield appear in the spell bar and spellbook and can be cast, including after loading a save.
 - [ROM2] Clicking OK advances or closes town conversations, including Talk in the inn.
 

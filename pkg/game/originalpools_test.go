@@ -37,6 +37,7 @@ type poolFixtureActor struct {
 	bookOff, off                          int       // literal writer positions for corruption tests
 	loadWords                             *[4]int16 // speed, own-weight, current load, capacity
 	equipmentRuntime                      *[3]byte  // source reach, charge, relax
+	withdrawal                            *[2]int32 // Order +0x40 Withdraw, +0x44 Wimpy
 }
 
 type poolFixtureSpell struct {
@@ -182,6 +183,9 @@ func poolFixtureBodyWithSession(players []*poolFixturePlayer, dead []*poolFixtur
 			b = append(b, a.profile.modifier[:]...)
 		}
 		raw(180 + 148 + 2)
+		if a.withdrawal != nil {
+			sav.PutOrderWithdrawalThresholds(b[len(b)-150:len(b)-2], a.withdrawal[0], a.withdrawal[1])
+		}
 		raw(19)
 		b[len(b)-19], b[len(b)-18] = 1, 1 // literal saved footprint and ground domain
 		b[len(b)-1] = byte(a.timer)

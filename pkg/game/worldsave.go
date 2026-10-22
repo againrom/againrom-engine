@@ -165,6 +165,11 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectCurrentCreatureSpells(&doc, state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
+	if campaignOf(s.game).files().orderThresholds {
+		if err := projectCurrentWithdrawalThresholds(&doc, state, &world); err != nil {
+			return sav.DocumentData{}, err
+		}
+	}
 	if s.CampaignState {
 		doc, err = sav.ProjectDocumentCampaign(doc, s.Campaign)
 		if err != nil {

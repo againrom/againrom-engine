@@ -360,6 +360,12 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 			e.Decay, e.Dwell = sim.DecayFallen, 0
 		}
 		e.Reach, e.AttackCharge, e.AttackRelax = basis.Reach, int32(basis.AttackCharge), int32(basis.AttackRelax)
+		// The Order block holds the thresholds the original tests, a loaded
+		// zero included (AI-WITHDRAW-027); the class value is only the
+		// constructor's start.
+		if withdraw, wimpy, ok := a.WithdrawalThresholds(); ok && tableFiles(table).orderThresholds {
+			e.Withdraw, e.Wimpy = withdraw, wimpy
+		}
 		e.Speed, e.Load, e.Capacity, e.ActorLoad, e.HumanMovement = load.Speed, load.Load, load.Capacity, load.Inventory, load.Movement
 		// The high byte of the stored +0xa4 word is the whole-cell scan range;
 		// SAV-795 (Medium) reads the low byte zero on every Unit record and the
