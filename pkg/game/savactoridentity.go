@@ -106,6 +106,9 @@ func restoreCurrentActorIdentities(ms *Mission, a *currentActionData) error {
 		if err := ms.World.ImportCurrentTerminalActors(terminalRows); err != nil {
 			return err
 		}
+		if err := restoreDepartedContents(ms, a, terminalRows); err != nil {
+			return err
+		}
 	}
 	ms.Start.IDs = slices.Clone(ms.Start.IDs)
 	ms.ActorManifest = cloneActorManifest(ms.ActorManifest)

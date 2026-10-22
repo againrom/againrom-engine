@@ -176,9 +176,15 @@ func TestTerminalHumanContentsSurviveSAVColdLoadAndTicks(t *testing.T) {
 		t.Fatal("terminal source fine position changed", body)
 	}
 	purse, sacks := f.live.world.Purse(1), f.live.world.Sacks()
+	kept := f.live.world.PassiveBodies()
+	if len(kept) != 1 || kept[0].Worn[0].Code != 0x0101 || kept[0].Worn[7].Code != 0x0c01 || kept[0].Worn[11].Code != 0x0c01 ||
+		len(kept[0].Carried) != 3 || kept[0].Carried[1].Code != 0x0101 || len(kept[0].Carried[1].Effects) != 3 || len(kept[0].Worn[0].Effects) != 3 {
+		t.Fatalf("LOAD did not keep the terminal Human's worn and carried items: %+v", kept)
+	}
 	// A SAVE writes the record from the World: the dead tuple keeps identity,
-	// stage and position, while the retained file contents and the repeated
-	// root are not World state. Every later SAVE writes the same record.
+	// stage and position and the passive contents get fresh item records; the
+	// repeated root, the actor's own effects and shared item records are not
+	// World state (DIV-3953). Every later SAVE writes the same record.
 	for cycle := range 2 {
 		raw = currentRuntimeSave(t, f)
 		written, err := sav.DecodeDocumentData(raw)
@@ -187,8 +193,19 @@ func TestTerminalHumanContentsSurviveSAVColdLoadAndTicks(t *testing.T) {
 		}
 		got := terminalHumanContentsGraph(t, written, identity)
 		if cycle == 0 {
-			if len(got.Roots) != 1 || len(got.Nodes) != 0 {
-				t.Fatalf("World-built terminal Human carries file contents: %+v", got)
+			if len(got.Roots) != 1 || len(got.Nodes) != 12 {
+				t.Fatalf("World-built terminal Human contents: %+v", got)
+			}
+			for _, refs := range got.Refs {
+				n := 0
+				for _, key := range refs.Keys {
+					if key != 0 {
+						n++
+					}
+				}
+				if want := map[string]int{"HeldWeapon": 1, "Inventory": 3, "Worn": 2}[refs.Name]; n != want {
+					t.Fatalf("terminal Human %s refs %v, want %d", refs.Name, refs.Keys, want)
+				}
 			}
 			want = got
 		}
@@ -200,6 +217,9 @@ func TestTerminalHumanContentsSurviveSAVColdLoadAndTicks(t *testing.T) {
 			assertCurrentWorldEqual(t, f.live.world, cold.live.world, "terminal Human cold continuation")
 			if got := requireTerminalHumanInactive(t, cold.live.world, identity); got != body {
 				t.Fatal("terminal Human tuple changed", cycle, tick, got)
+			}
+			if !reflect.DeepEqual(cold.live.world.PassiveBodies(), kept) {
+				t.Fatal("cold LOAD changed the passive contents", cycle, tick, cold.live.world.PassiveBodies())
 			}
 			if cold.live.world.Purse(1) != purse || !reflect.DeepEqual(cold.live.world.Sacks(), sacks) || len(cold.live.world.ActiveEffects()) != 0 {
 				t.Fatal("terminal contents replayed loot, rewards or effects", cycle, tick)

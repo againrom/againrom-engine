@@ -93,6 +93,12 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 	}
 	next, nextOK := ms.World.NextEntityID()
 	batch := make([]sim.OriginalDeadActor, 0, len(source))
+	type terminalBody struct {
+		id     sim.EntityID
+		dead   sav.DeadActor
+		weapon bool
+	}
+	var terminal []terminalBody
 	for _, d := range source {
 		if currentTerminal[d.Identity] {
 			continue
@@ -151,6 +157,9 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 		if terminalWeapon {
 			heldWeapon = sim.OriginalDeadWeapon(d.HeldWeapon)
 		}
+		if d.Stage == 5 {
+			terminal = append(terminal, terminalBody{id, d, terminalWeapon})
+		}
 		var class uint8
 		switch d.Class {
 		case "Unit":
@@ -180,6 +189,25 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 	}
 	if err := ms.World.ImportOriginalDeadActors(batch, current...); err != nil {
 		return fmt.Errorf("original dead actors: %w", err)
+	}
+	// A terminal record's items stay passive on the World (sim.PassiveBody):
+	// SAVE writes them back and nothing in play reads them.
+	var kept []sim.PassiveBody
+	for _, body := range terminal {
+		if state == nil {
+			break
+		}
+		contents := passiveRecordContents(state.Document, deadRecordObject(state, origins, body.dead), !body.weapon)
+		if passiveBodyEmpty(contents) {
+			continue
+		}
+		contents.ID = body.id
+		kept = append(kept, contents)
+	}
+	if len(kept) != 0 {
+		if err := ms.World.RestorePassiveBodies(kept); err != nil {
+			return fmt.Errorf("original dead actor contents: %w", err)
+		}
 	}
 	for _, d := range source {
 		switch {

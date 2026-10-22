@@ -172,11 +172,16 @@ func (b *generatedDocumentBuilder) constructedSearchRadius(r *sav.DocumentRecord
 // appendAbsentDeadRecords writes each retained dead actor no written record
 // holds. A dead actor with a map placement takes its actor values from the
 // placement and the tables, as a fresh mission constructs them; its dead
-// tuple, references and held weapon come from the World. A dead actor whose
-// Diary the World holds gets a Diary record of diaryRows entries.
+// tuple, references, held weapon and the items it kept at its terminal stage
+// come from the World. A dead actor whose Diary the World holds gets a Diary
+// record of diaryRows entries.
 func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mission, hero mapload.PartyMember, diff mapload.Difficulty, diaries map[sim.EntityID]bool, diaryRows int) (bool, error) {
 	changed := false
 	var placed map[uint16]sim.Entity
+	passive := map[sim.EntityID]sim.PassiveBody{}
+	for _, p := range w.PassiveBodies() {
+		passive[p.ID] = p
+	}
 	for _, body := range w.OriginalDeadActors() {
 		found := false
 		for _, r := range b.doc.Objects {
@@ -239,8 +244,14 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 			}
 			mustSetRefs(&r, "Diary", []uint16{index})
 		}
-		if _, err := b.append(r); err != nil {
+		index, err := b.append(r)
+		if err != nil {
 			return false, err
+		}
+		if kept, held := passive[body.ID]; held {
+			if err := b.passiveDeadContents(index, body, kept, w); err != nil {
+				return false, err
+			}
 		}
 		changed = true
 	}

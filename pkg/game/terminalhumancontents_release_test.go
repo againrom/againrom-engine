@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/sim"
 )
 
 func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
@@ -60,6 +61,21 @@ func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
 	}
 	f := releaseFront(t)
 	app, _ := openOriginalSAVApp(t, f, raw, "terminal-human-source.sav")
+	// LOAD keeps each terminal Human's worn items passive, as its record
+	// holds them.
+	kept := map[sim.EntityID]sim.PassiveBody{}
+	for _, p := range f.live.world.PassiveBodies() {
+		kept[p.ID] = p
+	}
+	sourceItems := map[uint32]sim.PassiveBody{}
+	for _, want := range humans {
+		id := requireTerminalHumanInactive(t, f.live.world, want.body.Identity).ID
+		items := terminalHumanRecordItems(t, doc, want.body.Identity)
+		if passiveBodyEmpty(items) || !reflect.DeepEqual(kept[id].Worn, items.Worn) || len(kept[id].Carried) != 0 {
+			t.Fatalf("LOAD kept %+v for terminal Human %#x, record holds %+v", kept[id], want.body.Identity, items)
+		}
+		sourceItems[want.body.Identity] = items
+	}
 	for _, want := range humans {
 		got := requireTerminalHumanInactive(t, f.live.world, want.body.Identity)
 		if got.Current.FineX != want.body.FineX || got.Current.FineY != want.body.FineY || got.Source.MapUnitID != want.body.MapUnitID {
@@ -73,13 +89,13 @@ func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// The World holds no contents for an original terminal actor, so its
-		// root is written with no worn, held, carried or effect object
-		// (DIV-2505).
+		// The root is written with the worn items the World kept, each in a
+		// fresh item record (DIV-3953).
 		for _, want := range humans {
 			got := terminalHumanContentsGraph(t, written, want.body.Identity)
-			if !reflect.DeepEqual(got.Roots, want.graph.Roots) || len(got.Nodes) != 0 {
-				t.Fatalf("cycle %d terminal Human %#x roots %v contents %d", cycle, want.body.Identity, got.Roots, len(got.Nodes))
+			items := terminalHumanRecordItems(t, written, want.body.Identity)
+			if !reflect.DeepEqual(got.Roots, want.graph.Roots) || len(got.Nodes) != len(want.graph.Nodes) || !reflect.DeepEqual(items, sourceItems[want.body.Identity]) {
+				t.Fatalf("cycle %d terminal Human %#x roots %v contents %d, source %d; items %+v", cycle, want.body.Identity, got.Roots, len(got.Nodes), len(want.graph.Nodes), items)
 			}
 		}
 		cold := releaseFront(t)
@@ -94,6 +110,9 @@ func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
 				if got.Current.FineX != want.body.FineX || got.Current.FineY != want.body.FineY {
 					t.Fatal("cold continuation changed fine position", cycle, tick, got)
 				}
+			}
+			if !reflect.DeepEqual(cold.live.world.PassiveBodies(), f.live.world.PassiveBodies()) {
+				t.Fatal("cold continuation changed the passive contents", cycle, tick)
 			}
 			if tick != 3 {
 				f.live.tick()
@@ -113,5 +132,21 @@ func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
 			t.Fatal(writeErr, closeErr)
 		}
 	}
-	t.Logf("source=%s dead-roots=193 terminal-equipment=20 Unit/4 Human; two menu SAVE/cold LOAD cycles and 3 ticks each; output-sha=%x", sourceSHA, sha256.Sum256(saved))
+	t.Logf("source=%s dead-roots=193 terminal-equipment=20 Unit/4 Human; passive bodies %d; two menu SAVE/cold LOAD cycles and 3 ticks each; output-sha=%x", sourceSHA, len(kept), sha256.Sum256(saved))
+}
+
+// terminalHumanRecordItems reads the worn and carried items of the dead root
+// with identity.
+func terminalHumanRecordItems(t *testing.T, doc sav.DocumentData, identity uint32) sim.PassiveBody {
+	t.Helper()
+	for _, root := range doc.DeadActors {
+		if root == 0 || int(root) > len(doc.Objects) {
+			t.Fatal("dead root outside document", root)
+		}
+		if key, err := savedStructureValue(&doc.Objects[root-1], "Identity"); err == nil && key == identity {
+			return passiveRecordContents(&doc, root, true)
+		}
+	}
+	t.Fatalf("no dead root %#x", identity)
+	return sim.PassiveBody{}
 }

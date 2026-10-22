@@ -54,6 +54,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{passiveBodyFormVersion, "PBC1", trailerSpan32, baseOlder, (*World).unmarshalPassiveBodies},
 		{moverRadiusFormVersion, "MRD1", trailerSpan32, baseOlder, (*World).unmarshalMoverRadii},
 		{walkClaimFormVersion, "WCL1", trailerSpan32, baseOlder, (*World).unmarshalWalkClaims},
 		{flightRunFormVersion, "FLR1", trailerSpan32, baseOlder, (*World).unmarshalFlightRuns},

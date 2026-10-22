@@ -2837,6 +2837,12 @@ package storyguard
 // CommentBytes rises for the first-game gate on a deferred cast, all new
 // code: crossingDefersCast (pkg/sim/creaturecast.go), its second-game test
 // (pkg/sim/engagecastcrossing_test.go) and this paragraph.
+//
+// CommentBytes rises for the passive items of a terminal body, all new code:
+// the carrier and its byte form (pkg/sim/passivebody.go, passivebodybinary.go,
+// binary.go, hash.go), its SAV writer and reader (pkg/game/passivebody.go,
+// currentterminalbody.go, currentdeadconstruct.go, savactioncurrent.go), their
+// tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2860,5 +2866,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9513866,
+	CommentBytes: 9519704,
 }

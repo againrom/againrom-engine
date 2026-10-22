@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Clicking OK advances or closes town conversations, including Talk in the inn.
 - [ROM1] Units at low health and units on Retreat look for enemies within 5 cells and count large units by their size, as in the original; flying enemies are not counted.
 - [ROM1] A mage, an enemy one or yours walking into range of a spell you ordered, that can cast while stepping into a cell finishes the step first and then casts standing. It no longer freezes mid-step or shows its walk during the cast.
+- [ROM1] The items a dead character still wore or carried when his body decayed, or when he left the map, are now kept in a save and are there again after loading it. They stay with the body and cannot be picked up.
 
 ### For developers
 

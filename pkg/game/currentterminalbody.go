@@ -2,23 +2,28 @@ package game
 
 import (
 	"fmt"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
-// currentTerminalBody is the record source of a departed authored actor.
+// currentTerminalBody is the record source of a departed actor.
 type currentTerminalBody struct {
-	entity sim.Entity
-	worn   [sim.EquipSlots]sim.ItemInstance
+	entity  sim.Entity
+	worn    [sim.EquipSlots]sim.ItemInstance
+	carried []sim.ItemStack
 }
 
-// currentTerminalBodies builds the body of each departed authored actor and
-// departed party member. The World holds its terminal tuple and native basis;
-// its placement, or its party member's roster entry, constructs the rest
-// through the map and the installed tables as a fresh mission does. A
-// terminal row with neither has no record.
+// currentTerminalBodies builds the body of each departed actor. The World
+// holds its terminal tuple and native basis; its placement, or its party
+// member's roster entry, constructs the rest through the map and the
+// installed tables as a fresh mission does. A departed actor with neither is
+// written from the body the World kept at its departure (sim.PassiveBody),
+// and has no record without one. The worn and carried items are the ones the
+// World kept at departure; a World that kept none writes the placement's
+// items in the slots the terminal row marks worn.
 func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapload.Difficulty, party map[sim.EntityID]mapload.PartyMember) (map[sim.EntityID]currentTerminalBody, error) {
 	out := map[sim.EntityID]currentTerminalBody{}
 	rows := w.CurrentTerminalActors()
@@ -36,6 +41,10 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 	bases := map[sim.EntityID]sim.NativeActorBasis{}
 	for _, row := range w.RemovedNativeActorBases() {
 		bases[row.ID] = row.Basis
+	}
+	passive := map[sim.EntityID]sim.PassiveBody{}
+	for _, p := range w.PassiveBodies() {
+		passive[p.ID] = p
 	}
 	for _, row := range rows {
 		if row.LeavesNoBody() {
@@ -56,6 +65,10 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 		} else if member, ok := party[row.ID]; ok {
 			body = departedMemberBody(m, t, diff, member)
 		}
+		kept, held := passive[row.ID]
+		if body == nil && held && kept.Body != nil {
+			body = &currentTerminalBody{entity: *kept.Body}
+		}
 		if body == nil {
 			continue
 		}
@@ -65,8 +78,11 @@ func currentTerminalBodies(w *sim.World, m *alm.Map, t *mapload.Table, diff mapl
 			e.MaxHP = row.MaxHP
 		}
 		e.NativeBasis = bases[row.ID]
+		if held {
+			body.worn, body.carried = kept.Worn, kept.Carried
+		}
 		for slot := range body.worn {
-			if row.Worn&(1<<slot) == 0 {
+			if !held && row.Worn&(1<<slot) == 0 {
 				body.worn[slot] = sim.ItemInstance{}
 			}
 		}
@@ -118,6 +134,60 @@ func (b *generatedDocumentBuilder) currentTerminalWorn(index uint16, worn [sim.E
 		mustSetRefs(r, "Worn", refs[:])
 	}
 	return nil
+}
+
+// currentTerminalCarried writes the items a terminal actor's body still
+// carries, in container order, into its record's container. A stack wider
+// than one record's count takes adjacent records, as a live container does.
+func (b *generatedDocumentBuilder) currentTerminalCarried(index uint16, carried []sim.ItemStack, w *sim.World) error {
+	if len(carried) == 0 {
+		return nil
+	}
+	weights := map[uint16]sim.ItemWeight{}
+	for _, weight := range w.ItemWeights() {
+		weights[weight.Code] = weight
+	}
+	owner, err := savedStructureValue(&b.doc.Objects[index-1], "Reference")
+	if err != nil {
+		return err
+	}
+	var refs []uint16
+	for _, st := range carried {
+		item := currentItemRecordValue(st.Instance(), false, weights, b.table)
+		for count := st.Count; count != 0; {
+			part := min(count, uint32(65535))
+			ref, err := b.item(item, part, owner)
+			if err != nil {
+				return err
+			}
+			refs = append(refs, ref)
+			count -= part
+		}
+	}
+	r := &b.doc.Objects[index-1]
+	savedObjectSetValue(r, "HasInventory", 1)
+	savedObjectSetRefs(r, "Inventory", refs, true)
+	return nil
+}
+
+// passiveDeadContents writes the items the World kept for a retained original
+// dead actor on its record. A held Weapon the record keeps from the loaded
+// file stays that record's.
+func (b *generatedDocumentBuilder) passiveDeadContents(index uint16, body sim.OriginalDeadRecord, kept sim.PassiveBody, w *sim.World) error {
+	r := &b.doc.Objects[index-1]
+	weapon, _ := savedObjectRefs(r, "HeldWeapon")
+	weapon = slices.Clone(weapon)
+	worn := kept.Worn
+	if body.Source.HeldWeapon.Present {
+		worn[0] = sim.ItemInstance{}
+	}
+	if err := b.currentTerminalWorn(index, worn, w); err != nil {
+		return err
+	}
+	if body.Source.HeldWeapon.Present {
+		mustSetRefs(&b.doc.Objects[index-1], "HeldWeapon", weapon)
+	}
+	return b.currentTerminalCarried(index, kept.Carried, w)
 }
 
 // placementActors constructs the map's placed actors as a fresh mission does,

@@ -1920,6 +1920,7 @@ type World struct {
 	originalDead          []originalDeadRecord
 	currentTerminalActors []CurrentTerminalActor
 	removedNativeBases    []NativeActorBasisRecord
+	passiveBodies         []PassiveBody
 	currentPlayers        *currentPlayerState
 	savedMotion           *savedActorMotionState
 	// cellRecords holds the per-cell records (SAV cell entries), sorted by

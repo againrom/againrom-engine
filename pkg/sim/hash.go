@@ -5,8 +5,9 @@ import (
 	"sync"
 )
 
-// Hash returns a 64-bit digest of the world's full canonical state: FNV-1a over
-// exactly the bytes MarshalBinary produces.
+// Hash returns a 64-bit digest of the world's state of play: FNV-1a over the
+// bytes MarshalBinary produces without its passive terminal contents
+// (appendPassiveBodies), which no later state of play reads.
 //
 // Hashing the byte form rather than the fields is what makes "every field the
 // byte form carries enters the digest" true by construction. A second traversal
@@ -30,7 +31,7 @@ func (w *World) Hash() uint64 {
 	if p == nil {
 		p = new([]byte)
 	}
-	b := w.encodeInto((*p)[:0])
+	b := w.encodePlayInto((*p)[:0])
 	h := fnv.New64a()
 	// hash.Hash's Write never returns an error.
 	h.Write(b)

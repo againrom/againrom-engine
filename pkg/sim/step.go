@@ -2063,6 +2063,7 @@ func (w *World) remove(gone []EntityID) bool {
 			w.entityIDFloor = max(w.entityIDFloor, uint64(w.entities[i].ID)+1)
 			w.retireOriginalDead(w.entities[i].ID)
 			w.retainRemovedNativeBasis(w.entities[i])
+			w.retainPassiveBody(i)
 			continue
 		}
 		keep = append(keep, w.entities[i])

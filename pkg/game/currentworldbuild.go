@@ -401,6 +401,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		if err := b.currentTerminalWorn(index, body.worn, w); err != nil {
 			return nil, err
 		}
+		if err := b.currentTerminalCarried(index, body.carried, w); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := b.appendAbsentDeadRecords(w, ms, nativeCityHeroOf(s.Party), s.Difficulty, diaries, diaryRows); err != nil {
 		return nil, err

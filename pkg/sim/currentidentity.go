@@ -41,6 +41,7 @@ func (w *World) RestoreActorIdentities(ids map[EntityID]EntityID, floor *uint64)
 	n.actorTraversal = append([]EntityID{}, n.actorTraversalIDs()...)
 	n.actorIdentityFields(func(id *EntityID) { *id = ids[*id] })
 	n.sortRemovedNativeBases()
+	n.sortPassiveBodies()
 	order := make([]int, len(n.entities))
 	for i := range order {
 		order[i] = i
@@ -175,6 +176,12 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 	}
 	for i := range w.removedNativeBases {
 		ref(&w.removedNativeBases[i].ID)
+	}
+	for i := range w.passiveBodies {
+		ref(&w.passiveBodies[i].ID)
+		if body := w.passiveBodies[i].Body; body != nil {
+			ref(&body.ID)
+		}
 	}
 	if !w.groupDialectNative() {
 		for i := range w.savedGroups.Groups {

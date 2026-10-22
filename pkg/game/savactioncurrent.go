@@ -75,6 +75,10 @@ type currentActionData struct {
 	NativeBasisWires     []currentNativeBasisWire     `json:",omitempty"`
 	HeldNativeBasisWires bool                         `json:",omitempty"`
 	RemovedNativeBases   []sim.NativeActorBasisRecord `json:",omitempty"`
+	// DepartedBodies are the kept bodies of departed actors without a map
+	// unit or a party entry (sim.PassiveBody.Body), in ID order: nothing
+	// else describes the kind and state their dead records are built from.
+	DepartedBodies       []sim.Entity `json:",omitempty"`
 	Version              uint32
 	WriterCarriers       uint32
 	NativeHistoryVersion uint8              `json:",omitempty"`
@@ -161,6 +165,9 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 	}
 	if a.WriterCarriers & ^currentCarrierAll != 0 {
 		return nil, fmt.Errorf("current action writer carriers contain unknown bits")
+	}
+	if err := validateDepartedBodies(a.DepartedBodies); err != nil {
+		return nil, err
 	}
 	if a.Program != nil && (doc.World == nil || a.Policy == nil) {
 		return nil, fmt.Errorf("current script program lacks world/register policy")
@@ -339,7 +346,7 @@ func sourceActorDocumentClass(class uint8) string {
 // layer relocates these addresses with every reindex/retirement; final key
 // completion is independent. Constructor objects may still have a zero wire key.
 func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w *sim.World, s Snapshot, table *mapload.Table, captured ...sim.CurrentWorldPolicy) error {
-	a := currentActionData{Version: 1, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases()}
+	a := currentActionData{Version: 1, Actions: w.Actions(), RemovedNativeBases: w.RemovedNativeActorBases(), DepartedBodies: departedBodies(w)}
 	if _, held := w.SavedCellPlanes(); held {
 		a.WriterCarriers = currentWriterCarriers
 	}
