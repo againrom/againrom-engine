@@ -7,9 +7,8 @@ import (
 	"againrom/pkg/sim"
 )
 
-// projectCurrentCreatureSpells writes a creature's class spell slots into its
-// order block (SAV-1066): the three ids at +0x78 and the three scaled
-// probabilities at +0x84. An actor holding no slot keeps its record's bytes.
+// projectCurrentCreatureSpells writes all six current slot words, including
+// zeros, into the order block (SAV-1066).
 func projectCurrentCreatureSpells(doc *sav.DocumentData, state *SnapshotSAVDocument, world *sim.World) error {
 	byID := map[sim.EntityID]sim.Entity{}
 	for _, e := range world.Entities() {
@@ -20,7 +19,7 @@ func projectCurrentCreatureSpells(doc *sav.DocumentData, state *SnapshotSAVDocum
 			continue
 		}
 		e, ok := byID[a.EntityID]
-		if !ok || !creatureHoldsSlots(e) {
+		if !ok {
 			continue
 		}
 		order, err := savedActorRaw(&doc.Objects[a.ObjectIndex-1], "U158", 148)

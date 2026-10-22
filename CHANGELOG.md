@@ -27,6 +27,10 @@ modder or developer can notice gets no entry.
 - [ROM2] Clicking OK advances or closes town conversations, including Talk in the inn.
 - [ROM1] Units at low health and units on Retreat look for enemies within 5 cells and count large units by their size, as in the original; flying enemies are not counted.
 
+### For developers
+
+- [BASE] a SAV writes a creature's three spell slots and their use thresholds from the current game; an unused slot is written as zero instead of the loaded file's word
+
 ## 0.131.0
 
 ### For players
