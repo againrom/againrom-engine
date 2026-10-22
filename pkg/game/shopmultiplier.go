@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-const MaxShopStockMultiplier = 10
+const MaxShopStockMultiplier = 1000
 
 func ParseShopStockMultiplier(value string) (int, error) {
 	n, err := strconv.Atoi(value)

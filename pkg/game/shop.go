@@ -332,30 +332,19 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 		ShelfMagic:   append(append([]data.ShopCandidate{}, allArmour...), allWeapons...),
 	}
 
+	var rolled [numShopShelves]int
 	for shelf := range pools {
 		pool := pools[shelf]
 		if len(pool) == 0 {
 			continue
 		}
 		n := shopShelfDraws[shelf]
-		items := make([]ShopItem, 0, n)
 		attempts := n
 		if ShopShelf(shelf) == ShelfMagic {
 			attempts = 10*n + 1
 		}
-		for i := 0; i < attempts && len(items) < n; i++ {
-			c := pool[r.Intn(len(pool))]
-			if ShopShelf(shelf) == ShelfMagic {
-				item, ok := shopEnchantedItem(c, s.ceiling, t, r)
-				if !ok {
-					continue
-				}
-				items = append(items, item)
-				continue
-			}
-			items = append(items, shopItemFromInstance(sim.ItemInstance{
-				Code: uint16(c.Code), Kind: c.ItemKind, Price: c.Price}, 1))
-		}
+		items := s.rollShelf(ShopShelf(shelf), pool, t, r, n, attempts)
+		rolled[shelf] = len(items)
 		items = shopStackShelf(items)
 		shopSortShelf(items, t)
 		s.shelves[shelf] = items
@@ -375,8 +364,10 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	}
 	consumables := append(books, shopScrollPool(t, s.ceiling, r)...)
 	var items []ShopItem
+	picks := 0
 	if len(consumables) != 0 {
 		n, _ := shopDrawInclusive(r, 1, 8)
+		picks = n
 		for i := 0; i < n; i++ {
 			items = append(items, consumables[r.Intn(len(consumables))].Clone())
 		}
@@ -400,11 +391,78 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	items = shopStackShelf(items)
 	shopSortShelf(items, t)
 	s.shelves[ShelfBooks] = items
-	for shelf := range s.shelves {
-		for i := range s.shelves[shelf] {
-			s.shelves[shelf][i].Count *= max(1, s.stockMultiplier)
+	s.rollAgain(t, pools, rolled, consumables, picks)
+}
+
+// rollShelf is one roll of a weapons, armour or Magic Items shelf: up to n
+// items from at most attempts draws from pool, unstacked and unsorted. A
+// Magic Items draw whose candidate takes no effect is a spent attempt.
+func (s *Shop) rollShelf(shelf ShopShelf, pool []data.ShopCandidate, t *mapload.Table, r shopDrawSource, n, attempts int) []ShopItem {
+	items := make([]ShopItem, 0, n)
+	for i := 0; i < attempts && len(items) < n; i++ {
+		c := pool[r.Intn(len(pool))]
+		if shelf == ShelfMagic {
+			item, ok := shopEnchantedItem(c, s.ceiling, t, r)
+			if !ok {
+				continue
+			}
+			items = append(items, item)
+			continue
 		}
+		items = append(items, shopItemFromInstance(sim.ItemInstance{
+			Code: uint16(c.Code), Kind: c.ItemKind, Price: c.Price}, 1))
 	}
+	return items
+}
+
+// rollAgain adds the stock multiplier's further rolls (DIV-3960). Each of the
+// first three shelves rolls stockMultiplier-1 more times, each roll taking as
+// many items as the first roll took (rolled) within a hundred times the first
+// roll's attempts, and the books shelf picks its random consumables that many
+// more times; every item is its own draw. Guaranteed books and potions are not
+// rolled and stay once. The further rolls draw on their own generator from
+// the shop's seed, so the shared stream of original mode is consumed exactly
+// as with one roll.
+func (s *Shop) rollAgain(t *mapload.Table, pools [numShopShelves][]data.ShopCandidate, rolled [numShopShelves]int, consumables []ShopItem, picks int) {
+	extra := int(s.stockMultiplier) - 1
+	if extra <= 0 {
+		return
+	}
+	r := random.NewGo(shopExtraRollSeed(s.drawSeed))
+	for shelf := range pools {
+		if len(pools[shelf]) == 0 || rolled[shelf] == 0 {
+			continue
+		}
+		attempts := shopShelfDraws[shelf]
+		if ShopShelf(shelf) == ShelfMagic {
+			attempts = 100 * (10*attempts + 1)
+		}
+		stack := newShopStacker(s.shelves[shelf])
+		for k := 0; k < extra; k++ {
+			for _, item := range s.rollShelf(ShopShelf(shelf), pools[shelf], t, r, rolled[shelf], attempts) {
+				stack.add(item)
+			}
+		}
+		shopSortShelf(stack.out, t)
+		s.shelves[shelf] = stack.out
+	}
+	if len(consumables) == 0 || picks == 0 {
+		return
+	}
+	stack := newShopStacker(s.shelves[ShelfBooks])
+	for i := 0; i < extra*picks; i++ {
+		stack.add(consumables[r.Intn(len(consumables))])
+	}
+	shopSortShelf(stack.out, t)
+	s.shelves[ShelfBooks] = stack.out
+}
+
+// shopExtraRollSeed is the seed of the stock multiplier's further rolls,
+// distinct from every restock seed of the same shop.
+func shopExtraRollSeed(seed int64) int64 {
+	h := uint64(seed) ^ 0x9e3779b97f4a7c15
+	h *= 1099511628211
+	return int64(h >> 1)
 }
 
 // The Armor class field range the weapons and armour shelves drop (SHOP-118,

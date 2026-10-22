@@ -2845,6 +2845,11 @@ package storyguard
 // tests, and this paragraph.
 //
 // CommentBytes falls as actorSight's comment names its admission exception.
+//
+// CommentBytes rises with the shop stock multiplier's further rolls: the doc
+// comments of rollShelf, rollAgain, shopExtraRollSeed and the keyed shelf
+// stacker (pkg/game/shop.go, shopsort.go), their tests, and this paragraph;
+// then with the release test's spike-robust timing statistics.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2868,5 +2873,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9520238,
+	CommentBytes: 9523176,
 }

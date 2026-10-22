@@ -1,7 +1,7 @@
 # Checked-in gated-test manifest: one "<package>.<func>" per line.
 pkg/game.TestReleaseShopStockMultiplierDefaultMatchesMain
-pkg/game.TestReleaseShopStockMultiplierEveryShelf
-pkg/game.TestReleaseShopStockMultiplierBuysEveryItem
+pkg/game.TestReleaseShopStockMultiplierRollsEveryShelf
+pkg/game.TestReleaseShopStockMultiplierListsAndSellsAtTheBound
 pkg/game.TestReleaseShopStockHoldsOneEntryPerEffectKind
 # Scan in both directions. pipeline/check-release-tests.sh independently
 # TestScanMatchesTheCheckedInPopulationList requires an exact match with

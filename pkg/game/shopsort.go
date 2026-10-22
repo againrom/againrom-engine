@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 )
 
 // The order a shop shelf is PRESENTED in (owner, `DIV-319`).
@@ -162,22 +163,51 @@ func shopStackShelf(items []ShopItem) []ShopItem {
 	if len(items) < 2 {
 		return items
 	}
-	out := make([]ShopItem, 0, len(items))
+	stack := shopStacker{out: make([]ShopItem, 0, len(items))}
 	for _, item := range items {
-		found := -1
-		for i := range out {
-			if shopItemEqual(out[i], item) {
-				found = i
-				break
-			}
-		}
-		if found >= 0 {
-			out[found].Count += item.Count
-		} else {
-			out = append(out, item.Clone())
+		stack.add(item)
+	}
+	return stack.out
+}
+
+// shopStackKey holds the fields shopItemEqual requires to agree, so only
+// elements sharing a key are compared and a long shelf stacks in linear time.
+type shopStackKey struct {
+	cityID, objectID sim.SavedObjectID
+	code             data.ItemCode
+	price            int32
+}
+
+// shopStacker is shopStackShelf one item at a time: an added item folds into
+// the first equal element of out or is appended as a clone.
+type shopStacker struct {
+	out   []ShopItem
+	index map[shopStackKey][]int
+}
+
+// newShopStacker starts from a shelf already stacked; its elements are kept
+// in place.
+func newShopStacker(shelf []ShopItem) *shopStacker {
+	stack := &shopStacker{out: make([]ShopItem, 0, len(shelf))}
+	for _, item := range shelf {
+		stack.add(item)
+	}
+	return stack
+}
+
+func (s *shopStacker) add(item ShopItem) {
+	if s.index == nil {
+		s.index = make(map[shopStackKey][]int)
+	}
+	key := shopStackKey{cityID: item.cityID, objectID: item.ObjectID, code: item.Code, price: item.Price}
+	for _, i := range s.index[key] {
+		if shopItemEqual(s.out[i], item) {
+			s.out[i].Count += item.Count
+			return
 		}
 	}
-	return out
+	s.index[key] = append(s.index[key], len(s.out))
+	s.out = append(s.out, item.Clone())
 }
 
 // shopOrderOf is one item code's class and kind.
