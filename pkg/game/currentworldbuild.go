@@ -265,6 +265,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		}
 		r := mustNewRecord(savedActorClass(basis.SourceBinding.Class), flags...)
 		source := basis.SourceBinding
+		if err := b.constructedSearchRadius(&r, w); err != nil {
+			return 0, 0, err
+		}
 		playerKey, _ := ownerKey(e)
 		mustSetToken(&r, nativeCityToken(source.Identity, playerKey, source.TokenRow, source.TypeID))
 		// SAV-1093/SAV-678: ordinary mask 2; observed off-map records 0.

@@ -15,6 +15,7 @@ import (
 type withdrawalWitness struct {
 	mode, class       string
 	entity            sim.EntityID
+	tick              uint64
 	threshold, radius int32
 	beforeX, beforeY  int32
 	beforeHasTarget   bool
@@ -42,9 +43,11 @@ type withdrawalWitness struct {
 
 // driveWithdrawal starts from the mission's real production world, wounds one
 // eligible authored actor to its threshold by the script's health write, then
-// reaches phase 6 by the same sim.Step calls the game uses. Each candidate
-// starts from a binary clone of the untouched world, so a failed attempt
-// cannot perturb the next.
+// reaches phase 6 by the same sim.Step calls the game uses. When no hostile is
+// inside the actor's search square yet, the ordinary dispatcher runs that tail
+// and the instrument waits for the next phase 6, up to withdrawalCycles of
+// them. Each candidate starts from a binary clone of the untouched world, so a
+// failed attempt cannot perturb the next.
 func driveWithdrawal(ms *game.Mission, table *mapload.Table, out io.Writer) error {
 	if ms == nil || ms.World == nil {
 		return fmt.Errorf("withdrawal: mission has no world")
@@ -83,17 +86,43 @@ func driveWithdrawal(ms *game.Mission, table *mapload.Table, out io.Writer) erro
 			sim.Step(&world, nil)
 			// The wound lands before tick zero. The fifth quiet step leaves the
 			// world at tick 6; the sixth executes the dispatcher and its tail.
-			for i := 0; i < 5; i++ {
-				sim.Step(&world, nil)
+			// A phase 6 that finds no hostile in the square runs as an ordinary
+			// step, and the next phase 6 is 16 ticks later; the actor is wounded
+			// back to its threshold just before it.
+			var pre sim.Entity
+			var mode string
+			var triggeredAt, radius int32
+			var liveHostiles []sim.Entity
+			for cycle := 0; cycle < withdrawalCycles; cycle++ {
+				quiet := 5
+				if cycle > 0 {
+					sim.Step(&world, nil)
+					quiet = 15
+				}
+				for i := 0; i < quiet; i++ {
+					sim.Step(&world, nil)
+				}
+				pre, ok = withdrawalEntity(world.Entities(), before.ID)
+				if !ok || pre.HP <= 0 {
+					break
+				}
+				// Regeneration may lift the actor past its threshold between
+				// passes; the script's health write wounds it back.
+				if damage := pre.HP - threshold; cycle > 0 && damage > 0 {
+					if world.HeadlessDamage(pre.ID, damage) != nil {
+						break
+					}
+					pre, ok = withdrawalEntity(world.Entities(), before.ID)
+				}
+				mode, triggeredAt, radius, liveHostiles = withdrawalTrigger(&world, pre)
+				if mode != "" {
+					break
+				}
 			}
-			pre, ok := withdrawalEntity(world.Entities(), before.ID)
-			if !ok || pre.HP <= 0 {
+			if !ok || pre.HP <= 0 || mode != wantedMode || len(liveHostiles) == 0 || pre.HP > triggeredAt {
 				continue
 			}
-			mode, triggeredAt, radius, liveHostiles := withdrawalTrigger(&world, pre)
-			if mode != wantedMode || len(liveHostiles) == 0 || pre.HP > triggeredAt {
-				continue
-			}
+			tailTick := world.Tick()
 			decisions := sim.StepWithdrawalTraced(&world, nil)
 			after, afterOK := withdrawalEntity(world.Entities(), before.ID)
 			decision, decisionOK := withdrawalDecision(decisions, before.ID)
@@ -111,7 +140,7 @@ func driveWithdrawal(ms *game.Mission, table *mapload.Table, out io.Writer) erro
 			ordinary := decision.Before
 			witness := withdrawalWitness{
 				mode: mode, class: withdrawalClassName(ms, table, before.ID, before.Class),
-				entity: before.ID, threshold: triggeredAt, radius: radius,
+				entity: before.ID, threshold: triggeredAt, radius: radius, tick: tailTick,
 				beforeX: ordinary.X, beforeY: ordinary.Y, beforeHasTarget: ordinary.HasTarget,
 				beforeTargetX: ordinary.TargetX, beforeTargetY: ordinary.TargetY,
 				beforeHasAttack: ordinary.HasAttackTarget, beforeAttack: ordinary.AttackTarget,
@@ -130,6 +159,10 @@ func driveWithdrawal(ms *game.Mission, table *mapload.Table, out io.Writer) erro
 	return fmt.Errorf("withdrawal: mission %d has no eligible authored actor beside a hostile", ms.Number)
 }
 
+// withdrawalCycles bounds the phase-6 passes the instrument waits for an
+// actor that sees a hostile to come within its search square.
+const withdrawalCycles = 32
+
 func withdrawalDecision(decisions []sim.WithdrawalDecision, id sim.EntityID) (sim.WithdrawalDecision, bool) {
 	for _, decision := range decisions {
 		if decision.Before.ID == id {
@@ -144,9 +177,10 @@ func withdrawalTrigger(w *sim.World, actor sim.Entity) (string, int32, int32, []
 		return "", 0, 0, nil
 	}
 	if actor.Wimpy > 0 && actor.HP <= actor.Wimpy {
-		h := withdrawalHostiles(w, actor, int32(actor.ScanRange))
+		radius := wimpyRadius(w, actor)
+		h := withdrawalHostiles(w, actor, radius)
 		if len(h) > 0 {
-			return "wimpy", actor.Wimpy, int32(actor.ScanRange), h
+			return "wimpy", actor.Wimpy, radius, h
 		}
 	}
 	if actor.Withdraw > 0 && actor.HP <= actor.Withdraw {
@@ -165,7 +199,7 @@ func withdrawalCandidate(w *sim.World, actor sim.Entity, mode string) (int32, []
 	switch mode {
 	case "withdraw":
 		if actor.Withdraw > 0 {
-			return actor.Withdraw, withdrawalHostiles(w, actor, 2)
+			return actor.Withdraw, withdrawalHostiles(w, actor, max(2, int32(actor.ScanRange)))
 		}
 	case "wimpy":
 		// The story's pointable witness is a ranged-monster actor. A Wimpy-
@@ -173,25 +207,39 @@ func withdrawalCandidate(w *sim.World, actor sim.Entity, mode string) (int32, []
 		// population; requiring Withdraw here selects the shipped ranged set
 		// while the production rule itself remains general.
 		if actor.Wimpy > 0 && actor.Withdraw > 0 {
-			return actor.Wimpy, withdrawalHostiles(w, actor, int32(actor.ScanRange))
+			return actor.Wimpy, withdrawalHostiles(w, actor, max(wimpyRadius(w, actor), int32(actor.ScanRange)))
 		}
 	}
 	return 0, nil
 }
 
+// withdrawalHostiles mirrors the first-game withdrawal square for radius,
+// centred on the actor's anchor, its top-left footprint cell (AI-696): a living
+// ground hostile is listed once per footprint cell inside it, a flyer never
+// (AI-697, AI-698). The entries are what the flee point averages.
 func withdrawalHostiles(w *sim.World, actor sim.Entity, radius int32) []sim.Entity {
 	rel := w.Relations()
 	var out []sim.Entity
 	for _, other := range w.Entities() {
-		if other.ID == actor.ID || other.HP <= 0 || !rel.Hostile(actor.Owner, other.Owner) {
+		if other.ID == actor.ID || other.HP <= 0 || other.Domain == sim.DomainAir || !rel.Hostile(actor.Owner, other.Owner) {
 			continue
 		}
-		dx, dy := withdrawalAbs(other.X-actor.X), withdrawalAbs(other.Y-actor.Y)
-		if dx <= radius && dy <= radius {
-			out = append(out, other)
+		side := int32(max(other.TokenSize, 1))
+		for dy := int32(0); dy < side; dy++ {
+			for dx := int32(0); dx < side; dx++ {
+				if withdrawalAbs(other.X+dx-actor.X) <= radius && withdrawalAbs(other.Y+dy-actor.Y) <= radius {
+					out = append(out, other)
+				}
+			}
 		}
 	}
 	return out
+}
+
+// wimpyRadius is the Wimpy search radius, mover byte +0x08: the constructor's
+// 5 for every actor of a mission start (AI-690, AI-692).
+func wimpyRadius(*sim.World, sim.Entity) int32 {
+	return int32(sim.ConstructorSearchRadius)
 }
 
 func withdrawalMean(ents []sim.Entity) (int32, int32) {
@@ -236,10 +284,10 @@ func printWithdrawalWitness(out io.Writer, ms *game.Mission, w withdrawalWitness
 	}
 	fmt.Fprintf(out, "withdrawal mission=%d map=%q entity=%d class=%q mode=%s threshold=%d radius=%d hostiles=%d rotationspeed=%d\n",
 		ms.Number, ms.Address, w.entity, w.class, w.mode, w.threshold, w.radius, w.hostiles, w.rotationSpeed)
-	fmt.Fprintf(out, "  before-tail tick=6 cell=(%d,%d) target=%s attack=%s facing=%d desired=%d remaining=%d\n",
-		w.beforeX, w.beforeY, beforeTarget, beforeAttack, w.beforeFacing, w.beforeDesired, w.beforeRemaining)
-	fmt.Fprintf(out, "  after  tick=7 cell=(%d,%d) target=(%d,%d) facing=%d desired=%d remaining=%d\n",
-		w.afterX, w.afterY, w.afterTargetX, w.afterTargetY, w.afterFacing, w.afterDesired, w.afterRemaining)
+	fmt.Fprintf(out, "  before-tail tick=%d cell=(%d,%d) target=%s attack=%s facing=%d desired=%d remaining=%d\n",
+		w.tick, w.beforeX, w.beforeY, beforeTarget, beforeAttack, w.beforeFacing, w.beforeDesired, w.beforeRemaining)
+	fmt.Fprintf(out, "  after  tick=%d cell=(%d,%d) target=(%d,%d) facing=%d desired=%d remaining=%d\n",
+		w.tick+1, w.afterX, w.afterY, w.afterTargetX, w.afterTargetY, w.afterFacing, w.afterDesired, w.afterRemaining)
 }
 
 func withdrawalAbs(v int32) int32 {

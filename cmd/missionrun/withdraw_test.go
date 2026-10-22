@@ -17,13 +17,14 @@ func TestWithdrawalTriggerGivesWimpyPriorityAndUsesItsOwnRadius(t *testing.T) {
 	w, err := sim.NewRelatedWorld(1, sim.Bounds{Width: 40, Height: 40}, sim.ModeCanonical,
 		sim.Terrain{}, []sim.Entity{
 			{ID: 1, X: 10, Y: 10, HP: 8, MaxHP: 100, Owner: 1, Withdraw: 30, Wimpy: 10, ScanRange: 7},
-			{ID: 2, X: 16, Y: 10, HP: 100, MaxHP: 100, Owner: 2},
+			{ID: 2, X: 15, Y: 10, HP: 100, MaxHP: 100, Owner: 2},
 		}, nil, rel)
 	if err != nil {
 		t.Fatal(err)
 	}
 	mode, threshold, radius, hostiles := withdrawalTrigger(w, w.Entities()[0])
-	if mode != "wimpy" || threshold != 10 || radius != 7 || len(hostiles) != 1 {
+	// Wimpy searches the mover radius 5, not ScanRange 7 (AI-690, AI-692).
+	if mode != "wimpy" || threshold != 10 || radius != 5 || len(hostiles) != 1 {
 		t.Fatalf("trigger = %q %d radius %d with %d hostile(s)", mode, threshold, radius, len(hostiles))
 	}
 }

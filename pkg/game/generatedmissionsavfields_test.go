@@ -124,14 +124,14 @@ func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
 					}
 					// SAV-1096: every AI-owned mission-start original carries
 					// 5,255 at +0x08/+0x09 and 0x80,0x80 at +0x84/+0x85. DIV-1388:
-					// the party's own hero carries zero at both instead (SAV-1096's
-					// own corpus is entirely AI actors; a real corpus hero record
-					// and the byte-corrected game9237 reference agree it stays
-					// zero), matching savactorproject.go's owner exclusion.
+					// the party's own hero carries zero at +0x09 and +0x84/+0x85
+					// instead, matching savactorproject.go's owner exclusion.
+					// +0x08 is the search radius every class is constructed
+					// with (AI-692), the hero included.
 					if len(raw.Bytes) > 0x85 {
 						if hero {
-							if raw.Bytes[8] != 0 || raw.Bytes[9] != 0 {
-								t.Errorf("hero record mover +0x08/+0x09=%d,%d, want 0,0", raw.Bytes[8], raw.Bytes[9])
+							if raw.Bytes[8] != 5 || raw.Bytes[9] != 0 {
+								t.Errorf("hero record mover +0x08/+0x09=%d,%d, want 5,0", raw.Bytes[8], raw.Bytes[9])
 							}
 							if raw.Bytes[0x84] != 0 || raw.Bytes[0x85] != 0 {
 								t.Errorf("hero record mover +0x84/+0x85=%#x,%#x, want 0,0", raw.Bytes[0x84], raw.Bytes[0x85])

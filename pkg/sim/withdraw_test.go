@@ -57,9 +57,9 @@ func TestWimpyPrecedesWithdrawAndEachUsesItsOwnRadius(t *testing.T) {
 
 	t.Run("a nonempty corpse block consumes Wimpy", func(t *testing.T) {
 		self := withdrawalFighter(1, 2, 20, 20, 5)
-		self.Wimpy, self.Withdraw, self.ScanRange = 10, 10, 1
+		self.Wimpy, self.Withdraw = 10, 10
 		corpse := withdrawalFighter(2, 3, 19, 20, -1)
-		live := withdrawalFighter(3, 3, 22, 20, 100)
+		live := withdrawalFighter(3, 3, 26, 20, 100)
 		w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, corpse, live)
 		regWithdrawalPass(w, nil)
 		got := w.entities[0]

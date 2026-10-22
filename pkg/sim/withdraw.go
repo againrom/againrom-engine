@@ -65,7 +65,7 @@ func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 	// build compares canonical Entity.HP as int32. The shipped bounds and
 	// the unrepresentable high-health edge are recorded by DIV-352.
 	if e.HP <= e.Wimpy {
-		if hostile := w.withdrawalHostiles(i, int64(e.ScanRange)); len(hostile) != 0 {
+		if hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i)); len(hostile) != 0 {
 			before := w.entities[i]
 			if w.withdrawFrom(i, hostile) {
 				w.answerRefusedFlee(i)
@@ -133,13 +133,38 @@ func (w *World) fleeRefusedAt(i int, tx, ty int32) bool {
 	return !ok || len(route) == 0
 }
 
-// withdrawalHostiles collects the square block centred on actor i, in entity
-// order, and applies map presence, directional diplomacy and invisibility. It
-// does not read sight, reach or route occupancy: the decoded collection is
-// spatial and the route search belongs to the ordinary move that follows.
-// Corpses are retained here; withdrawFrom owns the later positive-HP gate.
+// fleeSearchRadius is the ring count of the Wimpy and explicit Retreat
+// searches: in the first game mover byte +0x08 (AI-690), held by an imported
+// Mover or by the World's record, the constructor's 5 otherwise (AI-692). The
+// second game keeps ScanRange, since that evidence is first-game. DIV-347.
+func (w *World) fleeSearchRadius(i int) int64 {
+	e := &w.entities[i]
+	if w.SecondGame() {
+		return int64(e.ScanRange)
+	}
+	if m := w.motionFor(e.ID); m != nil {
+		return int64(m.Mover[8])
+	}
+	if r := w.moverFor(e.ID); r != nil {
+		return int64(r.Radius)
+	}
+	return int64(ConstructorSearchRadius)
+}
+
+// withdrawalHostiles collects the square block centred on actor i's anchor
+// cell, the top-left cell of its footprint (AI-696), in entity order, and
+// applies map presence, directional diplomacy and invisibility. It does not
+// read sight, reach or route occupancy: the decoded collection is spatial and
+// the route search belongs to the ordinary move that follows. Corpses are
+// retained here; withdrawFrom owns the later positive-HP gate.
+//
+// In the first game the square lists the ground slot of each cell: a ground
+// or ghost hostile once per footprint cell inside it, a flyer never (AI-697,
+// AI-698). The second game lists each hostile once by its anchor cell.
 func (w *World) withdrawalHostiles(i int, radius int64) []int {
 	self := w.entities[i]
+	centre := cellOf(&self)
+	first := !w.SecondGame()
 	var out []int
 	for ci := range w.entities {
 		if ci == i {
@@ -149,8 +174,22 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.invisibleToActor(i, ci) {
 			continue
 		}
-		if cellOf(&self).chebyshevTo(cellOf(&candidate)) <= radius {
-			out = append(out, ci)
+		if !first {
+			if centre.chebyshevTo(cellOf(&candidate)) <= radius {
+				out = append(out, ci)
+			}
+			continue
+		}
+		if candidate.Domain == DomainAir {
+			continue
+		}
+		n := footprintSide(candidate.TokenSize)
+		for dy := int32(0); dy < n; dy++ {
+			for dx := int32(0); dx < n; dx++ {
+				if centre.chebyshevTo(cell{x: candidate.X + dx, y: candidate.Y + dy}) <= radius {
+					out = append(out, ci)
+				}
+			}
 		}
 	}
 	return out

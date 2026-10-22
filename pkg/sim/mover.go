@@ -73,13 +73,16 @@ func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int) {
 // moverRecord is the part of an actor's Mover a first-game World holds and
 // SAVE cannot take from the actor itself: the block-test mask (+0x05) and
 // whether the step-cost word +0x72 is still the zero the join walk leaves
-// (MOVE-122) because the actor has made no crossing since. SAVE writes the
-// facing, the rate, the step cost and the motion from the actor, and the
-// constructor's +0x08/+0x09 (ApplyMover, ProjectActorMotion).
+// (MOVE-122) because the actor has made no crossing since. Radius is +0x08,
+// the ring count of the Wimpy and Retreat hostile search (AI-690): the
+// constructor's 5, or the byte a LOAD restored (AI-693). SAVE writes the
+// facing, the rate, the step cost and the motion from the actor, Radius at
+// +0x08 and the constructor's +0x09 (ApplyMover, ProjectActorMotion).
 type moverRecord struct {
 	Entity EntityID
 	Mask   byte
 	Joined bool
+	Radius byte
 	// Claim is the walk's claim (walkClaim); the claims form carries it.
 	Claim walkClaim
 }
@@ -94,9 +97,15 @@ func (r moverRecord) appendHeld(b []byte) []byte {
 	return append(b, r.Mask, joined)
 }
 
+// moverRecordFrom reads a mover form row. The row states no radius; the
+// radius form, written outside it, restores one that is not the constructor's.
 func moverRecordFrom(id EntityID, b []byte) (moverRecord, bool) {
-	return moverRecord{Entity: id, Mask: b[0], Joined: b[1] == 1}, b[1] <= 1
+	return moverRecord{Entity: id, Mask: b[0], Joined: b[1] == 1, Radius: ConstructorSearchRadius}, b[1] <= 1
 }
+
+// ConstructorSearchRadius is the byte the mover constructor stores at +0x08
+// for every actor class (AI-691, AI-692).
+const ConstructorSearchRadius byte = 5
 
 // stepCostWord is the word the occupy and the crossing store at Mover +0x72
 // (MOVE-121, MOVE-128): for a ground mover the speed word times eight over the
@@ -135,7 +144,7 @@ func (w *World) constructedMover(e Entity, joined bool) [180]byte {
 // placedMover is constructedMover before the occupy's stores.
 func placedMover(e Entity, joined bool) [180]byte {
 	var m [180]byte
-	m[5], m[8], m[9], m[10] = 0x41, 5, 0xff, 0x10
+	m[5], m[8], m[9], m[10] = 0x41, ConstructorSearchRadius, 0xff, 0x10
 	if joined {
 		return m
 	}
@@ -155,7 +164,7 @@ func moverRate(e Entity) uint8 {
 
 // heldMover is the record a World keeps of an actor's Mover bytes m.
 func heldMover(e Entity, m *[180]byte, joined bool) moverRecord {
-	return moverRecord{Entity: e.ID, Mask: m[5], Joined: joined, Claim: readWalkClaim(m)}
+	return moverRecord{Entity: e.ID, Mask: m[5], Joined: joined, Radius: m[8], Claim: readWalkClaim(m)}
 }
 
 // builtMover is the record the builder gives e.
@@ -270,9 +279,9 @@ func (w *World) dropMovers() {
 // bytes m and reports whether the World holds a record. The step-cost word is
 // the occupy's and every crossing's store (MOVE-121, MOVE-128), taken from the
 // cell the actor is in and its speed word now; a carried member that has made
-// no crossing holds the join walk's 0. +0x08/+0x09 hold the constructor's 5
-// and 0xff (MOVE-119, MOVE-122), 0 for the controlled player's actor now
-// (DIV-1388).
+// no crossing holds the join walk's 0. +0x08 holds the record's search radius
+// for every owner (AI-692, AI-693). +0x09 holds the constructor's 0xff
+// (MOVE-119, MOVE-122), 0 for the controlled player's actor now (DIV-1388).
 func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 	r := w.moverFor(id)
 	i := indexOfEntity(w.entities, id)
@@ -280,9 +289,9 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 		return false
 	}
 	e := w.entities[i]
-	m[5], m[8], m[9] = r.Mask, 5, 0xff
+	m[5], m[8], m[9] = r.Mask, r.Radius, 0xff
 	if e.Owner == SelfSlot {
-		m[8], m[9] = 0, 0
+		m[9] = 0
 	}
 	cost := uint16(0)
 	if !r.Joined {

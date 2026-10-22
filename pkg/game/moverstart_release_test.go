@@ -53,8 +53,9 @@ func moverRecordsByMapUnit(doc sav.DocumentData) map[uint16][]byte {
 // TestReleaseEveryMissionStartHoldsItsConstructedMovers opens every mission
 // the install ships and SAVEs it at once. Each map-placed actor's Mover holds
 // the constructor's drawn facing at +0x00 and +0x01 (0x40..0xC0), the mask of
-// its domain, 5 and 0xff at +0x08/+0x09 for another player's actor, and the
-// step cost the World derives (MOVE-119..MOVE-121). Loss control: a mission
+// its domain, 5 at +0x08 for every actor and 0xff at +0x09 for another
+// player's actor, and the step cost the World derives (MOVE-119..MOVE-121,
+// AI-692). Loss control: a mission
 // with two or more placed actors holds two or more facings, which a start
 // leaving every facing 0 cannot.
 func TestReleaseEveryMissionStartHoldsItsConstructedMovers(t *testing.T) {
@@ -86,7 +87,7 @@ func TestReleaseEveryMissionStartHoldsItsConstructedMovers(t *testing.T) {
 			bad := mover[0] != mover[1] || mover[0] < 0x40 || mover[0] > 0xc0 || mover[0] != e.Facing ||
 				mover[5] != sim.MoverPassabilityMask(uint32(e.Domain)+1) ||
 				binary.LittleEndian.Uint16(mover[0x72:]) != binary.LittleEndian.Uint16(want[0x72:])
-			if e.Owner != sim.SelfSlot && (mover[8] != 5 || mover[9] != 0xff) {
+			if mover[8] != 5 || e.Owner != sim.SelfSlot && mover[9] != 0xff {
 				bad = true
 			}
 			if bad {
@@ -108,8 +109,8 @@ func TestReleaseEveryMissionStartHoldsItsConstructedMovers(t *testing.T) {
 // of each restart slot's mission (game9999.sav, SAV-1213, SAV-1225) with the
 // original's own start: for every map-placed actor both hold, every Mover
 // byte except the drawn facing +0x00/+0x01. Each difference is listed by
-// offset and count. The controlled player's +0x08/+0x09 and +0x82..+0x85
-// differ by DIV-1388 and DIV-3035. An AI actor whose speed word differs
+// offset and count. The controlled player's +0x09 and +0x82..+0x85 differ
+// by DIV-1388 and DIV-3035; its +0x08 search radius does not (AI-692). An AI actor whose speed word differs
 // differs at +0x0a and +0x72 together and is listed; any other difference
 // fails.
 func TestReleaseMissionStartMoversAgainstTheRestartSlots(t *testing.T) {
@@ -179,7 +180,7 @@ func TestReleaseMissionStartMoversAgainstTheRestartSlots(t *testing.T) {
 						side = "self"
 					}
 					diffs[fmt.Sprintf("%s+%#02x", side, at)]++
-					explained := side == "self" && (at == 8 || at == 9 || at >= 0x82 && at <= 0x85) ||
+					explained := side == "self" && (at == 9 || at >= 0x82 && at <= 0x85) ||
 						side == "ai" && (at == 10 || at == 0x72 || at == 0x73) && got[10] != want[10]
 					if !explained {
 						t.Errorf("%s unit %d: Mover +%#02x ours %#x original %#x", path, unit, at, got[at], want[at])

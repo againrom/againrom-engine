@@ -154,6 +154,7 @@ copying those counts.
 | `docs/divergences/persistence-city-sav-and-imports.md` |
 | `docs/divergences/persistence-current-sav.md` |
 | `docs/divergences/persistence-current-sav-actions.md` |
+| `docs/divergences/persistence-current-sav-mover.md` |
 | `docs/divergences/persistence-current-sav-player-save.md` |
 | `docs/divergences/persistence-entities.md` |
 | `docs/divergences/persistence-native-city-sav.md` |

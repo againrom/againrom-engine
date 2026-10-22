@@ -74,7 +74,7 @@ func (w *World) armRetreat(i int) {
 		return
 	}
 	w.ensureRetreatContinuation(i)
-	hostile := w.withdrawalHostiles(i, int64(e.ScanRange))
+	hostile := w.withdrawalHostiles(i, w.fleeSearchRadius(i))
 	alive := false
 	for _, ci := range hostile {
 		alive = alive || w.entities[ci].HP > 0

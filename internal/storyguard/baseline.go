@@ -2812,6 +2812,13 @@ package storyguard
 // new code: the orderThresholds file rule (pkg/game/gamefiles.go), the
 // second-game control in pkg/game/savwithdrawal_release_test.go, and this
 // paragraph.
+//
+// CommentBytes rises for the Wimpy and Retreat search radius, all new code:
+// the Mover record's radius and its byte form (pkg/sim/mover.go,
+// moverradiusbinary.go), the per-cell withdrawal square (withdraw.go), the
+// constructed record's radius (pkg/game/currentdeadconstruct.go), the
+// withdrawal witness's square and later passes (cmd/missionrun/withdraw.go),
+// their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2835,5 +2842,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9500597,
+	CommentBytes: 9505794,
 }

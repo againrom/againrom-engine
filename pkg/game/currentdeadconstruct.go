@@ -152,6 +152,23 @@ func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys() {
 	}
 }
 
+// constructedSearchRadius gives an actor record this build constructs in a
+// first-game document the constructor's mover byte +0x08, 5 (AI-692). The
+// World's own Mover replaces it for an actor the World still holds
+// (projectMotion), so it stands for a body that is gone; the byte a loaded
+// record of that body held is not carried (DIV-3942).
+func (b *generatedDocumentBuilder) constructedSearchRadius(r *sav.DocumentRecordData, w *sim.World) error {
+	if w.SecondGame() {
+		return nil
+	}
+	mover, err := savedActorRaw(r, "U154", 180)
+	if err != nil {
+		return err
+	}
+	mover[8] = sim.ConstructorSearchRadius
+	return nil
+}
+
 // appendAbsentDeadRecords writes each retained dead actor no written record
 // holds. A dead actor with a map placement takes its actor values from the
 // placement and the tables, as a fresh mission constructs them; its dead
@@ -179,6 +196,9 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 			flags = append(flags, "HasInventory")
 		}
 		r := mustNewRecord(savedActorClass(body.Source.Class), flags...)
+		if err := b.constructedSearchRadius(&r, w); err != nil {
+			return false, err
+		}
 		if id := body.Source.MapUnitID; id != 0 && ms.Map != nil {
 			if placed == nil {
 				var err error

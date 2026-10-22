@@ -28,9 +28,11 @@ func (w *World) moversForm() []moverRecord {
 // formMover is the record as the byte form states it. A carried member that
 // has made no crossing writes the step cost 0 either way while the cost of
 // its cell is 0, so the form states it as crossed then, as a LOAD of its SAV
-// does (adoptMovers). The claims form carries the walk's claim.
+// does (adoptMovers). The claims form carries the walk's claim and the radius
+// form the search radius.
 func (w *World) formMover(r moverRecord, e Entity) moverRecord {
 	r.Claim = walkClaim{}
+	r.Radius = ConstructorSearchRadius
 	if r.Joined && w.stepCostWord(e, moverCell(e)) == 0 {
 		r.Joined = false
 	}

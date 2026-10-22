@@ -298,6 +298,7 @@ func retreatScrollWorld1089(t *testing.T, targetX int32) *World {
 		t.Fatal(err)
 	}
 	w.relations = engRel(t, [3]uint32{2, 3, 1})
+	setFleeSearchRadius(t, w, 1, 12)
 	item := ItemInstance{Code: 0xe10, Kind: 4, Price: 73, Effects: []ItemEffect{{Kind: 41, Operand: 1 | 60<<16}}}
 	w.carried[0] = []ItemStack{StackItem(item, 2)}
 	w.recomputeLoad(0)
@@ -478,10 +479,10 @@ func TestPlayerRetreat1089AutocastKeepsOnlyPreexistingProgress(t *testing.T) {
 // on beside the live one to the same hash (AI-RETREAT-273, AI-WITHDRAW-028).
 func TestRetreatFromFinePositionsRunsManyTicksAndEveryTenthTickReloadsIdentically(t *testing.T) {
 	self := withdrawalFighter(1, 2, 40, 40, 100)
-	self.ScanRange = 40
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self,
 		withdrawalFighter(2, 3, 43, 37, 100),
 		withdrawalFighter(3, 3, 44, 41, 100))
+	setFleeSearchRadius(t, w, 1, 40)
 	Step(w, []Command{GroupRetreat(1, 2, 91)})
 	start := w.entities[0]
 	for n := 0; n < 300; n++ {

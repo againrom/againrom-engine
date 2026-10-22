@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 - [ROM1] Monsters in a game saved by Againrom flee at low health again when that save is loaded in the original game.
 - [ROM2] A new mage's Heal and Shield appear in the spell bar and spellbook and can be cast, including after loading a save.
 - [ROM2] Clicking OK advances or closes town conversations, including Talk in the inn.
+- [ROM1] Units at low health and units on Retreat look for enemies within 5 cells and count large units by their size, as in the original; flying enemies are not counted.
 
 ## 0.131.0
 
