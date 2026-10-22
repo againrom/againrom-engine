@@ -12,6 +12,7 @@ import (
 	basepkg "againrom/pkg/base"
 	"againrom/pkg/game"
 	"againrom/pkg/ini"
+	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/pathdialog"
@@ -376,20 +377,13 @@ func (a *app) field(id fieldID) *string {
 		return &a.addText
 	case fModsDir:
 		return &a.s.ModsDir
-	case fVolume:
-		return &a.s.Volume
-	case fSaves:
-		return &a.s.Saves
-	case fMission:
-		return &a.s.Mission
-	case fSkill:
-		return &a.s.Skill
-	case fShopStockMultiplier:
-		return &a.s.ShopStockMultiplier
-	case fExtra:
-		return &a.s.Extra
 	case fAgainrom:
 		return &a.s.Againrom
+	}
+	for _, v := range optionViews {
+		if v.edit == id && id != fNone {
+			return v.value(&a.s).(*string)
+		}
 	}
 	if id >= fSetting0 && id < fSetting0+settingRows {
 		return a.settingField(int(id - fSetting0))
@@ -475,35 +469,24 @@ func (a *app) layout() []item {
 		heading(10, 48, a.t(cHeadParams))
 		row := func(i int, label string) int { y := 66 + 24*i; textW(10, y+3, 300, label, toneNormal); return y }
 		ctl := func(y int) image.Rectangle { return rect(320, y, winW-330, 22) }
-		y := row(0, a.t(cSound))
-		button(ctl(y), a.valueText(a.s.Sound), action{kind: aSound})
-		y = row(1, a.t(cVolume))
-		field(ctl(y), fVolume)
-		y = row(2, a.t(cMovies))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Movies), checked: a.s.Movies, act: action{kind: aMovies}})
-		y = row(3, a.t(cMissionMovies))
-		button(ctl(y), a.valueText(a.s.Video), action{kind: aVideo})
-		y = row(4, a.t(cMarkers))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Markers), checked: a.s.Markers, act: action{kind: aMarkers}})
-		y = row(5, a.t(cSavesFolder))
-		field(ctl(y), fSaves)
-		y = row(6, a.t(cWindowed))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Windowed), checked: a.s.Windowed, act: action{kind: aWindowed}})
-		heading(10, 238, a.t(cHeadAdvanced))
-		y = row(8, a.t(cMissionNumber))
-		field(ctl(y), fMission)
-		y = row(9, a.t(cMapPicker))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Picker), checked: a.s.Picker, act: action{kind: aPicker}})
-		y = row(10, a.t(cChicken))
-		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.Chicken), checked: a.s.Chicken, act: action{kind: aChicken}})
-		y = row(11, a.t(cSkill))
-		field(ctl(y), fSkill)
-		y = row(12, a.t(cShopStockMultiplier, game.MaxShopStockMultiplier))
-		field(ctl(y), fShopStockMultiplier)
-		y = row(13, a.t(cExtraArgs))
-		field(ctl(y), fExtra)
+		for i, v := range optionViews {
+			if i > 0 && optionViews[i-1].row < advancedRow && v.row > advancedRow {
+				heading(10, 238, a.t(cHeadAdvanced))
+			}
+			st, _ := launch.ByKey(v.key)
+			y := row(v.row, a.labelText(st, v))
+			switch st.Kind {
+			case launch.Switch:
+				on := *v.value(&a.s).(*bool)
+				it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(on), checked: on, act: action{kind: v.act}})
+			case launch.Override, launch.Choice:
+				button(ctl(y), a.valueText(st, v, a.s.option(st)), action{kind: v.act})
+			default:
+				field(ctl(y), v.edit)
+			}
+		}
 		heading(10, 404, a.t(cHeadStarter))
-		y = row(15, a.t(cCloseAfterPlay))
+		y := row(15, a.t(cCloseAfterPlay))
 		it = append(it, item{kind: iToggle, rect: ctl(y), text: a.onOff(a.s.CloseOnPlay), checked: a.s.CloseOnPlay, act: action{kind: aCloseOnPlay}})
 		y = row(16, a.t(cGameProgram))
 		field(ctl(y), fAgainrom)
@@ -661,21 +644,13 @@ func (a *app) onOff(b bool) string {
 	return a.t(cOff)
 }
 
-// valueText is a stored option value as the button shows it: the words the
-// settings file uses for on, off, default and normal in the caption language,
-// any other value as it is.
-func (a *app) valueText(v string) string {
-	switch v {
-	case soundOn:
-		return a.t(cOn)
-	case soundOff:
-		return a.t(cOff)
-	case soundDefault:
-		return a.t(cValueDefault)
-	case videoNormal:
-		return a.t(cValueNormal)
+// valueText is the value s of the row st as its button shows it: the
+// option's caption in the caption language, a value without one as it is.
+func (a *app) valueText(st launch.Setting, v optionView, s string) string {
+	if i, ok := st.Index(s); ok && i < len(v.values) && v.values[i] != "" {
+		return a.t(v.values[i])
 	}
-	return v
+	return s
 }
 
 func clampScroll(offset *int, n, capacity int) int {
@@ -788,26 +763,8 @@ func (a *app) apply(act action) {
 	case aRescan:
 		a.rescan()
 		a.ok(cModsFound, len(a.scan), a.s.modsDir(a.selfDir()))
-	case aSound:
-		a.s.Sound = map[string]string{soundDefault: soundOn, soundOn: soundOff, soundOff: soundDefault}[a.s.Sound]
-		if a.s.Sound == "" {
-			a.s.Sound = soundDefault
-		}
-	case aVideo:
-		a.s.Video = map[string]string{videoNormal: video4x, video4x: video8x, video8x: videoNormal}[a.s.Video]
-		if a.s.Video == "" {
-			a.s.Video = videoNormal
-		}
-	case aMovies:
-		a.s.Movies = !a.s.Movies
-	case aMarkers:
-		a.s.Markers = !a.s.Markers
-	case aChicken:
-		a.s.Chicken = !a.s.Chicken
-	case aWindowed:
-		a.s.Windowed = !a.s.Windowed
-	case aPicker:
-		a.s.Picker = !a.s.Picker
+	case aSound, aVideo, aMovies, aMarkers, aChicken, aWindowed, aPicker:
+		a.stepOption(act.kind)
 	case aAcceptUnmarked:
 		a.s.AcceptUnmarked = !a.s.AcceptUnmarked
 	case aCloseOnPlay:
@@ -836,8 +793,13 @@ func (a *app) setView(v viewKind) {
 // fieldShown reports whether the current view shows the field id.
 func (a *app) fieldShown(id fieldID) bool {
 	switch id {
-	case fVolume, fSaves, fMission, fSkill, fShopStockMultiplier, fExtra, fAgainrom:
+	case fAgainrom:
 		return a.view == viewSettings
+	}
+	for _, v := range optionViews {
+		if v.edit == id && id != fNone {
+			return a.view == viewSettings
+		}
 	}
 	return a.view == viewMain
 }
@@ -859,7 +821,7 @@ func (a *app) cycleSetting(i int) {
 	switch st.Kind {
 	case mod.KindBool:
 		v, perr := st.Parse(cur)
-		next = formatBool(perr != nil || !v.Bool)
+		next = launch.FormatBool(perr != nil || !v.Bool)
 	case mod.KindChoice:
 		next = st.Choices[0]
 		for k, c := range st.Choices {

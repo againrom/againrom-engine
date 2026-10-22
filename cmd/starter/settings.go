@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode"
 
-	"againrom/pkg/game"
 	"againrom/pkg/ini"
 	"againrom/pkg/launch"
 	"againrom/pkg/mod"
@@ -23,16 +22,6 @@ const (
 	// secModPrefix starts the name of a mod's own section: [mod.<id>] holds the
 	// values of the mod's settings.
 	secModPrefix = "mod."
-)
-
-// Three-state and choice values kept in the settings file.
-const (
-	soundDefault = "default"
-	soundOn      = "on"
-	soundOff     = "off"
-	videoNormal  = "normal"
-	video4x      = "4x"
-	video8x      = "8x"
 )
 
 // modSetting is the text of one mod setting as the starter keeps it: the value
@@ -58,10 +47,12 @@ type settings struct {
 	AcceptUnmarked bool     // pass -mods-accept-unmarked: load saves written without a mod mark
 	ModSettings    []modSetting
 
-	Sound               string // soundDefault, soundOn or soundOff
-	Volume              string // empty means the saved preference; else 0-100
+	// The rows of launch.Settings, kept in [options]; optionViews binds each
+	// to its field.
+	Sound               string
+	Volume              string // empty means the saved preference
 	Movies              bool
-	Video               string // videoNormal, video4x or video8x
+	Video               string
 	Markers             bool
 	Chicken             bool
 	Saves               string
@@ -76,7 +67,11 @@ type settings struct {
 }
 
 func defaultSettings() settings {
-	return settings{Sound: soundDefault, Movies: true, Video: videoNormal, ShopStockMultiplier: "1"}
+	var s settings
+	for _, st := range launch.Settings {
+		s.setOption(st, st.Load(""))
+	}
+	return s
 }
 
 // load reads settings from f; a missing or unrecognised value keeps its default.
@@ -84,7 +79,7 @@ func loadSettings(f *ini.File) settings {
 	s := defaultSettings()
 	get := func(sec, key string) string { v, _ := f.Get(sec, key); return v }
 	s.Againrom = get(secStarter, "againrom")
-	s.CloseOnPlay = parseBool(get(secStarter, "close-on-play"), false)
+	s.CloseOnPlay = launch.ParseBool(get(secStarter, "close-on-play"), false)
 	s.LastBase = get(secStarter, "last-base")
 	for _, k := range f.Keys(secBases) {
 		if p := get(secBases, k); p != "" {
@@ -93,7 +88,7 @@ func loadSettings(f *ini.File) settings {
 	}
 	s.ModsDir = get(secMods, "dir")
 	s.Enabled = splitList(get(secMods, "enabled"))
-	s.AcceptUnmarked = parseBool(get(secMods, "accept-unmarked"), false)
+	s.AcceptUnmarked = launch.ParseBool(get(secMods, "accept-unmarked"), false)
 	for _, sec := range f.Sections() {
 		id, ok := strings.CutPrefix(sec, secModPrefix)
 		if !ok || id == "" {
@@ -104,27 +99,9 @@ func loadSettings(f *ini.File) settings {
 			s.ModSettings = append(s.ModSettings, modSetting{id, k, v})
 		}
 	}
-	switch v := strings.ToLower(get(secOptions, "sound")); v {
-	case soundOn, soundOff:
-		s.Sound = v
+	for _, st := range launch.Settings {
+		s.setOption(st, st.Load(get(secOptions, st.Key)))
 	}
-	s.Volume = get(secOptions, "volume")
-	s.Movies = parseBool(get(secOptions, "movies"), true)
-	switch v := strings.ToLower(get(secOptions, "video")); v {
-	case video4x, video8x:
-		s.Video = v
-	}
-	s.Markers = parseBool(get(secOptions, "markers"), false)
-	s.Chicken = parseBool(get(secOptions, "chicken"), false)
-	s.Windowed = parseBool(get(secOptions, "window"), false)
-	s.Saves = get(secOptions, "saves")
-	s.Mission = get(secOptions, "mission")
-	s.Picker = parseBool(get(secOptions, "picker"), false)
-	s.Skill = get(secOptions, "skill")
-	if v := get(secOptions, "shop-stock-multiplier"); v != "" {
-		s.ShopStockMultiplier = v
-	}
-	s.Extra = get(secOptions, "extra")
 	return s
 }
 
@@ -132,7 +109,7 @@ func loadSettings(f *ini.File) settings {
 // that was removed is deleted from [bases].
 func (s settings) store(f *ini.File) {
 	f.Set(secStarter, "againrom", s.Againrom)
-	f.Set(secStarter, "close-on-play", formatBool(s.CloseOnPlay))
+	f.Set(secStarter, "close-on-play", launch.FormatBool(s.CloseOnPlay))
 	f.Set(secStarter, "last-base", s.LastBase)
 	keep := map[string]bool{}
 	for _, b := range s.Bases {
@@ -146,7 +123,7 @@ func (s settings) store(f *ini.File) {
 	}
 	f.Set(secMods, "dir", s.ModsDir)
 	f.Set(secMods, "enabled", strings.Join(s.Enabled, ","))
-	f.Set(secMods, "accept-unmarked", formatBool(s.AcceptUnmarked))
+	f.Set(secMods, "accept-unmarked", launch.FormatBool(s.AcceptUnmarked))
 	kept := map[string]bool{}
 	for _, m := range s.ModSettings {
 		kept[strings.ToLower(secModPrefix+m.Mod+"\x00"+m.Key)] = true
@@ -161,36 +138,9 @@ func (s settings) store(f *ini.File) {
 			}
 		}
 	}
-	f.Set(secOptions, "sound", s.Sound)
-	f.Set(secOptions, "volume", s.Volume)
-	f.Set(secOptions, "movies", formatBool(s.Movies))
-	f.Set(secOptions, "video", s.Video)
-	f.Set(secOptions, "markers", formatBool(s.Markers))
-	f.Set(secOptions, "chicken", formatBool(s.Chicken))
-	f.Set(secOptions, "window", formatBool(s.Windowed))
-	f.Set(secOptions, "saves", s.Saves)
-	f.Set(secOptions, "mission", s.Mission)
-	f.Set(secOptions, "picker", formatBool(s.Picker))
-	f.Set(secOptions, "skill", s.Skill)
-	f.Set(secOptions, "shop-stock-multiplier", s.ShopStockMultiplier)
-	f.Set(secOptions, "extra", s.Extra)
-}
-
-func parseBool(v string, def bool) bool {
-	switch strings.ToLower(strings.TrimSpace(v)) {
-	case "1", "true", "yes", "on":
-		return true
-	case "0", "false", "no", "off":
-		return false
+	for _, st := range launch.Settings {
+		f.Set(secOptions, st.Key, s.option(st))
 	}
-	return def
-}
-
-func formatBool(b bool) string {
-	if b {
-		return "true"
-	}
-	return "false"
 }
 
 func splitList(v string) []string {
@@ -331,103 +281,11 @@ func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string,
 			args = append(args, "-mods-accept-unmarked")
 		}
 	}
-	switch s.Sound {
-	case soundOn:
-		args = append(args, "-sound=true")
-	case soundOff:
-		args = append(args, "-sound=false")
-	}
-	if v := strings.TrimSpace(s.Volume); v != "" {
-		n, err := strconv.Atoi(v)
-		if err != nil || n < 0 || n > 100 {
-			return nil, captionErr(cBadVolume, v)
-		}
-		args = append(args, "-volume", strconv.Itoa(n))
-	}
-	if !s.Movies {
-		args = append(args, "-movies=false")
-	}
-	switch s.Video {
-	case video4x:
-		args = append(args, "-4x")
-	case video8x:
-		args = append(args, "-8x")
-	}
-	if s.Markers {
-		args = append(args, "-markers")
-	}
-	if s.Chicken {
-		args = append(args, "-chicken")
-	}
-	if s.Windowed {
-		args = append(args, "-window")
-	}
-	if v := strings.TrimSpace(s.Saves); v != "" {
-		args = append(args, "-saves", v)
-	}
-	mission := strings.TrimSpace(s.Mission)
-	if s.Picker && mission != "" {
-		return nil, captionErr(cPickerMission)
-	}
-	if mission != "" {
-		n, err := strconv.Atoi(mission)
-		if err != nil || n < 1 {
-			return nil, captionErr(cBadMission, mission)
-		}
-		args = append(args, "-mission", strconv.Itoa(n))
-	}
-	if s.Picker {
-		args = append(args, "-picker")
-	}
-	if v := strings.TrimSpace(s.Skill); v != "" {
-		args = append(args, "-skill", v)
-	}
-	v := strings.TrimSpace(s.ShopStockMultiplier)
-	if v == "" {
-		v = "1"
-	}
-	n, err := game.ParseShopStockMultiplier(v)
+	options, err := launch.Build(s.option)
 	if err != nil {
-		return nil, captionErr(cBadShopStockMultiplier, v, game.MaxShopStockMultiplier)
+		return nil, refusalErr(err)
 	}
-	if n != 1 {
-		args = append(args, "-shop-stock-multiplier", strconv.Itoa(n))
-	}
-	extra, err := splitArgs(s.Extra)
-	if err != nil {
-		return nil, err
-	}
-	return append(args, extra...), nil
-}
-
-// splitArgs splits a command-line fragment on blanks. Double quotes group
-// words and are removed; there are no escapes.
-func splitArgs(line string) ([]string, error) {
-	var args []string
-	var cur strings.Builder
-	inQuote, have := false, false
-	for _, r := range line {
-		switch {
-		case r == '"':
-			inQuote, have = !inQuote, true
-		case (r == ' ' || r == '\t') && !inQuote:
-			if have {
-				args = append(args, cur.String())
-				cur.Reset()
-				have = false
-			}
-		default:
-			cur.WriteRune(r)
-			have = true
-		}
-	}
-	if inQuote {
-		return nil, captionErr(cExtraQuote)
-	}
-	if have {
-		args = append(args, cur.String())
-	}
-	return args, nil
+	return append(args, options...), nil
 }
 
 // defaultINIPath is the settings file beside the starter executable.

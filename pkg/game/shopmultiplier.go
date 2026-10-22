@@ -2,22 +2,19 @@ package game
 
 import (
 	"fmt"
-	"strconv"
+
+	"againrom/pkg/launch"
 )
 
-const MaxShopStockMultiplier = 1000
+const MaxShopStockMultiplier = launch.MaxShopStockMultiplier
 
 func ParseShopStockMultiplier(value string) (int, error) {
-	n, err := strconv.Atoi(value)
-	if err != nil || n < 1 || n > MaxShopStockMultiplier {
-		return 0, fmt.Errorf("-shop-stock-multiplier must be a whole number from 1 to %d", MaxShopStockMultiplier)
-	}
-	return n, nil
+	return launch.ShopStockMultiplier.Whole(value)
 }
 
 func (f *FrontEnd) SetShopStockMultiplier(n int) error {
-	if n < 1 || n > MaxShopStockMultiplier {
-		return fmt.Errorf("shop stock multiplier must be from 1 to %d", MaxShopStockMultiplier)
+	if st := launch.ShopStockMultiplier; !st.InBounds(n) {
+		return fmt.Errorf("shop stock multiplier must be from %d to %d", st.Min, st.Max)
 	}
 	f.runtime.shopStockMultiplier = int32(n)
 	return nil

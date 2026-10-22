@@ -97,40 +97,19 @@ import (
 	"strings"
 
 	"againrom/internal/buildinfo"
-	"againrom/pkg/audio"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/game"
+	launchset "againrom/pkg/launch"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
 )
 
-const usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <1..1000>] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
+var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
-// markersUsage is the -markers flag's own help text. Named rather than
-// written inline so the wording has ONE home, mirroring cmd/mapview's flag
-// help: parse discards the flag set's output, so this string reaches no user
-// and no test, and a second copy of it could drift with nothing anywhere to
-// notice.
-const markersUsage = "diagnostic: draw a marker on each placed structure, unit and static object (off by default; -markers turns all three on)"
-
-const defaultMarkers = false
-
-// missionUsage is the -mission flag's own help text. Named beside
-// markersUsage and for its reason: parse discards the flag set's output, so
-// a second copy of this string could drift with nothing anywhere to notice.
-const missionUsage = "override the startup campaign mission (default: the first mission of the install's campaign registry)"
-
-// pickerUsage names the debug map-picker route (owner reversal: a normal
-// launch opens the main menu and NEW GAME there must not reach the picker
-// without this flag). It changes what NEW GAME itself opens rather than
-// retaining a startup route — the main menu is the same screen either way,
-// and -picker is mutually exclusive with an explicit -mission.
-const pickerUsage = "debug: make NEW GAME open the former map picker (campaign and loose maps) instead of character generation"
-
-// chargenUsage is the -chargen flag's own help text, named beside markersUsage
-// and missionUsage and for their exact reason: parse discards the flag set's
+// chargenUsage is the -chargen flag's own help text, named for the reason the
+// launch flags' texts in launchFlags are: parse discards the flag set's
 // output, so a second copy of this string could drift from this one with
 // nothing anywhere to notice.
 //
@@ -158,8 +137,8 @@ func (o options) startMission(front *game.FrontEnd) int {
 // that trains nothing" need no second sentinel to tell apart.
 const skillNone = data.SkillGeneral
 
-// skillUsage is the -skill flag's own help text, named beside markersUsage
-// and missionUsage and for their reason: parse discards the flag set's
+// skillUsage is the -skill flag's own help text, named beside chargenUsage
+// and for its reason: parse discards the flag set's
 // output, so a second copy of this string could drift with nothing anywhere
 // to notice. It is built from data.SkillName over skillSlot's own legal
 // range rather than a second, hand-written list of skill spellings, so the
@@ -174,21 +153,6 @@ func buildSkillUsage() string {
 	return "train the party's hero in this skill instead of the shipped default (one of: " +
 		strings.Join(names, ", ") + ")"
 }
-
-const (
-	defaultSound  = true
-	defaultVolume = audio.MasterUnit
-)
-
-// soundUsage and volumeUsage are -sound's and -volume's own help text, named
-// beside markersUsage, missionUsage and skillUsage and for their shared
-// reason: parse discards the flag set's output, so a second copy of either
-// string could drift with nothing anywhere to notice.
-const (
-	soundUsage  = "play sound and music (overrides the saved preference; on by default)"
-	volumeUsage = "sound and music master volume, 0-100 (overrides the saved preference)"
-	savesUsage  = "directory for saved games (default: saves/ beside the binary; inside an install, Againrom/saves or the user configuration profile)"
-)
 
 // baseUsage is -base's own help text. The ids are the known profiles', so the
 // flag and the profile list cannot part company.
@@ -468,17 +432,11 @@ func parse(args []string) (options, error) {
 	fs.StringVar(&o.packMod, "pack-mod", "", packModUsage)
 	fs.StringVar(&o.packOut, "pack-out", "", packOutUsage)
 	fs.BoolVar(&o.packReplace, "pack-replace", false, packReplaceUsage)
-	fs.BoolVar(&o.markers, "markers", defaultMarkers, markersUsage)
-	fs.BoolVar(&o.chicken, "chicken", false, "set the ROM1 #Chicken state at every mission start")
-	o.shopStockMultiplier = 1
-	fs.Func("shop-stock-multiplier", "roll every ROM1 shop shelf a whole number of times from 1 to 1000", func(v string) error {
-		n, err := game.ParseShopStockMultiplier(v)
-		if err == nil {
-			o.shopStockMultiplier = n
-		}
-		return err
-	})
-	fs.BoolVar(&o.window, "window", false, "open in a decorated window instead of over the whole screen; Alt+Enter switches between the two")
+	// The flag itself of -skill is a NAME, empty by default meaning "leave the
+	// trained skill alone" — o.skill starts at skillNone and stays there
+	// unless a name is given, exactly that default's own resolved form.
+	var skill string
+	flags := registerLaunchFlags(fs, &o, &skill)
 	fs.Func("seed", "fix the session seed every new game draws from (default: the clock at each new game)", func(v string) error {
 		n, err := strconv.ParseUint(v, 0, 64)
 		if err != nil {
@@ -488,8 +446,6 @@ func parse(args []string) (options, error) {
 		return nil
 	})
 	fs.BoolVar(&o.originalRandom, "original-random", false, "draw every placed random consumer from the original game's random number generator")
-	fs.BoolVar(&o.picker, "picker", false, pickerUsage)
-	fs.IntVar(&o.mission, "mission", 0, missionUsage)
 	// -chargen IS BOUND TO A THROWAWAY (0140). The flag must still PARSE — an
 	// invocation that carries it has to keep working — but nothing may read it,
 	// because generation is unconditional now and a value nobody reads is the
@@ -497,14 +453,6 @@ func parse(args []string) (options, error) {
 	// happens to be unused this month.
 	var ignoredChargen bool
 	fs.BoolVar(&ignoredChargen, "chargen", false, chargenUsage)
-	fs.BoolVar(&o.sound, "sound", defaultSound, soundUsage)
-	fs.IntVar(&o.volume, "volume", defaultVolume, volumeUsage)
-	// The flag itself is a NAME, empty by default meaning "leave the
-	// trained skill alone" — o.skill starts at skillNone and stays there
-	// unless a name is given, exactly that default's own resolved form.
-	var skill string
-	fs.StringVar(&skill, "skill", "", skillUsage)
-	fs.StringVar(&o.saves, "saves", "", savesUsage)
 	fs.StringVar(&o.base, "base", "", baseUsage)
 	fs.BoolVar(&o.version, "version", false, "print the program name, version and source revision, and exit")
 	var mods string
@@ -520,10 +468,7 @@ func parse(args []string) (options, error) {
 	})
 	fs.BoolVar(&o.modsAcceptUnmarked, "mods-accept-unmarked", false, modsAcceptUnmarkedUsage)
 	fs.StringVar(&o.headless, "headless", "", "run a versioned JSON scenario through the production controller without opening a window")
-	fs.BoolVar(&o.movies, "movies", true, "play installed startup, new-game and mission movies")
 	fs.BoolVar(&o.noMusic, "nomusic", false, "play no music: every music request is silent")
-	fs.BoolVar(&o.fourX, "4x", false, "select VIDEO4 mission movies (overrides -8x)")
-	fs.BoolVar(&o.eightX, "8x", false, "select VIDEO8 mission movies")
 	fs.StringVar(&o.cutsceneCheck, "cutscene-check", "", "read-only native/App witness; write frames only to this existing private directory")
 	fs.BoolVar(&o.mediaCheck, "media-check", false, "check movie events and town speech without writing files or loading the native decoder")
 	fs.StringVar(&o.soundCheck, "sound-options-check", "", "check installed sound controls and active players; write only to this existing private profile directory")
@@ -531,19 +476,19 @@ func parse(args []string) (options, error) {
 	if err := fs.Parse(args); err != nil {
 		return o, err
 	}
-	fs.Visit(func(f *flag.Flag) {
-		o.missionSet = o.missionSet || f.Name == "mission"
-		o.soundSet = o.soundSet || f.Name == "sound"
-		o.volumeSet = o.volumeSet || f.Name == "volume"
-	})
-	if o.volume < 0 || o.volume > audio.MasterUnit {
-		return o, fmt.Errorf("-volume must be between 0 and %d", audio.MasterUnit)
+	given := map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	o.missionSet = given[launchset.Mission.Flag]
+	o.soundSet = given[launchset.Sound.Flag]
+	o.volumeSet = given[launchset.Volume.Flag]
+	if err := checkLaunchBounds(flags); err != nil {
+		return o, err
 	}
 	if strings.TrimSpace(mods) == "" && (len(o.modSettings) != 0 || o.modsAcceptUnmarked) {
 		return o, errors.New("-mod-setting and -mods-accept-unmarked need -mods")
 	}
-	if o.picker && o.missionSet {
-		return o, errors.New("-picker and -mission are mutually exclusive")
+	if err := checkLaunchExclusions(flags, given); err != nil {
+		return o, err
 	}
 	if o.base != "" {
 		if !base.Nameable(o.base) {
@@ -646,7 +591,7 @@ func modFrontEnd(root string, o options, preferences game.OptionsStore, files mo
 	// path, so -markers=false leaves them on screen and takes the crosses off.
 	front.Markers = game.Markers{Objects: o.markers, Units: o.markers, Statics: o.markers}
 	front.SetChickenAtMissionStart(o.chicken)
-	if err := front.SetShopStockMultiplier(max(1, o.shopStockMultiplier)); err != nil {
+	if err := front.SetShopStockMultiplier(max(launchset.ShopStockMultiplier.Min, o.shopStockMultiplier)); err != nil {
 		return nil, err
 	}
 	front.SetRandomLaunch(o.seed, o.seedSet, o.originalRandom)

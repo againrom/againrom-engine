@@ -2857,6 +2857,11 @@ package storyguard
 // first game's lookup (pkg/game/towndialogue.go), their tests
 // (pkg/game/towntalkreader_test.go, towntalk_test.go), less the screens'
 // retired forwarding methods, and this paragraph.
+//
+// CommentBytes rises with the launch settings table, all doc comments on new
+// code: pkg/launch/settings.go, cmd/starter/options.go,
+// cmd/againrom/launchflags.go, their walk tests, and this paragraph, less the
+// help-text comments cmd/againrom/main.go no longer needs.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2880,5 +2885,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9526935,
+	CommentBytes: 9532248,
 }
