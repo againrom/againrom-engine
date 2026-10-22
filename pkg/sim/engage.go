@@ -201,14 +201,20 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 // 100 draw hands the pass back to the ordinary engage. Otherwise it draws
 // uniformly from the affordable non-defensive ids 1..28 of its book; an empty
 // list casts id 28 when the book holds it. The cast is aimed at the victim; out
-// of reach the mage walks into reach with the cast armed. It reports whether
-// the cast took the pass.
+// of reach the mage walks into reach with the cast armed. The draw reads no
+// cast state of the mage, so with a cast pending it replaces the retained
+// order as a creature's slot draw does (AI-376). It reports whether the cast
+// took the pass.
 func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
 	if w.humanParticipantUnit(e) || !isMage(e) || w.orderStateAt(i).recoveryWaiting() {
 		return false
 	}
+	busy := w.actorCastBusy(i)
 	if e.Mind > 59 && w.rng.aiRange(100) < 30 {
+		if busy {
+			w.creatureReplaceCastOrder(i, 0, victim)
+		}
 		return false
 	}
 	first := !w.SecondGame()
@@ -234,10 +240,19 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	default:
 		return false
 	}
+	if busy {
+		w.replaceRetainedCast(i, id, victim, w.victimAimOperands)
+		return false
+	}
 	w.dropCastApproach(i)
+	// The cast is at the victim; its cell is where an area row lands.
+	_, vx, vy, _, ok := w.victimAimOperands(i, victim, id)
+	if !ok {
+		return false
+	}
 	refusal := w.creatureCastRefusal(i, victim, 0, 0, false, id, false)
 	if refusal == "" {
-		return w.startEngageCast(i, victim, victim, 0, 0, false, id)
+		return w.startEngageCast(i, victim, victim, vx, vy, false, id)
 	}
 	rest := refusal
 	if isRangeRefusal(refusal) {
@@ -245,7 +260,7 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	}
 	switch rest {
 	case "":
-		return w.armCreatureCast(i, victim, victim, 0, 0, false, id)
+		return w.armCreatureCast(i, victim, victim, vx, vy, false, id)
 	case "insufficient mana":
 		// Admission refuses on mana alone and the order waits (MAGIC-348);
 		// only the unfiltered last spell reaches here.

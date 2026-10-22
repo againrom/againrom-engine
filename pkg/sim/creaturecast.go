@@ -289,6 +289,22 @@ func (w *World) walkApproach(i int, c *bookCast) {
 // replaces the retained operands that the next cast takes. A draw that lands
 // during the wind-up leaves the retained operands as they are.
 func (w *World) creatureReplaceCastOrder(i int, id uint32, victim EntityID) {
+	w.replaceRetainedCast(i, id, victim, w.creatureAimOperands)
+}
+
+// victimAimOperands aims a cast at the victim itself, as the full-book draw
+// does for every id (AI-554).
+func (w *World) victimAimOperands(_ int, victim EntityID, _ uint32) (EntityID, int32, int32, bool, bool) {
+	vi := indexOfEntity(w.entities, victim)
+	if vi < 0 {
+		return 0, 0, 0, false, false
+	}
+	return victim, w.entities[vi].X, w.entities[vi].Y, false, true
+}
+
+// replaceRetainedCast is creatureReplaceCastOrder with the draw's own aim.
+func (w *World) replaceRetainedCast(i int, id uint32, victim EntityID,
+	aim func(int, EntityID, uint32) (EntityID, int32, int32, bool, bool)) {
 	k, ok := w.bookCastIndex(w.entities[i].ID)
 	if !ok || !w.bookCasts[k].Retained {
 		return
@@ -309,9 +325,11 @@ func (w *World) creatureReplaceCastOrder(i int, id uint32, victim EntityID) {
 	if c.Phase == bookCharging || !knowsSpell(w.entities[i], id) {
 		return
 	}
-	target, x, y, atCell, ok := w.creatureAimOperands(i, victim, id)
+	target, x, y, atCell, ok := aim(i, victim, id)
 	if !ok {
 		return
 	}
 	c.Spell, c.Target, c.X, c.Y, c.AtCell = uint16(id), target, x, y, atCell
+	// The actor's selected spell follows the order, as LOAD restores it.
+	w.entities[i].AdmittedBookSpell = uint16(id)
 }

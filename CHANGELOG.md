@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Dragons and enemy mages no longer get stuck repeating one spell, such as Darkness, that hurts nobody; they pick a new spell or attack each time they choose, so a dragon deals damage again. A Fire Ball or Poison Cloud they cast after walking closer now lands on you instead of the map's corner.
 - [ROM1] A shop item no longer shows the same enchantment twice, such as Protection +2 and Protection +1: a repeated enchantment replaces the earlier one, and the price follows what the item holds.
 - [ROM1] The starter's shop stock multiplier, 1 to 1000, now fills every shop shelf with that many times as many different items, each rolled on its own, instead of more copies of the same items; the default of 1 keeps the usual stock.
 - [ROM1] Enemy mages now cast at an enemy their group sees within spell range, even beyond their own sight, instead of walking closer. Your mages keep their current sight rules.

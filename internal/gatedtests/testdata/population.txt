@@ -1411,3 +1411,4 @@ pkg/game.TestReleaseTownBoughtSpellWeaponEntersTheNextMission
 pkg/game.TestReleaseSavedMonstersKeepWithdrawalThresholds
 pkg/game.TestReleaseSecondGameSaveKeepsOrderThresholdBytes
 pkg/game.TestReleaseHostileMageCastRunNeverDrawsAWalk
+pkg/game.TestReleaseDragonWitnessFromLoad
