@@ -125,11 +125,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	w.dropCastApproach(i)
 	refusal := w.creatureCastRefusal(i, target, x, y, atCell, id, false)
 	if refusal == "" {
-		w.standForCreatureCast(i)
-		if atCell {
-			return w.beginBookSpellAtMode(i, x, y, id, true)
-		}
-		return w.beginBookSpellMode(i, target, id, true)
+		return w.startEngageCast(i, victim, target, x, y, atCell, id)
 	}
 	if !isRangeRefusal(refusal) || w.creatureCastRefusal(i, target, x, y, atCell, id, true) != "" {
 		return false
@@ -144,6 +140,28 @@ func (w *World) creatureCastRefusal(i int, target EntityID, x, y int32, atCell b
 		return w.bookSpellCellAdmissionRange(i, x, y, id, false, true, true, skipRange)
 	}
 	return w.bookSpellAdmissionRange(i, target, id, false, true, true, skipRange)
+}
+
+// crossingDefersCast reports a first-game caster still crossing into a cell:
+// the original's executor runs a step in progress to the next cell centre
+// before it reads the cast order (AI-350, AI-352, MAGIC-239). No claim states
+// the second game's executor, so a second-game cast still starts at once.
+func (w *World) crossingDefersCast(i int) bool {
+	return w.entities[i].Transit > 0 && !w.SecondGame()
+}
+
+// startEngageCast begins an engage-drawn cast that admission accepts. A caster
+// whose crossing defers the cast arms it instead and walks the crossing out;
+// stepBookCasts starts the armed cast at the cell centre.
+func (w *World) startEngageCast(i int, victim, target EntityID, x, y int32, atCell bool, id uint32) bool {
+	if w.crossingDefersCast(i) {
+		return w.armCreatureCast(i, victim, target, x, y, atCell, id)
+	}
+	w.standForCreatureCast(i)
+	if atCell {
+		return w.beginBookSpellAtMode(i, x, y, id, true)
+	}
+	return w.beginBookSpellMode(i, target, id, true)
 }
 
 // standForCreatureCast ends the creature's walk and its attack order: the cast

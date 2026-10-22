@@ -2824,6 +2824,19 @@ package storyguard
 // its view and its profile (pkg/ui/towntalk.go), each screen's view and page
 // turn (pkg/game/townscreen.go, secondcampaign.go), their tests, and this
 // paragraph.
+//
+// CommentBytes rises for an engage cast that waits for its caster to finish a
+// crossing, all new code: startEngageCast (pkg/sim/creaturecast.go), the
+// approach start's gate (pkg/sim/spell.go), the test
+// pkg/sim/engagecastcrossing_test.go, and this paragraph.
+//
+// CommentBytes rises for the release witness of a party fleeing past hostile
+// mages in two owner SAVs, all new code:
+// pkg/game/hostilemagecast_release_test.go and this paragraph.
+//
+// CommentBytes rises for the first-game gate on a deferred cast, all new
+// code: crossingDefersCast (pkg/sim/creaturecast.go), its second-game test
+// (pkg/sim/engagecastcrossing_test.go) and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2847,5 +2860,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9511539,
+	CommentBytes: 9513866,
 }

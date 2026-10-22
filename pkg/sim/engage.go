@@ -237,8 +237,7 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	w.dropCastApproach(i)
 	refusal := w.creatureCastRefusal(i, victim, 0, 0, false, id, false)
 	if refusal == "" {
-		w.standForCreatureCast(i)
-		return w.beginBookSpellMode(i, victim, id, true)
+		return w.startEngageCast(i, victim, victim, 0, 0, false, id)
 	}
 	rest := refusal
 	if isRangeRefusal(refusal) {

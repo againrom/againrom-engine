@@ -1988,7 +1988,11 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				}
 				continue
 			case refusal == "":
-				w.startApproachedCast(ci, c)
+				// A first-game caster still crossing into a cell starts at
+				// its centre (AI-350, MAGIC-239).
+				if !w.crossingDefersCast(ci) {
+					w.startApproachedCast(ci, c)
+				}
 			case refusal == "insufficient mana" && held && c.Retained && w.castApproachPursues(w.entities[ci]):
 				// In reach without the mana, a retained order waits for it as
 				// the admission retries (MAGIC-340, AI-554).
