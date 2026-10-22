@@ -38,8 +38,8 @@ func TestNumpadEnterTurnsTheDialoguePagesAsEnterDoes(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				if s.room != roomTalk || s.said != 1 {
-					t.Fatalf("the conversation is not open on its first page: room %d, page %d", s.room, s.said)
+				if s.room != roomTalk || s.talkPage.part != 1 {
+					t.Fatalf("the conversation is not open on its first page: room %d, page %d", s.room, s.talkPage.part)
 				}
 				trace := []string{dialogueMoment(f, app, s)}
 				for page := 1; page <= dialogueKeysPages; page++ {
@@ -50,8 +50,8 @@ func TestNumpadEnterTurnsTheDialoguePagesAsEnterDoes(t *testing.T) {
 					if moment == trace[len(trace)-1] {
 						t.Fatalf("%s on page %d changed nothing from %q", key, page, moment)
 					}
-					if page < dialogueKeysPages && (s.room != roomTalk || s.said != page+1) {
-						t.Fatalf("%s on page %d left room %d on page %d, want page %d", key, page, s.room, s.said, page+1)
+					if page < dialogueKeysPages && (s.room != roomTalk || s.talkPage.part != page+1) {
+						t.Fatalf("%s on page %d left room %d on page %d, want page %d", key, page, s.room, s.talkPage.part, page+1)
 					}
 					trace = append(trace, moment)
 				}

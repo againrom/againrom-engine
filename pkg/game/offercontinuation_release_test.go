@@ -123,8 +123,8 @@ func TestReleaseOfferFirstPartStockCompatibility(t *testing.T) {
 				t.Fatal(err)
 			}
 			first, accepted := EventPart(payload, 1, HeroAudience(g.Carried))
-			if !accepted || s.room != roomTalk || s.said != 1 || s.dialogue.displayPart != 1 || strings.TrimSpace(s.dialogue.text) != strings.TrimSpace(first) {
-				t.Fatal("stock first part changed", s.room, s.said, s.dialogue.displayPart, accepted)
+			if !accepted || s.room != roomTalk || s.talkPage.part != 1 || s.dialogue.displayPart != 1 || strings.TrimSpace(s.dialogue.text) != strings.TrimSpace(first) {
+				t.Fatal("stock first part changed", s.room, s.talkPage.part, s.dialogue.displayPart, accepted)
 			}
 			if !containsMission(g.Town.Available(), mission) || len(g.Town.Offers(building)) != len(offers)-1 || g.Town.selectedMission() != mission {
 				t.Fatal("stock entry did not register and consume its head", mission, g.Town.Offers(building), g.Town.Available())
@@ -137,8 +137,8 @@ func TestReleaseOfferFirstPartStockCompatibility(t *testing.T) {
 					break
 				}
 				pages++
-				if s.room != roomTalk || s.said != pages || s.dialogue.displayPart != pages || strings.TrimSpace(s.dialogue.text) != strings.TrimSpace(next) {
-					t.Fatal("stock following part changed", pages, s.room, s.said, s.dialogue.displayPart)
+				if s.room != roomTalk || s.talkPage.part != pages || s.dialogue.displayPart != pages || strings.TrimSpace(s.dialogue.text) != strings.TrimSpace(next) {
+					t.Fatal("stock following part changed", pages, s.room, s.talkPage.part, s.dialogue.displayPart)
 				}
 			}
 			if s.room != room {
@@ -268,16 +268,16 @@ func TestReleaseOfferFirstPartSAVAndNextAction(t *testing.T) {
 					t.Fatal(err)
 				}
 				wantOffer := []TownOffer{{Index: 1, Mission: q.mission}}
-				if s.room != roomTalk || s.said != 1 || s.dialogue.displayPart != 0 || s.dialogue.text != "Nothing to say" {
-					t.Fatal("failed first lookup dropped the default constructed panel", s.room, s.said, s.dialogue)
+				if s.room != roomTalk || s.talkPage.part != 1 || s.dialogue.displayPart != 0 || s.dialogue.text != "Nothing to say" {
+					t.Fatal("failed first lookup dropped the default constructed panel", s.room, s.talkPage.part, s.dialogue)
 				}
 				assertOfferAppPanel(t, f, app, "Nothing to say")
 				if !reflect.DeepEqual(f.Town.Offers(q.building), wantOffer) || f.Town.selectedMission() != q.mission || !f.Town.progress.record(q.mission).announced {
 					t.Fatal("normal builder return did not register independently of part 1", f.Town.Offers(q.building), f.Town.selectedMission())
 				}
 				dialogueKeyPress(t, app, s, "enter")
-				if s.room != roomTalk || s.said != 2 || s.dialogue.displayPart != 2 || strings.TrimSpace(s.dialogue.text) != "Accepted second part" {
-					t.Fatal("next App input did not accept part 2", s.room, s.said, s.dialogue)
+				if s.room != roomTalk || s.talkPage.part != 2 || s.dialogue.displayPart != 2 || strings.TrimSpace(s.dialogue.text) != "Accepted second part" {
+					t.Fatal("next App input did not accept part 2", s.room, s.talkPage.part, s.dialogue)
 				}
 				assertOfferAppPanel(t, f, app, "Accepted second part\r\n")
 				dialogueKeyPress(t, app, s, "escape")
@@ -337,7 +337,7 @@ func TestReleaseOfferFirstPartSAVAndNextAction(t *testing.T) {
 					t.Fatal("next city action did not consume only the remaining stable identity", gs.offer, g.Town.Offers(q.building))
 				}
 				dialogueKeyPress(t, gapp, gs, "click")
-				if gs.room != roomTalk || gs.said != 2 || gs.dialogue.displayPart != 2 {
+				if gs.room != roomTalk || gs.talkPage.part != 2 || gs.dialogue.displayPart != 2 {
 					t.Fatal("post-LOAD App button did not attempt part 2")
 				}
 				dialogueKeyPress(t, gapp, gs, "enter")

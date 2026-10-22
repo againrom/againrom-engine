@@ -338,7 +338,7 @@ func TestReleaseSecondTownKaargPersonClicks(t *testing.T) {
 	c := f.Town.second
 	_, sq := kaargScene(t, s)
 	sq.Click(sq.Hotspot("shop"))
-	if c.payload != nil || c.room != secondTownShop {
+	if c.talk.payload != nil || c.room != secondTownShop {
 		t.Fatal("the shop click did not open the shop page", c.room)
 	}
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {

@@ -213,7 +213,7 @@ func checkTurtleTavernApp(t *testing.T, f *FrontEnd, app *ui.App, current bool) 
 			t.Fatal("a retained active turtle record cannot replay its dialogue")
 		}
 		payload, err := f.Archives.Containers.ReadFile(mainPrefix + "text/inn/npc/npc32m51.txt")
-		if err != nil || !bytes.Equal(s.dialogue.payload, payload) {
+		if err != nil || !bytes.Equal(s.talkPage.payload, payload) {
 			t.Fatal("active turtle record opened different text", err)
 		}
 		for n := 0; s.room == roomTalk && n < 8; n++ {

@@ -99,7 +99,7 @@ func dialogueKeyPress(t *testing.T, app *ui.App, s *townScreen, key string) {
 // line the town posted.
 func dialogueMoment(f *FrontEnd, app *ui.App, s *townScreen) string {
 	_, open := s.TownDialogue()
-	return fmt.Sprintf("room %d, page %d, window %v, gates %v, line %q", s.room, s.said, open, f.Town.Available(), app.HeadlessMessage())
+	return fmt.Sprintf("room %d, page %d, window %v, gates %v, line %q", s.room, s.talkPage.part, open, f.Town.Available(), app.HeadlessMessage())
 }
 
 // TestDialogueKeysDoOneThingOnEveryPage presses Enter, Escape and the button on
@@ -137,8 +137,8 @@ func TestDialogueKeysDoOneThingOnEveryPage(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				if s.room != roomTalk || s.said != 1 {
-					t.Fatalf("the conversation is not open on its first page: room %d, page %d", s.room, s.said)
+				if s.room != roomTalk || s.talkPage.part != 1 {
+					t.Fatalf("the conversation is not open on its first page: room %d, page %d", s.room, s.talkPage.part)
 				}
 				switch got := fmt.Sprint(f.Town.Available()); {
 				case q.inn && got != before:
@@ -153,8 +153,8 @@ func TestDialogueKeysDoOneThingOnEveryPage(t *testing.T) {
 						t.Fatalf("Space on page %d changed %q to %q", page, trace[len(trace)-1], got)
 					}
 					dialogueKeyPress(t, app, s, key)
-					if page < dialogueKeysPages && (s.room != roomTalk || s.said != page+1) {
-						t.Fatalf("%s on page %d left room %d on page %d, want page %d", key, page, s.room, s.said, page+1)
+					if page < dialogueKeysPages && (s.room != roomTalk || s.talkPage.part != page+1) {
+						t.Fatalf("%s on page %d left room %d on page %d, want page %d", key, page, s.room, s.talkPage.part, page+1)
 					}
 					trace = append(trace, dialogueMoment(f, app, s))
 				}
@@ -218,8 +218,8 @@ func TestNoDialogueRowAcceptsOrDeclines(t *testing.T) {
 					t.Fatalf("page %d posted %q", n+2, act.Msg)
 				}
 			}
-			if s.room != roomTalk || s.said != lines {
-				t.Fatalf("room %d on page %d, want the last page %d", s.room, s.said, lines)
+			if s.room != roomTalk || s.talkPage.part != lines {
+				t.Fatalf("room %d on page %d, want the last page %d", s.room, s.talkPage.part, lines)
 			}
 			if act := s.Choose(row); act.Msg != "" {
 				t.Fatalf("row %d posted %q", row, act.Msg)

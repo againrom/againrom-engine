@@ -77,7 +77,7 @@ func TestReleaseSkrakanPortalPartShowsTheWholeInstalledText(t *testing.T) {
 
 	// The town lookup delivers that part and the panel wraps every word.
 	d := newTownDialogue(payload)
-	if !d.lookup(3, HeroAudience(f.Carried)) {
+	if !d.lookup(talkCursor{payload: payload, part: 3}, HeroAudience(f.Carried)) {
 		t.Fatal("the town dialogue finds no part 3")
 	}
 	if d.text != installed {

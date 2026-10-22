@@ -57,7 +57,7 @@ func hearInnOfferIndex(t *testing.T, app *ui.App, s *townScreen, mission, index 
 		t.Fatal("installed inn text opened no dialogue", mission, index, s.offer)
 	}
 	for n := 0; s.room == roomTalk && n < 64; n++ {
-		page := s.said
+		page := s.talkPage.part
 		button := dialogueButtonPoint(t, s)
 		for _, edge := range []struct {
 			action string
@@ -68,7 +68,7 @@ func hearInnOfferIndex(t *testing.T, app *ui.App, s *townScreen, mission, index 
 			if err := app.HeadlessPointer(edge.action, edge.point.X, edge.point.Y); err != nil {
 				t.Fatal(err)
 			}
-			if s.room != roomTalk || s.said != page {
+			if s.room != roomTalk || s.talkPage.part != page {
 				t.Fatalf("%s advanced installed town dialogue before an owned release", edge.action)
 			}
 		}

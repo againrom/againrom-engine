@@ -74,8 +74,8 @@ func TestReleaseTownTalkOKThroughTheWindow(t *testing.T) {
 		t.Fatalf("NPC %d opened room %d with %d pages", offer.NPC, s.room, pages)
 	}
 	for page := 1; page <= pages; page++ {
-		if s.room != roomTalk || s.said != page {
-			t.Fatalf("page %d: room %d page %d", page, s.room, s.said)
+		if s.room != roomTalk || s.talkPage.part != page {
+			t.Fatalf("page %d: room %d page %d", page, s.room, s.talkPage.part)
 		}
 		townTalkOK(t, app, s, func() {
 			l := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(s.mercenaryTalk != 0 || s.dialogue.hasPortrait)
@@ -109,14 +109,14 @@ func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 		}
 	}
 	c := f.Town.second
-	payload := c.payload
+	payload := c.talk.payload
 	audience := partyAudience(f.Carried, nil)
 	audience.tags = s.tags
 	page := 1
-	for ; c.payload != nil; page++ {
+	for ; c.talk.payload != nil; page++ {
 		body, ok := dialoguePart(payload, page, audience)
-		if page > 64 || !ok || c.part != page {
-			t.Fatalf("page %d: part %d, installed part found %v", page, c.part, ok)
+		if page > 64 || !ok || c.talk.part != page {
+			t.Fatalf("page %d: part %d, installed part found %v", page, c.talk.part, ok)
 		}
 		townTalkOK(t, app, s, func() {
 			l := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(false)
@@ -128,8 +128,8 @@ func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 			}
 		})
 	}
-	if _, more := dialoguePart(payload, page, audience); more || c.part != 0 || page == 1 {
-		t.Fatalf("the talk closed after %d pages with part %d left", page-1, c.part)
+	if _, more := dialoguePart(payload, page, audience); more || c.talk.part != 0 || page == 1 {
+		t.Fatalf("the talk closed after %d pages with part %d left", page-1, c.talk.part)
 	}
 	t.Logf("speaker 517: %d pages, revision %d", page-1, s.TownDialogueRevision())
 }

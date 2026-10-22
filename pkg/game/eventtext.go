@@ -451,6 +451,12 @@ func eventPartTail(payload []byte, n int, aud EventAudience) (tag, body string, 
 }
 
 func eventPartRange(payload []byte, n int, aud EventAudience) (open, close, end int, ok bool) {
+	return scanEventPart(payload, n, aud, nil)
+}
+
+// scanEventPart is the one part scan every event text reader walks. candidate,
+// when set, sees each tag naming part n before the audience tests it.
+func scanEventPart(payload []byte, n int, aud EventAudience, candidate func(tag string)) (open, close, end int, ok bool) {
 	if n < 0 {
 		return 0, 0, 0, false
 	}
@@ -471,7 +477,11 @@ func eventPartRange(payload []byte, n int, aud EventAudience) (open, close, end 
 		}
 		close += open
 
-		if containsFold(s[open+1:close], want) && aud.accepts(s[open+1:close]) {
+		tag := s[open+1 : close]
+		if containsFold(tag, want) && candidate != nil {
+			candidate(tag)
+		}
+		if containsFold(tag, want) && aud.accepts(tag) {
 			end := len(s)
 			if next := strings.IndexByte(s[close+1:], '<'); next >= 0 {
 				end = close + 1 + next

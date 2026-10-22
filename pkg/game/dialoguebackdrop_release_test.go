@@ -136,7 +136,7 @@ func checkDialogueBackdrop(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen
 		t.Fatal(err)
 	}
 	layout, payload, _ := s.townDialogueLayout()
-	speaker, named := EventPartSpeaker(payload, s.said, HeroAudience(f.Carried))
+	speaker, named := EventPartSpeaker(payload, s.talkPage.part, HeroAudience(f.Carried))
 	face, win, found := s.speakerFace(speaker)
 	if !named || !found || face == nil {
 		t.Fatalf("%s: speaker npc%d named %v found %v", wantPath, speaker, named, found)

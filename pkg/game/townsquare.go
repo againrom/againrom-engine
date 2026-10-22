@@ -161,7 +161,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 	},
 	"release-audio": func(t *townScreen, _ townRoom) { t.destroyRoomAudio() },
 	"set-room":      func(t *townScreen, room townRoom) { t.room = room },
-	"talk-clear":    func(t *townScreen, _ townRoom) { t.npc, t.offer, t.said = 0, TownOffer{}, 0 },
+	"talk-clear":    func(t *townScreen, _ townRoom) { t.npc, t.offer, t.talkPage.part = 0, TownOffer{}, 0 },
 	"tip":           func(t *townScreen, room townRoom) { t.loadTip(room) },
 	"school-reset": func(t *townScreen, _ townRoom) {
 		t.schoolSpent = [schoolLatchCount]bool{}

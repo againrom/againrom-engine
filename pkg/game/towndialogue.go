@@ -9,7 +9,6 @@ import (
 )
 
 type townDialogueState struct {
-	payload     []byte
 	text        string
 	tag         string
 	displayPart int
@@ -23,52 +22,37 @@ type townDialogueState struct {
 }
 
 func newTownDialogue(payload []byte) townDialogueState {
-	return townDialogueState{payload: payload, text: "Nothing to say", hasPortrait: EventHasSpeaker(dialoguePayload(payload)), portrait: EventHasSpeaker(dialoguePayload(payload))}
+	return townDialogueState{text: "Nothing to say", hasPortrait: EventHasSpeaker(dialoguePayload(payload)), portrait: EventHasSpeaker(dialoguePayload(payload))}
 }
 
-func (d *townDialogueState) lookup(part int, audience EventAudience) bool {
-	if part < 1 {
+// firstTownTalkLowestPart is the first game's lowest part; the shared scan
+// answers part 0 too.
+const firstTownTalkLowestPart = 1
+
+// lookup reads the cursor's part. Every tag naming the part, audience-rejected
+// or not, sets the portrait and speaker; the accepted tag sets the tips even
+// when its words fail.
+func (d *townDialogueState) lookup(c talkCursor, audience EventAudience) bool {
+	if c.part < firstTownTalkLowestPart {
 		return false
 	}
-	want := partMark + strconv.Itoa(part)
-	s := string(dialoguePayload(d.payload))
-	for cursor := 0; cursor < len(s); {
-		open := strings.IndexByte(s[cursor:], '<')
-		if open < 0 {
-			return false
-		}
-		open += cursor
-		end := strings.IndexByte(s[open:], '>')
-		if end < 0 {
-			return false
-		}
-		end += open
-		cursor = end + 1
-		tag := s[open+1 : end]
-		if !containsFold(tag, want) {
-			continue
-		}
-		speaker, named := tagSpeaker(tag)
-		d.portrait = named
-		if named {
-			d.speaker = speaker
-		}
-		if !audience.accepts(tag) {
-			continue
-		}
-		if at := indexFold(tag, "tips="); at >= 0 {
-			if value, ok := dialogueInteger(tag[at+5:]); ok {
-				d.tips = value
-			}
-		}
-		body, ok := acceptedDialogueTail(s[cursor:])
-		if !ok {
-			return false
-		}
-		d.text, d.tag, d.displayPart = body, tag, part
-		return true
+	r := c.read(audience, d.noteSpeaker)
+	if tips, ok := r.tips(); ok {
+		d.tips = tips
 	}
-	return false
+	if !r.ok {
+		return false
+	}
+	d.text, d.tag, d.displayPart = r.text, r.tag, c.part
+	return true
+}
+
+func (d *townDialogueState) noteSpeaker(tag string) {
+	speaker, named := tagSpeaker(tag)
+	d.portrait = named
+	if named {
+		d.speaker = speaker
+	}
 }
 
 func dialogueInteger(s string) (int, bool) {
@@ -89,7 +73,7 @@ func dialogueInteger(s string) (int, bool) {
 }
 
 func (t *townScreen) lookupTownDialogue() bool {
-	if !t.dialogue.lookup(t.said, partyAudience(t.sess.Carried, nil)) {
+	if !t.dialogue.lookup(t.talkPage, partyAudience(t.sess.Carried, nil)) {
 		return false
 	}
 	if t.dialogue.portrait {

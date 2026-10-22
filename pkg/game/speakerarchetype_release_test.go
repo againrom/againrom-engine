@@ -82,7 +82,7 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 				t.Fatal("installed dialogue did not open", addr)
 			}
 			for part := 1; town.room == roomTalk && part <= 64; part++ {
-				speaker, named := EventPartSpeaker(payload, town.said, HeroAudience(f.Carried))
+				speaker, named := EventPartSpeaker(payload, town.talkPage.part, HeroAudience(f.Carried))
 				if named && speaker >= 21 && speaker <= 24 && !seen[speaker-21] {
 					if _, live := town.resolver.cast.resolve(f.NPCFaces[int32(speaker)]); live {
 						t.Fatal("witness has a live speaker", addr, speaker)
@@ -98,7 +98,7 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 						t.Fatalf("primary %s npc%d: not %s/%d", dir, speaker, dirs[index], face)
 					}
 					checkDialogueBackdrop(t, f, app, town, addr)
-					t.Logf("primary %s npc%d: production openTownDialogue %s + App Enter to part%d draws %s/%d; no live actor; chapter reachability not claimed", dir, speaker, addr, town.said, dirs[index], face)
+					t.Logf("primary %s npc%d: production openTownDialogue %s + App Enter to part%d draws %s/%d; no live actor; chapter reachability not claimed", dir, speaker, addr, town.talkPage.part, dirs[index], face)
 					seen[speaker-21] = true
 				}
 				if err := app.HeadlessKey("enter"); err != nil {

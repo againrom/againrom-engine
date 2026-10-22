@@ -65,7 +65,7 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 					}
 				}
 				c := f.Town.second
-				for page := 0; c.payload != nil; page++ {
+				for page := 0; c.talk.payload != nil; page++ {
 					if page >= 64 {
 						t.Fatal("talk exceeded 64 pages")
 					}
@@ -75,9 +75,9 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 						t.Fatal("no talk button")
 					}
 					p := button.Min.Add(button.Max).Div(2).Add(image.Pt((640-pic.Bounds().Dx())/2, (480-pic.Bounds().Dy())/2))
-					before := c.part
+					before := c.talk.part
 					secondGeneratorClick(t, app, p)
-					if c.payload != nil && c.part == before {
+					if c.talk.payload != nil && c.talk.part == before {
 						t.Fatalf("OK pointer press/release left talk on page %d", before)
 					}
 				}

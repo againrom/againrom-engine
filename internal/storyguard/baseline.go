@@ -2850,6 +2850,13 @@ package storyguard
 // comments of rollShelf, rollAgain, shopExtraRollSeed and the keyed shelf
 // stacker (pkg/game/shop.go, shopsort.go), their tests, and this paragraph;
 // then with the release test's spike-robust timing statistics.
+//
+// CommentBytes rises for the town talk's one part reader and page cursor, all
+// new code: scanEventPart and dialogueRead (pkg/game/eventtext.go,
+// dialogueinput.go), talkCursor and townTalkSeat (pkg/game/towntalk.go), the
+// first game's lookup (pkg/game/towndialogue.go), their tests
+// (pkg/game/towntalkreader_test.go, towntalk_test.go), less the screens'
+// retired forwarding methods, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2873,5 +2880,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9524016,
+	CommentBytes: 9526935,
 }

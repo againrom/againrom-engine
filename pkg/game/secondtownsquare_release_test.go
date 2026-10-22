@@ -189,7 +189,7 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 		}
 		sq.Click(sq.Hover())
 		want := map[string]secondTownRoom{"school": secondTownSquare, "shop": secondTownShop}[name]
-		if c.room != want || c.current != (partyPlace{2, 1}) || c.payload != nil {
+		if c.room != want || c.current != (partyPlace{2, 1}) || c.talk.payload != nil {
 			t.Errorf("%s click: room %v current %v, want room %v", name, c.room, c.current, want)
 		}
 		if name == "shop" {
@@ -381,7 +381,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	if err := app.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
-	if !c.has(partyPlace{1, 10}) || c.bank[769] != 1 || c.payload == nil {
+	if !c.has(partyPlace{1, 10}) || c.bank[769] != 1 || c.talk.payload == nil {
 		t.Fatal("TALK 517 did not run TalkTo or show its section")
 	}
 	for app.HeadlessActivate("notice") == nil {

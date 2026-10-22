@@ -162,7 +162,7 @@ func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if screen.state().payload != nil {
+	if screen.state().talk.payload != nil {
 		t.Fatal("conversation did not close")
 	}
 	if err := app.HeadlessActivate("TALK 517"); err != nil {

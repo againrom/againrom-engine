@@ -76,8 +76,8 @@ func TestReleaseDialogueKeysOnEveryPage(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				if s.room != roomTalk || s.said != 1 {
-					t.Fatalf("the %s conversation is not open on its first page: room %d, page %d", q.name, s.room, s.said)
+				if s.room != roomTalk || s.talkPage.part != 1 {
+					t.Fatalf("the %s conversation is not open on its first page: room %d, page %d", q.name, s.room, s.talkPage.part)
 				}
 				pages := len(s.townLines())
 				if pages == 0 {
@@ -97,8 +97,8 @@ func TestReleaseDialogueKeysOnEveryPage(t *testing.T) {
 						t.Fatalf("Space on page %d of %d changed %q to %q", page, pages, trace[len(trace)-1], got)
 					}
 					dialogueKeyPress(t, app, s, key)
-					if page < pages && (s.room != roomTalk || s.said != page+1) {
-						t.Fatalf("%s on page %d of %d left room %d on page %d, want page %d", key, page, pages, s.room, s.said, page+1)
+					if page < pages && (s.room != roomTalk || s.talkPage.part != page+1) {
+						t.Fatalf("%s on page %d of %d left room %d on page %d, want page %d", key, page, pages, s.room, s.talkPage.part, page+1)
 					}
 					trace = append(trace, dialogueMoment(f, app, s))
 				}

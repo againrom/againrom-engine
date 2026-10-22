@@ -19,7 +19,7 @@ func (t *townScreen) townDialogueLayout() (ui.NoticeLayout, []byte, bool) {
 	if !v.Open {
 		return ui.NoticeLayout{}, nil, false
 	}
-	return t.talkWindow.Layout(v), t.dialogue.payload, true
+	return t.talkWindow.Layout(v), t.talkPage.payload, true
 }
 
 // talkPages is a conversation of fixed pages; at is the shown page, 0 closed.
@@ -134,8 +134,9 @@ func TestTownTalkProfilesKeepEachGame(t *testing.T) {
 }
 
 // Neither town screen keeps its own copy of the talk window: each holds one
-// ui.TownTalk and no button or backdrop state, and each TownDialogue* method
-// reaches the window rather than composing a notice itself.
+// ui.TownTalk and no button or backdrop state. The TownDialogue* methods are
+// declared once, on the seat both screens embed, and each reaches the window
+// rather than composing a notice itself; neither screen declares one.
 func TestTownScreensHoldOneTownTalk(t *testing.T) {
 	for _, screen := range []any{townScreen{}, secondCampaignScreen{}} {
 		typ := reflect.TypeOf(screen)
@@ -180,10 +181,13 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 				continue
 			}
 			recv := receiverName(fn.Recv.List[0].Type)
-			if recv != "townScreen" && recv != "secondCampaignScreen" {
+			if recv != "townScreen" && recv != "secondCampaignScreen" && recv != "townTalkSeat" {
 				continue
 			}
 			window := townTalkMethods[fn.Name.Name]
+			if window && recv != "townTalkSeat" {
+				t.Errorf("%s.%s forwards to the talk window itself", recv, fn.Name.Name)
+			}
 			if window {
 				methods++
 			}
@@ -204,8 +208,33 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 			}
 		}
 	}
-	if methods != 16 {
-		t.Errorf("found %d TownDialogue methods on the two screens, want 16", methods)
+	if methods != 8 {
+		t.Errorf("found %d TownDialogue methods, want the seat's 8", methods)
+	}
+}
+
+// Each game keeps one page cursor: the first game's screen and the second
+// game's campaign hold one talkCursor, and no other part or payload field.
+func TestTownTalkHasOneCursor(t *testing.T) {
+	for _, holder := range []any{townScreen{}, secondCampaignScreen{}, secondCampaign{}, townDialogueState{}} {
+		typ := reflect.TypeOf(holder)
+		cursors := 0
+		for i := 0; i < typ.NumField(); i++ {
+			f := typ.Field(i)
+			switch {
+			case f.Type == reflect.TypeOf(talkCursor{}):
+				cursors++
+			case f.Name == "said" || f.Name == "part" || f.Name == "payload":
+				t.Errorf("%s.%s is a second copy of the cursor", typ.Name(), f.Name)
+			}
+		}
+		want := 0
+		if typ.Name() == "townScreen" || typ.Name() == "secondCampaign" {
+			want = 1
+		}
+		if cursors != want {
+			t.Errorf("%s holds %d cursors, want %d", typ.Name(), cursors, want)
+		}
 	}
 }
 

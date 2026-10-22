@@ -31,11 +31,11 @@ func TestGateDialogueCapturedPagerAndVoiceReplacement(t *testing.T) {
 			}
 			shows := s.TownDialogueShows()
 			pressGate(t, app, squareGatePoint(t, f))
-			if s.TownDialogueShows() != shows || s.said != 1 || len(voices.samples) != 1 {
+			if s.TownDialogueShows() != shows || s.talkPage.part != 1 || len(voices.samples) != 1 {
 				t.Fatal("captured outside press retried the gate")
 			}
 			dialogueKeyPress(t, app, s, "space")
-			if s.said != 1 || voices.voices[0].stops != 0 {
+			if s.talkPage.part != 1 || voices.voices[0].stops != 0 {
 				t.Fatal("Space paged or stopped the voice")
 			}
 			dialogueKeyPress(t, app, s, key)
@@ -47,7 +47,7 @@ func TestGateDialogueCapturedPagerAndVoiceReplacement(t *testing.T) {
 				t.Fatal("final pager stop/return")
 			}
 			pressGate(t, app, squareGatePoint(t, f))
-			if s.said != 1 || len(voices.samples) != 3 || voices.samples[2].PCM[0] != 111 {
+			if s.talkPage.part != 1 || len(voices.samples) != 3 || voices.samples[2].PCM[0] != 111 {
 				t.Fatal("repeat gate did not show initial part")
 			}
 		})

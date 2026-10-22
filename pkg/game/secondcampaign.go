@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"image"
 	"strings"
 
 	"againrom/pkg/mapload"
@@ -31,8 +30,7 @@ type secondCampaign struct {
 	available []partyPlace
 	current   partyPlace
 	room      secondTownRoom
-	payload   []byte
-	part      int
+	talk      talkCursor
 	shop      secondShop
 	// party is the hero alone; his bag is the shop's customer.
 	party []mapload.PartyMember
@@ -221,8 +219,8 @@ type secondCampaignScreen struct {
 	worldMapOf *secondCampaign
 	// worldMapAt is the opening worldMap was built for.
 	worldMapAt *secondMapOpening
-	// talkWindow is the town talk window; the campaign holds its pages.
-	talkWindow ui.TownTalk
+	// townTalkSeat is the town talk window; the campaign holds its pages.
+	townTalkSeat
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -243,6 +241,7 @@ func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
 		composed: newSecondTownState(f), mapArt: f.worldMapAssets}
+	t.talkSource = t
 	t.bindShop()
 	return t
 }
@@ -365,7 +364,7 @@ func (t *secondCampaignScreen) Back() bool {
 	if c == nil {
 		return false
 	}
-	if c.payload != nil {
+	if c.talk.payload != nil {
 		t.AdvanceTownDialogue()
 		return true
 	}
@@ -384,12 +383,13 @@ func (t *secondCampaignScreen) dialogueBody() (string, bool) {
 	if c == nil {
 		return "", false
 	}
-	if c.payload == nil {
+	if c.talk.payload == nil {
 		return "", false
 	}
 	audience := partyAudience(t.session.Carried, nil)
 	audience.tags = t.tags
-	return dialoguePart(c.payload, c.part, audience)
+	r := c.talk.read(audience, nil)
+	return r.text, r.ok
 }
 
 // secondTownTalkProfile is the second game's town talk profile: no portrait shape,
@@ -411,36 +411,8 @@ func (t *secondCampaignScreen) talkView() ui.TownTalkView {
 
 func (t *secondCampaignScreen) setTownDialogue(payload []byte) {
 	c := t.state()
-	c.payload, c.part = payload, 1
-	t.talkWindow.Open(false)
-}
-
-func (t *secondCampaignScreen) TownDialogueRevision() uint64 { return t.talkWindow.Revision() }
-
-func (t *secondCampaignScreen) TownDialogueButtonState() ui.DialogueButtonState {
-	return t.talkWindow.ButtonState()
-}
-
-func (t *secondCampaignScreen) TownDialogueVisual(state ui.DialogueButtonState, policy ui.DialogueBackdrop) {
-	t.talkWindow.SetVisual(state, policy)
-}
-
-func (t *secondCampaignScreen) TownDialogueShows() uint64 { return t.talkWindow.Shows(t.talkView()) }
-
-func (t *secondCampaignScreen) TownDialogue() (*image.RGBA, bool) {
-	return t.talkWindow.Picture(t.talkView())
-}
-
-func (t *secondCampaignScreen) TownDialogueFrame() (*ui.DialogFrame, image.Rectangle) {
-	return t.talkWindow.Frame(t.talkView())
-}
-
-func (t *secondCampaignScreen) TownDialogueButton() (image.Rectangle, bool) {
-	return t.talkWindow.Button(t.talkView())
-}
-
-func (t *secondCampaignScreen) AdvanceTownDialogue() ui.TownAction {
-	return t.talkWindow.Advance(t.turnTownTalk)
+	c.talk.open(payload)
+	t.openTalk(t, false)
 }
 
 // turnTownTalk turns the campaign's page; a part with no body closes the
@@ -450,9 +422,9 @@ func (t *secondCampaignScreen) turnTownTalk() bool {
 	if c == nil {
 		return false
 	}
-	c.part++
+	c.talk.next()
 	if _, ok := t.dialogueBody(); !ok {
-		c.payload, c.part = nil, 0
+		c.talk.close()
 	}
 	return true
 }
@@ -460,12 +432,12 @@ func (t *secondCampaignScreen) turnTownTalk() bool {
 func (t *secondCampaignScreen) CanSave() bool { return t.state().savePoint() }
 
 func (c *secondCampaign) savePoint() bool {
-	return c != nil && c.payload == nil && c.part == 0 && captureSecondCampaign(c).validateTown() == nil
+	return c != nil && c.talk.payload == nil && c.talk.part == 0 && captureSecondCampaign(c).validateTown() == nil
 }
 
 // noticePending reports whether the campaign holds an open dialogue.
 func (c *secondCampaign) noticePending() bool {
-	return c != nil && (c.payload != nil || c.part != 0)
+	return c != nil && (c.talk.payload != nil || c.talk.part != 0)
 }
 
 // readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a

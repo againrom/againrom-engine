@@ -32,7 +32,7 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 	if s.room != roomTalk || s.TownDialogueShows() != 1 {
 		t.Fatal("installed route did not invoke one show", route, s.room, s.TownDialogueShows())
 	}
-	page := s.said
+	page := s.talkPage.part
 	checkInstalledDialoguePointer(t, a, route, image.Rect(276, 296, 356, 322), image.Pt(640, 480), func() *image.RGBA {
 		t.Helper()
 		out, _, err := a.HeadlessFrame()
@@ -41,7 +41,7 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 		}
 		return out
 	})
-	if s.said != page {
+	if s.talkPage.part != page {
 		t.Fatal("pointer cancellation advanced installed town page", route)
 	}
 	if err := a.SetDialogueBackdrop(ui.DialogueBackdrop{Clipped: true}); err != nil {

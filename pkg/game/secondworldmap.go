@@ -47,7 +47,7 @@ const (
 
 func (t *secondCampaignScreen) AtWorldMap() bool {
 	c := t.state()
-	return c != nil && c.current == (partyPlace{}) && c.payload == nil
+	return c != nil && c.current == (partyPlace{}) && c.talk.payload == nil
 }
 
 // worldMapNow is the open map, built once per opening from the available

@@ -44,8 +44,8 @@ func TestOfferFirstPartAppContinuation(t *testing.T) {
 					if got := f.Town.Offers(room.building); len(got) != 0 || !containsMission(f.Town.Available(), room.mission) || f.Town.selectedMission() != room.mission {
 						t.Fatal("normal builder return failed to register/remove head", got, f.Town.Available(), f.Town.selectedMission())
 					}
-					if pic, open := s.TownDialogue(); s.room != roomTalk || !open || pic == nil || s.said != 1 {
-						t.Fatal("failed first lookup dropped constructed panel", s.room, s.said, open)
+					if pic, open := s.TownDialogue(); s.room != roomTalk || !open || pic == nil || s.talkPage.part != 1 {
+						t.Fatal("failed first lookup dropped constructed panel", s.room, s.talkPage.part, open)
 					}
 					assertOfferPanel(t, f, s, "Nothing to say", true)
 					button := dialogueButtonPoint(t, s)
@@ -59,22 +59,22 @@ func TestOfferFirstPartAppContinuation(t *testing.T) {
 						if err := app.HeadlessPointer(edge.action, edge.point.X, edge.point.Y); err != nil {
 							t.Fatal(err)
 						}
-						if s.room != roomTalk || s.said != 1 {
+						if s.room != roomTalk || s.talkPage.part != 1 {
 							t.Fatal("unowned pointer event paged/escaped modal", edge)
 						}
 					}
 					dialogueKeyPress(t, app, s, "space")
-					if s.room != roomTalk || s.said != 1 {
+					if s.room != roomTalk || s.talkPage.part != 1 {
 						t.Fatal("Space escaped default modal")
 					}
 					dialogueKeyPress(t, app, s, key)
-					if s.room != roomTalk || s.said != 2 || s.dialogue.displayPart != 2 {
-						t.Fatal("next command did not attempt part 2", s.room, s.said)
+					if s.room != roomTalk || s.talkPage.part != 2 || s.dialogue.displayPart != 2 {
+						t.Fatal("next command did not attempt part 2", s.room, s.talkPage.part)
 					}
 					assertOfferPanel(t, f, s, "Second\r\n", true)
 					dialogueKeyPress(t, app, s, key)
-					if s.room != room.back || s.said != 3 || s.dialogue.text != "Second\r\n" {
-						t.Fatal("failed third lookup did not close once with retained display", s.room, s.said, s.dialogue.text)
+					if s.room != room.back || s.talkPage.part != 3 || s.dialogue.text != "Second\r\n" {
+						t.Fatal("failed third lookup did not close once with retained display", s.room, s.talkPage.part, s.dialogue.text)
 					}
 					before := s.TownDialogueRevision()
 					s.AdvanceTownDialogue()
@@ -178,7 +178,7 @@ func TestOfferFailedLookupRetainsDisplayFaceAndVoice(t *testing.T) {
 	if imagesEqual(standing, missingFace) {
 		t.Fatal("independent retained-face loss control changes no rendered pixels")
 	}
-	s.said = 2
+	s.talkPage.part = 2
 	if s.lookupTownDialogue() || s.dialogue.text != "Standing" || s.dialogue.face != face || s.dialogue.faceWindow != image.Rect(1, 2, 3, 4) || s.dialogue.displayPart != 1 || s.dialogue.speaker != 34 || !s.dialogue.portrait || s.dialogue.tips != 0 {
 		t.Fatal("failed parser changed delivered display or lost candidate metadata", s.dialogue)
 	}
@@ -196,7 +196,7 @@ func TestOfferFailedLookupRetainsDisplayFaceAndVoice(t *testing.T) {
 	if !ok || name != "speech/shop/npc31m31p1.wav" {
 		t.Fatal("failed part retargeted delivered speech", name, ok)
 	}
-	s.said = 1
+	s.talkPage.part = 1
 	dialogueKeyPress(t, app, s, "click")
 	if s.room != roomShop || len(r.voices) != 1 || r.voices[0].stops != 1 {
 		t.Fatal("close replayed a rejected candidate or failed teardown", s.room, r.voices)
@@ -235,14 +235,16 @@ func TestOfferTipsStoreSurvivesPagingAndZeroSuppressesClosePayload(t *testing.T)
 
 func TestOfferPanelMetadataScanBounds(t *testing.T) {
 	for _, value := range []string{"", "+", "-", "2147483648", "-2147483649", "99999999999999999999999999"} {
-		d := newTownDialogue([]byte(fmt.Sprintf("<part=1 tips=%s>no LF", value)))
-		if d.lookup(1, EventAudience{}) || d.tips != 0 || d.text != "Nothing to say" {
+		payload := []byte(fmt.Sprintf("<part=1 tips=%s>no LF", value))
+		d := newTownDialogue(payload)
+		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}) || d.tips != 0 || d.text != "Nothing to say" {
 			t.Fatal("invalid integer updated panel or admitted header", value, d)
 		}
 	}
 	for _, value := range []string{"+7;", "-7;", " 7 rest"} {
-		d := newTownDialogue([]byte(fmt.Sprintf("<part=1 tips=%s>no LF", value)))
-		if d.lookup(1, EventAudience{}) || d.tips == 0 {
+		payload := []byte(fmt.Sprintf("<part=1 tips=%s>no LF", value))
+		d := newTownDialogue(payload)
+		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}) || d.tips == 0 {
 			t.Fatal("bounded signed integer store was lost", value, d)
 		}
 	}

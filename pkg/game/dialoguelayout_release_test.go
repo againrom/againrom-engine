@@ -286,7 +286,7 @@ func expectedInstalledDialoguePart(t *testing.T, payload []byte, part int, audie
 func townPartText(t *testing.T, f *FrontEnd, town *townScreen) string {
 	t.Helper()
 	_, payload, _ := town.townDialogueLayout()
-	expected, ok := expectedInstalledDialoguePart(t, payload, town.said, HeroAudience(f.Carried))
+	expected, ok := expectedInstalledDialoguePart(t, payload, town.talkPage.part, HeroAudience(f.Carried))
 	if !ok {
 		t.Fatal("town selected no raw resource tail")
 	}
