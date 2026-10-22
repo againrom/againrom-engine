@@ -11,6 +11,7 @@ import (
 
 type enchantSpec struct {
 	weight, cost, minimum, maximum int32
+	usableBy                       int32
 }
 
 type enchantMagic map[int]enchantSpec
@@ -29,8 +30,12 @@ func (m enchantMagic) EntryParams(i int) []int32 {
 	for column := 4; column < len(p); column++ {
 		p[column] = endpoint
 	}
+	p[3] = 3
 	if spec, ok := m[i]; ok {
 		p[0], p[1], p[2] = spec.cost, spec.minimum, spec.maximum
+		if spec.usableBy != 0 {
+			p[3] = spec.usableBy
+		}
 	}
 	return p
 }
@@ -79,26 +84,21 @@ func TestFixedShopDrawsProduceOneTwoAndThreeOrderedEffectsAtExactGates(t *testin
 	cases := []struct {
 		name   string
 		draws  []int
-		count  int
 		bounds []int
 	}{
-		{"one", []int{0, 0, 50, 25}, 1, []int{1, 100, 101, 101}},
-		{"second gate 49", []int{0, 0, 49, 0, 0, 100}, 2, []int{1, 100, 101, 1, 99, 101}},
-		{"second gate 50 but third 24", []int{0, 0, 50, 24, 0, 0}, 2, []int{1, 100, 101, 101, 1, 99}},
-		{"third gate 25", []int{0, 0, 50, 25}, 1, []int{1, 100, 101, 101}},
-		{"three", []int{0, 0, 0, 0, 0, 0, 0, 0}, 3, nil},
+		{"one", []int{0, 0, 50, 25}, []int{1, 100, 101, 101}},
+		{"second gate 49", []int{0, 0, 49, 0, 0, 100}, []int{1, 100, 101, 1, 99, 101}},
+		{"second gate 50 but third 24", []int{0, 0, 50, 24, 0, 0}, []int{1, 100, 101, 101, 1, 99}},
+		{"third gate 25", []int{0, 0, 50, 25}, []int{1, 100, 101, 101}},
+		{"three", []int{0, 0, 0, 0, 0, 0, 0, 0}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			draws := &fixedDraws{values: append([]int(nil), tc.draws...)}
 			got, ok := shopEnchantedItem(ordinaryCandidate(), 100000, table, draws)
-			if !ok || len(got.Effects) != tc.count {
-				t.Fatalf("shopEnchantedItem = %+v, %v, want %d effect(s)", got, ok, tc.count)
-			}
-			for i, effect := range got.Effects {
-				if effect != (sim.ItemEffect{Kind: 2, Operand: 1}) {
-					t.Errorf("effect %d = %+v, want the retained duplicate kind-2 effect", i, effect)
-				}
+			want := []sim.ItemEffect{{Kind: 2, Operand: 1}}
+			if !ok || !reflect.DeepEqual(got.Effects, want) {
+				t.Fatalf("shopEnchantedItem = %+v, %v, want the single merged kind-2 effect", got, ok)
 			}
 			if tc.bounds != nil && !reflect.DeepEqual(draws.calls, tc.bounds) {
 				t.Errorf("Intn bounds = %v, want %v", draws.calls, tc.bounds)
@@ -242,5 +242,76 @@ func TestShopCellsKeepDistinctEffectsAndCloneAcrossEveryModelTransfer(t *testing
 	}
 	if weapons := shop.Shelf(ShelfWeapons); len(weapons) != 1 || weapons[0].Count != 1 || weapons[0].Effects[0].Operand != 4 {
 		t.Fatalf("sell changed the remaining shelf instance: %+v", weapons)
+	}
+}
+
+func repeatShopItem(t *testing.T, magic enchantMagic, values []int) (ShopItem, *fixedDraws) {
+	t.Helper()
+	draws := &fixedDraws{values: append([]int(nil), values...)}
+	got, ok := shopEnchantedItem(ordinaryCandidate(), 100000, ordinaryEnchantTable(magic), draws)
+	if !ok {
+		t.Fatal("shopEnchantedItem refused a feasible item")
+	}
+	return got, draws
+}
+
+func TestShopRepeatedKindOverwritesTheHeldPayloadInPlace(t *testing.T) {
+	magic := enchantMagic{2: {weight: 1, cost: 1, minimum: 1, maximum: 100}}
+	for _, tc := range []struct {
+		name   string
+		values []int
+		bounds []int
+		want   uint32
+	}{
+		{"lower", []int{0, 49, 0, 0, 9, 100}, []int{1, 100, 101, 1, 50, 101}, 10},
+		{"higher", []int{0, 9, 0, 0, 49, 100}, []int{1, 100, 101, 1, 90, 101}, 50},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, draws := repeatShopItem(t, magic, tc.values)
+			if want := []sim.ItemEffect{{Kind: 2, Operand: tc.want}}; !reflect.DeepEqual(got.Effects, want) {
+				t.Fatalf("effects = %+v, want %+v", got.Effects, want)
+			}
+			if wantPrice := 10 + shopNonCastPrice(int32(tc.want)); got.Price != wantPrice {
+				t.Errorf("price = %d, want %d from the stored payload only", got.Price, wantPrice)
+			}
+			if !reflect.DeepEqual(draws.calls, tc.bounds) {
+				t.Errorf("Intn bounds = %v, want %v", draws.calls, tc.bounds)
+			}
+		})
+	}
+}
+
+func TestShopUsableByConflictDropsTheNewEffect(t *testing.T) {
+	magic := enchantMagic{
+		2: {weight: 1, cost: 1, minimum: 1, maximum: 100, usableBy: 1},
+		3: {weight: 1, cost: 1, minimum: 1, maximum: 100, usableBy: 2},
+	}
+	got, draws := repeatShopItem(t, magic, []int{0, 4, 0, 1, 6, 100})
+	if want := []sim.ItemEffect{{Kind: 2, Operand: 5}}; !reflect.DeepEqual(got.Effects, want) {
+		t.Fatalf("effects = %+v, want %+v", got.Effects, want)
+	}
+	if wantPrice := 10 + shopNonCastPrice(5); got.Price != wantPrice {
+		t.Errorf("price = %d, want %d", got.Price, wantPrice)
+	}
+	if want := []int{2, 100, 101, 2, 95, 101}; !reflect.DeepEqual(draws.calls, want) {
+		t.Errorf("Intn bounds = %v, want %v", draws.calls, want)
+	}
+}
+
+func TestShopNewKindAppendsAndEachKindKeepsOneEntry(t *testing.T) {
+	magic := enchantMagic{
+		2: {weight: 1, cost: 1, minimum: 1, maximum: 100},
+		3: {weight: 1, cost: 2, minimum: 1, maximum: 100},
+	}
+	got, draws := repeatShopItem(t, magic, []int{0, 4, 0, 1, 5, 0, 0, 9})
+	want := []sim.ItemEffect{{Kind: 2, Operand: 10}, {Kind: 3, Operand: 6}}
+	if !reflect.DeepEqual(got.Effects, want) {
+		t.Fatalf("effects = %+v, want %+v", got.Effects, want)
+	}
+	if wantPrice := 10 + shopNonCastPrice(10+12); got.Price != wantPrice {
+		t.Errorf("price = %d, want %d", got.Price, wantPrice)
+	}
+	if len(draws.calls) != 8 {
+		t.Errorf("draw count = %d, want 8", len(draws.calls))
 	}
 }

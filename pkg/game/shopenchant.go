@@ -33,17 +33,47 @@ func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r 
 	remaining := c.MagCap
 	nonCastPoints := int32(0)
 	var castPrice int32
+	var entryPoints []int32
 
-	appendEffect := func(g generatedEffect) {
-		item.Effects = append(item.Effects, g.effect)
-		nonCastPoints += g.points
-		castPrice += g.cast
+	reprice := func() {
+		nonCastPoints = 0
+		for _, points := range entryPoints {
+			nonCastPoints += points
+		}
+		remaining = c.MagCap - nonCastPoints
 		price := int64(c.Price) + int64(shopNonCastPrice(nonCastPoints)) + int64(castPrice)
 		if price >= 9_999_999 {
 			item.Price = 9_999_999
 		} else {
 			item.Price = int32(price)
 		}
+	}
+
+	// addEffect follows the shop generator's add routine: an effect whose
+	// UsableBy mask shares no bit with a held effect is dropped, an effect of a
+	// held kind overwrites that entry's payload in place, otherwise it appends.
+	addEffect := func(g generatedEffect) {
+		mask := shopEffectUsableBy(t.Magic, g.effect.Kind)
+		if mask != 3 {
+			for _, held := range item.Effects {
+				if shopEffectUsableBy(t.Magic, held.Kind)&mask == 0 {
+					reprice()
+					return
+				}
+			}
+		}
+		for i := range item.Effects {
+			if item.Effects[i].Kind == g.effect.Kind {
+				item.Effects[i].Operand = g.effect.Operand
+				entryPoints[i] = g.points
+				reprice()
+				return
+			}
+		}
+		item.Effects = append(item.Effects, g.effect)
+		entryPoints = append(entryPoints, g.points)
+		castPrice += g.cast
+		reprice()
 	}
 
 	construct := func(forced bool) (generatedEffect, bool) {
@@ -77,11 +107,10 @@ func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r 
 	if !ok {
 		return ShopItem{}, false
 	}
-	appendEffect(first)
+	addEffect(first)
 	if first.effect.Kind == 41 {
 		return shopItemFromInstance(item, 1), true
 	}
-	remaining -= first.points
 
 	for _, threshold := range []int{50, 25} {
 		gate, _ := shopDrawInclusive(r, 0, 100)
@@ -97,10 +126,22 @@ func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r 
 			// orchestrator before the capacity debit.
 			return shopItemFromInstance(item, 1), true
 		}
-		appendEffect(g)
-		remaining -= g.points
+		addEffect(g)
 	}
 	return shopItemFromInstance(item, 1), true
+}
+
+// shopEffectUsableBy reads the UsableBy parameter of a Magic row; a row
+// without it restricts nothing.
+func shopEffectUsableBy(magic data.Collection, kind uint8) int32 {
+	if magic == nil || int(kind) >= magic.Len() {
+		return 3
+	}
+	p := magic.EntryParams(int(kind))
+	if len(p) <= 3 {
+		return 3
+	}
+	return p[3]
 }
 
 func shopSelectEffectKind(magic data.Collection, fighter bool, slot int, r shopDrawSource) (uint8, bool) {
