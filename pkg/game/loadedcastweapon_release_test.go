@@ -52,7 +52,7 @@ func TestReleaseLoadedCastWeaponUnequipsToTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	worn := mapload.MemberItemEquipment(h.Carried[0], h.Table)[0]
-	if _, _, cast := worn.CastSpell(); !cast || worn.SourceEquipment.Spell.Present {
+	if _, _, cast := worn.CastSpell(); !cast || !worn.SourceEquipment.Spell.Present {
 		t.Fatalf("control: loaded weapon %#x class %d spell %v", worn.Code, worn.SourceEquipment.Class, worn.SourceEquipment.Spell.Present)
 	}
 	row, err := cityMutationSource(h.Town.cityObjects, root.Worn[0], cityItemLocation{})

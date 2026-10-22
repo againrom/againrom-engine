@@ -261,8 +261,15 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 			entryParty[i] = mapload.MaterializePartyCarry(member, table)
 			// A member with no carried state is constructed for this
 			// mission and wears the Spell the template equip builds.
+			worn := entryParty[i].Carry.EquippedItems[:]
 			if member.Carry == nil {
-				joinedWornSpells(entryParty[i].Carry.EquippedItems[:], table)
+				joinedWornSpells(worn, table)
+			} else {
+				for slot := range worn {
+					if worn[slot].SourceEquipment.Class == 0 {
+						joinedWornSpells(worn[slot:slot+1], table)
+					}
+				}
 			}
 		}
 	}

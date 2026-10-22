@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Buying a spell weapon straight onto a hero in town no longer blocks entry to missions. Saves made with such a weapon also load and enter missions.
 - [ROM1] A save made in Againrom no longer crashes the original game when loaded from its in-game menu.
 - [ROM1] Your mages casting an area spell on their own now choose an enemy whose blast spares them and their own or allied units. If no safe enemy is available, they wait or use another spell; casts and attacks you order still work as ordered.
 - [ROM1] Monsters in a game saved by Againrom flee at low health again when that save is loaded in the original game.

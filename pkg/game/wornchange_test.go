@@ -10,6 +10,35 @@ import (
 
 var wornStaffSpell = sim.SourceItemSpell{Present: true, ID: 14, Range: 7, ManaCost: 80}
 
+func TestTownWearConstructsUnboundSpellWeapon(t *testing.T) {
+	table, weapon := staffTooltipTable(t, 14, "Fire Arrow", 20, 7, 3, 5, 0)
+	table.Shapes, table.Materials = unitScale(16), unitScale(16)
+	item := mapload.ItemInstanceFromCode(uint16(weapon.Code), table)
+	item.Effects = []sim.ItemEffect{{Kind: 41, Operand: 14 | 20<<16}}
+	if item.SourceEquipment.Class != 0 || item.WeightPresent {
+		t.Fatal("control: shelf item is already constructed")
+	}
+	got := wearTown(table, 1, item.Clone())
+	if got.SourceEquipment.Class != sim.SourceWeapon || !got.SourceEquipment.Spell.Present || got.SourceEquipment.Spell.ID != 14 || !got.WeightPresent {
+		t.Fatalf("town equip: %+v", got)
+	}
+	plain := item.Clone()
+	plain.Effects = nil
+	if kept := wearTown(table, 1, plain.Clone()); !sim.ItemEqual(kept, plain) {
+		t.Fatal("equip changed an item without castSpell")
+	}
+	missing := item.Clone()
+	missing.Effects[0].Operand = 99
+	if kept := wearTown(table, 1, missing.Clone()); !sim.ItemEqual(kept, missing) {
+		t.Fatal("failed Spell build changed the item")
+	}
+	second := base.GameROM2.Edition()
+	table.Edition = &second
+	if kept := wearTown(table, 1, item.Clone()); !sim.ItemEqual(kept, item) {
+		t.Fatalf("second-game equip changed the item: %+v", kept)
+	}
+}
+
 // wornStaff is a classed Staff whose first castSpell Effect names spell 14;
 // held selects whether it holds the Spell an equip builds.
 func wornStaff(held bool) sim.ItemInstance {

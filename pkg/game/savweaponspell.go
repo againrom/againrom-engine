@@ -56,14 +56,19 @@ func (h townWornHolder) dropNodeSpell() {
 // BuildWeaponSpell builds the Spell from the first castSpell Effect; a spell
 // id without an installed Spells row keeps the gap.
 func (h townWornHolder) BuildWeaponSpell(_ int, item *sim.ItemInstance) bool {
-	if item.SourceEquipment.Class != sim.SourceWeapon {
+	built := *item
+	if built.SourceEquipment.Class == 0 {
+		built = mapload.SourceConstructedItem(built, h.table)
+	}
+	if built.SourceEquipment.Class != sim.SourceWeapon {
 		return false
 	}
-	spell, err := nativeCityWeaponSpell(*item, true, h.table)
+	spell, err := nativeCityWeaponSpell(built, true, h.table)
 	if err != nil || !spell.Present {
 		return false
 	}
-	item.SourceEquipment.Spell = spell
+	built.SourceEquipment.Spell = spell
+	*item = built
 	return true
 }
 
