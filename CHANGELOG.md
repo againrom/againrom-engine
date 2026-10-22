@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.132.0
+
 ### For players
 
 - [ROM1] Dragons and enemy mages no longer get stuck repeating one spell, such as Darkness, that hurts nobody; they pick a new spell or attack each time they choose, so a dragon deals damage again. A Fire Ball or Poison Cloud they cast after walking closer now lands on you instead of the map's corner.
