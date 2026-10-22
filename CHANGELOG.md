@@ -36,6 +36,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] a SAV writes a creature's three spell slots and their use thresholds from the current game; an unused slot is written as zero instead of the loaded file's word
 - [BASE] Both games build the town talk window through one `ui.TownTalk`; each game gives it its pages, art and a `ui.TownTalkProfile`.
+- [ROM1] `World.Hash` digests the passive body contents (form PBC1) with every other World section; a World without passive bodies keeps its hash.
 
 ## 0.131.0
 

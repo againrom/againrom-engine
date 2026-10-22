@@ -14,8 +14,8 @@ type passiveBodyContinuation struct {
 }
 
 // appendPassiveBodies writes the retained terminal contents; a World with none
-// writes no form. It is the outermost section and stays out of Hash: the
-// contents are passive, so no later state of play depends on them.
+// writes no form. It is the outermost section; Hash digests it like every
+// other section, because a later SAVE writes it.
 func (w *World) appendPassiveBodies(b []byte) []byte {
 	if len(w.passiveBodies) == 0 {
 		return b

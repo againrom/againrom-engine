@@ -1641,13 +1641,12 @@ func (w *World) tailCapacity(body int) int {
 }
 
 // encodeInto writes the whole byte form: the form of play, then the passive
-// terminal contents no later state of play depends on.
+// terminal contents as the outermost section. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
 	return w.appendPassiveBodies(w.encodePlayInto(b))
 }
 
-// encodePlayInto writes every section except the passive terminal contents;
-// Hash digests these bytes.
+// encodePlayInto writes every section except the passive terminal contents.
 func (w *World) encodePlayInto(b []byte) []byte {
 	n := w.binaryBodyLen()
 	if cap(b) < n {

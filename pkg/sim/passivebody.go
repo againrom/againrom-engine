@@ -7,8 +7,8 @@ import (
 )
 
 // PassiveBody is what a terminal actor still wore and carried when the World
-// removed its body. Nothing in play reads it: it drops no loot, returns no
-// entity and enters no digest. SAVE writes it on the actor's dead record and a
+// removed its body. Nothing in play reads it: it drops no loot and returns no
+// entity. It enters the digest. SAVE writes it on the actor's dead record and a
 // LOAD of that record restores it. Body is the removed actor itself, kept for a
 // departed native actor without a map placement, which the SAV writer cannot
 // reconstruct from the map and the tables.

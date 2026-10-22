@@ -59,12 +59,12 @@ func TestPassiveBodyKeepsDepartedContents(t *testing.T) {
 	bare := *w
 	bare.passiveBodies = nil
 	plain, err := bare.MarshalBinary()
-	if err != nil || bare.Hash() != w.Hash() || bare.Hash() != fnvOf(plain) {
-		t.Fatalf("passive contents entered the digest of play: %x / %x", bare.Hash(), w.Hash())
+	if err != nil || bare.Hash() != fnvOf(plain) {
+		t.Fatalf("a World without passive contents changed its digest: %x", bare.Hash())
 	}
 	form, err := w.MarshalBinary()
-	if err != nil {
-		t.Fatal(err)
+	if err != nil || w.Hash() != fnvOf(form) || w.Hash() == bare.Hash() {
+		t.Fatalf("passive contents left the digest: %x / %x", bare.Hash(), w.Hash())
 	}
 	if form[0] != passiveBodyFormVersion || !bytes.Equal(form[len(form)-4:], []byte("PBC1")) || !bytes.HasPrefix(form[1:], plain[1:]) {
 		t.Fatal("passive contents are not the outermost form")
@@ -139,6 +139,29 @@ func TestPassiveBodyFollowsActorIdentity(t *testing.T) {
 	}
 	if _, err := w.MarshalBinary(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// One passive body item moves the digest, beyond SAV bytes.
+func TestPassiveBodyItemMovesHash(t *testing.T) {
+	a, b := passiveBodyWorld(t, true), passiveBodyWorld(t, true)
+	Step(a, nil)
+	Step(b, nil)
+	if a.Hash() != b.Hash() {
+		t.Fatal("fixture Worlds differ before the item change")
+	}
+	rows := b.PassiveBodies()
+	rows[1].Worn[0].Code = 0x2349
+	if err := b.RestorePassiveBodies(rows[1:]); err != nil {
+		t.Fatal(err)
+	}
+	pa, pb := *a, *b
+	pa.passiveBodies, pb.passiveBodies = nil, nil
+	if !bytes.Equal(mustMarshal(t, &pa), mustMarshal(t, &pb)) {
+		t.Fatal("Worlds differ outside the passive contents")
+	}
+	if a.Hash() == b.Hash() {
+		t.Fatalf("one passive item left the digest unchanged: %x", a.Hash())
 	}
 }
 
