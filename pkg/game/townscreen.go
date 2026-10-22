@@ -96,11 +96,10 @@ type townScreen struct {
 	offer TownOffer
 
 	// said is the last attempted part, including a failed lookup.
-	said                int
-	dialogueRevision    uint64
-	dialogueButtonState ui.DialogueButtonState
-	dialoguePolicy      ui.DialogueBackdrop
-	dialogue            townDialogueState
+	said int
+	// talkWindow is the town talk window; dialogue is this game's page reader.
+	talkWindow ui.TownTalk
+	dialogue   townDialogueState
 
 	// innQueue is the missions the tavern's conversations have queued and
 	// leaving the tavern commits, in the order they were heard. It is the
@@ -238,7 +237,7 @@ func (t *townScreen) resetForNewGame() {
 	t.atSquare()
 	t.dialogueBuilding, t.mercenaryTalk, t.talkDiagnostic = TownTavern, 0, ""
 	t.dialogue = townDialogueState{}
-	t.dialogueButtonState, t.dialoguePolicy = ui.DialogueButtonState{}, ui.DialogueBackdrop{}
+	t.talkWindow.Reset()
 	t.innQueue = nil
 	t.shopChosen, t.shopShelf = shopNoShelf, ShelfArmour
 	t.shelfBase, t.packBase, t.tableBase = 0, 0, 0
@@ -349,13 +348,11 @@ func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, np
 	if payload == nil {
 		return false
 	}
-	shows := t.TownDialogueShows() + 1
+	t.talkWindow.Open(t.room == roomTalk)
 	t.room, t.dialogueBuilding, t.npc, t.offer, t.said = roomTalk, building, npc, offer, 1
-	t.dialogueRevision++
 	t.resetTownSpeech()
 	t.mercenaryTalk, t.talkDiagnostic = 0, ""
 	t.dialogue = newTownDialogue(payload)
-	t.dialogue.shows = shows
 	t.lookupTownDialogue()
 	return true
 }
@@ -438,15 +435,13 @@ func registerInnMissions(queue []int, register func(int)) {
 // A bad external file remains visible as a concise diagnostic instead of
 // silently substituting prose that no shipped candidate authored.
 func (t *townScreen) openMercenaryDialogue(typ int) {
-	shows := t.TownDialogueShows() + 1
+	t.talkWindow.Open(t.room == roomTalk)
 	t.resetTownSpeech()
 	t.room, t.dialogueBuilding, t.npc, t.offer, t.said = roomTalk, TownTavern, 0, TownOffer{}, 1
-	t.dialogueRevision++
 	t.mercenaryTalk, t.talkDiagnostic = typ, ""
 	t.composeShopFaces()
 	payload := t.townPayload()
 	t.dialogue = newTownDialogue(payload)
-	t.dialogue.shows = shows
 	if !t.lookupTownDialogue() {
 		t.talkDiagnostic = fmt.Sprintf("Mercenary dialogue unavailable: npc%02d", typ)
 	}
@@ -751,53 +746,53 @@ func (t *townScreen) speakerFace(speaker int) (*image.RGBA, image.Rectangle, boo
 	return pic, win, ok
 }
 
-// TownDialogue renders the current shipped dialogue part through the same
-// portrait notice composer used on mission maps.
-func (t *townScreen) townDialogueLayout() (ui.NoticeLayout, []byte, bool) {
+// firstTownTalkProfile is the first game's town talk profile: a window with no
+// font draws nothing, the frame composer gets its frame, the button needs
+// area, and shows count every conversation opened while it stays open.
+var firstTownTalkProfile = ui.TownTalkProfile{CountShows: true, NeedsFont: true, ExposesFrame: true, ButtonNeedsArea: true}
+
+// talkView is the town talk as this game reads it: the current part, or the
+// diagnostic of a candidate whose words failed, with the speaker's talk
+// picture.
+func (t *townScreen) talkView() ui.TownTalkView {
 	if t == nil || t.room != roomTalk {
-		return ui.NoticeLayout{}, nil, false
+		return ui.TownTalkView{Profile: firstTownTalkProfile}
 	}
-	payload := t.dialogue.payload
-	// THE BUTTON WORD IS THE INSTALL'S. This screen composes its own layout
-	// rather than taking the viewer's, so the word set is applied here
-	// explicitly; every other property of the layout is the authored one.
-	l := t.in.Words.OnLayout(ui.AuthoredDialogueLayout())
-	l.Frame = t.art.menuFrame()
-	return l.WithPortrait(t.mercenaryTalk != 0 || t.dialogue.hasPortrait).WithDialogueButtonState(t.dialogueButtonState).WithDialogueBackdrop(t.dialoguePolicy), payload, true
+	line := t.dialogue.text
+	if t.talkDiagnostic != "" {
+		line = t.talkDiagnostic
+	}
+	return ui.TownTalkView{Profile: firstTownTalkProfile, Open: true,
+		Page: ui.TownTalkPage{Text: line, Face: t.dialogue.face, FaceWindow: t.dialogue.faceWindow,
+			Portrait: t.mercenaryTalk != 0 || t.dialogue.hasPortrait},
+		Art: ui.TownTalkArt{Words: t.in.Words, Frame: t.art.menuFrame(), Font: t.in.Font.Value()}}
 }
 
 func (t *townScreen) TownDialogueButtonState() ui.DialogueButtonState {
 	if t == nil {
 		return ui.DialogueButtonState{}
 	}
-	return t.dialogueButtonState
+	return t.talkWindow.ButtonState()
 }
 
 func (t *townScreen) TownDialogueVisual(state ui.DialogueButtonState, policy ui.DialogueBackdrop) {
 	if t != nil {
-		t.dialogueButtonState, t.dialoguePolicy = state, policy
+		t.talkWindow.SetVisual(state, policy)
 	}
 }
 
 func (t *townScreen) TownDialogue() (*image.RGBA, bool) {
-	layout, _, ok := t.townDialogueLayout()
-	if !ok || t.in.Font.Value() == nil {
+	if t == nil {
 		return nil, false
 	}
-	line := t.dialogue.text
-	if t.talkDiagnostic != "" {
-		line = t.talkDiagnostic
-	}
-	layout = layout.WithFaceWindow(t.dialogue.faceWindow)
-	return ui.RenderNotice(layout, t.in.Font.Value(), line, t.dialogue.face), true
+	return t.talkWindow.Picture(t.talkView())
 }
 
 func (t *townScreen) TownDialogueFrame() (*ui.DialogFrame, image.Rectangle) {
-	layout, _, ok := t.townDialogueLayout()
-	if !ok || t.in.Font.Value() == nil {
+	if t == nil {
 		return nil, image.Rectangle{}
 	}
-	return layout.Frame, image.Rectangle{Max: layout.Box.Size().Sub(image.Pt(8, 8))}
+	return t.talkWindow.Frame(t.talkView())
 }
 
 // AdvanceTownDialogue is the one answer to Enter, Escape and a click on the
@@ -805,42 +800,49 @@ func (t *townScreen) TownDialogueFrame() (*ui.DialogFrame, image.Rectangle) {
 // press that closes it posts no line and registers nothing, whether the offer
 // came from the shop, the school or the tavern.
 func (t *townScreen) AdvanceTownDialogue() ui.TownAction {
-	if t == nil || t.room != roomTalk {
+	if t == nil {
 		return ui.TownAction{}
 	}
-	t.dialogueRevision++
+	return t.talkWindow.Advance(t.turnTownTalk)
+}
+
+// turnTownTalk attempts the next part; a failed lookup closes the
+// conversation to the room it was opened from.
+func (t *townScreen) turnTownTalk() bool {
+	if t.room != roomTalk {
+		return false
+	}
 	t.said++
 	if t.talkDiagnostic == "" && t.lookupTownDialogue() {
-		return ui.TownAction{}
+		return true
 	}
 	t.dialogue.closeTips = t.dialogue.tips
 	t.room = t.dialogueRoom()
 	t.mercenaryTalk, t.talkDiagnostic = 0, ""
 	// Closing a conversation preserves the room popup's construction lifetime.
 	t.rereadTip(t.room)
-	return ui.TownAction{}
+	return true
 }
 
 func (t *townScreen) TownDialogueShows() uint64 {
-	if t == nil || t.room != roomTalk {
+	if t == nil {
 		return 0
 	}
-	return t.dialogue.shows
+	return t.talkWindow.Shows(t.talkView())
 }
 
 func (t *townScreen) TownDialogueRevision() uint64 {
 	if t == nil {
 		return 0
 	}
-	return t.dialogueRevision
+	return t.talkWindow.Revision()
 }
 
 func (t *townScreen) TownDialogueButton() (image.Rectangle, bool) {
-	layout, _, ok := t.townDialogueLayout()
-	if !ok {
+	if t == nil {
 		return image.Rectangle{}, false
 	}
-	return layout.Button, !layout.Button.Empty()
+	return t.talkWindow.Button(t.talkView())
 }
 
 func townItemStacks(items []uint16) []sim.ItemStack {

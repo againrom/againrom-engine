@@ -220,10 +220,9 @@ type secondCampaignScreen struct {
 	worldMap   *worldMapState
 	worldMapOf *secondCampaign
 	// worldMapAt is the opening worldMap was built for.
-	worldMapAt          *secondMapOpening
-	dialogueRevision    uint64
-	dialogueButtonState ui.DialogueButtonState
-	dialoguePolicy      ui.DialogueBackdrop
+	worldMapAt *secondMapOpening
+	// talkWindow is the town talk window; the campaign holds its pages.
+	talkWindow ui.TownTalk
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -393,59 +392,69 @@ func (t *secondCampaignScreen) dialogueBody() (string, bool) {
 	return dialoguePart(c.payload, c.part, audience)
 }
 
-func (t *secondCampaignScreen) dialogueLayout() ui.NoticeLayout {
-	layout := t.install.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(false)
-	layout.Frame = t.frame()
-	return layout.WithDialogueButtonState(t.dialogueButtonState).WithDialogueBackdrop(t.dialoguePolicy)
+// secondTownTalkProfile is the second game's town talk profile: no portrait shape,
+// no frame for the frame composer, a font-less window still drawn, the
+// button offered at any size, and one show while the window is open.
+var secondTownTalkProfile = ui.TownTalkProfile{}
+
+// talkView is the town talk as this game reads it: the campaign's current
+// section part, trimmed, without a speaker picture.
+func (t *secondCampaignScreen) talkView() ui.TownTalkView {
+	body, open := t.dialogueBody()
+	if !open {
+		return ui.TownTalkView{Profile: secondTownTalkProfile}
+	}
+	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true,
+		Page: ui.TownTalkPage{Text: strings.TrimSpace(body)},
+		Art:  ui.TownTalkArt{Words: t.install.Words, Frame: t.frame(), Font: t.install.Font.Value()}}
 }
 
 func (t *secondCampaignScreen) setTownDialogue(payload []byte) {
 	c := t.state()
 	c.payload, c.part = payload, 1
-	t.dialogueRevision++
+	t.talkWindow.Open(false)
 }
 
-func (t *secondCampaignScreen) TownDialogueRevision() uint64 { return t.dialogueRevision }
+func (t *secondCampaignScreen) TownDialogueRevision() uint64 { return t.talkWindow.Revision() }
 
 func (t *secondCampaignScreen) TownDialogueButtonState() ui.DialogueButtonState {
-	return t.dialogueButtonState
+	return t.talkWindow.ButtonState()
 }
 
 func (t *secondCampaignScreen) TownDialogueVisual(state ui.DialogueButtonState, policy ui.DialogueBackdrop) {
-	t.dialogueButtonState, t.dialoguePolicy = state, policy
+	t.talkWindow.SetVisual(state, policy)
 }
 
-func (t *secondCampaignScreen) TownDialogueShows() uint64 {
-	if _, open := t.dialogueBody(); open {
-		return 1
-	}
-	return 0
-}
+func (t *secondCampaignScreen) TownDialogueShows() uint64 { return t.talkWindow.Shows(t.talkView()) }
 
 func (t *secondCampaignScreen) TownDialogue() (*image.RGBA, bool) {
-	body, ok := t.dialogueBody()
-	if !ok {
-		return nil, false
-	}
-	return ui.RenderNotice(t.dialogueLayout(), t.install.Font.Value(), strings.TrimSpace(body), nil), true
+	return t.talkWindow.Picture(t.talkView())
+}
+
+func (t *secondCampaignScreen) TownDialogueFrame() (*ui.DialogFrame, image.Rectangle) {
+	return t.talkWindow.Frame(t.talkView())
 }
 
 func (t *secondCampaignScreen) TownDialogueButton() (image.Rectangle, bool) {
-	_, ok := t.dialogueBody()
-	return t.dialogueLayout().Button, ok
+	return t.talkWindow.Button(t.talkView())
 }
 
 func (t *secondCampaignScreen) AdvanceTownDialogue() ui.TownAction {
+	return t.talkWindow.Advance(t.turnTownTalk)
+}
+
+// turnTownTalk turns the campaign's page; a part with no body closes the
+// conversation. Any held campaign turns, open or not.
+func (t *secondCampaignScreen) turnTownTalk() bool {
 	c := t.state()
 	if c == nil {
-		return ui.TownAction{}
+		return false
 	}
-	t.dialogueRevision++
 	c.part++
 	if _, ok := t.dialogueBody(); !ok {
 		c.payload, c.part = nil, 0
 	}
-	return ui.TownAction{}
+	return true
 }
 
 func (t *secondCampaignScreen) CanSave() bool { return t.state().savePoint() }

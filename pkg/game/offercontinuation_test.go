@@ -76,9 +76,9 @@ func TestOfferFirstPartAppContinuation(t *testing.T) {
 					if s.room != room.back || s.said != 3 || s.dialogue.text != "Second\r\n" {
 						t.Fatal("failed third lookup did not close once with retained display", s.room, s.said, s.dialogue.text)
 					}
-					before := s.dialogueRevision
+					before := s.TownDialogueRevision()
 					s.AdvanceTownDialogue()
-					if s.dialogueRevision != before || app.HeadlessMessage() != "" {
+					if s.TownDialogueRevision() != before || app.HeadlessMessage() != "" {
 						t.Fatal("closed panel handled a second close")
 					}
 				})
@@ -91,7 +91,7 @@ func assertOfferPanel(t *testing.T, f *FrontEnd, s *townScreen, body string, por
 	t.Helper()
 	layout := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(portrait)
 	layout.Frame = f.gameMenuArt()
-	layout = layout.WithDialogueButtonState(s.dialogueButtonState).WithDialogueBackdrop(s.dialoguePolicy)
+	layout = layout.WithDialogueButtonState(s.talkWindow.ButtonState()).WithDialogueBackdrop(s.talkWindow.Backdrop())
 	want := ui.RenderNotice(layout, f.Font.Value(), body, nil)
 	wrong := ui.RenderNotice(layout, f.Font.Value(), "Different words", nil)
 	got, shown := s.TownDialogue()

@@ -2819,6 +2819,11 @@ package storyguard
 // constructed record's radius (pkg/game/currentdeadconstruct.go), the
 // withdrawal witness's square and later passes (cmd/missionrun/withdraw.go),
 // their tests, and this paragraph.
+//
+// CommentBytes rises for the one town talk window, all new code: the window,
+// its view and its profile (pkg/ui/towntalk.go), each screen's view and page
+// turn (pkg/game/townscreen.go, secondcampaign.go), their tests, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2842,5 +2847,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9506672,
+	CommentBytes: 9511539,
 }

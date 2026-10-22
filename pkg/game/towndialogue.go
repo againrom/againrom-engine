@@ -9,7 +9,6 @@ import (
 )
 
 type townDialogueState struct {
-	shows       uint64
 	payload     []byte
 	text        string
 	tag         string

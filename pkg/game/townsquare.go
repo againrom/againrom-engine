@@ -190,7 +190,7 @@ var townHooks = map[string]func(t *townScreen, room townRoom){
 	"inn-queue-commit":    func(t *townScreen, _ townRoom) { t.commitInnQueue() },
 	"trade-cancel":        func(t *townScreen, _ townRoom) { t.shopClear() },
 	"dialogue-reset": func(t *townScreen, _ townRoom) {
-		t.dialogueRevision++
+		t.talkWindow.Touch()
 		t.resetTownSpeech()
 	},
 	"tavern-leave": func(t *townScreen, _ townRoom) { t.leaveTavernInterior() },
