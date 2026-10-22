@@ -136,9 +136,9 @@ func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
 			if err := app.HeadlessKey("f9"); err != nil || app.Screen() != ui.ScreenMap {
 				t.Fatal("actual F9", err)
 			}
-			quickAssertSample(t, missionAutosaveSampleNow(t, f), latest.Samples[0])
+			quickAssertSample(t, f, missionAutosaveSampleNow(t, f), latest.Samples[0])
 			missionAutosaveNext(f, latest)
-			quickAssertSample(t, missionAutosaveSampleNow(t, f), latest.Samples[1])
+			quickAssertSample(t, f, missionAutosaveSampleNow(t, f), latest.Samples[1])
 			quickWriteProof(t, filepath.Join(store.Dir, "quick-save-2.sav"), emitted[4], latest)
 			runSpellWitnessChild(t, filepath.Join(store.Dir, "quick-save-2.sav"), "AGAINROM_QUICK_LOAD_INPUT")
 			for _, path := range []string{manual, filepath.Join(store.Dir, start.Name)} {
@@ -183,8 +183,9 @@ func quickWriteProof(t *testing.T, path string, raw []byte, proof missionAutosav
 	}
 }
 
-func quickAssertSample(t *testing.T, got, want missionAutosaveSample) {
+func quickAssertSample(t *testing.T, f *FrontEnd, got, want missionAutosaveSample) {
 	t.Helper()
+	want.View = viewAfterSAVUpperBounds(want.View, f.live.mission.state.Map.Width, f.live.mission.state.Map.Height)
 	if got.State.Hash != want.State.Hash || !bytes.Equal(got.State.World, want.State.World) || got.State.Mission != want.State.Mission ||
 		want.CampaignKnown && !reflect.DeepEqual(got.State.Campaign, want.State.Campaign) || got.Main != want.Main || got.Selected != want.Selected || got.Gold != want.Gold ||
 		!reflect.DeepEqual(got.Won, want.Won) || !reflect.DeepEqual(got.View, want.View) {
@@ -230,9 +231,9 @@ func quickLoadCold(t *testing.T, path string) {
 	if err := app.HeadlessKey("f9"); err != nil || f.live == nil || !f.live.mission.resumed {
 		t.Fatal("cold App F9", err)
 	}
-	quickAssertSample(t, missionAutosaveSampleNow(t, f), proof.Samples[0])
+	quickAssertSample(t, f, missionAutosaveSampleNow(t, f), proof.Samples[0])
 	missionAutosaveNext(f, proof)
-	quickAssertSample(t, missionAutosaveSampleNow(t, f), proof.Samples[1])
+	quickAssertSample(t, f, missionAutosaveSampleNow(t, f), proof.Samples[1])
 	t.Logf("QUICK-F9-COLD-PASS pid=%d SHA256=%s", os.Getpid(), proof.SHA256)
 }
 

@@ -513,6 +513,60 @@ func originalViewFloor(cells float64) int32 {
 	return int32(math.Round(cells))
 }
 
+func (f *FrontEnd) clampOriginalView(doc *sav.DocumentData) error {
+	if !f.campaign().files().boundedSaveView {
+		return nil
+	}
+	x, err := readOriginalStateLeaf(doc, "/View/X", 2)
+	if err != nil {
+		return err
+	}
+	y, err := readOriginalStateLeaf(doc, "/View/Y", 2)
+	if err != nil {
+		return err
+	}
+	if x.Int32 == 0 && y.Int32 == 0 {
+		return nil
+	}
+	book, err := readOriginalStateLeaf(doc, "/SpellBook/IsOpen", 2)
+	if err != nil {
+		return err
+	}
+	rows := 22
+	if book.Int32 == 1 {
+		rows = 19
+	}
+	var width, height int
+	if doc.World != nil && f.live != nil && f.live.mission != nil && f.live.mission.state != nil {
+		m := f.live.mission.state.Map
+		width, height = m.Width, m.Height
+	} else {
+		b, err := f.Archives.Containers.ReadFile(scenarioPrefix + originalMapName(doc.Head.MapName))
+		if err != nil {
+			return err
+		}
+		m, err := tableFiles(f.Table).openMap(b)
+		if err != nil {
+			return err
+		}
+		width, height = m.Width, m.Height
+	}
+	for _, axis := range []struct {
+		path         string
+		value        int32
+		size, extent int
+	}{{"/View/X", x.Int32, width, 27}, {"/View/Y", y.Int32, height, rows}} {
+		value := min(axis.value, int32(max(0, axis.size-viewOriginFloor-axis.extent)))
+		if _, err := patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, axis.path, func(v *sav.CityStateValueData) error {
+			v.Int32 = value
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func applicationCurrentRaw(app *SnapshotApplicationState) (OriginalStateData, error) {
 	if app == nil {
 		return OriginalStateData{}, worldSaveUnsupportedf("current application state is absent")

@@ -208,6 +208,7 @@ func missionAutosaveCold(t *testing.T, path string) {
 	}
 	for i, want := range proof.Samples {
 		got := missionAutosaveSampleNow(t, f)
+		want.View = viewAfterSAVUpperBounds(want.View, f.live.mission.state.Map.Width, f.live.mission.state.Map.Height)
 		if got.State.Hash != want.State.Hash || !bytes.Equal(got.State.World, want.State.World) ||
 			got.State.Mission != want.State.Mission || want.CampaignKnown && !reflect.DeepEqual(got.State.Campaign, want.State.Campaign) ||
 			got.Main != want.Main || got.Selected != want.Selected || got.Gold != want.Gold || !reflect.DeepEqual(got.Won, want.Won) ||

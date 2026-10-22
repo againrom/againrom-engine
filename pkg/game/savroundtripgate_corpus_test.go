@@ -35,6 +35,7 @@ import (
 	"unsafe"
 
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/render/camera"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -710,6 +711,9 @@ func savGateRun(t *testing.T, assets string, c savGateCase) (out savGateOutcome)
 			sort.Strings(out.mismatches)
 			return out
 		}
+		if cycle == 1 && c.raw != nil && c.ticks == 0 && !c.kill {
+			savGateOriginalView(t, c, written)
+		}
 		if revivedIdentity != 0 {
 			doc, err := sav.DecodeDocumentData(written)
 			if err != nil {
@@ -789,6 +793,7 @@ func savGateTownRun(t *testing.T, assets string, c savGateCase) (out savGateOutc
 		out.refusal = refusal
 		return out
 	}
+	savGateOriginalView(t, c, written)
 	g, refusal := restore(written)
 	if refusal != "" {
 		out.refusal = "load " + refusal
@@ -822,6 +827,39 @@ func savGateTownRun(t *testing.T, assets string, c savGateCase) (out savGateOutc
 	return out
 }
 
+func savGateOriginalView(t *testing.T, c savGateCase, written []byte) {
+	t.Helper()
+	source, err := sav.Open(c.raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source.HasNativeActionsLeaf() {
+		return
+	}
+	before, err := sav.DecodeDocumentData(c.raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := sav.DecodeDocumentData(written)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/View/X", "/View/Y"} {
+		b, err := readOriginalStateLeaf(&before, path, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		a, err := readOriginalStateLeaf(&after, path, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Int32 != b.Int32 {
+			t.Errorf("original view %s %s: %d -> %d", c.name, path, b.Int32, a.Int32)
+		}
+	}
+	t.Logf("ORIGINAL-VIEW checked %s", c.name)
+}
+
 // savGateSaveLoad saves f through the player's SAVE dialog route and restores
 // the written file into a second front end.
 func savGateSaveLoad(t *testing.T, assets string, c savGateCase, f *FrontEnd) (*FrontEnd, *ui.App, []byte, string) {
@@ -845,6 +883,18 @@ func savGateSaveLoad(t *testing.T, assets string, c savGateCase, f *FrontEnd) (*
 // when it did not, the hashed field paths are named again after the advance,
 // so a loss that appears or spreads during it is its own key.
 func savGateCompare(t *testing.T, c savGateCase, f *FrontEnd, a *ui.App, g *FrontEnd, b *ui.App, prefix string, out *savGateOutcome) {
+	expectedVisible := func() map[string]string {
+		out := savGateVisible(a, f.live)
+		if c.raw == nil {
+			view := f.live.view.SaveApplication()
+			m := f.live.mission.state.Map
+			bounded := viewAfterSAVUpperBounds(view, m.Width, m.Height)
+			cam := f.live.view.Camera()
+			out["camera.x"] = fmt.Sprint(cam.X + (bounded.ViewX-view.ViewX)*camera.CellSize)
+			out["camera.y"] = fmt.Sprint(cam.Y + (bounded.ViewY-view.ViewY)*camera.CellSize)
+		}
+		return out
+	}
 	mismatch := func(field, detail string) {
 		out.mismatches = append(out.mismatches, prefix+field)
 		t.Logf("MISMATCH %s %s%s: %s", c.name, prefix, field, detail)
@@ -871,7 +921,7 @@ func savGateCompare(t *testing.T, c savGateCase, f *FrontEnd, a *ui.App, g *Fron
 			moving[fmt.Sprint(d.ID)] = true
 		}
 	}
-	savGateCompareVisible(savGateVisible(a, f.live), savGateVisible(b, g.live), moving, mismatch, func(field, detail string) {
+	savGateCompareVisible(expectedVisible(), savGateVisible(b, g.live), moving, mismatch, func(field, detail string) {
 		out.transients = append(out.transients, prefix+field)
 		t.Logf("TRANSIENT %s %s%s: %s", c.name, prefix, field, detail)
 	})
@@ -888,7 +938,7 @@ func savGateCompare(t *testing.T, c savGateCase, f *FrontEnd, a *ui.App, g *Fron
 	if !equalAtLoad {
 		worldFields("advanced.")
 	}
-	savGateCompareVisible(savGateVisible(a, f.live), savGateVisible(b, g.live), nil, func(field, detail string) {
+	savGateCompareVisible(expectedVisible(), savGateVisible(b, g.live), nil, func(field, detail string) {
 		mismatch("advanced."+field, detail)
 	}, nil)
 }

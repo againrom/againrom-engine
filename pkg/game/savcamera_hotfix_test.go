@@ -24,6 +24,7 @@ func TestReleaseMissionSaveReopensAtTheSavedCamera(t *testing.T) {
 	start := f.live.view.SaveApplication()
 	moved := start
 	moved.ViewX, moved.ViewY = math.Round(start.ViewX)+11, math.Round(start.ViewY)+9
+	moved = viewAfterSAVUpperBounds(moved, f.live.mission.state.Map.Width, f.live.mission.state.Map.Height)
 	if err := f.live.view.RestoreSaveApplication(moved); err != nil {
 		t.Fatal(err)
 	}

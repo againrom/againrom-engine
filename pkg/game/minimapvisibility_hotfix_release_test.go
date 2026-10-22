@@ -75,7 +75,8 @@ func TestReleaseMinimapAlwaysVisibleAfterHistoricalUIAndSAVLoad(t *testing.T) {
 	g, b := minimapColdLoad(t, dir, "visible.sav")
 	minimapVisibleInstalled(t, g, b, "cold-sav")
 	assertCurrentWorldEqual(t, f.live.world, g.live.world, "minimap cold SAV")
-	if !reflect.DeepEqual(before, g.live.view.SaveApplication()) || !bytes.Equal(visible, g.live.fog.visible) || !bytes.Equal(explored, g.live.fog.explored) {
+	want := viewAfterSAVUpperBounds(before, f.live.mission.state.Map.Width, f.live.mission.state.Map.Height)
+	if !reflect.DeepEqual(want, g.live.view.SaveApplication()) || !bytes.Equal(visible, g.live.fog.visible) || !bytes.Equal(explored, g.live.fog.explored) {
 		t.Fatal("cold SAV changed application or fog")
 	}
 	tick := g.live.world.Tick()
@@ -99,7 +100,7 @@ func TestReleaseMinimapAlwaysVisibleAfterHistoricalUIAndSAVLoad(t *testing.T) {
 	if _, _, err := g.Snapshot(true); err != nil {
 		t.Fatal(err)
 	}
-	t.Log("historical gob UI false -> existing RestoreSaveApplication; ordinary native SAV -> cold App LOAD -> eight post-load frames with simulation advancement; capture true; restore leaves other switches/camera/World/fog unchanged")
+	t.Log("historical gob UI false -> existing RestoreSaveApplication; ordinary native SAV -> cold App LOAD -> eight post-load frames with simulation advancement; capture true; restore preserves other switches/World/fog and bounds the saved camera")
 }
 
 func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {

@@ -52,15 +52,17 @@ type gameFiles struct {
 	// savePages are the game's own load and save pages, or nil for the
 	// first game's LOAD window and save dialog. ownSaves makes both pages
 	// list only this game's game*.sav files by their label.
-	savePages func(*FrontEnd) *ui.SavePages
-	ownSaves  bool
+	savePages       func(*FrontEnd) *ui.SavePages
+	ownSaves        bool
+	boundedSaveView bool
 }
 
 var firstGameFiles = gameFiles{
-	table:         databin.ROM1Layout,
-	openMap:       alm.Open,
-	compileScript: mapload.CompileScript,
-	loadMenu:      menu.Load,
+	boundedSaveView: true,
+	table:           databin.ROM1Layout,
+	openMap:         alm.Open,
+	compileScript:   mapload.CompileScript,
+	loadMenu:        menu.Load,
 	briefing: func(src entrySource, _ base.Edition, mission int) string {
 		return MissionObjectives(src, mission)
 	},
