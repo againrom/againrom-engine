@@ -147,7 +147,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 			return "", err
 		}
 	} else if m.Kind == mod.MissionGuest {
-		if err := checkGuest(c, x.archives.Containers, m); err != nil {
+		if err := checkGuest(c, x.archives.Containers, mod.MissionData{Missions: []mod.Mission{m}}, m); err != nil {
 			return "", err
 		}
 	} else {

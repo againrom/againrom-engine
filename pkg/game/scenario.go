@@ -1461,6 +1461,6 @@ func StartScenarioMission(a *Archives, s HeadlessScenario) (*PlayWorld, *Mission
 		return nil, nil, err
 	}
 	p := NewPlayWorld(ms)
-	p.watchAnnouncements(ms, a.Containers, LoadNPCFaces(a.Containers))
+	p.watchAnnouncements(ms, a.Containers, defs.Table.NPCCatalog.Portraits())
 	return p, ms, nil
 }

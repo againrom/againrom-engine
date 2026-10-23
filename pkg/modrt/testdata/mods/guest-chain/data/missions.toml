@@ -1,0 +1,26 @@
+# After mission 20 is won, companion 22, as the town of chapter 30 (Plagat)
+# would grant her, plays mission 25 alone. Her win opens mission 26 with no
+# town between: she plays on as she ended mission 25, beside this mod's
+# sellsword at level 2, armed with the sword and the mail this file sets.
+# When mission 26 is won, the party goes on to Plagat, where she joins with
+# what she gained in both missions. The two missions share one map, which
+# cmd/modmission copies out of an install.
+[[mission]]
+key      = "first"
+number   = 25
+map      = "mission/{lang}/map.alm"
+texts    = "mission/{lang}/text"
+title    = "first.title"
+after    = 20
+guest    = 22
+chapter  = 30
+
+[[mission]]
+key      = "second"
+number   = 26
+map      = "mission/{lang}/map.alm"
+texts    = "mission/{lang}/text"
+title    = "second.title"
+after    = 25
+gold     = 100
+party    = [{ character = "npc22" }, { character = "sellsword", level = 2, weapon = "Iron Short Sword", armour = ["Hard Leather Mail"] }]

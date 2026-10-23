@@ -65,7 +65,7 @@ type MercenaryTerms struct {
 	PriceB int32
 }
 
-// LoadNPCDefs reads every `npc<n>` section of r and records the definition id it
+// loadNPCDefs reads every `npc<n>` section of r and records the definition id it
 // names.
 //
 // A section whose name is not that stem followed by a decimal number is skipped,
@@ -81,7 +81,7 @@ type MercenaryTerms struct {
 //
 // A nil registry is no sections. It cannot fail: every value it takes is already
 // parsed, and a key of the wrong kind is simply not an integer and is skipped.
-func LoadNPCDefs(r *reg.Reg) *NPCDefs {
+func loadNPCDefs(r *reg.Reg) *NPCDefs {
 	n := &NPCDefs{byID: make(map[int32]int32), mercenary: make(map[int32]MercenaryTerms),
 		composed: make(map[int32]NPCTokens), flags: make(map[int32]NPCTokens),
 		hero: make(map[int32]heroTemplate), heroFaces: [4]int32{1, 1, 1, 1}}

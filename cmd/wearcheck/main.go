@@ -63,7 +63,7 @@ func run(args []string, out io.Writer) error {
 		return printSpellReport(out, scanSpells(defs.Table))
 	}
 	if *speakers {
-		return printSpeakerReport(out, game.LoadNPCFaces(archives.Containers), defs.Table)
+		return printSpeakerReport(out, defs.Table.NPCCatalog.Portraits(), defs.Table)
 	}
 	if *weights {
 		return printWeightReport(out, sweepWeights(defs.Table))

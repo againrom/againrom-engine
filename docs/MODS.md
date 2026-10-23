@@ -24,13 +24,13 @@ with `game.data.add`.
 | kind | file | key | layer | two mods on one record | see |
 |---|---|---|---|---|---|
 | items | `data/items.toml` | `key` (an added item), `item` (a change of a shipped row) | catalog, kept until T9 | added items are each mod's own; two changes of one shipped row both apply, the later's values last, unnamed | `DIV-1861`, `docs/1272/story.md` |
-| characters | `data/characters.toml` | `target` (a definition row or a family of tier rows) | catalog, kept until T6 | both edits apply in load order, the later's values last, unnamed | `docs/1278/story.md` |
+| characters | `data/characters.toml` | `key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows) | catalog, merged | catalog keys: yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after | Guest parties, `docs/1278/story.md`, `docs/1508/story.md`, `DIV-4002`, `DIV-4003` |
 | screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
 | spells | `data/spells.toml` | `target` and the field; `[global]` keys | catalog, kept until an unscheduled spell catalog story | no: one field of one spell, and one global key, is set by one mod | Spell damage columns, `docs/1341/story.md`, `DIV-2364` |
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
-| missions | `data/missions.toml` | `number`; `key` within the mod | catalog, kept until T6 | no: one mission number, and one guest mission after one campaign mission, per mod set | Missions, `docs/1408/story.md` |
+| missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
 | towns | `data/towns.toml` | `id` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town off | Towns, `docs/1486/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
 
@@ -317,10 +317,12 @@ A mod that loads on both games lists `"rom1"`, `"rom2-en"` and `"rom2-ru"` in
 
 `data/missions.toml` holds `[[mission]]` tables of two kinds. A guest mission
 (`kind = "guest"`, the default) adds one mission that a guest party plays
-after a campaign mission is won and before the town that win opens. The party
-waits: it is kept as the town SAV of that moment and comes back through the
-town LOAD when the guest wins. A replacing mission (`kind = "replace"`) plays
-a campaign mission of the install on the mod's map; see below.
+after a campaign mission is won and before the town that win opens, or after
+another guest mission is won (see Chains). The party waits: it is kept as the
+town SAV of that moment and comes back through the town LOAD when the guest
+party wins the last mission of the chain. A replacing mission
+(`kind = "replace"`) plays a campaign mission of the install on the mod's
+map; see below.
 
 | key | value |
 |---|---|
@@ -330,17 +332,23 @@ a campaign mission of the install on the mod's map; see below.
 | `map` | required; the map file inside the mod folder (at most 1 MiB) |
 | `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files: `eventNN.txt`, `tipsNN.txt` and `briefmap.txt`, the world map's mission text. Write them in UTF-8; the game encodes each into the running install's bytes, so one folder reads right on the English and the Russian base. Typographic quotes, dashes, the ellipsis and the no-break space are written as their plain forms (`"`, `'`, `-`, `...`, a space); any other character the install has no byte for is dropped, and the map check names it when the editor saves into the mod. A file that is not valid UTF-8 is served byte for byte, as mods written before UTF-8 were. A short install-encoded Russian file whose high bytes happen to form valid UTF-8 (CP866 `e2 a0 ac`) is read as UTF-8; whole sentences are not |
 | `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
-| `after` | required; the campaign mission whose win starts this mission; its successor must be a town |
-| `guest` | required; the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
-| `chapter` | required; a town chapter whose `AddHero` grants `guest` |
-| `gold` | optional, 0..1000000, default 0; the guest's purse |
-| `carry` | optional; only `"join"`: the guest joins in the town of `chapter` through its own grant, as he or she ended the mission |
+| `after` | required; the mission whose win starts this mission: a campaign mission whose successor is a town, or a guest mission of the active mods |
+| `guest` | the guest form: the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
+| `chapter` | the guest form: the town the chain ends in, whose `AddHero` grants `guest` |
+| `party` | instead of `guest`, `chapter` and `carry`: 1 to 8 members, an array of `{ character = "...", level = 1..4, weapon = "...", shield = "...", armour = ["...", ...] }` (see Guest parties) |
+| `gold` | optional, 0..1000000, default 0; the guest party's purse |
+| `carry` | optional; only `"join"`: the guest joins in the town of `chapter` through its own grant, as he or she ended the chain |
+| `off` | `true` switches off the mission of `number` another mod declares; the table holds only `number`, `off` and `kind` |
 
 `{lang}` in `map` or `texts` becomes the language the game runs in (`en`,
-`ru`). One mod or two cannot add two missions under one number or after one
-win. Nothing but the guest's own state carries back: the mission's purse,
-loot and payment stay behind. A SAVE inside the mission names the mod and the
-mission; a LOAD without that mod refuses.
+`ru`). Missions merge by `number`: a mod that loads after another (its
+`load-after` names that mod) replaces that mod's mission of the same number
+as a whole, and the check names the override; without that order two mods
+cannot declare one number. One mission follows one win: two guest missions
+after one mission are refused at load, naming both files and lines. Nothing
+but the state of the guest who joins carries back: the chain's purse, loot,
+payment and every other member stay behind. A SAVE inside a guest mission
+names the mod and the mission; a LOAD without that mod refuses.
 
 A map's own pages take priority: `<stem>.text/<lang>/`, then
 `<stem>.text/` beside its ALM. The declared `texts` folder supplies missing
@@ -369,6 +377,88 @@ briefing = "prologue.briefing"
 after    = 20
 guest    = 22
 chapter  = 30
+```
+
+### Chains
+
+A guest mission whose `after` is another guest mission plays when that one
+is won, with no town between, as the campaign's `AutoGetMission` opens the
+next mission after missions 10 and 20 (REG-SCN-063, SAV-1329). The missions
+make one chain of any length; the first plays after a campaign mission, and
+the chain ends in the town that campaign mission's win opens, where the
+waiting party comes back when the last mission is won (DIV-4001). A member
+a mission's party names again comes as he or she ended the previous mission;
+the others are built anew. At most one mission of a chain uses the guest
+form, and its guest is the one who joins. A cycle (`after` naming a later
+link of the same chain) or a missing link (`after` naming neither a campaign
+mission nor a guest mission) is refused at load with the file and the line.
+A SAVE in any mission of the chain keeps the mod, the mission, the party the
+mission began with and the waiting party; a LOAD continues the chain.
+
+```toml
+[[mission]]
+key     = "first"
+number  = 25
+map     = "mission/{lang}/map.alm"
+after   = 20
+guest   = 22
+chapter = 30
+
+[[mission]]
+key    = "second"
+number = 26
+map    = "mission/{lang}/map.alm"
+after  = 25
+gold   = 100
+party  = [{ character = "npc22" }, { character = "sellsword", level = 2, weapon = "Iron Short Sword", armour = ["Hard Leather Mail"] }]
+```
+
+### Guest parties
+
+A party member names a character of the one character catalog: `npc<n>` is
+record `n` of the install's `npc.reg`, and any other key is a `[[character]]`
+a mod adds in `data/characters.toml`. The first member leads the party. Every
+member uses the same party builder as a town companion (DIV-4002).
+
+Every installed catalog record can be named, including `npc1`, `npc31` and
+`npc100`. A record without `DataBinID` has no installed party template. It
+uses a stated default (DIV-4003): the `PC_Danath`, `PC_Naira`, `PC_Fergard`
+or `PC_Reniesta` family selected by its `Female` and `Mage` flags, with an
+absent flag meaning male or fighter. Its level picks the family tier (the
+bare name for level 1, `_2` to `_4` for later levels), by default the band
+of the chain's town. Statistics, skills and equipment come
+from that row; the declaration's equipment replaces its cells. A human
+figure keeps the record's face; a flat portrait uses the row's human face
+and body. Its name is the record's `Name`, else its installed NPC name,
+else its catalog key. This default does not create a playable creature.
+
+- `level` 1 to 4 picks the row of the level's band. A composed `npc.reg`
+  record takes the row of the band of mission `(level - 1) * 40`
+  (HERO-JOIN-120); a mod character whose row is a family takes
+  `<family>_<level>`. Without `level`, a composed record takes the row the
+  chain's town grants and a family takes the band of that town's chapter.
+  An `npc.reg` record with one row, or a mod character with one row that is
+  no tier of a family, takes no `level`.
+- `weapon` and `shield` replace the row's weapon and shield cell; `armour`
+  replaces all eight armour cells, those it does not name left empty. An
+  empty string empties the cell. A name no item of the cell's kind has is
+  refused at load.
+
+A `[[character]]` table with `key` adds a character to the catalog. Its keys
+are `key` (1 to 32 of a-z, 0-9 and `_`, starting with a letter; not `npc<n>`), `row` (a definition
+row, or a family of tier rows), `name` (a text key of the mod) and `face`.
+`off = true`, alone with `key`, switches a mod's character off. Characters
+merge by `key` the way missions merge by `number`. A `[[character]]` table
+with `target` edits definition rows as before. Every operation applies in
+load order, including family and individual-row edits that overlap. No
+`load-after` is required for target edits: a later `kind` replaces the
+earlier face with its own, then its explicit `face` applies if present.
+
+```toml
+[[character]]
+key  = "sellsword"
+row  = "NPC06"
+name = "character.sellsword"
 ```
 
 ### Replacing a campaign mission

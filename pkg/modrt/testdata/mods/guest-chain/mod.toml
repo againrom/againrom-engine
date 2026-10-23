@@ -1,0 +1,10 @@
+id          = "guest-chain"
+title       = "Guest chain"
+version     = "1.0.0"
+author      = "Againrom"
+description = "After mission 20 the mage Reniesta plays two missions of her own while the party waits, the second beside a sellsword of this mod; in Plagat she joins the party with what she gained. Assemble the map with cmd/modmission first."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"
+# With reniesta enabled too, this mod's mission 25 replaces that mod's.
+load-after  = ["reniesta"]

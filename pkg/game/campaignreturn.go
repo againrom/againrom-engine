@@ -135,10 +135,32 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 // party: the campaign's definition row for that party, named and drawn as the
 // install names and draws it.
 func townCompanion(in townInstall, chapter, npc int, party []mapload.PartyMember) (mapload.PartyMember, bool) {
-	member, ok := mapload.CampaignNPCMember(in.table, int32(npc), chapter, party)
+	return in.character(mapload.CharacterSpec{NPC: int32(npc), Mission: chapter}, "", party)
+}
+
+// character is the member s names, built by the one builder against party,
+// named and drawn as the install names and draws it: an npc record by the
+// town's companion line, any other member by name when it is set.
+func (in townInstall) character(s mapload.CharacterSpec, name string, party []mapload.PartyMember) (mapload.PartyMember, bool) {
+	member, ok := mapload.CharacterMember(in.table, s, party)
 	if !ok {
 		return mapload.PartyMember{}, false
 	}
+	if s.NPC != 0 && s.Row == 0 {
+		member.Name = in.companionName(member)
+	} else if name != "" {
+		member.Name = name
+	}
+	body, dir, class, matched := data.HeroAppearance(in.bodies, mapload.EquipmentFromParty(member), member.Mage, false)
+	if matched {
+		member.Body, member.BodyDir, member.Class = string(body), dir, class
+	}
+	return member, true
+}
+
+// companionName is the npcnames line the town names a companion by: the line
+// of the composed archetype (female +1, mage +2) after line 21.
+func (in townInstall) companionName(member mapload.PartyMember) string {
 	selector := 0
 	if data.FigureDir(member.FigureDir).Female() {
 		selector++
@@ -153,12 +175,7 @@ func townCompanion(in townInstall, chapter, npc int, party []mapload.PartyMember
 			break
 		}
 	}
-	member.Name = in.localizedNPC(20+selector, fallback)
-	body, dir, class, matched := data.HeroAppearance(in.bodies, mapload.EquipmentFromParty(member), member.Mage, false)
-	if matched {
-		member.Body, member.BodyDir, member.Class = string(body), dir, class
-	}
-	return member, true
+	return in.localizedNPC(20+selector, fallback)
 }
 
 // settleCompanionArrival gives a party grown by a town companion the city

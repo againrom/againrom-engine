@@ -18,6 +18,16 @@ fire-ball-tune rom1-en mark 654ffe230137c4406fc09a13d1b7b91ef7197e23f78cf11c3ff7
 fire-ball-tune-packed rom1-en rules skill_cap=100
 fire-ball-tune-packed rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 fire-ball-tune-packed rom1-en mark 654ffe230137c4406fc09a13d1b7b91ef7197e23f78cf11c3ff72270ad4a4a48
+guest-chain rom1-en refused mod "guest-chain": data/missions.toml:8: map: mission/en/map.alm: no such file in the mod folder
+guest-chain-packed rom1-en refused mod "guest-chain": data/missions.toml:8: map: mission/en/map.alm: no such file in the mod folder
+guest-chain-complete rom1-en rules skill_cap=100
+guest-chain-complete rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
+guest-chain-complete rom1-en missions 57106291324f89abb057f008a66f63d93141ebd336635eb0fae4ffd9fe669bfc
+guest-chain-complete rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
+guest-chain-complete-packed rom1-en rules skill_cap=100
+guest-chain-complete-packed rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
+guest-chain-complete-packed rom1-en missions 57106291324f89abb057f008a66f63d93141ebd336635eb0fae4ffd9fe669bfc
+guest-chain-complete-packed rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
 heavy-armor rom1-en rules skill_cap=100
 heavy-armor rom1-en items 8f35c81b26545f3503bf0b60a71ade859ea15d8fc1d73fc3d4b3fccb211d7d04
 heavy-armor rom1-en screens 0b2d7f90376870595df92084f8f446087b37763eb6524c25d88150370e85aa9c
@@ -62,14 +72,14 @@ war-hammer-mace-packed rom1-en bodies 39b87a5a69cdc4e34c5aca3de1001072776be40655
 war-hammer-mace-packed rom1-en mark 1171ec585a23dac33ed2c6e53fddcf816fcbb49a9021e79ba1268412d2095033
 all rom1-en rules skill_cap=150
 all rom1-en items 8f35c81b26545f3503bf0b60a71ade859ea15d8fc1d73fc3d4b3fccb211d7d04
-all rom1-en characters ff1b85da60e43863437f86d25f447440d7e6d85559d4b2f7e1a5c1350e944b9d
+all rom1-en characters e20b8cc2f326e34ca6d2da23d7107bd4065f51b1fde2420ab435ec93b743b1ad
 all rom1-en screens 40c21fb4d8e2289151fe527d3f73800c26d1cd12b8d746c6d237d702a5bab598
 all rom1-en companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-en bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-en missions 9be51ac90e4e8fc5d62880464fe105d3824439ec5c0051faec74046f2597e277
-all rom1-en towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
-all rom1-en mark a80342995472cb32fe5af0cf90f9a690d336ea0489f02e956876aa58a6ef247f
+all rom1-en missions da5edb023a4ce5b65fdedcf86ea860c138b14428051ccaa6ad992c70599192df
+all rom1-en towns b054ed0761a4c490dae5ca29eebdc7d43bee212bd39f7bd900449f75cd3bbce7
+all rom1-en mark f73f9ee5355e59dfbec47050b41a185d551ff5d5dedee9fb1ecd44084dfd74a0
 archer-girl rom1-ru rules skill_cap=100
 archer-girl rom1-ru characters 09b57c207fafbf8e137c626666c4bb5dd950fc67f0c48863ee14d3c83d332532
 archer-girl rom1-ru mark ac4df27391cce95455e7fc57ea68087bd9657eccf717cb7972fdf8c271093ddc
@@ -90,6 +100,16 @@ fire-ball-tune rom1-ru mark 0b1b8d3364aa0a1fbaeabf5144a8782658fd36220831a4394d09
 fire-ball-tune-packed rom1-ru rules skill_cap=100
 fire-ball-tune-packed rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 fire-ball-tune-packed rom1-ru mark 0b1b8d3364aa0a1fbaeabf5144a8782658fd36220831a4394d09d0f7c3eb35cc
+guest-chain rom1-ru refused mod "guest-chain": data/missions.toml:8: map: mission/ru/map.alm: no such file in the mod folder
+guest-chain-packed rom1-ru refused mod "guest-chain": data/missions.toml:8: map: mission/ru/map.alm: no such file in the mod folder
+guest-chain-complete rom1-ru rules skill_cap=100
+guest-chain-complete rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
+guest-chain-complete rom1-ru missions 9acf4427a8ac9c738f5be1ede1934b90fc83c5f07ac5cc8b29c7b1031380da8c
+guest-chain-complete rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
+guest-chain-complete-packed rom1-ru rules skill_cap=100
+guest-chain-complete-packed rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
+guest-chain-complete-packed rom1-ru missions 9acf4427a8ac9c738f5be1ede1934b90fc83c5f07ac5cc8b29c7b1031380da8c
+guest-chain-complete-packed rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
 heavy-armor rom1-ru rules skill_cap=100
 heavy-armor rom1-ru items bf686dbcc7a826ef7173c7f02ba7313ef5a0d8c5807eeb1ab10621728d4edb8e
 heavy-armor rom1-ru screens 1187771ad486c604f6dd2f95ee75b848a98dc383cf63d91634e1ea5c61bcef04
@@ -134,11 +154,11 @@ war-hammer-mace-packed rom1-ru bodies 39b87a5a69cdc4e34c5aca3de1001072776be40655
 war-hammer-mace-packed rom1-ru mark 91f8462ef02f0e7459529b0f54cfd1d7915e423fe29bb83fc0d360898312cbf5
 all rom1-ru rules skill_cap=150
 all rom1-ru items bf686dbcc7a826ef7173c7f02ba7313ef5a0d8c5807eeb1ab10621728d4edb8e
-all rom1-ru characters 09b57c207fafbf8e137c626666c4bb5dd950fc67f0c48863ee14d3c83d332532
+all rom1-ru characters e12b30d31323e8c2f4936141b5b7ce9607c607769ab2129f4d8337d5a9315cf9
 all rom1-ru screens 7836d4df4c18b1e265bfcfa38a94d03408ca9aa19aa2249a13ecebf7496a322f
 all rom1-ru companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-ru bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-ru missions 72abc275b2dd7aaa1c6e8904edebdecd8ec49f991f2810fa31f9b17e1abf15b3
-all rom1-ru towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
-all rom1-ru mark 4ac32618097d656e68409d8944c6884fc87dd7756181d2eba1ea04d045eb7e23
+all rom1-ru missions 44475ec2cfa3c02961c84ba4bc508a607a6e2356c1fd88f7d683cb6f158cbea4
+all rom1-ru towns b054ed0761a4c490dae5ca29eebdc7d43bee212bd39f7bd900449f75cd3bbce7
+all rom1-ru mark 874efb657c301ab42bd01ebf3a3fb06cb459e815316c21ff287e7a1a143ce17d

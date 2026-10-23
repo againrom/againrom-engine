@@ -20,20 +20,44 @@ import (
 // and a mission's placement of the row agree. A refusal names the mod, the file
 // and the line.
 func (f *FrontEnd) SetModCharacters(chars mod.CharacterData) error {
+	_, err := f.setModCharacters(chars)
+	return err
+}
+
+// setModCharacters applies target operations in load order and answers
+// overrides in the merged catalog a guest party draws from.
+func (f *FrontEnd) setModCharacters(chars mod.CharacterData) ([]mod.Override, error) {
 	if chars.Empty() {
-		return nil
+		return nil, nil
 	}
 	t := f.Table
 	if t == nil || t.Humans == nil {
-		return errors.New("the install has no definition rows for the mods to edit")
+		return nil, errors.New("the install has no definition rows for the mods to edit")
 	}
 	base := t.Humans
+	rows, catalog, overrides, err := mod.MergeCharacters(chars, installCharacters(t))
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range catalog {
+		if c.NPC != 0 {
+			continue
+		}
+		if len(characterRows(base, c.Row)) == 0 {
+			return nil, itemFileError(c.Mod, c.File, c.RowLine, "no definition row is named %q, nor is %q a family of tier rows", c.Row, c.Row)
+		}
+		if c.Name != "" {
+			if _, err := encodeSaveLabel(c.Name, f.textSelector()); err != nil {
+				return nil, itemFileError(c.Mod, c.File, c.NameLine, "the name %q cannot be drawn by this install: %v", c.Name, err)
+			}
+		}
+	}
 	edits := map[int]data.RowEdit{}
 	var named []mapload.ModCharacter
-	for _, c := range chars.Rows {
+	for _, c := range rows {
 		rows := characterRows(base, c.Target)
 		if len(rows) == 0 {
-			return itemFileError(c.Mod, c.File, c.Line, "no definition row is named %q, nor is %q a family of tier rows", c.Target, c.Target)
+			return nil, itemFileError(c.Mod, c.File, c.Line, "no definition row is named %q, nor is %q a family of tier rows", c.Target, c.Target)
 		}
 		var names []string
 		for _, i := range rows {
@@ -47,16 +71,16 @@ func (f *FrontEnd) SetModCharacters(chars mod.CharacterData) error {
 				edit.Cells = map[int]string{}
 			}
 			if len(base.EntryParams(i)) < data.HumanSlotsRequired {
-				return itemFileError(c.Mod, c.File, c.Line, "the row %q carries no class and figure columns to edit", name)
+				return nil, itemFileError(c.Mod, c.File, c.Line, "the row %q carries no class and figure columns to edit", name)
 			}
 			if c.Kind != "" {
 				like, ok := characterKindRow(base, c.Kind, name)
 				if !ok {
-					return itemFileError(c.Mod, c.File, c.KindLine, "no definition row is named %q, nor %q followed by the tier of %q", c.Kind, c.Kind, name)
+					return nil, itemFileError(c.Mod, c.File, c.KindLine, "no definition row is named %q, nor %q followed by the tier of %q", c.Kind, c.Kind, name)
 				}
 				p := base.EntryParams(like)
 				if len(p) < data.HumanSlotsRequired {
-					return itemFileError(c.Mod, c.File, c.KindLine, "the row %q carries no class and figure columns to take", base.EntryName(like))
+					return nil, itemFileError(c.Mod, c.File, c.KindLine, "the row %q carries no class and figure columns to take", base.EntryName(like))
 				}
 				for _, slot := range []int{data.HumanSlotTypeID, data.HumanSlotFace, data.HumanSlotGender} {
 					edit.Params[slot] = p[slot]
@@ -83,7 +107,7 @@ func (f *FrontEnd) SetModCharacters(chars mod.CharacterData) error {
 			// A panel draws the install's own byte alphabet, not UTF-8.
 			shown, err := encodeSaveLabel(c.Name, f.textSelector())
 			if err != nil {
-				return itemFileError(c.Mod, c.File, c.NameLine, "the name %q cannot be drawn by this install: %v", c.Name, err)
+				return nil, itemFileError(c.Mod, c.File, c.NameLine, "the name %q cannot be drawn by this install: %v", c.Name, err)
 			}
 			named = append(named, mapload.ModCharacter{Mod: c.Mod, Rows: names, Name: shown})
 		}
@@ -92,7 +116,37 @@ func (f *FrontEnd) SetModCharacters(chars mod.CharacterData) error {
 	t.Humans = edited
 	f.Humans = edited
 	t.Mods.Characters = append(t.Mods.Characters[:0:0], named...)
-	return nil
+	t.Mods.Catalog = catalog
+	return overrides, nil
+}
+
+// installCharacters is layer 0 of the character catalog: the npc.reg records
+// of the table's one NPC catalog.
+func installCharacters(t *mapload.Table) []mod.Character {
+	var npcs []int32
+	for _, e := range t.NPCCatalog.Records() {
+		npcs = append(npcs, e.ID)
+	}
+	return mod.InstallCharacters(npcs)
+}
+
+// catalogCharacter is the character key names in the catalog the session
+// runs under: the mods' merged catalog when a mod's characters file made one,
+// else the install's npc.reg records.
+func catalogCharacter(t *mapload.Table, key string) (mod.Character, bool) {
+	if t == nil {
+		return mod.Character{}, false
+	}
+	list := t.Mods.Catalog
+	if list == nil {
+		list = installCharacters(t)
+	}
+	for _, c := range list {
+		if c.Key == key {
+			return c, true
+		}
+	}
+	return mod.Character{}, false
 }
 
 // characterRows are the rows a target names: the row of that name, else every

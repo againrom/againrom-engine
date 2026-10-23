@@ -95,19 +95,10 @@ func readMissions(r DataReader, d *Data, rel string, src []byte) error {
 		return err
 	}
 	for _, m := range missions.Missions {
-		bad := func(format string, args ...any) error {
-			return &ItemFileError{File: rel, Line: m.Line, Msg: fmt.Sprintf(format, args...)}
-		}
-		for _, first := range d.Missions.Missions {
-			switch {
-			case first.Number == m.Number:
-				return bad("mission number %d is already used by mod %q", m.Number, first.Mod)
-			case first.Kind != MissionReplace && m.Kind != MissionReplace && first.After == m.After:
-				return bad("mod %q already plays a mission after mission %d", first.Mod, m.After)
+		if !m.Off {
+			if err := m.ReadFiles(r.Dir); err != nil {
+				return err
 			}
-		}
-		if err := m.ReadFiles(r.Dir); err != nil {
-			return err
 		}
 		d.Missions.Missions = append(d.Missions.Missions, m)
 	}

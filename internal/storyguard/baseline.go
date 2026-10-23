@@ -2910,6 +2910,13 @@ package storyguard
 // unit, all doc comments on new code: castSeesEntity and ownOrAllied in
 // pkg/sim/sight.go, their tests, the witness now proving it, and this
 // paragraph.
+//
+// CommentBytes rises with mission chains and guest parties, all doc comments
+// on new code: the npc.reg catalog in pkg/data/npccatalog.go, the character
+// builder and cell check in pkg/mapload/joined.go, the catalog and chain merge
+// in pkg/mod, the chain and party in pkg/game/modmission.go, their tests, and
+// this paragraph. barestorynumber and longcommentgroups fall with the
+// rewritten guest-mission notes.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2922,7 +2929,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1863,
 		"scclause":        505,
-		"barestorynumber": 1710,
+		"barestorynumber": 1709,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2931,7 +2938,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1697,
+		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9572976,
+	CommentBytes: 9585699,
 }

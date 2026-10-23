@@ -126,6 +126,11 @@ type Table struct {
 	// installed files, and one map with two installs is two worlds.
 	NPC *data.NPCDefs
 
+	// NPCCatalog is the registry NPC was read from, read once: NPC is its
+	// placement half, and the portraits and the editor's speaker list are its
+	// other readers. Nil when the table was built without the registry.
+	NPCCatalog *data.NPCCatalog
+
 	// Shapes, Materials and Weapons are what an EQUIPMENT NAME is worth. A
 	// humans-band row names its own items and this is the only place a builder
 	// can find out what they carry.
@@ -1162,6 +1167,9 @@ type ModContext struct {
 	// Characters are the characters the mods edited, for the names the panels
 	// show.
 	Characters []ModCharacter
+	// Catalog is the character catalog the mods merged over the install's
+	// npc.reg records; nil when no mod's characters file made one.
+	Catalog []mod.Character
 	// Companions are the join conditions the mods declare.
 	Companions mod.CompanionData
 	Spells     mod.SpellData

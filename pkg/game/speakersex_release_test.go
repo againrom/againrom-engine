@@ -243,7 +243,7 @@ func speakerSexWant(speaker int, member mapload.PartyMember) string {
 // member's sex is the speaker's, the text variant's and the portrait's.
 func TestReleaseHeroSpeakersSpeakInTheirOwnSex(t *testing.T) {
 	f := releaseFront(t)
-	faces := LoadNPCFaces(f.Archives.Containers)
+	faces := f.Table.NPCCatalog.Portraits()
 	missions := speakerSexMissions(f)
 	if len(missions) == 0 || faces == nil {
 		t.Fatal("install has no event texts or no npc registry")

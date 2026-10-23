@@ -197,7 +197,7 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 				Map: testPlayMap, After: after, Guest: guest, Chapter: offer.Mission, Carry: mod.CarryJoin}
 			for n := after + 1; n < after+mainMissionStride; n++ {
 				m.Number = n
-				if checkGuest(c, src, m) == nil {
+				if checkGuest(c, src, mod.MissionData{Missions: []mod.Mission{m}}, m) == nil {
 					return m, nil
 				}
 			}

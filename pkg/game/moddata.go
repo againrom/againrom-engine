@@ -21,9 +21,13 @@ type modDataApply func(f *FrontEnd, d mod.Data, r *ModDataReport) error
 // settings reach no front end table: the window takes the screens
 // (ui.App.SetModScreens) and the mods' run takes the settings.
 var modDataAppliers = map[string]modDataApply{
-	"items":      func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.SetModItems(d.Items) },
-	"characters": func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.SetModCharacters(d.Characters) },
-	"screens":    func(*FrontEnd, mod.Data, *ModDataReport) error { return nil },
+	"items": func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.SetModItems(d.Items) },
+	"characters": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
+		overrides, err := f.setModCharacters(d.Characters)
+		r.override(overrides)
+		return err
+	},
+	"screens": func(*FrontEnd, mod.Data, *ModDataReport) error { return nil },
 	"companions": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
 		overrides, err := f.setModCompanions(d.Companions)
 		r.override(overrides)
@@ -39,7 +43,8 @@ var modDataAppliers = map[string]modDataApply{
 		return err
 	},
 	"missions": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
-		warnings, err := f.SetModMissions(d.Missions)
+		overrides, warnings, err := f.setModMissions(d.Missions)
+		r.override(overrides)
 		if err != nil {
 			return err
 		}

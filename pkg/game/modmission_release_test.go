@@ -30,6 +30,13 @@ const (
 // the reniesta mod's map and texts from the install under test.
 func guestMods(t *testing.T, ids ...string) string {
 	t.Helper()
+	return assembledMods(t, guestModID, ids...)
+}
+
+// assembledMods copies the fixture mods ids into a fresh mods folder and
+// assembles the map and texts of the mod into from the install under test.
+func assembledMods(t *testing.T, into string, ids ...string) string {
+	t.Helper()
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the guest mission needs a lawful install")
 	}
@@ -57,7 +64,7 @@ func guestMods(t *testing.T, ids ...string) string {
 	}
 	install := os.Getenv("AGAINROM_ASSETS")
 	lang := modrt.LanguageFor(BaseID(InspectInstall(install)))
-	written, err := AssembleModMission(install, lang, 10, filepath.Join(root, guestModID))
+	written, err := AssembleModMission(install, lang, 10, filepath.Join(root, into))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/textfit"
@@ -131,27 +130,20 @@ func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
 	body, speaker := splitMessage(s.inspector.messageUTF8(raw))
 	x := s.inspector
 	choices := []ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.message.nospeaker"))}}
-	if x.archives != nil && x.archives.Containers != nil {
-		if b, err := x.archives.Containers.ReadFile(NPCRegistry); err == nil {
-			if r, err := reg.Parse(b); err == nil {
-				for _, sec := range r.Root.Children {
-					if !strings.HasPrefix(strings.ToLower(sec.Name), "npc") {
-						continue
-					}
-					id, err := strconv.ParseInt(sec.Name[3:], 10, 32)
-					if err != nil || id < 0 || id > 255 {
-						continue
-					}
-					name, _ := r.GetString(sec.Name, "Name")
-					if name == "" && x.table != nil && int(id) < len(x.table.NPCNames) {
-						name = x.table.NPCNames[id]
-					}
-					if name == "" {
-						name = sec.Name
-					}
-					choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.messageUTF8([]byte(name))))})
-				}
+	if x.table != nil {
+		for _, e := range x.table.NPCCatalog.Records() {
+			id := int64(e.ID)
+			if id > 255 {
+				continue
 			}
+			name := e.Name
+			if name == "" && int(id) < len(x.table.NPCNames) {
+				name = x.table.NPCNames[id]
+			}
+			if name == "" {
+				name = e.Section
+			}
+			choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.messageUTF8([]byte(name))))})
 		}
 	}
 	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int { return int(a.Value - b.Value) })

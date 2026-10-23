@@ -771,12 +771,9 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 			// line used to stand beside is gone with the teardown: nothing in this
 			// package holds a `*res.Archive` any more.
 			Tiles: terrain.LoadTileset(archives.Containers),
-			// The campaign's speaker table, read once (0141). It reaches for the
-			// same registry the placement table already opened; a failure here is
-			// no faces and no error, because that file's own failure is already
-			// reported by the loader above and reporting it twice would say the
-			// install is broken in two ways.
-			NPCFaces:   LoadNPCFaces(archives.Containers),
+			// The campaign's speaker table: the portrait half of the one NPC
+			// catalog the placement table was built from (0141).
+			NPCFaces:   table.NPCCatalog.Portraits(),
 			Statics:    statics,
 			Units:      units,
 			Structures: structures,

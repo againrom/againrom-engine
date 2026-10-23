@@ -56,7 +56,9 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 	}
 	// Fields the layer schema adds to a kind's records that the kind did not
 	// carry before; the comparison reads the records without them.
-	added := map[string][]string{"companions": {"Fields", "Off", "Order"}, "bodies": {"Off", "OffLine", "Order"}}
+	added := map[string][]string{"companions": {"Fields", "Off", "Order"}, "bodies": {"Off", "OffLine", "Order"},
+		"characters": {"Key", "Row", "RowLine", "FaceLine", "Off", "OffLine", "Order"},
+		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order"}}
 	kinds := []struct {
 		name  string
 		empty bool
@@ -119,6 +121,12 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 			t.Errorf("%s: the merged join conditions differ from the records read (%v)", head, err)
 		}
 	}
+	if !res.Missions.Empty() {
+		merged, overrides, err := mod.MergeMissions(res.Missions)
+		if err != nil || len(overrides) == 0 && canon(merged.Missions, added["missions"]) != canon(res.Missions.Missions, added["missions"]) {
+			t.Errorf("%s: the merged missions differ from the records read (%v)", head, err)
+		}
+	}
 	if len(res.Bodies.Bodies) > 0 {
 		merged, _, err := mod.MergeBodySheets(res.Bodies)
 		if err != nil || canon(merged, added["bodies"]) != canon(res.Bodies.Bodies, added["bodies"]) {
@@ -159,6 +167,8 @@ func canonicalMergedData(v any, entries []mod.Entry, drop []string) any {
 // description and a guest mission's maps.
 var fixtureCompletions = map[string]map[string]string{
 	"east-town": {"towns/east.json": `{"town": "east"}`},
+	"guest-chain": {"mission/en/map.alm": "map en", "mission/ru/map.alm": "map ru",
+		"mission/en/text/event01.txt": "event en", "mission/ru/text/event01.txt": "event ru"},
 	"reniesta": {"mission/en/map.alm": "map en", "mission/ru/map.alm": "map ru",
 		"mission/en/text/event01.txt": "event en", "mission/ru/text/event01.txt": "event ru"},
 }

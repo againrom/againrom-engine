@@ -106,16 +106,27 @@ var dataKinds = []DataKind{
 		},
 	},
 	{
-		Name: "characters", Files: []string{CharactersFile}, Key: "`target` (a definition row or a family of tier rows)",
-		Class: CatalogData, Layer: LayerKept, Owner: "T6",
-		Base:   "the people of the definition table, the names of npc.reg and the editor's sections: three reads, no one list",
-		Shared: "both edits apply in load order, the later's values last, unnamed",
+		Name: "characters", Files: []string{CharactersFile}, Key: "`key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows)",
+		Class: CatalogData, Layer: LayerMerged,
+		Base:   "the install's npc.reg records, read once, keyed `npc<n>`; `target` edits existing definition rows",
+		Shared: "catalog keys: " + mergedShared + "; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after",
 		Script: true, read: readCharacters,
 		summary: func(d Data) string {
 			if d.Characters.Empty() {
 				return ""
 			}
-			return fmt.Sprintf("characters edited=%d", len(d.Characters.Rows))
+			edited, added := 0, 0
+			for _, r := range d.Characters.Rows {
+				if r.Target != "" {
+					edited++
+				} else {
+					added++
+				}
+			}
+			if added == 0 {
+				return fmt.Sprintf("characters edited=%d", edited)
+			}
+			return fmt.Sprintf("characters edited=%d added=%d", edited, added)
 		},
 	},
 	{
@@ -180,9 +191,9 @@ var dataKinds = []DataKind{
 	},
 	{
 		Name: "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
-		Class: CatalogData, Layer: LayerKept, Owner: "T6",
-		Base:   "the campaign's missions are read by the campaign decoder and its several loads; mod missions stay a list beside it",
-		Shared: "no: one mission number, and one guest mission after one campaign mission, per mod set",
+		Class: CatalogData, Layer: LayerMerged,
+		Base:   "empty: the campaign's missions are the campaign decoder's; a mod mission adds a guest mission or replaces a campaign mission's map, by number",
+		Shared: mergedShared + "; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win",
 		Script: true, read: readMissions,
 	},
 	{
@@ -309,5 +320,11 @@ func (d *Data) SetOrder(order Precedence) {
 	}
 	if !d.Towns.Empty() {
 		d.Towns.Order = order
+	}
+	if !d.Characters.Empty() {
+		d.Characters.Order = order
+	}
+	if !d.Missions.Empty() {
+		d.Missions.Order = order
 	}
 }

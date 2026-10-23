@@ -105,7 +105,7 @@ func openCampaign(root string) (*campaign, error) {
 		table: &mapload.Table{
 			Units:     f.Collection(databin.Units),
 			Humans:    f.Collection(databin.Humans),
-			NPC:       data.LoadNPCDefs(r),
+			NPC:       data.LoadNPCCatalog(r).Defs,
 			Buildings: f.Collection(databin.Buildings),
 			Shapes:    f.Collection(databin.Shapes),
 			Materials: f.Collection(databin.Materials),

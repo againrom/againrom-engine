@@ -1,0 +1,6 @@
+# A sellsword of this mod, built from the tavern archer's rows NPC06_1 to
+# NPC06_4: a guest party names her by key and picks her row by level.
+[[character]]
+key  = "sellsword"
+row  = "NPC06"
+name = "character.sellsword"

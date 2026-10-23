@@ -38,14 +38,25 @@ func TestMissionModReadsItsMapAndTextsInTheGameLanguage(t *testing.T) {
 
 func TestTwoModsCannotAddMissionsAfterTheSameWinOrUnderOneNumber(t *testing.T) {
 	for name, c := range map[string]struct{ second, want string }{
-		"number": {strings.Replace(missionSrc, "after = 20", "after = 40", 1), `data/missions.toml:1: mission number 25 is already used by mod "m1"`},
+		"number": {strings.Replace(missionSrc, "after = 20", "after = 40", 1), `data/missions.toml:1: mission 25 is added by mod "m1" and named by mod "m2", and neither loads after the other`},
 		"after":  {strings.Replace(missionSrc, "number = 25", "number = 26", 1), `data/missions.toml:1: mod "m1" already plays a mission after mission 20`},
 	} {
 		mods := makeMods(t, map[string]map[string]string{"m1": missionMod(missionSrc), "m2": missionMod(c.second)})
-		if _, err := Load(mods, "rom1-ru", nil, Options{}); err == nil || !strings.Contains(err.Error(), c.want) {
+		if err := mergedMissions(mods); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%s: %v, want %q", name, err, c.want)
 		}
 	}
+}
+
+// mergedMissions loads mods and merges their missions, the step at which two
+// mods that name one mission number or one win are refused.
+func mergedMissions(mods []mod.Entry) error {
+	res, err := Load(mods, "rom1-ru", nil, Options{})
+	if err != nil {
+		return err
+	}
+	_, _, err = mod.MergeMissions(res.Missions)
+	return err
 }
 
 func TestReniestaFixtureNeedsItsAssembledMap(t *testing.T) {
@@ -72,8 +83,8 @@ func TestTwoModsCannotReplaceOneMission(t *testing.T) {
 		t.Fatalf("%+v", res.Missions)
 	}
 	mods = makeMods(t, map[string]map[string]string{"m1": missionMod(replacingSrc), "m2": missionMod(replacingSrc)})
-	if _, err := Load(mods, "rom1-ru", nil, Options{}); err == nil ||
-		!strings.Contains(err.Error(), `data/missions.toml:1: mission number 20 is already used by mod "m1"`) {
+	if err := mergedMissions(mods); err == nil ||
+		!strings.Contains(err.Error(), `data/missions.toml:1: mission 20 is added by mod "m1" and named by mod "m2", and neither loads after the other`) {
 		t.Fatalf("two mods replacing mission 20: %v", err)
 	}
 	// A guest after mission 20 and a replacement of mission 20 compose.

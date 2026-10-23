@@ -269,8 +269,8 @@ func npcFlags(list string) map[string]bool {
 	return out
 }
 
-// LoadNPCFaces reads every `npc<n>` section of r and resolves it to a picture
-// request — the same walk LoadNPCDefs makes over the same file, for three
+// loadNPCFaces reads every `npc<n>` section of r and resolves it to a picture
+// request — the same walk loadNPCDefs makes over the same file, for three
 // different keys.
 //
 // IT IS A SECOND WALK AND NOT A WIDER LOOKUP, deliberately: npc.go's own doc
@@ -282,7 +282,7 @@ func npcFlags(list string) map[string]bool {
 // no picture in the registry" is an answer a window acts on — it is the player's
 // own character — and it is a different answer from "this number names no
 // section at all".
-func LoadNPCFaces(r *reg.Reg) map[int32]NPCFace {
+func loadNPCFaces(r *reg.Reg) map[int32]NPCFace {
 	out := make(map[int32]NPCFace)
 	if r == nil || r.Root == nil {
 		return out

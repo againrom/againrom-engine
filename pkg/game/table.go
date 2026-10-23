@@ -132,15 +132,16 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", tableAddress, err)
 	}
-	npc, err := LoadNPCDefs(fsys)
+	npc, err := LoadNPCCatalog(fsys)
 	if err != nil {
 		return nil, err
 	}
 	d := &Definitions{Table: readUnder(g, &mapload.Table{
-		Units:     f.Collection(databin.Units),
-		Humans:    f.Collection(databin.Humans),
-		Buildings: f.Collection(databin.Buildings),
-		NPC:       npc,
+		Units:      f.Collection(databin.Units),
+		Humans:     f.Collection(databin.Humans),
+		Buildings:  f.Collection(databin.Buildings),
+		NPC:        npc.Defs,
+		NPCCatalog: npc,
 		// THE THREE ITEM COLLECTIONS RIDE ON THE SAME WALK the party's own
 		// weapon comes off, one line below. A scenario human names his own
 		// equipment and the loader has to be able to say what those names are
@@ -226,13 +227,15 @@ func readUnder(g base.Game, t *mapload.Table) *mapload.Table {
 	return t
 }
 
-// LoadNPCDefs reads the scenario NPC table out of the container filesystem.
+// LoadNPCCatalog reads the scenario NPC registry out of the container
+// filesystem once. The placement table, the dialogue portraits and the map
+// editor's speaker list all ask the one catalog it answers (data.NPCCatalog).
 //
 // It is a function of its own beside LoadTable, rather than inline in it,
 // because the two files live in two different archives and a developer tool
 // pointed at one of them must be able to load the other's half without being
 // handed a whole install.
-func LoadNPCDefs(fsys *vfs.FS) (*data.NPCDefs, error) {
+func LoadNPCCatalog(fsys *vfs.FS) (*data.NPCCatalog, error) {
 	b, err := fsys.ReadFile(NPCRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", NPCRegistry, err)
@@ -241,35 +244,7 @@ func LoadNPCDefs(fsys *vfs.FS) (*data.NPCDefs, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", NPCRegistry, err)
 	}
-	return data.LoadNPCDefs(r), nil
-}
-
-// LoadNPCFaces reads the same registry LoadNPCDefs does, for the three keys a
-// DIALOGUE PORTRAIT needs rather than the one a placement does (0141;
-// `REG-NPC-058`, whose gloss on those keys is Unknown — data/npcface.go carries
-// the reading and the measurement behind it).
-//
-// IT PARSES THE FILE A SECOND TIME rather than widening the one above. The two
-// answers have different lifetimes and different consumers — one is on the
-// placement path of every map, the other is read only when a mission's script
-// raises a dialogue — and npc.go's own doc refuses to hold "keys that belong to
-// screens" for exactly that reason. The file is 105 sections and is read twice
-// per process, not per map.
-//
-// A REGISTRY THAT WILL NOT OPEN IS NO FACES AND NO ERROR. The placement path
-// above already fails loudly on the same file, so a second failure here could
-// only be the same one reported twice — and a mission whose speakers have no
-// pictures still runs, which is what the seam this feeds has always promised.
-func LoadNPCFaces(fsys *vfs.FS) map[int32]data.NPCFace {
-	b, err := fsys.ReadFile(NPCRegistry)
-	if err != nil {
-		return nil
-	}
-	r, err := reg.Parse(b)
-	if err != nil {
-		return nil
-	}
-	return data.LoadNPCFaces(r)
+	return data.LoadNPCCatalog(r), nil
 }
 
 // npcNamesPath is the text file the npc arm names a map placement from.
