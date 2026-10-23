@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM1] [ROM2] An invisible unit stays visible to the spells of its own side and its allies: automatic casting keeps renewing Bless, Haste and the other support spells on it, and a spell cast at it from the book starts from the normal cast range instead of the mage walking up to it and waiting. Enemies still do not see it unless they can detect invisible units nearby.
+- [ROM1] A Teleport to a neighbouring cell now shows the same short jump whether or not the caster had just walked; before, a caster that had walked first appeared to snap to the new cell without the jump.
 
 ## 0.133.0
 

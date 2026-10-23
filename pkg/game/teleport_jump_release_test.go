@@ -358,12 +358,17 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 	var placements []placement
 	for seed := range uint64(8) {
 		for _, creature := range creatures {
-			if x, y, ok := creatureFreeCellNear(source, planes, probe.Width, probe.Height, creature.X, creature.Y); ok {
-				placements = append(placements, placement{creature, x, y, seed})
+			// The hero beside the creature, and the hero a few cells off so the
+			// creature may walk to him before it casts.
+			for _, away := range []int32{0, 5, -5} {
+				if x, y, ok := creatureFreeCellNear(source, planes, probe.Width, probe.Height, creature.X+away, creature.Y); ok {
+					placements = append(placements, placement{creature, x, y, seed})
+				}
 			}
 		}
 	}
-	tried := 0
+	tried, jumps, afterWalk := 0, 0, 0
+placements:
 	for _, p := range placements {
 		creature, x, y := p.creature, p.x, p.y
 		tried++
@@ -376,8 +381,6 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 		var admitted []sim.CastEvent
 		// still holds while the caster waits out the countdown standing on
 		// its cast cell; a creature that walks on reaches the cell by a step.
-		// A caster that walked before the cast keeps that crossing's span
-		// (TransitTotal), which this witness does not read.
 		still := false
 		for range 1500 {
 			mw.tickWithCastSink(func(released []sim.CastEvent) {
@@ -396,21 +399,33 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 				}
 				actor := releaseEntity(t, mw, creature.ID)
 				if actor.X != event.ToX || actor.Y != event.ToY || !still {
-					still = still && actor.X == event.FromX && actor.Y == event.FromY && actor.Transit == 0 && actor.TransitTotal <= 1 && !actor.HasTarget
+					still = still && actor.X == event.FromX && actor.Y == event.FromY && actor.Transit == 0 && !actor.HasTarget
 					continue
 				}
 				draw := teleportJumpPushed(t, mw, creature.ID)
 				inspectionCentre(mw, int(actor.X), int(actor.Y))
 				mid := teleportJumpGeometry(t, mw, draw, mw.clock.Period()/2)
 				full := teleportJumpGeometry(t, mw, draw, mw.clock.Period())
-				if draw.Step != delta || mid["sprite"] == full["sprite"] {
+				// A caster that walked before the cast keeps that crossing's length in
+				// TransitTotal; its jump draws as one from rest all the same.
+				walked := actor.TransitTotal > 1
+				if draw.Step != delta || mid["sprite"] == full["sprite"] || walked && draw.TransitSpan > 1 {
 					t.Fatal("adjacent creature Teleport did not retain the one-cell displacement rule", draw.Step, delta, mid["sprite"], full["sprite"])
 				}
 				t.Logf("AI Teleport mission130 tick%d caster%d from(%d,%d) to%v Step%v moving%t mid%v full%v", mw.world.Tick(), creature.ID, event.FromX, event.FromY, draw.Cell, draw.Step, mw.drawnMoving[creature.ID], mid["sprite"], full["sprite"])
-				return
+				jumps++
+				if walked {
+					afterWalk++
+				}
+				continue placements
 			}
 		}
 		t.Logf("AI Teleport candidate%d casts%d after1500 hero%+v caster%+v", creature.ID, casts, releaseEntity(t, mw, heroID), releaseEntity(t, mw, creature.ID))
 	}
-	t.Fatalf("%d placements of installed Teleport creatures did not relocate within 1500 production ticks each", tried)
+	if jumps == 0 {
+		t.Fatalf("%d placements of installed Teleport creatures did not relocate within 1500 production ticks each", tried)
+	}
+	if afterWalk == 0 {
+		t.Fatalf("none of %d adjacent creature Teleports followed a walk", jumps)
+	}
 }

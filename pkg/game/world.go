@@ -248,6 +248,10 @@ type mapWorld struct {
 	// has done.
 	walk map[sim.EntityID]walkClock
 
+	// relocated holds the casters a Teleport moved in the last step, so the
+	// jump is not drawn over the length of their last walk.
+	relocated map[sim.EntityID]bool
+
 	// chars is the CHARACTER each entity was placed with, keyed by entity id.
 	// It lives here for the reason tiers does, and it is the same shape: a fact
 	// about a PLACEMENT rather than about a world, resolved once when the map
@@ -4156,6 +4160,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 			mw.shots.appendTrail(p.ID, image.Pt(int(p.X), int(p.Y)))
 		}
 	}
+	mw.noteRelocated(report.Relocations)
 	mw.observeScriptMessages(report.ScriptMessages)
 	mw.observeGrants(report.PurseCredits, report.ItemGrants)
 	for _, observe := range reportSink {
@@ -4287,6 +4292,27 @@ func (mw *mapWorld) recordCells() {
 		mw.walk[e.ID] = w
 		mw.prev[e.ID] = image.Point{X: int(e.X), Y: int(e.Y)}
 	}
+}
+
+// noteRelocated records the casters a Teleport moved in this step.
+func (mw *mapWorld) noteRelocated(moved []sim.Relocation) {
+	clear(mw.relocated)
+	for _, r := range moved {
+		if mw.relocated == nil {
+			mw.relocated = make(map[sim.EntityID]bool)
+		}
+		mw.relocated[r.Caster] = true
+	}
+}
+
+// crossingSpan is the crossing length drawn for e. A caster a Teleport just
+// moved takes the span of one that had not walked, not the TransitTotal its
+// last walk left.
+func (mw *mapWorld) crossingSpan(e sim.Entity) int {
+	if mw.relocated[e.ID] && e.Transit == 0 {
+		return 0
+	}
+	return int(e.TransitTotal)
 }
 
 // cellStep keeps adjacent crossings continuous and draws a longer relocation
@@ -5169,7 +5195,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			Load: int(e.Load),
 			// The crossing this step is part of, for the window tier's
 			// displacement.
-			Transit: int(e.Transit), TransitSpan: int(e.TransitTotal),
+			Transit: int(e.Transit), TransitSpan: mw.crossingSpan(e),
 			FinePosition: finePosition, FineX: fineX, FineY: fineY,
 			// The live client class's own Sound array, including an
 			// equipment-derived hero class; corpse art does not participate.
