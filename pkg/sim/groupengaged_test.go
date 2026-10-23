@@ -2,16 +2,17 @@ package sim
 
 import "testing"
 
-// TestAGroupStruckFromBeyondItsNoticeCircleAnswersWithEveryMember shoots one
-// member of a guarding group from a cell far outside the group's frozen notice
-// circle and asks whether the members, all of them, take the shooter.
+// TestAGroupStruckFromBeyondItsNoticeCircleLeavesTheShooter shoots one member
+// of a guarding group from a cell far outside the group's frozen notice circle.
+// In the first game the arm clips its candidates to the circle and releases a
+// member that scores nothing (AI-GRPGUARD-074, AI-REISSUE-077), and an engaged
+// foe outside the circle is not added (DIV-1523): no member takes the shooter
+// and none leaves the circle after it.
 //
 // The shooter reaches the member by an ordinary attack order and the hostility
 // between the two slots comes from the blow itself, so nothing here is written
-// into the world by hand. Before the fix the circle clipped the shooter from
-// the candidate list, every member scored nothing, and the group stood while
-// one of its own was shot.
-func TestAGroupStruckFromBeyondItsNoticeCircleAnswersWithEveryMember(t *testing.T) {
+// into the world by hand.
+func TestAGroupStruckFromBeyondItsNoticeCircleLeavesTheShooter(t *testing.T) {
 	t.Parallel()
 
 	members := []Entity{engFighter(1, 2, 10, 10), engFighter(2, 2, 11, 10), engFighter(3, 2, 10, 11)}
@@ -21,27 +22,25 @@ func TestAGroupStruckFromBeyondItsNoticeCircleAnswersWithEveryMember(t *testing.
 	w := engWorld(t, Relations{}, append(members, shooter)...)
 
 	_, base, _ := regState(w, 2, 0)
-	if radius := int64(noticeRadius(base)); radius >= 20 {
+	radius := int64(noticeRadius(base))
+	if radius >= 20 {
 		t.Fatalf("the fixture's notice radius is %d, want it under the 20 cells the shooter stands at", radius)
 	}
 
 	Step(w, []Command{Attack(4, 1)})
-	var answered [4]bool
 	for i := 0; i < 120; i++ {
 		Step(w, nil)
 		for _, id := range []EntityID{1, 2, 3} {
 			if victim, held := engVictim(w, id); held && victim == 4 {
-				answered[id] = true
+				t.Fatalf("tick %d: member %d took the shooter standing outside the notice circle", i, id)
+			}
+			if m := spAt(t, w, id); (cell{x: m.X, y: m.Y}).chebyshevTo(cell{x: 10, y: 10}) > radius {
+				t.Fatalf("tick %d: member %d stands at (%d,%d), outside the circle", i, id, m.X, m.Y)
 			}
 		}
 	}
 	if struck := spAt(t, w, 1); struck.HP == struck.MaxHP {
 		t.Fatal("the shooter never struck the member, so the fixture proves nothing")
-	}
-	for _, id := range []EntityID{1, 2, 3} {
-		if !answered[id] {
-			t.Errorf("member %d never took the shooter that was striking its group from outside the notice circle", id)
-		}
 	}
 }
 

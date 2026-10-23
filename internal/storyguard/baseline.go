@@ -2880,6 +2880,11 @@ package storyguard
 // mapload.StructureCells, the host seam in pkg/game/mapinspectionbrush.go,
 // pkg/ui/mapeditorforest.go, the brush window's forest hooks, the forest
 // tests in pkg/game, and this paragraph.
+//
+// CommentBytes rises with the first game's chase and post rules, all doc
+// comments on new code: the Darkness hook, the living post block, the walk
+// refused at its first empty search and the engaged foes held to the circle
+// (pkg/sim), their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2903,5 +2908,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9548658,
+	CommentBytes: 9552428,
 }

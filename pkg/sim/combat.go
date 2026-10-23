@@ -415,6 +415,15 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 	return last.x == sub.x && last.y == sub.y
 }
 
+// refusesWalkAtOnce reports whether an empty near search toward sub refuses
+// actor i's walk on its first answer: a first-game walk with no victim, owned
+// by no human participant, aimed at the last cell of its route. A human
+// participant's walk and a search aimed at a waypoint keep the stall count.
+func (w *World) refusesWalkAtOnce(i int, sub cell) bool {
+	e := w.entities[i]
+	return !w.SecondGame() && !e.HasAttackTarget && !w.humanParticipantUnit(e) && w.aimsAtDestination(i, sub)
+}
+
 // answerRefusedPursuit is the order machine's answer to a refused route for a
 // unit attacker. The walk is already ended. The pick is the hostile nearest
 // within the attacker's reach, the previous victim not excluded, which becomes

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM1] Monsters stop chasing a hero who has left their area, even one who keeps hitting them from outside it, and Darkness no longer sends its victims at the caster; a monster that cannot get back to its post gives up at once and tries again on its next turn, as in the original.
+
 ### For map makers and modders
 
 - [ROM1] The object brush has a Forest mode: tick several kinds of trees or objects in the picture grid, pick a density or type a per cent, and one drag scatters a random mix on empty ground, never on water, roads, buildings or existing objects. Dragging with the right button thins the ticked kinds, and Undo takes back a whole drag.

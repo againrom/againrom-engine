@@ -395,7 +395,7 @@ func effectiveGroup(e *Entity) uint32 {
 // member walking under one of them walks BECAUSE of the group's own order
 // and must keep being decided for, or the arm that sent it never runs again.
 // A member this list leaves out is still reached by joinEngagedGroups while
-// its group is in a fight (DIV-1523).
+// its group is in a fight inside its circle (DIV-1523).
 //
 // It is a linear scan into a slice and not a map, for the reason containsIndex is
 // one: Go randomises map iteration order per process, and this is a path that
@@ -534,13 +534,8 @@ func (w *World) decide(g aiGroup) {
 		defer func() { w.groups[at].roamCounter++ }()
 		order = orderSwarm2
 	}
-	cands := w.candidates(g)
-	if order == orderGuard {
-		cx, cy := groupCentroid(w.entities, g.members)
-		r := int64(noticeRadius(base))
-		cands = clipToNotice(cands, w.entities, cx, cy, r)
-	}
-	// A group under attack keeps its attackers past the circle clip (DIV-1523).
+	cands := w.clipCircle(order, base, g.members, w.candidates(g))
+	// A group under attack adds its attackers inside the circle (DIV-1523).
 	cands = w.withEngagedFoes(g.owner, w.groupLivingMembers(g.owner, g.group), order, cands)
 
 	// A member holding a victim a player's attack order named is not scored:

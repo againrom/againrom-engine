@@ -3,15 +3,15 @@ package sim
 import "testing"
 
 // retreatCorridor is jammedCorridor's jam, closed at (7,5) by one more body,
-// with the walker 1 (owner 2) at (7,4) and the hostile 3 (owner 3), which
+// with the walker 1 (owner slot) at (7,4) and the hostile 3 (owner 3), which
 // acquires nothing, at (5,4). A Retreat from that hostile flees to (10,4)
 // inside the jam: the far search reads terrain and finds a route, and the near
 // search reaches no cell nearer the flee cell than the walker's own.
-func retreatCorridor(t *testing.T, reach uint8) *World {
+func retreatCorridor(t *testing.T, reach uint8, owner uint32) *World {
 	t.Helper()
 	const width, height = 30, 10
 	b, grid := escortWallGrid(width, height)
-	walker := engFighter(1, 2, 7, 4)
+	walker := engFighter(1, owner, 7, 4)
 	walker.Reach = reach
 	hostile := engFighter(3, 3, 5, 4)
 	hostile.ScanRange = 0
@@ -25,7 +25,7 @@ func retreatCorridor(t *testing.T, reach uint8) *World {
 			ents = append(ents, body)
 		}
 	}
-	cells := [][3]uint32{{2, 3, 1}, {3, 2, 1}}
+	cells := [][3]uint32{{owner, 3, 1}, {3, owner, 1}}
 	w, err := NewRelatedWorld(1, b, ModeCanonical, Terrain{Block: grid}, ents, nil, engRel(t, cells...))
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
@@ -45,8 +45,8 @@ func TestARefusedPlayerRetreatWalkTakesTheHostileWithinReach(t *testing.T) {
 		"hostile within reach": {reach: 3, pick: true},
 		"hostile past reach":   {reach: 1, pick: false},
 	} {
-		w := retreatCorridor(t, tc.reach)
-		Step(w, []Command{GroupRetreat(1, 2, 91)})
+		w := retreatCorridor(t, tc.reach, SelfSlot)
+		Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
 		for k := 0; k < 2*scriptCycle && !laEnt(t, w, 1).HasTarget; k++ {
 			Step(w, nil)
 		}
@@ -123,15 +123,16 @@ func TestARefusedWalkTakesThePickByGroupOrderAndWithdrawal(t *testing.T) {
 }
 
 // The engine-made refusal and a loaded route-failure flag are one answer. At
-// the tick a Retreat's walk is refused by its sixteenth stall, the World's
-// own refusal and a twin whose current loaded motion holds the flag give the
-// walker the same victim, acquisition and retreat continuation. Loss
+// the tick a human participant's Retreat walk is refused by its sixteenth
+// stall, the World's own refusal and a twin whose current loaded motion holds
+// the flag give the walker the same victim, acquisition and retreat
+// continuation. Loss
 // controls: one tick earlier neither the World nor a twin holding the loaded
 // motion without the flag has a victim.
 func TestAnEngineMadeAndALoadedRefusedRetreatTakeOneAnswer(t *testing.T) {
 	t.Parallel()
-	w := retreatCorridor(t, 3)
-	Step(w, []Command{GroupRetreat(1, 2, 91)})
+	w := retreatCorridor(t, 3, SelfSlot)
+	Step(w, []Command{GroupRetreat(1, SelfSlot, 91)})
 	for k := 0; k < 4*scriptCycle && laEnt(t, w, 1).Stall < stallLimit-2; k++ {
 		Step(w, nil)
 	}

@@ -44,9 +44,9 @@ const postRadius = coverRadius
 // candidate walk in this package uses, and it is the order savedGuard has
 // already been taking.
 //
-// THE FILTER IS DIPLOMACY AND PRESENCE, WITH NO CORPSE PREFERENCE.
+// THE FILTER IS DIPLOMACY, PRESENCE AND, IN THE FIRST GAME, LIFE.
 // actorCandidates' live-first parking is the ACQUISITION's rule and is not
-// carried here.
+// carried here: the block holds no body to fall back on.
 //
 // AI-FILTER-001
 func (w *World) postEngage(i int, post cell) bool {
@@ -59,10 +59,14 @@ func (w *World) postEngage(i int, post cell) bool {
 	return false
 }
 
+// postCandidates is the block's population. In the first game a dying body
+// (health 0 through -9) is not on the post: the block walks a member home when
+// no survivor stands within the radius (AI-704).
 func (w *World) postCandidates(i int, post cell) []int {
 	var out []int
+	living := !w.SecondGame()
 	for ci, candidate := range w.entities {
-		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() ||
+		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() || living && candidate.HP < 1 ||
 			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
 			continue
 		}

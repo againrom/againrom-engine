@@ -254,11 +254,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 		return
 	}
 	ag := aiGroup{group: g.ID, owner: w.entities[members[0]].Owner, members: members}
-	cands := w.candidates(ag)
-	if order == orderGuard {
-		cx, cy := groupCentroid(w.entities, members)
-		cands = clipToNotice(cands, w.entities, cx, cy, int64(noticeRadius(g.AI[0x38])))
-	}
+	cands := w.clipCircle(order, g.AI[0x38], members, w.candidates(ag))
 	cands = w.withEngagedFoes(ag.owner, members, order, cands)
 	id := g.ID
 	roam := g.AI[0x20] == 0x11

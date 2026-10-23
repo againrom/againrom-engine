@@ -365,7 +365,11 @@ func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cel
 				if applied {
 					w.markSpellEffect(at, rule.ID)
 					if rule.arm() == 17 && len(caster) != 0 && caster[0] != w.entities[at].ID {
-						w.orderAttack(at, caster[0])
+						if w.SecondGame() {
+							w.orderAttack(at, caster[0])
+						} else {
+							w.flipOnBlow(indexOfEntity(w.entities, caster[0]), at)
+						}
 					}
 				}
 			}

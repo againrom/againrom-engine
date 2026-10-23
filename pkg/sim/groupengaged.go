@@ -62,17 +62,22 @@ func (w *World) engagedFoes(owner uint32, members []int) []int {
 }
 
 // withEngagedFoes adds the foes an engaged group is fighting to a decision's
-// candidate list, past the notice-circle clip (AI-RADFREEZE-075), so the
-// group's own arm gives every member that can take one a victim and releases
-// none of them because the attacker stands outside the frozen circle. Bodies
-// leave the list while a living foe is engaged, on the candidate sweep's own
-// living-first rule. A group that is not engaged, or is not under an order
-// that fights, gets its list back unchanged.
+// candidate list after the circle clip, so the group's own arm gives every
+// member that can take one a victim. Bodies leave the list while a living foe
+// is engaged, on the candidate sweep's own living-first rule. A group that is
+// not engaged, or is not under an order that fights, gets its list back
+// unchanged. In the first game only a foe already inside the clipped list
+// counts: a member whose foe left the circle scores nothing and the arm
+// releases it (AI-GRPGUARD-074, AI-REISSUE-077). The second game keeps every
+// engaged foe past the clip (DIV-1523).
 func (w *World) withEngagedFoes(owner uint32, members []int, order uint8, cands []int) []int {
 	if owner == 0 || owner == SelfSlot || !engagedOrder(order) {
 		return cands
 	}
 	foes := w.engagedFoes(owner, members)
+	if !w.SecondGame() {
+		foes = inCircle(foes, cands)
+	}
 	if len(foes) == 0 {
 		return cands
 	}
@@ -121,8 +126,39 @@ func (w *World) joinsFight(mi int) bool {
 func (w *World) joinEngagedGroups() {
 	for gi := range w.groups {
 		record := w.groups[gi]
-		w.joinEngagedGroup(record.owner, record.order, w.groupLivingMembers(record.owner, record.group), nil)
+		w.joinEngagedGroup(record.owner, record.order, record.base, w.groupLivingMembers(record.owner, record.group), nil)
 	}
+}
+
+// engagedCircle is the candidate list a group's decision clips, read without
+// ageing any attack notice: the group's sight, the members' remembered
+// attacker cells included, and for Guard the notice circle around the centroid
+// (AI-GRPGUARD-074, AI-RADFREEZE-075). Swarm, Swarm 2 and Roam clip nothing
+// past the sight.
+func (w *World) engagedCircle(owner uint32, order, base uint8, members []int) []int {
+	return w.clipCircle(order, base, members, w.groupCandidates(aiGroup{owner: owner, members: members}, false))
+}
+
+// clipCircle is a group decision's clip of its candidate list: Guard keeps
+// the candidates inside the notice circle around the members' centroid; every
+// other order keeps the list.
+func (w *World) clipCircle(order, base uint8, members, cands []int) []int {
+	if order != orderGuard {
+		return cands
+	}
+	cx, cy := groupCentroid(w.entities, members)
+	return clipToNotice(cands, w.entities, cx, cy, int64(noticeRadius(base)))
+}
+
+// inCircle keeps the foes the clipped candidate list holds.
+func inCircle(foes, circle []int) []int {
+	out := foes[:0:0]
+	for _, fi := range foes {
+		if containsIndex(circle, fi) {
+			out = append(out, fi)
+		}
+	}
+	return out
 }
 
 // joinSavedEngagedGroups is the same tail over the Group registry: each Group
@@ -144,7 +180,7 @@ func (w *World) joinSavedEngagedGroups() {
 		if order == 0x11 {
 			order = orderSwarm2
 		}
-		w.joinEngagedGroup(w.entities[members[0]].Owner, order, members, func(i int) {
+		w.joinEngagedGroup(w.entities[members[0]].Owner, order, g.AI[0x38], members, func(i int) {
 			if o := w.savedOrder(w.entities[i].ID); o != nil {
 				o.Raw[8] = 5
 			}
@@ -152,11 +188,14 @@ func (w *World) joinSavedEngagedGroups() {
 	}
 }
 
-func (w *World) joinEngagedGroup(owner uint32, order uint8, members []int, joined func(int)) {
+func (w *World) joinEngagedGroup(owner uint32, order, base uint8, members []int, joined func(int)) {
 	if owner == 0 || owner == SelfSlot || !engagedOrder(order) || len(members) == 0 {
 		return
 	}
 	foes := w.engagedFoes(owner, members)
+	if len(foes) != 0 && !w.SecondGame() {
+		foes = inCircle(foes, w.engagedCircle(owner, order, base, members))
+	}
 	if len(foes) == 0 {
 		return
 	}

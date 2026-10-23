@@ -890,8 +890,16 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// this walk only on a later pulse whose call passed the award over,
 				// and nothing for any area row whose landing reached no unit.
 				// castSpell and castBookAt pay the cast's own single award.
+				// A first-game Darkness hit runs the blow hook alone: turn
+				// flag, remembered cell and diplomacy flip, and no order. A
+				// pursuit of the caster comes only from a later group pass
+				// that finds it inside the circle (AI-707, MAGIC-LIGHTDARK-044).
 				if rule.arm() == 17 && ci >= 0 && ci != i {
-					w.orderAttack(i, w.entities[ci].ID)
+					if w.SecondGame() {
+						w.orderAttack(i, w.entities[ci].ID)
+					} else {
+						w.flipOnBlow(ci, i)
+					}
 				}
 			}
 		}

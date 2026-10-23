@@ -1128,7 +1128,17 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 				}
 				continue
 			}
-			// A first-game walk with no victim ends refused (answerRefusedWalk).
+			// A first-game AI-owned walk with no victim is refused the same
+			// way when its search aims at its own destination (AI-709); its
+			// Group's next pass sends it again.
+			if w.refusesWalkAtOnce(i, sub) {
+				if w.restAt(scratch, i) {
+					w.answerRefusedPursuit(i, searchNear)
+				}
+				continue
+			}
+			// Any other first-game walk with no victim ends refused at the
+			// sixteenth stalled pass (answerRefusedWalk).
 			e.Stall++
 			if e.Stall >= stallLimit {
 				walk := !e.HasAttackTarget && !w.SecondGame()
