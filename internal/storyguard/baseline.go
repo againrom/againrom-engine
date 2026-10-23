@@ -2866,6 +2866,14 @@ package storyguard
 // CommentBytes rises with the SAV equipment slot codec, all doc comments on
 // new code: pkg/game/savequipmentslots.go and its table test, and this
 // paragraph, less the slot comments the moved sites no longer need.
+//
+// CommentBytes rises with the one shop stock generator, all doc comments on
+// new code: pkg/shopstock (stock.go, repeat.go, stock_test.go), the stock
+// digest witness pkg/secondshop/stockmain_test.go,
+// pkg/game/shopstockprofile.go, the second game's profile in
+// pkg/secondshop/fill.go, two allow-map notes in internal/archtest/dag.go,
+// and this paragraph, less the retired first-game roll comments in
+// pkg/game/shop.go.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2889,5 +2897,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9534228,
+	CommentBytes: 9538853,
 }

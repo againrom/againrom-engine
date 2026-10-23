@@ -5,12 +5,11 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
 
-type shopDrawSource interface {
-	Intn(int) int
-}
+type shopDrawSource = shopstock.Source
 
 func shopDrawInclusive(r shopDrawSource, lo, hi int) (int, bool) {
 	if r == nil || hi < lo {
@@ -25,7 +24,15 @@ type generatedEffect struct {
 	cast   int32
 }
 
+// shopEnchantedItem is candidate c enchanted under the first game's
+// effect-repeat rule.
 func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDrawSource) (ShopItem, bool) {
+	return shopEnchant(c, ceiling, t, r, shopEffectRepeat)
+}
+
+// shopEnchant is candidate c with its effects: the first, then up to two
+// optional ones, joined under the effect-repeat rule repeat.
+func shopEnchant(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDrawSource, repeat shopstock.Repeat) (ShopItem, bool) {
 	if t == nil || t.Magic == nil || r == nil {
 		return ShopItem{}, false
 	}
@@ -51,7 +58,7 @@ func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r 
 
 	// addEffect follows the shop generator's add routine: an effect whose
 	// UsableBy mask shares no bit with a held effect is dropped, an effect of a
-	// held kind overwrites that entry's payload in place, otherwise it appends.
+	// held kind joins it by the effect-repeat rule, otherwise it appends.
 	addEffect := func(g generatedEffect) {
 		mask := shopEffectUsableBy(t.Magic, g.effect.Kind)
 		if mask != 3 {
@@ -62,13 +69,11 @@ func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r 
 				}
 			}
 		}
-		for i := range item.Effects {
-			if item.Effects[i].Kind == g.effect.Kind {
-				item.Effects[i].Operand = g.effect.Operand
-				entryPoints[i] = g.points
-				reprice()
-				return
-			}
+		if i := shopstock.Held(item.Effects, func(e sim.ItemEffect) uint8 { return e.Kind }, g.effect.Kind, repeat); i >= 0 {
+			item.Effects[i].Operand = g.effect.Operand
+			entryPoints[i] = g.points
+			reprice()
+			return
 		}
 		item.Effects = append(item.Effects, g.effect)
 		entryPoints = append(entryPoints, g.points)

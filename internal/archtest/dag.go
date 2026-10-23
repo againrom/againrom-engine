@@ -86,10 +86,14 @@ var allow = map[string][]string{
 	// The second game's shop rules read collections through their own
 	// interface and draw through a caller's rand(); they code the hero's bag
 	// as the engine's one item instance, so they read the simulation's item.
-	"pkg/secondshop": {"pkg/sim"},
-	"pkg/mapload":    {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
-	"pkg/mapedit":    {"pkg/formats/alm"},
-	"pkg/render":     {"pkg/sim", "pkg/vfs"},
+	// Their stock is drawn by the shared stock generator.
+	"pkg/secondshop": {"pkg/sim", "pkg/shopstock"},
+	// The shop stock generator of both games is a leaf: each game supplies
+	// its rules as a profile.
+	"pkg/shopstock": {},
+	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
+	"pkg/mapedit":   {"pkg/formats/alm"},
+	"pkg/render":    {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf and reads the tile-group
 	// mask constant from the map format, its one owner; menus bind loader sets.
 	"pkg/render/terrain":    {"pkg/formats/bmp", "pkg/formats/alm"},

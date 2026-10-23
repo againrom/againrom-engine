@@ -1,6 +1,10 @@
 package secondshop
 
-import "math"
+import (
+	"math"
+
+	"againrom/pkg/shopstock"
+)
 
 // Stock is the four category lists of one shop.
 type Stock [4][]Item
@@ -22,73 +26,90 @@ const (
 	levelCeiling   = 100
 )
 
-// pick is (rand()*n)>>15, the draw's index over n candidates.
-func pick(rnd Rand, n int) int { return (rnd() * n) >> 15 }
+// picks is rnd as the generator's draw source: Intn is (rand()*n)>>15, the
+// draw's index over n candidates.
+type picks Rand
 
-// Fill draws a whole stock from record r (R2-ENGINE-265). The magic category
-// first takes each admitted book at quantity 2 and the six potions; each draw
-// then picks a candidate, redrawing a book; an enchanted category enchants its
-// pick and drops a price outside the range. The mods' stocked items then
-// join the stock by placement; they take no draw.
+func (r picks) Intn(n int) int { return (r() * n) >> 15 }
+
+// Fill draws a whole stock from record r (R2-ENGINE-265) through the shared
+// generator.
 func (t Tables) Fill(r Record, rnd Rand) Stock {
 	var s Stock
-	for c, cat := range r {
-		cands := t.Candidates(cat, rnd)
-		var list []Item
-		if cat.Mask&kindMagic != 0 {
-			for _, it := range cands {
-				if it.Kind == Book {
-					it.Quantity, it.Price = bookQuantity, t.Price(it)
-					list = append(list, it)
-				}
-			}
-			for row := potionFirst; row <= potionLast; row++ {
-				it := Item{Kind: Magic, Row: row, Quantity: potionLeast + pick(rnd, potionSpan)}
-				it.Price = t.Price(it)
-				list = append(list, it)
-			}
-		}
-		if len(cands) > 0 {
-			list = t.draw(list, cands, cat, rnd)
-		}
-		s[c] = list
-	}
-	for _, it := range t.Stocked {
-		c := Place(r, it)
-		s[c] = Insert(s[c], it)
-	}
+	copy(s[:], shopstock.Generate(t.Profile(r, rnd), picks(rnd)))
 	return s
 }
 
-func (t Tables) draw(list, cands []Item, cat Category, rnd Rand) []Item {
-	enchanted := cat.Mask&bitEnchanted != 0
-	for done, failed := 0, 0; done < int(cat.Draws) && failed < failuresFactor*int(cat.Draws); {
-		it := cands[pick(rnd, len(cands))]
-		for i := 0; it.Kind == Book && i < bookRetries; i++ {
-			it = cands[pick(rnd, len(cands))]
+// Profile is record r as the shared generator's profile (R2-ENGINE-265).
+// Each category admits its candidates; the magic category first takes each
+// admitted book at quantity 2 and the six potions; each draw then picks a
+// candidate, redrawing a book; an enchanted category enchants its pick and
+// drops a price outside the range. Failures end a category at ten times its
+// draws. The mods' stocked items then join the stock by placement; they take
+// no draw. The second game has no count multiplier, and its enchant gives one
+// spell, so no effect repeats.
+func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
+	var p shopstock.Profile[Item, Item]
+	for _, cat := range r {
+		p.Categories = append(p.Categories, shopstock.Category[Item, Item]{
+			Candidates: func(shopstock.Source) []Item { return t.Candidates(cat, rnd) },
+			Lead:       func(cands []Item, src shopstock.Source) []Item { return t.lead(cat, cands, src) },
+			Count:      func(shopstock.Source) int { return int(cat.Draws) },
+			Bound:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
+			Redraw:     func(it Item) bool { return it.Kind == Book },
+			Redraws:    bookRetries,
+			Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
+			Insert:     Insert,
+		})
+	}
+	p.Place = func(stock [][]Item) {
+		for _, it := range t.Stocked {
+			c := Place(r, it)
+			stock[c] = Insert(stock[c], it)
 		}
+	}
+	return p
+}
+
+// lead is what a magic category holds before its draws: each admitted book
+// at quantity 2, then the six potions at 51..100.
+func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
+	if cat.Mask&kindMagic == 0 {
+		return nil
+	}
+	var list []Item
+	for _, it := range cands {
 		if it.Kind == Book {
-			failed++
-			continue
+			it.Quantity, it.Price = bookQuantity, t.Price(it)
+			list = append(list, it)
 		}
-		it.Quantity = 1
-		if enchanted {
-			if !t.enchant(&it, cat, rnd) {
-				failed++
-				continue
-			}
-		} else if it.Stackable() {
-			it.Quantity = 1 + (rnd()*int(cat.Bound+1))>>15
-		}
+	}
+	for row := potionFirst; row <= potionLast; row++ {
+		it := Item{Kind: Magic, Row: row, Quantity: potionLeast + src.Intn(potionSpan)}
 		it.Price = t.Price(it)
-		if enchanted && (it.Price < int64(cat.Min) || it.Price > int64(cat.Max)) {
-			failed++
-			continue
-		}
-		list = Insert(list, it)
-		done++
+		list = append(list, it)
 	}
 	return list
+}
+
+// make is one drawn unit of it: an enchanted category enchants it and
+// refuses a price outside the range; another draws a stackable quantity of
+// 1..Bound+1.
+func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
+	enchanted := cat.Mask&bitEnchanted != 0
+	it.Quantity = 1
+	if enchanted {
+		if !t.enchant(&it, cat, src) {
+			return it, false
+		}
+	} else if it.Stackable() {
+		it.Quantity = 1 + src.Intn(int(cat.Bound+1))
+	}
+	it.Price = t.Price(it)
+	if enchanted && (it.Price < int64(cat.Min) || it.Price > int64(cat.Max)) {
+		return it, false
+	}
+	return it, true
 }
 
 // LevelCap is the highest level an enchant of spell s can take on item it in
@@ -112,11 +133,11 @@ func (t Tables) LevelCap(it Item, s int, cat Category) int {
 
 // enchant gives it one spell at a uniform level 1..cap (R2-ENGINE-265). The
 // spell index and level draw forms are chosen (DIV-3042).
-func (t Tables) enchant(it *Item, cat Category, rnd Rand) bool {
+func (t Tables) enchant(it *Item, cat Category, src shopstock.Source) bool {
 	for i := 0; i < spellRetries; i++ {
-		s := enchantSpells[pick(rnd, len(enchantSpells))]
+		s := enchantSpells[src.Intn(len(enchantSpells))]
 		if cap := t.LevelCap(*it, s, cat); cap > 0 {
-			it.Spell, it.Level = s, 1+pick(rnd, cap)
+			it.Spell, it.Level = s, 1+src.Intn(cap)
 			return true
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 	"strings"
 )
@@ -321,140 +322,7 @@ func (s *Shop) generate(t *mapload.Table, r shopDrawSource) {
 	for i := range s.shelves {
 		s.shelves[i] = nil
 	}
-
-	allArmour := shopArmourPool(t, s.ceiling)
-	allWeapons := shopWeaponPool(t, s.ceiling)
-	armour := shopPlainShelfPool(allArmour)
-	weapons := shopPlainShelfPool(allWeapons)
-	pools := [numShopShelves][]data.ShopCandidate{
-		ShelfArmour:  armour,
-		ShelfWeapons: weapons,
-		ShelfMagic:   append(append([]data.ShopCandidate{}, allArmour...), allWeapons...),
-	}
-
-	var rolled [numShopShelves]int
-	for shelf := range pools {
-		pool := pools[shelf]
-		if len(pool) == 0 {
-			continue
-		}
-		n := shopShelfDraws[shelf]
-		attempts := n
-		if ShopShelf(shelf) == ShelfMagic {
-			attempts = 10*n + 1
-		}
-		items := s.rollShelf(ShopShelf(shelf), pool, t, r, n, attempts)
-		rolled[shelf] = len(items)
-		items = shopStackShelf(items)
-		shopSortShelf(items, t)
-		s.shelves[shelf] = items
-	}
-	// A mod's item that asks for a place is added to the armour shelf after the
-	// random draw, without taking a draw (DIV-1862).
-	if stock := modShopStock(t, s.drawSeed, s.restocks, len(armour)); len(stock) != 0 {
-		items := append(s.shelves[ShelfArmour][:len(s.shelves[ShelfArmour]):len(s.shelves[ShelfArmour])], stock...)
-		items = shopStackShelf(items)
-		shopSortShelf(items, t)
-		s.shelves[ShelfArmour] = items
-	}
-
-	books := shopBookPool(t, s.ceiling)
-	if r == nil {
-		return
-	}
-	consumables := append(books, shopScrollPool(t, s.ceiling, r)...)
-	var items []ShopItem
-	picks := 0
-	if len(consumables) != 0 {
-		n, _ := shopDrawInclusive(r, 1, 8)
-		picks = n
-		for i := 0; i < n; i++ {
-			items = append(items, consumables[r.Intn(len(consumables))].Clone())
-		}
-	}
-	// Owner policy (DIV-1025): retain the random stock, then guarantee one
-	// book of each eligible spell without consuming another random draw.
-	for _, book := range books {
-		spell, _ := book.Instance().BookSpell()
-		found := false
-		for _, item := range items {
-			if got, ok := item.Instance().BookSpell(); ok && got == spell {
-				found = true
-				break
-			}
-		}
-		if !found {
-			items = append(items, book.Clone())
-		}
-	}
-	items = append(items, shopPotionStock(t, r)...)
-	items = shopStackShelf(items)
-	shopSortShelf(items, t)
-	s.shelves[ShelfBooks] = items
-	s.rollAgain(t, pools, rolled, consumables, picks)
-}
-
-// rollShelf is one roll of a weapons, armour or Magic Items shelf: up to n
-// items from at most attempts draws from pool, unstacked and unsorted. A
-// Magic Items draw whose candidate takes no effect is a spent attempt.
-func (s *Shop) rollShelf(shelf ShopShelf, pool []data.ShopCandidate, t *mapload.Table, r shopDrawSource, n, attempts int) []ShopItem {
-	items := make([]ShopItem, 0, n)
-	for i := 0; i < attempts && len(items) < n; i++ {
-		c := pool[r.Intn(len(pool))]
-		if shelf == ShelfMagic {
-			item, ok := shopEnchantedItem(c, s.ceiling, t, r)
-			if !ok {
-				continue
-			}
-			items = append(items, item)
-			continue
-		}
-		items = append(items, shopItemFromInstance(sim.ItemInstance{
-			Code: uint16(c.Code), Kind: c.ItemKind, Price: c.Price}, 1))
-	}
-	return items
-}
-
-// rollAgain adds the stock multiplier's further rolls (DIV-3960). Each of the
-// first three shelves rolls stockMultiplier-1 more times, each roll taking as
-// many items as the first roll took (rolled) within a hundred times the first
-// roll's attempts, and the books shelf picks its random consumables that many
-// more times; every item is its own draw. Guaranteed books and potions are not
-// rolled and stay once. The further rolls draw on their own generator from
-// the shop's seed, so the shared stream of original mode is consumed exactly
-// as with one roll.
-func (s *Shop) rollAgain(t *mapload.Table, pools [numShopShelves][]data.ShopCandidate, rolled [numShopShelves]int, consumables []ShopItem, picks int) {
-	extra := int(s.stockMultiplier) - 1
-	if extra <= 0 {
-		return
-	}
-	r := random.NewGo(shopExtraRollSeed(s.drawSeed))
-	for shelf := range pools {
-		if len(pools[shelf]) == 0 || rolled[shelf] == 0 {
-			continue
-		}
-		attempts := shopShelfDraws[shelf]
-		if ShopShelf(shelf) == ShelfMagic {
-			attempts = 100 * (10*attempts + 1)
-		}
-		stack := newShopStacker(s.shelves[shelf])
-		for k := 0; k < extra; k++ {
-			for _, item := range s.rollShelf(ShopShelf(shelf), pools[shelf], t, r, rolled[shelf], attempts) {
-				stack.add(item)
-			}
-		}
-		shopSortShelf(stack.out, t)
-		s.shelves[shelf] = stack.out
-	}
-	if len(consumables) == 0 || picks == 0 {
-		return
-	}
-	stack := newShopStacker(s.shelves[ShelfBooks])
-	for i := 0; i < extra*picks; i++ {
-		stack.add(consumables[r.Intn(len(consumables))])
-	}
-	shopSortShelf(stack.out, t)
-	s.shelves[ShelfBooks] = stack.out
+	copy(s.shelves[:], shopstock.Generate(s.stockProfile(t, r), r))
 }
 
 // shopExtraRollSeed is the seed of the stock multiplier's further rolls,
