@@ -127,6 +127,7 @@ func clonePartyMember(in PartyMember) PartyMember {
 		saved := *in.Saved
 		out.Saved = &saved
 	}
+	out.Kept = in.Kept.Clone()
 	if in.PotionEffect != nil {
 		effect := *in.PotionEffect
 		out.PotionEffect = &effect

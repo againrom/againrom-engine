@@ -181,6 +181,8 @@ func (secondCampaignRules) keepsTownSurface(c *restoreCandidate) bool {
 	return c.town != nil && c.town.second != nil
 }
 
+func (secondCampaignRules) keepsTownActorState() bool { return false }
+
 func (secondCampaignRules) beforeAdvance(f *FrontEnd, n int, ms *Mission, action ui.NoticeAction) string {
 	town, live := f.Town, f.live
 	if town == nil || town.second == nil || live == nil || live.mission == nil {

@@ -164,10 +164,10 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			}
 		}
 		r := mustNewRecord("Player")
-		name, color, participant := "", uint32(1), uint32(1)
+		name, color, participant := "", missionPlayerColor(ms.Map, slot), uint32(1)
 		if slot > 0 && int(slot) <= len(ms.Map.Groups) {
 			g := ms.Map.Groups[slot-1]
-			name, color, participant = g.Name, g.Color+1, g.Participant
+			name, participant = g.Name, g.Participant
 		}
 		if rootIndex == local {
 			name, participant = nativeCityHeroOf(s.Party).Name, 0

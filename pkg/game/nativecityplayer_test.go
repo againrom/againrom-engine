@@ -234,7 +234,11 @@ func TestReleaseNativeCityPlayerConstruction(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		checkPlayerWireN4(t, raw, 2, 1)
+		// The town carries the last mission's Player colour (SAV-1359).
+		if s.playerColor == 0 {
+			t.Fatal("the town return carries no Player colour")
+		}
+		checkPlayerWireN4(t, raw, 2, 1, map[string]uint32{"F44": uint32(s.playerColor)})
 		checkPlayerColdN4(t, s, raw)
 	})
 	if root := os.Getenv("AGAINROM_N4_AUDIT_ROOT"); root != "" {

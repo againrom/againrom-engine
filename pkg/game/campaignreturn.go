@@ -252,6 +252,9 @@ func (s *CampaignSession) carryMissionHome(in townInstall, n int, party []maploa
 	if w != nil && s.Town != nil {
 		s.Town.gold = int(w.Purse(sim.SelfSlot))
 		s.Town.carryKnowledge(w)
+		if s.live != nil && s.live.world == w && s.live.mission != nil && s.live.mission.state != nil {
+			s.Town.playerColor = uint8(missionPlayerColor(s.live.mission.state.Map, sim.SelfSlot))
+		}
 	}
 	if address, ok := MissionMap(n); ok && s.Town != nil {
 		s.Town.lastMap = originalMapName(address)

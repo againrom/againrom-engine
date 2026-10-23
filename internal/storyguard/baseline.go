@@ -2881,6 +2881,15 @@ package storyguard
 // pkg/ui/mapeditorforest.go, the brush window's forest hooks, the forest
 // tests in pkg/game, and this paragraph.
 //
+// CommentBytes rises with the town SAVE's actor and Player fields, all doc
+// comments on new code: pkg/mapload/kept.go, pkg/formats/sav/townactor.go,
+// pkg/game/townkept.go, the carried-party note in pkg/mapload/carry.go, their
+// tests and release witnesses, and this paragraph.
+//
+// CommentBytes rises with the first-game switch of those town fields: the
+// campaign service's keepsTownActorState, the second game's cull note in
+// pkg/sim/missionreturn.go, their two tests, and this paragraph.
+//
 // CommentBytes rises with the first game's chase and post rules, all doc
 // comments on new code: the Darkness hook, the living post block, the walk
 // refused at its first empty search and the engaged foes held to the circle
@@ -2908,5 +2917,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9552428,
+	CommentBytes: 9561732,
 }

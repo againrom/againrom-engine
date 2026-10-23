@@ -225,6 +225,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	}
 	if hasCurrent {
 		restored, cityCharacters = current, currentChars
+		keepLoadedTownActors(in.table, restored, currentChars)
 	} else {
 		mapload.NameParty(restored)
 		clearRestoredMissionPosition(restored)
@@ -237,6 +238,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 			if err != nil {
 				return report, err
 			}
+			keepLoadedTownActors(in.table, restored, cityCharacters)
 		}
 	}
 	cityObjects.publishSessionEntry()
@@ -263,6 +265,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	for _, p := range sf.Players {
 		if p.Participant == 0 {
 			s.Town.gold = int(p.Money)
+			s.Town.playerColor = uint8(p.Fields.Value["F44"])
 			break
 		}
 	}

@@ -240,6 +240,14 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err != nil {
 		return sav.DocumentData{}, nil, err
 	}
+	if tableCampaign(table).keepsTownActorState() {
+		if err := writeTownActors(&city, s.Party); err != nil {
+			return sav.DocumentData{}, nil, err
+		}
+		if err := writeTownPlayerColor(&city, s.playerColor); err != nil {
+			return sav.DocumentData{}, nil, err
+		}
+	}
 	order := writeCityGroups(&city, s.Party, s.cityGroups, s.cityGroupsLoaded)
 	city.MapName = s.LastMap
 	if err := nativeCityPlayerFormation(&city, s.ApplicationState, nil, s.townOptions); err != nil {

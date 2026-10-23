@@ -26,6 +26,11 @@ func currentMissionCityParty(world *sim.World, state *SnapshotSAVDocument, party
 		}
 		byParty[liveParty[i].ID] = id
 	}
+	if tableCampaign(table).keepsTownActorState() {
+		if err := carryKeptActors(world, carried, byParty); err != nil {
+			return nil, nil, err
+		}
+	}
 	registry := world.SavedObjects()
 	if registry == nil {
 		projection, err := newCityObjectProjection(nil, carried, table)

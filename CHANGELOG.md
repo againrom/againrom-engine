@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] At the start of the next mission, a hero who was still busy late in the last one heals at the slow rate until as much time has passed as in the original game, also after loading a town save; before, every hero switched to the fast rate a few moments into the mission.
 - [ROM1] Monsters stop chasing a hero who has left their area, even one who keeps hitting them from outside it, and Darkness no longer sends its victims at the caster; a monster that cannot get back to its post gives up at once and tries again on its next turn, as in the original.
 
 ### For map makers and modders

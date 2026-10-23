@@ -54,6 +54,10 @@ type campaignService interface {
 	arriveLoaded(f *FrontEnd, c *restoreCandidate)
 	// keepsTownSurface reports whether a load leaves the town screen as it is.
 	keepsTownSurface(c *restoreCandidate) bool
+	// keepsTownActorState reports whether the town carries a kept actor's
+	// mission state and the Player colour into a town SAVE. The second game
+	// writes constructor values: its claims do not state the rule.
+	keepsTownActorState() bool
 	// The four steps of a mission's acknowledged end.
 	beforeAdvance(f *FrontEnd, n int, ms *Mission, action ui.NoticeAction) string
 	finishWon(f *FrontEnd, n int, ms *Mission) (int, string)

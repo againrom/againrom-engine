@@ -89,6 +89,9 @@ func CarryParty(party []PartyMember, w *sim.World, ids []sim.EntityID) []PartyMe
 	out := OwnParty(party)
 	for i := range out {
 		out[i].Saved = nil
+		// The mission start consumed the kept-actor state; the town fills it
+		// again from the World for each member the mission kept.
+		out[i].Kept = nil
 		// World item/effect/award producers do not yet maintain the original
 		// city's full modifier history. Never carry a stale basis back to town.
 		out[i].OriginalHuman = nil

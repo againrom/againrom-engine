@@ -230,6 +230,7 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 	}
 	n.Town.mercenaryBoundary(mercenaries)
 	n.Town.gold = int(world.Purse(sim.SelfSlot))
+	n.Town.playerColor = uint8(missionPlayerColor(mission.state.Map, sim.SelfSlot))
 	n.Town.open = true
 	// An active mission is restartable in this detached city even if a tool
 	// originally opened it before its ordinary announcement was presented.

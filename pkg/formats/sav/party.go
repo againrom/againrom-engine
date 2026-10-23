@@ -143,6 +143,10 @@ type Character struct {
 	HasDiary                 bool
 	JournalLen, JournalWords int
 	Diary                    Diary
+
+	// Town is the actor state a town document carries for the party's
+	// kept-actor carrier (SAV-1353).
+	Town TownActorState
 }
 
 // SavedSpell is a non-null sparse-book slot. The values are the serialized
@@ -406,6 +410,9 @@ func actorCharacter(r *Record) (Character, error) {
 		}
 	}
 	var err error
+	if c.Town, err = townActorState(r); err != nil {
+		return Character{}, err
+	}
 	c.Spells, err = recordSpells(r)
 	if err != nil {
 		return Character{}, err

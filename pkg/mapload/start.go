@@ -316,6 +316,9 @@ type PartyMember struct {
 	// A non-spell effect carried over a town/mission boundary. Native live
 	// worlds retain their own already-applied record instead of replaying it.
 	PotionEffect *sim.ActiveEffect
+	// Kept is the actor state a member kept from the last mission or read by
+	// a town LOAD; nil is an actor built in the town.
+	Kept *KeptActor
 }
 
 // Hired reports whether this member was taken on at the tavern, of ANY type
@@ -827,6 +830,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 			st.IDs[i] = id
 			ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: id, X: st.Cells[i].X, Y: st.Cells[i].Y,
 				Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p)}))
+			keptDeadline(&ents[len(ents)-1], p)
 			if !itemEquipmentEmpty(b.worn) || len(b.carried) > 0 {
 				worn = append(worn, sim.Stock{ID: id, ItemInstances: cloneItemInstances(b.carried), EquippedItems: cloneItemEquipment(b.worn)})
 			}
@@ -965,6 +969,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		st.IDs[i] = sim.EntityID(len(ents))
 		ents = append(ents, sim.NewActor(def, sim.ActorPlacement{ID: st.IDs[i], X: st.Cells[i].X, Y: st.Cells[i].Y,
 			Owner: sim.SelfSlot, MapUnitID: savedMapUnitID(p), ClientClassFixed: p.Hired()}))
+		keptDeadline(&ents[len(ents)-1], p)
 		// A CARRIED MEMBER ARRIVES HOLDING WHAT HE LEFT WITH, and the class
 		// row's starting weapon is NOT minted for him a second time (the
 		// continuity hotfix). That is the whole reason Carry is reached by

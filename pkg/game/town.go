@@ -106,6 +106,10 @@ type Town struct {
 	// is replaced whole, never edited, and a new campaign starts without one.
 	knowledge []sim.SavedDiary
 
+	// playerColor is the local Player's +0x44 the last mission or a town LOAD
+	// left; 0, the constructor's value, before either (SAV-1359).
+	playerColor uint8
+
 	// A mission is marked once and paid on that same transition.
 	won map[int]bool
 

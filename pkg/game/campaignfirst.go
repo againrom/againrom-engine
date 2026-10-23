@@ -103,6 +103,8 @@ func (firstCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {
 
 func (firstCampaignRules) keepsTownSurface(*restoreCandidate) bool { return false }
 
+func (firstCampaignRules) keepsTownActorState() bool { return true }
+
 func (firstCampaignRules) beforeAdvance(*FrontEnd, int, *Mission, ui.NoticeAction) string { return "" }
 
 func (firstCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, string) {
