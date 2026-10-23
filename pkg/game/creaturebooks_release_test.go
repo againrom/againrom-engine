@@ -75,6 +75,7 @@ type creatureObservation struct {
 	tick             int
 	casterX, casterY int32
 	heroX, heroY     int32
+	striking         bool
 }
 
 // creatureObserve steps w until caster holds a book record in one of the
@@ -95,7 +96,13 @@ func creatureObserve(w *sim.World, caster, hero sim.EntityID, ticks int, phases 
 		if rec, ok := castOrderBook(w, caster); ok {
 			for _, p := range phases {
 				if rec.Phase == p {
-					return creatureObservation{rec, tick, cx, cy, hx, hy}, true
+					striking := false
+					for _, e := range w.Entities() {
+						if e.ID == caster {
+							striking = e.AttackPhase != sim.AttackReady || e.AttackCountdown != 0
+						}
+					}
+					return creatureObservation{rec, tick, cx, cy, hx, hy, striking}, true
 				}
 			}
 		}
@@ -205,7 +212,8 @@ func creatureApproachPlacement(t *testing.T, f *FrontEnd, m *alm.Map, ms *Missio
 				continue
 			}
 			w := creatureWitnessWorld(t, ms.World, m, f.Table, hero, x, y, creatureAlone(hero, c.ID))
-			if got, ok := creatureObserve(w, c.ID, hero, 600, sim.BookPhaseApproach); ok {
+			// A strike-wait arm is no approach.
+			if got, ok := creatureObserve(w, c.ID, hero, 600, sim.BookPhaseApproach); ok && !got.striking {
 				return c, x, y, got
 			}
 		}
@@ -265,7 +273,7 @@ func creatureAbs(v int32) int32 {
 // that casts at the party. A retained cast would repeat every cycle for as long
 // as the victim stays in range; the draw each pass makes while the cast is
 // pending ends the order at the first pass that selects no spell, so the casts
-// stay few.
+// stay within twice the slot draws' expected selections, plus two.
 func TestReleaseCreatureRetainedCastEndsAtAMissingDraw(t *testing.T) {
 	f := releaseFront(t)
 	m, ms, creatures := creatureClassCases(t, f, creatureClassVictim)
@@ -293,7 +301,15 @@ func TestReleaseCreatureRetainedCastEndsAtAMissingDraw(t *testing.T) {
 			continue
 		}
 		t.Logf("creature %d cast %d times in %d ticks, first at %d", c.ID, casts, window, first)
-		if casts > 6 {
+		miss := 1.0
+		for _, s := range c.CreatureSpells {
+			if s.ID != 0 {
+				miss *= 1 - min(float64(s.Threshold), 0x8000)/0x8000
+			}
+		}
+		bound := int(math.Ceil(2*float64(window/16+1)*(1-miss))) + 2
+		t.Logf("creature %d: %d casts, bound %d", c.ID, casts, bound)
+		if casts > bound {
 			t.Fatalf("creature %d cast %d times in %d ticks: its retained order was never replaced by a draw", c.ID, casts, window)
 		}
 		return

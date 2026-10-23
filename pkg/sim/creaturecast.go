@@ -94,7 +94,8 @@ func isRangeRefusal(refusal string) bool {
 // replaces the creature's order with a cast aimed by the spell's arm and kept
 // armed (MAGIC-240); a draw that selects none lets the ordinary engage replace
 // it. A cast out of range walks toward the victim and stays armed until it is
-// in range (MAGIC-239); a cast the engine refuses for any other reason leaves
+// in range (MAGIC-239), and one drawn during a loaded strike waits for the
+// strike to end; a cast the engine refuses for any other reason leaves
 // the pass to the ordinary engage (DIV-1725). The result reports whether the
 // selection took the pass.
 func (w *World) creatureEngageCast(i int, victim EntityID) bool {
@@ -126,6 +127,9 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	refusal := w.creatureCastRefusal(i, target, x, y, atCell, id, false)
 	if refusal == "" {
 		return w.startEngageCast(i, victim, target, x, y, atCell, id)
+	}
+	if w.strikeHoldsCast(i, refusal) {
+		return w.armCreatureCast(i, victim, target, x, y, atCell, id)
 	}
 	if !isRangeRefusal(refusal) || w.creatureCastRefusal(i, target, x, y, atCell, id, true) != "" {
 		return false

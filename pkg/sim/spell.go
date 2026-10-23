@@ -1533,6 +1533,15 @@ func (w *World) retainedCastBusy(i int) bool {
 	return e.AttackPhase != AttackReady || e.AttackCountdown != 0 || w.orderState(&e).recoveryWaiting()
 }
 
+// strikeHoldsCast reports a computer caster busy only with its loaded strike:
+// its drawn cast waits for the strike's end (AI-554, MAGIC-239, AI-356).
+func (w *World) strikeHoldsCast(i int, refusal string) bool {
+	e := w.entities[i]
+	return refusal == "caster action busy" && !w.humanParticipantUnit(e) &&
+		!w.motionActive(e.ID) && !w.stoneCursed(i) && !w.actorCastBusy(i) &&
+		(e.AttackPhase != AttackReady || e.AttackCountdown != 0)
+}
+
 // withinCastReach is the unit-target cast gate. In the first game the caster
 // itself is always in reach and any other target is within the cast's reach
 // when the footprint-gap distance of the two bodies does not exceed it
@@ -2011,6 +2020,8 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				// the admission retries (MAGIC-340, AI-554).
 				w.standForCreatureCast(ci)
 				c.Phase, c.Progress, c.Complete = bookPending, 0, false
+			case held && c.Retained && w.strikeHoldsCast(ci, refusal):
+				// The order waits for the loaded strike to end.
 			case !held || !w.approachWalksOn(ci, refusal):
 				w.bookCasts = append(w.bookCasts[:i], w.bookCasts[i+1:]...)
 				if held && !w.castApproachPursues(w.entities[ci]) {

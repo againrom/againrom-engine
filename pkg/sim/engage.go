@@ -201,7 +201,8 @@ func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 // 100 draw hands the pass back to the ordinary engage. Otherwise it draws
 // uniformly from the affordable non-defensive ids 1..28 of its book; an empty
 // list casts id 28 when the book holds it. The cast is aimed at the victim; out
-// of reach the mage walks into reach with the cast armed. The draw reads no
+// of reach the mage walks into reach with the cast armed, and during a loaded
+// strike the armed cast waits for the strike to end. The draw reads no
 // cast state of the mage, so with a cast pending it replaces the retained
 // order as a creature's slot draw does (AI-376). It reports whether the cast
 // took the pass.
@@ -214,6 +215,9 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	if e.Mind > 59 && w.rng.aiRange(100) < 30 {
 		if busy {
 			w.creatureReplaceCastOrder(i, 0, victim)
+		} else {
+			// The hand-back's engage order replaces an armed one (AI-376).
+			w.dropCastApproach(i)
 		}
 		return false
 	}
@@ -257,6 +261,9 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	rest := refusal
 	if isRangeRefusal(refusal) {
 		rest = w.creatureCastRefusal(i, victim, 0, 0, false, id, true)
+	}
+	if w.strikeHoldsCast(i, rest) {
+		rest = ""
 	}
 	switch rest {
 	case "":

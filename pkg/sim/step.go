@@ -1197,7 +1197,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		if e.OffMap || w.stoneCursed(i) || !e.HasAttackTarget || e.PendingOrder.Kind != PendingNone && w.pendingLogicalProgress(i) == 0 || e.PendingOrder.RowAdmitted || i < len(retreatHolds) && retreatHolds[i] {
 			continue
 		}
-		if s := w.orderState(e); s.booked() || s.wait {
+		// A loaded strike runs on under an armed cast order (AI-356).
+		if s := w.orderState(e); s.booked() && !(s.approaching() && s.strike) || s.wait {
 			continue
 		}
 		loaded := e.AttackPhase != AttackReady
