@@ -20,7 +20,7 @@ func fillTiles(t *testing.T, fill ui.BrushFill) ([]byte, []uint16) {
 	}
 	op := ui.BrushStroke{Plane: ui.BrushPlaneTerrain, Value: int(mapedit.ClassGrass), Radius: 8, Shape: ui.BrushSquare, Fill: fill,
 		Cells: []image.Point{{X: 20, Y: 20}}}
-	if _, err := paintStroke(m, op); err != nil {
+	if _, err := paintStroke(m, op, nil); err != nil {
 		t.Fatal(err)
 	}
 	f, err := alm.Open(m.Bytes())

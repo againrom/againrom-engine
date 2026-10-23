@@ -74,10 +74,23 @@ func (s *mapInspectionEdits) BrushObjects() []ui.BrushObject {
 
 // Paint applies one stroke to the model as one edit.
 func (s *mapInspectionEdits) Paint(op ui.BrushStroke) (*ui.InspectionDocument, error) {
-	if op.Plane == ui.BrushPlaneObjects && !slices.ContainsFunc(s.inspector.objectRows, func(r ui.BrushObject) bool { return r.Code == op.Value }) {
-		return nil, fmt.Errorf("%d is not a class the object list offers", op.Value)
+	if op.Plane == ui.BrushPlaneObjects {
+		for i, code := range append([]int{op.Value}, op.Forest.Kinds...) {
+			if !slices.ContainsFunc(s.inspector.objectRows, func(r ui.BrushObject) bool { return r.Code == code }) || i > 0 && code == 0 {
+				return nil, fmt.Errorf("%d is not a class the object list offers", code)
+			}
+		}
 	}
-	return s.change(func(m *mapedit.Editor) (bool, error) { return paintStroke(m, op) })
+	return s.change(func(m *mapedit.Editor) (bool, error) { return paintStroke(m, op, s.inspector.table) })
+}
+
+// BrushObjectIcon is the picture of an object class the forest grid shows:
+// its frame from the installed sprites, nil where the install has none.
+func (s *mapInspectionEdits) BrushObjectIcon(code int) *image.RGBA {
+	if set := s.inspector.statics; set != nil && code > 0 && code < len(set.Classes) && set.Classes[code] != nil && set.Classes[code].Frame != nil {
+		return set.Classes[code].Frame.RGBA()
+	}
+	return nil
 }
 
 // BrushVariants is how many look-alike tiles the terrain class has.
@@ -110,13 +123,27 @@ var brushPlanes = map[ui.BrushPlane]mapedit.Brush{
 	ui.BrushPlanePassability: {Plane: mapedit.PlaneImpassable},
 }
 
-// paintStroke runs a window stroke on the model as one brush of its plane.
-func paintStroke(m *mapedit.Editor, op ui.BrushStroke) (bool, error) {
+// paintStroke runs a window stroke on the model as one brush of its plane. A
+// forest stroke draws from a fresh seeded source and is fenced off the cells
+// the table's structure footprints attach; a nil table fences none.
+func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bool, error) {
 	b, ok := brushPlanes[op.Plane]
 	if !ok {
 		return false, fmt.Errorf("no brush plane %d", op.Plane)
 	}
 	b.Value, b.Radius, b.Shape = op.Value, op.Radius, brushShapes[op.Shape]
+	if op.Plane == ui.BrushPlaneObjects && len(op.Forest.Kinds) > 0 {
+		var fenced []bool
+		if table != nil && !op.Forest.Thin {
+			doc, err := m.Map()
+			if err != nil {
+				return false, err
+			}
+			fenced = mapload.StructureCells(doc, table)
+		}
+		b.Scatter = mapedit.Scatter{Classes: op.Forest.Kinds, Share: op.Forest.Share, Thin: op.Forest.Thin,
+			Draw: random.NewGo(int64(strokeSeed())).Intn, Fenced: fenced}
+	}
 	if op.Plane == ui.BrushPlaneTerrain {
 		b.Fill = mapedit.Fill{Mode: brushFills[op.Fill.Mode], Variant: op.Fill.Variant}
 		if b.Fill.Mode == mapedit.FillRandom {

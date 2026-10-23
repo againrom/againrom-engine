@@ -51,6 +51,25 @@ type Brush struct {
 	// Fill chooses the words of the tile plane's centre cells; the zero value
 	// is the position pattern.
 	Fill Fill
+	// Scatter, when it names classes, makes an object stroke plant or thin a
+	// mix instead of writing Value.
+	Scatter Scatter
+}
+
+// Scatter is the forest form of an object stroke. Each covered cell is drawn
+// once: a planting stroke gives an open cell one of Classes, each equally
+// likely, at Share per cent; a thinning stroke (Thin) clears a cell holding
+// one of Classes at Share per cent and leaves every other cell. A cell is open
+// when its type-3 byte is 0, its tile index is not in the water range
+// (TERR-PASS-049), the classifier does not call it Road (TERR-PASS-050) and
+// Fenced, the host's per-cell structure footprint (TERR-STRUCT-068), does not
+// hold it. Draw answers a number in 0..n-1; the caller owns the source.
+type Scatter struct {
+	Classes []int
+	Share   int
+	Thin    bool
+	Draw    func(n int) int
+	Fenced  []bool
 }
 
 // Cell is a grid position.
@@ -165,7 +184,15 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 		ed = e.heightStroke(f, b, at, w, h)
 	case PlaneObject:
 		var err error
-		if ed, err = e.objectStroke(f, b, at, w, h); err != nil {
+		if len(b.Scatter.Classes) > 0 {
+			if class == nil {
+				return false, fmt.Errorf("mapedit: a forest stroke needs a classifier")
+			}
+			ed, err = e.scatterStroke(f, b, at, w, h, class)
+		} else {
+			ed, err = e.objectStroke(f, b, at, w, h)
+		}
+		if err != nil {
 			return false, err
 		}
 	case PlaneImpassable:
@@ -315,6 +342,67 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 	next := append([]byte(nil), old...)
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, _ int) { next[y*w+x] = byte(b.Value) })
+	}
+	var ed edit
+	for i := 0; i < len(next); {
+		if next[i] == old[i] {
+			i++
+			continue
+		}
+		j := i
+		for ; j < len(next) && next[j] != old[j]; j++ {
+		}
+		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
+		i = j
+	}
+	return ed, nil
+}
+
+// waterIndex is the tile index range the block plane's water arm tests
+// (TERR-PASS-049 (d)).
+func waterIndex(word uint16) bool { return alm.TileIndex(word)&0x300 == 0x200 }
+
+// scatterStroke plants or thins Scatter.Classes over the cells the brush
+// covers, each cell once and in row order, so one source gives one result.
+func (e *Editor) scatterStroke(f frame, b Brush, at []Cell, w, h int, class func(uint16) uint8) (edit, error) {
+	sc := b.Scatter
+	switch {
+	case sc.Share < 1 || sc.Share > 100:
+		return nil, fmt.Errorf("mapedit: a forest share of %d%% is outside 1..100", sc.Share)
+	case sc.Draw == nil:
+		return nil, fmt.Errorf("mapedit: a forest stroke needs a random source")
+	case sc.Fenced != nil && len(sc.Fenced) != w*h:
+		return nil, fmt.Errorf("mapedit: a structure plane of %d cells for a %dx%d grid", len(sc.Fenced), w, h)
+	}
+	kinds := map[int]bool{}
+	for _, c := range sc.Classes {
+		if c < 1 || c > 255 {
+			return nil, fmt.Errorf("mapedit: %d is not an object class code a forest plants", c)
+		}
+		kinds[c] = true
+	}
+	span, err := f.optional("paint objects", overlayTypeID)
+	if err != nil {
+		return nil, err
+	}
+	tiles := f.required(tileTypeID)
+	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
+	next := append([]byte(nil), old...)
+	for _, c := range b.Footprint(at, w, h) {
+		i := c.Y*w + c.X
+		if sc.Thin {
+			if kinds[int(old[i])] && sc.Draw(100) < sc.Share {
+				next[i] = 0
+			}
+			continue
+		}
+		word := binary.LittleEndian.Uint16(e.data[tiles.abs(2*i):])
+		if old[i] != 0 || waterIndex(word) || class(word) == ClassRoad || sc.Fenced != nil && sc.Fenced[i] {
+			continue
+		}
+		if sc.Draw(100) < sc.Share {
+			next[i] = byte(sc.Classes[sc.Draw(len(sc.Classes))])
+		}
 	}
 	var ed edit
 	for i := 0; i < len(next); {

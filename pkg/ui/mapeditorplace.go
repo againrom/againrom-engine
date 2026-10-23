@@ -160,8 +160,9 @@ func (e *MapEditor) placeChoose(n int) {
 	e.armPick(pickAddCell)
 }
 
-// PlaceGridCellRect is the window rectangle of grid cell n of the shown tab,
-// when it is shown: a headless driver presses it.
+// PlaceGridCellRect is the window rectangle of cell n of the list popup's
+// grid, the tab's or the forest's, when it is shown: a headless driver
+// presses it.
 func (e *MapEditor) PlaceGridCellRect(n int) (image.Rectangle, bool) {
 	s, ok := e.listSpec()
 	if !ok || s.Grid == nil {

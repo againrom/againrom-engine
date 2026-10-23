@@ -44,6 +44,7 @@ var almReferences = nameTable{
 	"newmap.go/NewMap":                      {"alm.NewMap", "alm.NewMapSpec"},
 	"brush.go/(*Editor).heightStroke":       {"alm.MaxHeight"},
 	"brush.go/(*Editor).tileStroke":         {"alm.TileGroupMask"},
+	"brush.go/waterIndex":                   {"alm.TileIndex"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

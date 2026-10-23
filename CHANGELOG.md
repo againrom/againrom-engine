@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [ROM1] The object brush has a Forest mode: tick several kinds of trees or objects in the picture grid, pick a density or type a per cent, and one drag scatters a random mix on empty ground, never on water, roads, buildings or existing objects. Dragging with the right button thins the ticked kinds, and Undo takes back a whole drag.
+
 ## 0.132.0
 
 ### For players

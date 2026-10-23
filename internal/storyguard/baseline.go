@@ -2874,6 +2874,12 @@ package storyguard
 // pkg/secondshop/fill.go, two allow-map notes in internal/archtest/dag.go,
 // and this paragraph, less the retired first-game roll comments in
 // pkg/game/shop.go.
+//
+// CommentBytes rises with the object brush's Forest mode, all doc comments on
+// new code: the scatter stroke in pkg/mapedit/brush.go and its test,
+// mapload.StructureCells, the host seam in pkg/game/mapinspectionbrush.go,
+// pkg/ui/mapeditorforest.go, the brush window's forest hooks, the forest
+// tests in pkg/game, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2897,5 +2903,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9538853,
+	CommentBytes: 9548658,
 }

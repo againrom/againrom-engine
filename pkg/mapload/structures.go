@@ -299,6 +299,14 @@ func deriveTaken(m *alm.Map, t *Table) ([]byte, StructureCounts, []bool) {
 	return plane, c, taken
 }
 
+// StructureCells is, per in-bounds cell and row-major, whether a placed
+// structure's footprint attaches the cell (TERR-STRUCT-068), open deck and
+// doorway cells included; nil when no footprint attaches any cell.
+func StructureCells(m *alm.Map, t *Table) []bool {
+	_, _, taken := deriveTaken(m, t)
+	return taken
+}
+
 // walk applies one footprint: every cell its ATTACH set names, row by row from
 // the anchor, running right and down.
 //

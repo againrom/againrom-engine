@@ -56,6 +56,8 @@ const (
 	promptToGroup
 	// promptGroupWarn warns before an edit empties a group a trigger names.
 	promptGroupWarn
+	// promptForestShare asks for the Forest brush's density in per cent.
+	promptForestShare
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it

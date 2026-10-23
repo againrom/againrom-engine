@@ -63,8 +63,9 @@ type BrushFill struct {
 // BrushStroke is one pointer stroke as data: the plane, the value at each cell
 // (a terrain class, a height change, an object class code, or 1 to set and 0
 // to clear the tile word's impassable flag), the brush radius in cells, its
-// shape, the centre fill of a terrain stroke and the cells the pointer
-// visited.
+// shape, the centre fill of a terrain stroke, the cells the pointer visited
+// and, for an object stroke in Forest mode, the forest settings (a stroke
+// with ticked kinds plants or thins them instead of writing Value).
 type BrushStroke struct {
 	Plane  BrushPlane
 	Value  int
@@ -72,6 +73,7 @@ type BrushStroke struct {
 	Shape  BrushShape
 	Fill   BrushFill
 	Cells  []image.Point
+	Forest BrushForest
 }
 
 // InspectionBrushFill is the optional seam of a host that offers more than
@@ -181,6 +183,7 @@ type brushState struct {
 	hover   image.Point
 	hovered bool
 	wheel   float64 // the Alt+wheel's turn not yet a whole step
+	forest  forestState
 
 	radiusSet bool
 }
@@ -218,7 +221,11 @@ func (e *MapEditor) brushRows() []string {
 		var rows []string
 		if h := e.brushHost(); h != nil {
 			for _, o := range h.BrushObjects() {
-				rows = append(rows, e.objectWord(o))
+				word := e.objectWord(o)
+				if e.forestOn() && o.Code != 0 {
+					word = map[bool]string{false: "[ ] ", true: "[x] "}[e.brush.forest.ticks[o.Code]] + word
+				}
+				rows = append(rows, word)
 			}
 		}
 		return rows
@@ -280,6 +287,9 @@ func (e *MapEditor) brushPopupRows() []popupRow {
 	if e.brush.mode == brushTerrain && e.brushVariants() > 1 {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.fill"), Value: e.brushFillWord(),
 			Buttons: []string{e.word("editor.brush.fill.pattern"), e.word("editor.brush.fill.random"), "-", "+"}})
+	}
+	if e.brush.mode == brushObjects {
+		rows = append(rows, e.forestPopupRows()...)
 	}
 	return rows
 }
@@ -358,8 +368,12 @@ func (e *MapEditor) brushRowButton(row, k int) {
 		e.setBrushRadius(e.brushRadius() + 2*k - 1)
 	case 1:
 		e.brush.shape = BrushShape(k)
-	case 2:
-		e.setBrushFillButton(k)
+	case 2, 3, 4:
+		if e.brush.mode == brushObjects {
+			e.forestRowButton(row, k)
+		} else if row == 2 {
+			e.setBrushFillButton(k)
+		}
 	}
 }
 
@@ -404,6 +418,11 @@ func (e *MapEditor) brushKey(key string) bool {
 func (e *MapEditor) brushRowClick(n int) {
 	if n >= 0 && n < len(e.brushRows()) {
 		e.brush.sel[e.brush.mode] = n
+		if h := e.brushHost(); h != nil && e.forestOn() {
+			if objects := h.BrushObjects(); n < len(objects) && objects[n].Code != 0 {
+				e.forestTick(objects[n].Code)
+			}
+		}
 	}
 }
 
@@ -412,6 +431,9 @@ func (e *MapEditor) brushStatus() string {
 	sel := e.brush.sel[e.brush.mode]
 	if sel >= len(rows) {
 		return ""
+	}
+	if e.forestOn() {
+		return fmt.Sprintf(e.word("editor.brush.forest.status"), len(e.forestTicked()), e.forestShare(), e.brushRadius())
 	}
 	return fmt.Sprintf(e.word("editor.brush.status"), e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
 }
@@ -443,9 +465,12 @@ func (e *MapEditor) brushCell(p image.Point, rail int) (image.Point, bool) {
 }
 
 // brushPointer drives a stroke: a press on the canvas starts it, the cells the
-// pointer crosses join it and the release commits it as one edit. It reports
+// pointer crosses join it and the release commits it as one edit. In Forest
+// mode a right press starts a thinning stroke the same way. It reports
 // whether it took the input, so the canvas does not pan under the brush.
 func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
+	rightWas := e.brush.forest.right
+	e.brush.forest.right = in.SecondaryDown
 	if !e.brushActive() {
 		e.brush.endStroke()
 		return false
@@ -454,17 +479,23 @@ func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
 	e.brush.hover, e.brush.hovered = cell, on
 	if e.brush.down {
 		e.down = in.PrimaryDown
+		held := in.PrimaryDown
+		if e.brush.forest.thin {
+			held = in.SecondaryDown
+		}
 		if on {
 			e.brush.extend(cell)
 		}
-		if !in.PrimaryDown {
+		if !held {
 			e.brushCommit()
 		}
 		return true
 	}
-	if in.PrimaryDown && !e.down && on {
-		e.down = true
+	thin := e.forestOn() && in.SecondaryDown && !rightWas && !in.PrimaryDown
+	if (in.PrimaryDown && !e.down || thin) && on {
+		e.down = in.PrimaryDown
 		e.brush.down = true
+		e.brush.forest.thin = thin
 		e.brush.stroke = []image.Point{cell}
 		e.doc.Viewer.dragging = false
 		return true
@@ -490,7 +521,7 @@ func (b *brushState) extend(cell image.Point) {
 }
 
 func (e *MapEditor) brushCommit() {
-	cells := e.brush.stroke
+	cells, thin := e.brush.stroke, e.brush.forest.thin
 	e.brush.endStroke()
 	host := e.brushHost()
 	if host == nil || len(cells) == 0 {
@@ -510,6 +541,13 @@ func (e *MapEditor) brushCommit() {
 			return
 		}
 		op.Plane, op.Value = BrushPlaneObjects, objects[sel].Code
+		if e.forestOn() {
+			forest, ok := e.forestStroke(thin)
+			if !ok {
+				return
+			}
+			op.Value, op.Forest = 0, forest
+		}
 	case brushPassability:
 		op.Plane, op.Value = BrushPlanePassability, 1
 		if sel == 1 {
@@ -648,4 +686,4 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 var cellSides = [4]image.Point{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
 
 // endStroke drops the stroke in progress.
-func (b *brushState) endStroke() { b.stroke, b.down = nil, false }
+func (b *brushState) endStroke() { b.stroke, b.down, b.forest.thin = nil, false, false }

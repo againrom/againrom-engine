@@ -670,7 +670,7 @@ func (e *MapEditor) listWindow() int {
 		return e.listFit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight() - e.forestGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -716,6 +716,9 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	case "brush":
 		s.Rows = e.brushPopupRows()
 		s.Width, s.LabelWidth = e.popupWide(popList, 520), 90
+		if g, ok := e.forestGridSpec(); ok {
+			s.Grid = g
+		}
 	case "catalog":
 		if e.doc == nil {
 			s.Notes = []string{e.word("editor.picker.hint")}
@@ -1099,6 +1102,8 @@ func (e *MapEditor) promptTitle() string {
 		return e.word("editor.prompt.save")
 	case e.prompt.kind == promptRectangle:
 		return e.word("editor.prompt.newmap")
+	case e.prompt.kind == promptForestShare:
+		return e.word("editor.prompt.share")
 	}
 	return e.word("editor.prompt.open")
 }
@@ -1430,7 +1435,11 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 		}
 		if s, ok := e.listSpec(); ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
-				e.placeGridWheel(l, editorWheelRows(&e.listWheel, wheel))
+				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
+					e.forestGridWheel(l, rows)
+				} else {
+					e.placeGridWheel(l, rows)
+				}
 				return
 			}
 		}
@@ -1554,7 +1563,11 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				e.brushRowButton(row, k)
 			}
 		case popupGridPart:
-			e.placeChoose(n)
+			if e.listKind() == "brush" {
+				e.forestGridPress(n)
+			} else {
+				e.placeChoose(n)
+			}
 		case popupListRow:
 			top, count := e.model.Visible()
 			if n >= count {
