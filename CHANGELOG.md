@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.133.0
+
 ### For players
 
 - [ROM1] A guarding monster group watches a circle as in the original: for a moment after the guard order it is four cells smaller, and after that it is one cell larger or smaller for some groups, its centre can sit one cell nearer the map's top-left corner, and fallen members still count towards it until their bodies are gone.
