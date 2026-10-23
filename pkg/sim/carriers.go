@@ -162,6 +162,9 @@ func (w *World) constructedGroups(native bool) *savedGroupState {
 		}
 		if record := w.nativeGroupRecord(k.owner, k.group); native && record != nil {
 			g.AI[0x20], g.AI[0x38], g.AI[0x15] = record.order, record.base, record.roamCounter
+			if record.order == orderGuard {
+				g.AI[0x2d] = record.base
+			}
 			binary.LittleEndian.PutUint16(g.AI[10:], uint16(record.commandedX)|uint16(record.commandedY)<<8)
 		}
 		if named(k.group, members) {
@@ -220,16 +223,22 @@ func (w *World) guardSetter(g *SavedGroup, members []int) {
 		binary.LittleEndian.PutUint32(g.AI[0x24:], uint32(fy)<<16|uint32(fx))
 		centre := cell{x: int32(fx >> 8), y: int32(fy >> 8)}
 		binary.LittleEndian.PutUint16(g.AI[0x28:], uint16(centre.x)|uint16(centre.y)<<8)
-		var spread, sight, widest uint8
-		for _, i := range members {
-			d, s := uint8(cellOf(&w.entities[i]).chebyshevTo(centre)), w.entities[i].ScanRange
-			spread, sight, widest = max(spread, d), max(sight, s), max(widest, d+s)
-		}
-		g.AI[0x2a], g.AI[0x2b], g.AI[0x2c] = spread, sight, widest
+		g.AI[0x2a], g.AI[0x2b], g.AI[0x2c] = groupSpread(w.entities, members, centre)
 	}
 	copy(g.AI[0x00:0x02], g.AI[0x28:0x2a])
 	g.AI[0x2d] = max(g.AI[0x2c], minimalGuardRange)
 	g.AI[0x38], g.AI[0x39] = g.AI[0x2d], 0
+}
+
+// groupSpread is the members' widest Chebyshev distance to centre, widest
+// sight and widest sum of the two, each a byte: the three fields both the
+// guard setter and live Guard store at +0x2a..+0x2c.
+func groupSpread(ents []Entity, members []int, centre cell) (spread, sight, widest uint8) {
+	for _, i := range members {
+		d, s := uint8(cellOf(&ents[i]).chebyshevTo(centre)), ents[i].ScanRange
+		spread, sight, widest = max(spread, d), max(sight, s), max(widest, d+s)
+	}
+	return spread, sight, widest
 }
 
 func (w *World) nativeGroupRecord(owner, group uint32) *groupAI {

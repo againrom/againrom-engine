@@ -90,7 +90,9 @@ func TestReleasePlainMapItemPickedUpAfterAnEquipKeepsItsOwnSavedRecord(t *testin
 			continue
 		}
 		records++
-		for name, want := range map[string]uint32{"F45": 1, "F46": 2, "F48": 2, "Identity": 0x100004b} {
+		// The key allocator skips every raw dword a retained record holds, the
+		// Guard Groups' latch and working radius bytes among them.
+		for name, want := range map[string]uint32{"F45": 1, "F46": 2, "F48": 2, "Identity": 0x100004f} {
 			if got, err := savedStructureValue(r, name); err != nil || got != want {
 				t.Errorf("record %d %s = %d (%v), want %d", i+1, name, got, err, want)
 			}

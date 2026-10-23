@@ -89,7 +89,7 @@ func TestTheBaseFollowsTheGreatestDistancePlusRangeNotEitherAlone(t *testing.T) 
 		{ID: 3, X: 75, Y: 0, Owner: 7, Group: 0, HP: 5, MaxHP: 5, ScanRange: 40},
 	}
 
-	cx, cy := groupCentroid([]Entity{ents[0], ents[1], ents[2]}, []int{0, 1, 2})
+	cx, cy := groupCentroid([]Entity{ents[0], ents[1], ents[2]}, []int{0, 1, 2}, subCellMean)
 	if cx != 100 || cy != 0 {
 		t.Fatalf("fixture's own centroid is (%d,%d), want (100,0) — the arithmetic this test explains "+
 			"no longer holds", cx, cy)
@@ -186,7 +186,7 @@ func TestAGeometryPastAByteIsNarrowedNotClamped(t *testing.T) {
 		{ID: 2, X: 900, Y: 0, Owner: 6, Group: 0, HP: 5, MaxHP: 5},
 		{ID: 3, X: 850, Y: 0, Owner: 6, Group: 0, HP: 5, MaxHP: 5},
 	}
-	cx, cy := groupCentroid(ents, []int{0, 1, 2})
+	cx, cy := groupCentroid(ents, []int{0, 1, 2}, subCellMean)
 	if cx != 1000 || cy != 0 {
 		t.Fatalf("fixture's own centroid is (%d,%d), want (1000,0)", cx, cy)
 	}

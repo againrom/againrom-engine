@@ -508,7 +508,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		// the controlled pool subcase with a fighter's zero mana maximum before
 		// the separate physical-XP action. The installed weapon rider still runs
 		// after the physical component: its prepared child now lands separately.
-		// This controlled first attack removes5 physical HP and then9 rider HP:
+		// This controlled first attack removes5 physical HP and then6 rider HP:
 		// the rider payload's resolver takes the physical step's draws before
 		// its spread draw (MAGIC-301), so the spread reads a later word.
 		if err := f.live.world.ImportOriginalActorPools([]sim.OriginalActorPools{{ID: actor, HP: 30, MaxHP: 123}}); err != nil {
@@ -541,7 +541,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		}
 		e = producerEntity(t, f.live.world, actor)
 		victim = producerEntity(t, f.live.world, target)
-		if e.SkillXP != ([6]int32{11, 22, 33, 4, 55, 66}) || e.ActorLoad.Source.Experience != 0x12340004 || binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]) != 1 || victim.HP != beforeTarget.HP-14 {
+		if e.SkillXP != ([6]int32{11, 22, 33, 4, 55, 66}) || e.ActorLoad.Source.Experience != 0x12340004 || binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]) != 1 || victim.HP != beforeTarget.HP-11 {
 			t.Fatalf("first blow XP/base/HP: XP%v base%d target%d->%d type%d band%v relation%d fighter%v phase%d credit%d/%v", e.SkillXP, binary.LittleEndian.Uint16(e.ActorLoad.Source.Base[8:]), beforeTarget.HP, victim.HP, e.TypeID, sim.InPersistBand(e.TypeID), f.live.world.Relations().Byte(1, 5), e.ActorLoad.Source.Fighter, e.AttackPhase, victim.KillCreditSource, victim.HasKillCredit)
 		}
 		current := producer1162Snapshot(t, f)
@@ -645,8 +645,8 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 			sim.Step(f.live.world, nil)
 		}
 		current := producer1162Snapshot(t, f)
-		if d := buildingProducer1162Differences(f.live.world, current.SavedDocument, 4, 984); len(d) != 0 {
-			t.Fatal("literal first structure blow1000->984", f.live.world.Structures()[4].Field42, d)
+		if d := buildingProducer1162Differences(f.live.world, current.SavedDocument, 4, 985); len(d) != 0 {
+			t.Fatal("literal first structure blow1000->985", f.live.world.Structures()[4].Field42, d)
 		}
 		if d := cellProducer1162Differences(f.live.world, current.SavedDocument); len(d) != 0 {
 			t.Fatal(d)
@@ -676,7 +676,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 					}
 				}
 			}
-			if len(cellProducer1162Differences(f.live.world, bad))+len(buildingProducer1162Differences(f.live.world, bad, 4, 984)) == 0 {
+			if len(cellProducer1162Differences(f.live.world, bad))+len(buildingProducer1162Differences(f.live.world, bad, 4, 985)) == 0 {
 				t.Fatal("stale cell/structure control accepted", field)
 			}
 		}
@@ -684,22 +684,22 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		if d := cellProducer1162Differences(fresh.live.world, fresh.live.mission.state.savedDocument); len(d) != 0 {
 			t.Fatal("fresh stored cells", d)
 		}
-		if d := buildingProducer1162Differences(fresh.live.world, fresh.live.mission.state.savedDocument, 4, 984); len(d) != 0 {
+		if d := buildingProducer1162Differences(fresh.live.world, fresh.live.mission.state.savedDocument, 4, 985); len(d) != 0 {
 			t.Fatal("fresh stored building", d)
 		}
-		if d := append(cellProducer1162Differences(f.live.world, fresh.live.mission.state.savedDocument), buildingProducer1162Differences(f.live.world, fresh.live.mission.state.savedDocument, 4, 984)...); len(d) != 0 {
+		if d := append(cellProducer1162Differences(f.live.world, fresh.live.mission.state.savedDocument), buildingProducer1162Differences(f.live.world, fresh.live.mission.state.savedDocument, 4, 985)...); len(d) != 0 {
 			t.Fatal("written Document differs from changed live cells or building", d)
 		}
 		lost := loadAlteredSAV(t, written, func(doc *sav.DocumentData) bool {
 			for _, index := range doc.World.Buildings {
 				r := &doc.Objects[index-1]
-				if v, err := savedStructureValue(r, "B42"); err == nil && v == 984 {
+				if v, err := savedStructureValue(r, "B42"); err == nil && v == 985 {
 					return savedStructureSetValue(r, "B42", 1000) == nil
 				}
 			}
 			return false
 		})
-		if d := buildingProducer1162Differences(f.live.world, lost.live.mission.state.savedDocument, 4, 984); len(d) == 0 {
+		if d := buildingProducer1162Differences(f.live.world, lost.live.mission.state.savedDocument, 4, 985); len(d) == 0 {
 			t.Fatal("loss control: a SAV with Building4 B42 restored to 1000 still matches")
 		}
 		if err := fresh.live.world.RestoreScriptProgram(quiet); err != nil {
@@ -721,7 +721,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 				}
 			}
 		}
-		t.Log("untouched original next20 ticks change planes/nodes; controlled attack placement near32,49; complete current block/52-byte cell oracle; Building4 first physical blow1000->984;4 stale/loss controls; changed SAVE/fresh LOAD/next5 ticks")
+		t.Log("untouched original next20 ticks change planes/nodes; controlled attack placement near32,49; complete current block/52-byte cell oracle; Building4 first physical blow1000->985;4 stale/loss controls; changed SAVE/fresh LOAD/next5 ticks")
 	})
 	t.Run("P3 Building After Move", func(t *testing.T) {
 		f, _, _, _ := producerSAVLoad(t)
@@ -763,7 +763,7 @@ func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
 		}
 		e, _ := w.Entity(actor)
 		t.Logf("first blow after %d ticks: 1000->%d, attack held %v", n, w.Structures()[4].Field42, e.HasAttackTarget)
-		if w.Structures()[4].Field42 != 984 || !e.HasAttackTarget {
+		if w.Structures()[4].Field42 != 985 || !e.HasAttackTarget {
 			t.Fatal("attack given during the move did not land", w.Structures()[4].Field42)
 		}
 	})

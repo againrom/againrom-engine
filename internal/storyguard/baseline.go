@@ -2894,6 +2894,14 @@ package storyguard
 // comments on new code: the Darkness hook, the living post block, the walk
 // refused at its first empty search and the engaged foes held to the circle
 // (pkg/sim), their tests, and this paragraph.
+//
+// CommentBytes rises with live Guard's circle, all doc comments on new code:
+// the geometry refresh and latch block in pkg/sim/savedgroupsai.go, the
+// centre rule in pkg/sim/group.go, the stored and held circles in
+// pkg/sim/groupengaged.go, groupSpread in pkg/sim/carriers.go, their tests in
+// pkg/sim/guardcircle_test.go, the fixed-damage note in
+// pkg/game/spellclickmana_test.go, and this paragraph. barestorynumber falls with
+// the retired note on the notice margin.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2906,7 +2914,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1863,
 		"scclause":        505,
-		"barestorynumber": 1711,
+		"barestorynumber": 1710,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -2917,5 +2925,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9563077,
+	CommentBytes: 9569352,
 }

@@ -9,6 +9,8 @@ import (
 
 // clickManaWorld is a mage with a full pool beside two hostile targets and
 // three installed book rules, all of which pay when their wind-up starts.
+// Rule 1 deals a fixed 6, so its landing does not depend on how many draws a
+// queued order or the hostile Group's guard latch took before it.
 func clickManaWorld(t *testing.T, casterX int32) (*mapWorld, *sim.World) {
 	t.Helper()
 	caster := sim.Entity{ID: 1, X: casterX, Y: 2, HP: 100, MaxHP: 100, Owner: sim.SelfSlot,
@@ -18,7 +20,7 @@ func clickManaWorld(t *testing.T, casterX int32) (*mapWorld, *sim.World) {
 	second := sim.Entity{ID: 3, X: 15, Y: 4, HP: 1000, MaxHP: 1000, Owner: 2, DyingTime: 200}
 	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 64, Height: 16}, sim.ModeCanonical, nil,
 		[]sim.Entity{caster, first, second}, nil, []sim.SpellRule{
-			{ID: 1, ManaCost: 10, School: 1, MaxRange: 40, DamageMin: 4, DamageMax: 8, TargetsUnit: true, Damaging: true, Delivery: 2, EffectSpeed: 128},
+			{ID: 1, ManaCost: 10, School: 1, MaxRange: 40, DamageMin: 6, DamageMax: 6, TargetsUnit: true, Damaging: true, Delivery: 2, EffectSpeed: 128},
 			{ID: 3, ManaCost: 7, School: 1, MaxRange: 40, DamageMin: 4, DamageMax: 8, TargetsUnit: true, Damaging: true, Delivery: 2, EffectSpeed: 128},
 			{ID: 26, ManaCost: 5, MaxRange: 6, Delivery: 1},
 		})

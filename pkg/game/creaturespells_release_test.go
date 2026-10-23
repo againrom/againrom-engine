@@ -30,6 +30,15 @@ func creatureWitnessParty() []mapload.PartyMember {
 // creature's decision and not the hero's death.
 func creatureWitnessWorld(t *testing.T, source *sim.World, m *alm.Map, table *mapload.Table, hero sim.EntityID, x, y int32, edit ...func(*sim.Entity)) *sim.World {
 	t.Helper()
+	return creatureSeededWitnessWorld(t, 0, source, m, table, hero, x, y, edit...)
+}
+
+// creatureSeededWitnessWorld is creatureWitnessWorld built from the seed
+// offset from mapload.Seed: a witness of a rule that holds at every position
+// of the random stream reads it at a few, since one draw decides whether a
+// creature casts or walks up to strike.
+func creatureSeededWitnessWorld(t *testing.T, offset uint64, source *sim.World, m *alm.Map, table *mapload.Table, hero sim.EntityID, x, y int32, edit ...func(*sim.Entity)) *sim.World {
+	t.Helper()
 	ents := source.Entities()
 	for i := range ents {
 		if ents[i].ID == hero {
@@ -40,7 +49,7 @@ func creatureWitnessWorld(t *testing.T, source *sim.World, m *alm.Map, table *ma
 			f(&ents[i])
 		}
 	}
-	out, err := sim.NewStructuredWorld(mapload.Seed, source.Bounds(), sim.ModeCanonical,
+	out, err := sim.NewStructuredWorld(mapload.Seed+offset, source.Bounds(), sim.ModeCanonical,
 		mapload.Planes(m, table), ents, source.Script(), source.Relations(), source.Sacks(),
 		source.Stock(), source.Spells(), source.Ghost(), source.Structures())
 	if err != nil {
@@ -350,6 +359,11 @@ func TestReleaseCreatureSpellSaveColdLoadCastsNext(t *testing.T) {
 	var caster sim.EntityID
 	var charging sim.BookContinuation
 	for tick := 0; tick < 1500 && caster == 0; tick++ {
+		// The hero is kept whole so the cast found still has its victim when
+		// it releases.
+		if h, _ := live.entity(hero); h.Alive() && h.HP < h.MaxHP {
+			_ = live.world.HeadlessHeal(hero)
+		}
 		live.tick()
 		for _, c := range live.world.Actions().Books {
 			if e, ok := live.entity(c.Caster); ok && c.Target == hero && c.Phase == 1 && c.Remaining >= 2 && e.CreatureSpells[0].ID != 0 {

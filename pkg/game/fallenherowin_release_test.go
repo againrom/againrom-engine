@@ -150,16 +150,41 @@ func TestReleaseFallenHeroWinKeepsHisMission(t *testing.T) {
 	for _, unit := range []uint16{137, 138, 139} {
 		f.live.strike(uint32(refs[unit]), uint32(monster))
 	}
+	// The merchant's death loses the mission; the witness is the hero's fall,
+	// so the merchant is kept whole through the fight, the walk and the escort.
+	keepMerchant := func() {
+		if m, _ := f.live.entity(merchant); m.Alive() && m.HP < m.MaxHP {
+			_ = f.live.world.HeadlessHeal(merchant)
+		}
+	}
 	for i := 0; i < 1024; i++ {
 		if e, _ := f.live.entity(monster); !e.Alive() {
 			break
 		}
+		keepMerchant()
 		step("fight")
 	}
+	// A monster that fled the fight can draw its camp after the party; the
+	// escort starts once the hero stands back at the merchant's side and no
+	// actor holds him or the merchant as its victim, the hero kept whole too.
+	engaged := func() bool {
+		for _, e := range f.live.world.Entities() {
+			if e.Alive() && e.HasAttackTarget && (e.AttackTarget == hero || e.AttackTarget == merchant) {
+				return true
+			}
+		}
+		return false
+	}
 	f.live.enqueue(uint32(hero), 88, 105)
-	for i := 0; i < 512; i++ {
-		if e, _ := f.live.entity(hero); e.X == 88 && e.Y == 105 {
+	for i := 0; i < 2048; i++ {
+		if e, _ := f.live.entity(hero); e.X == 88 && e.Y == 105 && !engaged() {
 			break
+		} else if (e.X != 88 || e.Y != 105) && !e.HasTarget && e.Transit == 0 && !e.HasAttackTarget {
+			f.live.enqueue(uint32(hero), 88, 105)
+		}
+		keepMerchant()
+		if e, _ := f.live.entity(hero); e.Alive() && e.HP < e.MaxHP {
+			_ = f.live.world.HeadlessHeal(hero)
 		}
 		step("walk back")
 	}
@@ -178,6 +203,7 @@ func TestReleaseFallenHeroWinKeepsHisMission(t *testing.T) {
 		if _, kind, up := f.LiveNotice(); up && kind == ui.NoticeSuccess {
 			break
 		}
+		keepMerchant()
 		step("escort")
 	}
 	fallen, _ := f.live.entity(hero)

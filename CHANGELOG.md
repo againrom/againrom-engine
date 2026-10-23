@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] A guarding monster group watches a circle as in the original: for a moment after the guard order it is four cells smaller, and after that it is one cell larger or smaller for some groups, its centre can sit one cell nearer the map's top-left corner, and fallen members still count towards it until their bodies are gone.
 - [ROM1] Dragons, enemy mages and spellcasting monsters keep casting in a long melee: a spell they choose while a blow is under way is cast as soon as the blow ends, instead of being forgotten so they only bite after their first spells.
 - [ROM1] At the start of the next mission, a hero who was still busy late in the last one heals at the slow rate until as much time has passed as in the original game, also after loading a town save; before, every hero switched to the fast rate a few moments into the mission.
 - [ROM1] Monsters stop chasing a hero who has left their area, even one who keeps hitting them from outside it, and Darkness no longer sends its victims at the caster; a monster that cannot get back to its post gives up at once and tries again on its next turn, as in the original.

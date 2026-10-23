@@ -61,7 +61,7 @@ func TestTheCentroidIsTheMeanRoundedToTheNearestCell(t *testing.T) {
 				ents[i] = Entity{ID: EntityID(i + 1), X: v, Y: v}
 				members[i] = i
 			}
-			gotX, gotY := groupCentroid(ents, members)
+			gotX, gotY := groupCentroid(ents, members, subCellMean)
 			if gotX != c.want || gotY != c.want {
 				t.Errorf("cells %v give a centroid of (%d,%d), want (%d,%d)",
 					c.cells, gotX, gotY, c.want, c.want)

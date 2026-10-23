@@ -14,6 +14,8 @@ func orderedVictimWorld(t *testing.T) *World {
 	first.HP, first.MaxHP = 60, 60
 	second := engFighter(2, 9, 10, 14)
 	third := engFighter(3, 9, 10, 17)
+	// The newcomers outlast the two decision cycles after the first falls.
+	second.HP, second.MaxHP, third.HP, third.MaxHP = 100, 100, 100, 100
 	return engWorld(t, engRel(t, [3]uint32{SelfSlot, 9, 1}, [3]uint32{9, SelfSlot, 1}),
 		warrior, second, third, first)
 }

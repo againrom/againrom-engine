@@ -158,8 +158,12 @@ func (w *World) newSavedCommandGroup(members []int, order uint8, ordered cell, r
 	}
 	g.AI[0x20], g.AI[0x45] = order, 1
 	binary.LittleEndian.PutUint16(g.AI[10:], uint16(ordered.x)|uint16(ordered.y)<<8)
-	cx, cy := groupCentroid(w.entities, members)
+	cx, cy := groupCentroid(w.entities, members, subCellMean)
 	g.AI[0x38] = noticeBase(w.entities, members, cx, cy)
+	if order == orderGuard {
+		// The guard issue installs the working radius beside the base (AI-741).
+		g.AI[0x2d] = g.AI[0x38]
+	}
 	for _, i := range members {
 		e := &w.entities[i]
 		w.detachSavedMember(e.ID)
@@ -364,9 +368,12 @@ func (w *World) cmdSavedGroupOrder(in ScriptInstant) {
 			if order == 1 {
 				var cx, cy int32
 				if len(members) > 0 {
-					cx, cy = groupCentroid(w.entities, members)
+					cx, cy = groupCentroid(w.entities, members, subCellMean)
 				}
 				g.AI[0x38] = noticeBase(w.entities, members, cx, cy)
+				// The issue installs the working radius beside the base (AI-741);
+				// no claim names a latch or counter store in it, so both stand.
+				g.AI[0x2d] = g.AI[0x38]
 			}
 			for _, i := range members {
 				w.entities[i].PostX, w.entities[i].PostY = w.entities[i].X, w.entities[i].Y

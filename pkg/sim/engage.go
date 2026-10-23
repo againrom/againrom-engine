@@ -64,10 +64,9 @@ import "sort"
 // seam is a registry read reaching the world, and it lands on this constant.
 const minimalGuardRange = 8
 
-// noticeMargin is the 4 the guard arm adds to the group's base radius before it
-// clips (AI-RADIUS-014). The law adds one of {-1, 0, +1} beside it, once, on the
-// tick a has-members latch flips; the latch is group state this tree does not
-// carry, so what is left is the roll's own midpoint (0086 D-4).
+// noticeMargin is the 4 the guard arm adds to the group's base radius
+// (AI-RADIUS-014). A registry Group adds it with a jitter once, when its latch
+// flips (guardLatch); the second game's Groups keep the margin alone.
 const noticeMargin = 4
 
 // scoreSeed is the value the selection loop starts at and the value a vetoed
@@ -541,7 +540,7 @@ func (w *World) decide(g aiGroup) {
 		defer func() { w.groups[at].roamCounter++ }()
 		order = orderSwarm2
 	}
-	cands := w.clipCircle(order, base, g.members, w.candidates(g))
+	cands := w.clipCircle(order, w.heldCircle(base, g.members), w.candidates(g))
 	// A group under attack adds its attackers inside the circle (DIV-1523).
 	cands = w.withEngagedFoes(g.owner, w.groupLivingMembers(g.owner, g.group), order, cands)
 
@@ -962,11 +961,9 @@ func noticeBase(ents []Entity, members []int, cx, cy int32) uint8 {
 // group's FROZEN base — noticeBase's answer at construction, read off the
 // record rather than recomputed — widened by the arm's margin, as a byte.
 //
-// THIS IS THE ONLY PLACE THE MARGIN IS ADDED. noticeBase above computes and
-// stores the base alone, with no margin folded in and none to invert back
-// out, and this is the base's only reader on a decision path — decide calls
-// it and nothing else does. Nothing here, and nothing upstream of here, ever
-// recomputes a radius from live geometry.
+// noticeBase above stores the base alone, with no margin folded in. This is
+// the native Group's radius (heldCircle); a registry Group's working radius
+// is the one guardLatch rolls.
 func noticeRadius(base uint8) uint8 {
 	return base + noticeMargin
 }
@@ -1067,7 +1064,7 @@ func freezeGroups(ents []Entity) []groupAI {
 		}
 		var cx, cy int32
 		if len(members) > 0 {
-			cx, cy = groupCentroid(ents, members)
+			cx, cy = groupCentroid(ents, members, subCellMean)
 		}
 		out[i].base = noticeBase(ents, members, cx, cy)
 		if out[i].owner == SelfSlot {

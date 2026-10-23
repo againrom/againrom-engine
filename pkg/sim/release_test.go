@@ -338,14 +338,16 @@ func TestTheAlwaysScoringPopulationMatchesTheGoldenDigest(t *testing.T) {
 		t.Fatal("the attacker released its immortal, always-hostile victim — this test would pass for the wrong reason")
 	}
 	// Repinned: the session clock is constructed with the World, so the run
-	// takes the session cadence (script time register, report, regeneration).
-	requireStructureLegacyDigest(t, w, 1881211566101048953)
-	requireOriginalDeadLegacyDigest(t, w, 11697765275756545610)
-	requireSpellbookLegacyDigest(t, w, 11815885361917630879)
-	if got, want := fnv1a(strippedWorldOfSecondPhysical(mustMarshal(t, w))), uint64(13954382161047777546); got != want {
+	// takes the session cadence (script time register, report, regeneration),
+	// and the Guard Group's AI block carries live Guard's geometry, latch,
+	// counter and rolled radius (AI-739, AI-741).
+	requireStructureLegacyDigest(t, w, 13206645993470115227)
+	requireOriginalDeadLegacyDigest(t, w, 8175131524611267970)
+	requireSpellbookLegacyDigest(t, w, 14656765850780946647)
+	if got, want := fnv1a(strippedWorldOfSecondPhysical(mustMarshal(t, w))), uint64(2188578200757697772); got != want {
 		t.Errorf("the digest is %d, want the golden %d captured for this story's own byte form", got, want)
 	}
-	requireHumanMovementLegacyDigest(t, w, 4221706790834773623)
+	requireHumanMovementLegacyDigest(t, w, 5765870233433611869)
 }
 
 func TestTheByteFormsVersionMatchesTheConstantAndAFixedWorldsDigestIsPinned(t *testing.T) {

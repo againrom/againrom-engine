@@ -257,7 +257,7 @@ func (w *World) issueSavedGroupDestination(g *SavedGroup, members []int, ordered
 	if len(members) == 0 {
 		return
 	}
-	cx, cy := groupCentroid(w.entities, members)
+	cx, cy := groupCentroid(w.entities, members, subCellMean)
 
 	// ONE FLAG, COMPUTED ONCE, read at exactly two places below. It is the whole
 	// of why the distribution and the rate term are one story: they are two
@@ -444,7 +444,7 @@ func (w *World) commandGroup(members []int, order uint8, ordered cell) {
 				share = append(share, mi)
 			}
 		}
-		cx, cy := groupCentroid(w.entities, share)
+		cx, cy := groupCentroid(w.entities, share, subCellMean)
 		w.upsertGroup(groupAI{
 			owner:      owner,
 			group:      id,
@@ -511,6 +511,15 @@ func containsOwner(owners []uint32, owner uint32) bool {
 // admits the two readings agree, so nothing measurable here separates them.
 func formationOffset(delta int32) int32 { return int32(int8(int16(delta))) }
 
+// centroidRule names which of the original's two centre bodies groupCentroid
+// runs: the guard issue's sub-cell mean, or live Guard's whole-cell mean.
+type centroidRule uint8
+
+const (
+	subCellMean centroidRule = iota
+	wholeCells
+)
+
 // groupCentroid is the group's centre cell, per axis, over the members named.
 //
 // IT IS COMPUTED IN SUB-CELL UNITS AND THAT IS THE WHOLE POINT. A position in
@@ -536,13 +545,27 @@ func formationOffset(delta int32) int32 { return int32(int8(int16(delta))) }
 // division truncates toward zero instead. Floor agrees with the unsigned divide
 // over every position the original can hold and is defined outside it, which is
 // the narrower of the two ways to be wrong.
-func groupCentroid(ents []Entity, members []int) (int32, int32) {
+//
+// wholeCells is live Guard's own body instead (AI-739): it sums the members'
+// cell bytes with no half-cell, in 16 bits, and divides by the count's low
+// byte, so the mean is floored. The caller tests that byte for zero first.
+func groupCentroid(ents []Entity, members []int, rule centroidRule) (int32, int32) {
+	count := len(members)
+	if rule == wholeCells {
+		var sx, sy uint16
+		for _, i := range members {
+			sx += uint16(ents[i].X)
+			sy += uint16(ents[i].Y)
+		}
+		n := uint16(uint8(count))
+		return int32(sx / n), int32(sy / n)
+	}
 	var sx, sy int64
 	for _, i := range members {
 		sx += int64(ents[i].X)*subCell + subCell/2
 		sy += int64(ents[i].Y)*subCell + subCell/2
 	}
-	n := int64(len(members))
+	n := int64(count)
 	return int32(floorDiv(floorDiv(sx, n), subCell)), int32(floorDiv(floorDiv(sy, n), subCell))
 }
 

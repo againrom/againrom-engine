@@ -250,11 +250,24 @@ func (w *World) savedRoam(g *SavedGroup, members []int) {
 
 func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	members, complete := w.savedLiving(g)
-	if !complete || len(members) == 0 {
+	guard := order == orderGuard && !w.SecondGame()
+	if !complete || len(members) == 0 && !guard {
+		return
+	}
+	if guard {
+		w.guardGeometry(g)
+	}
+	if len(members) == 0 {
+		w.guardLatch(g)
 		return
 	}
 	ag := aiGroup{group: g.ID, owner: w.entities[members[0]].Owner, members: members}
-	cands := w.clipCircle(order, g.AI[0x38], members, w.candidates(ag))
+	cands := w.clipCircle(order, w.storedCircle(g, members), w.candidates(ag))
+	if guard {
+		// The latch block follows the clip; Guard's scoring draws nothing, so
+		// its draw precedes every engage as AI-741 orders them.
+		w.guardLatch(g)
+	}
 	cands = w.withEngagedFoes(ag.owner, members, order, cands)
 	id := g.ID
 	roam := g.AI[0x20] == 0x11
@@ -347,6 +360,53 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	} else if order == orderSwarm2 && len(cands) == 0 {
 		w.resumeSavedSwarm(w.savedGroupByID(id), members)
 	}
+}
+
+// guardGeometry is live Guard's first act (AI-739, AI-RADFREEZE-075): over
+// every member the Group's list holds, the whole-cell mean at +0x24 and its
+// cell at +0x28, then the widest spread, sight and sum at +0x2a..+0x2c. The
+// walk has no living test, and a dying member stays in the list until its
+// teardown (TRIG-REAP-017). A zero low-byte count leaves the old geometry.
+func (w *World) guardGeometry(g *SavedGroup) {
+	var members []int
+	for _, m := range g.Members {
+		if i := indexOfEntity(w.entities, m.Entity); i >= 0 {
+			members = append(members, i)
+		}
+	}
+	if uint8(len(members)) == 0 {
+		return
+	}
+	cx, cy := groupCentroid(w.entities, members, wholeCells)
+	binary.LittleEndian.PutUint32(g.AI[0x24:], uint32(uint16(cy))<<16|uint32(uint16(cx)))
+	centre := cell{x: int32(uint8(cx)), y: int32(uint8(cy))}
+	binary.LittleEndian.PutUint16(g.AI[0x28:], uint16(centre.x)|uint16(centre.y)<<8)
+	g.AI[0x2a], g.AI[0x2b], g.AI[0x2c] = groupSpread(w.entities, members, centre)
+}
+
+// guardLatch is live Guard's latch block (AI-741, AI-GUARD-021): a Group with
+// a first member and latch +0x30 zero rolls working radius +0x2d = base + 4
+// + jitter, clears counter +0x34 and sets the latch; with the latch set it
+// counts. An empty Group with the latch set rolls without the 4 and clears
+// both; with it clear it counts. The jitter is floor(3*rand()/D) - 1 over the
+// random service, D = 0x8000 (AI-RANGE-102), which AI-741 grades Medium in
+// play. The radius wraps as a byte and is read by the next clip. Both fields
+// are taken as dwords; the claims do not fix their width.
+func (w *World) guardLatch(g *SavedGroup) {
+	latch, count := binary.LittleEndian.Uint32(g.AI[0x30:]), binary.LittleEndian.Uint32(g.AI[0x34:])
+	populated := len(g.Members) != 0
+	switch {
+	case populated && latch == 0:
+		g.AI[0x2d] = g.AI[0x38] + noticeMargin + uint8(w.rng.aiRange(3)-1)
+		latch, count = 1, 0
+	case latch != 0 && !populated:
+		g.AI[0x2d] = g.AI[0x38] + uint8(w.rng.aiRange(3)-1)
+		latch, count = 0, 0
+	default:
+		count++
+	}
+	binary.LittleEndian.PutUint32(g.AI[0x30:], latch)
+	binary.LittleEndian.PutUint32(g.AI[0x34:], count)
 }
 
 // resumeSavedSwarm is resumeSwarm over a registry Group: the idle members of a

@@ -158,7 +158,7 @@ func TestTheNoticeRadiusFollowsThePairAndNotEitherTerm(t *testing.T) {
 		{ID: 3, X: 14, Y: 0, ScanRange: 30},
 	}
 	members := []int{0, 1, 2}
-	cx, cy := groupCentroid(ents, members)
+	cx, cy := groupCentroid(ents, members, subCellMean)
 	if cx != 18 || cy != 0 {
 		t.Fatalf("the centroid is (%d,%d), which is not the geometry this case is built on", cx, cy)
 	}

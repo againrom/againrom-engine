@@ -199,67 +199,95 @@ func TestReleaseCreatureSpellsAreAimedByTheirArm(t *testing.T) {
 	}
 }
 
-// creatureApproachPlacement finds a class creature and a hero cell at which an
-// out-of-range draw arms an approach, and returns the world that shows it.
-func creatureApproachPlacement(t *testing.T, f *FrontEnd, m *alm.Map, ms *Mission, creatures []sim.Entity) (sim.Entity, int32, int32, creatureObservation) {
+// creatureApproachPlacement is a class creature and a hero cell at which an
+// out-of-range draw arms an approach, with the observation that shows it.
+type creatureApproachPlacement struct {
+	c     sim.Entity
+	x, y  int32
+	seed  uint64
+	armed creatureObservation
+}
+
+// creatureApproachPlacements lists every placement, over a few seeds, whose
+// arm is made from the creature's own cell. A strike-wait arm is no approach,
+// nor is an arm made after the creature first walked up to strike.
+func creatureApproachPlacements(t *testing.T, f *FrontEnd, m *alm.Map, ms *Mission, creatures []sim.Entity) []creatureApproachPlacement {
 	t.Helper()
 	hero := ms.Start.IDs[0]
 	planes := mapload.Planes(m, f.Table)
-	for _, c := range creatures {
-		for r := int32(6); r <= 9; r++ {
-			x, y, ok := creatureRingCell(ms.World, planes, m.Width, m.Height, c.X, c.Y, r)
-			if !ok {
-				continue
-			}
-			w := creatureWitnessWorld(t, ms.World, m, f.Table, hero, x, y, creatureAlone(hero, c.ID))
-			// A strike-wait arm is no approach.
-			if got, ok := creatureObserve(w, c.ID, hero, 600, sim.BookPhaseApproach); ok && !got.striking {
-				return c, x, y, got
+	var out []creatureApproachPlacement
+	for seed := range uint64(8) {
+		for _, c := range creatures {
+			for r := int32(6); r <= 9; r++ {
+				x, y, ok := creatureRingCell(ms.World, planes, m.Width, m.Height, c.X, c.Y, r)
+				if !ok {
+					continue
+				}
+				w := creatureSeededWitnessWorld(t, seed, ms.World, m, f.Table, hero, x, y, creatureAlone(hero, c.ID))
+				if got, ok := creatureObserve(w, c.ID, hero, 600, sim.BookPhaseApproach); ok && !got.striking &&
+					got.casterX == c.X && got.casterY == c.Y {
+					out = append(out, creatureApproachPlacement{c, x, y, seed, got})
+				}
 			}
 		}
 	}
-	t.Fatal("no placement of a class creature armed an approach")
-	return sim.Entity{}, 0, 0, creatureObservation{}
+	if len(out) == 0 {
+		t.Fatal("no placement of a class creature armed an approach")
+	}
+	return out
 }
 
 // TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed places the party beyond
 // a creature's spell range in sight of it. The first draw that selects the
 // spell arms an approach instead of engaging; the creature closes the distance
-// with that order armed and its cast begins inside the spell range.
+// with that order armed and its cast begins inside the spell range. A later
+// pass whose draw selects no spell ends the order; such a placement is passed
+// over for the next one, and an order that neither ends nor begins fails.
 func TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed(t *testing.T) {
 	f := releaseFront(t)
 	m, ms, creatures := creatureClassCases(t, f, creatureClassVictim)
-	c, x, y, armed := creatureApproachPlacement(t, f, m, ms, creatures)
-	armedAt := int64(max(creatureAbs(armed.casterX-armed.heroX), creatureAbs(armed.casterY-armed.heroY)))
-	if armed.rec.Phase != sim.BookPhaseApproach || !armed.rec.Retained {
-		t.Fatalf("the out-of-range draw wrote %+v, want a retained armed approach", armed.rec)
-	}
-	// The same placement again, read to the first wind-up.
 	hero := ms.Start.IDs[0]
-	w := creatureWitnessWorld(t, ms.World, m, f.Table, hero, x, y, creatureAlone(hero, c.ID))
-	for tick := 0; tick < 1500; tick++ {
-		sim.Step(w, nil)
-		rec, ok := castOrderBook(w, c.ID)
-		if !ok || rec.Phase != 1 {
-			continue
+	for _, p := range creatureApproachPlacements(t, f, m, ms, creatures) {
+		armed := p.armed
+		armedAt := int64(max(creatureAbs(armed.casterX-armed.heroX), creatureAbs(armed.casterY-armed.heroY)))
+		if armed.rec.Phase != sim.BookPhaseApproach || !armed.rec.Retained {
+			t.Fatalf("the out-of-range draw wrote %+v, want a retained armed approach", armed.rec)
 		}
-		var e, h sim.Entity
-		for _, o := range w.Entities() {
-			if o.ID == c.ID {
-				e = o
+		// The same placement again, read to the first wind-up.
+		w := creatureSeededWitnessWorld(t, p.seed, ms.World, m, f.Table, hero, p.x, p.y, creatureAlone(hero, p.c.ID))
+		ended := false
+		for tick := 0; tick < 1500 && !ended; tick++ {
+			sim.Step(w, nil)
+			rec, ok := castOrderBook(w, p.c.ID)
+			if tick > armed.tick && (!ok || rec.Spell != armed.rec.Spell) {
+				ended = true
+				continue
 			}
-			if o.ID == hero {
-				h = o
+			if !ok || rec.Phase != 1 {
+				continue
 			}
+			var e, h sim.Entity
+			for _, o := range w.Entities() {
+				if o.ID == p.c.ID {
+					e = o
+				}
+				if o.ID == hero {
+					h = o
+				}
+			}
+			d := int64(max(creatureAbs(e.X-h.X), creatureAbs(e.Y-h.Y)))
+			if d >= armedAt {
+				t.Fatalf("the cast began at distance %d, the draw armed it at %d", d, armedAt)
+			}
+			t.Logf("creature %d armed at distance %d, cast began at distance %d on tick %d", p.c.ID, armedAt, d, tick)
+			return
 		}
-		d := int64(max(creatureAbs(e.X-h.X), creatureAbs(e.Y-h.Y)))
-		if d >= armedAt {
-			t.Fatalf("the cast began at distance %d, the draw armed it at %d", d, armedAt)
+		if !ended {
+			t.Fatalf("creature %d: the armed order neither began its cast nor ended", p.c.ID)
 		}
-		t.Logf("armed at distance %d, cast began at distance %d on tick %d", armedAt, d, tick)
-		return
+		t.Logf("creature %d: a later draw ended the armed order before its cast", p.c.ID)
 	}
-	t.Fatal("the armed creature never began its cast")
+	t.Fatal("no armed placement began its cast")
 }
 
 func creatureAbs(v int32) int32 {

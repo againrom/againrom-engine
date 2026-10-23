@@ -348,26 +348,44 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 	source := mw.world
 	heroID := mw.mission.ids[0]
 	planes := mapload.Planes(probe, f.Table)
-	tried := 0
-	for _, creature := range creatures {
-		x, y, found := creatureFreeCellNear(source, planes, probe.Width, probe.Height, creature.X, creature.Y)
-		if !found || tried == 10 {
-			continue
+	// Each creature is read with the hero beside it at a few seeds: one draw
+	// decides whether its first decision is the Teleport or a walk to strike.
+	type placement struct {
+		creature sim.Entity
+		x, y     int32
+		seed     uint64
+	}
+	var placements []placement
+	for seed := range uint64(8) {
+		for _, creature := range creatures {
+			if x, y, ok := creatureFreeCellNear(source, planes, probe.Width, probe.Height, creature.X, creature.Y); ok {
+				placements = append(placements, placement{creature, x, y, seed})
+			}
 		}
+	}
+	tried := 0
+	for _, p := range placements {
+		creature, x, y := p.creature, p.x, p.y
 		tried++
-		mw.world = creatureWitnessWorld(t, source, probe, f.Table, heroID, x, y, creatureAlone(heroID, creature.ID))
+		mw.world = creatureSeededWitnessWorld(t, p.seed, source, probe, f.Table, heroID, x, y, creatureAlone(heroID, creature.ID))
 		mw.fog.refresh(mw.world, sim.SelfSlot)
 		mw.push()
 		// The cast is reported at its admission; the creature moves when the
 		// countdown reaches zero (MAGIC-TELEPORT-371, MAGIC-TELEPORT-370).
 		casts := 0
 		var admitted []sim.CastEvent
+		// still holds while the caster waits out the countdown standing on
+		// its cast cell; a creature that walks on reaches the cell by a step.
+		// A caster that walked before the cast keeps that crossing's span
+		// (TransitTotal), which this witness does not read.
+		still := false
 		for range 1500 {
 			mw.tickWithCastSink(func(released []sim.CastEvent) {
 				for _, event := range released {
 					if event.Caster == creature.ID && event.Spell == 26 {
 						admitted = append(admitted[:0], event)
 						casts++
+						still = true
 					}
 				}
 			})
@@ -377,7 +395,8 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 					t.Fatal("installed creature Teleport is not aimed at an adjacent cell", event)
 				}
 				actor := releaseEntity(t, mw, creature.ID)
-				if actor.X != event.ToX || actor.Y != event.ToY {
+				if actor.X != event.ToX || actor.Y != event.ToY || !still {
+					still = still && actor.X == event.FromX && actor.Y == event.FromY && actor.Transit == 0 && actor.TransitTotal <= 1 && !actor.HasTarget
 					continue
 				}
 				draw := teleportJumpPushed(t, mw, creature.ID)
@@ -393,5 +412,5 @@ func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
 		}
 		t.Logf("AI Teleport candidate%d casts%d after1500 hero%+v caster%+v", creature.ID, casts, releaseEntity(t, mw, heroID), releaseEntity(t, mw, creature.ID))
 	}
-	t.Fatalf("%d installed Teleport creatures did not relocate within 1500 production ticks each", tried)
+	t.Fatalf("%d placements of installed Teleport creatures did not relocate within 1500 production ticks each", tried)
 }

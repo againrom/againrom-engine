@@ -126,7 +126,11 @@ func (w *World) joinsFight(mi int) bool {
 func (w *World) joinEngagedGroups() {
 	for gi := range w.groups {
 		record := w.groups[gi]
-		w.joinEngagedGroup(record.owner, record.order, record.base, w.groupLivingMembers(record.owner, record.group), nil)
+		members := w.groupLivingMembers(record.owner, record.group)
+		if len(members) == 0 {
+			continue
+		}
+		w.joinEngagedGroup(record.owner, record.order, w.heldCircle(record.base, members), members, nil)
 	}
 }
 
@@ -135,19 +139,41 @@ func (w *World) joinEngagedGroups() {
 // attacker cells included, and for Guard the notice circle around the centroid
 // (AI-GRPGUARD-074, AI-RADFREEZE-075). Swarm, Swarm 2 and Roam clip nothing
 // past the sight.
-func (w *World) engagedCircle(owner uint32, order, base uint8, members []int) []int {
-	return w.clipCircle(order, base, members, w.groupCandidates(aiGroup{owner: owner, members: members}, false))
+func (w *World) engagedCircle(owner uint32, order uint8, circle noticeCircle, members []int) []int {
+	return w.clipCircle(order, circle, w.groupCandidates(aiGroup{owner: owner, members: members}, false))
+}
+
+// noticeCircle is the centre cell and radius a Guard clip keeps candidates
+// inside.
+type noticeCircle struct {
+	x, y int32
+	r    int64
+}
+
+// heldCircle is a native Group's circle: the living members' sub-cell centre
+// and the frozen base widened by the margin. The second game keeps it.
+func (w *World) heldCircle(base uint8, members []int) noticeCircle {
+	cx, cy := groupCentroid(w.entities, members, subCellMean)
+	return noticeCircle{x: cx, y: cy, r: int64(noticeRadius(base))}
+}
+
+// storedCircle is a registry Group's circle as live Guard clips it: the
+// centre cell +0x28 its geometry refresh stored and the working radius +0x2d
+// (AI-740, AI-741). The second game keeps heldCircle.
+func (w *World) storedCircle(g *SavedGroup, members []int) noticeCircle {
+	if w.SecondGame() {
+		return w.heldCircle(g.AI[0x38], members)
+	}
+	return noticeCircle{x: int32(g.AI[0x28]), y: int32(g.AI[0x29]), r: int64(g.AI[0x2d])}
 }
 
 // clipCircle is a group decision's clip of its candidate list: Guard keeps
-// the candidates inside the notice circle around the members' centroid; every
-// other order keeps the list.
-func (w *World) clipCircle(order, base uint8, members, cands []int) []int {
+// the candidates inside the notice circle; every other order keeps the list.
+func (w *World) clipCircle(order uint8, circle noticeCircle, cands []int) []int {
 	if order != orderGuard {
 		return cands
 	}
-	cx, cy := groupCentroid(w.entities, members)
-	return clipToNotice(cands, w.entities, cx, cy, int64(noticeRadius(base)))
+	return clipToNotice(cands, w.entities, circle.x, circle.y, circle.r)
 }
 
 // inCircle keeps the foes the clipped candidate list holds.
@@ -180,7 +206,7 @@ func (w *World) joinSavedEngagedGroups() {
 		if order == 0x11 {
 			order = orderSwarm2
 		}
-		w.joinEngagedGroup(w.entities[members[0]].Owner, order, g.AI[0x38], members, func(i int) {
+		w.joinEngagedGroup(w.entities[members[0]].Owner, order, w.storedCircle(g, members), members, func(i int) {
 			if o := w.savedOrder(w.entities[i].ID); o != nil {
 				o.Raw[8] = 5
 			}
@@ -188,13 +214,13 @@ func (w *World) joinSavedEngagedGroups() {
 	}
 }
 
-func (w *World) joinEngagedGroup(owner uint32, order, base uint8, members []int, joined func(int)) {
+func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle, members []int, joined func(int)) {
 	if owner == 0 || owner == SelfSlot || !engagedOrder(order) || len(members) == 0 {
 		return
 	}
 	foes := w.engagedFoes(owner, members)
 	if len(foes) != 0 && !w.SecondGame() {
-		foes = inCircle(foes, w.engagedCircle(owner, order, base, members))
+		foes = inCircle(foes, w.engagedCircle(owner, order, circle, members))
 	}
 	if len(foes) == 0 {
 		return

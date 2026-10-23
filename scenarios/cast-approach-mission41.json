@@ -8,6 +8,7 @@
     {"command": "assert_unit", "unit": "p0", "expect": {"x": 44, "y": 68, "mana_at_least": 36}},
     {"command": "report", "name": "refused-unseen"},
     {"command": "place", "unit": "u65", "x": 43, "y": 57},
+    {"command": "assert_unit", "unit": "u65", "expect": {"x": 45, "y": 57}},
     {"command": "order", "unit": "p0", "order": "cast", "target": "u65", "spell": 6},
     {"command": "wait_ticks", "ticks": 1},
     {"command": "assert_unit", "unit": "p0", "expect": {"mana_at_least": 36}},
@@ -15,8 +16,8 @@
     {"command": "wait_ticks", "ticks": 60},
     {"command": "assert_unit", "unit": "p0", "expect": {"mana_at_least": 36, "within": {"x": 43, "y": 64, "radius": 3}}},
     {"command": "report", "name": "still-walking"},
-    {"command": "wait_ticks", "ticks": 36},
-    {"command": "assert_unit", "unit": "p0", "expect": {"mana_at_most": 35, "within": {"x": 42, "y": 62, "radius": 1}}},
+    {"command": "wait_ticks", "ticks": 48},
+    {"command": "assert_unit", "unit": "p0", "expect": {"mana_at_most": 35, "within": {"x": 45, "y": 61, "radius": 1}}},
     {"command": "report", "name": "cast"}
   ]
 }

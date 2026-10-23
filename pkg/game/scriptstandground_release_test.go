@@ -199,7 +199,14 @@ func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
 			}
 		}
 		if witnessed == 0 {
-			standStateColdProcess(t, raw, a.members)
+			// A member the struck foe killed holds no stance in the SAV.
+			var living []sim.EntityID
+			for _, id := range a.members {
+				if e, _ := treated.Entity(id); e.Alive() {
+					living = append(living, id)
+				}
+			}
+			standStateColdProcess(t, raw, living)
 		}
 		witnessed++
 		t.Logf("group %d: %d members stood, %d of them on a walk in the control world", a.node.Group, len(a.members), walking)

@@ -287,7 +287,7 @@ func TestTheNoticeRadiusIsTheArithmeticTheLawNames(t *testing.T) {
 	// Two members far apart: the geometry beats the floor, and the term is the
 	// widest member's own distance from the centroid plus THAT MEMBER'S range.
 	spread := []Entity{{ID: 1, X: 0, Y: 0, ScanRange: engSight}, {ID: 2, X: 40, Y: 0, ScanRange: engSight}}
-	cx, cy := groupCentroid(spread, []int{0, 1})
+	cx, cy := groupCentroid(spread, []int{0, 1}, subCellMean)
 	if got, want := noticeBase(spread, []int{0, 1}, cx, cy), uint8(20+engSight); got != want {
 		t.Errorf("a group spread over 40 cells has notice base %d, want %d", got, want)
 	}
@@ -314,7 +314,7 @@ func TestNoCandidateAGroupCanSeeIsEverClipped(t *testing.T) {
 			for bx := int32(0); bx < 30; bx += 3 {
 				ents := []Entity{{ID: 1, X: ax, Y: ay, ScanRange: 4}, {ID: 2, X: bx, Y: 7, ScanRange: 9}}
 				w := engWorld(t, Relations{}, ents...)
-				cx, cy := groupCentroid(ents, members)
+				cx, cy := groupCentroid(ents, members, subCellMean)
 				r := int64(noticeBase(ents, members, cx, cy))
 				stamp := w.groupSight(aiSight, members)
 				for px := int32(-3); px < 40; px++ {
@@ -438,7 +438,7 @@ func TestAGuardingGroupClipsAtItsFrozenBaseNotLiveGeometry(t *testing.T) {
 	// A fresh recompute, over the members now living (1 and 2 — 3 is dead),
 	// gives a wider radius: the arithmetic this build would run on a decision
 	// path if the freeze were reverted.
-	cx, cy := groupCentroid(w.entities, []int{indexOfEntity(w.entities, 1), indexOfEntity(w.entities, 2)})
+	cx, cy := groupCentroid(w.entities, []int{indexOfEntity(w.entities, 1), indexOfEntity(w.entities, 2)}, subCellMean)
 	if cx != startX || cy != startY {
 		t.Fatalf("the live centroid is (%d,%d), want the symmetric (%d,%d) this test's arithmetic "+
 			"assumes", cx, cy, startX, startY)

@@ -1412,7 +1412,7 @@ func (w *World) handOver(i int, player uint32) {
 	// The ownership-change route applies Stand Ground to the new Group.
 	// AI-351, AI-STANCE-098.
 	members := []int{i}
-	cx, cy := groupCentroid(w.entities, members)
+	cx, cy := groupCentroid(w.entities, members, subCellMean)
 	w.upsertGroup(groupAI{
 		owner: player,
 		group: id,
@@ -2189,7 +2189,7 @@ func (w *World) cmdGroupGuard(group uint32) {
 		members := w.groupLivingMembers(g.owner, g.group)
 		var cx, cy int32
 		if len(members) > 0 {
-			cx, cy = groupCentroid(w.entities, members)
+			cx, cy = groupCentroid(w.entities, members, subCellMean)
 		}
 		g.base = noticeBase(w.entities, members, cx, cy)
 		for _, mi := range members {

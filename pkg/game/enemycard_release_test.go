@@ -145,7 +145,15 @@ func enemyCardKill(t *testing.T, live *mapWorld, victim sim.EntityID) {
 	if !ok {
 		t.Fatalf("victim %d is absent", victim)
 	}
-	if err := w.HeadlessPlace(hero, v.X-1, v.Y); err != nil {
+	// The cell west of the victim first; a crowd there sends the hero to the
+	// first other neighbour with room.
+	var err error
+	for _, d := range [][2]int32{{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {-1, -1}, {1, -1}, {-1, 1}, {1, 1}} {
+		if err = w.HeadlessPlace(hero, v.X+d[0], v.Y+d[1]); err == nil {
+			break
+		}
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 	for i := 0; i < 30000; i++ {
