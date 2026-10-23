@@ -108,10 +108,9 @@ import (
 
 var usage = "usage: againrom [-assets <dir>] [-check | --headless <scenario.json> | -dump-base <dir> | -pack-mod <folder> -pack-out <dir> [-pack-replace]] [-markers] [-chicken] [-shop-stock-multiplier <" + launchRange(launchset.ShopStockMultiplier) + ">] [-window] [-seed <n>] [-original-random] [-picker | -mission <n>] [-skill <name>] [-chargen] [-base <id>] [-sound] [-volume <n>] [-saves <dir>] [-mods <id,id,...>] [-mods-dir <dir>] [-mod-setting <mod>.<key>=<value>]... [-mods-accept-unmarked]\n       with no -assets and no AGAINROM_ASSETS, the working directory and then this binary's own folder are searched for an install"
 
-// chargenUsage is the -chargen flag's own help text, named for the reason the
-// launch flags' texts in launchFlags are: parse discards the flag set's
-// output, so a second copy of this string could drift from this one with
-// nothing anywhere to notice.
+// chargenUsage is the -chargen flag's own help text, named because parse
+// discards the flag set's output, so a second copy of this string could drift
+// from this one with nothing anywhere to notice.
 //
 // THE FLAG IS INERT AS OF 0140 and this string is the only place it is
 // mentioned outside parse: generation runs whenever a campaign is started now,
@@ -137,27 +136,18 @@ func (o options) startMission(front *game.FrontEnd) int {
 // that trains nothing" need no second sentinel to tell apart.
 const skillNone = data.SkillGeneral
 
-// skillUsage is the -skill flag's own help text, named beside chargenUsage
-// and for its reason: parse discards the flag set's
-// output, so a second copy of this string could drift with nothing anywhere
-// to notice. It is built from data.SkillName over skillSlot's own legal
-// range rather than a second, hand-written list of skill spellings, so the
-// values this flag accepts and the values printed here cannot part company.
-var skillUsage = buildSkillUsage()
+// skillUsage is the -skill flag's help text: its row's, listing skillNames.
+var skillUsage = launchset.Skill.Help(skillNames()...)
 
-func buildSkillUsage() string {
+// skillNames are the -skill names, from data.SkillName over skillSlot's own
+// range, so the values the flag accepts and its help cannot part company.
+func skillNames() []string {
 	var names []string
 	for slot := int32(data.SkillGeneral + 1); slot < data.SkillSlots; slot++ {
 		names = append(names, strings.ToLower(data.SkillName(slot)))
 	}
-	return "train the party's hero in this skill instead of the shipped default (one of: " +
-		strings.Join(names, ", ") + ")"
+	return names
 }
-
-// baseUsage is -base's own help text. The ids are the known profiles', so the
-// flag and the profile list cannot part company.
-var baseUsage = "refuse to run unless the asset root is detected as this base profile (one of: " +
-	strings.Join(base.IDs(), ", ") + "); -check names the detected profile either way"
 
 // The mod flags' own help text. Mods are resolved, ordered and run before the
 // front end is built; -check lists them.
@@ -168,13 +158,6 @@ const (
 )
 
 const dumpBaseUsage = "write the base dump, a mod folder holding the install's towns in the format a mod reads, into this new or empty folder outside the install, and exit without a window"
-
-const (
-	modsUsage               = "comma-separated ids of the mods to load; each is a folder with a mod.toml or a packed file mod-<id>.res in the mods directory (the load order follows requires and load-after, not this list)"
-	modsDirUsage            = "directory holding the mod folders and packed mods (default: mods beside this binary)"
-	modSettingUsage         = "a mod setting as <mod>.<key>=<value>; repeat the flag for several (a setting not given keeps the mod's default)"
-	modsAcceptUnmarkedUsage = "let a saved game that carries no mod mark start under the active mods (without it such a save is refused)"
-)
 
 // resolveMods loads the mods o names. A missing or malformed mod is an error
 // naming it. Without -mods it returns nothing and reads no directory.
@@ -426,8 +409,6 @@ func parse(args []string) (options, error) {
 	var o options
 	fs := flag.NewFlagSet("againrom", flag.ContinueOnError)
 	fs.SetOutput(io.Discard) // the error is reported once, by run
-	fs.StringVar(&o.assets, "assets", "", "path to the game asset root (overrides AGAINROM_ASSETS, which overrides the install found at the working directory or beside this binary)")
-	fs.BoolVar(&o.check, "check", false, "load the assets and the map list, print a summary, and exit without a window")
 	fs.StringVar(&o.dumpBase, "dump-base", "", dumpBaseUsage)
 	fs.StringVar(&o.packMod, "pack-mod", "", packModUsage)
 	fs.StringVar(&o.packOut, "pack-out", "", packOutUsage)
@@ -435,8 +416,8 @@ func parse(args []string) (options, error) {
 	// The flag itself of -skill is a NAME, empty by default meaning "leave the
 	// trained skill alone" — o.skill starts at skillNone and stays there
 	// unless a name is given, exactly that default's own resolved form.
-	var skill string
-	flags := registerLaunchFlags(fs, &o, &skill)
+	var skill, mods string
+	flags := registerLaunchFlags(fs, &o, &skill, &mods)
 	fs.Func("seed", "fix the session seed every new game draws from (default: the clock at each new game)", func(v string) error {
 		n, err := strconv.ParseUint(v, 0, 64)
 		if err != nil {
@@ -453,20 +434,6 @@ func parse(args []string) (options, error) {
 	// happens to be unused this month.
 	var ignoredChargen bool
 	fs.BoolVar(&ignoredChargen, "chargen", false, chargenUsage)
-	fs.StringVar(&o.base, "base", "", baseUsage)
-	fs.BoolVar(&o.version, "version", false, "print the program name, version and source revision, and exit")
-	var mods string
-	fs.StringVar(&mods, "mods", "", modsUsage)
-	fs.StringVar(&o.modsDir, "mods-dir", "", modsDirUsage)
-	fs.Func("mod-setting", modSettingUsage, func(v string) error {
-		f, err := mod.ParseSettingFlag(v)
-		if err != nil {
-			return err
-		}
-		o.modSettings = append(o.modSettings, f)
-		return nil
-	})
-	fs.BoolVar(&o.modsAcceptUnmarked, "mods-accept-unmarked", false, modsAcceptUnmarkedUsage)
 	fs.StringVar(&o.headless, "headless", "", "run a versioned JSON scenario through the production controller without opening a window")
 	fs.BoolVar(&o.noMusic, "nomusic", false, "play no music: every music request is silent")
 	fs.StringVar(&o.cutsceneCheck, "cutscene-check", "", "read-only native/App witness; write frames only to this existing private directory")

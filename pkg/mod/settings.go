@@ -290,6 +290,9 @@ func ResolveSettings(modID string, decl []Setting, given map[string]string) ([]S
 // SettingFlag is one parsed -mod-setting argument.
 type SettingFlag struct{ Mod, Key, Value string }
 
+// String is the -mod-setting value ParseSettingFlag reads back to f.
+func (f SettingFlag) String() string { return f.Mod + "." + f.Key + "=" + f.Value }
+
 // ParseSettingFlag reads "<mod id>.<key>=<value>". The key is the text after
 // the last '.' before the '=', since a mod id may itself contain dots and a
 // key may not.

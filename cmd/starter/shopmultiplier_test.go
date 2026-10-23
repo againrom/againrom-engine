@@ -22,7 +22,7 @@ func TestShopStockMultiplierSettings(t *testing.T) {
 			if after := loadSettings(file); after.ShopStockMultiplier != want || !strings.Contains(string(file.Bytes()), "future = keep") {
 				t.Fatal("round trip lost a setting")
 			}
-			args, err := s.launchArgs("root", "mods")
+			args, err := s.launchArgs(gameLaunch{Root: "root", ModsDir: "mods"})
 			valid := want == "1" || want == "5" || want == "10" || want == "1000"
 			if !valid {
 				if err == nil || !strings.Contains(err.Error(), "1000") {

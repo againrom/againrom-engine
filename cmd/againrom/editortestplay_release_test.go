@@ -75,7 +75,8 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !o.missionSet || !reflect.DeepEqual(started, game.TestPlayArgs(root, filepath.Join(profile.Directory, game.TestPlayModID), o.mission)) {
+	want, err := game.TestPlayArgs(root, filepath.Join(profile.Directory, game.TestPlayModID), o.mission)
+	if err != nil || !o.missionSet || !reflect.DeepEqual(started, want) {
 		t.Fatalf("launch args %q", started)
 	}
 	mods, err := resolveMods(o, program)

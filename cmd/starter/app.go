@@ -340,10 +340,10 @@ func (a *app) settingText(id string, st mod.Setting) string {
 	return st.Default.String()
 }
 
-// modArgs are the -mod-setting arguments for the enabled mods, in load order.
+// modSettings are the -mod-setting values for the enabled mods, in load order.
 // A stored value for a key the mod no longer declares is left out. A value the
 // mod's declaration refuses is an error naming the mod and the setting.
-func (a *app) modArgs() ([]string, error) {
+func (a *app) modSettings() ([]string, error) {
 	var args []string
 	for _, id := range a.s.Enabled {
 		decl, err := a.settingsOf(id)
@@ -361,7 +361,7 @@ func (a *app) modArgs() ([]string, error) {
 		}
 		for _, st := range decl {
 			if v, ok := given[st.Key]; ok {
-				args = append(args, "-mod-setting", id+"."+st.Key+"="+strings.TrimSpace(v))
+				args = append(args, mod.SettingFlag{Mod: id, Key: st.Key, Value: strings.TrimSpace(v)}.String())
 			}
 		}
 	}
@@ -666,15 +666,10 @@ func clampScroll(offset *int, n, capacity int) int {
 // command is the line Play would run.
 func (a *app) command() (string, error) {
 	root, _ := a.selectedRoot()
-	modArgs, err := a.modArgs()
+	args, err := a.gameArgs(root, false)
 	if err != nil {
 		return "", err
 	}
-	args, err := a.s.launchArgs(root, a.s.modsDir(a.selfDir()), modArgs...)
-	if err != nil {
-		return "", err
-	}
-	args = withBase(args, a.infos[root])
 	return filepath.Base(a.s.gameExecutable(a.selfPath, a.goos)) + " " + quoteArgs(args), nil
 }
 
@@ -971,7 +966,7 @@ func (a *app) save() {
 
 // launchPlan resolves the executable and arguments for a launch or a check and
 // reports why they cannot be had.
-func (a *app) launchPlan(extra ...string) (string, []string, error) {
+func (a *app) launchPlan(check bool) (string, []string, error) {
 	root, ok := a.selectedRoot()
 	if !ok {
 		return "", nil, captionErr(cNoBaseSelected)
@@ -984,24 +979,32 @@ func (a *app) launchPlan(extra ...string) (string, []string, error) {
 			return "", nil, captionErr(cModUnusable, m.id, m.problem)
 		}
 	}
-	modArgs, err := a.modArgs()
+	args, err := a.gameArgs(root, check)
 	if err != nil {
 		return "", nil, err
 	}
-	args, err := a.s.launchArgs(root, a.s.modsDir(a.selfDir()), modArgs...)
-	if err != nil {
-		return "", nil, err
-	}
-	args = withBase(args, a.infos[root])
 	exe := a.s.gameExecutable(a.selfPath, a.goos)
 	if !fileExists(exe) {
 		return "", nil, captionErr(cGameNotFound, exe)
 	}
-	return exe, append(args, extra...), nil
+	return exe, args, nil
+}
+
+// gameArgs is the game's argument list for root.
+func (a *app) gameArgs(root string, check bool) ([]string, error) {
+	modSettings, err := a.modSettings()
+	if err != nil {
+		return nil, err
+	}
+	g := gameLaunch{Root: root, ModsDir: a.s.modsDir(a.selfDir()), ModSettings: modSettings, Check: check}
+	if id := a.infos[root].Base.ID(); basepkg.Nameable(id) {
+		g.Base = id
+	}
+	return a.s.launchArgs(g)
 }
 
 func (a *app) play() {
-	exe, args, err := a.launchPlan()
+	exe, args, err := a.launchPlan(false)
 	if err != nil {
 		a.fail(cCannotPlay, a.errText(err))
 		return
@@ -1017,7 +1020,7 @@ func (a *app) play() {
 }
 
 func (a *app) check() {
-	exe, args, err := a.launchPlan("-check")
+	exe, args, err := a.launchPlan(true)
 	if err != nil {
 		a.fail(cCannotCheck, a.errText(err))
 		return
@@ -1088,7 +1091,8 @@ func (a *app) probeVersion() {
 		return
 	}
 	a.deps.async(func() {
-		out, err := a.deps.run(exe, []string{"-version"})
+		args, _ := launch.Version.Args(launch.FormatBool(true))
+		out, err := a.deps.run(exe, args)
 		a.results <- result{kind: "version", output: out, err: err}
 	})
 }
@@ -1183,18 +1187,4 @@ func (a *app) baseNote(info game.InstallInfo) string {
 	}
 	parts = append(parts, l.Notes...)
 	return strings.Join(parts, "; ")
-}
-
-// withBase inserts "-base <profile id>" after the leading "-assets <root>" pair
-// when the install was detected as a known profile, so the game refuses to run
-// on a root that is no longer that base. An install with no named profile gets
-// no argument.
-func withBase(args []string, info game.InstallInfo) []string {
-	id := info.Base.ID()
-	if !basepkg.Nameable(id) || len(args) < 2 || args[0] != "-assets" {
-		return args
-	}
-	out := append([]string{}, args[:2]...)
-	out = append(out, "-base", id)
-	return append(out, args[2:]...)
 }

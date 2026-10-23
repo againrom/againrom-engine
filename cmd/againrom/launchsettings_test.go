@@ -3,14 +3,17 @@ package main
 import (
 	"flag"
 	"io"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/game"
 	launchset "againrom/pkg/launch"
+	"againrom/pkg/mod"
 )
 
 // The shipped defaults the tests name, from the launch table.
@@ -26,8 +29,8 @@ func launchValue(t *testing.T, o options, flagName string) string {
 	if flagName == launchset.Skill.Flag {
 		return strconv.Itoa(int(o.skill))
 	}
-	var skill string
-	switch p := launchFlags(&o, &skill)[flagName].target.(type) {
+	var skill, mods string
+	switch p := launchFlags(&o, &skill, &mods)[flagName].target.(type) {
 	case *bool:
 		return strconv.FormatBool(*p)
 	case *int:
@@ -45,10 +48,10 @@ func launchValue(t *testing.T, o options, flagName string) string {
 // each bound is refused by the starter's build and by the game.
 func TestLaunchSettingsTableReachesTheGame(t *testing.T) {
 	var o options
-	var skill string
+	var skill, mods string
 	fs := flag.NewFlagSet("walk", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	bound := registerLaunchFlags(fs, &o, &skill)
+	bound := registerLaunchFlags(fs, &o, &skill, &mods)
 	defined := 0
 	fs.VisitAll(func(*flag.Flag) { defined++ })
 	if defined != len(bound) {
@@ -166,12 +169,72 @@ func TestLaunchSettingsTableReachesTheGame(t *testing.T) {
 				}
 				return s.Load("")
 			}
-			if args, err := launchset.Build(value); err == nil {
+			if args, err := launchset.Build(launchset.One(value)); err == nil {
 				t.Errorf("%s with %s: starter passed %q", st.Key, x.Key, args)
 			}
 			if _, err := parse([]string{"-" + x.Flag, "-" + st.Flag, strconv.Itoa(st.Min)}); err == nil {
 				t.Errorf("%s with %s: game accepted both", st.Key, x.Key)
 			}
 		}
+	}
+}
+
+// TestLaunchTableFlagsCarryTheRows: every flag carries its row's help, and
+// the base, mod and check rows built by the table parse back.
+func TestLaunchTableFlagsCarryTheRows(t *testing.T) {
+	var o options
+	var skill, mods string
+	fs := flag.NewFlagSet("walk", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	bound := registerLaunchFlags(fs, &o, &skill, &mods)
+	for _, st := range launchset.Table {
+		usage := map[string]string{st.Flag: st.Help(bound[st.Flag].list...)}
+		switch st.Kind {
+		case launchset.Arguments:
+			continue
+		case launchset.Choice:
+			usage = map[string]string{}
+			for _, c := range st.Options[1:] {
+				usage[c.Flag] = c.Usage
+			}
+		}
+		for name, want := range usage {
+			f := fs.Lookup(name)
+			if f == nil || want == "" || strings.Contains(want, "%") || f.Usage != want {
+				t.Errorf("%s: flag -%s help %v, want %q", st.Key, name, f, want)
+			}
+		}
+	}
+	values := map[string][]string{
+		launchset.Assets.Key:             {`C:\a b`},
+		launchset.Base.Key:               {base.ROM1RU},
+		launchset.Mods.Key:               {"a,b"},
+		launchset.ModsDir.Key:            {"D ü"},
+		launchset.ModSetting.Key:         {"a.k=x y", `b.v="q"=ночь`},
+		launchset.ModsAcceptUnmarked.Key: {"true"},
+		launchset.Check.Key:              {"true"},
+	}
+	build := func() []string {
+		t.Helper()
+		args, err := launchset.Build(func(st launchset.Setting) []string {
+			if v, ok := values[st.Key]; ok {
+				return v
+			}
+			return []string{st.Load("")}
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return args
+	}
+	got, err := parse(build())
+	want := []mod.SettingFlag{{Mod: "a", Key: "k", Value: "x y"}, {Mod: "b", Key: "v", Value: `"q"=ночь`}}
+	if err != nil || got.assets != `C:\a b` || got.base != base.ROM1RU || !reflect.DeepEqual(got.mods, []string{"a", "b"}) ||
+		got.modsDir != "D ü" || !reflect.DeepEqual(got.modSettings, want) || !got.modsAcceptUnmarked || !got.check {
+		t.Fatalf("parsed %+v (%v)", got, err)
+	}
+	values[launchset.Mods.Key] = nil
+	if args := build(); !reflect.DeepEqual(args, []string{"-assets", `C:\a b`, "-base", base.ROM1RU, "-check"}) {
+		t.Fatalf("without mods: %q", args)
 	}
 }

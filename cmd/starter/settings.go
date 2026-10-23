@@ -265,27 +265,46 @@ func (s settings) modEnabled(id string) bool {
 	return false
 }
 
-// launchArgs is the argument list that starts the game for root. modsDir is the
-// directory -mods-dir names; it is passed only when mods are enabled, and
-// modArgs (the -mod-setting arguments) follow it. Options left at their
-// defaults add no argument, so the game's saved preferences keep applying.
-func (s settings) launchArgs(root, modsDir string, modArgs ...string) ([]string, error) {
-	if strings.TrimSpace(root) == "" {
+// gameLaunch is what one start of the game takes besides the settings: Base
+// is the detected profile id or empty, ModSettings mod.SettingFlag texts.
+type gameLaunch struct {
+	Root, Base, ModsDir string
+	ModSettings         []string
+	Check               bool
+}
+
+// launchArgs is the argument list that starts the game for g, built from the
+// rows of launch.Table. Options left at their defaults add no argument, so the
+// game's saved preferences keep applying.
+func (s settings) launchArgs(g gameLaunch) ([]string, error) {
+	if strings.TrimSpace(g.Root) == "" {
 		return nil, captionErr(cNoBaseSelected)
 	}
-	args := []string{"-assets", root}
-	if len(s.Enabled) > 0 {
-		args = append(args, "-mods", strings.Join(s.Enabled, ","), "-mods-dir", modsDir)
-		args = append(args, modArgs...)
-		if s.AcceptUnmarked {
-			args = append(args, "-mods-accept-unmarked")
+	args, err := launch.Build(func(st launch.Setting) []string {
+		switch st.Key {
+		case launch.Assets.Key:
+			return []string{g.Root}
+		case launch.Base.Key:
+			return []string{g.Base}
+		case launch.Mods.Key:
+			return []string{strings.Join(s.Enabled, ",")}
+		case launch.ModsDir.Key:
+			return []string{g.ModsDir}
+		case launch.ModSetting.Key:
+			return g.ModSettings
+		case launch.ModsAcceptUnmarked.Key:
+			return []string{launch.FormatBool(s.AcceptUnmarked)}
+		case launch.Check.Key:
+			return []string{launch.FormatBool(g.Check)}
+		case launch.Version.Key:
+			return nil
 		}
-	}
-	options, err := launch.Build(s.option)
+		return []string{s.option(st)}
+	})
 	if err != nil {
 		return nil, refusalErr(err)
 	}
-	return append(args, options...), nil
+	return args, nil
 }
 
 // defaultINIPath is the settings file beside the starter executable.

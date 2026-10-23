@@ -122,7 +122,7 @@ func TestLaunchArgsExactArgv(t *testing.T) {
 	for _, c := range cases {
 		s := defaultSettings()
 		c.mod(&s)
-		got, err := s.launchArgs(root, mods)
+		got, err := s.launchArgs(gameLaunch{Root: root, ModsDir: mods})
 		if err != nil || !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s: got %q (%v)\nwant %q", c.name, got, err, c.want)
 		}
@@ -141,11 +141,11 @@ func TestLaunchArgsRefusals(t *testing.T) {
 	} {
 		s := defaultSettings()
 		mod(&s)
-		if got, err := s.launchArgs("r", "m"); err == nil {
+		if got, err := s.launchArgs(gameLaunch{Root: "r", ModsDir: "m"}); err == nil {
 			t.Errorf("%s accepted: %q", name, got)
 		}
 	}
-	if _, err := defaultSettings().launchArgs("  ", "m"); err == nil {
+	if _, err := defaultSettings().launchArgs(gameLaunch{Root: "  ", ModsDir: "m"}); err == nil {
 		t.Error("no base accepted")
 	}
 }

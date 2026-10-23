@@ -119,7 +119,7 @@ func TestLaunchSettingsTableReachesTheStarter(t *testing.T) {
 			if again := loadSettings(f); again.option(st) != st.Load(value) {
 				t.Errorf("%s=%q: read back %q", st.Key, value, again.option(st))
 			}
-			args, err := s.launchArgs("root", "mods")
+			args, err := s.launchArgs(gameLaunch{Root: "root", ModsDir: "mods"})
 			if err != nil || !reflect.DeepEqual(args, append([]string{"-assets", "root"}, want...)) {
 				t.Errorf("%s=%q: arguments %q %v, want %q", st.Key, value, args, err, want)
 			}
@@ -127,7 +127,7 @@ func TestLaunchSettingsTableReachesTheStarter(t *testing.T) {
 		for _, value := range refused {
 			s := defaultSettings()
 			s.setOption(st, value)
-			args, err := s.launchArgs("root", "mods")
+			args, err := s.launchArgs(gameLaunch{Root: "root", ModsDir: "mods"})
 			if err == nil {
 				t.Errorf("%s=%q: passed as %q", st.Key, value, args)
 				continue
@@ -169,7 +169,7 @@ func TestLaunchSettingsBoundsInCaptions(t *testing.T) {
 	}
 	s := defaultSettings()
 	s.Mission, s.Picker = "3", true
-	if _, err := s.launchArgs("root", "mods"); err == nil || err.Error() != caption("en", cPickerMission) {
+	if _, err := s.launchArgs(gameLaunch{Root: "root", ModsDir: "mods"}); err == nil || err.Error() != caption("en", cPickerMission) {
 		t.Errorf("mission with picker: %v", err)
 	}
 }

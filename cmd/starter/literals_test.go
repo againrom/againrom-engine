@@ -18,11 +18,7 @@ import (
 // sentinel, a temporary file pattern, a character set.
 var notCaption = map[string]string{
 	"-assets":               "program argument",
-	"-base":                 "program argument",
-	"-check":                "program argument",
 	"-list":                 "program argument",
-	"-version":              "program argument",
-	"-mod-setting":          "program argument",
 	"againrom":              "program name in the version line",
 	"check":                 "background result kind",
 	"version":               "background result kind",

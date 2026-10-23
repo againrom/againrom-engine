@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
+	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
@@ -116,7 +117,11 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
-	if err := h.Start(h.Game, TestPlayArgs(x.archives.Root, modsDir, m.Number)); err != nil {
+	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number)
+	if err != nil {
+		return "", fmt.Errorf("Test play: %w", err)
+	}
+	if err := h.Start(h.Game, args); err != nil {
 		return "", fmt.Errorf("Test play: %s did not start: %v", filepath.Base(h.Game), err)
 	}
 	return fmt.Sprintf("Test play: %s opens mission %d", filepath.Base(h.Game), m.Number), nil
@@ -129,12 +134,25 @@ func hasError(rows []ui.InspectionFinding) bool {
 
 // TestPlayArgs is the game's command line of a test play: the install root
 // and its base, the test mod from modsDir, and the direct start of mission n.
-func TestPlayArgs(root, modsDir string, n int) []string {
-	args := []string{"-assets", root}
-	if id := BaseID(InspectInstall(root)); base.Nameable(id) {
-		args = append(args, "-base", id)
-	}
-	return append(args, "-mods", TestPlayModID, "-mods-dir", modsDir, "-mission", strconv.Itoa(n))
+func TestPlayArgs(root, modsDir string, n int) ([]string, error) {
+	return launch.Build(func(st launch.Setting) []string {
+		switch st.Key {
+		case launch.Assets.Key:
+			return []string{root}
+		case launch.Base.Key:
+			if id := BaseID(InspectInstall(root)); base.Nameable(id) {
+				return []string{id}
+			}
+			return nil
+		case launch.Mods.Key:
+			return []string{TestPlayModID}
+		case launch.ModsDir.Key:
+			return []string{modsDir}
+		case launch.Mission.Key:
+			return []string{strconv.Itoa(n)}
+		}
+		return []string{st.Load("")}
+	})
 }
 
 // testPlayMission wraps the map and its shared page source in a guest mission.

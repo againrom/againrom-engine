@@ -114,6 +114,22 @@ func TestParseSettingFlag(t *testing.T) {
 	}
 }
 
+// TestSettingFlagStringReadsBack: String is what ParseSettingFlag reads.
+func TestSettingFlagStringReadsBack(t *testing.T) {
+	for _, f := range []SettingFlag{
+		{Mod: "skill-cap.v2", Key: "skill_cap", Value: "150"},
+		{Mod: "m", Key: "k", Value: "a b=c \"d\" ночь"},
+		{Mod: "m", Key: "k", Value: ""},
+	} {
+		if got, err := ParseSettingFlag(f.String()); err != nil || got != f {
+			t.Errorf("%q read back as %+v %v", f.String(), got, err)
+		}
+	}
+	if got := (SettingFlag{Mod: "a", Key: "b", Value: "c"}).String(); got != "a.b=c" {
+		t.Errorf("String %q", got)
+	}
+}
+
 func TestLoadSettingsMissingFileDeclaresNothing(t *testing.T) {
 	dir := t.TempDir()
 	got, err := LoadSettings(dir)
