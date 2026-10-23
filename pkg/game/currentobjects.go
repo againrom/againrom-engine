@@ -245,13 +245,7 @@ func captureCurrentObjects(state *SnapshotSAVDocument, w *sim.World) (*currentOb
 			if v.Empty() {
 				continue
 			}
-			field, ordinal := "Worn", slot
-			if slot == 0 {
-				field, ordinal = "HeldWeapon", 0
-			}
-			if slot == 1 {
-				field, ordinal = "HeldShield", 0
-			}
+			field, ordinal := savEquipmentSlotRef(slot)
 			refs, _ := savedObjectRefs(record, field)
 			if ordinal >= len(refs) || refs[ordinal] == 0 {
 				return nil, nil, fmt.Errorf("current equipment binding is incomplete")

@@ -251,14 +251,7 @@ func savedCurrentActorItems(state *SnapshotSAVDocument, registry *sim.SavedObjec
 			}
 		}
 		r.RefSlots = slices.Clone(r.RefSlots)
-		savedObjectSetRefs(&r, "HeldWeapon", []uint16{worn[0]}, false)
-		savedObjectSetRefs(&r, "HeldShield", []uint16{worn[1]}, false)
-		if r.Class != "Unit" {
-			// Humanoid's twelve armor refs are independent of Unit's held
-			// weapon/shield refs. Their first two archive slots remain empty.
-			worn[0], worn[1] = 0, 0
-			savedObjectSetRefs(&r, "Worn", worn[:], false)
-		}
+		writeSavEquipment(worn, savedItemsWorn.carries(&r), func(field string, refs []uint16) { savedObjectSetRefs(&r, field, refs, false) })
 		state.Document.Objects[actor.ObjectIndex-1] = r
 	}
 	return nil
@@ -467,27 +460,23 @@ func validateSavedItemBindingWorldDecoded(state *SnapshotSAVDocument, world *sim
 			}
 			return nil
 		}
-		if err := checkRef("HeldWeapon", 0, items[0]); err != nil {
-			return err
-		}
-		if err := checkRef("HeldShield", 0, items[1]); err != nil {
-			return err
-		}
-		if state.Document.Objects[actor.ObjectIndex-1].Class != "Unit" {
-			for slot := 2; slot < len(items); slot++ {
-				value := items[slot]
-				if err := checkRef("Worn", slot, value); err != nil {
-					return err
-				}
+		carriesWorn := itemBindingCheckWorn.carries(record)
+		for slot, value := range items {
+			field, ordinal := savEquipmentSlotRef(slot)
+			if field == savWornField && !carriesWorn {
+				continue
+			}
+			if err := checkRef(field, ordinal, value); err != nil {
+				return err
 			}
 		}
 		return nil
 	}
 	stripEquipment := func(record *sav.DocumentRecordData) {
 		record.RefSlots = slices.DeleteFunc(slices.Clone(record.RefSlots), func(ref sav.DocumentRefsData) bool {
-			return ref.Name == "HeldWeapon" || ref.Name == "HeldShield" || ref.Name == "Worn"
+			return slices.Contains(savEquipmentFields[:], ref.Name)
 		})
-		record.Counts = slices.DeleteFunc(slices.Clone(record.Counts), func(count sav.DocumentCountData) bool { return count.Name == "Worn" })
+		record.Counts = slices.DeleteFunc(slices.Clone(record.Counts), func(count sav.DocumentCountData) bool { return count.Name == savWornField })
 	}
 	for _, actor := range state.Actors {
 		actual := state.Document.Objects[actor.ObjectIndex-1]

@@ -240,21 +240,12 @@ func currentOrdinaryPartyState(doc *sav.DocumentData, actor uint16, p currentPar
 		}
 		return sim.ItemStack{}, fmt.Errorf("current city holding lacks bound item %d", ref)
 	}
+	equipment, _ := readSavEquipment(r, cityPartyEquipment, savedObjectRefsGetter(r))
 	for slot := range state.Equipment {
-		field, ordinal := "Worn", slot
-		if slot < 2 {
-			field, ordinal = []string{"HeldWeapon", "HeldShield"}[slot], 0
-		}
-		refs, _ := savedObjectRefs(r, field)
-		if slot < 2 && len(refs) == 1 && refs[0] == 0 {
-			if worn, _ := savedObjectRefs(r, "Worn"); slot < len(worn) && worn[slot] != 0 {
-				refs, ordinal = worn, slot
-			}
-		}
-		if ordinal >= len(refs) {
+		if !equipment.Located[slot] {
 			continue
 		}
-		v, err := item(refs[ordinal])
+		v, err := item(equipment.Refs[slot])
 		if err != nil {
 			return nil, err
 		}

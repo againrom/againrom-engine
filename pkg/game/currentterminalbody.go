@@ -127,12 +127,7 @@ func (b *generatedDocumentBuilder) currentTerminalWorn(index uint16, worn [sim.E
 		}
 	}
 	r := &b.doc.Objects[index-1]
-	mustSetRefs(r, "HeldWeapon", []uint16{refs[0]})
-	mustSetRefs(r, "HeldShield", []uint16{refs[1]})
-	if r.Class != "Unit" {
-		refs[0], refs[1] = 0, 0
-		mustSetRefs(r, "Worn", refs[:])
-	}
+	writeSavEquipment(refs, terminalBodyWorn.carries(r), func(field string, refs []uint16) { mustSetRefs(r, field, refs) })
 	return nil
 }
 
@@ -175,7 +170,7 @@ func (b *generatedDocumentBuilder) currentTerminalCarried(index uint16, carried 
 // file stays that record's.
 func (b *generatedDocumentBuilder) passiveDeadContents(index uint16, body sim.OriginalDeadRecord, kept sim.PassiveBody, w *sim.World) error {
 	r := &b.doc.Objects[index-1]
-	weapon, _ := savedObjectRefs(r, "HeldWeapon")
+	weapon, _ := savedObjectRefs(r, savHeldWeaponField)
 	weapon = slices.Clone(weapon)
 	worn := kept.Worn
 	if body.Source.HeldWeapon.Present {
@@ -185,7 +180,7 @@ func (b *generatedDocumentBuilder) passiveDeadContents(index uint16, body sim.Or
 		return err
 	}
 	if body.Source.HeldWeapon.Present {
-		mustSetRefs(&b.doc.Objects[index-1], "HeldWeapon", weapon)
+		mustSetRefs(&b.doc.Objects[index-1], savHeldWeaponField, weapon)
 	}
 	return b.currentTerminalCarried(index, kept.Carried, w)
 }

@@ -67,7 +67,7 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		if err != nil {
 			return err
 		}
-		mustSetRefs(record, "HeldWeapon", []uint16{object})
+		mustSetRefs(record, savHeldWeaponField, []uint16{object})
 	}
 	return b.retainDeadEffects(record, body.ID, s)
 }

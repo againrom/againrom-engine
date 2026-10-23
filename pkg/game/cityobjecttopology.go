@@ -447,23 +447,18 @@ func captureCityObjectTopologyWithRecords(doc *sav.DocumentData, actors []cityAc
 		if err != nil {
 			return nil, nil, err
 		}
-		worn, hasWorn, err := cityTopologyRefs(r, "Worn")
-		if err != nil || hasWorn && len(worn) != sim.EquipSlots {
-			return nil, nil, fmt.Errorf("city actor has invalid Worn edges: %v", err)
-		}
-		copy(root.worn[:], worn)
-		for slot, name := range []string{"HeldWeapon", "HeldShield"} {
-			refs, ok, err := cityTopologyRefs(r, name)
-			if err != nil || !ok || len(refs) != 1 {
-				return nil, nil, fmt.Errorf("city actor lacks exact %s edge: %v", name, err)
-			}
-			if refs[0] != 0 {
-				if root.worn[slot] != 0 {
-					return nil, nil, fmt.Errorf("city actor has overlapping held/Worn location")
-				}
-				root.worn[slot] = refs[0]
+		equipment, err := readSavEquipment(r, cityTopologyEquipment, func(field string) ([]uint16, bool, error) { return cityTopologyRefs(r, field) })
+		if err != nil {
+			switch fault := err.(*savEquipmentError); fault.Fault {
+			case savWornShapeFault:
+				return nil, nil, fmt.Errorf("city actor has invalid Worn edges: %v", fault.Err)
+			case savHeldShapeFault:
+				return nil, nil, fmt.Errorf("city actor lacks exact %s edge: %v", fault.Field, fault.Err)
+			default:
+				return nil, nil, fmt.Errorf("city actor has overlapping held/Worn location")
 			}
 		}
+		root.worn = equipment.Refs
 		book, _, err := cityTopologyRefs(r, "Spells")
 		if err != nil || len(book) > len(root.book) {
 			return nil, nil, fmt.Errorf("city actor has invalid book edges: %v", err)

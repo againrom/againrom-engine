@@ -272,12 +272,7 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 			worn[slot] = refs[0]
 		}
 		actor := &b.doc.Objects[a.ObjectIndex-1]
-		savedObjectSetRefs(actor, "HeldWeapon", []uint16{worn[0]}, false)
-		savedObjectSetRefs(actor, "HeldShield", []uint16{worn[1]}, false)
-		if actor.Class != "Unit" {
-			worn[0], worn[1] = 0, 0
-			savedObjectSetRefs(actor, "Worn", worn[:], false)
-		}
+		writeSavEquipment(worn, currentItemsWorn.carries(actor), func(field string, refs []uint16) { savedObjectSetRefs(actor, field, refs, false) })
 	}
 	for _, c := range r.Containers {
 		var values []sim.ItemStack
@@ -696,19 +691,17 @@ func currentSackWireKey(world *sim.World, cell uint16) (uint32, error) {
 // Remove only known Item edges whose current native owner has gone away.
 // Other source references and retained actor operands keep their own authority.
 func clearCurrentRetiredActorItems(record *sav.DocumentRecordData, actor sim.EntityID, items map[uint16]sim.SavedObjectID, registry *sim.SavedObjects) {
-	for _, field := range []string{"Inventory", "HeldWeapon", "HeldShield", "Worn"} {
+	for _, field := range append([]string{"Inventory"}, savEquipmentFields[:]...) {
 		refs, present := savedObjectRefs(record, field)
 		if !present {
 			continue
 		}
 		var kept []uint16
 		changed := false
-		for slot, ref := range refs {
-			owner := sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: actor, Slot: uint32(slot + 1)}
-			if field == "Inventory" {
-				owner.Kind, owner.Slot = sim.SavedOwnerActorPack, 0
-			} else if field == "HeldShield" {
-				owner.Slot = 2
+		for ordinal, ref := range refs {
+			owner := sim.SavedObjectOwner{Kind: sim.SavedOwnerActorPack, Entity: actor}
+			if slot, ok := savEquipmentFieldSlot(field, ordinal); ok {
+				owner.Kind, owner.Slot = sim.SavedOwnerActorWorn, uint32(slot+1)
 			}
 			id, known := items[ref]
 			retained := false

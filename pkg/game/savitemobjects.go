@@ -249,7 +249,7 @@ func savedDocumentIncoming(doc *sav.DocumentData) map[uint16]uint32 {
 // object already held, not a second live owner, so it must not inflate the
 // ambiguous-ownership count below.
 var savedItemOwnershipRefSlots = map[string]bool{
-	"Contents": true, "Inventory": true, "HeldWeapon": true, "HeldShield": true, "Worn": true,
+	"Contents": true, "Inventory": true, savHeldWeaponField: true, savHeldShieldField: true, savWornField: true,
 }
 
 // savedItemOwnershipIncoming counts, per object index, how many OWNERSHIP ref
@@ -467,23 +467,15 @@ func attachSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, regist
 			container.Items = append(container.Items, id)
 		}
 		registry.Containers = append(registry.Containers, container)
-		for slot, site := range []string{"HeldWeapon", "HeldShield"} {
-			refs, ok := savedObjectRefs(r, site)
-			if !ok || len(refs) != 1 {
-				return nil, fmt.Errorf("saved SAV actor lacks %s slot", site)
+		equipment, err := readSavEquipment(r, savedItemEquipment, savedObjectRefsGetter(r))
+		if err != nil {
+			if fault := err.(*savEquipmentError); fault.Fault == savHeldShapeFault {
+				return nil, fmt.Errorf("saved SAV actor lacks %s slot", fault.Field)
 			}
-			if refs[0] != 0 {
-				if _, err := add(refs[0], sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: actor.EntityID, Slot: uint32(slot + 1)}, 0, sim.StackItem(worn[slot], 1)); err != nil {
-					return nil, err
-				}
-			}
+			return nil, fmt.Errorf("saved SAV armor overlaps held/native slot")
 		}
-		refs, _ = savedObjectRefs(r, "Worn")
-		for slot, ref := range refs {
+		for slot, ref := range equipment.Refs {
 			if ref != 0 {
-				if slot < 2 || slot >= sim.EquipSlots {
-					return nil, fmt.Errorf("saved SAV armor overlaps held/native slot")
-				}
 				if _, err := add(ref, sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: actor.EntityID, Slot: uint32(slot + 1)}, 0, sim.StackItem(worn[slot], 1)); err != nil {
 					return nil, err
 				}

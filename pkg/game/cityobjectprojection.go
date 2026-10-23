@@ -493,7 +493,7 @@ func (p *cityObjectProjection) holdings(b *generatedDocumentBuilder, index uint1
 		worn[slot] = p.indices[id]
 	}
 	var refs []uint16
-	_, hasWorn := savedObjectRefs(&b.doc.Objects[index-1], "Worn")
+	hasWorn := cityProjectionWorn.carries(&b.doc.Objects[index-1])
 	if !hasWorn {
 		for slot := 2; slot < len(worn); slot++ {
 			if worn[slot] != 0 {
@@ -527,12 +527,7 @@ func (p *cityObjectProjection) holdings(b *generatedDocumentBuilder, index uint1
 	}
 	rebindCityItemOwners(&b.doc, index, append(slices.Clone(worn[:]), refs...))
 	r := &b.doc.Objects[index-1]
-	mustSetRefs(r, "HeldWeapon", []uint16{worn[0]})
-	mustSetRefs(r, "HeldShield", []uint16{worn[1]})
-	worn[0], worn[1] = 0, 0
-	if hasWorn {
-		mustSetRefs(r, "Worn", worn[:])
-	}
+	writeSavEquipment(worn, hasWorn, func(field string, refs []uint16) { mustSetRefs(r, field, refs) })
 	mustSetRefs(r, "Inventory", refs)
 	mustSetCount(r, "Inventory", uint32(len(refs)))
 	mustSetValue(r, "Inventory20", uint32(weight))

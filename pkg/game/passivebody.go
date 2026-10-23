@@ -27,22 +27,13 @@ func passiveRecordContents(doc *sav.DocumentData, object uint16, heldWeapon bool
 		}
 		return v.Value, true
 	}
-	for slot, field := range []string{"HeldWeapon", "HeldShield"} {
-		if slot == 0 && !heldWeapon {
-			continue
-		}
-		if refs, _ := savedObjectRefs(r, field); len(refs) == 1 {
-			if v, ok := read(refs[0]); ok {
-				out.Worn[slot] = v.Instance()
-			}
-		}
+	equipment, _ := readSavEquipment(r, passiveBodyEquipment, savedObjectRefsGetter(r))
+	if !heldWeapon {
+		equipment.Refs[0] = 0
 	}
-	if r.Class != "Unit" {
-		refs, _ := savedObjectRefs(r, "Worn")
-		for slot := 2; slot < len(refs) && slot < sim.EquipSlots; slot++ {
-			if v, ok := read(refs[slot]); ok {
-				out.Worn[slot] = v.Instance()
-			}
+	for slot, ref := range equipment.Refs {
+		if v, ok := read(ref); ok {
+			out.Worn[slot] = v.Instance()
 		}
 	}
 	refs, _ := savedObjectRefs(r, "Inventory")

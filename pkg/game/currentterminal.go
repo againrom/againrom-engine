@@ -250,17 +250,12 @@ func currentTerminalActorBindingsFromActions(state *SnapshotSAVDocument, a *curr
 }
 
 // savedRecordWornMask is the set of equipment slots an actor record holds an
-// item in: HeldWeapon and HeldShield are slots 0 and 1, Worn lists every slot.
+// item in.
 func savedRecordWornMask(r *sav.DocumentRecordData) uint16 {
 	var mask uint16
-	for slot, field := range []string{"HeldWeapon", "HeldShield"} {
-		if refs, _ := savedObjectRefs(r, field); len(refs) != 0 && refs[0] != 0 {
-			mask |= 1 << slot
-		}
-	}
-	refs, _ := savedObjectRefs(r, "Worn")
-	for slot, ref := range refs {
-		if ref != 0 && slot < sim.EquipSlots {
+	equipment, _ := readSavEquipment(r, wornMaskEquipment, savedObjectRefsGetter(r))
+	for slot, ref := range equipment.Refs {
+		if ref != 0 {
 			mask |= 1 << slot
 		}
 	}

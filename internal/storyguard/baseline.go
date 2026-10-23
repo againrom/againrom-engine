@@ -2862,6 +2862,10 @@ package storyguard
 // code: pkg/launch/settings.go, cmd/starter/options.go,
 // cmd/againrom/launchflags.go, their walk tests, and this paragraph, less the
 // help-text comments cmd/againrom/main.go no longer needs.
+//
+// CommentBytes rises with the SAV equipment slot codec, all doc comments on
+// new code: pkg/game/savequipmentslots.go and its table test, and this
+// paragraph, less the slot comments the moved sites no longer need.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2885,5 +2889,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9532248,
+	CommentBytes: 9534228,
 }
