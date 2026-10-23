@@ -17,7 +17,9 @@ import (
 // step, one page draw and one purchase. Each is held to it on a statistic a
 // single load spike on a shared machine cannot move: the 95th percentile of
 // the page steps, the median of the sampled draws, and the minimum of three
-// repetitions of a generation or a purchase.
+// repetitions of a generation or a purchase. A generation is timed on its
+// thread's CPU time, which a machine kept busy by other processes does not
+// stretch.
 const shopStockActionBound = 250 * time.Millisecond
 
 // shopStockQuantile is the q-quantile of ds by the nearest-rank rule.
@@ -30,14 +32,12 @@ func shopStockQuantile(ds []time.Duration, q float64) time.Duration {
 	return sorted[min(len(sorted)-1, int(q*float64(len(sorted))))]
 }
 
-// shopStockMinOfThree times act three times and answers the fastest and the
-// slowest run.
+// shopStockMinOfThree times act three times on its thread's CPU time and
+// answers the fastest and the slowest run.
 func shopStockMinOfThree(act func()) (best, slowest time.Duration) {
 	best = time.Duration(1<<63 - 1)
 	for i := 0; i < 3; i++ {
-		start := time.Now()
-		act()
-		took := time.Since(start)
+		took := shopStockThreadTime(act)
 		best, slowest = min(best, took), max(slowest, took)
 	}
 	return best, slowest
@@ -239,7 +239,7 @@ func TestReleaseShopStockMultiplierListsAndSellsAtTheBound(t *testing.T) {
 		"purchase": slices.Max(samples["purchase"]),
 	}
 	statistic := map[string]string{
-		"generate": "minimum of three, larger of the two ceilings",
+		"generate": "minimum of three on thread CPU time, larger of the two ceilings",
 		"page":     "95th percentile",
 		"draw":     "median",
 		"purchase": "minimum of three, largest over the eight buy positions",
