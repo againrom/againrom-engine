@@ -56,16 +56,16 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 			Lead:       func(cands []Item, src shopstock.Source) []Item { return t.lead(cat, cands, src) },
 			Count:      func(shopstock.Source) int { return int(cat.Draws) },
 			Bound:      shopstock.Bound{Failures: func(n int) int { return failuresFactor * n }},
-			Redraw:     func(it Item) bool { return it.Kind == Book },
+			Redraw:     func(it Item) bool { return it.Table == Book },
 			Redraws:    bookRetries,
 			Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
-			Insert:     Insert,
+			Insert:     insert,
 		})
 	}
 	p.Place = func(stock [][]Item) {
 		for _, it := range t.Stocked {
 			c := Place(r, it)
-			stock[c] = Insert(stock[c], it)
+			stock[c] = insert(stock[c], it)
 		}
 	}
 	return p
@@ -79,14 +79,14 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 	}
 	var list []Item
 	for _, it := range cands {
-		if it.Kind == Book {
-			it.Quantity, it.Price = bookQuantity, t.Price(it)
+		if it.Table == Book {
+			it.Count, it.Price = bookQuantity, int32(t.Price(it))
 			list = append(list, it)
 		}
 	}
 	for row := potionFirst; row <= potionLast; row++ {
-		it := Item{Kind: Magic, Row: row, Quantity: potionLeast + src.Intn(potionSpan)}
-		it.Price = t.Price(it)
+		it := Item{Table: Magic, Row: row, Count: int32(potionLeast + src.Intn(potionSpan))}
+		it.Price = int32(t.Price(it))
 		list = append(list, it)
 	}
 	return list
@@ -97,16 +97,17 @@ func (t Tables) lead(cat Category, cands []Item, src shopstock.Source) []Item {
 // 1..Bound+1.
 func (t Tables) make(it Item, cat Category, src shopstock.Source) (Item, bool) {
 	enchanted := cat.Mask&bitEnchanted != 0
-	it.Quantity = 1
+	it.Count = 1
 	if enchanted {
 		if !t.enchant(&it, cat, src) {
 			return it, false
 		}
-	} else if it.Stackable() {
-		it.Quantity = 1 + src.Intn(int(cat.Bound+1))
+	} else if stackable(it) {
+		it.Count = int32(1 + src.Intn(int(cat.Bound+1)))
 	}
-	it.Price = t.Price(it)
-	if enchanted && (it.Price < int64(cat.Min) || it.Price > int64(cat.Max)) {
+	p := t.Price(it)
+	it.Price = int32(p)
+	if enchanted && (p < int64(cat.Min) || p > int64(cat.Max)) {
 		return it, false
 	}
 	return it, true
@@ -144,14 +145,25 @@ func (t Tables) enchant(it *Item, cat Category, src shopstock.Source) bool {
 	return false
 }
 
-// Insert adds it to list, merging into an equal stackable entry or a
-// quantity-0 placeholder of the same key, else appending (R2-ENGINE-266).
-func Insert(list []Item, it Item) []Item {
-	for i := range list {
-		if list[i].Same(it) && (it.Stackable() || list[i].Quantity == 0) {
-			list[i].Quantity += it.Quantity
-			return list
-		}
-	}
-	return append(list, it)
+// stackKey is the item but its quantity and price.
+type stackKey struct {
+	table                              Kind
+	row, class, material, spell, level int
 }
+
+// Stacking is the second game's stack-key rule (R2-ENGINE-265,
+// R2-ENGINE-266): the key is the item but its quantity and price; an equal
+// entry takes a stackable item, a quantity-0 placeholder any; no order.
+var Stacking = shopstock.Stack[Item, stackKey]{
+	Key: func(it Item) stackKey {
+		return stackKey{it.Table, it.Row, it.Class, it.Material, it.Spell, it.Level}
+	},
+	Takes: func(entry, it Item) bool { return stackable(it) || entry.Count == 0 },
+	Add: func(entry, it Item) Item {
+		entry.Count += it.Count
+		return entry
+	},
+}
+
+// insert files it on list by Stacking.
+func insert(list []Item, it Item) []Item { return shopstock.Insert(list, Stacking, it) }

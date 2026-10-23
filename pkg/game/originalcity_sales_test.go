@@ -88,7 +88,7 @@ func TestCitySaleCurrentLoadRefreshAndTrainingContinueAcrossSAV(t *testing.T) {
 	if staged != wantStaged || f.Town.Gold() != 3000 || len(f.Shop.table) != 1 {
 		t.Fatal("staging changed current Human fields or committed payment", staged, f.Shop.table)
 	}
-	if place := f.Shop.table[0]; place.ShopItem.cityID != targetID || place.ShopItem.cityID == sourceID || place.ShopItem.ObjectID != 0 || place.ShopItem.Count != 3 || place.ShopItem.Price != 5 || !place.Mine || f.Town.cityObjects.NextID != targetID+3 {
+	if place := f.Shop.table[0]; place.ShopItem.CityID != targetID || place.ShopItem.CityID == sourceID || place.ShopItem.ObjectID != 0 || place.ShopItem.Count != 3 || place.ShopItem.Price != 5 || !place.Mine || f.Town.cityObjects.NextID != targetID+3 {
 		t.Fatal("table merge changed its destination, quantity, price or issued floor", f.Shop.table)
 	}
 	s := f.TownScreen().(*townScreen)
@@ -177,10 +177,10 @@ func citySalePendingReload(t *testing.T, f *FrontEnd) {
 	place := shop.table[0]
 	wantGraph, wantParty := graph.Clone(), mapload.CloneParty(party)
 	root, err := cityMutationParty(wantGraph, "hero")
-	if err != nil || len(root.Pack) != 1 || place.ShopItem.cityID == 0 || place.ShopItem.cityID == root.Pack[0] {
+	if err != nil || len(root.Pack) != 1 || place.ShopItem.CityID == 0 || place.ShopItem.CityID == root.Pack[0] {
 		t.Fatal("pending sale fixture lacks distinct returned and surviving roots", err)
 	}
-	root.Pack = []sim.SavedObjectID{place.ShopItem.cityID, root.Pack[0]}
+	root.Pack = []sim.SavedObjectID{place.ShopItem.CityID, root.Pack[0]}
 	for i := range wantParty {
 		if wantParty[i].ID != "hero" {
 			continue

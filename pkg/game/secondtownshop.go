@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"slices"
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/secondshop"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
 
@@ -37,9 +39,9 @@ type secondShop struct {
 // items before the first one the gold cannot pay (DIV-3065), an unpriced
 // item offered returned to the hero, an emptied entry kept as a placeholder
 // until the hero leaves, a returned or sold item filed by its record's
-// placement and merged by Insert, and an equal stackable lot joining its
-// place. They become the Shop's rules, so the Shop's own deal methods
-// trade by them.
+// placement and merged by the shelf insert under secondshop.Stacking, and a
+// lot joining an equal place by that rule. They become the Shop's rules, so
+// the Shop's own deal methods trade by them.
 func (s *secondShop) rules() shopRules[ShopItem, ShopShelf] {
 	record, tables := s.records[s.filled], s.tables
 	place := func(i ShopItem) ShopShelf { return ShopShelf(secondshop.Place(record, secondItem(i))) }
@@ -59,23 +61,36 @@ func (s *secondShop) rules() shopRules[ShopItem, ShopShelf] {
 		},
 		home:   func(p ShopPlace) ShopShelf { return place(p.ShopItem) },
 		shelve: place,
+		// put files i on the shelf; an entry whose bag unit has no table
+		// identity to read back leaves the shelf here.
 		put: func(items []ShopItem, i ShopItem) []ShopItem {
-			return secondShopItems(tables, secondshop.Insert(secondItems(items), secondItem(i)))
+			var shelf []ShopItem
+			for _, e := range items {
+				if _, ok := secondShopItem(tables, secondItem(e)); ok {
+					shelf = append(shelf, e.Clone())
+				}
+			}
+			if it, ok := secondShopItem(tables, secondItem(i)); ok {
+				shelf = shopstock.Insert(shelf, secondshop.Stacking, it)
+			}
+			return shelf
 		},
 		join: func(a, b ShopItem) bool {
-			x, y := secondItem(a), secondItem(b)
-			return x.Same(y) && y.Stackable()
+			return secondshop.Stacking.Merges(secondItem(a), secondItem(b))
 		},
 	}
 	s.trade = &r
 	return r
 }
 
-// secondShopItem is it as the one shop item: its bag unit with its
-// quantity; false when it has no bag form.
+// secondShopItem is it as a shelf entry: its bag unit, with the table
+// identity that unit reads back as; false when it has no bag form.
 func secondShopItem(t secondshop.Tables, it secondshop.Item) (ShopItem, bool) {
 	in, ok := t.Instance(it)
-	return shopItemFromInstance(in, int32(it.Quantity)), ok
+	out := shopItemFromInstance(in, it.Count)
+	back, _ := secondshop.FromInstance(in)
+	out.Table, out.Row, out.Class, out.Material, out.Spell, out.Level = back.Table, back.Row, back.Class, back.Material, back.Spell, back.Level
+	return out, ok
 }
 
 // secondShopItems are items as shop items; one with no bag form, which the
@@ -90,10 +105,11 @@ func secondShopItems(t secondshop.Tables, items []secondshop.Item) []ShopItem {
 	return out
 }
 
-// secondItem reads a shop item back as the second game's item.
+// secondItem is i read back from its bag unit, the only identity a place
+// made from the pack carries.
 func secondItem(i ShopItem) secondshop.Item {
 	it, _ := secondshop.FromInstance(i.Instance())
-	it.Quantity = int(i.Count)
+	it.Count = i.Count
 	return it
 }
 
@@ -388,7 +404,7 @@ func (s *secondShop) restock(tables secondshop.Tables, location int, rnd seconds
 // written only while that load waits for the install's tables.
 type currentSecondShop struct {
 	Records [4]secondshop.Record
-	Hero    []secondshop.Item `json:",omitempty"`
+	Hero    []secondHeroItem `json:",omitempty"`
 }
 
 // UnmarshalJSON reads the shop. A document this engine wrote earlier also
@@ -397,7 +413,7 @@ type currentSecondShop struct {
 func (c *currentSecondShop) UnmarshalJSON(raw []byte) error {
 	var fields struct {
 		Records [4]secondshop.Record
-		Hero    []secondshop.Item
+		Hero    []secondHeroItem
 		Stock   json.RawMessage
 		Filled  json.RawMessage
 	}
@@ -414,7 +430,25 @@ func (c *currentSecondShop) UnmarshalJSON(raw []byte) error {
 // the bag's bound.
 const maxSecondShopItems = 4096
 
-func captureSecondShop(s secondShop, legacy []secondshop.Item) *currentSecondShop {
+// secondHeroItem is an older hero list item as its document writes it.
+type secondHeroItem struct {
+	Kind     secondshop.Kind
+	Row      int
+	Class    int
+	Material int
+	Spell    int
+	Level    int
+	Quantity int
+	Price    int64
+}
+
+// item is h; the bag codes a price at most the cap.
+func (h secondHeroItem) item() secondshop.Item {
+	return secondshop.Item{Table: h.Kind, Row: h.Row, Class: h.Class, Material: h.Material, Spell: h.Spell, Level: h.Level,
+		Count: int32(h.Quantity), Price: int32(min(h.Price, math.MaxInt32))}
+}
+
+func captureSecondShop(s secondShop, legacy []secondHeroItem) *currentSecondShop {
 	if s.records == secondshop.NewGameRecords && len(legacy) == 0 {
 		return nil
 	}
@@ -451,6 +485,6 @@ func (c *currentSecondShop) clone() *currentSecondShop {
 		return nil
 	}
 	out := *c
-	out.Hero = append([]secondshop.Item(nil), c.Hero...)
+	out.Hero = append([]secondHeroItem(nil), c.Hero...)
 	return &out
 }

@@ -57,7 +57,7 @@ func (t *shopController) cityShopMovePack(source, target int, whole bool) error 
 		return err
 	}
 	destination := shopItemFromInstance(held.Instance(), int32(held.Count))
-	destination.cityID = to.ID
+	destination.CityID = to.ID
 	if _, err := t.cityShopMerge(destination, item); err != nil {
 		return err
 	}

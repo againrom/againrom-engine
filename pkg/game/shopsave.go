@@ -5,21 +5,17 @@ import (
 	"slices"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/shopitem"
 	"againrom/pkg/sim"
 )
 
-type shopOwnerQuantity struct {
-	PartyID   string
-	Member    int
-	PackIndex int
-	Count     int32
-}
+type shopOwnerQuantity = shopitem.Owner
 
 func (t *shopController) ownShopItem(item ShopItem, pack int) ShopItem {
 	index := t.shopMemberIndex()
 	member := t.shopPartyMember(index)
 	if member != nil {
-		item.owners = []shopOwnerQuantity{{PartyID: member.ID, Member: index, PackIndex: pack, Count: item.Count}}
+		item.Owners = []shopOwnerQuantity{{PartyID: member.ID, Member: index, PackIndex: pack, Count: item.Count}}
 	}
 	return item
 }
@@ -62,7 +58,7 @@ func (s *Shop) growOwnedTablePlace(index int, incoming ShopItem) bool {
 	if !s.GrowTablePlace(index, incoming.Count) {
 		return false
 	}
-	s.table[index].ShopItem.owners = append(slices.Clone(s.table[index].ShopItem.owners), incoming.owners...)
+	s.table[index].ShopItem.Owners = append(slices.Clone(s.table[index].ShopItem.Owners), incoming.Owners...)
 	return true
 }
 
@@ -76,8 +72,8 @@ func (f *FrontEnd) captureShop() *Shop {
 		index = townPickerIndex(f.Carried, f.townUI.shopMember)
 	}
 	for i, place := range shop.table {
-		if place.Mine && len(place.ShopItem.owners) == 0 && index >= 0 && index < len(f.Carried) {
-			shop.table[i].ShopItem.owners = []shopOwnerQuantity{{PartyID: f.Carried[index].ID, Member: index, PackIndex: -1, Count: place.ShopItem.Count}}
+		if place.Mine && len(place.ShopItem.Owners) == 0 && index >= 0 && index < len(f.Carried) {
+			shop.table[i].ShopItem.Owners = []shopOwnerQuantity{{PartyID: f.Carried[index].ID, Member: index, PackIndex: -1, Count: place.ShopItem.Count}}
 		}
 	}
 	return shop
@@ -125,7 +121,7 @@ func (t *shopController) restoreShopOwner(item ShopItem, owner shopOwnerQuantity
 	if owner.PackIndex >= 0 {
 		at = min(owner.PackIndex, len(stacks))
 	}
-	graph, err := moveCityItemRoot(t.sess.Town.cityObjects, item.cityID, cityItemLocation{}, cityItemLocation{PartyID: member.ID, Kind: cityItemPack, Index: at})
+	graph, err := moveCityItemRoot(t.sess.Town.cityObjects, item.CityID, cityItemLocation{}, cityItemLocation{PartyID: member.ID, Kind: cityItemPack, Index: at})
 	if err != nil {
 		return err
 	}
@@ -167,7 +163,7 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 		if err != nil {
 			return err
 		}
-		owners := groupedShopOwners(item.owners)
+		owners := groupedShopOwners(item.Owners)
 		var total int64
 		for _, owner := range owners {
 			if owner.Count <= 0 {
@@ -185,7 +181,7 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 				return err
 			}
 			item = n.Shop.table[index].ShopItem
-			item.owners = slices.Clone(owners[:i])
+			item.Owners = slices.Clone(owners[:i])
 			n.Shop.table[index].ShopItem = item
 			if err := t.restoreShopOwner(part, owners[i]); err != nil {
 				return err

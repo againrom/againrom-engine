@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
 
@@ -136,38 +137,17 @@ func shopSortShelf(items []ShopItem, t *mapload.Table) {
 // folded into one element would charge the wrong price for one of them.
 //
 // THE ORIGINAL SHOWS A QUANTITY TOO, AND THIS FOLDS IT ONE CONTAINER EARLIER.
-// SHOP-DUP-028 reads the generator appending with a plain `CObArray::Add` and
-// nothing dedupping it, so the original's shelf CONTAINER really does hold one
-// element per drawn unit; the same row then states that the screen merges
-// display rows, "so what the player sees is a quantity rather than a repeated
-// line". That clause is graded Medium, not High: the two display-list adds
-// compare different words and neither is pinned to an item field by a consumer
-// the experiment read. So the player-visible result here agrees with the
-// original at that row's own confidence, and the MECHANISM differs — this
-// build folds the model list, where the original folds the display list.
+// SHOP-DUP-028: the original's shelf container holds one element per drawn
+// unit and its screen merges display rows (Medium), so the player-visible
+// result agrees at that confidence and the mechanism differs (DIV-322).
+// Complete-equal instances fold, effect list included.
 //
-// What that mechanism difference costs is recorded in the ledger. A ShopItem
-// now carries the complete ordered effect identity, so generated items differing
-// by an enchantment remain separate even when code and price happen to agree.
-// Only complete-equal instances fold into one backend shelf element.
-//
-// Measured on the en root at chapter 30: the armour shelf draws 100 units
-// holding 60 distinct code+price pairs and the weapons shelf 100 holding 45,
-// so more than half of each shelf's cells were repeats of a cell already on
-// it.
-//
-// The first occurrence keeps its position, so a shelf already in the owner's
-// order stays in it and this may be run before or after shopSortShelf. It
-// needs no table: identity is two fields of the element itself.
+// The first occurrence keeps its position. It needs no table.
 func shopStackShelf(items []ShopItem) []ShopItem {
 	if len(items) < 2 {
 		return items
 	}
-	stack := shopStacker{out: make([]ShopItem, 0, len(items))}
-	for _, item := range items {
-		stack.add(item)
-	}
-	return stack.out
+	return shopstock.Insert(make([]ShopItem, 0, len(items)), shopShelfStack(nil), items...)
 }
 
 // shopStackKey holds the fields shopItemEqual requires to agree, so only
@@ -176,38 +156,6 @@ type shopStackKey struct {
 	cityID, objectID sim.SavedObjectID
 	code             data.ItemCode
 	price            int32
-}
-
-// shopStacker is shopStackShelf one item at a time: an added item folds into
-// the first equal element of out or is appended as a clone.
-type shopStacker struct {
-	out   []ShopItem
-	index map[shopStackKey][]int
-}
-
-// newShopStacker starts from a shelf already stacked; its elements are kept
-// in place.
-func newShopStacker(shelf []ShopItem) *shopStacker {
-	stack := &shopStacker{out: make([]ShopItem, 0, len(shelf))}
-	for _, item := range shelf {
-		stack.add(item)
-	}
-	return stack
-}
-
-func (s *shopStacker) add(item ShopItem) {
-	if s.index == nil {
-		s.index = make(map[shopStackKey][]int)
-	}
-	key := shopStackKey{cityID: item.cityID, objectID: item.ObjectID, code: item.Code, price: item.Price}
-	for _, i := range s.index[key] {
-		if shopItemEqual(s.out[i], item) {
-			s.out[i].Count += item.Count
-			return
-		}
-	}
-	s.index[key] = append(s.index[key], len(s.out))
-	s.out = append(s.out, item.Clone())
 }
 
 // shopOrderOf is one item code's class and kind.

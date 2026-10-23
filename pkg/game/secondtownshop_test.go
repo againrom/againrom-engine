@@ -9,6 +9,8 @@ import (
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/secondshop"
+	"againrom/pkg/shopstock"
+	"againrom/pkg/sim"
 )
 
 // secondShopTestCollection is a data.bin collection of parameter rows.
@@ -28,9 +30,9 @@ func secondShopSample() *secondCampaign {
 	c := &secondCampaign{current: partyPlace{1, 10}, available: []partyPlace{{1, 10}}, shop: newSecondShop()}
 	c.shop.filled, c.shop.tables = 1, secondShopTestTables
 	c.shop.records[3][3].Mask |= secondShopClass4
-	c.shop.shelves[0] = secondShopItems(secondShopTestTables, []secondshop.Item{{Kind: secondshop.Armor, Row: 3, Class: 1, Material: 2, Quantity: 3, Price: 125}})
-	c.shop.shelves[3] = secondShopItems(secondShopTestTables, []secondshop.Item{{Kind: secondshop.Book, Spell: 5, Quantity: 2, Price: 1000}})
-	*c.heroBag(), _ = secondShopTestTables.Units(secondshop.Item{Kind: secondshop.Magic, Row: 70, Quantity: 4, Price: 83})
+	c.shop.shelves[0] = secondShopItems(secondShopTestTables, []secondshop.Item{{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Count: 3, Price: 125}})
+	c.shop.shelves[3] = secondShopItems(secondShopTestTables, []secondshop.Item{{Table: secondshop.Book, Spell: 5, Count: 2, Price: 1000}})
+	*c.heroBag(), _ = secondShopTestTables.Units(secondshop.Item{Table: secondshop.Magic, Row: 70, Count: 4, Price: 83})
 	return c
 }
 
@@ -42,10 +44,10 @@ func TestSecondShopDealSettlesGoldAndItems(t *testing.T) {
 	c := secondShopSample()
 	s, bag := &c.shop, c.heroBag()
 	gold := 300
-	if !s.take(0) || !s.take(0) || s.shelves[0][0].Count != 1 || len(s.buying()) != 1 || s.buying()[0].Quantity != 2 {
+	if !s.take(0) || !s.take(0) || s.shelves[0][0].Count != 1 || len(s.buying()) != 1 || s.buying()[0].Count != 2 {
 		t.Fatalf("take: stock %v buying %v", s.shelves[0], s.buying())
 	}
-	if !s.buy(bag, &gold) || gold != 50 || len(s.buying()) != 0 || len(c.heroItems()) != 2 || c.heroItems()[1].Quantity != 2 || len(*bag) != 6 {
+	if !s.buy(bag, &gold) || gold != 50 || len(s.buying()) != 0 || len(c.heroItems()) != 2 || c.heroItems()[1].Count != 2 || len(*bag) != 6 {
 		t.Fatalf("buy: gold %d buying %v hero %v", gold, s.buying(), c.heroItems())
 	}
 	if (*bag)[4].Code != 2<<12|6<<8|1<<5|3 || (*bag)[0].Code != 0x0e00|70 {
@@ -64,7 +66,7 @@ func TestSecondShopDealSettlesGoldAndItems(t *testing.T) {
 	}
 	// Loss control: an odd price credits floor(q*P/2+0.5), not the cell's
 	// ((P+1)/2)*q.
-	*bag, _ = secondShopTestTables.Units(secondshop.Item{Kind: secondshop.Magic, Row: 70, Quantity: 3, Price: 83})
+	*bag, _ = secondShopTestTables.Units(secondshop.Item{Table: secondshop.Magic, Row: 70, Count: 3, Price: 83})
 	gold = 0
 	s.offer(bag, 0)
 	s.sell(bag, &gold)
@@ -85,7 +87,7 @@ func TestSecondShopSaveRoundTrip(t *testing.T) {
 	captured := captureSecondCampaign(c)
 	offered := 0
 	for _, it := range c.shop.selling() {
-		offered += it.Quantity
+		offered += int(it.Count)
 	}
 	if len(c.shop.buying()) != 1 || offered != 4 || len(*c.heroBag()) != 0 || c.shop.shelves[0][0].Count != 2 {
 		t.Fatal("capture changed the live deal")
@@ -177,18 +179,18 @@ func secondShopBagUnit(doc map[string]any) map[string]any {
 // units the page lists as before.
 func TestSecondShopOlderHeroListLoadsIntoBag(t *testing.T) {
 	older := []secondshop.Item{
-		{Kind: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Quantity: 1, Price: 900},
-		{Kind: secondshop.Magic, Row: 70, Quantity: 2, Price: 83},
-		{Kind: secondshop.Book, Spell: 5, Quantity: 1, Price: 1000},
+		{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Count: 1, Price: 900},
+		{Table: secondshop.Magic, Row: 70, Count: 2, Price: 83},
+		{Table: secondshop.Book, Spell: 5, Count: 1, Price: 1000},
 	}
 	raw, _ := json.Marshal(map[string]any{"Bank": make([]int32, 1024), "Current": currentSecondLocation{1, 10},
-		"Available": []currentSecondLocation{{1, 10}}, "Shop": map[string]any{"Records": secondshop.NewGameRecords, "Hero": older}})
+		"Available": []currentSecondLocation{{1, 10}}, "Shop": map[string]any{"Records": secondshop.NewGameRecords, "Hero": secondHeroDocument(older)}})
 	var doc currentSecondCampaign
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		t.Fatal(err)
 	}
 	c := doc.restore()
-	if again := captureSecondCampaign(c); again.Shop == nil || !reflect.DeepEqual(again.Shop.Hero, older) || again.Party != nil {
+	if again := captureSecondCampaign(c); again.Shop == nil || !reflect.DeepEqual(again.Shop.Hero, secondHeroDocument(older)) || again.Party != nil {
 		t.Fatalf("a waiting hero list was not written back: %+v", again.Shop)
 	}
 	c.adoptLegacyHero(secondShopTestTables)
@@ -205,6 +207,16 @@ func TestSecondShopOlderHeroListLoadsIntoBag(t *testing.T) {
 	if e := (*c.heroBag())[3].Effects; len(e) != 1 || e[0].Kind != 42 || e[0].Operand != 5 {
 		t.Fatalf("book effect %v", e)
 	}
+}
+
+// secondHeroDocument is items as an older document's hero list writes them.
+func secondHeroDocument(items []secondshop.Item) []secondHeroItem {
+	var out []secondHeroItem
+	for _, it := range items {
+		out = append(out, secondHeroItem{Kind: it.Table, Row: it.Row, Class: it.Class, Material: it.Material, Spell: it.Spell, Level: it.Level,
+			Quantity: int(it.Count), Price: int64(it.Price)})
+	}
+	return out
 }
 
 // secondShopWrittenFields answers the sorted field names of the shop a
@@ -240,10 +252,10 @@ func TestSecondShopModStockReachesShelf(t *testing.T) {
 	shelf, at := -1, -1
 	for k, list := range c.shop.stock() {
 		for i, it := range list {
-			if it.Kind == secondshop.Armor && it.Price == 55 {
+			if it.Table == secondshop.Armor && it.Price == 55 {
 				t.Fatalf("unstocked mod item on shelf %d", k)
 			}
-			if it.Kind == secondshop.Armor && it.Row == 3 && it.Price == 77 {
+			if it.Table == secondshop.Armor && it.Row == 3 && it.Price == 77 {
 				shelf, at = k, i
 			}
 		}
@@ -268,9 +280,43 @@ func (c *secondCampaign) heroItems() []secondshop.Item {
 func (s *secondShop) visibleShelf() []int {
 	var out []int
 	for i, it := range s.shelf() {
-		if it.Quantity > 0 {
+		if it.Count > 0 {
 			out = append(out, i)
 		}
 	}
 	return out
+}
+
+// TestSecondShopPutDropsAnEntryWithNoReadBack: a shelf entry whose bag unit
+// reads back as no table item (armour row 3 coded as the shield part) leaves
+// the shelf when an item is filed there, and every other entry keeps its
+// place and count: the shelf a read-back of every entry gives.
+func TestSecondShopPutDropsAnEntryWithNoReadBack(t *testing.T) {
+	tables := secondshop.Tables{Armors: secondShopTestCollection{3: {0, 0, 0, 0, 2}, 4: {0, 0, 0, 0, 6}}}
+	readBack := func(shelf []ShopItem, i ShopItem) []ShopItem {
+		return secondShopItems(tables, shopstock.Insert(secondItems(shelf), secondshop.Stacking, secondItem(i)))
+	}
+	shelf := secondShopItems(tables, []secondshop.Item{
+		{Table: secondshop.Armor, Row: 3, Count: 1, Price: 40},
+		{Table: secondshop.Armor, Row: 4, Count: 2, Price: 50},
+	})
+	if len(shelf) != 2 || secondItem(shelf[0]).Table != 0 || secondItem(shelf[1]).Row != 4 {
+		t.Fatalf("shelf %+v: want the unreadable row 3, then row 4", shelf)
+	}
+	s := newSecondShop()
+	s.filled, s.tables = 1, tables
+	unit, _ := secondShopItem(tables, secondshop.Item{Table: secondshop.Armor, Row: 4, Count: 1, Price: 50})
+	if got, want := s.rules().put(shelf, unit), readBack(shelf, unit); !reflect.DeepEqual(got, want) || len(got) != 1 || got[0].Count != 3 {
+		t.Fatalf("put %+v, want %+v", got, want)
+	}
+	s.shelves[0] = shelf
+	if !s.take(1) || len(s.shelves[0]) != 2 || s.shelves[0][1].Count != 1 {
+		t.Fatalf("take: shelf %+v", s.shelves[0])
+	}
+	before := slices.Clone(s.shelves[0])
+	var bag []sim.ItemInstance
+	s.undo(&bag)
+	if want := readBack(before, unit); !reflect.DeepEqual(s.shelves[0], want) || len(want) != 1 || want[0].Count != 2 || len(bag) != 0 {
+		t.Fatalf("undo: shelf %+v, want %+v; bag %v", s.shelves[0], want, bag)
+	}
 }

@@ -21,11 +21,11 @@ func TestSecondShopPageTradesThroughTheOneController(t *testing.T) {
 	}
 	click(ui.ShopControlShelfPick, 0, false)
 	click(ui.ShopControlShelfCell, 0, false)
-	if got := c.shop.buying(); len(got) != 1 || got[0].Quantity != 1 || c.shop.shelves[0][0].Count != 2 {
+	if got := c.shop.buying(); len(got) != 1 || got[0].Count != 1 || c.shop.shelves[0][0].Count != 2 {
 		t.Fatalf("one unit: buying %v shelf %v", got, c.shop.shelves[0])
 	}
 	click(ui.ShopControlShelfCell, 0, true)
-	if got := c.shop.buying(); len(got) != 1 || got[0].Quantity != 3 {
+	if got := c.shop.buying(); len(got) != 1 || got[0].Count != 3 {
 		t.Fatalf("whole lot: buying %v", got)
 	}
 	click(ui.ShopControlButton, 1, false)
@@ -47,7 +47,7 @@ func TestSecondShopPageTradesThroughTheOneController(t *testing.T) {
 		t.Fatalf("view: layout %v pack %+v", v.Layout, v.Pack[:2])
 	}
 	click(ui.ShopControlPackCell, 1, false)
-	if got := c.shop.selling(); len(got) != 1 || got[0].Quantity != 1 || got[0].Price != 83 {
+	if got := c.shop.selling(); len(got) != 1 || got[0].Count != 1 || got[0].Price != 83 {
 		t.Fatalf("offer: selling %v", got)
 	}
 	gold := sess.Town.gold

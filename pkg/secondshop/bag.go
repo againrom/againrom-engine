@@ -1,6 +1,9 @@
 package secondshop
 
-import "againrom/pkg/sim"
+import (
+	"againrom/pkg/shopstock"
+	"againrom/pkg/sim"
+)
 
 // The hero's bag holds the engine's one item instance, one per unit. The
 // item ID is material<<12 | part<<8 | class<<5 | row (R2-ENGINE-403,
@@ -23,15 +26,15 @@ const (
 // Instance is one unit of it as the bag holds it, or false when the item
 // has no ID form: a part outside the equipment range or a row past 5 bits.
 func (t Tables) Instance(it Item) (sim.ItemInstance, bool) {
-	out := sim.ItemInstance{Price: int32(min(it.Price, priceCap))}
-	switch it.Kind {
+	out := sim.ItemInstance{Price: min(it.Price, priceCap)}
+	switch it.Table {
 	case Armor, Shield, Weapon:
 		part := t.Part(it)
 		if part < partWeapon || part >= partMagic || it.Row < 0 || it.Row > 0x1f || it.Class < 0 || it.Class > 7 || it.Material < 0 || it.Material > 0xf {
 			return sim.ItemInstance{}, false
 		}
 		out.Code = uint16(it.Material)<<12 | uint16(part)<<8 | uint16(it.Class)<<5 | uint16(it.Row)
-		switch it.Kind {
+		switch it.Table {
 		case Armor:
 			out.Kind = typeArmor
 		case Weapon:
@@ -61,26 +64,26 @@ func (t Tables) Instance(it Item) (sim.ItemInstance, bool) {
 // false when the instance is not one Instance writes.
 func FromInstance(in sim.ItemInstance) (Item, bool) {
 	part := int(in.Code>>8) & 0xf
-	it := Item{Quantity: 1, Price: int64(in.Price)}
+	it := Item{Count: 1, Price: in.Price}
 	if in.Price < 0 || in.ObjectID != 0 || in.NativeRecord != nil || in.WeightPresent || in.Weight != 0 || in.SourceEquipment != (sim.SourceEquipment{}) {
 		return Item{}, false
 	}
 	switch {
 	case part == partMagic && in.Code&bookRow != 0:
-		it.Kind, it.Spell = Book, int(in.Code&(bookRow-1))
+		it.Table, it.Spell = Book, int(in.Code&(bookRow-1))
 		if in.Code>>12 != 0 || in.Kind != 0 || len(in.Effects) != 1 || in.Effects[0] != (sim.ItemEffect{Kind: tagTeach, Operand: uint32(it.Spell)}) {
 			return Item{}, false
 		}
 		return it, true
 	case part == partMagic:
-		it.Kind, it.Row = Magic, int(in.Code&0xff)
+		it.Table, it.Row = Magic, int(in.Code&0xff)
 		return it, in.Code>>12 == 0 && in.Kind == 0 && len(in.Effects) == 0
 	case part == partWeapon && in.Kind == typeWeapon:
-		it.Kind = Weapon
+		it.Table = Weapon
 	case part == partShield && in.Kind == 0:
-		it.Kind = Shield
+		it.Table = Shield
 	case part > partShield && part < partMagic && in.Kind == typeArmor:
-		it.Kind = Armor
+		it.Table = Armor
 	default:
 		return Item{}, false
 	}
@@ -102,10 +105,10 @@ func FromInstance(in sim.ItemInstance) (Item, bool) {
 // Units is it as bag units: Quantity instances of one unit each.
 func (t Tables) Units(it Item) ([]sim.ItemInstance, bool) {
 	unit, ok := t.Instance(it)
-	if !ok || it.Quantity < 0 {
+	if !ok || it.Count < 0 {
 		return nil, false
 	}
-	out := make([]sim.ItemInstance, it.Quantity)
+	out := make([]sim.ItemInstance, it.Count)
 	for i := range out {
 		out[i] = unit.Clone()
 	}
@@ -113,7 +116,7 @@ func (t Tables) Units(it Item) ([]sim.ItemInstance, bool) {
 }
 
 // Stacks is a bag as shop items: units merge into the first equal item by
-// Insert's rule, in the order they first appear. It is false when a unit is
+// Stacking, in the order they first appear. It is false when a unit is
 // not one Instance writes.
 func Stacks(bag []sim.ItemInstance) ([]Item, bool) {
 	out, _, ok := stacks(bag)
@@ -129,14 +132,11 @@ func stacks(bag []sim.ItemInstance) ([]Item, []int, bool) {
 		if !ok {
 			return nil, nil, false
 		}
-		at[k] = len(out)
-		for s := range out {
-			if out[s].Same(it) && it.Stackable() {
-				at[k] = s
-				break
-			}
+		at[k] = shopstock.Find(out, Stacking, it)
+		if at[k] < 0 {
+			at[k] = len(out)
 		}
-		out = Insert(out, it)
+		out = insert(out, it)
 	}
 	return out, at, true
 }
@@ -162,7 +162,7 @@ func TakeUnits(bag []sim.ItemInstance, i int) (left, taken []sim.ItemInstance, s
 // price, or false when the code is neither in the bag's item form.
 func Stocked(code uint16, price int32) (Item, bool) {
 	for _, kind := range []uint8{typeArmor, 0} {
-		if it, ok := FromInstance(sim.ItemInstance{Code: code, Kind: kind, Price: price}); ok && (it.Kind == Armor || it.Kind == Shield) {
+		if it, ok := FromInstance(sim.ItemInstance{Code: code, Kind: kind, Price: price}); ok && (it.Table == Armor || it.Table == Shield) {
 			return it, true
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
+	"againrom/pkg/shopitem"
 	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 	"strings"
@@ -120,40 +121,15 @@ const ShopTablePlaces = 5
 // generator appends with a plain Add and nothing dedups, so two draws of one
 // candidate are two elements rather than one at count 2. A count above 1 arrives
 // only from the player's own pack.
-type ShopItem struct {
-	cityID          sim.SavedObjectID
-	cityOrigins     []string
-	owners          []shopOwnerQuantity
-	ObjectID        sim.SavedObjectID
-	Code            data.ItemCode
-	Kind            uint8
-	Effects         []sim.ItemEffect
-	Price           int32
-	Count           int32
-	Weight          int16
-	WeightPresent   bool
-	SourceEquipment sim.SourceEquipment
-}
+type ShopItem = shopitem.Item
 
 func shopItemFromInstance(item sim.ItemInstance, count int32) ShopItem {
 	item = item.Clone()
 	return ShopItem{ObjectID: item.ObjectID, Code: data.ItemCode(item.Code), Kind: item.Kind, Effects: item.Effects, Price: item.Price, Count: count, Weight: item.Weight, WeightPresent: item.WeightPresent, SourceEquipment: item.SourceEquipment}
 }
 
-func (i ShopItem) Instance() sim.ItemInstance {
-	return sim.ItemInstance{ObjectID: i.ObjectID, Code: uint16(i.Code), Kind: i.Kind,
-		Effects: append([]sim.ItemEffect(nil), i.Effects...), Price: i.Price, Weight: i.Weight, WeightPresent: i.WeightPresent, SourceEquipment: i.SourceEquipment}
-}
-
-func (i ShopItem) Clone() ShopItem {
-	i.Effects = append([]sim.ItemEffect(nil), i.Effects...)
-	i.cityOrigins = append([]string(nil), i.cityOrigins...)
-	i.owners = append([]shopOwnerQuantity(nil), i.owners...)
-	return i
-}
-
 func shopItemEqual(a, b ShopItem) bool {
-	if a.cityID != b.cityID {
+	if a.CityID != b.CityID {
 		return false
 	}
 	// Distinct saved nodes remain separate even when all their values agree.
@@ -712,7 +688,7 @@ func shopRestockSeed(seed int64, ordinal uint64) int64 {
 // unpriced sale kept on the table, an emptied entry leaving the shelf, a
 // sold item shelved by its class (SHOP-SELL-010) and a returned item merged
 // into an equal entry, else filed in the shelf's order (SHOP-DUP-028,
-// shopsort.go).
+// shopShelfStack).
 func (s *Shop) rules() shopRules[ShopItem, ShopShelf] {
 	if s.trade != nil {
 		return *s.trade
@@ -729,25 +705,17 @@ func (s *Shop) rules() shopRules[ShopItem, ShopShelf] {
 		split: func(i ShopItem, n int64) (ShopItem, ShopItem) {
 			moved, rest := i, i
 			moved.Count, rest.Count = int32(n), i.Count-int32(n)
-			moved.owners, rest.owners = takeShopOwners(i.owners, int32(n))
+			moved.Owners, rest.Owners = takeShopOwners(i.Owners, int32(n))
 			return moved, rest
 		},
 		home:   func(p ShopPlace) ShopShelf { return p.From },
 		shelve: func(i ShopItem) ShopShelf { return shopShelfForItem(i, s.tbl) },
 		put: func(items []ShopItem, item ShopItem) []ShopItem {
-			item.owners = nil
+			item.Owners = nil
 			if item.Count <= 0 {
 				return items
 			}
-			for i := range items {
-				if shopItemEqual(items[i], item) {
-					items[i].Count += item.Count
-					return items
-				}
-			}
-			items = append(items, item.Clone())
-			shopSortShelf(items, s.tbl)
-			return items
+			return shopstock.Insert(items, shopShelfStack(s.tbl), item)
 		},
 	}
 }

@@ -136,7 +136,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			for k, list := range c.shop.stock() {
 				cat := c.shop.records[tc.id][k]
 				for _, it := range list {
-					if it.Kind != secondshop.Book && it.Kind != secondshop.Magic && cat.Mask&(1<<29) == 0 && (it.Price < int64(cat.Min) || it.Price > int64(cat.Max)+1) {
+					if it.Table != secondshop.Book && it.Table != secondshop.Magic && cat.Mask&(1<<29) == 0 && (int64(it.Price) < int64(cat.Min) || int64(it.Price) > int64(cat.Max)+1) {
 						t.Fatalf("category %d entry %+v outside its range %d to %d", k, it, cat.Min, cat.Max)
 					}
 				}
@@ -146,12 +146,12 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			f.Town.gold = 500000
 			first := c.shop.shelf()[c.shop.visibleShelf()[0]]
 			secondShopActivate(t, f, app, "ITEM 1", "BUY")
-			if f.Town.gold != 500000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Quantity != 1 {
+			if f.Town.gold != 500000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Count != 1 {
 				t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())
 			}
 			gold := f.Town.gold
 			secondShopActivate(t, f, app, "MINE 1", "SELL")
-			if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.heroItems()) != 0 {
+			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(first.Price), 1)) || len(c.heroItems()) != 0 {
 				t.Fatalf("sale of one at %d: gold %d -> %d", first.Price, gold, f.Town.gold)
 			}
 			secondShopActivate(t, f, app, "SHELF 2", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
@@ -188,7 +188,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 				t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying()))
 			}
 			t.Logf("town %d shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", tc.id, len(old[0]),
-				len(old[1]), len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))
+				len(old[1]), len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(int64(first.Price), 1), len(raw))
 		})
 	}
 }
@@ -274,7 +274,7 @@ func secondShopClassFour(t *testing.T, c *secondCampaign) {
 		t.Fatal("record 3 category 3 lacks the class-4 bit")
 	}
 	for _, it := range c.shop.stock()[3] {
-		if it.Kind != secondshop.Book && it.Kind != secondshop.Magic && it.Class != 4 {
+		if it.Table != secondshop.Book && it.Table != secondshop.Magic && it.Class != 4 {
 			t.Fatalf("fourth category entry %+v is not class 4", it)
 		}
 	}

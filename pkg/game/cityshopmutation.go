@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -181,21 +182,21 @@ func (t *shopController) validateCityShopValues(p *cityObjectProjection) error {
 		return nil
 	}
 	check := func(item ShopItem) error {
-		if item.cityID == 0 {
+		if item.CityID == 0 {
 			return nil
 		}
 		if item.Code == 0 || item.Count <= 0 || uint64(item.Count) > sim.MaxOriginalHoldingValues {
 			return fmt.Errorf("bound city stock has invalid quantity")
 		}
-		row, err := cityMutationSource(p.graph, item.cityID, cityItemLocation{})
+		row, err := cityMutationSource(p.graph, item.CityID, cityItemLocation{})
 		if err != nil {
 			return err
 		}
 		stack := sim.StackItem(item.Instance(), uint32(item.Count))
-		if before, exists := p.items[item.cityID]; exists && !sim.StackStateEqual(before, stack) {
-			return fmt.Errorf("bound city stock disagrees with shared Item %d", item.cityID)
+		if before, exists := p.items[item.CityID]; exists && !sim.StackStateEqual(before, stack) {
+			return fmt.Errorf("bound city stock disagrees with shared Item %d", item.CityID)
 		}
-		p.items[item.cityID] = stack
+		p.items[item.CityID] = stack
 		value := currentCityItem(item.Instance(), t.in.Table)
 		node := p.graph.Items[row]
 		if len(node.Effects) != len(value.Effects) || (node.Spell != 0) != value.SourceEquipment.Spell.Present {
@@ -280,8 +281,8 @@ func (t *shopController) cityShopBind(item ShopItem) (ShopItem, error) {
 		return ShopItem{}, fmt.Errorf("city item has invalid quantity")
 	}
 	g := t.sess.Town.cityObjects
-	if item.cityID != 0 {
-		if _, err := cityMutationSource(g, item.cityID, cityItemLocation{}); err != nil {
+	if item.CityID != 0 {
+		if _, err := cityMutationSource(g, item.CityID, cityItemLocation{}); err != nil {
 			return ShopItem{}, err
 		}
 		return item.Clone(), nil
@@ -294,7 +295,7 @@ func (t *shopController) cityShopBind(item ShopItem) (ShopItem, error) {
 	if err != nil {
 		return ShopItem{}, err
 	}
-	item.cityID = id
+	item.CityID = id
 	return item, nil
 }
 
@@ -364,11 +365,11 @@ func (t *shopController) cityShopSetNode(id sim.SavedObjectID, value sim.ItemIns
 	t.sess.Town.cityObjects.trimWornCounts()
 	if t.sess.Shop != nil {
 		update := func(item *ShopItem) {
-			if item.cityID == id {
-				native, origins, owners := item.ObjectID, item.cityOrigins, resizedShopOwners(item.owners, int32(count))
+			if item.CityID == id {
+				native, origins, owners := item.ObjectID, item.CityOrigins, resizedShopOwners(item.Owners, int32(count))
 				*item = shopItemFromInstance(value, int32(count))
-				item.cityID, item.cityOrigins, item.ObjectID = id, origins, native
-				item.owners = owners
+				item.CityID, item.CityOrigins, item.ObjectID = id, origins, native
+				item.Owners = owners
 			}
 		}
 		for i := range t.sess.Shop.table {
@@ -391,7 +392,7 @@ func (t *shopController) cityShopSplitQuantity(item ShopItem, from cityItemLocat
 	if count <= 0 || count >= item.Count {
 		return ShopItem{}, fmt.Errorf("city partial take has no surviving quantity")
 	}
-	graph, id, err := splitCityItemRoot(t.sess.Town.cityObjects, item.cityID, from, cityItemLocation{})
+	graph, id, err := splitCityItemRoot(t.sess.Town.cityObjects, item.CityID, from, cityItemLocation{})
 	if err != nil {
 		return ShopItem{}, err
 	}
@@ -400,10 +401,10 @@ func (t *shopController) cityShopSplitQuantity(item ShopItem, from cityItemLocat
 		value.ObjectID = id
 	}
 	next := shopItemFromInstance(value, count)
-	next.cityID, next.cityOrigins = id, slices.Clone(item.cityOrigins)
-	next.owners, _ = takeShopOwners(item.owners, count)
+	next.CityID, next.CityOrigins = id, slices.Clone(item.CityOrigins)
+	next.Owners, _ = takeShopOwners(item.Owners, count)
 	t.sess.Town.cityObjects = graph
-	if err := t.cityShopSetNode(item.cityID, item.Instance(), uint32(item.Count-count), false); err != nil {
+	if err := t.cityShopSetNode(item.CityID, item.Instance(), uint32(item.Count-count), false); err != nil {
 		return ShopItem{}, err
 	}
 	return next, nil
@@ -415,7 +416,7 @@ func (t *shopController) cityShopTakePack(index int, whole, refresh bool) (ShopI
 		return ShopItem{}, err
 	}
 	item := shopItemFromInstance(stack.Instance(), int32(stack.Count))
-	item.cityID, item.cityOrigins = selected.ID, []string{selected.Location.PartyID}
+	item.CityID, item.CityOrigins = selected.ID, []string{selected.Location.PartyID}
 	if !whole && stack.Count > 1 {
 		item, err = t.cityShopSplit(item, selected.Location)
 		if err == nil && refresh {
@@ -477,23 +478,23 @@ func (t *shopController) cityShopTakeTable(index int, whole bool) (ShopPlace, er
 // A gameplay merge keeps the explicitly selected destination and its children.
 // Removing the detached input occurrence does not remove its other aliases.
 func (t *shopController) cityShopMerge(target, incoming ShopItem) (ShopItem, error) {
-	if target.cityID == 0 || incoming.cityID == 0 || target.cityID == incoming.cityID || target.Count <= 0 || incoming.Count <= 0 ||
+	if target.CityID == 0 || incoming.CityID == 0 || target.CityID == incoming.CityID || target.Count <= 0 || incoming.Count <= 0 ||
 		uint64(target.Count)+uint64(incoming.Count) > sim.MaxOriginalHoldingValues {
 		return ShopItem{}, fmt.Errorf("city merge has invalid identities or quantity")
 	}
 	for _, item := range []ShopItem{target, incoming} {
-		if _, err := cityMutationSource(t.sess.Town.cityObjects, item.cityID, cityItemLocation{}); err != nil {
+		if _, err := cityMutationSource(t.sess.Town.cityObjects, item.CityID, cityItemLocation{}); err != nil {
 			return ShopItem{}, err
 		}
 	}
 	target.Count += incoming.Count
-	target.owners = append(slices.Clone(target.owners), incoming.owners...)
-	for _, id := range incoming.cityOrigins {
-		if !slices.Contains(target.cityOrigins, id) {
-			target.cityOrigins = append(slices.Clone(target.cityOrigins), id)
+	target.Owners = append(slices.Clone(target.Owners), incoming.Owners...)
+	for _, id := range incoming.CityOrigins {
+		if !slices.Contains(target.CityOrigins, id) {
+			target.CityOrigins = append(slices.Clone(target.CityOrigins), id)
 		}
 	}
-	if err := t.cityShopSetNode(target.cityID, target.Instance(), uint32(target.Count), false); err != nil {
+	if err := t.cityShopSetNode(target.CityID, target.Instance(), uint32(target.Count), false); err != nil {
 		return ShopItem{}, err
 	}
 	return target, nil
@@ -501,7 +502,7 @@ func (t *shopController) cityShopMerge(target, incoming ShopItem) (ShopItem, err
 
 func (t *shopController) cityShopPutTable(incoming ShopPlace) error {
 	for i, place := range t.sess.Shop.table {
-		if place.ShopItem.cityID == incoming.ShopItem.cityID || place.Mine != incoming.Mine || !place.Mine && place.From != incoming.From ||
+		if place.ShopItem.CityID == incoming.ShopItem.CityID || place.Mine != incoming.Mine || !place.Mine && place.From != incoming.From ||
 			place.ShopItem.Price != incoming.ShopItem.Price || !sim.ItemEqual(place.ShopItem.Instance(), incoming.ShopItem.Instance()) {
 			continue
 		}
@@ -525,29 +526,43 @@ func (t *shopController) cityShopPutTable(incoming ShopPlace) error {
 }
 
 func (t *shopController) cityShopReturnToShelf(shelf ShopShelf, incoming ShopItem) error {
-	incoming.owners = nil
+	incoming.Owners = nil
 	if shelf < 0 || shelf >= numShopShelves {
 		shelf = ShelfMagic
 	}
-	for i, item := range t.sess.Shop.shelves[shelf] {
-		if item.cityID == incoming.cityID || !cityShelfJoins(item.Instance(), incoming.Instance(), t.in.Table) {
-			continue
-		}
-		target, err := t.cityShopBind(item)
-		if err != nil {
-			return err
-		}
-		t.sess.Shop.shelves[shelf][i] = target
-		target, err = t.cityShopMerge(target, incoming)
-		if err != nil {
-			return err
-		}
-		t.sess.Shop.shelves[shelf][i] = target
+	stack := t.cityShelfStack()
+	i := shopstock.Find(t.sess.Shop.shelves[shelf], stack, incoming)
+	if i < 0 {
+		t.sess.Shop.shelves[shelf] = shopstock.Insert(t.sess.Shop.shelves[shelf], stack, incoming)
 		return nil
 	}
-	t.sess.Shop.shelves[shelf] = append(t.sess.Shop.shelves[shelf], incoming.Clone())
-	shopSortShelf(t.sess.Shop.shelves[shelf], t.sess.Shop.tbl)
+	target, err := t.cityShopBind(t.sess.Shop.shelves[shelf][i])
+	if err != nil {
+		return err
+	}
+	t.sess.Shop.shelves[shelf][i] = target
+	target, err = t.cityShopMerge(target, incoming)
+	if err != nil {
+		return err
+	}
+	t.sess.Shop.shelves[shelf][i] = target
 	return nil
+}
+
+// cityShelfStack is shopShelfStack for a city-bound return: the cell of
+// another node cityShelfJoins admits, price aside. The caller merges it,
+// since that writes the object graph.
+func (t *shopController) cityShelfStack() shopstock.Stack[ShopItem, struct{}] {
+	stack := shopShelfStack(t.sess.Shop.tbl)
+	return shopstock.Stack[ShopItem, struct{}]{
+		Key: func(ShopItem) struct{} { return struct{}{} },
+		Same: func(item, incoming ShopItem) bool {
+			return item.CityID != incoming.CityID && cityShelfJoins(item.Instance(), incoming.Instance(), t.in.Table)
+		},
+		Add:   stack.Add,
+		Copy:  stack.Copy,
+		Order: stack.Order,
+	}
 }
 
 func (t *shopController) cityShopStagePack(index int, whole bool) (ui.TownAction, error) {
@@ -559,7 +574,7 @@ func (t *shopController) cityShopStagePack(index int, whole bool) (ui.TownAction
 	price := t.shopItemValue(item.Instance())
 	if price != item.Price {
 		item.Price = price
-		if err := t.cityShopSetNode(item.cityID, item.Instance(), uint32(item.Count), false); err != nil {
+		if err := t.cityShopSetNode(item.CityID, item.Instance(), uint32(item.Count), false); err != nil {
 			return ui.TownAction{}, err
 		}
 	}
@@ -620,7 +635,7 @@ func cityShopDecided(table, kept []ShopPlace) ([]bool, error) {
 }
 
 func cityShopSamePlace(a, b ShopPlace) bool {
-	return a.Mine == b.Mine && a.From == b.From && a.ShopItem.cityID == b.ShopItem.cityID && shopItemStateEqual(a.ShopItem, b.ShopItem)
+	return a.Mine == b.Mine && a.From == b.From && a.ShopItem.CityID == b.ShopItem.CityID && shopItemStateEqual(a.ShopItem, b.ShopItem)
 }
 
 // cityShopMove takes each decided place off the table through the graph, in
@@ -634,7 +649,7 @@ func (t *shopController) cityShopMove(gone []bool, items []ShopItem, move func(S
 		}
 		if items != nil {
 			at := t.sess.Shop.table[j-removed].ShopItem
-			if k >= len(items) || items[k].cityID != at.cityID || !shopItemStateEqual(items[k], at) {
+			if k >= len(items) || items[k].CityID != at.CityID || !shopItemStateEqual(items[k], at) {
 				return fmt.Errorf("city deal decision does not match the table")
 			}
 			k++
@@ -692,7 +707,7 @@ func (t *shopController) cityShopClear() (ui.TownAction, error) {
 		if !place.Mine {
 			return t.cityShopReturnToShelf(r.home(place), place.ShopItem)
 		}
-		if k >= len(mine) || mine[k].cityID != place.ShopItem.cityID {
+		if k >= len(mine) || mine[k].CityID != place.ShopItem.CityID {
 			return fmt.Errorf("city deal decision does not match the table")
 		}
 		k++
@@ -726,7 +741,7 @@ func (t *shopController) cityShopSell() (ui.TownAction, error) {
 	owners := map[string]bool{}
 	for i, place := range t.sess.Shop.table {
 		if gone[i] {
-			for _, id := range place.ShopItem.cityOrigins {
+			for _, id := range place.ShopItem.CityOrigins {
 				owners[id] = true
 			}
 		}
@@ -762,8 +777,8 @@ func (t *shopController) cityShopSourceEquipment(index, slot int, incoming ShopI
 	if err != nil {
 		return ShopItem{}, err
 	}
-	topology := sim.SourceEquipmentTopology{Pack: make([]uint64, len(root.Pack)), External: uint64(incoming.cityID)}
-	if incoming.cityID != 0 {
+	topology := sim.SourceEquipmentTopology{Pack: make([]uint64, len(root.Pack)), External: uint64(incoming.CityID)}
+	if incoming.CityID != 0 {
 		topology.ExternalCount = uint32(incoming.Count)
 	}
 	for i, id := range root.Pack {
@@ -809,8 +824,8 @@ func (t *shopController) cityShopSourceEquipment(index, slot int, incoming ShopI
 			}
 		}
 	}
-	if incoming.cityID != 0 {
-		values[incoming.cityID] = sim.StackItem(incoming.Instance(), uint32(incoming.Count))
+	if incoming.CityID != 0 {
+		values[incoming.CityID] = sim.StackItem(incoming.Instance(), uint32(incoming.Count))
 	}
 	tickets := map[uint32]cityShopOccurrence{}
 	used := map[uint32]bool{}
@@ -877,10 +892,10 @@ func (t *shopController) cityShopSourceEquipment(index, slot int, incoming ShopI
 				g, err = moveCityItemRoot(g, taken.ID, at, cityItemLocation{})
 				worn[at.Index] = cityShopOccurrence{}
 			case sim.SourceEquipmentExternal:
-				if incoming.cityID == 0 || incoming.Count <= 0 || event.Split || event.Place.Index != 0 {
+				if incoming.CityID == 0 || incoming.Count <= 0 || event.Split || event.Place.Index != 0 {
 					return ShopItem{}, fmt.Errorf("equipment receipt lacks explicit incoming item")
 				}
-				taken = cityShopOccurrence{ID: incoming.cityID, NativeID: incoming.ObjectID, Count: uint32(incoming.Count)}
+				taken = cityShopOccurrence{ID: incoming.CityID, NativeID: incoming.ObjectID, Count: uint32(incoming.Count)}
 				_, err = cityMutationSource(g, taken.ID, cityItemLocation{})
 			default:
 				return ShopItem{}, fmt.Errorf("equipment receipt has unknown source place")
@@ -1021,7 +1036,7 @@ func (t *shopController) cityShopSourceEquipment(index, slot int, incoming ShopI
 	}
 	t.composeShopFaces()
 	out := shopItemFromInstance(removed, int32(external.Count))
-	out.cityID, out.cityOrigins = external.ID, []string{before.ID}
+	out.CityID, out.CityOrigins = external.ID, []string{before.ID}
 	return out, nil
 }
 
@@ -1076,10 +1091,10 @@ func (t *shopController) cityShopNativeWear(slot int, item ShopItem) error {
 				value = takeOffTown(townWornHolder{table: t.in.Table, g: g, id: id}, displaced.slot+1, value)
 			}
 			returned := shopItemFromInstance(value, int32(counts[id]))
-			returned.cityID = id
+			returned.CityID = id
 			returns = append(returns, returned)
 		}
-		g, err = moveCityItemRoot(g, item.cityID, cityItemLocation{}, cityItemLocation{PartyID: before.ID, Kind: cityItemWorn, Index: slot - 1})
+		g, err = moveCityItemRoot(g, item.CityID, cityItemLocation{}, cityItemLocation{PartyID: before.ID, Kind: cityItemWorn, Index: slot - 1})
 		if err != nil {
 			return err
 		}
@@ -1286,7 +1301,7 @@ func (t *shopController) cityShopNativeUnequip(slot int, toPack bool) (ShopItem,
 		value = takeOffTown(townWornHolder{table: t.in.Table, g: g, id: id}, slot, value)
 	}
 	item := shopItemFromInstance(value, 1)
-	item.cityID, item.cityOrigins, item.Count = id, []string{member.ID}, count
+	item.CityID, item.CityOrigins, item.Count = id, []string{member.ID}, count
 	worn[slot-1] = sim.ItemInstance{}
 	syncShopWornCodes(member, *worn)
 	t.sess.Town.cityObjects = g
@@ -1328,11 +1343,11 @@ func (t *shopController) cityShopPutPack(item ShopItem, refresh bool) error {
 		return fmt.Errorf("city pack insertion has stale roots")
 	}
 	for i, stack := range stacks {
-		if stack.Code == 0 || stack.Count == 0 || root.Pack[i] == item.cityID || !cityPackJoins(stack.Instance(), item.Instance(), t.in.Table) {
+		if stack.Code == 0 || stack.Count == 0 || root.Pack[i] == item.CityID || !cityPackJoins(stack.Instance(), item.Instance(), t.in.Table) {
 			continue
 		}
 		target := shopItemFromInstance(stack.Instance(), int32(stack.Count))
-		target.cityID = root.Pack[i]
+		target.CityID = root.Pack[i]
 		if _, err := t.cityShopMerge(target, item); err != nil {
 			return err
 		}
@@ -1345,7 +1360,7 @@ func (t *shopController) cityShopPutPack(item ShopItem, refresh bool) error {
 	if member.Carry != nil && member.Carry.LiveLoad != nil {
 		at = int(min(member.Carry.LiveLoad.Inventory.InsertIndex, uint32(len(stacks))))
 	}
-	graph, err := moveCityItemRoot(t.sess.Town.cityObjects, item.cityID, cityItemLocation{}, cityItemLocation{PartyID: member.ID, Kind: cityItemPack, Index: at})
+	graph, err := moveCityItemRoot(t.sess.Town.cityObjects, item.CityID, cityItemLocation{}, cityItemLocation{PartyID: member.ID, Kind: cityItemPack, Index: at})
 	if err != nil {
 		return err
 	}

@@ -242,15 +242,15 @@ func (t *secondCampaignScreen) shopItemName(it secondshop.Item) []string {
 	}
 	var parts []string
 	switch {
-	case it.Kind == secondshop.Book:
+	case it.Table == secondshop.Book:
 		return []string{collection(tab.Spells, it.Spell)}
 	case shipped != "":
 		parts = []string{shipped}
-	case it.Kind == secondshop.Magic:
+	case it.Table == secondshop.Magic:
 		parts = []string{collection(tab.MagicItems, it.Row)}
 	default:
 		rows := map[secondshop.Kind]data.Collection{secondshop.Armor: tab.Armors, secondshop.Shield: tab.Shields, secondshop.Weapon: tab.Weapons}
-		parts = []string{collection(rows[it.Kind], it.Row), scale(tab.Materials, it.Material), scale(tab.Shapes, it.Class)}
+		parts = []string{collection(rows[it.Table], it.Row), scale(tab.Materials, it.Material), scale(tab.Shapes, it.Class)}
 	}
 	if it.Level > 0 {
 		parts = append(parts, fmt.Sprintf("%s %d", collection(tab.Spells, it.Spell), it.Level))

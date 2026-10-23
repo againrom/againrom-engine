@@ -75,7 +75,7 @@ func TestCityShopSelectsSecondEqualNodeAcrossTableEquipAndSAV(t *testing.T) {
 			if a := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 2}, ui.ShopControl{Kind: ui.ShopControlTableCell}); strings.Contains(a.Msg, "cannot") {
 				t.Fatal(a)
 			}
-			if got := cityShopRoots(t, f, 0).Pack; !slices.Equal(got, ids[:1]) || len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.cityID != ids[1] {
+			if got := cityShopRoots(t, f, 0).Pack; !slices.Equal(got, ids[:1]) || len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.CityID != ids[1] {
 				t.Fatal("selected second node did not reach table", got, f.Shop.table)
 			}
 			if a := screen.shopEquipFromTable(0); a.Msg != "worn" {
@@ -105,7 +105,7 @@ func TestCityShopSelectsSecondEqualNodeAcrossTableEquipAndSAV(t *testing.T) {
 			if a := screen.shopUnequipToTable(slot); a.Msg != "on the table" {
 				t.Fatal(a)
 			}
-			if fresh.Shop.table[0].ShopItem.cityID != ids[1] {
+			if fresh.Shop.table[0].ShopItem.CityID != ids[1] {
 				t.Fatal("cold next removal changed node identity")
 			}
 		})
@@ -135,10 +135,10 @@ func TestCityShopPartialSplitClonesOccurrencesAndPreservesAliases(t *testing.T) 
 	if a := screen.shopFromPack(0, false); strings.Contains(a.Msg, "cannot") {
 		t.Fatal(a)
 	}
-	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.cityID != before.NextID || f.Shop.table[0].ShopItem.Count != 1 || f.Shop.table[0].ShopItem.ObjectID != 0 {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.CityID != before.NextID || f.Shop.table[0].ShopItem.Count != 1 || f.Shop.table[0].ShopItem.ObjectID != 0 {
 		t.Fatal("partial take did not create a separate zero-handle node", f.Shop.table)
 	}
-	newID := f.Shop.table[0].ShopItem.cityID
+	newID := f.Shop.table[0].ShopItem.CityID
 	newRow, _ := cityMutationSource(f.Town.cityObjects, newID, cityItemLocation{})
 	copy := f.Town.cityObjects.Items[newRow]
 	if copy.Effects[0] == copy.Effects[1] || copy.Effects[0] == before.Items[row].Effects[0] || copy.Spell == before.Items[row].Spell || f.Town.cityObjects.NextID != before.NextID+4 {
@@ -196,7 +196,7 @@ func TestCityShopSourceSelectedSplitThenExactNextRemoval(t *testing.T) {
 			if a := screen.shopUnequipToTable(7); a.Msg != "on the table" {
 				t.Fatal(a)
 			}
-			if fresh.Shop.table[0].ShopItem.cityID != newID || fresh.Shop.table[0].ShopItem.ObjectID != wantNative || cityShopRoots(t, fresh, screen.shopMemberIndex()).Worn[6] != 0 {
+			if fresh.Shop.table[0].ShopItem.CityID != newID || fresh.Shop.table[0].ShopItem.ObjectID != wantNative || cityShopRoots(t, fresh, screen.shopMemberIndex()).Worn[6] != 0 {
 				t.Fatal("cold source removal lost exact split identity")
 			}
 		})
@@ -282,17 +282,17 @@ func TestCityShopBuySellAndClearPreserveDistinctRootQuantities(t *testing.T) {
 			t.Fatal(a)
 		}
 	}
-	if len(f.Shop.table) != 2 || f.Shop.table[0].ShopItem.cityID == f.Shop.table[1].ShopItem.cityID {
+	if len(f.Shop.table) != 2 || f.Shop.table[0].ShopItem.CityID == f.Shop.table[1].ShopItem.CityID {
 		t.Fatal("different merchant items folded on table", f.Shop.table)
 	}
-	ids := []sim.SavedObjectID{f.Shop.table[0].ShopItem.cityID, f.Shop.table[1].ShopItem.cityID}
+	ids := []sim.SavedObjectID{f.Shop.table[0].ShopItem.CityID, f.Shop.table[1].ShopItem.CityID}
 	if a := screen.shopBuy(); !strings.Contains(a.Msg, "bought") || f.Town.Gold() != 470 {
 		t.Fatal("buy quantity or exact cost changed", a, f.Town.Gold())
 	}
 	if root := cityShopRoots(t, f, 0); !slices.Equal(root.Pack, ids) || len(f.Carried[0].Carry.ItemInstances) != 6 {
 		t.Fatal("buy folded distinct identities", root)
 	}
-	if a := screen.shopFromPack(1, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.cityID != ids[1] || f.Shop.table[0].ShopItem.Count != 3 {
+	if a := screen.shopFromPack(1, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.CityID != ids[1] || f.Shop.table[0].ShopItem.Count != 3 {
 		t.Fatal("sale staging took wrong node", a, f.Shop.table)
 	}
 	if a := screen.shopSell(); !strings.Contains(a.Msg, "he pays 8;") || f.Town.Gold() != 478 {
@@ -301,12 +301,12 @@ func TestCityShopBuySellAndClearPreserveDistinctRootQuantities(t *testing.T) {
 	var sold ShopItem
 	for _, shelf := range f.Shop.shelves {
 		for _, v := range shelf {
-			if v.cityID == ids[1] {
+			if v.CityID == ids[1] {
 				sold = v
 			}
 		}
 	}
-	if sold.cityID != ids[1] || sold.Count != 3 || !slices.Equal(cityShopRoots(t, f, 0).Pack, ids[:1]) {
+	if sold.CityID != ids[1] || sold.Count != 3 || !slices.Equal(cityShopRoots(t, f, 0).Pack, ids[:1]) {
 		t.Fatal("sale shelf lost exact identity/count or changed survivor", sold)
 	}
 	if a := screen.shopFromPack(0, true); strings.Contains(a.Msg, "cannot") {
@@ -317,11 +317,11 @@ func TestCityShopBuySellAndClearPreserveDistinctRootQuantities(t *testing.T) {
 	if a := screen.shopFromShelf(0, true); strings.Contains(a.Msg, "cannot") {
 		t.Fatal(a)
 	}
-	merchantID := f.Shop.table[1].ShopItem.cityID
+	merchantID := f.Shop.table[1].ShopItem.CityID
 	if a := screen.shopClear(); a.Msg != "the table is cleared" || f.Town.Gold() != 478 {
 		t.Fatal(a)
 	}
-	if root := cityShopRoots(t, f, 0); !slices.Equal(root.Pack, ids[:1]) || len(f.Shop.shelves[ShelfMagic]) != 1 || f.Shop.shelves[ShelfMagic][0].cityID != merchantID || f.Shop.shelves[ShelfMagic][0].Count != 2 {
+	if root := cityShopRoots(t, f, 0); !slices.Equal(root.Pack, ids[:1]) || len(f.Shop.shelves[ShelfMagic]) != 1 || f.Shop.shelves[ShelfMagic][0].CityID != merchantID || f.Shop.shelves[ShelfMagic][0].Count != 2 {
 		t.Fatal("clear changed owner-side routing or counts", root, f.Shop.shelves[ShelfMagic])
 	}
 }
@@ -330,12 +330,12 @@ func TestCityShopTableMergeRetainsDestinationAtFullCapacity(t *testing.T) {
 	f := city1102Front(t, false)
 	screen := f.TownScreen().(*townScreen)
 	city1102Take(t, f, 1)
-	target, floor := f.Shop.table[0].ShopItem.cityID, f.Town.cityObjects.NextID
+	target, floor := f.Shop.table[0].ShopItem.CityID, f.Town.cityObjects.NextID
 	for i := 1; i < ShopTablePlaces; i++ {
 		f.Shop.table = append(f.Shop.table, ShopPlace{ShopItem: ShopItem{Code: data.ItemCode(0xe20 + i), Count: 1, Price: 2}})
 	}
 	city1102Take(t, f, 2)
-	if len(f.Shop.table) != ShopTablePlaces || f.Shop.table[0].ShopItem.cityID != target || f.Shop.table[0].ShopItem.Count != 3 || f.Town.cityObjects.NextID != floor+2 {
+	if len(f.Shop.table) != ShopTablePlaces || f.Shop.table[0].ShopItem.CityID != target || f.Shop.table[0].ShopItem.Count != 3 || f.Town.cityObjects.NextID != floor+2 {
 		t.Fatal("full table blocked or replaced an explicit merge destination", f.Shop.table)
 	}
 	for _, row := range f.Town.cityObjects.Items {
@@ -368,18 +368,18 @@ func TestCityShopShelfMergeKeepsTargetChildrenAndIncomingAliases(t *testing.T) {
 			sourceRow, _ := cityMutationSource(g, sourceID, cityItemLocation{})
 			beforeTarget, beforeSource, floor := g.Items[targetRow], g.Items[sourceRow], g.NextID
 			stock := shopItemFromInstance(target, 2)
-			stock.cityID = targetID
+			stock.CityID = targetID
 			destinationShelf := shopShelfForItem(stock, f.Shop.tbl)
 			f.Shop.shelves[destinationShelf] = []ShopItem{stock}
 			screen := f.TownScreen().(*townScreen)
-			if a := screen.shopFromPack(1, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.cityID != sourceID {
+			if a := screen.shopFromPack(1, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.CityID != sourceID {
 				t.Fatal("staging selected a different source occurrence", a)
 			}
 			if a := screen.shopSell(); !strings.Contains(a.Msg, "he pays 3;") || f.Town.Gold() != 3003 {
 				t.Fatal("sale did not pay the incoming item's price", a, f.Town.Gold())
 			}
 			shelf := f.Shop.shelves[destinationShelf]
-			if len(shelf) != 1 || shelf[0].cityID != targetID || shelf[0].Count != 3 || !sim.StackStateEqual(sim.StackItem(shelf[0].Instance(), 1), sim.StackItem(target, 1)) {
+			if len(shelf) != 1 || shelf[0].CityID != targetID || shelf[0].Count != 3 || !sim.StackStateEqual(sim.StackItem(shelf[0].Instance(), 1), sim.StackItem(target, 1)) {
 				t.Fatal("shelf merge replaced target native values, child values or quantity", shelf)
 			}
 			if !slices.Equal(cityShopRoots(t, f, 0).Pack, []sim.SavedObjectID{targetID}) || f.Carried[0].Carry.OrderedStacks[0].Count != 3 ||
@@ -389,7 +389,7 @@ func TestCityShopShelfMergeKeepsTargetChildrenAndIncomingAliases(t *testing.T) {
 			}
 			city1102NativeReload(t, f)
 			screen = f.TownScreen().(*townScreen)
-			if a := screen.shopFromPack(0, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.cityID != targetID || f.Shop.table[0].ShopItem.Count != 3 {
+			if a := screen.shopFromPack(0, true); strings.Contains(a.Msg, "cannot") || f.Shop.table[0].ShopItem.CityID != targetID || f.Shop.table[0].ShopItem.Count != 3 {
 				t.Fatal("cold next operation lost merged identity or quantity", a)
 			}
 		})
@@ -402,7 +402,7 @@ func TestCityShopShelfMergeFailurePreservesPurseValuesAndFloor(t *testing.T) {
 			f := city1102Front(t, false)
 			city1102Take(t, f, 1)
 			stock := f.Shop.table[0].ShopItem.Clone()
-			stock.cityID, stock.cityOrigins = 0, nil
+			stock.CityID, stock.CityOrigins = 0, nil
 			stock.Count = sim.MaxOriginalHoldingValues
 			if exhausted {
 				stock.Count = 1
@@ -435,7 +435,7 @@ func TestCityShopMergedSaleRefreshesEveryExplicitSourceOwner(t *testing.T) {
 			t.Fatal(a)
 		}
 	}
-	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 2 || len(f.Shop.table[0].ShopItem.cityOrigins) != 2 {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 2 || len(f.Shop.table[0].ShopItem.CityOrigins) != 2 {
 		t.Fatal("merged table lost explicit source owners", f.Shop.table)
 	}
 	if a := screen.shopSell(); !strings.Contains(a.Msg, "he pays 5;") || f.Town.Gold() != 3005 {
@@ -464,7 +464,7 @@ func TestCityShopAliasedWholeTableRoundtripKeepsOccurrences(t *testing.T) {
 		if a := screen.shopFromPack(1, true); strings.Contains(a.Msg, "cannot") {
 			t.Fatal(a)
 		}
-		if f.Shop.table[0].ShopItem.cityID != id || !slices.Equal(cityShopRoots(t, f, 0).Pack, []sim.SavedObjectID{id}) {
+		if f.Shop.table[0].ShopItem.CityID != id || !slices.Equal(cityShopRoots(t, f, 0).Pack, []sim.SavedObjectID{id}) {
 			t.Fatal("moving an alias removed the surviving occurrence")
 		}
 		if a := screen.shopOffTable(0, true); strings.Contains(a.Msg, "cannot") {
@@ -742,11 +742,11 @@ func TestCityShopDollTableMergePreservesDestinationAndAliases(t *testing.T) {
 					t.Fatal("fixture lost its distinct operation route")
 				}
 				target := shopItemFromInstance(cityMemberStacks(f.Carried[0], f.Table)[0].Instance(), 1)
-				target.cityID = targetID
+				target.CityID = targetID
 				place := ShopPlace{ShopItem: target, Mine: mode != "merchant", From: ShelfArmour}
 				if mode == "different price" {
 					place.ShopItem.Price++
-					place.ShopItem.cityID = 0
+					place.ShopItem.CityID = 0
 				}
 				f.Shop.table = []ShopPlace{place}
 				if mode != "room" {
@@ -762,7 +762,7 @@ func TestCityShopDollTableMergePreservesDestinationAndAliases(t *testing.T) {
 					}
 					return
 				}
-				if a.Msg != "on the table" || len(f.Shop.table) != len(shop.table) || f.Shop.table[0].ShopItem.cityID != targetID || f.Shop.table[0].ShopItem.Count != 3 || f.Town.Gold() != gold || f.Town.cityObjects.NextID != graph.NextID {
+				if a.Msg != "on the table" || len(f.Shop.table) != len(shop.table) || f.Shop.table[0].ShopItem.CityID != targetID || f.Shop.table[0].ShopItem.Count != 3 || f.Town.Gold() != gold || f.Town.cityObjects.NextID != graph.NextID {
 					t.Fatal("eligible doll drop lost destination, quantity or capacity", a, f.Shop.table)
 				}
 				root, _ = cityMutationParty(f.Town.cityObjects, "hero")
@@ -829,7 +829,7 @@ func TestCityFlatPackFoldsEqualUnits(t *testing.T) {
 	if a := screen.shopFromPack(0, true); strings.Contains(a.Msg, "cannot") {
 		t.Fatal(a)
 	}
-	if len(f.Shop.table) != 1 || uint16(f.Shop.table[0].ShopItem.Code) != axe || f.Shop.table[0].ShopItem.Count != 2 || f.Shop.table[0].ShopItem.cityID != perUnit[0] {
+	if len(f.Shop.table) != 1 || uint16(f.Shop.table[0].ShopItem.Code) != axe || f.Shop.table[0].ShopItem.Count != 2 || f.Shop.table[0].ShopItem.CityID != perUnit[0] {
 		t.Fatalf("table %+v; want the axe x2 as record %d", f.Shop.table, perUnit[0])
 	}
 	if root := cityShopRoots(t, f, 0).Pack; len(root) != 1 || len(cityMemberStacks(f.Carried[0], f.Table)) != 1 {

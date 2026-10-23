@@ -26,7 +26,7 @@ func (s *secondCampaignScreen) click(k ui.ShopControlKind, i int) ui.TownAction 
 // the SAVE producer writes; the campaign still saves.
 func TestSecondShopPurchaseStopsAtTheBagBound(t *testing.T) {
 	c := secondShopSample()
-	*c.heroBag(), _ = secondShopTestTables.Units(secondshop.Item{Kind: secondshop.Magic, Row: 70, Quantity: maxSecondBagUnits - 1, Price: 83})
+	*c.heroBag(), _ = secondShopTestTables.Units(secondshop.Item{Table: secondshop.Magic, Row: 70, Count: maxSecondBagUnits - 1, Price: 83})
 	s := secondShopPage(c, 1000)
 	s.click(ui.ShopControlPackCell, 1)
 	s.click(ui.ShopControlShelfPick, 0)
@@ -59,7 +59,7 @@ func TestSecondShopOlderLargeStackLoads(t *testing.T) {
 	doc := func(n int) []byte {
 		raw, _ := json.Marshal(map[string]any{"Bank": make([]int32, 1024), "Current": currentSecondLocation{1, 10},
 			"Available": []currentSecondLocation{{1, 10}}, "Shop": map[string]any{"Records": secondshop.NewGameRecords,
-				"Hero": []secondshop.Item{{Kind: secondshop.Magic, Row: 70, Quantity: n, Price: 83}}}})
+				"Hero": []secondHeroItem{{Kind: secondshop.Magic, Row: 70, Quantity: n, Price: 83}}}})
 		return raw
 	}
 	var older currentSecondCampaign
@@ -89,7 +89,7 @@ func TestSecondShopOlderLargeStackLoads(t *testing.T) {
 // (R2-ENGINE-265, R2-ENGINE-266, DIV-3065); the bought books stay apart in
 // the bag view and each offered book opens its own place.
 func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
-	armour := secondshop.Item{Kind: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Quantity: 1, Price: 901}
+	armour := secondshop.Item{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Count: 1, Price: 901}
 	c := secondShopSample()
 	*c.heroBag() = nil
 	c.shop.shelves[0] = secondShopItems(secondShopTestTables, []secondshop.Item{armour, armour})
@@ -126,7 +126,7 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	}
 	s.click(ui.ShopControlPackCell, 1)
 	s.click(ui.ShopControlPackCell, 1)
-	if got := c.shop.selling(); len(got) != 2 || got[0].Quantity != 1 || got[1].Quantity != 1 {
+	if got := c.shop.selling(); len(got) != 2 || got[0].Count != 1 || got[1].Count != 1 {
 		t.Fatalf("two offered books: %v", got)
 	}
 }

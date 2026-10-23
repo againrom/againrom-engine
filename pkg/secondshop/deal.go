@@ -6,7 +6,7 @@ package secondshop
 // items left pending and the gold after the deal.
 func Buy(pending []Item, gold int64) (bought, left []Item, after int64) {
 	for i, it := range pending {
-		cost := it.Price * int64(it.Quantity)
+		cost := int64(it.Price) * int64(it.Count)
 		if cost > gold {
 			return bought, pending[i:], gold
 		}
@@ -23,9 +23,9 @@ func Sell(s Stock, r Record, sold []Item, gold int64) (Stock, int64) {
 		if it.Price == 0 {
 			continue
 		}
-		gold += SaleCredit(it.Price, it.Quantity)
+		gold += SaleCredit(int64(it.Price), int(it.Count))
 		c := Place(r, it)
-		s[c] = Insert(s[c], it)
+		s[c] = insert(s[c], it)
 	}
 	return s, gold
 }
@@ -33,15 +33,15 @@ func Sell(s Stock, r Record, sold []Item, gold int64) (Stock, int64) {
 // Take moves n units of entry i of category c into a deal (R2-ENGINE-375):
 // the shelf keeps Q-n and the taken clone holds n. n is clamped to 1..Q.
 func Take(s Stock, c, i, n int) (Stock, Item, bool) {
-	if c < 0 || c >= len(s) || i < 0 || i >= len(s[c]) || s[c][i].Quantity < 1 {
+	if c < 0 || c >= len(s) || i < 0 || i >= len(s[c]) || s[c][i].Count < 1 {
 		return s, Item{}, false
 	}
-	q := s[c][i].Quantity
+	q := int(s[c][i].Count)
 	n = max(1, min(n, q))
 	it := s[c][i]
-	it.Quantity = n
+	it.Count = int32(n)
 	s[c] = append([]Item(nil), s[c]...)
-	s[c][i].Quantity = q - n
+	s[c][i].Count = int32(q - n)
 	return s, it, true
 }
 
@@ -50,7 +50,7 @@ func Leave(s Stock) Stock {
 	for c := range s {
 		var kept []Item
 		for _, it := range s[c] {
-			if it.Quantity > 0 {
+			if it.Count > 0 {
 				kept = append(kept, it)
 			}
 		}
@@ -61,7 +61,7 @@ func Leave(s Stock) Stock {
 
 // kindBit is the mask kind bit of an item's table (R2-ENGINE-333).
 func kindBit(it Item) uint32 {
-	switch it.Kind {
+	switch it.Table {
 	case Armor:
 		return kindArmor
 	case Shield:
@@ -78,7 +78,7 @@ func kindBit(it Item) uint32 {
 // enchanted bit, else the first of its kind, else category 3.
 func Place(r Record, it Item) int {
 	const last = len(Record{}) - 1
-	if !it.Stackable() && it.Kind != Book {
+	if !stackable(it) && it.Table != Book {
 		for c, cat := range r {
 			if cat.Mask&bitEnchanted != 0 {
 				return c

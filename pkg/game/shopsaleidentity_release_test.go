@@ -42,12 +42,12 @@ type staffSaleStateObservation struct {
 }
 
 func staffSaleObserveLot(item ShopItem, index int, graph *cityObjectTopology) staffSaleLotObservation {
-	v := staffSaleLotObservation{Index: index, CityID: item.cityID,
-		CityOrigins: append([]string(nil), item.cityOrigins...), Owners: append([]shopOwnerQuantity(nil), item.owners...),
+	v := staffSaleLotObservation{Index: index, CityID: item.CityID,
+		CityOrigins: append([]string(nil), item.CityOrigins...), Owners: append([]shopOwnerQuantity(nil), item.Owners...),
 		Count: item.Count, Instance: item.Instance().Clone()}
 	v.CastSpell, v.CastPower, v.HasCastSpell = v.Instance.CastSpell()
 	v.BookSpell, v.HasBookSpell = v.Instance.BookSpell()
-	id := item.cityID
+	id := item.CityID
 	if id == 0 {
 		id = item.ObjectID
 	}
@@ -144,7 +144,7 @@ func TestReleaseShopSoldStaffPreservesInstanceAndMagicShelf(t *testing.T) {
 	if f.Town.cityObjects != nil {
 		for _, root := range f.Town.cityObjects.Roots {
 			if string(root.PartyID) == f.Carried[member].ID {
-				wornItem.cityID = root.Worn[0]
+				wornItem.CityID = root.Worn[0]
 			}
 		}
 	}
@@ -330,7 +330,7 @@ func TestReleaseShopSoldStaffPreservesInstanceAndMagicShelf(t *testing.T) {
 		if staffSaleValueEqual(stack.Instance(), sold.Instance) {
 			count += stack.Count
 			item := shopItemFromInstance(stack.Instance(), int32(stack.Count))
-			item.cityID = root.Pack[index]
+			item.CityID = root.Pack[index]
 			v := staffSaleObserveLot(item, index, f.Town.cityObjects)
 			report.Repurchased = &v
 		}

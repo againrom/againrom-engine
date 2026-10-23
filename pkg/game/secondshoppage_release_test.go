@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"slices"
 	"testing"
@@ -36,7 +37,7 @@ func secondShopDrag(t *testing.T, app *ui.App, from, to image.Point) {
 func secondShopUnits(c *secondCampaign) int {
 	var n int
 	for _, it := range c.shop.buying() {
-		n += it.Quantity
+		n += int(it.Count)
 	}
 	return n
 }
@@ -71,7 +72,7 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 			shelf := c.shop.shelf()
 			for i := 0; i < len(v.Shelf) && i < len(shelf); i++ {
 				cell, it := v.Shelf[i], shelf[i]
-				if int(cell.Count) != it.Quantity || int64(cell.Price) != it.Price || !slices.Equal(cell.Text, s.shopItemName(it)) {
+				if int(cell.Count) != int(it.Count) || int64(cell.Price) != int64(it.Price) || !slices.Equal(cell.Text, s.shopItemName(it)) {
 					t.Fatalf("shelf cell %d: count %d price %d text %q, want %+v named %q", i, cell.Count, cell.Price, cell.Text, it, s.shopItemName(it))
 				}
 			}
@@ -93,7 +94,7 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 				}
 				secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[cat])
 				for i, it := range c.shop.shelf() {
-					if it.Quantity >= 2 && i < len(v.Shelf) {
+					if it.Count >= 2 && i < len(v.Shelf) {
 						k, entry = cat, i
 						break
 					}
@@ -105,15 +106,15 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 			want := c.shop.shelf()[entry]
 			at := secondShopPagePoint(t, app, "shelf", entry)
 			shopTap(t, app, at, "press", "release")
-			if secondShopUnits(c) != 1 || c.shop.shelf()[entry].Quantity != want.Quantity-1 {
+			if secondShopUnits(c) != 1 || c.shop.shelf()[entry].Count != want.Count-1 {
 				t.Fatalf("a click took %d units", secondShopUnits(c))
 			}
 			shopTap(t, app, at, "shift-press", "shift-release")
-			if secondShopUnits(c) != want.Quantity || c.shop.shelf()[entry].Quantity != 0 {
-				t.Fatalf("a shift click left %d of %d units staged", secondShopUnits(c), want.Quantity)
+			if secondShopUnits(c) != int(want.Count) || c.shop.shelf()[entry].Count != 0 {
+				t.Fatalf("a shift click left %d of %d units staged", secondShopUnits(c), want.Count)
 			}
 			secondShopActivate(t, f, app, "UNDO")
-			if secondShopUnits(c) != 0 || c.shop.shelf()[entry].Quantity != want.Quantity {
+			if secondShopUnits(c) != 0 || c.shop.shelf()[entry].Count != want.Count {
 				t.Fatal("UNDO did not return the units")
 			}
 
@@ -134,12 +135,12 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 				t.Fatalf("a drag from the pack offered %v", c.shop.selling())
 			}
 			secondShopActivate(t, f, app, "SELL")
-			if f.Town.gold != gold+int(secondshop.SaleCredit(want.Price, 1)) || len(c.heroItems()) != 0 {
+			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(want.Price), 1)) || len(c.heroItems()) != 0 {
 				t.Fatalf("sale at %d: gold %d -> %d", want.Price, gold, f.Town.gold)
 			}
 			secondShopWitness(t, app, map[int]string{1: "town1", 2: "town2", 3: "town3"}[tc.id]+"-shop-input")
 			t.Logf("town %d: category %d entry %d of %d units; bought at %d, sold for %d", tc.id, k, entry,
-				want.Quantity, want.Price, secondshop.SaleCredit(want.Price, 1))
+				want.Count, want.Price, secondshop.SaleCredit(int64(want.Price), 1))
 		})
 	}
 }
@@ -159,14 +160,14 @@ func TestReleaseSecondShopItemsWithoutBagForm(t *testing.T) {
 	druid := records[3][3]
 	druid.Mask |= secondShopClass4
 	var total, missing int
-	seen := map[secondshop.Item]bool{}
+	seen := map[string]bool{}
 	count := func(c secondshop.Category) {
 		for _, rnd := range []secondshop.Rand{nil, func() int { return 1 << 30 }} {
 			for _, it := range tables.Candidates(c, rnd) {
-				if seen[it] {
+				if seen[fmt.Sprintf("%+v", it)] {
 					continue
 				}
-				seen[it] = true
+				seen[fmt.Sprintf("%+v", it)] = true
 				total++
 				if _, ok := tables.Instance(it); !ok {
 					missing++
@@ -200,7 +201,7 @@ func TestReleaseSecondTownShopFullBagRefusesPurchase(t *testing.T) {
 	if !ok {
 		t.Fatal("the install's shop tables")
 	}
-	units, ok := tables.Units(secondshop.Item{Kind: secondshop.Magic, Row: 70, Quantity: maxSecondBagUnits, Price: 83})
+	units, ok := tables.Units(secondshop.Item{Table: secondshop.Magic, Row: 70, Count: maxSecondBagUnits, Price: 83})
 	if !ok {
 		t.Fatal("potion row 70 has no bag form")
 	}
@@ -236,7 +237,7 @@ func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 	var book secondshop.Item
 	for k, list := range c.shop.stock() {
 		for i, it := range list {
-			if it.Kind == secondshop.Book && it.Quantity >= 2 && it.Price > 0 && entry < 0 {
+			if it.Table == secondshop.Book && it.Count >= 2 && it.Price > 0 && entry < 0 {
 				category, entry, book = k, i, it
 			}
 		}

@@ -87,7 +87,9 @@ var allow = map[string][]string{
 	// interface and draw through a caller's rand(); they code the hero's bag
 	// as the engine's one item instance, so they read the simulation's item.
 	// Their stock is drawn by the shared stock generator.
-	"pkg/secondshop": {"pkg/sim", "pkg/shopstock"},
+	"pkg/secondshop": {"pkg/sim", "pkg/shopitem", "pkg/shopstock"},
+	// The one shop item of both games holds the simulation's item unit.
+	"pkg/shopitem": {"pkg/data", "pkg/sim"},
 	// The shop stock generator of both games is a leaf: each game supplies
 	// its rules as a profile.
 	"pkg/shopstock": {},

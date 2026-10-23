@@ -51,7 +51,7 @@ func (s swapped) EntryDoubles(i int) []float64 {
 func count(items []Item) map[Kind]int {
 	n := map[Kind]int{}
 	for _, it := range items {
-		n[it.Kind]++
+		n[it.Table]++
 	}
 	return n
 }
@@ -86,14 +86,14 @@ func TestReleaseSecondShopTownOnePopulations(t *testing.T) {
 		t.Errorf("category 1 admits %d weapon rows, want 44", len(weapons))
 	}
 	for _, it := range weapons {
-		if it.Kind != Weapon || it.Class > 1 || it.Material != 0 && it.Material != 1 && it.Material != 8 {
+		if it.Table != Weapon || it.Class > 1 || it.Material != 0 && it.Material != 1 && it.Material != 8 {
 			t.Errorf("category 1 admits %+v outside classes 0..1 and materials 0, 1, 8", it)
 		}
 	}
 	staffs := tb.Candidates(r[2], nil)
 	var prices []int64
 	for _, it := range staffs {
-		if it.Kind != Weapon || it.Material != 8 || it.Row != 13 && it.Row != 14 {
+		if it.Table != Weapon || it.Material != 8 || it.Row != 13 && it.Row != 14 {
 			t.Errorf("category 2 admits %+v, want rows 13 and 14 of material 8", it)
 		}
 		prices = append(prices, tb.Price(it))
@@ -107,7 +107,7 @@ func TestReleaseSecondShopTownOnePopulations(t *testing.T) {
 	}
 	var books []int
 	for _, it := range tb.Candidates(r[3], nil) {
-		if it.Kind == Book {
+		if it.Table == Book {
 			books = append(books, it.Spell)
 			if p := tb.Price(it); p != 1000 {
 				t.Errorf("book of spell %d priced %d, want 1000", it.Spell, p)
@@ -119,7 +119,7 @@ func TestReleaseSecondShopTownOnePopulations(t *testing.T) {
 	}
 	admissible := 0
 	for row := scrollOffset + 1; row <= superOffset+bookSpells; row++ {
-		if p := tb.Price(Item{Kind: Magic, Row: row}); p >= 0 && p <= 1500 {
+		if p := tb.Price(Item{Table: Magic, Row: row}); p >= 0 && p <= 1500 {
 			admissible++
 		}
 	}
@@ -152,14 +152,14 @@ func TestReleaseSecondShopTownOneFill(t *testing.T) {
 	books, potions := 0, 0
 	for _, it := range s[3] {
 		switch {
-		case it.Kind == Book:
+		case it.Table == Book:
 			books++
-			if it.Quantity != 2 {
+			if it.Count != 2 {
 				t.Errorf("book %+v, want quantity 2", it)
 			}
 		case it.Row >= potionFirst && it.Row <= potionLast:
 			potions++
-			if it.Quantity < 51 || it.Quantity > 100 {
+			if it.Count < 51 || it.Count > 100 {
 				t.Errorf("potion %+v, want quantity 51..100", it)
 			}
 		}
@@ -175,8 +175,8 @@ func TestReleaseSecondShopTownOneFill(t *testing.T) {
 	for c := 0; c < 2; c++ {
 		total := 0
 		for _, it := range s[c] {
-			total += it.Quantity
-			if it.Price != tb.Price(it) {
+			total += int(it.Count)
+			if int64(it.Price) != tb.Price(it) {
 				t.Errorf("category %d item %+v carries price %d, want %d", c, it, it.Price, tb.Price(it))
 			}
 		}
@@ -196,7 +196,7 @@ func TestSecondShopSettlement(t *testing.T) {
 	if got := SaleCredit(84, 3); got != 126 {
 		t.Errorf("sale credit of 3 at 84 = %d, want 126", got)
 	}
-	pending := []Item{{Kind: Weapon, Row: 2, Price: 100, Quantity: 2}, {Kind: Armor, Row: 3, Price: 500, Quantity: 1}, {Kind: Magic, Row: 69, Price: 1, Quantity: 1}}
+	pending := []Item{{Table: Weapon, Row: 2, Price: 100, Count: 2}, {Table: Armor, Row: 3, Price: 500, Count: 1}, {Table: Magic, Row: 69, Price: 1, Count: 1}}
 	bought, left, gold := Buy(pending, 600)
 	if len(bought) != 1 || len(left) != 2 || gold != 400 {
 		t.Errorf("buy with 600: bought %d, left %d, gold %d; want 1, 2, 400", len(bought), len(left), gold)
@@ -204,29 +204,29 @@ func TestSecondShopSettlement(t *testing.T) {
 	if bought, left, gold = Buy(pending, 701); len(bought) != 3 || left != nil || gold != 0 {
 		t.Errorf("buy with 701: bought %d, left %d, gold %d; want 3, 0, 0", len(bought), len(left), gold)
 	}
-	s := Stock{{{Kind: Armor, Row: 3, Quantity: 3, Price: 10}}}
+	s := Stock{{{Table: Armor, Row: 3, Count: 3, Price: 10}}}
 	s, taken, ok := Take(s, 0, 0, 2)
-	if !ok || taken.Quantity != 2 || s[0][0].Quantity != 1 {
-		t.Errorf("take 2 of 3: taken %d, shelf %d", taken.Quantity, s[0][0].Quantity)
+	if !ok || taken.Count != 2 || s[0][0].Count != 1 {
+		t.Errorf("take 2 of 3: taken %d, shelf %d", taken.Count, s[0][0].Count)
 	}
 	s, gold = Sell(s, NewGameRecords[1], []Item{taken}, 0)
-	if s[0][0].Quantity != 3 || len(s[0]) != 1 || gold != 10 {
+	if s[0][0].Count != 3 || len(s[0]) != 1 || gold != 10 {
 		t.Errorf("sale of 2 at 10 back: shelf %+v, gold %d; want merged 3 and 10", s[0], gold)
 	}
-	enchanted := Item{Kind: Weapon, Row: 13, Material: 8, Spell: 1, Level: 3}
+	enchanted := Item{Table: Weapon, Row: 13, Material: 8, Spell: 1, Level: 3}
 	if c := Place(NewGameRecords[1], enchanted); c != 2 {
 		t.Errorf("enchanted weapon placed in category %d, want 2", c)
 	}
-	if c := Place(NewGameRecords[1], Item{Kind: Weapon, Row: 2}); c != 1 {
+	if c := Place(NewGameRecords[1], Item{Table: Weapon, Row: 2}); c != 1 {
 		t.Errorf("plain weapon placed in category %d, want 1", c)
 	}
-	if c := Place(NewGameRecords[1], Item{Kind: Book, Spell: 1}); c != 3 {
+	if c := Place(NewGameRecords[1], Item{Table: Book, Spell: 1}); c != 3 {
 		t.Errorf("book placed in category %d, want 3", c)
 	}
-	if c := Place(NewGameRecords[2], Item{Kind: Weapon, Row: 2}); c != 3 {
+	if c := Place(NewGameRecords[2], Item{Table: Weapon, Row: 2}); c != 3 {
 		t.Errorf("record 2 plain weapon placed in category %d, want 3 (R2-ENGINE-333)", c)
 	}
-	if got := Leave(Stock{{{Quantity: 0}, {Quantity: 1}}}); len(got[0]) != 1 {
+	if got := Leave(Stock{{{Count: 0}, {Count: 1}}}); len(got[0]) != 1 {
 		t.Errorf("leave keeps %d entries, want 1", len(got[0]))
 	}
 }

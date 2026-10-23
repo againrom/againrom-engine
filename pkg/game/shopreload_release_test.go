@@ -68,8 +68,8 @@ func TestReleaseTownShopReloadRestocks(t *testing.T) {
 	var shelved []uint64
 	for shelf := ShopShelf(0); shelf < numShopShelves; shelf++ {
 		for _, it := range f.Shop.Shelf(shelf) {
-			if it.cityID != 0 {
-				shelved = append(shelved, uint64(it.cityID))
+			if it.CityID != 0 {
+				shelved = append(shelved, uint64(it.CityID))
 			}
 		}
 	}

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"againrom/pkg/mapload"
-	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -36,7 +35,7 @@ type secondCampaign struct {
 	party []mapload.PartyMember
 	// legacyHero is an older document's hero list waiting for the
 	// install's tables to load into the bag.
-	legacyHero []secondshop.Item
+	legacyHero []secondHeroItem
 	// mapOpen is the map's current opening (openMap); nil while the party
 	// stands at a location and after a LOAD at the map.
 	mapOpen *secondMapOpening

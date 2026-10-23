@@ -122,7 +122,7 @@ func TestShopSaveReturnsWholeGraphToOwnerAcrossColdLoad(t *testing.T) {
 			}
 			coldScreen := cold.TownScreen().(*townScreen)
 			shopSaveStage(t, coldScreen, 0, 1, true)
-			if cold.Shop.table[0].ShopItem.cityID != roots[1] {
+			if cold.Shop.table[0].ShopItem.CityID != roots[1] {
 				t.Fatal("next shop action selected another item identity")
 			}
 			if action := coldScreen.shopClear(); action.Msg != "the table is cleared" {
@@ -139,14 +139,14 @@ func TestShopSavePartialStackKeepsOwnerAndUnpaidMerchantGoods(t *testing.T) {
 	gold := f.Town.Gold()
 	root := cityShopRoots(t, f, 0).Pack[0]
 	shopSaveStage(t, screen, 0, 0, false)
-	ownedID := f.Shop.table[0].ShopItem.cityID
+	ownedID := f.Shop.table[0].ShopItem.CityID
 	merchant := ShopItem{Code: 0xe0e, Price: 11, Count: 2, Kind: 1, WeightPresent: true}
 	f.Shop.shelves[ShelfMagic] = []ShopItem{merchant}
 	screen.shopShelf = ShelfMagic
 	if action := screen.shopFromShelf(0, true); strings.Contains(action.Msg, "cannot") || len(f.Shop.table) != 2 {
 		t.Fatal("stage merchant goods", action)
 	}
-	merchantID := f.Shop.table[1].ShopItem.cityID
+	merchantID := f.Shop.table[1].ShopItem.CityID
 	screen.shopMember = 1
 	live := f
 	f = cityShopColdLoad(t, f)
@@ -200,7 +200,7 @@ func TestShopSaveMergedOwnersKeepQuantitiesAndCurrentIdentity(t *testing.T) {
 	kept, retired := cityShopRoots(t, f, 0).Pack[0], cityShopRoots(t, f, 1).Pack[0]
 	shopSaveStage(t, screen, 0, 0, true)
 	shopSaveStage(t, screen, 1, 0, true)
-	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 5 || f.Shop.table[0].ShopItem.cityID != kept {
+	if len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.Count != 5 || f.Shop.table[0].ShopItem.CityID != kept {
 		t.Fatal("fixture did not reach a mixed-owner merge", f.Shop.table)
 	}
 	if cityItemTopologyByID(f.Town.cityObjects.Items, retired) != nil {

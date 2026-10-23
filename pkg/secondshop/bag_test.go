@@ -24,11 +24,11 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 		Weapons: bagTestCollection{4: {0, 0, 0, 0, 1}, 5: {0, 0, 0, 0, -1}},
 	}
 	items := []Item{
-		{Kind: Armor, Row: 7, Class: 3, Material: 5, Quantity: 1, Price: 4000},
-		{Kind: Weapon, Row: 4, Class: 1, Material: 2, Spell: 9, Level: 3, Quantity: 1, Price: 7000},
-		{Kind: Shield, Row: 2, Class: 0, Material: 1, Quantity: 1, Price: 300},
-		{Kind: Magic, Row: 70, Quantity: 3, Price: 83},
-		{Kind: Book, Spell: 12, Quantity: 1, Price: 1500},
+		{Table: Armor, Row: 7, Class: 3, Material: 5, Count: 1, Price: 4000},
+		{Table: Weapon, Row: 4, Class: 1, Material: 2, Spell: 9, Level: 3, Count: 1, Price: 7000},
+		{Table: Shield, Row: 2, Class: 0, Material: 1, Count: 1, Price: 300},
+		{Table: Magic, Row: 70, Count: 3, Price: 83},
+		{Table: Book, Spell: 12, Count: 1, Price: 1500},
 	}
 	var bag []sim.ItemInstance
 	for _, it := range items {
@@ -46,11 +46,11 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 		t.Fatalf("stacks %+v, want %+v", got, items)
 	}
 	left, taken, stack, ok := TakeUnits(bag, 3)
-	if !ok || len(taken) != 3 || len(left) != 4 || stack != items[3] {
+	if !ok || len(taken) != 3 || len(left) != 4 || !reflect.DeepEqual(stack, items[3]) {
 		t.Fatalf("take: %d left, %d taken, %+v", len(left), len(taken), stack)
 	}
 	// A weapon row with no body part has no ID form.
-	if _, ok := tables.Instance(Item{Kind: Weapon, Row: 5, Quantity: 1}); ok {
+	if _, ok := tables.Instance(Item{Table: Weapon, Row: 5, Count: 1}); ok {
 		t.Fatal("a row with part -1 was coded")
 	}
 	// Loss control: a unit with an identity the bag never writes is refused.

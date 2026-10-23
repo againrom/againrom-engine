@@ -228,7 +228,7 @@ func secondShopNamesResolve(t *testing.T, f *FrontEnd) {
 			if _, ok := f.Table.Names.NameFor(data.ItemCode(key)); ok {
 				named++
 			}
-			if it.Kind != secondshop.Magic {
+			if it.Table != secondshop.Magic {
 				part := uint16(tables.Part(it))
 				alt := key&^0x0fe0 | uint16(it.Class&0xf)<<8 | (part&0x7)<<5
 				if _, ok := f.Table.Names.NameFor(data.ItemCode(alt)); ok && alt != key {
@@ -265,13 +265,13 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 	f.Town.gold = 5000
 	first := c.shop.shelf()[c.shop.visibleShelf()[0]]
 	secondShopActivate(t, f, app, "ITEM 1", "BUY")
-	if f.Town.gold != 5000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Quantity != 1 {
+	if f.Town.gold != 5000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Count != 1 {
 		t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())
 	}
 	secondShopWitness(t, app, "town1-shop-bought")
 	gold := f.Town.gold
 	secondShopActivate(t, f, app, "MINE 1", "SELL")
-	if f.Town.gold != gold+int(secondshop.SaleCredit(first.Price, 1)) || len(c.heroItems()) != 0 {
+	if f.Town.gold != gold+int(secondshop.SaleCredit(int64(first.Price), 1)) || len(c.heroItems()) != 0 {
 		t.Fatalf("sale of one at %d: gold %d -> %d", first.Price, gold, f.Town.gold)
 	}
 	secondShopActivate(t, f, app, "SHELF 3", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
@@ -299,5 +299,5 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 		t.Fatalf("escape left room %d with %d pending", c.room, len(c.shop.buying()))
 	}
 	t.Logf("town 1 shop: %d/%d/%d/%d entries; bought at %d, sold for %d; SAV %d bytes", len(old[0]), len(old[1]),
-		len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(first.Price, 1), len(raw))
+		len(old[2]), len(old[3]), first.Price, secondshop.SaleCredit(int64(first.Price), 1), len(raw))
 }

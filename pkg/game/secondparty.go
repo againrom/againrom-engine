@@ -36,7 +36,7 @@ func (c *secondCampaign) adoptLegacyHero(tables secondshop.Tables) {
 	}
 	bag := c.heroBag()
 	for _, it := range c.legacyHero {
-		if units, ok := tables.Units(it); ok {
+		if units, ok := tables.Units(it.item()); ok {
 			*bag = append(*bag, units...)
 		}
 	}

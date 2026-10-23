@@ -7,6 +7,8 @@ package secondshop
 
 import (
 	"math"
+
+	"againrom/pkg/shopitem"
 )
 
 // Collection is the slice of a data.bin collection the rules read.
@@ -83,7 +85,7 @@ func materialOfBit(bit int) int {
 }
 
 // Kind is an item's table.
-type Kind uint8
+type Kind = shopitem.Table
 
 const (
 	Armor Kind = iota + 1
@@ -93,30 +95,14 @@ const (
 	Book
 )
 
-// Item is one stock entry or one item in a deal.
-type Item struct {
-	Kind     Kind
-	Row      int
-	Class    int
-	Material int
-	// Spell is a book's spell, or the enchanted spell of a weapon.
-	Spell int
-	// Level is the enchanted spell's level; zero for none.
-	Level    int
-	Quantity int
-	// Price is the unit price P (R2-ENGINE-267).
-	Price int64
-}
+// Item is one stock entry or one item in a deal; Price is the unit price P
+// (R2-ENGINE-267).
+type Item = shopitem.Item
 
-// Same reports whether two items are one stackable key.
-func (a Item) Same(b Item) bool {
-	return a.Kind == b.Kind && a.Row == b.Row && a.Class == b.Class && a.Material == b.Material && a.Spell == b.Spell && a.Level == b.Level
-}
-
-// Stackable is the merge rule: a magic item, or an item with no effect
+// stackable is the merge rule: a magic item, or an item with no effect
 // (R2-ENGINE-265). A book carries its spell and is not.
-func (a Item) Stackable() bool {
-	return a.Kind == Magic || a.Kind != Book && a.Level == 0
+func stackable(a Item) bool {
+	return a.Table == Magic || a.Table != Book && a.Level == 0
 }
 
 // SaleCredit is the gold a sale of q units at unit price P credits:
@@ -179,18 +165,18 @@ func (t Tables) equipment(k Kind) Collection {
 
 // baseProduct is column2 x material factor x class factor.
 func (t Tables) baseProduct(it Item) float64 {
-	return float64(param(t.equipment(it.Kind), it.Row, colPrice)) * factor(t.Materials, it.Material, factorPrice) * factor(t.Shapes, it.Class, factorPrice)
+	return float64(param(t.equipment(it.Table), it.Row, colPrice)) * factor(t.Materials, it.Material, factorPrice) * factor(t.Shapes, it.Class, factorPrice)
 }
 
 // Part is an equipment row's body part, the item code's slot field.
-func (t Tables) Part(it Item) int { return int(param(t.equipment(it.Kind), it.Row, colPart)) }
+func (t Tables) Part(it Item) int { return int(param(t.equipment(it.Table), it.Row, colPart)) }
 
 // NameKey is the key of the item's line in the shipped item-name table
 // (R2-ENGINE-267; the key form is DIV-3046's chosen join): equipment
 // material<<12 | part<<8 | class<<5 | row, a magic item 0x0e00 | row. A book
 // has none.
 func (t Tables) NameKey(it Item) (uint16, bool) {
-	switch it.Kind {
+	switch it.Table {
 	case Armor, Shield, Weapon:
 		return uint16(it.Material&0xf)<<12 | uint16(t.Part(it)&0xf)<<8 | uint16(it.Class&0x7)<<5 | uint16(it.Row&0x1f), true
 	case Magic:
@@ -204,7 +190,7 @@ func (t Tables) NameKey(it Item) (uint16, bool) {
 // column 0, a book its spell's column 21; capped at 19999999.
 func (t Tables) Price(it Item) int64 {
 	var p int64
-	switch it.Kind {
+	switch it.Table {
 	case Armor, Shield, Weapon:
 		p = int64(t.baseProduct(it) + 0.5)
 		if it.Level > 0 {
@@ -290,7 +276,7 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 					if tb.kind == Armor && excluded(class, m, row) {
 						continue
 					}
-					it := Item{Kind: tb.kind, Row: row, Class: class, Material: m}
+					it := Item{Table: tb.kind, Row: row, Class: class, Material: m}
 					if admit(it, t.baseProduct(it)) {
 						out = append(out, it)
 					}
@@ -300,7 +286,7 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 	}
 	if c.Mask&kindMagic != 0 {
 		for s := 1; s <= bookSpells; s++ {
-			it := Item{Kind: Book, Spell: s}
+			it := Item{Table: Book, Spell: s}
 			if !bookSkipped[s] && admit(it, float64(t.Price(it))) {
 				out = append(out, it)
 			}
@@ -310,7 +296,7 @@ func (t Tables) Candidates(c Category, rnd Rand) []Item {
 			if rnd != nil && (rnd()*2)>>15 != 0 {
 				row = i + superOffset
 			}
-			it := Item{Kind: Magic, Row: row}
+			it := Item{Table: Magic, Row: row}
 			if admit(it, float64(t.Price(it))) {
 				out = append(out, it)
 			}

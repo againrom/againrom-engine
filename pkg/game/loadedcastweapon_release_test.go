@@ -68,8 +68,8 @@ func TestReleaseLoadedCastWeaponUnequipsToTable(t *testing.T) {
 		t.Fatalf("table holds %d items", len(h.Shop.table))
 	}
 	placed := h.Shop.table[0].ShopItem
-	row, err = cityMutationSource(h.Town.cityObjects, placed.cityID, cityItemLocation{})
+	row, err = cityMutationSource(h.Town.cityObjects, placed.CityID, cityItemLocation{})
 	if err != nil || h.Town.cityObjects.Items[row].Spell != 0 {
-		t.Fatalf("table node %d keeps its Spell edge (%v)", placed.cityID, err)
+		t.Fatalf("table node %d keeps its Spell edge (%v)", placed.CityID, err)
 	}
 }

@@ -28,9 +28,9 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 
 	second := &secondShop{records: secondshop.NewGameRecords, filled: 1}
 	second.shelves[0] = secondShopItems(secondshop.Tables{}, []secondshop.Item{
-		{Kind: secondshop.Magic, Row: 70, Quantity: 1, Price: 40},
-		{Kind: secondshop.Magic, Row: 71, Quantity: 1, Price: 30},
-		{Kind: secondshop.Magic, Row: 72, Quantity: 1, Price: 20},
+		{Table: secondshop.Magic, Row: 70, Count: 1, Price: 40},
+		{Table: secondshop.Magic, Row: 71, Count: 1, Price: 30},
+		{Table: secondshop.Magic, Row: 72, Count: 1, Price: 20},
 	})
 	r := second.rules()
 	for i := range 3 {
@@ -68,6 +68,6 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 
 // magicUnit is n units of the second game's magic item row at price.
 func magicUnit(row, n int, price int64) ShopItem {
-	i, _ := secondShopItem(secondshop.Tables{}, secondshop.Item{Kind: secondshop.Magic, Row: row, Quantity: n, Price: price})
+	i, _ := secondShopItem(secondshop.Tables{}, secondshop.Item{Table: secondshop.Magic, Row: row, Count: int32(n), Price: int32(price)})
 	return i
 }

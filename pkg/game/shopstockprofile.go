@@ -57,10 +57,12 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	weapons := shopPlainShelfPool(allWeapons)
 	magic := append(append([]data.ShopCandidate{}, allArmour...), allWeapons...)
 	ceiling := s.ceiling
+	stack := shopShelfStack(t)
 	order := func(items []ShopItem) []ShopItem {
-		items = shopStackShelf(items)
-		shopSortShelf(items, t)
-		return items
+		if len(items) < 2 {
+			return items
+		}
+		return shopstock.Insert(make([]ShopItem, 0, len(items)), stack, items...)
 	}
 	finish := func(items []ShopItem, _ shopstock.Source) []ShopItem { return order(items) }
 	shelf := func(pool []data.ShopCandidate, n, attempts, again int, mk func(shopStockCandidate, shopstock.Source) (ShopItem, bool)) shopstock.Category[shopStockCandidate, ShopItem] {
@@ -115,15 +117,28 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 		Factor: int(s.stockMultiplier),
 		Source: func() shopstock.Source { return random.NewGo(shopExtraRollSeed(s.drawSeed)) },
 		Join: func(_ int, list, more []ShopItem) []ShopItem {
-			stack := newShopStacker(list)
-			for _, item := range more {
-				stack.add(item)
-			}
-			shopSortShelf(stack.out, t)
-			return stack.out
+			return order(append(list[:len(list):len(list)], more...))
 		},
 	}
 	return p
+}
+
+// shopShelfStack is the first game's stack-key rule (DIV-322, DIV-319):
+// shopItemEqual, effect list included, over shopStackKey; an equal entry
+// takes any units; an opened entry is a clone, sorted by t (nil: unsorted).
+func shopShelfStack(t *mapload.Table) shopstock.Stack[ShopItem, shopStackKey] {
+	return shopstock.Stack[ShopItem, shopStackKey]{
+		Key: func(i ShopItem) shopStackKey {
+			return shopStackKey{cityID: i.CityID, objectID: i.ObjectID, code: i.Code, price: i.Price}
+		},
+		Same: shopItemEqual,
+		Add: func(entry, i ShopItem) ShopItem {
+			entry.Count += i.Count
+			return entry
+		},
+		Copy:  ShopItem.Clone,
+		Order: func(items []ShopItem) { shopSortShelf(items, t) },
+	}
 }
 
 // shopGuaranteedBooks is items with one book of each eligible spell the

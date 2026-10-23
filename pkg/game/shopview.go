@@ -683,7 +683,7 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 	instance := place.ShopItem.Instance()
 	useKey := ""
 	if place.Mine && t.shopDollTakes(instance) {
-		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.ShopItem.cityID, place.From, instance)
+		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.ShopItem.CityID, place.From, instance)
 	}
 	return ui.ShopCell{
 		UseItemKey:  useKey,
