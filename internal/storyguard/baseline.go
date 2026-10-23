@@ -2902,6 +2902,14 @@ package storyguard
 // pkg/sim/guardcircle_test.go, the fixed-damage note in
 // pkg/game/spellclickmana_test.go, and this paragraph. barestorynumber falls with
 // the retired note on the notice margin.
+//
+// CommentBytes rises with the doc comments of the new Invisibility witness,
+// pkg/game/invisibilitywitness_release_test.go, and this paragraph.
+//
+// CommentBytes rises with the cast perception of an own or allied invisible
+// unit, all doc comments on new code: castSeesEntity and ownOrAllied in
+// pkg/sim/sight.go, their tests, the witness now proving it, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2925,5 +2933,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9570705,
+	CommentBytes: 9573269,
 }

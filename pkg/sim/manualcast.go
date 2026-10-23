@@ -205,7 +205,7 @@ func (w *World) manualCastApproach(c Command) bool {
 func (w *World) ownerSees(owner uint32, id EntityID) bool {
 	vi := indexOfEntity(w.entities, id)
 	for j := range w.entities {
-		if vi >= 0 && w.entities[j].Owner == owner && w.entities[j].Alive() && w.actorSeesEntity(j, vi) {
+		if vi >= 0 && w.entities[j].Owner == owner && w.entities[j].Alive() && w.castSeesEntity(j, vi) {
 			return true
 		}
 	}

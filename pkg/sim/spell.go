@@ -978,7 +978,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	healthBefore := target.HP
 	// The second game revalidates perception at release; the first game's
 	// release has no sight gate (MAGIC-403).
-	if w.SecondGame() && !w.actorSeesEntity(ci, vi) {
+	if w.SecondGame() && !w.castSeesEntity(ci, vi) {
 		return false
 	}
 	// A target without a health system spends nothing. A commanded heal on a
@@ -1864,7 +1864,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 		level = caster.Skill[rule.School]
 	}
 	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast))
-	if !skipRange && !w.actorSeesEntity(ci, vi) && !(inReach && w.computerMageGroupSees(ci, vi)) {
+	if !skipRange && !w.castSeesEntity(ci, vi) && !(inReach && w.computerMageGroupSees(ci, vi)) {
 		return refusalTargetNotVisible
 	}
 	if !skipRange && !inReach {

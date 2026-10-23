@@ -542,6 +542,28 @@ func (w *World) actorSeesEntity(i, target int) bool {
 		cellOf(&observer).chebyshevTo(cellOf(&candidate)) <= int64(observer.SeeInvisible)
 }
 
+// castSeesEntity is the book-cast target perception: actorSeesEntity, except
+// that Invisibility does not hide a target its observer's owner owns or holds
+// as an ally (DIV-3996). Terrain sight still applies. Attack acquisition and
+// weapon spells keep actorSeesEntity, so no enemy target changes.
+func (w *World) castSeesEntity(i, target int) bool {
+	if i < 0 || i >= len(w.entities) || target < 0 || target >= len(w.entities) || i == target ||
+		!w.ownOrAllied(&w.entities[i], &w.entities[target]) {
+		return w.actorSeesEntity(i, target)
+	}
+	return w.actorSees(i, cellOf(&w.entities[target]))
+}
+
+// ownOrAllied reports a target of the observer's own player, or of a player
+// the observer's relation row marks allied (relationLocked) and not hostile.
+func (w *World) ownOrAllied(observer, target *Entity) bool {
+	if observer.Owner == 0 || target.Owner == 0 {
+		return false
+	}
+	return observer.Owner == target.Owner ||
+		w.relations.Locked(observer.Owner, target.Owner) && !w.hostileTo(observer, target)
+}
+
 // invisibleToActor narrows the continuing-order gate to Invisibility itself.
 // Ordinary attack orders retain their established acquisition rules; only a
 // target carrying spell 15 is dropped when the observer lacks detection.
