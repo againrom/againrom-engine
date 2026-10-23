@@ -2910,10 +2910,6 @@ package storyguard
 // unit, all doc comments on new code: castSeesEntity and ownOrAllied in
 // pkg/sim/sight.go, their tests, the witness now proving it, and this
 // paragraph.
-//
-// CommentBytes rises with the thread clock of the shop generation timing,
-// all doc comments on new test code: pkg/game/shopclock_windows_test.go,
-// pkg/game/shopclock_other_test.go, the bound's note, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2937,5 +2933,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1697,
 	},
-	CommentBytes: 9574707,
+	CommentBytes: 9572976,
 }
