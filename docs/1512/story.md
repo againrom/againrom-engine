@@ -86,7 +86,7 @@ without CGO. Other systems use one process-local text clipboard. The map
 clipboard remains separate. Clipboard errors preserve the selected text.
 The one clipboard factory supplies the system or memory backend. UI/starter
 tests and headless runs use memory. The Windows test that accesses the real
-clipboard requires `AGAINROM_TEST_SYSTEM_CLIPBOARD=1` before any API call.
+clipboard compiles only with `-tags systemclipboard`.
 That test is not run in the continuation. Starter Windows paste reads the
 same interface; starter paste on other platforms remains disabled.
 Paste normalises CRLF and CR to LF. Single-line inputs replace LF with a

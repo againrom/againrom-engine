@@ -1,14 +1,10 @@
+//go:build systemclipboard
+
 package ui
 
-import (
-	"os"
-	"testing"
-)
+import "testing"
 
 func TestWindowsEditorClipboardRoundTrip(t *testing.T) {
-	if os.Getenv("AGAINROM_TEST_SYSTEM_CLIPBOARD") != "1" {
-		t.Skip("real clipboard requires AGAINROM_TEST_SYSTEM_CLIPBOARD=1")
-	}
 	desktop, _, err := clipboardUser.NewProc("OpenInputDesktop").Call(0, 0, 0x100)
 	if desktop == 0 {
 		t.Skipf("no interactive desktop: %v", err)
