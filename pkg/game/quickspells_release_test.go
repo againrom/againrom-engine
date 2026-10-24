@@ -343,16 +343,14 @@ func quickSpellsPausedViewportWitness(t *testing.T) {
 	v := f.live.view
 	id := f.live.mission.ids[0]
 	e, _ := f.live.entity(id)
-	if e.KnownSpells != 0 || !f.live.stopped || v.Camera().ViewH != 593 {
+	if e.KnownSpells != 0 || !f.live.stopped || v.Camera().ViewH != 678 {
 		t.Fatalf("fixture: known%#x stopped%v height%d", e.KnownSpells, f.live.stopped, v.Camera().ViewH)
 	}
 	// Put the hero under the band the open book reserves: an obscured target
 	// stays obscured, and opening the book neither moves the camera nor
 	// advances the world.
-	// Close the book to place the hero in its band, then open it.
-	if err := a.HeadlessKey("book"); err != nil {
-		t.Fatal(err)
-	}
+	// The mission opens with the book closed: place the hero in its band,
+	// then open it.
 	v.Camera().Pan(0, -pausedBookBarPx)
 	if _, _, err := a.HeadlessEntityPoint(uint32(id)); err != nil {
 		t.Fatalf("fixture: hero must be pickable before the book opens: %v", err)

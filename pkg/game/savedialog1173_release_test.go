@@ -549,25 +549,7 @@ func saveDialogArrivedTown(t *testing.T, dir string) (*FrontEnd, *ui.App) {
 	}
 	// Control only the terminal prerequisite; the notice and homeward route
 	// must perform the actual arrival before any city SAVE is offered.
-	w := f.live.world
-	clock, hasClock := w.SessionClock()
-	session := sim.OriginalSession{HasClock: hasClock, Clock: clock, Registers: w.ScriptRegisters(),
-		RawHead: w.RawSessionHead(), RawMid: w.RawSessionMid(), TriggerLatches: make([]byte, 1000),
-		Diplomacy: make([]byte, 2500), Won: 1, Outcome: sim.OutcomeWon}
-	for i := range session.TriggerLatches {
-		if w.ScriptLatched(int32(i)) {
-			session.TriggerLatches[i] = 1
-		}
-	}
-	relations := w.Relations()
-	for i := range 50 {
-		for j := range 50 {
-			session.Diplomacy[i*50+j] = relations.Byte(uint32(i), uint32(j))
-		}
-	}
-	if err := w.ImportOriginalSession(session); err != nil {
-		t.Fatal(err)
-	}
+	importWonSession(t, f.live.world)
 	for frame := 0; frame < 180; frame++ {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)
@@ -728,5 +710,30 @@ func TestReleaseSaveDialog1173NewGameMission30RepairsPermanentMercenaryList(t *t
 	literalWant := []uint16{14, 6, 13, 4, 7, 3, 2, 9, 12}
 	if !slices.Equal(proj.PermanentMercenaries, literalWant) {
 		t.Fatalf("PermanentMercenaries = %v, want the literal %v", proj.PermanentMercenaries, literalWant)
+	}
+}
+
+// importWonSession makes the live mission won through the original session
+// import, keeping its clock, registers, latches and diplomacy, so the ordinary
+// Victory route runs next.
+func importWonSession(t *testing.T, w *sim.World) {
+	t.Helper()
+	clock, hasClock := w.SessionClock()
+	session := sim.OriginalSession{HasClock: hasClock, Clock: clock, Registers: w.ScriptRegisters(),
+		RawHead: w.RawSessionHead(), RawMid: w.RawSessionMid(), TriggerLatches: make([]byte, 1000),
+		Diplomacy: make([]byte, 2500), Won: 1, Outcome: sim.OutcomeWon}
+	for i := range session.TriggerLatches {
+		if w.ScriptLatched(int32(i)) {
+			session.TriggerLatches[i] = 1
+		}
+	}
+	relations := w.Relations()
+	for i := range 50 {
+		for j := range 50 {
+			session.Diplomacy[i*50+j] = relations.Byte(uint32(i), uint32(j))
+		}
+	}
+	if err := w.ImportOriginalSession(session); err != nil {
+		t.Fatal(err)
 	}
 }

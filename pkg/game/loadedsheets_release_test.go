@@ -123,6 +123,12 @@ func TestReleaseOwnerSaveCreaturesKeepTheirSheets(t *testing.T) {
 	if err := a.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	// The pane draws the book corner: show the book as the loaded save does.
+	if f.live.view.SaveApplication().SpellBookOpen != g.live.view.SaveApplication().SpellBookOpen {
+		if err := a.HeadlessKey("book"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.HeadlessKey("0"); err != nil {
 		t.Fatal(err)
 	}

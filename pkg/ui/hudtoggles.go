@@ -70,3 +70,12 @@ func (v *Viewer) toggleHudPanel(p hudPanel) {
 func (v *Viewer) hudToggleBar() (image.Rectangle, bool) {
 	return hudToggleBarRect(image.Pt(v.frameW, v.frameH))
 }
+
+// SetSpellBookShown sets the spellbook switch to the given value, as the
+// player's own toggle would, without the toggle's sound. The caller that opens
+// a mission passes the game's mission-start state; every other switch keeps
+// the viewer's own default.
+func (v *Viewer) SetSpellBookShown(shown bool) {
+	v.hudHidden[hudPanelBook] = !shown
+	v.syncMapViewport()
+}

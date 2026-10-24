@@ -116,6 +116,10 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 	if err := a.HeadlessSelectEntity(uint32(f.live.mission.ids[0])); err != nil {
 		return err
 	}
+	// A first-game mission opens with the book closed; the HUD captures show it open.
+	if err := f.openMissionBook(a); err != nil {
+		return err
+	}
 	f.live.push()
 	minimap, err := a.HeadlessMinimap()
 	if err != nil || minimap.Bounds().Size() != image.Pt(176, 158) {
@@ -343,6 +347,10 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	if err := a.HeadlessSelectEntity(uint32(f.live.mission.ids[0])); err != nil {
 		return err
 	}
+	// A first-game mission opens with the book closed; the HUD captures show it open.
+	if err := f.openMissionBook(a); err != nil {
+		return err
+	}
 	f.live.push()
 	if err := a.HeadlessKey("0"); err != nil {
 		return err
@@ -411,4 +419,12 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	}
 	fmt.Fprintln(report, "fidelity: original bottom HUD=864x175; atlas=24 row-major slots; pointer-selected every real ID; F5 numeral and installed inventory written; shop shares atlas, order and localized hovers; wide book=1206x85 without internal closing seam")
 	return nil
+}
+
+// openMissionBook opens the spellbook of a mission that started with it closed.
+func (f *FrontEnd) openMissionBook(a *ui.App) error {
+	if !filesOf(f.Archives.Game()).missionBookClosed {
+		return nil
+	}
+	return a.HeadlessKey("book")
 }

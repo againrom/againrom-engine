@@ -24,10 +24,7 @@ func TestReleaseMapMarqueeEndsOnCommandPanel(t *testing.T) {
 	if err := a.HeadlessKey("0"); err != nil {
 		t.Fatal(err)
 	}
-	// The installed layout initially shows the book along the left edge.
-	if err := a.HeadlessKey("book"); err != nil {
-		t.Fatal(err)
-	}
+	// A mission opens with the book closed, so the left edge is open map.
 	actor, ok := live.entity(id)
 	if !ok {
 		t.Fatal("missing party actor")

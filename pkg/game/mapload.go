@@ -252,6 +252,7 @@ func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallback
 	if err != nil {
 		return nil, err
 	}
+	viewer.SetSpellBookShown(!filesOf(g).missionBookClosed)
 
 	// Cells are derived once and handed over per overlay. An overlay that was
 	// not asked for is left at its zero state rather than set to "off with

@@ -877,3 +877,16 @@ func TestTheWheelOverThePackScrollsItInsteadOfZooming(t *testing.T) {
 		t.Fatalf("wheel over the map: scroll %d zoom %v, want 0 and a changed zoom", v.packScrollAt(cols), v.cam.Zoom)
 	}
 }
+
+// SetSpellBookShown writes the value it is given to the book switch alone.
+func TestSetSpellBookShownWritesOnlyTheBook(t *testing.T) {
+	v := inventoryTestApp(t).flow.viewer
+	for _, shown := range []bool{false, true} {
+		v.SetSpellBookShown(shown)
+		for p := hudPanel(0); p < hudPanelCount; p++ {
+			if want := shown || p != hudPanelBook; v.hudShown(p) != want {
+				t.Errorf("book set to %v: switch %q shown %v, want %v", shown, hudToggleLabels[p], v.hudShown(p), want)
+			}
+		}
+	}
+}

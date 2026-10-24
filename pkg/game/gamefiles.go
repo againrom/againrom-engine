@@ -59,15 +59,20 @@ type gameFiles struct {
 	// block, written on SAVE and read on LOAD (AI-WITHDRAW-027); no
 	// second-game claim places them there.
 	orderThresholds bool
+	// missionBookClosed opens a new mission with the spellbook switched off,
+	// as the first game's own mission-start saves store it (DIV-4020); no
+	// second-game claim states its mission-start panels.
+	missionBookClosed bool
 }
 
 var firstGameFiles = gameFiles{
-	boundedSaveView: true,
-	orderThresholds: true,
-	table:           databin.ROM1Layout,
-	openMap:         alm.Open,
-	compileScript:   mapload.CompileScript,
-	loadMenu:        menu.Load,
+	boundedSaveView:   true,
+	orderThresholds:   true,
+	missionBookClosed: true,
+	table:             databin.ROM1Layout,
+	openMap:           alm.Open,
+	compileScript:     mapload.CompileScript,
+	loadMenu:          menu.Load,
 	briefing: func(src entrySource, _ base.Edition, mission int) string {
 		return MissionObjectives(src, mission)
 	},

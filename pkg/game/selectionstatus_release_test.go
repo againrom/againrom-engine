@@ -153,7 +153,7 @@ func TestReleaseMissionPaneAndCardStateTheSelectedCount(t *testing.T) {
 		pane = image.NewRGBA(image.Rect(0, 0, seam+bodyW, bodyH))
 		ui.DrawTownCharacterRegion(pane, ui.TownCharacterView{
 			Session: ui.CharacterPaneMission, ScreenH: ui.MissionFrameH, ModeFlag: true,
-			PaneRect: local, PackOpen: true, BookOpen: true, CornerArt: f.characterPaneCorners(),
+			PaneRect: local, PackOpen: true, BookOpen: false, CornerArt: f.characterPaneCorners(),
 			FigurePane: panes.Figure, StatsPane: panes.Stats, Font: chrome, CardFont: font,
 		})
 		card = image.NewRGBA(pane.Bounds())

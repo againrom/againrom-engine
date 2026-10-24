@@ -2942,6 +2942,14 @@ package storyguard
 // pkg/game/mapinspectionterrain.go and mapinspectionselection.go, the window's
 // seed prompt, box copy and height numbers in pkg/ui, their tests, and this
 // paragraph.
+//
+// CommentBytes rises with a mission that opens with the spellbook closed in the
+// first game: the gameFiles field and its value in pkg/game/gamefiles.go, the
+// viewer's book setter in pkg/ui/hudtoggles.go, one-line notes where pkg/game
+// release tests now open or expect the closed book, the book notes in
+// pkg/game/owner_fidelity_witness.go, the new release tests in
+// pkg/game/missionentrybook_release_test.go, the shared won-session helper in
+// pkg/game/savedialog1173_release_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2965,5 +2973,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9626186,
+	CommentBytes: 9629161,
 }
