@@ -1,0 +1,15 @@
+# East is town 2 of east-town, which offers mission 31.
+
+# NPC record 30 talks in East, with nothing to give.
+[[tavern]]
+town    = 2
+chapter = 30
+npc     = 30
+mission = 0
+
+# NPC record 52 offers East's mission 31.
+[[tavern]]
+town    = 2
+chapter = 30
+npc     = 52
+mission = 31

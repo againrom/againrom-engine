@@ -67,6 +67,8 @@ type townBook struct {
 	art          map[*town.Description]map[string][]byte
 	// loads are the deferred art reads of each description in art.
 	loads map[*town.Description]*townArtLoads
+	// addedTavern are the catalog's tavern rows a mod added over layer 0.
+	addedTavern map[town.TavernKey]bool
 }
 
 // modArt is the files a mod carries for description d's art; nil for a

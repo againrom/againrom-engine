@@ -102,8 +102,13 @@ func (b *modFiles) serveInstallFiles(a *Archives, files []mod.InstallFile) error
 	code := InstallTextCode(a.Containers, a.Game().Edition())
 	for _, file := range files {
 		installed, err := b.installed(file.Address)
+		if errors.Is(err, fs.ErrNotExist) && file.Kind == mod.FileText && isTavernTalkLeaf(file.Address) {
+			// A tavern row a mod adds speaks a talk text the install
+			// lacks; only that folder takes a new path.
+			err = nil
+		}
 		if errors.Is(err, fs.ErrNotExist) {
-			return file.Errorf("the install holds no file %s; a mod shadows a file the archives %s hold", file.Address, strings.Join(shadowedArchives(), ", "))
+			return file.Errorf("the install holds no file %s; a mod shadows a file the archives %s hold, and adds a file only as a tavern talk text %s", file.Address, strings.Join(shadowedArchives(), ", "), tavernTalkLeafForm)
 		}
 		if err != nil {
 			return file.Errorf("the install's file %s: %v", file.Address, err)
@@ -132,6 +137,21 @@ func (b *modFiles) serveInstallFiles(a *Archives, files []mod.InstallFile) error
 		}
 	}
 	return nil
+}
+
+// tavernTalkLeafForm is the form of a tavern talk text's path.
+const tavernTalkLeafForm = mainPrefix + "text/inn/npc/npc<NN>m<M>.txt"
+
+// isTavernTalkLeaf reports whether address is a tavern talk text's path as
+// TownNPCTextPath forms it, case folded.
+func isTavernTalkLeaf(address string) bool {
+	var npc, mission int
+	folded := mod.FoldAddress(address)
+	if _, err := fmt.Sscanf(folded, mainPrefix+"text/inn/npc/npc%dm%d.txt", &npc, &mission); err != nil {
+		return false
+	}
+	path, ok := TownNPCTextPath(npc, mission)
+	return ok && mod.FoldAddress(path) == folded
 }
 
 // installed is the install's own bytes at address, out of the archives or

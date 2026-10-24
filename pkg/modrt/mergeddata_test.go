@@ -61,7 +61,7 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order"},
 		"items":      {"Mods", "Order"}}
 	// Lists a kind gained, read without them when a mod declares none.
-	addedLists := map[string][]string{"items": {"Materials", "Weapons"}}
+	addedLists := map[string][]string{"items": {"Materials", "Weapons"}, "towns": {"Tavern"}}
 	kinds := []struct {
 		name  string
 		empty bool

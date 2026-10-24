@@ -31,7 +31,7 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	}
 	c := f.Campaign.Value()
 	if err := f.Campaign.Err(); err != nil {
-		return nil, d.Records[0].Errorf("the install's campaign is unavailable for its towns: %v", err)
+		return nil, d.First().Errorf("the install's campaign is unavailable for its towns: %v", err)
 	}
 	// A stated point stands inside the picture of every mode of the map.
 	bounds := func() (b image.Rectangle, ok bool) {
@@ -73,6 +73,10 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	if f.SoundBank != nil && f.SoundBank.src != nil {
 		in.Sound = f.SoundBank.holdsNamed
 	}
+	in.Text = in.Entry
+	if f.NPCFaces != nil {
+		in.NPC = func(npc int) bool { _, ok := f.NPCFaces[int32(npc)]; return ok }
+	}
 	book, list, err := layerTownBook(townBookOf(profile), d, c, bounds, encode, in)
 	if err != nil {
 		return nil, err
@@ -93,7 +97,7 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 // the alphabet lacks, and in answers what the install holds for the art,
 // music and sounds a mod's description names.
 func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (image.Rectangle, bool), encode func(string) (string, error), in modTownInstall) (*townBook, []mod.Override, error) {
-	first := d.Records[0]
+	first := d.First()
 	if base == nil {
 		return nil, nil, first.Errorf("this base has no town catalog to layer")
 	}
@@ -212,7 +216,15 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 		}
 		book.art[desc] = art
 	}
-	return book, l.Overrides, nil
+	overrides := l.Overrides
+	if len(d.Tavern) > 0 {
+		rows, err := layerTavern(book, d, c, in)
+		if err != nil {
+			return nil, nil, err
+		}
+		overrides = append(overrides, rows...)
+	}
+	return book, overrides, nil
 }
 
 // townCatalogTakesLayer reports whether a mod's towns layer applies over c:
@@ -251,7 +263,12 @@ func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 		layer.note = fmt.Sprintf("%s: the install's town title % x does not read back from UTF-8; name is left out", mod.TownsFile, f.Words.WorldHomeTitle)
 		head = append(head, layer.note+".")
 	}
-	data, err := mod.WriteTowns(head, entries)
+	var rows []town.TavernRow
+	if c := f.Campaign.Value(); layer.read && f.Campaign.Err() == nil {
+		rows = scenarioTavern(c, book.chapterTowns())
+		head = append(head, "Each [[tavern]] table is a tavern row of the scenario; keep town, chapter and npc of a row you change.")
+	}
+	data, err := mod.WriteTowns(head, entries, rows...)
 	if err != nil {
 		return baseDumpLayer{}, err
 	}
@@ -338,6 +355,10 @@ type modTownInstall struct {
 	Track func(name string) bool
 	// Sound reports whether the install's sounds hold a named sample.
 	Sound func(key string) bool
+	// Text reports whether the install or a loaded mod holds a text file.
+	Text func(path string) bool
+	// NPC reports whether the install's NPC table holds a record.
+	NPC func(npc int) bool
 }
 
 // check refuses a description that names an art entry, a music track or a

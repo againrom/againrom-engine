@@ -388,7 +388,7 @@ func nativeCampaignProjectionForChapter(f *FrontEnd, s Snapshot, chapter int) (s
 	if err != nil {
 		return sav.CampaignProjection{}, err
 	}
-	ch := f.Campaign.Value().Chapters[chapter]
+	ch := f.Campaign.Value().chapter(chapter)
 	main := progressRecordFromCampaign(f.Campaign.Value(), chapter).savRecord(false)
 	if record := t.currentRecords().record(chapter); record != nil {
 		main = record.savRecord(false)

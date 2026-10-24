@@ -1,0 +1,2 @@
+<part=1 npc=32>
+Forget the other errand. This one pays better.

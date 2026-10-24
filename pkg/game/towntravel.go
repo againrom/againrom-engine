@@ -88,19 +88,13 @@ func (c Campaign) checkTowns() error {
 	if len(towns) < 2 || len(c.Offered) == 0 {
 		return nil
 	}
-	listed := map[int]bool{}
-	for _, e := range towns {
-		for _, m := range e.Missions {
-			listed[m] = true
-		}
-	}
 	reached := map[int]bool{}
 	open := make([]bool, len(towns))
 	var start []int
 	enter := func(i int) {
 		open[i] = true
 		for _, m := range c.Offered {
-			if own := towns[i].Missions; len(own) > 0 && slices.Contains(own, m) || len(own) == 0 && !listed[m] {
+			if townOffersMission(towns[i], towns, m) {
 				reached[m] = true
 			}
 		}
@@ -183,15 +177,29 @@ func (t *Town) offeredHere(m int) bool {
 	if !t.manyTowns() {
 		return true
 	}
-	if own := t.townEntry().Missions; len(own) > 0 {
-		return slices.Contains(own, m)
+	return townOffersMission(t.townEntry(), t.camp.Towns.chapterTowns(), m)
+}
+
+// townOffersMission reports whether town e of towns offers mission m: the
+// missions e lists, or, when it lists none, every mission no town lists.
+func townOffersMission(e town.Entry, towns []town.Entry, m int) bool {
+	if len(e.Missions) > 0 {
+		return slices.Contains(e.Missions, m)
 	}
-	for _, e := range t.camp.Towns.chapterTowns() {
-		if slices.Contains(e.Missions, m) {
-			return false
-		}
+	return !slices.ContainsFunc(towns, func(o town.Entry) bool { return slices.Contains(o.Missions, m) })
+}
+
+// tavernHere reports whether the party's town's tavern shows NPC record
+// npc's row offering mission m: a row a mod added shows in its own town,
+// every other row in the town that offers its mission.
+func (t *Town) tavernHere(npc, m int) bool {
+	if !t.manyTowns() {
+		return true
 	}
-	return true
+	if r, added := t.camp.Towns.addedTavernRow(t.ChapterData().Mission, npc); added {
+		return r.Town == t.townID()
+	}
+	return t.offeredHere(m)
 }
 
 // currentTowns is the first game's town record in the SAV's session leaf:

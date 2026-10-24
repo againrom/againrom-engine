@@ -1,0 +1,30 @@
+# Chapter 50's tavern of town 1. The install's rows are npc 25 (a talk),
+# npc 64 (mission 50) and npc 32 (mission 51).
+
+# NPC record 41 talks, with nothing to give.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 41
+mission = 0
+
+# NPC record 52 offers mission 51.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 52
+mission = 51
+
+# NPC record 32 offers mission 31 instead of 51.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 32
+mission = 31
+
+# NPC record 25's talk is switched off.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 25
+off     = true

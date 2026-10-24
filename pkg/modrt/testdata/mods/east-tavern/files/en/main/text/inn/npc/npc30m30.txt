@@ -1,0 +1,2 @@
+<part=1 npc=30>
+Welcome to East. Few travellers find their way here.

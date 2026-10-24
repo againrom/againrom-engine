@@ -198,14 +198,17 @@ var dataKinds = []DataKind{
 		Script: true, read: readMissions,
 	},
 	{
-		Name: "towns", Files: []string{TownsFile}, Key: "`id`",
+		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`",
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
-		Base:   "the install's town catalog",
-		Shared: mergedShared + "; `off` switches a town off",
+		Base:   "the install's town catalog; its tavern rows are the scenario's",
+		Shared: mergedShared + "; `off` switches a town or a tavern row off",
 		Script: true, read: readTowns,
 		summary: func(d Data) string {
 			if d.Towns.Empty() {
 				return ""
+			}
+			if len(d.Towns.Tavern) > 0 {
+				return fmt.Sprintf("town records=%d tavern rows=%d", len(d.Towns.Records), len(d.Towns.Tavern))
 			}
 			return fmt.Sprintf("town records=%d", len(d.Towns.Records))
 		},

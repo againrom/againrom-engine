@@ -1,0 +1,8 @@
+id          = "tavern-rows"
+title       = "Tavern rows"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Chapter 50's tavern gains a talk and a quest, one quest offers another mission, and one talk is switched off."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

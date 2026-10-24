@@ -14,7 +14,7 @@ type SnapshotCampaignRecords struct {
 
 func newCampaignRecords(c Campaign, main int) campaignRecords {
 	r := campaignRecords{main: progressRecordFromCampaign(c, main)}
-	for _, mission := range candidateSides(c.Chapters[main]) {
+	for _, mission := range candidateSides(c.chapter(main)) {
 		r.children = append(r.children, progressRecordFromCampaign(c, mission))
 	}
 	return r
@@ -33,7 +33,7 @@ func (r *campaignRecords) loadMain(c Campaign, main int, announced bool) {
 	r.children = kept
 	r.main = progressRecordFromCampaign(c, main)
 	r.main.announced = announced
-	for _, mission := range candidateSides(c.Chapters[main]) {
+	for _, mission := range candidateSides(c.chapter(main)) {
 		if !seen[mission] {
 			r.children = append(r.children, progressRecordFromCampaign(c, mission))
 			seen[mission] = true

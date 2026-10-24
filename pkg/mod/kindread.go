@@ -121,10 +121,11 @@ func readMissions(r DataReader, d *Data, rel string, src []byte) error {
 // refuses the launch at its line; the catalog decoder judges it when the
 // layer is applied.
 func readTowns(r DataReader, d *Data, rel string, src []byte) error {
-	records, err := ParseTowns(r.Mod, rel, src)
+	records, rows, err := ParseTowns(r.Mod, rel, src)
 	if err != nil {
 		return err
 	}
+	d.Towns.Tavern = append(d.Towns.Tavern, rows...)
 	for i := range records {
 		t := &records[i]
 		t.Dir = r.Dir

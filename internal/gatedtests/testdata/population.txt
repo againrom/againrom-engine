@@ -1449,3 +1449,7 @@ pkg/game.TestReleaseCatalogGuestMemberCoverage
 pkg/game.TestReleaseMissionEntrySavesTheSpellBookClosed
 pkg/game.TestReleaseMissionStartsWithTheGamesOwnSpellBook
 pkg/game.TestReleaseOriginalStartSaveLoadsItsStoredSpellBook
+pkg/game.TestReleaseTavernRowKeyIsUnique
+pkg/game.TestReleaseTavernModOldSave
+pkg/game.TestReleaseTavernModRowsSaveAndLoad
+pkg/game.TestReleaseTavernModTownRows

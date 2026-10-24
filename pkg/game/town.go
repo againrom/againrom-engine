@@ -729,7 +729,7 @@ func (t *Town) ChapterData() Chapter {
 		return t.progress.chapter()
 	}
 	main := t.Chapter()
-	chapter := t.camp.Chapters[main]
+	chapter := t.camp.chapter(main)
 	chapter.Mission = main
 	return chapter
 }
@@ -767,7 +767,12 @@ func (t *Town) Offers(b TownBuilding) []TownOffer {
 	if !t.manyTowns() {
 		return rows
 	}
-	return slices.DeleteFunc(rows, func(o TownOffer) bool { return !t.offeredHere(o.Mission) })
+	return slices.DeleteFunc(rows, func(o TownOffer) bool {
+		if b == TownTavern {
+			return !t.tavernHere(o.NPC, o.Mission)
+		}
+		return !t.offeredHere(o.Mission)
+	})
 }
 
 // chapterOffers is the live chapter's un-taken rows for one building, every
@@ -827,13 +832,13 @@ func (t *Town) TavernRoster() []TownOffer {
 	if !t.Open() {
 		return live
 	}
-	registry := t.camp.Chapters[t.ChapterData().Mission]
+	registry := t.camp.chapter(t.ChapterData().Mission)
 	rows := min(len(registry.Inn), len(registry.InnNPC))
 	out := make([]TownOffer, 0, max(rows, len(live)))
 	next := 0
 	for i := 0; i < rows; i++ {
 		npc, mission := registry.InnNPC[i], registry.Inn[i]
-		if !t.offeredHere(mission) {
+		if !t.tavernHere(npc, mission) {
 			continue
 		}
 		found := -1
