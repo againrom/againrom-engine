@@ -1453,3 +1453,6 @@ pkg/game.TestReleaseTavernRowKeyIsUnique
 pkg/game.TestReleaseTavernModOldSave
 pkg/game.TestReleaseTavernModRowsSaveAndLoad
 pkg/game.TestReleaseTavernModTownRows
+pkg/game.TestReleaseTriggerMessageEditsAndUndo
+pkg/game.TestReleaseTriggerMessageFrames
+pkg/ui.TestWindowsEditorClipboardRoundTrip
