@@ -104,4 +104,5 @@ adds has rows of its own. The base first-game town keeps the rows
   cannot name a mod row.
 - With two towns that list no missions, a row a mod adds shows in its own
   town only, where a scenario row shows in both.
-- A mod talk text has no speech; the talk is silent.
+- A mod talk text has no voice file: mods do not serve `speech.res`. That
+  the talk then plays no voice is inferred from that rule, not measured.
