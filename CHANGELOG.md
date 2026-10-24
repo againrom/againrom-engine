@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.134.0
+
 ### For players
 
 - [ROM1] [ROM2] A spell that was selected when the game was saved stays selected after loading, but with the spellbook closed a click on the map no longer casts it; it casts again once the book is open, or with C, as before the save.
