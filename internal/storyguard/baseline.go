@@ -2968,6 +2968,11 @@ package storyguard
 // checkJoinTalk and the Joins field of modTownInstall, the one talk text
 // chooser tavernTalkTextPath and its scan in internal/archtest, their tests,
 // and this paragraph.
+//
+// CommentBytes rises with the new expectations of four release tests: the
+// dumped towns line with tavern rows, a message page committed by its choice,
+// a mission pane with the book closed, the scenario's pack-only toggles, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2991,5 +2996,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9640410,
+	CommentBytes: 9641080,
 }

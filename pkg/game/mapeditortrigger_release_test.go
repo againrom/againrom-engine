@@ -228,11 +228,14 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 		index := e.Document().Records[n.Record].Index
 		var want []ui.InspectionFieldValue
 		if !condition && n.Opcode == 2 && s == 0 && n.Types[s] == 1 {
+			// An existing page chosen with no other field pending is
+			// itself the one edit; Apply then has nothing to write.
 			chosen := false
 			for row, target := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
 				if !target.NewMessage && target.Value != n.Values[s] {
+					before := e.Document().SourceBytes
 					chooseRow(field, row)
-					want = []ui.InspectionFieldValue{value(fmt.Sprintf("value%d", s), int64(target.Value))}
+					check(what, before, fields(kind, index, value(fmt.Sprintf("value%d", s), int64(target.Value))))
 					chosen = true
 					break
 				}
@@ -254,7 +257,9 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 			typeInto(field, strconv.FormatInt(v, 10))
 			want = []ui.InspectionFieldValue{value(fmt.Sprintf("value%d", s), v)}
 		}
-		apply(what, func() *ui.InspectionDocument { return fields(kind, index, want...) })
+		if want != nil {
+			apply(what, func() *ui.InspectionDocument { return fields(kind, index, want...) })
+		}
 		r, ok = e.PopupButtonRect(2)
 		trigClick(t, e, r, ok, "Back")
 		if v := e.Document().Records[e.Selected()]; v.Kind != "Trigger" {

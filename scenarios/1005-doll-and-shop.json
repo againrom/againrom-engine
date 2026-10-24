@@ -598,20 +598,12 @@
       "key": "i"
     },
     {
-      "command": "key",
-      "key": "b"
-    },
-    {
       "command": "select_member",
       "id": "npc:22"
     },
     {
       "command": "key",
       "key": "i"
-    },
-    {
-      "command": "key",
-      "key": "b"
     },
     {
       "command": "wait_ticks",
@@ -792,10 +784,6 @@
     {
       "command": "key",
       "key": "i"
-    },
-    {
-      "command": "key",
-      "key": "b"
     },
     {
       "command": "wait_ticks",

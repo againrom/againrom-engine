@@ -273,10 +273,11 @@ func releaseMissionFigurePane(f *FrontEnd, figure *image.RGBA) *image.RGBA {
 		ScreenH:    ui.MissionFrameH,
 		// The fixed 1024x768 mission frame leaves 288 rows below the
 		// 242-row pane, so the original's mode-control gate is closed.
-		ModeFlag:  true,
-		PaneRect:  image.Rect(paneSeamW, 0, paneSeamW+paneW, paneH),
-		PackOpen:  true,
-		BookOpen:  true,
+		ModeFlag: true,
+		PaneRect: image.Rect(paneSeamW, 0, paneSeamW+paneW, paneH),
+		PackOpen: true,
+		// A new first-game mission opens with the book closed (DIV-4020).
+		BookOpen:  false,
 		CornerArt: f.characterPaneCorners(),
 		Font:      f.Font.Value(),
 	})

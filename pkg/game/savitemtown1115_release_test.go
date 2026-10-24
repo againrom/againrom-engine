@@ -26,6 +26,8 @@ func TestReleaseItemOwners1115TownAndNextMissionEquipment(t *testing.T) {
 	f.SetDeterministicFrames(true)
 	app := f.App("item ownership across town and next mission")
 	app.SetSaveSeams(f.SaveSeams(SaveStore{Dir: scenario.Saves}, OriginalStore{Dir: scenario.OriginalSaves}, nil))
+	// Mission 30 opens with the book closed (DIV-4020), so the scenario
+	// toggles only the pack around the NPC selection and after LOAD.
 	// Mission 30 builds its item registry from the town's party, rather than
 	// the completed mission-20 World. Locate the gates and SAVE by their input.
 	steps := scenario.Steps

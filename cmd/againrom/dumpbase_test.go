@@ -57,8 +57,9 @@ func TestDumpBaseWritesAModFolderAndRefuses(t *testing.T) {
 }
 
 // On the install the dumped folder is a mod -check accepts: the summary is
-// the one without it, followed by the mod's lines and one town record, and
-// no override is reported.
+// the one without it, followed by the mod's lines, one town record and the
+// scenario's tavern rows the dump writes (22 on EN and RU, as
+// TestReleaseTavernRowKeyIsUnique measures), and no override is reported.
 func TestReleaseDumpBaseWritesAModTheCheckAccepts(t *testing.T) {
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
@@ -74,7 +75,7 @@ func TestReleaseDumpBaseWritesAModTheCheckAccepts(t *testing.T) {
 		t.Fatalf("plain check exit %d", code)
 	}
 	code, withMod, stderr := checkRun(t, []string{"-assets", root, "-check", "-picker", "-mods", "base-dump", "-mods-dir", mods}, "")
-	if code != 0 || !strings.HasPrefix(withMod, plain) || !strings.Contains(withMod, "againrom: town records=1\n") || strings.Contains(stderr, "override") {
+	if code != 0 || !strings.HasPrefix(withMod, plain) || !strings.Contains(withMod, "againrom: town records=1 tavern rows=22\n") || strings.Contains(stderr, "override") {
 		t.Fatalf("check with the dump: exit %d\n%s\nvs\n%s\nerr %q", code, withMod, plain, stderr)
 	}
 }
