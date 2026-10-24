@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -212,8 +211,8 @@ func TestReleaseOriginalStartSaveLoadsItsStoredSpellBook(t *testing.T) {
 }
 
 // TestReleaseMissionStartsWithTheGamesOwnSpellBook opens mission 10 through
-// the production new-game route on the root under test. The first game's
-// missions start with the book closed, the second game's with it shown.
+// the production new-game route on the root under test. Missions of both
+// games start with the book closed.
 func TestReleaseMissionStartsWithTheGamesOwnSpellBook(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
@@ -223,9 +222,8 @@ func TestReleaseMissionStartsWithTheGamesOwnSpellBook(t *testing.T) {
 	if err := app.OpenMission(f.DirectNewGame(10)); err != nil {
 		t.Fatal(err)
 	}
-	wantShown := f.Archives.Game() == base.GameROM2
-	if got := f.live.view.SaveApplication().SpellBookOpen; got != wantShown {
-		t.Errorf("game %q: mission 10 starts with the book shown %v, want %v", f.Archives.Game(), got, wantShown)
+	if got := f.live.view.SaveApplication().SpellBookOpen; got {
+		t.Errorf("game %q: mission 10 starts with the book shown", f.Archives.Game())
 	}
 	if got := f.live.view.SaveApplication().InventoryOpen; !got {
 		t.Error("the pack switch is off at the mission start")

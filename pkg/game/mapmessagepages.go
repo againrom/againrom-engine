@@ -116,6 +116,27 @@ func messageHeader(raw string) (string, string, bool) {
 	return "", "", false
 }
 
+// speakerRoles are the speakers whose person depends on the hero the player
+// chose first, so the list labels each by role (its word) instead of by name.
+var speakerRoles = []struct {
+	ID   int64
+	Word string
+}{
+	{ID: 21, Word: "editor.message.role.21"},
+	{ID: 22, Word: "editor.message.role.22"},
+	{ID: 23, Word: "editor.message.role.23"},
+	{ID: 24, Word: "editor.message.role.24"},
+}
+
+func (x *MapInspector) speakerRole(id int64) (string, bool) {
+	for _, r := range speakerRoles {
+		if r.ID == id {
+			return x.word(r.Word), true
+		}
+	}
+	return "", false
+}
+
 func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
 	if s.prepareWorkspace() != nil {
 		return nil
@@ -134,6 +155,10 @@ func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
 		for _, e := range x.table.NPCCatalog.Records() {
 			id := int64(e.ID)
 			if id > 255 {
+				continue
+			}
+			if role, ok := x.speakerRole(id); ok {
+				choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(role))})
 				continue
 			}
 			name := e.Name

@@ -21,7 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM1] [ROM2] An invisible unit stays visible to the spells of its own side and its allies: automatic casting keeps renewing Bless, Haste and the other support spells on it, and a spell cast at it from the book starts from the normal cast range instead of the mage walking up to it and waiting. Enemies still do not see it unless they can detect invisible units nearby.
 - [ROM1] A Teleport to a neighbouring cell now shows the same short jump whether or not the caster had just walked; before, a caster that had walked first appeared to snap to the new cell without the jump.
-- [ROM1] A new mission now starts with the spellbook closed, as in the original. A save made at the start of a mission no longer opens the spellbook when the original loads it; a save made after you open or close the book keeps your choice.
+- [ROM1] [ROM2] A new mission now starts with the spellbook closed (as in the original first game; the second game is assumed to match). A save made at the start of a mission no longer opens the spellbook when the original loads it; a save made after you open or close the book keeps your choice.
 
 ### For map makers and modders
 
@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 - [ROM1] Every map editor input supports held editing keys, word movement, selection and text copy/paste with Ctrl+C/X/V. New messages are ready for typing, choosing a page name continues directly into its text, and the trigger wizard can create or open a message directly; choosing an existing message applies at once when no other field is pending.
 - [ROM1] Guest missions can form a chain with no town between, returning the waiting party to the town the first win opens; a save inside any link continues the chain. Its party can use one to eight characters from npc.reg or the mod, with chosen levels and equipment and human defaults for records with no party template; existing character edits keep their load order, while two mods adding the same new character or mission need load-after.
 - [ROM1] The map editor can redraw the whole map's tiles (Ctrl+E) or lay random hills over its heights (Ctrl+Shift+R) from a typed seed, copy the tiles, heights and trees under a selection box with Ctrl+C and paste them with Ctrl+V, start a new map at a chosen height from 0 to 126, and show each cell's height minus 64 with V.
+- [ROM1] The map editor's message popup now lists speakers 21 to 24 by role (Main hero, Traitor mage, Monk, Prisoner) instead of a name, because who speaks as each depends on the hero the player chose first; the stored speaker number and the map are unchanged.
 - [ROM1] A mod's `data/towns.toml` can now add a talk or a quest to a town's tavern, give a tavern quest another mission, or remove a talk, chapter by chapter, and a town a mod adds can have a tavern of its own; the mod carries the new talk texts as install files. A save made with such a mod keeps the talks and quests and needs the mod to load. Without a mod every tavern is unchanged.
 - [ROM1] Map scripts can keep a unit from dying with the new "Set undying" action and react when its health falls below a chosen value, even a negative one, with the new "Health below" condition; the editor marks a map that uses them as Againrom-only, because the original game ignores both.
 

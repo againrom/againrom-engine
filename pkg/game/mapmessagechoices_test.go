@@ -6,9 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -166,5 +169,50 @@ func TestMessageSpeakerAndLossControls(t *testing.T) {
 	before = bytes.Clone(s.workspace.Pages["event01.txt"])
 	if _, err := s.SetMessage(1, "Rejected", 999); err == nil || !bytes.Equal(before, s.workspace.Pages["event01.txt"]) {
 		t.Fatal("bad speaker changed page", err)
+	}
+}
+
+func TestMessageSpeakerRolesLabelIDs21To24(t *testing.T) {
+	roles := map[string][4]string{
+		"":        {"Main hero", "Traitor mage", "Monk", "Prisoner"},
+		"russian": {"Главный герой", "Маг-предатель", "Монах", "Узник"},
+	}
+	for language, want := range roles {
+		t.Run("language "+language, func(t *testing.T) {
+			_, e := workspaceFixture(t)
+			s := e.Document().Edits.(*mapInspectionEdits)
+			x := s.inspector
+			x.archives = &Archives{}
+			x.archives.Base.Profile.Language = language
+			x.table = &mapload.Table{NPCCatalog: &data.NPCCatalog{Entries: []data.NPCEntry{
+				{ID: 21, Name: "Nyra"}, {ID: 22, Name: "A"}, {ID: 23, Name: "B"}, {ID: 24, Name: "C"}, {ID: 51, Name: "Guard"},
+			}}}
+			workspacePage(t, e, "event01.txt", "<part=1,npc=22>\nText")
+			fields := s.MessageFields(1)
+			var ids []int64
+			labels := map[int64]string{}
+			for _, c := range fields[1].Choices {
+				ids = append(ids, c.Value)
+				labels[c.Value] = c.Label
+			}
+			if !slices.Equal(ids, []int64{-1, 21, 22, 23, 24, 51}) {
+				t.Fatal("choice order", ids)
+			}
+			for i, role := range want {
+				id := int64(21 + i)
+				if labels[id] != fmt.Sprintf("%d: %s", id, x.inspectionUTF8(role)) {
+					t.Fatalf("id %d label %q", id, labels[id])
+				}
+			}
+			if labels[51] != "51: Guard" {
+				t.Fatal("other id changed", labels[51])
+			}
+			if fields[1].Value != 22 {
+				t.Fatal("stored speaker", fields[1].Value)
+			}
+			if _, err := s.SetMessage(1, "Text", 23); err != nil || string(s.workspace.Pages["event01.txt"]) != "<part=1,npc=23>\nText" {
+				t.Fatal("markup", err, string(s.workspace.Pages["event01.txt"]))
+			}
+		})
 	}
 }
