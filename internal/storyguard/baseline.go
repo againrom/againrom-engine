@@ -2931,6 +2931,10 @@ package storyguard
 // CommentBytes rises a further amount with the refusal of a mod weapon row
 // whose damage would wrap a byte (pkg/game/moditemlayer.go, its tests and
 // pkg/data/weapon.go), new code, and this paragraph.
+//
+// CommentBytes rises with the new-map test play, all doc comments on new code: the notice rule in
+// pkg/ui/mapeditormappanel.go, the gate in pkg/ui/editortestplay.go, their tests, and the doc comments of the new-map test play
+// witness, pkg/game/mapedittestplaynew_release_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2954,5 +2958,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9599200,
+	CommentBytes: 9601402,
 }

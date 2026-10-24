@@ -423,11 +423,16 @@ func TestReleaseMapPanelFrames(t *testing.T) {
 	e := opened(loose)
 	shot(e, "panel-loose")
 	_ = e.Key("testplay")
-	if !e.NoticeOpen() {
-		t.Fatal("no notice before test play of a map nothing wins")
+	if e.NoticeOpen() {
+		t.Fatal("a notice before test play of a map nothing wins and no other warning")
 	}
-	shot(e, "notice-testplay")
-	_ = e.Key("escape")
+	w := opened("scenario/50.alm")
+	_ = w.Key("testplay")
+	if !w.NoticeOpen() {
+		t.Fatal("no notice before test play of a map with a start point warning")
+	}
+	shot(w, "notice-testplay")
+	_ = w.Key("escape")
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
 	n := slices.IndexFunc(e.PanelLines(), func(l string) bool {
 		return strings.HasPrefix(l, x.inspectionUTF8(x.word("editor.panel.mode"))+" ")

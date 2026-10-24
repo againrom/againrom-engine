@@ -62,7 +62,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if x.archives == nil {
 		return "", errors.New("Test play: no install is open")
 	}
-	if err := campaignOf(x.archives.Game()).testPlayRefusal(); err != nil {
+	if err := s.TestPlayRefusal(); err != nil {
 		return "", err
 	}
 	if err := s.gate(); err != nil {
@@ -394,4 +394,13 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 		return writeErr
 	}
 	return nil
+}
+
+// TestPlayRefusal is the campaign's refusal of every test play, nil when the
+// install's campaign allows it or no install is open.
+func (s *mapInspectionEdits) TestPlayRefusal() error {
+	if s.inspector.archives == nil {
+		return nil
+	}
+	return campaignOf(s.inspector.archives.Game()).testPlayRefusal()
 }

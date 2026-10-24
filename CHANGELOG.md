@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] F5 in the map editor starts a map without a victory condition at once; the Map panel still says the map is endless, and any other warning still asks first. On a second-game map the refusal comes before any notice.
 - [ROM1] A mod can now let an armour, shield or weapon come in a material the game never sells it in, with a picture the mod supplies, or take a material away, and can add a new weapon that copies an existing one with its own name, damage, reach and price. Two mods that change the same number or material of one item, or add the same item, now need `load-after` in one of them or the game refuses to start; before, both applied and the later one silently won.
 - [ROM1] Guest missions can form a chain with no town between, returning the waiting party to the town the first win opens; a save inside any link continues the chain. Its party can use one to eight characters from npc.reg or the mod, with chosen levels and equipment and human defaults for records with no party template; existing character edits keep their load order, while two mods adding the same new character or mission need load-after.
 

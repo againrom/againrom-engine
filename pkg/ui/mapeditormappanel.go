@@ -366,10 +366,23 @@ func (e *MapEditor) panelWarnings() []mapLine {
 	return out
 }
 
+// noticeNeeded reports whether the panel's warnings call for the notice
+// before step. Test play starts at once when the endless-map line is the only
+// warning, since a map nothing wins plays; the notice still lists that line
+// beside any other warning, and a save into the mod asks for every warning.
+func (e *MapEditor) noticeNeeded(step noticeStep) bool {
+	for _, l := range e.panelWarnings() {
+		if step != noticeTestPlay || l.link != linkGoals {
+			return true
+		}
+	}
+	return false
+}
+
 // askNotice opens the notice before step when the panel's checks find the
 // map wanting, and reports whether it did.
 func (e *MapEditor) askNotice(step noticeStep) bool {
-	if len(e.panelWarnings()) == 0 {
+	if !e.noticeNeeded(step) {
 		return false
 	}
 	e.leave(leaveDrag | leavePick)
