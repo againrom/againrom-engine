@@ -152,6 +152,7 @@ func init() {
 		{key: "structure", label: "J", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
+		{key: "casts", label: "F3", act: func(e *MapEditor, _ string) error { e.openAdd("Enchantment"); return nil }, help: keys(helpLine{Word: "editor.keys.casts"})},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, linePlayers}, {screenPlayers, lineRoster}}},
 		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, lineRoster}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},

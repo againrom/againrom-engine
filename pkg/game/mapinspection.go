@@ -336,14 +336,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		add(r)
 	}
 	for i, e := range m.Enchantments {
-		r := ui.InspectionRecord{Kind: "Enchantment", Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
-			Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
-		if e.X != 0 || e.Y != 0 {
-			r.Warning = "Cell or caster entry; item recipe fields are unavailable"
-		}
 		// These coordinates can name item metadata, not a world placement.
 		// Do not fabricate a spatial marker from an undecided interpretation.
-		add(r)
+		add(x.inspectionEnchantment(i, e))
 	}
 	for i, g := range m.Groups {
 		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))))

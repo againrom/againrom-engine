@@ -27,48 +27,66 @@ type newRecordKind struct {
 	required []string
 	optional []string
 	spatial  bool
-	add      func(s *mapInspectionEdits, r ui.InspectionNewRecord) error
+	add      func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error)
 }
 
 var newRecordKinds = map[string]newRecordKind{
+	"Enchantment": {edit: "Enchantment", required: []string{"template"}, optional: []string{"link"}, spatial: true,
+		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
+			v := recordValue(r, "template")
+			if v < 0 || v >= int64(s.batch.Count(mapedit.KindEnchantment)) {
+				return -1, fmt.Errorf("select a cell spell template")
+			}
+			if err := insideMap(s.batch, r.Cell, "spell cell"); err != nil {
+				return -1, err
+			}
+			link := recordValue(r, "link")
+			if link < 0 || link > math.MaxUint32 {
+				return -1, fmt.Errorf("object id is outside 0..4294967295")
+			}
+			if err := spellObjectAllowed(s.batch, int(v), r.Cell, uint32(link)); err != nil {
+				return -1, err
+			}
+			return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
+		}},
 	"Unit": {edit: "Unit", required: []string{"class"}, optional: []string{"tier"}, spatial: true,
-		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
+		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddUnitTier(r.Cell, recordValue(r, "class"), recordValue(r, "tier"))
-			return err
+			return s.newIndex(s.batch, "Unit"), err
 		}},
 	"Structure": {edit: "Structure", required: []string{"kind"}, spatial: true,
-		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
+		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddStructure(r.Cell, recordValue(r, "kind"))
-			return err
+			return s.newIndex(s.batch, "Structure"), err
 		}},
 	// A sack is added with its first item; each other item is the
 	// sack's "additem" field, as the sack's popup adds one.
 	"Sack": {edit: "Sack", required: []string{"item"}, spatial: true,
-		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
+		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			items := recordValues(r, "item")
 			if _, err := s.AddSack(r.Cell, items[0]); err != nil {
-				return err
+				return -1, err
 			}
 			for _, item := range items[1:] {
 				if _, err := s.SetFields("Sack", s.batch.Count(mapedit.KindLoot)-1, []ui.InspectionFieldValue{{Key: "additem", Value: item}}); err != nil {
-					return err
+					return -1, err
 				}
 			}
-			return nil
+			return s.newIndex(s.batch, "Sack"), nil
 		}},
-	"Player": {edit: "Player", add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) error {
+	"Player": {edit: "Player", add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 		_, err := s.AddPlayer()
-		return err
+		return s.newIndex(s.batch, "Player"), err
 	}},
 	"Trigger":   {edit: "Trigger", add: addScriptOf("Trigger")},
 	"Action":    {edit: "Action", add: addScriptOf("Action")},
 	"Condition": {edit: "Condition", add: addScriptOf("Condition")},
 }
 
-func addScriptOf(kind string) func(*mapInspectionEdits, ui.InspectionNewRecord) error {
-	return func(s *mapInspectionEdits, _ ui.InspectionNewRecord) error {
+func addScriptOf(kind string) func(*mapInspectionEdits, ui.InspectionNewRecord) (int, error) {
+	return func(s *mapInspectionEdits, _ ui.InspectionNewRecord) (int, error) {
 		_, err := s.AddScript(kind)
-		return err
+		return s.newIndex(s.batch, kind), err
 	}
 }
 
@@ -129,23 +147,36 @@ func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.Inspection
 	if !k.complete(r) {
 		return nil, fmt.Errorf("the new %s lacks a value", strings.ToLower(r.Kind))
 	}
+	if r.Kind == "Enchantment" {
+		if err := s.checkNewValue(r, "spell"); err != nil {
+			return nil, err
+		}
+	}
 	for _, v := range r.Values {
 		if err := s.checkNewValue(r, v.Key); err != nil {
 			return nil, err
 		}
 	}
-	return s.change(func(m *mapedit.Editor) (bool, error) {
-		return true, s.addOn(m, k, r)
+	index := -1
+	next, err := s.change(func(m *mapedit.Editor) (bool, error) {
+		var err error
+		index, err = s.addOn(m, k, r)
+		return err == nil, err
 	})
+	if next != nil {
+		next.AddedRecord = ui.RecordRef{Kind: k.edit, Index: index}
+	}
+	return next, err
 }
 
 // addOn runs r's calls on m and folds them into one history entry.
-func (s *mapInspectionEdits) addOn(m *mapedit.Editor, k newRecordKind, r ui.InspectionNewRecord) error {
+func (s *mapInspectionEdits) addOn(m *mapedit.Editor, k newRecordKind, r ui.InspectionNewRecord) (int, error) {
 	mark := m.Mark()
 	s.batch = m
 	defer func() { s.batch = nil }()
-	if err := k.add(s, r); err != nil {
-		return err
+	index, err := k.add(s, r)
+	if err != nil {
+		return -1, err
 	}
 	if k.edit != "" {
 		var fields []ui.InspectionFieldValue
@@ -155,18 +186,18 @@ func (s *mapInspectionEdits) addOn(m *mapedit.Editor, k newRecordKind, r ui.Insp
 			}
 		}
 		if len(fields) > 0 {
-			if _, err := s.SetFields(k.edit, s.newIndex(m, k), fields); err != nil {
-				return err
+			if _, err := s.SetFields(k.edit, index, fields); err != nil {
+				return -1, err
 			}
 		}
 	}
 	m.Squash(mark)
-	return nil
+	return index, nil
 }
 
 // newIndex is the index of the record the kind's add call appended to m.
-func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, k newRecordKind) int {
-	ek, err := editKind(k.edit)
+func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, kind string) int {
+	ek, err := editKind(kind)
 	if err != nil {
 		return -1
 	}
@@ -177,10 +208,11 @@ func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, k newRecordKind) int {
 // returns the copy and the new record's index.
 func (s *mapInspectionEdits) trialAdd(k newRecordKind, r ui.InspectionNewRecord) (*mapedit.Editor, int, error) {
 	m := s.model.Clone()
-	if err := s.addOn(m, k, r); err != nil {
+	index, err := s.addOn(m, k, r)
+	if err != nil {
 		return nil, -1, err
 	}
-	return m, s.newIndex(m, k), nil
+	return m, index, nil
 }
 
 // CheckNewRecord refuses the value r holds for key: its own range and
@@ -203,6 +235,9 @@ func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string
 
 // checkNewValue is the range and reference check of r's values of key.
 func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string) error {
+	if r.Kind == "Enchantment" && key == "spell" && recordValue(r, key) == 0 {
+		return fmt.Errorf("select a nonzero spell; None adds no cell spell record")
+	}
 	view, err := s.model.Map()
 	if err != nil {
 		return err
@@ -263,6 +298,28 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		}
 	}
 	switch key {
+	case "link":
+		if view, err := s.model.Map(); err == nil {
+			i := recordValue(r, "template")
+			if i >= 0 && i < int64(len(view.Enchantments)) {
+				rec := view.Enchantments[i]
+				if rec.A == 4 || rec.A == 8 {
+					out.Value = int64(uint32(rec.B) | uint32(rec.C)<<16)
+				}
+			}
+		}
+	case "template":
+		view, err := s.model.Map()
+		if err != nil {
+			return out
+		}
+		for i := 0; i < s.model.Count(mapedit.KindEnchantment); i++ {
+			fields, err := s.model.Fields(mapedit.KindEnchantment, i)
+			if err == nil && len(fields) > 0 && fields[0].Key == "spell" {
+				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i]).Label)})
+			}
+		}
+		first()
 	case "class":
 		out.Choices = s.RecordChoices("Unit", -1, "class")
 		first()
@@ -277,6 +334,8 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 	default:
 		out.Value, out.Text = s.newFieldDefault(r, key)
 		switch key {
+		case "spell":
+			out.Choices = s.RecordChoices("Enchantment", -1, key)
 		case "owner":
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
 		case "control":

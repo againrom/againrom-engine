@@ -1459,3 +1459,6 @@ pkg/game.TestReleaseTriggerMessageEditsAndUndo
 pkg/game.TestReleaseTriggerMessageFrames
 pkg/ui.TestWindowsEditorClipboardRoundTrip
 pkg/game.TestReleaseSecondGameLoadedSpellBehavesAsBeforeSave
+pkg/game.TestReleaseEditorCellSpellFieldsKeepEveryMap
+pkg/game.TestReleaseEditorPlacedTrapCastsInTestPlay
+pkg/game.TestReleaseEditorCellSpellFrames

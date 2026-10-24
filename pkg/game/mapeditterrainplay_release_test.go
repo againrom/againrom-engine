@@ -9,18 +9,23 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 // guestFrontWorld opens the guest mission of the mod in dir and returns the
 // front end with its mission running.
-func guestFrontWorld(t *testing.T, dir string) *FrontEnd {
+func guestFrontWorld(t *testing.T, dir string, mission ...mod.Mission) *FrontEnd {
 	t.Helper()
-	f := guestFront(t, dir, guestModID)
+	id, number := guestModID, guestMissionNo
+	if len(mission) > 0 {
+		id, number = mission[0].Mod, mission[0].Number
+	}
+	f := guestFront(t, dir, id)
 	app := f.App("painted guest mission")
 	party := f.ChargenParty(ui.ChargenResult{Name: "Guest", Choices: []int{0, 0, 0}, Stats: []int{31, 27, 24, 29}})
-	if err := app.OpenMission(f.MissionOpenerWith(guestMissionNo, party)); err != nil {
+	if err := app.OpenMission(f.MissionOpenerWith(number, party)); err != nil {
 		t.Fatal(err)
 	}
 	return f

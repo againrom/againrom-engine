@@ -226,6 +226,9 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	template := s.unitTemplate(k, index)
 	for _, f := range fields {
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil}
+		if strings.HasPrefix(f.Label, "editor.cast.") {
+			row.Label = s.inspector.inspectionUTF8(s.inspector.word(castWords[f.Key].Word))
+		}
 		if f.Check == mapedit.CheckUnitTier {
 			if !s.unitMultiTier(index) {
 				continue
@@ -295,14 +298,17 @@ func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.Inspe
 	if err != nil {
 		return nil, err
 	}
+	last := func(v ui.InspectionFieldValue) bool {
+		return v.Key == "order" || k == mapedit.KindEnchantment && v.Key == "spell" && v.Value == 0
+	}
 	ordered := make([]ui.InspectionFieldValue, 0, len(values))
 	for _, v := range values {
-		if v.Key != "order" {
+		if !last(v) {
 			ordered = append(ordered, v)
 		}
 	}
 	for _, v := range values {
-		if v.Key == "order" {
+		if last(v) {
 			ordered = append(ordered, v)
 		}
 	}
@@ -385,11 +391,20 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	if f.Key == "" {
 		return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
 	}
+	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && key == "spell" && value == 0 {
+		err := m.Delete(k, index)
+		return err == nil, err
+	}
 	if old, err := m.FieldValue(k, index, key); err != nil || old == value {
 		return false, err
 	}
 	if err := m.SetField(k, index, key, value); err != nil {
 		return false, err
+	}
+	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
+		if err := spellCellAllowed(m, index); err != nil {
+			return false, err
+		}
 	}
 	if variable {
 		if err := scriptVariableAllowed(m, k, index); err != nil {
@@ -691,15 +706,16 @@ func preservedPairRoots(resolvedRoot string) []string {
 // checkScriptReference refuses a script target the map does not hold: a
 // Target_Unit below the hero band no placed unit carries, a Target_Structure
 // no structure carries, or a Target_Group no unit holds (ALM-TRIG-046).
-func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64) error {
+func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, cell ...image.Point) error {
+	at := func(x, y uint32) bool { return len(cell) == 0 || image.Pt(int(x>>8), int(y>>8)) == cell[0] }
 	switch check {
 	case mapedit.CheckScriptUnit:
-		if value >= scriptHeroBand {
+		if value >= scriptHeroBand && len(cell) == 0 {
 			return nil
 		}
 		matches := 0
 		for _, u := range m.Units {
-			if int64(u.UnitID) == value {
+			if int64(u.UnitID) == value && at(u.X, u.Y) {
 				matches++
 			}
 		}
@@ -713,7 +729,7 @@ func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64) err
 	case mapedit.CheckScriptStructure:
 		matches := 0
 		for _, o := range m.Objects {
-			if int64(o.Field12) == value {
+			if int64(o.Field12) == value && at(o.X, o.Y) {
 				matches++
 			}
 		}

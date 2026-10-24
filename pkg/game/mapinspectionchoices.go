@@ -13,6 +13,13 @@ import (
 )
 
 func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) []ui.InspectionChoice {
+	if kind == "Enchantment" && key == "castkind" {
+		var out []ui.InspectionChoice
+		for i := 0; i < 4; i++ {
+			out = append(out, ui.InspectionChoice{Value: int64(i), Label: s.inspector.inspectionUTF8(s.inspector.word(castWords[fmt.Sprintf("mode%d", i)].Word))})
+		}
+		return out
+	}
 	if key == "owner" {
 		m, err := s.model.Map()
 		if err != nil {

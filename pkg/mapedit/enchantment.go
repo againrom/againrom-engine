@@ -9,9 +9,10 @@ import (
 const enchantmentHead = 26
 
 func enchantmentDeleteParts(e *Editor, recipes walk, index int) ([]part, error) {
-	at, _ := recipes.at(index)
-	if e.u32(at+4) != 0 || e.u32(at+8) != 0 {
-		return nil, fmt.Errorf("mapedit: coordinate-bearing spell entries cannot be deleted as item recipes")
+	at, size := recipes.at(index)
+	spatial := e.u32(at+4) != 0 || e.u32(at+8) != 0
+	if spatial && !spellRecordKnown(e.data[at:at+size]) {
+		return nil, fmt.Errorf("mapedit: unknown spell record kind is read-only")
 	}
 	if !e.locate().carries(lootTypeID) {
 		return nil, nil
@@ -21,17 +22,24 @@ func enchantmentDeleteParts(e *Editor, recipes walk, index int) ([]part, error) 
 		return nil, err
 	}
 	var out []part
+	last := map[uint32]int{}
 	for i := 0; i < loot.n(); i++ {
 		at, size := loot.at(i)
 		for p := at + e.lootHead() + 6; p < at+size; p += lootElementSize {
 			link := e.u32(p)
-			if link == uint32(index)+1 {
+			if link == uint32(index)+1 && !spatial {
 				return nil, fmt.Errorf("mapedit: recipe %d is still linked by loot record %d; clear its item recipe link first", index+1, i)
 			}
-			if link > uint32(index)+1 {
+			if link > uint32(index)+1 && (!spatial || link <= uint32(recipes.n())) {
 				var b [4]byte
 				binary.LittleEndian.PutUint32(b[:], link-1)
-				out = append(out, replace(p, e.data[p:p+4], b[:]))
+				change := replace(p, e.data[p:p+4], b[:])
+				if previous, ok := last[link]; spatial && ok {
+					out[previous] = change
+				} else {
+					last[link] = len(out)
+					out = append(out, change)
+				}
 			}
 		}
 	}
@@ -62,7 +70,25 @@ func enchantmentLayout(e *Editor, sp span) (arrayLayout, error) {
 
 func enchantmentFields(_ *Editor, rec []byte) []Field {
 	if binary.LittleEndian.Uint32(rec[4:]) != 0 || binary.LittleEndian.Uint32(rec[8:]) != 0 {
-		return nil
+		if !spellRecordKnown(rec) {
+			return nil
+		}
+		out := []Field{
+			{Key: "spell", Label: "editor.cast.spell", Offset: 18, Width: 2, Min: 0, Max: 28},
+			{Key: "power", Label: "editor.cast.power", Offset: 20, Width: 2, Min: 0, Max: 100},
+		}
+		if binary.LittleEndian.Uint16(rec[12:]) < 4 {
+			out = append(out,
+				Field{Key: "link", Label: "editor.cast.link", Offset: 14, Width: 4, Min: 0, Max: math.MaxUint32},
+				Field{Key: "triggerx", Label: "editor.cast.x", Offset: 4, Width: 4, Min: 0, Max: 255},
+				Field{Key: "triggery", Label: "editor.cast.y", Offset: 8, Width: 4, Min: 0, Max: 255},
+				Field{Key: "castkind", Label: "editor.cast.kind", Offset: 12, Width: 2, Min: 0, Max: 3},
+				Field{Key: "sourcex", Label: "editor.cast.sourcex", Offset: 26, Width: 2, Min: 0, Max: 255},
+				Field{Key: "sourcey", Label: "editor.cast.sourcey", Offset: 28, Width: 2, Min: 0, Max: 255},
+				Field{Key: "targetx", Label: "editor.cast.targetx", Offset: 32, Width: 2, Min: 0, Max: 255},
+				Field{Key: "targety", Label: "editor.cast.targety", Offset: 34, Width: 2, Min: 0, Max: 255})
+		}
+		return out
 	}
 	out := []Field{
 		{Key: "head", Label: "Head A (effect = low8(A+43))", Offset: 12, Width: 2, Min: 0, Max: math.MaxUint16},
@@ -80,6 +106,49 @@ func enchantmentFields(_ *Editor, rec []byte) []Field {
 			Field{Key: fmt.Sprintf("high%d", i+1), Label: fmt.Sprintf("Effect %d high word", i+1), Offset: p + 4, Width: 2, Min: 0, Max: math.MaxUint16})
 	}
 	return append(out, Field{Key: "addeffect", Label: "Add effect kind (1..255)", Offset: len(rec), Width: 2, Min: 1, Max: 255, Element: 6, Counter: 22})
+}
+
+func spellRecordKnown(rec []byte) bool {
+	k := binary.LittleEndian.Uint16(rec[12:])
+	return k == 4 || k == 8 || k < 4 && len(rec) >= enchantmentHead+12
+}
+
+func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
+	rec, err := e.Record(KindEnchantment, template)
+	if err != nil {
+		return -1, err
+	}
+	if !spellRecordKnown(rec) || binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
+		return -1, fmt.Errorf("mapedit: select a known cell spell template")
+	}
+	view, err := e.Map()
+	if err != nil {
+		return -1, err
+	}
+	if x > 255 || y > 255 || x >= uint32(view.Width) || y >= uint32(view.Height) || x == 0 && y == 0 {
+		return -1, fmt.Errorf("mapedit: spell cell is outside the nonzero byte-coordinate map")
+	}
+	if binary.LittleEndian.Uint16(rec[12:]) == 4 {
+		for i, existing := range view.Enchantments {
+			if existing.A == 4 && existing.X == x && existing.Y == y && uint32(existing.B)|uint32(existing.C)<<16 == link {
+				return i, nil
+			}
+		}
+	}
+	binary.LittleEndian.PutUint32(rec[4:], x)
+	binary.LittleEndian.PutUint32(rec[8:], y)
+	if binary.LittleEndian.Uint16(rec[12:]) < 4 {
+		binary.LittleEndian.PutUint32(rec[14:], 0)
+	} else {
+		binary.LittleEndian.PutUint32(rec[14:], link)
+	}
+	mark := e.Mark()
+	i, err := e.Place(KindEnchantment, rec)
+	if err == nil && binary.LittleEndian.Uint16(rec[12:]) < 4 && link != 0 {
+		err = e.SetField(KindEnchantment, i, "link", int64(link))
+		e.Squash(mark)
+	}
+	return i, err
 }
 
 func (e *Editor) AddItemRecipe(lootIndex, element int) (int, error) {

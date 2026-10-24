@@ -287,12 +287,14 @@ func (e *MapEditor) pickAt(p image.Point) {
 	e.selectNewest(kind)
 }
 
-// selectNewest selects the record of kind with the highest index, which is
-// where a clone or a new record is appended.
-func (e *MapEditor) selectNewest(kind string) {
+// selectNewest selects the Add target, or the highest index of kind.
+func (e *MapEditor) selectNewest(kind string, target ...RecordRef) {
 	e.messagePage = 0
 	best := -1
 	for i, r := range e.doc.Records {
+		if len(target) > 0 && target[0].Kind == kind && r.Index != target[0].Index {
+			continue
+		}
 		if r.Kind == kind && (best < 0 || r.Index > e.doc.Records[best].Index) {
 			best = i
 		}

@@ -87,6 +87,11 @@ var (
 
 // addKinds is every kind the Add window creates, as data.
 var addKinds = []addKindRow{
+	{Kind: "Enchantment", Word: "editor.cast.add", Filters: []int{5}, Steps: []addStep{
+		{Key: "template", Word: "editor.cast.template", Control: addChoice},
+		{Key: "link", Word: "editor.cast.link", Control: addNumber}, addAt,
+		{Key: "spell", Word: "editor.cast.spell", Control: addChoice},
+		{Key: "power", Word: "editor.cast.power", Control: addNumber}}},
 	{Kind: "Unit", Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
 		{Key: "class", Word: "editor.add.class", Control: addSprites},
 		{Key: "tier", Word: "editor.unit.tier", Control: addChoice, Optional: true},
@@ -470,7 +475,7 @@ func (e *MapEditor) addFinish() {
 		}
 		return
 	}
-	e.selectNewest(r.kind)
+	e.selectNewest(r.kind, next.AddedRecord)
 }
 
 // addMove steps the asked step's list by delta and takes its value.
@@ -530,7 +535,7 @@ func (e *MapEditor) addPicked(cell image.Point) {
 			return
 		}
 		e.leave(leavePrompt)
-		e.selectNewest(r.kind)
+		e.selectNewest(r.kind, next.AddedRecord)
 	}
 }
 

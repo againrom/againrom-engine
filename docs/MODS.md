@@ -1258,6 +1258,10 @@ run stops at the step that failed.
 
 ## Map editor
 
+Cell spells appear in the record list as traps, unit spell entries or casting structures. F3 opens the shared Add window: choose an existing cell spell as a template, a unit or structure id, its cell, spell (1..28) and power (0..100). Unit and casting-structure entries require a unique object with that id at its anchor cell; their id and cell are read-only after placement. Add updates a casting structure already recorded at that cell with that id and opens its popup; unit spell entries keep appending. E edits the known fields; Delete removes the selected entry and renumbers later item back-references as the original editor does. Trap kinds choose cell or structure as source and cell or unit as target. Setting a trap, unit entry or casting structure's spell to 0 removes it immediately; undo restores its bytes. Add refuses spell 0 with a reason. Unknown kinds and opaque words remain unchanged. Scan range is shown but editing it, and creating without a template, await research on the original editor's bounds and fresh allocation bytes.
+
+The record list's Add button on filter 5 opens the same cell-spell Add window.
+
 The map editor, `mapedit.exe` (`./mapedit` on macOS), ships beside the game
 and the starter. The starter's **Map editor** button (**Редактор карт** on a
 Russian base) opens it on the selected base. The starter first runs the

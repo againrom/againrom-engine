@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] The map editor lists traps, unit spells and casting structures. F3 adds one from an existing map entry, E edits its spell and power, and Delete removes it; unknown kinds stay read-only. Scan range is shown but cannot yet be edited.
 - [ROM1] F5 in the map editor starts a map without a victory condition at once; the Map panel still says the map is endless, and any other warning still asks first. On a second-game map the refusal comes before any notice.
 - [ROM1] A mod can now let an armour, shield or weapon come in a material the game never sells it in, with a picture the mod supplies, or take a material away, and can add a new weapon that copies an existing one with its own name, damage, reach and price. Two mods that change the same number or material of one item, or add the same item, now need `load-after` in one of them or the game refuses to start; before, both applied and the later one silently won.
 - [ROM1] Every map editor input supports held editing keys, word movement, selection and text copy/paste with Ctrl+C/X/V. New messages are ready for typing, choosing a page name continues directly into its text, and the trigger wizard can create or open a message directly; choosing an existing message applies at once when no other field is pending.

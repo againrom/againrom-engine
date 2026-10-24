@@ -48,6 +48,7 @@ type InspectionDocument struct {
 	Source, Name  string
 	Width, Height int
 	Records       []InspectionRecord
+	AddedRecord   RecordRef
 	SourceBytes   []byte // exact current model bytes, not a re-encoded map
 	ScriptNotice  string
 	// AgainromOnly marks a map whose script holds an Againrom operation: the
@@ -501,6 +502,9 @@ func (e *MapEditor) Update() error {
 			if native.justPressed(k.key) && !native.pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
+		}
+		if native.justPressed(ebiten.KeyF3) {
+			_ = e.Key("casts")
 		}
 		if native.justPressed(ebiten.KeyF) {
 			e.Fit()
