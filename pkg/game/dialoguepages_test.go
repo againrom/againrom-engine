@@ -46,6 +46,47 @@ func dialogueButton(t *testing.T, e *ui.MapEditor, part, button int) {
 	t.Fatal("page button absent", part, button)
 }
 
+func TestDialoguePopupUntaggedApply(t *testing.T) {
+	for _, edit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "unchanged", true: "text edit"}[edit], func(t *testing.T) {
+			e, s := messagePopupFixture(t, 1)
+			raw := "Plain message\r\nSecond line"
+			workspacePage(t, e, "event01.txt", raw)
+			before := bytes.Clone(s.model.Bytes())
+			workspaceBefore := bytes.Clone(s.workspaceImage)
+			undoBefore := len(s.undoWorkspace)
+			e.Select(recordIndex(t, e, "Action", 0), false)
+			openMessagePopup(t, e)
+			if edit {
+				messageField(t, e, 0)
+				if err := e.Key("ctrl+end"); err != nil {
+					t.Fatal(err)
+				}
+				e.TextInput("!")
+			}
+			messageButton(t, e, 0)
+			want, steps := raw, undoBefore
+			if edit {
+				want, steps = "<part=1>\n"+raw+"!", undoBefore+1
+			}
+			if got := string(s.workspace.Pages["event01.txt"]); got != want {
+				t.Errorf("Apply bytes = %q, want %q", got, want)
+			}
+			if len(s.undoWorkspace) != steps || !bytes.Equal(before, s.model.Bytes()) {
+				t.Errorf("Apply history = %d, want %d, or changed map bytes", len(s.undoWorkspace), steps)
+			}
+			if !edit && !bytes.Equal(workspaceBefore, s.workspaceImage) {
+				t.Error("unchanged Apply changed workspace bytes")
+			}
+			if edit {
+				if err := e.Key("undo"); err != nil || string(s.workspace.Pages["event01.txt"]) != raw || !bytes.Equal(workspaceBefore, s.workspaceImage) {
+					t.Fatal("one Undo did not restore untagged bytes", err)
+				}
+			}
+		})
+	}
+}
+
 func TestDialoguePopupEditsEveryPageAndKeepsOtherBytes(t *testing.T) {
 	e, s := messagePopupFixture(t, 1)
 	raw := "<part=1,npc=21,tips=7>\r\nOne\r\n<part=2,npc=51,iamfemale,unknown=x>\nTwo\r\n<part=3,npc=22>\r\nThree"

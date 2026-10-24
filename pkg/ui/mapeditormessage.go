@@ -230,6 +230,9 @@ func (e *MapEditor) applyMessage() {
 		e.createMessage(host)
 		return
 	}
+	if !e.objectDirty() {
+		return
+	}
 	next, err := host.SetMessageParts(e.messagePage, e.obj.messageParts)
 	if err != nil {
 		e.obj.note = err.Error()
