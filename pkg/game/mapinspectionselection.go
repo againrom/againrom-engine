@@ -17,12 +17,14 @@ import (
 // selectionClip is a copied set of records: a model of the map they came
 // from as it stood at the copy, that map's source name, each record's address
 // and cell in it, and the top-left of those cells, which a paste puts on the
-// target cell.
+// target cell. An area copy also holds the terrain patch of its rectangle,
+// and the origin is the rectangle's top-left cell.
 type selectionClip struct {
 	source  *mapedit.Editor
 	from    string
 	records []clipRecord
 	origin  image.Point
+	patch   *mapedit.Patch
 }
 
 type clipRecord struct {
@@ -31,7 +33,14 @@ type clipRecord struct {
 	cell image.Point
 }
 
-func (c *selectionClip) Len() int { return len(c.records) }
+// Len is how many things a paste places: the records, and a terrain patch
+// as one.
+func (c *selectionClip) Len() int {
+	if c.patch != nil {
+		return len(c.records) + 1
+	}
+	return len(c.records)
+}
 
 // selectionKind is the model section of a kind the group selection takes.
 func selectionKind(kind string) (mapedit.Kind, error) {
@@ -248,10 +257,13 @@ func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point
 // map the clip was copied from, each record is what one Clone of it writes.
 // Into another map, each group a pasted unit holds, group 0 aside, takes a
 // group id no unit and no script of that map uses, the same one for every
-// unit of the group, so no script of that map names a pasted unit.
+// unit of the group, so no script of that map names a pasted unit. A clip
+// with a terrain patch writes it first, its top-left cell on cell and cut at
+// the map's edge, and the records then stand on the pasted terrain; patch
+// and records are one edit.
 func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point) (ui.SelectionEdit, error) {
 	clip, ok := c.(*selectionClip)
-	if !ok || clip == nil || len(clip.records) == 0 {
+	if !ok || clip == nil || clip.Len() == 0 {
 		return ui.SelectionEdit{}, fmt.Errorf("nothing to paste")
 	}
 	same := clip.from == s.source
@@ -291,8 +303,17 @@ func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point)
 		}})
 	}
 	recipes := s.model.Count(mapedit.KindEnchantment)
-	return s.groupEdit(items, s.inspector.word("editor.selection.pasted"), func(m *mapedit.Editor) []string {
+	var terrain func(*mapedit.Editor) (bool, error)
+	if clip.patch != nil {
+		terrain = func(m *mapedit.Editor) (bool, error) {
+			return m.PastePatch(*clip.patch, mapedit.Cell{X: cell.X, Y: cell.Y})
+		}
+	}
+	return s.groupEditOn(terrain, items, s.inspector.word("editor.selection.pasted"), func(m *mapedit.Editor) []string {
 		var out []string
+		if clip.patch != nil {
+			out = append(out, fmt.Sprintf(s.inspector.word("editor.selection.terrain"), clip.patch.W, clip.patch.H))
+		}
 		if n := m.Count(mapedit.KindEnchantment) - recipes; n > 0 {
 			out = append(out, fmt.Sprintf(s.inspector.word("editor.selection.recipes"), n))
 		}
@@ -386,15 +407,29 @@ func (s *mapInspectionEdits) pasteOwner(m *mapedit.Editor, source *mapedit.Edito
 // extra adds note parts read off the edited model; keep, when nothing
 // changed, is the group the window keeps.
 func (s *mapInspectionEdits) groupEdit(items []groupPlacement, format string, extra func(*mapedit.Editor) []string, keep []ui.RecordRef) (ui.SelectionEdit, error) {
+	return s.groupEditOn(nil, items, format, extra, keep)
+}
+
+// groupEditOn is groupEdit after first, when it is not nil, has written the
+// map; first and the placements are one edit.
+func (s *mapInspectionEdits) groupEditOn(first func(*mapedit.Editor) (bool, error), items []groupPlacement, format string, extra func(*mapedit.Editor) []string, keep []ui.RecordRef) (ui.SelectionEdit, error) {
 	var placed []ui.RecordRef
 	var refusals, more []string
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
+		mark, wrote := m.Mark(), false
+		if first != nil {
+			var err error
+			if wrote, err = first(m); err != nil {
+				return false, err
+			}
+		}
 		var err error
 		placed, refusals, err = s.placeGroup(m, items)
 		if err == nil && extra != nil {
 			more = extra(m)
 		}
-		return len(placed) > 0, err
+		m.Squash(mark)
+		return wrote || len(placed) > 0, err
 	})
 	if err != nil {
 		return ui.SelectionEdit{}, err

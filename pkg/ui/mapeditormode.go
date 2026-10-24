@@ -58,6 +58,9 @@ const (
 	promptGroupWarn
 	// promptForestShare asks for the Forest brush's density in per cent.
 	promptForestShare
+	// promptSeed asks for the seed of a whole-map command; scope is the
+	// command's key.
+	promptSeed
 )
 
 // editorPrompt is a prompt and the data it owns: the typed text, the field it

@@ -42,8 +42,8 @@ var almReferences = nameTable{
 	"script.go/triggerFields":               {"alm.ScriptLabelText"},
 	"meta.go/(*Editor).SetDescription":      {"alm.EncodeDescription"},
 	"newmap.go/NewMap":                      {"alm.NewMap", "alm.NewMapSpec"},
-	"brush.go/(*Editor).heightStroke":       {"alm.MaxHeight"},
-	"brush.go/(*Editor).tileStroke":         {"alm.TileGroupMask"},
+	"brush.go/(Brush).heights":              {"alm.MaxHeight"},
+	"brush.go/(*Editor).tileEdit":           {"alm.TileGroupMask"},
 	"brush.go/waterIndex":                   {"alm.TileIndex"},
 }
 

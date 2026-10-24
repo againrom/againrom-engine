@@ -160,7 +160,8 @@ type MapEditor struct {
 	listRestore                 func()
 	selection                   selectionState
 	place                       placeGrid
-	groupsTop                   int // the Groups window's first shown row
+	groupsTop                   int    // the Groups window's first shown row
+	lastSeed                    uint32 // the seed the last whole-map command took
 	editorChrome
 }
 
@@ -262,7 +263,7 @@ func (e *MapEditor) Select(index int, jump bool) bool {
 	e.triggerDetails = 0
 	e.focusedReference, e.objectWheel = 0, 0
 	e.groupSel, e.objectBack = editorGroup{}, nil
-	e.selection.refs = nil
+	e.replaceGroup(nil)
 	e.noteSelection("", nil)
 	r := e.doc.Records[index]
 	if jump && r.Spatial {
@@ -462,6 +463,12 @@ func (e *MapEditor) Update() error {
 			if inpututil.IsKeyJustPressed(ebiten.KeyV) {
 				_ = e.Key("paste")
 			}
+			if inpututil.IsKeyJustPressed(ebiten.KeyE) {
+				_ = e.Key("randomterrain")
+			}
+			if inpututil.IsKeyJustPressed(ebiten.KeyR) && heldkey.Pressed(ebiten.KeyShift) {
+				_ = e.Key("randomheights")
+			}
 		}
 		for n := 0; n < 9; n++ {
 			if inpututil.IsKeyJustPressed(ebiten.KeyDigit1 + ebiten.Key(n)) {
@@ -481,7 +488,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}, {ebiten.KeyV, "heightlabels"}} {
 			if inpututil.IsKeyJustPressed(k.key) && !heldkey.Pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}

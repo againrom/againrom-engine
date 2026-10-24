@@ -681,7 +681,7 @@ func (e *MapEditor) chooseGroup(g editorGroup, frame bool) {
 	e.selected, e.focusedReference = -1, 0
 	e.objectBack = nil
 	e.groupSel, e.objectHidden, e.objectTop = g, false, 0
-	e.selection.refs, e.selection.marquee, e.selection.hidden = nil, nil, false
+	e.selection.refs, e.selection.marquee, e.selection.hidden, e.selection.box = nil, nil, false, image.Rectangle{}
 	var box image.Rectangle
 	for k, id := range g.members {
 		r := e.doc.Records[id]

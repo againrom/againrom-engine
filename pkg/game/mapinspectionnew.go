@@ -42,19 +42,29 @@ func newMapRows() []ui.EditorMap {
 	return rows
 }
 
-// newMapSpec reads a "new/<W>x<H>" source, ending in ui.NewMapMultiplayer for
-// a multiplayer map, into the default spec of that size and the map's mode.
+// newMapSpec reads a "new/<W>x<H>" source, then ui.NewMapAltitude and a
+// starting height for a map not at the default height, then
+// ui.NewMapMultiplayer for a multiplayer map, into the default spec of that
+// size and height and the map's mode.
 func newMapSpec(source string) (alm.NewMapSpec, uint32, error) {
 	mode := ui.MapModeSingle
 	if rest, ok := strings.CutSuffix(source, ui.NewMapMultiplayer); ok {
 		source, mode = rest, ui.MapModeMultiplayer
+	}
+	spec := alm.DefaultNewMap()
+	if at := strings.LastIndex(source, ui.NewMapAltitude); at >= 0 {
+		var a int
+		var rest string
+		if n, _ := fmt.Sscanf(source[at+len(ui.NewMapAltitude):], "%d%s", &a, &rest); n != 1 || a < 0 || a > alm.NewMapMaxAltitude {
+			return alm.NewMapSpec{}, 0, fmt.Errorf("new map %q: want %s<0..%d>", source, ui.NewMapAltitude, alm.NewMapMaxAltitude)
+		}
+		source, spec.Altitude = source[:at], uint8(a)
 	}
 	var w, h int
 	var rest string
 	if n, _ := fmt.Sscanf(source, newMapPrefix+"%dx%d%s", &w, &h, &rest); n != 2 {
 		return alm.NewMapSpec{}, 0, fmt.Errorf("new map %q: want %s<width>x<height>", source, newMapPrefix)
 	}
-	spec := alm.DefaultNewMap()
 	spec.Width, spec.Height = w, h
 	return spec, mode, spec.Validate()
 }

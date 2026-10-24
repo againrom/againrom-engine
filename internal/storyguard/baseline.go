@@ -2935,6 +2935,13 @@ package storyguard
 // CommentBytes rises with the new-map test play, all doc comments on new code: the notice rule in
 // pkg/ui/mapeditormappanel.go, the gate in pkg/ui/editortestplay.go, their tests, and the doc comments of the new-map test play
 // witness, pkg/game/mapedittestplaynew_release_test.go, and this paragraph.
+//
+// CommentBytes rises with the map editor's terrain commands, all doc comments
+// on new code: the whole-map commands and the terrain patch in pkg/mapedit
+// (wholemap.go, patch.go, the shared plane writers of brush.go), their hosts in
+// pkg/game/mapinspectionterrain.go and mapinspectionselection.go, the window's
+// seed prompt, box copy and height numbers in pkg/ui, their tests, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2958,5 +2965,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9601402,
+	CommentBytes: 9616459,
 }

@@ -121,6 +121,9 @@ var (
 	lineGroups        = helpLine{Word: "editor.keys.groups"}
 	lineToGroup       = helpLine{Word: "editor.keys.togroup"}
 	linePlace         = helpLine{Word: "editor.keys.place"}
+	lineRandomTerrain = helpLine{Word: "editor.keys.randomterrain"}
+	lineRandomHeights = helpLine{Word: "editor.keys.randomheights"}
+	lineHeightLabels  = helpLine{Word: "editor.keys.heightlabels"}
 )
 
 func init() {
@@ -165,6 +168,9 @@ func init() {
 		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},
 		{key: "copy", label: "Ctrl+C", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
 		{key: "paste", label: "Ctrl+V", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
+		{key: "randomterrain", label: "Ctrl+E", act: (*MapEditor).keyRandom, help: keys(lineRandomTerrain)},
+		{key: "randomheights", label: "Ctrl+Shift+R", act: (*MapEditor).keyRandom, help: keys(lineRandomHeights)},
+		{key: "heightlabels", label: "V", act: (*MapEditor).keyHeightLabels, help: keys(lineHeightLabels)},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenAdd, lineAddNext}, {screenAddCell, lineBack}, {screenSelection, lineSelectionEsc}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
 		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
@@ -462,6 +468,8 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptForestShare:
 		e.setForestShare(e.prompt.path)
 		return nil
+	case promptSeed:
+		return e.applyRandom(e.prompt.path)
 	case promptSave:
 		return e.saveAs(strings.TrimSpace(e.prompt.path))
 	case promptOpen:

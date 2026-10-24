@@ -92,6 +92,7 @@ type editorChrome struct {
 type editorView struct {
 	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
 	passability, hideBorder                                bool
+	heights                                                bool // the height numbers at the cell corners
 }
 
 // SetBodyFont sets the plain font of rows, labels, values and report text.
@@ -297,6 +298,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
 			{"grid", mark(e.view.grid, e.word("editor.view.grid"))},
 			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
+			{"heightlabels", mark(e.view.heights, e.word("editor.view.heights"))},
 			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
 			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"report", e.word("editor.view.report")},
@@ -309,6 +311,8 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"newtrigger", e.word("editor.tools.newtrigger")},
 			{"drop", mark(e.pick == pickDrop, e.word("editor.tools.dropzones"))},
 			{"drawarea", mark(e.pick == pickArea, e.word("editor.tools.drawarea"))},
+			{"randomterrain", e.word("editor.tools.randomterrain")},
+			{"randomheights", e.word("editor.tools.randomheights")},
 		}
 	case "brushes":
 		var items []menuItem
@@ -1104,6 +1108,8 @@ func (e *MapEditor) promptTitle() string {
 		return e.word("editor.prompt.newmap")
 	case e.prompt.kind == promptForestShare:
 		return e.word("editor.prompt.share")
+	case e.prompt.kind == promptSeed:
+		return e.seedTitle()
 	}
 	return e.word("editor.prompt.open")
 }
@@ -1131,6 +1137,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	if f := e.bodyFont(); f != nil {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
+	e.drawHeightLabels(pic)
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
 	if s, ok := e.listSpec(); ok {

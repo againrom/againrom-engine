@@ -219,11 +219,8 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	if !known {
 		return nil, fmt.Errorf("mapedit: %d is not a paintable terrain class", b.Value)
 	}
-	span, meta := f.required(tileTypeID), f.required(metaTypeID)
-	old := make([]uint16, w*h)
-	for i := range old {
-		old[i] = binary.LittleEndian.Uint16(e.data[span.abs(2*i):])
-	}
+	span := f.required(tileTypeID)
+	old := e.tileWords(span, w*h)
 	painted := make([]bool, len(old))
 	var cells []int
 	for _, cell := range at {
@@ -240,6 +237,17 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	for _, ch := range fix.Paint(cells, c) {
 		next[ch.Cell] = ch.Word
 	}
+	return e.tileEdit(f, w, old, next, painted), nil
+}
+
+// tileEdit is the one writer of the tile plane: the edit that turns old into
+// next after the save normalisation (ALM-SAVE-238). When next differs from
+// old in the top eight rows or the last cell, the top eight rows take the
+// last cell's word, each keeping its own bit 13 unless cleared marks it (nil
+// marks none); then the type-0 tile-group mask is recomputed. next is
+// normalised in place.
+func (e *Editor) tileEdit(f frame, w int, old, next []uint16, cleared []bool) edit {
+	span, meta := f.required(tileTypeID), f.required(metaTypeID)
 	last := len(next) - 1
 	touched := next[last] != old[last]
 	for i := 0; i < 8*w && i < len(next) && !touched; i++ {
@@ -248,11 +256,36 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	if touched {
 		for i := 0; i < 8*w && i < len(next); i++ {
 			next[i] = next[last] &^ blockedBit
-			if !painted[i] {
+			if cleared == nil || !cleared[i] {
 				next[i] |= old[i] & blockedBit
 			}
 		}
 	}
+	ed := e.wordRuns(span, old, next)
+	if len(ed) == 0 {
+		return nil
+	}
+	mask := alm.TileGroupMask(next)
+	if at := meta.abs(metaBitmask); e.u32(at) != mask {
+		var img [4]byte
+		binary.LittleEndian.PutUint32(img[:], mask)
+		ed = append(ed, replace(at, e.data[at:at+4], img[:]))
+	}
+	return ed
+}
+
+// tileWords is the tile plane of n cells as it stands.
+func (e *Editor) tileWords(span span, n int) []uint16 {
+	out := make([]uint16, n)
+	for i := range out {
+		out[i] = binary.LittleEndian.Uint16(e.data[span.abs(2*i):])
+	}
+	return out
+}
+
+// wordRuns is the edit that turns the 16-bit plane at span from old into
+// next: one part per run of changed cells.
+func (e *Editor) wordRuns(span span, old, next []uint16) edit {
 	var ed edit
 	var cell [2]byte
 	for i := 0; i < len(next); {
@@ -270,16 +303,25 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 		ed = append(ed, replace(at, e.data[at:at+2*(j-i)], run))
 		i = j
 	}
-	if len(ed) == 0 {
-		return nil, nil
+	return ed
+}
+
+// byteRuns is the edit that turns the byte plane at span from old into next:
+// one part per run of changed cells.
+func byteRuns(span span, old, next []byte) edit {
+	var ed edit
+	for i := 0; i < len(next); {
+		if next[i] == old[i] {
+			i++
+			continue
+		}
+		j := i
+		for ; j < len(next) && next[j] != old[j]; j++ {
+		}
+		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
+		i = j
 	}
-	mask := alm.TileGroupMask(next)
-	if at := meta.abs(metaBitmask); e.u32(at) != mask {
-		var img [4]byte
-		binary.LittleEndian.PutUint32(img[:], mask)
-		ed = append(ed, replace(at, e.data[at:at+4], img[:]))
-	}
-	return ed, nil
+	return ed
 }
 
 // blockedBit is the tile word's impassable flag, kept on unpainted cells.
@@ -288,6 +330,13 @@ const blockedBit = 0x2000
 func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 	span := f.required(altitudeTypeID)
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
+	return byteRuns(span, old, b.heights(old, at, w, h))
+}
+
+// heights is the height plane old after a stroke of b through the centres at:
+// the change, faded by the fall-off, clamped to 0..127, then the row step
+// bounded at 31 (TERR-245). old is not changed.
+func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 	next := append([]byte(nil), old...)
 	in := make([]bool, len(old))
 	for _, cell := range at {
@@ -312,19 +361,7 @@ func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 			next[i+w] = next[i] + rowStep
 		}
 	}
-	var ed edit
-	for i := 0; i < len(next); {
-		if next[i] == old[i] {
-			i++
-			continue
-		}
-		j := i
-		for ; j < len(next) && next[j] != old[j]; j++ {
-		}
-		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
-		i = j
-	}
-	return ed
+	return next
 }
 
 // objectStroke writes the class code (0..255) into every brush cell.
@@ -343,19 +380,7 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, _ int) { next[y*w+x] = byte(b.Value) })
 	}
-	var ed edit
-	for i := 0; i < len(next); {
-		if next[i] == old[i] {
-			i++
-			continue
-		}
-		j := i
-		for ; j < len(next) && next[j] != old[j]; j++ {
-		}
-		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
-		i = j
-	}
-	return ed, nil
+	return byteRuns(span, old, next), nil
 }
 
 // waterIndex is the tile index range the block plane's water arm tests
@@ -404,19 +429,7 @@ func (e *Editor) scatterStroke(f frame, b Brush, at []Cell, w, h int, class func
 			next[i] = byte(sc.Classes[sc.Draw(len(sc.Classes))])
 		}
 	}
-	var ed edit
-	for i := 0; i < len(next); {
-		if next[i] == old[i] {
-			i++
-			continue
-		}
-		j := i
-		for ; j < len(next) && next[j] != old[j]; j++ {
-		}
-		ed = append(ed, replace(span.abs(i), old[i:j], next[i:j]))
-		i = j
-	}
-	return ed, nil
+	return byteRuns(span, old, next), nil
 }
 
 // impassableStroke sets (Value 1) or clears (Value 0) bit 13 of the tile word
@@ -427,10 +440,7 @@ func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, 
 		return nil, fmt.Errorf("mapedit: %d is not an impassable flag value", b.Value)
 	}
 	span := f.required(tileTypeID)
-	old := make([]uint16, w*h)
-	for i := range old {
-		old[i] = binary.LittleEndian.Uint16(e.data[span.abs(2*i):])
-	}
+	old := e.tileWords(span, w*h)
 	next := append([]uint16(nil), old...)
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, _ int) {
@@ -441,22 +451,5 @@ func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, 
 			}
 		})
 	}
-	var ed edit
-	var word [2]byte
-	for i := 0; i < len(next); {
-		if next[i] == old[i] {
-			i++
-			continue
-		}
-		j := i
-		var run []byte
-		for ; j < len(next) && next[j] != old[j]; j++ {
-			binary.LittleEndian.PutUint16(word[:], next[j])
-			run = append(run, word[:]...)
-		}
-		pos := span.abs(2 * i)
-		ed = append(ed, replace(pos, e.data[pos:pos+2*(j-i)], run))
-		i = j
-	}
-	return ed, nil
+	return e.wordRuns(span, old, next), nil
 }

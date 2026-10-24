@@ -50,7 +50,8 @@ type selectionState struct {
 	refusals []string
 	clip     InspectionClip
 	marquee  *selectionMarquee
-	hidden   bool // the selection's popup is closed
+	box      image.Rectangle // the cells the last selection box covered; empty when none
+	hidden   bool            // the selection's popup is closed
 }
 
 // selectionMarquee is a Shift press on the map: the frame point it began at
@@ -83,10 +84,18 @@ func (e *MapEditor) inSelection(i int) bool {
 	return slices.Contains(e.selection.refs, RecordRef{r.Kind, r.Index})
 }
 
+// replaceGroup makes refs the selected group and drops the selection box: a box
+// is the selection only until the selection changes, so the group a click, a
+// list pick or a toggle makes is copied as records, not as the box's terrain.
+func (e *MapEditor) replaceGroup(refs []RecordRef) {
+	e.selection.refs, e.selection.box = refs, image.Rectangle{}
+}
+
 // clearSelection drops the group, its note and any rectangle; the copied
 // records stay.
 func (e *MapEditor) clearSelection() {
-	e.selection.refs, e.selection.marquee = nil, nil
+	e.replaceGroup(nil)
+	e.selection.marquee = nil
 	e.noteSelection("", nil)
 }
 
@@ -106,7 +115,7 @@ func (e *MapEditor) setSelection(refs []RecordRef) {
 	} else {
 		e.selected = -1
 	}
-	e.selection.refs = slices.Clone(refs)
+	e.replaceGroup(slices.Clone(refs))
 	e.selection.hidden = false
 	e.objectHidden = len(refs) > 1
 }
@@ -154,6 +163,7 @@ func (e *MapEditor) marqueePointer(in Input, p image.Point, rail int) bool {
 		switch {
 		case m.box && m.moved:
 			e.selectCellsOf(m.from, m.to, e.boxKinds())
+			e.selection.box = cellBox(m.from, m.to)
 		case m.box:
 			e.selectAt(m.start)
 		case m.moved:
@@ -253,7 +263,7 @@ func (e *MapEditor) toggleAt(p image.Point) {
 	e.noteSelection("", nil)
 	if slices.Contains(refs, ref) {
 		e.Select(hit, false)
-		e.selection.refs = refs
+		e.replaceGroup(refs)
 		e.objectHidden = len(refs) > 1
 		return
 	}
@@ -300,11 +310,23 @@ func (e *MapEditor) selectionKey(key string) error {
 	e.leave(leaveDrag | leavePick)
 	if key == "copy" {
 		refs := e.selectionRefs()
-		if len(refs) == 0 {
+		area, ok := h.(InspectionAreaCopy)
+		box := e.selection.box
+		if !ok || box.Empty() {
+			box = image.Rectangle{}
+		}
+		if len(refs) == 0 && box.Empty() {
 			e.noteSelection(e.word("editor.selection.none"), nil)
 			return nil
 		}
-		clip, note, err := h.CopyRecords(refs)
+		var clip InspectionClip
+		var note string
+		var err error
+		if box.Empty() {
+			clip, note, err = h.CopyRecords(refs)
+		} else {
+			clip, note, err = area.CopyArea(refs, box)
+		}
 		if err != nil {
 			e.message = err.Error()
 			return err
@@ -410,14 +432,17 @@ func (e *MapEditor) selectionStatus(note string) []string {
 	return out
 }
 
-// marqueeLines outlines the rectangle a Shift drag is drawing, cell edge by
-// cell edge, so it follows the ground's heights.
+// marqueeLines outlines the rectangle a drag is drawing, else the cells the
+// last selection box covered, which Ctrl+C copies, cell edge by cell edge,
+// so it follows the ground's heights.
 func (e *MapEditor) marqueeLines() []editorLine {
 	m := e.selection.marquee
-	if m == nil || !m.moved {
+	box := e.selection.box
+	if m != nil && m.moved {
+		box = cellBox(m.from, m.to)
+	} else if _, area := e.doc.Edits.(InspectionAreaCopy); m != nil || box.Empty() || !area {
 		return nil
 	}
-	box := cellBox(m.from, m.to)
 	v := e.doc.Viewer
 	c := editorCondition
 	var out []editorLine

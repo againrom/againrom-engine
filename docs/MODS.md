@@ -1203,6 +1203,26 @@ warns when the map has none and its fallback landing cells leave the map).
 file and prints that report; `-new` alone opens the window on it, with
 `-check` it prints the report.
 
+After the size, N asks for the starting height, 0..126, 64 by default; every
+height cell of the new map holds it, and another number is refused with the
+question kept. From a terminal, `-new 32x32/altitude40` gives the same.
+
+Ctrl+E (Tools: Random terrain) asks for a seed and redraws every cell's tile
+among the tiles that show the same terrain and the same corners, so no
+transition moves. Ctrl+Shift+R (Tools: Random heights) asks for a seed and lays
+one hill or hollow per 64 cells over the heights the map has, through the
+height brush. The prompt offers the last seed plus one; the same seed on the
+same map gives the same map. Each command changes only its own plane and is
+one undo step. Drag a selection box on the map and
+release it: Ctrl+C then copies the tiles, heights and objects (trees and
+other cell objects) under the box together with the records it selects.
+Ctrl+V with the pointer on a cell writes the patch with its top-left corner
+there, cut at the map's edge, replacing the objects it covers, and pastes the
+records as before; one paste is one undo step. V (View: Height numbers) writes
+on each cell the height of its top-left corner minus 64, so the new-map
+default shows 0; the numbers appear only when the view is zoomed in far
+enough for them to fit, and follow every height edit at once.
+
 J, a click and a structure kind add a structure. C clones it with a new
 identity; E edits its owner, kind, identity and placement words. U adds units;
 their E fields include group membership. Select a unit and press K to create

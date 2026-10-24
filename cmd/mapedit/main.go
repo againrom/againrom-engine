@@ -39,7 +39,7 @@ func run(args []string, out io.Writer) error {
 	detailScroll := flags.Int("scroll-details", 0, "wheel steps down the selected inspector in a diagnostic snapshot")
 	triggers := flags.Bool("triggers", false, "show the authored trigger filter")
 	focusRef := flags.Int("focus-reference", 0, "focus a selected record's 1-based map reference without changing selection")
-	newMap := flags.String("new", "", "start a new map of this size, e.g. 32x32 (width and height, 32 to 256 in steps of 8); with -out the blank map is written and the program exits")
+	newMap := flags.String("new", "", "start a new map of this size, e.g. 32x32 (width and height, 32 to 256 in steps of 8), or 32x32/altitude40 for a starting height of 0 to 126 (64 without it); with -out the blank map is written and the program exits")
 	out2 := flags.String("out", "", "with -new: the new .alm file to write the blank map to; the report is printed and the program exits")
 	modDir := flags.String("mod", "", "mod folder Save writes into: Ctrl+S writes the map to the path its data/missions.toml entry names, and refuses a map no entry names")
 	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")

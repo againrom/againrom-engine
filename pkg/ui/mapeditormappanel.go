@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"strconv"
 	"strings"
 )
 
@@ -478,12 +479,19 @@ const (
 // multiplayer before it opens.
 func (e *MapEditor) askNewMode(source string) {
 	e.leave(leaveDrag | leavePick)
-	e.openPrompt(editorPrompt{kind: promptNewMode, then: leaveStep{open: true, source: source}})
+	e.openPrompt(editorPrompt{kind: promptNewMode, path: strconv.Itoa(NewMapDefaultAltitude), then: leaveStep{open: true, source: source}})
 }
 
-// newModeOpen leaves the question and opens its new map in mode.
+// newModeOpen leaves the question and opens its new map in mode at the typed
+// starting height; a height outside 0..126 keeps the question open and says
+// why.
 func (e *MapEditor) newModeOpen(multi bool) error {
-	source := e.prompt.then.source
+	h, ok := newAltitude(e.prompt.path)
+	if !ok {
+		e.message = fmt.Sprintf(e.word("editor.newmap.badheight"), strings.TrimSpace(e.prompt.path))
+		return nil
+	}
+	source := newMapAltitudeSource(e.prompt.then.source, h)
 	e.leave(leavePrompt)
 	if multi {
 		source += NewMapMultiplayer
@@ -491,9 +499,19 @@ func (e *MapEditor) newModeOpen(multi bool) error {
 	return e.Open(source)
 }
 
-// newModeSpec is the new-map question as a popup description.
+// newModeSpec is the new-map question as a popup description: the mode
+// note, the starting height the keyboard types, and the refusal of a height
+// outside 0..126.
 func (e *MapEditor) newModeSpec() popupSpec {
-	return e.questionSpec(e.word("editor.newmap.title"), []string{e.word("editor.newmap.text")},
+	notes := []string{e.word("editor.newmap.text")}
+	if e.message != "" {
+		notes = append(notes, e.message)
+	}
+	row := popupRow{Kind: popupEdit, Label: e.word("editor.newmap.height"), Value: e.prompt.path, Focus: true}
+	if f := e.bodyFont(); f != nil {
+		row.Caret = f.Advance(row.Value)
+	}
+	return e.questionRowsSpec(e.word("editor.newmap.title"), notes, []popupRow{row},
 		[]string{e.word("editor.mode.single"), e.word("editor.mode.multi"), e.word("editor.button.cancel")})
 }
 
@@ -512,11 +530,19 @@ func (e *MapEditor) newModePress(p image.Point) {
 // questionSpec is a question in the window's middle: a title, wrapped note
 // lines and a row of buttons wide enough for the longest caption.
 func (e *MapEditor) questionSpec(title string, notes, buttons []string) popupSpec {
+	return e.questionRowsSpec(title, notes, nil, buttons)
+}
+
+// questionRowsSpec is questionSpec with rows above the note lines.
+func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupRow, buttons []string) popupSpec {
 	w := e.popupWide(popPrompt, min(560, e.window.X-16))
-	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1, Buttons: buttons}
+	s := popupSpec{Title: title, Width: w, Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 1, Buttons: buttons, Rows: rows}
 	if f := e.bodyFont(); f != nil {
 		for _, b := range s.Buttons {
 			s.ButtonW = max(s.ButtonW, f.Advance(b)+16)
+		}
+		for _, r := range rows {
+			s.LabelWidth = max(s.LabelWidth, f.Advance(r.Label)+8)
 		}
 		s.Width = min(max(s.Width, len(buttons)*s.ButtonW+(len(buttons)+1)*popupPad), e.window.X-16)
 	}
