@@ -354,6 +354,9 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			}
 			continue
 		}
+		if err := againromNodeNamesUnit(n, false, refd); err != nil {
+			return nil, rep, err
+		}
 		if refd.unbuilt(dialect, refs) {
 			if dialect == sim.ScriptROM2 {
 				buildTime[n.ID] = true
@@ -386,6 +389,9 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			args[0] = int32(n.Value[0])
 		} else {
 			args, refd = bindScriptParams(n, refs, &rep, true, dialect)
+		}
+		if err := againromNodeNamesUnit(n, true, refd); err != nil {
+			return nil, rep, err
 		}
 		if !(dialect == sim.ScriptROM2 && n.Opcode == scriptConstOpcode) && refd.unbuilt(dialect, refs) {
 			rep.OmittedChecks = append(rep.OmittedChecks, n.ID)
@@ -506,6 +512,17 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 		return nil, rep, fmt.Errorf("mapload: compiling the map's script: %w", err)
 	}
 	return s, rep, nil
+}
+
+// againromNodeNamesUnit refuses an Againrom node (DIV-4009) that names no
+// unit: both read one unit, and a node without a unit slot is a malformed map
+// rather than an unresolved reference.
+func againromNodeNamesUnit(n alm.ScriptNode, cond bool, b bound) error {
+	op := int32(n.Opcode)
+	if b.seenUnit > 0 || cond && op != sim.ScriptCheckHealthBelow || !cond && op != sim.ScriptInstantUndying {
+		return nil
+	}
+	return fmt.Errorf("mapload: script node %d (%s) names no unit", n.ID, ScriptOperationName(cond, n.Opcode))
 }
 
 func bindScriptParams(n alm.ScriptNode, refs ScriptRefs, rep *ScriptReport, cond bool, dialect sim.ScriptDialect) ([10]int32, bound) {

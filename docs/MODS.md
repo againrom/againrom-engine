@@ -1248,6 +1248,30 @@ the operations supported by the current runtime. D sets the party drop cell;
 E on a drop action can edit another drop independently. G retains the goal
 presets and target picker.
 
+Two operations exist only in Againrom. The action "Set undying (Againrom)"
+names a unit and a state, 1 to set or 0 to clear. While set, the unit does
+not die: damage keeps lowering its health below zero, down to -32768, and
+the unit stays alive, keeps acting and can still be attacked and healed.
+Clearing the state on a unit at zero health or below starts its ordinary
+death in that trigger pass, and the unit's killer gets the kill experience
+and the Diary count once, as for any other death. A blow on an undying unit
+at health -10 or below pays its striker no blow experience, the same rule as
+for a body. Prismatic Spray takes an undying unit as its target at any
+health. The condition "Health below (Againrom)" names a
+unit and a signed number X from -32768 to 32767. Its value is 1 while the
+unit's current health is below X, else 0; it is evaluated in the trigger
+pass with the other conditions, once per 16 ticks. Compare it with a
+constant 1 by "equals". A map holding either operation is an Againrom-only
+map: the editor marks it in the status strip and in the script notice. The
+mark adds no bytes. The original game reads such a map but runs neither
+operation: the action does nothing and the condition stays 0, so a trigger
+that waits for it to be 1 never fires. Example: trigger "Undying on" pairs constant
+1 with constant 1 and runs "Set undying" on the boss with state 1; trigger
+"Below" pairs "Health below" on the boss with X = -25 against constant 1 and
+runs "Set undying" on the boss with state 0, then a message. The boss
+survives every blow until its health falls below -25; on the next trigger
+pass the message shows and the boss falls.
+
 X edits mission pages. Set the page name, reopen X and use Tab to reach its
 body. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
 `eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed

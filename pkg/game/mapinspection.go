@@ -360,6 +360,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		if !m.Present(7) {
 			d.ScriptNotice = "Section 7 absent; no authored script"
 		}
+		if d.AgainromOnly = mapload.ScriptAgainromOnly(script); d.AgainromOnly {
+			d.ScriptNotice += " / Againrom-only map"
+		}
 	} else {
 		d.ScriptNotice = "Section 7 decode error; see section record"
 	}

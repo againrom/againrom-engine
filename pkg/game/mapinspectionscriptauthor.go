@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -221,6 +222,9 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 			}
 		}
 	}
+	if err := againromValueAllowed(k == mapedit.KindCondition, nodes[index], key, value); err != nil {
+		return err
+	}
 	if key == "id" {
 		for i, n := range nodes {
 			if i != index && int64(n.ID) == value {
@@ -232,6 +236,16 @@ func scriptFieldAllowed(m *mapedit.Editor, k mapedit.Kind, index int, key string
 		}
 	}
 	return nil
+}
+
+// againromValueAllowed asks sim.AgainromNodeValue about the value a plain
+// field key of node n would hold (DIV-4009).
+func againromValueAllowed(condition bool, n alm.ScriptNode, key string, value int64) error {
+	slot, err := strconv.Atoi(strings.TrimPrefix(key, "value"))
+	if !strings.HasPrefix(key, "value") || err != nil || slot < 0 || slot >= len(n.Type) || n.Type[slot] != mapload.ScriptInt {
+		return nil
+	}
+	return sim.AgainromNodeValue(condition, int32(n.Opcode), value)
 }
 
 func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
@@ -247,6 +261,13 @@ func scriptVariableAllowed(m *mapedit.Editor, k mapedit.Kind, index int) error {
 		return err
 	}
 	n := scriptNodes(sc, k)[index]
+	// The set may have made the node Againrom's after its values were
+	// checked; its values are checked again on the node the set leaves.
+	for slot := range n.Value {
+		if err := againromValueAllowed(k == mapedit.KindCondition, n, "value"+strconv.Itoa(slot), int64(int32(n.Value[slot]))); err != nil {
+			return err
+		}
+	}
 	if !scriptAddressesVariable(k == mapedit.KindCondition, n.Opcode) {
 		return nil
 	}

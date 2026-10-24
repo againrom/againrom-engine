@@ -42,7 +42,7 @@ func (w *World) beginScroll(ci, index int, target EntityID, x, y int32, atCell b
 		return false
 	}
 	e := w.entities[ci]
-	if e.HP <= 0 || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) || w.actorCastBusy(ci) {
+	if !e.Living() || e.OffMap || w.stoneCursed(ci) || w.motionActive(e.ID) || w.actorCastBusy(ci) {
 		return false
 	}
 	if !w.sourceMutationReady(ci) {
@@ -191,7 +191,7 @@ func (w *World) stepScrollCasts(obs *castObs, interrupted map[EntityID]bool) map
 		}
 		id, power, _ := ScrollSpell(c.Item)
 		rule, exists := w.findSpell(uint32(id))
-		if !exists || w.entities[ci].HP <= 0 || w.entities[ci].OffMap {
+		if !exists || !w.entities[ci].Living() || w.entities[ci].OffMap {
 			if !w.cancelScroll(ci) {
 				k++
 			}

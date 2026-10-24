@@ -60,6 +60,10 @@ const (
 	ScriptCheckVariable      int32 = 19      // register = register[p0]
 	ScriptCheckStructField   int32 = 21      // the referenced structure's Field42, sign-extended; names no unit (1033 B3, TRIG-CHECK-053)
 	ScriptCheckConstant      int32 = 0x10002 // build-time preset; never dispatched
+
+	// ScriptCheckHealthBelow is Againrom's own condition (DIV-4009): 1 iff
+	// the unit's current health is below p0, else 0. ROM1 has no such arm.
+	ScriptCheckHealthBelow int32 = 0x4101
 )
 
 // The instant opcodes this build runs, out of a 34-arm table.
@@ -201,6 +205,10 @@ const (
 	// unconditionally — the setter half of check opcode 21's getter, over the
 	// same field.
 	ScriptInstantStructField int32 = 26
+
+	// ScriptInstantUndying is Againrom's own action (DIV-4009): p0 = 1 sets
+	// the unit's undying state, p0 = 0 clears it. ROM1 has no such arm.
+	ScriptInstantUndying int32 = 0x4100
 )
 
 // The three PROPERTY SELECTORS instant 34 defines. They are the arm's own three
@@ -226,7 +234,8 @@ func scriptCheckSupported(op int32) bool {
 		ScriptCheckRelation, ScriptCheckDead11, ScriptCheckItemTestAlias, ScriptCheckDead13,
 		ScriptCheckSackAt, ScriptCheckNearest, ScriptCheckItemDistance, ScriptCheckItemTest,
 		ScriptCheckVIP,
-		ScriptCheckVariable, ScriptCheckStructField, ScriptCheckConstant:
+		ScriptCheckVariable, ScriptCheckStructField, ScriptCheckConstant,
+		ScriptCheckHealthBelow:
 		return true
 	}
 	return false
@@ -247,7 +256,8 @@ func scriptInstantSupported(in ScriptInstant) bool {
 		ScriptInstantGroupOffMap, ScriptInstantGroupOnMap,
 		ScriptInstantCastAtCell, ScriptInstantCastAtUnit, ScriptInstantCellEffectAge,
 		ScriptInstantFormation, ScriptInstantDropAll, ScriptInstantCellTail,
-		ScriptInstantUnitEffectAge, ScriptInstantProperty, ScriptInstantStructField:
+		ScriptInstantUnitEffectAge, ScriptInstantProperty, ScriptInstantStructField,
+		ScriptInstantUndying:
 		return true
 	case ScriptInstantGroupOrder:
 		return groupOrderSupported(in.Args[0])
@@ -600,6 +610,9 @@ func newScript(dialect ScriptDialect, checks []ScriptCheck, instants []ScriptIns
 	}
 
 	ip := append([]ScriptInstant(nil), instants...)
+	if err := validateAgainromNodes(cp, ip); err != nil {
+		return nil, err
+	}
 
 	// poisoned[r] is a register that no arm of this build ever writes BECAUSE
 	// the check that owns it is unimplemented. A register owned by NO check is
@@ -1211,6 +1224,9 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	}
 
 	switch c.Op {
+	case ScriptCheckHealthBelow:
+		write(healthBelow(e, c.Args[0]))
+
 	case ScriptCheckInBox:
 		v := int32(0)
 		if e.X >= c.Args[0] && e.X <= c.Args[2] && e.Y >= c.Args[1] && e.Y <= c.Args[3] {
@@ -1845,6 +1861,14 @@ func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
 		}
 		if i := indexOfEntity(w.entities, in.Unit); i >= 0 {
 			w.setUnitProperty(i, in.Args[0], in.Args[1])
+		}
+
+	case ScriptInstantUndying:
+		if !in.HasUnit {
+			return
+		}
+		if i := indexOfEntity(w.entities, in.Unit); i >= 0 {
+			w.setUndying(i, in.Args[0] != 0)
 		}
 
 	case ScriptInstantStructField:

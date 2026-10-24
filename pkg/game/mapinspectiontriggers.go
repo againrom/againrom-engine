@@ -147,7 +147,8 @@ func scriptCatalog() ui.InspectionScriptCatalog {
 	family := func(condition bool) []ui.InspectionScriptOperation {
 		var out []ui.InspectionScriptOperation
 		for _, op := range mapload.ScriptOperations(condition) {
-			out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: mapload.ScriptOperationNamed(condition, op.Opcode)})
+			out = append(out, ui.InspectionScriptOperation{Opcode: op.Opcode, Named: mapload.ScriptOperationNamed(condition, op.Opcode),
+				Againrom: op.Opcode == mapload.AgainromScriptOperation(condition)})
 		}
 		return out
 	}

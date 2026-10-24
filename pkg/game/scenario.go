@@ -777,7 +777,7 @@ func (u *HeadlessUntil) holds(p *PlayWorld) (bool, error) {
 		// A world that no longer holds the entity satisfies "dead" and
 		// refutes "alive", so a unit removed rather than felled is not a
 		// condition that can never be met.
-		return (!ok || e.HP <= 0) == *u.Dead, nil
+		return (!ok || !e.Living()) == *u.Dead, nil
 	}
 	if !ok {
 		return false, nil
@@ -872,7 +872,7 @@ func (a *HeadlessUnitAssertion) check(p *PlayWorld, ref string) error {
 	}
 	e, ok := p.entity(id)
 	if a.Alive != nil {
-		alive := ok && e.HP > 0
+		alive := ok && e.Living()
 		if alive != *a.Alive {
 			return fmt.Errorf("unit %s alive = %v, want %v", ref, alive, *a.Alive)
 		}
@@ -993,7 +993,7 @@ func (a *HeadlessWorldAssertion) validate() error {
 	return nil
 }
 
-func (a *HeadlessWorldAssertion) check(p *PlayWorld, start map[sim.EntityID]int32) error {
+func (a *HeadlessWorldAssertion) check(p *PlayWorld, start map[sim.EntityID]bool) error {
 	w := p.World
 	if a.Outcome != "" {
 		want, err := headlessOutcomeWanted(a.Outcome)
@@ -1054,12 +1054,12 @@ func (a *HeadlessWorldAssertion) check(p *PlayWorld, start map[sim.EntityID]int3
 }
 
 // headlessCounts is how many entities are still standing, and how many fell
-// since the run began. start is each entity's health at the first step.
-func headlessCounts(p *PlayWorld, start map[sim.EntityID]int32) (alive, fallen int) {
+// since the run began. start says which entities were living at the first step.
+func headlessCounts(p *PlayWorld, start map[sim.EntityID]bool) (alive, fallen int) {
 	for _, e := range p.World.Entities() {
-		if e.HP > 0 {
+		if e.Living() {
 			alive++
-		} else if start[e.ID] > 0 {
+		} else if start[e.ID] {
 			fallen++
 		}
 	}
@@ -1222,7 +1222,7 @@ type HeadlessUnitState struct {
 // the per-entity rows are included, which only a report step asks for: a run of
 // four thousand ticks past a hundred units would otherwise write four hundred
 // thousand rows nobody reads.
-func (p *PlayWorld) worldState(start map[sim.EntityID]int32, units bool) HeadlessWorldState {
+func (p *PlayWorld) worldState(start map[sim.EntityID]bool, units bool) HeadlessWorldState {
 	alive, fallen := headlessCounts(p, start)
 	state := HeadlessWorldState{
 		Tick:        p.World.Tick(),
@@ -1281,9 +1281,9 @@ func RunPlayScenario(p *PlayWorld, scenario HeadlessScenario, machine, human io.
 	if scenario.StageName() != StageMission {
 		return fmt.Errorf("play run: scenario is on stage %q", scenario.StageName())
 	}
-	start := map[sim.EntityID]int32{}
+	start := map[sim.EntityID]bool{}
 	for _, e := range p.World.Entities() {
-		start[e.ID] = e.HP
+		start[e.ID] = e.Living()
 	}
 	enc := json.NewEncoder(machine)
 	for i, step := range scenario.Steps {
@@ -1316,7 +1316,7 @@ func RunPlayScenario(p *PlayWorld, scenario HeadlessScenario, machine, human io.
 
 // runPlayStep performs one step and returns what the human trace should add to
 // the summary line for it.
-func runPlayStep(p *PlayWorld, step HeadlessStep, start map[sim.EntityID]int32) (string, error) {
+func runPlayStep(p *PlayWorld, step HeadlessStep, start map[sim.EntityID]bool) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(step.Command)) {
 	case "kill":
 		id, err := p.Resolve(step.Unit)

@@ -5,7 +5,7 @@ package sim
 // Unsupported payloads are refused as a whole before either item or actor
 // changes. ITEM-USE-113 consumes capped and class-inapplicable uses too.
 func (w *World) usePotion(i, index int) bool {
-	if i < 0 || i >= len(w.entities) || w.entities[i].HP <= 0 || w.entities[i].OffMap || index < 0 || index >= len(w.carried[i]) {
+	if i < 0 || i >= len(w.entities) || !w.entities[i].Living() || w.entities[i].OffMap || index < 0 || index >= len(w.carried[i]) {
 		return false
 	}
 	item := w.carried[i][index].Instance()

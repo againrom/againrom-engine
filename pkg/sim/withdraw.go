@@ -55,7 +55,7 @@ func (w *World) withdrawalActor(i int, obs *withdrawalObs) {
 	// HP > 0 is both the living-actor test used by the picker and what
 	// keeps the zero constructor thresholds inert on a no-health-system
 	// entity. Every placed actor with a health system is positive here.
-	if e.HP <= 0 || e.Owner == 0 || e.OffMap || w.stoneCursed(i) {
+	if !e.Living() || e.Owner == 0 || e.OffMap || w.stoneCursed(i) {
 		return
 	}
 	if e.ActorState == actorStateRetreat && w.retreatProgressBusy(i) {
@@ -208,7 +208,7 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 // It reports whether it wrote the flee move; acquisition writes none.
 func (w *World) withdrawFrom(i int, hostile []int) bool {
 	for _, ci := range hostile {
-		if w.entities[ci].HP > 0 {
+		if w.entities[ci].Living() {
 			return w.withdrawFromAny(i, hostile)
 		}
 	}

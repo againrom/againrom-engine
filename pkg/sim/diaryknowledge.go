@@ -126,7 +126,7 @@ func (w *World) recordDiaryKill(ti int) {
 		return
 	}
 	killer := w.entities[ci]
-	if !InPersistBand(killer.TypeID) || killer.HP < 0 || killer.Owner != SelfSlot {
+	if !InPersistBand(killer.TypeID) || killer.Dead() || killer.Owner != SelfSlot {
 		return
 	}
 	u, ok := w.diaryUnitOf(victim)

@@ -74,6 +74,9 @@ func (e Entity) SourceNow() SourceActor {
 }
 
 func (e *Entity) setCurrentHealth(value int32) {
+	if e.Undying && value < undyingHealthFloor {
+		value = undyingHealthFloor
+	}
 	e.HP = value
 	if e.ActorLoad.Source.Class != 0 {
 		e.ActorLoad.Source.Stats[8] = uint16(value)

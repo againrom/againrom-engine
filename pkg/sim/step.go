@@ -456,6 +456,18 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	w.initializeActionClocks()
 	w.prepareFlightRuns()
 	w.takePendingOrders()
+	// The death award consumes attribution only after the tick's spell envelopes
+	// and physical awards have all run. Remember actors that have not yet died;
+	// the tail scan then catches each death once without adding a transient
+	// queue to canonical World state. An undying unit has not died at any
+	// health, so a script pass that clears it below zero starts a death this
+	// tick's scan awards (DIV-4009).
+	standing := make(map[EntityID]bool)
+	for i := range w.entities {
+		if w.entities[i].Undying {
+			standing[w.entities[i].ID] = true
+		}
+	}
 	if !w.SecondGame() {
 		w.beginSessionTick(tr, obs, withdrawals)
 	}
@@ -465,14 +477,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		w.areaCostLive = true
 	}
 	w.openCostWindow()
-	// The death award consumes attribution only after the tick's spell envelopes
-	// and physical awards have all run. Remember actors that have not yet crossed
-	// below zero; the tail scan then catches each crossing once without adding a
-	// transient queue to canonical World state.
-	beforeHP := make(map[EntityID]int32)
 	for i := range w.entities {
-		if w.entities[i].OrdinaryTargetable() {
-			beforeHP[w.entities[i].ID] = w.entities[i].HP
+		if !w.entities[i].Dead() {
+			standing[w.entities[i].ID] = true
 		}
 	}
 	// THE SPELL EFFECT MARKS AGE FIRST, BEFORE ANYTHING CAN SET ONE. A mark set
@@ -1250,9 +1257,9 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// the ladder for a downed actor whose decay walk itself crossed below zero;
 	// processNewKillCredits deletes each consumed id from this tick's set.
 	w.drainControlSpirit()
-	w.processNewKillCredits(beforeHP)
+	w.processNewKillCredits(standing)
 	w.decayPass()
-	w.processNewKillCredits(beforeHP)
+	w.processNewKillCredits(standing)
 
 	// Recovery ages after every possible action producer. A count that reaches
 	// zero here admits a fresh action on the next tick, never later in this one.

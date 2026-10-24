@@ -170,7 +170,7 @@ func TestNativeClassDelayedCreditSurvivesColdLoad(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, next := range []*World{w, &cold} {
-			next.processNewKillCredits(map[EntityID]int32{2: 0})
+			next.processNewKillCredits(map[EntityID]bool{2: true})
 			if e := next.entities[0]; e.NativeTraining.Levels[3] != 11 || e.Skill[3] != 21 {
 				t.Fatal("delayed class-selected award", e.NativeTraining, e.Skill)
 			}

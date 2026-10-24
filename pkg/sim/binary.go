@@ -1724,6 +1724,9 @@ func (w *World) encodePlayInto(b []byte) []byte {
 		if e.AlwaysHits {
 			b[o+82] = 1
 		}
+		if e.Undying {
+			b[o+82] |= entityUndyingBit
+		}
 		binary.LittleEndian.PutUint32(b[o+83:o+87], e.Group)
 		binary.LittleEndian.PutUint32(b[o+87:o+91], e.Owner)
 		b[o+91] = e.Facing
@@ -2758,13 +2761,10 @@ func (w *World) unmarshalBinary(data []byte) error {
 		default:
 			return fmt.Errorf("sim: entity record %d: attack target tag is %d, want 0, 1, 2, 3 or 4", i, data[o+48])
 		}
-		switch data[o+82] {
-		case 0:
-		case 1:
-			e.AlwaysHits = true
-		default:
-			return fmt.Errorf("sim: entity record %d: always-hits byte is %d, want 0 or 1", i, data[o+82])
+		if data[o+82]&^(1|entityUndyingBit) != 0 {
+			return fmt.Errorf("sim: entity record %d: always-hits byte is %d, want bits 0 and 1 only", i, data[o+82])
 		}
+		e.AlwaysHits, e.Undying = data[o+82]&1 != 0, data[o+82]&entityUndyingBit != 0
 		switch data[o+290] {
 		case 0:
 		case 1:

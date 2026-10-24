@@ -126,7 +126,7 @@ func (w *World) decaySessionActors(c SessionClock) {
 			if e.CurrentProfileBasis == ProfileOriginalCurrent {
 				hp = int32(int16(hp))
 			}
-			if c.liveDecayDue() && hp < 0 {
+			if c.liveDecayDue() && hp < 0 && !e.Undying {
 				wasTargetable := e.OrdinaryTargetable()
 				decaySessionHealth(e)
 				// Keep native lifecycle invariants when a retained unsigned

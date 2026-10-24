@@ -33,7 +33,7 @@ func (mw *mapWorld) localTeleportArrived(moved []sim.Relocation) bool {
 		if r.Owner != sim.SelfSlot || (r.FromX == r.ToX && r.FromY == r.ToY) {
 			continue
 		}
-		if caster, ok := mw.entity(r.Caster); ok && caster.Owner == sim.SelfSlot && caster.HP > 0 && caster.X == r.ToX && caster.Y == r.ToY {
+		if caster, ok := mw.entity(r.Caster); ok && caster.Owner == sim.SelfSlot && caster.Living() && caster.X == r.ToX && caster.Y == r.ToY {
 			return true
 		}
 	}

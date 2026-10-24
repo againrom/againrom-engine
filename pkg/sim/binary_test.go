@@ -2579,7 +2579,7 @@ func TestUnmarshalRefusesAndLeavesTheReceiverExactlyAsItWas(t *testing.T) {
 		// offsets did not move when the group word arrived: it went past them.
 		{"an attack-presence byte of 2", withByte(valid, 118, 2)},
 		{"an attack-presence byte at the top of its range", withByte(valid, 459, 0xff)},
-		{"an always-hits byte of 2", withByte(valid, 152, 2)},
+		{"an always-hits byte of 4", withByte(valid, 152, 4)},
 		{"an always-hits byte at the top of its range", withByte(valid, 493, 0xff)},
 
 		// The phase and the count, which both sides refuse alike.

@@ -76,6 +76,7 @@ type ActorValues struct {
 	SuppressCorpseLoot                                       bool
 	SeeInvisible                                             uint8
 	AlwaysHits                                               bool
+	Undying                                                  bool `json:",omitempty"`
 	DyingTime, XPValue, GoldChance, TreasureMin, TreasureMax int32
 	GainsXP                                                  bool
 	LegacyBook                                               bool
@@ -116,7 +117,7 @@ func (e Entity) Values() ActorValues {
 		NativeClassPresent:      e.NativeClass.Present,
 		EquipmentRuntimePresent: e.ActorLoad.Source.EquipmentRuntimePresent, MovementPresent: e.HumanMovement.Present,
 		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SeeInvisible: e.SeeInvisible,
-		AlwaysHits: e.AlwaysHits, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
+		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^uint32(0x1ffffffe),
 		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell}
 	if !e.Humanoid && e.SkillXP != ([skillSlots]int32{}) {
@@ -302,6 +303,7 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	}
 	e.PotionStats, e.PotionHeadroom = v.PotionStats, v.PotionHeadroom
 	e.SuppressCorpseLoot, e.SeeInvisible, e.AlwaysHits, e.DyingTime = v.SuppressCorpseLoot, v.SeeInvisible, v.AlwaysHits, v.DyingTime
+	e.Undying = v.Undying
 	e.XPValue, e.GoldChance, e.TreasureMin, e.TreasureMax, e.GainsXP = v.XPValue, v.GoldChance, v.TreasureMin, v.TreasureMax, v.GainsXP
 	mode := BookPresent
 	if v.LegacyBook {

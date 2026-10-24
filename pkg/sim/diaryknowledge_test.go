@@ -21,7 +21,7 @@ func diaryKill(w *World, id EntityID) {
 	i := indexOfEntity(w.entities, id)
 	before := w.entities[i].HP
 	w.entities[i].HP = -1
-	w.processNewKillCredits(map[EntityID]int32{id: before})
+	w.processNewKillCredits(map[EntityID]bool{id: before >= 0})
 }
 
 func diaryWorld(t *testing.T, units map[uint16]DiaryUnit, ents ...Entity) *World {

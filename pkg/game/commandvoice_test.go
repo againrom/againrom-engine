@@ -95,6 +95,8 @@ type voicePerson struct {
 	weapon bool
 	owner  uint32
 	hp     int32
+	// undying makes the entity a script-undying unit (DIV-4009).
+	undying bool
 }
 
 // voiceFixture builds a world holding the people as entities 1..n.
@@ -106,7 +108,7 @@ func voiceFixture(t *testing.T, people ...voicePerson) *mapWorld {
 	for i, p := range people {
 		id := sim.EntityID(i + 1)
 		ents = append(ents, sim.Entity{ID: id, X: int32(i % swingW), Y: int32(i / swingW), Owner: p.owner,
-			TypeID: p.typeID, Class: 1, Humanoid: p.dir != "", HP: p.hp, MaxHP: 10})
+			TypeID: p.typeID, Class: 1, Humanoid: p.dir != "", HP: p.hp, MaxHP: 10, Undying: p.undying})
 		if p.weapon {
 			stocks = append(stocks, sim.Stock{ID: id, Equipped: [sim.EquipSlots]uint16{0: eqSwordCode}})
 		}

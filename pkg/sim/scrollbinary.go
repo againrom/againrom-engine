@@ -53,7 +53,7 @@ func decodeScrolls(b []byte, entities []Entity, bounds Bounds, spells []SpellRul
 		if b[off+18]&^3 != 0 || c.AtCell && c.Target != 0 || !c.Started && c.Remaining > 1 || c.Started && c.Remaining == 0 {
 			return nil, 0, fmt.Errorf("sim: invalid scroll lifecycle")
 		}
-		if ci := indexOfEntity(entities, c.Caster); ci < 0 || entities[ci].HP <= 0 || entities[ci].OffMap {
+		if ci := indexOfEntity(entities, c.Caster); ci < 0 || !entities[ci].Living() || entities[ci].OffMap {
 			return nil, 0, fmt.Errorf("sim: invalid scroll caster")
 		}
 		if len(out) != 0 && out[len(out)-1].Caster >= c.Caster {

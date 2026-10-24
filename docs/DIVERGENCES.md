@@ -149,6 +149,7 @@ copying those counts.
 | `docs/divergences/misc.md` |
 | `docs/divergences/mission-screen.md` |
 | `docs/divergences/mods-items.md` |
+| `docs/divergences/mods-maps.md` |
 | `docs/divergences/mods-missions.md` |
 | `docs/divergences/mods.md` |
 | `docs/divergences/persistence.md` |

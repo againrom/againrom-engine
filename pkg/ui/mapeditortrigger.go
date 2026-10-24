@@ -193,6 +193,8 @@ func (e *MapEditor) nodeParams(condition bool, opcode uint32, types, values [10]
 			s++
 		case !condition && opcode == scriptGroupCommand && s == 0 && t == scriptConst:
 			value = e.commandName(v)
+		case t == scriptInt && e.doc.Script.Catalog.againrom(condition, opcode):
+			value = strconv.FormatInt(slotValue(t, v), 10)
 		}
 		out = append(out, label+" "+value)
 	}
@@ -551,6 +553,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			if _, ok := e.parameterTarget(i); ok {
 				o.rowOpen[len(s.Rows)] = i
 				add(popupRow{Kind: popupLink, Label: e.word("editor.param.open") + " " + f.Label}, -1)
+			}
+			if f.Key == "opcode" && e.doc.Script.Catalog.againrom(v.condition, v.node.Opcode) {
+				text(e.word("editor.node.againrom"), "warning")
 			}
 			if f.Key == "opcode" && len(o.fields) > 2 {
 				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.parameters")}, -1)

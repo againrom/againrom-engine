@@ -363,6 +363,11 @@ type Entity struct {
 	Absorption               int32
 	DamageBase, DamageSpread int32
 	AlwaysHits               bool
+	// Undying is the map script's own state (ScriptInstantUndying): while
+	// it is set the unit stays alive whatever its health, so it never takes
+	// the death transition, and its health is floored at the ROM1 field's
+	// signed 16-bit range instead of minHP. DIV-4009.
+	Undying bool
 
 	// Load and Capacity are the actor's carried load and his carry capacity --
 	// `actor+0x90` and `actor+0x92`.
@@ -1253,7 +1258,7 @@ func (e *Entity) clearTransit() {
 // — and it IS eventually removed from the world, on the tick its decay reaches
 // the bottom of the ladder; until then dying changes its health, its stage and
 // its dwell, and nothing else about who the world holds.
-func (e *Entity) Dead() bool { return e.HP < 0 }
+func (e *Entity) Dead() bool { return e.HP < 0 && !e.Undying }
 
 // Downed reports whether e stands at exactly zero health with a health system —
 // the state between alive and dead.
@@ -1263,7 +1268,7 @@ func (e *Entity) Dead() bool { return e.HP < 0 }
 // script health write can restore it above zero. An entity whose MaxHP is not
 // positive is never downed, because zero health is not a wound to a unit that
 // has no health system.
-func (e *Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 }
+func (e *Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 && !e.Undying }
 
 // Alive reports whether e is neither dead nor downed, which is what the third
 // state IS rather than a third comparison beside the other two.
@@ -1272,13 +1277,18 @@ func (e *Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 }
 // construction: Dead and Downed cannot both hold — one wants a negative health
 // and the other exactly zero — and this one is the complement of their union, so
 // no pair of integers can be in two states or in none.
-func (e *Entity) Alive() bool { return e.HP >= 0 && (e.HP != 0 || e.MaxHP <= 0) }
+func (e *Entity) Alive() bool { return e.Undying || e.HP >= 0 && (e.HP != 0 || e.MaxHP <= 0) }
+
+// Living is the positive-health test the actor rules write as HP > 0, with
+// an undying unit counted as living at any health.
+func (e *Entity) Living() bool { return e.HP > 0 || e.Undying }
 
 // OrdinaryTargetable reports whether an ordinary weapon, attack order or spell
 // may still name e. Bodies remain finishable through -9; -10 is the first decay
 // threshold at which they stop being combat subjects. Control Spirit owns its
-// separate bones-only exception at the spell call sites.
-func (e *Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP }
+// separate bones-only exception at the spell call sites. An undying unit is a
+// living combat subject at any health.
+func (e *Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP || e.Undying }
 
 // restorativeTargetable is the health population an ordinary restorative row
 // may raise. It is shared by spell admission and occupancy: a body which can

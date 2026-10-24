@@ -50,6 +50,8 @@ func (e *MapEditor) checkWord(k uint32) (string, bool) {
 		return e.word("editor.check.op22"), true
 	case 65538:
 		return e.word("editor.check.op65538"), true
+	case 0x4101:
+		return e.word("editor.check.op16641"), true
 	}
 	return "", false
 }
@@ -117,6 +119,8 @@ func (e *MapEditor) actionWord(k uint32) (string, bool) {
 		return e.word("editor.action.op34"), true
 	case 65538:
 		return e.word("editor.action.op65538"), true
+	case 0x4100:
+		return e.word("editor.action.op16640"), true
 	}
 	return "", false
 }
@@ -206,6 +210,10 @@ func (e *MapEditor) roleWord(role string) (string, bool) {
 		return e.word("editor.role.range"), true
 	case "command":
 		return e.word("editor.role.command"), true
+	case "health":
+		return e.word("editor.role.health"), true
+	case "undying":
+		return e.word("editor.role.undying"), true
 	}
 	return "", false
 }

@@ -29,6 +29,9 @@ type InspectionScriptCatalog struct {
 type InspectionScriptOperation struct {
 	Opcode uint32
 	Named  bool
+	// Againrom marks an operation the original lacks; a map holding one is
+	// Againrom-only (DIV-4009).
+	Againrom bool
 }
 
 // InspectionScriptSlot is one parameter slot of a signature: its type code
@@ -74,6 +77,16 @@ func (c InspectionScriptCatalog) operations(condition bool) []InspectionScriptOp
 		return c.Checks
 	}
 	return c.Actions
+}
+
+// againrom reports that the catalog marks opcode as an Againrom operation.
+func (c InspectionScriptCatalog) againrom(condition bool, opcode uint32) bool {
+	for _, op := range c.operations(condition) {
+		if op.Opcode == opcode {
+			return op.Againrom
+		}
+	}
+	return false
 }
 
 // named reports that a claim names the opcode.

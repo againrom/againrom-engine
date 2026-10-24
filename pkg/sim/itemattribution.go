@@ -85,18 +85,18 @@ func (w *World) areaAttribution(ci, ti int, rule SpellRule) {
 	target.KillCreditSpell = int8(rule.ID)
 }
 
-// processNewKillCredits is the delayed death processor. beforeHP is captured
-// at the head of the tick. A scan before decay catches direct deaths before a
-// zero-dwell flying body can disappear; one after decay catches a downed
-// actor's 0 -> -1 crossing. Deleting a consumed id makes the pair one logical
-// pass, after every point/area tail and the fighter's physical award.
-func (w *World) processNewKillCredits(beforeHP map[EntityID]int32) {
+// processNewKillCredits is the delayed death processor. standing holds the
+// actors not dead at the head of the tick. A scan before decay catches direct
+// deaths before a zero-dwell flying body can disappear; one after decay
+// catches a downed actor's 0 -> -1 crossing. Deleting a consumed id makes the
+// pair one logical pass, after every point/area tail and the fighter's
+// physical award.
+func (w *World) processNewKillCredits(standing map[EntityID]bool) {
 	for i := range w.entities {
-		before, tracked := beforeHP[w.entities[i].ID]
-		if tracked && before >= 0 && w.entities[i].Dead() {
+		if standing[w.entities[i].ID] && w.entities[i].Dead() {
 			w.recordDiaryKill(i)
 			w.processKillCredit(i)
-			delete(beforeHP, w.entities[i].ID)
+			delete(standing, w.entities[i].ID)
 		}
 	}
 }

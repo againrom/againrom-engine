@@ -463,7 +463,7 @@ func (w *World) awardPoisonTick(effectIndex, targetIndex int, damage int64) {
 		return
 	}
 	ci := indexOfEntity(w.entities, e.Caster)
-	if ci < 0 || w.entities[ci].HP < 0 {
+	if ci < 0 || w.entities[ci].Dead() {
 		e.HasCaster = false
 		e.Caster = 0
 		return

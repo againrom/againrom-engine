@@ -1007,7 +1007,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	// The item spell runs before physical experience. Ordinary ids require a
 	// positive physical result and a still-positive victim; Fire Ball alone is
 	// the fallback when either half fails, including a miss or absorbed blow.
-	w.weaponRiderApply(ai, ti, t.HP > 0, obs)
+	w.weaponRiderApply(ai, ti, t.Living(), obs)
 	// The physical award is reconsidered after the rider. A spell that drives
 	// the victim to -10 or below suppresses it even though the physical result
 	// itself was positive.

@@ -34,7 +34,7 @@ func (mw *mapWorld) speakerOf(ids []uint32, draw voiceDraw) (sim.Entity, string,
 	var tiers [3][]sim.Entity
 	for _, id := range ids {
 		e, ok := mw.world.Entity(sim.EntityID(id))
-		if !ok || e.HP <= 0 {
+		if !ok || !e.Living() {
 			continue
 		}
 		if tier := mw.voiceTier(e); tier >= 0 {

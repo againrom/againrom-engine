@@ -1288,6 +1288,9 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 			mark = "* "
 		}
 		parts = append(parts, mark+e.editorHostText(e.doc.Source))
+		if e.doc.AgainromOnly {
+			parts = append(parts, e.word("editor.againrom.map"))
+		}
 	}
 	if e.pick == pickScriptCell {
 		parts = append(parts, e.word("editor.trigger.pickcell"))

@@ -98,7 +98,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 		// The shared sink bypasses ownership and protected-relation checks only
 		// after the source has fallen below zero. A downed source at exactly zero
 		// still takes both refusals.
-		if s.HP >= 0 {
+		if !s.Dead() {
 			if a.Owner == s.Owner {
 				return false
 			}

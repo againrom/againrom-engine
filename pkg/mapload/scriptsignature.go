@@ -1,5 +1,7 @@
 package mapload
 
+import "againrom/pkg/sim"
+
 // The parameters an operation's arm reads, in the node's file slot order
 // (ALM-TRIG-045: parameters are stored by slot). The type codes are those of
 // ALM-TRIG-046; the role names what the arm does with the slot, from the
@@ -36,6 +38,12 @@ const ScriptGroupCommand = 6
 // scriptFollowCommand is the group command whose shipped nodes store the
 // target group in the slot after the command, not in the last slot.
 const scriptFollowCommand = 15
+
+// The Againrom operations' opcodes (DIV-4009).
+const (
+	opHealthBelow = uint32(sim.ScriptCheckHealthBelow)
+	opUndying     = uint32(sim.ScriptInstantUndying)
+)
 
 // ScriptConstant is the build-time operation: a condition preset to its value
 // (TRIG-COND-003) or the action that is the drop cell (TRIG-DROP-013).
@@ -91,6 +99,7 @@ var checkSignatures = map[uint32]slots{
 	21:             {structure},                                         // TRIG-CHECK-053
 	22:             join(cell("cell"), cell("cell2")),                   // TRIG-CELLRESULT-133
 	ScriptConstant: {number("value")},                                   // TRIG-COND-003
+	opHealthBelow:  {unit("unit"), number("health")},                    // DIV-4009
 }
 
 // actionSignatures are the actions' parameter slots; action 6 is in
@@ -126,6 +135,7 @@ var actionSignatures = map[uint32]slots{
 	33:             {group},                                                             // TRIG-MAPGROUP-043
 	34:             {unit("unit"), number("selector"), number("value")},                 // TRIG-PROPERTY-036
 	ScriptConstant: cell("cell"),                                                        // TRIG-DROP-013
+	opUndying:      {unit("unit"), number("undying")},                                   // DIV-4009
 }
 
 // groupCommandSignatures are action 6's slots by its command, the Const
@@ -189,6 +199,9 @@ func ScriptOperationNamed(condition bool, opcode uint32) bool {
 	limit := uint32(34)
 	if condition {
 		limit = 22
+	}
+	if opcode == AgainromScriptOperation(condition) {
+		return true
 	}
 	if opcode != ScriptConstant && (opcode < 1 || opcode > limit) {
 		return false

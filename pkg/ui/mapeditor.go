@@ -52,9 +52,12 @@ type InspectionDocument struct {
 	Records       []InspectionRecord
 	SourceBytes   []byte // exact current model bytes, not a re-encoded map
 	ScriptNotice  string
-	Drops         []image.Point          // the cells the map's script drops the party on
-	Script        *InspectionScriptModel // the script the trigger editor reads; nil: none
-	Edits         InspectionEdits        // optional; host owns persistence and safety
+	// AgainromOnly marks a map whose script holds an Againrom operation: the
+	// original cannot play its Againrom nodes (DIV-4009).
+	AgainromOnly bool
+	Drops        []image.Point          // the cells the map's script drops the party on
+	Script       *InspectionScriptModel // the script the trigger editor reads; nil: none
+	Edits        InspectionEdits        // optional; host owns persistence and safety
 	// Passability is, per cell and row-major, the arms that close the cell
 	// to a ground mover in the world the game builds from this map: zero for
 	// an open cell. nil: the host derives none and the view draws nothing.

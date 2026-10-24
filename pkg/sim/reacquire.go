@@ -41,7 +41,7 @@ func (w *World) reacquisitionVictim(i int) int {
 		if !c.OrdinaryTargetable() || !w.hostileTo(&self, &c) || w.invisibleToActor(i, ci) || w.targetVetoed(i, ci) {
 			continue
 		}
-		if c.HP > 0 {
+		if c.Living() {
 			living = append(living, ci)
 		} else {
 			bodies = append(bodies, ci)

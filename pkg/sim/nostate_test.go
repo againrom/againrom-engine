@@ -242,6 +242,7 @@ var nstPinned = []struct {
 		{"DamageBase", "int32"},
 		{"DamageSpread", "int32"},
 		{"AlwaysHits", "bool"},
+		{"Undying", "bool"},
 		{"Load", "int32"},
 		{"Capacity", "int32"},
 		{"HumanMovement", "sim.HumanMovement"},
