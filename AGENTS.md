@@ -69,6 +69,19 @@ commit and pull-request attribution.
   `internal/archtest` holds production literals at zero and ratchets the test
   count in `internal/archtest/commandliteral_baseline.go`
   (`go run ./internal/archtest/cmd/commandliteral`).
+- One builder per kind (owner). A kind is anything the engine builds more
+  than once: a screen, room, dialog, widget, save or load path, document
+  producer, loader or decoder, record writer, a game or locale branch, or a
+  test that several call sites ask (sight, busy). Before adding code that
+  builds, reads, writes or decides an instance of a kind the engine already
+  has, find its builder and extend it with data. A sibling function, a copied
+  loader, a parallel type or a new branch on game identity is a second
+  builder. A second builder needs an owner decision that the brief states;
+  without one it is a returning review finding. If a fix needs a builder that
+  does not exist, make the builder first: the existing instances built
+  unchanged, the new one added as data. A kind made one builder gets a guard
+  in `internal/archtest` only where a cheap static source check states it; no
+  installed or release test serves this.
 
 ## Naming and comments
 
@@ -126,7 +139,8 @@ commit and pull-request attribution.
 5. For shipped-data, save or visual behaviour, name the EN and RU release
    witness that must run. Fixture-only tests never claim install validation.
 6. Commit, push the exact branch SHA, and return base, candidate, changed files,
-   evidence and remaining Unknowns.
+   each kind the change touches with the builder it used, evidence and
+   remaining Unknowns.
 
 Read `docs/HARNESS-CASEBOOK.md` only when a rule appears inapplicable, a review
 repeats the same failure shape, or a new rule is proposed.
