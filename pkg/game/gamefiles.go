@@ -60,8 +60,9 @@ type gameFiles struct {
 	// second-game claim places them there.
 	orderThresholds bool
 	// missionBookClosed opens a new mission with the spellbook switched off,
-	// as the first game's own mission-start saves store it (DIV-4020); no
-	// second-game claim states its mission-start panels.
+	// as the first game's own mission-start saves store it (DIV-4020); the
+	// second game follows by owner direction while no second-game claim
+	// states its mission-start panels.
 	missionBookClosed bool
 }
 
@@ -86,11 +87,12 @@ var firstGameFiles = gameFiles{
 }
 
 var secondGameFiles = gameFiles{
-	table:         databin.ROM2Layout,
-	openMap:       alm.OpenROM2,
-	compileScript: mapload.CompileROM2Script,
-	loadMenu:      menu.LoadSecond,
-	briefing:      secondGameBriefing,
+	missionBookClosed: true,
+	table:             databin.ROM2Layout,
+	openMap:           alm.OpenROM2,
+	compileScript:     mapload.CompileROM2Script,
+	loadMenu:          menu.LoadSecond,
+	briefing:          secondGameBriefing,
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},
