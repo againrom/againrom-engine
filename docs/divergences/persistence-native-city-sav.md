@@ -1,6 +1,12 @@
 # Divergences -- Persistence -- native city SAV
 
-30 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
+31 row(s). Part of the split described in `docs/DIVERGENCES.md`: read that file first for what a row means, what each column holds, and how a row is found.
+
+## Divergences
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4039 | native city SAV / raw list address words | SAVE uses deterministic state and evidence-derived rules; pointer identity never decides persisted behaviour | `SAV-1113` (High) identifies the five words in the measured town pair as Group AI `+0x4c` and four Order `+0x90` raw heap addresses. STORE copies them, but LOAD replaces each list and overwrites its address before any read; `SAV-1066` establishes the order block's raw transport | Constructed Group and Order blocks use zero in their replaced list-address words. These are not null archive object references. The independently serialized ordered list contents remain current | DEVIATION | Zero is load-equivalent to every original address under the read LOAD arms, while a process address would break deterministic persistence | Evidence of a consumer before replacement or an additional pointer-word lifecycle | OPEN |
 
 ## Authored where research is silent
 

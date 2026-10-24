@@ -15,6 +15,7 @@ import (
 
 type SnapshotSAVWorldEffects struct {
 	Version       uint32
+	TokenObjects  []uint16
 	SpellNodes    []SnapshotSAVSpellNode
 	Areas         []SnapshotSAVArea
 	Projectiles   bool
@@ -42,6 +43,18 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 	}
 	meta := &SnapshotSAVWorldEffects{Version: 1}
 	drivers := &sim.SavedWorldEffects{}
+	family, err := worldEffectRecords(state.Document)
+	if err != nil {
+		return err
+	}
+	for _, index := range family {
+		token, err := savedItemToken(&state.Document.Objects[index-1])
+		if err != nil {
+			return err
+		}
+		drivers.Tokens = append(drivers.Tokens, token)
+		meta.TokenObjects = append(meta.TokenObjects, index)
+	}
 	incoming := savedDocumentIncoming(state.Document)
 	identityCount := map[uint32]int{}
 	for _, object := range state.Document.Objects {
@@ -217,7 +230,7 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 		slices.Sort(meta.ProjectileIDs)
 		slices.SortFunc(drivers.Projectiles, func(a, b sim.SavedProjectileDriver) int { return int(a.ID) - int(b.ID) })
 	}
-	if len(drivers.Areas)+len(drivers.Projectiles) > 0 || graph != nil {
+	if len(drivers.Areas)+len(drivers.Projectiles)+len(drivers.Tokens) > 0 || graph != nil {
 		if err := ms.World.ImportOriginalWorldEffectDrivers(drivers); err != nil {
 			return err
 		}
@@ -242,6 +255,17 @@ func cloneSavedWorldEffects(src *SnapshotSAVWorldEffects, doc *sav.DocumentData)
 		return fail()
 	}
 	out := *src
+	out.TokenObjects = slices.Clone(src.TokenObjects)
+	if len(out.TokenObjects) > 65534 {
+		return fail()
+	}
+	tokenSeen := map[uint16]bool{}
+	for _, object := range out.TokenObjects {
+		if int(object) > len(doc.Objects) || object != 0 && tokenSeen[object] {
+			return fail()
+		}
+		tokenSeen[object] = true
+	}
 	out.Areas = slices.Clone(src.Areas)
 	out.SpellNodes = slices.Clone(src.SpellNodes)
 	if len(out.SpellNodes) > 65534 {
@@ -293,6 +317,12 @@ func cloneSavedWorldEffects(src *SnapshotSAVWorldEffects, doc *sav.DocumentData)
 func remapSavedWorldEffects(state *SnapshotSAVDocument, permutation []uint16) error {
 	if state.WorldEffects == nil {
 		return nil
+	}
+	for i, object := range state.WorldEffects.TokenObjects {
+		if int(object) >= len(permutation) {
+			return fmt.Errorf("world effect Token binding is outside permutation")
+		}
+		state.WorldEffects.TokenObjects[i] = permutation[object]
 	}
 	for i := range state.WorldEffects.SpellNodes {
 		r := &state.WorldEffects.SpellNodes[i]

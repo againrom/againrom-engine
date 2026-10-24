@@ -121,6 +121,11 @@ func (c *generatedDocumentBuilder) reserveCurrentWorld(w *sim.World) error {
 		return fmt.Errorf("current key reservation lacks a World")
 	}
 	c.reserveCurrentDocumentKeys()
+	if effects := w.SavedWorldEffectDrivers(); effects != nil {
+		for _, token := range effects.Tokens {
+			c.reserveCurrentToken(token)
+		}
+	}
 	for _, stock := range w.Stock() {
 		for _, item := range stock.OrderedStacks {
 			c.reserveCurrentNativeItem(item.NativeRecord)

@@ -9,7 +9,7 @@ import (
 )
 
 func TestWorld1170ProjectileConstructorAndRetirement(t *testing.T) {
-	f := spell1152FixtureFront(t)
+	f := worldSpellFixtureFront(t)
 	doc, err := sav.DecodeDocumentData(completeDocumentFixture1115(t, f))
 	if err != nil {
 		t.Fatal(err)

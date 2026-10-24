@@ -16,10 +16,13 @@ import (
 func worldEffectFamily(loaded *SnapshotSAVDocument, w *sim.World) ([]uint16, error) {
 	drivers := w.SavedWorldEffectDrivers()
 	if loaded == nil || loaded.Document == nil || loaded.Document.World == nil || loaded.WorldEffects == nil ||
-		w.SavedSpellGraph() == nil && (drivers == nil || len(drivers.Areas) == 0) {
+		w.SavedSpellGraph() == nil && (drivers == nil || len(drivers.Areas)+len(drivers.Tokens) == 0) {
 		return nil, nil
 	}
-	doc := loaded.Document
+	return worldEffectRecords(loaded.Document)
+}
+
+func worldEffectRecords(doc *sav.DocumentData) ([]uint16, error) {
 	seen := map[uint16]bool{}
 	var order []uint16
 	var visit func(uint16) error
@@ -69,34 +72,52 @@ func (b *generatedDocumentBuilder) reserveWorldEffectKeys(loaded *SnapshotSAVDoc
 	return nil
 }
 
-// currentWorldEffects writes the World's original spell effects. The World
-// holds each node's spell, payload, timers and references and each area's
-// identity, mode and cell; the world-effect projection writes those over the
-// record. The rest of each Token comes from the loaded record (DIV-2502).
+// currentWorldEffects writes current Tokens, payloads and timers through the
+// loaded graph's bindings. Older Worlds without Tokens retain that residue.
 func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocument, w *sim.World) error {
 	family, err := worldEffectFamily(loaded, w)
 	if err != nil {
 		return err
 	}
 	drivers := w.SavedWorldEffectDrivers()
-	if loaded == nil || loaded.Document == nil || loaded.WorldEffects == nil || w.SavedSpellGraph() == nil && (drivers == nil || len(drivers.Areas) == 0) {
+	if loaded == nil || loaded.Document == nil || loaded.WorldEffects == nil || w.SavedSpellGraph() == nil && (drivers == nil || len(drivers.Areas)+len(drivers.Tokens) == 0) {
 		return nil
 	}
 	// A family whose records all retired still binds every graph node.
 	source := loaded
+	tokens := map[uint16]sim.SavedObjectToken{}
+	if drivers != nil && len(drivers.Tokens) != 0 {
+		if len(source.WorldEffects.TokenObjects) != len(drivers.Tokens) {
+			return fmt.Errorf("world effect Token binding count differs")
+		}
+		for i, object := range source.WorldEffects.TokenObjects {
+			if object != 0 {
+				tokens[object] = drivers.Tokens[i]
+			}
+		}
+	}
 	moved := map[uint16]uint16{}
+	emittedRuntime := savedRuntimeIDs(b.doc.Objects)
 	for _, index := range family {
 		r := cloneEffectRecord(source.Document.Objects[index-1])
+		if value, present := tokens[index]; present {
+			token := savedObjectRecord(r.Class, &value)
+			for _, v := range token.Values {
+				savedObjectSetValue(&r, v.Name, v.Value)
+			}
+			mustSetRaw(&r, "Block12", token.Raw[0].Bytes)
+		}
 		// A runtime handle stays as loaded, zero included, unless another
 		// written object already holds it.
 		if id, err := savedStructureValue(&r, "RuntimeID"); err == nil && id != 0 {
 			if b.runtimeIDs == nil {
 				b.runtimeIDs = savedRuntimeIDs(b.doc.Objects)
 			}
-			if b.runtimeIDs[id] {
+			if emittedRuntime[id] {
 				id = b.runtime()
 			}
 			b.runtimeIDs[id] = true
+			emittedRuntime[id] = true
 			savedObjectSetValue(&r, "RuntimeID", id)
 		}
 		if moved[index], err = b.append(r); err != nil {
@@ -115,6 +136,9 @@ func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocume
 		b.doc.World.Effects = append(b.doc.World.Effects, moved[root])
 	}
 	meta := &SnapshotSAVWorldEffects{Version: 1, Unavailable: source.WorldEffects.Unavailable}
+	for _, object := range source.WorldEffects.TokenObjects {
+		meta.TokenObjects = append(meta.TokenObjects, moved[object])
+	}
 	for _, row := range source.WorldEffects.SpellNodes {
 		meta.SpellNodes = append(meta.SpellNodes, SnapshotSAVSpellNode{ObjectIndex: moved[row.ObjectIndex], PayloadIndex: moved[row.PayloadIndex]})
 	}

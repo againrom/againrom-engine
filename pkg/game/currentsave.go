@@ -118,6 +118,9 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := f.clampOriginalView(&doc); err != nil {
 		return nil, err
 	}
+	if err := finalizeCurrentWorldEffectTokens(&doc); err != nil {
+		return nil, err
+	}
 	return sav.EncodeDocumentData(doc)
 }
 

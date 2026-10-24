@@ -16,9 +16,10 @@ type currentAreaRecord struct {
 }
 
 type spellContinuation struct {
-	Graph *SavedSpellGraph
-	Order []WorldEffectRef
-	Areas []currentAreaRecord `json:",omitempty"`
+	Graph  *SavedSpellGraph
+	Order  []WorldEffectRef
+	Areas  []currentAreaRecord `json:",omitempty"`
+	Tokens []SavedObjectToken  `json:",omitempty"`
 }
 
 func (w *World) appendSavedSpellGraph(b []byte) []byte {
@@ -28,14 +29,18 @@ func (w *World) appendSavedSpellGraph(b []byte) []byte {
 			areas = append(areas, currentAreaRecord{uint32(i), *e.Current})
 		}
 	}
-	if w.savedSpellGraph == nil && len(w.effectOrder) == 0 && len(areas) == 0 {
+	var tokens []SavedObjectToken
+	if w.savedWorldEffects != nil {
+		tokens = w.savedWorldEffects.Tokens
+	}
+	if w.savedSpellGraph == nil && len(w.effectOrder) == 0 && len(areas) == 0 && len(tokens) == 0 {
 		return b
 	}
 	ws, version := beginWrapper(b), spellGraphFormVersion
 	if len(areas) != 0 {
 		version = currentAreaFormVersion
 	}
-	raw, _ := json.Marshal(spellContinuation{Graph: w.savedSpellGraph, Order: w.effectOrder, Areas: areas})
+	raw, _ := json.Marshal(spellContinuation{Graph: w.savedSpellGraph, Order: w.effectOrder, Areas: areas, Tokens: tokens})
 	return endWrapper(append(b, raw...), ws, version)
 }
 
@@ -57,6 +62,12 @@ func (w *World) unmarshalSavedSpellGraph(data []byte, proof formProof) error {
 		return err
 	}
 	next.savedSpellGraph, next.effectOrder = continuation.Graph, continuation.Order
+	if len(continuation.Tokens) != 0 {
+		if next.savedWorldEffects == nil {
+			next.savedWorldEffects = &SavedWorldEffects{}
+		}
+		next.savedWorldEffects.Tokens = continuation.Tokens
+	}
 	if (data[0] == currentAreaFormVersion) != (len(continuation.Areas) > 0) {
 		return fail()
 	}

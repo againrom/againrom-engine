@@ -13,8 +13,8 @@ import (
 )
 
 // Synthetic complete SAV body: independent literal writer, no installed bytes.
-func ring1162Source(t *testing.T, spell, mode, direction byte) []byte {
-	f := spell1152FixtureFront(t)
+func stagedWorldEffectSource(t *testing.T, spell, mode, direction byte) []byte {
+	f := worldSpellFixtureFront(t)
 	source, err := sav.Open(completeDocumentFixture1115(t, f))
 	if err != nil {
 		t.Fatal(err)
@@ -66,8 +66,8 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 		limit                  int
 	}{{4, 2, 0, 2}, {9, 2, 64, 6}, {9, 2, 96, 6}, {21, 2, 0, 32}, {7, 0, 0, 1}} {
 		t.Run(fmt.Sprintf("%d/%d/%d", tc.spell, tc.mode, tc.direction), func(t *testing.T) {
-			raw := ring1162Source(t, tc.spell, tc.mode, tc.direction)
-			f := spell1152FixtureFront(t)
+			raw := stagedWorldEffectSource(t, tc.spell, tc.mode, tc.direction)
+			f := worldSpellFixtureFront(t)
 			_, _, path := openWorldEffectsTestSave(t, f, raw, "staged.sav")
 			check := func(front *FrontEnd, tick int) {
 				t.Helper()
@@ -122,8 +122,8 @@ func TestWorldEffects1162StagedAppChangedDocumentAndNative(t *testing.T) {
 }
 
 func TestWorldEffects1162BindingSuppressionAndCounterControls(t *testing.T) {
-	raw := ring1162Source(t, 4, 2, 0)
-	f := spell1152FixtureFront(t)
+	raw := stagedWorldEffectSource(t, 4, 2, 0)
+	f := worldSpellFixtureFront(t)
 	ms, _, err := loadOriginalMission(f, raw)
 	if err != nil {
 		t.Fatal(err)

@@ -133,6 +133,7 @@ type currentActionData struct {
 	CellCosts            []sim.CurrentCellCost
 	CellPlaneResidue     currentCellPlaneResidues `json:",omitempty"`
 	SpellCasters         []currentSpellCaster
+	WorldEffectTokens    []currentWorldEffectToken        `json:",omitempty"`
 	EffectWidths         []currentEffectWidth             `json:",omitempty"`
 	Values               map[sim.EntityID]sim.ActorValues `json:",omitempty"`
 	Policy               *sim.CurrentWorldPolicy          `json:",omitempty"`
@@ -160,7 +161,7 @@ func readCurrentActions(doc *sav.DocumentData) (*currentActionData, error) {
 		return nil, err
 	}
 	a := *decoded
-	if a.Version != 1 || a.NativeHistoryVersion > 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 {
+	if a.Version != 1 || a.NativeHistoryVersion > 1 || len(a.Bindings) > 131072 || len(a.Actions.Actors) > 32767 || len(a.Groups) > 65534 || len(a.CellCosts) > 65536 || len(a.SpellCasters) > 65534 || len(a.AbsentStructureCells) > 65536 || len(a.WorldEffectTokens) > 65534 {
 		return nil, fmt.Errorf("current action version/population is invalid")
 	}
 	if a.WriterCarriers & ^currentCarrierAll != 0 {
@@ -808,6 +809,9 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 	if err := captureCurrentEffectWidths(doc, state, w, &a); err != nil {
 		return err
 	}
+	if err := captureCurrentWorldEffectTokens(state, w, &a); err != nil {
+		return err
+	}
 	if err := captureCurrentNativeBasis(doc, &a); err != nil {
 		return err
 	}
@@ -1294,6 +1298,9 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		return err
 	}
 	if err := ms.World.RestoreNativeActorBases(a.RemovedNativeBases); err != nil {
+		return err
+	}
+	if err := restoreCurrentWorldEffectTokens(ms, a); err != nil {
 		return err
 	}
 	if err := restoreLegacyNativeObservations(ms, a); err != nil {

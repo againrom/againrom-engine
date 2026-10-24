@@ -97,7 +97,7 @@ func spell1152LiteralList(loc sav.SpellEffectArchiveLocation, shared bool) []byt
 	return s.b
 }
 
-func spell1152FixtureFront(t *testing.T) *FrontEnd {
+func worldSpellFixtureFront(t *testing.T) *FrontEnd {
 	f := poolFixtureFront(t, 91)
 	f.Campaign = resolved(saveCampaign(), nil)
 	f.SetDeterministicFrames(true)
@@ -106,7 +106,7 @@ func spell1152FixtureFront(t *testing.T) *FrontEnd {
 
 func spell1152Fixture(t *testing.T, shared bool) (*FrontEnd, []byte, spell1152Graph) {
 	t.Helper()
-	f := spell1152FixtureFront(t)
+	f := worldSpellFixtureFront(t)
 	source, err := sav.Open(completeDocumentFixture1115(t, f))
 	if err != nil {
 		t.Fatal(err)

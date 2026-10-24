@@ -2978,7 +2978,7 @@ package storyguard
 // binding of a cell spell by its object id, the casting structure's field
 // range, the pager tests' fixtures, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4508,
+	TestIdentCount: 4499,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3000,5 +3000,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9646114,
+	CommentBytes: 9645967,
 }

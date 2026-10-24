@@ -74,7 +74,7 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 			}
 		}
 	}
-	for _, name := range []string{"Bindings", "StructureBindings", "Objects", "Groups", "PlayerSlots", "AbsentPlayers", "SpellCasters", "Ownership", "NativeAreas", "NativeDeliveries", "AbsentDiaries", "ArchiveCoordinates", "ActorGroups", "EffectWidths"} {
+	for _, name := range []string{"Bindings", "StructureBindings", "Objects", "Groups", "PlayerSlots", "AbsentPlayers", "SpellCasters", "Ownership", "NativeAreas", "NativeDeliveries", "AbsentDiaries", "ArchiveCoordinates", "ActorGroups", "EffectWidths", "WorldEffectTokens"} {
 		raw, ok := root[name]
 		if !ok {
 			continue
@@ -94,7 +94,7 @@ func remapNativeActionObjectsMode(state *DocumentStateData, permutation []uint16
 				if err := json.Unmarshal(row["Missing"], &missing); err != nil || missing != (object == 0) {
 					return fmt.Errorf("sav: inconsistent current action missing object")
 				}
-			} else if object == 0 && name != "Ownership" {
+			} else if object == 0 && name != "Ownership" && name != "WorldEffectTokens" {
 				return fmt.Errorf("sav: null current reserved object")
 			}
 			current := permutation[object]

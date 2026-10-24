@@ -22,6 +22,10 @@ modder or developer can notice gets no entry.
 - [ROM1] The map editor adds a new trap, unit spell or casting structure on any map, also one without a cell spell to copy; it edits a casting structure's power and scan range (0 to 255), and it edits and copies the many shipped casting structures that sit on another cell of their building. Deleting a structure or a unit also deletes its casting structures or unit spells, and a cell spell left without its object can still be deleted.
 - [ROM1] The map editor lets you edit every page of a dialogue, choose each speaker, and add, remove or reorder pages in one message; the Map panel warns when a trigger sends a second message the player cannot see while the first is open.
 
+### For developers
+
+- [ROM1] A save made after loading an original save now writes the Token fields of the spell effects on the map from the current game instead of copying the loaded file; a save without such effects is unchanged.
+
 ## 0.134.0
 
 ### For players

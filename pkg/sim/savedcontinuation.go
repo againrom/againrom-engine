@@ -16,6 +16,7 @@ import (
 type SavedWorldEffects struct {
 	Areas       []SavedAreaDriver
 	Projectiles []SavedProjectileDriver
+	Tokens      []SavedObjectToken `json:",omitempty"`
 }
 
 type SavedAreaDriver struct {
@@ -52,6 +53,7 @@ func cloneSavedWorldEffects(src *SavedWorldEffects) *SavedWorldEffects {
 		out.Areas[i].Cells = slices.Clone(out.Areas[i].Cells)
 	}
 	out.Projectiles = slices.Clone(src.Projectiles)
+	out.Tokens = slices.Clone(src.Tokens)
 	return &out
 }
 
@@ -78,7 +80,7 @@ func (w *World) savedWorldEffectsFault() error {
 		return nil
 	}
 	fail := func() error { return fmt.Errorf("sim: invalid retained world-effect continuation") }
-	if len(s.Areas) > 0x7fff || len(s.Projectiles) > 0xffff {
+	if len(s.Areas) > 0x7fff || len(s.Projectiles) > 0xffff || len(s.Tokens) > 65534 {
 		return fail()
 	}
 	roots := map[int32]bool{}
