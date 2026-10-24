@@ -461,34 +461,13 @@ func scanEventPart(payload []byte, n int, aud EventAudience, candidate func(tag 
 		return 0, 0, 0, false
 	}
 	want := partMark + strconv.Itoa(n)
-	s := string(payload)
-	for i := 0; i < len(s); {
-		open := strings.IndexByte(s[i:], '<')
-		if open < 0 {
-			return 0, 0, 0, false
+	for _, tag := range decodeMessageMarkup(string(payload)).Tags {
+		if containsFold(tag.Tag, want) && candidate != nil {
+			candidate(tag.Tag)
 		}
-		open += i
-		close := strings.IndexByte(s[open:], '>')
-		if close < 0 {
-			// An unterminated tag is the end of the scan: there is no body to
-			// test and nothing after it can be a part, because a part begins at
-			// a '>' this payload does not have.
-			return 0, 0, 0, false
+		if containsFold(tag.Tag, want) && aud.accepts(tag.Tag) {
+			return tag.Open, tag.Close, tag.End, true
 		}
-		close += open
-
-		tag := s[open+1 : close]
-		if containsFold(tag, want) && candidate != nil {
-			candidate(tag)
-		}
-		if containsFold(tag, want) && aud.accepts(tag) {
-			end := len(s)
-			if next := strings.IndexByte(s[close+1:], '<'); next >= 0 {
-				end = close + 1 + next
-			}
-			return open, close, end, true
-		}
-		i = close + 1
 	}
 	return 0, 0, 0, false
 }
@@ -569,19 +548,14 @@ func secondGameTagNumber(tag, key string) (int, bool) {
 // speaker arms need it of a tag the scan has not accepted yet — the gate is part
 // of deciding whether to accept it.
 func tagSpeaker(tag string) (speaker int, named bool) {
-	i := indexFold(tag, speakerTag)
-	if i < 0 {
+	start, end, ok := messageAttribute(tag, speakerTag)
+	if !ok {
 		return 0, false
 	}
-	digits := tag[i+len(speakerTag):]
-	end := 0
-	for end < len(digits) && digits[end] >= '0' && digits[end] <= '9' {
-		end++
-	}
-	if end == 0 {
+	if end == start {
 		return 0, true
 	}
-	v, err := strconv.Atoi(digits[:end])
+	v, err := strconv.Atoi(tag[start:end])
 	if err != nil {
 		return 0, true
 	}

@@ -80,7 +80,7 @@ func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
 			break
 		}
 	}
-	if len(e.PopupLines()) != 2 {
+	if len(e.PopupLines()) != 3 {
 		t.Fatal("wizard New did not open the shared message editor", e.PopupLines())
 	}
 	body := map[string]string{"en": "A new wizard message.", "ru": "Новое сообщение мастера."}[x.pageLanguage()]

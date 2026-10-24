@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func messageTextEnd(raw string, end int) int {
+	if strings.HasSuffix(raw[:end], "\r\n") {
+		return end - 2
+	}
+	if strings.HasSuffix(raw[:end], "\r") {
+		return end - 1
+	}
+	return end
+}
+
 func TestMessagePartEditsFollowGameScan(t *testing.T) {
 	for _, raw := range []string{
 		"\r\n<NPC=21,Part=3>Later\r\n<NPC=51,Part=1,tips=7>\r\nFirst\r\n<Part=2>Second",
@@ -19,7 +29,8 @@ func TestMessagePartEditsFollowGameScan(t *testing.T) {
 			before := bytes.Clone(s.workspace.Pages["event02.txt"])
 			fields := s.MessageFields(2)
 			body, ok := EventPart(before, 1, EventAudience{})
-			if !ok || fields[0].TextValue != strings.TrimPrefix(strings.TrimPrefix(body, "\r\n"), "\n") || fields[1].Value != 51 {
+			plain := strings.TrimPrefix(strings.TrimPrefix(body, "\r\n"), "\n")
+			if !ok || fields[0].TextValue != plain[:messageTextEnd(plain, len(plain))] || fields[1].Value != 51 {
 				t.Fatal("popup did not select game's first part", fields)
 			}
 			if d, err := s.SetMessage(2, fields[0].TextValue, fields[1].Value); err != nil || d != nil || !bytes.Equal(before, s.workspace.Pages["event02.txt"]) {
@@ -27,6 +38,7 @@ func TestMessagePartEditsFollowGameScan(t *testing.T) {
 			}
 			_, tail, _ := eventPartTail(before, 1, EventAudience{})
 			end := len(raw) - len(tail) + len(body)
+			end = messageTextEnd(raw, end)
 			if _, err := s.SetMessage(2, fields[0].TextValue+"!", 51); err != nil || string(s.workspace.Pages["event02.txt"]) != raw[:end]+"!"+raw[end:] {
 				t.Fatal("text Apply changed another part or header", err, string(s.workspace.Pages["event02.txt"]))
 			}
@@ -84,8 +96,9 @@ func TestMessageOutOfOrderPopupCancel(t *testing.T) {
 			break
 		}
 	}
-	if !opened || len(e.PopupLines()) != 2 || !strings.Contains(e.PopupLines()[0], "First") || strings.Contains(e.PopupLines()[0], "Later") {
-		t.Fatal("popup did not open first displayed part", e.PopupLines())
+	lines := strings.Join(e.PopupLines(), " ")
+	if !opened || !strings.Contains(lines, "First") || !strings.Contains(lines, "Later") || !strings.Contains(lines, "Second") {
+		t.Fatal("popup did not list every part", e.PopupLines())
 	}
 	messageField(t, e, 0)
 	e.TextInput("Discard")

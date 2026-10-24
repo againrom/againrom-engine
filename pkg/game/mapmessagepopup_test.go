@@ -53,7 +53,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	messageField(t, e, 2)
 	r, ok := e.DropdownRowRect(0)
 	messageClick(t, e, r, ok)
-	if len(e.PopupLines()) != 2 {
+	if len(e.PopupLines()) != 3 {
 		t.Fatal("New did not open the text", e.PopupLines())
 	}
 	unchanged("New")
@@ -94,7 +94,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 			break
 		}
 	}
-	if !opened || len(e.PopupLines()) != 2 {
+	if !opened || len(e.PopupLines()) != 3 {
 		t.Fatal("Open link did not open page", e.PopupLines())
 	}
 	messageButton(t, e, 2)
@@ -165,7 +165,7 @@ func TestMessageWizardWindowOpensPage(t *testing.T) {
 	if err := e.Key("enter"); err != nil {
 		t.Fatal(err)
 	}
-	if len(e.PopupLines()) != 2 || len(s.workspace.Pages) != 0 || len(e.Document().Script.Actions) != 1 {
+	if len(e.PopupLines()) != 3 || len(s.workspace.Pages) != 0 || len(e.Document().Script.Actions) != 1 {
 		t.Fatal("wizard did not open an unmade page", e.PopupLines())
 	}
 	messageButton(t, e, 0)

@@ -1399,9 +1399,21 @@ message parameter uses the same New message choice and Open Message link.
 Choosing an existing message applies immediately when it is the only pending
 field; one Undo restores it. Other pending fields still require Apply, and
 New/Open keep the Apply-or-Cancel requirement for an unfinished popup.
-Speaker choices still
-show the NPC catalog's numbers and names. A name alone does not establish a
-fixed person for every first-hero choice; role labels await pinned evidence.
+The message popup lists every page, including conditional alternatives, with
+its text and speaker. Scroll to edit any page. Add after inserts a page after
+the chosen page; Add last appends one. Remove deletes the chosen page, and
+Up / Down move it. At least one page remains. Apply writes all changes as one
+undo entry; Cancel discards them. Structural changes number the pages in
+their written order, with conditional alternatives retaining a shared number.
+Changing only text or a speaker preserves every other page and attribute,
+including tips and conditional tags. Save As and mod export use the existing
+map text folder and mod paths.
+
+Speaker choices show catalog numbers and names, with 21 to 24 labelled by
+role: Main hero, Traitor mage, Monk and Prisoner. Their person depends on the
+hero chosen first. The Map panel warns if a trigger sends several messages:
+the player will not see the second while the first is open. Use several pages
+of one message for a conversation.
 
 X edits mission pages. Enter after the page name continues directly into its
 body. Tab still switches the fields. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,

@@ -201,6 +201,11 @@ func init() {
 		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "home", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 		{key: "end", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
+		{label: "Dialogue", help: keys(helpLine{Word: "editor.keys.dialogue"})},
+		{label: "Add", help: keys(helpLine{Word: "editor.keys.dialogue.add"})},
+		{label: "Remove", help: keys(helpLine{Word: "editor.keys.dialogue.remove"})},
+		{label: "Up", help: keys(helpLine{Word: "editor.keys.dialogue.move"})},
+		{label: "Apply", help: keys(helpLine{Word: "editor.keys.dialogue.apply"})},
 	}
 	// 1..9 choose a group and frame it; Ctrl+1..9 put the selection in it.
 	for n := '1'; n <= '9'; n++ {
@@ -439,7 +444,7 @@ func (e *MapEditor) keyCatalog(string) error {
 
 func (e *MapEditor) keyEnter(string) error {
 	if e.objectTyping() {
-		if e.messagePage != 0 && e.obj.focus == 0 {
+		if e.messagePage != 0 && e.obj.focus%2 == 0 {
 			e.TextInput("\n")
 			return nil
 		}

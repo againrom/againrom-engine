@@ -1598,6 +1598,12 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupClose:
 		e.cancelPopup()
 	case popupRowButton:
+		if e.messagePage != 0 {
+			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
+				e.messageRowButton(row, k)
+			}
+			return
+		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
 			return
 		}

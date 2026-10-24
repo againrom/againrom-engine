@@ -63,7 +63,7 @@ func (e *MapEditor) multilinePrompt() bool {
 }
 
 func (e *MapEditor) keyNewline(string) error {
-	if e.multilinePrompt() || e.messagePage != 0 && e.objectTyping() && e.obj.focus == 0 {
+	if e.multilinePrompt() || e.messagePage != 0 && e.objectTyping() && e.obj.focus%2 == 0 {
 		e.TextInput("\n")
 	}
 	return nil

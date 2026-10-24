@@ -67,7 +67,9 @@ type objectEdit struct {
 	// signature is the operation and group command types was set for.
 	signature [2]int64
 	// wiz is the trigger wizard's rows, nil when the popup is no wizard.
-	wiz *wizardState
+	wiz            *wizardState
+	messageParts   []InspectionMessagePart
+	messageChanged bool
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -80,10 +82,7 @@ func (e *MapEditor) loadObject() {
 	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1, pickField: -1}
 	if e.messagePage != 0 {
 		if host, ok := e.doc.Edits.(InspectionMessages); ok {
-			o.fields = host.MessageFields(e.messagePage)
-			for _, f := range o.fields {
-				o.buf = append(o.buf, fieldInput(f))
-			}
+			e.loadMessageFields(host.MessageParts(e.messagePage))
 		}
 		return
 	}
@@ -240,6 +239,9 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
+	if e.obj.messageChanged {
+		return true
+	}
 	if e.obj.move != nil {
 		return true
 	}

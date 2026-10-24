@@ -106,7 +106,7 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		scope = e.prompt.scope
 	} else if e.objectTyping() {
 		target, field = &e.obj.buf[e.obj.focus], &e.obj.fields[e.obj.focus]
-		p.multiline = e.messagePage != 0 && e.obj.focus == 0
+		p.multiline = e.messagePage != 0 && e.obj.focus%2 == 0
 		kind, _ = e.selectedRecord()
 		if e.messagePage != 0 {
 			scope = "pages"

@@ -123,6 +123,9 @@ func (e *MapEditor) panelLines(f InspectionMapFacts, findings []InspectionFindin
 		e.defeatLine(f),
 	}
 	errs, warnings := CountFindings(findings)
+	if len(ruled["message-overlap"]) > 0 {
+		lines = append(lines, mapLine{label: e.word("editor.message.parameter"), value: e.word("editor.message.overlap"), link: linkReport, warn: true})
+	}
 	lines = append(lines,
 		mapLine{label: e.word("editor.panel.report"), value: fmt.Sprintf(e.word("editor.panel.reportvalue"), errs, warnings), link: linkReport, warn: errs > 0},
 		mapLine{label: e.word("editor.panel.testplay"), value: e.word("editor.panel.testplayvalue"), link: linkTestPlay})

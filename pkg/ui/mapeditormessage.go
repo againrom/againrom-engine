@@ -3,18 +3,25 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 )
 
-// InspectionMessages edits a map's message pages. MessageFields of
-// NewMessagePage are the empty fields of a page not yet made; CreateMessage
-// makes that page with its text and names it in field key of the record, or
-// in a new action for kind "Message", as one edit, and returns its number.
+// InspectionMessages edits message pages and their owner as one history entry.
 type InspectionMessages interface {
-	MessageFields(page uint32) []InspectionField
+	MessageFields(page uint32, source ...int) []InspectionField
+	MessageParts(page uint32) []InspectionMessagePart
+	SetMessageParts(page uint32, parts []InspectionMessagePart) (*InspectionDocument, error)
+	CreateMessageParts(owner InspectionMessageOwner, parts []InspectionMessagePart) (*InspectionDocument, uint32, error)
 	SetMessage(page uint32, body string, speaker int64) (*InspectionDocument, error)
 	CreateMessage(owner InspectionMessageOwner, body string, speaker int64) (*InspectionDocument, uint32, error)
+}
+
+type InspectionMessagePart struct {
+	Source, Number int
+	Body, Tag      string
+	Speaker        int64
 }
 
 // NewMessagePage is the message popup's page while it writes a new message:
@@ -121,7 +128,7 @@ func (e *MapEditor) refreshMessagePage() {
 func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
-	if len(o.fields) != 2 {
+	if len(o.fields) == 0 {
 		return popupSpec{}, nil, false
 	}
 	if !e.objPlaced {
@@ -133,13 +140,42 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	}
 	s := popupSpec{Title: title, At: e.objectAt, Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 135, NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
-	o.rowField = map[int]int{0: 0, 1: 1}
-	lines := strings.Split(o.buf[0], "\n")
-	for i := range lines {
-		lines[i] = e.editorHostText(strings.TrimSuffix(lines[i], "\r"))
+	o.rowField, o.rowOpen = map[int]int{}, map[int]int{}
+	numbers := map[int]int{}
+	for i, part := range o.messageParts {
+		number := part.Number
+		if o.messageChanged {
+			if _, ok := numbers[number]; !ok {
+				numbers[number] = len(numbers) + 1
+			}
+			number = numbers[number]
+		}
+		toolbar := func() {
+			o.rowOpen[len(s.Rows)] = i
+			row := popupRow{Kind: popupText, Label: fmt.Sprintf(e.word("editor.message.part"), number)}
+			row.Buttons = []string{e.word("editor.message.add"), e.word("editor.message.end"), e.word("editor.message.remove"), e.word("editor.message.up"), e.word("editor.message.down")}
+			s.Rows = append(s.Rows, row)
+		}
+		if len(o.messageParts) > 1 {
+			toolbar()
+		}
+		for side := range 2 {
+			field := 2*i + side
+			o.rowField[len(s.Rows)] = field
+			lines := strings.Split(o.buf[field], "\n")
+			for i := range lines {
+				lines[i] = e.editorHostText(strings.TrimSuffix(lines[i], "\r"))
+			}
+			row := popupRow{Kind: popupMultiline, Label: o.fields[field].Label, Value: strings.Join(lines, "\n"), Focus: o.focus == field, Lines: 3}
+			if side == 1 {
+				row.Kind, row.Value = popupChoice, choiceText(o.fields[field], o.buf[field])
+			}
+			s.Rows = append(s.Rows, row)
+		}
+		if len(o.messageParts) == 1 {
+			toolbar()
+		}
 	}
-	s.Rows = []popupRow{{Kind: popupMultiline, Label: o.fields[0].Label, Value: strings.Join(lines, "\n"), Focus: o.focus == 0},
-		{Kind: popupChoice, Label: o.fields[1].Label, Value: choiceText(o.fields[1], o.buf[1]), Focus: o.focus == 1}}
 	if o.note != "" {
 		s.Notes = []string{e.editorHostText(o.note)}
 	}
@@ -149,8 +185,14 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 			s.ButtonW = max(s.ButtonW, font.Advance(caption)+16)
 		}
 	}
-	e.fitMessageText(&s)
-	return s, []int{0, 0}, true
+	if len(o.messageParts) == 1 {
+		e.fitMessageText(&s)
+	} else {
+		s.MaxRows = max(3, e.objectRowsShown(true)/2)
+		e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
+		s.Top = e.objectTop
+	}
+	return s, make([]int, len(s.Rows)), true
 }
 
 // fitMessageText grows the text box until it shows the whole message, as far
@@ -181,18 +223,14 @@ func (e *MapEditor) fitMessageText(s *popupSpec) {
 
 func (e *MapEditor) applyMessage() {
 	host, ok := e.doc.Edits.(InspectionMessages)
-	if !ok || len(e.obj.buf) != 2 {
+	if !ok || !e.captureMessageParts() {
 		return
 	}
-	speaker, err := strconv.ParseInt(e.obj.buf[1], 10, 32)
-	if err == nil && e.messagePage == NewMessagePage {
-		e.createMessage(host, speaker)
+	if e.messagePage == NewMessagePage {
+		e.createMessage(host)
 		return
 	}
-	var next *InspectionDocument
-	if err == nil {
-		next, err = host.SetMessage(e.messagePage, e.obj.buf[0], speaker)
-	}
+	next, err := host.SetMessageParts(e.messagePage, e.obj.messageParts)
 	if err != nil {
 		e.obj.note = err.Error()
 		return
@@ -202,11 +240,10 @@ func (e *MapEditor) applyMessage() {
 	e.loadObject()
 }
 
-// createMessage makes the new message with the popup's text as one edit and
-// shows its page; a new action made for it becomes the popup's way back.
-func (e *MapEditor) createMessage(host InspectionMessages, speaker int64) {
+// createMessage writes the draft and its owner; Back returns to the owner.
+func (e *MapEditor) createMessage(host InspectionMessages) {
 	owner := e.messageNew
-	next, page, err := host.CreateMessage(owner, e.obj.buf[0], speaker)
+	next, page, err := host.CreateMessageParts(owner, e.obj.messageParts)
 	if err != nil {
 		e.obj.note = err.Error()
 		return
@@ -225,6 +262,106 @@ func (e *MapEditor) createMessage(host InspectionMessages, speaker int64) {
 	e.messageNew = InspectionMessageOwner{}
 	e.obj.doc = nil
 	e.loadObject()
+}
+
+func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
+	host, ok := e.doc.Edits.(InspectionMessages)
+	if !ok {
+		return
+	}
+	o := &e.obj
+	o.messageParts, o.fields, o.buf = slices.Clone(parts), nil, nil
+	for _, part := range parts {
+		fields := host.MessageFields(e.messagePage, part.Source)
+		if len(fields) != 2 {
+			continue
+		}
+		fields[0].TextValue, fields[1].Value = part.Body, part.Speaker
+		o.fields = append(o.fields, fields...)
+		for _, field := range fields {
+			o.buf = append(o.buf, fieldInput(field))
+		}
+	}
+	e.input = editorInputState{}
+}
+
+func (e *MapEditor) captureMessageParts() bool {
+	o := &e.obj
+	if len(o.buf) != len(o.messageParts)*2 {
+		return false
+	}
+	for i := range o.messageParts {
+		speaker, err := strconv.ParseInt(o.buf[2*i+1], 10, 32)
+		if err != nil {
+			o.note = e.word("editor.message.badspeaker")
+			return false
+		}
+		o.messageParts[i].Body, o.messageParts[i].Speaker = o.buf[2*i], speaker
+	}
+	return true
+}
+
+func (e *MapEditor) messageRowButton(row, button int) {
+	at, ok := e.obj.rowOpen[row]
+	if !ok || !e.captureMessageParts() {
+		return
+	}
+	parts := slices.Clone(e.obj.messageParts)
+	number := parts[at].Number
+	var group, rest []InspectionMessagePart
+	start := 0
+	for _, part := range parts {
+		if part.Number == number {
+			if len(group) == 0 {
+				start = len(rest)
+			}
+			group = append(group, part)
+		} else {
+			rest = append(rest, part)
+		}
+	}
+	switch button {
+	case 0, 1:
+		id := 0
+		for _, part := range parts {
+			id = min(id, part.Number)
+		}
+		at = len(parts)
+		if button == 0 {
+			at = start + len(group)
+			parts = slices.Insert(rest, start, group...)
+		}
+		parts = slices.Insert(parts, at, InspectionMessagePart{Source: -1, Number: id - 1, Speaker: -1})
+	case 2:
+		if len(rest) == 0 {
+			return
+		}
+		parts, at = rest, min(start, len(rest)-1)
+	case 3, 4:
+		if button == 3 {
+			if start == 0 {
+				return
+			}
+			start--
+			for start > 0 && rest[start-1].Number == rest[start].Number {
+				start--
+			}
+		} else {
+			if start == len(rest) {
+				return
+			}
+			next := rest[start].Number
+			for start < len(rest) && rest[start].Number == next {
+				start++
+			}
+		}
+		parts, at = slices.Insert(rest, start, group...), start
+	default:
+		return
+	}
+	e.loadMessageFields(parts)
+	e.obj.messageChanged, e.obj.focus, e.obj.open = true, 2*at, -1
+	e.objectTop = max(0, 3*at-1)
 }
 
 // newMessage opens the message popup for a new message the field will

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [ROM1] The map editor lets you edit every page of a dialogue, choose each speaker, and add, remove or reorder pages in one message; the Map panel warns when a trigger sends a second message the player cannot see while the first is open.
+
 ## 0.134.0
 
 ### For players

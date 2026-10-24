@@ -104,6 +104,30 @@ var mapRules = []mapRule{
 		Authority: "MISSION-TEXT-005, TRIG-MSGLIMIT-050; the mod's texts folder",
 		Meaning:   "the script sends a message number that the mod's texts folder gives no event page for, and the install holds none either; or a text file of the folder holds a character this base cannot show",
 		run:       (*mapCheck).modMessageText},
+	{ID: "message-overlap", Error: false,
+		Authority: "DLG-LIFE-005, TRIG-MSGLIMIT-050",
+		Meaning:   "a trigger sends multiple messages while only the first can open",
+		run:       (*mapCheck).messageOverlap},
+}
+
+func (c *mapCheck) messageOverlap() []mapHit {
+	var out []mapHit
+	if c.scriptErr != nil {
+		return nil
+	}
+	for i, trigger := range c.script.Triggers {
+		count := 0
+		for _, id := range trigger.Acts {
+			index := scriptNodeIndex(c.script.Actions, id)
+			if id != 0 && index >= 0 && c.script.Actions[index].Opcode == 2 {
+				count++
+			}
+		}
+		if count > 1 {
+			out = append(out, mapHit{Kind: "Trigger", Index: i, Text: c.x.word("editor.message.overlap")})
+		}
+	}
+	return out
 }
 
 // mapCheck is one pass of the rule table over one map: the decoded map, the

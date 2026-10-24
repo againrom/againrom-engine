@@ -14,7 +14,7 @@ import (
 // lines follow, and every line the action's popup shows.
 func messageFirstLine(body string) (string, []string) {
 	var lines []string
-	for _, line := range strings.Split(messageMarkup.ReplaceAllString(body, ""), "\n") {
+	for _, line := range strings.Split(messagePlainText(body), "\n") {
 		if line = strings.TrimSpace(line); line != "" {
 			lines = append(lines, line)
 		}
@@ -92,7 +92,8 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 				if id, named := EventPartSpeaker([]byte(decoded), 1, EventAudience{}); named {
 					speaker = int64(id)
 				}
-				if fields[0].TextValue != strings.TrimPrefix(strings.TrimPrefix(body, "\r\n"), "\n") || fields[1].Value != speaker {
+				plain := strings.TrimPrefix(strings.TrimPrefix(body, "\r\n"), "\n")
+				if fields[0].TextValue != plain[:messageTextEnd(plain, len(plain))] || fields[1].Value != speaker {
 					t.Fatalf("popup differs from game part 1: speaker=%d want=%d body=%q", fields[1].Value, speaker, fields[0].TextValue)
 				}
 				checkUndo := func() {
@@ -106,7 +107,8 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 				}
 				after := x.messageUTF8(s.workspace.Pages[name])
 				gotBody, ok := EventPart([]byte(after), 1, EventAudience{})
-				if !ok || gotBody != body+"!" || after != decoded[:end]+"!"+decoded[end:] {
+				textEnd := messageTextEnd(decoded, end)
+				if !ok || gotBody != body[:textEnd-start]+"!"+body[textEnd-start:] || after != decoded[:textEnd]+"!"+decoded[textEnd:] {
 					t.Error("text Apply changed the wrong part, header or surrounding bytes")
 				}
 				textEdits++
@@ -127,7 +129,7 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 				after = x.messageUTF8(s.workspace.Pages[name])
 				afterTag, afterTail, ok := eventPartTail([]byte(after), 1, EventAudience{})
 				id, named := EventPartSpeaker([]byte(after), 1, EventAudience{})
-				if !ok || named != (other >= 0) || named && int64(id) != other || afterTail != tail || !strings.HasPrefix(after, decoded[:headerStart]+"<") || len(after)-len(afterTail)-len(afterTag)-2 != headerStart || strings.Trim(messageSpeaker.ReplaceAllString(afterTag, ""), ",") != strings.Trim(messageSpeaker.ReplaceAllString(tag, ""), ",") {
+				if !ok || named != (other >= 0) || named && int64(id) != other || afterTail != tail || !strings.HasPrefix(after, decoded[:headerStart]+"<") || len(after)-len(afterTail)-len(afterTag)-2 != headerStart || strings.Trim(setMessageAttribute(afterTag, speakerTag, -1), ",") != strings.Trim(setMessageAttribute(tag, speakerTag, -1), ",") {
 					t.Error("speaker Apply changed the wrong header, attributes or surrounding parts")
 				}
 				speakerEdits++

@@ -249,7 +249,7 @@ func TestTriggerWizardOpensMessageInOneClick(t *testing.T) {
 			break
 		}
 	}
-	if !found || len(e.PopupLines()) != 2 || !strings.Contains(e.PopupLines()[0], "Existing message") {
+	if !found || len(e.PopupLines()) != 3 || !strings.Contains(e.PopupLines()[0], "Existing message") {
 		t.Fatal("one click did not open the page", e.PopupLines())
 	}
 	messageButton(t, e, 2)

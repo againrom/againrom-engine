@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,9 +14,6 @@ import (
 	"againrom/pkg/render/textfit"
 	"againrom/pkg/ui"
 )
-
-var messageSpeaker = regexp.MustCompile(`(?i)npc=([0-9]+)`)
-var messageMarkup = regexp.MustCompile(`<[^>]*>`)
 
 func messageFilename(n uint32) string { return fmt.Sprintf("event%02d.txt", n) }
 
@@ -70,7 +66,7 @@ func (x *MapInspector) messageTargets(targets map[uint32][]ui.InspectionScriptTa
 // last dropped.
 func messageLines(body string) []string {
 	var lines []string
-	for _, candidate := range strings.Split(messageMarkup.ReplaceAllString(body, ""), "\n") {
+	for _, candidate := range strings.Split(messagePlainText(body), "\n") {
 		line := strings.TrimSpace(candidate)
 		if line == "" && len(lines) == 0 {
 			continue
@@ -137,7 +133,7 @@ func (x *MapInspector) speakerRole(id int64) (string, bool) {
 	return "", false
 }
 
-func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
+func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.InspectionField {
 	if s.prepareWorkspace() != nil {
 		return nil
 	}
@@ -149,6 +145,33 @@ func (s *mapInspectionEdits) MessageFields(page uint32) []ui.InspectionField {
 		}
 	}
 	body, speaker := splitMessage(s.inspector.messageUTF8(raw))
+	if len(source) == 0 {
+		d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+		if open, _, _, ok := eventPartRange([]byte(d.Raw), 1, EventAudience{}); ok {
+			for _, tag := range d.Tags {
+				if tag.Open == open {
+					_, body, _ = tag.text()
+					break
+				}
+			}
+		}
+	}
+	if len(source) > 0 {
+		parts := s.MessageParts(page)
+		found := false
+		for _, part := range parts {
+			if part.Source == source[0] {
+				body, speaker, found = part.Body, part.Speaker, true
+				break
+			}
+		}
+		if !found && source[0] != -1 {
+			return nil
+		}
+		if !found {
+			body, speaker = "", -1
+		}
+	}
 	x := s.inspector
 	choices := []ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.message.nospeaker"))}}
 	if x.table != nil {
@@ -190,45 +213,101 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 	if fields[0].TextValue == body && fields[1].Value == speaker {
 		return nil, nil
 	}
-	valid := false
-	for _, c := range fields[1].Choices {
-		valid = valid || c.Value == speaker
-	}
-	if !valid {
-		return nil, errors.New(s.inspector.word("editor.message.badspeaker"))
-	}
-	header := "part=1"
 	raw := s.inspector.messageUTF8(s.workspace.Pages[messageFilename(page)])
-	prefix, separator, suffix := "", "\n", ""
-	if open, close, end, ok := eventPartRange([]byte(raw), 1, EventAudience{}); ok {
-		header = raw[open+1 : close]
-		prefix, suffix = raw[:open], raw[end:]
-		originalBody := raw[close+1 : end]
-		separator = originalBody[:len(originalBody)-len(fields[0].TextValue)]
-	}
-	if speaker != fields[1].Value {
-		if match := messageSpeaker.FindStringIndex(header); match != nil {
-			replacement := ""
-			if speaker >= 0 {
-				replacement = fmt.Sprintf("%s%d", speakerTag, speaker)
+	d := decodeMessageMarkup(raw)
+	parts := s.MessageParts(page)
+	if open, _, _, ok := eventPartRange([]byte(raw), 1, EventAudience{}); ok {
+		for i := range parts {
+			if parts[i].Source >= 0 && d.Tags[parts[i].Source].Open == open {
+				parts[i].Body, parts[i].Speaker = body, speaker
+				return s.SetMessageParts(page, parts)
 			}
-			header = header[:match[0]] + replacement + header[match[1]:]
-		} else if speaker >= 0 {
-			header += fmt.Sprintf(",%s%d", speakerTag, speaker)
 		}
+	}
+	return s.SetMessageParts(page, []ui.InspectionMessagePart{{Source: -1, Number: 1, Body: body, Speaker: speaker}})
+}
+
+func (s *mapInspectionEdits) MessageParts(page uint32) []ui.InspectionMessagePart {
+	if s.prepareWorkspace() != nil {
+		return nil
+	}
+	raw, exists := s.workspace.Pages[messageFilename(page)]
+	if page == ui.NewMessagePage {
+		return []ui.InspectionMessagePart{{Source: -1, Number: 1, Speaker: -1}}
+	}
+	if !exists {
+		return nil
+	}
+	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+	var out []ui.InspectionMessagePart
+	for _, i := range d.pages() {
+		tag := d.Tags[i]
+		speaker := int64(-1)
+		if id, named := tagSpeaker(tag.Tag); named {
+			speaker = int64(id)
+		}
+		_, body, _ := tag.text()
+		out = append(out, ui.InspectionMessagePart{Source: i, Number: tag.Number, Body: body, Speaker: speaker, Tag: tag.Tag})
+	}
+	if len(out) == 0 {
+		out = append(out, ui.InspectionMessagePart{Source: -1, Number: 1, Body: d.Raw, Speaker: -1})
+	}
+	return out
+}
+
+func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, error) {
+	if s.prepareWorkspace() != nil || len(parts) == 0 {
+		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+	}
+	raw, exists := s.workspace.Pages[messageFilename(page)]
+	if !exists {
+		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+	}
+	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
+	indices := d.pages()
+	renumber := len(indices) != len(parts)
+	edits := make([]messagePageEdit, len(parts))
+	for i, part := range parts {
+		if i < len(indices) && indices[i] != part.Source {
+			renumber = true
+		}
+		fields := s.MessageFields(page, part.Source)
+		valid := false
+		if len(fields) == 2 {
+			for _, choice := range fields[1].Choices {
+				valid = valid || choice.Value == part.Speaker
+			}
+		}
+		if !valid {
+			return nil, errors.New(s.inspector.word("editor.message.badspeaker"))
+		}
+		if part.Source >= 0 && part.Source < len(d.Tags) {
+			part.Number = d.Tags[part.Source].Number
+		}
+		edits[i] = messagePageEdit{part.Source, part.Number, part.Body, part.Speaker}
+	}
+	value, err := d.write(edits, renumber)
+	if err != nil {
+		return nil, err
+	}
+	if value == d.Raw {
+		return nil, nil
 	}
 	previous := s.page
 	s.page = messageFilename(page)
 	defer func() { s.page = previous }()
-	return s.SetWorkspaceField("pages", "body", prefix+"<"+header+">"+separator+body+suffix)
+	return s.SetWorkspaceField("pages", "body", value)
 }
 
 // newMessagePage is the text of a new message page: part 1, empty.
 const newMessagePage = "<part=1>\n"
 
-// CreateMessage joins NewMessage and SetMessage as one edit of page and owner.
-// A refused text or speaker restores the map, pages and history.
+// CreateMessage creates a one-page message through the dialogue writer.
 func (s *mapInspectionEdits) CreateMessage(owner ui.InspectionMessageOwner, body string, speaker int64) (*ui.InspectionDocument, uint32, error) {
+	return s.CreateMessageParts(owner, []ui.InspectionMessagePart{{Source: -1, Number: 1, Body: body, Speaker: speaker}})
+}
+
+func (s *mapInspectionEdits) CreateMessageParts(owner ui.InspectionMessageOwner, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, uint32, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, 0, err
 	}
@@ -240,7 +319,7 @@ func (s *mapInspectionEdits) CreateMessage(owner ui.InspectionMessageOwner, body
 		return nil, 0, err
 	}
 	steps := len(s.undoWorkspace)
-	text, err := s.SetMessage(n, body, speaker)
+	text, err := s.SetMessageParts(n, parts)
 	if err != nil {
 		*s = saved
 		return nil, 0, err

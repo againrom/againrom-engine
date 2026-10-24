@@ -922,6 +922,9 @@ func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		f, has := e.obj.rowField[rr.Index]
+		if part, ok := e.obj.rowOpen[rr.Index]; e.messagePage != 0 && ok {
+			f, has = 2*part+1, true
+		}
 		acts := e.obj.rowActs[rr.Index]
 		match := has && f == n || n < 0 && !has && len(acts) == 1 && acts[0] == want
 		if match && k >= 0 && k < len(rr.Buttons) {
