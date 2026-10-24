@@ -141,7 +141,7 @@ func TestTriggerWizardNewMessageUsesFiveClicksAndOneUndo(t *testing.T) {
 			e.TextInput("New dialogue")
 			messageField(t, e, 1)
 			clicks++
-			messageChoiceClick(t, e, "21: Speaker")
+			messageChoiceClick(t, e, "21: Main hero")
 			clicks++
 			messageButton(t, e, 0)
 			clicks++
