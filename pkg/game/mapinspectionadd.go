@@ -120,7 +120,7 @@ func newRecordKindOf(kind string) (newRecordKind, error) {
 // every value the call does not take as a field of the new record.
 func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
 	if r.Kind == "Message" {
-		return s.NewMessage("Message", 0, "")
+		return s.NewMessage(ui.InspectionMessageOwner{Kind: "Message"})
 	}
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil {

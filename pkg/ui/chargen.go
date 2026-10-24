@@ -658,18 +658,10 @@ func (c *Chargen) EditName(typed string, backspace bool) {
 	if c == nil {
 		return
 	}
-	if backspace && c.name != "" {
-		c.name = c.name[:len(c.name)-1]
-	}
-	for _, r := range typed {
-		if len(c.name) >= c.nameCap() {
-			continue
-		}
-		c.caret.restart = true
-		if b, ok := c.encodeName(r); ok && b >= 0x20 {
-			c.name += string([]byte{b})
-		}
-	}
+	state := EditText(TextInputState{Text: c.name}, TextInputKeys{Typed: typed, Backspace: backspace},
+		TextInputRules{ByteUnits: true, AppendOnly: true, SplitLineBreaks: true, Limit: c.nameCap(), Encode: c.encodeName})
+	c.name = state.Text
+	c.caret.restart = c.caret.restart || state.TypedBelowLimit
 }
 
 // encodeName is a typed rune's stored byte: the setup's install encoder, or

@@ -201,18 +201,16 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 // newMessagePage is the text of a new message page: part 1, empty.
 const newMessagePage = "<part=1>\n"
 
-// CreateMessage makes a new message page holding body and speaker and names
-// it in field key of the record, or in a new action for kind "Message": the
-// page NewMessage makes with the text SetMessage writes, as one edit. A
-// refused text or speaker changes nothing.
-func (s *mapInspectionEdits) CreateMessage(kind string, index int, key, body string, speaker int64) (*ui.InspectionDocument, uint32, error) {
+// CreateMessage joins NewMessage and SetMessage as one edit of page and owner.
+// A refused text or speaker restores the map, pages and history.
+func (s *mapInspectionEdits) CreateMessage(owner ui.InspectionMessageOwner, body string, speaker int64) (*ui.InspectionDocument, uint32, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, 0, err
 	}
 	n := freeMessage(s.workspace.Pages)
 	saved := *s
 	saved.undoWorkspace = slices.Clone(s.undoWorkspace)
-	d, err := s.NewMessage(kind, index, key)
+	d, err := s.NewMessage(owner)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -229,7 +227,7 @@ func (s *mapInspectionEdits) CreateMessage(kind string, index int, key, body str
 	return d, n, nil
 }
 
-func (s *mapInspectionEdits) NewMessage(kind string, index int, key string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) NewMessage(owner ui.InspectionMessageOwner) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
@@ -239,6 +237,7 @@ func (s *mapInspectionEdits) NewMessage(kind string, index int, key string) (*ui
 	n := freeMessage(s.workspace.Pages)
 	next := s.model.Clone()
 	mark := next.Mark()
+	kind, index, key := owner.Kind, owner.Index, owner.Key
 	if kind == "Message" {
 		if _, err := addScriptRecord(next, mapedit.KindAction); err != nil {
 			return nil, err
@@ -254,10 +253,34 @@ func (s *mapInspectionEdits) NewMessage(kind string, index int, key string) (*ui
 		return nil, err
 	}
 	sc, err := view.Script()
-	if err != nil || k != mapedit.KindAction || index < 0 || index >= len(sc.Actions) || key != "value0" || scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) != ui.ScriptMessageParameter {
-		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+	if err != nil {
+		return nil, err
 	}
-	if _, err := s.setFieldOn(next, kind, k, index, key, int64(n)); err != nil {
+	if owner.Trigger != nil {
+		plan := *owner.Trigger
+		if kind != "Trigger" || plan.Index != index || owner.Action < 0 || owner.Action >= len(plan.Actions) {
+			return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+		}
+		plan.Actions = slices.Clone(plan.Actions)
+		node := plan.Actions[owner.Action]
+		if node.Keep {
+			i := nodeIndex(sc.Actions, node.ID)
+			if i < 0 {
+				return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+			}
+			node.Opcode, node.Types, node.Values = sc.Actions[i].Opcode, sc.Actions[i].Type, sc.Actions[i].Value
+		}
+		if scriptParameterKind(false, node.Opcode, node.Types, 0) != ui.ScriptMessageParameter {
+			return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+		}
+		node.Keep, node.Values[0] = false, n
+		plan.Actions[owner.Action] = node
+		if err := writeWizardTrigger(next, plan); err != nil {
+			return nil, err
+		}
+	} else if k != mapedit.KindAction || index < 0 || index >= len(sc.Actions) || key != "value0" || scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) != ui.ScriptMessageParameter {
+		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+	} else if _, err := s.setFieldOn(next, kind, k, index, key, int64(n)); err != nil {
 		return nil, err
 	}
 	next.Squash(mark)

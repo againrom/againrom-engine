@@ -274,7 +274,7 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 	if value == ui.NewMessageChoice && kind == "Action" && key == "value0" {
 		if view, err := s.model.Map(); err == nil {
 			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == ui.ScriptMessageParameter {
-				return s.NewMessage(kind, index, key)
+				return s.NewMessage(ui.InspectionMessageOwner{Kind: kind, Index: index, Key: key})
 			}
 		}
 	}

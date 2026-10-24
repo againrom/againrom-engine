@@ -5,8 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
@@ -104,16 +102,9 @@ func (a *App) stepCheatChat(in appInput) appInput {
 				c.chat(line)
 			}
 		default:
-			if !in.Viewer.Alt && in.Backspace && c.line != "" {
-				_, size := utf8.DecodeLastRuneInString(c.line)
-				c.line = c.line[:len(c.line)-size]
-			}
 			if !in.Viewer.Alt {
-				for _, r := range in.Typed {
-					if !unicode.IsControl(r) && len(c.line)+utf8.RuneLen(r) <= cheatChatLimit {
-						c.line += string(r)
-					}
-				}
+				c.line = EditText(TextInputState{Text: c.line}, textInputKeys(in),
+					TextInputRules{AppendOnly: true, SplitLineBreaks: true, ByteLimit: cheatChatLimit}).Text
 			}
 		}
 	}

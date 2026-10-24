@@ -134,15 +134,18 @@ func (e *MapEditor) parameterTarget(field int) (InspectionScriptTarget, bool) {
 		return InspectionScriptTarget{}, false
 	}
 	f := o.fields[field]
-	slot, err := strconv.Atoi(strings.TrimPrefix(f.Key, "value"))
-	if err != nil || slot < 0 || slot >= len(o.types) {
-		return InspectionScriptTarget{}, false
+	t := ScriptMessageParameter
+	if !e.messageField(field) {
+		slot, err := strconv.Atoi(strings.TrimPrefix(f.Key, "value"))
+		if err != nil || slot < 0 || slot >= len(o.types) {
+			return InspectionScriptTarget{}, false
+		}
+		vw, ok := e.scriptPopup()
+		if !ok || vw.node == nil {
+			return InspectionScriptTarget{}, false
+		}
+		t = e.nodeParameterKind(vw, uint32(o.signature[0]), o.types, slot)
 	}
-	vw, ok := e.scriptPopup()
-	if !ok || vw.node == nil {
-		return InspectionScriptTarget{}, false
-	}
-	t := e.nodeParameterKind(vw, uint32(o.signature[0]), o.types, slot)
 	v, err := strconv.ParseUint(strings.TrimSpace(o.buf[field]), 10, 32)
 	if err != nil {
 		return InspectionScriptTarget{}, false
@@ -158,13 +161,9 @@ func (e *MapEditor) openParameter(field int) {
 	if !ok || !e.objectMayLeave() {
 		return
 	}
-	if strings.HasPrefix(e.obj.fields[field].Key, "value") {
-		vw, _ := e.scriptPopup()
-		slot, _ := strconv.Atoi(strings.TrimPrefix(e.obj.fields[field].Key, "value"))
-		if e.nodeParameterKind(vw, uint32(e.obj.signature[0]), e.obj.types, slot) == ScriptMessageParameter {
-			e.openMessage(target.Value)
-			return
-		}
+	if e.messageField(field) {
+		e.openMessage(target.Value)
+		return
 	}
 	if target.Record >= 0 || target.Record <= -2 {
 		e.openObjectRecord(target.Record, false)
@@ -208,4 +207,16 @@ func (e *MapEditor) parameterChoices(kind uint32, value int64) []InspectionChoic
 		out = append(out, InspectionChoice{value, strconv.FormatInt(value, 10)})
 	}
 	return out
+}
+
+func (e *MapEditor) parameterRows(field int, s *popupSpec, add func(popupRow, int, ...string), text func(string, string)) {
+	if body, ok := e.messageText(field); ok {
+		for _, line := range strings.Split(body, "\n") {
+			text("  "+line, "")
+		}
+	}
+	if _, ok := e.parameterTarget(field); ok {
+		e.obj.rowOpen[len(s.Rows)] = field
+		add(popupRow{Kind: popupLink, Label: e.word("editor.param.open") + " " + e.obj.fields[field].Label}, -1)
+	}
 }

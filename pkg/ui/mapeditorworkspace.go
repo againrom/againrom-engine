@@ -41,6 +41,14 @@ func (e *MapEditor) setWorkspaceField(value string) error {
 	if err := e.adoptEdit(next, err); err != nil {
 		return err
 	}
+	if e.prompt.scope == "pages" && fields[e.prompt.field].Key == "page" {
+		fields = e.promptFields()
+		if len(fields) > 1 {
+			e.prompt.field, e.prompt.path = 1, fieldInput(fields[1])
+			e.input = editorInputState{}
+			return nil
+		}
+	}
 	e.leave(leavePrompt)
 	e.cancelRestore = nil
 	return nil
@@ -62,11 +70,12 @@ func (e *MapEditor) keyNewline(string) error {
 }
 
 func (e *MapEditor) keyClear(string) error {
-	if e.messagePage != 0 && e.objectTyping() {
-		e.obj.buf[e.obj.focus] = ""
-	}
-	if e.prompt.open() {
-		e.prompt.path = ""
+	if e.prompt.open() || e.messagePage != 0 && e.objectTyping() {
+		if m, _ := e.inputModel(); m != nil {
+			m.selectAll()
+			m.replace("")
+			*e.input.target = m.Text
+		}
 	}
 	return nil
 }

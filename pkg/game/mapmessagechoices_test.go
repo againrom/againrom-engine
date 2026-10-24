@@ -75,7 +75,7 @@ func TestMessageNewPageBytesAndHistory(t *testing.T) {
 			}
 			before := bytes.Clone(s.model.Bytes())
 			pages := cloneWorkspace(s.workspace).Pages
-			d, err := s.NewMessage("Action", s.model.Count(mapedit.KindAction)-1, "value0")
+			d, err := s.NewMessage(ui.InspectionMessageOwner{Kind: "Action", Index: s.model.Count(mapedit.KindAction) - 1, Key: "value0"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -130,7 +130,7 @@ func TestMessageWizardAndRefusal(t *testing.T) {
 	_, e := workspaceFixture(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before := bytes.Clone(s.model.Bytes())
-	if _, err := s.NewMessage("Unit", 0, "value0"); err == nil || !bytes.Equal(before, s.model.Bytes()) || len(s.workspace.Pages) != 0 {
+	if _, err := s.NewMessage(ui.InspectionMessageOwner{Kind: "Unit", Key: "value0"}); err == nil || !bytes.Equal(before, s.model.Bytes()) || len(s.workspace.Pages) != 0 {
 		t.Fatal("invalid node changed workspace", err)
 	}
 	d, err := s.AddRecord(ui.InspectionNewRecord{Kind: "Message"})
@@ -143,7 +143,7 @@ func TestMessageWizardAndRefusal(t *testing.T) {
 	for i := 1; i <= 64; i++ {
 		s.workspace.Pages[messageFilename(uint32(i))] = []byte("<part=1>\n")
 	}
-	if _, err := s.NewMessage("Message", 0, ""); err == nil || len(s.workspace.Pages) != 64 || !bytes.Equal(before, s.model.Bytes()) {
+	if _, err := s.NewMessage(ui.InspectionMessageOwner{Kind: "Message"}); err == nil || len(s.workspace.Pages) != 64 || !bytes.Equal(before, s.model.Bytes()) {
 		t.Fatal("page-limit refusal changed map/pages", err)
 	}
 }

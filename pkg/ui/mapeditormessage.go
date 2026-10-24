@@ -14,23 +14,24 @@ import (
 type InspectionMessages interface {
 	MessageFields(page uint32) []InspectionField
 	SetMessage(page uint32, body string, speaker int64) (*InspectionDocument, error)
-	CreateMessage(kind string, index int, key, body string, speaker int64) (*InspectionDocument, uint32, error)
+	CreateMessage(owner InspectionMessageOwner, body string, speaker int64) (*InspectionDocument, uint32, error)
 }
 
 // NewMessagePage is the message popup's page while it writes a new message:
 // the page is made only by Apply.
 const NewMessagePage uint32 = 1<<32 - 1
 
-// messageOwner is the field a new message will be named in: field key of
-// record index of kind, or a new action for kind "Message".
-type messageOwner struct {
-	kind  string
-	index int
-	key   string
+// InspectionMessageOwner names the field or wizard action receiving a page.
+type InspectionMessageOwner struct {
+	Kind    string
+	Index   int
+	Key     string
+	Trigger *WizardTrigger
+	Action  int
 }
 
 // beginMessage opens the message popup on a message not yet made.
-func (e *MapEditor) beginMessage(owner messageOwner, back bool) {
+func (e *MapEditor) beginMessage(owner InspectionMessageOwner, back bool) {
 	e.messageNew = owner
 	if back {
 		e.openMessage(NewMessagePage)
@@ -39,11 +40,41 @@ func (e *MapEditor) beginMessage(owner messageOwner, back bool) {
 	e.messagePage, e.objectHidden, e.objectTop = NewMessagePage, false, 0
 	e.obj.doc = nil
 	e.loadObject()
+	e.obj.focus = 0
 }
 
 func (e *MapEditor) messageField(field int) bool {
 	v, ok := e.scriptPopup()
-	return ok && v.node != nil && field >= 0 && field < len(e.obj.fields) && e.obj.fields[field].Key == "value0" && e.nodeParameterKind(v, uint32(e.obj.signature[0]), e.obj.types, 0) == ScriptMessageParameter
+	if !ok || field < 0 || field >= len(e.obj.fields) {
+		return false
+	}
+	if v.trigger != nil && e.obj.wiz != nil {
+		r, p := e.wizardRowOf(field)
+		if r < 0 || p < 0 {
+			return false
+		}
+		row := e.obj.wiz.rows[r]
+		return !row.condition && row.item >= 0 && p < len(wizItems(false)[row.item].params) && wizItems(false)[row.item].params[p].kind == wpMessage
+	}
+	return v.node != nil && e.obj.fields[field].Key == "value0" && e.nodeParameterKind(v, uint32(e.obj.signature[0]), e.obj.types, 0) == ScriptMessageParameter
+}
+
+func (e *MapEditor) messageChoiceAlone(field int, value int64) bool {
+	if !e.messageField(field) {
+		return false
+	}
+	found := false
+	for _, target := range e.doc.Script.Targets[ScriptMessageParameter] {
+		found = found || !target.NewMessage && int64(target.Value) == value
+	}
+	if !found {
+		return false
+	}
+	old := e.obj.buf[field]
+	e.obj.buf[field] = fieldInput(e.obj.fields[field])
+	dirty := e.objectDirty()
+	e.obj.buf[field] = old
+	return !dirty
 }
 
 // messageText is the whole text of the page a message field names.
@@ -68,6 +99,7 @@ func (e *MapEditor) openMessage(page uint32) {
 	e.messagePage, e.objectHidden, e.objectTop = page, false, 0
 	e.obj.doc = nil
 	e.loadObject()
+	e.obj.focus = 0
 }
 
 func (e *MapEditor) refreshMessagePage() {
@@ -174,7 +206,7 @@ func (e *MapEditor) applyMessage() {
 // shows its page; a new action made for it becomes the popup's way back.
 func (e *MapEditor) createMessage(host InspectionMessages, speaker int64) {
 	owner := e.messageNew
-	next, page, err := host.CreateMessage(owner.kind, owner.index, owner.key, e.obj.buf[0], speaker)
+	next, page, err := host.CreateMessage(owner, e.obj.buf[0], speaker)
 	if err != nil {
 		e.obj.note = err.Error()
 		return
@@ -183,14 +215,14 @@ func (e *MapEditor) createMessage(host InspectionMessages, speaker int64) {
 		return
 	}
 	back := e.objectBack
-	if owner.kind == "Message" {
+	if owner.Kind == "Message" {
 		e.selectNewest("Action")
 		e.obj.doc = nil
 		e.loadObject()
 		back = append(e.objectBack, e.objectPlace())
 	}
 	e.objectBack, e.messagePage, e.objectHidden = back, page, false
-	e.messageNew = messageOwner{}
+	e.messageNew = InspectionMessageOwner{}
 	e.obj.doc = nil
 	e.loadObject()
 }
@@ -208,5 +240,20 @@ func (e *MapEditor) newMessage(field int) {
 		return
 	}
 	kind, index := e.selectedRecord()
-	e.beginMessage(messageOwner{kind: kind, index: index, key: e.obj.fields[field].Key}, true)
+	owner := InspectionMessageOwner{Kind: kind, Index: index, Key: e.obj.fields[field].Key}
+	if v, ok := e.scriptPopup(); ok && v.trigger != nil && e.obj.wiz != nil {
+		plan, err := e.wizardPlan(v)
+		if err != nil {
+			e.obj.note = err.Error()
+			return
+		}
+		row, _ := e.wizardRowOf(field)
+		for r := 0; r < row; r++ {
+			if !e.obj.wiz.rows[r].condition {
+				owner.Action++
+			}
+		}
+		owner.Trigger = &plan
+	}
+	e.beginMessage(owner, true)
 }

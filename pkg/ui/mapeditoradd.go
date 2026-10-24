@@ -442,7 +442,7 @@ func (e *MapEditor) addFinish() {
 		if _, ok := e.doc.Edits.(InspectionMessages); ok {
 			e.leave(leavePrompt)
 			e.objectBack = nil
-			e.beginMessage(messageOwner{kind: "Message"}, false)
+			e.beginMessage(InspectionMessageOwner{Kind: "Message"}, false)
 			return
 		}
 	}

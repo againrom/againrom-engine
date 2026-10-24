@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 
 	basepkg "againrom/pkg/base"
 	"againrom/pkg/game"
@@ -16,6 +15,7 @@ import (
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/pathdialog"
+	"againrom/pkg/ui"
 )
 
 // Window size in pixels. panelH is the height of the mod settings panel that
@@ -860,12 +860,10 @@ func (a *app) typed(s string) {
 	if f == nil {
 		return
 	}
-	for _, r := range s {
-		if !unicode.IsControl(r) {
-			*f += string(r)
-			a.dirty = true
-		}
-	}
+	before := *f
+	*f = ui.EditText(ui.TextInputState{Text: *f}, ui.TextInputKeys{Typed: s},
+		ui.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
+	a.dirty = a.dirty || *f != before
 }
 
 // backspace removes the focused field's last character.
@@ -874,8 +872,8 @@ func (a *app) backspace() {
 		return
 	}
 	if f := a.field(a.focus); f != nil && *f != "" {
-		r := []rune(*f)
-		*f = string(r[:len(r)-1])
+		*f = ui.EditText(ui.TextInputState{Text: *f}, ui.TextInputKeys{Backspace: true},
+			ui.TextInputRules{AppendOnly: true, SplitLineBreaks: true}).Text
 		a.dirty = true
 	}
 }

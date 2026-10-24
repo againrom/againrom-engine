@@ -215,7 +215,7 @@ func (e *MapEditor) setField(text string) error {
 		if v == NewMessageChoice {
 			if i := e.messageFieldOf(field.Key); i >= 0 {
 				e.leave(leavePrompt)
-				e.beginMessage(messageOwner{kind: kind, index: index, key: field.Key}, true)
+				e.beginMessage(InspectionMessageOwner{Kind: kind, Index: index, Key: field.Key}, true)
 				return nil
 			}
 		}

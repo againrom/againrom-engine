@@ -545,15 +545,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 				row.Label = ""
 			}
 			add(row, i, acts...)
-			if body, ok := e.messageText(i); ok {
-				for _, line := range strings.Split(body, "\n") {
-					text("  "+line, "")
-				}
-			}
-			if _, ok := e.parameterTarget(i); ok {
-				o.rowOpen[len(s.Rows)] = i
-				add(popupRow{Kind: popupLink, Label: e.word("editor.param.open") + " " + f.Label}, -1)
-			}
+			e.parameterRows(i, &s, add, text)
 			if f.Key == "opcode" && e.doc.Script.Catalog.againrom(v.condition, v.node.Opcode) {
 				text(e.word("editor.node.againrom"), "warning")
 			}

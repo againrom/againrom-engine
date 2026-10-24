@@ -157,7 +157,7 @@ func init() {
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},
 		{key: "scripts", label: "F2", act: (*MapEditor).keyScripts, help: keys(lineHelp)},
 		{key: "metadata", label: "M", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
-		{key: "pages", label: "X", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
+		{key: "pages", label: "X", live: promptHears, act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
@@ -183,6 +183,16 @@ func init() {
 		{key: "tab", label: "Tab", live: promptFields, act: (*MapEditor).recordKey, help: []helpEntry{{screenPrompt, linePrompt}}},
 		{key: "newline", live: promptHears, act: (*MapEditor).keyNewline, unlisted: unlistedPrompt},
 		{key: "clear", live: promptHears, act: (*MapEditor).keyClear, unlisted: unlistedPrompt},
+		{key: "left", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{key: "right", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{key: "selectall", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{key: "cut", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{label: "Ctrl+C", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.clipboard"}}}},
+		{label: "Ctrl+A", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.select"}}}},
+		{label: "Ctrl+Left", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.words"}}}},
+		{label: "Backspace", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.repeat"}}}},
+		{label: "Popup", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.popup"}}}},
+		{label: "Unfocus", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.unfocus"}}}},
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
 		{key: "fit", act: (*MapEditor).keyFit, unlisted: unlistedRail},
 		{key: "triggers", act: (*MapEditor).keyScripts, unlisted: "the Scripts entry opens it"},
@@ -322,6 +332,9 @@ func (e *MapEditor) Key(key string) error {
 	if e.pathDialog.pending != nil {
 		return nil
 	}
+	if e.textKey(key) {
+		return nil
+	}
 	row := editorKeyByName[key]
 	if row == nil {
 		return nil
@@ -426,7 +439,7 @@ func (e *MapEditor) keyCatalog(string) error {
 func (e *MapEditor) keyEnter(string) error {
 	if e.objectTyping() {
 		if e.messagePage != 0 && e.obj.focus == 0 {
-			e.objectText("\n", false)
+			e.TextInput("\n")
 			return nil
 		}
 		e.applyObject()
@@ -592,17 +605,7 @@ func (e *MapEditor) keyHistory(key string) error {
 }
 
 func (e *MapEditor) keyBackspace(string) error {
-	if e.objectTyping() {
-		e.objectText("", true)
-		return nil
-	}
-	if e.prompt.open() {
-		r := []rune(e.prompt.path)
-		if len(r) > 0 {
-			e.prompt.path = string(r[:len(r)-1])
-		}
-		e.addFollow()
-	}
+	e.textKey("backspace")
 	return nil
 }
 

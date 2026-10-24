@@ -183,6 +183,7 @@ func (e *MapEditor) keepPick(kind pickKind) { e.pick = kind }
 // openPrompt replaces the prompt.
 func (e *MapEditor) openPrompt(p editorPrompt) {
 	e.rememberCancel()
+	e.input = editorInputState{}
 	e.prompt, e.message, e.promptShift = p, "", image.Point{}
 }
 

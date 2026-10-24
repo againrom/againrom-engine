@@ -516,11 +516,7 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 			add(int64(t.Value), t.ChoiceText())
 		}
 	case wpMessage:
-		for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
-			if !t.NewMessage {
-				add(int64(t.Value), t.ChoiceText())
-			}
-		}
+		return e.parameterChoices(ScriptMessageParameter, value)
 	}
 	if !found {
 		label := strconv.FormatInt(value, 10)
@@ -666,6 +662,9 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 				buttons = []string{actDraw}
 			}
 			add(pr, i, buttons...)
+			if p.kind == wpMessage {
+				e.parameterRows(i, s, add, text)
+			}
 		}
 		if it.cmp < 0 {
 			i := at[w.wizardKey(r, "cmp")]

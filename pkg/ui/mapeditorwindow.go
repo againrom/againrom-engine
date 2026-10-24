@@ -85,7 +85,7 @@ type editorChrome struct {
 	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
 	messagePage            uint32
-	messageNew             messageOwner // where a new message is named, while messagePage is NewMessagePage
+	messageNew             InspectionMessageOwner // where a new message is named, while messagePage is NewMessagePage
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -971,27 +971,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	text := w - 2*popupPad - 60
 	if e.prompt.open() {
 		s.Title = e.promptTitle()
-		var paths []string
-		for _, line := range strings.Split(strings.ReplaceAll(e.prompt.path, "\r\n", "\n"), "\n") {
-			paths = append(paths, editorWrap(e.bodyFont(), e.editorHostText(line), text)...)
-		}
-		if len(paths) > 6 {
-			paths = paths[len(paths)-6:]
-			paths[0] = textfit.Mark + paths[0]
-			if f := e.bodyFont(); f != nil {
-				paths[0] = textfit.Spec{Measure: f.Advance, Unit: textfit.Byte, Side: textfit.Start}.Continued(paths[0][len(textfit.Mark):], text)
-			}
-		}
-		for i, p := range paths {
-			row := popupRow{Kind: popupEdit, Value: p}
-			if i == len(paths)-1 {
-				row.Focus = true
-				if f := e.bodyFont(); f != nil {
-					row.Caret = f.Advance(p)
-				}
-			}
-			s.Rows = append(s.Rows, row)
-		}
+		s.Rows = e.promptInputRows(text)
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
 		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
 			s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
@@ -1380,6 +1360,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
 	pressed := in.PrimaryDown && !e.down
+	if e.drag == popNone && e.inputPointer(in) {
+		return true
+	}
 	if e.scrollPointer(in, p, pressed) {
 		return true
 	}

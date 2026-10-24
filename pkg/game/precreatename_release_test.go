@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -166,6 +168,7 @@ func TestReleasePreCreateNameThroughAppInput(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	capture := 0
 	frame := func() *image.RGBA {
 		t.Helper()
 		pix, _, err := app.HeadlessFrame()
@@ -174,6 +177,10 @@ func TestReleasePreCreateNameThroughAppInput(t *testing.T) {
 		}
 		if pix.Bounds() != image.Rect(0, 0, 640, 480) {
 			t.Fatalf("frame %v, want 640x480", pix.Bounds())
+		}
+		if output := os.Getenv("AGAINROM_TEXT_INPUT_FRAMES"); output != "" {
+			writeWidgetKitPNG(t, filepath.Join(output, fmt.Sprintf("hero-%03d.png", capture)), pix)
+			capture++
 		}
 		return pix
 	}

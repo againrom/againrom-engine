@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"unicode"
 )
 
 // savePageState is an open save page: its directory, the listed saves behind
@@ -155,40 +154,9 @@ func (f *flow) closeSavePage(message string) {
 // edit applies the name box's keys: caret moves, deletion and typed text, up
 // to the page's limit.
 func (s *savePageState) edit(in appInput) {
-	if in.SelectText {
-		s.selectAll = true
-		return
-	}
-	switch {
-	case in.Home:
-		s.caret = 0
-	case in.End:
-		s.caret = len(s.name)
-	case in.Left && s.caret > 0:
-		s.caret--
-	case in.Right && s.caret < len(s.name):
-		s.caret++
-	}
-	if !in.Backspace && !in.Delete && in.Typed == "" {
-		return
-	}
-	if s.selectAll {
-		s.name, s.caret, s.selectAll = nil, 0, false
-	} else if in.Backspace && s.caret > 0 {
-		s.name = append(s.name[:s.caret-1], s.name[s.caret:]...)
-		s.caret--
-	} else if in.Delete && s.caret < len(s.name) {
-		s.name = append(s.name[:s.caret], s.name[s.caret+1:]...)
-	}
-	for _, r := range in.Typed {
-		if unicode.IsControl(r) || s.page.NameLimit > 0 && len(s.name) >= s.page.NameLimit {
-			continue
-		}
-		s.name = append(s.name, 0)
-		copy(s.name[s.caret+1:], s.name[s.caret:])
-		s.name[s.caret] = r
-		s.caret++
-	}
+	state := EditText(TextInputState{Text: string(s.name), Caret: s.caret, SelectedAll: s.selectAll}, textInputKeys(in),
+		TextInputRules{Limit: s.page.NameLimit, Selection: TextStickyAllSelection, SplitLineBreaks: true, LiteralArrows: true})
+	s.name, s.caret, s.selectAll = []rune(state.Text), state.Caret, state.SelectedAll
 }
 
 // composeSaveScreen draws the open save page, else the save dialog.

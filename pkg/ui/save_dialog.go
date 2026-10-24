@@ -5,7 +5,6 @@ import (
 	"image"
 	"path/filepath"
 	"strings"
-	"unicode"
 )
 
 type saveControl int
@@ -382,51 +381,12 @@ func (f *flow) editSaveText(in appInput) {
 	if field == nil {
 		return
 	}
-	runes := []rune(*field)
-	if d.caret > len(runes) {
-		d.caret = len(runes)
+	state := EditText(TextInputState{Text: *field, Caret: d.caret, SelectedAll: d.selectedText}, textInputKeys(in),
+		TextInputRules{Limit: 4096, Selection: TextReplaceAllSelection, SplitLineBreaks: true, LiteralArrows: true})
+	*field, d.caret, d.selectedText = state.Text, state.Caret, state.SelectedAll
+	if !in.SelectText && (in.Backspace || in.Delete || in.Typed != "") {
+		f.msg = ""
 	}
-	if in.SelectText {
-		d.selectedText = true
-		return
-	}
-	if in.Home || in.End || in.Left || in.Right {
-		switch {
-		case in.Home:
-			d.caret = 0
-		case in.End:
-			d.caret = len(runes)
-		case in.Left && d.caret > 0:
-			d.caret--
-		case in.Right && d.caret < len(runes):
-			d.caret++
-		}
-		d.selectedText = false
-	}
-	if !in.Backspace && !in.Delete && in.Typed == "" {
-		return
-	}
-	if d.selectedText {
-		runes = nil
-		d.caret = 0
-		d.selectedText = false
-	} else if in.Backspace && d.caret > 0 {
-		runes = append(runes[:d.caret-1], runes[d.caret:]...)
-		d.caret--
-	} else if in.Delete && d.caret < len(runes) {
-		runes = append(runes[:d.caret], runes[d.caret+1:]...)
-	}
-	for _, r := range in.Typed {
-		if unicode.IsControl(r) || len(runes) >= 4096 {
-			continue
-		}
-		runes = append(runes, 0)
-		copy(runes[d.caret+1:], runes[d.caret:])
-		runes[d.caret] = r
-		d.caret++
-	}
-	*field = string(runes)
-	f.msg = ""
 }
 
 func (a *App) stepSaveDialog(in appInput) {

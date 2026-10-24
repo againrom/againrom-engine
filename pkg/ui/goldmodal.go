@@ -166,83 +166,31 @@ func (v *Viewer) cancelGold() {
 }
 
 func (g *goldState) clampEdit() {
-	n := len(g.text)
-	g.caret = max(0, min(g.caret, n))
-	g.selStart = max(0, min(g.selStart, n))
-	g.selEnd = max(0, min(g.selEnd, n))
+	g.edit(TextInputKeys{Clamp: true})
 }
 
-// move places the caret. Without shift the selection end follows the stored
-// selection start; with shift the endpoint the caret left follows it.
 func (g *goldState) move(to int, shift bool) {
-	g.clampEdit()
-	old := g.caret
-	g.caret = max(0, min(to, len(g.text)))
-	if !shift {
-		g.selEnd = g.selStart
-		return
-	}
-	if g.selStart == g.selEnd {
-		g.selStart, g.selEnd = old, old
-	}
-	switch {
-	case old == g.selEnd:
-		g.selEnd = g.caret
-	case old == g.selStart:
-		g.selStart = g.caret
-	default:
-		g.selStart, g.selEnd = min(old, g.caret), max(old, g.caret)
-	}
-	if g.selStart > g.selEnd {
-		g.selStart, g.selEnd = g.selEnd, g.selStart
-	}
+	g.edit(TextInputKeys{MoveTo: &to, Shift: shift})
 }
 
-// backspace removes the byte before a positive caret and changes neither
-// selection endpoint. It reports whether the edit handled the key; at caret
-// zero it did not.
 func (g *goldState) backspace() bool {
-	g.clampEdit()
-	if g.caret == 0 {
-		return false
-	}
-	g.text = g.text[:g.caret-1] + g.text[g.caret:]
-	g.caret--
-	return true
+	return g.edit(TextInputKeys{Backspace: true}).Handled
 }
 
-// deleteForward removes a positive selection, or else the byte at the caret.
 func (g *goldState) deleteForward() {
-	g.clampEdit()
-	if g.selEnd-g.selStart > 0 {
-		g.text = g.text[:g.selStart] + g.text[g.selEnd:]
-		g.caret, g.selEnd = g.selStart, g.selStart
-		return
-	}
-	if g.caret < len(g.text) {
-		g.text = g.text[:g.caret] + g.text[g.caret+1:]
-	}
+	g.edit(TextInputKeys{Delete: true})
 }
 
-// insert places printable ASCII at the caret, replacing a positive selection.
-// Other characters are dropped; the text stays within goldTextLimit.
 func (g *goldState) insert(s string) {
-	for _, r := range s {
-		if r < 0x20 || r > 0x7e {
-			continue
-		}
-		g.clampEdit()
-		if g.selEnd-g.selStart > 0 {
-			g.text = g.text[:g.selStart] + g.text[g.selEnd:]
-			g.caret, g.selEnd = g.selStart, g.selStart
-		}
-		if len(g.text) >= goldTextLimit {
-			continue
-		}
-		g.text = g.text[:g.caret] + string(r) + g.text[g.caret:]
-		g.caret++
-		g.selStart, g.selEnd = g.caret, g.caret
-	}
+	g.edit(TextInputKeys{Typed: s})
+}
+
+func (g *goldState) edit(keys TextInputKeys) TextInputState {
+	state := EditText(TextInputState{Text: g.text, Caret: g.caret, Start: g.selStart, End: g.selEnd}, keys,
+		TextInputRules{ByteUnits: true, Limit: goldTextLimit, Selection: TextDetachedSelection,
+			Accept: func(r rune) bool { return r >= 0x20 && r <= 0x7e }})
+	g.text, g.caret, g.selStart, g.selEnd = state.Text, state.Caret, state.Start, state.End
+	return state
 }
 
 // parseGoldAmount reads the edit text as a decimal number and truncates it

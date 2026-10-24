@@ -13,10 +13,8 @@ import (
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textfit"
-	"againrom/pkg/ui/heldkey"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -141,6 +139,7 @@ type MapEditor struct {
 	maps                        []EditorMap
 	open                        InspectionOpener
 	hostText                    func(string) string
+	nativeInput                 func() editorNativeInput
 	pathDialog                  editorPathDialog
 	selected                    int
 	filter                      int
@@ -162,6 +161,7 @@ type MapEditor struct {
 	cancelRestore               func()
 	listRestore                 func()
 	selection                   selectionState
+	input                       editorInputState
 	place                       placeGrid
 	groupsTop                   int    // the Groups window's first shown row
 	lastSeed                    uint32 // the seed the last whole-map command took
@@ -417,27 +417,33 @@ func (e *MapEditor) Update() error {
 	if e.PollPathDialog() {
 		return nil
 	}
+	in := readEditorInput
+	if e.nativeInput != nil {
+		in = e.nativeInput
+	}
+	native := in()
 	if e.pathDialog.rearm {
-		if len(heldkey.AppendPressed(nil)) == 0 && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) && !ebiten.IsMouseButtonPressed(ebiten.MouseButtonMiddle) {
+		if !native.keysDown && !native.canvas.PrimaryDown && !native.canvas.SecondaryDown && !native.canvas.MiddleDown {
 			e.pathDialog.rearm = false
 		}
 		return nil
 	}
-	if ebiten.IsWindowBeingClosed() {
+	if native.closing {
 		if err := e.Key("close"); err != nil {
 			return err
 		}
 	}
-	if e.prompt.open() || e.objectTyping() {
-		e.TextInput(string(ebiten.AppendInputChars(nil)))
-	}
+	typing, policy := e.updateTextInput(native, time.Now())
 	for _, k := range []struct {
 		key  ebiten.Key
 		name string
 	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
-		if inpututil.IsKeyJustPressed(k.key) {
+		if native.justPressed(k.key) {
 			name := k.name
-			if name == "enter" && heldkey.Pressed(ebiten.KeyShift) && e.multilinePrompt() {
+			if typing && name != "escape" && name != "enter" && name != "pageup" && name != "pagedown" {
+				continue
+			}
+			if name == "enter" && native.pressed(ebiten.KeyShift) && e.multilinePrompt() {
 				name = "newline"
 			}
 			if err := e.Key(name); err == ebiten.Termination {
@@ -446,43 +452,43 @@ func (e *MapEditor) Update() error {
 		}
 	}
 	if !e.prompt.open() && !e.objectTyping() {
-		if heldkey.Pressed(ebiten.KeyControl) {
-			if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
+		if native.pressed(ebiten.KeyControl) {
+			if native.justPressed(ebiten.KeyZ) {
 				key := "undo"
-				if heldkey.Pressed(ebiten.KeyShift) {
+				if native.pressed(ebiten.KeyShift) {
 					key = "redo"
 				}
 				_ = e.Key(key)
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyY) {
+			if native.justPressed(ebiten.KeyY) {
 				_ = e.Key("redo")
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+			if native.justPressed(ebiten.KeyS) {
 				_ = e.Key("saveas")
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyC) {
+			if native.justPressed(ebiten.KeyC) {
 				_ = e.Key("copy")
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyV) {
+			if native.justPressed(ebiten.KeyV) {
 				_ = e.Key("paste")
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyE) {
+			if native.justPressed(ebiten.KeyE) {
 				_ = e.Key("randomterrain")
 			}
-			if inpututil.IsKeyJustPressed(ebiten.KeyR) && heldkey.Pressed(ebiten.KeyShift) {
+			if native.justPressed(ebiten.KeyR) && native.pressed(ebiten.KeyShift) {
 				_ = e.Key("randomheights")
 			}
 		}
 		for n := 0; n < 9; n++ {
-			if inpututil.IsKeyJustPressed(ebiten.KeyDigit1 + ebiten.Key(n)) {
+			if native.justPressed(ebiten.KeyDigit1 + ebiten.Key(n)) {
 				key := "group"
-				if heldkey.Pressed(ebiten.KeyControl) {
+				if native.pressed(ebiten.KeyControl) {
 					key = "togroup"
 				}
 				_ = e.Key(key + string(rune('1'+n)))
 			}
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyO) {
+		if native.justPressed(ebiten.KeyO) {
 			_ = e.Key("open")
 		}
 		if e.pathDialog.pending != nil {
@@ -492,25 +498,26 @@ func (e *MapEditor) Update() error {
 			key  ebiten.Key
 			name string
 		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}, {ebiten.KeyV, "heightlabels"}} {
-			if inpututil.IsKeyJustPressed(k.key) && !heldkey.Pressed(ebiten.KeyControl) {
+			if native.justPressed(k.key) && !native.pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		if native.justPressed(ebiten.KeyF) {
 			e.Fit()
 		}
-		if inpututil.IsKeyJustPressed(ebiten.KeyR) && !heldkey.Pressed(ebiten.KeyControl) {
+		if native.justPressed(ebiten.KeyR) && !native.pressed(ebiten.KeyControl) {
 			_ = e.Key("report")
 		}
 	} else {
-		if (e.prompt.fields() || e.objectTyping()) && inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		if (e.prompt.fields() || e.objectTyping()) && native.justPressed(ebiten.KeyTab) {
 			_ = e.Key("tab")
 		}
-		if heldkey.Pressed(ebiten.KeyControl) && inpututil.IsKeyJustPressed(ebiten.KeyA) {
-			_ = e.Key("clear")
-		}
 	}
-	e.Pointer(readInput(), time.Now())
+	canvas := native.canvas
+	if typing && !policy.panArrows {
+		canvas.PanLeft, canvas.PanRight, canvas.PanUp, canvas.PanDown = false, false, false, false
+	}
+	e.Pointer(canvas, time.Now())
 	return nil
 }
 

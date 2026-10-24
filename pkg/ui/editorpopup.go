@@ -31,6 +31,7 @@ const (
 
 // popupRow is one row of a popup.
 type popupRow struct {
+	Edit         *editorTextView
 	Kind         popupRowKind
 	Label, Value string
 	Ink          color.RGBA // the value's ink; zero is the popup's paper
@@ -667,6 +668,14 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			continue
 		}
 		bodyText(rr.Label, row.Label, ink.Label)
+		if row.Edit != nil {
+			drawEditorInput(dst, body, row, rr.Control, ink, value)
+			drawRowIcons(dst, body, l, rr, row)
+			for k, b := range rr.Buttons {
+				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
+			}
+			continue
+		}
 		switch row.Kind {
 		case popupMultiline:
 			drawFrame(dst, panelFrame(rr.Control, ink.Ground, ink.Edge))

@@ -401,10 +401,15 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 		e.newMessage(field)
 		return
 	}
-	o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[row].Value, 10)
+	field, value := o.open, o.fields[o.open].Choices[row].Value
+	commit := e.messageChoiceAlone(field, value)
+	o.buf[field] = strconv.FormatInt(value, 10)
 	o.choice.Select(row)
 	o.open = -1
 	e.retypeNode()
+	if commit {
+		e.applyObject()
+	}
 }
 
 // chooseObjectChoiceKeep sets the open drop-down's field to its highlighted
@@ -466,24 +471,6 @@ func (e *MapEditor) endFieldTyping() {
 	if e.objectTyping() {
 		e.obj.focus = -1
 	}
-}
-
-// objectText edits the focused field's text: s is typed, back removes a rune.
-func (e *MapEditor) objectText(s string, back bool) {
-	o := &e.obj
-	if len(o.fields[o.focus].Choices) > 0 && !back {
-		if strings.TrimLeft(s, "-0123456789") != "" {
-			return
-		}
-	}
-	if back {
-		r := []rune(o.buf[o.focus])
-		if len(r) > 0 {
-			o.buf[o.focus] = string(r[:len(r)-1])
-		}
-		return
-	}
-	o.buf[o.focus] += s
 }
 
 // objectButton is Apply (0) or Cancel (1).

@@ -94,7 +94,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	}
 	size := e.sizes[popObject]
 	if size == (image.Point{}) {
-		return s, links, true
+		return e.objectInputRows(s), links, true
 	}
 	s.Size, s.MinWidth = size, e.minWide[popObject]
 	if s.MaxRows > 0 {
@@ -102,7 +102,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 		s.Top = e.objectTop
 	}
-	return s, links, true
+	return e.objectInputRows(s), links, true
 }
 
 // promptSpec is the prompt and the message as one popup, at the size and the
@@ -114,7 +114,7 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 		e.sizes[popPrompt] = image.Point{}
 		return s, false
 	}
-	return e.sizedPrompt(s), true
+	return e.addInputRows(e.sizedPrompt(s)), true
 }
 
 // sizedPrompt is a prompt-place spec at the size and the place it was dragged

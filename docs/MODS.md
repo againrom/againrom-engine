@@ -1272,10 +1272,51 @@ runs "Set undying" on the boss with state 0, then a message. The boss
 survives every blow until its health falls below -25; on the next trigger
 pass the message shows and the boss falls.
 
-X edits mission pages. Set the page name, reopen X and use Tab to reach its
-body. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
+Every map editor input supports a caret, selection and text copy/paste.
+Hold Backspace, Delete or an arrow to repeat after 400 ms, once every 40 ms.
+Ctrl+Left/Right moves by words: a word is letters in any alphabet, numbers
+or underscores; punctuation and spaces separate words. Shift with arrows,
+Home or End selects, Ctrl+Shift+Left/Right selects by words, and Ctrl+A
+selects the whole input. Drag inside a text field to select. Typing replaces
+the selection; Backspace and Delete remove it.
+
+While Add waits for a map cell, arrows pan the map without editing the
+coordinates; Home, End and Backspace still edit them. Ctrl+Up/Down keeps
+plain Up/Down in single-line prompts. In an Add choice list with cell
+picking off, Shift+Up/Down travels the list; Ctrl+Home/End selects its ends.
+Previously, arrows panned the map even with an object popup field focused.
+They now move the field's caret (single-line Up/Down still travels choices).
+When the field loses focus, arrows pan the map again.
+
+With an input focused, Ctrl+C copies the selection, Ctrl+X cuts it and
+Ctrl+V replaces it with pasted text. Windows and macOS use the system
+clipboard; other systems keep text in this process. Without a focused input,
+the map's object copy/paste keys keep their map meaning. Paste changes CRLF
+and CR to LF, keeps LF in multiline bodies, and changes it to a space in
+single-line inputs. It drops controls and characters the field cannot store,
+then truncates at the field's byte limit without splitting a character.
+Map, player and script names use their ALM Windows-1251 codec; message/page
+bodies use the selected install's text codec and existing plain-form table.
+Paths and package text accept printable Unicode. Numeric fields accept
+digits and signs; raw metadata and package numbers also keep hexadecimal
+notation. Ordinary typing retains the existing Apply validation.
+Enter applies single-line fields as before. Message bodies use Enter for a
+new line; page bodies and descriptions use Shift+Enter for a new line.
+
+New message opens with its body ready for typing. Apply writes the body,
+speaker and action's page reference as one undo entry. The trigger wizard's
+message parameter uses the same New message choice and Open Message link.
+Choosing an existing message applies immediately when it is the only pending
+field; one Undo restores it. Other pending fields still require Apply, and
+New/Open keep the Apply-or-Cancel requirement for an unfinished popup.
+Speaker choices still
+show the NPC catalog's numbers and names. A name alone does not establish a
+fixed person for every first-hero choice; role labels await pinned evidence.
+
+X edits mission pages. Enter after the page name continues directly into its
+body. Tab still switches the fields. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
 `eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed
-99. Shift+Enter inserts a new line, Ctrl+A clears the field and Enter applies
+99. Shift+Enter inserts a new line, Ctrl+A selects the field and Enter applies
 it. Pages use UTF-8; an unrepresentable character or an oversized page is
 refused with the entered text retained. Map, page and route changes share
 Undo/Redo. Saving only an ALM refuses unsaved page or route changes.

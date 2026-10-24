@@ -78,6 +78,20 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 		t.Fatal(err)
 	}
 	shot(e, "keys")
+	rows, _ := e.ReportOpen()
+	for i := 0; i < len(rows); i++ {
+		if _, visible := e.ListRowRect(i); visible {
+			continue
+		}
+		_ = e.Key("pagedown")
+		if _, visible := e.ListRowRect(i); !visible {
+			_ = e.Key("pagedown")
+		}
+		if _, visible := e.ListRowRect(i); !visible {
+			t.Fatalf("F1 row %d is unreachable", i)
+		}
+		shot(e, fmt.Sprintf("keys-%02d", i))
+	}
 	_ = e.Key("escape")
 
 	// The group: the first unit with two more units, structures or sacks

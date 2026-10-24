@@ -192,7 +192,7 @@ func russianWord(s string) bool {
 	cyrillic := false
 	for _, f := range strings.FieldsFunc(s, func(r rune) bool { return !unicode.IsLetter(r) && r != '+' && !unicode.IsDigit(r) }) {
 		switch f {
-		case "Shift", "Alt", "Ctrl+C", "Ctrl+V", "Ctrl+E", "Ctrl+Shift+R", "Ctrl+1", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
+		case "Shift", "Alt", "Ctrl+A", "Ctrl+C", "Ctrl+X", "Ctrl+V", "Ctrl+Left", "Ctrl+Right", "Left", "Right", "Backspace", "Ctrl+E", "Ctrl+Shift+R", "Ctrl+1", "Esc", "Del", "Enter", "Tab", "F1", "F2", "F5":
 			continue
 		}
 		if len(f) == 1 && f[0] >= 'A' && f[0] <= 'Z' {
@@ -284,6 +284,11 @@ func TestMapEditorBrushWordsAreTheInstallsLanguage(t *testing.T) {
 }
 
 func TestMapEditorF1KeysAreTheInstallsLanguage(t *testing.T) {
+	for _, line := range []string{"Ctrl+A: select all", "Ctrl+Left/Right: by words", "Backspace: repeat"} {
+		if russianWord(line) {
+			t.Fatalf("English instruction accepted: %q", line)
+		}
+	}
 	e, _ := newModesEditor(t, "full")
 	e.SetWords(words.For("russian"))
 	_ = e.Key("help")

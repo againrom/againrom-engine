@@ -21,12 +21,7 @@ func (e *MapEditor) Dirty() bool    { return e.editable() && e.doc.Edits.Dirty()
 
 // TextInput is shared by the native path field and deterministic input drives.
 func (e *MapEditor) TextInput(s string) {
-	if e.pathDialog.pending == nil && e.prompt.open() {
-		e.prompt.path += s
-		e.addFollow()
-	} else if e.pathDialog.pending == nil && e.objectTyping() && s != "" {
-		e.objectText(s, false)
-	}
+	e.insertText(s)
 }
 
 func (e *MapEditor) saveAs(path string) error {
