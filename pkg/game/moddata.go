@@ -21,7 +21,11 @@ type modDataApply func(f *FrontEnd, d mod.Data, r *ModDataReport) error
 // settings reach no front end table: the window takes the screens
 // (ui.App.SetModScreens) and the mods' run takes the settings.
 var modDataAppliers = map[string]modDataApply{
-	"items": func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.SetModItems(d.Items) },
+	"items": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
+		overrides, err := f.setModItems(d.Items)
+		r.override(overrides)
+		return err
+	},
 	"characters": func(f *FrontEnd, d mod.Data, r *ModDataReport) error {
 		overrides, err := f.setModCharacters(d.Characters)
 		r.override(overrides)

@@ -1,0 +1,8 @@
+id          = "bone-pike"
+title       = "Bone pike"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Lets the shops sell a common pike of bone, a material the shipped pike row does not offer."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

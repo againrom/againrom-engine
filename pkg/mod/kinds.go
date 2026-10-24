@@ -93,16 +93,17 @@ const mergedShared = "yes, when `load-after` orders the mods: the later wins and
 
 var dataKinds = []DataKind{
 	{
-		Name: "items", Files: []string{ItemsFile}, Key: "`key` (an added item), `item` (a change of a shipped row)",
-		Class: CatalogData, Layer: LayerKept, Owner: "T9",
-		Base:   "the item rows of the definition table; added items take free code rows",
-		Shared: "added items are each mod's own; two changes of one shipped row both apply, the later's values last, unnamed",
+		Name: "items", Files: []string{ItemsFile}, Key: "the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row",
+		Class: CatalogData, Layer: LayerMerged,
+		Base:   "the armour, shield and weapon rows of the definition table with their material masks; added rows take free code rows",
+		Shared: mergedShared + "; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too",
 		Script: true, read: readItems,
 		summary: func(d Data) string {
 			if d.Items.Empty() {
 				return ""
 			}
-			return fmt.Sprintf("items added=%d changed=%d", len(d.Items.Rows), len(d.Items.Changes))
+			return fmt.Sprintf("items added=%d changed=%d materials=%d weapons=%d",
+				len(d.Items.Rows), len(d.Items.Changes), len(d.Items.Materials), len(d.Items.Weapons))
 		},
 	},
 	{
@@ -312,6 +313,9 @@ type Data struct {
 // SetOrder gives each merged kind that holds records the load order the
 // mods state.
 func (d *Data) SetOrder(order Precedence) {
+	if !d.Items.Empty() {
+		d.Items.Order = order
+	}
 	if !d.Companions.Empty() {
 		d.Companions.Order = order
 	}

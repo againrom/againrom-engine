@@ -149,12 +149,20 @@ type ItemChange struct {
 
 // ItemData is what the mods of a set add and edit, in load order.
 type ItemData struct {
-	Rows    []ItemRow
-	Changes []ItemChange
+	Rows      []ItemRow
+	Changes   []ItemChange
+	Materials []ItemMaterial
+	Weapons   []WeaponRow
+	// Mods are the mods that declare items, in load order.
+	Mods []string
+	// Order is the load order the mods state, which the layer step reads.
+	Order Precedence
 }
 
 // Empty reports that no mod adds or edits an item.
-func (d ItemData) Empty() bool { return len(d.Rows) == 0 && len(d.Changes) == 0 }
+func (d ItemData) Empty() bool {
+	return len(d.Rows) == 0 && len(d.Changes) == 0 && len(d.Materials) == 0 && len(d.Weapons) == 0
+}
 
 // ItemFileError is a refusal of a data file, naming the file and the line.
 type ItemFileError struct {
@@ -273,7 +281,7 @@ func ParseItems(id, file string, data []byte, text func(key string) (string, boo
 	}
 	if len(tables[0].pairs) != 0 {
 		p := tables[0].pairs[0]
-		return ItemData{}, bad(p.line, "%s is outside an [[item]] or [[change]] table", p.key)
+		return ItemData{}, bad(p.line, "%s is outside an [[item]] or [[change]] table (or [[material]], [[weapon]])", p.key)
 	}
 	var out ItemData
 	keys := map[string]int{}
@@ -295,8 +303,24 @@ func ParseItems(id, file string, data []byte, text func(key string) (string, boo
 				return ItemData{}, err
 			}
 			out.Changes = append(out.Changes, c)
+		case t.name == "material" && t.array:
+			m, err := itemMaterialFrom(id, file, t, text, lang)
+			if err != nil {
+				return ItemData{}, err
+			}
+			out.Materials = append(out.Materials, m)
+		case t.name == "weapon" && t.array:
+			w, err := weaponRowFrom(id, file, t, text, lang)
+			if err != nil {
+				return ItemData{}, err
+			}
+			if first, dup := keys[w.Key]; dup {
+				return ItemData{}, bad(t.line, "key %q is already used at line %d", w.Key, first)
+			}
+			keys[w.Key] = t.line
+			out.Weapons = append(out.Weapons, w)
 		default:
-			return ItemData{}, bad(t.line, "unknown table %q (this file holds [[item]] and [[change]])", t.name)
+			return ItemData{}, bad(t.line, "unknown table %q (this file holds [[item]], [[change]], [[material]] and [[weapon]])", t.name)
 		}
 	}
 	return out, nil

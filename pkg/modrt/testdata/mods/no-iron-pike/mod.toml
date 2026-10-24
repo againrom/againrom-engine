@@ -1,0 +1,8 @@
+id          = "no-iron-pike"
+title       = "No common iron pike"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Takes the common iron pike out of every shop."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

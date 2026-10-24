@@ -2911,12 +2911,26 @@ package storyguard
 // pkg/sim/sight.go, their tests, the witness now proving it, and this
 // paragraph.
 //
+// CommentBytes rises with the items layer step, all doc comments on new code:
+// pkg/game/moditemlayer.go, pkg/mod/itemrows.go, the mask helpers in
+// pkg/data/shopstock.go, the added-row alias in pkg/data/equip.go, their
+// tests, the release tests of the material and weapon-row fixture mods in
+// pkg/game/moditemrows_release_test.go, and this paragraph.
+//
 // CommentBytes rises with mission chains and guest parties, all doc comments
 // on new code: the npc.reg catalog in pkg/data/npccatalog.go, the character
 // builder and cell check in pkg/mapload/joined.go, the catalog and chain merge
 // in pkg/mod, the chain and party in pkg/game/modmission.go, their tests, and
 // this paragraph. barestorynumber and longcommentgroups fall with the
 // rewritten guest-mission notes.
+//
+// CommentBytes rises with the release tests of an added weapon row in a guest
+// party and of items and characters in one load order,
+// pkg/game/moditemguest_release_test.go, and this paragraph.
+//
+// CommentBytes rises a further amount with the refusal of a mod weapon row
+// whose damage would wrap a byte (pkg/game/moditemlayer.go, its tests and
+// pkg/data/weapon.go), new code, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2940,5 +2954,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9585699,
+	CommentBytes: 9599200,
 }

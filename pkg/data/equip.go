@@ -117,6 +117,8 @@ type BodyList struct {
 	weapon map[int]HeroBody
 	mod    map[HeroBody]ModBody
 	bare   map[HeroBody]bool
+	// added maps a weapon row a mod adds to the shipped row it copies.
+	added map[int]int
 }
 
 // ModBody is what a mod states about a body it supplies a sheet for, beyond
@@ -177,6 +179,39 @@ func (l BodyList) WithoutShieldForm(b HeroBody) BodyList {
 	return out
 }
 
+// WithAddedRow is l knowing weapon row as a row a mod adds as a copy of the
+// shipped row base: it answers base's entry, so it is drawn with base's body
+// and keyed with base's class unless a mod chooses a body for it.
+func (l BodyList) WithAddedRow(row, base int) BodyList {
+	out := l
+	out.added = make(map[int]int, len(l.added)+1)
+	for k, v := range l.added {
+		out.added[k] = v
+	}
+	out.added[row] = base
+	return out
+}
+
+// AddedRows lists the weapon rows mods add, ascending, each with the shipped
+// row it copies.
+func (l BodyList) AddedRows() [][2]int {
+	out := make([][2]int, 0, len(l.added))
+	for r, b := range l.added {
+		out = append(out, [2]int{r, b})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i][0] < out[j][0] })
+	return out
+}
+
+// RowEntry is the shipped entry weapon row row answers: its own line, or for
+// a row a mod adds the line of the row it copies.
+func (l BodyList) RowEntry(row int) HeroBody {
+	if b, ok := l.added[row]; ok {
+		row = b
+	}
+	return l.Entry(row - 1)
+}
+
 // LacksShieldForm reports whether b is a chosen shipped body with no shield form.
 func (l BodyList) LacksShieldForm(b HeroBody) bool { return l.bare[b] }
 
@@ -231,7 +266,7 @@ func (l BodyList) SavedBody(drawn HeroBody, class int32) HeroBody {
 		}
 		for _, shield := range []bool{false, true} {
 			for _, mage := range []bool{false, true} {
-				name := HeroBodyName(l.Entry(row-1), shield, mage, false)
+				name := HeroBodyName(l.RowEntry(row), shield, mage, false)
 				if c, _ := HeroBodyClass(name); c == class {
 					return name
 				}
@@ -297,11 +332,8 @@ func weaponRow(e Equipment) int {
 // shippedBodyFor is the shipped list's entry for slot 1's row, with no mod
 // choice: the name the class key is derived from.
 func shippedBodyFor(l BodyList, e Equipment) (HeroBody, bool) {
-	i := weaponRow(e) - 1
-	if i < 0 || i >= len(l.names) || l.names[i] == "" {
-		return "", false
-	}
-	return l.names[i], true
+	b := l.RowEntry(weaponRow(e))
+	return b, b != ""
 }
 
 // HeroBodyFor is the body slot 1's weapon is drawn with: a mod's choice for

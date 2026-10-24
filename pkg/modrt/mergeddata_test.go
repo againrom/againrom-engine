@@ -58,7 +58,10 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 	// carry before; the comparison reads the records without them.
 	added := map[string][]string{"companions": {"Fields", "Off", "Order"}, "bodies": {"Off", "OffLine", "Order"},
 		"characters": {"Key", "Row", "RowLine", "FaceLine", "Off", "OffLine", "Order"},
-		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order"}}
+		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order"},
+		"items":      {"Mods", "Order"}}
+	// Lists a kind gained, read without them when a mod declares none.
+	addedLists := map[string][]string{"items": {"Materials", "Weapons"}}
 	kinds := []struct {
 		name  string
 		empty bool
@@ -86,6 +89,13 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 		var tree any
 		if err := json.Unmarshal(raw, &tree); err != nil {
 			t.Fatal(err)
+		}
+		if top, ok := tree.(map[string]any); ok {
+			for _, key := range addedLists[k.name] {
+				if top[key] == nil {
+					delete(top, key)
+				}
+			}
 		}
 		tree = canonicalMergedData(tree, entries, added[k.name])
 		canon, err := json.Marshal(tree)

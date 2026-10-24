@@ -130,6 +130,25 @@ func itemMask(c MaskTable, row, shape int) uint16 {
 	return binary.LittleEndian.Uint16(raw[off:])
 }
 
+// ItemMasks is row's five material masks, one per shape, as the shop walk
+// reads them (DAT-MATMASK-020).
+func ItemMasks(c MaskTable, row int) [ShopShapes]uint16 {
+	var out [ShopShapes]uint16
+	for shape := range out {
+		out[shape] = itemMask(c, row, shape)
+	}
+	return out
+}
+
+// ItemMaskRaw is the raw block that carries masks: the five words end to end.
+func ItemMaskRaw(masks [ShopShapes]uint16) []byte {
+	out := make([]byte, shopMaskStride*ShopShapes)
+	for shape, m := range masks {
+		binary.LittleEndian.PutUint16(out[shopMaskStride*shape:], m)
+	}
+	return out
+}
+
 // ShopClass answers what field B a row composes with, given the row's own
 // parameters. The three item collections differ here and nowhere else in the
 // walk.

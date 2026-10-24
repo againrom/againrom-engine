@@ -24,8 +24,19 @@ func readItems(r DataReader, d *Data, rel string, src []byte) error {
 	for i := range items.Rows {
 		items.Rows[i].Dir = r.Dir
 	}
+	for i := range items.Materials {
+		items.Materials[i].Dir = r.Dir
+	}
+	for i := range items.Weapons {
+		items.Weapons[i].Dir = r.Dir
+	}
+	if !slices.Contains(d.Items.Mods, r.Mod) {
+		d.Items.Mods = append(d.Items.Mods, r.Mod)
+	}
 	d.Items.Rows = append(d.Items.Rows, items.Rows...)
 	d.Items.Changes = append(d.Items.Changes, items.Changes...)
+	d.Items.Materials = append(d.Items.Materials, items.Materials...)
+	d.Items.Weapons = append(d.Items.Weapons, items.Weapons...)
 	return nil
 }
 

@@ -46,15 +46,8 @@ func (f *FrontEnd) setModBodies(bodies mod.BodyData) ([]mod.Override, error) {
 		return nil, err
 	}
 
-	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
+	if err := f.setBodyList(list); err != nil {
 		return nil, err
-	}
-	f.Bodies = list
-	f.Table.Mods.Bodies = list
-	if f.Table.FlightInputs != nil {
-		inputs := *f.Table.FlightInputs
-		inputs.ClassRule = flightClassRule(list)
-		f.Table.FlightInputs = &inputs
 	}
 
 	units := cloneCandidateUnits(f.Units)
@@ -66,6 +59,23 @@ func (f *FrontEnd) setModBodies(bodies mod.BodyData) ([]mod.Override, error) {
 	}
 	f.Units = units
 	return overrides, nil
+}
+
+// setBodyList makes list, carrying the mods' choices, the body list of this
+// front end: served at ModBodyChoiceAddress for every reader of the list, the
+// table's, and the flight class rule's.
+func (f *FrontEnd) setBodyList(list data.BodyList) error {
+	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
+		return err
+	}
+	f.Bodies = list
+	f.Table.Mods.Bodies = list
+	if f.Table.FlightInputs != nil {
+		inputs := *f.Table.FlightInputs
+		inputs.ClassRule = flightClassRule(list)
+		f.Table.FlightInputs = &inputs
+	}
+	return nil
 }
 
 // resolveModBodies checks the mods' bodies against the install and answers the
@@ -118,6 +128,11 @@ func layerModBodies(src entrySource, units *terrain.UnitSet, weapons data.Collec
 			layer0 = append(layer0, weaponBody{row: row, body: string(b)})
 		}
 	}
+	for _, r := range list.AddedRows() {
+		if b := list.RowEntry(r[0]); b != "" {
+			layer0 = append(layer0, weaponBody{row: r[0], body: string(b)})
+		}
+	}
 	chosen := map[int]mod.WeaponBody{}
 	patches := make([]mod.Patch[int, weaponBody], 0, len(bodies.Weapons))
 	for _, w := range bodies.Weapons {
@@ -128,7 +143,7 @@ func layerModBodies(src entrySource, units *terrain.UnitSet, weapons data.Collec
 		if first, dup := chosen[row]; dup && first.Mod == w.Mod {
 			return list, nil, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d already has a body from mod %q (%s:%d)", row, first.Mod, first.File, first.Line)
 		}
-		if list.Entry(row-1) == "" {
+		if list.RowEntry(row) == "" {
 			return list, nil, nil, itemFileError(w.Mod, w.File, w.Line, "weapon row %d has no body in the install's body list; a mapping changes the body of a weapon the game draws", row)
 		}
 		body := data.HeroBody(w.Body)

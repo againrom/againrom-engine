@@ -46,9 +46,12 @@ func ReadBodyList(src entrySource) (data.BodyList, bool) {
 }
 
 // encodeBodyChoice writes the mods' choices on list as the lines
-// "weapon <row> <body>" and "body <name> <weapon-last 0|1>".
+// "row <row> <base>", "weapon <row> <body>" and "body <name> <weapon-last 0|1>".
 func encodeBodyChoice(list data.BodyList) []byte {
 	var b strings.Builder
+	for _, r := range list.AddedRows() {
+		fmt.Fprintf(&b, "row %d %d\n", r[0], r[1])
+	}
 	for _, row := range list.WeaponRows() {
 		body, _ := list.WeaponBody(row)
 		fmt.Fprintf(&b, "weapon %d %s\n", row, body)
@@ -76,6 +79,12 @@ func applyBodyChoice(list data.BodyList, text []byte) data.BodyList {
 			continue
 		}
 		switch f[0] {
+		case "row":
+			row, err := strconv.Atoi(f[1])
+			base, err2 := strconv.Atoi(f[2])
+			if err == nil && err2 == nil {
+				list = list.WithAddedRow(row, base)
+			}
 		case "weapon":
 			if row, err := strconv.Atoi(f[1]); err == nil {
 				list = list.WithWeaponBody(row, data.HeroBody(f[2]))

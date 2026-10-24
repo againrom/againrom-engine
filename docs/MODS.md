@@ -23,7 +23,7 @@ with `game.data.add`.
 
 | kind | file | key | layer | two mods on one record | see |
 |---|---|---|---|---|---|
-| items | `data/items.toml` | `key` (an added item), `item` (a change of a shipped row) | catalog, kept until T9 | added items are each mod's own; two changes of one shipped row both apply, the later's values last, unnamed | `DIV-1861`, `docs/1272/story.md` |
+| items | `data/items.toml` | the row: `key` (an added item or weapon row), `item` (a shipped row); a mask bit is one field of its row | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; one field is one number of a row or one mask bit (row, tier, material); two mods adding one key need `load-after` too | Items, `DIV-1861`, `DIV-4005`, `DIV-4006`, `DIV-4007`, `docs/1272/story.md`, `docs/1509/story.md` |
 | characters | `data/characters.toml` | `key` (a character of the catalog); `target` (an edit of a definition row or a family of tier rows) | catalog, merged | catalog keys: yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a mod's character off; target edits: all operations apply in load order, including overlapping families and rows, without requiring load-after | Guest parties, `docs/1278/story.md`, `docs/1508/story.md`, `DIV-4002`, `DIV-4003` |
 | screens | `data/screens.toml` | `key`, within the mod | configuration | no: a screen is its mod's own; one action is added by one mod | `DIV-1894`, `DIV-1906`, `docs/1277/story.md` |
 | companions | `data/companions.toml` | `chapter` and `companion` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a condition off | `docs/1280/story.md`, `DIV-3909` |
@@ -197,6 +197,117 @@ In the mods folder:
 
 The map editor saves into a mod folder: `mapedit -mod` refuses a packed
 mod. To change a packed mod, change its folder and pack it again.
+
+## Items
+
+`data/items.toml` holds four kinds of table. `[[item]]` adds an armour or
+shield item and `[[change]]` sets the price, weight, defence or absorption of
+a shipped row (`docs/1272/story.md`). `[[material]]` allows or forbids one
+material for one tier of a row. `[[weapon]]` adds a weapon row as a copy of a
+shipped one. Row, tier and material names are those of the install's
+`Data.bin`, which every first-game install spells in English.
+
+### Materials on a row
+
+Each armour, shield and weapon row holds one material mask per tier
+(`DAT-MATMASK-020`). The shop's candidates, the item picture set and every
+other reader of the mask read the mask after the mods.
+
+| key | value |
+|---|---|
+| `item` | an armour, shield or weapon row's name, or the `key` of a weapon row this mod or one it loads after adds |
+| `tier` | `Common`, `Uncommon`, `Rare`, `Very Rare` or `Elven` |
+| `material` | a material's name: `Iron` to `Crystal`, or `None` |
+| `allow` | `true` adds the pair to the row, `false` removes it |
+| `sprite` | optional: an 80x80 PNG, the pair's inventory picture |
+| `name` | optional: a text key, the pair's shown name |
+
+An allowed pair the install has no inventory picture of needs `sprite`; without
+it the mod is refused when it loads, naming the file, the line, the row, the
+tier and the material. A forbidden pair takes no `sprite` and no `name` and
+never rolls in a shop; LOAD tests no mask (`ITEM-224`), so an item of it a
+save already holds still loads. The doll paints the figure layers the install
+holds for the pair's code and paints none where the install has none.
+
+```toml
+# A common bone pike, with its own picture and name.
+[[material]]
+item     = "Pike"
+tier     = "Common"
+material = "Bone"
+allow    = true
+sprite   = "assets/sprites/bone-pike.png"
+name     = "item.bone_pike"
+```
+
+### Weapon rows
+
+A `[[weapon]]` table adds a weapon row. It starts as a copy of the shipped row
+`base` names: every parameter, the material masks, the pictures of each pair
+and the body it is drawn with are the base row's. The mod sets only the
+parameters below; any other key is refused naming the file and the line. The
+row takes the lowest free row of the weapon table (rows 28 to 31 on a shipped
+install, `DAT-WEAPCELLS-023`); a fifth added row is refused.
+
+| key | parameter | meaning | claim |
+|---|---|---|---|
+| `key` | | the row's key: 1 to 32 of `a`-`z`, `0`-`9` and `_`, starting with a letter | |
+| `name` | | a text key, the shown name of every pair | |
+| `base` | | the shipped weapon row it copies | |
+| `price` | 2 | price of the common iron item | `SHOP-103`, `ITEM-WEAPCOL-021` |
+| `weight` | 3 | weight | `ITEM-SCALE-017` |
+| `damage-min`, `damage-max` | 6, 7 | physical damage | `ITEM-DMGCOL-018`, `ITEM-WEAPCOL-021` |
+| `to-hit` | 8 | to-hit | `ITEM-SCALE-017` |
+| `defence` | 9 | defence | `ITEM-SCALE-017` |
+| `range` | 11 | reach in cells, 1 to 255, not scaled | `ITEM-221` |
+| `sprite` | | optional: an 80x80 PNG, the inventory picture of every pair | |
+
+Price, weight, damage, to-hit and defence scale by tier and material as the
+shipped rows' do. The damage pair must stay in order and in a byte:
+`damage-min` may not exceed `damage-max` (after the base row's value fills a
+key you leave out), and for every tier and material the row's masks allow, the
+scaled base and spread must stay within 0..255 (a pair whose factor is above 1
+lowers the largest value you may write). A row that breaks either is refused
+when the mod loads, naming the row, both values and the pair. Parameters 0, 1,
+4, 10 and 16 have no known reader
+(`ITEM-219`) and parameters 5, 12 to 15 choose the attack kind, the cadence,
+the two-handed rule and who may use the weapon; all of them stay the base
+row's. `[[material]]` tables name the new row by its `key`. A
+`data/wpnbodies.toml` record names it by its `key` as `weapon` to draw it with
+another body; the hero's class key stays the base row's.
+
+```toml
+# A war glaive: a Pike that hits harder and reaches three cells.
+[[weapon]]
+key        = "war_glaive"
+name       = "item.war_glaive"
+base       = "Pike"
+damage-min = 40
+damage-max = 80
+range      = 3
+price      = 900
+```
+
+### Two mods on one row
+
+Items merge through the layer step of the merged kinds. A field is one
+number of one row or one mask bit (row, tier, material). Two mods that set
+one field, or add one `key`, need `load-after`: the later wins and
+`againrom -check` names the override; without an order the launch is
+refused naming both mods. Two changes of one field once both applied, the
+later's value last, with no message; such a pair of mods now needs
+`load-after` or is refused.
+
+### Saves
+
+A SAVE under a mod that adds or allows items names the mod set in the
+`AgainromMods` leaf, and a LOAD without the mod refuses. A pair a mod allows
+on a shipped row keeps its own code in the SAV: the code is valid and LOAD
+tests no mask (`ITEM-224`). An item of an added weapon row is written as the
+same pair of the base row (code and row) and the leaf lists the object with
+its true code and row; LOAD under the same mod set writes them back. A save
+whose leaf lists no such object, as every save written before this, holds
+shipped items only.
 
 ## Spell damage columns
 

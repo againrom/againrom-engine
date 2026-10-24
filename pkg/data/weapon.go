@@ -437,3 +437,10 @@ func AttackTypeFromCode(c ItemCode, weapons Collection) (int32, bool) {
 	}
 	return p[weaponAttackTypeSlot], true
 }
+
+// WeaponDamageScaled is ResolveWeapon's base and spread before the byte cut.
+func WeaponDamageScaled(shapes, materials ScaleTable, shape, material int, min, max int32) (base, spread int32) {
+	dmg := scale(shapes, shape, scaleDamageSlot) * scale(materials, material, scaleDamageSlot)
+	base = ftol(float64(min)*dmg + 0.5)
+	return base, ftol(float64(max)*dmg - float64(base) + 0.5)
+}

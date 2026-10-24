@@ -1,0 +1,11 @@
+# A copy of the Pike row: every parameter the mod does not set, its materials,
+# its pictures and the body it is drawn with are the Pike's. The numbers are
+# those of a common iron glaive.
+[[weapon]]
+key        = "war_glaive"
+name       = "item.war_glaive"
+base       = "Pike"
+damage-min = 40
+damage-max = 80
+range      = 3
+price      = 900

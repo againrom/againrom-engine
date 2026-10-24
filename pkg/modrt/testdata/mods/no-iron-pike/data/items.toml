@@ -1,0 +1,6 @@
+# A forbidden pair needs no picture and takes no name.
+[[material]]
+item     = "Pike"
+tier     = "Common"
+material = "Iron"
+allow    = false

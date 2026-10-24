@@ -1,0 +1,8 @@
+# The install has no picture of a common bone pike, so the mod gives one.
+[[material]]
+item     = "Pike"
+tier     = "Common"
+material = "Bone"
+allow    = true
+sprite   = "assets/sprites/bone-pike.png"
+name     = "item.bone_pike"
