@@ -176,7 +176,7 @@ func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocum
 		if err := scriptDeleteAllowed(m, k, index); err != nil {
 			return false, err
 		}
-		err := m.Delete(k, index)
+		err := deleteObject(m, k, index)
 		return err == nil, err
 	})
 }
@@ -211,7 +211,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		return nil
 	}
 	fields, err := s.model.Fields(k, index)
-	if err != nil {
+	if err != nil || k == mapedit.KindEnchantment && spellRecordBound(s.model, index) != nil {
 		return nil
 	}
 	var out []ui.InspectionField
@@ -227,7 +227,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	for _, f := range fields {
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
-			row.Label = s.inspector.inspectionUTF8(s.inspector.word(castWords[f.Key].Word))
+			row.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
 		}
 		if f.Check == mapedit.CheckUnitTier {
 			if !s.unitMultiTier(index) {
@@ -391,12 +391,20 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	if f.Key == "" {
 		return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
 	}
-	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && key == "spell" && value == 0 {
-		err := m.Delete(k, index)
-		return err == nil, err
+	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
+		if key == "spell" && value == 0 {
+			err := m.Delete(k, index)
+			return err == nil, err
+		}
+		if err := spellRecordBound(m, index); err != nil {
+			return false, err
+		}
 	}
 	if old, err := m.FieldValue(k, index, key); err != nil || old == value {
 		return false, err
+	}
+	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && (value < f.Min || value > f.Max) {
+		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.inspectionUTF8(s.inspector.word(f.Label)), value, f.Min, f.Max)
 	}
 	if err := m.SetField(k, index, key, value); err != nil {
 		return false, err
@@ -705,21 +713,16 @@ func preservedPairRoots(resolvedRoot string) []string {
 
 // checkScriptReference refuses a script target the map does not hold: a
 // Target_Unit below the hero band no placed unit carries, a Target_Structure
-// no structure carries, or a Target_Group no unit holds (ALM-TRIG-046).
-func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, cell ...image.Point) error {
-	at := func(x, y uint32) bool { return len(cell) == 0 || image.Pt(int(x>>8), int(y>>8)) == cell[0] }
+// no structure carries, or a Target_Group no unit holds (ALM-TRIG-046). A
+// binding is a cell spell's object id: the hero band is not exempt, and a
+// structure is named by its id word sign-extended, as the game keys it
+// (ALM-T9BIND-334).
+func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, binding ...bool) error {
+	bind := len(binding) > 0 && binding[0]
+	matches := scriptReferenceCount(check, m, value, bind)
 	switch check {
 	case mapedit.CheckScriptUnit:
-		if value >= scriptHeroBand && len(cell) == 0 {
-			return nil
-		}
-		matches := 0
-		for _, u := range m.Units {
-			if int64(u.UnitID) == value && at(u.X, u.Y) {
-				matches++
-			}
-		}
-		if matches == 1 {
+		if value >= scriptHeroBand && !bind || matches == 1 {
 			return nil
 		}
 		if matches == 0 {
@@ -727,12 +730,6 @@ func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, cel
 		}
 		return fmt.Errorf("unit id %d resolves to %d map units", value, matches)
 	case mapedit.CheckScriptStructure:
-		matches := 0
-		for _, o := range m.Objects {
-			if int64(o.Field12) == value && at(o.X, o.Y) {
-				matches++
-			}
-		}
 		if matches == 1 {
 			return nil
 		}
@@ -741,10 +738,38 @@ func checkScriptReference(check mapedit.FieldCheck, m *alm.Map, value int64, cel
 		}
 		return fmt.Errorf("structure id %d resolves to %d structures", value, matches)
 	}
-	for _, u := range m.Units {
-		if int64(u.GroupID) == value {
-			return nil
-		}
+	if matches > 0 {
+		return nil
 	}
 	return fmt.Errorf("no unit on the map holds group %d", value)
+}
+
+// scriptReferenceCount is the number of the map's objects value names.
+func scriptReferenceCount(check mapedit.FieldCheck, m *alm.Map, value int64, binding bool) int {
+	matches := 0
+	switch check {
+	case mapedit.CheckScriptUnit:
+		for _, u := range m.Units {
+			if int64(u.UnitID) == value {
+				matches++
+			}
+		}
+	case mapedit.CheckScriptStructure:
+		for _, o := range m.Objects {
+			id := int64(o.Field12)
+			if binding {
+				id = int64(structureBindingID(o))
+			}
+			if id == value {
+				matches++
+			}
+		}
+	default:
+		for _, u := range m.Units {
+			if int64(u.GroupID) == value {
+				matches++
+			}
+		}
+	}
+	return matches
 }

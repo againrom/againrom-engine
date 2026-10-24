@@ -186,5 +186,6 @@ copying those counts.
 | `docs/divergences/ui-map-editor-areas.md` |
 | `docs/divergences/ui-map-editor-new-map.md` |
 | `docs/divergences/ui-map-editor-terrain.md` |
+| `docs/divergences/ui-map-editor-type-9-records.md` |
 | `docs/divergences/ui-widget-kit.md` |
 | `docs/divergences/world-map.md` |

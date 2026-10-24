@@ -16,8 +16,7 @@ import (
 
 func cellSpellFixture(t *testing.T) *ui.MapEditor {
 	t.Helper()
-	_, e := openRecords(t)
-	s := e.Document().Edits.(*mapInspectionEdits)
+	var recs [][]byte
 	for _, k := range []uint16{0, 8, 4, 12} {
 		rec := make([]byte, 38)
 		binary.LittleEndian.PutUint32(rec, 19)
@@ -33,6 +32,18 @@ func cellSpellFixture(t *testing.T) *ui.MapEditor {
 		for i, v := range []uint16{5, 6, 0xdead, 3, 4, 0xbeef} {
 			binary.LittleEndian.PutUint16(rec[26+2*i:], v)
 		}
+		recs = append(recs, rec)
+	}
+	return spellMap(t, recs...)
+}
+
+// spellMap is the records map holding recs as its type-9 records, opened
+// in the editor from a file.
+func spellMap(t *testing.T, recs ...[]byte) *ui.MapEditor {
+	t.Helper()
+	_, e := openRecords(t)
+	s := e.Document().Edits.(*mapInspectionEdits)
+	for _, rec := range recs {
 		if _, err := s.model.Place(mapedit.KindEnchantment, rec); err != nil {
 			t.Fatal(err)
 		}

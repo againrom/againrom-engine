@@ -2973,6 +2973,10 @@ package storyguard
 // dumped towns line with tavern rows, a message page committed by its choice,
 // a mission pane with the book closed, the scenario's pack-only toggles, and
 // this paragraph.
+//
+// CommentBytes rises with the doc comments of the cell-spell constructor, the
+// binding of a cell spell by its object id, the casting structure's field
+// range, the pager tests' fixtures, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2996,5 +3000,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9640575,
+	CommentBytes: 9646114,
 }

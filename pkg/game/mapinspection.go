@@ -338,7 +338,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	for i, e := range m.Enchantments {
 		// These coordinates can name item metadata, not a world placement.
 		// Do not fabricate a spatial marker from an undecided interpretation.
-		add(x.inspectionEnchantment(i, e))
+		add(x.inspectionEnchantment(i, e, m))
 	}
 	for i, g := range m.Groups {
 		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))))

@@ -34,7 +34,8 @@ var newRecordKinds = map[string]newRecordKind{
 	"Enchantment": {edit: "Enchantment", required: []string{"template"}, optional: []string{"link"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			v := recordValue(r, "template")
-			if v < 0 || v >= int64(s.batch.Count(mapedit.KindEnchantment)) {
+			kind, ok := spellTemplateKind(s.batch, v)
+			if !ok {
 				return -1, fmt.Errorf("select a cell spell template")
 			}
 			if err := insideMap(s.batch, r.Cell, "spell cell"); err != nil {
@@ -44,7 +45,7 @@ var newRecordKinds = map[string]newRecordKind{
 			if link < 0 || link > math.MaxUint32 {
 				return -1, fmt.Errorf("object id is outside 0..4294967295")
 			}
-			if err := spellObjectAllowed(s.batch, int(v), r.Cell, uint32(link)); err != nil {
+			if err := spellObjectAllowed(s.batch, kind, uint32(link)); err != nil {
 				return -1, err
 			}
 			return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
@@ -306,6 +307,8 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 				if rec.A == 4 || rec.A == 8 {
 					out.Value = int64(uint32(rec.B) | uint32(rec.C)<<16)
 				}
+			} else if kind, ok := spellTemplateKind(s.model, i); ok {
+				out.Value = firstSpellObject(view, kind)
 			}
 		}
 	case "template":
@@ -313,13 +316,26 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		if err != nil {
 			return out
 		}
+		for _, kind := range []uint16{0, 8, 4} {
+			out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(mapedit.SpellConstructor(kind)), Label: s.inspector.inspectionUTF8(s.inspector.word(castWords[spellNewWord[kind]].Word))})
+		}
 		for i := 0; i < s.model.Count(mapedit.KindEnchantment); i++ {
 			fields, err := s.model.Fields(mapedit.KindEnchantment, i)
 			if err == nil && len(fields) > 0 && fields[0].Key == "spell" {
-				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i]).Label)})
+				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view).Label)})
 			}
 		}
 		first()
+	case "castkind", "range":
+		// A trap's kind and a casting structure's scan range are asked
+		// only of the kind that has the field.
+		kind, ok := spellTemplateKind(s.model, recordValue(r, "template"))
+		if !ok || key == "castkind" && kind >= 4 || key == "range" && kind != 4 {
+			out.Absent = true
+			return out
+		}
+		out.Value, out.Text = s.newFieldDefault(r, key)
+		out.Choices = s.RecordChoices("Enchantment", -1, key)
 	case "class":
 		out.Choices = s.RecordChoices("Unit", -1, "class")
 		first()

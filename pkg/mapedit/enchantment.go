@@ -73,9 +73,18 @@ func enchantmentFields(_ *Editor, rec []byte) []Field {
 		if !spellRecordKnown(rec) {
 			return nil
 		}
+		// A casting structure's power and scan range reach the game as their
+		// low bytes (ALM-T9CAST-333), so both stop at 255 (DIV-4046).
+		power, label := int64(100), "editor.cast.power"
+		if binary.LittleEndian.Uint16(rec[12:]) == 4 {
+			power, label = math.MaxUint8, "editor.cast.castpower"
+		}
 		out := []Field{
 			{Key: "spell", Label: "editor.cast.spell", Offset: 18, Width: 2, Min: 0, Max: 28},
-			{Key: "power", Label: "editor.cast.power", Offset: 20, Width: 2, Min: 0, Max: 100},
+			{Key: "power", Label: label, Offset: 20, Width: 2, Min: 0, Max: power},
+		}
+		if binary.LittleEndian.Uint16(rec[12:]) == 4 {
+			out = append(out, Field{Key: "range", Label: "editor.cast.range", Offset: 0, Width: 4, Min: 0, Max: math.MaxUint8})
 		}
 		if binary.LittleEndian.Uint16(rec[12:]) < 4 {
 			out = append(out,
@@ -113,12 +122,41 @@ func spellRecordKnown(rec []byte) bool {
 	return k == 4 || k == 8 || k < 4 && len(rec) >= enchantmentHead+12
 }
 
+// SpellConstructor is the AddSpellFrom template that names kind's new
+// record instead of a record of the map: every byte 0 but the kind, and a
+// trap's two elements (ALM-EDITT9-328).
+func SpellConstructor(kind uint16) int { return -int(kind) - 1 }
+
+// spellTemplate is the record AddSpellFrom starts from and whether the
+// constructor built it.
+func (e *Editor) spellTemplate(template int) ([]byte, bool, error) {
+	if template >= 0 {
+		rec, err := e.Record(KindEnchantment, template)
+		return rec, false, err
+	}
+	kind := -template - 1
+	if kind != 4 && kind != 8 && kind > 3 {
+		return nil, false, fmt.Errorf("mapedit: no cell spell kind %d", kind)
+	}
+	rec := make([]byte, enchantmentHead)
+	binary.LittleEndian.PutUint16(rec[12:], uint16(kind))
+	if kind < 4 {
+		rec = append(rec, make([]byte, 12)...)
+		binary.LittleEndian.PutUint32(rec[22:], 2)
+	}
+	return rec, true, nil
+}
+
+// AddSpellFrom adds a cell spell at x, y bound to link: a copy of record
+// template, or a new record when template is a SpellConstructor. A new
+// trap's source and target start at its cell; word 2 of each element is 0
+// (DIV-4045), a copy keeps the template's.
 func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
-	rec, err := e.Record(KindEnchantment, template)
+	rec, fresh, err := e.spellTemplate(template)
 	if err != nil {
 		return -1, err
 	}
-	if !spellRecordKnown(rec) || binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
+	if !spellRecordKnown(rec) || !fresh && binary.LittleEndian.Uint32(rec[4:]) == 0 && binary.LittleEndian.Uint32(rec[8:]) == 0 {
 		return -1, fmt.Errorf("mapedit: select a known cell spell template")
 	}
 	view, err := e.Map()
@@ -137,6 +175,12 @@ func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
 	}
 	binary.LittleEndian.PutUint32(rec[4:], x)
 	binary.LittleEndian.PutUint32(rec[8:], y)
+	if fresh && binary.LittleEndian.Uint16(rec[12:]) < 4 {
+		for _, p := range []int{enchantmentHead, enchantmentHead + 6} {
+			binary.LittleEndian.PutUint16(rec[p:], uint16(x))
+			binary.LittleEndian.PutUint16(rec[p+2:], uint16(y))
+		}
+	}
 	if binary.LittleEndian.Uint16(rec[12:]) < 4 {
 		binary.LittleEndian.PutUint32(rec[14:], 0)
 	} else {

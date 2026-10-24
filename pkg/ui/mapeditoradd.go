@@ -26,11 +26,13 @@ type InspectionNewRecord struct {
 }
 
 // InspectionNewStep is what the host offers one step: its choices, none for
-// a typed value, and the value or text the step starts at.
+// a typed value, the value or text the step starts at, and Absent when the
+// record as asked so far has no such value.
 type InspectionNewStep struct {
 	Choices []InspectionChoice
 	Value   int64
 	Text    string
+	Absent  bool
 }
 
 // InspectionNewRecords is implemented by a host that adds records through
@@ -59,8 +61,9 @@ const (
 )
 
 // addStep is one step: the host's key for its value, its label's word and
-// its control. An optional step is left out when the host offers it fewer
-// than two choices; a kind step offers Kinds.
+// its control. An optional step is left out when the host marks it Absent
+// or a choice step is offered fewer than two choices; a kind step offers
+// Kinds.
 type addStep struct {
 	Key      string
 	Word     string
@@ -91,7 +94,9 @@ var addKinds = []addKindRow{
 		{Key: "template", Word: "editor.cast.template", Control: addChoice},
 		{Key: "link", Word: "editor.cast.link", Control: addNumber}, addAt,
 		{Key: "spell", Word: "editor.cast.spell", Control: addChoice},
-		{Key: "power", Word: "editor.cast.power", Control: addNumber}}},
+		{Key: "power", Word: "editor.cast.powerstep", Control: addNumber},
+		{Key: "castkind", Word: "editor.cast.kind", Control: addChoice, Optional: true},
+		{Key: "range", Word: "editor.cast.range", Control: addNumber, Optional: true}}},
 	{Kind: "Unit", Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
 		{Key: "class", Word: "editor.add.class", Control: addSprites},
 		{Key: "tier", Word: "editor.unit.tier", Control: addChoice, Optional: true},
@@ -265,7 +270,7 @@ func (e *MapEditor) enterAddStep(i, dir int) {
 		} else {
 			offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
 		}
-		r.skip[i] = st.Optional && len(offer.Choices) < 2
+		r.skip[i] = st.Optional && (offer.Absent || st.Control != addNumber && len(offer.Choices) < 2)
 		if !r.skip[i] {
 			r.offer, r.note = offer, ""
 			e.prompt.path = r.texts[i]

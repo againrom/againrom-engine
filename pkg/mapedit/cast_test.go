@@ -51,7 +51,11 @@ func TestCellSpellFieldsPreserveOpaqueWords(t *testing.T) {
 		if !bytes.Equal(got, want) {
 			t.Fatalf("kind %d: got %x want %x", kind, got, want)
 		}
-		for _, v := range []int64{-1, 101, 4294967396} {
+		high := int64(101)
+		if kind == 4 {
+			high = 256
+		}
+		for _, v := range []int64{-1, high, 4294967396} {
 			if e.SetField(mapedit.KindEnchantment, i, "power", v) == nil {
 				t.Fatal("power accepted", v)
 			}
@@ -131,5 +135,41 @@ func TestCellSpellDeleteUsesLastLoadedBackReference(t *testing.T) {
 	}
 	if !e.Undo() || !bytes.Equal(before, e.Bytes()) {
 		t.Fatal("back-reference undo")
+	}
+}
+
+func TestCellSpellConstructorRecords(t *testing.T) {
+	e := freshRecords(t)
+	for _, tc := range []struct {
+		kind uint16
+		link uint32
+	}{{0, 7}, {8, 9}, {4, 11}} {
+		want := make([]byte, 26)
+		binary.LittleEndian.PutUint32(want[4:], 20)
+		binary.LittleEndian.PutUint32(want[8:], 21)
+		binary.LittleEndian.PutUint16(want[12:], tc.kind)
+		binary.LittleEndian.PutUint32(want[14:], tc.link)
+		if tc.kind == 0 {
+			binary.LittleEndian.PutUint32(want[22:], 2)
+			for _, v := range []uint16{20, 21, 0, 20, 21, 0} {
+				want = binary.LittleEndian.AppendUint16(want, v)
+			}
+		}
+		i, err := e.AddSpellFrom(mapedit.SpellConstructor(tc.kind), 20, 21, tc.link)
+		if err != nil {
+			t.Fatal(tc.kind, err)
+		}
+		if got, _ := e.Record(mapedit.KindEnchantment, i); !bytes.Equal(got, want) {
+			t.Fatalf("kind %d: %x want %x", tc.kind, got, want)
+		}
+	}
+	before := e.Bytes()
+	for _, bad := range []uint16{5, 9, 12} {
+		if _, err := e.AddSpellFrom(mapedit.SpellConstructor(bad), 20, 21, 0); err == nil || !bytes.Equal(before, e.Bytes()) {
+			t.Fatal("constructed an unknown kind", bad)
+		}
+	}
+	if _, err := e.AddSpellFrom(mapedit.SpellConstructor(0), 0, 0, 0); err == nil || !bytes.Equal(before, e.Bytes()) {
+		t.Fatal("constructed a trap at the item-recipe cell")
 	}
 }

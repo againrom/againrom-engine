@@ -28,4 +28,4 @@ Moving the power write from offset 20 to 18 fails the exact-record witness. Disa
 
 ## Open debt
 
-This is a bounded implementation. Creation without a spatial template is stopped: no claim defines fresh editor allocation bytes for opaque fields. Scan-range editing is stopped: the spinner range is known but the complete data-exchange bounds are not. The neutral research questions and exact gate outcomes are in the lane PROGRESS.md. No original-runtime activation or lifetime claim is added. No reserved divergence is used.
+This is a bounded implementation. Creation without a spatial template was stopped: no claim defined fresh editor allocation bytes for opaque fields. Scan-range editing was stopped: the spinner range was known but the complete data-exchange bounds were not. The anchor-cell rule refused most shipped casting structures. Story 1517 settles all three on k353 (`docs/1517/story.md`). No original-runtime activation or lifetime claim is added. No reserved divergence is used.

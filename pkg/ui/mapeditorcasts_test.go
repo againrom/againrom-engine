@@ -18,12 +18,13 @@ func TestEditorNativeCellSpellUsesAddBuilder(t *testing.T) {
 		t.Fatal("native Cancel retained popup")
 	}
 	updateEditorKeys(t, e, ebiten.KeyF3)
-	for _, v := range []string{"0", "7", "8,8", "13", "20"} {
+	for _, v := range []string{"-1", "7", "8,8", "13", "20", "1", "30"} {
 		_ = e.Key("clear")
 		e.TextInput(v)
 		updateEditorKeys(t, e, ebiten.KeyEnter)
 	}
-	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Enchantment") {
+	if len(calls.lines) != 1 || !strings.HasPrefix(calls.lines[0], "AddRecord Enchantment") ||
+		!strings.Contains(calls.lines[0], "template -1") || !strings.Contains(calls.lines[0], "castkind 1") || !strings.Contains(calls.lines[0], "range 30") {
 		t.Fatal("native Enter did not reach AddRecord", calls.lines)
 	}
 }
