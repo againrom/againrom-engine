@@ -200,7 +200,7 @@ func TestBaseDumpOfTheSecondGame(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	records, err := mod.ParseTowns("dump", mod.TownsFile, layer.data)
+	records, _, err := mod.ParseTowns("dump", mod.TownsFile, layer.data)
 	if err != nil {
 		t.Fatal(err)
 	}

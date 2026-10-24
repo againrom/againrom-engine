@@ -13,7 +13,7 @@ import (
 // of an unknown key lists them.
 func decoderTownKeys(t *testing.T) []string {
 	t.Helper()
-	_, err := ParseTowns("probe", TownsFile, []byte("[[town]]\nid = 1\nno-such-key = 1\n"))
+	_, _, err := ParseTowns("probe", TownsFile, []byte("[[town]]\nid = 1\nno-such-key = 1\n"))
 	m := regexp.MustCompile(`\(keys: ([^)]*)\)`).FindStringSubmatch(errString(err))
 	if m == nil {
 		t.Fatalf("the decoder's unknown-key refusal lists no keys: %v", err)
@@ -32,7 +32,7 @@ func errString(err error) string {
 // some table, each named once.
 func missingTownKeys(t *testing.T, data []byte) []string {
 	t.Helper()
-	records, err := ParseTowns("dump", TownsFile, data)
+	records, _, err := ParseTowns("dump", TownsFile, data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestWriteTownsHoldsEveryKeyTheDecoderReads(t *testing.T) {
 	if missing := missingTownKeys(t, data); len(missing) != 0 {
 		t.Fatalf("the file leaves out %v:\n%s", missing, data)
 	}
-	records, err := ParseTowns("dump", TownsFile, data)
+	records, _, err := ParseTowns("dump", TownsFile, data)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -380,7 +380,7 @@ func (p *campaignProgress) advanceMain(c Campaign, mission int) {
 }
 
 func (p *campaignProgress) loadMain(c Campaign, main int, announced bool) {
-	ch := c.Chapters[main]
+	ch := c.chapter(main)
 	p.campaignRecords.loadMain(c, main, announced)
 	p.autoGet = autoGetMissionValue(c, main)
 	p.last = int(lastMissionValue(c, main))

@@ -45,8 +45,8 @@ func (f *FrontEnd) setModCompanions(d mod.CompanionData) ([]mod.Override, error)
 		if !slices.Contains(ch.AddHero, j.Companion) {
 			return nil, bad("the town of chapter %d does not grant companion %d", j.Chapter, j.Companion)
 		}
-		if !slices.Contains(ch.InnNPC, j.Talk) {
-			return nil, bad("the tavern of chapter %d has no conversation with record %d (it has %v)", j.Chapter, j.Talk, ch.InnNPC)
+		if talks := c.chapter(j.Chapter).InnNPC; !slices.Contains(talks, j.Talk) {
+			return nil, bad("the tavern of chapter %d has no conversation with record %d (it has %v)", j.Chapter, j.Talk, talks)
 		}
 	}
 	f.Table.Mods.Companions = d

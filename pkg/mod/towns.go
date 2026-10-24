@@ -139,15 +139,52 @@ type TownDescriptionFile struct {
 	Dir string
 }
 
+// TavernRecord is one [[tavern]] table: the row key it names and the row
+// fields it sets. Row holds the key and the values of the fields named in
+// Fields.
+type TavernRecord struct {
+	Source
+	Row    town.TavernRow
+	Fields []PatchField
+	Off    bool
+}
+
+// tavernKeys are the keys naming a row; tavernFields are every key of a
+// [[tavern]] table. mission is the one field a record sets.
+var (
+	tavernKeys   = []string{"town", "chapter", "npc"}
+	tavernFields = append(slices.Clone(tavernKeys), "mission", OffField)
+)
+
+// Apply writes the row's key and the fields the record sets into r.
+func (r TavernRecord) Apply(row *town.TavernRow) {
+	row.Town, row.Chapter, row.NPC = r.Row.Town, r.Row.Chapter, r.Row.NPC
+	if slices.ContainsFunc(r.Fields, func(f PatchField) bool { return f.Name == "mission" }) {
+		row.Mission = r.Row.Mission
+	}
+}
+
 // TownData is what the mods of a set layer over the town catalog, in load
 // order, with the load order the mods state.
 type TownData struct {
 	Records []TownRecord
+	Tavern  []TavernRecord
 	Order   Precedence
 }
 
 // Empty reports that no mod layers the town catalog.
-func (d TownData) Empty() bool { return len(d.Records) == 0 }
+func (d TownData) Empty() bool { return len(d.Records) == 0 && len(d.Tavern) == 0 }
+
+// First is the source of the first record, a town's or a tavern row's.
+func (d TownData) First() Source {
+	if len(d.Records) > 0 {
+		return d.Records[0].Source
+	}
+	if len(d.Tavern) > 0 {
+		return d.Tavern[0].Source
+	}
+	return Source{}
+}
 
 // ModDescriptionName is the name of a description file of mod id in a
 // merged catalog.
@@ -157,37 +194,101 @@ func ModDescriptionName(id, path string) string { return id + ":" + path }
 // the mod rather than an installed description.
 func IsTownDescriptionFile(v string) bool { return strings.HasSuffix(strings.ToLower(v), ".json") }
 
-// ParseTowns reads data/towns.toml of the mod id. A refusal names the file
-// and the line. A description that names a file is not read here.
-func ParseTowns(id, file string, data []byte) ([]TownRecord, error) {
+// ParseTowns reads data/towns.toml of the mod id: its [[town]] and its
+// [[tavern]] tables. A refusal names the file and the line. A description
+// that names a file is not read here.
+func ParseTowns(id, file string, data []byte) ([]TownRecord, []TavernRecord, error) {
 	tables, err := parseTOMLWith(data, tomlOptions{arrays: true})
 	if err != nil {
-		return nil, fileError(file, err)
+		return nil, nil, fileError(file, err)
 	}
 	bad := func(line int, format string, args ...any) error {
 		return &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf(format, args...)}
 	}
 	if len(tables[0].pairs) != 0 {
 		p := tables[0].pairs[0]
-		return nil, bad(p.line, "%s is outside a [[town]] table", p.key)
+		return nil, nil, bad(p.line, "%s is outside a [[town]] table (or a [[tavern]] table)", p.key)
 	}
 	var out []TownRecord
+	var rows []TavernRecord
 	seen := map[int]int{}
+	seenRow := map[town.TavernKey]int{}
 	for _, t := range tables[1:] {
-		if t.name != "town" || !t.array {
-			return nil, bad(t.line, "unknown table %q (this file holds [[town]])", t.name)
+		switch {
+		case t.name == "tavern" && t.array:
+			r, err := tavernRecordFrom(id, file, t)
+			if err != nil {
+				return nil, nil, err
+			}
+			if first, dup := seenRow[r.Row.Key()]; dup {
+				return nil, nil, bad(t.line, "tavern row %v is named again; its first table is at line %d", r.Row.Key(), first)
+			}
+			seenRow[r.Row.Key()] = t.line
+			rows = append(rows, r)
+			continue
+		case t.name != "town" || !t.array:
+			return nil, nil, bad(t.line, "unknown table %q (this file holds [[town]] and [[tavern]])", t.name)
 		}
 		r, err := townRecordFrom(id, file, t)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if first, dup := seen[r.Entry.ID]; dup {
-			return nil, bad(t.line, "town %d is named again; its first table is at line %d", r.Entry.ID, first)
+			return nil, nil, bad(t.line, "town %d is named again; its first table is at line %d", r.Entry.ID, first)
 		}
 		seen[r.Entry.ID] = t.line
 		out = append(out, r)
 	}
-	return out, nil
+	return out, rows, nil
+}
+
+// tavernRecordFrom reads one [[tavern]] table: town, chapter and npc name
+// the row, mission sets its mission and off switches it off.
+func tavernRecordFrom(id, file string, t tomlTable) (TavernRecord, error) {
+	bad := func(line int, format string, args ...any) error {
+		return &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf(format, args...)}
+	}
+	r := TavernRecord{Source: Source{Mod: id, File: file, Line: t.line}}
+	named := map[string]bool{}
+	for _, p := range t.pairs {
+		var err error
+		switch p.key {
+		case "town":
+			r.Row.Town, err = townInt(file, p, 1)
+		case "chapter":
+			r.Row.Chapter, err = townInt(file, p, 1)
+		case "npc":
+			r.Row.NPC, err = townInt(file, p, 0)
+		case "mission":
+			r.Row.Mission, err = townInt(file, p, 0)
+		case OffField:
+			if p.val.kind != tomlBool {
+				err = bad(p.line, "off must be true or false, not %s", p.val.kind)
+			}
+			r.Off = p.val.flag
+		default:
+			err = bad(p.line, "unknown key %q in [[tavern]] (keys: %s; a row sets mission and off)", p.key, strings.Join(tavernFields, ", "))
+		}
+		if err != nil {
+			return TavernRecord{}, err
+		}
+		named[p.key] = true
+		if !slices.Contains(tavernKeys, p.key) {
+			r.Fields = append(r.Fields, PatchField{Name: p.key, Line: p.line})
+		}
+	}
+	for _, k := range tavernKeys {
+		if !named[k] {
+			return TavernRecord{}, bad(t.line, "[[tavern]] has no %s; town, chapter and npc name the row", k)
+		}
+	}
+	switch {
+	case len(r.Fields) == 0:
+		return TavernRecord{}, bad(t.line, "[[tavern]] %v changes nothing", r.Row.Key())
+	case r.Off && len(r.Fields) > 1:
+		return TavernRecord{}, bad(t.line, "[[tavern]] %v switches the row off and sets other keys; off = true stands alone", r.Row.Key())
+	}
+	return r, nil
 }
 
 func townRecordFrom(id, file string, t tomlTable) (TownRecord, error) {
@@ -348,8 +449,10 @@ func townMapPoint(file string, p tomlPair) (town.MapPoint, error) {
 // head as comments, then one [[town]] table per entry holding its id, every
 // key of townKeys the entry has a value for, and off = false. The file is
 // read back through ParseTowns, and an entry it does not give back unchanged
-// is an error, so the file never holds a value its entry does not.
-func WriteTowns(head []string, entries []town.Entry) ([]byte, error) {
+// is an error, so the file never holds a value its entry does not. Each of
+// rows follows as a [[tavern]] table with its key, its mission and off =
+// false, read back the same way.
+func WriteTowns(head []string, entries []town.Entry, rows ...town.TavernRow) ([]byte, error) {
 	var b strings.Builder
 	for _, l := range head {
 		if strings.ContainsAny(l, "\r\n") {
@@ -369,8 +472,12 @@ func WriteTowns(head []string, entries []town.Entry) ([]byte, error) {
 		}
 		fmt.Fprintf(&b, "%-11s = false\n", OffField)
 	}
+	for _, r := range rows {
+		fmt.Fprintf(&b, "\n[[tavern]]\n%-11s = %d\n%-11s = %d\n%-11s = %d\n%-11s = %d\n%-11s = false\n",
+			"town", r.Town, "chapter", r.Chapter, "npc", r.NPC, "mission", r.Mission, OffField)
+	}
 	out := []byte(b.String())
-	records, err := ParseTowns("", TownsFile, out)
+	records, back, err := ParseTowns("", TownsFile, out)
 	if err != nil {
 		return nil, fmt.Errorf("the written %s does not read back: %w", TownsFile, err)
 	}
@@ -382,6 +489,16 @@ func WriteTowns(head []string, entries []town.Entry) ([]byte, error) {
 		r.Apply(&got)
 		if r.Off || !sameTownEntry(got, entries[i]) {
 			return nil, fmt.Errorf("town %d of the written %s does not read back as its entry", entries[i].ID, TownsFile)
+		}
+	}
+	if len(back) != len(rows) {
+		return nil, fmt.Errorf("the written %s reads back %d tavern rows, not %d", TownsFile, len(back), len(rows))
+	}
+	for i, r := range back {
+		var got town.TavernRow
+		r.Apply(&got)
+		if r.Off || got != rows[i] {
+			return nil, fmt.Errorf("tavern row %v of the written %s does not read back as its row", rows[i].Key(), TownsFile)
 		}
 	}
 	return out, nil

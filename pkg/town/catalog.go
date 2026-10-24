@@ -16,7 +16,48 @@ type Catalog struct {
 	Catalog string   `json:"catalog"`
 	Cite    []string `json:"cite"`
 	Towns   []Entry  `json:"towns"`
+	// Tavern are the talks and quests of the towns' taverns. Nil states
+	// none: each tavern then reads its chapter's own offer data.
+	Tavern []TavernRow `json:"tavern,omitempty"`
 }
+
+// TavernRow is one talk or quest of a town's tavern: the NPC record that
+// speaks in a chapter, and the mission it offers, zero for a talk with
+// nothing to give. Town, Chapter and NPC are its key.
+type TavernRow struct {
+	Town    int `json:"town"`
+	Chapter int `json:"chapter"`
+	NPC     int `json:"npc"`
+	Mission int `json:"mission"`
+}
+
+// TavernKey names one tavern row.
+type TavernKey struct{ Town, Chapter, NPC int }
+
+// Key is the row's key.
+func (r TavernRow) Key() TavernKey { return TavernKey{r.Town, r.Chapter, r.NPC} }
+
+func (k TavernKey) String() string {
+	return fmt.Sprintf("town %d chapter %d npc %d", k.Town, k.Chapter, k.NPC)
+}
+
+// TavernError is a refusal of one tavern row: Row names it.
+type TavernError struct {
+	Row TavernKey
+	Err error
+}
+
+func (e *TavernError) Error() string { return e.Err.Error() }
+func (e *TavernError) Unwrap() error { return e.Err }
+
+// TavernErrorf is a refusal of tavern row key.
+func TavernErrorf(key TavernKey, format string, args ...any) error {
+	return &TavernError{Row: key, Err: fmt.Errorf(format, args...)}
+}
+
+// maxTavernValue bounds an NPC record and a mission: a save holds each in
+// 16 bits.
+const maxTavernValue = 1<<16 - 1
 
 // Entry is one town of a catalog. Every field is plain data: the hook set,
 // the offer source and the map point are names the campaign resolves, never
@@ -202,6 +243,35 @@ func (c *Catalog) Validate() error {
 			listed[m] = e.ID
 		}
 		seen[e.ID] = true
+	}
+	return c.validateTavern(seen)
+}
+
+// validateTavern checks the tavern rows: each in a town of the catalog, in a
+// positive chapter, with an NPC record and a mission from 0 to the bound,
+// and a chapter naming one NPC record once over every town. A refusal is a
+// TavernError.
+func (c *Catalog) validateTavern(towns map[int]bool) error {
+	speaks := map[[2]int]TavernKey{}
+	for _, r := range c.Tavern {
+		k := r.Key()
+		bad := func(format string, args ...any) error {
+			return TavernErrorf(k, "town catalog %s: tavern row %v: "+format, append([]any{c.Catalog, k}, args...)...)
+		}
+		switch {
+		case !towns[r.Town]:
+			return bad("town %d is not a town of the catalog", r.Town)
+		case r.Chapter <= 0:
+			return bad("chapter %d is not positive", r.Chapter)
+		case r.NPC < 0 || r.NPC > maxTavernValue:
+			return bad("npc %d is outside the range 0 to %d", r.NPC, maxTavernValue)
+		case r.Mission < 0 || r.Mission > maxTavernValue:
+			return bad("mission %d is outside the range 0 to %d", r.Mission, maxTavernValue)
+		}
+		if prior, ok := speaks[[2]int{r.Chapter, r.NPC}]; ok {
+			return bad("npc %d already speaks in chapter %d, in the row %v; a chapter names an NPC record once", r.NPC, r.Chapter, prior)
+		}
+		speaks[[2]int{r.Chapter, r.NPC}] = k
 	}
 	return nil
 }

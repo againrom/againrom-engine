@@ -31,7 +31,7 @@ off = true
 id        = 3
 map-point = { object = 3 }
 `
-	rs, err := ParseTowns("east", TownsFile, []byte(src))
+	rs, _, err := ParseTowns("east", TownsFile, []byte(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,6 +68,46 @@ map-point = { object = 3 }
 	}
 }
 
+// A [[tavern]] table names its row by town, chapter and npc and sets
+// mission or off; Apply writes the key and only the fields it sets.
+func TestTownsReadTavernRows(t *testing.T) {
+	src := `[[town]]
+id   = 1
+name = "West"
+
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 41
+mission = 0
+
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 25
+off     = true
+`
+	towns, rows, err := ParseTowns("m", TownsFile, []byte(src))
+	if err != nil || len(towns) != 1 || len(rows) != 2 {
+		t.Fatalf("%d towns, %d rows: %v", len(towns), len(rows), err)
+	}
+	if rows[0].Row != (town.TavernRow{Town: 1, Chapter: 50, NPC: 41}) || rows[0].Line != 5 || len(rows[0].Fields) != 1 ||
+		rows[0].Fields[0] != (PatchField{Name: "mission", Line: 9}) {
+		t.Fatalf("talk %+v", rows[0])
+	}
+	if !rows[1].Off || len(rows[1].Fields) != 1 || rows[1].Fields[0].Name != OffField {
+		t.Fatalf("switch-off %+v", rows[1])
+	}
+	r := town.TavernRow{Mission: 51}
+	rows[1].Apply(&r)
+	if r != (town.TavernRow{Town: 1, Chapter: 50, NPC: 25, Mission: 51}) {
+		t.Fatalf("an off record changed the mission: %+v", r)
+	}
+	if d := (TownData{Tavern: rows}); d.Empty() || d.First() != rows[0].Source {
+		t.Fatal("a file of tavern rows alone reads as empty")
+	}
+}
+
 // A refusal names the file and the line.
 func TestTownsRefuseBrokenTables(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
@@ -85,8 +125,15 @@ func TestTownsRefuseBrokenTables(t *testing.T) {
 		{"[[town]]\nid = 1\nmap-point = { at = 3 }\n", `data/towns.toml:3: unknown key "at" in map-point`},
 		{"[[town]]\nid = 1\nmap-point = { record = false }\n", "data/towns.toml:3: map-point record must be true"},
 		{"[[town]]\nid = 1\nname = \"A\"\n[[town]]\nid = 1\nhooks = \"x\"\n", "data/towns.toml:4: town 1 is named again; its first table is at line 1"},
+		{"[[tavern]]\nchapter = 50\nnpc = 41\nmission = 0\n", "data/towns.toml:1: [[tavern]] has no town"},
+		{"[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\n", "data/towns.toml:1: [[tavern]] town 1 chapter 50 npc 41 changes nothing"},
+		{"[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\ntext = \"x.txt\"\n", `data/towns.toml:5: unknown key "text" in [[tavern]]`},
+		{"[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\noff = true\nmission = 3\n", "switches the row off and sets other keys"},
+		{"[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\nmission = -1\n", "data/towns.toml:5: mission is -1, outside 0.."},
+		{"[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\nmission = 0\n[[tavern]]\ntown = 1\nchapter = 50\nnpc = 41\noff = true\n",
+			"data/towns.toml:6: tavern row town 1 chapter 50 npc 41 is named again; its first table is at line 1"},
 	} {
-		if _, err := ParseTowns("m", TownsFile, []byte(c.src)); err == nil || !strings.Contains(err.Error(), c.want) {
+		if _, _, err := ParseTowns("m", TownsFile, []byte(c.src)); err == nil || !strings.Contains(err.Error(), c.want) {
 			t.Errorf("%q: %v, want %q", c.src, err, c.want)
 		}
 	}

@@ -268,6 +268,15 @@ func TownNPCTextPath(npc, mission int) (string, bool) {
 	return fmt.Sprintf("%stext/inn/npc/npc%02dm%d.txt", mainPrefix, npc, mission), true
 }
 
+// tavernTalkTextPath is the text a tavern row of NPC record npc speaks: its
+// mission's leaf, or the chapter's when the row offers no mission.
+func tavernTalkTextPath(npc, mission, chapter int) (string, bool) {
+	if mission <= 0 {
+		mission = chapter
+	}
+	return TownNPCTextPath(npc, mission)
+}
+
 // TownMercenaryTextPath maps the complete shipped candidate population to
 // its own authored inn dialogue leaf. Types 11 and 15 are intentionally not
 // candidates in either preserved population; npc35 is the gate line
@@ -319,12 +328,12 @@ func (t *townScreen) townTextPathFor(building TownBuilding, offer TownOffer, npc
 	if building == TownGate {
 		return townGateTextPath, true
 	}
+	if building == TownTavern {
+		return tavernTalkTextPath(npc, offer.Mission, t.sess.Town.Chapter())
+	}
 	mission := offer.Mission
 	if mission <= 0 {
 		mission = t.sess.Town.Chapter()
-	}
-	if building == TownTavern {
-		return TownNPCTextPath(npc, mission)
 	}
 	return TownBuildingTextPath(building, mission)
 }

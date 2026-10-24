@@ -23,7 +23,7 @@ import (
 // an unknown key lists them.
 func townLayerKeys(t *testing.T) []string {
 	t.Helper()
-	_, err := mod.ParseTowns("probe", mod.TownsFile, []byte("[[town]]\nid = 1\nno-such-key = 1\n"))
+	_, _, err := mod.ParseTowns("probe", mod.TownsFile, []byte("[[town]]\nid = 1\nno-such-key = 1\n"))
 	m := regexp.MustCompile(`\(keys: ([^)]*)\)`).FindStringSubmatch(err.Error())
 	if m == nil {
 		t.Fatalf("the decoder's unknown-key refusal lists no keys: %v", err)
@@ -56,7 +56,7 @@ func releaseBaseDump(t *testing.T, f *FrontEnd, mods string) []byte {
 func TestReleaseBaseDumpListsTheTownWithEveryKey(t *testing.T) {
 	f := releaseFront(t)
 	towns := releaseBaseDump(t, f, t.TempDir())
-	records, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
+	records, _, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
 	if err != nil || len(records) != 1 {
 		t.Fatalf("%d records: %v\n%s", len(records), err, towns)
 	}
@@ -293,7 +293,7 @@ func TestReleaseSecondTownBaseDumpListsItsThreeTowns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	records, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
+	records, _, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
 	if err != nil {
 		t.Fatal(err)
 	}

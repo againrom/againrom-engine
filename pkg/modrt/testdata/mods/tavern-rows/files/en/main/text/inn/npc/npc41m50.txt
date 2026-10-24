@@ -1,0 +1,2 @@
+<part=1 npc=41>
+The road east is quiet this season. Too quiet for my liking.

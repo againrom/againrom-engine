@@ -1,0 +1,9 @@
+id          = "east-tavern"
+title       = "East tavern"
+version     = "1.0.0"
+author      = "Againrom"
+description = "East, the town of east-town, gains its own tavern rows in chapter 30: a talk and the quest of mission 31."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"
+load-after  = ["east-town"]

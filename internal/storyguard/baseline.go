@@ -2951,10 +2951,23 @@ package storyguard
 // pkg/game/missionentrybook_release_test.go, the shared won-session helper in
 // pkg/game/savedialog1173_release_test.go, and this paragraph.
 //
+// CommentBytes rises with the tavern rows of the town catalog, all doc
+// comments on new code: the row type and its rules in pkg/town/catalog.go,
+// the [[tavern]] table in pkg/mod/towns.go, layer 0 and the tavern layer in
+// pkg/game/taverncatalog.go, the shared offer rule in pkg/game/towntravel.go,
+// the talk text path rule in pkg/game/modfiles.go, their tests, and this
+// paragraph.
+//
 // CommentBytes rises with the loaded spell's book-chosen arm: armBookSpell in
 // pkg/ui/quickspells.go, less the retired restore flag's field note, the
 // loaded-spell fixture and release tests in pkg/game and pkg/ui, and this
 // paragraph.
+//
+// CommentBytes rises with the tavern roster's registry forms and the join
+// talk refusal: rosterOn, keptAccepted and chapterForms in pkg/game,
+// checkJoinTalk and the Joins field of modTownInstall, the one talk text
+// chooser tavernTalkTextPath and its scan in internal/archtest, their tests,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2978,5 +2991,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9630843,
+	CommentBytes: 9640461,
 }

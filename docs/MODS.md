@@ -31,7 +31,7 @@ with `game.data.add`.
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
-| towns | `data/towns.toml` | `id` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town off | Towns, `docs/1486/story.md` |
+| towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town or a tavern row off | Towns, Tavern rows, `docs/1486/story.md`, `docs/1513/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
 
 The base dump writes layer 0 of towns only; the other catalog kinds have no
@@ -91,6 +91,13 @@ my-mod/
 The install path is the archive name and the path inside it, as the
 install's resource files hold it: `main/`, `graphics/`, `scenario/`,
 `world/`, `movies/` or `sfx/`, then the path. Case does not matter.
+
+A file replaces a file the install holds. One folder also takes new files:
+`main/text/inn/npc/`, for the talk texts of the tavern rows a mod adds or
+changes (see "Tavern rows"). A new file there is a text named as the game
+names a talk text, `npc<NN>m<M>.txt`: the NPC record in at least two digits
+and the mission, or the chapter for a talk with nothing to give
+(`npc41m50.txt`). A new path anywhere else is refused as before.
 
 Language folders are `common`, `en` and `ru`. On an install the game reads
 the folder of the install's language (`en` on `rom1-en` and `rom2-en`, `ru`
@@ -681,6 +688,84 @@ opens-after = 20
 missions    = [31]
 ```
 
+### Tavern rows
+
+The same file holds `[[tavern]]` tables: the talks and quests of a town's
+tavern. A row is one NPC record speaking in one chapter, and the mission it
+offers. Layer 0 is the scenario's: each `[Mission<n>]` section's `InnNPC`
+and `InnMission` pairs (REG-SCN-064). A row of a town the catalog holds as
+layer 0 stands in the first town that offers its mission. A table adds a
+row when no layer holds its key, changes the fields it names when one does,
+or switches the row off with `off = true`.
+
+| key | value |
+|---|---|
+| `town` | part of the key; the town whose tavern shows the row |
+| `chapter` | part of the key; the main mission whose chapter the row belongs to (30, 40, ...) |
+| `npc` | part of the key; the NPC record that speaks; a chapter names a record once over every town |
+| `mission` | the mission the talk offers; 0 is a talk with nothing to give (REG-SCN-064). A heard mission is queued and registered on leaving the tavern (TAVERN-023, TAVERN-024) |
+| `off` | `true` switches the row off and stands alone in its table |
+
+No other key is read; `text`, a speaker name or a picture is refused as an
+unknown key. The talk speaks the install's text at
+`main/text/inn/npc/npc<NN>m<M>.txt`, with the mission, or the chapter for a
+talk with nothing to give, as M. A row a mod adds or changes is refused at
+launch, naming the mod, the file, the line and the row, when:
+
+- its chapter is not a main mission of the campaign;
+- its mission is not a mission section of the campaign, or its town does not
+  offer the mission (see the rule above: a town that lists `missions`
+  offers those, a town that lists none offers every other mission);
+- its NPC record is not in the install's NPC table;
+- its talk text is in neither the install nor a loaded mod. A mod carries a
+  new talk text as an install file (see "Install files").
+
+A row switched off is refused at launch when a companion join of a loaded
+mod (`data/companions.toml`) waits for that talk in that chapter; the
+refusal names the towns mod, its file, line and row, and the companions
+mod with its file and line. The companions kind applies first, so the
+towns layer sees every join.
+
+Two mods that set one row need `load-after` or `requires`, as for towns; the
+check prints each override. A row a mod adds shows in its own town's
+tavern; a row of layer 0 shows in the town that offers its mission. A
+quest accepted from a mod row is a mission record as any other, and a save
+carries its talk and quest as the original's offer arrays do: the mod is
+named in the save's mod mark, and a LOAD without it is refused.
+
+A save keeps the current chapter's offers as they were. A LOAD adds no row,
+so a mod row of the loaded chapter shows from the next chapter or a new game.
+This holds for the tavern's talk cells too: a save made without the mod
+shows the same talkers with it as without it.
+
+```toml
+# The talk of NPC record 41 joins chapter 50's tavern of town 1.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 41
+mission = 0
+
+# NPC record 32 of chapter 50 offers mission 31 instead of 51.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 32
+mission = 31
+
+# NPC record 25's talk of chapter 50 is switched off.
+[[tavern]]
+town    = 1
+chapter = 50
+npc     = 25
+off     = true
+```
+
+The mod carries `files/en/main/text/inn/npc/npc41m50.txt` and
+`files/en/main/text/inn/npc/npc32m31.txt` (and the `ru` ones for a Russian
+install), each in the part form of the install's talk texts
+(`<part=1 npc=41>` and the words).
+
 ### Town description format
 
 A description is one JSON object, read by the game's one town description
@@ -879,7 +964,7 @@ The folder is a mod. Its name is the mod's `id`, so it may hold only `a-z`,
 |---|---|
 | `mod.toml` | the manifest: `id` (the folder's name), a title, version `1.0.0`, `applies-to` naming the install it was taken from, and `entry = "main.star"` |
 | `main.star` | the entry script: `game.data.add("data/towns.toml")` |
-| `data/towns.toml` | every town of the install as a `[[town]]` table with every key of the Towns section: `id`, `description`, `hooks`, `offers`, `map-point`, `name`, `opens-after`, `missions`, `cite`, and `off = false` |
+| `data/towns.toml` | every town of the install as a `[[town]]` table with every key of the Towns section: `id`, `description`, `hooks`, `offers`, `map-point`, `name`, `opens-after`, `missions`, `cite`, and `off = false`; on the first game, then every tavern row of the scenario as a `[[tavern]]` table: `town`, `chapter`, `npc`, `mission` and `off = false` |
 
 Values are the game's own. `description` names the installed description
 (`rom1`) and `map-point` the world-map object (`{ object = 1 }`); no picture
@@ -896,6 +981,7 @@ To make a mod from the dump:
    the rest. In a table you keep, keep `id` and the keys you change and
    delete the others: each key a table names counts as set by your mod, and
    two mods that set one key of one town need `load-after`.
+   Keep a `[[tavern]]` table you change with `town`, `chapter` and `npc`.
 3. Change the values, and add tables for new towns as the Towns section
    shows.
 4. Run `againrom.exe -check -mods <name> -mods-dir <folder holding it>`; a

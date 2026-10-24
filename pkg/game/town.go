@@ -729,7 +729,7 @@ func (t *Town) ChapterData() Chapter {
 		return t.progress.chapter()
 	}
 	main := t.Chapter()
-	chapter := t.camp.Chapters[main]
+	chapter := t.camp.chapter(main)
 	chapter.Mission = main
 	return chapter
 }
@@ -767,7 +767,12 @@ func (t *Town) Offers(b TownBuilding) []TownOffer {
 	if !t.manyTowns() {
 		return rows
 	}
-	return slices.DeleteFunc(rows, func(o TownOffer) bool { return !t.offeredHere(o.Mission) })
+	return slices.DeleteFunc(rows, func(o TownOffer) bool {
+		if b == TownTavern {
+			return !t.tavernHere(o.NPC, o.Mission)
+		}
+		return !t.offeredHere(o.Mission)
+	})
 }
 
 // chapterOffers is the live chapter's un-taken rows for one building, every
@@ -818,22 +823,51 @@ func (t *Town) chapterOffers(b TownBuilding) []TownOffer {
 // its registry position, which Take refuses, so hearing it again queues nothing
 // (DIV-1530).
 //
-// NOTHING IS STORED. The registry is immutable and the live arrays are what a
-// save holds, so a game the engine played, one it reloaded and one an original
-// save carries all list the same speakers, and the chapter's next advance
-// replaces the registry rows with the next chapter's.
+// NOTHING IS STORED. The live arrays are what a save holds, so a game the
+// engine played, one it reloaded and one an original save carries all list
+// the same speakers, and the chapter's next advance replaces the registry rows
+// with the next chapter's.
+//
+// A restored chapter's registry is the form its live arrays were written
+// against: a save made without the towns mod that now changes the chapter
+// holds layer 0's arrays, so a LOAD adds no mod row (chapterForms, rosterOn).
 func (t *Town) TavernRoster() []TownOffer {
 	live := t.Offers(TownTavern)
 	if !t.Open() {
 		return live
 	}
-	registry := t.camp.Chapters[t.ChapterData().Mission]
+	forms := t.camp.chapterForms(t.ChapterData().Mission)
+	if t.progress == nil {
+		forms = forms[:1]
+	}
+	var first, whole []TownOffer
+	for i, registry := range forms {
+		out, ok := t.rosterOn(registry, live)
+		if len(forms) == 1 || ok && t.keptAccepted(out) {
+			return out
+		}
+		if i == 0 {
+			first = out
+		}
+		if ok && whole == nil {
+			whole = out
+		}
+	}
+	if whole != nil {
+		return whole
+	}
+	return first
+}
+
+// rosterOn is the roster over one registry form, and whether the live arrays
+// are an ordered sub-list of its rows, as arrays written against it are.
+func (t *Town) rosterOn(registry Chapter, live []TownOffer) ([]TownOffer, bool) {
 	rows := min(len(registry.Inn), len(registry.InnNPC))
 	out := make([]TownOffer, 0, max(rows, len(live)))
-	next := 0
+	next, sub := 0, true
 	for i := 0; i < rows; i++ {
 		npc, mission := registry.InnNPC[i], registry.Inn[i]
-		if !t.offeredHere(mission) {
+		if !t.tavernHere(npc, mission) {
 			continue
 		}
 		found := -1
@@ -844,13 +878,25 @@ func (t *Town) TavernRoster() []TownOffer {
 			}
 		}
 		if found >= 0 {
+			sub = sub && found == next
 			out = append(out, live[next:found+1]...)
 			next = found + 1
 		} else if mission > 0 {
 			out = append(out, TownOffer{Index: -1 - i, Mission: mission, NPC: npc})
 		}
 	}
-	return append(out, live[next:]...)
+	return append(out, live[next:]...), sub && next == len(live)
+}
+
+// keptAccepted reports whether the save shows every kept speaker's mission
+// accepted: a campaign record, the available list or a finished mission.
+func (t *Town) keptAccepted(roster []TownOffer) bool {
+	for _, o := range roster {
+		if o.Index < 0 && t.progress.record(o.Mission) == nil && !t.available[o.Mission] && !t.Done(o.Mission) {
+			return false
+		}
+	}
+	return true
 }
 
 // Take accepts one of the live chapter's offers: the mission goes on the
