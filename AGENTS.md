@@ -129,10 +129,11 @@ commit and pull-request attribution.
 4. While editing: `git diff --check`, `gofmt`, focused tests; `go build ./...`
    when command or public compile surfaces change; `go vet ./...` for
    concurrency, unsafe or broad refactors. Before each commit that changes Go
-   code: its focused tests and the ordinary `go test` of every package it
-   touches. On the final commit, once: `gofmt -l` clean,
-   `go test -trimpath -count=1 ./...`, `scripts/check-no-game-assets.sh`, plus
-   the gates the brief names.
+   code: its focused tests and `scripts/check-fast.sh` (gofmt, the asset scan,
+   and every package compiled with each ordinary test faster than its limit).
+   On the final commit also the gates the brief names. The whole
+   `go test ./...`, the release set and the scenarios run at a release, not in
+   a lane.
    A tool you run to inspect behaviour from a `wt-*` worktree is built with
    `scripts/build-tools.sh <output-dir> [package...]`; a plain `go build`
    there stamps the enclosing repository's revision, not the worktree's.
