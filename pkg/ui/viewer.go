@@ -1107,7 +1107,6 @@ type Viewer struct {
 	spellbookFixed bool       // the installed 24-cell catalog, rather than a custom compact book
 	spellArmed     bool       // current spell and armed Cast mode are independent
 	spellNeedsBook bool       // book-chosen: live only while the book is shown
-	spellRestored  bool       // armed by a save restore
 	castOnce       bool       // armed by C or the Cast cell over a closed book: one cast, then the book closes
 	quickSpells    *[4]uint32 // session-owned; never retained by an actor
 	itemCast       *itemCastSelection

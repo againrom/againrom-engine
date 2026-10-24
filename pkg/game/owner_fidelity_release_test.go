@@ -223,8 +223,9 @@ func releaseOriginalSelectedCursor(t *testing.T) {
 			t.Fatal(err)
 		}
 		a.Layout(1024, 768)
-		if _, spell, armed := fresh.live.view.QuickSpellState(); spell != 18 || !armed {
-			t.Fatal(format, "lost the loaded cast cursor", spell, armed)
+		// The book was saved closed: the spell is current, live once it shows.
+		if _, spell, armed := fresh.live.view.QuickSpellState(); spell != 18 || armed {
+			t.Fatal(format, "loaded spell with the book closed", spell, armed)
 		}
 		if format == "source SAV" {
 			s, _, err := fresh.Snapshot(true)
@@ -241,19 +242,35 @@ func releaseOriginalSelectedCursor(t *testing.T) {
 		}
 		e := world1170Entity(t, fresh, runtime)
 		inspectionCentre(fresh.live, int(e.X), int(e.Y))
-		x, y, err := a.HeadlessEntityPoint(uint32(e.ID))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, edge := range []string{"press", "release"} {
-			if err := a.HeadlessPointer(edge, x, y); err != nil {
+		click := func() {
+			x, y, err := a.HeadlessEntityPoint(uint32(e.ID))
+			if err != nil {
 				t.Fatal(err)
 			}
+			for _, edge := range []string{"press", "release"} {
+				if err := a.HeadlessPointer(edge, x, y); err != nil {
+					t.Fatal(err)
+				}
+			}
 		}
+		click()
+		for _, order := range fresh.live.pending {
+			if order.Kind == sim.KindCast {
+				t.Fatal(format, "a click with the book closed cast", fresh.live.pending)
+			}
+		}
+		if err := a.HeadlessKey("book"); err != nil {
+			t.Fatal(err)
+		}
+		fresh.live.pending = nil
+		if _, _, armed := fresh.live.view.QuickSpellState(); !armed {
+			t.Fatal(format, "opening the book did not arm the loaded spell")
+		}
+		click()
 		orders := fresh.live.pending
 		if len(orders) != 1 || orders[0].Kind != sim.KindCast || orders[0].Y != 18 {
-			t.Fatal(format, "first loaded click did not cast", orders)
+			t.Fatal(format, "first click with the book open did not cast", orders)
 		}
-		t.Log(format, "cold LOAD arms spell18; first click queues the spell without a shortcut")
+		t.Log(format, "cold LOAD keeps spell18 current with the book closed; with the book open the first click queues it")
 	}
 }

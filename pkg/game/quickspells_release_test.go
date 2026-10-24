@@ -285,8 +285,10 @@ func TestReleaseQuickSpellsSaveFreshLoadAndCast(t *testing.T) {
 	if b.Screen() != ui.ScreenMap || g.quickSpells != want {
 		t.Fatalf("fresh LOAD screen%s slots%v", b.Screen(), g.quickSpells)
 	}
-	if _, current, armed := g.live.view.QuickSpellState(); current != 16 || !armed {
-		t.Fatalf("LOAD lost the saved cast cursor: current %d armed %v", current, armed)
+	// The spent quick-key cast left the spell book-chosen with the book closed,
+	// which is what LOAD restores: current, but not live until the book shows.
+	if _, current, armed := g.live.view.QuickSpellState(); current != 16 || armed {
+		t.Fatalf("LOAD changed the saved spell: current %d armed %v", current, armed)
 	}
 	releasePauseMission(t, g, b)
 	inspectionCentre(g.live, 29, 50)

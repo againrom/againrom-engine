@@ -117,8 +117,15 @@ func (v *Viewer) spellModeLive() bool {
 	return v.spellArmed && (!v.spellNeedsBook || v.hudShown(hudPanelBook))
 }
 
+// armBookSpell is the book-chosen arm: a click on a book cell and a LOAD of a
+// saved current spell, whose SAV state names no other mode.
+func (v *Viewer) armBookSpell() {
+	v.armSpell()
+	v.spellNeedsBook = true
+}
+
 func (v *Viewer) armSpell() {
-	v.spellArmed, v.castOnce, v.spellRestored = true, false, false
+	v.spellArmed, v.castOnce = true, false
 	v.armed, v.attackHeld, v.aimed = false, false, commandNone
 	v.cmdOverlayHidden = false
 }

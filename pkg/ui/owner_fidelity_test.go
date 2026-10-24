@@ -92,7 +92,7 @@ func TestRestoredSpellIsArmedOnlyForAvailableSelection(t *testing.T) {
 			a, v, _ := quickSpellApp(t)
 			s := v.SaveApplication()
 			s.PressedSpell = test.spell
-			s.SpellBookOpen = false
+			s.SpellBookOpen = true
 			if !test.selection {
 				s.Selection = nil
 			}
@@ -115,6 +115,25 @@ func TestRestoredSpellIsArmedOnlyForAvailableSelection(t *testing.T) {
 			}
 			if got := v.gestureCursorAt(x, y); got != "cast" {
 				t.Fatal("next click has cursor", got)
+			}
+			// A spell saved with the book closed is the book-chosen arm: it
+			// stays current, is live only once the book is shown, and the
+			// right click deselects instead of cancelling it.
+			s.SpellBookOpen = false
+			if err := v.RestoreSaveApplication(s); err != nil {
+				t.Fatal(err)
+			}
+			if _, id, armed := v.QuickSpellState(); id != test.spell || armed || v.gestureCursorAt(x, y) == "cast" {
+				t.Fatal("closed book: restored spell is live", id, armed)
+			}
+			v.toggleHudPanel(hudPanelBook)
+			if _, _, armed := v.QuickSpellState(); !armed {
+				t.Fatal("opened book: restored spell is not live")
+			}
+			v.toggleHudPanel(hudPanelBook)
+			v.cancelMapCommand()
+			if len(v.sel) != 0 || v.selectedSpell != test.spell {
+				t.Fatal("right click after LOAD", v.sel, v.selectedSpell)
 			}
 		})
 	}

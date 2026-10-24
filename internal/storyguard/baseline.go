@@ -2950,6 +2950,11 @@ package storyguard
 // pkg/game/owner_fidelity_witness.go, the new release tests in
 // pkg/game/missionentrybook_release_test.go, the shared won-session helper in
 // pkg/game/savedialog1173_release_test.go, and this paragraph.
+//
+// CommentBytes rises with the loaded spell's book-chosen arm: armBookSpell in
+// pkg/ui/quickspells.go, less the retired restore flag's field note, the
+// loaded-spell fixture and release tests in pkg/game and pkg/ui, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4508,
 	TestFileCount:  264,
@@ -2973,5 +2978,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9628560,
+	CommentBytes: 9630843,
 }

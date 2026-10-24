@@ -1364,8 +1364,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 					v.spellArmed = false
 				} else {
 					v.selectedSpell = id
-					v.armSpell()
-					v.spellNeedsBook = true
+					v.armBookSpell()
 					// The panel's own Cast cell reflects this selection
 					// (commandpanel.go's pressCommandPanelCell); armAttack's
 					// own reason for clearing the hidden overlay here too.
@@ -1605,7 +1604,7 @@ func (v *Viewer) cancelMapCommand() {
 
 // spellCancelable: a one-shot Cast arm the right click absorbs (DIV-2265).
 func (v *Viewer) spellCancelable() bool {
-	return v.spellArmed && !v.spellNeedsBook && !v.spellRestored
+	return v.spellArmed && !v.spellNeedsBook
 }
 
 // armAttack is the arming key's whole effect: it TOGGLES the attack mode,
