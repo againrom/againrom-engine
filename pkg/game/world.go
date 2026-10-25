@@ -1790,10 +1790,10 @@ func (mw *mapWorld) showOutcome() {
 // 1, and reports whether there was anything to show.
 //
 // A FILE THAT DOES NOT SHIP PRODUCES NOTHING AT ALL — no notice, no placeholder,
-// no message, no error and no change to anything else — and neither does one
-// that ships and yields no part 1. Of the 242 numbers the shipped campaign
-// scripts raise, 19 name no file, so silence is the authored behaviour of about
-// one raise in thirteen and not a defect to report.
+// no message, no error and no change to anything else. Of the 242 numbers the
+// shipped campaign scripts raise, 19 name no file. A file that ships and yields
+// no part 1 shows the game's default text, and the next press tries part 2
+// (DLG-PAGES-091); a game with no default opens nothing for it.
 //
 // The read happens HERE, at the moment the announcement fires, and nothing
 // reads any event text when a map is loaded.
@@ -1805,7 +1805,8 @@ func (mw *mapWorld) openDialogue(event int) bool {
 	}
 	audience := mw.eventAudience(event)
 	body, ok := dialoguePart(payload, 1, audience)
-	if !ok {
+	fallback := m.files().dialogueDefault
+	if !ok && fallback == "" {
 		return false
 	}
 	m.open, m.kind, m.payload, m.part = true, ui.NoticeDialogue, payload, 1
@@ -1817,7 +1818,11 @@ func (mw *mapWorld) openDialogue(event int) bool {
 	// is then carried across every page of this window and re-derived at none
 	// of them.
 	m.portrait = EventHasSpeaker(dialoguePayload(payload))
-	mw.view.SetDialogue(m.dialogueOf(body, 1))
+	page := ui.Dialogue{Text: fallback, Portrait: m.portrait}
+	if ok {
+		page = m.dialogueOf(body, 1)
+	}
+	mw.view.SetDialogue(page)
 	return true
 }
 
@@ -1834,14 +1839,8 @@ func (mw *mapWorld) openDialogue(event int) bool {
 // this driver's and the payload is the one already read, so paging opens no
 // archive entry and cannot answer differently the second time.
 //
-// NOTHING HERE PRODUCES A SUCCESSOR (0131 T2's own limit). Every return above
-// hands back a nil ui.MapOpener: this method does not read a campaign and
-// does not know one exists. It is the mechanical half of ui.MapAdvance's
-// widened shape alone — the third result exists so this method keeps
-// compiling against the seam continuity wraps it in — and every answer it
-// gives is exactly the one it gave before this story. Reading a mission's own
-// successor and turning it into a NoticeToMission is T3's, at the tier that
-// holds the campaign.
+// Every return hands back a nil ui.MapOpener: the tier that holds the
+// campaign turns a mission's successor into a NoticeToMission.
 func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, string, ui.MapOpener) {
 	m := mw.mission
 	if m == nil {
@@ -1908,10 +1907,12 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 			mw.view.PageDialogue(ui.Dialogue{Text: m.pages[m.part-1]})
 			return ui.NoticeStay, "", nil
 		}
-	} else if body, ok := dialoguePart(m.payload, m.part, m.dialogueAudience); ok {
+	} else {
 		m.noteTips(m.part)
-		mw.view.PageDialogue(m.dialogueOf(body, m.part))
-		return ui.NoticeStay, "", nil
+		if body, ok := dialoguePart(m.payload, m.part, m.dialogueAudience); ok {
+			mw.view.PageDialogue(m.dialogueOf(body, m.part))
+			return ui.NoticeStay, "", nil
+		}
 	}
 	mw.raiseMissionTip()
 	if m.campaign().acknowledgeNotice(mw) {
@@ -1925,8 +1926,9 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 	return ui.NoticeStay, "", nil
 }
 
-// noteTips keeps the `tips=` value of the part just shown, as the dialogue
-// panel keeps the last one its parser stored (TRIG-TIPS-087).
+// noteTips keeps the `tips=` value of the part's accepted tag, shown or not,
+// as the dialogue panel keeps the last one its parser stored (TRIG-TIPS-087,
+// DIALOGUE-050).
 func (m *missionNotices) noteTips(part int) {
 	if n, ok := dialoguePartTips(m.payload, part, m.dialogueAudience); ok {
 		m.tips = n

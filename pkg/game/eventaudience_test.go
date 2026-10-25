@@ -313,18 +313,15 @@ func TestTheMissionPanelShowsThePartItsOwnHeroReceives(t *testing.T) {
 	}
 }
 
-// TestThePanelDoesNotOpenWhenNoTagSurvives is AC-4's second half.
-//
-// The file ships and is read; every tag naming part 1 refuses this hero. The
-// original's scan produces nothing at that point, so nothing opens — the same
-// silence an absent file gives, arrived at for a different reason.
-func TestThePanelDoesNotOpenWhenNoTagSurvives(t *testing.T) {
+// Every tag naming part 1 refuses this hero, so the panel keeps its default
+// text (DIALOGUE-049).
+func TestThePanelShowsTheDefaultWhenNoTagSurvives(t *testing.T) {
 	mw, v := missionAudienceDriver(t, 4, "<part=1,iamfemale>\r\nshe", manFighter())
-	if _, _, open := v.NoticeState(); open {
-		t.Fatal("a notice opened over a part this hero was refused")
+	if got, _, open := v.NoticeState(); !open || got != "Nothing to say" {
+		t.Fatalf("notice = %q (open %v), want the default text", got, open)
 	}
-	if mw.mission.open {
-		t.Fatal("the driver considers a window open")
+	if !mw.mission.open {
+		t.Fatal("the driver considers no window open")
 	}
 }
 

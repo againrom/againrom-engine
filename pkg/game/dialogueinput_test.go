@@ -54,11 +54,14 @@ func TestDialogueAcceptedTailMissingLFAndBackwardsRangeStayBounded(t *testing.T)
 		if town.dialogue.text != "Nothing to say" {
 			t.Fatalf("malformed town tail accepted %q", town.dialogue.text)
 		}
-		driver, _ := missionDialogue(t, "<part=1>\nValid", nil)
+		driver, viewer := missionDialogue(t, "<part=1>\nValid", nil)
 		driver.closeNotice()
 		driver.mission.src = missionSource{missionEvent(t, 7, 4): []byte(payload)}
-		if driver.openDialogue(4) {
-			t.Fatal("malformed mission tail accepted", payload)
+		if !driver.openDialogue(4) {
+			t.Fatal("a mission message without readable page 1 opened nothing", payload)
+		}
+		if got, _, _ := viewer.NoticeState(); got != "Nothing to say" {
+			t.Fatalf("malformed mission tail accepted %q", got)
 		}
 	}
 }

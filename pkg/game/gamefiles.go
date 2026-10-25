@@ -64,6 +64,11 @@ type gameFiles struct {
 	// second game follows by owner direction while no second-game claim
 	// states its mission-start panels.
 	missionBookClosed bool
+	// dialogueDefault is the text a mission dialogue shows when its message
+	// has no page 1 (DIALOGUE-049); empty opens no dialogue for it. The
+	// second game follows the first by owner direction while no second-game
+	// claim states its panel's default (DIV-4053).
+	dialogueDefault string
 }
 
 var firstGameFiles = gameFiles{
@@ -80,14 +85,16 @@ var firstGameFiles = gameFiles{
 	eventText: func(src entrySource, _ base.Edition, mission, event int) ([]byte, bool) {
 		return ReadEventText(src, mission, event)
 	},
-	unitKeys:     mapload.ClassUnitKeys,
-	freshPlayers: mapload.SlotPlayers,
-	itemNameKeys: ItemNameKeyAddress,
-	terrainCosts: worldPrefix + "data/map.reg",
+	unitKeys:        mapload.ClassUnitKeys,
+	freshPlayers:    mapload.SlotPlayers,
+	itemNameKeys:    ItemNameKeyAddress,
+	terrainCosts:    worldPrefix + "data/map.reg",
+	dialogueDefault: dialogueDefaultText,
 }
 
 var secondGameFiles = gameFiles{
 	missionBookClosed: true,
+	dialogueDefault:   dialogueDefaultText,
 	table:             databin.ROM2Layout,
 	openMap:           alm.OpenROM2,
 	compileScript:     mapload.CompileROM2Script,

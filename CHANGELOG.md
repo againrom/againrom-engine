@@ -19,11 +19,13 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Two mission talks that have no words for some heroes now open on `Nothing to say`: one for a hero who is not a mage, and, on the English edition, one for a female mage, who now also sees the rest of that talk. Before, neither talk opened.
 - [ROM1] Enemies chasing a hero who teleports or is moved far away now stop where they stand until the hero comes near them again; before, they kept walking after the hero across the map.
 
 ### For map makers and modders
 
 - [ROM1] The map editor adds a new trap, unit spell or casting structure on any map, also one without a cell spell to copy; it edits a casting structure's power and scan range (0 to 255), and it edits and copies the many shipped casting structures that sit on another cell of their building. Deleting a structure or a unit also deletes its casting structures or unit spells, and a cell spell left without its object can still be deleted.
+- [BASE] A mission message with no page 1 now opens its dialogue on `Nothing to say`, and the next press shows page 2 or closes it; before, it opened nothing. A `tips=` on a page whose text does not read now raises its tip when the dialogue closes there.
 - [ROM1] The map editor lets you edit every page of a dialogue, choose each speaker, and add, remove or reorder pages in one message; the Map panel warns when a trigger sends a second message the player cannot see while the first is open.
 
 ### For developers

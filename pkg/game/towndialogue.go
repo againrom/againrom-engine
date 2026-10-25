@@ -21,8 +21,12 @@ type townDialogueState struct {
 	closeTips   int
 }
 
+// dialogueDefaultText is the first game's dialogue panel text before a page
+// shows (DLG-WIN-001); the program holds it in English on both roots.
+const dialogueDefaultText = "Nothing to say"
+
 func newTownDialogue(payload []byte) townDialogueState {
-	return townDialogueState{text: "Nothing to say", hasPortrait: EventHasSpeaker(dialoguePayload(payload)), portrait: EventHasSpeaker(dialoguePayload(payload))}
+	return townDialogueState{text: dialogueDefaultText, hasPortrait: EventHasSpeaker(dialoguePayload(payload)), portrait: EventHasSpeaker(dialoguePayload(payload))}
 }
 
 // firstTownTalkLowestPart is the first game's lowest part; the shared scan

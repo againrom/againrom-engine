@@ -2982,6 +2982,9 @@ package storyguard
 // executorActive in pkg/sim/retreatcontinuation.go), its test and fixture
 // note, the Teleport pursuit witness halves in pkg/game and pkg/sim, and
 // this paragraph.
+//
+// CommentBytes rises with the second game's dialogue default note in
+// pkg/game/gamefiles.go, its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -2992,9 +2995,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1863,
+		"acclause":        1862,
 		"scclause":        505,
-		"barestorynumber": 1709,
+		"barestorynumber": 1708,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3005,5 +3008,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9650689,
+	CommentBytes: 9650707,
 }

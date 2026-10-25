@@ -2639,8 +2639,8 @@ func TestMissionIsSilentForAnUnshippedEventText(t *testing.T) {
 	}
 }
 
-// A file that ships and yields no part 1 is the same silence.
-func TestMissionIsSilentForAFileWithNoPartOne(t *testing.T) {
+// A file that ships and yields no part 1 shows the default text.
+func TestMissionShowsTheDefaultForAFileWithNoPartOne(t *testing.T) {
 	w := missionWorld(t,
 		[]sim.ScriptInstant{{Op: 2, Args: [10]int32{4}}},
 		[]sim.ScriptTrigger{missionTrigger(3, 1, true, 0)})
@@ -2648,11 +2648,11 @@ func TestMissionIsSilentForAFileWithNoPartOne(t *testing.T) {
 		missionSource{missionEvent(t, 7, 4): []byte("<part=2>\r\nonly the second")})
 
 	missionSteps(mw, 3)
-	if _, _, open := v.NoticeState(); open {
-		t.Fatal("a file with no part 1 opened a notice")
+	if got, _, open := v.NoticeState(); !open || got != "Nothing to say" {
+		t.Fatalf("notice = %q (open %v), want the default text", got, open)
 	}
-	if mw.mission.open {
-		t.Fatal("the driver believes a notice is open for a file with no part 1")
+	if !mw.mission.open || mw.mission.part != 1 {
+		t.Fatalf("driver open %v at part %d, want open at part 1", mw.mission.open, mw.mission.part)
 	}
 }
 
