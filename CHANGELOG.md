@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor's report now shows the text of the selected finding, and Enter on a finding that names no record shows it in full. A map whose texts folder cannot be read, for example a file named Event01.txt, or a map the editor cannot decode, is now reported as texts-folder or map-decode with the cause and file name, not as mission-build. The Russian message after a refused save now says the map and its history were not touched.
 - [ROM1] The map editor adds a new trap, unit spell or casting structure on any map, also one without a cell spell to copy; it edits a casting structure's power and scan range (0 to 255), and it edits and copies the many shipped casting structures that sit on another cell of their building. Deleting a structure or a unit also deletes its casting structures or unit spells, and a cell spell left without its object can still be deleted.
 - [BASE] A mission message with no page 1 now opens its dialogue on `Nothing to say`, and the next press shows page 2 or closes it; before, it opened nothing. A `tips=` on a page whose text does not read now raises its tip when the dialogue closes there.
 - [ROM1] The Forest brush of the map editor no longer plants on the drop cell or on a cell a unit stands on, and its picture grid shows only the object classes that have art; before, a forest could close those cells and the grid had blank tiles.

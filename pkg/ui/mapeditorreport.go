@@ -166,6 +166,14 @@ func (e *MapEditor) selectFinding(i int) {
 	}
 }
 
+// selectedFinding is the selected finding of the open report.
+func (e *MapEditor) selectedFinding() (InspectionFinding, bool) {
+	if !e.report.open || e.report.sel < 0 || e.report.sel >= len(e.report.rows) {
+		return InspectionFinding{}, false
+	}
+	return e.report.rows[e.report.sel], true
+}
+
 // reportStep moves the selected finding by delta, as the arrow keys do.
 func (e *MapEditor) reportStep(delta int) {
 	if n := len(e.report.rows); e.report.open && n > 0 {

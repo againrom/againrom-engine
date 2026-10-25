@@ -224,3 +224,30 @@ func TestFindingLineNamesSeverityRuleRecordAndCell(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestReportListShowsTheSelectedFindingsText(t *testing.T) {
+	e := reportEditor(t, &reportEdits{rows: reportRows})
+	_ = e.Key("report")
+	for i, f := range reportRows {
+		e.selectFinding(i)
+		s, ok := e.listSpec()
+		if !ok || strings.Join(s.Notes, " ") == "" || !strings.Contains(strings.Join(s.Notes, " "), strings.Fields(f.Text)[0]) {
+			t.Fatalf("row %d: notes %q", i, s.Notes)
+		}
+	}
+	e.selectFinding(2)
+	s, _ := e.listSpec()
+	if got := strings.Join(s.Notes, " "); !strings.Contains(got, "the installed terrain refuses the map") {
+		t.Fatalf("notes %q", got)
+	}
+}
+
+func TestEnterOnAWholeMapReportRowShowsItsText(t *testing.T) {
+	e := reportEditor(t, &reportEdits{rows: reportRows})
+	_ = e.Key("report")
+	e.selectFinding(2)
+	_ = e.Key("field")
+	if e.message != reportRows[2].Text {
+		t.Fatalf("message %q", e.message)
+	}
+}

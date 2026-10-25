@@ -347,7 +347,7 @@
 "editor.keys.text.popup" = "Поле: стрелки карта -> каретка"
 "editor.keys.text.unfocus" = "Без фокуса: стрелки двигают карту"
 "editor.message.title" = "Сообщение"
-"editor.message.kept" = "Карта и история сохранены. Esc: назад"
+"editor.message.kept" = "Карта и история правок не тронуты. Esc: назад"
 "editor.leave.title.close" = "Закрыть редактор"
 "editor.leave.title.open" = "Открыть другую карту"
 "editor.leave.text" = "В %s есть изменения, которые не сохранены."

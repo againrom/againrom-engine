@@ -36,3 +36,12 @@ func TestEditorUnitBlockWordsExistInBothLanguages(t *testing.T) {
 		}
 	}
 }
+
+func TestEditorKeptMessageSaysNothingWasLost(t *testing.T) {
+	if got := For("ru").Text("editor.message.kept"); got != "Карта и история правок не тронуты. Esc: назад" {
+		t.Fatalf("ru: %q", got)
+	}
+	if got := For("en").Text("editor.message.kept"); got != "Map and history retained. Esc: back" {
+		t.Fatalf("en: %q", got)
+	}
+}

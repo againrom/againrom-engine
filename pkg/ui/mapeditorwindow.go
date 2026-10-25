@@ -716,6 +716,8 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		if len(e.report.goals) > 0 {
 			s.Width, s.ListAside = e.popupWide(popList, 560), 84
 			s.Notes = []string{e.word("editor.arms.hint")}
+		} else {
+			s.Notes = e.findingNotes(s.Width - 2*popupPad - 8)
 		}
 	case "brush":
 		s.Rows = e.brushPopupRows()
@@ -748,6 +750,24 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		s.Notes = append(s.Notes, fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len()))
 	}
 	return s, true
+}
+
+// findingNotes is the selected finding's text, wrapped to width and cut at
+// five lines; a key list row is its own text and gives none.
+func (e *MapEditor) findingNotes(width int) []string {
+	f, ok := e.selectedFinding()
+	if !ok || f.Rule == keyListRule || f.Text == "" {
+		return nil
+	}
+	lines := editorWrap(e.bodyFont(), e.editorHostText(f.Text), width)
+	if len(lines) > 5 {
+		more := lines[4] + textfit.Mark
+		if font := e.bodyFont(); font != nil {
+			more = editorFit(font).Continued(lines[4], width)
+		}
+		lines = append(lines[:4], more)
+	}
+	return lines
 }
 
 // listAdd is the kind the shown records list's Add button adds.

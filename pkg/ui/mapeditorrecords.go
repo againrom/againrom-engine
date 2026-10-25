@@ -102,6 +102,12 @@ func (e *MapEditor) recordKey(key string) error {
 		e.openGoal(e.report.sel)
 		return nil
 	}
+	if key == "field" && e.report.open && len(e.report.goals) == 0 && len(e.objectBack) == 0 {
+		if f, ok := e.selectedFinding(); ok && f.Kind == "" && f.Rule != keyListRule && f.Text != "" {
+			e.message = f.Text
+			return nil
+		}
+	}
 	kind, index := e.selectedRecord()
 	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && (kind == "Player" || kind == "Enchantment" || scriptRecord(kind)))) {
 		e.message = "Select a unit, structure or sack first."

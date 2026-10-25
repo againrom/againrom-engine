@@ -52,6 +52,14 @@ var mapRules = []mapRule{
 		Authority: "TERR-PASS-049, TERR-PASS-050; mapload.OriginalTerrainPlanes",
 		Meaning:   "the installed terrain refuses the map: a side outside 8..256 or a terrain pair never initialised",
 		run:       (*mapCheck).terrainPlanes},
+	{ID: ruleTextsFolder, Error: true,
+		Authority: "MISSION-TEXT-005; mod.Mission.ReadTexts",
+		Meaning:   "the map's texts folder cannot be read, for instance a file whose name is not a-z, 0-9 and '_' with .txt; the other rules did not run",
+		run:       (*mapCheck).stopped},
+	{ID: ruleMapDecode, Error: true,
+		Authority: "mapedit.New, mapedit.Editor.Map",
+		Meaning:   "the editor cannot decode the map; the other rules did not run",
+		run:       (*mapCheck).stopped},
 	{ID: "mission-build", Error: true,
 		Authority: "StartMissionFrom, the mission build",
 		Meaning:   "the mission build refuses the map",
@@ -109,6 +117,25 @@ var mapRules = []mapRule{
 		Meaning:   "a trigger sends multiple messages while only the first can open",
 		run:       (*mapCheck).messageOverlap},
 }
+
+// The rules a check raises when it stops before the table runs.
+const (
+	ruleTextsFolder = "texts-folder"
+	ruleMapDecode   = "map-decode"
+)
+
+// mapStop is the error of a check that stopped before the rules ran: Rule is
+// the table row that names the cause.
+type mapStop struct {
+	Rule string
+	Err  error
+}
+
+func (s *mapStop) Error() string { return s.Err.Error() }
+func (s *mapStop) Unwrap() error { return s.Err }
+
+// stopped is the run of the rules a check raises before the table runs.
+func (c *mapCheck) stopped() []mapHit { return nil }
 
 func (c *mapCheck) messageOverlap() []mapHit {
 	var out []mapHit
@@ -192,17 +219,21 @@ func (x *MapInspector) CheckMap(model *mapedit.Editor, source string) ([]ui.Insp
 func (x *MapInspector) CheckModMap(m mod.Mission, source string) []ui.InspectionFinding {
 	model, err := mapedit.New(m.MapBytes)
 	if err != nil {
-		return []ui.InspectionFinding{{Error: true, Rule: "mission-build", Text: err.Error()}}
+		return []ui.InspectionFinding{{Error: true, Rule: ruleMapDecode, Text: err.Error()}}
 	}
 	return x.report(model, source, missionPages(m))
 }
 
 // report answers the findings for the map the model holds, a failed check being
-// one mission-build error.
+// one error of the rule that names where it stopped.
 func (x *MapInspector) report(model *mapedit.Editor, source string, pages *modPages) []ui.InspectionFinding {
 	rows, err := x.checkMapPages(model, source, pages)
 	if err != nil {
-		rows = []ui.InspectionFinding{{Error: true, Rule: "mission-build", Text: err.Error()}}
+		rule := "mission-build"
+		if stop := (*mapStop)(nil); errors.As(err, &stop) {
+			rule = stop.Rule
+		}
+		rows = []ui.InspectionFinding{{Error: true, Rule: rule, Text: err.Error()}}
 	}
 	if rows == nil {
 		rows = []ui.InspectionFinding{}
@@ -212,11 +243,11 @@ func (x *MapInspector) report(model *mapedit.Editor, source string, pages *modPa
 
 func (x *MapInspector) checkMapPages(model *mapedit.Editor, source string, pages *modPages) ([]ui.InspectionFinding, error) {
 	if pages != nil && pages.err != nil {
-		return nil, pages.err
+		return nil, &mapStop{Rule: ruleTextsFolder, Err: pages.err}
 	}
 	m, err := model.Map()
 	if err != nil {
-		return nil, err
+		return nil, &mapStop{Rule: ruleMapDecode, Err: err}
 	}
 	c := &mapCheck{x: x, model: model, m: m, source: source, pages: pages}
 	c.script, c.scriptErr = m.Script()
