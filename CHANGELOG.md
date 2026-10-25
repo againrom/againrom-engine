@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The inn talk box and the first mission's dialogue show the speaker's portrait beside the text, and the text wraps as in the original.
 - [ROM2] The hero creation page shows Accept, Reset and Back on the original's brown wooden panel, in the original's places and buttons, so a click where the original has Reset or Back now gives Reset or Back; Restore stays, as a fourth button of the same kind below Back.
 - [ROM2] Hover captions in the town, the shop, the mission and every other screen now look as in the original: small gold capitals in a small box, as on the hero creation screen. Before, they used the large town font in cream, in a box about twice the size.
 - [ROM1] A save made in our game no longer sends a stray spell to the map corner when the original game loads it: a mage in the middle of a cast keeps its target, and the bodies on the map and the units that fought them keep their attack timers and kill credit in the saved file.

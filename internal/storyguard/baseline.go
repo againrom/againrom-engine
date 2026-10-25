@@ -3004,6 +3004,10 @@ package storyguard
 // CommentBytes rises with the doc comments of the second game's generator
 // command panel release test, pkg/game/secondgeneratorpanel_release_test.go,
 // and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's speaker
+// records: pkg/data/humanspeakers.go, pkg/game/gamefiles.go, the town talk
+// faces in pkg/game/secondcampaign.go, their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3030,6 +3034,6 @@ var Committed = Baseline{
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
 	// for the body words a SAVE keeps from LOAD, then for the second game's
-	// generator command panel test.
-	CommentBytes: 9666918,
+	// generator command panel test, then for the second game's speaker records.
+	CommentBytes: 9668730,
 }

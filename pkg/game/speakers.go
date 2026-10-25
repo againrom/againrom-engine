@@ -133,7 +133,7 @@ func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle
 			// has it and no mage bit (`HERO-FIGURE-144`): a Hero record nobody
 			// answers for stands on that backdrop and is still bare.
 			hero := rec.Tokens.Has(data.NPCTokenHero)
-			pic = r.speakerFigure(figureID{Dir: rec.Dir, Face: rec.Face, Hero: hero}, data.Equipment{})
+			pic = r.speakerFigure(figureID{Dir: rec.Dir, Face: rec.Face, Hero: hero}, rec.Worn)
 		default:
 			if own := r.playerFigures[speaker]; own != nil {
 				pic = own

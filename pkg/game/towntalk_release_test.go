@@ -96,7 +96,8 @@ func TestReleaseTownTalkOKThroughTheWindow(t *testing.T) {
 // TestReleaseSecondTownTalkOKThroughTheWindow turns every page of the
 // installed inn talk of speaker 517 with OK through App. Each pressed page is
 // the authored notice of its trimmed section part with the game's words and
-// frame and no portrait; the last release closes the talk.
+// frame and the face of the speaker its tag names; the last release closes
+// the talk.
 func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 	f, app := secondGeneratedMage(t, false)
 	// Each TownScreen call builds a screen; the App is given this one so the
@@ -114,15 +115,21 @@ func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 	audience.tags = s.tags
 	page := 1
 	for ; c.talk.payload != nil; page++ {
-		body, ok := dialoguePart(payload, page, audience)
+		r := readDialoguePart(payload, page, audience, nil)
+		body, ok := r.text, r.ok
 		if page > 64 || !ok || c.talk.part != page {
 			t.Fatalf("page %d: part %d, installed part found %v", page, c.talk.part, ok)
 		}
+		speaker, named := audience.tagRules().speaker(r.tag)
+		face, window, found := s.talkFaces.SpeakerFace(speaker)
+		if !named || !found || face == nil {
+			t.Fatalf("page %d: speaker %d named %v has no face", page, speaker, named)
+		}
 		townTalkOK(t, app, s, func() {
-			l := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(false)
+			l := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(true)
 			l.Frame = f.gameMenuArt()
-			l = l.WithDialogueButtonState(s.TownDialogueButtonState()).WithDialogueBackdrop(s.talkWindow.Backdrop())
-			want := ui.RenderNotice(l, f.Font.Value(), strings.TrimSpace(body), nil)
+			l = l.WithDialogueButtonState(s.TownDialogueButtonState()).WithDialogueBackdrop(s.talkWindow.Backdrop()).WithFaceWindow(window)
+			want := ui.RenderNotice(l, f.Font.Value(), strings.TrimSpace(body), face)
 			if got, _ := s.TownDialogue(); !imagesEqual(got, want) {
 				t.Fatalf("page %d is not the authored notice of %q", page, body)
 			}

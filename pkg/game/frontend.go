@@ -772,8 +772,9 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 			// package holds a `*res.Archive` any more.
 			Tiles: terrain.LoadTileset(archives.Containers),
 			// The campaign's speaker table: the portrait half of the one NPC
-			// catalog the placement table was built from (0141).
-			NPCFaces:   table.NPCCatalog.Portraits(),
+			// catalog the placement table was built from (0141), and the
+			// Humans rows where the game's files add them.
+			NPCFaces:   speakerFaces(table),
 			Statics:    statics,
 			Units:      units,
 			Structures: structures,

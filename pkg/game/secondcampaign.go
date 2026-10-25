@@ -2,8 +2,10 @@ package game
 
 import (
 	"fmt"
+	"image"
 	"strings"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -220,6 +222,8 @@ type secondCampaignScreen struct {
 	worldMapAt *secondMapOpening
 	// townTalkSeat is the town talk window; the campaign holds its pages.
 	townTalkSeat
+	// talkFaces resolves the open conversation's speaker faces.
+	talkFaces speakerResolver
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -378,40 +382,69 @@ func (t *secondCampaignScreen) Back() bool {
 }
 
 func (t *secondCampaignScreen) dialogueBody() (string, bool) {
-	c := t.state()
-	if c == nil {
-		return "", false
-	}
-	if c.talk.payload == nil {
-		return "", false
-	}
-	audience := partyAudience(t.session.Carried, nil)
-	audience.tags = t.tags
-	r := c.talk.read(audience, nil)
+	r, _ := t.dialoguePart()
 	return r.text, r.ok
 }
 
-// secondTownTalkProfile is the second game's town talk profile: no portrait shape,
-// no frame for the frame composer, a font-less window still drawn, the
-// button offered at any size, and one show while the window is open.
+// dialoguePart is the campaign's current section part and the audience it
+// was read for.
+func (t *secondCampaignScreen) dialoguePart() (dialogueRead, EventAudience) {
+	c := t.state()
+	if c == nil || c.talk.payload == nil {
+		return dialogueRead{}, EventAudience{}
+	}
+	audience := partyAudience(t.session.Carried, nil)
+	audience.tags = t.tags
+	return c.talk.read(audience, nil), audience
+}
+
+// secondTownTalkProfile is the second game's town talk profile: no frame for
+// the frame composer, a font-less window still drawn, the button offered at
+// any size, and one show while the window is open.
 var secondTownTalkProfile = ui.TownTalkProfile{}
 
 // talkView is the town talk as this game reads it: the campaign's current
-// section part, trimmed, without a speaker picture.
+// section part, trimmed, with the portrait shape when the section names a
+// speaker and the face of the speaker the part's tag names.
 func (t *secondCampaignScreen) talkView() ui.TownTalkView {
-	body, open := t.dialogueBody()
-	if !open {
+	r, audience := t.dialoguePart()
+	if !r.ok {
 		return ui.TownTalkView{Profile: secondTownTalkProfile}
 	}
-	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true,
-		Page: ui.TownTalkPage{Text: strings.TrimSpace(body)},
-		Art:  ui.TownTalkArt{Words: t.install.Words, Frame: t.frame(), Font: t.install.Font.Value()}}
+	page := ui.TownTalkPage{Text: strings.TrimSpace(r.text),
+		Portrait: EventHasSpeaker(dialoguePayload(t.state().talk.payload))}
+	if speaker, named := audience.tagRules().speaker(r.tag); named && page.Portrait {
+		page.Face, page.FaceWindow, _ = t.talkFaces.SpeakerFace(speaker)
+	}
+	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true, Page: page,
+		Art: ui.TownTalkArt{Words: t.install.Words, Frame: t.frame(), Font: t.install.Font.Value()}}
 }
 
+// setTownDialogue opens a conversation and its speaker resolver.
 func (t *secondCampaignScreen) setTownDialogue(payload []byte) {
 	c := t.state()
 	c.talk.open(payload)
+	t.talkFaces = t.townSpeakers()
 	t.openTalk(t, false)
+}
+
+// townSpeakers resolves a town speaker over the carried party as a mission
+// does over its world.
+func (t *secondCampaignScreen) townSpeakers() speakerResolver {
+	party := t.session.Carried
+	cast := newSpeakerCast(party, nil)
+	cast.worn = func(id sim.EntityID) data.Equipment {
+		if int(id) < 0 || int(id) >= len(party) {
+			return data.Equipment{}
+		}
+		return mapload.EquipmentFromParty(party[id])
+	}
+	r := speakerResolver{units: t.install.Units, npcFaces: t.install.NPCFaces,
+		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA), cast: cast}
+	if t.install.Archives != nil {
+		r.src = t.install.Archives.Containers
+	}
+	return r
 }
 
 // turnTownTalk turns the campaign's page; a part with no body closes the

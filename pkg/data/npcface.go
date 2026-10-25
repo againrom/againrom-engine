@@ -227,6 +227,10 @@ type NPCFace struct {
 	// Archetype records. The event audience opens the speaker arms on either
 	// (DIV-3149).
 	Start bool
+
+	// Worn is what a synthesised NPCFigure speaker wears; a registry record
+	// leaves it empty, so its speaker is bare (DLG-SPEAKER-022).
+	Worn Equipment
 }
 
 // SynthesisedFigure applies the Start token's archetype selection (DLG-SYNTH-042).

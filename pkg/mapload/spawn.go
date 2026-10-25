@@ -873,6 +873,17 @@ func SpeakerOutfit(sub int32, mage, female bool, t *Table) (worn [sim.EquipSlots
 	return worn, "", false
 }
 
+// RowOutfit is Humans row index's own worn set, as a placement of that row
+// wears it; zero for an index the table does not hold.
+func RowOutfit(index int, t *Table) (worn [sim.EquipSlots]uint16) {
+	c := t.humans()
+	if c == nil || index <= 0 || index >= c.Len() {
+		return worn
+	}
+	worn, _ = rowOutfit(c, index, t)
+	return worn
+}
+
 // rowOutfit is one Humans row's own worn set and its name, through the two
 // functions definitionForHuman already puts a placed person's row through.
 func rowOutfit(c data.Collection, index int, t *Table) ([sim.EquipSlots]uint16, string) {

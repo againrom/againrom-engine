@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/base"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/databin"
 	"againrom/pkg/mapload"
@@ -69,6 +70,10 @@ type gameFiles struct {
 	// second game follows the first by owner direction while no second-game
 	// claim states its panel's default (DIV-4053).
 	dialogueDefault string
+	// humanSpeakers adds data.HumanSpeakerFaces beside the registry's
+	// records, which win; heroSpeaker is the player's key.
+	humanSpeakers bool
+	heroSpeaker   int32
 }
 
 var firstGameFiles = gameFiles{
@@ -116,6 +121,28 @@ var secondGameFiles = gameFiles{
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,
 	ownSaves:         true,
+	// The starting rows' server ids give key 21 (R2-ENGINE-072).
+	humanSpeakers: true,
+	heroSpeaker:   21,
+}
+
+// speakerFaces is the speaker table of t's campaign.
+func speakerFaces(t *mapload.Table) map[int32]data.NPCFace {
+	if t == nil {
+		return nil
+	}
+	faces := t.NPCCatalog.Portraits()
+	files := tableFiles(t)
+	if !files.humanSpeakers || t.Humans == nil {
+		return faces
+	}
+	out := data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, func(row int) data.Equipment {
+		return equipmentFromSlots(mapload.RowOutfit(row, t))
+	})
+	for k, v := range faces {
+		out[k] = v
+	}
+	return out
 }
 
 // filesOf are the file readers of game g.
