@@ -1,0 +1,101 @@
+name: Linux release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vMAJOR.MINOR.PATCH tag, or empty to verify this branch
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: linux/amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+      GOMAXPROCS: '4'
+      GOFLAGS: -p=2
+      DISPLAY: ''
+      WAYLAND_DISPLAY: ''
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate immutable release identity or verification commit
+        id: identity
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EVENT_REVISION: ${{ github.sha }}
+          EVENT_REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          if [[ -n "$tag" ]]; then
+            if [[ "$EVENT_NAME" == workflow_dispatch && "$EVENT_REF" != refs/heads/main ]]; then
+              echo 'Dispatch a tagged release from main.' >&2; exit 1
+            fi
+            [[ "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+            revision=$(git rev-parse --verify "refs/tags/$tag^{commit}")
+            if [[ "$EVENT_NAME" == push ]]; then
+              [[ "$revision" == "$(git rev-parse --verify "$EVENT_REVISION^{commit}")" ]]
+            fi
+            git merge-base --is-ancestor "$revision" origin/main
+            git checkout --detach "$revision"
+          else
+            [[ "$EVENT_NAME" == workflow_dispatch ]]
+            revision=$(git rev-parse --verify "$EVENT_REVISION^{commit}")
+            [[ "$(git rev-parse HEAD)" == "$revision" ]]
+          fi
+          version=$(tr -d '\r\n' < cmd/againrom/VERSION)
+          [[ -n "$tag" ]] || tag="v$version"
+          [[ "$tag" == "v$version" ]]
+          printf 'tag=%s\nrevision=%s\nversion=%s\n' "$tag" "$revision" "$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Check dialogs, versions and player profile without a display
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -trimpath -count=1 ./pkg/pathdialog ./internal/buildinfo ./internal/versionres ./cmd/starter ./cmd/mapedit
+          go test -trimpath -count=1 ./cmd/againrom ./pkg/game -run 'Test(RuntimeProfile|LaunchProfile)'
+          python3 scripts/test-linux-package.py --unit --evidence-directory "$RUNNER_TEMP/package-unit"
+      - name: Build Linux programs
+        shell: bash
+        run: bash scripts/build-tools.sh "$RUNNER_TEMP/againrom-binaries" ./cmd/againrom ./cmd/starter ./cmd/mapedit
+      - name: Fetch checksum-pinned AppImage tools
+        shell: bash
+        run: python3 scripts/package-linux.py fetch-tools --output-directory "$RUNNER_TEMP/appimage-tools"
+      - name: Package Linux release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.identity.outputs.tag }}
+          SOURCE_REVISION: ${{ steps.identity.outputs.revision }}
+        run: python3 scripts/package-linux.py package --binaries-directory "$RUNNER_TEMP/againrom-binaries" --tools-directory "$RUNNER_TEMP/appimage-tools" --output-directory "$RUNNER_TEMP/againrom-package" --revision "$SOURCE_REVISION" --tag "$RELEASE_TAG"
+      - name: Check both public packages without a display
+        shell: bash
+        run: python3 scripts/test-linux-package.py --package-directory "$RUNNER_TEMP/againrom-package" --binaries-directory "$RUNNER_TEMP/againrom-binaries" --tools-directory "$RUNNER_TEMP/appimage-tools" --evidence-directory "$RUNNER_TEMP/package-check"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-amd64-${{ steps.identity.outputs.tag }}-${{ steps.identity.outputs.revision }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-linux-x86_64.tar.gz
+            ${{ runner.temp }}/againrom-package/againrom-${{ steps.identity.outputs.version }}-linux-x86_64.AppImage
+            ${{ runner.temp }}/againrom-package/LINUX-RELEASE.json

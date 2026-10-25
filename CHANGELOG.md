@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [BASE] The game, the map editor and the starter now show their own icons in Explorer, on shortcuts, in the taskbar and in the window title bar: the game's icon, the same with a grid and pencil for the map editor, and the same with a play sign for the starter. Before, the game took the icon from the installed `rom.exe`, and the starter and the editor had none.
+- [BASE] Linux x86_64 downloads now include an AppImage and a tar.gz with the game, starter and map editor. The starter can browse for the game folder with zenity or kdialog.
 - [ROM2] The inn shows its patrons as the original does: the first patron is selected on entry, the left card gives the selected patron's name and statistics, the oval shows the patron in full figure, and each seat shows its own patron; a click on a seat now selects that patron instead of starting the talk, and Talk talks to the selected patron.
 - [ROM2] The map travel ends one step sooner, as in the original: after START MISSION in the first town the map shows for about 2.5 seconds instead of 2.6, and the first mission shows before its opening dialogue.
 - [ROM2] The inn's Talk and Exit and the shop's Undo, Buy, Sell and Exit now show in the original's gold serif letters that turn light yellow under the pointer; Undo is no longer greyed when there is nothing to undo, and a pending purchase shows on Buy as the gold it takes, such as -3. Before, they used the large town font in cream and the purchase showed as 3.

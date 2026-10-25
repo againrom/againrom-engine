@@ -14,9 +14,8 @@ original. Each known difference is listed in `docs/divergences/`.
 
 ## What you need
 
-- 64-bit Windows, or macOS on Intel or Apple Silicon, or Linux. The releases carry
-  no Linux package; build it from source, see
-  [Install on Linux](#install-on-linux).
+- 64-bit Windows, macOS on Intel or Apple Silicon, or Linux x86_64. See
+  [Install on Linux](#install-on-linux) for its system libraries.
 - The game files of Rage of Mages, English or Russian, from a Windows install
   or the CD. The game is sold digitally, for example on GOG.
 
@@ -92,31 +91,40 @@ bundle. Alternatively, run `./againrom -assets "/path/to/game folder"`.
 
 ## Install on Linux
 
-The releases carry no Linux package. Build the three programs from source and
-run them from one folder. The build needs no C compiler.
+Copy the files listed under [Game files](#game-files) from a Windows install
+or the CD into one folder on Linux, with `Allods` as a folder inside it.
+File names are found in any letter case, so nothing needs renaming.
 
-1. Install Go, at the version named in `go.mod`. Copy the files listed under
-   [Game files](#game-files) from a Windows install or the CD into one folder,
-   with `Allods` as a folder inside it. File names are found in any letter
-   case, so nothing needs renaming.
-2. In a clone of the source repository, build:
+1. Download the Linux x86_64 AppImage or tar.gz from
+   [GitHub Releases](https://github.com/againrom/againrom-engine/releases/latest).
+2. For the AppImage, make it executable and run it:
 
    ```sh
-   CGO_ENABLED=0 go build -o bin/ ./cmd/againrom ./cmd/starter ./cmd/mapedit
+   chmod +x againrom-*-linux-x86_64.AppImage
+   ./againrom-*-linux-x86_64.AppImage
    ```
 
-3. Run `./bin/starter`. Under **Base game**, type the absolute path of the game
-   folder, press **Add**, then **Play**. The Linux starter has no clipboard
-   paste and no folder browser. Alternatively, run
-   `./bin/againrom -assets "/path/to/game folder"`.
+   For the tar.gz, unpack it into a separate folder and run `./starter` in
+   its `againrom` folder. The archive preserves executable permissions.
+3. Under **Base game**, browse to the game folder, press **Add**, then **Play**.
+   Install `zenity` or `kdialog` for the folder browser; zenity takes priority.
+   Without either, type the absolute path in **Add path**. Clipboard paste
+   remains pending on Linux.
 
-At run time Ebitengine loads these libraries
-from the system. Install the typical distribution packages for them:
+The AppImage keeps `starter.ini`, `mods/`, game preferences and `saves/` in
+`$XDG_CONFIG_HOME/Againrom`, or `~/.config/Againrom` when that variable is
+unset. Its read-only mount holds no player files. Existing settings are kept;
+explicit paths chosen in the starter still apply. With the tar.gz, settings,
+mods and the player profile use the same layout beside the programs as on
+Windows and macOS. Neither download contains game assets or player profiles.
+
+Install X11 or XWayland for the display. At run time Ebitengine loads these
+libraries from the system; install the distribution packages for them:
 
 - OpenGL: `libGL`, `libOpenGL`, `libGLX` or `libEGL`.
 - X11: `libX11`, `libXcursor`, `libXext`, `libXi`, `libXinerama`, `libXrandr`
   and `libXrender`.
-- Sound: a PulseAudio server, which PipeWire also provides. Without a
+- Sound: PulseAudio or PipeWire's PulseAudio service. Without a
   reachable server, sound falls back to `libasound.so.2` (ALSA).
 
 ## Map editor

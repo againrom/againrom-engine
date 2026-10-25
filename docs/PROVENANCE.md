@@ -39,13 +39,27 @@ records and new work does not add to them.
 
 ### Admitted: licensed open-source components
 
-Two kinds of third-party code are admitted:
+Three kinds of third-party code are admitted:
 
 - **Compiled Go modules**, required in `go.mod`, such as Ebitengine and
   `golang.org/x/text`.
 - **Source-derived ports** of an open-source library's code into this tree.
   `pkg/video/smacker` is a Go port of libsmacker 1.2.0 (Greg Kennedy,
   LGPL-2.1-or-later), which decodes the Smacker movie container and its audio.
+- **The Linux AppImage runtime**, AppImage/type2-runtime `20251108`, source
+  `dd6cebedcbddde9c82f89b011e8e1d40b6e43868`. Its MIT runtime statically links
+  musl (MIT), libfuse (LGPL-2.1-or-later), squashfuse (BSD-2-Clause), zstd
+  (BSD-3-Clause), zlib (Zlib), and mimalloc (MIT). The AppImage carries their
+  notices and full licence texts in `LICENSES/AppImage-runtime.txt` and
+  `LICENSES/LGPL-2.1.txt`. The runtime's upstream build scripts identify its
+  dependency sources and patches. The runtime is not committed here.
+
+`scripts/linux-tools.json` records release URLs, source revisions and SHA-256
+digests for that runtime and the build-only appimagetool `1.9.1`. The digests
+come from the official GitHub Releases API asset `digest` fields. The Linux
+workflow downloads and verifies both before executing either. appimagetool
+and its bundled build utilities are not shipped. The AppImage uses the pinned
+runtime explicitly, so the build tool cannot select a different runtime.
 
 Each admitted component meets four conditions:
 

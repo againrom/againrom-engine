@@ -102,8 +102,14 @@ jobs:
     with:
       tag: ${{ needs.build.outputs.tag }}
 
+  linux:
+    needs: build
+    uses: ./.github/workflows/linux-release.yml
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+
   publish:
-    needs: [build, macos]
+    needs: [build, macos, linux]
     if: github.repository == 'againrom/againrom-engine'
     runs-on: windows-2022
     timeout-minutes: 10
@@ -152,6 +158,20 @@ jobs:
             if ($manifest.revision -cne $revision -or $manifest.tag -cne $tag -or $manifest.version -cne $env:RELEASE_VERSION -or $manifest.target -cne $target) {
               throw 'Downloaded manifest differs from the selected release.'
             }
+          }
+          $linux = Get-Content -LiteralPath (Join-Path $assets 'LINUX-RELEASE.json') -Raw | ConvertFrom-Json
+          $manifest = $linux.manifest
+          if ($manifest.revision -cne $revision -or $manifest.tag -cne $tag -or $manifest.version -cne $env:RELEASE_VERSION -or $manifest.target -cne 'linux/amd64') {
+            throw 'Linux receipt differs from the selected release.'
+          }
+          $linuxNames = @("againrom-$($env:RELEASE_VERSION)-linux-x86_64.tar.gz", "againrom-$($env:RELEASE_VERSION)-linux-x86_64.AppImage")
+          if (@($linux.sha256.PSObject.Properties).Count -ne 2) { throw 'Linux receipt must name exactly two assets.' }
+          foreach ($name in $linuxNames) {
+            $hash = $linux.sha256.PSObject.Properties[$name].Value
+            if ($hash -cnotmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath (Join-Path $assets $name)).Hash.ToLowerInvariant() -cne $hash) {
+              throw 'Linux asset bytes differ from the verified receipt.'
+            }
+            $expected += @($name)
           }
           $title = "Againrom $($env:RELEASE_VERSION)"
           $notes = (& ./scripts/release-notes.ps1 -Version $env:RELEASE_VERSION -Revision $revision) -join "`n"

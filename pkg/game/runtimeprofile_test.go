@@ -21,6 +21,47 @@ func profileInstall(t *testing.T) string {
 	return dir
 }
 
+func TestRuntimeProfileEnvironmentDefaults(t *testing.T) {
+	install, mount, config := profileInstall(t), t.TempDir(), filepath.Join(t.TempDir(), "profile ü")
+	t.Setenv("AGAINROM_PROFILE", config)
+	for _, program := range []string{"againrom", "mapedit"} {
+		profile, err := ResolveRuntimeProfile("", filepath.Join(mount, program), "", install)
+		if err != nil || profile.Directory != config || profile.Saves.Dir != filepath.Join(config, "saves") || profile.Options.Path != filepath.Join(config, optionsFileName) {
+			t.Fatalf("%s profile %+v, %v", program, profile, err)
+		}
+		if _, err := profile.Saves.WriteOriginal(install, []byte("profile save")); err != nil {
+			t.Fatal(err)
+		}
+		if err := profile.Options.SetTipsMode(false); err != nil {
+			t.Fatal(err)
+		}
+		folder, grant, err := profile.folder("testplay", install)
+		if err != nil || folder != filepath.Join(config, "testplay") || grant != nil {
+			t.Fatalf("editor testplay folder %s, %v, %v", folder, grant, err)
+		}
+	}
+	if files, err := os.ReadDir(mount); err != nil || len(files) != 0 {
+		t.Fatalf("profile wrote inside the program directory: %v, %v", files, err)
+	}
+	explicit := filepath.Join(t.TempDir(), "chosen", "saves")
+	profile, err := ResolveRuntimeProfile(explicit, "", "", install)
+	if err != nil || profile.Saves.Dir != explicit {
+		t.Fatalf("explicit override %+v, %v", profile, err)
+	}
+	t.Setenv("AGAINROM_PROFILE", "relative")
+	if _, err := ResolveRuntimeProfile("", filepath.Join(mount, "againrom"), "", install); err == nil {
+		t.Fatal("relative profile admitted")
+	}
+	t.Setenv("AGAINROM_PROFILE", filepath.Join(install, "Againrom"))
+	profile, err = ResolveRuntimeProfile("", filepath.Join(mount, "againrom"), "", install)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := profile.Saves.WriteOriginal(install, []byte("refused")); err == nil {
+		t.Fatal("environment profile bypassed the install fence")
+	}
+}
+
 func TestRuntimeProfileInstallLaunchWritesOnlyPrivateFiles(t *testing.T) {
 	for _, subdir := range []string{"", "bin"} {
 		t.Run("executable_"+subdir, func(t *testing.T) {

@@ -17,6 +17,14 @@ type RuntimeProfile struct {
 // ResolveRuntimeProfile grants only an implicit install-contained executable
 // its own private profile. Explicit output paths retain the ordinary fences.
 func ResolveRuntimeProfile(saveOverride, executable, userConfigDir, originalDir string) (RuntimeProfile, error) {
+	if saveOverride == "" {
+		if directory := os.Getenv("AGAINROM_PROFILE"); directory != "" {
+			if !filepath.IsAbs(directory) {
+				return RuntimeProfile{}, errors.New("AGAINROM_PROFILE must be an absolute directory")
+			}
+			saveOverride = filepath.Join(directory, "saves")
+		}
+	}
 	if saveOverride != "" {
 		return runtimeProfileStores(saveOverride, originalDir, nil), nil
 	}

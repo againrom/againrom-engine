@@ -1,4 +1,4 @@
-// Package pathdialog asks the host system for one file or folder path.
+// Package pathdialog selects file or folder paths.
 package pathdialog
 
 import (

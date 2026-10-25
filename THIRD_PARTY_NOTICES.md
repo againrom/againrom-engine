@@ -6,6 +6,14 @@ their licenses; the full license texts live under `LICENSES/`.
 
 ## Compiled third-party modules
 
+The Linux AppImage also embeds AppImage/type2-runtime `20251108` (MIT),
+source `dd6cebedcbddde9c82f89b011e8e1d40b6e43868`, with musl (MIT), libfuse
+(LGPL-2.1-or-later), squashfuse (BSD-2-Clause), zstd (BSD-3-Clause), zlib
+(Zlib) and mimalloc (MIT). Its notices and licence texts are inside the
+AppImage at `LICENSES/AppImage-runtime.txt` and `LICENSES/LGPL-2.1.txt`.
+Source and build instructions: https://github.com/AppImage/type2-runtime/tree/20251108.
+The tar.gz, Windows and macOS packages do not contain this runtime.
+
 AgainROM depends on the Go standard library plus the modules below: CP866 string
 decoding for the `pkg/formats` tier, CPU font rendering, and Ebitengine (with
 its transitive dependencies) for the `pkg/ui` and `cmd` tiers.
