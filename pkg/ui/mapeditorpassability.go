@@ -161,15 +161,33 @@ func (e *MapEditor) hoverPassability() (string, bool) {
 // hoverHeight is the status line's height of the hovered cell while the
 // height brush owns the canvas.
 func (e *MapEditor) hoverHeight() (string, bool) {
+	if g := e.brush.set; g != nil && e.brush.down {
+		return fmt.Sprintf(e.word("editor.height.target"), g.base-HeightLabelZero, g.target-HeightLabelZero), true
+	}
 	if !e.hoverOK || !e.brushActive() || e.brush.mode != brushHeight {
 		return "", false
 	}
-	alt := e.doc.Viewer.grid.Altitudes
-	i := e.hoverCell.Y*e.doc.Width + e.hoverCell.X
-	if i < 0 || i >= len(alt) {
+	h, ok := e.cellHeightAt(e.hoverCell)
+	if !ok {
 		return "", false
 	}
-	return fmt.Sprintf(e.word("editor.height.cell"), alt[i]), true
+	return fmt.Sprintf(e.word("editor.height.cell"), h-HeightLabelZero), true
+}
+
+// cellHeightAt is the stored height of map cell c, if the map holds one.
+func (e *MapEditor) cellHeightAt(c image.Point) (int, bool) {
+	alt := e.doc.Viewer.grid.Altitudes
+	i := c.Y*e.doc.Width + c.X
+	if i < 0 || i >= len(alt) {
+		return 0, false
+	}
+	return int(alt[i]), true
+}
+
+// cellHeight is the stored height of map cell c, 0 when the map holds none.
+func (e *MapEditor) cellHeight(c image.Point) int {
+	h, _ := e.cellHeightAt(c)
+	return h
 }
 
 // passQuad is one cell's fill: its four screen corners in vertices order and

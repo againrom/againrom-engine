@@ -3,10 +3,10 @@ package ui
 import "testing"
 
 // A report that lists more rows than the active brush's palette has is drawn
-// as the report: the height palette holds two rows, the report three.
+// as the report: the passability palette holds two rows, the report three.
 func TestMapEditorPanelDrawsAReportLongerThanTheBrushPalette(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	for _, k := range []string{"height", "report"} {
+	for _, k := range []string{"passability", "report"} {
 		if err := e.Key(k); err != nil {
 			t.Fatal(err)
 		}

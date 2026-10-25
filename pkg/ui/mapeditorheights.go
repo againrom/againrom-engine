@@ -24,8 +24,10 @@ type heightLabel struct {
 // heightLabels are the View menu's height numbers. A stored height belongs to
 // a mesh vertex: the height at index x+W*y lifts vertex (x, y), the top-left
 // corner of cell (x, y) (TERR-GEOM-031), so each number stands just inside
-// that corner. They are drawn only while a cell is at least as wide on screen
-// as the widest number's box and as tall as the font's line, and a number is
+// that corner. While a cell is at least as wide on screen as the widest
+// number's box and as tall as the font's line, every vertex shows its number;
+// a narrower cell shows the vertices whose column and row are both multiples
+// of k, the smallest power of two whose spacing fits a number. A number is
 // left out where a popup, a trigger label, a group badge or a number already
 // placed covers it. None while the switch is off.
 func (e *MapEditor) heightLabels() []heightLabel {
@@ -45,8 +47,13 @@ func (e *MapEditor) heightLabels() []heightLabel {
 	}
 	x0, _ := v.cellScreenCorner(0, 0)
 	x1, _ := v.cellScreenCorner(1, 0)
-	if cell := x1 - x0; !(cell >= float64(wide) && cell >= float64(h)) {
+	cell := x1 - x0
+	if !(cell > 0) {
 		return nil
+	}
+	k := 1
+	for cell*float64(k) < float64(max(wide, h)) && k < 1<<12 {
+		k *= 2
 	}
 	var covers []image.Rectangle
 	covers = append(covers, e.popupRects()...)
@@ -60,6 +67,9 @@ func (e *MapEditor) heightLabels() []heightLabel {
 	ox, oy := v.place.Origin()
 	var out []heightLabel
 	v.forEachDrawnTile(func(c, r int) {
+		if c%k != 0 || r%k != 0 {
+			return
+		}
 		text := strconv.Itoa(int(g.Altitudes[r*g.Width+c]) - HeightLabelZero)
 		w := 6
 		if f != nil {
@@ -90,12 +100,34 @@ func (e *MapEditor) heightLabels() []heightLabel {
 // the trigger labels and the popups.
 func (e *MapEditor) drawHeightLabels(pic *image.RGBA) {
 	f := e.bodyFont()
-	for _, l := range e.heightLabels() {
+	labels := e.heightLabels()
+	if l, ok := e.heightDragLabel(); ok {
+		labels = append(labels, l)
+	}
+	for _, l := range labels {
 		draw.Draw(pic, l.rect, image.NewUniform(editorInk), image.Point{}, draw.Src)
 		if f != nil {
 			f.Draw(pic.SubImage(l.rect).(*image.RGBA), l.text, l.rect.Min.X+3, l.rect.Min.Y+1, editorPaper)
 		}
 	}
+}
+
+// heightDragLabel is the target height of a Set height gesture in progress,
+// as a box beside the pointer, in window coordinates.
+func (e *MapEditor) heightDragLabel() (heightLabel, bool) {
+	g := e.brush.set
+	if g == nil || !e.brush.down || e.doc == nil {
+		return heightLabel{}, false
+	}
+	f := e.bodyFont()
+	text := strconv.Itoa(g.target - HeightLabelZero)
+	w := 6
+	if f != nil {
+		w += f.Advance(text)
+	}
+	ox, oy := e.doc.Viewer.place.Origin()
+	at := image.Pt(int(float64(g.pointer.X)+ox)+14, int(float64(g.pointer.Y)+oy)+14)
+	return heightLabel{rect: image.Rectangle{Min: at, Max: at.Add(image.Pt(w, fontHeight(f, 15)+2))}, text: text}, true
 }
 
 // HeightLabels are the height numbers the window draws: each one's window

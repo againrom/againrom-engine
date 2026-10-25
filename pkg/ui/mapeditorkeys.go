@@ -396,6 +396,8 @@ func (e *MapEditor) keyClose(string) error {
 // keyEscape cancels the foremost gesture, popup or mode.
 func (e *MapEditor) keyEscape(string) error {
 	switch {
+	case e.brush.set != nil:
+		e.brush.endStroke()
 	case e.recordDrag != nil:
 		e.leave(leaveDrag)
 	case e.pick != pickNone:

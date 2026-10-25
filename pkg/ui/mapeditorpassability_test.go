@@ -242,12 +242,12 @@ func TestMapEditorHeightBrushNamesTheCellHeight(t *testing.T) {
 	e.ShowCell(image.Pt(20, 20))
 	pt := e.CellPoint(image.Pt(20, 20))
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y}, time.Unix(3, 0))
-	if s := e.statusText(); strings.Contains(s, "Height 37") {
+	if s := e.statusText(); strings.Contains(s, "Height -27") {
 		t.Fatal("the height shows with no height brush")
 	}
 	_ = e.Key("height")
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y}, time.Unix(4, 0))
-	if s := e.statusText(); !strings.Contains(s, "Height 37") {
+	if s := e.statusText(); !strings.Contains(s, "Height -27") {
 		t.Fatalf("status %q", s)
 	}
 }

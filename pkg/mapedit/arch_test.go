@@ -43,6 +43,7 @@ var almReferences = nameTable{
 	"meta.go/(*Editor).SetDescription":      {"alm.EncodeDescription"},
 	"newmap.go/NewMap":                      {"alm.NewMap", "alm.NewMapSpec"},
 	"brush.go/(Brush).heights":              {"alm.MaxHeight"},
+	"brush.go/(Brush).addHeights":           {"alm.MaxHeight"},
 	"brush.go/(*Editor).tileEdit":           {"alm.TileGroupMask"},
 	"brush.go/waterIndex":                   {"alm.TileIndex"},
 }

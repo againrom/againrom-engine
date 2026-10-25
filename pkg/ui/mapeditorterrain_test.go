@@ -226,8 +226,18 @@ func TestHeightNumbersShowTheVertexHeightMinus64(t *testing.T) {
 		t.Fatalf("the numbers show %d values", len(seen))
 	}
 	e.doc.Viewer.cam.Zoom = 0.25
-	if rects, _ := e.HeightLabels(); len(rects) != 0 {
-		t.Fatalf("%d numbers on cells too small for them", len(rects))
+	rects, texts = e.HeightLabels()
+	if len(rects) == 0 {
+		t.Fatal("no numbers zoomed out")
+	}
+	k := vertexSpacing(t, e, rects)
+	if k < 2 || k&(k-1) != 0 {
+		t.Fatalf("zoomed out the numbers stand %d vertices apart, want a power of two above 1", k)
+	}
+	for i, r := range rects {
+		if want, ok := heightAt(e, h.alt, r.Min); !ok || texts[i] != want {
+			t.Fatalf("zoomed out, number %d shows %q; its vertex shows %q", i, texts[i], want)
+		}
 	}
 	e.doc.Viewer.cam.Zoom = 2
 	_ = e.Key("randomheights")
@@ -337,4 +347,29 @@ func TestRecordPickedAfterABoxCopiesAsRecords(t *testing.T) {
 			}
 		})
 	}
+}
+
+// vertexSpacing is the largest power of two that divides the column and the
+// row of every vertex a number in rects stands at, and fails when the numbers
+// do not stand on every such vertex of the drawn area's rows and columns.
+func vertexSpacing(t *testing.T, e *MapEditor, rects []image.Rectangle) int {
+	t.Helper()
+	ox, oy := e.doc.Viewer.place.Origin()
+	at := map[image.Point]bool{}
+	for _, r := range rects {
+		at[r.Min] = true
+	}
+	k := 1 << 12
+	for r := range terrainSide {
+		for c := range terrainSide {
+			x, y := e.corner(image.Pt(c, r))
+			if !at[image.Pt(int(float64(x)+ox)+1, int(float64(y)+oy)+1)] {
+				continue
+			}
+			for c%k != 0 || r%k != 0 {
+				k /= 2
+			}
+		}
+	}
+	return k
 }

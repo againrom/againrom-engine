@@ -74,6 +74,9 @@ type BrushStroke struct {
 	Fill   BrushFill
 	Cells  []image.Point
 	Forest BrushForest
+	// Set, on the height plane, makes Value the height the first cell takes
+	// and the cells within Radius blend toward it, instead of a change added.
+	Set bool
 }
 
 // InspectionBrushFill is the optional seam of a host that offers more than
@@ -184,8 +187,37 @@ type brushState struct {
 	hovered bool
 	wheel   float64 // the Alt+wheel's turn not yet a whole step
 	forest  forestState
+	set     *heightSet // the Set height stroke in progress
 
 	radiusSet bool
+}
+
+// heightSet is a Set height gesture: the cell the press took as the anchor,
+// the pointer row it started at, the anchor's height then, the height the
+// drag has reached and the pointer now.
+type heightSet struct {
+	anchor  image.Point
+	pressY  int
+	base    int
+	target  int
+	pointer image.Point
+}
+
+// heightSetRow is the Set height row's place in the height brush's list.
+const heightSetRow = 2
+
+// maxBrushHeight is the highest stored height.
+const maxBrushHeight = 127
+
+// settingHeight reports whether the height brush's Set height row is chosen.
+func (e *MapEditor) settingHeight() bool {
+	return e.brush.mode == brushHeight && e.brush.sel[brushHeight] == heightSetRow
+}
+
+// dragTarget is the height a pointer at p has dragged the gesture to: the
+// anchor's height plus the rows the pointer rose above the press, in 0..127.
+func (g *heightSet) dragTarget(p image.Point) int {
+	return min(max(g.base+g.pressY-p.Y, 0), maxBrushHeight)
 }
 
 func (e *MapEditor) brushHost() InspectionBrush {
@@ -212,8 +244,9 @@ func (e *MapEditor) brushRows() []string {
 		}
 		return rows
 	case brushHeight:
-		// The first row raises the cells, the second lowers them.
-		return []string{e.word("editor.brush.raise"), e.word("editor.brush.lower")}
+		// The first row raises the cells, the second lowers them, the third
+		// sets a height.
+		return []string{e.word("editor.brush.raise"), e.word("editor.brush.lower"), e.word("editor.brush.setheight")}
 	case brushPassability:
 		// The first row sets the impassable flag, the second clears it.
 		return []string{e.word("editor.brush.block"), e.word("editor.brush.unblock")}
@@ -511,6 +544,15 @@ func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
 	}
 	cell, on := e.brushCell(p, rail)
 	e.brush.hover, e.brush.hovered = cell, on
+	if e.brush.down && e.brush.set != nil {
+		e.down = in.PrimaryDown
+		e.brush.set.pointer = p
+		e.brush.set.target = e.brush.set.dragTarget(p)
+		if !in.PrimaryDown {
+			e.brushCommit()
+		}
+		return true
+	}
 	if e.brush.down {
 		e.down = in.PrimaryDown
 		held := in.PrimaryDown
@@ -531,6 +573,10 @@ func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
 		e.brush.down = true
 		e.brush.forest.thin = thin
 		e.brush.stroke = []image.Point{cell}
+		if e.settingHeight() {
+			base := e.cellHeight(cell)
+			e.brush.set = &heightSet{anchor: cell, pressY: p.Y, base: base, target: base, pointer: p}
+		}
 		e.doc.Viewer.dragging = false
 		return true
 	}
@@ -555,7 +601,7 @@ func (b *brushState) extend(cell image.Point) {
 }
 
 func (e *MapEditor) brushCommit() {
-	cells, thin := e.brush.stroke, e.brush.forest.thin
+	cells, thin, set := e.brush.stroke, e.brush.forest.thin, e.brush.set
 	e.brush.endStroke()
 	host := e.brushHost()
 	if host == nil || len(cells) == 0 {
@@ -566,8 +612,13 @@ func (e *MapEditor) brushCommit() {
 	switch e.brush.mode {
 	case brushHeight:
 		op.Plane, op.Value = BrushPlaneHeight, brushHeightStep
-		if sel == 1 {
+		switch {
+		case sel == 1:
 			op.Value = -brushHeightStep
+		case set != nil:
+			op.Value, op.Set, op.Cells = set.target, true, []image.Point{set.anchor}
+		case sel == heightSetRow:
+			return
 		}
 	case brushObjects:
 		objects := host.BrushObjects()
@@ -694,7 +745,11 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 		}
 		centres = []image.Point{e.brush.hover}
 	}
-	cells := e.brushHost().BrushCells(BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: centres})
+	marker := BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: centres}
+	if e.settingHeight() {
+		marker.Plane, marker.Set = BrushPlaneHeight, true
+	}
+	cells := e.brushHost().BrushCells(marker)
 	in := make(map[image.Point]bool, len(cells))
 	for _, c := range cells {
 		in[c] = true
@@ -720,4 +775,4 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 var cellSides = [4]image.Point{{0, -1}, {1, 0}, {0, 1}, {-1, 0}}
 
 // endStroke drops the stroke in progress.
-func (b *brushState) endStroke() { b.stroke, b.down, b.forest.thin = nil, false, false }
+func (b *brushState) endStroke() { b.stroke, b.down, b.forest.thin, b.set = nil, false, false, nil }

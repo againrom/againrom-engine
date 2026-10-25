@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"slices"
 
 	"againrom/pkg/formats/alm"
@@ -54,6 +55,11 @@ type Brush struct {
 	// Scatter, when it names classes, makes an object stroke plant or thin a
 	// mix instead of writing Value.
 	Scatter Scatter
+	// Set, on the height plane, makes the stroke set a height instead of
+	// adding one: Value is the height (0..127) the first centre takes, and the
+	// cells within the radius blend toward it by cosine from their own height
+	// (TERR-251). The brush is a circle of radius at least 1.
+	Set bool
 }
 
 // Scatter is the forest form of an object stroke. Each covered cell is drawn
@@ -101,11 +107,21 @@ func weight(f Falloff, d2, r int) int {
 	return cosineWeight[k]
 }
 
+// effective is b as it covers cells: a height-setting brush is a circle of
+// radius at least 1 (TERR-251).
+func (b Brush) effective() Brush {
+	if b.Set && b.Plane == PlaneHeight {
+		b.Shape, b.Radius = BrushCircle, max(b.Radius, 1)
+	}
+	return b
+}
+
 // walk calls fn for each cell the brush covers around c that lies on the
 // grid, in row order, with its squared distance from c: the Euclidean one for
 // a circle, the larger axis distance for a square. The fall-off reads that
 // distance, so a square brush fades by rings of squares.
 func (b Brush) walk(c Cell, w, h int, fn func(x, y, d2 int)) {
+	b = b.effective()
 	r := b.Radius
 	for dy := -r; dy <= r; dy++ {
 		for dx := -r; dx <= r; dx++ {
@@ -337,8 +353,60 @@ func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
 // the change, faded by the fall-off, clamped to 0..127, then the row step
 // bounded at 31 (TERR-245). old is not changed.
 func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
+	b = b.effective()
 	next := append([]byte(nil), old...)
 	in := make([]bool, len(old))
+	if b.Set {
+		// The first centre takes the target; each other cell within the radius
+		// blends from its own height toward it by the cosine of its distance
+		// (TERR-251), truncated to a byte.
+		target := min(max(b.Value, 0), alm.MaxHeight)
+		b.walk(at[0], w, h, func(x, y, d2 int) {
+			i := y*w + x
+			in[i] = true
+			if d2 == 0 {
+				next[i] = byte(target)
+				return
+			}
+			d := math.Sqrt(float64(d2))
+			v := float64(old[i]) + float64(target-int(old[i]))*math.Cos(d*3.1415926/float64(2*b.Radius))
+			next[i] = byte(min(max(int(v), 0), alm.MaxHeight))
+		})
+		boundSetRows(next, in, at[0], w)
+		return next
+	}
+	b.addHeights(next, in, at, w, h)
+	boundRows(next, in, at[0].Y, w)
+	return next
+}
+
+// boundSetRows bounds the row step at 31 around the centre c of a
+// height-setting stroke (TERR-251): only the cells with |dx| < |dy| are
+// changed, so the centre keeps its target. Above c the upper cell rises to
+// the cell below it less 31; below c the lower cell falls to the cell above
+// it plus 31; both run away from c.
+func boundSetRows(next []byte, in []bool, c Cell, w int) {
+	for y := c.Y - 1; y >= 0; y-- {
+		for x := 0; x < w; x++ {
+			if i := y*w + x; in[i] && abs(x-c.X) < c.Y-y && int(next[i+w])-int(next[i]) > rowStep {
+				next[i] = next[i+w] - rowStep
+			}
+		}
+	}
+	for y := c.Y + 1; (y+1)*w <= len(next); y++ {
+		for x := 0; x < w; x++ {
+			if i := y*w + x; in[i] && abs(x-c.X) < y-c.Y && int(next[i])-int(next[i-w]) > rowStep {
+				next[i] = next[i-w] + rowStep
+			}
+		}
+	}
+}
+
+func abs(v int) int { return max(v, -v) }
+
+// addHeights adds the brush's change, faded by its fall-off, to next at every
+// cell the brush covers around the centres at, and marks those cells in in.
+func (b Brush) addHeights(next []byte, in []bool, at []Cell, w, h int) {
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, d2 int) {
 			i := y*w + x
@@ -347,10 +415,14 @@ func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 			next[i] = byte(min(max(v, 0), alm.MaxHeight))
 		})
 	}
+}
+
+// boundRows bounds the row step at 31 in next among the cells marked in in
+// (TERR-245), for a stroke whose first cell is in row anchor.
+func boundRows(next []byte, in []bool, anchor, w int) {
 	// Above the stroke's first cell the step is bounded by raising the upper
 	// cell, bottom to top; every remaining step is bounded by lowering the
 	// lower cell, top to bottom (TERR-245).
-	anchor := at[0].Y
 	for i := len(next) - w - 1; i >= 0; i-- {
 		if in[i] && i/w < anchor && int(next[i+w])-int(next[i]) > rowStep {
 			next[i] = next[i+w] - rowStep
@@ -361,7 +433,6 @@ func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 			next[i+w] = next[i] + rowStep
 		}
 	}
-	return next
 }
 
 // objectStroke writes the class code (0..255) into every brush cell.
