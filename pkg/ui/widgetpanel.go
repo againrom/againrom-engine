@@ -8,11 +8,12 @@ import (
 )
 
 // A room's button panel is one kind with one builder: the shop's commands,
-// the school's, the three- and four-command tavern's and the generator's
-// detail commands. Each screen supplies a panelComposition (where the body,
-// its seam and each plaque sit), the panelArt the install resolved for it, and
-// each button's captions and pointer state; buildButtonPanel turns them into
-// the body paint and the push buttons the shared painter draws.
+// the school's, the three- and four-command tavern's, the generator's
+// detail commands and a composed room page's (DrawRoomButtons). Each screen
+// supplies a panelComposition (where the body, its seam and each plaque sit),
+// the panelArt the install resolved for it, and each button's captions and
+// pointer state; buildButtonPanel turns them into the body paint and the push
+// buttons the shared painter draws.
 
 // panelComposition is a button panel's geometry and drawing rules.
 type panelComposition struct {

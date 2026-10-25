@@ -173,6 +173,8 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 		return
 	}
 	r := d.Room(room)
+	v.ButtonStyle = t.install.roomButtonStyle(d)
+	v.BuyDebit = d.RoomButtons != nil && d.RoomButtons.BuyDebit
 	racks := t.shopRacks()
 	for k := range l.ShelfPick {
 		l.ShelfPick[k] = image.Rectangle{}

@@ -40,6 +40,9 @@ type Description struct {
 	Square   SquareSpec    `json:"square"`
 	Rooms    []RoomSpec    `json:"rooms"`
 	Save     SaveSpec      `json:"save"`
+	// RoomButtons is the rooms' button caption style; nil keeps the
+	// engine's own.
+	RoomButtons *RoomButtonsSpec `json:"room-buttons"`
 }
 
 // ViewSpec is the view's size.
@@ -484,6 +487,18 @@ type RoomSpec struct {
 type Step struct {
 	Composer string   `json:"composer"`
 	Hook     string   `json:"hook"`
+	Cite     []string `json:"cite"`
+}
+
+// RoomButtonsSpec is how the rooms' button captions draw: in the game's
+// generator font Font names ("name" or "text"), in Ink at rest and HoverInk
+// under the pointer; a button that cannot act keeps Ink. BuyDebit shows the
+// shop's pending buy as the gold it takes, below zero.
+type RoomButtonsSpec struct {
+	Font     string   `json:"font"`
+	Ink      [3]uint8 `json:"ink"`
+	HoverInk [3]uint8 `json:"hover-ink"`
+	BuyDebit bool     `json:"buy-debit"`
 	Cite     []string `json:"cite"`
 }
 

@@ -106,6 +106,9 @@ type secondTownState struct {
 	seatFrames []int
 	seatStamp  time.Time
 	innShown   bool
+	// pointer is the last pointer update the shown room had; (-1,-1) off
+	// the screen.
+	pointer image.Point
 
 	action ui.TownAction
 }
@@ -122,7 +125,7 @@ type secondTownArt struct {
 func newSecondTownState(f *FrontEnd) *secondTownState {
 	return &secondTownState{process: &f.townProcess, sound: runtimeTownAudio{&f.RuntimeServices},
 		draws: runtimeTownDraws{&f.RuntimeServices}, scenes: map[string]*town.Scene{},
-		art: map[string]*secondTownArt{}, seat: -1}
+		art: map[string]*secondTownArt{}, seat: -1, pointer: image.Pt(-1, -1)}
 }
 
 // composedTown answers the description of the current town when the
@@ -265,6 +268,7 @@ func (t *secondCampaignScreen) TownSquarePointer(p image.Point) {
 		return
 	}
 	t.TownSquareActive(true)
+	t.composed.pointer = p
 	t.scene(d, room).Pointer(p)
 }
 
@@ -449,17 +453,40 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 		v.paintSeats(dst, seats, page, words, font)
 	}
 	s.Paint(dst, "front")
+	var buttons []ui.RoomButton
 	for _, b := range s.ShownButtons(r.Buttons) {
 		rect := b.Rect.Rectangle()
-		drawAt(dst, page.Picture(b.Off), rect.Min, draw.Src)
+		rb := ui.RoomButton{Rect: rect, Off: page.Picture(b.Off), Hover: v.t.composed.pointer.In(rect)}
+		if b.On != "" {
+			rb.On = page.Picture(b.On)
+		}
 		caption := b.Caption
 		if b.Name == "hire" {
 			caption = v.hireCaption()
 		}
-		if caption != nil && *caption < len(words.Hover) && font != nil {
-			ui.DrawTownCaption(dst, font, words.Hover[*caption], rect)
+		if caption != nil && *caption < len(words.Hover) {
+			rb.Caption = words.Hover[*caption]
+		}
+		buttons = append(buttons, rb)
+	}
+	ui.DrawRoomButtons(dst, font, v.t.install.roomButtonStyle(v.d), buttons)
+}
+
+// roomButtonStyle is the description's room button style in the generator
+// font it names; nil when the description names none.
+func (in *InstallResources) roomButtonStyle(d *town.Description) *ui.RoomButtonStyle {
+	if d == nil || d.RoomButtons == nil {
+		return nil
+	}
+	b := d.RoomButtons
+	s := &ui.RoomButtonStyle{Ink: ui.GeneratorInk(b.Ink).RGBA(), Hover: ui.GeneratorInk(b.HoverInk).RGBA()}
+	if a := in.ChargenAssets; a != nil && a.Presentation != nil {
+		s.Font = a.Presentation.Font
+		if b.Font == "name" {
+			s.Font = a.Presentation.NameFont
 		}
 	}
+	return s
 }
 
 // Main-text keys of the inn page: the hired mark (R2-ENGINE-497) and the

@@ -379,6 +379,11 @@ type ShopScreenView struct {
 	// are never empty; a zero-value ShopScreenView built by hand (a test)
 	// draws no caption, which is that test's own choice.
 	Words Words
+
+	// ButtonStyle is the game's room button captions; nil keeps the first
+	// game's. BuyDebit shows the pending buy below zero, the gold it takes.
+	ButtonStyle *RoomButtonStyle
+	BuyDebit    bool
 }
 
 // ShopControlKind names one family of clickable rectangle on the screen.
@@ -1050,7 +1055,7 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	}
 	panel := shopButtonPanel(v, hover, hasHover)
 	panel.drawBody(dst)
-	panel.drawButtons(dst, v.Font)
+	panel.drawButtons(dst, v.ButtonStyle.font(v.Font))
 	if art != nil {
 		blit(dst, art.Arrow[0], l.ArrowUp.Min.X, l.ArrowUp.Min.Y)
 		blit(dst, art.Arrow[1], l.ArrowDown.Min.X, l.ArrowDown.Min.Y)
@@ -1149,6 +1154,9 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 	}
 	labels := [4]string{v.Words.ShopUndo, v.Words.ShopBuy, v.Words.ShopSell, v.Words.ShopExit}
 	numbers := [4]int32{v.Purse, v.Buy, v.Sell, v.Total}
+	if v.BuyDebit {
+		numbers[1] = -v.Buy
+	}
 	l := v.layout()
 	buttons := make([]panelButton, len(l.Button))
 	for i, r := range l.Button {
@@ -1160,6 +1168,7 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 	}
 	comp := shopPanel
 	comp.Body, comp.Plaques = l.Buttons, l.Button[:]
+	comp.Ink = v.ButtonStyle.plaqueInk(comp.Ink)
 	return buildButtonPanel(comp, art, buttons)
 }
 

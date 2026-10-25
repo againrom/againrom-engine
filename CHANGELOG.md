@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The inn's Talk and Exit and the shop's Undo, Buy, Sell and Exit now show in the original's gold serif letters that turn light yellow under the pointer; Undo is no longer greyed when there is nothing to undo, and a pending purchase shows on Buy as the gold it takes, such as -3. Before, they used the large town font in cream and the purchase showed as 3.
 - [ROM2] The hero creation page shows Accept, Reset, Back and Restore on the second game's own four-plaque brown panel, as the shops show four commands, so a click where the original has Reset or Back now gives Reset or Back; Restore is the fourth plaque, below Back.
 - [ROM2] The town square, the inn and the shop now show their tip box as in the original: on arrival in a town, on every return to the square and on each inn and shop entry, until SHOW TIPS NEXT TIME is cleared. CLOSE hides the box until the next entry.
 - [ROM2] The inn talk box and the first mission's dialogue show the speaker's portrait beside the text, and the text wraps as in the original.

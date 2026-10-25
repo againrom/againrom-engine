@@ -3036,5 +3036,5 @@ var Committed = Baseline{
 	// for the body words a SAVE keeps from LOAD, then for the second game's
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups.
-	CommentBytes: 9670086,
+	CommentBytes: 9672153,
 }

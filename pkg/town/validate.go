@@ -46,6 +46,9 @@ func (d *Description) Validate() error {
 			return err
 		}
 	}
+	if b := d.RoomButtons; b != nil && b.Font != "name" && b.Font != "text" {
+		return fail("room-buttons font %q%s", b.Font, accepted("name", "text"))
+	}
 	for _, s := range d.Square.Enter {
 		if err := validateStep(s, "square", fail); err != nil {
 			return err

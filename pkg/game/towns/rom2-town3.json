@@ -310,5 +310,7 @@
        ],
        "cite": ["R2-ENGINE-249", "R2-ENGINE-259"]},
      "cite": ["R2-ENGINE-249", "R2-ENGINE-263", "R2-ENGINE-266", "R2-ENGINE-267", "R2-ENGINE-330", "R2-ENGINE-259"]}
-  ]
+  ],
+  "room-buttons": {"font": "name", "ink": [185, 159, 73], "hover-ink": [255, 255, 116], "buy-debit": true,
+    "cite": ["R2-ENGINE-246", "R2-ENGINE-249", "R2-ENGINE-267", "DIV-2964", "DIV-3046"]}
 }
