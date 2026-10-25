@@ -108,6 +108,9 @@ type popupSpec struct {
 	At       image.Point
 	Width    int
 	Bounds   image.Rectangle
+	// Slack lets a dragged popup hang past the bounds, keeping its title row
+	// and popupKeepWide pixels of its width inside.
+	Slack    bool
 	Rows     []popupRow
 	Top      int
 	MaxRows  int
@@ -370,7 +373,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		h = max(h, sizedH)
 	}
 	r := image.Rectangle{Min: s.At, Max: s.At.Add(image.Pt(w, h))}
-	if !s.Bounds.Empty() {
+	if !s.Bounds.Empty() && s.Slack {
+		r = slackInside(r, s.Bounds, titleH)
+	} else if !s.Bounds.Empty() {
 		if r.Max.X > s.Bounds.Max.X {
 			r = r.Add(image.Pt(s.Bounds.Max.X-r.Max.X, 0))
 		}
@@ -586,8 +591,33 @@ const (
 	edgeBottom
 )
 
-// popupEdgeBand is how many pixels inside the border count as the border.
-const popupEdgeBand = 4
+// popupEdgeBand is how many pixels inside the border count as the border;
+// popupCorner is the side of the bottom-right square that resizes both ways.
+const (
+	popupEdgeBand = 8
+	popupCorner   = 16
+	// popupTopBand is the top border's band; the title row below it drags.
+	popupTopBand  = 4
+	popupKeepWide = 48
+)
+
+// slackInside moves r the least that keeps its title row inside bounds and at
+// least popupKeepWide pixels of its width inside them.
+func slackInside(r, bounds image.Rectangle, titleH int) image.Rectangle {
+	keep := min(popupKeepWide, r.Dx())
+	dx, dy := 0, 0
+	if r.Max.X < bounds.Min.X+keep {
+		dx = bounds.Min.X + keep - r.Max.X
+	} else if r.Min.X > bounds.Max.X-keep {
+		dx = bounds.Max.X - keep - r.Min.X
+	}
+	if r.Min.Y < bounds.Min.Y {
+		dy = bounds.Min.Y - r.Min.Y
+	} else if r.Min.Y+titleH > bounds.Max.Y {
+		dy = bounds.Max.Y - titleH - r.Min.Y
+	}
+	return r.Add(image.Pt(dx, dy))
+}
 
 // edgeAt is the border under p, none for a press inside the popup's body or
 // on its close button.
@@ -603,10 +633,17 @@ func (l popupLayout) edgeAt(p image.Point) popupEdge {
 		e |= edgeRight
 	}
 	switch {
-	case p.Y < l.Rect.Min.Y+popupEdgeBand:
+	case p.Y < l.Rect.Min.Y+popupTopBand:
 		e |= edgeTop
 	case p.Y >= l.Rect.Max.Y-popupEdgeBand:
 		e |= edgeBottom
+	}
+	if p.X >= l.Rect.Max.X-popupCorner && p.Y >= l.Rect.Max.Y-popupCorner {
+		return edgeRight | edgeBottom
+	}
+	// A row, list or button that reaches into the band keeps its press.
+	if part, _ := l.hit(p); part != popupBody && part != popupTitle {
+		return 0
 	}
 	return e
 }
@@ -662,8 +699,10 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			value = ink.Value
 		}
 		if row.Kind == popupHeading {
+			band := rr.Rect.Intersect(l.Rect)
+			drawFrame(dst, panelFrame(band, ink.TitleGround, ink.Edge))
 			if title != nil {
-				title.Draw(dst.SubImage(rr.Rect).(*image.RGBA), row.Label, rr.Rect.Min.X+2, rr.Rect.Min.Y+popupRowExtra/2, ink.Title)
+				title.Draw(dst.SubImage(band).(*image.RGBA), row.Label, rr.Rect.Min.X+4, rr.Rect.Min.Y+popupRowExtra/2, ink.Title)
 			}
 			continue
 		}
@@ -810,13 +849,15 @@ func drawGridTick(dst *image.RGBA, c image.Rectangle, ink color.RGBA) {
 }
 
 // drawPopupGrip marks the bottom-right corner where a drag resizes the popup:
-// three short diagonal strokes.
+// four diagonal strokes, two pixels thick, inside the popupCorner square.
 func drawPopupGrip(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
-	for k := 1; k <= 3; k++ {
-		for i := 0; i < 2*k; i++ {
-			p := image.Pt(r.Max.X-3-2*k+i+1, r.Max.Y-3-i)
-			if p.In(dst.Bounds()) {
-				dst.SetRGBA(p.X, p.Y, c)
+	for k := 1; k <= 4; k++ {
+		for i := 0; i < 4*k-2; i++ {
+			for d := 0; d < 2; d++ {
+				p := image.Pt(r.Max.X-3-4*k+i+d+3, r.Max.Y-3-i)
+				if p.In(dst.Bounds()) && p.X < r.Max.X-1 {
+					dst.SetRGBA(p.X, p.Y, c)
+				}
 			}
 		}
 	}

@@ -60,6 +60,7 @@ type editorChrome struct {
 	drag                   editorPopupID
 	dragFrom               image.Point
 	promptShift            image.Point              // a dragged prompt's offset from its own place
+	slack                  [popArea + 1]bool        // a popup that was dragged may hang past the window's edges
 	sizes                  [popArea + 1]image.Point // the size a popup was dragged to; zero is its natural size
 	minWide                [popArea + 1]int         // the width a popup had when it was first sized
 	sizeKey                [popArea + 1]string      // the window a popup was sized for
@@ -964,6 +965,7 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	if !e.prompt.open() && e.message == "" {
 		e.promptShift = image.Point{}
+		e.slack[popPrompt] = false
 		return popupSpec{}, false
 	}
 	if e.prompt.kind == promptAdd {
@@ -1068,16 +1070,18 @@ func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
 	return true
 }
 
-// dragPopup moves the dragged popup by d. The popup builder's bounds clamp
-// keeps it inside the window, and the kept place is the clamped one, so a
-// drag back moves it at once.
+// dragPopup moves the dragged popup by d. The popup builder's slack clamp
+// keeps its title row and part of its width inside the window, and the kept
+// place is the clamped one, so a drag back moves it at once.
 func (e *MapEditor) dragPopup(d image.Point) {
 	s, ok := e.movableSpec(e.drag)
 	if !ok {
 		return
 	}
 	from := s.At
-	s.At = layoutPopup(s, e.font, e.bodyFont()).Rect.Min.Add(d)
+	shown := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
+	e.slack[e.drag], s.Slack = true, true
+	s.At = shown.Add(d)
 	to := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
 	switch e.drag {
 	case popList:

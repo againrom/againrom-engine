@@ -124,6 +124,7 @@ var (
 	lineRandomTerrain = helpLine{Word: "editor.keys.randomterrain"}
 	lineRandomHeights = helpLine{Word: "editor.keys.randomheights"}
 	lineHeightLabels  = helpLine{Word: "editor.keys.heightlabels"}
+	linePassView      = helpLine{Word: "editor.keys.passview"}
 )
 
 func init() {
@@ -171,6 +172,7 @@ func init() {
 		{key: "paste", label: "Ctrl+V", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
 		{key: "randomterrain", label: "Ctrl+E", act: (*MapEditor).keyRandom, help: keys(lineRandomTerrain)},
 		{key: "randomheights", label: "Ctrl+Shift+R", act: (*MapEditor).keyRandom, help: keys(lineRandomHeights)},
+		{key: "passview", label: "Z", act: (*MapEditor).keyPassView, help: keys(linePassView)},
 		{key: "heightlabels", label: "V", act: (*MapEditor).keyHeightLabels, help: keys(lineHeightLabels)},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenAdd, lineAddNext}, {screenAddCell, lineBack}, {screenSelection, lineSelectionEsc}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
@@ -187,9 +189,12 @@ func init() {
 		{key: "left", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
 		{key: "right", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
 		{key: "selectall", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{key: "textundo", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
+		{key: "textredo", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
 		{key: "cut", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
 		{label: "Ctrl+C", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.clipboard"}}}},
 		{label: "Ctrl+A", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.select"}}}},
+		{label: "Ctrl+Z", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.undo"}}}},
 		{label: "Ctrl+Left", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.words"}}}},
 		{label: "Backspace", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.repeat"}}}},
 		{label: "Popup", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.popup"}}}},

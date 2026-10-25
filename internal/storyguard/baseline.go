@@ -3008,6 +3008,10 @@ package storyguard
 // CommentBytes rises with the doc comments of the second game's speaker
 // records: pkg/data/humanspeakers.go, pkg/game/gamefiles.go, the town talk
 // faces in pkg/game/secondcampaign.go, their tests, and this paragraph.
+//
+// CommentBytes rises 1968 bytes with the doc comments of the map editor's
+// window and typing changes: pkg/ui/editorpopup.go, editorinput.go, their tests,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3037,5 +3041,5 @@ var Committed = Baseline{
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons.
-	CommentBytes: 9669595,
+	CommentBytes: 9671563,
 }

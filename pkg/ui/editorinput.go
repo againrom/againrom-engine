@@ -45,6 +45,56 @@ type editorInputState struct {
 	target *string
 	key    string
 	drag   bool
+	// before is the model as the last editing call found it; undo and redo
+	// hold the steps this input has taken, and end with the input's focus.
+	before     typingStep
+	undo, redo []typingStep
+}
+
+// typingStep is the text and selection an input held between two edits.
+type typingStep struct {
+	text          string
+	caret, anchor int
+}
+
+// typingHistoryLimit bounds the steps one input remembers.
+const typingHistoryLimit = 256
+
+func stepOf(m *TextInputState) typingStep { return typingStep{m.Text, m.Caret, m.Anchor} }
+
+// edited records the step that just changed the text, and forgets the redo
+// steps it cuts off.
+func (s *editorInputState) edited() {
+	if s.model.Text == s.before.text {
+		return
+	}
+	s.undo = append(s.undo, s.before)
+	if len(s.undo) > typingHistoryLimit {
+		s.undo = s.undo[1:]
+	}
+	s.redo = nil
+	s.before = stepOf(&s.model)
+}
+
+// typingHistory undoes or redoes the focused input's last typing step.
+func (e *MapEditor) typingHistory(redo bool) {
+	m, _ := e.inputModel()
+	if m == nil {
+		return
+	}
+	from, to := &e.input.undo, &e.input.redo
+	if redo {
+		from, to = to, from
+	}
+	if len(*from) == 0 {
+		return
+	}
+	step := (*from)[len(*from)-1]
+	*from = (*from)[:len(*from)-1]
+	*to = append(*to, stepOf(m))
+	m.Text, m.Caret, m.Anchor, m.SelectedAll = step.text, step.caret, step.anchor, false
+	e.input.before = step
+	e.inputPropagate()
 }
 
 func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
@@ -171,7 +221,9 @@ func (e *MapEditor) inputModel() (*TextInputState, editorInputPolicy) {
 		repeating := e.input.model.repeating
 		e.input.model.reset(*target)
 		e.input.model.repeating = repeating
+		e.input.undo, e.input.redo = nil, nil
 	}
+	e.input.before = stepOf(&e.input.model)
 	e.input.model.rules = TextInputRules{Accept: func(rune) bool { return true }}
 	if e.objectTyping() && len(e.obj.fields[e.obj.focus].Choices) > 0 {
 		e.input.model.rules.AcceptBatch = func(s string) bool { return strings.TrimLeft(s, "-0123456789") == "" }
@@ -180,6 +232,11 @@ func (e *MapEditor) inputModel() (*TextInputState, editorInputPolicy) {
 }
 
 func (e *MapEditor) inputChanged() {
+	e.input.edited()
+	e.inputPropagate()
+}
+
+func (e *MapEditor) inputPropagate() {
 	*e.input.target = e.input.model.Text
 	if e.prompt.open() {
 		e.addFollow()
@@ -232,13 +289,17 @@ func (e *MapEditor) textKey(key string) bool {
 	ctrl, shift := strings.Contains(key, "ctrl+"), strings.Contains(key, "shift+")
 	key = strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(key, "ctrl+"), "shift+"), "ctrl+")
 	switch key {
-	case "left", "right", "home", "end", "up", "down", "backspace", "delete", "selectall", "copy", "cut", "paste":
+	case "left", "right", "home", "end", "up", "down", "backspace", "delete", "selectall", "copy", "cut", "paste", "textundo", "textredo":
 	default:
 		return false
 	}
 	m, policy := e.inputModel()
 	if m == nil {
 		return false
+	}
+	if key == "textundo" || key == "textredo" {
+		e.typingHistory(key == "textredo")
+		return true
 	}
 	if key == "up" || key == "down" {
 		if !policy.multiline && !shift {

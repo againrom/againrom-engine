@@ -185,6 +185,7 @@ func (e *MapEditor) openPrompt(p editorPrompt) {
 	e.rememberCancel()
 	e.input = editorInputState{}
 	e.prompt, e.message, e.promptShift = p, "", image.Point{}
+	e.slack[popPrompt] = false
 }
 
 // toggleBrush switches the brush mode on, or off when it already is mode.

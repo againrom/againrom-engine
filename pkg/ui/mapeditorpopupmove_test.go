@@ -67,8 +67,8 @@ func TestEditorPanelNoticeAndGroupMoveByTitle(t *testing.T) {
 				t.Fatalf("title %v moved to %v, not by %v", before, after, d)
 			}
 			_, far := dragTitle(t, e, image.Pt(-5000, -5000))
-			if bounds := e.popupBounds(); far.Min != bounds.Min {
-				t.Fatalf("a drag past the corner left the title at %v, not %v", far, bounds.Min)
+			if bounds := e.popupBounds(); far.Max.X != bounds.Min.X+popupKeepWide || far.Min.Y != bounds.Min.Y {
+				t.Fatalf("a drag past the corner left the title at %v, not %d px inside %v", far, popupKeepWide, bounds)
 			}
 		})
 	}

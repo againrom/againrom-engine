@@ -61,6 +61,16 @@ func (e *MapEditor) updateTextInput(in editorNativeInput, now time.Time) (bool, 
 				_ = e.Key(k.name)
 			}
 		}
+		if in.justPressed(ebiten.KeyZ) {
+			if shift {
+				_ = e.Key("textredo")
+			} else {
+				_ = e.Key("textundo")
+			}
+		}
+		if in.justPressed(ebiten.KeyY) {
+			_ = e.Key("textredo")
+		}
 	}
 	return true, policy
 }

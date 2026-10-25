@@ -74,6 +74,7 @@ func (e *MapEditor) keyClear(string) error {
 		if m, _ := e.inputModel(); m != nil {
 			m.selectAll()
 			m.replace("")
+			e.input.edited()
 			*e.input.target = m.Text
 		}
 	}

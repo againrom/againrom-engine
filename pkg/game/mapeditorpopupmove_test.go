@@ -122,8 +122,8 @@ func popupCases() []popupCase {
 }
 
 // Every editor popup and input window moves by its title bar and stays in
-// the window: a drag by d moves it by d, a drag far past the corner stops at
-// the window's edge, and the next window of the same place opens where its
+// the window: a drag by d moves it by d, a drag far past the corner keeps its
+// title row and 48 pixels inside the window, and the next window of the same place opens where its
 // own place is.
 func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
 	for _, c := range popupCases() {
@@ -138,11 +138,11 @@ func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
 				t.Fatalf("title %v moved to %v, not by %v", before, after, d)
 			}
 			_, far := titleDrag(t, e, image.Pt(-5000, -5000))
-			if far.Min.X != 0 || far.Min.Y <= 0 {
+			if far.Max.X != 48 || far.Min.Y <= 0 {
 				t.Fatalf("a drag past the corner left the title at %v", far)
 			}
 			_, back := titleDrag(t, e, image.Pt(5000, 5000))
-			if back.Max.X > 1280 || back.Min.Y <= far.Min.Y {
+			if back.Min.X != 1280-48 || back.Min.Y <= far.Min.Y {
 				t.Fatalf("a drag past the far corner left the title at %v", back)
 			}
 		})
@@ -156,7 +156,7 @@ func TestEditorPopupDragNeedsTheTitle(t *testing.T) {
 	_ = e.Key("saveas")
 	home, _ := e.TitleRect()
 	body, _ := e.PromptRect()
-	p := image.Pt(body.Min.X+4, body.Max.Y-3)
+	p := image.Pt(body.Min.X+12, body.Max.Y-12)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: p.X - 60, CursorY: p.Y + 40, PrimaryDown: true}, time.Time{})
 	e.Pointer(ui.Input{CursorX: p.X - 60, CursorY: p.Y + 40}, time.Time{})

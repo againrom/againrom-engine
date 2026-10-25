@@ -60,8 +60,8 @@ func TestPopupLayoutIsThePaintAndTheHitTest(t *testing.T) {
 			t.Errorf("widget %v at %v outside the popup %v", c.kind, c.rect, l.Rect)
 		}
 	}
-	// frame twice, close + pick + two buttons + drop-down arrow, edit x2 (+ the drop-down's well)
-	if kinds[widgetFrame] != 2 || kinds[widgetPushButton] != 5 || kinds[widgetEdit] != 3 || kinds[widgetDropdown] != 1 {
+	// frame twice and a heading band, close + pick + two buttons + drop-down arrow, edit x2 (+ the drop-down's well)
+	if kinds[widgetFrame] != 3 || kinds[widgetPushButton] != 5 || kinds[widgetEdit] != 3 || kinds[widgetDropdown] != 1 {
 		t.Fatalf("popup built %v", kinds)
 	}
 	if c := pic.RGBAAt(l.Rect.Min.X+1, l.Rect.Max.Y-2); c != (color.RGBA{0x30, 0x29, 0x1f, 255}) {

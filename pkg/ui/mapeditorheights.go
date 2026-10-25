@@ -107,6 +107,12 @@ func (e *MapEditor) HeightLabels() (rects []image.Rectangle, texts []string) {
 	return rects, texts
 }
 
+// keyPassView turns the passability view on or off.
+func (e *MapEditor) keyPassView(string) error {
+	e.view.passability = !e.view.passability
+	return nil
+}
+
 // keyHeightLabels turns the height numbers on or off and says so on the
 // status line, which also tells a map maker zoomed out why none show.
 func (e *MapEditor) keyHeightLabels(string) error {

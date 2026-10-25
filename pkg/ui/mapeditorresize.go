@@ -62,6 +62,7 @@ func (e *MapEditor) dropForeignSize(id editorPopupID, key string) bool {
 func (e *MapEditor) listSpec() (popupSpec, bool) {
 	e.dropForeignSize(popList, e.listKind())
 	s, ok := e.listSpecBase()
+	s.Slack = e.slack[popList]
 	if !ok {
 		e.sizes[popList], e.listFit = image.Point{}, 0
 		return s, false
@@ -75,6 +76,7 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		if n := layoutPopup(s, e.font, e.bodyFont()).ListRows; n != s.ListRows {
 			e.listFit = n
 			s, _ = e.listSpecBase()
+			s.Slack = e.slack[popList]
 			s.Size, s.MinWidth = size, e.minWide[popList]
 		}
 	}
@@ -85,12 +87,14 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 // dragged to, and the reference each link row opens.
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	s, links, ok := e.objectSpecBase()
+	s.Slack = e.slack[popObject]
 	if !ok {
 		e.sizes[popObject] = image.Point{}
 		return s, links, false
 	}
 	if e.dropForeignSize(popObject, s.Title) {
 		s, links, ok = e.objectSpecBase()
+		s.Slack = e.slack[popObject]
 	}
 	size := e.sizes[popObject]
 	if size == (image.Point{}) {
@@ -121,6 +125,7 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 // to. The window, its hit tests and its drop-downs all take the spec through
 // here, so a press lands on the layout that is drawn.
 func (e *MapEditor) sizedPrompt(s popupSpec) popupSpec {
+	s.Slack = e.slack[popPrompt]
 	if size := e.sizes[popPrompt]; size != (image.Point{}) {
 		s.Size, s.At, s.MinWidth = size, e.promptAbs, e.minWide[popPrompt]
 	}

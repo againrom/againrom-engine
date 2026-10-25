@@ -261,7 +261,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:menu-fit", "ui:bar-undo", "ui:bar-redo", "ui:bar-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 
@@ -392,6 +392,7 @@ func modesProbe(e *MapEditor, calls *modesCalls, errText string, pixels bool) st
 	if s, ok := e.listSpec(); ok {
 		cursor = s.List.Selection()
 	}
+	fmt.Fprintf(&b, "passview=%v\n", e.view.passability)
 	fmt.Fprintf(&b, "report=%v/%d sel=%d brush=%v list=%q/%d selected=%d filter=%d dirty=%v\n", open, len(rows), e.ReportSelected(), e.brushActive(), list, cursor, e.Selected(), e.filter, e.Dirty())
 	if s, ok := e.promptSpec(); ok {
 		fmt.Fprintf(&b, "prompt %q", s.Title)
