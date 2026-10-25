@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"slices"
 	"testing"
@@ -12,8 +13,9 @@ import (
 // The second game's generator description states the original's look: the
 // pre-create hover help lines (R2-ENGINE-384), the name field's inks
 // (R2-ENGINE-386), the detail tip where the owner directs it (DIV-3015), the
-// attribute values' face, ink, shadow and anchors (R2-ENGINE-387), four
-// commands on the shop's command composition (R2-ENGINE-249, DIV-3014), the
+// attribute values' face, ink, shadow and anchors (R2-ENGINE-387), the
+// three commands on the original's Inn panel with Restore below them
+// (R2-ENGINE-286, DIV-3014), the
 // hover box style (R2-ENGINE-385) and the statistics card canvas (DIV-3017).
 func TestSecondGeneratorDescribesTheOriginalLook(t *testing.T) {
 	d := generatorDescriptions["rom2"]
@@ -67,19 +69,38 @@ func TestSecondGeneratorDescribesTheOriginalLook(t *testing.T) {
 			t.Errorf("pool anchor %v, want centred on x 84", st.PoolAt)
 		}
 	})
-	t.Run("four commands on the shop composition", func(t *testing.T) {
-		if det.Nav.Key != "graphics/interface/shopmenu.bmp" || det.Nav.Rect.Rectangle() != image.Rect(464, 0, 640, 238) {
-			t.Errorf("command panel %s at %v, want shopmenu.bmp at the shop's buttons child (464,0)-(640,238)", det.Nav.Key, det.Nav.Rect)
+	t.Run("three commands on the Inn panel and Restore below them", func(t *testing.T) {
+		panel := image.Rect(480, 0, 640, 238)
+		if det.Nav.Key != "graphics/interface/inn/buttonsarea.bmp" || det.Nav.Rect.Rectangle() != panel || det.Nav.Keyed || det.NavSeam != nil {
+			t.Errorf("command panel %s at %v keyed %t seam %v, want ButtonsArea copied at the buttons child %v", det.Nav.Key, det.Nav.Rect, det.Nav.Keyed, det.NavSeam, panel)
 		}
-		want := map[string]image.Rectangle{"play": image.Rect(494, 15, 614, 67), "restore": image.Rect(483, 67, 623, 113),
-			"reset": image.Rect(483, 114, 623, 160), "back": image.Rect(494, 160, 614, 212)}
+		inn := "graphics/interface/inn/button"
+		want := map[string]struct {
+			rect image.Rectangle
+			pair int
+		}{"play": {image.Rect(484, 44, 624, 90), 1}, "reset": {image.Rect(484, 91, 624, 137), 2},
+			"back": {image.Rect(484, 138, 624, 184), 3}, "restore": {image.Rect(484, 185, 624, 231), 1}}
 		if len(det.Commands) != 4 {
 			t.Fatalf("%d commands, want 4", len(det.Commands))
 		}
 		for _, c := range det.Commands {
-			if c.Rect.Rectangle() != want[c.Role] {
-				t.Errorf("%s at %v, want %v", c.Role, c.Rect, want[c.Role])
+			w := want[c.Role]
+			off, on := fmt.Sprintf("%s%doff.bmp", inn, w.pair), fmt.Sprintf("%s%don.bmp", inn, w.pair)
+			if c.Rect.Rectangle() != w.rect || c.Off != off || c.On != on || c.Keyed || !c.Rect.Rectangle().In(panel) {
+				t.Errorf("%s at %v, %q/%q keyed %t; want %v, %q/%q", c.Role, c.Rect, c.Off, c.On, c.Keyed, w.rect, off, on)
 			}
+		}
+		// The points the original was clicked at land on Accept, Reset and
+		// Back.
+		for p, role := range map[image.Point]string{{533, 65}: "play", {533, 112}: "reset", {533, 158}: "back"} {
+			for _, c := range det.Commands {
+				if p.In(c.Rect.Rectangle()) != (c.Role == role) {
+					t.Errorf("%v in %s is %t", p, c.Role, p.In(c.Rect.Rectangle()))
+				}
+			}
+		}
+		if det.SkillClip.Rectangle() != det.ColumnRect.Rectangle() {
+			t.Errorf("skill clip %v, want the whole column %v", det.SkillClip, det.ColumnRect)
 		}
 		if r := det.RestoreFor("russian"); r.Values != "template" || r.Skill != "preset" {
 			t.Errorf("Restore %+v, want the template and the starting skill", r)

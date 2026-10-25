@@ -43,6 +43,7 @@ var generatorParityWaivers = []generatorParityWaiver{
 	{"pre-create.sparkle.gap-ms", "rom1", "the first game's sparkle waits a step count (DIV-1276)"},
 	{"pre-create.sparkle.gap-draw-divisor", "rom1", "the first game's sparkle waits a step count (DIV-1276)"},
 	{"pre-create.sparkle.within", "rom1", "the first game's sparkle runs along a tour (DIV-1276)"},
+	{"detail.commands[].off", "rom1", "the first game's shop plaques draw only their pressed picture (DIV-2868)"},
 }
 
 // generatorFieldPaths are the field paths a description sets: dotted object

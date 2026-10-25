@@ -3000,6 +3000,10 @@ package storyguard
 // tests, the release test pkg/game/savcasttarget_release_test.go, the notes
 // in pkg/game/savactoractions.go, pkg/game/originaldead.go and the census,
 // and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's generator
+// command panel release test, pkg/game/secondgeneratorpanel_release_test.go,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3025,6 +3029,7 @@ var Committed = Baseline{
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
-	// for the body words a SAVE keeps from LOAD.
-	CommentBytes: 9665985,
+	// for the body words a SAVE keeps from LOAD, then for the second game's
+	// generator command panel test.
+	CommentBytes: 9666918,
 }
