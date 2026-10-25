@@ -722,7 +722,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 	case "brush":
 		s.Rows = e.brushPopupRows()
-		s.Width, s.LabelWidth = e.popupWide(popList, 520), 90
+		s.Width, s.LabelWidth, s.ListAside = e.popupWide(popList, 520), 90, e.brushAside()
 		if g, ok := e.forestGridSpec(); ok {
 			s.Grid = g
 		}
@@ -1147,6 +1147,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawGoalLinks(pic, s)
+		e.drawBrushPreview(pic, s)
 	}
 	if s, _, ok := e.objectSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)

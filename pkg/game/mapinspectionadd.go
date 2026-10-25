@@ -423,11 +423,17 @@ func (s *mapInspectionEdits) freeGroup() int64 {
 	return n
 }
 
-// NewRecordPreview is a unit class's standing sprite or a structure kind's
-// information picture.
+// NewRecordPreview is a unit class's standing sprite, a structure kind's
+// information picture or, under the key "object", the picture of the object
+// class a placement byte names.
 func (s *mapInspectionEdits) NewRecordPreview(kind, key string, value int64) *image.RGBA {
 	x := s.inspector
 	switch key {
+	case "object":
+		if value <= 0 || value > 0xff {
+			return nil
+		}
+		return s.BrushObjectIcon(int(value))
 	case "class":
 		if x.units == nil || value < math.MinInt16 || value > math.MaxInt16 {
 			return nil

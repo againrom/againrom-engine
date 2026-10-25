@@ -294,6 +294,7 @@ type Viewer struct {
 	anim              *terrain.Ticker
 	speedIndex        int
 	animate           bool
+	ownArt            bool // see SetOwnArt
 	last              time.Time
 	unpaced           bool
 	animationPaused   bool
@@ -1746,8 +1747,13 @@ func (v *Viewer) staticLists() ([]terrain.StaticPlacement, []int) {
 // visible, the pass hands back the built list itself.
 func (v *Viewer) staticPlacements() []terrain.StaticPlacement {
 	places, animated := v.staticLists()
-	out := terrain.AnimateVisibleStatics(v.staticScratch, places, animated, v.anim.Count(), v.animate && !v.graphics.StaticObjects,
-		v.staticAnimationVisible)
+	var out []terrain.StaticPlacement
+	if v.ownArt && !v.animate {
+		out = places
+	} else {
+		out = terrain.AnimateVisibleStatics(v.staticScratch, places, animated, v.anim.Count(), v.animate && !v.graphics.StaticObjects,
+			v.staticAnimationVisible)
+	}
 	if !samePlacements(out, places) {
 		v.staticScratch = out
 	}
@@ -2262,6 +2268,11 @@ func (v *Viewer) syncCameraBounds() {
 // exactly, because the game's disable switch forces phase 0 rather than freezing
 // the current phase (TERR-ANIM-009).
 func (v *Viewer) SetAnimated(on bool) { v.animate = on }
+
+// SetOwnArt makes a viewer whose animation is off draw each object on its
+// class's own Index frame, not on sheet frame 0. The map editor sets it: it
+// holds the animation still, and its objects must still differ by code.
+func (v *Viewer) SetOwnArt(on bool) { v.ownArt = on }
 
 // SetSpeedIndex selects the logic-tick cadence from the game's speed table; the
 // index is clamped into range. It writes BOTH the period the clock runs at and

@@ -233,6 +233,40 @@ func (e *MapEditor) brushRows() []string {
 	return nil
 }
 
+// brushPreviewW is the width of the picture beside the Objects list, wider
+// than the Add window's previewW.
+const brushPreviewW = 160
+
+// brushAside is the column the Objects list keeps for the highlighted object's
+// picture: none for another brush, or for a host that draws no pictures.
+func (e *MapEditor) brushAside() int {
+	if e.brush.mode != brushObjects {
+		return 0
+	}
+	if _, ok := e.brushHost().(InspectionNewRecords); !ok {
+		return 0
+	}
+	return brushPreviewW + popupPad
+}
+
+// drawBrushPreview draws the highlighted object's picture beside the Objects
+// list, through the host's record-preview seam under the key "object".
+func (e *MapEditor) drawBrushPreview(pic *image.RGBA, s popupSpec) {
+	if e.brushAside() == 0 || s.ListAside == 0 {
+		return
+	}
+	host, ok := e.brushHost().(InspectionNewRecords)
+	if !ok {
+		return
+	}
+	objects := e.brushHost().BrushObjects()
+	sel := e.brush.sel[brushObjects]
+	if sel < 0 || sel >= len(objects) || objects[sel].Code == 0 {
+		return
+	}
+	e.drawAside(pic, s, host.NewRecordPreview("brush", "object", int64(objects[sel].Code)))
+}
+
 func (e *MapEditor) brushRadius() int {
 	if !e.brush.radiusSet {
 		return min(brushDefaultRadius, e.brushMaxRadius())

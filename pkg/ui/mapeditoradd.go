@@ -778,11 +778,19 @@ func (e *MapEditor) drawAddPreview(pic *image.RGBA, s popupSpec) {
 	if k < 0 || k >= len(r.offer.Choices) {
 		return
 	}
-	preview := host.NewRecordPreview(r.kind, r.steps[r.at].Key, r.offer.Choices[k].Value)
+	e.drawAside(pic, s, host.NewRecordPreview(r.kind, r.steps[r.at].Key, r.offer.Choices[k].Value))
+}
+
+// drawAside draws a picture, nil for none, fitted into the Aside box the popup
+// keeps beside its list: the one place a list's picture is drawn.
+func (e *MapEditor) drawAside(pic *image.RGBA, s popupSpec, preview *image.RGBA) {
 	if preview == nil || preview.Bounds().Empty() {
 		return
 	}
 	box := layoutPopup(s, e.font, e.bodyFont()).Aside
+	if box.Empty() {
+		return
+	}
 	editorBlit(pic.SubImage(box).(*image.RGBA), preview, addPreviewRect(preview.Bounds().Size(), box), false)
 }
 

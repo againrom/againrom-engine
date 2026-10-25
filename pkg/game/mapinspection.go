@@ -173,6 +173,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		return nil, err
 	}
 	v.SetAnimated(false)
+	v.SetOwnArt(true)
 	if x.panelWords != nil {
 		v.SetWords(*x.panelWords)
 	}
