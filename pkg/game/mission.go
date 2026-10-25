@@ -84,8 +84,12 @@ type Mission struct {
 	ActorManifest      *SnapshotActorManifest
 	actorRegistry      *originalActorRegistry
 	originalSaveReport *OriginalSaveResume
-	savedDocument      *SnapshotSAVDocument
-	pendingPickups     []heldStack
+	// resumeBookWalk is set by the SAV LOAD. The resume re-derives the
+	// player's actors on the first tick; of that derive only the book walk
+	// runs here, before that tick's commands (MAGIC-420, DIV-4054).
+	resumeBookWalk bool
+	savedDocument  *SnapshotSAVDocument
+	pendingPickups []heldStack
 
 	// DeadArt resolves a virtual corpse's TypeID. Original LOAD and the admitted
 	// document on native LOAD both reconstruct this presentation-only map.

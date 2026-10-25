@@ -4146,6 +4146,11 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	if !mw.world.SecondGame() && !mw.world.HasFlightInputs() {
 		mw.bindFlightInputs()
 	}
+	if mw.mission != nil && mw.mission.state != nil && mw.mission.state.resumeBookWalk {
+		ms := mw.mission.state
+		ms.resumeBookWalk = false
+		mw.world.RefreshPlayerBooks(sim.SelfSlot)
+	}
 	cmds := mw.commands()
 	equipped := mw.queuedEquipActors()
 	applied := len(mw.pending)

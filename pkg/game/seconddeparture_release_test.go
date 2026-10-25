@@ -344,6 +344,9 @@ func secondLaterMissionProof(t *testing.T, f *FrontEnd, app *ui.App, cold *Front
 	x, y := int(e.X)-1, int(e.Y)
 	secondMissionMove(t, app, id, x, y)
 	secondMissionMove(t, b, id, x, y)
+	// The LOAD continuation walks the player's books on its first tick
+	// (DIV-4055); the in-process one takes the same walk before that tick.
+	f.live.world.RefreshPlayerBooks(sim.SelfSlot)
 	for range 8 {
 		if err := app.HeadlessStep(); err != nil {
 			t.Fatal(err)

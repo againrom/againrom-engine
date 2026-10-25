@@ -488,6 +488,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := restoreOriginalActions(ms, in.table); err != nil {
 				return err
 			}
+			ms.resumeBookWalk = true
 			publishSessionEntry(ms)
 			currentGroups, _, _ := ms.World.SavedGroups()
 			r.GroupsRestored, r.GroupIssues = len(currentGroups), ms.World.SavedGroupIssues()

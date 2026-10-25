@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] After loading a saved game, a mage's spells reach as far as the mage's current skill allows from the first cast; before, Teleport could reach only the distance stored in the save, 1 cell instead of 3, until the mage had cast it once.
 - [ROM2] Two mission talks that have no words for some heroes now open on `Nothing to say`: one for a hero who is not a mage, and, on the English edition, one for a female mage, who now also sees the rest of that talk. Before, neither talk opened.
 - [ROM1] Enemies chasing a hero who teleports or is moved far away now stop where they stand until the hero comes near them again; before, they kept walking after the hero across the map.
 

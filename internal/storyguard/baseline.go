@@ -2985,6 +2985,11 @@ package storyguard
 //
 // CommentBytes rises with the second game's dialogue default note in
 // pkg/game/gamefiles.go, its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the new resume book walk
+// (World.RefreshPlayerBooks in pkg/sim/spellbook.go, Mission.resumeBookWalk
+// in pkg/game/mission.go), its three tests, the second-game continuation
+// oracle that takes the same walk, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3008,5 +3013,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9650707,
+	CommentBytes: 9652615,
 }

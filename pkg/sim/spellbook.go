@@ -180,6 +180,22 @@ func originalSpellRange(rule SpellRule, level, mind int32) uint8 {
 	return uint8(spellRangeOf(Rules{}, rule, power, rangeCast))
 }
 
+// RefreshPlayerBooks runs the book walk on every actor the player owns, as the
+// resume after LOAD does before the first cast (MAGIC-420): a slot keeps the
+// range its SAV stored only until then. It reports how many books it walked.
+func (w *World) RefreshPlayerBooks(player uint32) int {
+	walked := 0
+	for i := range w.entities {
+		if w.entities[i].Owner != player || !w.entities[i].Book.HasInstances() {
+			continue
+		}
+		RefreshBook(w.rules, &w.entities[i], w.spells)
+		w.refreshSavedBookRoots(i)
+		walked++
+	}
+	return walked
+}
+
 func (w *World) refreshAppliedBook(ci int, id uint32) {
 	if !w.entities[ci].Book.HasInstances() {
 		return
