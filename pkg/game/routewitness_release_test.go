@@ -898,18 +898,29 @@ func (w *routeWitness) missionTargets(step int) []routeRegion {
 				continue
 			}
 			cell := image.Rect(x-step/2, y-step/2, x+step/2, y+step/2)
-			r, seen := regions[st.Target]
+			key := st.Target
+			if strings.HasPrefix(key, "item/") {
+				w.run(w.app.TooltipDelay()/20 + 5)
+				key += "\x00" + strings.Join(w.app.HeadlessTooltipLines(), "\x00")
+			}
+			r, seen := regions[key]
 			if !seen {
 				r = routeRegion{key: st.Target, rect: cell, at: image.Pt(wx, wy)}
-				order = append(order, st.Target)
+				order = append(order, key)
 			}
 			r.rect = r.rect.Union(cell)
-			regions[st.Target] = r
+			regions[key] = r
 		}
 	}
 	out := make([]routeRegion, 0, len(order))
+	seen := map[string]int{}
 	for _, k := range order {
-		out = append(out, regions[k])
+		r := regions[k]
+		if strings.HasPrefix(r.key, "item/") {
+			seen[r.key]++
+			r.key = fmt.Sprintf("%s#%d", r.key, seen[r.key])
+		}
+		out = append(out, r)
 	}
 	return out
 }
@@ -974,6 +985,7 @@ func TestReleaseSecondGameRouteWitness(t *testing.T) {
 	f.Options = OptionsStore{}
 	app := f.App("route witness")
 	app.Layout(640, 480)
+	f.TownAnimationNow = app.HeadlessSceneNow
 	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
 	// The witness holds the App's own town screen: the second campaign's
 	// builder makes a fresh screen at each call.
