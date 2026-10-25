@@ -1,13 +1,17 @@
 package sim
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // jammedCorridor is a corridor two cells high (rows 4 and 5) with neutral
 // bodies standing across both rows at columns 8 to 12: a walk east from the
 // west end has a terrain route and no free step past column 7. The walker 1
 // (owner 2) stands at (2,4); a hostile 3 (owner 3) stands at hostileX on row 5.
-// No Group is woken, so no Group decision runs and only the walk's own
-// refusal can give the walker a victim.
+// The walker belongs to no Group, so no Group decision reaches it, the
+// asleep-Group executor gate does not hold it, and only the walk's own
+// refusal can give it a victim.
 func jammedCorridor(t *testing.T, reach uint8, hostileX int32, extra ...Entity) *World {
 	t.Helper()
 	const width, height = 30, 10
@@ -27,6 +31,12 @@ func jammedCorridor(t *testing.T, reach uint8, hostileX int32, extra ...Entity) 
 	w, err := NewRelatedWorld(1, b, ModeCanonical, Terrain{Block: grid}, ents, nil, engRel(t, cells...))
 	if err != nil {
 		t.Fatalf("NewRelatedWorld: %v", err)
+	}
+	if w.savedGroups != nil {
+		for gi := range w.savedGroups.Groups {
+			g := &w.savedGroups.Groups[gi]
+			g.Members = slices.DeleteFunc(g.Members, func(m SavedGroupMember) bool { return m.Bound && m.Entity == 1 })
+		}
 	}
 	return w
 }

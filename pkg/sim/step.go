@@ -962,6 +962,15 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 			continue
 		}
+		// A computer player's actor at zero progress whose Group lies outside
+		// every activity cover runs no order: a pursuit or walk stands where
+		// its last step ended until the Group is covered again (AI-350,
+		// AI-364). The owner-zero and participant populations keep their own
+		// behaviour (DIV-351); the second game's actors take its activity
+		// mask above.
+		if !w.SecondGame() && e.Owner != 0 && !w.humanParticipantUnit(*e) && w.executorProgress(i) == 0 && !w.executorActive(i, true) {
+			continue
+		}
 		// AN ATTACKER IS AIMED BEFORE IT IS ADVANCED. An attack order carries a
 		// destination as well as a victim — the pursuit that lets an order name
 		// something out of reach — and this is where the two are kept agreeing.

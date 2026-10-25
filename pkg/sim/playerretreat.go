@@ -41,7 +41,7 @@ func (w *World) retreatOrder(cmds []Command, first int, consumed []bool) {
 		w.clearEscort(i)
 		e.PendingOrder = PendingOrder{}
 		e.ActorState = actorStateRetreat
-		e.Retreat = RetreatContinuation{Known: true, Progress: w.retreatCurrentProgress(i)}
+		e.Retreat = RetreatContinuation{Known: true, Progress: w.executorProgress(i)}
 		e.clearGroupSpeed()
 		// The already committed crossing and loaded attack/cast survive. Only
 		// the old pending destination is cancelled (AI-RETREAT-271/272).

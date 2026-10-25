@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM1] Enemies chasing a hero who teleports or is moved far away now stop where they stand until the hero comes near them again; before, they kept walking after the hero across the map.
+
 ### For map makers and modders
 
 - [ROM1] The map editor adds a new trap, unit spell or casting structure on any map, also one without a cell spell to copy; it edits a casting structure's power and scan range (0 to 255), and it edits and copies the many shipped casting structures that sit on another cell of their building. Deleting a structure or a unit also deletes its casting structures or unit spells, and a cell spell left without its object can still be deleted.

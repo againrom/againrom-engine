@@ -2977,6 +2977,11 @@ package storyguard
 // CommentBytes rises with the doc comments of the cell-spell constructor, the
 // binding of a cell spell by its object id, the casting structure's field
 // range, the pager tests' fixtures, and this paragraph.
+//
+// CommentBytes rises with the asleep-Group executor gate (pkg/sim/step.go,
+// executorActive in pkg/sim/retreatcontinuation.go), its test and fixture
+// note, the Teleport pursuit witness halves in pkg/game and pkg/sim, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3000,5 +3005,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9645967,
+	CommentBytes: 9650689,
 }

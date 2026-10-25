@@ -7,7 +7,7 @@ type RetreatContinuation struct {
 	Progress, Counter                 uint8
 }
 
-func (w *World) retreatCurrentProgress(i int) uint8 {
+func (w *World) executorProgress(i int) uint8 {
 	e := w.entities[i]
 	switch {
 	case w.stoneCursed(i):
@@ -25,19 +25,28 @@ func (w *World) retreatCurrentProgress(i int) uint8 {
 func (w *World) ensureRetreatContinuation(i int) {
 	e := &w.entities[i]
 	if !e.Retreat.Known {
-		e.Retreat = RetreatContinuation{Known: true, Progress: w.retreatCurrentProgress(i)}
+		e.Retreat = RetreatContinuation{Known: true, Progress: w.executorProgress(i)}
 	}
 }
 
 func (w *World) retreatExecutorActive(i int) bool {
+	return w.executorActive(i, w.entities[i].Owner != 0)
+}
+
+// executorActive is the executor's entry gate for an actor at zero progress
+// (AI-350, AI-364): the local player's actor runs; an actor of a registry
+// Group runs while that Group's rebuilt activity count is nonzero or the
+// override is set, as the Group pass is admitted; any other actor runs as
+// ungrouped says.
+func (w *World) executorActive(i int, ungrouped bool) bool {
 	e := w.entities[i]
 	if e.Owner == SelfSlot {
 		return true
 	}
 	if g := w.savedGroupFor(e.ID); g != nil {
-		return g.AI[0x45] != 0
+		return g.AI[0x45] != 0 || w.safeMode
 	}
-	return e.Owner != 0
+	return ungrouped
 }
 
 func (w *World) dispatchRetreatPending(i int) {
