@@ -162,11 +162,11 @@ func TestSecondMapTravelRevealsAndEnds(t *testing.T) {
 		if act := worldMapTick(c); act.Msg == "arrived" {
 			break
 		}
-		if s.shown != min(8*(ticks+1), len(s.route)) {
-			t.Fatalf("tick %d reveals %d", ticks+1, s.shown)
+		if v := s.view(worldMapViewInput{}); v.RouteShown != min(8*(ticks+1), len(s.route)) {
+			t.Fatalf("tick %d reveals %d", ticks+1, v.RouteShown)
 		}
 	}
-	reveal := (len(s.route) + 7) / 8
+	reveal := (len(s.route)-8)/8 + 1
 	if want := max(reveal, len(s.assets.cross)+2); ticks+1 != want {
 		t.Fatalf("travel ended on tick %d, want %d", ticks+1, want)
 	}

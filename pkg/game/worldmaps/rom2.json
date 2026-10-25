@@ -80,6 +80,8 @@
   "ball": "ball",
   "cross": {"art": "cross", "at": [-10, -12], "cite": ["R2-ENGINE-432"]},
   "cross-hold": 2,
+  "route-past-end": true,
+  "reveal-lead": 8,
   "markers": [
     {"who": "target", "art": "missionflag", "at": [-5, -41], "cite": ["R2-ENGINE-430"]},
     {"who": "other", "art": "flagonmap", "at": [-5, -37], "cite": ["R2-ENGINE-430"]}
@@ -92,5 +94,5 @@
     "name-at": [230, 27], "lines-at": [230, 48], "line-step": 10, "width": 320, "max-lines": 15,
     "cite": ["R2-ENGINE-434", "DIV-3070"]
   },
-  "cite": ["R2-ENGINE-418", "R2-ENGINE-428", "R2-ENGINE-431", "R2-ENGINE-432", "R2-ENGINE-433", "DIV-3069", "DIV-3070"]
+  "cite": ["R2-ENGINE-418", "R2-ENGINE-428", "R2-ENGINE-431", "R2-ENGINE-432", "R2-ENGINE-433", "R2-ENGINE-464", "DIV-3069", "DIV-3070"]
 }

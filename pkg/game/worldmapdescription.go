@@ -50,6 +50,7 @@ type WorldMapDescription struct {
 	CrossHold    int  `json:"cross-hold"`
 	CrossAtEnter bool `json:"cross-at-enter"`
 	RoutePastEnd bool `json:"route-past-end"`
+	RevealLead   int  `json:"reveal-lead"`
 	// Task is the sheet drawn at the chosen record while the party stands at
 	// the map's home point; empty for none.
 	Task WorldMapPlace `json:"task"`
@@ -188,8 +189,8 @@ func decodeWorldMap(data []byte) (*WorldMapDescription, error) {
 	if c := d.Cards; c != nil && (!art(c.Scroll) || !art(c.Pressed)) {
 		return fail("cards name no art entry")
 	}
-	if d.CrossHold < 0 {
-		return fail("cross-hold is negative")
+	if d.CrossHold < 0 || d.RevealLead < 0 {
+		return fail("cross-hold or reveal-lead is negative")
 	}
 	for _, m := range d.Modes {
 		if m.Name == "" || !art(m.Background) || !art(m.Path) || !art(m.Party.Art) {

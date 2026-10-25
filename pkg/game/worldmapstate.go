@@ -211,7 +211,11 @@ func (s *worldMapState) tick() bool {
 		s.cross++
 	}
 	s.shown = min(s.shown+worldMapRouteReveal, s.routeEnd())
-	return s.shown >= s.routeEnd() && s.crossPassedEnd()
+	lead := 0
+	if d := s.desc(); d != nil {
+		lead = d.RevealLead
+	}
+	return s.shown+lead >= s.routeEnd() && s.crossPassedEnd()
 }
 
 func (s *worldMapState) crossDrawn() bool {
