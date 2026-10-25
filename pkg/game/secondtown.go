@@ -60,6 +60,7 @@ var secondTownHooks = map[string]func(t *secondCampaignScreen, room string){
 		c.room = secondTownSquare
 	},
 	"shop-open":  secondShopOpen,
+	"tip":        func(t *secondCampaignScreen, room string) { t.loadRoomTip(room) },
 	"shop-leave": func(t *secondCampaignScreen, _ string) { c := t.state(); c.shop.leave(c.heroBag()) },
 }
 
@@ -212,7 +213,8 @@ func (t *secondCampaignScreen) TownSquareView() ui.TownSquareView {
 	if !ok {
 		return ui.TownSquareView{}
 	}
-	return ui.TownSquareView{Scene: secondTownView{t: t, d: d, room: room}, Font: t.install.Font.Value()}
+	return ui.TownSquareView{Scene: secondTownView{t: t, d: d, room: room}, Font: t.install.Font.Value(),
+		Tip: t.roomTipView(d.Town, room)}
 }
 
 // TownSquareActive runs the shown room's scene and pauses and hides every
@@ -228,6 +230,7 @@ func (t *secondCampaignScreen) TownSquareActive(active bool) {
 // roomActive runs the shown room's scene and pauses and hides every other.
 func (t *secondCampaignScreen) roomActive(active bool) {
 	d, room, shown := t.composedRoom()
+	t.arriveRoomTip(shown, room)
 	for key, s := range t.composed.scenes {
 		show := shown && key == d.Town+"/"+room
 		if show {

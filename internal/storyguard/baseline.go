@@ -3034,6 +3034,7 @@ var Committed = Baseline{
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
 	// for the body words a SAVE keeps from LOAD, then for the second game's
-	// generator command panel test, then for the second game's speaker records.
-	CommentBytes: 9668730,
+	// generator command panel test, then for the second game's speaker records,
+	// then for the second game's room tip popups.
+	CommentBytes: 9670100,
 }

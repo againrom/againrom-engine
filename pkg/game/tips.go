@@ -7,12 +7,86 @@ import (
 	"againrom/pkg/ui"
 )
 
+// roomTipBuilder builds both games' town room popups from their tip rows.
+type roomTipBuilder struct {
+	in  *InstallResources
+	pc  *PersistenceContext
+	art *ui.TipPanelArt
+}
+
+// roomTipRow is room's tip row in town; nil for none.
+func roomTipRow(in *InstallResources, town, room string) *ui.TipRow {
+	return TipTable(in.profile().Edition()).RoomRow(town, room)
+}
+
+// entryText is an entry's text: empty, unread, while the tips option is off.
+func (b roomTipBuilder) entryText(row *ui.TipRow) string {
+	if b.pc.tipsOffNow() || row == nil {
+		return ""
+	}
+	return b.read(&row.Text)
+}
+
+func (b roomTipBuilder) read(text *ui.TipText) string {
+	if text == nil {
+		return ""
+	}
+	var src entrySource
+	if b.in.Archives != nil {
+		src = b.in.Archives.Containers
+	}
+	return readTipText(src, *text, b.in.textCode())
+}
+
+func (b roomTipBuilder) panel(row *ui.TipRow, text string, rect image.Rectangle, revision uint64) ui.TipPanelView {
+	return ui.TipPanelView{
+		Revision:    revision,
+		Rect:        rect,
+		Text:        text,
+		ToggleOn:    !b.pc.tipsOffNow(),
+		CloseLabel:  b.in.Words.TipClose,
+		ToggleLabel: b.in.Words.TipShowNext,
+		Art:         b.art,
+		Font:        b.font(row),
+		TextInset:   TipTable(b.in.profile().Edition()).Panel(row).Inset,
+	}
+}
+
+// view projects a room's popup at its row's rectangle. The bottom edge
+// follows the text when the row asks for that, and grows when the engine's
+// wrap would cut the text at the rectangle (DIV-2719).
+func (b roomTipBuilder) view(row *ui.TipRow, text string, revision uint64) ui.TipPanelView {
+	if row == nil {
+		row = &ui.TipRow{}
+	}
+	v := b.panel(row, text, row.Rectangle(), revision)
+	v.Owner = row.Owner()
+	if row.Fit || !ui.TipPanelFits(v) {
+		v.Rect = ui.TipPanelShrinkRect(v.Rect, v.Font, text)
+	}
+	return v
+}
+
+// font is the install's tip font, or the generator's text font where the
+// row's panel style names it.
+func (b roomTipBuilder) font(row *ui.TipRow) *text.Font {
+	a := b.in.ChargenAssets
+	if TipTable(b.in.profile().Edition()).Panel(row).Font == "text" && a != nil && a.Presentation != nil && a.Presentation.Font != nil {
+		return a.Presentation.Font
+	}
+	return b.in.tipFont()
+}
+
+func (t *townScreen) tips() roomTipBuilder {
+	return roomTipBuilder{in: t.in, pc: t.pc, art: t.art.tipPanel()}
+}
+
 // loadTip constructs one room popup and tests the global option once.
 func (t *townScreen) loadTip(room townRoom) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	dst, text := t.tipTextSource(room)
+	dst, _ := t.tipTextSource(room)
 	if dst == nil {
 		return
 	}
@@ -21,11 +95,7 @@ func (t *townScreen) loadTip(room townRoom) {
 	if room == roomShop {
 		t.shopTipSecond = false
 	}
-	if t.pc.tipsOffNow() {
-		*dst = ""
-		return
-	}
-	t.readTipText(dst, text)
+	*dst = roomTipBuilder{in: t.in, pc: t.pc}.entryText(t.roomTip(room))
 }
 
 // rereadTip updates an existing popup's content without constructing another.
@@ -63,23 +133,14 @@ func (t *townScreen) roomTip(room townRoom) *ui.TipRow {
 	if t == nil {
 		return nil
 	}
-	return TipTable(t.profile().Edition()).Row("room-enter", townRoomName(room), "")
+	return roomTipRow(t.in, "", townRoomName(room))
 }
 
-// roomTipView projects a room's popup at its row's rectangle. The bottom edge
-// follows the text when the row asks for that, and grows when the engine's
-// wrap would cut the text at the rectangle (DIV-2719).
 func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
-	row := t.roomTip(room)
-	if row == nil {
-		row = &ui.TipRow{}
+	if t == nil || t.sess == nil || t.tipClosed[room] {
+		return ui.TipPanelView{}
 	}
-	v := t.tipView(room, text, row.Rectangle())
-	v.Owner = row.Owner()
-	if row.Fit || !ui.TipPanelFits(v) {
-		v.Rect = ui.TipPanelShrinkRect(v.Rect, t.in.tipFont(), text)
-	}
-	return v
+	return t.tips().view(t.roomTip(room), text, t.tipRevision)
 }
 
 // advanceShopSecondTip retexts the open shop popup with its row's second
@@ -102,15 +163,7 @@ func (t *townScreen) advanceShopSecondTip() {
 }
 
 func (t *townScreen) readTipText(dst *string, text *ui.TipText) {
-	if text == nil {
-		*dst = ""
-		return
-	}
-	var src entrySource
-	if t.in.Archives != nil {
-		src = t.in.Archives.Containers
-	}
-	*dst = readTipText(src, *text, t.in.textCode())
+	*dst = roomTipBuilder{in: t.in, pc: t.pc}.read(text)
 }
 
 // tipView projects the constructed popup and the live global checkbox flag.
@@ -118,16 +171,7 @@ func (t *townScreen) tipView(room townRoom, text string, rect image.Rectangle) u
 	if t == nil || t.sess == nil || t.tipClosed[room] {
 		return ui.TipPanelView{}
 	}
-	return ui.TipPanelView{
-		Revision:    t.tipRevision,
-		Rect:        rect,
-		Text:        text,
-		ToggleOn:    !t.pc.tipsOffNow(),
-		CloseLabel:  t.in.Words.TipClose,
-		ToggleLabel: t.in.Words.TipShowNext,
-		Art:         t.art.tipPanel(),
-		Font:        t.in.tipFont(),
-	}
+	return t.tips().panel(t.roomTip(room), text, rect, t.tipRevision)
 }
 
 // tipFont is the tip panel's own font2: the smaller of the two atlases

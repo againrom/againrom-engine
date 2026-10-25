@@ -132,6 +132,7 @@
     "name": "square",
     "enter": [
       {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+      {"hook": "tip", "cite": ["R2-ENGINE-308", "R2-ENGINE-310"]},
       {"composer": "reset", "cite": ["R2-ENGINE-250", "DIV-2982"]}
     ],
     "cite": ["R2-ENGINE-250", "DIV-2966"]
@@ -140,7 +141,8 @@
     {"name": "inn", "page": "inn",
      "enter": [
        {"composer": "reset", "cite": ["R2-ENGINE-250"]},
-       {"hook": "set-room", "cite": ["R2-ENGINE-250"]}
+       {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+       {"hook": "tip", "cite": ["R2-ENGINE-308", "R2-ENGINE-310"]}
      ],
      "art": [
        {"name": "hire-back", "format": "picture", "key": "graphics/interface/inn/manback.bmp", "size": [48, 64], "required": true,
@@ -230,6 +232,7 @@
      "enter": [
        {"composer": "reset", "cite": ["R2-ENGINE-250"]},
        {"hook": "set-room", "cite": ["R2-ENGINE-250"]},
+       {"hook": "tip", "cite": ["R2-ENGINE-308", "R2-ENGINE-310"]},
        {"hook": "shop-open", "cite": ["R2-ENGINE-266", "R2-ENGINE-373", "R2-ENGINE-374", "DIV-3045"]}
      ],
      "exit": [{"hook": "shop-leave", "cite": ["R2-ENGINE-266"]}],

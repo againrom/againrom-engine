@@ -644,6 +644,7 @@ func (w *routeWitness) enter(target, room string) {
 // present page by page, reports the hire offer and leaves by Exit.
 func (w *routeWitness) tavern() {
 	w.enter("TAVERN", "inn")
+	w.closeTownTip(w.town.TownSquareView().Tip)
 	for _, r := range w.squareRegions() {
 		w.hover(r.key, r.rect, r.at)
 	}

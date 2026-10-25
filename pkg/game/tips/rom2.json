@@ -2,9 +2,25 @@
   "tips": "rom2",
   "art": "tip-panel",
   "panels": [
-    {"name": "generator", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]}
+    {"name": "generator", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]},
+    {"name": "room", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-274", "R2-ENGINE-313"]}
   ],
   "rows": [
+    {"name": "square", "event": "room-enter", "town": "rom2-town1", "room": "square",
+     "text": {"file": "main/text/town.txt", "section": "tips1"}, "rect": [328, 0, 640, 200], "panel": "room",
+     "once": "entry", "pointer": "town", "cite": ["R2-ENGINE-274", "R2-ENGINE-308", "R2-ENGINE-312"]},
+    {"name": "square-kaarg", "event": "room-enter", "town": "rom2-town2", "room": "square",
+     "text": {"file": "main/text/town.txt", "section": "tips12"}, "rect": [328, 0, 640, 200], "panel": "room",
+     "once": "entry", "pointer": "town", "cite": ["R2-ENGINE-238", "R2-ENGINE-308", "R2-ENGINE-312"]},
+    {"name": "square-druid", "event": "room-enter", "town": "rom2-town3", "room": "square",
+     "text": {"file": "main/text/town.txt", "section": "tips11"}, "rect": [328, 0, 640, 200], "panel": "room",
+     "once": "entry", "pointer": "town", "cite": ["R2-ENGINE-307", "R2-ENGINE-308", "R2-ENGINE-312"]},
+    {"name": "inn", "event": "room-enter", "room": "inn",
+     "text": {"file": "main/text/town.txt", "section": "tips2"}, "rect": [160, 0, 472, 200], "panel": "room",
+     "once": "entry", "pointer": "town", "cite": ["R2-ENGINE-308", "R2-ENGINE-312"]},
+    {"name": "shop", "event": "room-enter", "room": "shop",
+     "text": {"file": "main/text/town.txt", "section": "tips3"}, "rect": [164, 162, 476, 298], "panel": "room",
+     "once": "entry", "pointer": "town", "cite": ["R2-ENGINE-308", "R2-ENGINE-312", "DIV-2968"]},
     {"name": "pre-create-1", "event": "pre-create-enter",
      "text": {"file": "main/text/town.txt", "section": "tips8"}, "rect": [232, 48, 640, 184], "panel": "generator",
      "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289", "DIV-3015"]},
@@ -24,5 +40,5 @@
      "text": {"file": "main/text/town.txt", "section": "tips7"}, "rect": [160, 280, 472, 480], "panel": "generator",
      "once": "page-enter", "pointer": "generator", "cite": ["R2-ENGINE-289"]}
   ],
-  "cite": ["R2-ENGINE-289", "R2-ENGINE-274", "R2-ENGINE-314", "DIV-3015"]
+  "cite": ["R2-ENGINE-289", "R2-ENGINE-274", "R2-ENGINE-308", "R2-ENGINE-312", "R2-ENGINE-314", "DIV-3015", "DIV-4063"]
 }

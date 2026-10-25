@@ -65,6 +65,8 @@ func secondShopEnter(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampaignSc
 		t.Fatalf("SHOP opened room %d", c.room)
 	}
 	secondShopArtLoaded(t, s)
+	// The entry's tip popup covers shelves and the keeper until closed.
+	s.CloseTip()
 	s.ShopInteriorActive(true)
 	return s.scene(d, "shop"), s.roomArt(d, "shop").scene
 }

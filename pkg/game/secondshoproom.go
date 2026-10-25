@@ -189,6 +189,7 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 	}
 	v.Art = a.shop
 	v.Scene = roomScene{t.scene(d, room)}
+	v.TipPanel = t.roomTipView(d.Town, room)
 }
 
 // ShopInteriorActive runs the shop room's scene while the page shows.

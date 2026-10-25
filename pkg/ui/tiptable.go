@@ -20,8 +20,8 @@ type TipTable struct {
 }
 
 // TipPanelStyle is how a row's text draws: Font "" is the install's tip
-// font, "text" the generator's text font and "install" the generator's
-// install font; Inset (left, top, right, bottom) places the text inside the
+// font, "text" the generator's text font, also in a town, and "install"
+// the generator's install font; Inset (left, top, right, bottom) places the text inside the
 // panel, zero for the list child's own inset (MENU-137).
 type TipPanelStyle struct {
 	Name  string   `json:"name"`
@@ -40,13 +40,15 @@ type TipText struct {
 
 // TipRow is one tip popup: the event that raises it (tipEvents), its text,
 // its rectangle, its once-only rule and the pointer route that owns its
-// presses. Room names a room-enter row's room and Class a detail-enter row's
-// class, "fighter" or "mage". Second replaces a room's text once per
-// activation when the host's condition holds; Fit moves the bottom edge up to
-// the text's own height.
+// presses. Room names a room-enter row's room and Town the town description
+// it serves, empty for every town without a row of its own; Class names a
+// detail-enter row's class, "fighter" or "mage". Second replaces a room's
+// text once per activation when the host's condition holds; Fit moves the
+// bottom edge up to the text's own height.
 type TipRow struct {
 	Name    string   `json:"name"`
 	Event   string   `json:"event"`
+	Town    string   `json:"town"`
 	Room    string   `json:"room"`
 	Class   string   `json:"class"`
 	Text    TipText  `json:"text"`
@@ -141,6 +143,8 @@ func (t *TipTable) validate() error {
 			return fmt.Errorf("row %s: once %q pointer %q, the %s host enacts %q and %q", r.Name, r.Once, r.Pointer, r.Event, ev.once, ev.pointer)
 		case (r.Event == "room-enter") != (r.Room != ""):
 			return fmt.Errorf("row %s: room %q on event %s", r.Name, r.Room, r.Event)
+		case r.Town != "" && r.Event != "room-enter":
+			return fmt.Errorf("row %s: town %q on event %s", r.Name, r.Town, r.Event)
 		case (r.Event == "detail-enter") != oneOf(r.Class, "fighter", "mage"):
 			return fmt.Errorf("row %s: class %q on event %s", r.Name, r.Class, r.Event)
 		case r.Second.File != "" && r.Event != "room-enter":
@@ -157,10 +161,10 @@ func (t *TipTable) validate() error {
 		if r.Event == "dialogue-close" && (r.Text.Section != "" || strings.Contains(fmt.Sprintf(r.Text.File, 1, 1), "%!")) {
 			return fmt.Errorf("row %s: mission text %q does not take a mission and a tip number", r.Name, r.Text.File)
 		}
-		if p := t.panel(r.Panel); p.Font != "" && tipEvents[r.Event].pointer != "generator" {
-			return fmt.Errorf("row %s: panel font %q outside the generator", r.Name, p.Font)
+		if p, host := t.panel(r.Panel), tipEvents[r.Event].pointer; p.Font != "" && host != "generator" && (p.Font != "text" || host != "town") {
+			return fmt.Errorf("row %s: panel font %q on a %s row", r.Name, p.Font, host)
 		}
-		key := r.Event + "/" + r.Room + "/" + r.Class
+		key := r.Event + "/" + r.Town + "/" + r.Room + "/" + r.Class
 		if keys[key] {
 			return fmt.Errorf("row %s: a second row for %s", r.Name, key)
 		}
@@ -187,11 +191,26 @@ func (t *TipTable) Row(event, room, class string) *TipRow {
 		return nil
 	}
 	for i := range t.Rows {
-		if r := &t.Rows[i]; r.Event == event && r.Room == room && r.Class == class {
+		if r := &t.Rows[i]; r.Event == event && r.Town == "" && r.Room == room && r.Class == class {
 			return r
 		}
 	}
 	return nil
+}
+
+// RoomRow is room's room-enter row in town, else its row for every town.
+func (t *TipTable) RoomRow(town, room string) *TipRow {
+	if t == nil {
+		return nil
+	}
+	if town != "" {
+		for i := range t.Rows {
+			if r := &t.Rows[i]; r.Event == "room-enter" && r.Town == town && r.Room == room {
+				return r
+			}
+		}
+	}
+	return t.Row("room-enter", room, "")
 }
 
 // Panel is the text style row names; the zero style when it names none.

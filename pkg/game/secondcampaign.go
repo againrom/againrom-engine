@@ -222,6 +222,10 @@ type secondCampaignScreen struct {
 	worldMapAt *secondMapOpening
 	// townTalkSeat is the town talk window; the campaign holds its pages.
 	townTalkSeat
+	// options holds the tips option.
+	options *PersistenceContext
+	tipArt  func() *ui.TipPanelArt
+	tip     secondRoomTip
 	// talkFaces resolves the open conversation's speaker faces.
 	talkFaces speakerResolver
 }
@@ -243,7 +247,8 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
-		composed: newSecondTownState(f), mapArt: f.worldMapAssets}
+		composed: newSecondTownState(f), mapArt: f.worldMapAssets,
+		options: &f.PersistenceContext, tipArt: f.tipArt}
 	t.talkSource = t
 	t.bindShop()
 	return t
