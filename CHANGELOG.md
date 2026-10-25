@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Hover captions in the town, the shop, the mission and every other screen now look as in the original: small gold capitals in a small box, as on the hero creation screen. Before, they used the large town font in cream, in a box about twice the size.
 - [ROM1] A save made in our game no longer sends a stray spell to the map corner when the original game loads it: a mage in the middle of a cast keeps its target, and the bodies on the map and the units that fought them keep their attack timers and kill credit in the saved file.
 - [BASE] After loading a saved game, a mage's spells reach as far as the mage's current skill allows from the first cast; before, Teleport could reach only the distance stored in the save, 1 cell instead of 3, until the mage had cast it once.
 - [ROM2] Two mission talks that have no words for some heroes now open on `Nothing to say`: one for a hero who is not a mage, and, on the English edition, one for a female mage, who now also sees the rest of that talk. Before, neither talk opened.

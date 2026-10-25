@@ -6,6 +6,8 @@ import (
 	"image/draw"
 	"time"
 
+	"againrom/pkg/render/text"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -105,15 +107,26 @@ func (a *App) tooltipPresent(bounds image.Rectangle) (*image.RGBA, image.Point, 
 }
 
 // hoverStyle is the generator description's hover style while the generator
-// shows, nil on every other screen.
+// shows, the game's hover style (SetHoverStyle) on every other screen.
 func (a *App) hoverStyle() *hoverStyle {
 	if a.flow == nil || a.flow.screen != ScreenChargen {
-		return nil
+		return a.tooltip.style
 	}
 	if l := a.flow.chargen.layout(); l != nil {
 		return l.Hover.style()
 	}
-	return nil
+	return a.tooltip.style
+}
+
+// SetHoverStyle gives every hover box outside the generator the game's
+// hover style h, drawn in font, the font h names. A nil h or font keeps the
+// shared hover help.
+func (a *App) SetHoverStyle(h *GeneratorHover, font *text.Font) {
+	a.tooltip.style = nil
+	if s := h.style(); s != nil && font != nil {
+		s.font = font
+		a.tooltip.style = s
+	}
 }
 
 func (a *App) drawTooltip(dst *ebiten.Image) {

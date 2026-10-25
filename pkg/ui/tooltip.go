@@ -27,26 +27,36 @@ type tooltipController struct {
 	baseFont *text.Font
 	// ball is interface/Ball.bmp, the hover box's corner (MENU-128).
 	ball image.Image
+	// style is the game's own hover style on every screen; nil draws the
+	// shared hover help.
+	style *hoverStyle
 }
 
-// Hover help uses the character card's font without resampling its glyphs.
+// Hover help uses the character card's font without resampling its glyphs,
+// or the game's hover style when it has one.
 func (h *tooltipController) picture(t tooltipTarget, p image.Point, bounds image.Rectangle) (*image.RGBA, image.Point, bool) {
-	return h.styled(t, p, bounds, nil)
+	return h.styled(t, p, bounds, h.style)
 }
 
-// styled is picture in style s; a styled target keeps its own font.
+// styled is picture in style s; a styled target keeps its own font unless
+// the style names one.
 func (h *tooltipController) styled(t tooltipTarget, p image.Point, bounds image.Rectangle, s *hoverStyle) (*image.RGBA, image.Point, bool) {
-	if s == nil && h.baseFont != nil && t.font != nil {
+	switch {
+	case s != nil && s.font != nil && t.font != nil:
+		t.font = s.font
+	case s == nil && h.baseFont != nil && t.font != nil:
 		t.font = h.baseFont
 	}
 	return tooltipPicture(t, p, bounds, h.ball, s)
 }
 
-// hoverStyle is how a hover box draws its text: the ink, a shadow one pixel
-// right and down when named, and, when authored, every '#' line as written,
-// blank ones kept and none wrapped. A nil style is the shared hover help:
-// popupTextColor, no shadow, lines trimmed, blank ones dropped and wrapped.
+// hoverStyle is how a hover box draws its text: the font when named, the
+// ink, a shadow one pixel right and down when named, and, when authored,
+// every '#' line as written, blank ones kept and none wrapped. A nil style
+// is the shared hover help: popupTextColor, no shadow, lines trimmed, blank
+// ones dropped and wrapped.
 type hoverStyle struct {
+	font     *text.Font
 	ink      color.RGBA
 	shadow   *color.RGBA
 	authored bool
@@ -127,6 +137,12 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 	var lines []string
 	width := min(tooltipMaxWidth, bounds.Dx()) - hoverExtraW
 	for _, line := range t.lines {
+		if s != nil && s.authored {
+			// A line that begins with '#' is an installed fragment appended
+			// to the text before it (an item's "#Defense +"): its '#' is the
+			// break the line boundary already makes, not a blank line.
+			line = strings.TrimPrefix(line, "#")
+		}
 		for _, part := range strings.Split(line, "#") {
 			if s != nil && s.authored {
 				lines = append(lines, part)

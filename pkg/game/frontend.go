@@ -997,6 +997,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	tooltipDelay, _ := f.Options.TooltipDelay()
 	a.SetTooltipDelayPreference(tooltipDelay, f.Options.SetTooltipDelay)
 	a.SetTooltipFont(f.tipFont())
+	a.SetHoverStyle(f.InstallResources.hoverStyle())
 	a.SetTextSmoothing(!f.smoothingOff.text)
 	a.SetFrameSmoothing(!f.smoothingOff.frame)
 	edition := f.Base().Profile.Edition()

@@ -57,6 +57,10 @@ func TestHoverStyleAuthoredLinesKeepBlankLinesAndDoNotWrap(t *testing.T) {
 	if shared.Bounds().Dx() > tooltipMaxWidth {
 		t.Errorf("shared box %d wide, want at most %d", shared.Bounds().Dx(), tooltipMaxWidth)
 	}
+	item := tooltipTarget{tooltipItem, "item", []string{"AA", "#AA", "#AA"}, f}
+	if pic, _, _ := tooltipPicture(item, image.Pt(0, 470), frame, nil, &hoverStyle{ink: popupTextColor, authored: true}); pic == nil || pic.Bounds().Dy() != hoverPitch*3+hoverExtraH {
+		t.Error("an appended '#' fragment drew a blank line in the authored box")
+	}
 	blank := tooltipTarget{tooltipText, "blank", tooltipLines("AA##AA"), f}
 	if pic, _, _ := tooltipPicture(blank, image.Pt(0, 470), frame, nil, nil); pic == nil || pic.Bounds().Dy() != hoverPitch*2+hoverExtraH {
 		t.Error("the shared box kept a blank line")
@@ -83,5 +87,50 @@ func TestGeneratorHoverStyleDecodes(t *testing.T) {
 	d.Hover = &GeneratorHover{Font: "text", Lines: "wrapped"}
 	if err := d.validate(); err != nil {
 		t.Errorf("a wrapped hover style: %v", err)
+	}
+}
+
+// The game's hover style reaches every hover box the controller draws, the
+// mission viewer's included: the text in the style's font and ink, whatever
+// font the target carries. Without a style the shared help keeps the
+// controller's base font and popupTextColor.
+func TestGameHoverStyleDrawsEveryHoverBoxInItsFont(t *testing.T) {
+	own, styled, base := shippedShapeFont(), shippedShapeFont(), shippedShapeFont()
+	for i := range styled.Glyphs {
+		styled.Glyphs[i].Advance = 5
+	}
+	for i := range base.Glyphs {
+		base.Glyphs[i].Advance = 11
+	}
+	shadow := GeneratorInk{8, 8, 8}
+	h := &GeneratorHover{Font: "text", Ink: GeneratorInk{160, 120, 50}, Shadow: &shadow, Lines: "authored"}
+	target := tooltipTarget{tooltipText, "inn", tooltipLines("AAAA"), own}
+	frame := image.Rect(0, 0, 640, 480)
+	a := &App{}
+	a.SetTooltipFont(base)
+	a.SetHoverStyle(h, styled)
+	if a.hoverStyle() != a.tooltip.style || a.tooltip.style == nil {
+		t.Fatal("the app outside the generator does not answer the game's hover style")
+	}
+	pic, _, ok := a.tooltip.picture(target, image.Pt(10, 100), frame)
+	if !ok {
+		t.Fatal("no styled box")
+	}
+	if want := styled.Advance("AAAA") + hoverExtraW; pic.Bounds().Dx() != want {
+		t.Errorf("styled box %d wide, want %d: the style's font", pic.Bounds().Dx(), want)
+	}
+	if got := pic.RGBAAt(hoverTextX, hoverTextY); got != (color.RGBA{160, 120, 50, 255}) {
+		t.Errorf("styled text pixel %v, want the style ink", got)
+	}
+	a.SetHoverStyle(nil, styled)
+	if a.tooltip.style != nil {
+		t.Fatal("a game without a hover style kept one")
+	}
+	pic, _, _ = a.tooltip.picture(target, image.Pt(10, 100), frame)
+	if want := base.Advance("AAAA") + hoverExtraW; pic == nil || pic.Bounds().Dx() != want {
+		t.Errorf("shared box is not drawn in the base font, want %d wide", want)
+	}
+	if got := pic.RGBAAt(hoverTextX, hoverTextY); got != popupTextColor {
+		t.Errorf("shared text pixel %v, want %v", got, popupTextColor)
 	}
 }

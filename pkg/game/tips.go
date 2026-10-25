@@ -153,6 +153,16 @@ func (in *InstallResources) tipFont() *text.Font {
 	return in.Font.Value()
 }
 
+// hoverStyle is the generator description's hover style, which every hover
+// box of the game draws in, and the text font it names; nil where the
+// description names none or the generator did not load.
+func (in *InstallResources) hoverStyle() (*ui.GeneratorHover, *text.Font) {
+	if a := in.ChargenAssets; a != nil && a.Presentation != nil && a.Presentation.Layout != nil {
+		return a.Presentation.Layout.Hover, a.Presentation.Font
+	}
+	return nil, nil
+}
+
 // CloseTip dismisses the current room's constructed popup.
 func (t *townScreen) CloseTip() {
 	if t == nil || int(t.room) >= len(t.tipClosed) {

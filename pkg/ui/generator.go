@@ -30,8 +30,8 @@ type GeneratorDescription struct {
 	PreCreate GeneratorPreCreate `json:"pre-create"`
 	Detail    GeneratorDetail    `json:"detail"`
 	TipCycles GeneratorTipCycles `json:"tip-cycles"`
-	// Hover is how the generator's hover help draws; nil draws it as every
-	// other hover help draws.
+	// Hover is how the game's hover help draws, the generator's and every
+	// other screen's; nil draws the shared hover help.
 	Hover *GeneratorHover `json:"hover"`
 	// Campaign is the part only the game's campaign adapter reads: the hero
 	// a result makes and what the commit writes. The builder never decodes it.
@@ -440,8 +440,8 @@ type GeneratorDetail struct {
 	CardOffset GeneratorPoint `json:"card-offset"`
 }
 
-// GeneratorHover is how the generator's hover help draws in the one hover
-// box (widgethover.go): in the generator's text font ("text"), in Ink over
+// GeneratorHover is how the game's hover help draws in the one hover box
+// (widgethover.go): in the generator's text font ("text"), in Ink over
 // Shadow one pixel right and down, and with Lines "authored", every '#' line
 // as written, blank lines kept and none wrapped.
 type GeneratorHover struct {

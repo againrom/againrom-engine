@@ -3026,5 +3026,5 @@ var Committed = Baseline{
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
 	// for the body words a SAVE keeps from LOAD.
-	CommentBytes: 9664922,
+	CommentBytes: 9665985,
 }
