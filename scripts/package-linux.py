@@ -129,7 +129,8 @@ def binary_identity(binary, name, version, revision, environment=None):
         raise ValueError(f"Missing regular executable: {binary}")
     if run([str(binary), "-version"], binary.parent, environment) != f"{name} {version} {revision[:12]}":
         raise ValueError(f"Unexpected version or source stamp: {binary}")
-    metadata = run(["go", "version", "-m", str(binary)], binary.parent, environment).splitlines()
+    # Go records tool telemetry; only the program inherits the profile under test.
+    metadata = run(["go", "version", "-m", str(binary)], binary.parent).splitlines()
     header = re.search(r": (go\S+)$", metadata[0]) if metadata else None
     if header is None:
         raise ValueError(f"Missing Go identity: {binary}")

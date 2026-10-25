@@ -13,6 +13,7 @@ import struct
 import subprocess
 import sys
 import tarfile
+from unittest import mock
 import zlib
 
 sys.dont_write_bytecode = True
@@ -40,10 +41,20 @@ def refused(action):
     raise ValueError("Invalid input was accepted.")
 
 
-def inventory(directory):
-    return {path.relative_to(directory).as_posix():
-            (stat.S_IMODE(path.stat().st_mode), PACKAGE.digest(path))
-            for path in directory.rglob("*") if path.is_file()}
+def inventory(directory, include_directories=False):
+    return {path.relative_to(directory).as_posix() + ("/" if path.is_dir() else ""):
+            (stat.S_IMODE(path.stat().st_mode), PACKAGE.digest(path) if path.is_file() else None)
+            for path in directory.rglob("*") if path.is_file() or include_directories and path.is_dir()}
+
+
+def check_unchanged(before, after, message):
+    changes = {
+        "added": sorted(after.keys() - before.keys()),
+        "changed": sorted(name for name in before.keys() & after.keys() if before[name] != after[name]),
+        "removed": sorted(before.keys() - after.keys()),
+    }
+    detail = "; ".join(f"{kind}: {', '.join(paths)}" for kind, paths in changes.items() if paths)
+    check(not detail, f"{message} {detail}")
 
 
 def check_png(data):
@@ -108,7 +119,7 @@ def unit(evidence):
     before = inventory(binaries)
     stage = evidence / "stage"
     PACKAGE.stage_public(binaries, stage, {"fixture": True})
-    check(inventory(binaries) == before, "Staging wrote into input files.")
+    check_unchanged(before, inventory(binaries), "Staging wrote into input files.")
     check(sorted(inventory(stage)) == list(EXPECTED), "Private files entered staging.")
     tar, repeat = evidence / "fixture.tar.gz", evidence / "repeat.tar.gz"
     PACKAGE.write_tar(stage, tar, 123456)
@@ -150,21 +161,68 @@ def unit(evidence):
     check_embedded_runtime(patched, elf)
     patched[320] = 1
     refused(lambda: check_embedded_runtime(patched, elf))
+    probe_home, tool_config = evidence / "version-home", evidence / "tool-config"
+    probe_config = probe_home / "config"
+    probe_config.mkdir(parents=True)
+    tool_config.mkdir()
+    environment = {"HOME": str(probe_home), "XDG_CONFIG_HOME": str(probe_config)}
+    probe_binary = Path(sys.executable).resolve()
+    profile_before = inventory(probe_home, include_directories=True)
+    calls = []
+
+    def version_command(command, cwd, environment=None):
+        calls.append(command)
+        if command[0] == "go":
+            config = Path(environment["XDG_CONFIG_HOME"]) if environment is not None else tool_config
+            counter = config / "go/telemetry/local/fixture.v1.count"
+            counter.parent.mkdir(parents=True)
+            counter.write_bytes(b"tool counter")
+            return "fixture: go1.26.1\n\tbuild\tGOOS=linux\n\tbuild\tGOARCH=amd64\n\tbuild\tCGO_ENABLED=0\n\tbuild\t-trimpath=true"
+        check(command == [str(probe_binary), "-version"] and environment == {
+            "HOME": str(probe_home), "XDG_CONFIG_HOME": str(probe_config)}, "Program version environment differs.")
+        return f"againrom {version} {revision[:12]}"
+
+    with mock.patch.object(PACKAGE, "run", side_effect=version_command):
+        check(PACKAGE.binary_identity(probe_binary, "againrom", version, revision, environment) == "go1.26.1", "Toolchain identity differs.")
+    check_unchanged(profile_before, inventory(probe_home, include_directories=True), "Go metadata inspection contaminated the program profile.")
+    check((tool_config / "go/telemetry/local/fixture.v1.count").is_file(), "Metadata tool did not use its own configuration.")
+    check(len(calls) == 2 and calls[1] == ["go", "version", "-m", str(probe_binary)], "Version or Go metadata command was lost.")
+    directory_before = inventory(probe_home, include_directories=True)
+    (probe_home / "unexpected-empty-folder").mkdir()
+    try:
+        check_unchanged(directory_before, inventory(probe_home, include_directories=True), "Version wrote profile.")
+    except ValueError as error:
+        check("added: unexpected-empty-folder/" in str(error), "Empty-directory diagnostic lost its path.")
+    else:
+        raise ValueError("A version command's empty directory write was accepted.")
+    try:
+        check_unchanged({"settings.ini": (0o644, "old"), "private.sav": (0o644, "save")},
+                        {"settings.ini": (0o644, "new"), "new.dat": (0o644, "data")}, "Version wrote profile.")
+    except ValueError as error:
+        check(all(text in str(error) for text in ("added: new.dat", "changed: settings.ini", "removed: private.sav")), "Profile diagnostic lost changed paths.")
+    else:
+        raise ValueError("A version command's file write was accepted.")
     print("linux-package unit: allowlists, public notice bytes, private sentinels, identity refusals, output fences, "
-          "tar metadata and reproducibility, PNG structure, tool checksums and missing-pin refusal PASS")
+          "tar metadata and reproducibility, PNG structure, tool checksums, missing-pin refusal, metadata isolation "
+          "and profile-write diagnostics PASS")
 
 
 def check_runtime(runtime, manifest, environment):
-    before = inventory(runtime)
+    before = inventory(runtime, include_directories=True)
     for name in PACKAGE.PUBLIC_FILES:
         check((runtime / name).read_bytes() == (PACKAGE.REPOSITORY / name).read_bytes(), f"Notice bytes differ: {name}")
     for name in PACKAGE.PROGRAMS:
+        profile_before = inventory(Path(environment["HOME"]), include_directories=True)
         version = manifest["starter_version"] if name == "starter" else manifest["version"]
         check(stat.S_IMODE((runtime / name).stat().st_mode) == 0o755, f"Not executable: {name}")
         check(PACKAGE.binary_identity(runtime / name, name, version, manifest["revision"], environment) == manifest["go"], "Go version differs.")
+        check_unchanged(profile_before, inventory(Path(environment["HOME"]), include_directories=True),
+                        f"{runtime.name}/{name} version inspection wrote a user profile.")
         output = PACKAGE.run([str(runtime / name), "-version"], runtime, environment)
         check(output == f"{name} {version} {manifest['revision'][:12]}", "No-display version differs.")
-    check(inventory(runtime) == before, "Version inspection wrote into runtime.")
+        check_unchanged(profile_before, inventory(Path(environment["HOME"]), include_directories=True),
+                        f"{runtime.name}/{name} -version wrote a user profile.")
+    check_unchanged(before, inventory(runtime, include_directories=True), "Version inspection wrote into runtime.")
 
 
 def check_embedded_runtime(image, runtime):
@@ -197,10 +255,10 @@ def check_launcher(evidence, environment):
                        encoding="utf-8", newline="\n")
     starter.chmod(0o555)
     appdir.chmod(0o555)
-    before = inventory(appdir)
-    home_before = inventory(Path(environment["XDG_CONFIG_HOME"]))
+    before = inventory(appdir, include_directories=True)
+    home_before = inventory(Path(environment["HOME"]), include_directories=True)
     check(PACKAGE.run([str(launcher), "-version"], evidence, environment) == "fixture version", "AppRun version route failed.")
-    check(inventory(Path(environment["XDG_CONFIG_HOME"])) == home_before, "AppRun version wrote a profile.")
+    check_unchanged(home_before, inventory(Path(environment["HOME"]), include_directories=True), "AppRun version wrote a profile.")
     profile = Path(environment["XDG_CONFIG_HOME"]) / "Againrom"
     expected = [str(profile), str(profile), "-ini", str(profile / "starter.ini"), "argument with spaces ü"]
     check(PACKAGE.run([str(launcher), "argument with spaces ü"], evidence, environment).splitlines() == expected, "AppRun arguments or working directory differ.")
@@ -211,7 +269,7 @@ def check_launcher(evidence, environment):
     retained = ini.read_bytes()
     PACKAGE.run([str(launcher)], evidence, environment)
     check(ini.read_bytes() == retained, "AppRun replaced existing settings.")
-    check(inventory(appdir) == before, "AppRun wrote inside its read-only directory.")
+    check_unchanged(before, inventory(appdir, include_directories=True), "AppRun wrote inside its read-only directory.")
 
 
 def native(arguments, evidence):
@@ -227,9 +285,10 @@ def native(arguments, evidence):
     environment = os.environ.copy()
     environment.pop("DISPLAY", None)
     environment.pop("WAYLAND_DISPLAY", None)
-    environment["XDG_CONFIG_HOME"] = str(evidence / "config ü")
-    Path(environment["XDG_CONFIG_HOME"]).mkdir()
-    config_before = inventory(Path(environment["XDG_CONFIG_HOME"]))
+    environment["HOME"] = str(evidence / "home ü")
+    environment["XDG_CONFIG_HOME"] = str(Path(environment["HOME"]) / "config ü")
+    Path(environment["XDG_CONFIG_HOME"]).mkdir(parents=True)
+    config_before = inventory(Path(environment["HOME"]), include_directories=True)
     tar_root = evidence / "tar"
     with tarfile.open(tar, "r:gz") as archive:
         manifest = json.load(archive.extractfile("againrom/BUILD-INFO.json"))
@@ -247,6 +306,8 @@ def native(arguments, evidence):
     extracted = evidence / "image"
     extracted.mkdir()
     PACKAGE.run([str(image), "--appimage-extract"], extracted, environment)
+    check_unchanged(config_before, inventory(Path(environment["HOME"]), include_directories=True),
+                    "AppImage --appimage-extract wrote a user profile.")
     runtime = extracted / "squashfs-root"
     check(sorted(inventory(runtime)) == sorted((*EXPECTED, *IMAGE_EXTRA)), "Extracted AppImage members differ.")
     check(sorted(path.relative_to(runtime).as_posix() for path in runtime.rglob("*") if path.is_dir()) == ["LICENSES"], "Unexpected AppImage directory.")
@@ -269,7 +330,8 @@ def native(arguments, evidence):
     check(receipt == {"manifest": manifest, "sha256": {tar.name: PACKAGE.digest(tar), image.name: PACKAGE.digest(image)}}, "Publication receipt differs.")
     check(PACKAGE.run([str(runtime / "AppRun"), "-version"], runtime, environment) ==
           f"starter {manifest['starter_version']} {revision[:12]}", "AppImage entry version differs.")
-    check(inventory(Path(environment["XDG_CONFIG_HOME"])) == config_before, "Version commands wrote a user profile.")
+    check_unchanged(config_before, inventory(Path(environment["HOME"]), include_directories=True),
+                    "AppRun -version wrote a user profile.")
     check_launcher(evidence, environment)
     target = evidence / "symlink-target"
     target.mkdir()
@@ -291,7 +353,7 @@ def native(arguments, evidence):
     defaults = dict(binaries_directory=str(inputs), tools_directory=str(tools),
                     revision=revision, tag=manifest["tag"])
     repeat = PACKAGE.package(argparse.Namespace(**defaults, output_directory=str(evidence / "repeat")))
-    check(inventory(inputs) == input_before, "Native package inspection wrote into inputs.")
+    check_unchanged(input_before, inventory(inputs), "Native package inspection wrote into inputs.")
     check(PACKAGE.digest(tar) == PACKAGE.digest(repeat["tar"]), "Repeated tar bytes differ.")
     check(PACKAGE.digest(image) == PACKAGE.digest(repeat["appimage"]), "Repeated AppImage bytes differ.")
     refused(lambda: PACKAGE.package(argparse.Namespace(**defaults, output_directory=str(evidence / "repeat"))))
