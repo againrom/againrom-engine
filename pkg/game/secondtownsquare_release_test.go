@@ -295,8 +295,8 @@ func TestReleaseSecondTownOneEpisodes(t *testing.T) {
 
 // The inn is a page: three panels, the seat grid and three buttons at the
 // rectangles R2-ENGINE-246 and R2-ENGINE-247 measured; a seat click selects
-// and talks (R2-ENGINE-496), Talk runs TalkTo for the selected seat, and Exit and Escape return to the
-// square (R2-ENGINE-250).
+// (R2-SESSION-213), Talk runs TalkTo for the selected seat, and Exit and
+// Escape return to the square (R2-ENGINE-250).
 func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	f, app, s, now := secondTownOne(t)
 	c := f.Town.second
@@ -314,7 +314,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	}
 	view := s.TownSquareView().Scene
 	for i, at := range []image.Point{{200, 448}, {248, 448}, {296, 448}} {
-		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlDoor || ctl.Door != i {
+		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != i {
 			t.Errorf("seat %d at %v: %+v %v", i, at, ctl, ok)
 		}
 	}
@@ -351,10 +351,15 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 		t.Errorf("talk button with seat 2 selected: %+v %v", ctl, ok)
 	}
 
+	// With no seat selected the two left panels show their own art; the
+	// selected person's card and figure are TestReleaseSecondInnPatrons'.
 	d, _ := s.composedTown()
 	art := s.roomArt(d, "inn")
 	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
+	selected := s.composed.seat
+	s.composed.seat = -1
 	view.Paint(dst)
+	s.composed.seat = selected
 	for _, probe := range []struct {
 		name string
 		pic  image.Image

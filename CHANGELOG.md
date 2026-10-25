@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The inn shows its patrons as the original does: the first patron is selected on entry, the left card gives the selected patron's name and statistics, the oval shows the patron in full figure, and each seat shows its own patron; a click on a seat now selects that patron instead of starting the talk, and Talk talks to the selected patron.
 - [ROM2] The map travel ends one step sooner, as in the original: after START MISSION in the first town the map shows for about 2.5 seconds instead of 2.6, and the first mission shows before its opening dialogue.
 - [ROM2] The inn's Talk and Exit and the shop's Undo, Buy, Sell and Exit now show in the original's gold serif letters that turn light yellow under the pointer; Undo is no longer greyed when there is nothing to undo, and a pending purchase shows on Buy as the gold it takes, such as -3. Before, they used the large town font in cream and the purchase showed as 3.
 - [ROM2] The hero creation page shows Accept, Reset, Back and Restore on the second game's own four-plaque brown panel, as the shops show four commands, so a click where the original has Reset or Back now gives Reset or Back; Restore is the fourth plaque, below Back.

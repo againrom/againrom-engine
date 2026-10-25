@@ -104,8 +104,11 @@ type secondTownState struct {
 
 	seat       int
 	seatFrames []int
-	seatStamp  time.Time
-	innShown   bool
+	// patrons are the seated people the pages have shown, built on first
+	// show.
+	patrons   map[secondInnPatronKey]*secondInnPatron
+	seatStamp time.Time
+	innShown  bool
 	// pointer is the last pointer update the shown room had; (-1,-1) off
 	// the screen.
 	pointer image.Point
@@ -289,7 +292,11 @@ func (t *secondCampaignScreen) advanceRoom() {
 	s := t.scene(d, room)
 	s.Advance()
 	if r := d.Room(room); r != nil && r.Seats != nil && s.Active() {
-		t.advanceSeats(r.Seats, t.roomArt(d, room).page.Pictures(r.Seats.Actor))
+		var frames []image.Image
+		if list, _ := t.state().innSeats(); t.composed.seat >= 0 && t.composed.seat < len(list) {
+			frames = t.innPatron(r, t.roomArt(d, room).page, list[t.composed.seat].npc).frames
+		}
+		t.advanceSeats(r.Seats, frames)
 	}
 }
 
@@ -449,8 +456,9 @@ func (v secondTownView) Paint(dst *image.RGBA) {
 	page := v.t.roomArt(v.d, v.room).page
 	s.Paint(dst, "back")
 	words, font := v.t.install.Words, v.t.install.Font.Value()
-	if seats := r.Seats; seats != nil {
-		v.paintSeats(dst, seats, page, words, font)
+	if r.Seats != nil {
+		v.paintSeats(dst, r, page, words, font)
+		v.paintPatron(dst, r, page)
 	}
 	s.Paint(dst, "front")
 	var buttons []ui.RoomButton
@@ -498,13 +506,13 @@ const (
 )
 
 // paintSeats draws the seats: each hire actor, then each talk actor, its
-// back and then its actor; a hire actor whose copied word has the high bit
+// back and then its person's frames; a hire actor whose copied word has the high bit
 // also shows the hired mark over its seat. No hire actor is drawn while no
 // seat is selected (R2-ENGINE-497, DIV-2964).
-func (v secondTownView) paintSeats(dst *image.RGBA, seats *town.SeatSpec, page *screenart.Set, words ui.Words, font *text.Font) {
+func (v secondTownView) paintSeats(dst *image.RGBA, r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) {
+	seats := r.Seats
 	c := v.t.state()
 	list, hires := c.innSeats()
-	actor := page.Pictures(seats.Actor)
 	for i, o := range list {
 		at := seats.Seat(i)
 		if at.Empty() {
@@ -520,7 +528,7 @@ func (v secondTownView) paintSeats(dst *image.RGBA, seats *town.SeatSpec, page *
 			}
 		}
 		drawAt(dst, page.Picture(back), at.Min, draw.Src)
-		if len(actor) > 0 {
+		if actor := v.t.innPatron(r, page, o.npc).frames; len(actor) > 0 {
 			drawAt(dst, actor[v.t.seatFrame(i)%len(actor)], at.Min, draw.Over)
 		}
 		if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) && font != nil {
@@ -579,9 +587,9 @@ func (v secondTownView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	seats := len(list)
 	if r.Seats != nil {
 		if i := r.Seats.SeatAt(p, seats); i >= 0 {
-			// The center click selects the seat and runs its action: Hire
-			// or Fire on a hire actor, TALK on a talk actor (R2-ENGINE-496).
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: i}, true
+			// A seat click selects the seat and acts on nothing; the
+			// buttons act on the selection (R2-SESSION-203, R2-SESSION-213).
+			return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
 		}
 	}
 	if i := town.ButtonAt(r.Buttons, p); i >= 0 {

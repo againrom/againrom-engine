@@ -6,7 +6,6 @@ import (
 	"slices"
 
 	"againrom/pkg/data"
-	"againrom/pkg/formats/alm"
 )
 
 // CharacterSpec names one persistent party member to build: a campaign NPC
@@ -88,10 +87,11 @@ func CharacterMember(t *Table, s CharacterSpec, party []PartyMember) (PartyMembe
 		edited.Humans = data.NewEditedRows(t.Humans, map[int]data.RowEdit{row: edit})
 		local = &edited
 	}
-	// A definition-id placement reaches the same Humans row without depending
-	// on the table's mission-local composed lookup. The constructor below then
-	// resolves the row's complete item cells through the ordinary placement path.
-	u := alm.Unit{DefID: uint32(serverID)}
+	// A server-id placement, in the table's own key form, reaches the same
+	// Humans row without depending on the table's mission-local composed
+	// lookup. The constructor below then resolves the row's complete item
+	// cells through the ordinary placement path.
+	u := t.unitKeys().humanPlacement(serverID)
 	member, ok := rosterTemplate(u, local, 0)
 	if !ok {
 		return PartyMember{}, false

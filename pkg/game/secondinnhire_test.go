@@ -81,9 +81,9 @@ func TestSecondInnHireTakesFirstWord(t *testing.T) {
 	}
 }
 
-// The page's center click on a hire actor and the hire button run Hire or
-// Fire; the center click on a talk actor runs TALK, and the hire button does
-// nothing on it (R2-ENGINE-496, R2-ENGINE-497).
+// A seat click on a hire actor or a talk actor selects the seat
+// (R2-SESSION-213, DIV-3110); the hire button runs Hire or Fire on a hire
+// actor and does nothing on a talk actor (R2-ENGINE-496, R2-ENGINE-497).
 func TestSecondInnHireRouting(t *testing.T) {
 	text := synth.File{Path: "text/town.txt", Data: []byte("#npc1accept30\r\n<NPC=1,PART=1>\r\nAccepted.\r\n#other\r\n")}
 	f, app, screen := secondCampaignFixtureFiles(t, false, text)
@@ -97,10 +97,10 @@ func TestSecondInnHireRouting(t *testing.T) {
 	}
 	view := secondTownView{t: screen, d: d, room: "inn"}
 	screen.enterSeats()
-	if ctl, ok := view.ControlAt(image.Pt(200, 448)); !ok || ctl.Kind != ui.TownSquareControlDoor || ctl.Door != 0 {
+	if ctl, ok := view.ControlAt(image.Pt(200, 448)); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != 0 {
 		t.Fatalf("hire seat click %+v %v", ctl, ok)
 	}
-	if ctl, ok := view.ControlAt(image.Pt(248, 448)); !ok || ctl.Kind != ui.TownSquareControlDoor || ctl.Door != 1 {
+	if ctl, ok := view.ControlAt(image.Pt(248, 448)); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != 1 {
 		t.Fatalf("talk seat click %+v %v", ctl, ok)
 	}
 	if ctl, ok := view.ControlAt(image.Pt(554, 67)); !ok || ctl.Door != 0 {

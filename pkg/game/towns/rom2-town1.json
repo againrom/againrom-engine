@@ -224,6 +224,12 @@
         "cite": ["R2-ENGINE-246", "DIV-2964"]},
        {"name": "actor", "format": "sprites", "key": "graphics/interface/inn/unit1/sprites.16a", "max-size": [48, 64],
         "cite": ["R2-ENGINE-247", "DIV-2964"]},
+       {"name": "patron", "format": "sprites", "key": "graphics/interface/inn/unit%d/sprites.16a", "max-size": [48, 64], "bound": true,
+        "cite": ["R2-ENGINE-247", "R2-SESSION-203"]},
+       {"name": "card", "format": "picture", "key": "graphics/interface/inn/leftstats.bmp", "size": [160, 238], "required": true,
+        "cite": ["R2-ENGINE-246", "R2-SESSION-203"]},
+       {"name": "card-seam", "format": "picture", "key": "graphics/interface/inn/luover.bmp", "size": [16, 238], "transparent": "black", "required": true,
+        "cite": ["R2-ENGINE-246", "R2-SESSION-203"]},
        {"name": "button/0/0", "format": "picture", "key": "graphics/interface/inn/button1off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246"]},
        {"name": "button/0/1", "format": "picture", "key": "graphics/interface/inn/button1on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246"]},
        {"name": "button/1/0", "format": "picture", "key": "graphics/interface/inn/button2off.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246"]},
@@ -232,7 +238,9 @@
        {"name": "button/2/1", "format": "picture", "key": "graphics/interface/inn/button3on.bmp", "size": [140, 46], "required": true, "cite": ["R2-ENGINE-246"]}
      ],
      "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
-               "back": "back", "hire-back": "hire-back", "actor": "actor", "select": "helper", "frame-ms": 125, "compare": "greater",
+               "back": "back", "hire-back": "hire-back", "actor": "actor", "patron": "patron", "select": "helper", "frame-ms": 125, "compare": "greater",
+               "card": {"rect": [0, 0, 160, 238], "art": "card", "seam": "card-seam", "offset": [12, -1], "cite": ["R2-SESSION-203", "R2-SESSION-213"]},
+               "figure": {"rect": [0, 238, 160, 480], "offset": [0, 2], "cite": ["R2-SESSION-203"]},
                "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "DIV-2964"]},
      "buttons": [
        {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-496", "DIV-3110"]},

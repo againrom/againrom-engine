@@ -17,12 +17,39 @@ type SeatSpec struct {
 	Rows    int    `json:"rows"`
 	Back    string `json:"back"`
 	// HireBack is the back a hire actor's seat draws; empty draws Back.
-	HireBack string   `json:"hire-back"`
-	Actor    string   `json:"actor"`
-	Select   string   `json:"select"`
-	FrameMS  int      `json:"frame-ms"`
-	Compare  string   `json:"compare"`
-	Cite     []string `json:"cite"`
+	HireBack string `json:"hire-back"`
+	Actor    string `json:"actor"`
+	// Patron is the bound page art of a seated person's own frames, its key
+	// formatted with the person's type id; a person whose frames do not load
+	// draws Actor. Empty draws Actor for every seat.
+	Patron  string   `json:"patron"`
+	Select  string   `json:"select"`
+	FrameMS int      `json:"frame-ms"`
+	Compare string   `json:"compare"`
+	Cite    []string `json:"cite"`
+	// Card and Figure are where the selected seat's person shows its
+	// statistics card and its full figure; nil shows neither.
+	Card   *SeatCard   `json:"card"`
+	Figure *SeatFigure `json:"figure"`
+}
+
+// SeatCard is the selected person's statistics card: drawn in Rect over the
+// page art Art, its canvas moved right by Offset, the page art Seam
+// completing the moved board's right edge.
+type SeatCard struct {
+	Rect   Rect     `json:"rect"`
+	Art    string   `json:"art"`
+	Seam   string   `json:"seam"`
+	Offset Point    `json:"offset"`
+	Cite   []string `json:"cite"`
+}
+
+// SeatFigure is the selected person's full figure, drawn with its top-left
+// corner at Rect's corner moved by Offset and clipped to Rect.
+type SeatFigure struct {
+	Rect   Rect     `json:"rect"`
+	Offset Point    `json:"offset"`
+	Cite   []string `json:"cite"`
 }
 
 // Count is the number of seats.

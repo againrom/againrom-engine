@@ -757,17 +757,28 @@ func (c *Chargen) CardView() TownCharacterView {
 		return TownCharacterView{}
 	}
 	l, p := c.layout(), c.art()
-	v := TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true}
 	if l == nil || p == nil {
+		return TownCharacterView{Subject: c.preview.Subject, HasSubject: true, Statistics: true}
+	}
+	// A nil picture must stay a nil image, not a nil picture inside one.
+	var body image.Image
+	if p.CardBackground != nil {
+		body = p.CardBackground
+	}
+	return p.CardView(c.preview.Subject, l.Detail.Card.Rect.Rectangle(), l.Detail.CardOffset.Pt(), body, p.CardSeam)
+}
+
+// CardView is a statistics card of subject in the generator's font: drawn in
+// rect over body, its canvas moved right by offset, seam completing the moved
+// board's right edge. The detailed page and the second game's inn page build
+// their cards here.
+func (p *ChargenPresentation) CardView(subject PanelSubject, rect image.Rectangle, offset image.Point, body, seam image.Image) TownCharacterView {
+	v := TownCharacterView{Subject: subject, HasSubject: true, Statistics: true, PaneRect: rect, CardOffset: offset}
+	if p == nil {
 		return v
 	}
-	v.PaneRect, v.CardOffset = l.Detail.Card.Rect.Rectangle(), l.Detail.CardOffset.Pt()
 	v.Font, v.CardFont = p.Font, p.Font
-	// A nil picture must stay a nil image, not a nil picture inside one.
-	if p.CardBackground != nil {
-		v.StatsPane.Body = p.CardBackground
-	}
-	v.StatsPane.Seam = p.CardSeam
+	v.StatsPane = TownPane{Body: body, Seam: seam}
 	return v
 }
 

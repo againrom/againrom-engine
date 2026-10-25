@@ -640,8 +640,10 @@ func (w *routeWitness) enter(target, room string) {
 	w.wait(room)
 }
 
-// tavern hovers the inn page's seats and buttons, talks to each person
-// present page by page, reports the hire offer and leaves by Exit.
+// tavern hovers the inn page's seats and buttons, selects each seat with a
+// click, which opens no talk, talks to each selected person page by page by
+// the button that acts on the seat, reports the hire offer and leaves by
+// Exit.
 func (w *routeWitness) tavern() {
 	w.enter("TAVERN", "inn")
 	w.closeTownTip(w.town.TownSquareView().Tip)
@@ -658,7 +660,15 @@ func (w *routeWitness) tavern() {
 			w.t.Fatalf("tavern: seat %d answers no pixel", i)
 		}
 		label := w.town.Rows()[i].Text
-		w.click(label, seat.rect, seat.at, 2, nil)
+		w.click(fmt.Sprintf("seat %d", i), seat.rect, seat.at, 2, nil)
+		if w.town.composed.seat != i {
+			w.t.Errorf("tavern: a click on seat %d selects seat %d", i, w.town.composed.seat)
+		}
+		if _, open := w.town.dialogueBody(); open {
+			w.t.Errorf("tavern: a click on seat %d opened a dialogue", i)
+		}
+		r := w.sceneControl(label)
+		w.click(label, r.rect, r.at, 2, nil)
 		if n := w.dialoguePages(label); n == 0 && i >= hires {
 			w.t.Errorf("tavern: %s opened no dialogue", label)
 		}
@@ -671,7 +681,7 @@ func (w *routeWitness) tavern() {
 
 // innSeat is the inn page's seat i by the page's own seat rectangles.
 func (w *routeWitness) innSeat(i int) (routeRegion, bool) {
-	return routeFind(w.squareRegions(), fmt.Sprintf("control %d/%d seat %d", ui.TownSquareControlDoor, i, i))
+	return routeFind(w.squareRegions(), fmt.Sprintf("control %d/%d seat %d", ui.TownSquareControlSelect, i, i))
 }
 
 // shopControlRow is one control of the shop page's layout.

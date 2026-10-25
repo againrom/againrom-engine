@@ -388,6 +388,15 @@ func Resolve(u alm.Unit, t *Table) Resolution {
 type UnitKeys interface {
 	resolve(u alm.Unit, t *Table) Resolution
 	cheatPlacement(name string, t, local *Table, placement alm.Unit) (int, alm.Unit, error)
+	// humanPlacement is the placement that resolves the Humans row with
+	// server id id.
+	humanPlacement(id int32) alm.Unit
+}
+
+func (classKeys) humanPlacement(id int32) alm.Unit { return alm.Unit{DefID: uint32(id)} }
+
+func (serverKeys) humanPlacement(id int32) alm.Unit {
+	return alm.Unit{ServerID: uint32(id), Flags: rom2PersonFlag}
 }
 
 type classKeys struct{}

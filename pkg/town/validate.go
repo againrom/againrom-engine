@@ -113,7 +113,17 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		if s.FrameMS <= 0 || s.Compare != "greater" && s.Compare != "at-least" {
 			return fail("seats need a frame period and its compare, one of %s", strings.Join(compares, ", "))
 		}
-		for _, name := range []string{s.Back, s.Actor} {
+		names := []string{s.Back, s.Actor, s.Patron}
+		if s.Card != nil {
+			if s.Card.Rect.Rectangle().Empty() {
+				return fail("the seat card rectangle %v is empty", s.Card.Rect)
+			}
+			names = append(names, s.Card.Art, s.Card.Seam)
+		}
+		if s.Figure != nil && s.Figure.Rect.Rectangle().Empty() {
+			return fail("the seat figure rectangle %v is empty", s.Figure.Rect)
+		}
+		for _, name := range names {
 			if err := needArt("seats", name); err != nil {
 				return err
 			}
