@@ -16,9 +16,28 @@ func TestReleaseAttackFacingMissionTrace(t *testing.T) {
 		w := p.World
 		shots := 0
 		var commands []sim.Command
+		// A computer player's actor in a Group outside every activity cover runs
+		// no order, so the directed shooters belong to Players whose control word
+		// names a human participant; their orders run under the current rules.
+		players, present := w.CurrentPlayers()
+		if !present {
+			t.Fatalf("mission %d has no current Players", mission)
+		}
+		for _, e := range w.Entities() {
+			if c, ok := f.Table.FlightInputs.Classes[e.Class]; !ok || c.Projectile <= 0 || e.Reach <= 1 || e.Owner == sim.SelfSlot {
+				continue
+			}
+			for _, player := range players {
+				if player.Slot == e.Owner {
+					if err := w.SetPlayerParticipant(player.ID, 0); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+		}
 		for _, e := range w.Entities() {
 			if c, ok := f.Table.FlightInputs.Classes[e.Class]; ok && c.Projectile > 0 && e.Reach > 1 {
-				t.Logf("candidate m%d id%d class%d cell%d,%d reach%d facing%d rate%d", mission, e.ID, e.Class, e.X, e.Y, e.Reach, e.Facing, e.RotationSpeed)
+				t.Logf("candidate m%d owner%d id%d class%d cell%d,%d reach%d facing%d rate%d", mission, e.Owner, e.ID, e.Class, e.X, e.Y, e.Reach, e.Facing, e.RotationSpeed)
 				victim := p.Party[0]
 				best := int32(1 << 30)
 				for _, v := range w.Entities() {

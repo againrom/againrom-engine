@@ -2990,6 +2990,10 @@ package storyguard
 // (World.RefreshPlayerBooks in pkg/sim/spellbook.go, Mission.resumeBookWalk
 // in pkg/game/mission.go), its three tests, the second-game continuation
 // oracle that takes the same walk, and this paragraph.
+//
+// CommentBytes rises with the note on the attack facing release test's
+// participant shooters in pkg/game/attackfacing_release_test.go and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3013,5 +3017,5 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9652615,
+	CommentBytes: 9652992,
 }
