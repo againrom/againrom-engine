@@ -3017,5 +3017,6 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	CommentBytes: 9652992,
+	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests.
+	CommentBytes: 9654111,
 }

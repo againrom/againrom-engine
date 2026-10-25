@@ -72,9 +72,21 @@ func forestEditor(t *testing.T, raw []byte) (*ui.MapEditor, *MapInspector) {
 	for _, c := range forestCodes {
 		x.objectRows = append(x.objectRows, ui.BrushObject{Code: c})
 	}
+	x.statics = forestStatics(forestCodes...)
 	e := x.Editor()
 	openSelectionMap(t, e, "forest.alm", raw)
 	return e, x
+}
+
+// forestStatics is a static set whose listed classes each have a one-pixel
+// opaque frame.
+func forestStatics(codes ...int) *terrain.StaticSet {
+	set := &terrain.StaticSet{}
+	for _, c := range codes {
+		f := &terrain.StaticFrame{Width: 1, Height: 1, Pixels: []terrain.StaticPixel{{Index: 1, Opaque: true}}}
+		set.Classes[c] = &terrain.StaticClass{Frame: f}
+	}
+	return set
 }
 
 // forestDriver drives the editor the way the pointer and the keys do.

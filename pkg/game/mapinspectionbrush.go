@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -134,12 +135,12 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 	b.Value, b.Radius, b.Shape = op.Value, op.Radius, brushShapes[op.Shape]
 	if op.Plane == ui.BrushPlaneObjects && len(op.Forest.Kinds) > 0 {
 		var fenced []bool
-		if table != nil && !op.Forest.Thin {
+		if !op.Forest.Thin {
 			doc, err := m.Map()
 			if err != nil {
 				return false, err
 			}
-			fenced = mapload.StructureCells(doc, table)
+			fenced = forestFence(doc, table)
 		}
 		b.Scatter = mapedit.Scatter{Classes: op.Forest.Kinds, Share: op.Forest.Share, Thin: op.Forest.Thin,
 			Draw: random.NewGo(int64(strokeSeed())).Intn, Fenced: fenced}
@@ -151,6 +152,32 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 		}
 	}
 	return m.Paint(b, strokeCells(op), mapload.TileClass)
+}
+
+// forestFence is the per-cell plane a planting stroke keeps clear: the cells
+// the table's structure footprints attach (none for a nil table), the
+// party's drop cells and the cells units stand on, the cells the map report
+// checks for a blocked drop or unit.
+func forestFence(doc *alm.Map, table *mapload.Table) []bool {
+	var fenced []bool
+	if table != nil {
+		fenced = mapload.StructureCells(doc, table)
+	}
+	if len(fenced) != int(doc.Width)*int(doc.Height) {
+		fenced = make([]bool, int(doc.Width)*int(doc.Height))
+	}
+	fence := func(cell image.Point) {
+		if cell.In(image.Rect(0, 0, int(doc.Width), int(doc.Height))) {
+			fenced[cell.Y*int(doc.Width)+cell.X] = true
+		}
+	}
+	for _, d := range mapload.DropCells(doc) {
+		fence(image.Pt(int(d.X), int(d.Y)))
+	}
+	for _, u := range doc.Units {
+		fence(unitCell(u))
+	}
+	return fenced
 }
 
 // brushShapes is the model's shape of each window shape.

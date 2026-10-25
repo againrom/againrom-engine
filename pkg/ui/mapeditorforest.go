@@ -62,7 +62,8 @@ func (e *MapEditor) forestShare() int {
 }
 
 // forestKinds are the forest grid's classes: every offered class but the
-// clear row, in the list's order.
+// clear row, in the list's order. A host that has pictures offers only the
+// classes whose picture shows something.
 func (e *MapEditor) forestKinds() []BrushObject {
 	h := e.brushHost()
 	if h == nil {
@@ -70,11 +71,29 @@ func (e *MapEditor) forestKinds() []BrushObject {
 	}
 	var out []BrushObject
 	for _, o := range h.BrushObjects() {
-		if o.Code != 0 {
+		if o.Code != 0 && e.forestHasArt(o.Code) {
 			out = append(out, o)
 		}
 	}
 	return out
+}
+
+// forestHasArt reports whether class code may stand in the grid: always for a
+// host without pictures, else only when its picture has a visible pixel.
+func (e *MapEditor) forestHasArt(code int) bool {
+	if _, ok := e.brushHost().(InspectionBrushIcons); !ok {
+		return true
+	}
+	pic := e.forestIcon(code)
+	if pic == nil || pic.Bounds().Empty() {
+		return false
+	}
+	for i := 3; i < len(pic.Pix); i += 4 {
+		if pic.Pix[i] != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // forestTicked are the ticked class codes in the list's order.
