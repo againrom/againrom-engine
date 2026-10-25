@@ -69,25 +69,25 @@ func TestSecondGeneratorDescribesTheOriginalLook(t *testing.T) {
 			t.Errorf("pool anchor %v, want centred on x 84", st.PoolAt)
 		}
 	})
-	t.Run("three commands on the Inn panel and Restore below them", func(t *testing.T) {
+	t.Run("four commands on the four-plaque panel", func(t *testing.T) {
 		panel := image.Rect(480, 0, 640, 238)
-		if det.Nav.Key != "graphics/interface/inn/buttonsarea.bmp" || det.Nav.Rect.Rectangle() != panel || det.Nav.Keyed || det.NavSeam != nil {
-			t.Errorf("command panel %s at %v keyed %t seam %v, want ButtonsArea copied at the buttons child %v", det.Nav.Key, det.Nav.Rect, det.Nav.Keyed, det.NavSeam, panel)
+		if det.Nav.Key != "graphics/interface/chrgen/buttonsarea.bmp" || det.Nav.Rect.Rectangle() != panel || det.Nav.Keyed || det.NavSeam != nil {
+			t.Errorf("command panel %s at %v keyed %t seam %v, want the hero-creation ButtonsArea copied at %v", det.Nav.Key, det.Nav.Rect, det.Nav.Keyed, det.NavSeam, panel)
 		}
-		inn := "graphics/interface/inn/button"
+		shop := "graphics/interface/shop_druid/shopbutton"
 		want := map[string]struct {
 			rect image.Rectangle
-			pair int
-		}{"play": {image.Rect(484, 44, 624, 90), 1}, "reset": {image.Rect(484, 91, 624, 137), 2},
-			"back": {image.Rect(484, 138, 624, 184), 3}, "restore": {image.Rect(484, 185, 624, 231), 1}}
+			slot int
+		}{"play": {image.Rect(494, 15, 614, 67), 1}, "reset": {image.Rect(483, 67, 623, 113), 2},
+			"back": {image.Rect(483, 114, 623, 160), 3}, "restore": {image.Rect(494, 160, 614, 212), 4}}
 		if len(det.Commands) != 4 {
 			t.Fatalf("%d commands, want 4", len(det.Commands))
 		}
 		for _, c := range det.Commands {
 			w := want[c.Role]
-			off, on := fmt.Sprintf("%s%doff.bmp", inn, w.pair), fmt.Sprintf("%s%don.bmp", inn, w.pair)
-			if c.Rect.Rectangle() != w.rect || c.Off != off || c.On != on || c.Keyed || !c.Rect.Rectangle().In(panel) {
-				t.Errorf("%s at %v, %q/%q keyed %t; want %v, %q/%q", c.Role, c.Rect, c.Off, c.On, c.Keyed, w.rect, off, on)
+			on := fmt.Sprintf("%s%d.bmp", shop, w.slot)
+			if c.Rect.Rectangle() != w.rect || c.Off != "" || c.On != on || !c.Keyed || !c.Rect.Rectangle().In(panel) {
+				t.Errorf("%s at %v, %q/%q keyed %t; want %v, pressed %q only, keyed", c.Role, c.Rect, c.Off, c.On, c.Keyed, w.rect, on)
 			}
 		}
 		// The points the original was clicked at land on Accept, Reset and

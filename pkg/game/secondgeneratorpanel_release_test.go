@@ -28,14 +28,14 @@ func secondPanelSame(frame *image.RGBA, pic image.Image, r image.Rectangle, skip
 	return same, all
 }
 
-// The second game's detail page draws its commands on the original's Inn
-// panel (R2-ENGINE-286): ButtonsArea copied at (480,0), Accept, Reset and
-// Back at the original's rectangles in their off pictures, and the owner's
-// Restore below Back in the first pair (DIV-3014). The points the original
-// was clicked at, (533,65), (533,112) and (533,158), are Accept, Reset and
-// Back; a held plaque shows its on picture; Reset keeps its rule per
-// language, Restore returns the opening draft and Back leaves the page.
-func TestReleaseSecondGameGeneratorCommandPanelIsTheOriginals(t *testing.T) {
+// The second game's detail page draws its commands on the hero-creation
+// folder's own four-plaque brown panel (R2-ENGINE-286, R2-ASSET-090): the
+// panel copied at (480,0), Accept, Reset, Back and Restore top to bottom in
+// its four recesses (DIV-3014). The points the original was clicked at,
+// (533,65), (533,112) and (533,158), are Accept, Reset and Back; a held
+// plaque shows its pressed picture; Reset keeps its rule per language,
+// Restore returns the opening draft and Back leaves the page.
+func TestReleaseSecondGameGeneratorCommandPanelIsTheFourPlaquePanel(t *testing.T) {
 	f := secondGameFront(t)
 	if f.ChargenAssets == nil || f.ChargenAssets.Presentation == nil {
 		t.Fatal("the second game's install loaded no generator")
@@ -90,9 +90,21 @@ func TestReleaseSecondGameGeneratorCommandPanelIsTheOriginals(t *testing.T) {
 		if same, all := secondPanelSame(frame, art.NavArt, l.Detail.Nav.Rect.Rectangle(), inPlaque); same != all {
 			t.Errorf("panel body: %d of %d pixels are ButtonsArea's", same, all)
 		}
-		for i, cmd := range l.Detail.Commands {
-			if same, all := secondPanelSame(frame, art.NavButtons[i][0], rects[cmd.Role], nil); same*10 < all*8 {
-				t.Errorf("%s at rest: %d of %d pixels are its off picture", cmd.Role, same, all)
+		for _, cmd := range l.Detail.Commands {
+			r := rects[cmd.Role]
+			shift := art.NavArt.Bounds().Min.Sub(l.Detail.Nav.Rect.Rectangle().Min)
+			same, all := 0, 0
+			for y := r.Min.Y; y < r.Max.Y; y++ {
+				for x := r.Min.X; x < r.Max.X; x++ {
+					at := image.Pt(x, y).Add(shift)
+					all++
+					if color.RGBAModel.Convert(art.NavArt.At(at.X, at.Y)).(color.RGBA) == frame.RGBAAt(x, y) {
+						same++
+					}
+				}
+			}
+			if same*10 < all*8 {
+				t.Errorf("%s at rest: %d of %d pixels are the panel's recess", cmd.Role, same, all)
 			}
 		}
 	})
@@ -108,8 +120,13 @@ func TestReleaseSecondGameGeneratorCommandPanelIsTheOriginals(t *testing.T) {
 	t.Run("held Accept shows its on picture", func(t *testing.T) {
 		frameAt("move", image.Pt(533, 65))
 		frame := frameAt("press", image.Pt(533, 65))
-		if same, all := secondPanelSame(frame, art.NavButtons[0][1], rects["play"], nil); same*10 < all*8 {
-			t.Errorf("held Accept: %d of %d pixels are its on picture", same, all)
+		pressed := art.NavButtons[0][1]
+		key := color.RGBAModel.Convert(pressed.At(pressed.Bounds().Min.X, pressed.Bounds().Min.Y))
+		transparent := func(p image.Point) bool {
+			return color.RGBAModel.Convert(pressed.At(pressed.Bounds().Min.X+p.X-rects["play"].Min.X, pressed.Bounds().Min.Y+p.Y-rects["play"].Min.Y)) == key
+		}
+		if same, all := secondPanelSame(frame, pressed, rects["play"], transparent); all == 0 || same*10 < all*8 {
+			t.Errorf("held Accept: %d of %d pixels are its pressed picture", same, all)
 		}
 		frameAt("move", image.Pt(320, 470))
 		frameAt("release", image.Pt(320, 470))
