@@ -53,7 +53,7 @@ func TestSavedMotionAttackOrderProjectionKeepsCrossingProgress(t *testing.T) {
 		}},
 		Actors: []SnapshotSAVActor{{EntityID: actor.ID, ObjectIndex: 1}, {EntityID: target.ID, ObjectIndex: 2}},
 	}
-	if err := projectSavedActorActions(state, world); err != nil {
+	if err := projectSavedActorActions(state, world, nil); err != nil {
 		t.Fatal(err)
 	}
 	written := state.Document.Objects[0]

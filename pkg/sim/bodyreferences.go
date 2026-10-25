@@ -8,10 +8,22 @@ import (
 const bodyReferenceFormVersion byte = 120
 const bodyReferenceRecordLen = 16
 
-// BodyReferenceRecord binds a body's loaded order words to its actor.
+// BodyReferenceRecord binds a body's loaded order words to its actor and,
+// when Words is set, the attack charge, health hundredths and credit spell of
+// its record.
 type BodyReferenceRecord struct {
 	ID         EntityID
 	References [3]uint32
+	Words      *BodyWords
+}
+
+// BodyWords are a body's attack charge, health hundredths and credit spell as
+// its loaded record holds them. The original runs no tick on a body that is
+// on the dead list and in no Group (SAV-1171), so the record's words are the
+// body's own.
+type BodyWords struct {
+	AttackCharge, HealthHundredths uint8
+	CreditSpell                    int8
 }
 
 // bodyReferences are the words the byte form carries: they end when the
@@ -37,7 +49,8 @@ func bodyReferenceFault(e Entity) error {
 	return nil
 }
 
-// RestoreBodyReferences sets the loaded order words of existing bodies.
+// RestoreBodyReferences sets the loaded order words of existing bodies. The
+// batch is checked before its first write.
 func (w *World) RestoreBodyReferences(rows []BodyReferenceRecord) error {
 	next := make([]Entity, len(w.entities))
 	copy(next, w.entities)
@@ -49,6 +62,16 @@ func (w *World) RestoreBodyReferences(rows []BodyReferenceRecord) error {
 		next[i].BodyReferences = row.References
 		if err := bodyReferenceFault(next[i]); err != nil {
 			return err
+		}
+		if words := row.Words; words != nil {
+			if next[i].Alive() || next[i].Dying() {
+				return fmt.Errorf("sim: body words on living actor %d", row.ID)
+			}
+			if words.HealthHundredths > 99 {
+				return fmt.Errorf("sim: body %d health remainder is %d, the largest legal value is 99", row.ID, words.HealthHundredths)
+			}
+			e := &next[i]
+			e.AttackCharge, e.HealthHundredths, e.KillCreditSpell = int32(words.AttackCharge), words.HealthHundredths, words.CreditSpell
 		}
 	}
 	w.entities = next

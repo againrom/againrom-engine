@@ -45,7 +45,7 @@ func TestProjectSavedActorActionsWritesADyingPursuersFrozenOrder(t *testing.T) {
 			{EntityID: 2, ObjectIndex: 2},
 		},
 	}
-	if err := projectSavedActorActions(state, w); err != nil {
+	if err := projectSavedActorActions(state, w, nil); err != nil {
 		t.Fatal(err)
 	}
 	r := &state.Document.Objects[0]

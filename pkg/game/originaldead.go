@@ -99,6 +99,7 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 		weapon bool
 	}
 	var terminal []terminalBody
+	var bodyWords []sim.BodyReferenceRecord
 	for _, d := range source {
 		if currentTerminal[d.Identity] {
 			continue
@@ -175,6 +176,11 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 				maxHP = health.MaxHP
 			}
 		}
+		if !currentBody && d.MapUnitID != 0 {
+			if object := deadRecordObject(state, origins, d); object != 0 {
+				bodyWords = append(bodyWords, recordBodyWords(&state.Document.Objects[object-1], id))
+			}
+		}
 		batch = append(batch, sim.OriginalDeadActor{ID: id, Source: sim.OriginalDeadSource{
 			Identity: d.Identity, ArchiveIndex: d.ArchiveIndex, MapUnitID: d.MapUnitID, Class: class,
 			TerrainKey: d.TerrainKey, OwnerKey: d.OwnerKey, References: d.References,
@@ -188,6 +194,9 @@ func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *O
 		return fmt.Errorf("current retained actor has no materialized ordinary body")
 	}
 	if err := ms.World.ImportOriginalDeadActors(batch, current...); err != nil {
+		return fmt.Errorf("original dead actors: %w", err)
+	}
+	if err := restoreBodyWords(ms.World, bodyWords); err != nil {
 		return fmt.Errorf("original dead actors: %w", err)
 	}
 	// A terminal record's items stay passive on the World (sim.PassiveBody):

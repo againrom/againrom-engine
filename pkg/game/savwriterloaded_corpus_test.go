@@ -47,11 +47,15 @@ func loadedCensusAnchor(pattern string) bool {
 	return false
 }
 
-// loadedCensusDeclaredDebt reports a known Token field of an original world
-// spell effect record. The World holds no Token for those records, so a SAVE
-// copies them from the loaded record (DIV-2502). The census names each one.
+// loadedCensusDeclaredDebt reports a body word (loadedCensusBodyWord) or a
+// known Token field of an original world spell effect record. The World holds
+// no Token for those records, so a SAVE copies them from the loaded record
+// (DIV-2502). The census names each one.
 func loadedCensusDeclaredDebt(pattern string) bool {
 	class, field, ok := strings.Cut(pattern, ".")
+	if loadedCensusBodyWord(class, field) {
+		return ok
+	}
 	switch class {
 	case "SpellEffect", "PointEffect", "AreaEffect", "SpellTransport", "Effect", "Effect_DirectDamage":
 	default:
@@ -60,6 +64,20 @@ func loadedCensusDeclaredDebt(pattern string) bool {
 	switch field {
 	case "r.Block12", "v.RuntimeID", "v.T08", "v.T0C", "v.T0E", "v.T18", "v.T1C":
 		return ok
+	}
+	return false
+}
+
+// loadedCensusBodyWord reports an actor word a SAVE copies from the loaded
+// record of a body the World runs no tick on, or from a live actor's loaded
+// reference to a body the World holds as no entity (DIV-4059).
+func loadedCensusBodyWord(class, field string) bool {
+	if class != "Unit" && class != "Human" {
+		return false
+	}
+	switch field {
+	case "v.U138", "v.U134", "v.UA2", "v.U48", "v.U136", "r.U58", "v.U5C", "v.U40":
+		return true
 	}
 	return false
 }
@@ -381,7 +399,7 @@ func TestSAVWriterCensusLoadedDocument(t *testing.T) {
 					undeclared = append(undeclared, k)
 				}
 			}
-			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v, %d of them the declared world-effect Token debt (DIV-2502); %d kinds preserve loaded name bytes %v; %d written kinds follow its unknown-meaning spans %v",
+			line := fmt.Sprintf("%s: %d known kinds from the loaded file %v, %d of them declared debt: world-effect Tokens (DIV-2502) and body words (DIV-4059); %d kinds preserve loaded name bytes %v; %d written kinds follow its unknown-meaning spans %v",
 				input.name, len(known), known, len(declared), len(retained), retained, len(unknown), unknown)
 			report = append(report, line)
 			t.Log(line)

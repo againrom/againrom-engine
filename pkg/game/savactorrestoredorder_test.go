@@ -67,14 +67,14 @@ func TestProjectSavedActorActionsKeepsLoadedOrderOfADroppedTargetUntilTheFirstTi
 			t.Fatalf("the World kept an attack on a body: %+v", e)
 		}
 	}
-	if err := projectSavedActorActions(state, ms.World); err != nil {
+	if err := projectSavedActorActions(state, ms.World, nil); err != nil {
 		t.Fatal(err)
 	}
 	if target, phase, countdown, credit := restoredOrderFields(t, state); target != 22 || phase != 7 || countdown != 2 || credit != 22 {
 		t.Fatalf("loaded order fields were rewritten: target %d phase %d countdown %d credit %d", target, phase, countdown, credit)
 	}
 	sim.Step(ms.World, nil)
-	if err := projectSavedActorActions(state, ms.World); err != nil {
+	if err := projectSavedActorActions(state, ms.World, nil); err != nil {
 		t.Fatal(err)
 	}
 	if target, phase, countdown, credit := restoredOrderFields(t, state); target != 0 || phase != 0 || countdown != 0 {

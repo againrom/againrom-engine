@@ -706,6 +706,7 @@ pkg/game.TestReleaseCompanionBodyAtTheWinStaysBehind
 pkg/game.TestReleaseHurtVoiceFollowsSexAndClass
 pkg/game.TestReleaseHurtVoiceOfAHiredHealer
 pkg/game.TestReleaseCastOrderSAVRestoresTheCast
+pkg/game.TestReleaseSAVKeepsCastingActorFields
 pkg/game.TestReleaseOwnerCastSaveRestoresHealAtDanath
 pkg/game.TestReleaseDialoguePortraitBackdrop
 pkg/game.TestReleaseDialogueShippedPagePopup

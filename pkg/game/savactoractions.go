@@ -10,7 +10,7 @@ import (
 // HERO-CADENCE-023/112/114 own +54/+58/+6c/+136 and the two
 // intervening actor turns. The common deadline producer owns +138.
 // No client animation frame is encoded here.
-func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) error {
+func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World, loaded *SnapshotSAVDocument) error {
 	entities := world.Entities()
 	byID := map[sim.EntityID]sim.Entity{}
 	for _, e := range entities {
@@ -56,6 +56,8 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 			if err != nil {
 				return worldSaveUnsupportedf("actor %d credit: %v", e.ID, err)
 			}
+		} else if e.Alive() || e.Dying() {
+			credit = loadedBodyReference(state, loaded, r, "U40")
 		}
 		// SAV-908 repairs this raw actor word on world LOAD; Effect+44 has
 		// a different, omitted serializer and is deliberately not inferred.
@@ -162,6 +164,12 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World) erro
 			}
 		}
 		if !keepLoadedOrder {
+			// An idle actor's residue holds its loaded order words until the
+			// World runs an order; its target word may name a body the World
+			// does not hold as an entity.
+			if !e.HasAttackTarget && !e.Retreat.Known && e.HeldOrder.Kind == sim.HeldOrderResidue {
+				key = loadedBodyReference(state, loaded, r, "U5C")
+			}
 			savedObjectSetValue(r, "U5C", key)
 		}
 		if e.HasPendingAttackTarget {
@@ -353,6 +361,12 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 		value := func(name string) uint32 { v, _ := savedStructureValue(r, name); return v }
 		a := sim.OriginalActorAction{Entity: b.EntityID, CreditSpell: int8(value("U48"))}
 		a.Credit, a.HasCredit = byKey[value("U40")]
+		// LOAD maps the credit through every registered object, a body's
+		// included (SAV-908); a body the World holds as an entity keeps it.
+		if body, ok := bodyKeys[value("U40")]; ok && !a.HasCredit {
+			_, entity := byIDForTargeting[body]
+			a.Credit, a.HasCredit = body, entity
+		}
 		// HERO-DYINGTICK-145/AI-332: a dying (Stage != 0) record's order block
 		// is not special-cased by LOAD. Order::Serialize copies its own fixed
 		// block through one raw archive read/write pair regardless of stage,

@@ -119,13 +119,13 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectMotion(state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if err := projectSavedActorActions(state, &world); err != nil {
+	if err := projectSavedActorActions(state, &world, s.loadedDocument); err != nil {
 		return sav.DocumentData{}, err
 	}
 	if err := projectSavedDiaries(state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if err := projectDeadActors(state, &world); err != nil {
+	if err := projectDeadActors(state, &world, s.loadedDocument); err != nil {
 		return sav.DocumentData{}, err
 	}
 	if err := projectRemovedNativeBasis(state, &world); err != nil {
@@ -284,7 +284,7 @@ func projectDeadActorContainers(state *SnapshotSAVDocument, world *sim.World) er
 	return nil
 }
 
-func projectDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
+func projectDeadActors(state *SnapshotSAVDocument, world *sim.World, loaded *SnapshotSAVDocument) error {
 	for _, d := range world.OriginalDeadActors() {
 		r, err := currentDeadSourceRoot(state, d)
 		if err != nil {
@@ -307,6 +307,13 @@ func projectDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
 		}
 		p[0], p[1], p[2], p[3], p[4], p[5] = byte(c.Cell), byte(c.Cell>>8), byte(c.Cell), byte(c.Cell>>8), c.FineX, c.FineY
 		binary.LittleEndian.PutUint32(p[8:], d.Source.TerrainKey)
+		words := loadedBodyWords
+		if _, entity := world.Entity(d.ID); !entity {
+			words = loadedTerminalWords
+		}
+		if err := keepLoadedBodyWords(r, loaded, words); err != nil {
+			return err
+		}
 	}
 	terminalBindings, err := currentTerminalActorBindings(state, world)
 	if err != nil {
@@ -331,6 +338,9 @@ func projectDeadActors(state *SnapshotSAVDocument, world *sim.World) error {
 			return err
 		}
 		p[0], p[1], p[2], p[3] = byte(terminal.Cell), byte(terminal.Cell>>8), byte(terminal.Cell), byte(terminal.Cell>>8)
+		if err := keepLoadedBodyWords(r, loaded, loadedTerminalWords); err != nil {
+			return err
+		}
 	}
 	bound := map[sim.EntityID]bool{}
 	dead := map[sim.EntityID]bool{}

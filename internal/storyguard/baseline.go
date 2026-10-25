@@ -2994,6 +2994,12 @@ package storyguard
 // CommentBytes rises with the note on the attack facing release test's
 // participant shooters in pkg/game/attackfacing_release_test.go and this
 // paragraph.
+//
+// CommentBytes rises with the doc comments of the body words a SAVE keeps
+// from LOAD: pkg/game/savbodywords.go, pkg/sim/bodyreferences.go, their
+// tests, the release test pkg/game/savcasttarget_release_test.go, the notes
+// in pkg/game/savactoractions.go, pkg/game/originaldead.go and the census,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3018,6 +3024,7 @@ var Committed = Baseline{
 		"longcommentgroups":      1696,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
-	// then for the second game's route witness and its two pkg/ui hooks.
-	CommentBytes: 9660018,
+	// then for the second game's route witness and its two pkg/ui hooks, then
+	// for the body words a SAVE keeps from LOAD.
+	CommentBytes: 9664922,
 }
