@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseActorEffectsRestored1161(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-02/game0007.sav", "a7cb35ea5d87c9c7a9b8cfd70f8a1f61b6927ca089e468a9d6fe983da777156e")
 	f := releaseFront(t)
 	ms, _, err := loadOriginalMission(f, raw)

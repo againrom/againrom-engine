@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -30,6 +31,7 @@ import (
 // centre of each production rectangle over the production mask and requires the
 // cell the hit test answers to be the cell that rectangle draws.
 func TestReleaseSchoolMaskNamesTheSkillItIsDrawnOver(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the school mask witness needs a lawful install")
 	}

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -18,6 +19,7 @@ import (
 // opened mission's own live roster and a lawful install's NPC registry, not a
 // saved game.
 func TestReleaseMissionCityReturnSkipsCheckReturnForAGraftedMemberWithNoLiveCarry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	// A fresh campaign's own mission 20 has no preceding town
 	// (f.originalCity == nil at open), so the hero carries none of an

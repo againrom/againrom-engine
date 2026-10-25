@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -69,6 +70,7 @@ func spellMask(ids ...uint32) uint32 {
 // start save holds for them (Dragon, Dragon.2, Dragon.3 by face). The loss
 // control builds the same world without the fixed books and finds them empty.
 func TestReleaseDragonClanDragonsHoldTheOriginalBooks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	want := map[uint16]struct {
 		known uint32
 		skill [6]int32
@@ -125,6 +127,7 @@ func TestReleaseDragonClanDragonsHoldTheOriginalBooks(t *testing.T) {
 // village casts a spell from its book in the fight; the loss control, without
 // the fixed books, casts nothing over the same steps.
 func TestReleaseDragonClanDragonCastsInAFight(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const ticks = 3000
 	run := func(classBooks bool) (uint16, int) {
 		w, hero := dragonClanMission(t, 197, classBooks)

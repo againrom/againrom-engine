@@ -8,11 +8,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS")

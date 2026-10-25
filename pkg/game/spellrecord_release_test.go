@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestReleaseSpellbookPopupStatesTheCastAtTheActorsPower(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if mainTable == nil {
@@ -271,6 +273,7 @@ func TestReleaseSecondGameSpellbookPopupStatesTheCastPair(t *testing.T) {
 // whole. Loss control: the former popup folded byte-column factor products to
 // bytes and states a different pair where a product passes 255.
 func TestReleaseSpellbookPopupStatesTheCastPairUnderADamageFactorTable(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rules := mapload.SpellRules(f.Table)
 	if len(rules) != 28 {

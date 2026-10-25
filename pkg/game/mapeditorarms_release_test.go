@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
 )
@@ -117,6 +118,7 @@ func armSaveUnchanged(t *testing.T, e *ui.MapEditor, source []byte) {
 }
 
 func TestReleaseMapEditorArmsOpenAndKeepBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, sources := installedMapBytes(t, x)
 	counts := map[string]int{}
@@ -201,6 +203,7 @@ func TestReleaseMapEditorArmsOpenAndKeepBytes(t *testing.T) {
 }
 
 func TestReleaseMapEditorArmsFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

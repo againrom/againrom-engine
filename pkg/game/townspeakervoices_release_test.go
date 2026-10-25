@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -64,6 +65,7 @@ func townSpeakerTexts(t *testing.T, f *FrontEnd) []townSpeakerText {
 // member and still play the leaf name, where the route named an absent
 // sex/class variant before, are counted and include mission 111's two.
 func TestReleaseTownSpeakersPlayTheirInstalledLines(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	r := &tavernInteriorRecorder{}
 	f.speech.player = r

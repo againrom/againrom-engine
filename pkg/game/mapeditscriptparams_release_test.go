@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -85,6 +86,7 @@ func parameterOutput(t *testing.T) string {
 }
 
 func TestReleaseMapEditorParameterCurrentPicksPreserveBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := parameterOutput(t)
 	counts := map[uint32]int{}
@@ -183,6 +185,7 @@ func TestReleaseMapEditorParameterCurrentPicksPreserveBytes(t *testing.T) {
 }
 
 func TestReleaseMapEditorParameterChangedPicksSaveReopenCompile(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := parameterOutput(t)
 	done := map[uint32]bool{}
@@ -311,6 +314,7 @@ func parameterCompiledValue(t *testing.T, m *alm.Map, n alm.ScriptNode, conditio
 }
 
 func TestReleaseMapEditorParameterFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := parameterOutput(t)
 	done := map[uint32]bool{}

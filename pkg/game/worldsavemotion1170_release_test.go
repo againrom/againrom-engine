@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -242,6 +243,7 @@ func savedSackRecords(t *testing.T, world *sim.World, stage string) (sim.SavedSa
 }
 
 func TestReleaseCurrentWorldCombinedDropDamageHealSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	worldMotionContinuation(t, "heal_sav")
 }
 

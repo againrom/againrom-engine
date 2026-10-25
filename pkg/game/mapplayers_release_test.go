@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -45,6 +46,7 @@ func playerByteSections(t *testing.T, raw []byte) ([]playerByteSection, []byte) 
 }
 
 func TestReleaseMapEditorPlayerEditsChangeOnlyRosterAndFraming(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {
@@ -260,6 +262,7 @@ func assertPlayerColour(t *testing.T, f *FrontEnd, e sim.Entity, shade uint32) {
 }
 
 func TestReleaseMapEditorPlayersPlayWithAuthoredColoursAndRelations(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	class := playerColourClass(t, x)
 	plain, edited := playerMissionMap(t, x, class, false), playerMissionMap(t, x, class, true)

@@ -9,12 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 // Natural M31 has one gold-only Sack among four source Sacks. Both installed
 // consumers run this actual import/pickup/native SAVE path; no ROM1 is launched.
 func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	defer func() {

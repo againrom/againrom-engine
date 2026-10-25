@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -71,6 +72,7 @@ func preCreateNameOpen(t *testing.T, f *FrontEnd, app *ui.App) *ui.Chargen {
 // A new campaign's name field opens at npcnames.txt entry 20 with the first
 // picture lit (TEXT-073): EN Danath, RU Данас.
 func TestReleasePreCreateOpensAtTheFirstPicturesName(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	app := f.App("pre-create name")
@@ -125,6 +127,7 @@ func preCreateFullLevel(font *text.Font, frame *image.RGBA, s string, origin ima
 // from the detailed page (TEXT-073), and the created hero's name in the
 // information window, in an F2 SAV and after a cold LOAD of that SAV.
 func TestReleasePreCreateNameThroughAppInput(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

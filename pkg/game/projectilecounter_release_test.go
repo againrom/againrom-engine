@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -20,6 +21,7 @@ func counterSilentDevice(t *testing.T) {
 }
 
 func TestReleaseProcessProjectileCounterSAVAndNewGame(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	counterSilentDevice(t)
 	f, app, _, _, target := flightMageArena(t, false)
 	if got := f.live.world.SavedProjectiles(); len(got.Items) != 0 || got.FreeIndex != 0 {
@@ -207,6 +209,7 @@ type counterTransitionReceipt struct {
 }
 
 func TestReleaseProcessProjectileCounterFollowsTheCampaign(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	counterSilentDevice(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

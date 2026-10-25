@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -68,6 +69,7 @@ func centreOf(r image.Rectangle) image.Point { return r.Min.Add(r.Size().Div(2))
 // dialog button states App input reaches; AGAINROM_PLAQUE_CENSUS_DIR keeps
 // PNGs and a hash list for comparing two builds.
 func TestReleasePlaqueButtonCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	root, err := editorPhysicalDirectory(f.Archives.Root)
 	if err != nil {

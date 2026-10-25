@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -46,6 +47,7 @@ func orderResidueLosses(want map[uint32][2]uint32, got func(uint32) ([2]uint32, 
 // The first SAVE after an original LOAD keeps an idle actor's completion and
 // countdown bytes, and a cold LOAD of that SAVE restores the same World.
 func TestReleaseFirstSaveKeepsIdleActorOrderResidue(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, original := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	want := orderResidueWords(t, original)
 	complete, countdown := 0, 0

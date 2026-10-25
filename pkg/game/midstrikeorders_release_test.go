@@ -5,12 +5,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMidStrikePickupCurrentSAVAppColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 1)
 	hero, victim := arena.heroes[0], arena.east
 	arena.front.ConfigureSaveSeams(arena.app, SaveStore{Dir: t.TempDir()}, OriginalStore{}, nil)
@@ -56,6 +58,7 @@ func TestReleaseMidStrikePickupCurrentSAVAppColdLoad(t *testing.T) {
 }
 
 func TestReleaseMidStrikeManualCastCurrentSAVAppColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, cellCast := range []bool{false, true} {
 		arena := openLoadedCycleArenaChoices(t, 1, -1, []int{0, 1, 3})
 		hero, victim := arena.heroes[0], arena.east

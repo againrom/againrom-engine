@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -36,6 +37,7 @@ func city1166Check(t *testing.T, f *FrontEnd, want Snapshot) {
 }
 
 func TestReleaseGeneratedCityConversion1166(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	hero, screen := reachabilityWalkArrive(t, f, "Converted Hero")

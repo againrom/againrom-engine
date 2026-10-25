@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -12,6 +13,7 @@ import (
 // The chapter grant has no live mission actor. Its constructed source Book
 // must bind to the current member and survive ordinary town export.
 func TestReleaseOriginalSaveWritesAGraftedCompanionsSourceSpellbook(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Graft book", Choices: []int{1, 0, 0}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("graft book")

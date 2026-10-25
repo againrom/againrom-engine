@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -39,6 +40,7 @@ func sackTokenAtCell(t *testing.T, raw []byte, x, y uint8) (uint32, uint32) {
 // it; LOAD binds it by its unique cell and gold (DIV-2506). Before, each SAVE
 // wrote it with a new RuntimeID and Identity.
 func TestReleaseSackWithoutCellKeyKeepsItsToken(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		rel, hash string
 		cells     [][2]uint8

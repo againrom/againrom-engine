@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
@@ -16,6 +17,7 @@ import (
 // object. A deliberately wrong T0C proves this repair overrides whatever was
 // frozen, rather than only leaving an already-correct value untouched.
 func TestRepairGeneratedHeroDefRowCorrectsAFrozenWrongRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "DefRow repair", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("generated hero def row repair")

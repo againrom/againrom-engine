@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 )
 
 func TestGeneratedMissionSAVOffMapActorHasNoPublicationRecipient(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("generated mission off-map actor")
 	if err := app.OpenMission(f.MissionOpenerWith(141, MissionParty(nil, data.BodyList{}, nil))); err != nil {
@@ -54,6 +56,7 @@ func TestGeneratedMissionSAVOffMapActorHasNoPublicationRecipient(t *testing.T) {
 // An actor's recipient mask is written by the SAV-1093/SAV-678 rule from the
 // current off-map state; a loaded record's other mask is not carried (DIV-2503).
 func TestGeneratedMissionSAVRetainsLoadedOffMapRecipientMask(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if err := f.App("off-map mask source").OpenMission(f.MissionOpenerWith(141, MissionParty(nil, data.BodyList{}, nil))); err != nil {
 		t.Fatal(err)

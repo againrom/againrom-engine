@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -86,6 +87,7 @@ func hasteActive(f *FrontEnd) (sim.ActiveEffect, bool) {
 // SAVE under Haste writes the speed modifier word the original subtracts at
 // expiry; cold LOAD and expiry return speed to its base.
 func TestReleaseHasteSaveKeepsSpeedModifierThroughColdLoadAndExpiry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("haste save").OpenMission(f.MissionOpenerWith(101, hasteParty())); err != nil {

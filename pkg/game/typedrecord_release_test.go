@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/render/text"
@@ -132,6 +133,7 @@ func TestReleaseShippedStringByteKeepsItsRecord(t *testing.T) {
 
 // A SAV label of typed letters keeps the rule's bytes.
 func TestReleaseSavedTypedLabelKeepsItsBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	selector := f.textSelector()
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Town traveler", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 30, 30}})

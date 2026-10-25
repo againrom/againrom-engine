@@ -5,12 +5,15 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseStaticMusicPopulation validates the complete 21-name archive and
 // decodes every track sequentially through the production disk-indexed bank.
 // check-release-tests runs it once per preserved EN/RU root.
 func TestReleaseStaticMusicPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: static music needs a lawful install")

@@ -6,10 +6,12 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseWorldMapMarkerHistorySurvivesNativeSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: world-map marker save/load needs a lawful install")

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -58,6 +59,7 @@ func currentSkillRangeCheck(t *testing.T, f *FrontEnd, live, ordinary int32, bon
 }
 
 func TestReleaseCurrentSkillBookRangeProjection(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name           string
 		mind           int32
@@ -208,6 +210,7 @@ func TestCurrentSkillClassColdProcess(t *testing.T) {
 }
 
 func TestReleaseCurrentSkillClassOrdinaryBit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "class bit", Choices: []int{1, 0, 0}, Stats: []int{31, 27, 24, 29}})
@@ -274,6 +277,7 @@ func TestReleaseCurrentSkillClassOrdinaryBit(t *testing.T) {
 }
 
 func TestReleaseCurrentSkillInverseClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "mage without mana", Choices: []int{1, 0, 0}, Stats: []int{31, 27, 24, 29}})
@@ -309,6 +313,7 @@ func TestReleaseCurrentSkillInverseClass(t *testing.T) {
 }
 
 func TestReleaseCurrentSkillImportedBookWeaponAlias(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "retained book", Choices: []int{1, 1, 0}, Stats: []int{31, 27, 24, 29}})
@@ -384,6 +389,7 @@ func TestReleaseCurrentSkillImportedBookWeaponAlias(t *testing.T) {
 }
 
 func TestReleaseCurrentSkillHistoricalClassDefault(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, historical := range []bool{false, true} {
 		t.Run(map[bool]string{false: "explicit absence", true: "old current fields"}[historical], func(t *testing.T) {
 			f := releaseFront(t)

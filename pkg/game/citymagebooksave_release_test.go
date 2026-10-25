@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -168,6 +169,7 @@ func cityMageCastInput(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID, 
 }
 
 func TestReleaseCityMageBookChangeF2SAVAndNextMissionCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("original city", func(t *testing.T) {
 		_, raw := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 		f, app, store := cityLoadApp(t, raw)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
@@ -63,6 +64,7 @@ func visibleGlyphs(calls []text.DrawCall, pix *image.RGBA) (visible, partly int)
 // must draw it: the prompt and the name field sit under the tooltip the name
 // field raises, and a glyph left to the raster steps at window scale.
 func TestReleasePreCreateTextIsSmoothedWhereverAnyOfItShows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, size := range []image.Point{{1366, 768}, {1920, 1080}, {2560, 1440}} {
 		if s := frame.Fit(640, 480, size.X, size.Y).Scale(); s <= 1 {
 			t.Fatalf("window %v fits the frame at scale %v, want above 1", size, s)

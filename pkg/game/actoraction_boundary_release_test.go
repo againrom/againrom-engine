@@ -4,11 +4,13 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseResavedAttackBoundaryKeepsItsCurrentAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, fixture := range []struct{ name, hash string }{
 		{"game0002-bigsack.sav", "8842212e16cbb97ad05af059bdd637df2ab777b4c7f5bb5430353b68b5312c51"},
 		{"game0017-victory.sav", "a30de01ec3d96d58a3a244b9a536a3e49c04a4d45098cb828dabb908756488c3"},
@@ -187,6 +189,7 @@ func boundaryActorWire(t *testing.T, doc sav.DocumentData, key uint32) (uint32, 
 }
 
 func TestReleaseResavedArmedAttackBoundaryKeepsItsCurrentAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, fixture := range []struct {
 		rel, hash string
 		id        sim.EntityID

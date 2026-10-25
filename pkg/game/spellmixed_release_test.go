@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -141,6 +142,7 @@ func rewriteSpellTransportCounter(t *testing.T, path string, counter uint32) {
 }
 
 func TestReleaseMixedSpellSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tail := range []bool{false, true} {
 		t.Run(fmt.Sprintf("tail-%v", tail), func(t *testing.T) {
 			if path := os.Getenv("AGAINROM_MIXED_SAV_INPUT"); path != "" {

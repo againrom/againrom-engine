@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -109,6 +110,7 @@ type censusLine struct {
 // may change only to the companion who joined as the line's speaker, which is
 // the order the mission line already uses. The log lists every difference.
 func TestReleaseSpeakerCastCensusOneResolver(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	faces := f.NPCFaces
 	game := f.Archives.Game()

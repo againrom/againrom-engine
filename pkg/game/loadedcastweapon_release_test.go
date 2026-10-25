@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -11,6 +12,7 @@ import (
 
 // TestReleaseLoadedCastWeaponUnequipsToTable: table take-off, no node edge.
 func TestReleaseLoadedCastWeaponUnequipsToTable(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Hero", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	f.arriveInTown()

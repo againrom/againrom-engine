@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -90,6 +91,7 @@ func chooseTier(t *testing.T, c *editorClicker, e *ui.MapEditor, fields []ui.Ins
 // restores the installed bytes and Redo the edit; the unit then draws with the
 // chosen tier's palette; a key that selects no row of the class is refused.
 func TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	key, raw, i := tieredPlacement(t, x)
 	e := x.Editor()
@@ -192,6 +194,7 @@ func fourTierClass(t *testing.T, x *MapInspector) (int16, []unitTier) {
 // one NewUnitRecord builds with the chosen tier, and the default tier the
 // tier step offers is the key a unit added without a tier takes.
 func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	class, tiers := fourTierClass(t, x)
 	e := x.Editor()
@@ -320,6 +323,7 @@ func sheetMismatch(s unitSheet, e sim.Entity, worn [sim.EquipSlots]sim.ItemInsta
 // corpse rule included; the popup's lines carry the compared numbers. A
 // perturbed popup value is reported, which is this comparison's loss control.
 func TestReleaseMapEditorUnitValuesEqualTheGame(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, maps := installedMapBytes(t, x)
 	var compared, mapsCompared, lossChecked int
@@ -395,6 +399,7 @@ func TestReleaseMapEditorUnitValuesEqualTheGame(t *testing.T) {
 // resolve for it, and every shipped (class, key) of the Units arm that
 // resolves to no row.
 func TestReleaseMapEditorUnitTierCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, maps := installedMapBytes(t, x)
 	perTier := map[uint16]int{}
@@ -502,6 +507,7 @@ func scrollTo(t *testing.T, e *ui.MapEditor, heading string) {
 // AGAINROM_EDITOR_FRAMES; without it the same steps run. In each frame the
 // installed fonts keep every glyph, except under an open drop-down's list.
 func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/random"
@@ -21,6 +22,7 @@ var releaseVoiceLeaves = []string{"select1", "select2", "command1", "command2", 
 // stamp, E none, the retreat key the hero-shaped speaker's retreat, a move
 // order the command recording the draw names.
 func TestReleaseUnitRepliesPlayInstalledRecordings(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	script := &scriptedDraw{}
 	previous := newViewerVoiceDraw
 	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return script.draw }

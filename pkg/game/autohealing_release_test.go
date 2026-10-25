@@ -7,11 +7,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseAutoHealing1191MenuNativeAndOriginalSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("carried_original_policy", autoHealingCarriedOriginal)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

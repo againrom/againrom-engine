@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 )
 
@@ -13,6 +14,7 @@ import (
 // reports the classes the sibling does not pair with, and the classes the
 // translated arm draws.
 func TestReleaseUnitShadowSecondSilhouetteSheetsPairWithTheInstalledArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	units, err := LoadUnits(f.Archives.Containers)
 	if err != nil {

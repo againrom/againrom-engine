@@ -12,6 +12,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -161,6 +162,7 @@ func areaConfirm(e *ui.MapEditor) bool {
 // the new parameters; a box drawn on the first map and given a new trigger
 // is read back as that trigger's area.
 func TestReleaseMapEditorAreaDragsSaveAndReopen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 
 	box, e := findInstalledArea(t, x, ui.AreaBox, "", boxWithRoom)
@@ -227,6 +229,7 @@ func TestReleaseMapEditorAreaDragsSaveAndReopen(t *testing.T) {
 // Every installed map, opened with its areas shown, its first trigger
 // selected and its handles drawn, saves the bytes it was opened with.
 func TestReleaseMapEditorAreasUntouchedMapsSaveTheirBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := t.TempDir()
 	screen := ebiten.NewImage(1280, 800)
@@ -272,6 +275,7 @@ func TestReleaseMapEditorAreasUntouchedMapsSaveTheirBytes(t *testing.T) {
 // run. Each frame keeps every glyph of the installed fonts outside an open
 // prompt or list.
 func TestReleaseMapEditorAreaFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	lang := installLanguage(x)
@@ -350,6 +354,7 @@ func TestReleaseMapEditorAreaFrames(t *testing.T) {
 // LuMoir, as the root has them: it refuses with the multiplayer word and the
 // map's bytes are unchanged.
 func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	tried := 0
 	for _, key := range editorKeys(x) {

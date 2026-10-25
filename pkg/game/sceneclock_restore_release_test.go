@@ -5,11 +5,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseSavedIdleFramesContinueFromTheWorldTick(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Scene clock", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})

@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseBowProjectilePainterMatchesActorAnchor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)

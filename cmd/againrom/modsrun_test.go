@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 )
@@ -265,6 +266,7 @@ const townModScript = "def init(game, settings):\n    game.data.add(\"data/towns
 // override naming the town, the field and both mods; switching off the
 // starting town stops the launch naming the mod, the file and the line.
 func TestReleaseCheckReportsTownOverridesAndRefusals(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the town layer needs the install's campaign")

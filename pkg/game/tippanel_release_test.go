@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -62,6 +63,7 @@ func assertTipPanelWitnessed(t *testing.T, screen string, v ui.TipPanelView, wor
 }
 
 func TestReleaseTownSquareTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	s, ok := f.TownScreen().(*townScreen)
 	if !ok {
@@ -75,6 +77,7 @@ func TestReleaseTownSquareTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 }
 
 func TestReleaseShopTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	s, ok := f.TownScreen().(*townScreen)
 	if !ok {
@@ -91,6 +94,7 @@ func TestReleaseShopTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 }
 
 func TestReleaseSchoolTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	s, ok := f.TownScreen().(*townScreen)
 	if !ok {
@@ -105,6 +109,7 @@ func TestReleaseSchoolTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 }
 
 func TestReleaseTavernTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	s, ok := f.TownScreen().(*townScreen)
 	if !ok {
@@ -139,6 +144,7 @@ func TestReleaseChargenTipPanelIsWitnessedAgainstRealArt(t *testing.T) {
 // detailed page's enter shows chrgen1m for a mage and chrgen1f otherwise
 // (TOWN-522).
 func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
 	if setup.Tips.Mage.Text == "" || setup.Tips.Mage.Text == setup.Tips.Fighter.Text {
@@ -161,6 +167,7 @@ func TestReleaseChargenTipPanelFollowsTheLiveClassChoiceAgainstRealArt(t *testin
 }
 
 func TestReleaseTipPanelTextsDrawWholeOnBothClasses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	s, ok := f.TownScreen().(*townScreen)
 	if !ok {

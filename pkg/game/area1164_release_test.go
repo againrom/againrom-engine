@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -16,6 +17,7 @@ import (
 // changes one private Light template to Poison. The original has no Poison
 // area: this endpoint is controlled, not claimed as an original observation.
 func TestReleaseAreaDamageLifecycle1164(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	defer area1164FreshCasts(t)
 	_, raw := groundCorpusFile(t, "2027-09-07/game0125.sav", "3a055c8dcef6f053721e1c1478c82552c199b92fb178e9f034fe7500077b4efd")
 	f := releaseFront(t)

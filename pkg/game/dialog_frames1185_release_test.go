@@ -14,10 +14,12 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseSharedDialogFrames1185(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	art := f.gameMenuArt()

@@ -8,12 +8,14 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseRetreatPendingSAVColdLoadAndNextAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("Retreat continuation")

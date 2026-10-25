@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -15,6 +16,7 @@ import (
 // the same party mage to the same mission target. The observations are taken
 // after each real world tick, when the map has already consumed CastEvent.
 func TestReleaseScrollFireArrowDrawsBookProjectile(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	bookEvent, bookBolt := releaseFireArrowProjectile(t, false)
 	scrollEvent, scrollBolt := releaseFireArrowProjectile(t, true)
 	if bookBolt.picture != data.CastPicture(1) || scrollBolt.picture != bookBolt.picture ||

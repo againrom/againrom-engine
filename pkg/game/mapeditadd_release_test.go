@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
 )
@@ -193,6 +194,7 @@ func openAddCase(t *testing.T, x *MapInspector, in addInputs, c addCase) *ui.Map
 // loses one of the sack's items does not match: the comparison sees a
 // dropped step value. AGAINROM_WITNESS_OUT receives each case's SHA-256.
 func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	in := addInputsOf(t, x)
 	var lines []string
@@ -268,6 +270,7 @@ func TestReleaseMapEditorAddWindowWritesTheRouteBytes(t *testing.T) {
 // that directory the same steps run. In every frame the installed fonts keep
 // every glyph.
 func TestReleaseMapEditorAddWindowFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	in := addInputsOf(t, x)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")

@@ -12,12 +12,14 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseShopInterior1122InstalledAppFramesAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	art := f.shopArt()
 	if art == nil {

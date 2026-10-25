@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -65,6 +66,7 @@ func TestWithdrawalWitnessRunsTheProductionPhaseSixTail(t *testing.T) {
 // campaign until one mission supplies the hostile geometry the production tail
 // needs, then requires the same witness the -withdrawal flag prints.
 func TestReleaseRangedWithdrawalMissionWitness(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: ranged-withdrawal mission witness needs a lawful install")

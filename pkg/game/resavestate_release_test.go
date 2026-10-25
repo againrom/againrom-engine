@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -105,6 +106,7 @@ func resaveViewDiff(a, b []string) string {
 // The owner's engine town SAV and the original's resave of it reload to the
 // same town view; the original's file carries no engine-state leaf.
 func TestReleaseOriginalResaveReloadsTheSameTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_CITY_RESAVE_DIR")
 	if dir == "" {
 		t.Skip("AGAINROM_CITY_RESAVE_DIR is not set")
@@ -130,6 +132,7 @@ func TestReleaseOriginalResaveReloadsTheSameTown(t *testing.T) {
 // chapter's registry arrays in place of the shortened ones offers the taken
 // missions again.
 func TestReleaseLeaflessTownReloadKeepsTheTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, c := range []struct {
 		chapter int
 		take    []int
@@ -189,6 +192,7 @@ func TestReleaseLeaflessTownReloadKeepsTheTown(t *testing.T) {
 // container sum the world keeps. Loss control: the same file with the
 // instance-weight sum reloads lighter.
 func TestReleaseLeaflessReloadKeepsTableWeightedPackLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("table pack").OpenMission(f.MissionOpenerWith(101, overloadOrderParty(t, f))); err != nil {

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReleaseTownFidelity1192(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("item-text", func(t *testing.T) {
 		f := releaseFront(t)
 		for id := uint32(1); id <= 28; id++ {

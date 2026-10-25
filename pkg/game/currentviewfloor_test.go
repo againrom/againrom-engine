@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -86,6 +87,7 @@ func TestCurrentViewWithoutOffsetKeepsPriorSAVRules(t *testing.T) {
 }
 
 func TestReleaseMissionTwentyKeepsCameraThroughSAVAndCommonTicks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("mission camera save")
@@ -138,6 +140,7 @@ func TestReleaseMissionTwentyKeepsCameraThroughSAVAndCommonTicks(t *testing.T) {
 }
 
 func TestReleaseMissionEightyOneCameraKeepsItsOwnEdge(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.NextParty()

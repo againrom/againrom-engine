@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -18,6 +19,7 @@ import (
 // control: a SAV whose standing actor holds the constructor's zero step cost
 // restores a different World.
 func TestReleaseMoverRecordsSurviveSAVEAndColdLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const mission = 41
 	f := releaseFront(t)
 	f.SetTipsOff(true)

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -58,6 +59,7 @@ func giveHeroBandClass(t *testing.T, mw *mapWorld, id sim.EntityID) int32 {
 // survives only as the fallback for a member whose equipment selects none;
 // the recorded figure still wins over the class test for it.
 func TestReleaseRestoredHeroHoverShowsItsFigure(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mw := openRestoredVictory(t, "restored hero hover")
 	checked := 0
 	for _, id := range mw.mission.ids {

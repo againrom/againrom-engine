@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -68,6 +69,7 @@ const mission100Unit245 = 245
 // the loaded program equals the built one and the LOAD role compile keeps
 // its shape.
 func TestReleaseMission100ServantLeavesAtTheWin(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, roster := range []string{"primary", "owner", "full"} {
 		t.Run(roster, func(t *testing.T) {
 			f := releaseFront(t)

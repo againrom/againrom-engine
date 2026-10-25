@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -56,6 +57,7 @@ func savedHumanLevels(t *testing.T, raw []byte) (level, base, bonus int32) {
 // A worn bonus lifts the effective level past 100 in the base game, the save
 // keeps the original's fields, and a cold load derives the level again.
 func TestReleaseSkillBonusLiftsPast100AndTheSaveStaysOriginal(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name  string
 		bonus int16

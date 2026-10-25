@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -25,6 +26,7 @@ func (p *speechRecorder) RequestSample(s audio.Sample, request audio.Request) au
 }
 
 func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}

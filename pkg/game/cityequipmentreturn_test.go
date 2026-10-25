@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -152,6 +153,7 @@ func loadedMission20(t *testing.T, m10 func(f *FrontEnd, hero sim.EntityID)) *Fr
 // from the one-handed swordsman to the two-handed one, which the retained
 // party still records as the mission-entry value.
 func TestReleaseLoadedMission20WeaponSwapSavesTheTownAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := loadedMission20(t, func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 20, 65) })
 	equipmentReturnEquip(t, f, equipmentReturnHero(t, f), 0x1106, 1)
 	worn, pack := equipmentReturnReload(t, equipmentReturnTownSave(t, f))
@@ -165,6 +167,7 @@ func TestReleaseLoadedMission20WeaponSwapSavesTheTownAsSAV(t *testing.T) {
 // slot 7. Its owner Reference names the ground sack it came from, which the
 // town document does not hold.
 func TestReleaseLoadedMission20PickedUpArmourWornSavesTheTownAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := loadedMission20(t, nil)
 	hero := equipmentReturnHero(t, f)
 	equipmentReturnPick(t, f, hero, 24, 39)
@@ -179,6 +182,7 @@ func TestReleaseLoadedMission20PickedUpArmourWornSavesTheTownAsSAV(t *testing.T)
 // 0x1222, carried in from mission 10's sack at (12,50), beside the hero's
 // one-handed sword after the LOAD. The shield moves his drawn class too.
 func TestReleaseLoadedMission20ShieldAddedSavesTheTownAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := loadedMission20(t, func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 12, 50) })
 	equipmentReturnEquip(t, f, equipmentReturnHero(t, f), 0x1222, 2)
 	worn, _ := equipmentReturnReload(t, equipmentReturnTownSave(t, f))
@@ -194,6 +198,7 @@ func TestReleaseLoadedMission20ShieldAddedSavesTheTownAsSAV(t *testing.T) {
 // unchanged worn armour keeps the owner Reference its source file gave it,
 // the Player, which still resolves in the written town.
 func TestReleaseImportedTownBowEquipSavesTheTownAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := townReturnImported1168(t)
 	if err := f.App("bow equip return").OpenMission(f.MissionOpenerWith(30, f.NextParty())); err != nil {
 		t.Fatalf("open mission 30: %v", err)

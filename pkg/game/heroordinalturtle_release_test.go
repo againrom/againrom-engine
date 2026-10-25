@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -47,6 +48,7 @@ func turtleSettle(t *testing.T, f *FrontEnd, app *ui.App, ticks int, done func()
 }
 
 func TestReleaseHeroOrdinalTurtleSwap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_OGRES2_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_OGRES2_SAV is not set")

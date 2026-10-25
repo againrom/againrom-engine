@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -126,6 +127,7 @@ func currentTownBuy(t *testing.T, s *townScreen, room int, code uint16) {
 // The town SAV reloads with it held and the sword 0x103 in the pack, and the
 // next action wears 0x103 again.
 func TestReleaseTownEquipAfterAReturnSavesAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 20, 65) }, nil)
 	s := currentTownShop(f, "hero")
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: currentTownPackCell(t, s, 0x1106)}, ui.ShopControl{Kind: ui.ShopControlDoll})
@@ -150,6 +152,7 @@ func TestReleaseTownEquipAfterAReturnSavesAsSAV(t *testing.T) {
 // town SAV reloads with that pack and purse, and the next action buys a
 // sword.
 func TestReleasePackChangeAndTownSaleAfterAReturnSaveAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 20, 65) },
 		func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 24, 39) })
 	s := currentTownShop(f, "hero")
@@ -175,6 +178,7 @@ func TestReleasePackChangeAndTownSaleAfterAReturnSaveAsSAV(t *testing.T) {
 // reloads with the slot empty and the armour carried, and the next action
 // wears it again.
 func TestReleaseCompanionTownUnequipAfterAReturnSavesAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	s := currentTownShop(f, "npc:22")
 	if action := s.ShopClick(ui.ShopControl{Kind: ui.ShopControlDoll, Index: 7}); action.Msg != "off, into the pack" {
@@ -196,6 +200,7 @@ func TestReleaseCompanionTownUnequipAfterAReturnSavesAsSAV(t *testing.T) {
 // buys the sword 0x1102. The town SAV reloads with it in his pack and the
 // purse it left, and the next action wears it.
 func TestReleaseTownPurchaseAfterAReturnSavesAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	currentTownBuy(t, currentTownShop(f, "hero"), roomWeapons, 0x1102)
 	gold := f.Town.Gold()

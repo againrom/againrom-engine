@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -182,6 +183,7 @@ func logTerrainShare(t *testing.T, rule string, n [3]int, byFamily map[string][3
 // neighbours show. The share is the rule's agreement with the installed
 // planes of the root, a measurement reported per family.
 func TestReleaseTerrainRuleOverInstalledMaps(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	n, byFamily := terrainShare(t, x, cornerPrediction)
 	logTerrainShare(t, "corner rule", n, byFamily)

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/ui"
@@ -10,6 +11,7 @@ import (
 
 // Mission 20, a unit selected, the pointer on three installed structure classes.
 func TestReleaseHoverCursorOverStructureClasses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("structure hover")

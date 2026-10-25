@@ -7,6 +7,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -136,6 +137,7 @@ func (tr chargenTrace) party(kind string) {
 // TestReleaseChargenTraceIsUnchanged pins the first game's generator, frame
 // by frame, across a move of its code.
 func TestReleaseChargenTraceIsUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.ChargenAssets == nil {
 		t.Skip("the install ships no character generation")

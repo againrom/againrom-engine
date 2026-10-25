@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -20,6 +21,7 @@ const mission130Ticks = 4000
 // original, DIV-2794). The mission is won with no player action and the
 // victory returns to the town. With npc 22 nothing wins in the same drive.
 func TestReleaseMission130WinsWithoutItsTenThousandTwoCompanion(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, companion := range []bool{false, true} {
 		name := "without-npc22"
 		if companion {

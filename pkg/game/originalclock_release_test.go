@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -12,6 +13,7 @@ import (
 // Literals are the independent head census, not SessionState or an importer.
 // Both installed consumers read the same SHA-identified original recordings.
 func TestReleaseOriginalClock1112NaturalBothDoorsSaveFreshAndNextPhase(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("untreated-natural-phase6", naturalPhase6Clock1112)
 	for _, tc := range []struct {
 		path, sha               string

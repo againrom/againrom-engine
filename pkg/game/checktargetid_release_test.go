@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -31,6 +32,7 @@ func releaseTargetIDNodes(t *testing.T, f *FrontEnd) []string {
 }
 
 func TestReleaseCheckTargetIDReadsOrderFiveOnly(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	nodes := releaseTargetIDNodes(t, f)
 	if got, want := strings.Join(nodes, " "), "111:10:42 140:9:1 140:12:123"; got != want {

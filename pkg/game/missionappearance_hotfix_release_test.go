@@ -3,10 +3,12 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseMission20SarindarKeepsHisRowClassArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if _, _, _, _, _, _, _, _, _, _, err := f.MissionOpener(20)(); err != nil {
 		t.Fatalf("open mission 20: %v", err)

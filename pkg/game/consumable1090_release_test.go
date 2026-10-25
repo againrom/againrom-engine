@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -15,6 +16,7 @@ import (
 // The installed MagicItems strings, not the runtime item's output, are the
 // independent source for this producer check.
 func TestReleaseConsumable1090InstalledRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows := f.Table.MagicItems
 	want := []sim.ItemEffect{
@@ -76,6 +78,7 @@ func shopPointer1090(t *testing.T, app *ui.App, kind string, index int, edges ..
 }
 
 func TestReleaseTownScrollUseKeepsTheStagedUnit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	scrolls := shopScrollPool(f.Table, 100000, rand.New(rand.NewSource(1090)))
@@ -115,6 +118,7 @@ func TestReleaseTownScrollUseKeepsTheStagedUnit(t *testing.T) {
 }
 
 func TestReleaseConsumable1090AppPermanentTimedAndScroll(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	pool := shopScrollPool(f.Table, 100000, rand.New(rand.NewSource(1090)))
@@ -338,6 +342,7 @@ func stepConsumableApp(app *ui.App) error {
 }
 
 func TestReleaseConsumable1090AppInstantPotionAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := MissionPartyAs(false, f.StartWeapon.Value(), f.Bodies, f.Table)

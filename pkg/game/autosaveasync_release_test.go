@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -14,6 +15,7 @@ import (
 // and carry exactly the bytes the frame thread would have written for the same
 // state.
 func TestReleaseAutosaveWorkerWritesTheFrameThreadBytesInMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	store := SaveStore{Dir: t.TempDir()}
 	store.Selector = f.textSelector()
@@ -78,6 +80,7 @@ func TestReleaseAutosaveWorkerWritesTheFrameThreadBytesInMission(t *testing.T) {
 }
 
 func TestReleaseAutosaveWorkerBytesEqualFrameThreadBytesInTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	s, _, err := f.Snapshot(false)
 	if err != nil {

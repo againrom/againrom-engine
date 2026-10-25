@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/render/text"
@@ -95,6 +96,7 @@ func roomCaptionRawBMP(t *testing.T, f *FrontEnd, path string) *image.RGBA {
 // text indices; the existing plaque layout/value policy is not ROM1-certified
 // by this test. Composition is CPU-side, not a physical original-game witness.
 func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rawText := roomCaptionRaw(t, f, "main/text/main.txt")
 	captions := [2]string{roomCaptionRawLine(t, rawText, 231), roomCaptionRawLine(t, rawText, 232)}

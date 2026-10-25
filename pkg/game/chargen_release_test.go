@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -43,6 +44,7 @@ func inkShade(c, ink color.RGBA) bool {
 // labels only when their strings measure differently, which the shipped
 // wording satisfies on both roots but which a customised install need not.
 func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
 	if setup.PreCreate == nil || setup.PreCreate.Art == nil || setup.PreCreate.Art.Font == nil {
@@ -106,6 +108,7 @@ func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
 }
 
 func TestReleaseChargenDetailedSeamColumnsDrawShippedStrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 
 	assertRegion := func(t *testing.T, name string, frame *image.RGBA, rect image.Rectangle, src image.Image, exclude ...image.Rectangle) {

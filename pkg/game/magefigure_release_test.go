@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/mapload"
@@ -134,6 +135,7 @@ func mageWitnessCheck(t *testing.T, name string, pic *image.RGBA, origin image.P
 // their hit maps. The merchant's stock and purse are the fixture; the wearing
 // is the player's drag.
 func TestReleaseTownMageGlovesAreDrawnUnderTheBraceletsOnReniesta(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, _, shop := recoveredCapShop(t, currentTownSave(t, currentTown(t, nil, nil)))
 	app.Layout(640, 480)
 	recoveredCapShow(t, app, shop, "npc:22")

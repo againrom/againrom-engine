@@ -10,10 +10,12 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCompletedExtraTavernTalkerDisappearsThroughAppAndCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_TAVERN_DONE_REVIEW_DIR")
 	if root == "" {
 		t.Skip("AGAINROM_TAVERN_DONE_REVIEW_DIR is not set")

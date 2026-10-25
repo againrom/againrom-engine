@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -246,6 +247,7 @@ func ogreRequireSourceHash(t *testing.T, path string) []byte {
 }
 
 func TestReleaseOgreTouchingHeroLoadsChargesAndResumesSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_OGRESTUCK_CURRENT"); path != "" {
 		proof, err := os.ReadFile(path + ".json")
 		if err != nil {

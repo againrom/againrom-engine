@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -134,6 +135,7 @@ func releaseSourceToken1076(t *testing.T, record sav.DocumentRecordData) sim.Sav
 // A structurally valid save can still fail once the installed map supplies its
 // bounds. That refusal must leave the old game's complete SAVE owner intact.
 func TestReleaseOriginalGround1076RejectedLoadPreservesLiveGame(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("1076-rejected-original-ground")
@@ -215,6 +217,7 @@ func TestReleaseOriginalGround1076RejectedLoadPreservesLiveGame(t *testing.T) {
 // The same owner save is materialized through each EN/RU root. These are two
 // production integration witnesses, not two independent original observations.
 func TestReleaseOriginalGround1076ProductionAppReplacesFreshLootAndSavesPickup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-12/game0012.sav", "12b05b4eb3ff6921cdddfcf89965f525c40dc169331ee28c5f39b9a63c6c8f44")
 	f.SetDeterministicFrames(true)
@@ -303,6 +306,7 @@ func TestReleaseOriginalGround1076ProductionAppReplacesFreshLootAndSavesPickup(t
 }
 
 func TestReleaseOriginalGround1076GoldEffectsAndStackSurviveNativeContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, payload := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	sf, err := sav.Open(payload)

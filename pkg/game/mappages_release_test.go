@@ -10,10 +10,12 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 )
 
 func TestReleaseMapEditorLooseMapPages(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	lang := x.pageLanguage()
 	body := map[string]string{"en": "Map page EN", "ru": "Страница карты"}[lang]

@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -26,6 +27,7 @@ func inventoryPairPointer(t *testing.T, app *ui.App, x, y int, edges ...string) 
 }
 
 func TestReleaseMissionPackAndWornBoxDoubleClicksSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app := shieldWitnessOpen(t, shieldWitnessCases[0])
 	id := shieldWitnessSelect(t, f, app)
 	start := shieldWitnessRead(f.live.world, id)

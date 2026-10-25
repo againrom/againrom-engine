@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -65,6 +66,7 @@ func spellbookShow(t *testing.T, a *ui.App, live *mapWorld, id sim.EntityID) {
 }
 
 func TestReleaseDownWithOrcsSecondMageOpensHisBookAndCasts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a := spellbookMissionApp(t)
 	live := f.live
 	const mage = sim.EntityID(0)
@@ -176,6 +178,7 @@ func spellbookClick(t *testing.T, a *ui.App, x, y int) {
 // while a controlled warrior with no book gets the same bar with every cell
 // unavailable.
 func TestReleaseControlledCreatureOpensItsBookAndWarriorShowsItEmpty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a := spellbookMissionApp(t)
 	live := f.live
 	const creature, warrior = sim.EntityID(0), sim.EntityID(62)

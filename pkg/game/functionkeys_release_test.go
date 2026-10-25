@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseFunctionKeysSaveLoadAndDiplomacy(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, inTown := range []bool{false, true} {
 		t.Run(map[bool]string{false: "campaign map", true: "town"}[inTown], func(t *testing.T) {
 			f := releaseFront(t)

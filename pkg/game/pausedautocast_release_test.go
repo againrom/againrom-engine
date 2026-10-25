@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -69,6 +70,7 @@ func pausedAutocastRightClick(t *testing.T, a *ui.App, spell uint32) {
 }
 
 func TestReleasePausedAutocastShowsAtOnceAndHoldsAfterResume(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, mage, spell := pausedAutocastApp(t)
 	live := f.live
 	before, _ := live.entity(mage)

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -22,6 +23,7 @@ import (
 // neighbouring cells can share a pixel. Every absence below is read at a cell
 // whose neighbours cannot supply the colour being tested.
 func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	began := time.Now()
 	const maceSquad, mission = 14, 60
 	f := releaseFront(t)

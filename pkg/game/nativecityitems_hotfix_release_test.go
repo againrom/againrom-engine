@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -63,6 +64,7 @@ func TestReleaseNativeCityItemConstructorFieldsAndResources(t *testing.T) {
 }
 
 func TestReleaseNativeCitySavedWeaponOwnsSpell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Spell Fields", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}})
 	f.arriveInTown()

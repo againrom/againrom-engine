@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/formats/spr16"
@@ -197,6 +198,7 @@ func (o townSquareOracle) compose(frame exteriorFrame, selector int) *image.RGBA
 }
 
 func TestReleaseTownAmbient1123InstalledBirdStarCrowdAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Problems) != 0 {
 		t.Fatalf("town ambient art: %v / %v", f.TownSquareArt.Err(), f.TownSquareArt.Value().Problems)

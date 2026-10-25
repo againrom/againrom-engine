@@ -9,10 +9,12 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseItemOwners1115TownAndNextMissionEquipment(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	source := os.Getenv("AGAINROM_SAVE_666")
 	if source == "" {

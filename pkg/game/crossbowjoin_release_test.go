@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -11,6 +12,7 @@ import (
 // (38,108). The new group receives Stand Ground (AI-351, PARTY-JOIN-025),
 // so a monk within reach is engaged without a player order.
 func TestReleaseMission70JoinedCrossbowmenEngageAMonkWithoutAnOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := openCampaignMission(t, 70)
 	mw := f.live
 	w := mw.world

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestReleaseMission70CompanionReportUsesLiveSpeakerVariants(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	output := os.Getenv("AGAINROM_NAIRA_DIALOGUE_WITNESS_DIR")
 	if output == "" {
 		t.Skip("AGAINROM_NAIRA_DIALOGUE_WITNESS_DIR is required")

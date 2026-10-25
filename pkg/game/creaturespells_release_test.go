@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
@@ -100,6 +101,7 @@ func creatureCastWithin(w *sim.World, caster, target sim.EntityID, ticks int) (i
 // TestReleaseCreatureSpellCensus counts the placed creatures that hold class
 // spell slots: 602 per install, 598 of them in missions 121..151.
 func TestReleaseCreatureSpellCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	total, late := 0, 0
 	for n := 1; n <= 160; n++ {
@@ -145,6 +147,7 @@ func TestReleaseCreatureSpellCensus(t *testing.T) {
 // spell at the hero within the window; with the slots cleared the same
 // creature never casts.
 func TestReleaseCreatureCastsAtThePartyInMission130(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m := releaseMissionMap(t, f, creatureWitnessMission)
 	ms, err := StartMissionFrom(m, "witness.alm", creatureWitnessMission, f.Table, mapload.DifficultyNormal, creatureWitnessParty())
@@ -208,6 +211,7 @@ func TestReleaseCreatureCastsAtThePartyInMission130(t *testing.T) {
 // mission 131 and checks that the creature slots its order blocks carry reach
 // the world, unchanged.
 func TestReleaseOriginalSAVLoadsCreatureSpellSlots(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-09-24/game0002-bigsack.sav", "")
 	file, err := sav.Open(raw)
@@ -280,6 +284,7 @@ func TestReleaseOriginalSAVLoadsCreatureSpellSlots(t *testing.T) {
 // spell-class creature moved beside the party, saves while that creature's
 // cast charges, loads the file cold and runs both sessions to the cast landing.
 func TestReleaseCreatureSpellSaveColdLoadCastsNext(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

@@ -5,9 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseTownSAVWritesCurrentHumanSight(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	sourcePath, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	_, _, load := f.SaveSeams(SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: filepath.Dir(sourcePath)}, nil)

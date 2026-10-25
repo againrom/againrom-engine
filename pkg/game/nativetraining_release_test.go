@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -153,6 +154,7 @@ func trainingStrike(t *testing.T, f *FrontEnd, id sim.EntityID, raises bool) int
 }
 
 func TestReleaseNativeTrainingAwardEquipSaveAndTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name  string
 		base  int32
@@ -267,6 +269,7 @@ func TestNativeTrainingColdProcess(t *testing.T) {
 }
 
 func TestReleaseNativeTrainingOrdinaryBaseOverridesLift(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := bonusSwordParty(f, 200)
 	party[0].Hero.Skill[1] = 70000
@@ -300,6 +303,7 @@ func TestReleaseNativeTrainingOrdinaryBaseOverridesLift(t *testing.T) {
 }
 
 func TestReleaseNativeTrainingJoinedRoster(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("joined training").OpenMission(f.MissionOpener(40)); err != nil {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -203,6 +204,7 @@ func priceLossControls() map[string]priceVariant {
 // Every check fails for the same figures in font1, a pixel aside, without their
 // shadow and in the shop's text colour.
 func TestReleaseShopGridPriceFigureIsRightAlignedWithAShadow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -123,6 +124,7 @@ func (arena *loadedCycleArena) orderUse(t *testing.T, s sim.Structure) {
 // one tick, so the order lands with at least one tick of the charge left. The
 // creature never strikes back and its health is what the warrior's blow takes.
 func TestReleaseALoadedAttackCycleFinishesBeforeADefendOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("acquire in place: the blow lands", func(t *testing.T) {
 		arena := openLoadedCycleArena(t, 1)
 		hero, east := arena.heroes[0], arena.east
@@ -171,6 +173,7 @@ func TestReleaseALoadedAttackCycleFinishesBeforeADefendOrder(t *testing.T) {
 // HERO-CADENCE-112; DIV-1577). The order is the Patrol key and a click on the
 // ground, given in the middle of the charge.
 func TestReleaseALoadedAttackCycleFinishesBeforeAPatrolOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 1)
 	hero, east := arena.heroes[0], arena.east
 	arena.selectFirstHero(t)
@@ -192,6 +195,7 @@ func TestReleaseALoadedAttackCycleFinishesBeforeAPatrolOrder(t *testing.T) {
 // walk to the fountain; the order is a click on the fountain with the warrior
 // selected.
 func TestReleaseALoadedAttackCycleFinishesBeforeAStructureUse(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const fountain = 29
 	ready := func(t *testing.T) (*loadedCycleArena, sim.Structure) {
 		t.Helper()
@@ -319,6 +323,7 @@ func (arena *loadedCycleArena) cyclesLoaded(hero sim.EntityID, n int) int {
 // DIV-1577). The order is the Defend key and a click on the companion given in
 // the last ticks of the recovery.
 func TestReleaseADefendOrderGivenAsACycleEndsLoadsNoSecondCycle(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	ending := 0
 	for left := int32(1); left <= 12; left++ {
 		arena := openLoadedCycleArena(t, 2)
@@ -353,6 +358,7 @@ func TestReleaseADefendOrderGivenAsACycleEndsLoadsNoSecondCycle(t *testing.T) {
 // from: the blow lands, no second cycle loads, and the warrior walks to the
 // companion (DIV-1577).
 func TestReleaseADefendOrderWaitingBehindABlowSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 2)
 	arena.completeCurrentSaveFixture(t)
 	hero, companion, east := arena.heroes[0], arena.heroes[1], arena.east

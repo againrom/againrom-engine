@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -87,6 +88,7 @@ func releaseContinuedCampaign(t *testing.T, f *FrontEnd) *ui.App {
 }
 
 func TestReleasePauseMenuVisitsEveryDestination(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	root := filepath.Base(strings.TrimRight(strings.ReplaceAll(
 		strings.TrimSpace(os.Getenv("AGAINROM_ASSETS")), "\\", "/"), "/"))
@@ -299,6 +301,7 @@ func TestReleasePauseMenuVisitsEveryDestination(t *testing.T) {
 // destination is driven through the production controller. The release gate
 // runs this once for each lawful install.
 func TestReleasePauseMenuCoversFullActionPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SoundPlayer = &releaseMenuPlayer{}
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}

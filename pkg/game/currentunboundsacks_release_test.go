@@ -4,11 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCurrentUnboundSackItemsKeepAbsenceAndOrdinaryEdits(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, edited := range []bool{false, true} {
 		f := releaseFront(t)
 		if err := f.App("native ground values").OpenMission(f.NewGameOpener(20, ui.ChargenResult{Name: "Ground values", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})); err != nil {

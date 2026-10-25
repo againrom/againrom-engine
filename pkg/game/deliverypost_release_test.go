@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -103,6 +104,7 @@ func deliveryFromStart(t *testing.T, f *FrontEnd, app *ui.App) {
 }
 
 func TestReleaseMissionTenFreshDeliveryPost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -116,6 +118,7 @@ func TestReleaseMissionTenFreshDeliveryPost(t *testing.T) {
 }
 
 func TestReleaseMissionTenDeliveredActorKeepsDeliveryPost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, autoGetTenSAV, autoGetTenHash)
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "delivery.sav"), raw, 0o600); err != nil {
@@ -144,6 +147,7 @@ func TestReleaseMissionTenDeliveredActorKeepsDeliveryPost(t *testing.T) {
 }
 
 func TestReleaseOwnerMissionTenDeliveryPost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	input := os.Getenv("AGAINROM_DELIVERY_INPUT")
 	if input == "" {
 		t.Skip("no AGAINROM_DELIVERY_INPUT")

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/terrain"
@@ -158,6 +159,7 @@ func TestFlightProducerCastConsumers(t *testing.T) {
 }
 
 func TestReleaseFlightProducerScenarioMissionWithoutConsumer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	p, _, err := StartScenarioMission(f.Archives, HeadlessScenario{Version: 6, Stage: StageMission, Mission: 41, Mage: true})
 	if err != nil {
@@ -321,6 +323,7 @@ func producerAssertCurrentSave(t *testing.T, raw []byte, source producerFrame, s
 }
 
 func TestReleaseFlightProducerSaveColdProcess(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_FLIGHT_CHILD"); path != "" {
 		producerColdProcess(t, path)
 		return

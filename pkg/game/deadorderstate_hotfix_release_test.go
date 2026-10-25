@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -15,6 +16,7 @@ import (
 // refused its own file because defend, patrol, acquire and follow are not
 // states a dead actor holds.
 func TestReleaseDeadActorRetainedOrderStateSAVReloads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	probe := releaseFront(t)
 	open, _, err := probe.RestoreOriginal(raw)

@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTownCompanionAndPlatoonPortraitsSurviveNativeSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Portrait hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}})
 	f.arriveInTown()

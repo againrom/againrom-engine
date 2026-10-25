@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -128,6 +129,7 @@ func girlWitness(f *FrontEnd, m mapload.PartyMember) error {
 }
 
 func TestReleaseModCharactersEditTheTargetRowsOnly(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain, edited := characterModFront(t, false), characterModFront(t, true)
 	before, after := plain.Table.Humans, edited.Table.Humans
 	if before.Len() != after.Len() || plain.Humans.Len() != before.Len() || edited.Humans.Len() != after.Len() {
@@ -187,6 +189,7 @@ func TestReleaseModCharactersEditTheTargetRowsOnly(t *testing.T) {
 }
 
 func TestReleaseModCharacterReachesTheTavernAndTheHiredParty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain, edited := characterModFront(t, false), characterModFront(t, true)
 	ps, es := characterTown(t, plain), characterTown(t, edited)
 
@@ -257,6 +260,7 @@ func characterModReload(t *testing.T, raw []byte, plain bool) (*FrontEnd, error)
 }
 
 func TestReleaseModCharacterSavesAndLoadsAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := characterModFront(t, true)
 	s := characterTown(t, f)
 	if _, ok := s.toggleMercenary(girlType); !ok {
@@ -341,6 +345,7 @@ func girlInMission(t *testing.T, f *FrontEnd) (mapload.PartyMember, string) {
 }
 
 func TestReleaseModCharacterInAMissionAndItsSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := characterModFront(t, true)
 	s := characterTown(t, f)
 	if _, ok := s.toggleMercenary(girlType); !ok {
@@ -393,6 +398,7 @@ func TestReleaseModCharacterInAMissionAndItsSave(t *testing.T) {
 }
 
 func TestReleaseModCharacterTavernScreenshot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SHOT_DIR")
 	if dir == "" {
 		dir = t.TempDir()

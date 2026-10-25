@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseHeroNameIndexFollowsCurrentEquipmentThroughColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	// dropped is the name index after the first dropped item: game0076's
 	// Danath keeps his shield when his sword is dropped (DIV-1537), so he
 	// stands as the unarmed fighter with a shield.

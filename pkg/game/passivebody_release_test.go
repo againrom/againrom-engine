@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -76,6 +77,7 @@ func passiveSaveReload(t *testing.T, f *FrontEnd, label string) ([]byte, *FrontE
 // the items it still wore when it left: SAVE writes them on its dead record,
 // a cold LOAD keeps them passive, and the next SAVE writes the same items.
 func TestReleaseDepartedUnplacedActorContentsSurviveSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

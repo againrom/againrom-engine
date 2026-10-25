@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -13,6 +14,7 @@ import (
 // The counts come from raw ALM zero words paired with positive DAT maximum
 // health. Opening a mission here tests placement, not campaign reachability.
 func TestReleaseBuilding1175AuthoredZeroAndColdSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct{ mission, zeros int }{
 		{40, 3}, {50, 4}, {61, 6}, {81, 4}, {111, 3}, {120, 8}, {150, 11},
 	} {

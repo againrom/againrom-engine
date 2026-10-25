@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -351,6 +352,7 @@ func townReturnCurrent1168(t *testing.T) *FrontEnd {
 }
 
 func TestReleaseTownReturnCurrentCampaign1168(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("fresh-mission20", func(t *testing.T) {
 		f := townReturnCurrent1168(t)
 		// Mission 10's own section grants three text documents on entry
@@ -378,6 +380,7 @@ func TestReleaseTownReturnCurrentCampaign1168(t *testing.T) {
 }
 
 func TestReleaseTownReturnImportedActorReturn1168(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, private := townReturnImported1168(t)
 	app := f.App("1168 imported controlled completion")
 	if err := app.OpenMission(f.MissionOpenerWith(30, f.NextParty())); err != nil {

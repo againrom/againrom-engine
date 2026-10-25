@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -139,6 +140,7 @@ func holdStands(t *testing.T, arena *loadedCycleArena, hero sim.EntityID, n int)
 // command panel while he is on his way. The control is the same world bytes
 // stepped with no press: it finishes the chase or the walk.
 func TestReleaseHoldPositionStopsAChaseAndAWalk(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("chase", func(t *testing.T) {
 		arena := openLoadedCycleArena(t, 2)
 		hero, foe := arena.heroes[1], arena.east

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -51,6 +52,7 @@ func unpricedInfo(item sim.ItemInstance, f *FrontEnd, resolve weaponCastResolver
 // the stored prices are unchanged, and the access item's T1C in a mission SAVE
 // is still -1.
 func TestReleaseItemInformationHasNoPriceLine(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	code := uint16(data.QuestDocumentCode)
@@ -293,6 +295,7 @@ func shopNumberDrawn(v ui.ShopScreenView, cell ui.ShopCell, r image.Rectangle, p
 // hit-test scan behind each surface's point walks the whole frame, so every
 // point is found once.
 func TestReleaseShopItemInformationHasNoPriceLine(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()

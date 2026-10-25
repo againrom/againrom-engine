@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -92,6 +93,7 @@ func catalogueMapBytes(t *testing.T, x *MapInspector, key string) []byte {
 // bound stops the rule take the nearest word (TileFix.Seams); the sweep
 // reports how many.
 func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/31.alm")
 	_ = e.Key("terrain")

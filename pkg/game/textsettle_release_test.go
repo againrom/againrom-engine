@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -49,6 +50,7 @@ func textSettleFrames(t *testing.T, a *ui.App, step bool) (bytesPerFrame uint64,
 // is what stalled the game for seconds at a time. The per-frame heap bytes
 // and time are logged for comparison.
 func TestTextSettleDecidesRealFramesWithoutReadback(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("town", func(t *testing.T) {
 		f := releaseFront(t)
 		f.Carried = f.NextParty()

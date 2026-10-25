@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -483,6 +484,7 @@ func chainEndingState(f *FrontEnd, app *ui.App, last, gold int) error {
 }
 
 func TestReleaseCampaignChainFromMission10(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Options = OptionsStore{}

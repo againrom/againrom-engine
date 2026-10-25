@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -96,6 +97,7 @@ func light1162Differences(w *sim.World, state *SnapshotSAVDocument, source spell
 }
 
 func TestReleaseWorldEffectsContinue1162(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2027-09-07/game0125.sav", "3a055c8dcef6f053721e1c1478c82552c199b92fb178e9f034fe7500077b4efd")
 	file, err := sav.Open(raw)
 	if err != nil {
@@ -218,6 +220,7 @@ func TestReleaseWorldEffectsContinue1162(t *testing.T) {
 }
 
 func TestReleaseRetiredWorldEffectsColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name, path, digest string
 		graph              bool

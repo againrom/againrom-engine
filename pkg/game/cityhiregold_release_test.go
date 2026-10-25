@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -41,6 +42,7 @@ func cityHireGoldReads(t *testing.T, f *FrontEnd) map[string]int {
 // are charged once, at the hire, and the loaded town, its tavern and the
 // mission entry all read that same purse.
 func TestReleaseCityHireGoldIsOnePurseAcrossSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "City hire gold")
 	before := f.Town.Gold()
 	paid := 0
@@ -95,6 +97,7 @@ func cityGlobalDWord(t *testing.T, raw []byte) uint32 {
 // 30 and 0 in one that holds none. The engine writes the same word from the
 // town's hire flags, so an original city and the engine's SAVE of it agree.
 func TestReleaseCityHireCostWordMatchesOriginalCity(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if root == "" {
 		t.Skip("AGAINROM_SAVE_CORPUS is not set")

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -339,6 +340,7 @@ func coldHeroLevels(t *testing.T, label string, f *FrontEnd, id sim.EntityID, li
 // Raised skills and experience survive mission SAVE, autosave, cold LOAD,
 // town return, town SAVE and the next mission, with each slot still in band.
 func TestReleaseSkillLevelsSurviveEverySavePath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const mission = 90
 	for _, c := range skillCases() {
 		c := c
@@ -451,6 +453,7 @@ const beforeKargallasSHA = "86605e1b3d7e851d0a9c8c63e4312478f8bfd2bf4bebcc4e3f12
 // rule raises a slot one level per award for experience above S(level), so the
 // save's own experience implies level 55, which is what the player had.
 func TestReleaseBeforeKargallasLoadsFireAtItsExperienceLevel(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-10-07/beforekargallas.sav", beforeKargallasSHA)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
@@ -528,6 +531,7 @@ func TestReleaseBeforeKargallasLoadsFireAtItsExperienceLevel(t *testing.T) {
 
 // No save the corpus holds loads into a slot whose level lies below its band.
 func TestReleaseCorpusLoadsNoOutOfBandSlot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Skip("no AGAINROM_SAVE_CORPUS")
@@ -576,6 +580,7 @@ func TestReleaseCorpusLoadsNoOutOfBandSlot(t *testing.T) {
 // An original-written save loads its hero as a source-backed actor. A level
 // raised there survives the same save paths.
 func TestReleaseOriginalLoadedHeroLevelsSurviveEverySavePath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-10-07/beforekargallas.sav", beforeKargallasSHA)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
@@ -632,6 +637,7 @@ func censusMismatch(got savSheet, e sim.Entity, town bool) []string {
 }
 
 func TestReleaseWriterCensusNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const mission = 90
 	for _, c := range skillCases()[:1] {
 		f := releaseFront(t)

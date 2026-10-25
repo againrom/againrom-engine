@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/render/camera"
 	"againrom/pkg/render/terrain"
@@ -801,6 +802,7 @@ func (w *deliveryWitness) producerObservationControls(id sim.EntityID) {
 }
 
 func TestReleaseSharedAudioDelivery(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("set AGAINROM_ASSETS to a lawful install")

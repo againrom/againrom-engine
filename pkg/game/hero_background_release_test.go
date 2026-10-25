@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/mapload"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReleaseHeroBackground(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("generator", func(t *testing.T) {
 		f := releaseFront(t)
 		for sex := 0; sex < 2; sex++ {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -154,6 +155,7 @@ func coldLoadCompanion130(t *testing.T, store SaveStore) (*FrontEnd, *ui.App) {
 }
 
 func TestReleaseMission130KilledCompanionLeavesParty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, cold := range []bool{false, true} {
 		name := "live"
 		if cold {

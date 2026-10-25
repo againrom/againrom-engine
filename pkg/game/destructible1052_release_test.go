@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -17,6 +18,7 @@ import (
 // step, save form and viewer ruin selector. The release gate runs it on EN and
 // RU installs.
 func TestReleaseMission101FireBallDestroysAndDrawsTheShippedSwitch(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(101)
 	raw, err := f.Archives.Containers.ReadFile(addr)

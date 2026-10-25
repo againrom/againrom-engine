@@ -3,12 +3,14 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 // Taking off an item that raises the maximum health shrinks the pool and sends
 // no damage message, so no hurt cue plays; the loss is not a blow.
 func TestReleaseUnwearingAMaximumHealthItemIsNotDamage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, id := wornItemOpen(t, sim.ItemEffect{Kind: 7, Operand: 30})
 	before, _ := f.live.entity(id)
 	wornItemWear(t, f, app, id)

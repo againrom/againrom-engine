@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -294,6 +295,7 @@ func requireCurrentActionWire(t *testing.T, doc sav.DocumentData, w *sim.World, 
 }
 
 func TestReleaseCurrentActionScrollSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_CURRENT_ACTION_INPUT"); path != "" {
 		currentActionCold(t, path)
 		return
@@ -379,6 +381,7 @@ func TestReleaseCurrentActionScrollSAV(t *testing.T) {
 }
 
 func TestReleaseCurrentActionScriptSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_CURRENT_ACTION_INPUT"); path != "" {
 		currentActionCold(t, path)
 		return
@@ -413,6 +416,7 @@ func TestReleaseCurrentActionScriptSAV(t *testing.T) {
 }
 
 func TestReleaseCurrentActionBookSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_CURRENT_ACTION_INPUT"); path != "" {
 		currentActionCold(t, path)
 		return

@@ -3,10 +3,12 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseGeneratedWorld1171Mission20SecondNewGameOpensAfterEmptyUnlockWin(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("mission20 reopen after an empty-unlock win")
 	res := ui.ChargenResult{Name: "First mission 20", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}}

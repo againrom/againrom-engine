@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 // authored record in record order: the kept records take their draw as their
 // start facing and the withdrawn ones discard it, then the drop pick follows.
 func TestReleaseOriginalStreamStartDrawsAFacingForEveryRingPlacement(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	for _, tc := range []struct{ mission, withdrawn int }{{80, 1}, {90, 1}, {100, 2}} {
 		addr, ok := MissionMap(tc.mission)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -65,6 +66,7 @@ func castApproachGround(app *ui.App, at sim.CellPoint) bool {
 // retention flag, and the file loads cold. Both sessions keep one hash until
 // the spell lands on the clicked cell.
 func TestReleasePlayerCastApproachSaveColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "game0021.sav"), raw, 0o600); err != nil {

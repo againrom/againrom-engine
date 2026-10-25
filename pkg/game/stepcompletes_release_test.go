@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -67,6 +68,7 @@ type stepWitness struct {
 // one tick of ordinary motion further each tick, the click waits as the
 // mage's order, and the cast starts at the step's end.
 func TestReleaseSpellClickMidStepCompletesTheStep(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, mage, foe := spellClickFixture(t)
 	e := stepWalking(t, f, mage)
 	cell := [2]int32{e.X, e.Y}
@@ -102,6 +104,7 @@ func TestReleaseSpellClickMidStepCompletesTheStep(t *testing.T) {
 // step's end. A LOAD in this process and a LOAD in a fresh process draw the
 // figure and run the cast as the uninterrupted game does.
 func TestReleaseSpellClickMidStepSurvivesSAVE(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const ticks = 90
 	if path := os.Getenv("AGAINROM_STEP_ORDER_INPUT"); path != "" {
 		var want stepWitness

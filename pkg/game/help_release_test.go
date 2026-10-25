@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -118,6 +119,7 @@ func helpDiffers(a, b *image.RGBA, r image.Rectangle) bool {
 // while it stands, it scrolls, OK and Esc close it, and F1 does nothing in the
 // town or over another popup.
 func TestReleaseHelpPanelOverTheMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	locale := filepath.Base(os.Getenv("AGAINROM_ASSETS"))
 	f := releaseFront(t)
 	a := helpWitnessMap(t, f, true)
@@ -238,6 +240,7 @@ func TestReleaseHelpPanelOverTheMap(t *testing.T) {
 // TestReleaseHelpKeyDoesNothingInTown presses F1 in the town reached through
 // chargen and mission 10 and a cold LOAD of the town save.
 func TestReleaseHelpKeyDoesNothingInTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, a, _ := modJoinCold(t, currentTownSave(t, modJoinTown(t, false)), false)
 	if a.Screen() != ui.ScreenTown {
 		t.Fatalf("setup: screen %v, want the town", a.Screen())

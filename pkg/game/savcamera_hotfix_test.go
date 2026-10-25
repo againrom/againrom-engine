@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -13,6 +14,7 @@ import (
 // at the map's start position rather than at cell (0, 0) -- a real map corner.
 
 func TestReleaseMissionSaveReopensAtTheSavedCamera(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Saved camera", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 30, 30}})

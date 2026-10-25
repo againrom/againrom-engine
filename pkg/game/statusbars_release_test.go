@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -108,6 +109,7 @@ func statusBarAnchorLift(m *alm.Map, minV, col, row int) int {
 // placement and unchanged composition hash are checked independently.
 // AGAINROM_STATUSBAR_FRAMES names an optional explicit frame directory.
 func TestReleaseStatusBarsOnAFighterAndAMage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	witnessDir := effectRimWitnessDir(t, f)
 	f.SetDeterministicFrames(true)

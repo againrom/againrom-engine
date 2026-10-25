@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -125,6 +126,7 @@ func requireBridgeWorldMask(t *testing.T, w *sim.World, width int) {
 }
 
 func TestReleaseMissionBridgeBlockingMaskSurvivesSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

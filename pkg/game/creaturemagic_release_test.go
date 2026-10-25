@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -154,6 +155,7 @@ func magicWitnessPlain(t *testing.T, f *FrontEnd) sim.EntityID {
 // words; the SAVE carries the three class slots and the experience value the
 // original's caption tests; the loss controls remove each in turn.
 func TestReleaseMission51OgreTurtleKeepsItsMagic(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, turtle := magicWitnessOpen(t)
 	live := f.live
 	if turtle.XPValue == 0 || !turtle.Book.HasInstances() || turtle.KnownSpells&(1<<turtle.CreatureSpells[0].ID) == 0 {

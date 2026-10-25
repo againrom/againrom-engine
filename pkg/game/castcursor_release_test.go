@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -19,6 +20,7 @@ const (
 )
 
 func TestReleaseCastCursorFollowsTheSpellKind(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	hero := data.Hero{Body: 60, Reaction: 60, Mind: 100, Spirit: 100}
@@ -207,6 +209,7 @@ func castCommandSpell(c sim.Command) uint32 {
 // The installed table names two self spells, Shield by its row and Fire
 // Sacrifice by its id; every other book entry keeps its kind.
 func TestReleaseSelfSpellKindsAreShieldAndFireSacrifice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	mage := sim.Entity{KnownSpells: ^uint32(0)}

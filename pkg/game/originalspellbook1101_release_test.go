@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -129,6 +130,7 @@ func childMage1101(t *testing.T, mode, in, out, member, hash string, ticks ...in
 }
 
 func TestReleaseMageSpellbookTrainSAVEAndContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	// Both lawful sources are replayed with each asset root; these are not
 	// independent EN/RU original-runtime recordings.
 	for _, fixture := range []struct{ path, hash string }{
@@ -274,6 +276,7 @@ func TestReleaseMageSpellbookTrainSAVEAndContinuation(t *testing.T) {
 }
 
 func TestReleaseFergardSpellbookInstancesAndNativeCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	opener, town, err := f.RestoreOriginal(raw)

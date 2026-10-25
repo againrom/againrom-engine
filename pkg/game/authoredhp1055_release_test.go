@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -77,6 +78,7 @@ func rawAuthoredHealthWalk1055(data []byte) ([]rawAuthoredHealth1055, error) {
 }
 
 func TestReleaseAuthoredCurrentHealthCorpusAndRescueTriggers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	maps := releaseMissionPopulation(t, f)
 	if len(maps) != 28 {

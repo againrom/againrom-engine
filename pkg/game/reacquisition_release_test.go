@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -108,6 +109,7 @@ func openRefusedFleeMission(t *testing.T, label string) (*ui.App, *mapWorld, sim
 // first blow finds it without an order. Before, each resolved cycle ended the
 // order and the hero waited for the next decision period.
 func TestReleaseRetreatWithNoRouteKeepsItsPickAcrossCycles(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, live, heroID := openRefusedFleeMission(t, "retreat pick")
 	hero, ok := live.entity(heroID)
 	if !ok {
@@ -194,6 +196,7 @@ func TestReleaseRetreatWithNoRouteKeepsItsPickAcrossCycles(t *testing.T) {
 // AI-PURSUE-040). Counted from its first shot beside the hero, the creature is
 // never without an order and its shots are one cycle apart.
 func TestReleaseRangedWithdrawalWithNoRouteKeepsItsPickAcrossCycles(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, live, heroID := openRefusedFleeMission(t, "ranged pick")
 	hero, ok := live.entity(heroID)
 	if !ok {

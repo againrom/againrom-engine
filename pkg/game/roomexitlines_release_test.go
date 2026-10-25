@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -278,6 +279,7 @@ func roomExitWalk(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) (shop, 
 // (SHOP-SCREEN-035, DLG-LIFE-005, MISSION-MSGPOST-058). The tavern's hire
 // press, which shows a line, proves the route can show one.
 func TestReleaseTownRoomExitsAndConversationEndsPostNoLine(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("first town", func(t *testing.T) {
 		f := releaseFront(t)
 		app, s := roomExitApp(t, f, 0)

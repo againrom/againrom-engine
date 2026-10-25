@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -11,6 +12,7 @@ import (
 // Installed terrain, spell rules and book input; one controlled mage isolates
 // repeated Teleport from campaign acquisition, AI and mission notice timing.
 func TestReleaseRepeatedTeleportKeepsCastMode(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	hero := data.Hero{Body: 60, Reaction: 60, Mind: 100, Spirit: 100}

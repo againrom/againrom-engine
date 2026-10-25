@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -44,6 +45,7 @@ func drainLifeCardWitnessDir(t *testing.T) string {
 }
 
 func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	dir := drainLifeCardWitnessDir(t)
 	app, screen := releaseShopApp(t)

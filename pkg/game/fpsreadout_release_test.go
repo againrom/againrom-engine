@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/res"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/text"
@@ -234,6 +235,7 @@ func fpsCurrentSAV(t *testing.T, f *FrontEnd) []byte {
 }
 
 func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	out := os.Getenv("AGAINROM_FPS_READOUT_WITNESS_DIR")

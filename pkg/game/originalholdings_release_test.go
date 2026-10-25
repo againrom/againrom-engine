@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -61,6 +62,7 @@ func itemOnlyAt(w *sim.World, id sim.SavedObjectID, owner sim.SavedObjectOwner) 
 // independent seat baseline, not ActorHoldings or the importer under test.
 // EN/RU are two installed consumers of each same source, not two recordings.
 func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name, path, sha string
 		mission         int

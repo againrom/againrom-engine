@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -52,6 +53,7 @@ func packJoinTake(t *testing.T, f *FrontEnd, hero sim.EntityID, at sim.CellPoint
 // own back: they join it. One cell of four survives a mission SAVE, which
 // writes one Weapon record of count 4, and a cold LOAD.
 func TestReleaseBoughtSpearJoinsTheLootedSpears(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	prepareAcceptedCampaignMission(t, f, 50)

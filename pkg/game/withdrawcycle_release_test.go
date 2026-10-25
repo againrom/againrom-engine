@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -21,6 +22,7 @@ const releaseWithdrawalMission = 41
 // its flee walk must start only after the cycle has ended (AI-WITHDRAW-028,
 // AI-RETREAT-272, AI-ORDER-039, HERO-CADENCE-112).
 func TestReleaseRangedWithdrawalLetsItsLoadedShotResolveBeforeItFlees(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := MissionPartyAs(false, f.StartWeapon.Value(), f.Bodies, f.Table)
 	start := func() *Mission {

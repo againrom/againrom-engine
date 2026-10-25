@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"againrom/internal/firstgame"
 )
 
 // Every installed movie of both archives presents at the output region: 640x360,
@@ -13,6 +15,7 @@ import (
 // parses with its declared counts, starts at the origin, and the four pan
 // registries are M10/01 and M50/01 in both archives (REG-CUT-053).
 func TestReleaseCutscenePresentationAndSidecars(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS not set")
@@ -84,6 +87,7 @@ func TestReleaseCutscenePresentationAndSidecars(t *testing.T) {
 // of the last fade carries a new palette, so the display stays black to the
 // end (VIDEO-071 step 4).
 func TestReleaseCutsceneFinalFramesStayBlackAfterFadeOut(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS not set")

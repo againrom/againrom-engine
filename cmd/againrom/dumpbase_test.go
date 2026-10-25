@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // -dump-base stands alone: it excludes -check, -headless and -mods.
@@ -61,6 +63,7 @@ func TestDumpBaseWritesAModFolderAndRefuses(t *testing.T) {
 // scenario's tavern rows the dump writes (22 on EN and RU, as
 // TestReleaseTavernRowKeyIsUnique measures), and no override is reported.
 func TestReleaseDumpBaseWritesAModTheCheckAccepts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the base dump needs the install")

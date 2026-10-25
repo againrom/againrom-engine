@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -35,6 +36,7 @@ var dialogueBackdropWant = []struct {
 // the shopkeeper's quest dialogue that opens when the shop is entered, then
 // the tavern NPC's dialogue through that NPC's own row.
 func TestReleaseDialoguePortraitBackdrop(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app, s := openFirstTownShopDialogue(t, f, "dialogue portrait backdrop")
 	window := checkDialogueBackdrop(t, f, app, s, "main/text/shop/npc31m31.txt")

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 )
@@ -44,6 +45,7 @@ func townPlacementCharacter(t *testing.T, raw []byte, name string) sav.Character
 }
 
 func TestReleaseTownSAVEWritesCurrentPlacementCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "source.sav"), source, 0o600); err != nil {

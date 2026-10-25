@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -52,6 +53,7 @@ func releaseTooltipMenuWitness(t *testing.T, f *FrontEnd, app *ui.App) {
 }
 
 func TestReleaseTooltipShopAndChargenUseInstalledTextAndSharedDelay(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.SetTipsOff(true)

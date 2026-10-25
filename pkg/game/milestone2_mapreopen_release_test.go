@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -18,6 +19,7 @@ import (
 // corpus audit exercises independently, over one lawful owner save, in the
 // default release gate.
 func TestReleaseMilestone2MapReopen1140(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	source, err := sav.Open(payload)
 	if err != nil {

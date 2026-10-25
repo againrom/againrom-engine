@@ -6,12 +6,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseCurrentCityPartyOrdinaryWireWins(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	for i := range f.Carried {
 		if f.Carried[i].Carry == nil {
@@ -133,6 +135,7 @@ func TestReleaseCurrentCityPartyOrdinaryWireWins(t *testing.T) {
 }
 
 func TestReleaseCurrentCityRejectsMalformedPolicyAtomically(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	raw := currentTownSave(t, f)
 	beforeParty, beforeTown, beforeFame := mapload.CloneParty(f.Carried), f.Town, cloneFame(f.fame)

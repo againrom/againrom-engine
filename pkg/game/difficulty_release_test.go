@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"bytes"
 	"fmt"
@@ -36,6 +37,7 @@ func openDifficultyChargen(t *testing.T, f *FrontEnd) *ui.App {
 }
 
 func TestReleaseDifficultyCampaignThroughProductionUI(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	for _, level := range []int{1, 2, 3} {
 		t.Run(fmt.Sprint(level), func(t *testing.T) {
@@ -210,6 +212,7 @@ func assertDifficultyPlacements(t *testing.T, f *FrontEnd, mission, level int) {
 }
 
 func TestReleaseDifficultyLevelsInstalledArtAndPointer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	// Expectations name installed entries directly. They do not read the
 	// production Loaded Levels array or production geometry/state helpers.

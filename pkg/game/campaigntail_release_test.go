@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -83,6 +84,7 @@ func campaignTailCheck(t *testing.T, name string, raw []byte, selector int, want
 // generation: the engine's first town holds main 30, whose record declares no
 // AutoGetMission, and its party stands on MapPoint 0.
 func TestReleaseNewCampaignMissionTenTail(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("new campaign tail")
 	t.Cleanup(app.StopAudio)
@@ -119,6 +121,7 @@ func TestReleaseNewCampaignMissionTenTail(t *testing.T) {
 // (SAV-1333); a LOAD keeps that order and a later registration is appended.
 // The two orders are each other's control.
 func TestReleaseTownSAVMarkersKeepAppendOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, order := range [][]int{{60, 50}, {50, 60}} {
 		f := kitOwnerWalkToChapter(t, 40)
 		screen := f.TownScreen().(*townScreen)
@@ -153,6 +156,7 @@ func campaignMarkerValues(t *testing.T, raw []byte) []uint32 {
 // (SAV-1334, MERC-HIRE-003); the working pool cell keeps its value while the
 // type is hired (MERC-POOL-012).
 func TestReleaseTownSAVHireFlagSetAndCleared(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := kitOwnerWalkToChapter(t, 120)
 	f.Town.gold = 3_000_000
 	before := autoGetCampaign(t, currentTownSave(t, f))
@@ -173,6 +177,7 @@ func TestReleaseTownSAVHireFlagSetAndCleared(t *testing.T) {
 // first-MapPoint word (SAV-1331): the next SAVE writes each byte for byte.
 // 0, -1 and a mission number are each other's control.
 func TestReleaseLoadedTownWritesItsTailBack(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	for _, tc := range []struct {
 		autoGet uint32
@@ -201,6 +206,7 @@ func TestReleaseLoadedTownWritesItsTailBack(t *testing.T) {
 // with a numbered chooser label. AGAINROM_CAMPAIGN_TAIL_KIT names the output
 // directory; the files go to its EN or RU subdirectory.
 func TestReleaseCampaignTailKit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	type kitFile struct {
 		file, label string
 		build       func(t *testing.T) *FrontEnd

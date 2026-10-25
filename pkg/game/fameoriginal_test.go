@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
@@ -205,6 +206,7 @@ func TestFameOriginalUnknownHistoryNoLongerFallsBackToAGS(t *testing.T) {
 }
 
 func TestReleaseFame1181OriginalCityCounterExportRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Counter Hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}})
 	f.arriveInTown()

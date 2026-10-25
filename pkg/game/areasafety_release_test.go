@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseUnorderedAreaCastSparesItsSide(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	spells := mapload.SpellRules(f.Table)
 	var radius int32

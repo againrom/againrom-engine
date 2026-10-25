@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -179,6 +180,7 @@ func editScriptMap(t *testing.T, x *MapInspector, edit func(ui.InspectionScript,
 // win target no longer wins and the new one does. The same mission without the
 // mod is the loss control.
 func TestReleaseMapEditorMovesTheDropCellAndRetargetsTheWinArm(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := replaceModNumber(t, scriptMissionNumber)
 	install := os.Getenv("AGAINROM_ASSETS")
 	x, err := NewMapInspector(install)
@@ -252,6 +254,7 @@ func TestReleaseMapEditorMovesTheDropCellAndRetargetsTheWinArm(t *testing.T) {
 // adds: the protected unit's death loses the mission, and the same death
 // without the check does not.
 func TestReleaseMapEditorSetsAProtectUnitCheck(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := replaceModNumber(t, scriptMissionNumber)
 	install := os.Getenv("AGAINROM_ASSETS")
 	x, err := NewMapInspector(install)
@@ -299,6 +302,7 @@ func TestReleaseMapEditorSetsAProtectUnitCheck(t *testing.T) {
 // with a win trigger has a win arm, and opening and saving writes the
 // installed bytes.
 func TestReleaseEveryInstalledMapListsItsScriptArmsAndWritesItsBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	out := t.TempDir()
 	arms := map[string]int{}

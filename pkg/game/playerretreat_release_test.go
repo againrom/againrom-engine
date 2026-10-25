@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -82,6 +83,7 @@ func retreatNative1089(t *testing.T, f *FrontEnd, stage string) {
 }
 
 func TestReleasePlayerRetreat1089AppPanelAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("1089-player-retreat")

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -94,6 +95,7 @@ func applyWidePools(t *testing.T, f *FrontEnd) []sim.EntityID {
 }
 
 func TestReleaseGeneratedWidePoolsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_GENERATED_MISSION_INPUT"); path != "" {
 		generatedMissionCold(t, path)
 		return
@@ -177,6 +179,7 @@ func wideNumericFields(e *sim.Entity) []wideNumericField {
 // tick between. A wide skill level makes the live mission derive the hero
 // sheet again at the next tick, so the continuation test leaves skills out.
 func TestReleaseGeneratedWideNumericSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	c := releaseFront(t).Campaign.Value()
 	mission := slices.Min(append(slices.Clone(c.Main), c.Side...))
 	f, app := generatedMissionStart(t, mission)
@@ -247,6 +250,7 @@ func TestReleaseGeneratedWideNumericSAV(t *testing.T) {
 // derive the hero sheet again at the next tick, so a continuation over ticks
 // leaves them out; every other numeric field keeps its wide value.
 func TestReleaseGeneratedWideNumericContinuationSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_GENERATED_MISSION_INPUT"); path != "" {
 		generatedMissionCold(t, path)
 		return

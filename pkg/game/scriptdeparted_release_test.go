@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -133,6 +134,7 @@ func dragonReload(t *testing.T, f *FrontEnd) (*FrontEnd, *ui.App) {
 }
 
 func TestReleaseMissionDragonDeathWinsAfterItsBodyLeaves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app := dragonOpen(t)
 	refs := mapload.ScriptUnits(f.live.mission.state.Map, f.live.mission.party)
 	unit := func(mapUnit uint16) sim.EntityID {

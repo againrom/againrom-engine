@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -153,6 +154,7 @@ func releaseFarOrder(t *testing.T, f *FrontEnd, mission int, foe sim.EntityID) (
 // no route longer than the budget of a cell three cells off. Before, one stored a
 // route of 47 cells to such a cell and ran the long way round past the hero.
 func TestReleaseAnAICreaturesFarSearchSettlesInsteadOfWalkingTheDetour(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -266,6 +268,7 @@ func releaseLargeBudget(d int32) int32 { return 5 + d }
 // victim (MOVE-099), so the drive's routes end beside the hero and the bound
 // applies to them as well as to any route onto his cell.
 func TestReleaseALargeAICreaturesFarSearchSpendsTheNxNArm(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

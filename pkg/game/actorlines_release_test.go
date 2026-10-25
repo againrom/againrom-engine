@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
@@ -26,6 +27,7 @@ func releaseRootText(mw *mapWorld, en, ru string) string {
 // driver's step report: the Item still arrives and no line posts, so the line
 // is the driver's reading of the grant.
 func TestReleaseScriptItemGrantStatesTheReceivedLine(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const grant = data.ItemCode(0x0e1e)
 	for _, observed := range []bool{true, false} {
 		f := releaseFront(t)

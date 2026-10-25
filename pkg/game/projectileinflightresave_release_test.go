@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -14,6 +15,7 @@ import (
 // bolt; SAVE at the load point must write the source's projectile records
 // leaf for leaf and the allocator and ID list with them.
 func TestReleaseResaveOfProjectilesInFlightWritesTheSourceRecords(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Skip("no AGAINROM_SAVE_CORPUS: projectile resave witness requires owner saves")

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -16,6 +17,7 @@ import (
 // anchor bearing named the diagonal 32. The facing held when the charge loads
 // survives SAVE and a cold LOAD.
 func TestReleaseAttackersTurnToTheOriginalsHeading(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	ranged, big, names := targetHeadingAttackers(t, releaseFront(t))
 	for _, tc := range []struct {
 		name             string

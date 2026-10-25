@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -15,6 +16,7 @@ import (
 // Item record keeps the constructor's shape, material and magic capacity and
 // the map item's own Identity.
 func TestReleasePlainMapItemPickedUpAfterAnEquipKeepsItsOwnSavedRecord(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	prepareAcceptedCampaignMission(t, f, 50)

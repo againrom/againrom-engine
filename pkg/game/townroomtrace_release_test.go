@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -84,6 +85,7 @@ func (tr *townTrace) shopPoint(kind string, i int) image.Point {
 }
 
 func TestReleaseTownRoomTraceIsUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	tr, points, off := startTownTrace(t, func(f *FrontEnd) {
 		fighter := f.ChargenParty(ui.ChargenResult{Name: "Trace fighter", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 20, 20}})
 		mage := f.ChargenParty(ui.ChargenResult{Name: "Trace mage", Choices: []int{1, 1, 0}, Stats: []int{20, 20, 30, 30}})

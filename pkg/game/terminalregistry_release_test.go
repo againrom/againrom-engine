@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -38,6 +39,7 @@ func registeredTerminalGround(doc sav.DocumentData, keys map[uint32]bool) int {
 }
 
 func TestReleaseTerminalRegistryCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TERMINAL_REGISTRY_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_TERMINAL_REGISTRY_SAV to the owner terminal-registry source")

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -13,6 +14,7 @@ import (
 const mission90WeaponResistanceSHA256 = "1af4b4ff040d48f4293020101d5042092328f2794254f438cfd8253aa6a006e1"
 
 func TestReleaseMission90BladeResistanceChangesOnePhysicalBlow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(90)
 	raw, err := f.Archives.Containers.ReadFile(addr)

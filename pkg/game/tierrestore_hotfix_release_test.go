@@ -6,10 +6,12 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseLegacyBatPaletteAfterLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_LEGACY_BAT_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_LEGACY_BAT_SAV: exact legacy mission SAV is required")

@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/frame"
@@ -801,6 +802,7 @@ func checkSmoothing(t *testing.T, run smoothingRun) smoothingResult {
 // states why, and the witness checks that none of that glyph's cells shows in
 // the CPU composite of the frame.
 func TestReleaseTextSmoothingKeepsEveryGlyphOfEveryNamedScreen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, run := range smoothingViews() {
 		t.Run(run.name, func(t *testing.T) {
 			res := checkSmoothing(t, run)

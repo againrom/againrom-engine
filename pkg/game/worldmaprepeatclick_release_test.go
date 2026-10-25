@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -17,6 +18,7 @@ import (
 // the route's end, the party arrives at the mission's MapPoint and mission 30
 // opens. No click misses a scroll, so the skip arm never runs.
 func TestReleaseWorldMapRepeatedScrollClickKeepsTravelRunning(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "source.sav"), raw, 0o600); err != nil {

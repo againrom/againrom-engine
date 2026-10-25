@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
@@ -189,6 +190,7 @@ func (w *deliveryWitness) installedCombatRoutes() {
 }
 
 func TestReleaseSharedAudioCombat(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("set AGAINROM_ASSETS to a lawful install")

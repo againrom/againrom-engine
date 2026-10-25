@@ -3,9 +3,12 @@ package game
 import (
 	"image"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseTownSquareOverlayDoesNotPaintBlackOverTheSky(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("base")) != 1 {
 		t.Fatalf("production town square art did not resolve: %v", f.TownSquareArt.Err())
@@ -39,6 +42,7 @@ func TestReleaseTownSquareOverlayDoesNotPaintBlackOverTheSky(t *testing.T) {
 // exactly the shipped overlay's own black-pixel count as transparent (alpha
 // 0), not merely the composed canvas.
 func TestReleaseTownSquareOverlayIsKeyedAtLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("overlay")) != 1 {
 		t.Fatalf("production town square overlay did not resolve: %v", f.TownSquareArt.Err())
@@ -91,6 +95,7 @@ func TestReleaseTownSquareOverlayIsKeyedAtLoad(t *testing.T) {
 // origins as measured from the shipped art: shop 52x76 at (264,264), tavern
 // 28x64 at (144,332), school 140x116 at (436,300).
 func TestReleaseTownSquareCompositesEveryPatchWhereTheInstallPutsIt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Pictures("base")) != 1 {
 		t.Fatalf("production town square art did not resolve: %v", f.TownSquareArt.Err())

@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 )
 
@@ -65,6 +66,7 @@ func shopCensus(t *testing.T, f *FrontEnd) string {
 }
 
 func TestReleaseShopStockCensusWithoutModsIsShipped(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	base := BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS")))
 	got := shopCensus(t, f)

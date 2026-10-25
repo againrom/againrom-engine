@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -30,6 +31,7 @@ func refusedPickupArena(t *testing.T) (*loadedCycleArena, sim.EntityID, sim.Cell
 // A refused pick-up walk takes the hostile beside the hero; F2 and cold LOAD
 // follow tick for tick (AI-375, AI-350).
 func TestReleaseARefusedPickupWalkTakesTheHostileBesideTheHero(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, lead := range []int{0, 2, 4} {
 		arena, hero, sack := refusedPickupArena(t)
 		for range lead {

@@ -1,8 +1,13 @@
 package game
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/internal/firstgame"
+)
 
 func TestReleaseReniestaHalfTurnDrawsEveryStandingSixteenth(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	k := openKargallas(t)
 	mw := k.mw
 	actor := releaseEntity(t, mw, k.renie)

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -122,6 +123,7 @@ func statParty() []mapload.PartyMember {
 // word the original un-applies at expiry; cold LOAD applies the effect once,
 // and the SAVE after expiry holds the base value with a zero modifier word.
 func TestReleaseTimedStatEffectSavesKeepModifierWordThroughColdLoadAndExpiry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range statCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := releaseFront(t)

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -29,6 +30,7 @@ func shopGoods(s *townScreen) []uint16 {
 // over each pane rectangle in both modes return, stay and are worn; nothing is
 // bought or lost (SHOP-114, SHOP-115, SHOP-116).
 func TestReleaseShopPaneReleaseBySourceOverEachRectangle(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	f.Town.gold = 100000

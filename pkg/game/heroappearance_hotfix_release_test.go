@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -46,6 +47,7 @@ func TestReleaseChargenHeroTypeHasBothAxes(t *testing.T) {
 }
 
 func TestReleaseRoodHeroTypeFreshAndContaminated(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_ROOD_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_ROOD_SAV")

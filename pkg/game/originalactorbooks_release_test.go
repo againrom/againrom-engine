@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -15,6 +16,7 @@ import (
 // Human@27305, mapID32, and these nine-byte Spell body offsets. Assertions read
 // literal decoded bytes, never construct expected values with the importer.
 func TestReleaseOriginalNonPartySpellbooks1105(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-15/game0017.sav", "eafce5d6575d54fdddc7a35f57531cd3df9317006c80f7c4085866c1b02b4fe0")
 	source, err := sav.Open(payload)

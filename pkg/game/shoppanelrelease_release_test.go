@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -48,6 +49,7 @@ func (a panelReleaseState) equal(b panelReleaseState) bool {
 
 // Panel releases route by stamp; SAVE and cold LOAD carry the result (DIV-1667).
 func TestReleaseShopPanelReleaseRoutesByStamp(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	f.Town.gold = 100000

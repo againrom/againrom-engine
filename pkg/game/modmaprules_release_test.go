@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 )
@@ -18,6 +19,7 @@ import (
 // ship it unchanged, with no texts of its own, and counts the findings per rule
 // and level. An installed map is never refused.
 func TestReleaseModMapRuleCensusRefusesNoInstalledMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	x, err := f.modMapInspector()
 	if err != nil {
@@ -74,6 +76,7 @@ func outsideUnit(t *testing.T, b []byte) []byte {
 // a replacing mission through the production load on the install under test: a
 // unit outside the map is refused with the rule named, the unedited map loads.
 func TestReleaseModMissionRoutesRefuseAMapTheRulesReport(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 	entries, err := mod.Resolve(dir, []string{guestModID})
 	if err != nil {

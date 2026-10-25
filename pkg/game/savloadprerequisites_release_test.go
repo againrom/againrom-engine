@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseSAVOriginalLoadPrerequisites(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("mission", func(t *testing.T) {
 		f := releaseFront(t)
 		f.SetDeterministicFrames(true)

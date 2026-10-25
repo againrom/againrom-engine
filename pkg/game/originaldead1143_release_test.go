@@ -4,10 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseOriginalDead1143UnboundHirelingAndEarlyDecayStage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	type want struct {
 		identity, mapUnit, runtime uint32

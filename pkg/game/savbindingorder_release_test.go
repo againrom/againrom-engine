@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -101,6 +102,7 @@ func bindingOrderOwnerSave(t *testing.T, path, sha string, terminalActors int) {
 // TestReleaseOwnerSavesWriteOneByteSequence runs the owner's SAVs that hold 8,
 // 9 and 10 terminal actors through bindingOrderOwnerSave.
 func TestReleaseOwnerSavesWriteOneByteSequence(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("cast crash game0001", func(t *testing.T) {
 		path := os.Getenv("AGAINROM_CAST_CRASH_SAV")
 		if path == "" {

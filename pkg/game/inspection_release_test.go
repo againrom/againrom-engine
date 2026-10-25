@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/spr256"
@@ -21,6 +22,7 @@ import (
 // opened so distant installed objects can be sampled without playing a mission.
 // No input is sent to a desktop window and no install is written.
 func TestReleaseInspectionLivePanels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("1083-hover")

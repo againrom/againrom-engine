@@ -20,7 +20,7 @@ func TestReleaseSettingKeysPostInstalledStateLines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lines := strings.Split(string(raw), "\r\n")
+	lines := strings.Split(string(f.textCode().Bytes(raw)), "\r\n")
 	if len(lines) < 221 {
 		t.Fatalf("main.txt holds %d lines, want the setting lines to 220", len(lines))
 	}

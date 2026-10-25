@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 )
 
@@ -12,6 +13,7 @@ import (
 // selection popup's Delete button. The warning comes first and Cancel leaves
 // the bytes; Empty it deletes, Undo restores the bytes and Redo the deletion.
 func TestReleaseMapEditorDeleteUsedGroupAsksFirst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	for _, route := range []string{"key", "button"} {
 		t.Run(route, func(t *testing.T) {

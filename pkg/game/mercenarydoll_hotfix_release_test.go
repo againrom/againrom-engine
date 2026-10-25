@@ -3,9 +3,12 @@ package game
 import (
 	"fmt"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseHiredHumanMercenaryHasAReadOnlyMissionDoll(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, typ := range []int{3, 8, 9} {
 		t.Run(fmt.Sprint(typ), func(t *testing.T) { releaseHiredMissionDoll(t, typ) })
 	}

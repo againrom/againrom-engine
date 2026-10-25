@@ -3,9 +3,12 @@ package game
 import (
 	"image"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseCursorRegistryResolvesAllTwentyEightSlotsFromTheRealInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.CursorRegistry.Err() != nil || f.CursorRegistry.Value() == nil {
 		t.Fatalf("the production cursor registry did not resolve: %v", f.CursorRegistry.Err())

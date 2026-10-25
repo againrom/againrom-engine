@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func literalsOf(t *testing.T, dir string) map[string]bool {
@@ -58,6 +60,7 @@ func TestRegisteredCursorSlotsNamedByProductionCode(t *testing.T) {
 }
 
 func TestReleaseStructureClassesWithUsableFlag(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	var got []int
 	for id, c := range f.Structures.Classes {

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestReleaseQuickSpellsCustomOriginalTownSAVRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	store := SaveStore{Dir: t.TempDir()}
@@ -119,6 +121,7 @@ func TestReleaseQuickSpellsCustomOriginalTownSAVRoundTrip(t *testing.T) {
 // single mage's known spells and mana are controlled input, not a claim about
 // campaign acquisition or an original-game populated-slot runtime witness.
 func TestReleaseQuickSpellsSaveFreshLoadAndCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("paused-all-unavailable-book-viewport", quickSpellsPausedViewportWitness)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

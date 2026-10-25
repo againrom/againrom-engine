@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -136,6 +137,7 @@ func creatureClassCases(t *testing.T, f *FrontEnd, class int) (*alm.Map, *Missio
 // writes: a cast at itself, at the victim, at the victim's cell, and one step
 // toward the victim for Acid Stream and Teleport.
 func TestReleaseCreatureSpellsAreAimedByTheirArm(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	for _, tc := range []struct {
 		name  string
@@ -244,6 +246,7 @@ func creatureApproachPlacements(t *testing.T, f *FrontEnd, m *alm.Map, ms *Missi
 // pass whose draw selects no spell ends the order; such a placement is passed
 // over for the next one, and an order that neither ends nor begins fails.
 func TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m, ms, creatures := creatureClassCases(t, f, creatureClassVictim)
 	hero := ms.Start.IDs[0]
@@ -303,6 +306,7 @@ func creatureAbs(v int32) int32 {
 // pending ends the order at the first pass that selects no spell, so the casts
 // stay within twice the slot draws' expected selections, plus two.
 func TestReleaseCreatureRetainedCastEndsAtAMissingDraw(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m, ms, creatures := creatureClassCases(t, f, creatureClassVictim)
 	hero := ms.Start.IDs[0]
@@ -427,6 +431,7 @@ func creatureArmedSession(t *testing.T, n int, r int32) (*FrontEnd, sim.Entity, 
 // loaded session keeps the armed cast and both sessions keep one hash through
 // the cast landing.
 func TestReleaseCreatureArmedCastSaveColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	var f *FrontEnd
 	var creature sim.Entity
 	for n := 0; n < 8 && f == nil; n++ {

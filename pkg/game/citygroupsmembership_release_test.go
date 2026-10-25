@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 )
 
@@ -21,6 +22,7 @@ func partyNames(party []mapload.PartyMember, keep func(mapload.PartyMember) bool
 // Each member who joins the party between missions is written in a group of
 // its own after the groups the town already holds (PARTY-039).
 func TestReleaseCitySAVGivesEachJoiningCompanionItsOwnGroup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	reachabilityWalkArrive(t, f, "Joining Hero")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -62,6 +64,7 @@ func TestReleaseCitySAVGivesEachJoiningCompanionItsOwnGroup(t *testing.T) {
 // Two hired types in one inn visit write one group per type, and a siege hire
 // follows the same path (PARTY-040).
 func TestReleaseCitySAVWritesOneGroupPerHiredTypeSiegeIncluded(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := hireSiegeSquads(t, "Siege Groups")
 	hireInTown(t, f, 14)
 	_, groups, names := cityGroupsByName(t, writtenTownData(t, f))
@@ -85,6 +88,7 @@ func TestReleaseCitySAVWritesOneGroupPerHiredTypeSiegeIncluded(t *testing.T) {
 // A hire group whose members all left stays in the document, empty, and a
 // later hire of its type opens a new group behind it (SAV-1234).
 func TestReleaseCitySAVKeepsAnEmptiedHireGroup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Emptied Hero")
 	hireInTown(t, f, 14, 6)
 	_, _, hired := cityGroupsByName(t, writtenTownData(t, f))

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestReleaseCurrentPartyOrdinaryWireWins(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "ordinary party", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
@@ -130,6 +132,7 @@ func TestReleaseCurrentPartyOrdinaryWireWins(t *testing.T) {
 }
 
 func TestReleaseCurrentPartyWeaponWireWins(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.ChargenParty(ui.ChargenResult{Name: "ordinary weapon", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})

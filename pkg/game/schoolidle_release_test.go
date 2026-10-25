@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
@@ -18,6 +19,7 @@ import (
 // shine. The loss controls draw the neighbouring stored slot, the shine-on and
 // the on picture and compare them with the screen.
 func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art: %v", f.TownSchoolArt.Err())

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -81,6 +82,7 @@ func auditFallen(r *figureRig, id sim.EntityID, wantArt *terrain.UnitClass, stag
 // -9 and once the body has decayed and been looted, each keeps the art its
 // identity selects, fresh and after SAVE and a cold LOAD.
 func TestReleaseFigureRegressionFallen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("party hero and companion", func(t *testing.T) {
 		r := openFigureMission(t, 70, figureHeroes[1])
 		mw := r.f.live
@@ -204,6 +206,7 @@ func TestReleaseFigureRegressionFallen(t *testing.T) {
 // the tiers of one family; each tier resolves to its own palette over the
 // family's one sheet, so four tiers are four pictures.
 func TestReleaseFigureRegressionTierPalettes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows := map[int32]map[int32]bool{}
 	for i := 0; i < f.Table.Units.Len(); i++ {

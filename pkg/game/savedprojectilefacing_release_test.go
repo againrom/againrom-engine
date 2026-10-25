@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/terrain"
 )
 
@@ -23,6 +24,7 @@ import (
 // unit-shot sheets 1 to 6, which a SAV restores through the same draw, hold a
 // frame at every facing and phase.
 func TestReleaseRestoredProjectileDrawsItsSavedFacing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	f := releaseFront(t)
 	bolt := f.Projectiles.Sheet(10)

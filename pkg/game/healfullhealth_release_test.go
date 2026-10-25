@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseManualHealAtFullHealthHeroIsCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const healID = 6
 	f := releaseFront(t)
 	f.SetTipsOff(true)

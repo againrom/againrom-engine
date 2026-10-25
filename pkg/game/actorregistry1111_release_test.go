@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // the importer under test do not supply expected counts. These cases preserve
 // the authored ALM binding; they do not establish full saved GroupAI fidelity.
 func TestReleaseActorRegistry1111AuthoredGroupsSurviveOriginalAndNativeLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		path, sha string
 		counts    map[uint32]int32

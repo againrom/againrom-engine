@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestReleaseMapEditorCompleteScenarioPackageSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -488,10 +489,22 @@ func generatedMissionColdBatch(t *testing.T, batchPath string) {
 
 // The 28 missions run as four release tests, so the release gate can give
 // each its own process: mission i of the sorted union belongs to part i%4.
-func TestReleaseGeneratedCampaignMissionsSAV(t *testing.T)      { generatedCampaignMissionsSAV(t, 0) }
-func TestReleaseGeneratedCampaignMissionsSAVPart1(t *testing.T) { generatedCampaignMissionsSAV(t, 1) }
-func TestReleaseGeneratedCampaignMissionsSAVPart2(t *testing.T) { generatedCampaignMissionsSAV(t, 2) }
-func TestReleaseGeneratedCampaignMissionsSAVPart3(t *testing.T) { generatedCampaignMissionsSAV(t, 3) }
+func TestReleaseGeneratedCampaignMissionsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	generatedCampaignMissionsSAV(t, 0)
+}
+func TestReleaseGeneratedCampaignMissionsSAVPart1(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	generatedCampaignMissionsSAV(t, 1)
+}
+func TestReleaseGeneratedCampaignMissionsSAVPart2(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	generatedCampaignMissionsSAV(t, 2)
+}
+func TestReleaseGeneratedCampaignMissionsSAVPart3(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	generatedCampaignMissionsSAV(t, 3)
+}
 
 func generatedCampaignMissionsSAV(t *testing.T, part int) {
 	if list := os.Getenv(generatedBatchVariable); list != "" {

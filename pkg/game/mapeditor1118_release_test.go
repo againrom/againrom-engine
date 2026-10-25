@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -64,6 +65,7 @@ func assertUnitRefs1118(t *testing.T, d *ui.InspectionDocument, id uint32, cell 
 }
 
 func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: needs lawful install")

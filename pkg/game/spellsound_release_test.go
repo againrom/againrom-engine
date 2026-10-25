@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 )
 
@@ -11,6 +12,7 @@ import (
 // decoded result over a lawful install matches VIDEO-SFX-019's bounded shipped
 // population. check-release-tests invokes it once on each preserved EN/RU root.
 func TestReleaseSpellSoundSelectorPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: spell SFX need a lawful install")

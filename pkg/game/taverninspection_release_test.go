@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -103,6 +104,7 @@ func expectedInstalledMercenaryTalkPicture(t *testing.T, f *FrontEnd, typ int) *
 // hire/return. Every row is still composed so the production font and card
 // composer are checked against the complete shipped value population.
 func TestReleaseEveryShippedMercenaryPriceFitsAndMatchesTheHireAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	font := f.tipFont()
 	if font == nil {
@@ -237,6 +239,7 @@ func TestReleaseEveryShippedMercenaryPriceFitsAndMatchesTheHireAction(t *testing
 // for each lawful EN/RU root selected by the release gate. It enumerates the
 // whole candidate population rather than sampling one convenient type.
 func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownTavernArt.Value() == nil {
 		t.Fatalf("production tavern art did not resolve: %v", f.TownTavernArt.Err())
@@ -498,6 +501,7 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 // checks every distinct reachable template once. Empty authored weapon cells
 // remain empty; a hotfix must not invent equipment the row does not name.
 func TestReleaseEveryReachableMercenaryWeaponReachesStatsAndDoll(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	seen := make(map[string]bool)
 	templates, authoredWeapons, magicStaffs, mageStaffs := 0, 0, 0, 0

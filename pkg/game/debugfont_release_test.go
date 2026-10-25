@@ -19,6 +19,7 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
@@ -247,6 +248,7 @@ func debugFontInstalledTown(t *testing.T) *ui.App {
 }
 
 func TestReleaseDebugFontEscStatusesAreSmoothedAtWindowScale(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, route := range []string{"town", "mission"} {
 		t.Run(route, func(t *testing.T) {
 			var a *ui.App
@@ -295,6 +297,7 @@ func TestReleaseDebugFontEscStatusesAreSmoothedAtWindowScale(t *testing.T) {
 }
 
 func TestReleaseDebugFontMapPickerFailureIsSmoothedAtWindowScale(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -333,6 +336,7 @@ func TestReleaseDebugFontMapPickerFailureIsSmoothedAtWindowScale(t *testing.T) {
 }
 
 func TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: editor integration needs a lawful install")

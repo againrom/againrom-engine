@@ -4,11 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseMapMarqueeEndsOnCommandPanel(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table)

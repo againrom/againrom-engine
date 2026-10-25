@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -131,6 +132,7 @@ func (tr *invizTrace) castsAt(target sim.EntityID, spell uint16, from uint64) in
 // time. Case c: a second Invisibility on the mage itself sets the remaining
 // time back to one fresh duration (MAGIC-400).
 func TestReleaseAPlayersCastsSeeItsOwnInvisibleUnit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const loadTick, landTick, fresh = 6646786, 6646804, 6011
 	const notSeen = "target not currently visible"
 

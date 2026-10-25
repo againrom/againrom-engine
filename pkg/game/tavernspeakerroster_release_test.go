@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -113,6 +114,7 @@ func hearKeptTavernSpeakerTwice(t *testing.T, app *ui.App, f *FrontEnd, s *townS
 // first town: in the game the speaker was heard in, and in the game a SAV
 // reloads, where the pair is already gone from the campaign arrays.
 func TestReleaseTavernSpeakerStaysAndRepeats(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
 	arriveInTownGrantTaken(f)

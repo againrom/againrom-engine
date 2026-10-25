@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/textfit"
@@ -25,6 +26,7 @@ import (
 // selects, the group after a drag, and a pasted copy with its status line.
 // Each step's status words are the install language's.
 func TestReleaseMapEditorSelectionFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_SELECTION_FRAMES")
 	now := time.Unix(1, 0)
@@ -215,6 +217,7 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 // paste takes it. Its control: a ground unit of the same map pasted on that
 // cell is refused, with the cell's arms named.
 func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1800, 900)
@@ -291,6 +294,7 @@ func (w widestRefusals) PasteRecords(c ui.InspectionClip, cell image.Point) (ui.
 // rest and keeps the Esc line. Its control: the whole line is wider than the
 // strip.
 func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

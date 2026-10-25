@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -12,6 +13,7 @@ import (
 // purse and the request, the cold LOAD applies it on its first tick, a second
 // SAV holds the ground Sack, and the next pickup returns every coin.
 func TestReleaseEnginePurseGoldDropSurvivesQueuedSaveLoadAndPickup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Purse save", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("purse gold engine SAV")

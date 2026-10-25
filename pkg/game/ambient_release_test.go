@@ -3,12 +3,15 @@ package game
 import (
 	"os"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseMissionAmbientPopulation is run once against each preserved EN/RU
 // root. It proves the five shipped leaves used by the story decode, the three
 // documented holes remain quiet, and the object selector population is exact.
 func TestReleaseMissionAmbientPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: mission ambience needs a lawful install")

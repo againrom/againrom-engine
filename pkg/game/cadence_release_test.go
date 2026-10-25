@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -13,6 +14,7 @@ import (
 // Both actors then run through ordinary canonical commands in isolated worlds
 // so mission AI cannot replace the action under measurement.
 func TestReleaseActionCadenceUsesShippedHumanoidWeaponAndSpellInputs(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 
 	t.Run("physical Humanoid", func(t *testing.T) {

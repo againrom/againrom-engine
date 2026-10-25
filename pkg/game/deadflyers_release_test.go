@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -86,6 +87,7 @@ func deadFlyerCount(doc *sav.DocumentData) (pinned, actors int) {
 }
 
 func TestReleaseDeadFlyersLeaveNoActorInSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := deadFlyerFront(t)
 	var flyers []sim.EntityID
 	var control sim.EntityID
@@ -200,6 +202,7 @@ func TestReleaseDeadFlyersLeaveNoActorInSave(t *testing.T) {
 
 // An old save with torn-down flyers loads and is re-saved without them.
 func TestReleaseDeadFlyersOldSaveLoadsAndIsCleaned(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_DEAD_FLYERS_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_DEAD_FLYERS_SAV: the owner save with torn-down flyers")

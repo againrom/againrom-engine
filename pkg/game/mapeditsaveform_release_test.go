@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 )
@@ -17,6 +18,7 @@ import (
 // installed bytes. The control moves one unit's owner off the roster and the
 // form must bring it back to player 1, so the comparison can differ.
 func TestReleaseInstalledMapsKeepTheirBytesThroughTheSaveForm(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	same, controlled := 0, 0
 	for _, key := range installedMapKeys(x) {
@@ -92,6 +94,7 @@ func stockKey(t *testing.T, b []byte) []string {
 // position and contents. Run on the first and the last ground sack of every
 // installed map that has one.
 func TestReleaseDeletingAGroundSackKeepsTheOtherSacks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	maps, probes := 0, 0
 	for _, key := range installedMapKeys(x) {

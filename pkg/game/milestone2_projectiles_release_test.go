@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"fmt"
 	"image"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReleaseMilestone2Projectiles1157(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	file, err := sav.Open(raw)
 	if err != nil {

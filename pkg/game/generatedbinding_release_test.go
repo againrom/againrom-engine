@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -161,6 +162,7 @@ func requireGeneratedTombstonesSAV(t *testing.T, f *FrontEnd, app *ui.App) (*Fro
 }
 
 func TestReleaseGeneratedBindingsPreserveCurrentState(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []int{20, 80, 81} {
 		t.Run(fmt.Sprint(mission), func(t *testing.T) {
 			f := releaseFront(t)

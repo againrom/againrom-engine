@@ -6,12 +6,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTwoSavePointsMissionAndCity(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	missionSave := func(f *FrontEnd, mission int) {
 		t.Helper()
 		if f.Town.Open() {

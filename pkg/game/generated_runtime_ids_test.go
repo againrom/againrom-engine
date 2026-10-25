@@ -7,12 +7,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseGeneratedRuntimeIDsFitCommandMembers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Runtime witness", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("runtime witness")
@@ -56,6 +58,7 @@ func TestReleaseGeneratedRuntimeIDsFitCommandMembers(t *testing.T) {
 }
 
 func TestReleaseCityGraftAllocatesFreeRuntimeID(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Graft witness", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	data, err := nativeCityDataApproximate(party, nil, f.Table, mapload.DifficultyNormal)

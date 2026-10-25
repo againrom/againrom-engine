@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_TIMED_TOWN_INPUT"); path != "" {
 		timedTownCold(t, path)
 		return

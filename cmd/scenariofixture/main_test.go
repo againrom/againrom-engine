@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
@@ -243,6 +244,7 @@ func TestEndpointFixtureRefusesInputsAndExistingOutput(t *testing.T) {
 // This is a fresh installed mission with save666's imported party/purse, not
 // original-world continuation. The exact shipped JSON files drive the App.
 func TestReleaseLegacyMission20EndpointScenarios(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	assets, source := os.Getenv("AGAINROM_ASSETS"), os.Getenv("AGAINROM_SAVE_666")
 	if assets == "" || source == "" {
 		t.Skip("AGAINROM_ASSETS and AGAINROM_SAVE_666 are required")

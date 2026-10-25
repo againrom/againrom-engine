@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -240,6 +241,7 @@ func consumedCorpseHeldBytes(t *testing.T, w *sim.World, id sim.EntityID, base, 
 }
 
 func TestReleaseConsumedCorpseSAVLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	out := os.Getenv("AGAINROM_CONSUMED_CORPSE_WITNESS_DIR")
 	if !filepath.IsAbs(out) || !filepath.IsAbs(f.Archives.Root) {

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -15,6 +16,7 @@ import (
 // the written Human type independently of restoredDefinition and check the
 // mage drawable path against the actual installed archive (HERO-APPEAR-041/043).
 func TestReleaseNativeCityOriginalArchetypeAndMageSprites(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name            string
 		sex, class      int

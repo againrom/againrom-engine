@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -43,6 +44,7 @@ func slotModDir(t *testing.T) string {
 // stand-in, whose own numbers differ, so a reader that skipped the mod mark
 // would see other numbers; a LOAD without the mod refuses.
 func TestReleaseModSlotItemSurvivesAMissionSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := slotModDir(t)
 	mk := func() *FrontEnd { return modItemFrontOf(t, dir, "plate-slot") }
 	f := modItemTownOf(t, mk)

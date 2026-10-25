@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/spr16"
@@ -87,6 +88,7 @@ func loadReleasePassArt(t *testing.T) map[string]passReleaseArt {
 }
 
 func TestReleaseSpellPassesComposeInstalledArtAroundShadowsAndBodies(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	art := loadReleasePassArt(t)
 	for _, cloud := range []string{"freezing", "poison"} {
 		for _, category := range []terrain.UnitCategory{terrain.UnitOrdinary, terrain.UnitAlternate, terrain.UnitAir} {

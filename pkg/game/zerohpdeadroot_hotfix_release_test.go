@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -171,6 +172,7 @@ func saveRoodMission(t *testing.T, f *FrontEnd) []byte {
 }
 
 func TestReleaseZeroHealthDeadRootBoundary(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_ROOD_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_ROOD_SAV: exact original Rood SAV is required")

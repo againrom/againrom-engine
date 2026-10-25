@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -137,6 +138,7 @@ func requireAreaClock(t *testing.T, f *FrontEnd, want sim.CellEffect, tick int) 
 }
 
 func TestReleaseNativeAreaSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, spell := range []uint16{3, 4, 7, 8, 9, 12, 17, 19, 21} {
 		t.Run(fmt.Sprint(spell), func(t *testing.T) { nativeAreaSAVWitness(t, spell, false) })
 	}

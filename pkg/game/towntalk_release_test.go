@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -52,6 +53,7 @@ func townTalkOK(t *testing.T, app *ui.App, d townTalkScreen, pressed func()) {
 // pressed page is the authored notice of the page with the game's words,
 // frame and speaker picture; the last release closes the window into the inn.
 func TestReleaseTownTalkOKThroughTheWindow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app, s := roomExitApp(t, f, 0)
 	s.CloseTip()

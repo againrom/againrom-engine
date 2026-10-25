@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseOrdinaryUnitNameSurvivesSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, original := groundCorpusFile(t, "2026-08-02/game0007.sav", "a7cb35ea5d87c9c7a9b8cfd70f8a1f61b6927ca089e468a9d6fe983da777156e")
 	root := os.Getenv("AGAINROM_ASSETS")
 	f := releaseFront(t)

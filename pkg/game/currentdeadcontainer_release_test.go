@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -54,6 +55,7 @@ func requireDeadContainerWire(t *testing.T, raw []byte, want map[uint32]deadCont
 }
 
 func TestReleaseCurrentDeadContainerUsesCurrentWorld(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

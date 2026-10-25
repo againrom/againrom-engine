@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
 func TestReleaseCurrentCitySessionOrdinaryCountersWin(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	f.fame = SnapshotFame{Time: 123, Events: 456}
 	f.Town.selectMission(31)
@@ -61,6 +63,7 @@ func TestReleaseCurrentCitySessionOrdinaryCountersWin(t *testing.T) {
 }
 
 func TestReleaseCurrentCityOffersKeepHistoryWithoutRefiltering(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	c := f.Campaign.Value()
 	ch := c.Chapters[30]

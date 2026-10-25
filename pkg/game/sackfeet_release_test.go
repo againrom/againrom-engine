@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -300,6 +301,7 @@ func (r sackFeetRig) fallback(t *testing.T, target sim.CellPoint, pixel image.Po
 }
 
 func TestReleaseInventoryDropOutsideWindowLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 20)
 	own := r.centre(t)
 	target := sim.CellPoint{X: own.X + 5, Y: own.Y}
@@ -307,12 +309,14 @@ func TestReleaseInventoryDropOutsideWindowLandsAtFeet(t *testing.T) {
 }
 
 func TestReleaseInventoryDropGroundBlockedLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 20)
 	target := r.blockedTarget(t)
 	r.fallback(t, target, r.groundPixel(t, target))
 }
 
 func TestReleaseInventoryDropOccupiedLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 10)
 	hero, _ := r.live.entity(r.hero)
 	for _, e := range r.live.world.Entities() {
@@ -329,6 +333,7 @@ func TestReleaseInventoryDropOccupiedLandsAtFeet(t *testing.T) {
 }
 
 func TestReleaseInventoryDropStructureLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 10)
 	for _, row := range r.live.world.StructureOccupancy() {
 		target := sim.CellPoint{X: int32(row.Cell & 255), Y: int32(row.Cell >> 8)}
@@ -344,6 +349,7 @@ func TestReleaseInventoryDropStructureLandsAtFeet(t *testing.T) {
 }
 
 func TestReleaseInventoryDropOffMapLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 20)
 	r.centre(t)
 	r.live.view.Camera().ClearClampBounds()
@@ -362,6 +368,7 @@ func TestReleaseInventoryDropOffMapLandsAtFeet(t *testing.T) {
 }
 
 func TestReleaseInventoryDropUnreachableLandsAtFeet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 20)
 	target := r.blockedTarget(t)
 	copy := sackFeetClone(t, r.live.world)
@@ -378,6 +385,7 @@ func TestReleaseInventoryDropUnreachableLandsAtFeet(t *testing.T) {
 }
 
 func TestReleaseInventoryDropInsideWindowKeepsAim(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newSackFeetRig(t, 20)
 	grid := r.live.world.CurrentPolicy().Terrain.Block
 	b := r.live.world.Bounds()

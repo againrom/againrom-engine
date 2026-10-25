@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -172,6 +173,7 @@ func arrowReach(t *testing.T, mw *mapWorld, casterID sim.EntityID) (stated, book
 }
 
 func TestReleaseModFormulaTablesReachTheCastTheBookAndTheSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := installedFormulaRows(t)
 	healAmount := r.healHigh + 7
 	blessTicks := r.bless.SpellDuration * 16 * formulaBlessFactor / 1000
@@ -251,6 +253,7 @@ func TestReleaseModFormulaTablesReachTheCastTheBookAndTheSave(t *testing.T) {
 }
 
 func TestReleaseWithoutFormulaTablesTheCastKeepsTheOriginalNumbers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := installedFormulaRows(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

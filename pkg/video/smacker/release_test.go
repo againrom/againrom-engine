@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 	"againrom/pkg/video/smacker"
@@ -48,6 +49,7 @@ var representativeSample = []smkPayload{
 // smackw32.dll through a disposable windows/386 helper process (Windows
 // only, matching the existing native cutscene witness's own gating).
 func TestReleaseSmackerDecoderAgainstOracles(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS not set")

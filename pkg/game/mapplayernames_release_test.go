@@ -8,12 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		route string
 		wire  []byte

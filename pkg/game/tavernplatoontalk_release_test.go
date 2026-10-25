@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/ui"
 )
@@ -13,6 +14,7 @@ import (
 // panel states the Ballista row's statistics and draws a figure below them,
 // as the owner saw in the original (DIV-2778, TAVERN-TALKSTATS-017).
 func TestReleasePlatoonTalkCellShowsItsUnit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	const chapter, npc = 110, 2
 	town := NewTown(f.Campaign.Value())

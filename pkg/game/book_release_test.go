@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -51,6 +52,7 @@ func carriedBookIndex(w *sim.World, id sim.EntityID, spell uint16) (int, bool) {
 // cells within Chebyshev 34 of the grave, 381 see it. Bank (29,48), landing
 // (28,36) is the pair nearest the trigger.
 func TestReleaseMission80AstralBookTeachesTeleportAndReachesTheGrave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	hero := data.Hero{Body: 50, Reaction: 50, Mind: 50, Spirit: 50}

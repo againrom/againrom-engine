@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -148,6 +149,7 @@ func cityGroupsEqual(a, b []cityLiveGroup) bool {
 // membership, the cold LOAD holds the same membership, and the next mission
 // continues on the live World's hashes.
 func TestReleaseCityGroupsRepeatedHireCyclesF2SAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plans := [][]int{{14, 1, 14, 6}, {14, 6, 10, 6, 1}, {6, 2, 14}}
 	// A refunded squad removes its hire group; a mission loss empties its own.
 	hired := [][]int{{1, 6}, {14, 10, 1}, {6, 2, 14}}

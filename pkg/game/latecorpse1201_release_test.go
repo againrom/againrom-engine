@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 
 	"againrom/pkg/sim"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestReleaseLateCorpseConstructor1201(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2027-09-07/game0032.sav", "7375f0c08c8361b2fa32d20564802acba688d5e5a445ab5ca635c609632499ed")
 	open, _, err := f.RestoreOriginal(raw)
@@ -79,6 +81,7 @@ func TestReleaseLateCorpseConstructor1201(t *testing.T) {
 }
 
 func TestReleaseLateCorpseNativeReloadKeepsBody(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	path, _ := groundCorpusFile(t, "2027-09-07/game0032.sav", "7375f0c08c8361b2fa32d20564802acba688d5e5a445ab5ca635c609632499ed")

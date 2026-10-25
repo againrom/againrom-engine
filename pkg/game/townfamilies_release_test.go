@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/town"
 )
@@ -42,6 +43,7 @@ func writeTownFamiliesShot(t *testing.T, dir, root, name string, pix *image.RGBA
 // App over the installed town square and compares every frame with an
 // independent decode of the literal sheets (TOWN-439, 489..495).
 func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	root := f.Archives.Root
 	shotDir := os.Getenv("AGAINROM_SHOT_DIR")
@@ -289,6 +291,7 @@ func TestReleaseTownFamiliesInstalledHorseBabaDervish(t *testing.T) {
 // strictly exceeds the delay measured from the last step, with delays inside
 // 2000..6999 ms.
 func TestReleaseTownFamiliesSeededDelaysFromTheLastStep(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
 	f.arriveInTown()

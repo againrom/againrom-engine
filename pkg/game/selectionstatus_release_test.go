@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
@@ -31,6 +32,7 @@ import (
 // for the five-selected and the none-selected pictures. The words come from the
 // claim and not from the install's own reader.
 func TestReleaseMissionPaneAndCardStateTheSelectedCount(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -220,6 +221,7 @@ func undyingRun(t *testing.T, f *FrontEnd, id sim.EntityID, struck uint64) (int3
 // state, and health-below fires on the same tick as in the run without the
 // SAVE, and its clearing action lets the hero die.
 func TestReleaseScriptUndyingSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if input := os.Getenv("AGAINROM_UNDYING_SAV_INPUT"); input != "" {
 		undyingLoadSide(t, input)
 		return
@@ -282,6 +284,7 @@ func TestReleaseScriptUndyingSAVContinuation(t *testing.T) {
 // No installed map holds an Againrom node, so none is marked Againrom-only and
 // the editor writes each as before.
 func TestReleaseNoInstalledMapIsAgainromOnly(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, maps := installedMapBytes(t, x)
 	scripts := 0

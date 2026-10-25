@@ -5,11 +5,13 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 )
 
 // Repeating message triggers of the shipped maps: RU mission 140 latch 5, EN none.
 func TestReleaseAnnouncerRepeatingTriggersOfShippedMissions(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	defs, err := LoadDefinitions(f.Archives.Containers)
 	if err != nil {

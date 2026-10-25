@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -59,6 +60,7 @@ func orderTraceFault(trace []orderTick) (string, bool) {
 // hostile in range the whole way. It casts nothing until it stands on the
 // ordered cell, then casts standing.
 func TestReleaseArmedMageCastsOnlyAfterItsWalk(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, mage, foe := spellClickFixture(t)
 	f.live.setAutocast(uint32(mage.ID), 1)
 	f.live.enqueue(uint32(mage.ID), 16, 40)
@@ -92,6 +94,7 @@ type orderWitness struct {
 // waiting for the walk to end. A LOAD in this process and in a fresh process
 // continue as the uninterrupted game does.
 func TestReleaseOrderStateSurvivesSAVE(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, c := range []struct {
 		name, witness string
 		setup         func(t *testing.T, f *FrontEnd, mage, foe sim.Entity)

@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -135,6 +136,7 @@ func originalColdLoad(t *testing.T, store SaveStore, name string) (*FrontEnd, *u
 }
 
 func TestReleaseOriginalBoundaryAndDeadEffectsLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, env := range []string{"AGAINROM_ORIGINAL_BOUNDARY_SAV", "AGAINROM_ORIGINAL_DEAD_EFFECT_SAV", "AGAINROM_ORIGINAL_DEAD_EFFECT_RESAVE_SAV"} {
 		t.Run(env, func(t *testing.T) {
 			path := os.Getenv(env)
@@ -222,6 +224,7 @@ func TestReleaseOriginalBoundaryAndDeadEffectsLoad(t *testing.T) {
 // The control is an original mission SAV that loaded before this change; its
 // no-change SAVE is the one the base engine wrote.
 func TestReleaseOriginalControlResaveUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_ORIGINAL_CONTROL_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_ORIGINAL_CONTROL_SAV: the original save is not committed")
@@ -245,6 +248,7 @@ func TestReleaseOriginalControlResaveUnchanged(t *testing.T) {
 // current-action casters under an ID other than the body's import ID, loads
 // with that attachment, runs, and keeps it through SAVE and cold LOAD.
 func TestReleaseNativeDeadBodyAttachmentLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_NATIVE_DEAD_ATTACHMENT_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_NATIVE_DEAD_ATTACHMENT_SAV: the owner save is not committed")

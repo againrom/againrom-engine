@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -204,6 +205,7 @@ func coldCloudContinuation(t *testing.T, path string) {
 }
 
 func TestReleaseCloudDeliverySAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, cut := range []string{"before", "handoff", "high-before", "high-handoff"} {
 		t.Run(cut, func(t *testing.T) {
 			if path := os.Getenv("AGAINROM_CLOUD_SAV_INPUT"); path != "" {

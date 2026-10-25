@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -110,6 +111,7 @@ func mapCensus(t *testing.T, x *MapInspector) []mapCensusRow {
 // single-player value a new map is given (ALM-MODE-070); every campaign map is
 // won and no loose map is (MISSION-WIN-003).
 func TestReleaseMapPanelCensusOfTheInstalledMaps(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	rows := mapCensus(t, x)
 	var noDrop, noWin []string
@@ -166,6 +168,7 @@ func TestReleaseMapPanelCensusOfTheInstalledMaps(t *testing.T) {
 // with neither when the install holds one: each line states the value the
 // map's own bytes give, in the install's words.
 func TestReleaseMapPanelLinesOfInstalledMaps(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	w := func(id string, a ...any) string {
 		if len(a) == 0 {
@@ -247,6 +250,7 @@ func metaWord70(t *testing.T, b []byte) uint32 {
 // single-player and 4 for multiplayer, the drop cell is the centre, and the
 // Mode line and the Mode field name the mode. Save As writes those bytes.
 func TestReleaseMapPanelNewMapAsksTheModeAndWritesItsBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
 	for _, mode := range []struct {
@@ -302,6 +306,7 @@ func TestReleaseMapPanelNewMapAsksTheModeAndWritesItsBytes(t *testing.T) {
 // with neither a start point nor a win into a mod: the notice names both,
 // Continue writes the map, and the warnings refuse nothing.
 func TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := newMapMod(t)
 	modDir := filepath.Join(root, newMapModID)
 	x := installedInspector(t)
@@ -358,6 +363,7 @@ func TestReleaseMapPanelSaveIntoModWithBothWarningsWritesTheMap(t *testing.T) {
 // reads its Map panel and its report, and saves it with Save As: the file
 // holds the installed bytes, so the panel and its checks write nothing.
 func TestReleaseMapPanelUntouchedMapsSaveTheirBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := t.TempDir()
 	for i, key := range editorKeys(x) {
@@ -393,6 +399,7 @@ func TestReleaseMapPanelUntouchedMapsSaveTheirBytes(t *testing.T) {
 // run. In each frame the installed fonts keep every glyph, except the text an
 // open prompt or question covers.
 func TestReleaseMapPanelFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	lang := installLanguage(x)

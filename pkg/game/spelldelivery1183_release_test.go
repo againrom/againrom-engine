@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -15,6 +16,7 @@ import (
 // Installed columns feed the production constructor, command and native SAVE
 // envelope. The actor placement is synthetic; no install or owner save writes.
 func TestReleaseSpellDelivery1183InstalledRulesAndNativeSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rules := mapload.SpellRules(f.Table)
 	if len(rules) != 28 {

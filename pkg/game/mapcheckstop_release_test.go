@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -34,6 +35,7 @@ func chooseRow(t *testing.T, e *ui.MapEditor, n, row int) {
 // A trigger and a message added to an installed map through the wizard leave
 // the report without an error.
 func TestReleaseInstalledMapNewTriggerAndMessageReportsNoError(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -63,6 +64,7 @@ func townKeptDocuments(t *testing.T) []string {
 // A town LOAD then SAVE keeps each carried actor field of every persistent
 // member: the LOAD fills the carrier from the record, the SAVE writes it.
 func TestReleaseTownLoadSaveKeepsCarriedActorFields(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	paths := townKeptDocuments(t)
 	if len(paths) == 0 {
@@ -141,6 +143,7 @@ func TestReleaseTownLoadSaveKeepsCarriedActorFields(t *testing.T) {
 // the cull's two stores for each kept member, and the constructor values for
 // a member hired in the town.
 func TestReleaseTownSAVAfterMissionWritesKeptAndHiredFields(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := loadedMission20(t, nil)
 	// A move gives the hero a run end the mission sets, so the written U138
 	// is the mission's value and not a constructor 0.
@@ -315,6 +318,7 @@ func openKeptTownMission(t *testing.T, f *FrontEnd, app *ui.App) (sim.EntityID, 
 // mission start until the clock passes his stamp plus 80 sub-ticks, then at
 // rate 3 (SAV-1355).
 func TestReleaseLoadedTownKeptHeroRegeneratesFromItsStamp(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := openOriginalSalesTown(t)
 	app := f.App("kept regeneration")
 	app.Layout(1024, 768)
@@ -330,6 +334,7 @@ func TestReleaseLoadedTownKeptHeroRegeneratesFromItsStamp(t *testing.T) {
 // the next mission, reached from the town with and without a town SAVE and
 // LOAD, and regenerates at rate 1 until the clock passes it by 80.
 func TestReleaseMissionKeptHeroRegeneratesFromItsStamp(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Kept stamp", Choices: []int{1, 0, 0}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("kept stamp")

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 )
 
@@ -20,6 +21,7 @@ func (p *playbackRecorder1189) Start(track audio.Track) {
 }
 
 func TestReleaseSoundPlayback1189InstalledTracksAndColdStop(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}

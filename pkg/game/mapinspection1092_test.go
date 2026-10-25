@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -108,6 +109,7 @@ func assertInspectionFit1092(t *testing.T, e *ui.MapEditor) {
 }
 
 func TestReleaseMapInspection1092EveryAuthoredPlacement(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: needs lawful install")

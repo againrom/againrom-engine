@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/ui"
 )
@@ -16,6 +17,7 @@ import (
 // leaves of the budget. The registry is read here independently of the
 // definition loader.
 func TestReleaseChargenHeroesStartOnArchetypeSections(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	b, err := f.Archives.Containers.ReadFile(NPCRegistry)
 	if err != nil {
@@ -81,6 +83,7 @@ func TestReleaseChargenHeroesStartOnArchetypeSections(t *testing.T) {
 // row stands on the card style's pens and value ends (DIV-191): Weight and XP
 // share one pen, Sight and Speed another, values flush right.
 func TestReleaseChargenCardRowsShareTheTownCardPens(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	c := ui.NewChargen(f.ChargenSetup())
 	c.Forward()
@@ -146,6 +149,7 @@ func TestReleaseChargenCardRowsShareTheTownCardPens(t *testing.T) {
 // HERO-CHARGEN-082) after any preset or spend and keeps the chosen skill;
 // Restore gives the portrait's preset after any spend or a Reset.
 func TestReleaseChargenResetIsTheOriginalsAndRestoreReturnsThePreset(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	setup := f.ChargenSetup()
 	if got := len(f.generator().Detail.Commands); got != 4 {

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -152,6 +153,7 @@ func TestMapInspection1093MalformedAndEmptyScriptStatus(t *testing.T) {
 // Independent raw section walk over every installed map: counts, identities,
 // comparison slots and raw argument arrays never come from the adapter.
 func TestReleaseMapInspection1093RawTriggerPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: needs lawful install")

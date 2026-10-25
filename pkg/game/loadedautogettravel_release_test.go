@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -25,6 +26,7 @@ const (
 // main record announced and selected, and a cold LOAD of that file and a
 // second SAVE write the same campaign words.
 func TestReleaseLoadedZeroAutoGetMissionTravelsToMissionTen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, zeroAutoGetSAV, zeroAutoGetHash)
 	if c := autoGetCampaign(t, raw); c.AutoGetMission != 0 || c.Main.Mission != 10 || c.SelectedMission != 10 || c.Main.Announced {
 		t.Fatalf("corpus SAV holds AutoGetMission %#x, main %+v, selected %d", c.AutoGetMission, c.Main, c.SelectedMission)

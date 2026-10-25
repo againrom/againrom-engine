@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -15,6 +16,7 @@ import (
 // whose npcnames line is empty is not scanned. No shipped map names an
 // ordinal above 10006 (TRIG-HEROFAIL-078).
 func TestReleasePlacedHeroOrdinals(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	type want struct {
 		unit   uint16

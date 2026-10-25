@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -176,6 +177,7 @@ func sortedCounts(counts map[string]int) string {
 // hold no actor-caused Dynamic difference, and a mission with a living actor
 // must show one.
 func TestReleaseEveryMissionStartHoldsTheInstalledCellPlanes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	opened, total := 0, map[string]int{}
 	for n := 1; n <= 150; n++ {
@@ -393,6 +395,7 @@ func openBuildingCells(w *sim.World) map[uint16]bool {
 // differently from the native one, which a reader ignoring the planes would
 // not.
 func TestReleaseMissionRoutesAndCostsMatchTheNativeReader(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	opened, walks, changed, controlled := 0, 0, map[string]int{}, false
 	for n := 1; n <= 150; n++ {
@@ -579,6 +582,7 @@ func cellPlaneTicks(t *testing.T, cut string, worlds ...*sim.World) {
 // ticks. Loss control: a SAV whose Block records hold the constructor's
 // bytes for the cells the mission start occupied LOADs to a different World.
 func TestReleaseCellPlanesSurviveSaveColdLoadAndTicks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetTipsOff(true)
 	a := f.App("cell planes fresh")

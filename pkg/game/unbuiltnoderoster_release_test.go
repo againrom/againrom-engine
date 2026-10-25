@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -58,6 +59,7 @@ func rosterRoles(m *alm.Map, n int, f *FrontEnd, party []mapload.PartyMember) []
 // AGAINROM_UNBUILT_CENSUS names a directory the table is written to. It fails
 // when such a roster reaches an outcome or off-map arm through subscript 0.
 func TestReleaseScriptUnbuiltNodeRealRosters(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dirs := os.Getenv("AGAINROM_UNBUILT_SAVES")
 	if dirs == "" {
 		dirs = os.Getenv("AGAINROM_SAVE_CORPUS")

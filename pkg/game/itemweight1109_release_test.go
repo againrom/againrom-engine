@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"bytes"
@@ -24,6 +25,7 @@ func itemWeightEntity(t *testing.T, w *sim.World, id sim.EntityID) sim.Entity {
 }
 
 func TestReleaseOriginalItemWeightTransferAndNativeReload(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, raw := groundCorpusFile(t, "2026-08-02/game0002.sav", "b1ce079cc2b3f1bc101862c1dcf2afd8237421458b3e2474c4447efe5df2e761")
 	src, e := sav.Open(raw)
@@ -158,6 +160,7 @@ func itemWeightSeam(w *sim.World, runtimes []uint32) string {
 // The artifact is a frozen source SAV outside Git. Its optional
 // path makes the default no-install gate independent of owner files.
 func TestInstanceWeightFrozenCityV3(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_WEIGHT_OLD_CITY")
 	if root == "" {
 		t.Skip("AGAINROM_WEIGHT_OLD_CITY is unset: no frozen source city SAV")

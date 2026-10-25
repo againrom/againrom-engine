@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -27,6 +28,7 @@ type spellContinuationWitness struct {
 }
 
 func TestReleaseSpellSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, spell := range []uint16{1, 2, 13, 14} {
 		t.Run(fmt.Sprint(spell), func(t *testing.T) { spellSAVContinuation(t, spell) })
 	}

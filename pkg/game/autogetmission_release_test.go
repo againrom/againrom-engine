@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -158,6 +159,7 @@ func autoGetVictory(t *testing.T, f *FrontEnd, app *ui.App, frames int, phase st
 // as the original's mission-20 SAV holds them (REG-SCN-063); a cold LOAD of
 // that file and a second SAVE write the same values.
 func TestReleaseMissionTenWinSAVRoutesMissionTwentyHome(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, autoGetTenSAV, autoGetTenHash)
 	_, reference := groundCorpusFile(t, autoGetTwentySAV, autoGetTwentyHash)
 	original := autoGetCampaign(t, reference)
@@ -233,6 +235,7 @@ func TestReleaseMissionTenWinSAVRoutesMissionTwentyHome(t *testing.T) {
 // town stays closed and mission 20 opens again, as the original sent the
 // owner's party back to mission 20's map object.
 func TestReleaseOwnerMissionTwentyEndSAVTravelsToMissionTwenty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_MISSION20_END_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_MISSION20_END_SAV: the owner's mission20end save is an owner input")

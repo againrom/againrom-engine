@@ -4,12 +4,14 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 // Mission 20, the hero selected: a pointer click on Well 1, an indestructible
 // structure with no use, is an ordinary move order and keeps the selection.
 func TestReleaseClickOverIndestructibleStructureMoves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("structure click")

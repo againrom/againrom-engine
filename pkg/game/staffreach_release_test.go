@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -11,6 +12,7 @@ import (
 // the Ogre from beyond its reach, the mage begins its cast inside its weapon
 // reach and short of touching the Ogre (MAGIC-409).
 func TestReleaseAStaffedMageCastsFromItsWeaponReach(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, w := healerOrderSetup(t, false)
 	mage, _ := w.Entity(healerMage)
 	ogre, _ := w.Entity(healerOgre)

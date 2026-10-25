@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // sack is made by dropping one actual carried/equipped item, not by patching
 // the pickup result or actor state.
 func TestReleasePickup1117ClickKeyAndNativeBoundaries(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, route := range []string{"click-walk", "underfoot-F"} {
 		t.Run(route, func(t *testing.T) {
 			f, app, mw, hero := openReleaseGroundMission(t, "1117 "+route)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -79,6 +80,7 @@ func TestWithdrawalRangedClassificationReadsTheResolvedAttackNotReach(t *testing
 // differ between EN and RU; the definition table and resolved SkillShoot
 // classification of every shipped positive-Withdraw placement do not.
 func TestReleaseWithdrawalPopulationAndMissionWitness(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: ranged-withdrawal census needs a lawful install")

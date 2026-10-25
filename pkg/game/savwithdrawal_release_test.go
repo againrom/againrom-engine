@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -19,6 +20,7 @@ const withdrawalWitnessMission = 131
 // authored thresholds after it loads the file. A cold LOAD and a second
 // SAVE keep them.
 func TestReleaseSavedMonstersKeepWithdrawalThresholds(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

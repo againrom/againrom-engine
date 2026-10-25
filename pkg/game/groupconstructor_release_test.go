@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -66,6 +67,7 @@ func missionStartGroupAIFaults(groups []sim.SavedGroup) []string {
 // carrier: the registry is then built from the native Group records, carries
 // their notice base into the controlled Player's +0x38, and the check fails.
 func TestReleaseMissionStartGroupAIIsTheConstructors(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []int{10, 20, 41, 80} {
 		t.Run(fmt.Sprint(mission), func(t *testing.T) {
 			f := releaseFront(t)

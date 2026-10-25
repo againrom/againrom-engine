@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -82,6 +83,7 @@ func recoveredCapDrawn(f *FrontEnd, msg string) string {
 // city object, and an F2 SAVE and cold LOAD keep both members' worn and pack
 // objects and codes.
 func TestReleaseTownDoubleClickWearsTheRecoveredCap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arrived := currentTown(t, func(f *FrontEnd, hero sim.EntityID) { equipmentReturnPick(t, f, hero, 38, 64) }, nil)
 	t.Logf("the return arrives on the city item graph: %v; the cap is %q", arrived.Town.cityObjects != nil, decodeInstallText(itemName(data.ItemCode(recoveredCap), arrived.Table)))
 	raw := currentTownSave(t, arrived)

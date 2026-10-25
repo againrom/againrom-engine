@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -161,6 +162,7 @@ func (a *unreachableArena) reloadCold(t *testing.T) *FrontEnd {
 }
 
 func TestReleaseAnOrderOntoAnUnreachableCreatureTakesTheHostileBesideTheHero(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("hostile beside the hero", func(t *testing.T) {
 		// From the hero's mission start, 29 cells from the creature, the first
 		// full search settles on a cell ten from it and the hero walks off

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -242,6 +243,7 @@ func speakerSexWant(speaker int, member mapload.PartyMember) string {
 // of the four starting heroes, resolves a member of that hero's party, and the
 // member's sex is the speaker's, the text variant's and the portrait's.
 func TestReleaseHeroSpeakersSpeakInTheirOwnSex(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	faces := f.Table.NPCCatalog.Portraits()
 	missions := speakerSexMissions(f)
@@ -351,6 +353,7 @@ func speakerSexCoverage(t *testing.T, lines []speakerSexLine) {
 // event06 through the production dialogue handler: part 1 is Naira's female
 // variant with her portrait, part 2 the hero's male variant with his.
 func TestReleaseOwnerCatapultLineSpeaksInTheSpeakersSex(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SPEAKER_SEX_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_SPEAKER_SEX_SAV is not set")

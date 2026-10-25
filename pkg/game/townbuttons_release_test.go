@@ -6,6 +6,7 @@ import (
 	"image/draw"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -16,6 +17,7 @@ import (
 // fixture (schoolmask_release_test.go's own pattern; golden rule 2 forbids
 // this from a plain go test).
 func TestReleaseSchoolAndTavernButtonArtLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art did not resolve: %v", f.TownSchoolArt.Err())
@@ -58,6 +60,7 @@ func TestReleaseSchoolAndTavernButtonArtLoads(t *testing.T) {
 // TestReleaseSchoolButtonPressShowsItsOwnOnState checks the school's own
 // native pressed pair.
 func TestReleaseSchoolButtonPressShowsItsOwnOnState(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil || f.TownTavernArt.Value() == nil {
 		t.Fatalf("production surface art did not resolve: school %v tavern %v",
@@ -199,6 +202,7 @@ func diffWells(a, b *image.RGBA, well image.Rectangle) (n int, examples []image.
 // exercised; a fixture where every button were enabled could never catch a
 // removal of the disabled styling.
 func TestReleaseSchoolAndTavernButtonArtIsPlacedAndLabelled(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil || f.TownTavernArt.Value() == nil {
 		t.Fatalf("production surface art did not resolve: school %v tavern %v",
@@ -282,6 +286,7 @@ func TestReleaseSchoolAndTavernButtonArtIsPlacedAndLabelled(t *testing.T) {
 // TestReleaseSchoolButtonPressedArtIsPlacedAndLabelled is the pressed-state
 // half for the one panel that ships ON bitmaps.
 func TestReleaseSchoolButtonPressedArtIsPlacedAndLabelled(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art did not resolve: %v", f.TownSchoolArt.Err())
@@ -311,6 +316,7 @@ func TestReleaseSchoolButtonPressedArtIsPlacedAndLabelled(t *testing.T) {
 // 160-wide body plus keyed seam. Tavern uses the shop's complete 176-wide
 // body; its four native rectangles are the only excluded pixels.
 func TestReleaseSchoolAndTavernUpperRegionMatchesShippedArtOutsideButtonWells(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil || f.TownTavernArt.Value() == nil {
 		t.Fatalf("production surface art did not resolve: school %v tavern %v",

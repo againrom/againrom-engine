@@ -3,10 +3,12 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseMission121BridgeTrollKeepsItsVictimWhenItsRouteIsRefused(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const escortA, escortB sim.EntityID = 14, 15
 	run := func(t *testing.T, pair bool) {
 		f := releaseFront(t)

@@ -1,11 +1,13 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"testing"
 )
 
 func TestReleaseChickenLaunchAtEveryMissionStart(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, enabled := range []bool{false, true} {
 		f := releaseFront(t)
 		if f.ChickenAtMissionStart() {

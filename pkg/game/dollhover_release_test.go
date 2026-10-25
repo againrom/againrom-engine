@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -141,6 +142,7 @@ func TestReleaseGeneratorDollHoverShowsWornItemInformation(t *testing.T) {
 // mage on the tavern and school panes and requires the hover over each worn
 // item's doll pixel to carry the item's information, the lines the shop shows.
 func TestReleaseTownHeroDollHoverShowsWornItemInformation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.ChargenAssets == nil {
 		t.Skip("the install ships no character generation")
@@ -196,6 +198,7 @@ func TestReleaseTownHeroDollHoverShowsWornItemInformation(t *testing.T) {
 // pane of a loaded town through the application and requires the hover to
 // carry that item. It needs a town SAV named by AGAINROM_CITY_SAV.
 func TestReleaseTownHeroDollHoverThroughAppFrame(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_CITY_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_CITY_SAV is not set: the school pane needs an existing town SAV")

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -74,6 +75,7 @@ func requireCreatureCombatDocument(t *testing.T, doc sav.DocumentData) {
 }
 
 func TestReleaseCreatureInnateCombatSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if err := f.App("creature combat").OpenMission(f.MissionOpener(140)); err != nil {
 		t.Fatal(err)

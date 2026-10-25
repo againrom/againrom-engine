@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/game"
 	"againrom/pkg/render/terrain"
@@ -32,6 +33,7 @@ func TestLoadUnitsCarriesInheritedZWithoutChangingTheCanvas(t *testing.T) {
 }
 
 func TestReleaseUnitDrawCategoriesRetainInstalledZ(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: installed unit registry required")

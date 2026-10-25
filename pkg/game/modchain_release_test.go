@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -98,6 +99,7 @@ func rowHero(t *testing.T, f *FrontEnd, name string) data.Hero {
 // it, and the sellsword stays behind. A SAVE and cold LOAD inside mission 26
 // continues the chain to the same town, and a LOAD without the mod refuses.
 func TestReleaseModMissionChainPlaysAndReturns(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := assembledMods(t, chainModID, chainModID)
 
 	plain := guestFront(t, dir)
@@ -207,6 +209,7 @@ func TestReleaseModMissionChainPlaysAndReturns(t *testing.T) {
 // the composed record, the row the town grants in a mission of that band,
 // and the mod's sellsword at level 1 takes the first row of her family.
 func TestReleaseGuestPartyBuildsCharactersAtTheirLevels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := assembledMods(t, chainModID, chainModID)
 	f := chainFront(t, dir, chainModID)
 	ref := f.ChargenParty(ui.ChargenResult{Name: "Guest", Choices: []int{0, 0, 0}, Stats: []int{31, 27, 24, 29}})

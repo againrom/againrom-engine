@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -124,6 +125,7 @@ func savedAreaRadii(t *testing.T, raw []byte) []byte {
 }
 
 func TestReleaseModFireBallRadiusCoversTheMapAndSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const radius = 255
 	f := radiusModFront(t, radius)
 	casterID, allyID := radiusMission(t, f)
@@ -221,6 +223,7 @@ func TestReleaseModFireBallRadiusCoversTheMapAndSurvivesSaveAndLoad(t *testing.T
 }
 
 func TestReleaseFireBallInstalledRadiusStaysOneBurstOverNineCells(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	casterID, allyID := radiusMission(t, f)

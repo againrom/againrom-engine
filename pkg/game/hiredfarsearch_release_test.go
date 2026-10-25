@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -235,6 +236,7 @@ func releaseHiredRoute(t *testing.T, live *mapWorld, id sim.EntityID) ([][2]int3
 // releaseLargeSlack that stops short of the cell, and its order stands on the cell
 // its search settled on; before, it held the whole detour onto the cell.
 func TestReleaseTheHiredSiegeEnginesFarSearchSpendsTheNxNArm(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

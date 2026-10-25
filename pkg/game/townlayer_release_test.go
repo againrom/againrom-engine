@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/text"
@@ -60,6 +61,7 @@ func townModReload(t *testing.T, raw []byte, mods string) (*FrontEnd, error) {
 // the mod mark; a cold LOAD with the mod lands in East with its description,
 // and a LOAD without the mod refuses naming it.
 func TestReleaseModTownOpensTravelsSavesAndLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := eastTownMods(t)
 	f := townModFront(t, mods, "east-town")
 	reachabilityWalkArrive(t, f, "East Hero")
@@ -99,6 +101,7 @@ func TestReleaseModTownOpensTravelsSavesAndLoads(t *testing.T) {
 // A base-town change and a switch-off on the install: town 1's new name is
 // the home scroll's title; switching East off leaves the map without it.
 func TestReleaseModTownSwitchedOff(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := eastTownMods(t)
 	writeTownMod(t, mods, "no-east", "[[town]]\nid = 2\noff = true\n", "east-town")
 	f := townModFront(t, mods, "east-town", "no-east")
@@ -196,6 +199,7 @@ func writeTownModPNG(t *testing.T, path string, pix image.Image) {
 // East, and a name holding a character the alphabet lacks refuses the
 // launch naming the mod, the file and the line.
 func TestReleaseModTownNameDrawsInTheInstallAlphabet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := eastTownMods(t)
 	setEastTowns(t, mods, strings.NewReplacer(`"West"`, `"Запад"`, `"East"`, `"Восток"`).Replace)
 	if releaseFront(t).textSelector() != text.SelectorConverting {
@@ -271,6 +275,7 @@ func TestReleaseModTownNameDrawsInTheInstallAlphabet(t *testing.T) {
 // On the install a mod town that opens after a mission only it offers
 // refuses the launch at its record; the fixture alone is accepted.
 func TestReleaseModTownThatCanNeverOpenIsRefused(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	townModFront(t, eastTownMods(t), "east-town")
 	for _, towns := range []string{"[[town]]\nid = 2\nopens-after = 30\nmissions = [30, 31]\n", "[[town]]\nid = 2\nopens-after = 30\nmissions = [30]\n"} {
 		mods := eastTownMods(t)

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
 )
@@ -116,6 +117,7 @@ func nearUnits(t *testing.T, m *alm.Map, owner uint32) (int, int) {
 // empty, then gives them a number no unit carries; the script's group 2 keeps
 // its only carriers.
 func TestReleaseMapEditorNewGroupNumberIsMapWide(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openGroupMap(t, x)
 	before, err := objectEdits(t, e).model.Map()

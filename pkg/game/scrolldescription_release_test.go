@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -71,6 +72,7 @@ func scrollDescriptionInstalledItem(t *testing.T, f *FrontEnd, id uint16, power 
 }
 
 func TestReleaseScrollDescriptionCompleteFieldMatrix(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	oracle := scrollDescriptionInstalledOracle(t, f)
 	rules := mapload.SpellRules(f.Table)
@@ -108,6 +110,7 @@ func TestReleaseScrollDescriptionCompleteFieldMatrix(t *testing.T) {
 }
 
 func TestReleaseScrollDescriptionPopulationSAVAndNextSale(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, screen := releaseShopApp(t)
 	t.Cleanup(app.StopAudio)
 	app.Layout(1024, 768)

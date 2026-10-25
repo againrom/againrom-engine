@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -16,6 +17,7 @@ import (
 // Installed sheets/map/spells and real App clicks; actor population and start
 // position are controlled. This does not claim an original-runtime trace.
 func TestReleaseFireScenery1149(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	// Literal section pairs from the complete installed 82-class registry.
 	pairs := [][2]int{{0, 2}, {1, 2}, {3, 5}, {4, 5}, {6, 8}, {7, 8}, {9, 11}, {10, 11}, {12, 14}, {13, 14}, {15, 17}, {16, 17}, {18, 20}, {19, 20}, {40, 41}, {42, 43}, {44, 45}, {46, 47}, {48, 49}, {50, 51}, {52, 53}, {54, 55}, {56, 57}, {58, 59}, {60, 61}, {62, 63}, {64, 65}, {66, 67}}

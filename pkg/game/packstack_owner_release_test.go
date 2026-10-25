@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -75,6 +76,7 @@ func packStackSavedItems(t *testing.T, path string, code uint16) []string {
 // other items join their own equal cells (ITEM-STACK-003, ITEM-MERGE-129,
 // DIV-762: no claim names a reader of bytes 22 and 23).
 func TestReleaseSackBowsJoinTheRestoredCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const bow, arrow, bolt = 0x8114, 0xa70f, 0xac1c
 	_, raw := groundCorpusFile(t, "2026-08-02/game0007.sav", "a7cb35ea5d87c9c7a9b8cfd70f8a1f61b6927ca089e468a9d6fe983da777156e")
 	f := releaseFront(t)
@@ -146,6 +148,7 @@ func TestReleaseSackBowsJoinTheRestoredCell(t *testing.T) {
 // mission SAVE and cold LOAD. Equally enchanted equipment stacks (DIV-1473:
 // ITEM-MERGE-129 gives an enchanted Item no cell to join).
 func TestReleaseEquallyEnchantedStavesShareOneCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const staff = 0x916e
 	_, raw := groundCorpusFile(t, "2026-09-27/game9999.sav", "8da6bec860289ac804563d5a55df0e201d2403138ed6c55b3a32b43073f1cd09")
 	f := releaseFront(t)

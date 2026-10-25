@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // must equal the run that projects every tick: same World hash, same written
 // SAV, same first-seen-dead stamps, same viewer population.
 func TestReleaseLiveAdvanceProjectsOnceAndKeepsEveryTickState(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, "2026-08-02/game0000.sav", "3407c9fce2ac9ce091871a17b0c08013cf2d1e1849396c6142b1a2257aec707d")
 	run := func(batched bool) *FrontEnd {
 		f := releaseFront(t)

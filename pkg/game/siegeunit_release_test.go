@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -68,6 +69,7 @@ func siegeMembers(f *FrontEnd) map[uint8]int {
 // LOAD holds each once, the mission enters with both, and the second SAVE
 // writes the same two Units again.
 func TestReleaseCitySiegeHireWritesUnitActor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := hireSiegeSquads(t, "Siege Unit")
 	types := siegeTypes(t, f)
 	raw := currentTownSave(t, f)
@@ -151,6 +153,7 @@ func TestReleaseCitySiegeHireWritesUnitActor(t *testing.T) {
 // actor with Units row 0 beside its own rebuilt Unit. LOAD reads one siege
 // member for the Ballista hire and none for the Human actor.
 func TestReleaseOriginalCityResaveSiegeUnit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_OWNER_KIT_RESAVE_CITY")
 	if path == "" {
 		t.Skip("no AGAINROM_OWNER_KIT_RESAVE_CITY: the owner's city resave is not committed")
@@ -171,6 +174,7 @@ func TestReleaseOriginalCityResaveSiegeUnit(t *testing.T) {
 // A saved Unit on a siege row is a hired siege engine and persists; the legacy
 // Human actor with Units row 0 and a Unit on any other row do not.
 func TestReleaseOriginalSiegeUnitRecognition(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows := map[string]byte{}
 	other := byte(0)

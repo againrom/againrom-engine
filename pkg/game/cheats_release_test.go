@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -147,6 +148,7 @@ func cheatItemCount(t *testing.T, w *sim.World, id sim.EntityID, code uint16) in
 }
 
 func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, kind := range []string{"gold", "item", "decayingHero"} {
 		t.Run(kind, func(t *testing.T) {
 			f, a, id := cheatReleaseApp(t, false)
@@ -226,6 +228,7 @@ func TestReleaseCheatCreateUsesAppAndOrdinarySAV(t *testing.T) {
 }
 
 func TestReleaseCheatCreateLocalizedAliasUsesAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, id := cheatReleaseApp(t, false)
 	ru := f.live.view.TextSelector() == text.SelectorConverting
 	name := ""
@@ -290,6 +293,7 @@ func cheatGodModifier(t *testing.T, modifier []byte) {
 }
 
 func TestReleaseCheatModifyUsesAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, command := range []string{"#modify self +god", "#modify army +god", "#modify self +spell 2", "#modify self +spells", "#modify army +spell 2", "#modify army +spells"} {
 		t.Run(command, func(t *testing.T) {
 			f, a, id := cheatReleaseApp(t, true)
@@ -415,6 +419,7 @@ func cheatNearbyMovePoint(t *testing.T, f *FrontEnd, a *ui.App, actor sim.Entity
 }
 
 func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, hero := range []bool{false, true} {
 		t.Run(strconv.FormatBool(hero), func(t *testing.T) {
 			f, a, originalID := cheatReleaseApp(t, false)
@@ -571,6 +576,7 @@ func cheatHPByIdentity(w *sim.World) map[uint32]int32 {
 }
 
 func TestReleaseCheatKillsUseAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, kind := range []string{"named", "all", "all alias", "cheaters"} {
 		t.Run(kind, func(t *testing.T) {
 			f, a, id := cheatReleaseApp(t, false)
@@ -622,6 +628,7 @@ func TestReleaseCheatKillsUseAppAndOrdinarySAV(t *testing.T) {
 }
 
 func TestReleaseCheatPickupAllUsesAppAndOrdinarySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, id := cheatReleaseApp(t, false)
 	cheatEnable(t, f, a)
 	hero := releaseEntity(t, f.live, id)
@@ -758,6 +765,7 @@ func TestReleaseCheatPickupAllUsesAppAndOrdinarySAV(t *testing.T) {
 }
 
 func TestReleaseCheatClientCommandsAndChickenColdReset(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, _ := cheatReleaseApp(t, false)
 	hash := f.live.world.Hash()
 	cheatChat(t, a, "#chicken")
@@ -837,6 +845,7 @@ func TestReleaseCheatClientCommandsAndChickenColdReset(t *testing.T) {
 }
 
 func TestReleaseCheatAltConsoleThroughApp(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, _ := cheatReleaseApp(t, false)
 	if err := a.HeadlessKey("alt-d"); err != nil {
 		t.Fatal(err)
@@ -912,6 +921,7 @@ func TestReleaseCheatAltConsoleThroughApp(t *testing.T) {
 }
 
 func TestReleaseCheatAltConsoleThroughDropGold(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, id := cheatReleaseApp(t, false)
 	cheatEnable(t, f, a)
 	f.live.world.SetPurse(sim.SelfSlot, 2500)
@@ -976,6 +986,7 @@ func TestReleaseCheatAltConsoleThroughDropGold(t *testing.T) {
 }
 
 func TestReleaseCheatKnowledgeWithoutPrivilegeKeepsOrdinaryCounts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, _ := cheatReleaseApp(t, false)
 	before := f.live.world.SavedDiaries()
 	hash := f.live.world.Hash()
@@ -996,6 +1007,7 @@ func TestReleaseCheatKnowledgeWithoutPrivilegeKeepsOrdinaryCounts(t *testing.T) 
 }
 
 func TestReleaseChickenLaunchFlagDoesNotRaiseColdLoadPrivilege(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, _ := cheatReleaseApp(t, false, true)
 	if f.live.cheats.privilege[sim.SelfSlot] != 255 {
 		t.Fatal("enabled launch flag did not set privilege on fresh mission start")
@@ -1049,6 +1061,7 @@ func TestReleaseCheatParticipantGateRefusesEveryChatCommand(t *testing.T) {
 }
 
 func TestReleaseCheatOrdinaryChatAndNamesUseInstalledAlphabet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, source := range []string{"partyFallback", "decodedGroup"} {
 		t.Run(source, func(t *testing.T) {
 			f, a, id := cheatReleaseApp(t, false)

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -16,6 +17,7 @@ import (
 // shop-derived geometry and Sleep remain owner policy, not original-frame
 // equivalence. Expected words, font and bitmaps use independent raw readers.
 func TestReleaseTavernCaptionsMatchInstalledSelectionAndPixels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	raw := roomCaptionRaw(t, f, "main/text/main.txt")
 	hire, fire := roomCaptionRawLine(t, raw, 258), roomCaptionRawLine(t, raw, 259)

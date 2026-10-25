@@ -9,10 +9,12 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 )
 
 func TestReleaseMapEditorWorkspaceRoutesAndTexts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(640, 480)

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -84,6 +85,7 @@ func wantMissionTip(t *testing.T, f *FrontEnd, live *mapWorld, mission, n int, w
 // when its dialogue closes, replacing the open one; the start triggers raise
 // the first through the script (TRIG-TIPS-087, TRIG-TIPS-088).
 func TestReleaseMissionTipsFollowTheirTaggedDialogues(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []struct {
 		n, startTip int
 		events      [][2]int // event, tip
@@ -111,6 +113,7 @@ func TestReleaseMissionTipsFollowTheirTaggedDialogues(t *testing.T) {
 // open popup; with TipsMode clear a tagged dialogue raises nothing (MENU-135,
 // MENU-136, MENU-137).
 func TestReleaseMissionTipControlsAndTipsMode(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := missionTipFront(t)
 	app, live := openMissionTipMap(t, f, 10)
 	pageMissionDialogue(t, app, live, "start dialogue")
@@ -156,6 +159,7 @@ func TestReleaseMissionTipControlsAndTipsMode(t *testing.T) {
 // fire-once latch rides the SAV, so after F2 SAVE and LOAD the start dialogue
 // and its tip do not come back (TRIG-TIPS-088).
 func TestReleaseMissionStartTipDoesNotReturnAfterSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := missionTipFront(t)
 	app, live := openMissionTipMap(t, f, 10)
 	pageMissionDialogue(t, app, live, "start dialogue")

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -122,6 +123,7 @@ func typedCellDocument(t *testing.T, raw []byte, cell uint16, key uint32, actor 
 }
 
 func TestReleaseSavedTypedActorCellColdReload(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	cases := []struct {
 		file, hash string
 		cell       uint16

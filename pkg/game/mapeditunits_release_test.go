@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -123,6 +124,7 @@ func byMapUnitID(ents []sim.Entity, id uint16) []sim.Entity {
 }
 
 func TestReleaseMapEditorUnitAuthoringPlaysAsModMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := guestMods(t, guestModID)
 	edited := guestMods(t, guestModID)
 	x, err := NewMapInspector(os.Getenv("AGAINROM_ASSETS"))
@@ -246,6 +248,7 @@ func scriptedHighest(t *testing.T, x *MapInspector) (name string, raw []byte, de
 }
 
 func TestReleaseMapEditorCloneNeverTakesADeletedScriptedUnitID(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("AGAINROM_ASSETS names no install")
 	}

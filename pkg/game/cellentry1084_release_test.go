@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -141,6 +142,7 @@ func checkEntryNative1084(t *testing.T, f *FrontEnd, stage string) {
 }
 
 func TestReleaseM10CellEntry1084UsesInstalledBindingPointerLightningAndNativeSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(10)
 	raw, err := f.Archives.Containers.ReadFile(addr)

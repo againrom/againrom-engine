@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -12,6 +13,7 @@ import (
 // reaches the card whole, on one row or wrapped at a space onto two, with and
 // without the role line above it (the tavern candidate card has one).
 func TestReleaseEveryInstalledClassNameReachesTheCardWhole(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	font := f.tipFont()
 	bg, _ := f.characterPanes().Stats.Body.(*image.RGBA)

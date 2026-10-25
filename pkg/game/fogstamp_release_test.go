@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -66,6 +67,7 @@ func compareFogResave(input, got, want []byte, cols int) fogDelta {
 // AGAINROM_FOG_STAMP_DIR/<en|ru>/ and never committed; a language with no
 // files there is skipped.
 func TestReleaseFogStampAfterColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root, dir := os.Getenv("AGAINROM_ASSETS"), os.Getenv("AGAINROM_FOG_STAMP_DIR")
 	if root == "" || dir == "" {
 		t.Skip("AGAINROM_ASSETS and AGAINROM_FOG_STAMP_DIR are required")

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -27,6 +28,7 @@ import (
 // saving that loaded session again does not restate the duplicate for a
 // later LOAD to repeat.
 func TestReleaseHeroDrawsItsOwnBodyFromALegacyDuplicateRosterEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, saved := groundCorpusFile(t, "2026-09-24/game0017-victory.sav", "a30de01ec3d96d58a3a244b9a536a3e49c04a4d45098cb828dabb908756488c3")
 
 	isPartyBody := func(units *terrain.UnitSet, class *terrain.UnitClass) bool {

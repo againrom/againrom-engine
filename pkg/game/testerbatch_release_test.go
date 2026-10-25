@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -29,6 +30,7 @@ func missionTicks(mw *mapWorld, n int) {
 // A marker cached by selecting a mission keeps painting after the mission is
 // won and has lost its scroll (TOWN-123, MISSION-MAP-073).
 func TestReleaseWorldMapMarkerOutlivesItsWonMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Marker traveler")
 	for _, m := range []int{10, 20, 30, 40, 50, 60} {
@@ -161,6 +163,7 @@ func (k kargallasFix) pickUpItem(t *testing.T, id sim.EntityID) {
 // ALM-CATAPULT-213: owner 8 holds 0 or 2 toward every player, and nothing
 // orders it to act.
 func TestReleaseKargallasCatapultIsNonHostileToEveryPlayer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	k := openKargallas(t)
 	w := k.mw.world
 	if got, want := missionRel(w, 8, 9), "022222222"; got != want {
@@ -187,6 +190,7 @@ func TestReleaseKargallasCatapultIsNonHostileToEveryPlayer(t *testing.T) {
 // TRIG-DRAGON-079: the dragon's curse ends only when ordinal 2 holds the item
 // within 6; the win removes the item from ordinals 1, 2, 3 and 5 first.
 func TestReleaseKargallasDragonCurseFollowsItsTrigger(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name          string
 		pickBeforeWin bool
@@ -241,6 +245,7 @@ func TestReleaseKargallasDragonCurseFollowsItsTrigger(t *testing.T) {
 
 // MISSION-DROP-074: unit 119 draws its tier-3 Troll row.
 func TestReleaseMission111TrollCarriesTheTierThreeDropRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := openCampaignMission(t, 111)
 	mw := f.live
 	troll := mapload.ScriptUnits(mw.mission.state.Map, mw.mission.party)[119]
@@ -272,6 +277,7 @@ func TestReleaseMission111TrollCarriesTheTierThreeDropRow(t *testing.T) {
 // one, and the bridge talk raises as a walker comes within 3 of the bridge
 // cell, within one script pass of the brigands' own acquisition.
 func TestReleaseBridgeBrigandsAreHostileAtLoadAndTheTalkRaisesAtTheRadius(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := openCampaignMission(t, 120)
 	mw := f.live
 	w := mw.world
@@ -323,6 +329,7 @@ func TestReleaseBridgeBrigandsAreHostileAtLoadAndTheTalkRaisesAtTheRadius(t *tes
 // Self unit within 6 completes the mission, a wound or the goblin's death
 // decides nothing.
 func TestReleaseTalkerDeathLosesAndApproachCompletes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	type actors struct {
 		w                    *sim.World
 		hero, talker, goblin sim.EntityID
@@ -378,6 +385,7 @@ func TestReleaseTalkerDeathLosesAndApproachCompletes(t *testing.T) {
 // ALM-VIEW-215: nothing in mission 140's script or terrain reveals Rood Glaen
 // or the tower to the participant.
 func TestReleaseMission140ShowsNeitherTheBodyNorTheTowerUntilSeen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := openCampaignMission(t, 140)
 	mw := f.live
 	w := mw.world

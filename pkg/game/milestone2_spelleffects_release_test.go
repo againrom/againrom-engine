@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -108,6 +109,7 @@ func spell1152Continue(t *testing.T, want spell1152Graph, driver *mapWorld, f, f
 // One untagged registered witness uses SAV-EFFECTGRAPH-366's original source.
 // Both EN and RU are installed consumers of the same preserved document.
 func TestReleaseMilestone2SpellEffects1152(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	source, err := sav.Open(raw)

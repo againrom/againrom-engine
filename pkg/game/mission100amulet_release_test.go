@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -20,6 +21,7 @@ const mission100Amulet = 0x0e18 + 11
 // (TRIG-TAKEITEM-038, TRIG-HEROTPL-076), so no hero brings the amulet to town,
 // on the live mission and after a SAVE and cold LOAD.
 func TestReleaseMission100VictoryTakesTheTurtleAmulet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, cold := range []bool{false, true} {
 		name := "live"
 		if cold {

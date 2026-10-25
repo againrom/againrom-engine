@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
@@ -54,6 +55,7 @@ func fillStrokeTiles(t *testing.T, e *ui.MapEditor, at image.Point) []uint16 {
 // random strokes over the same area give different centres; and every edge and
 // corner tile equals the pattern's. The saved map loads back.
 func TestReleaseMapEditorFillKeepsEveryEdge(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e, at := fillScene(t, x)
 	vars := mapedit.Variants(mapedit.ClassGrass)
@@ -113,6 +115,7 @@ func TestReleaseMapEditorFillKeepsEveryEdge(t *testing.T) {
 // of two windows before and after a resize into AGAINROM_FILL_FRAMES when set;
 // without it the frames are drawn and checked, not written.
 func TestReleaseMapEditorFillFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_FILL_FRAMES")
 	shot := func(e *ui.MapEditor, name string) {

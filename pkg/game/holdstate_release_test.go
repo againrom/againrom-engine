@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -31,6 +32,7 @@ const holdStateTicks = 240
 // in a fresh process restore 0xc, and the next action, the first warrior's
 // blows on the creature beside him, follows tick for tick.
 func TestReleaseHoldStoresStateCSAVColdProcess(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_HOLDSTATE_CHILD"); path != "" {
 		holdStateChild(t, path)
 		return

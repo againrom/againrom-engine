@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCutsceneNativeAppCompletionAndSkip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS not set")
@@ -138,6 +140,7 @@ func testDelayedSpeechPositionCache(t *testing.T) {
 }
 
 func TestReleaseTownMediaKeepsSharedSpeechAcrossFocus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	var players []*deliveryWitnessPlayer
 	var raws [][]byte
 	pcmBuffers := 0

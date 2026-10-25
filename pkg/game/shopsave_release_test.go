@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, original := range []bool{false, true} {
 		t.Run(map[bool]string{false: "current city", true: "original city"}[original], func(t *testing.T) {
 			var f *FrontEnd

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -36,6 +37,7 @@ func clickRect(e *ui.MapEditor, r image.Rectangle, ok bool, now *time.Time) bool
 // checks that Undo and Redo leave the popup listing, boxing and opening the
 // group's true members.
 func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	now := time.Unix(1, 0)
 	e := x.Editor()

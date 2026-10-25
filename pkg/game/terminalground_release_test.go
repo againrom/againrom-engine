@@ -7,11 +7,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseTerminalLootGroundCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TERMINAL_LOOT_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_TERMINAL_LOOT_SAV to the owner blocked-loot source")

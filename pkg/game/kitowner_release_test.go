@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -180,6 +181,7 @@ func kitOwnerBuildCity(t *testing.T) ([]byte, string) {
 }
 
 func TestKitOwnerCityM10(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	raw, edition := kitOwnerBuildCity(t)
 	kitOwnerWrite(t, kitOwnerOutput(t, edition), kitOwnerCityFile(edition), raw)
 	loaded := strings.Join(kitOwnerReceive(t, raw), "; ")
@@ -367,6 +369,7 @@ func kitOwnerBuildCombat(t *testing.T) ([]byte, string) {
 }
 
 func TestKitOwnerCombatM10(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	raw, edition := kitOwnerBuildCombat(t)
 	kitOwnerWrite(t, kitOwnerOutput(t, edition), kitOwnerCombatFile(edition), raw)
 	loaded := kitOwnerReceive(t, raw)
@@ -382,6 +385,7 @@ func TestKitOwnerCombatM10(t *testing.T) {
 }
 
 func TestKitOwnerReceiveM10(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_OWNER_KIT_LOAD")
 	if path == "" {
 		raw, _ := kitOwnerBuildCity(t)
@@ -475,6 +479,7 @@ func kitOwnerReceive(t *testing.T, raw []byte) []string {
 // of the city kit, in which the kit's siege hire is a Human actor whose
 // definition row is 0, and runs the mission on.
 func TestKitOwnerResaveMission120Release(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_OWNER_KIT_RESAVE_MISSION")
 	if path == "" {
 		t.Skip("no AGAINROM_OWNER_KIT_RESAVE_MISSION: the owner's mission resave is not committed")

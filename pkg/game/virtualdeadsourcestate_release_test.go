@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -13,6 +14,7 @@ import (
 // cold LOAD: the dead-list clock publishes each decay to the source state.
 // game0024's body is loaded at stage 4 and played to its terminal stage.
 func TestReleaseVirtualDeadSourceStateFollowsCurrentSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name, hash string
 		hp         int16

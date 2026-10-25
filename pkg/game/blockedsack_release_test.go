@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseDropOntoGroundBlockedCellSAVRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	f := releaseFront(t)
 	app, _ := openOriginalSAVApp(t, f, raw, "blocked-drop.sav")

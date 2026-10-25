@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // The save dialog must not refuse or encode a name one way on one branch and
@@ -244,6 +246,7 @@ func saveLabel1198TownShortCircuitCarriesNoNotice(t *testing.T) {
 // and the checked-in population disagree and
 // TestScanMatchesTheCheckedInPopulationList fails. That is what happened here.
 func TestReleaseSaveLabel1198MissionBranchRefusesBeforeProducing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("mission_branch_refuses", func(t *testing.T) {
 		saveLabel1198MissionBranchRefusesBeforeProducing(t)
 	})

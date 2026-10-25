@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
@@ -47,6 +48,7 @@ func checkNativeMovementWire(t *testing.T, f *FrontEnd, raw []byte) {
 }
 
 func TestReleaseNativeCityHumanMovement(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	releaseFront(t)
 	for sex := 0; sex < 2; sex++ {
 		for mage := 0; mage < 2; mage++ {

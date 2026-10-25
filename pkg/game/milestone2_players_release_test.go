@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMilestone2Players1154(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-24/game9999.sav", "d954bd394473d0311e934b5358519eb73ca45773732b8070e6948346f6475b27")
 	file, err := sav.Open(raw)

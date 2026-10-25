@@ -5,12 +5,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 // A non-ground mover leaves a Stage 1 terminal row, which its SAV root reads
 // as dying. SAVE then LOAD must resume the saved hash, twice.
 func TestReleaseNonGroundTerminalActorReloads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	hop := func(from *FrontEnd, label string) *FrontEnd {
 		t.Helper()
 		before, _ := from.LiveWorld()

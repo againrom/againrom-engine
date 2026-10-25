@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -420,6 +421,7 @@ func TestSavedFormation1159AppIdentityAndContinuation(t *testing.T) {
 }
 
 func TestReleaseSavedFormation1159AppContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, subject := range []struct{ path, sha string }{
 		{"2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c"},
 		{"2027-09-07/game0036.sav", "dd45e761d806ffe5d0ad2104d3dd21cd30f5985dcd5695ac47bdf2ce5348b530"},

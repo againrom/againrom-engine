@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -60,6 +61,7 @@ func setTownHumanTokens(t *testing.T, raw []byte, ids []uint32, mask uint32) []b
 }
 
 func TestReleaseTownSaveHumanRuntimeIDs(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	wide := setTownHumanTokens(t, currentTownSave(t, currentTown(t, nil, nil)), []uint32{0x21000089, 0x051000B7}, 0)
 	g := currentTownReload(t, wide)
 	repaired := currentTownSave(t, g)

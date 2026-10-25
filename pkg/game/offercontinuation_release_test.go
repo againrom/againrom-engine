@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
@@ -74,6 +75,7 @@ func coldOfferApp(t *testing.T, raw []byte, overlay string) (*FrontEnd, *ui.App,
 }
 
 func TestReleaseOfferFirstPartStockCompatibility(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	wantNodes := []string{
 		"main/text/shop/npc31m110.txt", "main/text/shop/npc31m130.txt",
@@ -235,6 +237,7 @@ func assertOfferAppPanel(t *testing.T, f *FrontEnd, app *ui.App, body string) {
 }
 
 func TestReleaseOfferFirstPartSAVAndNextAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, q := range []struct {
 		name, door       string
 		chapter, mission int

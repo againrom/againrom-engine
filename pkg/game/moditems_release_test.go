@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
@@ -169,6 +170,7 @@ func modItemFrontItems(t *testing.T) (item struct{ StandInCode uint16 }) {
 }
 
 func TestReleaseModItemShopEquipSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemTown(t)
 	item := f.Table.Mods.Items[0]
 	wantName := map[string]string{"rom1-en": "Gambeson", "rom1-ru": "Поддоспешник"}[f.ModSet().Base]
@@ -300,6 +302,7 @@ func TestReleaseModItemShopEquipSaveAndLoad(t *testing.T) {
 }
 
 func TestReleaseModItemChangeAppliesToTheShippedRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemFront(t)
 	plain := releaseFront(t)
 	// Chain Mail is armour row 16 in the shipped table; the mod sets its weight
@@ -322,6 +325,7 @@ func TestReleaseModItemChangeAppliesToTheShippedRow(t *testing.T) {
 }
 
 func TestReleaseUnmoddedTownSaveHasNoModLeaf(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	if raw := currentTownSave(t, f); sav.MayCarryNativeMods(raw) {
 		t.Fatal("an unmodded town save carries the mod leaf")

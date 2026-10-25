@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/spr256"
@@ -99,6 +100,7 @@ func overOcclusion(d, s color.RGBA) color.RGBA {
 }
 
 func TestReleaseWallsOccludeInstalledTreeWithinTheirCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	art := loadReleasePassArt(t)
 	tree, rawTree := releaseOcclusionTree(t)
 	for _, name := range []string{"earth", "fire"} {
@@ -162,6 +164,7 @@ func TestReleaseWallsOccludeInstalledTreeWithinTheirCell(t *testing.T) {
 }
 
 func TestReleaseWallsFollowInstalledCellDepth(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	art := loadReleasePassArt(t)
 	tree, rawTree := releaseOcclusionTree(t)
 	for _, name := range []string{"earth", "fire"} {

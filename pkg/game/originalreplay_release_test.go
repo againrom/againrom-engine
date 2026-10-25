@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -177,6 +178,7 @@ var originalReplayWitnessed = []string{
 // played 200 production ticks, SAVEd and cold LOADed, reaches the World hash the
 // live World had before SAVE.
 func TestReleaseOriginalSaveReplayColdLoadEqualsLive(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	routes := map[string]originalReplayRoute{"one click": originalReplayOneClick, "one click per unit": originalReplayOwnClicks}
 	for name, route := range routes {
 		t.Run(name, func(t *testing.T) {

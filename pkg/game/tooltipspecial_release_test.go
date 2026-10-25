@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -79,6 +80,7 @@ func captionFormula(id uint16, level int) (label int, text string, ok bool) {
 }
 
 func TestReleaseSpellbookCaptionHoverIsBuiltFromTheClaim(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
@@ -306,6 +308,7 @@ func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 }
 
 func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
@@ -390,6 +393,7 @@ func TestReleaseMapListHoverChoosesByColumn(t *testing.T) {
 }
 
 func TestReleaseMapListHoverReadsTheWholeDescriptionBlock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	src := ArchiveMaps(f.Archives.Containers)
@@ -490,6 +494,7 @@ func (m oneMap) Read(name string) ([]byte, error) {
 // The expectation is read from the archive's own bytes: the first two dwords of
 // the map payload, which starts 40 bytes into the file.
 func TestReleaseMapListSizeColumnPrintsTheHeaderDwordsMinusSixteen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	src := ArchiveMaps(f.Archives.Containers)

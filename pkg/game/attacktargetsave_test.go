@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -257,6 +258,7 @@ func attackTargetCopiedInput(t *testing.T, source, directory string) []byte {
 }
 
 func TestAttackTargetOwnerSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, output, assets := os.Getenv("AGAINROM_ATTACK_TARGET_OWNER_SAVE"), os.Getenv("AGAINROM_ATTACK_TARGET_OWNER_OUTPUT"), os.Getenv("AGAINROM_ASSETS")
 	if source == "" || output == "" || assets == "" {
 		t.Skip("AGAINROM_ASSETS, AGAINROM_ATTACK_TARGET_OWNER_SAVE and AGAINROM_ATTACK_TARGET_OWNER_OUTPUT are required")

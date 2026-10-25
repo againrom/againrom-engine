@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -132,6 +133,7 @@ func missionEntryNext(t *testing.T, f *FrontEnd, app *ui.App) {
 // engine-started mission's save at that point stores 0 as well. A save after
 // the player toggles the book stores the toggled value.
 func TestReleaseMissionEntrySavesTheSpellBookClosed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name         string
 		start, saved int
@@ -173,6 +175,7 @@ func TestReleaseMissionEntrySavesTheSpellBookClosed(t *testing.T) {
 // 0 and opens with the book closed; the same file with the leaf set to 1 opens
 // with it shown, so LOAD applies the stored value and not the mission default.
 func TestReleaseOriginalStartSaveLoadsItsStoredSpellBook(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct{ relative, hash string }{
 		{"2026-08-12/game9999.sav", "f7bc275c0eca91751ba9a9d691ffc55ea93c465bb36c3f8a83404245e2e980d7"},
 		{"2026-08-02/game9999.sav", "5822c37e8fa531e0b6d9b2348977c31f78d33f5035dd5c780e8b73459840b78e"},

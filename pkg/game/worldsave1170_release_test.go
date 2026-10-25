@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -49,6 +50,7 @@ func loadSAVWindow(t *testing.T, store SaveStore, name string) (*FrontEnd, *ui.A
 }
 
 func TestReleaseCurrentWorldSAV1170(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("uninterrupted_route", func(t *testing.T) { world1170MotionContinuation(t, "crossing") })
 	t.Run("current_native_turn", func(t *testing.T) { world1170MotionContinuation(t, "turn") })
 	t.Run("pending_native_heal", func(t *testing.T) { world1170MotionContinuation(t, "heal") })
@@ -241,6 +243,7 @@ func TestReleaseCurrentWorldSAV1170(t *testing.T) {
 }
 
 func TestReleaseCurrentWorldDeadRandomRefusal1170(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	open, _, err := f.RestoreOriginal(raw)
@@ -348,6 +351,7 @@ func TestReleaseCurrentWorldDeadRandomRefusal1170(t *testing.T) {
 }
 
 func TestReleaseCurrentWorldEffectSAV1170(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2027-09-07/game0125.sav", "3a055c8dcef6f053721e1c1478c82552c199b92fb178e9f034fe7500077b4efd")
 	open, _, err := f.RestoreOriginal(raw)
@@ -420,4 +424,7 @@ func TestReleaseCurrentWorldEffectSAV1170(t *testing.T) {
 	}
 }
 
-func TestReleaseCurrentWorldProjectileContinuation(t *testing.T) { originalSpellSAVContinuation(t) }
+func TestReleaseCurrentWorldProjectileContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	originalSpellSAVContinuation(t)
+}

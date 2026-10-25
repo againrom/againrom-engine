@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -14,6 +15,7 @@ import (
 // The original source stores every ID 1..28. Its Humans template knows four.
 // Both installs read the same owner source; these are not two recordings.
 func TestReleaseOriginalSpellbook1096SourceMembershipAppAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	source, err := sav.Open(payload)

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -14,6 +15,7 @@ import (
 // (SAV-1331): a loaded town whose word is 0 stands on the selected mission's
 // map object and writes 0 again; 1 stands on MapPoint 0 and writes 1.
 func TestReleaseCitySaveProjectsCurrentMapPoint(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	reachabilityWalkArrive(t, f, "City point witness")
 	f.Town.Won(10)

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -13,6 +14,7 @@ import (
 // through completed multi-tick turns. The installed hero witness measures
 // the submitted standing frame separately.
 func TestReleaseAMissionTenPatrolReversalAdvancesTheDrawnOctant(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the mission-10 patrol drive needs a lawful install")

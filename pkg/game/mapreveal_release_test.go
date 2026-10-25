@@ -15,12 +15,14 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	output := os.Getenv("AGAINROM_MAP_REVEAL_WITNESS_DIR")
 	if output == "" {
 		t.Skip("AGAINROM_MAP_REVEAL_WITNESS_DIR is not set")

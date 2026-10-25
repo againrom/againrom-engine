@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -63,6 +64,7 @@ func saveSourceFlagsMission(t *testing.T, f *FrontEnd) []byte {
 }
 
 func TestReleaseOffMapSourceFlagsSurviveCurrentSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if os.Getenv("AGAINROM_ASSETS") == "" || root == "" {
 		t.Skip("AGAINROM_ASSETS and AGAINROM_SAVE_CORPUS required")

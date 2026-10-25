@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -177,6 +178,7 @@ func checkTownCapture(line []byte, name string) error {
 // The frame commands write PNG files equal to the headless renderer's frame
 // for the same state.
 func TestReleaseHeadlessExampleNamesAndPicturesTheModTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	dir := headlessWorkDir(t, mods, 0)
@@ -249,6 +251,7 @@ func TestReleaseHeadlessExampleNamesAndPicturesTheModTown(t *testing.T) {
 // frame command with East named one thing and then another, differs inside
 // the home scroll alone.
 func TestReleaseHeadlessFrameDrawsTheModTownName(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	frames := map[string]image.Image{}
 	for _, name := range []string{east, east + "x"} {
@@ -271,6 +274,7 @@ func TestReleaseHeadlessFrameDrawsTheModTownName(t *testing.T) {
 // A capture of a version 10 scenario adds the town to the event and nothing
 // else; the same steps at version 9 print the event without it.
 func TestReleaseHeadlessCaptureIsUnchangedWithoutTheNewVersion(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	var runs [2][][]byte
@@ -318,6 +322,7 @@ func TestReleaseHeadlessCaptureIsUnchangedWithoutTheNewVersion(t *testing.T) {
 // install, over an existing file, and a scenario naming such a path writes
 // nothing, not even for the frame commands before it.
 func TestReleaseHeadlessFrameRefusalsWriteNothing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	dir := headlessWorkDir(t, mods, 0)
@@ -400,6 +405,7 @@ func listFiles(t *testing.T, dir string) []string {
 }
 
 func TestReleaseHeadlessPointerActionsReachTheTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	dir := headlessWorkDir(t, mods, 0)
@@ -442,6 +448,7 @@ func TestReleaseHeadlessPointerActionsReachTheTown(t *testing.T) {
 // clock. The frame is asked for again after the wall clock has moved on, and
 // a second run of the same steps is asked as well.
 func TestReleaseHeadlessFrameDoesNotDependOnWallClock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	frameAfter := func() (*ui.App, image.Image) {
@@ -476,6 +483,7 @@ func TestReleaseHeadlessFrameDoesNotDependOnWallClock(t *testing.T) {
 // A scenario of version 9 or lower keeps the clock it always had: the run
 // gives the front end no scenario clock, so what it prints is what it printed.
 func TestReleaseHeadlessOlderVersionKeepsTheWallClock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	west, east := headlessEastNames(t)
 	mods := headlessEastMods(t, west, east)
 	dir := headlessWorkDir(t, mods, 9)

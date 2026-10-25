@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 )
 
 func TestReleaseMission81PlacedScrollKeepsDescriptionAcrossSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.NextParty()
@@ -178,6 +180,7 @@ func shopScrollPackCell(t *testing.T, app *ui.App, screen *townScreen, index int
 }
 
 func TestReleaseShopEnchantedSalesKeepMagicShelfAndValues(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, restored := range []bool{false, true} {
 		t.Run(fmt.Sprintf("restored-%v", restored), func(t *testing.T) {
 			app, screen := releaseShopApp(t)
@@ -326,6 +329,7 @@ func TestReleaseShopEnchantedSalesKeepMagicShelfAndValues(t *testing.T) {
 }
 
 func TestReleaseOwnerShopScrollStoredValues(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SHOP_SCROLL_OWNER_DIR")
 	if dir == "" {
 		t.Skip("AGAINROM_SHOP_SCROLL_OWNER_DIR is required")

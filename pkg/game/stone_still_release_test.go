@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -148,6 +149,7 @@ func stoneStillWitnessOutput(t *testing.T, f *FrontEnd, name string, rows []ston
 }
 
 func TestReleaseStoneCurseStaysStillThroughSAVColdLoadAndExpiry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, name := range []string{"mid-step", "standing"} {
 		t.Run(name, func(t *testing.T) {
 			f := stoneStillFront(t)

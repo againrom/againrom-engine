@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -22,6 +23,7 @@ func findMotion1134(motions []sim.SavedActorMotion, entity sim.EntityID) (sim.Sa
 }
 
 func TestReleaseOriginalMoverRouteRestoresOnLoad1134(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game0021.sav",
 		"7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	source, err := sav.Open(payload)
@@ -92,6 +94,7 @@ func TestReleaseOriginalMoverRouteRestoresOnLoad1134(t *testing.T) {
 }
 
 func TestReleaseOriginalMoverRouteDomainBlockedCellIsNotRefusedAcrossSaveReload1134(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-14/game0014.sav",
 		"4c37a3d122ea849ce989f054c82483e32be9450886e7e3b60b641936a0bf0afc")
 	f := releaseFront(t)
@@ -149,6 +152,7 @@ func TestReleaseOriginalMoverRouteDomainBlockedCellIsNotRefusedAcrossSaveReload1
 }
 
 func TestReleaseOriginalMoverRouteAnchorGuardSurvivesSaveReload1134(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game9999.sav",
 		"5822c37e8fa531e0b6d9b2348977c31f78d33f5035dd5c780e8b73459840b78e")
 	f := releaseFront(t)

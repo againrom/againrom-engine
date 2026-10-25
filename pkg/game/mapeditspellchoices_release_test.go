@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -43,6 +44,7 @@ func installedSpellSlot(opcode uint32, types [10]uint32) int {
 }
 
 func TestReleaseScriptSpellCurrentPicksPreserveEveryMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	names := LoadTextTable(x.archives.Containers, SpellNamesTextPath, InstallTextCode(x.archives.Containers, x.archives.Game().Edition()))
 	counts := map[uint32]int{}
@@ -122,6 +124,7 @@ func TestReleaseScriptSpellCurrentPicksPreserveEveryMap(t *testing.T) {
 }
 
 func TestReleaseScriptSpellPickerFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_SCRIPT_SPELL_FRAMES")
 	for _, key := range installedMapKeys(x) {

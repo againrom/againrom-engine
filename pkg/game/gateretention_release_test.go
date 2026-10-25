@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -122,6 +123,7 @@ func gateRetentionColdTown(t *testing.T, store SaveStore) (*FrontEnd, *ui.App, *
 }
 
 func TestReleaseGateCampaignRetention(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 
 	t.Run("fresh-retained-child-cold-SAV", func(t *testing.T) {
 		f, a, s := gateRetentionInstalledFreshTown(t)

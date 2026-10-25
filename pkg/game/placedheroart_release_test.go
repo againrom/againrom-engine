@@ -6,12 +6,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMission40PlacedHeroBodyBeforeHandoverAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	verify := func(t *testing.T, f *FrontEnd, id sim.EntityID) {
 		t.Helper()
 		if f.live == nil || f.live.mission == nil || f.live.mission.state == nil {

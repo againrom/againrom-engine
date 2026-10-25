@@ -8,10 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseCurrentCreatureSlotWordsFollowWorldAfterLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for field := 0; field < 6; field++ {
 		t.Run(fmt.Sprintf("word%d", field), func(t *testing.T) {
 			_, raw := groundCorpusFile(t, "2026-09-24/game0002-bigsack.sav", "")

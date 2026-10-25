@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -14,6 +15,7 @@ import (
 // they do not ask the inspection picker to choose an expected empty point.
 // Only presentation fog is opened. Installs and simulation state stay unchanged.
 func TestReleaseInspectionSkipsDecorations(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("decorative hover")

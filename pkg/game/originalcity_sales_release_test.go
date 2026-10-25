@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -20,6 +21,7 @@ import (
 // implementation's load formula or item lookup. The original executable is
 // never launched by this witness.
 func TestReleaseCitySalesUseSAVAndFreshProcesses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	sourcePath, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	store := SaveStore{Dir: t.TempDir()}

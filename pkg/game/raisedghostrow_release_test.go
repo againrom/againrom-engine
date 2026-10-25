@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -49,6 +50,7 @@ func requireGhostRowColumns(t *testing.T, label string, e sim.Entity, def data.U
 }
 
 func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

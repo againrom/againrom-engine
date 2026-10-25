@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -150,6 +151,7 @@ func (s weaponSwap) swap(t *testing.T, f *FrontEnd, code uint16) {
 // SAVE keeps the words, and the next swap on the loaded game writes the
 // sword's words again. The unchanged SAVE writes the sword's words.
 func TestReleaseHeroWeaponSwapWritesTheWornWeapon(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	s := openWeaponSwap(t)
 	s.save(t, s.f, "unchanged", s.swordWords)
 	s.swap(t, s.f, s.second.Code)
@@ -172,6 +174,7 @@ func TestReleaseHeroWeaponSwapWritesTheWornWeapon(t *testing.T) {
 // them, writes the worn set's words after the next swap and after the
 // removal, not the retained bytes (DIV-3359).
 func TestReleaseUnknownWeaponArmFormsFromTheWornSet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	s := openWeaponSwap(t)
 	hero := s.f.live.mission.ids[0]
 	e, _ := s.f.live.world.Entity(hero)

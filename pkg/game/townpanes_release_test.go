@@ -6,10 +6,12 @@ import (
 	"image/draw"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTownColumnPanesDrawShippedBodyAndSeam(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil || f.TownTavernArt.Value() == nil {
 		t.Fatalf("production surface art did not resolve: school %v tavern %v",

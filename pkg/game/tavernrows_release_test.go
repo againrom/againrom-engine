@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
 	"againrom/pkg/random"
@@ -17,6 +18,7 @@ import (
 // The install's tavern names each NPC record once per chapter, so a row's
 // key (town, chapter, npc) names one row of scenario.reg.
 func TestReleaseTavernRowKeyIsUnique(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	c := releaseFront(t).Campaign.Value()
 	rows := 0
 	for _, n := range sortedChapters(c) {
@@ -118,6 +120,7 @@ func tavernChapter(f *FrontEnd, main int) {
 // of chapter 50, which the mod changes. The chapter entered after the LOAD
 // shows the mod's rows.
 func TestReleaseTavernModOldSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	base := currentTown(t, nil, nil)
 	want := base.Town.Offers(TownTavern)
 	raw := currentTownSave(t, base)
@@ -199,6 +202,7 @@ func TestReleaseTavernModOldSave(t *testing.T) {
 // is heard and the quest accepted, and after a second SAVE and LOAD the
 // quest's mission opens. A LOAD without the mod is refused naming it.
 func TestReleaseTavernModRowsSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := tavernFixtureMods(t, "tavern-rows")
 	raw := currentTownSave(t, currentTown(t, nil, nil))
 	f := tavernModFront(t, mods, true, "tavern-rows")
@@ -277,6 +281,7 @@ func TestReleaseTavernModRowsSaveAndLoad(t *testing.T) {
 // them and West's does not. A SAVE in East keeps them over a cold LOAD with
 // both mods; without the tavern mod the LOAD is refused naming it.
 func TestReleaseTavernModTownRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := tavernFixtureMods(t, "east-tavern")
 	f := tavernModFront(t, mods, false, "east-town", "east-tavern")
 	reachabilityWalkArrive(t, f, "East Hero")

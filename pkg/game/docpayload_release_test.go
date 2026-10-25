@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -18,6 +19,7 @@ const docPayloadKitLabel = "9503 docs ARSV payload"
 // it, and that no document the panel lists changed. With
 // AGAINROM_DOCS_CARRIER_OUT set it also writes the owner kit candidate there.
 func TestReleaseDocPayloadMissionSAVRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-10-06/game0001-from-9281-original-resave.sav",
 		"c75b8b19c12de96372243d2076aef975f383b704ce7a75e8e016d4ca635b99b5")
 	vanilla := []sav.CampaignDocument{{Value: 1, Kind: 1}, {Value: 2, Kind: 1}, {Value: 3, Kind: 1}}

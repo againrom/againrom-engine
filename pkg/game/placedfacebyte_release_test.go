@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -29,6 +30,7 @@ import (
 // frame, and the face byte it stores for each person is read back from the file.
 // Only the presentation fog is opened and the world must not move.
 func TestReleasePlacedPersonsDrawTheFaceByteTheirSpawnerWrites(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []struct {
 		number int
 		people []placedFacePerson

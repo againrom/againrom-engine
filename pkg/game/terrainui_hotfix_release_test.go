@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestReleaseLocalizedMissionUnitNames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("localized enemy names")
@@ -54,6 +56,7 @@ func TestReleaseLocalizedMissionUnitNames(t *testing.T) {
 }
 
 func TestReleaseVampiricStaffTrainsWaterAtFullHealth(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path, _ := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	a := f.App("vampiric staff")
@@ -121,6 +124,7 @@ func (s *softwareTerrainSource) ReadFile(path string) ([]byte, error) {
 }
 
 func TestReleaseSoftwareTerrainFamily(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	source := &softwareTerrainSource{EntrySource: f.Archives.Containers}
 	set := terrain.LoadTileset(source)

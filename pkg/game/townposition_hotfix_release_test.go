@@ -5,12 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTownSaveKeepsClearedMissionCellAndCampaignObject(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, original := groundCorpusFile(t, "2027-09-07/game0058.sav", "61746e37c590f5e486a03f1bcbe29a2a19275ad69565af71f95cc8dc7c5ababc")
 	leadCell := func(raw []byte) mapload.Cell {
 		t.Helper()

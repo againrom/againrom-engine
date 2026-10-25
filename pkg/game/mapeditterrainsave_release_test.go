@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
@@ -14,6 +15,7 @@ import (
 // An installed map opened in the window and saved without a stroke is written
 // as the installed bytes.
 func TestReleaseInstalledMapsSaveUnchangedWithoutAStroke(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := t.TempDir()
 	for n, key := range installedMapKeys(x) {
@@ -45,6 +47,7 @@ func TestReleaseInstalledMapsSaveUnchangedWithoutAStroke(t *testing.T) {
 // Strokes on an installed map are one undo step each with exact bytes, and the
 // report runs on the painted map without an error finding.
 func TestReleaseTerrainAndHeightStrokesUndoExactlyAndReport(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys := installedMapKeys(x)
 	for _, key := range []string{keys[0], keys[len(keys)/2], keys[len(keys)-1]} {

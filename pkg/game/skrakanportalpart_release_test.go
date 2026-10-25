@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -15,6 +16,7 @@ const skrakanInnPath = "main/text/inn/npc/npc25m150.txt"
 // 199 characters and 3 sentence marks; RU 10 parts, 127 characters, 1 mark. The
 // panel shows the whole installed part on both roots.
 func TestReleaseSkrakanPortalPartShowsTheWholeInstalledText(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	font := f.Font.Value()
 	if font == nil {

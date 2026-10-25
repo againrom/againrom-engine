@@ -7,11 +7,13 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCityGroupsRefundedReturnsUndoTheHire(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	seed, _ := hireForOrderTest(t, "Refund Groups")
 	live, app, _ := cityGroupsColdApp(t, currentTownSave(t, seed))
 	save := func(f *FrontEnd, a *ui.App) []byte {

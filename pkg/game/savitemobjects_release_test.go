@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -85,6 +86,7 @@ func setSavedItemWeight(doc *sav.DocumentData, code uint16, weight int16) bool {
 // counts up to twelve, two party members and six worn pieces. EN/RU are two
 // consumers of the same recording, not independently recorded original runs.
 func TestReleaseOriginalItemObjects1115PickupTransferEquipContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	sourceHash := sha256.Sum256(raw)

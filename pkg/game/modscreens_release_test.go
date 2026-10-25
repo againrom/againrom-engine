@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/render/frame"
@@ -207,6 +208,7 @@ func TestReleaseModScreenSlotsAgreeWithTheMenus(t *testing.T) {
 // install font; the entry opens the screen, which shows the mod's words; Back
 // and Escape return to a menu frame equal to the one before.
 func TestReleaseModScreenMainMenuEntryOpensTheScreenAndBackReturns(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, screens := modScreenApp(t, true)
 	screen := screens.Screens[0]
 	_, plain, _ := modScreenApp(t, false)
@@ -289,6 +291,7 @@ func TestReleaseModScreenMainMenuEntryOpensTheScreenAndBackReturns(t *testing.T)
 // shipped seven. The row opens the screen with the world held; Escape returns to
 // the menu with the row selected; the shipped rows are untouched.
 func TestReleaseModScreenInGameMenuRowOpensTheScreen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, screens := modScreenApp(t, true)
 	screen := screens.Screens[0]
 	g, plain, _ := modScreenApp(t, false)

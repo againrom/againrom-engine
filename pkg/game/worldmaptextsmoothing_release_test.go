@@ -7,6 +7,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -69,6 +70,7 @@ func worldMapAtChapter(t *testing.T, finished int) (*FrontEnd, *ui.App, *townScr
 // of mission 111 overflows its scroll, and after mission 130 the EN title of
 // mission 141 does.
 func TestReleaseWorldMapScrollTitlesAreSmoothedWhereverAnyOfThemShows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, finished := range []int{100, 120, 130} {
 		t.Run(fmt.Sprintf("after mission %d", finished), func(t *testing.T) {
 			_, a, s := worldMapAtChapter(t, finished)

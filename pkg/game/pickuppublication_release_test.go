@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -20,6 +21,7 @@ import (
 var pickupPublicationTokenFields = []string{"RuntimeID", "T0C", "T0E", "T08", "T18", "T1C", "Identity", "Reference"}
 
 func TestReleaseMissionLoadShowsPendingPickupItems(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SAVER_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_SAVER_SAV is not set: mission LOAD pickup witness requires the owner's SAV")
@@ -110,6 +112,7 @@ func TestReleaseMissionLoadShowsPendingPickupItems(t *testing.T) {
 }
 
 func TestReleaseTownLoadedItemsStayQuietOnMissionEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_CITY_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_CITY_SAV is not set: town LOAD pickup witness requires the owner's SAV")
@@ -237,6 +240,7 @@ func pickupPublicationHero(t *testing.T, f *FrontEnd) (sim.EntityID, map[uint32]
 // player Human's carried and worn Items at session entry and posts rows for
 // flagged carried Items (SAV-POSTLOAD-222); a ground Sack's Items keep their flag.
 func TestReleasePickupPublicationClearsSavedPickupFlag(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	source := pickupPublicationItems(t, raw)
 	f := releaseFront(t)

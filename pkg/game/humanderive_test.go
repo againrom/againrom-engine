@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -431,6 +432,7 @@ func humanByReaction(t *testing.T, f *FrontEnd, reaction int32) sim.Entity {
 // defence. SAVE, cold LOAD and the next ticks keep it, and the stored-state
 // derive of the original-loaded Human gives it again.
 func TestReleaseNativeAndOriginalHumanShareOneDerivedBlock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := overloadOrderParty(t, f)

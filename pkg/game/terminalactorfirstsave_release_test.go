@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -55,6 +56,7 @@ func killUntilTerminal(t *testing.T, f *FrontEnd, victim sim.EntityID, ticks int
 // A mission never saved to SAV has no document object for an actor that left
 // before the first SAVE; the terminal row alone carries it.
 func TestReleaseTerminalActorBeforeFirstSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, ground := range []bool{false, true} {
 		name := "nonground"
 		if ground {
@@ -86,6 +88,7 @@ func TestReleaseTerminalActorBeforeFirstSAV(t *testing.T) {
 
 // Entity ID 0 is an ordinary ID. Its terminal row must SAVE and LOAD.
 func TestReleaseTerminalActorZeroIDSaves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-09-24/exp-engine-lineage/game1017-engine-from-0017.sav",
 		"1c7cb03aecacc2a80b89f1d86be4f9d5bfbadf7214c7eaaa334197ebf0d2e985")
 	f := releaseFront(t)

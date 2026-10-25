@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -246,6 +247,7 @@ func (arena *mageOrdersArena) run(t *testing.T, n int, what string) (nearHits, f
 // armed row fired at the nearest creature and kept the mage in a cast nearly
 // every tick, which is when an attack order was dropped.
 func TestReleaseAMageKeepsItsOrderedEnemyAndResumesAfterASelfCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name  string
 		armed bool

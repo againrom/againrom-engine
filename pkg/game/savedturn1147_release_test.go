@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -14,6 +15,7 @@ import (
 // A literal preserved file carries this turn and both routes. The expected
 // sequence is stated independently of the turn producer and save decoder.
 func TestReleaseOriginalSavedTurnContinues1147(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game0009.sav", "60267c82072c77446ab9b34913318e89eab8f70e49f3510ae64aaaf423819bd6")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

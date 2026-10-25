@@ -9,11 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseOriginalDead1100ExactFiveActorsBothDoorsAndNativeContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-02/game0002.sav", "b1ce079cc2b3f1bc101862c1dcf2afd8237421458b3e2474c4447efe5df2e761")
 	source1163, err := sav.Open(payload)
@@ -107,6 +109,7 @@ func TestReleaseOriginalDead1100ExactFiveActorsBothDoorsAndNativeContinuation(t 
 }
 
 func TestReleaseOriginalDead1100TerminalUnitWeaponsRemainInert(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-02/game0009.sav", "60267c82072c77446ab9b34913318e89eab8f70e49f3510ae64aaaf423819bd6")
 	source, err := sav.Open(payload)

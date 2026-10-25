@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -77,6 +78,7 @@ func spellModFront(t *testing.T, dir string) *FrontEnd {
 func scaled(v int32, num, den, ceiling int64) int32 { return int32(min(int64(v)*num/den, ceiling)) }
 
 func TestReleaseModSpellKeysEditTheInstalledTable(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	base := spellModFront(t, "")
 	rows := releaseSpellRows(t, base)
 	names := make([]string, len(rows)+1)
@@ -162,6 +164,7 @@ func TestReleaseModSpellKeysEditTheInstalledTable(t *testing.T) {
 }
 
 func TestReleaseModSpellEditsReachACastAndTheSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	probe := spellModFront(t, "")
 	rows := releaseSpellRows(t, probe)
 	names := make([]string, len(rows)+1)

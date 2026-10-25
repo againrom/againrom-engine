@@ -6,10 +6,12 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
 func TestTownEffectMissingReferenceWritesNull(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TOWN_EFFECT_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_TOWN_EFFECT_SAV is not set")

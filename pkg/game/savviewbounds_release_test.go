@@ -5,11 +5,13 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseGeneratedMissionSAVViewBounds(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, open := range []bool{true, false} {
 		t.Run(map[bool]string{true: "open", false: "closed"}[open], func(t *testing.T) {
 			generatedMissionViewBounds(t, open)

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 )
@@ -14,6 +15,7 @@ import (
 // Literal word offsets below are not obtained from the reader under test.
 // The same source is imported through EN and RU, not claimed as two recordings.
 func TestReleaseOriginalPools1094WoundedNonPartyAppLoadAndNativeRoundtrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-14/game0013.sav", "b211b9ad621a2cec38ff5a1d1f3f632542a58e1e377c8f562b25ba48ca2aa5ea")
 	source, err := sav.Open(payload)

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -61,6 +62,7 @@ func creatureClass(t *testing.T, x *MapInspector) int16 {
 }
 
 func TestReleaseMapEditorListsAndOpensEveryNewMapSize(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	rows := newMapRows()
 	if len(rows) != len(newMapSides) || rows[0].Key != "new/32x32" {
@@ -102,6 +104,7 @@ func TestReleaseMapEditorListsAndOpensEveryNewMapSize(t *testing.T) {
 }
 
 func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := newMapMod(t)
 	modDir := filepath.Join(root, newMapModID)
 	x := installedInspector(t)
@@ -277,6 +280,7 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 }
 
 func TestReleaseMapEditorBlankWriteIsTheConstructorsBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	path := filepath.Join(t.TempDir(), "blank.alm")
 	got, findings, err := x.WriteNewMap(newMapSource(32, 32), path)
@@ -311,6 +315,7 @@ func TestReleaseMapEditorBlankWriteIsTheConstructorsBytes(t *testing.T) {
 // opens clean, a Save As writes its installed bytes, and the writer refuses
 // the source it came from.
 func TestReleaseMapEditorInstalledMapStillWritesItsInstalledBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {

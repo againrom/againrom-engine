@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -197,6 +198,7 @@ func enemyCardRows(f *FrontEnd) (rows map[[2]int32]int, types map[int32]bool) {
 }
 
 func TestReleaseEnemyCardUnitsTableHasTheAdmittedRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows, types := enemyCardRows(f)
 	seen := map[int]bool{}
@@ -214,6 +216,7 @@ func TestReleaseEnemyCardUnitsTableHasTheAdmittedRows(t *testing.T) {
 // Each count of one monster row gives that row's level on every instance and
 // on no other row; the card draws the groups of its level.
 func TestReleaseEnemyCardLevelFollowsTheDiaryCountPerRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, live := enemyCardOpen(t)
 	w := live.world
 	same := enemyCardInstances(f, live, enemyCardRow)
@@ -255,6 +258,7 @@ func TestReleaseEnemyCardLevelFollowsTheDiaryCountPerRow(t *testing.T) {
 // Shift+F4 draws every group while it is on and then returns the card, the
 // World, the Diary and the written state to what they were.
 func TestReleaseEnemyCardShiftF4ShowsEveryGroupForDisplayOnly(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, live := enemyCardOpen(t)
 	w := live.world
 	ids := enemyCardInstances(f, live, enemyCardRow)
@@ -286,6 +290,7 @@ func TestReleaseEnemyCardShiftF4ShowsEveryGroupForDisplayOnly(t *testing.T) {
 // Real kills raise the count, SAVE writes it, a cold LOAD restores it and the
 // next kill continues it. Two loss controls prove the check can fail.
 func TestReleaseEnemyCardKnowledgeSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, live := enemyCardOpen(t)
 	w := live.world
 	ids := enemyCardInstances(f, live, enemyCardRow)
@@ -431,6 +436,7 @@ func enemyCardZeroSAV(t *testing.T, raw []byte) []byte {
 // Original SAVs with a nonzero Diary load with the levels the table builder
 // gives from their counts: one nibble per (type, face), min(count>>1, 7).
 func TestReleaseEnemyCardOriginalSAVDiaryLevels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if dir == "" {
 		t.Skip("AGAINROM_SAVE_CORPUS is not set")

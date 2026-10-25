@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -16,6 +17,7 @@ import (
 // TestReleaseMidStrikePickupCurrentSAVAppColdLoad, is the same setup without the
 // press: the pickup transfers.
 func TestReleaseHoldStrikeReplacesPickupSAVAppColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 1)
 	hero, victim := arena.heroes[0], arena.east
 	arena.front.ConfigureSaveSeams(arena.app, SaveStore{Dir: t.TempDir()}, OriginalStore{}, nil)

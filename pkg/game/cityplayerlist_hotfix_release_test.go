@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -11,6 +12,7 @@ import (
 // A town SAV's player-list dword is one past its Player count, as in the
 // loaded original town it was imported from.
 func TestReleaseCitySAVPlayerListFieldIsOnePastTheCount(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	sourcePath, source := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	app := f.App("city player list")

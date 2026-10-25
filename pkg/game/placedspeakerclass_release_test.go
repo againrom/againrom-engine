@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -29,6 +30,7 @@ import (
 // composed from the installed row and the entity's worn set, and the horse
 // sheet is read without the compositor's class gate.
 func TestReleasePlacedLancerSpeakerDrawsHisRowClassFreshAndAfterLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

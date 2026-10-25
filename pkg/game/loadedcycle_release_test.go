@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -478,6 +479,7 @@ func (arena *loadedCycleArena) watch(hero, victim sim.EntityID, n int) blowOutco
 // the same pair and the loaded world stays equal to the saved world bytes for
 // 120 ticks.
 func TestReleaseALoadedAttackCycleFinishesBeforeAMoveOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("move: the blow lands and then the warrior walks", func(t *testing.T) {
 		arena := openLoadedCycleArena(t, 1)
 		hero, east := arena.heroes[0], arena.east

@@ -5,6 +5,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -31,6 +32,7 @@ import (
 // so that map is checked where its speaker is resolved: the placed Brian is a
 // live actor there, and the picture is his worn set on the backdrop.
 func TestReleaseSynthesisedHeroSpeakerStandsOnTheHeroBackdrop(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

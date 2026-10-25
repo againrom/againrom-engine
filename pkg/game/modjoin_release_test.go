@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -170,6 +171,7 @@ func modJoinHearCompanion(t *testing.T, app *ui.App, s *townScreen, shot string)
 // picker and the saved roster until her tavern conversation opens, that both
 // states SAVE and cold LOAD, and that without the mod she joins on arrival.
 func TestReleaseModJoinWaitsForTheTavernTalk(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	// Control: no mod, she is in the party on arrival and the SAV holds no grant.
 	plain := modJoinTown(t, false)
 	if !modJoinHas(plain) || len(modJoinSavedAddHero(t, currentTownSave(t, plain))) != 0 {

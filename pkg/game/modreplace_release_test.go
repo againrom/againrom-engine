@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
@@ -116,6 +117,7 @@ func mapHasUnit(m *alm.Map, id uint16) bool {
 // without the mod refuses. The same route without the mod builds the
 // installed map.
 func TestReleaseModReplacesACampaignMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := replaceMod(t)
 	install := os.Getenv("AGAINROM_ASSETS")
 	x, err := NewMapInspector(install)

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -24,6 +25,7 @@ import (
 // mission), and confirms a native city save carries none of the mission-only
 // fields this story changed.
 func TestReleaseGeneratedMissionSAVOriginalConstraints(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		mission  int
 		wantAuto uint32
@@ -404,6 +406,7 @@ func TestReleaseNativeCitySAVAutoGetMissionUnchangedByMissionDocumentFix(t *test
 // whose own data disagrees with this account fails loudly here rather than
 // being silently overridden.
 func TestReleaseCampaignAutoGetMissionMatchesScenarioData(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	camp := f.Campaign.Value()
 	missions := append(append([]int{}, camp.Main...), camp.Side...)

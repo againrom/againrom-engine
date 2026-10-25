@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 // installed campaign/map assets and the real App input path. Mission completion
 // is the controlled synthetic victory fixture, NOT ordinary M20/M30 gameplay.
 func TestReleaseVictoryAppReturnsHomeAndBlocksPendingSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name        string
 		continued   bool

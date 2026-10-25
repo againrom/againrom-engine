@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/town"
 	"bytes"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 )
 
 func TestReleaseSchoolTraining1124InstalledAppFramesSoundAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("school art: %v", f.TownSchoolArt.Err())

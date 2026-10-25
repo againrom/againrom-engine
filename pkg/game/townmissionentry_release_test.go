@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -98,6 +99,7 @@ func bindWornSpellWeapons(f *FrontEnd) []string {
 // constructed. The bound control changes only those two values in the loaded
 // session and leaves the carrier's offer labels as loaded.
 func TestReleaseTownSAVWithAnUnconstructedWornSpellWeaponEntersAMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, name := range []string{"what.sav", "cherepaha.sav"} {
 		t.Run(name, func(t *testing.T) {
 			f, s := townEntryOpen(t, name)
@@ -186,6 +188,7 @@ func townEntryBuySpellWeapon(t *testing.T, s *townScreen, route string) uint16 {
 }
 
 func TestReleaseTownBoughtSpellWeaponEntersTheNextMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, route := range []string{"shelf", "pack", "table", "legacy class zero", "constructed without Spell"} {
 		t.Run(route, func(t *testing.T) {
 			f, _, s := townEntryMageShop(t)

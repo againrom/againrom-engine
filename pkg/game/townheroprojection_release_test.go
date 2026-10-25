@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -61,6 +62,7 @@ func currentHeroTownFixture(t *testing.T) (*FrontEnd, *ui.App, SaveStore, int) {
 }
 
 func TestReleaseTownCurrentHeroFieldsThroughF2(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, store, member := currentHeroTownFixture(t)
 	p := &f.Carried[member]
 	before := mapload.CloneParty([]mapload.PartyMember{*p})[0]

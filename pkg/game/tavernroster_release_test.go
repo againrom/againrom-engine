@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -14,6 +15,7 @@ import (
 // on its object's sheet (TAVERN-TALKPIC-016), statistics only for a live
 // object (TAVERN-TALKSTATS-017), and grouped prices (TOWN-469).
 func TestReleaseTavernRosterOnAReloadedTownSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Tavern Roster")
 	f.Town.gold = 5_000_000

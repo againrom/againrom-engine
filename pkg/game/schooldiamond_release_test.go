@@ -10,11 +10,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art: %v", f.TownSchoolArt.Err())
@@ -52,6 +54,7 @@ func TestReleaseSchoolDiamondFramesMatchInstalledPixels(t *testing.T) {
 }
 
 func TestReleaseSchoolDiamondTrainPaintLifecycle(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("production school art: %v", f.TownSchoolArt.Err())

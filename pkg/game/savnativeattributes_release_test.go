@@ -1,12 +1,14 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"testing"
 )
 
 func TestReleaseNativeBodyWritesCurrentPartyBase(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	id := openSkillMission(t, f, 90, skillCaseParty(f, skillCases()[0]))
 	// Establish a retained Document before changing the authored base.

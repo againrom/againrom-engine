@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -89,6 +90,7 @@ func abandonReloadUnder(t *testing.T, raw []byte, dir string, ids ...string) *Fr
 // quick-spell bindings are the ones the mission was opened with, and the mission
 // is entered again with that party and not the default hero.
 func TestReleaseModAbandonOfALoadedMissionBringsTheSavedPartyHome(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	store, entry := abandonMissionSave(t, abandonModDir, "mission-abandon")
 	g, a, screens := abandonLoadFront(t, store, OriginalStore{}, false, abandonModDir, "mission-abandon")
 	abandonLoadMission(t, g, a, 0)
@@ -124,6 +126,7 @@ func TestReleaseModAbandonOfALoadedMissionBringsTheSavedPartyHome(t *testing.T) 
 // A restart from a loaded mission reopens it with the party its SAV carried, and
 // the restarted mission can be left, bringing that party home.
 func TestReleaseModRestartOfALoadedMissionKeepsTheSavedParty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := writeLeaveMod(t)
 	store, _ := abandonMissionSave(t, dir, "mission-leave")
 	g, a, screens := abandonLoadFront(t, store, OriginalStore{}, false, dir, "mission-leave")
@@ -148,6 +151,7 @@ const abandonCorpus = "../../../gameversions/saves/2027-09-07"
 // under the mod, is abandoned and restarted: the party its SAV holds comes home,
 // the town SAVE writes and a cold LOAD restores it.
 func TestReleaseModAbandonOfAnOriginalMissionSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if _, err := os.Stat(abandonCorpus); err != nil {
 		t.Skipf("no save corpus: %v", err)
 	}

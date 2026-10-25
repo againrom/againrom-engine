@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -137,6 +138,7 @@ func fallenHeroSAV(t *testing.T, source []byte) ([]byte, int32) {
 // LOAD, and the healer's ordered Heal raises him. Each time he walks on and
 // the mission is never announced.
 func TestReleaseFallenHeroIsHealedInsteadOfLost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, _ := roodStageHealSource(t)
 	t.Run("idle_heal", func(t *testing.T) {
 		f := loadRoodMission(t, source)
@@ -192,6 +194,7 @@ func TestReleaseFallenHeroIsHealedInsteadOfLost(t *testing.T) {
 // loses. Walked alone into the monster at (48,116), its blows fell him past
 // -10 and the loss comes when his dying window closes.
 func TestReleaseFallenHeroLosesAtRealDeath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, _ := roodStageHealSource(t)
 	t.Run("corpse_walk", func(t *testing.T) {
 		raw, hp := fallenHeroSAV(t, source)

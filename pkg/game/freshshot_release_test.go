@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -96,6 +97,7 @@ func shotContinuation(t *testing.T, raw []byte, want shotRun) error {
 // continues it leaf by leaf to its end, and the blow that goes with it lands
 // on the same tick as in the uninterrupted run.
 func TestReleaseFreshShotWritesProjectileRecord(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := t.TempDir()
 	f := releaseFront(t)
 	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)

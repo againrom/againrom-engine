@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -85,6 +86,7 @@ func missionHandoffMapPointRoute(t *testing.T, path string) {
 }
 
 func TestReleaseMissionHandoffMapPointRestore(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_MISSION_HANDOFF_MAP_POINT_INPUT"); path != "" {
 		t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) { missionHandoffMapPointRoute(t, path) })
 		return

@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -33,6 +34,7 @@ func savedMidFlight(t *testing.T, raw []byte, ticks int) (recordSet, []byte, *ma
 // load include the burst alone and ticks where a shot the loaded World
 // released overlaps the bound record.
 func TestReleaseLoadedOriginalSaveDuringFireBallBurst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	saves := map[string][]byte{
 		"game0022.sav": flightSave(t, "game0022.sav"),
 		"game0023.sav": flightSave(t, "game0023.sav"),
@@ -101,6 +103,7 @@ func flightAfterLoad(t *testing.T, raw []byte, n int) []recordSet {
 // record. game0022 +6 holds the rock, +12 the pending transport, +22 the burst
 // and the bolt. A SAV with a changed or dropped shot differs.
 func TestReleaseLoadedWorldShotAndSiegeTransportContinueAfterColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	raw := flightSave(t, "game0022.sav")
 	const after = 14
 	for _, c := range []struct {

@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMissionGroupOrdersSurviveCurrentSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("current mission group orders")
 	res := ui.ChargenResult{Name: "Load walk", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}}

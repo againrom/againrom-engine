@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -230,6 +231,7 @@ func missionAutosaveCold(t *testing.T, path string) {
 }
 
 func TestReleaseMissionStartAutosaveRoutes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_MISSION_AUTOSAVE_INPUT"); path != "" {
 		missionAutosaveCold(t, path)
 		return
@@ -343,6 +345,7 @@ func TestReleaseMissionStartAutosaveRoutes(t *testing.T) {
 }
 
 func TestReleaseMissionStartAutosaveSuccessor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_MISSION_AUTOSAVE_INPUT"); path != "" {
 		missionAutosaveCold(t, path)
 		return

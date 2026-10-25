@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -92,6 +93,7 @@ func buildingHealth(t *testing.T, doc sav.DocumentData, col, row int32) uint32 {
 }
 
 func TestReleaseDestroyedStructureStaysDestroyedAcrossSaveLoadChain(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("destroyed structure")
@@ -197,6 +199,7 @@ func TestReleaseDestroyedStructureStaysDestroyedAcrossSaveLoadChain(t *testing.T
 }
 
 func TestReleaseDeadHiddenActorStaysDeadAcrossSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("dead hidden actor").OpenMission(f.MissionOpener(120)); err != nil {
@@ -247,6 +250,7 @@ func TestReleaseDeadHiddenActorStaysDeadAcrossSaveLoad(t *testing.T) {
 }
 
 func TestReleaseDeadActorWithAttachedEffectStaysDeadAcrossSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("dead effect target").OpenMission(f.MissionOpener(90)); err != nil {
@@ -290,6 +294,7 @@ func TestReleaseDeadActorWithAttachedEffectStaysDeadAcrossSaveLoad(t *testing.T)
 }
 
 func TestReleaseKilledActorsStayDeadThroughRepeatedSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("repeated load").OpenMission(f.MissionOpener(120)); err != nil {

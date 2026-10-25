@@ -8,12 +8,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseOriginalOutcome1097SavedVictoryNativeAndAutomaticTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	path, payload := groundCorpusFile(t, "2026-08-02/game0009.sav", "60267c82072c77446ab9b34913318e89eab8f70e49f3510ae64aaaf423819bd6")
 	source, err := sav.Open(payload)
@@ -165,6 +167,7 @@ func TestReleaseOriginalOutcome1097SavedVictoryNativeAndAutomaticTown(t *testing
 }
 
 func TestReleaseOriginalOutcome1097SyntheticDefeatHasNoCounterOrRecovery(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game0009.sav", "60267c82072c77446ab9b34913318e89eab8f70e49f3510ae64aaaf423819bd6")
 	source, err := sav.Open(payload)

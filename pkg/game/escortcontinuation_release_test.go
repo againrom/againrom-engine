@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -227,6 +228,7 @@ func escortActor(t *testing.T, f *FrontEnd, id sim.EntityID) sim.Entity {
 }
 
 func TestReleaseMissionEscortCloseReaimSAVColdLoadAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, follower, hero, x, y := installedEscort(t)
 	escortPlace(t, f, hero, x+4, y)
 	escortPlace(t, f, follower, x-4, y)
@@ -292,6 +294,7 @@ func TestReleaseMissionEscortCloseReaimSAVColdLoadAndNative(t *testing.T) {
 }
 
 func TestReleaseMissionEscortIdleTurnSAVColdLoadAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, follower, hero, x, y := installedEscort(t)
 	for k := 0; k < 32; k++ {
 		charge := escortPlace(t, f, hero, x, y)
@@ -348,6 +351,7 @@ func TestReleaseMissionEscortIdleTurnSAVColdLoadAndNative(t *testing.T) {
 }
 
 func TestReleasePlayerDefenderInstalledHealSAVColdLoadAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

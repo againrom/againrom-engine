@@ -5,6 +5,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -35,6 +36,7 @@ func paintedBounds(font *text.Font, s string, x, y int) image.Rectangle {
 // the ink, and how far the shadow reaches past the ink, are logged for the shelf
 // grid.
 func TestReleaseShopPricesFitTheirPlaques(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	art := f.shopArt()
 	font := f.tipFont()

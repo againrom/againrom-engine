@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -242,6 +243,7 @@ func authoredRecordItems(t *testing.T, f *FrontEnd, code uint16) string {
 }
 
 func TestReleaseMapEditorFreshRecordAuthoringSAVAndGoals(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("group", func(t *testing.T) {
 		root, code := authoredRecordsMod(t, "group")
 		f, app := startArmsMission(t, root)
@@ -305,6 +307,7 @@ func TestReleaseMapEditorFreshRecordAuthoringSAVAndGoals(t *testing.T) {
 }
 
 func TestReleaseMapEditorUnitStockCloneHasIndependentInventory(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root, code := authoredRecordsMod(t, "group")
 	x := installedInspector(t)
 	if err := x.SetMod(filepath.Join(root, newMapModID)); err != nil {
@@ -385,6 +388,7 @@ func TestReleaseMapEditorUnitStockCloneHasIndependentInventory(t *testing.T) {
 }
 
 func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open(newMapSource(32, 32)); err != nil {

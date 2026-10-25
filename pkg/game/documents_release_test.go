@@ -4,9 +4,12 @@ import (
 	"os"
 	"sort"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseShippedCampaignDocumentsAllResolve(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the shipped document sweep needs a lawful install")
 	}

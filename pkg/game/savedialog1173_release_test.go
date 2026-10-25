@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -156,6 +157,7 @@ func saveDialogCurrentMission(t *testing.T, f *FrontEnd, path string, raw []byte
 }
 
 func TestReleaseSaveDialog1173MissionCity(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_CURRENT_ACTION_INPUT"); path != "" {
 		currentActionCold(t, path)
 		return
@@ -301,6 +303,7 @@ func saveOriginalMissionReturnFile(t *testing.T, path, hash string, travel int) 
 }
 
 func TestReleaseSaveDialog1173TownPairOverwriteAndRefusal(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("selected_repeated_suffix", saveDialogRepeatedSuffix)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Town traveler", Choices: []int{0, 0, 0}, Stats: []int{30, 30, 30, 30}})
@@ -573,6 +576,7 @@ func saveDialogArrivedTown(t *testing.T, dir string) (*FrontEnd, *ui.App) {
 }
 
 func TestReleaseSaveDialog1173NewGameTownArrival(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	scenario, err := ReadHeadlessScenario(filepath.Join("..", "..", "scenarios", "1173-save-dialog.json"))
 	if err != nil {
@@ -651,6 +655,7 @@ func TestReleaseSaveDialog1173NewGameTownArrival(t *testing.T) {
 }
 
 func TestReleaseSaveDialog1173NewGameMission30RepairsPermanentMercenaryList(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	scenario, err := ReadHeadlessScenario(filepath.Join("..", "..", "scenarios", "1173-save-dialog.json"))
 	if err != nil {

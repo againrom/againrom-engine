@@ -5,9 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseCommandAcknowledgments1188InstalledGestureAndCheckbox(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	for _, deterministic := range []bool{true, false} {
 		t.Run(map[bool]string{true: "deterministic-parent", false: "physical-parent"}[deterministic], func(t *testing.T) {

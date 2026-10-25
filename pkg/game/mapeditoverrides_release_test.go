@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -103,6 +104,7 @@ func popupText(e *ui.MapEditor) string {
 // outside the field's width is refused with its reason, and the gear bit is
 // neither offered nor accepted on a creature.
 func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	key, i := unitWhere(t, x, "an equipped Human of the type-key arm without overrides", func(u alm.Unit, r mapload.Resolution, s unitSheet) bool {
 		return !hasTail(u) && gearOffered(u, x.table) && slices.ContainsFunc(s.Worn[:], func(it sim.ItemInstance) bool { return !it.Empty() })
@@ -281,6 +283,7 @@ func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
 // without it the same steps run. In each frame the installed fonts keep every
 // glyph, except the key strip under the refusal's grown popup.
 func TestReleaseMapEditorOverrideFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	shot := func(e *ui.MapEditor, name string, cover image.Rectangle) {

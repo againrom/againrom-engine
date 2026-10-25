@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -57,6 +58,7 @@ func terminalHealthOwnerWire(t *testing.T, raw []byte) map[terminalHealthOwnerAc
 }
 
 func TestReleaseTerminalHealthMaximumOwnerSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_DEAD_HEALTH_OWNER_DIR")
 	if dir == "" {
 		t.Skip("set AGAINROM_DEAD_HEALTH_OWNER_DIR to the two owner health sources")

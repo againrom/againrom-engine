@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -89,6 +90,7 @@ func scriptStandPrograms(t *testing.T, base *sim.World, in sim.ScriptInstant) (t
 // The installed mission's Stand Ground command stands a group on a walk; the
 // control world without the node keeps walking. SAVE and cold LOAD follow.
 func TestReleaseScriptStandGroundStopsAGroupOnTheMove(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arenas := openScriptStandArena(t)
 	if len(arenas) == 0 {
 		t.Fatalf("mission %d holds no Stand Ground group command", scriptStandMission)

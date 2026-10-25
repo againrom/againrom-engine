@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -225,6 +226,7 @@ func (r packDragRig) cold(t *testing.T, label string) packDragRig {
 }
 
 func TestReleasePackStackDragGestures(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name   string
 		target int
@@ -321,6 +323,7 @@ func TestReleasePackStackDragGestures(t *testing.T) {
 }
 
 func TestReleasePackStackDragPendingSAVEAndCancellation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := packDragFixture(t, 3)
 	before := r.pack(t)
 	if err := r.app.HeadlessKey("0"); err != nil {
@@ -387,6 +390,7 @@ func TestReleasePackStackDragPendingSAVEAndCancellation(t *testing.T) {
 }
 
 func TestReleasePackStackDragOwnerDoubleSpear(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	input := os.Getenv("AGAINROM_PACK_STACK_OWNER_SAVE")
 	if input == "" {
 		t.Skip("AGAINROM_PACK_STACK_OWNER_SAVE required")

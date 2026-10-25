@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -37,6 +38,7 @@ func objectRow(t *testing.T, s *mapInspectionEdits, n int) ui.BrushObject {
 func interiorCell(m *alm.Map) image.Point { return image.Pt(m.Width/2, m.Height/2) }
 
 func TestReleaseMapEditorObjectListOffersOnlyDrawableClasses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {
@@ -76,6 +78,7 @@ func TestReleaseMapEditorObjectListOffersOnlyDrawableClasses(t *testing.T) {
 // A stroke on an installed map changes the saved file in the painted type-3
 // cells only.
 func TestReleaseMapEditorObjectStrokeChangesOnlyTheTypeThreeCells(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	source, err := x.archives.Containers.ReadFile("scenario/10.alm")
 	if err != nil {
@@ -174,6 +177,7 @@ func TestReleaseMapEditorObjectStrokeChangesOnlyTheTypeThreeCells(t *testing.T) 
 // A painted object blocks ground movement as the installed map's objects do,
 // and the map report judges the drop cell and the units against it.
 func TestReleaseMapEditorPaintedObjectBlocksLikeAnInstalledOne(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {
@@ -231,6 +235,7 @@ func TestReleaseMapEditorPaintedObjectBlocksLikeAnInstalledOne(t *testing.T) {
 // A band of painted objects across the party's way is loaded by the mission
 // build at its cells, blocks them, and is walked around.
 func TestReleaseMapEditorPaintedObjectsLoadAsAModMissionAndBlockTheWalk(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	plain := guestMods(t, guestModID)
 	saveEditedGuestMap(t, x, plain, func(*ui.MapEditor) {})

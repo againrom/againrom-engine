@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -61,6 +62,7 @@ func nativePartyCellCounts(doc sav.DocumentData) (actors, misplaced int) {
 }
 
 func TestReleaseNativeActorRegistryCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TERMINAL_REGISTRY_SAV")
 	if native := os.Getenv("AGAINROM_NATIVE_REGISTRY_SAV"); native != "" {
 		path = native

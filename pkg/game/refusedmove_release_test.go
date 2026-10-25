@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -34,6 +35,7 @@ func heroWalkState(w *sim.World, id sim.EntityID) (state uint32, latch byte, ord
 // World, and the loaded hero is latched, takes the pick and strikes on the
 // same ticks as the live one.
 func TestReleaseARefusedMoveTakesTheHostileBesideTheHeroAfterItsStandDown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	a, _ := openUnreachableMission(t, true, 1, 19, 64)
 	foe := a.get(releaseUnreachableFoe)
 	a.live.pending = append(a.live.pending, sim.GroupMoveTo(a.hero, sim.CellPoint{X: foe.X, Y: foe.Y}, 1))

@@ -3,12 +3,15 @@ package game
 import (
 	"bytes"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseMapEditorWizardApplyWithoutEditKeepsEveryTrigger opens every
 // trigger of every installed map, presses Apply without an edit and finds the
 // map's bytes as they were.
 func TestReleaseMapEditorWizardApplyWithoutEditKeepsEveryTrigger(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	total, changed := 0, 0
 	for _, key := range installedMapKeys(x) {

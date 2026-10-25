@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -74,6 +75,7 @@ func cornerSlinger(t *testing.T) (*FrontEnd, *ui.App, sim.EntityID, sim.EntityID
 // saved through F2, restored from a cold LOAD, and the next production ticks
 // must keep the two worlds equal.
 func TestReleaseCorneredSlingerCentredSeedRequestSAVColdLoadAndNextAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, slinger, hero, x, y := cornerSlinger(t)
 	live := f.live
 	const settle = 40

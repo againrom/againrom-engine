@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 )
 
@@ -21,6 +22,7 @@ func damageRowMod(t *testing.T, dir, id, damage string) {
 // TestReleaseModWeaponRowRefusesDamageThatWouldWrapAByte: a row with damage-min
 // above damage-max, or a scaled damage past 255, is refused at load.
 func TestReleaseModWeaponRowRefusesDamageThatWouldWrapAByte(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := t.TempDir()
 	damageRowMod(t, dir, "min-only", "damage-min = 100\n")
 	damageRowMod(t, dir, "reversed", "damage-min = 80\ndamage-max = 40\n")
@@ -48,6 +50,7 @@ func TestReleaseModWeaponRowRefusesDamageThatWouldWrapAByte(t *testing.T) {
 // TestReleaseModWeaponRowInOrderDamageHitsInItsStatedRange: an in-order row loads
 // and hits within its damage-max; the Pike hits as before.
 func TestReleaseModWeaponRowInOrderDamageHitsInItsStatedRange(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := t.TempDir()
 	damageRowMod(t, dir, "in-order", "damage-min = 40\ndamage-max = 80\n")
 	f := modRowsFront(t, dir, false, "in-order")

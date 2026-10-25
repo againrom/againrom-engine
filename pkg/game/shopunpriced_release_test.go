@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -136,6 +137,7 @@ func cellDifferences(got, want *image.RGBA, r image.Rectangle) (int, string) {
 // figure, the stored price -1 as the figure, font1, a pixel aside and a missing
 // shadow leaves a cell different from that.
 func TestReleaseShopGridDrawsThePlaqueOfAnUnpricedItem(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()

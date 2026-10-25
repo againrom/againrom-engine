@@ -8,12 +8,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseCheckshopStaffStockSurvivesPurchaseAndCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source := os.Getenv("AGAINROM_CHECKSHOP")
 	if source == "" {
 		t.Skip("AGAINROM_CHECKSHOP is not set")
@@ -92,6 +94,7 @@ func TestReleaseCheckshopStaffStockSurvivesPurchaseAndCurrentSAV(t *testing.T) {
 }
 
 func TestReleaseGeneratedStaffPriceReachesPurchaseAndCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source := os.Getenv("AGAINROM_CHECKSHOP")
 	if source == "" {
 		t.Skip("AGAINROM_CHECKSHOP is not set")

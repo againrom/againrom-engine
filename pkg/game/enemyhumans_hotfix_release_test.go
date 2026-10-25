@@ -4,12 +4,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseSavedEnemyHumanPortraitsAndBooks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path, _ := ownerCurrentSAV(t, "mission111-enemy-dolls")
 	store := SaveStore{Dir: filepath.Dir(path)}
 	name := filepath.Base(path)

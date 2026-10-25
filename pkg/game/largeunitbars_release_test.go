@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/reg"
@@ -34,6 +35,7 @@ import (
 // composing does not move the world hash. AGAINROM_STATUSBAR_FRAMES, when set,
 // names the directory the frames are written to for inspection.
 func TestReleaseStatusBarsSpanALargeUnitsSelectionBox(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Markers = Markers{}

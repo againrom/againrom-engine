@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -100,6 +101,7 @@ func fallenHeroWinSorted(codes []uint16) []uint16 {
 // LOAD and mission 30's entry all hold the experience and the pack he ended
 // the mission with, the set he wore, and full health.
 func TestReleaseFallenHeroWinKeepsHisMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, fallenHeroWinSAV, fallenHeroWinHash)
 	store := SaveStore{Dir: t.TempDir()}
 	if err := os.WriteFile(filepath.Join(store.Dir, filepath.Base(fallenHeroWinSAV)), raw, 0o600); err != nil {

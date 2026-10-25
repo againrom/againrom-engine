@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
@@ -102,6 +103,7 @@ func TestMageIsARecognisedFlag(t *testing.T) {
 }
 
 func TestReleaseMissionRunRefusesBetweenMissionSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" || os.Getenv("AGAINROM_SAVE_CORPUS") == "" {
 		t.Skip("AGAINROM_ASSETS and AGAINROM_SAVE_CORPUS are required")
 	}
@@ -153,6 +155,7 @@ func TestReleaseMissionRunRefusesBetweenMissionSAV(t *testing.T) {
 // claimed in a comment that the two argvs were identical and they were not;
 // after this they are.
 func TestTheTenthMissionRunsEndToEndOnALawfulInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the campaign drive needs a lawful install")
 	}

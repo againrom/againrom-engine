@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -222,6 +223,7 @@ func (w *crossWitness) opened() {
 // (`TOWN-121`, DIV-1545). A click that misses every scroll after tick 8 sets
 // both counters past their ends, so the next tick opens the mission.
 func TestReleaseWorldMapArrivalWaitsForTheCrossAnimation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("App cadence alone", func(t *testing.T) {
 		w := startCrossWitness(t)
 		reveal := revealTicks(w.route)

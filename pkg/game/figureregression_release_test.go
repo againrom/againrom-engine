@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -709,6 +710,7 @@ func requireClean(t *testing.T, label string, problems []string) {
 }
 
 func TestReleaseFigureRegressionMissions(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	total := map[string]int{}
 	ran := 0
 	for n, mission := range figureMissions() {

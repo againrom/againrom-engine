@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -18,6 +19,7 @@ import (
 // while the hero is beside it, and it must land at least two blows. Before, it
 // stood until it died.
 func TestReleaseRangedWithdrawalWhoseFleeCellHasNoRouteKeepsFighting(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseOriginalCellRecordsRestoreOnLoad1131(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game9999.sav", "5822c37e8fa531e0b6d9b2348977c31f78d33f5035dd5c780e8b73459840b78e")
 	source, err := sav.Open(payload)
 	if err != nil {
@@ -141,6 +143,7 @@ func TestReleaseOriginalCellRecordsRestoreOnLoad1131(t *testing.T) {
 // and ImportOriginalLivingActors' own staging round trip, the exact route this
 // story found silently dropping the whole saved-cell-record span, docs/1131/story.md).
 func TestReleaseOriginalCellRecordsDiagnosticFieldsSurviveLoad1131(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game9999.sav", "5822c37e8fa531e0b6d9b2348977c31f78d33f5035dd5c780e8b73459840b78e")
 	source, err := sav.Open(payload)
 	if err != nil {

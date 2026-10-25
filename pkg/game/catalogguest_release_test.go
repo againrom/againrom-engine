@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestReleaseCatalogCharactersCanBeGuests(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 	entries, err := mod.Resolve(dir, []string{guestModID})
 	if err != nil {
@@ -81,6 +83,7 @@ func TestReleaseCatalogCharactersCanBeGuests(t *testing.T) {
 }
 
 func TestReleaseCatalogGuestMemberCoverage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	ref := f.ChargenParty(ui.ChargenResult{Name: "Guest", Choices: []int{0, 0, 0}, Stats: []int{31, 27, 24, 29}})
 	var refused []string

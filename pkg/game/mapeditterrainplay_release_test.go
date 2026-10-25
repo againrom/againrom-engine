@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -174,6 +175,7 @@ func tileClassAt(m *alm.Map, c image.Point) uint8 {
 // A band of mountain painted across the party's way is walked around, and
 // grass painted over it is walked across.
 func TestReleaseMapEditorPaintedTerrainChangesWhereAPartyWalks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	plain := guestMods(t, guestModID)
 	saveEditedGuestMap(t, x, plain, func(*ui.MapEditor) {})
@@ -315,6 +317,7 @@ func TestReleaseMapEditorPaintedTerrainChangesWhereAPartyWalks(t *testing.T) {
 // A height stroke raises the saved height plane by the stated amount and the
 // mission build carries it into the height plane the simulation reads.
 func TestReleaseMapEditorPaintedHeightsReachTheHeightPlane(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	plain := guestMods(t, guestModID)
 	saveEditedGuestMap(t, x, plain, func(*ui.MapEditor) {})

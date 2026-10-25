@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -19,6 +20,7 @@ import (
 // ticks as the uninterrupted run. Before the derive kept the block in that
 // domain, the live block held 110 and the cold one 100.
 func TestReleaseBlessAboveTheTrainingCapSurvivesSAVEAndColdLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SEYDEN_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_SEYDEN_SAV to the owner ready-to-deliver mission151 SAV")

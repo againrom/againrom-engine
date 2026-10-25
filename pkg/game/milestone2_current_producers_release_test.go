@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -390,6 +391,7 @@ func buildingProducer1162Differences(w *sim.World, state *SnapshotSAVDocument, i
 }
 
 func TestReleaseMilestone2CurrentProducers1162(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("P1 Session", func(t *testing.T) {
 		f, app, path, _ := producerSAVLoad(t)
 		diplomacy := f.live.mission.state.savedDocument.Document.World.Session.Diplomacy

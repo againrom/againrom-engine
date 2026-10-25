@@ -2,6 +2,8 @@ package game
 
 import (
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // saveReloadTownMapName saves the town through the ordinary save seam, loads
@@ -32,6 +34,7 @@ func saveReloadTownMapName(t *testing.T, f *FrontEnd) string {
 // file holds until a mission replaces it, and a reload of the written file
 // writes the same name again.
 func TestReleaseCitySAVNamesTheLoadedTownsMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := openOriginalSalesTown(t)
 	if got := writtenTownData(t, f).MapName; got != "31.alm" {
 		t.Fatalf("town SAV map name %q, want the loaded 31.alm", got)
@@ -44,6 +47,7 @@ func TestReleaseCitySAVNamesTheLoadedTownsMap(t *testing.T) {
 // After mission 20 ends and the party returns to town, the town SAV names
 // that mission's map.
 func TestReleaseCitySAVNamesTheMissionJustPlayed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	if got := writtenTownData(t, f).MapName; got != "20.alm" {
 		t.Fatalf("town SAV map name %q after mission 20, want 20.alm", got)
@@ -56,6 +60,7 @@ func TestReleaseCitySAVNamesTheMissionJustPlayed(t *testing.T) {
 // A native town reached before any mission has no mission to name and writes
 // an empty map name (DIV-1412); the written file loads.
 func TestReleaseCitySAVBeforeAnyMissionNamesNoMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	reachabilityWalkArrive(t, f, "Map Hero")
 	if got := writtenTownData(t, f).MapName; got != "" {

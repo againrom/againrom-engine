@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -306,6 +307,7 @@ func flightAwait(t *testing.T, f *FrontEnd, app *ui.App, pick func(sim.SavedProj
 // target cell's centre. SAVE writes it and a cold LOAD continues it to the
 // same landing and damage.
 func TestReleaseBookCastFlightSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, dir, caster, target := flightMageArena(t, false)
 	mw := f.live
 	flightLearn(t, mw, caster, 1)
@@ -328,6 +330,7 @@ func TestReleaseBookCastFlightSurvivesSaveAndLoad(t *testing.T) {
 // A staff's Fire Arrow release is cast-diverted (SAV-1129): it builds the same
 // cast record a book cast builds, at the release.
 func TestReleaseStaffReleaseFlightSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, dir, caster, target := flightMageArena(t, true)
 	mw := f.live
 	if e, _ := mw.entity(caster); e.WeaponSpell != 1 {
@@ -378,6 +381,7 @@ func TestReleaseStagedBurstSurvivesSaveAndLoad(t *testing.T) {
 // on the structure's anchor (SAV-1197). SAVE writes it with the structure's
 // key, and a cold LOAD continues it to the same blow.
 func TestReleaseStructureShotSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	bow, err := resolveWeaponForSlot(false, false, f.Table.Shapes, f.Table.Materials, f.Table.Weapons, data.SkillShoot)

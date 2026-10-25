@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -124,6 +125,7 @@ func flightResave(t *testing.T, raw []byte) (sim.SavedProjectiles, []byte) {
 // record whose action bytes and target word carry high bits keeps their low
 // byte or word at LOAD and writes them back sign- or zero-extended (SAV-1322).
 func TestReleaseOriginalFlightRecordsSurviveLoadAndSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	source, offsets := flightStateNodes(t, raw)
 	effects := flightEffectLines(t, raw)

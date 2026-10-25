@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/camera"
 	"againrom/pkg/sim"
@@ -196,6 +197,7 @@ func openReleaseGroundMission(t *testing.T, label string) (*FrontEnd, *ui.App, *
 }
 
 func TestReleaseGroundPickerQueuesTheCornerMeshCellOnRealMissionContent(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, live, id := openReleaseGroundMission(t, "div-044-ground-picker")
 	_, controlApp, controlLive, controlID := openReleaseGroundMission(t, "div-044-ground-picker-control")
 	if controlID != id {

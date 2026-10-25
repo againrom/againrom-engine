@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/text"
@@ -581,6 +582,7 @@ func releaseTipResolvedOutput(t *testing.T, path string) string {
 }
 
 func TestReleaseRoomTipStyleAndLayoutFromInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	pieces := releaseTipFramePieces(t)
 	for _, room := range []string{"town-square", "tavern", "school", "shop"} {
 		t.Run(room, func(t *testing.T) {

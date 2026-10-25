@@ -10,6 +10,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReleaseSaveAcknowledgementIsReadableAndCaptured(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, context := range []string{"town", "mission"} {
 		t.Run(context, func(t *testing.T) {
 			f := releaseFront(t)

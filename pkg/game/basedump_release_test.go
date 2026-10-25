@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
@@ -54,6 +55,7 @@ func releaseBaseDump(t *testing.T, f *FrontEnd, mods string) []byte {
 // that encodes back to the install's bytes: Cyrillic on the Russian
 // install.
 func TestReleaseBaseDumpListsTheTownWithEveryKey(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	towns := releaseBaseDump(t, f, t.TempDir())
 	records, _, err := mod.ParseTowns("base-dump", mod.TownsFile, towns)
@@ -230,6 +232,7 @@ func diffBaseDumpRuns(want, got baseDumpRun) []string {
 // one edited key, the name, shows on the home scroll and fails the
 // comparison.
 func TestReleaseBaseDumpAsAModChangesNothing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mods := t.TempDir()
 	towns := releaseBaseDump(t, releaseFront(t), mods)
 	plain := baseDumpSession(t, "", "", false)

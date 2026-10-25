@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -99,6 +100,7 @@ func formationOverload(t *testing.T, raw []byte) []byte {
 // LOAD and one formation move, every member moves at the minimum of the
 // members' saved speed words, and SAVE writes that term to the group record.
 func TestReleaseFormationMovesAtTheSlowestSavedSpeed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the formation speed witness needs a lawful install")

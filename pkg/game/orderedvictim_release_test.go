@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -185,6 +186,7 @@ func (fight *orderedVictimFight) strikers() int {
 // the newcomers' walk, and the warrior's Body so that three strikers cannot
 // bring him down before it falls.
 func TestReleaseAWarriorKeepsItsOrderedVictim(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("control: without the order the warrior changes to a newcomer", func(t *testing.T) {
 		fight := openOrderedVictimFight(t)
 		live := fight.live

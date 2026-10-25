@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -97,6 +98,7 @@ func quantityStripDifferences(got, bare *image.RGBA, slots []priceSlot, o priceO
 // The grid quantity and the purse draw left-aligned in font2, in the ramp over
 // a flat shadow (SHOP-106, MISSION-MSGLINE-056).
 func TestReleaseShopGridQuantityAndPurseAreRampedWithAShadow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()

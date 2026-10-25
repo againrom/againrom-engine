@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -15,6 +16,7 @@ import (
 // ALM replacement at f566f49. The asserted state is independent of the load
 // report and of the decoder's ActorHoldings/ActorGraph values.
 func TestReleaseOriginalDying1144OwnerGraphDoesNotResurrect(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		rel, hash string
 		mapID     uint16

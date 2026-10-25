@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
@@ -335,6 +336,7 @@ func startTownTrace(t *testing.T, party func(*FrontEnd)) (*townTrace, map[byte][
 }
 
 func TestReleaseTownSquareTraceIsUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	tr, points, off := startTownTrace(t, nil)
 	f, a := tr.f, tr.a
 

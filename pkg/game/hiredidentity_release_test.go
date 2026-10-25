@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -73,6 +74,7 @@ func hiredOrdinaryIdentity(t *testing.T, raw []byte, party []mapload.PartyMember
 }
 
 func TestReleaseHiredIdentityCityAndMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Hired identity")
 	for _, typ := range []int{6, 14} {
 		if _, ok := screen.toggleMercenary(typ); !ok {
@@ -140,6 +142,7 @@ func hiredMissionCycles(t *testing.T, f *FrontEnd, want []mapload.PartyMember) {
 }
 
 func TestReleaseHiredIdentityOwnerResaves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_HIRED_CORPUS")
 	if root == "" {
 		t.Skip("AGAINROM_HIRED_CORPUS is not set")
@@ -199,6 +202,7 @@ func TestReleaseHiredIdentityOwnerResaves(t *testing.T) {
 }
 
 func TestReleaseHiredIdentityLegacyMissionNames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_HIRED_CORPUS") == "" {
 		t.Skip("AGAINROM_HIRED_CORPUS is not set")
 	}

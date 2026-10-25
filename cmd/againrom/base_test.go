@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/base"
 	"againrom/pkg/game"
 	"againrom/pkg/ui"
@@ -247,6 +248,7 @@ func TestPickerKeepsTheMapListOnABaseWithoutGeneration(t *testing.T) {
 // in pkg/game; this one runs the command over the lawful install named by
 // AGAINROM_ASSETS and requires the profile its language names.
 func TestReleaseCheckNamesTheBase(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the check over a lawful install needs one")

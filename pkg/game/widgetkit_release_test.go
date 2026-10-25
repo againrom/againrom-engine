@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -22,6 +23,7 @@ import (
 // on the slider and bar screens. With AGAINROM_WIDGET_KIT_WITNESS_DIR set,
 // each frame is written there as a PNG named by the root's language.
 func TestReleaseWidgetKitScreens(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	stateDir := t.TempDir()

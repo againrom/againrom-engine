@@ -14,10 +14,12 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMinimapAlwaysVisibleAfterHistoricalUIAndSAVLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -104,6 +106,7 @@ func TestReleaseMinimapAlwaysVisibleAfterHistoricalUIAndSAVLoad(t *testing.T) {
 }
 
 func TestReleaseOwnerMinimapAlwaysVisibleOnLoadAndF9(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source := os.Getenv("AGAINROM_MINIMAP_OWNER_SAV")
 	if source == "" {
 		t.Skip("no AGAINROM_MINIMAP_OWNER_SAV selected frozen owner minimap save")

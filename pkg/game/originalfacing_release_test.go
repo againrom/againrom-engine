@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // map40 also includes a zero-map-ID companion. These are raw source-state
 // and Againrom continuation witnesses, not original-process observations.
 func TestReleaseOriginalCurrentFacingAndNativeContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		path, sha string
 		want      map[sim.EntityID]uint8

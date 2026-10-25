@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -72,6 +73,7 @@ func recordOf(d *ui.InspectionDocument, kind string, index int) int {
 }
 
 func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {
@@ -200,6 +202,7 @@ func TestReleaseMapEditorRefusesASaveThatLeavesAScriptDangling(t *testing.T) {
 }
 
 func TestReleaseMapEditorSavesAUnitOnGroundItCannotEnterAndListsTheWarning(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {
@@ -256,6 +259,7 @@ func TestReleaseMapEditorSavesAUnitOnGroundItCannotEnterAndListsTheWarning(t *te
 }
 
 func TestReleaseEveryInstalledMapReportsNoError(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	warnings := map[string]int{}
 	for _, entry := range x.Maps {
@@ -286,6 +290,7 @@ func TestReleaseEveryInstalledMapReportsNoError(t *testing.T) {
 }
 
 func TestReleaseMapEditorHelpLinesFitTheRail(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	for _, line := range ui.EditorHelpLinesIn(x.archives.Base.Profile.Language) {
 		if width := x.font.Advance(x.inspectionUTF8(line)); width > 300 {

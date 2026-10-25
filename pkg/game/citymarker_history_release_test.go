@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -12,6 +13,7 @@ import (
 // A marker selected on the world map after an original city LOAD survives SAVE
 // and a cold LOAD.
 func TestReleaseCitySAVKeepsAMarkerSelectedAfterTheLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0010.sav", "89cfca4c14e2b0bafd1fe28911badf246e213d83398874699947008739e8c5d4")
 	src := t.TempDir()
 	if err := os.WriteFile(filepath.Join(src, "source.sav"), raw, 0o600); err != nil {

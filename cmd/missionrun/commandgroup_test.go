@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -20,6 +21,7 @@ import (
 // test's own precedent: the suite stays green with no game present, and this
 // file cannot be executed in an environment with no asset root configured.
 func TestATenthMissionHostileNeverHoldsItsOwnPostAfterBeingCommanded(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the campaign drive needs a lawful install")
 	}

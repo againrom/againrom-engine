@@ -3,12 +3,14 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseCurrentHeroPrimaryWordsReplaceRetainedDocument(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, field := range []string{"Reaction", "Mind", "Spirit"} {
 		t.Run(field, func(t *testing.T) {
 			f := releaseFront(t)

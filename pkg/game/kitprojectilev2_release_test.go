@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -144,6 +145,7 @@ func checkCarriedCastSave(t *testing.T, source, saved []byte) {
 // TestReleaseCarriedSpellTransportSurvivesSave pins the SpellTransport graph
 // and the attack order words of the original source through the ordinary SAVE.
 func TestReleaseCarriedSpellTransportSurvivesSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, saved, _ := carriedCastSave(t)
 	checkCarriedCastSave(t, source, saved)
 }
@@ -151,6 +153,7 @@ func TestReleaseCarriedSpellTransportSurvivesSave(t *testing.T) {
 // TestKitProjectileV2Build writes the v2 kit file into AGAINROM_OWNER_KIT_OUT,
 // or into a temporary directory when it is unset.
 func TestKitProjectileV2Build(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, saved, edition := carriedCastSave(t)
 	checkCarriedCastSave(t, source, saved)
 	kitOwnerWrite(t, kitOwnerOutput(t, edition), carriedCastFile(edition), saved)

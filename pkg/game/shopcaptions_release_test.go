@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseShopBuyAndSellTotalsDrawBelowCaptions(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, s, _ := releaseQuietShopApp(t)
 	raw := roomCaptionRaw(t, f, "main/text/main.txt")
 	labels := [4]string{

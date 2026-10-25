@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/modrt"
@@ -178,6 +179,7 @@ func offMapAfterStart(t *testing.T, dir string, group uint32, ids []uint16) map[
 // and the trigger takes exactly those two off the map. Loss control: the same
 // map with the second unit left out of the group leaves that unit on the map.
 func TestReleaseMapEditorGroupIsTheGroupATriggerActsOn(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	grouped := guestMods(t, guestModID)
 	control := guestMods(t, guestModID)
 	x := installedInspector(t)
@@ -241,6 +243,7 @@ func TestReleaseMapEditorGroupIsTheGroupATriggerActsOn(t *testing.T) {
 // maps, uses the picture grid, the selection box and the Groups window without
 // an edit, and saves: the file is the installed bytes.
 func TestReleaseMapEditorPlacingAndGroupsWithoutAnEditSaveUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := t.TempDir()
 	keys := installedMapKeys(x)
@@ -325,6 +328,7 @@ func bareCell(t *testing.T, d *ui.InspectionDocument, from image.Point) image.Po
 // chosen group's members outlined and badged. Without the directory it only
 // drives the same steps.
 func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir, lang := os.Getenv("AGAINROM_EDITOR_FRAMES"), installLanguage(x)
 	frame := func(e *ui.MapEditor, name string) {

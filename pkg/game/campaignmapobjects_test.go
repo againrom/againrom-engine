@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -85,6 +86,7 @@ func TestCurrentCampaignAddsSelectedMarkersWithoutReplacingOrdinaryRecords(t *te
 }
 
 func TestReleaseCampaignSAVMapObjectsMatchInstalledMapping(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Map witness", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("map witness")

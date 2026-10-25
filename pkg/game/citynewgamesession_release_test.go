@@ -5,12 +5,14 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCityNewGameSessionBoundary(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("explicit profile", func(t *testing.T) { cityNewGameSessionBoundary(t, true) })
 	t.Run("fresh default", func(t *testing.T) { cityNewGameSessionBoundary(t, false) })
 }

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -28,6 +29,7 @@ func fallenCandidate(t *testing.T, x *MapInspector) (string, int) {
 // placement with the game's held fall frame, from the same bytes, in the same
 // colours; the standing pose is not that frame.
 func TestReleaseEditorHealthZeroUnitDrawsFallen(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	key, i := fallenCandidate(t, x)
 	e := x.Editor()
@@ -88,6 +90,7 @@ func TestReleaseEditorHealthZeroUnitDrawsFallen(t *testing.T) {
 // headless from the install, as PNGs into AGAINROM_EDITOR_FRAMES; without it
 // the same steps run.
 func TestReleaseEditorUnitBlockFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir, lang := os.Getenv("AGAINROM_EDITOR_FRAMES"), installLanguage(x)
 	shot := func(e *ui.MapEditor, name string) {

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -12,6 +13,7 @@ import (
 // Backspace, takes nothing from Alt+Backspace and never clears the message line
 // (MENU-082, MENU-088).
 func TestReleasePurseEditorBackspaceAndAltBackspace(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, live, hero := openRefusedFleeMission(t, "purse editor keys")
 	w := live.world
 	w.SetPurse(sim.SelfSlot, 2500)

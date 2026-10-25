@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -70,6 +71,7 @@ func loseMissionTen(t *testing.T) (*FrontEnd, *ui.App, *loadMusicRecorder, *mapW
 
 // The failure panel requests nothing; Exit then stops and requests the menu list.
 func TestReleaseLossThenExitStopsThenRequestsTheMenuList(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, app, device, _ := loseMissionTen(t)
 	logAtPanel, eventsAtPanel := len(app.MusicRequestLog()), len(device.events)
 	for i := 0; i < 3; i++ {
@@ -101,6 +103,7 @@ func TestReleaseLossThenExitStopsThenRequestsTheMenuList(t *testing.T) {
 
 // Load Game on the panel requests nothing until a mission save completes.
 func TestReleaseLoadAfterLossRequestsTheMissionListAgain(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, device, old := loseMissionTen(t)
 	missionList, _ := app.MusicPlaybackState()
 	logAtPanel, eventsAtPanel := len(app.MusicRequestLog()), len(device.events)
@@ -138,6 +141,7 @@ func TestReleaseLoadAfterLossRequestsTheMissionListAgain(t *testing.T) {
 
 // A town LOAD requests the Town list unless it is already playing.
 func TestReleaseTownSaveLoadRequestsTownListOnlyWhenItIsNotPlaying(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	device := &loadMusicRecorder{}

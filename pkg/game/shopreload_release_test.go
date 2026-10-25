@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
 	"againrom/pkg/ui"
@@ -42,6 +43,7 @@ func shopShelvesSummary(s *Shop) [][]string {
 // the hero's items and finds the shop generated anew from the campaign's
 // seed and the shop stock stream, not the shelves the SAVE saw.
 func TestReleaseTownShopReloadRestocks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_ROM1_SHOP_INPUT"); path != "" {
 		shopReloadCold(t, path)
 		return

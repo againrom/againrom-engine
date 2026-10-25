@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -52,6 +53,7 @@ func overloadOrderHero(t *testing.T, f *FrontEnd) sim.Entity {
 // cadence; the same file read as an original SAV gives the same derive, and
 // a load change on that original-loaded hero re-derives it alike.
 func TestReleaseOverloadedHastedHeroMovesInTheClaimedOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("overload order").OpenMission(f.MissionOpenerWith(101, overloadOrderParty(t, f))); err != nil {

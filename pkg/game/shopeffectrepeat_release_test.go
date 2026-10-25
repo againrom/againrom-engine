@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseShopStockHoldsOneEntryPerEffectKind generates stock for every
@@ -12,6 +14,7 @@ import (
 // item to hold two effects of one kind. When AGAINROM_SHOP_CENSUS_OUT names a
 // file, it also lists every generated item there.
 func TestReleaseShopStockHoldsOneEntryPerEffectKind(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := shopOrderFront(t)
 	var out strings.Builder
 	items, repeats := 0, 0

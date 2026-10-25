@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -15,6 +16,7 @@ import (
 // leaves each time, and the main key changes the state wherever the row can be
 // chosen, so each press acts (DLG-KEYS-040, MENU-INPUT-016).
 func TestReleaseNumpadEnterActsAsEnter(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	keys := []string{"enter", "numpad-enter"}
 	for _, q := range []struct {
 		name string

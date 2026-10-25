@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -32,6 +33,7 @@ func roodStageHealSource(t *testing.T) ([]byte, sav.DocumentData) {
 }
 
 func TestReleaseZeroHealthStageOneRemainsHealable(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, sourceDoc := roodStageHealSource(t)
 	requireRoodPlacement(t, sourceDoc, 0, 1, false)
 	f := loadRoodMission(t, source)
@@ -63,6 +65,7 @@ func TestReleaseZeroHealthStageOneRemainsHealable(t *testing.T) {
 }
 
 func TestReleaseHealedActorSAVUsesCurrentStage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, sourceDoc := roodStageHealSource(t)
 	_, identity := roodDocumentActor(t, sourceDoc)
 	f := loadRoodMission(t, source)

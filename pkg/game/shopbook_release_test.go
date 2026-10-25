@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -17,6 +18,7 @@ import (
 // book through the shop controls, reads it through inventory use, and starts
 // the next shipped mission with the learned mask.
 func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	// SHOP-CONSUME-073's literal eligible IDs, priced independently from the
 	// installed Spells field. The generated pool is not the expected set.

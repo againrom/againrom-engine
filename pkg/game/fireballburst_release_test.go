@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -45,6 +46,7 @@ func burstContinuation(t *testing.T, raw []byte, want burstRun) error {
 // SAVE writes the record, and a cold LOAD continues it leaf by leaf to its
 // retirement. Run on the EN and the RU install.
 func TestReleaseNativeFireBallBurstSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := MissionPartyAs(true, f.StartWeapon.Value(), f.Bodies, f.Table)

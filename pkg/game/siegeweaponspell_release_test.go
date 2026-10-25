@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 )
 
@@ -12,6 +13,7 @@ import (
 // resolved through the production hire and loadout path on the installed
 // Units rows; the EN rows hold powers 70 and 40.
 func TestReleaseSiegeEnginesCarryAFireBallWeaponSpell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Town = NewTown(f.Campaign.Value())
 	s := f.TownScreen().(*townScreen)

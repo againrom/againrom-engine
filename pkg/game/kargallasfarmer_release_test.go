@@ -5,6 +5,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/camera"
@@ -25,6 +26,7 @@ func ringPlacements(m *alm.Map) []image.Point {
 // The production opener leaves no entity on the border ring of the three maps
 // that author one there (TERR-PLACE-208); the plain build is the loss control.
 func TestReleaseMissionStartRefusesBorderRingPlacements(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	for _, tc := range []struct {
@@ -88,6 +90,7 @@ func TestReleaseMissionStartRefusesBorderRingPlacements(t *testing.T) {
 // Mission 90's world-map object has no picture and builds no marker
 // (TERR-GMAP-206); mission 100's object is the control that does.
 func TestReleaseKargallasWorldMapObjectBuildsNoMarker(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	a := f.worldMapAssets()
 	if a == nil || a.data == nil {
@@ -116,6 +119,7 @@ func TestReleaseKargallasWorldMapObjectBuildsNoMarker(t *testing.T) {
 // Mission 90's castle is placed whole inside the playable columns, and the
 // highest camera position meets its top (TERR-221).
 func TestReleaseKargallasCastleIsNeverCutByTheCamera(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(90)
 	raw, err := f.Archives.Containers.ReadFile(addr)

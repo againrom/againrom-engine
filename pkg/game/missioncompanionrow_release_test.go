@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -15,6 +16,7 @@ import (
 // creature row: the reader then drops the companion as a temporary ally and
 // draws it from that creature row.
 func TestReleaseMissionSaveWritesCompanionRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Row hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}})
 	for _, npc := range []int32{22, 23, 24, 25} {

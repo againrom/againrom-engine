@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -254,6 +255,7 @@ func reloadMissionSAV1172(t *testing.T, f *FrontEnd, app *ui.App) *FrontEnd {
 }
 
 func TestReleaseImportedLoot1172VictoryColdNextTransfer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, private := townReturnImported1168(t)
 	app := f.App("1172 real retained loot")
 	if err := app.OpenMission(f.MissionOpenerWith(30, f.NextParty())); err != nil {

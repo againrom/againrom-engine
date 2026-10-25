@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseNativeResumeCarriesSpellEffectsAndCellRecords1139 is story
@@ -28,6 +30,7 @@ import (
 // the same fixture also covers a non-empty cell-record residue with no
 // second fixture needed.
 func TestReleaseNativeResumeCarriesSpellEffectsAndCellRecords1139(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-15/game0018.sav",
 		"1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 

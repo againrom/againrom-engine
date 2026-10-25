@@ -3,6 +3,8 @@ package game
 import (
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseForesterStaticObjectsExposeEveryDrawableCycle opens Forester
@@ -10,6 +12,7 @@ import (
 // population distinguishes the live game route from the old tile-bit gate,
 // which admitted none of these cycles.
 func TestReleaseForesterStaticObjectsExposeEveryDrawableCycle(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	row := -1
 	for i, entry := range f.Maps {

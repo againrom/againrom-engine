@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/ui"
@@ -508,6 +509,7 @@ func (r *townFiguresRig) setQuest(on bool) {
 // with nothing on offer. The guards' frame is read from the installed sheet's
 // own pixels in the composed screen.
 func TestReleaseTownFiguresTakeNoPressAndGuardsRestAfterRoomExits(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newTownFiguresRig(t)
 	if len(r.guards) != 8 {
 		t.Fatalf("the guard sheet holds %d frames, want 8", len(r.guards))

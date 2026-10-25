@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -61,6 +62,7 @@ func patrolWordList(t *testing.T, r *sav.DocumentRecordData, name string) []uint
 // member. A guard in the same file keeps 0x0b, and our LOAD keeps each
 // patroller walking its ring.
 func TestReleaseMissionSAVWritesScriptPatrols(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("patrol save").OpenMission(f.MissionOpener(141)); err != nil {

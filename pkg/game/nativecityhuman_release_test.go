@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -131,6 +132,7 @@ func checkNativeCityKnownFields(t *testing.T, f *FrontEnd, p *sav.CityProvenance
 }
 
 func TestReleaseNativeCityKnownHumanFieldsAndSchool(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, class := range []int{0, 1} {
 		t.Run(fmt.Sprint(class), func(t *testing.T) {
 			f := releaseFront(t)
@@ -173,6 +175,7 @@ func TestReleaseNativeCityKnownHumanFieldsAndSchool(t *testing.T) {
 }
 
 func TestReleaseNativeCityKnownHumanHireFields(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, kind := range []int{3, 10, 14} {
 		t.Run(fmt.Sprint(kind), func(t *testing.T) {
 			f, screen := hireForSiegeOrderTest(t, "Hire fields")

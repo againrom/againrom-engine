@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/internal/synth"
 	"againrom/pkg/ui"
 )
@@ -34,6 +35,7 @@ func configuredGateColdTown(t *testing.T, store SaveStore, c Campaign, overlay s
 }
 
 func TestReleaseConfiguredGateMainSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, building := range []TownBuilding{TownShop, TownTavern} {
 		for _, coldBefore := range []bool{false, true} {
 			label := map[TownBuilding]string{TownShop: "shop", TownTavern: "tavern"}[building] + map[bool]string{false: "-fresh", true: "-restored"}[coldBefore]

@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseNativeCarryMissionTownColdAndNextMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	var want mapload.NativeCarryHistory
 	var memberID string
 	f := currentTown(t, nil, func(f *FrontEnd, id sim.EntityID) {

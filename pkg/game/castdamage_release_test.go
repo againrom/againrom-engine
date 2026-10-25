@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -40,6 +41,7 @@ func castDamageResisted(v int64, r int32) int64 {
 // (MAGIC-300, MAGIC-301). Stone Curse's lifetime on a target with negative
 // Earth resistance is D*(100-r)/100 (MAGIC-303).
 func TestReleaseCastDamageFollowsTheSpellRecord(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	installed := mapload.SpellRules(f.Table)
 	if len(installed) != 28 {

@@ -10,12 +10,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseOwnerFidelityHUDAndSavedCursor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	output := t.TempDir()
 	f.Options = OptionsStore{Path: filepath.Join(output, "options.txt")}

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
@@ -57,6 +58,7 @@ func releaseBaseFrame(c *terrain.UnitClass, drawn *terrain.StaticFrame) *terrain
 }
 
 func TestReleaseCampaignMapHumanoidsUseTheirOwnerShade(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	wantTables := releaseOwnerTables(t, f)
 	if !f.Units.HasOwnerPalettes {

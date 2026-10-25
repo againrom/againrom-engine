@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -92,6 +93,7 @@ func retreatTarget(t *testing.T, w *sim.World) (int32, int32) {
 // centre of its anchor cell when it stands, for every footprint side
 // (MOVE-174).
 func TestReleaseWideMoverRetreatsFromItsRawPosition(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
 	cases := map[uint8]int{1: 0, 2: 0, 3: 0}
 	for side := range cases {
@@ -138,6 +140,7 @@ func TestReleaseWideMoverRetreatsFromItsRawPosition(t *testing.T) {
 // teardown finds the recomputed byte and takes the baseline transit, where a
 // world that never recomputes finds the decayed one.
 func TestReleaseTeardownRecomputesTheLayeredCellUnderABody(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
 	scratch := r.world(t, [2]int{}, [2]int{}, nil)
 	triples := r.triples(r.cast(t, scratch))

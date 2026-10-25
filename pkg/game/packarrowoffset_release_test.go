@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -29,6 +30,7 @@ func rowShift(pic, cap *image.RGBA, r image.Rectangle) int {
 }
 
 func TestReleaseShopPackCornerStatesAlign(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Town = NewTown(f.Campaign.Value())
 	for _, mission := range f.Campaign.Value().Main {

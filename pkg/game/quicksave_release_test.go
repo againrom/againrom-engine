@@ -13,11 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseQuickSaveCurrentStateAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_QUICK_SAVE_INPUT"); path != "" {
 		missionAutosaveCold(t, path)
 		return

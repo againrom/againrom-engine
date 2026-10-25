@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -18,6 +19,7 @@ import (
 // Positive unequal and signed-negative variants change only literal health
 // words in memory; they are NOT observations of original-produced damage.
 func TestReleaseOriginalStructures1098HealthRuinAndNativeSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name    string
 		hp, max uint16

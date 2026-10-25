@@ -5,12 +5,15 @@ import (
 	"image"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // An installed stack of eleven identical items is bought whole and sold whole
 // with Shift drags through App's ordinary shop input (DIV-1463). The armour
 // shelf is the one the room opens on, so no shelf pick is pressed.
 func TestReleaseShopShiftDragTradesAnInstalledStack(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	item, ok := releaseShiftDragItem(s)

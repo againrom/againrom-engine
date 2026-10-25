@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -122,6 +123,7 @@ func partyOwnerReferences(t *testing.T, f *FrontEnd, store SaveStore, name strin
 // health, worn and carried items, the killed stranger as a body the player
 // owns. The fresh session without the first LOAD is the second case.
 func TestReleaseTransferredDeadAllySAVReloadsTheParty(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the mission-141 hand-over needs a lawful install")
 	}

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -167,6 +168,7 @@ func (w *travelWitness) finish(shown int) int {
 // after it finishes the reveal so that the next tick opens the mission
 // (`TOWN-121`, DIV-1516).
 func TestReleaseWorldMapTravelInputsKeepTravelRunning(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("Up, Down and the wheel", func(t *testing.T) {
 		w := startTravelWitness(t)
 		w.reveal(0)

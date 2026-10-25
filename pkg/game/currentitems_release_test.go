@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -177,6 +178,7 @@ func mutateCurrentObject(t *testing.T, f *FrontEnd, want *currentObjectProof) {
 }
 
 func TestReleaseCurrentObjectSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_OBJECT_SAV_INPUT"); path != "" {
 		var proof currentObjectProof
 		data, err := os.ReadFile(path + ".json")

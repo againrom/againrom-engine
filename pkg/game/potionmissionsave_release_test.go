@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 
@@ -40,6 +41,7 @@ func potionActive(f *FrontEnd) (sim.ActiveEffect, bool) {
 }
 
 func TestReleaseCarriedPotionMissionSaveKeepsModifierWordThroughColdLoadAndExpiry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range potionSaveCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := releaseFront(t)

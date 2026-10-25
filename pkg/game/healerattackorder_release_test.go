@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -74,6 +75,7 @@ func healerHolds(w *sim.World, id sim.EntityID) bool {
 }
 
 func TestReleaseGroupAttackKeepsAStafflessMageHealing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, w := healerOrderSetup(t, true)
 	hurt := healerAttack(t, f, w, healerArcher, healerMage, healerWarrior)
 	if !healerHolds(w, healerArcher) || !healerHolds(w, healerWarrior) {
@@ -88,6 +90,7 @@ func TestReleaseGroupAttackKeepsAStafflessMageHealing(t *testing.T) {
 }
 
 func TestReleaseAStafflessMageOrderedAloneObeys(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, w := healerOrderSetup(t, true)
 	healerAttack(t, f, w, healerMage)
 	if !healerHolds(w, healerMage) {
@@ -96,6 +99,7 @@ func TestReleaseAStafflessMageOrderedAloneObeys(t *testing.T) {
 }
 
 func TestReleaseAStaffedMageTakesAGroupAttackOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, w := healerOrderSetup(t, false)
 	healerAttack(t, f, w, healerArcher, healerMage, healerWarrior)
 	if !healerHolds(w, healerMage) {

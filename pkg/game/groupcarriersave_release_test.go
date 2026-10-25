@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -38,6 +39,7 @@ type groupCarrierWitness struct {
 // owners by slot alone: the restored registry then holds the writer's Player
 // keys and the World hash differs.
 func TestReleaseGroupCarrierSurvivesSAVEAndColdLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const mission, anchor = 41, sim.EntityID(9)
 	f := releaseFront(t)
 	f.SetTipsOff(true)

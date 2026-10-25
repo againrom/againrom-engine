@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -14,6 +15,7 @@ import (
 // A stroke beside a cell the author closed (bit 13) keeps it closed. Control:
 // the stroke rewrites that cell, and without the flag it would open.
 func TestReleaseMapEditorStrokeKeepsTheAuthorsClosedCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const flag = 0x2000
 	x := installedInspector(t)
 	maps, probes, rewritten, wouldOpen := 0, 0, 0, 0
@@ -85,6 +87,7 @@ func TestReleaseMapEditorStrokeKeepsTheAuthorsClosedCell(t *testing.T) {
 
 // The installed maps the drop-cell rule warns on, by catalogue key.
 func TestReleaseDropCellRuleWarnsOnTheNamedInstalledMaps(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	var got []string
 	keys := installedMapKeys(x)

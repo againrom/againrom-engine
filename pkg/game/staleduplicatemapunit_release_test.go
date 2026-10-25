@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -13,6 +14,7 @@ import (
 // save must resume with every Entity-owning actor present, each under its own
 // source binding, and the ALM unit bound to exactly one claimant.
 func TestReleaseResumeStaleDuplicateMapUnitID(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Skip("no AGAINROM_SAVE_CORPUS: stale duplicate witness requires owner saves")

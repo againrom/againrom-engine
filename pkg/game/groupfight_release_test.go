@@ -13,6 +13,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -25,6 +26,7 @@ import (
 // in flight. A member that takes a victim and stands beside it never leaves
 // the ready phase, which is how the mage stood through the whole fight.
 func TestReleaseAnAttackedGroupAtKadaganPostFightsAsAGroup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the Kadagan Post group fight needs a lawful install")

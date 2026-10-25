@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -14,6 +15,7 @@ import (
 // pushPortrait reads it through unitPicture, whose recorded-figure guard
 // still shows the figure for it (DAT-HUMANS-008).
 func TestReleasePushPortraitShowsRestoredCompanionFigure(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	mw := openRestoredVictory(t, "push portrait companion")
 	var companions []sim.EntityID
 	for _, id := range mw.mission.ids {
@@ -49,6 +51,7 @@ func TestReleasePushPortraitShowsRestoredCompanionFigure(t *testing.T) {
 // original's own client would draw from the bytes this engine writes --
 // TestReleaseSackTokenValueRoundTripsFromTheOriginal below pins that.
 func TestReleaseRestoredSackDrawsItsOwnValueBand(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, saved := groundCorpusFile(t, "2026-09-24/exp-engine-lineage/game1017-engine-from-0017.sav", "1c7cb03aecacc2a80b89f1d86be4f9d5bfbadf7214c7eaaa334197ebf0d2e985")
 	f := releaseFront(t)
 	a := f.App("restored sack frame")
@@ -86,6 +89,7 @@ func TestReleaseRestoredSackDrawsItsOwnValueBand(t *testing.T) {
 // file this engine produced. Three cells round-trip: (69,35), (123,86) and
 // (34,116), the owner's own drop.
 func TestReleaseSackTokenValueRoundTripsFromTheOriginal(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-09-24/game0002-bigsack.sav", "8842212e16cbb97ad05af059bdd637df2ab777b4c7f5bb5430353b68b5312c51")
 	source, err := sav.Open(payload)
 	if err != nil {
@@ -159,6 +163,7 @@ func TestReleaseSackTokenValueRoundTripsFromTheOriginal(t *testing.T) {
 // map is what this test can check, and it is exactly the fact the defect
 // broke.
 func TestReleaseHeroDrawsItsOwnBodyAfterOurSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, saved := groundCorpusFile(t, "2026-09-24/game0017-victory.sav", "a30de01ec3d96d58a3a244b9a536a3e49c04a4d45098cb828dabb908756488c3")
 
 	isPartyBody := func(units *terrain.UnitSet, class *terrain.UnitClass) bool {

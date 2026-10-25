@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -86,6 +87,7 @@ func sonRewardRun(t *testing.T, heal bool, limit int) (int, uint32, []ui.Message
 // DIV-3767). The loss control leaves the son fallen: over the same
 // steps nothing is paid, no gold line stands and the page never opens.
 func TestReleaseDragonClanSonRewardPaysWithThePickupLine(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const limit = 6000
 	gold := func(lines []ui.MessageLine) []string {
 		var out []string

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
@@ -17,6 +18,7 @@ import (
 // still holds zero. A Human's capacity and an original's Unit words are not
 // touched.
 func TestReleaseUnitCapacitySAVRule(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

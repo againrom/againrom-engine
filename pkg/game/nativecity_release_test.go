@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -25,6 +26,7 @@ func nativeCityBareMember(m mapload.PartyMember) mapload.PartyMember {
 }
 
 func TestReleaseNativeTownSaveBarePartySessionStateRoundTripsAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Native Hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -90,6 +92,7 @@ func TestReleaseNativeTownSaveBarePartySessionStateRoundTripsAsSAV(t *testing.T)
 }
 
 func TestReleaseNativeTownSaveRosterChangeAcrossSAVSaves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Roster Hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -165,6 +168,7 @@ func TestReleaseNativeTownSaveRosterChangeAcrossSAVSaves(t *testing.T) {
 // worn, at the same slot, after a real native-SAV round trip, and that the
 // document itself never grows a Diary from it.
 func TestReleaseNativeTownSaveFighterWornSlotTwelveRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Slot Twelve Fighter", Choices: []int{0, 0, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -271,6 +275,7 @@ func TestReleaseNativeTownSaveFighterWornSlotTwelveRoundTrips(t *testing.T) {
 }
 
 func TestReleaseNativeTownSaveRealPartyEmitsNativeSAVAndRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Equipped Hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -457,6 +462,7 @@ func TestReleaseNativeTownSaveRealPartyEmitsNativeSAVAndRoundTrips(t *testing.T)
 
 // DIV-890
 func TestReleaseNativeTownSaveHiredMercenaryEmitsNativeSAVAndRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Tavern Hero", Choices: []int{0, 0, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -640,6 +646,7 @@ func TestReleaseNativeTownSaveHiredMercenaryEmitsNativeSAVAndRoundTrips(t *testi
 
 // Dismissal must not derive pool arrays from party membership (MERC-POOL-011/012, SAV-1084/1085).
 func TestReleaseNativeCitySAVDismissalPreservesLoadedWorkingPool(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Pool Persistence Hero")
 	f.Town.gold = 5_000_000
@@ -774,6 +781,7 @@ func countTownMercenaries(party []mapload.PartyMember, typ int) int {
 // member of that type, is precisely what campaignProgressFromSAV would leave
 // behind decoding one.
 func TestReleaseNativeTownSaveHiredMercenaryFlagOnlyFileStillLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero, _ := reachabilityWalkArrive(t, f, "Legacy Flag Hero")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -820,6 +828,7 @@ func TestReleaseNativeTownSaveHiredMercenaryFlagOnlyFileStillLoads(t *testing.T)
 }
 
 func TestReleaseNativeTownSaveShopBaredSessionRoundTripsAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "Session Hero", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -1022,6 +1031,7 @@ func reachabilityWalkArrive(t *testing.T, f *FrontEnd, name string) (mapload.Par
 
 // DIV-884
 func TestReleaseNativeTownSaveReachabilityWalkAllReachableStatesWriteNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Walk Hero")
 	f.Town.gold = 5_000_000
@@ -1097,6 +1107,7 @@ func TestReleaseNativeTownSaveReachabilityWalkAllReachableStatesWriteNative(t *t
 // exactly like an ordinary player who hires early and keeps the squad for
 // the rest of the campaign.
 func TestReleaseNativeTownSaveReachabilityWalkThreeCheckpointsRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero, screen := reachabilityWalkArrive(t, f, "Checkpoint Hero")
 	f.Town.gold = 5_000_000
@@ -1278,6 +1289,7 @@ func partyTypeAndIDSequence(party []mapload.PartyMember) ([]int, []string) {
 }
 
 func TestReleaseNativeTownSaveTavernOffersSurviveReload(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Tavern Hero")
 	f.Town.gold = 5_000_000
@@ -1366,6 +1378,7 @@ func TestReleaseNativeTownSaveTavernOffersSurviveReload(t *testing.T) {
 // the hero's own: the SAV keeps the sale and the purse, and the hired member
 // comes back as it was hired.
 func TestReleaseNativeTownSaveStrippedHeroBesideHiredMercenaryRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Stripped Hero")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -1516,6 +1529,7 @@ func hireForOrderTest(t *testing.T, name string) (*FrontEnd, *townScreen) {
 }
 
 func TestReleaseNativeTownSaveHiredMercenaryAscendingOrderRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Ascending Hero")
 	wantChapter := f.Town.Chapter()
 
@@ -1584,6 +1598,7 @@ func TestReleaseNativeTownSaveHiredMercenaryAscendingOrderRoundTrips(t *testing.
 // and the reload keeps the true [14 14 14 6 6 6 6]-shaped order, not the
 // ascending rebuild's own [6 6 6 6 14 14 14].
 func TestReleaseNativeTownSaveHiredMercenaryDescendingOrderRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Descending Hero")
 	wantChapter := f.Town.Chapter()
 
@@ -1659,6 +1674,7 @@ func hireForSiegeOrderTest(t *testing.T, name string) (*FrontEnd, *townScreen) {
 }
 
 func TestReleaseNativeTownSaveHiredMercenarySiegeThenHumanOrderRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForSiegeOrderTest(t, "Siege Then Human")
 
 	// Siege first, then Human — the shape master wrote natively and the
@@ -1718,6 +1734,7 @@ func TestReleaseNativeTownSaveHiredMercenarySiegeThenHumanOrderRoundTrips(t *tes
 // A current Human-then-siege roster is written by the same SAV producer as
 // every other town state. The cold reload must retain its exact member order.
 func TestReleaseNativeTownSaveHiredMercenaryHumanThenSiegeOrderPreserved(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForSiegeOrderTest(t, "Human Then Siege")
 
 	// Human first, then siege — the direction this correction trades away,
@@ -1771,6 +1788,7 @@ func TestReleaseNativeTownSaveHiredMercenaryHumanThenSiegeOrderPreserved(t *test
 }
 
 func TestReleaseNativeTownSaveHiredMercenaryCombatBlockRoundTrips(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForSiegeOrderTest(t, "Combat Block Hero")
 	if _, ok := screen.toggleMercenary(10); !ok {
 		t.Fatal("fixture assumption broke: production tavern hire for type 10 refused")
@@ -1864,6 +1882,7 @@ func heroCharacterOf(t *testing.T, source []sav.Character) sav.Character {
 // TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged
 // is the chain's own baseline: no mutation between the two SAVEs.
 func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero, _ := reachabilityWalkArrive(t, f, "Reload Hero Bare")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -1963,6 +1982,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithNothingChanged
 }
 
 func TestReleaseRestoreOriginalRejectsMissingOrRepeatedCurrentPartyIdentity(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	raw := currentTownSave(t, f)
 	if len(f.Carried) < 2 {
@@ -2018,6 +2038,7 @@ func TestReleaseRestoreOriginalRejectsMissingOrRepeatedCurrentPartyIdentity(t *t
 }
 
 func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithHiredSquad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero, screen := reachabilityWalkArrive(t, f, "Reload Hero Hired")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -2149,6 +2170,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeWithHiredSquad(t *
 }
 
 func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeAfterWorldMapOpened(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero, screen := reachabilityWalkArrive(t, f, "Reload Hero WorldMap")
 	for _, m := range []int{10, 20, 30, 40} {
@@ -2293,6 +2315,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStaysNativeAfterWorldMapOpene
 // in every state. This witness requires every checkpoint two to remain a
 // native .sav, not merely a file of some kind.
 func TestReleaseNativeTownSaveReachabilityWalkSecondSaveAllStayNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Walk Second Save All Native")
 	f.Town.gold = 5_000_000
@@ -2358,6 +2381,7 @@ func TestReleaseNativeTownSaveReachabilityWalkSecondSaveAllStayNative(t *testing
 
 // A quick-spell change made after LOAD remains a native SAV checkpoint.
 func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, _ = reachabilityWalkArrive(t, f, "Quick Spell After Reload")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -2419,6 +2443,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadCustomQuickSpellStaysNative(t
 // worn set. The second reload must keep the hero stripped, the hired member as
 // it was, and the sale price in the purse.
 func TestReleaseNativeTownSaveSecondSaveAfterReloadStrippedHeroBesideHiredMercenarySavesAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Strip After Reload")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -2538,6 +2563,7 @@ func TestReleaseNativeTownSaveSecondSaveAfterReloadStrippedHeroBesideHiredMercen
 
 // A descending hire order made after LOAD remains ordered across the next SAV.
 func TestReleaseNativeTownSaveSecondSaveAfterReloadDescendingHireOrderStaysNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Descending After Reload")
 	wantChapter := f.Town.Chapter()
 

@@ -8,11 +8,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 func TestReleasePortraitInputHotfix(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("shop-statistics-equip", func(t *testing.T) {
 		for _, dest := range []string{"pack", "table"} {
 			t.Run(dest, func(t *testing.T) {

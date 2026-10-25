@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -81,6 +82,7 @@ func layerWitness(f *FrontEnd, gambeson, cloak, boots uint16) error {
 }
 
 func TestReleaseModLayersWearSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemTown(t)
 	gambeson, cloak, boots := layerCodes(t, f)
 	s := currentTownShop(f, "hero")
@@ -143,6 +145,7 @@ func TestReleaseModLayersWearSaveAndLoad(t *testing.T) {
 
 // A layer sold and bought back is in the pack and not on the doll.
 func TestReleaseModLayerBoughtBackIsNotWornAgain(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemTown(t)
 	_, cloak, _ := layerCodes(t, f)
 	s := currentTownShop(f, "hero")
@@ -264,6 +267,7 @@ func layerOrderWitness(t *testing.T, f *FrontEnd, name string, layer uint16, anc
 }
 
 func TestReleaseModLayersPaintInOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemFront(t)
 	gambeson, cloak, boots := layerCodes(t, f)
 	chain := data.ComposeItemCode(2, 7, 1, 16)
@@ -276,6 +280,7 @@ func TestReleaseModLayersPaintInOrder(t *testing.T) {
 // the layers: the figure bare, the figure in chain mail, the figure in chain
 // mail under the three layers, and the twelve-slot panel.
 func TestReleaseModLayersPaperdollPicture(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemFront(t)
 	gambeson, cloak, boots := layerCodes(t, f)
 	var eq data.Equipment
@@ -332,6 +337,7 @@ func layerMission(t *testing.T, f *FrontEnd) (*mapWorld, sim.EntityID) {
 }
 
 func TestReleaseModLayersInTheMissionInventory(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemTown(t)
 	gambeson, cloak, boots := layerCodes(t, f)
 	s := currentTownShop(f, "hero")

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -18,6 +19,7 @@ const slotZeroCorpusSAV = "2026-08-15/game0018.sav"
 const slotZeroCorpusSHA256 = "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b"
 
 func TestReleaseSlotZeroStrikeOnCorpusGodActorThroughSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, slotZeroCorpusSAV, slotZeroCorpusSHA256)
 	f, _ := coldMission(t, raw)
 	target, attacker := slotZeroWitnessPair(t, f.live.world)

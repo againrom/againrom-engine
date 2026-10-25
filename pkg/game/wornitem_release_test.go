@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -58,6 +59,7 @@ func wornItemWear(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID) {
 // Wearing a shield that adds Body moves the Body the character panel states,
 // together with the maximum health and to-hit it drives.
 func TestReleaseWornBodyItemRaisesThePanelBody(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, id := wornItemOpen(t, sim.ItemEffect{Kind: 2, Operand: 1})
 	before, _ := f.live.entity(id)
 	bodyBefore := f.live.chars[id].Body

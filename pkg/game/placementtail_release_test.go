@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
@@ -141,6 +142,7 @@ func tailEntity(t *testing.T, w *sim.World, unit uint16) sim.Entity {
 // the mission door, checks the applied override bytes on its actors, saves
 // SAV through F2, loads it cold and steps both sessions: the values hold.
 func TestReleasePlacementTailSurvivesSaveColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, c := range []struct {
 		mission int
 		units   []uint16
@@ -273,6 +275,7 @@ func humanHealthMaximum(body int32, fighter bool, skill [data.SkillSlots]int32) 
 // record (ALM-FLAGCORP-110), so a synthetic bit on scn:10's brigands removes
 // the row's equipment on the type-key arm and leaves a creature's weapon.
 func TestReleasePlacementTailWitnesses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.Base().Profile.Language != "russian" {
 		b := tailMap(t, f, "Cross.ALM")
@@ -374,6 +377,7 @@ var loneShootingOriginals = []struct{ name, sum string }{
 // equal the original's state in five original SAVs of the mission
 // (DIV-3581).
 func TestReleaseLoneShootingBytesKeepTheOriginalsShooting(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(110)
 	b := tailMap(t, f, addr)

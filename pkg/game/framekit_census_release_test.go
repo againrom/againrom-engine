@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -19,6 +20,7 @@ import (
 // writes one PNG per picture and a hash list named by the root's language,
 // so two builds can be compared picture by picture.
 func TestReleaseFrameAndButtonCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	stateDir := t.TempDir()

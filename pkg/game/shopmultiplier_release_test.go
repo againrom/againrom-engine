@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseShopStockMultiplierDefaultMatchesMain(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := shopOrderFront(t)
 	h := sha256.New()
 	for _, ceiling := range shelfTestCeilings(t, f) {
@@ -34,6 +36,7 @@ func TestReleaseShopStockMultiplierDefaultMatchesMain(t *testing.T) {
 }
 
 func TestReleaseShopStockMultiplierRollsEveryShelf(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := shopOrderFront(t)
 	for _, ceiling := range shelfTestCeilings(t, f) {
 		for _, seed := range []int64{1, 7, 42} {

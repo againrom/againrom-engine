@@ -14,11 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownTavernArt.Value() == nil || f.TownTavernArt.Err() != nil {
 		t.Fatalf("tavern art = %#v / %v", f.TownTavernArt, f.TownTavernArt.Err())

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -55,6 +56,7 @@ func readMissionSave(t *testing.T, f *FrontEnd, app *ui.App) []byte {
 // Save points: a fresh mission, the first town, a purchase carried into the
 // next mission, and a drop and pick-up there.
 func TestReleaseWrittenEquipmentNamesItsCodeDefinitionRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	fresh := releaseFront(t)
 	party := fresh.ChargenParty(ui.ChargenResult{Name: "Row witness", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := fresh.App("row witness")
@@ -114,6 +116,7 @@ func TestReleaseWrittenEquipmentNamesItsCodeDefinitionRow(t *testing.T) {
 
 // A loaded row-0 Weapon, as this engine once wrote, resaves derived.
 func TestReleaseLoadedZeroDefinitionRowResavesDerived(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Row reload", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("row reload")

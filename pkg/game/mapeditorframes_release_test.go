@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -55,6 +56,7 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 // fonts: none is undecided or left baked, and only text under an open
 // drop-down's list is hidden.
 func TestReleaseMapEditorOwnerFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	now := time.Unix(1, 0)

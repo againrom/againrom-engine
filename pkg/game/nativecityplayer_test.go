@@ -11,6 +11,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -141,6 +142,7 @@ func checkPlayerWireN4(t *testing.T, raw []byte, mode uint8, setting int32, curr
 }
 
 func TestReleaseNativeCityPlayerConstruction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	releaseFront(t)
 	for sex := 0; sex < 2; sex++ {
 		for mage := 0; mage < 2; mage++ {

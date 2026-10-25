@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -55,6 +56,7 @@ func cardExperienceWitness(t *testing.T, f *FrontEnd, app *ui.App, e sim.Entity,
 // The XP line stands on a hero's card and on Brian's before he joins, and is
 // absent for an enemy person, a creature and a hired mercenary (DIV-3613).
 func TestReleaseInformationCardStatesExperienceOnlyForHeroes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("mission 40", func(t *testing.T) {
 		f := releaseFront(t)
 		f.SetDeterministicFrames(true)

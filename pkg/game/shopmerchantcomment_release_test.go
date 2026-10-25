@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
@@ -70,6 +71,7 @@ func releaseQuietShopApp(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *tavern
 // starts and stops nothing (TOWN-478); a changed rack still arms Yes
 // (SHOP-ANIMATION-084).
 func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, s, r := releaseQuietShopApp(t)
 	point := shopPointer(t, app)
 	base := len(r.samples)
@@ -225,6 +227,7 @@ func shopSpeechDrain(t *testing.T, app *ui.App, r *tavernInteriorRecorder, base 
 // every class/row part queued at once, plays more than one recording for
 // every key with two or more parts.
 func TestReleaseShopMerchantSpeaksOneLinePerItem(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, s, r := releaseQuietShopApp(t)
 	shopSpeechDrain(t, app, r, 0)
 	present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }
@@ -290,6 +293,7 @@ func TestReleaseShopMerchantSpeaksOneLinePerItem(t *testing.T) {
 
 // 300 seeded placements of installed items speak exactly when the draw is below 30.
 func TestReleaseShopMerchantSpeaksOnThirtyPercentDraw(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, s, r := releaseQuietShopApp(t)
 	shopSpeechDrain(t, app, r, 0)
 	present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }

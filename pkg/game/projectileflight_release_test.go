@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -106,6 +107,7 @@ func lateShots(r, l recordSet) []uint16 {
 // included. game0022 holds a rock, game0023 a rock and the burst, game0024 the
 // burst and a bolt. One tick before or after, the set differs.
 func TestReleaseOriginalProjectileFlightContinuesToLaterSaves(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	saves := map[string][]byte{}
 	ticks := map[string]uint64{}
 	for _, n := range []string{"game0022.sav", "game0023.sav", "game0024.sav"} {
@@ -153,6 +155,7 @@ func TestReleaseOriginalProjectileFlightContinuesToLaterSaves(t *testing.T) {
 // ANIM-115 gives the order). Between them the transport is the one pending
 // delivery. A transport queued or a burst built a tick off moves a reading.
 func TestReleaseSiegeRiderQueuesItsTransportWithTheBlowBeforeTheBurst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const target, hitTick, burstTick = 185, 3098, 3102
 	g := releaseFront(t)
 	app, _ := openOriginalSAVApp(t, g, flightSave(t, "game0022.sav"), "rider.sav")

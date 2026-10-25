@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -16,6 +17,7 @@ import (
 // progress at the cell centre before it reads the cast order (AI-350, AI-352,
 // MAGIC-239), and a cast plays the Attack run (MAGIC-CASTANIM-029).
 func TestReleaseHostileMageCastRunNeverDrawsAWalk(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_MAGE_CHASE_DIR")
 	if dir == "" {
 		t.Skip("set AGAINROM_MAGE_CHASE_DIR to the directory holding mage-anim.sav and magesmoving.sav")

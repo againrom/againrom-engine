@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -13,6 +14,7 @@ import (
 // is neither drawn nor opened there, and the book control does nothing. The
 // shop keeps its book.
 func TestReleaseSchoolAndTavernHaveNoSpellbook(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Town = NewTown(f.Campaign.Value())
 	for _, mission := range f.Campaign.Value().Main {

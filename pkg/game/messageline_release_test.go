@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
@@ -44,6 +45,7 @@ const (
 // oldest first, one after another, each 3000 ms once it is the oldest
 // (MISSION-MSGLINE-057, MISSION-MSGPOST-058).
 func TestReleaseMessageLineDrawsInstalledPickupText(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := releaseFront(t)
 	words := messageInstalledWords(t, root)
 

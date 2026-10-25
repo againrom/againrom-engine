@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -206,6 +207,7 @@ func structureAt(ss []sim.Structure, a image.Point) []sim.Structure {
 }
 
 func TestReleaseMapEditorStructuresAndSacksPlayAsModMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := guestMods(t, guestModID)
 	edited := guestMods(t, guestModID)
 	x, err := NewMapInspector(os.Getenv("AGAINROM_ASSETS"))

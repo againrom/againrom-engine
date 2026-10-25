@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/vfs"
 )
@@ -13,6 +14,7 @@ import (
 // plays none (DLG-VOICE-074): speech.res holds no battle path, and no event
 // text path composes a speech path.
 func TestReleaseMissionEventDialogueHasNoVoice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	file, err := cutsceneInstallPath(os.Getenv("AGAINROM_ASSETS"), "speech.res")
 	if err != nil {
@@ -54,6 +56,7 @@ func TestReleaseMissionEventDialogueHasNoVoice(t *testing.T) {
 // Parts tagged npc25 resolve a hero; the RU Part5 speaker is left as the claim
 // states it.
 func TestReleaseMission110BanditPartsShowTheBandit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("event speakers")

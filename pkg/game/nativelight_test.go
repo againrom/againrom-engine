@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -19,6 +20,7 @@ func TestNativeSaveFreshLoadRestoresScheduledLight(t *testing.T) {
 // not a naturally played mission or an original SAV. The observation is the
 // renderer's Light cache; no screen pixels or ROM1 load policy are asserted.
 func TestReleaseNativeSaveFreshLoadRestoresScheduledLight(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	nativeLightSaveFresh(t, releaseFront(t), releaseFront)
 }
 

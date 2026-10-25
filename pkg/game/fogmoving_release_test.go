@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -12,6 +13,7 @@ import (
 // steps onto on the tick it steps, and the ground it left stays lit until the
 // period turns over.
 func TestReleaseWalkingPartyMemberLightsNewGroundAtOnce(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	hero := data.Hero{Body: 60, Reaction: 60, Mind: 60, Spirit: 60}

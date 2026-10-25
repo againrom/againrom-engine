@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -51,6 +52,7 @@ var (
 // town input; then the first dialogue a shipped mission raises by itself. Each is
 // compared with the frame the App presents.
 func TestReleaseDialogueLayout(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app, s := openFirstTownShopDialogue(t, f, "dialogue layout")
 	shop := func() (*image.RGBA, string) {
@@ -137,6 +139,7 @@ func TestReleaseDialogueLayout(t *testing.T) {
 // Every shipped dialogue block wraps to the number of lines the claim's census
 // gives, and none to more than seven.
 func TestReleaseDialogueLinesPerBlock(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	font := f.Font.Value()
 	layout := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(true)
@@ -776,6 +779,7 @@ func checkDialogueText(t *testing.T, kind string, pix *image.RGBA, font *text.Fo
 }
 
 func TestReleaseDialogueSpilledCorpus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	font := f.Font.Value()
 	layout := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(true)

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -18,6 +19,7 @@ import (
 // must cast in it: the draw runs every decision pass (AI-385, AI-554) and its
 // order waits behind a loaded strike (MAGIC-239, AI-356).
 func TestReleaseDragonWitnessFromLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	saves := os.Getenv("AGAINROM_DRAGON_SAVES")
 	if saves == "" {
 		t.Skip("set AGAINROM_DRAGON_SAVES to comma-separated owner SAV paths")

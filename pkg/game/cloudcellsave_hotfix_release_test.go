@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -95,6 +96,7 @@ func cloudCellWorld(t *testing.T, doc sav.DocumentData, layer uint8) sav.Documen
 // same cloud, a second SAVE writes the same World, and the loaded world keeps
 // the uninterrupted world's hash each tick until the cloud ends.
 func TestReleaseCloudOverUnrecordedCellsSavesAndReloads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	const mission = 20

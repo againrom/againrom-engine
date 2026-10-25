@@ -7,11 +7,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseCurrentWorldEffectTokenFieldsSaveColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	for role := 0; role < 2; role++ {
 		for field := 0; field < 20; field++ {
@@ -67,6 +69,7 @@ func TestReleaseCurrentWorldEffectTokenFieldsSaveColdLoad(t *testing.T) {
 }
 
 func TestReleaseCurrentWorldEffectTokensFollowWorldSAVEAndColdLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2027-09-07/game0125.sav", "3a055c8dcef6f053721e1c1478c82552c199b92fb178e9f034fe7500077b4efd")
 	f := releaseFront(t)
 	app, _, _ := openWorldEffectsTestSave(t, f, raw, "tokens.sav")
@@ -116,6 +119,7 @@ func TestReleaseCurrentWorldEffectTokensFollowWorldSAVEAndColdLOAD(t *testing.T)
 }
 
 func TestReleaseCurrentWorldEffectTokenCorpusResave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_ = releaseFront(t)
 	fields := []string{"RuntimeID", "T0C", "T0E", "T08", "T18", "T1C", "Identity", "Reference", "Block12"}
 	matched, changed := make([]int, len(fields)), make([]int, len(fields))

@@ -5,6 +5,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -27,6 +28,7 @@ func opaquePixels(pic *image.RGBA) int {
 // the most drawn pixels (`TOWN-531`). Captures of several paints go to
 // AGAINROM_SHOT_DIR when it is set.
 func TestReleaseWorldMapTaskFlagAnimatesAndTheCrossHolds(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	w := openCrossWitness(t)
 	a := w.front.worldMapAssets()
 	if len(a.available) != 9 || len(a.cross) != 13 {

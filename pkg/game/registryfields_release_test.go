@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/reg"
 )
 
@@ -43,6 +44,7 @@ func releaseSectionInts(r *reg.Reg, section, key string) []int32 {
 // npc 22 once, in [Mission30], and the campaign grants that one companion and
 // no other subscript.
 func TestReleaseTownCompanionIsTheRegistryAddHero(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	r := releaseScenario(t, f)
 	grants := map[string][]int32{}
@@ -63,6 +65,7 @@ func TestReleaseTownCompanionIsTheRegistryAddHero(t *testing.T) {
 }
 
 func TestReleaseNewGameMissionIsTheRegistryFirst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	first := 0
 	for _, sec := range releaseScenario(t, f).Root.Children {

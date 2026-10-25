@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 )
@@ -13,6 +14,7 @@ import (
 // silently: a TRUE/FALSE constant condition stores Const where the row
 // stores Int, and the node labelled PalNearChief stores another schema.
 func TestReleaseMapEditorSignatureCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, maps := installedMapBytes(t, x)
 	var nodes, checked, constants, anomalies, noRow int

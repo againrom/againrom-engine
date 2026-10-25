@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/textfit"
 	"againrom/pkg/ui"
 )
@@ -29,6 +30,7 @@ func messageFirstLine(body string) (string, []string) {
 }
 
 func TestReleaseMessagePickerParts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	maps, pages, absent, textEdits, speakerEdits, outOfOrder := 0, 0, 0, 0, 0, 0
 	for _, entry := range x.Maps {

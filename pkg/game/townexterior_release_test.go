@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/formats/spr16"
@@ -21,6 +22,7 @@ import (
 )
 
 func TestReleaseTownExterior1120AppFramesSoundsAndNativeLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSquareArt.Value() == nil || len(f.TownSquareArt.Value().Problems) != 0 {
 		t.Fatalf("exterior load: %v / %v", f.TownSquareArt.Err(), f.TownSquareArt)

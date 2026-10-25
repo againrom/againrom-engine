@@ -6,12 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/vfs"
 )
 
 // The Game Options and Sound Options dialogs read these installed rows
 // (TEXT-099, TEXT-100); the cutscene and tune tables hold their counts.
 func TestReleaseSettingsDialogsReadInstalledRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	dialogs := LoadTextTable(f.Archives.Containers, DialogsTextPath, f.textCode())
 	if dialogs.Lines() != 166 {
@@ -88,6 +90,7 @@ func opaqueBox(img *image.RGBA) image.Rectangle {
 // captions for Shadows, Dynamic lighting and Object animations (TEXT-099) and,
 // in a mission, list the 12 mission tracks with installed titles (VIDEO-076).
 func TestReleaseSettingsDialogsFrameCaptionsAndMissionTracks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 )
 
@@ -16,6 +17,7 @@ import (
 // of each class a Humans TypeID names, and every body of mission 81, which
 // places a TileSize 2 and a TileSize 3 class, carries its class's TileSize.
 func TestReleaseFogFootprintIsTheClassTileSize(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	classes, err := loadUnitClasses(f.Archives.Containers)
 	if err != nil {
@@ -88,6 +90,7 @@ func TestReleaseFogFootprintIsTheClassTileSize(t *testing.T) {
 // starts at its head plus the head's own length word. The fresh World's height
 // plane, which the fog walk reads, equals that grid byte for byte.
 func TestReleaseFogHeightPlaneIsTheParserGrid(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(150)
 	raw, err := f.Archives.Containers.ReadFile(addr)

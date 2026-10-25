@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -599,6 +600,7 @@ func deliveryTownPaused(w *deliveryWitness) {
 }
 
 func TestReleaseSharedAudioDeliveryScopeLifecycle(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("set AGAINROM_ASSETS to a lawful install")

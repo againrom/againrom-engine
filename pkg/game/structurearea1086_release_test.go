@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 // presentation fog are fixtures. The map, Building definitions, terrain, spell
 // rows, art, App input, damage, inspection and native SaveStore are production.
 func TestReleaseMultiCellStructureAreaSpell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	hero := data.Hero{Body: 60, Reaction: 60, Mind: 100, Spirit: 100}

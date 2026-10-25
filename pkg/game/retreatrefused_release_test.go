@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -28,6 +29,7 @@ const releaseRetreatRefusedMission = 41
 // stands on the wall side. Retreat, the flee cell, the refusal and every later
 // tick are production.
 func TestReleaseRetreatWhoseFleeCellHasNoRouteKeepsFighting(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

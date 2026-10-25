@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -181,6 +182,7 @@ func paintPlaqueSize(pic *image.RGBA, art *ui.ShopScreenArt, oracle priceOracle,
 // down, the plaque of the printed figure, a missing figure, font1, a pixel aside
 // and a missing shadow leaves the frame different from that.
 func TestReleaseShopPlaqueIsChosenFromTheStoredPrice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()

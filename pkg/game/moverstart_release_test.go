@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -59,6 +60,7 @@ func moverRecordsByMapUnit(doc sav.DocumentData) map[uint16][]byte {
 // with two or more placed actors holds two or more facings, which a start
 // leaving every facing 0 cannot.
 func TestReleaseEveryMissionStartHoldsItsConstructedMovers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetTipsOff(true)
 	a := f.App("mission start Movers")

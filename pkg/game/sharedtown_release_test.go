@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -83,6 +84,7 @@ func releaseShopMaskPoint(t *testing.T, s *townScreen,
 // source rows 200..239 and in rows 170..199, where the removed doll-name
 // overlay used to cover equipment. Both populations are visible and interactive.
 func TestReleaseShopDollHitUsesOnlyPaintedFigurePixels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: production doll-mask witness needs a lawful install")
 	}
@@ -137,6 +139,7 @@ func TestReleaseShopDollHitUsesOnlyPaintedFigurePixels(t *testing.T) {
 // the production campaign, definition table, screen seams and save envelope;
 // the asset-free gate skips it rather than substituting synthetic content.
 func TestReleaseSharedTownRoute(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: shared-town release route needs a lawful install")
 	}

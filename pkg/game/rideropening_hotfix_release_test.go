@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -10,6 +11,7 @@ import (
 
 // Mission 71 Lancers move at 28 and the fallen pair's cells stay lit.
 func TestReleaseMission71LancerSpeedAndFallenKnightSightThroughSAVAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("mission 71 riders").OpenMission(f.MissionOpenerWith(71, hasteParty())); err != nil {
@@ -67,6 +69,7 @@ func TestReleaseMission71LancerSpeedAndFallenKnightSightThroughSAVAndColdLoad(t 
 
 // Hired riders (type ids 19 and 21) keep the rider speed term.
 func TestReleaseHiredRidersKeepTheRiderSpeedThroughSAVAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := hasteParty()

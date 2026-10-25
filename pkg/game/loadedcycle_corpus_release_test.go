@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -59,6 +60,7 @@ func loadedCycleHolder(t *testing.T, f *FrontEnd, raw []byte, offset int) (w *si
 }
 
 func TestReleaseOriginalSaveLoadedCycleFinishesBeforeStateAndMoveOrders(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Skip("AGAINROM_SAVE_CORPUS is not set")

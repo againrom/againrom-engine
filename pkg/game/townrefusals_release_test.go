@@ -1,12 +1,17 @@
 package game
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/internal/firstgame"
+)
 
 // TestReleaseTownRefusalsPostNoLineOnInstall drives Sleep, a hire past the
 // purse and a training past the purse through the installed tavern and school
 // of the root under test. None posts a line; the hire refusal requests tavern
 // sound slot 0xa0 and the others request no tavern slot.
 func TestReleaseTownRefusalsPostNoLineOnInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
 	f.Town.Won(10)

@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -26,6 +27,7 @@ import (
 // handover is made at (14,18), 12 cells from (26,25) and from (26,22), the cell
 // the script sends group 3's ranged unit to.
 func TestReleaseMission81QuestItemHandoverAndColdSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m := releaseMissionMap(t, f, 81)
 	raw, err := m.Script()

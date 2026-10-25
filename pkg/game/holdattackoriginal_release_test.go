@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -63,6 +64,7 @@ func holdAttackPair(w *sim.World) (sim.EntityID, sim.EntityID, bool) {
 // AGAINROM_ORIGINAL_HOLD_ATTACK_DIR/<en|ru>; a language with no SAV there is
 // skipped.
 func TestReleaseAttackOrderReleasesAnOriginalHoldMember(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root, src := os.Getenv("AGAINROM_ASSETS"), os.Getenv("AGAINROM_ORIGINAL_HOLD_ATTACK_DIR")
 	if root == "" || src == "" {
 		t.Skip("AGAINROM_ASSETS and AGAINROM_ORIGINAL_HOLD_ATTACK_DIR are required")

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // In the town shop a staff whose Spell comes from its kind-41 effect owns
@@ -14,6 +16,7 @@ import (
 // back, so the doll stayed empty. The first 27 steps of the doll-and-shop
 // scenario take the staff off, put it back and take it off again.
 func TestReleaseShopStaffTakeOffAndPutBack(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source := os.Getenv("AGAINROM_SAVE_666")
 	if source == "" {
 		t.Skip("AGAINROM_SAVE_666 is not set")

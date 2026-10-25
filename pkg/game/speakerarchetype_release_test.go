@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -17,6 +18,7 @@ import (
 )
 
 func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dirs := []data.FigureDir{data.FigureDirManFighter, data.FigureDirManMage, data.FigureDirWomanFighter, data.FigureDirWomanMage}
 	wants := [4][4]int{{0, 3, 2, 1}, {0, 3, 2, 0}, {0, 1, 0, 3}, {0, 1, 0, 2}}
 	for primary, dir := range dirs {
@@ -134,6 +136,7 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 }
 
 func TestReleaseZeroModeNPCFaceByteSurvivesSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

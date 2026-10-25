@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseFame1181TerminalResultColdHallAndSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	prepareAcceptedCampaignMission(t, f, 150)

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -126,6 +127,7 @@ func placedClassDropWeapon(t *testing.T, mw *mapWorld, id sim.EntityID) {
 }
 
 func TestReleaseMission141PlacedMageHoldsItsRowClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	mw := placedClassMission(t, f, 141)
 	cases := []placedClassCase{{unit: 5, class: 24}}
@@ -156,6 +158,7 @@ func TestReleaseMission141PlacedMageHoldsItsRowClass(t *testing.T) {
 }
 
 func TestReleaseMission41PlacedHumansHoldTheirRowClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m := releaseMissionMap(t, f, 41)
 	var cases []placedClassCase

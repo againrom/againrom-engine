@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestReleaseFreshMageStaffUsesCompleteEffectPrice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	res := ui.ChargenResult{
 		Name:    "Initial staff price",
@@ -74,6 +76,7 @@ func TestReleaseFreshMageStaffUsesCompleteEffectPrice(t *testing.T) {
 }
 
 func TestReleaseInitialMageStaffPriceReachesCurrentSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	res := ui.ChargenResult{Name: "Initial staff SAV", Choices: []int{0, 1, 0}, Stats: []int{25, 25, 25, 25}}
 	party := f.ChargenParty(res)

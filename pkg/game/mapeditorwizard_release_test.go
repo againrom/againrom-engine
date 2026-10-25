@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -19,6 +20,7 @@ import (
 // count of triggers every row of which is a ready item is logged. A row the
 // wizard cannot read shows as "Other" and stays as it is.
 func TestReleaseTriggerWizardOpensShippedTriggers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	total, full, partial, rowsAll, keptAll := 0, 0, 0, 0, 0
 	for _, key := range installedMapKeys(x) {
@@ -61,6 +63,7 @@ func TestReleaseTriggerWizardOpensShippedTriggers(t *testing.T) {
 // on the cell scenario 10 drops on and compares the action and the trigger
 // the tool writes with scenario 10's.
 func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	shipped := x.Editor()
 	shipped.Layout(1280, 800)
@@ -105,6 +108,7 @@ func TestReleaseDropZoneMatchesTheShippedShape(t *testing.T) {
 // wizard with the owner's example trigger, the Draw on map step and the
 // drop-zone tool with two zones, drawn with the installed fonts.
 func TestReleaseTriggerWizardFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	e := x.Editor()
@@ -153,6 +157,7 @@ func TestReleaseTriggerWizardFrames(t *testing.T) {
 // on, the gold and the win follow, and with the area elsewhere the same walk
 // fires neither.
 func TestReleaseTriggerWizardMapPlaysTheTrigger(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	archives, err := OpenArchives(os.Getenv("AGAINROM_ASSETS"))
 	if err != nil {

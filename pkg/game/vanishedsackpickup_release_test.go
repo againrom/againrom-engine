@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -10,6 +11,7 @@ import (
 // both sessions walk on and complete it without a transfer, tick for tick
 // (AI-645).
 func TestReleaseAPickupWhoseSackWentCompletesAfterColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 1)
 	hero := arena.heroes[0]
 	sack := sim.CellPoint{X: arena.cx - 4, Y: arena.cy}

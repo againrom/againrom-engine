@@ -1,8 +1,13 @@
 package game
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/internal/firstgame"
+)
 
 func TestReleaseHoldPositionAttacksACreatureInReach(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 1)
 	hero := arena.heroes[0]
 	arena.selectFirstHero(t)

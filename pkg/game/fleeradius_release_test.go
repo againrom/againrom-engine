@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -61,6 +62,7 @@ func searchRadiusSave(t *testing.T, f *FrontEnd, label string) ([]byte, sav.Docu
 // (AI-693); a dead record holding 0 is written with 5 (DIV-3942), as is every
 // other record.
 func TestReleaseSaveWritesEveryActorsSearchRadius(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const mission = 41
 	f := releaseFront(t)
 	f.SetTipsOff(true)

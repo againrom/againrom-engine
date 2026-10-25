@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -35,6 +36,7 @@ func group1155MoveCell(t *testing.T, world *sim.World, id sim.EntityID) (int32, 
 }
 
 func TestReleaseMilestone2Groups1155(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_ = releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0016.sav", "5e67d1282398076498867ac0124046d5c0e7f1acd2d0ffc1e66888c5296e0345")
 	want, join, _ := groups1155Inputs(t, raw)

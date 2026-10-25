@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -74,6 +75,7 @@ func saveCorpseMission(t *testing.T, f *FrontEnd, dir string) string {
 }
 
 func TestReleaseNewCorpseSAVContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("fighter", func(t *testing.T) { corpseSAVContinuationWitness(t, false) })
 	t.Run("mage", func(t *testing.T) { corpseSAVContinuationWitness(t, true) })
 }

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -204,6 +205,7 @@ func campaignReturn(t *testing.T, f *FrontEnd, app *ui.App) {
 }
 
 func TestReleaseCampaign1176TerminalAndSideRecovery(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []int{150, 151} {
 		t.Run(fmt.Sprint(mission), func(t *testing.T) {
 			f := releaseFront(t)

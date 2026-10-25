@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -19,6 +20,7 @@ import (
 // mutations. It is not evidence that an original runtime cleared/changed a
 // trigger, and re-emitting its envelope is not a source-free SAV writer.
 func TestReleaseOriginalCellTriggers1106AppOverlayAndNativeEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_ = releaseFront(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	for _, variant := range []string{"natural", "saved-clear", "changed-source", "relocation-insert"} {

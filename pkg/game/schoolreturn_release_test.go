@@ -10,11 +10,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseReturnedTownSchoolTrainingSavesAndReloads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	s := currentTownShop(f, "hero")
 	s.room = roomSchool

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
@@ -136,6 +137,7 @@ func labyrinthStriker(f *FrontEnd, mercs []sim.EntityID, lead sim.Entity) (sim.E
 
 // Each visible creature fall requests Sound[4] on its fall frame.
 func TestReleaseClassVoicedFallsPlaySoundFourInTheLabyrinth(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app := labyrinthFront(t)
 	mercs := labyrinthMercenaries(t, f)
 	heard := observeReleaseAudio(t, f)
@@ -340,6 +342,7 @@ func labyrinthRescue(t *testing.T, f *FrontEnd, app *ui.App, mercs []sim.EntityI
 // bank. Ordered into a fight it is wounded: each wound and its fall must sound
 // the peasant leaves of the same bank, wherever the camera lets them be heard.
 func TestReleaseRescuedVillagersReplyAndHurtInThePeasantBank(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	script := &scriptedDraw{}
 	previous := newViewerVoiceDraw
 	newViewerVoiceDraw = func(*random.Stream) voiceDraw { return script.draw }

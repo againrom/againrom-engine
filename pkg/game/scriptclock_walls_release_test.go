@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -12,6 +13,7 @@ import (
 // Authored mission scripts must extend their temporary barriers before the
 // normal spell lifetime ends, then let an ordinary lever use remove its wall.
 func TestReleaseScriptClockKeepsWallsUntilLever(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct{ mission, walls int }{{91, 2}, {101, 8}} {
 		t.Run(fmt.Sprintf("mission%d", tc.mission), func(t *testing.T) {
 			f := releaseFront(t)

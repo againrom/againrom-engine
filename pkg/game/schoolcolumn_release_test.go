@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestReleaseSchoolColumnClassTransitionInstalledPixelsAndSound(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if f.TownSchoolArt.Value() == nil {
 		t.Fatalf("school art: %v", f.TownSchoolArt.Err())

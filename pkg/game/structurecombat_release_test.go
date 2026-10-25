@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -16,6 +17,7 @@ import (
 // Flame Thrower. Actor placement/population are fixtures; equipment folding,
 // structure/terrain, input, HP/ruin presentation and SaveStore are production.
 func TestReleaseStructurePhysicalAttack(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, damaging := range []bool{false, true} {
 		name := "native Short Bow zero damage"
 		if damaging {

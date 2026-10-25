@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -179,6 +180,7 @@ func writeAbandonShot(t *testing.T, name string, panel *image.RGBA) {
 // completion paid. The town SAV written after the party is home is read back by
 // a cold LOAD under the mod and refused without it; the mission is entered again.
 func TestReleaseModAbandonReturnsToTheTownAsEntered(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, a, screens, s := abandonTown(t, abandonModDir, "mission-abandon")
 	screen := screens.Screens[0]
 	if screen.Kind != mod.ActionAbandon {
@@ -343,6 +345,7 @@ func abandonReload(t *testing.T, raw []byte, plain bool) *FrontEnd {
 // words; with the mod over a mission that was not entered from a town the menu
 // is the same seven rows, frame for frame.
 func TestReleaseUnmoddedMissionMenuHasNoAbandonEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	var panels [2]*image.RGBA
 	for i, withMod := range []bool{false, true} {
 		var f *FrontEnd
@@ -404,6 +407,7 @@ func writeLeaveMod(t *testing.T) string {
 // Restart restores the entry World, party and purse while continuing the
 // process projectile counter.
 func TestReleaseModRestartReopensTheMissionFromItsEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	counterSilentDevice(t)
 	dir := writeLeaveMod(t)
 	f, a, screens, s := abandonTown(t, dir, "mission-leave")

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -39,6 +40,7 @@ func thrownHeld(w *sim.World, hero sim.EntityID) int {
 }
 
 func TestReleaseThrownItemLiesAtFeetAndSurvivesSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("thrown item")

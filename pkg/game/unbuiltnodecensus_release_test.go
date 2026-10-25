@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -239,6 +240,7 @@ func unbuiltCensusRosters(f *FrontEnd) []unbuiltCensusRoster {
 // off-map arm through subscript 0. AGAINROM_UNBUILT_CENSUS names a directory
 // the census text is written to.
 func TestReleaseScriptUnbuiltNodeCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	maps := ArchiveMaps(f.Archives.Containers)
 	names := slices.Clone(maps.Names())

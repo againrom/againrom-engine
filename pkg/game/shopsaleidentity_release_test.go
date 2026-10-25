@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -100,6 +101,7 @@ func staffSaleCounts(v staffSaleStateObservation, sold sim.ItemInstance, exact b
 }
 
 func TestReleaseShopSoldStaffPreservesInstanceAndMagicShelf(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	output, source := os.Getenv("AGAINROM_STAFF_SALE_WITNESS_DIR"), os.Getenv("AGAINROM_SAVE_666")
 	if output == "" || source == "" {
 		t.Skip("AGAINROM_STAFF_SALE_WITNESS_DIR and AGAINROM_SAVE_666 are required")

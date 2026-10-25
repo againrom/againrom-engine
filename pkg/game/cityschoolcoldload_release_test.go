@@ -3,10 +3,12 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseCitySchoolTrainsNativeMageAfterColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	store := SaveStore{Dir: t.TempDir()}
 	f, app := saveDialogArrivedTown(t, store.Dir)
 	t.Cleanup(app.StopAudio)

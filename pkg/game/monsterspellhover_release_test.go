@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -36,6 +37,7 @@ func monsterHoverScan(t *testing.T, app *ui.App, step int, prefix string) (image
 // names. A plain creature's card offers no such target, and moving off the row
 // hides the popup.
 func TestReleaseTooltipMonsterSpellListOnCreatureCard(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, app, turtle := magicWitnessOpen(t)
 	app.SetTooltipDelayPreference(300, nil)
 	app.SetTooltipFont(f.Font.Value())

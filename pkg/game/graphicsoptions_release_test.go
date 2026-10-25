@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}

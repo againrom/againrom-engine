@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -180,6 +181,7 @@ func hardEdges(before, after *alm.Map) (changed, hardCorners int) {
 // sizes 0, 1 and 3 and both shapes: no stroke leaves a corner where the cells
 // meeting show two classes and did not before, and undo gives back the bytes.
 func TestReleaseMapEditorStrokesLeaveNoSeam(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/10.alm")
 	_ = e.Key("terrain")
@@ -221,6 +223,7 @@ func TestReleaseMapEditorStrokesLeaveNoSeam(t *testing.T) {
 // an installed map of the root and on a map that is not square; hidden, it
 // dims none.
 func TestReleaseMapEditorBorderIsTheGameBorder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	fresh, err := mapedit.NewMap(alm.NewMapSpec{Width: 48, Height: 32, Tile: 0x14, Altitude: 64})
 	if err != nil {
@@ -263,6 +266,7 @@ func TestReleaseMapEditorBorderIsTheGameBorder(t *testing.T) {
 // brush list, the two markers and the border, into AGAINROM_BRUSH_FRAMES when
 // set; without it the frames are drawn and checked, not written.
 func TestReleaseMapEditorBrushFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_BRUSH_FRAMES")
 	shot := func(e *ui.MapEditor, name string) {

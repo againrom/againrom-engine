@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
@@ -46,6 +47,7 @@ func (r *fireWallSounds) SetSettings(audio.Settings) {}
 // same cast at 0.113.1 (93d12014) and before the spell presentation table
 // (c3835e74) requested none either.
 func TestReleaseFireWallSoundsWithTheCameraStill(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	r := &fireWallSounds{}

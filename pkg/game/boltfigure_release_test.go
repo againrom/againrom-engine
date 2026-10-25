@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -18,6 +19,7 @@ import (
 // ticks at the ramp frames, one display stamp per stored point on the
 // installed lightnin sheet (MAGIC-280, MAGIC-281, ANIM-BOLTRAMP-035).
 func TestReleaseLightningFigureOverItsLife(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, hero := launchWitness(t, true)
 	mw := f.live
 	sheet, chain := mw.projectiles.Sheet(data.PicturePathFirst), mw.projectiles.Sheet(data.PicturePathSecond)

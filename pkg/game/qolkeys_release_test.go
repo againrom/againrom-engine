@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -245,6 +246,7 @@ func wantAutocast(w *qolWitness) uint32 {
 // SAV written before the second order differs, and W on the running mission,
 // whose memory is kept, does take the plain staff back.
 func TestReleaseQualityOfLifeKeysSaveOnlyOrdinaryOrders(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	keyed := qolWitnessRun(t, true)
 	plain := qolWitnessRun(t, false)
 	if keyed.f.live.world.Tick() != plain.f.live.world.Tick() {
@@ -297,6 +299,7 @@ func TestReleaseQualityOfLifeKeysSaveOnlyOrdinaryOrders(t *testing.T) {
 // equal, the companion's combat sheet included. The loss control steps the
 // reopened World with the same order and no re-derivation.
 func TestReleaseWeaponSwapQueuedBeforeASaveAppliesAfterTheLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.SetTipsOff(true)

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -43,6 +44,7 @@ func (r *figureRig) placedIDs() (hero, person, creature sim.EntityID) {
 // each defect did and requires the matching audit to name it, so a clean audit
 // in the other tests is not an audit that cannot fail.
 func TestReleaseFigureRegressionLossControls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	npcClass := func(r *figureRig, id sim.EntityID) *terrain.UnitClass {
 		e, _ := r.f.live.entity(id)
 		for typ, c := range r.f.live.units.Classes {
@@ -138,6 +140,7 @@ func figureDirMage(p mapload.PartyMember) bool {
 // TestReleaseFigureRegressionTownLossControls damages the town's dolls and the
 // hired members' packs and requires the town audit to name each.
 func TestReleaseFigureRegressionTownLossControls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	controls := []struct {
 		name   string
 		damage func(r *figureTownRig)
@@ -193,6 +196,7 @@ func TestReleaseFigureRegressionTownLossControls(t *testing.T) {
 // TestReleaseFigureRegressionFallenLossControl moves a felled hero's art to an
 // NPC class, as a lost PC binding did, and requires the fallen audit to name it.
 func TestReleaseFigureRegressionFallenLossControl(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openFigureMission(t, 70, figureHeroes[1])
 	mw := r.f.live
 	var id sim.EntityID

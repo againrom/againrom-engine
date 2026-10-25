@@ -7,12 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseNativeCityMarkerResourcePaths(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, onMap := range []bool{false, true} {
 		name := "city"
 		if onMap {

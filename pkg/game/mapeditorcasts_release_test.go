@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReleaseEditorCellSpellFieldsKeepEveryMap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	count, records, unknown := 0, 0, 0
 	for _, key := range installedMapKeys(x) {
@@ -56,6 +58,7 @@ func TestReleaseEditorCellSpellFieldsKeepEveryMap(t *testing.T) {
 }
 
 func TestReleaseEditorCellSpellFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)
@@ -76,6 +79,7 @@ func TestReleaseEditorCellSpellFrames(t *testing.T) {
 }
 
 func TestReleaseEditorPlacedTrapCastsInTestPlay(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, started := f5Inspector(t)
 	plain := guestMods(t, guestModID)
 	saveEditedGuestMap(t, x, plain, func(*ui.MapEditor) {})
@@ -177,6 +181,7 @@ func testPlayLaunch(t *testing.T, e *ui.MapEditor, started *[][]string) (string,
 // A trap added without a template on a new map, which holds no type-9
 // record, fires its spell when the party steps on its cell in test play.
 func TestReleaseEditorNewTrapOnANewMapCastsInTestPlay(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, started := f5Inspector(t)
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
 	e := x.Editor()
@@ -226,6 +231,7 @@ func TestReleaseEditorNewTrapOnANewMapCastsInTestPlay(t *testing.T) {
 // A shipped casting structure record off its structure's anchor cell edits
 // and serves as a template; only the edited and the copied bytes change.
 func TestReleaseEditorOffAnchorCastingRecordEditsAndCopies(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	for _, key := range installedMapKeys(x) {
 		e := x.Editor()

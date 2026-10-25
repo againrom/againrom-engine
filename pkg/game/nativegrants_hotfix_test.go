@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -118,6 +119,7 @@ func nativeGrantRawCount(t *testing.T, raw []byte) uint32 {
 }
 
 func TestReleaseNativeConsumedCompanionGrant(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, absent := range []bool{false, true} {
 		t.Run(map[bool]string{false: "present", true: "already-granted-member-absent"}[absent], func(t *testing.T) {
 			f := nativeGrantFreshReturn(t)

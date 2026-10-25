@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -109,6 +110,7 @@ func cityMissionWorldsEqual(t *testing.T, live, cold *sim.World, tick int) {
 }
 
 func TestReleaseCityRosterMultipleHiredSquadsF2SAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := hireForOrderTest(t, "Complete Roster")
 	store := SaveStore{Dir: t.TempDir()}
 	save, _, _ := f.SaveSeams(store, OriginalStore{}, nil)

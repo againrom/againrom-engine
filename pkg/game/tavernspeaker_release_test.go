@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -22,6 +23,7 @@ import (
 // and the dialogue image the player sees must carry it. The shipped mission-41
 // offer's swordswoman (npc90) is one of the speakers the walk must find.
 func TestReleaseTavernDialogueDressesTheStockUnitItsSpeakerAnswersFor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, s := reachabilityWalkArrive(t, f, "Stock Speaker")
 	f.Town.gold = 5_000_000

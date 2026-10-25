@@ -12,6 +12,7 @@ import (
 	"time"
 	"unsafe"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -387,6 +388,7 @@ func TestInstallShareKeyFollowsTheArchives(t *testing.T) {
 // compared with itself has no difference, and one pixel or one unit-class
 // field written through a shared pointer is named.
 func TestInstallShareDiffSeesAWrite(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS is not set")
@@ -439,6 +441,7 @@ func TestInstallShareDiffSeesAWrite(t *testing.T) {
 // TestInstallShareReadsTownArtOnFirstUse: no town picture before the first
 // read, then exactly what the loaders return.
 func TestInstallShareReadsTownArtOnFirstUse(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("AGAINROM_ASSETS is not set")

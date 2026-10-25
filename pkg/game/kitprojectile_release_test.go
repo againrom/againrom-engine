@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
@@ -42,6 +43,7 @@ func kitProjectileStore(t *testing.T, raw []byte) sav.ProjectileStore {
 // TestKitProjectileBuild writes the kit file into AGAINROM_OWNER_KIT_OUT, or a
 // temporary directory.
 func TestKitProjectileBuild(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, kitProjectileSource, kitProjectileSourceHash)
 	f := releaseFront(t)
 	app, _ := openOriginalSAVApp(t, f, source, "source.sav")

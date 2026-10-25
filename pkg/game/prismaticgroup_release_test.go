@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -63,6 +64,7 @@ func (r *prismaticGroupRig) world(t *testing.T, mateScan uint8, withMate bool) (
 }
 
 func TestReleasePrismaticSpraySecondariesFollowTheGroupsSightAndRank(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	m := releaseMissionMap(t, f, 20)
 	r := &prismaticGroupRig{width: m.Width, height: m.Height, rules: mapload.SpellRules(f.Table)}

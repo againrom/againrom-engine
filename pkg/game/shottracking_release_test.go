@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -105,6 +106,7 @@ func (s trackedShot) changed() bool {
 // SAVE on the tick it is built, a cold LOAD continues the same leaves, its
 // dir sequence included, tick for tick, as the uninterrupted run.
 func TestReleaseUnitShotTracksAMovingTarget(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	first, ok := walkUnderFire(t, -1)
 	if !ok {
 		t.Fatal("no shot at the walking hero changed its dir in flight")

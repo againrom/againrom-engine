@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
@@ -73,6 +74,7 @@ func messageFrame(t *testing.T, e *ui.MapEditor, lang, name string) {
 }
 
 func TestReleaseMessagePickerPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	maps, values, missing, pages := 0, 0, 0, 0
 	for _, entry := range x.Maps {
@@ -127,6 +129,7 @@ func TestReleaseMessagePickerPopulation(t *testing.T) {
 }
 
 func TestReleaseMessagePickerCampaignPage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	lang := x.pageLanguage()
 	e := x.Editor()

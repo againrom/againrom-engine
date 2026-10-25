@@ -9,11 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMessageCodecCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	maps, files, pages, edits := 0, 0, 0, 0
 	for _, key := range installedMapKeys(x) {
@@ -75,6 +77,7 @@ func TestReleaseMessageCodecCensus(t *testing.T) {
 }
 
 func TestReleaseDialogueShippedPagePopup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)
@@ -125,6 +128,7 @@ func TestReleaseDialogueShippedPagePopup(t *testing.T) {
 }
 
 func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

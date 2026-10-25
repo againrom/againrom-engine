@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseOriginalProfile1107NaturalFractionAppAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, fromMap := range []bool{false, true} {
 		t.Run(map[bool]string{false: "main menu", true: "mission menu"}[fromMap], func(t *testing.T) {
 			f := releaseFront(t)

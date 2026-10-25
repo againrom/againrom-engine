@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -129,6 +130,7 @@ func statueQuestFinish(t *testing.T, f *FrontEnd, app *ui.App, rood, lord sim.En
 }
 
 func TestReleaseStatueQuestRoleAndColdSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	party := f.NextParty()
@@ -179,6 +181,7 @@ func TestReleaseStatueQuestRoleAndColdSAV(t *testing.T) {
 }
 
 func TestReleaseStatueQuestOwnerReadySAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SEYDEN_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_SEYDEN_SAV to the owner ready-to-deliver mission151 SAV")

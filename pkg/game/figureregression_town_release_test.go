@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -262,6 +263,7 @@ func auditTavernSpeakers(r *figureTownRig, stock map[int]bool) []string {
 }
 
 func TestReleaseFigureRegressionTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	stock := map[int]bool{}
 	ran := 0
 	for n, chapter := range []int{40, 70, 100, 140} {

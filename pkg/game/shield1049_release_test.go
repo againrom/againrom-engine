@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
 
 func TestReleaseShieldDefinitionAndHumanCellPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows, defenceRows, absorptionRows := 0, 0, 0
 	for row := 1; row < f.Table.Shields.Len(); row++ {

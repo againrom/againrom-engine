@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
 )
@@ -70,6 +71,7 @@ func scriptsListRow(t *testing.T, e *ui.MapEditor, row int) image.Rectangle {
 }
 
 func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, sources := installedMapBytes(t, x)
 	totals := [4]int{}
@@ -141,6 +143,7 @@ func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
 }
 
 func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir, lang := os.Getenv("AGAINROM_EDITOR_FRAMES"), installLanguage(x)
 	e := x.Editor()

@@ -11,11 +11,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseMission90CastleMeetsViewTop(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("map edges")

@@ -7,12 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseEveryDragonUsesFlameDamageAndGeneralAccuracy(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	flame, err := data.ResolveWeapon("Flame Thrower", f.Table.Shapes, f.Table.Materials, f.Table.Weapons)
 	if err != nil {

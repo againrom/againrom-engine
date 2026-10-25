@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 )
@@ -12,6 +13,7 @@ import (
 // shipped mission record and shipped bridge1v sheet, then follows the production
 // map-to-viewer route. The release gate runs it once per lawful install.
 func TestReleaseMission81VerticalWoodenBridgeDrawsItsAuthorSizedDeck(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	addr, _ := MissionMap(81)
 	raw, err := f.Archives.Containers.ReadFile(addr)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -52,6 +53,7 @@ func newScriptAuthorMod(t *testing.T) (string, *ui.MapEditor, *MapInspector) {
 }
 
 func TestReleaseScriptWindowScenarioContinuesFromSAVColdLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root, e, x := newScriptAuthorMod(t)
 	reopened := x.Editor()
 	if err := reopened.Open(filepath.Join(root, newMapModID, "mission", "map.alm")); err != nil {

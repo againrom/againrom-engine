@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -60,6 +61,7 @@ func worldGround(t *testing.T, x *MapInspector, m *alm.Map) []bool {
 // it misses the structure footprints, and on a map with structures it
 // disagrees with the world, so the comparison sees the structure stage.
 func TestReleaseMapEditorPassabilityIsTheWorldsGroundPlane(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	worlds := []string{"scenario/10.alm"}
 	structural := 0
@@ -161,6 +163,7 @@ func hoverStatus(e *ui.MapEditor, c image.Point) string {
 // byte of the map; Unblock on Water leaves the cell closed, and the status
 // line names Water as what keeps it.
 func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	book := words.For(x.archives.Base.Profile.Language)
 	word := func(id string) string { return x.inspectionUTF8(book.Text(id)) }
@@ -307,6 +310,7 @@ func slicesEqual[T comparable](a, b []T) bool {
 // list with its swatches and the passability and height brushes' status
 // lines. Without that directory it drives the same steps.
 func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_PASSABILITY_FRAMES")
 	now := time.Unix(1, 0)
@@ -385,6 +389,7 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 // the rest. Its control: that whole line, measured in the same font, is
 // wider than the strip, so the check fails if the fit stops dropping lines.
 func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	e.Layout(1280, 800)

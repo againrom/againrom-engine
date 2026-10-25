@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
 
 func TestReleaseTownWeaponNamesSurviveColdSAVLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, "2026-08-27/EXP-0261-owner-runs/game0005.sav", "9060508e3103aecb394f48ac206d45c388e86af24c1015013a294f7d2c03325f")
 	f := releaseFront(t)
 	if _, town, err := f.RestoreOriginal(source); err != nil || !town {

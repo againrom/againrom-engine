@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -468,6 +469,7 @@ func documentsLossControls1176(t *testing.T, raw []byte) {
 }
 
 func TestReleaseDocuments1176ActualGrantsReturnShopColdSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Document traveler", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})

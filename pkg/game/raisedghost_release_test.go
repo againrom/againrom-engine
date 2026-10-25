@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -56,6 +57,7 @@ func requireLiveRaisedGhost(t *testing.T, f *FrontEnd, typ int32) {
 // a second SAVE keeps the row. The same SAV with the Ghost's row and face
 // zeroed, as the producer wrote them before it named the row, loads too.
 func TestReleaseRaisedGhostSurvivesSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

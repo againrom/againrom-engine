@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/vfs"
@@ -17,6 +18,7 @@ import (
 // editor's unit marker, footprint cross and area centre are the game's
 // path-line centre, and the midpoint rule is not.
 func TestReleaseEditorCrossesStandOnThePathCentreOfAnInstalledSlope(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the slope witness requires an installed map")

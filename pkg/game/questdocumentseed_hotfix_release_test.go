@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -15,6 +16,7 @@ import (
 // members (PARTY-037, PARTY-038). The mission opens and every registry Item
 // row is one the party carries or wears.
 func TestReleaseCompanionQuestDocumentMissionEntry(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	hero := MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table)[0]
 	companion := MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table)[0]

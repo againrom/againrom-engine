@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 )
@@ -26,6 +27,7 @@ import (
 // itself resolves against; a Units TypeID is absent from Humans entirely, so
 // there is no by-TypeID comparison to make for these two.
 func TestReleaseEveryReachableMercenaryCarriesItsOwnRotationSpeed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	seen := make(map[string]bool)
 	seenSiege := make(map[int]bool)

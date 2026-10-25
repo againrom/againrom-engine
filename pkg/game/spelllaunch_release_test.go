@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -167,6 +168,7 @@ func launchWritePNG(t *testing.T, dir, name string, pix image.Image) {
 // (MAGIC-262). Each Lightning cast in eight directions leaves the class's
 // launch point for the facing the cast turned him to (MAGIC-261, MAGIC-263).
 func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := launchRenderDir(t)
 	for _, c := range []struct {
 		name   string
@@ -270,6 +272,7 @@ func lumaSum(pix *image.RGBA) int {
 // A phase-0 Lightning path lights the ground and a unit in a stamped cell;
 // with Dynamic lighting off only the unit (MAGIC-270, MAGIC-273).
 func TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := launchRenderDir(t)
 	f, hero := launchWitness(t, true)
 	mw := f.live

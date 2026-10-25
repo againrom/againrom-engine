@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func writeMod(t *testing.T, modsDir, id, manifest string) {
@@ -108,6 +110,7 @@ func TestMissingOrMalformedModIsRefusedByName(t *testing.T) {
 // named by AGAINROM_ASSETS with a constructed mod folder: the mod is listed and
 // the check passes, and a missing mod fails naming it.
 func TestReleaseCheckListsAModOverTheInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the check over a lawful install needs one")

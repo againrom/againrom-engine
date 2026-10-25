@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -12,6 +13,7 @@ import (
 // these temporary allies. The original ALM slots are5 (M20) and2 (M10).
 // Both installs consume each same owner save; this is not a ROM1 runtime test.
 func TestReleaseOriginalSavedAlliesKeepPlayerControl(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		path, sha string
 		mapIDs    []uint16

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/sim"
 )
@@ -17,6 +18,7 @@ type phaseSoundReceipt struct {
 }
 
 func TestReleaseProjectilePhaseSoundUsesTheInstalledAdapter(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	w := newDeliveryWitness(t, t.TempDir(), true)
 	f, app := w.front, w.app
 	app.Layout(1024, 768)

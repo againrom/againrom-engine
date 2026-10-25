@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -249,6 +250,7 @@ func missionHandoffChild(t *testing.T, path string) {
 }
 
 func TestReleaseMissionHandoffDirectSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_MISSION_HANDOFF_INPUT"); path != "" {
 		missionHandoffChild(t, path)
 		return
@@ -261,6 +263,7 @@ func TestReleaseMissionHandoffDirectSAV(t *testing.T) {
 }
 
 func TestReleaseMissionHandoffWorldMapSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_MISSION_HANDOFF_INPUT"); path != "" {
 		missionHandoffChild(t, path)
 		return
@@ -276,6 +279,7 @@ func TestReleaseMissionHandoffWorldMapSAV(t *testing.T) {
 }
 
 func TestReleaseMissionHandoffActivation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, _ := missionHandoffTown(t)
 	var before Snapshot
 	snapshotTown(f.Town, &before)
@@ -308,6 +312,7 @@ func TestReleaseMissionHandoffActivation(t *testing.T) {
 }
 
 func TestReleaseMissionHandoffMismatchGuard(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, projection := missionHandoffTown(t)
 	var before Snapshot
 	snapshotTown(f.Town, &before)

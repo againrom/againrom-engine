@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -211,6 +212,7 @@ func (r *preCreateRig) continues(route string, want ...string) {
 // and Escape do not test the name, so an empty field never holds a player on
 // the page.
 func TestReleasePreCreateEmptyNameKeepsThePageThroughAppInput(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	routes := []struct {
 		name  string
 		leave func(r *preCreateRig)

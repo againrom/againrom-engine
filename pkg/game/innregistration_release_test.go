@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/ui"
@@ -114,6 +115,7 @@ func coldInnApp(t *testing.T, raw []byte) (*FrontEnd, *ui.App, *townScreen) {
 }
 
 func TestReleaseInnRegistrationSAVAndNextAction(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, main := range []int{30, 50} {
 		for _, hearings := range []int{1, 2} {
 			t.Run(fmt.Sprintf("main=%d/hearings=%d", main, hearings), func(t *testing.T) {

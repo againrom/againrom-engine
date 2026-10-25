@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -279,6 +280,7 @@ func guestMissionSave(t *testing.T, f *FrontEnd) []byte {
 // she ended her mission. A SAVE and cold LOAD inside the mission gives the
 // same town.
 func TestReleaseModMissionGuestPlaysAndJoins(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 
 	// Control: no mod. Mission 20's win opens the town with her definition row.
@@ -400,6 +402,7 @@ func TestReleaseModMissionGuestPlaysAndJoins(t *testing.T) {
 // built from the mod's copy of the map: a changed altitude byte in that copy
 // reaches the built map, and the install's mission 10 map keeps its own.
 func TestReleaseModMissionReadsTheMapFromTheMod(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID)
 	lang := modrt.LanguageFor(BaseID(InspectInstall(os.Getenv("AGAINROM_ASSETS"))))
 	path := filepath.Join(dir, guestModID, "mission", lang, "map.alm")
@@ -447,6 +450,7 @@ func TestReleaseModMissionReadsTheMapFromTheMod(t *testing.T) {
 // the town as she ended it until her tavern conversation opens, a town SAVE
 // and cold LOAD keep her waiting, and the talk joins her in that state.
 func TestReleaseModMissionGuestWaitsForAHeldGrant(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := guestMods(t, guestModID, modJoinID)
 	female := []int{1, 0, 0}
 

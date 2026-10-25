@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -70,6 +71,7 @@ func finalMissionArrive(t *testing.T, f *FrontEnd, id sim.EntityID) sim.Entity {
 // after a cold LOAD of a save made while it is off the map, and arrives wounded.
 // On the map it regenerates again.
 func TestReleaseFinalMissionUnitOffMapKeepsItsHealthNativeAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const wound = 5
 	f, id := openFinalMissionDemon(t)
 	finalMissionWound(t, f, id, wound)
@@ -99,6 +101,7 @@ func TestReleaseFinalMissionUnitOffMapKeepsItsHealthNativeAndColdLoad(t *testing
 // Script unit 188 binds the same actor natively and after a cold LOAD made
 // before its arrival: the authored arrival returns that one actor and no other.
 func TestReleaseFinalMissionScriptUnitBindsTheSameActorAfterColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, id := openFinalMissionDemon(t)
 	for i := 0; i < 12; i++ {
 		f.live.tick()

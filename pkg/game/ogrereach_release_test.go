@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -65,6 +66,7 @@ func reachGap(a sim.Entity, as int32, b sim.Entity, bs int32) int32 {
 // The west side holds rocks the Ogre cannot walk between, so the warrior there
 // is never reached and the witness asserts that no blow lands across them.
 func TestReleaseOgreStrikesOnlyWhatItsBodyTouches(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_OGRES2_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_OGRES2_SAV is not set")

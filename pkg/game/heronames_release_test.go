@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -16,6 +17,7 @@ import (
 // rows and the world map all open the generator or a carried party, so the
 // witnesses are the mission door the mission tools use, named as such.
 func TestReleaseDefaultHeroCarriesHisPicturesInstalledName(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	names, _ := preCreateNames(t, f)

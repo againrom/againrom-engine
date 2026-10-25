@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
@@ -123,6 +124,7 @@ func writeOrdinarySAV(t *testing.T, f *FrontEnd, name string) (string, []byte) {
 // the ordinary producer. Two cycles load the file in a fresh FrontEnd, move
 // both creatures and write SAV again with the loaded token rows unchanged.
 func TestReleaseHiredSiegeCreaturesSurviveMissionSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -157,6 +159,7 @@ func TestReleaseHiredSiegeCreaturesSurviveMissionSAV(t *testing.T) {
 // of that file, which keeps row 0. Each loads, moves both creatures, writes
 // SAV with the rows unchanged and loads that SAV again.
 func TestReleaseOwnerSiegeHireSAVLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SIEGE_HIRE_DIR")
 	if dir == "" {
 		t.Skip("set AGAINROM_SIEGE_HIRE_DIR to the owner mission-150 siege-hire saves")

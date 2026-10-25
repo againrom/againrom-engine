@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseMilestone2Buildings1145(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, variant := range []string{"original", "synthetic retained fields"} {
 		t.Run(variant, func(t *testing.T) {
 			f := releaseFront(t)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -249,12 +250,20 @@ func (x *betrayal130) requireGuardLoss(t *testing.T, victim sim.EntityID) {
 // The betrayal runs as four release tests, one per primary sex and branch,
 // so the release gate can give each its own process. The three control
 // cases run with the breeder-first branch.
-func TestReleaseMission130CompanionBetrayal(t *testing.T) { betrayal130Release(t, false, false) }
+func TestReleaseMission130CompanionBetrayal(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	betrayal130Release(t, false, false)
+}
 func TestReleaseMission130CompanionBetrayalBreederFirst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	betrayal130Release(t, false, true)
 }
-func TestReleaseMission130CompanionBetrayalFemale(t *testing.T) { betrayal130Release(t, true, false) }
+func TestReleaseMission130CompanionBetrayalFemale(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	betrayal130Release(t, true, false)
+}
 func TestReleaseMission130CompanionBetrayalFemaleBreederFirst(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	betrayal130Release(t, true, true)
 }
 

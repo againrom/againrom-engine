@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -77,6 +78,7 @@ func cardCaptionCheck(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID, w
 }
 
 func TestReleaseSavedCreatureCardsUseInstalledClassCaptions(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := cardCaptionMission(t, f, f.DirectNewGame(120))
 	unitNames := LoadTextTable(f.Archives.Containers, UnitNameTextPath, f.textCode())

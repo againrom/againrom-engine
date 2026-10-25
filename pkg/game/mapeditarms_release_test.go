@@ -7,6 +7,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -89,6 +90,7 @@ func newArmsMod(t *testing.T, withArms bool) string {
 // party unit's death loses once the lose arm is. The same map without the arms
 // is neither won nor lost by those deaths.
 func TestReleaseMapEditorNewMapIsWonAndLostByItsArms(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	armed, plain := newArmsMod(t, true), newArmsMod(t, false)
 	const enemy, ally = 1, 2
 
@@ -242,6 +244,7 @@ func killRecords(t *testing.T, f *FrontEnd, records []int) {
 // Each run first spends the deaths or the wound of a different group or
 // structure, which must not win.
 func TestReleaseMapEditorGroupAndStructureArmsOnAnInstalledMapCopy(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	c := findArmsCopy(t, installedInspector(t))
 	t.Logf("copy of %s: group %d of %d units, structures %d and %d", c.key, c.group, len(c.members), c.structure, c.otherStruc)
 

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -51,6 +52,7 @@ func releaseApplicationSource1170(t *testing.T) []byte {
 }
 
 func TestReleaseApplicationPointerPanWritesNearestSAVCamera(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("original", func(t *testing.T) { applicationPointerPanWitness(t, false, false) })
 	t.Run("legacy", func(t *testing.T) { applicationPointerPanWitness(t, true, true) })
 	t.Run("legacy-no-options", func(t *testing.T) { applicationPointerPanWitness(t, true, false) })
@@ -224,6 +226,7 @@ func checkRawApplication1170(t *testing.T, raw []byte, want OriginalStateData) {
 }
 
 func TestReleaseApplication1170CurrentFogSelectionOptionsAndColdSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{} // Explicitly no profile writer in this witness.
 	f.SetDeterministicFrames(true)

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/modrt"
@@ -39,6 +40,7 @@ func missionTextCorpus(t *testing.T, f *FrontEnd) map[string][]byte {
 // TestReleaseMissionTextsRoundTripThroughUTF8 decodes every installed mission
 // text to UTF-8 and encodes it back: the install's bytes return exactly.
 func TestReleaseMissionTextsRoundTripThroughUTF8(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	selector := LanguageSelector(f.Archives.Containers)
 	corpus := missionTextCorpus(t, f)
@@ -142,6 +144,7 @@ func worldMapMissionText(t *testing.T, f *FrontEnd, mission int) (title, brief s
 // and the world map, the install's own bytes for them; the same route without
 // the mod shows the installed texts unchanged.
 func TestReleaseModMissionTextsAreEncodedForTheInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := replaceMod(t)
 	plain := guestFront(t, "")
 	replaceRoute(t, plain)
@@ -200,6 +203,7 @@ func TestReleaseModMissionTextsAreEncodedForTheInstall(t *testing.T) {
 // copies out are UTF-8, and the game's encoding of each returns the
 // installed file's bytes.
 func TestReleaseAssembleModMissionWritesUTF8Texts(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	install := os.Getenv("AGAINROM_ASSETS")
 	if install == "" {
 		t.Skip("no AGAINROM_ASSETS: the copy needs a lawful install")
@@ -250,6 +254,7 @@ func TestReleaseAssembleModMissionWritesUTF8Texts(t *testing.T) {
 // copied texts folder holds, so the report is quiet; with the pages removed it
 // names each message once.
 func TestReleaseMapReportNamesAMessageTheModGivesNoPage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := guestMods(t, guestModID)
 	install := os.Getenv("AGAINROM_ASSETS")
 	lang := modrt.LanguageFor(BaseID(InspectInstall(install)))

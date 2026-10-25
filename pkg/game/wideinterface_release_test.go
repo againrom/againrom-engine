@@ -6,6 +6,7 @@ import (
 	"math"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -14,6 +15,7 @@ import (
 // each preserved language root. It crosses the production front-end builders;
 // fixtures cannot stand in for the menu art or mission decode it measures.
 func TestReleaseWideInterfaceUsesInstalledTownAndMissionRoutes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("1072-wide-release")
 	app.SetSaveSeams(nil,

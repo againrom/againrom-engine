@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -12,6 +13,7 @@ import (
 // caster pays the installed cost, the creature carries the cast mark, and its
 // health never rises.
 func TestReleaseHealAtAnEnemyIsCastPaidAndChangesNoHealth(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -91,6 +93,7 @@ func TestReleaseHealAtAnEnemyIsCastPaidAndChangesNoHealth(t *testing.T) {
 // that waits for its health to rise belongs to an owner that is not hostile to
 // the party, so its Heal is applied.
 func TestReleaseHealRaisesTheDyingOgreOfMission81(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

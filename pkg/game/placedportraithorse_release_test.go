@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -31,6 +32,7 @@ import (
 // before the mission's first frame; LOAD is the load dialog of a cold front end.
 // Only the presentation fog is opened and the world must not move.
 func TestReleasePlacedLancerPortraitDrawsHisHorseFreshAndAfterLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []struct {
 		number  int
 		lancers []sim.EntityID

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -86,6 +87,7 @@ func playFirstTicks(t *testing.T, x *MapInspector, data []byte, what string) {
 // and record byte as it was, are one undo step, and give a map the game
 // builds and plays.
 func TestReleaseMapEditorWholeMapCommandsFollowTheSeed(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	for _, c := range []struct {
 		key                     string
@@ -194,6 +196,7 @@ func samePatch(src, now *alm.Map, box image.Rectangle, to image.Point) (cells in
 // is one undo step, the records outside the box stay, and the game builds
 // and plays the pasted map.
 func TestReleaseMapEditorTerrainPatchPastesTerrainHeightsAndTrees(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/10.alm")
 	before := slices.Clone(e.Document().SourceBytes)
@@ -233,6 +236,7 @@ func TestReleaseMapEditorTerrainPatchPastesTerrainHeightsAndTrees(t *testing.T) 
 // a typed starting height opens a map whose every height cell holds it, the
 // game builds and plays it, and 127 is refused with the question kept.
 func TestReleaseMapEditorNewMapStartingHeight(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	for _, c := range []struct {
 		typed string
@@ -276,6 +280,7 @@ func TestReleaseMapEditorNewMapStartingHeight(t *testing.T) {
 // random-heights edit they show the new heights. Frames of both states for
 // the owner.
 func TestReleaseMapEditorHeightNumbers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/10.alm")
 	e.ShowCell(image.Pt(20, 20))

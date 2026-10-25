@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -22,6 +23,7 @@ import (
 )
 
 func TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	bookTable := LoadTextTable(f.Archives.Containers, SpellBookNamesTextPath, f.textCode())

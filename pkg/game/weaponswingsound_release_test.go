@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -117,6 +118,7 @@ func TestReleaseEquippedWeaponSwingSound(t *testing.T) {
 
 // A dagger and shield hero is class 4 (slot 100), also after SAVE and LOAD.
 func TestReleaseHeroDaggerAndShieldSwingClassSurvivesSaveLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -168,6 +170,7 @@ func TestReleaseHeroSwingClassRederivesOnEquipmentChange(t *testing.T) {
 // Mission 20's three guards (row 58) keep class 10, slot 120, whatever they
 // wear and across SAVE and LOAD; Sarindar stays the silent class 23.
 func TestReleaseMission20MapAuthoredHumansKeepTheirRowClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

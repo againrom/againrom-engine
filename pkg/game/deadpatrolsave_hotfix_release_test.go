@@ -7,6 +7,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -76,6 +77,7 @@ func deadPatrolOrder(t *testing.T, doc sav.DocumentData, mapUnit uint16) (uint32
 // that still carries the retained 0x0a and ring on the body loads to the same
 // World: the state is residue and is dropped.
 func TestReleaseDeadPatrollerSAVReloads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("dead patrol").OpenMission(f.MissionOpener(141)); err != nil {

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
@@ -14,6 +15,7 @@ import (
 // its paired sheet for every non-party actor whose type id is in the hero
 // range (UNIT-140) and a class sheet for every other one.
 func TestReleaseUnitShadowHeroPairFollowsTheHeroTypeID(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	units, err := LoadUnits(f.Archives.Containers)
 	if err != nil {
@@ -103,6 +105,7 @@ func pairOverlap(a, b *terrain.StaticFrame, dx, dy int, mirror bool) int {
 // that no pixel is stamped by both translated silhouettes of the Z classes
 // (TERR-195); a one-pixel shift is the control.
 func TestReleaseUnitShadowTranslatedPairNeverOverlapsOnTheInstalledArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	units, err := LoadUnits(f.Archives.Containers)
 	if err != nil {

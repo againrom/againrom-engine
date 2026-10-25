@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -121,6 +122,7 @@ func checkInstalledTownRemap(t *testing.T, a *ui.App, s *townScreen, route strin
 }
 
 func TestReleaseDialogueBackdropTownPlayerRoutes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	a, s := openFirstTownShopDialogue(t, f, "dialogue remap town")
 	t.Cleanup(a.StopAudio)

@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -167,6 +168,7 @@ func cityQuickCast1167(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID) 
 }
 
 func TestReleaseCityQuickSpellsCurrentWriters1167(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, origin := range []string{"imported", "generated"} {
 		t.Run(origin, func(t *testing.T) {
 			f := releaseFront(t)

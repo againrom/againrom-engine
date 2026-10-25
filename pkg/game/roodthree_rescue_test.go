@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -295,6 +296,7 @@ func roodFallAndHeal(t *testing.T, input []byte, fallenHP int32) {
 }
 
 func TestRoodThreeOwnerSaveRescueContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root, original := os.Getenv("AGAINROM_ROOD_THREE_DIR"), os.Getenv("AGAINROM_ROOD_SAV")
 	if os.Getenv("AGAINROM_ASSETS") == "" || root == "" || original == "" {
 		t.Skip("no AGAINROM_ASSETS, AGAINROM_ROOD_THREE_DIR or AGAINROM_ROOD_SAV: Rood lifecycle inputs are required")

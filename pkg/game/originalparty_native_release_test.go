@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // mission40 inputs. A World hash alone missed this defect: the live party
 // driver pointed at the next actor, then at an absent actor, after native LOAD.
 func TestReleaseOriginalPartyNativeLoadKeepsActorBindings(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		path, sha string
 		party     [3]string

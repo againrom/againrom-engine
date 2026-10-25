@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
@@ -22,6 +23,7 @@ import (
 // story consumes. It runs once per lawful root and prints the population and
 // the retained blind spots instead of treating selected examples as a census.
 func TestReleaseEnchantedItemProducerPopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	cells, braced, effects, rejected := releaseEquipmentCellPopulation(t, f.Table)
 	if cells != 2386 || braced != 260 || effects != 266 || rejected != 1 {
@@ -499,6 +501,7 @@ func releaseTerminalDeath(t *testing.T, w *sim.World, id sim.EntityID) {
 // complete loaded instance. The final cast uses the production weapon-attack
 // path and the installed spell table.
 func TestReleaseMBrigand3KeepsOneStaffThroughDeathPickupEquipSaveAndCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := []mapload.PartyMember{{ID: "item-witness", PlayerCharacter: true, StartingHero: true,
 		Mage: true, Profile: data.Profile{HealthColumn: true, ManaColumn: true}, Hero: data.NewCampaignHero(data.SkillBlade)}}
@@ -634,6 +637,7 @@ func releaseStaffCastWorld(t *testing.T, loaded sim.Entity, staff sim.ItemInstan
 // calculable, then the exact instance crosses every shop and simulation
 // boundary a purchased staff reaches.
 func TestReleaseGeneratedMagicStaffKeepsItsSpellAndExactPriceThroughTheWholePath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	const ceiling int32 = 1_000_000
 
@@ -913,6 +917,7 @@ func releaseCastPrice(scalar, power int32) int32 {
 // whose ROM1 stackability rule would otherwise erase its item state. The test
 // runs independently against the EN and RU copies selected by the release gate.
 func TestReleaseGame0002PotionRetainsItsSavedEffect(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: game0002.sav item witness needs a lawful install")

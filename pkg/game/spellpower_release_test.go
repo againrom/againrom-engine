@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -36,6 +37,7 @@ func powerEffects(f *FrontEnd) []sim.ActiveEffect {
 // writes them through the ordinary producer and a cold LOAD holds the same
 // effects.
 func TestReleaseSpellPowerAbove100EffectsSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	if err := f.App("spell power").OpenMission(f.MissionOpenerWith(101, powerParty(f))); err != nil {
@@ -132,6 +134,7 @@ func equalEffects(a, b []sim.ActiveEffect) bool {
 // Every installed damaging row stays inside the byte its effect record holds
 // at the power bound, so no in-flight payload saturates on installed data.
 func TestReleaseSpellDamageFitsTheEffectByteAtPower255(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	for _, rule := range mapload.SpellRules(f.Table) {
 		if !rule.Damaging && rule.ID != 11 && !rule.Restorative {
@@ -174,6 +177,7 @@ func installedSpeedRange(t *testing.T, f *FrontEnd) (slowest, fastest int32) {
 // never below 1. A unit at the floor moves at the cadence of an unslowed
 // speed-1 unit, and expiry returns the exact original speed.
 func TestReleaseSlowAtPower255KeepsTheSpeedFloor(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rules := mapload.SpellRules(f.Table)
 	slowest, fastest := installedSpeedRange(t, f)
@@ -311,6 +315,7 @@ func powerBonusMage(f *FrontEnd) []mapload.PartyMember {
 // Invisibility word and the saturated others; SAVE writes them, a cold LOAD holds
 // the same skills, effects and spellbook, and both worlds stay equal afterwards.
 func TestReleaseSpellPowerBoundEffectsSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("spell power bound")
@@ -398,6 +403,7 @@ func equipInPlayMage(f *FrontEnd, base int32, mind int32) []mapload.PartyMember 
 // A mage who equips a school bonus in play and saves loads with the same
 // skills, spellbook ranges and spell power, and casts at that power.
 func TestReleaseSpellPowerBonusEquippedInPlaySavesAndLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		base, mind int32
 		above100   bool

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
@@ -18,6 +19,7 @@ import (
 // example mod's item selected, offscreen, and writes it under
 // AGAINROM_SHOT_DIR, or a temporary directory when none is named.
 func TestReleaseModItemShopScreenshot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SHOT_DIR")
 	if dir == "" {
 		dir = t.TempDir()
@@ -63,6 +65,7 @@ func TestReleaseModItemShopScreenshot(t *testing.T) {
 }
 
 func TestReleaseModItemNameDrawsInTheInstallAlphabet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modItemFront(t)
 	text := "Gambeson"
 	if modrt.LanguageFor(f.ModSet().Base) == "ru" {

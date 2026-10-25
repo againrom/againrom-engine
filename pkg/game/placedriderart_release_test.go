@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,7 @@ import (
 // and after SAVE and a cold LOAD. The equipment law derives a foot body class
 // for his roster template and that class must not replace his sheet.
 func TestReleasePlacedRiderMapSpriteIsHisOwnMountedClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []struct {
 		number  int
 		lancers []sim.EntityID

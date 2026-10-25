@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -26,6 +27,7 @@ const retreatingState = 0x16
 // warrior stands idle far to the north. The control is the same world bytes
 // stepped with no press: it goes on fleeing.
 func TestReleaseHoldPositionEndsARetreat(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	arena := openLoadedCycleArena(t, 2)
 	runner, idle := arena.heroes[0], arena.heroes[1]
 	start := arena.get(runner)

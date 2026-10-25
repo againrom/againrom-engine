@@ -4,11 +4,13 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseDyingPositionFollowsCurrentActorThroughSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, source := groundCorpusFile(t, "2026-08-02/game0000.sav", "3407c9fce2ac9ce091871a17b0c08013cf2d1e1849396c6142b1a2257aec707d")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

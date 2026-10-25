@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -50,6 +51,7 @@ func enemyCardWonTown(t *testing.T, count uint32) (*FrontEnd, *ui.App) {
 // A town SAVE writes the carried Diary, town LOAD restores it, and the next
 // mission opens with it.
 func TestReleaseEnemyCardTownSaveKeepsKnowledgeForTheNextMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := enemyCardWonTown(t, 5)
 	store, _, raw := campaignSave(t, f, false)
 	if got := enemyCardSAVCount(t, raw, enemyCardRow); got != 5 {
@@ -117,6 +119,7 @@ func TestReleaseEnemyCardTownSaveKeepsKnowledgeForTheNextMission(t *testing.T) {
 // Original between-mission SAVs with a nonzero local Diary load with it: it
 // reaches the town, the next mission and a re-written town SAV.
 func TestReleaseEnemyCardOriginalCitySAVDiaryLoads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if dir == "" {
 		t.Skip("AGAINROM_SAVE_CORPUS is not set")

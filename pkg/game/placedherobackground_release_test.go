@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -23,6 +24,7 @@ import (
 // presentation fog is opened, as TestReleaseInspectionLivePanels does, and the
 // world hash must not move.
 func TestReleasePlacedPersonPortraitDrawsNoHeroBackground(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

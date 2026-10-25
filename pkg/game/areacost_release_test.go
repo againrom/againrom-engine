@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -207,6 +208,7 @@ func areaCostWitness(want [2]uint16, first, second uint16) []string {
 // and the first reader's is the unlayered baseline's. With no layer standing
 // the same witness fails.
 func TestReleaseAreaLayerMovementCost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
 	scratch := r.world(t, [2]int{}, [2]int{}, nil)
 	cells := r.cast(t, scratch)
@@ -301,6 +303,7 @@ func areaCostPair(t *testing.T, w *sim.World, a, b, c [2]int, delay int) (second
 // tick, after the first mover in the entity list, it finds the recomputed byte
 // and gets the baseline transit. Bare ground gives the baseline on both ticks.
 func TestReleaseAreaLayerCostRecomputesOnTheCrossingTick(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
 	scratch := r.world(t, [2]int{}, [2]int{}, nil)
 	triples := r.triples(r.cast(t, scratch))
@@ -350,6 +353,7 @@ func TestReleaseAreaLayerCostRecomputesOnTheCrossingTick(t *testing.T) {
 // next tick is the first reader and gets the baseline. With the cloud already
 // standing the same two movers give the second one the quarter byte.
 func TestReleaseAreaLayerLandsAfterTheActorsOfItsTick(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := openAreaCostRig(t)
 	scratch := r.world(t, [2]int{}, [2]int{}, nil)
 	triples := r.triples(r.cast(t, scratch))
@@ -407,6 +411,7 @@ func TestReleaseAreaLayerLandsAfterTheActorsOfItsTick(t *testing.T) {
 // the same orders the continuing and loaded worlds marshal alike. A world
 // loaded from before the cast is the loss control.
 func TestReleaseAreaLayerCostContinuesAcrossSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	const mission = 20

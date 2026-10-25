@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -21,6 +22,7 @@ func stoneStaffWorn(w *sim.World, id sim.EntityID) bool {
 }
 
 func TestReleaseStoneCurseStaffEquipsFromThePack(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_WHATISATTACKED_SAV")
 	if path == "" {
 		t.Skip("AGAINROM_WHATISATTACKED_SAV is not set")
@@ -102,6 +104,7 @@ func TestReleaseStoneCurseStaffEquipsFromThePack(t *testing.T) {
 
 // The original's resave of that save wears the staff.
 func TestReleaseOriginalResaveWearsTheStoneCurseStaff(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_STONE_STAFF_ORIGINAL_RESAVE")
 	if path == "" {
 		t.Skip("AGAINROM_STONE_STAFF_ORIGINAL_RESAVE is not set")

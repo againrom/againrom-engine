@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -77,6 +78,7 @@ func openUsedByGroup(t *testing.T, e *ui.MapEditor, row int) {
 }
 
 func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	totals, rows, unattached, popupTotals := map[uint32]int{}, map[uint32]int{}, map[uint32]int{}, map[uint32]int{}
 	maps, popups := 0, 0
@@ -189,6 +191,7 @@ func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
 }
 
 func TestReleaseMapEditorUsedByFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_USED_BY_FRAMES")
 	for _, key := range installedMapKeys(x) {

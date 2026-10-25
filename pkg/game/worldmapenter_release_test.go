@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -38,6 +39,7 @@ func (w *crossWitness) afterATick() {
 // every scroll does (`TOWN-121`): the reveal completes with the Cross counter at
 // the frame count plus one and the mission opens on the next tick.
 func TestReleaseWorldMapEnterHastensTravel(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("nothing selected", func(t *testing.T) {
 		w := openCrossWitness(t)
 		w.key("enter")

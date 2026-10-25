@@ -3,11 +3,13 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 )
 
 func TestGeneratedMissionSAVFullTickFollowsSubTick(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("generated mission clock")
 	if err := app.OpenMission(f.MissionOpenerWith(10, MissionParty(nil, data.BodyList{}, nil))); err != nil {

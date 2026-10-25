@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -18,6 +19,7 @@ func pursuitAppClick(t *testing.T, app *ui.App, x, y int) {
 }
 
 func TestReleaseAcquiredVictimLeavingReachTurnsWithoutWalking(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	total, controls := 0, 0
 	for candidate := 0; candidate < 3 && total == 0; candidate++ {
 		// Defend's acquisition takes the adjacent victim only on the actor

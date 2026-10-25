@@ -8,12 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
 )
 
 func TestReleaseCampaign1180EndingCreditsHallSaveAndReset(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	prepareAcceptedCampaignMission(t, f, 150)

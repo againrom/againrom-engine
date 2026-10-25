@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
@@ -34,6 +35,7 @@ func guestSword(t *testing.T, f *FrontEnd) sim.EntityID {
 // a cold LOAD under both mods gives her the glaive back, and a LOAD under the
 // chain alone refuses, naming the glaive's mod.
 func TestReleaseGuestPartyMemberWieldsAnAddedWeaponRow(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := assembledMods(t, chainModID, chainModID, warGlaiveMod)
 	missions := filepath.Join(dir, chainModID, "data", "missions.toml")
 	src, err := os.ReadFile(missions)
@@ -129,6 +131,7 @@ func itemCharacterFront(t *testing.T, dir string, ids ...string) (*FrontEnd, Mod
 // the report names the item and the character override. Without load-after the
 // same item field refuses the launch, while a second face edit alone applies.
 func TestReleaseModsChangeAnItemAndACharacterInOneLoadOrder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := t.TempDir()
 	both := "def init(game, settings):\n    game.data.add(\"data/items.toml\")\n    game.data.add(\"data/characters.toml\")\n"
 	edit := func(id, after string, price, face int, row string) {

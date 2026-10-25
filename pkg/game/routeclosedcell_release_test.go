@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -66,6 +67,7 @@ func routeClosedCells(w *sim.World, id sim.EntityID) [][2]int32 {
 // closed cell. The mission's walls seal the way, so the mover's order may end
 // short; the test does not assert arrival.
 func TestReleaseWallAcrossStoredRouteKeepsItAndMoverNeverEntersTheWall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, mover := routeClosedCellWitness(t)
 	w := f.live.world
 	if len(w.Route(mover)) == 0 {
@@ -87,6 +89,7 @@ func TestReleaseWallAcrossStoredRouteKeepsItAndMoverNeverEntersTheWall(t *testin
 // the loaded mover then walks as the live one does. The native continuation
 // above is the separate proof of the walk itself.
 func TestReleaseRouteAcrossClosedCellSurvivesSaveAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, mover := routeClosedCellWitness(t)
 	want := f.live.world.Route(mover)
 	cold := loadAreaContinuation(t, saveCorpseMission(t, f, t.TempDir()))

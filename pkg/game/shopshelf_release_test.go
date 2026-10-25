@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
@@ -81,6 +82,7 @@ func shelfTestPreviousPool(pool []data.ShopCandidate, magic bool) []data.ShopCan
 // the two beards, which the first-effect rule then rejects. The counts at the
 // four ceilings SHOP-120 states match its weapons and armour counts.
 func TestReleaseShopShelfPopulationsFollowShelfTests(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	claimed := map[int32][2]int{1_000: {46, 87}, 10_000: {70, 143}, 100_000: {106, 189}, 1_000_000: {128, 204}}
 	for _, ceiling := range shelfTestCeilings(t, f) {
@@ -172,6 +174,7 @@ func TestReleaseShopShelfPopulationsFollowShelfTests(t *testing.T) {
 // Magic Items draw rejects each beard every time it is drawn because neither
 // can take a first effect (SHOP-119).
 func TestReleaseGeneratedShelvesNeverHoldABeard(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	ceilings := shelfTestCeilings(t, f)
 	for _, ceiling := range ceilings {

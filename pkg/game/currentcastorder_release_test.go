@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -252,6 +253,7 @@ func castOrderSelect(t *testing.T, app *ui.App, live *mapWorld, id sim.EntityID)
 // order block is decoded, and the file is loaded cold. Ordinary ticks on both
 // sessions run until the spell lands.
 func TestReleaseCastOrderSAVRestoresTheCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name, file, sha string
 		atCell          bool
@@ -341,6 +343,7 @@ func TestReleaseCastOrderSAVRestoresTheCast(t *testing.T) {
 // new file cold. The new file's order block names Danath and the unit branch;
 // both sessions then run ordinary ticks until the cast ends.
 func TestReleaseOwnerCastSaveRestoresHealAtDanath(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_CAST_CRASH_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_CAST_CRASH_SAV: the owner's crashing game0001 is an owner input")

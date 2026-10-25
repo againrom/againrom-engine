@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -42,6 +43,7 @@ func twoTownReload(t *testing.T, raw []byte) *FrontEnd {
 // description. Loss control: the same file without its engine-state leaves
 // lands in West, with West's hire gone.
 func TestReleaseTwoTownSaveLoadsIntoTheSecondTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := twoTownFront(t)
 	reachabilityWalkArrive(t, f, "Travel Hero")
 	hired := 0
@@ -117,6 +119,7 @@ func missionSave(t *testing.T, f *FrontEnd, store SaveStore) (string, []byte) {
 // The shipped first game holds one town, so neither its town SAVE, with a
 // squad hired, nor its mission SAVE carries a town record.
 func TestReleaseShippedFirstGameSavesCarryNoTownRecord(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Record Hero")
 	f.addChapterCompanions(f.Town.Chapter())
@@ -143,6 +146,7 @@ func TestReleaseShippedFirstGameSavesCarryNoTownRecord(t *testing.T) {
 // hire; the mission end clears that hire and sets West's pool to the
 // squad's survivors, while East keeps its own pool.
 func TestReleaseTwoTownHireGoesHomeAcrossAMissionSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const typ = 14
 	f := twoTownFront(t)
 	_, screen := reachabilityWalkArrive(t, f, "Squad Hero")

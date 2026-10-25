@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -21,6 +22,7 @@ import (
 // into a duplicate Start.Roster entry the way the old writer restated
 // every entry-party id, hero and mercenary alike.
 func TestReleaseHiredMercenaryKeepsItsOwnClassAfterOurSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("healthy", func(t *testing.T) { releaseHiredMercenaryAfterSaveLoad(t, 3, false) })
 	t.Run("legacy duplicate roster", func(t *testing.T) { releaseHiredMercenaryAfterSaveLoad(t, 3, true) })
 }
@@ -163,6 +165,7 @@ func releaseHiredMercenaryAfterSaveLoad(t *testing.T, typ int, duplicate bool) {
 }
 
 func TestReleaseHiredHorsemanKeepsItsOwnClassAfterOurSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, typ := range []int{8, 9} {
 		t.Run(fmt.Sprint(typ), func(t *testing.T) { releaseHiredMercenaryAfterSaveLoad(t, typ, false) })
 	}

@@ -2,12 +2,15 @@ package game
 
 import (
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // TestReleaseHelpScrollBarDragAndWheel drives the open help panel's scroll bar
 // and wheel on the installed help text: the thumb drags the text down and back
 // up, a held arrow repeats, the wheel scrolls, and each moves the drawn panel.
 func TestReleaseHelpScrollBarDragAndWheel(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	witness := prepareHelpScrollbarStyleWitness(t, f)
 	a := helpWitnessMap(t, f, true)

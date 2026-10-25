@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
 	"againrom/pkg/mod"
@@ -103,6 +104,7 @@ func testPlayEntities(t *testing.T, root string, remove bool) ([]string, string,
 // short. Loss control: the unedited map's test play opens it with that
 // creature.
 func TestReleaseTestPlayStartsTheEditedMapAsAGuestMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the test play over a lawful install needs one")
@@ -151,6 +153,7 @@ func testPlayFileSnapshot(t *testing.T, dir string) map[string]string {
 }
 
 func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the test play over a lawful install needs one")

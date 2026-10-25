@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
@@ -279,6 +280,7 @@ func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 // TestReleaseMissionStartTipRender composes the m10 start tip popup and writes
 // it for the owner when AGAINROM_TIPS_RENDER_DIR is set.
 func TestReleaseMissionStartTipRender(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := missionTipFront(t)
 	dir := tipRenderDir(t, f)
 	app, live := openMissionTipMap(t, f, 10)

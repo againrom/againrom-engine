@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -129,6 +130,7 @@ func forestPress(e *ui.MapEditor, centre image.Point, right bool) {
 // gives the planted cells the trees and a world over it builds with each
 // planted cell closed to ground movers. One Undo restores the shipped bytes.
 func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	forestSeed(t, 21)
 	x := installedInspector(t)
 	raw, err := x.archives.Containers.ReadFile(forestScenario)
@@ -212,6 +214,7 @@ func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
 // per cent, and saves without a stroke: each saved file keeps the installed
 // bytes.
 func TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := t.TempDir()
 	keys := installedMapKeys(x)
@@ -257,6 +260,7 @@ func TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged(t *testing.T) {
 // stroke, after a dense stroke and after a right-button thinning. Without
 // the variable the same steps run and nothing is written.
 func TestReleaseMapEditorForestFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	forestSeed(t, 21)
 	x := installedInspector(t)
 	dir, lang := os.Getenv("AGAINROM_EDITOR_FRAMES"), installLanguage(x)

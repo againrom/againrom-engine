@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -57,6 +58,7 @@ func claimRowOf(t *testing.T, w *sim.World, id sim.EntityID) claimRow {
 // refusal and the latch restore the same World, and the loaded twin keeps
 // step with it. Each member's changes are logged.
 func TestReleaseARefusedGroupMoveLatchesOnTheNextGroupPass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-14/game0013.sav", "b211b9ad621a2cec38ff5a1d1f3f632542a58e1e377c8f562b25ba48ca2aa5ea")
 	f.Options = OptionsStore{}

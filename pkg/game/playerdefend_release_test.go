@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -97,6 +98,7 @@ func mustDefendForm1087(t *testing.T, w *sim.World) []byte {
 }
 
 func TestReleasePlayerDefend1087AppPanelMapMinimapAndNative(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	a := f.App("1087-player-defend")

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -159,6 +160,7 @@ func enterTownRoom(t *testing.T, a *ui.App, s *townScreen, row string, room town
 // V4..V9, V11, C1, C4). A last pass with the shop's trigger rows removed
 // requests nothing for the same gestures.
 func TestReleaseTownRoomsRequestTheCensusSounds(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	f.SetTipsOff(false)
@@ -409,6 +411,7 @@ func TestReleaseTownRoomsRequestTheCensusSounds(t *testing.T) {
 // Close press requests click01 at priority 220 and its release nothing
 // (TOWN-547; census row T2).
 func TestReleaseMissionTipClosePressRequestsClick01(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := missionTipFront(t)
 	rec := &installedSoundRecorder{}
 	f.SoundPlayer = rec

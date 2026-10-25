@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -37,6 +38,7 @@ func schoolOfferChapter(t *testing.T, f *FrontEnd) int {
 // the school's quest is at the gates when their window opens; the inn's is
 // there only once the player has left the inn (DLG-KEYS-040, DLG-LIFE-005).
 func TestReleaseDialogueKeysOnEveryPage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, q := range []struct {
 		name string
 		door string
@@ -149,6 +151,7 @@ func escMenuMoment(f *FrontEnd, app *ui.App, s *townScreen) string {
 // at the gates and the line stay as they were. With the menu closed the same
 // door presses do act, so the silence is the menu's (MENU-INPUT-016).
 func TestReleaseAClickOutsideTheEscMenuReachesNothing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app, s := roomExitApp(t, f, 0)
 	s.CloseTip()

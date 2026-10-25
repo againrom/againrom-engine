@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -34,6 +35,7 @@ var gateLineVoices = map[int]int{223: 630792, 233: 634548}
 // recording double and the master volume is 0, so the witness reads requests
 // and nothing is heard.
 func TestReleaseGatePressFollowsWhatIsOnOffer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	root := f.Archives.Root
 	f.Sound = SoundOptions{Enabled: true, Volume: 0}

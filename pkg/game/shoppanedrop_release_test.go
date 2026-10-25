@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -14,6 +15,7 @@ import (
 // picker keeps its member and the pane its mode and its book. An item picked up
 // off the figure and released over a rectangle stays worn.
 func TestReleaseShopItemReleasedOnEachPaneRectangleIsWorn(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	rects := []struct {
 		name   string

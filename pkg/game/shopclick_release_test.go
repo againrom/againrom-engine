@@ -9,10 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 )
 
 func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SHOP_CLICK_INPUT")
 	if path == "" {
 		t.Skip("AGAINROM_SHOP_CLICK_INPUT is not set")

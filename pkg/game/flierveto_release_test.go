@@ -3,12 +3,14 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
 
 // A melee hero's attack click on a hostile flier is refused; a bow hero's is held.
 func TestReleaseMeleeHeroIsRefusedAFlierAndABowHeroIsNot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	shapes, materials, weapons := missionTableWeapons(f.Table)
 	bow, err := resolveWeaponForSlot(false, false, shapes, materials, weapons, data.SkillShoot)

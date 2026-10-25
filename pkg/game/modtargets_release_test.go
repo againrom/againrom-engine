@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/sim"
@@ -108,6 +109,7 @@ func hpOf(mw *mapWorld, id sim.EntityID) int32 {
 }
 
 func TestReleaseModHealHostileAndSelfCastReachTheCastAndSurviveSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	filters := func(name func(int) string) string {
 		return "[[spell]]\ntarget = \"" + name(healSpellID) + "\"\nheal_hostile = true\n\n" +
 			"[[spell]]\ntarget = \"" + name(fireArrowID) + "\"\nself_cast = true\n"
@@ -200,6 +202,7 @@ func TestReleaseModHealHostileAndSelfCastReachTheCastAndSurviveSaveAndLoad(t *te
 }
 
 func TestReleaseWithoutTheFiltersAnEnemyHealAndASelfCastDoNothing(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := targetsModFront(t, nil)
 	casterID, allyID := targetsMission(t, f)
 	mw := f.live
@@ -246,6 +249,7 @@ func targetsArea(t *testing.T, filters string) (*FrontEnd, sim.EntityID, sim.Ent
 }
 
 func TestReleaseModAreaHitsKeepsABlastToHostileUnitsAcrossSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, casterID, allyID, enemyID := targetsArea(t, "area_hits = \"hostile\"\n")
 	mw := f.live
 	if rule, _ := mw.world.Spell(fireBallSpell); rule.AreaHits != sim.AreaHitsHostile || rule.Radius != 3 {
@@ -317,6 +321,7 @@ func TestReleaseModAreaHitsKeepsABlastToHostileUnitsAcrossSaveAndLoad(t *testing
 }
 
 func TestReleaseWithoutAreaHitsTheSameBlastHitsEveryone(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, casterID, allyID, enemyID := targetsArea(t, "")
 	mw := f.live
 	ids := [3]sim.EntityID{casterID, allyID, enemyID}

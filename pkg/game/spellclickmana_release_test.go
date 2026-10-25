@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -130,6 +131,7 @@ func spellClickContinuation(t *testing.T, path string, want spellClickManaWitnes
 // play gives the expected landing; a LOAD in this process with three more
 // clicks, and a LOAD in a fresh process with one, must match it.
 func TestReleaseSpellClicksSpendOnceAcrossSAVE(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_SPELL_CLICK_INPUT"); path != "" {
 		var want spellClickManaWitness
 		proof, err := os.ReadFile(path + ".json")
@@ -179,6 +181,7 @@ func TestReleaseSpellClicksSpendOnceAcrossSAVE(t *testing.T) {
 // pays once. A SAVE between the two clicks' effects keeps the queued order
 // through a fresh-process LOAD.
 func TestReleaseSpellClickDuringAPaidWindUpRunsNext(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_SPELL_QUEUE_INPUT"); path != "" {
 		var want spellClickManaWitness
 		proof, err := os.ReadFile(path + ".json")
@@ -241,6 +244,7 @@ func TestReleaseSpellClickDuringAPaidWindUpRunsNext(t *testing.T) {
 // a paid wind-up runs: the caster stands until the cast releases, the cast
 // lands, and the walk follows.
 func TestReleaseMoveClickDuringAPaidWindUpWalksAfterTheCast(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, mage, foe := spellClickFixture(t)
 	f.live.attackOrCast(uint32(mage.ID), uint32(foe.ID), 1, 0, 0, false)
 	f.live.tick()

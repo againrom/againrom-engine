@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -68,6 +69,7 @@ func heroExportedCharacter(t *testing.T, f *FrontEnd, party []mapload.PartyMembe
 // and the ground-truth test above stay silent about it because neither reads
 // U130.
 func TestReleaseGeneratedHeroAggregateExperienceMatchesItsSkillSlots(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	recipes := map[string]func(table *mapload.Table) []mapload.PartyMember{
 		"table-less":         func(*mapload.Table) []mapload.PartyMember { return MissionParty(nil, data.BodyList{}, nil) },
 		"production-fighter": func(table *mapload.Table) []mapload.PartyMember { return MissionParty(nil, data.BodyList{}, table) },
@@ -102,6 +104,7 @@ func TestReleaseGeneratedHeroAggregateExperienceMatchesItsSkillSlots(t *testing.
 // TestMissionPartyHealthMaximumComesFromTheDerivation, and DIV-1390 records
 // that number's own remaining gap against an original resave.
 func TestReleaseGeneratedHeroHealthMaximumFollowsTheDerivation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []int{10, 20} {
 		t.Run(missionSubtestName(mission), func(t *testing.T) {
 			f := releaseFront(t)

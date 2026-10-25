@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
@@ -76,6 +77,7 @@ func openOriginalSalesTown(t *testing.T) (*FrontEnd, []byte) {
 // groups: the same members in the same groups and order, every other group
 // field as loaded, and the owner key naming the written Player.
 func TestReleaseCitySAVKeepsTheLoadedPlayerGroups(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, source := openOriginalSalesTown(t)
 	file, err := sav.Open(source)
 	if err != nil {
@@ -111,6 +113,7 @@ func TestReleaseCitySAVKeepsTheLoadedPlayerGroups(t *testing.T) {
 // for the hero and one more for each member who joined after (DIV-1411,
 // PARTY-039).
 func TestReleaseCitySAVWithoutALoadedTownWritesOneGroupPerJoiner(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := currentTown(t, nil, nil)
 	if f.originalCity != nil {
 		t.Skip("this town route retains a loaded town document")
@@ -240,6 +243,7 @@ func saveAndReloadPartyIDs(t *testing.T, f *FrontEnd) []string {
 // squad, in hire order, holding exactly that squad (SAV-617); the reload keeps
 // party and hire order.
 func TestReleaseCitySAVWritesEachNativeHireInItsOwnGroup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := hireForOrderTest(t, "Group Hero")
 	hireInTown(t, f, 14, 6)
 	for i := range f.Carried {
@@ -269,6 +273,7 @@ func TestReleaseCitySAVWritesEachNativeHireInItsOwnGroup(t *testing.T) {
 // a squad hired after the load (SAV-617); the reload keeps party and hire
 // order.
 func TestReleaseCitySAVAddsAHireGroupAfterTheLoadedGroups(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, source := openOriginalSalesTown(t)
 	file, err := sav.Open(source)
 	if err != nil {

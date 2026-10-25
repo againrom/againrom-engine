@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/pal"
 	"againrom/pkg/formats/reg"
@@ -42,6 +43,7 @@ import (
 // none of the enemies that hold him as their victim, he is ordered onto the
 // nearest of them.
 func TestReleaseRangedShotsDrawTheirInstalledSprites(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the ranged-shot witness needs a lawful install")
 	}

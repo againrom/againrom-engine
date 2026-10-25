@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -355,6 +356,7 @@ func hurtVoiceCheck(t *testing.T, f *FrontEnd, heard *hurtVoiceHeard, watched []
 // blade in the other; Naira holds a bow. Each hero's wounds and fall must
 // sound his own bank's leaves, whatever he wields.
 func TestReleaseHurtVoiceFollowsSexAndClass(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, hero := range []struct {
 		name    string
 		choices []int
@@ -397,6 +399,7 @@ func TestReleaseHurtVoiceFollowsSexAndClass(t *testing.T) {
 // nearest them, and a hero who walks out beside her takes every blow until he
 // falls, which ends the mission before she is struck at all.
 func TestReleaseHurtVoiceOfAHiredHealer(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const healer = 4
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

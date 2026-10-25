@@ -4,9 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 func TestReleaseDetachedProjectileTargetSAVRoundTrip(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	f, app, _, p := removedCorpseProjectileApp(t, raw)
 	_, _, written := menuSAVE(t, f, app, OriginalStore{})

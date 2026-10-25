@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -20,6 +21,7 @@ import (
 // them. The squad's equipment is unchanged afterwards, and the mission the gates
 // open still holds the whole squad as units.
 func TestReleaseTownPickersSkipAHiredSquadAndTheMissionCarriesIt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	src, _ := hireForOrderTest(t, "Picker Witness")
 	dir := t.TempDir()
 	save, _, _ := src.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)

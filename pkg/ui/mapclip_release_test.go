@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -133,6 +134,7 @@ func mapClipOutputPath(root, output string) (string, error) {
 }
 
 func TestReleaseMapViewportPaintsInstalledTerrain(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: map clip witness requires installed terrain")

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
@@ -153,6 +154,7 @@ func mismatchWindow(t *testing.T, app *ui.App, target string) (ui.HeadlessModMis
 // opens the window listing its differences with the mismatched values marked
 // red, and Escape leaves the Load page; under alpha 1.0 the save loads.
 func TestReleaseLoadPageListsEveryModMismatch(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	v10, v11 := mismatchMods(t, "1.0", 12), mismatchMods(t, "1.1", 0)
 	save := func(f *FrontEnd, who string) SaveStore {
 		t.Helper()

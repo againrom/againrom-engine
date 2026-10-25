@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -22,6 +23,7 @@ func openCampaignMission(t *testing.T, mission int) *FrontEnd {
 // The installed missions that carry such an id are 70 (ids 40 and 7), 100 (id
 // 25) and 140 (id 6).
 func TestReleaseScriptGroupIdResolvesToOneOwner(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		mission int
 		group   uint32
@@ -47,6 +49,7 @@ func TestReleaseScriptGroupIdResolvesToOneOwner(t *testing.T) {
 // Mission 70's two Swarm 2 instants name group 40, carried by owner 5's orcs and
 // owner 7's monks. Only the monks receive the command and its destination.
 func TestReleaseMonasteryMissionSwarmReachesTheMonksNotTheOrcs(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := openCampaignMission(t, 70)
 	mw := f.live
 	type pos struct{ x, y int32 }
@@ -104,6 +107,7 @@ func monasteryFinish(t *testing.T, killOrcs bool) sim.Outcome {
 // zero. The count is the monks' alone, so the orcs of the earlier owner do not
 // hold the mission open.
 func TestReleaseMonasteryMissionCompletionCountsTheMonksAlone(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if got := monasteryFinish(t, true); got != sim.OutcomeWon {
 		t.Fatalf("control with every carrier of the three groups dead: outcome %v, want won", got)
 	}

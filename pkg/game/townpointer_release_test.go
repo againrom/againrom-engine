@@ -6,11 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	r := newTownFiguresRig(t)
 	r.f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	r.f.SetTipsOff(false)
@@ -217,6 +219,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 }
 
 func TestReleaseTownPopupDismissalSurvivesDialogue(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tipsOff := range []bool{false, true} {
 		for _, route := range []string{"tavern", "gate"} {
 			name := route

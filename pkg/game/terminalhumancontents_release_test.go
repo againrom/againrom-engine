@@ -7,11 +7,13 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseTerminalHumanOriginalResaveContents(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TERMINAL_HUMAN_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_TERMINAL_HUMAN_SAV to the owner terminal-Human source")

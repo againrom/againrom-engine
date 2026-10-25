@@ -5,12 +5,14 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 // The shop's bottom strip shows its corner pictures at zero scroll: the frame
 // caps are painted, not left black.
 func TestReleaseShopPackCornersAreDrawnWithoutScrolling(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Town = NewTown(f.Campaign.Value())
 	for _, mission := range f.Campaign.Value().Main {

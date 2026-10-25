@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -96,6 +97,7 @@ func attackMoveReload(t *testing.T, f *FrontEnd, hero sim.EntityID, dx, dy int32
 // clicked cell and stays there; a save taken mid-fight and restored does the
 // same (AI-SWARM2GATE-107, AI-MOVE-023).
 func TestReleaseAttackMoveWalksOnAfterTheFight(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("attack-move")

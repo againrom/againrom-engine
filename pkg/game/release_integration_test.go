@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
@@ -53,6 +54,7 @@ func releaseFront(t *testing.T) *FrontEnd {
 // Its saved Player outcome now presents Victory immediately. The ordinary App
 // acknowledgement and automatic town return must carry the same characters.
 func TestReleaseSave666ProductionHeadlessScenarioKeepsCharacterOwnership(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	save666 := os.Getenv("AGAINROM_SAVE_666")
 	if save666 == "" {
 		t.Skip("AGAINROM_SAVE_666 is not set")
@@ -285,6 +287,7 @@ func releaseMissionFigurePane(f *FrontEnd, figure *image.RGBA) *image.RGBA {
 }
 
 func TestReleasePersistentJoinProducerPopulationSelectsTenExactRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	type variant struct {
 		name          string
@@ -374,6 +377,7 @@ func TestReleasePersistentJoinProducerPopulationSelectsTenExactRows(t *testing.T
 }
 
 func TestReleaseCampaignJoinIdentitiesAndMission20ClubmenUseCanonicalRows(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 
 	if _, _, _, _, _, _, _, _, _, _, err := f.MissionOpener(20)(); err != nil {
@@ -631,6 +635,7 @@ func TestReleaseCampaignJoinIdentitiesAndMission20ClubmenUseCanonicalRows(t *tes
 // retained production selection is compared pixel-for-pixel with an expected
 // pane built from the exact joined row and its complete live equipment.
 func TestReleaseJoinedHeroHandoverTickComposesExactPanePopulation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	type joinFigureCase struct {
 		name         string
 		mission, npc int
@@ -808,6 +813,7 @@ func joinedLiveRescueScript(t *testing.T, id sim.EntityID) *sim.Script {
 }
 
 func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	cases := []struct {
 		name, row     string
 		mission, next int
@@ -1108,6 +1114,7 @@ func releaseArtName(mw *mapWorld, id sim.EntityID) string {
 // identity enters mission 10, survives our save reader in a fresh front end,
 // and is the same person handed to the campaign successor.
 func TestReleaseGeneratedCharacterLaunchSaveLoadAndCampaignContinuity(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	result := ui.ChargenResult{Name: "T2 Hero", Choices: []int{1, 1, 3}, Stats: []int{31, 27, 24, 29}}
 	generated := f.ChargenParty(result)
@@ -1208,6 +1215,7 @@ func TestReleaseGeneratedCharacterLaunchSaveLoadAndCampaignContinuity(t *testing
 // SaveSeams as the windowed game. The default gate skips it; closure runs it
 // once on each shipped language root.
 func TestReleaseLoadCandidateKeepsTheLiveMissionUntilCommit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	app := f.App("1008-release-load")
@@ -1282,6 +1290,7 @@ func TestReleaseLoadCandidateKeepsTheLiveMissionUntilCommit(t *testing.T) {
 // authored reward, npc22 speaks through the tavern seam, and mission 30 starts
 // with the two independently identified characters.
 func TestReleaseReniestaTavernJoinAndMapKeepBothCharacters(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	if got := f.Town.Gold(); got != initialPlayerPurse {
 		t.Fatalf("fresh campaign purse = %d, want %d", got, initialPlayerPurse)
@@ -1631,6 +1640,7 @@ func TestReleaseReniestaTavernJoinAndMapKeepBothCharacters(t *testing.T) {
 // supplies only its own picture (or current frame) and cannot replace the
 // party's inventory subject.
 func TestReleaseTemporaryPartyAndNonPartyKeepTheirOwnPresentation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	open20 := f.MissionOpener(20)
 	if _, _, _, _, _, _, _, _, _, _, err := open20(); err != nil {
@@ -1736,6 +1746,7 @@ func TestReleaseTemporaryPartyAndNonPartyKeepTheirOwnPresentation(t *testing.T) 
 // real art lookup, mission start, and the first presentation frame. The save
 // directory is explicit because lawful installs are never test fixtures.
 func TestReleaseOriginalNairaSavesKeepFemaleAppearance(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	saves := os.Getenv("AGAINROM_ORIGINAL_SAVES")
 	if saves == "" {
 		t.Skip("no AGAINROM_ORIGINAL_SAVES: Naira save integration not requested")
@@ -1791,6 +1802,7 @@ func TestReleaseOriginalNairaSavesKeepFemaleAppearance(t *testing.T) {
 // Load Game path up to the first frame and compares the canonical world with
 // the original save accessors before any gameplay tick can rewrite either.
 func TestReleaseOriginalSave666RestoresTriggerLatchesAndDiplomacyBeforeFirstTick(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SAVE_666")
 	if path == "" {
 		t.Skip("no AGAINROM_SAVE_666: original session integration not requested")
@@ -1890,6 +1902,7 @@ func TestReleaseOriginalSave666RestoresTriggerLatchesAndDiplomacyBeforeFirstTick
 }
 
 func TestReleaseABetweenMissionSaveStartsAtTheMapsOwnDrop(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: between-mission placement integration not requested")
@@ -1975,6 +1988,7 @@ func TestReleaseABetweenMissionSaveStartsAtTheMapsOwnDrop(t *testing.T) {
 // saves. It guards the exact original-load -> map-start -> first-frame boundary
 // that previously replaced the restored body with a freshly derived one.
 func TestReleaseOriginalSave666KeepsItsRestoredAppearance(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SAVE_666")
 	if path == "" {
 		t.Skip("no AGAINROM_SAVE_666: save-666 integration not requested")

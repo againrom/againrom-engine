@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -19,6 +20,7 @@ import (
 // whose frame keeps every glyph of the installed fonts; Close without saving
 // ends the editor and leaves the copy's bytes and the directory as they were.
 func TestReleaseMapEditorCloseWithUnsavedChangesAsks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	_, maps := installedMapBytes(t, x)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")

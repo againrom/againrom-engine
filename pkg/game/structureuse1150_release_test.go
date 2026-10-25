@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -16,6 +17,7 @@ import (
 // Real installed structures, potion rows, pointer dispatch and cold SaveStore.
 // Only the actor position/population are controlled; no original-runtime claim.
 func TestReleaseStructureUse1150(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	placements := []usablePlacement{{90, 27, 16}, {90, 38, 15}, {91, 9, 28}, {101, 11, 29}}
 	for _, p := range shippedUsablePlacements(t, releaseFront(t)) {
 		if p.kind != 15 && p.kind != 16 && p.kind != 28 && p.kind != 29 {

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -102,6 +103,7 @@ func cardLoadShot(t *testing.T, app *ui.App, name string) {
 }
 
 func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("mission 51 turtle", func(t *testing.T) {
 		f, app, turtle := magicWitnessOpen(t)
 		hero := cardLoadWitness(t, f, app, f.live.mission.ids[0], "hero", true, false)

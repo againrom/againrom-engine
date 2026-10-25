@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -136,6 +137,7 @@ func teleportJumpLogHash(t *testing.T, mw *mapWorld, name string) {
 }
 
 func TestReleaseTeleportBookAndScrollDrawAtDestination(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, name := range []string{"book", "scroll"} {
 		t.Run(name, func(t *testing.T) {
 			scroll := name == "scroll"
@@ -246,6 +248,7 @@ func TestReleaseTeleportBookAndScrollDrawAtDestination(t *testing.T) {
 }
 
 func TestReleaseTeleportUnitTargetDrawsAtDestination(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _ := teleportJumpFront(t, 20, false)
 	mw := f.live
 	casterID := mw.mission.ids[0]
@@ -337,6 +340,7 @@ func TestReleaseTeleportUnitTargetDrawsAtDestination(t *testing.T) {
 }
 
 func TestReleaseCreatureTeleportUsesAdjacentCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := stoneStillFront(t)
 	probe, _, creatures := creatureClassCases(t, f, creatureClassTele)
 	a := f.App("creature Teleport adjacent witness")

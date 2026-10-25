@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -101,6 +102,7 @@ func releaseHireWithHuman(t *testing.T, f *FrontEnd) {
 // the sun's object-path shroud index, the same one a structure's main sheet
 // reads, and the second is the unit-path index.
 func TestReleaseUnitShadowsUseTheObjectPathLevel(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)

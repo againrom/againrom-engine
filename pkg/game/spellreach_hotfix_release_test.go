@@ -4,10 +4,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseFireballUsesPartyVisiblePointFromOwnerSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path, _ := ownerCurrentSAV(t, "mission111-portrait-input")
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

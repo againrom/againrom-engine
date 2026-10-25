@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -152,6 +153,7 @@ func activePauseCold(t *testing.T, path string) {
 }
 
 func TestReleaseActivePauseOrderedSAVAndResume(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if path := os.Getenv("AGAINROM_ACTIVE_PAUSE_INPUT"); path != "" {
 		activePauseCold(t, path)
 		return

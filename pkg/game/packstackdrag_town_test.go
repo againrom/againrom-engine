@@ -9,6 +9,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -123,6 +124,7 @@ func (r packDragTownRig) cold(t *testing.T, label string) packDragTownRig {
 }
 
 func TestReleasePackStackDragTownGestures(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name           string
 		source, target int
@@ -206,6 +208,7 @@ func packDragTownArrow(t *testing.T, app *ui.App, kind ui.ShopControlKind) {
 }
 
 func TestReleasePackStackDragTownControlsAndTrading(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range []struct {
 		name           string
 		source, target int

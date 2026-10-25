@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -17,6 +18,7 @@ import (
 // move authored7, make authored8 source-only, and give each positive HP. No
 // owner save or install is written. Installed art and the App LOAD/SAVE path run.
 func TestReleaseSavedStructures1114MovedSourceOnlyAndNoGhost(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	_, payload := groundCorpusFile(t, "2026-08-15/game0017.sav", "eafce5d6575d54fdddc7a35f57531cd3df9317006c80f7c4085866c1b02b4fe0")

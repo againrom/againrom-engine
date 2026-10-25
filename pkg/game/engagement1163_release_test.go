@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
@@ -15,6 +16,7 @@ import (
 // The pinned original supplies state, target key and archive identities to
 // independent Body readers. No target is selected from the imported orders.
 func TestReleaseEngagement1163OriginalAndNativeContinuation(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	_, raw := groundCorpusFile(t, "2026-08-14/game0013.sav", "b211b9ad621a2cec38ff5a1d1f3f632542a58e1e377c8f562b25ba48ca2aa5ea")
 	source, err := sav.Open(raw)

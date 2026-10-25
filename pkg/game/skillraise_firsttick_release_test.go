@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -63,6 +64,7 @@ func saveAndLoad(t *testing.T, f *FrontEnd, app *ui.App) (*FrontEnd, *ui.App) {
 // after LOAD posts its notice, and a first tick after LOAD that raises nothing
 // posts no row for the levels the save already held.
 func TestReleaseSkillRaiseInTheFirstTickAfterLoadPostsItsNotice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	probe, _, _, _, rows := fighterRun(t, 1<<62)
 	if len(rows) == 0 {
 		t.Fatal("the control run posted no raise")

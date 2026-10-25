@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"testing"
 
@@ -28,6 +29,7 @@ func lootSnapshot1172(t *testing.T) (Snapshot, []byte, int) {
 }
 
 func TestReleaseImportedLoot1172SingleCauseAdmission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source, _, at := lootSnapshot1172(t)
 	for name, edit := range map[string]func(*SnapshotCityReturn){
 		"omitted item": func(r *SnapshotCityReturn) { r.Holdings.Inventory = nil },
@@ -68,6 +70,7 @@ func TestReleaseImportedLoot1172SingleCauseAdmission(t *testing.T) {
 // current holder's Player key. City topology IDs and native item handles are
 // separate: follow the topology binding to the ordinary record.
 func TestReleaseImportedLootUnclosedOwnerReferenceUsesCurrentHolder(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, _ := returnPlayed1169(t, false)
 	s, label, err := f.Snapshot(false)
 	if err != nil {

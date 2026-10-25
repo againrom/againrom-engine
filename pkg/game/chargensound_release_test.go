@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
@@ -30,6 +31,7 @@ var chrgenReleaseMembers = []string{
 // install's sfx.res, centred and as a voice. Every device is a silent double,
 // so nothing reaches the sound card; the master volume is 0 besides.
 func TestReleaseChargenSoundsThroughAppInput(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 
 	// The oracle: the install's own chrgen population and each member's

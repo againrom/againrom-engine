@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -49,6 +50,7 @@ func kargallasLoad(t *testing.T, raw []byte) (*FrontEnd, *ui.App) {
 // book. The two owner SAVs were written before that book existed; their empty
 // books load as saved.
 func TestReleaseKargallasDragonHasTheFixedDragonBook(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	rows := 0
 	for i := 1; i < f.Table.Units.Len(); i++ {

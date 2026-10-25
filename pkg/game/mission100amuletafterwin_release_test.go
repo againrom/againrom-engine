@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -20,6 +21,7 @@ import (
 // item at mission end is an open research question, not a rule this build
 // holds.
 func TestReleaseMission100AmuletPickedAfterTheWin(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, farm := range []bool{false, true} {
 		name := "town"
 		if farm {

@@ -8,11 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseTownSpeechResponses(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	var delivered [][]byte
 	var players []*deliveryWitnessPlayer
 	restore := ui.SetDeliveryPlayerFactory(func(reader io.ReadSeeker) (ui.DeliveryDevicePlayer, error) {

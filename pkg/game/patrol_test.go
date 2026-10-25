@@ -13,6 +13,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/game"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -54,6 +55,7 @@ func (p *patrolTrack) chebyshevFromStart(x, y int32) int32 {
 // the numbers that motivated it — only that whatever the map placed them
 // on, they leave it and come back.
 func TestPatrolWalksTheMissionTensPatrollers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the mission-10 patrol drive needs a lawful install")

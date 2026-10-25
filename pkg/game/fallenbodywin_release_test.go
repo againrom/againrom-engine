@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -171,6 +172,7 @@ func bodyWinVictory(t *testing.T, f *FrontEnd, app *ui.App) {
 // and no companion, and mission 40 runs without the objective that protects
 // her.
 func TestReleaseCompanionBodyAtTheWinStaysBehind(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, raw := groundCorpusFile(t, bodyWinSAV, bodyWinHash)
 	heroes, others := bodyWinHumans(t, raw)
 	if heroes != 1 || len(others) != 1 {

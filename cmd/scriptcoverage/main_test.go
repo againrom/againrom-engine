@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -49,6 +50,7 @@ func TestTheClaimBackedOperationDenominatorHasFiftyTwoUniqueRows(t *testing.T) {
 // then runs it once against each preserved root. No asset byte or derived map is
 // written to the repository.
 func TestReleaseCampaignScriptExecutionClosure(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the 28-map script execution matrix needs a lawful install")

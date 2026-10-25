@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -105,6 +106,7 @@ func bytesTrigger(sc *ui.InspectionScriptModel) (int, bool) {
 // own field and record calls write for the same change, one Undo restores the
 // bytes before it and Redo the bytes after it.
 func TestReleaseMapEditorTriggerPopupWritesTheFieldCallBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys := installedMapKeys(x)
 	open := func(key string) *ui.MapEditor {
@@ -378,6 +380,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 // to. Every drawn area lies inside its map, and the editor's model carries
 // the decoder's areas unchanged.
 func TestReleaseMapEditorTriggerAreaCensus(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, maps := installedMapBytes(t, x)
 	type tally struct{ maps, triggers, drawing, areas, notes int }
@@ -471,6 +474,7 @@ func TestReleaseMapEditorTriggerAreaCensus(t *testing.T) {
 // open, a cell pick, and the areas with one trigger highlighted. In each the
 // installed fonts keep every glyph.
 func TestReleaseMapEditorTriggerFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
 	keys := installedMapKeys(x)

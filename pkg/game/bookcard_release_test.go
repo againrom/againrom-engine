@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -31,6 +32,7 @@ func rawTextLine(t *testing.T, f *FrontEnd, path string, index int) string {
 // formatter's fragment: main.txt line 90, the item spell caption, and main.txt
 // line 91. The Russian Drain Life item caption has an owner-directed alias.
 func TestReleaseBookCardIsBuiltFromTheInstalledFormatterWords(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	of := rawTextLine(t, f, "main/text/main.txt", 90)
 	suffix := rawTextLine(t, f, "main/text/main.txt", 91)
@@ -94,6 +96,7 @@ func linesContain(lines []string, s string) bool {
 // that name line in the popup. With AGAINROM_TOOLTIP_ARTIFACTS set the popup
 // image is written as a PNG.
 func TestReleaseShopBookShelfPopupShowsTheBookCard(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	app, s := releaseShopApp(t)
 	f := frontOf(s)
 	s.CloseTip()
@@ -161,8 +164,8 @@ func TestReleaseShopBookShelfPopupShowsTheBookCard(t *testing.T) {
 // only above zero. The population is every armour code whose base defence is 1.
 func TestReleaseArmourCardPrintsOneLinePerStoredPairWithoutMerging(t *testing.T) {
 	f := releaseFront(t)
-	label := rawTextLine(t, f, "main/text/stats.txt", 15)
-	absorption := rawTextLine(t, f, "main/text/stats.txt", 16)
+	label := string(f.textCode().Bytes([]byte(rawTextLine(t, f, "main/text/stats.txt", 15))))
+	absorption := string(f.textCode().Bytes([]byte(rawTextLine(t, f, "main/text/stats.txt", 16))))
 	if label == "" || label != f.Words.ItemStats[15] || absorption != f.Words.ItemStats[16] {
 		t.Fatalf("stats.txt lines 15 and 16 are %q and %q, words hold %q and %q", label, absorption, f.Words.ItemStats[15], f.Words.ItemStats[16])
 	}

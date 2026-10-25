@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
@@ -23,6 +24,7 @@ import (
 // parentheses, and every byte must draw an inked glyph of the map font under
 // the install's own language selector.
 func TestReleaseSkillRaiseNoticeIsInstalledText(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mage := range []bool{false, true} {
 		t.Run(map[bool]string{false: "fighter", true: "mage"}[mage], func(t *testing.T) {
 			f := releaseFront(t)

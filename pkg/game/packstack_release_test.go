@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -31,6 +32,7 @@ func packStackCells(stacks []sim.ItemStack, codes ...uint16) string {
 // the weapons shelf: 0x8134 x3, and 0x8114, another code, in its own cell
 // through a town SAVE and cold LOAD (ITEM-MERGE-129).
 func TestReleaseEqualBowsShareOnePackCell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const bow, cheap = 0x8134, 0x8114
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "Archer", Choices: []int{0, 0, 4}, Stats: []int{31, 27, 24, 29}})
@@ -112,6 +114,7 @@ func TestReleaseEqualBowsShareOnePackCell(t *testing.T) {
 // shelf's own 0x0e06 cell. Both hold through a town SAVE and cold LOAD
 // (ITEM-STACK-003, ITEM-MERGE-129).
 func TestReleaseBoughtItemsJoinTheRestoredCells(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const cheap, potion = 0x8114, 0x0e06
 	root := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if os.Getenv("AGAINROM_ASSETS") == "" || root == "" {

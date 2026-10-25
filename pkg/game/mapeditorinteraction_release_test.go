@@ -13,12 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	keys, sources := installedMapBytes(t, x)
 	popups := 0
@@ -132,6 +134,7 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 }
 
 func TestReleaseEditorCharacterCardsMatchGameSample(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	total := 0
 	for _, key := range []string{"scenario/141.alm", "scenario/151.alm"} {
@@ -173,6 +176,7 @@ func TestReleaseEditorCharacterCardsMatchGameSample(t *testing.T) {
 }
 
 func TestReleaseEditorInheritedHintsWithStatOverride(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	doc, err := x.Open("scenario/141.alm")
 	if err != nil {
@@ -206,6 +210,7 @@ func TestReleaseEditorInheritedHintsWithStatOverride(t *testing.T) {
 }
 
 func TestReleaseEditorInteractionFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_EDITOR_INTERACTION_FRAMES")
 	if dir == "" {

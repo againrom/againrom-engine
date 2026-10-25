@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -51,6 +52,7 @@ func mission30Party(t *testing.T, f *FrontEnd, companion bool) []mapload.PartyMe
 // message 16 and then the win in both rosters, and the resolved roster raises
 // message 16 alone.
 func TestReleaseMission30HealerWinRaisesSubscriptZerosMessage(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, companion := range []bool{false, true} {
 		name := "primary"
 		if companion {

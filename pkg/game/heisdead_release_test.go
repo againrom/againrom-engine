@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -25,6 +26,7 @@ func heisdeadPath(t *testing.T) string {
 
 // The owner's mission-150 SAV has the demon dead and Victory pending (DIV-1264).
 func TestReleaseHeisdeadCampaignEnd(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	raw, err := os.ReadFile(heisdeadPath(t))
 	if err != nil {
 		t.Fatal(err)

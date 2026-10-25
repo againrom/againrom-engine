@@ -11,11 +11,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseLoadedBrianKeepsHisClothesInTheTurnDialogue(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_BRIAN_TURN_INPUT")
 	if path == "" {
 		t.Skip("AGAINROM_BRIAN_TURN_INPUT is not set")

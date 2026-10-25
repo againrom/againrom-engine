@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -33,6 +34,7 @@ import (
 // pane after the J key, must be the same picture in the loaded mission as in
 // the fresh one.
 func TestReleaseLoadedCreaturesKeepTheirSheets(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -96,6 +98,7 @@ func TestReleaseLoadedCreaturesKeepTheirSheets(t *testing.T) {
 // load each creature on its own sheet and hover to the same card as a fresh
 // mission at the save's own difficulty.
 func TestReleaseOwnerSaveCreaturesKeepTheirSheets(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SARINDAR_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_SARINDAR_SAV: the owner's mission-10 save is an owner input")

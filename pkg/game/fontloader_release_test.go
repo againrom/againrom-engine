@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/render/text"
 )
 
@@ -31,6 +32,7 @@ var oneLoaderFontDigests = map[int]map[string]string{
 }
 
 func TestReleaseOneFontLoaderKeepsEveryGlyph(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := releaseRoot(t)
 	archives, err := OpenArchives(root)
 	if err != nil {

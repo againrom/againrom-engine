@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -14,6 +15,7 @@ func potionSheetStats1090(c ui.UnitCharacter) [4]int {
 }
 
 func TestReleaseConsumable1090AppRestoredSheets(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("four permanent attributes", func(t *testing.T) {
 		f := releaseFront(t)
 		f.SetDeterministicFrames(true)

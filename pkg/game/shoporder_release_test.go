@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -26,6 +27,7 @@ import (
 // opens every shelf in order again. Every chapter's generated shop, magic shelf
 // included, is in the same order.
 func TestReleaseShopShelvesRunCheapestFirstInsideEachGroup(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	source := os.Getenv("AGAINROM_SAVE_666")
 	if source == "" {
 		t.Skip("AGAINROM_SAVE_666 is not set")

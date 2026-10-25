@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -26,6 +27,7 @@ import (
 // mission notice closes with Enter. SAVE is the ordinary producer and LOAD the
 // load dialog of a cold front end. Mission 20's Sarindar is the control.
 func TestReleasePlacedSpeakerKeepsHisWornSetAfterLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Options = OptionsStore{}
 	f.SetDeterministicFrames(true)
@@ -101,6 +103,7 @@ func TestReleasePlacedSpeakerKeepsHisWornSetAfterLoad(t *testing.T) {
 // before Sarindar and stripped him in the dialogue window. It is loaded
 // through the load dialog, saved by the ordinary producer and loaded again.
 func TestReleaseOwnerSaveSpeakerKeepsHisWornSet(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_SARINDAR_SAV")
 	if path == "" {
 		t.Skip("no AGAINROM_SARINDAR_SAV: the owner's mission-10 save is an owner input")

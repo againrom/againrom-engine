@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -309,6 +310,7 @@ func assertReturnRaw1169(t *testing.T, raw []byte, expected []returnOracle1169) 
 }
 
 func TestReleaseImportedReturn1169SAVColdNextMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, private, want := returnPlayed1169(t, true)
 	for _, b := range f.originalCity.bindings {
 		if b.returned == nil {
@@ -416,6 +418,7 @@ func TestImportedReturn1169ColdProcess(t *testing.T) {
 }
 
 func TestReleaseImportedLoot1172ControlledRetainedGrant(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, _ := returnPlayed1169(t, false)
 	for _, b := range f.originalCity.bindings {
 		if b.returned == nil || b.returned.Holdings == nil {
@@ -437,6 +440,7 @@ func TestReleaseImportedLoot1172ControlledRetainedGrant(t *testing.T) {
 }
 
 func TestReleaseImportedReturn1169LossControls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f, _, _ := returnPlayed1169(t, true)
 	base, _, baseLoaded := townSAVRoundTrip(t, f)
 	hero, companion := f.Carried[0], f.Carried[1]

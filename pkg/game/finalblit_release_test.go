@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -22,6 +23,7 @@ func (r *finalMovieAudioRecorder) Stop()                    { r.stops++; r.live 
 func (*finalMovieAudioRecorder) SetSettings(audio.Settings) {}
 
 func TestReleaseCutsceneFinalBlitStopsAudioWithPictureRetained(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	a := f.App("final movie presentation")
 	t.Cleanup(a.StopAudio)

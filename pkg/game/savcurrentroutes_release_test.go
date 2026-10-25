@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestReleaseCapturedFieldsThroughProductionSaveRoutes(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	dir := t.TempDir()
@@ -312,6 +314,7 @@ func routeBoundHero(t *testing.T, f *FrontEnd, raw []byte) sav.Character {
 }
 
 func TestReleaseSaveRoutesWriteIdenticalStateExceptName(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	dir := t.TempDir()

@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 )
 
 func TestReleaseOriginalProjectilesRestoreOnLoad1133(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-15/game0018.sav", "1e2eb21f47082ab05a8f7810148fdf722fe8aa4f69a57d79953bd8fe0025eb6b")
 	source, err := sav.Open(payload)
 	if err != nil {
@@ -78,6 +80,7 @@ func TestReleaseOriginalProjectilesRestoreOnLoad1133(t *testing.T) {
 // corpus' ordinary case: FreeIndex present and nonzero, IDs empty, no
 // Prj<id> section.
 func TestReleaseOriginalProjectilesEmptyStoreSurvivesLoad1133(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-02/game9999.sav", "5822c37e8fa531e0b6d9b2348977c31f78d33f5035dd5c780e8b73459840b78e")
 	source, err := sav.Open(payload)
 	if err != nil {

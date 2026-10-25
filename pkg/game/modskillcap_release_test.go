@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -59,6 +60,7 @@ func skillCapHero(t *testing.T, f *FrontEnd) sim.Entity {
 }
 
 func TestReleaseModSkillCapRaisesAHeroPastTheOriginalCapAndTheSaveCarriesIt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := modSkillCapFront(t, 150)
 	skillCapMission(t, f)
 	hero := skillCapHero(t, f)
@@ -209,6 +211,7 @@ func TestReleaseModSkillCapRaisesAHeroPastTheOriginalCapAndTheSaveCarriesIt(t *t
 }
 
 func TestReleaseModSkillCapLeavesAnUnmoddedSaveUntouched(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	export := func(f *FrontEnd) []byte {
 		t.Helper()
 		skillCapMission(t, f)

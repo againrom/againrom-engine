@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -16,6 +17,7 @@ import (
 // flush left and every value flush right per column, health and mana centred in
 // their half, sight with one decimal, and nothing shortened.
 func TestReleaseStatisticsCardColumnsAreFlush(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	art, err := LoadTownCharacterPaneArt(f.Archives.Containers, rom1Screens)
 	if err != nil {

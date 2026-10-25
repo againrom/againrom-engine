@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/base"
 )
 
@@ -13,6 +14,7 @@ import (
 // language names, the front end carries that profile, and the profile states no
 // limit, so mods, the new game and the generation screen are as before.
 func TestReleaseBaseProfileMatchesTheInstall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	root := os.Getenv("AGAINROM_ASSETS")
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: base detection needs a lawful install")

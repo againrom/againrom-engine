@@ -4,6 +4,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 )
@@ -90,6 +91,7 @@ func healthOf(mw *mapWorld, ids []sim.EntityID) map[sim.EntityID]int32 {
 }
 
 func TestReleaseModRaysHitAndDrawEveryEnemyAndSurviveSaveAndLoad(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := raysModFront(t, "100")
 	casterID, enemies := raysMission(t, f)
 	mw := f.live
@@ -145,6 +147,7 @@ func TestReleaseModRaysHitAndDrawEveryEnemyAndSurviveSaveAndLoad(t *testing.T) {
 }
 
 func TestReleaseWithoutRaysTheSprayStopsAtTheOriginalCap(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := raysModFront(t, "")
 	casterID, enemies := raysMission(t, f)
 	mw := f.live

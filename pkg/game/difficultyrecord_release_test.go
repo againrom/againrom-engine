@@ -3,12 +3,14 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
 // A Hard campaign's mission and town SAVEs carry head 3 and record word 2.
 func TestReleaseDifficultyRecordWrittenAndLoadedCold(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	app := f.App("difficulty record")
 	app.Layout(640, 480)

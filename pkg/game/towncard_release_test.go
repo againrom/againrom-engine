@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -206,6 +207,7 @@ func checkNameCentred(t *testing.T, what string, l ui.PanelLayout, mask [][2]int
 }
 
 func TestReleaseStatisticsCardFitsAtTheProductionFont(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.Carried = f.NextParty()
 	f.arriveInTown()
@@ -309,6 +311,7 @@ func cardBackgroundFrame(bg *image.RGBA, box image.Rectangle) *image.RGBA {
 }
 
 func TestReleaseShopDrawsNothingOverTheStatisticsCard(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	if os.Getenv("AGAINROM_ASSETS") == "" {
 		t.Skip("no AGAINROM_ASSETS: the shop composition witness needs a lawful install")
 	}

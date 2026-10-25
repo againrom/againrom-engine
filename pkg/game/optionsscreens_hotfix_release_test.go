@@ -10,11 +10,13 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseQuestObjectivesAndMainMenuHall(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	profile := t.TempDir()

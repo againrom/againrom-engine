@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -173,6 +174,7 @@ func shieldWitnessRequire(t *testing.T, label string, tc shieldWitnessCase, star
 // clicks the shield in the pack. The result is the same for an actor built for
 // the mission and for one loaded from a SAV, and it survives SAVE and LOAD.
 func TestReleaseShieldWornAloneAndOverTwoHandedWeaponsThroughApp(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, tc := range shieldWitnessCases {
 		t.Run(tc.name, func(t *testing.T) {
 			f, app := shieldWitnessOpen(t, tc)
@@ -252,6 +254,7 @@ func townShieldWear(t *testing.T, s *townScreen, code uint16) {
 // Two-Handed Sword 0x1106 goes to the pack for it, and the town SAV holds each
 // state. A LOAD of that SAV gives the same result for the next wear.
 func TestReleaseTownShieldWornAloneAndOverATwoHandedSwordSavesAsSAV(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const sword, twoHanded, shield = uint16(0x103), uint16(0x1106), uint16(0x1222)
 	f := currentTown(t, func(f *FrontEnd, hero sim.EntityID) {
 		equipmentReturnPick(t, f, hero, 20, 65) // the Bronze Two-Handed Sword

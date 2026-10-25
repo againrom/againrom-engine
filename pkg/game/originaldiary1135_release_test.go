@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 )
 
 func TestReleaseOriginalDiariesRestoreOnLoad1135(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game0021.sav", "7acf1d56d3a98e388a527ae386f225036cc01551273480a4fafc52fa8fcf817c")
 	source, err := sav.Open(payload)
 	if err != nil {
@@ -156,6 +158,7 @@ func gameNineNineNineNineDiaryEntries1135() []sav.DiaryEntry {
 // whose Player and hero Diaries are both all-default, so it proves presence,
 // not content, and every assertion it makes is a comparison of 0 against 0.
 func TestReleaseOriginalDiaryRealPlayerEntriesRestoreOnLoad1135(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game9999.sav", "d954bd394473d0311e934b5358519eb73ca45773732b8070e6948346f6475b27")
 	source, err := sav.Open(payload)
 	if err != nil {
@@ -210,6 +213,7 @@ func TestReleaseOriginalDiaryRealPlayerEntriesRestoreOnLoad1135(t *testing.T) {
 // (TestReleaseOriginalDiariesRestoreOnLoad1135), which reproduces trivially
 // since every write is the construction default.
 func TestReleaseOriginalDiaryRealPlayerEntriesSurviveNativeExport1135(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	_, payload := groundCorpusFile(t, "2026-08-24/game9999.sav", "d954bd394473d0311e934b5358519eb73ca45773732b8070e6948346f6475b27")
 	source, err := sav.Open(payload)
 	if err != nil {

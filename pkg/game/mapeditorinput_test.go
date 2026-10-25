@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
@@ -84,6 +85,7 @@ func TestEditorInputRulesUseStoredCodecs(t *testing.T) {
 }
 
 func TestEditorTextInstalledFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := os.Getenv("AGAINROM_EDITOR_TEXT_FRAMES")
 	x := installedInspector(t)
 	if dir == "" {

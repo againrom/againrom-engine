@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -13,6 +14,7 @@ import (
 // the fresh and the loaded World alike (DAT-SCHEMA-007). A killed member's body
 // then lies for that dwell before teardown (HERO-DWELL-065).
 func TestReleaseFreshPartyBodyKeepsItsRowDwell(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	const healer = 4
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)

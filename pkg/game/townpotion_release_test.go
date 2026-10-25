@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -76,6 +77,7 @@ func townPotionOldRecord(t *testing.T, raw []byte, memberID string) []byte {
 }
 
 func TestReleaseTownRegenerationPotionLeavesNoEffect(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	lineage := releaseFront(t)
 	lineage.Carried = lineage.NextParty()
 	lineage.arriveInTown()

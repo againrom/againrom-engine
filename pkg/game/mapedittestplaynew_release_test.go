@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"againrom/internal/firstgame"
 )
 
 // f5Inspector is the installed inspector with a recording test-play host.
@@ -38,6 +40,7 @@ func f5Inspector(t *testing.T) (*MapInspector, *[][]string) {
 // opens and the game starts once each time, while the Map panel still says
 // that nothing wins the map.
 func TestReleaseTestPlayOfANewMapStartsAtOnce(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, started := f5Inspector(t)
 	lang := installLanguage(x)
 	dir := os.Getenv("AGAINROM_EDITOR_FRAMES")
@@ -86,6 +89,7 @@ var panelArea = image.Rect(0, 0, 460, 420)
 // and lists the warning, Cancel starts nothing and Continue starts the game
 // once.
 func TestReleaseTestPlayOfAMapWithAnotherWarningStillAsks(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, started := f5Inspector(t)
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
 	e := x.Editor()

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -47,6 +48,7 @@ func installedTriggerMessage(t *testing.T) (*MapInspector, *ui.MapEditor, string
 }
 
 func TestReleaseTriggerMessageFrames(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, e, key, index := installedTriggerMessage(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before, pages := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages
@@ -62,6 +64,7 @@ func TestReleaseTriggerMessageFrames(t *testing.T) {
 }
 
 func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x, e, key, _ := installedTriggerMessage(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)

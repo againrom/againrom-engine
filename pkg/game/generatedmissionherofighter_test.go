@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -79,6 +80,7 @@ func heroExportedU4C(t *testing.T, f *FrontEnd, party []mapload.PartyMember, mis
 // reference (review/owner-sav-exp0397-r5/candidates/game9237.sav) both
 // carry U4C=0.
 func TestReleaseGeneratedMissionHeroFighterClassFlags(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, mission := range []int{10, 20} {
 		t.Run(missionSubtestName(mission), func(t *testing.T) {
 			f := releaseFront(t)
@@ -98,6 +100,7 @@ func TestReleaseGeneratedMissionHeroFighterClassFlags(t *testing.T) {
 // archetype-matched Fighter default. A fighter chargen choice still exports
 // U4C=0, exactly as before this story.
 func TestReleaseChargenPartyFighterClassFlagsUnaffected(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
 	party := f.ChargenParty(ui.ChargenResult{Name: "FighterProbe", Choices: []int{0, 0, 0}, Stats: []int{31, 27, 24, 29}})
 	got := heroExportedU4C(t, f, party, 10, "chargen party fighter class flags unaffected")

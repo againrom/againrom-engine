@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
@@ -196,6 +197,7 @@ func TestReleaseRoomTipsAtEveryEnterAndShopSecondText(t *testing.T) {
 // the description's rectangle (TOWN-516, MENU-137) unless the text overflows
 // the claimed list, which only the RU town text does (DIV-2719).
 func TestReleaseRoomTipRectanglesPerRoot(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	f := missionTipFront(t)
 	want := map[string]image.Rectangle{
 		"town":   image.Rect(328, 0, 640, 200),

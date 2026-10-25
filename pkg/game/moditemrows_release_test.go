@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -171,6 +172,7 @@ func rewield(t *testing.T, f *FrontEnd, code uint16) {
 // shop, shows the mod's picture and name, is bought and worn, and survives a
 // SAVE and cold LOAD under the mod; a LOAD without the mod refuses.
 func TestReleaseModMaterialAllowedPairRollsShowsAndIsWorn(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := releaseFront(t)
 	row := weaponRowNamed(t, plain.Table, "Pike")
 	code := weaponPairCode(t, plain.Table, row, "Common", "Bone")
@@ -222,6 +224,7 @@ func TestReleaseModMaterialAllowedPairRollsShowsAndIsWorn(t *testing.T) {
 // forbids the common iron pike. Over 256 seeds at two ceilings the shipped
 // game stocks it and the modded game never does; every other candidate stays.
 func TestReleaseModMaterialForbiddenPairNeverRolls(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := releaseFront(t)
 	f := modRowsFront(t, modItemsDir, false, noIronPikeMod)
 	row := weaponRowNamed(t, plain.Table, "Pike")
@@ -277,6 +280,7 @@ func glaiveOf(t *testing.T, f, plain *FrontEnd) glaiveFixture {
 // and price the mod states and every other number of the Pike, the Pike's
 // pairs in the shop, its pictures and its body, and the mod's name.
 func TestReleaseModWeaponRowCopiesItsBaseWithTheStatedNumbers(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := releaseFront(t)
 	f := modRowsFront(t, modItemsDir, false, warGlaiveMod)
 	g := glaiveOf(t, f, plain)
@@ -427,6 +431,7 @@ func reachStrike(t *testing.T, mw *mapWorld, hero sim.EntityID, cells int32) (ti
 // the Pike as the stand-in and the mark the glaive; a LOAD without the mod
 // refuses.
 func TestReleaseModWeaponRowStrikesAtItsRangeAndSavesInAMission(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := releaseFront(t)
 	f := modRowsFront(t, modItemsDir, false, warGlaiveMod)
 	g := glaiveOf(t, f, plain)
@@ -534,6 +539,7 @@ func TestReleaseModWeaponRowStrikesAtItsRangeAndSavesInAMission(t *testing.T) {
 // town shop, is bought and worn, and a town SAVE, a cold LOAD under the mod
 // and the next action keep it worn.
 func TestReleaseModWeaponRowIsSoldWornAndSavedInTheTown(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	plain := releaseFront(t)
 	f := modItemTownOf(t, func() *FrontEnd { return modRowsFront(t, modItemsDir, false, warGlaiveMod) })
 	g := glaiveOf(t, f, plain)
@@ -572,6 +578,7 @@ func oldTownSave(t *testing.T) []byte {
 // mod and, as for every mod, under the fixture mods when the launcher accepts
 // unmarked saves; the next action, buying the mod's weapon, works.
 func TestReleaseModItemRowsLoadAnOldSave(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	raw := oldTownSave(t)
 	if sav.MayCarryNativeMods(raw) {
 		t.Fatal("the old save carries a mod leaf")
@@ -627,6 +634,7 @@ func itemRowsMod(t *testing.T, dir, id string, files map[string]string) {
 // the file and the line, and with load-after two mods on one mask bit load,
 // the later winning.
 func TestReleaseModItemRowsRefusals(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	text := func(key, s string) map[string]string {
 		return map[string]string{"text/en/strings.toml": key + " = \"" + s + "\"\n", "text/ru/strings.toml": key + " = \"" + s + "\"\n"}
 	}
@@ -682,6 +690,7 @@ func TestReleaseModItemRowsRefusals(t *testing.T) {
 // added row by its key, and the glaive hero is drawn with the chosen body
 // while his class key stays the Pike hero's.
 func TestReleaseModWeaponRowTakesABodyChoice(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	dir := t.TempDir()
 	itemRowsMod(t, dir, "glaive-club", map[string]string{
 		"main.star":            "def init(game, settings):\n    game.data.add(\"data/items.toml\")\n    game.data.add(\"data/wpnbodies.toml\")\n",

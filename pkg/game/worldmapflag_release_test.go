@@ -4,10 +4,12 @@ import (
 	"image"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
 func TestReleaseWorldMapFlagStandsAboveTheCurrentPoint(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	w := openCrossWitness(t)
 	v := w.screen.WorldMapView()
 	if v.Flag == nil || v.Flag.Bounds().Size() != image.Pt(20, 24) {
