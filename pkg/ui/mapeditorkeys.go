@@ -346,6 +346,10 @@ func (e *MapEditor) Key(key string) error {
 	if e.textKey(key) {
 		return nil
 	}
+	if confirm := e.report.confirm; confirm != nil && !e.prompt.open() && (key == "enter" || key == "sack") {
+		e.report.confirm = nil
+		return confirm()
+	}
 	row := editorKeyByName[key]
 	if row == nil {
 		return nil

@@ -213,6 +213,7 @@ func (e *MapEditor) openReport(rows []InspectionFinding, note string, goals []In
 	e.rememberListCancel("report")
 	e.report.open, e.report.rows, e.report.note, e.report.sel = true, rows, note, 0
 	e.report.goals = goals
+	e.report.confirm = nil
 	e.report.flagged = map[string]bool{}
 	for _, f := range rows {
 		if f.Kind != "" {

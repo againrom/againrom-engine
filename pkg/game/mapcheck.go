@@ -748,14 +748,35 @@ func (s *mapInspectionEdits) textsStamp() string {
 	return fmt.Sprintf("%x", sha256.Sum256(b))
 }
 
-// gate refuses a save of a map whose report holds an error.
-func (s *mapInspectionEdits) gate() error {
+// gate stops an action on a map whose report holds an error. A save passes
+// forSave: it is stopped with a question the user may answer with AllowErrors,
+// and passes once that is given. The package and the test play pass false:
+// the mod loader refuses such a map, so they stay refused and say why.
+func (s *mapInspectionEdits) gate(forSave bool) error {
 	rows := s.Report()
 	if errs, _ := ui.CountFindings(rows); errs > 0 {
-		return &ui.ReportRefusal{Findings: rows}
+		if forSave {
+			if s.errorsAllowed {
+				return nil
+			}
+			return &ui.ReportRefusal{Findings: rows, Ask: true}
+		}
+		return s.loaderRefusal(rows)
 	}
 	return nil
 }
+
+// loaderRefusal is the refusal of an action the game's mod loader would not
+// start for a map whose rules report an error.
+func (s *mapInspectionEdits) loaderRefusal(rows []ui.InspectionFinding) *ui.ReportRefusal {
+	return &ui.ReportRefusal{Findings: rows, Why: words.For(s.inspector.pageLanguage()).Text("editor.package.refused")}
+}
+
+// AllowErrors lets the next save write a map the report holds errors for.
+func (s *mapInspectionEdits) AllowErrors() { s.errorsAllowed = true }
+
+// SaveNote is what the last save did not write, in the language of the pages.
+func (s *mapInspectionEdits) SaveNote() string { return s.saveNote }
 
 // modMessageText reports messages whose page source has no eventNN.txt.
 // The reserved number 255 is the lost-mission panel and takes no page.

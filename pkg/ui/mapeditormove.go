@@ -25,14 +25,21 @@ func (e *MapEditor) TextInput(s string) {
 }
 
 func (e *MapEditor) saveAs(path string) error {
-	then := e.saveThen
-	e.saveThen = nil
+	then, errs := e.saveThen, e.saveErrors
+	e.saveThen, e.saveErrors = nil, 0
 	if !e.editable() {
 		return nil
 	}
 	source, err := e.doc.Edits.SaveAs(path)
 	if err != nil {
 		if r, ok := refusal(err); ok {
+			if r.Ask {
+				e.askSaveWithErrors(r, func() error {
+					e.saveThen = then
+					return e.saveAs(path)
+				})
+				return err
+			}
 			e.refuseSave(r)
 			return err
 		}
@@ -44,6 +51,7 @@ func (e *MapEditor) saveAs(path string) error {
 	e.cancelRestore = nil
 	e.message = ""
 	e.afterSave()
+	e.noteSave(errs)
 	return e.leaveSaved(then)
 }
 
@@ -70,6 +78,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if next == nil {
 		return nil // unavailable history or same-cell move
 	}
+	e.saveNote = ""
 	if e.terrainDiffers(next) {
 		return e.adoptTerrainEdit(next, nil)
 	}

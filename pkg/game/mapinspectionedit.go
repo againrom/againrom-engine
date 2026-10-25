@@ -15,6 +15,7 @@ import (
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // One retained byte-model and checkpoint own the document. A candidate clone
@@ -32,6 +33,8 @@ type mapInspectionEdits struct {
 	page                         string
 	undoWorkspace, redoWorkspace []editorWorkspaceSnapshot
 
+	errorsAllowed bool                   // the user confirmed the next save with the report's errors
+	saveNote      string                 // what the last save did not write
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
@@ -560,14 +563,16 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 	return s.modelHistory(false)
 }
 
+// SaveAs writes the map the model holds. The map file is the save: a part the
+// editor cannot write beside it, the texts folder or its pages, is left out
+// and named by SaveNote, and its edits stay in the workspace.
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
-	if err := s.prepareWorkspace(); err != nil {
+	defer func() { s.errorsAllowed = false }()
+	s.saveNote = ""
+	if err := s.gate(true); err != nil {
 		return "", err
 	}
-	if err := s.gate(); err != nil {
-		return "", err
-	}
-	b, err := s.model.SaveBytes()
+	b, err := s.encodeForSave()
 	if err != nil {
 		return "", err
 	}
@@ -575,17 +580,49 @@ func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
 	if s.inspector.archives != nil {
 		root = s.inspector.archives.Root
 	}
-	pages, err := s.exportPageTree("", nil)
+	pages, err := s.pagesForSave()
 	if err != nil {
-		return "", err
+		s.noteUnwritten(err)
 	}
 	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage())
+	if err != nil && len(pages) > 0 {
+		s.noteUnwritten(err)
+		target, err = writeEditedMap(root, s.source, path, b)
+	}
 	if err != nil {
 		return "", err
 	}
 	s.saved, s.source = s.model.Bytes(), target
-	s.checkpointPages()
+	if s.saveNote == "" {
+		s.checkpointPages()
+	}
 	return target, nil
+}
+
+// encodeForSave is the model's map bytes. When the model cannot encode the
+// map, the answer says so and that the edits are kept; nothing is changed.
+func (s *mapInspectionEdits) encodeForSave() ([]byte, error) {
+	b, err := s.model.SaveBytes()
+	if err != nil {
+		return nil, fmt.Errorf(words.For(s.inspector.pageLanguage()).Text("editor.save.noencode"), err)
+	}
+	return b, nil
+}
+
+// pagesForSave is the page tree the save writes beside the map. It answers
+// no pages and the reason when the texts folder cannot be read.
+func (s *mapInspectionEdits) pagesForSave() (map[string][]byte, error) {
+	if err := s.prepareWorkspace(); err != nil {
+		return nil, err
+	}
+	return s.exportPageTree("", nil)
+}
+
+// noteUnwritten records that the pages were not written, and why.
+func (s *mapInspectionEdits) noteUnwritten(err error) {
+	if s.saveNote == "" {
+		s.saveNote = fmt.Sprintf(words.For(s.inspector.pageLanguage()).Text("editor.save.pages"), err)
+	}
 }
 
 // Save As creates a new host file only. It cannot overwrite an input, an

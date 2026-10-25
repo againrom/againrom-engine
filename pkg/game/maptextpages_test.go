@@ -97,8 +97,15 @@ func TestMapPagesWriteFenceAndCollisions(t *testing.T) {
 	dir := t.TempDir()
 	writeTestPlayInput(t, filepath.Join(dir, "taken.text", "en", "event01.txt"), []byte("Keep"))
 	before = tree(t, dir)
-	if _, err := s.SaveAs(filepath.Join(dir, "taken.alm")); err == nil || !reflect.DeepEqual(before, tree(t, dir)) {
-		t.Fatalf("page collision changed destination: %v", err)
+	// The map file is written; the folder beside it that is not ours is left
+	// as it was, and the save names the pages it did not write.
+	if _, err := s.SaveAs(filepath.Join(dir, "taken.alm")); err != nil || s.SaveNote() == "" || !s.Dirty() {
+		t.Fatalf("page collision lost the map: %v note %q", err, s.SaveNote())
+	}
+	after := tree(t, dir)
+	delete(after, "taken.alm")
+	if !reflect.DeepEqual(before, after) {
+		t.Fatalf("page collision changed the existing folder: %v", after)
 	}
 	if _, err := s.SaveAs(filepath.Join(dir, "free.alm")); err != nil {
 		t.Fatalf("outside-install loss control: %v", err)

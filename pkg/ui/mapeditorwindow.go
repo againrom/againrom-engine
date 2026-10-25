@@ -83,6 +83,8 @@ type editorChrome struct {
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
+	saveNote, saveNoteFor  string     // the status line's account of the last save, and the source it is for
+	saveErrors             int        // the errors a confirmed save is writing
 	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
 	messagePage            uint32
@@ -1293,6 +1295,9 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 			mark = "* "
 		}
 		parts = append(parts, mark+e.editorHostText(e.doc.Source))
+		if e.saveNote != "" && e.saveNoteFor == e.doc.Source {
+			parts = append(parts, e.editorHostText(e.saveNote))
+		}
 		if e.doc.AgainromOnly {
 			parts = append(parts, e.word("editor.againrom.map"))
 		}

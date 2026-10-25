@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"strings"
 )
 
 // InspectionFinding is one line of a map report: the rule a record breaks.
@@ -43,13 +44,36 @@ type InspectionChecker interface {
 	Report() []InspectionFinding
 }
 
-// ReportRefusal is the error of a save the report refuses: the map holds at
-// least one error finding.
-type ReportRefusal struct{ Findings []InspectionFinding }
+// ReportRefusal is the error of an action the report refuses: the map holds at
+// least one error finding. Ask is set when the action is a save the user may
+// confirm with the errors kept; Why then or otherwise is the host's reason in
+// the host's language, empty for the plain text.
+type ReportRefusal struct {
+	Findings []InspectionFinding
+	Ask      bool
+	Why      string
+}
 
 func (r *ReportRefusal) Error() string {
 	e, w := CountFindings(r.Findings)
+	if r.Why != "" {
+		return fmt.Sprintf(r.Why, e, w)
+	}
 	return fmt.Sprintf("the map has %d errors and %d warnings; nothing was saved", e, w)
+}
+
+// InspectionErrorSave is implemented by edits whose host can write a map the
+// report holds errors for. AllowErrors lets the next save write it; the host
+// forgets the permission when that save ends.
+type InspectionErrorSave interface {
+	AllowErrors()
+}
+
+// InspectionSaveNote is implemented by edits whose host can finish a save
+// without a part of it. SaveNote answers, in the host's words, what the last
+// save did not write; it is empty when the save was whole.
+type InspectionSaveNote interface {
+	SaveNote() string
 }
 
 // CountFindings is the number of error and of warning findings.
@@ -79,6 +103,9 @@ type reportState struct {
 	sel     int
 	flagged map[string]bool
 	goals   []InspectionGoal // set while the rows are the script panel's arms
+	// confirm saves the map with its errors; set while the report is the
+	// question a refused save asked, gone with the report.
+	confirm func() error
 }
 
 func findingKey(kind string, index int) string { return fmt.Sprintf("%s#%d", kind, index) }
@@ -129,9 +156,26 @@ func (e *MapEditor) afterSave() {
 		return
 	}
 	if rows := c.Report(); len(rows) > 0 {
-		_, warnings := CountFindings(rows)
-		e.openReport(rows, fmt.Sprintf("Saved with %d warnings", warnings), nil)
+		errs, warnings := CountFindings(rows)
+		note := fmt.Sprintf("Saved with %d warnings", warnings)
+		if errs > 0 {
+			note = fmt.Sprintf("Saved with %d errors, %d warnings", errs, warnings)
+		}
+		e.openReport(rows, note, nil)
 	}
+}
+
+// noteSave sets the status line after a save: the errors the map was saved
+// with, then what the host did not write.
+func (e *MapEditor) noteSave(errs int) {
+	var parts []string
+	if errs > 0 {
+		parts = append(parts, fmt.Sprintf(e.word("editor.saved.errors"), errs))
+	}
+	if n, ok := e.doc.Edits.(InspectionSaveNote); ok && n.SaveNote() != "" {
+		parts = append(parts, n.SaveNote())
+	}
+	e.saveNote, e.saveNoteFor = strings.Join(parts, ". "), e.doc.Source
 }
 
 // refuseSave shows the report a refused save carries and keeps it on screen.
@@ -140,6 +184,23 @@ func (e *MapEditor) refuseSave(r *ReportRefusal) {
 	errs, warnings := CountFindings(r.Findings)
 	e.openReport(r.Findings, fmt.Sprintf("Save refused: %d errors, %d warnings", errs, warnings), nil)
 	e.selectFinding(0)
+}
+
+// askSaveWithErrors shows the report of a save the map's errors stopped and
+// waits for Enter or S, which run again with the errors allowed; Esc closes
+// the report and writes nothing.
+func (e *MapEditor) askSaveWithErrors(r *ReportRefusal, again func() error) {
+	e.leave(leavePrompt)
+	errs, _ := CountFindings(r.Findings)
+	e.openReport(r.Findings, fmt.Sprintf(e.word("editor.save.errors"), errs), nil)
+	e.selectFinding(0)
+	e.report.confirm = func() error {
+		if a, ok := e.doc.Edits.(InspectionErrorSave); ok {
+			a.AllowErrors()
+		}
+		e.saveErrors = errs
+		return again()
+	}
 }
 
 // selectFinding selects the record finding i names and scrolls the map to it;

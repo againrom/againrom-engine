@@ -91,7 +91,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return "", err
 	}
-	if err := s.gate(); err != nil {
+	if err := s.gate(false); err != nil {
 		return "", err
 	}
 	b, err := s.model.SaveBytes()
@@ -155,7 +155,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	}
 	address, _ := MissionMap(m.Number)
 	if rows := x.CheckModMap(m, address); hasError(rows) {
-		return "", &ui.ReportRefusal{Findings: rows}
+		return "", s.loaderRefusal(rows)
 	}
 	files := missionPackageFiles(p.Title, "Map editor mission package", m, x.pageLanguage())
 	pages, err := s.exportPageTree(folder, old)

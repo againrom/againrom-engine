@@ -65,7 +65,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if err := s.TestPlayRefusal(); err != nil {
 		return "", err
 	}
-	if err := s.gate(); err != nil {
+	if err := s.gate(false); err != nil {
 		return "", err
 	}
 	b, err := s.model.SaveBytes()
@@ -91,7 +91,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	// would refuse the mod before the mission opens.
 	address, _ := MissionMap(m.Number)
 	if rows := x.CheckModMap(m, address); hasError(rows) {
-		return "", &ui.ReportRefusal{Findings: rows}
+		return "", s.loaderRefusal(rows)
 	}
 	if st, err := os.Stat(h.Game); err != nil || !st.Mode().IsRegular() {
 		return "", fmt.Errorf("Test play: the game program %s is not beside the map editor", h.Game)

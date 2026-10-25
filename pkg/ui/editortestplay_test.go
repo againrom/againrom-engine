@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -54,7 +55,7 @@ func TestATestPlayTheReportRefusesShowsTheReport(t *testing.T) {
 		t.Fatal("a refused test play answered no error")
 	}
 	rows, open := e.ReportOpen()
-	if !open || len(rows) != 2 || e.report.note != "Test play refused: 1 errors, 1 warnings" || e.message != "" {
+	if !open || len(rows) != 2 || !strings.HasPrefix(e.report.note, "Test play refused: 1 errors, 1 warnings") || !strings.Contains(e.report.note, "Save still works") || e.message != "" {
 		t.Fatalf("report open %v rows %d note %q message %q", open, len(rows), e.report.note, e.message)
 	}
 	// Loss control: a host without a test play names that and plays nothing.

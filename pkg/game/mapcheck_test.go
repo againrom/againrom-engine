@@ -537,7 +537,7 @@ func TestMapReportKeepsInstalledFactsAsWarnings(t *testing.T) {
 	if errs, warnings := ui.CountFindings(rows); errs != 0 || warnings != 1 {
 		t.Fatalf("%+v", rows)
 	}
-	if err := s.gate(); err != nil {
+	if err := s.gate(false); err != nil {
 		t.Fatal(err)
 	}
 }

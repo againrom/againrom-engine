@@ -11,6 +11,8 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/ui"
+	"againrom/pkg/words"
 )
 
 // editorMod is the mod folder the map editor's Save writes into, with the
@@ -133,6 +135,8 @@ func (s *mapInspectionEdits) ModTarget() string {
 // SaveIntoMod writes the edited map over the file the mod's mission entry for
 // this map names, and refuses when no entry names it.
 func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
+	defer func() { s.errorsAllowed = false }()
+	s.saveNote = ""
 	m := s.inspector.mod
 	if m == nil {
 		return "", errors.New("no mod folder is named")
@@ -141,7 +145,7 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 		return "", errors.New("this imported mod is read-only; choose a new mod ID and folder with W to save an owned copy")
 	}
 	if m.owned {
-		return s.saveWorkspacePackage(m.dir)
+		return s.saveIntoOwnedMod(m)
 	}
 	if !bytes.Equal(s.savedWorkspace, s.workspaceImage) {
 		return "", errors.New("authored pages need an editor-owned mod package; choose a new folder with W")
@@ -150,10 +154,10 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 	if !ok {
 		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
 	}
-	if err := s.gate(); err != nil {
+	if err := s.gate(true); err != nil {
 		return "", err
 	}
-	b, err := s.model.SaveBytes()
+	b, err := s.encodeForSave()
 	if err != nil {
 		return "", fmt.Errorf("mod %q: %w", m.id, err)
 	}
@@ -166,6 +170,45 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 		return "", fmt.Errorf("mod %q: %w", m.id, err)
 	}
 	s.saved, s.source = s.model.Bytes(), target
+	return target, nil
+}
+
+// saveIntoOwnedMod saves into an editor-owned package. A map the report holds
+// no error for is written as the whole package. A map with errors is asked
+// for first; once confirmed, only the map file of the package's entry is
+// written, since the loader would refuse the package, and SaveNote says the
+// rest was not written.
+func (s *mapInspectionEdits) saveIntoOwnedMod(m *editorMod) (string, error) {
+	if err := s.gate(true); err != nil {
+		return "", err
+	}
+	if !s.errorsAllowed {
+		target, err := s.saveWorkspacePackage(m.dir)
+		var refused *ui.ReportRefusal
+		if !errors.As(err, &refused) {
+			return target, err
+		}
+		refused.Ask = true
+		return "", refused
+	}
+	e, ok := m.entryFor(s.source)
+	if !ok {
+		return "", fmt.Errorf("no mission of mod %q names this map (%s); add its entry to %s", m.id, s.source, mod.MissionsFile)
+	}
+	b, err := s.encodeForSave()
+	if err != nil {
+		return "", fmt.Errorf("mod %q: %w", m.id, err)
+	}
+	root := ""
+	if s.inspector.archives != nil {
+		root = s.inspector.archives.Root
+	}
+	target, err := writeModMap(root, m.dir, e.Map, b)
+	if err != nil {
+		return "", fmt.Errorf("mod %q: %w", m.id, err)
+	}
+	s.saved, s.source = s.model.Bytes(), target
+	s.saveNote = words.For(s.inspector.pageLanguage()).Text("editor.save.package")
 	return target, nil
 }
 
