@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
@@ -106,6 +107,9 @@ func tipCycleFrames(t *testing.T, app *ui.App, steps int, watch image.Rectangle,
 // (TOWN-518, TOWN-519, TOWN-522, MENU-137).
 func TestReleaseGeneratorTipsCycleAndStep(t *testing.T) {
 	f := missionTipFront(t)
+	if f.Archives.Game() != base.GameROM1 {
+		t.Skip("the first game's pre-create tip popup")
+	}
 	dir := tipRenderDir(t, f)
 	setup := f.ChargenSetup()
 	// The sparkle has its own timer (DIV-1276); without it every frame change

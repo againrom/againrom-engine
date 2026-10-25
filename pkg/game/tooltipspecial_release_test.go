@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -226,6 +227,9 @@ func costTotal(n int) int { return int(0.349*math.Pow(1.15, float64(n-1)) + 0.5)
 
 func TestReleaseGeneratorAttributeRowsHover(t *testing.T) {
 	f := releaseFront(t)
+	if f.Archives.Game() != base.GameROM1 {
+		t.Skip("the first game's attribute rows")
+	}
 	f.SetDeterministicFrames(true)
 	mainTable := LoadTextTable(f.Archives.Containers, MainTextPath, f.textCode())
 	if mainTable == nil {

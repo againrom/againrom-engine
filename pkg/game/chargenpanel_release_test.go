@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
 
@@ -34,6 +35,9 @@ func chargenPanelInk(c color.RGBA) bool {
 
 func TestReleaseChargenCommandPanelIsTheShopComposition(t *testing.T) {
 	f := releaseFront(t)
+	if f.Archives.Game() != base.GameROM1 {
+		t.Skip("the first game's generator panel; the second game has its own panel test")
+	}
 	setup := f.ChargenSetup()
 	if setup.PreCreate == nil || setup.PreCreate.Art == nil || setup.PreCreate.Art.NavArt == nil {
 		t.Fatal("production chargen art did not resolve the panel body")

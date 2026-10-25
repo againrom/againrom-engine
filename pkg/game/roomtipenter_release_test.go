@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
 
@@ -107,6 +108,9 @@ func TestReleaseRoomTipsAtEveryEnterAndShopSecondText(t *testing.T) {
 	f := missionTipFront(t)
 	if f.Archives == nil {
 		t.Fatal("install archives did not load")
+	}
+	if f.Archives.Game() != base.GameROM1 {
+		t.Skip("the first game's room tips; the second game has its own tip test")
 	}
 	shop1, ok1 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop1.txt", f.textCode())
 	shop2, ok2 := ReadShopTip(f.Archives.Containers, "main/text/tips/shop2.txt", f.textCode())
