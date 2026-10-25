@@ -3017,6 +3017,7 @@ var Committed = Baseline{
 		"stringliterals.test":    32,
 		"longcommentgroups":      1696,
 	},
-	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests.
-	CommentBytes: 9654111,
+	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
+	// then for the second game's route witness and its two pkg/ui hooks.
+	CommentBytes: 9660018,
 }

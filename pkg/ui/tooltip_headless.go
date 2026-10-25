@@ -25,3 +25,23 @@ func (a *App) HeadlessTooltip() (HeadlessTooltipState, *image.RGBA) {
 	}
 	return state, pic
 }
+
+// HeadlessTooltipLines is the text of the hover box HeadlessTooltip reports
+// visible, one entry per drawn line, in the font's code page; nil while none
+// shows. The route witness records it beside the frame.
+func (a *App) HeadlessTooltipLines() []string {
+	var target tooltipTarget
+	var visible bool
+	if a.flow.screen == ScreenMap && a.flow.viewer != nil {
+		v := a.flow.viewer
+		target = v.tooltipTarget()
+		visible = v.tooltip.visible(target.key())
+	} else {
+		target = a.tooltipTarget()
+		visible = a.tooltip.visible(target.key())
+	}
+	if !visible {
+		return nil
+	}
+	return append([]string(nil), target.lines...)
+}

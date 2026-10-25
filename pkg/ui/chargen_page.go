@@ -454,24 +454,44 @@ func preMaskControl(l *GeneratorDescription, code uint8) chargenControl {
 // reports whether it landed on one. Tools that measure coverage per control
 // read it.
 func PreCreateControlAt(c *Chargen, p image.Point) (string, bool) {
-	switch id := preControlAt(c, p); id {
-	case chargenNone:
+	return chargenControlName(preControlAt(c, p))
+}
+
+// DetailedControlAt names the live detail-page control p lands on, and
+// reports whether it landed on one, on PreCreateControlAt's terms.
+func DetailedControlAt(c *Chargen, p image.Point) (string, bool) {
+	return chargenControlName(detailedControlAt(c, p))
+}
+
+// chargenControlName is a control's name for the coverage tools.
+func chargenControlName(id chargenControl) (string, bool) {
+	switch {
+	case id == chargenNone:
 		return "", false
-	case chargenName:
+	case id == chargenName:
 		return "name", true
-	case chargenBack:
+	case id == chargenBack:
 		return "back", true
-	case chargenForward:
+	case id == chargenForward:
 		return "forward", true
-	default:
-		if id >= chargenLevel0 && id <= chargenLevel2 {
-			return fmt.Sprintf("difficulty %d", int(id-chargenLevel0)+1), true
-		}
-		if id >= chargenChoice0 && id <= chargenChoice3 {
-			return fmt.Sprintf("choice %d", int(id-chargenChoice0)), true
-		}
-		return fmt.Sprintf("control %d", int(id)), true
+	case id == chargenReset:
+		return "reset", true
+	case id == chargenPlay:
+		return "play", true
+	case id == chargenRestore:
+		return "restore", true
+	case id >= chargenLevel0 && id <= chargenLevel2:
+		return fmt.Sprintf("difficulty %d", int(id-chargenLevel0)+1), true
+	case id >= chargenChoice0 && id <= chargenChoice3:
+		return fmt.Sprintf("choice %d", int(id-chargenChoice0)), true
+	case id >= chargenSkill0 && id <= chargenSkill4:
+		return fmt.Sprintf("skill %d", int(id-chargenSkill0)), true
+	case id >= chargenStatMinus0 && id <= chargenStatMinus3:
+		return fmt.Sprintf("lower %d", int(id-chargenStatMinus0)), true
+	case id >= chargenStatPlus0 && id <= chargenStatPlus3:
+		return fmt.Sprintf("raise %d", int(id-chargenStatPlus0)), true
 	}
+	return fmt.Sprintf("control %d", int(id)), true
 }
 
 func copyNative(dst *image.RGBA, src image.Image, at image.Point, clip image.Rectangle) {
