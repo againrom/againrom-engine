@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"image/png"
 	"io"
 	"os"
@@ -14,11 +15,25 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/internal/appicon"
 	"againrom/pkg/game"
 	"againrom/pkg/launch"
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui"
 )
+
+// desktop is the window system the editor ends in: the call that gives the
+// window its icon and the call that runs the editor in it. A test replaces both.
+var desktop = struct {
+	setIcon func([]image.Image)
+	run     func(*ui.MapEditor) error
+}{ui.SetWindowIcon, (*ui.MapEditor).Run}
+
+// openWindow gives the editor's window its own icon and runs the editor.
+func openWindow(e *ui.MapEditor) error {
+	desktop.setIcon(appicon.Images(appicon.MapEditor))
+	return desktop.run(e)
+}
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout); err != nil {
@@ -191,7 +206,7 @@ func run(args []string, out io.Writer) error {
 		return reportFindings(out, d)
 	}
 	e.SetPathDialog(pathdialog.Show, assetRoot)
-	return e.Run()
+	return openWindow(e)
 }
 
 // reportFindings prints the map report the window shows, one line per finding

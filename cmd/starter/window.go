@@ -3,7 +3,9 @@ package main
 import (
 	"image"
 
+	"againrom/internal/appicon"
 	"againrom/pkg/pathdialog"
+	"againrom/pkg/ui"
 	"againrom/pkg/ui/heldkey"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -18,6 +20,13 @@ type window struct {
 	dialogInputRelease bool
 }
 
+// desktop is the window system the starter ends in: the call that gives the
+// window its icon and the call that runs it. A test replaces both.
+var desktop = struct {
+	setIcon func([]image.Image)
+	run     func(ebiten.Game) error
+}{ui.SetWindowIcon, ebiten.RunGame}
+
 func runWindow(a *app) error {
 	if a.deps.pathDialog == nil {
 		a.deps.pathDialog = pathdialog.Show
@@ -27,7 +36,8 @@ func runWindow(a *app) error {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 	ebiten.SetTPS(30)
 	ebiten.SetRunnableOnUnfocused(true)
-	return ebiten.RunGame(&window{a: a, img: ebiten.NewImage(winW, winH)})
+	desktop.setIcon(appicon.Images(appicon.Starter))
+	return desktop.run(&window{a: a, img: ebiten.NewImage(winW, winH)})
 }
 
 // keyRepeat is true on the frame a key goes down and while it is held.

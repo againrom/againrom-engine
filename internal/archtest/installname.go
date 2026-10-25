@@ -16,7 +16,7 @@ import (
 var installNameIdents = map[string]bool{
 	"MainArchive": true, "GraphicsArchive": true, "ScenarioArchive": true,
 	"WorldArchive": true, "MoviesArchive": true, "SfxArchive": true,
-	"patchArchive": true, "WindowIconExecutable": true, "graphicsArchive": true,
+	"patchArchive": true, "graphicsArchive": true,
 }
 
 // installNameExempt is the resolver itself.

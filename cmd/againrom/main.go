@@ -96,6 +96,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/internal/appicon"
 	"againrom/internal/buildinfo"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
@@ -255,17 +256,8 @@ var desktop = struct {
 	run     func(*ui.App) error
 }{ui.SetWindowIcon, (*ui.App).Run}
 
-// installWindowIcon hands the installed game's icon to the window. An install
-// whose icon cannot be read still starts: the reason is reported and the window
-// keeps the platform's default icon.
-func installWindowIcon(root string, stderr io.Writer) {
-	images, err := game.WindowIcon(root)
-	if err != nil {
-		fmt.Fprintf(stderr, "againrom: window icon unavailable: %v; the window keeps the default icon\n", err)
-		return
-	}
-	desktop.setIcon(images)
-}
+// gameWindowIcon hands the game's own icon to the window, on every root.
+func gameWindowIcon() { desktop.setIcon(appicon.Images(appicon.Game)) }
 
 // launchStamp identifies the source tree a normal window was built from. A
 // `go run` process is otherwise visually indistinguishable from a stale binary,
@@ -1032,7 +1024,7 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 		}
 	}
 
-	installWindowIcon(root, stderr)
+	gameWindowIcon()
 	if err := desktop.run(app); err != nil {
 		fmt.Fprintln(stderr, "againrom:", err)
 		return 1

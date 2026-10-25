@@ -62,6 +62,15 @@ A third-party component is implementation, not evidence. libsmacker decodes the
 general Smacker format; how the original game plays its movies is established by
 research and cited by claim ID like any other game behaviour.
 
+### Project art: the program icons
+
+`internal/appicon/againrom.png`, `mapedit.png` and `starter.png` are the icons of
+the game, the map editor and the starter. The owner supplied them as project art
+(the map editor and starter icons are the game icon with a badge), and they are
+licensed with the engine under GPL-3.0-or-later. They contain nothing from the
+original game's program or data. The window icons and the icon resources of the
+three Windows executables are made from them.
+
 ### How the boundary is held
 
 - **Game assets: enforced mechanically.** `scripts/check-no-game-assets.sh`

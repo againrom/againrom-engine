@@ -3029,7 +3029,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1696,
+		"longcommentgroups":      1695,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3037,5 +3037,5 @@ var Committed = Baseline{
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons.
-	CommentBytes: 9676109,
+	CommentBytes: 9669595,
 }

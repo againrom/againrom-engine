@@ -51,10 +51,6 @@ var allow = map[string][]string{
 	// The WAV leaf owns the RIFF chunk walk; it imports nothing of this tree.
 	"pkg/formats/wav":  {},
 	"pkg/formats/fame": {},
-	// The icon leaf reads the icon resources of the original executable, for
-	// the window's icon. It walks a PE resource directory and decodes icon
-	// bitmaps, imports nothing of this tree and converts no text.
-	"pkg/formats/winicon": {},
 	// textinput is a formats leaf because CP1251 conversion is a byte-format
 	// concern. It may use the formats tier's narrowly-scoped x/text grant but
 	// cannot reach UI or game state.
@@ -164,7 +160,7 @@ var allow = map[string][]string{
 	"cmd/cutscenehelper": {"pkg/video"},
 	"cmd/audioprobe":     {"pkg/video"},
 	"pkg/game":           {"pkg/"},
-	"cmd/againrom":       {"pkg/", "internal/buildinfo"},
+	"cmd/againrom":       {"pkg/", "internal/appicon", "internal/buildinfo"},
 	"cmd/restool":        {"pkg/formats/res", "pkg/vfs"},
 	"cmd/regtool":        {"pkg/formats/reg", "pkg/formats/res"},
 	// classdump's -databin verb reaches the definition table through the vfs
@@ -228,7 +224,7 @@ var allow = map[string][]string{
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
-	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/launch", "pkg/pathdialog", "internal/buildinfo", "internal/versionres"},
+	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/launch", "pkg/pathdialog", "internal/appicon", "internal/buildinfo", "internal/versionres"},
 	// mapview's -blocked tint draws the plane a PLACED STRUCTURE reaches, so
 	// the tool reaches the tier that derives one and the two tiers it takes a
 	// definition table out of an archive with. pkg/data is not on the row: a
@@ -418,7 +414,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports nothing of this tree.
 	"pkg/launch": {},
@@ -497,8 +493,6 @@ var noExternalFormats = map[string]bool{
 	// pkg/render/text's own, applied per drawn byte rather than once at
 	// parse time. So this format takes no text-encoding dependency either.
 	"pkg/formats/itemname": true,
-	// An icon carries no text at all.
-	"pkg/formats/winicon": true,
 }
 
 func externalAllowed(pkg, imp string) bool {

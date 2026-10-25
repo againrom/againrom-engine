@@ -16,7 +16,7 @@ import (
 // optional archives, the data files, the movie and music archives each
 // edition names, and a loose map.
 func installReadNames() []string {
-	names := append(RequiredArchives(), SfxArchive, patchArchive, "speech.res", fameFileName, WindowIconExecutable, "smackw32.dll", "Kids.alm")
+	names := append(RequiredArchives(), SfxArchive, patchArchive, "speech.res", fameFileName, "rom.exe", "smackw32.dll", "Kids.alm")
 	seen := map[string]bool{}
 	for _, n := range names {
 		seen[installpath.Fold(n)] = true
