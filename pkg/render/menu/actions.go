@@ -25,8 +25,8 @@ type Button struct {
 // [0..7].
 //
 // LoadNeedsSave locks every ActionLoad button while the front end reports no
-// save file. A locked button selects nothing: it draws no overlay and a release
-// on it posts nothing. SeenCutscenes makes ActionCutscenes act only while at
+// save file. A locked button shows its hover but a release on it posts
+// nothing. SeenCutscenes makes ActionCutscenes act only while at
 // least one cutscene has been seen.
 type Actions struct {
 	Buttons       [ButtonCount]Button

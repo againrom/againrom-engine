@@ -58,6 +58,7 @@ func TestSecondMenuLocksLoadWithoutSave(t *testing.T) {
 	if load != 5 {
 		t.Fatalf("second game's Load is button %d, want 5 (mask 0xc0)", load)
 	}
+	hovered := map[bool]*image.RGBA{}
 	for _, has := range []bool{false, true} {
 		a := NewApp("t", assets, appRows(1), okLoader(t))
 		a.Layout(640, 480)
@@ -65,10 +66,14 @@ func TestSecondMenuLocksLoadWithoutSave(t *testing.T) {
 		a.SetSaveFiles(func() bool { return has })
 		x, y := centreOf(load)
 		a.step(appInput{CursorX: x, CursorY: y}, now)
-		if got, want := a.sel.State().Selected, map[bool]int{false: 0, true: load}[has]; got != want {
-			t.Errorf("has save %v: hover over Load selects %d, want %d", has, got, want)
+		if got := a.sel.State().Selected; got != load {
+			t.Errorf("has save %v: hover over Load selects %d, want %d", has, got, load)
 		}
+		hovered[has] = a.assets.Compose(a.sel.State())
 		clickButton(a, load, now)
+		if got := a.sel.State().Selected; got != load {
+			t.Errorf("has save %v: after the click the pointer on Load selects %d, want %d", has, got, load)
+		}
 		if got, want := a.Screen(), map[bool]Screen{false: ScreenMenu, true: ScreenLoad}[has]; got != want {
 			t.Errorf("has save %v: Load opens %v, want %v", has, got, want)
 		}
@@ -81,6 +86,9 @@ func TestSecondMenuLocksLoadWithoutSave(t *testing.T) {
 				t.Error("headless activated a locked Load")
 			}
 		}
+	}
+	if !reflect.DeepEqual(hovered[false], hovered[true]) {
+		t.Error("a locked Load draws a different hover overlay than an unlocked one")
 	}
 	// Loss control: the first game's table never locks Load.
 	a := newTestApp(t, appRows(1), okLoader(t))

@@ -2421,6 +2421,12 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		return false
 	}
 	hit := a.buttonAt(in.CursorX, in.CursorY)
+	hover := a.hoverButtonAt(in.CursorX, in.CursorY)
+	defer func() {
+		if hover != hit {
+			a.sel.Move(hover)
+		}
+	}()
 
 	if in.Load {
 		if !a.loadLocked() {
@@ -2470,15 +2476,19 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 // A position in the letterbox maps to no frame pixel and therefore to no button,
 // which is the same answer as a position over the brooch's background.
 func (a *App) buttonAt(x, y int) int {
-	p, ok := a.windowToNativeFrame(x, y)
-	if !ok {
-		return 0
-	}
-	b := a.assets.ButtonAt(p)
+	b := a.hoverButtonAt(x, y)
 	if a.assets.Locked(b, a.flow.pages.hasSave) {
 		return 0
 	}
 	return b
+}
+
+func (a *App) hoverButtonAt(x, y int) int {
+	p, ok := a.windowToNativeFrame(x, y)
+	if !ok {
+		return 0
+	}
+	return a.assets.ButtonAt(p)
 }
 
 // loadLocked reports whether the menu's Load buttons are locked.

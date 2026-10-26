@@ -77,6 +77,7 @@ func TestReleaseSecondGameMenuLocksLoadUntilASaveFileExists(t *testing.T) {
 		}
 		return secondFrame(t, app)
 	}
+	hovered := map[bool]*image.RGBA{}
 	for _, tc := range []struct {
 		name   string
 		file   string
@@ -96,9 +97,10 @@ func TestReleaseSecondGameMenuLocksLoadUntilASaveFileExists(t *testing.T) {
 		away := hover(app, image.Pt(2, 2))
 		over := hover(app, load)
 		secondPageWitness(t, "menu-load-"+map[bool]string{true: "locked", false: "unlocked"}[tc.locked], over)
-		if same := bytes.Equal(away.Pix, over.Pix); same != tc.locked {
-			t.Errorf("%s: hovered Load frame equals the idle frame %v, want %v", tc.name, same, tc.locked)
+		if bytes.Equal(away.Pix, over.Pix) {
+			t.Errorf("%s: hovered Load frame equals the idle frame; the caption is missing", tc.name)
 		}
+		hovered[tc.locked] = over
 		err := app.HeadlessActivate("load game")
 		if (err != nil) != tc.locked {
 			t.Errorf("%s: activate Load: %v, want locked %v", tc.name, err, tc.locked)
@@ -109,6 +111,9 @@ func TestReleaseSecondGameMenuLocksLoadUntilASaveFileExists(t *testing.T) {
 			}
 			secondPageWitness(t, "load-page-empty", secondFrame(t, app))
 		}
+	}
+	if !bytes.Equal(hovered[true].Pix, hovered[false].Pix) {
+		t.Error("a locked Load draws a different hover frame than an unlocked one")
 	}
 }
 
