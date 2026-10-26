@@ -95,7 +95,17 @@ func saveEditedGuestMap(t *testing.T, x *MapInspector, dir string, edit func(*ui
 	}
 	e.Layout(1280, 800)
 	edit(e)
-	_ = e.Key("saveas")
+	n, ok := e.MenuRow("map", "saveto")
+	if !ok {
+		t.Fatal("the Map menu has no Save As row")
+	}
+	if _, open := e.PromptRect(); open {
+		_ = e.Key("escape")
+	}
+	r, ok := e.BarRect("map")
+	pressRect(t, e, r, ok, "the Map entry")
+	r, ok = e.MenuRowRect(n)
+	pressRect(t, e, r, ok, "the Save As row")
 	e.TextInput(target)
 	if err := e.Key("enter"); err != nil || e.Dirty() {
 		t.Fatalf("Save As: %v", err)

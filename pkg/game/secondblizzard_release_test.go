@@ -30,52 +30,79 @@ type secondBlizzardArea struct {
 // and fails on any departure from the claims' schedule: a new area stands at
 // pulse 1 with countdown 2; k ticks later it holds pulse 1+k/3 and countdown
 // 2-k%3; it is gone after its 32nd pulse, 93 ticks after the landing; every
-// painted cell lies -2..3 from a standing anchor (R2-ENGINE-391,
+// painted cell lies -2..3 from a Blizzard anchor (R2-ENGINE-391,
 // R2-ENGINE-392).
 type secondBlizzardWatch struct {
-	areas  map[uint16]*secondBlizzardArea
-	order  []uint16
+	areas  []*secondBlizzardArea
 	pulses []secondBlizzardPulse
+}
+
+func (b *secondBlizzardWatch) live() *secondBlizzardArea {
+	for _, a := range b.areas {
+		if a.Done == 0 {
+			return a
+		}
+	}
+	return nil
+}
+
+func (b *secondBlizzardWatch) shared() int {
+	n := 0
+	for i, a := range b.areas {
+		for _, o := range b.areas[:i] {
+			if o.Key == a.Key && (o.Done == 0 || o.Done > a.Landing) {
+				n++
+				break
+			}
+		}
+	}
+	return n
 }
 
 func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Report) {
 	t.Helper()
-	if b.areas == nil {
-		b.areas = map[uint16]*secondBlizzardArea{}
-	}
 	states, err := w.NativeAreaSaveStates()
 	if err != nil {
 		t.Fatal(err)
 	}
 	now := uint64(w.Tick())
-	standing := map[uint16]sim.AreaSaveState{}
+	var rows []sim.AreaSaveState
 	for _, s := range states {
-		if s.Spell != 7 {
+		if s.Spell == 7 {
+			rows = append(rows, s)
+		}
+	}
+	claimed := make([]bool, len(rows))
+	for _, a := range b.areas {
+		if a.Done != 0 {
 			continue
 		}
-		if _, twice := standing[s.Key]; twice {
-			t.Fatalf("tick %d: two Blizzards stand on anchor %04x", now, s.Key)
-		}
-		standing[s.Key] = s
-		a, ok := b.areas[s.Key]
-		if !ok || a.Done != 0 {
-			a = &secondBlizzardArea{Key: s.Key, Landing: now}
-			b.areas[s.Key] = a
-			b.order = append(b.order, s.Key)
-		}
 		k := now - a.Landing
-		if s.Mode != sim.AreaModeRing || uint64(s.Stage) != 1+k/3 || uint64(s.Remaining) != 2-k%3 || k >= 93 {
-			t.Fatalf("tick %d: Blizzard %04x landed at %d holds mode %d pulse %d countdown %d", now, s.Key, a.Landing, s.Mode, s.Stage, s.Remaining)
+		found := false
+		for i, s := range rows {
+			if claimed[i] || s.Key != a.Key || k >= 93 || s.Mode != sim.AreaModeRing || uint64(s.Stage) != 1+k/3 || uint64(s.Remaining) != 2-k%3 {
+				continue
+			}
+			claimed[i] = true
+			a.Power = s.Policy.Power
+			found = true
+			break
 		}
-		a.Power = s.Policy.Power
-	}
-	for key, a := range b.areas {
-		if _, ok := standing[key]; !ok && a.Done == 0 {
-			if now-a.Landing != 93 {
-				t.Fatalf("tick %d: Blizzard %04x landed at %d ended after %d ticks, want 93", now, key, a.Landing, now-a.Landing)
+		if !found {
+			if k != 93 {
+				t.Fatalf("tick %d: Blizzard %04x landed at %d ended after %d ticks, want 93", now, a.Key, a.Landing, k)
 			}
 			a.Done = now
 		}
+	}
+	for i, s := range rows {
+		if claimed[i] {
+			continue
+		}
+		if s.Mode != sim.AreaModeRing || s.Stage != 1 || s.Remaining != 2 {
+			t.Fatalf("tick %d: Blizzard %04x matches no standing area and is no landing: mode %d pulse %d countdown %d", now, s.Key, s.Mode, s.Stage, s.Remaining)
+		}
+		b.areas = append(b.areas, &secondBlizzardArea{Key: s.Key, Landing: now, Power: s.Policy.Power})
 	}
 	for _, paint := range report.AreaPaints {
 		if paint.Spell != 7 {
@@ -85,19 +112,17 @@ func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Rep
 			t.Fatalf("tick %d: a Blizzard pulse painted %d cells", now, len(paint.Cells))
 		}
 		c := paint.Cells[0]
-		owner := -1
-		for i, key := range b.order {
-			a := b.areas[key]
-			ax, ay := int32(key&0xff), int32(key>>8)
+		var owner *secondBlizzardArea
+		for _, a := range b.areas {
+			ax, ay := int32(a.Key&0xff), int32(a.Key>>8)
 			if dx, dy := c.X-ax, c.Y-ay; dx >= -2 && dx <= 3 && dy >= -2 && dy <= 3 && (now-a.Landing)%3 == 0 && now-a.Landing <= 93 {
-				owner = i
+				owner = a
 			}
 		}
-		if owner < 0 {
+		if owner == nil {
 			t.Fatalf("tick %d: Blizzard cell %d,%d belongs to no pulsing area", now, c.X, c.Y)
 		}
-		key := b.order[owner]
-		b.pulses = append(b.pulses, secondBlizzardPulse{Tick: now, X: c.X, Y: c.Y, AnchorX: int32(key & 0xff), AnchorY: int32(key >> 8)})
+		b.pulses = append(b.pulses, secondBlizzardPulse{Tick: now, X: c.X, Y: c.Y, AnchorX: int32(owner.Key & 0xff), AnchorY: int32(owner.Key >> 8)})
 	}
 }
 
@@ -138,6 +163,7 @@ func secondBlizzardStruck(t *testing.T, before, after []sim.Entity, paints []sim
 type secondBlizzardResult struct {
 	Pulses []secondBlizzardPulse
 	Areas  []secondBlizzardArea
+	Shared int
 	Hash   uint64
 }
 
@@ -155,16 +181,13 @@ func secondBlizzardRun(t *testing.T) (secondBlizzardResult, int) {
 		before := w.Entities()
 		report := sim.StepReported(w, nil)
 		watch.observe(t, w, report)
-		for _, key := range watch.order {
-			if a := watch.areas[key]; a.Done == 0 {
-				checked += secondBlizzardStruck(t, before, w.Entities(), report.AreaPaints, a.Power)
-				break
-			}
+		if a := watch.live(); a != nil {
+			checked += secondBlizzardStruck(t, before, w.Entities(), report.AreaPaints, a.Power)
 		}
 	}
-	out := secondBlizzardResult{Pulses: watch.pulses, Hash: w.Hash()}
-	for _, key := range watch.order {
-		out.Areas = append(out.Areas, *watch.areas[key])
+	out := secondBlizzardResult{Pulses: watch.pulses, Shared: watch.shared(), Hash: w.Hash()}
+	for _, a := range watch.areas {
+		out.Areas = append(out.Areas, *a)
 	}
 	return out, checked
 }
@@ -202,7 +225,7 @@ func TestReleaseSecondGameBlizzardCast(t *testing.T) {
 	if !reflect.DeepEqual(first, again) {
 		t.Fatal("a second seeded run from the same start cast another Blizzard")
 	}
-	t.Logf("%d Blizzard areas (%d complete), %d painted cells, %d struck actors checked", len(first.Areas), completed, len(first.Pulses), checked)
+	t.Logf("%d Blizzard areas (%d complete, %d on an anchor another stood on), %d painted cells, %d struck actors checked", len(first.Areas), completed, first.Shared, len(first.Pulses), checked)
 }
 
 type secondBlizzardProof struct {
