@@ -38,6 +38,8 @@ type humanRouteDiff struct {
 // as an effect writes it (the stat plus its bonus, at most 100) with the bonus
 // in the cap byte, the trained levels in the maintained block, the worn
 // items' and the weapon's additive terms in the modifier block.
+// It derives under the loadout's rules, the table's, as the native city
+// Human does (nativeCityHumanFromDerived).
 func nativeHumanState(c humanRouteCase, d data.Derived) data.HumanState {
 	mod := c.loadout.Mod
 	base := [4]int32{c.hero.Body, c.hero.Reaction, c.hero.Mind, c.hero.Spirit}
@@ -75,7 +77,7 @@ func nativeHumanState(c humanRouteCase, d data.Derived) data.HumanState {
 	for i := range mod.Protection {
 		m.Defence.Protection[i+1], m.Defence.Resistance[i+1] = uint16(mod.Protection[i]), uint8(mod.Resistance[i])
 	}
-	return h
+	return h.WithRules(c.loadout.Rules)
 }
 
 // storedHumanCase is the native form of a stored Human: the stat less its cap
@@ -253,6 +255,15 @@ func humanRouteSyntheticCases() []humanRouteCase {
 	add("General bonus", func(c *humanRouteCase) { c.loadout.Mod.SkillBonus[0] = 6 })
 	add("trained", func(c *humanRouteCase) { c.hero.Skill = [data.SkillSlots]int32{0, 40, 30, 20, 10, 5} })
 	add("strong", func(c *humanRouteCase) { c.hero.Body, c.loadout.Mod.Body = 50, 50 })
+	add("second game", func(c *humanRouteCase) {
+		c.hero.Skill[0] = 40
+		c.loadout.Rules = rules.Rules{}.WithSchoolPoolExperience()
+	})
+	add("second game mage", func(c *humanRouteCase) {
+		c.hero.Skill[0] = 40
+		c.profile = data.Profile{HealthColumn: true, ManaColumn: true}
+		c.loadout.Rules = rules.Rules{}.WithSchoolPoolExperience()
+	})
 	return out
 }
 

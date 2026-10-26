@@ -3073,5 +3073,5 @@ var Committed = Baseline{
 	// ruled list rows and their tests.
 	// then for the map editor save folder hotfix: new doc comments in
 	// pkg/game/mapinspectionedit.go and its tests.
-	CommentBytes: 9719122,
+	CommentBytes: 9720573,
 }

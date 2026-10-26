@@ -154,3 +154,20 @@ func TestPoolExperience(t *testing.T) {
 		t.Errorf("saturated sum %d", got)
 	}
 }
+
+// A stored Human's pools read its experience word in the first game and the
+// school slots' PoolExperience in the second, whatever the word holds.
+func TestStoredPoolExperience(t *testing.T) {
+	xp := [6]int32{12000000, 1, 2, 3, 4, 5}
+	for _, word := range []int32{0, 7, 12000015, -1} {
+		if got := (Rules{}).StoredPoolExperience(word, xp); got != word {
+			t.Errorf("first game, word %d: %d", word, got)
+		}
+		if got := Default().StoredPoolExperience(word, xp); got != word {
+			t.Errorf("first game defaults, word %d: %d", word, got)
+		}
+		if got := (Rules{}).WithSchoolPoolExperience().StoredPoolExperience(word, xp); got != 15 {
+			t.Errorf("second game, word %d: %d, want 15", word, got)
+		}
+	}
+}

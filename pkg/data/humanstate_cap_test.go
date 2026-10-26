@@ -1,6 +1,10 @@
 package data
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/pkg/rules"
+)
 
 func capState(base int32) HumanState {
 	var h HumanState
@@ -18,12 +22,11 @@ func TestTheHumanDeriveKeepsTheOriginalCapWithoutARulesValue(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		explicit := capState(base).WithSkillCap(SkillCap)
+		explicit := capState(base).WithRules(rules.Default())
 		same, err := explicit.Derive()
 		if err != nil {
 			t.Fatal(err)
 		}
-		same.skillCap = 0
 		if plain != same {
 			t.Fatalf("base %d: a zero cap and cap 100 derive differently", base)
 		}
@@ -34,7 +37,7 @@ func TestTheHumanDeriveKeepsTheOriginalCapWithoutARulesValue(t *testing.T) {
 }
 
 func TestTheHumanDeriveHoldsALevelAboveOneHundredUnderALargerCap(t *testing.T) {
-	h := capState(120).WithSkillCap(150)
+	h := capState(120).WithRules(capRules(t, 150))
 	got, err := h.Derive()
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +45,7 @@ func TestTheHumanDeriveHoldsALevelAboveOneHundredUnderALargerCap(t *testing.T) {
 	if got.Attack.Skill[1] != 120 {
 		t.Fatalf("level %d, want 120", got.Attack.Skill[1])
 	}
-	over := capState(170).WithSkillCap(150)
+	over := capState(170).WithRules(capRules(t, 150))
 	if got, _ = over.Derive(); got.Attack.Skill[1] != 150 {
 		t.Fatalf("level %d, want the cap 150", got.Attack.Skill[1])
 	}
@@ -50,4 +53,13 @@ func TestTheHumanDeriveHoldsALevelAboveOneHundredUnderALargerCap(t *testing.T) {
 	if got.Attack.ToHit == plain.Attack.ToHit {
 		t.Fatal("the extra levels did not reach the to-hit sum")
 	}
+}
+
+func capRules(t *testing.T, n int32) rules.Rules {
+	t.Helper()
+	r, err := rules.New(rules.Params{SkillCap: n})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
 }

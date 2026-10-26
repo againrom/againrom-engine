@@ -144,7 +144,7 @@ func (t *townScreen) trainOriginalCityFighter(slot int, member *mapload.PartyMem
 		if err := h.ProjectionError(); err != nil {
 			return true, err.Error()
 		}
-		candidate, price, err := mapload.TrainSourceParty(*member, slot)
+		candidate, price, err := mapload.TrainSourceParty(*member, slot, mapload.TableRules(t.in.Table))
 		if err != nil {
 			return true, err.Error()
 		}
@@ -258,7 +258,7 @@ func (t *townScreen) trainOriginalCityFighter(slot int, member *mapload.PartyMem
 		if err != nil {
 			return true, err.Error()
 		}
-		next, err := h.Train(slot)
+		next, err := h.WithRules(mapload.TableRules(t.in.Table)).Train(slot)
 		if err != nil {
 			return true, err.Error()
 		}

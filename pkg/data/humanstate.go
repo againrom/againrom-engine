@@ -53,23 +53,25 @@ type HumanState struct {
 	HasOwner                                    bool
 	ManaReservePercent                          uint32
 
-	// skillCap is the highest level a derived skill may hold. Zero is the
-	// original game's 100, so a state built without rules derives as before.
-	// It is unexported so no serialized form of the state carries it.
-	skillCap int32
+	// rules are the game's rules the next derive runs under: the highest
+	// level a derived skill may hold and the experience the pools grow by.
+	// Nil is the original game's. They are an input of Train,
+	// RefreshInventoryLoad and Derive, whose results carry none, so a state
+	// compares and serializes the same under every game.
+	rules *rules.Rules
 }
 
-// WithSkillCap returns h with the highest level a derived skill may hold.
-func (h HumanState) WithSkillCap(n int32) HumanState {
-	h.skillCap = n
+// WithRules returns h deriving under the game's rules r.
+func (h HumanState) WithRules(r rules.Rules) HumanState {
+	h.rules = &r
 	return h
 }
 
-func (h HumanState) skillLimit() int32 {
-	if h.skillCap == 0 {
-		return SkillCap
+func (h HumanState) gameRules() rules.Rules {
+	if h.rules == nil {
+		return rules.Rules{}
 	}
-	return h.skillCap
+	return *h.rules
 }
 
 func humanSigned(v uint16) int32 { return int32(int16(v)) }
@@ -139,6 +141,7 @@ func (h HumanState) Train(slot int) (HumanState, error) {
 	if err := n.derive(); err != nil {
 		return h, err
 	}
+	n.rules = nil
 	return n, nil
 }
 
@@ -159,6 +162,7 @@ func (h HumanState) RefreshInventoryLoad() (HumanState, bool, error) {
 			return h, false, err
 		}
 	}
+	n.rules = nil
 	return n, derived, nil
 }
 
@@ -169,13 +173,18 @@ func (h HumanState) Derive() (HumanState, error) {
 	if err := n.derive(); err != nil {
 		return h, err
 	}
+	n.rules = nil
 	return n, nil
 }
 
 func (h *HumanState) derive() error {
 	m := &h.Modifier
-	in := HumanInput{Active: int32(h.Attack.Active), Experience: int32(h.Experience), Fighter: h.Fighter,
-		ManaPool: h.ManaMax != 0, Rider: RiderTypeID(int32(h.TypeID)), TrainingCap: h.skillCap}
+	var xp [SkillSlots]int32
+	for i, v := range h.SkillXP {
+		xp[i] = int32(v)
+	}
+	in := HumanInput{Active: int32(h.Attack.Active), Experience: h.gameRules().StoredPoolExperience(int32(h.Experience), xp), Fighter: h.Fighter,
+		ManaPool: h.ManaMax != 0, Rider: RiderTypeID(int32(h.TypeID)), TrainingCap: h.gameRules().SkillCap()}
 	for i, v := range []uint16{h.Body, h.Reaction, h.Mind, h.Spirit} {
 		in.Stat[i], in.StatCap[i] = humanSigned(v), int32(m.StatCap[i])
 	}

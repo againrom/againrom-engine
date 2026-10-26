@@ -36,3 +36,29 @@ func TestSourceDeriveHoldsAClassTwoHeroAboveOneHundredUnderTheModsRules(t *testi
 		t.Fatalf("original rules: current level %d, want 100", lvl)
 	}
 }
+
+// A source Human with General experience grows its pools by the school
+// slots alone under the second game's rules: the maximum the first game's
+// rules give the same Human whose word holds the school slots' sum.
+func TestSourceDerivePoolsFollowTheSecondGamesRule(t *testing.T) {
+	hero := classTwoHero(40)
+	hero.SkillXP = [6]uint32{2000000, 45000, 0, 0, 0, 0}
+	hero.Experience = 2045000
+	school := hero
+	school.Experience = 45000
+	pools := func(s sim.SourceActor, r sim.Rules) uint16 {
+		t.Helper()
+		got, err := deriveSourceActor(s, 0, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return SourceHumanState(got, 0).HealthMax
+	}
+	first, second, want := pools(hero, sim.Rules{}), pools(hero, sim.Rules{}.WithSchoolPoolExperience()), pools(school, sim.Rules{})
+	if second != want {
+		t.Fatalf("second game health %d, want %d", second, want)
+	}
+	if first == second {
+		t.Fatalf("health %d under both games: the General experience did not reach the first game's pools", first)
+	}
+}

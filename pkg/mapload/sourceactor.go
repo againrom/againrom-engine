@@ -28,7 +28,7 @@ func BindSourceItemDefinition(item sim.ItemInstance, t *Table) sim.ItemInstance 
 
 func deriveSourceActor(s sim.SourceActor, accumulator int32, r sim.Rules) (sim.SourceActor, error) {
 	h := SourceHumanState(s, accumulator)
-	h = h.WithSkillCap(r.SkillCap())
+	h = h.WithRules(r)
 	n, err := h.Derive()
 	if err != nil {
 		return s, err

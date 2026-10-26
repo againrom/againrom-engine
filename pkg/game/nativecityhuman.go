@@ -160,7 +160,7 @@ func nativeCityHumanFromDerived(member mapload.PartyMember, table *mapload.Table
 	if tails, present := currentCityHumanTails(member); present {
 		h.Attack.Tail, h.Base.Tail, h.Modifier.Attack.Tail = tails[0], tails[1], tails[2]
 	}
-	next, err := h.Derive()
+	next, err := h.WithRules(mapload.TableRules(table)).Derive()
 	if err != nil {
 		return h, originalCityUnsupportedf("native city Human derive: %v", err)
 	}

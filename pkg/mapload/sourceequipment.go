@@ -7,12 +7,12 @@ import (
 
 // TrainSourceParty keeps a post-equipment source basis on the established
 // Human school path. Unsupported class/slot/domain fails before purse commit.
-func TrainSourceParty(p PartyMember, slot int) (PartyMember, int32, error) {
+func TrainSourceParty(p PartyMember, slot int, r sim.Rules) (PartyMember, int32, error) {
 	if !HasSourceActor(p) || p.Carry.LiveLoad.Inventory.Source.Class != 2 {
 		return p, 0, fmt.Errorf("no source Human")
 	}
 	s := p.Carry.LiveLoad
-	h := SourceHumanState(s.Inventory.Source, s.Inventory.Accumulator)
+	h := SourceHumanState(s.Inventory.Source, s.Inventory.Accumulator).WithRules(r)
 	h.Weight, h.Load, h.Capacity = uint16(s.Inventory.OwnWeight), uint16(s.Load), uint16(s.Capacity)
 	price, err := h.TrainingPrice(slot)
 	if err != nil {

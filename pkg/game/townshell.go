@@ -598,7 +598,7 @@ func (t *townScreen) trainHeroSkillValues(slot int) string {
 		return message
 	}
 	if mapload.HasSourceActor(*m) {
-		next, price, err := mapload.TrainSourceParty(*m, slot)
+		next, price, err := mapload.TrainSourceParty(*m, slot, mapload.TableRules(t.in.Table))
 		if err != nil {
 			return "cannot train that skill"
 		}

@@ -234,7 +234,7 @@ func replayCityMember(b originalCityBinding) (mapload.PartyMember, error) {
 			if sale.Commit {
 				var derived bool
 				var err error
-				h, derived, err = h.RefreshInventoryLoad()
+				h, derived, err = h.WithRules(b.gameRules).RefreshInventoryLoad()
 				if err != nil {
 					return m, err
 				}
@@ -253,7 +253,7 @@ func replayCityMember(b originalCityBinding) (mapload.PartyMember, error) {
 			break
 		}
 		var err error
-		h, err = h.Train(int(b.training[trained]))
+		h, err = h.WithRules(b.gameRules).Train(int(b.training[trained]))
 		if err != nil {
 			return m, err
 		}

@@ -90,7 +90,7 @@ func updatePartyLoad(before PartyMember, p *PartyMember, t *Table, refresh, deri
 	s.Inventory.OwnWeight += int16(newWorn - oldWorn)
 	s.Inventory.Accumulator += newCarry - oldCarry
 	if s.Inventory.Source.Class == 2 && !derive {
-		h := SourceHumanState(s.Inventory.Source, s.Inventory.Accumulator)
+		h := SourceHumanState(s.Inventory.Source, s.Inventory.Accumulator).WithRules(t.rules())
 		h.Weight, h.Load, h.Capacity = uint16(s.Inventory.OwnWeight), uint16(s.Load), uint16(s.Capacity)
 		if refresh {
 			if _, err := h.Derive(); err != nil {

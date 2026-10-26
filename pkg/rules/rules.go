@@ -224,6 +224,17 @@ func (r Rules) PoolExperience(xp [6]int32) int32 {
 	return int32(min(sum, math.MaxInt32))
 }
 
+// StoredPoolExperience is the pool experience of a stored Human whose
+// experience word is word and whose six slots hold xp. Under the first game's
+// rule the pools read the word (HERO-HP-005); under the second game's they
+// grow by PoolExperience of the slots, whatever the word holds.
+func (r Rules) StoredPoolExperience(word int32, xp [6]int32) int32 {
+	if !r.schoolPools {
+		return word
+	}
+	return r.PoolExperience(xp)
+}
+
 // IsDefault reports whether the rules are the original game's.
 func (r Rules) IsDefault() bool { return r.SkillCap() == ROM1SkillCap && r.spell == nil }
 
