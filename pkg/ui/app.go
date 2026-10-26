@@ -825,6 +825,12 @@ type App struct {
 	mapEntryViewer  *Viewer
 	sel             menu.Selection
 	menuLabel       string
+	// menuAway is set by a step on another screen. menuHeld keeps the menu's
+	// buttons unselected after a return to the menu while the pointer stays
+	// at menuHeldAt.
+	menuAway   bool
+	menuHeld   bool
+	menuHeldAt image.Point
 
 	// Interface sounds share the production device and install-backed bank
 	// already used by every Viewer. They live on App because menu and town
@@ -1483,6 +1489,9 @@ func (a *App) stepDialoguePointer(in appInput, owner dialoguePointerOwner, insid
 // Esc is handled first on every screen, so leaving is never blocked by whatever
 // else the screen is doing. Everything after it is per-screen dispatch.
 func (a *App) step(in appInput, now time.Time) (exit bool) {
+	if a.flow.screen != ScreenMenu {
+		a.menuAway = true
+	}
 	viewerBefore := a.flow.viewer
 	defer func() {
 		if v := a.flow.viewer; v != nil {
@@ -1703,6 +1712,9 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		preCreate := a.flow.screen == ScreenChargen && a.flow.chargen != nil && a.flow.chargen.Stage() == PreCreateStage
 		if preCreate {
 			a.preCreateSounds.RequestFor("character-precreate", a.soundPlayer, a.namedSounds(), a.flow.chargen.keys().EscapeSound)
+		}
+		if a.escapeStays() {
+			return false
 		}
 		exit := a.flow.escape()
 		if preCreate {
@@ -2422,6 +2434,9 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 	}
 	hit := a.buttonAt(in.CursorX, in.CursorY)
 	hover := a.hoverButtonAt(in.CursorX, in.CursorY)
+	if a.holdMenuCaption(in) {
+		hover = 0
+	}
 	defer func() {
 		if hover != hit {
 			a.sel.Move(hover)
@@ -2457,9 +2472,7 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		case menu.ActionHallOfFame:
 			a.flow.showHallOfFame()
 		case menu.ActionCutscenes:
-			if !a.assets.Bindings().SeenCutscenes || len(a.seenCutscenes()) != 0 {
-				a.openCutsceneLibrary()
-			}
+			a.openCutsceneLibrary()
 		case menu.ActionCredits:
 			a.openCredits(ScreenMenu)
 		case menu.ActionExit:
@@ -2469,6 +2482,34 @@ func (a *App) stepMenu(in appInput) (exit bool) {
 		a.sel.Move(hit)
 	}
 	return false
+}
+
+// escapeStays reports whether the menu's binding table keeps Escape on the
+// screen showing: the menu itself, or the Hall of Fame the menu opened.
+func (a *App) escapeStays() bool {
+	t := a.assets.Bindings()
+	switch a.flow.screen {
+	case ScreenMenu:
+		return t.EscapeStays
+	case ScreenEnding:
+		return t.HallKeepsEscape && a.flow.hallFromMenu
+	}
+	return false
+}
+
+// holdMenuCaption reports whether the menu shows no selected button this
+// step. Under a table with CaptionAfterMove a return to the menu holds the
+// selection until the pointer leaves the point it rested on or a press comes.
+func (a *App) holdMenuCaption(in appInput) bool {
+	at := image.Pt(in.CursorX, in.CursorY)
+	if a.menuAway {
+		a.menuAway = false
+		a.menuHeld, a.menuHeldAt = a.assets.Bindings().CaptionAfterMove, at
+	}
+	if at != a.menuHeldAt || in.PrimaryPressed {
+		a.menuHeld = false
+	}
+	return a.menuHeld
 }
 
 // buttonAt maps a window position to the brooch button under it, or 0.

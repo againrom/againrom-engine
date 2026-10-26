@@ -152,12 +152,11 @@
      "cite": ["owner"]},
     {"screen": "credits",
      "art": [
-       {"name": "logo/nival", "format": "picture", "key": "graphics/interface/logo/nival.bmp", "cite": ["owner"]},
-       {"name": "logo/buka", "format": "picture", "key": "graphics/interface/logo/buka.bmp", "cite": ["owner"]},
-       {"name": "logo/monolith", "format": "picture", "key": "graphics/interface/logo/monolith.bmp", "cite": ["owner"]},
-       {"name": "logo/1c", "format": "picture", "key": "graphics/interface/logo/1c.bmp", "cite": ["owner"]}
+       {"name": "logo/nival", "format": "picture", "key": "main/graphics/logo/nival.bmp", "cite": ["R2-ENGINE-442"]},
+       {"name": "logo/buka", "format": "picture", "key": "main/graphics/logo/buka.bmp", "cite": ["R2-ENGINE-442"]},
+       {"name": "logo/monolith", "format": "picture", "key": "main/graphics/logo/monolith.bmp", "cite": ["R2-ENGINE-442"]}
      ],
-     "cite": ["owner"]},
+     "cite": ["R2-ENGINE-442"]},
     {"screen": "hall-of-fame",
      "art": [
        {"name": "background", "format": "picture", "key": "main/graphics/famehall/hall.bmp", "cite": ["owner"]}

@@ -97,8 +97,14 @@ func TestReleaseSecondGameWindowStartsMissionTen(t *testing.T) {
 	f.Cutscenes = f.OpenCutscenes("video4")
 	app := f.App("second")
 	app.Layout(1024, 768)
-	if app.PlayStartupCutscenes() {
-		t.Error("a startup clip played on a second-game root")
+	app.SetCutsceneAudio(nil)
+	if !app.PlayStartupCutscenes() || app.CutsceneName() != "logos/publisher.smk" {
+		t.Errorf("startup movie %q, want the publisher logo before the intro (R2-ENGINE-338, DIV-4098): %v", app.CutsceneName(), app.CutsceneError())
+	}
+	app.StopCutscene()
+	// The skip's drain tick, as after a player's skip.
+	if err := app.HeadlessStep(); err != nil {
+		t.Fatal(err)
 	}
 	enterSecondCampaignMission(t, app)
 	if app.Screen() != ui.ScreenMap || f.live == nil {
@@ -203,8 +209,13 @@ func TestReleaseSecondGameMenuButtonsDoNotCrash(t *testing.T) {
 		if err := app.HeadlessKey("escape"); err != nil {
 			t.Fatalf("%s: escape: %v", name, err)
 		}
-		if app.Screen() != ui.ScreenMenu {
-			t.Errorf("%s: Escape leaves screen %v", name, app.Screen())
+		// Escape does not close the Hall of Fame (R2-ENGINE-565).
+		want := ui.ScreenMenu
+		if name == "hall of fame" {
+			want = ui.ScreenEnding
+		}
+		if app.Screen() != want {
+			t.Errorf("%s: Escape leaves screen %v, want %v", name, app.Screen(), want)
 		}
 	}
 }

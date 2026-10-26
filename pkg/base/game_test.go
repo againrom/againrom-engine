@@ -97,3 +97,27 @@ func TestCastNeedsSightFollowsEdition(t *testing.T) {
 		}
 	}
 }
+
+// The second game plays its two logo movies and then its intro, cutpaths
+// row 0, before the menu (R2-ENGINE-338, R2-ENGINE-423, DIV-4098); the first
+// game keeps its logos and intro.
+func TestStartupCutscenesFollowEdition(t *testing.T) {
+	for _, tc := range []struct {
+		id          string
+		first, last string
+		count       int
+	}{
+		{ROM1EN, "logos/buka.smk", "intro/99.smk", 102},
+		{ROM2EN, "logos/publisher.smk", "intro/99.smk", 101},
+		{ROM2RU, "logos/publisher.smk", "intro/99.smk", 101},
+	} {
+		profile, ok := Find(tc.id)
+		if !ok {
+			t.Fatalf("profile %s is absent", tc.id)
+		}
+		got := profile.Edition().StartupCutscenes
+		if len(got) != tc.count || got[0] != tc.first || got[len(got)-1] != tc.last {
+			t.Errorf("profile %s plays %d startup movies %v, want %d from %s to %s", tc.id, len(got), got, tc.count, tc.first, tc.last)
+		}
+	}
+}

@@ -100,7 +100,7 @@ func TestSecondMenuLocksLoadWithoutSave(t *testing.T) {
 	}
 }
 
-func TestSecondMenuMultiplayerButtonsDoNothingAndCutscenesNeedASeenScene(t *testing.T) {
+func TestSecondMenuMultiplayerButtonsDoNothingAndCutscenesOpen(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	assets := secondAppAssets(t)
 	for _, b := range []int{2, 6} {
@@ -121,12 +121,10 @@ func TestSecondMenuMultiplayerButtonsDoNothingAndCutscenesNeedASeenScene(t *test
 		a.Layout(640, 480)
 		a.SetCutsceneLibrary(entries, seen, nil, CutsceneLibraryWords{})
 		clickButton(a, cut, now)
-		want := ScreenMenu
-		if len(seen) != 0 {
-			want = ScreenCutsceneLibrary
-		}
-		if a.Screen() != want {
-			t.Errorf("seen %v: Cut Scenes opens %v, want %v", seen, a.Screen(), want)
+		// The library opens whatever has been seen; its rows are the seen
+		// scenes (R2-ENGINE-442, R2-ENGINE-565).
+		if a.Screen() != ScreenCutsceneLibrary || len(a.seenCutscenes()) != len(seen) {
+			t.Errorf("seen %v: Cut Scenes opens %v with %d rows", seen, a.Screen(), len(a.seenCutscenes()))
 		}
 	}
 	// Loss control: the first game opens its library with nothing seen.

@@ -12,9 +12,12 @@ import (
 const seenMoviesKey = "EncounteredCutscenes"
 
 // The two installed tables are positional peers (TEXT-NAMETAB-026). A group
-// is intro, newgame, start or a canonical mission directory, never a file path.
+// is a word of up to 16 lowercase letters (the first game's intro, newgame
+// and start, the second game's intro, teleport, stars, crown, knights and
+// druids; R2-ENGINE-423) or a canonical mission directory, never a file path
+// and never logos, whose movies are no group.
 func validMovieDirectory(s string) bool {
-	if s == "intro" || s == "newgame" || s == "start" {
+	if len(s) > 0 && len(s) <= 16 && s != "logos" && strings.Trim(s, "abcdefghijklmnopqrstuvwxyz") == "" {
 		return true
 	}
 	if len(s) < 2 || len(s) > 5 || s[0] != 'm' {
@@ -138,10 +141,15 @@ func (f *FrontEnd) creditsView() ui.CreditsView {
 			v.Lines = v.Lines[:4096]
 		}
 	}
-	set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "credits")
-	for _, name := range []string{"nival", "buka", "monolith", "1c"} {
-		if pic := rgbaOf(set.Picture("logo/" + name)); pic != nil {
-			v.Logos[name] = pic
+	// Each manifest entry logo/<name> is the picture a line naming <name>
+	// shows (ui.CreditsLogoName).
+	d := ScreensDescription(f.profile())
+	set, _ := loadScreen(f.Archives.artSource(), d, "credits")
+	for _, e := range d.Art("credits") {
+		if name, ok := strings.CutPrefix(e.Name, "logo/"); ok {
+			if pic := rgbaOf(set.Picture(e.Name)); pic != nil {
+				v.Logos[name] = pic
+			}
 		}
 	}
 	return v

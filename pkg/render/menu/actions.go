@@ -26,12 +26,16 @@ type Button struct {
 //
 // LoadNeedsSave locks every ActionLoad button while the front end reports no
 // save file. A locked button shows its hover but a release on it posts
-// nothing. SeenCutscenes makes ActionCutscenes act only while at
-// least one cutscene has been seen.
+// nothing. EscapeStays makes Escape on the menu do nothing instead of ending
+// the program, and HallKeepsEscape makes the Hall of Fame the menu opens
+// ignore Escape. CaptionAfterMove shows no button under a resting pointer
+// after a return to the menu until the pointer moves.
 type Actions struct {
-	Buttons       [ButtonCount]Button
-	LoadNeedsSave bool
-	SeenCutscenes bool
+	Buttons          [ButtonCount]Button
+	LoadNeedsSave    bool
+	EscapeStays      bool
+	HallKeepsEscape  bool
+	CaptionAfterMove bool
 }
 
 // FirstActions binds the first game's six decoded buttons; buttons 2 and 6
@@ -51,7 +55,9 @@ var FirstActions = func() Actions {
 // R2-ENGINE-437): button i+1 answers mask value 0x80+0x10*i. Button 2 (0x426,
 // unnamed, read as multiplayer) and button 6 (0x487, the web server list)
 // belong to multiplayer and carry no action (DIV-2369). Load is locked while
-// no game*.sav exists; Cut Scenes acts only with a seen scene (DIV-3082).
+// no game*.sav exists. Escape changes nothing on the menu or on the Hall of
+// Fame, and a return to the menu shows no caption until the pointer moves
+// (R2-ENGINE-565).
 var SecondActions = Actions{
 	Buttons: [ButtonCount]Button{
 		{ActionNewGame, "new game"},
@@ -63,8 +69,10 @@ var SecondActions = Actions{
 		{ActionHallOfFame, "hall of fame"},
 		{ActionExit, "exit"},
 	},
-	LoadNeedsSave: true,
-	SeenCutscenes: true,
+	LoadNeedsSave:    true,
+	EscapeStays:      true,
+	HallKeepsEscape:  true,
+	CaptionAfterMove: true,
 }
 
 // Binding is button b's binding, or the zero Button outside 1..8 or without

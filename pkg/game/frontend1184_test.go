@@ -16,21 +16,21 @@ func TestMovieHistoryColdStartPreservesPreferences1184(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := OptionsStore{Path: path}
-	for _, key := range []string{"intro", "m20", "intro"} {
+	for _, key := range []string{"intro", "m20", "intro", "teleport", "druids"} {
 		if err := s.EncounterCutscene(key); err != nil {
 			t.Fatal(err)
 		}
 	}
 	cold := OptionsStore{Path: path}
 	seen, err := cold.EncounteredCutscenes()
-	if err != nil || !reflect.DeepEqual(seen, []string{"intro", "m20"}) {
+	if err != nil || !reflect.DeepEqual(seen, []string{"intro", "m20", "teleport", "druids"}) {
 		t.Fatal(seen, err)
 	}
 	m, _ := cold.readAll()
 	if m["TipsMode"] != "0" || m["SoundVolume"] != "23" || m["Unknown"] != "value" {
 		t.Fatal("history lost unrelated preferences", m)
 	}
-	for _, bad := range []string{"../intro", "m20/01.smk", "intro\nSoundVolume=0", "logos", "m020", "M20"} {
+	for _, bad := range []string{"../intro", "m20/01.smk", "intro\nSoundVolume=0", "logos", "m020", "M20", "Intro", "abcdefghijklmnopq"} {
 		if s.EncounterCutscene(bad) == nil {
 			t.Fatal("invalid group accepted", bad)
 		}

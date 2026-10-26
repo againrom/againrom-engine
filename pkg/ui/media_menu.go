@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"path"
 	"strings"
 	"time"
 
@@ -326,6 +327,18 @@ func (a *App) creditsPitch() int {
 	return 15
 }
 
+// CreditsLogoName is the logo a credits line names, lowercased. A line that
+// starts with a quote names a picture file (R2-ENGINE-442), read without its
+// quotes and extension, and never draws as text.
+func CreditsLogoName(line string) (name string, picture bool) {
+	name = strings.ToLower(strings.TrimSpace(line))
+	if picture = strings.HasPrefix(name, `"`); picture {
+		name = strings.Trim(name, `"`)
+		name = strings.TrimSuffix(name, path.Ext(name))
+	}
+	return name, picture
+}
+
 func (a *App) composeCredits() *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
 	draw.Draw(dst, dst.Bounds(), image.Black, image.Point{}, draw.Src)
@@ -339,9 +352,10 @@ func (a *App) composeCredits() *image.RGBA {
 	}
 	for i, line := range a.media.roll.Lines {
 		y := creditsStart - a.creditsScroll() + i*a.creditsPitch()
-		if logo := a.media.roll.Logos[strings.ToLower(strings.TrimSpace(line))]; logo != nil {
+		name, picture := CreditsLogoName(line)
+		if logo := a.media.roll.Logos[name]; logo != nil {
 			copyNative(dst, logo, image.Pt((frame.W-logo.Bounds().Dx())/2, y), dst.Bounds())
-		} else if y > -a.creditsPitch() && y < frame.H && line != "" {
+		} else if y > -a.creditsPitch() && y < frame.H && line != "" && !picture {
 			drawTownShellText(dst, font, line, image.Rect(8, y, frame.W-8, y+a.creditsPitch()), color.RGBA{255, 255, 255, 255})
 		}
 	}

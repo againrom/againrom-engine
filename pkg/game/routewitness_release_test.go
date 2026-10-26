@@ -406,6 +406,7 @@ var (
 	routeMenuCredits   = image.Pt(250, 380)
 	routeMenuCutscenes = image.Pt(170, 295)
 	routeHallSeal      = image.Pt(575, 435)
+	routeCreditsShot   = 4200 * time.Millisecond // the original shot s1.36 4.2 s after its click
 	routeCreditsWait   = 10 * time.Second
 )
 
@@ -461,7 +462,7 @@ func (w *routeWitness) menuTrips(regions []routeRegion) {
 		w.escape("after s1.35")
 	}
 	r = w.menuButton(regions, routeMenuCredits, menu.ActionCredits)
-	w.click("credits (s1.36)", r, routeMenuCredits, 2, nil)
+	w.click("credits (s1.36)", r, routeMenuCredits, int(routeCreditsShot/(20*time.Millisecond)), nil)
 	w.waitFor("credits roll (s1.37)", routeCreditsWait)
 	w.escape("s1.38")
 	w.expect("menu", "the credits Esc")
@@ -474,12 +475,7 @@ func (w *routeWitness) menuTrips(regions []routeRegion) {
 // menu records the launch, hovers each button the menu's mask answers,
 // takes the original's side trips, then presses New Game.
 func (w *routeWitness) menu() {
-	if movies := w.f.Base().Profile.Edition().StartupCutscenes; len(movies) == 0 {
-		w.record("intro movie (s1.01, s1.02)", image.Rectangle{}, "wait", "none: the edition names no startup movie; the App opens on the menu")
-	} else {
-		w.t.Errorf("menu: the edition names %d startup movies the witness does not play", len(movies))
-	}
-	w.wait("menu")
+	w.intro()
 	regions := routeRegions(image.Pt(menu.FrameW, menu.FrameH), 2, func(p image.Point) (string, bool) {
 		b := w.f.Assets.ButtonAt(p)
 		if b == 0 {
@@ -504,7 +500,43 @@ func (w *routeWitness) menu() {
 	r := regions[newGame]
 	w.click(r.key, r.rect, r.at, 2, nil)
 	w.expect("chargen/precreate", "New Game")
-	w.record("intro movie (s1.42)", image.Rectangle{}, "wait", "none: New Game opened the hero creation with no movie, and no movie plays at launch")
+	w.record("intro movie (s1.42)", image.Rectangle{}, "wait", "none: New Game opens the hero creation with no movie; the original's s1.42 is the launch intro of a second run")
+}
+
+// The original's s1.01 shows the Nival logo movie's opening frost, which
+// starts after the publisher's logo; the witness records the like frame.
+const (
+	routeLaunchMovie = "logos/nival.smk"
+	routeLaunchFrame = 5
+)
+
+// intro plays the startup movies as the App's Run does, records frame
+// routeLaunchFrame of routeLaunchMovie and ends the sequence with the
+// original's Esc (s1.02). The movie track goes to no device.
+func (w *routeWitness) intro() {
+	w.app.SetCutsceneAudio(nil)
+	if !w.app.PlayStartupCutscenes() {
+		w.t.Fatalf("menu: no startup movie plays: %v", w.app.CutsceneError())
+	}
+	at := func() bool {
+		return w.app.CutsceneName() == routeLaunchMovie && w.app.CutsceneFrameNumber() >= routeLaunchFrame
+	}
+	deadline := time.Now().Add(2 * time.Minute)
+	for w.app.Screen() == ui.ScreenCutscene && !at() && time.Now().Before(deadline) {
+		// A movie's last frame waits for its presentation, which a
+		// composition makes.
+		if _, _, err := w.app.HeadlessFrame(); err != nil {
+			w.t.Fatalf("menu: startup movie frame: %v", err)
+		}
+		w.run(1)
+		time.Sleep(time.Millisecond)
+	}
+	if w.app.Screen() != ui.ScreenCutscene || !at() || w.app.CutsceneFrameNumber() != routeLaunchFrame {
+		w.t.Fatalf("menu: the startup movie %q shows frame %d on %v", w.app.CutsceneName(), w.app.CutsceneFrameNumber(), w.app.Screen())
+	}
+	w.record("intro movie (s1.01)", image.Rectangle{}, "wait", fmt.Sprintf("%s frame %d", routeLaunchMovie, routeLaunchFrame))
+	w.escape("s1.02")
+	w.expect("menu", "the intro Esc")
 }
 
 // closeChargenTip hovers the generator's tip panel controls and closes it.
@@ -1303,7 +1335,8 @@ func TestReleaseSecondGameRouteWitness(t *testing.T) {
 	if f.ChargenAssets == nil {
 		t.Fatal("the second game's install loaded no generator")
 	}
-	f.Options = OptionsStore{}
+	// The options file records the seen cutscenes the Cut Scenes library lists.
+	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	app := f.App("route witness")
 	app.Layout(640, 480)
 	f.TownAnimationNow = app.HeadlessSceneNow

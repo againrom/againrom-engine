@@ -160,6 +160,11 @@ var secondEdition = Edition{
 		"video8": {Path: "video.res", Name: "video"},
 	},
 	DefaultCutscenes: "video4",
+	// The logos, then the intro cutscene, play before the menu
+	// (R2-ENGINE-338); the intro is cutpaths.txt row 0, video\intro\NN.smk
+	// (R2-ENGINE-423). The logo files and their order are a reading of the
+	// original's launch (DIV-4098).
+	StartupCutscenes: append([]string{"logos/publisher.smk", "logos/nival.smk"}, numberedCutscenes("intro")...),
 }
 
 // AppliesTo are the names a base answers to in a mod's applies-to list: its
