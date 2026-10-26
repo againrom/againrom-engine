@@ -781,6 +781,23 @@ func schoolControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl, bool
 	return TownSurfaceControl{Kind: TownSurfaceControlCell, Index: i}, true
 }
 
+// characterPaneCornerControl is the town pane corner a click at p reaches
+// first among the picker arrows, the mode corner and the book, and whether it
+// acts: an arrow over two members or more, the mode corner over a subject.
+func characterPaneCornerControl(hero TownCharacterView, p image.Point) (CharacterPaneCorner, bool, bool) {
+	for _, c := range CharacterPaneCornerAt(hero, p) {
+		switch c {
+		case CharacterPanePrev, CharacterPaneNext:
+			return c, true, hero.MemberCount > 1
+		case CharacterPaneMode:
+			return c, true, hero.HasSubject
+		case CharacterPaneBook:
+			return c, true, true
+		}
+	}
+	return 0, false, false
+}
+
 // TownSurfaceControlAt resolves the extension and character regions before
 // left content, including the school's sixteen-pixel overlap.
 func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl, bool) {
@@ -796,26 +813,13 @@ func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl,
 		}
 	}
 	// Shared character controls precede the room content.
-	for _, c := range CharacterPaneCornerAt(v.Hero, p) {
-		switch c {
-		case CharacterPanePrev:
-			if v.Hero.MemberCount <= 1 {
-				return TownSurfaceControl{}, false
-			}
-			return TownSurfaceControl{Kind: TownSurfaceControlPrevious}, true
-		case CharacterPaneNext:
-			if v.Hero.MemberCount <= 1 {
-				return TownSurfaceControl{}, false
-			}
-			return TownSurfaceControl{Kind: TownSurfaceControlNext}, true
-		case CharacterPaneMode:
-			if !v.Hero.HasSubject {
-				return TownSurfaceControl{}, false
-			}
-			return TownSurfaceControl{Kind: TownSurfaceControlMode}, true
-		case CharacterPaneBook:
-			return TownSurfaceControl{Kind: TownSurfaceControlBook}, true
+	if c, hit, acts := characterPaneCornerControl(v.Hero, p); hit {
+		if !acts {
+			return TownSurfaceControl{}, false
 		}
+		kind := map[CharacterPaneCorner]TownSurfaceControlKind{CharacterPanePrev: TownSurfaceControlPrevious,
+			CharacterPaneNext: TownSurfaceControlNext, CharacterPaneMode: TownSurfaceControlMode, CharacterPaneBook: TownSurfaceControlBook}[c]
+		return TownSurfaceControl{Kind: kind}, true
 	}
 	if v.Kind == TownSurfaceSchool && v.SchoolArt != nil {
 		return schoolControlAt(v, p)

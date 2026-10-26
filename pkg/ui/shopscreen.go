@@ -545,7 +545,7 @@ func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool)
 // and the figure's own pixels are not required (TOWN-348). The mission's
 // heldItemBox is the same question.
 func shopPaneTakesItemAt(v ShopScreenView, p image.Point) bool {
-	return v.layout().Character && p.In(shopCharRegion)
+	return v.layout().Character && !v.layout().NoWear && p.In(shopCharRegion)
 }
 
 // shopDollAreaAt is shopDollSlotAt's own geometry, less the mask lookup: a
@@ -613,7 +613,7 @@ func shopCharacterView(v ShopScreenView) TownCharacterView {
 // removes the doll and keeps the three grids, so the doll is the one arm
 // below that misses there.
 func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
-	if !v.Character.Statistics {
+	if !v.Character.Statistics && !v.layout().NoWear {
 		if slot, ok := shopDollSlotAt(v, v.SlotMask, p); ok {
 			return ShopControl{Kind: ShopControlDoll, Index: slot}, true
 		}
@@ -664,7 +664,8 @@ func drawTownBook(dst *image.RGBA, v ShopScreenView) {
 	} else {
 		book = composeSpellBar(v.Font, v.Spells, 0, shopSpellColumns(), shopTableRegion, 0)
 	}
-	blit(dst, book, shopTableRegion.Min.X, shopTableRegion.Min.Y)
+	at := shopTableRegion.Min.Add(v.layout().BookOffset)
+	blit(dst, book, at.X, at.Y)
 }
 
 func shopSpellColumns() int {
@@ -675,7 +676,7 @@ func shopSpellEntryAt(v ShopScreenView, p image.Point) (SpellEntry, int, bool) {
 	if !v.bookOpen() {
 		return SpellEntry{}, 0, false
 	}
-	for i, r := range bookCellRects(shopTableRegion, shopSpellColumns()) {
+	for i, r := range bookCellRects(shopTableRegion.Add(v.layout().BookOffset), shopSpellColumns()) {
 		if p.In(r) && i < len(v.Spells) {
 			return v.Spells[i], i, true
 		}

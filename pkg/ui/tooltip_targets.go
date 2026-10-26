@@ -304,6 +304,22 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 		return tooltipTarget{}
 	}
 	if square, ok := townSquareView(a.flow.town); ok && !square.Tip.Covers(p) {
+		if square.Pane {
+			if hint := characterCornerTooltip(square.Hero, w, p); hint.key() != "" {
+				return hint
+			}
+			if hint := characterStatsTooltip(square.Hero, w, p); hint.key() != "" {
+				return hint
+			}
+			if lines, ok := square.heroHoverLines(p); ok {
+				return tooltipTarget{tooltipText, fmt.Sprintf("hero-item/%d/%d", square.Hero.Subject.ID, square.Hero.Member), lines, square.Font}
+			}
+		}
+		for i, d := range square.Dolls {
+			if lines, ok := d.LinesAt(p); ok {
+				return tooltipTarget{tooltipText, fmt.Sprintf("room-item/%d", i), lines, square.Font}
+			}
+		}
 		if slot, ok := square.Scene.TipAt(p); ok {
 			return mainTooltip(w, slot, fmt.Sprintf("town/%d", slot), square.Font)
 		}

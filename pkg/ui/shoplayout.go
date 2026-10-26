@@ -39,6 +39,13 @@ type ShopLayout struct {
 	// corner opens over the table strip; it needs Character.
 	Character, Book bool
 
+	// BookOffset moves the open book from the table strip's corner.
+	BookOffset image.Point
+
+	// NoWear keeps the panel's doll out of the drags: its items answer a
+	// hover, and no drag takes an item off it or puts one on it.
+	NoWear bool
+
 	// TableScroll lets the wheel turn the table strip one place at a time,
 	// for a deal whose table holds more places than the strip shows.
 	TableScroll bool

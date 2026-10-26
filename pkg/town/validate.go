@@ -138,6 +138,9 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 			return fail("seats request slot %q, which is no keyed slot of the page scene", s.Select)
 		}
 	}
+	if p := r.Pane; p != nil && p.Rect.Rectangle().Empty() {
+		return fail("the pane rectangle %v is empty", p.Rect)
+	}
 	names := map[string]bool{}
 	for i, b := range r.Buttons {
 		where := fmt.Sprintf("button %d", i)

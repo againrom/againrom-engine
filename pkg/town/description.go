@@ -479,7 +479,20 @@ type RoomSpec struct {
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`
 	Buttons []ButtonSpec `json:"buttons"`
-	Cite    []string     `json:"cite"`
+	// Pane is the page's character pane; nil shows none.
+	Pane *PaneSpec `json:"pane"`
+	Cite []string  `json:"cite"`
+}
+
+// PaneSpec is a page's character pane: the campaign's shown party member in
+// Rect as figure and worn items or as statistics card, with the picker and
+// mode corners, and the spellbook corner when Book. BookOffset moves the open
+// book from the table strip's corner.
+type PaneSpec struct {
+	Rect       Rect     `json:"rect"`
+	Book       bool     `json:"book"`
+	BookOffset Point    `json:"book_offset"`
+	Cite       []string `json:"cite"`
 }
 
 // Step is one entry or exit step: a composer step ("reset" the square view)

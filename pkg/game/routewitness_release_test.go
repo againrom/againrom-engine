@@ -650,6 +650,7 @@ func (w *routeWitness) tavern() {
 	for _, r := range w.squareRegions() {
 		w.hover(r.key, r.rect, r.at)
 	}
+	w.innPane()
 	seats, hires := w.town.state().innSeats()
 	if hires == 0 {
 		w.record("hire offer", image.Rectangle{}, "wait", "none offered: the inn seats no hire actor")
@@ -677,6 +678,80 @@ func (w *routeWitness) tavern() {
 	w.click(secondInnExit, r.rect, r.at, 2, nil)
 	w.until(200, func() bool { return w.screen() == "town/square" })
 	w.expect("town/square", "Exit")
+}
+
+// The pane points the original's route used (R2-SESSION-203, R2-SESSION-204,
+// R2-SESSION-214, R2-SESSION-217).
+var (
+	routePaneEye      = image.Pt(622, 253)
+	routePaneTopLeft  = image.Pt(490, 255)
+	routePanePrevious = image.Pt(490, 457)
+	routePaneNext     = image.Pt(612, 457)
+	routePanePortrait = image.Pt(555, 330)
+	routeInnOval      = image.Pt(80, 330)
+)
+
+// paneCorner is corner c's rectangle on the town pane.
+func paneCorner(c ui.CharacterPaneCorner) image.Rectangle {
+	return ui.CharacterPaneCornerRect(ui.TownCharacterRegion, c)
+}
+
+// paneClick clicks p and waits out the hover delay, so the frame shows the
+// caption the pointer then stands under.
+func (w *routeWitness) paneClick(control string, rect image.Rectangle, p image.Point, note func() string) {
+	w.click(control, rect, p, w.app.TooltipDelay()/20+5, note)
+}
+
+// rightClick presses and releases the right button at p and records the
+// step.
+func (w *routeWitness) rightClick(control string, rect image.Rectangle, p image.Point) {
+	before := w.screen()
+	for _, edge := range []string{"hover", "right-press", "right-release"} {
+		w.pointer(edge, p)
+	}
+	w.run(2)
+	w.record(control, rect, "right-click", w.result(before, ""))
+}
+
+// innPane hovers the inn's character pane corners, the hero's portrait and
+// the patron's oval, swaps the portrait and the statistics card by the eye
+// and by Tab twice each, and clicks both picker arrows and the portrait.
+func (w *routeWitness) innPane() {
+	if !w.town.TownSquareView().Pane {
+		w.t.Fatal("tavern: the inn shows no character pane")
+	}
+	w.hover("pane eye", paneCorner(ui.CharacterPaneMode), routePaneEye)
+	w.hover("pane top left", paneCorner(ui.CharacterPaneBook), routePaneTopLeft)
+	w.hover("pane previous", paneCorner(ui.CharacterPanePrev), routePanePrevious)
+	w.hover("pane next", paneCorner(ui.CharacterPaneNext), routePaneNext)
+	w.hover("pane portrait", ui.TownCharacterRegion, routePanePortrait)
+	w.hover("patron oval", image.Rect(0, 238, 160, 480), routeInnOval)
+	stats := func() bool { return w.town.TownSquareView().Hero.Statistics }
+	note := func() string { return fmt.Sprintf("statistics=%v", stats()) }
+	for i := range 2 {
+		w.paneClick("pane eye", paneCorner(ui.CharacterPaneMode), routePaneEye, note)
+		if stats() != (i == 0) {
+			w.t.Errorf("tavern: eye click %d shows statistics %v", i+1, stats())
+		}
+	}
+	for i := range 2 {
+		w.key("tab", 2)
+		if stats() != (i == 0) {
+			w.t.Errorf("tavern: Tab %d shows statistics %v", i+1, stats())
+		}
+	}
+	member := func() string {
+		h := w.town.TownSquareView().Hero
+		return fmt.Sprintf("member=%d/%d %s", h.Member, h.MemberCount, routeText(h.Subject.Char.Name))
+	}
+	before := member()
+	w.paneClick("pane previous", paneCorner(ui.CharacterPanePrev), routePanePrevious, member)
+	w.paneClick("pane next", paneCorner(ui.CharacterPaneNext), routePaneNext, member)
+	if got := member(); got != before {
+		w.t.Errorf("tavern: the picker arrows move the pane from %s to %s", before, got)
+	}
+	w.paneClick("pane portrait", ui.TownCharacterRegion, routePanePortrait, nil)
+	w.rightClick("pane portrait", ui.TownCharacterRegion, routePanePortrait)
 }
 
 // innSeat is the inn page's seat i by the page's own seat rectangles.
@@ -746,6 +821,19 @@ func (w *routeWitness) shop() {
 	controls := shopControls(v)
 	for _, c := range controls {
 		w.hover(fmt.Sprintf("%s %d", c.kind, c.index), c.rect, w.shopPoint(c))
+	}
+	if !v.Layout.Character || !v.Layout.Book {
+		w.t.Error("shop: the shop shows no character pane with its book")
+	}
+	w.hover("pane book", paneCorner(ui.CharacterPaneBook), routePaneTopLeft)
+	w.hover("pane eye", paneCorner(ui.CharacterPaneMode), routePaneEye)
+	w.hover("pane portrait", ui.TownCharacterRegion, routePanePortrait)
+	book := func() string { return fmt.Sprintf("book=%v", w.town.ShopScreen().Book) }
+	for i := range 2 {
+		w.paneClick("pane book", paneCorner(ui.CharacterPaneBook), routePaneTopLeft, book)
+		if w.town.ShopScreen().Book != (i == 0) {
+			w.t.Errorf("shop: book click %d shows the book %v", i+1, w.town.ShopScreen().Book)
+		}
 	}
 	bestShelf, bestCell, bestPrice := -1, -1, int32(0)
 	for _, c := range controls {

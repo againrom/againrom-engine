@@ -52,6 +52,7 @@ var secondTownHooks = map[string]func(t *secondCampaignScreen, room string){
 		if r, ok := secondTownRooms[room]; ok {
 			t.state().room = r
 		}
+		t.composed.hero = nil
 	},
 	"gate-closed": func(t *secondCampaignScreen, _ string) { t.composed.action = t.openTownText(secondGateText) },
 	"navigate": func(t *secondCampaignScreen, _ string) {
@@ -114,6 +115,11 @@ type secondTownState struct {
 	pointer image.Point
 
 	action ui.TownAction
+
+	// heroStats is the room panes' mode, the statistics card when set;
+	// hero is the shown member's face, composed again after a room entry.
+	heroStats bool
+	hero      *secondHeroFace
 }
 
 // secondTownArt is one room's loaded art: its scene's and its page's.
@@ -219,8 +225,10 @@ func (t *secondCampaignScreen) TownSquareView() ui.TownSquareView {
 	if !ok {
 		return ui.TownSquareView{}
 	}
-	return ui.TownSquareView{Scene: secondTownView{t: t, d: d, room: room}, Font: t.install.Font.Value(),
+	v := ui.TownSquareView{Scene: secondTownView{t: t, d: d, room: room}, Font: t.install.Font.Value(),
 		Tip: t.roomTipView(d.Town, room)}
+	t.paneSquareView(&v, d.Room(room), t.roomArt(d, room))
+	return v
 }
 
 // TownSquareActive runs the shown room's scene and pauses and hides every

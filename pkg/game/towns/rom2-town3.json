@@ -167,8 +167,9 @@
      "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
                "back": "back", "hire-back": "hire-back", "actor": "actor", "patron": "patron", "select": "helper", "frame-ms": 125, "compare": "greater",
                "card": {"rect": [0, 0, 160, 238], "art": "card", "seam": "card-seam", "offset": [12, -1], "cite": ["R2-SESSION-203", "R2-SESSION-213"]},
-               "figure": {"rect": [0, 238, 160, 480], "offset": [0, 2], "cite": ["R2-SESSION-203"]},
+               "figure": {"rect": [0, 238, 160, 480], "offset": [11, 2], "cite": ["R2-SESSION-203"]},
                "cite": ["R2-ENGINE-247", "R2-ENGINE-248", "R2-ENGINE-258", "DIV-2973"]},
+     "pane": {"rect": [480, 238, 640, 480], "book": false, "cite": ["R2-ENGINE-246", "R2-SESSION-204", "R2-SESSION-214"]},
      "buttons": [
        {"name": "hire", "rect": [484, 44, 624, 90], "off": "button/0/0", "on": "button/0/1", "cite": ["R2-ENGINE-246", "R2-ENGINE-260", "R2-ENGINE-496", "DIV-3110"]},
        {"name": "talk", "rect": [484, 91, 624, 137], "off": "button/1/0", "on": "button/1/1", "caption": 242, "cite": ["R2-ENGINE-246", "R2-ENGINE-260"]},
@@ -265,6 +266,7 @@
        {"name": "plaque-merchant", "format": "picture", "key": "graphics/interface/costs%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]},
        {"name": "plaque-player", "format": "picture", "key": "graphics/interface/costm%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]}
      ],
+     "pane": {"rect": [480, 238, 640, 480], "book": true, "book_offset": [0, 2], "cite": ["R2-ENGINE-249", "R2-SESSION-204", "R2-SESSION-217"]},
      "buttons": [
        {"name": "shelf/0", "rect": [169, 112, 257, 224], "cite": ["R2-ENGINE-269", "DIV-3064"]},
        {"name": "shelf/1", "rect": [169, 52, 265, 112], "cite": ["R2-ENGINE-269", "DIV-3064"]},

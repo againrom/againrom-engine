@@ -535,6 +535,14 @@ func (t *shopController) shopDollHover(i int) (*ui.SlotMask, [12][]string) {
 	if m == nil {
 		return t.shopFigureMasks[i], info
 	}
+	return t.shopFigureMasks[i], t.in.wornItemLines(*m, func() (uint16, bool) { return t.shopWeaponFallbackCode(i) })
+}
+
+// wornItemLines is the item information lines of each slot m wears, read
+// from his worn items, else his worn codes; fallback is his slot-1 code while
+// slot 1 is empty.
+func (in *InstallResources) wornItemLines(m mapload.PartyMember, fallback func() (uint16, bool)) [12][]string {
+	var info [12][]string
 	var items [sim.EquipSlots]sim.ItemInstance
 	if m.Carry != nil {
 		items = m.Carry.EquippedItems
@@ -547,21 +555,21 @@ func (t *shopController) shopDollHover(i int) (*ui.SlotMask, [12][]string) {
 		items = m.WornItems
 		if itemEquipmentEmptyGame(items) {
 			for k, code := range m.Worn {
-				items[k] = mapload.ItemInstanceFromCode(code, t.in.Table)
+				items[k] = mapload.ItemInstanceFromCode(code, in.Table)
 			}
 		}
 	}
-	if items[0].Empty() {
-		if code, ok := t.shopWeaponFallbackCode(i); ok {
-			items[0] = mapload.ItemInstanceFromCode(code, t.in.Table)
+	if items[0].Empty() && fallback != nil {
+		if code, ok := fallback(); ok {
+			items[0] = mapload.ItemInstanceFromCode(code, in.Table)
 		}
 	}
 	for n, item := range items {
 		if !item.Empty() {
-			info[n] = itemInstanceInfoLines(item, t.in.Table, t.in.Words)
+			info[n] = itemInstanceInfoLines(item, in.Table, in.Words)
 		}
 	}
-	return t.shopFigureMasks[i], info
+	return info
 }
 
 // shopFigure is member i composed in his own equipment, 160x240, from the cache

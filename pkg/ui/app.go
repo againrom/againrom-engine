@@ -2840,6 +2840,17 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			a.syncViewerLayout()
 			return
 		}
+		if square, ready := townSquareView(a.flow.town); ready && square.Pane && square.Hero.HasSubject && (in.PaneMode || !square.Hero.NoBook) {
+			if s, ok := a.flow.town.(TownSquarePaneScreen); ok {
+				c := CharacterPaneBook
+				if in.PaneMode {
+					c = CharacterPaneMode
+				}
+				s.TownSquarePane(c)
+				a.syncViewerLayout()
+			}
+			return
+		}
 	}
 	if inSurface {
 		if in.PrimaryPressed {
@@ -3093,6 +3104,14 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 				if button, shown := townDialogueButton(a.flow.town); shown && p.In(button) {
 					a.activatePicker(a.flow.townList, a.flow.chooseTown)
 					a.syncViewerLayout()
+					return
+				}
+				// The room's character pane precedes its scene.
+				if c, hit := townSquarePaneCorner(v, p); hit {
+					if s, ok := a.flow.town.(TownSquarePaneScreen); ok {
+						s.TownSquarePane(c)
+						a.syncViewerLayout()
+					}
 					return
 				}
 				// THE SQUARE'S OWN PICTURE IS HIT-TESTED BY ITS SCENE, which reads

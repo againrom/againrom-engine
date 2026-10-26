@@ -620,6 +620,47 @@ func (t *townScreen) AtTownSurface() bool {
 // and the shop's character panel are the same picture of the same member in the
 // same equipment, so they are composed once, here, and read from
 // townScreen.shopFigures afterwards.
+// composeMemberFace composes member in his own equipment: the figure and slot
+// map a town pane shows. fallback is his slot-1 code while slot 1 is empty;
+// a matched hero appearance is written back to member, and the figure is
+// composed from member as it stood.
+func (in *InstallResources) composeMemberFace(member *mapload.PartyMember, id uint32, fallback func() (uint16, bool)) ui.InventorySubject {
+	var src entrySource
+	if in.Archives != nil {
+		src = in.Archives.Containers
+	}
+	m := *member
+	// eq IS mapload.EquipmentFromParty, collapsed off the same two-line
+	// Carry-over-Worn idiom shopview.go's refreshShopDrag collapsed onto
+	// (round-2 adversarial review, twelfth pass, C1 addendum) — see that
+	// call's own comment for why.
+	eq := mapload.EquipmentFromParty(m)
+	// SLOT 1'S FALLBACK GOES THROUGH shopWeaponFallbackCode (round-2
+	// adversarial review, third pass, counterexample 2's own duplication
+	// finding applied to this compositor too): the unconditional member.Weapon
+	// != nil test this replaced fired even when the code already sat in
+	// member's own pack — a member who unequipped his starting weapon
+	// mid-mission and finished it — drawing a weapon on the doll that
+	// shopSlot1Code's own discriminator (shoproom.go) no longer answers for
+	// the readers below the picture: the picture and the readers would
+	// disagree, DIV-085's own property broken, this time on the compositor's
+	// side instead of a reader's.
+	if occupied, _ := eq.Occupied(1); !occupied && fallback != nil {
+		if code, ok := fallback(); ok {
+			eq.SetCode(1, data.ItemCode(code))
+		}
+	}
+	// MERC-TYPE-001
+	if !m.Hired() && data.ComposesFigure(m.Class) {
+		if body, bodyDir, class, matched := data.HeroAppearance(
+			in.Bodies, eq, m.Mage, false); matched {
+			member.Body, member.BodyDir, member.Class = string(body), bodyDir, class
+		}
+	}
+	return composeMemberPortraitLayered(src, in.Units, id, eq,
+		figureLayersFor(mapload.MemberLayers(m, in.Table), in.Table), m)
+}
+
 func (t *shopController) composeShopFaces() {
 	party := t.shopParty()
 	for i := range party {
@@ -640,35 +681,7 @@ func (t *shopController) composeShopFaces() {
 	t.shopFigures = make([]*image.RGBA, len(party))
 	t.shopFigureMasks = make([]*ui.SlotMask, len(party))
 	for i, member := range party {
-		// eq IS mapload.EquipmentFromParty, collapsed off the same two-line
-		// Carry-over-Worn idiom shopview.go's refreshShopDrag collapsed onto
-		// (round-2 adversarial review, twelfth pass, C1 addendum) — see that
-		// call's own comment for why.
-		eq := mapload.EquipmentFromParty(member)
-		// SLOT 1'S FALLBACK GOES THROUGH shopWeaponFallbackCode (round-2
-		// adversarial review, third pass, counterexample 2's own duplication
-		// finding applied to this compositor too): the unconditional member.Weapon
-		// != nil test this replaced fired even when the code already sat in
-		// member's own pack — a member who unequipped his starting weapon
-		// mid-mission and finished it — drawing a weapon on the doll that
-		// shopSlot1Code's own discriminator (shoproom.go) no longer answers for
-		// the readers below the picture: the picture and the readers would
-		// disagree, DIV-085's own property broken, this time on the compositor's
-		// side instead of a reader's.
-		if occupied, _ := eq.Occupied(1); !occupied {
-			if code, ok := t.shopWeaponFallbackCode(i); ok {
-				eq.SetCode(1, data.ItemCode(code))
-			}
-		}
-		// MERC-TYPE-001
-		if !member.Hired() && data.ComposesFigure(member.Class) {
-			if body, bodyDir, class, matched := data.HeroAppearance(
-				t.in.Bodies, eq, member.Mage, false); matched {
-				party[i].Body, party[i].BodyDir, party[i].Class = string(body), bodyDir, class
-			}
-		}
-		subject := composeMemberPortraitLayered(src, t.in.Units, uint32(i+1), eq,
-			figureLayersFor(mapload.MemberLayers(member, t.in.Table), t.in.Table), member)
+		subject := t.in.composeMemberFace(&party[i], uint32(i+1), func() (uint16, bool) { return t.shopWeaponFallbackCode(i) })
 		t.shopFigures[i] = subject.Figure
 		t.shopFigureMasks[i] = subject.SlotMask
 		if i == 0 {

@@ -42,8 +42,8 @@ func secondShopOpen(t *secondCampaignScreen, _ string) {
 
 // bindShop binds the composed town's shop room to the one shop page: the
 // second campaign's deal and hero, the room's art, scene and rectangles from
-// the town description, its keeper events (R2-ENGINE-269), and the second
-// game's layout with no character panel and no book (DIV-3046).
+// the town description and its keeper events (R2-ENGINE-269); the room's
+// pane spec adds the character panel and its book (dressShop).
 func (t *secondCampaignScreen) bindShop() {
 	t.shopController = shopController{sess: t.session, in: t.install,
 		dealOf: func(s *CampaignSession) *Shop {
@@ -87,6 +87,7 @@ func (t *secondCampaignScreen) bindShop() {
 					c.shop.choose(i)
 				}
 			},
+			stats: func() { t.composed.heroStats = !t.composed.heroStats },
 		},
 	}
 }
@@ -163,7 +164,8 @@ func shopButton(r *town.RoomSpec, name string) *town.ButtonSpec {
 // dressShop fills the room's parts of a frame: the town's shop art
 // (R2-ENGINE-249), its scene's interior, and the first layout with the
 // town's category and keeper rectangles (R2-ENGINE-354, DIV-3064); a closed
-// category has no rectangle.
+// category has no rectangle. A room with a pane spec shows the character
+// panel (R2-SESSION-204, R2-SESSION-217).
 func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 	l := ui.FirstShopLayout()
 	l.Character, l.Book, l.TableScroll = false, false, true
@@ -185,9 +187,20 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 	if b := shopButton(r, "merchant"); b != nil {
 		l.Merchant = b.Rect.Rectangle()
 	}
+	if p := r.Pane; p != nil {
+		// The pane shows the campaign's party, the one the mission takes;
+		// the shop deals with the bag, so the doll takes no drag.
+		l.Character, l.Book, l.BookOffset, l.NoWear = true, p.Book, p.BookOffset.Pt(), true
+		hero, mask, info := t.heroPane(p)
+		v.Character = hero
+		v.Figure, v.SlotMask, v.OrdinaryDollMask, v.SlotInfo = hero.Figure, mask, mask, info
+	}
 	a := t.roomArt(d, room)
 	if a.shop == nil {
+		// The pane's book draws on the mission bar's book art, as the first
+		// game's shop does.
 		a.shop = shopArtOf(a.page)
+		a.shop.Book = t.install.BottomHUDArt.Value()
 	}
 	v.Art = a.shop
 	v.Scene = roomScene{t.scene(d, room)}

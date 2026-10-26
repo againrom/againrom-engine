@@ -81,6 +81,7 @@ func TestDecodeRefusesBadControlsAndNumbers(t *testing.T) {
 		{"seats without columns", func(d obj) { room(d)["seats"].(obj)["columns"] = 0 }, "seats need columns"},
 		{"seats without a period", func(d obj) { room(d)["seats"].(obj)["frame-ms"] = 0 }, "frame period"},
 		{"seat compare typo", func(d obj) { room(d)["seats"].(obj)["compare"] = "greatr" }, "frame period"},
+		{"empty pane", func(d obj) { room(d)["pane"] = obj{"rect": list{480, 238, 480, 480}} }, "pane rectangle"},
 		{"empty button", func(d obj) { room(d)["buttons"].(list)[1].(obj)["rect"] = list{1, 1, 1, 9} }, "is empty"},
 		{"repeated button", func(d obj) { room(d)["buttons"].(list)[1].(obj)["name"] = "talk" }, "repeated"},
 		{"button art unknown", func(d obj) { room(d)["buttons"].(list)[1].(obj)["on"] = "of" }, `unknown page art "of"`},

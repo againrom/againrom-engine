@@ -19,6 +19,9 @@ type secondInnPatron struct {
 	subject ui.PanelSubject
 	figure  *image.RGBA
 	frames  []image.Image
+	// mask is the figure's slot map and info each worn slot's item text.
+	mask *ui.SlotMask
+	info [12][]string
 }
 
 // secondInnPatronKey is a seated person of one page.
@@ -73,8 +76,9 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 	}
 	fig := memberFigureID(member)
 	if t.install.Archives != nil {
-		p.figure, _ = composeUnitFigure(t.install.Archives.Containers, equipmentFromSlots(member.Worn), fig)
+		p.figure, p.mask = composeUnitFigure(t.install.Archives.Containers, equipmentFromSlots(member.Worn), fig)
 	}
+	p.info = t.install.wornItemLines(member, nil)
 	return p
 }
 

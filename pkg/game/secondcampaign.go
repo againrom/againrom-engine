@@ -228,6 +228,9 @@ type secondCampaignScreen struct {
 	tip     secondRoomTip
 	// talkFaces resolves the open conversation's speaker faces.
 	talkFaces speakerResolver
+	// paneArt is the install's character pane art: its two bodies and
+	// seams and its corner pictures.
+	paneArt func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt)
 }
 
 func (f *FrontEnd) startSecondCampaign() error {
@@ -248,7 +251,10 @@ func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
 	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
 		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
 		composed: newSecondTownState(f), mapArt: f.worldMapAssets,
-		options: &f.PersistenceContext, tipArt: f.tipArt}
+		options: &f.PersistenceContext, tipArt: f.tipArt,
+		paneArt: func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) {
+			return f.characterPanes(), f.characterPaneCorners()
+		}}
 	t.talkSource = t
 	t.bindShop()
 	return t

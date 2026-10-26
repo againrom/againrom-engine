@@ -3012,6 +3012,11 @@ package storyguard
 // CommentBytes rises 1968 bytes with the doc comments of the map editor's
 // window and typing changes: pkg/ui/editorpopup.go, editorinput.go, their tests,
 // and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's hero pane, all
+// new code: pkg/game/secondheropane.go and its test, the pane and doll types in
+// pkg/ui/townsquare.go, pkg/ui/townsquarepane_test.go, shopnowear_test.go, the
+// pane spec in pkg/town/description.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3041,5 +3046,5 @@ var Committed = Baseline{
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons.
-	CommentBytes: 9682994,
+	CommentBytes: 9688140,
 }
