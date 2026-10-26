@@ -43,7 +43,7 @@ func TestMapEditor1118SaveAsGuardsBothInstallsExistingAndSource(t *testing.T) {
 		}
 	}
 	for _, path := range paths {
-		if _, err := writeEditedMap(en, source, path, []byte("changed")); err == nil {
+		if _, err := writeEditedMap(en, source, path, []byte("changed"), false); err == nil {
 			t.Fatalf("unsafe output accepted: %q", path)
 		}
 	}
@@ -71,12 +71,12 @@ func TestMapEditor1118SaveAsGuardsBothInstallsExistingAndSource(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := writeEditedMap(en, "scenario/test.alm", filepath.Join(other, "new.alm"), input); err == nil {
+	if _, err := writeEditedMap(en, "scenario/test.alm", filepath.Join(other, "new.alm"), input, false); err == nil {
 		t.Fatal("archive-identified install accepted")
 	}
 	for i, src := range []string{source, "scenario/test.alm", "loose/test.alm"} {
 		target := filepath.Join(base, string(rune('a'+i))+".alm")
-		if _, err := writeEditedMap(en, src, target, input); err != nil {
+		if _, err := writeEditedMap(en, src, target, input, false); err != nil {
 			t.Fatalf("explicit external target refused: %v", err)
 		}
 		b, _ := os.ReadFile(target)
@@ -97,7 +97,7 @@ func TestMapEditor1118SaveAsSymlinkFence(t *testing.T) {
 		t.Skipf("symlink privilege unavailable: %v; Windows junction tested separately", err)
 	}
 	defer os.Remove(link)
-	if _, err := writeEditedMap(root, "scenario/test.alm", filepath.Join(link, "new.alm"), []byte("not written")); err == nil {
+	if _, err := writeEditedMap(root, "scenario/test.alm", filepath.Join(link, "new.alm"), []byte("not written"), false); err == nil {
 		t.Fatal("symlink hid install")
 	}
 	if _, err := os.Stat(filepath.Join(root, "new.alm")); !os.IsNotExist(err) {

@@ -152,7 +152,8 @@ func TestEditorPopupsMoveByTheirTitle(t *testing.T) {
 // A press below the title does not drag, and a prompt opened after a moved
 // one opens at its own place.
 func TestEditorPopupDragNeedsTheTitle(t *testing.T) {
-	e, _ := messagePopupFixture(t, 77)
+	e, s := messagePopupFixture(t, 77)
+	detachSource(t, s.source)
 	_ = e.Key("saveas")
 	home, _ := e.TitleRect()
 	body, _ := e.PromptRect()

@@ -25,18 +25,23 @@ func (e *MapEditor) TextInput(s string) {
 }
 
 func (e *MapEditor) saveAs(path string) error {
+	return e.saveWith(func() (string, error) { return e.doc.Edits.SaveAs(path) })
+}
+
+// saveWith runs one save and the steps after it; write is the save itself.
+func (e *MapEditor) saveWith(write func() (string, error)) error {
 	then, errs := e.saveThen, e.saveErrors
 	e.saveThen, e.saveErrors = nil, 0
 	if !e.editable() {
 		return nil
 	}
-	source, err := e.doc.Edits.SaveAs(path)
+	source, err := write()
 	if err != nil {
 		if r, ok := refusal(err); ok {
 			if r.Ask {
 				e.askSaveWithErrors(r, func() error {
 					e.saveThen = then
-					return e.saveAs(path)
+					return e.saveWith(write)
 				})
 				return err
 			}

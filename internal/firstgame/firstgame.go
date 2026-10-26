@@ -24,7 +24,7 @@ func SkipOnSecondGame(t Skipper) {
 		return
 	}
 	m, err := base.Detect(root, nil)
-	if err == nil && m.Profile.GameOf() != base.GameROM1 {
+	if err == nil && !m.Profile.HasFirstData() {
 		t.Skip("reads the first game's data; the root is a second-game install")
 	}
 }

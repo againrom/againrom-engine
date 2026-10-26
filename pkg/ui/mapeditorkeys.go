@@ -580,9 +580,15 @@ func (e *MapEditor) keySaveAs(string) error {
 		}
 		return e.saveIntoMod(m)
 	}
-	if e.editable() {
-		e.askPath(pathdialog.SaveFile)
+	if !e.editable() {
+		return nil
 	}
+	if p, ok := e.doc.Edits.(InspectionInPlace); ok {
+		if _, own := p.OwnFile(); own {
+			return e.saveWith(p.SaveInPlace)
+		}
+	}
+	e.askPath(pathdialog.SaveFile)
 	return nil
 }
 

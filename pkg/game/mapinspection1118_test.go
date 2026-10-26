@@ -161,34 +161,21 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatal("native close discarded dirty work")
 	}
 	_ = e.Key("escape")
-	_ = e.Key("saveas")
-	e.TextInput(filepath.Join(t.TempDir(), "cancelled.alm"))
-	_ = e.Key("escape")
-	if !e.Dirty() || e.Document() != before {
-		t.Fatal("path cancellation changed document")
-	}
-	_ = e.Key("saveas")
-	e.TextInput(source)
-	if err := e.Key("enter"); err == nil || !e.Dirty() || !e.Document().Edits.CanUndo() {
+	// Save As onto the map's own file stays refused and changes nothing.
+	if _, err := e.Document().Edits.SaveAs(source); err == nil || !e.Dirty() || !e.Document().Edits.CanUndo() {
 		t.Fatal("failed overwrite changed checkpoint/history")
 	}
-	_ = e.Key("escape")
-	target := filepath.Join(t.TempDir(), "new.alm")
-	_ = e.Key("saveas")
-	e.TextInput(target)
-	if err := e.Key("enter"); err != nil || e.Dirty() {
-		t.Fatalf("explicit Save As failed: %v", err)
+	// Save writes the map's own file in place.
+	target := source
+	if err := e.Key("saveas"); err != nil || e.Dirty() {
+		t.Fatalf("Save in place failed: %v", err)
 	}
 	if !e.Document().Edits.CanUndo() || e.Document().Source != target {
-		t.Fatal("Save As discarded history or retained wrong source")
+		t.Fatal("Save discarded history or retained wrong source")
 	}
 	got, err := os.ReadFile(target)
 	if err != nil || !bytes.Equal(got, changed) {
 		t.Fatalf("saved wrong bytes: %v", err)
-	}
-	original, _ := os.ReadFile(source)
-	if !bytes.Equal(original, b) {
-		t.Fatal("source file changed")
 	}
 	fresh := x.Editor()
 	if err := fresh.Open(target); err != nil || fresh.Dirty() || fresh.Document().Edits.CanUndo() || !bytes.Equal(fresh.Document().SourceBytes, changed) || fresh.Document().Records[0].Cell != image.Pt(5, 6) {
@@ -196,7 +183,7 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 	}
 	_ = e.Key("undo")
 	if !e.Dirty() {
-		t.Fatal("undo after Save As failed to become dirty")
+		t.Fatal("undo after Save failed to become dirty")
 	}
 	_ = e.Key("redo")
 	if e.Dirty() {

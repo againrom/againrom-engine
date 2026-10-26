@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"math"
@@ -567,6 +568,46 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 // editor cannot write beside it, the texts folder or its pages, is left out
 // and named by SaveNote, and its edits stay in the workspace.
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
+	return s.save(path, false)
+}
+
+// OwnFile is the host file Save writes over: the map's own file when it is an
+// ordinary existing host file outside the open install and both preserved
+// installs.
+func (s *mapInspectionEdits) OwnFile() (string, bool) {
+	src := s.source
+	if src == "" || isNewSource(src) || strings.HasPrefix(src, "scenario/") || strings.HasPrefix(src, "loose/") {
+		return "", false
+	}
+	root := ""
+	if s.inspector.archives != nil {
+		root = s.inspector.archives.Root
+	}
+	abs, err := filepath.Abs(src)
+	if err != nil || !strings.EqualFold(filepath.Ext(abs), ".alm") || !editorOrdinaryFilename(filepath.Base(abs)) {
+		return "", false
+	}
+	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
+	if err != nil || fenceEditorWrite(root, parent, "Save") != nil {
+		return "", false
+	}
+	if fi, err := os.Lstat(filepath.Join(parent, filepath.Base(abs))); err != nil || !fi.Mode().IsRegular() {
+		return "", false
+	}
+	return abs, true
+}
+
+// SaveInPlace writes the model over the map's own file; OwnFile says whether
+// there is one.
+func (s *mapInspectionEdits) SaveInPlace() (string, error) {
+	path, ok := s.OwnFile()
+	if !ok {
+		return "", fmt.Errorf("the map has no file of its own to save over")
+	}
+	return s.save(path, true)
+}
+
+func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	defer func() { s.errorsAllowed = false }()
 	s.saveNote = ""
 	if err := s.gate(true); err != nil {
@@ -584,10 +625,10 @@ func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
 	if err != nil {
 		s.noteUnwritten(err)
 	}
-	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage())
+	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage(), overwrite)
 	if err != nil && len(pages) > 0 {
 		s.noteUnwritten(err)
-		target, err = writeEditedMap(root, s.source, path, b)
+		target, err = writeEditedMap(root, s.source, path, b, overwrite)
 	}
 	if err != nil {
 		return "", err
@@ -629,7 +670,7 @@ func (s *mapInspectionEdits) noteUnwritten(err error) {
 // existing file, or either preserved install, even through an alias. The
 // original-format save guard is reused for its physical-directory and archive
 // checks, not for any SAV serialization. No directories are created here.
-func writeEditedMap(root, source, path string, data []byte) (string, error) {
+func writeEditedMap(root, source, path string, data []byte, overwrite bool) (string, error) {
 	if strings.TrimSpace(path) == "" || !strings.EqualFold(filepath.Ext(path), ".alm") {
 		return "", fmt.Errorf("Save As needs an explicit new .alm path")
 	}
@@ -657,7 +698,7 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 	} else if strings.HasPrefix(source, "loose/") {
 		input = looseHostPath(root, source)
 	}
-	if input != "" {
+	if input != "" && !overwrite {
 		resolvedInput, err := resolvePathForSaveSafety(input)
 		if err != nil {
 			return "", err
@@ -670,6 +711,12 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 				return "", fmt.Errorf("Save As cannot replace a source alias")
 			}
 		}
+	}
+	if overwrite {
+		if err := replaceMapFile(parent, target, data); err != nil {
+			return "", err
+		}
+		return target, nil
 	}
 	f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
@@ -689,6 +736,44 @@ func writeEditedMap(root, source, path string, data []byte) (string, error) {
 		return "", closeErr
 	}
 	return target, nil
+}
+
+// replaceMapFile writes data to a temporary file beside target and renames it
+// over target, so a crash leaves the old or the new file whole. An existing
+// target must be an ordinary file, not a link or a directory.
+func replaceMapFile(parent, target string, data []byte) error {
+	perm := os.FileMode(0600)
+	if fi, err := os.Lstat(target); err == nil {
+		if !fi.Mode().IsRegular() {
+			return fmt.Errorf("Save cannot replace %s: not an ordinary file", filepath.Base(target))
+		}
+		perm = fi.Mode().Perm()
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	f, err := os.CreateTemp(parent, ".map-save-")
+	if err != nil {
+		return fmt.Errorf("create temporary map: %w", err)
+	}
+	tmp := f.Name()
+	_, werr := f.Write(data)
+	if werr == nil {
+		werr = f.Sync()
+	}
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr == nil {
+		werr = os.Chmod(tmp, perm)
+	}
+	if werr == nil {
+		werr = os.Rename(tmp, target)
+	}
+	if werr != nil {
+		_ = os.Remove(tmp)
+		return werr
+	}
+	return nil
 }
 
 // fenceEditorWrite refuses a map write into the resolved directory parent

@@ -79,6 +79,13 @@ type InspectionEdits interface {
 	SaveAs(path string) (string, error)
 }
 
+// InspectionInPlace is implemented by edits that can save over the map's own
+// host file. OwnFile says whether there is one; SaveInPlace writes it.
+type InspectionInPlace interface {
+	OwnFile() (string, bool)
+	SaveInPlace() (string, error)
+}
+
 // InspectionScript is implemented by edits whose host edits the map's script:
 // the drop cell and the targets of its win, lose and protect arms. Goals lists
 // the arms; SetGoalTarget points goal at the Unit or Structure record picked

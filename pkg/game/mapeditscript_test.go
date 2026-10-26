@@ -329,6 +329,7 @@ func TestAnUneditedScriptWritesItsBytes(t *testing.T) {
 	b := goalMap(t, true)
 	e, path := openGoalMap(t, b)
 	target := filepath.Join(filepath.Dir(path), "saved.alm")
+	detachSource(t, path)
 	_ = e.Key("goals")
 	_ = e.Key("goals")
 	_ = e.Key("saveas")

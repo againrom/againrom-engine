@@ -36,6 +36,10 @@ type Edition struct {
 	Screens                   string
 	CreatureResistanceHeading bool
 
+	// FirstData is set for the edition whose data the first game ships; a
+	// release test of that data skips an install of another edition.
+	FirstData bool
+
 	// CastNeedsSight makes the mission map's cast cursor stand only over a
 	// cell one of whose four corners is in current sight; elsewhere an armed
 	// cast shows the move cursor and a click moves.
@@ -123,6 +127,7 @@ var firstEdition = Edition{
 	Screens:                   "rom1",
 	WorldMap:                  "rom1",
 	CreatureResistanceHeading: true,
+	FirstData:                 true,
 	CastNeedsSight:            true,
 	Tips:                      "rom1",
 	Options:                   "rom1",
@@ -192,6 +197,9 @@ func (p Profile) Edition() Edition { return p.GameOf().Edition() }
 func (p Profile) CreatureResistanceHeading() bool { return p.Edition().CreatureResistanceHeading }
 
 func (p Profile) CastNeedsSight() bool { return p.Edition().CastNeedsSight }
+
+// HasFirstData reports whether the profile reads the data the first game ships.
+func (p Profile) HasFirstData() bool { return p.Edition().FirstData }
 
 // Known reports whether g is a game this package names; the empty game is the
 // first game.

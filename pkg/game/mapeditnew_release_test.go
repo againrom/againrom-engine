@@ -187,14 +187,11 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 	if err := e3.Open(target); err != nil {
 		t.Fatal(err)
 	}
-	copyPath := filepath.Join(t.TempDir(), "copy.alm")
-	_ = e3.Key("saveas")
-	e3.TextInput(copyPath)
-	if err := e3.Key("enter"); err != nil {
-		t.Fatalf("Save As of the reopened map: %v", err)
+	if err := e3.Key("saveas"); err != nil {
+		t.Fatalf("Save of the reopened map: %v", err)
 	}
-	if got, err := os.ReadFile(copyPath); err != nil || !bytes.Equal(got, saved) {
-		t.Fatalf("Save As of the reopened map wrote other bytes (%v)", err)
+	if got, err := os.ReadFile(target); err != nil || !bytes.Equal(got, saved) {
+		t.Fatalf("Save of the reopened map wrote other bytes (%v)", err)
 	}
 
 	// Play: the party stands at the drop cell, the unit stands where it was

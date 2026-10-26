@@ -119,7 +119,7 @@ func (x *MapInspector) WriteNewMap(source, path string) (string, []ui.Inspection
 	if err != nil {
 		return "", nil, err
 	}
-	target, err := writeEditedMap(root, source, path, b)
+	target, err := writeEditedMap(root, source, path, b, false)
 	if err != nil {
 		return "", nil, err
 	}

@@ -206,7 +206,7 @@ func (x *MapInspector) editorPages(source string) *modPages {
 	return p
 }
 
-func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, lang string) (string, error) {
+func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, lang string, overwrite bool) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
@@ -219,11 +219,18 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		return "", err
 	}
 	folder := mapTextFolder(filepath.Join(parent, filepath.Base(abs)))
-	if _, err := os.Lstat(folder); !errors.Is(err, os.ErrNotExist) {
+	existing, err := os.Lstat(folder)
+	if overwrite {
+		// The folder beside the map is the map's own; anything there other
+		// than a plain directory is not rewritten.
+		if len(pages) > 0 && (err == nil && !existing.IsDir() || err != nil && !errors.Is(err, os.ErrNotExist)) {
+			return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 	}
 	if len(pages) == 0 {
-		return writeEditedMap(root, source, path, data)
+		return writeEditedMap(root, source, path, data, overwrite)
 	}
 	if lang != "en" && lang != "ru" {
 		return "", fmt.Errorf("unsupported page language %q", lang)
@@ -245,12 +252,27 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 			return "", err
 		}
 	}
-	target, err := writeEditedMap(root, source, path, data)
+	target, err := writeEditedMap(root, source, path, data, overwrite)
 	if err != nil {
 		return "", err
 	}
+	if overwrite && existing != nil {
+		old := folder + ".old"
+		_ = os.RemoveAll(old)
+		if err := os.Rename(folder, old); err != nil {
+			return "", err
+		}
+		if err := os.Rename(stage, folder); err != nil {
+			_ = os.Rename(old, folder)
+			return "", err
+		}
+		_ = os.RemoveAll(old)
+		return target, nil
+	}
 	if err := os.Rename(stage, folder); err != nil {
-		_ = os.Remove(target)
+		if !overwrite {
+			_ = os.Remove(target)
+		}
 		return "", err
 	}
 	return target, nil

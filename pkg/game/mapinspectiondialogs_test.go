@@ -52,8 +52,10 @@ func finishInspectionDialog(t *testing.T, e *ui.MapEditor, called <-chan pathdia
 
 func TestMapEditorDialogSaveMatchesTextPathBytes(t *testing.T) {
 	b := inspectionFixtureBytes(t)
-	_, textEditor, _ := openTestMapEditor(t, b)
+	_, textEditor, textSource := openTestMapEditor(t, b)
 	_, dialogEditor, source := openTestMapEditor(t, b)
+	detachSource(t, textSource)
+	detachSource(t, source)
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
 		dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
@@ -93,10 +95,6 @@ func TestMapEditorDialogSaveMatchesTextPathBytes(t *testing.T) {
 	}
 	if dialogEditor.Document() != before || dialogEditor.Document().Source != dialogPath || dialogEditor.Dirty() || !before.Edits.CanUndo() {
 		t.Fatal("dialog save lost the document, save checkpoint or undo history")
-	}
-	unchanged, err := os.ReadFile(source)
-	if err != nil || !bytes.Equal(unchanged, b) {
-		t.Fatalf("dialog save changed the source: %v", err)
 	}
 }
 
@@ -152,8 +150,10 @@ func TestMapEditorDialogInstallRefusalMatchesTextPath(t *testing.T) {
 	}
 	path := filepath.Join(root, "refused.alm")
 	b := inspectionFixtureBytes(t)
-	x, textEditor, _ := openTestMapEditor(t, b)
-	y, dialogEditor, _ := openTestMapEditor(t, b)
+	x, textEditor, textSource := openTestMapEditor(t, b)
+	y, dialogEditor, dialogSource := openTestMapEditor(t, b)
+	detachSource(t, textSource)
+	detachSource(t, dialogSource)
 	x.archives, y.archives = &Archives{Root: root}, &Archives{Root: root}
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
@@ -187,7 +187,8 @@ func TestMapEditorDialogInstallRefusalMatchesTextPath(t *testing.T) {
 }
 
 func TestMapEditorDialogCancelSavePreservesStateAndFiles(t *testing.T) {
-	_, e, _ := openTestMapEditor(t, inspectionFixtureBytes(t))
+	_, e, cancelSource := openTestMapEditor(t, inspectionFixtureBytes(t))
+	detachSource(t, cancelSource)
 	e.Select(0, true)
 	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
 	dragInspectionRecord(e, image.Pt(5, 6), image.Pt(7, 8))

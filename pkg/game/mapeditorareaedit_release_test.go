@@ -81,10 +81,19 @@ func squareWithRoom(a ui.InspectionArea, lim int) bool {
 func areaSaveAs(t *testing.T, e *ui.MapEditor, name string) (*alm.Map, alm.Script, []byte) {
 	t.Helper()
 	target := filepath.Join(t.TempDir(), name)
+	// A map with a file of its own is saved over it, with no name asked.
+	inPlace := false
+	if own, ok := e.Document().Edits.(ui.InspectionInPlace); ok {
+		if p, has := own.OwnFile(); has {
+			target, inPlace = p, true
+		}
+	}
 	_ = e.Key("saveas")
-	e.TextInput(target)
-	if err := e.Key("enter"); err != nil {
-		t.Fatal(err)
+	if !inPlace {
+		e.TextInput(target)
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
+		}
 	}
 	b, err := os.ReadFile(target)
 	if err != nil {

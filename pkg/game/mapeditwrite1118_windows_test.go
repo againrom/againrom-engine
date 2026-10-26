@@ -31,7 +31,7 @@ func TestMapEditor1118WindowsJunctionFence(t *testing.T) {
 	if !os.SameFile(a, b) {
 		t.Fatalf("junction resolution %q does not name RU", resolved)
 	}
-	if _, err := writeEditedMap(en, "scenario/test.alm", filepath.Join(link, "new.alm"), []byte("not written")); err == nil {
+	if _, err := writeEditedMap(en, "scenario/test.alm", filepath.Join(link, "new.alm"), []byte("not written"), false); err == nil {
 		t.Fatal("junction hid the other preserved install")
 	}
 	if _, err := os.Stat(filepath.Join(ru, "new.alm")); !os.IsNotExist(err) {
