@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.135.0
+
 ### For players
 
 - [ROM2] The inn patrons' cards match the original: the mage now reads HEALTH 158/158 and MANA 604/604, only the mage's card says SPELLCASTER, and in Russian the mercenaries' heading reads НАЕМНЫЙ above their class. The town gate's guard now shows his face, a knight in a great helm, beside the refusal text.
