@@ -65,7 +65,7 @@ func (v *Viewer) tooltipTarget() tooltipTarget {
 			return tooltipTarget{tooltipSpell, fmt.Sprintf("spell/%d", spell.ID), spell.Info, v.font}
 		}
 	}
-	if cell, ok := v.commandCellAt(v.cursorX, v.cursorY); ok && !commandPanelCellSkipped(cell) &&
+	if cell, ok := v.commandCellAt(v.cursorX, v.cursorY); ok && !v.commandCellEmpty(cell) &&
 		commandPanelActive(v.sel, v.entities, v.localOwner) {
 		return tooltipTarget{tooltipCommand, fmt.Sprintf("command/%d/%d", cell, v.selectedSpell),
 			tooltipLines(commandTooltipLabel(v, cell)), v.font}

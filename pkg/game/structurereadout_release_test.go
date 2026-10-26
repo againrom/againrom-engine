@@ -94,7 +94,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 	if !ok {
 		t.Fatalf("building.txt has no line %d", kind-1)
 	}
-	want := readoutPicture(f.tipFont(), [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)})
+	want := readoutPicture(f.InstallResources.missionCardFont(), [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)})
 	checkLayers := func(what string, readout bool) {
 		t.Helper()
 		layers, err := a.HeadlessMissionColumnLayers()
@@ -115,7 +115,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 		}
 		width := 0
 		for _, line := range [3]string{name, health, fmt.Sprintf("%d/%d", hp, maxHP)} {
-			w, _ := f.tipFont().Measure(line)
+			w, _ := f.InstallResources.missionCardFont().Measure(line)
 			width = max(width, w)
 		}
 		if wantAt := image.Pt(1024-88-width/2, 526+28); at != wantAt {

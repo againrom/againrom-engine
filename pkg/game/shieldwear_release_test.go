@@ -89,6 +89,7 @@ func shieldWitnessOpen(t *testing.T, tc shieldWitnessCase) (*FrontEnd, *ui.App) 
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	return f, app
 }
 

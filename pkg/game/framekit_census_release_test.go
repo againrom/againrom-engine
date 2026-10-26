@@ -142,6 +142,11 @@ func TestReleaseFrameAndButtonCensus(t *testing.T) {
 			return ui.PreparedSave{}, fmt.Errorf("census writes no save")
 		},
 	})
+	// A new mission opens with the pack row closed (DIV-4020); the census
+	// records the row open.
+	if err := app.HeadlessKey("inventory"); err != nil {
+		t.Fatal(err)
+	}
 	before := f.live.world.Hash()
 	for _, part := range []struct {
 		name string

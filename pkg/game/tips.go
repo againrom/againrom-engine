@@ -197,6 +197,16 @@ func (in *InstallResources) tipFont() *text.Font {
 	return in.Font.Value()
 }
 
+// missionCardFont is the font the mission screen's character card and
+// column texts draw in: the generation screen's text font, in which both
+// originals draw the statistics sheet (R2-ASSET-148), else the install's.
+func (in *InstallResources) missionCardFont() *text.Font {
+	if a := in.ChargenAssets; a != nil && a.Presentation != nil && a.Presentation.Font != nil {
+		return a.Presentation.Font
+	}
+	return in.Font.Value()
+}
+
 // hoverStyle is the generator description's hover style, which every hover
 // box of the game draws in, and the text font it names; nil where the
 // description names none or the generator did not load.

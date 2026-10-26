@@ -17,7 +17,9 @@ func TestTooltipCommandDelayAndSelectedSpellTextInvalidation(t *testing.T) {
 	v := a.flow.viewer
 	v.SetFont(messageFont())
 	v.words.Command[commandCellCast] = "CAST"
-	v.SetEntities([]MapEntity{panelEntity(sbUnitID, "Mage", 50, 100, 4, 4)})
+	mage := panelEntity(sbUnitID, "Mage", 50, 100, 4, 4)
+	mage.CastCapable = true
+	v.SetEntities([]MapEntity{mage})
 	v.sel = selection{sbUnitID}
 	v.selectedSpell = v.spellbook[0].ID
 	bar, ok := v.commandPanelBar()

@@ -442,6 +442,10 @@
       "ticks": 1
     },
     {
+      "command": "key",
+      "key": "i"
+    },
+    {
       "command": "assert_inventory",
       "inventory": {
         "weapon_fallback": false,

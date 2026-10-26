@@ -54,6 +54,7 @@ func qolWitnessOpen(t *testing.T) *qolWitness {
 	if err := app.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	w := &qolWitness{f: f, app: app}
 	w.id = shieldWitnessSelect(t, f, app)
 	// The items as the World holds them: the loader fills in weight and
@@ -317,6 +318,7 @@ func TestReleaseWeaponSwapQueuedBeforeASaveAppliesAfterTheLoad(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	primary := shieldWitnessSelect(t, f, app)
 	second := f.live.mission.ids[1]
 	q := &qolWitness{f: f, app: app, id: second}
@@ -413,6 +415,7 @@ func TestReleaseWeaponSwapAfterAQueuedDropEquipsNothingElse(t *testing.T) {
 		if err := app.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
 			t.Fatal(err)
 		}
+		openMissionPack(t, app)
 		id := shieldWitnessSelect(t, f, app)
 		q := &qolWitness{f: f, app: app, id: id}
 		q.pause(t, true)

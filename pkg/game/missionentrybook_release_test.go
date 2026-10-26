@@ -215,7 +215,7 @@ func TestReleaseOriginalStartSaveLoadsItsStoredSpellBook(t *testing.T) {
 
 // TestReleaseMissionStartsWithTheGamesOwnSpellBook opens mission 10 through
 // the production new-game route on the root under test. Missions of both
-// games start with the book closed.
+// games start with the book and the pack closed (DIV-4020).
 func TestReleaseMissionStartsWithTheGamesOwnSpellBook(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
@@ -228,7 +228,7 @@ func TestReleaseMissionStartsWithTheGamesOwnSpellBook(t *testing.T) {
 	if got := f.live.view.SaveApplication().SpellBookOpen; got {
 		t.Errorf("game %q: mission 10 starts with the book shown", f.Archives.Game())
 	}
-	if got := f.live.view.SaveApplication().InventoryOpen; !got {
-		t.Error("the pack switch is off at the mission start")
+	if got := f.live.view.SaveApplication().InventoryOpen; got {
+		t.Error("the pack switch is on at the mission start")
 	}
 }

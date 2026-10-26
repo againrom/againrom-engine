@@ -33,6 +33,7 @@ func wornItemOpen(t *testing.T, effect sim.ItemEffect) (*FrontEnd, *ui.App, sim.
 	if err := app.OpenMission(f.MissionOpener(101)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	return f, app, shieldWitnessSelect(t, f, app)
 }
 

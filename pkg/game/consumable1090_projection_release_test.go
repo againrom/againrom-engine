@@ -42,6 +42,7 @@ func TestReleaseConsumable1090AppRestoredSheets(t *testing.T) {
 		if err := app.HeadlessSelectEntity(uint32(id)); err != nil {
 			t.Fatal(err)
 		}
+		openMissionPack(t, app)
 		want := potionSheetStats1090(f.live.chars[id])
 		for slot := 0; slot < 4; slot++ {
 			usePack1090(t, app, 0)

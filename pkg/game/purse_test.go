@@ -456,12 +456,12 @@ func TestAppendInventoryGoldMarksOnlyTheCurrentPurseCell(t *testing.T) {
 		Pack: make([]*image.RGBA, 2), PackCount: []uint32{1, 1}, PackStars: []bool{false, false},
 		PackPurse: []bool{false, true},
 	}
-	appendInventoryGold(&subject, 100, nil)
+	appendInventoryGold(&subject, 100, nil, purseInfo(nil, ui.Words{}, 100))
 	if !slices.Equal(subject.PackPurse, []bool{false, false, true}) {
 		t.Fatalf("PackPurse %v, want only the appended cell marked", subject.PackPurse)
 	}
 	subject.Pack, subject.PackCount, subject.PackStars = subject.Pack[:2], subject.PackCount[:2], subject.PackStars[:2]
-	appendInventoryGold(&subject, 0, nil)
+	appendInventoryGold(&subject, 0, nil, nil)
 	if len(subject.PackPurse) != 0 {
 		t.Fatalf("PackPurse %v for a pack without gold", subject.PackPurse)
 	}

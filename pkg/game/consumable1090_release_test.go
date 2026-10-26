@@ -156,6 +156,7 @@ func TestReleaseConsumable1090AppPermanentTimedAndScroll(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	for n := 0; n < 32; n++ {
 		if err := consumableStep1090(app); err != nil {
 			t.Fatal(err)
@@ -355,6 +356,7 @@ func TestReleaseConsumable1090AppInstantPotionAndNative(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	live := f.live
 	id := live.mission.ids[0]
 	for n := 0; n < 32; n++ {

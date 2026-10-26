@@ -968,6 +968,7 @@ func (v *Viewer) refreshFailureLoad() {
 func (v *Viewer) ClearNotice() {
 	v.dialogueBackdrop.shows = 0
 	v.notice, v.noticeOpen = "", false
+	v.minimapHeld = false
 	v.help = nil
 	v.noticeButtonState, v.noticeSecondState = DialogueButtonState{}, DialogueButtonState{}
 	v.noticeTerminal = false
@@ -1069,7 +1070,7 @@ func (v *Viewer) SetDialogueButtonState(state DialogueButtonState) {
 // Keep native notice pixels inside the mission canvas. Draw scales that canvas
 // to the window; enlarging the notice here would resample it twice.
 func (v *Viewer) noticePlace() frame.Placement {
-	area := v.noticeViewportSize()
+	area := v.noticeArea()
 	return frame.FitDown(frame.W, frame.H, area.X, area.Y)
 }
 

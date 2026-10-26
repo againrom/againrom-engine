@@ -159,7 +159,7 @@ func wrapMessage(f *text.Font, s string, width int) []string {
 // wraps against the view's width and every piece takes the post's ink and life.
 // A carriage return becomes a space (MISSION-MSGLINE-056).
 func (v *Viewer) PostMessage(s string, ink MessageInk, life time.Duration) {
-	view := viewportSize(v.frameW, v.frameH)
+	view := v.viewportSize()
 	pieces := wrapMessage(v.font, strings.ReplaceAll(s, "\r", " "), view.X)
 	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y))
 }
@@ -167,7 +167,7 @@ func (v *Viewer) PostMessage(s string, ink MessageInk, life time.Duration) {
 // PostMessageUnlessNewest is PostMessage that drops a one-piece post equal to
 // the newest line standing (MISSION-MSGLINE-057). It reports whether it posted.
 func (v *Viewer) PostMessageUnlessNewest(s string, ink MessageInk, life time.Duration) bool {
-	view := viewportSize(v.frameW, v.frameH)
+	view := v.viewportSize()
 	pieces := wrapMessage(v.font, strings.ReplaceAll(s, "", " "), view.X)
 	if n := len(v.messages.lines); len(pieces) == 1 && n > 0 && v.messages.lines[n-1].Text == pieces[0] {
 		return false

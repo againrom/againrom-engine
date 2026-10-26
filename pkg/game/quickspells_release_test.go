@@ -345,6 +345,8 @@ func quickSpellsPausedViewportWitness(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// The fixture measures the book band above the open pack row.
+	openMissionPack(t, a)
 	v := f.live.view
 	id := f.live.mission.ids[0]
 	e, _ := f.live.entity(id)

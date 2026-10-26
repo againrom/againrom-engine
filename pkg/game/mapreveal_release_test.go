@@ -72,6 +72,9 @@ func TestReleaseShiftF4RevealsMapWithoutQuickSave(t *testing.T) {
 		t.Fatal("mission did not settle on a stopped map")
 	}
 	viewer := f.live.view
+	// The paused mission never reaches the periodic refresh that ends the
+	// opening minimap hold; end it here so the reveal has a map to show.
+	viewer.ReleaseMinimapContent()
 	before := missionAutosaveSampleNow(t, f)
 	visible, explored := bytes.Clone(f.live.fog.visible), bytes.Clone(f.live.fog.explored)
 	files := mapRevealFiles(t, store.Dir)

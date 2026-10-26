@@ -129,6 +129,7 @@ func TestReleaseItemInformationHasNoPriceLine(t *testing.T) {
 		t.Fatalf("hero pack %+v, want the access item at stored price -1", stacks)
 	}
 	name := itemName(data.QuestDocumentCode, f.Table)
+	openMissionPack(t, app)
 	x, y, err := app.HeadlessPackCellPoint(doc)
 	if err != nil {
 		t.Fatal(err)

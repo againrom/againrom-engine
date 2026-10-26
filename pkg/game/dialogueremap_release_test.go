@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/render/frame"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -241,7 +242,11 @@ func TestReleaseDialogueBackdropMissionPlayerRoute(t *testing.T) {
 		t.Fatal("mission full-frame/right-column omission control insensitive", changed)
 	}
 	bodyBefore, _, _ := v.NoticeState()
-	checkInstalledDialoguePointer(t, a, "mission dialogue", image.Rect(388, 440, 468, 466), image.Pt(ui.MissionFrameW, ui.MissionFrameH), nil)
+	// The Ok button stands at 276..356 x 296..322 of the 640x480 notice
+	// frame, which the game centres on its notice area.
+	area := v.NoticeViewportSize()
+	okX, okY, _ := frame.FitDown(640, 480, area.X, area.Y).FrameToWindow(image.Pt(276, 296))
+	checkInstalledDialoguePointer(t, a, "mission dialogue", image.Rect(okX, okY, okX+80, okY+26), image.Pt(ui.MissionFrameW, ui.MissionFrameH), nil)
 	bodyAfter, _, stillOpen := v.NoticeState()
 	if !stillOpen || bodyBefore != bodyAfter {
 		t.Fatal("pointer cancellation advanced installed mission page")

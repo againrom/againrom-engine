@@ -467,6 +467,9 @@ func (v *Viewer) minimapCompose(g minimapGeom) (*image.RGBA, image.Point, bool) 
 		content = composeMinimapPlan(v.minimapOriginalPlan(g), g.extent)
 	} else {
 		colours, fog, marks, view := v.minimapWindowed(g)
+		if v.minimapHeld {
+			fog, marks = func(int, int) uint8 { return FogUnseen }, nil
+		}
 		content = composeMinimapLayer(colours, g.Cols, g.Rows, fog, marks,
 			view, g.extent, v.dialogFrame != nil && v.dialogFrame.Minimap != nil)
 	}

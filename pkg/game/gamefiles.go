@@ -65,6 +65,20 @@ type gameFiles struct {
 	// second game follows by owner direction while no second-game claim
 	// states its mission-start panels.
 	missionBookClosed bool
+	// missionPackClosed opens a new mission with the inventory row switched
+	// off: the first game's MISSION-ROUTE-093, the second game's R2-ENGINE-588
+	// (DIV-4020).
+	missionPackClosed bool
+	// missionHeroSelected selects the party's hero when a new mission opens,
+	// so the portrait, the command grid and the sheet show him under the
+	// opening dialogue, as the second game's original draws them
+	// (R2-ASSET-148).
+	missionHeroSelected bool
+	// purseMoneyWord makes the inventory purse's hover the install's one-line
+	// money word (the first game's original reads MONEY).
+	purseMoneyWord bool
+	// missionScreen is the game's mission screen layout data.
+	missionScreen ui.MissionScreen
 	// dialogueDefault is the text a mission dialogue shows when its message
 	// has no page 1 (DIALOGUE-049); empty opens no dialogue for it. The
 	// second game follows the first by owner direction while no second-game
@@ -118,6 +132,9 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32) int32 {
 }
 
 var firstGameFiles = gameFiles{
+	missionPackClosed: true,
+	purseMoneyWord:    true,
+	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW},
 	boundedSaveView:   true,
 	orderThresholds:   true,
 	missionBookClosed: true,
@@ -148,13 +165,16 @@ var firstGameFiles = gameFiles{
 }
 
 var secondGameFiles = gameFiles{
-	missionBookClosed: true,
-	dialogueDefault:   dialogueDefaultText,
-	table:             databin.ROM2Layout,
-	openMap:           alm.OpenROM2,
-	compileScript:     mapload.CompileROM2Script,
-	loadMenu:          menu.LoadSecond,
-	briefing:          secondGameBriefing,
+	missionPackClosed:   true,
+	missionHeroSelected: true,
+	missionScreen:       ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true},
+	missionBookClosed:   true,
+	dialogueDefault:     dialogueDefaultText,
+	table:               databin.ROM2Layout,
+	openMap:             alm.OpenROM2,
+	compileScript:       mapload.CompileROM2Script,
+	loadMenu:            menu.LoadSecond,
+	briefing:            secondGameBriefing,
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},

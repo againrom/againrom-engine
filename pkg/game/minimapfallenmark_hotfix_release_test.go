@@ -165,6 +165,9 @@ func TestReleaseMinimapRetiresAFallenMercenaryDot(t *testing.T) {
 		t.Fatal("no mace mercenary fell past Heal in 1200 ticks")
 	}
 	at := cellOf(body)
+	// The opening notice, up since the first ticks of the fight, holds the
+	// minimap blank until it closes.
+	closeNotices(a)
 
 	// bodyMarked is the claim's rule for the body's dot: corpse stage at most
 	// 1 and a visible cell in its four-cell quad.

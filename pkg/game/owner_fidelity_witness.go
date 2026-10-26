@@ -116,8 +116,9 @@ func (f *FrontEnd) witnessOwnerFidelity(root, output string, report io.Writer) e
 	if err := a.HeadlessSelectEntity(uint32(f.live.mission.ids[0])); err != nil {
 		return err
 	}
-	// A first-game mission opens with the book closed; the HUD captures show it open.
-	if err := f.openMissionBook(a); err != nil {
+	// A new mission opens with the pack and the book closed and its minimap
+	// held; the HUD captures show them open and the minimap drawn.
+	if err := f.openMissionPanels(a); err != nil {
 		return err
 	}
 	f.live.push()
@@ -347,8 +348,9 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	if err := a.HeadlessSelectEntity(uint32(f.live.mission.ids[0])); err != nil {
 		return err
 	}
-	// A first-game mission opens with the book closed; the HUD captures show it open.
-	if err := f.openMissionBook(a); err != nil {
+	// A new mission opens with the pack and the book closed and its minimap
+	// held; the HUD captures show them open and the minimap drawn.
+	if err := f.openMissionPanels(a); err != nil {
 		return err
 	}
 	f.live.push()
@@ -421,10 +423,21 @@ func (f *FrontEnd) witnessBottomHUD(a *ui.App, output string, report io.Writer) 
 	return nil
 }
 
-// openMissionBook opens the spellbook of a mission that started with it closed.
-func (f *FrontEnd) openMissionBook(a *ui.App) error {
-	if !filesOf(f.Archives.Game()).missionBookClosed {
-		return nil
+// openMissionPanels opens the pack row and the spellbook of a mission that
+// started with them closed (DIV-4020) and ends its minimap hold, as the first
+// periodic refresh with no notice up does.
+func (f *FrontEnd) openMissionPanels(a *ui.App) error {
+	files := filesOf(f.Archives.Game())
+	if files.missionPackClosed {
+		if err := a.HeadlessKey("inventory"); err != nil {
+			return err
+		}
 	}
-	return a.HeadlessKey("book")
+	if files.missionBookClosed {
+		if err := a.HeadlessKey("book"); err != nil {
+			return err
+		}
+	}
+	f.live.view.ReleaseMinimapContent()
+	return nil
 }

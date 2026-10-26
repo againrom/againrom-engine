@@ -283,7 +283,9 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 		if err != nil {
 			w.t.Errorf("%s: spellbook frame: %v", w.stage, err)
 		}
-		return pix, "-hud"
+		if pix != nil && !pix.Bounds().Empty() {
+			return pix, "-hud"
+		}
 	}
 	if st, pix := w.app.HeadlessTooltip(); st.Visible && pix != nil {
 		return pix, "-tooltip"
@@ -1382,6 +1384,22 @@ func (w *routeWitness) missionTargets(step int) []routeRegion {
 	return out
 }
 
+// packHovers hovers every control the opened pack row adds: a new mission
+// opens with the row closed (DIV-4020), so its arrows, items and background
+// answer only after the first press of the pack corner.
+func (w *routeWitness) packHovers(hovered map[string]string) {
+	for _, r := range w.missionTargets(8) {
+		if _, seen := hovered[r.key]; seen || !strings.HasPrefix(r.key, "pack-") && !strings.HasPrefix(r.key, "item/") {
+			continue
+		}
+		w.hover(r.key, r.rect, r.at)
+		hovered[r.key] = strings.Join(w.app.HeadlessTooltipLines(), " ")
+		if hovered[r.key] == "" {
+			w.t.Errorf("mission: %s shows no hover text", r.key)
+		}
+	}
+}
+
 // missionScreen pauses the mission, selects the hero, hovers every control
 // the mission screen's hover test answers, presses the pack corner twice,
 // and records the hero and the party.
@@ -1429,6 +1447,9 @@ func (w *routeWitness) missionScreen(spellbook bool) {
 				after[i] = strings.Join(w.app.HeadlessTooltipLines(), " ")
 				return "hover=" + routeText(after[i])
 			})
+			if i == 0 {
+				w.packHovers(hovered)
+			}
 		}
 		if after[0] == hovered[r.key] || after[1] != hovered[r.key] {
 			w.t.Errorf("mission: the pack corner reads %q, then %q and %q", hovered[r.key], after[0], after[1])

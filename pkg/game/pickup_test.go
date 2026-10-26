@@ -60,7 +60,7 @@ func TestInventoryGoldIsAppendedAfterRealItems(t *testing.T) {
 		PackInfo:  [][]string{{"Sword"}},
 	}
 	money := image.NewRGBA(image.Rect(0, 0, 80, 80))
-	appendInventoryGold(&subject, 500, money)
+	appendInventoryGold(&subject, 500, money, purseInfo(nil, ui.Words{}, 500))
 
 	if len(subject.Pack) != 2 || subject.Pack[1] != money {
 		t.Fatalf("gold pack = %+v, want a visible cell appended after the item", subject.Pack)

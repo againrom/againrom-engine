@@ -49,6 +49,7 @@ type minimapRepaintKey struct {
 	hideLoot     bool
 	frame        *DialogFrame
 	paint        *MinimapPaint
+	held         bool
 }
 
 // minimapRepaintSteps is the counter difference below which the original
@@ -128,6 +129,9 @@ func minimapGain(c uint8, factor int) uint8 {
 // minimapFogWord is a cell's fog state as the tile word's two fog bits:
 // visible 0xc000, explored 0x8000, unseen 0 (TERR-TILE-079, TERR-FOG-082).
 func (v *Viewer) minimapFogWord(col, row int) uint16 {
+	if v.minimapHeld {
+		return 0
+	}
 	switch v.fogAt(col, row) {
 	case FogVisible:
 		return 0xc000
@@ -182,6 +186,9 @@ func (v *Viewer) minimapOwnerColour(owner uint32) (color.RGBA, bool) {
 // 0xc000 and an owner with a colour; another owner's unit also needs its own
 // cell visible, the owner's fog rule for every unit indicator (DIV-2997).
 func (v *Viewer) minimapOriginalMarks() []minimapMark {
+	if v.minimapHeld {
+		return nil
+	}
 	out := v.minimapLootMarks()
 	for _, s := range v.structureStates {
 		c, ok := v.minimapOwnerColour(s.Owner)
@@ -285,7 +292,7 @@ func (v *Viewer) minimapRepaint(g minimapGeom) (*image.RGBA, image.Point, bool) 
 	key := minimapRepaintKey{
 		box: g.Box, content: g.Content, view: v.minimapViewCells(),
 		reveal: v.fogReveal, hideLoot: v.graphics.HideLootDots,
-		frame: v.dialogFrame, paint: st.paint,
+		frame: v.dialogFrame, paint: st.paint, held: v.minimapHeld,
 	}
 	count := v.anim.Count()
 	diff := int32(count - st.count)

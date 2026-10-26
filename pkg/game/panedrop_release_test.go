@@ -20,6 +20,7 @@ func TestReleasePackItemDraggedOntoThePaneIsWornInBothModes(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	live := f.live
 	id := live.mission.ids[0]
 	settle := func(frames int) {

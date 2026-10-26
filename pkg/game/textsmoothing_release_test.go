@@ -208,6 +208,7 @@ func smoothingMission(t *testing.T) (*FrontEnd, *ui.App) {
 	if err := a.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, a)
 	return f, a
 }
 
@@ -221,6 +222,7 @@ func smoothingCaster(t *testing.T) (*FrontEnd, *ui.App) {
 	if err := a.OpenMission(f.MissionOpenerWith(10, party)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, a)
 	if err := a.HeadlessKey("0"); err != nil {
 		t.Fatal(err)
 	}
@@ -262,6 +264,7 @@ func smoothingPickupMessage(t *testing.T) (*FrontEnd, *ui.App) {
 	if err := a.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, a)
 	live := f.live
 	hero := live.mission.ids[0]
 	smoothingTicks(t, a, 90)

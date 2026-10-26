@@ -40,6 +40,9 @@ func TestReleaseMinimapLootDotsFollowTheOption(t *testing.T) {
 	if app.Screen() != ui.ScreenMap || mw == nil {
 		t.Fatal("mission did not reach the map")
 	}
+	// The minimap shows its content from the first periodic refresh with no
+	// notice up; this reading comes before that refresh.
+	mw.view.ReleaseMinimapContent()
 	plane := mw.fog.project()
 	cols := mw.fog.cols
 	occupied := map[image.Point]bool{}

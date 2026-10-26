@@ -93,11 +93,13 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 		t.Fatal("the install resolved no card font or background")
 	}
 	fontBase, configuredFont := DefaultFont, f.Font.Value()
-	if f.generator().Words.TipFont == "text" {
+	// The card draws in the generation screen's text font where the install
+	// has one (R2-ASSET-148); the oracle reads that font's raw file.
+	if a := f.ChargenAssets; a != nil && a.Presentation != nil && a.Presentation.Font != nil {
 		fontBase = f.generator().Words.TextFont.Name
-		configuredFont = f.ChargenAssets.Presentation.Font
+		configuredFont = a.Presentation.Font
 	}
-	if font != configuredFont || font != f.tipFont() {
+	if font != configuredFont {
 		t.Fatal("the mission card font differs from the configured install/text font")
 	}
 	identity, err := f.Archives.Containers.ReadFile("main/id")

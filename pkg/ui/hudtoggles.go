@@ -79,3 +79,9 @@ func (v *Viewer) SetSpellBookShown(shown bool) {
 	v.hudHidden[hudPanelBook] = !shown
 	v.syncMapViewport()
 }
+
+// SetPackShown is SetSpellBookShown for the inventory row's switch.
+func (v *Viewer) SetPackShown(shown bool) {
+	v.hudHidden[hudPanelPack] = !shown
+	v.syncMapViewport()
+}

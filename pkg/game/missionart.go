@@ -53,7 +53,7 @@ func (s viewerArtSource) resolve() viewerArt {
 	art := viewerArt{words: s.in.Words, dialogFrame: s.pr.gameMenuArt(s.in)}
 	art.minimapPaint = missionMinimapPaint(s.in)
 	art.font = s.in.Font.Value()
-	art.cardFont = s.in.tipFont()
+	art.cardFont = s.in.missionCardFont()
 	art.preserveCreatureSkillsHeading = !s.in.profile().CreatureResistanceHeading()
 	art.castNeedsSight = s.in.profile().CastNeedsSight()
 	art.attackPointer = s.in.AttackPointer.Value()
@@ -66,7 +66,7 @@ func (s viewerArtSource) resolve() viewerArt {
 	art.sackFrames, art.sackBoundaries = s.in.SackFrames, s.in.SackBoundaries
 	art.missionTip = ui.MissionTipDress{
 		Art:         s.pr.tipArt(s.in),
-		Font:        art.cardFont,
+		Font:        s.in.tipFont(),
 		CloseLabel:  s.in.Words.TipClose,
 		ToggleLabel: s.in.Words.TipShowNext,
 		CloseClick:  TownDescription(s.in.profile()) != nil,

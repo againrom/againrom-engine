@@ -67,6 +67,10 @@
       }
     },
     {
+      "command": "key",
+      "key": "i"
+    },
+    {
       "command": "pointer",
       "action": "press",
       "at": {

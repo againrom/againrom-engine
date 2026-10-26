@@ -77,11 +77,13 @@ func TestReleaseCommandPanelComposesFromRealArtInFourStates(t *testing.T) {
 		return out
 	}
 
+	// The Warrior cannot cast, so Cast is masked with the skipped cells
+	// (MISSION-ROUTE-093).
 	expectActiveBaseline := func() *image.RGBA {
 		out := image.NewRGBA(bar0)
 		draw2(out, bar0, activeRGBA)
 		for i, r := range cellRects {
-			if commandPanelCellSkipped(commandPanelCell(i)) {
+			if commandPanelCellSkipped(commandPanelCell(i)) || commandPanelCell(i) == commandCellCast {
 				draw2(out, r, disabledRGBA)
 			}
 		}
@@ -100,7 +102,7 @@ func TestReleaseCommandPanelComposesFromRealArtInFourStates(t *testing.T) {
 		}
 	})
 
-	t.Run("active with no arm shows Active plus the three disabled cells", func(t *testing.T) {
+	t.Run("active with no arm shows Active plus the disabled cells", func(t *testing.T) {
 		v := newPanelViewer(t)
 		v.SetEntities([]MapEntity{panelEntity(1, "Warrior", 63, 100, 4, 4)})
 		v.sel = selection{1}
@@ -111,7 +113,7 @@ func TestReleaseCommandPanelComposesFromRealArtInFourStates(t *testing.T) {
 		got := composeCommandPanel(v, bar)
 		want := withSeam(expectActiveBaseline(), activeSeamRGBA)
 		if !imagesEqual(got, want) {
-			t.Error("an active, unarmed panel does not match Active with the three disabled cells masked from Disabled")
+			t.Error("an active, unarmed panel does not match Active with the disabled cells masked from Disabled")
 		}
 	})
 

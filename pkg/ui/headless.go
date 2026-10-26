@@ -462,7 +462,8 @@ func (a *App) HeadlessInventoryPack() (*image.RGBA, error) {
 }
 
 // HeadlessBottomHUD joins the same book and inventory layers uploaded by
-// Viewer.Draw. It preserves their native origins and crops to the map band.
+// Viewer.Draw. It preserves their native origins and crops to the map band;
+// with both bars hidden the band is empty and the picture has no rows.
 func (a *App) HeadlessBottomHUD() (*image.RGBA, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
@@ -476,9 +477,6 @@ func (a *App) HeadlessBottomHUD() (*image.RGBA, error) {
 	}
 	if packOK {
 		y = min(y, packAt.Y)
-	}
-	if y == v.frameH {
-		return nil, fmt.Errorf("headless bottom HUD: both bars are hidden")
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, v.frameW-sidebarWidth, v.frameH-y))
 	if bookOK {

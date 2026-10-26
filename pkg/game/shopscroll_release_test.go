@@ -82,6 +82,7 @@ func TestReleaseMission81PlacedScrollKeepsDescriptionAcrossSAV(t *testing.T) {
 				t.Fatalf("placed scroll info %q lacks independently expected %q", lines, line)
 			}
 		}
+		openMissionPack(t, a)
 		x, y, err := a.HeadlessPackCellPoint(index)
 		quest81OK(t, err)
 		a.SetTooltipDelayPreference(0, nil)

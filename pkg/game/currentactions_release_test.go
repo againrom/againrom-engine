@@ -323,6 +323,7 @@ func TestReleaseCurrentActionScrollSAV(t *testing.T) {
 			if err := app.OpenMission(f.MissionOpenerWith(20, party)); err != nil {
 				t.Fatal(err)
 			}
+			openMissionPack(t, app)
 			for n := 0; n < 32; n++ {
 				if err := stepConsumableApp(app); err != nil {
 					t.Fatal(err)

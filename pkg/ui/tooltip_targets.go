@@ -12,7 +12,9 @@ func mainTooltip(w Words, slot int, id string, font *text.Font) tooltipTarget {
 	if slot < 0 || slot >= len(w.Hover) {
 		return tooltipTarget{}
 	}
-	return tooltipTarget{tooltipText, id, tooltipLines(w.Hover[slot]), font}
+	// The install writes a literal tilde as the escape `~~` (MENU-KEY-013);
+	// both originals draw it as one (MISSION-ROUTE-093, R2-SESSION-221).
+	return tooltipTarget{tooltipText, id, tooltipLines(strings.ReplaceAll(w.Hover[slot], "~~", "~")), font}
 }
 
 // monsterSpellHoverLines is the card helper's monster spell list

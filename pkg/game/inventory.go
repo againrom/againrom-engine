@@ -607,7 +607,7 @@ func loadInventoryGoldIcon(src entrySource) *image.RGBA {
 // substitute. Appending preserves every real item's pack index, so a
 // double-click on a gold cell cannot be mistaken for another item by the equip
 // path.
-func appendInventoryGold(subject *ui.InventorySubject, gold uint32, icon *image.RGBA) {
+func appendInventoryGold(subject *ui.InventorySubject, gold uint32, icon *image.RGBA, info []string) {
 	if subject == nil {
 		return
 	}
@@ -621,8 +621,21 @@ func appendInventoryGold(subject *ui.InventorySubject, gold uint32, icon *image.
 	subject.PackCount = append(subject.PackCount, gold)
 	subject.PackStars = append(subject.PackStars, false)
 	subject.PackPurse = append(make([]bool, len(subject.Pack)-1), true)
-	subject.PackInfo = append(subject.PackInfo, []string{"Gold", fmt.Sprintf("Quantity: %d", gold)})
+	subject.PackInfo = append(subject.PackInfo, info)
 }
+
+// purseInfo is the purse cell's hover lines: the install's money word alone
+// where the game's original reads it (the first game's MONEY), else the name
+// and the quantity.
+func purseInfo(files *gameFiles, w ui.Words, gold uint32) []string {
+	if files != nil && files.purseMoneyWord && len(w.Hover) > purseHoverSlot && w.Hover[purseHoverSlot] != "" {
+		return []string{w.Hover[purseHoverSlot]}
+	}
+	return []string{"Gold", fmt.Sprintf("Quantity: %d", gold)}
+}
+
+// purseHoverSlot is the main text line the shop's money cell hovers with.
+const purseHoverSlot = 74
 
 // itemShowsStarTrail is ITEM-STARFLAG-096's normal compact-display selector.
 // A non-empty Effect list is necessary, while Potion (kind 3) explicitly
@@ -648,7 +661,7 @@ func inventoryGold(subject ui.InventorySubject) uint32 {
 		return 0
 	}
 	last := len(subject.PackInfo) - 1
-	if len(subject.PackInfo[last]) == 0 || subject.PackInfo[last][0] != "Gold" {
+	if last >= len(subject.PackPurse) || !subject.PackPurse[last] {
 		return 0
 	}
 	return subject.PackCount[last]

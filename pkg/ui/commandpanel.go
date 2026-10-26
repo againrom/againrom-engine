@@ -94,6 +94,13 @@ func commandPanelActive(cur selection, ents []MapEntity, localOwner uint32) bool
 	return canArmAttack(cur, ents, localOwner)
 }
 
+// commandCellEmpty reports a cell drawn from the empty-cell art, with no
+// tooltip and no press: a skipped cell, and Cast for a selection that cannot
+// cast (MISSION-ROUTE-093, DIV-336).
+func (v *Viewer) commandCellEmpty(cell commandPanelCell) bool {
+	return commandPanelCellSkipped(cell) || cell == commandCellCast && !v.commandCastActive()
+}
+
 // AI-SPELLCAP-288, DIV-336, AI-PANEL-158
 func (v *Viewer) commandCastActive() bool {
 	return v.selectionSummary()&selSummarySpell != 0
@@ -193,8 +200,7 @@ func commandPanelSelected(v *Viewer) (commandPanelCell, bool) {
 func (v *Viewer) pressCommandPanelCell(cell commandPanelCell, cellOK bool) {
 	// Message 0x40c plays click04 on dispatch, before its disabled/skip gates.
 	v.PlayUISound(UISoundCommandPanel)
-	if !cellOK || commandPanelCellSkipped(cell) || !commandPanelActive(v.sel, v.entities, v.localOwner) ||
-		(cell == commandCellCast && !v.commandCastActive()) {
+	if !cellOK || v.commandCellEmpty(cell) || !commandPanelActive(v.sel, v.entities, v.localOwner) {
 		v.cmdOverlayHidden = true
 		return
 	}
@@ -260,7 +266,7 @@ func composeCommandPanel(v *Viewer, bar image.Rectangle) *image.RGBA {
 		}
 		if art.Disabled != nil {
 			for i, r := range commandCellRects(bar) {
-				if !commandPanelCellSkipped(commandPanelCell(i)) {
+				if !v.commandCellEmpty(commandPanelCell(i)) {
 					continue
 				}
 				local := r.Sub(bar.Min)
@@ -344,7 +350,7 @@ func (v *Viewer) commandHoverPresent() (*image.RGBA, image.Point, bool) {
 		return nil, image.Point{}, false
 	}
 	cell, ok := v.commandCellAt(v.cursorX, v.cursorY)
-	if !ok || commandPanelCellSkipped(cell) || !commandPanelActive(v.sel, v.entities, v.localOwner) {
+	if !ok || v.commandCellEmpty(cell) || !commandPanelActive(v.sel, v.entities, v.localOwner) {
 		return nil, image.Point{}, false
 	}
 	label := commandTooltipLabel(v, cell)

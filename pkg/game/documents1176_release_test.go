@@ -478,6 +478,7 @@ func TestReleaseDocuments1176ActualGrantsReturnShopColdSave(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpenerWith(10, f.NextParty())); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	requireDocuments(t, f, true, 3)
 	documentsPanel1176(t, f, app, 3)
 	f, app, _ = documentsUISave(t, f, app, 3)
@@ -507,6 +508,7 @@ func TestReleaseDocuments1176ActualGrantsReturnShopColdSave(t *testing.T) {
 		if err := app.OpenMission(f.MissionOpenerWith(mission, f.NextParty())); err != nil {
 			t.Fatal(err)
 		}
+		openMissionPack(t, app)
 		pages := 4
 		if mission == 60 {
 			pages = 5
@@ -530,6 +532,7 @@ func TestReleaseDocuments1176ActualGrantsReturnShopColdSave(t *testing.T) {
 	if err := app.OpenMission(f.MissionOpenerWith(70, f.NextParty())); err != nil {
 		t.Fatal("cold imported city next mission", err)
 	}
+	openMissionPack(t, app)
 	documentsPanel1176(t, f, app, 5)
 	requireDocuments(t, f, true, 5)
 	t.Log("grant route: one physical item, collected tuples3/4/5, actual script victories10/20/50/60, cold SAV, two cold city SAVs and next mission70")

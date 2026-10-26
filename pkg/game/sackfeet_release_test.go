@@ -26,6 +26,7 @@ func newSackFeetRig(t *testing.T, mission int) sackFeetRig {
 	if err := app.OpenMission(f.NewGameOpener(mission, ui.ChargenResult{Name: "Sack drop", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	app.Layout(1024, 768)
 	r := sackFeetRig{front: f, app: app, live: f.live, hero: f.live.mission.ids[0]}
 	for range 32 {

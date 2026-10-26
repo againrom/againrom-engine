@@ -132,6 +132,12 @@ func TestReleaseOwnerSaveCreaturesKeepTheirSheets(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// The pane draws the pack corner too: show the pack as the save does.
+	if f.live.view.SaveApplication().InventoryOpen != g.live.view.SaveApplication().InventoryOpen {
+		if err := a.HeadlessKey("inventory"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.HeadlessKey("0"); err != nil {
 		t.Fatal(err)
 	}

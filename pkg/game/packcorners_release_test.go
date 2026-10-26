@@ -16,6 +16,7 @@ func missionPackLayerAt(t *testing.T, w, h int) *image.RGBA {
 	if err := app.OpenMission(f.MissionOpener(10)); err != nil {
 		t.Fatal(err)
 	}
+	openMissionPack(t, app)
 	live := f.live
 	id := live.mission.ids[0]
 	for n := 0; n < 32; n++ {

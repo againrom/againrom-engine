@@ -153,9 +153,10 @@ func TestReleaseMissionPaneAndCardStateTheSelectedCount(t *testing.T) {
 	}
 	bareBoxes := func() (pane, card *image.RGBA) {
 		pane = image.NewRGBA(image.Rect(0, 0, seam+bodyW, bodyH))
+		// A new mission opens with the pack and the book closed (DIV-4020).
 		ui.DrawTownCharacterRegion(pane, ui.TownCharacterView{
 			Session: ui.CharacterPaneMission, ScreenH: ui.MissionFrameH, ModeFlag: true,
-			PaneRect: local, PackOpen: true, BookOpen: false, CornerArt: f.characterPaneCorners(),
+			PaneRect: local, PackOpen: false, BookOpen: false, CornerArt: f.characterPaneCorners(),
 			FigurePane: panes.Figure, StatsPane: panes.Stats, Font: chrome, CardFont: font,
 		})
 		card = image.NewRGBA(pane.Bounds())

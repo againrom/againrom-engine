@@ -447,6 +447,10 @@ func settleMission(r missionRequest, mw *mapWorld, v *ui.Viewer, ms *Mission, fo
 		if len(mw.pending) != 0 {
 			mw.rememberApplicationFormation(int32(mw.formationSetting()))
 		}
+		if mw.files().missionHeroSelected && len(ms.Start.IDs) > 0 && v.SelectUnit(uint32(ms.Start.IDs[0])) {
+			mw.push()
+		}
+		v.HoldMinimapContent()
 	}
 	return nil
 }

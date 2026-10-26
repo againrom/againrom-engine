@@ -267,6 +267,13 @@ func TestReleaseCastKeyOnTheMap(t *testing.T) {
 	t.Run("empty selection is not consumed", func(t *testing.T) {
 		f := releaseFront(t)
 		a := helpWitnessMap(t, f, true)
+		// A second-game mission opens with its hero selected; a right-click
+		// on the map with no armed mode clears the selection (AI-CURSOR-177).
+		for _, edge := range []string{"right-press", "right-release"} {
+			if err := a.HeadlessPointer(edge, 200, 200); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if sel := a.HeadlessSelection(); len(sel) != 0 {
 			t.Fatalf("setup: selection %v", sel)
 		}

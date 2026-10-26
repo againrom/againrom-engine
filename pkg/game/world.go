@@ -1098,7 +1098,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		mw.invSubject.WeaponFallback = mw.currentWeaponFallbackActive()
 		mw.invSubject.PackInfo = packInfoLinesWithWeaponDamage(mw.invCodes, t, mw.itemWeaponDamage, mw.view.Words())
 		if mw.invParty.primary {
-			appendInventoryGold(&mw.invSubject, mw.previewPurse(), loadInventoryGoldIcon(src))
+			appendInventoryGold(&mw.invSubject, mw.previewPurse(), loadInventoryGoldIcon(src), purseInfo(mw.files(), mw.view.Words(), mw.previewPurse()))
 		}
 		// Seed every change tracker from this same opening state: the first
 		// paced frame is presentation-only, not a synthetic equipment change
@@ -2347,7 +2347,7 @@ func (mw *mapWorld) switchInventorySubject(selected uint32) {
 	mw.invSubject.WeaponFallback = mw.currentWeaponFallbackActive()
 	mw.invSubject.PackInfo = packInfoLinesWithWeaponDamage(stacks, mw.invParty.table, mw.itemWeaponDamage, mw.view.Words())
 	if mw.invParty.primary {
-		appendInventoryGold(&mw.invSubject, mw.previewPurse(), loadInventoryGoldIcon(mw.mission.src))
+		appendInventoryGold(&mw.invSubject, mw.previewPurse(), loadInventoryGoldIcon(mw.mission.src), purseInfo(mw.files(), mw.view.Words(), mw.previewPurse()))
 	}
 	mw.invEquipment, mw.invFigureEquipment, mw.bodyEquipment = eq, figureEq, figureEq
 	mw.invLayers, mw.invFigureLayers = mw.activeLayers(sim.EntityID(selected)), nil
@@ -2389,7 +2389,7 @@ func (mw *mapWorld) refreshPack() {
 	// read here would be a second answer to what refreshPack has already
 	// asked once.
 	mw.invSubject.PackInfo = packInfoLinesWithWeaponDamage(stacks, mw.invParty.table, mw.itemWeaponDamage, mw.view.Words())
-	appendInventoryGold(&mw.invSubject, gold, loadInventoryGoldIcon(mw.mission.src))
+	appendInventoryGold(&mw.invSubject, gold, loadInventoryGoldIcon(mw.mission.src), purseInfo(mw.files(), mw.view.Words(), gold))
 	mw.invCodes = stacks
 	mw.view.SetInventorySubject(mw.invSubject)
 }
@@ -4248,6 +4248,9 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	if mw.world.Tick()%fogPeriod == 0 || mw.localTeleportArrived(report.Relocations) {
 		mw.fog.refresh(mw.world, sim.SelfSlot)
 		mw.view.RefreshCheatFog()
+		// A mission's minimap shows its explored cells from the first
+		// periodic refresh that finds no opening notice up.
+		mw.view.ReleaseMinimapContent()
 	}
 	if project {
 		mw.push()

@@ -57,7 +57,9 @@ const (
 	MissionFrameW = 1024
 	MissionFrameH = 768
 
-	// MissionPanelW is the width of the frame's right strip, in frame pixels.
+	// MissionPanelW is the width of the first game's right strip and of the
+	// column art in both games, in frame pixels; a game's MissionScreen sets
+	// where its map view ends.
 	//
 	// SESS-VIEW-028, High: the map view object is constructed with the rect (0,
 	// 0, screenW - 0xa0, screenH), and 0xa0 is 160. The strip is the panel.
@@ -123,6 +125,8 @@ func (m Mode) String() string {
 // or, for a map that also carries a static-object layer, NewViewerWithStatics —
 // and hand it to Run.
 type Viewer struct {
+	missionScreen       MissionScreen
+	minimapHeld         bool
 	mtip                missionTip
 	graphics            GraphicsOptions
 	sackBoundaries      map[*terrain.StaticFrame]*terrain.StaticFrame
@@ -2560,20 +2564,10 @@ func AuthoredStartColumns() int { return startColumns }
 // It is SESS-VIEW-028's rect (0, 0, screenW - 0xa0, screenH) evaluated at the
 // minimum frame this build starts the mission at. At native zoom it spans
 // MissionViewportSize().X/32 columns by MissionViewportSize().Y/32 rows, which
-// is the claim's own 27 by 24 for a 1024x768 screen.
+// is the claim's own 27 by 24 for a 1024x768 screen. It pins the opening zoom
+// in both games; a live viewer's width follows its game's MissionScreen.
 func MissionViewportSize() image.Point {
-	return viewportSize(MissionFrameW, MissionFrameH)
-}
-
-// viewportSize is SESS-VIEW-028's rect evaluated at any frame size: the frame
-// minus the 160-pixel right strip. A frame narrower than the strip has no
-// viewport at all and yields a zero width rather than a negative one.
-func viewportSize(frameW, frameH int) image.Point {
-	w := frameW - MissionPanelW
-	if w < 0 {
-		w = 0
-	}
-	return image.Pt(w, frameH)
+	return image.Pt(MissionFrameW-MissionPanelW, MissionFrameH)
 }
 
 // mapViewportSize is the live game surface: left of the fixed right column and
@@ -2584,7 +2578,7 @@ func (v *Viewer) mapViewportSize() image.Point {
 	if v.editorView {
 		return image.Pt(max(1, v.frameW), max(1, v.frameH))
 	}
-	view := viewportSize(v.frameW, v.frameH)
+	view := v.viewportSize()
 	if bar, _, ok := v.packBarShown(); ok && bar.Min.Y < view.Y {
 		view.Y = bar.Min.Y
 	}
@@ -2597,15 +2591,17 @@ func (v *Viewer) mapViewportSize() image.Point {
 	return view
 }
 
+// NoticeViewportSize is the area a mission notice is centred on.
+func (v *Viewer) NoticeViewportSize() image.Point { return v.noticeArea() }
+
 // noticeViewportSize: an empty panel with no selection does not shrink a notice.
-func (v *Viewer) NoticeViewportSize() image.Point { return v.noticeViewportSize() }
 
 func (v *Viewer) noticeViewportSize() image.Point {
 	view := image.Pt(v.cam.ViewW, v.cam.ViewH)
 	if v.editorView {
 		return view
 	}
-	full := viewportSize(v.frameW, v.frameH)
+	full := v.viewportSize()
 	if bar, _, ok := v.packBar(); ok && bar.Min.Y < full.Y {
 		full.Y = bar.Min.Y
 	}
@@ -2759,10 +2755,13 @@ func (v *Viewer) applyStartView() {
 	v.cam.CenterOn(v.cellWorldCentre(v.startCell))
 	if v.startSAV {
 		v.startSAV = false
+		// MISSION-VIEW-019: the opening origin is the hero's cell less half
+		// the view's span in whole cells, then clamped.
 		v.cam.SetZoom(1)
-		v.cam.CenterOn(v.cellWorldCentre(v.startCell))
-		v.cam.X = math.Round(v.cam.X/camera.CellSize) * camera.CellSize
-		v.cam.Y = math.Round((v.cam.Y+v.projectionMinY())/camera.CellSize)*camera.CellSize - v.projectionMinY()
+		cols, rows := v.cam.ViewW/camera.CellSize, v.cam.ViewH/camera.CellSize
+		v.cam.X = float64((v.startCell.X - cols/2) * camera.CellSize)
+		v.cam.Y = float64((v.startCell.Y-rows/2)*camera.CellSize) - v.projectionMinY()
+		v.cam.Clamp()
 	}
 }
 
