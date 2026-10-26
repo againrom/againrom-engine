@@ -407,7 +407,7 @@ func TestEveryEntityGlyphStandsOnItsOwnCellsMarkerGeometry(t *testing.T) {
 							entityPinPlace(cam, lift(e.Cell),
 								terrain.SelectionMarkerRects(e.Cell.X, e.Cell.Y, w, h, terrain.CellSize)...)...)
 					}
-					bar, ok := terrain.StatusBarRect(terrain.HealthBar, e.Cell.X, e.Cell.Y, w, h, e.TokenSize, e.Art)
+					bar, ok := terrain.StatusBarRect(terrain.HealthBar, e.Cell.X, e.Cell.Y, w, h, e.Art)
 					fill, pool := terrain.StatusBarFill(terrain.HealthBar, bar.Dx(), e.HP, e.MaxHP)
 					if !ok || !pool {
 						continue

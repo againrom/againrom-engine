@@ -44,7 +44,7 @@ func (v *Viewer) statusBars() []statusBar {
 			{terrain.HealthBar, e.HP, e.MaxHP},
 			{terrain.ManaBar, e.Mana, e.MaxMana},
 		} {
-			rect, ok := terrain.StatusBarRect(pool.kind, e.Cell.X, e.Cell.Y, v.grid.Width, v.grid.Height, e.TokenSize, e.Art)
+			rect, ok := terrain.StatusBarRect(pool.kind, e.Cell.X, e.Cell.Y, v.grid.Width, v.grid.Height, e.Art)
 			if !ok {
 				continue
 			}

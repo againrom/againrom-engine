@@ -76,7 +76,7 @@ func TestReleaseHeroNameIndexFollowsCurrentEquipmentThroughColdLoad(t *testing.T
 			}
 			afterDrop := find(f)
 			afterDropEntity, _ := f.live.world.Entity(tc.id)
-			if afterDrop.UnitNameIndex != tc.dropped || afterDrop.Name != initial.Name || afterDrop.Art == initial.Art || afterDropEntity.Class != int32(tc.index) {
+			if afterDrop.UnitNameIndex != tc.dropped || afterDrop.Name != initial.Name || afterDrop.Art == initial.Art || afterDropEntity.Class != int32(tc.dropped) {
 				t.Fatalf("after drop unit %d name=%q index=%d class=%d body=%q, initial body=%q", tc.id, afterDrop.Name, afterDrop.UnitNameIndex, afterDropEntity.Class, afterDrop.Art.Name, initial.Art.Name)
 			}
 			party := map[sim.EntityID]bool{}
@@ -97,7 +97,7 @@ func TestReleaseHeroNameIndexFollowsCurrentEquipmentThroughColdLoad(t *testing.T
 			f.LiveAdvance(2400)
 			before := find(f)
 			actor, _ := f.live.world.Entity(tc.id)
-			if before.UnitNameIndex != tc.dropped || before.Name != initial.Name || before.Art != afterDrop.Art || actor.HP <= 0 || actor.Class != int32(tc.index) {
+			if before.UnitNameIndex != tc.dropped || before.Name != initial.Name || before.Art != afterDrop.Art || actor.HP <= 0 || actor.Class != int32(tc.dropped) {
 				t.Fatalf("pre-SAVE unit %d name=%q index=%d HP=%d class=%d body=%q", tc.id, before.Name, before.UnitNameIndex, actor.HP, actor.Class, before.Art.Name)
 			}
 			dir := t.TempDir()

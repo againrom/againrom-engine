@@ -143,8 +143,9 @@ func TestOnlyMagesCarryABlueManaBar(t *testing.T) {
 }
 
 // TestHealthAndManaBarsStandAboveTheWholeUnitSquare checks final screen
-// coordinates, including a multi-cell actor. Mana is immediately below health
-// while neither bar crosses the top edge of the actor's square.
+// coordinates, including a multi-cell actor drawn without class geometry. Its
+// square is one cell about its footprint centre, and mana is immediately
+// below health while neither bar crosses that square's top edge.
 func TestHealthAndManaBarsStandAboveTheWholeUnitSquare(t *testing.T) {
 	v := commandViewer(t)
 	e := MapEntity{ID: 1, Cell: image.Pt(2, 3), Life: LifeAlive, HP: 30, MaxHP: 40,
@@ -155,9 +156,8 @@ func TestHealthAndManaBarsStandAboveTheWholeUnitSquare(t *testing.T) {
 	if len(health) != 1 || len(mana) != 1 {
 		t.Fatalf("health/mana grounds = %d/%d, want one each", len(health), len(mana))
 	}
-	cellTop, ok := v.placeArm(e.Cell, image.Rect(e.Cell.X*terrain.CellSize, e.Cell.Y*terrain.CellSize,
-		e.Cell.X*terrain.CellSize+e.TokenSize*terrain.CellSize,
-		e.Cell.Y*terrain.CellSize+e.TokenSize*terrain.CellSize))
+	cx, cy := e.Cell.X*terrain.CellSize+terrain.CellSize, e.Cell.Y*terrain.CellSize+terrain.CellSize
+	cellTop, ok := v.placeArm(e.Cell, image.Rect(cx-16, cy-16, cx+16, cy+16))
 	if !ok {
 		t.Fatal("actor square is outside the viewport")
 	}

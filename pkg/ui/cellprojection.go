@@ -113,6 +113,19 @@ func (v *Viewer) cellLift(cell image.Point) int {
 	return v.cellSpace().lift(cell)
 }
 
+// footprintCentre is the offset from the centre of an actor's stored cell to
+// the centre of its side-by-side footprint. The stored cell is the
+// footprint's top-left (MOVE-087) and the drawable centre is that cell plus
+// 128 sub-cells per extra cell (ANIM-TELEPORT-167), so a side n adds
+// (n-1)*CellSize/2 on each axis. A side of one or less adds nothing.
+func footprintCentre(side int) image.Point {
+	if side <= 1 {
+		return image.Point{}
+	}
+	d := (side - 1) * terrain.CellSize / 2
+	return image.Point{X: d, Y: d}
+}
+
 // tileVertices is tile (tx,ty)'s displaced screen vertices over proj.
 func tileVertices(cam *camera.Camera, proj *terrain.Projection, tx, ty int) [4]ebiten.Vertex {
 	return cellSpace{proj: proj}.vertices(cam, tx, ty)

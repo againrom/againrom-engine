@@ -57,6 +57,18 @@ func (w *World) SetFlightInputs(in FlightInputs) {
 
 func (w *World) HasFlightInputs() bool { return w.flightInputs != nil }
 
+// SetClientClass stores the class a hero's visible equipment selects
+// (HERO-APPEAR-042), as the front end derives it after an equipment change or a
+// LOAD. An absent actor and one whose class is fixed refuse it.
+func (w *World) SetClientClass(id EntityID, class int32) bool {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 || w.entities[i].ClientClassFixed {
+		return false
+	}
+	w.entities[i].Class = class
+	return true
+}
+
 func (w *World) flightClass(id EntityID) FlightClass {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 {

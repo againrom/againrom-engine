@@ -27,6 +27,8 @@ modder or developer can notice gets no entry.
 - [ROM1] The first mission's opening message stands in the middle of the screen as in the original, not shifted left over the map, and the minimap's view frame is as tall as the original's (24 rows) while the empty corners of the right column are black.
 - [ROM2] The minimap's view frame is white and 24 rows tall and your hero's dot is blue, as in the original, and the empty corners of the right column are black instead of dark blue.
 - [ROM2] A hero loaded from a save keeps the right health and mana maximum after a potion, an item change, training or a sale in town; before, the maximum could come out a few points too high.
+- [BASE] Catapults, ogres, fat trolls, the Death Star and the dragon stand where the original draws them, in the middle of the ground they cover, and their shadow, selection mark, health and mana bars and clicks go with them; before, they were drawn half a cell up and to the left (a whole cell for the dragon).
+- [ROM1] A hero who swaps a two-handed sword for a one-handed one, or a mage whose staff comes off, now takes the class the new equipment shows at once and is saved with it, and a save that kept the old class opens with the class the equipment selects; before, the hero kept the old class in the game state until the mission was reopened, and the next save wrote it.
 
 ### For map makers and modders
 

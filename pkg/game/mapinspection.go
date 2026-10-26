@@ -220,6 +220,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 			c = x.units.Classes[int32(u.ClassID)]
 		}
 		e := ui.MapEntity{ID: uint32(i), Cell: cell, Art: c, Owner: u.Owner}
+		if c != nil {
+			e.TokenSize = c.TileSize
+		}
 		e.DrawCategory = terrain.UnitCategoryFor(c, 0)
 		tier := tiers[sim.EntityID(i)]
 		if frames := c.TierFrames(tier); len(frames) > 0 {

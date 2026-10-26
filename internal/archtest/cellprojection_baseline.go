@@ -15,7 +15,7 @@ var CellProjectionDebt = map[string]int{
 	"pkg/render/terrain/lit.go":         2,
 	"pkg/render/terrain/shadow.go":      2,
 	"pkg/render/terrain/statics.go":     2,
-	"pkg/render/terrain/statusbar.go":   6,
+	"pkg/render/terrain/statusbar.go":   5,
 	"pkg/render/terrain/structures.go":  5,
 	"pkg/render/terrain/tileset.go":     1,
 	"pkg/ui/overlay.go":                 7,

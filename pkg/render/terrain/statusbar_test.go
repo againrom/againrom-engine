@@ -30,7 +30,9 @@ var (
 // Cell (1,1) on a 4 by 4 map has its footprint at [32,64) x [32,64) and its
 // centre, where a body's class centre lands, at (48,48). A class wider than
 // one cell spans its selection box placed about that centre, health 2 rows
-// above the box's top edge and mana directly under it.
+// above the box's top edge and mana directly under it. The footprint centre is
+// the caller's term (the viewer's), so every rect here is about the stored
+// cell whatever the unit's side.
 func TestStatusBarRectGeometry(t *testing.T) {
 	const cols, rows = 4, 4
 	unboxed := &terrain.UnitClass{Width: 128, Height: 128, CenterX: 64, CenterY: 64, TileSize: 2,
@@ -39,31 +41,27 @@ func TestStatusBarRectGeometry(t *testing.T) {
 		name     string
 		kind     terrain.StatusBarKind
 		col, row int
-		side     int
 		class    *terrain.UnitClass
 		want     image.Rectangle
 		ok       bool
 	}{
-		{"health over one cell", terrain.HealthBar, 1, 1, 1, nil, image.Rect(32, 16, 64, 20), true},
-		{"mana directly under health", terrain.ManaBar, 1, 1, 1, nil, image.Rect(32, 20, 64, 24), true},
-		{"a side below one is one", terrain.HealthBar, 1, 1, 0, nil, image.Rect(32, 16, 64, 20), true},
-		{"no class, two cells wide, centres on both", terrain.HealthBar, 1, 1, 2, nil, image.Rect(48, 16, 80, 20), true},
-		{"no class, three cells wide, centres on all three", terrain.ManaBar, 1, 1, 3, nil, image.Rect(64, 20, 96, 24), true},
-		{"a one-cell class keeps the cell rule", terrain.HealthBar, 1, 1, 1, sbMage, image.Rect(32, 16, 64, 20), true},
-		{"a one-cell class uses its selection width", terrain.ManaBar, 1, 1, 1, sbLance, image.Rect(24, 20, 72, 24), true},
-		{"the dragon's health spans its box", terrain.HealthBar, 1, 1, 3, sbDragon, image.Rect(0, -2, 96, 2), true},
-		{"the dragon's mana under its health", terrain.ManaBar, 1, 1, 3, sbDragon, image.Rect(0, 2, 96, 6), true},
-		{"the troll's health spans its box", terrain.HealthBar, 1, 1, 2, sbTroll, image.Rect(18, -4, 78, 0), true},
-		{"a wide class without a box keeps the cell rule", terrain.HealthBar, 1, 1, 2, unboxed, image.Rect(48, 16, 80, 20), true},
-		{"row zero stands above the map", terrain.HealthBar, 0, 0, 1, nil, image.Rect(0, -16, 32, -12), true},
-		{"a column off the map", terrain.HealthBar, 4, 1, 1, nil, image.Rectangle{}, false},
-		{"a row off the map", terrain.ManaBar, 1, 4, 3, sbDragon, image.Rectangle{}, false},
-		{"a negative cell", terrain.HealthBar, -1, 0, 1, nil, image.Rectangle{}, false},
-		{"a kind past mana", terrain.StatusBarKind(2), 1, 1, 3, sbDragon, image.Rectangle{}, false},
-		{"a kind before health", terrain.StatusBarKind(-1), 1, 1, 1, nil, image.Rectangle{}, false},
+		{"health over one cell", terrain.HealthBar, 1, 1, nil, image.Rect(32, 16, 64, 20), true},
+		{"mana directly under health", terrain.ManaBar, 1, 1, nil, image.Rect(32, 20, 64, 24), true},
+		{"a one-cell class keeps the cell rule", terrain.HealthBar, 1, 1, sbMage, image.Rect(32, 16, 64, 20), true},
+		{"a one-cell class uses its selection width", terrain.ManaBar, 1, 1, sbLance, image.Rect(24, 20, 72, 24), true},
+		{"the dragon's health spans its box", terrain.HealthBar, 1, 1, sbDragon, image.Rect(0, -2, 96, 2), true},
+		{"the dragon's mana under its health", terrain.ManaBar, 1, 1, sbDragon, image.Rect(0, 2, 96, 6), true},
+		{"the troll's health spans its box", terrain.HealthBar, 1, 1, sbTroll, image.Rect(18, -4, 78, 0), true},
+		{"a wide class without a box keeps the cell rule", terrain.HealthBar, 1, 1, unboxed, image.Rect(32, 16, 64, 20), true},
+		{"row zero stands above the map", terrain.HealthBar, 0, 0, nil, image.Rect(0, -16, 32, -12), true},
+		{"a column off the map", terrain.HealthBar, 4, 1, nil, image.Rectangle{}, false},
+		{"a row off the map", terrain.ManaBar, 1, 4, sbDragon, image.Rectangle{}, false},
+		{"a negative cell", terrain.HealthBar, -1, 0, nil, image.Rectangle{}, false},
+		{"a kind past mana", terrain.StatusBarKind(2), 1, 1, sbDragon, image.Rectangle{}, false},
+		{"a kind before health", terrain.StatusBarKind(-1), 1, 1, nil, image.Rectangle{}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, ok := terrain.StatusBarRect(tc.kind, tc.col, tc.row, cols, rows, tc.side, tc.class)
+			got, ok := terrain.StatusBarRect(tc.kind, tc.col, tc.row, cols, rows, tc.class)
 			if ok != tc.ok || got != tc.want {
 				t.Fatalf("StatusBarRect = %v, %v; want %v, %v", got, ok, tc.want, tc.ok)
 			}
@@ -96,7 +94,7 @@ func TestStatusBarsOfEveryInstalledWideClass(t *testing.T) {
 		c := &terrain.UnitClass{CenterX: tc.centre.X, CenterY: tc.centre.Y, TileSize: tc.tile, Selection: tc.box}
 		health := image.Rect(anchor.X-tc.left, anchor.Y-tc.above, anchor.X-tc.left+tc.wid, anchor.Y-tc.above+4)
 		for kind, want := range [...]image.Rectangle{terrain.HealthBar: health, terrain.ManaBar: health.Add(image.Pt(0, 4))} {
-			if got, ok := terrain.StatusBarRect(terrain.StatusBarKind(kind), col, row, 16, 16, tc.tile, c); !ok || got != want {
+			if got, ok := terrain.StatusBarRect(terrain.StatusBarKind(kind), col, row, 16, 16, c); !ok || got != want {
 				t.Errorf("%s, kind %d: StatusBarRect = %v, %v; want %v", tc.name, kind, got, ok, want)
 			}
 		}
@@ -218,25 +216,24 @@ func TestStatusBarBlendMatchesPackedHalfWords(t *testing.T) {
 // own footprint and clear of every glyph its own cell carries, health directly
 // over mana on the same columns. They fall inside the cell to the north, and a
 // unit standing there has its own pair 24 rows higher, more than either pair's
-// 8 rows. The bars of units side by side abut and never overlap. A wide unit
-// drawn without a class has its pair centred over its whole footprint at the
-// height a one-cell unit's takes; a wide class's pair is centred on the cell
-// centre its body is anchored at, spans its selection box, and stands with
-// health 2 rows above the box's top edge.
+// 8 rows. The bars of units side by side abut and never overlap. A wide
+// class's pair is centred on the stored cell's centre, spans its selection
+// box, and stands with health 2 rows above the box's top edge; the footprint
+// centre is added by the caller with the body.
 func TestStatusBarsReadAsTheirOwnUnit(t *testing.T) {
 	const cols, rows = 6, 6
-	pair := func(col, row, side int, c *terrain.UnitClass) (health, mana image.Rectangle) {
+	pair := func(col, row int, c *terrain.UnitClass) (health, mana image.Rectangle) {
 		t.Helper()
 		var ok1, ok2 bool
-		health, ok1 = terrain.StatusBarRect(terrain.HealthBar, col, row, cols, rows, side, c)
-		mana, ok2 = terrain.StatusBarRect(terrain.ManaBar, col, row, cols, rows, side, c)
+		health, ok1 = terrain.StatusBarRect(terrain.HealthBar, col, row, cols, rows, c)
+		mana, ok2 = terrain.StatusBarRect(terrain.ManaBar, col, row, cols, rows, c)
 		if !ok1 || !ok2 {
-			t.Fatalf("cell (%d,%d) side %d: no bar", col, row, side)
+			t.Fatalf("cell (%d,%d): no bar", col, row)
 		}
 		return health, mana
 	}
 	for _, cell := range []image.Point{{0, 1}, {3, 2}, {5, 5}, {2, 3}} {
-		health, mana := pair(cell.X, cell.Y, 1, nil)
+		health, mana := pair(cell.X, cell.Y, nil)
 		if health.Max.Y != mana.Min.Y || health.Min.X != mana.Min.X || health.Max.X != mana.Max.X {
 			t.Errorf("cell %v: mana %v is not directly under health %v", cell, mana, health)
 		}
@@ -259,28 +256,20 @@ func TestStatusBarsReadAsTheirOwnUnit(t *testing.T) {
 				}
 			}
 		}
-		nh, nm := pair(cell.X, cell.Y-1, 1, nil)
+		nh, nm := pair(cell.X, cell.Y-1, nil)
 		if gap := both.Min.Y - nh.Union(nm).Max.Y; gap != 24 || gap <= both.Dy() {
 			t.Errorf("cell %v: the northern unit's bars end %d rows above these %d-row bars, want 24",
 				cell, gap, both.Dy())
 		}
 		if cell.X+1 < cols {
-			eh, em := pair(cell.X+1, cell.Y, 1, nil)
+			eh, em := pair(cell.X+1, cell.Y, nil)
 			if eh.Min.X != health.Max.X || !eh.Intersect(health).Empty() || !em.Intersect(mana).Empty() {
 				t.Errorf("cell %v: the eastern unit's bars %v and %v do not abut %v and %v", cell, eh, em, health, mana)
 			}
 		}
 	}
-	for _, side := range []int{2, 3} {
-		health, mana := pair(1, 1, side, nil)
-		foot := image.Rect(32, 32, 32+side*32, 32+side*32)
-		both := health.Union(mana)
-		if both.Min.X-foot.Min.X != foot.Max.X-both.Max.X || foot.Min.Y-both.Min.Y != 16 || both.Dy() != 8 {
-			t.Errorf("side %d without a class: the bars %v are not centred 16 rows above the footprint %v", side, both, foot)
-		}
-	}
 	for _, c := range []*terrain.UnitClass{sbDragon, sbTroll} {
-		health, mana := pair(2, 2, c.TileSize, c)
+		health, mana := pair(2, 2, c)
 		both := health.Union(mana)
 		anchor := image.Pt(2*32+16, 2*32+16)
 		boxTop := anchor.Y + c.Selection.Min.Y - c.CenterY

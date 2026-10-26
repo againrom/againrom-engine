@@ -25,7 +25,7 @@ import (
 // at (38,61) and an ogre (class 66, two cells wide) at (19,19).
 //
 // The fighter's health bar is the one-cell picture, 32 columns by 4, opaque.
-// The dragon's bars are 96 columns centred on its body's anchor, the health
+// The dragon's bars are 96 columns centred on its footprint, the health
 // bar's top 50 rows above it, as the owner's capture of the original shows
 // (DIV-1460). The ogre's bar spans its installed units.reg selection box, 60
 // columns, 2 rows above the box's top edge (DIV-1481). A wide bar has the
@@ -85,7 +85,7 @@ func TestReleaseStatusBarsSpanALargeUnitsSelectionBox(t *testing.T) {
 		cell  image.Point
 		id    sim.EntityID
 		// health is the health bar's rectangle from the anchor pixel, the
-		// class centre's pixel on the anchor cell; zero for the one-cell rule.
+		// class centre's pixel on the footprint; zero for the one-cell rule.
 		health image.Rectangle
 	}
 	units := []*unit{
@@ -207,6 +207,10 @@ func TestReleaseStatusBarsSpanALargeUnitsSelectionBox(t *testing.T) {
 			}
 			faded := u.id != units[0].id
 			anchor := image.Pt(u.cell.X*32+16-int(cam.X), u.cell.Y*32+16+lift(u.cell)-int(cam.Y))
+			if e.TokenSize > 1 {
+				d := (int(e.TokenSize) - 1) * 16
+				anchor = anchor.Add(image.Pt(d, d))
+			}
 			health, width := anchor.Add(image.Pt(-16, -32)), 32
 			if u.health != (image.Rectangle{}) {
 				health, width = anchor.Add(u.health.Min), u.health.Dx()

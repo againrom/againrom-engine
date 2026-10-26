@@ -235,17 +235,11 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 		}
 		mage, weapon, materialized = roster[id].Mage, roster[id].Weapon, roster[id].WeaponMaterialized
 	}
-	if slots, ok := mw.world.Equipped(id); ok {
-		eq := equipmentFromSlots(slots)
-		if occupied, _ := eq.Occupied(1); !occupied && weapon != nil && !materialized {
-			eq.SetCode(1, weapon.Code)
-		}
-		_, _, resolved, matched := data.HeroAppearance(mw.mission.list, eq, mage, false)
-		// A name no arm matches leaves class 1 (ANIM-107); with no list loaded
-		// nothing can be derived.
-		if matched || mw.mission.list.Len() != 0 {
-			return resolved
-		}
+	_, _, resolved, matched, held := heroWornAppearance(mw.world, id, weapon, materialized, mage, mw.mission.list)
+	// A name no arm matches leaves class 1 (ANIM-107); with no list loaded
+	// nothing can be derived.
+	if held && (matched || mw.mission.list.Len() != 0) {
+		return resolved
 	}
 	return class
 }

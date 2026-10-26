@@ -873,9 +873,10 @@ func (v *Viewer) EntityOf(id uint32) (MapEntity, bool) {
 // own derivation and returning either would invite a write through it.
 func (v *Viewer) SackMarkers() (sacks, frames int) { return len(v.sacks), len(v.sackFrames) }
 
-// entityShift is ONE entity's world-pixel displacement for THIS frame: how
-// far back toward the cell it came from it is drawn, given how much of the
-// current tick is still to run.
+// entityShift is ONE entity's world-pixel displacement for THIS frame: its
+// footprint centre's offset from the stored cell (footprintCentre),
+// plus how far back toward the cell it came from it is drawn, given how much
+// of the current tick is still to run.
 //
 //	span  = max(TransitSpan, 1)
 //	left  = Transit*period + (period - clamp(elapsed, 0, period))
@@ -922,6 +923,12 @@ func (v *Viewer) SackMarkers() (sacks, frames int) { return len(v.sacks), len(v.
 // already accumulated; unclamped it would throw an entity past the cell it
 // entered or behind the one it left.
 func (v *Viewer) entityShift(e MapEntity) image.Point {
+	return footprintCentre(e.TokenSize).Add(v.entityMotion(e))
+}
+
+// entityMotion is entityShift's crossing or fine-position term alone, measured
+// from the stored cell's centre.
+func (v *Viewer) entityMotion(e MapEntity) image.Point {
 	if e.FinePosition {
 		return image.Pt((int(e.FineX)-128)*terrain.CellSize/256, (int(e.FineY)-128)*terrain.CellSize/256)
 	}

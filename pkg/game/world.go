@@ -1488,20 +1488,54 @@ func canonicalizePartyAppearance(ms *Mission, units *terrain.UnitSet, src entryS
 		if member.Hired() {
 			continue
 		}
-		slots, ok := ms.World.Equipped(ms.Start.IDs[i])
-		if !ok {
+		if body, dir, ok := redressPartyMember(ms.World, ms.Start.IDs[i], &ms.Party[i], list); ok {
+			LoadHeroBody(src, units, dir, body)
+		}
+	}
+}
+
+// redressPartyMember writes the body, directory and class member's worn
+// equipment selects to his record, and the class to his actor, so a SAVE and
+// the next LOAD carry what is drawn. It runs at mission open and after every
+// step that changed his equipment. An unmatched name writes nothing.
+func redressPartyMember(w *sim.World, id sim.EntityID, member *mapload.PartyMember, list data.BodyList) (data.HeroBody, string, bool) {
+	body, dir, class, matched, held := heroWornAppearance(w, id, member.Weapon, member.WeaponMaterialized, member.Mage, list)
+	if !held || !matched {
+		return "", "", false
+	}
+	member.Body, member.BodyDir, member.Class = string(body), dir, class
+	w.SetClientClass(id, class)
+	return body, dir, true
+}
+
+// heroWornAppearance is the one derivation of a hero's drawn body and class
+// from the World's slots (HERO-APPEAR-042), slot 1 widened by a starting
+// weapon that has not materialized (DIV-070). held is false for an actor the
+// World does not hold.
+func heroWornAppearance(w *sim.World, id sim.EntityID, weapon *data.Weapon, materialized, mage bool, list data.BodyList) (body data.HeroBody, dir string, class int32, matched, held bool) {
+	slots, ok := w.Equipped(id)
+	if !ok {
+		return "", "", 0, false, false
+	}
+	eq := equipmentFromSlots(slots)
+	if occupied, _ := eq.Occupied(1); !occupied && weapon != nil && !materialized {
+		eq.SetCode(1, weapon.Code)
+	}
+	body, dir, class, matched = data.HeroAppearance(list, eq, mage, false)
+	return body, dir, class, matched, true
+}
+
+// redressEquipped re-derives every party member a step's equip, unequip or
+// worn drop reached.
+func (mw *mapWorld) redressEquipped(before []wornBefore) {
+	for _, b := range before {
+		member := mw.missionPartyMember(b.id)
+		if member == nil || member.Hired() {
 			continue
 		}
-		eq := equipmentFromSlots(slots)
-		if occupied, _ := eq.Occupied(1); !occupied && member.Weapon != nil && !member.WeaponMaterialized {
-			eq.SetCode(1, member.Weapon.Code)
+		if body, dir, ok := redressPartyMember(mw.world, b.id, member, mw.mission.list); ok {
+			LoadHeroBody(mw.mission.src, mw.units, dir, body)
 		}
-		body, dir, class, matched := data.HeroAppearance(list, eq, member.Mage, false)
-		if !matched {
-			continue
-		}
-		ms.Party[i].Body, ms.Party[i].BodyDir, ms.Party[i].Class = string(body), dir, class
-		LoadHeroBody(src, units, dir, body)
 	}
 }
 
@@ -4200,6 +4234,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.rearm()
 	mw.refreshAppearance()
 	mw.rearmEquipped(equipped)
+	mw.redressEquipped(equipped)
 	mw.observeWeapons()
 	mw.skillRises()
 	// THE NOTICES ARE SETTLED HERE, once per step and immediately after it.
@@ -5420,7 +5455,7 @@ func (mw *mapWorld) virtualDeadDraws() []ui.MapEntity {
 			// No live entity backs this id: it cannot be ordered, attacked
 			// or targeted, and Combat/Char stay their zero value (Known
 			// false) because nothing here derived either sheet.
-			Untargetable: true,
+			Untargetable: true, TokenSize: c.TileSize,
 			FinePosition: true, FineX: r.Current.FineX, FineY: r.Current.FineY,
 			Art: d, Frame: frames[frame], Mirror: mirror,
 			DrawCategory: terrain.UnitCategoryFor(c, r.Current.Stage), CorpseStage: r.Current.Stage,

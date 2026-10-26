@@ -82,12 +82,12 @@ func rectWidths(rs []image.Rectangle) []int {
 // box. The owner's capture of the original shows a dragon's bars three times a
 // small unit's width over the dragon's body.
 //
-// The dragon stands on cell (3,4), so its body's class centre lands on that
-// cell's centre (112,144). Its bars span its 96-column box, x 64 to 159, with
-// health 2 rows above the box's top edge (row 94) and mana under it; each has
-// the measured cap at both ends and an 88-column interior, filled 88*45/60 =
-// 66 and 88*10/40 = 22 columns and half blended. The mage's bars keep the
-// one-cell rule, 32 by 4 over its cell (DIV-1460).
+// The dragon's stored cell (3,4) is its 3 by 3 footprint's top-left, so its
+// class centre lands on the footprint's centre (144,176). Its bars span its
+// 96-column box, x 96 to 191, health 2 rows above the box's top (row 126) and
+// mana under it; each has the measured caps and an 88-column interior, filled
+// 66 and 22 columns and half blended. The mage keeps the one-cell rule, 32 by
+// 4 over its cell (DIV-1460).
 func TestStatusBarsSpanAWideUnitsSelectionBox(t *testing.T) {
 	dragon := &terrain.UnitClass{Width: 160, Height: 160, CenterX: 80, CenterY: 80, TileSize: 3,
 		Selection: image.Rect(32, 32, 128, 128)}
@@ -113,7 +113,7 @@ func TestStatusBarsSpanAWideUnitsSelectionBox(t *testing.T) {
 				cell image.Point
 				want []image.Rectangle
 			}{
-				{"dragon", image.Pt(3, 4), []image.Rectangle{image.Rect(64, 94, 160, 98), image.Rect(64, 98, 160, 102)}},
+				{"dragon", image.Pt(3, 4), []image.Rectangle{image.Rect(96, 126, 192, 130), image.Rect(96, 130, 192, 134)}},
 				{"mage", image.Pt(6, 1), []image.Rectangle{image.Rect(192, 16, 224, 20), image.Rect(192, 20, 224, 24)}},
 			} {
 				if got := bars[u.cell]; !slices.Equal(got, u.want) {
@@ -130,8 +130,8 @@ func TestStatusBarsSpanAWideUnitsSelectionBox(t *testing.T) {
 				fill  int
 				faded bool
 			}{
-				{"unselected dragon's health", image.Pt(3, 4), image.Rect(64, 94, 160, 98), sbHealthRows, 66, true},
-				{"unselected dragon's mana", image.Pt(3, 4), image.Rect(64, 98, 160, 102), sbManaRows, 22, true},
+				{"unselected dragon's health", image.Pt(3, 4), image.Rect(96, 126, 192, 130), sbHealthRows, 66, true},
+				{"unselected dragon's mana", image.Pt(3, 4), image.Rect(96, 130, 192, 134), sbManaRows, 22, true},
 				{"selected mage's health", image.Pt(6, 1), image.Rect(192, 16, 224, 20), sbHealthRows, 24, false},
 				{"selected mage's mana", image.Pt(6, 1), image.Rect(192, 20, 224, 24), sbManaRows, 24, false},
 			} {
