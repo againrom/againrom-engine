@@ -192,7 +192,7 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// Commit fresh selection with the driver; LOAD keeps its validated campaign.
 	commitDriver := func() {
 		if r.fresh() {
-			seedProjectileCounter(ms.World, ports.projectiles.value())
+			seedProjectileCounter(ms.World, mw.files(), ports.projectiles.value())
 		}
 		if r.fresh() && r.town != nil && r.town.progress != nil && !r.town.guestMission().playing(r.n) {
 			r.town.selectMission(r.n)
@@ -356,7 +356,7 @@ func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms
 		return err
 	}
 	if r.fresh() {
-		seedProjectileCounter(ms.World, r.projectileCounter)
+		seedProjectileCounter(ms.World, tableFiles(table), r.projectileCounter)
 	}
 	// THE SAVED WORLD REPLACES THE STARTED ONE HERE, between the start
 	// and openMission (0143 plan D-2): the driver below is then built

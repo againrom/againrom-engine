@@ -4143,7 +4143,7 @@ func (mw *mapWorld) tickWithCastSink(sink func([]sim.CastEvent)) int {
 // keeps only the state a projection would have written, for a no-window
 // instrument advancing several ticks before it reads the viewer.
 func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSink ...func(sim.Report)) int {
-	if !mw.world.SecondGame() && !mw.world.HasFlightInputs() {
+	if mw.files().recordTrailFlight && !mw.world.HasFlightInputs() {
 		mw.bindFlightInputs()
 	}
 	if mw.mission != nil && mw.mission.state != nil && mw.mission.state.resumeBookWalk {
@@ -5113,7 +5113,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		if spellDamageKnown {
 			spellBase, spellSpread = spell.DamageMin, spell.DamageMax-spell.DamageMin
 		}
-		if !mw.world.SecondGame() {
+		if mw.files().mageCardWeaponSpell {
 			weaponSpellKnown, spellDamageKnown, spellBase, spellSpread = char.Known && char.Mage, false, 0, 0
 			if weaponSpellKnown {
 				worn, _ := mw.world.EquippedItems(e.ID)

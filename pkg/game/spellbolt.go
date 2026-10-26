@@ -115,7 +115,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.Projectile
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
 		target, targetPresent := mw.entity(ev.Target)
 		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 {
-			if !mw.world.SecondGame() && !ev.AtCell && targetPresent {
+			if mw.files().targetMarkOnRelease && !ev.AtCell && targetPresent {
 				marks = append(marks, sim.ProjectileMark{Target: target.ID,
 					Picture: int32(data.CastPicture(int(ev.Spell))), Binding: target.SourceBinding})
 			} else {
@@ -166,7 +166,7 @@ const fireBallBurstPicture = 13
 // armBurstPhases hands the World the installed phase count of the Fire_Ball
 // burst's sheet, which the World's burst record needs for its frame leaf.
 func (mw *mapWorld) armBurstPhases() {
-	if !mw.world.SecondGame() && mw.world.HasFlightInputs() {
+	if mw.files().recordTrailFlight && mw.world.HasFlightInputs() {
 		return
 	}
 	if sheet := mw.projectiles.Sheet(fireBallBurstPicture); sheet != nil && sheet.Phases > 0 && sheet.Phases <= 65535 {
@@ -289,7 +289,7 @@ func (mw *mapWorld) startCastRun(id sim.EntityID) int {
 // per tick, drawn across the move (ANIM-TELEPORT-172). Every other cast keeps
 // the run scaled to its charge.
 func (mw *mapWorld) startBookCastRun(ev sim.CastEvent) int {
-	if !mw.world.SecondGame() && mw.world.SpellArm(ev.Spell) == teleportArm {
+	if mw.files().teleportCastRun && mw.world.SpellArm(ev.Spell) == teleportArm {
 		if c := mw.casterClass(ev.Caster); c != nil && len(c.Anim.AttackTrack) > 0 {
 			// advanceCastRuns takes a tick off in the admitting tick itself,
 			// so a run drawn on span ticks starts one above its span.
@@ -570,7 +570,7 @@ func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 		// Picture 51 sounds from its common driver phase; other staged cells
 		// retain their construction sound, including ROM2's delayed cell.
 		slot, delay := mw.spells().CellSound(int(p.Spell))
-		if !mw.world.SecondGame() && data.BurstPicture(int(p.Spell)) == 51 {
+		if mw.files().commonBurstSound && data.BurstPicture(int(p.Spell)) == 51 {
 			slot = 0
 		}
 		source := "spell-effect"
@@ -581,7 +581,7 @@ func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 			at := image.Pt(int(c.X), int(c.Y))
 			mw.queueSpellSound(slot, p.Owner, at, delay, source)
 		}
-		if mw.world.SecondGame() || !mw.world.HasFlightInputs() {
+		if !mw.files().recordTrailFlight || !mw.world.HasFlightInputs() {
 			mw.releaseAreaBursts(p)
 		}
 	}

@@ -126,7 +126,7 @@ func flightClassRule(bodies data.BodyList) sim.FlightClassRule {
 
 // bindFlightInputs admits late synthetic bundles; installed Worlds bind at load.
 func (mw *mapWorld) bindFlightInputs() {
-	if mw == nil || mw.world == nil || mw.world.SecondGame() || mw.world.HasFlightInputs() {
+	if mw == nil || mw.world == nil || !mw.files().recordTrailFlight || mw.world.HasFlightInputs() {
 		return
 	}
 	var bodies data.BodyList

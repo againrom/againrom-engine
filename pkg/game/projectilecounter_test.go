@@ -266,7 +266,7 @@ func TestProcessProjectileCounterSeedRetainsCandidateRecords(t *testing.T) {
 	counterRecord(t, f.live.world, 0)
 	want := f.live.world.SavedProjectiles()
 	want.FreeIndex = 92
-	seedProjectileCounter(f.live.world, 92)
+	seedProjectileCounter(f.live.world, f.live.files(), 92)
 	if !reflect.DeepEqual(f.live.world.SavedProjectiles(), want) {
 		t.Fatal("counter input replaced candidate records or IDs")
 	}

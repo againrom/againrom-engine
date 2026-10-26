@@ -119,7 +119,7 @@ func (s *CampaignSession) activateLive(rules campaignService, mw *mapWorld, n in
 	}
 	s.live, s.liveMission, s.liveParty = mw, n, party
 	if mw != nil {
-		mw.projectileCounter.track(mw.world)
+		mw.projectileCounter.track(mw.world, mw.files())
 	}
 	rules.enterMission(s.Town, n)
 	s.Town.joinCityGroups(s.Carried)

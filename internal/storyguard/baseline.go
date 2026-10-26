@@ -3069,5 +3069,5 @@ var Committed = Baseline{
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons, then for the route witness steps of the original's missing
 	// screens, then for the second game's main menu side screens.
-	CommentBytes: 9705391,
+	CommentBytes: 9706685,
 }

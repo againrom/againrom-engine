@@ -17,8 +17,8 @@ func (c *projectileCounter) value() uint16 {
 	return c.retained
 }
 
-func (c *projectileCounter) track(w *sim.World) {
-	if c != nil && w != nil && !w.SecondGame() {
+func (c *projectileCounter) track(w *sim.World, f *gameFiles) {
+	if c != nil && w != nil && f.projectileCounter {
 		c.world = w
 	}
 }
@@ -30,8 +30,8 @@ func (c *projectileCounter) detach() {
 	}
 }
 
-func seedProjectileCounter(w *sim.World, counter uint16) {
-	if w == nil || w.SecondGame() {
+func seedProjectileCounter(w *sim.World, f *gameFiles, counter uint16) {
+	if w == nil || !f.projectileCounter {
 		return
 	}
 	store := w.SavedProjectiles()

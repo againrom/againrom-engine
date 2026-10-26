@@ -140,6 +140,10 @@ func HasPrefix(s, prefix string) bool { return len(s) >= len(prefix) && s[:len(p
 	"fmt": `package fmt
 func Sprint(a ...any) string { return "" }
 `,
+	"againrom/pkg/sim": `package sim
+type World struct{}
+func (w *World) SecondGame() bool { return false }
+`,
 	"reflect": `package reflect
 func DeepEqual(x, y any) bool { return false }
 `,
@@ -170,7 +174,7 @@ func profileMutationScan(t *testing.T, body string) []ProfileFinding {
 	std := map[string]*types.Package{}
 	src := "package user\n\nimport \"againrom/pkg/base\"\n"
 	for path, stub := range profileMutationStd {
-		if strings.Contains(body, path+".") {
+		if strings.Contains(body, path[strings.LastIndex(path, "/")+1:]+".") {
 			_, std[path] = check(path, path+".go", stub, nil, newInfo())
 			src += "import \"" + path + "\"\n"
 		}
@@ -239,6 +243,8 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 			`func f(g base.Game) bool { return len(g.Edition().Towns) > 0 }`},
 		{"length of the edition cutscene archive", "measures a game",
 			`func f(g base.Game) bool { return len(g.Edition().CutsceneArchive) == 0 }`},
+		{"World asked which game it is", "asks the World which game it is",
+			`func f(w *sim.World) bool { return w.SecondGame() }`},
 		{"games ordered", "compares a game",
 			`func f(g base.Game) bool { return g > base.Game("") }`},
 		{"int edition field used as a flag", "tests edition data as a flag",

@@ -157,3 +157,6 @@ func (m *missionNotices) edition() base.Edition {
 	}
 	return tableEdition(m.table)
 }
+
+// files are the file readers of the game the mission's table belongs to.
+func (mw *mapWorld) files() *gameFiles { return mw.mission.files() }

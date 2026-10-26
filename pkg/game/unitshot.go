@@ -65,7 +65,7 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 // advanceUnitShots consumes first-game record trails. ROM2 retains its client
 // release clock beside the swing presentation.
 func (mw *mapWorld) advanceUnitShots() {
-	if !mw.world.SecondGame() && mw.world.HasFlightInputs() {
+	if mw.files().recordTrailFlight && mw.world.HasFlightInputs() {
 		mw.advanceShotTrails()
 		return
 	}

@@ -158,7 +158,7 @@ func (mw *mapWorld) stampMoved() {
 	if mw.fog == nil {
 		return
 	}
-	if mw.world.SecondGame() {
+	if !mw.files().fogStampOnMove {
 		return
 	}
 	if mw.stamped == nil {
@@ -187,7 +187,7 @@ func (mw *mapWorld) stampMoved() {
 // explored layers on top of the restored Fog plane. Every first-game LOAD
 // takes it; the second game's map screen keeps the periodic refresh alone.
 func (mw *mapWorld) stampAfterLoad() {
-	if mw.fog == nil || mw.world == nil || mw.world.SecondGame() {
+	if mw.fog == nil || mw.world == nil || !mw.files().fogStampOnMove {
 		return
 	}
 	mw.fog.fold(mw.world.Sight(sim.SelfSlot))

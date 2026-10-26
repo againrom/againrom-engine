@@ -32,10 +32,15 @@ import (
 // field; a non-bool Edition field compared with a constant, a datum used as a
 // flag; a use of a bool variable named for a game (rom1, rom2, first game,
 // second game); and == or != against nil on a field named second or Second, a
-// second-campaign state used as a game flag.
+// second-campaign state used as a game flag; and a call of sim.World.SecondGame
+// outside pkg/sim, the World's own answer to which game it runs.
 const profilePackage = "pkg/base/"
 
 const basePath = "againrom/pkg/base"
+
+const simPackage = "pkg/sim/"
+
+const simPath = "againrom/pkg/sim"
 
 // ProfileAllowed are the sites outside pkg/base that may hold a finding, each
 // with its reason. A key is a file, or a file and one of its functions as
@@ -48,10 +53,15 @@ var ProfileAllowed = map[string]string{
 }
 
 // ProfileDebt is the findings not yet moved, per file. A count may only
-// fall; a file whose count reaches zero leaves the map in the same commit. It
-// is empty: every choice reads the edition's data or calls the campaign
-// service, and CheckProfile runs with the empty table so any new choice fails.
-var ProfileDebt = map[string]int{}
+// fall; a file whose count reaches zero leaves the map in the same commit.
+// The three SAV code sites below ask the World which game it is; every other
+// choice reads the edition's data, the game's file readers or the campaign
+// service, so any new choice fails.
+var ProfileDebt = map[string]int{
+	"pkg/game/currentdeadconstruct.go": 1,
+	"pkg/game/savactionwire.go":        1,
+	"pkg/game/savactoractions.go":      1,
+}
 
 // ProfileFinding is one site and the shape found there. Func is the
 // enclosing function declaration's name, empty at package level.
@@ -292,11 +302,32 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 				if s.measuresGame(n) {
 					add(n, "measures a game")
 				}
+				if !strings.HasPrefix(rel, simPackage) && s.worldIdentity(n) {
+					add(n, "asks the World which game it is")
+				}
 			}
 			return true
 		})
 	}
 	return out
+}
+
+// worldIdentity is a call of sim.World.SecondGame, the World's own answer to
+// which game it runs, outside pkg/sim.
+func (s *profileScan) worldIdentity(call *ast.CallExpr) bool {
+	fn := s.stdFunc(call.Fun)
+	if fn == nil || fn.Name() != "SecondGame" || fn.Pkg().Path() != simPath {
+		return false
+	}
+	sig, ok := fn.Type().(*types.Signature)
+	if !ok || sig.Recv() == nil {
+		return false
+	}
+	t := sig.Recv().Type()
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	return isNamed(t, simPath, "World")
 }
 
 func typeUnder(t types.Type) types.Type {

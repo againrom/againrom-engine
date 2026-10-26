@@ -99,7 +99,7 @@ func (mw *mapWorld) releaseCast(ev sim.CastEvent, index int) (marks []sim.Projec
 	to := image.Pt(int(ev.ToX), int(ev.ToY))
 	class := mw.casterClass(ev.Caster)
 	x, y, ok := mw.world.ProjectilePoint(ev.Caster)
-	if !ok || effect.SecondRecord && !mw.world.SecondGame() && !mw.casterStandsOn(ev.Caster, from) {
+	if !ok || effect.SecondRecord && mw.files().startRecordAtCaster && !mw.casterStandsOn(ev.Caster, from) {
 		// A first-game Teleport's start record stands at the cell the caster
 		// cast from, also when the event is read after the caster moved
 		// (MAGIC-TELEPORT-358, ANIM-TELEPORT-172).

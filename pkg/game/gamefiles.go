@@ -82,6 +82,30 @@ type gameFiles struct {
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
 	manaSpellcaster bool
+	// fogStampOnMove folds a moved party body's sight into the fog between
+	// the periodic refreshes; the second game's map keeps the refresh alone.
+	fogStampOnMove bool
+	// recordTrailFlight plays projectile flight and unit shots from the
+	// World's record trails; the second game keeps its client release clock.
+	recordTrailFlight bool
+	// targetMarkOnRelease marks the target of a Wall or Summon-arm release
+	// with its cast picture.
+	targetMarkOnRelease bool
+	// teleportCastRun draws a Teleport cast as the caster class's Attack
+	// timeline, one phase per tick, across the move.
+	teleportCastRun bool
+	// commonBurstSound silences the cell sound of the picture 51 burst, which
+	// sounds from its common driver phase.
+	commonBurstSound bool
+	// startRecordAtCaster keeps a second flight record at the cell the
+	// caster cast from when the caster moved before the event was read.
+	startRecordAtCaster bool
+	// projectileCounter tracks and seeds the World's saved projectile free
+	// index across missions.
+	projectileCounter bool
+	// mageCardWeaponSpell states a unit card's weapon spell from the mage's
+	// worn weapon instead of the spell its attack releases.
+	mageCardWeaponSpell bool
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
@@ -112,6 +136,15 @@ var firstGameFiles = gameFiles{
 	itemNameKeys:    ItemNameKeyAddress,
 	terrainCosts:    worldPrefix + "data/map.reg",
 	dialogueDefault: dialogueDefaultText,
+
+	fogStampOnMove:      true,
+	recordTrailFlight:   true,
+	targetMarkOnRelease: true,
+	teleportCastRun:     true,
+	commonBurstSound:    true,
+	startRecordAtCaster: true,
+	projectileCounter:   true,
+	mageCardWeaponSpell: true,
 }
 
 var secondGameFiles = gameFiles{
