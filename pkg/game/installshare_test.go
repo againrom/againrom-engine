@@ -136,7 +136,18 @@ func TestMain(m *testing.M) {
 	trace := os.Getenv("AGAINROM_TRACE_TESTMAIN") != ""
 	began := time.Now()
 	stopHeapReturner := startHeapReturner(250*time.Millisecond, 512<<20)
-	code := m.Run()
+	code := 0
+	if os.Getenv("AGAINROM_ROUTE_RENDER_CHILD") == "1" {
+		if err := runPresentationProbe(func() error {
+			code = m.Run()
+			return nil
+		}); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			code = 1
+		}
+	} else {
+		code = m.Run()
+	}
 	stopHeapReturner()
 	if trace {
 		fmt.Fprintf(os.Stderr, "TESTMAIN pid=%d tests done code=%d after %s; installSharesWritten begins\n", os.Getpid(), code, time.Since(began).Round(time.Millisecond))

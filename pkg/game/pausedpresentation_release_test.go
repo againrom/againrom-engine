@@ -52,25 +52,6 @@ func TestReleaseActivePauseRenderedWorld(t *testing.T) {
 	t.Logf("%s", out)
 }
 
-type pausedPresentationProbe struct {
-	draw func() error
-	done bool
-	err  error
-}
-
-func (g *pausedPresentationProbe) Layout(_, _ int) (int, int) { return 1024, 768 }
-func (g *pausedPresentationProbe) Update() error {
-	if g.done {
-		return ebiten.Termination
-	}
-	return nil
-}
-func (g *pausedPresentationProbe) Draw(_ *ebiten.Image) {
-	if !g.done {
-		g.err, g.done = g.draw(), true
-	}
-}
-
 func runPausedPresentationProbe(dir string) error {
 	if _, err := effectRimOutputPath(os.Getenv("AGAINROM_ASSETS"), dir); err != nil {
 		return err
@@ -142,8 +123,7 @@ func runPausedPresentationProbe(dir string) error {
 		after, _ := f.live.world.Entity(id)
 		return fmt.Errorf("App/sim damage producer yielded %d numerals, want1; health%d/%d→%d/%d, pause%v notice%v tick%d", n, wounded.HP, wounded.MaxHP, after.HP, after.MaxHP, v.SaveApplication().PlayerPaused, app.HeadlessNoticeOpen(), f.live.world.Tick())
 	}
-	g := &pausedPresentationProbe{}
-	g.draw = func() error {
+	return runPresentationProbe(func() error {
 		tex := ebiten.NewImage(1024, 768)
 		defer tex.Dispose()
 		capture := func(name string) (*image.RGBA, error) {
@@ -282,14 +262,7 @@ func runPausedPresentationProbe(dir string) error {
 		}
 		fmt.Printf("installed mission20 App/sim/Viewer GPU: dim%d exact%d HUD%d; 150 paused frames, numeral retained; count%d→%d; queue%d; World%s SAV%s\n", dimmed, exactDim, hudSame, count, v.AnimationCounter(), len(queue), proof.WorldSHA256, proof.SAVSHA256)
 		return probeInstalledScenery(f, dir)
-	}
-	ebiten.SetWindowSize(64, 48)
-	ebiten.SetWindowPosition(-32000, -32000)
-	ebiten.SetRunnableOnUnfocused(true)
-	if err := ebiten.RunGameWithOptions(g, &ebiten.RunGameOptions{InitUnfocused: true, SkipTaskbar: true}); err != nil && err != ebiten.Termination {
-		return err
-	}
-	return g.err
+	})
 }
 
 func probeInstalledScenery(f *FrontEnd, dir string) error {

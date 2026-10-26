@@ -1,9 +1,11 @@
 package game
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"againrom/pkg/render/menu"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // The route witness walks one App of either game from the main menu to the
@@ -124,6 +127,7 @@ type routeWitness struct {
 	rows    []string
 	steps   map[string]int
 	frames  int
+	size    image.Point
 	opening ui.ChargenResult
 	// place is the town screen the walk reads, either game's; town is
 	// the second game's and chapter the first game's, nil for the other.
@@ -245,10 +249,8 @@ func (w *routeWitness) state() string {
 	return s
 }
 
-// frame composes the App's frame and names the part it shows. The mission
-// screen has no CPU composite (HeadlessFrame refuses it), so a mission step
-// records the part it shows: the open notice, the visible hover box, the
-// character pane, or else the map window around the party's first member.
+// frame captures the mission through App.Draw when a window is allowed.
+// Headless runs keep their partial mission frames and all other CPU frames.
 func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 	if w.app.Screen() != ui.ScreenMap {
 		pix, _, err := w.app.HeadlessFrame()
@@ -256,6 +258,14 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 			w.t.Errorf("%s: frame: %v", w.stage, err)
 		}
 		return pix, ""
+	}
+	if os.Getenv("AGAINROM_HEADLESS_ONLY") != "1" {
+		tex := ebiten.NewImage(w.size.X, w.size.Y)
+		defer tex.Dispose()
+		w.app.Draw(tex)
+		pix := image.NewRGBA(tex.Bounds())
+		tex.ReadPixels(pix.Pix)
+		return pix, "-mission"
 	}
 	if w.screen() == "map/notice" {
 		pix, err := w.app.HeadlessNoticeFrame()
@@ -1367,6 +1377,18 @@ func TestReleaseRouteWitness(t *testing.T) {
 	if root == "" {
 		t.Skip("no AGAINROM_ASSETS: the route witness needs a lawful install")
 	}
+	if os.Getenv("AGAINROM_HEADLESS_ONLY") != "1" && os.Getenv("AGAINROM_ROUTE_RENDER_CHILD") != "1" {
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Minute)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReleaseRouteWitness$", "-test.v", "-test.timeout=40m")
+		cmd.Env = append(os.Environ(), "AGAINROM_ROUTE_RENDER_CHILD=1")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("route GPU child: %v\n%s", err, out)
+		}
+		t.Logf("%s", out)
+		return
+	}
 	archives, err := OpenArchives(root)
 	if err != nil {
 		t.Fatal(err)
@@ -1430,12 +1452,12 @@ func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness
 	// The options file records the seen cutscenes the Cut Scenes library lists.
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	app := f.App("route witness")
-	app.Layout(640, 480)
+	width, height := app.Layout(640, 480)
 	f.TownAnimationNow = app.HeadlessSceneNow
 	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: originals}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
 	// The witness holds the App's own town screen: the second campaign's
 	// builder makes a fresh screen at each call.
-	w := &routeWitness{t: t, f: f, app: app, steps: map[string]int{}}
+	w := &routeWitness{t: t, f: f, app: app, steps: map[string]int{}, size: image.Pt(width, height)}
 	stages := secondRouteStages
 	if second {
 		town, ok := f.TownScreen().(*secondCampaignScreen)
