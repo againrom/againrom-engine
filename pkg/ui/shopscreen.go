@@ -259,6 +259,9 @@ type ShopScreenArt struct {
 	Menu      *image.RGBA // interface/shopmenu.bmp, 176x238
 	Arrow     [4]*image.RGBA
 	PackArrow [4]*image.RGBA
+	// Pack is the pack strip's own picture, drawn under its places; an empty
+	// place then shows it instead of backinvg.bmp. Nil fills the strip flat.
+	Pack *image.RGBA
 	// PackCap is the strip's resting left and right corner: the frame's own
 	// edge columns, which an arrow overlays while the strip can turn that way.
 	PackCap [2]*image.RGBA
@@ -871,7 +874,7 @@ func drawShopQuantity(dst *image.RGBA, font *text.Font, count uint32, r image.Re
 // (ITEM-PRICETAG-144), so a price of 0 or -1 draws the first plaque and its
 // number like any other.
 func drawShopCell(dst *image.RGBA, art *ShopScreenArt, font, priceFont *text.Font, cell ShopCell, r image.Rectangle, fixedPlaces bool, field *itemStarField) {
-	if !cell.Occupied() && !cell.Money && fixedPlaces && art != nil {
+	if !cell.Occupied() && !cell.Money && fixedPlaces && art != nil && art.Pack == nil {
 		// A CONTAINER'S PLACE IS AN ELEMENT OF QUANTITY ZERO, which is
 		// SHOP-SCREEN-036 arm b and draws backinvg.bmp. Only the bottom strip
 		// is a container: the shelf grid is a list that scrolls and the table
@@ -1053,6 +1056,7 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 		blit(dst, art.Room, l.Room.X, l.Room.Y)
 		blit(dst, art.Frame, l.Frame.X, l.Frame.Y)
 		blit(dst, art.Table, l.Table.Min.X, l.Table.Min.Y)
+		blit(dst, art.Pack, l.Pack.Min.X, l.Pack.Min.Y)
 	}
 	panel := shopButtonPanel(v, hover, hasHover)
 	panel.drawBody(dst)
@@ -1168,7 +1172,7 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 		b.Pressed = v.Press == (ShopControl{Kind: ShopControlButton, Index: i})
 	}
 	comp := shopPanel
-	comp.Body, comp.Plaques = l.Buttons, l.Button[:]
+	comp.Body, comp.Plaques, comp.LabelShift = l.Buttons, l.Button[:], l.LabelOffset[:]
 	comp.Ink = v.ButtonStyle.plaqueInk(comp.Ink)
 	return buildButtonPanel(comp, art, buttons)
 }

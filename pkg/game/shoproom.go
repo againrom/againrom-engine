@@ -775,17 +775,17 @@ func (t *shopController) shopEquipFromPack(i int) ui.TownAction {
 		return action
 	}
 	if t.hasCityShopTopology() {
-		if k := t.packBase + i - 1; k < 0 || k >= len(t.shopPackStacks()) {
+		if k := t.packStack(i); k < 0 || k >= len(t.shopPackStacks()) {
 			return ui.TownAction{}
 		}
-		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopEquipPack(n.packBase + i - 1) })
+		return t.withCityShopMutation(func(n *shopController) (ui.TownAction, error) { return n.cityShopEquipPack(n.packStack(i)) })
 	}
 	return t.withCityBookMutation(func(n *shopController) ui.TownAction { return n.shopEquipFromPackValues(i) })
 }
 
 func (t *shopController) shopEquipFromPackValues(i int) ui.TownAction {
 	stacks := t.shopPackStacks()
-	k := t.packBase + i - 1
+	k := t.packStack(i)
 	if k < 0 || k >= len(stacks) {
 		return ui.TownAction{}
 	}

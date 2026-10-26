@@ -268,8 +268,8 @@ func (f *FrontEnd) headlessPackElement(code uint16) (int, error) {
 }
 
 // headlessShopCell is which cell of the shop's pack strip or table holds code.
-// The pack strip is numbered as ShopClick numbers it, with the money cell at 0
-// and the scroll folded in, so the answer is the index a press produces.
+// The pack strip is numbered as ShopClick numbers it, with the money cell
+// where the room's rules put it and the scroll folded in, so the answer is the index a press produces.
 func (f *FrontEnd) headlessShopCell(surface string, code uint16) (int, error) {
 	if f == nil || f.townUI == nil || !f.townUI.AtTownShop() {
 		return 0, fmt.Errorf("at.shop.code %d: no shop room is open", code)
@@ -288,7 +288,7 @@ func (f *FrontEnd) headlessShopCell(surface string, code uint16) (int, error) {
 	case "pack":
 		for i, stack := range t.shopPackStacks() {
 			if stack.Code == code && stack.Count > 0 {
-				return i + 1 - t.packBase, nil
+				return t.packCell(i), nil
 			}
 		}
 		return 0, fmt.Errorf("at.shop.code %d: the shown member's pack holds none of it", code)

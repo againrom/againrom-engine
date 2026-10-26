@@ -56,7 +56,7 @@ func secondShopActivate(t *testing.T, f *FrontEnd, app *ui.App, rows ...string) 
 			}
 		case strings.HasPrefix(row, "MINE "):
 			fmt.Sscanf(row, "MINE %d", &n)
-			kind, index = "pack", n-s.packBase
+			kind, index = "pack", s.packCell(n-1)
 		case strings.HasPrefix(row, "SHELF "):
 			fmt.Sscanf(row, "SHELF %d", &n)
 			kind, index = "shelf_pick", n-1

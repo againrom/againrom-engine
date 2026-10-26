@@ -56,7 +56,7 @@ func shopArtOf(set *screenart.Set) *ui.ShopScreenArt {
 	}
 	pic := func(name string) *image.RGBA { return rgbaOf(set.Picture(name)) }
 	art.Shelf, art.Table, art.Room = pic("shelf"), pic("table"), pic("room")
-	art.Frame, art.Menu, art.Coin = pic("frame"), pic("menu"), pic("coin")
+	art.Frame, art.Menu, art.Coin, art.Pack = pic("frame"), pic("menu"), pic("coin"), pic("pack")
 	for i := range art.Arrow {
 		art.Arrow[i] = pic(fmt.Sprintf("arrow/%d", i))
 		art.PackArrow[i] = pic(fmt.Sprintf("pack-arrow/%d", i))

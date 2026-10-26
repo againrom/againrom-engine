@@ -481,7 +481,20 @@ type RoomSpec struct {
 	Buttons []ButtonSpec `json:"buttons"`
 	// Pane is the page's character pane; nil shows none.
 	Pane *PaneSpec `json:"pane"`
+	// Shop is a shop page's own drawing rules; nil keeps the first game's.
+	Shop *ShopSpec `json:"shop"`
 	Cite []string  `json:"cite"`
+}
+
+// ShopSpec is a shop page's drawing rules as data. MoneyLast shows the gold
+// after the bag's items; TableShelfBack draws the merchant's items on the
+// table on the shelf's backs; LabelOffset moves each command plaque's label
+// line, in plaque order.
+type ShopSpec struct {
+	MoneyLast      bool     `json:"money-last"`
+	TableShelfBack bool     `json:"table-shelf-back"`
+	LabelOffset    [4]Point `json:"label-offset"`
+	Cite           []string `json:"cite"`
 }
 
 // PaneSpec is a page's character pane: the campaign's shown party member in

@@ -355,6 +355,27 @@ func (w *routeWitness) click(control string, rect image.Rectangle, p image.Point
 	w.record(control, rect, "click", w.result(before, extra))
 }
 
+// drag presses at from, moves to to in steps, releases there, composing a
+// frame after each edge, runs settle steps and records the step.
+func (w *routeWitness) drag(control string, rect image.Rectangle, from, to image.Point, settle int, note func() string) {
+	before := w.screen()
+	w.pointer("hover", from)
+	w.pointer("press", from)
+	for i := 1; i <= 4; i++ {
+		w.pointer("move", from.Add(to.Sub(from).Mul(i).Div(4)))
+		if _, _, err := w.app.HeadlessFrame(); err != nil {
+			w.t.Errorf("%s %s: frame during drag: %v", w.stage, control, err)
+		}
+	}
+	w.pointer("release", to)
+	w.run(settle)
+	extra := ""
+	if note != nil {
+		extra = note()
+	}
+	w.record(control, rect, "drag", w.result(before, extra))
+}
+
 // key sends one key, runs settle steps and records the step.
 func (w *routeWitness) key(name string, settle int) {
 	before := w.screen()
@@ -871,9 +892,13 @@ func (w *routeWitness) shop() {
 	w.click(fmt.Sprintf("shelf_pick %d", bestShelf), pick.rect, w.shopPoint(pick), 2, nil)
 	gold := w.f.Town.Gold()
 	cell := shopControlRow{"shelf", bestCell, v.Layout.ShelfCellRect(bestCell)}
-	w.click(fmt.Sprintf("shelf %d cheapest", bestCell), cell.rect, w.shopPoint(cell), 2, func() string {
+	table := shopControlRow{"table", 0, v.Layout.TableCellRect(0)}
+	w.drag(fmt.Sprintf("shelf %d cheapest to table 0", bestCell), cell.rect, w.shopPoint(cell), w.shopPoint(table), 2, func() string {
 		return fmt.Sprintf("buy=%d", w.town.ShopScreen().Buy)
 	})
+	if v := w.town.ShopScreen(); v.Buy != bestPrice || v.Table[0].Icon == nil {
+		w.t.Errorf("shop: the drag to the table staged buy %d, want %d", v.Buy, bestPrice)
+	}
 	w.click("button 1 buy", button(1).rect, w.shopPoint(button(1)), 2, func() string {
 		return fmt.Sprintf("gold %d->%d", gold, w.f.Town.Gold())
 	})

@@ -88,6 +88,12 @@ func (t *secondCampaignScreen) bindShop() {
 				}
 			},
 			stats: func() { t.composed.heroStats = !t.composed.heroStats },
+			page: func() *town.ShopSpec {
+				if d, room, ok := t.composedRoom(); ok && d.Room(room) != nil {
+					return d.Room(room).Shop
+				}
+				return nil
+			},
 		},
 	}
 }
@@ -164,7 +170,8 @@ func shopButton(r *town.RoomSpec, name string) *town.ButtonSpec {
 // dressShop fills the room's parts of a frame: the town's shop art
 // (R2-ENGINE-249), its scene's interior, and the first layout with the
 // town's category and keeper rectangles (R2-ENGINE-354, DIV-3064); a closed
-// category has no rectangle. A room with a pane spec shows the character
+// category has no rectangle; the room's shop rules move the plaque labels.
+// A room with a pane spec shows the character
 // panel (R2-SESSION-204, R2-SESSION-217).
 func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 	l := ui.FirstShopLayout()
@@ -186,6 +193,11 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 	}
 	if b := shopButton(r, "merchant"); b != nil {
 		l.Merchant = b.Rect.Rectangle()
+	}
+	if s := r.Shop; s != nil {
+		for i, o := range s.LabelOffset {
+			l.LabelOffset[i] = o.Pt()
+		}
 	}
 	if p := r.Pane; p != nil {
 		// The pane shows the campaign's party, the one the mission takes;

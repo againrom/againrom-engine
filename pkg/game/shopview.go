@@ -137,23 +137,24 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 	}
 
 	// THE BOTTOM STRIP IS THE SHOWN MEMBER'S OWN CONTAINER, not a party-wide
-	// one (SHOP-PICKER-043), and its first element is the money element: an
+	// one (SHOP-PICKER-043), and one of its elements is the money element: an
 	// element whose own +0x6 is 0xffff, whose quantity is re-read from the
 	// campaign's gold and which draws the coin over backinv.bmp
 	// (SHOP-SCREEN-036 arm a, SHOP-MONEY-048). It scrolls with the list, so it
-	// leaves the strip when the strip is turned past it.
+	// leaves the strip when the strip is turned past it. It is the list's
+	// first element, or its last where the room's rules say so (packStack).
 	stacks := t.shopPackStacks()
 	for i := 0; i < len(v.Pack); i++ {
-		k := t.packBase + i
+		k := t.packStack(i)
 		switch {
-		case k == 0:
+		case k == -1:
 			v.Pack[i] = ui.ShopCell{Money: true, Count: uint32(purse)}
-		case k >= 1 && k-1 < len(stacks):
-			v.Pack[i] = t.labelled(t.shopPackCell(stacks[k-1]), stacks[k-1].Instance())
+		case k >= 0 && k < len(stacks):
+			v.Pack[i] = t.labelled(t.shopPackCell(stacks[k]), stacks[k].Instance())
 			if t.hasCityShopTopology() && v.Pack[i].UseItemKey != "" {
 				if member := t.shopPartyMember(t.shopMemberIndex()); member != nil {
-					if root, err := cityMutationParty(t.sess.Town.cityObjects, member.ID); err == nil && k-1 < len(root.Pack) {
-						v.Pack[i].UseItemKey = fmt.Sprintf("city:%d/%s", root.Pack[k-1], v.Pack[i].UseItemKey)
+					if root, err := cityMutationParty(t.sess.Town.cityObjects, member.ID); err == nil && k < len(root.Pack) {
+						v.Pack[i].UseItemKey = fmt.Sprintf("city:%d/%s", root.Pack[k], v.Pack[i].UseItemKey)
 					}
 				}
 			}
@@ -338,7 +339,7 @@ func (t *shopController) ShopPress(c ui.ShopControl) {
 func (t *shopController) shopDrag(from, to ui.ShopControl) ui.TownAction {
 	switch {
 	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlPackCell:
-		return t.shopMoveWithinPack(t.packBase+from.Index-1, t.packBase+to.Index-1, from.Shift)
+		return t.shopMoveWithinPack(t.packStack(from.Index), t.packStack(to.Index), from.Shift)
 	case from.Kind == ui.ShopControlPackCell && to.Kind == ui.ShopControlDoll:
 		return t.shopEquipFromPack(from.Index)
 	case from.Kind == ui.ShopControlShelfCell && to.Kind == ui.ShopControlDoll:
@@ -360,7 +361,7 @@ func (t *shopController) shopDrag(from, to ui.ShopControl) ui.TownAction {
 		// into — so the staging function already proven for the table is the
 		// SAME act a shelf drop names, not a second one invented for destination
 		// alone.
-		return t.shopFromPack(t.packBase+from.Index-1, from.Shift)
+		return t.shopFromPack(t.packStack(from.Index), from.Shift)
 	case from.Kind == ui.ShopControlShelfCell && (to.Kind == ui.ShopControlTableCell || to.Kind == ui.ShopControlPackCell):
 		// SHELF-TO-PACK JOINS SHELF-TO-TABLE, the same reasoning mirrored:
 		// `ITEM-CMD-007`'s shop code (4..8) pairs with the container code (2)
@@ -686,8 +687,11 @@ func shopGridPrice(code data.ItemCode, price int32, mine bool) int32 {
 // shopPlaceCell is one table place. The side its stamp names selects the plaque
 // family and the figure: the player's side prints ceil(price/2), which is what
 // the merchant pays a unit, on the plaque of the whole price (SHOP-SCREEN-037,
-// SHOP-TRAY-027).
+// SHOP-TRAY-027). Where the room's rules say so, the merchant's item takes the
+// shelf's back: backinvs while the purse covers a unit.
 func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
+	price := place.ShopItem.Price
+	affordable := !place.Mine && t.pageRules().TableShelfBack && price > 0 && int64(t.sess.Town.Gold()) >= int64(price)
 	instance := place.ShopItem.Instance()
 	useKey := ""
 	if place.Mine && t.shopDollTakes(instance) {
@@ -699,7 +703,7 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 		Count:       uint32(place.ShopItem.Count),
 		Price:       shopGridPrice(place.ShopItem.Code, place.ShopItem.Price, place.Mine),
 		PlaquePrice: shopClientPrice(place.ShopItem.Code, place.ShopItem.Price),
-		Back:        shopCellBack(t.shopUsable(place.ShopItem.Code), false),
+		Back:        shopCellBack(t.shopUsable(place.ShopItem.Code), affordable),
 		Mine:        place.Mine,
 		Star:        itemShowsStarTrail(instance),
 		Info:        itemInstanceInfoLines(instance, t.in.Table, t.in.Words),
@@ -809,9 +813,8 @@ func (t *shopController) shopClick(c ui.ShopControl) ui.TownAction {
 		}
 		return t.shopOffTable(t.tableBase+c.Index, c.Shift)
 	case ui.ShopControlPackCell:
-		// The strip's first element is the money element, so a cell's own
-		// index is one past it in the stack list.
-		return t.shopFromPack(t.packBase+c.Index-1, c.Shift)
+		// packStack skips the money element, wherever the list holds it.
+		return t.shopFromPack(t.packStack(c.Index), c.Shift)
 	case ui.ShopControlShelfPick:
 		return t.chooseRoomShelf(c.Index)
 	case ui.ShopControlPickerPrev:

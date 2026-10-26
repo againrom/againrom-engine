@@ -49,6 +49,10 @@ type ShopLayout struct {
 	// TableScroll lets the wheel turn the table strip one place at a time,
 	// for a deal whose table holds more places than the strip shows.
 	TableScroll bool
+
+	// LabelOffset moves each command button's label line from the shared
+	// label band.
+	LabelOffset [4]image.Point
 }
 
 // firstShopLayout is the first game's page (SHOP-SCREEN-030 … 035,

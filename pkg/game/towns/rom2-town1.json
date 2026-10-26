@@ -341,13 +341,18 @@
        {"name": "button/2", "format": "picture", "key": "graphics/interface/shopbutton3.bmp", "size": [140, 46], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249"]},
        {"name": "button/3", "format": "picture", "key": "graphics/interface/shopbutton4.bmp", "size": [120, 52], "transparent": "black", "required": true, "cite": ["R2-ENGINE-249"]},
        {"name": "back/0", "format": "picture", "key": "graphics/interface/backinvg.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
-       {"name": "back/1", "format": "picture", "key": "graphics/interface/backinvb.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "back/1", "format": "picture", "key": "graphics/interface/backinv.bmp", "size": [80, 80], "transparent": "black", "cite": ["R2-SESSION-206", "DIV-4090"]},
        {"name": "back/2", "format": "picture", "key": "graphics/interface/backinvs.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
        {"name": "back/3", "format": "picture", "key": "graphics/interface/backinvg.bmp", "transparent": "black", "cite": ["R2-ENGINE-249"]},
+       {"name": "pack", "format": "picture", "key": "graphics/interface/invframe.bmp", "size": [480, 90], "transparent": "black", "cite": ["R2-ENGINE-249", "R2-SESSION-206", "DIV-4090"]},
+       {"name": "pack-arrow", "format": "picture", "key": "graphics/interface/invarrow%d.bmp", "index": [{"count": 4, "base": 1, "cite": ["R2-ENGINE-249", "DIV-4090"]}], "size": [32, 88], "transparent": "black", "cite": ["R2-ENGINE-249", "DIV-4090"]},
+       {"name": "coin", "format": "frame", "key": "graphics/interface/money/money.16a", "cite": ["R2-SESSION-206", "DIV-4090"]},
        {"name": "plaque-merchant", "format": "picture", "key": "graphics/interface/costs%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]},
        {"name": "plaque-player", "format": "picture", "key": "graphics/interface/costm%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]}
      ],
      "pane": {"rect": [480, 238, 640, 480], "book": true, "book_offset": [0, 2], "cite": ["R2-ENGINE-249", "R2-SESSION-204", "R2-SESSION-217"]},
+     "shop": {"money-last": true, "table-shelf-back": true, "label-offset": [[1, 6], [0, 4], [1, 6], [0, 6]],
+       "cite": ["R2-SESSION-206", "R2-ENGINE-402", "DIV-4069", "DIV-4090", "DIV-4092"]},
      "buttons": [
        {"name": "shelf/0", "rect": [354, 110, 459, 295], "cite": ["R2-ENGINE-354", "R2-ENGINE-269"]},
        {"name": "shelf/1", "rect": [169, 110, 274, 295], "cite": ["R2-ENGINE-354", "R2-ENGINE-269"]},
@@ -358,10 +363,14 @@
      "scene": {
        "view": {"size": [640, 480], "cite": ["R2-ENGINE-249"]},
        "art": [
-         {"name": "shelf/0", "format": "picture", "key": "graphics/interface/shopanim/01/1.bmp", "size": [112, 88], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "shelf/1", "format": "picture", "key": "graphics/interface/shopanim/02/1.bmp", "size": [132, 88], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "shelf/2", "format": "picture", "key": "graphics/interface/shopanim/03/1.bmp", "size": [80, 112], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
-         {"name": "shelf/3", "format": "picture", "key": "graphics/interface/shopanim/04/1.bmp", "size": [80, 112], "required": true, "cite": ["R2-ENGINE-249", "DIV-3046"]},
+         {"name": "rack/0", "format": "series", "key": "graphics/interface/shopanim/04/%d.bmp", "first": 1, "count": 11, "size": [80, 112], "required": true,
+          "cite": ["R2-ENGINE-249", "R2-ASSET-060", "DIV-4091"]},
+         {"name": "rack/1", "format": "series", "key": "graphics/interface/shopanim/03/%d.bmp", "first": 1, "count": 11, "size": [80, 112], "required": true,
+          "cite": ["R2-ENGINE-249", "R2-ASSET-060", "DIV-4091"]},
+         {"name": "rack/2", "format": "series", "key": "graphics/interface/shopanim/02/%d.bmp", "first": 1, "count": 11, "size": [132, 88], "required": true,
+          "cite": ["R2-ENGINE-249", "R2-ASSET-060", "DIV-4091"]},
+         {"name": "rack/3", "format": "series", "key": "graphics/interface/shopanim/01/%d.bmp", "first": 1, "count": 11, "size": [112, 88], "required": true,
+          "cite": ["R2-ENGINE-249", "R2-ASSET-060", "DIV-4091"]},
          {"name": "keeper", "format": "picture", "key": "movies/shopanim/pose2-3/1.bmp", "size": [76, 176], "required": true, "cite": ["R2-ASSET-069", "R2-ENGINE-268"]},
          {"name": "pose", "format": "series", "key": "movies/shopanim/pose2-3/%d.bmp", "first": 2, "count": 27, "size": [76, 176], "required": true,
           "cite": ["R2-ASSET-069", "R2-ENGINE-268", "DIV-3061"]},
@@ -378,6 +387,16 @@
        "lifecycle": "shown",
        "advance-when": "active",
        "actors": [
+         {"name": "racks", "program": "selector", "frames": 11, "loop-at": 9, "loop-to": 3, "stop-at": 10, "release": 9,
+          "selected": "shelf",
+          "members": [
+            {"name": "rack-armour", "art": "rack/0", "cite": ["R2-ENGINE-249", "DIV-4091"]},
+            {"name": "rack-weapons", "art": "rack/1", "cite": ["R2-ENGINE-249", "DIV-4091"]},
+            {"name": "rack-magic", "art": "rack/2", "cite": ["R2-ENGINE-249", "DIV-4091"]},
+            {"name": "rack-books", "art": "rack/3", "cite": ["R2-ENGINE-249", "DIV-4091"]}
+          ],
+          "on": [{"event": "category-changed", "do": "select", "cite": ["R2-ENGINE-269", "DIV-4091"]}],
+          "cite": ["R2-ENGINE-249", "DIV-4091"]},
          {"name": "keeper", "program": "priority", "art": "keeper", "clock": "generic-keeper", "keep-index": true,
           "delay": {"draw": "idle", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000, "cite": ["R2-ENGINE-268"]},
           "states": [
@@ -394,13 +413,13 @@
           "cite": ["R2-ENGINE-268", "R2-ENGINE-269", "DIV-3061"]}
        ],
        "steps": [
-         {"clock": "step", "when": "active", "run": ["arm keeper", "advance keeper"], "cite": ["R2-ENGINE-268", "DIV-3061"]}
+         {"clock": "step", "when": "active", "run": ["arm keeper", "advance racks", "advance keeper"], "cite": ["R2-ENGINE-268", "DIV-3061", "DIV-4091"]}
        ],
        "layers": [
-         {"group": "interior", "art": "shelf/0", "mode": "copy", "at": [353, 108], "when": {"if": "shelf-0", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
-         {"group": "interior", "art": "shelf/1", "mode": "copy", "at": [197, 108], "when": {"if": "shelf-1", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
-         {"group": "interior", "art": "shelf/2", "mode": "copy", "at": [313, 20], "when": {"if": "shelf-2", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
-         {"group": "interior", "art": "shelf/3", "mode": "copy", "at": [201, 20], "when": {"if": "shelf-3", "cite": ["R2-ENGINE-269"]}, "cite": ["R2-ENGINE-249"]},
+         {"group": "interior", "actor": "rack-armour", "mode": "copy", "at": [353, 108], "cite": ["R2-ENGINE-249", "DIV-4091"]},
+         {"group": "interior", "actor": "rack-weapons", "mode": "copy", "at": [197, 108], "cite": ["R2-ENGINE-249", "DIV-4091"]},
+         {"group": "interior", "actor": "rack-magic", "mode": "copy", "at": [313, 20], "cite": ["R2-ENGINE-249", "DIV-4091"]},
+         {"group": "interior", "actor": "rack-books", "mode": "copy", "at": [201, 20], "cite": ["R2-ENGINE-249", "DIV-4091"]},
          {"group": "interior", "actor": "keeper", "mode": "copy", "at": [277, 112], "cite": ["R2-ENGINE-249", "R2-ASSET-069"]}
        ],
        "cite": ["R2-ENGINE-249"]},

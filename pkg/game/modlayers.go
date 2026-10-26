@@ -98,7 +98,7 @@ func (mw *mapWorld) refuseLayer() {
 // shopWearInstance.
 func (t *shopController) shopToggleLayer(i int) (ui.TownAction, bool) {
 	stacks := t.shopPackStacks()
-	k := t.packBase + i - 1
+	k := t.packStack(i)
 	if k < 0 || k >= len(stacks) {
 		return ui.TownAction{}, false
 	}

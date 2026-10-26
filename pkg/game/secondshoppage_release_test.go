@@ -130,7 +130,7 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 				t.Fatalf("buy at %d: gold %d -> %d, hero %v", want.Price, gold, f.Town.gold, c.heroItems())
 			}
 			gold = f.Town.gold
-			secondShopDrag(t, app, secondShopPagePoint(t, app, "pack", 1), secondShopPagePoint(t, app, "table", 0))
+			secondShopDrag(t, app, secondShopPagePoint(t, app, "pack", f.TownScreen().(*secondCampaignScreen).packCell(0)), secondShopPagePoint(t, app, "table", 0))
 			if len(c.shop.selling()) != 1 {
 				t.Fatalf("a drag from the pack offered %v", c.shop.selling())
 			}

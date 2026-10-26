@@ -2,10 +2,12 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	"testing"
 
 	"againrom/pkg/secondshop"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -180,5 +182,87 @@ func TestSecondShopPageTableScrolls(t *testing.T) {
 	s.click(ui.ShopControlTableCell, 4)
 	if got := c.shop.Table(); len(got) != 5 || !shopItemEqual(got[4].ShopItem, table[4].ShopItem) || len(c.shop.shelves[0]) != 6 || c.shop.shelves[0][5].Count != 1 || !shopItemEqual(c.shop.shelves[0][5], sixth) {
 		t.Fatalf("the sixth place did not return to its shelf: table %d shelf %v", len(got), c.shop.shelves[0])
+	}
+}
+
+// TestSecondShopPageGoldFollowsTheBag draws the gold after the bag's items
+// and a merchant's item on the table on the shelf's back, under the room's
+// shop rules: a bought item takes the first cell ahead of the gold, a click
+// on the gold offers nothing, and an item offered for sale keeps the bag's
+// back (DIV-4090, DIV-4092).
+func TestSecondShopPageGoldFollowsTheBag(t *testing.T) {
+	c := secondShopSample()
+	*c.heroBag() = nil
+	s := secondShopPage(c, 1000)
+	s.shop.page = func() *town.ShopSpec { return &town.ShopSpec{MoneyLast: true, TableShelfBack: true} }
+	if v := s.ShopScreen(); !v.Pack[0].Money || v.Pack[1].Occupied() {
+		t.Fatalf("empty bag: pack %+v", v.Pack[:2])
+	}
+	s.click(ui.ShopControlShelfPick, 0)
+	s.click(ui.ShopControlShelfCell, 0)
+	if v := s.ShopScreen(); v.Table[0].Back != ui.ShopBackAffordable {
+		t.Fatalf("an item to buy draws back %d, want the shelf's %d", v.Table[0].Back, ui.ShopBackAffordable)
+	}
+	s.click(ui.ShopControlButton, 1)
+	v := s.ShopScreen()
+	if v.Pack[0].Money || !v.Pack[0].Occupied() || !v.Pack[1].Money || v.Pack[1].Count != 1000-125 {
+		t.Fatalf("after a buy: pack %+v", v.Pack[:2])
+	}
+	s.click(ui.ShopControlPackCell, 1)
+	if len(c.shop.Table()) != 0 {
+		t.Fatalf("a click on the gold offered %v", c.shop.Table())
+	}
+	s.click(ui.ShopControlPackCell, 0)
+	v = s.ShopScreen()
+	if len(c.shop.selling()) != 1 || v.Table[0].Back != ui.ShopBackItem || !v.Pack[0].Money {
+		t.Fatalf("offer: selling %v table back %d pack %+v", c.shop.selling(), v.Table[0].Back, v.Pack[0])
+	}
+	s.shop.page = nil
+	if v := s.ShopScreen(); !v.Pack[0].Money {
+		t.Fatalf("without the rules the gold is not first: %+v", v.Pack[0])
+	}
+}
+
+// TestSecondShopRoomsCarryTheOriginalsArt checks the shop rooms' data: the
+// pack strip, its arrows, the gold picture and backinv.bmp in every town;
+// town 1's measured label offsets and its category layers, the subtree
+// each category's region matches on the catalogue shots (DIV-4091).
+func TestSecondShopRoomsCarryTheOriginalsArt(t *testing.T) {
+	for id := 1; id <= 3; id++ {
+		r := secondTownDescription(id).Room("shop")
+		if r == nil || r.Shop == nil || !r.Shop.MoneyLast || !r.Shop.TableShelfBack {
+			t.Fatalf("town %d: shop rules %+v", id, r)
+		}
+		keys := map[string]string{}
+		for _, a := range r.Art {
+			keys[a.Name] = a.Key
+		}
+		for name, key := range map[string]string{"pack": "graphics/interface/invframe.bmp", "pack-arrow": "graphics/interface/invarrow%d.bmp",
+			"coin": "graphics/interface/money/money.16a", "back/1": "graphics/interface/backinv.bmp"} {
+			if keys[name] != key {
+				t.Errorf("town %d: %s is %q, want %q", id, name, keys[name], key)
+			}
+		}
+	}
+	r := secondTownDescription(1).Room("shop")
+	if want := [4]town.Point{{1, 6}, {0, 4}, {1, 6}, {0, 6}}; r.Shop.LabelOffset != want {
+		t.Errorf("town 1 label offsets %v, want %v", r.Shop.LabelOffset, want)
+	}
+	keys := map[string]string{}
+	for _, a := range r.Scene.Art {
+		keys[a.Name] = a.Key
+	}
+	at := map[string]town.Point{}
+	for _, l := range r.Scene.Layers {
+		at[l.Actor] = l.At
+	}
+	for i, want := range []struct {
+		actor, key string
+		at         town.Point
+	}{{"rack-armour", "04", town.Point{353, 108}}, {"rack-weapons", "03", town.Point{197, 108}},
+		{"rack-magic", "02", town.Point{313, 20}}, {"rack-books", "01", town.Point{201, 20}}} {
+		if k := keys[fmt.Sprintf("rack/%d", i)]; k != "graphics/interface/shopanim/"+want.key+"/%d.bmp" || at[want.actor] != want.at {
+			t.Errorf("category %d: art %q at %v, want subtree %s at %v", i, k, at[want.actor], want.key, want.at)
+		}
 	}
 }

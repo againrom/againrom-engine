@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The shop looks as in the original: the chosen shelf lights its corner of the room (the armour stand with its torch for armour), the hero row is the ornate strip with a gold pile, items for sale sit on dark red cells and the hero's items on green ones, a bought item comes ahead of the gold, and the Undo, Buy, Sell and Exit words sit lower on their plaques.
 - [ROM2] The inn and the shop show the hero panel at the lower right as the original does: the hero in full figure or, after the eye or Tab, his statistics, with Previous hero and Next hero below and, in the shop, the spellbook icon that opens the spellbook grid over the table. Hovering or clicking a worn item on the hero or on the inn patron in the left oval shows its item text, and the patron figure now stands where the original draws it.
 - [BASE] The game, the map editor and the starter now show their own icons in Explorer, on shortcuts, in the taskbar and in the window title bar: the game's icon, the same with a grid and pencil for the map editor, and the same with a play sign for the starter. Before, the game took the icon from the installed `rom.exe`, and the starter and the editor had none.
 - [BASE] Linux x86_64 downloads now include an AppImage and a tar.gz with the game, starter and map editor. The starter can browse for the game folder with zenity or kdialog.

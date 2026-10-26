@@ -113,6 +113,8 @@ type shopHost struct {
 	leave   func() bool
 	// chose follows a rack the player chose; nil keeps the choice on the page.
 	chose func(i int)
+	// page is the room's shop drawing rules; nil keeps the first game's.
+	page func() *town.ShopSpec
 	// faces is the room's part of a recomposition of the party's figures.
 	faces func(src entrySource, party []mapload.PartyMember, player *image.RGBA, players map[int]*image.RGBA)
 }
@@ -233,4 +235,38 @@ func (t *townScreen) bindShop() {
 		leave: t.Back,
 		faces: t.shopFaces,
 	}
+}
+
+// pageRules is the room's shop drawing rules, the first game's without any.
+func (t *shopController) pageRules() town.ShopSpec {
+	if t.shop.page != nil {
+		if p := t.shop.page(); p != nil {
+			return *p
+		}
+	}
+	return town.ShopSpec{}
+}
+
+// packStack is the stack of the pack's list that strip cell i shows, -1 for
+// the money element. The list is the money element and the stacks: the
+// money first, or after the stacks when the room's rules say so. An index
+// past the stacks names no stack; its caller refuses it.
+func (t *shopController) packStack(i int) int {
+	k := t.packBase + i
+	if !t.pageRules().MoneyLast {
+		return k - 1
+	}
+	if k == len(t.shopPackStacks()) {
+		return -1
+	}
+	return k
+}
+
+// packCell is the strip cell that shows stack k of the pack's list, the
+// inverse of packStack.
+func (t *shopController) packCell(k int) int {
+	if t.pageRules().MoneyLast {
+		return k - t.packBase
+	}
+	return k + 1 - t.packBase
 }
