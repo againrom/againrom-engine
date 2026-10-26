@@ -1,0 +1,73 @@
+name: Map editor
+description: Something in the map editor does not work, or could take fewer steps.
+title: "[Editor] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One problem or idea per issue. The map and a screenshot make it much faster to check.
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Rage of Mages
+        - Rage of Mages II
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: AgainROM version
+      description: The starter's top line shows it, for example "launches againrom 0.135.7".
+      placeholder: 0.135.7
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Game files
+      options:
+        - English
+        - Russian
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps from opening the editor, one per line.
+      placeholder: |
+        1. Open the map editor from the starter.
+        2. Open the map ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Copy any message the editor showed, word for word.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Map and screenshots
+      description: Drag files here. GitHub does not take .alm files, so put the map in a .zip first.

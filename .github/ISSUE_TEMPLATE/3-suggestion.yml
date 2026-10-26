@@ -1,0 +1,40 @@
+name: Suggestion
+description: An idea for the game, the map editor or the starter.
+title: "[Idea] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One idea per issue.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Rage of Mages
+        - Rage of Mages II
+        - Both games
+        - Map editor
+        - Starter
+        - Mods
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What it would let you do
+    validations:
+      required: true
+  - type: textarea
+    id: original
+    attributes:
+      label: The original game
+      description: If the original game does this differently, how?

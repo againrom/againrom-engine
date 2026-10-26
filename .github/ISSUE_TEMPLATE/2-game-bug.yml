@@ -1,0 +1,87 @@
+name: Game bug
+description: The game does something wrong, or differently from the original game.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One problem per issue. A save from just before the problem makes it much faster to check.
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Rage of Mages
+        - Rage of Mages II
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: AgainROM version
+      description: The starter's top line shows it, for example "launches againrom 0.135.7".
+      placeholder: 0.135.7
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Game files
+      options:
+        - English
+        - Russian
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: mods
+    attributes:
+      label: Mods
+      description: The mods ticked in the starter, or "none".
+      placeholder: none
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The steps from the last save or from the main menu, one per line.
+      placeholder: |
+        1. Load the save ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Copy any message the game showed, word for word.
+    validations:
+      required: true
+  - type: textarea
+    id: original
+    attributes:
+      label: The original game
+      description: If you tried the same thing in the original game, what did it do?
+  - type: textarea
+    id: files
+    attributes:
+      label: Save and screenshots
+      description: >-
+        Drag files here. GitHub does not take .sav files, so put the save in a .zip first. The
+        Saves section of the README says where the saves are.
