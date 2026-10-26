@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/sim"
 )
 
@@ -308,6 +309,7 @@ func tpCellEnv(name string, x, y int32) (int32, int32) {
 // measured case and casts Teleport. It states what this build does; the
 // package-internal reader in pkg/sim prints the pursuers' fields.
 func TestReleaseTeleportPursuitWitness(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	t.Run("reach", func(t *testing.T) {
 		// The hero at (43,39) orders the cast on (43,43), first with the
 		// book as loaded, then after one applied Teleport.

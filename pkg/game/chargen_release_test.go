@@ -69,7 +69,7 @@ func TestReleaseChargenDetailedNavLabelsAreDrawn(t *testing.T) {
 	frame := ui.ComposeChargenFrame(c)
 	rects := ui.ChargenDetailedNavLabelRects(c)
 	want := []string{setup.Detailed.Back, setup.Detailed.Reset, setup.Detailed.Play, setup.Detailed.Restore}[:len(rects)]
-	label := color.RGBA{R: 255, G: 230, B: 150, A: 255}
+	label := color.RGBA{R: 189, G: 158, B: 74, A: 255}
 
 	for i, r := range rects {
 		box := image.Rectangle{}

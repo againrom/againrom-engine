@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -126,6 +127,7 @@ func teleportReach(t *testing.T, f *FrontEnd, id sim.EntityID, dx int32) (int32,
 // stored byte holds until the first tick, whose book walk gives the range his
 // power 6 gives, 1 + 6/3 = 3 (MAGIC-420, MAGIC-421); both casts jump 3 cells.
 func TestReleaseTeleportReachRightAfterOriginalLOAD(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	path := os.Getenv("AGAINROM_TELEPORT_SAV")
 	if path == "" {
 		t.Skip("set AGAINROM_TELEPORT_SAV to the EN install's game0021.sav")

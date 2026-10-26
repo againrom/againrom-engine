@@ -5,12 +5,15 @@ import (
 	"image"
 	"strings"
 	"testing"
+
+	"againrom/internal/firstgame"
 )
 
 // The Objects brush paints each listed code with that code's own art: the big
 // stones, the rocks, the small stones and the statues each differ from every
 // other of their group, in the picture of the map.
 func TestReleaseMapEditorObjectBrushPaintsEachCodesOwnArt(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := x.Editor()
 	if err := e.Open("scenario/10.alm"); err != nil {

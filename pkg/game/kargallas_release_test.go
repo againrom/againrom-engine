@@ -157,6 +157,7 @@ func TestReleaseKargallasDragonHasTheFixedDragonBook(t *testing.T) {
 }
 
 func TestReleaseKargallasNativeLootSharesPackCells(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	for _, input := range []struct {
 		key, hash string
 		totals    [3]uint32

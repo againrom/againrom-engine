@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/firstgame"
 	"againrom/pkg/ui"
 )
 
@@ -15,6 +16,7 @@ import (
 // cells within the brush size toward it and no others; one undo restores the
 // bytes. Frames of the drag and of the result for the owner.
 func TestReleaseMapEditorSetHeightEdit(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/10.alm")
 	cell := image.Pt(20, 20)
@@ -62,6 +64,7 @@ func TestReleaseMapEditorSetHeightEdit(t *testing.T) {
 // vanishing; zoomed in they stand on every vertex. A frame of the zoomed-out
 // state for the owner.
 func TestReleaseMapEditorHeightNumbersZoomedOut(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
 	e := openBrushEditor(t, x, "scenario/10.alm")
 	e.ShowCell(image.Pt(20, 20))

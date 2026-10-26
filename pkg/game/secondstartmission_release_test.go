@@ -25,7 +25,7 @@ func secondStartMissionWitness(t *testing.T) (*FrontEnd, *ui.App, *routeWitness)
 	if err := app.HeadlessActivate("new game"); err != nil {
 		t.Fatal(err)
 	}
-	return f, app, &routeWitness{t: t, f: f, app: app, town: s, stage: "start mission", steps: map[string]int{}}
+	return f, app, &routeWitness{t: t, f: f, app: app, town: s, place: s, stage: "start mission", steps: map[string]int{}}
 }
 
 func secondStartMissionTalk(t *testing.T, app *ui.App, w *routeWitness, talk string) {

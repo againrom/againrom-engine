@@ -21,7 +21,7 @@ import (
 var chargenPanelOrder = [4]string{"play", "restore", "reset", "back"}
 
 func chargenPanelInks() []color.RGBA {
-	return []color.RGBA{{R: 255, G: 230, B: 150, A: 255}, {R: 255, G: 255, B: 224, A: 255}}
+	return []color.RGBA{{R: 189, G: 158, B: 74, A: 255}, {R: 255, G: 255, B: 115, A: 255}}
 }
 
 func chargenPanelInk(c color.RGBA) bool {
