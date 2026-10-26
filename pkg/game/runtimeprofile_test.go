@@ -35,8 +35,12 @@ func TestRuntimeProfileEnvironmentDefaults(t *testing.T) {
 		if err := profile.Options.SetTipsMode(false); err != nil {
 			t.Fatal(err)
 		}
+		physical, err := editorPhysicalDirectory(config)
+		if err != nil {
+			t.Fatal(err)
+		}
 		folder, grant, err := profile.folder("testplay", install)
-		if err != nil || folder != filepath.Join(config, "testplay") || grant != nil {
+		if err != nil || folder != filepath.Join(physical, "testplay") || grant != nil {
 			t.Fatalf("editor testplay folder %s, %v, %v", folder, grant, err)
 		}
 	}
