@@ -10,18 +10,20 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/res"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
-// The second game's route witness walks one App from the main menu to the
+// The route witness walks one App of either game from the main menu to the
 // first mission's first ticks through the App's own pointer and key input,
 // and records each step: the screen, the control and its rectangle, the
 // action, the result, the text the step shows and the state the game holds.
 // With AGAINROM_ROUTE_WITNESS_DIR set it writes one PNG frame and one
-// route.tsv row per step under <dir>/<edition>/.
+// route.tsv row per step under <dir>/<edition>/; on the first game,
+// AGAINROM_ROUTE_SAVES names town saves whose walks go under saves/<file>/.
 
 // routeStage is one row of the step table: the stage the rows carry, the
 // screen it opens on, and its walk.
@@ -123,6 +125,14 @@ type routeWitness struct {
 	steps   map[string]int
 	frames  int
 	opening ui.ChargenResult
+	// place is the town screen the walk reads, either game's; town is
+	// the second game's and chapter the first game's, nil for the other.
+	place   routeTown
+	chapter *townScreen
+	// play is the screen the generator's Play opens.
+	play string
+	// save is the town save a walk loaded, or empty.
+	save string
 }
 
 // screen names what the App shows: its screen, the generator page, the town
@@ -134,11 +144,11 @@ func (w *routeWitness) screen() string {
 		st, _ := w.app.HeadlessChargenState()
 		return "chargen/" + string(st.Stage)
 	case ui.ScreenTown:
-		place := w.town.roomName()
-		if w.town.AtWorldMap() {
+		place := w.place.routeRoom()
+		if w.place.AtWorldMap() {
 			place = "worldmap"
 		}
-		if _, open := w.town.dialogueBody(); open {
+		if _, open := w.place.dialogueBody(); open {
 			place += "/dialogue"
 		}
 		return "town/" + place
@@ -169,17 +179,17 @@ func (w *routeWitness) text() string {
 			add("tip", v.Text)
 		}
 	case ui.ScreenTown:
-		if body, open := w.town.dialogueBody(); open {
+		if body, open := w.place.dialogueBody(); open {
 			add("dialogue", body)
 		}
-		if w.town.AtTownShop() {
-			v := w.town.ShopScreen()
+		if w.place.AtTownShop() {
+			v := w.place.ShopScreen()
 			if v.TipPanel.Showing() {
 				add("tip", v.TipPanel.Text)
 			}
 			add("shop", v.Msg)
-		} else if w.town.AtTownSquare() {
-			if v := w.town.TownSquareView(); v.Tip.Showing() {
+		} else if w.place.AtTownSquare() {
+			if v := w.place.TownSquareView(); v.Tip.Showing() {
 				add("tip", v.Tip.Text)
 			}
 		}
@@ -257,7 +267,12 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 	if st, pix := w.app.HeadlessTooltip(); st.Visible && pix != nil {
 		return pix, "-tooltip"
 	}
-	if strings.HasPrefix(control, "corner/") || strings.HasPrefix(control, "stat/") || control == "hero and party" {
+	if strings.HasPrefix(control, "inventory") {
+		if pix, err := w.app.HeadlessInventoryPack(); err == nil && pix != nil {
+			return pix, "-pack"
+		}
+	}
+	if strings.HasPrefix(control, "corner/") || strings.HasPrefix(control, "stat/") || control == "hero and party" || strings.HasPrefix(control, "hero pane") {
 		if pix, _, err := w.app.HeadlessCharacterPane(); err == nil && pix != nil {
 			return pix, "-pane"
 		}
@@ -288,7 +303,7 @@ func (w *routeWitness) record(control string, rect image.Rectangle, action, resu
 		file = name + ".png"
 		w.frames++
 	}
-	w.rows = append(w.rows, strings.Join([]string{fmt.Sprint(n), w.stage, w.screen(), routeText(control), routeRect(rect),
+	w.rows = append(w.rows, strings.Join([]string{fmt.Sprint(n), strings.TrimSpace(w.save + " " + w.stage), w.screen(), routeText(control), routeRect(rect),
 		action, result, w.text(), file, w.state()}, "\t"))
 }
 
@@ -635,7 +650,7 @@ func (w *routeWitness) detail() {
 		w.t.Fatal("detail: no play control")
 	}
 	w.click("play", r.rect, r.at, 5, nil)
-	w.expect("town/square", "Play")
+	w.expect(w.play, "Play")
 }
 
 // squareRegions is the shown room's controls by its scene's own hit and
@@ -648,7 +663,7 @@ func (w *routeWitness) squareRegions() []routeRegion {
 // squareAt is the shown room's size and the key its hit and tip tests
 // answer at a point.
 func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)) {
-	v := w.town.TownSquareView()
+	v := w.place.TownSquareView()
 	if v.Scene == nil {
 		w.t.Fatalf("%s: the room has no scene", w.stage)
 	}
@@ -656,10 +671,12 @@ func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)
 	// rectangles its hit test reads.
 	var page *town.RoomSpec
 	seats := 0
-	if d, room, ok := w.town.composedRoom(); ok {
-		page = d.Room(room)
-		list, _ := w.town.state().innSeats()
-		seats = len(list)
+	if w.town != nil {
+		if d, room, ok := w.town.composedRoom(); ok {
+			page = d.Room(room)
+			list, _ := w.town.state().innSeats()
+			seats = len(list)
+		}
 	}
 	return v.Scene.Size(), func(p image.Point) (string, bool) {
 		if v.Tip.Covers(p) {
@@ -693,7 +710,7 @@ func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)
 // sceneControl is the room region whose control is the menu, or a door
 // whose row the screen lists as target.
 func (w *routeWitness) sceneControl(target string) routeRegion {
-	rows := w.town.Rows()
+	rows := w.place.Rows()
 	for _, r := range w.squareRegions() {
 		var kind, door int
 		if _, err := fmt.Sscanf(r.key, "control %d/%d", &kind, &door); err != nil {
@@ -702,7 +719,7 @@ func (w *routeWitness) sceneControl(target string) routeRegion {
 		switch k := ui.TownSquareControlKind(kind); {
 		case target == "menu" && k == ui.TownSquareControlMenu:
 			return r
-		case target != "menu" && k == ui.TownSquareControlDoor && door < len(rows) && rows[door].Text == target:
+		case target != "menu" && k == ui.TownSquareControlDoor && door < len(rows) && (rows[door].Text == target || strings.HasPrefix(rows[door].Text, target+" ")):
 			return r
 		}
 	}
@@ -783,17 +800,17 @@ func (w *routeWitness) statue() {
 // and answers the page count; before, when set, acts on each page first.
 func (w *routeWitness) dialoguePages(what string, before func(page int)) int {
 	for pages := 0; pages < 64; pages++ {
-		if _, open := w.town.dialogueBody(); !open {
+		if _, open := w.place.dialogueBody(); !open {
 			return pages
 		}
 		if before != nil {
 			before(pages)
 		}
-		pic, showing := w.town.TownDialogue()
+		pic, showing := w.place.TownDialogue()
 		if !showing || pic == nil {
 			w.t.Fatalf("%s %s: the dialogue is open but draws no window", w.stage, what)
 		}
-		r, ok := w.town.TownDialogueButton()
+		r, ok := w.place.TownDialogueButton()
 		if !ok {
 			w.t.Fatalf("%s %s: the dialogue has no button", w.stage, what)
 		}
@@ -1173,8 +1190,11 @@ func (w *routeWitness) wayOut() {
 
 // worldMap hovers every card and site the world map's hit tests answer
 // while it shows, and records the travel until the first mission opens.
-func (w *routeWitness) worldMap() {
-	v := w.town.WorldMapView()
+func (w *routeWitness) worldMap() { w.worldMapWith(nil) }
+
+// worldMapWith is worldMap with choose, when set, run before the travel.
+func (w *routeWitness) worldMapWith(choose func()) {
+	v := w.place.WorldMapView()
 	regions := routeRegions(image.Pt(640, 480), 2, func(p image.Point) (string, bool) {
 		if i, ok := ui.WorldMapCardAt(v, p); ok && i < 0 {
 			return "town card", true
@@ -1194,6 +1214,14 @@ func (w *routeWitness) worldMap() {
 			w.hover(r.key, r.rect, r.at)
 		}
 	}
+	if choose != nil {
+		choose()
+	}
+	w.travel()
+}
+
+// travel records the travel until the first mission opens.
+func (w *routeWitness) travel() {
 	for i := 1; w.app.Screen() != ui.ScreenMap; i++ {
 		if i > 4000 {
 			w.t.Fatalf("world map: no mission opened: %s %q", w.screen(), w.app.HeadlessMessage())
@@ -1220,8 +1248,8 @@ func (w *routeWitness) missionPages() {
 
 // missionDialogue runs the first ticks and pages each notice that opens.
 func (w *routeWitness) missionDialogue() {
-	if w.f.liveMission != w.f.Base().Profile.Mission() {
-		w.t.Errorf("mission: opened %d, want %d", w.f.liveMission, w.f.Base().Profile.Mission())
+	if w.stage == "mission-dialogue" && w.f.liveMission != w.f.NewGameMission() {
+		w.t.Errorf("mission: opened %d, want %d", w.f.liveMission, w.f.NewGameMission())
 	}
 	for range 4 {
 		if !w.until(100, func() bool { return w.screen() == "map/notice" }) {
@@ -1288,7 +1316,10 @@ func (w *routeWitness) missionScreen() {
 	}
 	hero := w.f.live.mission.ids[0]
 	if x, y, err := w.app.HeadlessEntityPoint(uint32(hero)); err != nil {
-		w.t.Errorf("mission: the hero answers no pixel: %v", err)
+		if w.chapter == nil {
+			w.t.Errorf("mission: the hero answers no pixel: %v", err)
+		}
+		w.record("hero", image.Rectangle{}, "wait", "no click: the hero answers no window pixel: "+err.Error())
 	} else {
 		w.click("hero", image.Rectangle{}, image.Pt(x, y), 1, func() string {
 			return fmt.Sprintf("selection=%v", w.app.HeadlessSelection())
@@ -1327,31 +1358,104 @@ func (w *routeWitness) missionScreen() {
 	w.key("0", 1)
 }
 
-// TestReleaseSecondGameRouteWitness walks the second game's route from the
-// main menu to the first mission's first ticks through the App's own input,
-// asserts every step reaches its screen, and records each step.
-func TestReleaseSecondGameRouteWitness(t *testing.T) {
-	f := secondGameFront(t)
+// TestReleaseRouteWitness walks the install's game from launch to the first
+// mission's first ticks through the App's own input, asserts every step
+// reaches its screen, and records each step. The game picks the stage table:
+// the second game's route, or the first game's.
+func TestReleaseRouteWitness(t *testing.T) {
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("no AGAINROM_ASSETS: the route witness needs a lawful install")
+	}
+	archives, err := OpenArchives(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := archives.Game() == base.GameROM2
+	w, stages := newRouteWitness(t, second, "")
+	f := w.f
+	start := time.Now()
+	w.walk(stages, "")
+	counts := make([]string, 0, len(stages))
+	for _, s := range stages {
+		counts = append(counts, fmt.Sprintf("%s=%d", s.name, w.steps[s.name]))
+	}
+	t.Logf("%s: %d steps, %d frames in %v; %s", f.Base().Profile.ID, len(w.rows), w.frames, time.Since(start).Round(time.Millisecond), strings.Join(counts, " "))
+	if !second {
+		w.townSaves()
+	}
+}
+
+// walk runs the stage table, writing route.tsv under the output directory
+// when it ends, a failed walk's rows included. save, when set, is the town
+// save the walk loaded and leads each row's step.
+func (w *routeWitness) walk(stages []routeStage, save string) {
+	w.save = save
+	defer w.writeRoute()
+	for _, s := range stages {
+		w.stage = s.name
+		// A stage opens on its screen; a dialogue or notice already open
+		// over it is the stage's first page.
+		if got := w.screen(); got != s.screen && !strings.HasPrefix(got, s.screen+"/") {
+			w.t.Fatalf("%s: the stage opens on %s, want %s", s.name, got, s.screen)
+		}
+		s.walk(w)
+	}
+}
+
+func (w *routeWitness) writeRoute() {
+	if w.dir == "" {
+		return
+	}
+	head := strings.Join([]string{"n", "step", "screen", "control", "rect", "action", "result", "text", "frame", "state"}, "\t")
+	if err := os.WriteFile(filepath.Join(w.dir, "route.tsv"), []byte(head+"\n"+strings.Join(w.rows, "\n")+"\n"), 0o600); err != nil {
+		w.t.Error(err)
+	}
+}
+
+// newRouteWitness opens a front end and its App on the install as the
+// game runs, with originals, when set, as the original saves' directory,
+// and answers the witness and its game's stage table.
+func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness, []routeStage) {
+	var f *FrontEnd
+	if second {
+		f = secondGameFront(t)
+	} else {
+		f = releaseFront(t)
+		f.SetDeterministicFrames(true)
+	}
 	if f.ChargenAssets == nil {
-		t.Fatal("the second game's install loaded no generator")
+		t.Fatal("the install loaded no generator")
 	}
 	// The options file records the seen cutscenes the Cut Scenes library lists.
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	app := f.App("route witness")
 	app.Layout(640, 480)
 	f.TownAnimationNow = app.HeadlessSceneNow
-	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
+	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: originals}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
 	// The witness holds the App's own town screen: the second campaign's
 	// builder makes a fresh screen at each call.
-	town, ok := f.TownScreen().(*secondCampaignScreen)
-	if !ok {
-		t.Fatal("the second game's town is not the second campaign's screen")
+	w := &routeWitness{t: t, f: f, app: app, steps: map[string]int{}}
+	stages := secondRouteStages
+	if second {
+		town, ok := f.TownScreen().(*secondCampaignScreen)
+		if !ok {
+			t.Fatal("the second game's town is not the second campaign's screen")
+		}
+		app.SetTown(town)
+		w.town, w.place, w.play = town, town, "town/square"
+	} else {
+		town, ok := f.TownScreen().(*townScreen)
+		if !ok {
+			t.Fatal("the first game's town is not the chapter town screen")
+		}
+		app.SetTown(town)
+		w.chapter, w.place, w.play = town, town, "map"
+		stages = firstRouteStages
 	}
-	app.SetTown(town)
-	w := &routeWitness{t: t, f: f, app: app, town: town, steps: map[string]int{}}
 	app.SetNewGameChargen(func() *ui.ChargenEntry {
 		w.chargen = ui.NewChargen(f.ChargenSetup())
-		return &ui.ChargenEntry{Model: w.chargen, Begin: f.NewGameBegin(f.Base().Profile.Mission())}
+		return &ui.ChargenEntry{Model: w.chargen, Begin: f.NewGameBegin(f.NewGameMission())}
 	})
 	if out := os.Getenv("AGAINROM_ROUTE_WITNESS_DIR"); out != "" {
 		root, err := editorPhysicalDirectory(f.Archives.Root)
@@ -1366,25 +1470,5 @@ func TestReleaseSecondGameRouteWitness(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	start := time.Now()
-	for _, s := range secondRouteStages {
-		w.stage = s.name
-		// A stage opens on its screen; a dialogue or notice already open
-		// over it is the stage's first page.
-		if got := w.screen(); got != s.screen && !strings.HasPrefix(got, s.screen+"/") {
-			t.Fatalf("%s: the stage opens on %s, want %s", s.name, got, s.screen)
-		}
-		s.walk(w)
-	}
-	counts := make([]string, 0, len(secondRouteStages))
-	for _, s := range secondRouteStages {
-		counts = append(counts, fmt.Sprintf("%s=%d", s.name, w.steps[s.name]))
-	}
-	t.Logf("%s: %d steps, %d frames in %v; %s", f.Base().Profile.ID, len(w.rows), w.frames, time.Since(start).Round(time.Millisecond), strings.Join(counts, " "))
-	if w.dir != "" {
-		head := strings.Join([]string{"n", "step", "screen", "control", "rect", "action", "result", "text", "frame", "state"}, "\t")
-		if err := os.WriteFile(filepath.Join(w.dir, "route.tsv"), []byte(head+"\n"+strings.Join(w.rows, "\n")+"\n"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
+	return w, stages
 }
