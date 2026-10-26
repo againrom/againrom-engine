@@ -333,13 +333,9 @@ func (a *App) endingPaint() *savePaint {
 	return p
 }
 
-// The owner reference groups score digits and leaves a zero score blank.
-func hallScoreText(score int32) string {
-	if score == 0 {
-		return ""
-	}
-	return GroupDigits(int64(score))
-}
+// hallScoreText is a row's score in grouped decimal digits; a zero score
+// prints as 0 (FAME-SCORE-004).
+func hallScoreText(score int32) string { return GroupDigits(int64(score)) }
 
 func (a *App) fitEndingText(value string, width int) string {
 	if a.endingFont() == nil {

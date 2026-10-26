@@ -46,8 +46,8 @@ func TestSecondGeneratorNamesItsTextDetails(t *testing.T) {
 	if f := first.Detail; f.CardShadow != nil || f.SkillStates.Linger || first.PreCreate.Name.Over {
 		t.Error("the first game's description names a second-game text detail")
 	}
-	if f := first.Detail; f.CommandHoverInk == nil || f.CommandHoverInk.RGBA() != plaqueCommandInk.Hover || f.CommandSink == nil || f.CommandSink.Pt() != plaqueSink {
-		t.Errorf("the first game's caption ink %v and offset %v, want %v and %v", f.CommandHoverInk, f.CommandSink, plaqueCommandInk.Hover, plaqueSink)
+	if f := first.Detail; f.CommandHoverInk == nil || f.CommandHoverInk.RGBA() != (color.RGBA{255, 255, 115, 255}) || f.CommandSink == nil || f.CommandSink.Pt() != plaqueSink {
+		t.Errorf("the first game's caption hover ink %v and offset %v, want (255,255,115) and %v", f.CommandHoverInk, f.CommandSink, plaqueSink)
 	}
 }
 

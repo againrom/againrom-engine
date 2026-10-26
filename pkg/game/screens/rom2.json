@@ -149,6 +149,7 @@
        {"name": "scroll", "format": "sprites", "key": "graphics/interface/scrlbars.256", "cite": ["owner"]},
        {"name": "hover", "format": "picture", "key": "graphics/interface/Ball.bmp", "size": [4, 4], "transparent": "black", "cite": ["owner"]}
      ],
+     "cutscene-list": {"panel": [120, 62, 520, 424], "title": [148, 88, 492, 116], "rows": 8, "list-at": [170, 134], "list-width": 296, "ok": [172, 376, 296, 400], "cancel": [348, 376, 472, 400], "cite": ["R2-ENGINE-565", "DIV-4100"]},
      "cite": ["owner"]},
     {"screen": "credits",
      "art": [

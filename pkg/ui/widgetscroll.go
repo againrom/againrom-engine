@@ -246,6 +246,9 @@ type listBox struct {
 	Rect  image.Rectangle
 	Pitch int
 	Rows  int
+	// Ruled draws a rule under every row whose rule lies inside the list,
+	// empty rows included.
+	Ruled bool
 }
 
 // newListBox places a list of rows rows at the argument rectangle's top
@@ -379,5 +382,28 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
 		}
 	}
+	if l.Ruled {
+		for i := 0; i < l.Rows; i++ {
+			if r := l.Row(i); r.Max.Y-1 < l.Rect.Max.Y {
+				drawListRule(dst, r)
+			}
+		}
+	}
 	drawVScrollBar(dst, frames, listBar(l, m).withPointer(pointer, pointerOK))
+}
+
+var (
+	listRuleLight = color.RGBA{94, 112, 106, 255}
+	listRuleDark  = color.RGBA{0, 15, 9, 255}
+)
+
+// drawListRule draws the rule at the foot of row r: a light line three pixels
+// above its bottom edge and a dark line on the last pixel row, across the row.
+func drawListRule(dst *image.RGBA, r image.Rectangle) {
+	for _, line := range []struct {
+		y int
+		c color.RGBA
+	}{{r.Max.Y - 3, listRuleLight}, {r.Max.Y - 1, listRuleDark}} {
+		draw.Draw(dst, image.Rect(r.Min.X, line.y, r.Max.X, line.y+1), &image.Uniform{C: line.c}, image.Point{}, draw.Src)
+	}
 }

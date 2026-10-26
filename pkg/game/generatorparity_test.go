@@ -32,6 +32,7 @@ var generatorParityWaivers = []generatorParityWaiver{
 	{"detail.repeat", "rom2", "no second-game claim names a held attribute button repeat"},
 	{"pre-create.sparkle.gap-steps", "rom2", "the second game's sparkle waits a drawn time, not a step count (R2-ENGINE-284)"},
 	{"pre-create.sparkle.tour", "rom2", "the second game's sparkle runs inside a drawn control, not along a tour (R2-ENGINE-284)"},
+	{"detail.classes[].tooltip", "rom1", "the first game shows no tooltip over its weapon pictures (HERO-ROUTE-182)"},
 	{"detail.card-shadow", "rom1", "the first game's statistics cards draw their text with no shadow"},
 	{"detail.default-skill", "rom1", "the first game's skill row opens on the party skill slot, not a described default"},
 	{"hover", "rom1", "the first game's generator hover help draws as every first-game hover help draws (MENU-128)"},

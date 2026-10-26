@@ -1630,3 +1630,34 @@ func TestRouteWitnessWindowGeometry(t *testing.T) {
 		}
 	}
 }
+
+// TestReleaseGeneratorFreePoolTooltip rests the pointer on the detailed page's
+// free-points readout through the App's own input and reads the hover box:
+// the installed text of the readout's hover slot, in the install's language.
+func TestReleaseGeneratorFreePoolTooltip(t *testing.T) {
+	root := os.Getenv("AGAINROM_ASSETS")
+	if root == "" {
+		t.Skip("no AGAINROM_ASSETS: the free pool tooltip needs a lawful install")
+	}
+	archives, err := OpenArchives(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, stages := newRouteWitness(t, archives.Game() == base.GameROM2, "")
+	for _, s := range stages[:2] {
+		w.stage = s.name
+		s.walk(w)
+	}
+	w.stage = "generator-detail"
+	if got := w.screen(); got != "chargen/detailed" {
+		t.Fatalf("the walk ends on %s, want chargen/detailed", got)
+	}
+	w.closeChargenTip()
+	pool := w.f.ChargenSetup().PreCreate.Art.Layout.Detail.Stats.Pool.Rectangle()
+	w.hover("free pool readout", pool, routeMiddle(pool))
+	lines := w.app.HeadlessTooltipLines()
+	t.Logf("%s: free pool readout %v tooltip %q", archives.Game(), pool, lines)
+	if len(lines) == 0 || strings.TrimSpace(strings.Join(lines, "")) == "" {
+		t.Fatal("the free pool readout shows no tooltip")
+	}
+}

@@ -125,7 +125,7 @@ func TestCutsceneLibraryScrollAndPressCapture1184(t *testing.T) {
 	if top, _ := a.movieList().Visible(); a.movieList().Selection() != 0 || top != 0 {
 		t.Fatal("first movie not visible")
 	}
-	p := movieCancel.Min.Add(image.Pt(3, 3))
+	p := a.cutsceneLayout().Cancel.Rectangle().Min.Add(image.Pt(3, 3))
 	a.stepMedia(appInput{CursorX: p.X, CursorY: p.Y, PrimaryPressed: true}, time.Time{})
 	a.stepMedia(appInput{PrimaryReleased: true, CursorX: 1, CursorY: 1}, time.Time{})
 	if a.Screen() != ScreenCutsceneLibrary {

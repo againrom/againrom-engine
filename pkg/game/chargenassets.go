@@ -284,8 +284,8 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 		}
 	}
 	for class, c := range d.Classes {
-		for skill := 0; skill < c.Selectable; skill++ {
-			if a.SkillHover[class][skill], err = get(c.Tooltip + skill); err != nil {
+		for skill := 0; c.Tooltip != nil && skill < c.Selectable; skill++ {
+			if a.SkillHover[class][skill], err = get(*c.Tooltip + skill); err != nil {
 				return nil, err
 			}
 		}

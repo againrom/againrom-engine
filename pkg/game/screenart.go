@@ -13,6 +13,7 @@ import (
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
+	"againrom/pkg/ui"
 )
 
 // The install side of the one screen art loader: the source that decodes the
@@ -41,7 +42,23 @@ type Screens struct {
 type ScreenManifest struct {
 	Screen string            `json:"screen"`
 	Art    []screenart.Entry `json:"art"`
-	Cite   []string          `json:"cite"`
+	// CutsceneList is the View Cutscenes list and button geometry, named by
+	// the menu-media manifest only.
+	CutsceneList *ui.CutsceneLibraryLayout `json:"cutscene-list"`
+	Cite         []string                  `json:"cite"`
+}
+
+// CutsceneLibrary answers the View Cutscenes geometry the menu-media manifest
+// names, false when the description names none.
+func (s *Screens) CutsceneLibrary() (ui.CutsceneLibraryLayout, bool) {
+	if s != nil {
+		for _, m := range s.Manifests {
+			if m.Screen == "menu-media" && m.CutsceneList != nil {
+				return *m.CutsceneList, true
+			}
+		}
+	}
+	return ui.CutsceneLibraryLayout{}, false
 }
 
 // Art answers screen's manifest, nil when the description names none.

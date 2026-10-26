@@ -35,6 +35,7 @@ type mediaUI struct {
 	press   buttonLatch
 	bar     scrollBarInput
 	message string
+	layout  CutsceneLibraryLayout
 	credits func() CreditsView
 	roll    CreditsView
 	scroll  []*image.RGBA
@@ -98,12 +99,42 @@ func (a *App) encounterCutscene(name string) {
 	}
 }
 
-var moviePanel = image.Rect(120, 62, 520, 424)
-var movieListArg = image.Rect(170, 134, 466, 334)
-var movieOK = image.Rect(172, 376, 296, 400)
-var movieCancel = image.Rect(348, 376, 472, 400)
+// CutsceneLibraryLayout is a game's View Cutscenes page: the panel and the
+// rectangle its title is centred in, how many row slots the list holds, where
+// the list stands, how wide and how high it is (zero height: whole rows), and
+// the Ok and Cancel rectangles. The ruled rows are the library's own.
+type CutsceneLibraryLayout struct {
+	Panel     GeneratorRect  `json:"panel"`
+	Title     GeneratorRect  `json:"title"`
+	Rows      int            `json:"rows"`
+	ListAt    GeneratorPoint `json:"list-at"`
+	ListWidth int            `json:"list-width"`
+	// ListHeight, when set, cuts the list's last row slot short.
+	ListHeight int           `json:"list-height"`
+	OK         GeneratorRect `json:"ok"`
+	Cancel     GeneratorRect `json:"cancel"`
+	Cite       []string      `json:"cite"`
+}
 
-const movieVisibleRows = 10
+// defaultCutsceneLibraryLayout stands for an application no game wired.
+var defaultCutsceneLibraryLayout = CutsceneLibraryLayout{
+	Panel: GeneratorRect{120, 62, 520, 424}, Title: GeneratorRect{148, 88, 492, 116},
+	Rows: 10, ListAt: GeneratorPoint{170, 134}, ListWidth: 296,
+	OK: GeneratorRect{172, 376, 296, 400}, Cancel: GeneratorRect{348, 376, 472, 400},
+}
+
+// SetCutsceneLibraryLayout installs the game's list and button geometry.
+func (a *App) SetCutsceneLibraryLayout(l CutsceneLibraryLayout) { a.media.layout = l }
+
+// cutsceneLayout is the installed layout, or the default when none names rows.
+func (a *App) cutsceneLayout() CutsceneLibraryLayout {
+	if a.media.layout.Rows > 0 {
+		return a.media.layout
+	}
+	return defaultCutsceneLibraryLayout
+}
+
+func (a *App) movieVisibleRows() int { return a.cutsceneLayout().Rows }
 
 // The library's two buttons, as button latch ids.
 const (
@@ -113,7 +144,14 @@ const (
 
 // movieListBox is the library's shared list.
 func (a *App) movieListBox() listBox {
-	return newListBox(movieListArg, movieVisibleRows, a.flow.menuFont)
+	l := a.cutsceneLayout()
+	at := l.ListAt.Pt()
+	box := newListBox(image.Rectangle{Min: at, Max: image.Pt(at.X+l.ListWidth, at.Y)}, l.Rows, a.flow.menuFont)
+	if l.ListHeight > 0 {
+		box.Rect.Max.Y = at.Y + l.ListHeight
+	}
+	box.Ruled = true
+	return box
 }
 
 // movieList is the shared list over the seen entries, rebuilt when the seen
@@ -129,7 +167,7 @@ func (a *App) movieList() *Picker {
 		for i, e := range entries {
 			rows[i] = PickerRow{Text: e.Title, Choosable: true}
 		}
-		a.media.list = NewPicker(rows).SetWindow(movieVisibleRows)
+		a.media.list = NewPicker(rows).SetWindow(a.movieVisibleRows())
 		a.media.list.Select(clampIndex(sel, len(rows)))
 	}
 	return a.media.list
@@ -167,11 +205,12 @@ func (a *App) replayMovie() {
 }
 
 // movieButtonAt is the library button under p.
-func movieButtonAt(p image.Point) (int, bool) {
+func (a *App) movieButtonAt(p image.Point) (int, bool) {
+	l := a.cutsceneLayout()
 	switch {
-	case p.In(movieOK):
+	case p.In(l.OK.Rectangle()):
 		return movieOKButton, true
-	case p.In(movieCancel):
+	case p.In(l.Cancel.Rectangle()):
 		return movieCancelButton, true
 	}
 	return 0, false
@@ -240,14 +279,14 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 		return
 	}
 	if in.PrimaryPressed {
-		a.media.press.Press(movieButtonAt(p))
+		a.media.press.Press(a.movieButtonAt(p))
 		if row, hit := box.RowAt(p); ok && hit {
 			top, _ := list.Visible()
 			a.selectMovie(top + row)
 		}
 	}
 	if in.PrimaryReleased {
-		at, inside := movieButtonAt(p)
+		at, inside := a.movieButtonAt(p)
 		button, activated := a.media.press.Release(at, ok && inside)
 		if !activated {
 			return
@@ -267,26 +306,30 @@ func (a *App) composeCutsceneLibrary() *image.RGBA {
 	if a.assets != nil {
 		draw.Draw(dst, dst.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
-	drawFrame(dst, windowFrame(moviePanel, a.flow.menuArt))
+	drawFrame(dst, windowFrame(a.cutsceneLayout().Panel.Rectangle(), a.flow.menuArt))
 	font := a.flow.menuFont
 	if font == nil {
 		return dst
 	}
-	drawTownShellText(dst, font, a.media.words.Title, image.Rect(148, 88, 492, 116), townShellText)
+	drawTownShellText(dst, font, a.media.words.Title, a.cutsceneLayout().Title.Rectangle(), townShellText)
 	entries := a.seenCutscenes()
 	list := a.movieList()
 	pointer, pointerOK := a.pointerFrame()
-	drawListBox(dst, font, a.media.scroll, a.movieListBox(), list, func(row, _ int) string { return entries[row].Title }, pointer, pointerOK)
+	box := a.movieListBox()
+	layout := a.cutsceneLayout()
+	drawListBox(dst, font, a.media.scroll, box, list, func(row, _ int) string { return entries[row].Title }, pointer, pointerOK)
+	// The message line stands a button's height and a gap above the buttons.
+	messageY := layout.OK.Rectangle().Min.Y - 26
 	if len(entries) == 0 {
-		font.Draw(dst, a.flow.menuDisplayText(a.mediaMessages().Empty), movieListArg.Min.X+4, 350, townShellText)
+		font.Draw(dst, a.flow.menuDisplayText(a.mediaMessages().Empty), box.Rect.Min.X+4, messageY, townShellText)
 	}
-	for i, r := range []image.Rectangle{movieOK, movieCancel} {
+	for i, r := range []image.Rectangle{layout.OK.Rectangle(), layout.Cancel.Rectangle()} {
 		inside := pointerOK && pointer.In(r)
 		drawPushButton(dst, font, pushButton{Rect: r, Label: []string{a.media.words.OK, a.media.words.Cancel}[i],
 			Hover: inside, Pressed: a.media.press.Pressed(i), Inside: inside})
 	}
 	if a.media.message != "" {
-		font.Draw(dst, a.flow.menuDisplayText(a.media.message), movieListArg.Min.X, 350, townShellText)
+		font.Draw(dst, a.flow.menuDisplayText(a.media.message), box.Rect.Min.X, messageY, townShellText)
 	}
 	return dst
 }

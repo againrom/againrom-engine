@@ -75,8 +75,8 @@ func TestReleaseSecondGameInstallWordsReadInTheFont(t *testing.T) {
 	}
 	for class, c := range d.Classes {
 		for skill := 0; skill < c.Selectable; skill++ {
-			hover("skill", c.Tooltip+skill)
-			shipped, _ := main.At(c.Tooltip + skill)
+			hover("skill", *c.Tooltip+skill)
+			shipped, _ := main.At(*c.Tooltip + skill)
 			if got := f.ChargenAssets.SkillHover[class][skill]; !secondGameWordReads(selector, shipped, got) {
 				t.Errorf("generator skill %d/%d reads %q from %q", class, skill, got, shipped)
 			}

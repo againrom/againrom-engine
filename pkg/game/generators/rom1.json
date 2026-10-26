@@ -113,7 +113,7 @@
          {"dir": "graphics/interface/chrgen/fighter/pike/", "mask": 127, "at": [84, 225], "sound": "chrgen/skill/fpike.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
          {"dir": "graphics/interface/chrgen/fighter/bow/", "mask": 102, "at": [88, 250], "sound": "chrgen/skill/fbow.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]}
        ],
-       "selectable": 5, "tooltip": 171, "cite": ["TOWN-522", "TEXT-082"]},
+       "selectable": 5, "cite": ["TOWN-522", "HERO-ROUTE-182"]},
       {"column": {"key": "graphics/interface/chrgen/mag/column.bmp", "size": [320, 480], "cite": ["TOWN-234", "DIV-190"]},
        "mask": {"key": "graphics/interface/chrgen/mag/mask.bmp", "size": [320, 480], "cite": ["TOWN-234"]},
        "skills": [
@@ -123,7 +123,7 @@
          {"dir": "graphics/interface/chrgen/mag/earth/", "mask": 152, "at": [140, 228], "sound": "chrgen/skill/mearth.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]},
          {"dir": "graphics/interface/chrgen/mag/astral/", "mask": 191, "at": [136, 158], "sound": "chrgen/skill/mastral.wav", "cite": ["TOWN-522", "VIDEO-SFX-059"]}
        ],
-       "selectable": 5, "tooltip": 176, "cite": ["TOWN-522", "TEXT-082"]}
+       "selectable": 5, "cite": ["TOWN-522", "HERO-ROUTE-182"]}
     ],
     "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "linger": false, "cite": ["TOWN-522"]},
     "stats": {
@@ -154,8 +154,8 @@
       {"role": "back", "slot": 260, "rect": [494, 160, 614, 212], "on": "graphics/interface/shopbutton4.bmp", "size": [120, 52], "keyed": true, "cite": ["MENU-139", "SHOP-SCREEN-035", "DIV-2868"]},
       {"role": "restore", "rect": [483, 67, 623, 113], "on": "graphics/interface/shopbutton2.bmp", "size": [140, 46], "keyed": true, "cite": ["SHOP-SCREEN-035", "DIV-2868"]}
     ],
-    "command-ink": [255, 230, 150],
-    "command-hover-ink": [255, 255, 224],
+    "command-ink": [189, 158, 74],
+    "command-hover-ink": [255, 255, 115],
     "command-sink": [0, 1],
     "message": [484, 462, 636, 476],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-115"]},
@@ -165,7 +165,7 @@
     "reset": [{"language": "", "values": "start", "skill": "keep", "cite": ["MENU-139", "HERO-CHARGEN-082", "DIV-1277"]}],
     "restore": [{"language": "", "values": "template", "skill": "preset", "cite": ["DIV-2868"]}],
     "refusals": {"empty-slot": 193, "reserved-slot": 194, "reserved": ["self", "computer"], "cite": ["DIV-116"]},
-    "cite": ["TOWN-232", "TOWN-523", "DIV-2717"]
+    "cite": ["TOWN-232", "TOWN-523", "DIV-2717", "HERO-ROUTE-182"]
   },
   "tip-cycles": {
     "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],

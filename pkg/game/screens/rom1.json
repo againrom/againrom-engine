@@ -142,6 +142,7 @@
        {"name": "scroll", "format": "sprites", "key": "graphics/interface/scrlbars.256", "cite": ["owner"]},
        {"name": "hover", "format": "picture", "key": "graphics/interface/Ball.bmp", "size": [4, 4], "transparent": "black", "cite": ["owner"]}
      ],
+     "cutscene-list": {"panel": [120, 62, 520, 424], "title": [148, 86, 492, 114], "rows": 8, "list-at": [165, 148], "list-width": 283, "list-height": 149, "ok": [180, 360, 292, 384], "cancel": [348, 360, 460, 384], "cite": ["MENU-ROUTE-163"]},
      "cite": ["owner"]},
     {"screen": "credits",
      "art": [

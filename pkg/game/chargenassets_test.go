@@ -145,8 +145,8 @@ func TestLoadChargenAssets(t *testing.T) {
 	if got.Prompt != "Character name:" || got.Play != "Accept" || got.Reset != "Reset" || got.Back != "Back" {
 		t.Fatalf("raw source words = %q / %q / %q / %q", got.Prompt, got.Play, got.Reset, got.Back)
 	}
-	if got.Presentation.Skills[1][4][2] == nil || got.Presentation.Columns[1] == nil || got.Presentation.ColumnMask[1] == nil || got.Presentation.StatButtons[1][4] == nil || got.SkillHover[1][4] != "x" {
-		t.Fatal("detailed skill presentation was not retained")
+	if got.Presentation.Skills[1][4][2] == nil || got.Presentation.Columns[1] == nil || got.Presentation.ColumnMask[1] == nil || got.Presentation.StatButtons[1][4] == nil || got.SkillHover[1][4] != "" {
+		t.Fatal("detailed skill presentation was not retained, or the first game's skill pictures name a hover text")
 	}
 	// Picture order is male fighter, male mage, female fighter, female mage.
 	if want := [4]string{"npc20", "npc22", "npc21", "npc23"}; got.HeroNames != want || got.EnterName != "npc20" {

@@ -407,7 +407,9 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 		switch {
 		case id >= chargenSkill0 && id <= chargenSkill4:
 			_, class := c.heroParts(c.preChoice)
-			slot = d.Classes[class].Tooltip + int(id-chargenSkill0)
+			if first := d.Classes[class].Tooltip; first != nil {
+				slot = *first + int(id-chargenSkill0)
+			}
 		case id >= chargenStatMinus0 && id <= chargenStatMinus3:
 			stat := int(id - chargenStatMinus0)
 			return chargenStatTooltip(c, stat, false, id, font)

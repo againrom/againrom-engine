@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] The Hall of Fame shows a zero score as 0 instead of leaving it empty, and View Cutscenes draws its list in ruled rows like the original, with eight rows in each game. In the first game Ok and Cancel there stand where the original puts them, the weapon pictures on the hero creation detail page open no tooltip, and its Accept, Reset and Back captions take the original's tan and yellow.
 - [ROM2] The main menu behaves as in the original: the intro movie plays at launch, Esc on the menu or the Hall of Fame does nothing instead of asking to quit or closing the hall, and Cut Scenes always opens its list of watched movies. The credits show the Nival logo instead of the text "nival.bmp", and back on the menu no caption shows until the mouse moves.
 - [ROM2] Hero creation matches the original in four details: the statistics card's words and numbers have a dark shadow, as do the inn patron's card and the hero panel's card; a command under the pointer (Accept, Reset, Back, Restore) turns yellow without changing its plaque; the last weapon the pointer touched stays lit until another weapon is touched or one is chosen; and the letters of the name field have no dark edges.
 

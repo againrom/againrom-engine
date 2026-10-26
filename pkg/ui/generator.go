@@ -277,8 +277,10 @@ type GeneratorClass struct {
 	Mask       GeneratorArt     `json:"mask"`
 	Skills     []GeneratorSkill `json:"skills"`
 	Selectable int              `json:"selectable"`
-	Tooltip    int              `json:"tooltip"`
-	Cite       []string         `json:"cite"`
+	// Tooltip is the first hover text slot of the class's skills; nil when
+	// the game shows none over its skill pictures.
+	Tooltip *int     `json:"tooltip"`
+	Cite    []string `json:"cite"`
 }
 
 // GeneratorSkillStates are the file names of a skill cell's three pictures.

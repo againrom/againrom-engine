@@ -100,6 +100,9 @@ func (f *FrontEnd) wireMediaMenu(a *ui.App) {
 	}
 	seen, _ := f.Options.EncounteredCutscenes()
 	a.SetCutsceneLibrary(f.movieCatalog(), seen, f.Options.EncounterCutscene, words)
+	if layout, ok := ScreensDescription(f.profile()).CutsceneLibrary(); ok {
+		a.SetCutsceneLibraryLayout(layout)
+	}
 	if f.Archives != nil && f.Archives.Containers != nil {
 		scroll, ball := loadMenuMediaArt(f.Archives.artSource(), ScreensDescription(f.profile()))
 		a.SetCutsceneScrollArt(scroll)
