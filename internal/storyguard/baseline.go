@@ -3029,6 +3029,11 @@ package storyguard
 // caption offset in widgetpanel.go, the skill light in chargen.go, the
 // description fields in generator.go, pkg/ui/chargen_details_test.go, and
 // this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's route
+// witness steps for the original's menu trips, town points, talk box and
+// shop drag, all new code in pkg/game/routewitness_release_test.go, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3057,6 +3062,7 @@ var Committed = Baseline{
 	// for the body words a SAVE keeps from LOAD, then for the second game's
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
-	// inn patrons.
-	CommentBytes: 9696824,
+	// inn patrons, then for the route witness steps of the original's missing
+	// screens.
+	CommentBytes: 9698501,
 }

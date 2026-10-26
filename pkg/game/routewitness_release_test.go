@@ -41,6 +41,7 @@ var secondRouteStages = []routeStage{
 	{"town-statue", "town/square", (*routeWitness).statue},
 	{"tavern", "town/square", (*routeWitness).tavern},
 	{"shop", "town/square", (*routeWitness).shop},
+	{"town-blank", "town/square", (*routeWitness).squareBlank},
 	{"way-out", "town/square", (*routeWitness).wayOut},
 	{"world-map", "town/worldmap", (*routeWitness).worldMap},
 	{"mission-dialogue", "map", (*routeWitness).missionDialogue},
@@ -398,8 +399,86 @@ func (w *routeWitness) expect(want, what string) {
 	}
 }
 
-// menu hovers each button the menu's mask answers, then presses New Game.
+// The original's menu points, Hall of Fame seal and credits wait.
+var (
+	routeMenuLoad      = image.Pt(385, 95)
+	routeMenuHall      = image.Pt(458, 298)
+	routeMenuCredits   = image.Pt(250, 380)
+	routeMenuCutscenes = image.Pt(170, 295)
+	routeHallSeal      = image.Pt(575, 435)
+	routeCreditsWait   = 10 * time.Second
+)
+
+// menuButton is the menu region at p, which must bind action.
+func (w *routeWitness) menuButton(regions []routeRegion, p image.Point, action menu.Action) image.Rectangle {
+	b := w.f.Assets.ButtonAt(p)
+	if got := w.f.Assets.Binding(b).Action; b == 0 || got != action {
+		w.t.Errorf("menu: the original's point %v answers button %d action %d, want action %d", p, b, got, action)
+	}
+	for _, r := range regions {
+		if strings.HasPrefix(r.key, fmt.Sprintf("%d ", b)) {
+			return r.rect
+		}
+	}
+	return image.Rectangle{}
+}
+
+// escape sends the original's Esc of step and records it; on the menu the
+// App answers an exit request, which the row states.
+func (w *routeWitness) escape(step string) {
+	before := w.screen()
+	extra := ""
+	if err := w.app.HeadlessKey("escape"); err != nil {
+		extra = "exit requested: " + err.Error()
+	}
+	w.run(2)
+	w.record("key escape ("+step+")", image.Rectangle{}, "key", w.result(before, extra))
+}
+
+// waitFor runs the headless clock for d and records the screen.
+func (w *routeWitness) waitFor(control string, d time.Duration) {
+	before := w.screen()
+	w.run(int(d / (20 * time.Millisecond)))
+	w.record(control, image.Rectangle{}, "wait", w.result(before, fmt.Sprintf("after %v", d)))
+}
+
+// menuTrips takes the original's side trips from the menu.
+func (w *routeWitness) menuTrips(regions []routeRegion) {
+	r := w.menuButton(regions, routeMenuLoad, menu.ActionLoad)
+	w.click("load game (s1.30)", r, routeMenuLoad, 2, nil)
+	w.escape("s1.31")
+	r = w.menuButton(regions, routeMenuHall, menu.ActionHallOfFame)
+	w.click("hall of fame (s1.32)", r, routeMenuHall, 2, nil)
+	hall := w.screen()
+	w.escape("s1.33")
+	if w.screen() != hall {
+		w.click("hall of fame again, to reach s1.34", r, routeMenuHall, 2, nil)
+	}
+	w.hover("hall seal ok (s1.34)", image.Rectangle{}, routeHallSeal)
+	w.click("hall seal ok (s1.35)", image.Rectangle{}, routeHallSeal, 2, nil)
+	if w.screen() != "menu" {
+		w.t.Errorf("menu: the hall seal leaves %s", w.screen())
+		w.escape("after s1.35")
+	}
+	r = w.menuButton(regions, routeMenuCredits, menu.ActionCredits)
+	w.click("credits (s1.36)", r, routeMenuCredits, 2, nil)
+	w.waitFor("credits roll (s1.37)", routeCreditsWait)
+	w.escape("s1.38")
+	w.expect("menu", "the credits Esc")
+	r = w.menuButton(regions, routeMenuCutscenes, menu.ActionCutscenes)
+	w.click("cut scenes (s1.39)", r, routeMenuCutscenes, 2, nil)
+	w.escape("s1.40")
+	w.expect("menu", "the side trips")
+}
+
+// menu records the launch, hovers each button the menu's mask answers,
+// takes the original's side trips, then presses New Game.
 func (w *routeWitness) menu() {
+	if movies := w.f.Base().Profile.Edition().StartupCutscenes; len(movies) == 0 {
+		w.record("intro movie (s1.01, s1.02)", image.Rectangle{}, "wait", "none: the edition names no startup movie; the App opens on the menu")
+	} else {
+		w.t.Errorf("menu: the edition names %d startup movies the witness does not play", len(movies))
+	}
 	w.wait("menu")
 	regions := routeRegions(image.Pt(menu.FrameW, menu.FrameH), 2, func(p image.Point) (string, bool) {
 		b := w.f.Assets.ButtonAt(p)
@@ -421,9 +500,11 @@ func (w *routeWitness) menu() {
 	if newGame < 0 {
 		w.t.Fatal("menu: no New Game button")
 	}
+	w.menuTrips(regions)
 	r := regions[newGame]
 	w.click(r.key, r.rect, r.at, 2, nil)
 	w.expect("chargen/precreate", "New Game")
+	w.record("intro movie (s1.42)", image.Rectangle{}, "wait", "none: New Game opened the hero creation with no movie, and no movie plays at launch")
 }
 
 // closeChargenTip hovers the generator's tip panel controls and closes it.
@@ -528,6 +609,13 @@ func (w *routeWitness) detail() {
 // squareRegions is the shown room's controls by its scene's own hit and
 // tip tests, outside a showing tip panel.
 func (w *routeWitness) squareRegions() []routeRegion {
+	size, at := w.squareAt()
+	return routeRegions(size, 2, at)
+}
+
+// squareAt is the shown room's size and the key its hit and tip tests
+// answer at a point.
+func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)) {
 	v := w.town.TownSquareView()
 	if v.Scene == nil {
 		w.t.Fatalf("%s: the room has no scene", w.stage)
@@ -541,7 +629,7 @@ func (w *routeWitness) squareRegions() []routeRegion {
 		list, _ := w.town.state().innSeats()
 		seats = len(list)
 	}
-	return routeRegions(v.Scene.Size(), 2, func(p image.Point) (string, bool) {
+	return v.Scene.Size(), func(p image.Point) (string, bool) {
 		if v.Tip.Covers(p) {
 			return "", false
 		}
@@ -567,7 +655,7 @@ func (w *routeWitness) squareRegions() []routeRegion {
 			return fmt.Sprintf("tip %d%s", tip, part), true
 		}
 		return "", false
-	})
+	}
 }
 
 // sceneControl is the room region whose control is the menu, or a door
@@ -601,12 +689,47 @@ func (w *routeWitness) closeTownTip(v ui.TipPanelView) {
 	w.click("tip close", closeRect, routeMiddle(closeRect), 2, nil)
 }
 
+// routeSquareBlank is the original's town points that show no caption, with
+// their step ids (s3.04, s3.09 to s3.14).
+var routeSquareBlank = []struct {
+	step, what string
+	at         image.Point
+}{
+	{"s3.04", "hanging sign on the left building", image.Pt(115, 370)},
+	{"s3.09", "horse and cart", image.Pt(510, 440)},
+	{"s3.10", "man at the statue base", image.Pt(345, 445)},
+	{"s3.11", "woman at the statue base", image.Pt(410, 445)},
+	{"s3.12", "blue shield sign", image.Pt(385, 250)},
+	{"s3.13", "right building upper wall", image.Pt(560, 250)},
+	{"s3.14", "left building upper wall", image.Pt(40, 200)},
+}
+
 // square hovers every control and tip area of the town square.
 func (w *routeWitness) square() {
 	w.wait("town square")
 	w.closeTownTip(w.town.TownSquareView().Tip)
 	for _, r := range w.squareRegions() {
 		w.hover(r.key, r.rect, r.at)
+	}
+}
+
+// squareBlank closes a showing tip panel and hovers the original's
+// no-caption points with the region our hit test answers at each. It runs
+// after the last room visit: a square actor keeps its phase across visits.
+func (w *routeWitness) squareBlank() {
+	if v := w.town.TownSquareView().Tip; v.Showing() {
+		closeRect := ui.TipPanelCloseRect(v.Rect)
+		w.click("tip close, before s3.04", closeRect, routeMiddle(closeRect), 2, nil)
+	}
+	regions := w.squareRegions()
+	_, at := w.squareAt()
+	for _, b := range routeSquareBlank {
+		control, rect := fmt.Sprintf("%s (%s): no region", b.what, b.step), image.Rectangle{}
+		if k, ok := at(b.at); ok {
+			r, _ := routeFind(regions, k)
+			control, rect = fmt.Sprintf("%s (%s): %s", b.what, b.step, k), r.rect
+		}
+		w.hover(control, rect, b.at)
 	}
 }
 
@@ -625,11 +748,14 @@ func (w *routeWitness) statue() {
 }
 
 // dialoguePages turns every page of the open town dialogue with its button
-// and answers the page count.
-func (w *routeWitness) dialoguePages(what string) int {
+// and answers the page count; before, when set, acts on each page first.
+func (w *routeWitness) dialoguePages(what string, before func(page int)) int {
 	for pages := 0; pages < 64; pages++ {
 		if _, open := w.town.dialogueBody(); !open {
 			return pages
+		}
+		if before != nil {
+			before(pages)
 		}
 		pic, showing := w.town.TownDialogue()
 		if !showing || pic == nil {
@@ -656,7 +782,7 @@ func (w *routeWitness) enter(target, room string) {
 	if !w.until(400, func() bool { return w.screen() != "town/square" }) {
 		w.t.Fatalf("%s: %s opened nothing", w.stage, target)
 	}
-	w.dialoguePages(target)
+	w.dialoguePages(target, nil)
 	w.expect("town/"+room, target)
 	w.wait(room)
 }
@@ -664,7 +790,7 @@ func (w *routeWitness) enter(target, room string) {
 // tavern hovers the inn page's seats and buttons, selects each seat with a
 // click, which opens no talk, talks to each selected person page by page by
 // the button that acts on the seat, reports the hire offer and leaves by
-// Exit.
+// Exit. The talk with patron 2 takes the original's modality steps.
 func (w *routeWitness) tavern() {
 	w.enter("TAVERN", "inn")
 	w.closeTownTip(w.town.TownSquareView().Tip)
@@ -691,7 +817,11 @@ func (w *routeWitness) tavern() {
 		}
 		r := w.sceneControl(label)
 		w.click(label, r.rect, r.at, 2, nil)
-		if n := w.dialoguePages(label); n == 0 && i >= hires {
+		var modal func(int)
+		if i == routeTalkSeat {
+			modal = w.talkModality
+		}
+		if n := w.dialoguePages(label, modal); n == 0 && i >= hires {
 			w.t.Errorf("tavern: %s opened no dialogue", label)
 		}
 	}
@@ -699,6 +829,40 @@ func (w *routeWitness) tavern() {
 	w.click(secondInnExit, r.rect, r.at, 2, nil)
 	w.until(200, func() bool { return w.screen() == "town/square" })
 	w.expect("town/square", "Exit")
+}
+
+// The original's talk-box modality steps on patron 2's talk.
+var (
+	routeTalkSeat    = 2
+	routeTalkWait    = 10 * time.Second
+	routeTalkButton  = image.Pt(553, 112)
+	routeTalkPatrons = map[int]struct {
+		step   string
+		patron int
+		at     image.Point
+	}{
+		1: {"s3.43", 1, image.Pt(247, 445)},
+		2: {"s3.45", 0, image.Pt(200, 445)},
+	}
+)
+
+// talkModality takes the original's step on the open talk box's page.
+func (w *routeWitness) talkModality(page int) {
+	if page == 0 {
+		w.waitFor("talk box (s3.41)", routeTalkWait)
+		return
+	}
+	p, ok := routeTalkPatrons[page]
+	if !ok {
+		return
+	}
+	body, _ := w.town.dialogueBody()
+	note := func() string {
+		now, _ := w.town.dialogueBody()
+		return fmt.Sprintf("seat=%d page kept=%v", w.town.composed.seat, now == body)
+	}
+	w.click(fmt.Sprintf("patron %d outside the talk box (%s)", p.patron, p.step), image.Rectangle{}, p.at, 2, note)
+	w.click(fmt.Sprintf("talk outside the talk box (%s)", p.step), image.Rectangle{}, routeTalkButton, 2, note)
 }
 
 // The pane points the original's route used (R2-SESSION-203, R2-SESSION-204,
@@ -833,8 +997,40 @@ func (w *routeWitness) shopPoint(c shopControlRow) image.Point {
 	return routeMiddle(c.rect)
 }
 
+// The original's buy by drag (s3.64): shelf item 0 to the table.
+var (
+	routeShopShelfItem = image.Pt(43, 70)
+	routeShopTable     = image.Pt(100, 330)
+)
+
+// shopDrag drags the first shelf's item at the original's point to the
+// table at its point, as the original stages a buy, and takes the staging
+// back with undo.
+func (w *routeWitness) shopDrag() {
+	v := w.town.ShopScreen()
+	undo := shopControlRow{"button", 0, v.Layout.Button[0]}
+	if v.Chosen != 0 {
+		pick := shopControlRow{"shelf_pick", 0, v.Layout.ShelfPick[0]}
+		w.click("shelf_pick 0 (s3.64)", pick.rect, w.shopPoint(pick), 2, nil)
+	}
+	gold := w.f.Town.Gold()
+	staged := func() string {
+		v := w.town.ShopScreen()
+		return fmt.Sprintf("buy=%d sell=%d gold=%d table0=%v", v.Buy, v.Sell, w.f.Town.Gold(), v.Table[0].Icon != nil)
+	}
+	w.drag("shelf item 0 to the table (s3.64)", v.Layout.ShelfCellRect(0), routeShopShelfItem, routeShopTable, 2, staged)
+	if v := w.town.ShopScreen(); v.Table[0].Icon == nil || v.Buy == 0 {
+		w.t.Errorf("shop: the drag from %v to %v staged buy %d", routeShopShelfItem, routeShopTable, v.Buy)
+	}
+	w.click("button 0 undo, after s3.64", undo.rect, w.shopPoint(undo), 2, staged)
+	if v := w.town.ShopScreen(); v.Buy != 0 || w.f.Town.Gold() != gold {
+		w.t.Errorf("shop: undo left buy %d and gold %d from %d", v.Buy, w.f.Town.Gold(), gold)
+	}
+}
+
 // shop hovers every control of the shop page, opens each shelf and hovers
-// its first item, buys the cheapest item and sells it back, and leaves.
+// its first item, buys the cheapest item and sells it back, stages the
+// original's drag buy and takes it back, and leaves.
 func (w *routeWitness) shop() {
 	w.enter("SHOP", "shop")
 	w.closeTownTip(w.town.ShopScreen().TipPanel)
@@ -926,6 +1122,7 @@ func (w *routeWitness) shop() {
 	if w.f.Town.Gold() <= gold {
 		w.t.Errorf("shop: selling back left gold %d from %d", w.f.Town.Gold(), gold)
 	}
+	w.shopDrag()
 	w.click("button 3 leave", button(3).rect, w.shopPoint(button(3)), 2, nil)
 	w.until(200, func() bool { return w.screen() == "town/square" })
 	w.expect("town/square", "Leave")
@@ -936,7 +1133,7 @@ func (w *routeWitness) wayOut() {
 	r := w.sceneControl("GATES")
 	w.click("GATES", r.rect, r.at, 2, nil)
 	if !w.until(600, func() bool { return w.screen() == "town/worldmap" }) {
-		w.dialoguePages("GATES")
+		w.dialoguePages("GATES", nil)
 		w.t.Fatalf("way out: the gates show %s", w.screen())
 	}
 	w.wait("world map")
