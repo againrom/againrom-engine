@@ -23,6 +23,10 @@ modder or developer can notice gets no entry.
 - [ROM2] The main menu behaves as in the original: the intro movie plays at launch, Esc on the menu or the Hall of Fame does nothing instead of asking to quit or closing the hall, and Cut Scenes always opens its list of watched movies. The credits show the Nival logo instead of the text "nival.bmp", and back on the menu no caption shows until the mouse moves.
 - [ROM2] Hero creation matches the original in four details: the statistics card's words and numbers have a dark shadow, as do the inn patron's card and the hero panel's card; a command under the pointer (Accept, Reset, Back, Restore) turns yellow without changing its plaque; the last weapon the pointer touched stays lit until another weapon is touched or one is chosen; and the letters of the name field have no dark edges.
 
+### For map makers and modders
+
+- [BASE] The map editor's Save As window starts in the map's own folder, or in a `maps` folder beside the saves for a new, archive or installed map, and saving there works even when Againrom is unpacked inside the game folder. A refusal to save into the game folder now says so in your language and names the `maps` folder. Before, the window started in the game folder and every save there failed.
+
 ## 0.135.0
 
 ### For players

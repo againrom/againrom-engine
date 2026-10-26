@@ -556,6 +556,10 @@ func resolveOriginalWriteTarget(target string) (string, error) {
 	return resolvedTarget, nil
 }
 
+// errWriteUnderInstall is the start of every install-fence refusal, so a
+// caller can tell a refusal by the fence from a failure to inspect the target.
+var errWriteUnderInstall = errors.New("refusing to write original-format save under")
+
 // refuseUnderOriginal is the explicit fence: target, resolved or physical,
 // lies in originalDir.
 func refuseUnderOriginal(target, resolvedTarget, originalDir string) error {
@@ -569,7 +573,7 @@ func refuseUnderOriginal(target, resolvedTarget, originalDir string) error {
 			return fmt.Errorf("compare original-save target with read-only game install: %w", err)
 		}
 		if insideDir(resolvedOriginal, resolvedTarget) || physical {
-			return fmt.Errorf("refusing to write original-format save under read-only game install %s", originalDir)
+			return fmt.Errorf("%w read-only game install %s", errWriteUnderInstall, originalDir)
 		}
 	}
 	return nil
@@ -583,7 +587,7 @@ func refuseInstallAncestor(target, resolvedTarget string) error {
 		return fmt.Errorf("inspect original-save target ancestors for %s: %w", target, err)
 	}
 	if install {
-		return fmt.Errorf("refusing to write original-format save under game install %s", installDir)
+		return fmt.Errorf("%w game install %s", errWriteUnderInstall, installDir)
 	}
 	return nil
 }

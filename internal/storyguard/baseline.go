@@ -3071,5 +3071,7 @@ var Committed = Baseline{
 	// screens, then for the second game's main menu side screens.
 	// then for the first-game front screens hotfix: the cutscene layout, the
 	// ruled list rows and their tests.
-	CommentBytes: 9709445,
+	// then for the map editor save folder hotfix: new doc comments in
+	// pkg/game/mapinspectionedit.go and its tests.
+	CommentBytes: 9711745,
 }

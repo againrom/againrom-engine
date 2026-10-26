@@ -79,6 +79,12 @@ type InspectionEdits interface {
 	SaveAs(path string) (string, error)
 }
 
+// InspectionSaveFolder is implemented by edits whose host knows where the
+// Save As window starts; an empty answer leaves the window's own start.
+type InspectionSaveFolder interface {
+	SaveFolder() string
+}
+
 // InspectionInPlace is implemented by edits that can save over the map's own
 // host file. OwnFile says whether there is one; SaveInPlace writes it.
 type InspectionInPlace interface {

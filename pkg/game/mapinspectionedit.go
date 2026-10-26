@@ -568,6 +568,11 @@ func (s *mapInspectionEdits) Redo() (*ui.InspectionDocument, error) {
 // editor cannot write beside it, the texts folder or its pages, is left out
 // and named by SaveNote, and its edits stay in the workspace.
 func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
+	if path != "" && !filepath.IsAbs(path) {
+		if maps, _ := s.inspector.mapsFolder(); maps != "" {
+			path = filepath.Join(maps, path)
+		}
+	}
 	return s.save(path, false)
 }
 
@@ -588,7 +593,8 @@ func (s *mapInspectionEdits) OwnFile() (string, bool) {
 		return "", false
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
-	if err != nil || fenceEditorWrite(root, parent, "Save") != nil {
+	_, grant := s.inspector.mapsFolder()
+	if err != nil || fenceEditorWrite(root, parent, "Save", grant) != nil {
 		return "", false
 	}
 	if fi, err := os.Lstat(filepath.Join(parent, filepath.Base(abs))); err != nil || !fi.Mode().IsRegular() {
@@ -625,13 +631,14 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 	if err != nil {
 		s.noteUnwritten(err)
 	}
-	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage(), overwrite)
+	maps, grant := s.inspector.mapsFolder()
+	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage(), overwrite, grant)
 	if err != nil && len(pages) > 0 {
 		s.noteUnwritten(err)
-		target, err = writeEditedMap(root, s.source, path, b, overwrite)
+		target, err = writeEditedMap(root, s.source, path, b, overwrite, grant)
 	}
 	if err != nil {
-		return "", err
+		return "", s.inspector.fenceRefusal(err, maps)
 	}
 	s.saved, s.source = s.model.Bytes(), target
 	if s.saveNote == "" {
@@ -670,7 +677,7 @@ func (s *mapInspectionEdits) noteUnwritten(err error) {
 // existing file, or either preserved install, even through an alias. The
 // original-format save guard is reused for its physical-directory and archive
 // checks, not for any SAV serialization. No directories are created here.
-func writeEditedMap(root, source, path string, data []byte, overwrite bool) (string, error) {
+func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if strings.TrimSpace(path) == "" || !strings.EqualFold(filepath.Ext(path), ".alm") {
 		return "", fmt.Errorf("Save As needs an explicit new .alm path")
 	}
@@ -689,7 +696,7 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool) (str
 		return "", fmt.Errorf("resolve map output directory: %w", err)
 	}
 	target := filepath.Join(parent, base)
-	if err := fenceEditorWrite(root, parent, "Save As"); err != nil {
+	if err := fenceEditorWrite(root, parent, "Save As", grants...); err != nil {
 		return "", err
 	}
 	input := source
@@ -778,7 +785,12 @@ func replaceMapFile(parent, target string, data []byte) error {
 
 // fenceEditorWrite refuses a map write into the resolved directory parent
 // when it lies in the install at root or in a preserved pair beside it.
-func fenceEditorWrite(root, parent, verb string) error {
+func fenceEditorWrite(root, parent, verb string, grants ...*runtimeProfileAccess) error {
+	for _, grant := range grants {
+		if allowed, err := grant.allows(parent); err == nil && allowed {
+			return nil
+		}
+	}
 	roots := []string{root}
 	if root != "" {
 		resolvedRoot, err := editorPhysicalDirectory(root)
@@ -790,9 +802,79 @@ func fenceEditorWrite(root, parent, verb string) error {
 		roots = append(roots, preservedPairRoots(resolvedRoot)...)
 	}
 	if err := refuseOriginalWriteTargets(parent, roots); err != nil {
-		return fmt.Errorf("%s: %w", verb, err)
+		return &editorFenceError{verb: verb, folder: parent, cause: err}
 	}
 	return nil
+}
+
+// editorFenceError is a refusal of fenceEditorWrite: the folder refused and
+// the fence's own answer.
+type editorFenceError struct {
+	verb, folder string
+	cause        error
+}
+
+func (e *editorFenceError) Error() string { return e.verb + ": " + e.cause.Error() }
+func (e *editorFenceError) Unwrap() error { return e.cause }
+
+// fenceRefusal answers err in the editor's language when the install fence
+// refused the folder, naming the folder and the maps folder to save in; any
+// other error is answered as it is.
+func (x *MapInspector) fenceRefusal(err error, maps string) error {
+	var fence *editorFenceError
+	if !errors.As(err, &fence) || !errors.Is(fence.cause, errWriteUnderInstall) {
+		return err
+	}
+	t := words.For(x.pageLanguage())
+	if maps == "" {
+		return fmt.Errorf(t.Text("editor.save.fenced.plain"), fence.folder)
+	}
+	return fmt.Errorf(t.Text("editor.save.fenced"), fence.folder, maps)
+}
+
+// editorMapsFolder is the folder of the player profile the map editor saves
+// maps in, beside the profile's saves.
+const editorMapsFolder = "maps"
+
+// mapsFolder is the editor's maps folder, made when absent, and the grant that
+// admits writes beneath it when the profile sits inside the install. It
+// answers none when the editor has no player profile.
+func (x *MapInspector) mapsFolder() (string, *runtimeProfileAccess) {
+	if x.testPlay == nil || x.testPlay.Profile == nil {
+		return "", nil
+	}
+	profile, err := x.testPlay.Profile()
+	if err != nil {
+		return "", nil
+	}
+	root := ""
+	if x.archives != nil {
+		root = x.archives.Root
+	}
+	dir, grant, err := profile.folder(editorMapsFolder, root)
+	if err != nil {
+		return "", nil
+	}
+	return dir, grant
+}
+
+// SaveFolder is the folder the Save As window starts in: the folder of the
+// map's own host file when the editor may write there, else the maps folder.
+func (s *mapInspectionEdits) SaveFolder() string {
+	maps, grant := s.inspector.mapsFolder()
+	src := s.source
+	if src != "" && !isNewSource(src) && !strings.HasPrefix(src, "scenario/") && !strings.HasPrefix(src, "loose/") {
+		root := ""
+		if s.inspector.archives != nil {
+			root = s.inspector.archives.Root
+		}
+		if abs, err := filepath.Abs(src); err == nil {
+			if parent, err := editorPhysicalDirectory(filepath.Dir(abs)); err == nil && fenceEditorWrite(root, parent, "Save", grant) == nil {
+				return parent
+			}
+		}
+	}
+	return maps
 }
 
 func editorOrdinaryFilename(name string) bool {

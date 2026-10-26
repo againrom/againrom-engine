@@ -184,3 +184,34 @@ func TestEditorModSaveBypassesPathDialog(t *testing.T) {
 		t.Fatalf("mod save route changed: %v, %v", err, calls.lines)
 	}
 }
+
+// saveFolderEdits answers the folder its host names for the Save As window.
+type saveFolderEdits struct {
+	InspectionEdits
+	folder string
+}
+
+func (s *saveFolderEdits) SaveFolder() string { return s.folder }
+
+// The Save As window starts in the folder the host names; the Open window
+// keeps its own start, and an empty answer keeps the window's own start.
+func TestEditorSaveAsStartsInTheHostsSaveFolder(t *testing.T) {
+	edits := &saveFolderEdits{}
+	e := testPlayEditor(t, edits)
+	base := t.TempDir()
+	e.SetPathDialog(nil, base)
+	for _, c := range []struct {
+		folder string
+		kind   pathdialog.Kind
+		want   string
+	}{
+		{filepath.Join(base, "profile", "maps"), pathdialog.SaveFile, filepath.Join(base, "profile", "maps")},
+		{filepath.Join(base, "profile", "maps"), pathdialog.OpenFile, base},
+		{"", pathdialog.SaveFile, base},
+	} {
+		edits.folder = c.folder
+		if got := e.pathRequest(c.kind).StartDir; got != c.want {
+			t.Errorf("folder %q kind %v starts in %q, want %q", c.folder, c.kind, got, c.want)
+		}
+	}
+}

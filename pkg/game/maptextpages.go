@@ -206,7 +206,7 @@ func (x *MapInspector) editorPages(source string) *modPages {
 	return p
 }
 
-func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, lang string, overwrite bool) (string, error) {
+func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
@@ -215,7 +215,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if err != nil {
 		return "", err
 	}
-	if err := fenceEditorWrite(root, parent, "Save map pages"); err != nil {
+	if err := fenceEditorWrite(root, parent, "Save map pages", grants...); err != nil {
 		return "", err
 	}
 	folder := mapTextFolder(filepath.Join(parent, filepath.Base(abs)))
@@ -230,7 +230,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 	}
 	if len(pages) == 0 {
-		return writeEditedMap(root, source, path, data, overwrite)
+		return writeEditedMap(root, source, path, data, overwrite, grants...)
 	}
 	if lang != "en" && lang != "ru" {
 		return "", fmt.Errorf("unsupported page language %q", lang)
@@ -252,7 +252,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 			return "", err
 		}
 	}
-	target, err := writeEditedMap(root, source, path, data, overwrite)
+	target, err := writeEditedMap(root, source, path, data, overwrite, grants...)
 	if err != nil {
 		return "", err
 	}

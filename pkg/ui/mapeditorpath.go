@@ -55,6 +55,13 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 			}
 		}
 	}
+	if kind == pathdialog.SaveFile && e.editable() {
+		if f, ok := e.doc.Edits.(InspectionSaveFolder); ok {
+			if dir := f.SaveFolder(); dir != "" {
+				r.StartDir = dir
+			}
+		}
+	}
 	return r
 }
 
