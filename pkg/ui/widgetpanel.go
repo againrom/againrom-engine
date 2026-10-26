@@ -36,6 +36,8 @@ type panelComposition struct {
 	// LabelShift moves each plaque's label line, in plaque order.
 	LabelShift []image.Point
 	Ink        plaqueInk
+	// Sink, when set, replaces plaqueSink: how far a held caption moves.
+	Sink *image.Point
 }
 
 // panelArt is a panel's pictures. Plaques holds each plaque's off and on
@@ -65,13 +67,17 @@ type buttonPanel struct {
 func buildButtonPanel(c panelComposition, art panelArt, buttons []panelButton) buttonPanel {
 	n := min(len(buttons), len(c.Plaques))
 	out := make([]pushButton, n)
+	sink := plaqueSink
+	if c.Sink != nil {
+		sink = *c.Sink
+	}
 	for i := 0; i < n; i++ {
 		r, b := c.Plaques[i], buttons[i]
 		var shift image.Point
 		if i < len(c.LabelShift) {
 			shift = c.LabelShift[i]
 		}
-		face := &plaqueFace{Ink: c.Ink, Sink: plaqueSink, Captions: panelCaptions(r, b.Captions, c.FitLine, shift)}
+		face := &plaqueFace{Ink: c.Ink, Sink: sink, Captions: panelCaptions(r, b.Captions, c.FitLine, shift)}
 		var pair [2]image.Image
 		if i < len(art.Plaques) {
 			pair = art.Plaques[i]

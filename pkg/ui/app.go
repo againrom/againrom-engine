@@ -3612,6 +3612,7 @@ func (a *App) stepChargenDetailed(c *Chargen, in appInput, now time.Time) {
 		hit = detailedControlAt(c, p)
 	}
 	a.chargenHover = hit
+	c.noteSkillHover(hit)
 	a.chargenHoverText = ""
 	if c.setup.Detailed != nil && hit >= chargenSkill0 && hit <= chargenSkill4 && !a.chargenPress.Holds() {
 		a.chargenHoverText = c.setup.Detailed.SkillHover[c.columnClass()][int(hit-chargenSkill0)]
@@ -3677,6 +3678,7 @@ func (a *App) activateChargenDetailed(c *Chargen, id chargenControl, pointer boo
 		}
 		if pointer {
 			c.tipSkillClicked()
+			c.skillLit = -1
 		}
 		// No comparison with the previous selection guards the request.
 		if pointer && len(c.choiceIndex) > 2 && skill < len(c.choiceOptions(2)) {

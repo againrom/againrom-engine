@@ -180,7 +180,10 @@ type GeneratorNameField struct {
 	EnterLine int             `json:"enter-line"`
 	Unnamed   string          `json:"unnamed"`
 	LastPress bool            `json:"last-press"`
-	Cite      []string        `json:"cite"`
+	// Over mixes the prompt's and the name's coverage glyphs into the page
+	// (text.Font.DrawOver) instead of drawing them darkened.
+	Over bool     `json:"over"`
+	Cite []string `json:"cite"`
 }
 
 // GeneratorSparkle is the pre-create sparkle sprite. It steps one frame per
@@ -280,10 +283,13 @@ type GeneratorClass struct {
 
 // GeneratorSkillStates are the file names of a skill cell's three pictures.
 type GeneratorSkillStates struct {
-	SelectedAtRest string   `json:"selected-at-rest"`
-	Hover          string   `json:"hover"`
-	Selected       string   `json:"selected"`
-	Cite           []string `json:"cite"`
+	SelectedAtRest string `json:"selected-at-rest"`
+	Hover          string `json:"hover"`
+	Selected       string `json:"selected"`
+	// Linger keeps the last hovered skill drawn hovered after the pointer
+	// leaves it, until another skill is hovered or a skill is pressed.
+	Linger bool     `json:"linger"`
+	Cite   []string `json:"cite"`
 }
 
 // GeneratorStatButtons are one direction's button pictures.
@@ -438,6 +444,20 @@ type GeneratorDetail struct {
 	// CardOffset moves the statistics card's canvas right of Card's origin,
 	// as TownCharacterView.CardOffset does.
 	CardOffset GeneratorPoint `json:"card-offset"`
+	// CardShadow, when set, is the shadow of every text of the statistics
+	// cards built through ChargenPresentation.CardView.
+	CardShadow *GeneratorShadow `json:"card-shadow"`
+	// CommandHoverInk, when set, replaces the hovered caption's ink;
+	// CommandSink, when set, is how far a held caption moves.
+	CommandHoverInk *GeneratorInk   `json:"command-hover-ink"`
+	CommandSink     *GeneratorPoint `json:"command-sink"`
+}
+
+// GeneratorShadow is a text's flat shadow: its ink and its offset.
+type GeneratorShadow struct {
+	Ink  GeneratorInk   `json:"ink"`
+	At   GeneratorPoint `json:"at"`
+	Cite []string       `json:"cite"`
 }
 
 // GeneratorHover is how the game's hover help draws in the one hover box

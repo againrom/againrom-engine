@@ -18,7 +18,7 @@
     "name": {
       "rect": [224, 310, 362, 337], "text-at": [224, 321], "ink": [101, 39, 61], "cap": 10, "caret-ms": 500, "tooltip": 256,
       "prompt": {"slot": 125, "at": [224, 305], "align": "left", "ink": [65, 47, 20], "cite": ["TEXT-077"]},
-      "enter-line": 20, "unnamed": "Unnamed", "last-press": true,
+      "enter-line": 20, "unnamed": "Unnamed", "last-press": true, "over": false,
       "cite": ["TEXT-073", "TEXT-074", "TEXT-075", "TEXT-076", "TEXT-077", "DIV-1496"]
     },
     "heroes": [
@@ -125,7 +125,7 @@
        ],
        "selectable": 5, "tooltip": 176, "cite": ["TOWN-522", "TEXT-082"]}
     ],
-    "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "cite": ["TOWN-522"]},
+    "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "linger": false, "cite": ["TOWN-522"]},
     "stats": {
       "value": [[82, 54, 102, 74], [82, 86, 102, 106], [82, 118, 102, 138], [82, 150, 102, 170]],
       "plus": [[107, 54, 127, 74], [107, 86, 127, 106], [107, 118, 127, 138], [107, 150, 127, 170]],
@@ -155,6 +155,8 @@
       {"role": "restore", "rect": [483, 67, 623, 113], "on": "graphics/interface/shopbutton2.bmp", "size": [140, 46], "keyed": true, "cite": ["SHOP-SCREEN-035", "DIV-2868"]}
     ],
     "command-ink": [255, 230, 150],
+    "command-hover-ink": [255, 255, 224],
+    "command-sink": [0, 1],
     "message": [484, 462, 636, 476],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-115"]},
     "focus": ["skill/0", "skill/1", "skill/2", "skill/3", "skill/4", "minus/0", "plus/0", "minus/1", "plus/1", "minus/2", "plus/2", "minus/3", "plus/3", "back", "reset", "restore", "play"],

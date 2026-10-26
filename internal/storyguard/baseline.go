@@ -3022,6 +3022,13 @@ package storyguard
 // SPELLCASTER, heading and fallback speaker rules, all new code: pkg/rules,
 // pkg/data/humanspeakers.go and recompute.go, pkg/game/gamefiles.go,
 // secondinnpatron.go, their tests, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's hero-creation
+// text details, all new code: the coverage mix in pkg/render/text/text.go and
+// its test, the card shadow in pkg/ui/panel.go and townshell.go, the held
+// caption offset in widgetpanel.go, the skill light in chargen.go, the
+// description fields in generator.go, pkg/ui/chargen_details_test.go, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3051,5 +3058,5 @@ var Committed = Baseline{
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons.
-	CommentBytes: 9693742,
+	CommentBytes: 9696824,
 }

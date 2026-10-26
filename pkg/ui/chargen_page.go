@@ -606,13 +606,17 @@ func composeChargenPage(c *Chargen, hover, pressed chargenControl, tipState ...T
 		font = p.Font
 	}
 	if font != nil {
+		put := font.Draw
+		if pre.Name.Over {
+			put = font.DrawOver
+		}
 		promptAt, nameAt := promptOrigin(l, font, c.setup.PreCreate.Prompt), pre.Name.TextAt.Pt()
-		font.Draw(dst, c.setup.PreCreate.Prompt, promptAt.X, promptAt.Y, pre.Name.Prompt.Ink.RGBA())
+		put(dst, c.setup.PreCreate.Prompt, promptAt.X, promptAt.Y, pre.Name.Prompt.Ink.RGBA())
 		name := c.NameText()
 		if c.CaretVisible() {
 			name += "|"
 		}
-		font.Draw(dst, name, nameAt.X, nameAt.Y, pre.Name.Ink.RGBA())
+		put(dst, name, nameAt.X, nameAt.Y, pre.Name.Ink.RGBA())
 	}
 	c.paintSparkle(dst)
 	composeChargenTip(dst, c, tipState)
@@ -628,7 +632,7 @@ func detailedSkillSelectedHover(c *Chargen, id, hover, pressed chargenControl) (
 	}
 	selected = c != nil && id >= chargenSkill0 && id <= chargenSkill4 && len(c.choiceIndex) > 2 &&
 		c.choiceIndex[2] == int(id-chargenSkill0)
-	return selected, hover == id
+	return selected, hover == id || c != nil && c.skillLingers(id)
 }
 
 // detailedSkillPictures is the picture one skill cell draws for each
@@ -668,9 +672,16 @@ func chargenCommandPanel(c *Chargen, hover, pressed chargenControl) buttonPanel 
 	d := &l.Detail
 	ink := plaqueCommandInk
 	ink.Rest = d.CommandInk.RGBA()
+	if d.CommandHoverInk != nil {
+		ink.Hover = d.CommandHoverInk.RGBA()
+	}
 	missing := panelFrame(d.Nav.Rect.Rectangle(), d.NavFrame.Fill.RGBA(), d.NavFrame.Edge.RGBA())
 	comp := panelComposition{Body: d.Nav.Rect.Rectangle(), BodyOver: d.Nav.Keyed, Seam: paneRect(d.NavSeam),
 		MissingFrame: &missing, Plaques: make([]image.Rectangle, len(d.Commands)), Ink: ink}
+	if d.CommandSink != nil {
+		sink := d.CommandSink.Pt()
+		comp.Sink = &sink
+	}
 	art := panelArt{Body: p.NavArt, Seam: p.NavSeam, Plaques: make([][2]image.Image, len(d.Commands))}
 	var labels map[chargenControl]string
 	if detail := c.setup.Detailed; detail != nil {
@@ -779,6 +790,10 @@ func (p *ChargenPresentation) CardView(subject PanelSubject, rect image.Rectangl
 	}
 	v.Font, v.CardFont = p.Font, p.Font
 	v.StatsPane = TownPane{Body: body, Seam: seam}
+	if p.Layout != nil && p.Layout.Detail.CardShadow != nil {
+		s := p.Layout.Detail.CardShadow
+		v.CardShadow = &TextShadow{Ink: s.Ink.RGBA(), At: s.At.Pt()}
+	}
 	return v
 }
 

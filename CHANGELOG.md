@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Hero creation matches the original in four details: the statistics card's words and numbers have a dark shadow, as do the inn patron's card and the hero panel's card; a command under the pointer (Accept, Reset, Back, Restore) turns yellow without changing its plaque; the last weapon the pointer touched stays lit until another weapon is touched or one is chosen; and the letters of the name field have no dark edges.
+
 ## 0.135.0
 
 ### For players

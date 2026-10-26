@@ -302,6 +302,35 @@ func (f *Font) Measure(s string) (w, h int) {
 // the presentation layer's smoothed-text overlay reads that list. Outside one
 // this adds one boolean test per glyph and changes nothing else.
 func (f *Font) Draw(dst *image.RGBA, s string, x, y int, c color.RGBA) {
+	f.paint(dst, s, x, y, c, paintShade)
+}
+
+// DrawFlat paints s as Draw places it, but every painted pixel takes c
+// itself, whatever its level: a ramp that holds one colour in each of its
+// entries. Like Draw it replaces the destination, clips at dst's bounds and
+// records each glyph in a capture window, so the smoothed-text overlay
+// redraws a flat shadow together with the face drawn over it.
+func (f *Font) DrawFlat(dst *image.RGBA, s string, x, y int, c color.RGBA) {
+	f.paint(dst, s, x, y, c, paintFlat)
+}
+
+// DrawOver paints s as Draw places it, but a coverage glyph's pixel (a
+// `.16a` atlas) mixes c into the destination at level/MaxLevel instead of
+// replacing it with a darkened c; a shade glyph's pixel draws as Draw's.
+func (f *Font) DrawOver(dst *image.RGBA, s string, x, y int, c color.RGBA) {
+	f.paint(dst, s, x, y, c, paintOver)
+}
+
+// paintMode is how the one glyph painter writes a painted pixel.
+type paintMode uint8
+
+const (
+	paintShade paintMode = iota
+	paintFlat
+	paintOver
+)
+
+func (f *Font) paint(dst *image.RGBA, s string, x, y int, c color.RGBA, mode paintMode) {
 	if dst == nil {
 		return
 	}
@@ -310,7 +339,7 @@ func (f *Font) Draw(dst *image.RGBA, s string, x, y int, c color.RGBA) {
 		gx := x + penX
 		auditGlyph(g, record)
 		if record {
-			call := DrawCall{Glyph: g, X: gx, Y: y, Color: c, Clip: dst.Bounds()}
+			call := DrawCall{Glyph: g, X: gx, Y: y, Color: c, Flat: mode == paintFlat, Clip: dst.Bounds()}
 			if !skipRaster {
 				call.Under = recordUnder(dst, g, gx, y)
 			}
@@ -329,47 +358,31 @@ func (f *Font) Draw(dst *image.RGBA, s string, x, y int, c color.RGBA) {
 				if !p.Painted {
 					continue
 				}
-				dst.SetRGBA(gx+col, y+row, Shade(c, p.Level))
+				switch {
+				case mode == paintFlat:
+					dst.SetRGBA(gx+col, y+row, c)
+				case mode == paintOver && g.CoverageLevels:
+					if at := image.Pt(gx+col, y+row); at.In(dst.Bounds()) {
+						dst.SetRGBA(at.X, at.Y, Mix(dst.RGBAAt(at.X, at.Y), c, p.Level))
+					}
+				default:
+					dst.SetRGBA(gx+col, y+row, Shade(c, p.Level))
+				}
 			}
 		}
 	})
 }
 
-// DrawFlat paints s as Draw places it, but every painted pixel takes c
-// itself, whatever its level: a ramp that holds one colour in each of its
-// entries. Like Draw it replaces the destination, clips at dst's bounds and
-// records each glyph in a capture window, so the smoothed-text overlay
-// redraws a flat shadow together with the face drawn over it.
-func (f *Font) DrawFlat(dst *image.RGBA, s string, x, y int, c color.RGBA) {
-	if dst == nil {
-		return
+// Mix is under moved toward c by level/MaxLevel in R, G and B, rounded to
+// nearest; level MaxLevel gives c and level 0 gives under. The alpha is c's.
+func Mix(under, c color.RGBA, level uint8) color.RGBA {
+	if level > MaxLevel {
+		level = MaxLevel
 	}
-	record := capturing && !dst.Bounds().Empty()
-	f.walk(s, func(g *Glyph, penX int) {
-		gx := x + penX
-		auditGlyph(g, record)
-		if record {
-			call := DrawCall{Glyph: g, X: gx, Y: y, Color: c, Flat: true, Clip: dst.Bounds()}
-			if !skipRaster {
-				call.Under = recordUnder(dst, g, gx, y)
-			}
-			captured = append(captured, call)
-			if skipRaster {
-				return
-			}
-		}
-		for row := 0; row < g.Height; row++ {
-			for col := 0; col < g.Width; col++ {
-				i := row*g.Width + col
-				if i >= len(g.Pixels) {
-					return
-				}
-				if g.Pixels[i].Painted {
-					dst.SetRGBA(gx+col, y+row, c)
-				}
-			}
-		}
-	})
+	mix := func(u, v uint8) uint8 {
+		return uint8((int(u)*(MaxLevel-int(level)) + int(v)*int(level) + MaxLevel/2) / MaxLevel)
+	}
+	return color.RGBA{R: mix(under.R, c.R), G: mix(under.G, c.G), B: mix(under.B, c.B), A: c.A}
 }
 
 // PaintedAt reports whether Draw paints at in a draw of s at (x, y). It uses

@@ -273,6 +273,9 @@ type Chargen struct {
 	preTip, detailTip   bool
 	preStep, detailStep int
 	cycleDraw           int
+	// skillLit is the skill a lingering hover keeps lit and skillHovered
+	// the skill under the pointer at the last step, -1 for none.
+	skillLit, skillHovered int
 	// statHeld is whether the left button is held this frame (MENU-138).
 	statHeld bool
 	// The loop layers' members and paint stamps, and the sparkle's run.
@@ -319,12 +322,14 @@ func (c *Chargen) SetDetailMessage(msg string) {
 // malformed setup this package only promises not to panic over.
 func NewChargen(setup ChargenSetup) *Chargen {
 	c := &Chargen{
-		preLevel:    1,
-		cycleDraw:   -1,
-		setup:       setup,
-		name:        setup.Name,
-		choiceIndex: make([]int, len(setup.Choices)),
-		statValue:   make([]int, len(setup.Stats)),
+		preLevel:     1,
+		cycleDraw:    -1,
+		skillLit:     -1,
+		skillHovered: -1,
+		setup:        setup,
+		name:         setup.Name,
+		choiceIndex:  make([]int, len(setup.Choices)),
+		statValue:    make([]int, len(setup.Stats)),
 	}
 	if setup.PreCreate != nil {
 		c.stage = PreCreateStage
@@ -465,6 +470,27 @@ func (c *Chargen) Forward() {
 // while TipsMode is set, and its step restarts at 0.
 func (c *Chargen) enterDetailed() {
 	c.detailTip, c.detailStep, c.cycleDraw = c.setup.TipsOn, 0, -1
+	c.skillLit, c.skillHovered = -1, -1
+}
+
+// noteSkillHover records the control under the pointer. Entering a skill
+// makes it the lingering one.
+func (c *Chargen) noteSkillHover(hit chargenControl) {
+	skill := -1
+	if hit >= chargenSkill0 && hit <= chargenSkill4 {
+		skill = int(hit - chargenSkill0)
+	}
+	if skill >= 0 && skill != c.skillHovered {
+		c.skillLit = skill
+	}
+	c.skillHovered = skill
+}
+
+// skillLingers reports whether skill id stays drawn hovered after the
+// pointer left it (GeneratorSkillStates.Linger).
+func (c *Chargen) skillLingers(id chargenControl) bool {
+	l := c.layout()
+	return l != nil && l.Detail.SkillStates.Linger && c.skillLit >= 0 && id == chargenSkill0+chargenControl(c.skillLit)
 }
 
 // Back returns true when detailed state was discarded and pre-create is now

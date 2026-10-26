@@ -113,6 +113,8 @@ type TownCharacterView struct {
 	// A layout with no Background of its own takes the pane's own body, which
 	// is what CompactPanelLayout is handed here.
 	CardLayout *PanelLayout
+	// CardShadow, when set, is the statistics card's text shadow.
+	CardShadow *TextShadow
 
 	FigurePane TownPane
 	StatsPane  TownPane
@@ -1528,6 +1530,9 @@ func (v TownCharacterView) statsLayout() PanelLayout {
 				layout.RightInset = 19
 			}
 		}
+	}
+	if v.CardShadow != nil {
+		layout.Shadow = v.CardShadow
 	}
 	return layout
 }

@@ -18,7 +18,7 @@
     "name": {
       "rect": [300, 433, 464, 449], "text-at": [300, 434], "ink": [255, 255, 116], "cap": 10, "caret-ms": 500, "tooltip": 256,
       "prompt": {"slot": 365, "at": [290, 434], "align": "right", "ink": [185, 159, 73], "cite": ["R2-ENGINE-284", "R2-ENGINE-386", "DIV-2769"]},
-      "enter-line": 20, "unnamed": "Unnamed", "last-press": false,
+      "enter-line": 20, "unnamed": "Unnamed", "last-press": false, "over": true,
       "cite": ["R2-ENGINE-284", "R2-ENGINE-285", "R2-ENGINE-384", "R2-ENGINE-386", "DIV-2769"]
     },
     "heroes": [
@@ -101,6 +101,7 @@
     "nav-frame": {"fill": [16, 18, 24], "edge": [138, 116, 70], "cite": ["DIV-2770"]},
     "card": {"key": "graphics/interface/chrgen/fullstatsl.bmp", "size": [160, 242], "rect": [0, 238, 160, 480], "cite": ["R2-ENGINE-286", "R2-ENGINE-388", "R2-ASSET-075", "DIV-2770"]},
     "card-offset": [12, 0],
+    "card-shadow": {"ink": [8, 8, 8], "at": [1, 1], "cite": ["R2-ENGINE-388", "DIV-2770"]},
     "card-seam": {"key": "graphics/interface/chrgen/fullstatsr.bmp", "size": [16, 242], "rect": [160, 238, 176, 480], "keyed": true, "cite": ["R2-ENGINE-388", "DIV-3017"]},
     "doll": {"key": "graphics/interface/humanbackr.bmp", "size": [160, 242], "rect": [480, 238, 640, 480], "cite": ["R2-ENGINE-286", "DIV-2770"]},
     "column-rect": [160, 0, 480, 480],
@@ -127,7 +128,7 @@
        ],
        "selectable": 4, "tooltip": 176, "cite": ["R2-ENGINE-288", "R2-ENGINE-289"]}
     ],
-    "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "cite": ["R2-ENGINE-288"]},
+    "skill-states": {"selected-at-rest": "on.bmp", "hover": "shine_off.bmp", "selected": "shine_on.bmp", "linger": true, "cite": ["R2-ENGINE-288", "DIV-4094"]},
     "stats": {
       "value": [[82, 54, 102, 74], [82, 86, 102, 106], [82, 118, 102, 138], [82, 150, 102, 170]],
       "plus": [[107, 54, 127, 74], [107, 86, 127, 106], [107, 118, 127, 138], [107, 150, 127, 170]],
@@ -157,6 +158,8 @@
       {"role": "restore", "rect": [494, 160, 614, 212], "on": "graphics/interface/shop_druid/shopbutton4.bmp", "size": [120, 52], "keyed": true, "cite": ["R2-ASSET-090", "DIV-3014"]}
     ],
     "command-ink": [185, 159, 73],
+    "command-hover-ink": [255, 255, 116],
+    "command-sink": [1, 1],
     "preview": {"figure-offset": [0, 2], "missing-at": [482, 250], "missing": "PREVIEW UNAVAILABLE", "missing-ink": [255, 230, 150], "cite": ["DIV-2770"]},
     "keys": {"enter": "play", "escape": "none", "typing": "focused", "cite": ["R2-ENGINE-283", "DIV-2771"]},
     "reset": [

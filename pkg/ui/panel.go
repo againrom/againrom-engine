@@ -739,8 +739,17 @@ type PanelLayout struct {
 	Border     color.RGBA
 	LabelColor color.RGBA
 	ValueColor color.RGBA
+	// Shadow, when set, draws each label, value and heading first in its
+	// ink at its offset.
+	Shadow *TextShadow
 
 	Rows []PanelRow
+}
+
+// TextShadow is a text's flat shadow: its ink and its offset from the text.
+type TextShadow struct {
+	Ink color.RGBA
+	At  image.Point
 }
 
 // sidebarWidth is the width of the window's RIGHT-HAND COLUMN, in pixels, and
@@ -1998,28 +2007,34 @@ func composeItems(l PanelLayout, f *text.Font, items []panelItem) *image.RGBA {
 		paint = image.NewRGBA(img.Bounds())
 	}
 	first := text.CapturedLen()
+	put := func(s string, x, y int, c color.RGBA) {
+		if sh := l.Shadow; sh != nil {
+			f.DrawFlat(paint, s, x+sh.At.X, y+sh.At.Y, sh.Ink)
+		}
+		f.Draw(paint, s, x, y, c)
+	}
 	for _, ln := range lines {
 		labelColor := l.LabelColor
 		if l.CompactCard && (ln.field == PanelFieldSkillsHeading || ln.field == PanelFieldResistHeading) {
 			labelColor = characterCardHeading
 		}
 		if ln.label != "" {
-			f.Draw(paint, ln.label, ln.at.X+ln.leftIndent, ln.at.Y, labelColor)
+			put(ln.label, ln.at.X+ln.leftIndent, ln.at.Y, labelColor)
 		}
 		valueColor := l.ValueColor
 		if l.CompactCard && (ln.field == PanelFieldName || ln.field == PanelFieldRole) {
 			valueColor = l.LabelColor
 		}
-		f.Draw(paint, ln.value, ln.at.X+ln.leftIndent+ln.valueX, ln.at.Y, valueColor)
+		put(ln.value, ln.at.X+ln.leftIndent+ln.valueX, ln.at.Y, valueColor)
 		if ln.wrap != "" {
-			f.Draw(paint, ln.wrap, ln.wrapAt.X, ln.wrapAt.Y, valueColor)
+			put(ln.wrap, ln.wrapAt.X, ln.wrapAt.Y, valueColor)
 		}
 
 		if ln.right {
 			if ln.rightLabel != "" {
-				f.Draw(paint, ln.rightLabel, ln.at.X+ln.rightX, ln.at.Y, labelColor)
+				put(ln.rightLabel, ln.at.X+ln.rightX, ln.at.Y, labelColor)
 			}
-			f.Draw(paint, ln.rightValue, ln.at.X+ln.rightX+ln.rightValueX, ln.at.Y, l.ValueColor)
+			put(ln.rightValue, ln.at.X+ln.rightX+ln.rightValueX, ln.at.Y, l.ValueColor)
 		}
 	}
 	if paint != img {
