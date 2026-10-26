@@ -62,3 +62,20 @@ func TestSkillXPForPastTheTableContinuesTheCurve(t *testing.T) {
 		t.Fatal("the curve stops at 100")
 	}
 }
+
+// The town-1 inn mage (BODY 35, AGILITY 40, MIND 45, SPIRIT 50, General,
+// Water and Air at 99) reads HEALTH 158 and MANA 604 under the second
+// game's pool rule and 163 and 623 under the first's (R2-ENGINE-579).
+func TestRecomputeSecondGamePoolsLeaveGeneralOut(t *testing.T) {
+	h := data.Hero{Body: 35, Reaction: 40, Mind: 45, Spirit: 50, Skill: [data.SkillSlots]int32{99, 0, 99, 99, 0, 0}}
+	p := data.Profile{HealthColumn: true, ManaColumn: true}
+	for _, c := range []struct {
+		rules    rules.Rules
+		hp, mana int32
+	}{{rules.Rules{}, 163, 623}, {rules.Rules{}.WithSchoolPoolExperience(), 158, 604}} {
+		d := h.Recompute(p, data.Loadout{Rules: c.rules})
+		if d.HealthMax != c.hp || d.ManaMax != c.mana {
+			t.Errorf("pools %d/%d, want %d/%d", d.HealthMax, d.ManaMax, c.hp, c.mana)
+		}
+	}
+}

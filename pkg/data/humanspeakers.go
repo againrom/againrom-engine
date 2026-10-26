@@ -35,3 +35,24 @@ func HumanSpeakerFaces(c Collection, me int32, outfit func(row int) Equipment) m
 	}
 	return out
 }
+
+// FallbackSpeakerFace is the record of the actor the second game builds for a
+// speaker no live unit carries (R2-ENGINE-583): its flags 0x56 draw the
+// paperdoll of a female mage with face byte npc-0x50, wearing nothing. A key
+// whose face byte falls outside 1..255 has none (DIV-4088).
+func FallbackSpeakerFace(npc int32) (NPCFace, bool) {
+	face := npc - fallbackSpeakerBase
+	if face < 1 || face > 0xff {
+		return NPCFace{}, false
+	}
+	tokens := NPCTokens(NPCTokenHuman) | NPCTokens(NPCTokenFace) | NPCTokens(NPCTokenMage) | NPCTokens(NPCTokenFemale)
+	return NPCFace{Kind: NPCFigure, Dir: FigureDirWomanMage, Face: int(face), Tokens: tokens}, true
+}
+
+const (
+	fallbackSpeakerBase = 0x50
+	// FallbackSpeakerFirst and FallbackSpeakerLast are the first and last
+	// keys FallbackSpeakerFace answers.
+	FallbackSpeakerFirst int32 = fallbackSpeakerBase + 1
+	FallbackSpeakerLast  int32 = fallbackSpeakerBase + 0xff
+)

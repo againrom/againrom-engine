@@ -77,6 +77,8 @@ type Rules struct {
 	skillCap int32
 	skillXP  []int32 // S(0)..S(skillCap); nil in the zero value
 	spell    *spellTables
+	// schoolPools leaves skill slot 0 out of the pools' experience.
+	schoolPools bool
 }
 
 // Default returns the original game's rules.
@@ -199,6 +201,27 @@ func (r Rules) ClampSkill(level int32) int32 {
 		return c
 	}
 	return level
+}
+
+// WithSchoolPoolExperience is r with the health and mana pools growing by the
+// five school skills' experience alone, skill slot 0 left out: the second
+// game's pool rule (R2-ENGINE-579). It is the game's rule, not a parameter.
+func (r Rules) WithSchoolPoolExperience() Rules {
+	r.schoolPools = true
+	return r
+}
+
+// PoolExperience is the experience the two pools grow by: the sum of the six
+// slots' experience, or of slots 1 to 5 under the second game's rule, held to
+// the largest int32.
+func (r Rules) PoolExperience(xp [6]int32) int32 {
+	var sum int64
+	for i, v := range xp {
+		if i > 0 || !r.schoolPools {
+			sum += int64(v)
+		}
+	}
+	return int32(min(sum, math.MaxInt32))
 }
 
 // IsDefault reports whether the rules are the original game's.

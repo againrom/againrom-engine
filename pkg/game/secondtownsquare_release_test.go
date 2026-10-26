@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/data"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -213,6 +214,16 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 		t.Fatalf("closed gate: open %v current %v body %q", open, c.current, body)
 	}
 	t.Logf("closed gate shows %s (%d bytes) and keeps town 1", secondGateText, len(want))
+	// Speaker 97 has no record and no live unit: the box draws the fallback
+	// actor's bare doll, equipment/fmage/17, the picture of mfighter/14
+	// (R2-ENGINE-583, R2-ASSET-146).
+	face := s.talkView().Page.Face
+	src := f.Archives.Containers
+	fallback, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: data.FigureDirWomanMage, Face: 17})
+	knight, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: data.FigureDirManFighter, Face: 14})
+	if face == nil || fallback == nil || !sameImage(face, fallback) || !sameImage(fallback, knight) {
+		t.Errorf("the gate box's face is not the fallback actor's doll (face %v, fallback %v)", face != nil, fallback != nil)
+	}
 }
 
 // The gate and guard follow R2-ENGINE-243 for both flag values: closed, the

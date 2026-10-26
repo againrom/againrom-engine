@@ -2,6 +2,7 @@ package game
 
 import (
 	"image"
+	"strings"
 	"testing"
 
 	"againrom/pkg/data"
@@ -11,9 +12,10 @@ import (
 
 // At the first town-1 inn visit patron 0 is selected and every seat holds
 // the Humans row whose server id is its NPC key: the card shows the values
-// R2-SESSION-203 read (the mage's two pools apart, DIV-4075), the seat
-// draws inn/unit<type id> frames, and the left oval draws the person's
-// figure. A seat click selects the seat and opens no talk; Talk talks to
+// R2-SESSION-203 read, the pools by the five school skills (R2-ENGINE-579),
+// the heading by the sheet's rule (R2-ENGINE-581) and SPELLCASTER on the
+// mage's card only (R2-ENGINE-580); the seat draws inn/unit<type id>
+// frames, and the left oval draws the person's figure. A seat click selects the seat and opens no talk; Talk talks to
 // the selected person (R2-SESSION-213).
 func TestReleaseSecondInnPatrons(t *testing.T) {
 	f, app, s, now := secondTownOne(t)
@@ -32,7 +34,7 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 	type card struct {
 		npc                         int
 		typeID                      int32
-		roleEntry                   int
+		ownName, spellcaster        bool
 		body, agility, mind, spirit int
 		hp, mana                    int
 		dmg                         [2]int
@@ -42,12 +44,11 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 		sight256, speed             int
 	}
 	for i, want := range []card{
-		{207, 15, 7, 32, 32, 28, 22, 156, 0, [2]int{23, 37}, 156, 138, 1,
+		{207, 15, false, false, 32, 32, 28, 22, 156, 0, [2]int{23, 37}, 156, 138, 1,
 			[5]int{12, 23, 4, 9, 48}, [5]int{11, 11, 36, 11, 11}, 1638, 18},
-		{2108, 1, 2108, 25, 20, 25, 20, 55, 0, [2]int{0, 0}, 3, 6, 0,
+		{2108, 1, true, false, 25, 20, 25, 20, 55, 0, [2]int{0, 0}, 3, 6, 0,
 			[5]int{}, [5]int{10, 10, 10, 10, 10}, 1484, 16},
-		// HEALTH 158/158 and MANA 604/604 in the original (DIV-4075).
-		{517, 24, 17, 35, 40, 45, 50, 163, 623, [2]int{21, 43}, 311, 39, 0,
+		{517, 24, false, true, 35, 40, 45, 50, 158, 604, [2]int{21, 43}, 311, 39, 0,
 			[5]int{0, 99, 99, 0, 0}, [5]int{25, 25, 25, 25, 25}, 1894, 20},
 	} {
 		list, _ := c.innSeats()
@@ -64,17 +65,26 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 		}
 		sub := p.subject
 		name, _ := ui.PanelSubjectName(sub)
-		// The npcnames entry stands above the class unless it repeats it: the
-		// EN peasant entry does, the RU one does not (DIV-4078).
-		role := tbl.NPCNames[want.roleEntry]
-		if role == name {
-			role = ""
+		// A key of 1000 or more heads the card with its npcnames entry alone;
+		// any other with Mercenary above its type's unitname entry (DIV-4087).
+		role, wantName := f.Words.PanelCaptions[mainSlotMercenary], f.Words.UnitNames[want.typeID]
+		if want.ownName {
+			role, wantName = "", tbl.NPCNames[want.npc]
 		}
-		if name == "" || name != f.Words.UnitNames[want.typeID] || sub.Role != role {
-			t.Errorf("NPC %d heading %q / %q, want %q / %q", want.npc, sub.Role, name, role, f.Words.UnitNames[want.typeID])
+		if name == "" || name != wantName || sub.Role != role {
+			t.Errorf("NPC %d heading %q / %q, want %q / %q", want.npc, sub.Role, name, role, wantName)
+		}
+		t.Logf("NPC %d heading %q / %q", want.npc, sub.Role, name)
+		caption := strings.ToUpper(f.Words.PanelCaptions[190])
+		spellcaster := false
+		for _, row := range ui.PanelStatement(ui.AuthoredPanelLayout(), sub) {
+			spellcaster = spellcaster || strings.Contains(strings.ToUpper(row), caption)
+		}
+		if caption == "" || spellcaster != want.spellcaster {
+			t.Errorf("NPC %d states %q: %v, want %v", want.npc, caption, spellcaster, want.spellcaster)
 		}
 		ch := sub.Char
-		got := card{npc: want.npc, typeID: member.Class, roleEntry: want.roleEntry,
+		got := card{npc: want.npc, typeID: member.Class, ownName: want.ownName, spellcaster: want.spellcaster,
 			body: ch.Body, agility: ch.Reaction, mind: ch.Mind, spirit: ch.Spirit, hp: sub.MaxHP, mana: sub.MaxMana,
 			attack: sub.Combat.ToHit, defence: sub.Combat.Defence, absorb: sub.Combat.Absorption,
 			protection: ch.Protection, sight256: int(ch.Sight256), speed: sub.Speed}

@@ -46,3 +46,24 @@ func TestHumanSpeakerFaces(t *testing.T) {
 		t.Fatal("without a player key the row at 21 is its own record")
 	}
 }
+
+// A speaker no live unit carries is the second game's fallback actor: a bare
+// female mage doll with face byte key-80, for keys whose byte is 1..255
+// (R2-ENGINE-583).
+func TestFallbackSpeakerFace(t *testing.T) {
+	rec, ok := FallbackSpeakerFace(97)
+	if !ok || rec.Kind != NPCFigure || rec.Dir != FigureDirWomanMage || rec.Face != 17 || rec.Worn != (Equipment{}) {
+		t.Fatalf("speaker 97: %+v %v", rec, ok)
+	}
+	if !rec.Tokens.Has(NPCTokenMage) || !rec.Tokens.Has(NPCTokenFemale) || rec.Tokens.Has(NPCTokenHero) {
+		t.Errorf("speaker 97 tokens %v", rec.Tokens)
+	}
+	for _, k := range []int32{FallbackSpeakerFirst - 1, FallbackSpeakerLast + 1} {
+		if _, ok := FallbackSpeakerFace(k); ok {
+			t.Errorf("key %d has a fallback record", k)
+		}
+	}
+	if FallbackSpeakerFirst != 81 || FallbackSpeakerLast != 335 {
+		t.Errorf("keys %d..%d", FallbackSpeakerFirst, FallbackSpeakerLast)
+	}
+}

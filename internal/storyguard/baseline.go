@@ -3017,6 +3017,11 @@ package storyguard
 // new code: pkg/game/secondheropane.go and its test, the pane and doll types in
 // pkg/ui/townsquare.go, pkg/ui/townsquarepane_test.go, shopnowear_test.go, the
 // pane spec in pkg/town/description.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's pool,
+// SPELLCASTER, heading and fallback speaker rules, all new code: pkg/rules,
+// pkg/data/humanspeakers.go and recompute.go, pkg/game/gamefiles.go,
+// secondinnpatron.go, their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4499,
 	TestFileCount:  264,
@@ -3046,5 +3051,5 @@ var Committed = Baseline{
 	// generator command panel test, then for the second game's speaker records,
 	// then for the second game's room tip popups, then for the second game's
 	// inn patrons.
-	CommentBytes: 9690588,
+	CommentBytes: 9693742,
 }

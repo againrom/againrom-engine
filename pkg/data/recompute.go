@@ -340,7 +340,9 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 	bare := Combat{AttackChargeTime: BareChargeTime, AttackRelaxTime: BareRelaxTime, Reach: 1, SkillSlot: activeSkill(l.Weapon)}
 	combat := FoldWeapon(bare, l.Weapon, h.Skill[SkillGeneral])
 	mod := l.Mod
-	in := HumanInput{Skill: h.Skill, Active: activeSkill(l.Weapon), Experience: experience,
+	// The pools grow by the experience the rules sum: all six slots in the
+	// first game, the five school slots in the second (R2-ENGINE-579).
+	in := HumanInput{Skill: h.Skill, Active: activeSkill(l.Weapon), Experience: l.Rules.PoolExperience(skillXP),
 		Fighter: p.Fighter, ManaPool: p.ManaColumn, Rider: p.Rider, TrainingCap: l.Rules.SkillCap(),
 		Terms: HumanTerms{HealthMax: mod.HealthMax, ManaMax: mod.ManaMax, Sight: mod.Sight << 8, SkillBonus: mod.SkillBonus,
 			ToHit: mod.ToHit + combat.ToHit, DamageBase: mod.DamageBase + combat.DamageBase, DamageSpread: mod.DamageSpread + combat.DamageSpread,

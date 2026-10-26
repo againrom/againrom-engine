@@ -67,12 +67,14 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 	p.subject = partyPanelSubject(member, tbl, t.install.Words)
 	p.subject.Char.ExperienceWithheld = true
 	p.subject.Unplaced = true
-	// The card names the class by its unitname entry and, above it, the
-	// person by its npcnames entry when the two differ.
+	// The sheet's heading (R2-ENGINE-581): the person's own name when it has
+	// one, else Mercenary above the type's unitname entry for an actor of
+	// flags 0x11, else the type's entry alone.
 	p.subject.Name, p.subject.Char.Name = "", ""
-	class, _ := ui.PanelSubjectName(p.subject)
-	if role := secondInnPersonName(tbl, npc); role != class {
-		p.subject.Role = role
+	if name := secondInnPersonName(tbl, npc); name != "" {
+		p.subject.Name, p.subject.Char.Name = name, name
+	} else if p.subject.OriginalPanel.Flags&0x11 != 0 {
+		p.subject.Role = t.install.Words.PanelCaptions[mainSlotMercenary]
 	}
 	fig := memberFigureID(member)
 	if t.install.Archives != nil {
@@ -82,14 +84,11 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 	return p
 }
 
-// secondInnPersonName is the npcnames entry inn NPC key npc names: a key
-// below 1000 names the entry of its last two digits, any other key its own
-// entry.
+// secondInnPersonName is the own name of inn NPC key npc, the string the
+// sheet heads its card with when it has one: the npcnames entry of a key of
+// 1000 or more, and none for a smaller key (DIV-4087).
 func secondInnPersonName(tbl *mapload.Table, npc int) string {
-	if npc > 0 && npc < 1000 {
-		npc %= 100
-	}
-	if npc < 0 || npc >= len(tbl.NPCNames) {
+	if npc < 1000 || npc >= len(tbl.NPCNames) {
 		return ""
 	}
 	return tbl.NPCNames[npc]

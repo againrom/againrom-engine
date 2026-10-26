@@ -74,6 +74,23 @@ type gameFiles struct {
 	// records, which win; heroSpeaker is the player's key.
 	humanSpeakers bool
 	heroSpeaker   int32
+	// schoolPoolExperience grows the pools by the five school skills alone.
+	schoolPoolExperience bool
+	// fallbackSpeakers adds data.FallbackSpeakerFace for every key that has
+	// no other record.
+	fallbackSpeakers bool
+	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
+	// nonzero only for an actor with a mana pool (DIV-4086).
+	manaSpellcaster bool
+}
+
+// spellcasterValue is the actor value the SPELLCASTER caption tests, from
+// the value the first game's projection gives and the actor's mana maximum.
+func (g *gameFiles) spellcasterValue(value, maxMana int32) int32 {
+	if g.manaSpellcaster && maxMana <= 0 {
+		return 0
+	}
+	return value
 }
 
 var firstGameFiles = gameFiles{
@@ -124,6 +141,12 @@ var secondGameFiles = gameFiles{
 	// The starting rows' server ids give key 21 (R2-ENGINE-072).
 	humanSpeakers: true,
 	heroSpeaker:   21,
+	// R2-ENGINE-579.
+	schoolPoolExperience: true,
+	// R2-ENGINE-580.
+	manaSpellcaster: true,
+	// R2-ENGINE-583.
+	fallbackSpeakers: true,
 }
 
 // speakerFaces is the speaker table of t's campaign.
@@ -141,6 +164,13 @@ func speakerFaces(t *mapload.Table) map[int32]data.NPCFace {
 	})
 	for k, v := range faces {
 		out[k] = v
+	}
+	if files.fallbackSpeakers {
+		for k := data.FallbackSpeakerFirst; k <= data.FallbackSpeakerLast; k++ {
+			if _, held := out[k]; !held {
+				out[k], _ = data.FallbackSpeakerFace(k)
+			}
+		}
 	}
 	return out
 }

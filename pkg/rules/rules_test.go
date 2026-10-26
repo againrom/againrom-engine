@@ -137,3 +137,20 @@ func TestEffectiveSkillAddsTheBonusToTheHeldBaseWithinTheBound(t *testing.T) {
 		t.Fatal("the effective limit follows the training cap")
 	}
 }
+
+// The pools grow by all six slots' experience in the first game and by the
+// five school slots' in the second (R2-ENGINE-579), held to the largest int32.
+func TestPoolExperience(t *testing.T) {
+	xp := [6]int32{12000000, 1, 2, 3, 4, 5}
+	if got := (Rules{}).PoolExperience(xp); got != 12000015 {
+		t.Errorf("first game %d, want 12000015", got)
+	}
+	second := Rules{}.WithSchoolPoolExperience()
+	if got := second.PoolExperience(xp); got != 15 {
+		t.Errorf("second game %d, want 15", got)
+	}
+	full := [6]int32{math.MaxInt32, math.MaxInt32, 0, 0, 0, 0}
+	if got := (Rules{}).PoolExperience(full); got != math.MaxInt32 {
+		t.Errorf("saturated sum %d", got)
+	}
+}

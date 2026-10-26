@@ -89,6 +89,11 @@ type Table struct {
 	// first game's, which keeps his Weapons as held (ITEM-212).
 	CarriedWornSpellBuild bool
 
+	// SchoolPoolExperience grows the pools by the five school skills'
+	// experience alone (R2-ENGINE-579); false is the first game's, which
+	// counts all six slots.
+	SchoolPoolExperience bool
+
 	// Rules are the game parameters the session runs under: the original
 	// game's unless a mod changed them. The zero value is the original's.
 	Rules sim.Rules
@@ -1171,6 +1176,9 @@ func TableRules(t *Table) sim.Rules { return t.rules() }
 func (t *Table) rules() sim.Rules {
 	if t == nil {
 		return sim.Rules{}
+	}
+	if t.SchoolPoolExperience {
+		return t.Rules.WithSchoolPoolExperience()
 	}
 	return t.Rules
 }
