@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"sort"
+	"strings"
 )
 
 const editorScriptsFilter = 7
@@ -84,7 +85,12 @@ func (e *MapEditor) scriptRowText(id, section int) string {
 	if !v.condition {
 		title = fmt.Sprintf(e.word("editor.node.action"), v.index+1)
 	}
-	return title + "  " + e.editorHostText(v.node.Label)
+	caption := e.editorHostText(v.node.Label)
+	if !v.condition && e.nodeParameterKind(v, v.node.Opcode, v.node.Types, 0) == ScriptMessageParameter {
+		title = fmt.Sprintf(e.word("editor.node.message"), v.index+1)
+		caption = e.messageFirstLine(v.node.Values[0])
+	}
+	return strings.TrimSpace(title + "  " + caption)
 }
 
 type scriptVariableView struct {
@@ -194,4 +200,18 @@ func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) 
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
 	s.Top = e.objectTop
 	return s, links, true
+}
+
+func (e *MapEditor) messageFirstLine(value uint32) string {
+	for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
+		if t.NewMessage || t.Value != value {
+			continue
+		}
+		for _, line := range strings.Split(t.Text, "\n") {
+			if line = strings.TrimSpace(line); line != "" {
+				return line
+			}
+		}
+	}
+	return ""
 }

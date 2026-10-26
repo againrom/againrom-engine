@@ -668,6 +668,7 @@
 "editor.wizard.p.message" = "Message"
 "editor.node.condition" = "Condition %d"
 "editor.node.action" = "Action %d"
+"editor.node.message" = "Message %d"
 "editor.node.label" = "Label"
 "editor.node.operation" = "Operation"
 "editor.node.parameters" = "Parameters"

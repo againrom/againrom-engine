@@ -634,6 +634,7 @@
 "editor.wizard.p.message" = "Сообщение"
 "editor.node.condition" = "Условие %d"
 "editor.node.action" = "Действие %d"
+"editor.node.message" = "Сообщение %d"
 "editor.node.label" = "Метка"
 "editor.node.operation" = "Операция"
 "editor.node.parameters" = "Параметры"
