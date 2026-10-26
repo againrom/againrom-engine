@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/res"
+	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -50,7 +54,7 @@ var secondRouteStages = []routeStage{
 	{"way-out", "town/square", (*routeWitness).wayOut},
 	{"world-map", "town/worldmap", (*routeWitness).worldMap},
 	{"mission-dialogue", "map", (*routeWitness).missionDialogue},
-	{"mission-screen", "map", (*routeWitness).missionScreen},
+	{"mission-screen", "map", func(w *routeWitness) { w.missionScreen(true) }},
 }
 
 // routeRegion is one control a hit test answers over a screen: its key, the
@@ -274,6 +278,13 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 		}
 		return pix, "-notice"
 	}
+	if control == "mission spellbook icon" {
+		pix, err := w.app.HeadlessBottomHUD()
+		if err != nil {
+			w.t.Errorf("%s: spellbook frame: %v", w.stage, err)
+		}
+		return pix, "-hud"
+	}
 	if st, pix := w.app.HeadlessTooltip(); st.Visible && pix != nil {
 		return pix, "-tooltip"
 	}
@@ -293,11 +304,60 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 			at = image.Pt(int(e.X), int(e.Y))
 		}
 	}
-	pix, _, err := w.f.live.view.HeadlessMapFrame(at, 640, 480)
+	pix, _, err := w.f.live.view.HeadlessMapFrame(at, w.size.X, w.size.Y)
 	if err != nil {
 		w.t.Errorf("%s: map frame: %v", w.stage, err)
 	}
 	return pix, "-map"
+}
+
+func routeWindowSize(value string) (image.Point, error) {
+	if value == "" {
+		return image.Pt(ui.DefaultWindowW, ui.DefaultWindowH), nil
+	}
+	x, y, ok := strings.Cut(value, "x")
+	width, errX := strconv.Atoi(x)
+	height, errY := strconv.Atoi(y)
+	if !ok || errX != nil || errY != nil || width <= 0 || height <= 0 || width > 8192 || height > 8192 {
+		return image.Point{}, fmt.Errorf("AGAINROM_ROUTE_WINDOW=%q: want WxH, dimensions 1..8192", value)
+	}
+	return image.Pt(width, height), nil
+}
+
+func (w *routeWitness) fitFrame(src *image.RGBA) *image.RGBA {
+	if src.Bounds().Size() == w.size {
+		return src
+	}
+	dst := image.NewRGBA(image.Rectangle{Max: w.size})
+	draw.Draw(dst, dst.Bounds(), image.NewUniform(color.Black), image.Point{}, draw.Src)
+	place := frame.Fit(src.Bounds().Dx(), src.Bounds().Dy(), w.size.X, w.size.Y)
+	for y := 0; y < w.size.Y; y++ {
+		for x := 0; x < w.size.X; x++ {
+			if p, ok := place.WindowToFrame(x, y); ok {
+				dst.SetRGBA(x, y, src.RGBAAt(src.Rect.Min.X+p.X, src.Rect.Min.Y+p.Y))
+			}
+		}
+	}
+	return dst
+}
+
+func (w *routeWitness) windowPoint(p image.Point) image.Point {
+	if w.app.Screen() == ui.ScreenMap {
+		return p
+	}
+	x, y, ok := frame.Fit(frame.W, frame.H, w.size.X, w.size.Y).FrameToWindow(p)
+	if !ok {
+		w.t.Fatalf("%s: native point %v has no window pixel at %v", w.stage, p, w.size)
+	}
+	return image.Pt(x, y)
+}
+
+func (w *routeWitness) nativePoint(x, y int) image.Point {
+	p, ok := frame.Fit(frame.W, frame.H, w.size.X, w.size.Y).WindowToFrame(x, y)
+	if !ok {
+		w.t.Fatalf("%s: window point %d,%d has no native pixel", w.stage, x, y)
+	}
+	return p
 }
 
 // record writes one row and its frame.
@@ -309,7 +369,7 @@ func (w *routeWitness) record(control string, rect image.Rectangle, action, resu
 		w.t.Errorf("%s %s %s: no frame", w.stage, control, action)
 	} else if w.dir != "" {
 		name := fmt.Sprintf("%04d-%s%s", n, w.stage, part)
-		writeTipRender(w.t, w.dir, name, pix)
+		writeTipRender(w.t, w.dir, name, w.fitFrame(pix))
 		file = name + ".png"
 		w.frames++
 	}
@@ -357,6 +417,7 @@ func (w *routeWitness) result(before, extra string) string {
 // hover rests the pointer on p past the hover box's delay on the headless
 // clock and records the step.
 func (w *routeWitness) hover(control string, rect image.Rectangle, p image.Point) {
+	p = w.windowPoint(p)
 	before := w.screen()
 	w.pointer("hover", p)
 	w.run(w.app.TooltipDelay()/20 + 5)
@@ -366,6 +427,7 @@ func (w *routeWitness) hover(control string, rect image.Rectangle, p image.Point
 // click presses and releases at p, composing a frame after each edge, runs
 // settle steps and records the step; note adds the change the caller reads.
 func (w *routeWitness) click(control string, rect image.Rectangle, p image.Point, settle int, note func() string) {
+	p = w.windowPoint(p)
 	before := w.screen()
 	for _, edge := range []string{"hover", "press", "release"} {
 		w.pointer(edge, p)
@@ -384,6 +446,7 @@ func (w *routeWitness) click(control string, rect image.Rectangle, p image.Point
 // drag presses at from, moves to to in steps, releases there, composing a
 // frame after each edge, runs settle steps and records the step.
 func (w *routeWitness) drag(control string, rect image.Rectangle, from, to image.Point, settle int, note func() string) {
+	from, to = w.windowPoint(from), w.windowPoint(to)
 	before := w.screen()
 	w.pointer("hover", from)
 	w.pointer("press", from)
@@ -949,6 +1012,7 @@ func (w *routeWitness) paneClick(control string, rect image.Rectangle, p image.P
 // rightClick presses and releases the right button at p and records the
 // step.
 func (w *routeWitness) rightClick(control string, rect image.Rectangle, p image.Point) {
+	p = w.windowPoint(p)
 	before := w.screen()
 	for _, edge := range []string{"hover", "right-press", "right-release"} {
 		w.pointer(edge, p)
@@ -1051,7 +1115,7 @@ func (w *routeWitness) shopPoint(c shopControlRow) image.Point {
 			w.t.Errorf("shop: %s %d: %v", c.kind, c.index, err)
 			return routeMiddle(c.rect)
 		}
-		return image.Pt(x, y)
+		return w.nativePoint(x, y)
 	}
 	return routeMiddle(c.rect)
 }
@@ -1273,6 +1337,8 @@ func (w *routeWitness) missionDialogue() {
 // missionTargets hovers the frame at step and groups the points by the
 // hover target the mission screen's own hover test answers.
 func (w *routeWitness) missionTargets(step int) []routeRegion {
+	camera := *w.f.live.view.Camera()
+	defer func() { *w.f.live.view.Camera() = camera }()
 	place := w.f.live.view.Placement()
 	size := place.FrameSize()
 	regions := map[string]routeRegion{}
@@ -1319,7 +1385,7 @@ func (w *routeWitness) missionTargets(step int) []routeRegion {
 // missionScreen pauses the mission, selects the hero, hovers every control
 // the mission screen's hover test answers, presses the pack corner twice,
 // and records the hero and the party.
-func (w *routeWitness) missionScreen() {
+func (w *routeWitness) missionScreen(spellbook bool) {
 	w.key("0", 1)
 	if len(w.f.live.mission.ids) == 0 {
 		w.t.Fatal("mission: no party unit")
@@ -1335,7 +1401,11 @@ func (w *routeWitness) missionScreen() {
 			return fmt.Sprintf("selection=%v", w.app.HeadlessSelection())
 		})
 	}
+	camera := *w.f.live.view.Camera()
 	targets := w.missionTargets(8)
+	if after := w.f.live.view.Camera(); after.X != camera.X || after.Y != camera.Y || after.Zoom != camera.Zoom {
+		w.t.Error("mission: hover discovery moved the camera")
+	}
 	if len(targets) == 0 {
 		w.t.Error("mission: no control answers a hover")
 	}
@@ -1366,6 +1436,29 @@ func (w *routeWitness) missionScreen() {
 	}
 	w.wait("hero and party")
 	w.key("0", 1)
+	if spellbook {
+		book, ok := routeFind(targets, fmt.Sprintf("corner/%d/%d/8", ui.CharacterPaneBook, hero))
+		if !ok {
+			w.t.Fatal("mission: no spellbook icon")
+		}
+		before, err := w.app.HeadlessBottomHUD()
+		if err != nil {
+			w.t.Fatal(err)
+		}
+		for i := range 2 {
+			w.click("mission spellbook icon", book.rect, book.at, w.app.TooltipDelay()/20+5, func() string {
+				after, err := w.app.HeadlessBottomHUD()
+				if err != nil {
+					w.t.Fatal(err)
+				}
+				opened := after.Bounds().Dy() > before.Bounds().Dy()
+				if opened != (i == 0) {
+					w.t.Errorf("mission: spellbook open=%v after click %d", opened, i+1)
+				}
+				return fmt.Sprintf("spellbook open=%v HUD=%v", opened, after.Bounds().Size())
+			})
+		}
+	}
 }
 
 // TestReleaseRouteWitness walks the install's game from launch to the first
@@ -1451,8 +1544,13 @@ func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness
 	}
 	// The options file records the seen cutscenes the Cut Scenes library lists.
 	f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
+	f.Markers = Markers{}
 	app := f.App("route witness")
-	width, height := app.Layout(640, 480)
+	size, err := routeWindowSize(os.Getenv("AGAINROM_ROUTE_WINDOW"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	width, height := app.Layout(size.X, size.Y)
 	f.TownAnimationNow = app.HeadlessSceneNow
 	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: originals}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
 	// The witness holds the App's own town screen: the second campaign's
@@ -1493,4 +1591,42 @@ func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness
 		}
 	}
 	return w, stages
+}
+
+func TestRouteWitnessWindowGeometry(t *testing.T) {
+	for _, value := range []string{"", "640x480", "1024x768", "1280x720"} {
+		t.Run(value, func(t *testing.T) {
+			size, err := routeWindowSize(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if value == "" && size != image.Pt(ui.DefaultWindowW, ui.DefaultWindowH) {
+				t.Fatalf("default size %v", size)
+			}
+			app := ui.NewApp("route geometry", nil, nil, nil)
+			app.Layout(size.X, size.Y)
+			w := &routeWitness{t: t, app: app, size: size}
+			for _, p := range []image.Point{{0, 0}, {321, 237}, {639, 479}} {
+				window := w.windowPoint(p)
+				if got := w.nativePoint(window.X, window.Y); got != p {
+					t.Errorf("native %v -> window %v -> native %v", p, window, got)
+				}
+			}
+			src := image.NewRGBA(image.Rect(0, 0, 640, 480))
+			src.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
+			pic := w.fitFrame(src)
+			if pic.Bounds().Size() != size {
+				t.Fatalf("capture %v, window %v", pic.Bounds(), size)
+			}
+			p := w.windowPoint(image.Point{})
+			if got := pic.RGBAAt(p.X, p.Y); got != src.RGBAAt(0, 0) {
+				t.Errorf("pointer %v and captured pixel disagree: %v", p, got)
+			}
+		})
+	}
+	for _, value := range []string{"640", "0x480", "640x-1", "640x480x2", "oops", "99999999999999999999x1", "8193x1"} {
+		if _, err := routeWindowSize(value); err == nil {
+			t.Errorf("accepted invalid window %q", value)
+		}
+	}
 }

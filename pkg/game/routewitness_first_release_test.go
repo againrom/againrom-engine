@@ -54,7 +54,7 @@ var firstRouteStages = []routeStage{
 	{"generator-precreate", "chargen/precreate", (*routeWitness).preCreate},
 	{"generator-detail", "chargen/detailed", (*routeWitness).detail},
 	{"mission-dialogue", "map", (*routeWitness).missionDialogue},
-	{"mission-screen", "map", (*routeWitness).missionScreen},
+	{"mission-screen", "map", func(w *routeWitness) { w.missionScreen(false) }},
 	{"mission-hero", "map", (*routeWitness).missionHero},
 	{"to-town", "map", (*routeWitness).winToTown},
 	{"town-square", "town", (*routeWitness).firstSquare},
@@ -268,8 +268,8 @@ func (w *routeWitness) firstSquare() {
 		if err != nil {
 			w.t.Fatalf("town: the world map has no town point: %v", err)
 		}
-		w.hover("world map town", image.Rectangle{}, image.Pt(x, y))
-		w.click("world map town", image.Rectangle{}, image.Pt(x, y), 2, nil)
+		w.hover("world map town", image.Rectangle{}, w.nativePoint(x, y))
+		w.click("world map town", image.Rectangle{}, w.nativePoint(x, y), 2, nil)
 		w.until(200, func() bool { return w.screen() != "town/worldmap" })
 		w.dialoguePages("town", nil)
 		w.closeRoomTip()
@@ -328,8 +328,8 @@ func (w *routeWitness) closeRoomTip() {
 		return
 	}
 	w.wait("tip panel")
-	w.hover("tip close", image.Rectangle{}, image.Pt(x, y))
-	w.click("tip close", image.Rectangle{}, image.Pt(x, y), 2, nil)
+	w.hover("tip close", image.Rectangle{}, w.nativePoint(x, y))
+	w.click("tip close", image.Rectangle{}, w.nativePoint(x, y), 2, nil)
 }
 
 // leaveRoom sends Esc, returns from a game menu it opens, and leaves the
@@ -541,6 +541,6 @@ func (w *routeWitness) chooseMission() {
 		if err != nil {
 			w.t.Fatalf("world map: mission %d: %v", n, err)
 		}
-		w.click(fmt.Sprintf("mission %d", n), v.Missions[0].Region, image.Pt(x, y), 2, nil)
+		w.click(fmt.Sprintf("mission %d", n), v.Missions[0].Region, w.nativePoint(x, y), 2, nil)
 	}
 }
