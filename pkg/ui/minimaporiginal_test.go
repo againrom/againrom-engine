@@ -393,9 +393,6 @@ func TestOriginalMinimapWhiteOutlineFollowsScroll(t *testing.T) {
 			if got := originalContent(t, v, p); got != white {
 				t.Errorf("%s: outline pixel %v = %v (view %v)", stage, p, got, view)
 			}
-			if got := symbolicContent(t, v, p); got == white {
-				t.Errorf("%s: loss control: symbolic outline is white", stage)
-			}
 		}
 		inside := image.Pt((x0+x1)/2, (y0+y1)/2)
 		if got := originalContent(t, v, inside); got == white {

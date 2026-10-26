@@ -3,7 +3,9 @@ package ui
 import (
 	"image"
 	"image/color"
+	"math"
 
+	"againrom/pkg/render/camera"
 	"againrom/pkg/render/terrain"
 )
 
@@ -31,17 +33,12 @@ var (
 	minimapUnseenColor = color.RGBA{A: 0xff}
 
 	// minimapLootColor marks a ground sack. It is amber, apart from the local
-	// green, the other red and the pale green view outline.
+	// green, the other red and the white view outline.
 	minimapLootColor = color.RGBA{R: 0xff, G: 0xc8, B: 0x20, A: 0xff}
 
-	// minimapViewColor outlines what the camera can see (0140, owner: "a
-	// green square showing how much of the camera we see"). It is a PALER
-	// green than minimapLocalColor above rather than a different hue, because
-	// the owner asked for green and the two are told apart by SHAPE — the
-	// view is a one-pixel outline, a unit is a filled block — which stays
-	// true at every scale this file computes, including the sampled one where
-	// a unit is a single pixel.
-	minimapViewColor = color.RGBA{R: 0xa8, G: 0xff, B: 0xa8, A: 0xff}
+	// minimapViewColor outlines what the camera can see: the original's
+	// white, as its first-mission shot draws it.
+	minimapViewColor = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 )
 
 // minimapMark is one coloured rectangle on the minimap. Loot marks a ground
@@ -378,7 +375,11 @@ func (v *Viewer) minimapMarks() []minimapMark {
 		if !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
 			continue
 		}
-		out = append(out, minimapMark{Cell: e.Cell, Local: e.Owner == v.localOwner})
+		mark := minimapMark{Cell: e.Cell, Local: e.Owner == v.localOwner}
+		if mark.Local {
+			mark.Colour = v.missionScreen.MinimapLocal
+		}
+		out = append(out, mark)
 	}
 	return append(out, v.minimapLootMarks()...)
 }
@@ -532,60 +533,31 @@ func (v *Viewer) minimapWindowed(g minimapGeom) ([]color.RGBA, func(col, row int
 	var marks []minimapMark
 	for _, m := range v.minimapMarks() {
 		if m.Cell.In(win) {
-			marks = append(marks, minimapMark{Cell: m.Cell.Sub(win.Min), Local: m.Local, Loot: m.Loot})
+			marks = append(marks, minimapMark{Cell: m.Cell.Sub(win.Min), Local: m.Local, Loot: m.Loot, Colour: m.Colour})
 		}
 	}
 	return cut, fog, marks, v.minimapViewCells().Intersect(win).Sub(win.Min)
 }
 
-// minimapViewCells is the cell range the camera can currently see, as an
-// image.Rectangle with Min inclusive and Max exclusive (0140).
-//
-// Flat terrain uses camera.VisibleTiles directly. Displaced terrain resolves
-// the projected quads intersecting the live world window: VisibleTiles' row
-// arithmetic is intentionally the flat lattice and would otherwise make the
-// green outline stop above terrain the player can actually see.
+// minimapViewCells is the cell range of the minimap's view frame, Min
+// inclusive and Max exclusive: the view's span in whole cells (27 by 24 at
+// 1024x768, fewer rows under a bottom panel) from the cell at the view's
+// top-left. It is not clipped to the playable area; the picture drops pixels
+// outside it.
 func (v *Viewer) minimapViewCells() image.Rectangle {
-	r := v.cam.VisibleTiles()
-	// Include the four lower terrain rows admitted by the draw walk.
-	cells, bounded := v.renderCellRect()
-	if bounded {
-		r.Col0 = max(r.Col0, cells.Min.X)
-		r.Col1 = min(r.Col1, cells.Max.X)
+	cols, rows := v.cam.TileSpan()
+	origin := 0.0
+	if v.Mode() == ModeDisplaced {
+		origin = float64(v.proj.MinV)
 	}
-	if v.Mode() != ModeDisplaced || r.Col0 >= r.Col1 {
-		if bounded {
-			r.Row0 = max(r.Row0, cells.Min.Y)
-			r.Row1 = min(r.Row1, cells.Max.Y)
-		}
-		return image.Rect(r.Col0, r.Row0, r.Col1, r.Row1)
+	col0 := int(math.Floor(v.cam.X / camera.CellSize))
+	row0 := int(math.Floor((v.cam.Y + origin) / camera.CellSize))
+	if cells, bounded := v.renderCellRect(); bounded {
+		col0 = max(col0, cells.Min.X)
+		row0 = max(row0, cells.Min.Y)
 	}
-
-	_, top := v.cam.ScreenToWorld(0, 0)
-	_, bottom := v.cam.ScreenToWorld(float64(v.cam.ViewW), float64(v.cam.ViewH))
-	r0, r1 := v.proj.RowRange(top, bottom)
-	if bounded {
-		r0 = max(r0, cells.Min.Y)
-		r1 = min(r1, cells.Max.Y)
-	}
-	minRow, maxRow := r1, r0
-	for row := r0; row < r1; row++ {
-		visible := false
-		for col := r.Col0; col < r.Col1; col++ {
-			q := cellSpace{proj: v.proj}.quad(col, row)
-			cellMin := min(min(q[0][1], q[1][1]), min(q[2][1], q[3][1]))
-			cellMax := max(max(q[0][1], q[1][1]), max(q[2][1], q[3][1]))
-			if cellMax > top && cellMin < bottom {
-				visible = true
-				break
-			}
-		}
-		if visible {
-			minRow = min(minRow, row)
-			maxRow = max(maxRow, row+1)
-		}
-	}
-	return image.Rect(r.Col0, minRow, r.Col1, maxRow)
+	col0, row0 = max(col0, 0), max(row0, 0)
+	return image.Rect(col0, row0, col0+cols, row0+rows)
 }
 
 // minimapGeom is where the minimap is, in window pixels, and under which scale

@@ -487,6 +487,12 @@ func (c *Camera) VisibleTiles() TileRange {
 	}
 }
 
+// TileSpan is the view's size in whole cells.
+func (c *Camera) TileSpan() (cols, rows int) {
+	vw, vh := c.viewWorld()
+	return max(ceilDiv(vw), 0), max(ceilDiv(vh), 0)
+}
+
 // ceilDiv returns ceil(v/CellSize) guarding the non-finite case, which would
 // otherwise convert to an implementation-defined int.
 func ceilDiv(v float64) int {

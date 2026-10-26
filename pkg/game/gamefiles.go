@@ -1,6 +1,8 @@
 package game
 
 import (
+	"image/color"
+
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
@@ -134,7 +136,7 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32) int32 {
 var firstGameFiles = gameFiles{
 	missionPackClosed: true,
 	purseMoneyWord:    true,
-	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW},
+	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
 	boundedSaveView:   true,
 	orderThresholds:   true,
 	missionBookClosed: true,
@@ -167,7 +169,7 @@ var firstGameFiles = gameFiles{
 var secondGameFiles = gameFiles{
 	missionPackClosed:   true,
 	missionHeroSelected: true,
-	missionScreen:       ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true},
+	missionScreen:       ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,

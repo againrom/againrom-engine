@@ -3051,7 +3051,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1862,
 		"scclause":        505,
-		"barestorynumber": 1708,
+		"barestorynumber": 1706,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3073,5 +3073,5 @@ var Committed = Baseline{
 	// ruled list rows and their tests.
 	// then for the map editor save folder hotfix: new doc comments in
 	// pkg/game/mapinspectionedit.go and its tests.
-	CommentBytes: 9720573,
+	CommentBytes: 9720478,
 }

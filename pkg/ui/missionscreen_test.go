@@ -36,8 +36,8 @@ func TestMissionScreenColumnWidthIsGameData(t *testing.T) {
 	}
 }
 
-// R2-ENGINE-588: the second game centres its opening dialogue on the screen,
-// the 640 place plus (192,144); the first game centres it on the map view.
+// R2-ENGINE-588: the data says whether the opening dialogue stands on the
+// screen or on the map view.
 func TestMissionNoticeAreaIsGameData(t *testing.T) {
 	for _, tc := range []struct {
 		screen MissionScreen

@@ -1,9 +1,12 @@
 package ui
 
-import "image"
+import (
+	"image"
+	"image/color"
+)
 
-// MissionScreen is one game's mission screen layout data. The one mission
-// screen builder reads it; its zero value is the first game's layout.
+// MissionScreen is one game's mission screen layout data, read by the one
+// mission screen builder; the zero value is the plain first-game layout.
 type MissionScreen struct {
 	// ColumnW is the right column's width: the map view ends ColumnW pixels
 	// left of the frame's right edge. The first game's is MissionPanelW
@@ -13,9 +16,11 @@ type MissionScreen struct {
 	// spellbook row keep their places in both.
 	ColumnW int
 	// NoticeOnScreen centres a mission notice on the whole frame, the 640x480
-	// place plus (192,144) at 1024x768 (R2-ENGINE-588), instead of on the map
-	// view.
+	// place plus (192,144) at 1024x768 (R2-ENGINE-588), not on the map view.
 	NoticeOnScreen bool
+	// MinimapLocal is the local player's dot colour on the symbolic minimap;
+	// zero keeps minimapLocalColor.
+	MinimapLocal color.RGBA
 }
 
 // SetMissionScreen adopts the game's mission screen layout data.

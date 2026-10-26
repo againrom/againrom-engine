@@ -2234,6 +2234,9 @@ func (v *Viewer) playableCellRectScan() (image.Rectangle, bool) {
 
 const lowerRenderLipRows = 4
 
+// missionColumnBackdrop shows through the right column's transparent art.
+var missionColumnBackdrop = color.RGBA{A: 0xff}
+
 func (v *Viewer) renderCellRect() (image.Rectangle, bool) {
 	cells, ok := v.playableCellRect()
 	if ok {
@@ -3520,8 +3523,8 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	}
 	if v.cam.ViewW < v.frameW {
 		vector.DrawFilledRect(screen, float32(v.cam.ViewW), 0, float32(v.frameW-v.cam.ViewW),
-			float32(v.frameH), invFill, false)
-		v.canvasLog.overSolid(image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), invFill)
+			float32(v.frameH), missionColumnBackdrop, false)
+		v.canvasLog.overSolid(image.Rect(v.cam.ViewW, 0, v.frameW, v.frameH), missionColumnBackdrop)
 	}
 
 	// The unit information panel, after everything. It is outside the pass

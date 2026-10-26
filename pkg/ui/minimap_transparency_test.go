@@ -49,7 +49,7 @@ func TestCrystalBlackPixelsPreserveTheMissionUnderlay(t *testing.T) {
 	}{
 		{"left of bevel", image.Pt(1, 60), world},
 		{"above crystal", image.Pt(10, 1), world},
-		{"column background", image.Pt(40, 1), invFill},
+		{"column background", image.Pt(40, 1), black},
 		{"left art", image.Pt(8, 60), bevel},
 		{"right art", image.Pt(56, 4), bevel},
 		{"near black art", image.Pt(136, 4), nearBlack},
