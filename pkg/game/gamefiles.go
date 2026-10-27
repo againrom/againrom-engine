@@ -124,6 +124,9 @@ type gameFiles struct {
 	// mageCardWeaponSpell states a unit card's weapon spell from the mage's
 	// worn weapon instead of the spell its attack releases.
 	mageCardWeaponSpell bool
+	// loadedTavernStock orders the tavern's mercenary cells after a town LOAD
+	// by the stock ids the loaded allocator gives (TAVERN-ORDER-015).
+	loadedTavernStock bool
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
@@ -166,6 +169,7 @@ var firstGameFiles = gameFiles{
 	startRecordAtCaster: true,
 	projectileCounter:   true,
 	mageCardWeaponSpell: true,
+	loadedTavernStock:   true,
 }
 
 var secondGameFiles = gameFiles{

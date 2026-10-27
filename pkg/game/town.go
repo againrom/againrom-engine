@@ -110,6 +110,11 @@ type Town struct {
 	// left; 0, the constructor's value, before either (SAV-1359).
 	playerColor uint8
 
+	// tavernStockIDs are the ids of the tavern's stock units of types 1..15
+	// that the last town LOAD gives (loadedTavernStockIDs); nil before any,
+	// when the walk takes the fitted phase. Replaced whole, never edited.
+	tavernStockIDs []uint32
+
 	// A mission is marked once and paid on that same transition.
 	won map[int]bool
 

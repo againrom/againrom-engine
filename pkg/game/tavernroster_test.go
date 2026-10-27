@@ -80,6 +80,35 @@ func TestTavernRosterIsTheStockWalkThenTheTalkCells(t *testing.T) {
 	}
 }
 
+// TestTavernRosterFollowsTheLoadedStockIDs pins TAVERN-ORDER-015 over the
+// ids a town LOAD gives the stock units: four sixteen-id buckets, each newest
+// first, and the entry selects the first cell of that walk.
+func TestTavernRosterFollowsTheLoadedStockIDs(t *testing.T) {
+	f := ownerTavernFront(t, []mapload.PartyMember{{Name: "Player", PlayerCharacter: true, StartingHero: true}})
+	f.Town.tavernStockIDs = []uint32{3, 4, 5, 22, 23, 29, 32, 34, 41, 44, 46, 53, 56, 58, 63}
+	f.townUI.atSquare()
+	f.townUI.Choose(0)
+	v := f.townUI.TownSurface()
+	var got []string
+	for _, c := range v.Cells {
+		got = append(got, c.Semantic)
+	}
+	var want []string
+	for _, typ := range []int{3, 2, 1, 6, 5, 4, 10, 9, 8, 7, 14, 13, 12} {
+		want = append(want, fmt.Sprintf("Mercenary %d", typ))
+	}
+	want = append(want, "NPC 25")
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("roster = %v\nwant     %v", got, want)
+	}
+	if !v.Cells[0].Selected || v.Cells[0].Semantic != "Mercenary 3" {
+		t.Fatalf("entry selects %+v, want the type-3 cell", v.Cells[0])
+	}
+	if fitted := tavernStockWalk(nil); fitted[0] != 10 {
+		t.Fatalf("without loaded ids the walk starts at type %d, want the fitted 10", fitted[0])
+	}
+}
+
 func brianParty() []mapload.PartyMember {
 	return []mapload.PartyMember{
 		{Name: "Player", PlayerCharacter: true, StartingHero: true, Mage: true,

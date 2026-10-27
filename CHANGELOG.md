@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] After loading a town save, the inn lists its mercenaries in the original's order and selects the same first mercenary.
 - [ROM2] The mission menu's Save and Load pages look as in the original: a centred title, ruled rows, a gold heading while the list is in use, and a save's date shown when the pointer rests on its row. After a delete the name field is empty.
 - [ROM1] After you load a save the original wrote, a dead body that is put back on the map keeps its own number, so a missile flying at it still aims at it when you save and load again.
 - [ROM2] Quest Objectives shows the objective's title on its own line with the text below it, instead of both on one line with four question marks between them, and the gold in the pack reads MONEY on one line, as in the original.

@@ -162,16 +162,7 @@ func (w *World) RestoreGroundSackRuntimeIDs(ids []uint32) error {
 // of its non-zero saved id, a Sack's constructor first taking the lowest clear
 // bit. Bits no World object carries stay marked.
 func (w *World) RestoreRuntimeIDs(records []RuntimeIDLoad) {
-	m := new(runtimeIDMarks)
-	m.mark(0)
-	for _, r := range records {
-		if r.Sack {
-			m.mark(m.lowestClear())
-		}
-		if r.Saved != 0 {
-			m.mark(r.Saved)
-		}
-	}
+	m := loadedRuntimeIDMarks(records)
 	owned := new(runtimeIDMarks)
 	owned.mark(0)
 	w.eachRuntimeIDOwner(func(id uint32) {
@@ -185,6 +176,46 @@ func (w *World) RestoreRuntimeIDs(records []RuntimeIDLoad) {
 			w.runtimeOrphans = append(w.runtimeOrphans, uint16(id))
 		}
 	}
+}
+
+// loadedRuntimeIDMarks is the bitmap World LOAD leaves (SAV-1371): bit 0,
+// then each record in archive order marks the low 16 bits of its non-zero
+// saved id, a Sack's constructor first taking the lowest clear bit.
+func loadedRuntimeIDMarks(records []RuntimeIDLoad) *runtimeIDMarks {
+	m := new(runtimeIDMarks)
+	m.mark(0)
+	for _, r := range records {
+		if r.Sack {
+			m.mark(m.lowestClear())
+		}
+		if r.Saved != 0 {
+			m.mark(r.Saved)
+		}
+	}
+	return m
+}
+
+// RuntimeIDsAfterLoad is the n ids the allocator gives after a LOAD of
+// records once the released ids are cleared (SAV-1370): each the lowest clear
+// bit, marked before the next is given. It is shorter than n only when the
+// id space is full.
+func RuntimeIDsAfterLoad(records []RuntimeIDLoad, released []uint32, n int) []uint32 {
+	m := loadedRuntimeIDMarks(records)
+	for _, id := range released {
+		if b := uint16(id); b != 0 {
+			m[b>>6] &^= 1 << (b & 63)
+		}
+	}
+	out := make([]uint32, 0, n)
+	for range n {
+		id := m.lowestClear()
+		if id == 0 {
+			break
+		}
+		m.mark(id)
+		out = append(out, id)
+	}
+	return out
 }
 
 // ActorRuntimeIDLoad is one live actor's saved Token +0x04 a LOAD reads.

@@ -170,3 +170,18 @@ func TestRuntimeIDColdLoadOfASackPlantedBeforeAnOlderSackHoldsTheConstructorBit(
 		}
 	}
 }
+
+// After a LOAD the released ids are given first, then the holes the replay
+// left, each id marked before the next is given.
+func TestRuntimeIDsAfterLoadGiveReleasedIDsThenTheReplaysHoles(t *testing.T) {
+	records := []RuntimeIDLoad{{Saved: 1}, {Saved: 2}, {Saved: 3}, {Saved: 4}, {Saved: 0x10006}, {Sack: true}, {Saved: 9}}
+	if got := RuntimeIDsAfterLoad(records, nil, 4); !slices.Equal(got, []uint32{7, 8, 10, 11}) {
+		t.Fatalf("no release gives %v", got)
+	}
+	if got := RuntimeIDsAfterLoad(records, []uint32{3, 0, 0x10004}, 4); !slices.Equal(got, []uint32{3, 4, 7, 8}) {
+		t.Fatalf("released 3 and 4 give %v", got)
+	}
+	if got := RuntimeIDsAfterLoad(nil, nil, 2); !slices.Equal(got, []uint32{1, 2}) {
+		t.Fatalf("an empty replay gives %v", got)
+	}
+}

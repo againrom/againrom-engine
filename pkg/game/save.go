@@ -65,6 +65,8 @@ type Snapshot struct {
 	townOptions []sav.CityStateRecordData
 	// playerColor is the town's carried local Player +0x44 at capture.
 	playerColor uint8
+	// tavernStockIDs are the town's tavern stock unit ids at capture.
+	tavernStockIDs []uint32
 	// NativeMissionTerrain requests the original writer's own scoped
 	// block-plane row set (a delta inside its own sweep window, only where
 	// a cell's dynamic byte exceeds the ingested baseline) instead of the
@@ -283,6 +285,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 	s.cityGroups, s.cityGroupsLoaded = slices.Clone(t.cityGroups), t.cityGroupsLoaded
 	s.knowledge = slices.Clone(t.knowledge)
 	s.playerColor = t.playerColor
+	s.tavernStockIDs = slices.Clone(t.tavernStockIDs)
 	s.HeroGrantState = true
 	for chapter, consumed := range t.heroGrants {
 		if consumed {
@@ -391,6 +394,7 @@ func restoreTown(c Campaign, s Snapshot) (*Town, error) {
 	t.cityGroups, t.cityGroupsLoaded = slices.Clone(s.cityGroups), s.cityGroupsLoaded
 	t.knowledge = slices.Clone(s.knowledge)
 	t.playerColor = s.playerColor
+	t.tavernStockIDs = slices.Clone(s.tavernStockIDs)
 	t.gold = s.Gold
 	if s.MercenaryState && !restoredCampaign {
 		t.mercPool, t.mercEnabled, t.mercHired = s.MercenaryPool, s.MercenaryEnabled, s.MercenaryHired

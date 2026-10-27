@@ -1,10 +1,14 @@
 package game
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/data"
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 )
 
 // TavernOffer is one whole-squad cell on the town screen.
@@ -26,7 +30,7 @@ func (t *townScreen) tavernMercenaries() []TavernOffer {
 		listed[typ] = true
 	}
 	var out []TavernOffer
-	for _, typ := range tavernStockWalk() {
+	for _, typ := range tavernStockWalk(t.sess.Town.tavernStockIDs) {
 		if !listed[typ] || !t.sess.Town.MercenaryEnabled(typ) || t.sess.Town.mercenaryHiredElsewhere(typ) {
 			continue
 		}
@@ -49,29 +53,65 @@ func (t *townScreen) tavernMercenaries() []TavernOffer {
 	return out
 }
 
-// tavernStockIDPhase is the stock unit id of type 1 modulo sixteen. The
-// original builds one stock unit per type 1..15 in type order at tavern entry
-// and lists them in the walk of its actor map (TAVERN-ORDER-015). The ids are
-// not derived from code: this phase is fitted to the one original screenshot
-// research holds, where types 1..10 share one sixteen-id block and 11..15 the
-// next (Medium).
+// tavernStockIDPhase is the stock unit id of type 1 when no LOAD gave the
+// allocator's state: the original builds one stock unit per type 1..15 in
+// type order at tavern entry and lists them in the walk of its actor map
+// (TAVERN-ORDER-015). This phase is fitted to one original screenshot, where
+// types 1..10 share one sixteen-id block and 11..15 the next (DIV-1410).
 const tavernStockIDPhase = 6
 
+// tavernStockTypes is the number of stock units command 0x37 builds.
+const tavernStockTypes = 15
+
 // tavernStockWalk is the mercenary types 1..15 in the order the actor-map walk
-// visits their stock units: bucket `(id >> 4) % size` from 0, each bucket's
-// chain from its head, and the client inserts at the head, so one sixteen-id
-// block comes out newest first. It assumes the two blocks land in ascending
-// buckets, which holds unless the lower block sits in the table's last bucket.
-func tavernStockWalk() []int {
-	out := make([]int, 0, 15)
-	for block := 0; block <= (tavernStockIDPhase+14)/16; block++ {
-		for typ := 15; typ >= 1; typ-- {
-			if (tavernStockIDPhase+typ-1)/16 == block {
-				out = append(out, typ)
-			}
+// visits their stock units, given the ids of types 1..15: bucket
+// `(id >> 4) % size` from 0, each bucket's chain from its head, and the client
+// inserts at the head, so units of one sixteen-id block come out newest first.
+// Without ids it takes the fitted phase. It assumes the blocks land in
+// ascending buckets, which holds unless an id passes the table's last bucket.
+func tavernStockWalk(ids []uint32) []int {
+	if len(ids) != tavernStockTypes {
+		ids = make([]uint32, tavernStockTypes)
+		for i := range ids {
+			ids[i] = uint32(tavernStockIDPhase + i)
 		}
 	}
+	out := make([]int, 0, tavernStockTypes)
+	for typ := 1; typ <= tavernStockTypes; typ++ {
+		out = append(out, typ)
+	}
+	slices.SortStableFunc(out, func(a, b int) int {
+		if c := cmp.Compare(ids[a-1]&0xffff>>4, ids[b-1]&0xffff>>4); c != 0 {
+			return c
+		}
+		return cmp.Compare(b, a)
+	})
 	return out
+}
+
+// loadedTavernStockIDs is the ids command 0x37 gives the stock units of types
+// 1..15 at the first tavern entry after a LOAD of saved. The bitmap is the one
+// LOAD leaves (SAV-1372); the command first removes each party actor whose
+// type byte is non-zero and frees its id (SAV-1136), and only a loaded Human
+// mercenary of an NPC row keeps that byte (SAV-1137); the units then take the
+// lowest clear bits in type order (SAV-926, SAV-927, MOVE-ID-016). Nil when
+// the document does not decode.
+func loadedTavernStockIDs(saved []byte, chars []sav.Character, table *mapload.Table) []uint32 {
+	doc, origins := decodeSavedDocument(saved)
+	if doc.Document == nil {
+		return nil
+	}
+	var released []uint32
+	for _, c := range chars {
+		if _, ok := originalMercenaryType(c, table); ok && uint8(c.DisplayBacking) != 0 {
+			released = append(released, c.RuntimeID)
+		}
+	}
+	ids := sim.RuntimeIDsAfterLoad(runtimeIDLoads(doc.Document, origins), released, tavernStockTypes)
+	if len(ids) != tavernStockTypes {
+		return nil
+	}
+	return ids
 }
 
 func (t *townScreen) mercenaryPrice(typ, count int) (int, bool) {

@@ -206,6 +206,10 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	}
 	s.clear(campaign)
 	s.quickSpells, s.Difficulty, s.Town = quickSpells, difficulty, restoredTown
+	if s.Town != nil && tableFiles(in.table).loadedTavernStock {
+		chars, _ := sf.Party()
+		s.Town.tavernStockIDs = loadedTavernStockIDs(saved, chars, in.table)
+	}
 	s.fame = fameFromCurrentTown(restoredTown, currentSession)
 	restored, report := RestoreParty(sf, s.nextParty(func() []mapload.PartyMember {
 		return MissionParty(in.startWeapon, in.bodies, in.table)

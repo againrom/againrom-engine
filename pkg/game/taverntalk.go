@@ -68,7 +68,7 @@ func (t *townScreen) tavernStockActors() []tavernStockActor {
 		return nil
 	}
 	var out []tavernStockActor
-	for _, typ := range tavernStockWalk() {
+	for _, typ := range tavernStockWalk(t.sess.Town.tavernStockIDs) {
 		if typ <= 2 {
 			continue
 		}
