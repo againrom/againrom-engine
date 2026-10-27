@@ -80,14 +80,14 @@ func TestReleaseCompletedExtraTavernTalkerDisappearsThroughAppAndCurrentSAV(t *t
 		t.Fatal("accepted unfinished extra41 lost its active talker")
 	}
 	before := tavernLabels(s)
-	if want := []string{"Mercenary 6", "Mercenary 14", "NPC 22", "NPC 90"}; !reflect.DeepEqual(before, want) {
+	if want := []string{"Mercenary 14", "Mercenary 6", "NPC 22", "NPC 90"}; !reflect.DeepEqual(before, want) {
 		t.Fatal("installed chapter40 witness has a different initial roster", before, want)
 	}
 	completedTavernFrame(t, app, filepath.Join(root, "before-completion.png"))
 	if side, accepted := f.Town.Won(41); !side || !accepted || !f.Town.Done(41) || f.Town.Chapter() != 40 || f.Town.progress.record(41) != nil {
 		t.Fatal("controlled extra41 completion did not retain chapter40", side, accepted)
 	}
-	want := []string{"Mercenary 10", "Mercenary 6", "Mercenary 14", "NPC 22"}
+	want := []string{"Mercenary 14", "Mercenary 10", "Mercenary 6", "NPC 22"}
 	checkCompletedTavernApp(t, f, app, want)
 	completedTavernFrame(t, app, filepath.Join(root, "after-completion.png"))
 	store := SaveStore{Dir: filepath.Join(root, "current")}

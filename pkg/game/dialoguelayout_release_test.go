@@ -63,7 +63,8 @@ func TestReleaseDialogueLayout(t *testing.T) {
 		return dialogueFrame(t, app), townPartText(t, f, s)
 	}
 	shopFrame, shopText := shop()
-	shopRoom := closeTownDialogue(t, app, s)
+	closeTownDialogue(t, app, s)
+	shopRoom := shopRoomUnderMerchantDialogue(t, app, s)
 	t.Run("shop", func(t *testing.T) {
 		checkDialogueFrame(t, "shop", f, shopFrame, dialogueBackdropRoom(shopRoom), shopText)
 	})
@@ -312,6 +313,17 @@ func closeTownDialogue(t *testing.T, app *ui.App, s *townScreen) *image.RGBA {
 	if s.room == roomTalk {
 		t.Fatal("the dialogue did not close")
 	}
+	if err := app.HeadlessStep(); err != nil {
+		t.Fatal(err)
+	}
+	return dialogueFrame(t, app)
+}
+
+func shopRoomUnderMerchantDialogue(t *testing.T, app *ui.App, s *townScreen) *image.RGBA {
+	t.Helper()
+	covered := s.shop.covered
+	s.shop.covered = func() bool { return true }
+	defer func() { s.shop.covered = covered }()
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}

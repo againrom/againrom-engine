@@ -76,8 +76,9 @@ func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
 	page := freeMessage(pages)
 	configure(t, e, key)
 	messageField(t, e, e.DialogChoiceField())
-	messageChoiceClick(t, e, map[string]string{"en": "New dialog", "ru": "Новый диалог"}[x.pageLanguage()])
-	if !strings.Contains(trigLines(e), map[string]string{"en": "New dialog", "ru": "Новый диалог"}[x.pageLanguage()]) {
+	newDialog := x.inspectionUTF8(x.word("editor.message.newdialog"))
+	messageChoiceClick(t, e, newDialog)
+	if !strings.Contains(trigLines(e), newDialog) {
 		t.Fatal("the dialog choice did not start a new dialog", e.PopupLines())
 	}
 	body := map[string]string{"en": "A new wizard message.", "ru": "Новое сообщение мастера."}[x.pageLanguage()]
