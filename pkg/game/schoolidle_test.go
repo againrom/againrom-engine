@@ -9,8 +9,13 @@ import (
 	"againrom/pkg/ui"
 )
 
+// openSchoolTip stands in for an entry with tips on: the fixtures carry no tip
+// row, and the idle shine runs only while the school's popup exists.
+func openSchoolTip(s *townScreen) { s.schoolTip, s.tipClosed[roomSchool] = "tip", false }
+
 func TestSchoolIdleEligibilityAndPostDrawClock(t *testing.T) {
 	f, s := diamondSchool(t)
+	openSchoolTip(s)
 	at := time.Unix(1000, 0)
 	now := at
 	f.TownAnimationNow = func() time.Time { return now }
@@ -36,6 +41,7 @@ func TestSchoolIdleEligibilityAndPostDrawClock(t *testing.T) {
 func TestSchoolIdleHoverRemembersTheFollowingCounter(t *testing.T) {
 	for _, mage := range []bool{false, true} {
 		f, s := diamondSchool(t)
+		openSchoolTip(s)
 		f.Carried[0].Mage = mage
 		s.schoolColumn().Rest(s.schoolMemberClass())
 		now := time.Unix(1000, 0)
@@ -94,6 +100,7 @@ func TestSchoolIdlePictureOrderMatchesEachClass(t *testing.T) {
 		s := f.townUI
 		s.atSquare()
 		s.Choose(2)
+		openSchoolTip(s)
 		now := time.Unix(1000, 0)
 		f.TownAnimationNow = func() time.Time { return now }
 		s.AdvanceTownSurfaceAnimation()
@@ -128,6 +135,7 @@ func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 	s := f.townUI
 	s.atSquare()
 	s.Choose(2)
+	openSchoolTip(s)
 	if v := s.TownSurface(); v.SchoolIdleShine {
 		t.Fatal("the idle shine showed before any school paint")
 	}
@@ -142,6 +150,38 @@ func TestSchoolViewCarriesTheIdleSlotInTheSharedOrder(t *testing.T) {
 		}
 		if v := s.TownSurface(); !v.SchoolIdleShine || v.SchoolIdleSlot != slot {
 			t.Fatalf("cycle %d: view idle = %v slot %d, want slot %d", cycle, v.SchoolIdleShine, v.SchoolIdleSlot, slot)
+		}
+	}
+}
+
+// TestSchoolIdleShineNeedsTheTip covers TOWN-564: with no selection and the
+// cursor elsewhere no row lights unless the tip popup exists. Tips off at
+// entry or the popup closed leave every row dark; reopening resumes the shine.
+func TestSchoolIdleShineNeedsTheTip(t *testing.T) {
+	f, s := diamondSchool(t)
+	s.schoolCell = schoolNoSelection
+	now := time.Unix(1000, 0)
+	f.TownAnimationNow = func() time.Time { return now }
+	step := func(d time.Duration) ui.TownSurfaceView {
+		now = now.Add(d)
+		s.AdvanceTownSurfaceAnimation()
+		return s.TownSurface()
+	}
+	s.schoolTip = ""
+	step(0)
+	for i := 0; i < 8; i++ {
+		if v := step(400 * time.Millisecond); v.SchoolIdleShine {
+			t.Fatalf("tips off: idle shine lit slot %d at step %d", v.SchoolIdleSlot, i)
+		}
+	}
+	openSchoolTip(s)
+	if v := step(time.Millisecond); !v.SchoolIdleShine {
+		t.Fatal("the open tip did not admit the idle shine")
+	}
+	s.CloseTip()
+	for i := 0; i < 8; i++ {
+		if v := step(400 * time.Millisecond); v.SchoolIdleShine {
+			t.Fatalf("tip closed: idle shine lit slot %d at step %d", v.SchoolIdleSlot, i)
 		}
 	}
 }

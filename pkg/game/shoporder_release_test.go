@@ -18,8 +18,8 @@ import (
 )
 
 // The town after save 666's mission 20, through App: every shelf opened by its
-// own rectangle and paged with the down arrow paints its stock in groups, class
-// then kind, and cheapest first inside one class and kind (owner, `DIV-319`). A
+// own rectangle and paged with the down arrow paints its stock in SHOP-154's
+// groups, and cheapest first inside one group (`DIV-4164`). A
 // unit bought from the middle of a shelf leaves the rest in order and, sold
 // back or returned from the table, stands in its old cell again; a unit of a
 // code the shop lacks, sold from the pack, lands in its own group by its price,
@@ -175,8 +175,8 @@ func shopOrderShelves(t *testing.T, app *ui.App, s *townScreen, stage string) [n
 
 // shopOrderShelf opens the room's shelf rectangle room and pages through it
 // with the down arrow. Every element must be painted once, at its model index,
-// and the shelf must stand in its order: class, then kind, then price cheapest
-// first (shopOrderInOrder). It returns the shelf's elements.
+// and the shelf must stand in its order: fighter flag, kind, weapon group, then
+// price cheapest first (shopOrderInOrder). It returns the shelf's elements.
 func shopOrderShelf(t *testing.T, app *ui.App, s *townScreen, room int, stage string) []ShopItem {
 	t.Helper()
 	shopPointer(t, app)("shelf_pick", room, "press", "release")
@@ -235,11 +235,12 @@ func shopOrderRoom(t *testing.T, shelf ShopShelf) int {
 var shopOrderShelfNames = [...]string{"armour", "weapons", "magic", "books"}
 
 // shopOrderCompare is below, at or above zero as a stands before, ties with or
-// stands after b: a later class stands after, inside a class a later kind, and
-// inside a class and kind a dearer price.
+// stands after b (SHOP-154): an unset fighter flag stands after, then a later
+// kind, a later weapon group, and a dearer price.
 func shopOrderCompare(tbl *mapload.Table, a, b ShopItem) int {
 	x, y := shopOrderOf(a.Code, tbl), shopOrderOf(b.Code, tbl)
-	return cmp.Or(cmp.Compare(x.class, y.class), cmp.Compare(x.kind, y.kind), cmp.Compare(a.Price, b.Price))
+	return cmp.Or(cmp.Compare(x.class, y.class), cmp.Compare(x.kind, y.kind),
+		cmp.Compare(x.group, y.group), cmp.Compare(a.Price, b.Price))
 }
 
 // shopOrderInOrder is whether b may stand after a in a shelf.

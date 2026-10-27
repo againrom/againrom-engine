@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -505,5 +506,43 @@ func TestTownFamilyPositionRollsAreTheScaledQuotients(t *testing.T) {
 		if n == 0 {
 			t.Errorf("baba position %d unreachable", i)
 		}
+	}
+}
+
+// TestTownFamiliesAfterALoadDrawFromTheProcess covers TOWN-565: the families'
+// generator is the process's: a LOAD neither restarts nor seeds it.
+func TestTownFamiliesAfterALoadDrawFromTheProcess(t *testing.T) {
+	launched := func(seed uint64) (*FrontEnd, func(int) []int) {
+		f := shellFrontEnd()
+		f.Random = random.NewService(random.Session{})
+		f.randomService().SetLaunch(random.Launch{Seed: seed, Fixed: true}, 0)
+		return f, func(n int) []int {
+			v := f.townUI.squareView()
+			if v == nil {
+				t.Fatal("the shell town has no square scene")
+			}
+			out := make([]int, n)
+			for i := range out {
+				out[i] = v.Pick("wildlife", "scaled", 2000)
+			}
+			return out
+		}
+	}
+	load := func(f *FrontEnd) { f.beginRandomSession(f.randomService().Loaded(random.Session{Seed: 1})) }
+
+	running, draw := launched(7)
+	first := draw(8)
+	load(running)
+	afterLoad := draw(8)
+	_, control := launched(7)
+	if want := control(16); fmt.Sprint(append(first, afterLoad...)) != fmt.Sprint(want) {
+		t.Fatalf("a LOAD in a running process drew %v then %v, want the uninterrupted %v", first, afterLoad, want)
+	}
+	coldSeven, drawSeven := launched(7)
+	coldNine, drawNine := launched(9)
+	load(coldSeven)
+	load(coldNine)
+	if a, b := drawSeven(8), drawNine(8); fmt.Sprint(a) == fmt.Sprint(b) {
+		t.Fatalf("launch seeds 7 and 9 both drew %v after a LOAD of one session", a)
 	}
 }

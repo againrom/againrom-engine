@@ -18,7 +18,9 @@ func defaultGraphicsValues() ui.GameOptionValues {
 	v[ui.GameOptionShadows] = 1
 	v[ui.GameOptionLighting] = 1
 	v[ui.GameOptionAnimation] = 1
-	v[ui.GameOptionLootDots] = 1
+	// Loot dots stay off until the player asks: the original's minimap marks
+	// no sack (MISSION-063, DIV-2954).
+	v[ui.GameOptionLootDots] = 0
 	return v
 }
 

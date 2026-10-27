@@ -557,8 +557,14 @@ func TestSchoolUnaffordableTrainingIsAtomic(t *testing.T) {
 		t.Fatalf("unaffordable training mutated gold=%d member=%#v", f.Town.Gold(), f.Carried[0])
 	}
 	f.townUI.room, f.townUI.schoolCell = roomSchool, 0
-	if f.townUI.TownSurface().Buttons[0].Enabled {
-		t.Fatal("Train is enabled below the shown price")
+	if !f.townUI.TownSurface().Buttons[0].Enabled {
+		t.Fatal("Train is not pressable below the shown price")
+	}
+	if act := f.townUI.townSurfaceButton(0); act.Msg != "" || act.Info || act.Open != nil {
+		t.Fatalf("Train below the price = %q, want a silent refusal", act.Msg)
+	}
+	if f.Town.Gold() != 199 || !reflect.DeepEqual(f.Carried[0], before) {
+		t.Fatalf("Train below the price mutated gold=%d member=%#v", f.Town.Gold(), f.Carried[0])
 	}
 }
 
@@ -628,7 +634,7 @@ func TestSchoolPickerStepClearsThePendingSkillAndItsQuote(t *testing.T) {
 			t.Fatalf("cell %d is still selected after the picker step", i)
 		}
 	}
-	if view.Buttons[0].Enabled || view.Buttons[0].Value != "0" {
+	if view.Buttons[0].Value != "0" {
 		t.Fatalf("the quote survived the picker step: %+v", view.Buttons[0])
 	}
 	// Train has nothing to act on, and says so rather than buying slot 1.
@@ -679,9 +685,8 @@ func TestSchoolOpensWithNothingSelected(t *testing.T) {
 			t.Fatalf("cell %d (%s) is selected before any click", i, c.Label)
 		}
 	}
-	if v.Buttons[0].Value != "0" || v.Buttons[0].Enabled {
-		t.Fatalf("Train quotes %q enabled=%v with nothing selected, want \"0\" and disabled",
-			v.Buttons[0].Value, v.Buttons[0].Enabled)
+	if v.Buttons[0].Value != "0" {
+		t.Fatalf("Train quotes %q with nothing selected, want \"0\"", v.Buttons[0].Value)
 	}
 	// A click still selects, and the quote follows it.
 	if a := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: 0}, false); a.Msg != "" {
@@ -694,8 +699,8 @@ func TestSchoolOpensWithNothingSelected(t *testing.T) {
 	}
 }
 
-// Exit shows the purse left after the training price once a skill is chosen,
-// and the plain purse otherwise or when the price is not covered.
+// Exit shows the purse less the training price once a skill is chosen, signed
+// and unclamped, and the plain purse with nothing chosen (TOWN-563).
 func TestSchoolExitShowsThePurseLeftAfterTheQuotedPrice(t *testing.T) {
 	f := shellFrontEnd()
 	rows := append(dbCollection(nil), f.Table.Humans.(dbCollection)...)
@@ -717,7 +722,43 @@ func TestSchoolExitShowsThePurseLeftAfterTheQuotedPrice(t *testing.T) {
 		t.Fatalf("Train %q Exit %q, want %d and %q", v.Buttons[0].Value, v.Buttons[1].Value, price, want)
 	}
 	f.Town.gold = price - 1
-	if got, want := s.TownSurface().Buttons[1].Value, ui.GroupDigits(int64(price-1)); got != want {
-		t.Fatalf("Exit with the price not covered = %q, want the purse %q", got, want)
+	if got := s.TownSurface().Buttons[1].Value; got != "-1" {
+		t.Fatalf("Exit with the price not covered = %q, want \"-1\"", got)
+	}
+	f.Town.gold = price
+	if got := s.TownSurface().Buttons[1].Value; got != "0" {
+		t.Fatalf("Exit with the price exactly covered = %q, want \"0\"", got)
+	}
+}
+
+// TestSchoolShortPurseShowsANegativeExitAndTrainRefusesSilently covers
+// TOWN-563: a purse short by 488 shows Exit -488 with Train still pressable,
+// and a Train press then sends nothing: no line, no purse or skill change.
+func TestSchoolShortPurseShowsANegativeExitAndTrainRefusesSilently(t *testing.T) {
+	f := shellFrontEnd()
+	s := f.townUI
+	s.room, s.schoolCell = roomSchool, 0
+	if f.Carried[0].Mage {
+		s.schoolCell = 5
+	}
+	slot, price, ok := s.selectedSchoolSlot()
+	if !ok || price <= 488 {
+		t.Fatalf("no usable price quoted: %d %v", price, ok)
+	}
+	f.Town.gold = price - 488
+	v := s.TownSurface()
+	if v.Buttons[1].Value != "-488" || !v.Buttons[0].Enabled || v.Buttons[0].Value != ui.GroupDigits(int64(price)) {
+		t.Fatalf("short purse: Train %+v Exit %+v, want Train pressable at %d and Exit -488", v.Buttons[0], v.Buttons[1], price)
+	}
+	level := f.Carried[0].Hero.Skill[slot]
+	if act := s.townSurfaceButton(0); act.Msg != "" || act.Info || act.Open != nil {
+		t.Fatalf("Train with a short purse = %q, want nothing", act.Msg)
+	}
+	if f.Town.Gold() != price-488 || f.Carried[0].Hero.Skill[slot] != level {
+		t.Fatalf("Train with a short purse changed gold %d level %d", f.Town.Gold(), f.Carried[0].Hero.Skill[slot])
+	}
+	f.Town.gold = 1_000_000 + price
+	if got := s.TownSurface().Buttons[1].Value; got != "1,000,000" {
+		t.Fatalf("Exit with a large purse = %q, want grouped 1,000,000", got)
 	}
 }

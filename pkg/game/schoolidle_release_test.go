@@ -75,7 +75,11 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 		if s.room != roomSchool {
 			t.Fatal("production school entry failed")
 		}
-		s.CloseTip()
+		// The idle shine runs only while the tip popup exists (TOWN-564); the
+		// popup stays open and is left out of both composed frames.
+		if !s.tipShown(roomSchool) {
+			t.Fatal("production school entry built no tip popup")
+		}
 		s.AdvanceTownSurfaceAnimation()
 		now = now.Add(500 * time.Millisecond)
 		s.AdvanceTownSurfaceAnimation()
@@ -88,6 +92,7 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 			if v.SchoolClass != class || !v.SchoolIdleShine {
 				t.Fatalf("class %d stored slot %d: panel class %d idle %v", class, c, v.SchoolClass, v.SchoolIdleShine)
 			}
+			v.Tip = ui.TipPanelView{}
 			frame := ui.ComposeTownSurface(v)
 			quiet := v
 			quiet.SchoolIdleShine = false

@@ -75,6 +75,9 @@ type Service struct {
 	overrides map[Name]int64
 	launch    Launch
 	pending   *Session
+	// process is the seed of the session the process began: SetLaunch's, or
+	// NewService's for a service whose launch was never set.
+	process uint64
 }
 
 // Launch is what the launch settings choose: a fixed session seed, or none so
@@ -115,6 +118,7 @@ func (s *Service) SetLaunch(l Launch, clock uint64) (fellBack bool) {
 	if l.Mode == Original {
 		session.reseed(SoundInit)
 	}
+	s.process = session.Seed
 	s.Begin(session)
 	return fellBack
 }
@@ -215,7 +219,7 @@ func UnfoldOriginal(state uint32) uint64 { return mix64(uint64(state) | 1<<32) }
 
 // NewService is a service over session.
 func NewService(session Session) *Service {
-	s := &Service{}
+	s := &Service{process: session.Seed}
 	s.Begin(session)
 	return s
 }
@@ -256,6 +260,16 @@ func (s *Service) StreamSeed(name Name) int64 {
 		return v
 	}
 	return int64(DeriveSeed(s.session.Seed, string(name)))
+}
+
+// ProcessStreamSeed is the seed of a stream that lasts the process: an
+// override when a test set one, otherwise the mix of the process's first
+// session seed and the stream's name. No new game or LOAD changes it.
+func (s *Service) ProcessStreamSeed(name Name) int64 {
+	if v, ok := s.overrides[name]; ok {
+		return v
+	}
+	return int64(DeriveSeed(s.process, string(name)))
 }
 
 // SetStreamSeed fixes one seeded stream's seed and restarts it. It is a test

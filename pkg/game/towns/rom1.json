@@ -590,10 +590,10 @@
           "on": [{"event": "train", "do": "arm", "cite": ["TOWN-379"]}],
           "cite": ["TOWN-379", "TOWN-380", "TOWN-381", "DIV-524"]},
          {"name": "shine", "program": "cycle", "frames": 5,
-          "delay-ms": 500, "value": "school-hover",
+          "delay-ms": 500, "value": "school-hover", "hold-unless": "school-tip",
           "wait": {"base-ms": 300, "compare": "greater", "cite": ["TOWN-542"]},
           "order": [[0, 1, 2, 3, 4], [0, 1, 3, 2, 4]],
-          "cite": ["TOWN-541", "TOWN-542", "DIV-121"]}
+          "cite": ["TOWN-541", "TOWN-542", "TOWN-564", "DIV-121"]}
        ],
        "steps": [
          {"run": ["advance yard", "advance diamond", "advance shine", "advance training"], "cite": ["TOWN-552", "TOWN-380", "TOWN-430", "TOWN-542"]}

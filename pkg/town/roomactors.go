@@ -520,8 +520,10 @@ func (b *Bounce) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 }
 
 // Cycle counts modulo Frames. A positive DelayMS adds idle admission after
-// that delay, remembers the hovered Value and publishes before counting.
-// Its state outlives entry. Order maps the published count to a variant slot.
+// that delay, remembers the hovered Value and publishes before counting;
+// HoldUnless names a condition without which the idle publishes nothing and
+// keeps its clocks. Its state outlives entry. Order maps the published count
+// to a variant slot.
 type Cycle struct {
 	still
 	spec                *ActorSpec
@@ -563,6 +565,10 @@ func (c *Cycle) idle(s *Scene, now time.Time) {
 	if !c.ready || now.Before(c.idleLast) || now.Before(c.Last) {
 		c.ready, c.Stamped = true, false
 		c.idleLast, c.Last, c.remembered = now, now, -1
+		return
+	}
+	if c.spec.HoldUnless != "" && !s.host.Condition(c.spec.HoldUnless) {
+		c.Stamped = false
 		return
 	}
 	if now.Sub(c.idleLast) < time.Duration(c.spec.DelayMS)*time.Millisecond {

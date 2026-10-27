@@ -299,7 +299,7 @@ type ActorSpec struct {
 	Members []MemberSpec `json:"members"`
 	Chance  *ChanceSpec  `json:"chance"`
 
-	// stepper and driven
+	// stepper and driven; HoldUnless also holds a cycle's idle
 	Rest               string `json:"rest"`
 	Hold               string `json:"hold"`
 	HoldUnless         string `json:"hold-unless"`

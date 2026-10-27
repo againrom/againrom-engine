@@ -9,98 +9,29 @@ import (
 	"againrom/pkg/sim"
 )
 
-// The order a shop shelf is PRESENTED in (owner, `DIV-319`).
+// The first game's shelf order is SHOP-154's four keys, outermost first: the
+// fighter flag set first, the code's kind nibble ascending, for weapons a row
+// group ascending, then price ascending. The flag is the row's sutableFor
+// bit 0x1 (ITEM-SUIT-035); the weapon row group stands in as the row's
+// AttackType rank; equal elements keep their order (DIV-4164).
 //
-// IT IS AN OWNER DIRECTIVE, NOT A DECODED FACT. SHOP-SCREEN-036 reads the one
-// routine that paints every cell of all three grids walking its list in index
-// order, and no claim names how that list is built from the shelf the
-// generator filled, so the original's order is Unknown.
-//
-// The order is three keys, outermost first:
-//
-//  1. CLASS -- fighter items, then mage items, then items neither bit
-//     separates. The bits are the item's own sutableFor column (Suitability),
-//     so only the POSITION of each group is authored.
-//  2. KIND -- the fixed list below. The owner named six armour kinds and five
-//     weapon kinds; rings and amulets are shipped kinds he did not name,
-//     placed after his six. Shields lead (his later ruling).
-//  3. PRICE, ascending: inside one class and kind the first cell holds the
-//     cheapest element. Price never moves an element out of its group.
-//
-// Elements equal on all three keep the order they had: draw order, which
-// keeps a shelf reproducible from its seed, then a returned element.
-//
-// THE KINDS ARE READ OFF THE ITEM CODE AND ITS ROW, NOT OFF A NAME. An
-// armour's field B is its Armors row's own Slot column (ITEM-ARMSLOT-031), and
-// the six the owner named are slots 6, 7, 8, 9, 10 and 12 on both preserved
-// roots -- helms, mails, cuirasses, bracers, gauntlets and boots. A weapon's
-// kind is its row's AttackType cell, and the five he named are 1 through 5,
-// which are also SkillBlade through SkillShoot: a melee weapon ASSIGNS its
-// kind into the wielder's active-skill field, so the two are one number.
-
-// The class ranks. Fighter and Mage are the item's two sutableFor bits read
-// apart; an item setting both -- a ring, an amulet, bare hands, the plasma
-// sword -- and an item setting neither are the same rank, because neither is
-// the fighter's or the mage's more than the other's.
-const (
-	shopClassFighter = iota
-	shopClassMage
-	shopClassNeither
-)
-
-// The kind ranks, in the order the owner gave them. Shields come first (the
-// armour shelf of the original opens on them, owner ruling on `DIV-319`); the
-// next six are his armour list; then the two shipped kinds he did not name;
-// the five after those are his weapon list.
-const (
-	shopKindShield = iota
-	shopKindHelm
-	shopKindMail
-	shopKindCuirass
-	shopKindBracer
-	shopKindGlove
-	shopKindBoot
-	shopKindRing
-	shopKindAmulet
-	shopKindSword
-	shopKindAxe
-	shopKindMace
-	shopKindSpear
-	shopKindRanged
-	shopKindOtherWeapon
-	shopKindOther
-)
-
-// The armour slots the six named kinds occupy -- an armour code's field B,
-// which is its row's Slot column (ITEM-ARMSLOT-031). Slots 3 and 11 ship no
-// content on either root and reach shopKindOther, as does a field B of 0,
-// which is what ArmorShopClass composes for a row whose Slot names no
-// equipment place.
-const (
-	shopSlotRing    = 4
-	shopSlotAmulet  = 5
-	shopSlotHelm    = 6
-	shopSlotMail    = 7
-	shopSlotCuirass = 8
-	shopSlotBracer  = 9
-	shopSlotGlove   = 10
-	shopSlotBoot    = 12
-)
+// THE KIND IS THE CODE'S FIELD B, NOT A NAME: weapons 1, shields 2, then the
+// armour slots (ITEM-ARMSLOT-031), so rings 4 and amulets 5 stand before
+// helms 6 and boots 12.
 
 // shopItemOrder is one element's place in that order, computed once per element
 // rather than once per comparison.
 type shopItemOrder struct {
 	class int
 	kind  int
+	group int
 }
 
-// shopSortShelf puts items in the owner's order, in place: by class, then kind,
-// and inside one class and kind cheapest first.
+// shopSortShelf puts items in that order, in place, keeping the order of
+// elements equal on all four keys: draw order, then a returned element.
 //
-// A NIL TABLE SORTS NOTHING and leaves the shelf exactly as it was. The class
-// and the weapon kind are both cells of a definition row, so a shop with no
-// table to read has no groups to run price inside, and generation order is
-// what it has.
+// A NIL TABLE SORTS NOTHING and leaves the shelf exactly as it was: the flag
+// and the weapon group are cells of a definition row.
 func shopSortShelf(items []ShopItem, t *mapload.Table) {
 	if t == nil || len(items) < 2 {
 		return
@@ -120,6 +51,9 @@ func shopSortShelf(items []ShopItem, t *mapload.Table) {
 		}
 		if x.order.kind != y.order.kind {
 			return x.order.kind < y.order.kind
+		}
+		if x.order.group != y.order.group {
+			return x.order.group < y.order.group
 		}
 		return x.item.Price < y.item.Price
 	})
@@ -159,81 +93,61 @@ type shopStackKey struct {
 	price            int32
 }
 
-// shopOrderOf is one item code's class and kind.
+// The two flag ranks: the fighter flag set, then everything else.
+const (
+	shopFlagFighter = iota
+	shopFlagNone
+)
+
+// The weapon row-group ranks, by the row's AttackType: blade, axe, bludgeon,
+// pike, shoot, then any other attack type or a code with no row.
+const (
+	shopGroupSword = iota
+	shopGroupAxe
+	shopGroupMace
+	shopGroupSpear
+	shopGroupRanged
+	shopGroupOtherWeapon
+)
+
+// shopOrderOf is one item code's flag, kind and weapon group.
 func shopOrderOf(c data.ItemCode, t *mapload.Table) shopItemOrder {
 	suit, known := data.SuitabilityFromCode(c, t.Weapons, t.Shields, t.Armors)
-	return shopItemOrder{class: shopClassRank(suit, known), kind: shopKindOf(c, t)}
+	o := shopItemOrder{class: shopFlagRank(suit, known), kind: c.B()}
+	if o.kind == shopWeaponClass {
+		o.group = shopWeaponGroup(c, t)
+	}
+	return o
 }
 
-// shopClassRank is which of the three class groups an item belongs to.
-//
-// AN UNKNOWN SUITABILITY IS shopClassNeither AND NOT A REFUSAL. ok is false for
-// a code this build cannot reach a row for -- the carried class among them --
-// and such an item is neither the fighter's nor the mage's as far as this order
-// can tell.
-func shopClassRank(s data.Suitability, known bool) int {
-	if !known {
-		return shopClassNeither
+// shopFlagRank is whether the row sets the fighter bit. An item for both
+// classes sets it; a code this build reaches no row for does not.
+func shopFlagRank(s data.Suitability, known bool) int {
+	if known && s.Fighter {
+		return shopFlagFighter
 	}
-	switch {
-	case s.Fighter && !s.Mage:
-		return shopClassFighter
-	case s.Mage && !s.Fighter:
-		return shopClassMage
-	}
-	return shopClassNeither
+	return shopFlagNone
 }
 
-// shopKindOf is which kind an item code names.
-func shopKindOf(c data.ItemCode, t *mapload.Table) int {
-	switch c.B() {
-	case shopWeaponClass:
-		return shopWeaponKind(c, t)
-	case shopShieldClass:
-		return shopKindShield
-	case shopSlotRing:
-		return shopKindRing
-	case shopSlotAmulet:
-		return shopKindAmulet
-	case shopSlotHelm:
-		return shopKindHelm
-	case shopSlotMail:
-		return shopKindMail
-	case shopSlotCuirass:
-		return shopKindCuirass
-	case shopSlotBracer:
-		return shopKindBracer
-	case shopSlotGlove:
-		return shopKindGlove
-	case shopSlotBoot:
-		return shopKindBoot
-	}
-	return shopKindOther
-}
-
-// shopWeaponKind is which of the owner's five weapon kinds a weapon code names,
-// off its row's AttackType cell.
-//
-// AN ATTACK TYPE OUTSIDE 1..5 IS shopKindOtherWeapon AND IS NOT FORCED INTO ONE
-// OF THE FIVE. The shipped Weapons collection carries one such row on both
-// roots -- the flame thrower, at 11 -- and a build that made it a bow would be
-// stating something about it that no column says.
-func shopWeaponKind(c data.ItemCode, t *mapload.Table) int {
+// shopWeaponGroup is a weapon code's row group, off its row's AttackType cell.
+// An attack type outside 1..5 -- the shipped flame thrower, at 11 -- is
+// shopGroupOtherWeapon and is not forced into one of the five.
+func shopWeaponGroup(c data.ItemCode, t *mapload.Table) int {
 	kind, ok := data.AttackTypeFromCode(c, t.Weapons)
 	if !ok {
-		return shopKindOtherWeapon
+		return shopGroupOtherWeapon
 	}
 	switch kind {
 	case data.SkillBlade:
-		return shopKindSword
+		return shopGroupSword
 	case data.SkillAxe:
-		return shopKindAxe
+		return shopGroupAxe
 	case data.SkillBludgen:
-		return shopKindMace
+		return shopGroupMace
 	case data.SkillPike:
-		return shopKindSpear
+		return shopGroupSpear
 	case data.SkillShoot:
-		return shopKindRanged
+		return shopGroupRanged
 	}
-	return shopKindOtherWeapon
+	return shopGroupOtherWeapon
 }

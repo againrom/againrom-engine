@@ -212,9 +212,9 @@ func (s *Shop) Ceiling() int32 {
 	return s.ceiling
 }
 
-// Shelf is what shelf holds, in the order shopsort.go puts it in (`DIV-319`):
-// fighter items, then mage items, then the rest; inside a class by item kind;
-// inside a kind by price, cheapest first. A shop generated with no item table
+// Shelf is what shelf holds, in the order shopsort.go puts it in (SHOP-154,
+// `DIV-4164`): the fighter flag set first, then by the code's kind and a
+// weapon's row group, then by price, cheapest first. A shop generated with no item table
 // holds its shelves in the order they were drawn.
 func (s *Shop) Shelf(shelf ShopShelf) []ShopItem {
 	if s == nil || shelf < 0 || shelf >= numShopShelves {
@@ -501,8 +501,8 @@ func (s *Shop) ClearTable() []ShopItem {
 // what SHOP-DUP-028 establishes the original's own return path does.
 //
 // IT THEN RE-SORTS THE SHELF, so an item returned to a shelf that holds no
-// equal element lands where the owner's order puts it rather than at the end
-// (shopsort.go, `DIV-319`). A merge moves nothing and the re-sort is a no-op
+// equal element lands where the shelf order puts it rather than at the end
+// (shopsort.go, `DIV-4164`). A merge moves nothing and the re-sort is a no-op
 // on an already-sorted shelf, so this is reached for its own sake only on the
 // open-a-new-cell arm.
 func (s *Shop) returnToShelf(shelf ShopShelf, item ShopItem) {

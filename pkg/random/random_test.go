@@ -119,6 +119,40 @@ func TestBeginRestartsStreamsInPlace(t *testing.T) {
 	}
 }
 
+// TestProcessStreamSeedIgnoresLaterSessions: a process stream's seed is the
+// launch session's, whatever session a new game or a LOAD begins after it; a
+// different launch seed gives a different one, and an override still wins.
+func TestProcessStreamSeedIgnoresLaterSessions(t *testing.T) {
+	s := &Service{}
+	s.SetLaunch(Launch{Seed: 7, Fixed: true}, 0)
+	want := s.ProcessStreamSeed(TownWildlife)
+	if want != int64(DeriveSeed(7, string(TownWildlife))) {
+		t.Fatalf("process seed %d, want the launch session's", want)
+	}
+	for _, saved := range []uint64{1, 2, 7, 99} {
+		s.Begin(s.Loaded(Session{Seed: saved}))
+		if got := s.ProcessStreamSeed(TownWildlife); got != want {
+			t.Fatalf("after a LOAD of seed %d the process seed is %d, want %d", saved, got, want)
+		}
+		s.Begin(s.Fresh(saved))
+		if got := s.ProcessStreamSeed(TownWildlife); got != want {
+			t.Fatalf("after a new game at clock %d the process seed is %d, want %d", saved, got, want)
+		}
+	}
+	other := &Service{}
+	other.SetLaunch(Launch{Seed: 8, Fixed: true}, 0)
+	if other.ProcessStreamSeed(TownWildlife) == want {
+		t.Fatal("launch seeds 7 and 8 gave one process seed")
+	}
+	if NewService(Session{Seed: 7}).ProcessStreamSeed(TownWildlife) != want {
+		t.Fatal("a service never launched does not take its first session's seed")
+	}
+	s.SetStreamSeed(TownWildlife, 5)
+	if s.ProcessStreamSeed(TownWildlife) != 5 {
+		t.Fatal("the override does not reach the process seed")
+	}
+}
+
 func TestStreamSeedOverride(t *testing.T) {
 	s := NewService(Session{Seed: 99})
 	s.SetStreamSeed(Music, 3)

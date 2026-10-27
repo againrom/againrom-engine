@@ -102,11 +102,11 @@ func wildlifeDraws(f *FrontEnd, n int) []int {
 	return out
 }
 
-// TestReleaseTownWildlifeRestartsWithTheSession proves that a LOAD inside a
-// running process restarts the town composer's wildlife generator as a cold
-// LOAD of the same SAV starts it: after the running session has drawn, the
-// draws after its LOAD are the cold process's.
-func TestReleaseTownWildlifeRestartsWithTheSession(t *testing.T) {
+// TestReleaseTownWildlifeAfterALoadFollowsTheProcess covers TOWN-565: after a
+// LOAD the square's families draw from the process's generator: one SAV under
+// two launch seeds draws apart, under one seed alike, and a LOAD in a running
+// process continues its generator.
+func TestReleaseTownWildlifeAfterALoadFollowsTheProcess(t *testing.T) {
 	source, _, _, _ := townFront(t, 7, false)
 	snapshot, _, err := source.Snapshot(false)
 	if err != nil {
@@ -116,22 +116,23 @@ func TestReleaseTownWildlifeRestartsWithTheSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	running, _, _, _ := townFront(t, 7, false)
-	before := wildlifeDraws(running, 40)
-	if _, town, err := running.RestoreOriginal(saved); err != nil || !town {
-		t.Fatalf("LOAD in the running process: town %t, %v", town, err)
+	coldLoad := func(seed uint64, warm int) []int {
+		f, _, _, _ := townFront(t, seed, false)
+		wildlifeDraws(f, warm)
+		if _, town, err := f.RestoreOriginal(saved); err != nil || !town {
+			t.Fatalf("LOAD under launch seed %d: town %t, %v", seed, town, err)
+		}
+		return wildlifeDraws(f, 16)
 	}
-	inProcess := wildlifeDraws(running, 16)
-
-	cold, _, _, _ := townFront(t, 99, false)
-	if _, town, err := cold.RestoreOriginal(saved); err != nil || !town {
-		t.Fatalf("cold LOAD: town %t, %v", town, err)
+	seven, again, other := coldLoad(7, 0), coldLoad(7, 0), coldLoad(99, 0)
+	if fmt.Sprint(seven) != fmt.Sprint(again) {
+		t.Fatalf("one launch seed drew %v and %v after the same LOAD", seven, again)
 	}
-	fresh := wildlifeDraws(cold, 16)
-
-	if fmt.Sprint(inProcess) != fmt.Sprint(fresh) {
-		t.Fatalf("a LOAD in a running process drew %v, a cold LOAD %v", inProcess, fresh)
+	if fmt.Sprint(seven) == fmt.Sprint(other) {
+		t.Fatalf("launch seeds 7 and 99 both drew %v after one LOAD: the save chose them", seven)
 	}
-	t.Logf("after 40 draws from %v, a LOAD in the running process drew %v, as the cold LOAD did", before[:4], inProcess[:4])
+	if warm := coldLoad(7, 40); fmt.Sprint(warm) == fmt.Sprint(seven) {
+		t.Fatalf("a LOAD after 40 draws drew %v, as a LOAD with none did: the generator restarted", warm)
+	}
+	t.Logf("after one LOAD, launch seed 7 drew %v and launch seed 99 %v", seven[:4], other[:4])
 }

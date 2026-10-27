@@ -42,7 +42,8 @@ func TestGraphics1190PreferencesAndFailureKeepWorld(t *testing.T) {
 }
 
 func TestGraphicsDefaultsAreHighestQualityAndStoredChoiceWins(t *testing.T) {
-	best := ui.GraphicsOptions{}
+	// The highest quality, with the minimap as the original's: no loot dots.
+	best := ui.GraphicsOptions{HideLootDots: true}
 	best.Smoothing = true
 	path := filepath.Join(t.TempDir(), "options.txt")
 
@@ -69,7 +70,7 @@ func TestGraphicsDefaultsAreHighestQualityAndStoredChoiceWins(t *testing.T) {
 	}
 	partial := &FrontEnd{PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
 	partial.LoadOptions()
-	if want := (ui.GraphicsOptions{Smoothing: true, HideShadows: true}); partial.graphics != want {
+	if want := (ui.GraphicsOptions{Smoothing: true, HideShadows: true, HideLootDots: true}); partial.graphics != want {
 		t.Fatal("unset keys did not default beside a stored one", partial.graphics)
 	}
 
@@ -78,7 +79,7 @@ func TestGraphicsDefaultsAreHighestQualityAndStoredChoiceWins(t *testing.T) {
 	}
 	saved := &FrontEnd{PersistenceContext: PersistenceContext{Options: OptionsStore{Path: path}}}
 	saved.LoadOptions()
-	if want := (ui.GraphicsOptions{HideShadows: true, DisableLighting: true, StaticObjects: true}); saved.graphics != want {
+	if want := (ui.GraphicsOptions{HideShadows: true, DisableLighting: true, StaticObjects: true, HideLootDots: true}); saved.graphics != want {
 		t.Fatal("stored lower graphics choice was overridden", saved.graphics)
 	}
 	if !saved.smoothingOff.text || !saved.smoothingOff.frame {

@@ -359,8 +359,11 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		// wells and this build no longer draws a Talk box over them (1017;
 		// owner ruling quoted in docs/1017-button-frames/spec.md — a mission
 		// offer fires once on entering the room instead).
+		// Train stays pressable with a short purse or no skill: the button
+		// paint reads no sign, purse or price, and the release refuses
+		// silently (TOWN-563).
 		v.Buttons = []ui.TownSurfaceButton{
-			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: ok && price <= t.sess.Town.Gold()},
+			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: true},
 			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(schoolPurseShown(t.sess.Town.Gold(), price, ok))), Enabled: true},
 		}
 		v.Tip = t.roomTipView(roomSchool, t.schoolTip)
@@ -499,11 +502,12 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 		}
 		switch i {
 		case 0:
-			slot, _, ok := t.selectedSchoolSlot()
-			if !ok {
+			slot, price, ok := t.selectedSchoolSlot()
+			gold := t.sess.Town.Gold()
+			if !ok || schoolPurseShown(gold, price, ok) < 0 {
+				// TOWN-563: no request, no sound and no line.
 				return ui.TownAction{}
 			}
-			gold := t.sess.Town.Gold()
 			msg := t.trainHeroSkill(slot)
 			if t.sess.Town.Gold() < gold {
 				t.speakSchoolTraining(slot)
@@ -570,10 +574,10 @@ func (t *townScreen) restockShop() bool {
 }
 
 // schoolPurseShown is the figure on Exit: the purse less the quoted training
-// price once a skill is chosen (TOWN-GENERAL-107 stores purse-price beside the
-// price), the plain purse otherwise and when the price is not covered.
+// price once a skill is chosen, signed and unclamped, so a short purse shows a
+// negative figure (TOWN-563); the plain purse with nothing chosen.
 func schoolPurseShown(purse, price int, chosen bool) int {
-	if chosen && price <= purse {
+	if chosen {
 		return purse - price
 	}
 	return purse

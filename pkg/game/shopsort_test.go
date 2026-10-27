@@ -109,11 +109,11 @@ func armourCode(t *testing.T, tbl *mapload.Table, row int) data.ItemCode {
 	return data.ComposeItemCode(0, int(slot), 0, row)
 }
 
-// A shelf lists its stock in groups and runs each group cheapest first (owner,
-// `DIV-319`): fighter items, then mage items, then the rest; inside a class by
-// kind; inside a kind by price. A dearer helm stands before a cheaper mail, and
-// a mage hat and a ring cheaper than every fighter item stand after all of them,
-// so a sort on price first, or on class and kind with the dearest first, fails.
+// A shelf runs SHOP-154's keys: the fighter flag set first, then the code's
+// kind nibble, for weapons the row group, then price. A ring for both classes
+// stands before a fighter helm, weapons before shields, a dearer helm before a
+// cheaper mail, and a mage staff and hat after every flagged element, so the
+// owner's former class, kind and price order, or a sort on price first, fails.
 func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 	tbl := sortTable(t)
 
@@ -123,7 +123,16 @@ func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 		item  ShopItem
 	}
 	want := []named{
+		{"sword 39", ShopItem{Code: weaponCode(1), Price: 39, Count: 1}},
+		{"axe 38", ShopItem{Code: weaponCode(2), Price: 38, Count: 1}},
+		{"mace 37", ShopItem{Code: weaponCode(3), Price: 37, Count: 1}},
+		{"spear 36", ShopItem{Code: weaponCode(4), Price: 36, Count: 1}},
+		{"bow 35", ShopItem{Code: weaponCode(5), Price: 35, Count: 1}},
+		{"thrower 34", ShopItem{Code: weaponCode(6), Price: 34, Count: 1}},
 		{"shield 40", ShopItem{Code: shieldCode(1), Price: 40, Count: 1}},
+		{"ring 20", ShopItem{Code: armourCode(t, tbl, 8), Price: 20, Count: 1}},
+		{"ring 700", ShopItem{Code: armourCode(t, tbl, 8), Price: 700, Count: 1}},
+		{"amulet 10", ShopItem{Code: armourCode(t, tbl, 9), Price: 10, Count: 1}},
 		{"helm 100", ShopItem{Code: armourCode(t, tbl, 1), Price: 100, Count: 1}},
 		{"helm 200", ShopItem{Code: armourCode(t, tbl, 1), Price: 200, Count: 1}},
 		{"mail 90", ShopItem{Code: armourCode(t, tbl, 2), Price: 90, Count: 1}},
@@ -131,18 +140,9 @@ func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 		{"bracers 70", ShopItem{Code: armourCode(t, tbl, 4), Price: 70, Count: 1}},
 		{"gauntlets 60", ShopItem{Code: armourCode(t, tbl, 5), Price: 60, Count: 1}},
 		{"boots 50", ShopItem{Code: armourCode(t, tbl, 6), Price: 50, Count: 1}},
-		{"sword 39", ShopItem{Code: weaponCode(1), Price: 39, Count: 1}},
-		{"axe 38", ShopItem{Code: weaponCode(2), Price: 38, Count: 1}},
-		{"mace 37", ShopItem{Code: weaponCode(3), Price: 37, Count: 1}},
-		{"spear 36", ShopItem{Code: weaponCode(4), Price: 36, Count: 1}},
-		{"bow 35", ShopItem{Code: weaponCode(5), Price: 35, Count: 1}},
-		{"thrower 34", ShopItem{Code: weaponCode(6), Price: 34, Count: 1}},
+		{"mage staff 800", ShopItem{Code: weaponCode(7), Price: 800, Count: 1}},
 		{"mage hat 30", ShopItem{Code: armourCode(t, tbl, 7), Price: 30, Count: 1}},
 		{"mage hat 900", ShopItem{Code: armourCode(t, tbl, 7), Price: 900, Count: 1}},
-		{"mage staff 800", ShopItem{Code: weaponCode(7), Price: 800, Count: 1}},
-		{"ring 20", ShopItem{Code: armourCode(t, tbl, 8), Price: 20, Count: 1}},
-		{"ring 700", ShopItem{Code: armourCode(t, tbl, 8), Price: 700, Count: 1}},
-		{"amulet 10", ShopItem{Code: armourCode(t, tbl, 9), Price: 10, Count: 1}},
 	}
 
 	// The input is the reverse of the answer, so a sort that did nothing fails
@@ -170,8 +170,8 @@ func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 	}
 }
 
-// Elements equal on class, kind and price keep the order they already had,
-// which is what makes a shelf reproducible from its seed.
+// Elements equal on all four keys keep the order they already had, which is
+// what makes a shelf reproducible from its seed (DIV-4164).
 func TestShelfSortIsStableOnEqualPrices(t *testing.T) {
 	tbl := sortTable(t)
 	items := []ShopItem{
@@ -204,10 +204,10 @@ func TestShelfSortWithNoTableChangesNothing(t *testing.T) {
 	}
 }
 
-// An item returned to a shelf lands in its group rather than at the end: fighter
-// items, then mage items, then the rest; inside a class by kind; inside a kind
-// cheapest first and after an element it ties with on all three. The ring is
-// the cheapest element and stands last, in the last class.
+// An item returned to a shelf lands in its group rather than at the end: the
+// fighter flag set first, then by kind, inside a kind cheapest first and after
+// an element it ties with on every key. The ring for both classes is kind 4 and
+// stands first; the mage hats stand last.
 //
 // THE SYNTHETIC POOL ADMITS NOTHING — sortCollection carries no material mask
 // block — so Generate leaves three empty shelves and this measures
@@ -235,7 +235,7 @@ func TestReturnedItemLandsInOrder(t *testing.T) {
 	}
 
 	got := s.Shelf(ShelfArmour)
-	want := []ShopItem{cheapHelm, helm, enchantedHelm, cheapBoots, hat, dearHat, ring}
+	want := []ShopItem{ring, cheapHelm, helm, enchantedHelm, cheapBoots, hat, dearHat}
 	if len(got) != len(want) {
 		t.Fatalf("shelf holds %d, want %d", len(got), len(want))
 	}
@@ -248,7 +248,8 @@ func TestReturnedItemLandsInOrder(t *testing.T) {
 	}
 }
 
-// The armour shelf opens on shields, cheapest first, before the helms.
+// The armour shelf opens on shields, cheapest first, before the helms: kind 2
+// stands before every armour slot.
 func TestArmourShelfOpensOnShields(t *testing.T) {
 	tbl := sortTable(t)
 	items := []ShopItem{

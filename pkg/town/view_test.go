@@ -211,10 +211,10 @@ func TestPendulumSwingsUnderOneEnable(t *testing.T) {
 	}
 }
 
-// TestRestartGeneratorsReseedsInPlace pins a session restart of the
-// description's generators: the next draws repeat the first ones from the
-// host's seed, and a replacement raw source survives the restart.
-func TestRestartGeneratorsReseedsInPlace(t *testing.T) {
+// TestGeneratorsLastTheProcess pins the description's generators to the
+// process: a second scene over the same Process continues the first one's
+// sequence rather than seeding again, and a replacement raw source holds.
+func TestGeneratorsLastTheProcess(t *testing.T) {
 	d := baseTown()
 	d["random"] = append(d["random"].(list), obj{"name": "g", "source": "lcg", "multiplier": 3, "increment": 1, "mask": 32767})
 	desc := mustDecode(t, d)
@@ -222,25 +222,24 @@ func TestRestartGeneratorsReseedsInPlace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	proc := &Process{}
-	v := NewScene(desc, desc.Square.Name, &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}, proc)
-	draws := func() []int {
+	scene := func(proc *Process) *Scene {
+		return NewScene(desc, desc.Square.Name, &fakeHost{art: art, now: time.Unix(100, 0), conditions: map[string]bool{}}, proc)
+	}
+	draws := func(v *Scene) []int {
 		var out []int
 		for range 6 {
 			out = append(out, v.Pick("g", "scaled", 1000))
 		}
 		return out
 	}
-	first := draws()
-	if fmt.Sprint(draws()) == fmt.Sprint(first) {
-		t.Fatal("the generator repeated without a restart")
+	proc, control := &Process{}, &Process{}
+	first := draws(scene(proc))
+	draws(scene(control))
+	if got, want := draws(scene(proc)), draws(scene(control)); fmt.Sprint(got) != fmt.Sprint(want) || fmt.Sprint(got) == fmt.Sprint(first) {
+		t.Fatalf("a second scene drew %v, want the continuation %v, not the first draws %v", got, want, first)
 	}
-	proc.RestartGenerators()
-	if again := draws(); fmt.Sprint(again) != fmt.Sprint(first) {
-		t.Fatalf("after the restart %v, want %v", again, first)
-	}
+	v := scene(proc)
 	v.SetRawDraw("g", func() int { return 500 })
-	proc.RestartGenerators()
 	if got := v.Pick("g", "scaled", 1000); got != 500*1000/32767%1000 {
 		t.Fatalf("the replacement raw source was dropped: %d", got)
 	}

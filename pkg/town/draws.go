@@ -142,12 +142,3 @@ func (s *Scene) SetEndCount(name string, n int) { s.proc.ends[name] = n }
 
 // ResetDraw returns a generator to unseeded; its next draw seeds it again.
 func (s *Scene) ResetDraw(source string) { delete(s.proc.lcg, source) }
-
-// RestartGenerators returns every generator the description keeps to
-// unseeded, in place: a new session's next draw seeds each again from the
-// host's seed. A replacement raw source stays.
-func (p *Process) RestartGenerators() {
-	for _, g := range p.lcg {
-		g.seeded = false
-	}
-}

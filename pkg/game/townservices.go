@@ -48,8 +48,11 @@ type runtimeTownAudio struct{ rt *RuntimeServices }
 func (a runtimeTownAudio) soundDevice() audio.Player       { return a.rt.SoundPlayer }
 func (a runtimeTownAudio) speechDevice() audio.Player      { return a.rt.speech.player }
 func (a runtimeTownAudio) ambientDevice() ui.AmbientDevice { return a.rt.AmbientPlayer }
+
+// wildlifeSeed is the process's, not the session's: the square's families draw
+// at entry from a stream no save chooses (TOWN-565, DIV-1942).
 func (a runtimeTownAudio) wildlifeSeed() int64 {
-	return a.rt.randomService().StreamSeed(random.TownWildlife)
+	return a.rt.randomService().ProcessStreamSeed(random.TownWildlife)
 }
 
 // runtimeTownDraws is the production townDraws over the process's services.

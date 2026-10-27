@@ -63,12 +63,10 @@ func (f *FrontEnd) prepareLoadRandom(saved random.Session) (random.Session, func
 	return loaded, f.Random.Cancel
 }
 
-// beginRandomSession begins session: the service restarts its named streams
-// and the town composer's own generators restart with them, so a LOAD inside
-// a running process draws what a cold LOAD of the same SAV draws.
+// beginRandomSession begins session: the service restarts its named streams.
+// The town composer's generators are the process's and keep running (TOWN-565).
 func (f *FrontEnd) beginRandomSession(session random.Session) {
 	f.randomService().Begin(session)
-	f.townProcess.RestartGenerators()
 }
 
 // randomSessionNow is the session a save records: the service's session, with

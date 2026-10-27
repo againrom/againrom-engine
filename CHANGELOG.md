@@ -20,6 +20,12 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold; a save made during a mission is listed but cannot be loaded yet.
+- [ROM1] When the purse is shorter than the school's price, Exit shows the shortfall as a negative number and Train stays pressable but teaches nothing, as in the original.
+- [ROM1] In the school a skill row lights only when you select it; the idle shine that runs over the rows plays only while the school's tip is open.
+- [ROM1] The shop sorts each shelf in the original's order: items a fighter can use first, then by kind, weapons as swords, axes, maces, spears and then ranged weapons, and cheapest first inside each group.
+- [ROM1] The horse, the woman and the dervish on the town square no longer return to the same places after you save and load; their places are new each time you start the game.
+- [ROM1] Loot dots on the minimap start switched off, so the minimap looks as in the original; the Game Options entry still switches them on.
+- [ROM2] The figures on the town squares no longer return to the same places after you save and load, and loot dots on the minimap start switched off.
 - [ROM2] Stone Curse now holds its target still, unable to move, attack or cast, for a random time that its Earth resistance shortens, and Summon calls a squirrel, a turtle or an animated foot to your side beside the caster, stronger as the caster's Astral skill grows; both last through a save and load. Before, Stone Curse did nothing and Summon could not be cast.
 - [ROM2] A mage that starts a spell while stepping into a cell, an enemy or one of yours, now finishes the step and casts standing, as in the first game. Before, it froze mid-step for the whole cast.
 - [ROM1] An enemy mage that does not see you itself, while its comrades do, now walks only until you are within its spell's reach and casts from there. Before, it walked on towards you as if to strike with its weapon.

@@ -90,7 +90,7 @@ func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
 	f.Town.gold = 9_999_999
 	f.Shop = NewShop(9_999_999)
 	f.Shop.Generate(f.Table, 1053)
-	// The shelf runs cheapest first inside its class and kind (DIV-319), so
+	// The shelf runs cheapest first inside its group (DIV-4164), so
 	// potions, scrolls and books the mage already knows can stand before the
 	// book this buys.
 	stock := f.Shop.Shelf(ShelfBooks)

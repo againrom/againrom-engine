@@ -123,7 +123,7 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 	return p
 }
 
-// shopShelfStack is the first game's stack-key rule (DIV-322, DIV-319):
+// shopShelfStack is the first game's stack-key rule (DIV-322, DIV-4164):
 // shopItemEqual, effect list included, over shopStackKey; an equal entry
 // takes any units; an opened entry is a clone, sorted by t (nil: unsorted).
 func shopShelfStack(t *mapload.Table) shopstock.Stack[ShopItem, shopStackKey] {

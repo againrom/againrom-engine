@@ -136,6 +136,16 @@ func (t *townScreen) roomTip(room townRoom) *ui.TipRow {
 	return roomTipRow(t.in, "", townRoomName(room))
 }
 
+// tipShown reports that the room's popup exists: entry built its text and the
+// player has not closed it.
+func (t *townScreen) tipShown(room townRoom) bool {
+	if t == nil || t.sess == nil || t.tipClosed[room] {
+		return false
+	}
+	dst, _ := t.tipTextSource(room)
+	return dst != nil && *dst != ""
+}
+
 func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
 	if t == nil || t.sess == nil || t.tipClosed[room] {
 		return ui.TipPanelView{}

@@ -156,6 +156,8 @@ var townConditions = map[string]func(t *townScreen) bool{
 		return t.campaignTown().condition("gate-open")
 	},
 	"save-admitted": func(t *townScreen) bool { return t.saveAdmitted() },
+	// The school's tip popup exists: built at entry and not closed.
+	"school-tip": func(t *townScreen) bool { return t.tipShown(roomSchool) },
 }
 
 // townHooks are the campaign hooks the description names, each run for the
