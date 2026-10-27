@@ -90,7 +90,7 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 		return a
 	}
 	a, oracle := makeApp(true), makeApp(false)
-	bar, _ := sharedListBar(f, image.Rect(122, 152, 504, 342), 10)
+	bar, _ := sharedListBar(f, releaseLoadList, 10, releaseLoadBarGap)
 	type receipt struct {
 		Stage, Input         string
 		X, Y, Selection, Top int
@@ -118,8 +118,8 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 			t.Fatal(note, err)
 		}
 		checked := 0
-		for yy := 152; yy < 375; yy++ {
-			for xx := 122; xx < 528; xx++ {
+		for yy := 152; yy < 366; yy++ {
+			for xx := 116; xx < 528; xx++ {
 				checked++
 				if pic.RGBAAt(xx, yy) != want.RGBAAt(xx, yy) {
 					t.Fatalf("%s before release: pixel%d,%d differs from keyboard selection%d/top%d", stage, xx, yy, selection, top)
@@ -178,8 +178,8 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 	capture("release-on-selected-row", "release", 140, 272, 13, 7)
 	pointer("move", x, rowFor(26))
 	capture("release-tail", "move", x, rowFor(26), 13, 7)
-	pointer("release", 324, 392)
-	capture("delete-release-tail", "release", 324, 392, 13, 7)
+	pointer("release", 324, 380)
+	capture("delete-release-tail", "release", 324, 380, 13, 7)
 	pointer("press", x, thumbAt(13))
 	if err := a.HeadlessFocus(false); err != nil {
 		t.Fatal(err)
@@ -189,15 +189,15 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 		t.Fatal(err)
 	}
 	pointer("move", x, rowFor(26))
-	pointer("release", 200, 392)
-	capture("focus-cancelled", "release", 200, 392, 13, 7)
+	pointer("release", 200, 380)
+	capture("focus-cancelled", "release", 200, 380, 13, 7)
 	pointer("press", x, thumbAt(13))
 	key(a, "escape", 1)
 	key(a, "load", 1)
 	pointer("move", x, rowFor(26))
-	pointer("release", 200, 392)
+	pointer("release", 200, 380)
 	key(oracle, "home", 1)
-	capture("reopened", "release", 200, 392, 0, 0)
+	capture("reopened", "release", 200, 380, 0, 0)
 	pointer("press", x, thumbAt(0))
 	pointer("move", x, rowFor(13))
 	pointer("release", x, rowFor(13))

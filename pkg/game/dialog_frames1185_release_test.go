@@ -64,7 +64,7 @@ func TestReleaseSharedDialogFrames1185(t *testing.T) {
 			t.Fatal("vacuous corner witness")
 		}
 	}
-	checkCorner(pic, image.Pt(80, 56))
+	checkCorner(pic, image.Pt(76, 60))
 	l := f.Words.OnLayout(ui.AuthoredDialogueLayout())
 	l.Frame = art
 	dialogue := ui.RenderNotice(l, f.Font.Value(), "A conversation.", nil)
@@ -148,7 +148,7 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 			t.Fatal(err)
 		}
 		initial := frame(t, app, "load-initial")
-		loadBar, loadPitch := sharedListBar(f, image.Rect(122, 152, 504, 342), 10)
+		loadBar, loadPitch := sharedListBar(f, releaseLoadList, 10, releaseLoadBarGap)
 		manifest["load_initial_frames"] = assertInstalledChooserBar(t, initial, frames, loadBar, 0, len(rows))
 		for range 13 {
 			if err := app.HeadlessKey("down"); err != nil {
@@ -157,8 +157,8 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 		}
 		moved := frame(t, app, "load-selected13")
 		manifest["load_selected_frames"] = assertInstalledChooserBar(t, moved, frames, loadBar, 13, len(rows))
-		assertInstalledChooserRows(t, moved, 122, 152, 504, loadPitch, 9)
-		manifest["load_selected_glyph_pixels"] = assertChooserGlyphs(t, f, moved, "slot-13", image.Pt(125, 152+9*loadPitch+2))
+		assertInstalledFramedRows(t, moved, releaseLoadList, loadPitch, 10, 9)
+		manifest["load_selected_glyph_pixels"] = assertChooserGlyphs(t, f, moved, "slot-13", image.Pt(120, 152+9*loadPitch+2))
 		assertChooserClipping(t, app, moved, loadBar)
 		if err := app.HeadlessKey("enter"); err != nil || loaded != "slot-13.sav" {
 			t.Fatal("Load exact token changed", loaded, err)
@@ -189,7 +189,7 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 			t.Fatal("ordinary App Save opening", app.Screen(), err)
 		}
 		initial := frame(t, app, "save-initial")
-		saveBar, savePitch := sharedListBar(f, image.Rect(38, 88, 578, 235), 7)
+		saveBar, savePitch := sharedListBar(f, image.Rect(38, 88, 578, 235), 7, 0)
 		t.Run("row-region", func(t *testing.T) {
 			assertInstalledChooserRows(t, initial, 38, 88, 578, savePitch, 0)
 			// The fill tiles start inside the corner piece of the window
@@ -263,12 +263,48 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 	}
 }
 
+var releaseLoadList = image.Rect(116, 152, 497, 342)
+
+const releaseLoadBarGap = 3
+
 // sharedListBar is the shared list's bar for a list built on arg with rows
 // visible rows: pitch font height plus 4 and bottom top+rows*pitch+2
-// (MENU-121), the bar one frame wide at the list's right edge.
-func sharedListBar(f *FrontEnd, arg image.Rectangle, rows int) (image.Rectangle, int) {
+// (MENU-121), the bar one frame wide, gap right of the list.
+func sharedListBar(f *FrontEnd, arg image.Rectangle, rows, gap int) (image.Rectangle, int) {
 	pitch := f.Font.Value().Height() + 4
-	return image.Rect(arg.Max.X, arg.Min.Y, arg.Max.X+24, arg.Min.Y+rows*pitch+2), pitch
+	x := arg.Max.X + gap
+	return image.Rect(x, arg.Min.Y, x+24, arg.Min.Y+rows*pitch+2), pitch
+}
+
+func assertInstalledFramedRows(t *testing.T, pic *image.RGBA, list image.Rectangle, pitch, rows, selected int) {
+	t.Helper()
+	shade, light, fill := color.RGBA{8, 8, 8, 255}, color.RGBA{94, 115, 101, 255}, color.RGBA{9, 7, 8, 255}
+	for i := range rows {
+		r := image.Rect(list.Min.X, list.Min.Y+i*pitch, list.Max.X, list.Min.Y+(i+1)*pitch)
+		bottom, right := r.Max.Y-2, r.Max.X-1
+		for x := r.Min.X + 1; x < right; x++ {
+			if got := pic.RGBAAt(x, r.Min.Y); got != shade {
+				t.Fatalf("row %d top line at %d,%d = %v", i, x, r.Min.Y, got)
+			}
+		}
+		for y := r.Min.Y + 1; y < bottom; y++ {
+			if got := pic.RGBAAt(right, y); got != light {
+				t.Fatalf("row %d right edge at %d,%d = %v", i, right, y, got)
+			}
+			if got := pic.RGBAAt(r.Min.X, y); i != selected && got != shade {
+				t.Fatalf("row %d left edge at %d,%d = %v", i, r.Min.X, y, got)
+			}
+		}
+		for _, x := range []int{r.Min.X + 1, r.Min.X + 2, right - 2, right - 1} {
+			want := light
+			if i == selected {
+				want = fill
+			}
+			if got := pic.RGBAAt(x, bottom); got != want {
+				t.Fatalf("row %d bottom at %d,%d = %v want %v", i, x, bottom, got, want)
+			}
+		}
+	}
 }
 
 // assertInstalledChooserRows checks the selected visible row's outline
