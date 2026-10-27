@@ -38,7 +38,7 @@ func TestReleaseShopShelvesRunCheapestFirstInsideEachGroup(t *testing.T) {
 	app.Layout(640, 480)
 	app.SetSaveSeams(f.SaveSeams(store, OriginalStore{Dir: filepath.Dir(source)}, nil))
 	homecoming := HeadlessScenario{Version: 7, Steps: []HeadlessStep{
-		{Command: "load", Target: "666 - mission 20"},
+		{Command: "load", Target: "666"},
 		{Command: "activate", Target: "notice"},
 		{Command: "wait_until", Until: &HeadlessUntil{Control: "SHOP"}, Ticks: 4000},
 	}}

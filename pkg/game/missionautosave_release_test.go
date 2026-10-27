@@ -71,7 +71,7 @@ func missionAutosaveRow(t *testing.T, f *FrontEnd, store SaveStore, mission int)
 	if err != nil {
 		t.Fatal(err)
 	}
-	label := fmt.Sprintf("autosave start mission %d - mission %d", mission, mission)
+	label := fmt.Sprintf("autosave start mission %d", mission)
 	for _, row := range rows {
 		if row.Label == label {
 			raw, err := store.Read(row.Name)
@@ -189,7 +189,7 @@ func missionAutosaveCold(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	rows := app.HeadlessRows()
-	wantRow := proof.Label + fmt.Sprintf(" - mission %d", proof.Samples[0].State.Mission)
+	wantRow := proof.Label
 	if len(rows) != 1 || rows[0].Text != wantRow {
 		t.Fatalf("ordinary chooser row = %v, want %q", rows, wantRow)
 	}
@@ -290,7 +290,7 @@ func TestReleaseMissionStartAutosaveRoutes(t *testing.T) {
 		app.Layout(640, 480)
 		f.ConfigureSaveSeams(app, store, OriginalStore{Dir: filepath.Dir(source)}, nil)
 		scenario := HeadlessScenario{Version: 7, Steps: []HeadlessStep{
-			{Command: "load", Target: "666 - mission 20"},
+			{Command: "load", Target: "666"},
 			{Command: "activate", Target: "notice"},
 			{Command: "wait_until", Until: &HeadlessUntil{Control: "SHOP"}, Ticks: 4000},
 		}}

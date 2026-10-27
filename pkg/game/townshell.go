@@ -341,6 +341,7 @@ const (
 // TownSurface resolves one full tavern or school frame.
 func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	v := ui.TownSurfaceView{Font: t.in.Font.Value(), CardFont: t.in.tipFont(), HiredLabel: t.in.Words.TavernHired, Hero: t.townCharacterView(), HoverCell: -1, SchoolClass: -1}
+	v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
 	v.HeroSlotMask, v.HeroSlotInfo = t.shopDollHover(t.shopMemberIndex())
 	// The school and the tavern have no spellbook: no corner, key or open page.
 	v.Hero.NoBook, v.Hero.BookOpen = true, false

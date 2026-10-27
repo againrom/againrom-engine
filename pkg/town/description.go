@@ -557,14 +557,23 @@ type Step struct {
 
 // RoomButtonsSpec is how the rooms' button captions draw: in the game's
 // generator font Font names ("name" or "text"), in Ink at rest and HoverInk
-// under the pointer; a button that cannot act keeps Ink. BuyDebit shows the
-// shop's pending buy as the gold it takes, below zero.
+// under the pointer; a button that cannot act keeps Ink, or with Lit draws
+// as one that can and still refuses the press. BuyDebit shows the shop's
+// pending buy as the gold it takes, below zero. OneLine names the shop
+// buttons, by panel index, whose caption and number are one line.
+// LabelShift and ValueShift move the label and the value line of a
+// two-line caption.
 type RoomButtonsSpec struct {
 	Font     string   `json:"font"`
 	Ink      [3]uint8 `json:"ink"`
 	HoverInk [3]uint8 `json:"hover-ink"`
 	BuyDebit bool     `json:"buy-debit"`
-	Cite     []string `json:"cite"`
+	Lit      bool     `json:"lit"`
+	OneLine  []int    `json:"one-line"`
+	// The shifts are in pixels, [x, y].
+	LabelShift Point    `json:"label-shift"`
+	ValueShift Point    `json:"value-shift"`
+	Cite       []string `json:"cite"`
 }
 
 // SaveSpec names the condition that admits a save from the town.

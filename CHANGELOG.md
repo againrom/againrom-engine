@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] The shop, inn and school buttons use the original's gold lettering, turn yellow under the pointer and stay lit even when they cannot be used; the shop shows Buy and Sell with their sums on one line. Hover help text is gold-orange, and the Load list shows each save by its own name in ten framed rows.
 - [ROM2] The mission menu and its windows open at normal size, centred over the darkened mission.
 - [ROM1] After loading a town save, the inn lists its mercenaries in the original's order and selects the same first mercenary.
 - [ROM2] The mission menu's Save and Load pages look as in the original: a centred title, ruled rows, a gold heading while the list is in use, and a save's date shown when the pointer rests on its row. After a delete the name field is empty.

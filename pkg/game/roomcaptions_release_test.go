@@ -104,6 +104,7 @@ func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
 		t.Fatal("the two installed school captions must be distinct")
 	}
 	font := roomCaptionRawFont(t, f)
+	oracle := firstGameButtonOracle(t, f)
 	wells := [2]image.Rectangle{image.Rect(484, 71, 624, 117), image.Rect(484, 117, 624, 163)}
 	var plaques [2][2]*image.RGBA
 	for button := range plaques {
@@ -166,7 +167,7 @@ func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
 				if pressed == button {
 					state = 1
 				}
-				wants[button] = oracleTownButtonWell(nil, image.Point{}, plaques[button][state], well, font, expected[button], pressed == button)
+				wants[button] = oracleTownButtonWell(nil, image.Point{}, plaques[button][state], well, font, expected[button], pressed == button, oracle)
 				if n, points := diffWells(got, wants[button], well); n != 0 {
 					t.Fatalf("phase %d press %d button %d: %d pixel differences, first %v", phase, pressed, button, n, points)
 				}
@@ -190,9 +191,7 @@ func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
 				case "blank-exit":
 					bad.Buttons[1].Label = ""
 				case "wrong-selector":
-					wrongFont := *actual.Font
-					wrongFont.Selector = 0
-					bad.Font = &wrongFont
+					bad = wrongSelector(bad)
 				}
 				badPixels := ui.ComposeTownSurface(bad)
 				differences := 0

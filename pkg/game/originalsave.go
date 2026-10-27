@@ -968,7 +968,7 @@ func OriginalSaveLabel(saved []byte, selector int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return originalSaveLabelOf(sf.Label, sf.Head.Mission, selector), nil
+	return originalSaveLabelOf(sf.Label, selector), nil
 }
 
 // asciiLabel makes a label drawable, decoding it through the CURRENT

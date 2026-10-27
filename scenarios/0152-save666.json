@@ -3,7 +3,7 @@
   "original_saves": "../../gameversions/saves/2026-08-02",
   "saves": "../../review/headless-saves/0152",
   "steps": [
-    {"command": "load", "target": "666 - mission 20"},
+    {"command": "load", "target": "666"},
     {"command": "capture", "name": "restore_complete"},
     {"command": "assert_member", "member": {"id": "hero", "xp": 1795, "skills": {"General": 0, "Blade": 11, "Axe": 0, "Bludgeon": 0, "Pike": 0, "Shooting": 1}}},
     {"command": "wait_ticks", "ticks": 64},

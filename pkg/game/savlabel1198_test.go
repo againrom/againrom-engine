@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -181,10 +180,9 @@ func saveLabel1198MissionBranchRefusesBeforeProducing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the written file must be a readable chooser row: %v", err)
 	}
-	// OriginalSaveLabel appends a known suffix (originalsave.go): a prefix
-	// check would still pass on trailing garbage, so assert the exact string
-	// this snapshot's own mission number produces.
-	want := fmt.Sprintf("%s - mission %d", cyrillic, s.Mission)
+	// OriginalSaveLabel is the bare description: a prefix check would still
+	// pass on trailing garbage, so assert the exact string.
+	want := cyrillic
 	if decoded != want {
 		t.Fatalf("OriginalSaveLabel(written, %d) = %q; want %q", f.textSelector(), decoded, want)
 	}

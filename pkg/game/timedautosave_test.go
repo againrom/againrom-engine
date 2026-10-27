@@ -93,7 +93,7 @@ func TestTimedAutosaveDeletedSlotRecovery(t *testing.T) {
 	rows := app.HeadlessRows()
 	want := -1
 	for i, row := range rows {
-		if row.Text == "timed autosave 2 - mission 10" {
+		if row.Text == "timed autosave 2" {
 			want = i
 		}
 	}
@@ -556,7 +556,7 @@ func TestTimedAutosaveVisibleFailureRetryAndLoadReset(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("load"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessActivate("autosave start mission 10 - mission 10"); err != nil || app.Screen() != ui.ScreenMap {
+	if err := app.HeadlessActivate("autosave start mission 10"); err != nil || app.Screen() != ui.ScreenMap {
 		t.Fatal("accepted LOAD", err, app.Screen())
 	}
 	now = now.Add(time.Minute)

@@ -3,7 +3,7 @@
   "original_saves": "../../gameversions/saves/2026-08-02",
   "saves": "../../review/headless-saves/1090",
   "steps": [
-    {"command":"load","target":"666 - mission 20"},
+    {"command":"load","target":"666"},
     {"command":"assert_state","state":{"notice":"victory"}},
     {"command":"key","key":"escape"},
     {"command":"select_member","id":"hero"},

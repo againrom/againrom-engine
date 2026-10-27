@@ -318,7 +318,7 @@ func TestTheStoreWritesListsAndReadsBack(t *testing.T) {
 	for _, e := range list {
 		labels[e.Name] = e.Label
 	}
-	if labels[n2] != "second save - between missions" {
+	if labels[n2] != "second save" {
 		t.Errorf("the label out of %s's header is %q", n2, labels[n2])
 	}
 

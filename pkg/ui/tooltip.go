@@ -177,9 +177,11 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 // point p. It exists for an install-gated witness that has no live App or
 // Viewer to hover through and needs production's own paint for one screen's
 // hint, not the screen beneath it — see cmd/tooltipshot. ball is the
-// installed corner picture the App was given (FrontEnd.HoverBall).
-func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle, ball image.Image) (*image.RGBA, image.Point, bool) {
-	return tooltipPicture(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, ball, nil)
+// installed corner picture the App was given (FrontEnd.HoverBall), look the
+// game's hover look (FrontEnd.HoverHelp); a nil look is the shared hover help.
+func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds image.Rectangle, ball image.Image, look *HoverLook) (*image.RGBA, image.Point, bool) {
+	h := &tooltipController{ball: ball}
+	return h.styled(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, look.hoverStyle())
 }
 
 func wrapTooltipLine(s string, font *text.Font, width int) []string {

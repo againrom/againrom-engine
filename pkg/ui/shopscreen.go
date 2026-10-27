@@ -1182,13 +1182,18 @@ func shopButtonPanel(v ShopScreenView, hover image.Point, hasHover bool) buttonP
 	for i, r := range l.Button {
 		b := &buttons[i]
 		b.Captions = []string{labels[i], GroupDigits(int64(numbers[i]))}
+		if v.ButtonStyle.oneLine(i) {
+			// SHOP-050: the caption and the number joined as one string.
+			b.Captions = []string{labels[i] + " " + b.Captions[1]}
+		}
 		b.Hover = hasHover && hover.In(r)
-		b.Inside, b.Disabled = b.Hover, !v.Live[i]
+		b.Inside, b.Disabled = b.Hover, v.ButtonStyle.disabled(v.Live[i])
 		b.Pressed = v.Press == (ShopControl{Kind: ShopControlButton, Index: i})
 	}
 	comp := shopPanel
 	comp.Body, comp.Plaques, comp.LabelShift = l.Buttons, l.Button[:], l.LabelOffset[:]
 	comp.Ink = v.ButtonStyle.plaqueInk(comp.Ink)
+	v.ButtonStyle.shift(&comp)
 	return buildButtonPanel(comp, art, buttons)
 }
 

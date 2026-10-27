@@ -617,5 +617,8 @@
      ],
      "cite": ["TOWN-475", "TOWN-477"]}
   ],
+  "room-buttons": {"font": "name", "ink": [185, 159, 73], "hover-ink": [255, 255, 116], "lit": true, "one-line": [1, 2],
+    "label-shift": [0, 6], "value-shift": [0, 1],
+    "cite": ["SHOP-050", "SHOP-SCREEN-035", "TOWN-535", "DIV-4142", "owner"]},
   "save": {"admitted-when": "save-admitted", "cite": ["SAV-CAMPAIGN-081", "owner"]}
 }

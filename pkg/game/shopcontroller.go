@@ -229,6 +229,7 @@ func (t *townScreen) bindChapterShop() {
 			v.Scene = roomScene{t.shopPage()}
 			v.TipPanel = t.roomTipView(roomShop, t.shopTip)
 			v.Character = t.townCharacterView()
+			v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
 		},
 		stepped: func(from, to mapload.PartyMember) {
 			t.clearSchoolSelection()

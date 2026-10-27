@@ -381,7 +381,7 @@ func TestReleaseOwnerCastSaveRestoresHealAtDanath(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if label, err := OriginalSaveLabel(out, f.textSelector()); err != nil || label != "9401 cast flag - mission 41" {
+	if label, err := OriginalSaveLabel(out, f.textSelector()); err != nil || label != "9401 cast flag" {
 		t.Fatalf("SAV label %q %v", label, err)
 	}
 	g, _ := castOrderSession(t, savedDir)

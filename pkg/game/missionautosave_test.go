@@ -23,7 +23,7 @@ func TestMissionStartAutosaveWritesAcceptedTickZero(t *testing.T) {
 	if err != nil || len(rows) != 1 {
 		t.Fatalf("accepted mission needs one automatic SAV: %v %v", rows, err)
 	}
-	if rows[0].Name != "game0000.sav" || rows[0].Label != "autosave start mission 10 - mission 10" {
+	if rows[0].Name != "game0000.sav" || rows[0].Label != "autosave start mission 10" {
 		t.Fatalf("automatic SAV row = %+v", rows[0])
 	}
 	raw, err := store.Read(rows[0].Name)
@@ -70,7 +70,7 @@ func TestMissionStartAutosavePreparationAndLoadWriteNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	shown := cold.HeadlessRows()
-	if len(shown) != 1 || shown[0].Text != "autosave start mission 10 - mission 10" {
+	if len(shown) != 1 || shown[0].Text != "autosave start mission 10" {
 		t.Fatalf("LOAD chooser label = %+v", shown)
 	}
 	if err := cold.HeadlessActivate("@first"); err != nil || cold.Screen() != ui.ScreenMap {
@@ -178,7 +178,7 @@ func TestMissionStartAutosaveUsesLastSuccessfulSaveDirectory(t *testing.T) {
 		t.Fatal("chosen directory lacks manual and automatic saves", rows, err)
 	}
 	for _, row := range rows {
-		if row.Name == "game0000.sav" && row.Label == "autosave start mission 10 - mission 10" {
+		if row.Name == "game0000.sav" && row.Label == "autosave start mission 10" {
 			return
 		}
 	}

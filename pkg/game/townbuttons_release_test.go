@@ -131,11 +131,51 @@ func oracleTownButtonText(dst *image.RGBA, font *text.Font, s string, r image.Re
 	font.Draw(dst, s, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2, c)
 }
 
+// townButtonOracle is how an oracle well draws its captions: the font, the
+// literal rest and hover inks, whether a button that cannot act draws lit,
+// and the shifts of the label and value bands.
+type townButtonOracle struct {
+	font         *text.Font
+	rest, hover  color.RGBA
+	lit          bool
+	label, value image.Point
+}
+
+// firstGameButtonOracle is the first game's room button captions restated
+// as literals (DIV-4142). Its font is the production style's, the generator
+// name font, which no raw decoder in these tests reads.
+func firstGameButtonOracle(t *testing.T, f *FrontEnd) *townButtonOracle {
+	t.Helper()
+	s := f.roomButtonStyle(ROM1TownDescription())
+	if s == nil || s.Font == nil {
+		t.Fatal("the first game names no room button style with a font")
+	}
+	return &townButtonOracle{font: s.Font, rest: color.RGBA{185, 159, 73, 255}, hover: color.RGBA{255, 255, 116, 255},
+		lit: true, label: image.Pt(0, 6), value: image.Pt(0, 1)}
+}
+
+// wrongSelector is v with the language selector of the font its buttons draw
+// in set to 0.
+func wrongSelector(v ui.TownSurfaceView) ui.TownSurfaceView {
+	wrongFont := *v.Font
+	wrongFont.Selector = 0
+	v.Font = &wrongFont
+	if v.ButtonStyle != nil && v.ButtonStyle.Font != nil {
+		style := *v.ButtonStyle
+		styleFont := *style.Font
+		styleFont.Selector = 0
+		style.Font = &styleFont
+		v.ButtonStyle = &style
+	}
+	return v
+}
+
 // oracleTownButtonWell independently composes one complete button well. A
 // nil panel is the school's opaque off/on plaque path. A non-nil panel is the
 // tavern's shop body; its native command bitmap is drawn over it only when
 // art is non-nil, which is the pressed-and-hovered state.
-func oracleTownButtonWell(panel image.Image, panelAt image.Point, art image.Image, well image.Rectangle, font *text.Font, b ui.TownSurfaceButton, pressed bool) *image.RGBA {
+// A nil o is the shared caption look.
+func oracleTownButtonWell(panel image.Image, panelAt image.Point, art image.Image, well image.Rectangle, font *text.Font, b ui.TownSurfaceButton, pressed bool, o *townButtonOracle) *image.RGBA {
 	dst := image.NewRGBA(well)
 	draw.Draw(dst, well, &image.Uniform{C: townButtonCanvasFill}, image.Point{}, draw.Src)
 	op := draw.Src
@@ -153,7 +193,12 @@ func oracleTownButtonWell(panel image.Image, panelAt image.Point, art image.Imag
 	}
 	label := image.Rect(well.Min.X, well.Min.Y+2, well.Max.X, well.Min.Y+24)
 	value := image.Rect(well.Min.X, well.Min.Y+23, well.Max.X, well.Max.Y-2)
-	if pressed && b.Enabled {
+	acts := b.Enabled
+	if o != nil {
+		font, ink, acts = o.font, o.rest, b.Enabled || o.lit
+		label, value = label.Add(o.label), value.Add(o.value)
+	}
+	if pressed && acts {
 		label, value = label.Add(image.Pt(0, 1)), value.Add(image.Pt(0, 1))
 	}
 	oracleTownButtonText(dst, font, b.Label, label, ink)
@@ -251,7 +296,7 @@ func TestReleaseSchoolAndTavernButtonArtIsPlacedAndLabelled(t *testing.T) {
 		}
 		for i := 0; i < n; i++ {
 			well := wells[i]
-			oracle := oracleTownButtonWell(c.panel, c.panelAt, c.art(i, 0), well, f.Font.Value(), c.buttons[i], false)
+			oracle := oracleTownButtonWell(c.panel, c.panelAt, c.art(i, 0), well, f.Font.Value(), c.buttons[i], false, nil)
 			if diff, ex := diffWells(composed[i], oracle, well); diff != 0 {
 				t.Errorf("%s button %d (%q/%q, enabled=%v): composed well %v differs from the oracle "+
 					"render (art + own label/value at own ink) in %d pixel(s), first few at %v",
@@ -302,7 +347,7 @@ func TestReleaseSchoolButtonPressedArtIsPlacedAndLabelled(t *testing.T) {
 		v.Press = ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: i}
 		composed := ui.ComposeTownSurface(v)
 		well := ui.TownSurfaceButtonRect(ui.TownSurfaceSchool, i)
-		oracle := oracleTownButtonWell(nil, image.Point{}, f.TownSchoolArt.Value().Buttons[i][1], well, f.Font.Value(), buttons[i], true)
+		oracle := oracleTownButtonWell(nil, image.Point{}, f.TownSchoolArt.Value().Buttons[i][1], well, f.Font.Value(), buttons[i], true, nil)
 		if diff, ex := diffWells(composed, oracle, well); diff != 0 {
 			t.Errorf("school button %d pressed (%q/%q, enabled=%v): composed well %v differs from the "+
 				"oracle render (ON art + own label/value at own ink) in %d pixel(s), first few at %v",

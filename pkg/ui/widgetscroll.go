@@ -251,6 +251,11 @@ type listBox struct {
 	Ruled bool
 	// Dark fills the selected row opaque and dark, with no outline.
 	Dark bool
+	// Framed draws each row as its own edit-field bevel one pixel shorter
+	// than the pitch, in place of the well around the list; BarGap is the
+	// space between the rows and the bar.
+	Framed bool
+	BarGap int
 }
 
 // newListBox places a list of rows rows at the argument rectangle's top
@@ -271,7 +276,8 @@ func (l listBox) Row(i int) image.Rectangle {
 
 // Bar is the attached bar's rectangle.
 func (l listBox) Bar() image.Rectangle {
-	return image.Rect(l.Rect.Max.X, l.Rect.Min.Y, l.Rect.Max.X+widgetSpriteSize, l.Rect.Max.Y)
+	x := l.Rect.Max.X + l.BarGap
+	return image.Rect(x, l.Rect.Min.Y, x+widgetSpriteSize, l.Rect.Max.Y)
 }
 
 // RowAt is the visible row under p.
@@ -365,7 +371,16 @@ func listWell(l listBox) editField { return editField{Rect: l.Rect.Inset(-1)} }
 // The selected row is filled and outlined and drawn in the selected ink.
 func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox, m *Picker, rowText listRowText, pointer image.Point, pointerOK bool) {
 	recordWidget(widgetListBox, l.Rect, l)
-	drawEditField(dst, listWell(l), nil)
+	textX := listTextX
+	if l.Framed {
+		textX = editTextX
+		for i := 0; i < l.Rows; i++ {
+			r := l.Row(i)
+			drawEditField(dst, editField{Rect: image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Max.Y-1)}, nil)
+		}
+	} else {
+		drawEditField(dst, listWell(l), nil)
+	}
 	if m != nil && f != nil {
 		top, count := m.Visible()
 		for i := 0; i < count && i < l.Rows; i++ {
@@ -373,7 +388,12 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			ink := listRowInk
 			if top+i == m.Selection() {
 				if l.Dark {
-					draw.Draw(dst, r, &image.Uniform{C: listSelectDark}, image.Point{}, draw.Src)
+					fill := r
+					if l.Framed {
+						// The frame's top line and right edge stay lit.
+						fill = image.Rect(r.Min.X, r.Min.Y+1, r.Max.X-1, r.Max.Y-1)
+					}
+					draw.Draw(dst, fill, &image.Uniform{C: listSelectDark}, image.Point{}, draw.Src)
 				} else {
 					draw.Draw(dst, r, &image.Uniform{C: listSelectFill}, image.Point{}, draw.Over)
 					outline(dst, r, listSelectEdge)
@@ -383,11 +403,11 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Ink != (color.RGBA{}) {
 				ink = rows[top+i].Ink
 			}
-			x, width := r.Min.X+listTextX, r.Dx()-2*listTextX
+			x, width := r.Min.X+textX, r.Dx()-2*textX
 			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Icon != nil {
 				side := max(1, r.Dy()-2)
 				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
-				x, width = x+side+listTextX, width-side-listTextX
+				x, width = x+side+textX, width-side-textX
 			}
 			f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
 		}

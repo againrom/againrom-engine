@@ -243,7 +243,7 @@ func TestReleaseCampaignTailKit(t *testing.T) {
 		raw := cityRosterF2Save(t, app, store, k.label)
 		want := k.want
 		want.markers = campaignMarkerValues(t, raw)
-		want.chooser = k.label + " - between missions"
+		want.chooser = k.label
 		if strings.Contains(want.chooser, "Generated") {
 			t.Fatal("kit label names a generated mission")
 		}

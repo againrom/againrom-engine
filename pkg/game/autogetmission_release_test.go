@@ -264,7 +264,7 @@ func TestReleaseOwnerMissionTwentyEndSAVTravelsToMissionTwenty(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if label, err := OriginalSaveLabel(out, f.textSelector()); err != nil || label != "9402 autoget - mission 20" {
+	if label, err := OriginalSaveLabel(out, f.textSelector()); err != nil || label != "9402 autoget" {
 		t.Fatalf("SAV label %q %v", label, err)
 	}
 	c := autoGetCampaign(t, out)

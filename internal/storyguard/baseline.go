@@ -3085,5 +3085,5 @@ var Committed = Baseline{
 	// Sack-objects fixture helper became sackObjectsOpen. It rose again for the
 	// map Sacks' ids at mission entry and the runtime-id wrapper peel, then for
 	// the M2 round trips' note on the LOAD's orphan bits.
-	CommentBytes: 9736430,
+	CommentBytes: 9741048,
 }

@@ -3,7 +3,7 @@
   "original_saves": "../../gameversions/saves/2026-08-02",
   "saves": "../../review/story1097/drive-saves",
   "steps": [
-    {"command": "load", "target": "666 - mission 20"},
+    {"command": "load", "target": "666"},
     {"command": "capture", "name": "saved_victory"},
     {"command": "assert_state", "state": {"screen": "map", "mission": 20, "notice": "victory", "purse": 600}},
     {"command": "assert_member", "member": {"id": "hero", "xp": 1795}},

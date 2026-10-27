@@ -330,6 +330,9 @@ type TownSurfaceView struct {
 	CardFont   *text.Font
 	HiredLabel string
 	BookView   *ShopScreenView
+	// ButtonStyle is the game's room button captions; nil keeps the first
+	// game's own.
+	ButtonStyle *RoomButtonStyle
 
 	// SchoolArt is optional so hand-built front ends and missing cosmetic data
 	// keep a total text fallback. SchoolClass is fighter=0, mage=1; -1 means
@@ -1382,7 +1385,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// TOWN-154 paint step 6, independent of the class column.
 		v.Scene.Paint(dst, "diamond")
 	}
-	panel.drawButtons(dst, v.Font)
+	panel.drawButtons(dst, v.ButtonStyle.font(v.Font))
 	DrawTownCharacterRegion(dst, v.Hero)
 	// The bottom message no longer suppresses during Statistics (1022 spec
 	// B6, merge resolution round 2: master's own !statistics guard here
@@ -1453,8 +1456,10 @@ func townSurfacePanel(v TownSurfaceView, artSchool, artTavern, commandTavern boo
 		}
 		r := townSurfaceButtonRect(v.Kind, i)
 		buttons[i] = panelButton{Captions: []string{b.Label, b.Value}, Hover: v.HasHover && v.Hover.In(r),
-			Pressed: pressed, Inside: true, Disabled: !b.Enabled}
+			Pressed: pressed, Inside: true, Disabled: v.ButtonStyle.disabled(b.Enabled)}
 	}
+	comp.Ink = v.ButtonStyle.plaqueInk(comp.Ink)
+	v.ButtonStyle.shift(&comp)
 	return buildButtonPanel(comp, art, buttons)
 }
 

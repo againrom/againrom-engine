@@ -68,8 +68,8 @@ func TestShopPackStripPictureShowsUnderEmptyPlaces(t *testing.T) {
 // leaves the value line in its band.
 func TestShopLabelOffsetMovesTheLabelLine(t *testing.T) {
 	r := shopButtonRects[1]
-	plain := panelCaptions(r, []string{"Buy", "0"}, true, image.Point{})
-	moved := panelCaptions(r, []string{"Buy", "0"}, true, image.Pt(1, 4))
+	plain := panelCaptions(r, []string{"Buy", "0"}, true, image.Point{}, image.Point{})
+	moved := panelCaptions(r, []string{"Buy", "0"}, true, image.Pt(1, 4), image.Point{})
 	if moved[0].Rect != plain[0].Rect.Add(image.Pt(1, 4)) || moved[1].Rect != plain[1].Rect {
 		t.Fatalf("label %v value %v, from %v %v", moved[0].Rect, moved[1].Rect, plain[0].Rect, plain[1].Rect)
 	}

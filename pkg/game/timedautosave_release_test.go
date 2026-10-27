@@ -252,7 +252,7 @@ func timedMapRecovery(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore, n
 	}
 	want := -1
 	for i, row := range app.HeadlessRows() {
-		if row.Text == "timed autosave 3 - mission 10" {
+		if row.Text == "timed autosave 3" {
 			want = i
 		}
 	}

@@ -9,7 +9,7 @@
   "steps": [
     {
       "command": "load",
-      "target": "666 - mission 20"
+      "target": "666"
     },
     {"command": "assert_state", "state": {"notice": "victory"}},
     {"command": "key", "key": "escape"},

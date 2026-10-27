@@ -52,9 +52,9 @@ func (a *App) SetSaveDelete(can func(string) bool, prepare func(string) (func() 
 const loadVisibleRows = 10
 
 var (
-	loadPanel        = image.Rect(80, 56, 560, 420)
-	loadListArg      = image.Rect(122, 152, 504, 342)
-	loadMessageBox   = image.Rect(122, 344, 522, 375)
+	loadPanel        = image.Rect(76, 60, 556, 412)
+	loadListArg      = image.Rect(116, 152, 497, 342)
+	loadMessageBox   = image.Rect(116, 346, 516, 366)
 	loadSelectedText = color.RGBA{218, 183, 71, 255}
 	loadDisabledText = color.RGBA{112, 122, 115, 255}
 )
@@ -71,7 +71,8 @@ func loadButtonRect(i int) image.Rectangle { return firstLoadPage(LoadWindowWord
 // pageListBox is a page's shared list.
 func (a *App) pageListBox(v pageView) listBox {
 	box := newListBox(v.page.List, v.page.Rows, a.flow.menuFont)
-	box.Ruled, box.Dark = v.page.Ruled, v.page.Ruled
+	box.Ruled, box.Framed, box.BarGap = v.page.Ruled, v.page.Framed, v.page.BarGap
+	box.Dark = v.page.Ruled || v.page.Framed
 	return box
 }
 

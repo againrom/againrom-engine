@@ -27,6 +27,7 @@ func TestReleaseTavernCaptionsMatchInstalledSelectionAndPixels(t *testing.T) {
 		t.Fatal("installed constructor, Hire and Fire captions must be distinct")
 	}
 	font := roomCaptionRawFont(t, f)
+	oracle := firstGameButtonOracle(t, f)
 	wells := [4]image.Rectangle{
 		image.Rect(494, 15, 614, 67), image.Rect(483, 67, 623, 113),
 		image.Rect(483, 114, 623, 160), image.Rect(494, 160, 614, 212),
@@ -122,7 +123,7 @@ func TestReleaseTavernCaptionsMatchInstalledSelectionAndPixels(t *testing.T) {
 		}
 		var expected [4]*image.RGBA
 		for i, well := range wells {
-			expected[i] = oracleTownButtonWell(panel, image.Pt(464, 0), nil, well, font, want[i], false)
+			expected[i] = oracleTownButtonWell(panel, image.Pt(464, 0), nil, well, font, want[i], false, oracle)
 		}
 		// A held enabled button draws its native bitmap and moves both text
 		// rows one pixel down. Caption sources stay unchanged.
@@ -137,7 +138,8 @@ func TestReleaseTavernCaptionsMatchInstalledSelectionAndPixels(t *testing.T) {
 				if press == i && want[i].Enabled {
 					art = pressedArt[i]
 				}
-				pressedWell := oracleTownButtonWell(panel, image.Pt(464, 0), art, well, font, want[i], press == i)
+				// The command tavern sinks only a button that can act.
+				pressedWell := oracleTownButtonWell(panel, image.Pt(464, 0), art, well, font, want[i], press == i && want[i].Enabled, oracle)
 				if n, points := diffWells(pixels, pressedWell, well); n != 0 {
 					t.Fatalf("%s press %d button %d: %d pixel differences, first %v", name, press, i, n, points)
 				}
@@ -171,9 +173,7 @@ func TestReleaseTavernCaptionsMatchInstalledSelectionAndPixels(t *testing.T) {
 			case "no-caption":
 				bad.Buttons[2].Label = ""
 			case "wrong-selector":
-				wrongFont := *v.Font
-				wrongFont.Selector = 0
-				bad.Font = &wrongFont
+				bad = wrongSelector(bad)
 			}
 			pixels := ui.ComposeTownSurface(bad)
 			differences := 0

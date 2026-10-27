@@ -104,7 +104,7 @@ func activePauseCold(t *testing.T, path string) {
 		t.Fatal(err)
 	}
 	rows := app.HeadlessRows()
-	if len(rows) != 1 || rows[0].Text != proof.Label+" - mission 20" {
+	if len(rows) != 1 || rows[0].Text != proof.Label {
 		t.Fatal("ordinary paused chooser", rows)
 	}
 	if err := app.HeadlessActivate("@first"); err != nil || app.Screen() != ui.ScreenMap || !f.live.mission.resumed {

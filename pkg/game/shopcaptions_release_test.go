@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"image/color"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +18,8 @@ func TestReleaseShopBuyAndSellTotalsDrawBelowCaptions(t *testing.T) {
 		roomCaptionRawLine(t, raw, 72), roomCaptionRawLine(t, raw, 70),
 		roomCaptionRawLine(t, raw, 71), roomCaptionRawLine(t, raw, 73),
 	}
-	font := roomCaptionRawFont(t, f)
+	oracle := firstGameButtonOracle(t, f)
+	font := oracle.font
 	comparisons := 0
 	verify := func(name string, v ui.ShopScreenView, frame *image.RGBA) {
 		t.Helper()
@@ -40,22 +40,33 @@ func TestReleaseShopBuyAndSellTotalsDrawBelowCaptions(t *testing.T) {
 			}
 			bare := v
 			bare.Font = nil
+			if bare.ButtonStyle != nil {
+				style := *bare.ButtonStyle
+				style.Font = nil
+				bare.ButtonStyle = &style
+			}
 			want := ui.ComposeShopScreen(bare, hover, pressed >= 0, nil, false)
 			for i := range labels {
 				r := ui.ShopButtonRect(i)
 				bands := [2]image.Rectangle{
-					image.Rect(r.Min.X, r.Min.Y+2, r.Max.X, r.Min.Y+24),
-					image.Rect(r.Min.X, r.Min.Y+23, r.Max.X, r.Max.Y-2),
+					image.Rect(r.Min.X, r.Min.Y+2, r.Max.X, r.Min.Y+24).Add(oracle.label),
+					image.Rect(r.Min.X, r.Min.Y+23, r.Max.X, r.Max.Y-2).Add(oracle.value),
 				}
-				ink := townButtonInkText
-				if !v.Live[i] {
-					ink = townButtonInkDisabled
-				} else if pressed == i {
-					ink = color.RGBA{R: 255, G: 255, B: 224, A: 255}
+				captions := []string{labels[i], groupedFigure(values[i])}
+				if i == 1 || i == 2 {
+					// SHOP-050: Buy and Sell draw caption and total as one line.
+					bands[0], captions = r, []string{labels[i] + " " + groupedFigure(values[i])}
+				}
+				// Lit: a button that cannot act keeps the rest ink.
+				ink := oracle.rest
+				if pressed == i {
+					ink = oracle.hover
 					bands[0], bands[1] = bands[0].Add(image.Pt(0, 1)), bands[1].Add(image.Pt(0, 1))
 				}
-				for row, caption := range []string{labels[i], groupedFigure(values[i])} {
-					if width, _ := font.Measure(caption); width > r.Dx()-6 {
+				for row, caption := range captions {
+					// A joined line wider than its plaque is cut at the right,
+					// as every plaque caption is; the oracle cuts it the same way.
+					if width, _ := font.Measure(caption); width > r.Dx()-6 && len(captions) == 2 {
 						t.Fatalf("%s button %d row %d: %q width %d exceeds well width %d", name, i, row, caption, width, r.Dx()-6)
 					}
 					oracleTownButtonText(want, font, caption, bands[row], ink)

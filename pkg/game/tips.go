@@ -217,6 +217,12 @@ func (in *InstallResources) hoverStyle() (*ui.GeneratorHover, *text.Font) {
 	return nil, nil
 }
 
+// HoverHelp is the game's hover look, every hover box's outside the
+// generator; nil where the generator names none.
+func (in *InstallResources) HoverHelp() *ui.HoverLook {
+	return ui.NewHoverLook(in.hoverStyle())
+}
+
 // CloseTip dismisses the current room's constructed popup.
 func (t *townScreen) CloseTip() {
 	if t.hostRules().Tips == "entry" {

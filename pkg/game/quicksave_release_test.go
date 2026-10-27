@@ -252,7 +252,7 @@ func quickInstalledDelete(t *testing.T, f *FrontEnd, app *ui.App, store SaveStor
 	rows := app.HeadlessRows()
 	row := -1
 	for i, item := range rows {
-		if item.Text == "quicksave 2 - mission 10" {
+		if item.Text == "quicksave 2" {
 			row = i
 		}
 	}

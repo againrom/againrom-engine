@@ -71,6 +71,13 @@ func (d *Description) Validate() error {
 	if b := d.RoomButtons; b != nil && b.Font != "name" && b.Font != "text" {
 		return fail("room-buttons font %q%s", b.Font, accepted("name", "text"))
 	}
+	if b := d.RoomButtons; b != nil {
+		for _, i := range b.OneLine {
+			if i < 0 || i > 3 {
+				return fail("room-buttons one-line index %d outside the shop's four buttons", i)
+			}
+		}
+	}
 	for _, s := range d.Square.Enter {
 		if err := validateStep(s, "square", fail); err != nil {
 			return err

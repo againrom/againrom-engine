@@ -464,11 +464,13 @@ func TestAFallbackPartyIsSaidOutLoud(t *testing.T) {
 
 var errNoWalk = errors.New("the walk read nothing")
 
-func TestOriginalSaveLabelCarriesNoSourceMarker(t *testing.T) {
+// TestOriginalSaveLabelIsTheBareDescription pins the Load list row as the
+// original draws it: the save's description, with no source marker and no
+// mission or town suffix, for a mission save and a town save alike.
+func TestOriginalSaveLabelIsTheBareDescription(t *testing.T) {
 	for _, tc := range []struct {
 		mission uint32
-		suffix  string
-	}{{7, " - mission 7"}, {0, " - between missions"}} {
+	}{{7}, {0}} {
 		saved := savedFile(tc.mission, tenActors())
 		sf, err := sav.Open(saved)
 		if err != nil {
@@ -478,7 +480,6 @@ func TestOriginalSaveLabelCarriesNoSourceMarker(t *testing.T) {
 		if want == "" {
 			want = "(no label)"
 		}
-		want += tc.suffix
 		got, err := OriginalSaveLabel(saved, 0)
 		if err != nil || got != want {
 			t.Fatalf("mission %d: OriginalSaveLabel = %q, %v; want %q", tc.mission, got, err, want)

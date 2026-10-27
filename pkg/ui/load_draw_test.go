@@ -51,17 +51,28 @@ func assertUnicodeLoadRow(t *testing.T, a *App, font *text.Font, pix *image.RGBA
 	expect := image.NewRGBA(pix.Bounds())
 	draw.Draw(expect, expect.Bounds(), pix, pix.Bounds().Min, draw.Src)
 	// Compare the glyph-bearing row against independently encoded bytes: the
-	// shared list's first row, pitch font height plus 4, selected.
-	r := image.Rect(122, 152, 504, 152+font.Height()+4)
+	// shared list's first row, pitch font height plus 4, selected. The row is
+	// its own sunken frame one pixel shorter than the pitch; the selection
+	// darkens it below the top line and left of the right edge.
+	r := image.Rect(116, 152, 497, 152+font.Height()+4)
 	if got := a.loadListBox().Row(0); got != r {
 		t.Fatalf("LOAD row 0 = %v, want %v", got, r)
 	}
 	background := image.NewRGBA(pix.Bounds())
 	drawTownShellBox(background, loadPanel, false)
-	draw.Draw(background, r, &image.Uniform{C: color.RGBA{0, 7, 6, 220}}, image.Point{}, draw.Over)
-	outline(background, r, color.RGBA{57, 77, 65, 255})
+	shade, light := color.RGBA{8, 8, 8, 255}, color.RGBA{94, 115, 101, 255}
+	frameBottom, frameRight := r.Max.Y-2, r.Max.X-1
+	for x := r.Min.X + 1; x < frameRight; x++ {
+		background.SetRGBA(x, r.Min.Y, shade)
+		background.SetRGBA(x, frameBottom, light)
+	}
+	for y := r.Min.Y + 1; y < frameBottom; y++ {
+		background.SetRGBA(r.Min.X, y, shade)
+		background.SetRGBA(frameRight, y, light)
+	}
+	draw.Draw(background, image.Rect(r.Min.X, r.Min.Y+1, r.Max.X-1, r.Max.Y-1), &image.Uniform{C: color.RGBA{9, 7, 8, 255}}, image.Point{}, draw.Src)
 	draw.Draw(expect, r, background, r.Min, draw.Src)
-	font.Draw(expect.SubImage(r.Inset(1)).(*image.RGBA), literalUnicodeLoadRow(font), 125, 154, loadSelectedText)
+	font.Draw(expect.SubImage(r.Inset(1)).(*image.RGBA), literalUnicodeLoadRow(font), 120, 154, loadSelectedText)
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
 			if pix.RGBAAt(x, y) != expect.RGBAAt(x, y) {
@@ -128,8 +139,8 @@ func TestLoadTextClipsAtMeasuredPixelsAndFailureWinsLabel(t *testing.T) {
 	if width > 90 || !strings.HasSuffix(clipped, "...") {
 		t.Fatalf("pixel fit = %d %q", width, clipped)
 	}
-	if a.loadMessage() != a.flow.saves[0].Label {
-		t.Fatal("LOAD lost selected label")
+	if got := a.loadMessage(); got != "" {
+		t.Fatalf("LOAD drew %q under the list, want no line", got)
 	}
 	a.flow.msg = "read failed"
 	if a.loadMessage() != "read failed" {
@@ -190,13 +201,13 @@ func TestLoadDrawsThroughTheSharedKit(t *testing.T) {
 		switch c.kind {
 		case widgetListBox:
 			lists++
-			if c.rect != image.Rect(122, 152, 504, 344) {
+			if c.rect != image.Rect(116, 152, 497, 344) {
 				t.Errorf("list at %v", c.rect)
 			}
 		case widgetVScrollBar:
 			bars++
 			b := c.state.(vScrollBar)
-			if c.rect != image.Rect(504, 152, 528, 344) || b.Pos != 13 || b.Count != 27 {
+			if c.rect != image.Rect(500, 152, 524, 344) || b.Pos != 13 || b.Count != 27 {
 				t.Errorf("bar %v at %d of %d", c.rect, b.Pos, b.Count)
 			}
 		case widgetPushButton:

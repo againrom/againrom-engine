@@ -261,8 +261,8 @@ func TestReleaseCreatureCardUsesInstalledResistanceHeading(t *testing.T) {
 						t.Fatalf("live heading row %d has no visible heading tooltip: %+v", dy, state)
 					}
 					bounds := image.Rect(0, 0, 1024, 768)
-					want, _, ok := ui.ComposeTooltipHint(strings.Split(subject.Words.Hover[188], "#"), font, point, bounds, f.HoverBall())
-					oldHint, _, _ := ui.ComposeTooltipHint(strings.Split(subject.Words.Hover[168], "#"), font, point, bounds, f.HoverBall())
+					want, _, ok := ui.ComposeTooltipHint(strings.Split(subject.Words.Hover[188], "#"), font, point, bounds, f.HoverBall(), f.HoverHelp())
+					oldHint, _, _ := ui.ComposeTooltipHint(strings.Split(subject.Words.Hover[168], "#"), font, point, bounds, f.HoverBall(), f.HoverHelp())
 					if !ok || !samePicture(popup, want) || samePicture(popup, oldHint) {
 						t.Fatalf("live heading row %d does not draw installed slot 188 instead of slot 168", dy)
 					}

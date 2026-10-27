@@ -132,7 +132,7 @@ func TestLoadPageRowsMatchTheUncachedListing(t *testing.T) {
 	writeScanSave(t, dir, "game0003.sav", labelledSave(7, "Fresh"), 0)
 	check("new save")
 	rows := f.saveRows(store, OriginalStore{}, true)
-	if len(rows) == 0 || rows[0].Name != localOriginalSaveToken("game0003.sav") || !strings.Contains(rows[0].Label, "Fresh - mission 7") {
+	if len(rows) == 0 || rows[0].Name != localOriginalSaveToken("game0003.sav") || !strings.Contains(rows[0].Label, "Fresh") {
 		t.Fatalf("new save row = %v", rows)
 	}
 	// The same file rewritten with the same size and a new time is read again.
@@ -158,7 +158,7 @@ func TestLoadPageKeepsStoredLabelsWithoutAMangleSecondListing(t *testing.T) {
 	if got := saveFactsReads() - before; got != 1 {
 		t.Fatalf("two listings of one file read %d files in full", got)
 	}
-	if len(raw) != 1 || raw[0].Label != "Plain - mission 2" {
+	if len(raw) != 1 || raw[0].Label != "Plain" {
 		t.Fatalf("rows = %v", raw)
 	}
 }
@@ -176,7 +176,7 @@ func TestSharedLabelReaderMatchesOpen(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := originalSaveLabelOf(sf.Label, sf.Head.Mission, 0); got != want {
+		if got := originalSaveLabelOf(sf.Label, 0); got != want {
 			t.Fatalf("mission %d: %q, want %q", mission, got, want)
 		}
 	}

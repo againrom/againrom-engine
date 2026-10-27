@@ -125,11 +125,28 @@ func (a *App) hoverStyle() *hoverStyle {
 // hover style h, drawn in font, the font h names. A nil h or font keeps the
 // shared hover help.
 func (a *App) SetHoverStyle(h *GeneratorHover, font *text.Font) {
-	a.tooltip.style = nil
-	if s := h.style(); s != nil && font != nil {
-		s.font = font
-		a.tooltip.style = s
+	a.tooltip.style = NewHoverLook(h, font).hoverStyle()
+}
+
+// HoverLook is the game's hover style drawn in the font it names, as every
+// hover box outside the generator draws it; nil is the shared hover help.
+type HoverLook struct{ style *hoverStyle }
+
+// NewHoverLook is h drawn in font; nil when either is nil.
+func NewHoverLook(h *GeneratorHover, font *text.Font) *HoverLook {
+	s := h.style()
+	if s == nil || font == nil {
+		return nil
 	}
+	s.font = font
+	return &HoverLook{s}
+}
+
+func (l *HoverLook) hoverStyle() *hoverStyle {
+	if l == nil {
+		return nil
+	}
+	return l.style
 }
 
 func (a *App) drawTooltip(dst *ebiten.Image) {

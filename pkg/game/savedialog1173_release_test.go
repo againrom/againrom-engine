@@ -469,7 +469,7 @@ func TestReleaseSaveDialog1173TownPairOverwriteAndRefusal(t *testing.T) {
 	// OriginalSaveLabel appends a known suffix (originalsave.go): a prefix
 	// check would still pass on trailing garbage, so assert the exact
 	// string. This save is a town save (arriveInTown, Mission 0).
-	wantCyrillicDecoded := unicodeName + " - between missions"
+	wantCyrillicDecoded := unicodeName
 	cyrillicDecoded, err := OriginalSaveLabel(cyrillicRaw, f.textSelector())
 	if err != nil || cyrillicDecoded != wantCyrillicDecoded {
 		t.Fatalf("Cyrillic SAV label did not round trip: OriginalSaveLabel = %q, %v; want %q", cyrillicDecoded, err, wantCyrillicDecoded)

@@ -110,8 +110,8 @@ func TestSavePageListIsRuledAndTheFirstGamesIsNot(t *testing.T) {
 		t.Fatalf("save list ruled %v dark %v rows %d", box.Ruled, box.Dark, box.Rows)
 	}
 	first := pageView{page: firstLoadPage(LoadWindowWords{})}
-	if box := a.pageListBox(first); box.Ruled || box.Dark {
-		t.Fatalf("first game's list ruled %v dark %v", box.Ruled, box.Dark)
+	if box := a.pageListBox(first); box.Ruled || !box.Framed || !box.Dark || box.BarGap != 3 {
+		t.Fatalf("first game's list ruled %v framed %v dark %v bar gap %d", box.Ruled, box.Framed, box.Dark, box.BarGap)
 	}
 	if rows := a.HeadlessRows(); len(rows) == 0 || rows[0].Ink != loadDisabledText {
 		t.Fatalf("Empty Slot row ink %v", rows)

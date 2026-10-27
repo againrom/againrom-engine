@@ -48,7 +48,7 @@ func TestDrawableLabelSubstitutesForRunesTheLoadFontCannotDraw(t *testing.T) {
 func TestTheLoadRowOfALegacyEmDashSaveIsDrawableAndTheFileIsUntouched(t *testing.T) {
 	const legacy = "mission 30 \u2014 tick 176 \u2014 gold 70"
 	const rawLegacy = "mission 30 \x97 tick 176 \x97 gold 70"
-	const want = "mission 30 - tick 176 - gold 70 - between missions"
+	const want = "mission 30 - tick 176 - gold 70"
 
 	data := originalWriterLabeled(t, rawLegacy)
 	store := SaveStore{Dir: t.TempDir()}
@@ -70,7 +70,7 @@ func TestTheLoadRowOfALegacyEmDashSaveIsDrawableAndTheFileIsUntouched(t *testing
 	if err != nil || len(listed) != 1 {
 		t.Fatalf("List = (%v, %v), want one row", listed, err)
 	}
-	if listed[0].Label != legacy+" - between missions" {
+	if listed[0].Label != legacy {
 		t.Fatalf("stored label reported as %q; the store reports the header, not the row", listed[0].Label)
 	}
 

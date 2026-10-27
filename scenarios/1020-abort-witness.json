@@ -4,7 +4,7 @@
   "steps": [
     {
       "command": "load",
-      "target": "666 - mission 20"
+      "target": "666"
     },
     {"command": "assert_state", "state": {"screen": "map", "mission": 20, "notice": "victory", "purse": 600}},
     {"command": "activate", "target": "notice"},

@@ -148,10 +148,10 @@ func TestSaveSeamsKeepsCollidingLocalAndInstallOriginalRowsDistinct(t *testing.T
 		byName[row.Name] = row
 	}
 	localToken := localOriginalSaveToken("game0000.sav")
-	if got := byName[localToken]; !strings.HasPrefix(got.Label, "LOCAL ") {
+	if got := byName[localToken]; got.Label != "LOCAL" {
 		t.Fatalf("local collision row = %+v, want LOCAL label", got)
 	}
-	if got := byName["game0000.sav"]; !strings.HasPrefix(got.Label, "INSTALL ") {
+	if got := byName["game0000.sav"]; got.Label != "INSTALL" {
 		t.Fatalf("install collision row = %+v, want INSTALL label", got)
 	}
 

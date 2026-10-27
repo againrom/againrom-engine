@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/render/text"
 )
 
+// A page with a line under the list draws the selected save's label there.
 func TestSelectedOriginalSaveDetailIsItsLabel(t *testing.T) {
 	a := newTestApp(t, appRows(3), okLoader(t))
 	a.SetWords(AuthoredWords(), solidFont15(), nil)
@@ -20,6 +21,9 @@ func TestSelectedOriginalSaveDetailIsItsLabel(t *testing.T) {
 		{Name: "local:ours.sav", Label: "LOCAL mission 10"},
 	}
 	a.SetSaveSeams(nil, func() []SaveEntry { return rows }, nil)
+	page := firstLoadPage(LoadWindowWords{})
+	page.RowHint = false
+	a.SetSavePages(SavePages{Load: page})
 	a.flow.openLoad(ScreenMenu)
 	for i, row := range rows {
 		if i > 0 {

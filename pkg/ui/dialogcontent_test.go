@@ -65,8 +65,12 @@ func assertDialogListBevel(t *testing.T, pix *image.RGBA, calls []widgetCall) {
 			continue
 		}
 		lists++
-		r := call.rect.Inset(-1)
 		dark, light := color.RGBA{8, 8, 8, 255}, color.RGBA{94, 115, 101, 255}
+		if l := call.state.(listBox); l.Framed {
+			assertFramedListRows(t, pix, l, dark, light)
+			continue
+		}
+		r := call.rect.Inset(-1)
 		for x := r.Min.X + 1; x < r.Max.X-1; x++ {
 			if got := pix.RGBAAt(x, r.Min.Y); got != dark {
 				t.Errorf("list top bevel at %d,%d = %v, want %v", x, r.Min.Y, got, dark)
@@ -88,6 +92,27 @@ func assertDialogListBevel(t *testing.T, pix *image.RGBA, calls []widgetCall) {
 	}
 	if lists != 1 {
 		t.Errorf("dialog drew %d lists, want one", lists)
+	}
+}
+
+// assertFramedListRows checks each framed row's top shade line and right
+// light edge, which the selected row's dark fill leaves standing.
+func assertFramedListRows(t *testing.T, pix *image.RGBA, l listBox, dark, light color.RGBA) {
+	t.Helper()
+	for i := 0; i < l.Rows; i++ {
+		r := l.Row(i)
+		for x := r.Min.X + 1; x < r.Max.X-1; x++ {
+			if got := pix.RGBAAt(x, r.Min.Y); got != dark {
+				t.Errorf("row %d top bevel at %d,%d = %v, want %v", i, x, r.Min.Y, got, dark)
+				break
+			}
+		}
+		for y := r.Min.Y + 1; y < r.Max.Y-2; y++ {
+			if got := pix.RGBAAt(r.Max.X-1, y); got != light {
+				t.Errorf("row %d right bevel at %d,%d = %v, want %v", i, r.Max.X-1, y, got, light)
+				break
+			}
+		}
 	}
 }
 

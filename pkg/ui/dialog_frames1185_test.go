@@ -39,15 +39,15 @@ func TestFramedLoadSelectScrollConfirmCancelAndExactToken(t *testing.T) {
 	if a.flow.loadList.Selection() != 17 || loaded != "" {
 		t.Fatal("row click did not only select the visible save")
 	}
-	click(200, 392)
+	click(200, 380)
 	if loaded != "file-17.ags" {
 		t.Fatal("OK lost the exact selected token", loaded)
 	}
-	click(324, 392)
+	click(324, 380)
 	if !a.flow.loadUI.confirm || removed != 0 {
 		t.Fatal("Delete bypassed confirmation")
 	}
-	click(448, 392)
+	click(448, 380)
 	if a.flow.loadUI.confirm || a.Screen() != ScreenLoad || removed != 0 {
 		t.Fatal("Cancel did not retain save and list")
 	}
@@ -56,7 +56,7 @@ func TestFramedLoadSelectScrollConfirmCancelAndExactToken(t *testing.T) {
 	if removed != 1 || a.flow.loadUI.confirm {
 		t.Fatal("confirmed delete was not performed once")
 	}
-	click(448, 392)
+	click(448, 380)
 	if a.Screen() != ScreenMenu {
 		t.Fatal("Cancel did not return to opener")
 	}
@@ -98,7 +98,7 @@ func TestFramedLoadRowsAbove100CannotActivateControls(t *testing.T) {
 			if a.Screen() != ScreenLoad || a.flow.loadList.Selection() != index || loaded != "" || prepared != "" || removed != 0 || a.flow.loadUI.confirm {
 				t.Fatalf("row %d acted as a control: screen=%v selection=%d loaded=%q prepared=%q removed=%d confirm=%v", index, a.Screen(), a.flow.loadList.Selection(), loaded, prepared, removed, a.flow.loadUI.confirm)
 			}
-			click(200, 392)
+			click(200, 380)
 			if loaded != rows[index].Name || prepared != "" || removed != 0 {
 				t.Fatalf("OK lost selected row: loaded=%q prepared=%q removed=%d", loaded, prepared, removed)
 			}

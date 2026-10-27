@@ -51,6 +51,9 @@ func TestDecodeRefusesWhatTheComposerCannotRun(t *testing.T) {
 		{name: "unknown save condition", want: `unknown condition "admited"`, mutate: func(d obj) {
 			d["save"].(obj)["admitted-when"] = "admited"
 		}},
+		{name: "room button one-line index past the shop", want: "room-buttons one-line index 4 outside", mutate: func(d obj) {
+			d["room-buttons"] = obj{"font": "name", "ink": list{1, 2, 3}, "hover-ink": list{4, 5, 6}, "one-line": list{1, 4}}
+		}},
 		{name: "trailing brace", want: "trailing data", raw: func(b []byte) []byte { return append(b, '}') }},
 		{name: "trailing bracket", want: "trailing data", raw: func(b []byte) []byte { return append(b, ' ', ']') }},
 		{name: "trailing value", want: "trailing data", raw: func(b []byte) []byte { return append(b, []byte("{}")...) }},

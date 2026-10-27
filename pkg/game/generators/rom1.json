@@ -171,5 +171,6 @@
     "pre-create-cycle": [[80, 100, 120, 140], [20, 40, 60], [160, 180]],
     "hover-wait-ms": 500, "step-gap-ms": 300,
     "cite": ["MENU-137", "TOWN-518", "TOWN-519", "TOWN-520", "TOWN-522", "DIV-2714"]
-  }
+  },
+  "hover": {"font": "text", "ink": [160, 120, 50], "shadow": [8, 8, 8], "lines": "wrapped", "cite": ["MENU-128", "R2-ENGINE-385", "DIV-4142", "owner"]}
 }

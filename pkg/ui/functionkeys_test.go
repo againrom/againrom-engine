@@ -232,9 +232,9 @@ func TestFunctionKeyNavigationOwnsEarlierHeldMouseRelease(t *testing.T) {
 		x, y             int
 	}{
 		{"map Save", false, false, true, 200, 115},
-		{"map Load", false, false, false, 200, 392},
+		{"map Load", false, false, false, 200, 380},
 		{"town Save", true, false, true, 200, 155},
-		{"town Load", true, false, false, 200, 392},
+		{"town Load", true, false, false, 200, 380},
 		{"standalone Diplomacy", false, true, false, 200, 175},
 	} {
 		for _, downWithKey := range []bool{false, true} {

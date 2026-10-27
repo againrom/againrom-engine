@@ -132,7 +132,7 @@ func TestReleaseCorpseEntrySAVLoad(t *testing.T) {
 		key("home")
 		found := false
 		for i, row := range app.HeadlessRows() {
-			if row.Text == "corpse-entry - mission 20" {
+			if row.Text == "corpse-entry" {
 				for range i {
 					key("down")
 				}

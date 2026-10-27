@@ -26,6 +26,11 @@ type SavePage struct {
 	Confirm PageConfirm
 	// Ruled rules every list row and fills the chosen row opaque and dark.
 	Ruled bool
+	// Framed draws every list row as its own sunken frame, with no well
+	// around the list, and fills the chosen row dark; BarGap is the space
+	// between the rows and the bar.
+	Framed bool
+	BarGap int
 	// RowHint shows a row's detail as a hover caption over the row, not as
 	// the line under the list.
 	RowHint bool
@@ -113,19 +118,25 @@ func firstLoadPage(w LoadWindowWords) SavePage {
 	if w.Title == "" {
 		w = defaultLoadWindowWords()
 	}
+	// The rows are the bare save labels with no detail line under the list
+	// (RowHint with no detail), each row framed, as the EN original draws
+	// the page (DIV-4143).
 	p := SavePage{
 		Panel: loadPanel,
 		Texts: []PageText{
-			{Text: w.Title, Box: image.Rect(128, 88, 512, 116), Ink: townShellText},
-			{Text: w.Subtitle, At: image.Pt(125, 130), Ink: loadSelectedText, Listing: true},
+			{Text: w.Title, Box: image.Rect(129, 86, 513, 114), Ink: townShellText},
+			{Text: w.Subtitle, At: image.Pt(116, 128), Ink: loadSelectedText, Listing: true},
 		},
 		List:    loadListArg,
 		Rows:    loadVisibleRows,
+		Framed:  true,
+		BarGap:  3,
+		RowHint: true,
 		Message: loadMessageBox,
 		Confirm: PageConfirm{Before: w.Confirm, At: image.Pt(125, 146), Label: image.Rect(122, 180, 520, 210)},
 	}
 	for i, caption := range []string{w.OK, w.Delete, w.Cancel} {
-		p.Buttons[i] = PageButton{Rect: image.Rect(156+i*124, 380, 252+i*124, 404), Caption: caption}
+		p.Buttons[i] = PageButton{Rect: image.Rect(149+i*122, 368, 246+i*122, 392), Caption: caption}
 	}
 	return p
 }

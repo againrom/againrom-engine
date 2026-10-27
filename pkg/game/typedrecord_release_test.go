@@ -188,7 +188,7 @@ func TestReleaseSavedTypedLabelKeepsItsBytes(t *testing.T) {
 		if string(sf.Label) != string(wantBytes) {
 			t.Fatalf("label bytes % x, want % x", sf.Label, wantBytes)
 		}
-		want := label + " - between missions"
+		want := label
 		got, err := OriginalSaveLabel(raw, selector)
 		if err != nil || got != want {
 			t.Fatalf("reloaded label %q, %v; want %q", got, err, want)

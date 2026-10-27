@@ -108,7 +108,7 @@ var routeFirstSideButtons = map[string][]struct {
 	what string
 	at   image.Point
 }{
-	"load":      {{"cancel", image.Pt(452, 392)}},
+	"load":      {{"cancel", image.Pt(441, 380)}},
 	"ending":    {{"hall art button", image.Pt(575, 435)}, {"back", image.Pt(98, 446)}},
 	"cutscenes": {{"cancel", image.Pt(404, 372)}},
 	"credits":   {{"press", image.Pt(320, 240)}},

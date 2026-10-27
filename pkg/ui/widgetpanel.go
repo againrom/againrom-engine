@@ -33,8 +33,10 @@ type panelComposition struct {
 	Bare bool
 	// FitLine trims a single-line caption to its plaque.
 	FitLine bool
-	// LabelShift moves each plaque's label line, in plaque order.
+	// LabelShift moves each plaque's label line, in plaque order;
+	// ValueShift moves every plaque's value line.
 	LabelShift []image.Point
+	ValueShift image.Point
 	Ink        plaqueInk
 	// Sink, when set, replaces plaqueSink: how far a held caption moves.
 	Sink *image.Point
@@ -77,7 +79,7 @@ func buildButtonPanel(c panelComposition, art panelArt, buttons []panelButton) b
 		if i < len(c.LabelShift) {
 			shift = c.LabelShift[i]
 		}
-		face := &plaqueFace{Ink: c.Ink, Sink: sink, Captions: panelCaptions(r, b.Captions, c.FitLine, shift)}
+		face := &plaqueFace{Ink: c.Ink, Sink: sink, Captions: panelCaptions(r, b.Captions, c.FitLine, shift, c.ValueShift)}
 		var pair [2]image.Image
 		if i < len(art.Plaques) {
 			pair = art.Plaques[i]
@@ -96,8 +98,8 @@ func buildButtonPanel(c panelComposition, art panelArt, buttons []panelButton) b
 }
 
 // panelCaptions lays out a button's captions in plaque r; shift moves the
-// label line of two.
-func panelCaptions(r image.Rectangle, captions []string, fitLine bool, shift image.Point) []plaqueCaption {
+// label line of two and valueShift their value line.
+func panelCaptions(r image.Rectangle, captions []string, fitLine bool, shift, valueShift image.Point) []plaqueCaption {
 	switch len(captions) {
 	case 0:
 		return nil
@@ -105,7 +107,7 @@ func panelCaptions(r image.Rectangle, captions []string, fitLine bool, shift ima
 		return []plaqueCaption{{Text: captions[0], Rect: r, Fit: fitLine}}
 	}
 	return []plaqueCaption{{Text: captions[0], Rect: townButtonLabelRect(r).Add(shift), Fit: true},
-		{Text: captions[1], Rect: townButtonValueRect(r), Fit: true}}
+		{Text: captions[1], Rect: townButtonValueRect(r).Add(valueShift), Fit: true}}
 }
 
 // drawBody draws the body, or what stands for a missing one, then the seam.

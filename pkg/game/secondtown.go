@@ -345,7 +345,13 @@ func (in *InstallResources) roomButtonStyle(d *town.Description) *ui.RoomButtonS
 		return nil
 	}
 	b := d.RoomButtons
-	s := &ui.RoomButtonStyle{Ink: ui.GeneratorInk(b.Ink).RGBA(), Hover: ui.GeneratorInk(b.HoverInk).RGBA()}
+	s := &ui.RoomButtonStyle{Ink: ui.GeneratorInk(b.Ink).RGBA(), Hover: ui.GeneratorInk(b.HoverInk).RGBA(), Lit: b.Lit,
+		LabelShift: b.LabelShift.Pt(), ValueShift: b.ValueShift.Pt()}
+	for _, i := range b.OneLine {
+		if i >= 0 && i < len(s.OneLine) {
+			s.OneLine[i] = true
+		}
+	}
 	if a := in.ChargenAssets; a != nil && a.Presentation != nil {
 		s.Font = a.Presentation.Font
 		if b.Font == "name" {

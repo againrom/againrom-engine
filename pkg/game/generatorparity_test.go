@@ -35,7 +35,6 @@ var generatorParityWaivers = []generatorParityWaiver{
 	{"detail.classes[].tooltip", "rom1", "the first game shows no tooltip over its weapon pictures (HERO-ROUTE-182)"},
 	{"detail.card-shadow", "rom1", "the first game's statistics cards draw their text with no shadow"},
 	{"detail.default-skill", "rom1", "the first game's skill row opens on the party skill slot, not a described default"},
-	{"hover", "rom1", "the first game's generator hover help draws as every first-game hover help draws (MENU-128)"},
 	{"pre-create.heroes[].template", "rom1", "the first game's pictures take npc.reg archetypes, not template rows (DIV-1277)"},
 	{"pre-create.heroes[].neighbour", "rom1", "the first game's pictures share no art with a neighbour (TOWN-521)"},
 	{"pre-create.heroes[].art[].size", "rom1", "the first game's hero art takes its installed size (TOWN-521)"},

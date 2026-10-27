@@ -14,18 +14,17 @@ import (
 )
 
 // saveFacts is what a directory scan needs from one file: whether it opens as a
-// SAV, its label bytes and mission number, and per game asked whether the
-// document belongs to that game. sav.Open decompresses and indexes the whole
-// body and the mission number sits in that body, so the label cannot come from
-// a shorter read without changing which files count as corrupt. The facts are
-// computed once per file version and kept for the process.
+// SAV, its label bytes, and per game asked whether the document belongs to
+// that game. sav.Open decompresses and indexes the whole body, so the label
+// cannot come from a shorter read without changing which files count as
+// corrupt. The facts are computed once per file version and kept for the
+// process.
 type saveFacts struct {
-	size    int64
-	mod     time.Time
-	opens   bool
-	label   []byte
-	mission uint32
-	ofGame  bool
+	size   int64
+	mod    time.Time
+	opens  bool
+	label  []byte
+	ofGame bool
 }
 
 var saveFactsCache = struct {
@@ -45,7 +44,6 @@ func factsOfBytes(b []byte, size int64, mod time.Time) *saveFacts {
 	if sf, err := sav.Open(b); err == nil {
 		f.opens = true
 		f.label = append([]byte(nil), sf.Label...)
-		f.mission = sf.Head.Mission
 	}
 	return f
 }
@@ -87,15 +85,14 @@ func readSaveFacts(dir, name string, fi os.FileInfo, bounded bool, game base.Gam
 	return out, true
 }
 
-func originalSaveLabelOf(raw []byte, mission uint32, selector int) string {
+// originalSaveLabelOf is a save's list row: its description alone, as the
+// original's Load list draws it, with no mission or town suffix.
+func originalSaveLabelOf(raw []byte, selector int) string {
 	label := asciiLabel(raw, selector)
 	if label == "" {
 		label = "(no label)"
 	}
-	if mission == 0 {
-		return fmt.Sprintf("%s - between missions", label)
-	}
-	return fmt.Sprintf("%s - mission %d", label, mission)
+	return label
 }
 
 // saveScan is the one scanner of a save directory. Filters: the .sav
@@ -114,15 +111,14 @@ type saveScan struct {
 
 // scannedSave is one save that passed the scan, newest first in the result.
 type scannedSave struct {
-	Name    string
-	Label   []byte
-	Mission uint32
-	Mod     time.Time
+	Name  string
+	Label []byte
+	Mod   time.Time
 }
 
 // rowLabel is the list row text OriginalSaveLabel gives the same file.
 func (s scannedSave) rowLabel(selector int) string {
-	return originalSaveLabelOf(s.Label, s.Mission, selector)
+	return originalSaveLabelOf(s.Label, selector)
 }
 
 // scanSaves lists the saves that pass the scan, newest first, ties by name
@@ -153,7 +149,7 @@ func scanSaves(s saveScan) []scannedSave {
 				continue
 			}
 			if f := factsOfBytes(b, 0, time.Time{}); f.opens {
-				out = append(out, scannedSave{Name: e.Name(), Label: f.label, Mission: f.mission})
+				out = append(out, scannedSave{Name: e.Name(), Label: f.label})
 			}
 			continue
 		}
@@ -167,7 +163,7 @@ func scanSaves(s saveScan) []scannedSave {
 		if !ok || !f.opens || (s.OfGame && !f.ofGame) {
 			continue
 		}
-		out = append(out, scannedSave{Name: e.Name(), Label: f.label, Mission: f.mission, Mod: fi.ModTime()})
+		out = append(out, scannedSave{Name: e.Name(), Label: f.label, Mod: fi.ModTime()})
 		if s.First {
 			return out
 		}
