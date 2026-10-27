@@ -55,6 +55,10 @@ var secondRouteStages = []routeStage{
 	{"world-map", "town/worldmap", (*routeWitness).worldMap},
 	{"mission-dialogue", "map", (*routeWitness).missionDialogue},
 	{"mission-screen", "map", func(w *routeWitness) { w.missionScreen(true) }},
+	{"mission-menu", "map", (*routeWitness).missionMenu},
+	{"mission-pack", "map", (*routeWitness).missionPack},
+	{"mission-signpost", "map", (*routeWitness).signpost},
+	{"mission-exit", "map", (*routeWitness).missionExit},
 }
 
 // routeRegion is one control a hit test answers over a screen: its key, the
@@ -256,7 +260,7 @@ func (w *routeWitness) state() string {
 // frame captures the mission through App.Draw when a window is allowed.
 // Headless runs keep their partial mission frames and all other CPU frames.
 func (w *routeWitness) frame(control string) (*image.RGBA, string) {
-	if w.app.Screen() != ui.ScreenMap {
+	if w.app.HeadlessGameplayScreen() != ui.ScreenMap {
 		pix, _, err := w.app.HeadlessFrame()
 		if err != nil {
 			w.t.Errorf("%s: frame: %v", w.stage, err)
@@ -270,6 +274,18 @@ func (w *routeWitness) frame(control string) (*image.RGBA, string) {
 		pix := image.NewRGBA(tex.Bounds())
 		tex.ReadPixels(pix.Pix)
 		return pix, "-mission"
+	}
+	// A menu or a page over the mission: its own composite where one
+	// exists, else the menu's panel.
+	if w.app.Screen() != ui.ScreenMap {
+		if pix, _, err := w.app.HeadlessFrame(); err == nil {
+			return pix, ""
+		}
+		if pix := w.app.GameMenuPanel(); pix != nil {
+			return pix, "-menu"
+		}
+		w.t.Errorf("%s: %s over the mission composes no frame", w.stage, w.screen())
+		return nil, ""
 	}
 	if w.screen() == "map/notice" {
 		pix, err := w.app.HeadlessNoticeFrame()
@@ -433,7 +449,7 @@ func (w *routeWitness) click(control string, rect image.Rectangle, p image.Point
 	before := w.screen()
 	for _, edge := range []string{"hover", "press", "release"} {
 		w.pointer(edge, p)
-		if _, _, err := w.app.HeadlessFrame(); err != nil && w.app.Screen() != ui.ScreenMap {
+		if _, _, err := w.app.HeadlessFrame(); err != nil && w.app.HeadlessGameplayScreen() != ui.ScreenMap {
 			w.t.Errorf("%s %s: frame after %s: %v", w.stage, control, edge, err)
 		}
 	}
@@ -468,13 +484,20 @@ func (w *routeWitness) drag(control string, rect image.Rectangle, from, to image
 }
 
 // key sends one key, runs settle steps and records the step.
-func (w *routeWitness) key(name string, settle int) {
+func (w *routeWitness) key(name string, settle int) { w.keyNote(name, settle, nil) }
+
+// keyNote is key with note adding the change the caller reads.
+func (w *routeWitness) keyNote(name string, settle int, note func() string) {
 	before := w.screen()
 	if err := w.app.HeadlessKey(name); err != nil {
 		w.t.Errorf("%s: key %s: %v", w.stage, name, err)
 	}
 	w.run(settle)
-	w.record("key "+name, image.Rectangle{}, "key", w.result(before, ""))
+	extra := ""
+	if note != nil {
+		extra = note()
+	}
+	w.record("key "+name, image.Rectangle{}, "key", w.result(before, extra))
 }
 
 // wait records the screen as it stands.
@@ -862,13 +885,27 @@ func (w *routeWitness) statue() {
 	r := w.sceneControl("menu")
 	w.click("menu", r.rect, r.at, 2, nil)
 	w.expect("gamemenu", "the statue")
+	w.menuChoose("abort", "abort game (m1.32)", nil)
+	w.expect("gamemenu", "abort game")
+	w.menuChoose("page-return", "return to game, abort page", nil)
+	w.expect("gamemenu", "the abort page's return")
+	w.menuChoose("return", "return", nil)
+	w.expect("town/square", "return")
+}
+
+// menuChoose chooses the game menu's row by its action through the App's
+// arrow and Enter dispatch, settles and records the step.
+func (w *routeWitness) menuChoose(action, control string, note func() string) {
 	before := w.screen()
-	if err := w.app.HeadlessGameMenuAction("return"); err != nil {
-		w.t.Fatalf("statue: return: %v", err)
+	if err := w.app.HeadlessGameMenuAction(action); err != nil {
+		w.t.Fatalf("%s: %s: %v", w.stage, control, err)
 	}
 	w.run(2)
-	w.record("return", image.Rectangle{}, "click", w.result(before, ""))
-	w.expect("town/square", "return")
+	extra := ""
+	if note != nil {
+		extra = note()
+	}
+	w.record(control, image.Rectangle{}, "click", w.result(before, extra))
 }
 
 // dialoguePages turns every page of the open town dialogue with its button
@@ -1388,8 +1425,16 @@ func (w *routeWitness) missionTargets(step int) []routeRegion {
 // opens with the row closed (DIV-4020), so its arrows, items and background
 // answer only after the first press of the pack corner.
 func (w *routeWitness) packHovers(hovered map[string]string) {
+	w.newHovers(hovered, func(key string) bool {
+		return strings.HasPrefix(key, "pack-") || strings.HasPrefix(key, "item/")
+	})
+}
+
+// newHovers hovers every control the mission screen's hover test answers
+// that hovered does not hold yet and keep admits, and adds its text.
+func (w *routeWitness) newHovers(hovered map[string]string, keep func(key string) bool) {
 	for _, r := range w.missionTargets(8) {
-		if _, seen := hovered[r.key]; seen || !strings.HasPrefix(r.key, "pack-") && !strings.HasPrefix(r.key, "item/") {
+		if _, seen := hovered[r.key]; seen || !keep(r.key) {
 			continue
 		}
 		w.hover(r.key, r.rect, r.at)
@@ -1480,6 +1525,214 @@ func (w *routeWitness) missionScreen(spellbook bool) {
 			})
 		}
 	}
+}
+
+// routeCorner is the character pane corner c of unit id among regions.
+func routeCorner(regions []routeRegion, c ui.CharacterPaneCorner, id any) (routeRegion, bool) {
+	prefix := fmt.Sprintf("corner/%d/%d/", c, id)
+	for _, r := range regions {
+		if strings.HasPrefix(r.key, prefix) {
+			return r, true
+		}
+	}
+	return routeRegion{}, false
+}
+
+// pageRows is what the open menu page, save page or load page lists, and
+// the save page's name and question.
+func (w *routeWitness) pageRows() string {
+	var rows []string
+	for _, r := range w.app.HeadlessRows() {
+		rows = append(rows, r.Text)
+	}
+	s := "rows=" + routeText(strings.Join(rows, "|"))
+	if h, ok := w.app.HeadlessSaveState(); ok {
+		s += fmt.Sprintf(" name=%s confirm=%v", routeText(h.Request.Label), h.Confirmation)
+	}
+	return s
+}
+
+// saveAction takes the save page's control action and records the step.
+func (w *routeWitness) saveAction(action, control string) {
+	before := w.screen()
+	if err := w.app.HeadlessSaveAction(action); err != nil {
+		w.t.Errorf("%s: %s: %v", w.stage, control, err)
+	}
+	w.run(2)
+	w.record(control, image.Rectangle{}, "click", w.result(before, w.pageRows()))
+}
+
+// saveSelect selects the save page's row labelled label and records it.
+func (w *routeWitness) saveSelect(label, control string) {
+	before := w.screen()
+	row := slices.IndexFunc(w.app.HeadlessRows(), func(r ui.PickerRow) bool { return r.Text == label })
+	if row < 0 {
+		w.t.Errorf("%s: the save page lists no %q: %s", w.stage, label, w.pageRows())
+		return
+	}
+	if err := w.app.HeadlessSaveSelect(row); err != nil {
+		w.t.Errorf("%s: %s: %v", w.stage, control, err)
+	}
+	w.run(2)
+	w.record(control, image.Rectangle{}, "click", w.result(before, w.pageRows()))
+}
+
+// The original's save name and its points over the spellbook and the
+// pack, in mission window pixels, and its signpost against its hero.
+var (
+	routeSaveName  = "exp75"
+	routeBookHover = []struct {
+		what, step string
+		at         image.Point
+	}{
+		{"pack left gem area", "m3.02", image.Pt(60, 705)},
+		{"pack left gem", "m3.03", image.Pt(15, 720)},
+		{"pack right gem", "m3.04", image.Pt(832, 720)},
+		{"spell cell 1", "m3.05", image.Pt(215, 616)},
+		{"spellbook left ornament", "m3.06", image.Pt(95, 630)},
+		{"spellbook right ornament", "m3.07", image.Pt(750, 630)},
+	}
+	routeSignpostFromHero = image.Pt(207-110, 325-362)
+)
+
+// missionMenu opens the game menu by the pane's menu corner and takes the
+// original's rows: Save with a name, Ok, the list, a row, Delete with No
+// and Yes, Cancel; Load; Game Options; Sound Options; Quest Objectives;
+// End Quest and its return; then Esc twice.
+func (w *routeWitness) missionMenu() {
+	hero := w.f.live.mission.ids[0]
+	corner, ok := routeCorner(w.missionTargets(8), ui.CharacterPaneMenu, hero)
+	if !ok {
+		w.t.Fatal("mission: no main menu corner")
+	}
+	open := func(step string) {
+		if w.screen() == "gamemenu" {
+			return
+		}
+		w.click("main menu ("+step+")", corner.rect, corner.at, 2, nil)
+		w.expect("gamemenu", "the main menu corner")
+	}
+	open("m1.01")
+	w.menuChoose("save", "save game (m1.02)", w.pageRows)
+	w.expect("save", "save game")
+	before := w.screen()
+	if err := w.app.HeadlessSaveEdit("", routeSaveName, ui.SaveSAV); err != nil {
+		w.t.Errorf("mission: save name: %v", err)
+	}
+	w.run(2)
+	w.record("save name (m1.03)", image.Rectangle{}, "type "+routeSaveName, w.result(before, w.pageRows()))
+	w.saveAction("save", "save ok (m1.05)")
+	open("m1.06")
+	w.menuChoose("save", "save game (m1.06)", w.pageRows)
+	w.saveSelect(routeSaveName, "save row (m1.07)")
+	w.saveAction("delete", "save delete (m1.08)")
+	w.saveAction("cancel", "delete no (m1.09)")
+	w.saveAction("save", "save ok on the row (m1.10)")
+	open("m1.11")
+	w.menuChoose("save", "save game (m1.11)", w.pageRows)
+	w.saveSelect(routeSaveName, "save row (m1.11)")
+	w.saveAction("delete", "save delete (m1.11)")
+	w.saveAction("confirm", "delete yes (m1.11)")
+	w.saveAction("cancel", "save cancel (m1.12)")
+	open("m1.13")
+	w.menuChoose("load", "load game (m1.13)", w.pageRows)
+	w.key("escape", 2)
+	open("m1.15")
+	w.menuChoose("game-options", "game options (m1.15)", nil)
+	w.menuChoose("options-cancel", "game options cancel (m1.16)", nil)
+	open("m1.17")
+	w.menuChoose("sound-options", "sound options (m1.17)", nil)
+	w.key("escape", 2)
+	open("m1.19")
+	w.menuChoose("objectives", "quest objectives (m1.19)", nil)
+	w.menuChoose("page-return", "quest objectives ok (m1.20)", nil)
+	open("m1.21")
+	w.menuChoose("end", "end quest (m1.21)", nil)
+	w.menuChoose("page-return", "end quest return (m1.23)", nil)
+	if w.screen() == "gamemenu" {
+		w.menuChoose("return", "return to game", nil)
+	}
+	w.expect("map", "the menu's return")
+	w.key("escape", 2)
+	if w.screen() != "gamemenu" {
+		w.t.Errorf("mission: Esc opens %s, want the game menu", w.screen())
+	}
+	w.key("escape", 2)
+	w.expect("map", "the second Esc")
+}
+
+// bars names the bottom bars the mission shows: the pack and the band the
+// spellbook and the pack take.
+func (w *routeWitness) bars() string {
+	hud, err := w.app.HeadlessBottomHUD()
+	if err != nil {
+		return "bars: " + err.Error()
+	}
+	_, packErr := w.app.HeadlessInventoryPack()
+	return fmt.Sprintf("pack=%v band=%d", packErr == nil, hud.Bounds().Dy())
+}
+
+// missionPack opens the pack by its corner and hovers its controls, opens
+// the spellbook over it by its corner, hovers the original's points, and
+// toggles the spellbook by Q and B and the pack by I and the back quote,
+// each twice.
+func (w *routeWitness) missionPack() {
+	hero := w.f.live.mission.ids[0]
+	targets := w.missionTargets(8)
+	pack, okPack := routeCorner(targets, ui.CharacterPaneBackpack, hero)
+	book, okBook := routeCorner(targets, ui.CharacterPaneBook, hero)
+	if !okPack || !okBook {
+		w.t.Fatal("mission: no pack or spellbook corner")
+	}
+	settle := w.app.TooltipDelay()/20 + 5
+	w.click("open inventory (m2.10)", pack.rect, pack.at, settle, w.bars)
+	if _, err := w.app.HeadlessInventoryPack(); err != nil {
+		w.t.Errorf("mission: the pack corner opens no pack: %v", err)
+	}
+	w.packHovers(map[string]string{})
+	w.click("open spellbook (m3.01)", book.rect, book.at, settle, w.bars)
+	for _, h := range routeBookHover {
+		w.hover(fmt.Sprintf("%s (%s)", h.what, h.step), image.Rectangle{}, h.at)
+	}
+	for _, k := range []struct{ key, step string }{
+		{"q", "m3.09"}, {"q", "m3.10"}, {"b", "m3.11"}, {"b", "m3.12"},
+		{"i", "m2.22"}, {"i", "m2.23"}, {"backquote", "m2.24"}, {"backquote", "m2.25"},
+	} {
+		before := w.bars()
+		w.keyNote(k.key, 2, func() string { return "(" + k.step + ") " + w.bars() })
+		if w.bars() == before {
+			w.t.Errorf("mission: key %s (%s) leaves the bars at %s", k.key, k.step, before)
+		}
+	}
+}
+
+// signpost hovers and clicks the map where the original's signpost stands
+// against the hero, waits as the original did and pages a notice it opens.
+func (w *routeWitness) signpost() {
+	hero := w.f.live.mission.ids[0]
+	x, y, err := w.app.HeadlessEntityPoint(uint32(hero))
+	if err != nil {
+		w.record("signpost", image.Rectangle{}, "wait", "no click: the hero answers no window pixel: "+err.Error())
+		return
+	}
+	p := image.Pt(x, y).Add(routeSignpostFromHero)
+	cursor := func() string {
+		c, _ := w.app.HeadlessMapCursor()
+		return fmt.Sprintf("at=%d,%d cursor=%s", p.X, p.Y, c)
+	}
+	w.hover("signpost (m4.04) "+cursor(), image.Rectangle{}, p)
+	w.click("signpost (m4.05)", image.Rectangle{}, p, int(4*time.Second/(20*time.Millisecond)), cursor)
+	w.waitFor("signpost wait (m4.06)", 10*time.Second)
+	w.missionPages()
+}
+
+// missionExit leaves the mission by Esc, End Quest and Exit to Main Menu.
+func (w *routeWitness) missionExit() {
+	w.key("escape", 2)
+	w.expect("gamemenu", "Esc")
+	w.menuChoose("end", "end quest (m1.26)", nil)
+	w.menuChoose("exit-main", "exit to main menu (m1.26)", nil)
+	w.expect("menu", "exit to main menu")
 }
 
 // TestReleaseRouteWitness walks the install's game from launch to the first

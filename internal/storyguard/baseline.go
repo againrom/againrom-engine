@@ -3039,6 +3039,11 @@ package storyguard
 // keys, credits logo lines and startup movies, all new code in
 // pkg/render/menu, pkg/ui, pkg/base and pkg/game and their tests, and this
 // paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's route
+// witness steps for the mission's game menu and its pages, the town's Abort
+// Game page, the pack and spellbook keys and the signpost, all new code in
+// pkg/game/routewitness_release_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4487,
 	TestFileCount:  264,
@@ -3080,5 +3085,5 @@ var Committed = Baseline{
 	// Sack-objects fixture helper became sackObjectsOpen. It rose again for the
 	// map Sacks' ids at mission entry and the runtime-id wrapper peel, then for
 	// the M2 round trips' note on the LOAD's orphan bits.
-	CommentBytes: 9724860,
+	CommentBytes: 9726866,
 }
