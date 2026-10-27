@@ -18,8 +18,9 @@ type MissionScreen struct {
 	// NoticeOnScreen centres a mission notice on the whole frame, the 640x480
 	// place plus (192,144) at 1024x768 (R2-ENGINE-588), not on the map view.
 	NoticeOnScreen bool
-	// MinimapLocal is the local player's dot colour on the symbolic minimap;
-	// zero keeps minimapLocalColor.
+	// MinimapLocal is the local player's mark colour on both minimaps; zero
+	// keeps minimapLocalColor on the symbolic one and the owner's shade on the
+	// installed one.
 	MinimapLocal color.RGBA
 }
 

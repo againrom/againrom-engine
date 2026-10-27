@@ -159,10 +159,15 @@ func (v *Viewer) minimapMarkFog(col, row int) uint16 {
 // minimapOwnerColour is the mark colour of an owner roster slot: its shade
 // table's word +0x1148 plus the sky tint the unit sprites carry, saturated.
 // Campaign maps use the slot's low nibble; authored maps supply roster colours.
-// Slot 0 names no owner and has no colour. DIV-2996.
+// Slot 0 names no owner and has no colour. DIV-2996. A game whose mission
+// screen names its own local mark colour gives the local owner that colour
+// (DIV-4118).
 func (v *Viewer) minimapOwnerColour(owner uint32) (color.RGBA, bool) {
 	if owner == 0 || v.minimapOriginal.paint == nil {
 		return color.RGBA{}, false
+	}
+	if c := v.missionScreen.MinimapLocal; owner == v.localOwner && c.A != 0 {
+		return c, true
 	}
 	shade := owner & 15
 	if uint64(owner) <= uint64(len(v.minimapOriginal.playerColours)) {

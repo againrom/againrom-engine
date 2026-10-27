@@ -571,6 +571,30 @@ func (a *App) HeadlessMinimapLootAt(col, row int) (bool, error) {
 	return false, nil
 }
 
+// HeadlessMinimapCells returns the framed minimap the next repaint draws and
+// the pixels of it that the cells in r cover, so a test reads a mark's colour
+// and extent from the picture itself.
+func (a *App) HeadlessMinimapCells(r image.Rectangle) (*image.RGBA, image.Rectangle, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return nil, image.Rectangle{}, err
+	}
+	g, geomOK := v.minimapGeometry()
+	if !geomOK {
+		return nil, image.Rectangle{}, fmt.Errorf("headless minimap cells: minimap has no drawable map")
+	}
+	pic, at, ok := v.minimapCompose(g)
+	if !ok {
+		return nil, image.Rectangle{}, fmt.Errorf("headless minimap cells: minimap has no drawable map")
+	}
+	m := minimapMark{Cell: r.Min.Sub(g.Origin), Size: r.Size()}
+	px := minimapMarkRect(m, g.Cols, g.Rows, g.Num, g.Den, image.Rectangle{Max: g.Content.Size()})
+	if px.Empty() {
+		return nil, image.Rectangle{}, fmt.Errorf("headless minimap cells: %v has no pixel", r)
+	}
+	return pic, px.Add(g.Content.Min.Sub(at)), nil
+}
+
 // HeadlessStructureReadout is widget 8's readout as this frame draws it: the
 // composed picture, the frame pixel its top-left corner stands on and the
 // three lines, or an error for a frame with no readout.

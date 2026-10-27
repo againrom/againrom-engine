@@ -87,6 +87,7 @@
      "cite": ["DIV-2932"]},
     {"screen": "mission-minimap",
      "art": [
+       {"name": "colours", "format": "picture", "key": "graphics/interface/minimapdata.bmp", "size": [52, 14], "required": true, "cite": ["R2-ENGINE-593"]},
        {"name": "background", "format": "picture", "key": "graphics/interface/crystalr.bmp", "cite": ["owner"]},
        {"name": "seam", "format": "picture", "key": "graphics/interface/crystall.bmp", "cite": ["owner"]}
      ],
