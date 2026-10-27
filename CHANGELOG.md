@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.137.0
+
 ### For players
 
 - [ROM2] A mission can be saved after a Summon cast, and the creature loads back as it was. The hero's last cast spell also stays selected after a load when the spell was learned during the mission. Before, the save failed after a Summon, and the load forgot the spell.
