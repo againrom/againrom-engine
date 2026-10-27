@@ -37,6 +37,7 @@ func LoadTownTavernArt(d *town.Description, src terrain.EntrySource) (*ui.TownTa
 		Upper:           pic("upper"),
 		UpperSeam:       pic("upper-seam"),
 		CommandUpper:    pic("command-upper"),
+		Picture:         pic,
 	}
 	for i := range a.Buttons {
 		for state := range a.Buttons[i] {

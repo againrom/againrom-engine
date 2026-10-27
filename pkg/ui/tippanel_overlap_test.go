@@ -149,7 +149,7 @@ type fakeTipSurfaceEnumTown struct {
 }
 
 func (f *fakeTipSurfaceEnumTown) AtTownSurface() bool          { return true }
-func (f *fakeTipSurfaceEnumTown) TownSurface() TownSurfaceView { return f.view }
+func (f *fakeTipSurfaceEnumTown) TownSurface() TownSurfaceView { return firstTavernPage(f.view) }
 func (f *fakeTipSurfaceEnumTown) TownSurfaceClick(c TownSurfaceControl, _ bool) TownAction {
 	f.surfaceClicks = append(f.surfaceClicks, c)
 	return TownAction{}
@@ -167,13 +167,19 @@ func TestTavernTipListPressReachesCoveredCells(t *testing.T) {
 		}
 	}
 
+	// The first game's seats stand below the tip; this page's climb from
+	// the top so that the tip covers some.
 	cells := make([]TownSurfaceCell, 12)
 	view := TownSurfaceView{Kind: TownSurfaceTavern, Cells: cells, Tip: tip}
+	for i := range cells {
+		r := image.Rect(176, 0, 224, 64).Add(image.Pt(48*(i%6), 64*(i/6)))
+		view.Page.Seats = append(view.Page.Seats, RoomSeat{Rect: r})
+	}
 
 	bg := tipBackgroundZone(TavernTipRect)
 	var covered []image.Point
 	for i := range cells {
-		r := townSurfaceCellRect(TownSurfaceTavern, i, len(cells))
+		r := townSurfaceCellRectFor(firstTavernPage(view), i)
 		p, ok := sampleInside(r.Intersect(bg))
 		if !ok {
 			continue

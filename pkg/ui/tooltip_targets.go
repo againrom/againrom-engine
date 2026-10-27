@@ -294,9 +294,8 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 		if lines, ok := TownCandidateHoverLines(surface, p); ok {
 			return tooltipTarget{tooltipText, fmt.Sprintf("candidate-item/%d", surface.Candidate.Subject.ID), lines, surface.Font}
 		}
-		if surface.Kind == TownSurfaceTavern {
-			candidate := tavernCandidateStats(surface.Candidate, surface.TavernArt)
-			if hint := characterStatsTooltip(candidate, w, p); hint.key() != "" {
+		if card := surface.Page.Person.Card; surface.Kind == TownSurfaceTavern && card != nil {
+			if hint := characterStatsTooltip(*card, w, p); hint.key() != "" {
 				return hint
 			}
 		}

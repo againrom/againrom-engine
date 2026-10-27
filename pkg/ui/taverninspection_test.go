@@ -21,7 +21,7 @@ type fakeTavernInspectionTown struct {
 func (f *fakeTavernInspectionTown) AtTownSurface() bool { return true }
 func (f *fakeTavernInspectionTown) TownSurface() TownSurfaceView {
 	f.surfaceCalls++
-	return f.view
+	return firstTavernPage(f.view)
 }
 func (f *fakeTavernInspectionTown) TownSurfaceClick(c TownSurfaceControl, _ bool) TownAction {
 	f.clicks = append(f.clicks, c)
@@ -64,13 +64,13 @@ func TestComposeTownSurfaceUsesTheCachedCandidatePixels(t *testing.T) {
 	candidate := TownCharacterView{HasSubject: true, Font: font, CardFont: font, Figure: figure}
 
 	plain := TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: art, Candidate: candidate}
-	want := ComposeTownSurface(plain)
-	cached := RenderTownCandidateInspection(candidate, art)
+	want := ComposeTownSurface(firstTavernPage(plain))
+	cached := renderTavernCandidate(candidate, art)
 	if cached == nil {
 		t.Fatal("candidate inspection cache was not rendered")
 	}
 	plain.CandidatePixels = cached
-	got := ComposeTownSurface(plain)
+	got := ComposeTownSurface(firstTavernPage(plain))
 	if !bytes.Equal(got.Pix, want.Pix) {
 		t.Fatal("cached candidate inspection differs from the direct production composition")
 	}
@@ -79,7 +79,7 @@ func TestComposeTownSurfaceUsesTheCachedCandidatePixels(t *testing.T) {
 	marker.SetRGBA(0, 0, color.RGBA{R: 0xa1, G: 0xb2, B: 0xc3, A: 0xff})
 	marker.SetRGBA(159, 479, color.RGBA{R: 0xd4, G: 0xe5, B: 0xf6, A: 0xff})
 	plain.CandidatePixels = marker
-	got = ComposeTownSurface(plain)
+	got = ComposeTownSurface(firstTavernPage(plain))
 	if got.RGBAAt(0, 0) != marker.RGBAAt(0, 0) || got.RGBAAt(159, 479) != marker.RGBAAt(159, 479) {
 		t.Fatal("ComposeTownSurface ignored the cached candidate pixels")
 	}
@@ -94,14 +94,14 @@ func TestCachedCandidateTextIsCapturedEveryFrame(t *testing.T) {
 	art := &TownTavernArt{LeftStats: uniform(160, 238, color.RGBA{G: 0x22, A: 0xff})}
 	candidate := TownCharacterView{HasSubject: true, Font: font, CardFont: font, Subject: PanelSubject{Name: "A"}}
 	view := TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: art, Candidate: candidate}
-	view.CandidateText = text.Record(func() { view.CandidatePixels = RenderTownCandidateInspection(candidate, art) })
+	view.CandidateText = text.Record(func() { view.CandidatePixels = renderTavernCandidate(candidate, art) })
 	if len(view.CandidateText) == 0 {
 		t.Fatal("the inspection drew no glyph to record")
 	}
 	for frame := 0; frame < 2; frame++ {
 		text.ResetCapture()
 		text.SetCapture(false)
-		ComposeTownSurface(view)
+		ComposeTownSurface(firstTavernPage(view))
 		text.StopCapture()
 		if got := text.CapturedLen(); got < len(view.CandidateText) {
 			t.Fatalf("frame %d captured %d glyphs, want the cached inspection's %d", frame, got, len(view.CandidateText))
@@ -119,7 +119,7 @@ func TestTalkOnlyTavernCandidateRendersItsFigureWithoutInventedStats(t *testing.
 		LeftPicture: uniform(160, 242, color.RGBA{G: 0x22, A: 0xff}),
 	}
 	candidate := TownCharacterView{Figure: figure}
-	pixels := RenderTownCandidateInspection(candidate, art)
+	pixels := renderTavernCandidate(candidate, art)
 	if pixels == nil {
 		t.Fatal("talk-only candidate figure produced no inspection pixels")
 	}
@@ -233,7 +233,7 @@ func TestTavernCandidateCardStartsTwelvePixelsRight(t *testing.T) {
 	art := &TownTavernArt{LeftStats: body, LeftStatsSeam: seam}
 	candidate := TownCharacterView{HasSubject: true, Font: font, CardFont: font, Subject: PanelSubject{Name: "Mercenary"}}
 
-	view := tavernCandidateStats(candidate, art)
+	view := *firstTavernPage(TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: art, Candidate: candidate}).Page.Person.Card
 	if got, want := view.cardRect(), image.Rect(12, 0, 172, 238); got != want {
 		t.Fatalf("card rectangle = %v, want %v", got, want)
 	}
@@ -242,9 +242,9 @@ func TestTavernCandidateCardStartsTwelvePixelsRight(t *testing.T) {
 		t.Fatalf("shifted board columns 0,147,148,159 = %v %v %v %v", bg.RGBAAt(0, 5), bg.RGBAAt(147, 5), bg.RGBAAt(148, 5), bg.RGBAAt(159, 5))
 	}
 
-	got := RenderTownCandidateInspection(candidate, art)
-	if got == nil || got.Bounds().Dx() != 176 {
-		t.Fatalf("inspection = %v, want 176 columns", got)
+	got := renderTavernCandidate(candidate, art)
+	if got == nil || got.Bounds().Dx() != 172 {
+		t.Fatalf("inspection = %v, want 172 columns, the moved card's right edge", got)
 	}
 	for y := 0; y < 238; y++ {
 		for x := 0; x < 12; x++ {

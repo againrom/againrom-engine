@@ -8,7 +8,8 @@ import "image"
 // the page art drawn in a populated seat under its actor, Actor the page art
 // of a seated actor's frames. A selection requests the page scene's Select
 // slot; the selected actor alone advances one frame after FrameMS, compared
-// as Compare.
+// as Compare. A FrameMS of zero runs no seat clock: the page names each
+// seat's frame.
 type SeatSpec struct {
 	First   Rect   `json:"first"`
 	Step    Point  `json:"step"`
@@ -45,10 +46,12 @@ type SeatCard struct {
 }
 
 // SeatFigure is the selected person's full figure, drawn with its top-left
-// corner at Rect's corner moved by Offset and clipped to Rect.
+// corner at Rect's corner, or centred in Rect when Centre is set, moved by
+// Offset and clipped to Rect.
 type SeatFigure struct {
 	Rect   Rect     `json:"rect"`
 	Offset Point    `json:"offset"`
+	Centre bool     `json:"centre"`
 	Cite   []string `json:"cite"`
 }
 
@@ -63,16 +66,6 @@ func (s *SeatSpec) Seat(i int) image.Rectangle {
 	at := image.Pt(s.Step[0]*(i%s.Columns)+s.RowStep[0]*(i/s.Columns),
 		s.Step[1]*(i%s.Columns)+s.RowStep[1]*(i/s.Columns))
 	return s.First.Rectangle().Add(at)
-}
-
-// SeatAt answers the first of the first n seats that holds p, -1 for none.
-func (s *SeatSpec) SeatAt(p image.Point, n int) int {
-	for i := 0; i < n && i < s.Count(); i++ {
-		if p.In(s.Seat(i)) {
-			return i
-		}
-	}
-	return -1
 }
 
 // ButtonSpec is one page button: the action its page binds by Name, its hit
@@ -103,17 +96,6 @@ func (s *Scene) ShownButtons(buttons []ButtonSpec) []ButtonSpec {
 		}
 	}
 	return out
-}
-
-// ButtonAt answers the index of the first button of buttons whose rectangle
-// holds p, -1 for none.
-func ButtonAt(buttons []ButtonSpec, p image.Point) int {
-	for i, b := range buttons {
-		if p.In(b.Rect.Rectangle()) {
-			return i
-		}
-	}
-	return -1
 }
 
 // Sound requests a slot's own sound, as a "sound <slot>" step does.

@@ -248,7 +248,7 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 	}
 	t.tavernDetailType, t.tavernDetail, t.tavernDetailMask, t.tavernDetailInfo = typ, v, hoverMask, info
 	t.tavernDetailText = text.Record(func() {
-		t.tavernDetailPixels = ui.RenderTownCandidateInspection(v, t.tavernArt())
+		t.tavernDetailPixels = t.renderTavernPerson(v)
 	})
 	return v, hoverMask, info, true
 }
@@ -388,6 +388,13 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		t.renderTavernTalkDetail(&v, selected.offer.NPC)
 	}
 	v.RosterUnpainted = !hasSelection && (len(candidates) == 0 || candidates[0].key.kind != tavernCandidateMercenary)
+	hires := 0
+	for hires < len(candidates) && candidates[hires].key.kind == tavernCandidateMercenary {
+		hires++
+	}
+	v.Page = buildRoomPage(t.tavernRoom(), t.tavernPicture(), len(cells), hires)
+	v.Page.Person = t.tavernPerson(v.Candidate)
+	v.Page.Person.Picture, v.Page.Person.Text = v.CandidatePixels, v.CandidateText
 	// TOWN-391/392: no selected squad has no hire caption or price; an
 	// active squad selects the install's hire/fire word, not the constructor
 	// caption. The owner-added Sleep control is intentionally separate.

@@ -28,8 +28,7 @@ func seatTown() obj {
 	return d
 }
 
-// The seat grid steps right within a row and by the row step between rows;
-// a point finds the first populated seat holding it.
+// The seat grid steps right within a row and by the row step between rows.
 func TestSeatGridGeometry(t *testing.T) {
 	d := mustDecode(t, seatTown())
 	s := d.Rooms[0].Seats
@@ -44,15 +43,9 @@ func TestSeatGridGeometry(t *testing.T) {
 	if !s.Seat(6).Empty() || !s.Seat(-1).Empty() {
 		t.Error("a seat outside the grid has a rectangle")
 	}
-	if got := s.SeatAt(image.Pt(25, 45), 6); got != 4 {
-		t.Errorf("seat at (25,45) = %d, want 4", got)
-	}
-	if got := s.SeatAt(image.Pt(25, 45), 4); got != -1 {
-		t.Errorf("an unpopulated seat answered %d", got)
-	}
 	b := d.Rooms[0].Buttons
-	if ButtonAt(b, image.Pt(45, 15)) != 1 || ButtonAt(b, image.Pt(5, 5)) != -1 || *b[0].Caption != 7 || b[1].Caption != nil {
-		t.Error("buttons do not answer their rectangles and captions")
+	if b[1].Rect.Rectangle() != image.Rect(40, 10, 50, 20) || *b[0].Caption != 7 || b[1].Caption != nil {
+		t.Error("buttons do not carry their rectangles and captions")
 	}
 }
 
@@ -79,7 +72,7 @@ func TestDecodeRefusesBadControlsAndNumbers(t *testing.T) {
 		{"seat art unknown", func(d obj) { room(d)["seats"].(obj)["back"] = "bak" }, `unknown page art "bak"`},
 		{"seat sound not keyed", func(d obj) { room(d)["seats"].(obj)["select"] = "nothing" }, `no keyed slot`},
 		{"seats without columns", func(d obj) { room(d)["seats"].(obj)["columns"] = 0 }, "seats need columns"},
-		{"seats without a period", func(d obj) { room(d)["seats"].(obj)["frame-ms"] = 0 }, "frame period"},
+		{"seats with a negative period", func(d obj) { room(d)["seats"].(obj)["frame-ms"] = -1 }, "frame period"},
 		{"seat compare typo", func(d obj) { room(d)["seats"].(obj)["compare"] = "greatr" }, "frame period"},
 		{"empty pane", func(d obj) { room(d)["pane"] = obj{"rect": list{480, 238, 480, 480}} }, "pane rectangle"},
 		{"empty button", func(d obj) { room(d)["buttons"].(list)[1].(obj)["rect"] = list{1, 1, 1, 9} }, "is empty"},

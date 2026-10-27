@@ -118,6 +118,7 @@ func writeTavern(f *game.FrontEnd, dir string) error {
 			{Label: f.Words.TavernExit, Enabled: true},
 		},
 		Hero: ui.TownCharacterView{FigurePane: panes.Figure, StatsPane: panes.Stats},
+		Page: f.TavernPageLayout(len(cells), len(cells)),
 	}
 	return writePNG(filepath.Join(dir, "tavern.png"), ui.ComposeTownSurface(v))
 }

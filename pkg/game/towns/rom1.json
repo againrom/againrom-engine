@@ -271,6 +271,11 @@
        {"name": "hero-fighter", "format": "sprites", "key": "graphics/interface/inn/herofighter/sprites.16a", "cite": ["TAVERN-TALKPIC-016"]},
        {"name": "hero-mage", "format": "sprites", "key": "graphics/interface/inn/heromage/sprites.16a", "cite": ["TAVERN-TALKPIC-016"]}
      ],
+     "seats": {"first": [176, 416, 224, 480], "step": [48, 0], "row-step": [0, -64], "columns": 6, "rows": 3,
+               "back": "man-back-talk", "hire-back": "man-back",
+               "card": {"rect": [0, 0, 160, 238], "art": "left-stats", "seam": "left-stats-seam", "offset": [12, 0], "cite": ["TAVERN-TALKSTATS-017"]},
+               "figure": {"rect": [0, 238, 160, 480], "offset": [8, 1], "centre": true, "cite": ["owner"]},
+               "cite": ["TOWN-467", "TOWN-468"]},
      "scene": {
        "random": [{"name": "tender", "source": "host", "cite": ["TOWN-409", "DIV-843"]}],
        "art": [

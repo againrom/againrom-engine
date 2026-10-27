@@ -102,7 +102,7 @@ func (t *townScreen) paneSquareView(v *ui.TownSquareView, r *town.RoomSpec, page
 		v.Pane = true
 		v.Hero, v.HeroSlotMask, v.HeroSlotInfo = t.heroPane(r.Pane)
 	}
-	if r.Seats == nil || r.Seats.Figure == nil || page == nil {
+	if r.Seats == nil || page == nil {
 		return
 	}
 	view := townRoomView{t: t, room: r.Name}
@@ -110,7 +110,9 @@ func (t *townScreen) paneSquareView(v *ui.TownSquareView, r *town.RoomSpec, page
 	if p == nil || !p.known || p.figure == nil || p.mask == nil {
 		return
 	}
-	f := r.Seats.Figure
-	clip := f.Rect.Rectangle()
-	v.Dolls = append(v.Dolls, ui.TownSquareDoll{At: clip.Min.Add(f.Offset.Pt()), Clip: clip, Mask: p.mask, Info: p.info})
+	f := placeRoomPerson(r.Seats, nil, ui.TownCharacterView{}, p.figure).Figure
+	if f.Rect.Empty() {
+		return
+	}
+	v.Dolls = append(v.Dolls, ui.TownSquareDoll{At: f.Origin(image.Pt(p.mask.W, p.mask.H)), Clip: f.Rect, Mask: p.mask, Info: p.info})
 }

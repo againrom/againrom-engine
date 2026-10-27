@@ -94,16 +94,9 @@ type TownCharacterView struct {
 	SelectionStatus [3]string
 	Font            *text.Font
 
-	// CardFont IS THE STATISTICS CARD'S OWN FONT, SEPARATE FROM THE CHROME'S
-	// (1027 B1). Font is the town shell's own font1 and stays that for the
-	// chevrons and the mode box. The card
-	// is sixteen two-column rows inside 160x242, and at font1 the left column
-	// alone reaches 120 of the 142 usable pixels, which leaves a 16-pixel
-	// right budget that panelFitValue empties every right-hand value into
-	// and clips every right-hand label at the card's own edge (measured, both
-	// roots). font2 is the atlas the same card already composes at on the
-	// character generator, where it fits. A nil CardFont falls back to Font,
-	// so a caller predating this story composes exactly the card it did.
+	// CardFont is the statistics card's own font, font2, where its sixteen
+	// two-column rows fit 160x242; Font, font1, stays the chrome's. A nil
+	// CardFont falls back to Font.
 	CardFont *text.Font
 
 	// CardLayout is the statistics card's own layout, or nil for
@@ -121,12 +114,9 @@ type TownCharacterView struct {
 
 	// Session is `campaign+0x3dc`, the bitmask `TOWN-346` gates all six corner
 	// rectangles on. The ZERO VALUE IS NOT A SHIPPED VALUE: the paint routine's
-	// own first act refuses a mask with no bit of `0x627` set, so a caller
-	// predating this story would draw no corner at all. Every caller in this
-	// build names one — CharacterPaneShop on the town side,
-	// CharacterPaneMission during a mission — and paneSession below reads a
-	// zero as CharacterPaneShop so that a hand-built fixture keeps the party
-	// picker it had before.
+	// own first act refuses a mask with no bit of `0x627` set. paneSession
+	// reads a zero as CharacterPaneShop, so a hand-built fixture keeps its
+	// party picker.
 	Session CharacterPaneSession
 
 	ScreenH int
@@ -136,8 +126,7 @@ type TownCharacterView struct {
 	// own (PaneRect is (0,0)-(160,242), canvas-relative) and hit-tests it in
 	// window pixels (the pane's real screen rectangle) — two different
 	// `pane.Max.Y` values, and `characterPaneModeFlag` moves its own
-	// threshold with the one it is handed (that function's own doc, round-2
-	// adversarial review). Every town and shop screen composes this pane
+	// threshold with the one it is handed. Every town and shop screen composes this pane
 	// directly onto the full-screen canvas, so PaneRect is already the
 	// screen rectangle there and ModeFlag is correctly its own zero value,
 	// since CharacterPaneShop is never CharacterPaneMission and the flag is
@@ -296,6 +285,8 @@ type TownTavernArt struct {
 	// names. The game's room page draws them; a missing entry leaves only that
 	// motion absent.
 	Scene map[string][]image.Image
+	// Picture answers the page art of a name, nil for none.
+	Picture func(name string) image.Image
 }
 
 // RoomScene paints one named group of a room's composed centre onto the
@@ -368,6 +359,10 @@ type TownSurfaceView struct {
 	// from TownSurfaceControlAt and from every drag source.
 	Candidate         TownCharacterView
 	CandidateSlotMask *SlotMask
+	// Page is the tavern's seats and selected person as the game built
+	// them from the room's data; the cells fill each seat's frames and
+	// captions.
+	Page              RoomPage
 	CandidateSlotInfo [12][]string
 	CandidatePixels   *image.RGBA
 	// CandidateText is the glyphs CandidatePixels was drawn with (text.Record),
@@ -376,44 +371,21 @@ type TownSurfaceView struct {
 	Hover         image.Point
 	HasHover      bool
 
-	// Tip is the room's own tip panel (1018 spec behaviours 1, 2), shared by
-	// school and tavern on one field; its rectangle comes from the room's
-	// town description.
+	// Tip is the room's tip panel; its rectangle comes from the room's town
+	// description.
 	Tip TipPanelView
-}
-
-var (
-	tavernCandidateStatsRect = image.Rect(0, 0, 160, 238)
-	tavernCandidateDollRect  = image.Rect(0, 238, 160, 480)
-	// Owner correction: move the left candidate four pixels to the right.
-	// Drawing and equipment hover use this same origin, (8,240) at native size.
-	tavernCandidateDollShift = image.Pt(8, 1)
-)
-
-// tavernCandidateCardOffset: the original draws the panel into (12,0)-(172,238).
-var tavernCandidateCardOffset = image.Pt(12, 0)
-
-func tavernCandidateStats(v TownCharacterView, art *TownTavernArt) TownCharacterView {
-	v.Statistics, v.PaneRect = true, tavernCandidateStatsRect
-	if art != nil {
-		v.StatsPane = TownPane{Body: art.LeftStats, Seam: art.LeftStatsSeam}
-		v.CardOffset = tavernCandidateCardOffset
-	}
-	return v
 }
 
 // TownCandidateHoverLines returns the selected candidate's normal worn-item
 // tooltip at p. The answer is read-only presentation data: this helper does
 // not expose a control, item id, or mutation target to the input layer.
 func TownCandidateHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) {
-	if v.Kind != TownSurfaceTavern || !v.Candidate.HasSubject || v.CandidateSlotMask == nil || !p.In(tavernCandidateDollRect) {
+	f := v.Page.Person.Figure
+	if v.Kind != TownSurfaceTavern || !v.Candidate.HasSubject || v.CandidateSlotMask == nil || !p.In(f.Rect) {
 		return nil, false
 	}
 	m := v.CandidateSlotMask
-	at := image.Pt(
-		tavernCandidateDollRect.Min.X+(tavernCandidateDollRect.Dx()-m.W)/2+tavernCandidateDollShift.X,
-		tavernCandidateDollRect.Min.Y+(tavernCandidateDollRect.Dy()-m.H)/2+tavernCandidateDollShift.Y,
-	)
+	at := f.Origin(image.Pt(m.W, m.H))
 	slot, ok := m.At(p.X-at.X, p.Y-at.Y)
 	if !ok || slot < 1 || slot > len(v.CandidateSlotInfo) || len(v.CandidateSlotInfo[slot-1]) == 0 {
 		return nil, false
@@ -532,101 +504,68 @@ func townButtonValueRect(r image.Rectangle) image.Rectangle {
 	return image.Rect(r.Min.X, r.Min.Y+23, r.Max.X, r.Max.Y-2)
 }
 
-// townSurfaceMessageRect is the room's own status-message band, drawn under
-// the character region in every mode (1022 spec B6: it no longer suppresses
-// during Statistics). Named producer rather than an inline literal (story
-// 1024, round 2: a real, ungated composition test must be able to fail when
-// this rectangle moves; see TestTownSurfaceMessageIsDrawnAtItsOwnRect).
+// townSurfaceMessageRect is the room's status-message band, drawn in every
+// mode.
 func townSurfaceMessageRect() image.Rectangle {
 	return image.Rect(12, 448, 468, 478)
 }
 
-// townSurfaceCellRect is the roster cell's own draw and hit rectangle.
-// total is the roster's own cell count (len(v.Cells)); the tavern case
-// below anchors its whole grid to the room's own bottom edge, which needs
-// the row count, and the school case ignores it (a fixed 2x5 skill grid).
-func townSurfaceCellRect(kind TownSurfaceKind, i, total int) image.Rectangle {
-	switch kind {
-	case TownSurfaceSchool:
-		// The two five-slot rows deliberately share this one mapping. The
-		// first row is fighter, the second mage.
-		col, row := i%5, i/5
-		return image.Rect(10+col*92, 64+row*146, 94+col*92, 184+row*146)
-	default:
-		return tavernTextCellRect(i, total, 472)
-	}
+// townSurfaceCellRect is the school's skill cell, its draw and hit
+// rectangle: the two five-slot rows share this one mapping, the first row
+// fighter, the second mage.
+func townSurfaceCellRect(i int) image.Rectangle {
+	col, row := i%5, i/5
+	return image.Rect(10+col*92, 64+row*146, 94+col*92, 184+row*146)
 }
 
-func tavernTextCellRect(i, total, gridBottom int) image.Rectangle {
-	const cols, width, stride, cellHeight, rowStride = 2, 144, 152, 84, 92
-	// gridTopFloor keeps the grid from climbing over the title text
-	// (drawn at y:[12,44)) for a roster deep enough to need more rows
-	// than the room's own height admits between the title and the
-	// bottom edge. A roster past that depth overlaps its own earlier
-	// rows rather than the title or running off either edge; the
-	// original's own roster population and this build's are both
-	// bounded well under that depth (a chapter's own mercenary list
-	// plus its NPC offers), so this is a floor for the unreached case,
-	// not a scroll or pagination this story does not build.
-	const gridTopFloor = 56
-	if total <= 0 {
-		total = 1
-	}
-	rows := (total + cols - 1) / cols
-	col, row := i%cols, i/cols
-	rowsBelow := rows - 1 - row
-	yMax := gridBottom - rowsBelow*rowStride
-	if yMax-cellHeight < gridTopFloor {
-		yMax = gridTopFloor + cellHeight
-	}
-	x0 := 176 + col*stride
-	return image.Rect(x0, yMax-cellHeight, x0+width, yMax)
-}
-
-const (
-	tavernPortraitCols       = 6
-	tavernPortraitWidth      = 48
-	tavernPortraitHeight     = 64
-	tavernPortraitStrideX    = 48
-	tavernPortraitStrideY    = 64
-	tavernPortraitGridLeft   = 176
-	tavernPortraitGridBottom = 480
-)
-
-func tavernPortraitCellRect(i int) image.Rectangle {
-	col, row := i%tavernPortraitCols, i/tavernPortraitCols
-	yMax := tavernPortraitGridBottom - row*tavernPortraitStrideY
-	x0 := tavernPortraitGridLeft + col*tavernPortraitStrideX
-	return image.Rect(x0, yMax-tavernPortraitHeight, x0+tavernPortraitWidth, yMax)
-}
-
-// townSurfaceCellRectFor separates the tavern's compact mercenary portraits
-// from its ordinary NPC rows. Portraits fill the bottom row left-to-right and
-// then climb upward; any NPC rows occupy the remaining rows above them.
+// townSurfaceCellRectFor is cell i's rectangle: the tavern's seat i of its
+// page, the school's skill cell.
 func townSurfaceCellRectFor(v TownSurfaceView, i int) image.Rectangle {
-	if v.Kind != TownSurfaceTavern || i < 0 || i >= len(v.Cells) {
-		return townSurfaceCellRect(v.Kind, i, len(v.Cells))
+	if v.Kind == TownSurfaceTavern {
+		if i < 0 || i >= len(v.Page.Seats) {
+			return image.Rectangle{}
+		}
+		return v.Page.Seats[i].Rect
 	}
-	portraitOrdinal, textOrdinal := 0, 0
-	portraitCount, textCount := 0, 0
-	for n, cell := range v.Cells {
-		if cell.Portrait {
-			if n < i {
-				portraitOrdinal++
-			}
-			portraitCount++
-		} else {
-			if n < i {
-				textOrdinal++
-			}
-			textCount++
+	return townSurfaceCellRect(i)
+}
+
+// tavernPage is the tavern's room page: the game's seats, each filled with
+// its cell's frames and captions, the panel's button rectangles, and the
+// person only over the tavern's own art.
+func (v TownSurfaceView) tavernPage(art bool) RoomPage {
+	p := v.Page
+	p.Phase = v.AnimationFrame
+	n := min(len(p.Seats), len(v.Cells))
+	p.Seats = append([]RoomSeat(nil), p.Seats[:n]...)
+	font := v.CardFont
+	if font == nil {
+		font = v.Font
+	}
+	hired := v.HiredLabel
+	if hired == "" {
+		hired = AuthoredWords().TavernHired
+	}
+	for i := range p.Seats {
+		c, s := v.Cells[i], &p.Seats[i]
+		s.Hidden, s.Boxed, s.Animated, s.Frames = v.RosterUnpainted, true, c.Selected, c.Frames
+		if len(s.Frames) == 0 && c.Picture != nil {
+			s.Frames = []image.Image{c.Picture}
+		}
+		s.Captions = []RoomCaption{{Text: c.Price, Font: font, Place: RoomCaptionTopRight},
+			{Text: c.Detail, Font: font, Place: RoomCaptionBottomLeft}}
+		if c.Hired {
+			s.Captions = append(s.Captions, RoomCaption{Text: hired, Font: font, Place: RoomCaptionMark})
 		}
 	}
-	if v.Cells[i].Portrait {
-		return tavernPortraitCellRect(portraitOrdinal)
+	p.Buttons = make([]image.Rectangle, len(v.Buttons))
+	for i := range p.Buttons {
+		p.Buttons[i] = townSurfaceButtonRect(v.Kind, i)
 	}
-	portraitRows := (portraitCount + tavernPortraitCols - 1) / tavernPortraitCols
-	return tavernTextCellRect(textOrdinal, textCount, tavernPortraitGridBottom-portraitRows*tavernPortraitStrideY)
+	if !art {
+		p.Person = RoomPerson{}
+	}
+	return p
 }
 
 // SchoolFaceOrigin is where the training column's own rotation frame sits in
@@ -809,6 +748,7 @@ func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl,
 	if v.BookView != nil && p.In(shopTableRegion) {
 		return TownSurfaceControl{Kind: TownSurfaceControlBookPage}, true
 	}
+	page := v.tavernPage(false)
 	for i := range v.Buttons {
 		if p.In(townSurfaceButtonRect(v.Kind, i)) {
 			if !v.Buttons[i].Enabled {
@@ -829,8 +769,14 @@ func TownSurfaceControlAt(v TownSurfaceView, p image.Point) (TownSurfaceControl,
 	if v.Kind == TownSurfaceSchool && v.SchoolArt != nil {
 		return schoolControlAt(v, p)
 	}
+	if v.Kind == TownSurfaceTavern {
+		if i := page.SeatAt(p); i >= 0 {
+			return TownSurfaceControl{Kind: TownSurfaceControlCell, Index: i}, true
+		}
+		return TownSurfaceControl{}, false
+	}
 	for i := range v.Cells {
-		if p.In(townSurfaceCellRectFor(v, i)) {
+		if p.In(townSurfaceCellRect(i)) {
 			if visible, enabled := townSurfaceCellState(v, i); !visible || !enabled {
 				return TownSurfaceControl{}, false
 			}
@@ -868,10 +814,7 @@ func drawTavernCardText(dst *image.RGBA, font *text.Font, s string, r image.Rect
 // TownCharacterPersistentControls is every corner rectangle
 // DrawTownCharacterRegion paints over the shared character pane in EVERY
 // mode, DOLL or STATS. Exported so a release test can exclude them from a
-// pane-body pixel comparison without hand-duplicating these rects (round-2
-// adversarial review, item 2: townpanes_release_test.go's own
-// characterPanelControls was a copy of these literals, which could drift from
-// them silently).
+// pane-body pixel comparison without copying these rects.
 func TownCharacterPersistentControls() []image.Rectangle {
 	r := TownCharacterRegion
 	out := make([]image.Rectangle, 0, characterPaneCornerCount)
@@ -882,10 +825,8 @@ func TownCharacterPersistentControls() []image.Rectangle {
 		if !characterPaneCornerDrawn(false, CharacterPaneShop, c, false) {
 			continue
 		}
-		// The union of the hit rectangle and the art rectangle, since story
-		// 1036: four of the six blit somewhere other than where they answer
-		// (characterPaneArtRect), and a comparison excluding only the hit
-		// rectangle would still meet painted pixels.
+		// The union of the hit and art rectangles: four of the six blit
+		// somewhere other than where they answer (characterPaneArtRect).
 		box := CharacterPaneCornerRect(r, c)
 		box = box.Union(characterPaneArtRect(r, c, false))
 		box = box.Union(characterPaneArtRect(r, c, true))
@@ -932,17 +873,9 @@ func drawTownShellBox(dst *image.RGBA, r image.Rectangle, selected bool) {
 	outline(dst, r, townShellBorder)
 }
 
-// drawTownShellOutline is drawTownShellBox with its own opaque interior fill
-// removed (round-2 adversarial review, owner item: the near-black control
-// boxes now sitting on shipped art). Before this story, TownCharacterRegion
-// was always the authored townShellPanel fill underneath everything drawn
-// over it, so an opaque control box there was invisible against its own
-// background. This story draws the room's own shipped body/seam art in that
-// region first (DrawTownCharacterRegion), and townCharacterMode's own
-// opaque fill covered 3,584px of it on the tavern and the school; the
-// selection state still shows through the outline's own colour, which
-// switches to townShellSelected exactly as the fill used to, and the
-// control's own rectangle and hit test are unchanged.
+// drawTownShellOutline is drawTownShellBox without its opaque fill, so a
+// control box over shipped pane art leaves the art visible; the outline's
+// colour still shows the selection.
 func drawTownShellOutline(dst *image.RGBA, r image.Rectangle, selected bool) {
 	c := townShellBorder
 	if selected {
@@ -952,30 +885,10 @@ func drawTownShellOutline(dst *image.RGBA, r image.Rectangle, selected bool) {
 }
 
 // DrawTownCharacterRegion paints the shared member projection and its
-// persistent controls.
-//
-// THE PANE DRAWS FIRST (1021 spec B3): the mode-switched pane's shipped body
-// and seam replace the authored near-black fill this region drew
-// unconditionally on every screen before this story — the near-black box
-// the owner reported on the shop, the school, the tavern and the generator.
-// A selected pane with no Body (a caller predating this story, or a load
-// failure) falls back to the same authored fill and outline as before, so
-// the region is never left blank.
-//
-// THE CARD REPLACES THE DOLL IN STATISTICS MODE (1022 spec B6):
-// townStatisticsCardRegion used to tie the town's own stats card to the
-// generator's chargenCardBox, on the left content surface, which moved to
-// (0,238)-(160,480) this story (B3) and would otherwise have carried the
-// town's card along with it — into a rectangle B3 already fills with the
-// generator's own card. The contract's own reading of the DOLL/STATS toggle
-// is that it selects what THIS region shows, not the room's left content, so
-// the card now composes here, at TownCharacterRegion, the same 160x242 size
-// as chargenCardBox, using the pane's own body (StatsPane, textbackr.bmp per
-// DIV-175) as CompactPanelLayout's background — the same shipped bitmap the
-// pane draw above already painted underneath it. This applies uniformly to
-// every DrawTownCharacterRegion caller, including the shop: shopGridControlAt
-// and app.go's own cross-family drag release are both gated off the doll
-// while Statistics is true, so no drag surface answers under the card.
+// persistent controls. The pane's shipped body and seam draw first; a pane
+// with no Body falls back to the authored fill and outline. In Statistics
+// mode the card replaces the doll here, over the pane's own body (DIV-175),
+// for every caller, the shop included: no drag surface answers under it.
 func DrawTownCharacterRegion(dst *image.RGBA, v TownCharacterView) {
 	drawCharacterPaneBody(dst, v)
 	drawCharacterPaneCorners(dst, v)
@@ -1111,11 +1024,9 @@ func centredOffset(span, size int) int {
 // the original's own mismatch is the behaviour, and characterPaneCornerDrawn
 // is the function that carries it. DIV-309.
 //
-// A CORNER WITH NO BITMAP FALLS BACK TO THE AUTHORED CHROME the pane drew
-// before this story — the two picker chevrons and an outline — so a caller
-// that resolved no art, or an install missing one node, still shows a control
-// where a control answers. drawShopChevron's own `fill` argument keeps the
-// legible plate the statistics card needs behind it (1022 round 3).
+// A CORNER WITH NO BITMAP FALLS BACK TO THE AUTHORED CHROME, the two picker
+// chevrons and an outline, so a control still shows where one answers.
+// drawShopChevron's `fill` argument keeps the plate the card needs.
 func drawCharacterPaneCorners(dst *image.RGBA, v TownCharacterView) {
 	r := v.paneRect()
 	s := v.paneSession()
@@ -1172,21 +1083,6 @@ func (v TownCharacterView) cardFont() *text.Font {
 	return v.Font
 }
 
-// RenderTownCandidateInspection rasterizes the selected tavern candidate's
-// immutable statistics card and equipment figure once. Hover text and the
-// animated roster card remain outside this image.
-func RenderTownCandidateInspection(v TownCharacterView, art *TownTavernArt) *image.RGBA {
-	if art == nil || !v.HasSubject && v.Figure == nil {
-		return nil
-	}
-	dst := image.NewRGBA(image.Rect(0, 0, 176, 480))
-	if v.HasSubject {
-		DrawCharacterPaneBody(dst, tavernCandidateStats(v, art))
-	}
-	drawInventoryPictureShifted(dst, tavernCandidateDollRect, v.Figure, tavernCandidateDollShift)
-	return dst
-}
-
 // ComposeTownSurface paints one complete shared-shell room. Optional art is
 // absent by construction here; the fallback furniture and every live control
 // remain visible and hit-testable.
@@ -1196,22 +1092,13 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	artSchool := v.Kind == TownSurfaceSchool && v.SchoolArt != nil
 	artTavern := v.Kind == TownSurfaceTavern && v.TavernArt != nil
 	commandTavern := artTavern && len(v.Buttons) == 4 && v.TavernArt.CommandUpper != nil
-	// Statistics no longer replaces this room's own left content (1022 spec
-	// B6): the DOLL/STATS toggle swaps only the character pane, so the
-	// room's own art, title and roster draw exactly as in DOLL mode.
+	// The DOLL/STATS toggle swaps only the character pane; the room's art,
+	// title and roster draw as in DOLL mode.
 	if artSchool && v.SchoolArt.Background != nil {
 		draw.Draw(dst, TownContentRegion, v.SchoolArt.Background, v.SchoolArt.Background.Bounds().Min, draw.Src)
 	} else if artTavern && v.TavernArt.Center != nil {
-		// LeftStats (238 rows) draws upper, LeftPicture (242 rows) lower
-		// (1021 spec B1/B3, DIV-176, swapped from this build's own former order):
-		// the right column's own two slots are 238-upper/242-lower
-		// (TownUpperRegion, TownCharacterRegion), the inn/ seam names read
-		// stats-upper ("luover"/"ruover", 238 tall) and picture-lower
-		// ("ldover", 242 tall), and the owner's own screenshot of the
-		// original tavern shows stats at the top and the portrait at the
-		// bottom. TOWN-282 reads both blits as unconditional and opaque but
-		// does not resolve their destination, so the order is authored, not
-		// decoded.
+		// LeftStats (238 rows) upper, LeftPicture (242 rows) lower, an
+		// authored order: TOWN-282 does not resolve the destination (DIV-176).
 		draw.Draw(dst, image.Rect(160, 0, 480, 480), v.TavernArt.Center, v.TavernArt.Center.Bounds().Min, draw.Src)
 		// TOWN-407: the central child's own pictures, placed after
 		// CenterArea.bmp.
@@ -1228,19 +1115,6 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 		// side, then the column, skills and diamond below.
 		v.Scene.Paint(dst, "movies")
 	}
-	if artTavern && v.CandidatePixels != nil {
-		draw.Draw(dst, v.CandidatePixels.Bounds(), v.CandidatePixels, v.CandidatePixels.Bounds().Min, draw.Over)
-		text.Append(v.CandidateText, 0, 0)
-	} else if artTavern && (v.Candidate.HasSubject || v.Candidate.Figure != nil) {
-		if v.Candidate.HasSubject {
-			DrawCharacterPaneBody(dst, tavernCandidateStats(v.Candidate, v.TavernArt))
-		}
-
-		// The lower picture is the same already-composed equipment figure used
-		// by inventory and character panes. It is centred without another
-		// crop, and no character-pane corner controls are painted over it.
-		drawInventoryPictureShifted(dst, tavernCandidateDollRect, v.Candidate.Figure, tavernCandidateDollShift)
-	}
 	// The school's and the three-command tavern's 160-wide bodies are copied
 	// at TownUpperRegion with the shipped seam strip closing x:[464,480)
 	// (DIV-166, DIV-168); TOWN-183 issues no border primitive. The
@@ -1250,78 +1124,33 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	if !artTavern && !artSchool {
 		drawTownShellText(dst, v.Font, v.Title, image.Rect(176, 12, 470, 44), townShellText)
 	}
+	if v.Kind == TownSurfaceTavern {
+		DrawRoomPage(dst, v.tavernPage(artTavern))
+	}
 	for i, c := range v.Cells {
-		if artSchool || v.Kind == TownSurfaceTavern && v.RosterUnpainted {
+		if artSchool || v.Kind == TownSurfaceTavern {
 			continue
 		}
-		r := townSurfaceCellRectFor(v, i)
+		r := townSurfaceCellRect(i)
 		ink := townShellText
 		if !c.Enabled {
 			ink = townShellDisabled
 		}
-		if c.Portrait {
-			cardFont := v.CardFont
-			if cardFont == nil {
-				cardFont = v.Font
+		drawTownShellBox(dst, r, c.Selected)
+		if c.Picture != nil {
+			b := c.Picture.Bounds()
+			area := r.Inset(2)
+			at := image.Pt(area.Min.X+(area.Dx()-b.Dx())/2, area.Min.Y+(area.Dy()-b.Dy())/2)
+			placed := b.Add(at.Sub(b.Min))
+			clip := placed.Intersect(area)
+			if !clip.Empty() {
+				src := b.Min.Add(clip.Min.Sub(placed.Min))
+				draw.Draw(dst, clip, c.Picture, src, draw.Over)
 			}
-			back := image.Image(nil)
-			if artTavern {
-				back = v.TavernArt.ManBack
-				if c.TalkOnly {
-					back = v.TavernArt.ManBackTalk
-				}
-			}
-			if back != nil {
-				draw.Draw(dst, r, back, back.Bounds().Min, draw.Src)
-			} else {
-				drawTownShellBox(dst, r, false)
-			}
-			pic := c.Picture
-			if c.Selected && len(c.Frames) > 0 {
-				frame := v.AnimationFrame % len(c.Frames)
-				if frame < 0 {
-					frame += len(c.Frames)
-				}
-				pic = c.Frames[frame]
-			} else if len(c.Frames) > 0 {
-				pic = c.Frames[0]
-			}
-			if pic != nil {
-				b := pic.Bounds()
-				placed := b.Add(r.Min.Sub(b.Min))
-				clip := r.Intersect(placed)
-				if !clip.Empty() {
-					src := b.Min.Add(clip.Min.Sub(placed.Min))
-					draw.Draw(dst, clip, pic, src, draw.Over)
-				}
-			}
-			drawTavernCardText(dst, cardFont, c.Price, r, true, false)
-			drawTavernCardText(dst, cardFont, c.Detail, r, false, true)
-			if c.Hired && cardFont != nil {
-				label := v.HiredLabel
-				if label == "" {
-					label = AuthoredWords().TavernHired
-				}
-				w, _ := cardFont.Measure(label)
-				cardFont.Draw(dst.SubImage(r).(*image.RGBA), label, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-cardFont.Height())/2, color.RGBA{R: 255, A: 255})
-			}
-		} else {
-			drawTownShellBox(dst, r, c.Selected)
-			if c.Picture != nil {
-				b := c.Picture.Bounds()
-				area := r.Inset(2)
-				at := image.Pt(area.Min.X+(area.Dx()-b.Dx())/2, area.Min.Y+(area.Dy()-b.Dy())/2)
-				placed := b.Add(at.Sub(b.Min))
-				clip := placed.Intersect(area)
-				if !clip.Empty() {
-					src := b.Min.Add(clip.Min.Sub(placed.Min))
-					draw.Draw(dst, clip, c.Picture, src, draw.Over)
-				}
-			}
-			drawTownShellText(dst, v.Font, c.Label, image.Rect(r.Min.X+2, r.Min.Y+4, r.Max.X-2, r.Min.Y+34), ink)
-			drawTownShellText(dst, v.Font, c.Detail, image.Rect(r.Min.X+2, r.Min.Y+34, r.Max.X-2, r.Max.Y-4), ink)
 		}
-		if c.Hired && !c.Portrait {
+		drawTownShellText(dst, v.Font, c.Label, image.Rect(r.Min.X+2, r.Min.Y+4, r.Max.X-2, r.Min.Y+34), ink)
+		drawTownShellText(dst, v.Font, c.Detail, image.Rect(r.Min.X+2, r.Min.Y+34, r.Max.X-2, r.Max.Y-4), ink)
+		if c.Hired {
 			outline(dst, r.Inset(3), townShellText)
 		}
 	}
@@ -1387,11 +1216,7 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	}
 	panel.drawButtons(dst, v.ButtonStyle.font(v.Font))
 	DrawTownCharacterRegion(dst, v.Hero)
-	// The bottom message no longer suppresses during Statistics (1022 spec
-	// B6, merge resolution round 2: master's own !statistics guard here
-	// predates B6 and is removed by it, on the same footing as the cells,
-	// title and buttons above — ComposeTownSurface's own doc). The rect
-	// itself is 1024's own refactor, townSurfaceMessageRect(), unchanged.
+	// The bottom message draws in both modes.
 	drawTownShellText(dst, v.Font, v.Message, townSurfaceMessageRect(), townShellText)
 	if v.BookView != nil {
 		drawTownBook(dst, *v.BookView)

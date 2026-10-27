@@ -18,17 +18,17 @@ import (
 // was opened to fix — putting a button bitmap outside its own well.
 func TestTownShellButtonWellsSitInsideTheSharedOrigin(t *testing.T) {
 	school := TownSurfaceView{Kind: TownSurfaceSchool, Buttons: []TownSurfaceButton{{Enabled: true}}}
-	if c, ok := TownSurfaceControlAt(school, image.Pt(470, 90)); ok {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(school), image.Pt(470, 90)); ok {
 		t.Fatalf("school claimed the outline overlap x=470 as %#v", c)
 	}
-	if c, ok := TownSurfaceControlAt(school, image.Pt(554, 94)); !ok || c.Kind != TownSurfaceControlButton || c.Index != 0 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(school), image.Pt(554, 94)); !ok || c.Kind != TownSurfaceControlButton || c.Index != 0 {
 		t.Fatalf("school well 0 centre = %#v, %v; want button 0", c, ok)
 	}
 	tavern := TownSurfaceView{Kind: TownSurfaceTavern, Buttons: []TownSurfaceButton{{Enabled: true}}}
-	if c, ok := TownSurfaceControlAt(tavern, image.Pt(470, 20)); ok {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(tavern), image.Pt(470, 20)); ok {
 		t.Fatalf("tavern claimed x=470 as %#v", c)
 	}
-	if c, ok := TownSurfaceControlAt(tavern, image.Pt(554, 41)); !ok || c.Kind != TownSurfaceControlButton || c.Index != 0 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(tavern), image.Pt(554, 41)); !ok || c.Kind != TownSurfaceControlButton || c.Index != 0 {
 		t.Fatalf("tavern well 0 centre = %#v, %v; want button 0", c, ok)
 	}
 }
@@ -76,7 +76,7 @@ func TestTavernButtonsUseShopFourButtonComposition(t *testing.T) {
 		if press >= 0 {
 			pv.Press = TownSurfaceControl{Kind: TownSurfaceControlButton, Index: press}
 		}
-		pressed := ComposeTownSurface(pv)
+		pressed := ComposeTownSurface(firstTavernPage(pv))
 		for i, well := range wells {
 			absolute := well.Add(TownWideUpperRegion.Min)
 			for y := absolute.Min.Y; y < absolute.Max.Y; y++ {
@@ -92,11 +92,11 @@ func TestTavernButtonsUseShopFourButtonComposition(t *testing.T) {
 			}
 		}
 	}
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 	for i, well := range wells {
 		absolute := well.Add(TownWideUpperRegion.Min)
 		centre := image.Pt((absolute.Min.X+absolute.Max.X)/2, (absolute.Min.Y+absolute.Max.Y)/2)
-		if c, ok := TownSurfaceControlAt(v, centre); !ok || c.Kind != TownSurfaceControlButton || c.Index != i {
+		if c, ok := TownSurfaceControlAt(firstTavernPage(v), centre); !ok || c.Kind != TownSurfaceControlButton || c.Index != i {
 			t.Errorf("button %d centre %v = %#v, %v", i, centre, c, ok)
 		}
 	}
@@ -104,7 +104,7 @@ func TestTavernButtonsUseShopFourButtonComposition(t *testing.T) {
 		if got := frame.RGBAAt(p.X, p.Y); got != panelColor {
 			t.Errorf("exposed panel ornament pixel %v = %#v, want panel %#v", p, got, panelColor)
 		}
-		if c, ok := TownSurfaceControlAt(v, p); ok {
+		if c, ok := TownSurfaceControlAt(firstTavernPage(v), p); ok {
 			t.Errorf("exposed panel point %v claimed %#v", p, c)
 		}
 	}
@@ -124,20 +124,20 @@ func TestTownSchoolUsesClassSpecificRasterMask(t *testing.T) {
 	cells[0].Enabled, cells[5].Enabled = true, true
 
 	fighter := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: 0, Cells: cells}
-	if c, ok := TownSurfaceControlAt(fighter, image.Pt(195, 196)); !ok || c.Kind != TownSurfaceControlCell || c.Index != 0 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(fighter), image.Pt(195, 196)); !ok || c.Kind != TownSurfaceControlCell || c.Index != 0 {
 		t.Fatalf("fighter mask = %#v, %v", c, ok)
 	}
 	mage := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: 1, Cells: cells}
-	if c, ok := TownSurfaceControlAt(mage, image.Pt(193, 194)); !ok || c.Kind != TownSurfaceControlCell || c.Index != 5 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(mage), image.Pt(193, 194)); !ok || c.Kind != TownSurfaceControlCell || c.Index != 5 {
 		t.Fatalf("mage mask = %#v, %v", c, ok)
 	}
 	// An unpainted mask byte and a disabled slot are not rectangular fallbacks.
-	if c, ok := TownSurfaceControlAt(fighter, image.Pt(196, 196)); ok {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(fighter), image.Pt(196, 196)); ok {
 		t.Fatalf("unpainted mask byte claimed %#v", c)
 	}
 	cells[0].Enabled = false
 	fighter.Cells = cells
-	if c, ok := TownSurfaceControlAt(fighter, image.Pt(195, 196)); ok {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(fighter), image.Pt(195, 196)); ok {
 		t.Fatalf("disabled mask slot claimed %#v", c)
 	}
 }
@@ -150,12 +150,12 @@ func TestTownShellCharacterControlsShareOneGeometry(t *testing.T) {
 			image.Pt(620, 250): TownSurfaceControlMode,
 			image.Pt(610, 450): TownSurfaceControlNext,
 		} {
-			c, ok := TownSurfaceControlAt(v, p)
+			c, ok := TownSurfaceControlAt(firstTavernPage(v), p)
 			if !ok || c.Kind != want {
 				t.Errorf("kind %d point %v = %#v, %v; want %d", kind, p, c, ok, want)
 			}
 		}
-		if got := ComposeTownSurface(v); got == nil || got.Bounds() != image.Rect(0, 0, 640, 480) {
+		if got := ComposeTownSurface(firstTavernPage(v)); got == nil || got.Bounds() != image.Rect(0, 0, 640, 480) {
 			t.Fatalf("kind %d composed %v", kind, got)
 		}
 	}
@@ -182,14 +182,14 @@ func TestTownStatisticsKeepsLeftContentAndPlacesTheCardInTheCharacterPane(t *tes
 
 	// Tavern cell 3 is an ordinary cell hit in both modes now: nothing on
 	// the left is replaced any more.
-	cell := townSurfaceCellRect(TownSurfaceTavern, 3, len(v.Cells))
+	cell := townSurfaceCellRectFor(firstTavernPage(v), 3)
 	p := image.Pt((cell.Min.X+cell.Max.X)/2, (cell.Min.Y+cell.Max.Y)/2)
 	plain := v
 	plain.Hero.Statistics = false
-	if c, ok := TownSurfaceControlAt(plain, p); !ok || c.Kind != TownSurfaceControlCell || c.Index != 3 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(plain), p); !ok || c.Kind != TownSurfaceControlCell || c.Index != 3 {
 		t.Fatalf("plain left cell = %+v,%v, want cell 3", c, ok)
 	}
-	if c, ok := TownSurfaceControlAt(v, p); !ok || c.Kind != TownSurfaceControlCell || c.Index != 3 {
+	if c, ok := TownSurfaceControlAt(firstTavernPage(v), p); !ok || c.Kind != TownSurfaceControlCell || c.Index != 3 {
 		t.Fatalf("statistics left cell = %+v,%v, want cell 3 (B6: content stays live)", c, ok)
 	}
 
@@ -199,12 +199,12 @@ func TestTownStatisticsKeepsLeftContentAndPlacesTheCardInTheCharacterPane(t *tes
 		image.Pt(620, 250): TownSurfaceControlMode, //
 		image.Pt(610, 450): TownSurfaceControlNext,
 	} {
-		if c, ok := TownSurfaceControlAt(v, at); !ok || c.Kind != want {
+		if c, ok := TownSurfaceControlAt(firstTavernPage(v), at); !ok || c.Kind != want {
 			t.Errorf("persistent control at %v = %+v,%v, want kind %d", at, c, ok, want)
 		}
 	}
 
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 	refLayout := CompactPanelLayout(nil)
 	card := RenderCharacterPanel(refLayout, v.Hero.Font, v.Hero.Subject)
 	if card.Bounds().Dx() > TownCharacterRegion.Dx() || card.Bounds().Dy() > TownCharacterRegion.Dy() {
@@ -247,7 +247,7 @@ func TestSchoolDrawsTheShownClassOwnColumnFace(t *testing.T) {
 	for class := 0; class < 2; class++ {
 		v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: class,
 			Cells: make([]TownSurfaceCell, 10), HoverCell: -1}
-		got := ComposeTownSurface(v)
+		got := ComposeTownSurface(firstTavernPage(v))
 		for _, p := range []image.Point{SchoolFaceOrigin, SchoolFaceOrigin.Add(image.Pt(147, 207))} {
 			if c := got.RGBAAt(p.X, p.Y); c != face[class] {
 				t.Fatalf("class %d face pixel at %v = %#v, want %#v", class, p, c, face[class])
@@ -362,7 +362,7 @@ func TestTownSurfaceMessageIsDrawnAtItsOwnRect(t *testing.T) {
 		Font:    panelFont(),
 		Message: "M",
 	}
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 
 	found := false
 	for y := want.Min.Y; y < want.Max.Y && !found; y++ {
@@ -409,7 +409,7 @@ func TestSchoolPaintsEachClassIconAtItsOwnRectangle(t *testing.T) {
 		cells[class*5+2].Selected = true
 		v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: class,
 			Cells: cells, HoverCell: -1}
-		got := ComposeTownSurface(v)
+		got := ComposeTownSurface(firstTavernPage(v))
 		mine := SchoolSkillRect(class, 2)
 		if c := got.RGBAAt(mine.Min.X+1, mine.Min.Y+1); c != ink {
 			t.Fatalf("class %d icon at %v = %#v, want %#v", class, mine.Min, c, ink)
@@ -448,7 +448,7 @@ func TestSchoolMaskAnswersAreOneVisualCellPerCode(t *testing.T) {
 			}
 			v := TownSurfaceView{Kind: TownSurfaceSchool, SchoolArt: art, SchoolClass: class, Cells: cells}
 			p := image.Pt(panel.Min.X+3, panel.Min.Y+3)
-			c, ok := TownSurfaceControlAt(v, p)
+			c, ok := TownSurfaceControlAt(firstTavernPage(v), p)
 			if !ok || c.Kind != TownSurfaceControlCell {
 				t.Fatalf("class %d code 0x%02x = %#v, %v", class, code, c, ok)
 			}
@@ -463,7 +463,7 @@ func TestSchoolMaskAnswersAreOneVisualCellPerCode(t *testing.T) {
 
 			// The same answer indexes Cells: disabling that cell suppresses it.
 			cells[c.Index].Enabled = false
-			if c, ok := TownSurfaceControlAt(v, p); ok {
+			if c, ok := TownSurfaceControlAt(firstTavernPage(v), p); ok {
 				t.Fatalf("class %d code 0x%02x survived disabling cell %d: %#v", class, code, slot, c)
 			}
 		}
@@ -524,7 +524,7 @@ func TestSchoolColumnFaceStaysVisibleDuringStatistics(t *testing.T) {
 				Subject: panelSubjectFixture(), Figure: figure, Font: panelFont()},
 			Font: panelFont(),
 		}
-		frame := ComposeTownSurface(v)
+		frame := ComposeTownSurface(firstTavernPage(v))
 		for _, p := range []image.Point{SchoolFaceOrigin, SchoolFaceOrigin.Add(image.Pt(147, 207))} {
 			if got := frame.RGBAAt(p.X, p.Y); got != faceColor {
 				t.Fatalf("class %d: face pixel at %v = %#v, want %#v while statistics is visible", class, p, got, faceColor)
@@ -570,16 +570,16 @@ func townShellCardTestFont() *text.Font {
 func TestCompactMercenaryCardsFillFromTheBottomAndKeepOnlyCountAndPrice(t *testing.T) {
 	font := townShellCardTestFont()
 	for i := 0; i < 6; i++ {
-		r := tavernPortraitCellRect(i)
+		r := tavernSeatRect(i)
 		want := image.Rect(176+i*48, 416, 224+i*48, 480)
 		if r != want {
 			t.Fatalf("bottom portrait %d = %v, want measured %v", i, r, want)
 		}
 	}
-	if r, want := tavernPortraitCellRect(6), image.Rect(176, 352, 224, 416); r != want {
+	if r, want := tavernSeatRect(6), image.Rect(176, 352, 224, 416); r != want {
 		t.Fatalf("seventh portrait = %v, want first column of the row above %v", r, want)
 	}
-	cellWidth := tavernPortraitCellRect(0).Dx()
+	cellWidth := tavernSeatRect(0).Dx()
 	cases := []string{"3/3", "10/10", "99999", "1000000"}
 	for _, s := range cases {
 		if w, _ := font.Measure(s); w > cellWidth {
@@ -589,14 +589,14 @@ func TestCompactMercenaryCardsFillFromTheBottomAndKeepOnlyCountAndPrice(t *testi
 	v := TownSurfaceView{Kind: TownSurfaceTavern, Font: panelFont(), CardFont: font, Cells: []TownSurfaceCell{{
 		Semantic: "Squad 14", Detail: "3/3", Price: "9120", Portrait: true, Enabled: true,
 	}}}
-	a := ComposeTownSurface(v)
+	a := ComposeTownSurface(firstTavernPage(v))
 	v.Cells[0].Semantic = "this must never be visible"
-	b := ComposeTownSurface(v)
+	b := ComposeTownSurface(firstTavernPage(v))
 	if !imagesEqual(a, b) {
 		t.Fatal("changing the headless squad name changed visible portrait pixels")
 	}
 	v.Cells[0].Price = "91200"
-	if imagesEqual(a, ComposeTownSurface(v)) {
+	if imagesEqual(a, ComposeTownSurface(firstTavernPage(v))) {
 		t.Fatal("changing the visible price changed no portrait pixels")
 	}
 }
@@ -614,7 +614,7 @@ func TestTavernMiniCardDrawsTheProductionSpriteAtTheMeasuredOrigin(t *testing.T)
 	v := TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: &TownTavernArt{
 		ManBack: uniform(48, 64, ground),
 	}, Cells: []TownSurfaceCell{{Portrait: true, Picture: sprite}}}
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 	r := image.Rect(176, 416, 224, 480)
 	for _, p := range []image.Point{r.Min, r.Max.Sub(image.Pt(1, 1))} {
 		if got := frame.RGBAAt(p.X, p.Y); got != mark {
@@ -636,7 +636,7 @@ func TestOnlyTheSelectedTavernMiniatureConsumesTheAnimationFrame(t *testing.T) {
 			{Portrait: true, Selected: true, Frames: frames},
 			{Portrait: true, Frames: frames},
 		}}
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 	if got := frame.RGBAAt(176, 416); got.G != 0xb2 {
 		t.Fatalf("selected card phase 1 pixel = %#v, want second frame", got)
 	}
@@ -649,9 +649,9 @@ func TestTavernMiniCardBorderIsOnlyTheShippedBackground(t *testing.T) {
 	ground := uniform(48, 64, color.RGBA{R: 0x19, G: 0x2a, B: 0x3b, A: 0xff})
 	v := TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: &TownTavernArt{ManBack: ground},
 		Cells: []TownSurfaceCell{{Portrait: true, Selected: true, Hired: true}}}
-	withState := ComposeTownSurface(v)
+	withState := ComposeTownSurface(firstTavernPage(v))
 	v.Cells[0].Selected, v.Cells[0].Hired = false, false
-	withoutState := ComposeTownSurface(v)
+	withoutState := ComposeTownSurface(firstTavernPage(v))
 	if !imagesEqual(withState, withoutState) {
 		t.Fatal("selected/hired state invented a card border outside the shipped background")
 	}
@@ -666,9 +666,9 @@ func TestTalkOnlyCardUsesItsShippedBackgroundAndArtTavernAddsNoTitle(t *testing.
 			ManBack:     mercBack,
 			ManBackTalk: talkBack,
 		}, Cells: []TownSurfaceCell{{Portrait: true, TalkOnly: true}, {Portrait: true}}}
-	withTitle := ComposeTownSurface(v)
+	withTitle := ComposeTownSurface(firstTavernPage(v))
 	v.Title = ""
-	withoutTitle := ComposeTownSurface(v)
+	withoutTitle := ComposeTownSurface(firstTavernPage(v))
 	if !imagesEqual(withTitle, withoutTitle) {
 		t.Fatal("art-backed tavern painted an authored title absent from the owner frame")
 	}
@@ -685,7 +685,7 @@ func TestTavernMiniCardTextUsesTheMeasuredOppositeCorners(t *testing.T) {
 	v := TownSurfaceView{Kind: TownSurfaceTavern, Font: townShellRosterTestFont(),
 		TavernArt: &TownTavernArt{ManBack: uniform(48, 64, ground)},
 		Cells:     []TownSurfaceCell{{Portrait: true, Price: "1111", Detail: "2/2"}}}
-	frame := ComposeTownSurface(v)
+	frame := ComposeTownSurface(firstTavernPage(v))
 	r := image.Rect(176, 416, 224, 480)
 	// Four 9px price glyphs end at the card's right edge. Three count glyphs
 	// begin at its left edge and end at its bottom edge.
@@ -713,11 +713,11 @@ func TestTavernCandidateDollRoutesOnlyMarkedPixelsToFullItemLines(t *testing.T) 
 		CandidateSlotInfo: [12][]string{2: {"Steel Helm", "#Armour 4", "#Value 180"}},
 	}
 	at := image.Pt(86, 359) // centred origin plus the corrected +8,+1 offset
-	if got, ok := TownCandidateHoverLines(v, at.Add(image.Pt(1, 0))); !ok || !reflect.DeepEqual(got, v.CandidateSlotInfo[2]) {
+	if got, ok := TownCandidateHoverLines(firstTavernPage(v), at.Add(image.Pt(1, 0))); !ok || !reflect.DeepEqual(got, v.CandidateSlotInfo[2]) {
 		t.Fatalf("occupied candidate pixel = %q, %v; want full slot lines", got, ok)
 	}
 	for _, p := range []image.Point{at, image.Pt(0, 237), image.Pt(160, 358), image.Pt(79, 480)} {
-		if got, ok := TownCandidateHoverLines(v, p); ok || got != nil {
+		if got, ok := TownCandidateHoverLines(firstTavernPage(v), p); ok || got != nil {
 			t.Errorf("blank/outside candidate pixel %v = %q, %v", p, got, ok)
 		}
 	}
@@ -740,12 +740,12 @@ func TestTavernCandidateInspectionDrawsStatsDollAndNormalHover(t *testing.T) {
 		CandidateSlotMask: mask,
 		CandidateSlotInfo: [12][]string{0: {"Sword", "#Damage 3", "#Value 25"}},
 	}
-	bare := ComposeTownSurface(v)
+	bare := ComposeTownSurface(firstTavernPage(v))
 	if got := bare.RGBAAt(86, 359); got != mark {
 		t.Fatalf("centred composed doll pixel = %#v, want %#v", got, mark)
 	}
 	v.HasHover, v.Hover = true, image.Pt(86, 359)
-	hover := ComposeTownSurface(v)
+	hover := ComposeTownSurface(firstTavernPage(v))
 	if imagesEqual(bare, hover) {
 		t.Fatal("occupied candidate hover drew no normal item popup")
 	}
@@ -758,9 +758,14 @@ func TestTavernCandidateInspectionIsNotAnInputControl(t *testing.T) {
 	}
 	for y := 0; y < 480; y++ {
 		for x := 0; x < 160; x++ {
-			if got, ok := TownSurfaceControlAt(v, image.Pt(x, y)); ok {
+			if got, ok := TownSurfaceControlAt(firstTavernPage(v), image.Pt(x, y)); ok {
 				t.Fatalf("read-only candidate pane point (%d,%d) exposed control %+v", x, y, got)
 			}
 		}
 	}
+}
+
+// tavernSeatRect is seat i of the first game's tavern page.
+func tavernSeatRect(i int) image.Rectangle {
+	return townSurfaceCellRectFor(firstTavernPage(TownSurfaceView{Kind: TownSurfaceTavern, Cells: make([]TownSurfaceCell, i+1)}), i)
 }

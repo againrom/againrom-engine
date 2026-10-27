@@ -251,7 +251,7 @@ func (t *townScreen) renderTavernTalkDetail(v *ui.TownSurfaceView, npc int) {
 		if ok {
 			t.tavernDetail = detail
 			t.tavernDetailText = text.Record(func() {
-				t.tavernDetailPixels = ui.RenderTownCandidateInspection(detail, t.tavernArt())
+				t.tavernDetailPixels = t.renderTavernPerson(detail)
 			})
 		}
 	}

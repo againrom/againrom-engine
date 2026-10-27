@@ -147,7 +147,7 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		if s.Columns <= 0 || s.Rows <= 0 || s.First.Rectangle().Empty() {
 			return fail("seats need columns, rows and a first seat")
 		}
-		if s.FrameMS <= 0 || s.Compare != "greater" && s.Compare != "at-least" {
+		if s.FrameMS < 0 || s.FrameMS > 0 && s.Compare != "greater" && s.Compare != "at-least" {
 			return fail("seats need a frame period and its compare, one of %s", strings.Join(compares, ", "))
 		}
 		names := []string{s.Back, s.Actor, s.Patron}

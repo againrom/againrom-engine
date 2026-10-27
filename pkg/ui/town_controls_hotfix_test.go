@@ -81,7 +81,7 @@ func TestTownUpperPanelKeyedEdgeKeepsRoomArt(t *testing.T) {
 		} else {
 			v.SchoolArt = &TownSchoolArt{Background: room, Upper: image.NewRGBA(image.Rect(0, 0, 160, 238)), UpperSeam: image.NewRGBA(image.Rect(0, 0, 16, 238))}
 		}
-		if got := ComposeTownSurface(v).RGBAAt(465, 90); got != ink {
+		if got := ComposeTownSurface(firstTavernPage(v)).RGBAAt(465, 90); got != ink {
 			t.Fatalf("kind %v keyed edge=%v", kind, got)
 		}
 	}

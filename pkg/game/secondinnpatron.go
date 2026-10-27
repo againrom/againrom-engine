@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"image/draw"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -104,29 +103,16 @@ func (v townRoomView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *sec
 	return v.t.innPatron(r, page, list[seat].npc)
 }
 
-// paintPatron draws the selected seat's statistics card and full figure.
-func (v townRoomView) paintPatron(dst *image.RGBA, r *town.RoomSpec, page *screenart.Set) {
-	seats := r.Seats
+// patron is the selected seat's person placed on the page: its statistics
+// card in the generator's font and its full figure.
+func (v townRoomView) patron(r *town.RoomSpec, page *screenart.Set) ui.RoomPerson {
 	p := v.selectedPatron(r, page)
 	if p == nil || !p.known {
-		return
+		return ui.RoomPerson{}
 	}
-	if c := seats.Card; c != nil {
-		if a := v.t.in.ChargenAssets; a != nil && a.Presentation != nil {
-			// The card board must be an RGBA picture; a nil one stays a nil image.
-			var body image.Image
-			if pic := rgbaOf(page.Picture(c.Art)); pic != nil {
-				body = pic
-			}
-			view := a.Presentation.CardView(p.subject, c.Rect.Rectangle(), c.Offset.Pt(), body, page.Picture(c.Seam))
-			ui.DrawCharacterPaneBody(dst, view)
-		}
+	var card ui.TownCharacterView
+	if a := v.t.in.ChargenAssets; a != nil && a.Presentation != nil {
+		card = a.Presentation.CardView(p.subject, image.Rectangle{}, image.Point{}, nil, nil)
 	}
-	if f := seats.Figure; f != nil && p.figure != nil {
-		clip := f.Rect.Rectangle()
-		at := clip.Min.Add(f.Offset.Pt())
-		b := p.figure.Bounds()
-		dr := image.Rectangle{Min: at, Max: at.Add(b.Size())}.Intersect(clip)
-		draw.Draw(dst, dr, p.figure, b.Min.Add(dr.Min.Sub(at)), draw.Over)
-	}
+	return placeRoomPerson(r.Seats, page.Picture, card, p.figure)
 }

@@ -315,8 +315,7 @@ func (v townRoomView) Paint(dst *image.RGBA) {
 	s.Paint(dst, "back")
 	words, font := v.t.in.Words, v.t.in.Font.Value()
 	if r.Seats != nil {
-		v.paintSeats(dst, r, page, words, font)
-		v.paintPatron(dst, r, page)
+		ui.DrawRoomPage(dst, v.page(r, page, words, font))
 	}
 	s.Paint(dst, "front")
 	var buttons []ui.RoomButton
@@ -369,36 +368,27 @@ const (
 	secondInnFireCaption = 259
 )
 
-// paintSeats draws the seats: each hire actor, then each talk actor, its
-// back and then its person's frames; a hire actor whose copied word has the high bit
-// also shows the hired mark over its seat. No hire actor is drawn while no
-// seat is selected (R2-ENGINE-497, DIV-2964).
-func (v townRoomView) paintSeats(dst *image.RGBA, r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) {
-	seats := r.Seats
+// page is the inn page as the room's data lays it out: each seat's back
+// and its person's frame, the hired mark over a hire actor whose copied word
+// has the high bit, and the selected seat's person. No hire actor is drawn
+// while no seat is selected (R2-ENGINE-497, DIV-2964).
+func (v townRoomView) page(r *town.RoomSpec, page *screenart.Set, words ui.Words, font *text.Font) ui.RoomPage {
 	c := v.t.state()
 	list, hires := c.innSeats()
-	for i, o := range list {
-		at := seats.Seat(i)
-		if at.Empty() {
-			break
+	p := buildRoomPage(r, page.Picture, len(list), hires)
+	for i := range p.Seats {
+		s, o := &p.Seats[i], list[i]
+		if i < hires && v.t.composed.seat < 0 {
+			s.Hidden = true
+			continue
 		}
-		back := seats.Back
-		if i < hires {
-			if v.t.composed.seat < 0 {
-				continue
-			}
-			if seats.HireBack != "" {
-				back = seats.HireBack
-			}
-		}
-		drawAt(dst, page.Picture(back), at.Min, draw.Src)
-		if actor := v.t.innPatron(r, page, o.npc).frames; len(actor) > 0 {
-			drawAt(dst, actor[v.t.seatFrame(i)%len(actor)], at.Min, draw.Over)
-		}
-		if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) && font != nil {
-			ui.DrawTownCaption(dst, font, words.Hover[secondInnHiredMark], at)
+		s.Frames, s.Frame = v.t.innPatron(r, page, o.npc).frames, v.t.seatFrame(i)
+		if i < hires && c.hired(o.npc) && secondInnHiredMark < len(words.Hover) {
+			s.Captions = []ui.RoomCaption{{Text: words.Hover[secondInnHiredMark], Font: font}}
 		}
 	}
+	p.Person = v.patron(r, page)
+	return p
 }
 
 // hireCaption is the hire button's caption: Fire on a selected hire actor
@@ -449,14 +439,13 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	}
 	list, hires := v.t.state().innSeats()
 	seats := len(list)
-	if r.Seats != nil {
-		if i := r.Seats.SeatAt(p, seats); i >= 0 {
-			// A seat click selects the seat and acts on nothing; the
-			// buttons act on the selection (R2-SESSION-203, R2-SESSION-213).
-			return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
-		}
+	page := buildRoomPage(r, nil, seats, hires)
+	if i := page.SeatAt(p); i >= 0 {
+		// A seat click selects the seat and acts on nothing; the
+		// buttons act on the selection (R2-SESSION-203, R2-SESSION-213).
+		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
 	}
-	if i := town.ButtonAt(r.Buttons, p); i >= 0 {
+	if i := page.ButtonAt(p); i >= 0 {
 		seat := v.t.composed.seat
 		switch r.Buttons[i].Name {
 		case "hire":

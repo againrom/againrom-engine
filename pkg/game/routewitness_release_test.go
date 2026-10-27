@@ -783,13 +783,12 @@ func (w *routeWitness) squareAt() (image.Point, func(image.Point) (string, bool)
 		c, ok := v.Scene.ControlAt(p)
 		tip, tok := v.Scene.TipAt(p)
 		part := ""
-		if page != nil && page.Seats != nil {
-			if i := page.Seats.SeatAt(p, seats); i >= 0 {
-				part = fmt.Sprintf(" seat %d", i)
-			}
+		layout := buildRoomPage(page, nil, seats, 0)
+		if i := layout.SeatAt(p); i >= 0 {
+			part = fmt.Sprintf(" seat %d", i)
 		}
 		if page != nil && part == "" {
-			if i := town.ButtonAt(page.Buttons, p); i >= 0 {
+			if i := layout.ButtonAt(p); i >= 0 {
 				part = " button " + page.Buttons[i].Name
 			}
 		}

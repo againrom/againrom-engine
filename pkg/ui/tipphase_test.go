@@ -184,7 +184,7 @@ type downPairTown struct {
 }
 
 func (t *downPairTown) AtTownSurface() bool          { return true }
-func (t *downPairTown) TownSurface() TownSurfaceView { return t.view }
+func (t *downPairTown) TownSurface() TownSurfaceView { return firstTavernPage(t.view) }
 func (t *downPairTown) TownSurfaceClick(c TownSurfaceControl, double bool) TownAction {
 	t.actions = append(t.actions, double)
 	return TownAction{}

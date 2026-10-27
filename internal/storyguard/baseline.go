@@ -3079,7 +3079,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    31,
-		"longcommentgroups":      1692,
+		"longcommentgroups":      1690,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3108,5 +3108,5 @@ var Committed = Baseline{
 	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
 	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
 	// play overlap rule is re-measured on the merged tree.
-	CommentBytes: 9783878,
+	CommentBytes: 9783701,
 }

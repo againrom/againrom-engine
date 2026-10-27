@@ -91,7 +91,7 @@ func (f *fakeStatsSurfaceTown) TownSurface() TownSurfaceView {
 		Hero: TownCharacterView{HasSubject: true, Statistics: true, MemberCount: 2}}
 	v.Cells = []TownSurfaceCell{{Label: "NPC 22", Enabled: true}}
 	v.Buttons = []TownSurfaceButton{{Label: "Talk", Enabled: true}}
-	return v
+	return firstTavernPage(v)
 }
 func (f *fakeStatsSurfaceTown) TownSurfaceClick(c TownSurfaceControl, _ bool) TownAction {
 	f.surfaceClicks = append(f.surfaceClicks, c)
@@ -103,7 +103,7 @@ func (f *fakeSurfaceDialogueTown) TownSurface() TownSurfaceView {
 	v := TownSurfaceView{Kind: TownSurfaceTavern, HoverCell: -1}
 	v.Cells = []TownSurfaceCell{{Label: "NPC 22", Enabled: true}}
 	v.Buttons = []TownSurfaceButton{{Label: "Hire", Enabled: true}, {Label: "Talk", Enabled: f.selected}}
-	return v
+	return firstTavernPage(v)
 }
 func (f *fakeSurfaceDialogueTown) TownSurfaceClick(c TownSurfaceControl, _ bool) TownAction {
 	f.surfaceClicks = append(f.surfaceClicks, c)
@@ -171,7 +171,7 @@ func TestAppRoutesThroughTownStatisticsSurface(t *testing.T) {
 		a.stepTownAt(appInput{CursorX: p.X, CursorY: p.Y, PrimaryReleased: true}, now)
 	}
 
-	cell := townSurfaceCellRect(TownSurfaceTavern, 0, 1)
+	cell := townSurfaceCellRectFor(firstTavernPage(TownSurfaceView{Kind: TownSurfaceTavern, Cells: make([]TownSurfaceCell, 1)}), 0)
 	click(image.Pt((cell.Min.X+cell.Max.X)/2, (cell.Min.Y+cell.Max.Y)/2))
 	button := townSurfaceButtonRect(TownSurfaceTavern, 0)
 	click(image.Pt((button.Min.X+button.Max.X)/2, (button.Min.Y+button.Max.Y)/2))
