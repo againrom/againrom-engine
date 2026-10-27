@@ -81,7 +81,7 @@ func armCarriedSpellGraph(state *SnapshotSAVDocument, world *sim.World) error {
 	if err := world.ImportSavedSpellGraph(g); err != nil {
 		return err
 	}
-	for _, notice := range []string{"SpellTransport/PointEffect scheduling, PE44 and shared world-effect lifetimes remain unbound", "legacy native world effects have no current continuation bindings"} {
+	for _, notice := range []string{"SpellTransport/PointEffect scheduling, PE44 and shared world-effect lifetimes remain unbound", unboundCarriedWorldEffects} {
 		meta.Unavailable = strings.ReplaceAll(meta.Unavailable, notice, "")
 	}
 	return nil

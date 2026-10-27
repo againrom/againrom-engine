@@ -199,7 +199,7 @@ func TestSavedStructuresProjection1115DamageGeometrySuffixesAndCells(t *testing.
 		}
 		wantBase := wantSource.Base52
 		wantBase[14], wantBase[15] = wantLive.Width, wantLive.Height
-		if got.Position != wantPosition || got.Base52 != wantBase || got.RuntimeID != uint32(900+i) || got.AuthoredID != 0 || got.Token0C != byte(20+i) || got.Token0E != uint16(300+i) || got.Token18 != uint16(400+i) || got.Token1C != uint32(500+i) || got.Reference != 0xaabbccdd || got.Kind != byte(i+1) || got.Field46 != uint16(600+i) || got.Field48 != 13 || got.Blocking != 5 {
+		if got.Position != wantPosition || got.Base52 != wantBase || got.RuntimeID != uint32(900+i) || got.AuthoredID != 0 || got.Token0C != uint16(20+i) || got.Token0E != uint16(300+i) || got.Token18 != uint16(400+i) || got.Token1C != uint32(500+i) || got.Reference != 0xaabbccdd || got.Kind != byte(i+1) || got.Field46 != uint16(600+i) || got.Field48 != 13 || got.Blocking != 5 {
 			t.Fatal("retained base/Token field changed", i, got)
 		}
 		if got.OutpostWords != wantSource.OutpostWords || !reflect.DeepEqual(got.OutpostRecords, wantSource.OutpostRecords) || got.Tavern9C != wantSource.Tavern9C || got.Shop70 != wantSource.Shop70 {

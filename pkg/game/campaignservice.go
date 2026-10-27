@@ -126,6 +126,9 @@ type campaignService interface {
 type originalFileState struct {
 	quickSpells [4]uint32
 	session     *currentSessionData
+	// fileView is that a mission file without a complete document gives the
+	// first frame from its own state store.
+	fileView bool
 }
 
 // fileCampaign is the campaign service of the game sf's envelope names;

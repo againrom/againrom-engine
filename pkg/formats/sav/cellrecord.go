@@ -51,16 +51,18 @@ func (f *File) Cells() ([]Cell, bool, error) {
 	if err != nil || !present {
 		return nil, present, err
 	}
-	w := doc.world
+	w, p := doc.world, f.profile()
 	out := make([]Cell, w.CellRecCount)
 	for i := range out {
-		off := w.CellRecDataOff + i*cellRecLen
-		out[i] = decodeCell(f.Body[off : off+cellRecLen])
+		off := w.CellRecDataOff + i*p.cellLen
+		out[i] = decodeCell(f.Body[off:off+p.cellLen], p.cellTail)
 	}
 	return out, true, nil
 }
 
-func decodeCell(rec []byte) Cell {
+// decodeCell reads one entry; without tail it leaves Trigger and Residue1
+// zero.
+func decodeCell(rec []byte, tail bool) Cell {
 	var c Cell
 	c.Key = u16(rec, 0)
 	p := rec[2:]
@@ -69,8 +71,10 @@ func decodeCell(rec []byte) Cell {
 	for i := range c.SpellEffects {
 		c.SpellEffects[i] = u32(p, 20+4*i)
 	}
-	copy(c.Trigger[:], p[0x2c:0x32])
-	copy(c.Residue1[:], p[0x32:0x34])
+	if tail {
+		copy(c.Trigger[:], p[0x2c:0x32])
+		copy(c.Residue1[:], p[0x32:0x34])
+	}
 	return c
 }
 
@@ -100,6 +104,9 @@ func (f *File) SetCell(i int, c Cell) error {
 	w := f.World
 	if w == nil {
 		return fmt.Errorf("sav: this save has no world half")
+	}
+	if !f.profile().cellTail {
+		return fmt.Errorf("sav: a %s cell entry is not written", f.profile().Magic)
 	}
 	if i < 0 || i >= w.CellRecCount {
 		return fmt.Errorf("sav: cell record %d of %d", i, w.CellRecCount)

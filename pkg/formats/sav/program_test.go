@@ -340,6 +340,10 @@ type walkFixture struct {
 	// label.
 	second, town bool
 	tail         []byte
+	// cells are a second-game world's 62-byte terrain cell entries and
+	// session edits its session block.
+	cells   [][]byte
+	session func([]byte)
 }
 
 func (f walkFixture) body() []byte {
@@ -449,12 +453,21 @@ func (f walkFixture) worldEnd(s *stream) []byte {
 		s.u32(0) // SpellEffects
 	}
 	s.u16(0) // terrain blocks
-	s.u16(0) // terrain cells
 	if f.second {
-		s.raw(4+secondSessionLen, 0)
+		s.u16(uint16(len(f.cells)))
+		for _, c := range f.cells {
+			s.b = append(s.b, c...)
+		}
+		s.raw(4, 0) // terrain identity
+		session := make([]byte, secondSessionLen)
+		if f.session != nil {
+			f.session(session)
+		}
+		s.b = append(s.b, session...)
 		s.u32(0) // Sacks
 		s.u32(0) // the extra Token list
 	} else {
+		s.u16(0) // terrain cells
 		s.raw(4+4374, 0)
 		s.u32(0) // Sacks
 	}

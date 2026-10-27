@@ -3058,6 +3058,17 @@ package storyguard
 // CommentBytes rises with the comment on the school row press toggle in
 // pkg/game/townshell.go, the doc comment of a new test in
 // pkg/game/townshell_test.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's mission
+// file LOAD, all on new code: the session layout, the cell tail and the
+// state store in pkg/formats/sav, the file's first frame in
+// pkg/game/savapplication.go, the native book admission in
+// pkg/sim/originalspellbooks.go, the unbound effects at SAVE, the witness in
+// cmd/savecheck, their tests, and this paragraph. It rose again for the
+// review's correction: the drop of unbound effects from a SAVE's World copy in
+// pkg/game/savworldeffects.go, the spell id bound in pkg/sim/originalspellbooks.go,
+// the selection past the book's slots in pkg/game/savactionwire.go and
+// pkg/game/currentbookselection.go, and their tests.
 var Committed = Baseline{
 	TestIdentCount: 4487,
 	TestFileCount:  264,
@@ -3110,5 +3121,7 @@ var Committed = Baseline{
 	// play overlap rule is re-measured on the merged tree. It then rose for the
 	// room page scan's alias and seat rectangle rules (internal/archtest/
 	// roompage.go) and the tavern view page test (pkg/game/tavernviewpage_test.go).
-	CommentBytes: 9787325,
+	// The merge with the second game's mission file LOAD is re-measured on the
+	// merged tree.
+	CommentBytes: 9797829,
 }

@@ -105,7 +105,10 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 			continue
 		}
 		r := &state.Document.Objects[index-1]
-		if spell := e.AdmittedBookSpell; spell != 0 {
+		if spell := e.AdmittedBookSpell; int(spell) > len(sim.Spellbook{}.Slots) {
+			// A spell past the book's slots has no Spell record (DIV-4174).
+			savedObjectSetValue(r, "U44", 0)
+		} else if spell != 0 {
 			refs, _ := savedObjectRefs(r, "Spells")
 			if int(spell) <= len(refs) && refs[spell-1] != 0 && int(refs[spell-1]) <= len(state.Document.Objects) {
 				key, err := savedStructureValue(&state.Document.Objects[refs[spell-1]-1], "This")

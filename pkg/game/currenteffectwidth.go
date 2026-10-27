@@ -36,7 +36,7 @@ func matchingCurrentEffectWidths(doc *sav.DocumentData, rows []currentEffectWidt
 	var matched []currentEffectWidth
 	for _, row := range rows {
 		magnitude := int64(int16(row.Wire)) + row.Lift
-		if row.Object == 0 || int(row.Object) > len(doc.Objects) || row.Actor == 0 || int(row.Actor) > len(doc.Objects) || seen[row.Object] || row.Spell > 28 || row.Anchor == ([32]byte{}) || row.Lift == 0 || row.Lift%65536 != 0 || row.Lift < -1<<31 || row.Lift > 1<<31 || magnitude < -1<<31 || magnitude > 1<<31-1 {
+		if row.Object == 0 || int(row.Object) > len(doc.Objects) || row.Actor == 0 || int(row.Actor) > len(doc.Objects) || seen[row.Object] || row.Spell >= sim.SpellIDLimit || row.Anchor == ([32]byte{}) || row.Lift == 0 || row.Lift%65536 != 0 || row.Lift < -1<<31 || row.Lift > 1<<31 || magnitude < -1<<31 || magnitude > 1<<31-1 {
 			return nil, fmt.Errorf("invalid current effect width binding or lift")
 		}
 		seen[row.Object] = true

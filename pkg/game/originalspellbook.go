@@ -6,13 +6,27 @@ import (
 	"againrom/pkg/sim"
 )
 
+// importedSpellbook is a saved book's presence and instances. A spell past
+// the book's slots (the second game's spell 29) keeps its membership in the
+// book's native mode and has no instance (DIV-4174).
 func importedSpellbook(present bool, spells []sav.SavedSpell) sim.Spellbook {
 	b := sim.Spellbook{State: sim.BookAbsent}
 	if present {
 		b.State = sim.BookPresent
 	}
+	native := false
 	for _, s := range spells {
+		if int(s.ID) > len(b.Slots) {
+			native = true
+			continue
+		}
 		b.Slots[s.ID-1] = sim.BookSpell{Range: s.Range, Defensive: s.Defensive, ManaCost: s.ManaCost}
+	}
+	if native {
+		b.State = sim.BookNativeAbsent
+		if present {
+			b.State = sim.BookNativePresent
+		}
 	}
 	return b
 }

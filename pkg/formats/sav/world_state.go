@@ -24,6 +24,44 @@ var worldProjectileLeaves = []stateLeaf{
 	{"actionsegments", 2}, {"actionspell", 2},
 }
 
+// StateData is a mid-mission file's state store in the document's form,
+// whichever game wrote it; a file without a world half answers absent.
+func (f *File) StateData() (DocumentStateData, bool, error) {
+	if f == nil || f.World == nil {
+		return DocumentStateData{}, false, nil
+	}
+	var state *cityState
+	var err error
+	if f.profile().leafState {
+		if len(f.Store) > maxWorldStateBytes {
+			return DocumentStateData{}, true, fmt.Errorf("sav: world state store has %d bytes, exceeds %d", len(f.Store), maxWorldStateBytes)
+		}
+		state, err = parseStateStore(f.Store, -1, -1, func(*cityState) error { return nil })
+	} else {
+		state, err = parseWorldState(f.Store)
+	}
+	if err != nil {
+		return DocumentStateData{}, true, err
+	}
+	return parsedStateData(state), true, nil
+}
+
+// parsedStateData detaches a parsed store in sorted path order.
+func parsedStateData(s *cityState) DocumentStateData {
+	out := DocumentStateData{RootKind: s.rootKind}
+	for _, k := range documentSortedKeys(s.directoryKinds) {
+		out.DirectoryRecords = append(out.DirectoryRecords, CityStateDirectoryData{k, s.directoryKinds[k]})
+	}
+	for _, k := range documentSortedKeys(s.values) {
+		v := s.values[k]
+		if v.kind != 2 {
+			v.int32 = 0 // Pool offsets are not retained scalar state.
+		}
+		out.ValueRecords = append(out.ValueRecords, CityStateRecordData{k, CityStateValueData{v.kind, v.int32, cityDataCopy(v.bytes)}})
+	}
+	return out
+}
+
 func parseWorldState(raw []byte) (*cityState, error) {
 	if len(raw) > maxWorldStateBytes {
 		return nil, fmt.Errorf("sav: world state store has %d bytes, exceeds %d", len(raw), maxWorldStateBytes)

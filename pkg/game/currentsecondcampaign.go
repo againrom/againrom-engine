@@ -223,28 +223,6 @@ func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base
 	return campaignOf(authored).validateAuthored(doc, a)
 }
 
-// refuseSecondFileDebt refuses, before any state changes, what the engine
-// cannot yet hold of a second-game file: a save made during a mission
-// (DIV-4155) and a book spell past the engine's book (DIV-4156).
-func refuseSecondFileDebt(sf *sav.File) error {
-	if sf.Head.Mission != 0 {
-		return fmt.Errorf("a second-game save made during mission %d cannot be loaded yet", sf.Head.Mission)
-	}
-	chars, err := sf.Party()
-	if err != nil {
-		return err
-	}
-	slots := len(sim.Spellbook{}.Slots)
-	for _, c := range chars {
-		for _, spell := range c.Spells {
-			if int(spell.ID) > slots {
-				return fmt.Errorf("second-game save: %s's book holds spell %d; the engine's book holds %d", c.Name, spell.ID, slots)
-			}
-		}
-	}
-	return nil
-}
-
 // secondFileSession is the current-session record a native second-game file
 // states through its campaign tail: the Scenario bank, the four shop
 // records (R2-SESSION-156, R2-SESSION-187), the availability records and

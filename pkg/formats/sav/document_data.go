@@ -728,17 +728,7 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 		}
 	}
 	out.Objects = b.objects
-	out.State.RootKind = d.state.rootKind
-	for _, k := range documentSortedKeys(d.state.directoryKinds) {
-		out.State.DirectoryRecords = append(out.State.DirectoryRecords, CityStateDirectoryData{k, d.state.directoryKinds[k]})
-	}
-	for _, k := range documentSortedKeys(d.state.values) {
-		v := d.state.values[k]
-		if v.kind != 2 {
-			v.int32 = 0 // Pool offsets are not retained scalar state.
-		}
-		out.State.ValueRecords = append(out.State.ValueRecords, CityStateRecordData{k, CityStateValueData{v.kind, v.int32, cityDataCopy(v.bytes)}})
-	}
+	out.State = parsedStateData(d.state)
 	out.Campaign = cityToDataCampaign(*d.campaign, nil)
 	// The shared city helper preserves allocated empty struct slices. Gob does
 	// not, so the complete DTO chooses nil for both before native adoption.

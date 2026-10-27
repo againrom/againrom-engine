@@ -7,6 +7,7 @@ import (
 	"math"
 	"slices"
 
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
 	"againrom/pkg/render/terrain"
@@ -82,7 +83,14 @@ func validateApplicationState(s *SnapshotApplicationState) error {
 }
 
 func readOriginalStateLeaf(doc *sav.DocumentData, path string, kind uint32) (sav.CityStateValueData, error) {
-	value, present, err := doc.State.ReadLeaf(path)
+	if doc == nil {
+		return sav.CityStateValueData{}, fmt.Errorf("original application document is absent")
+	}
+	return readStateLeaf(doc.State, path, kind)
+}
+
+func readStateLeaf(state sav.DocumentStateData, path string, kind uint32) (sav.CityStateValueData, error) {
+	value, present, err := state.ReadLeaf(path)
 	if err != nil {
 		return value, err
 	}
@@ -99,10 +107,16 @@ func readOriginalStateLeaf(doc *sav.DocumentData, path string, kind uint32) (sav
 }
 
 func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, error) {
-	var state OriginalStateData
 	if doc == nil {
-		return state, fmt.Errorf("original application document is absent")
+		return OriginalStateData{}, fmt.Errorf("original application document is absent")
 	}
+	return originalApplicationStateOf(doc.State, originalBookIDs)
+}
+
+// originalApplicationStateOf reads the application leaves of a state store;
+// rows is the book slot table the Pressed index names.
+func originalApplicationStateOf(store sav.DocumentStateData, rows []uint16) (OriginalStateData, error) {
+	var state OriginalStateData
 	for _, leaf := range []struct {
 		path string
 		dst  *int32
@@ -113,13 +127,13 @@ func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, err
 		{"/Inventory/IsOpen", &state.InventoryOpen}, {"/SpellBook/IsOpen", &state.BookOpen},
 		{"/SpellBook/Pressed", &state.Pressed}, {"/View/X", &state.ViewX}, {"/View/Y", &state.ViewY},
 	} {
-		value, err := readOriginalStateLeaf(doc, leaf.path, 2)
+		value, err := readStateLeaf(store, leaf.path, 2)
 		if err != nil {
 			return state, err
 		}
 		*leaf.dst = value.Int32
 	}
-	selection, err := readOriginalStateLeaf(doc, "/Objects/Selection", 6)
+	selection, err := readStateLeaf(store, "/Objects/Selection", 6)
 	if err != nil {
 		return state, err
 	}
@@ -132,20 +146,68 @@ func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, err
 	for i := range state.Selection {
 		state.Selection[i] = binary.LittleEndian.Uint32(selection.Bytes[4*i:])
 	}
-	if _, err := originalPressedSpellID(state.Pressed); err != nil {
+	if _, err := pressedSpellID(rows, state.Pressed); err != nil {
 		return state, err
 	}
 	return state, nil
 }
 
 func originalPressedSpellID(index int32) (uint32, error) {
+	return pressedSpellID(originalBookIDs, index)
+}
+
+// pressedSpellID is the spell a Pressed book slot index names in rows.
+func pressedSpellID(rows []uint16, index int32) (uint32, error) {
 	if index == -1 {
 		return 0, nil
 	}
-	if index < 0 || index >= int32(len(originalBookIDs)) {
-		return 0, fmt.Errorf("original application current spell index %d outside -1 or 0..23", index)
+	if index < 0 || index >= int32(len(rows)) {
+		return 0, fmt.Errorf("original application current spell index %d outside -1 or 0..%d", index, len(rows)-1)
 	}
-	return uint32(originalBookIDs[index]), nil
+	return uint32(rows[index]), nil
+}
+
+// fileApplication is a mission file's application state read from its
+// state store, with the runtime ID of each imported living actor.
+type fileApplication struct {
+	raw OriginalStateData
+	ids map[uint32]uint32
+}
+
+// readFileApplication reads a mission file's application state for a world
+// whose actors the file's import has bound.
+func readFileApplication(sf *sav.File, w *sim.World) (*fileApplication, error) {
+	store, present, err := sf.StateData()
+	if err != nil || !present {
+		return nil, err
+	}
+	raw, err := originalApplicationStateOf(store, data.SpellPresentationOf(w.SpellGame()).BookRows)
+	if err != nil {
+		return nil, err
+	}
+	ids := map[uint32]uint32{}
+	for _, e := range w.Entities() {
+		if e.Alive() && e.SourceBinding.Class >= 1 && e.SourceBinding.Class <= 3 {
+			ids[uint32(e.ID)] = e.SourceBinding.RuntimeID
+		}
+	}
+	return &fileApplication{raw: raw, ids: ids}, nil
+}
+
+// view is the file's first frame over the viewer's current state: camera,
+// selection, panels, options, the pressed spell and the speed's period.
+func (a *fileApplication) view(view ui.SaveApplicationState, rows []uint16) (*SnapshotApplicationState, error) {
+	selection, err := applicationSelection(a.raw.Selection, a.ids)
+	if err != nil {
+		return nil, err
+	}
+	raw := a.raw
+	view.Selection, view.ViewX, view.ViewY, view.Zoom = selection, float64(raw.ViewX), float64(raw.ViewY), 1
+	view.InventoryOpen, view.SpellBookOpen = raw.InventoryOpen != 0, raw.BookOpen != 0
+	view.ShowHealth, view.FlyingHP, view.TimeFlow = raw.ShowHP != 0, raw.FlyingHP != 0, raw.ShowTimeFlow != 0
+	view.PressedSpell, _ = pressedSpellID(rows, raw.Pressed)
+	view.PeriodUS, view.Unpaced = terrain.SpeedIndexPeriod(int(raw.Speed)), false
+	return &SnapshotApplicationState{Version: applicationStateVersion, View: view, Baseline: view, Original: raw, WimpyBaseline: normalizedWimpy(raw.Wimpy)}, nil
 }
 
 // Decode runs only after proving their total, so malformed counts cannot ask
@@ -341,37 +403,39 @@ func (mw *mapWorld) restoreApplicationState(s *SnapshotApplicationState, origina
 		// Legacy native snapshots did not record the current application. Their
 		// retained original Document cannot establish what the player changed.
 		// Preserve their nil additive field and ordinary native continuation.
-		if !original {
+		if mw.mission == nil || mw.mission.state == nil {
 			return nil
 		}
-		if mw.mission == nil || mw.mission.state == nil || mw.mission.state.savedDocument == nil || mw.mission.state.savedDocument.Document == nil {
-			return nil
+		// A mission file without a complete document gives its own state
+		// store's application state (the second game's mission files).
+		if file := mw.mission.state.fileApplication; !original && file != nil {
+			var err error
+			if s, err = file.view(mw.view.SaveApplication(), mw.spells().BookRows); err != nil {
+				return err
+			}
+		} else {
+			if !original || mw.mission.state.savedDocument == nil || mw.mission.state.savedDocument.Document == nil {
+				return nil
+			}
+			document := mw.mission.state.savedDocument
+			raw, err := readOriginalApplicationState(document.Document)
+			if err != nil {
+				return err
+			}
+			ids, err := applicationActorIDs(document.Document, document.Actors, mw.world)
+			if err != nil {
+				return err
+			}
+			if s, err = (&fileApplication{raw: raw, ids: ids}).view(mw.view.SaveApplication(), originalBookIDs); err != nil {
+				return err
+			}
+			actions, err := readCurrentActions(document.Document)
+			if err != nil {
+				return err
+			}
+			applyCurrentView(&s.View, raw, actions)
+			s.Baseline = s.View
 		}
-		document := mw.mission.state.savedDocument
-		raw, err := readOriginalApplicationState(document.Document)
-		if err != nil {
-			return err
-		}
-		ids, err := applicationActorIDs(document.Document, document.Actors, mw.world)
-		if err != nil {
-			return err
-		}
-		selection, err := applicationSelection(raw.Selection, ids)
-		if err != nil {
-			return err
-		}
-		view := mw.view.SaveApplication()
-		view.Selection, view.ViewX, view.ViewY, view.Zoom = selection, float64(raw.ViewX), float64(raw.ViewY), 1
-		view.InventoryOpen, view.SpellBookOpen = raw.InventoryOpen != 0, raw.BookOpen != 0
-		view.ShowHealth, view.FlyingHP, view.TimeFlow = raw.ShowHP != 0, raw.FlyingHP != 0, raw.ShowTimeFlow != 0
-		view.PressedSpell, _ = originalPressedSpellID(raw.Pressed)
-		view.PeriodUS, view.Unpaced = terrain.SpeedIndexPeriod(int(raw.Speed)), false
-		actions, err := readCurrentActions(document.Document)
-		if err != nil {
-			return err
-		}
-		applyCurrentView(&view, raw, actions)
-		s = &SnapshotApplicationState{Version: applicationStateVersion, View: view, Baseline: view, Original: raw, WimpyBaseline: normalizedWimpy(raw.Wimpy)}
 	}
 	if err := validateApplicationState(s); err != nil {
 		return err

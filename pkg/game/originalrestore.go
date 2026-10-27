@@ -52,6 +52,9 @@ type originalSource struct {
 	hasBuildings      bool
 	missionDocument   *SnapshotSAVDocument
 	documentOrigins   []sav.DocumentObjectOrigin
+	// fileView is that the first frame comes from the file's state store
+	// when it has no complete document.
+	fileView bool
 	// currentRandom is the random session the LOAD begins.
 	currentRandom random.Session
 	// guest is the mod mission or waiting guest the save records.
@@ -123,7 +126,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		tails: tails, hasTails: hasTails, cellRecords: cellRecords, hasCellRecords: hasCellRecords,
 		spellEffects: spellEffects, hasSpellEffects: hasSpellEffects, projectiles: projectiles,
 		hasProjectiles: hasProjectiles, diaryChars: diaryChars, diaryPlayerRec: diaryPlayerRec,
-		session: session, hasSession: hasSession, guest: guest}
+		session: session, hasSession: hasSession, guest: guest, fileView: stated.fileView}
 	if n != 0 {
 		src.missionDocument, src.documentOrigins = decodeSavedDocument(saved)
 		if err := validateOriginalApplicationSource(src.missionDocument.Document); err != nil {
@@ -504,6 +507,13 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 				return err
 			}
 			restoreLoadedRuntimeIDs(ms, missionDocument, documentOrigins)
+			if src.fileView && missionDocument.Document == nil {
+				app, err := readFileApplication(sf, ms.World)
+				if err != nil {
+					return err
+				}
+				ms.fileApplication = app
+			}
 			ms.resumeBookWalk = true
 			publishSessionEntry(ms)
 			currentGroups, _, _ := ms.World.SavedGroups()

@@ -45,6 +45,16 @@ func (f *File) GroundSacks() ([]GroundSack, bool, error) {
 	return groundSacks(doc, present)
 }
 
+// ExtraTokens counts the entries of the second game's Token list after the
+// Sacks (R2-ENGINE-601); the first game's document has no such list.
+func (f *File) ExtraTokens() (int, error) {
+	doc, present, err := f.exactDocument()
+	if err != nil || !present {
+		return 0, err
+	}
+	return len(doc.extra), nil
+}
+
 func groundSacks(doc *document, present bool) ([]GroundSack, bool, error) {
 	records := uniqueSackRecords(doc.sacks)
 	out := make([]GroundSack, 0, len(records))

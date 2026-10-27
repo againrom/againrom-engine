@@ -700,6 +700,15 @@ func (f *FrontEnd) LiveWorld() (*sim.World, bool) {
 	return f.live.world, true
 }
 
+// LiveApplication is the open map screen's application state, the same
+// value SAVE records, for a developer tool with no window (cmd/savecheck).
+func (f *FrontEnd) LiveApplication() (ui.SaveApplicationState, bool) {
+	if f.live == nil || f.live.view == nil {
+		return ui.SaveApplicationState{}, false
+	}
+	return f.live.view.SaveApplication(), true
+}
+
 // LiveNotice reports the open map screen's own notice state — its text, its
 // kind and whether one is open — for a developer tool with no window to read
 // one off (cmd/savecheck), the same reason LiveWorld exists. It is what a

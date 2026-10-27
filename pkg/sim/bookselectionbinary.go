@@ -51,7 +51,7 @@ func (w *World) unmarshalBookSelections(data []byte, proof formProof) error {
 		id := EntityID(binary.LittleEndian.Uint32(data[at:]))
 		index := indexOfEntity(next.entities, id)
 		spell := binary.LittleEndian.Uint16(data[at+4:])
-		if index < 0 || n > 0 && id <= prior || spell == 0 || spell > 28 {
+		if index < 0 || n > 0 && id <= prior || spell == 0 || !next.admitsSpellID(int(spell)) {
 			return fail()
 		}
 		prior = id

@@ -473,7 +473,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 				}
 				e.NativeBasis = *c.NativeBasis
 			}
-			if c.AdmittedBookSpell > 28 {
+			if !w.admitsSpellID(int(c.AdmittedBookSpell)) {
 				return fmt.Errorf("sim: invalid admitted book selection")
 			}
 			e.AdmittedBookSpell = c.AdmittedBookSpell

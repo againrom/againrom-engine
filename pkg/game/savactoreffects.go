@@ -31,7 +31,7 @@ func originalActorEffect(value sim.SavedEffectObject, target sim.EntityID) (sim.
 	e.Kind = kinds[value.Value.Kind]
 	// Tag 0 is the blank effect a second-game Stone Curse attaches; the
 	// importer admits it only where the World's row attaches one.
-	if value.Value.Mode == 0 || value.Value.Mode > 7 || e.Spell > 28 || e.Kind == sim.EffectNone && (value.Value.Kind != 0 || e.Spell == 0) || e.Spell == 0 && (value.Value.Mode > 2 || e.Kind != sim.EffectHealthRegeneration && e.Kind != sim.EffectManaRegeneration && e.Kind != sim.EffectAbsorption) {
+	if value.Value.Mode == 0 || value.Value.Mode > 7 || e.Spell >= sim.SpellIDLimit || e.Kind == sim.EffectNone && (value.Value.Kind != 0 || e.Spell == 0) || e.Spell == 0 && (value.Value.Mode > 2 || e.Kind != sim.EffectHealthRegeneration && e.Kind != sim.EffectManaRegeneration && e.Kind != sim.EffectAbsorption) {
 		return e, fmt.Errorf("unsupported actor Effect id%d/kind%d/mode%d", value.E0C, value.Value.Kind, value.Value.Mode)
 	}
 	return e, nil
@@ -165,7 +165,7 @@ func cloneSavedActorEffects(src *SnapshotSAVActorEffects, doc *sav.DocumentData,
 	for _, row := range src.Rows {
 		index, found := byActor[row.Entity]
 		key := [2]uint32{uint32(row.Entity), uint32(row.Spell)}
-		if !found || row.Spell > 28 || seen[key] || int(row.ObjectIndex) > len(doc.Objects) {
+		if !found || row.Spell >= sim.SpellIDLimit || seen[key] || int(row.ObjectIndex) > len(doc.Objects) {
 			return nil, fmt.Errorf("invalid saved actor-effect identity")
 		}
 		seen[key] = true

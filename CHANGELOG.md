@@ -20,7 +20,8 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] A mission can be saved after a Summon cast, and the creature loads back as it was. The hero's last cast spell also stays selected after a load when the spell was learned during the mission. Before, the save failed after a Summon, and the load forgot the spell.
-- [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold; a save made during a mission is listed but cannot be loaded yet.
+- [ROM2] A save the original game wrote during the first mission now loads, with every unit and building, the hero's items and full book, the saved view and the saved game speed. A spell in flight in such a save is not shown, does not land, and is dropped when you save again.
+- [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold.
 - [ROM1] When the purse is shorter than the school's price, Exit shows the shortfall as a negative number and Train stays pressable but teaches nothing, as in the original.
 - [ROM1] In the school a second click on the selected skill row unselects it, and Train then shows 0 and Exit the whole purse, as in the original.
 - [ROM1] In the school a skill row lights only when you select it; the idle shine that runs over the rows plays only while the school's tip is open.

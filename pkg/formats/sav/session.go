@@ -25,6 +25,9 @@ type SessionState struct {
 	RawMid            [rawMidLen]byte
 	Diplomacy         []byte
 	Won, Lost         uint32
+	// Unheld counts the nonzero result slots past the hundred Registers
+	// hold. Only the second game's block has such slots (DIV-4170).
+	Unheld int
 }
 
 // SessionState returns the hundred trigger result registers, the thousand
@@ -40,7 +43,7 @@ func (f *File) SessionState() (SessionState, error) {
 	if f == nil || f.World == nil {
 		return SessionState{}, fmt.Errorf("sav: this save has no world session")
 	}
-	if off := f.World.SessionOff; off < 0 || off > len(f.Body) || len(f.Body)-off < sessionLen {
+	if off := f.World.SessionOff; off < 0 || off > len(f.Body) || len(f.Body)-off < f.profile().sessionLen {
 		return SessionState{}, fmt.Errorf("sav: truncated world session")
 	}
 	out := SessionState{
@@ -60,6 +63,14 @@ func (f *File) SessionState() (SessionState, error) {
 		}
 		out.Registers[i] = v
 	}
+	l := f.layout()
+	for i := len(out.Registers); i < l.resultCount; i++ {
+		if v, err := f.TriggerResult(i); err != nil {
+			return SessionState{}, err
+		} else if v != 0 {
+			out.Unheld++
+		}
+	}
 	if out.RawHead, err = f.RawHead(); err != nil {
 		return SessionState{}, err
 	}
@@ -73,13 +84,19 @@ func (f *File) SessionState() (SessionState, error) {
 		}
 		out.TriggerLatches[i] = v
 	}
-	for from := 0; from < diplomacySide; from++ {
-		for to := 0; to < diplomacySide; to++ {
+	// A wider matrix gives its first 50x50 entries; a stance outside them
+	// has no place in the world's relations and is refused.
+	for from := 0; from < l.diplomacySide; from++ {
+		for to := 0; to < l.diplomacySide; to++ {
 			v, err := f.Diplomacy(from, to)
 			if err != nil {
 				return SessionState{}, err
 			}
-			out.Diplomacy[from*diplomacySide+to] = v
+			if from < diplomacySide && to < diplomacySide {
+				out.Diplomacy[from*diplomacySide+to] = v
+			} else if v != 0 {
+				return SessionState{}, fmt.Errorf("sav: diplomacy (%d,%d) lies outside the %dx%d relations", from, to, diplomacySide, diplomacySide)
+			}
 		}
 	}
 	return out, nil

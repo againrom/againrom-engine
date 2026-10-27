@@ -89,7 +89,10 @@ type Mission struct {
 	// runs here, before that tick's commands (MAGIC-420, DIV-4054).
 	resumeBookWalk bool
 	savedDocument  *SnapshotSAVDocument
-	pendingPickups []heldStack
+	// fileApplication is a mission file's own application state when the
+	// file has no complete document to give it.
+	fileApplication *fileApplication
+	pendingPickups  []heldStack
 
 	// DeadArt resolves a virtual corpse's TypeID. Original LOAD and the admitted
 	// document on native LOAD both reconstruct this presentation-only map.

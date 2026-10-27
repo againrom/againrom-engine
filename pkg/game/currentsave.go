@@ -138,6 +138,14 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	if err := w.UnmarshalBinary(s.World); err != nil {
 		return sav.DocumentData{}, err
 	}
+	if l := s.SavedDocument; l != nil && l.Document == nil {
+		leaveUnboundEffectsOut(&w)
+		raw, err := w.MarshalBinary()
+		if err != nil {
+			return sav.DocumentData{}, err
+		}
+		s.World = raw
+	}
 	// SAV-BLOCK-011/TERR-PASS-053: the caller's own NativeMissionTerrain
 	// choice, not whether a prior document exists -- an ordinary mission's
 	// own first-ever SAVE also has no prior document, and that save's round

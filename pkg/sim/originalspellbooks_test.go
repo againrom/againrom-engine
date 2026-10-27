@@ -106,3 +106,71 @@ func TestImportOriginalCreatureSlotsKeepClassSlotsOverAZeroSource(t *testing.T) 
 		t.Fatalf("a nonzero source did not replace the class slots: %v", got)
 	}
 }
+
+// A book naming a spell past its slots imports in a native mode only when
+// that spell is a row of the world's spell table.
+func TestImportOriginalBookPastItsSlotsNeedsATableSpell(t *testing.T) {
+	book := Spellbook{State: BookNativePresent}
+	book.Slots[23] = BookSpell{Range: 7, ManaCost: 5}
+	known := uint32(1<<24 | 1<<29)
+	for _, tc := range []struct {
+		name   string
+		spells []SpellRule
+		known  uint32
+		ok     bool
+	}{
+		{"table spell", []SpellRule{{ID: 24}, {ID: 29}}, known, true},
+		{"no table spell", []SpellRule{{ID: 24}}, known, false},
+		{"spell zero", []SpellRule{{ID: 24}, {ID: 29}}, known | 1, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := spWorld(t, 1105, tc.spells, spMage(0, 2, 2, 30, 50, 17, 1<<24))
+			hash := w.Hash()
+			err := w.ImportOriginalActorSpellbooks([]OriginalActorSpellbook{{ID: 0, KnownSpells: tc.known, Book: book}})
+			if tc.ok != (err == nil) {
+				t.Fatalf("import: %v, want ok %v", err, tc.ok)
+			}
+			if !tc.ok && w.Hash() != hash {
+				t.Fatal("a refused import changed the world")
+			}
+			if tc.ok && (w.entities[0].KnownSpells != known || w.entities[0].Book != book) {
+				t.Fatal("the imported book is not the source", w.entities[0].KnownSpells, w.entities[0].Book)
+			}
+		})
+	}
+}
+
+// An admitted book selection past the book's slots is held, written and read
+// back only while the world's spell table has its row.
+func TestAdmittedBookSelectionPastTheSlotsFollowsTheTable(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		spells []SpellRule
+		spell  uint16
+		ok     bool
+	}{
+		{"slot", []SpellRule{{ID: 24}}, 28, true},
+		{"table spell", []SpellRule{{ID: 24}, {ID: 29}}, 29, true},
+		{"no table spell", []SpellRule{{ID: 24}}, 29, false},
+		{"past the table", []SpellRule{{ID: 24}, {ID: 29}}, 30, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w := spWorld(t, 1105, tc.spells, spMage(0, 2, 2, 30, 50, 17, 1<<24))
+			w.entities[0].AdmittedBookSpell = tc.spell
+			raw, err := w.MarshalBinary()
+			if tc.ok != (err == nil) {
+				t.Fatalf("marshal: %v, want ok %v", err, tc.ok)
+			}
+			if !tc.ok {
+				return
+			}
+			var back World
+			if err := back.UnmarshalBinary(raw); err != nil {
+				t.Fatal(err)
+			}
+			if back.entities[0].AdmittedBookSpell != tc.spell || back.Hash() != w.Hash() {
+				t.Fatalf("read back %d, want %d", back.entities[0].AdmittedBookSpell, tc.spell)
+			}
+		})
+	}
+}

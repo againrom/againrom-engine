@@ -139,9 +139,13 @@ func (secondCampaignRules) enterMission(town *Town, n int) {
 }
 
 func (secondCampaignRules) seatWorld(r missionRequest, ms *Mission) error {
-	if r.fresh() && r.town != nil && r.town.second != nil {
+	// A fresh mission clears its span of the campaign bank; an original
+	// mission file's bank is the live one it saved and is seated unchanged.
+	if r.snap == nil && r.town != nil && r.town.second != nil {
 		bank := r.town.second.bank
-		clear(bank[752:768]) // R2-ENGINE-048
+		if r.fresh() {
+			clear(bank[752:768]) // R2-ENGINE-048
+		}
 		if !ms.World.SetROM2ScenarioState(bank) {
 			return fmt.Errorf("campaign mission has no ROM2 scenario bank")
 		}
@@ -339,12 +343,15 @@ func (secondCampaignRules) recordDifficulty(s Snapshot, record *currentSessionDa
 
 func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) { return 0, false }
 
-// fileState refuses what the engine cannot yet hold of a Bsg& file, then
-// reads its session from the campaign tail; an empty shortcut array binds
-// no cell (DIV-4153 to DIV-4156).
+// fileState reads a Bsg& file's session from the campaign tail; an empty
+// shortcut array binds no cell (DIV-4153, DIV-4154). A Token in the list
+// after the Sacks has no reader and refuses the file before any state
+// changes (DIV-4172).
 func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
-	if err := refuseSecondFileDebt(sf); err != nil {
+	if n, err := sf.ExtraTokens(); err != nil {
 		return originalFileState{}, err
+	} else if n != 0 {
+		return originalFileState{}, fmt.Errorf("this save's world holds %d Tokens after its Sacks, which this version does not read", n)
 	}
 	quick, err := fileQuickSpells(sf, true)
 	if err != nil {
@@ -355,7 +362,7 @@ func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
 		return originalFileState{}, err
 	}
 	session.Game = base.GameROM2
-	return originalFileState{quickSpells: quick, session: session}, nil
+	return originalFileState{quickSpells: quick, session: session, fileView: true}, nil
 }
 
 func (secondCampaignRules) ownsGame(g base.Game) error {

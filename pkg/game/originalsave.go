@@ -337,6 +337,10 @@ type OriginalSaveResume struct {
 	Sacks, GroundItems  int
 	GroundApplied       bool
 
+	// UnheldResults are the nonzero result slots, index and value, past
+	// the hundred the world holds; LOAD does not carry them (DIV-4170).
+	UnheldResults [][2]int32
+
 	UnsupportedItemEffects int
 
 	// FogCells is how many cells the save's explored-terrain record covers and
@@ -592,6 +596,15 @@ func censusOriginalBlocks(m *alm.Map, f *sav.File, r *OriginalSaveResume) {
 			r.Latches++
 		}
 	}
+	for i := len(sav.SessionState{}.Registers); ; i++ {
+		v, err := f.TriggerResult(i)
+		if err != nil {
+			break
+		}
+		if v != 0 {
+			r.UnheldResults = append(r.UnheldResults, [2]int32{int32(i), v})
+		}
+	}
 }
 
 // String is the report a driver prints.
@@ -605,6 +618,9 @@ func (r OriginalSaveResume) String() string {
 		continuity := "read and NOT APPLIED"
 		if r.SessionApplied {
 			continuity = "RESTORED (100 registers, 448 raw bytes)"
+		}
+		if len(r.UnheldResults) != 0 {
+			continuity += fmt.Sprintf("; result slots past the 100 NOT CARRIED (index, value): %v", r.UnheldResults)
 		}
 		world = fmt.Sprintf("blocks %d (%d cells the map leaves open, %d occupied), "+
 			"latches %d set, diplomacy %d cells, WIN/LOSE %d/%d and Player outcome %d %s",

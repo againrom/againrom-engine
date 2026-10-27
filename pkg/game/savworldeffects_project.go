@@ -32,7 +32,7 @@ func projectSavedWorldEffects(state *SnapshotSAVDocument, world *sim.World) erro
 		if state.WorldEffects == nil {
 			state.WorldEffects = &SnapshotSAVWorldEffects{Version: 1}
 		}
-		state.WorldEffects.Unavailable = "legacy native world effects have no current continuation bindings"
+		state.WorldEffects.Unavailable = unboundCarriedWorldEffects
 		return nil
 	}
 	if drivers != nil && len(drivers.Projectiles) > 0 && (state.WorldEffects != nil || len(drivers.Areas) == 0) {
@@ -46,7 +46,7 @@ func projectSavedWorldEffects(state *SnapshotSAVDocument, world *sim.World) erro
 			return fmt.Errorf("current world-effect Document bindings lost")
 		}
 		if len(world.SavedSpellEffects())+len(world.SavedProjectiles().Items) > 0 {
-			state.WorldEffects = &SnapshotSAVWorldEffects{Version: 1, Unavailable: "legacy native world effects have no current continuation bindings"}
+			state.WorldEffects = &SnapshotSAVWorldEffects{Version: 1, Unavailable: unboundCarriedWorldEffects}
 			return nil
 		}
 		// No record is left but the allocator has moved: the Document's own

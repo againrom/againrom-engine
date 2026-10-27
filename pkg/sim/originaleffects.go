@@ -16,7 +16,7 @@ func (w *World) ImportOriginalAttachedEffects(effects []ActiveEffect) error {
 	next := make([]attachedEffect, len(effects))
 	for i, effect := range effects {
 		ti := indexOfEntity(w.entities, effect.Target)
-		if ti < 0 || w.entities[ti].SourceBinding.Class == 0 || effect.HasCaster || effect.Caster != 0 || effect.Spell > 28 || effect.Kind < EffectHealth && !(effect.Kind == EffectNone && w.blankEffectRow(effect.Spell)) || effect.Kind > EffectManaRegeneration || effect.Mode == 0 || effect.Mode > 7 || effect.Magnitude != int32(int16(effect.Magnitude)) {
+		if ti < 0 || w.entities[ti].SourceBinding.Class == 0 || effect.HasCaster || effect.Caster != 0 || !w.admitsSpellID(int(effect.Spell)) || effect.Kind < EffectHealth && !(effect.Kind == EffectNone && w.blankEffectRow(effect.Spell)) || effect.Kind > EffectManaRegeneration || effect.Mode == 0 || effect.Mode > 7 || effect.Magnitude != int32(int16(effect.Magnitude)) {
 			return fmt.Errorf("sim: invalid original attachment %d", i)
 		}
 		if err := w.entities[ti].SourceBinding.Validate(w.entities[ti]); err != nil {

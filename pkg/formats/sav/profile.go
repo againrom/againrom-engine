@@ -19,6 +19,18 @@ type Profile struct {
 	// cellLen is the stride of the terrain's second list and sessionLen the
 	// extent of the session block (R2-SESSION-019, R2-ENGINE-603).
 	cellLen, sessionLen int
+	// cellTail is that a cell entry carries the first game's trigger tail
+	// and residue at payload +0x2c..+0x33. The second game's 62-byte entry
+	// (a u16 key and 60 raw bytes, R2-ENGINE-603) is read through the first
+	// game's fields up to +0x2b only (DIV-4171).
+	cellTail bool
+	// leafState is that StateData checks a mission file's state store by
+	// its grammar and root alone, leaving each leaf to the reader that takes
+	// it: the second game's store holds an empty shortcut array (DIV-4154)
+	// where the first game's exact shape wants four cells.
+	leafState bool
+	// session is where the session block's fields lie.
+	session sessionLayout
 	// extraList is the counted Token list after the Sacks that only the
 	// second game writes (R2-ENGINE-601).
 	extraList bool
@@ -33,7 +45,7 @@ type Profile struct {
 
 // FirstGame is the first game's profile, the one every engine document uses.
 var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgramme,
-	cellLen: cellRecLen, sessionLen: sessionLen, maxSpellID: 28}
+	cellLen: cellRecLen, cellTail: true, sessionLen: sessionLen, session: firstSessionLayout, maxSpellID: 28}
 
 // SecondGame is the second game's `Bsg&` profile. Its Token head stores the
 // +0x0c word as u16 (38 bytes, R2-ENGINE-209); Unit carries a 184-byte sixth
@@ -43,12 +55,36 @@ var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgr
 // (R2-ENGINE-603). Humanoid's raw 24 holds the main skill and the five school
 // experiences (R2-ENGINE-320).
 var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgrammes(), group: groupProgramme,
-	cellLen: secondCellLen, sessionLen: secondSessionLen, extraList: true, maxSpellID: 29, mainSkill: true}
+	cellLen: secondCellLen, sessionLen: secondSessionLen, session: secondSessionLayout, leafState: true,
+	extraList: true, maxSpellID: 29, mainSkill: true}
 
 const (
 	secondCellLen    = 62
 	secondSessionLen = 10374
 )
+
+// sessionLayout places the session block's fields: offsets from the block's
+// first byte, the result slot count and the diplomacy matrix side.
+type sessionLayout struct {
+	results, latches, rawHead, rawMid, diplomacy, won, lost int
+	resultCount, diplomacySide                              int
+}
+
+var firstSessionLayout = sessionLayout{
+	results: sessTriggerResults, latches: sessTriggerLatches, rawHead: sessRawHead, rawMid: sessRawMid,
+	diplomacy: sessDiplomacy, won: sessWon, lost: sessLose,
+	resultCount: triggerResultCount, diplomacySide: diplomacySide,
+}
+
+// secondSessionLayout reads the second game's widths (R2-SESSION-019) with
+// the first game's fields by position: 1,000 result slots, the 1,000 latches,
+// the two raw regions, an 8-byte head and a 70x70 matrix, then the same
+// 18-byte tail. The slot and matrix readings are inference (DIV-4170).
+var secondSessionLayout = sessionLayout{
+	results: 0, latches: 4000, rawHead: 5000, rawMid: 5048,
+	diplomacy: 5456, won: 10362, lost: 10370,
+	resultCount: 1000, diplomacySide: 70,
+}
 
 // profiles are the envelopes Open accepts, by magic.
 var profiles = []*Profile{FirstGame, SecondGame}

@@ -2178,7 +2178,7 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 		return nil, err
 	}
 	for _, e := range w.entities {
-		if e.AdmittedBookSpell > 28 {
+		if !w.admitsSpellID(int(e.AdmittedBookSpell)) {
 			return nil, fmt.Errorf("invalid admitted book selection")
 		}
 	}

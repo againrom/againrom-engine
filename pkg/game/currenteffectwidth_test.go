@@ -266,7 +266,7 @@ func TestCurrentEffectWidthMalformedLOADIsAtomic(t *testing.T) {
 			case "zero anchor":
 				row.Anchor = [32]byte{}
 			case "spell range":
-				row.Spell = 29
+				row.Spell = sim.SpellIDLimit
 			}
 			leaf, err := json.Marshal(a)
 			if err == nil {

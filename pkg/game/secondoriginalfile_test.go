@@ -11,8 +11,10 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/base"
+	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 )
@@ -115,6 +117,8 @@ type secondOriginalHero struct {
 	xp         [5]uint32
 	experience uint32
 	worn, bag  []secondPiece
+	held       *secondPiece // the weapon in the hand
+	cell       [2]uint8     // the Position's cell
 	spells     []uint8
 	bookSlots  int
 }
@@ -124,7 +128,10 @@ type secondOriginalHero struct {
 // (R2-ENGINE-320), twelve worn references and no Diary (R2-ENGINE-208).
 func (s *secondStream) human(h secondOriginalHero) {
 	s.obj("Human")
+	at := len(s.b)
 	s.token(1, h.defRow, h.mapUnitID, 0, h.key)
+	// The cell, then the previous cell.
+	copy(s.b[at:], []byte{h.cell[0], h.cell[1], h.cell[0], h.cell[1]})
 	s.u32(0) // no effects
 	s.u16(0) // two empty route lists
 	s.u16(0)
@@ -135,8 +142,14 @@ func (s *secondStream) human(h secondOriginalHero) {
 	s.raw(10)
 	s.raw(22 + 24 + 64 + 180 + 184)
 	s.u16(0)
-	s.raw(19)
-	s.null() // weapon
+	s.u8(1) // one cell wide
+	s.u8(1) // the ground movement domain
+	s.raw(17)
+	if h.held != nil {
+		s.item(*h.held)
+	} else {
+		s.null() // weapon
+	}
 	s.null() // shield
 	s.cstr(h.name)
 	for _, v := range h.stats {
@@ -211,6 +224,12 @@ func secondSavedBody(mission uint32, money uint32, hero *secondOriginalHero) []b
 // world is set: no Buildings, effects, terrain, Sacks or extra Tokens, and
 // the second game's 10,374-byte session (R2-SESSION-235, R2-ENGINE-603).
 func secondSavedDocument(mission uint32, money uint32, hero *secondOriginalHero, world bool) []byte {
+	return secondSavedWorld(mission, money, hero, world, 0)
+}
+
+// secondSavedWorld is secondSavedDocument with extra Tokens in the list
+// after the Sacks.
+func secondSavedWorld(mission uint32, money uint32, hero *secondOriginalHero, world bool, extra int) []byte {
 	s := &secondStream{next: 1, classes: map[string]uint16{}}
 	s.u32(0x50)
 	s.u32(0x05)
@@ -267,7 +286,11 @@ func secondSavedDocument(mission uint32, money uint32, hero *secondOriginalHero,
 	s.u16(0) // terrain cells
 	s.raw(4 + 10374)
 	s.u32(0) // Sacks
-	s.u32(0) // extra Tokens
+	s.u32(uint32(extra))
+	for i := range extra {
+		s.obj("Token")
+		s.token(uint32(100+i), 0, 0, 0, 0x0e000001+uint32(i))
+	}
 	return savedTrailer(s.b)
 }
 
@@ -493,9 +516,10 @@ func TestOriginalQuickSpellsEmptyArrayIsTheSecondGamesOnly(t *testing.T) {
 	}
 }
 
-// A mission-like file and a book past the engine's 28 slots refuse before
-// any state changes (DIV-4155, DIV-4156); the town above passes.
-func TestRefuseSecondFileDebt(t *testing.T) {
+// A mission-like file and a book holding spell 29 read their session and
+// shortcuts with the town's rules, and the mission file's first frame comes
+// from its state store.
+func TestSecondMissionFileStateReads(t *testing.T) {
 	open := func(b []byte) *sav.File {
 		t.Helper()
 		sf, err := sav.Open(b)
@@ -504,18 +528,34 @@ func TestRefuseSecondFileDebt(t *testing.T) {
 		}
 		return sf
 	}
-	if err := refuseSecondFileDebt(open(secondFixtureTown("town", secondFixtureHero(), 44))); err != nil {
-		t.Fatalf("town: %v", err)
-	}
 	hero := secondFixtureHero()
-	mission := labelledContainer(sav.SecondGame.Magic, "mission", secondSavedDocument(10, 44, &hero, true),
-		append(shortcutsStore(), secondSavedTail(0, [2]uint32{10, placeMission})...))
-	if err := refuseSecondFileDebt(open(mission)); err == nil || !strings.Contains(err.Error(), "mission 10") {
-		t.Fatalf("mission: %v", err)
-	}
 	hero.spells, hero.bookSlots = []uint8{24, 29}, 30
-	if err := refuseSecondFileDebt(open(secondFixtureTown("town", hero, 44))); err == nil || !strings.Contains(err.Error(), "spell 29") {
-		t.Fatalf("spell 29: %v", err)
+	for _, b := range [][]byte{secondFixtureTown("town", hero, 44), secondMissionFile(hero, secondMissionStore(4, 0, -1))} {
+		sf := open(b)
+		stated, err := fileCampaign(sf).fileState(sf)
+		if err != nil || !stated.fileView || stated.session == nil || stated.session.Second == nil {
+			t.Fatalf("fileState %+v %v", stated, err)
+		}
+		chars, err := sf.Party()
+		if err != nil || len(chars) != 1 || len(chars[0].Spells) != 2 || chars[0].Spells[1].ID != 29 {
+			t.Fatalf("book %+v %v", chars, err)
+		}
+	}
+	extra := open(labelledContainer(sav.SecondGame.Magic, "mission", secondSavedWorld(10, 44, &hero, true, 1),
+		append(secondMissionStore(4, 0, -1), secondSavedTail(0, [2]uint32{10, placeMission})...)))
+	if n, err := extra.ExtraTokens(); n != 1 || err != nil {
+		t.Fatalf("extra Tokens %d %v", n, err)
+	}
+	if _, err := fileCampaign(extra).fileState(extra); err == nil || !strings.Contains(err.Error(), "after its Sacks") {
+		t.Fatalf("a Token after the Sacks: %v", err)
+	}
+	store, present, err := open(secondMissionFile(hero, secondMissionStore(8, 1, 6))).StateData()
+	if err != nil || !present {
+		t.Fatalf("StateData %v %v", present, err)
+	}
+	raw, err := originalApplicationStateOf(store, data.SpellPresentationOf(rules.SpellGameSecond).BookRows)
+	if err != nil || raw.Speed != 8 || raw.BookOpen != 1 || raw.Pressed != 6 || raw.ViewX != 8 || raw.ViewY != 29 || raw.Selection[0] != 1 {
+		t.Fatalf("application %+v %v", raw, err)
 	}
 }
 

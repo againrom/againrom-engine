@@ -19,6 +19,11 @@ func (f *File) CellTriggers() ([]CellTrigger, bool, error) {
 	if err != nil || !present {
 		return nil, present, err
 	}
+	if !f.profile().cellTail {
+		// An entry without the first game's tail holds no trigger this
+		// package reads; the map's own cells stand (DIV-4171).
+		return nil, false, nil
+	}
 	w := doc.world
 	out := make([]CellTrigger, w.CellRecCount)
 	for i := range out {

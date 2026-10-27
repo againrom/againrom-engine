@@ -523,6 +523,29 @@ func validateSavedWorldEffectsWorld(state *SnapshotSAVDocument, world *sim.World
 // loaded Document, so it never refuses a save (DIV-1814).
 const unboundProjectileConsumers = "projectile picture-specific notification, view-slot, quake and chain-link consumers are not bound"
 
+// unboundCarriedWorldEffects marks a World that carries a loaded file's spell
+// effects or projectiles with no continuation bound to them.
+const unboundCarriedWorldEffects = "legacy native world effects have no current continuation bindings"
+
+// leaveUnboundEffectsOut drops from a SAVE's copy of the World what a LOAD
+// without a decoded document carried with no continuation: the file's spell
+// effects and each projectile no driver row moves. Every writer of the
+// document then reads the same projectiles. Any game's such LOAD takes it
+// (DIV-4175).
+func leaveUnboundEffectsOut(w *sim.World) {
+	driven := map[uint16]bool{}
+	if d := w.SavedWorldEffectDrivers(); d != nil {
+		for _, p := range d.Projectiles {
+			driven[p.ID] = true
+		}
+	}
+	store := w.SavedProjectiles()
+	store.Items = slices.DeleteFunc(store.Items, func(p sim.SavedProjectile) bool { return !driven[p.ID] })
+	store.IDs = slices.DeleteFunc(store.IDs, func(id uint16) bool { return !driven[id] })
+	w.SetSavedProjectiles(store)
+	w.SetSavedSpellEffects(nil)
+}
+
 func (m *SnapshotSAVWorldEffects) unavailable(reason string) {
 	if !strings.Contains(m.Unavailable, reason) {
 		if m.Unavailable != "" {

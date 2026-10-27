@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 
 	"againrom/pkg/game"
 	"againrom/pkg/sim"
@@ -50,6 +51,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 	healWitness := fs.String("heal-witness", "", "run the full-health, wound-one, stop-at-full idle-heal witness for this stable member id")
 	campaignProgress := fs.Bool("campaign-progress", false, "print restored campaign state and drive its live mission completion headlessly")
 	party := fs.Bool("party", false, "print each loaded party member's statistics, pools, equipment and book, and the second campaign's place and bag")
+	witness := fs.Int("witness", 0, "after loading, print units per Player, the hero, structures, effects and the first frame's view, then run this many ticks")
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(stderr, "savecheck:", err)
 		return 2
@@ -85,7 +87,68 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 		return doSave(front, store, *mission, *ticks, stdout, stderr)
 	}
 	return doLoad(front, store, original, *name, *resave, *rebuild, *controlMember, *killMember,
-		*healWitness, *campaignProgress, *party, stdout, stderr)
+		*healWitness, *campaignProgress, *party, *witness, stdout, stderr)
+}
+
+// reportWitness prints what a LOAD put on the map before its first frame:
+// the living and dead units of each Player, the controlled actors, the saved
+// structures and effects, the scenario bank, the application view, and the
+// hash after ticks more ticks.
+func reportWitness(front *game.FrontEnd, w *sim.World, ticks int, stdout io.Writer) {
+	alive, dead := map[uint32]int{}, map[uint32]int{}
+	var owners []uint32
+	for _, e := range w.Entities() {
+		if alive[e.Owner]+dead[e.Owner] == 0 {
+			owners = append(owners, e.Owner)
+		}
+		if e.Alive() {
+			alive[e.Owner]++
+		} else {
+			dead[e.Owner]++
+		}
+	}
+	slices.Sort(owners)
+	for _, o := range owners {
+		fmt.Fprintf(stdout, "savecheck: witness player %d units %d alive %d dead\n", o, alive[o], dead[o])
+	}
+	for _, m := range front.LiveParty() {
+		h := m.Hero
+		fmt.Fprintf(stdout, "savecheck: witness member %s attributes %d/%d/%d/%d skills %v\n",
+			m.ID, h.Body, h.Reaction, h.Mind, h.Spirit, h.Skill)
+	}
+	for _, e := range w.Entities() {
+		if e.Owner != sim.SelfSlot || !e.Alive() {
+			continue
+		}
+		eq, _ := w.Equipped(e.ID)
+		items, _ := w.Carried(e.ID)
+		fmt.Fprintf(stdout, "savecheck: witness actor %d at %d/%d hp %d/%d mana %d/%d skill %v xp %v book %#x state %d worn %v carried %v\n",
+			e.ID, e.X, e.Y, e.HP, e.MaxHP, e.Mana, e.MaxMana, e.Skill, e.SkillXP, e.KnownSpells, e.Book.State, eq, items)
+	}
+	structures, cells, _ := w.SavedStructures()
+	classes := map[sim.SavedStructureClass]int{}
+	for _, s := range structures {
+		classes[s.Class]++
+	}
+	fmt.Fprintf(stdout, "savecheck: witness structures %d saved %v cells %d live %d\n",
+		len(structures), classes, len(cells), len(w.Structures()))
+	fmt.Fprintf(stdout, "savecheck: witness effects %d projectiles %d sacks %d\n",
+		len(w.SavedSpellEffects()), len(w.SavedProjectiles().Items), len(w.Sacks()))
+	if bank, ok := w.ROM2ScenarioState(); ok {
+		set := 0
+		for _, v := range bank {
+			if v != 0 {
+				set++
+			}
+		}
+		fmt.Fprintf(stdout, "savecheck: witness bank %d set, 768=%d 769=%d\n", set, bank[768], bank[769])
+	}
+	if a, ok := front.LiveApplication(); ok {
+		fmt.Fprintf(stdout, "savecheck: witness view %.0f/%.0f zoom %.2f selection %v book open %v inventory open %v pressed %d period %dus paused %v\n",
+			a.ViewX, a.ViewY, a.Zoom, a.Selection, a.SpellBookOpen, a.InventoryOpen, a.PressedSpell, a.PeriodUS, a.PlayerPaused)
+	}
+	front.LiveAdvance(ticks)
+	fmt.Fprintf(stdout, "savecheck: witness after %d ticks: tick %d hash %016x\n", ticks, w.Tick(), w.Hash())
 }
 
 // doSave starts a mission through the SAME opener the game's own door uses,
@@ -144,7 +207,7 @@ func doTownSave(front *game.FrontEnd, store game.SaveStore, stdout, stderr io.Wr
 // doLoad is the second process: it knows nothing but the directory.
 func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalStore, want string,
 	resave bool, rebuild int, controlMember bool, killMember, healWitness string, campaignProgress, party bool,
-	stdout, stderr io.Writer) int {
+	witness int, stdout, stderr io.Writer) int {
 	// THE LIST COMES THROUGH THE SEAM and not from store.List, because the seam
 	// is what the LOAD GAME window calls: a tool that read the directory itself
 	// would pass while the window showed nothing.
@@ -261,6 +324,9 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 		"%d of %d cells explored (%.1f%%)\n",
 		w.Tick(), w.Hash(), w.Purse(sim.SelfSlot), len(w.Entities()), front.LiveCommanded(), cells, total, pct)
 	reportUpgradeRepairs(stdout, w)
+	if witness > 0 && !resave {
+		reportWitness(front, w, witness, stdout)
+	}
 	if campaignProgress {
 		before := front.LiveCampaignProgress()
 		fmt.Fprintf(stdout, "savecheck: campaign before completion: restored=%v main=%d selected=%d children=%v announced=%v inn=%v shop=%v school=%v documents=%d markers=%v mission-time=%d\n",

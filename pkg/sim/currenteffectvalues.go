@@ -21,7 +21,7 @@ func restoreAttachedEffectWidths(w *World, values map[EntityID]ActorValues) erro
 		seen := map[uint16]bool{}
 		for _, row := range rows {
 			magnitude := int64(int16(row.Wire)) + row.Lift
-			if row.Spell > 28 || seen[row.Spell] || row.Lift == 0 || row.Lift%65536 != 0 || row.Lift < -1<<31 || row.Lift > 1<<31 || magnitude < -1<<31 || magnitude > 1<<31-1 {
+			if !w.admitsSpellID(int(row.Spell)) || seen[row.Spell] || row.Lift == 0 || row.Lift%65536 != 0 || row.Lift < -1<<31 || row.Lift > 1<<31 || magnitude < -1<<31 || magnitude > 1<<31-1 {
 				return fmt.Errorf("sim: invalid current effect magnitude lift")
 			}
 			seen[row.Spell] = true

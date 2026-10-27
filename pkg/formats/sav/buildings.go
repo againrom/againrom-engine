@@ -20,15 +20,17 @@ type Building struct {
 	ArchiveIndex         uint16
 	Position             [12]byte
 	RuntimeID            uint32
-	Token0C              uint8
-	Token0E, Token18     uint16
-	Token1C, Reference   uint32
-	Base52               [22]byte
-	Field46              uint16
-	Field48              uint8
-	Tavern9C, Shop70     uint32
-	OutpostWords         [4]uint32 // +84, +88, +80, +8c in serializer order
-	OutpostRecords       [][8]byte
+	// Token0C is a byte in the first game and a word in the second
+	// (R2-ENGINE-209).
+	Token0C            uint16
+	Token0E, Token18   uint16
+	Token1C, Reference uint32
+	Base52             [22]byte
+	Field46            uint16
+	Field48            uint8
+	Tavern9C, Shop70   uint32
+	OutpostWords       [4]uint32 // +84, +88, +80, +8c in serializer order
+	OutpostRecords     [][8]byte
 }
 
 // Buildings reads the counted document list, validates the complete archive
@@ -72,7 +74,7 @@ func (f *File) Buildings() ([]Building, bool, error) {
 			Width: uint8(record.value("B60")), Height: uint8(record.value("B61")),
 			Blocking: record.value("B64"), Attach: record.value("B68"),
 			ArchiveIndex: record.Index, RuntimeID: record.value("RuntimeID"),
-			Token0C: uint8(record.value("T0C")), Token0E: uint16(record.value("T0E")),
+			Token0C: uint16(record.value("T0C")), Token0E: uint16(record.value("T0E")),
 			Token18: uint16(record.value("T18")), Token1C: record.value("T1C"), Reference: record.value("Reference"),
 			Field46: uint16(record.value("B46")), Field48: uint8(record.value("B48")),
 			Tavern9C: record.value("T9C"), Shop70: record.value("S70"),
@@ -112,7 +114,7 @@ func (f *File) StructureCells() ([]StructureCell, bool, error) {
 	}
 	out := make([]StructureCell, doc.world.CellRecCount)
 	for i := range out {
-		off := doc.world.CellRecDataOff + i*cellRecLen
+		off := doc.world.CellRecDataOff + i*f.profile().cellLen
 		out[i] = StructureCell{Cell: u16(f.Body, off), BaselineCost: f.Body[off+2],
 			BaselineStatic: f.Body[off+3], BuildingKey: u32(f.Body, off+2+12)}
 	}

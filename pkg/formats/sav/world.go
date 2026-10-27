@@ -120,8 +120,9 @@ func (f *File) CellRecord(i int) ([]byte, error) {
 	if i < 0 || i >= w.CellRecCount {
 		return nil, fmt.Errorf("sav: cell record %d of %d", i, w.CellRecCount)
 	}
-	off := w.CellRecDataOff + cellRecLen*i
-	return f.Body[off : off+cellRecLen], nil
+	n := f.profile().cellLen
+	off := w.CellRecDataOff + n*i
+	return f.Body[off : off+n], nil
 }
 
 // SetBlockRecord writes the two bytes of one block-plane delta record. The cell
@@ -142,10 +143,10 @@ func (f *File) SetBlockRecord(i int, dyn, static uint8) error {
 	return nil
 }
 
-// TriggerResult reads one of the hundred signed trigger result slots, and
+// TriggerResult reads one of the profile's signed trigger result slots, and
 // SetTriggerResult writes one.
 func (f *File) TriggerResult(i int) (int32, error) {
-	off, err := f.sessionAt(sessTriggerResults+4*i, i, triggerResultCount)
+	off, err := f.sessionAt(f.layout().results+4*i, i, f.layout().resultCount)
 	if err != nil {
 		return 0, err
 	}
@@ -153,7 +154,7 @@ func (f *File) TriggerResult(i int) (int32, error) {
 }
 
 func (f *File) SetTriggerResult(i int, v int32) error {
-	off, err := f.sessionAt(sessTriggerResults+4*i, i, triggerResultCount)
+	off, err := f.sessionAt(f.layout().results+4*i, i, f.layout().resultCount)
 	if err != nil {
 		return err
 	}
@@ -167,7 +168,7 @@ func (f *File) SetTriggerResult(i int, v int32) error {
 // byte for byte, never inspected or validated.
 func (f *File) RawHead() ([rawHeadLen]byte, error) {
 	var out [rawHeadLen]byte
-	off, err := f.sessionRange(sessRawHead, rawHeadLen)
+	off, err := f.sessionRange(f.layout().rawHead, rawHeadLen)
 	if err != nil {
 		return out, err
 	}
@@ -176,7 +177,7 @@ func (f *File) RawHead() ([rawHeadLen]byte, error) {
 }
 
 func (f *File) SetRawHead(v [rawHeadLen]byte) error {
-	off, err := f.sessionRange(sessRawHead, rawHeadLen)
+	off, err := f.sessionRange(f.layout().rawHead, rawHeadLen)
 	if err != nil {
 		return err
 	}
@@ -188,7 +189,7 @@ func (f *File) SetRawHead(v [rawHeadLen]byte) error {
 // SetRawMid writes it. Same opaque treatment as RawHead, above.
 func (f *File) RawMid() ([rawMidLen]byte, error) {
 	var out [rawMidLen]byte
-	off, err := f.sessionRange(sessRawMid, rawMidLen)
+	off, err := f.sessionRange(f.layout().rawMid, rawMidLen)
 	if err != nil {
 		return out, err
 	}
@@ -197,7 +198,7 @@ func (f *File) RawMid() ([rawMidLen]byte, error) {
 }
 
 func (f *File) SetRawMid(v [rawMidLen]byte) error {
-	off, err := f.sessionRange(sessRawMid, rawMidLen)
+	off, err := f.sessionRange(f.layout().rawMid, rawMidLen)
 	if err != nil {
 		return err
 	}
@@ -209,7 +210,7 @@ func (f *File) SetRawMid(v [rawMidLen]byte) error {
 // writes one. A latch is the record that a trigger has already fired, so
 // clearing one is how a save is made to run an arm again.
 func (f *File) TriggerLatch(i int) (uint8, error) {
-	off, err := f.sessionAt(sessTriggerLatches+i, i, triggerLatchCount)
+	off, err := f.sessionAt(f.layout().latches+i, i, triggerLatchCount)
 	if err != nil {
 		return 0, err
 	}
@@ -217,7 +218,7 @@ func (f *File) TriggerLatch(i int) (uint8, error) {
 }
 
 func (f *File) SetTriggerLatch(i int, v uint8) error {
-	off, err := f.sessionAt(sessTriggerLatches+i, i, triggerLatchCount)
+	off, err := f.sessionAt(f.layout().latches+i, i, triggerLatchCount)
 	if err != nil {
 		return err
 	}
@@ -225,7 +226,8 @@ func (f *File) SetTriggerLatch(i int, v uint8) error {
 	return nil
 }
 
-// Diplomacy reads one entry of the 50x50 matrix, and SetDiplomacy writes one.
+// Diplomacy reads one entry of the profile's square matrix, and SetDiplomacy
+// writes one.
 // The matrix is not symmetric in the original — a side may regard another
 // differently from how it is regarded — so both indices are the caller's.
 func (f *File) Diplomacy(a, b int) (uint8, error) {
@@ -246,10 +248,11 @@ func (f *File) SetDiplomacy(a, b int, v uint8) error {
 }
 
 func (f *File) diplomacyAt(a, b int) (int, error) {
-	if a < 0 || a >= diplomacySide || b < 0 || b >= diplomacySide {
-		return 0, fmt.Errorf("sav: diplomacy (%d,%d) outside a %dx%d matrix", a, b, diplomacySide, diplomacySide)
+	l := f.layout()
+	if a < 0 || a >= l.diplomacySide || b < 0 || b >= l.diplomacySide {
+		return 0, fmt.Errorf("sav: diplomacy (%d,%d) outside a %dx%d matrix", a, b, l.diplomacySide, l.diplomacySide)
 	}
-	return f.sessionAt(sessDiplomacy+a*diplomacySide+b, 0, 1)
+	return f.sessionAt(l.diplomacy+a*l.diplomacySide+b, 0, 1)
 }
 
 // Counters reads the session's win and lose counters.
@@ -258,11 +261,11 @@ func (f *File) diplomacyAt(a, b int) (int, error) {
 // the moment a mission ends, which is exactly when a campaign needs to know it
 // was won; the flag is the Player record's own latch.
 func (f *File) Counters() (won, lost uint32, err error) {
-	w, e := f.sessionAt(sessWon, 0, 1)
+	w, e := f.sessionAt(f.layout().won, 0, 1)
 	if e != nil {
 		return 0, 0, e
 	}
-	l, e := f.sessionAt(sessLose, 0, 1)
+	l, e := f.sessionAt(f.layout().lost, 0, 1)
 	if e != nil {
 		return 0, 0, e
 	}
@@ -271,11 +274,11 @@ func (f *File) Counters() (won, lost uint32, err error) {
 
 // SetCounters writes them.
 func (f *File) SetCounters(won, lost uint32) error {
-	w, err := f.sessionAt(sessWon, 0, 1)
+	w, err := f.sessionAt(f.layout().won, 0, 1)
 	if err != nil {
 		return err
 	}
-	l, err := f.sessionAt(sessLose, 0, 1)
+	l, err := f.sessionAt(f.layout().lost, 0, 1)
 	if err != nil {
 		return err
 	}
@@ -294,8 +297,8 @@ func (f *File) sessionAt(delta, i, n int) (int, error) {
 	if i < 0 || i >= n {
 		return 0, fmt.Errorf("sav: index %d of %d", i, n)
 	}
-	if delta < 0 || delta+4 > sessionLen {
-		return 0, fmt.Errorf("sav: session offset %d outside the %d-byte block", delta, sessionLen)
+	if n := f.profile().sessionLen; delta < 0 || delta+4 > n {
+		return 0, fmt.Errorf("sav: session offset %d outside the %d-byte block", delta, n)
 	}
 	return f.World.SessionOff + delta, nil
 }
@@ -307,11 +310,14 @@ func (f *File) sessionRange(delta, n int) (int, error) {
 	if f.World == nil {
 		return 0, fmt.Errorf("sav: this save has no world half and therefore no session block")
 	}
-	if delta < 0 || n < 0 || delta+n > sessionLen {
-		return 0, fmt.Errorf("sav: session span [%d,%d) outside the %d-byte block", delta, delta+n, sessionLen)
+	if size := f.profile().sessionLen; delta < 0 || n < 0 || delta+n > size {
+		return 0, fmt.Errorf("sav: session span [%d,%d) outside the %d-byte block", delta, delta+n, size)
 	}
 	return f.World.SessionOff + delta, nil
 }
+
+// layout is the file's session block layout.
+func (f *File) layout() sessionLayout { return f.profile().session }
 
 func put16(b []byte, off int, v uint16) { binary.LittleEndian.PutUint16(b[off:], v) }
 func put32(b []byte, off int, v uint32) { binary.LittleEndian.PutUint32(b[off:], v) }

@@ -52,7 +52,9 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 		id := sim.StructureID(len(ms.Map.Objects) + i)
 		ss := sim.SavedStructure{SourceKey: s.Identity, ArchiveIndex: s.ArchiveIndex,
 			AuthoredID: s.AuthoredID, Position: s.Position, RuntimeID: s.RuntimeID,
-			Token0C: s.Token0C, Token0E: s.Token0E, Token18: s.Token18, Token1C: s.Token1C,
+			// The structure keeps the word's low byte: the high byte of the
+			// second game's word has no holder or consumer (DIV-4172).
+			Token0C: uint8(s.Token0C), Token0E: s.Token0E, Token18: s.Token18, Token1C: s.Token1C,
 			Reference: s.Reference, Base52: s.Base52, Kind: s.Kind, Field46: s.Field46,
 			Field48: s.Field48, Blocking: s.Blocking, Tavern9C: s.Tavern9C, Shop70: s.Shop70,
 			OutpostWords: s.OutpostWords, OutpostRecords: s.OutpostRecords}
@@ -72,7 +74,10 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			counts.Unmatched++
 		}
 		switch s.Class {
-		case "Building":
+		case "Building", "Pointer":
+			// The second game's Pointer is a Building with one more word
+			// (R2-ENGINE-603); it keeps the Building's policy and the word
+			// has no consumer here (DIV-4172).
 			ss.Class = sim.SavedBuilding
 		case "Outpost":
 			ss.Class = sim.SavedOutpost
