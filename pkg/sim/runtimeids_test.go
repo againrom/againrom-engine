@@ -115,6 +115,26 @@ func TestRuntimeIDFaultRefusesCarriedOrUnorderedOrphans(t *testing.T) {
 	}
 }
 
+func TestRuntimeIDHeldCorpseKeepsTheDeadManagerIDWhenPlaced(t *testing.T) {
+	w := deadWorld(t)
+	if err := w.ImportOriginalDeadActors([]OriginalDeadActor{deadInput(1, 3, -40)}); err != nil {
+		t.Fatal(err)
+	}
+	w.InsertActorRuntimeIDs([]EntityID{1})
+	if err := w.HeadlessPlace(1, 6, 6); err != nil {
+		t.Fatal(err)
+	}
+	if got := runtimeIDOf(t, w, 1); got != 0 {
+		t.Fatalf("placed corpse took allocator id %d", got)
+	}
+	if d := w.OriginalDeadActors(); len(d) != 1 || d[0].Current.RuntimeID != 31 {
+		t.Fatalf("dead manager id %+v, want 31", d)
+	}
+	if got := w.RuntimeIDMarks(); !slices.Equal(got, []uint16{0, 31}) || w.NextRuntimeID() != 1 {
+		t.Fatalf("marks %v next %d", got, w.NextRuntimeID())
+	}
+}
+
 func TestRuntimeIDColdLoadOfASackPlantedBeforeAnOlderSackHoldsTheConstructorBit(t *testing.T) {
 	for _, tc := range []struct {
 		last    int32

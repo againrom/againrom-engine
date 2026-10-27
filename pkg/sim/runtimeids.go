@@ -213,7 +213,7 @@ func (w *World) RestoreActorRuntimeIDs(ids []ActorRuntimeIDLoad) {
 func (w *World) InsertActorRuntimeIDs(ids []EntityID) {
 	marks := w.runtimeIDMarks()
 	for _, id := range ids {
-		if i := indexOfEntity(w.entities, id); i >= 0 && !w.entities[i].OffMap && w.entities[i].SourceBinding.RuntimeID == 0 {
+		if i := indexOfEntity(w.entities, id); i >= 0 && !w.entities[i].OffMap && w.carriedRuntimeID(i) == 0 {
 			w.entities[i].SourceBinding.RuntimeID = marks.lowestClear()
 			marks.mark(w.entities[i].SourceBinding.RuntimeID)
 		}
@@ -236,10 +236,23 @@ func (w *World) InsertSackRuntimeIDs() {
 // insertActorRuntimeID is the tick-list insertion's allocation (MOVE-ID-016).
 func (w *World) insertActorRuntimeID(id EntityID) {
 	i := indexOfEntity(w.entities, id)
-	if i < 0 || w.entities[i].OffMap || w.entities[i].SourceBinding.RuntimeID != 0 {
+	if i < 0 || w.entities[i].OffMap || w.carriedRuntimeID(i) != 0 {
 		return
 	}
 	w.entities[i].SourceBinding.RuntimeID = w.allocateRuntimeID()
+}
+
+// carriedRuntimeID is the actor's own id, else the one its dead manager holds.
+func (w *World) carriedRuntimeID(i int) uint32 {
+	if id := w.entities[i].SourceBinding.RuntimeID; id != 0 {
+		return id
+	}
+	for _, r := range w.originalDead {
+		if r.ID == w.entities[i].ID && r.terminal.Stage == 0 {
+			return r.Source.State.RuntimeID
+		}
+	}
+	return 0
 }
 
 // runtimeIDFault refuses a Sack that carries its id twice, an unordered orphan
