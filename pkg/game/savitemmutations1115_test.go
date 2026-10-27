@@ -134,6 +134,9 @@ func itemMutationSame1115(t *testing.T, want, got Snapshot) {
 	// graph. Current SAV rebuilds ordinary actor roots and adds continuation
 	// data. The registry/World and each current frontend value stay exact.
 	want.SavedDocument, got.SavedDocument = nil, nil
+	if len(want.World) != 0 && len(got.World) != 0 {
+		want.World = formWithLoadedAllocator(t, want.World, got.World)
+	}
 	var world sim.World
 	if err := world.UnmarshalBinary(want.World); err != nil {
 		t.Fatal(err)
@@ -206,7 +209,7 @@ func itemMutationCheckpoint(t *testing.T, f *FrontEnd, app *ui.App, defensive in
 	freshApp.SetSaveSeams(save, list, load)
 	groundAppLoad(t, freshApp, list, localOriginalSaveToken(name))
 	itemMutationSame1115(t, before, snapshotCurrentObjects(t, fresh))
-	if f.live.world.Hash() != fresh.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash() != fresh.live.world.Hash() {
 		t.Fatal("fresh native world hash differs")
 	}
 	return fresh, freshApp

@@ -91,7 +91,7 @@ func TestNativeObservationVersionPreservesCurrentAvailabilityThroughSAVE(t *test
 			}
 			cold := nativeSubjectCold(t, f, raw)
 			e, ok := cold.live.world.Entity(0)
-			if !ok || e.NativeBasis != tc.basis || e.ActorLoad.Source != (sim.SourceActor{}) || e.SourceBinding != (sim.SourceBinding{}) {
+			if !ok || e.NativeBasis != tc.basis || e.ActorLoad.Source != (sim.SourceActor{}) || e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) {
 				t.Fatal("current presence/mask/zero/residue or native admission changed", e.NativeBasis, tc.basis)
 			}
 			sim.Step(cold.live.world, []sim.Command{sim.MoveTo(0, sim.CellPoint{X: 15, Y: 17})})

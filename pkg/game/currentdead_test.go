@@ -185,7 +185,7 @@ func TestCurrentBoundCorpseKeepsAbsentBasisAndTwoCycles(t *testing.T) {
 					t.Fatal("fixture did not exercise explicit retained class/owner absence", v)
 				}
 				cold := openCurrentRetainedRuntime(t, currentRetainedRuntimeFront(t), raw)
-				if cold.live.world.Hash() != want.Hash() || !reflect.DeepEqual(cold.live.world.OriginalDeadActors(), want.OriginalDeadActors()) {
+				if adoptLoadedAllocator(t, want, cold.live.world).Hash() != cold.live.world.Hash() || !reflect.DeepEqual(cold.live.world.OriginalDeadActors(), want.OriginalDeadActors()) {
 					t.Fatalf("cycle%d full World changed: %x -> %x", cycle, want.Hash(), cold.live.world.Hash())
 				}
 				var left, right sim.World
@@ -234,7 +234,7 @@ func TestCurrentBoundCorpseOrdinaryRuntimeAndHealthEditsWin(t *testing.T) {
 	}
 	for cycle := 0; cycle < 2; cycle++ {
 		cold := openCurrentRetainedRuntime(t, currentRetainedRuntimeFront(t), raw)
-		if cold.live.world.Hash() != want.Hash() {
+		if adoptLoadedAllocator(t, want, cold.live.world).Hash() != cold.live.world.Hash() {
 			t.Fatalf("cycle%d ordinary edit lost: %x -> %x", cycle, want.Hash(), cold.live.world.Hash())
 		}
 		raw = currentRuntimeSave(t, cold)
@@ -391,7 +391,7 @@ func TestCurrentBoundCorpseOrdinaryClassAndOwnerEditsWin(t *testing.T) {
 			}
 		}
 		dead := cold.live.world.OriginalDeadActors()[0]
-		if !e.Humanoid || e.Owner != slot || e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad != (sim.ActorLoad{}) || dead.Source.Class != 3 || dead.Source.OwnerKey != owner {
+		if !e.Humanoid || e.Owner != slot || e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad != (sim.ActorLoad{}) || dead.Source.Class != 3 || dead.Source.OwnerKey != owner {
 			t.Fatal("ordinary class/owner edit lost", e, dead)
 		}
 	}

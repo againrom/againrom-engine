@@ -183,7 +183,7 @@ func (w *World) CheatSummon(template Entity, pack []ItemStack, worn [EquipSlots]
 				return 0, fmt.Errorf("sim: cheat summon source key space exhausted")
 			}
 		}
-		template.SourceBinding.Identity, template.SourceBinding.RuntimeID = key, key>>4
+		template.SourceBinding.Identity, template.SourceBinding.RuntimeID = key, w.allocateRuntimeID()
 	} else {
 		template.SourceBinding = SourceBinding{}
 	}

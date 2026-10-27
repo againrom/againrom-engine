@@ -298,9 +298,18 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 		}
 	}
 	if constructed {
+		// SAV-ID-015: the party takes the first runtime ids, the map's
+		// Buildings the next in map order, then its other actors.
+		ms.World.InsertActorRuntimeIDs(ms.Start.IDs)
 		if err := ports.install.constructCurrentBuildings(ms); err != nil {
 			return nil, nil, err
 		}
+		var rest []sim.EntityID
+		for _, e := range ms.World.Entities() {
+			rest = append(rest, e.ID)
+		}
+		ms.World.InsertActorRuntimeIDs(rest)
+		ms.World.InsertSackRuntimeIDs()
 	}
 	if r.fresh() {
 		for i, id := range ms.Start.IDs {

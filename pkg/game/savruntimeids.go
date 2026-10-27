@@ -1,9 +1,11 @@
 package game
 
 import (
+	"cmp"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"againrom/pkg/formats/sav"
@@ -18,89 +20,37 @@ func reserveSavedRuntimeID(used map[uint32]bool, class string, id uint32) {
 	}
 }
 
-func runtimePlaceable(class string) bool {
-	switch class {
-	case "Unit", "Humanoid", "Human", "Building", "Outpost", "Tavern", "Shop", "Sack":
-		return true
-	}
-	return false
-}
-
-// Rewrite placeables and their runtime edges. Reserve retained item/effect IDs
-// conservatively; their LOAD bitmap membership remains unresolved.
+// projectCurrentRuntimeIDs writes the runtime-id edges of a SAVE from the
+// World: each carried projectile's actiontarget and the selection. Every
+// placeable record already holds the id its World object carries; no id is
+// renumbered (SAV-1371, DIV-2504).
 func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
-	oldObjects := map[uint32][]uint16{}
-	for i, r := range doc.Objects {
-		if !runtimePlaceable(r.Class) {
-			continue
-		}
-		id, err := savedStructureValue(&r, "RuntimeID")
-		if err != nil {
-			return err
-		}
-		oldObjects[id] = append(oldObjects[id], uint16(i+1))
-	}
-	a, err := readCurrentActions(doc)
-	if err != nil {
-		return err
-	}
-	actors := map[sim.EntityID]uint16{}
-	if a != nil {
-		for _, b := range a.Bindings {
-			if !b.Structure && !b.Missing {
-				actors[b.ID] = b.Object
-			}
-		}
-	}
 	var w sim.World
-	var drivers *sim.SavedWorldEffects
-	if len(s.World) > 0 {
+	if len(s.World) != 0 {
 		if err := w.UnmarshalBinary(s.World); err != nil {
 			return err
 		}
+	}
+	actors := map[sim.EntityID]uint32{}
+	for _, e := range w.Entities() {
+		actors[e.ID] = e.SourceBinding.RuntimeID
+	}
+	// A body a dead manager holds carries its id there, not on the Entity.
+	for _, d := range w.OriginalDeadActors() {
+		if actors[d.ID] == 0 {
+			actors[d.ID] = d.Current.RuntimeID
+		}
+	}
+	structures := map[sim.EntityID]uint32{}
+	if rows, _, present := w.SavedStructures(); present {
+		for _, row := range rows {
+			structures[sim.EntityID(row.ID)] = row.RuntimeID
+		}
+	}
+	var drivers *sim.SavedWorldEffects
+	if len(s.World) != 0 {
 		drivers = w.SavedWorldEffectDrivers()
 	}
-	used := map[uint32]bool{0: true}
-	placeableIDs := map[uint32]bool{0: true}
-	for _, record := range doc.Objects {
-		if !runtimePlaceable(record.Class) {
-			if id, err := savedStructureValue(&record, "RuntimeID"); err == nil {
-				reserveSavedRuntimeID(used, record.Class, id)
-			}
-		}
-	}
-	pinned := map[uint16]uint32{}
-	registry := w.SavedObjects()
-	if a != nil && registry != nil {
-		sacks := map[sim.SavedObjectID]bool{}
-		for _, sack := range registry.Sacks {
-			if !sack.Retired {
-				sacks[sack.ID] = true
-			}
-		}
-		for _, row := range a.Ownership {
-			if row.Kind != 4 || row.Object == 0 || !sacks[row.ID] {
-				continue
-			}
-			if int(row.Object) > len(doc.Objects) || doc.Objects[row.Object-1].Class != "Sack" {
-				return fmt.Errorf("current Sack runtime binding is invalid")
-			}
-			id, err := savedStructureValue(&doc.Objects[row.Object-1], "RuntimeID")
-			if err != nil {
-				return err
-			}
-			pinned[row.Object] = id
-			reserveSavedRuntimeID(used, "Sack", id)
-			reserveSavedRuntimeID(placeableIDs, "Sack", id)
-		}
-	}
-	structures := map[sim.EntityID]uint16{}
-	if drivers != nil {
-		if structures, err = currentStructureObjects(doc, &w); err != nil {
-			return err
-		}
-	}
-	targets := map[int]uint16{}
 	seenRoots := map[string]bool{}
 	for _, record := range doc.State.ValueRecords {
 		root, _ := splitStatePath(record.Path)
@@ -109,201 +59,72 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 		}
 		seenRoots[root] = true
 		path := "/Prj" + root[3:] + "/actiontarget"
-		value, present, err := doc.State.ReadLeaf(path)
+		if _, present, err := doc.State.ReadLeaf(path); err != nil {
+			return err
+		} else if !present || drivers == nil {
+			continue
+		}
+		id, err := strconv.ParseUint(root[3:], 10, 16)
 		if err != nil {
 			return err
 		}
-		if !present {
-			continue
-		}
-		i := stateLeafRecords(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, path)[0]
-		old := uint32(value.Int32)
-		if old == 0 {
-			continue
-		}
-		var object uint16
-		if drivers != nil {
-			id, err := strconv.ParseUint(root[3:], 10, 16)
-			if err != nil {
-				return err
+		for _, d := range drivers.Projectiles {
+			if d.ID != uint16(id) || !d.HasTarget || d.TargetDetached {
+				continue
 			}
-			for _, d := range drivers.Projectiles {
-				if d.ID == uint16(id) && d.HasTarget && !d.TargetDetached {
-					object = actors[d.Target]
-					if d.TargetStructure {
-						object = structures[d.Target]
-					}
-				}
+			target, found := actors[d.Target]
+			if d.TargetStructure {
+				target, found = structures[d.Target]
 			}
-		} else if len(oldObjects[old]) == 1 {
-			object = oldObjects[old][0]
-		}
-		if object == 0 {
-			used[old], used[uint32(uint16(old))] = true, true
-			placeableIDs[old], placeableIDs[uint32(uint16(old))] = true, true
-		} else {
-			targets[i] = object
+			if !found {
+				continue
+			}
+			i := stateLeafRecords(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, path)[0]
+			doc.State.ValueRecords[i].Value.Int32 = int32(target)
 		}
 	}
-	nativePin := pinNativeProjectileTargets(&w, drivers, actors, used)
-	for _, id := range nativePin {
-		reserveSavedRuntimeID(placeableIDs, "Unit", id)
-	}
-	retained := map[uint32]uint16{}
-	for i, r := range doc.Objects {
-		object := uint16(i + 1)
-		_, isPinned := pinned[object]
-		_, isNativePin := nativePin[object]
-		if !runtimePlaceable(r.Class) || isPinned || isNativePin {
-			continue
-		}
-		id, _ := savedStructureValue(&r, "RuntimeID")
-		if id == 0 || id > 65535 || placeableIDs[id] || r.Class == "Sack" && used[id] {
-			continue
-		}
-		retained[id] = object
-		used[id] = true
-		placeableIDs[id] = true
-	}
-	byObject := map[uint16]uint32{}
-	for i := range doc.Objects {
-		r := &doc.Objects[i]
-		if !runtimePlaceable(r.Class) {
-			continue
-		}
-		if id, ok := pinned[uint16(i+1)]; ok {
-			byObject[uint16(i+1)] = id
-			continue
-		}
-		if id, ok := nativePin[uint16(i+1)]; ok {
-			byObject[uint16(i+1)] = id
-			savedObjectSetValue(r, "RuntimeID", id)
-			continue
-		}
-		old, _ := savedStructureValue(r, "RuntimeID")
-		stage, _ := savedStructureValue(r, "Stage")
-		if old == 0 && stage == 5 {
-			byObject[uint16(i+1)] = 0
-			continue
-		}
-		id := old
-		if retained[id] != uint16(i+1) {
-			id = nextSavedRuntimeID(used)
-		}
-		if id > 65535 {
-			return fmt.Errorf("current placeable runtime namespace exhausted")
-		}
-		byObject[uint16(i+1)] = id
-		savedObjectSetValue(r, "RuntimeID", id)
-	}
-	for i := range doc.State.ValueRecords {
-		if object := targets[i]; object != 0 {
-			doc.State.ValueRecords[i].Value.Int32 = int32(byObject[object])
-		}
-	}
+	app := s.ApplicationState
 	if _, err := patchStateLeaf(doc.State.RootKind, doc.State.DirectoryRecords, doc.State.ValueRecords, "/Objects/Selection", func(leaf *sav.CityStateValueData) error {
 		if len(leaf.Bytes)%4 != 0 {
 			return fmt.Errorf("current selection has a partial runtime ID")
 		}
-		for n := 0; n < len(leaf.Bytes)/4; n++ {
-			old := binary.LittleEndian.Uint32(leaf.Bytes[4*n:])
-			object := uint16(0)
-			if s.ApplicationState != nil && !s.ApplicationState.LocalOnly && n < len(s.ApplicationState.View.Selection) {
-				object = actors[sim.EntityID(s.ApplicationState.View.Selection[n])]
+		if app == nil || app.LocalOnly {
+			return nil
+		}
+		for n := 0; n < len(leaf.Bytes)/4 && n < len(app.View.Selection); n++ {
+			if id, found := actors[sim.EntityID(app.View.Selection[n])]; found {
+				binary.LittleEndian.PutUint32(leaf.Bytes[4*n:], id)
 			}
-			if object == 0 && len(oldObjects[old]) == 1 {
-				object = oldObjects[old][0]
-			}
-			if object == 0 || byObject[object] == 0 {
-				return fmt.Errorf("current selection has no unique placeable binding")
-			}
-			binary.LittleEndian.PutUint32(leaf.Bytes[4*n:], byObject[object])
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	if a != nil {
-		sourceCoordinates := make(map[sim.EntityID]uint32)
-		for _, e := range w.Entities() {
-			if e.SourceBinding.Class == 0 {
-				continue
-			}
-			sourceCoordinates[e.ID] = e.SourceBinding.RuntimeID
-			object := actors[e.ID]
-			wire, found := byObject[object]
-			value, present := a.Values[e.ID]
-			if !found || !present || !value.SourceBound {
-				return fmt.Errorf("current runtime coordinate lacks an exact actor value binding")
-			}
-			value.RuntimeID = nil
-			if wire != e.SourceBinding.RuntimeID {
-				value.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: wire, Value: e.SourceBinding.RuntimeID}
-			}
-			a.Values[e.ID] = value
-		}
-		for _, dead := range w.OriginalDeadActors() {
-			if dead.Current.Stage == 5 {
-				continue
-			}
-			wire, found := byObject[actors[dead.ID]]
-			if !found || wire == 0 || dead.Current.RuntimeID != dead.Source.State.RuntimeID {
-				return fmt.Errorf("current retained runtime coordinate lacks an exact body binding")
-			}
-			if source, present := sourceCoordinates[dead.ID]; present && source != dead.Current.RuntimeID {
-				return fmt.Errorf("current actor and retained body runtime coordinates disagree")
-			}
-			value := a.Values[dead.ID]
-			if value.RuntimeID != nil && (value.RuntimeID.Wire != wire || value.RuntimeID.Value != dead.Current.RuntimeID) {
-				return fmt.Errorf("current actor and retained body runtime coordinates disagree")
-			}
-			if wire != dead.Current.RuntimeID {
-				value.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: wire, Value: dead.Current.RuntimeID}
-				a.Values[dead.ID] = value
-			}
-		}
-		if a.StructureBindings != nil {
-			structures, _, present := w.SavedStructures()
-			if !present || len(structures) != len(*a.StructureBindings) {
-				return fmt.Errorf("current structure runtime coordinate lacks its complete current roster")
-			}
-			for i := range *a.StructureBindings {
-				row := &(*a.StructureBindings)[i]
-				source := structures[i]
-				wire, found := byObject[row.Object]
-				if !found || wire == 0 || row.ID != source.ID || row.SourceKey != source.SourceKey || row.Class != source.Class {
-					return fmt.Errorf("current structure runtime coordinate lacks an exact subject")
-				}
-				row.RuntimeID = nil
-				if wire != source.RuntimeID {
-					row.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: wire, Value: source.RuntimeID}
-				}
-			}
-		}
-		for i := range a.ArchiveCoordinates {
-			row := &a.ArchiveCoordinates[i]
-			if row.Generated {
-				anchor := currentArchiveModeAnchor(&doc.Objects[row.Object-1])
-				row.ModeAnchor = &anchor
-			}
-		}
-		raw, err := json.Marshal(a)
-		if err != nil {
-			return err
-		}
-		return sav.SetNativeActions(&doc.State, raw)
+	a, err := readCurrentActions(doc)
+	if err != nil || a == nil {
+		return err
 	}
-	return nil
-}
-
-func savedRuntimeIDs(objects []sav.DocumentRecordData) map[uint32]bool {
-	used := map[uint32]bool{0: true}
-	for _, r := range objects {
-		if id, err := savedStructureValue(&r, "RuntimeID"); err == nil {
-			reserveSavedRuntimeID(used, r.Class, id)
+	for id, value := range a.Values {
+		value.RuntimeID = nil
+		a.Values[id] = value
+	}
+	if a.StructureBindings != nil {
+		for i := range *a.StructureBindings {
+			(*a.StructureBindings)[i].RuntimeID = nil
 		}
 	}
-	return used
+	for i := range a.ArchiveCoordinates {
+		row := &a.ArchiveCoordinates[i]
+		if row.Generated {
+			anchor := currentArchiveModeAnchor(&doc.Objects[row.Object-1])
+			row.ModeAnchor = &anchor
+		}
+	}
+	raw, err := json.Marshal(a)
+	if err != nil {
+		return err
+	}
+	return sav.SetNativeActions(&doc.State, raw)
 }
 
 func cityRuntimeIDs(objects []sav.CityObjectData) map[uint32]bool {
@@ -334,44 +155,42 @@ func nextSavedRuntimeID(used map[uint32]bool) uint32 {
 	return id
 }
 
-// pinNativeProjectileTargets chooses the runtime identity of each native actor
-// a carried projectile is aimed at: the entity key the World's record already
-// holds (sim.ProjectileTargetKey), so a SAVE then LOAD returns the same record.
-// An actor is left to the ordinary allocator when its key is out of the
-// namespace, a pinned Sack or an earlier pin holds it, or the record holds a
-// restored Document identity instead of the entity key. Another object that
-// held the key is given a new identity by the ordinary allocator.
-func pinNativeProjectileTargets(w *sim.World, drivers *sim.SavedWorldEffects, actors map[sim.EntityID]uint16, used map[uint32]bool) map[uint16]uint32 {
-	pins := map[uint16]uint32{}
-	if drivers == nil {
-		return pins
+// runtimeIDLoads lists the Token-derived records of a loaded document in
+// archive order, the order World LOAD marks their saved ids (SAV-1371).
+func runtimeIDLoads(doc *sav.DocumentData, origins []sav.DocumentObjectOrigin) []sim.RuntimeIDLoad {
+	if doc == nil {
+		return nil
 	}
-	records := map[uint16]int32{}
-	for _, p := range w.SavedProjectiles().Items {
-		records[p.ID] = p.ActionTarget
-	}
-	for _, d := range drivers.Projectiles {
-		if d.Retired || !d.HasTarget || d.TargetDetached || d.TargetStructure {
+	ordered := slices.Clone(origins)
+	slices.SortFunc(ordered, func(a, b sav.DocumentObjectOrigin) int { return cmp.Compare(a.ArchiveIndex, b.ArchiveIndex) })
+	var out []sim.RuntimeIDLoad
+	for _, origin := range ordered {
+		if origin.ObjectIndex == 0 || int(origin.ObjectIndex) > len(doc.Objects) {
 			continue
 		}
-		var target sim.Entity
-		found := false
-		for _, e := range w.Entities() {
-			if e.ID == d.Target {
-				target, found = e, true
-				break
-			}
+		r := &doc.Objects[origin.ObjectIndex-1]
+		if id, err := savedStructureValue(r, "RuntimeID"); err == nil {
+			out = append(out, sim.RuntimeIDLoad{Saved: id, Sack: r.Class == "Sack"})
 		}
-		if !found || target.SourceBinding.Class != 0 && target.SourceBinding.RuntimeID != 0 {
-			continue
-		}
-		object := actors[target.ID]
-		key := uint32(sim.ProjectileTargetKey(target))
-		if object == 0 || key == 0 || key > 65535 || used[key] || records[d.ID] != int32(key) {
-			continue
-		}
-		pins[object] = key
-		reserveSavedRuntimeID(used, "Unit", key)
 	}
-	return pins
+	return out
+}
+
+// restoreLoadedRuntimeIDs rebuilds the World's runtime-id allocator from the
+// document a LOAD read; an original SAV and one this engine wrote load alike.
+func restoreLoadedRuntimeIDs(ms *Mission, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin) {
+	if state == nil || state.Document == nil {
+		return
+	}
+	var actors []sim.ActorRuntimeIDLoad
+	for _, b := range state.Actors {
+		if b.Retired || b.ObjectIndex == 0 || int(b.ObjectIndex) > len(state.Document.Objects) {
+			continue
+		}
+		if id, err := savedStructureValue(&state.Document.Objects[b.ObjectIndex-1], "RuntimeID"); err == nil {
+			actors = append(actors, sim.ActorRuntimeIDLoad{Entity: b.EntityID, Saved: id})
+		}
+	}
+	ms.World.RestoreActorRuntimeIDs(actors)
+	ms.World.RestoreRuntimeIDs(runtimeIDLoads(state.Document, origins))
 }

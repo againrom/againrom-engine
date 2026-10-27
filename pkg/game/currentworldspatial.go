@@ -162,7 +162,7 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 			// publication mask 2 at Token+0x18; zero leaves the structure undrawn.
 			// The type word is T0E (Token+17); T0C (Token+16) stays 0, as every
 			// original Building record carries it.
-			s = sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(), RuntimeID: b.runtime(), Kind: uint8(st.Kind), Token0E: uint16(st.Kind), Token18: 2, Blocking: st.Blocking}
+			s = sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(), Kind: uint8(st.Kind), Token0E: uint16(st.Kind), Token18: 2, Blocking: st.Blocking}
 			copy(s.Position[:], constructedPositionBlock(st.Col, st.Row, b.doc.World.TerrainIdentity))
 			s.Base52[14], s.Base52[15] = st.Width, st.Height
 			binary.LittleEndian.PutUint32(s.Base52[18:], s.Blocking)
@@ -260,7 +260,8 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 	for _, row := range w.SavedCellRecords() {
 		heldSacks[row.Cell] = row.Sack
 	}
-	for _, sack := range w.Sacks() {
+	sackIDs := w.SackRuntimeIDs()
+	for sackIndex, sack := range w.Sacks() {
 		// The World's cell record holds the key of the Sack on its cell.
 		key := heldSacks[uint16(sack.X)|uint16(sack.Y)<<8]
 		if key == 0 || b.claimHeldKey(key) {
@@ -268,7 +269,7 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 		}
 		r := mustNewRecord("Sack")
 		mustSetToken(&r, nativeCityToken(key, 0, 0, 0))
-		mustSetValue(&r, "RuntimeID", b.runtime())
+		mustSetValue(&r, "RuntimeID", sackIDs[sackIndex])
 		// Keep the full constructor shape. A row minted in play (a death sack)
 		// has SavedUnknownToken and keeps the constructed token and key;
 		// projectCurrentSackRoots reads its Identity from this record.

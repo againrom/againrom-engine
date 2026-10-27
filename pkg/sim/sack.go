@@ -24,6 +24,9 @@ type Sack struct {
 	// either, but reject conflicting double representations.
 	Items         []uint16
 	ItemInstances []ItemInstance
+	// runtimeID is the Sack's runtime id while it has no object row; the row's
+	// Token carries it after.
+	runtimeID uint32
 }
 
 // SackTokenValue is Sack's own `+0x1c` rule (ITEM-SACK-010): gold plus the
@@ -87,47 +90,6 @@ func (w *World) SackValue(x, y int32) (int64, bool) {
 		}
 	}
 	return 0, false
-}
-
-// constructedSackRuntimeID is the id a Sack this session creates draws from
-// the runtime-id allocator (ITEM-SACK-010): the lowest id no record this
-// world knows holds, with 0 never allocated (MOVE-ID-016). An item or effect
-// record can carry a nonzero id too, and whether LOAD re-marks it is not
-// established, so those ids are reserved as well. Placeable ids are 16-bit on
-// the wire, so a wider id also reserves its low half.
-func (w *World) constructedSackRuntimeID() uint32 {
-	used := map[uint32]bool{0: true}
-	reserve := func(id uint32) {
-		if id != 0 {
-			used[id], used[uint32(uint16(id))] = true, true
-		}
-	}
-	if w.savedObjects != nil {
-		for _, s := range w.savedObjects.Sacks {
-			reserve(s.Token.RuntimeID)
-		}
-		for _, item := range w.savedObjects.Items {
-			reserve(item.Token.RuntimeID)
-		}
-		for _, effect := range w.savedObjects.Effects {
-			reserve(effect.Token.RuntimeID)
-		}
-	}
-	for _, e := range w.entities {
-		reserve(e.SourceBinding.RuntimeID)
-	}
-	for _, r := range w.originalDead {
-		reserve(r.Source.State.RuntimeID)
-		reserve(r.terminal.RuntimeID)
-	}
-	for _, s := range w.savedStructures {
-		reserve(s.RuntimeID)
-	}
-	id := uint32(1)
-	for used[id] {
-		id++
-	}
-	return id
 }
 
 func sackItems(s Sack) ([]ItemInstance, error) {
@@ -292,6 +254,8 @@ func (w *World) pourSack(x, y int32, gold uint32, items []ItemInstance) {
 	w.sacks = append(w.sacks, Sack{})
 	copy(w.sacks[j+1:], w.sacks[j:])
 	w.sacks[j] = makeSack(x, y, gold, items)
+	// A Sack constructor takes the lowest clear runtime-id bit (SAV-1368).
+	w.sacks[j].runtimeID = w.allocateRuntimeID()
 	w.registerPlacedSackCell(x, y)
 }
 

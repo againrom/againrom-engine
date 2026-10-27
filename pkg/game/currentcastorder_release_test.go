@@ -385,6 +385,7 @@ func TestReleaseOwnerCastSaveRestoresHealAtDanath(t *testing.T) {
 		t.Fatalf("SAV label %q %v", label, err)
 	}
 	g, _ := castOrderSession(t, savedDir)
+	adoptLoadedAllocator(t, f.live.world, g.live.world)
 	if cold, _ := castOrderBook(g.live.world, c.Caster); cold != c {
 		t.Fatalf("cold LOAD cast %+v, saved %+v", cold, c)
 	}

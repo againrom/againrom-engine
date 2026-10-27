@@ -327,13 +327,11 @@ func TestStateLeafReadRuntimeTarget(t *testing.T) {
 			if err != nil {
 				return
 			}
-			want := uint32(2)
-			if variant == "missing" || variant == "sorted_case" {
-				want = 1
-			}
+			// The leaf is read and the record keeps the id it was written
+			// with: SAVE allocates none (SAV-1371).
 			got, err := savedStructureValue(&doc.Objects[0], "RuntimeID")
-			if err != nil || got != want {
-				t.Fatalf("new actor ID %d, want %d: %v", got, want, err)
+			if err != nil || got != 0 {
+				t.Fatalf("actor ID %d, want 0: %v", got, err)
 			}
 		})
 	}

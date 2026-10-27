@@ -163,7 +163,7 @@ func TestMilestone2PlayedTerminalFrozenFineSurvivesCurrentSAV(t *testing.T) {
 					t.Fatalf("cold LOAD omitted terminal motion %d", id)
 				}
 			}
-			if world.Hash() != cold.live.world.Hash() {
+			if adoptLoadedAllocator(t, world, cold.live.world).Hash() != cold.live.world.Hash() {
 				t.Fatalf("GAME/SAV/LOAD World hash %016x -> %016x", world.Hash(), cold.live.world.Hash())
 			}
 			f.LiveAdvance(1)

@@ -56,7 +56,7 @@ func sackObjectsLiteral1115(t *testing.T, f *FrontEnd) sav.DocumentData {
 	return doc
 }
 
-func sackObjectsOpen1115(t *testing.T, edit func(*sav.DocumentData)) (*FrontEnd, *ui.App, sav.DocumentData) {
+func sackObjectsOpen(t *testing.T, edit func(*sav.DocumentData)) (*FrontEnd, *ui.App, sav.DocumentData) {
 	t.Helper()
 	f := cellStateFront(t)
 	doc := sackObjectsLiteral1115(t, f)
@@ -89,7 +89,7 @@ func snapshotCurrentObjects(t *testing.T, f *FrontEnd) Snapshot {
 }
 
 func TestSackObjects1115ExactGoldOwnerPickupNativeContinuation(t *testing.T) {
-	f, app, literal := sackObjectsOpen1115(t, nil)
+	f, app, literal := sackObjectsOpen(t, nil)
 	initial := snapshotCurrentObjects(t, f)
 	metadata := initial.SavedDocument.Objects
 	if metadata.Version != 2 || len(metadata.Sacks) != 1 || len(metadata.Unavailable) != 0 || metadata.Sacks[0].ID != 1 || metadata.Sacks[0].ObjectIndex <= 1 || metadata.Sacks[0].Unavailable != "" || len(metadata.Items)+len(metadata.Effects)+len(metadata.Spells) != 0 {
@@ -167,6 +167,7 @@ func TestSackObjects1115ExactGoldOwnerPickupNativeContinuation(t *testing.T) {
 	groundAppLoad(t, freshApp, list, name)
 	reloaded := snapshotCurrentObjects(t, fresh)
 	itemMutationSame1115(t, after, reloaded)
+	adoptLoadedAllocator(t, f.live.world, fresh.live.world)
 	for tick := 0; tick < 20; tick++ {
 		f.live.tick()
 		fresh.live.tick()
@@ -181,7 +182,7 @@ func TestSackObjects1115ExactGoldOwnerPickupNativeContinuation(t *testing.T) {
 
 func TestSackObjects1115ProductionGrabAndUnboundPour(t *testing.T) {
 	t.Run("production grab", func(t *testing.T) {
-		f, _, _ := sackObjectsOpen1115(t, nil)
+		f, _, _ := sackObjectsOpen(t, nil)
 		e := newGroupActors1115(t, f.live.world)[newGroupA]
 		purse := f.live.world.Purse(e.Owner)
 		f.live.grab(uint32(e.ID), 15, 16, true)
@@ -196,7 +197,7 @@ func TestSackObjects1115ProductionGrabAndUnboundPour(t *testing.T) {
 		}
 	})
 	t.Run("native unbound item pour", func(t *testing.T) {
-		f, _, _ := sackObjectsOpen1115(t, nil)
+		f, _, _ := sackObjectsOpen(t, nil)
 		before := snapshotCurrentObjects(t, f)
 		e := newGroupActors1115(t, f.live.world)[newGroupA]
 		// Restore only the fixture's genuinely unbound native donor. The
@@ -332,7 +333,7 @@ func TestSackObjects1115ProductionGrabAndUnboundPour(t *testing.T) {
 }
 
 func TestSackObjects1115HostilePairsRefuseBeforeAdoption(t *testing.T) {
-	f, _, _ := sackObjectsOpen1115(t, nil)
+	f, _, _ := sackObjectsOpen(t, nil)
 	before := snapshotCurrentObjects(t, f)
 	for _, tc := range []struct {
 		name string
@@ -410,7 +411,7 @@ func TestSackObjects1115RemapAndLateRetirementFailureAreAtomic(t *testing.T) {
 	if err := remapSavedObjectBindings(bindings, []uint16{0, 2, 1, 0}); err == nil || !reflect.DeepEqual(bindings, before) {
 		t.Fatal("late uncovered-object remap failure partially published")
 	}
-	f, _, _ := sackObjectsOpen1115(t, nil)
+	f, _, _ := sackObjectsOpen(t, nil)
 	source := snapshotCurrentObjects(t, f).SavedDocument
 	ms := &Mission{World: f.live.world, savedDocument: source}
 	index := source.Document.World.Sacks[0]
@@ -469,7 +470,7 @@ func sackObjectsAddIncoming1115(t *testing.T, doc *sav.DocumentData, index uint1
 }
 
 func TestSackObjects1115AmbiguousOriginalSacksKeepNativeSave(t *testing.T) {
-	f, _, _ := sackObjectsOpen1115(t, func(doc *sav.DocumentData) {
+	f, _, _ := sackObjectsOpen(t, func(doc *sav.DocumentData) {
 		r := doc.Objects[doc.World.Sacks[0]-1]
 		r.Values = slices.Clone(r.Values)
 		newGroupSetValue1115(t, &r, "Identity", 0x12345678)

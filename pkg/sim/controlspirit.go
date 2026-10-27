@@ -93,6 +93,7 @@ func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) 
 		w.entities[ti] = corpse
 		return false, 0
 	}
+	ghost.SourceBinding.RuntimeID = w.allocateRuntimeID()
 	w.entities = append(w.entities, ghost)
 	w.constructMover(ghost)
 	w.appendActorTraversal(ghost.ID)

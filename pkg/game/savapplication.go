@@ -127,13 +127,10 @@ func readOriginalApplicationState(doc *sav.DocumentData) (OriginalStateData, err
 		return state, fmt.Errorf("original application selection exceeds 65536 actors")
 	}
 	state.Selection = make([]uint32, len(selection.Bytes)/4)
-	seen := make(map[uint32]bool, len(state.Selection))
+	// A repeated id is checked against the actors that carry it when the
+	// selection is bound (applicationSelection).
 	for i := range state.Selection {
-		id := binary.LittleEndian.Uint32(selection.Bytes[4*i:])
-		if seen[id] {
-			return state, fmt.Errorf("original application repeats selection runtime ID %d", id)
-		}
-		state.Selection[i], seen[id] = id, true
+		state.Selection[i] = binary.LittleEndian.Uint32(selection.Bytes[4*i:])
 	}
 	if _, err := originalPressedSpellID(state.Pressed); err != nil {
 		return state, err
@@ -277,25 +274,47 @@ func applicationActorIDs(doc *sav.DocumentData, bindings []SnapshotSAVActor, wor
 	return byEntity, nil
 }
 
+// applicationSelection names the actors a saved selection holds. LOAD keeps
+// each saved runtime id (SAV-1371), so an id several actors carry names all
+// of them when the selection repeats it as many times.
+//
+// The fallback to the low 16 bits applies only when no actor carries the
+// whole id, and only to as many actors as the selection names.
 func applicationSelection(runtime []uint32, byEntity map[uint32]uint32) ([]uint32, error) {
-	selected := make([]uint32, len(runtime))
-	for i, id := range runtime {
-		found := 0
+	occurrences := map[uint32]int{}
+	for _, id := range runtime {
+		occurrences[id]++
+	}
+	selected := make([]uint32, 0, len(runtime))
+	for _, id := range runtime {
+		n, pending := occurrences[id]
+		if !pending {
+			continue
+		}
+		delete(occurrences, id)
+		var found []uint32
 		for entity, candidate := range byEntity {
 			if candidate == id {
-				selected[i], found = entity, found+1
+				found = append(found, entity)
 			}
 		}
-		if found == 0 && id != 0 && id <= 0xffff {
+		short := false
+		if len(found) == 0 && id != 0 && id <= 0xffff {
+			short = true
 			for entity, candidate := range byEntity {
 				if uint32(uint16(candidate)) == id {
-					selected[i], found = entity, found+1
+					found = append(found, entity)
 				}
 			}
 		}
-		if found != 1 {
-			return nil, fmt.Errorf("application selection runtime ID %d has %d live bindings", id, found)
+		if len(found) < n || short && len(found) != n {
+			return nil, fmt.Errorf("application selection runtime ID %d has %d live bindings for %d entries", id, len(found), n)
 		}
+		// More actors carry the whole id than the selection names: the
+		// lowest entity IDs take the entries (DIV-2504).
+		slices.Sort(found)
+		found = found[:n]
+		selected = append(selected, found...)
 	}
 	slices.Sort(selected)
 	for i := 1; i < len(selected); i++ {

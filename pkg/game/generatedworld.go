@@ -15,8 +15,7 @@ type generatedDocumentBuilder struct {
 	nativeItemIndices    map[uint32]uint16
 	doc                  sav.DocumentData
 	state                *SnapshotSAVDocument
-	nextKey, nextRuntime uint32
-	runtimeIDs           map[uint32]bool
+	nextKey              uint32
 	table                *mapload.Table
 	reservedKeys         []uint32
 	currentKeys          map[uint32]bool
@@ -78,9 +77,6 @@ func (c *generatedDocumentBuilder) reserveCurrentDocumentKeys() {
 	if c.doc.World != nil {
 		c.currentKeys[c.doc.World.TerrainIdentity] = true
 	}
-	if c.runtimeIDs == nil {
-		c.runtimeIDs = savedRuntimeIDs(c.doc.Objects)
-	}
 	c.documentKeysReserved = true
 }
 
@@ -88,14 +84,13 @@ func (c *generatedDocumentBuilder) reserveCurrentForm(raw []byte) {
 	c.reserveCurrentDocumentKeys()
 	for at := 0; at+4 <= len(raw); at++ {
 		value := binary.LittleEndian.Uint32(raw[at:])
-		c.currentKeys[value], c.runtimeIDs[value] = true, true
+		c.currentKeys[value] = true
 	}
 }
 
 func (c *generatedDocumentBuilder) reserveCurrentToken(token sim.SavedObjectToken) {
 	c.currentKeys[token.Identity], c.currentKeys[token.Reference] = true, true
 	c.currentKeys[binary.LittleEndian.Uint32(token.Position[8:])] = true
-	c.runtimeIDs[token.RuntimeID] = true
 }
 
 func (c *generatedDocumentBuilder) reserveCurrentNativeItem(record *sim.NativeItemRecord) {
@@ -152,29 +147,15 @@ func (c *generatedDocumentBuilder) reserveCurrentWorld(w *sim.World) error {
 		}
 		for _, sack := range registry.Sacks {
 			c.reserveCurrentToken(sack.Token)
-			reserveSavedRuntimeID(c.runtimeIDs, "Sack", sack.Token.RuntimeID)
 		}
 	}
 	for _, actor := range w.OriginalDeadActors() {
 		weapon := actor.Source.HeldWeapon
 		if weapon.Present {
 			c.currentKeys[weapon.Identity], c.currentKeys[weapon.Reference], c.currentKeys[weapon.TerrainKey] = true, true, true
-			c.runtimeIDs[weapon.RuntimeID] = true
 		}
 	}
 	return nil
-}
-func (c *generatedDocumentBuilder) runtime() uint32 {
-	if c.runtimeIDs == nil {
-		c.runtimeIDs = savedRuntimeIDs(c.doc.Objects)
-	}
-	for {
-		c.nextRuntime++
-		if !c.runtimeIDs[c.nextRuntime] {
-			c.runtimeIDs[c.nextRuntime] = true
-			return c.nextRuntime
-		}
-	}
 }
 func (c *generatedDocumentBuilder) append(r sav.DocumentRecordData) (uint16, error) {
 	if len(c.doc.Objects) >= 0x7fff {

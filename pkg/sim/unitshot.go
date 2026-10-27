@@ -32,16 +32,14 @@ type UnitShot struct {
 	PreMove func(x, y int32)
 }
 
-// hasRuntimeID reports a source runtime identity: an actor without one is
-// native, and its wire identity exists only in the Document.
-func (b SourceBinding) hasRuntimeID() bool { return b.Class != 0 && b.RuntimeID != 0 }
+// hasRuntimeID reports that the actor carries a runtime id.
+func (b SourceBinding) hasRuntimeID() bool { return b.RuntimeID != 0 }
 
 // ProjectileTargetKey is the actiontarget value a record carries for target.
-// An actor that holds a source runtime identity keeps it; any other actor is
-// keyed by its entity id until the writer assigns the actor's runtime
-// identity at SAVE.
+// An actor keys it by its runtime id; one that carries none, off the map,
+// by its entity id.
 func ProjectileTargetKey(target Entity) int32 {
-	if target.SourceBinding.Class != 0 && target.SourceBinding.RuntimeID != 0 {
+	if target.SourceBinding.RuntimeID != 0 {
 		return int32(target.SourceBinding.RuntimeID)
 	}
 	return int32(target.ID)

@@ -29,6 +29,8 @@ func init() {
 	worldMethods = append(worldMethods, "RestoreCurrentSpellDurations")
 	worldWriters = append(worldWriters, "ImportCurrentTerminalActors", "RestoreCurrentTerminalActors", "RetireUnboundConstructors")
 	worldWriters = append(worldWriters, "RestoreCurrentContinuation", "ReplaceCurrentObjects", "RestoreCurrentAreas", "RestoreCurrentSpellDeliveries", "RestoreCurrentPlayerSlots")
+	worldMethods = append(worldMethods, "InsertActorRuntimeIDs", "InsertSackRuntimeIDs", "RestoreRuntimeIDs", "RestoreGroundSackRuntimeIDs", "RestoreActorRuntimeIDs", "NextRuntimeID", "RuntimeIDMarks", "SackRuntimeIDs")
+	worldWriters = append(worldWriters, "InsertActorRuntimeIDs", "InsertSackRuntimeIDs", "RestoreRuntimeIDs", "RestoreGroundSackRuntimeIDs", "RestoreActorRuntimeIDs")
 	worldWriters = append(worldWriters, "RestoreCurrentSpellDurations")
 	worldMethods = append(worldMethods, "RestoreAbsentStructureCells", "RestoreActorIdentities", "RestoreCurrentClock", "RestoreGroupCarrierPresence")
 	worldWriters = append(worldWriters, "RestoreAbsentStructureCells", "RestoreActorIdentities", "RestoreCurrentClock", "RestoreGroupCarrierPresence")

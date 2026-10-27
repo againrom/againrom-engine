@@ -883,6 +883,9 @@ func savGateSaveLoad(t *testing.T, assets string, c savGateCase, f *FrontEnd) (*
 // when it did not, the hashed field paths are named again after the advance,
 // so a loss that appears or spreads during it is its own key.
 func savGateCompare(t *testing.T, c savGateCase, f *FrontEnd, a *ui.App, g *FrontEnd, b *ui.App, prefix string, out *savGateOutcome) {
+	// The LOAD rebuilds the runtime-id bits no object carries from the file
+	// (SAV-1371); the saved World takes them before any field is compared.
+	adoptLoadedAllocator(t, f.live.world, g.live.world)
 	expectedVisible := func() map[string]string {
 		out := savGateVisible(a, f.live)
 		if c.raw == nil {

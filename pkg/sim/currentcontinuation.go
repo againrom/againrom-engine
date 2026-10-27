@@ -21,9 +21,6 @@ func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values ma
 		}
 		next.syncConstructedMemberArchives()
 	}
-	if err := next.restoreCurrentProjectileTargets(w); err != nil {
-		return err
-	}
 	if err := next.RestoreActions(actions, objects); err != nil {
 		return err
 	}

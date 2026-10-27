@@ -70,8 +70,12 @@ func (w *World) putGroundObjectAt(active int, x, y int32, gold uint32, item Item
 		}
 		s.ObjectID = id
 		// SAV-655, SAV-1093: an original Sack token carries mask 2 at
-		// Token+0x18; its runtime id comes from the allocator.
-		token := SavedObjectToken{RuntimeID: w.constructedSackRuntimeID(), T18: 2}
+		// Token+0x18. The row takes the id the Sack holds.
+		if s.runtimeID == 0 {
+			s.runtimeID = w.allocateRuntimeID()
+		}
+		token := SavedObjectToken{RuntimeID: s.runtimeID, T18: 2}
+		s.runtimeID = 0
 		binary.LittleEndian.PutUint16(token.Position[2:], uint16(x)|uint16(y)<<8)
 		w.savedObjects.Sacks = append(w.savedObjects.Sacks, SavedSackObject{ID: id, Origin: SavedObjectOrigin{Kind: SavedObjectGenerated}, Token: token, Gold: s.Gold, Coverage: SavedObjectCoverage{Unknown: SavedUnknownToken}})
 		w.savedObjects.SackRoots = append(w.savedObjects.SackRoots, id)

@@ -1643,7 +1643,7 @@ func (w *World) tailCapacity(body int) int {
 // encodeInto writes the whole byte form: the form of play, then the passive
 // terminal contents as the outermost section. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendPassiveBodies(w.encodePlayInto(b))
+	return w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b)))
 }
 
 // encodePlayInto writes every section except the passive terminal contents.
@@ -2238,6 +2238,9 @@ func (w *World) MarshalBinaryInto(dst []byte) ([]byte, error) {
 				return nil, fmt.Errorf("sim: current terminal actor %d collides with a retained dead actor", row.ID)
 			}
 		}
+	}
+	if err := w.runtimeIDFault(); err != nil {
+		return nil, err
 	}
 	if err := w.carriedResumeStateFault(); err != nil {
 		return nil, err

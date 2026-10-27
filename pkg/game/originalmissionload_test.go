@@ -20,21 +20,31 @@ func originalMissionFixture(source missionSource) *FrontEnd {
 }
 
 func loadOriginalMission(front *FrontEnd, saved []byte) (*Mission, OriginalSaveResume, error) {
+	fresh, err := loadOriginalFront(front, saved)
+	if err != nil {
+		return nil, OriginalSaveResume{}, err
+	}
+	mission := fresh.CurrentMission()
+	return mission, mission.OriginalSaveReport(), nil
+}
+
+// loadOriginalFront resumes saved on a copy of front with a fresh session
+// and returns the copy with its mission open.
+func loadOriginalFront(front *FrontEnd, saved []byte) (*FrontEnd, error) {
 	fresh := *front
 	fresh.CampaignSession = CampaignSession{}
 	open, town, err := fresh.RestoreOriginal(saved)
 	if err != nil {
-		return nil, OriginalSaveResume{}, err
+		return nil, err
 	}
 	if town {
-		return nil, OriginalSaveResume{}, fmt.Errorf("mission fixture loaded a town")
+		return nil, fmt.Errorf("mission fixture loaded a town")
 	}
 	if err := fresh.App("original mission fixture").OpenMission(open); err != nil {
-		return nil, OriginalSaveResume{}, err
+		return nil, err
 	}
-	mission := fresh.CurrentMission()
-	if mission == nil {
-		return nil, OriginalSaveResume{}, fmt.Errorf("mission fixture opened no mission")
+	if fresh.CurrentMission() == nil {
+		return nil, fmt.Errorf("mission fixture opened no mission")
 	}
-	return mission, mission.OriginalSaveReport(), nil
+	return &fresh, nil
 }

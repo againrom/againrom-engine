@@ -252,7 +252,7 @@ func TestCheatSummonFreshIdentityNearestPlacementAndColdLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	e, found := w.Entity(id)
-	if !found || id != 3 || e.X != 1 || e.Y != 0 || !e.SourceBinding.Generated() || e.SourceBinding.Identity == 1 || e.SourceBinding.RuntimeID == 1 || e.Owner != SelfSlot {
+	if !found || id != 3 || e.X != 1 || e.Y != 0 || !e.SourceBinding.Generated() || e.SourceBinding.Identity == 1 || e.SourceBinding.RuntimeID != 1 || e.Owner != SelfSlot {
 		t.Fatalf("summoned actor %+v", e)
 	}
 	cheatCold(t, w)

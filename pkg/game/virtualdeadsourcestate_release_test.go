@@ -120,6 +120,7 @@ func TestReleaseVirtualDeadSourceStateFollowsCurrentSave(t *testing.T) {
 				t.Fatalf("written ordinary Health/Stage=%d/%d, want current %d/%d", got.HP, got.Stage, before.Current.HP, before.Current.Stage)
 			}
 			cold := open(written)
+			beforeHash = adoptLoadedAllocator(t, first.live.world, cold.live.world).Hash()
 			if loaded := bodyFromWorld(cold); loaded != before || cold.live.world.Hash() != beforeHash {
 				t.Fatalf("cold record %+v hash %016x; want %+v hash %016x", loaded, cold.live.world.Hash(), before, beforeHash)
 			}

@@ -11,12 +11,9 @@ import (
 	"againrom/pkg/sim"
 )
 
-func TestCurrentKeyReservationKeepsExistingKeysAndRuntimeIDs(t *testing.T) {
-	b := generatedDocumentBuilder{reservedKeys: []uint32{16, 32, 48}, currentKeys: map[uint32]bool{16: true}, runtimeIDs: map[uint32]bool{7: true}}
+func TestCurrentKeyReservationKeepsExistingKeys(t *testing.T) {
+	b := generatedDocumentBuilder{reservedKeys: []uint32{16, 32, 48}, currentKeys: map[uint32]bool{16: true}}
 	b.reserveCurrentForm(binary.LittleEndian.AppendUint32(nil, 32))
-	if !b.runtimeIDs[7] || !b.runtimeIDs[32] {
-		t.Fatal("current reservation dropped an existing runtime ID")
-	}
 	if got := b.identity(); got != 48 {
 		t.Fatalf("reserved identity = %d, want 48 after existing16 and current32", got)
 	}
@@ -251,7 +248,7 @@ func TestCurrentNativeItemEmissionReusesRetainedSourceObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key, runtime := b.nextKey, b.nextRuntime
+	key := b.nextKey
 	for _, field := range []string{"price", "effect", "count", "native_record"} {
 		conflict, count := item.Clone(), source.Value.Count
 		switch field {
@@ -272,7 +269,7 @@ func TestCurrentNativeItemEmissionReusesRetainedSourceObject(t *testing.T) {
 			t.Fatal("rejected current alias invalidated the document", field, err)
 		}
 		after, err := sav.EncodeDocumentData(afterDoc)
-		if err != nil || !reflect.DeepEqual(rawBefore, b.doc) || !bytes.Equal(before, after) || b.nextKey != key || b.nextRuntime != runtime {
+		if err != nil || !reflect.DeepEqual(rawBefore, b.doc) || !bytes.Equal(before, after) || b.nextKey != key {
 			t.Fatal("rejected current alias changed the document or allocators", field, err)
 		}
 	}

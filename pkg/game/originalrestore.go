@@ -38,6 +38,7 @@ type originalSource struct {
 	session           sim.OriginalSession
 	hasSession        bool
 	ground            []sim.Sack
+	groundIDs         []uint32
 	hasGround         bool
 	groundUnsupported int
 	pools             []sav.ActorPools
@@ -131,7 +132,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		if err != nil {
 			return nil, err
 		}
-		src.ground, src.hasGround, src.groundUnsupported, err = originalGroundState(sf)
+		src.ground, src.groundIDs, src.hasGround, src.groundUnsupported, err = originalGroundState(sf)
 		if err != nil {
 			return nil, err
 		}
@@ -440,7 +441,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := applyOriginalProjectiles(ms, projectiles, hasProjectiles, &r); err != nil {
 				return err
 			}
-			if err := applyOriginalGround(ms, ground, hasGround, groundUnsupported, in.table, &r); err != nil {
+			if err := applyOriginalGround(ms, ground, src.groundIDs, hasGround, groundUnsupported, in.table, &r); err != nil {
 				return err
 			}
 			if err := admitOriginalActorRegistry(ms, registry, in.table, missionDocument); err != nil {
@@ -488,6 +489,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := restoreOriginalActions(ms, in.table); err != nil {
 				return err
 			}
+			restoreLoadedRuntimeIDs(ms, missionDocument, documentOrigins)
 			ms.resumeBookWalk = true
 			publishSessionEntry(ms)
 			currentGroups, _, _ := ms.World.SavedGroups()

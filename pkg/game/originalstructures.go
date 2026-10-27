@@ -59,9 +59,6 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 		if subjects != nil {
 			row := subjects[s.Identity]
 			id, ss.HasAuthored, ss.AuthoredIndex = row.ID, row.HasAuthored, row.AuthoredIndex
-			if row.RuntimeID != nil && row.RuntimeID.Wire == s.RuntimeID {
-				ss.RuntimeID = row.RuntimeID.Value
-			}
 			if row.HasAuthored {
 				matched[int(row.AuthoredIndex)] = true
 			}

@@ -23,6 +23,7 @@ func (w *World) sourceMutationCopy(i int) World {
 	for j, sack := range w.sacks {
 		n.sacks[j] = makeSack(sack.X, sack.Y, sack.Gold, sack.ItemInstances)
 		n.sacks[j].ObjectID = sack.ObjectID
+		n.sacks[j].runtimeID = sack.runtimeID
 	}
 	n.grid = append([]byte(nil), w.grid...)
 	n.cost = append([]byte(nil), w.cost...)

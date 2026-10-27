@@ -32,8 +32,8 @@ type ActorRuntimeType struct {
 	Value int32
 }
 
-// ActorRuntimeCoordinate keeps a native coordinate when ordinary runtime IDs
-// need a unique, narrower namespace. An edited ordinary coordinate wins.
+// ActorRuntimeCoordinate is the runtime-id pair an older SAVE wrote beside a
+// renumbered record. SAVE writes none; LOAD reads it and keeps the saved id.
 type ActorRuntimeCoordinate struct {
 	Wire, Value uint32
 }
@@ -212,13 +212,10 @@ func (e *Entity) restoreValues(v ActorValues) error {
 			e.Humanoid = p.Humanoid
 		}
 	}
-	if v.RuntimeID != nil {
-		if !v.SourceBound || e.SourceBinding.Class == 0 || v.RuntimeID.Wire > 65535 || v.RuntimeID.Wire == v.RuntimeID.Value {
-			return fmt.Errorf("sim: invalid current runtime coordinate")
-		}
-		if e.SourceBinding.RuntimeID == v.RuntimeID.Wire {
-			e.SourceBinding.RuntimeID = v.RuntimeID.Value
-		}
+	// A coordinate an older SAVE wrote is read and not applied: LOAD keeps the
+	// saved id (SAV-1371).
+	if v.RuntimeID != nil && (!v.SourceBound || e.SourceBinding.Class == 0 || v.RuntimeID.Wire > 65535 || v.RuntimeID.Wire == v.RuntimeID.Value) {
+		return fmt.Errorf("sim: invalid current runtime coordinate")
 	}
 	fields := actorNumericFields(e)
 	seen := map[uint8]bool{}
@@ -268,7 +265,7 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	}
 	e.NativeClass = class
 	if !v.SourceBound {
-		e.SourceBinding = SourceBinding{}
+		e.SourceBinding = SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}
 	}
 	if err := e.restoreSpeedSplit(v); err != nil {
 		return err
@@ -358,13 +355,18 @@ func (w *World) restoreActorValues(values map[EntityID]ActorValues) error {
 				return fmt.Errorf("sim: current dead manager is absent")
 			}
 		}
-		if _, retained := held[next[i].ID]; retained && !v.SourceBound {
+		_, retained := held[next[i].ID]
+		if retained && !v.SourceBound {
 			// This coordinate belongs to the existing dead manager. The
 			// Entity's absent source binding remains absent.
 			v.RuntimeID = nil
 		}
 		if err := next[i].restoreValues(v); err != nil {
 			return err
+		}
+		if retained && !v.SourceBound {
+			// The dead manager carries the runtime id, not the Entity.
+			next[i].SourceBinding.RuntimeID = 0
 		}
 	}
 	for id, v := range values {
@@ -429,18 +431,6 @@ func (w *World) restoreActorValues(values map[EntityID]ActorValues) error {
 		p := v.RuntimeID
 		if p.Wire == 0 || p.Wire > 65535 || p.Value == 0 || p.Wire == p.Value || r.Source.State.Stage == 5 || r.terminal.Stage == 5 {
 			return fmt.Errorf("sim: invalid retained runtime coordinate")
-		}
-		if r.Source.State.RuntimeID == p.Wire {
-			r.Source.State.RuntimeID = p.Value
-		}
-		if r.terminal.Stage != 0 && r.terminal.RuntimeID == p.Wire {
-			r.terminal.RuntimeID = p.Value
-		}
-		if err := deadSourceFault(r.Source, w.bounds); err != nil {
-			return err
-		}
-		if r.terminal.Stage != 0 && !validHeldDeadContinuation(r.Source.State, r.terminal) {
-			return fmt.Errorf("sim: retained runtime coordinate disagrees with its current body")
 		}
 	}
 	w.entities, w.originalDead = next, dead

@@ -124,3 +124,12 @@ func TestReleaseTownSaveHumanRuntimeIDs(t *testing.T) {
 		t.Fatalf("original town Human ids %v -> %v, masks %v", before, after, masks)
 	}
 }
+
+// runtimePlaceable names the classes that take a runtime id (SAV-1368).
+func runtimePlaceable(class string) bool {
+	switch class {
+	case "Unit", "Humanoid", "Human", "Building", "Outpost", "Tavern", "Shop", "Sack":
+		return true
+	}
+	return false
+}

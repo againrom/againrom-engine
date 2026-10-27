@@ -32,7 +32,7 @@ func constructCurrentBuildings(ms *Mission, src entrySource) error {
 		if st.Col < 0 || st.Col > 255 || st.Row < 0 || st.Row > 255 {
 			return fmt.Errorf("current Building constructor position exceeds cell bytes")
 		}
-		s := sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(), RuntimeID: b.runtime(),
+		s := sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(),
 			Kind: uint8(st.Kind), Token0E: st.Kind, Token18: 2, Blocking: st.Blocking}
 		copy(s.Position[:], constructedPositionBlock(st.Col, st.Row, terrain))
 		s.Base52[14], s.Base52[15] = st.Width, st.Height

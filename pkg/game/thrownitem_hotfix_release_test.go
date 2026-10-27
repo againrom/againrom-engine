@@ -104,6 +104,7 @@ func TestReleaseThrownItemLiesAtFeetAndSurvivesSaveLoad(t *testing.T) {
 		t.Fatalf("cold LOAD changed the ground:\nwant %v\n got %v", want, got)
 	}
 	ch := cold.live.mission.ids[0]
+	adoptLoadedAllocator(t, mw.world, cold.live.world)
 	for tick := 0; tick < 20; tick++ {
 		if cold.live.world.Hash() != mw.world.Hash() {
 			t.Fatalf("tick %d: cold World hash differs", tick)

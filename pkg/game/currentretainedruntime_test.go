@@ -159,10 +159,12 @@ func TestCurrentRetainedRuntimeMalformedPolicyIsAtomic(t *testing.T) {
 				t.Fatal(err)
 			}
 			a, err := readCurrentActions(&doc)
-			if err != nil || a.Values[id].RuntimeID == nil {
-				t.Fatal("fixture coordinate absent", err)
+			if err != nil || a.Values[id].RuntimeID != nil {
+				t.Fatal("SAVE wrote a runtime coordinate", err)
 			}
 			v := a.Values[id]
+			// The coordinate an older SAVE wrote beside a renumbered record.
+			v.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: 1, Value: 0xabcdef77}
 			switch change {
 			case "redundant":
 				v.RuntimeID.Value = v.RuntimeID.Wire

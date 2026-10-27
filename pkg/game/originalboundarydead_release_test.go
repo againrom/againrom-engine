@@ -198,7 +198,7 @@ func TestReleaseOriginalBoundaryAndDeadEffectsLoad(t *testing.T) {
 				}
 			}
 			fresh, freshApp := originalColdLoad(t, store, name)
-			if fresh.live.world.Hash() != f.live.world.Hash() {
+			if adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash() != fresh.live.world.Hash() {
 				t.Fatal("cold LOAD of the SAVE differs from the saved World")
 			}
 			_, _, again := menuSAVE(t, fresh, freshApp, OriginalStore{})
@@ -291,7 +291,7 @@ func TestReleaseNativeDeadBodyAttachmentLoads(t *testing.T) {
 	}
 	store, name, _ := menuSAVE(t, f, app, OriginalStore{Dir: filepath.Dir(source)})
 	fresh, _ := originalColdLoad(t, store, name)
-	if fresh.live.world.Hash() != f.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash() != fresh.live.world.Hash() {
 		t.Fatal("cold LOAD of the SAVE differs from the saved World")
 	}
 	for range 8 {

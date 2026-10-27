@@ -269,6 +269,7 @@ func TestReleaseStoneCurseStaysStillThroughSAVColdLoadAndExpiry(t *testing.T) {
 					var store SaveStore
 					store, _, raw = menuSAVE(t, f, a, OriginalStore{})
 					cold = stoneStillCold(t, store)
+					adoptLoadedAllocator(t, f.live.world, cold.live.world)
 					*cold.live.view.Camera() = *f.live.view.Camera()
 				}
 				captureHeld()

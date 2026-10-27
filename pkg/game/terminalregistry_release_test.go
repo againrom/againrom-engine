@@ -93,15 +93,8 @@ func TestReleaseTerminalRegistryCurrentSAV(t *testing.T) {
 				continue
 			}
 			matched = true
-			fields := []string{"Health", "Stage", "T08"}
-			// An actor the World binds to no source record gets a new
-			// RuntimeID (DIV-2504).
-			for _, e := range f.live.world.Entities() {
-				if e.SourceBinding.Class != 0 && e.SourceBinding.Identity == identity {
-					fields = append(fields, "RuntimeID")
-				}
-			}
-			for _, field := range fields {
+			// A nonterminal actor keeps the runtime id LOAD gave it (SAV-1371).
+			for _, field := range []string{"Health", "Stage", "T08", "RuntimeID"} {
 				want, _ := savedStructureValue(&r, field)
 				got, _ := savedStructureValue(&other, field)
 				if got != want {
@@ -114,6 +107,7 @@ func TestReleaseTerminalRegistryCurrentSAV(t *testing.T) {
 		}
 	}
 	cold := loadLocalLegacySave(t, store, name)
+	adoptLoadedAllocator(t, f.live.world, cold.live.world)
 	for tick := 0; tick < 3; tick++ {
 		if f.live.world.Hash() != cold.live.world.Hash() {
 			logCurrentCarrierDiff(t, f.live.world, cold.live.world)

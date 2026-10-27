@@ -10,7 +10,7 @@ func RepairLegacyUnitCapacity(w *World, capacity int32) int {
 	repaired := 0
 	for i := range w.entities {
 		e := &w.entities[i]
-		if e.Humanoid || e.Capacity != 0 || e.SourceBinding != (SourceBinding{}) ||
+		if e.Humanoid || e.Capacity != 0 || e.SourceBinding.Class != 0 ||
 			e.ActorLoad != (ActorLoad{}) || e.HumanMovement != (HumanMovement{}) {
 			continue
 		}

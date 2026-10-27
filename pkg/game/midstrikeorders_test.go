@@ -307,7 +307,7 @@ func TestMidStrikePickupCurrentSAVColdLoadCompletesProductionTransfer(t *testing
 		f.live.tick()
 		cold.live.tick()
 		loss.live.tick()
-		if w.Hash() != cold.live.world.Hash() {
+		if adoptLoadedAllocator(t, w, cold.live.world).Hash() != cold.live.world.Hash() {
 			t.Fatal("cold pickup approach/completion differs")
 		}
 		if len(w.Sacks()) == 0 && pendingVictimEntity(t, w, 1).ActorState != 2 {

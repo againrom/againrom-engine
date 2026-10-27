@@ -76,7 +76,7 @@ func TestLegacyNativeScalarsCurrentStateThroughSAVE(t *testing.T) {
 			t.Fatalf("legacy ordinary Block byte %d: got %#x want %#x", n+2, e.NativeBasis.Block[n], want)
 		}
 	}
-	if e.ActorLoad.Source != (sim.SourceActor{}) || e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Present || e.NativeClass.Present {
+	if e.ActorLoad.Source != (sim.SourceActor{}) || e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Present || e.NativeClass.Present {
 		t.Fatal("legacy observation promoted source/load/class admission")
 	}
 	for _, slot := range []int{sim.ScalarT18, sim.ScalarU8E, sim.ScalarUA0, sim.ScalarU130, sim.ScalarU138} {

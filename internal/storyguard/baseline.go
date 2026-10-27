@@ -3040,7 +3040,7 @@ package storyguard
 // pkg/render/menu, pkg/ui, pkg/base and pkg/game and their tests, and this
 // paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4499,
+	TestIdentCount: 4487,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3073,5 +3073,12 @@ var Committed = Baseline{
 	// ruled list rows and their tests.
 	// then for the map editor save folder hotfix: new doc comments in
 	// pkg/game/mapinspectionedit.go and its tests.
-	CommentBytes: 9715207,
+	// then fell for the one town screen both games build their town through.
+
+	// It rose for the World's runtime-id allocator in pkg/sim/runtimeids.go, its
+	// LOAD replay witness and tests. TestIdentCount falls by twelve: the numbered
+	// Sack-objects fixture helper became sackObjectsOpen. It rose again for the
+	// map Sacks' ids at mission entry and the runtime-id wrapper peel, then for
+	// the M2 round trips' note on the LOAD's orphan bits.
+	CommentBytes: 9724860,
 }

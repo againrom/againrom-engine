@@ -88,7 +88,7 @@ func TestCurrentHealthAdmissionTwoSAVCycles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.live.world, f.live.mission.state.World = w, w
+	f.live.world, f.live.mission.state.World = insertFixtureRuntimeIDs(w), w
 	for cycle := 0; cycle < 2; cycle++ {
 		raw, _ := saveCurrentProfile(t, f)
 		cold := generatedCurrentCold(t, raw)
@@ -251,7 +251,7 @@ func currentHealthWideFront(t *testing.T, hp, maximum int32, decay sim.DecayStag
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.live.world, f.live.mission.state.World = w, w
+	f.live.world, f.live.mission.state.World = insertFixtureRuntimeIDs(w), w
 	return f
 }
 

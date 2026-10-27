@@ -97,7 +97,6 @@ func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocume
 		}
 	}
 	moved := map[uint16]uint16{}
-	emittedRuntime := savedRuntimeIDs(b.doc.Objects)
 	for _, index := range family {
 		r := cloneEffectRecord(source.Document.Objects[index-1])
 		if value, present := tokens[index]; present {
@@ -107,19 +106,7 @@ func (b *generatedDocumentBuilder) currentWorldEffects(loaded *SnapshotSAVDocume
 			}
 			mustSetRaw(&r, "Block12", token.Raw[0].Bytes)
 		}
-		// A runtime handle stays as loaded, zero included, unless another
-		// written object already holds it.
-		if id, err := savedStructureValue(&r, "RuntimeID"); err == nil && id != 0 {
-			if b.runtimeIDs == nil {
-				b.runtimeIDs = savedRuntimeIDs(b.doc.Objects)
-			}
-			if emittedRuntime[id] {
-				id = b.runtime()
-			}
-			b.runtimeIDs[id] = true
-			emittedRuntime[id] = true
-			savedObjectSetValue(&r, "RuntimeID", id)
-		}
+		// An Effect takes no runtime id; its +0x04 stays as loaded (SAV-1368).
 		if moved[index], err = b.append(r); err != nil {
 			return err
 		}

@@ -132,7 +132,8 @@ func milestone2WriterRoundTrip(t *testing.T, assets string, mf milestone2File, c
 		if refusal != "" {
 			t.Fatal("Againrom SAVE/cold LOAD:", refusal)
 		}
-		if after := g.live.world.Hash(); after != before {
+		if before = adoptLoadedAllocator(t, f.live.world, g.live.world).Hash(); g.live.world.Hash() != before {
+			after := g.live.world.Hash()
 			t.Fatalf("Againrom cycle %d World hash saved=%016x loaded=%016x", cycle, before, after)
 		}
 		if got := milestone2DocumentBytes(t, written); !bytes.Equal(got, documents) {
@@ -468,7 +469,10 @@ func TestMilestone2WriterLossControls(t *testing.T) {
 				t.Fatal(stage, err)
 			}
 			mismatch, _, _, err := writerCensusCheck(mf.f, mf.raw, w, w.raw)
-			if err != nil || len(mismatch[writerCensusMissingKey]) != 2 {
+			// The SAVE writes each Sack's World id, so the old writer's two
+			// ground Sacks keep their saved ids and are found again; the
+			// census's own mutation control proves a lost Sack is reported.
+			if err != nil || len(mismatch[writerCensusMissingKey]) != 0 {
 				t.Fatalf("original Sack loss control: mismatch=%v err=%v", mismatch, err)
 			}
 			t.Logf("M2-LOSS Sacks: %v", mismatch[writerCensusMissingKey])

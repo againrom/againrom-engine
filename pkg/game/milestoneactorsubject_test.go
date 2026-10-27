@@ -257,7 +257,7 @@ func (s *milestoneActorSubjects) actor(archive uint16, off int, class string, id
 	if receipts != 1 || !live || s.duplicateIDs[b.ID] || s.usedIDs[b.ID] {
 		return sim.Entity{}, false, true, "native actor subject live/ordinary receipt unavailable or aliased"
 	}
-	if e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present != current.LoadPresent || e.NativeClass.Present != current.NativeClassPresent || e.Humanoid != (class != "Unit") {
+	if e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present != current.LoadPresent || e.NativeClass.Present != current.NativeClassPresent || e.Humanoid != (class != "Unit") {
 		return sim.Entity{}, false, true, "native actor subject arithmetic absence/class differs"
 	}
 	s.usedIDs[b.ID] = true

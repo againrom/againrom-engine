@@ -32,7 +32,7 @@ func TestCurrentSaveSurvivesGroupMemberFullDecay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state, err := f.materializeCurrentWorld(s, w)
+	state, err := f.materializeCurrentWorld(s, insertFixtureRuntimeIDs(w))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestCurrentSavePreservesTornDownActorGroupCoordinate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.SavedDocument, err = f.materializeCurrentWorld(s, w)
+	s.SavedDocument, err = f.materializeCurrentWorld(s, insertFixtureRuntimeIDs(w))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -173,7 +173,7 @@ func TestActorEffects1161ExpiryToZeroDuringTurnAppSave(t *testing.T) {
 	app2.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app2, list, entries[0].Name)
 	actor1161TurnState(t, fresh, 2, 7, 9)
-	if f.live.world.Hash() != fresh.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash() != fresh.live.world.Hash() {
 		currentMenuWorldDiagnostics(t, f.live.world, fresh.live.world)
 		t.Fatal("pre-expiry ordinary SAVE changed current world")
 	}

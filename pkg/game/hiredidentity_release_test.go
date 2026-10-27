@@ -130,6 +130,7 @@ func hiredMissionCycles(t *testing.T, f *FrontEnd, want []mapload.PartyMember) {
 		if err := coldApp.OpenMission(opener); err != nil {
 			t.Fatal(err)
 		}
+		adoptLoadedAllocator(t, f.live.world, cold.live.world)
 		for tick := 0; tick < 4; tick++ {
 			if f.live.world.Hash() != cold.live.world.Hash() {
 				t.Fatal("mission continuation changed", cycle, tick)

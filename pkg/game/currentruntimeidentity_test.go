@@ -58,7 +58,7 @@ func TestCurrentRuntimeCoordinatesKeepTwoCyclesAndOrdinaryEdits(t *testing.T) {
 		{"duplicate", [3]uint32{77, 77, 77}, false, false},
 		{"wide duplicate", [3]uint32{0xabcdef77, 0xabcdef77, 0xfedc0011}, false, false},
 		{"ordinary runtime", [3]uint32{77, 77, 77}, true, false},
-		{"ordinary selection", [3]uint32{77, 77, 77}, false, true},
+		{"ordinary selection", [3]uint32{71, 72, 73}, false, true},
 		{"wide ordinary runtime and selection", [3]uint32{0xabcdef77, 0xabcdef77, 0xfedc0011}, true, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -77,20 +77,18 @@ func TestCurrentRuntimeCoordinatesKeepTwoCyclesAndOrdinaryEdits(t *testing.T) {
 			if err != nil || actions == nil {
 				t.Fatal(err)
 			}
+			// SAVE writes each id the World carries; it renumbers none and
+			// writes no coordinate (SAV-1371).
 			objects := map[sim.EntityID]uint16{}
-			seen := map[uint32]bool{}
 			for _, binding := range actions.Bindings {
 				if binding.Structure || binding.Missing {
 					continue
 				}
 				objects[binding.ID] = binding.Object
 				wire, err := savedStructureValue(&doc.Objects[binding.Object-1], "RuntimeID")
-				if err != nil || wire == 0 || wire > 65535 || seen[wire] {
-					t.Fatal("ordinary runtime namespace is not unique and bounded", wire, err)
-				}
-				seen[wire] = true
-				if test.name == "unique" && actions.Values[binding.ID].RuntimeID != nil {
-					t.Fatal("unchanged coordinate acquired redundant policy")
+				e, live := f.live.world.Entity(binding.ID)
+				if err != nil || !live || wire != e.SourceBinding.RuntimeID || actions.Values[binding.ID].RuntimeID != nil {
+					t.Fatal("SAVE did not write the World's runtime id", binding.ID, wire, err)
 				}
 			}
 			policy, _, err := sav.NativeActions(doc.State)
@@ -160,10 +158,12 @@ func TestCurrentRuntimeCoordinateMalformedPolicyIsAtomic(t *testing.T) {
 				t.Fatal(err)
 			}
 			a, err := readCurrentActions(&doc)
-			if err != nil || a.Values[1].RuntimeID == nil {
-				t.Fatal("fixture lacks remapped actor", err)
+			if err != nil || a.Values[1].RuntimeID != nil {
+				t.Fatal("SAVE wrote a runtime coordinate", err)
 			}
 			v := a.Values[1]
+			// The coordinate an older SAVE wrote beside a renumbered record.
+			v.RuntimeID = &sim.ActorRuntimeCoordinate{Wire: 1, Value: 77}
 			switch change {
 			case "redundant":
 				v.RuntimeID.Value = v.RuntimeID.Wire

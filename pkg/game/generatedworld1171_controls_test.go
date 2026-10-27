@@ -43,7 +43,7 @@ func assertCurrentWorldEqual(t *testing.T, want, got *sim.World, cut string) {
 			}
 		}
 	}
-	if want.Hash() != got.Hash() {
+	if want = adoptLoadedAllocator(t, want, got); want.Hash() != got.Hash() {
 		currentMenuWorldDiagnostics(t, want, got)
 		t.Fatalf("%s: complete World hash changed: %x / %x", cut, want.Hash(), got.Hash())
 	}
@@ -116,10 +116,10 @@ func TestGeneratedCurrentWorldOrdinaryActorFields(t *testing.T) {
 				savedObjectSetValue(actor, field, next)
 				// An actor of an engine-written file loads without a source
 				// binding. Its type is World state, and so is its key, which
-				// the World's cell record holds; its runtime ID, row selector
-				// and face/class come from constructor rules and are not
-				// carried.
-				if field == "T0E" || field == "Identity" {
+				// the World's cell record holds, and so is its runtime ID,
+				// which LOAD keeps as saved (SAV-1371); its row selector and
+				// face/class come from constructor rules and are not carried.
+				if field == "T0E" || field == "Identity" || field == "RuntimeID" {
 					want[field] = next
 				}
 			}
@@ -135,7 +135,7 @@ func TestGeneratedCurrentWorldOrdinaryActorFields(t *testing.T) {
 			if field == "unchanged" {
 				assertCurrentWorldEqual(t, f.live.world, current.live.world, "initial ordinary LOAD")
 			}
-			if e := generatedCampaignEntity(t, current, id); e.SourceBinding != (sim.SourceBinding{}) || field == "T0E" && e.TypeID != int32(want[field]) {
+			if e := generatedCampaignEntity(t, current, id); e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || field == "T0E" && e.TypeID != int32(want[field]) {
 				t.Fatalf("ordinary edit changed native absence or lost current type: %+v", e)
 			}
 			for cycle := 0; cycle < 2; cycle++ {

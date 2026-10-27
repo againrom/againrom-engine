@@ -180,7 +180,7 @@ func TestReleaseDeadFlyersLeaveNoActorInSave(t *testing.T) {
 	if _, in := cold.live.entity(control); !in {
 		t.Fatal("LOAD lost the ground body", control)
 	}
-	if cold.live.world.Hash() != f.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 		a, _ := f.live.world.MarshalBinary()
 		b, _ := cold.live.world.MarshalBinary()
 		n := 0

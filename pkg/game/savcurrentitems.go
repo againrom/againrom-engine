@@ -108,7 +108,7 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 	if err != nil {
 		return err
 	}
-	b := generatedDocumentBuilder{doc: *state.Document, reservedKeys: keys, runtimeIDs: savedRuntimeIDs(reservation.Objects)}
+	b := generatedDocumentBuilder{doc: *state.Document, reservedKeys: keys}
 	if err := b.reserveCurrentWorld(world); err != nil {
 		return err
 	}
@@ -174,7 +174,6 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 				copy.Values = append([]sav.DocumentValueData(nil), record.Values...)
 				if len(refs) != 0 {
 					savedObjectSetValue(&copy, "Identity", b.identity())
-					savedObjectSetValue(&copy, "RuntimeID", b.runtime())
 				}
 				index, err := b.append(copy)
 				if err != nil {
@@ -509,7 +508,8 @@ func projectCurrentUnboundSackRoots(b *generatedDocumentBuilder, state *Snapshot
 		}
 	}
 	var generated []uint16
-	for _, sack := range world.Sacks() {
+	sackIDs := world.SackRuntimeIDs()
+	for sackIndex, sack := range world.Sacks() {
 		if sack.ObjectID != 0 {
 			continue
 		}
@@ -554,6 +554,8 @@ func projectCurrentUnboundSackRoots(b *generatedDocumentBuilder, state *Snapshot
 		}
 		record := mustNewRecord("Sack")
 		mustSetToken(&record, nativeCityToken(key, 0, 0, 0))
+		// The record carries the id the World's Sack holds (SAV-1371).
+		mustSetValue(&record, "RuntimeID", sackIDs[sackIndex])
 		// SAV-1093: every verified original Sack token carries publication
 		// mask 2 at Token+0x18.
 		mustSetValue(&record, "T18", 2)

@@ -76,7 +76,7 @@ func nativeNameManifestCheck(t *testing.T, f *FrontEnd, want map[sim.EntityID]st
 	for _, row := range manifest.Actors {
 		name, found := want[row.ID]
 		e, live := f.live.world.Entity(row.ID)
-		if !found || row.Name != name || row.Constructed || !live || e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present || e.NativeClass.Present {
+		if !found || row.Name != name || row.Constructed || !live || e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present || e.NativeClass.Present {
 			t.Fatal("ordinary native name or source absence changed", row, name, e)
 		}
 		if f.live.actorNames[row.ID] != name {
@@ -380,7 +380,7 @@ func TestNativeObservedClassNameUsesInstalledCaption(t *testing.T) {
 				t.Fatal("presentation changed the ordinary name carrier or World")
 			}
 			if e, found := world.Entity(17); !found || !tc.source &&
-				(e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present || e.NativeClass.Present) {
+				(e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) || e.ActorLoad.Present || e.NativeClass.Present) {
 				t.Fatal("native caption promoted source state", e, found)
 			}
 		})

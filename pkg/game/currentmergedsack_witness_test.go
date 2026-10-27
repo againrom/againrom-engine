@@ -9,7 +9,7 @@ import (
 )
 
 func TestCurrentMergedSackFromLegacyFixture(t *testing.T) {
-	f, _, _ := sackObjectsOpen1115(t, func(doc *sav.DocumentData) {
+	f, _, _ := sackObjectsOpen(t, func(doc *sav.DocumentData) {
 		r := doc.Objects[doc.World.Sacks[0]-1]
 		r.Values = slices.Clone(r.Values)
 		newGroupSetValue1115(t, &r, "Identity", 0x12345678)
@@ -51,7 +51,7 @@ func TestCurrentMergedSackFromLegacyFixture(t *testing.T) {
 		if err != nil || town {
 			t.Fatal("current merged cold LOAD", cycle, err)
 		}
-		if cold.live.world.Hash() != before {
+		if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 			currentMenuWorldDiagnostics(t, f.live.world, cold.live.world)
 			t.Fatalf("current merged full World %x -> %x", before, cold.live.world.Hash())
 		}

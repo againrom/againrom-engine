@@ -1931,8 +1931,10 @@ type World struct {
 	currentTerminalActors []CurrentTerminalActor
 	removedNativeBases    []NativeActorBasisRecord
 	passiveBodies         []PassiveBody
-	currentPlayers        *currentPlayerState
-	savedMotion           *savedActorMotionState
+	// runtimeOrphans are the runtime-id bits a LOAD marked that no object carries.
+	runtimeOrphans []uint16
+	currentPlayers *currentPlayerState
+	savedMotion    *savedActorMotionState
 	// cellRecords holds the per-cell records (SAV cell entries), sorted by
 	// Cell; they belong to the cell planes, not to imported motion.
 	cellRecords []SavedActorCell

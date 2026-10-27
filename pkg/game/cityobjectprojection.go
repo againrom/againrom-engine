@@ -326,7 +326,7 @@ func newCityObjectProjection(source *cityObjectTopology, party []mapload.PartyMe
 func (p *cityObjectProjection) emit(b *generatedDocumentBuilder, a *currentActionData) error {
 	p.indices, p.chunks = map[sim.SavedObjectID]uint16{}, map[sim.SavedObjectID][]uint16{}
 	token := func() sim.SavedObjectToken {
-		v := sim.SavedObjectToken{Identity: b.identity(), RuntimeID: b.runtime(), T0E: 0x21}
+		v := sim.SavedObjectToken{Identity: b.identity(), T0E: 0x21}
 		v.Position[4], v.Position[5] = 128, 128
 		return v
 	}

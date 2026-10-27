@@ -147,6 +147,15 @@ func (w *World) ConstructSavedStructures(source []SavedStructure, cells []SavedS
 			return fmt.Errorf("saved structures: constructor requires generated provenance")
 		}
 	}
+	// A Building takes its runtime id from the allocator, in row order (SAV-1368).
+	source = cloneSavedStructures(source)
+	marks := w.runtimeIDMarks()
+	for i := range source {
+		if source[i].RuntimeID == 0 {
+			source[i].RuntimeID = marks.lowestClear()
+			marks.mark(source[i].RuntimeID)
+		}
+	}
 	if err := validateSavedStructures(w.structures, source, cells); err != nil {
 		return err
 	}

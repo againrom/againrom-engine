@@ -104,7 +104,7 @@ func (w *World) constructSavedAcquisition(item ItemStack) (ItemStack, bool) {
 			return 0, SavedObjectToken{}, fmt.Errorf("sim: generated item key space exhausted")
 		}
 		used[key] = true
-		token := SavedObjectToken{Identity: key, RuntimeID: key >> 4, T0E: 0x21}
+		token := SavedObjectToken{Identity: key, T0E: 0x21}
 		token.Position[4], token.Position[5] = 0x80, 0x80
 		return id, token, nil
 	}

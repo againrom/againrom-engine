@@ -549,7 +549,7 @@ func onlyNativeProjectiles(world *sim.World, drivers *sim.SavedWorldEffects) boo
 			continue
 		}
 		e, live := entityIn(world.Entities(), d.Target)
-		if d.TargetDetached || !live || e.SourceBinding.Class != 0 && e.SourceBinding.RuntimeID != 0 {
+		if d.TargetDetached || !live || e.SourceBinding.Class != 0 {
 			return false
 		}
 	}

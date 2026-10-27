@@ -15,7 +15,8 @@ type currentStructureBinding struct {
 	Ordinal       uint16
 	HasAuthored   bool
 	AuthoredIndex uint32
-	RuntimeID     *sim.ActorRuntimeCoordinate `json:",omitempty"`
+	// RuntimeID is an older SAVE's coordinate; LOAD reads it and keeps the saved id.
+	RuntimeID *sim.ActorRuntimeCoordinate `json:",omitempty"`
 }
 
 func captureCurrentStructureBindings(doc *sav.DocumentData, w *sim.World, a *currentActionData) error {

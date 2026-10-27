@@ -154,6 +154,7 @@ var nstPinned = []struct {
 		{"currentTerminalActors", "[]sim.CurrentTerminalActor"},
 		{"removedNativeBases", "[]sim.NativeActorBasisRecord"},
 		{"passiveBodies", "[]sim.PassiveBody"},
+		{"runtimeOrphans", "[]uint16"},
 		{"currentPlayers", "*sim.currentPlayerState"},
 		{"savedMotion", "*sim.savedActorMotionState"},
 		{"cellRecords", "[]sim.SavedActorCell"},
@@ -357,6 +358,7 @@ var nstPinned = []struct {
 		{"Gold", "uint32"},
 		{"Items", "[]uint16"},
 		{"ItemInstances", "[]sim.ItemInstance"},
+		{"runtimeID", "uint32"},
 	}},
 }
 

@@ -276,6 +276,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	}
 	w.rebuildStructureSlots()
 	if !p.ObjectCarrier {
+		sackIDs := w.SackRuntimeIDs()
 		w.savedObjects = nil
 		w.carried = slices.Clone(w.carried)
 		for i := range w.carried {
@@ -297,7 +298,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 			}
 		}
 		for i := range w.sacks {
-			w.sacks[i].ObjectID = 0
+			w.sacks[i].ObjectID, w.sacks[i].runtimeID = 0, sackIDs[i]
 			for j := range w.sacks[i].ItemInstances {
 				w.sacks[i].ItemInstances[j].ObjectID = 0
 			}

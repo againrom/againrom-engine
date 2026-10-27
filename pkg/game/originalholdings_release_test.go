@@ -46,7 +46,7 @@ func holdingsNativeFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 	s, l, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(s, l, load)
 	groundAppLoad(t, app2, l, entries[0].Name)
-	if fresh.live.world.Hash() != hash {
+	if hash = adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash(); fresh.live.world.Hash() != hash {
 		t.Fatalf("fresh FrontEnd LOAD: hash %016x want %016x", fresh.live.world.Hash(), hash)
 	}
 	t.Logf("native SAVE=%s fresh FrontEnd LOAD hash=%016x", entries[0].Name, hash)
@@ -327,10 +327,12 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 				}
 				requireSameItemObjects(t, w, back.live.world)
 				requireAlteredItemWeight(t, w, written, sourceStaff.ID)
+				adoptLoadedAllocator(t, w, back.live.world)
 				for range 20 {
 					sim.Step(w, nil)
 					sim.Step(back.live.world, nil)
 					if w.Hash() != back.live.world.Hash() {
+						currentMenuWorldDiagnostics(t, w, back.live.world)
 						t.Fatal("staff death/pickup/equip continuation differs after the SAV LOAD")
 					}
 				}

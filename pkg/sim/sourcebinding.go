@@ -50,12 +50,12 @@ func (s SourceBinding) DefinitionRow() uint8 {
 
 func (s SourceBinding) Validate(e Entity) error {
 	if s.Class == 0 {
-		if s != (SourceBinding{}) {
+		if s != (SourceBinding{RuntimeID: s.RuntimeID}) {
 			return fmt.Errorf("sim: absent source binding has residue")
 		}
 		return nil
 	}
-	if s.Class > 5 || (!s.Generated() && s.ArchiveIndex == 0) || (s.Generated() && (s.ArchiveIndex != 0 || s.Identity == 0 || s.RuntimeID == 0)) || e.Humanoid != (s.ActorClass() != 1) {
+	if s.Class > 5 || (!s.Generated() && s.ArchiveIndex == 0) || (s.Generated() && (s.ArchiveIndex != 0 || s.Identity == 0)) || e.Humanoid != (s.ActorClass() != 1) {
 		return fmt.Errorf("sim: source binding class/index disagrees with entity %d", e.ID)
 	}
 	basisClass := s.ActorClass()

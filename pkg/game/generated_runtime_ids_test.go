@@ -116,33 +116,3 @@ func TestReleaseCityGraftAllocatesFreeRuntimeID(t *testing.T) {
 		t.Fatalf("new companion runtime ID=%d, want lowest free=%d independently of saved-address=%#x", id, want, key)
 	}
 }
-
-func TestGeneratedRuntimeAllocationKeepsLoadedIDsAndAddressKeys(t *testing.T) {
-	var objects []sav.DocumentRecordData
-	for _, row := range []struct {
-		class string
-		id    uint32
-	}{{"Human", 1}, {"Building", 3}, {"Item", 5}, {"Effect", 0x01000006}, {"Human", 0x21000007}, {"Unit", 0}} {
-		r := mustNewRecord(row.class)
-		mustSetValue(&r, "RuntimeID", row.id)
-		objects = append(objects, r)
-	}
-	before, err := json.Marshal(objects)
-	if err != nil {
-		t.Fatal(err)
-	}
-	keys := []uint32{0x61000000, 0x61000010}
-	b := generatedDocumentBuilder{doc: sav.DocumentData{Objects: objects}, reservedKeys: append([]uint32(nil), keys...)}
-	for _, want := range []uint32{2, 4, 6, 8} {
-		if got := b.runtime(); got != want {
-			t.Fatalf("runtime allocation=%d, want %d", got, want)
-		}
-	}
-	if !reflect.DeepEqual(b.reservedKeys, keys) || b.identity() != keys[0] || b.identity() != keys[1] {
-		t.Fatal("runtime allocation consumed or changed saved-address keys")
-	}
-	after, err := json.Marshal(b.doc.Objects)
-	if err != nil || string(before) != string(after) {
-		t.Fatal("allocation rewrote loaded IDs or other retained values", err)
-	}
-}

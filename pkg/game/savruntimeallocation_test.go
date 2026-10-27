@@ -6,36 +6,24 @@ import (
 	"againrom/pkg/formats/sav"
 )
 
-func TestCurrentRuntimeAllocatorReservesEveryRetainedRecord(t *testing.T) {
-	weapon, actor, sack := mustNewRecord("Weapon"), mustNewRecord("Unit"), mustNewRecord("Sack")
-	mustSetValue(&weapon, "RuntimeID", 1)
-	mustSetValue(&actor, "RuntimeID", 2)
-	mustSetValue(&sack, "RuntimeID", 1)
-	doc := sav.DocumentData{Objects: []sav.DocumentRecordData{weapon, actor, sack}}
+// SAVE allocates no runtime id: a record's id is the one its World object
+// carries, zero included, even where another record carries the same id
+// (SAV-1371). The document projection writes only the edges.
+func TestCurrentRuntimeProjectionAllocatesNoID(t *testing.T) {
+	classes := []string{"Weapon", "Human", "Unit", "Building", "Sack", "Unit"}
+	ids := []uint32{1, 1, 0, 1, 1, 0x10004}
+	doc := sav.DocumentData{}
+	for i, class := range classes {
+		r := mustNewRecord(class)
+		mustSetValue(&r, "RuntimeID", ids[i])
+		doc.Objects = append(doc.Objects, r)
+	}
 	if err := projectCurrentRuntimeIDs(&doc, Snapshot{}); err != nil {
 		t.Fatal(err)
 	}
-	itemID, _ := savedStructureValue(&doc.Objects[0], "RuntimeID")
-	actorID, _ := savedStructureValue(&doc.Objects[1], "RuntimeID")
-	sackID, _ := savedStructureValue(&doc.Objects[2], "RuntimeID")
-	if itemID != 1 || actorID != 2 || sackID == 0 || sackID == itemID || sackID == actorID {
-		t.Fatalf("retained item/actor/new Sack RuntimeIDs %d/%d/%d", itemID, actorID, sackID)
-	}
-}
-
-func TestCurrentRuntimeAllocatorKeepsPlaceableIDsAcrossItemCollisions(t *testing.T) {
-	weapon, human, unit := mustNewRecord("Weapon"), mustNewRecord("Human"), mustNewRecord("Unit")
-	mustSetValue(&weapon, "RuntimeID", 1)
-	mustSetValue(&human, "RuntimeID", 1)
-	mustSetValue(&unit, "RuntimeID", 0)
-	doc := sav.DocumentData{Objects: []sav.DocumentRecordData{weapon, human, unit}}
-	if err := projectCurrentRuntimeIDs(&doc, Snapshot{}); err != nil {
-		t.Fatal(err)
-	}
-	itemID, _ := savedStructureValue(&doc.Objects[0], "RuntimeID")
-	humanID, _ := savedStructureValue(&doc.Objects[1], "RuntimeID")
-	unitID, _ := savedStructureValue(&doc.Objects[2], "RuntimeID")
-	if itemID != 1 || humanID != 1 || unitID != 2 {
-		t.Fatalf("retained Weapon/Human and new Unit RuntimeIDs %d/%d/%d, want 1/1/2", itemID, humanID, unitID)
+	for i := range doc.Objects {
+		if got, err := savedStructureValue(&doc.Objects[i], "RuntimeID"); err != nil || got != ids[i] {
+			t.Fatalf("%s RuntimeID %d, want %d (%v)", classes[i], got, ids[i], err)
+		}
 	}
 }

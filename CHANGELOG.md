@@ -38,6 +38,7 @@ modder or developer can notice gets no entry.
 ### For developers
 
 - [BASE] Both games now build their town through one town screen; what differs between the games is town description data, and players see no change.
+- [BASE] Units, buildings and dropped sacks take their numbers from one counter the way the original does, a save restores that counter on load, and saving writes the numbers the game holds; players see no change.
 
 ## 0.135.0
 

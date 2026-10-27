@@ -163,7 +163,9 @@ func TestSAVWriterCensusDeadUnits(t *testing.T) {
 	if err := os.WriteFile(path, raw, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if h := loadAreaContinuation(t, path).live.world.Hash(); h != hash {
+	cold := loadAreaContinuation(t, path).live.world
+	if hash = adoptLoadedAllocator(t, f.live.world, cold).Hash(); cold.Hash() != hash {
+		h := cold.Hash()
 		t.Fatalf("cold LOAD World hash %x, saved World %x", h, hash)
 	}
 	t.Logf("Unit, Weapon and dead roots written: %v", loaded)

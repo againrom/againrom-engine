@@ -293,7 +293,7 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
-	b := generatedDocumentBuilder{doc: doc, table: f.Table, reservedKeys: keys, runtimeIDs: savedRuntimeIDs(doc.Objects)}
+	b := generatedDocumentBuilder{doc: doc, table: f.Table, reservedKeys: keys}
 	b.reserveCurrentParty(s.Party)
 	a := currentActionData{Version: 1}
 	if f.Table != nil && f.Table.TerrainCosts != nil {

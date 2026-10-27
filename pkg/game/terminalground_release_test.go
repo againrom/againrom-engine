@@ -87,6 +87,7 @@ func TestReleaseTerminalLootGroundCurrentSAV(t *testing.T) {
 		}
 	}
 	cold := loadLocalLegacySave(t, store, name)
+	adoptLoadedAllocator(t, f.live.world, cold.live.world)
 	for tick := 0; tick < 5; tick++ {
 		if cold.live.world.Hash() != f.live.world.Hash() {
 			logCurrentCarrierDiff(t, f.live.world, cold.live.world)

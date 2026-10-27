@@ -53,7 +53,7 @@ func bindingOrderFront(t *testing.T, bodies int) (*FrontEnd, *sim.World) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.SavedDocument, err = f.materializeCurrentWorld(s, w); err != nil {
+	if s.SavedDocument, err = f.materializeCurrentWorld(s, insertFixtureRuntimeIDs(w)); err != nil {
 		t.Fatal(err)
 	}
 	if s.World, err = w.MarshalBinary(); err != nil {

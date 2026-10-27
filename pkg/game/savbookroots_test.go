@@ -105,7 +105,7 @@ func TestCurrentBookOnlyRootSurvivesGraphRetirementAndColdLoads(t *testing.T) {
 					t.Fatal("book-only cold LOAD", cycle, town, err)
 				}
 				if !edit || cycle != 0 {
-					if cold.live.world.Hash() != before {
+					if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 						t.Fatalf("book-only cycle %d full World %x -> %x", cycle, before, cold.live.world.Hash())
 					}
 					for range 20 {

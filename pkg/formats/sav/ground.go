@@ -17,6 +17,7 @@ import "fmt"
 // own constructor rather than read back out of the container.
 type GroundSack struct {
 	Identity    uint32
+	RuntimeID   uint32
 	Cell        uint16
 	FineX       uint8
 	FineY       uint8
@@ -58,7 +59,7 @@ func groundSacks(doc *document, present bool) ([]GroundSack, bool, error) {
 		if len(position) != 12 {
 			return nil, true, fmt.Errorf("sav: Sack %d has no complete Position", i)
 		}
-		sack := GroundSack{Identity: identity, Cell: u16(position, 2),
+		sack := GroundSack{Identity: identity, RuntimeID: record.value("RuntimeID"), Cell: u16(position, 2),
 			FineX: position[4], FineY: position[5], Gold: record.value("S3C"),
 			InsertIndex: record.value("Contents1C"), Accumulator: int32(record.value("Contents20")),
 			Token1C: record.value("T1C")}

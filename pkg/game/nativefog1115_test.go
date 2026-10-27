@@ -14,7 +14,7 @@ import (
 // sample still showed behind a moved body are not visible after LOAD; the two
 // continuations agree again from the next scheduled sample.
 func TestNativeFog1115CheckpointBetweenSamples(t *testing.T) {
-	f, app, _ := sackObjectsOpen1115(t, nil)
+	f, app, _ := sackObjectsOpen(t, nil)
 	opening := append([]byte(nil), f.live.fog.visible...)
 	f.live.tick()
 	if f.live.world.Tick()%fogPeriod == 0 {
@@ -131,7 +131,7 @@ func TestNativeFog1115LegacyExplorationDoesNotGrowAtOpen(t *testing.T) {
 }
 
 func TestNativeFog1115RejectsMalformedSampleBeforeAdoption(t *testing.T) {
-	f, app, _ := sackObjectsOpen1115(t, nil)
+	f, app, _ := sackObjectsOpen(t, nil)
 	before, _, err := f.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)

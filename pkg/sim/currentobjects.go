@@ -69,11 +69,13 @@ func (w *World) ReplaceCurrentObjects(registry *SavedObjects, identities map[Sav
 				}
 			}
 			n.sacks[i] = value
+			w.keepSackRuntimeID(&n.sacks[i], old)
 			delete(unbound, key)
 			continue
 		}
 		n.sacks[i] = makeSack(old.X, old.Y, old.Gold, old.ItemInstances)
 		n.sacks[i].ObjectID = identities[old.ObjectID]
+		w.keepSackRuntimeID(&n.sacks[i], old)
 		for j, v := range old.ItemInstances {
 			var err error
 			n.sacks[i].ItemInstances[j], err = rebind(v)
@@ -110,6 +112,7 @@ func (w *World) ReplaceCurrentObjects(registry *SavedObjects, identities map[Sav
 				}
 				n.sacks[i] = makeSack(old.X, old.Y, old.Gold, units)
 				n.sacks[i].ObjectID = identities[old.ObjectID]
+				w.keepSackRuntimeID(&n.sacks[i], old)
 			}
 		}
 	}

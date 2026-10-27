@@ -110,10 +110,6 @@ func (b *generatedDocumentBuilder) retainDeadEffects(record *sav.DocumentRecordD
 		if !b.retainedKeys[token.Identity] {
 			token.Identity = 0
 		}
-		if b.runtimeIDs == nil {
-			b.runtimeIDs = savedRuntimeIDs(b.doc.Objects)
-		}
-		b.runtimeIDs[token.RuntimeID] = true
 		index, err := b.append(savedCurrentEffectRecord(sim.SavedEffectObject{E0C: effect.E0C, Value: effect.Value, Token: token}))
 		if err != nil {
 			return err
@@ -218,11 +214,7 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 						placement = &ms.Map.Units[i]
 					}
 				}
-				runtime := body.Current.RuntimeID
-				if runtime == 0 {
-					runtime = b.runtime()
-				}
-				basis, _, err := currentRecordActor(e, mapload.PartyMember{}, hero, placement, b.table, body.Source.Identity, runtime)
+				basis, _, err := currentRecordActor(e, mapload.PartyMember{}, hero, placement, b.table, body.Source.Identity, body.Current.RuntimeID)
 				if err != nil {
 					return false, err
 				}

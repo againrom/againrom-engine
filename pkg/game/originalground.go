@@ -18,10 +18,10 @@ import (
 // originalItemInstance already carries only the supported Effects into live
 // state, so the rest of the item — and every other item in the same Sack
 // — restores regardless.
-func originalGroundState(f *sav.File) ([]sim.Sack, bool, int, error) {
+func originalGroundState(f *sav.File) ([]sim.Sack, []uint32, bool, int, error) {
 	source, present, err := f.GroundSacks()
 	if err != nil || !present {
-		return nil, present, 0, err
+		return nil, nil, present, 0, err
 	}
 	// The native world keeps one value per unit. Bound that expansion before
 	// allocating: a tiny hostile file must not expand into billions of items.
@@ -30,15 +30,16 @@ func originalGroundState(f *sav.File) ([]sim.Sack, bool, int, error) {
 	for _, saved := range source {
 		for _, piece := range saved.Items {
 			if piece.Code == 0 || piece.Stack == 0 {
-				return nil, true, 0, fmt.Errorf("original Sack %#x: zero item code or count", saved.Identity)
+				return nil, nil, true, 0, fmt.Errorf("original Sack %#x: zero item code or count", saved.Identity)
 			}
 			count += uint64(piece.Stack) * uint64(1+len(piece.Effects))
 			if count > maxGroundValues {
-				return nil, true, 0, fmt.Errorf("original ground loot exceeds %d expanded item/effect values", maxGroundValues)
+				return nil, nil, true, 0, fmt.Errorf("original ground loot exceeds %d expanded item/effect values", maxGroundValues)
 			}
 		}
 	}
 	out := make([]sim.Sack, 0, len(source))
+	ids := make([]uint32, 0, len(source))
 	var unsupported int
 	for _, saved := range source {
 		sack := sim.Sack{X: int32(saved.Cell & 255), Y: int32(saved.Cell >> 8), Gold: saved.Gold}
@@ -53,11 +54,12 @@ func originalGroundState(f *sav.File) ([]sim.Sack, bool, int, error) {
 			}
 		}
 		out = append(out, sack)
+		ids = append(ids, saved.RuntimeID)
 	}
-	return out, true, unsupported, nil
+	return out, ids, true, unsupported, nil
 }
 
-func applyOriginalGround(ms *Mission, sacks []sim.Sack, present bool, unsupported int, table *mapload.Table, r *OriginalSaveResume) error {
+func applyOriginalGround(ms *Mission, sacks []sim.Sack, ids []uint32, present bool, unsupported int, table *mapload.Table, r *OriginalSaveResume) error {
 	if !present {
 		return nil
 	}
@@ -70,6 +72,21 @@ func applyOriginalGround(ms *Mission, sacks []sim.Sack, present bool, unsupporte
 		}
 	}
 	if err := ms.World.ReplaceGroundSacks(sacks); err != nil {
+		return fmt.Errorf("original ground loot: %w", err)
+	}
+	// Each Sack keeps the runtime id its first record in the cell carries; a
+	// merged record's id stays marked by the LOAD replay (SAV-1371).
+	placed := ms.World.Sacks()
+	carried := make([]uint32, len(placed))
+	for i, s := range placed {
+		for j := range sacks {
+			if sacks[j].X == s.X && sacks[j].Y == s.Y && j < len(ids) {
+				carried[i] = ids[j]
+				break
+			}
+		}
+	}
+	if err := ms.World.RestoreGroundSackRuntimeIDs(carried); err != nil {
 		return fmt.Errorf("original ground loot: %w", err)
 	}
 	var codes []uint16

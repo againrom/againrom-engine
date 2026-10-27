@@ -31,7 +31,7 @@ func (c *generatedDocumentBuilder) item(item sim.ItemInstance, count uint32, own
 	var sequence sim.SavedObjectID
 	mint := func() (sim.SavedObjectID, sim.SavedObjectToken, error) {
 		sequence++
-		token := sim.SavedObjectToken{Identity: c.identity(), RuntimeID: c.runtime(), Reference: owner, T0E: 0x21}
+		token := sim.SavedObjectToken{Identity: c.identity(), Reference: owner, T0E: 0x21}
 		token.Position[4], token.Position[5] = 128, 128
 		return sequence, token, nil
 	}

@@ -252,7 +252,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		if key == 0 || b.claimHeldKey(key) {
 			key = b.identity()
 		}
-		basis, name, err := currentRecordActor(e, member, nativeCityHeroOf(s.Party), placement, t, key, b.runtime())
+		basis, name, err := currentRecordActor(e, member, nativeCityHeroOf(s.Party), placement, t, key, e.SourceBinding.RuntimeID)
 		if err != nil {
 			return 0, 0, err
 		}

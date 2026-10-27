@@ -155,7 +155,7 @@ func originalReplayRun(t *testing.T, route originalReplayRoute, verbose bool, wi
 			differ = append(differ, label+" (cold LOAD refused)")
 			continue
 		}
-		if f.live.world.Hash() != cold.live.world.Hash() {
+		if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 			differ = append(differ, label)
 			if verbose {
 				t.Log(label)

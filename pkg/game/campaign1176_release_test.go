@@ -116,6 +116,9 @@ func campaignSave(t *testing.T, f *FrontEnd, onMap bool) (SaveStore, Snapshot, [
 	}
 	cold, _ := campaignCold(t, store)
 	written, _, err := cold.Snapshot(onMap)
+	if len(before.World) != 0 && len(written.World) != 0 {
+		before.World = formWithLoadedAllocator(t, before.World, written.World)
+	}
 	worldEqual := bytes.Equal(before.World, written.World)
 	if !worldEqual {
 		worldEqual = bytes.Equal(worldBytesWithConstructedCurrentSessionHead1115(t, before.World), written.World)

@@ -52,6 +52,7 @@ func (w *World) ImportSavedObjects(registry *SavedObjects, bindings []SavedSackB
 	for i, s := range w.sacks {
 		n.sacks[i] = makeSack(s.X, s.Y, s.Gold, s.ItemInstances)
 		n.sacks[i].ObjectID = s.ObjectID
+		w.keepSackRuntimeID(&n.sacks[i], s)
 	}
 	n.carried = make([][]ItemStack, len(w.carried))
 	n.equipment = make([][EquipSlots]ItemInstance, len(w.equipment))
@@ -101,7 +102,7 @@ func (w *World) ImportSavedObjects(registry *SavedObjects, bindings []SavedSackB
 			if s.ObjectID != 0 || s.Gold != b.Gold {
 				return fmt.Errorf("sim: saved Sack import does not name one native Sack")
 			}
-			s.ObjectID, found = b.ID, true
+			s.ObjectID, s.runtimeID, found = b.ID, 0, true
 		}
 		if !found {
 			return fmt.Errorf("sim: saved Sack import names no native Sack")

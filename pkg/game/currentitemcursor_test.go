@@ -175,7 +175,7 @@ func currentCursorRoundTrip(t *testing.T, f *FrontEnd) *FrontEnd {
 	t.Helper()
 	doc, _ := currentRootSAVDocument(t, f)
 	cold := currentCursorCold(t, doc, f)
-	if f.live.world.Hash() != cold.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 		currentItemWorldDiagnostics(t, snapshotCurrentObjects(t, f).World, snapshotCurrentObjects(t, cold).World)
 		t.Fatal("current count SAVE changed exact World state")
 	}

@@ -254,7 +254,7 @@ func TestApplication1170RejectsMalformedOriginalRunsBeforeAllocation(t *testing.
 }
 
 func TestApplication1170NativeCheckpointPreservesApplication(t *testing.T) {
-	f, _, _ := sackObjectsOpen1115(t, nil)
+	f, _, _ := sackObjectsOpen(t, nil)
 	f.live.tick()
 	initialHash := f.live.world.Hash()
 	for id, member := range f.live.mission.state.Start.Roster {
@@ -383,7 +383,7 @@ func TestApplication1170OriginalReferenceAndFogRefusalsKeepActiveSession(t *test
 }
 
 func TestApplication1170BetweenSamplesExplorationHasNoVisibilityLeaf(t *testing.T) {
-	f, _, _ := sackObjectsOpen1115(t, nil)
+	f, _, _ := sackObjectsOpen(t, nil)
 	f.live.fog.refresh(f.live.world, sim.SelfSlot)
 	// This fixture's actor crosses a cell between scheduled fog samples; the
 	// cell it steps onto is stamped, the ground it left is kept. Advance actual

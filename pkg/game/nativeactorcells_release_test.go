@@ -100,6 +100,7 @@ func TestReleaseNativeActorRegistryCurrentSAV(t *testing.T) {
 		t.Fatal("terminal registry changed")
 	}
 	cold := loadLocalLegacySave(t, store, name)
+	adoptLoadedAllocator(t, f.live.world, cold.live.world)
 	for tick := 0; tick < 3; tick++ {
 		if f.live.world.Hash() != cold.live.world.Hash() {
 			logCurrentCarrierDiff(t, f.live.world, cold.live.world)

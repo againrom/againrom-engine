@@ -255,6 +255,7 @@ func assertTerminalWeapons1100(t *testing.T, w *sim.World, body []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	form = beforeRuntimeIDForm(t, form)
 	if len(form) > 0 && form[0] == 124 {
 		if len(form) < 58 || !bytes.Equal(form[len(form)-4:], []byte("FLR1")) || form[len(form)-5] >= 124 {
 			t.Fatal("invalid flight release wrapper")

@@ -25,7 +25,7 @@ func currentRetainedRuntimeWorld(t *testing.T, runtime uint32, bound, sourceBoun
 	return w
 }
 
-func TestCurrentRetainedRuntimeUsesOneAnchorForAllHolders(t *testing.T) {
+func TestCurrentRetainedRuntimeCoordinateKeepsTheSavedID(t *testing.T) {
 	for _, mode := range []struct {
 		name               string
 		bound, sourceBound bool
@@ -33,7 +33,7 @@ func TestCurrentRetainedRuntimeUsesOneAnchorForAllHolders(t *testing.T) {
 		t.Run(mode.name, func(t *testing.T) {
 			for _, edit := range []bool{false, true} {
 				wire, native := uint32(71), uint32(0xabcdef77)
-				ordinary, wanted := wire, native
+				ordinary, wanted := wire, wire
 				if edit {
 					ordinary, wanted = 60123, 60123
 				}

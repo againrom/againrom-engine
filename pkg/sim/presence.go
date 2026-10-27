@@ -163,6 +163,7 @@ func (w *World) placeAt(i int, x, y int32) bool {
 	}
 	w.appendActorTraversal(e.ID)
 	e.OffMap = false
+	w.insertActorRuntimeID(e.ID)
 	w.enterPresenceCells(i)
 	return true
 }

@@ -153,6 +153,9 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	}
 	fresh, _ := holdingsNativeFresh(t, f, app, store, nil)
 	reloaded, _, err := fresh.Snapshot(true)
+	if err == nil {
+		after.World = formWithLoadedAllocator(t, after.World, reloaded.World)
+	}
 	if err != nil || !bytes.Equal(after.World, reloaded.World) || !sameResave(t, f, fresh) {
 		t.Fatal("retired Sack changed through ordinary SAVE/fresh LOAD", err)
 	}

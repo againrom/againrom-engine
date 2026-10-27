@@ -110,7 +110,7 @@ func attackTargetSaveFront(t *testing.T) *FrontEnd {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.live.world, f.live.mission.state.World = w, w
+	f.live.world, f.live.mission.state.World = insertFixtureRuntimeIDs(w), w
 	return f
 }
 

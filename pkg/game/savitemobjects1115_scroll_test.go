@@ -113,7 +113,7 @@ func currentItemMenuCheckpoint(t *testing.T, f *FrontEnd, app *ui.App, fronts ..
 	groundAppLoad(t, freshApp, list, localOriginalSaveToken(name))
 	got := snapshotCurrentObjects(t, fresh)
 	itemMutationSame1115(t, before, got)
-	if f.live.world.Hash() != fresh.live.world.Hash() {
+	if adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash() != fresh.live.world.Hash() {
 		t.Fatal("ordinary SAV changed the exact current World")
 	}
 	return fresh, freshApp

@@ -76,7 +76,7 @@ func TestNativeUnitScalarsColdRawSubjects(t *testing.T) {
 		}
 	}
 	for _, e := range ms.World.Entities() {
-		if e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) {
+		if e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) {
 			t.Fatal("comparison fabricated source arithmetic", e)
 		}
 	}
@@ -332,7 +332,7 @@ func TestNativeUnitScalarsRawAliasAndEntityZero(t *testing.T) {
 	if n != 2 || len(excluded) != 0 || len(want.records) != 2 {
 		t.Fatal("references duplicated tagged scalar subjects", n, excluded, differences)
 	}
-	if e, ok := ms.World.Entity(0); !ok || e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) {
+	if e, ok := ms.World.Entity(0); !ok || e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) {
 		t.Fatal("native entity zero was lost or promoted", e, ok)
 	}
 	file, err := sav.Open(aliased)

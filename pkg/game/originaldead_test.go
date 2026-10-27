@@ -107,7 +107,7 @@ func TestOriginalDead1100AppLoadSaveContinuationAndRollback(t *testing.T) {
 	}
 	for cycle := 0; cycle < 2; cycle++ {
 		w = f.live.world
-		hash, prior := w.Hash(), f.live
+		prior := f.live
 		original = w.OriginalDeadActors()
 		if err := app.HeadlessKey("escape"); err != nil {
 			t.Fatal(err)
@@ -120,7 +120,7 @@ func TestOriginalDead1100AppLoadSaveContinuationAndRollback(t *testing.T) {
 			t.Fatalf("ordinary SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 		}
 		groundAppLoad(t, app, list, entries[0].Name)
-		if f.live.world.Hash() != hash || !reflect.DeepEqual(original, f.live.world.OriginalDeadActors()) {
+		if adoptLoadedAllocator(t, w, f.live.world).Hash() != f.live.world.Hash() || !reflect.DeepEqual(original, f.live.world.OriginalDeadActors()) {
 			currentMenuWorldDiagnostics(t, w, f.live.world)
 			t.Fatalf("cycle%d ordinary SAV lost exact dead state", cycle)
 		}

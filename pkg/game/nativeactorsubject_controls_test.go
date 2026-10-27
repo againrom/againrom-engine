@@ -45,7 +45,7 @@ func nativeSubjectFixture(t *testing.T) (*FrontEnd, []byte) {
 		t.Fatal("real placed constructors did not consume the authored inputs", entities)
 	}
 	for _, e := range entities {
-		if e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) || !e.NativeBasis.BasePresent || e.NativeBasis.BaseKnown != 0x003fffff {
+		if e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) || !e.NativeBasis.BasePresent || e.NativeBasis.BaseKnown != 0x003fffff {
 			t.Fatal("fixture must use actual native constructor admission", e)
 		}
 	}
@@ -109,7 +109,7 @@ func TestNativeActorSubjectColdSaveCorrespondence(t *testing.T) {
 		t.Fatal("native subjects were discarded by source-only correspondence", actors, combat, a, c)
 	}
 	for _, e := range ms.World.Entities() {
-		if e.SourceBinding != (sim.SourceBinding{}) || e.ActorLoad.Source != (sim.SourceActor{}) {
+		if e.SourceBinding != (sim.SourceBinding{RuntimeID: e.SourceBinding.RuntimeID}) || e.ActorLoad.Source != (sim.SourceActor{}) {
 			t.Fatal("correspondence promoted source arithmetic", e)
 		}
 	}

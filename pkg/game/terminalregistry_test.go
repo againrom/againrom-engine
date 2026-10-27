@@ -55,7 +55,7 @@ func TestTerminalRegistryOriginalBonesSaveColdLoadAndNextTick(t *testing.T) {
 		}
 		cold := openCurrentRetainedRuntime(t, currentRetainedRuntimeFront(t), raw)
 		for tick := 0; tick < 3; tick++ {
-			if f.live.world.Hash() != cold.live.world.Hash() {
+			if adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() != cold.live.world.Hash() {
 				t.Fatalf("terminal current state differs at cycle%d tick%d", cycle, tick)
 			}
 			sim.Step(f.live.world, nil)

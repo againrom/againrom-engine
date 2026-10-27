@@ -551,8 +551,9 @@ func TestAWorldWithADeathRoundTripsAndKeepsTheFormVersion(t *testing.T) {
 	}
 
 	form := mustMarshal(t, w)
-	if form[0] != formatVersion {
-		t.Fatalf("the encoded form declares version %d, want %d", form[0], formatVersion)
+	// The dropped Sack holds its runtime id in the runtime-id section.
+	if form[0] != runtimeIDFormVersion {
+		t.Fatalf("the encoded form declares version %d, want %d", form[0], runtimeIDFormVersion)
 	}
 
 	var back World
