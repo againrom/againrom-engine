@@ -28,7 +28,8 @@ func TestReleaseShopStockMultiplierDefaultMatchesMain(t *testing.T) {
 			}
 		}
 	}
-	const mainDigest = "38401627b891a796963787b54b6674cc4840b1d2846d71f99a649ed4d7b0ec11"
+	// Same items and counts per shelf as before DIV-4164; only the order moved.
+	const mainDigest = "7c4536c0fc7d6113d8d55eeb0328939bb2b999690958bc10cb6cd531bbdc45c1"
 	if got := fmt.Sprintf("%x", h.Sum(nil)); got != mainDigest {
 		t.Fatalf("default stock digest %s, want main %s", got, mainDigest)
 	}

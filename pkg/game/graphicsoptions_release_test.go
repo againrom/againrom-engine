@@ -53,6 +53,9 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 	// Map input advances an ordinary frame. Compare the held menu interval,
 	// after Ctrl+O and Escape have finished their normal map processing.
 	hash := f.live.world.Hash()
+	if !f.live.view.GraphicsOptions().HideLootDots {
+		t.Fatal("loot dots did not start off", f.live.view.GraphicsOptions())
+	}
 	before := bytes.Clone(a.GameMenuPanel().Pix)
 	for _, p := range [][2]int{{164, 144}, {164, 170}, {164, 196}, {164, 222}} {
 		for _, edge := range []string{"press", "release"} {
@@ -68,7 +71,7 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 	if err := a.HeadlessGameMenuAction("page-return"); err != nil {
 		t.Fatal(err)
 	}
-	want := ui.GraphicsOptions{Smoothing: true, HideShadows: true, DisableLighting: true, StaticObjects: true}
+	want := ui.GraphicsOptions{Smoothing: true, HideShadows: true, DisableLighting: true, StaticObjects: true, HideLootDots: true}
 	if f.live.view.GraphicsOptions() != want || f.live.world.Hash() != hash {
 		t.Fatal("installed controls missed renderer or stepped world", f.live.view.GraphicsOptions())
 	}

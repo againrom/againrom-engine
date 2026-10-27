@@ -3122,6 +3122,6 @@ var Committed = Baseline{
 	// room page scan's alias and seat rectangle rules (internal/archtest/
 	// roompage.go) and the tavern view page test (pkg/game/tavernviewpage_test.go).
 	// The merge with the second game's mission file LOAD is re-measured on the
-	// merged tree.
-	CommentBytes: 9797829,
+	// merged tree. It then rose for one comment in the shop stock release test.
+	CommentBytes: 9797966,
 }
