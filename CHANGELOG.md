@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] While the mission menu or one of its windows is open, the whole mission screen behind it is darker, the right-hand column, the open pack bar and the messages included; the menu stays at full brightness.
 - [ROM1] The shop, inn and school buttons use the original's gold lettering, turn yellow under the pointer and stay lit even when they cannot be used; the shop shows Buy and Sell with their sums on one line. Hover help text is gold-orange, and the Load list shows each save by its own name in ten framed rows.
 - [ROM2] The mission menu and its windows open at normal size, centred over the darkened mission.
 - [ROM1] After loading a town save, the inn lists its mercenaries in the original's order and selects the same first mercenary.

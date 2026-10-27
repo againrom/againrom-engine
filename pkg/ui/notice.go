@@ -496,7 +496,7 @@ func (v *Viewer) SetNoticeBackdrop(c color.RGBA) { v.noticeBackdrop = c; v.notic
 func (v *Viewer) noticeBackdropOf() (image.Rectangle, color.RGBA, bool) {
 	c := v.noticeBackdrop
 	w, h := v.cam.ViewW, v.cam.ViewH
-	if v.menuUp && v.menuBackdrop.A != 0 {
+	if v.menuBackdropUp() {
 		c = v.menuBackdrop
 		w, h = v.frameW, v.frameH
 	}
@@ -508,6 +508,10 @@ func (v *Viewer) noticeBackdropOf() (image.Rectangle, color.RGBA, bool) {
 	}
 	return image.Rect(0, 0, w, h), c, true
 }
+
+// menuBackdropUp reports the menu profile's whole-frame backdrop: the menu is
+// up and its profile names a visible colour.
+func (v *Viewer) menuBackdropUp() bool { return v.menuUp && v.menuBackdrop.A != 0 }
 
 // NoticeLines is s broken to width, in the font's own advance.
 //

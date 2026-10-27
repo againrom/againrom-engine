@@ -182,10 +182,9 @@ func TestNoDimWithoutADrawableArea(t *testing.T) {
 // 0077 AC-6 — THE ORDER, witnessed by parsing drawFrame rather than by reading pixels
 // back (which this package cannot do before the game starts).
 //
-// The claim is that the dim stands after everything the front end draws over the
-// map and before the popup alone. Both halves are checked, because only together
-// do they say anything: after the panel alone would allow it over the notice too,
-// and before the notice alone would allow it under the terrain.
+// The claim is that the notice dim stands after everything the front end draws
+// over the map and under the right column, and that the whole-frame backdrops
+// stand after every mission layer and the tooltip.
 func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "viewer.go", nil, 0)
@@ -232,7 +231,22 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 		return found
 	}
 
-	dim := at("noticeBackdropOf")
+	// The popup backdrop has two places, both through paintPopupBackdrop: the
+	// notice dim under the right column and the bottom boxes, and the
+	// dialogue lookup and the menu's whole-frame backdrop after the tooltip.
+	var sites []int
+	for i, stmt := range body.List {
+		ast.Inspect(stmt, func(n ast.Node) bool {
+			if id, ok := n.(*ast.Ident); ok && id.Name == "paintPopupBackdrop" {
+				sites = append(sites, i)
+			}
+			return true
+		})
+	}
+	if len(sites) != 2 {
+		t.Fatalf("paintPopupBackdrop is called at statements %v, want two places", sites)
+	}
+	dim, over := sites[0], sites[1]
 	// Everything the front end draws over the map: the overlay passes and the
 	// route strokes are the last of the map picture proper, and the unit
 	// information panel and the debug readout are the two boxes that used to
@@ -243,9 +257,15 @@ func TestTheDimIsComposedAfterEverythingButThePopup(t *testing.T) {
 				"that surface would not dim", dim, under, i)
 		}
 	}
-	// The popup, and it alone, keeps its ordinary brightness.
-	if i := at("dialogueBackdrop"); i <= dim {
-		t.Errorf("the dim is composed at statement %d, at or after the popup at %d — "+
-			"the packed dialogue would precede the HUD", dim, i)
+	// The notice dim covers the map viewport alone and stays under the column.
+	if i := at("columnFillerPresent"); i <= dim {
+		t.Errorf("the notice dim at statement %d stands over the column filler at %d", dim, i)
+	}
+	// The whole-frame backdrops darken every mission layer, the tooltip last.
+	for _, under := range []string{"columnFillerPresent", "missionCardPresentWith", "wornPresent", "packBarPresent",
+		"commandPanelPresent", "goldModalPresent", "messagePresent", "tooltipPresent"} {
+		if i := at(under); i >= over {
+			t.Errorf("the whole-frame backdrop at statement %d stands before %q at %d", over, under, i)
+		}
 	}
 }

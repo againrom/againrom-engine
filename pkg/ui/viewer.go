@@ -3682,13 +3682,7 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 
 	v.paintMissionTip(screen)
 
-	if _, shows, _ := v.DialogueBackdropPlan(); shows == 0 {
-		if r, c, ok := v.noticeBackdropOf(); ok {
-			vector.DrawFilledRect(screen, float32(r.Min.X), float32(r.Min.Y), float32(r.Dx()), float32(r.Dy()), c, false)
-			v.canvasLog.overSolid(r, c)
-		}
-		v.paintNotice(screen)
-	}
+	v.paintPopupBackdrop(screen, false)
 
 	// App sessions own the system cursor mode; standalone viewers update it here.
 	if _, _, shown := v.attackPointerPresent(); v.cursorMgr == nil && v.pointerModeChange(shown) {
@@ -3893,10 +3887,7 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 		}
 	}
 
-	if _, shows, _ := v.DialogueBackdropPlan(); shows > 0 {
-		v.dialogueBackdrop.draw(screen, &v.canvasLog, shows)
-		v.paintNotice(screen)
-	}
+	v.paintPopupBackdrop(screen, true)
 
 	// AND THE POINTER OVER ALL OF IT, for a viewer composing its own frame. A
 	// viewer inside an App session leaves this to the App, which composes the
@@ -4372,6 +4363,26 @@ func (v *Viewer) Run() error {
 // so tests can assert the draw path's expectations without an engine context.
 func SubCellBounds() image.Rectangle {
 	return image.Rect(0, 0, terrain.CellSize, terrain.CellSize)
+}
+
+// paintPopupBackdrop paints the popup's backdrop and then the notice, at the
+// one of drawFrame's two places that overHUD names. The notice dim covers the
+// map viewport and stands under the right column and the bottom boxes
+// (overHUD false). The dialogue lookup and the menu profile's whole-frame
+// backdrop stand over every mission layer, the tooltip included (overHUD
+// true); the menu and the deferred pointer are painted after the frame.
+func (v *Viewer) paintPopupBackdrop(screen *ebiten.Image, overHUD bool) {
+	_, shows, _ := v.DialogueBackdropPlan()
+	if (shows > 0 || v.menuBackdropUp()) != overHUD {
+		return
+	}
+	if shows > 0 {
+		v.dialogueBackdrop.draw(screen, &v.canvasLog, shows)
+	} else if r, c, ok := v.noticeBackdropOf(); ok {
+		vector.DrawFilledRect(screen, float32(r.Min.X), float32(r.Min.Y), float32(r.Dx()), float32(r.Dy()), c, false)
+		v.canvasLog.overSolid(r, c)
+	}
+	v.paintNotice(screen)
 }
 
 func (v *Viewer) paintNotice(screen *ebiten.Image) {
