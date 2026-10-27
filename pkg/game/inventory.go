@@ -625,8 +625,7 @@ func appendInventoryGold(subject *ui.InventorySubject, gold uint32, icon *image.
 }
 
 // purseInfo is the purse cell's hover lines: the install's money word alone
-// where the game's original reads it (the first game's MONEY), else the name
-// and the quantity.
+// where the game's original reads it, else the name and the quantity.
 func purseInfo(files *gameFiles, w ui.Words, gold uint32) []string {
 	if files != nil && files.purseMoneyWord && len(w.Hover) > purseHoverSlot && w.Hover[purseHoverSlot] != "" {
 		return []string{w.Hover[purseHoverSlot]}

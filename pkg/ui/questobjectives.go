@@ -31,8 +31,25 @@ func (f *flow) questLines() []string {
 	if f.menuFont == nil {
 		return wrapGameMenuText(s)
 	}
-	return wrapShopTip(f.menuFont, f.menuDisplayText(s), 400)
+	paras := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
+	// Title, blank line, body: the title and the body's first line indent.
+	titled := len(paras) > 2 && strings.TrimSpace(paras[0]) != "" &&
+		strings.TrimSpace(paras[1]) == "" && strings.TrimSpace(paras[2]) != ""
+	var lines []string
+	for i, para := range paras {
+		if titled && i == 1 {
+			continue
+		}
+		wrapped := wrapShopTip(f.menuFont, f.menuDisplayText(para), 400)
+		if titled && i <= 2 {
+			wrapped[0] = questIndent + wrapped[0]
+		}
+		lines = append(lines, wrapped...)
+	}
+	return lines
 }
+
+const questIndent = " "
 
 func (f *flow) questRows() []gameMenuRow {
 	rows := []gameMenuRow{{Label: f.words.QuestHeading, Literal: true, Status: true}}

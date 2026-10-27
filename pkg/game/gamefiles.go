@@ -77,7 +77,7 @@ type gameFiles struct {
 	// (R2-ASSET-148).
 	missionHeroSelected bool
 	// purseMoneyWord makes the inventory purse's hover the install's one-line
-	// money word (the first game's original reads MONEY).
+	// money word.
 	purseMoneyWord bool
 	// missionScreen is the game's mission screen layout data.
 	missionScreen ui.MissionScreen
@@ -198,6 +198,8 @@ var secondGameFiles = gameFiles{
 	heroSpeaker:   21,
 	// R2-ENGINE-579.
 	schoolPoolExperience: true,
+	// R2-ASSET-150.
+	purseMoneyWord: true,
 	// R2-ENGINE-580.
 	manaSpellcaster: true,
 	// R2-ENGINE-583.

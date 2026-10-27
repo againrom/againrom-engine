@@ -46,8 +46,7 @@ func TestNewMissionPanelsAreEachGamesData(t *testing.T) {
 	}
 }
 
-// MISSION-ROUTE-093: the first game's purse hovers with the install's money
-// word on one line; the second game keeps the name and quantity.
+// MISSION-ROUTE-093, R2-ASSET-150: the purse hovers with the money word.
 func TestPurseHoverIsEachGamesData(t *testing.T) {
 	var w ui.Words
 	w.Hover[purseHoverSlot] = "Money"
@@ -57,7 +56,8 @@ func TestPurseHoverIsEachGamesData(t *testing.T) {
 		want  []string
 	}{
 		{"first", &firstGameFiles, []string{"Money"}},
-		{"second", &secondGameFiles, []string{"Gold", "Quantity: 100"}},
+		{"second", &secondGameFiles, []string{"Money"}},
+		{"files without the word", &gameFiles{}, []string{"Gold", "Quantity: 100"}},
 	} {
 		if got := purseInfo(tc.files, w, 100); !slices.Equal(got, tc.want) {
 			t.Errorf("%s game: purse hover %q, want %q", tc.name, got, tc.want)

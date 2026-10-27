@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Quest Objectives shows the objective's title on its own line with the text below it, instead of both on one line with four question marks between them, and the gold in the pack reads MONEY on one line, as in the original.
 - [ROM2] The minimap shows the marks the original shows: a dark blue dot at the signpost, red dots on enemy creatures while your hero is near them, and red marks on the spiky mounds; the explored ground is drawn in the original's colours over the crystal.
 - [BASE] The Hall of Fame shows a zero score as 0 instead of leaving it empty, and View Cutscenes draws its list in ruled rows like the original, with eight rows in each game. In the first game Ok and Cancel there stand where the original puts them, the weapon pictures on the hero creation detail page open no tooltip, and its Accept, Reset and Back captions take the original's tan and yellow.
 - [ROM2] The main menu behaves as in the original: the intro movie plays at launch, Esc on the menu or the Hall of Fame does nothing instead of asking to quit or closing the hall, and Cut Scenes always opens its list of watched movies. The credits show the Nival logo instead of the text "nival.bmp", and back on the menu no caption shows until the mouse moves.
