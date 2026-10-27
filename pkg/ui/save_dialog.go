@@ -193,6 +193,10 @@ func (f *flow) cancelSaveDialog() {
 
 func (f *flow) closeSaveDialog(message string) {
 	f.saveDialog = nil
+	if f.pages.menu.WindowsCloseMenu {
+		f.closeGameMenu()
+		return
+	}
 	f.setScreen(ScreenGameMenu)
 	f.rebuildGameMenu(gameMenuRoot, 0)
 	f.setMenuUp(true)

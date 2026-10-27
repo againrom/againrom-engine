@@ -888,8 +888,9 @@ func (w *routeWitness) statue() {
 	w.menuChoose("abort", "abort game (m1.32)", nil)
 	w.expect("gamemenu", "abort game")
 	w.menuChoose("page-return", "return to game, abort page", nil)
-	w.expect("gamemenu", "the abort page's return")
-	w.menuChoose("return", "return", nil)
+	if w.screen() == "gamemenu" {
+		w.menuChoose("return", "return", nil)
+	}
 	w.expect("town/square", "return")
 }
 

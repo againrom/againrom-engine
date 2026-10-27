@@ -272,9 +272,6 @@ func secondMissionTerminalRefusals(t *testing.T, f *FrontEnd, app *ui.App, out s
 		if err := app.HeadlessSaveAction("cancel"); err != nil {
 			t.Fatal(err)
 		}
-		if err := app.HeadlessGameMenuAction("return"); err != nil {
-			t.Fatal(err)
-		}
 	}
 	after, _, err := f.Snapshot(true)
 	if err != nil || !reflect.DeepEqual(snapshot, after) {

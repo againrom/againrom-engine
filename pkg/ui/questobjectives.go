@@ -143,7 +143,7 @@ func (a *App) stepQuestObjectives(in appInput) {
 		return
 	}
 	if in.Enter {
-		f.rebuildGameMenu(gameMenuRoot, 0)
+		f.leaveMenuWindow(0)
 		f.questPress.Clear()
 		return
 	}
@@ -191,7 +191,7 @@ func (a *App) stepQuestObjectives(in appInput) {
 		_, activate := f.questPress.Release(0, hit)
 		if activate {
 			a.playUISound(UISoundCommonControl)
-			f.rebuildGameMenu(gameMenuRoot, 0)
+			f.leaveMenuWindow(0)
 		}
 	}
 }

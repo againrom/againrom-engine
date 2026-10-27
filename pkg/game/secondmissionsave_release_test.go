@@ -126,14 +126,11 @@ func secondMissionNamedSave(t *testing.T, f *FrontEnd, app *ui.App, out, name st
 		entries, dirErr := os.ReadDir(out)
 		t.Fatalf("ordinary SAVE refusal: %v world_unchanged=%v state_unchanged=%v capture=%v dir=%v entries=%v", err, hash == f.live.world.Hash(), reflect.DeepEqual(before, after), captureErr, dirErr, entries)
 	}
-	if app.Screen() != ui.ScreenGameMenu || app.HeadlessMessage() != f.Words.SaveAcknowledgement {
-		t.Fatal("ordinary SAVE acknowledgement", app.Screen(), app.HeadlessMessage())
+	if app.Screen() != ui.ScreenMap || app.HeadlessMessage() != "" {
+		t.Fatal("ordinary SAVE closes the menu and shows no line", app.Screen(), app.HeadlessMessage())
 	}
 	raw, err := os.ReadFile(filepath.Join(out, recordSecondSave(t, out, name)))
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err := app.HeadlessGameMenuAction("return"); err != nil {
 		t.Fatal(err)
 	}
 	if hash != f.live.world.Hash() {

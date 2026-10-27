@@ -73,9 +73,11 @@ type PageConfirm struct {
 // menu last showed.
 type pageSeams struct {
 	loadSet, saveSet *SavePage
-	save             *savePageState
-	files            func() bool
-	hasSave          bool
+	// menu is the game's game-menu data.
+	menu    GameMenuProfile
+	save    *savePageState
+	files   func() bool
+	hasSave bool
 	// loadable answers whether the load list has a row without building it.
 	loadable func() bool
 }

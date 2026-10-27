@@ -145,6 +145,10 @@ func (f *flow) submitSavePage() {
 
 func (f *flow) closeSavePage(message string) {
 	f.pages.save = nil
+	if f.pages.menu.WindowsCloseMenu {
+		f.closeGameMenu()
+		return
+	}
 	f.setScreen(ScreenGameMenu)
 	f.rebuildGameMenu(gameMenuRoot, 0)
 	f.setMenuUp(true)

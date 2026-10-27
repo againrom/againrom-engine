@@ -81,6 +81,8 @@ type gameFiles struct {
 	purseMoneyWord bool
 	// missionScreen is the game's mission screen layout data.
 	missionScreen ui.MissionScreen
+	// gameMenu is the game's game-menu data.
+	gameMenu ui.GameMenuProfile
 	// dialogueDefault is the text a mission dialogue shows when its message
 	// has no page 1 (DIALOGUE-049); empty opens no dialogue for it. The
 	// second game follows the first by owner direction while no second-game
@@ -170,6 +172,7 @@ var secondGameFiles = gameFiles{
 	missionPackClosed:   true,
 	missionHeroSelected: true,
 	missionScreen:       ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
+	gameMenu:            ui.GameMenuProfile{WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2},
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,

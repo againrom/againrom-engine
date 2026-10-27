@@ -1597,7 +1597,7 @@ func (f *flow) escape() (exit bool) {
 		if f.menuPage == gameMenuRoot {
 			f.closeGameMenu()
 		} else {
-			f.rebuildGameMenu(gameMenuRoot, 0)
+			f.leaveMenuWindow(0)
 		}
 		return false
 	case ScreenLoad:

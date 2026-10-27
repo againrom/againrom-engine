@@ -23,6 +23,7 @@ func (f *FrontEnd) wireLoadWindow(a *ui.App) {
 	}
 	a.SetLoadWindowWords(w)
 	if f.Archives != nil {
+		a.SetGameMenuProfile(filesOf(f.Archives.Game()).gameMenu)
 		if pages := filesOf(f.Archives.Game()).savePages; pages != nil {
 			a.SetSavePages(*pages(f))
 		}

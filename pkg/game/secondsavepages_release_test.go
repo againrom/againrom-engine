@@ -170,11 +170,8 @@ func secondSaveVia(t *testing.T, app *ui.App, over, label string) {
 	if err := app.HeadlessSaveAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	if app.Screen() != ui.ScreenGameMenu {
+	if app.Screen() != ui.ScreenMap {
 		t.Fatal("save page stayed open", app.Screen(), app.HeadlessMessage())
-	}
-	if err := app.HeadlessGameMenuAction("return"); err != nil {
-		t.Fatal(err)
 	}
 
 }
@@ -223,9 +220,6 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	if err := app.HeadlessSaveAction("cancel"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.HeadlessGameMenuAction("return"); err != nil {
-		t.Fatal(err)
-	}
 	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("save page", err, app.Screen())
 	}
@@ -236,9 +230,6 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 		t.Fatal(err)
 	}
 	app.SetSavePages(*pages)
-	if err := app.HeadlessGameMenuAction("return"); err != nil {
-		t.Fatal(err)
-	}
 
 	// Row 0 takes the smallest unused number; a chosen row is overwritten
 	// without confirmation under the new label.

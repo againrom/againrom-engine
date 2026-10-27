@@ -331,7 +331,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	case gameMenuReturn:
 		f.closeGameMenu()
 	case gameMenuOptionsCancel:
-		f.rebuildGameMenu(gameMenuRoot, 0)
+		f.leaveMenuWindow(0)
 	case gameMenuTimedAutosave:
 		if d := f.gameOptions.draft; d != nil {
 			d.autosave.Enabled = !d.autosave.Enabled
@@ -357,7 +357,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 				return
 			}
 		}
-		f.rebuildGameMenu(gameMenuRoot, 0)
+		f.leaveMenuWindow(0)
 	case gameMenuAcknowledgments:
 		f.soundOptions.acknowledgments = !f.soundOptions.acknowledgments
 		f.rebuildGameMenu(gameMenuSoundOptionsPage, selection)
@@ -410,9 +410,9 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	case gameMenuDiplomacy:
 		f.rebuildGameMenu(gameMenuDiplomacyPage, 0)
 	case gameMenuEndQuest:
-		f.rebuildGameMenu(gameMenuEndQuestConfirmation, 0)
+		f.rebuildGameMenu(gameMenuEndQuestConfirmation, f.pages.menu.EndQuestFocus)
 	case gameMenuAbortGame:
-		f.rebuildGameMenu(gameMenuAbortGameConfirmation, 0)
+		f.rebuildGameMenu(gameMenuAbortGameConfirmation, f.pages.menu.AbortGameFocus)
 	case gameMenuToggleTips:
 		if f.gameOptions.draft != nil {
 			f.toggleDraftTips()
@@ -568,6 +568,32 @@ func (f *flow) closeGameMenu() {
 	f.msg = ""
 }
 
+// GameMenuProfile is one game's game-menu data. The zero value is the first
+// game's behaviour.
+type GameMenuProfile struct {
+	// WindowsCloseMenu makes the last button of a window opened from the menu
+	// (and Escape on it) close the window and the menu, back to the screen
+	// behind; otherwise it returns to the menu's root.
+	WindowsCloseMenu bool
+	// EndQuestFocus and AbortGameFocus are the row each confirmation page
+	// opens with focus on.
+	EndQuestFocus  int
+	AbortGameFocus int
+}
+
+// SetGameMenuProfile adopts the game's game-menu data.
+func (a *App) SetGameMenuProfile(p GameMenuProfile) { a.flow.pages.menu = p }
+
+// leaveMenuWindow ends a window or page opened from the menu by the game's
+// profile: the whole menu closes, or the root shows again.
+func (f *flow) leaveMenuWindow(selection int) {
+	if f.pages.menu.WindowsCloseMenu {
+		f.closeGameMenu()
+		return
+	}
+	f.rebuildGameMenu(gameMenuRoot, selection)
+}
+
 func (f *flow) menuPanelSurface() gameMenuSurface {
 	if f.menuPage == gameMenuEndQuestConfirmation || f.menuPage == gameMenuAbortGameConfirmation ||
 		f.menuPage == gameMenuModActionConfirmation {
@@ -622,6 +648,10 @@ func (f *flow) openLoad(back Screen) {
 func (f *flow) closeLoad() {
 	f.loadUI.resetPointer()
 	back := f.loadBack
+	if back == ScreenGameMenu && f.pages.menu.WindowsCloseMenu {
+		f.closeGameMenu()
+		return
+	}
 	if back == ScreenGameMenu {
 		selection := 0
 		if f.menuList != nil {
