@@ -103,6 +103,11 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 	if !cold.live.world.HasEffectArm(creature.ID, 20) {
 		t.Fatal("cold LOAD lost the hold")
 	}
+	// The creatures mission start declares for Summon are not in the
+	// World's byte form; a LOAD without them refuses every later Summon.
+	if got, want := len(cold.live.world.SpellCreatures()), len(mw.world.SpellCreatures()); got != want || got == 0 {
+		t.Fatalf("cold LOAD declares %d Summon creatures, the saved World %d", got, want)
+	}
 	for range 8 {
 		f.LiveAdvance(1)
 		cold.LiveAdvance(1)

@@ -268,3 +268,19 @@ func TestRestoreOriginalActorStockStagingCarriesSavedProjectiles(t *testing.T) {
 		t.Fatalf("saved projectiles did not survive restoreOriginalActorStock's own staging: %+v", got)
 	}
 }
+
+// The creatures mission start declares for Summon are install-derived and
+// not in the World's byte form, so the staging's fresh receiver carries them;
+// a World without them refuses every Summon after the LOAD.
+func TestRestoreOriginalActorStockStagingCarriesSpellCreatures(t *testing.T) {
+	ms := holdingsMission(t)
+	declared := []sim.SpellCreature{{Name: "Squirrel", Actor: sim.Entity{HP: 5, MaxHP: 5}, Pack: []sim.ItemStack{{Code: 0x0e06, Count: 1}}}}
+	ms.World.DeclareSpellCreatures(declared)
+	var r OriginalSaveResume
+	if err := restoreOriginalActorStock(ms, nil, nil, &r); err != nil {
+		t.Fatal(err)
+	}
+	if got := ms.World.SpellCreatures(); !reflect.DeepEqual(got, declared) {
+		t.Fatalf("spell creatures after the staging: %+v, want %+v", got, declared)
+	}
+}

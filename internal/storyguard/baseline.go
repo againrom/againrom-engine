@@ -3123,5 +3123,10 @@ var Committed = Baseline{
 	// roompage.go) and the tavern view page test (pkg/game/tavernviewpage_test.go).
 	// The merge with the second game's mission file LOAD is re-measured on the
 	// merged tree. It then rose for one comment in the shop stock release test.
-	CommentBytes: 9797966,
+
+	// It rose for the second game's bank seat condition (pkg/game/campaignsecond.go),
+	// the Summon creature carry tests (pkg/sim/secondspell_test.go,
+	// pkg/game/originalholdings_test.go, pkg/game/secondspellrows_release_test.go)
+	// and the new pkg/game/secondseatworld_test.go.
+	CommentBytes: 9799220,
 }

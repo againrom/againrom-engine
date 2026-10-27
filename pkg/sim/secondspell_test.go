@@ -310,3 +310,20 @@ func TestFirstGameEffectLookupsKeepTheirIDs(t *testing.T) {
 		t.Errorf("second-game armSpellID(21) = %d, want no row (row 21 runs arm 24)", got)
 	}
 }
+
+// The creatures a Summon builds are install-derived and not in the byte form,
+// so the living-actor import's staging receiver carries them; without them
+// every Summon after an original-format LOAD is refused.
+func TestImportOriginalLivingActorsStagingCarriesSpellCreatures(t *testing.T) {
+	w, err := NewWorld(1, Bounds{Width: 4, Height: 4}, ModeCanonical, nil, nil)
+	if err != nil {
+		t.Fatalf("NewWorld: %v", err)
+	}
+	w.DeclareSpellCreatures([]SpellCreature{{Name: "Squirrel", Actor: Entity{HP: 5, MaxHP: 5}}})
+	if err := w.ImportOriginalLivingActors(nil); err != nil {
+		t.Fatalf("ImportOriginalLivingActors: %v", err)
+	}
+	if got := w.SpellCreatures(); len(got) != 1 || got[0].Name != "Squirrel" || got[0].Actor.MaxHP != 5 {
+		t.Fatalf("spell creatures after the staging: %+v", got)
+	}
+}
