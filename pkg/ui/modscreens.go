@@ -342,8 +342,8 @@ func (a *App) drawModCentered(pix *image.RGBA, s string, r image.Rectangle) {
 	a.drawModText(pix, s, r.Min.X+(r.Dx()-w)/2, r.Min.Y+(r.Dy()-h)/2)
 }
 
-// composeModScreen draws the open mod screen over the menu's own background, in
-// the frame, font and colours of the load window.
+// composeModScreen draws the page in the load window's frame, font and colours.
+// Its host decides whether the backing is transparent.
 func (a *App) composeModScreen() (*image.RGBA, error) {
 	f := a.flow
 	if f.modUI.open < 0 || f.modUI.open >= len(f.modUI.screens) {
@@ -351,7 +351,7 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 	}
 	s := f.modUI.screens[f.modUI.open]
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	if a.assets != nil {
+	if a.assets != nil && !f.nativeMissionMenu() {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
 	drawFrame(pix, windowFrame(modPanel, f.menuArt))

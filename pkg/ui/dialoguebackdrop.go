@@ -274,7 +274,7 @@ func townDialogueShows(t TownScreen) uint64 {
 
 // DialogueBackdropPlan reports the GPU policy.
 func (v *Viewer) DialogueBackdropPlan() (DialogueBackdrop, uint64, image.Rectangle) {
-	if !v.noticeOpen || v.noticeKind != NoticeDialogue || v.font == nil || v.noticeBackdropCustom {
+	if v.menuUp && v.menuBackdrop.A != 0 || !v.noticeOpen || v.noticeKind != NoticeDialogue || v.font == nil || v.noticeBackdropCustom {
 		return v.dialogueBackdrop.policy, 0, image.Rectangle{}
 	}
 	b := image.Rect(0, 0, v.frameW, v.frameH)

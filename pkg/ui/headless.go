@@ -327,35 +327,11 @@ func (a *App) HeadlessMessage() string {
 	return a.flow.msg
 }
 
-// HeadlessFrame returns the CPU composite for whatever screen the
-// application currently shows, for a caller with no ebiten canvas
-// (cmd/screenshot). It calls composeScreen (app.go), the exact selection
-// Draw itself calls through drawMenu, drawChargen and drawTown, so a
-// headless capture and the windowed frame it stands in for cannot select a
-// different composer for the same on-screen state — see composeScreen's own
-// header for the six developer tools that each held their own copy of that
-// decision before this function existed.
-//
-// note is non-empty only when pix is a correct but incomplete frame: today
-// that is ScreenGameMenu alone, where the town or world beneath the mini-menu
-// composes but the menu's own dim and panel (paintGameMenu, gamemenu.go) do
-// not — that overlay draws through ebiten's vector package directly onto the
-// windowed canvas and has no CPU composite. A caller that needs those pixels
-// has none to read; it has the note's name for what is missing instead.
-//
-// err is non-nil, and pix nil, for a screen this build cannot compose on the
-// CPU at all: the gameplay/mission screen (Viewer.Draw paints straight onto
-// the ebiten canvas with vector.StrokeLine and screen.DrawImage, no RGBA
-// composite anywhere), the map picker (ebitenutil.DebugPrintAt only), a load
-// list without its installed font.
-// It never returns a partial or plausible-looking frame for one of these:
-// a screenshot a reader cannot tell from a correct one is worse than a
-// refusal that names itself, because the whole reason to call this function
-// is to compare the result against the original game.
-//
-// It reads a.flow and the App's own composed-image seams and touches no
-// ebiten-owned field: a.canvas is a *ebiten.Image, allocated lazily by Draw
-// alone, and is nil in a headless process that never calls Draw.
+// HeadlessFrame returns the current CPU composition through composeScreen.
+// A native mission menu returns its placed layer with a note naming the absent
+// mission backdrop. Full mission frames require App.Draw and GPU readback.
+// Other screens that cannot compose on the CPU return an error and no image.
+// This method reads no ebiten-owned image.
 func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 	if a == nil || a.flow == nil {
 		return nil, "", fmt.Errorf("headless frame: nil application")
@@ -364,6 +340,21 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 		pix := a.composeCutscene()
 		a.finishCutscenePresentation()
 		return pix, "", nil
+	}
+	if a.flow.nativeMissionMenu() {
+		pic := a.GameMenuPanel()
+		if pic != nil {
+			place, at := a.missionMenuPlacement()
+			dst := image.NewRGBA(image.Rectangle{Max: place.WindowSize()})
+			for y := range dst.Bounds().Dy() {
+				for x := range dst.Bounds().Dx() {
+					if p, ok := place.WindowToFrame(x, y); ok {
+						dst.Set(x, y, pic.At(p.X-at.X, p.Y-at.Y))
+					}
+				}
+			}
+			return dst, "mission menu layer only; mission backdrop is absent", nil
+		}
 	}
 	if a.flow.mapShowing() {
 		return nil, "", fmt.Errorf("headless frame: %s screen draws through Viewer.Draw directly onto the ebiten canvas, no CPU composite", a.Screen())
@@ -798,6 +789,11 @@ func (a *App) HeadlessGameMenuAction(name string) error {
 		return a.headlessChooseRow(a.flow.menuList, i)
 	}
 	return fmt.Errorf("headless game-menu action %q: screen %s has no such action", name, a.flow.screen)
+}
+
+// HeadlessNativePoint maps a control point through the active presentation.
+func (a *App) HeadlessNativePoint(p image.Point) (int, int, bool) {
+	return a.nativeFrameToWindow(p)
 }
 
 // HeadlessActivate selects exactly one current row by its displayed text and

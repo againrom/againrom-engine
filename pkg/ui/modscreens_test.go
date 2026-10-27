@@ -205,7 +205,7 @@ func TestGameMenuModRowIsClickableWhereItIsDrawn(t *testing.T) {
 	a := modTestApp(t, modTestScreens())
 	a.flow.openGameMenu(ScreenTown)
 	base := gameMenuBaseRows(gameMenuTown)
-	r := gameMenuRowRect(gameMenuTown, base)
+	r := gameMenuRowRect(gameMenuPanelRect(gameMenuTown), base)
 	if p := gameMenuPanelRectFor(gameMenuTown, a.flow.menuRows()); !r.In(p) || p.Dy() <= gameMenuPanelRect(gameMenuTown).Dy() {
 		t.Fatalf("mod row %v is not inside the grown panel %v", r, p)
 	}

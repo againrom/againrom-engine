@@ -133,7 +133,7 @@ func (a *App) paintCurrentGameMenu(dst *ebiten.Image) {
 		a.menuLog.over(pic, image.Point{})
 		return
 	}
-	paintGameMenu(dst, a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, &a.menuLog)
+	paintGameMenu(dst, a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuGeometryProfile(), &a.menuLog)
 }
 
 func (a *App) stepQuestObjectives(in appInput) {

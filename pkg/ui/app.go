@@ -3405,8 +3405,9 @@ func (a *App) gameMenuButtonAt(in appInput) (int, bool) {
 		return 0, false
 	}
 	top, count := list.Visible()
-	row, ok := gameMenuRowAt(a.flow.menuPanelSurface(), count, p)
 	rows := a.flow.menuRows()
+	panel := gameMenuPanelRectFor(a.flow.menuPanelSurface(), rows, a.flow.menuGeometryProfile())
+	row, ok := gameMenuRowAt(panel, count, p)
 	if !ok || top+row >= len(rows) || rows[top+row].Status || !rows[top+row].Enabled {
 		return 0, false
 	}
@@ -4426,18 +4427,9 @@ func (a *App) drawCursor(screen *ebiten.Image) {
 	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, a.frameSmoothingOff)
 }
 
-// drawGameMenuOverMap composes the in-game menu's panel over a map screen
-// already drawn to the window.
-//
-// THE PANEL IS PAINTED AT NATIVE FRAME COORDINATES AND FITTED through the
-// native 640x480 placement, which keeps its decoded rectangles and input
-// inverse together without stretching the panel. The map behind it uses the
-// mission placement and is unchanged.
-//
-// It draws nothing when the menu is down, so the map screen's own frame is
-// byte-identical to the frame before this story.
+// drawGameMenuOverMap places the shared menu layer over the mission.
 func (a *App) drawGameMenuOverMap(screen *ebiten.Image) {
-	if a.flow.screen != ScreenGameMenu || a.flow.menuList == nil || !a.place.Valid() {
+	if !a.place.Valid() || !a.flow.nativeMissionMenu() && (a.flow.screen != ScreenGameMenu || a.flow.menuList == nil) {
 		return
 	}
 	if a.menuCanvas == nil {
@@ -4450,7 +4442,7 @@ func (a *App) drawGameMenuOverMap(screen *ebiten.Image) {
 	// for the overlay in the menu canvas's own coordinates.
 	captureAt := beginTextCapture(a.textSmoothingEnabled)
 	a.paintCurrentGameMenu(a.menuCanvas)
-	if a.flow.msg != "" && a.gameMenuAcknowledgement() == "" {
+	if a.flow.screen == ScreenGameMenu && a.flow.msg != "" && a.gameMenuAcknowledgement() == "" {
 		msg := clipRunes(a.flow.msg, pickerCols)
 		drawDebugText(a.menuCanvas, &a.menuLog, msg, pickerLeft, pickerMessageY)
 	}
@@ -4464,29 +4456,22 @@ func (a *App) drawGameMenuOverMap(screen *ebiten.Image) {
 	menuCanvas, kept := settleText(a.menuCanvas, &a.menuLog, captured, &a.menuEraser,
 		&a.menuBuf, &a.menuTex, &a.textSettleFallbacks)
 	a.menuCaptured, a.menuKept = len(captured), len(kept)
-	ox, oy := a.place.Origin()
-	menuAt, _ := newWideFrameLayout(a.wideFrameWidth(), wideFrameCentered).nativeToWide(image.Point{})
-	scale := a.place.Scale()
+	place, menuAt := a.missionMenuPlacement()
+	ox, oy := place.Origin()
+	scale := place.Scale()
 	var op ebiten.DrawImageOptions
 	op.GeoM.Scale(scale, scale)
-	op.GeoM.Translate(ox+float64(menuAt.X)*scale, oy)
+	op.GeoM.Translate(ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)
 	op.Filter = ebiten.FilterNearest
 	frameSmoothingOff = a.frameSmoothingOff
 	blitMenuOverMap(screen, menuCanvas, &op)
 	if len(kept) > 0 {
-		a.menuOverlay.draw(screen, kept, scale, ox+float64(menuAt.X)*scale, oy)
+		a.menuOverlay.draw(screen, kept, scale, ox+float64(menuAt.X)*scale, oy+float64(menuAt.Y)*scale)
 	}
 }
 
-// blitMenuOverMap places the in-game menu's own canvas on the window over a
-// map screen.
-//
-// THE DEFAULT DRAWS THROUGH drawFinalFrame: op carries the same a.place scale
-// and origin the town composite above does — this is that composite's own
-// native 640x480 menu canvas, scaled to the window the identical way — so it
-// shares its scaler. Production never replaces it; missioncursor_test.go
-// replaces it only to record ordering, which op's realization does not
-// change.
+// blitMenuOverMap draws the menu through the common final-frame scaler.
+// Its transform comes from the host placement shared with the input mapping.
 var blitMenuOverMap = func(dst, img *ebiten.Image, op *ebiten.DrawImageOptions) {
 	drawFinalFrame(dst, img, op, &menuOverMapSharpBuf, frameSmoothingOff)
 }

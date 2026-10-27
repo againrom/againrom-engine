@@ -214,6 +214,10 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	}
 	withSlot := secondFrame(t, app)
 	secondPageWitness(t, "save-page", withSlot)
+	slotPanel := app.GameMenuPanel()
+	if slotPanel == nil {
+		t.Fatal("save page has no native menu layer")
+	}
 	blank := *pages.Save
 	blank.EmptySlot = ""
 	app.SetSavePages(ui.SavePages{Load: pages.Load, Save: &blank})
@@ -223,7 +227,11 @@ func TestReleaseSecondGameSavePageWritesSlotsAndLoadPageLoadsThem(t *testing.T) 
 	if err := app.HeadlessKey("f2"); err != nil || app.Screen() != ui.ScreenSave {
 		t.Fatal("save page", err, app.Screen())
 	}
-	if bytes.Equal(secondRowStrip(withSlot, pages.Save.List, pitch, 0), secondRowStrip(secondFrame(t, app), pages.Save.List, pitch, 0)) {
+	blankPanel := app.GameMenuPanel()
+	if blankPanel == nil {
+		t.Fatal("blank save page has no native menu layer")
+	}
+	if bytes.Equal(secondRowStrip(slotPanel, pages.Save.List, pitch, 0), secondRowStrip(blankPanel, pages.Save.List, pitch, 0)) {
 		t.Fatal("row 0 draws nothing of the Empty Slot text")
 	}
 	if err := app.HeadlessSaveAction("cancel"); err != nil {

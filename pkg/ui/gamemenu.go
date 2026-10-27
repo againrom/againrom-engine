@@ -196,20 +196,31 @@ func gameMenuModRows(rows []gameMenuRow) int {
 }
 
 // gameMenuPanelRectFor is the panel's rectangle for a row list: the decoded one,
-// grown downward only when mod rows would not fit inside it.
-func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow) image.Rectangle {
-	p := gameMenuPanelRect(s)
+// grown for mod rows and centred with its shadow in the native canvas.
+func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, profiles ...GameMenuProfile) image.Rectangle {
+	p := gameMenuPanelRect(s, profiles...)
 	if mods := gameMenuModRows(rows); mods > 0 {
 		need := gameMenuRowTop + gameMenuRowPitch*(gameMenuBaseRows(s)+mods) + gameMenuBottomMargin
 		if need > p.Dy() {
 			p.Max.Y = p.Min.Y + need
+			if len(profiles) > 0 && profiles[0].NativeMissionWindows {
+				box := windowFrame(p, nil).rect()
+				p = p.Add(image.Pt(0, (480-box.Dy())/2-box.Min.Y))
+			}
 		}
 	}
 	return p
 }
 
 // gameMenuPanelRect is the panel's rectangle in frame coordinates.
-func gameMenuPanelRect(s gameMenuSurface) image.Rectangle {
+func gameMenuPanelRect(s gameMenuSurface, profiles ...GameMenuProfile) image.Rectangle {
+	if len(profiles) > 0 && profiles[0].NativeMissionWindows {
+		h := gameMenuMissionH
+		if s == gameMenuTown {
+			h = gameMenuTownH
+		}
+		return newDialogGeometry(gameMenuPanelW, h).Body()
+	}
 	if s == gameMenuTown {
 		return image.Rect(gameMenuPanelLeft, gameMenuTownTop,
 			gameMenuPanelLeft+gameMenuPanelW, gameMenuTownTop+gameMenuTownH)
@@ -218,13 +229,11 @@ func gameMenuPanelRect(s gameMenuSurface) image.Rectangle {
 		gameMenuPanelLeft+gameMenuPanelW, gameMenuMissionTop+gameMenuMissionH)
 }
 
-// gameMenuRowRect is row n's rectangle in frame coordinates, counting from
-// zero. The decoded formula is one-based; this is the same rectangle.
-func gameMenuRowRect(s gameMenuSurface, n int) image.Rectangle {
-	p := gameMenuPanelRect(s)
+// gameMenuRowRect places row n inside the panel, counting from zero.
+func gameMenuRowRect(p image.Rectangle, n int) image.Rectangle {
 	top := p.Min.Y + gameMenuRowTop + gameMenuRowPitch*n
 	return image.Rect(p.Min.X+gameMenuRowLeft, top,
-		p.Min.X+gameMenuPanelW-gameMenuRowInsetR, top+gameMenuRowPitch)
+		p.Max.X-gameMenuRowInsetR, top+gameMenuRowPitch)
 }
 
 // gameMenuRowAt reports which row of surface s the frame position p falls on.
@@ -232,9 +241,9 @@ func gameMenuRowRect(s gameMenuSurface, n int) image.Rectangle {
 // BOTH AXES DECIDE, unlike the map list's own hit test. A row here is a drawn
 // rectangle inside a panel with a border and a margin, so an x outside it is
 // visibly not on the row.
-func gameMenuRowAt(s gameMenuSurface, rows int, p image.Point) (int, bool) {
+func gameMenuRowAt(panel image.Rectangle, rows int, p image.Point) (int, bool) {
 	for n := 0; n < rows; n++ {
-		if p.In(gameMenuRowRect(s, n)) {
+		if p.In(gameMenuRowRect(panel, n)) {
 			return n, true
 		}
 	}
@@ -502,11 +511,11 @@ func drawMenuLabel(dst *ebiten.Image, f *text.Font, s string, x, y int, c color.
 //
 // It draws nothing outside the panel rect: the dim behind it is the
 // caller's, on both paths.
-func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, logs ...*pixelLog) {
+func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, profile GameMenuProfile, logs ...*pixelLog) {
 	if dst == nil || list == nil || len(rows) == 0 {
 		return
 	}
-	p := gameMenuPanelRectFor(s, rows)
+	p := gameMenuPanelRectFor(s, rows, profile)
 	var log *pixelLog
 	if len(logs) > 0 {
 		log = logs[0]
@@ -527,7 +536,7 @@ func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []ga
 	for slot := 0; slot < count; slot++ {
 		n := top + slot
 		row := rows[n]
-		r := gameMenuRowRect(s, slot)
+		r := gameMenuRowRect(p, slot)
 		if n == sel {
 			fillGameMenuRect(dst, float32(r.Min.X), float32(r.Min.Y),
 				float32(r.Dx()), float32(r.Dy()), gameMenuFocusFill, false)

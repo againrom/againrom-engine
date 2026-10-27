@@ -363,7 +363,7 @@ func (w *routeWitness) windowPoint(p image.Point) image.Point {
 	if w.app.Screen() == ui.ScreenMap {
 		return p
 	}
-	x, y, ok := frame.Fit(frame.W, frame.H, w.size.X, w.size.Y).FrameToWindow(p)
+	x, y, ok := w.app.HeadlessNativePoint(p)
 	if !ok {
 		w.t.Fatalf("%s: native point %v has no window pixel at %v", w.stage, p, w.size)
 	}

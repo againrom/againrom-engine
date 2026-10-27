@@ -868,7 +868,8 @@ type Viewer struct {
 	//
 	// It is a field on the VIEWER and not on the flow alone, because three of
 	// the four readers are the viewer's own and cannot reach a flow.
-	menuUp bool
+	menuUp       bool
+	menuBackdrop color.RGBA
 
 	docUp bool
 

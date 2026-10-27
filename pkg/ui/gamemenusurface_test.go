@@ -116,20 +116,20 @@ func TestTheDecodedRectangles(t *testing.T) {
 	}
 	// Row 0 of the mission panel: 40 in from the left, 40 below the panel top,
 	// 252 wide, 30 high.
-	if got, want := gameMenuRowRect(gameMenuMission, 0), image.Rect(140, 100, 392, 130); got != want {
+	if got, want := gameMenuRowRect(gameMenuPanelRect(gameMenuMission), 0), image.Rect(140, 100, 392, 130); got != want {
 		t.Errorf("mission row 0 is %v, want %v", got, want)
 	}
-	if got, want := gameMenuRowRect(gameMenuTown, 0), image.Rect(140, 140, 392, 170); got != want {
+	if got, want := gameMenuRowRect(gameMenuPanelRect(gameMenuTown), 0), image.Rect(140, 140, 392, 170); got != want {
 		t.Errorf("town row 0 is %v, want %v", got, want)
 	}
 	for _, s := range []gameMenuSurface{gameMenuMission, gameMenuTown} {
 		panel := gameMenuPanelRect(s)
 		for n := 0; n < 7; n++ {
-			r := gameMenuRowRect(s, n)
+			r := gameMenuRowRect(gameMenuPanelRect(s), n)
 			if r.Dx() != 252 || r.Dy() != 30 {
 				t.Errorf("surface %d row %d is %dx%d, want 252x30", s, n, r.Dx(), r.Dy())
 			}
-			if n > 0 && r.Min.Y-gameMenuRowRect(s, n-1).Min.Y != 30 {
+			if n > 0 && r.Min.Y-gameMenuRowRect(gameMenuPanelRect(s), n-1).Min.Y != 30 {
 				t.Errorf("surface %d row %d does not sit 30 below row %d", s, n, n-1)
 			}
 			if !r.In(panel) && n < 5 {
@@ -144,7 +144,7 @@ func TestTheDecodedRectangles(t *testing.T) {
 	}{{gameMenuMission, 7}, {gameMenuTown, 5}} {
 		panel := gameMenuPanelRect(tc.s)
 		for n := 0; n < tc.rows; n++ {
-			if r := gameMenuRowRect(tc.s, n); !r.In(panel) {
+			if r := gameMenuRowRect(panel, n); !r.In(panel) {
 				t.Errorf("surface %d row %d at %v leaves its panel %v", tc.s, n, r, panel)
 			}
 		}
@@ -408,9 +408,9 @@ func TestTheWorldIsToldStoppedAndNoSpanIsBanked(t *testing.T) {
 
 func TestAPointerReleaseHitsTheRowItIsDrawnOn(t *testing.T) {
 	for n := 0; n < 7; n++ {
-		r := gameMenuRowRect(gameMenuMission, n)
+		r := gameMenuRowRect(gameMenuPanelRect(gameMenuMission), n)
 		mid := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
-		got, ok := gameMenuRowAt(gameMenuMission, 7, mid)
+		got, ok := gameMenuRowAt(gameMenuPanelRect(gameMenuMission), 7, mid)
 		if !ok || got != n {
 			t.Errorf("the middle of row %d resolves to (%d,%v)", n, got, ok)
 		}
@@ -422,13 +422,13 @@ func TestAPointerReleaseHitsTheRowItIsDrawnOn(t *testing.T) {
 		{X: panel.Min.X + 5, Y: panel.Min.Y + 45}, // inside the panel, left of row 0
 		{X: panel.Min.X + 45, Y: panel.Max.Y - 5}, // inside the panel, below the last row
 	} {
-		if _, ok := gameMenuRowAt(gameMenuMission, 7, p); ok {
+		if _, ok := gameMenuRowAt(gameMenuPanelRect(gameMenuMission), 7, p); ok {
 			t.Errorf("%v resolved to a row; it is on none", p)
 		}
 	}
 	// The town surface lists five rows, so the sixth rectangle is not a row.
-	r := gameMenuRowRect(gameMenuTown, 5)
-	if _, ok := gameMenuRowAt(gameMenuTown, 5, r.Min.Add(image.Pt(5, 5))); ok {
+	r := gameMenuRowRect(gameMenuPanelRect(gameMenuTown), 5)
+	if _, ok := gameMenuRowAt(gameMenuPanelRect(gameMenuTown), 5, r.Min.Add(image.Pt(5, 5))); ok {
 		t.Error("a point below the town surface's last row resolved to a row")
 	}
 }
@@ -474,29 +474,29 @@ func TestTheDrawPathComposesBothSurfaces(t *testing.T) {
 func TestThePanelPaintsInsideItsOwnRect(t *testing.T) {
 	f := openMissionMenu(t)
 	dst := ebiten.NewImage(frame.W, frame.H)
-	paintGameMenu(dst, nil, f.menuSurface, f.menuRows(), f.menuList)
+	paintGameMenu(dst, nil, f.menuSurface, f.menuRows(), f.menuList, GameMenuProfile{})
 	// ReadPixels is not available before a game starts, so this asserts the
 	// contract the paint is written to rather than the pixels: every rectangle
 	// the paint composes is derived from the panel rect, and the row rects are
 	// checked against it in TestTheDecodedRectangles. What is witnessed here is
 	// that the paint accepts a nil list, an empty surface and a real one
 	// without reaching outside any of them.
-	paintGameMenu(dst, nil, f.menuSurface, nil, f.menuList)
-	paintGameMenu(dst, nil, f.menuSurface, f.menuRows(), nil)
-	paintGameMenu(nil, nil, f.menuSurface, f.menuRows(), f.menuList)
+	paintGameMenu(dst, nil, f.menuSurface, nil, f.menuList, GameMenuProfile{})
+	paintGameMenu(dst, nil, f.menuSurface, f.menuRows(), nil, GameMenuProfile{})
+	paintGameMenu(nil, nil, f.menuSurface, f.menuRows(), f.menuList, GameMenuProfile{})
 
 	// BOTH PAINT PATHS RUN. The nil font is the debug-font path this package
 	// had before 0168; a font is the install path, and a row label whose bytes
 	// are CP866 is what it exists for. Neither may reach outside the panel and
 	// neither may fail on an empty or a marked label.
 	font := gameMenuTestFont()
-	paintGameMenu(dst, font, f.menuSurface, f.menuRows(), f.menuList)
+	paintGameMenu(dst, font, f.menuSurface, f.menuRows(), f.menuList, GameMenuProfile{})
 	cyrillic := []gameMenuRow{
 		{Label: string([]byte{0x87, '~', 0xa0, 0xa4}), Enabled: true},
 		{Label: "", Enabled: false},
 		{Label: "~~escaped", Enabled: true},
 	}
-	paintGameMenu(dst, font, f.menuSurface, cyrillic, f.menuList)
+	paintGameMenu(dst, font, f.menuSurface, cyrillic, f.menuList, GameMenuProfile{})
 }
 
 // TestGameMenuPaintUsesDecodedRectangles observes the rectangles passed by
@@ -523,7 +523,7 @@ func TestGameMenuPaintUsesDecodedRectangles(t *testing.T) {
 	f.menuSound = nil
 	f.setMenuSound = nil
 	f.rebuildGameMenu(gameMenuRoot, 0)
-	paintGameMenu(ebiten.NewImage(frame.W, frame.H), nil, f.menuSurface, f.menuRows(), f.menuList)
+	paintGameMenu(ebiten.NewImage(frame.W, frame.H), nil, f.menuSurface, f.menuRows(), f.menuList, GameMenuProfile{})
 
 	want := []draw{
 		{kind: "fill", x: 100, y: 60, w: 340, h: 340, colour: gameMenuFill},
@@ -599,7 +599,7 @@ func TestCompleteGameMenuPaintFrames(t *testing.T) {
 			drawGameMenuLabel = func(_ *ebiten.Image, _ *text.Font, label string, x, y int, c color.RGBA) {
 				fmt.Fprintf(&trace, "text %d %d %s %q\n", x, y, colour(c), label)
 			}
-			paintGameMenu(ebiten.NewImage(frame.W, frame.H), gameMenuTestFont(), f.menuPanelSurface(), f.menuRows(), f.menuList)
+			paintGameMenu(ebiten.NewImage(frame.W, frame.H), gameMenuTestFont(), f.menuPanelSurface(), f.menuRows(), f.menuList, GameMenuProfile{})
 			fillGameMenuRect, strokeGameMenuRect, strokeGameMenuLine, drawGameMenuLabel = oldFill, oldRect, oldLine, oldLabel
 
 			got := fmt.Sprintf("%x", sha256.Sum256([]byte(trace.String())))

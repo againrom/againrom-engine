@@ -176,7 +176,7 @@ var secondGameFiles = gameFiles{
 	missionPackClosed:   true,
 	missionHeroSelected: true,
 	missionScreen:       ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
-	gameMenu:            ui.GameMenuProfile{WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2},
+	gameMenu:            ui.GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2},
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,

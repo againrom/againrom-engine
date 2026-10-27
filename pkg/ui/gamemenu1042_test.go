@@ -261,7 +261,7 @@ func TestScrolledDiplomacyReturnUsesTheVisiblePointerSlot(t *testing.T) {
 	if top == 0 || count != 7 {
 		t.Fatalf("fixture did not scroll: Visible = (%d,%d)", top, count)
 	}
-	r := gameMenuRowRect(gameMenuMission, count-1)
+	r := gameMenuRowRect(gameMenuPanelRect(gameMenuMission), count-1)
 	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 	a := &App{flow: f, place: frame.Fit(frame.W, frame.H, frame.W, frame.H)}
 	a.stepGameMenu(appInput{PrimaryPressed: true, CursorX: p.X, CursorY: p.Y})

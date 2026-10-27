@@ -3065,7 +3065,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1694,
+		"longcommentgroups":      1693,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3085,5 +3085,5 @@ var Committed = Baseline{
 	// Sack-objects fixture helper became sackObjectsOpen. It rose again for the
 	// map Sacks' ids at mission entry and the runtime-id wrapper peel, then for
 	// the M2 round trips' note on the LOAD's orphan bits.
-	CommentBytes: 9738875,
+	CommentBytes: 9736430,
 }

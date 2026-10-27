@@ -40,7 +40,7 @@ func gameOptionsMenuRowPoint(t *testing.T, a *App) (int, int) {
 	}
 	a.flow.menuList.Select(i)
 	top, _ := a.flow.menuList.Visible()
-	r := gameMenuRowRect(a.flow.menuPanelSurface(), i-top)
+	r := gameMenuRowRect(gameMenuPanelRect(a.flow.menuPanelSurface()), i-top)
 	p := r.Min.Add(r.Size().Div(2))
 	return p.X, p.Y
 }

@@ -492,19 +492,21 @@ func (v *Viewer) SetNoticeBackdrop(c color.RGBA) { v.noticeBackdrop = c; v.notic
 // visibly: the frame is then byte-identical to the frame before the dim existed,
 // instead of merely looking like it.
 //
-// THE RECTANGLE IS THE WHOLE DRAWABLE AREA. The map screen fills the window, so
-// "the map picture" and "the view" are the same rectangle here; taking it from
-// the camera rather than from the notice's letterboxed placement is deliberate,
-// because the letterbox is where the BOX goes and the dim is not in the design
-// space at all.
+// Notices dim the map viewport; the menu profile can dim the whole mission.
 func (v *Viewer) noticeBackdropOf() (image.Rectangle, color.RGBA, bool) {
-	if !v.popupOpen() || v.noticeBackdrop.A == 0 {
+	c := v.noticeBackdrop
+	w, h := v.cam.ViewW, v.cam.ViewH
+	if v.menuUp && v.menuBackdrop.A != 0 {
+		c = v.menuBackdrop
+		w, h = v.frameW, v.frameH
+	}
+	if !v.popupOpen() || c.A == 0 {
 		return image.Rectangle{}, color.RGBA{}, false
 	}
-	if v.cam.ViewW <= 0 || v.cam.ViewH <= 0 {
+	if w <= 0 || h <= 0 {
 		return image.Rectangle{}, color.RGBA{}, false
 	}
-	return image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH), v.noticeBackdrop, true
+	return image.Rect(0, 0, w, h), c, true
 }
 
 // NoticeLines is s broken to width, in the font's own advance.

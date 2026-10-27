@@ -59,9 +59,7 @@ func (f *flow) popupOpen() bool {
 	return f.screen == ScreenDocuments && f.docBack == ScreenMap && f.viewer != nil && f.viewer.popupOpen()
 }
 
-// mapShowing reports whether the map screen is the surface the player is
-// looking at. It is the map screen itself, or the in-game menu standing OVER
-// a map screen.
+// mapShowing reports the mission surface, including windows hosted over it.
 //
 // THE TEST WIDENED RATHER THAN THE POPUP ANSWER SPLITTING. Until 0158 the menu
 // replaced the surface behind it, so "the menu is up" and "the map is showing"
@@ -69,6 +67,9 @@ func (f *flow) popupOpen() bool {
 // read ScreenMap alone would have left the dim, the camera and the world's own
 // stop all reading false on every frame the panel stood on.
 func (f *flow) mapShowing() bool {
+	if f.nativeMissionMenu() {
+		return true
+	}
 	switch f.screen {
 	case ScreenMap:
 		return true

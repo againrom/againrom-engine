@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -161,7 +162,8 @@ func (f *flow) withModRows(rows []gameMenuRow) []gameMenuRow {
 // fitMenuRowLabel clips a label already in the install's code page to the room a
 // row has for text, marking the cut, so a long mod label cannot run off its row.
 func (f *flow) fitMenuRowLabel(label string) string {
-	room := gameMenuPanelW - gameMenuRowLeft - gameMenuRowInsetR - gameMenuTextX
+	panel := gameMenuPanelRect(f.menuPanelSurface(), f.menuGeometryProfile())
+	room := gameMenuRowRect(panel, 0).Dx() - gameMenuTextX
 	if f.menuFont == nil {
 		count := func(s string) int { return len(s) }
 		return textfit.Spec{Measure: count, Unit: textfit.Byte, Side: textfit.End}.Fit(label, room/pickerAdvance)
@@ -294,6 +296,7 @@ func (f *flow) openGameMenu(back Screen) {
 func (f *flow) setMenuUp(up bool) {
 	if f.viewer != nil {
 		f.viewer.menuUp = up
+		f.viewer.menuBackdrop = f.pages.menu.MissionBackdrop
 	}
 }
 
@@ -571,6 +574,10 @@ func (f *flow) closeGameMenu() {
 // GameMenuProfile is one game's game-menu data. The zero value is the first
 // game's behaviour.
 type GameMenuProfile struct {
+	// NativeMissionWindows places hosted windows on the mission's pixel lattice.
+	NativeMissionWindows bool
+	// MissionBackdrop overrides the popup wash; zero keeps the notice backdrop.
+	MissionBackdrop color.RGBA
 	// WindowsCloseMenu makes the last button of a window opened from the menu
 	// (and Escape on it) close the window and the menu, back to the screen
 	// behind; otherwise it returns to the menu's root.
@@ -630,6 +637,9 @@ func (f *flow) openLoad(back Screen) {
 	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
+	if f.nativeMissionMenu() {
+		f.setMenuUp(true)
+	}
 	if f.saveList == nil {
 		f.msg = "this build has nowhere to load from"
 	} else if len(f.saves) == 0 {

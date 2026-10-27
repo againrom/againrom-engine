@@ -18,16 +18,15 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 	return a.composePage(a.flow.loadView())
 }
 
-// composePage draws one page: the main menu behind it, its frame and
-// captions, the save page's name box, the list or the delete confirmation,
-// the message line and the three buttons.
+// composePage draws a page's frame, captions, name box, list or confirmation,
+// message line and buttons. Its host decides whether the backing is transparent.
 func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	font := a.flow.menuFont
 	if font == nil {
 		return nil, fmt.Errorf("load list has no installed font")
 	}
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	if a.assets != nil {
+	if a.assets != nil && !a.flow.nativeMissionMenu() {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
 	drawFrame(pix, windowFrame(v.page.Panel, a.flow.menuArt))

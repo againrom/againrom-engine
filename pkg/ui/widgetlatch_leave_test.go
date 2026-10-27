@@ -46,7 +46,7 @@ func gameMenuRowsFor(t *testing.T, a *App) (held, quest image.Point) {
 	if h < 0 || q < 0 {
 		t.Fatalf("fixture: rows held %d quest %d", h, q)
 	}
-	return midOf(gameMenuRowRect(s, h)), midOf(gameMenuRowRect(s, q))
+	return midOf(gameMenuRowRect(gameMenuPanelRect(s), h)), midOf(gameMenuRowRect(gameMenuPanelRect(s), q))
 }
 
 // A press held while Escape closes the in-game menu does not survive it:

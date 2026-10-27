@@ -11,8 +11,20 @@ import (
 
 // GameMenuPanel is the CPU image uploaded by the windowed menu. The map or town
 // beneath it is composed independently, with the same centered modal placement.
-func (a *App) GameMenuPanel() *image.RGBA {
-	if a == nil || a.flow == nil || a.flow.screen != ScreenGameMenu || a.flow.menuFont == nil {
+func (a *App) GameMenuPanel() (pic *image.RGBA) {
+	defer func() {
+		if a != nil && a.flow.nativeMissionMenu() && pic != nil {
+			a.paintTooltip(pic)
+		}
+	}()
+	if a == nil || a.flow == nil || a.flow.menuFont == nil {
+		return nil
+	}
+	if a.flow.screen != ScreenGameMenu {
+		if a.flow.nativeMissionMenu() {
+			pic, _ := a.composeScreen()
+			return pic
+		}
 		return nil
 	}
 	if a.flow.menuPage == gameMenuQuestObjectivesPage {
@@ -24,7 +36,7 @@ func (a *App) GameMenuPanel() *image.RGBA {
 	if a.flow.menuPage == gameMenuSoundOptionsPage && a.flow.soundOptions.Read != nil {
 		return a.soundOptionsPicture()
 	}
-	dst := composeGameMenuPanel(a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuArt, a.menuPointer())
+	dst := composeGameMenuPanel(a.flow.menuFont, a.flow.menuPanelSurface(), a.flow.menuRows(), a.flow.menuList, a.flow.menuArt, a.menuPointer(), a.flow.menuGeometryProfile())
 	if message := a.gameMenuAcknowledgement(); message != "" {
 		font := a.flow.menuFont
 		r := image.Rect(pickerLeft, pickerMessageY, pickerLeft+pickerCols*pickerAdvance, pickerMessageY+pickerLine)
@@ -65,16 +77,17 @@ func (a *App) menuPointer() gameMenuPointer {
 // composeGameMenuPanel draws the frame and one push button per row
 // (MENU-115, MENU-ART-014). The selected row is the keyboard focus. Status
 // and literal rows are text, not buttons.
-func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer) *image.RGBA {
+func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer, profiles ...GameMenuProfile) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	drawFrame(dst, windowFrame(gameMenuPanelRectFor(s, rows), art))
+	panel := gameMenuPanelRectFor(s, rows, profiles...)
+	drawFrame(dst, windowFrame(panel, art))
 	if list == nil {
 		return dst
 	}
 	top, count := list.Visible()
 	for slot := 0; slot < count && top+slot < len(rows); slot++ {
 		row := rows[top+slot]
-		r := gameMenuRowRect(s, slot)
+		r := gameMenuRowRect(panel, slot)
 		if !row.Status && !row.Literal {
 			inside := pointer.ok && pointer.at.In(r)
 			drawPushButton(dst, font, pushButton{Rect: r, Label: row.Label, Hover: inside,
