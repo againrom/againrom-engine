@@ -1537,9 +1537,8 @@ func (in *InstallResources) canonicalizeJoinedRoster(ms *Mission) {
 			}
 		}
 		if hero {
-			body, dir, class, matched := data.HeroAppearance(in.Bodies, mapload.EquipmentFromParty(p), p.Mage, false)
-			if matched {
-				p.Body, p.BodyDir, p.Class = string(body), dir, class
+			if look := heroAppearance(ms.World, id, p, in.Bodies); look.Matched {
+				p.Body, p.BodyDir, p.Class = string(look.Body), look.Dir, look.Class
 			}
 		}
 		ms.Start.Roster[id] = p

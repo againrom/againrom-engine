@@ -62,19 +62,14 @@ func (f *FrontEnd) setModBodies(bodies mod.BodyData) ([]mod.Override, error) {
 }
 
 // setBodyList makes list, carrying the mods' choices, the body list of this
-// front end: served at ModBodyChoiceAddress for every reader of the list, the
-// table's, and the flight class rule's.
+// front end: served at ModBodyChoiceAddress for every reader of the list, and
+// the table's.
 func (f *FrontEnd) setBodyList(list data.BodyList) error {
 	if err := f.modFileLayer().serveBytes("", "", ModBodyChoiceAddress, encodeBodyChoice(list)); err != nil {
 		return err
 	}
 	f.Bodies = list
 	f.Table.Mods.Bodies = list
-	if f.Table.FlightInputs != nil {
-		inputs := *f.Table.FlightInputs
-		inputs.ClassRule = flightClassRule(list)
-		f.Table.FlightInputs = &inputs
-	}
 	return nil
 }
 

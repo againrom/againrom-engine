@@ -25,8 +25,8 @@ type FlightClass struct {
 	ShootOffset                      []int32
 }
 
-// FlightClassRule reads only current actor/equipment values and immutable inputs.
-type FlightClassRule func(Entity, [EquipSlots]uint16) int32
+// FlightClassRule answers an actor's flight class from his current values.
+type FlightClassRule func(Entity) int32
 
 // FlightRun is the physical release clock of the current attack run.
 type FlightRun struct {
@@ -69,6 +69,27 @@ func (w *World) SetClientClass(id EntityID, class int32) bool {
 	return true
 }
 
+// EquipmentClassRule answers the class an actor's worn items select once a
+// step's equipment command has applied; false keeps his stored class.
+type EquipmentClassRule func(w *World, id EntityID) (int32, bool)
+
+// SetEquipmentClassRule binds the rule the following steps call after each
+// Equip, Unequip and DropWorn command; nil unbinds it.
+func (w *World) SetEquipmentClassRule(rule EquipmentClassRule) { w.equipmentClass = rule }
+
+// reclassAfterEquipment stores the class the bound rule answers for entity i
+// after an equipment command, so the rest of the step, its flight producer
+// included, reads the class the new equipment selects (ANIM-107). A fixed
+// class keeps its value, as SetClientClass refuses it.
+func (w *World) reclassAfterEquipment(i int) {
+	if w.equipmentClass == nil || i < 0 || i >= len(w.entities) || w.entities[i].ClientClassFixed {
+		return
+	}
+	if class, ok := w.equipmentClass(w, w.entities[i].ID); ok {
+		w.entities[i].Class = class
+	}
+}
+
 func (w *World) flightClass(id EntityID) FlightClass {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 {
@@ -77,7 +98,7 @@ func (w *World) flightClass(id EntityID) FlightClass {
 	e := w.entities[i]
 	class := e.Class
 	if rule := w.flightInputs.ClassRule; rule != nil {
-		class = rule(e, equipmentCodes(w.equipment[i]))
+		class = rule(e)
 	}
 	return w.flightInputs.Classes[class]
 }

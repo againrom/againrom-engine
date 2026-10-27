@@ -151,9 +151,8 @@ func (in townInstall) character(s mapload.CharacterSpec, name string, party []ma
 	} else if name != "" {
 		member.Name = name
 	}
-	body, dir, class, matched := data.HeroAppearance(in.bodies, mapload.EquipmentFromParty(member), member.Mage, false)
-	if matched {
-		member.Body, member.BodyDir, member.Class = string(body), dir, class
+	if look := heroAppearance(nil, 0, member, in.bodies); look.Matched {
+		member.Body, member.BodyDir, member.Class = string(look.Body), look.Dir, look.Class
 	}
 	return member, true
 }

@@ -13,7 +13,7 @@ import (
 	"againrom/pkg/sim"
 )
 
-func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, bodies data.BodyList) (*sim.FlightInputs, error) {
+func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation) (*sim.FlightInputs, error) {
 	if spells.Game == rules.SpellGameSecond {
 		return nil, nil
 	}
@@ -25,7 +25,7 @@ func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, b
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
-	in := buildFlightInputs(spells, installedPictureRows(pictures), installedClassRows(classes), bodies)
+	in := buildFlightInputs(spells, installedPictureRows(pictures), installedClassRows(classes))
 	return &in, nil
 }
 
@@ -51,8 +51,8 @@ type flightClassRow struct {
 
 // buildFlightInputs is the one producer of sim.FlightInputs; a source only
 // exposes its picture and class rows.
-func buildFlightInputs(spells *data.SpellPresentation, pictures []flightPictureRow, classes []flightClassRow, bodies data.BodyList) sim.FlightInputs {
-	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass), ClassRule: flightClassRule(bodies)}
+func buildFlightInputs(spells *data.SpellPresentation, pictures []flightPictureRow, classes []flightClassRow) sim.FlightInputs {
+	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass), ClassRule: flightClassRule}
 	for _, r := range pictures {
 		p := in.Pictures[r.ID]
 		p.Present, p.Homes, p.Phases = r.Present, r.Homes, r.Phases
@@ -94,34 +94,18 @@ func flightPhases(phases int) uint16 {
 	return 0
 }
 
-func flightClassRule(bodies data.BodyList) sim.FlightClassRule {
-	return func(e sim.Entity, slots [sim.EquipSlots]uint16) int32 {
-		if e.ClientClassFixed {
-			return e.Class
-		}
-		source := e.SourceNow()
-		if source.Class == 1 || !e.Humanoid {
-			return e.Class
-		}
-		if !data.FigureIsHero(e.TypeID) {
-			if e.TypeID > 0 {
-				return e.TypeID
-			}
-			return e.Class
-		}
-		fighter := source.Fighter
-		if source.Class == 0 {
-			if !e.NativeClass.Present {
-				return e.Class
-			}
-			fighter = e.NativeClass.Fighter
-		}
-		_, _, class, matched := data.HeroAppearance(bodies, equipmentFromSlots(slots), !fighter, false)
-		if matched || bodies.Len() != 0 {
-			return class
-		}
+// flightClassRule is the class whose flight geometry an actor's shots and
+// casts use. A hero's is the class the World stores for him, which the party
+// redress writes from heroAppearance; a fixed class, a Unit and a non-humanoid
+// keep theirs; another Human uses his Humans-row type (ANIM-106).
+func flightClassRule(e sim.Entity) int32 {
+	if e.ClientClassFixed || e.SourceNow().Class == 1 || !e.Humanoid || data.FigureIsHero(e.TypeID) {
 		return e.Class
 	}
+	if e.TypeID > 0 {
+		return e.TypeID
+	}
+	return e.Class
 }
 
 // bindFlightInputs admits late synthetic bundles; installed Worlds bind at load.
@@ -129,11 +113,7 @@ func (mw *mapWorld) bindFlightInputs() {
 	if mw == nil || mw.world == nil || !mw.files().recordTrailFlight || mw.world.HasFlightInputs() {
 		return
 	}
-	var bodies data.BodyList
-	if mw.mission != nil {
-		bodies = mw.mission.list
-	}
-	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units), bodies))
+	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units)))
 }
 
 // syntheticPictureRows: a sheet's row replaces its picture's row.

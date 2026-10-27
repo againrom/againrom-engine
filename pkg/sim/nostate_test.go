@@ -68,6 +68,9 @@ var nstPinned = []struct {
 		{"tick", "uint64"},
 		{"damageObservation", "*sim.damageObservation"},
 		{"castObservation", "*sim.castObs"},
+		// A step-scoped rule the driver binds, like castObservation; no byte
+		// form or digest carries it.
+		{"equipmentClass", "sim.EquipmentClassRule"},
 		{"turnSteps", "map[sim.EntityID]struct {}"},
 		{"turnStepScope", "bool"},
 		{"hasSessionClock", "bool"},

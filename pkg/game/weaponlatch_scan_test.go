@@ -49,11 +49,8 @@ var weaponLatchSites = map[string]string{
 	"game.missionDollEquipment": "reads it: a raised latch means the opening doll composes slot 1 from the array alone " +
 		"(split out of buildInventorySubject, round-2 twelfth pass, 2026-08-17, C1b, so world.go's own tracker seed " +
 		"can call the same composition instead of a second one)",
-	"game.redressPartyMember": "reads it: an unraised latch means the member is DRAWN holding his " +
-		"starting weapon, currentFigureEquipment's own slot-1 widening restated for an arbitrary party member " +
-		"(the map-sprite appearance hotfix, 2026-08-22)",
-	"game.spellClientClass": "reads it: include an unmaterialized starting weapon when resolving the live " +
-		"client class for Cast capability, without requiring loaded art (story1119)",
+	"game.heroAppearance": "reads it: an unraised latch means the member is DRAWN and classed holding his " +
+		"starting weapon, currentFigureEquipment's own slot-1 widening restated for any member",
 	"mapload.PartyLoadout": "reads it as ResolveEquipmentLoadout's own everEquipped: a raised latch means " +
 		"mission construction treats an empty slot 1 as taken off, not as not-yet-materialized (C3, round-2 " +
 		"seventh pass, 2026-08-17)",

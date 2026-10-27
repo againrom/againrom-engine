@@ -1210,19 +1210,14 @@ func (mw *mapWorld) syncJoinedHeroes() {
 			mw.figures = make(map[sim.EntityID]figureID)
 		}
 		mw.figures[id] = memberFigureID(*member)
-		if slots, ok := mw.world.Equipped(id); ok {
-			body, dir, class, matched := data.HeroAppearance(mw.mission.list,
-				equipmentFromSlots(slots), member.Mage, false)
-			if matched {
-				member.Body, member.BodyDir, member.Class = string(body), dir, class
-				LoadHeroBody(mw.mission.src, mw.units, dir, body)
-				if mw.units != nil {
-					if art := mw.units.Bodies[data.HeroBodyKey(dir, body)]; art != nil {
-						if mw.art == nil {
-							mw.art = make(map[sim.EntityID]*terrain.UnitClass)
-						}
-						mw.art[id] = art
+		if body, dir, ok := redressPartyMember(mw.world, id, member, mw.mission.list); ok {
+			LoadHeroBody(mw.mission.src, mw.units, dir, body)
+			if mw.units != nil {
+				if art := mw.units.Bodies[data.HeroBodyKey(dir, body)]; art != nil {
+					if mw.art == nil {
+						mw.art = make(map[sim.EntityID]*terrain.UnitClass)
 					}
+					mw.art[id] = art
 				}
 			}
 		}
@@ -1488,54 +1483,114 @@ func canonicalizePartyAppearance(ms *Mission, units *terrain.UnitSet, src entryS
 		if member.Hired() {
 			continue
 		}
+		// A dead member's record follows his slots, but his actor keeps the
+		// class the World holds, as a SAV restored it: no claim derives a
+		// body's class once his equipment is gone (DIV-4141).
+		if e, held := ms.World.Entity(ms.Start.IDs[i]); held && !e.Alive() {
+			if look := heroAppearance(ms.World, e.ID, member, list); look.Matched {
+				ms.Party[i].Body, ms.Party[i].BodyDir, ms.Party[i].Class = string(look.Body), look.Dir, look.Class
+				LoadHeroBody(src, units, look.Dir, look.Body)
+			}
+			continue
+		}
 		if body, dir, ok := redressPartyMember(ms.World, ms.Start.IDs[i], &ms.Party[i], list); ok {
 			LoadHeroBody(src, units, dir, body)
 		}
 	}
+	redressPlacedHeroes(ms, list)
 }
 
-// redressPartyMember writes the body, directory and class member's worn
-// equipment selects to his record, and the class to his actor, so a SAVE and
-// the next LOAD carry what is drawn. It runs at mission open and after every
-// step that changed his equipment. An unmatched name writes nothing.
+// redressPlacedHeroes redresses each living map-placed person of the Hero type
+// at mission open: such a placement is drawn and classed from its worn
+// equipment like a party hero (ANIM-106, ANIM-107), so the class the World
+// stores is the class the flight class rule reads. Party members, hires and
+// the dead keep their own rules. Ids are walked in order.
+func redressPlacedHeroes(ms *Mission, list data.BodyList) {
+	ids := make([]sim.EntityID, 0, len(ms.Start.Roster))
+	for id := range ms.Start.Roster {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	for _, id := range ids {
+		member := ms.Start.Roster[id]
+		if slices.Contains(ms.Start.IDs, id) || member.Hired() || member.MercenaryType != 0 {
+			continue
+		}
+		e, held := ms.World.Entity(id)
+		if !held || !data.FigureIsHero(e.TypeID) || !e.Alive() {
+			continue
+		}
+		if _, _, ok := redressPartyMember(ms.World, id, &member, list); ok {
+			ms.Start.Roster[id] = member
+		}
+	}
+}
+
+// redressPartyMember writes the body, directory and class heroAppearance
+// answers for member to his record, and the class to his actor, so a SAVE and
+// the next LOAD carry what is drawn. It runs at mission open, when a roster
+// actor joins the party and after every step that changed a member's
+// equipment. An actor the World does not hold, and an unmatched name, write
+// nothing.
 func redressPartyMember(w *sim.World, id sim.EntityID, member *mapload.PartyMember, list data.BodyList) (data.HeroBody, string, bool) {
-	body, dir, class, matched, held := heroWornAppearance(w, id, member.Weapon, member.WeaponMaterialized, member.Mage, list)
-	if !held || !matched {
+	look, ok := redressedLook(w, id, *member, list)
+	if !ok {
 		return "", "", false
 	}
-	member.Body, member.BodyDir, member.Class = string(body), dir, class
-	w.SetClientClass(id, class)
-	return body, dir, true
+	member.Body, member.BodyDir, member.Class = string(look.Body), look.Dir, look.Class
+	w.SetClientClass(id, look.Class)
+	return look.Body, look.Dir, true
 }
 
-// heroWornAppearance is the one derivation of a hero's drawn body and class
-// from the World's slots (HERO-APPEAR-042), slot 1 widened by a starting
-// weapon that has not materialized (DIV-070). held is false for an actor the
-// World does not hold.
-func heroWornAppearance(w *sim.World, id sim.EntityID, weapon *data.Weapon, materialized, mage bool, list data.BodyList) (body data.HeroBody, dir string, class int32, matched, held bool) {
-	slots, ok := w.Equipped(id)
-	if !ok {
-		return "", "", 0, false, false
+// redressedLook is the look redressPartyMember writes for member; false when
+// the World does not hold him or his name is unmatched, and it writes nothing.
+func redressedLook(w *sim.World, id sim.EntityID, member mapload.PartyMember, list data.BodyList) (heroLook, bool) {
+	look := heroAppearance(w, id, member, list)
+	return look, look.Held && look.Matched
+}
+
+// equippedMember is the party member a step's equipment order on id
+// re-derives, or nil for an absent or hired one.
+func (mw *mapWorld) equippedMember(id sim.EntityID) *mapload.PartyMember {
+	member := mw.missionPartyMember(id)
+	if member == nil || member.Hired() {
+		return nil
 	}
-	eq := equipmentFromSlots(slots)
-	if occupied, _ := eq.Occupied(1); !occupied && weapon != nil && !materialized {
-		eq.SetCode(1, weapon.Code)
-	}
-	body, dir, class, matched = data.HeroAppearance(list, eq, mage, false)
-	return body, dir, class, matched, true
+	return member
 }
 
 // redressEquipped re-derives every party member a step's equip, unequip or
 // worn drop reached.
 func (mw *mapWorld) redressEquipped(before []wornBefore) {
 	for _, b := range before {
-		member := mw.missionPartyMember(b.id)
-		if member == nil || member.Hired() {
+		member := mw.equippedMember(b.id)
+		if member == nil {
 			continue
 		}
 		if body, dir, ok := redressPartyMember(mw.world, b.id, member, mw.mission.list); ok {
 			LoadHeroBody(mw.mission.src, mw.units, dir, body)
 		}
+	}
+}
+
+// equipmentClassRule is the class the step stores for each member in before
+// as soon as his equipment command applies, so the step's own swing, shot and
+// cast read it (ANIM-107): the class redressEquipped writes after the step,
+// from the same members and the same look.
+func (mw *mapWorld) equipmentClassRule(before []wornBefore) sim.EquipmentClassRule {
+	if len(before) == 0 {
+		return nil
+	}
+	return func(w *sim.World, id sim.EntityID) (int32, bool) {
+		if !slices.ContainsFunc(before, func(b wornBefore) bool { return b.id == id }) {
+			return 0, false
+		}
+		member := mw.equippedMember(id)
+		if member == nil {
+			return 0, false
+		}
+		look, ok := redressedLook(w, id, *member, mw.mission.list)
+		return look.Class, ok
 	}
 }
 
@@ -1614,16 +1669,13 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 			}
 			continue
 		}
-		slots, ok := ms.World.Equipped(id)
-		if !ok {
+		look := heroAppearance(ms.World, id, member, list)
+		if !look.Held || !look.Matched {
 			continue
 		}
-		body, dir, class, matched := data.HeroAppearance(list, equipmentFromSlots(slots), member.Mage, false)
-		if !matched {
-			continue
-		}
+		body, dir := look.Body, look.Dir
 		e, _ := ms.World.Entity(id)
-		resolved := rosterBodyArt(units, src, e.TypeID, dir, body, class)
+		resolved := rosterBodyArt(units, src, e.TypeID, dir, body, look.Class)
 		if resolved == nil {
 			continue
 		}
@@ -3072,7 +3124,16 @@ func (mw *mapWorld) refreshAppearance() {
 	}
 	mw.bodyEquipment = eq
 
-	body, dir, class, _ := data.HeroAppearance(mw.invParty.list, eq, mw.invParty.mage, false)
+	id := sim.EntityID(mw.invSubject.ID)
+	subject := mapload.PartyMember{Mage: mw.invParty.mage}
+	if !mw.invWeaponEverEquipped {
+		subject.Weapon = mw.invParty.startWeapon
+	}
+	if member := mw.missionPartyMember(id); member != nil {
+		subject = *member
+	}
+	look := heroAppearance(mw.world, id, subject, mw.invParty.list)
+	body, dir, class := look.Body, look.Dir, look.Class
 	key := data.HeroBodyKey(dir, body)
 	LoadHeroBody(mw.mission.src, mw.units, dir, body)
 
@@ -3090,7 +3151,6 @@ func (mw *mapWorld) refreshAppearance() {
 	if mw.art == nil {
 		mw.art = make(map[sim.EntityID]*terrain.UnitClass)
 	}
-	id := sim.EntityID(mw.invSubject.ID)
 	mw.art[id] = resolved
 	if char, ok := mw.chars[id]; ok {
 		char.UnitNameIndex = int(class)
@@ -4195,7 +4255,9 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	// THE STEP REPORTS ITS APPLIED CASTS. StepObserved is the same step Step is
 	// — the same code path with a sink handed down — and what comes back is
 	// a value this tier keeps, never state on the world.
+	mw.world.SetEquipmentClassRule(mw.equipmentClassRule(equipped))
 	report := sim.StepReported(mw.world, cmds)
+	mw.world.SetEquipmentClassRule(nil)
 	for _, p := range report.FlightStarts {
 		if mw.spells().TrailSlot(p.Picture) >= 0 {
 			mw.shots.appendTrail(p.ID, image.Pt(int(p.X), int(p.Y)))

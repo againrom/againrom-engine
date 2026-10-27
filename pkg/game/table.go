@@ -172,7 +172,7 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// Not fatal, and reported by nothing beyond the field itself — see
 	// Definitions.Bodies.
 	d.Bodies, _ = ReadBodyList(fsys)
-	if d.Table.FlightInputs, err = loadFlightInputs(fsys, data.SpellPresentationNamed(g.Edition().Spells), d.Bodies); err != nil {
+	if d.Table.FlightInputs, err = loadFlightInputs(fsys, data.SpellPresentationNamed(g.Edition().Spells)); err != nil {
 		return nil, err
 	}
 	// NOT FATAL, for the same reason: a missing item-name table narrows what

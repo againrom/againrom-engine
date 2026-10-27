@@ -536,17 +536,11 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 	// figure use the same class.
 	//
 	// A RECOGNIZED HIRE IS NOT COMPOSED. Restoring a recognized hire through
-	// HeroAppearance anyway would draw him in the cloaked-hero art the live
+	// heroAppearance anyway would draw him in the cloaked-hero art the live
 	// hire itself never wore -- tavern.go's own comment measures this exactly
 	// as NPC14_1 reaching a mission as body "clubman_" under "heroes" -- so the
 	// load side skips the same composition the hire side skips, for the same
 	// member.
-	var body data.HeroBody
-	dir := ""
-	class := typeID
-	if !hired {
-		body, dir, class, _ = data.HeroAppearance(bodies, equipmentFromSlots(worn), mage, false)
-	}
 
 	carry := restoredCarry(c, wornItems, carriedItems, hired, t)
 	var hiredRotationSpeed int32
@@ -560,7 +554,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 			name = t.Humans.EntryName(int(c.DefRow))
 		}
 	}
-	return mapload.PartyMember{
+	member := mapload.PartyMember{
 		ID:                 restoredPartyID(c),
 		Name:               name,
 		DefinitionRow:      definition,
@@ -568,9 +562,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 		PlayerCharacter:    !hired,
 		StartingHero:       c.Hero,
 		MercenaryType:      uint8(mercType),
-		Class:              class,
-		Body:               string(body),
-		BodyDir:            dir,
+		Class:              typeID,
 		Mage:               mage,
 		Profile:            profile,
 		FigureDir:          string(figure),
@@ -590,6 +582,11 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 		SuppressCorpseLoot: suppressCorpseLoot,
 		HiredRotationSpeed: hiredRotationSpeed,
 	}
+	if !hired {
+		look := heroAppearance(nil, 0, member, bodies)
+		member.Class, member.Body, member.BodyDir = look.Class, string(look.Body), look.Dir
+	}
+	return member
 }
 
 // restoredCarry copies the six per-skill experience fields from this saved

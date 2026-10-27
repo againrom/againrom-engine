@@ -615,8 +615,10 @@ func TestReleaseCampaignJoinIdentitiesAndMission20ClubmenUseCanonicalRows(t *tes
 		}
 		id := sim.EntityID(i)
 		danath := releaseEntity(t, f.live, id)
-		if danath.Class != 3 {
-			t.Fatalf("mission-70 npc23 beside female primary has class %d, want PC_Danath's swordsman class 3", danath.Class)
+		// An npc Hero placement takes the hero path (ANIM-106): his sword and
+		// shield name swordsman_, class 4 (ANIM-107).
+		if worn, _ := f.live.world.Equipped(id); danath.Class != 4 || worn[1] == 0 {
+			t.Fatalf("mission-70 npc23 beside female primary has class %d, shield %#x; want the sword-and-shield class 4", danath.Class, worn[1])
 		}
 		wantDanath := f.localizedNPCName(20, "Danath")
 		if got := f.live.chars[id].Name; got != wantDanath {

@@ -1803,8 +1803,11 @@ type World struct {
 	// castObservation is the step's report sink while a step runs, nil
 	// otherwise. Admission sites without a sink parameter record through it.
 	castObservation *castObs
-	turnSteps       map[EntityID]struct{}
-	turnStepScope   bool
+	// equipmentClass answers a hero's class after an equipment command in a
+	// step, bound by the driver that steps the World; it is not state.
+	equipmentClass EquipmentClassRule
+	turnSteps      map[EntityID]struct{}
+	turnStepScope  bool
 
 	// A source session uses tick as its uint32 SubTick and keeps FullTick
 	// independently. Without this presence bit the historical native uint64

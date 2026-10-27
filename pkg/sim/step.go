@@ -738,12 +738,14 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			}
 		case KindEquip:
 			w.equip(i, int(c.X), int(c.Y), int(c.Spell))
+			w.reclassAfterEquipment(i)
 		case KindUnequip:
 			// The move itself is equip.go's own unequip, on equip's own
 			// precedent (D-3): the refusal of an out-of-range or
 			// already-empty slot is that function's, not a guard written
 			// out again here.
 			w.unequip(i, int(c.X))
+			w.reclassAfterEquipment(i)
 		case KindAutocast:
 			// The whole arm, on castSpell's own precedent below: a value
 			// is stored and nothing is resolved. Setting it does NOT
@@ -770,6 +772,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// drop.go's own function again, restated over an equipment
 			// slot instead of a container element.
 			w.dropFromEquipment(i, int(c.Spell), c.X, c.Y)
+			w.reclassAfterEquipment(i)
 		case KindReadBook:
 			w.readBook(i, int(c.X))
 		case KindUsePotion:

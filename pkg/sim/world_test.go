@@ -72,6 +72,9 @@ func init() {
 	worldWriters = append(worldWriters, "SetBurstPhases")
 	worldMethods = append(worldMethods, "HasFlightInputs", "SetFlightInputs")
 	worldWriters = append(worldWriters, "SetFlightInputs")
+	// The driver binds the equipment class rule around each step it runs.
+	worldMethods = append(worldMethods, "SetEquipmentClassRule")
+	worldWriters = append(worldWriters, "SetEquipmentClassRule")
 	worldMethods = append(worldMethods, "ImportOriginalDyingActors")
 	worldWriters = append(worldWriters, "ImportOriginalDyingActors")
 	worldMethods = append(worldMethods, "ConstructSavedCellPlanes", "ConstructSavedStructures", "ImportOriginalActorActions")

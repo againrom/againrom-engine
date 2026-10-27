@@ -31,7 +31,7 @@ func TestFlightInputsUseRawRegistryWithoutArtOrPictureCeiling(t *testing.T) {
 			i("TileSize", 2), i("CenterX", 8), i("CenterY", 10), i("SelectionX1", 2), i("SelectionX2", 22),
 			i("SelectionY1", 3), i("SelectionY2", 27)}),
 	}
-	in, err := loadFlightInputs(src, data.FirstSpellPresentation(), data.BodyList{})
+	in, err := loadFlightInputs(src, data.FirstSpellPresentation())
 	if err != nil || in == nil {
 		t.Fatalf("raw inputs: %v, %v", in, err)
 	}
@@ -51,39 +51,35 @@ func TestFlightInputsUseRawRegistryWithoutArtOrPictureCeiling(t *testing.T) {
 	}
 	delete(src, ProjectileRegistry)
 	delete(src, UnitRegistry)
-	if empty, err := loadFlightInputs(src, data.FirstSpellPresentation(), data.BodyList{}); err != nil || empty == nil ||
+	if empty, err := loadFlightInputs(src, data.FirstSpellPresentation()); err != nil || empty == nil ||
 		empty.Pictures[10].LifeDivisor != 200 || empty.Pictures[10].Present || len(empty.Classes) != 0 {
 		t.Fatalf("absent raw registries lost logical flight rules: %v, %v", empty, err)
 	}
 }
 
-func TestFlightClassReadsCurrentActorAndEquipment(t *testing.T) {
-	rule := flightClassRule(data.NewBodyList(data.BodyUnarmed, data.BodyArcher, data.BodyMageStaff))
-	e := sim.Entity{Class: 1, TypeID: 33, Humanoid: true, ActorLoad: sim.ActorLoad{Source: sim.SourceActor{Class: 2, Fighter: true}}}
-	var slots [sim.EquipSlots]uint16
-	slots[0] = 2
-	if got := rule(e, slots); got != 14 {
-		t.Fatalf("fighter bow class %d, want 14", got)
+// A hero's flight class is the class the World stores for him, whatever his
+// slots and his source's arm say; another Human uses his Humans-row type and a
+// Unit his own class.
+func TestFlightClassReadsTheStoredClass(t *testing.T) {
+	e := sim.Entity{Class: 14, TypeID: 33, Humanoid: true, ActorLoad: sim.ActorLoad{Source: sim.SourceActor{Class: 2, Fighter: false}}}
+	if got := flightClassRule(e); got != 14 {
+		t.Fatalf("hero class %d, want the stored 14", got)
 	}
-	slots[0] = 0
-	if got := rule(e, slots); got != 1 {
-		t.Fatalf("unequipped fighter class %d, want 1", got)
+	e.Class = 1
+	if got := flightClassRule(e); got != 1 {
+		t.Fatalf("hero class %d, want the stored 1 over a mage source arm", got)
 	}
-	e.ActorLoad.Source.Fighter = false
-	if got := rule(e, slots); got != 23 {
-		t.Fatalf("current mage class %d, want 23", got)
-	}
-	slots[0] = 3
-	if got := rule(e, slots); got != 24 {
-		t.Fatalf("armed mage class %d, want 24", got)
-	}
-	e.TypeID, e.Class = 19, 19
-	if got := rule(e, slots); got != 19 {
+	e.TypeID, e.Class = 19, 4
+	if got := flightClassRule(e); got != 19 {
 		t.Fatalf("nonhero Human class %d, want authored 19", got)
 	}
 	e.TypeID, e.Class, e.ActorLoad.Source.Class = 33, 9, 1
-	if got := rule(e, slots); got != 9 {
+	if got := flightClassRule(e); got != 9 {
 		t.Fatalf("Unit class %d, want explicit 9", got)
+	}
+	e.ActorLoad.Source.Class, e.TypeID, e.Class, e.ClientClassFixed = 2, 19, 33, true
+	if got := flightClassRule(e); got != 33 {
+		t.Fatalf("fixed class %d, want 33", got)
 	}
 }
 
@@ -100,7 +96,7 @@ func TestFlightInputsBindWithoutPresentationBundles(t *testing.T) {
 }
 
 func TestFlightInputsBindRawMapBeforeFirstTick(t *testing.T) {
-	in, err := loadFlightInputs(flightCatalogSource{}, data.FirstSpellPresentation(), data.BodyList{})
+	in, err := loadFlightInputs(flightCatalogSource{}, data.FirstSpellPresentation())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,13 +145,8 @@ func TestFlightHighBandHireCurrentSAVKeepsClassPolicy(t *testing.T) {
 		t.Fatal("cold LOAD lost fixed hired class policy")
 	}
 	for _, candidate := range []sim.Entity{before, after} {
-		rule := flightClassRule(f.Bodies)
-		if got := rule(candidate, [sim.EquipSlots]uint16{}); got != 33 {
+		if got := flightClassRule(candidate); got != 33 {
 			t.Fatalf("high-band hired class %d, want fixed 33", got)
-		}
-		candidate.ClientClassFixed = false
-		if got := rule(candidate, [sim.EquipSlots]uint16{}); got != 1 {
-			t.Fatalf("same-type hero class %d, want equipment-derived 1", got)
 		}
 	}
 }

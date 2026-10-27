@@ -350,16 +350,11 @@ type partyInputs struct {
 // (mapload.wearRow, one tier down). Worn and Carried land on the member
 // straight off that one call.
 //
-// THE BODY, THE DIRECTORY AND THE DRAWN CLASS ARE data.HeroAppearance's OWN
-// ANSWER (plan D-1), never partyBody's or data.HeroBodyClass's any more:
-// they are called over the worn set just resolved — converted to a
-// data.Equipment through equipmentFromSlots — in.List, in.Mage, and false
-// for dying, because this function derives no dying character (spec Out of
-// scope). The fourth value HeroAppearance answers, whether the name and the
-// directory were both actually produced rather than a law's own fallback,
-// is discarded here on MissionParty's own precedent for HeroBodyClass's
-// matched flag: a name or a directory that fell back is not a second error
-// this function has an answer for.
+// THE BODY, THE DIRECTORY AND THE DRAWN CLASS ARE heroAppearance's ANSWER for
+// the member just built, read from his record: no World holds him yet. Whether
+// the name and the directory both resolved is discarded on MissionParty's
+// precedent: a name or a directory that fell back is not a second error this
+// function has an answer for.
 func assembleParty(in partyInputs) []mapload.PartyMember {
 	weaponName := ""
 	if in.Weapon != nil {
@@ -371,16 +366,11 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		carriedItems[i] = mapload.ItemInstanceFromCode(code, in.Table)
 	}
 
-	body, dir, class, _ := data.HeroAppearance(in.List, equipmentFromSlots(worn), in.Mage, false)
-
 	out := []mapload.PartyMember{{
 		ID:              "hero",
 		Name:            in.Name,
 		PlayerCharacter: true,
 		StartingHero:    true,
-		Class:           class,
-		Body:            string(body),
-		BodyDir:         dir,
 		Mage:            in.Mage,
 		Profile:         in.Profile,
 		FigureDir:       string(in.Dir),
@@ -399,6 +389,8 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		Carried:      carried,
 		CarriedItems: carriedItems,
 	}}
+	look := heroAppearance(nil, 0, out[0], in.List)
+	out[0].Class, out[0].Body, out[0].BodyDir = look.Class, string(look.Body), look.Dir
 	if in.Documents {
 		// IN THE PACK, NOT WORN. DAT-DOC-021 establishes that the Humans
 		// equipment grammar has no MagicItems arm, so there is no shipped

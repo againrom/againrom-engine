@@ -205,15 +205,12 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 	if e, ok := mw.entity(id); ok && e.ClientClassFixed {
 		return e.Class
 	}
-	var class int32
-	var mage, materialized bool
-	var weapon *data.Weapon
+	var hero mapload.PartyMember
 	if member := mw.missionPartyMember(id); member != nil {
-		class = member.Class
+		hero = *member
 		if member.MercenaryType != 0 {
-			return class
+			return hero.Class
 		}
-		mage, weapon, materialized = member.Mage, member.Weapon, member.WeaponMaterialized
 	} else {
 		if mw.mission == nil || mw.mission.state == nil {
 			return fallbackClass
@@ -222,26 +219,25 @@ func (mw *mapWorld) spellClientClass(id sim.EntityID, fallbackClass int32) int32
 		if _, ok := roster[id]; !ok {
 			return fallbackClass
 		}
-		class = roster[id].Class
-		if roster[id].MercenaryType != 0 {
-			return class
+		hero = roster[id]
+		if hero.MercenaryType != 0 {
+			return hero.Class
 		}
 		// Only a Hero placement derives its class from equipment (ANIM-106).
 		if e, held := mw.entity(id); held && !data.FigureIsHero(e.TypeID) {
 			if e.TypeID > 0 {
 				return e.TypeID
 			}
-			return class
+			return hero.Class
 		}
-		mage, weapon, materialized = roster[id].Mage, roster[id].Weapon, roster[id].WeaponMaterialized
 	}
-	_, _, resolved, matched, held := heroWornAppearance(mw.world, id, weapon, materialized, mage, mw.mission.list)
+	look := heroAppearance(mw.world, id, hero, mw.mission.list)
 	// A name no arm matches leaves class 1 (ANIM-107); with no list loaded
 	// nothing can be derived.
-	if held && (matched || mw.mission.list.Len() != 0) {
-		return resolved
+	if look.Held && (look.Matched || mw.mission.list.Len() != 0) {
+		return look.Class
 	}
-	return class
+	return hero.Class
 }
 
 // spellSchool answers the elemental school of the spell whose id is id, 0
