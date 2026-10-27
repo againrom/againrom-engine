@@ -169,8 +169,12 @@ func (w *World) castSummon(ci int) bool {
 	}
 	actor := c.Actor
 	actor.Owner = caster.Owner
-	_, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true)
-	return err == nil
+	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true)
+	if err != nil {
+		return false
+	}
+	w.castObservation.recordCreatedActor(id, c.Name)
+	return true
 }
 
 // secondPlacement is the second game's positioning search around (x, y)

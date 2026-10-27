@@ -141,7 +141,10 @@ func cheatCount(s string) (uint32, string) {
 	return 1, s
 }
 
-func (mw *mapWorld) rememberCheatActor(id sim.EntityID, name string) {
+// rememberCreatedActor enters an actor the cheat summon or a Summon cast
+// built into the mission's actor manifest under its Units row name, so SAVE
+// writes it and LOAD names it again.
+func (mw *mapWorld) rememberCreatedActor(id sim.EntityID, name string) {
 	manifest := cloneActorManifest(mw.mission.state.ActorManifest)
 	if manifest == nil {
 		manifest = &SnapshotActorManifest{Version: actorManifestVersion}

@@ -147,6 +147,58 @@ func TestCurrentCastOrderCarriesItsUnitCastFlag(t *testing.T) {
 	}
 }
 
+func TestCompletedBookAdmissionKeepsTheSelectionOfAKeylessSpellRecord(t *testing.T) {
+	f := castOrderFront(t)
+	initial, _, _ := saveCurrentEffect(t, f)
+	f = openCurrentEffectSave(t, f, initial)
+	w := f.live.world
+	sim.Step(w, []sim.Command{sim.Cast(1, 2, 6)})
+	for tick := 0; len(w.Actions().Books) != 0 || w.Entities()[0].PendingOrder.Kind != sim.PendingNone; tick++ {
+		if tick == 96 {
+			t.Fatal("cast did not complete")
+		}
+		sim.Step(w, nil)
+	}
+	_, doc, actions := saveCurrentEffect(t, f)
+	// The cast wire's output when the slot's Spell record is new this session
+	// (a book root's minted slot): the record has no key, so U44 holds 0.
+	r := castOrderRecord(t, doc, actions, 1)
+	spells, _ := savedObjectRefs(&r, "Spells")
+	for i := range doc.Objects {
+		if doc.Objects[i].Class == r.Class && savedRecordValueForTest(t, doc.Objects[i], "Identity") == savedRecordValueForTest(t, r, "Identity") {
+			savedObjectSetValue(&doc.Objects[i], "U44", 0)
+		}
+	}
+	savedObjectSetValue(&doc.Objects[spells[5]-1], "This", 0)
+	for _, finalize := range []bool{false, true} {
+		keyed, err := sav.CompleteDocumentKeys(doc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if finalize {
+			if err := finalizeCurrentBookSelection(&keyed); err != nil {
+				t.Fatal(err)
+			}
+		}
+		saved := castOrderRecord(t, keyed, actions, 1)
+		want := savedRecordValueForTest(t, keyed.Objects[spells[5]-1], "This")
+		if got := savedRecordValueForTest(t, saved, "U44"); want == 0 || finalize != (got == want) {
+			t.Fatalf("finalize %v: U44=%#x, slot 6 key %#x", finalize, got, want)
+		}
+		raw, err := sav.EncodeDocumentData(keyed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cold := openCurrentEffectSave(t, f, raw)
+		if got := cold.live.world.Entities()[0].AdmittedBookSpell; finalize != (got == 6) {
+			t.Fatalf("finalize %v: cold LOAD selection %d", finalize, got)
+		}
+		if finalize {
+			assertCurrentWorldEqual(t, w, cold.live.world, "completed key selection cold LOAD")
+		}
+	}
+}
+
 func TestCompletedBookAdmissionWritesCurrentSelectionOnFirstSave(t *testing.T) {
 	for _, command := range []sim.Command{sim.Cast(1, 2, 6), sim.CastAt(1, 3, sim.CellPoint{X: 14, Y: 10})} {
 		f := castOrderFront(t)

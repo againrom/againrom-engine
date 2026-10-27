@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 )
@@ -152,5 +153,51 @@ func TestActorManifestOmitsRemovedActorsWithoutAliasing(t *testing.T) {
 	got.Actors[0].Name = "changed"
 	if in.Actors[0].Name != "" {
 		t.Fatal("snapshot shares caller metadata")
+	}
+}
+
+func TestSummonCastEntersItsCreatureInTheActorManifest(t *testing.T) {
+	script, err := sim.NewROM2Script(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := []sim.SpellRule{{ID: 25, School: 5, ManaCost: 100}}
+	sim.AssignSecondGameArms(rules)
+	// The second game holds a Summon's cell to 8..dimension-9 (R2-ENGINE-531).
+	caster := sim.Entity{ID: 1, Class: 35, TypeID: 35, X: 10, Y: 10, HP: 100, MaxHP: 100, Mind: 30, Mana: 200, MaxMana: 200,
+		KnownSpells: 1 << 25, ScanRange: 19, Owner: sim.SelfSlot, TokenSize: 1, Speed: 10}
+	w, err := sim.NewSpelledWorld(17, sim.Bounds{Width: 20, Height: 20}, sim.ModeCanonical, nil, []sim.Entity{caster}, script, rules)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapload.BindSourceDerive(w)
+	var creatures []sim.SpellCreature
+	for k := int32(1); k <= 3; k++ {
+		creatures = append(creatures, sim.SpellCreature{Name: sim.SummonCreatureName(0, k), Actor: sim.Entity{Class: 35, TypeID: 35, HP: 20, MaxHP: 20, TokenSize: 1,
+			ActorLoad: sim.ActorLoad{Present: true, Source: sim.SourceActor{Class: 1, TypeID: 35}}}})
+	}
+	w.DeclareSpellCreatures(creatures)
+	if refusal := w.BookSpellRefusal(1, 1, 25); refusal != "" {
+		t.Fatalf("Summon refused: %s", refusal)
+	}
+	m := &alm.Map{Width: 20, Height: 20, Tiles: make([]uint16, 400), Altitudes: make([]uint8, 400)}
+	art := worldFixtureArt(16, 16, 8, 16, 3, 3, 1)
+	mw := newMapWorld(w, nil, &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{35: art}}, worldFixtureViewer(t, m))
+	mw.mission = &missionNotices{state: &Mission{World: w}}
+	mw.pending = append(mw.pending, sim.Cast(1, 1, 25))
+	for n := 0; n < 255 && len(w.Entities()) == 1; n++ {
+		mw.tick()
+	}
+	if len(w.Entities()) != 2 {
+		t.Fatal("Summon built no actor")
+	}
+	made := w.Entities()[1]
+	manifest := mw.mission.state.ActorManifest
+	if manifest == nil || len(manifest.Actors) != 1 || manifest.Actors[0].ID != made.ID || !manifest.Actors[0].Constructed ||
+		manifest.Actors[0].Name != sim.SummonCreatureName(0, 1) && manifest.Actors[0].Name != sim.SummonCreatureName(0, 2) && manifest.Actors[0].Name != sim.SummonCreatureName(0, 3) {
+		t.Fatalf("manifest %+v for summoned actor %d", manifest, made.ID)
+	}
+	if _, err := snapshotActorManifest(manifest, w); err != nil {
+		t.Fatal(err)
 	}
 }

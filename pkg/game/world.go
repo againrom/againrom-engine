@@ -4266,6 +4266,11 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 		}
 	}
 	mw.noteRelocated(report.Relocations)
+	if mw.mission != nil && mw.mission.state != nil {
+		for _, a := range report.CreatedActors {
+			mw.rememberCreatedActor(a.ID, a.Name)
+		}
+	}
 	mw.observeScriptMessages(report.ScriptMessages)
 	mw.observeGrants(report.PurseCredits, report.ItemGrants)
 	for _, observe := range reportSink {

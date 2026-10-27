@@ -365,6 +365,32 @@ func TestSecondSummonRefusesWithNoCreatureDeclared(t *testing.T) {
 	}
 }
 
+func TestSecondSummonCastReportsTheActorItBuilt(t *testing.T) {
+	w := summonWorld(t, 0x25, 0)
+	var made []CreatedActor
+	cmds := []Command{Cast(1, 1, 25)}
+	for n := 0; n < 255 && len(w.entities) == 1; n++ {
+		made = append(made, StepReported(w, cmds).CreatedActors...)
+		cmds = nil
+	}
+	if len(w.entities) != 2 {
+		t.Fatalf("Summon built %d actors", len(w.entities)-1)
+	}
+	got := w.entities[1]
+	name := ""
+	for _, c := range summonCreatures() {
+		if c.Actor.TypeID == got.TypeID {
+			name = c.Name
+		}
+	}
+	if len(made) != 1 || made[0].ID != got.ID || made[0].Name != name || name == "" {
+		t.Fatalf("report %+v for actor %d type %d (%q)", made, got.ID, got.TypeID, name)
+	}
+	if next := StepReported(w, nil).CreatedActors; len(next) != 0 {
+		t.Fatalf("the next tick reports %+v again", next)
+	}
+}
+
 func TestIceMissileAndDiamondDustLandAsFireArrowExceptSchool(t *testing.T) {
 	// R2-ENGINE-024, R2-ASSET-107: rows 5 and 16 equal row 1 except Sphere.
 	row := func(id uint16, school uint8) SpellRule {

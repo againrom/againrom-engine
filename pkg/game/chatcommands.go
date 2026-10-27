@@ -280,7 +280,7 @@ func (mw *mapWorld) chatSummon(row chatCommandRow, arg string, hero sim.Entity) 
 			mw.cheats.failure = err
 			break
 		}
-		mw.rememberCheatActor(id, arg)
+		mw.rememberCreatedActor(id, arg)
 	}
 	mw.cheatNotice(row.reply)
 	return true

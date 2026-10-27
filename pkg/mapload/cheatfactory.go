@@ -102,6 +102,11 @@ func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, 
 		e.ActorLoad.Source.Modifier = initial.Modifier
 	}
 	e = ConstructActorLoad(e, worn, pack)
+	// A legacy book with no spell is no book, as the source flag states, so
+	// SAVE writes none and LOAD reads the flag back clear.
+	if e.Book.State == sim.BookLegacy && !e.Book.WirePresent(e.KnownSpells) {
+		e.Book.State = sim.BookAbsent
+	}
 	e.NativeClass = sim.NativeClass{}
 	e.NativeTraining = sim.NativeTraining{}
 	return e, pack, worn, nil

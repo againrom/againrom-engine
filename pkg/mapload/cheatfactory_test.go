@@ -253,6 +253,18 @@ func TestCheatActorCanSummonAndColdLoadWithoutNativeBacking(t *testing.T) {
 	}
 }
 
+func TestCheatActorWithoutSpellsHasNoBook(t *testing.T) {
+	for _, name := range []string{"Named Creature", "Named Person"} {
+		e, _, _, err := CheatActor(name, false, cheatActorTable(), DifficultyNormal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if e.KnownSpells != 0 || e.Book.State != sim.BookAbsent || e.Book.WirePresent(e.KnownSpells) || e.ActorLoad.Source.HasSpellbook {
+			t.Fatalf("%s: known %#x, book state %d, source spellbook flag %v", name, e.KnownSpells, e.Book.State, e.ActorLoad.Source.HasSpellbook)
+		}
+	}
+}
+
 func TestCheatCreatureKeepsOrdinaryDifficulty(t *testing.T) {
 	for _, tc := range []struct {
 		diff Difficulty

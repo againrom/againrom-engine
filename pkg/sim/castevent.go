@@ -94,6 +94,7 @@ type castObs struct {
 	paints         []AreaPaint
 	damages        []DamageEvent
 	relocations    []Relocation
+	createdActors  []CreatedActor
 	// held names the casters whose charging book cast waited this step for
 	// their turn.
 	held             []EntityID
@@ -189,6 +190,19 @@ func (o *castObs) recordAdmission(w *World, ci int, target EntityID, atCell bool
 		}
 	}
 	o.casts = append(o.casts, ev)
+}
+
+// CreatedActor is one actor a Summon cast built in this step and the Units
+// row it was built from, the name the client saves it under.
+type CreatedActor struct {
+	ID   EntityID
+	Name string
+}
+
+func (o *castObs) recordCreatedActor(id EntityID, name string) {
+	if o != nil {
+		o.createdActors = append(o.createdActors, CreatedActor{ID: id, Name: name})
+	}
 }
 
 func (o *castObs) recordRelocation(e Entity, fromX, fromY int32) {

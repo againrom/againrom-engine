@@ -92,6 +92,9 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := finalizeCurrentOrderSpellAbsence(&doc); err != nil {
 		return nil, err
 	}
+	if err := finalizeCurrentBookSelection(&doc); err != nil {
+		return nil, err
+	}
 	if err := finalizeCurrentCarrierAbsence(&doc, s.World); err != nil {
 		return nil, err
 	}

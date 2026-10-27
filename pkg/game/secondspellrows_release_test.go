@@ -8,10 +8,10 @@ import (
 
 // TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD: a
 // generated mage hero enters campaign mission 10, learns every spell by the
-// unlocked #modify cheat, casts Summon from the spell bar at itself
-// (R2-ENGINE-455) and then Stone Curse at the creature it made
-// (R2-ENGINE-025, R2-ENGINE-454). A named SAV and a cold LOAD give an equal
-// World, the creature and the hold included, and the next ticks stay equal.
+// unlocked #modify cheat, casts Summon at itself (R2-ENGINE-455) and then
+// Stone Curse at the creature it made (R2-ENGINE-025, R2-ENGINE-454). A named
+// SAV and a cold LOAD give an equal World, the creature and the hold
+// included, and the next ticks stay equal.
 func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testing.T) {
 	f, app := secondGeneratedMage(t, false)
 	for _, target := range []string{"TAVERN", "TALK 517"} {
@@ -71,16 +71,18 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 	}
 	t.Logf("summoned actor %d type %d at %d,%d (%+d,%+d from the hero), group %d; hero mana %d", creature.ID, creature.TypeID, creature.X, creature.Y, creature.X-hero.X, creature.Y-hero.Y, creature.Group, hero.Mana)
 
+	// Each cast queues on the first tick the mana allows; the check reads
+	// the curse, 0..26 ticks here (R2-ENGINE-025), as it lands.
 	for try := 0; try < 4 && !mw.world.HasEffectArm(creature.ID, 20); try++ {
-		// Tick by tick, so the cast is queued on the first tick the mana
-		// allows it, before a support cast can spend it.
 		for n := 0; n < 20000 && mw.world.BookSpellRefusal(id, creature.ID, 18) != ""; n++ {
 			f.LiveAdvance(1)
 		}
 		h := releaseEntity(t, mw, id)
 		t.Logf("try %d: tick %d, hero hp %d/%d mana %d/%d, cast wait %d, admission %q", try, mw.world.Tick(), h.HP, h.MaxHP, h.Mana, h.MaxMana, h.CastWait, mw.world.BookSpellRefusal(id, creature.ID, 18))
 		mw.pending = append(mw.pending, sim.Cast(id, creature.ID, 18))
-		f.LiveAdvance(60)
+		for n := 0; n < 60 && !mw.world.HasEffectArm(creature.ID, 20); n++ {
+			f.LiveAdvance(1)
+		}
 	}
 	var curse sim.ActiveEffect
 	for _, e := range mw.world.ActiveEffects() {
@@ -88,7 +90,7 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 			curse = e
 		}
 	}
-	if curse.Spell != 18 || curse.Kind != sim.EffectNone || curse.Remaining == 0 {
+	if curse.Spell != 18 || curse.Caster != id || curse.Kind != sim.EffectNone || curse.Remaining == 0 {
 		t.Fatalf("Stone Curse on the creature: %+v", mw.world.ActiveEffects())
 	}
 	t.Logf("Stone Curse on actor %d: remaining %d", creature.ID, curse.Remaining)

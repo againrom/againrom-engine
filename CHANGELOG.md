@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A mission can be saved after a Summon cast, and the creature loads back as it was. The hero's last cast spell also stays selected after a load when the spell was learned during the mission. Before, the save failed after a Summon, and the load forgot the spell.
 - [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold; a save made during a mission is listed but cannot be loaded yet.
 - [ROM1] When the purse is shorter than the school's price, Exit shows the shortfall as a negative number and Train stays pressable but teaches nothing, as in the original.
 - [ROM1] In the school a second click on the selected skill row unselects it, and Train then shows 0 and Exit the whole purse, as in the original.

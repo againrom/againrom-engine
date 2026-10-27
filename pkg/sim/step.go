@@ -399,6 +399,7 @@ type Report struct {
 	Damages        []DamageEvent
 	// Relocations names every Teleport that moved its caster in this step.
 	Relocations      []Relocation
+	CreatedActors    []CreatedActor
 	FlightStarts     []FlightStart
 	ProjectilePhases []ProjectilePhase
 	ProjectileMarks  []ProjectileMark
@@ -412,8 +413,8 @@ func StepReported(w *World, cmds []Command) Report {
 	var obs castObs
 	stepWorld(w, cmds, nil, &obs, nil)
 	return Report{Tick: w.Tick(), ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
-		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, FlightStarts: obs.flightStarts,
-		ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks, PurseCredits: obs.purseCredits,
+		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, CreatedActors: obs.createdActors,
+		FlightStarts: obs.flightStarts, ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks, PurseCredits: obs.purseCredits,
 		ItemGrants: obs.itemGrants}
 }
 
