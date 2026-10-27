@@ -518,18 +518,6 @@ func townSurfaceCellRect(i int) image.Rectangle {
 	return image.Rect(10+col*92, 64+row*146, 94+col*92, 184+row*146)
 }
 
-// townSurfaceCellRectFor is cell i's rectangle: the tavern's seat i of its
-// page, the school's skill cell.
-func townSurfaceCellRectFor(v TownSurfaceView, i int) image.Rectangle {
-	if v.Kind == TownSurfaceTavern {
-		if i < 0 || i >= len(v.Page.Seats) {
-			return image.Rectangle{}
-		}
-		return v.Page.Seats[i].Rect
-	}
-	return townSurfaceCellRect(i)
-}
-
 // tavernPage is the tavern's room page: the game's seats, each filled with
 // its cell's frames and captions, the panel's button rectangles, and the
 // person only over the tavern's own art.

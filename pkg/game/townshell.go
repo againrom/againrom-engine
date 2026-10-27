@@ -392,9 +392,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 	for hires < len(candidates) && candidates[hires].key.kind == tavernCandidateMercenary {
 		hires++
 	}
-	v.Page = buildRoomPage(t.tavernRoom(), t.tavernPicture(), len(cells), hires)
-	v.Page.Person = t.tavernPerson(v.Candidate)
-	v.Page.Person.Picture, v.Page.Person.Text = v.CandidatePixels, v.CandidateText
+	t.setTavernPage(&v, len(cells), hires)
 	// TOWN-391/392: no selected squad has no hire caption or price; an
 	// active squad selects the install's hire/fire word, not the constructor
 	// caption. The owner-added Sleep control is intentionally separate.

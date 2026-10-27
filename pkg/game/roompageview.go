@@ -105,6 +105,15 @@ func (t *townScreen) tavernPerson(c ui.TownCharacterView) ui.RoomPerson {
 	return placeRoomPerson(seats, t.tavernPicture(), c, c.Figure)
 }
 
+// setTavernPage sets v's page: the tavern's first n seats, the first hires
+// of them a mercenary's, and v's candidate placed on it and drawn by the
+// pixels and text v carries.
+func (t *townScreen) setTavernPage(v *ui.TownSurfaceView, n, hires int) {
+	v.Page = buildRoomPage(t.tavernRoom(), t.tavernPicture(), n, hires)
+	v.Page.Person = t.tavernPerson(v.Candidate)
+	v.Page.Person.Picture, v.Page.Person.Text = v.CandidatePixels, v.CandidateText
+}
+
 // renderTavernPerson draws candidate c once over the tavern's own art; nil
 // without it.
 func (t *townScreen) renderTavernPerson(c ui.TownCharacterView) *image.RGBA {

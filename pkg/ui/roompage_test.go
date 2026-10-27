@@ -39,6 +39,19 @@ func firstTavernPage(v TownSurfaceView) TownSurfaceView {
 	return v
 }
 
+// townSurfaceCellRectFor is cell i's rectangle: the tavern's seat i of its
+// page, the school's skill cell. It is the one reader of a built page's seat
+// rectangles outside DrawRoomPage and the hit test, and only a test calls it.
+func townSurfaceCellRectFor(v TownSurfaceView, i int) image.Rectangle {
+	if v.Kind == TownSurfaceTavern {
+		if i < 0 || i >= len(v.Page.Seats) {
+			return image.Rectangle{}
+		}
+		return v.Page.Seats[i].Rect
+	}
+	return townSurfaceCellRect(i)
+}
+
 // renderTavernCandidate is the tavern's cached drawing of candidate c.
 func renderTavernCandidate(c TownCharacterView, art *TownTavernArt) *image.RGBA {
 	return RenderRoomPerson(firstTavernPage(TownSurfaceView{Kind: TownSurfaceTavern, TavernArt: art, Candidate: c}).Page.Person)

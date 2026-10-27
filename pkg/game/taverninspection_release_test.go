@@ -161,8 +161,8 @@ func TestReleaseEveryShippedMercenaryPriceFitsAndMatchesTheHireAction(t *testing
 			}
 
 			view := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern, Font: f.Font.Value(), CardFont: font,
-				TavernArt: f.TownTavernArt.Value(),
-				Cells:     []ui.TownSurfaceCell{{Portrait: true, Price: priceText, Detail: detailText}}}
+				TavernArt: f.TownTavernArt.Value(), Page: f.TavernPageLayout(1, 1),
+				Cells: []ui.TownSurfaceCell{{Portrait: true, Price: priceText, Detail: detailText}}}
 			got := ui.ComposeTownSurface(view)
 			want := image.NewRGBA(image.Rect(0, 0, cardWidth, cardHeight))
 			draw.Draw(want, want.Bounds(), f.TownTavernArt.Value().ManBack, f.TownTavernArt.Value().ManBack.Bounds().Min, draw.Src)
@@ -384,6 +384,7 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 					{Portrait: true, Selected: true, Frames: frames},
 					{Portrait: true, Frames: frames},
 				}}
+			s.setTavernPage(&v, len(v.Cells), len(v.Cells))
 			phase0 := ui.ComposeTownSurface(v)
 			v.AnimationFrame = 1
 			phase1 := ui.ComposeTownSurface(v)
@@ -423,8 +424,10 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 				if err != nil {
 					t.Fatal(err)
 				}
-				pic := ui.ComposeTownSurface(ui.TownSurfaceView{Kind: ui.TownSurfaceTavern,
-					TavernArt: f.TownTavernArt.Value(), Candidate: candidate, CandidatePixels: s.tavernDetailPixels, Font: f.Font.Value()})
+				shown := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern,
+					TavernArt: f.TownTavernArt.Value(), Candidate: candidate, CandidatePixels: s.tavernDetailPixels, Font: f.Font.Value()}
+				s.setTavernPage(&shown, 0, 0)
+				pic := ui.ComposeTownSurface(shown)
 				encodeErr := png.Encode(file, pic)
 				closeErr := file.Close()
 				if encodeErr != nil || closeErr != nil {
@@ -467,6 +470,7 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 			items := mapload.MemberItemEquipment(members[0], f.Table)
 			view := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern, Candidate: candidate,
 				CandidateSlotMask: mask, CandidateSlotInfo: info}
+			s.setTavernPage(&view, 0, 0)
 			for slot, item := range items {
 				if item.Code == 0 {
 					continue

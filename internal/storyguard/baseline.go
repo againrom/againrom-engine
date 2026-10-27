@@ -3107,6 +3107,8 @@ var Committed = Baseline{
 	// mapeditorwizard.go, mapeditorobject.go, mapeditorwindow.go, mapeditor.go,
 	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
 	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
-	// play overlap rule is re-measured on the merged tree.
-	CommentBytes: 9784719,
+	// play overlap rule is re-measured on the merged tree. It then rose for the
+	// room page scan's alias and seat rectangle rules (internal/archtest/
+	// roompage.go) and the tavern view page test (pkg/game/tavernviewpage_test.go).
+	CommentBytes: 9787325,
 }
