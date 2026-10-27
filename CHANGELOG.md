@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.136.0
+
 ### For players
 
 - [ROM1] The inn's mercenary card says SPELLCASTER only for a mercenary who knows a spell, such as the mage, and no longer for club, sword, axe or bow fighters.
