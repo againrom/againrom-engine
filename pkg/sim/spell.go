@@ -1891,7 +1891,9 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 		level = caster.Skill[rule.School]
 	}
 	inReach := w.withinCastReach(&caster, &target, spellRangeOf(w.rules, rule, spellPowerUnder(w.rules, rule, level, caster.Mind), rangeCast))
-	if !skipRange && !w.castSeesEntity(ci, vi) && !(inReach && w.computerMageGroupSees(ci, vi)) {
+	// A target the computer mage's Group sees is refused for range alone, so
+	// out of range the mage walks into range with the cast armed (AI-760).
+	if !skipRange && !w.castSeesEntity(ci, vi) && !w.computerMageGroupSees(ci, vi) {
 		return refusalTargetNotVisible
 	}
 	if !skipRange && !inReach {

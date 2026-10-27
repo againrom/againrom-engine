@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold; a save made during a mission is listed but cannot be loaded yet.
 - [ROM2] Stone Curse now holds its target still, unable to move, attack or cast, for a random time that its Earth resistance shortens, and Summon calls a squirrel, a turtle or an animated foot to your side beside the caster, stronger as the caster's Astral skill grows; both last through a save and load. Before, Stone Curse did nothing and Summon could not be cast.
 - [ROM2] A mage that starts a spell while stepping into a cell, an enemy or one of yours, now finishes the step and casts standing, as in the first game. Before, it froze mid-step for the whole cast.
+- [ROM1] An enemy mage that does not see you itself, while its comrades do, now walks only until you are within its spell's reach and casts from there. Before, it walked on towards you as if to strike with its weapon.
 
 ## 0.136.0
 

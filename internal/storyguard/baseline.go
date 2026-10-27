@@ -3050,6 +3050,10 @@ package storyguard
 // pkg/sim/createactor.go, pkg/sim/spell.go, pkg/sim/world.go,
 // pkg/sim/sourceeffect.go, pkg/game/savactoreffects.go,
 // pkg/mapload/cheatfactory.go, their tests and this paragraph.
+//
+// CommentBytes rises with the comment on the changed Group-sight admission
+// test in pkg/sim/spell.go, the doc comment of a new test in
+// pkg/sim/magegroupsight_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4487,
 	TestFileCount:  264,
@@ -3100,5 +3104,5 @@ var Committed = Baseline{
 	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
 	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
 	// play overlap rule is re-measured on the merged tree.
-	CommentBytes: 9783572,
+	CommentBytes: 9784112,
 }
