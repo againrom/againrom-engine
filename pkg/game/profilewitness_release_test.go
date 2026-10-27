@@ -119,6 +119,26 @@ func TestProfileWitnessSaveDirectoryMaskPreservesOtherPixels(t *testing.T) {
 	}
 }
 
+func TestProfileWitnessDifferencesNameEveryDifferingLine(t *testing.T) {
+	if got := profileWitnessDifferences("a\nb\n", "a\nb\n"); got != "" {
+		t.Fatalf("equal traces reported %q", got)
+	}
+	got := profileWitnessDifferences("a\nb\nc\nd\n", "a\nB\nc\nD\ne\n")
+	for _, part := range []string{
+		"3 witness lines differ:",
+		"witness line 2 differs:\nwant b\ngot  B",
+		"witness line 4 differs:\nwant d\ngot  D",
+		"witness line 5 differs:\nwant \ngot  e",
+	} {
+		if !strings.Contains(got, part) {
+			t.Errorf("report lacks %q:\n%s", part, got)
+		}
+	}
+	if strings.Contains(got, "line 1 ") || strings.Contains(got, "line 3 ") {
+		t.Errorf("report names an equal line:\n%s", got)
+	}
+}
+
 func profileWitnessFront(t *testing.T) *FrontEnd {
 	t.Helper()
 	f := releaseFront(t)
@@ -302,19 +322,30 @@ func runProfileWitness(t *testing.T, f *FrontEnd, maskSaveDirectory bool) {
 		t.Fatalf("no recorded witness for this install (%v); record it on unchanged code", err)
 	}
 	want = bytes.ReplaceAll(want, []byte("\r\n"), []byte("\n"))
-	if string(want) != got {
-		wl, gl := strings.Split(string(want), "\n"), strings.Split(got, "\n")
-		for i := 0; i < len(wl) || i < len(gl); i++ {
-			var a, b string
-			if i < len(wl) {
-				a = wl[i]
-			}
-			if i < len(gl) {
-				b = gl[i]
-			}
-			if a != b {
-				t.Fatalf("witness line %d differs:\nwant %s\ngot  %s", i+1, a, b)
-			}
+	if report := profileWitnessDifferences(string(want), got); report != "" {
+		t.Fatal(report)
+	}
+}
+
+func profileWitnessDifferences(want, got string) string {
+	if want == got {
+		return ""
+	}
+	wl, gl := strings.Split(want, "\n"), strings.Split(got, "\n")
+	var b strings.Builder
+	differing := 0
+	for i := 0; i < len(wl) || i < len(gl); i++ {
+		var w, g string
+		if i < len(wl) {
+			w = wl[i]
+		}
+		if i < len(gl) {
+			g = gl[i]
+		}
+		if w != g {
+			differing++
+			fmt.Fprintf(&b, "\nwitness line %d differs:\nwant %s\ngot  %s", i+1, w, g)
 		}
 	}
+	return fmt.Sprintf("%d witness lines differ:%s", differing, b.String())
 }
