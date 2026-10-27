@@ -114,3 +114,39 @@ func TestRuntimeIDFaultRefusesCarriedOrUnorderedOrphans(t *testing.T) {
 		}
 	}
 }
+
+func TestRuntimeIDColdLoadOfASackPlantedBeforeAnOlderSackHoldsTheConstructorBit(t *testing.T) {
+	for _, tc := range []struct {
+		last    int32
+		orphans []uint16
+	}{{40, []uint16{6}}, {6, nil}} {
+		w := dropGoldWorld(t, 500, []Sack{{X: 3, Y: 4, Gold: 5}, {X: 12, Y: tc.last, Gold: 7}}, Entity{ID: 1, X: 10, Y: 20, Owner: SelfSlot}, Entity{ID: 2, X: 30, Y: 20, Owner: SelfSlot})
+		w.InsertActorRuntimeIDs([]EntityID{1, 2})
+		w.InsertSackRuntimeIDs()
+		Step(w, []Command{DropGold(SelfSlot, 100, CellPoint{X: 11, Y: 21})})
+		records := []RuntimeIDLoad{{Saved: runtimeIDOf(t, w, 1)}, {Saved: runtimeIDOf(t, w, 2)}}
+		for _, id := range w.SackRuntimeIDs() {
+			records = append(records, RuntimeIDLoad{Saved: id, Sack: true})
+		}
+		if len(records) != 5 {
+			t.Fatalf("older Sack at row %d left Sacks %v", tc.last, w.SackRuntimeIDs())
+		}
+		cold := roundTripRuntimeIDs(t, w)
+		cold.RestoreRuntimeIDs(records)
+		if !slices.Equal(cold.runtimeOrphans, tc.orphans) || !slices.Equal(cold.SackRuntimeIDs(), w.SackRuntimeIDs()) {
+			t.Fatalf("older Sack at row %d: Sacks %v, cold orphans %v, want %v", tc.last, w.SackRuntimeIDs(), cold.runtimeOrphans, tc.orphans)
+		}
+		if (cold.Hash() == w.Hash()) != (tc.orphans == nil) || (cold.NextRuntimeID() == w.NextRuntimeID()) != (tc.orphans == nil) {
+			t.Fatalf("older Sack at row %d: continued next %d, cold next %d", tc.last, w.NextRuntimeID(), cold.NextRuntimeID())
+		}
+		marks := cold.RuntimeIDMarks()
+		adopted := make([]RuntimeIDLoad, len(marks))
+		for i, id := range marks {
+			adopted[i] = RuntimeIDLoad{Saved: uint32(id)}
+		}
+		w.RestoreRuntimeIDs(adopted)
+		if cold.Hash() != w.Hash() || cold.NextRuntimeID() != w.NextRuntimeID() {
+			t.Fatalf("older Sack at row %d: the loaded allocator does not make the continued World equal", tc.last)
+		}
+	}
+}

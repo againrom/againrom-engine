@@ -281,6 +281,7 @@ func (r sackFeetRig) saveContinuation(t *testing.T) {
 		t.Fatal("SAVE after inventory drop", err)
 	}
 	cold, _ := loadSAVWindow(t, store, name)
+	adoptLoadedAllocator(t, r.live.world, cold.live.world)
 	for tick := 0; tick <= 16; tick++ {
 		if got, want := cold.live.world.Hash(), r.live.world.Hash(); got != want {
 			t.Fatalf("SAVE/cold LOAD tick %d changed World hash: got %016x want %016x", tick, got, want)

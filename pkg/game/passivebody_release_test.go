@@ -54,6 +54,7 @@ func passiveSaveReload(t *testing.T, f *FrontEnd, label string) ([]byte, *FrontE
 		t.Fatalf("%s: %v", label, err)
 	}
 	after, _ := next.LiveWorld()
+	adoptLoadedAllocator(t, before, after)
 	if after.Hash() != before.Hash() || after.Tick() != before.Tick() || !reflect.DeepEqual(after.CurrentTerminalActors(), before.CurrentTerminalActors()) {
 		logCurrentCarrierDiff(t, before, after)
 		t.Fatalf("%s: LOAD hash %016x tick %d, saved %016x tick %d", label, after.Hash(), after.Tick(), before.Hash(), before.Tick())

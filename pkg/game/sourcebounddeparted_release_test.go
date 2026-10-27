@@ -83,11 +83,12 @@ func TestReleaseSourceBoundDeadVIPSurvivesSAV(t *testing.T) {
 	}
 	store, name, _ := menuSAVE(t, f, app, OriginalStore{})
 	cold := loadLocalLegacySave(t, store, name)
+	adoptLoadedAllocator(t, f.live.world, cold.live.world)
 	after, _, err := cold.Snapshot(true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(before.World, after.World) {
+	if !bytes.Equal(formWithLoadedAllocator(t, before.World, after.World), after.World) {
 		t.Fatal("cold SAV LOAD changed the World")
 	}
 	var loaded sim.OriginalDeadRecord

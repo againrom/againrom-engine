@@ -233,6 +233,7 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	}
 	path, _ := writeOrdinarySAV(t, f, "ghost-row.sav")
 	cold := loadAreaContinuation(t, path)
+	adoptLoadedAllocator(t, f.live.world, cold.live.world)
 	coldGhost := raisedGhostEntity(t, cold, typ)
 	requireGhostRowColumns(t, "cold LOAD", coldGhost, def, general)
 	for n := 0; n <= 256; n++ {

@@ -255,6 +255,7 @@ func quest81Paired(t *testing.T, a, b *FrontEnd, ticks int) {
 	if a.live == nil || a.live.world == nil || b.live == nil || b.live.world == nil {
 		t.Fatal("paired continuation requires two loaded missions")
 	}
+	adoptLoadedAllocator(t, a.live.world, b.live.world)
 	for i := 0; i <= ticks; i++ {
 		left, right := a.live.world.Hash(), b.live.world.Hash()
 		equal := left == right

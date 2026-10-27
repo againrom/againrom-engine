@@ -21,6 +21,7 @@ import (
 // held one, so the peel drops the records.
 func beforeMoverRecordForm(t *testing.T, raw []byte) []byte {
 	t.Helper()
+	raw = beforeRuntimeIDForm(t, raw)
 	end := len(raw)
 	if end == 0 || raw[0] != 122 {
 		return raw

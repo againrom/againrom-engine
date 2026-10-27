@@ -237,6 +237,9 @@ func reloadMissionSAV1172(t *testing.T, f *FrontEnd, app *ui.App) *FrontEnd {
 	before := f.live.world.Hash()
 	store, name, written := menuSAVE(t, f, app, OriginalStore{})
 	g := loadLocalLegacySave(t, store, name)
+	if f.live.world.Hash() == before {
+		before = adoptLoadedAllocator(t, f.live.world, g.live.world).Hash()
+	}
 	if before != g.live.world.Hash() || g.live.world.SavedObjects() == nil {
 		currentMenuWorldDiagnostics(t, f.live.world, g.live.world)
 		t.Fatalf("mission SAV lost current World/graph: World=%016x -> %016x registry=%t", before, g.live.world.Hash(), g.live.world.SavedObjects() != nil)

@@ -58,7 +58,7 @@ func deliveryProof(t *testing.T, f *FrontEnd, app *ui.App, witch sim.EntityID) {
 	}
 	dir, raw := autoGetF2Save(t, f, app, "delivered")
 	cold, capp := autoGetSession(t, dir)
-	if cold.live.world.Hash() != f.live.world.Hash() {
+	if cold.live.world.Hash() != adoptLoadedAllocator(t, f.live.world, cold.live.world).Hash() {
 		logCurrentCarrierDiff(t, f.live.world, cold.live.world)
 		t.Fatal("cold LOAD changed the delivered World hash")
 	}

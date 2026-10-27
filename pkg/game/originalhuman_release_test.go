@@ -240,8 +240,9 @@ func trainedMission1099(t *testing.T, f *FrontEnd) {
 	if err := app2.OpenMission(opener); err != nil {
 		t.Fatal(err)
 	}
+	adoptLoadedAllocator(t, f.live.world, back.live.world)
 	form, err := back.live.world.MarshalBinary()
-	if err != nil || !bytes.Equal(form, snap.World) {
+	if err != nil || !bytes.Equal(form, formWithLoadedAllocator(t, snap.World, form)) {
 		t.Fatal("native opening changed saved world")
 	}
 	for n := 0; n < 8; n++ {

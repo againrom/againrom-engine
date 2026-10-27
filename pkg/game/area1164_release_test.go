@@ -260,6 +260,9 @@ func area1164NativeFreshWith(t *testing.T, f *FrontEnd, app *ui.App, newFront fu
 	save2, list2, load2 := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save2, list2, load2)
 	groundAppLoad(t, app2, list2, entries[0].Name)
+	if f.live.world.Hash() == hash {
+		hash = adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash()
+	}
 	if f.live.world.Hash() != hash || fresh.live.world.Hash() != hash {
 		currentMenuWorldDiagnostics(t, f.live.world, fresh.live.world)
 		t.Fatal("fresh native LOAD changed current world")

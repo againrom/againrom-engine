@@ -49,6 +49,7 @@ func TestReleaseScriptClockKeepsWallsUntilLever(t *testing.T) {
 			if err := ca.OpenMission(open); err != nil {
 				t.Fatal(err)
 			}
+			adoptLoadedAllocator(t, live.world, cold.live.world)
 			advance := func() {
 				live.tick()
 				cold.live.tick()

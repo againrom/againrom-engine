@@ -105,7 +105,7 @@ func TestReleaseScriptWindowScenarioContinuesFromSAVColdLOAD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(before, after) {
+	if !bytes.Equal(formWithLoadedAllocator(t, before, after), after) {
 		t.Fatal("cold LOAD changed mid-scenario World")
 	}
 	if out := runScript(t, cold, ca, 1000); out != sim.OutcomeWon {

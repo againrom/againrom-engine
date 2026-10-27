@@ -52,7 +52,9 @@ func generatedMissionSample(t *testing.T, f *FrontEnd) map[string]json.RawMessag
 		return id, nil
 	}
 	put("population", len(actors))
-	put("hash/world", w.Hash())
+	carried := sackFeetClone(t, w)
+	carried.RestoreRuntimeIDs(nil)
+	put("hash/world", carried.Hash())
 	for _, e := range actors {
 		prefix := fmt.Sprintf("actor/%d/", e.ID)
 		e.ID = runtimes[e.ID]

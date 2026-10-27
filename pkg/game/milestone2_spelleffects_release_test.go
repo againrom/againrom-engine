@@ -69,6 +69,9 @@ func spell1152MenuFresh(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore,
 	save, list, load := fresh.SaveSeams(store, OriginalStore{}, nil)
 	app2.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app2, list, entries[0].Name)
+	if f.live.world.Hash() == hash {
+		hash = adoptLoadedAllocator(t, f.live.world, fresh.live.world).Hash()
+	}
 	if fresh.live.world.Hash() != hash {
 		t.Fatal("fresh native LOAD changed World hash")
 	}

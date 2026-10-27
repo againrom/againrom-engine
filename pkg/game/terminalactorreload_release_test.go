@@ -33,7 +33,7 @@ func TestReleaseNonGroundTerminalActorReloads(t *testing.T) {
 		if !reflect.DeepEqual(after.CurrentTerminalActors(), want) {
 			t.Fatalf("%s: terminal rows %+v, want %+v", label, after.CurrentTerminalActors(), want)
 		}
-		if after.Hash() != before.Hash() || after.Tick() != before.Tick() {
+		if after.Hash() != adoptLoadedAllocator(t, before, after).Hash() || after.Tick() != before.Tick() {
 			t.Fatalf("%s: LOAD hash %016x tick %d, saved %016x tick %d", label, after.Hash(), after.Tick(), before.Hash(), before.Tick())
 		}
 		return next

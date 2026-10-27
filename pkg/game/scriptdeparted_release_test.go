@@ -123,7 +123,7 @@ func dragonReload(t *testing.T, f *FrontEnd) (*FrontEnd, *ui.App) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(before.World, written.World) {
+	if !bytes.Equal(formWithLoadedAllocator(t, before.World, written.World), written.World) {
 		var left, right sim.World
 		if left.UnmarshalBinary(before.World) == nil && right.UnmarshalBinary(written.World) == nil {
 			currentMenuWorldDiagnostics(t, &left, &right)

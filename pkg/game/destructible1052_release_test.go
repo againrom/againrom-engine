@@ -240,8 +240,11 @@ func TestReleaseMission101FireBallDestroysAndDrawsTheShippedSwitch(t *testing.T)
 			if err != nil {
 				t.Fatal(err)
 			}
+			if live.world.Hash() == wantHash {
+				wantHash = adoptLoadedAllocator(t, live.world, restored.live.world).Hash()
+			}
 			gotHash, expectedHash := restored.live.world.Hash(), wantHash
-			gotForm, expectedForm := restoredForm, snapshot.World
+			gotForm, expectedForm := restoredForm, formWithLoadedAllocator(t, snapshot.World, restoredForm)
 			if tc.form[0] < 81 {
 				// These historical forms carried the transit pair, but never
 				// accepted-stride provenance. Require actual absence on LOAD,

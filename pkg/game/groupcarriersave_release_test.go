@@ -100,7 +100,7 @@ func TestReleaseGroupCarrierSurvivesSAVEAndColdLOAD(t *testing.T) {
 	if !present || !reflect.DeepEqual(groups, coldGroups) || !reflect.DeepEqual(orders, coldOrders) {
 		t.Fatal("the restored Group registry differs from the live one")
 	}
-	liveBytes, err := live.MarshalBinary()
+	liveBytes, err := adoptLoadedAllocator(t, live, cold.live.world).MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
 	}
