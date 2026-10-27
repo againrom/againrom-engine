@@ -76,7 +76,7 @@ func TestReleaseShopClicksTransferOnTheReleaseFrame(t *testing.T) {
 	cell := -1
 	for i, stack := range s.shopPackStacks() {
 		if stack.Code == uint16(first.Code) {
-			cell = i + 1 - s.packBase
+			cell = i - s.packBase
 			break
 		}
 	}

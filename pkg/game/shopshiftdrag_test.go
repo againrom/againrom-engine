@@ -68,7 +68,7 @@ func shopPoints(t *testing.T, a *ui.App) map[string]image.Point {
 	for name, ref := range map[string]struct {
 		surface string
 		index   int
-	}{"pack": {"pack", 1}, "table": {"table", 0}, "shelf": {"shelf", 0}, "buy": {"button", 1}, "sell": {"button", 2}} {
+	}{"pack": {"pack", 0}, "table": {"table", 0}, "shelf": {"shelf", 0}, "buy": {"button", 1}, "sell": {"button", 2}} {
 		x, y, err := a.HeadlessShopPoint(ref.surface, ref.index)
 		if err != nil {
 			t.Fatal(err)

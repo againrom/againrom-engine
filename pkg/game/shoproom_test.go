@@ -179,7 +179,7 @@ func TestAPackItemOnTheTableComesBackWhenTheTableIsCleared(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0155, 0x0155, 0x0122})
 	gold := f.Town.Gold()
 
-	clickShift(s, ui.ShopControlPackCell, 1)
+	clickShift(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := len(f.Carried[0].Carry.Items); got != 1 {
 		t.Fatalf("the pack holds %d units after one stack moved, want 1", got)
 	}
@@ -212,7 +212,7 @@ func TestSellingCreditsThePayoutAndPutsTheGoodsOnAShelf(t *testing.T) {
 	// (`DIV-322`), so the element count need not move at all.
 	shelf := shelfUnits(f.Shop, ShelfWeapons)
 
-	clickShift(s, ui.ShopControlPackCell, 1)
+	clickShift(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := f.Shop.SellPayout(); got != 40 {
 		t.Fatalf("payout = %d, want ceil(2*40/2)", got)
 	}
@@ -270,7 +270,7 @@ func TestShopFindMinePlaceRequiresCodeAndPriceAndMine(t *testing.T) {
 func TestRepeatedDefaultClicksOnOneStackJoinOneTablePlace(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101, 0x0101, 0x0101})
 
-	click(s, ui.ShopControlPackCell, 1)
+	click(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := len(f.Carried[0].Carry.Items); got != 2 {
 		t.Fatalf("the pack holds %d units after one default click, want 2 left behind", got)
 	}
@@ -282,8 +282,8 @@ func TestRepeatedDefaultClicksOnOneStackJoinOneTablePlace(t *testing.T) {
 	// A second and third default click reach the same stack (still cell 1,
 	// the strip having closed up behind the money element) and join the SAME
 	// place rather than opening a second and third one.
-	click(s, ui.ShopControlPackCell, 1)
-	click(s, ui.ShopControlPackCell, 1)
+	click(s, ui.ShopControlPackCell, s.packCell(0))
+	click(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := len(f.Carried[0].Carry.Items); got != 0 {
 		t.Fatalf("the pack holds %d units after three default clicks, want the stack gone", got)
 	}
@@ -323,7 +323,7 @@ func TestRepeatedDefaultTakesOffOnePlaceDoNotFragmentThePack(t *testing.T) {
 func TestShiftClickMovesTheWholeStackToTheTableInOneCall(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101, 0x0101, 0x0101, 0x0122})
 
-	clickShift(s, ui.ShopControlPackCell, 1)
+	clickShift(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := len(f.Carried[0].Carry.Items); got != 1 {
 		t.Fatalf("the pack holds %d units after the shift-click, want the one item left", got)
 	}
@@ -382,7 +382,7 @@ func TestAStackOfOneMovesWhollyByDefaultOrByShift(t *testing.T) {
 			press = clickShift
 		}
 
-		press(s, ui.ShopControlPackCell, 1)
+		press(s, ui.ShopControlPackCell, s.packCell(0))
 		if got := len(f.Carried[0].Carry.Items); got != 0 {
 			t.Fatalf("shift=%v: the pack holds %d units after moving its one item, want 0", shift, got)
 		}
@@ -410,7 +410,7 @@ func TestMoneyFollowsTheQuantityActuallyMovedNotTheStack(t *testing.T) {
 	// Weapons row 1 of the fixture is priced 40 at every shape and material.
 	f, s := shopRoom(t, []uint16{0x0101, 0x0101, 0x0101})
 
-	click(s, ui.ShopControlPackCell, 1)
+	click(s, ui.ShopControlPackCell, s.packCell(0))
 	if got := f.Shop.SellTotal(); got != 20 {
 		t.Errorf("SellTotal = %d, want ceil(40/2) for the ONE unit moved, not the stack of 3", got)
 	}
@@ -431,7 +431,7 @@ func TestShiftClickOntoAFullTableRefusesAndMovesNothing(t *testing.T) {
 		t.Fatalf("setup: the table holds %d places, want five", len(f.Shop.Table()))
 	}
 
-	act := clickShift(s, ui.ShopControlPackCell, 1)
+	act := clickShift(s, ui.ShopControlPackCell, s.packCell(0))
 	if act.Msg != "" {
 		t.Errorf("message %q, want no line for the full table", act.Msg)
 	}
@@ -637,13 +637,13 @@ func TestEveryOccupiedCellCarriesItsCharacteristics(t *testing.T) {
 		t.Error("a shelf cell states nothing on hover")
 	}
 	// The lines are the inventory popup's own, so an item states the same
-	// characteristics wherever it is seen. Pack cell 0 is the money element;
-	// the first stack stands in cell 1.
-	if !v.Pack[0].Money {
-		t.Error("the strip's first place is not the money element")
+	// characteristics wherever it is seen. The first stack stands in cell 0;
+	// the money element follows the last stack.
+	if !v.Pack[1].Money {
+		t.Error("the place after the last stack is not the money element")
 	}
-	if want := itemInfoLines(0x0101, s.in.Table); !reflect.DeepEqual(v.Pack[1].Info, want) {
-		t.Errorf("the pack cell states %v, want the inventory's own %v", v.Pack[1].Info, want)
+	if want := itemInfoLines(0x0101, s.in.Table); !reflect.DeepEqual(v.Pack[0].Info, want) {
+		t.Errorf("the pack cell states %v, want the inventory's own %v", v.Pack[0].Info, want)
 	}
 	if len(v.Table[0].Info) != 0 {
 		t.Error("an empty table place states something on hover")
@@ -695,7 +695,7 @@ func TestTheShopScreenWithNoTablesOffersNothingAndCanBeLeft(t *testing.T) {
 func TestTheFourthButtonClearsTheTableAndLeaves(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101})
 	takeFromShelf(s, roomArmour)
-	click(s, ui.ShopControlPackCell, 1)
+	click(s, ui.ShopControlPackCell, s.packCell(0))
 	if len(f.Shop.Table()) != 2 {
 		t.Fatalf("the table holds %d, want one of each side", len(f.Shop.Table()))
 	}
@@ -720,7 +720,7 @@ func TestAnUnpriceableItemIsStatedAsHavingNoPrice(t *testing.T) {
 	const questItem uint16 = 14<<8 | 3
 	f, s := shopRoom(t, []uint16{questItem})
 
-	act := click(s, ui.ShopControlPackCell, 1)
+	act := click(s, ui.ShopControlPackCell, s.packCell(0))
 	if act.Msg != "" {
 		t.Errorf("putting an unpriced item on the table posted %q, want no line", act.Msg)
 	}
@@ -798,7 +798,7 @@ func TestLeavingTheShopClearsTheTableSoARestockDestroysNothing(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101, 0x0101})
 	shelf := len(f.Shop.Shelf(ShelfArmour))
 
-	click(s, ui.ShopControlPackCell, 1)
+	click(s, ui.ShopControlPackCell, s.packCell(0))
 	takeFromShelf(s, roomArmour)
 	if len(f.Shop.Table()) != 2 {
 		t.Fatalf("the table holds %d places, want one of each side", len(f.Shop.Table()))
@@ -836,7 +836,7 @@ func TestThePickerMovesTheFigureAndTheStripTogether(t *testing.T) {
 	if v.Member != 0 || v.MemberCount != 2 {
 		t.Fatalf("the panel opens on member %d of %d, want the first of two", v.Member, v.MemberCount)
 	}
-	if !v.Pack[0].Money || v.Pack[1].Count != 1 {
+	if !v.Pack[1].Money || v.Pack[0].Count != 1 {
 		t.Fatalf("the first member's strip is %+v", v.Pack[:2])
 	}
 
@@ -847,8 +847,8 @@ func TestThePickerMovesTheFigureAndTheStripTogether(t *testing.T) {
 	if v.Member != 1 || v.Character.Subject.Name != "second" {
 		t.Fatalf("the panel shows member %d (%q), want the second", v.Member, v.Character.Subject.Name)
 	}
-	if v.Pack[1].Count != 2 {
-		t.Errorf("the strip holds %d units, want the second member's stack of two", v.Pack[1].Count)
+	if v.Pack[0].Count != 2 {
+		t.Errorf("the strip holds %d units, want the second member's stack of two", v.Pack[0].Count)
 	}
 
 	// Both ends wrap, which is the original's own reset at the roster bound.
@@ -942,7 +942,7 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 	t.Run("pack", func(t *testing.T) {
 		f, s := shopRoom(t, []uint16{0x0101})
 		s.shopBook = true
-		act := click(s, ui.ShopControlPackCell, 1)
+		act := click(s, ui.ShopControlPackCell, s.packCell(0))
 		if act.Msg != "" || s.shopBook || len(f.Shop.Table()) != 1 ||
 			!s.ShopScreen().Table[0].Occupied() || len(f.Carried[0].Carry.Items) != 0 {
 			t.Fatalf("pack stage = msg %q book %v table %+v pack %v", act.Msg, s.shopBook,
@@ -967,7 +967,7 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 		beforeTable := f.Shop.Table()
 		beforePack := append([]uint16(nil), f.Carried[0].Carry.Items...)
 		s.shopBook = true
-		act := click(s, ui.ShopControlPackCell, 1)
+		act := click(s, ui.ShopControlPackCell, s.packCell(0))
 		if act.Msg != "" || s.shopBook {
 			t.Fatalf("full stage = msg %q book %v, want no line and the table revealed", act.Msg, s.shopBook)
 		}
@@ -985,8 +985,8 @@ func TestEveryTradeTableProducerRevealsTheTableBeforeItStagesAnything(t *testing
 
 // Stepping the picker returns the strip's base to the first place: the new
 // member's list is a different list, so a base carried over from the old one
-// would show his container from an arbitrary offset. The money element back
-// in the first place is the observable half of the same reset.
+// would show his container from an arbitrary offset. The first stack back in
+// the first place is the observable half of the same reset.
 func TestSteppingThePickerReturnsTheStripToItsFirstPlace(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101, 0x0122, 0x0155, 0x0102, 0x0103, 0x0104})
 	f.Carried = append(f.Carried, mapload.PartyMember{
@@ -996,17 +996,13 @@ func TestSteppingThePickerReturnsTheStripToItsFirstPlace(t *testing.T) {
 	if s.packBase != 2 {
 		t.Fatalf("the strip turned to %d, want two places", s.packBase)
 	}
-	if s.ShopScreen().Pack[0].Money {
-		t.Fatal("the money element is still in the first place after the strip turned")
-	}
-
 	click(s, ui.ShopControlPickerNext, 0)
 
 	if s.packBase != 0 {
 		t.Errorf("after the picker the strip's base is %d, want the first place", s.packBase)
 	}
-	if v := s.ShopScreen(); !v.Pack[0].Money {
-		t.Errorf("the first place holds %+v, want the money element", v.Pack[0])
+	if v := s.ShopScreen(); !v.Pack[0].Occupied() || !v.Pack[1].Money {
+		t.Errorf("the strip opens on %+v and %+v, want the first stack and the money element", v.Pack[0], v.Pack[1])
 	}
 }
 
@@ -1027,22 +1023,23 @@ func TestBuyingLandsInTheShownMembersOwnContainer(t *testing.T) {
 	}
 }
 
-// The strip's first element is the money element and it carries the purse
+// The strip's last element is the money element and it carries the purse
 // (SHOP-SCREEN-036 arm a: the quantity is re-read from the campaign's gold).
-func TestTheStripsFirstPlaceIsTheMoneyElement(t *testing.T) {
+func TestTheStripsLastPlaceIsTheMoneyElement(t *testing.T) {
 	f, s := shopRoom(t, []uint16{0x0101, 0x0122, 0x0155, 0x0102, 0x0103, 0x0104})
-	v := s.ShopScreen()
-	if !v.Pack[0].Money || v.Pack[0].Count != uint32(f.Town.Gold()) {
-		t.Errorf("the money element is %+v, want the purse %d", v.Pack[0], f.Town.Gold())
-	}
-	if v.Pack[0].Occupied() {
-		t.Error("the money element reads as an item")
-	}
-	// Turning the strip past it leaves it behind, because it is an element of
-	// the list rather than a fixture of the grid.
-	s.ShopScroll(ui.ShopWheelPack, 1)
 	if s.ShopScreen().Pack[0].Money {
-		t.Error("the money element is still in the first place after the strip turned")
+		t.Error("the money element stands in the first place")
+	}
+	// Turning the strip to its end brings the money element into the last
+	// place, because it is an element of the list rather than a fixture.
+	s.ShopScroll(ui.ShopWheelPack, 2)
+	v := s.ShopScreen()
+	last := len(v.Pack) - 1
+	if !v.Pack[last].Money || v.Pack[last].Count != uint32(f.Town.Gold()) {
+		t.Errorf("the money element is %+v, want the purse %d", v.Pack[last], f.Town.Gold())
+	}
+	if v.Pack[last].Occupied() {
+		t.Error("the money element reads as an item")
 	}
 }
 

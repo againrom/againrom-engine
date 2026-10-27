@@ -220,7 +220,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Carried[0].Mage = true
 		f.Carried[0].Carry.ItemInstances = []sim.ItemInstance{book, book}
 		f.Carried[0].Carry.Items = []uint16{book.Code, book.Code}
-		if action := screen.shopEquipFromPack(1); action.Msg != "learned" {
+		if action := screen.shopEquipFromPack(screen.packCell(0)); action.Msg != "learned" {
 			t.Fatalf("pack read = %+v, want learned", action)
 		}
 		if got := f.Carried[0].KnownSpells; got != uint32(1)<<spell {
@@ -230,7 +230,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 			t.Fatalf("pack holds %d book(s), want 1", got)
 		}
 		before := f.Carried[0]
-		if action := screen.shopEquipFromPack(1); action.Msg != "" {
+		if action := screen.shopEquipFromPack(screen.packCell(0)); action.Msg != "" {
 			t.Fatalf("known-spell pack read = %+v, want refused", action)
 		}
 		if !reflect.DeepEqual(f.Carried[0], before) {
@@ -243,7 +243,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Table = shopBookFixtureTable()
 		f.Carried[0].Carry.ItemInstances = []sim.ItemInstance{book}
 		f.Carried[0].Carry.Items = []uint16{book.Code}
-		if action := screen.shopEquipFromPack(1); action.Msg != "" {
+		if action := screen.shopEquipFromPack(screen.packCell(0)); action.Msg != "" {
 			t.Fatalf("fighter read = %+v", action)
 		}
 		if f.Carried[0].KnownSpells != 0 || len(mapload.MemberCarriedItems(f.Carried[0], f.Table)) != 1 {

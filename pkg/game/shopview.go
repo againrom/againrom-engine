@@ -110,13 +110,17 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 	// clicked, which is the original's own no-shelf-open state.
 	v.Chosen = t.shopChosen
 	v.ShelfOffset = t.shelfBase
+	if t.pageRules().ShelfGems {
+		v.ShelfGems = true
+		v.ShelfBack, v.ShelfForward = t.shelfBase > 0, t.shelfCanTurnForward()
+	}
 	t.packBase = min(t.packBase, t.packScrollMax())
 	v.PackOffset = t.packBase
 	v.PackBack, v.PackForward = t.packBase > 0, t.packBase < t.packScrollMax()
 	if t.shopChosen >= 0 && t.shopChosen < len(t.rack()) {
 		room := t.rack()[t.shopChosen]
 		v.ShelfName = t.rackName(t.shopChosen)
-		if room.stocked {
+		if room.stocked && !t.shopCovered() {
 			items := shop.Shelf(room.shelf)
 			for i := 0; i < len(v.Shelf); i++ {
 				k := t.shelfBase + i
@@ -937,6 +941,24 @@ func (t *shopController) chooseRoomShelf(i int) ui.TownAction {
 		t.shop.chose(i)
 	}
 	return ui.TownAction{}
+}
+
+// shopCovered reports a modal dialogue over the shop page.
+func (t *shopController) shopCovered() bool {
+	return t.shop.covered != nil && t.shop.covered()
+}
+
+// shelfCanTurnForward is whether a further row of the open shelf lies below
+// the grid's base.
+func (t *shopController) shelfCanTurnForward() bool {
+	if t.shopChosen < 0 || t.shopChosen >= len(t.rack()) {
+		return false
+	}
+	room := t.rack()[t.shopChosen]
+	if !room.stocked {
+		return false
+	}
+	return clampGridBase(t.shelfBase+shopShelfCols, len(t.deal().Shelf(room.shelf)), shopShelfCols) > t.shelfBase
 }
 
 // scrollShelf moves the shelf grid by whole rows (SHOP-SCREEN-033's doubled

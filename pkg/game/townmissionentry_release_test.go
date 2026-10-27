@@ -167,8 +167,8 @@ func townEntryBuySpellWeapon(t *testing.T, s *townScreen, route string) uint16 {
 					found := false
 					for index, stack := range s.shopPackStacks() {
 						if stack.Code == uint16(it.Code) {
-							s.packBase = index
-							s.shopEquipFromPack(1)
+							s.packBase = 0
+							s.shopEquipFromPack(s.packCell(index))
 							found = true
 							break
 						}

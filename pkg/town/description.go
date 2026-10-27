@@ -526,9 +526,11 @@ type RoomSpec struct {
 // ShopSpec is a shop page's drawing rules as data. MoneyLast shows the gold
 // after the bag's items; TableShelfBack draws the merchant's items on the
 // table on the shelf's backs; LabelOffset moves each command plaque's label
-// line, in plaque order.
+// line, in plaque order; ShelfGems draws a shelf scroll gem dark while the
+// shelf cannot turn that way.
 type ShopSpec struct {
 	MoneyLast      bool     `json:"money-last"`
+	ShelfGems      bool     `json:"shelf-gems"`
 	TableShelfBack bool     `json:"table-shelf-back"`
 	LabelOffset    [4]Point `json:"label-offset"`
 	Cite           []string `json:"cite"`

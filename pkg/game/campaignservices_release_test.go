@@ -385,7 +385,7 @@ func serviceShop(t *testing.T, raw []byte, town chainTown, controls bool) {
 	}
 	sold := stacks[sell]
 	s.ShopScroll(ui.ShopWheelPack, sell)
-	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: sell + 1 - s.packBase})
+	s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(sell)})
 	table := f.Shop.Table()
 	if len(table) != 1 || !table[0].Mine || uint16(table[0].ShopItem.Code) != sold.Code || table[0].ShopItem.Count != 1 || table[0].ShopItem.Price <= 0 {
 		t.Fatalf("pack stack %d (%#x) did not reach the table as one unit: %+v", sell, sold.Code, table)

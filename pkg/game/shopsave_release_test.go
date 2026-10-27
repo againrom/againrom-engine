@@ -30,7 +30,7 @@ func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
 				screen := currentTownShop(f, "hero")
 				before := mapload.MemberCarriedItems(f.Carried[screen.shopMemberIndex()], f.Table)
 				gold := f.Town.Gold()
-				screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
+				screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 				if len(f.Shop.table) != 1 {
 					t.Fatal("fresh city did not stage owned goods")
 				}
@@ -67,7 +67,7 @@ func TestReleaseShopStagedGoodsF2CurrentSAV(t *testing.T) {
 			before, gold := mapload.CloneParty(f.Carried), f.Town.Gold()
 			beforeRoots := f.Town.cityObjects.Clone()
 			item := screen.shopPackStacks()[0]
-			screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
+			screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 			if len(f.Shop.table) != 1 || !f.Shop.table[0].Mine || f.Shop.table[0].ShopItem.Count != 1 {
 				t.Fatal("pack drag did not stage one owned unit")
 			}

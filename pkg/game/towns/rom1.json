@@ -355,7 +355,9 @@
        {"hook": "offer-on-entry", "cite": ["DIV-157"]}
      ],
      "exit": [{"hook": "trade-cancel", "cite": ["SHOP-LIFE-013", "DIV-1527"]}],
+     "shop": {"money-last": true, "shelf-gems": true, "cite": ["SHOP-SCREEN-036", "SHOP-SCREEN-033", "owner"]},
      "art": [
+       {"name": "pack", "format": "picture", "key": "graphics/interface/invframe.bmp", "size": [480, 90], "transparent": "black", "cite": ["SHOP-SCREEN-032", "owner"]},
        {"name": "shelf", "format": "picture", "key": "graphics/interface/shopinv.bmp", "transparent": "black", "cite": ["SHOP-SCREEN-032"]},
        {"name": "table", "format": "picture", "key": "graphics/interface/shoptable.bmp", "transparent": "black", "cite": ["SHOP-SCREEN-032"]},
        {"name": "room", "format": "picture", "key": "graphics/interface/shopanim/shopmain.bmp", "transparent": "black", "cite": ["SHOP-SCREEN-032"]},

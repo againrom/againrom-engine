@@ -38,15 +38,15 @@ func TestShopIdentifiedPackMovesSelectedCountAndReequips(t *testing.T) {
 	setShopIdentityPack(f, first, second, second)
 
 	view := screen.ShopScreen()
-	if view.Pack[1].Count != 1 || view.Pack[2].Count != 2 {
-		t.Fatalf("pack row counts = %d, %d, want distinct nodes with counts 1, 2", view.Pack[1].Count, view.Pack[2].Count)
+	if view.Pack[0].Count != 1 || view.Pack[1].Count != 2 {
+		t.Fatalf("pack row counts = %d, %d, want distinct nodes with counts 1, 2", view.Pack[0].Count, view.Pack[1].Count)
 	}
-	clickShift(screen, ui.ShopControlPackCell, 2)
+	clickShift(screen, ui.ShopControlPackCell, screen.packCell(1))
 	requireShopPackIDs(t, f, 101)
 	if table := f.Shop.Table(); len(table) != 1 || table[0].ShopItem.ObjectID != 202 || table[0].ShopItem.Count != 2 {
 		t.Fatalf("selected whole stack on table = %+v", table)
 	}
-	click(screen, ui.ShopControlPackCell, 1)
+	click(screen, ui.ShopControlPackCell, screen.packCell(0))
 	requireShopPackIDs(t, f)
 	if table := f.Shop.Table(); len(table) != 2 || table[1].ShopItem.ObjectID != 101 || table[1].ShopItem.Count != 1 {
 		t.Fatalf("equal-valued distinct table node = %+v", table)
@@ -67,7 +67,7 @@ func TestShopIdentifiedPackMovesSelectedCountAndReequips(t *testing.T) {
 	screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlTableCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlPackCell})
 	clickShift(screen, ui.ShopControlTableCell, 0)
 	requireShopPackIDs(t, f, 101, 202, 202)
-	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 2}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "worn" {
+	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(1)}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "worn" {
 		t.Fatalf("second pack row equip = %+v", action)
 	}
 	requireShopPackIDs(t, f, 101, 202)
@@ -85,14 +85,14 @@ func TestShopIdentifiedBookUseConsumesSelectedNode(t *testing.T) {
 	second := first.Clone()
 	first.ObjectID, second.ObjectID = 101, 202
 	setShopIdentityPack(f, first, second)
-	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 2}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "learned" {
+	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(1)}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "learned" {
 		t.Fatalf("second book use = %+v", action)
 	}
 	requireShopPackIDs(t, f, 101)
 	if got := f.Carried[0].KnownSpells; got != uint32(1)<<spell {
 		t.Fatalf("known spells = %#x, want selected book's spell %d", got, spell)
 	}
-	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "" {
+	if action := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlDoll}); action.Msg != "" {
 		t.Fatalf("remaining book of a known spell = %+v, want refused", action)
 	}
 	requireShopPackIDs(t, f, 101)
@@ -131,7 +131,7 @@ func TestShopSelectedCountShortageLeavesPackAndTableUnchanged(t *testing.T) {
 				t.Fatal("could not stage existing place")
 			}
 			beforeTable := f.Shop.Table()
-			if action := clickShift(screen, ui.ShopControlPackCell, 1); action.Msg != "" {
+			if action := clickShift(screen, ui.ShopControlPackCell, screen.packCell(0)); action.Msg != "" {
 				t.Fatalf("shortage action = %+v", action)
 			}
 			requireShopPackIDs(t, f, 101, 202)
@@ -194,8 +194,8 @@ func TestShopSaleKeepsEqualValuedNodesOnShelf(t *testing.T) {
 	first.ObjectID, second.ObjectID = 101, 202
 	setShopIdentityPack(f, first, second)
 	f.Shop.shelves[ShelfArmour] = nil
-	click(screen, ui.ShopControlPackCell, 2)
-	click(screen, ui.ShopControlPackCell, 1)
+	click(screen, ui.ShopControlPackCell, screen.packCell(1))
+	click(screen, ui.ShopControlPackCell, screen.packCell(0))
 	click(screen, ui.ShopControlButton, 2)
 	requireShopPackIDs(t, f)
 	got := map[sim.SavedObjectID]int32{}

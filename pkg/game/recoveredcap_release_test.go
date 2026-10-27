@@ -105,10 +105,10 @@ func TestReleaseTownDoubleClickWearsTheRecoveredCap(t *testing.T) {
 				t.Fatal(err)
 			}
 			cell := recoveredCapCell(t, shop)
-			if cell > len(root.Pack) {
+			if cell >= len(root.Pack) {
 				t.Fatalf("the companion's pack roots %v do not reach strip cell %d", root.Pack, cell)
 			}
-			object := root.Pack[cell-1]
+			object := root.Pack[cell]
 			slot, ok := EquipTarget(data.ItemCode(recoveredCap), f.Table)
 			if !ok || object == 0 {
 				t.Fatalf("the cap has slot %d (%v) and city object %d", slot, ok, object)

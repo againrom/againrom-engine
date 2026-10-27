@@ -151,7 +151,7 @@ func TestShopEquipFromPackWearsAtNoCharge(t *testing.T) {
 	f.Carried[0].Carry.Items = []uint16{uint16(item.Code)}
 	gold := f.Town.Gold()
 
-	act := s.shopEquipFromPack(1) // strip index 1: index 0 is the money element
+	act := s.shopEquipFromPack(s.packCell(0)) // strip index 1: index 0 is the money element
 	if act.Msg != "worn" {
 		t.Fatalf("shopEquipFromPack = %+v, want \"worn\"", act)
 	}
@@ -181,7 +181,7 @@ func TestShopEquipFromPackRefusesTheWrongClass(t *testing.T) {
 	code := data.ComposeItemCode(0, 5, 0, 1) // material 0, shape 0: masks[0]'s own bit
 	f.Carried[0].Carry.Items = []uint16{uint16(code)}
 
-	act := s.shopEquipFromPack(1)
+	act := s.shopEquipFromPack(s.packCell(0))
 	if act.Msg != "" {
 		t.Fatalf("shopEquipFromPack = %+v, want no line for the class refusal", act)
 	}
@@ -233,8 +233,8 @@ func TestShopEquipDisplacesTheOldWornItemBackToThePack(t *testing.T) {
 	first, second := codes[0], codes[1]
 	f.Carried[0].Carry.Items = []uint16{uint16(first), uint16(second)}
 
-	s.shopEquipFromPack(1) // wears first
-	s.shopEquipFromPack(1) // pack now holds only second, at strip index 1
+	s.shopEquipFromPack(s.packCell(0)) // wears first
+	s.shopEquipFromPack(s.packCell(0)) // pack now holds only second, at strip index 1
 
 	if got := s.shopWornSlots(0)[slot-1]; got != uint16(second) {
 		t.Errorf("worn[%d] = %d, want %d", slot-1, got, second)
@@ -260,7 +260,7 @@ func TestShopRangedEquipDisplacesShield(t *testing.T) {
 		carry.Equipped[0], carry.Equipped[1] = oldSword.Code, shield.Code
 		s.composeShopFaces()
 		before := s.ShopScreen().Character.Subject.Combat
-		act := s.shopEquipFromPack(1)
+		act := s.shopEquipFromPack(s.packCell(0))
 		if act.Msg != "worn" {
 			t.Fatalf("shopEquipFromPack = %+v, want worn", act)
 		}
@@ -289,7 +289,7 @@ func TestShopShieldMaterializesCompatibleStartingWeaponFallback(t *testing.T) {
 		Effects: []sim.ItemEffect{{Kind: 15, Operand: 4}}}
 	member.Carry.ItemInstances = []sim.ItemInstance{shield.Clone()}
 
-	if act := s.shopEquipFromPack(1); act.Msg != "worn" {
+	if act := s.shopEquipFromPack(s.packCell(0)); act.Msg != "worn" {
 		t.Fatalf("shopEquipFromPack = %+v, want worn", act)
 	}
 	worn := s.shopWornItemSlots(0)
@@ -488,7 +488,7 @@ func TestShopDragDispatchesTheFourTablePairs(t *testing.T) {
 	}
 
 	f.Carried[0].Carry.Items = []uint16{uint16(code)}
-	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
+	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 	table = f.Shop.Table()
 	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != code {
 		t.Fatalf("pack-to-table drag left table = %+v, want the pack's own item staged, Mine", table)
@@ -511,7 +511,7 @@ func TestShopEquipFromTableWearsAMinePlaceForFree(t *testing.T) {
 	item := f.Shop.Shelf(ShelfArmour)[idx]
 	slot, _ := EquipTarget(item.Code, f.Table)
 	f.Carried[0].Carry.Items = []uint16{uint16(item.Code)}
-	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
+	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 	if len(f.Shop.Table()) != 1 || !f.Shop.Table()[0].Mine {
 		t.Fatalf("fixture did not stage a Mine table place: table = %+v", f.Shop.Table())
 	}
@@ -573,7 +573,7 @@ func TestShopDragPackToShelfStagesOnTheTable(t *testing.T) {
 	f.Carried[0].Carry.Items = []uint16{uint16(code)}
 	price := s.shopItemPrice(code)
 
-	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlShelfCell})
+	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlShelfCell})
 	table := f.Shop.Table()
 	if len(table) != 1 || !table[0].Mine || table[0].ShopItem.Code != code || table[0].ShopItem.Price != price {
 		t.Fatalf("pack-to-shelf drag left table = %+v, want one Mine place of %d at %d", table, code, price)
@@ -773,7 +773,7 @@ func TestShopEquippingThePackedStartingWeaponDoesNotDisplaceADuplicate(t *testin
 	f.Carried[0].Carry.Items = []uint16{uint16(weaponCode)}
 	f.Carried[0].WeaponMaterialized = true
 
-	if act := s.shopEquipFromPack(1); act.Msg != "worn" {
+	if act := s.shopEquipFromPack(s.packCell(0)); act.Msg != "worn" {
 		t.Fatalf("shopEquipFromPack(1) = %+v, want worn", act)
 	}
 	if got := s.shopWornSlots(0)[0]; got != uint16(weaponCode) {
@@ -980,7 +980,7 @@ func TestShopScreenShowsTheSuppressedFigureOverTheOrdinaryOne(t *testing.T) {
 	}
 	s.ShopSuppressDoll(slot)
 	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlDoll, Index: slot - 1},
-		ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1})
+		ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)})
 	if item, ok := s.shopEquippedItem(0, slot); ok && !item.Empty() {
 		t.Fatal("successful doll-to-pack drop left the item canonically equipped")
 	}

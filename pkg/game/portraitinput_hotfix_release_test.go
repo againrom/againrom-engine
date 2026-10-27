@@ -47,7 +47,7 @@ func TestReleasePortraitInputHotfix(t *testing.T) {
 					found := false
 					for i, c := range s.shopPackStacks() {
 						if uint16(c.Code) == before[0] {
-							tx, ty, err = a.HeadlessShopPoint("pack", i+1-s.packBase)
+							tx, ty, err = a.HeadlessShopPoint("pack", i-s.packBase)
 							found = true
 							break
 						}

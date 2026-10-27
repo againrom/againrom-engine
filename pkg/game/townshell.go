@@ -360,7 +360,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		// offer fires once on entering the room instead).
 		v.Buttons = []ui.TownSurfaceButton{
 			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: ok && price <= t.sess.Town.Gold()},
-			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
+			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(schoolPurseShown(t.sess.Town.Gold(), price, ok))), Enabled: true},
 		}
 		v.Tip = t.roomTipView(roomSchool, t.schoolTip)
 		return v
@@ -566,6 +566,16 @@ func (t *townScreen) restockShop() bool {
 	}
 	seed := shopSeed(t.sess.Town.Chapter(), t.sess.Town.finishedCount(), t.sess.Shop.Ceiling())
 	return t.sess.Shop.RestockWith(t.in.Table, seed, t.draws.stream(random.ShopStock))
+}
+
+// schoolPurseShown is the figure on Exit: the purse less the quoted training
+// price once a skill is chosen (TOWN-GENERAL-107 stores purse-price beside the
+// price), the plain purse otherwise and when the price is not covered.
+func schoolPurseShown(purse, price int, chosen bool) int {
+	if chosen && price <= purse {
+		return purse - price
+	}
+	return purse
 }
 
 // schoolPrice is the school's price for a member without a Human state, 0 when

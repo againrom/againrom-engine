@@ -442,7 +442,7 @@ func TestReleaseShopItemInformationHasNoPriceLine(t *testing.T) {
 		t.Fatalf("doll slot %d item %+v did not reach the pack: %+v", slot, taken, stacks)
 	}
 	view = s.ShopScreen()
-	i := k + 1 - s.packBase
+	i := k - s.packBase
 	if i < 0 || i >= len(view.Pack) {
 		t.Fatalf("pack stack %d is outside the strip at base %d", k, s.packBase)
 	}

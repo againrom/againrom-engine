@@ -148,6 +148,8 @@ func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
 		}
 		if phase == 1 {
 			expected[0].Value, expected[0].Enabled = "200", true
+			// Exit shows the purse left after the quoted price.
+			expected[1].Value = "99,800"
 		}
 		if len(v.Buttons) != 2 || v.Buttons[0] != expected[0] || v.Buttons[1] != expected[1] {
 			t.Fatalf("phase %d: production buttons %+v, want independently sourced %+v", phase, v.Buttons, expected)

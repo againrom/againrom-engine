@@ -87,7 +87,7 @@ func TestTownPotionIsUsedUpAndChangesNothing(t *testing.T) {
 					var action ui.TownAction
 					switch route {
 					case "pack":
-						action = s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlDoll})
+						action = s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlDoll})
 					case "table":
 						action = s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlTableCell, Index: 0}, ui.ShopControl{Kind: ui.ShopControlDoll})
 					case "shelf":

@@ -38,7 +38,7 @@ func TestShopCardPoolMaximumFollowsTheDerivedMaximum(t *testing.T) {
 		t.Fatalf("the card states %d/%d, want the stored %d/%d", before.HP, before.MaxHP, health, healthMax)
 	}
 
-	if action := screen.shopEquipFromPack(1); action.Msg != "worn" {
+	if action := screen.shopEquipFromPack(screen.packCell(0)); action.Msg != "worn" {
 		t.Fatalf("shopEquipFromPack = %+v, want \"worn\"", action)
 	}
 

@@ -387,14 +387,14 @@ func shopOrderSell(t *testing.T, app *ui.App, s *townScreen, k int) ShopItem {
 	item := shopItemFromInstance(s.shopPackStacks()[k].Instance(), 1)
 	strip := len(ui.ShopScreenView{}.Pack)
 	right := shopOrderControl(t, ui.ShopControlPackRight)
-	for n := 0; k+1-s.packBase >= strip && n < 64; n++ {
+	for n := 0; k-s.packBase >= strip && n < 64; n++ {
 		shopTap(t, app, right, "press", "release")
 	}
 	left := shopOrderControl(t, ui.ShopControlPackLeft)
-	for n := 0; k+1-s.packBase < 0 && n < 64; n++ {
+	for n := 0; k-s.packBase < 0 && n < 64; n++ {
 		shopTap(t, app, left, "press", "release")
 	}
-	cell := k + 1 - s.packBase
+	cell := k - s.packBase
 	if cell < 0 || cell >= strip || s.ShopScreen().Pack[cell].Price != shopHalfUp(item.Price) {
 		t.Fatalf("pack stack %d is not painted in the strip at offset %d", k, s.packBase)
 	}

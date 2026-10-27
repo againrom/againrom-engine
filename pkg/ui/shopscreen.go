@@ -315,6 +315,11 @@ type ShopScreenView struct {
 	// the decoded asymmetric scroll without learning item identity.
 	ShelfOffset int
 	PackOffset  int
+	// ShelfGems says the shelf's two scroll gems follow the grid: ShelfBack
+	// and ShelfForward are whether it can turn up or down, and a gem that
+	// cannot is drawn dark. Without it both gems stay lit.
+	ShelfGems               bool
+	ShelfBack, ShelfForward bool
 	// TableOffset is the first table place the strip shows.
 	TableOffset int
 	// PackBack and PackForward say whether the strip can turn that way; a
@@ -1062,8 +1067,18 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 	panel.drawBody(dst)
 	panel.drawButtons(dst, v.ButtonStyle.font(v.Font))
 	if art != nil {
-		blit(dst, art.Arrow[0], l.ArrowUp.Min.X, l.ArrowUp.Min.Y)
-		blit(dst, art.Arrow[1], l.ArrowDown.Min.X, l.ArrowDown.Min.Y)
+		up, down := art.Arrow[0], art.Arrow[1]
+		if v.ShelfGems {
+			// ShopArrow1 and 2 are the lit gems, 3 and 4 the dark ones.
+			if !v.ShelfBack {
+				up = art.Arrow[2]
+			}
+			if !v.ShelfForward {
+				down = art.Arrow[3]
+			}
+		}
+		blit(dst, up, l.ArrowUp.Min.X, l.ArrowUp.Min.Y)
+		blit(dst, down, l.ArrowDown.Min.X, l.ArrowDown.Min.Y)
 		blit(dst, art.PackCap[0], l.PackLeft.Min.X, l.PackLeft.Min.Y)
 		blit(dst, art.PackCap[1], l.PackRight.Min.X, l.PackRight.Min.Y)
 		for i, on := range [2]bool{v.PackBack, v.PackForward} {

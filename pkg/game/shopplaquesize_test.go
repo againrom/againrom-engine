@@ -150,7 +150,7 @@ func TestShopGridPlaqueIsChosenFromTheStoredPrice(t *testing.T) {
 			pack = append(pack, sim.ItemInstance{Code: uint16(0x0f00 + len(pack))})
 		}
 		f.Carried[0].Carry.ItemInstances = pack
-		s.packBase = 1
+		s.packBase = 0
 		verify("player's table", table)
 		verify("pack", packed)
 	}

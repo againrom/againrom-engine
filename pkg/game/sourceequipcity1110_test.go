@@ -44,7 +44,7 @@ func TestSourceEquipment1110CityAllOriginsNativeNextRemoval(t *testing.T) {
 			gold := f.Town.Gold()
 			switch origin {
 			case "pack":
-				if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+				if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 					t.Fatal(a)
 				}
 			case "shelf":
@@ -129,7 +129,7 @@ func TestSourceEquipment1110CityRefusalsAreAtomic(t *testing.T) {
 				party, trade, gold := mapload.CloneParty(f.Carried), cloneShopMutation(f.Shop), f.Town.Gold()
 				switch action {
 				case "pack":
-					screen.shopEquipFromPack(1)
+					screen.shopEquipFromPack(screen.packCell(0))
 				case "shelf":
 					screen.shopEquipFromShelf(0)
 				case "table":

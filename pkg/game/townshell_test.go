@@ -693,3 +693,31 @@ func TestSchoolOpensWithNothingSelected(t *testing.T) {
 			v.Cells[0].Selected, v.Buttons[0].Value)
 	}
 }
+
+// Exit shows the purse left after the training price once a skill is chosen,
+// and the plain purse otherwise or when the price is not covered.
+func TestSchoolExitShowsThePurseLeftAfterTheQuotedPrice(t *testing.T) {
+	f := shellFrontEnd()
+	rows := append(dbCollection(nil), f.Table.Humans.(dbCollection)...)
+	rows = append(rows, fourBaseHumans()[1:]...)
+	f.Table.Humans, f.Humans = rows, rows
+	f.Carried[0].ID, f.Carried[0].StartingHero = "hero", true
+	s := f.townUI
+	s.room, s.schoolCell = roomSchool, schoolNoSelection
+	if got := s.TownSurface().Buttons[1].Value; got != "1,000" {
+		t.Fatalf("Exit with no skill chosen = %q, want the purse", got)
+	}
+	s.schoolCell = 0
+	_, price, ok := s.selectedSchoolSlot()
+	if !ok || price <= 0 {
+		t.Fatalf("no price quoted for the chosen skill: %d %v", price, ok)
+	}
+	v := s.TownSurface()
+	if want := ui.GroupDigits(int64(1000 - price)); v.Buttons[1].Value != want || v.Buttons[0].Value != ui.GroupDigits(int64(price)) {
+		t.Fatalf("Train %q Exit %q, want %d and %q", v.Buttons[0].Value, v.Buttons[1].Value, price, want)
+	}
+	f.Town.gold = price - 1
+	if got, want := s.TownSurface().Buttons[1].Value, ui.GroupDigits(int64(price-1)); got != want {
+		t.Fatalf("Exit with the price not covered = %q, want the purse %q", got, want)
+	}
+}

@@ -83,7 +83,7 @@ func TestReleaseCitySalesUseSAVAndFreshProcesses(t *testing.T) {
 		if index < 0 {
 			t.Fatal("source item missing")
 		}
-		s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: index + 1, Shift: whole})
+		s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(index), Shift: whole})
 		if f.originalCity.trade == nil && len(f.Shop.Table()) == 0 {
 			t.Fatal("real pack click did not prepare source sale")
 		}

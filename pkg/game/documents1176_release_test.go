@@ -314,7 +314,7 @@ func documentsShop1176(t *testing.T, f *FrontEnd, app *ui.App, pages int) {
 	findPack := func(code uint16) int {
 		for i, item := range s.shopPackStacks() {
 			if item.Code == code {
-				return i + 1
+				return s.packCell(i)
 			}
 		}
 		t.Fatalf("missing shop pack code %04x", code)

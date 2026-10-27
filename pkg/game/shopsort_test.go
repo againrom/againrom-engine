@@ -123,6 +123,7 @@ func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 		item  ShopItem
 	}
 	want := []named{
+		{"shield 40", ShopItem{Code: shieldCode(1), Price: 40, Count: 1}},
 		{"helm 100", ShopItem{Code: armourCode(t, tbl, 1), Price: 100, Count: 1}},
 		{"helm 200", ShopItem{Code: armourCode(t, tbl, 1), Price: 200, Count: 1}},
 		{"mail 90", ShopItem{Code: armourCode(t, tbl, 2), Price: 90, Count: 1}},
@@ -130,7 +131,6 @@ func TestShelfRunsCheapestFirstInsideEachGroup(t *testing.T) {
 		{"bracers 70", ShopItem{Code: armourCode(t, tbl, 4), Price: 70, Count: 1}},
 		{"gauntlets 60", ShopItem{Code: armourCode(t, tbl, 5), Price: 60, Count: 1}},
 		{"boots 50", ShopItem{Code: armourCode(t, tbl, 6), Price: 50, Count: 1}},
-		{"shield 40", ShopItem{Code: shieldCode(1), Price: 40, Count: 1}},
 		{"sword 39", ShopItem{Code: weaponCode(1), Price: 39, Count: 1}},
 		{"axe 38", ShopItem{Code: weaponCode(2), Price: 38, Count: 1}},
 		{"mace 37", ShopItem{Code: weaponCode(3), Price: 37, Count: 1}},
@@ -245,5 +245,19 @@ func TestReturnedItemLandsInOrder(t *testing.T) {
 				i, uint16(got[i].Code), got[i].Price, got[i].Effects,
 				uint16(want[i].Code), want[i].Price, want[i].Effects)
 		}
+	}
+}
+
+// The armour shelf opens on shields, cheapest first, before the helms.
+func TestArmourShelfOpensOnShields(t *testing.T) {
+	tbl := sortTable(t)
+	items := []ShopItem{
+		{Code: armourCode(t, tbl, 1), Price: 10, Count: 1},
+		{Code: shieldCode(1), Price: 90, Count: 1},
+		{Code: shieldCode(1), Price: 30, Count: 1},
+	}
+	shopSortShelf(items, tbl)
+	if items[0].Code != shieldCode(1) || items[0].Price != 30 || items[1].Price != 90 || items[2].Code == shieldCode(1) {
+		t.Fatalf("shelf order = %+v, want the shields cheapest first, then the helm", items)
 	}
 }

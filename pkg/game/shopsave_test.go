@@ -277,7 +277,7 @@ func TestShopSaveCapturedReceiptsSurviveLiveSaleAndRepeatedExport(t *testing.T) 
 func TestShopSaveMixedEquipmentAndPackKeepCurrentValues(t *testing.T) {
 	f, screen, item := sourceCityEquipment(t)
 	cityShopGraph(t, f)
-	if action := screen.shopEquipFromPack(1); action.Msg != "worn" {
+	if action := screen.shopEquipFromPack(screen.packCell(0)); action.Msg != "worn" {
 		t.Fatal(action)
 	}
 	worn := cityShopRoots(t, f, 0).Worn[6]
@@ -297,7 +297,8 @@ func TestShopSaveMixedEquipmentAndPackKeepCurrentValues(t *testing.T) {
 	if cityShopRoots(t, cold, 0).Pack[0] != worn || cityShopRoots(t, cold, 0).Worn[6] != 0 {
 		t.Fatal("SAVE restored old equipment instead of current merged goods")
 	}
-	if action := cold.TownScreen().(*townScreen).shopEquipFromPack(1); action.Msg != "worn" {
+	coldScreen := cold.TownScreen().(*townScreen)
+	if action := coldScreen.shopEquipFromPack(coldScreen.packCell(0)); action.Msg != "worn" {
 		t.Fatal("returned equipment cannot be worn", action)
 	}
 }

@@ -71,7 +71,7 @@ func city1102Take(t *testing.T, f *FrontEnd, n int) {
 	s := f.TownScreen().(*townScreen)
 	s.room, s.shopMember = roomShop, 0
 	for range n {
-		s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1})
+		s.ShopClick(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)})
 	}
 }
 

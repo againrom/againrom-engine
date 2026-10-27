@@ -322,7 +322,7 @@ func TestCityBookAllocationFailureLeavesTrainingAndShopUntouched(t *testing.T) {
 			case "table":
 				msg = screen.shopEquipFromTable(0).Msg
 			case "pack":
-				msg = screen.shopEquipFromPack(1).Msg
+				msg = screen.shopEquipFromPack(screen.packCell(0)).Msg
 			default:
 				msg = screen.trainHeroSkill(1)
 			}
@@ -480,7 +480,7 @@ func TestCityBookEquipmentHooksCommitOrRollbackTogether(t *testing.T) {
 				var msg string
 				switch route {
 				case "pack":
-					msg = screen.shopEquipFromPack(1).Msg
+					msg = screen.shopEquipFromPack(screen.packCell(0)).Msg
 				case "shelf":
 					msg = screen.shopEquipFromShelf(0).Msg
 				case "table":

@@ -62,7 +62,12 @@ func packDragTownRequire(t *testing.T, r packDragTownRig, want []sim.ItemStack, 
 
 func (r packDragTownRig) point(t *testing.T, index int) image.Point {
 	t.Helper()
-	x, y, err := r.app.HeadlessShopPoint("pack", index+1-r.s.packBase)
+	cell := index - r.s.packBase
+	if index < 0 {
+		// The purse follows the last stack.
+		cell = len(r.s.shopPackStacks()) - r.s.packBase
+	}
+	x, y, err := r.app.HeadlessShopPoint("pack", cell)
 	if err != nil {
 		t.Fatal(err)
 	}

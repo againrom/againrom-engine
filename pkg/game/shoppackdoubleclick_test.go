@@ -45,7 +45,7 @@ func TestCityShopEmptyPackCellSelectsNothing(t *testing.T) {
 	cityShopSetTestPack(t, f, 0, sim.StackItem(item, 1))
 	cityShopGraph(t, f)
 	party, graph, shop := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone(), cloneShopMutation(f.Shop)
-	money := ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 0}
+	money := ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(1)}
 	empty := ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 2}
 	for _, gesture := range []struct {
 		name string

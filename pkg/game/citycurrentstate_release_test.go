@@ -48,7 +48,7 @@ func currentTownPackCell(t *testing.T, s *townScreen, code uint16) int {
 	if i < 0 {
 		t.Fatalf("the pack holds no %#x", code)
 	}
-	return i + 1
+	return s.packCell(i)
 }
 
 // currentTownSave makes the ordinary town SAVE, which must write SAV.

@@ -207,7 +207,7 @@ func TestReleaseTownStaffTakenOffHoldsNoSpell(t *testing.T) {
 	}
 	k, at, _ := packStaff(g)
 	screen.shopMember = k
-	if a := screen.shopEquipFromPack(at + 1 - screen.packBase); a.Msg != "worn" {
+	if a := screen.shopEquipFromPack(screen.packCell(at)); a.Msg != "worn" {
 		t.Fatalf("wear: %q", a.Msg)
 	}
 	raw, stage, err := writerCensusSave(g, false, t.TempDir())

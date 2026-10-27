@@ -22,6 +22,8 @@ modder or developer can notice gets no entry.
 - [ROM1] After loading a town save, the inn lists its mercenaries in the original's order and selects the same first mercenary.
 - [ROM2] The mission menu's Save and Load pages look as in the original: a centred title, ruled rows, a gold heading while the list is in use, and a save's date shown when the pointer rests on its row. After a delete the name field is empty.
 - [ROM1] After you load a save the original wrote, a dead body that is put back on the map keeps its own number, so a missile flying at it still aims at it when you save and load again.
+- [BASE] In the shop the Armor shelf opens on the shields, as in the original.
+- [ROM1] The shop and the school look and count as in the original: the gold is the pack's last item, empty cells show the bronze plate, and the school's Exit shows the purse left after the price.
 - [ROM2] Quest Objectives shows the objective's title on its own line with the text below it, instead of both on one line with four question marks between them, and the gold in the pack reads MONEY on one line, as in the original.
 - [ROM2] In the mission menu the last button of each window (Save Ok, Save Cancel, Load Cancel, Game Options Cancel, Sound Options Esc, Quest Objectives Ok, End Quest Return to Game) closes the window and the menu, as in the original. End Quest opens with Exit to Main Menu selected, and Abort Game in the town with Return to Game selected.
 - [ROM2] The minimap shows the marks the original shows: a dark blue dot at the signpost, red dots on enemy creatures while your hero is near them, and red marks on the spiky mounds; the explored ground is drawn in the original's colours over the crystal.

@@ -182,7 +182,7 @@ func TestShopViewCellsCarryTheStoredPriceTheirPlaqueIsChosenFrom(t *testing.T) {
 		pack = append(pack, sim.ItemInstance{Code: uint16(0x0f00 + len(pack))})
 	}
 	f.Carried[0].Carry.ItemInstances = pack
-	s.packBase = 1
+	s.packBase = 0
 	view = s.ShopScreen()
 	check("pack", view.Pack[:len(stock)], true, half)
 }

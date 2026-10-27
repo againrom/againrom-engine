@@ -151,10 +151,10 @@ func TestShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	}
 
 	point("shelf", 0, "hover")
-	point("pack", 1, "hover")
+	point("pack", 0, "hover")
 	idle("hover", 0)
 
-	point("pack", 1, "press", "release")
+	point("pack", 0, "press", "release")
 	places("pack click", true)
 	idle("pack click", 0)
 
@@ -162,7 +162,7 @@ func TestShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	places("table click")
 	idle("table click", 0)
 
-	point("pack", 1, "press")
+	point("pack", 0, "press")
 	point("table", 0, "move", "release")
 	places("pack drag", true)
 	idle("pack drag", 0)
@@ -182,7 +182,7 @@ func TestShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		t.Fatal("shelf click did not describe the merchant's item")
 	}
 
-	point("pack", 1, "press", "release")
+	point("pack", 0, "press", "release")
 	places("pack click after sale stock", false, true)
 	idle("pack click after sale stock", 1)
 	if !r.voices[0].Playing() {
@@ -228,8 +228,8 @@ func TestCityShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 	f.speech.player = r
 	f.ShopRandom = func(int) int { return 0 }
 
-	click(s, ui.ShopControlPackCell, 1)
-	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 1}, ui.ShopControl{Kind: ui.ShopControlTableCell})
+	click(s, ui.ShopControlPackCell, s.packCell(0))
+	s.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: s.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlTableCell})
 	var staged int32
 	for _, place := range f.Shop.Table() {
 		if !place.Mine {

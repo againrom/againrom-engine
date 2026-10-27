@@ -124,7 +124,7 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 		t.Helper()
 		for i, st := range s.shopPackStacks() {
 			if data.ItemCode(st.Code) == goods {
-				return i + 1 - s.packBase
+				return i - s.packBase
 			}
 		}
 		t.Fatalf("the pack no longer holds %#04x", uint16(goods))

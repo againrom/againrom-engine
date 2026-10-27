@@ -300,11 +300,14 @@ func TestReleaseShopGridDrawsThePlaqueOfAnUnpricedItem(t *testing.T) {
 	if k < 0 || stacks[k].Price != -1 || stacks[k].Count != 1 {
 		t.Fatalf("the shown member's pack holds %+v, want one access item at price -1", stacks)
 	}
-	packCell := k + 1 - s.packBase
-	if packCell < 1 || packCell >= 5 {
+	packCell := k - s.packBase
+	if packCell < 0 || packCell >= 5 {
 		t.Fatalf("the access item stands at pack place %d, outside the strip", packCell)
 	}
-	blank("pack", "pack", 0)
+	// The money element follows the last stack; the place after it is empty.
+	if money := len(stacks) - s.packBase; money >= 0 && money < 5 {
+		blank("pack", "pack", money)
+	}
 	verify("pack", unpricedWant{"pack", packCell, true, 0})
 
 	// The shelf: the access item, an equipment code priced 0 and a priced item.

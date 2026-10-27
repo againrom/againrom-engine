@@ -28,7 +28,7 @@ func TestReleaseShopStockMultiplierDefaultMatchesMain(t *testing.T) {
 			}
 		}
 	}
-	const mainDigest = "b8b288e13ec90e4a898eb50a59a7d5e89114dace965103d763fe48083e690dda"
+	const mainDigest = "38401627b891a796963787b54b6674cc4840b1d2846d71f99a649ed4d7b0ec11"
 	if got := fmt.Sprintf("%x", h.Sum(nil)); got != mainDigest {
 		t.Fatalf("default stock digest %s, want main %s", got, mainDigest)
 	}

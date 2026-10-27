@@ -277,7 +277,7 @@ func TestShopShieldIsWornAloneAndTakesOffAWeaponFillingBothHands(t *testing.T) {
 	for _, tc := range shieldWearWeapons {
 		t.Run(tc.name, func(t *testing.T) {
 			_, s := shieldWearShop(t, tc.code)
-			if act := s.shopEquipFromPack(1); act.Msg != "worn" {
+			if act := s.shopEquipFromPack(s.packCell(0)); act.Msg != "worn" {
 				t.Fatalf("shopEquipFromPack = %+v, want worn", act)
 			}
 			worn := s.shopWornItemSlots(0)
@@ -315,7 +315,7 @@ func TestShopShieldOverAStartingWeaponFillingBothHandsLeavesItInThePack(t *testi
 	start := shieldWearWeaponData(t, s.in.Table, swGreatswordCode)
 	member.Weapon = start
 
-	if act := s.shopEquipFromPack(1); act.Msg != "worn" {
+	if act := s.shopEquipFromPack(s.packCell(0)); act.Msg != "worn" {
 		t.Fatalf("shopEquipFromPack = %+v, want worn", act)
 	}
 	worn := s.shopWornItemSlots(0)
@@ -421,7 +421,7 @@ func TestCityShopShieldTakesAWeaponOffAndBothNodesSurviveSAV(t *testing.T) {
 	}
 	wear := func(label string, cell int) {
 		t.Helper()
-		if act := screen.shopEquipFromPack(cell); act.Msg != "worn" {
+		if act := screen.shopEquipFromPack(screen.packCell(cell - 1)); act.Msg != "worn" {
 			t.Fatalf("%s = %+v, want worn", label, act)
 		}
 	}

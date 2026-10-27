@@ -72,7 +72,7 @@ func TestCityShopSelectsSecondEqualNodeAcrossTableEquipAndSAV(t *testing.T) {
 			if ids[0] == ids[1] || len(screen.shopPackStacks()) != 2 {
 				t.Fatal("equal distinct nodes folded in pack display")
 			}
-			if a := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: 2}, ui.ShopControl{Kind: ui.ShopControlTableCell}); strings.Contains(a.Msg, "cannot") {
+			if a := screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(1)}, ui.ShopControl{Kind: ui.ShopControlTableCell}); strings.Contains(a.Msg, "cannot") {
 				t.Fatal(a)
 			}
 			if got := cityShopRoots(t, f, 0).Pack; !slices.Equal(got, ids[:1]) || len(f.Shop.table) != 1 || f.Shop.table[0].ShopItem.CityID != ids[1] {
@@ -176,7 +176,7 @@ func TestCityShopSourceSelectedSplitThenExactNextRemoval(t *testing.T) {
 			g := cityShopGraph(t, f)
 			before := slices.Clone(cityShopRoots(t, f, screen.shopMemberIndex()).Pack)
 			newID := g.NextID
-			if a := screen.shopEquipFromPack(2); a.Msg != "worn" {
+			if a := screen.shopEquipFromPack(screen.packCell(1)); a.Msg != "worn" {
 				t.Fatal(a)
 			}
 			m := f.Carried[screen.shopMemberIndex()]
@@ -215,18 +215,18 @@ func TestCityShopNullPositionAndEqualBookConsumption(t *testing.T) {
 	if len(screen.shopPackStacks()) != 3 || before[1] != 0 || before[0] == before[2] {
 		t.Fatal("null/equal nodes lost their explicit positions")
 	}
-	if a := screen.shopEquipFromPack(3); a.Msg != "learned" {
+	if a := screen.shopEquipFromPack(screen.packCell(2)); a.Msg != "learned" {
 		t.Fatal(a)
 	}
 	if root := cityShopRoots(t, f, 0); !slices.Equal(root.Pack, before[:2]) || f.Carried[0].KnownSpells&(1<<spell) == 0 || len(f.Carried[0].Carry.ItemInstances) != 1 {
 		t.Fatal("book consume removed a different equal node or null", root)
 	}
 	known, knownGraph := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone()
-	if a := screen.shopEquipFromPack(1); a.Msg != "" || !reflect.DeepEqual(f.Carried, known) || !reflect.DeepEqual(knownGraph, f.Town.cityObjects) {
+	if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "" || !reflect.DeepEqual(f.Carried, known) || !reflect.DeepEqual(knownGraph, f.Town.cityObjects) {
 		t.Fatal("a book of a known spell was read or changed state", a)
 	}
 	party, graph := mapload.CloneParty(f.Carried), f.Town.cityObjects.Clone()
-	if a := screen.shopEquipFromPack(2); !strings.Contains(a.Msg, "no current quantity") || !reflect.DeepEqual(f.Carried, party) || !reflect.DeepEqual(graph, f.Town.cityObjects) {
+	if a := screen.shopEquipFromPack(screen.packCell(1)); !strings.Contains(a.Msg, "no current quantity") || !reflect.DeepEqual(f.Carried, party) || !reflect.DeepEqual(graph, f.Town.cityObjects) {
 		t.Fatal("null selection changed state", a)
 	}
 }
@@ -500,7 +500,7 @@ func TestCityShopSourceOwnedSpellWritesFollowAliasedEvictionOrder(t *testing.T) 
 		}
 	}
 	beforeBook := f.Carried[i].Book
-	if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+	if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 		t.Fatal(a)
 	}
 	root = nil
@@ -523,7 +523,7 @@ func TestCityShopSourceWornQuantitySurvivesColdMerge(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			f, screen, _ := sourceCityEquipment(t)
 			i := screen.shopMemberIndex()
-			if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+			if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 				t.Fatal(a)
 			}
 			if mode == "empty pack" {
@@ -592,7 +592,7 @@ func TestCityShopNativeWornQuantityMovesAndMergesAcrossSAV(t *testing.T) {
 			slot, _ := EquipTarget(data.ItemCode(item.Code), f.Table)
 			cityShopSetTestPack(t, f, 0, sim.StackItem(item, 1), sim.StackItem(item, 1))
 			cityShopGraph(t, f)
-			if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+			if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 				t.Fatal(a)
 			}
 			if mode == "empty pack" {
@@ -614,7 +614,7 @@ func TestCityShopNativeWornQuantityMovesAndMergesAcrossSAV(t *testing.T) {
 			}
 			floor := g.NextID
 			if mode == "replacement" {
-				if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+				if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 					t.Fatal(a)
 				}
 			} else if a := screen.shopUnequipDoll(slot); a.Msg != "off, into the pack" {
@@ -659,7 +659,7 @@ func TestCityShopSourcePartialAliasesUseTheOriginalTakeBoundary(t *testing.T) {
 			if !ok {
 				t.Fatal("literal explicit alias operation failed")
 			}
-			a := screen.shopEquipFromPack(3)
+			a := screen.shopEquipFromPack(screen.packCell(2))
 			if passiveFault {
 				if !strings.Contains(a.Msg, "divide by zero") || !reflect.DeepEqual(before, f.Carried) || !reflect.DeepEqual(graph, f.Town.cityObjects) {
 					t.Fatal("passive alias refusal leaked successful active prefix", a)
@@ -715,7 +715,7 @@ func TestCityShopDollTableMergePreservesDestinationAndAliases(t *testing.T) {
 				}
 				cityShopSetTestPack(t, f, 0, sim.StackItem(item, 1), sim.StackItem(item, 1))
 				cityShopGraph(t, f)
-				if a := screen.shopEquipFromPack(1); a.Msg != "worn" {
+				if a := screen.shopEquipFromPack(screen.packCell(0)); a.Msg != "worn" {
 					t.Fatal(a)
 				}
 				ownerIndices := map[string]int{}

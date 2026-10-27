@@ -167,17 +167,17 @@ func TestReleaseMission81PlacedScrollKeepsDescriptionAcrossSAV(t *testing.T) {
 
 func shopScrollPackCell(t *testing.T, app *ui.App, screen *townScreen, index int) int {
 	t.Helper()
-	for tries := 0; index+1 < screen.packBase || index+1 >= screen.packBase+len(screen.ShopScreen().Pack); tries++ {
+	for tries := 0; index < screen.packBase || index >= screen.packBase+len(screen.ShopScreen().Pack); tries++ {
 		if tries >= 64 {
 			t.Fatal("ordinary wheel could not expose pack item", index)
 		}
 		edge := "wheel-down"
-		if index+1 < screen.packBase {
+		if index < screen.packBase {
 			edge = "wheel-up"
 		}
 		cityShopPointer(t, app, "pack", 0, edge)
 	}
-	return index + 1 - screen.packBase
+	return index - screen.packBase
 }
 
 func TestReleaseShopEnchantedSalesKeepMagicShelfAndValues(t *testing.T) {

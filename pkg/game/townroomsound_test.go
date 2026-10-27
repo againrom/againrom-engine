@@ -221,7 +221,7 @@ func TestShopRoomRequestsTheCensusSounds(t *testing.T) {
 	// A pack item of no value put on the table: Put_On; its sale requests
 	// nothing. The bought armour sold back: sell.
 	base = len(rec.requests)
-	roomShopPointer(t, a, "pack", 1, "press", "release")
+	roomShopPointer(t, a, "pack", 0, "press", "release")
 	roomShopPointer(t, a, "button", 2, "press", "release")
 	if got := rec.keys(base); !reflect.DeepEqual(got, []string{"shop-interior:put_on.wav"}) {
 		t.Fatalf("a zero-value pack item and its sale requested %q, want Put_On only", got)
@@ -229,7 +229,7 @@ func TestShopRoomRequestsTheCensusSounds(t *testing.T) {
 	rec.endAll()
 	roomShopPointer(t, a, "button", 0, "press", "release")
 	rec.endAll()
-	roomShopPointer(t, a, "pack", 2, "press", "release")
+	roomShopPointer(t, a, "pack", 1, "press", "release")
 	if f.Shop.SellTotal() == 0 {
 		t.Fatalf("the bought armour has no sale value; table %d place(s)", len(f.Shop.Table()))
 	}

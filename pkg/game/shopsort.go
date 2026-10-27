@@ -22,8 +22,8 @@ import (
 //     separates. The bits are the item's own sutableFor column (Suitability),
 //     so only the POSITION of each group is authored.
 //  2. KIND -- the fixed list below. The owner named six armour kinds and five
-//     weapon kinds; shields, rings and amulets are shipped kinds he did not
-//     name, placed after his six.
+//     weapon kinds; rings and amulets are shipped kinds he did not name,
+//     placed after his six. Shields lead (his later ruling).
 //  3. PRICE, ascending: inside one class and kind the first cell holds the
 //     cheapest element. Price never moves an element out of its group.
 //
@@ -48,17 +48,18 @@ const (
 	shopClassNeither
 )
 
-// The kind ranks, in the order the owner gave them. The first six are his
-// armour list; the next three are the shipped kinds he did not name; the five
-// after those are his weapon list.
+// The kind ranks, in the order the owner gave them. Shields come first (the
+// armour shelf of the original opens on them, owner ruling on `DIV-319`); the
+// next six are his armour list; then the two shipped kinds he did not name;
+// the five after those are his weapon list.
 const (
-	shopKindHelm = iota
+	shopKindShield = iota
+	shopKindHelm
 	shopKindMail
 	shopKindCuirass
 	shopKindBracer
 	shopKindGlove
 	shopKindBoot
-	shopKindShield
 	shopKindRing
 	shopKindAmulet
 	shopKindSword

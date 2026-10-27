@@ -113,8 +113,11 @@ type shopHost struct {
 	leave   func() bool
 	// chose follows a rack the player chose; nil keeps the choice on the page.
 	chose func(i int)
-	// page is the room's shop drawing rules; nil keeps the first game's.
+	// page is the room's shop drawing rules; nil keeps the zero rules.
 	page func() *town.ShopSpec
+	// covered reports a modal dialogue standing over the page: the shelf grid
+	// then shows no stock. Nil is never covered.
+	covered func() bool
 	// faces is the room's part of a recomposition of the party's figures.
 	faces func(src entrySource, party []mapload.PartyMember, player *image.RGBA, players map[int]*image.RGBA)
 }
@@ -234,6 +237,13 @@ func (t *townScreen) bindChapterShop() {
 		stats: func() { t.townStats = !t.townStats },
 		leave: t.Back,
 		faces: t.shopFaces,
+		page: func() *town.ShopSpec {
+			if d := t.townDescription(); d != nil && d.Room("shop") != nil {
+				return d.Room("shop").Shop
+			}
+			return nil
+		},
+		covered: func() bool { return t.room == roomTalk && t.dialogueBuilding == TownShop },
 	}
 }
 

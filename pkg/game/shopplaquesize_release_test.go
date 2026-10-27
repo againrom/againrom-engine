@@ -421,7 +421,7 @@ func TestReleaseShopPlaqueIsChosenFromTheStoredPrice(t *testing.T) {
 		if k < 0 {
 			t.Fatalf("the pack holds no stack priced %d", it.price)
 		}
-		packTo(k + 1)
+		packTo(k)
 		stacks := s.shopPackStacks()
 		var cells []plaqueSizeCell
 		for i := 0; i < len(ui.ShopScreenView{}.Pack); i++ {
@@ -443,7 +443,7 @@ func TestReleaseShopPlaqueIsChosenFromTheStoredPrice(t *testing.T) {
 			if k < 0 {
 				t.Fatalf("the pack holds no stack priced %d", it.price)
 			}
-			packTo(k + 1)
+			packTo(k)
 			before := len(f.Shop.Table())
 			// A drag stages one unit at once; a single click on equipment waits
 			// out the use-tap window first.
