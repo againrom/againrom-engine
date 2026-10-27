@@ -77,7 +77,7 @@ func TestMessagePopupNewApplyCancelAndBack(t *testing.T) {
 	if string(s.workspace.Pages["event01.txt"]) != "<part=1>\nFirst\nSecond" {
 		t.Fatal("Apply", string(s.workspace.Pages["event01.txt"]))
 	}
-	if !strings.Contains(e.PopupLines()[0], "First\nSecond") {
+	if !strings.Contains(e.PopupLines()[1], "First\nSecond") {
 		t.Fatal("multi-line display flattened or substituted newline", e.PopupLines())
 	}
 	messageButton(t, e, 2)

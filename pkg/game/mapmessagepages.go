@@ -312,33 +312,57 @@ func (s *mapInspectionEdits) CreateMessageParts(owner ui.InspectionMessageOwner,
 		return nil, 0, err
 	}
 	n := freeMessage(s.workspace.Pages)
+	d, err := s.pointMessageParts(owner, n, true, parts)
+	return d, n, err
+}
+
+// PointMessageParts makes owner name the existing page and writes its
+// parts, as one history entry.
+func (s *mapInspectionEdits) PointMessageParts(owner ui.InspectionMessageOwner, page uint32, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, error) {
+	if err := s.prepareWorkspace(); err != nil {
+		return nil, err
+	}
+	return s.pointMessageParts(owner, page, false, parts)
+}
+
+// pointMessageParts makes owner name page n, a new page when fresh, and
+// writes its parts; both are one history entry.
+func (s *mapInspectionEdits) pointMessageParts(owner ui.InspectionMessageOwner, n uint32, fresh bool, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, error) {
 	saved := *s
 	saved.undoWorkspace = slices.Clone(s.undoWorkspace)
-	d, err := s.NewMessage(owner)
+	d, err := s.pointMessage(owner, n, fresh)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	steps := len(s.undoWorkspace)
 	text, err := s.SetMessageParts(n, parts)
 	if err != nil {
 		*s = saved
-		return nil, 0, err
+		return nil, err
 	}
 	if text != nil {
 		d = text
 	}
 	s.undoWorkspace = s.undoWorkspace[:steps]
-	return d, n, nil
+	return d, nil
 }
 
 func (s *mapInspectionEdits) NewMessage(owner ui.InspectionMessageOwner) (*ui.InspectionDocument, error) {
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
-	if len(s.workspace.Pages) >= mod.MaxMissionTexts {
+	return s.pointMessage(owner, freeMessage(s.workspace.Pages), true)
+}
+
+// pointMessage makes owner name page n: a new empty page when fresh, else
+// a page the map has.
+func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uint32, fresh bool) (*ui.InspectionDocument, error) {
+	if _, exists := s.workspace.Pages[messageFilename(n)]; !fresh && !exists {
+		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
+	}
+	if fresh && len(s.workspace.Pages) >= mod.MaxMissionTexts {
 		return nil, fmt.Errorf(s.inspector.word("editor.message.full"), mod.MaxMissionTexts)
 	}
-	n := freeMessage(s.workspace.Pages)
 	next := s.model.Clone()
 	mark := next.Mark()
 	kind, index, key := owner.Kind, owner.Index, owner.Key
@@ -389,7 +413,9 @@ func (s *mapInspectionEdits) NewMessage(owner ui.InspectionMessageOwner) (*ui.In
 	}
 	next.Squash(mark)
 	w := cloneWorkspace(s.workspace)
-	w.Pages[messageFilename(n)] = []byte(newMessagePage)
+	if fresh {
+		w.Pages[messageFilename(n)] = []byte(newMessagePage)
+	}
 	d, err := s.project(next)
 	if err != nil {
 		return nil, err

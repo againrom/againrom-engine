@@ -1394,17 +1394,34 @@ Enter applies single-line fields as before. Message bodies use Enter for a
 new line; page bodies and descriptions use Shift+Enter for a new line.
 
 New message opens with its body ready for typing. Apply writes the body,
-speaker and action's page reference as one undo entry. The trigger wizard's
-message parameter uses the same New message choice and Open Message link.
-Choosing an existing message applies immediately when it is the only pending
-field; one Undo restores it. Other pending fields still require Apply, and
-New/Open keep the Apply-or-Cancel requirement for an unfinished popup.
-The message popup lists every page, including conditional alternatives, with
-its text and speaker. Scroll to edit any page. Add after inserts a page after
-the chosen page; Add last appends one. Remove deletes the chosen page, and
-Up / Down move it. At least one page remains. Apply writes all changes as one
-undo entry; Cancel discards them. Structural changes number the pages in
-their written order, with conditional alternatives retaining a shared number.
+speaker and action's page reference as one undo entry. In an action's
+details, choosing an existing message applies immediately when it is the
+only pending field; one Undo restores it. Other pending fields still require
+Apply, and New/Open keep the Apply-or-Cancel requirement for an unfinished
+popup.
+
+The trigger wizard's dialog action is Start dialog. Its row shows no number
+and no text, only Configure, which opens the dialog editor. A trigger holds
+at most one Start dialog: the player sees only the first. In a trigger that
+has one, the action list shows Start dialog shut with that reason; other
+triggers still offer it. A map whose trigger already has two keeps both,
+and the Map panel still warns. Configure on an action that names no message
+opens a New dialog that is made on Apply. A trigger with changes not yet
+applied is applied first, as its own undo entry. At the top of the dialog
+editor, Dialog chooses which dialog the action starts: New dialog or an
+existing message by its first line, so triggers can share a dialog. When
+another trigger also starts the shown dialog, a note names it.
+
+The dialog editor, opened from Configure or from any Open Message link,
+shows one card per page, in order: its number, its speaker and its text. A
+conditional alternative is its own card with its page's number. Drag a card
+by its grip to move it; a marker shows where it drops. Alt+Up and Alt+Down
+move the card being edited. The card's x turns it into a Message removed
+strip with Restore, until Apply or Cancel; at least one card remains. + after
+the last card adds an empty card at the end with the cursor in its text.
+Apply writes all changes as one undo entry; Cancel discards them.
+Structural changes number the pages in their written order, with
+conditional alternatives retaining a shared number.
 Changing only text or a speaker preserves every other page and attribute,
 including tips and conditional tags. Save As and mod export use the existing
 map text folder and mod paths.

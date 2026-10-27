@@ -43,7 +43,7 @@ func dialogueButton(t *testing.T, e *ui.MapEditor, part, button int) {
 		}
 		e.ScrollDetails(1)
 	}
-	t.Fatal("page button absent", part, button)
+	t.Fatal("card button absent", part, button)
 }
 
 func TestDialoguePopupUntaggedApply(t *testing.T) {
@@ -121,21 +121,22 @@ func TestDialoguePopupAddsRemovesAndReordersBeforeApply(t *testing.T) {
 	before := bytes.Clone(s.model.Bytes())
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	openMessagePopup(t, e)
-	dialogueButton(t, e, 1, 0)
-	e.TextInput("Inserted")
-	dialogueButton(t, e, 2, 3)
-	dialogueButton(t, e, 3, 2)
-	dialogueButton(t, e, 0, 1)
+	dialogueButton(t, e, -1, 0) // "+"
 	e.TextInput("Last")
+	dialogueButton(t, e, 1, 0) // the cross of Two
+	dialogueField(t, e, 4)
+	_ = e.Key("cardup")
+	_ = e.Key("cardup")
 	if string(s.workspace.Pages["event01.txt"]) != raw || !bytes.Equal(before, s.model.Bytes()) {
 		t.Fatal("draft changed persistent bytes")
 	}
 	messageButton(t, e, 0)
-	want := "<part=1 npc=21 tips=7>\nOne\r\n<part=2>\nInserted\r\n<part=3 npc=22>\nTwo\r\n<part=4>\nLast"
+	want := "<part=1 npc=23>\nThree\r\n<part=2 npc=21 tips=7>\nOne\r\n<part=3>\nLast"
 	if string(s.workspace.Pages["event01.txt"]) != want || !bytes.Equal(before, s.model.Bytes()) {
 		t.Fatal("structure or renumber", string(s.workspace.Pages["event01.txt"]))
 	}
-	dialogueButton(t, e, 0, 4)
+	dialogueField(t, e, 2)
+	_ = e.Key("cardup")
 	messageButton(t, e, 1)
 	if string(s.workspace.Pages["event01.txt"]) != want {
 		t.Fatal("Cancel kept draft reorder")
@@ -178,7 +179,8 @@ func TestDialoguePopupMovesConditionalAlternativesTogether(t *testing.T) {
 	workspacePage(t, e, "event01.txt", raw)
 	e.Select(recordIndex(t, e, "Action", 0), false)
 	openMessagePopup(t, e)
-	dialogueButton(t, e, 0, 4)
+	dialogueField(t, e, 0)
+	_ = e.Key("carddown")
 	messageButton(t, e, 0)
 	want := "<part=1 npc=22>\nNext\r\n<part=2 iamfemale npc=21 tips=7>\nHer\r\n<part=2 iammale npc=21>\nHis"
 	if string(s.workspace.Pages["event01.txt"]) != want {

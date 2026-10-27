@@ -589,6 +589,8 @@ func (e *MapEditor) actWord(a string) string {
 		return e.word("editor.trigger.addaction")
 	case actDraw:
 		return e.word("editor.wizard.draw")
+	case actConfigure:
+		return e.word("editor.wizard.configure")
 	}
 	return e.word("editor.object.pick")
 }
@@ -868,6 +870,15 @@ func (e *MapEditor) PopupLines() []string {
 	return append(out, s.Notes...)
 }
 
+// PopupRowButtons are the captions of popup row n's own buttons.
+func (e *MapEditor) PopupRowButtons(n int) []string {
+	s, _, ok := e.objectSpec()
+	if !ok || n < 0 || n >= len(s.Rows) {
+		return nil
+	}
+	return s.Rows[n].Buttons
+}
+
 // PopupRecordLinks returns each popup row's record destination, or -1.
 func (e *MapEditor) PopupRecordLinks() []int {
 	s, links, _ := e.objectSpec()
@@ -910,7 +921,8 @@ func (e *MapEditor) PopupButtonRect(n int) (image.Rectangle, bool) {
 
 // RowButtonRect is the window rectangle of button k of the shown row that
 // edits field n; n -1 with actions false is the add-pair row's button, with
-// actions true the add-action row's.
+// actions true the add-action row's. In the dialog editor n 2c+1 is card
+// c's cross or Restore and n -1 the "+".
 func (e *MapEditor) RowButtonRect(n, k int, actions bool) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok {

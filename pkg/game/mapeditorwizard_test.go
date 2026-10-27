@@ -210,7 +210,7 @@ func TestTriggerWizardEditsAndRemovesRows(t *testing.T) {
 		t.Fatalf("Near shows %d rows, %d kept:\n%s", rows, kept, trigLines(e))
 	}
 	got := trigLines(e)
-	for _, want := range []string{"Unit near a point", "Point 5,6", "Radius 2", "Show a message"} {
+	for _, want := range []string{"Unit near a point", "Point 5,6", "Radius 2", "Start dialog"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("Near lacks %q:\n%s", want, got)
 		}
@@ -239,7 +239,7 @@ func TestTriggerWizardEditsAndRemovesRows(t *testing.T) {
 	// Removing Near's message deletes the action; removing its condition
 	// deletes the check and its constant. Far's nodes stay.
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
-	wizPress(t, e, "a0.item", 0)
+	wizPress(t, e, "a0.item", 1) // Remove, after Configure
 	wizPress(t, e, "c0.item", 0)
 	wizApply(t, e)
 	sc = wizScript(t, e.Document().SourceBytes)

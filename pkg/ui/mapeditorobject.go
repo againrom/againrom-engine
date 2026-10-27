@@ -70,6 +70,8 @@ type objectEdit struct {
 	wiz            *wizardState
 	messageParts   []InspectionMessagePart
 	messageChanged bool
+	// messageGone are the page numbers whose cards are struck until Apply.
+	messageGone map[int]bool
 }
 
 // loadObject reads the selected record's fields when the record or the
@@ -239,7 +241,7 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
-	if e.obj.messageChanged {
+	if e.obj.messageChanged || e.messagePage != 0 && e.messageFor != nil && e.messagePage != e.messageFrom {
 		return true
 	}
 	if e.obj.move != nil {
@@ -316,6 +318,9 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		sel := 0
 		for k, c := range f.Choices {
 			rows[k] = PickerRow{Text: c.Label, Choosable: true}
+			if slices.Contains(f.Shut, c.Value) {
+				rows[k].Choosable, rows[k].Ink = false, popupHintInk
+			}
 			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
 				sel = k
 			}
@@ -337,7 +342,16 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
-			return dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: min(10, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}, true
+			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: min(10, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}
+			// A list with a choice it shuts is as wide as its longest row, so
+			// the reason reads whole.
+			if body := e.bodyFont(); body != nil && len(o.fields[o.open].Shut) > 0 {
+				for _, row := range o.choice.Rows() {
+					d.ListWidth = max(d.ListWidth, body.Advance(row.Text)+2*listTextX+widgetSpriteSize+8)
+				}
+				d.ListWidth = min(d.ListWidth, max(rr.Control.Dx(), e.window.X-rr.Control.Min.X-8))
+			}
+			return d, true
 		}
 	}
 	return dropdown{}, false
@@ -395,6 +409,13 @@ func (e *MapEditor) objectWheelDropdown(wheel float64) bool {
 func (e *MapEditor) chooseObjectChoice(row int) {
 	o := &e.obj
 	if o.open < 0 || o.open >= len(o.fields) || row < 0 || row >= len(o.fields[o.open].Choices) {
+		return
+	}
+	if slices.Contains(o.fields[o.open].Shut, o.fields[o.open].Choices[row].Value) {
+		return
+	}
+	if f := e.dialogChoiceField(); f >= 0 && o.open == f {
+		e.chooseDialog(o.fields[f].Choices[row].Value)
 		return
 	}
 	if o.fields[o.open].Choices[row].Value == NewMessageChoice && e.messageField(o.open) {

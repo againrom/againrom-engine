@@ -69,12 +69,15 @@ func TestMessageRoutesUseSharedBuilders(t *testing.T) {
 		messageCase            bool
 	}{
 		{"pkg/ui/mapeditorwizard.go", "wizardChoices", "parameterChoices", true},
-		{"pkg/ui/mapeditorwizard.go", "wizardSpec", "parameterRows", false},
+		{"pkg/ui/mapeditorwizard.go", "wizardRowButton", "configureDialog", false},
 		{"pkg/ui/mapeditortrigger.go", "scriptSpec", "parameterRows", false},
 		{"pkg/ui/mapeditormessage.go", "createMessage", "CreateMessageParts", false},
 		{"pkg/game/mapmessagepages.go", "CreateMessage", "CreateMessageParts", false},
-		{"pkg/game/mapmessagepages.go", "CreateMessageParts", "NewMessage", false},
-		{"pkg/game/mapmessagepages.go", "CreateMessageParts", "SetMessageParts", false},
+		{"pkg/game/mapmessagepages.go", "CreateMessageParts", "pointMessageParts", false},
+		{"pkg/game/mapmessagepages.go", "PointMessageParts", "pointMessageParts", false},
+		{"pkg/game/mapmessagepages.go", "pointMessageParts", "pointMessage", false},
+		{"pkg/game/mapmessagepages.go", "pointMessageParts", "SetMessageParts", false},
+		{"pkg/game/mapmessagepages.go", "NewMessage", "pointMessage", false},
 		{"pkg/game/mapmessagepages.go", "SetMessage", "SetMessageParts", false},
 	} {
 		source := files[route.file]

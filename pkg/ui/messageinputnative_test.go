@@ -27,6 +27,9 @@ func (*dialogueInputEdits) CreateMessage(InspectionMessageOwner, string, int64) 
 func (*dialogueInputEdits) CreateMessageParts(InspectionMessageOwner, []InspectionMessagePart) (*InspectionDocument, uint32, error) {
 	return nil, 1, nil
 }
+func (*dialogueInputEdits) PointMessageParts(InspectionMessageOwner, uint32, []InspectionMessagePart) (*InspectionDocument, error) {
+	return nil, nil
+}
 
 func TestDialogueLaterPageNativeUpdateUsesTextInput(t *testing.T) {
 	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
@@ -51,11 +54,11 @@ func TestDialoguePageButtonsArePainted(t *testing.T) {
 	e.doc.Edits = &dialogueInputEdits{edits}
 	e.openMessage(1)
 	pic := e.ChromeImage()
-	for part := range 3 {
-		for button := range 5 {
+	for part := -1; part < 3; part++ {
+		for button := range 1 {
 			r, ok := e.RowButtonRect(2*part+1, button, false)
 			if !ok {
-				t.Fatal("page button has no pointer target", part, button)
+				t.Fatal("card button has no pointer target", part, button)
 			}
 			ground := pic.RGBAAt(r.Min.X+2, r.Min.Y+2)
 			painted := false
@@ -65,7 +68,7 @@ func TestDialoguePageButtonsArePainted(t *testing.T) {
 				}
 			}
 			if !painted {
-				t.Fatal("page button is clickable but invisible", part, button)
+				t.Fatal("card button is clickable but invisible", part, button)
 			}
 		}
 	}

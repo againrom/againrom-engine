@@ -207,9 +207,13 @@ func init() {
 		{key: "home", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 		{key: "end", live: promptFields, act: (*MapEditor).keyPage, unlisted: "list travel"},
 		{label: "Dialogue", help: keys(helpLine{Word: "editor.keys.dialogue"})},
-		{label: "Add", help: keys(helpLine{Word: "editor.keys.dialogue.add"})},
-		{label: "Remove", help: keys(helpLine{Word: "editor.keys.dialogue.remove"})},
-		{label: "Up", help: keys(helpLine{Word: "editor.keys.dialogue.move"})},
+		{label: "+", help: keys(helpLine{Word: "editor.keys.dialogue.add"})},
+		{label: "x", help: keys(helpLine{Word: "editor.keys.dialogue.remove"})},
+		{label: "Restore", help: keys(helpLine{Word: "editor.keys.dialogue.restore"})},
+		{label: "Drag", help: keys(helpLine{Word: "editor.keys.dialogue.move"})},
+		{label: "Alt+Up", help: keys(helpLine{Word: "editor.keys.dialogue.keys"})},
+		{key: "cardup", live: promptHears, act: (*MapEditor).keyCard, unlisted: "the Alt+Up line names Alt+Up and Alt+Down"},
+		{key: "carddown", live: promptHears, act: (*MapEditor).keyCard, unlisted: "the Alt+Up line names Alt+Up and Alt+Down"},
 		{label: "Apply", help: keys(helpLine{Word: "editor.keys.dialogue.apply"})},
 	}
 	// 1..9 choose a group and frame it; Ctrl+1..9 put the selection in it.
@@ -455,7 +459,7 @@ func (e *MapEditor) keyCatalog(string) error {
 
 func (e *MapEditor) keyEnter(string) error {
 	if e.objectTyping() {
-		if e.messagePage != 0 && e.obj.focus%2 == 0 {
+		if e.messageTextField(e.obj.focus) {
 			e.TextInput("\n")
 			return nil
 		}

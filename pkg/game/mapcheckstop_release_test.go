@@ -48,7 +48,7 @@ func TestReleaseInstalledMapNewTriggerAndMessageReportsNoError(t *testing.T) {
 	wizPress(t, e, "+action", 0)
 	chooseRow(t, e, wizField(t, e, "a0.item"), 3)
 	wizApply(t, e)
-	chooseRow(t, e, wizField(t, e, "a0.p0"), -1)
+	configure(t, e, "a0.item")
 	e.TextInput("A new message")
 	messageButton(t, e, 0)
 	sc := wizScript(t, e.Document().SourceBytes)

@@ -48,96 +48,82 @@ func messageChoiceClick(t *testing.T, e *ui.MapEditor, want string) {
 	t.Fatalf("no message choice %q in %q", want, choices)
 }
 
+// The Details action's message field reuses a page in two clicks; the
+// trigger wizard reuses one through the dialog editor's choice.
 func TestMessageReuseNeedsTwoClicksAndOneUndo(t *testing.T) {
-	for _, wizard := range []bool{false, true} {
-		t.Run(map[bool]string{false: "Details action", true: "trigger wizard"}[wizard], func(t *testing.T) {
+	e, s := triggerMessageFixture(t, false)
+	e.Select(recordIndex(t, e, "Action", 0), false)
+	before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
+	messageField(t, e, 2)
+	messageChoiceClick(t, e, "2: Existing message")
+	sc := wizScript(t, s.model.Bytes())
+	if sc.Actions[0].Value[0] != 2 || len(s.undoWorkspace) != steps+1 || !reflect.DeepEqual(pages, s.workspace.Pages) {
+		t.Fatal("two clicks did not commit exactly one page-reference edit")
+	}
+	if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) || !reflect.DeepEqual(pages, s.workspace.Pages) || len(s.undoWorkspace) != steps {
+		t.Fatal("one Undo did not restore the map and pages", err)
+	}
+	t.Log("before: field, choice, Apply = 3 clicks; after: field, choice = 2 clicks")
+}
+
+func TestMessageReuseKeepsOtherPendingFields(t *testing.T) {
+	for _, apply := range []bool{false, true} {
+		t.Run(map[bool]string{false: "action cancel", true: "action apply"}[apply], func(t *testing.T) {
 			e, s := triggerMessageFixture(t, false)
-			field := 2
-			if wizard {
-				e.Select(recordIndex(t, e, "Trigger", 0), false)
-				field = wizField(t, e, "a0.p0")
-			} else {
-				e.Select(recordIndex(t, e, "Action", 0), false)
-			}
-			before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-			messageField(t, e, field)
+			e.Select(recordIndex(t, e, "Action", 0), false)
+			before, steps := bytes.Clone(s.model.Bytes()), len(s.undoWorkspace)
+			messageField(t, e, 0)
+			_ = e.Key("selectall")
+			e.TextInput("Pending label")
+			messageField(t, e, 2)
 			messageChoiceClick(t, e, "2: Existing message")
-			sc := wizScript(t, s.model.Bytes())
-			if sc.Actions[0].Value[0] != 2 || len(s.undoWorkspace) != steps+1 || !reflect.DeepEqual(pages, s.workspace.Pages) {
-				t.Fatal("two clicks did not commit exactly one page-reference edit")
+			if !bytes.Equal(before, s.model.Bytes()) || len(s.undoWorkspace) != steps {
+				t.Fatal("message choice committed another pending field")
 			}
-			if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) || !reflect.DeepEqual(pages, s.workspace.Pages) || len(s.undoWorkspace) != steps {
-				t.Fatal("one Undo did not restore the map and pages", err)
+			if apply {
+				messageButton(t, e, 0)
+				sc := wizScript(t, s.model.Bytes())
+				if sc.Actions[0].Value[0] != 2 || len(s.undoWorkspace) != steps+1 {
+					t.Fatal("Apply did not commit the draft as one edit")
+				}
+				if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) {
+					t.Fatal("draft Undo", err)
+				}
+			} else {
+				messageButton(t, e, 1)
+				if !bytes.Equal(before, s.model.Bytes()) || len(s.undoWorkspace) != steps {
+					t.Fatal("Cancel committed the draft")
+				}
 			}
-			t.Log("before: field, choice, Apply = 3 clicks; after: field, choice = 2 clicks")
 		})
 	}
 }
 
-func TestMessageReuseKeepsOtherPendingFields(t *testing.T) {
-	for _, wizard := range []bool{false, true} {
-		for _, apply := range []bool{false, true} {
-			t.Run(map[bool]string{false: "action", true: "wizard"}[wizard]+map[bool]string{false: " cancel", true: " apply"}[apply], func(t *testing.T) {
-				e, s := triggerMessageFixture(t, false)
-				kind, field := "Action", 2
-				if wizard {
-					kind = "Trigger"
-				}
-				e.Select(recordIndex(t, e, kind, 0), false)
-				if wizard {
-					field = wizField(t, e, "a0.p0")
-				}
-				before, steps := bytes.Clone(s.model.Bytes()), len(s.undoWorkspace)
-				messageField(t, e, 0)
-				_ = e.Key("selectall")
-				e.TextInput("Pending label")
-				messageField(t, e, field)
-				messageChoiceClick(t, e, "2: Existing message")
-				if !bytes.Equal(before, s.model.Bytes()) || len(s.undoWorkspace) != steps {
-					t.Fatal("message choice committed another pending field")
-				}
-				if apply {
-					messageButton(t, e, 0)
-					sc := wizScript(t, s.model.Bytes())
-					if sc.Actions[0].Value[0] != 2 || len(s.undoWorkspace) != steps+1 {
-						t.Fatal("Apply did not commit the draft as one edit")
-					}
-					if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) {
-						t.Fatal("draft Undo", err)
-					}
-				} else {
-					messageButton(t, e, 1)
-					if !bytes.Equal(before, s.model.Bytes()) || len(s.undoWorkspace) != steps {
-						t.Fatal("Cancel committed the draft")
-					}
-				}
-			})
-		}
-	}
-}
-
-func TestTriggerWizardNewMessageUsesFiveClicksAndOneUndo(t *testing.T) {
+func TestTriggerWizardNewMessageUsesFourClicksAndOneUndo(t *testing.T) {
 	for _, route := range []struct {
 		name            string
 		shared, details bool
 		clicks          int
-	}{{"wizard", false, false, 5}, {"wizard shared action", true, false, 5}, {"Details navigation control", false, true, 7}} {
+	}{{"wizard", false, false, 4}, {"wizard shared action", true, false, 4}, {"Details navigation control", false, true, 7}} {
 		t.Run(route.name, func(t *testing.T) {
 			e, s := triggerMessageFixture(t, route.shared)
 			e.Select(recordIndex(t, e, "Trigger", 0), false)
 			before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-			field, clicks := wizField(t, e, "a0.p0"), 0
+			clicks := 0
 			if route.details {
 				messageButton(t, e, 4)
 				r, ok := e.RowButtonRect(11, 0, false)
 				messageClick(t, e, r, ok)
 				clicks += 2
-				field = 2
+				messageField(t, e, 2)
+				clicks++
+				messageChoiceClick(t, e, "New message")
+				clicks++
+			} else {
+				// Configure on an action whose page is missing opens a new dialog.
+				configure(t, e, "a0.item")
+				clicks++
 			}
-			messageField(t, e, field)
-			clicks++
-			messageChoiceClick(t, e, "New message")
-			clicks++
 			e.TextInput("New dialogue")
 			messageField(t, e, 1)
 			clicks++
@@ -185,11 +171,13 @@ func TestTriggerMessageReuseKeepsSharedActionPrivate(t *testing.T) {
 	e, s := triggerMessageFixture(t, true)
 	e.Select(recordIndex(t, e, "Trigger", 0), false)
 	before := bytes.Clone(s.model.Bytes())
-	messageField(t, e, wizField(t, e, "a0.p0"))
+	configure(t, e, "a0.item")
+	messageField(t, e, 2) // the dialog choice
 	messageChoiceClick(t, e, "2: Existing message")
+	messageButton(t, e, 0)
 	sc := wizScript(t, s.model.Bytes())
 	if sc.Triggers[0].Acts[0] == sc.Triggers[1].Acts[0] || wizNode(t, sc.Actions, sc.Triggers[0].Acts[0]).Value[0] != 2 || wizNode(t, sc.Actions, sc.Triggers[1].Acts[0]).Value[0] != 7 {
-		t.Fatal("two-click reuse changed another trigger's shared action")
+		t.Fatal("reuse through the dialog choice changed another trigger's shared action")
 	}
 	if err := e.Key("undo"); err != nil || !bytes.Equal(before, s.model.Bytes()) {
 		t.Fatal("shared reuse Undo", err)
@@ -206,12 +194,14 @@ func TestTriggerWizardNewMessageCancelAndRefusalKeepHistory(t *testing.T) {
 				messageField(t, e, 0)
 				e.TextInput(" pending")
 			}
-			messageField(t, e, wizField(t, e, "a0.p0"))
-			messageChoiceClick(t, e, "New message")
+			configure(t, e, "a0.item")
 			if pending {
-				if !e.WizardShown() || !strings.Contains(trigLines(e), " pending") || !strings.Contains(trigLines(e), "Apply or cancel") {
-					t.Fatal("New discarded or committed the pending trigger fields")
+				// Configure applies the pending trigger first, as its own entry.
+				sc := wizScript(t, s.model.Bytes())
+				if sc.Triggers[0].Name != "Talk here pending" || len(s.undoWorkspace) != steps+1 {
+					t.Fatal("Configure did not apply the pending trigger as one entry", sc.Triggers[0].Name)
 				}
+				before, pages, steps = bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
 			} else {
 				e.TextInput("bad\x00body")
 				messageButton(t, e, 0)
@@ -240,21 +230,13 @@ func TestTriggerWizardOpensMessageInOneClick(t *testing.T) {
 	workspacePage(t, e, "event02.txt", "<part=1,npc=21>\nExisting message")
 	e.Select(recordIndex(t, e, "Trigger", 0), false)
 	before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
-	found := false
-	for row, line := range e.PopupLines() {
-		if strings.HasPrefix(line, "Open ") {
-			r, ok := e.PopupRowRect(row)
-			messageClick(t, e, r, ok)
-			found = true
-			break
-		}
-	}
-	if !found || len(e.PopupLines()) != 3 || !strings.Contains(e.PopupLines()[0], "Existing message") {
+	configure(t, e, "a0.item")
+	if !strings.Contains(trigLines(e), "Existing message") {
 		t.Fatal("one click did not open the page", e.PopupLines())
 	}
 	messageButton(t, e, 2)
 	if !e.WizardShown() || !bytes.Equal(before, s.model.Bytes()) || !reflect.DeepEqual(pages, s.workspace.Pages) || len(s.undoWorkspace) != steps {
 		t.Fatal("Back changed the map, pages or history")
 	}
-	t.Log("before: Details, action Edit, Open = 3 clicks; after: Open = 1 click")
+	t.Log("before: Details, action Edit, Open = 3 clicks; after: Configure = 1 click")
 }

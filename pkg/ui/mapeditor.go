@@ -134,6 +134,9 @@ type InspectionField struct {
 	Inherit   bool
 	Absent    int64
 	Inherited string
+	// Shut lists choice values the list shows but refuses, each label
+	// carrying its reason.
+	Shut []int64
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.
@@ -454,7 +457,10 @@ func (e *MapEditor) Update() error {
 	}{{ebiten.KeyEscape, "escape"}, {ebiten.KeyEnter, "enter"}, {ebiten.KeyNumpadEnter, "enter"}, {ebiten.KeyBackspace, "backspace"}, {ebiten.KeyPageUp, "pageup"}, {ebiten.KeyPageDown, "pagedown"}, {ebiten.KeyHome, "home"}, {ebiten.KeyEnd, "end"}, {ebiten.KeyArrowUp, "up"}, {ebiten.KeyArrowDown, "down"}} {
 		if native.justPressed(k.key) {
 			name := k.name
-			if typing && name != "escape" && name != "enter" && name != "pageup" && name != "pagedown" {
+			if (name == "up" || name == "down") && e.messagePage != 0 && native.pressed(ebiten.KeyAlt) {
+				name = "card" + name // the dialog editor's card moves, even while typing
+			}
+			if typing && name != "escape" && name != "enter" && name != "pageup" && name != "pagedown" && name != "cardup" && name != "carddown" {
 				continue
 			}
 			if name == "enter" && native.pressed(ebiten.KeyShift) && e.multilinePrompt() {

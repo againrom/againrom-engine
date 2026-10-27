@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -42,14 +43,17 @@ type wizParam struct {
 // with a constant: by cmp with right, or, cmp -1, by the comparison the row
 // chooses; rightParam names the parameter that holds the constant, -1 for
 // right. fixed are node slots after the parameters', as type and value.
+// onePerTrigger is an item a trigger holds at most once: another row of the
+// trigger shows it shut.
 type wizItem struct {
-	labelWord  string
-	opcode     uint32
-	params     []wizParam
-	cmp        int
-	right      int64
-	rightParam int
-	fixed      [][2]uint32
+	labelWord     string
+	opcode        uint32
+	params        []wizParam
+	cmp           int
+	right         int64
+	rightParam    int
+	fixed         [][2]uint32
+	onePerTrigger bool
 }
 
 var (
@@ -77,7 +81,8 @@ var wizConditions = []wizItem{
 
 // wizActions are the ready actions, with the claims that state their
 // parameters: give money (TRIG-MONEY-028), win and lose (TRIG-ACT-004), a
-// message (TRIG-MSG-023), give a unit or group to a player
+// dialog (TRIG-MSG-023; the player sees only a trigger's first, so one per
+// trigger), give a unit or group to a player
 // (PARTY-JOIN-025), move a unit (AI-SCRIPTGUARD-625), a unit or group off
 // and back on the map (TRIG-OFFMAP-041, TRIG-RETURN-042, TRIG-MAPGROUP-043)
 // and the drop cell the builder takes (TRIG-DROP-013).
@@ -85,7 +90,7 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.gold", opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
 	{labelWord: "editor.wizard.a.win", opcode: 4},
 	{labelWord: "editor.wizard.a.lose", opcode: 5},
-	{labelWord: "editor.wizard.a.message", opcode: 2, params: []wizParam{{kind: wpMessage, labelWord: "editor.wizard.p.message", def: 1, inNode: true}}},
+	{labelWord: "editor.wizard.a.dialog", opcode: 2, params: []wizParam{{kind: wpMessage, labelWord: "editor.wizard.p.message", inNode: true}}, onePerTrigger: true},
 	{labelWord: "editor.wizard.a.giveunit", opcode: 19, params: []wizParam{pUnit, pPlayer}},
 	{labelWord: "editor.wizard.a.givegroup", opcode: 22, params: []wizParam{pGroup, pPlayer}},
 	{labelWord: "editor.wizard.a.move", opcode: 27, params: []wizParam{pUnit, pPoint}},
@@ -189,15 +194,20 @@ func (e *MapEditor) wizardOpen() *wizardState {
 
 // loadWizard reads trigger v into rows.
 func (e *MapEditor) loadWizard(v scriptView) {
-	w := &wizardState{draw: -1, drawRadius: -1, unit: -1}
-	t := v.trigger
+	e.obj.wiz = &wizardState{rows: e.wizardRows(v.trigger), draw: -1, drawRadius: -1, unit: -1}
+	e.wizardFields(v)
+}
+
+// wizardRows are trigger t's pairs and actions as rows, as it stands.
+func (e *MapEditor) wizardRows(t *InspectionTrigger) []wizRow {
+	var rows []wizRow
 	for k := range t.Left {
 		if t.Left[k] == 0 && t.Right[k] == 0 {
 			continue
 		}
 		r := wizRow{condition: true, item: -1, left: t.Left[k], right: t.Right[k], cmp: t.Cmp[k]}
 		r.item, r.vals = e.readCondition(t.Left[k], t.Right[k], t.Cmp[k])
-		w.rows = append(w.rows, r)
+		rows = append(rows, r)
 	}
 	for _, id := range t.Acts {
 		if id == 0 {
@@ -205,14 +215,19 @@ func (e *MapEditor) loadWizard(v scriptView) {
 		}
 		r := wizRow{item: -1, act: id}
 		r.item, r.vals = e.readAction(id)
-		w.rows = append(w.rows, r)
+		rows = append(rows, r)
 	}
-	for i := range w.rows {
-		w.rows[i].origItem = w.rows[i].item
-		w.rows[i].orig = append([]string(nil), w.rows[i].vals...)
+	for i := range rows {
+		rows[i].origItem = rows[i].item
+		rows[i].orig = append([]string(nil), rows[i].vals...)
 	}
-	e.obj.wiz = w
-	e.wizardFields(v)
+	return rows
+}
+
+// keptPlan is trigger index as it stands, every pair and action kept.
+func (e *MapEditor) keptPlan(index int) (WizardTrigger, error) {
+	t := &e.doc.Script.Triggers[index]
+	return e.rowsPlan(WizardTrigger{Index: index, Name: t.Name, Once: t.Once}, e.wizardRows(t))
 }
 
 // constantValue is the value of the constant condition id, false when id
@@ -323,8 +338,6 @@ func (e *MapEditor) wizardDefaults(condition bool, i int) []string {
 			out = append(out, strconv.FormatInt(e.defaultUnit(), 10))
 		case wpGroup:
 			out = append(out, strconv.FormatInt(e.firstTarget(scriptGroup, 0), 10))
-		case wpMessage:
-			out = append(out, strconv.FormatInt(e.firstTarget(ScriptMessageParameter, p.def), 10))
 		case wpCell:
 			out = append(out, fmt.Sprintf("%d,%d", mid.X, mid.Y))
 		case wpBox:
@@ -427,8 +440,14 @@ func (e *MapEditor) wizardFields(v scriptView) {
 	for r, row := range w.rows {
 		items := wizItems(row.condition)
 		var choices []InspectionChoice
+		var shut []int64
 		for i, it := range items {
-			choices = append(choices, InspectionChoice{int64(i), e.word(it.labelWord)})
+			label := e.word(it.labelWord)
+			if w.shut(r, i) {
+				label = fmt.Sprintf(e.word("editor.wizard.onlyone"), label)
+				shut = append(shut, int64(i))
+			}
+			choices = append(choices, InspectionChoice{int64(i), label})
 		}
 		if row.origItem < 0 {
 			choices = append(choices, InspectionChoice{-1, e.keptText(row)})
@@ -447,7 +466,7 @@ func (e *MapEditor) wizardFields(v scriptView) {
 		if !row.condition {
 			label = e.word("editor.wizard.action")
 		}
-		o.fields = append(o.fields, InspectionField{Key: w.wizardKey(r, "item"), Label: label, Value: int64(row.origItem), Choices: choices})
+		o.fields = append(o.fields, InspectionField{Key: w.wizardKey(r, "item"), Label: label, Value: int64(row.origItem), Choices: choices, Shut: shut})
 		o.buf = append(o.buf, row.vals[0])
 		if row.item < 0 {
 			continue
@@ -477,6 +496,21 @@ func (e *MapEditor) wizardFields(v scriptView) {
 			o.buf = append(o.buf, row.vals[len(it.params)+1])
 		}
 	}
+}
+
+// shut reports that row r may not take item i: the item is one per trigger
+// and another row of the trigger has it.
+func (w *wizardState) shut(r, i int) bool {
+	row := w.rows[r]
+	if i < 0 || i >= len(wizItems(row.condition)) || !wizItems(row.condition)[i].onePerTrigger || row.item == i {
+		return false
+	}
+	for k, other := range w.rows {
+		if k != r && other.condition == row.condition && other.item == i {
+			return true
+		}
+	}
+	return false
 }
 
 // bufAt is field i's text, or def when there is none yet.
@@ -560,7 +594,12 @@ func (e *MapEditor) rewizard() {
 		if item == row.item {
 			continue
 		}
-		row.item, rebuilt = item, true
+		rebuilt = true
+		if w.shut(r, item) {
+			row.vals[0] = strconv.Itoa(row.item)
+			continue
+		}
+		row.item = item
 		switch {
 		case item == row.origItem:
 			row.vals = append([]string(nil), row.orig...)
@@ -592,6 +631,7 @@ const (
 	actRemoveRow = "removerow"
 	actDraw      = "draw"
 	actPickUnit  = "pickunit"
+	actConfigure = "configure"
 )
 
 // wizardSpec is the wizard as a popup: the name, the once switch, When, And
@@ -620,7 +660,11 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 		if !wr.condition {
 			ink = editorGold
 		}
-		add(popupRow{Kind: popupChoice, Label: label, Value: choiceText(o.fields[f], o.buf[f]), Ink: ink}, f, actRemoveRow)
+		acts := []string{actRemoveRow}
+		if wr.item >= 0 && slices.ContainsFunc(wizItems(wr.condition)[wr.item].params, func(p wizParam) bool { return p.kind == wpMessage }) {
+			acts = []string{actConfigure, actRemoveRow}
+		}
+		add(popupRow{Kind: popupChoice, Label: label, Value: choiceText(o.fields[f], o.buf[f]), Ink: ink}, f, acts...)
 		if wr.item < 0 {
 			if wr.condition {
 				_, lp := e.slotText(true, strconv.FormatUint(uint64(wr.left), 10))
@@ -641,11 +685,14 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			drops++
 		}
 		for k, p := range it.params {
+			if p.kind == wpMessage {
+				continue // the item row's Configure edits the dialog
+			}
 			i := at[w.wizardKey(r, fmt.Sprintf("p%d", k))]
 			pr := popupRow{Kind: popupEdit, Label: "  " + o.fields[i].Label, Value: o.buf[i]}
 			var buttons []string
 			switch p.kind {
-			case wpUnit, wpPlayer, wpGroup, wpMessage:
+			case wpUnit, wpPlayer, wpGroup:
 				pr.Kind, pr.Value = popupChoice, choiceText(o.fields[i], o.buf[i])
 				if p.kind == wpUnit {
 					buttons = []string{actPickUnit}
@@ -662,9 +709,6 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 				buttons = []string{actDraw}
 			}
 			add(pr, i, buttons...)
-			if p.kind == wpMessage {
-				e.parameterRows(i, s, add, text)
-			}
 		}
 		if it.cmp < 0 {
 			i := at[w.wizardKey(r, "cmp")]
@@ -758,6 +802,19 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 		o.focus = f
 		e.leave(leaveDrag)
 		e.armPick(pickArea)
+	case actConfigure:
+		key := o.fields[f].Key
+		for r := range w.rows {
+			if w.wizardKey(r, "item") != key || w.rows[r].item < 0 {
+				continue
+			}
+			for k, p := range wizItems(w.rows[r].condition)[w.rows[r].item].params {
+				if p.kind == wpMessage {
+					e.configureDialog(slices.IndexFunc(o.fields, func(x InspectionField) bool { return x.Key == w.wizardKey(r, fmt.Sprintf("p%d", k)) }))
+					return
+				}
+			}
+		}
 	case actPickUnit:
 		if hasField {
 			w.unit, o.focus = f, f
@@ -885,8 +942,12 @@ func (e *MapEditor) wizardPlan(v scriptView) (WizardTrigger, error) {
 	w := o.wiz
 	e.pullWizard()
 	once, _ := strconv.ParseInt(strings.TrimSpace(o.buf[trigOnce]), 10, 64)
-	t := WizardTrigger{Index: v.index, Name: o.buf[trigName], Once: uint32(once)}
-	for r, row := range w.rows {
+	return e.rowsPlan(WizardTrigger{Index: v.index, Name: o.buf[trigName], Once: uint32(once)}, w.rows)
+}
+
+// rowsPlan is trigger t with the pairs and actions rows say.
+func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, error) {
+	for r, row := range rows {
 		unchanged := row.item == row.origItem && len(row.vals) == len(row.orig)
 		for k := range row.vals {
 			unchanged = unchanged && strings.TrimSpace(row.vals[k]) == strings.TrimSpace(row.orig[k])

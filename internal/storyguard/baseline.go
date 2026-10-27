@@ -3087,5 +3087,12 @@ var Committed = Baseline{
 	// the M2 round trips' note on the LOAD's orphan bits, then for the test
 	// play overlap rule: packageGuard in pkg/game/mapedittestplay_files.go and
 	// the tests in pkg/game/mapedittestplay_paths_test.go.
-	CommentBytes: 9754912,
+
+	// It rose for the trigger wizard's Start dialog and the card dialog editor:
+	// doc comments on new code in pkg/ui/editorpopup.go, mapeditormessage.go,
+	// mapeditorwizard.go, mapeditorobject.go, mapeditorwindow.go, mapeditor.go,
+	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
+	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
+	// play overlap rule is re-measured on the merged tree.
+	CommentBytes: 9761454,
 }

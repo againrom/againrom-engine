@@ -27,6 +27,10 @@ const (
 	popupLink                        // a label and a value that opens what it names
 	popupSwitch                      // a label and a button that switches its value
 	popupMultiline
+	// popupCard heads a card: a grip with the card's number (its label), a
+	// drop-down (its value) and a small cross (its button); the card holds
+	// the Span rows after it. A drag from the grip moves the card.
+	popupCard
 )
 
 // popupRow is one row of a popup.
@@ -48,6 +52,17 @@ type popupRow struct {
 	// Icons are pictures drawn after the value, left to right, each square
 	// at the row's height.
 	Icons []*image.RGBA
+	// Span is how many rows after a card row its card holds. Struck marks a
+	// removed card: a strip with its label and buttons, no grip or value.
+	Span   int
+	Struck bool
+}
+
+// popupRowDrag is a card held by its grip: Row is its card row and At the
+// pointer.
+type popupRowDrag struct {
+	Row int
+	At  image.Point
 }
 
 // popupGrid is a grid of picture cells as data: one widget for every grid
@@ -142,6 +157,8 @@ type popupSpec struct {
 	MinWidth int
 	// Grid, when set, stands between the rows and the list.
 	Grid *popupGrid
+	// Drag is the card a row drag holds, nil for none.
+	Drag *popupRowDrag
 }
 
 // popupRowRect is the geometry of one shown row.
@@ -150,6 +167,8 @@ type popupRowRect struct {
 	Rect, Label, Control image.Rectangle
 	Button               image.Rectangle   // the first row button; empty otherwise
 	Buttons              []image.Rectangle // every row button, left to right
+	// Grip is a card row's drag handle and Card the card's whole box.
+	Grip, Card image.Rectangle
 }
 
 // popupLayout is a built popup: every rectangle the painter fills and the
@@ -173,6 +192,11 @@ type popupLayout struct {
 	Grid, GridBar                image.Rectangle
 	GridCells                    []image.Rectangle
 	GridFirst, GridCols, GridTop int
+	// Drop is the card, counted among the spec's card rows, that a held card
+	// lands before, the card count for after the last, -1 for no drag;
+	// Marker is the bar drawn at that gap while the drop moves the card.
+	Drop   int
+	Marker image.Rectangle
 }
 
 const (
@@ -424,6 +448,12 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			if row.Value == "" { // a line of text runs across the row
 				rr.Label, rr.Control = rr.Rect, image.Rectangle{}
 			}
+		case popupCard:
+			if row.Struck {
+				rr.Label, rr.Control = rr.Rect, image.Rectangle{}
+			} else {
+				rr.Grip = rr.Label
+			}
 		}
 		if caps := rowButtons(s, row); len(caps) > 0 {
 			x := rr.Rect.Max.X
@@ -432,6 +462,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 				w := popupButtonW
 				if len(row.Buttons) > 0 && body != nil {
 					w = max(48, body.Advance(caps[k])+16)
+				}
+				if row.Kind == popupCard && !row.Struck {
+					w = pitch - 2 // the cross: a small square
 				}
 				rr.Buttons[k] = image.Rect(x-w, y+1, x, y+pitch-1)
 				x -= w + 4
@@ -446,6 +479,8 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		l.Rows = append(l.Rows, rr)
 		y += rowH
 	}
+	l.Drop = -1
+	layoutCards(s, &l)
 	if g := s.Grid; g != nil {
 		side, shown := g.side(), max(1, g.Rows)
 		l.GridCols = g.columns(r.Dx() - 2*popupPad)
@@ -493,6 +528,53 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	return l
 }
 
+// layoutCards gives each shown card row its card's box over the rows it
+// holds and, while a card is held, the card it lands before and the bar
+// that marks that gap.
+func layoutCards(s popupSpec, l *popupLayout) {
+	ordinal := map[int]int{}
+	held, cards := -1, 0
+	for i, row := range s.Rows {
+		if row.Kind != popupCard {
+			continue
+		}
+		ordinal[i] = cards
+		if s.Drag != nil && s.Drag.Row == i {
+			held = cards
+		}
+		cards++
+	}
+	var shown []int
+	for i, rr := range l.Rows {
+		row := s.Rows[rr.Index]
+		if row.Kind != popupCard {
+			continue
+		}
+		card := rr.Rect
+		for k := 1; k <= row.Span && i+k < len(l.Rows) && l.Rows[i+k].Index == rr.Index+k; k++ {
+			card = card.Union(l.Rows[i+k].Rect)
+		}
+		l.Rows[i].Card = card
+		shown = append(shown, i)
+	}
+	if held < 0 || len(shown) == 0 {
+		return
+	}
+	at := s.Drag.At.Y
+	last := l.Rows[shown[len(shown)-1]]
+	y := last.Card.Max.Y
+	l.Drop = ordinal[last.Index] + 1
+	for _, i := range shown {
+		if c := l.Rows[i].Card; at < (c.Min.Y+c.Max.Y)/2 {
+			l.Drop, y = ordinal[l.Rows[i].Index], c.Min.Y
+			break
+		}
+	}
+	if l.Drop != held && l.Drop != held+1 {
+		l.Marker = image.Rect(last.Rect.Min.X, y-2, last.Rect.Max.X, y+1)
+	}
+}
+
 // rowButtons are the captions of row's buttons.
 func rowButtons(s popupSpec, row popupRow) []string {
 	if len(row.Buttons) > 0 {
@@ -532,6 +614,7 @@ const (
 	popupButton                      // a button of the button row
 	popupGridPart                    // a grid cell; the index is the cell's
 	popupGridBar                     // the grid's scroll bar
+	popupRowGrip                     // a card's grip: a drag moves the card
 )
 
 // hit reports the part under p and its row, list or button index.
@@ -550,6 +633,8 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	for _, r := range l.Rows {
 		switch {
+		case p.In(r.Grip):
+			return popupRowGrip, r.Index
 		case p.In(r.Control):
 			return popupRowControl, r.Index
 		case p.In(r.Rect):
@@ -706,7 +791,33 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			}
 			continue
 		}
-		bodyText(rr.Label, row.Label, ink.Label)
+		label := rr.Label
+		if row.Kind == popupCard {
+			// The card's ground over the rows it holds, lighter while it is
+			// held; a struck card is a strip in the hint ink.
+			ground, edge := ink.TitleGround, ink.Edge
+			if row.Struck {
+				edge = popupHintInk
+			} else if s.Drag != nil && s.Drag.Row == rr.Index {
+				ground = ink.Ground
+			}
+			drawFrame(dst, panelFrame(rr.Card.Intersect(l.Rect), ground, edge))
+			if row.Struck {
+				bodyText(label, row.Label, popupHintInk)
+				for k, b := range rr.Buttons {
+					drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
+				}
+				continue
+			}
+			// The grip: three strokes before the card's number.
+			mid := (label.Min.Y + label.Max.Y) / 2
+			for k := -1; k <= 1; k++ {
+				stroke := image.Rect(label.Min.X+4, mid+4*k-1, label.Min.X+14, mid+4*k+1)
+				draw.Draw(dst, stroke.Intersect(l.Rect), &image.Uniform{C: ink.Edge}, image.Point{}, draw.Src)
+			}
+			label.Min.X += 18
+		}
+		bodyText(label, row.Label, ink.Label)
 		if row.Edit != nil {
 			drawEditorInput(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
@@ -757,7 +868,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		case popupSwitch:
 			// A long value ends in an ellipsis inside its button.
 			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
-		case popupChoice:
+		case popupChoice, popupCard:
 			drawDropdown(dst, body, frames, dropdown{Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
 		default:
 			bodyText(rr.Control, row.Value, value)
@@ -766,6 +877,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		for k, b := range rr.Buttons {
 			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
 		}
+	}
+	if !l.Marker.Empty() {
+		draw.Draw(dst, l.Marker.Intersect(l.Rect), &image.Uniform{C: ink.Title}, image.Point{}, draw.Src)
 	}
 	if g := s.Grid; g != nil {
 		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK)

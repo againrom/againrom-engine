@@ -67,6 +67,7 @@ type editorChrome struct {
 	promptAbs              image.Point              // a sized prompt's corner
 	listFit                int                      // the list rows a sized list popup fits
 	dragEdge               popupEdge                // the border a resize drag holds; zero is a move
+	dragCard               int                      // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -89,6 +90,11 @@ type editorChrome struct {
 	objectBack             []objectPlace
 	messagePage            uint32
 	messageNew             InspectionMessageOwner // where a new message is named, while messagePage is NewMessagePage
+	// messageFor is the trigger action the dialog editor was opened for,
+	// nil for any other route; messageFrom is the page that action names,
+	// NewMessagePage for none.
+	messageFor  *InspectionMessageOwner
+	messageFrom uint32
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -1400,13 +1406,21 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		if in.PrimaryDown {
 			d := p.Sub(e.dragFrom)
 			e.dragFrom = p
-			if e.dragEdge != 0 {
+			switch {
+			case e.dragCard != 0:
+				if in.WheelY != 0 {
+					e.chromeWheel(popObject, in.WheelY)
+				}
+			case e.dragEdge != 0:
 				e.resizePopup(d)
-			} else {
+			default:
 				e.dragPopup(d)
 			}
 		} else {
-			e.drag, e.dragEdge = popNone, 0
+			if e.dragCard != 0 {
+				e.dropCard()
+			}
+			e.drag, e.dragEdge, e.dragCard = popNone, 0, 0
 			e.uiDown = false
 		}
 		e.down = in.PrimaryDown
@@ -1627,6 +1641,11 @@ func (e *MapEditor) objectPress(p image.Point) {
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.cancelPopup()
+	case popupRowGrip:
+		if e.messagePage != 0 {
+			e.obj.open = -1
+			e.drag, e.dragFrom, e.dragEdge, e.dragCard = popObject, p, 0, n+1
+		}
 	case popupRowButton:
 		if e.messagePage != 0 {
 			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {

@@ -155,7 +155,7 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 	number := freeMessage(s.workspace.Pages)
 	for part := 0; part < 3; part++ {
 		if part > 0 {
-			dialogueButton(t, e, part-1, 1)
+			dialogueButton(t, e, -1, 0) // "+"
 		}
 		dialogueField(t, e, 2*part)
 		e.TextInput(fmt.Sprintf("Dialogue line %d", part+1))
@@ -178,6 +178,9 @@ func TestReleaseDialogueThreeSpeakersTestPlay(t *testing.T) {
 			e.ScrollDropdown(1)
 		}
 	}
+	dialogueButton(t, e, 1, 0) // the cross of card 2
+	messageFrame(t, e, x.pageLanguage(), "dialog-editor-three-cards-one-removed")
+	dialogueButton(t, e, 1, 0) // Restore
 	messageButton(t, e, 0)
 	messageFrame(t, e, x.pageLanguage(), "three-speakers-dialogue")
 	root := t.TempDir()

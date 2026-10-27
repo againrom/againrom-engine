@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
@@ -39,7 +40,7 @@ func installedTriggerMessage(t *testing.T) (*MapInspector, *ui.MapEditor, string
 					continue
 				}
 				t.Logf("%s trigger=%d action=%d", key, tr.Record, index)
-				return x, e, fmt.Sprintf("a%d.p0", action), index
+				return x, e, fmt.Sprintf("a%d.item", action), index
 			}
 		}
 	}
@@ -53,8 +54,12 @@ func TestReleaseTriggerMessageFrames(t *testing.T) {
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before, pages := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages
 	messageFrame(t, e, x.pageLanguage(), "trigger-message-popup")
-	messageField(t, e, wizField(t, e, key))
-	messageFrame(t, e, x.pageLanguage(), "wizard-message-list")
+	configure(t, e, key)
+	messageFrame(t, e, x.pageLanguage(), "trigger-dialog-editor")
+	messageField(t, e, e.DialogChoiceField())
+	messageFrame(t, e, x.pageLanguage(), "dialog-choice-list")
+	_ = e.Key("escape")
+	messageButton(t, e, 1)
 	e.Select(recordIndex(t, e, "Action", index), false)
 	messageField(t, e, 2)
 	messageFrame(t, e, x.pageLanguage(), "details-message-list")
@@ -69,22 +74,11 @@ func TestReleaseTriggerMessageEditsAndUndo(t *testing.T) {
 	s := e.Document().Edits.(*mapInspectionEdits)
 	before, pages, steps := bytes.Clone(s.model.Bytes()), cloneWorkspace(s.workspace).Pages, len(s.undoWorkspace)
 	page := freeMessage(pages)
-	messageField(t, e, wizField(t, e, key))
-	for row, target := range e.Document().Script.Targets[ui.ScriptMessageParameter] {
-		if target.NewMessage {
-			e.ScrollDropdown(-len(e.DropdownChoices()))
-			for range len(e.DropdownChoices()) + 1 {
-				if r, ok := e.DropdownRowRect(row); ok {
-					messageClick(t, e, r, ok)
-					break
-				}
-				e.ScrollDropdown(1)
-			}
-			break
-		}
-	}
-	if len(e.PopupLines()) != 3 {
-		t.Fatal("wizard New did not open the shared message editor", e.PopupLines())
+	configure(t, e, key)
+	messageField(t, e, e.DialogChoiceField())
+	messageChoiceClick(t, e, map[string]string{"en": "New dialog", "ru": "Новый диалог"}[x.pageLanguage()])
+	if !strings.Contains(trigLines(e), map[string]string{"en": "New dialog", "ru": "Новый диалог"}[x.pageLanguage()]) {
+		t.Fatal("the dialog choice did not start a new dialog", e.PopupLines())
 	}
 	body := map[string]string{"en": "A new wizard message.", "ru": "Новое сообщение мастера."}[x.pageLanguage()]
 	e.TextInput(body)
