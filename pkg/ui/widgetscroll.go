@@ -249,6 +249,8 @@ type listBox struct {
 	// Ruled draws a rule under every row whose rule lies inside the list,
 	// empty rows included.
 	Ruled bool
+	// Dark fills the selected row opaque and dark, with no outline.
+	Dark bool
 }
 
 // newListBox places a list of rows rows at the argument rectangle's top
@@ -347,6 +349,7 @@ var (
 	listSelectedInk = loadSelectedText
 	listSelectFill  = color.RGBA{0, 7, 6, 220}
 	listSelectEdge  = color.RGBA{57, 77, 65, 255}
+	listSelectDark  = color.RGBA{9, 7, 8, 255}
 )
 
 // listRowText is how a row's text reaches the font: the screen's own
@@ -369,9 +372,16 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 			r := l.Row(i)
 			ink := listRowInk
 			if top+i == m.Selection() {
-				draw.Draw(dst, r, &image.Uniform{C: listSelectFill}, image.Point{}, draw.Over)
-				outline(dst, r, listSelectEdge)
+				if l.Dark {
+					draw.Draw(dst, r, &image.Uniform{C: listSelectDark}, image.Point{}, draw.Src)
+				} else {
+					draw.Draw(dst, r, &image.Uniform{C: listSelectFill}, image.Point{}, draw.Over)
+					outline(dst, r, listSelectEdge)
+				}
 				ink = listSelectedInk
+			}
+			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Ink != (color.RGBA{}) {
+				ink = rows[top+i].Ink
 			}
 			x, width := r.Min.X+listTextX, r.Dx()-2*listTextX
 			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Icon != nil {

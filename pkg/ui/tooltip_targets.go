@@ -229,6 +229,9 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 	if !ok {
 		return tooltipTarget{}
 	}
+	if a.flow.screen == ScreenSave || a.flow.screen == ScreenLoad {
+		return a.pageTooltip(p)
+	}
 	if a.flow.screen == ScreenPicker {
 		return a.pickerTooltip(p)
 	}
@@ -528,4 +531,41 @@ func MapListHint(w Words, row PickerRow, column int) ([]string, bool) {
 		return mapListHoverLines(w, row)
 	}
 	return mapListColumnLines(w, column)
+}
+
+// pageTooltip is the hover caption over the open save or load page: the save
+// page's name hint over its name box, and a listed row's detail where the
+// page gives its rows a hint.
+func (a *App) pageTooltip(p image.Point) tooltipTarget {
+	var v pageView
+	switch {
+	case a.flow.screen == ScreenSave && a.flow.pages.save != nil:
+		v = a.flow.pages.save.view()
+	case a.flow.screen == ScreenLoad:
+		v = a.flow.loadView()
+	default:
+		return tooltipTarget{}
+	}
+	if v.list == nil || v.ui.confirm || v.ui.mismatch != nil || a.tooltip.baseFont == nil {
+		return tooltipTarget{}
+	}
+	if v.save != nil && v.page.NameHint != "" && p.In(v.page.NameBox) {
+		return tooltipTarget{tooltipText, "page/name", tooltipLines(v.page.NameHint), a.tooltip.baseFont}
+	}
+	if !v.page.RowHint {
+		return tooltipTarget{}
+	}
+	row, ok := a.pageListBox(v).RowAt(p)
+	if !ok {
+		return tooltipTarget{}
+	}
+	top, count := v.list.Visible()
+	if row >= count {
+		return tooltipTarget{}
+	}
+	i := top + row - v.first()
+	if i < 0 || i >= len(v.saves) || v.saves[i].Detail == "" {
+		return tooltipTarget{}
+	}
+	return tooltipTarget{tooltipText, fmt.Sprintf("page/row/%d", top+row), []string{v.saves[i].Detail}, a.tooltip.baseFont}
 }

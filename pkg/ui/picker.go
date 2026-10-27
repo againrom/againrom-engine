@@ -60,6 +60,10 @@ type PickerRow struct {
 	// Icon is a picture a list box draws at the row's left, square at the
 	// row's height, with the text after it; nil draws the text alone.
 	Icon *image.RGBA
+
+	// Ink draws the row's text in this colour, selected or not; the zero
+	// colour keeps the list's own inks.
+	Ink color.RGBA
 }
 
 // Column edges in frame pixels from pickerLeft (TEXT-083); the hover

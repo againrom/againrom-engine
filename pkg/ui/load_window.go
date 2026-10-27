@@ -70,7 +70,9 @@ func loadButtonRect(i int) image.Rectangle { return firstLoadPage(LoadWindowWord
 
 // pageListBox is a page's shared list.
 func (a *App) pageListBox(v pageView) listBox {
-	return newListBox(v.page.List, v.page.Rows, a.flow.menuFont)
+	box := newListBox(v.page.List, v.page.Rows, a.flow.menuFont)
+	box.Ruled, box.Dark = v.page.Ruled, v.page.Ruled
+	return box
 }
 
 // loadListBox is the Load window's shared list.
@@ -152,7 +154,7 @@ func (a *App) acceptPage(v pageView) {
 	}
 	if v.save != nil {
 		f.refreshSavePage()
-		f.pages.save.list.Move(i)
+		f.pages.save.list.Select(0)
 		f.pages.save.pick()
 		return
 	}
@@ -225,10 +227,14 @@ func (a *App) stepPage(v pageView, in appInput) {
 			v.save.edit(in)
 			if in.Typed != "" || in.Backspace || in.Delete {
 				f.msg = ""
+				v.save.listFocus = false
 			}
 		}
 		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || in.WheelY != 0 {
 			v.ui.rowPressed = false
+			if v.save != nil {
+				v.save.listFocus = true
+			}
 		}
 		listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
 		switch {
@@ -257,6 +263,14 @@ func (a *App) stepPage(v pageView, in appInput) {
 	}
 	if in.PrimaryPressed {
 		button, onButton := v.buttonAt(p)
+		if v.save != nil && ok && !onButton && !v.ui.confirm {
+			switch {
+			case p.In(v.page.NameBox):
+				v.save.listFocus = false
+			case p.In(box.Rect) || p.In(box.Bar()):
+				v.save.listFocus = true
+			}
+		}
 		v.ui.press.Press(button, ok && onButton && !f.pageButtonDisabled(v, button))
 		if !ok || onButton || v.ui.confirm {
 			v.ui.rowPressed = false

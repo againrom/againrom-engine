@@ -24,6 +24,13 @@ type SavePage struct {
 	Buttons [3]PageButton
 	// Confirm lays out the delete confirmation.
 	Confirm PageConfirm
+	// Ruled rules every list row and fills the chosen row opaque and dark.
+	Ruled bool
+	// RowHint shows a row's detail as a hover caption over the row, not as
+	// the line under the list.
+	RowHint bool
+	// NameHint is the hover caption of the save page's name box.
+	NameHint string
 	// OKNeedsSave disables Ok while no save is listed.
 	OKNeedsSave bool
 
@@ -35,19 +42,23 @@ type SavePage struct {
 	NameBox   image.Rectangle
 	NameLimit int
 	EmptySlot string
-	Hidden    []string
-	Slot      func(directory string, listed []string) string
+	// EmptyInk draws the Empty Slot row in this colour; zero keeps the list's.
+	EmptyInk color.RGBA
+	Hidden   []string
+	Slot     func(directory string, listed []string) string
 }
 
 // PageText is one caption: centred in Box when Box is set, else drawn from
 // At, in Ink or the window text colour when Ink is zero. Listing hides it
-// while a deletion awaits confirmation.
+// while a deletion awaits confirmation. Focus draws it gold while the list
+// has the focus.
 type PageText struct {
 	Text    string
 	At      image.Point
 	Box     image.Rectangle
 	Ink     color.RGBA
 	Listing bool
+	Focus   bool
 }
 
 // PageButton is one push button.
@@ -147,6 +158,10 @@ type pageView struct {
 	saves []SaveEntry
 	save  *savePageState
 }
+
+// listFocus reports whether the list has the focus: always on a load page,
+// on a save page once a list key or a click in the list set it.
+func (v pageView) listFocus() bool { return v.save == nil || v.save.listFocus }
 
 // first is the list row of saves[0].
 func (v pageView) first() int {

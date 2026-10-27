@@ -15,6 +15,9 @@ type savePageState struct {
 	onMap     bool
 	name      []rune
 	caret     int
+	// listFocus is set by a list key or a click in the list and cleared by
+	// typing or a click in the name box.
+	listFocus bool
 	// selectAll makes the next edit replace the whole name.
 	selectAll bool
 }
@@ -62,7 +65,7 @@ func (f *flow) refreshSavePage() {
 	} else {
 		f.msg = f.saveWords().Unavailable
 	}
-	rows := []PickerRow{{Text: s.page.EmptySlot, Choosable: true}}
+	rows := []PickerRow{{Text: s.page.EmptySlot, Choosable: true, Ink: s.page.EmptyInk}}
 	for _, e := range s.saves {
 		rows = append(rows, PickerRow{Text: e.Label, Choosable: true})
 	}

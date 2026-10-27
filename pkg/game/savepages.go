@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,23 +13,35 @@ import (
 	"againrom/pkg/ui"
 )
 
-// The second game's page geometry. The page constructor's four numbers
-// (100, 30, 600, 450) are read as left, top, right and bottom; the caption,
-// name box and list origins are the claimed offsets from the page's corner
-// (R2-ENGINE-438, R2-ENGINE-440). List width, buttons, message line and the
-// confirmation are chosen (DIV-3078).
+// The second game's page geometry, in the 640x480 frame: the box is the
+// original's 476 by 344 pixels at 1024x768, its title centred, the name box,
+// heading, list and buttons placed as the EN original draws them. The page
+// constructor's own numbers (100, 30, 600, 450) are not read as a rectangle
+// (DIV-3078).
 var (
-	secondPagePanel   = image.Rect(100, 30, 600, 450)
-	secondPageMessage = image.Rect(140, 372, 560, 406)
-	secondPageConfirm = ui.PageConfirm{At: image.Pt(140, 141), Label: image.Rect(140, 141, 560, 220), Inline: true}
+	secondPagePanel   = image.Rect(82, 48, 558, 392)
+	secondPageTitle   = image.Rect(102, 56, 538, 84)
+	secondPageMessage = image.Rect(120, 372, 527, 396)
+	secondPageConfirm = ui.PageConfirm{At: image.Pt(120, 134), Label: image.Rect(120, 134, 527, 300), Inline: true}
+	secondPageName    = image.Rect(120, 98, 527, 122)
+	// secondSaveList and secondLoadList are the list arguments: 383 wide,
+	// the 24-pixel bar after them reaches the name box's right edge.
+	secondSaveList = image.Rect(120, 160, 503, 160)
+	secondLoadList = image.Rect(120, 120, 503, 120)
 )
 
-func secondPageAt(x, y int) image.Point { return secondPagePanel.Min.Add(image.Pt(x, y)) }
+const (
+	secondSaveRows = 7
+	secondLoadRows = 10
+)
 
-func secondPageButtons(ok, del, cancel string) [3]ui.PageButton {
+// secondEmptyInk is the Empty Slot row's white, selected or not.
+var secondEmptyInk = color.RGBA{240, 240, 240, 255}
+
+func secondPageButtons(top int, ok, del, cancel string) [3]ui.PageButton {
 	var out [3]ui.PageButton
 	for i, caption := range []string{ok, del, cancel} {
-		out[i] = ui.PageButton{Rect: image.Rect(178+i*124, 410, 274+i*124, 434), Caption: caption}
+		out[i] = ui.PageButton{Rect: image.Rect(154+i*122, top, 250+i*122, top+24), Caption: caption}
 	}
 	return out
 }
@@ -51,7 +64,14 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 		return fallback
 	}
 	text := func(i int, fallback string, x, y int) ui.PageText {
-		return ui.PageText{Text: row(dialogs, i, fallback), At: secondPageAt(x, y)}
+		return ui.PageText{Text: row(dialogs, i, fallback), At: image.Pt(x, y)}
+	}
+	title := func(i int, fallback string) ui.PageText {
+		return ui.PageText{Text: row(dialogs, i, fallback), Box: secondPageTitle}
+	}
+	heading := func(t ui.PageText) ui.PageText {
+		t.Focus = true
+		return t
 	}
 	selector := 0
 	if f.Font.Value() != nil {
@@ -64,12 +84,11 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 	load := ui.SavePage{
 		Panel: secondPagePanel,
 		Texts: []ui.PageText{
-			text(151, "Load Saved Game", 40, 32),
-			text(24, "Load the Game", 40, 68),
-			listing(text(25, "Saved games", 40, 92)),
+			title(151, "Load Saved Game"),
+			heading(text(24, "Load Game", 120, 98)),
 		},
-		List: image.Rect(140, 141, 536, 141), Rows: 10,
-		Message: secondPageMessage, Buttons: secondPageButtons(ok, del, cancel),
+		List: secondLoadList, Rows: secondLoadRows, Ruled: true, RowHint: true,
+		Message: secondPageMessage, Buttons: secondPageButtons(338, ok, del, cancel),
 		Confirm: confirm, OKNeedsSave: true,
 	}
 	// R2-ENGINE-443: the name box holds 0x7c bytes in EN and 0x80 in RU,
@@ -81,16 +100,16 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 	save := ui.SavePage{
 		Panel: secondPagePanel,
 		Texts: []ui.PageText{
-			text(29, "Save Game", 40, 32),
-			listing(text(30, "Enter a name for the saved game", 40, 50)),
-			listing(text(144, "", 40, 104)),
-			listing(text(31, "Saved games", 40, 128)),
+			title(29, "Save Game"),
+			listing(heading(text(31, "Saved Games", 120, 134))),
 		},
-		List: image.Rect(140, 177, 536, 177), Rows: 10,
-		Message: secondPageMessage, Buttons: secondPageButtons(ok, del, cancel),
+		List: secondSaveList, Rows: secondSaveRows, Ruled: true, RowHint: true,
+		Message: secondPageMessage, Buttons: secondPageButtons(318, ok, del, cancel),
 		Confirm: confirm,
-		NameBox: image.Rect(140, 98, 560, 122), NameLimit: limit,
+		NameBox: secondPageName, NameLimit: limit,
+		NameHint:  strings.ToUpper(row(dialogs, 30, "Enter a name for the saved game")),
 		EmptySlot: fontText(row(dialogs, 28, "<<< Empty Slot >>>"), selector),
+		EmptyInk:  secondEmptyInk,
 		Hidden:    secondSaveHidden(),
 		Slot:      secondSaveSlot,
 	}

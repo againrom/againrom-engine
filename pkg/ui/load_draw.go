@@ -42,6 +42,9 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 		if t.Ink == (color.RGBA{}) {
 			t.Ink = townShellText
 		}
+		if t.Focus && v.listFocus() {
+			t.Ink = loadSelectedText
+		}
 		switch {
 		case t.Listing && v.ui.confirm:
 		case t.Box != (image.Rectangle{}):
@@ -121,7 +124,7 @@ func (f *flow) pageMessage(v pageView) string {
 		return f.msg
 	}
 	entry, _, ok := v.selected()
-	if !ok {
+	if !ok || v.page.RowHint {
 		return ""
 	}
 	if entry.Detail != "" {
