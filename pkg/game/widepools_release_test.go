@@ -94,17 +94,6 @@ func applyWidePools(t *testing.T, f *FrontEnd) []sim.EntityID {
 	return ids
 }
 
-func TestReleaseGeneratedWidePoolsSAV(t *testing.T) {
-	firstgame.SkipOnSecondGame(t)
-	if path := os.Getenv("AGAINROM_GENERATED_MISSION_INPUT"); path != "" {
-		generatedMissionCold(t, path)
-		return
-	}
-	c := releaseFront(t).Campaign.Value()
-	mission := slices.Min(append(slices.Clone(c.Main), c.Side...))
-	generatedMissionRoute(t, mission, func(t *testing.T, f *FrontEnd) { applyWidePools(t, f) })
-}
-
 // applyWideNumerics lifts every other numeric actor field except the load,
 // capacity and type fields (which have their own admission rules) by a
 // multiple of its word width, on two living actors: one by a positive and one

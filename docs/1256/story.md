@@ -62,7 +62,10 @@ never refuses.
 - `TestReleaseGeneratedWidePoolsSAV`: five actors carry HP/MaxHP/Mana/MaxMana
   tuples at the 16-bit edges and at int32 maxima (32767/65535, 32768/65536,
   65536/2147483647, 2147483647/-1, 65535/-65537); ordinary SAVE, two cold LOADs
-  in fresh processes, 16 continuation ticks. Passes EN and RU.
+  in fresh processes, 16 continuation ticks. Passed EN and RU. Story 1524
+  deleted it as a subset: `TestReleaseGeneratedWideNumericContinuationSAV`
+  applies the same pools (`applyWidePools`) over the same route and now
+  carries this proof.
 - `TestReleaseGeneratedWideNumericSAV`: every ordinal 4..32 (including Load,
   Capacity and TypeID) lifted by a positive multiple of its word on one actor and
   a negative multiple on another, with the pools above: SAVE, cold LOAD, second

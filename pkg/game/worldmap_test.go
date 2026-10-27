@@ -669,9 +669,8 @@ func TestWorldMapKeyboardMovementWrapsAndSkipsDisabledMissions(t *testing.T) {
 	}
 }
 
-func TestTownScreenImplementsTheWorldMapPresentationSeam(t *testing.T) {
-	var _ ui.TownWorldMapScreen = (*townScreen)(nil)
-}
+// The town screen implements the world map presentation seam.
+var _ ui.TownWorldMapScreen = (*townScreen)(nil)
 
 // The digest is the committed replacement for the throwaway probes that
 // produced 1010's corpus counts. Every number is written out here, not

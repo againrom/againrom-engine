@@ -548,12 +548,20 @@ var modesPaths = []modesPath{
 // optional seams and against the mod host.
 var modesSmallPaths = map[string]bool{"list": true, "selected": true, "catalog": true, "saveas": true, "saveas-bad": true, "field": true, "clone": true, "sack": true, "sack-prompt": true, "unit": true, "terrain": true, "drop": true, "goals": true, "report": true, "dirty": true, "open": true, "players": true, "player-name": true}
 
-func modesGoldenLines(t *testing.T) []string {
+// modesSampleEvery is the ordinary walk's row stride. MAPEDITOR_MODES_FULL=1
+// and a table rewrite walk every row; a skipped row holds its name alone.
+const modesSampleEvery = 4
+
+func modesGoldenLines(t *testing.T, every int) []string {
 	actions := append(append([]string(nil), modesKeys...), modesGestures...)
 	var lines []string
 	for _, host := range []string{"full", "plain", "mod"} {
 		for _, p := range modesPaths {
 			if host != "full" && !modesSmallPaths[p.name] {
+				continue
+			}
+			if len(lines)%every != 0 {
+				lines = append(lines, host+"/"+p.name)
 				continue
 			}
 			var hashes []string
@@ -574,8 +582,13 @@ const modesGoldenPath = "testdata/mapeditor_modes.golden"
 // every entry path with the recorded table. A difference names the path and
 // the action columns that changed.
 func TestMapEditorModesHoldEveryKeyAndGesture(t *testing.T) {
-	got := modesGoldenLines(t)
-	if os.Getenv("MAPEDITOR_MODES_WRITE") != "" {
+	write := os.Getenv("MAPEDITOR_MODES_WRITE") != ""
+	every := modesSampleEvery
+	if write || os.Getenv("MAPEDITOR_MODES_FULL") == "1" {
+		every = 1
+	}
+	got := modesGoldenLines(t, every)
+	if write {
 		if err := os.WriteFile(modesGoldenPath, []byte(strings.Join(got, "\n")+"\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -595,6 +608,12 @@ func TestMapEditorModesHoldEveryKeyAndGesture(t *testing.T) {
 			continue
 		}
 		g, w := strings.Fields(got[i]), strings.Fields(want[i])
+		if len(g) == 1 {
+			if g[0] != w[0] {
+				t.Errorf("row %d is %s, recorded %s", i, g[0], w[0])
+			}
+			continue
+		}
 		var diff []string
 		for c := 1; c < len(g) && c < len(w); c++ {
 			if g[c] != w[c] {

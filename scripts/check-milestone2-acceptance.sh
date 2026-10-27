@@ -36,8 +36,10 @@
 # registered gated-test population; it is the sessioncorpusaudit family's own
 # equivalent, selecting TestMilestone2* and the instruments below. Story 1144 adds an independent
 # dying-owner-actor witness to the four instruments from story 1140; story
-# 1145 adds Buildings; 1151 adds Sacks and their item graphs. Other opt-in
-# corpus audits are not selected by this gate.
+# 1145 adds Buildings; 1151 adds Sacks and their item graphs. The projectile
+# audit and the two current-world SAV admission audits, which story proofs
+# name and which pass on both roots, are selected too.
+# The other opt-in corpus audits fail on today's corpus and are not selected.
 #
 # STORY 1195 adds the permanent SAV round-trip regression instrument
 # (pipeline/SAV-ENDGAME.md "Permanent instrument", pkg/game/
@@ -128,8 +130,8 @@ cd "$here" || fail "cannot enter $here"
 # gate alone, so a chain can run it as its own leg beside the rest
 # (scripts/check-sav-roundtrip-gate.sh).
 case "${AGAINROM_M2_SAVGATE:-}" in
-"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestSAVRoundTripGate)' ;;
-skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus)' ;;
+"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSAVRoundTripGate)' ;;
+skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV)' ;;
 only) pattern='^TestSAVRoundTripGate' ;;
 *) fail "AGAINROM_M2_SAVGATE must be unset, skip or only" ;;
 esac

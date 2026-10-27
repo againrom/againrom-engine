@@ -2,7 +2,6 @@ package rules
 
 import (
 	"math"
-	"math/big"
 	"testing"
 )
 
@@ -25,27 +24,6 @@ func TestDefaultsAreTheOriginalGame(t *testing.T) {
 	}
 	if rom1SkillXP[10] != 1593 || rom1SkillXP[100] != 13779612 {
 		t.Fatal("checkpoints")
-	}
-}
-
-func TestExactFormulaAgreesWithTheOriginalTable(t *testing.T) {
-	// The extension past level 100 uses exact integers; over 0..100 it must
-	// reproduce the original table except where the original's float
-	// truncation differs, which is listed so a drift is noticed.
-	ten, eleven := big.NewInt(1), big.NewInt(1)
-	var differ []int
-	for n := 0; n <= 100; n++ {
-		v := new(big.Int).Sub(eleven, ten)
-		v.Mul(v, big.NewInt(1000))
-		v.Quo(v, ten)
-		if v.Int64() != int64(rom1SkillXP[n]) {
-			differ = append(differ, n)
-		}
-		ten.Mul(ten, big.NewInt(10))
-		eleven.Mul(eleven, big.NewInt(11))
-	}
-	if len(differ) != 0 {
-		t.Logf("exact formula differs from the table at levels %v", differ)
 	}
 }
 

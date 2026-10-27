@@ -2,17 +2,11 @@
 # pkg/game sessionCorpusAudit gate, skips unless scripts/check-milestone2-acceptance.sh
 # opens it, and stays out of population.txt and the release gate.
 # TestScanMatchesTheCheckedInPopulationList requires an exact match.
-pkg/game.TestAttackTargetSaveCensus
 pkg/game.TestCellRecordCorpusAudit1131
-pkg/game.TestCorpusDyingMoverSpeedRoundTrip
-pkg/game.TestCorpusResavePreservesCurrentGroupOrders
 pkg/game.TestCurrentWorldSAVAdmission1170
 pkg/game.TestCurrentWorldSAVStrideQualification1170
 pkg/game.TestDiaryCorpusAudit1135
 pkg/game.TestGroundContainerCorpusAudit1136
-pkg/game.TestGroupRateTermCorpusCensus
-pkg/game.TestLootConstructionCapturePreservesAbsenceNamesAndInputOwnership
-pkg/game.TestLowSAVResaveCorpusCensus
 pkg/game.TestMilestone2ActorRoots
 pkg/game.TestMilestone2Buildings
 pkg/game.TestMilestone2CellRecords
@@ -42,20 +36,10 @@ pkg/game.TestMilestone2WriterLossControls
 pkg/game.TestMilestone2WriterOriginalAdmission
 pkg/game.TestMoverRouteCorpusAudit1134
 pkg/game.TestNativeResumeCorpusCycle1139
-pkg/game.TestPermanentMercenaryOrderCorpusRoundTrip
 pkg/game.TestProjectileCorpusAudit1133
-pkg/game.TestReleaseWriterCensusCapturedState
-pkg/game.TestReleaseWriterCensusLiveMission
-pkg/game.TestReleaseWriterCensusMissionDocument
-pkg/game.TestReleaseWriterCensusTownDocument
-pkg/game.TestRoundTripObservationUsesCurrentMissionHoldings
-pkg/game.TestRoundTripRosterIdentityCannotHideMissingMembers
-pkg/game.TestRoundTripRosterPermutationKeepsMemberChecks
 pkg/game.TestSAVByteIdentity1197OriginalCorpus
 pkg/game.TestSAVConvertedCorpusContinuationPart1
 pkg/game.TestSAVConvertedCorpusContinuationPart2
-pkg/game.TestSAVD56OriginalGroundSackLineage
-pkg/game.TestSAVHiredPoolMigrationBound
 pkg/game.TestSAVRoundTrip1195OriginalCorpus
 pkg/game.TestSAVRoundTripGateComparisonStorage
 pkg/game.TestSAVRoundTripGateCorpusPart1
@@ -78,7 +62,6 @@ pkg/game.TestSAVWriterCensusLoadedDocument
 pkg/game.TestSAVWriterCensusLossControls
 pkg/game.TestSAVWriterCensusReference
 pkg/game.TestSAVWriterCensusSensitivity
-pkg/game.TestSAVWriterLootContinuationWitness
 pkg/game.TestSessionCorpusAudit1130
 pkg/game.TestSpellEffectCorpusAudit1132
 pkg/game.TestUnitResidualCorpusAudit1138

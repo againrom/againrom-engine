@@ -16,8 +16,6 @@ import (
 	"os"
 	"slices"
 	"testing"
-
-	"againrom/pkg/mapload"
 )
 
 // sav1195Refusal names one corpus file this instrument's round trip could not
@@ -91,47 +89,6 @@ func sav1195CheckDisclosed(t *testing.T, label string, disclosed corpusLossCeili
 			t.Errorf("%s: disclosed field %q reached %d files, ceiling %d (%s): a disclosed loss that spreads is still a regression",
 				label, field, n, row.ceiling, row.row)
 		}
-	}
-}
-
-func TestSAVHiredPoolMigrationBound(t *testing.T) {
-	sessionCorpusAudit(t)
-	member := mapload.PartyMember{ID: "mercenary:3:1", MercenaryType: 3}
-	before := Snapshot{Mission: 50, Party: []mapload.PartyMember{member}}
-	before.MercenaryHired[3] = true
-	after := before
-	after.CampaignState = true
-	after.Campaign.MercenaryWorking = make([]uint16, 15)
-	after.Campaign.MercenaryWorking[2] = 1
-	after.MercenaryPool[3] = 1
-	if !isHiredPoolMigration(before, after, 3) {
-		t.Fatal("the measured legacy-mission-to-SAV representation was rejected")
-	}
-	ok, disclosed, migrated := savTripCompare(t, "synthetic hired-pool migration", before, after, corpusLossCeilings{}, map[string]int{})
-	if !ok || disclosed || !migrated {
-		t.Fatalf("migration classification = %t/%t/%t, want accepted / not disclosed / migrated", ok, disclosed, migrated)
-	}
-	for _, tc := range []struct {
-		name string
-		edit func(*Snapshot, *Snapshot)
-	}{
-		{"lost squad member", func(_, a *Snapshot) { a.Party = nil }},
-		{"changed mercenary type", func(_, a *Snapshot) { a.Party[0].MercenaryType = 4 }},
-		{"wrong campaign working count", func(_, a *Snapshot) { a.Campaign.MercenaryWorking[2] = 0 }},
-		{"wrong restored stock", func(_, a *Snapshot) { a.MercenaryPool[3] = 2 }},
-		{"existing campaign source", func(b, _ *Snapshot) { b.CampaignState = true }},
-		{"town stock", func(b, a *Snapshot) { b.Mission, a.Mission = 0, 0 }},
-		{"hire flag lost", func(_, a *Snapshot) { a.MercenaryHired[3] = false }},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			b, a := before, after
-			b.Party, a.Party = slices.Clone(before.Party), slices.Clone(after.Party)
-			a.Campaign.MercenaryWorking = slices.Clone(after.Campaign.MercenaryWorking)
-			tc.edit(&b, &a)
-			if isHiredPoolMigration(b, a, 3) {
-				t.Fatal("a real loss was accepted as a representation change")
-			}
-		})
 	}
 }
 

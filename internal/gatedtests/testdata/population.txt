@@ -1,4 +1,9 @@
-# Checked-in gated-test manifest: one "<package>.<func>" per line.
+# Checked-in gated-test manifest: one "<package>.<func>" per line, optionally
+# followed by its root column. "en": the test and its helpers read no data that
+# differs between the EN and RU installs, and the chain runs it on the first
+# root (EN) only, both roots in release mode.
+# No column: every root. A new test takes no column; scan_test.go holds the
+# count of "en" rows (firstRootOnlyRows), which may only fall.
 pkg/game.TestReleaseShopStockMultiplierDefaultMatchesMain
 pkg/game.TestReleaseShopStockMultiplierRollsEveryShelf
 pkg/game.TestReleaseShopStockHoldsOneEntryPerEffectKind
@@ -12,7 +17,7 @@ pkg/game.TestReleaseHeadlessFrameDrawsTheModTownName
 pkg/game.TestReleaseHeadlessFrameRefusalsWriteNothing
 pkg/game.TestReleaseHeadlessOlderVersionKeepsTheWallClock
 pkg/game.TestReleaseHeadlessPointerActionsReachTheTown
-pkg/ui.TestReleaseUsableStructureRegistryAdmission
+pkg/ui.TestReleaseUsableStructureRegistryAdmission en
 pkg/game.TestReleaseMapEditorUsedByCensusPreservesBytes
 pkg/game.TestReleaseMapEditorUsedByFrames
 pkg/game.TestReleaseEditorCancelPreservesInstalledMapBytes
@@ -54,7 +59,7 @@ cmd/missionrun.TestReleaseMissionRunRefusesBetweenMissionSAV
 cmd/missionrun.TestTheTenthMissionRunsEndToEndOnALawfulInstall
 cmd/scenariofixture.TestReleaseLegacyMission20EndpointScenarios
 cmd/scriptcoverage.TestReleaseCampaignScriptExecutionClosure
-pkg/formats/sav.TestCityProvenanceLawfulSourceFaithfulRelease
+pkg/formats/sav.TestCityProvenanceLawfulSourceFaithfulRelease en
 pkg/game.TestCitySalesProcess
 pkg/game.TestGeneratedMissionHeroDefRowMatchesChargenRow
 pkg/game.TestGeneratedMissionSAVFullTickFollowsSubTick
@@ -271,7 +276,6 @@ pkg/game.TestReleaseGeneratedWorld1171Mission20SecondNewGameOpensAfterEmptyUnloc
 pkg/game.TestReleaseGeneratedWorldSAV1171
 pkg/game.TestReleaseGeneratedWideNumericContinuationSAV
 pkg/game.TestReleaseGeneratedWideNumericSAV
-pkg/game.TestReleaseGeneratedWidePoolsSAV
 pkg/game.TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad
 pkg/game.TestReleaseSettingKeysPostInstalledStateLines
 pkg/game.TestReleaseSettingsDialogsFrameCaptionsAndMissionTracks
@@ -281,7 +285,7 @@ pkg/game.TestReleaseHealedActorSAVUsesCurrentStage
 pkg/game.TestReleaseHeroBackground
 pkg/game.TestReleaseHeroDrawsItsOwnBodyAfterOurSaveAndLoad
 pkg/game.TestReleaseHeroDrawsItsOwnBodyFromALegacyDuplicateRosterEntry
-pkg/game.TestReleaseHeroHealthMaximumGroundTruthResave
+pkg/game.TestReleaseHeroHealthMaximumGroundTruthResave en
 pkg/game.TestReleaseHiredHumanMercenaryHasAReadOnlyMissionDoll
 pkg/game.TestReleaseHiredMercenaryKeepsItsOwnClassAfterOurSaveAndLoad
 pkg/game.TestReleaseIdleAIMoverCacheColdLoad
@@ -479,7 +483,7 @@ pkg/game.TestReleaseTeleportBookAndScrollDrawAtDestination
 pkg/game.TestReleaseTeleportUnitTargetDrawsAtDestination
 pkg/game.TestReleaseTeleportPursuitWitness
 pkg/game.TestReleaseTeleportReachRightAfterOriginalLOAD
-pkg/sim.TestTeleportPursuitWitnessRead
+pkg/sim.TestTeleportPursuitWitnessRead en
 pkg/game.TestReleaseCreatureTeleportUsesAdjacentCell
 pkg/game.TestReleaseBookTeleportMovesOnTheCountdownAndDrawsBothEnds
 pkg/game.TestReleaseOwnerTeleportSeriesRelocatesOnTheCountdownTick
@@ -552,7 +556,7 @@ pkg/game.TestReleaseSpellClickMidStepCompletesTheStep
 pkg/game.TestReleaseSpellClickMidStepSurvivesSAVE
 pkg/game.TestReleaseSpellSoundSelectorPopulation
 pkg/game.TestReleaseSpellbookPopupComposesFromSpellsTxtAndInstalledLabels
-pkg/game.TestReleaseStaticMusicPopulation
+pkg/game.TestReleaseStaticMusicPopulation en
 pkg/game.TestReleaseStatisticsCardFitsAtTheProductionFont
 pkg/game.TestReleaseStructureClassesWithUsableFlag
 pkg/game.TestReleaseStructurePhysicalAttack
@@ -650,9 +654,9 @@ pkg/ui.TestReleaseDocumentsPanelComposesTheShippedPictureElement
 pkg/ui.TestReleaseMissionPackKeepsTheCompleteInstalled80PixelIcon
 pkg/ui.TestReleaseSaveDialogUsesInstalledFontWithoutClipping
 pkg/ui.TestReleaseSaveCaretStaysWhiteAtHome
-pkg/ui.TestReleaseSpellPassesComposeInstalledArtAroundShadowsAndBodies
-pkg/ui.TestReleaseWallsFollowInstalledCellDepth
-pkg/ui.TestReleaseWallsOccludeInstalledTreeWithinTheirCell
+pkg/ui.TestReleaseSpellPassesComposeInstalledArtAroundShadowsAndBodies en
+pkg/ui.TestReleaseWallsFollowInstalledCellDepth en
+pkg/ui.TestReleaseWallsOccludeInstalledTreeWithinTheirCell en
 pkg/video/smacker.TestReleaseSmackerDecoderAgainstOracles
 pkg/game.TestReleaseCreatureInnateCombatSAV
 pkg/game.TestReleaseCreatureSpellCensus
@@ -804,12 +808,12 @@ pkg/game.TestReleaseCitySiegeHireWritesUnitActor
 pkg/game.TestReleaseDebugFontEscStatusesAreSmoothedAtWindowScale
 pkg/game.TestReleaseDebugFontMapPickerFailureIsSmoothedAtWindowScale
 pkg/game.TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne
-pkg/render/debugtext.TestMasksRetainExactInkAndShadow
-pkg/render/debugtext.TestSourceMatchesDependencyAtlas
+pkg/render/debugtext.TestMasksRetainExactInkAndShadow en
+pkg/render/debugtext.TestSourceMatchesDependencyAtlas en
 pkg/render/debugtext.TestDrawMatchesDependencyRaster
 pkg/game.TestReleaseRestoredBatProjectileTravelsAcrossSAVLoad
-pkg/ui.TestReleaseBackgroundDeformationCopiesInstalledTerrain
-pkg/ui.TestReleaseMapViewportPaintsInstalledTerrain
+pkg/ui.TestReleaseBackgroundDeformationCopiesInstalledTerrain en
+pkg/ui.TestReleaseMapViewportPaintsInstalledTerrain en
 pkg/game.TestReleaseDialogueBackdropTownPlayerRoutes
 pkg/game.TestReleaseDialogueBackdropMissionPlayerRoute
 pkg/game.TestReleaseDialogueSpilledCorpus
@@ -994,7 +998,7 @@ pkg/game.TestReleaseSecondGameAuthoredNewTriggersHaveNoGaps
 pkg/game.TestReleaseSecondGameCampaignMapsDecode
 pkg/game.TestReleaseSecondGameSupportCensus
 pkg/game.TestReleaseDocPayloadMissionSAVRoundTrip
-pkg/game.TestReleaseDocPayloadOwnerResaves
+pkg/game.TestReleaseDocPayloadOwnerResaves en
 pkg/game.TestReleaseTopRowIgnoresTerrainAndOccupants
 pkg/game.TestReleaseSecondGameMenuDrawsInstalledArt
 pkg/game.TestReleaseSecondGameWindowStartsMissionTen
@@ -1319,7 +1323,7 @@ pkg/game.TestReleaseMapEditorFreshRecordAuthoringSAVAndGoals
 pkg/game.TestReleaseMapEditorUnitStockCloneHasIndependentInventory
 pkg/game.TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts
 pkg/game.TestReleaseMapEditorCompleteScenarioPackageSAV
-pkg/game.TestReleaseRetainedProjectileTargetMarksInstalledArt
+pkg/game.TestReleaseRetainedProjectileTargetMarksInstalledArt en
 pkg/game.TestReleaseMapEditorOwnerFrames
 pkg/game.TestReleaseMapEditorGroupPopupFollowsUndoAndRedo
 pkg/game.TestReleaseOriginalBoundaryAndDeadEffectsLoad
@@ -1488,7 +1492,7 @@ pkg/game.TestReleaseSecondGameStartMissionShowsMapThenMissionThenDialogue
 pkg/game.TestReleaseSecondGameStartMissionGateRefusesBeforeTheMage
 pkg/game.TestReleaseSecondTownRoomTips
 pkg/game.TestReleaseRuntimeIDsAfterLoadFollowTheCorpusReplay
-pkg/game.TestReleaseRuntimeIDCorpusPairs
+pkg/game.TestReleaseRuntimeIDCorpusPairs en
 pkg/game.TestReleaseRuntimeIDOutpostChecksInShippedMaps
 pkg/game.TestReleaseOriginalResaveKeepsDeadSpellbooks
 pkg/game.TestReleaseOriginalResaveReferenceAndHumanLoad
