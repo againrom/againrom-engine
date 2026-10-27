@@ -102,6 +102,12 @@ func cardLoadShot(t *testing.T, app *ui.App, name string) {
 	}
 }
 
+// personSpellBook reports whether a person's card value, his spell mask
+// behind a positive mana maximum, is nonzero.
+func personSpellBook(e sim.Entity) bool {
+	return e.KnownSpells&0x1ffffffe != 0 && e.MaxMana > 0
+}
+
 func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	t.Run("mission 51 turtle", func(t *testing.T) {
@@ -115,7 +121,7 @@ func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
 		cardLoadWitness(t, f, app, plain, "plain-creature", false, false)
 		for _, e := range f.live.world.Entities() {
 			if e.Owner != sim.SelfSlot && e.Owner != 0 && e.TypeID < 0x1a && e.Alive() {
-				cardLoadWitness(t, f, app, e.ID, fmt.Sprintf("enemy-person-%d", e.ID), false, sim.HumanExperienceValue(e.SkillXP) != 0)
+				cardLoadWitness(t, f, app, e.ID, fmt.Sprintf("enemy-person-%d", e.ID), false, personSpellBook(e))
 				break
 			}
 		}
@@ -137,16 +143,21 @@ func TestReleaseInformationCardStatesLoadOnlyForTheHeroes(t *testing.T) {
 			t.Fatal(err)
 		}
 		cardLoadWitness(t, f, app, f.live.mission.ids[0], "hero-m10", true, false)
+		// A fighter's trained skill experience gives no caption: the card reads
+		// his spell book (TAVERN-035, DIV-1809).
 		found := false
 		for _, e := range f.live.world.Entities() {
-			if e.Owner != sim.SelfSlot && e.Owner != 0 && e.TypeID < 0x1a && e.Alive() && sim.HumanExperienceValue(e.SkillXP) != 0 {
-				cardLoadWitness(t, f, app, e.ID, "enemy-person", false, true)
+			if e.Owner != sim.SelfSlot && e.Owner != 0 && e.TypeID < 0x1a && e.Alive() &&
+				sim.HumanExperienceValue(e.SkillXP) != 0 && !personSpellBook(e) {
+				if row := cardLoadWitness(t, f, app, e.ID, "enemy-person", false, false); row.Label != "" {
+					t.Fatalf("enemy-person: a person without a spell states the caption: %+v", row)
+				}
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Fatal("mission 10 holds no enemy person with an experience value")
+			t.Fatal("mission 10 holds no enemy person with an experience value and no spell")
 		}
 	})
 	t.Run("mission 61 enemy mage", func(t *testing.T) {

@@ -1351,9 +1351,11 @@ func partyPanelSubject(p mapload.PartyMember, t *mapload.Table, installed ...ui.
 	}
 	// A generated person's original +0x1c value is one percent of the five
 	// trained skill-XP dwords (slots 1..5). Only its nonzero state is consumed here.
-	// Player characters are already excluded by flags bit 0; the value still
-	// follows the actor projection for non-player generated people.
-	s.OriginalPanel.XPValue = tableFiles(t).spellcasterValue(partyOriginalPanelXPValue(p, t, originalHumanPanelXPValue(skillXP)), maxMana)
+	// Player characters are already excluded by flags bit 0. Every party and
+	// inn subject is a person for the card value: an inn stock Unit is built
+	// with no book (TAVERN-035).
+	s.OriginalPanel.XPValue = tableFiles(t).spellcasterValue(partyOriginalPanelXPValue(p, t, originalHumanPanelXPValue(skillXP)),
+		maxMana, p.KnownSpells, true)
 	for i := range s.Char.Protection {
 		s.Char.Protection[i] = int(d.Protection[i])
 		s.Char.Resistance[i] = int(d.Resistance[i])
@@ -5222,14 +5224,15 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 		playerCharacter := mw.isGuarded(e.ID)
 		panelXPValue := e.XPValue
-		if e.TypeID >= 0 && e.TypeID < 0x1a {
+		person := e.TypeID >= 0 && e.TypeID < 0x1a
+		if person {
 			panelXPValue = originalHumanPanelXPValue(e.SkillXP)
 		}
 		var missionTable *mapload.Table
 		if mw.mission != nil {
 			missionTable = mw.mission.table
 		}
-		panelXPValue = tableFiles(missionTable).spellcasterValue(panelXPValue, e.MaxMana)
+		panelXPValue = tableFiles(missionTable).spellcasterValue(panelXPValue, e.MaxMana, e.KnownSpells, person)
 		clientClass := mw.spellClientClass(e.ID, e.Class)
 		draws[i] = ui.MapEntity{ID: uint32(e.ID), UnitNameIndex: nameIndex,
 			DrawCategory:    category,

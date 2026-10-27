@@ -3486,7 +3486,7 @@ func TestEntityDrawCarriesTheOriginalConditionalPanelOperands(t *testing.T) {
 	w, err := sim.NewWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH},
 		sim.ModeCanonical, nil, []sim.Entity{
 			{ID: 7, X: 3, Y: 3, HP: 10, MaxHP: 10, TypeID: 0x49, XPValue: 81},
-			{ID: 8, X: 4, Y: 3, HP: 10, MaxHP: 10, TypeID: 0x17, XPValue: 999,
+			{ID: 8, X: 4, Y: 3, HP: 10, MaxHP: 10, TypeID: 0x17, XPValue: 999, MaxMana: 40, KnownSpells: 1 << 5,
 				SkillXP: [6]int32{9000, 2700}},
 		})
 	if err != nil {
@@ -3501,7 +3501,7 @@ func TestEntityDrawCarriesTheOriginalConditionalPanelOperands(t *testing.T) {
 		t.Errorf("type 0x49 actor projection = %+v, want %+v", got, want)
 	}
 	if got, want := draws[1].OriginalPanel,
-		(ui.OriginalPanelActor{Known: true, Flags: 0x10, XPValue: 27}); got != want {
+		(ui.OriginalPanelActor{Known: true, Flags: 0x10, XPValue: 1 << 5}); got != want {
 		t.Errorf("type 0x17 humanoid projection = %+v, want %+v", got, want)
 	}
 

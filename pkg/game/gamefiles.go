@@ -100,6 +100,9 @@ type gameFiles struct {
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
 	manaSpellcaster bool
+	// bookSpellcaster makes a person's SPELLCASTER actor value his spellbook
+	// mask: zero without a positive mana maximum, else his known spell ids.
+	bookSpellcaster bool
 	// fogStampOnMove folds a moved party body's sight into the fog between
 	// the periodic refreshes; the second game's map keeps the refresh alone.
 	fogStampOnMove bool
@@ -130,10 +133,19 @@ type gameFiles struct {
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
-// the value the first game's projection gives and the actor's mana maximum.
-func (g *gameFiles) spellcasterValue(value, maxMana int32) int32 {
+// the value the projection gives, the actor's mana maximum and known-spell
+// mask. person is false only for a creature on the map, whose value the
+// card's creature rule reads (DIV-1809). The mask keeps spell ids 1..28, the
+// slots a constructed book populates (TAVERN-035).
+func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person bool) int32 {
 	if g.manaSpellcaster && maxMana <= 0 {
 		return 0
+	}
+	if g.bookSpellcaster && person {
+		if maxMana <= 0 {
+			return 0
+		}
+		return int32(spells & 0x1ffffffe)
 	}
 	return value
 }
@@ -170,6 +182,8 @@ var firstGameFiles = gameFiles{
 	projectileCounter:   true,
 	mageCardWeaponSpell: true,
 	loadedTavernStock:   true,
+	// TAVERN-035, TEXT-135.
+	bookSpellcaster: true,
 }
 
 var secondGameFiles = gameFiles{
