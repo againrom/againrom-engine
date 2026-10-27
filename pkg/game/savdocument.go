@@ -22,7 +22,15 @@ func decodeSavedDocument(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObject
 		}
 		return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Unavailable: reason}, nil
 	}
-	return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Document: &doc}, origins
+	return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Document: &doc, ReferenceMisses: loadedTokenReferenceMisses(&doc)}, origins
+}
+
+// SnapshotSAVReferenceMiss is a Token Reference the loaded file held without
+// a key of a record at or before its own; ROM1's LOAD keeps 0 for it.
+type SnapshotSAVReferenceMiss struct {
+	Class     string
+	Identity  uint32
+	Reference uint32
 }
 
 // SnapshotSAVDocument is the complete semantic SAV graph, not a source file.
@@ -41,6 +49,9 @@ type SnapshotSAVDocument struct {
 	Objects       *SnapshotSAVObjectBindings
 	ActorEffects  *SnapshotSAVActorEffects
 	WorldEffects  *SnapshotSAVWorldEffects
+	// ReferenceMisses are the loaded file's Token Reference misses (SAV-1376),
+	// kept from LOAD because play rewrites Document; nil writes every Reference.
+	ReferenceMisses []SnapshotSAVReferenceMiss `json:",omitempty"`
 }
 
 // ObjectIndex is the DTO's local index, NOT SourceBinding.ArchiveIndex. A
@@ -60,12 +71,12 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 		return nil, fmt.Errorf("saved SAV document version %d is unsupported", src.Version)
 	}
 	if src.Document == nil {
-		if src.Unavailable == "" || len(src.Unavailable) > 4096 || strings.ContainsRune(src.Unavailable, '\x00') || len(src.Actors) != 0 || src.GroupBindings != nil || src.PlayerRoots != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.WorldEffects != nil {
+		if src.Unavailable == "" || len(src.Unavailable) > 4096 || strings.ContainsRune(src.Unavailable, '\x00') || len(src.Actors) != 0 || src.GroupBindings != nil || src.PlayerRoots != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.WorldEffects != nil || src.ReferenceMisses != nil {
 			return nil, fmt.Errorf("saved SAV document has invalid unavailable state")
 		}
 		return &SnapshotSAVDocument{Version: src.Version, Unavailable: src.Unavailable}, nil
 	}
-	if src.Unavailable != "" || len(src.Actors) > len(src.Document.Objects) {
+	if src.Unavailable != "" || len(src.Actors) > len(src.Document.Objects) || len(src.ReferenceMisses) > len(src.Document.Objects) {
 		return nil, fmt.Errorf("saved SAV document has conflicting state or too many actor bindings")
 	}
 	doc, permutation, err := sav.ReindexDocumentData(*src.Document)
@@ -112,7 +123,8 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 	if err != nil {
 		return nil, err
 	}
-	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects}
+	out := &SnapshotSAVDocument{Version: src.Version, Document: &doc, Actors: actors, GroupBindings: groups, PlayerRoots: playerRoots, PlayerPurses: purses, Objects: objects, ActorEffects: effects, WorldEffects: worldEffects,
+		ReferenceMisses: slices.Clone(src.ReferenceMisses)}
 	if err := remapSavedSackDocument(out, permutation); err != nil {
 		return nil, err
 	}

@@ -111,6 +111,8 @@ var writerCensusRules = map[string]string{
 	"sack-item:T08":    "ITEM-GROUNDMOVE-130's pickup stamp, the original flags OR 1",
 	"sack-item:F42":    "ITEM-MERGE-129: an item put onto an original stack of equal code joins that record and adds its count; checked as a grown count on a record keeping the original identity, the incoming count not counted independently",
 	"sack-item:split":  "a record split off an original stack repeats its fields but key and count, and the counts sum to the original",
+	"sack-item:Reference": "SAV-1376: a Reference that names no record at or before its own in the original's archive order " +
+		"is 0 after the original's LOAD and is written as 0",
 }
 
 const (
@@ -512,6 +514,21 @@ func writerCensusSacks(before, after sackByteSource, origDoc, writtenDoc *sav.Do
 	}
 	origItems, origAll := byIdentity(origDoc)
 	writtenItems, _ := byIdentity(writtenDoc)
+	// The original's Reference misses: a key no record at or before the
+	// record holds as Identity or This.
+	missed, seen := map[string]bool{}, map[string]bool{}
+	for i := range origDoc.Objects {
+		values := writerCensusRecordValues(&origDoc.Objects[i])
+		for _, name := range []string{"Identity", "This"} {
+			if v, ok := values[name]; ok && v != "0" {
+				seen[v] = true
+			}
+		}
+		if ref := values["Reference"]; writerCensusItemClasses[origDoc.Objects[i].Class] && ref != "" && ref != "0" && !seen[ref] {
+			missed[origDoc.Objects[i].Class+" "+values["Identity"]] = true
+		}
+	}
+	referenceExact := true
 	holders := map[uint32]int{}
 	for i := range writtenDoc.Objects {
 		if id := writerCensusRuntimeID(&writtenDoc.Objects[i]); id != 0 {
@@ -627,6 +644,8 @@ func writerCensusSacks(before, after sackByteSource, origDoc, writtenDoc *sav.Do
 					mergeExact = mergeExact && now > was
 				case "T1C":
 					valuesExact = false
+				case "Reference":
+					referenceExact = referenceExact && v == "0" && missed[fmt.Sprint(item.class, " ", item.values["Identity"])]
 				case "T08":
 					// ITEM-GROUNDMOVE-130: pickup writes Token+0x08 = 1 on every
 					// incoming Item; a merge keeps the old flags OR 1.
@@ -649,6 +668,7 @@ func writerCensusSacks(before, after sackByteSource, origDoc, writtenDoc *sav.Do
 	verified["sack-item:T08"] = stampExact
 	verified["sack-item:split"] = splitExact
 	verified["sack-item:F42"] = mergeExact
+	verified["sack-item:Reference"] = referenceExact
 }
 
 // writerCensusCheck runs every rule over one written file and diffs the

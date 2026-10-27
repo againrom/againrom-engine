@@ -171,6 +171,75 @@ func finalizeCurrentTownEffectOwners(doc *sav.DocumentData) {
 	}
 }
 
+// loadedTokenReferenceMisses are the Token References of the Item, Armor,
+// Weapon, Shield and Effect records of a loaded file that name no key of a
+// record at or before their own in archive order: ROM1's LOAD keeps 0 for
+// each (SAV-1376). A file with Againrom state yields none (DIV-4145).
+func loadedTokenReferenceMisses(doc *sav.DocumentData) []SnapshotSAVReferenceMiss {
+	if doc.State.CarriesAgainromState() {
+		return nil
+	}
+	var misses []SnapshotSAVReferenceMiss
+	keys := make(map[uint32]bool, len(doc.Objects))
+	for i := range doc.Objects {
+		r := &doc.Objects[i]
+		for _, field := range r.Values {
+			if (field.Name == "Identity" || field.Name == "This") && field.Value != 0 {
+				keys[field.Value] = true
+			}
+		}
+		if !tokenReferenceClass(r.Class) {
+			continue
+		}
+		identity, err := savedStructureValue(r, "Identity")
+		reference, rerr := savedStructureValue(r, "Reference")
+		if err == nil && rerr == nil && identity != 0 && reference != 0 && !keys[reference] {
+			misses = append(misses, SnapshotSAVReferenceMiss{Class: r.Class, Identity: identity, Reference: reference})
+		}
+	}
+	return misses
+}
+
+// finalizeLoadedTokenReferences writes 0 for the Token Reference of a record
+// whose class and Identity a LOAD miss names while it still holds the missed
+// key: ROM1's next SAVE writes the 0 its LOAD kept (SAV-1376). A Reference
+// play changed is written as it is.
+func finalizeLoadedTokenReferences(doc *sav.DocumentData, misses []SnapshotSAVReferenceMiss) {
+	if len(misses) == 0 {
+		return
+	}
+	type token struct {
+		class    string
+		identity uint32
+	}
+	missed := make(map[token]uint32, len(misses))
+	for _, m := range misses {
+		missed[token{m.Class, m.Identity}] = m.Reference
+	}
+	for i := range doc.Objects {
+		r := &doc.Objects[i]
+		identity, err := savedStructureValue(r, "Identity")
+		if err != nil {
+			continue
+		}
+		reference, ok := missed[token{r.Class, identity}]
+		if !ok {
+			continue
+		}
+		for j := range r.Values {
+			if r.Values[j].Name == "Reference" && r.Values[j].Value == reference {
+				r.Values[j].Value = 0
+			}
+		}
+	}
+}
+
+// tokenReferenceClass is a class whose serializer reaches Token::Serialize
+// for its Reference (SAV-1376); Effect_DirectDamage calls the Effect one.
+func tokenReferenceClass(class string) bool {
+	return savedItemClass(class) || class == "Effect" || class == "Effect_DirectDamage"
+}
+
 func savedCurrentSpellRecord(row sim.SavedSpellObject) sav.DocumentRecordData {
 	r := savedObjectRecord("Spell", nil)
 	for _, f := range []sav.DocumentValueData{{Name: "S08", Value: uint32(row.Value.ID)}, {Name: "S09", Value: uint32(row.Value.Range)}, {Name: "S0A", Value: uint32(row.Value.Defensive)}, {Name: "S0C", Value: uint32(row.Value.ManaCost)}, {Name: "This", Value: row.This}} {

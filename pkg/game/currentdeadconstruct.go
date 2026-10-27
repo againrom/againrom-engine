@@ -70,10 +70,32 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		}
 		mustSetRefs(record, savHeldWeaponField, []uint16{object})
 	}
+	if err := b.retainDeadLoad(record, s, entity); err != nil {
+		return err
+	}
 	if err := b.retainDeadBook(record, s, entity); err != nil {
 		return err
 	}
 	return b.retainDeadEffects(record, body.ID, s)
+}
+
+// retainDeadLoad writes the stored load word U90 of a dead record whose body
+// the World holds as no entity from the loaded record of the same Identity
+// and class. Both archive arms copy the word, and only a derive or a weight
+// change rewrites it (SAV-1378); the World holds no load for such a body.
+func (b *generatedDocumentBuilder) retainDeadLoad(record *sav.DocumentRecordData, s sim.OriginalDeadSource, entity bool) error {
+	if entity {
+		return nil
+	}
+	object, err := b.loadedDeadObject(s)
+	if err != nil || object == 0 {
+		return err
+	}
+	load, err := savedStructureValue(&b.loaded.Objects[object-1], "U90")
+	if err != nil {
+		return nil
+	}
+	return savedActorSetValue(record, "U90", load)
 }
 
 // loadedDeadObject is the loaded document's DeadActors root of the dead

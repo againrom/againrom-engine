@@ -214,6 +214,17 @@ func (f *File) HasNativeActionsLeaf() bool {
 	return present || err != nil
 }
 
+// CarriesAgainromState reports whether the state holds an Againrom supplement
+// leaf, a colliding one included. ROM1 writes none.
+func (s DocumentStateData) CarriesAgainromState() bool {
+	for _, d := range supplementLeaves {
+		if _, present, err := s.ReadLeaf(d.path); present || err != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // MayCarryNativeMods: the mod mark's name appears in the save's bytes.
 func MayCarryNativeMods(saved []byte) bool {
 	return bytes.Contains(saved, []byte(nativeModsLeaf.name))

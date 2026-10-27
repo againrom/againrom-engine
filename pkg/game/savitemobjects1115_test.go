@@ -15,7 +15,7 @@ import (
 // They do not call the production Item/Effect/Spell projection builders.
 func literalItemRecord1115(class string, code uint16, count uint32, key uint32, effects []uint16, spell uint16) sav.DocumentRecordData {
 	r := sav.DocumentRecordData{Class: class, Raw: []sav.DocumentRawData{{Name: "Block12", Bytes: []byte{7, 8, 7, 8, 128, 128, 0x71, 0x83, 0, 0, 0, 0}}}, Values: []sav.DocumentValueData{
-		{Name: "RuntimeID", Value: key + 1}, {Name: "T0C", Value: 0}, {Name: "T0E", Value: 0x1234}, {Name: "T08", Value: 8}, {Name: "T18", Value: 0xabcd}, {Name: "T1C", Value: 31}, {Name: "Identity", Value: key}, {Name: "Reference", Value: 0xfedcba98},
+		{Name: "RuntimeID", Value: key + 1}, {Name: "T0C", Value: 0}, {Name: "T0E", Value: 0x1234}, {Name: "T08", Value: 8}, {Name: "T18", Value: 0xabcd}, {Name: "T1C", Value: 31}, {Name: "Identity", Value: key}, {Name: "Reference", Value: key},
 		{Name: "F40", Value: uint32(code)}, {Name: "F42", Value: count}, {Name: "F44", Value: 0}, {Name: "F45", Value: 0xa5}, {Name: "F46", Value: 0xb6}, {Name: "F47", Value: 0xc7}, {Name: "F48", Value: 0xd8e9}, {Name: "F4A", Value: 2},
 	}, Counts: []sav.DocumentCountData{{Name: "Effects", Count: uint32(len(effects))}}, RefSlots: []sav.DocumentRefsData{{Name: "Effects", Objects: slices.Clone(effects)}}}
 	if class == "Weapon" {
@@ -170,7 +170,7 @@ func TestItemObjects1115ExactSourceOrderCountAndWorn(t *testing.T) {
 	if len(ground) != 5 || ground[0].ObjectID != x.ID || ground[1].ObjectID != x.ID || ground[2].ObjectID != y.ID || ground[4].ObjectID != y.ID {
 		t.Fatal("source Sack run identities lost", ground)
 	}
-	if x.F45 != 0xa5 || x.F46 != 0xb6 || x.F47 != 0xc7 || x.F48 != 0xd8e9 || x.Token.T0E != 0x1234 || x.Token.Reference != 0xfedcba98 {
+	if x.F45 != 0xa5 || x.F46 != 0xb6 || x.F47 != 0xc7 || x.F48 != 0xd8e9 || x.Token.T0E != 0x1234 || x.Token.Reference != 0x410001 {
 		t.Fatal("non-value source operands were inferred or discarded")
 	}
 	if err := validateSavedObjectBindingWorld(state, w); err != nil {

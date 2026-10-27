@@ -83,6 +83,8 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	}
 	if s.Mission == 0 {
 		finalizeCurrentTownEffectOwners(&doc)
+	} else if s.SavedDocument != nil {
+		finalizeLoadedTokenReferences(&doc, s.SavedDocument.ReferenceMisses)
 	}
 	if err := finalizeCurrentObjectIdentityAbsence(&doc); err != nil {
 		return nil, err
