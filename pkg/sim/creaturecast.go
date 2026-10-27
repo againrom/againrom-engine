@@ -146,12 +146,11 @@ func (w *World) creatureCastRefusal(i int, target EntityID, x, y int32, atCell b
 	return w.bookSpellAdmissionRange(i, target, id, false, true, true, skipRange)
 }
 
-// crossingDefersCast reports a first-game caster still crossing into a cell:
-// the original's executor runs a step in progress to the next cell centre
-// before it reads the cast order (AI-350, AI-352, MAGIC-239). No claim states
-// the second game's executor, so a second-game cast still starts at once.
+// crossingDefersCast reports a caster still crossing into a cell: both games'
+// executors run a step in progress to the next cell centre before they read
+// the cast order (AI-350, AI-352, MAGIC-239, R2-ENGINE-546, R2-ENGINE-560).
 func (w *World) crossingDefersCast(i int) bool {
-	return w.entities[i].Transit > 0 && !w.SecondGame()
+	return w.entities[i].Transit > 0
 }
 
 // startEngageCast begins an engage-drawn cast that admission accepts. A caster

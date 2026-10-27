@@ -3100,5 +3100,5 @@ var Committed = Baseline{
 	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
 	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
 	// play overlap rule is re-measured on the merged tree.
-	CommentBytes: 9783641,
+	CommentBytes: 9783572,
 }

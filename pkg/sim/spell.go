@@ -2037,8 +2037,8 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 				}
 				continue
 			case refusal == "":
-				// A first-game caster still crossing into a cell starts at
-				// its centre (AI-350, MAGIC-239).
+				// A caster still crossing into a cell starts at its centre
+				// (AI-350, MAGIC-239, R2-ENGINE-546).
 				if !w.crossingDefersCast(ci) {
 					w.startApproachedCast(ci, c)
 				}
