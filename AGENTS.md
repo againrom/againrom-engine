@@ -130,7 +130,9 @@ commit and pull-request attribution.
    when command or public compile surfaces change; `go vet ./...` for
    concurrency, unsafe or broad refactors. Before each commit that changes Go
    code: its focused tests and `scripts/check-fast.sh` (gofmt, the asset scan,
-   and every package compiled with each ordinary test faster than its limit).
+   and every package compiled with its fast set: the ordinary tests faster than
+   the limit, fastest first within the package's time budget, and every test
+   the last full run did not time; bounded at 60 seconds).
    On the final commit also the gates the brief names. The whole
    `go test ./...`, the release set and the scenarios run at a release, not in
    a lane.
