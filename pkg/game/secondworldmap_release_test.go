@@ -10,7 +10,7 @@ import (
 
 // secondMapAtTownOne starts a new game and talks in the first inn, so town 1
 // is left for mission 10 next.
-func secondMapAtTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen) {
+func secondMapAtTownOne(t *testing.T) (*FrontEnd, *ui.App, *townScreen) {
 	t.Helper()
 	f := secondGameFront(t)
 	app := f.App("second")
@@ -28,7 +28,7 @@ func secondMapAtTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen
 	if err := app.HeadlessActivate("EXIT"); err != nil {
 		t.Fatal(err)
 	}
-	screen, ok := f.TownScreen().(*secondCampaignScreen)
+	screen, ok := f.TownScreen().(*townScreen)
 	if !ok || screen.AtWorldMap() {
 		t.Fatal("the first town is not the second campaign's screen")
 	}
@@ -194,7 +194,7 @@ func TestReleaseSecondCampaignWorldMapTravelKeepsText(t *testing.T) {
 	enterSecondCampaignNextMission(t, f, app, false)
 	secondTwentyWin(t, f, app, false)
 	secondLaterChoose(t, app, "notice")
-	screen := f.TownScreen().(*secondCampaignScreen)
+	screen := f.TownScreen().(*townScreen)
 	if !screen.AtWorldMap() || f.Town.second.bank[768] != 30 {
 		t.Fatal("mission 20 victory did not open the select map")
 	}

@@ -201,38 +201,6 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	return output
 }
 
-type secondCampaignScreen struct {
-	// shopController is the shop room's page.
-	shopController
-	session *CampaignSession
-	install *InstallResources
-	open    missionDoor
-	frame   func() *ui.DialogFrame
-	start   func() error
-	// tags is how the town dialogue's tag bodies are read.
-	tags eventTags
-	// composed is the composed town's presentation.
-	composed *secondTownState
-	// mapArt is the install's world-map art; worldMap is the open map, built
-	// for one opening of one campaign.
-	mapArt     func() *worldMapAssets
-	worldMap   *worldMapState
-	worldMapOf *secondCampaign
-	// worldMapAt is the opening worldMap was built for.
-	worldMapAt *secondMapOpening
-	// townTalkSeat is the town talk window; the campaign holds its pages.
-	townTalkSeat
-	// options holds the tips option.
-	options *PersistenceContext
-	tipArt  func() *ui.TipPanelArt
-	tip     secondRoomTip
-	// talkFaces resolves the open conversation's speaker faces.
-	talkFaces speakerResolver
-	// paneArt is the install's character pane art: its two bodies and
-	// seams and its corner pictures.
-	paneArt func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt)
-}
-
 func (f *FrontEnd) startSecondCampaign() error {
 	f.startSecondCampaignWith(MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
 	return nil
@@ -247,109 +215,13 @@ func (f *FrontEnd) startSecondCampaignWith(party []mapload.PartyMember) {
 	f.Carried = party
 }
 
-func (f *FrontEnd) secondCampaignScreen(tags eventTags) ui.TownScreen {
-	t := &secondCampaignScreen{session: &f.CampaignSession, install: &f.InstallResources,
-		open: f.MissionOpener, frame: f.gameMenuArt, start: f.startSecondCampaign, tags: tags,
-		composed: newSecondTownState(f), mapArt: f.worldMapAssets,
-		options: &f.PersistenceContext, tipArt: f.tipArt,
-		paneArt: func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) {
-			return f.characterPanes(), f.characterPaneCorners()
-		}}
-	t.talkSource = t
-	t.bindShop()
-	return t
-}
-
-func (t *secondCampaignScreen) StartNewGame() error {
-	if _, err := t.install.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); err != nil {
-		return fmt.Errorf("initial campaign town: %w", err)
-	}
-	if err := t.start(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (t *secondCampaignScreen) state() *secondCampaign {
-	if t.session.Town == nil {
-		return nil
-	}
-	return t.session.Town.second
-}
-
-func (t *secondCampaignScreen) Header() string {
-	if c := t.state(); c != nil && c.current.kind == placeTown {
-		if c.room == secondTownInn {
-			return "ROM2 campaign: tavern"
-		}
-		if c.room == secondTownShop {
-			return "ROM2 campaign: shop"
-		}
-		return fmt.Sprintf("ROM2 campaign: town %d", c.current.id)
-	}
-	return "ROM2 campaign: destinations"
-}
-
-func (t *secondCampaignScreen) Rows() []ui.TownRow {
-	c := t.state()
-	if c == nil {
-		return nil
-	}
-	if d, ok := t.composedTown(); ok {
-		return t.composedRows(d, c)
-	}
-	if c.current.kind == placeTown {
-		gates := ui.TownRow{Text: "GATES", Choosable: c.gateOpen()}
-		if c.room != secondTownInn {
-			return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
-		}
-		return append(c.innRows(), gates)
-	}
-	return nil
-}
-
-func (t *secondCampaignScreen) Footer() []string {
-	c := t.state()
-	if c == nil {
-		return nil
-	}
-	var out []string
-	for id := 2; id <= 3; id++ { // DIV-2438, DIV-2631
-		if town := (partyPlace{2, id}); c.current == town || c.has(town) {
-			out = append(out, fmt.Sprintf("Town %d services are unavailable.", id))
-		}
-	}
-	return out
-}
-
-func (t *secondCampaignScreen) Choose(i int) ui.TownAction {
-	rows := t.Rows()
-	if i < 0 || i >= len(rows) || !rows[i].Choosable {
-		return ui.TownAction{}
-	}
-	c := t.state()
-	if d, ok := t.composedTown(); ok {
-		return t.chooseComposed(d, c, i)
-	}
-	if c.current.kind != placeTown {
-		return ui.TownAction{}
-	}
-	if i == len(rows)-1 {
-		c.leaveTown()
-		c.room = secondTownSquare
-		return ui.TownAction{}
-	}
-	if c.room != secondTownInn {
-		c.room = secondTownInn
-		c.enterInn()
-		return ui.TownAction{}
-	}
-	return t.innAct(c, i)
+func (t *townScreen) StartNewGame() error {
+	return t.campaignTown().startCampaign()
 }
 
 // innAct runs inn seat i: Hire or Fire on a hire actor, TALK on a talk
 // actor (R2-ENGINE-496).
-func (t *secondCampaignScreen) innAct(c *secondCampaign, i int) ui.TownAction {
+func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 	seats, hires := c.innSeats()
 	if i >= hires {
 		return t.talk(c, seats[i])
@@ -361,8 +233,8 @@ func (t *secondCampaignScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 }
 
 // talk opens a speaker's conversation and runs its TalkTo.
-func (t *secondCampaignScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
-	payload, err := readSecondTownTalk(t.install, secondTalkKey(o))
+func (t *townScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
+	payload, err := readSecondTownTalk(t.in, secondTalkKey(o))
 	if err != nil {
 		return ui.TownAction{Msg: err.Error()}
 	}
@@ -373,38 +245,14 @@ func (t *secondCampaignScreen) talk(c *secondCampaign, o secondInnOption) ui.Tow
 	return ui.TownAction{}
 }
 
-func (t *secondCampaignScreen) Back() bool {
-	c := t.state()
-	if c == nil {
-		return false
-	}
-	if c.talk.payload != nil {
-		t.AdvanceTownDialogue()
-		return true
-	}
-	if d, ok := t.composedTown(); ok {
-		return t.backComposed(d)
-	}
-	if c.room == secondTownInn {
-		c.room = secondTownSquare
-		return true
-	}
-	return false
-}
-
-func (t *secondCampaignScreen) dialogueBody() (string, bool) {
-	r, _ := t.dialoguePart()
-	return r.text, r.ok
-}
-
 // dialoguePart is the campaign's current section part and the audience it
 // was read for.
-func (t *secondCampaignScreen) dialoguePart() (dialogueRead, EventAudience) {
+func (t *townScreen) dialoguePart() (dialogueRead, EventAudience) {
 	c := t.state()
 	if c == nil || c.talk.payload == nil {
 		return dialogueRead{}, EventAudience{}
 	}
-	audience := partyAudience(t.session.Carried, nil)
+	audience := partyAudience(t.sess.Carried, nil)
 	audience.tags = t.tags
 	return c.talk.read(audience, nil), audience
 }
@@ -414,35 +262,25 @@ func (t *secondCampaignScreen) dialoguePart() (dialogueRead, EventAudience) {
 // any size, and one show while the window is open.
 var secondTownTalkProfile = ui.TownTalkProfile{}
 
-// talkView is the town talk as this game reads it: the campaign's current
-// section part, trimmed, with the portrait shape when the section names a
-// speaker and the face of the speaker the part's tag names.
-func (t *secondCampaignScreen) talkView() ui.TownTalkView {
-	r, audience := t.dialoguePart()
-	if !r.ok {
-		return ui.TownTalkView{Profile: secondTownTalkProfile}
-	}
-	page := ui.TownTalkPage{Text: strings.TrimSpace(r.text),
-		Portrait: EventHasSpeaker(dialoguePayload(t.state().talk.payload))}
-	if speaker, named := audience.tagRules().speaker(r.tag); named && page.Portrait {
-		page.Face, page.FaceWindow, _ = t.talkFaces.SpeakerFace(speaker)
-	}
-	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true, Page: page,
-		Art: ui.TownTalkArt{Words: t.install.Words, Frame: t.frame(), Font: t.install.Font.Value()}}
-}
-
 // setTownDialogue opens a conversation and its speaker resolver.
-func (t *secondCampaignScreen) setTownDialogue(payload []byte) {
+func (t *townScreen) setTownDialogue(payload []byte) {
+	if t.adapter == nil {
+		t.adapter = destinationTownCampaign{t}
+		t.defaults = townDescriptions["rom2-town1"]
+	}
+	if t.talkSource == nil {
+		t.talkSource = &sectionTownTalk{t}
+	}
 	c := t.state()
 	c.talk.open(payload)
 	t.talkFaces = t.townSpeakers()
-	t.openTalk(t, false)
+	t.openTalk(t.boundTalkSource(), false)
 }
 
 // townSpeakers resolves a town speaker over the carried party as a mission
 // does over its world.
-func (t *secondCampaignScreen) townSpeakers() speakerResolver {
-	party := t.session.Carried
+func (t *townScreen) townSpeakers() speakerResolver {
+	party := t.sess.Carried
 	cast := newSpeakerCast(party, nil)
 	cast.worn = func(id sim.EntityID) data.Equipment {
 		if int(id) < 0 || int(id) >= len(party) {
@@ -450,29 +288,13 @@ func (t *secondCampaignScreen) townSpeakers() speakerResolver {
 		}
 		return mapload.EquipmentFromParty(party[id])
 	}
-	r := speakerResolver{units: t.install.Units, npcFaces: t.install.NPCFaces,
+	r := speakerResolver{units: t.in.Units, npcFaces: t.in.NPCFaces,
 		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA), cast: cast}
-	if t.install.Archives != nil {
-		r.src = t.install.Archives.Containers
+	if t.in.Archives != nil {
+		r.src = t.in.Archives.Containers
 	}
 	return r
 }
-
-// turnTownTalk turns the campaign's page; a part with no body closes the
-// conversation. Any held campaign turns, open or not.
-func (t *secondCampaignScreen) turnTownTalk() bool {
-	c := t.state()
-	if c == nil {
-		return false
-	}
-	c.talk.next()
-	if _, ok := t.dialogueBody(); !ok {
-		c.talk.close()
-	}
-	return true
-}
-
-func (t *secondCampaignScreen) CanSave() bool { return t.state().savePoint() }
 
 func (c *secondCampaign) savePoint() bool {
 	return c != nil && c.talk.payload == nil && c.talk.part == 0 && captureSecondCampaign(c).validateTown() == nil
@@ -497,22 +319,33 @@ func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 	return []byte(body), nil
 }
 
-// TownMusic is the scene the campaign screen requests: a town while one is
-// current, else the destination map (R2-ENGINE-335).
-func (t *secondCampaignScreen) TownMusic() (ui.MusicScene, bool) {
-	if c := t.state(); c != nil && c.current.kind == placeTown {
-		return ui.MusicTown, false
+func (t *sectionTownTalk) talkView() ui.TownTalkView {
+	r, audience := t.host.dialoguePart()
+	if !r.ok {
+		return ui.TownTalkView{Profile: secondTownTalkProfile}
 	}
-	return ui.MusicCampaign, false
+	page := ui.TownTalkPage{Text: strings.TrimSpace(r.text),
+		Portrait: EventHasSpeaker(dialoguePayload(t.host.state().talk.payload))}
+	if speaker, named := audience.tagRules().speaker(r.tag); named && page.Portrait {
+		page.Face, page.FaceWindow, _ = t.host.talkFaces.SpeakerFace(speaker)
+	}
+	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true, Page: page,
+		Art: ui.TownTalkArt{Words: t.host.in.Words, Frame: t.host.frame(), Font: t.host.in.Font.Value()}}
 }
 
-// TownMusicTrack is the current town's own track, as the game's music
-// description names it by town ID (R2-ENGINE-231). The tavern keeps it: no
-// tavern body requests music (R2-ENGINE-335).
-func (t *secondCampaignScreen) TownMusicTrack() (string, bool) {
-	c := t.state()
-	if c == nil || c.current.kind != placeTown {
-		return "", false
+func (t *sectionTownTalk) turnTownTalk() bool {
+	c := t.host.state()
+	if c == nil {
+		return false
 	}
-	return GameMusic(t.install.profile()).TownTrack(c.current.id)
+	c.talk.next()
+	if _, ok := t.dialogueBody(); !ok {
+		c.talk.close()
+	}
+	return true
+}
+
+func (t *sectionTownTalk) dialogueBody() (string, bool) {
+	r, _ := t.host.dialoguePart()
+	return r.text, r.ok
 }

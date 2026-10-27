@@ -145,7 +145,7 @@ func TestFirstTownTalkCursorThroughTheSeat(t *testing.T) {
 // same way, and a closed conversation leaves no cursor behind.
 func TestSecondTownTalkCursorThroughTheSeat(t *testing.T) {
 	c := newSecondCampaign()
-	s := &secondCampaignScreen{session: &CampaignSession{Town: &Town{second: c}}, install: &InstallResources{},
+	s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: c}}, in: &InstallResources{}},
 		frame: func() *ui.DialogFrame { return nil }, tags: secondEventTags{}}
 	for round := 0; round < 2; round++ {
 		s.setTownDialogue([]byte("<part=1>\r\nOne\r\n<part=2>\r\nTwo\r\n"))

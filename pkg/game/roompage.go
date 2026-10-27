@@ -13,19 +13,11 @@ import (
 // roomPage answers the composer scene of a room the profile's room
 // description gives a scene, building it on first use.
 func (t *townScreen) roomPage(room string) *town.Scene {
-	if p := t.pages[room]; p != nil {
-		return p
-	}
 	d := t.townDescription()
 	if d == nil {
 		return nil
 	}
-	if t.pages == nil {
-		t.pages = map[string]*town.Scene{}
-	}
-	p := town.NewScene(d, room, townSceneHost{t: t, room: room}, t.townProcess)
-	t.pages[room] = p
-	return p
+	return t.scene(d, room)
 }
 
 func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
@@ -33,7 +25,7 @@ func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
 // TownClickSounds: the first game's tip Close and dialogue page presses
 // request click01 and its tavern and school buttons request none (TOWN-547,
 // TOWN-548, DIALOGUE-080); no second-game claim names these.
-func (t *townScreen) TownClickSounds() bool { return t.townDescription() != nil }
+func (t *townScreen) TownClickSounds() bool { return t.hostRules().ClickSounds }
 
 // roomSound requests what the room description's sound table binds to one
 // named room event. Every town room interface sound goes through it.
@@ -114,7 +106,7 @@ func (t *townScreen) leaveTavernInterior() {
 		return
 	}
 	t.tavernPage().SetActive(false, t.inTavernInterior())
-	if !t.inTavernInterior() && t.audioRoom == roomTavern {
+	if !t.inTavernInterior() && t.audioRoom == "tavern" {
 		t.destroyRoomAudio()
 	}
 }
@@ -123,7 +115,7 @@ func (t *townScreen) leaveTavernInterior() {
 // arms the accepted research leaves open. A resume rebases all page clocks,
 // so time spent unfocused, in a menu or outside the room cannot catch up.
 func (t *townScreen) TavernInteriorActive(active bool) {
-	if t == nil || t.sess == nil {
+	if t == nil || t.sess == nil || t.townDescription() == nil || t.townDescription().Room("tavern") == nil {
 		return
 	}
 	t.tavernPage().SetActive(active, t.inTavernInterior())
@@ -136,6 +128,12 @@ func (t *townScreen) inShopInterior() bool { return t != nil && t.AtTownShop() }
 // resumes rebase both clocks and cannot catch up time spent behind a menu,
 // cutscene or focus loss.
 func (t *townScreen) ShopInteriorActive(active bool) {
+	if t != nil && t.hostRules().Pages == "entry" {
+		if t.composed != nil && t.AtTownShop() {
+			t.roomActive(active)
+		}
+		return
+	}
 	if t == nil || t.sess == nil {
 		return
 	}
@@ -144,6 +142,12 @@ func (t *townScreen) ShopInteriorActive(active bool) {
 
 // AdvanceShopInteriorAnimation is one paint of the shop page.
 func (t *townScreen) AdvanceShopInteriorAnimation() {
+	if t != nil && t.hostRules().Pages == "entry" {
+		if t.composed != nil && t.AtTownShop() {
+			t.advanceRoom()
+		}
+		return
+	}
 	if t == nil || !t.inShopInterior() {
 		return
 	}

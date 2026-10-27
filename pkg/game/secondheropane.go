@@ -19,13 +19,13 @@ type secondHeroFace struct {
 
 // secondPaneParty is the party the panes show: the campaign's party, the one
 // the mission takes. The shop's bag is its own member (DIV-3043).
-func (t *secondCampaignScreen) secondPaneParty() []mapload.PartyMember {
-	return t.session.Carried
+func (t *townScreen) secondPaneParty() []mapload.PartyMember {
+	return t.sess.Carried
 }
 
 // heroFace is the shown member's face, composed on first use after a room
 // entry; nil without a party.
-func (t *secondCampaignScreen) heroFace() *secondHeroFace {
+func (t *townScreen) heroFace() *secondHeroFace {
 	party := t.secondPaneParty()
 	if len(party) == 0 {
 		return nil
@@ -35,8 +35,8 @@ func (t *secondCampaignScreen) heroFace() *secondHeroFace {
 		return f
 	}
 	member := party[i]
-	f := &secondHeroFace{member: i, subject: t.install.composeMemberFace(&member, uint32(i+1), nil)}
-	f.info = t.install.wornItemLines(member, nil)
+	f := &secondHeroFace{member: i, subject: t.in.composeMemberFace(&member, uint32(i+1), nil)}
+	f.info = t.in.wornItemLines(member, nil)
 	t.composed.hero = f
 	return f
 }
@@ -44,7 +44,7 @@ func (t *secondCampaignScreen) heroFace() *secondHeroFace {
 // heroPane is the character pane spec p shows: the shown member's figure or
 // statistics card, the card built as the inn's patron card is, with the
 // picker and mode corners and the book corner when p has one.
-func (t *secondCampaignScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView, *ui.SlotMask, [12][]string) {
+func (t *townScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView, *ui.SlotMask, [12][]string) {
 	var info [12][]string
 	var panes TownCharacterPaneArt
 	var corners *ui.CharacterPaneCornerArt
@@ -52,14 +52,14 @@ func (t *secondCampaignScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView,
 		panes, corners = t.paneArt()
 	}
 	var presentation *ui.ChargenPresentation
-	if a := t.install.ChargenAssets; a != nil {
+	if a := t.in.ChargenAssets; a != nil {
 		presentation = a.Presentation
 	}
 	party := t.secondPaneParty()
 	var subject ui.PanelSubject
 	i := townPickerIndex(party, t.shopMember)
 	if len(party) > 0 {
-		subject = partyPanelSubject(party[i], t.install.Table, t.install.Words)
+		subject = partyPanelSubject(party[i], t.in.Table, t.in.Words)
 		subject.Unplaced, subject.Selected = true, 1
 	}
 	v := presentation.CardView(subject, p.Rect.Rectangle(), image.Point{}, panes.Stats.Body, panes.Stats.Seam)
@@ -69,7 +69,7 @@ func (t *secondCampaignScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView,
 	v.NoBook, v.BookOpen = !p.Book, p.Book && t.shopBook
 	v.Member, v.MemberCount = townPickerPosition(party, i)
 	if presentation == nil {
-		v.Font, v.CardFont = t.install.Font.Value(), t.install.Font.Value()
+		v.Font, v.CardFont = t.in.Font.Value(), t.in.Font.Value()
 	}
 	var mask *ui.SlotMask
 	if f := t.heroFace(); f != nil {
@@ -81,7 +81,7 @@ func (t *secondCampaignScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView,
 // TownSquarePane acts on a click on a room pane's corner: the mode corner
 // swaps the figure and the statistics card, the picker arrows step the shown
 // member.
-func (t *secondCampaignScreen) TownSquarePane(c ui.CharacterPaneCorner) {
+func (t *townScreen) TownSquarePane(c ui.CharacterPaneCorner) {
 	switch c {
 	case ui.CharacterPaneMode:
 		t.composed.heroStats = !t.composed.heroStats
@@ -94,7 +94,7 @@ func (t *secondCampaignScreen) TownSquarePane(c ui.CharacterPaneCorner) {
 
 // paneSquareView fills the room pane of v from the room spec r and the
 // selected patron's figure as a doll.
-func (t *secondCampaignScreen) paneSquareView(v *ui.TownSquareView, r *town.RoomSpec, page *secondTownArt) {
+func (t *townScreen) paneSquareView(v *ui.TownSquareView, r *town.RoomSpec, page *townRoomArt) {
 	if r == nil {
 		return
 	}
@@ -105,7 +105,7 @@ func (t *secondCampaignScreen) paneSquareView(v *ui.TownSquareView, r *town.Room
 	if r.Seats == nil || r.Seats.Figure == nil || page == nil {
 		return
 	}
-	view := secondTownView{t: t, room: r.Name}
+	view := townRoomView{t: t, room: r.Name}
 	p := view.selectedPatron(r, page.page)
 	if p == nil || !p.known || p.figure == nil || p.mask == nil {
 		return

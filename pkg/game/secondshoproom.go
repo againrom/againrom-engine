@@ -28,13 +28,13 @@ var secondShopEvents = []string{secondShopCategoryChanged, secondShopBought, sec
 
 // secondShopOpen is the room entry: the deal starts empty, the stock is drawn
 // when it must be (R2-ENGINE-266) and the first category shows.
-func secondShopOpen(t *secondCampaignScreen, _ string) {
+func secondShopOpen(t *townScreen, _ string) {
 	c := t.state()
-	tables, ok := secondShopTables(t.install.Table)
+	tables, ok := secondShopTables(t.in.Table)
 	if !ok {
 		return
 	}
-	stream := t.composed.draws.stream(random.ShopStock)
+	stream := t.draws.stream(random.ShopStock)
 	c.adoptLegacyHero(tables)
 	c.shop.enter(tables, c.current.id, stream.Raw, c.heroBag())
 	t.shopChosen, t.shopShelf, t.shelfBase, t.packBase, t.tableBase, t.shopMember = 0, 0, 0, 0, 0, 0
@@ -44,8 +44,12 @@ func secondShopOpen(t *secondCampaignScreen, _ string) {
 // second campaign's deal and hero, the room's art, scene and rectangles from
 // the town description and its keeper events (R2-ENGINE-269); the room's
 // pane spec adds the character panel and its book (dressShop).
-func (t *secondCampaignScreen) bindShop() {
-	t.shopController = shopController{sess: t.session, in: t.install,
+func (t *townScreen) bindBankShop() {
+	if t.adapter == nil {
+		t.adapter = destinationTownCampaign{t}
+		t.defaults = townDescriptions["rom2-town1"]
+	}
+	t.shopController = shopController{sess: t.sess, in: t.in,
 		dealOf: func(s *CampaignSession) *Shop {
 			c := secondOf(s)
 			if c == nil {
@@ -70,7 +74,7 @@ func (t *secondCampaignScreen) bindShop() {
 			return t.shopItemName(it)
 		},
 		shop: shopHost{
-			shown: t.AtTownShop,
+			shown: t.bankShopShown,
 			scene: t.shopScene,
 			events: [shopKeeperEvents]string{shopKeeperBought: secondShopBought, shopKeeperRefused: secondShopRefused,
 				shopKeeperSold: secondShopSold, shopKeeperRack: secondShopCategoryChanged},
@@ -108,7 +112,7 @@ func secondOf(s *CampaignSession) *secondCampaign {
 
 // AtTownShop reports whether the composed town's shop room is shown. The
 // page's chosen rack follows the deal's category, which a LOAD restores.
-func (t *secondCampaignScreen) AtTownShop() bool {
+func (t *townScreen) bankShopShown() bool {
 	c := t.state()
 	if c == nil || c.room != secondTownShop {
 		return false
@@ -123,7 +127,7 @@ func (t *secondCampaignScreen) AtTownShop() bool {
 }
 
 // shopScene is the shown shop room's scene, nil when none is shown.
-func (t *secondCampaignScreen) shopScene() *town.Scene {
+func (t *townScreen) shopScene() *town.Scene {
 	d, room, ok := t.composedRoom()
 	if !ok {
 		return nil
@@ -134,7 +138,7 @@ func (t *secondCampaignScreen) shopScene() *town.Scene {
 // shopRacks are the four categories as the page's racks: rack k shows
 // category k, and a category whose shelf button has a condition is stocked
 // only while it holds (R2-ENGINE-259). Their names are not published.
-func (t *secondCampaignScreen) shopRacks() [4]shopRack {
+func (t *townScreen) shopRacks() [4]shopRack {
 	var racks [4]shopRack
 	for k := range racks {
 		racks[k] = shopRack{ShopShelf(k), t.shelfOpen(k), ""}
@@ -143,7 +147,7 @@ func (t *secondCampaignScreen) shopRacks() [4]shopRack {
 }
 
 // shelfOpen reports whether category k exists in the shown room.
-func (t *secondCampaignScreen) shelfOpen(k int) bool {
+func (t *townScreen) shelfOpen(k int) bool {
 	d, room, ok := t.composedRoom()
 	if !ok {
 		return true
@@ -173,7 +177,7 @@ func shopButton(r *town.RoomSpec, name string) *town.ButtonSpec {
 // category has no rectangle; the room's shop rules move the plaque labels.
 // A room with a pane spec shows the character
 // panel (R2-SESSION-204, R2-SESSION-217).
-func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
+func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 	l := ui.FirstShopLayout()
 	l.Character, l.Book, l.TableScroll = false, false, true
 	v.Layout = &l
@@ -182,7 +186,7 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 		return
 	}
 	r := d.Room(room)
-	v.ButtonStyle = t.install.roomButtonStyle(d)
+	v.ButtonStyle = t.in.roomButtonStyle(d)
 	v.BuyDebit = d.RoomButtons != nil && d.RoomButtons.BuyDebit
 	racks := t.shopRacks()
 	for k := range l.ShelfPick {
@@ -212,35 +216,19 @@ func (t *secondCampaignScreen) dressShop(v *ui.ShopScreenView) {
 		// The pane's book draws on the mission bar's book art, as the first
 		// game's shop does.
 		a.shop = shopArtOf(a.page)
-		a.shop.Book = t.install.BottomHUDArt.Value()
+		a.shop.Book = t.in.BottomHUDArt.Value()
 	}
 	v.Art = a.shop
 	v.Scene = roomScene{t.scene(d, room)}
-	v.TipPanel = t.roomTipView(d.Town, room)
-}
-
-// ShopInteriorActive runs the shop room's scene while the page shows.
-func (t *secondCampaignScreen) ShopInteriorActive(active bool) {
-	if t.composed == nil || !t.AtTownShop() {
-		return
-	}
-	t.roomActive(active)
-}
-
-// AdvanceShopInteriorAnimation is one paint of the shop room's scene.
-func (t *secondCampaignScreen) AdvanceShopInteriorAnimation() {
-	if t.composed == nil || !t.AtTownShop() {
-		return
-	}
-	t.advanceRoom()
+	v.TipPanel = t.entryRoomTipView(d.Town, room)
 }
 
 // shopItemName is an item's name parts, the cell's name first (DIV-3046):
 // the item's line in the shipped item-name table, else its data.bin row,
 // material and class names; then an enchanted item's spell and level. A book
 // is its spell's data.bin name.
-func (t *secondCampaignScreen) shopItemName(it secondshop.Item) []string {
-	tab := t.install.Table
+func (t *townScreen) shopItemName(it secondshop.Item) []string {
+	tab := t.in.Table
 	if tab == nil {
 		return []string{""}
 	}

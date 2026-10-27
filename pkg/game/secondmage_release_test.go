@@ -55,7 +55,7 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 		for _, composed := range []bool{true, false} {
 			t.Run(fmt.Sprintf("female=%v/composed=%v", female, composed), func(t *testing.T) {
 				f, app := secondGeneratedMage(t, female)
-				s := f.TownScreen().(*secondCampaignScreen)
+				s := f.TownScreen().(*townScreen)
 				if !composed {
 					s.composed = nil
 				}

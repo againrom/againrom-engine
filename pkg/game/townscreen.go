@@ -58,19 +58,22 @@ var townDoors = [...]struct {
 	{roomGates, "GATES"},
 }
 
-// townScreen is the town as the front-end shows it: which room is open,
-// which conversation is running, and the words for both.
-//
-// Room labels and status reports in this file are this build's own chrome.
-// Conversation text is not: mission NPCs read `inn\NPC\npc%02dm%d`
-// (REG-SCN-064), and mercenary candidates read their installed
-// `inn\mercenary\npc%02d` leaves through the same event-text parser.
-//
-// THE CONVERSATION IS STATE HERE AND NOT ON Town. The model holds what
-// registering an offer DID; this holds who is being spoken to and how far in.
-// Opening a conversation registers its offer and no key does, so the model is
-// decidable with no conversation anywhere near it.
 type townScreen struct {
+	adapter    townCampaignAdapter
+	defaults   *town.Description
+	composed   *townSceneState
+	mapRoute   townMapPage
+	mapArt     func() *worldMapAssets
+	worldMapOf *secondCampaign
+	worldMapAt *secondMapOpening
+	start      func() error
+	frame      func() *ui.DialogFrame
+	tags       eventTags
+	tipArt     func() *ui.TipPanelArt
+	tip        secondRoomTip
+	talkFaces  speakerResolver
+	paneArt    func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt)
+
 	// shopController is the shop page; its session and install are the
 	// screen's campaign state and install too.
 	shopController
@@ -83,7 +86,7 @@ type townScreen struct {
 
 	room      townRoom
 	roomAudio *ui.AudioScope
-	audioRoom townRoom
+	audioRoom string
 
 	// npc and offer identify the town conversation. dialogueBuilding selects
 	// the shipped text family and the room to return to.
@@ -258,6 +261,13 @@ func (t *townScreen) resetForNewGame() {
 	t.resetWorldPosition()
 	t.worldMap, t.worldFlag1Frame = nil, 0
 	t.tipClosed = [roomTalk + 1]bool{}
+	t.worldMapOf, t.worldMapAt = nil, nil
+	t.tip, t.talkFaces = secondRoomTip{}, speakerResolver{}
+	if t.composed != nil {
+		t.composed.seat, t.composed.seatFrames, t.composed.patrons = -1, nil, nil
+		t.composed.hero, t.composed.heroStats, t.composed.innShown = nil, false, false
+		t.composed.pointer = image.Pt(-1, -1)
+	}
 }
 
 // TownNPCTextPath is the inn dialogue leaf for one NPC and live mission.
@@ -357,7 +367,7 @@ func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, np
 	if payload == nil {
 		return false
 	}
-	t.openTalk(t, t.room == roomTalk)
+	t.openTalk(t.boundTalkSource(), t.room == roomTalk)
 	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, building, npc, offer
 	t.talkPage.open(payload)
 	t.resetTownSpeech()
@@ -445,7 +455,7 @@ func registerInnMissions(queue []int, register func(int)) {
 // A bad external file remains visible as a concise diagnostic instead of
 // silently substituting prose that no shipped candidate authored.
 func (t *townScreen) openMercenaryDialogue(typ int) {
-	t.openTalk(t, t.room == roomTalk)
+	t.openTalk(t.boundTalkSource(), t.room == roomTalk)
 	t.resetTownSpeech()
 	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, TownTavern, 0, TownOffer{}
 	t.mercenaryTalk, t.talkDiagnostic = typ, ""
@@ -478,63 +488,55 @@ func (t *townScreen) townLines() []string {
 	return lines
 }
 
-// CanSave answers the description's save admission.
-func (t *townScreen) CanSave() bool {
-	return t != nil && t.sess != nil && t.squareView().SaveAdmitted()
-}
-
 // saveAdmitted is the campaign's save admission: an open town and no journey
 // home under way.
 func (t *townScreen) saveAdmitted() bool {
-	return t.sess.Town != nil && t.sess.Town.Open() &&
-		(t.worldMap == nil || t.worldMap.returnMission == 0)
+	return t.campaignTown().savePoint() && (t.worldMap == nil || t.worldMap.returnMission == 0)
 }
 
-// TownScreen is the ui.TownScreen this front end shows between missions, built
-// fresh so that the room it opens on is the square.
-//
-// IT IS BUILT ONCE, BY App, AND HELD BY THE FLOW FOR THE LIFE OF THE PROCESS.
-// The town is what missions happen between, so it outlives every one of them —
-// see pkg/ui's own flow.town field comment for why that is the opposite of how
-// the map screen's seams are held.
-//
-// IT IS REMEMBERED ON THE FRONT END (0143), which the flow holding it does not
-// make redundant: loading a game replaces the town MODEL behind this screen, and
-// the ROOM this screen has open is session state that belongs to the game being
-// left. Restore puts it back at the square through this pointer, because pkg/ui
-// installs the seam once and has no way to say "the same screen, at the square".
-func (f *FrontEnd) TownScreen() ui.TownScreen { return f.campaign().townScreen(f) }
-
-// chapterTownScreen is the first game's town screen, bound on first use.
-func (f *FrontEnd) chapterTownScreen() ui.TownScreen {
-	if f.townUI == nil {
-		// shopChosen starts at shopNoShelf, which is the state the original's
-		// shop view is constructed in (SHOP-SCREEN-034). schoolCell starts at
-		// schoolNoSelection for the same reason: 0 is a real skill, and a
-		// freshly built town must not open the school with one already
-		// selected and its price quoted.
-		f.townUI = f.bindTown(&townScreen{shopController: shopController{shopChosen: shopNoShelf}, schoolCell: schoolNoSelection,
-			pages: map[string]*town.Scene{}})
-		// The screen is constructed already at roomSquare (townRoom's own
-		// zero value; atSquare's doc), so this is that room's own entry load
-		// (1018 spec behaviour 2), not a special case of construction.
-		f.townUI.loadTip(roomSquare)
+func (f *FrontEnd) TownScreen() ui.TownScreen {
+	book := townBookOf(f.Base().Profile)
+	entry, _ := book.entries().Town(chapterTown)
+	d := book.description(entry.ID, entry.Hooks)
+	if d.Host.CacheScreen && f.townUI != nil {
+		return f.townUI
 	}
-	return f.townUI
+	t := &townScreen{shopController: shopController{shopChosen: shopNoShelf}, schoolCell: schoolNoSelection,
+		pages: map[string]*town.Scene{}, defaults: d, composed: newTownSceneState(f), tags: f.campaign().eventTags()}
+	if d.Host.StartsInTown {
+		t.start = f.startSecondCampaign
+	}
+	if d.Host.Talk == "section" {
+		t.frame = f.gameMenuArt
+	}
+	if d.Host.Tips == "entry" {
+		t.tipArt = f.tipArt
+	}
+	if d.Host.Leave == "destinations" {
+		t.mapArt = f.worldMapAssets
+	}
+	if d.Host.Shop == "bank" {
+		t.paneArt = func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) {
+			return f.characterPanes(), f.characterPaneCorners()
+		}
+	}
+	t.adapter = f.campaign().townAdapter(t)
+	f.bindTown(t)
+	if d.Host.CacheScreen {
+		f.townUI = t
+	}
+	if d.Host.Tips == "retained" {
+		t.loadTip(roomSquare)
+	}
+	return t
 }
 
-// atSquare closes whatever room is open. A loaded game is entered at the square:
-// the room the player was standing in belongs to the game he just left, and
-// showing him the loaded game's tavern because the old one's was open would be
-// the one transition nobody could account for.
-// AtTownSquare reports whether the four-door graphical layout is active. The
-// gate line opens over the town view without leaving it, so the square stays
-// the layout behind that line (TOWN-475).
-func (t *townScreen) AtTownSquare() bool {
-	return t != nil && (t.room == roomSquare || t.room == roomTalk && t.dialogueBuilding == TownGate)
+func (t *townScreen) TownSquareEntryRevision() uint64 {
+	if t.hostRules().Tips == "entry" {
+		return 0
+	}
+	return t.tipRevision
 }
-
-func (t *townScreen) TownSquareEntryRevision() uint64 { return t.tipRevision }
 
 // dialogueRoom is the room the open conversation stands over and returns to.
 func (t *townScreen) dialogueRoom() townRoom {
@@ -547,58 +549,6 @@ func (t *townScreen) dialogueRoom() townRoom {
 		return roomSquare
 	}
 	return roomTavern
-}
-
-// TownMusic exposes the static track owner for the room currently visible.
-// A conversation keeps the building behind it, and the school puts the
-// currently selected character's class track first in its ordinary list.
-func (t *townScreen) TownMusic() (ui.MusicScene, bool) {
-	if t == nil {
-		return ui.MusicTown, false
-	}
-	room := t.room
-	if room == roomTalk {
-		room = t.dialogueRoom()
-	}
-	switch room {
-	case roomGates:
-		return ui.MusicCampaign, false
-	case roomShop:
-		return ui.MusicShop, false
-	case roomTavern:
-		return ui.MusicTavern, false
-	case roomSchool:
-		if t.sess == nil {
-			return ui.MusicSchool, false
-		}
-		party := t.nextParty()
-		i := townPickerIndex(party, t.shopMember)
-		return ui.MusicSchool, len(party) != 0 && party[i].Mage
-	default:
-		return ui.MusicTown, false
-	}
-}
-
-// TownSquareView is the square's composed scene, the font its message line
-// draws with and its tip panel. A square whose art did not load has no scene,
-// and app.go keeps the row-button layout for it.
-func (t *townScreen) TownSquareView() ui.TownSquareView {
-	if t == nil || t.sess == nil {
-		return ui.TownSquareView{}
-	}
-	v := ui.TownSquareView{
-		Font: t.in.Font.Value(),
-		Tip:  t.roomTipView(roomSquare, t.townTip),
-	}
-	if t.squareArt() != nil {
-		v.Scene = townSquareScene{t}
-	}
-	return v
-}
-
-// AtTownShop reports whether the shop's five-place table is on screen.
-func (t *townScreen) AtTownShop() bool {
-	return t != nil && (t.room == roomShop || t.room == roomTalk && t.dialogueBuilding == TownShop)
 }
 
 // AtTownSurface reports whether the tavern or school shared-shell surface is
@@ -779,37 +729,9 @@ var firstTownTalkProfile = ui.TownTalkProfile{CountShows: true, NeedsFont: true,
 // talkView is the town talk as this game reads it: the current part, or the
 // diagnostic of a candidate whose words failed, with the speaker's talk
 // picture.
-func (t *townScreen) talkView() ui.TownTalkView {
-	if t == nil || t.room != roomTalk {
-		return ui.TownTalkView{Profile: firstTownTalkProfile}
-	}
-	line := t.dialogue.text
-	if t.talkDiagnostic != "" {
-		line = t.talkDiagnostic
-	}
-	return ui.TownTalkView{Profile: firstTownTalkProfile, Open: true,
-		Page: ui.TownTalkPage{Text: line, Face: t.dialogue.face, FaceWindow: t.dialogue.faceWindow,
-			Portrait: t.mercenaryTalk != 0 || t.dialogue.hasPortrait},
-		Art: ui.TownTalkArt{Words: t.in.Words, Frame: t.art.menuFrame(), Font: t.in.Font.Value()}}
-}
 
 // turnTownTalk attempts the next part; a failed lookup closes the
 // conversation to the room it was opened from.
-func (t *townScreen) turnTownTalk() bool {
-	if t.room != roomTalk {
-		return false
-	}
-	t.talkPage.next()
-	if t.talkDiagnostic == "" && t.lookupTownDialogue() {
-		return true
-	}
-	t.dialogue.closeTips = t.dialogue.tips
-	t.room = t.dialogueRoom()
-	t.mercenaryTalk, t.talkDiagnostic = 0, ""
-	// Closing a conversation preserves the room popup's construction lifetime.
-	t.rereadTip(t.room)
-	return true
-}
 
 func townItemStacks(items []uint16) []sim.ItemStack {
 	var stacks []sim.ItemStack
@@ -832,52 +754,6 @@ func (t *townScreen) atSquare() {
 	t.squareView().EnterSquare()
 }
 
-// Header is the line above the list: which room, and which chapter the town
-// stands in.
-func (t *townScreen) Header() string {
-	ch := t.sess.Town.Chapter()
-	where := "the town square"
-	switch t.room {
-	case roomGates:
-		where = "the gates"
-	case roomShop:
-		where = "the shop"
-	case roomSchool:
-		where = "the school"
-	case roomTavern:
-		where = "the tavern"
-	case roomTalk:
-		where = t.dialogueBuilding.String()
-		if t.dialogueBuilding == TownTavern {
-			where = fmt.Sprintf("the tavern - NPC %d", t.npc)
-		}
-	}
-	if ch == 0 {
-		return fmt.Sprintf("%s - the campaign offers nothing further", where)
-	}
-	return fmt.Sprintf("%s - chapter %d    [Esc: back]", where, ch)
-}
-
-// Footer is what the player has, stated wherever in the town he is standing.
-func (t *townScreen) Footer() []string {
-	party := t.nextParty()
-	items, worn := 0, 0
-	for _, m := range party {
-		items += len(mapload.MemberCarriedItems(m, t.in.Table))
-		for _, item := range mapload.MemberItemEquipment(m, t.in.Table) {
-			if !item.Empty() {
-				worn++
-			}
-		}
-	}
-	out := []string{
-		fmt.Sprintf("gold %d    party %d    carried %d items, %d worn",
-			t.sess.Town.Gold(), len(party), items, worn),
-		fmt.Sprintf("available %v    done %d", t.sess.Town.Available(), t.doneCount()),
-	}
-	return out
-}
-
 // doneCount is how many missions the town has recorded finished.
 func (t *townScreen) doneCount() int {
 	n := 0
@@ -887,53 +763,6 @@ func (t *townScreen) doneCount() int {
 		}
 	}
 	return n
-}
-
-// Rows is what the open room holds.
-//
-// A ROOM WITH NOTHING IN IT SAYS SO. Every arm below has an unchoosable row
-// for its empty case rather than returning nil: a list of no rows is a
-// screen that cannot say what it is, which is exactly the empty rectangle
-// the spec refuses.
-func (t *townScreen) Rows() []ui.TownRow {
-	switch t.room {
-	case roomGates:
-		return nil
-	case roomShop:
-		// THE SHOP ROOM HAS NO ROWS. It is drawn as the original's own screen and
-		// every control on it is a rectangle, so a list here would be a second,
-		// invisible way to press the same things.
-		return nil
-	case roomSchool:
-		return t.shelfRows(TownSchool)
-	case roomTavern:
-		return t.tavernRows()
-	case roomTalk:
-		return nil
-	}
-	return t.squareRows()
-}
-
-func (t *townScreen) squareRows() []ui.TownRow {
-	rows := make([]ui.TownRow, 0, len(townDoors))
-	for _, d := range townDoors {
-		hint := ""
-		switch d.room {
-		case roomTavern:
-			hint = fmt.Sprintf("%d with something to say", countOffering(t.sess.Town.Offers(TownTavern)))
-		case roomShop:
-			hint = fmt.Sprintf("%d on the shelf", len(t.sess.Town.Offers(TownShop)))
-		case roomSchool:
-			hint = fmt.Sprintf("%d on the board", len(t.sess.Town.Offers(TownSchool)))
-		case roomGates:
-			hint = fmt.Sprintf("%d mission(s) available", len(t.sess.Town.Available()))
-		}
-		rows = append(rows, ui.TownRow{
-			Text:      fmt.Sprintf("%-8s  %s", d.name, hint),
-			Choosable: true,
-		})
-	}
-	return rows
 }
 
 // countOffering is how many of the tavern's rows actually hold a mission —
@@ -1010,43 +839,6 @@ func (t *townScreen) tavernRows() []ui.TownRow {
 	return rows
 }
 
-// Choose acts on row i of what Rows last reported.
-//
-// THE ROW INDEX IS INTO THE ROWS THE SCREEN WAS SHOWING, which is why each
-// arm re-derives the same list Rows built rather than caching one: pkg/ui
-// rebuilds after every Choose and every Back and at no other time, so what
-// the player pressed is what Rows last answered, and re-deriving it here is
-// the one way to be sure the two agree.
-func (t *townScreen) Choose(i int) ui.TownAction {
-	if t.room == roomSchool && t.schoolTrainingBusy() {
-		return ui.TownAction{}
-	}
-	switch t.room {
-	case roomSquare:
-		return t.chooseSquare(i)
-	case roomGates:
-		return ui.TownAction{}
-	case roomShop:
-		return ui.TownAction{}
-	case roomSchool:
-		return t.openBuildingDialogue(TownSchool, i)
-	case roomTavern:
-		offers := t.tavernVisibleOffers()
-		if i < 0 || i >= len(offers) {
-			return ui.TownAction{}
-		}
-		if !t.tavernOfferCanTalk(offers[i]) {
-			return ui.TownAction{}
-		}
-		t.composeShopFaces()
-		t.openOfferDialogue(TownTavern, offers[i], offers[i].NPC)
-		return ui.TownAction{}
-	case roomTalk:
-		return t.AdvanceTownDialogue()
-	}
-	return ui.TownAction{}
-}
-
 // openBuildingDialogue opens the shipped shop or school conversation for the
 // head offer, which opening registers.
 func (t *townScreen) openBuildingDialogue(b TownBuilding, i int) ui.TownAction {
@@ -1057,35 +849,6 @@ func (t *townScreen) openBuildingDialogue(b TownBuilding, i int) ui.TownAction {
 	t.composeShopFaces()
 	t.openOfferDialogue(b, offers[0], 0)
 	return ui.TownAction{}
-}
-
-// Back leaves the open room for the square, and reports whether it left one.
-//
-// FALSE AT THE SQUARE is what lets the flow's own Escape arm leave the town
-// without this file knowing where the town sits in the front end.
-func (t *townScreen) Back() bool {
-	if t.room == roomSquare {
-		return false
-	}
-	if t.room == roomSchool && t.schoolTrainingBusy() {
-		return true
-	}
-	if t.room == roomGates && t.worldMap != nil && t.worldMap.returnMission != 0 {
-		// Escape skips homeward presentation through the same arrival writer;
-		// merely changing rooms would strand the remembered position away.
-		t.arriveWorldMap()
-		return true
-	}
-	if t.room == roomTalk {
-		// Escape is the button's answer, whatever page the conversation is on.
-		t.AdvanceTownDialogue()
-		return true
-	}
-	// The room's exit steps run, then the square's entry: the tavern commits
-	// its queue and the shop clears its table (SHOP-LIFE-013), so nothing the
-	// player put down is destroyed by the next restock.
-	t.squareView().LeaveRoom(townRoomName(t.room))
-	return true
 }
 
 // townLine is the headless report of a win that ends in the town: the
@@ -1136,8 +899,15 @@ func (f *FrontEnd) townLine(n int) string {
 // bindTown hands the front end's components to a town screen.
 func (f *FrontEnd) bindTown(t *townScreen) *townScreen {
 	t.sess, t.in, t.pc = &f.CampaignSession, &f.InstallResources, &f.PersistenceContext
-	t.talkSource = t
+	if t.composed == nil {
+		t.composed = newTownSceneState(f)
+	}
+	if t.defaults == nil {
+		t.defaults = ROM1TownDescription()
+	}
+	t.boundTalkSource()
 	t.bindShop()
+	t.mapPage()
 	t.bindServices(&f.RuntimeServices, &f.InstallResources, &f.Presentation)
 	t.openMission = f.MissionOpener
 	return t
@@ -1171,4 +941,34 @@ func (t *townScreen) shopFaces(src entrySource, party []mapload.PartyMember, pla
 	if dir, ok := playerDirection(party); ok {
 		t.resolver.cast.playerDir, t.resolver.cast.hasPlayer = dir, true
 	}
+}
+
+func (t *chapterTownTalk) talkView() ui.TownTalkView {
+	if t == nil || t.host.room != roomTalk {
+		return ui.TownTalkView{Profile: firstTownTalkProfile}
+	}
+	line := t.host.dialogue.text
+	if t.host.talkDiagnostic != "" {
+		line = t.host.talkDiagnostic
+	}
+	return ui.TownTalkView{Profile: firstTownTalkProfile, Open: true,
+		Page: ui.TownTalkPage{Text: line, Face: t.host.dialogue.face, FaceWindow: t.host.dialogue.faceWindow,
+			Portrait: t.host.mercenaryTalk != 0 || t.host.dialogue.hasPortrait},
+		Art: ui.TownTalkArt{Words: t.host.in.Words, Frame: t.host.art.menuFrame(), Font: t.host.in.Font.Value()}}
+}
+
+func (t *chapterTownTalk) turnTownTalk() bool {
+	if t.host.room != roomTalk {
+		return false
+	}
+	t.host.talkPage.next()
+	if t.host.talkDiagnostic == "" && t.host.lookupTownDialogue() {
+		return true
+	}
+	t.host.dialogue.closeTips = t.host.dialogue.tips
+	t.host.room = t.host.dialogueRoom()
+	t.host.mercenaryTalk, t.host.talkDiagnostic = 0, ""
+	// Closing a conversation preserves the room popup's construction lifetime.
+	t.host.rereadTip(t.host.room)
+	return true
 }

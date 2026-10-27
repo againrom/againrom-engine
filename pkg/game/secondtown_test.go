@@ -45,6 +45,9 @@ func checkSecondTownCites(t *testing.T, data []byte) {
 			for _, c := range list {
 				id, _ := c.(string)
 				switch {
+				case id == "owner" && strings.HasPrefix(path, "$.host"):
+					second = true
+				case id == "owner" && x["row-text"] != nil:
 				case strings.HasPrefix(id, "R2-"):
 					second = true
 				case strings.HasPrefix(id, "DIV-"):
@@ -78,7 +81,7 @@ func TestRom2TownDescriptionShape(t *testing.T) {
 			for len(rows) <= *h.Row {
 				rows = append(rows, "")
 			}
-			rows[*h.Row] = secondTownRowText[h.Name]
+			rows[*h.Row] = townRowText[h.Name]
 		}
 	}
 	if strings.Join(rows, ",") != "TAVERN,GATES,SHOP" {
@@ -120,7 +123,7 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 			for len(rows) <= *h.Row {
 				rows = append(rows, "")
 			}
-			rows[*h.Row] = secondTownRowText[h.Name]
+			rows[*h.Row] = townRowText[h.Name]
 		}
 		for _, op := range h.Click {
 			if op.Dialogue != "" {
@@ -183,7 +186,7 @@ func TestRom2TownThreeDescriptionShape(t *testing.T) {
 			for len(rows) <= *h.Row {
 				rows = append(rows, "")
 			}
-			rows[*h.Row] = secondTownRowText[h.Name]
+			rows[*h.Row] = townRowText[h.Name]
 		}
 		for _, op := range h.Click {
 			if op.Dialogue != "" {

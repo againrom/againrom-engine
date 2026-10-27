@@ -27,19 +27,15 @@ type routeTown interface {
 	dialogueBody() (string, bool)
 }
 
-func (t *secondCampaignScreen) routeRoom() string { return t.roomName() }
-
 // routeRoom names the open room; a talk names the building it opened in.
-func (t *townScreen) routeRoom() string {
-	if t.room == roomTalk {
-		return "talk"
-	}
-	return townRoomName(t.room)
-}
+func (t *townScreen) routeRoom() string { return t.roomName() }
 
-// dialogueBody is the open conversation's page, as the second game's screen
-// answers it.
+// dialogueBody is the open conversation's page under its talk rule.
 func (t *townScreen) dialogueBody() (string, bool) {
+	if t.hostRules().Talk == "section" {
+		r, _ := t.dialoguePart()
+		return r.text, r.ok
+	}
 	if t.room != roomTalk {
 		return "", false
 	}

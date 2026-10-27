@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/pkg/mapload"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -37,5 +38,23 @@ func TestTownMusicFollowsVisibleRoomAndSelectedSchoolClass(t *testing.T) {
 				t.Fatalf("TownMusic() = (%v, %v), want (%v, %v)", gotScene, gotMage, tc.wantScene, tc.wantMage)
 			}
 		})
+	}
+}
+
+func TestTownMusicRoomRulesAndInheritance(t *testing.T) {
+	for _, id := range []int{1, 2, 3} {
+		d := secondTownDescription(id)
+		for _, room := range []string{"square", "inn", "shop"} {
+			if scene, mage := townRoomMusic(d, townMusicState{room: room, present: true, mage: true}); scene != ui.MusicTown || mage {
+				t.Fatalf("town %d room %s: music (%v, %v)", id, room, scene, mage)
+			}
+		}
+	}
+	d := &town.Description{Rooms: []town.RoomSpec{{Name: "inn", MusicRule: &town.RoomMusicSpec{Scene: "shop"}}}}
+	if scene, _ := townRoomMusic(d, townMusicState{room: "inn", present: true}); scene != ui.MusicShop {
+		t.Fatalf("description rule ignored: music %v", scene)
+	}
+	if scene, mage := townRoomMusic(d, townMusicState{}); scene != ui.MusicCampaign || mage {
+		t.Fatalf("outside town: music (%v, %v)", scene, mage)
 	}
 }

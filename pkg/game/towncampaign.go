@@ -1,0 +1,72 @@
+package game
+
+import (
+	"againrom/pkg/town"
+	"againrom/pkg/ui"
+)
+
+type townCampaignAdapter interface {
+	book() *townBook
+	room() string
+	setRoom(string)
+	townID() int
+	ready() bool
+	present() bool
+	talking() bool
+	condition(string) bool
+	value(string) int
+	savePoint() bool
+	leave()
+	bank() *secondCampaign
+	chapter() int
+	unavailableTowns() []int
+	startCampaign() error
+}
+
+func (t *townScreen) campaignTown() townCampaignAdapter {
+	if t.adapter == nil {
+		t.adapter = chapterTownCampaign{t}
+	}
+	return t.adapter
+}
+
+func (t *townScreen) hostRules() town.HostSpec {
+	if d := t.townDescription(); d != nil && d.Host != nil {
+		return *d.Host
+	}
+	if t.defaults != nil && t.defaults.Host != nil {
+		return *t.defaults.Host
+	}
+	return *ROM1TownDescription().Host
+}
+
+func (t *townScreen) roomName() string { return t.campaignTown().room() }
+func (t *townScreen) displayRoom() string {
+	if t.roomName() == "talk" {
+		return townRoomName(t.dialogueRoom())
+	}
+	return t.roomName()
+}
+func (t *townScreen) state() *secondCampaign { return t.campaignTown().bank() }
+
+func (t *townScreen) loadHostTip(room string) {
+	if t.hostRules().Tips == "entry" {
+		t.loadRoomTip(room)
+		return
+	}
+	if r, ok := townRoomNames[room]; ok {
+		t.loadTip(r)
+	}
+}
+
+func (t *townScreen) hostTipView(d *town.Description, room string) ui.TipPanelView {
+	if t.hostRules().Tips == "entry" {
+		return t.entryRoomTipView(d.Town, room)
+	}
+	r := townRoomNames[room]
+	text, _ := t.tipTextSource(r)
+	if text == nil {
+		return ui.TipPanelView{}
+	}
+	return t.roomTipView(r, *text)
+}

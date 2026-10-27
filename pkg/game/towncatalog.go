@@ -9,9 +9,8 @@ import (
 	"againrom/pkg/town"
 )
 
-// The hook sets a catalog entry may name. Each resolves to one campaign's
-// Go hook, condition and value tables: chapters to the first game's town
-// screen, destinations to the second game's.
+// The hook sets a catalog entry may name. Both bind the common host's
+// vocabulary over the selected campaign state.
 const (
 	townHooksChapters     = "chapters"
 	townHooksDestinations = "destinations"
@@ -128,10 +127,8 @@ var townCatalogVocabulary = town.CatalogVocabulary{
 // townHookSetVocabulary is the vocabulary hook set name resolves to.
 func townHookSetVocabulary(name string) (town.Vocabulary, bool) {
 	switch name {
-	case townHooksChapters:
+	case townHooksChapters, townHooksDestinations:
 		return townVocabulary(), true
-	case townHooksDestinations:
-		return secondTownVocabulary(), true
 	}
 	return town.Vocabulary{}, false
 }
@@ -201,7 +198,74 @@ func checkTownCatalog(c *town.Catalog, data map[string][]byte, decoded map[strin
 				return town.EntryErrorf(e.ID, "town catalog %s: town %d has no usable description: %s %v", c.Catalog, e.ID, e.Description, err)
 			}
 		}
+		if err := checkTownStateBinding(d, e.Offers); err != nil {
+			return town.EntryErrorf(e.ID, "town catalog %s: town %d: %v", c.Catalog, e.ID, err)
+		}
 		decoded[e.Description] = d
+	}
+	return nil
+}
+
+func checkTownStateBinding(d *town.Description, offers string) error {
+	if h := d.Host; h != nil {
+		shop, talk, leave, cached, starts := "chapter", "building", "room-map", true, false
+		if offers == townOffersScenarioBank {
+			shop, talk, leave, cached, starts = "bank", "section", "destinations", false, true
+		}
+		if h.Shop != shop || h.Talk != talk || h.Leave != leave || h.CacheScreen != cached || h.StartsInTown != starts {
+			return fmt.Errorf("host state binding does not match offer source %s", offers)
+		}
+	}
+	var hooks []string
+	steps := func(list []town.Step) {
+		for _, st := range list {
+			if st.Hook != "" {
+				hooks = append(hooks, st.Hook)
+			}
+		}
+	}
+	var ops func([]town.Op)
+	ops = func(list []town.Op) {
+		for _, op := range list {
+			if op.Hook != "" {
+				hooks = append(hooks, op.Hook)
+			}
+			ops(op.Then)
+			ops(op.Else)
+		}
+	}
+	scene := func(s *town.SceneSpec) {
+		if s == nil {
+			return
+		}
+		for _, h := range s.Hotspots {
+			ops(h.Click)
+			ops(h.Hover)
+		}
+		ops(s.Pointer.Every)
+		ops(s.Pointer.Off)
+	}
+	steps(d.Square.Enter)
+	scene(d.SquareScene())
+	for _, r := range d.Rooms {
+		required := ""
+		switch r.Page {
+		case "tavern", "school":
+			required = townOffersChapterKeys
+		case "inn":
+			required = townOffersScenarioBank
+		}
+		if required != "" && required != offers {
+			return fmt.Errorf("room %q page %s requires offer source %s", r.Name, r.Page, required)
+		}
+		steps(r.Enter)
+		steps(r.Exit)
+		scene(r.Scene)
+	}
+	for _, name := range hooks {
+		if required := townHooks[name].offers; required != "" && required != offers {
+			return fmt.Errorf("hook %q requires offer source %s", name, required)
+		}
 	}
 	return nil
 }

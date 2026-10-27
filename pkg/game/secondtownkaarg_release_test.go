@@ -15,14 +15,14 @@ import (
 // The campaign position is constructed: stage 30 with town 2 the only
 // destination, the state the departure after mission 20 leaves
 // (R2-ENGINE-146), without playing missions 10 and 20.
-func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *time.Time) {
+func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
 	f := secondGameFront(t)
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	app := f.App("second town two")
 	app.Layout(640, 480)
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	if err := app.HeadlessActivate("new game"); err != nil {
 		t.Fatal(err)
@@ -45,12 +45,12 @@ func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *ti
 
 // kaargStep admits one square step: the clock moves past the 100 ms period
 // and the screen paints once (R2-ENGINE-235).
-func kaargStep(s *secondCampaignScreen, now *time.Time, d time.Duration) {
+func kaargStep(s *townScreen, now *time.Time, d time.Duration) {
 	*now = now.Add(d)
 	s.AdvanceTownSquareAnimation()
 }
 
-func kaargScene(t *testing.T, s *secondCampaignScreen) (*town.Description, *town.Scene) {
+func kaargScene(t *testing.T, s *townScreen) (*town.Description, *town.Scene) {
 	t.Helper()
 	d, ok := s.composedTown()
 	if !ok || d.Town != "rom2-town2" {
@@ -440,7 +440,7 @@ func TestReleaseSecondTownKaargColdLoadKeepsTheRoom(t *testing.T) {
 	out := t.TempDir()
 	secondTownNamedSave(t, f, app, out, "Kaarg inn")
 	cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, "Kaarg inn"))
-	s := cold.TownScreen().(*secondCampaignScreen)
+	s := cold.TownScreen().(*townScreen)
 	coldApp.SetTown(s)
 	c := cold.Town.second
 	if c.current != (partyPlace{2, 2}) || c.room != secondTownInn || !s.AtTownSquare() {

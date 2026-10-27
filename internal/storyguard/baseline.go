@@ -3051,7 +3051,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1862,
 		"scclause":        505,
-		"barestorynumber": 1706,
+		"barestorynumber": 1705,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3060,7 +3060,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    32,
-		"longcommentgroups":      1695,
+		"longcommentgroups":      1694,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3073,5 +3073,5 @@ var Committed = Baseline{
 	// ruled list rows and their tests.
 	// then for the map editor save folder hotfix: new doc comments in
 	// pkg/game/mapinspectionedit.go and its tests.
-	CommentBytes: 9723525,
+	CommentBytes: 9715207,
 }

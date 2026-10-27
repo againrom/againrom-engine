@@ -20,6 +20,28 @@ func (d *Description) Validate() error {
 	if d.Town == "" {
 		return fmt.Errorf("town description: no town name")
 	}
+	if h := d.Host; h != nil {
+		for _, rule := range []struct {
+			name, value string
+			values      []string
+		}{
+			{"rows", h.Rows, []string{"chapter-hints", "hotspots"}},
+			{"shop", h.Shop, []string{"chapter", "bank"}},
+			{"track-source", h.TrackSource, []string{"description", "campaign"}},
+			{"header", h.Header, []string{"chapter", "location"}},
+			{"footer", h.Footer, []string{"party", "services"}},
+			{"talk", h.Talk, []string{"building", "section"}},
+			{"tip-lifecycle", h.Tips, []string{"retained", "entry"}},
+			{"pages", h.Pages, []string{"retained", "entry"}},
+			{"art", h.Art, []string{"pages", "manifest"}},
+			{"audio-room", h.AudioRoom, []string{"building", "requested"}},
+			{"leave", h.Leave, []string{"room-map", "destinations"}},
+		} {
+			if !slices.Contains(rule.values, rule.value) {
+				return fail("host %s %q%s", rule.name, rule.value, accepted(rule.values...))
+			}
+		}
+	}
 	if d.View.Size[0] <= 0 || d.View.Size[1] <= 0 {
 		return fail("view size %v", d.View.Size)
 	}
@@ -71,6 +93,14 @@ func validateStep(s Step, where string, fail func(string, ...any) error) error {
 func (d *Description) validateRoom(r RoomSpec, rooms map[string]bool) error {
 	fail := func(format string, args ...any) error {
 		return fmt.Errorf("town %s: room %s: %s", d.Town, r.Name, fmt.Sprintf(format, args...))
+	}
+	if m := r.MusicRule; m != nil {
+		if !slices.Contains([]string{"town", "campaign", "shop", "tavern", "school"}, m.Scene) {
+			return fail("unknown music-rule scene %q", m.Scene)
+		}
+		if m.By != "" && m.By != "member-class" {
+			return fail("unknown music-rule value %q", m.By)
+		}
 	}
 	if m := r.Music; m != nil {
 		if (m.Track == "") == (len(m.Tracks) == 0) {

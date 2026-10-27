@@ -1,8 +1,11 @@
 package game
 
 import (
+	"encoding/json"
+	"maps"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/base"
@@ -121,6 +124,55 @@ func TestEveryEditionNamesAShippedCatalog(t *testing.T) {
 				t.Errorf("%s: town %d names description %s the registry does not hold", p.ID, e.ID, e.Description)
 			}
 		}
+	}
+}
+
+func TestTownCatalogUsesOneVocabulary(t *testing.T) {
+	v := townVocabulary()
+	for _, name := range []string{townHooksChapters, townHooksDestinations} {
+		got, ok := townHookSetVocabulary(name)
+		if !ok || !reflect.DeepEqual(got, v) {
+			t.Fatalf("hook set %q uses another vocabulary: %+v", name, got)
+		}
+	}
+	for name, raw := range townDescriptionData {
+		if _, err := town.Decode(raw, v); err != nil {
+			t.Errorf("description %s: %v", name, err)
+		}
+	}
+	if _, ok := townHookSetVocabulary("unknown"); ok {
+		t.Fatal("unknown hook set accepted")
+	}
+}
+
+func TestTownHostRefusesMissingCampaignState(t *testing.T) {
+	for _, change := range []struct {
+		name, want string
+		apply      func(map[string]any)
+	}{
+		{"shop binding", "host state binding", func(d map[string]any) { d["host"].(map[string]any)["shop"] = "bank" }},
+		{"inn page", "requires offer source scenario-bank", func(d map[string]any) { d["rooms"].([]any)[0].(map[string]any)["page"] = "inn" }},
+		{"shop hook", "requires offer source scenario-bank", func(d map[string]any) {
+			q := d["square"].(map[string]any)
+			q["enter"] = append(q["enter"].([]any), map[string]any{"hook": "shop-open", "cite": []any{"owner"}})
+		}},
+	} {
+		t.Run(change.name, func(t *testing.T) {
+			var d map[string]any
+			if err := json.Unmarshal(rom1TownJSON, &d); err != nil {
+				t.Fatal(err)
+			}
+			change.apply(d)
+			raw, err := json.Marshal(d)
+			if err != nil {
+				t.Fatal(err)
+			}
+			data := maps.Clone(townDescriptionData)
+			data["rom1"] = raw
+			if _, err := decodeTownBook(rom1TownCatalogJSON, data); err == nil || !strings.Contains(err.Error(), change.want) {
+				t.Fatalf("bad state binding: %v, want %q", err, change.want)
+			}
+		})
 	}
 }
 

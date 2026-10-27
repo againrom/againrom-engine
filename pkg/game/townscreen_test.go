@@ -46,11 +46,25 @@ func settable(v reflect.Value) reflect.Value {
 // and does not need to: this test only requires resolver to come back
 // UNCHANGED, not to hold any particular value.
 func nonZeroTownScreen() *townScreen {
-	ts := &townScreen{shopController: shopController{sess: &CampaignSession{}, in: &InstallResources{}, dealOf: func(*CampaignSession) *Shop { return nil }, partyOf: func(*CampaignSession) *[]mapload.PartyMember { return nil }, shop: shopHost{shown: func() bool { return true }}, racks: func() [4]shopRack { return shopRoomShelves }, packUnits: 9, value: func(sim.ItemInstance) int32 { return 0 }, label: func(sim.ItemInstance) []string { return nil }, shopChosen: 2, shopShelf: ShelfWeapons, shelfBase: 3, packBase: 4, tableBase: 6, shopMember: 5, shopBook: true, shopFigures: []*image.RGBA{{}}, shopFigureMasks: []*ui.SlotMask{{}}, shopSuppressSlot: 8, shopSuppressMember: 9, shopSuppressFigure: &image.RGBA{}, shopSuppressMask: &ui.SlotMask{}, shopIconCache: map[uint16]*image.RGBA{1: {}}, shopSpellAtlasImg: &bmp.Image{}, shopSpellAtlasTried: true, shopSpellIcons: map[uint16]*image.RGBA{1: {}}}, pc: &PersistenceContext{}, sound: &fakeTownAudio{}, draws: fakeTownDraws{}, art: fakeTownArt{}, townProcess: &town.Process{}, openMission: func(int) ui.MapOpener { return nil }, room: roomTalk, roomAudio: &ui.AudioScope{}, audioRoom: roomSchool, dialogueBuilding: TownSchool, npc: 7, offer: TownOffer{Index: 1, Mission: 2, NPC: 3}, talkPage: talkCursor{payload: []byte("previous payload"), part: 4}, dialogue: newTownDialogue([]byte("previous payload")), mercenaryTalk: 6, talkDiagnostic: "a previous game's own diagnostic", innQueue: []int{3}, speech: townSpeech{key: "previous dialogue#1", voice: &tavernInteriorVoice{playing: true}, room: roomShop, pending: []string{"speech/shop/s01i02p2.wav"}}, tavernSelection: tavernCandidateKey{kind: tavernCandidateMercenary, id: 6}, tavernSlotRequests: map[int]int{tavernSlotHireRefused: 2}, schoolCell: 7, schoolHover: 2, schoolSpent: [schoolLatchCount]bool{3: true}, schoolSounds: playingSchoolSounds(), squareLoop: &tavernInteriorVoice{}, squareAction: ui.TownAction{Msg: "pending"}, tipRevision: 1, townStats: true, tavernDetailType: 6, tavernDetail: ui.TownCharacterView{HasSubject: true}, tavernDetailMask: &ui.SlotMask{}, tavernDetailInfo: [12][]string{{"item"}}, tavernDetailPixels: &image.RGBA{}, tavernDetailText: []text.DrawCall{{}}, shopTip: "a previous game's own tip", shopTipSecond: true, townTip: "a previous game's own town tip", schoolTip: "a previous game's own school tip", tavernTip: "a previous game's own tavern tip", tipClosed: [roomTalk + 1]bool{roomSquare: true}, worldMap: &worldMapState{}, worldPosition: image.Pt(10, 20), worldPositionSet: true, worldFlag1Frame: 4, worldSelectedOnce: map[int]bool{5: true}, worldSelectedOrder: []int{5}, resolver: speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}}}
+	ts := &townScreen{shopController: shopController{sess: &CampaignSession{}, in: &InstallResources{}, dealOf: func(*CampaignSession) *Shop { return nil }, partyOf: func(*CampaignSession) *[]mapload.PartyMember { return nil }, shop: shopHost{shown: func() bool { return true }}, racks: func() [4]shopRack { return shopRoomShelves }, packUnits: 9, value: func(sim.ItemInstance) int32 { return 0 }, label: func(sim.ItemInstance) []string { return nil }, shopChosen: 2, shopShelf: ShelfWeapons, shelfBase: 3, packBase: 4, tableBase: 6, shopMember: 5, shopBook: true, shopFigures: []*image.RGBA{{}}, shopFigureMasks: []*ui.SlotMask{{}}, shopSuppressSlot: 8, shopSuppressMember: 9, shopSuppressFigure: &image.RGBA{}, shopSuppressMask: &ui.SlotMask{}, shopIconCache: map[uint16]*image.RGBA{1: {}}, shopSpellAtlasImg: &bmp.Image{}, shopSpellAtlasTried: true, shopSpellIcons: map[uint16]*image.RGBA{1: {}}}, pc: &PersistenceContext{}, sound: &fakeTownAudio{}, draws: fakeTownDraws{}, art: fakeTownArt{}, townProcess: &town.Process{}, openMission: func(int) ui.MapOpener { return nil }, room: roomTalk, roomAudio: &ui.AudioScope{}, audioRoom: "school", dialogueBuilding: TownSchool, npc: 7, offer: TownOffer{Index: 1, Mission: 2, NPC: 3}, talkPage: talkCursor{payload: []byte("previous payload"), part: 4}, dialogue: newTownDialogue([]byte("previous payload")), mercenaryTalk: 6, talkDiagnostic: "a previous game's own diagnostic", innQueue: []int{3}, speech: townSpeech{key: "previous dialogue#1", voice: &tavernInteriorVoice{playing: true}, room: roomShop, pending: []string{"speech/shop/s01i02p2.wav"}}, tavernSelection: tavernCandidateKey{kind: tavernCandidateMercenary, id: 6}, tavernSlotRequests: map[int]int{tavernSlotHireRefused: 2}, schoolCell: 7, schoolHover: 2, schoolSpent: [schoolLatchCount]bool{3: true}, schoolSounds: playingSchoolSounds(), squareLoop: &tavernInteriorVoice{}, squareAction: ui.TownAction{Msg: "pending"}, tipRevision: 1, townStats: true, tavernDetailType: 6, tavernDetail: ui.TownCharacterView{HasSubject: true}, tavernDetailMask: &ui.SlotMask{}, tavernDetailInfo: [12][]string{{"item"}}, tavernDetailPixels: &image.RGBA{}, tavernDetailText: []text.DrawCall{{}}, shopTip: "a previous game's own tip", shopTipSecond: true, townTip: "a previous game's own town tip", schoolTip: "a previous game's own school tip", tavernTip: "a previous game's own tavern tip", tipClosed: [roomTalk + 1]bool{roomSquare: true}, worldMap: &worldMapState{}, worldPosition: image.Pt(10, 20), worldPositionSet: true, worldFlag1Frame: 4, worldSelectedOnce: map[int]bool{5: true}, worldSelectedOrder: []int{5}, resolver: speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}}}
 	for range 5 {
 		ts.talkWindow.Open(true)
 	}
-	ts.talkSource = ts
+	ts.adapter = chapterTownCampaign{ts}
+	ts.defaults = ROM1TownDescription()
+	ts.composed = newTownSceneState(nil)
+	ts.mapRoute = &chapterTownMap{ts}
+	ts.mapArt = func() *worldMapAssets { return nil }
+	ts.worldMapOf = newSecondCampaign()
+	ts.worldMapAt = &secondMapOpening{from: partyPlace{kind: placeTown, id: 1}}
+	ts.start = func() error { return nil }
+	ts.frame = func() *ui.DialogFrame { return nil }
+	ts.tags = firstEventTags{}
+	ts.tipArt = func() *ui.TipPanelArt { return nil }
+	ts.tip = secondRoomTip{room: "inn", text: "old", revision: 1}
+	ts.talkFaces = speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}}
+	ts.paneArt = func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) { return TownCharacterPaneArt{}, nil }
+	ts.talkSource = &chapterTownTalk{ts}
 	ts.talkWindow.SetVisual(ui.DialogueButtonState{Hover: true, Pressed: true, Inside: true, Disabled: true}, ui.DialogueBackdrop{Clipped: true, Clip: image.Rect(1, 2, 3, 4)})
 	ts.square = newSquareScene(ts, ROM1TownDescription())
 	ts.tavernPage().Enter()
@@ -75,6 +89,16 @@ func townScreenFields(rv reflect.Value) (names []string, values []reflect.Value)
 // Every field is classified as reset state or retained process presentation.
 func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 	keepUnchanged := map[string]string{
+		"adapter":             "campaign state accessor reads the current session",
+		"defaults":            "profile description remains process data",
+		"composed":            "scene and art caches retain their process state",
+		"mapRoute":            "map page reads the current host and campaign",
+		"mapArt":              "install map art callback",
+		"start":               "campaign start callback",
+		"frame":               "install dialog art callback",
+		"tags":                "campaign tag vocabulary",
+		"tipArt":              "install tip art callback",
+		"paneArt":             "install pane art callback",
 		"sess":                "the campaign component the screen reads; does not change across a load",
 		"in":                  "the install component the screen reads; does not change across a load",
 		"sound":               "the audio service the screen plays through; does not change across a load",

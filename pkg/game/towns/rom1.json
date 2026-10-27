@@ -1,4 +1,5 @@
 {
+  "host": {"rows": "chapter-hints", "header": "chapter", "footer": "party", "talk": "building", "tip-lifecycle": "retained", "pages": "retained", "art": "pages", "header-prefix": "", "audio-room": "building", "leave": "room-map", "speech": true, "silent-square": true, "click-sounds": true, "dialogue-speech": true, "cache-screen": true, "eager-square": true, "starts-in-town": false, "cite": ["owner"], "shop": "chapter", "track-source": "description", "require-art": false, "current-hook-room": true},
   "town": "rom1-square",
   "cite": ["TOWN-489"],
   "view": {"size": [640, 480], "cite": ["TOWN-503", "DIV-1940"]},
@@ -64,25 +65,25 @@
     "cite": ["TOWN-163"]
   },
   "hotspots": [
-    {"name": "tavern", "row": 0, "tip": 236,
+    {"name": "tavern", "row": 0, "row-text": "TAVERN", "hint": "tavern-offers", "tip": 236,
      "click": [{"room": "tavern", "cite": ["TOWN-475", "TOWN-477"]}],
      "hover": [{"arm": "tavern", "cite": ["TOWN-401"]}],
      "cite": ["TEXT-HOVERROOM-051", "owner"]},
-    {"name": "shop", "row": 1, "tip": 233,
+    {"name": "shop", "row": 1, "row-text": "SHOP", "hint": "shop-offers", "tip": 233,
      "click": [{"room": "shop", "cite": ["TOWN-475", "TOWN-477"]}],
      "hover": [
        {"arm": "shop", "chance": {"draw": "animation", "n": 100, "above": 95, "cite": ["TOWN-400"]}, "cite": ["TOWN-400"]},
        {"latch": "shop", "stop": ["school"], "slot": "shop", "sound": "town/shop/enter.wav", "clear": ["school"], "cite": ["TOWN-400", "DIV-838"]}
      ],
      "cite": ["TEXT-HOVERROOM-051", "owner"]},
-    {"name": "school", "row": 2, "tip": 234,
+    {"name": "school", "row": 2, "row-text": "SCHOOL", "hint": "school-offers", "tip": 234,
      "click": [{"room": "school", "cite": ["TOWN-475", "TOWN-477"]}],
      "hover": [
        {"arm": "school", "cite": ["TOWN-402"]},
        {"latch": "school", "stop": ["shop"], "slot": "school", "sound": "town/school/point.wav", "clear": ["shop"], "cite": ["TOWN-402", "DIV-838"]}
      ],
      "cite": ["TEXT-HOVERROOM-051", "owner"]},
-    {"name": "gate", "row": 3, "tip": 237,
+    {"name": "gate", "row": 3, "row-text": "GATES", "hint": "missions", "tip": 237,
      "click": [{"if": "gate-open",
                 "then": [{"room": "gates", "cite": ["TOWN-475", "TOWN-477"]}],
                 "else": [{"hook": "gate-closed", "cite": ["TOWN-164", "TOWN-483", "TOWN-484"]}],
@@ -232,6 +233,7 @@
   },
   "rooms": [
     {"name": "tavern", "page": "tavern",
+     "music-rule": {"scene": "tavern", "cite": ["owner"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -341,6 +343,7 @@
        "cite": ["TOWN-407", "TOWN-412", "DIV-842", "DIV-844"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "shop", "page": "shop",
+     "music-rule": {"scene": "shop", "cite": ["owner"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -469,6 +472,7 @@
        "cite": ["SHOP-ANIMATION-081", "DIV-850", "DIV-852", "DIV-855"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "school", "page": "school",
+     "music-rule": {"scene": "school", "by": "member-class", "cite": ["owner"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -601,6 +605,7 @@
        "cite": ["TOWN-428", "TOWN-430"]},
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "gates", "page": "world-map",
+     "music-rule": {"scene": "campaign", "cite": ["owner"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},

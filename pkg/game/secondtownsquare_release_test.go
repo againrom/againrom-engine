@@ -13,14 +13,14 @@ import (
 
 // secondTownOne opens a new second-game campaign at town 1 on the installed
 // root, under a synthetic animation clock the caller advances.
-func secondTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *time.Time) {
+func secondTownOne(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
 	f := secondGameFront(t)
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	app := f.App("second town one")
 	app.Layout(640, 480)
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	if err := app.HeadlessActivate("new game"); err != nil {
 		t.Fatal(err)
@@ -35,13 +35,13 @@ func secondTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *ti
 
 // secondTownStep admits one square step: the clock moves past the 67 ms
 // period and the screen paints once (R2-ENGINE-242).
-func secondTownStep(s *secondCampaignScreen, now *time.Time) {
+func secondTownStep(s *townScreen, now *time.Time) {
 	*now = now.Add(68 * time.Millisecond)
 	s.AdvanceTownSquareAnimation()
 }
 
 // secondTownPoint is the first mask cell, in row order, holding byte b.
-func secondTownPoint(t *testing.T, s *secondCampaignScreen, b byte) image.Point {
+func secondTownPoint(t *testing.T, s *townScreen, b byte) image.Point {
 	t.Helper()
 	d, _ := s.composedTown()
 	m := s.roomArt(d, "square").scene.Mask
@@ -423,7 +423,7 @@ func TestReleaseSecondTownOneColdLoadKeepsTheRoom(t *testing.T) {
 	out := t.TempDir()
 	secondTownNamedSave(t, f, app, out, "Inn room")
 	cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, "Inn room"))
-	s := cold.TownScreen().(*secondCampaignScreen)
+	s := cold.TownScreen().(*townScreen)
 	coldApp.SetTown(s)
 	if cold.Town.second.room != secondTownInn || !s.AtTownSquare() {
 		t.Fatalf("cold LOAD room %v composed %v", cold.Town.second.room, s.AtTownSquare())

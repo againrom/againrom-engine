@@ -21,7 +21,7 @@ func TestReleaseSecondTownDruidStaleStockSave(t *testing.T) {
 		}
 		secondShopClassFour(t, c)
 		drawn := secondShopUndone(c.shop)
-		secondShopEnter(t, f, app, f.TownScreen().(*secondCampaignScreen))
+		secondShopEnter(t, f, app, f.TownScreen().(*townScreen))
 		if !reflect.DeepEqual(drawn, c.shop.stock()) {
 			t.Fatal("the entry after LOAD drew the stock again")
 		}

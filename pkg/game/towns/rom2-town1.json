@@ -1,4 +1,5 @@
 {
+  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "tip-lifecycle": "entry", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": false, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
   "town": "rom2-town1",
   "cite": ["R2-ENGINE-239", "R2-ENGINE-245"],
   "view": {"size": [640, 480], "cite": ["R2-ENGINE-239"]},
@@ -58,21 +59,21 @@
     "cite": ["R2-ENGINE-241"]
   },
   "hotspots": [
-    {"name": "inn", "row": 0, "tip": 236,
+    {"name": "inn", "row": 0, "row-text": "TAVERN", "tip": 236,
      "click": [{"room": "inn", "cite": ["R2-ENGINE-241", "R2-ENGINE-250"]}],
      "hover": [
        {"arm": "tavern", "cite": ["R2-ENGINE-241", "R2-ENGINE-242"]},
        {"clear-latch": ["shop"], "cite": ["R2-ENGINE-241"]}
      ],
-     "cite": ["R2-ENGINE-241"]},
-    {"name": "shop", "row": 2, "tip": 233,
+     "cite": ["R2-ENGINE-241", "owner"]},
+    {"name": "shop", "row": 2, "row-text": "SHOP", "tip": 233,
      "click": [{"room": "shop", "cite": ["R2-ENGINE-241", "R2-ENGINE-249"]}],
      "hover": [
        {"latch": "shop", "stop": ["school"], "slot": "shop", "sound": "town/shop/enter.wav", "cite": ["R2-ENGINE-241"]},
        {"arm": "shopie", "chance": {"draw": "animation", "n": 100, "above": 95, "cite": ["R2-ENGINE-241", "DIV-2962"]}, "cite": ["R2-ENGINE-241"]}
      ],
-     "cite": ["R2-ENGINE-241", "R2-ENGINE-249"]},
-    {"name": "gate", "row": 1, "tip": 237,
+     "cite": ["R2-ENGINE-241", "R2-ENGINE-249", "owner"]},
+    {"name": "gate", "row": 1, "row-text": "GATES", "tip": 237,
      "click": [{"if": "gate-open",
                 "then": [{"hook": "navigate", "cite": ["R2-ENGINE-241", "R2-ENGINE-144"]}],
                 "else": [{"hook": "gate-closed", "cite": ["R2-ENGINE-241", "R2-ENGINE-243"]}],
@@ -81,7 +82,7 @@
        {"drive": "guard", "dir": -1, "unless": "gate-open", "cite": ["R2-ENGINE-241", "R2-ENGINE-243"]},
        {"clear-latch": ["shop"], "cite": ["R2-ENGINE-241"]}
      ],
-     "cite": ["R2-ENGINE-241"]},
+     "cite": ["R2-ENGINE-241", "owner"]},
     {"name": "menu", "tip": 235,
      "click": [{"menu": "game-menu", "cite": ["R2-ENGINE-241"]}],
      "hover": [

@@ -219,6 +219,10 @@ func (in *InstallResources) hoverStyle() (*ui.GeneratorHover, *text.Font) {
 
 // CloseTip dismisses the current room's constructed popup.
 func (t *townScreen) CloseTip() {
+	if t.hostRules().Tips == "entry" {
+		t.tip.closed = true
+		return
+	}
 	if t == nil || int(t.room) >= len(t.tipClosed) {
 		return
 	}
@@ -236,4 +240,8 @@ func (t *townScreen) ToggleTips() {
 	t.pc.setTipsOff(!t.pc.tipsOffNow())
 }
 
-func (t *townScreen) ResumeTown() { t.loadTip(t.room) }
+func (t *townScreen) ResumeTown() {
+	if t.hostRules().Tips == "retained" {
+		t.loadTip(t.room)
+	}
+}

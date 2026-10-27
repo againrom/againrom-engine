@@ -45,18 +45,59 @@ const (
 	secondMapRoute  = "route"
 )
 
-func (t *secondCampaignScreen) AtWorldMap() bool {
-	c := t.state()
+// worldMapNow is the open map, built once per opening from the available
+// list in its order and the catalog points.
+
+// placePoint is where place l stands on map a: a town at its catalog
+// entry's map point, a mission at its record.
+func (t *destinationTownMap) placePoint(a *worldMapAssets, l partyPlace) (image.Point, bool) {
+	if l.kind != placeTown {
+		return a.desc.point(l.kind, l.id)
+	}
+	e, ok := TownCatalog(t.host.in.profile()).Town(l.id)
+	if !ok {
+		return image.Point{}, false
+	}
+	p, _, ok := townMapPoint(e, a)
+	return p, ok
+}
+
+// leaveWorldMap does nothing: the map has no cancel (R2-ENGINE-428).
+
+// arriveWorldMap ends a travel: the party stands at the target, the map
+// closes and the record at the target is entered, the first available record
+// at that point (R2-ENGINE-432). A town becomes current; a mission opens.
+
+// enterLocation is EnterLocation and the 0x468 arm: a town becomes current on
+// its square; a mission opens (R2-ENGINE-272).
+func (t *destinationTownMap) enterLocation(l partyPlace) ui.TownAction {
+	c := t.host.state()
+	if l.kind == placeTown {
+		c.current, c.room, c.mapOpen = l, secondTownSquare, nil
+		return ui.TownAction{}
+	}
+	return ui.TownAction{Open: t.host.openMission(l.id)}
+}
+
+func (t *destinationTownMap) atMap() bool {
+	c := t.host.state()
 	return c != nil && c.current == (partyPlace{}) && c.talk.payload == nil
 }
 
-// worldMapNow is the open map, built once per opening from the available
-// list in its order and the catalog points.
-func (t *secondCampaignScreen) worldMapNow() *worldMapState {
-	if t == nil || !t.AtWorldMap() || t.mapArt == nil {
+func (t *destinationTownMap) WorldMapView() ui.WorldMapView {
+	s := t.worldMapNow()
+	if s == nil {
+		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
+	}
+	return s.view(worldMapViewInput{font: t.host.in.Font.Value(), detail: t.host.in.tipFont(), words: t.host.in.Words,
+		text: func(kind string, id int) (string, string) { return s.assets.worldMapRecordText(t.host.in, kind, id) }})
+}
+
+func (t *destinationTownMap) worldMapNow() *worldMapState {
+	if t == nil || !t.host.AtWorldMap() || t.host.mapArt == nil {
 		return nil
 	}
-	c := t.state()
+	c := t.host.state()
 	if c.mapOpen == nil {
 		// A LOAD at the map keeps no opening: the map opens in select mode
 		// with the party at the first available record (DIV-3071).
@@ -66,10 +107,10 @@ func (t *secondCampaignScreen) worldMapNow() *worldMapState {
 		}
 		c.mapOpen = &secondMapOpening{from: from}
 	}
-	if t.worldMap != nil && t.worldMapOf == c && t.worldMapAt == c.mapOpen {
-		return t.worldMap
+	if t.host.worldMap != nil && t.host.worldMapOf == c && t.host.worldMapAt == c.mapOpen {
+		return t.host.worldMap
 	}
-	a := t.mapArt()
+	a := t.host.mapArt()
 	if a == nil || a.desc == nil {
 		return nil
 	}
@@ -94,48 +135,16 @@ func (t *secondCampaignScreen) worldMapNow() *worldMapState {
 		s.missions = append(s.missions, m)
 	}
 	s.openTravel()
-	t.worldMap, t.worldMapOf, t.worldMapAt = s, c, c.mapOpen
+	t.host.worldMap, t.host.worldMapOf, t.host.worldMapAt = s, c, c.mapOpen
 	return s
 }
 
-// placePoint is where place l stands on map a: a town at its catalog
-// entry's map point, a mission at its record.
-func (t *secondCampaignScreen) placePoint(a *worldMapAssets, l partyPlace) (image.Point, bool) {
-	if l.kind != placeTown {
-		return a.desc.point(l.kind, l.id)
-	}
-	e, ok := TownCatalog(t.install.profile()).Town(l.id)
-	if !ok {
-		return image.Point{}, false
-	}
-	p, _, ok := townMapPoint(e, a)
-	return p, ok
-}
+func (t *destinationTownMap) chooseWorldRecord(i int) { t.worldMapNow().startTravel(i) }
 
-func (t *secondCampaignScreen) WorldMapView() ui.WorldMapView {
-	s := t.worldMapNow()
-	if s == nil {
-		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
-	}
-	return s.view(worldMapViewInput{font: t.install.Font.Value(), detail: t.install.tipFont(), words: t.install.Words,
-		text: func(kind string, id int) (string, string) { return s.assets.worldMapRecordText(t.install, kind, id) }})
-}
+func (t *destinationTownMap) leaveWorldMap() {}
 
-func (t *secondCampaignScreen) WorldMapHover(p image.Point)               { worldMapHover(t, p) }
-func (t *secondCampaignScreen) WorldMapMove(delta int)                    { worldMapMove(t, delta) }
-func (t *secondCampaignScreen) WorldMapChoose() ui.TownAction             { return worldMapChoose(t) }
-func (t *secondCampaignScreen) WorldMapClick(p image.Point) ui.TownAction { return worldMapClick(t, p) }
-func (t *secondCampaignScreen) WorldMapTick() ui.TownAction               { return worldMapTick(t) }
-func (t *secondCampaignScreen) chooseWorldRecord(i int)                   { t.worldMapNow().startTravel(i) }
-
-// leaveWorldMap does nothing: the map has no cancel (R2-ENGINE-428).
-func (t *secondCampaignScreen) leaveWorldMap() {}
-
-// arriveWorldMap ends a travel: the party stands at the target, the map
-// closes and the record at the target is entered, the first available record
-// at that point (R2-ENGINE-432). A town becomes current; a mission opens.
-func (t *secondCampaignScreen) arriveWorldMap() ui.TownAction {
-	s, c := t.worldMapNow(), t.state()
+func (t *destinationTownMap) arriveWorldMap() ui.TownAction {
+	s, c := t.worldMapNow(), t.host.state()
 	i := s.selected
 	s.route, s.shown, s.cross, s.selected = nil, 0, 0, -1
 	if i < 0 || i >= len(s.missions) || i >= len(c.available) {
@@ -154,13 +163,4 @@ func (t *secondCampaignScreen) arriveWorldMap() ui.TownAction {
 	return t.enterLocation(c.available[i])
 }
 
-// enterLocation is EnterLocation and the 0x468 arm: a town becomes current on
-// its square; a mission opens (R2-ENGINE-272).
-func (t *secondCampaignScreen) enterLocation(l partyPlace) ui.TownAction {
-	c := t.state()
-	if l.kind == placeTown {
-		c.current, c.room, c.mapOpen = l, secondTownSquare, nil
-		return ui.TownAction{}
-	}
-	return ui.TownAction{Open: t.open(l.id)}
-}
+func (t *destinationTownMap) tick() ui.TownAction { return worldMapTick(t) }

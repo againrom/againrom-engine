@@ -40,7 +40,7 @@ func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSampl
 	}
 	sample := secondTownSample{Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Offered: f.Offered,
 		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: screen.Rows(), Frame: sha256.Sum256(picture.Pix)}
-	if s, ok := screen.(*secondCampaignScreen); ok {
+	if s, ok := screen.(*townScreen); ok {
 		if _, composed := s.composedTown(); composed {
 			// A composed town's picture carries its animation phase and
 			// wildlife variants, presentation the SAV does not hold

@@ -17,7 +17,7 @@ func secondStartMissionWitness(t *testing.T) (*FrontEnd, *ui.App, *routeWitness)
 	app := f.App("start mission")
 	app.Layout(640, 480)
 	f.TownAnimationNow = app.HeadlessSceneNow
-	s, ok := f.TownScreen().(*secondCampaignScreen)
+	s, ok := f.TownScreen().(*townScreen)
 	if !ok {
 		t.Fatal("the second game's town is not the second campaign's screen")
 	}
@@ -132,7 +132,7 @@ func TestReleaseSecondGameStartMissionGateRefusesBeforeTheMage(t *testing.T) {
 			if c.bank[769] != 0 {
 				t.Fatalf("%s set bank 769", talk)
 			}
-			want, err := readSecondTownTalk(w.town.install, secondGateText)
+			want, err := readSecondTownTalk(w.town.in, secondGateText)
 			if err != nil || want == nil {
 				t.Fatalf("no gate guard text: %v", err)
 			}

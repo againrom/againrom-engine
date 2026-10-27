@@ -13,14 +13,14 @@ import (
 )
 
 // secondCampaignRules is the second game's campaign service: a scenario bank
-// that names the towns and missions the party may travel to, its own town
-// screen, its own save points and the script's message queue. A session that
+// that names the towns and missions the party may travel to, its save
+// points and the script's message queue. A session that
 // holds no second-campaign state yet keeps the first game's behaviour, which
 // the embedded rules give.
 type secondCampaignRules struct{ firstCampaignRules }
 
-func (r secondCampaignRules) townScreen(f *FrontEnd) ui.TownScreen {
-	return f.secondCampaignScreen(r.eventTags())
+func (secondCampaignRules) townAdapter(t *townScreen) townCampaignAdapter {
+	return destinationTownCampaign{t}
 }
 
 func (secondCampaignRules) townSavePoint(f *FrontEnd) error {
@@ -350,4 +350,88 @@ func (secondCampaignRules) censusRefusal() error { return nil }
 
 func (secondCampaignRules) testPlayRefusal() error {
 	return errors.New("Test play plays first-game maps only: this campaign has no guest missions")
+}
+
+type destinationTownCampaign struct{ t *townScreen }
+
+func (destinationTownCampaign) chapter() int { return 0 }
+func (c destinationTownCampaign) unavailableTowns() []int {
+	s := c.bank()
+	if s == nil {
+		return nil
+	}
+	var ids []int
+	for id := 2; id <= 3; id++ {
+		if p := (partyPlace{kind: placeTown, id: id}); s.current == p || s.has(p) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+func (c destinationTownCampaign) startCampaign() error {
+	if _, err := c.t.in.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); err != nil {
+		return fmt.Errorf("initial campaign town: %w", err)
+	}
+	return c.t.start()
+}
+
+func (c destinationTownCampaign) bank() *secondCampaign {
+	if c.t.sess == nil || c.t.sess.Town == nil {
+		return nil
+	}
+	return c.t.sess.Town.second
+}
+func (c destinationTownCampaign) book() *townBook {
+	if c.t.in == nil || c.t.in.Archives == nil {
+		return townBooks["rom2"]
+	}
+	return townBookOf(c.t.profile())
+}
+func (c destinationTownCampaign) room() string {
+	if s := c.bank(); s != nil {
+		for name, r := range secondTownRooms {
+			if s.room == r {
+				return name
+			}
+		}
+	}
+	return ""
+}
+func (c destinationTownCampaign) setRoom(name string) {
+	if s := c.bank(); s != nil {
+		if r, ok := secondTownRooms[name]; ok {
+			s.room = r
+		}
+	}
+}
+func (c destinationTownCampaign) townID() int {
+	if s := c.bank(); s != nil && s.current.kind == placeTown {
+		return s.current.id
+	}
+	return 0
+}
+func (c destinationTownCampaign) ready() bool   { return c.bank() != nil }
+func (c destinationTownCampaign) present() bool { return c.townID() != 0 }
+func (c destinationTownCampaign) talking() bool {
+	s := c.bank()
+	return s != nil && s.talk.payload != nil
+}
+func (c destinationTownCampaign) condition(name string) bool {
+	if f := secondTownConditions[name]; f != nil && c.bank() != nil {
+		return f(c.bank())
+	}
+	return false
+}
+func (c destinationTownCampaign) value(name string) int {
+	if f := secondTownValues[name]; f != nil && c.bank() != nil {
+		return f(c.bank())
+	}
+	return -1
+}
+func (c destinationTownCampaign) savePoint() bool { return c.bank().savePoint() }
+func (c destinationTownCampaign) leave() {
+	if s := c.bank(); s != nil {
+		s.leaveTown()
+		s.room = secondTownSquare
+	}
 }

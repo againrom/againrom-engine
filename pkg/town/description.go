@@ -43,6 +43,33 @@ type Description struct {
 	// RoomButtons is the rooms' button caption style; nil keeps the
 	// engine's own.
 	RoomButtons *RoomButtonsSpec `json:"room-buttons"`
+	Host        *HostSpec        `json:"host"`
+}
+
+// HostSpec selects the town host's presentation and lifecycle rules.
+type HostSpec struct {
+	CurrentHookRoom bool     `json:"current-hook-room"`
+	Shop            string   `json:"shop"`
+	TrackSource     string   `json:"track-source"`
+	RequireArt      bool     `json:"require-art"`
+	Rows            string   `json:"rows"`
+	Header          string   `json:"header"`
+	HeaderPrefix    string   `json:"header-prefix"`
+	Footer          string   `json:"footer"`
+	Talk            string   `json:"talk"`
+	Tips            string   `json:"tip-lifecycle"`
+	Pages           string   `json:"pages"`
+	Art             string   `json:"art"`
+	AudioRoom       string   `json:"audio-room"`
+	Leave           string   `json:"leave"`
+	Speech          bool     `json:"speech"`
+	SilentSquare    bool     `json:"silent-square"`
+	ClickSounds     bool     `json:"click-sounds"`
+	DialogueSpeech  bool     `json:"dialogue-speech"`
+	CacheScreen     bool     `json:"cache-screen"`
+	EagerSquare     bool     `json:"eager-square"`
+	StartsInTown    bool     `json:"starts-in-town"`
+	Cite            []string `json:"cite"`
 }
 
 // ViewSpec is the view's size.
@@ -99,13 +126,15 @@ type MaskByte struct {
 // HotspotSpec is one region of the view: its row in the list fallback, its
 // tooltip text slot, or no tip, its click program and its hover reactions.
 type HotspotSpec struct {
-	Name  string   `json:"name"`
-	Row   *int     `json:"row"`
-	Tip   int      `json:"tip"`
-	NoTip bool     `json:"no-tip"`
-	Click []Op     `json:"click"`
-	Hover []Op     `json:"hover"`
-	Cite  []string `json:"cite"`
+	Name    string   `json:"name"`
+	Row     *int     `json:"row"`
+	RowText string   `json:"row-text"`
+	Hint    string   `json:"hint"`
+	Tip     int      `json:"tip"`
+	NoTip   bool     `json:"no-tip"`
+	Click   []Op     `json:"click"`
+	Hover   []Op     `json:"hover"`
+	Cite    []string `json:"cite"`
 }
 
 // TipSlot answers the hotspot's tooltip text slot, and false for a hotspot
@@ -455,6 +484,13 @@ type MusicSpec struct {
 	Cite   []string `json:"cite"`
 }
 
+// RoomMusicSpec selects a room's music scene and its preferred class.
+type RoomMusicSpec struct {
+	Scene string   `json:"scene"`
+	By    string   `json:"by"`
+	Cite  []string `json:"cite"`
+}
+
 // SquareSpec names the square as a room and orders the steps that return to
 // it.
 type SquareSpec struct {
@@ -473,8 +509,9 @@ type RoomSpec struct {
 	Scene *SceneSpec `json:"scene"`
 	// Art is the page's own art outside its scene: the panels, controls and
 	// sheets its page kind draws, read by the one screen art loader.
-	Art   []ArtSpec  `json:"art"`
-	Music *MusicSpec `json:"music"`
+	Art       []ArtSpec      `json:"art"`
+	Music     *MusicSpec     `json:"music"`
+	MusicRule *RoomMusicSpec `json:"music-rule"`
 	// Seats and Buttons are a page's own controls as data: the seat grid its
 	// page draws the campaign's roster in, and its buttons in index order.
 	Seats   *SeatSpec    `json:"seats"`

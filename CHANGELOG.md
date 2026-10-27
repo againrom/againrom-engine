@@ -35,6 +35,10 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor's Save As window starts in the map's own folder, or in a `maps` folder beside the saves for a new, archive or installed map, and saving there works even when Againrom is unpacked inside the game folder. A refusal to save into the game folder now says so in your language and names the `maps` folder. Before, the window started in the game folder and every save there failed.
 - [BASE] In the map editor's Scripts list a message action now shows as "Message" with the first line of its text, not as a plain "Action" with an English operation name, in English and Russian.
 
+### For developers
+
+- [BASE] Both games now build their town through one town screen; what differs between the games is town description data, and players see no change.
+
 ## 0.135.0
 
 ### For players

@@ -19,12 +19,12 @@ import (
 	"againrom/pkg/vfs"
 )
 
-func secondCampaignFixture(t *testing.T, withTown bool) (*FrontEnd, *ui.App, *secondCampaignScreen) {
+func secondCampaignFixture(t *testing.T, withTown bool) (*FrontEnd, *ui.App, *townScreen) {
 	t.Helper()
 	return secondCampaignFixtureFiles(t, withTown)
 }
 
-func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File) (*FrontEnd, *ui.App, *secondCampaignScreen) {
+func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File) (*FrontEnd, *ui.App, *townScreen) {
 	t.Helper()
 	if withTown {
 		files = append(files, synth.File{Path: "text/town.txt", Data: []byte("#npc517talk10\r\n<NPC=517,PART=1>\r\nFirst page.\r\n<NPC=21,PART=2>\r\nSecond page.\r\n#other\r\n")})
@@ -52,7 +52,7 @@ func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File
 		CampaignSession: CampaignSession{Town: NewTown(Campaign{}), Carried: []mapload.PartyMember{{ID: "old", Name: "old hero"}}}}
 	app := f.App("campaign")
 	app.Layout(1024, 768)
-	screen := f.TownScreen().(*secondCampaignScreen)
+	screen := f.TownScreen().(*townScreen)
 	secondMapFixturePoints(screen)
 	app.SetTown(screen)
 	return f, app, screen
@@ -61,7 +61,7 @@ func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File
 // secondMapFixturePoints gives every catalog record a fixture point, distinct
 // from every other, so a fixture campaign's map places every record it
 // offers. Town 1 and mission 10 keep their catalog points.
-func secondMapFixturePoints(screen *secondCampaignScreen) {
+func secondMapFixturePoints(screen *townScreen) {
 	art := screen.mapArt
 	var fixture *worldMapAssets
 	screen.mapArt = func() *worldMapAssets {
@@ -93,7 +93,7 @@ func secondMapFixturePoints(screen *secondCampaignScreen) {
 // targets it, a press starts the travel and paints run to its end. It answers
 // the opener's error for a mission and an error when l is not on the map or
 // the travel ends nowhere.
-func secondMapTravel(app *ui.App, screen *secondCampaignScreen, l partyPlace) error {
+func secondMapTravel(app *ui.App, screen *townScreen, l partyPlace) error {
 	if !screen.AtWorldMap() {
 		return fmt.Errorf("the map is not open for %v", l)
 	}

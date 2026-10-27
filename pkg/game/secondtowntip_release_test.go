@@ -40,7 +40,7 @@ func TestReleaseSecondTownRoomTips(t *testing.T) {
 	f := secondGameFront(t)
 	app := f.App("second town tips")
 	app.Layout(640, 480)
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	f.SetTipsOff(false)
 	if err := app.HeadlessActivate("new game"); err != nil || app.Screen() != ui.ScreenTown {

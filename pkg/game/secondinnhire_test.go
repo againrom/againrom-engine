@@ -95,7 +95,7 @@ func TestSecondInnHireRouting(t *testing.T) {
 	if !ok {
 		t.Fatal("no composed town 2")
 	}
-	view := secondTownView{t: screen, d: d, room: "inn"}
+	view := townRoomView{t: screen, d: d, room: "inn"}
 	screen.enterSeats()
 	if ctl, ok := view.ControlAt(image.Pt(200, 448)); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != 0 {
 		t.Fatalf("hire seat click %+v %v", ctl, ok)

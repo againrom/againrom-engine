@@ -104,7 +104,7 @@ func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 	f, app := secondGeneratedMage(t, false)
 	// Each TownScreen call builds a screen; the App is given this one so the
 	// window it drives is the one read here.
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	for _, target := range []string{"TAVERN", "TALK 517"} {
 		if err := app.HeadlessActivate(target); err != nil {

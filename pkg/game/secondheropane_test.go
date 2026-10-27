@@ -31,7 +31,7 @@ func TestSecondTownRoomsCarryTheHeroPane(t *testing.T) {
 // card, and PREVIOUS and NEXT keep him.
 func TestSecondHeroPaneWithOneHero(t *testing.T) {
 	_, _, screen := secondCampaignFixtureFiles(t, false)
-	screen.composed = &secondTownState{}
+	screen.composed = &townSceneState{}
 	spec := &town.PaneSpec{Rect: town.Rect{480, 238, 640, 480}}
 	v, _, _ := screen.heroPane(spec)
 	if !v.HasSubject || v.Statistics || !v.NoBook || v.MemberCount != 1 || v.Member != 0 || v.PaneRect != image.Rect(480, 238, 640, 480) {

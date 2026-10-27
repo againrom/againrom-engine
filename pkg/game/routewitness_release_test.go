@@ -124,7 +124,7 @@ type routeWitness struct {
 	t       *testing.T
 	f       *FrontEnd
 	app     *ui.App
-	town    *secondCampaignScreen
+	town    *townScreen
 	chargen *ui.Chargen
 	dir     string
 	stage   string
@@ -1574,21 +1574,21 @@ func newRouteWitness(t *testing.T, second bool, originals string) (*routeWitness
 	width, height := app.Layout(size.X, size.Y)
 	f.TownAnimationNow = app.HeadlessSceneNow
 	f.ConfigureSaveSeams(app, SaveStore{Dir: t.TempDir()}, OriginalStore{Dir: originals}, func() time.Time { return time.Unix(1700000000, 0).UTC() })
-	// The witness holds the App's own town screen: the second campaign's
-	// builder makes a fresh screen at each call.
+	// The witness holds the App's own town screen; the entry policy can
+	// construct a fresh screen at each call.
 	w := &routeWitness{t: t, f: f, app: app, steps: map[string]int{}, size: image.Pt(width, height)}
 	stages := secondRouteStages
 	if second {
-		town, ok := f.TownScreen().(*secondCampaignScreen)
+		town, ok := f.TownScreen().(*townScreen)
 		if !ok {
-			t.Fatal("the second game's town is not the second campaign's screen")
+			t.Fatal("the second game's town is not the common town screen")
 		}
 		app.SetTown(town)
 		w.town, w.place, w.play = town, town, "town/square"
 	} else {
 		town, ok := f.TownScreen().(*townScreen)
 		if !ok {
-			t.Fatal("the first game's town is not the chapter town screen")
+			t.Fatal("the first game's town is not the common town screen")
 		}
 		app.SetTown(town)
 		w.chapter, w.place, w.play = town, town, "map"

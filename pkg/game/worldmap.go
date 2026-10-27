@@ -462,8 +462,6 @@ func (t *townScreen) enterWorldMap() {
 	}
 }
 
-func (t *townScreen) AtWorldMap() bool { return t != nil && t.room == roomGates }
-
 // beginWorldMapReturn is the owner-directed post-Victory trigger (DIV-137).
 // TOWN-121 supplies route completion into the party's town: the town it left
 // for the mission. Campaign completion has already happened; neither this
@@ -487,52 +485,6 @@ func (t *townScreen) beginWorldMapReturn(mission int) {
 	t.worldMap.route = worldMapRoute(a.mode(t.worldMap.mode).graph, t.worldPosition, t.worldMap.home(), worldMapFallbackStep)
 }
 
-func (t *townScreen) WorldMapView() ui.WorldMapView {
-	if t == nil || t.worldMap == nil {
-		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
-	}
-	s, a := t.worldMap, t.worldMap.assets
-	var src entrySource
-	if t.in.Archives != nil {
-		src = t.in.Archives.Containers
-	}
-	// The home scroll names the party's town by its entry's name, when the
-	// entry gives one; the install's home title otherwise.
-	words := t.in.Words
-	if name := s.homeTown.Name; name != "" {
-		words.WorldHomeTitle = name
-	}
-	v := s.view(worldMapViewInput{font: t.art.documentFont(), detail: t.in.tipFont(), words: words, task: t.worldFlag1Frame})
-	for i := range v.Missions {
-		// `DIV-128`: a picture-bearing mission's own marker paints only once
-		// it has been selected at least once this game (`TOWN-123`/
-		// `TOWN-040`, High).
-		if v.Missions[i].Enabled && v.Missions[i].Kind != placeTown && src != nil && t.worldSelectedOnce[v.Missions[i].Number] {
-			obj := a.data.Objects[v.Missions[i].Object]
-			v.Missions[i].Marker = worldMapOptionalImage(a.marker(v.Missions[i].Number, obj))
-		}
-	}
-	if src != nil && a.data != nil {
-		shown := make(map[int]bool, len(v.Missions))
-		for _, m := range v.Missions {
-			if m.Kind != placeTown {
-				shown[m.Number] = true
-			}
-		}
-		for _, mission := range sortedSelectedMissions(t.worldSelectedOnce) {
-			object, ok := a.data.Missions[mission]
-			if shown[mission] || !ok || object < 0 || object >= len(a.data.Objects) {
-				continue
-			}
-			obj := a.data.Objects[object]
-			if picture := worldMapOptionalImage(a.marker(mission, obj)); picture != nil {
-				v.Markers = append(v.Markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
-			}
-		}
-	}
-	return v
-}
-
 func worldMapOptionalImage(pic *image.RGBA) image.Image {
 	if pic == nil {
 		return nil
@@ -543,71 +495,19 @@ func worldMapOptionalImage(pic *image.RGBA) image.Image {
 // The first game's town screen is a world-map campaign: its input methods are
 // the one builder's, with its own record choice, leave and arrival.
 
-func (t *townScreen) worldMapNow() *worldMapState {
-	if t == nil {
-		return nil
-	}
-	return t.worldMap
-}
-
-func (t *townScreen) WorldMapHover(p image.Point)               { worldMapHover(t, p) }
-func (t *townScreen) WorldMapMove(delta int)                    { worldMapMove(t, delta) }
-func (t *townScreen) WorldMapChoose() ui.TownAction             { return worldMapChoose(t) }
-func (t *townScreen) WorldMapClick(p image.Point) ui.TownAction { return worldMapClick(t, p) }
-
 // WorldMapTick also advances the task Flag1's counter, which the town screen
 // keeps across entries (`TOWN-529`).
-func (t *townScreen) WorldMapTick() ui.TownAction {
-	if t == nil || t.worldMap == nil {
-		return ui.TownAction{}
-	}
-	t.worldFlag1Frame++
-	return worldMapTick(t)
-}
 
 // chooseWorldRecord is the scroll pick's choice of mission i.
-func (t *townScreen) chooseWorldRecord(i int) { t.selectWorldMission(i) }
 
 // leaveWorldMap is the town scroll: it drops the travel and returns to the
 // square.
-func (t *townScreen) leaveWorldMap() {
-	t.worldMap.route, t.worldMap.shown, t.worldMap.cross, t.worldMap.selected = nil, 0, 0, -1
-	t.atSquare()
-}
 
 // arriveWorldMap is `TOWN-121`'s own paint-completion step (High): copy
 // destination to current, clear the route and selection, and open the
 // destination mission. It is reached only once route reveal has consumed the
 // whole route and the Cross animation has passed its end, whether by
 // WorldMapTick's own counters or by a skip that set them.
-func (t *townScreen) arriveWorldMap() ui.TownAction {
-	s := t.worldMap
-	i := s.selected
-	s.route, s.shown, s.selected = nil, 0, -1
-	if s.returnMission != 0 {
-		s.returnMission = 0
-		s.current = s.home()
-		t.worldPosition, t.worldPositionSet = s.current, true
-		if t.sess.Town.progress != nil {
-			t.sess.Town.progress.firstMapPoint = true
-		}
-		t.atSquare()
-		return ui.TownAction{}
-	}
-	if i < 0 || i >= len(s.missions) {
-		return ui.TownAction{}
-	}
-	m := s.missions[i]
-	if m.Kind == placeTown {
-		return t.arriveInTown(m)
-	}
-	s.current = m.Anchor
-	t.worldPosition = m.Anchor
-	if !m.Enabled {
-		return ui.TownAction{Msg: m.Problem}
-	}
-	return t.worldMapMissionAction(m.Number)
-}
 
 // arriveInTown ends a travel to town record m: the town becomes the party's
 // town and its home, with its own state, and the party stands on its square
@@ -1119,4 +1019,103 @@ func (f *FrontEnd) WorldMapCriterionWitness() (string, error) {
 		}
 	}
 	return worldMapCriterionDigest(a.mode(0).path, points), nil
+}
+
+func (t *chapterTownMap) atMap() bool { return t != nil && t.host.room == roomGates }
+
+func (t *chapterTownMap) WorldMapView() ui.WorldMapView {
+	if t == nil || t.host.worldMap == nil {
+		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
+	}
+	s, a := t.host.worldMap, t.host.worldMap.assets
+	var src entrySource
+	if t.host.in.Archives != nil {
+		src = t.host.in.Archives.Containers
+	}
+	// The home scroll names the party's town by its entry's name, when the
+	// entry gives one; the install's home title otherwise.
+	words := t.host.in.Words
+	if name := s.homeTown.Name; name != "" {
+		words.WorldHomeTitle = name
+	}
+	v := s.view(worldMapViewInput{font: t.host.art.documentFont(), detail: t.host.in.tipFont(), words: words, task: t.host.worldFlag1Frame})
+	for i := range v.Missions {
+		// `DIV-128`: a picture-bearing mission's own marker paints only once
+		// it has been selected at least once this game (`TOWN-123`/
+		// `TOWN-040`, High).
+		if v.Missions[i].Enabled && v.Missions[i].Kind != placeTown && src != nil && t.host.worldSelectedOnce[v.Missions[i].Number] {
+			obj := a.data.Objects[v.Missions[i].Object]
+			v.Missions[i].Marker = worldMapOptionalImage(a.marker(v.Missions[i].Number, obj))
+		}
+	}
+	if src != nil && a.data != nil {
+		shown := make(map[int]bool, len(v.Missions))
+		for _, m := range v.Missions {
+			if m.Kind != placeTown {
+				shown[m.Number] = true
+			}
+		}
+		for _, mission := range sortedSelectedMissions(t.host.worldSelectedOnce) {
+			object, ok := a.data.Missions[mission]
+			if shown[mission] || !ok || object < 0 || object >= len(a.data.Objects) {
+				continue
+			}
+			obj := a.data.Objects[object]
+			if picture := worldMapOptionalImage(a.marker(mission, obj)); picture != nil {
+				v.Markers = append(v.Markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
+			}
+		}
+	}
+	return v
+}
+
+func (t *chapterTownMap) worldMapNow() *worldMapState {
+	if t == nil {
+		return nil
+	}
+	return t.host.worldMap
+}
+
+func (t *chapterTownMap) chooseWorldRecord(i int) { t.host.selectWorldMission(i) }
+
+func (t *chapterTownMap) leaveWorldMap() {
+	t.host.worldMap.route, t.host.worldMap.shown, t.host.worldMap.cross, t.host.worldMap.selected = nil, 0, 0, -1
+	t.host.atSquare()
+}
+
+func (t *chapterTownMap) arriveWorldMap() ui.TownAction {
+	s := t.host.worldMap
+	i := s.selected
+	s.route, s.shown, s.selected = nil, 0, -1
+	if s.returnMission != 0 {
+		s.returnMission = 0
+		s.current = s.home()
+		t.host.worldPosition, t.host.worldPositionSet = s.current, true
+		if t.host.sess.Town.progress != nil {
+			t.host.sess.Town.progress.firstMapPoint = true
+		}
+		t.host.atSquare()
+		return ui.TownAction{}
+	}
+	if i < 0 || i >= len(s.missions) {
+		return ui.TownAction{}
+	}
+	m := s.missions[i]
+	if m.Kind == placeTown {
+		return t.host.arriveInTown(m)
+	}
+	s.current = m.Anchor
+	t.host.worldPosition = m.Anchor
+	if !m.Enabled {
+		return ui.TownAction{Msg: m.Problem}
+	}
+	return t.host.worldMapMissionAction(m.Number)
+}
+
+func (t *chapterTownMap) tick() ui.TownAction {
+	if t == nil || t.host.worldMap == nil {
+		return ui.TownAction{}
+	}
+	t.host.worldFlag1Frame++
+	return worldMapTick(t)
 }

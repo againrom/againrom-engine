@@ -16,7 +16,9 @@ import (
 // save.
 type firstCampaignRules struct{}
 
-func (firstCampaignRules) townScreen(f *FrontEnd) ui.TownScreen { return f.chapterTownScreen() }
+func (firstCampaignRules) townAdapter(t *townScreen) townCampaignAdapter {
+	return chapterTownCampaign{t}
+}
 
 func (firstCampaignRules) townSavePoint(f *FrontEnd) error {
 	if !f.Town.Open() {
@@ -182,3 +184,55 @@ func (firstCampaignRules) testPlayRefusal() error { return nil }
 func (firstCampaignRules) censusRefusal() error {
 	return errors.New("the census needs a second-game root")
 }
+
+type chapterTownCampaign struct{ t *townScreen }
+
+func (c chapterTownCampaign) chapter() int          { return c.t.sess.Town.Chapter() }
+func (chapterTownCampaign) unavailableTowns() []int { return nil }
+func (chapterTownCampaign) startCampaign() error {
+	return errors.New("campaign does not start in town")
+}
+
+func (c chapterTownCampaign) book() *townBook {
+	if c.t.sess != nil && c.t.sess.Town != nil && c.t.sess.Town.camp.Towns != nil {
+		return c.t.sess.Town.camp.Towns
+	}
+	return townBookOf(c.t.profile())
+}
+func (c chapterTownCampaign) room() string { return townRoomName(c.t.room) }
+func (c chapterTownCampaign) setRoom(name string) {
+	if r, ok := townRoomNames[name]; ok {
+		c.t.room = r
+	}
+}
+func (c chapterTownCampaign) townID() int {
+	if c.t.sess != nil && c.t.sess.Town != nil {
+		return c.t.sess.Town.townID()
+	}
+	return chapterTown
+}
+func (c chapterTownCampaign) ready() bool   { return c.t.sess != nil && c.t.sess.Town != nil }
+func (c chapterTownCampaign) present() bool { return true }
+func (c chapterTownCampaign) talking() bool { return c.t.room == roomTalk }
+func (c chapterTownCampaign) condition(name string) bool {
+	return name == "gate-open" && c.ready() && (c.t.sess.Town.gateMission() != -1 || len(c.t.sess.Town.travelTowns()) > 0)
+}
+func (c chapterTownCampaign) value(name string) int {
+	if !c.ready() {
+		return -1
+	}
+	switch name {
+	case "tavern-offers":
+		return countOffering(c.t.sess.Town.Offers(TownTavern))
+	case "shop-offers":
+		return len(c.t.sess.Town.Offers(TownShop))
+	case "school-offers":
+		return len(c.t.sess.Town.Offers(TownSchool))
+	case "missions":
+		return len(c.t.sess.Town.Available())
+	}
+	return -1
+}
+func (c chapterTownCampaign) savePoint() bool     { return c.ready() && c.t.sess.Town.Open() }
+func (chapterTownCampaign) leave()                {}
+func (chapterTownCampaign) bank() *secondCampaign { return nil }

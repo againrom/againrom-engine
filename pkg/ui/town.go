@@ -77,6 +77,13 @@ type TownScreen interface {
 	Back() bool
 }
 
+func startsInTown(t TownScreen) bool {
+	if p, ok := t.(interface{ StartsInTown() bool }); ok {
+		return p.StartsInTown()
+	}
+	return true
+}
+
 func townCanSave(t TownScreen) bool {
 	if s, ok := t.(interface{ CanSave() bool }); ok {
 		return s.CanSave()

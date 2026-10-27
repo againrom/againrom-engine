@@ -70,7 +70,7 @@ func (t *townScreen) TownSurfaceHover(cell int) {
 func (t *townScreen) leaveSchoolTraining() {
 	t.schoolPage().Reset()
 	t.schoolSounds.Stop()
-	if t.soundRoom() != roomSchool && t.audioRoom == roomSchool {
+	if t.soundRoom() != roomSchool && t.audioRoom == "school" {
 		t.destroyRoomAudio()
 	}
 }
@@ -80,7 +80,7 @@ func (t *townScreen) leaveSchoolTraining() {
 // clocks and the shine, so hidden wall time can never catch up animation
 // frames (DIV-872).
 func (t *townScreen) SchoolTrainingActive(active bool) {
-	if t == nil || t.sess == nil {
+	if t == nil || t.sess == nil || t.townDescription() == nil || t.townDescription().Room("school") == nil {
 		return
 	}
 	t.schoolPage().SetActive(active, t.inSchoolTraining())

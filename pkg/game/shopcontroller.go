@@ -212,7 +212,7 @@ func (t *shopController) leave() {
 }
 
 // bindShop binds the first game's town room to the page.
-func (t *townScreen) bindShop() {
+func (t *townScreen) bindChapterShop() {
 	t.shop = shopHost{
 		shown: func() bool { return t.room == roomShop },
 		sound: func(on string) { t.roomSound("shop", on) },

@@ -9,7 +9,7 @@ import (
 )
 
 // secondInnRows is the visible list rows of the current town screen.
-func secondInnRows(s *secondCampaignScreen) []string {
+func secondInnRows(s *townScreen) []string {
 	var rows []string
 	for _, r := range s.Rows() {
 		rows = append(rows, r.Text)
@@ -18,7 +18,7 @@ func secondInnRows(s *secondCampaignScreen) []string {
 }
 
 // secondInnSeatPaint paints the inn page and returns seat 0's pixels.
-func secondInnSeatPaint(s *secondCampaignScreen) *image.RGBA {
+func secondInnSeatPaint(s *townScreen) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
 	s.TownSquareView().Scene.Paint(dst)
 	return dst.SubImage(image.Rect(176, 416, 224, 480)).(*image.RGBA)
@@ -89,7 +89,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 	out := t.TempDir()
 	secondTownNamedSave(t, f, app, out, "Kaarg inn hire")
 	cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, "Kaarg inn hire"))
-	cs := cold.TownScreen().(*secondCampaignScreen)
+	cs := cold.TownScreen().(*townScreen)
 	coldApp.SetTown(cs)
 	cc := cold.Town.second
 	if cc.current != (partyPlace{2, 2}) || cc.room != secondTownInn || cc.bank[512] != 1 || cc.bank[532] != 1 || cc.bank[552] != 2 {

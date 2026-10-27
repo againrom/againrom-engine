@@ -2,7 +2,7 @@ package game
 
 import (
 	_ "embed"
-	"image"
+	"slices"
 
 	"againrom/pkg/base"
 	"againrom/pkg/random"
@@ -57,13 +57,12 @@ func TownDescription(p base.Profile) *town.Description {
 	return townBookOf(p).description(chapterTown, townHooksChapters)
 }
 
-// townPages are the page kinds the ROM1 town screen draws its rooms with.
-var townPages = []string{"tavern", "shop", "school", "world-map"}
+// townPages are the room page kinds the town host draws.
+var townPages = []string{"tavern", "shop", "school", "world-map", "inn"}
 
-// townVocabulary is the hook, condition, value, event and page names the
-// ROM1 campaign answers.
+// townVocabulary names the host rules and campaign values descriptions use.
 func townVocabulary() town.Vocabulary {
-	v := town.Vocabulary{Events: roomEvents, Pages: townPages}
+	v := town.Vocabulary{Events: append(slices.Clone(roomEvents), secondShopEvents...), Pages: slices.Clone(townPages)}
 	for name := range townHooks {
 		v.Hooks = append(v.Hooks, name)
 	}
@@ -72,6 +71,16 @@ func townVocabulary() town.Vocabulary {
 	}
 	for name := range roomValues {
 		v.Values = append(v.Values, name)
+	}
+	for name := range secondTownConditions {
+		v.Conditions = append(v.Conditions, name)
+	}
+	for name := range secondTownValues {
+		v.Values = append(v.Values, name)
+	}
+	for _, words := range []*[]string{&v.Hooks, &v.Conditions, &v.Values, &v.Events, &v.Pages} {
+		slices.Sort(*words)
+		*words = slices.Compact(*words)
 	}
 	return v
 }
@@ -99,21 +108,20 @@ func LoadTownSquareArtFor(d *town.Description, src terrain.EntrySource) (*town.A
 // install the zero profile's, the first game's. The screen's rooms and
 // their art read it too.
 func (t *townScreen) townDescription() *town.Description {
-	id := chapterTown
-	if t != nil && t.sess != nil && t.sess.Town != nil {
-		id = t.sess.Town.townID()
+	if t == nil {
+		return ROM1TownDescription()
 	}
-	return t.townBook().description(id, townHooksChapters)
+	b := t.campaignTown().book()
+	e, ok := b.entries().Town(t.campaignTown().townID())
+	if !ok {
+		return nil
+	}
+	return b.description(e.ID, e.Hooks)
 }
 
 // townBook is the book of the party's campaign; a campaign with none reads
 // the install profile's.
-func (t *townScreen) townBook() *townBook {
-	if t != nil && t.sess != nil && t.sess.Town != nil && t.sess.Town.camp.Towns != nil {
-		return t.sess.Town.camp.Towns
-	}
-	return townBookOf(t.profile())
-}
+func (t *townScreen) townBook() *townBook { return t.campaignTown().book() }
 
 func (t *townScreen) profile() base.Profile {
 	if t == nil {
@@ -129,6 +137,7 @@ var townRoomNames = map[string]townRoom{
 	"shop":   roomShop,
 	"school": roomSchool,
 	"gates":  roomGates,
+	"talk":   roomTalk,
 }
 
 func townRoomName(r townRoom) string {
@@ -144,7 +153,7 @@ func townRoomName(r townRoom) string {
 var townConditions = map[string]func(t *townScreen) bool{
 	// The gate opens on a mission to play or a town to travel to.
 	"gate-open": func(t *townScreen) bool {
-		return t.sess.Town.gateMission() != -1 || len(t.sess.Town.travelTowns()) > 0
+		return t.campaignTown().condition("gate-open")
 	},
 	"save-admitted": func(t *townScreen) bool { return t.saveAdmitted() },
 }
@@ -152,64 +161,83 @@ var townConditions = map[string]func(t *townScreen) bool{
 // townHooks are the campaign hooks the description names, each run for the
 // room its step belongs to. Their bodies are the campaign's room logic; their
 // order is the description's.
-var townHooks = map[string]func(t *townScreen, room townRoom){
-	"gate-closed": func(t *townScreen, _ townRoom) {
+type townHook struct {
+	run    func(*townScreen, string)
+	offers string
+}
+
+var townHooks = map[string]townHook{
+	"shop-open":  {run: secondShopOpen, offers: "scenario-bank"},
+	"shop-leave": {run: func(t *townScreen, _ string) { c := t.state(); c.shop.leave(c.heroBag()) }, offers: "scenario-bank"},
+	"gate-closed": {run: func(t *townScreen, _ string) {
+		if t.hostRules().Talk == "section" {
+			t.squareAction = t.openTownText(secondGateText)
+			return
+		}
 		t.composeShopFaces()
 		if !t.openTownDialogue(TownGate, TownOffer{}, 0) {
 			t.squareAction = ui.TownAction{Msg: "Town dialogue unavailable: " + townGateTextPath}
 		}
-	},
-	"release-audio": func(t *townScreen, _ townRoom) { t.destroyRoomAudio() },
-	"set-room":      func(t *townScreen, room townRoom) { t.room = room },
-	"talk-clear":    func(t *townScreen, _ townRoom) { t.npc, t.offer, t.talkPage.part = 0, TownOffer{}, 0 },
-	"tip":           func(t *townScreen, room townRoom) { t.loadTip(room) },
-	"school-reset": func(t *townScreen, _ townRoom) {
+	}, offers: ""},
+	"release-audio": {run: func(t *townScreen, _ string) { t.destroyRoomAudio() }, offers: ""},
+	"set-room":      {run: func(t *townScreen, room string) { t.campaignTown().setRoom(room); t.composed.hero = nil }, offers: ""},
+	"talk-clear":    {run: func(t *townScreen, _ string) { t.npc, t.offer, t.talkPage.part = 0, TownOffer{}, 0 }, offers: "chapter-keys"},
+	"tip":           {run: func(t *townScreen, room string) { t.loadHostTip(room) }, offers: ""},
+	"school-reset": {run: func(t *townScreen, _ string) {
 		t.schoolSpent = [schoolLatchCount]bool{}
 		t.enterSchoolPage()
 		t.clearSchoolSelection()
-	},
-	"shop-shelf": func(t *townScreen, _ townRoom) {
+	}, offers: "chapter-keys"},
+	"shop-shelf": {run: func(t *townScreen, _ string) {
 		t.packBase, t.shopBook = 0, false
 		t.openStockedShopShelf()
-	},
-	"shop-interior": func(t *townScreen, _ townRoom) { t.shopPage().Enter() },
-	"faces":         func(t *townScreen, _ townRoom) { t.composeShopFaces() },
-	"offer-on-entry": func(t *townScreen, room townRoom) {
+	}, offers: "chapter-keys"},
+	"shop-interior": {run: func(t *townScreen, _ string) { t.shopPage().Enter() }, offers: "chapter-keys"},
+	"faces":         {run: func(t *townScreen, _ string) { t.composeShopFaces() }, offers: "chapter-keys"},
+	"offer-on-entry": {run: func(t *townScreen, room string) {
 		building := TownShop
-		if room == roomSchool {
+		if room == "school" {
 			building = TownSchool
 		}
 		if offers := t.sess.Town.Offers(building); len(offers) > 0 {
 			t.openOfferDialogue(building, offers[0], 0)
 		}
-	},
-	"tavern-interior":     func(t *townScreen, _ townRoom) { t.tavernPage().Enter() },
-	"tavern-detail-clear": func(t *townScreen, _ townRoom) { t.clearTavernDetail() },
-	"tavern-selection":    func(t *townScreen, _ townRoom) { t.activateTavernSelection(t.tavernCandidates()) },
-	"navigate":            func(t *townScreen, _ townRoom) { t.enterWorldMap() },
-	"inn-queue-commit":    func(t *townScreen, _ townRoom) { t.commitInnQueue() },
-	"trade-cancel":        func(t *townScreen, _ townRoom) { t.shopClear() },
-	"dialogue-reset": func(t *townScreen, _ townRoom) {
+	}, offers: "chapter-keys"},
+	"tavern-interior":     {run: func(t *townScreen, _ string) { t.tavernPage().Enter() }, offers: "chapter-keys"},
+	"tavern-detail-clear": {run: func(t *townScreen, _ string) { t.clearTavernDetail() }, offers: "chapter-keys"},
+	"tavern-selection":    {run: func(t *townScreen, _ string) { t.activateTavernSelection(t.tavernCandidates()) }, offers: "chapter-keys"},
+	"navigate": {run: func(t *townScreen, _ string) {
+		t.campaignTown().leave()
+		if t.hostRules().Leave == "room-map" {
+			t.enterWorldMap()
+		}
+	}, offers: ""},
+	"inn-queue-commit": {run: func(t *townScreen, _ string) { t.commitInnQueue() }, offers: "chapter-keys"},
+	"trade-cancel":     {run: func(t *townScreen, _ string) { t.shopClear() }, offers: "chapter-keys"},
+	"dialogue-reset": {run: func(t *townScreen, _ string) {
 		t.talkWindow.Touch()
 		t.resetTownSpeech()
-	},
-	"tavern-leave": func(t *townScreen, _ townRoom) { t.leaveTavernInterior() },
-	"shop-reset":   func(t *townScreen, _ townRoom) { t.shopPage().Reset() },
-	"school-leave": func(t *townScreen, _ townRoom) { t.leaveSchoolTraining() },
+	}, offers: "chapter-keys"},
+	"tavern-leave": {run: func(t *townScreen, _ string) { t.leaveTavernInterior() }, offers: "chapter-keys"},
+	"shop-reset":   {run: func(t *townScreen, _ string) { t.shopPage().Reset() }, offers: "chapter-keys"},
+	"school-leave": {run: func(t *townScreen, _ string) { t.leaveSchoolTraining() }, offers: "chapter-keys"},
 }
 
 // squareView answers the square's composer scene, building it on first use
 // over the presentation's process-scoped town state.
 func (t *townScreen) squareView() *town.Scene {
-	if t.square == nil {
-		t.square = newSquareScene(t, t.townDescription())
-		// In original mode the wildlife draws are raw draws of the shared
-		// stream instead of the description's own generator (TOWN-505).
+	d := t.townDescription()
+	if d == nil {
+		return nil
+	}
+	fresh := t.square == nil
+	s := t.scene(d, d.Square.Name)
+	if fresh && t.hostRules().Pages == "retained" {
 		if st := t.draws.stream(random.TownWildlife); st != nil && st.Shared() {
-			t.square.SetRawDraw("wildlife", st.Raw)
+			s.SetRawDraw("wildlife", st.Raw)
 		}
 	}
-	return t.square
+	return s
 }
 
 // resetTownExterior returns the square's scene to the state of a scene just
@@ -222,31 +250,12 @@ func (t *townScreen) resetTownExterior() {
 
 // TownSquareActive is an explicit client lifecycle policy (DIV-834/836).
 // Pausing is not a blank-mask event: retained flags and sound latches remain.
-func (t *townScreen) TownSquareActive(active bool) {
-	if t == nil || t.sess == nil {
-		return
-	}
-	t.squareView().SetActive(active, t.AtTownSquare())
-}
 
 // TownSquarePointer receives each admitted update, not just mask transitions
 // (TOWN-399).
-func (t *townScreen) TownSquarePointer(p image.Point) {
-	if t == nil || t.sess == nil || !t.AtTownSquare() {
-		return
-	}
-	t.TownSquareActive(true)
-	t.squareView().Pointer(p)
-}
 
 // AdvanceTownSquareAnimation is called by production composition. Update and
 // hit-test/view readers cannot advance this paint-owned clock.
-func (t *townScreen) AdvanceTownSquareAnimation() {
-	if t == nil || t.sess == nil || !t.AtTownSquare() {
-		return
-	}
-	t.squareView().Advance()
-}
 
 // chooseSquare runs the click program of the hotspot at list row i and
 // answers the action its hooks left.
@@ -263,45 +272,6 @@ func (t *townScreen) chooseSquare(i int) ui.TownAction {
 	return action
 }
 
-// townSquareScene is the composed square ui draws and hit-tests.
-type townSquareScene struct{ t *townScreen }
-
-func (s townSquareScene) Size() image.Point { return s.t.squareView().Size() }
-
-func (s townSquareScene) Paint(dst *image.RGBA) { s.t.squareView().Paint(dst, "") }
-
-func (s townSquareScene) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
-	h := s.t.squareView().HotspotAt(p)
-	switch {
-	case h == nil:
-		return ui.TownSquareControl{}, false
-	case h.Row != nil:
-		return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: *h.Row}, true
-	case town.Menu(h.Click) != "":
-		return ui.TownSquareControl{Kind: ui.TownSquareControlMenu}, true
-	}
-	return ui.TownSquareControl{}, false
-}
-
-func (s townSquareScene) TipAt(p image.Point) (int, bool) {
-	h := s.t.squareView().HotspotAt(p)
-	if h == nil {
-		return 0, false
-	}
-	return h.TipSlot()
-}
-
-// TownMusicTrack answers the square's own track from the description.
-func (t *townScreen) TownMusicTrack() (string, bool) {
-	scene, _ := t.TownMusic()
-	if scene != ui.MusicTown {
-		return "", false
-	}
-	return t.townDescription().Music.Track, true
-}
-
-// boundedPresentationRoll is one bounded presentation draw: the runtime's
-// draw when supplied, else the fallback generator, else zero.
 func boundedPresentationRoll(draw func(int) int, fallback *random.Stream, n int) int {
 	if n <= 0 {
 		return 0

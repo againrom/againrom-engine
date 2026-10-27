@@ -9,33 +9,15 @@ import (
 	"againrom/pkg/ui"
 )
 
-// sceneCampaign is what a game's town screen answers the one scene adapter
-// for a room of its description: the room's art, the presentation clock and
-// draws, the room's sounds, and the campaign's conditions, values and hooks.
-type sceneCampaign interface {
-	sceneArt(room string) *town.Art
-	sceneNow() time.Time
-	sceneDraw(source string, n int) int
-	sceneSeed() int64
-	sceneCondition(name string) bool
-	sceneValue(name string) int
-	scenePlay(room string, r town.SoundRequest) town.Voice
-	sceneStartLoop(key string) bool
-	sceneStopLoop()
-	sceneLeave(room string)
-	sceneHook(name, room string)
-	sceneDialogue(key string)
-}
-
 // townSceneHost is the one adapter the square and each room page of every
 // game's town run over, bound to its screen and its room by name.
 type townSceneHost struct {
-	t    sceneCampaign
+	t    *townScreen
 	room string
 }
 
 func newSquareScene(t *townScreen, d *town.Description) *town.Scene {
-	return town.NewScene(d, d.Square.Name, townSceneHost{t: t, room: d.Square.Name}, t.townProcess)
+	return t.scene(d, d.Square.Name)
 }
 
 func (h townSceneHost) Art() *town.Art                { return h.t.sceneArt(h.room) }
@@ -61,6 +43,12 @@ func (h townSceneHost) StopSound(v town.Voice) {
 
 func (t *townScreen) sceneArt(name string) *town.Art {
 	if t == nil || t.sess == nil {
+		return nil
+	}
+	if t.hostRules().Art == "manifest" {
+		if d := t.townDescription(); d != nil {
+			return t.roomArt(d, name).scene
+		}
 		return nil
 	}
 	room, ok := townRoomNames[name]
@@ -123,14 +111,14 @@ func (t *townScreen) sceneCondition(name string) bool {
 	if c := townConditions[name]; c != nil {
 		return c(t)
 	}
-	return false
+	return t.campaignTown().condition(name)
 }
 
 func (t *townScreen) sceneValue(name string) int {
 	if v := roomValues[name]; v != nil {
 		return v(t)
 	}
-	return -1
+	return t.campaignTown().value(name)
 }
 
 // PlaySound plays through the room's audio scope at the slot's priority and
@@ -144,14 +132,14 @@ func (t *townScreen) scenePlay(room string, r town.SoundRequest) town.Voice {
 	if !ok {
 		return nil
 	}
-	if townRoomNames[room] != roomSquare && t.sound.soundDevice() == nil {
+	if (room != "square" || !t.hostRules().SilentSquare) && t.sound.soundDevice() == nil {
 		return nil
 	}
 	group, priority := audio.EffectsChannel, townSoundPriority(r)
-	if r.Speech {
+	if r.Speech && t.hostRules().Speech {
 		group = audio.SpeechChannel
 	}
-	v := audio.Dispatch(t.roomSoundPlayer(group), sample,
+	v := audio.Dispatch(t.roomSoundPlayer(group, room), sample,
 		audio.FixedRequest(r.Source, r.Key, group, priority, r.Loop,
 			audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
 	if v == nil {
@@ -181,7 +169,7 @@ func (t *townScreen) sceneStartLoop(key string) bool {
 	request := audio.FixedRequest("town-crowd", key, audio.EffectsChannel, 128, true,
 		audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit})
 	if ui.DeliveryOwner(t.sound.soundDevice()) != nil {
-		t.squareLoop = audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample, request)
+		t.squareLoop = audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel, t.roomName()), sample, request)
 	} else {
 		t.squareLoop = ui.RequestAmbient(t.sound.ambientDevice(), ui.AmbientTownCrowd, sample, request)
 	}
@@ -200,21 +188,22 @@ func (t *townScreen) sceneStopLoop() {
 }
 
 func (t *townScreen) sceneLeave(room string) {
-	if r, ok := townRoomNames[room]; ok && t.audioRoom == r {
+	if t.audioRoom == room {
 		t.destroyRoomAudio()
 	}
 }
 
 func (t *townScreen) sceneHook(name, room string) {
-	if hook := townHooks[name]; hook != nil {
-		r, ok := townRoomNames[room]
-		if !ok {
-			r = t.room
+	if hook := townHooks[name]; hook.run != nil {
+		if room == "" && t.hostRules().CurrentHookRoom {
+			room = t.roomName()
 		}
-		hook(t, r)
+		hook.run(t, room)
 	}
 }
 
-// sceneDialogue opens nothing: no first-game description opens a dialogue in
-// place.
-func (t *townScreen) sceneDialogue(string) {}
+func (t *townScreen) sceneDialogue(key string) {
+	if t.hostRules().Talk == "section" {
+		t.squareAction = t.openTownText(key)
+	}
+}

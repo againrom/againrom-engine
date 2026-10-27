@@ -1,4 +1,5 @@
 {
+  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "tip-lifecycle": "entry", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": false, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
   "town": "rom2-town3",
   "cite": ["R2-ENGINE-251", "R2-ENGINE-257", "R2-SESSION-123"],
   "view": {"size": [640, 480], "cite": ["R2-ENGINE-253", "R2-ASSET-065"]},
@@ -40,33 +41,33 @@
     "cite": ["R2-ENGINE-254", "R2-ASSET-064"]
   },
   "hotspots": [
-    {"name": "inn", "row": 0, "tip": 236,
+    {"name": "inn", "row": 0, "row-text": "TAVERN", "tip": 236,
      "click": [{"room": "inn", "cite": ["R2-ENGINE-255", "R2-ENGINE-257"]}],
      "hover": [
        {"latch": "inn", "slot": "inn", "sound": "town_druid/denter1.wav", "stop": ["shop", "gate"], "cite": ["R2-ENGINE-254"]},
        {"arm": "man", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
      ],
-     "cite": ["R2-ENGINE-255"]},
-    {"name": "shop", "row": 4, "tip": 233,
+     "cite": ["R2-ENGINE-255", "owner"]},
+    {"name": "shop", "row": 4, "row-text": "SHOP", "tip": 233,
      "click": [{"room": "shop", "cite": ["R2-ENGINE-255", "R2-ENGINE-257", "R2-ENGINE-373"]}],
      "hover": [
        {"latch": "shop", "slot": "shop", "sound": "town_druid/denter2.wav", "stop": ["inn", "gate"], "cite": ["R2-ENGINE-254"]},
        {"arm": "woman", "changed": true, "cite": ["R2-ENGINE-254", "DIV-2983"]}
      ],
-     "cite": ["R2-ENGINE-255", "R2-ENGINE-369"]},
-    {"name": "gate", "row": 1, "tip": 237,
+     "cite": ["R2-ENGINE-255", "R2-ENGINE-369", "owner"]},
+    {"name": "gate", "row": 1, "row-text": "GATES", "tip": 237,
      "click": [{"hook": "navigate", "cite": ["R2-ENGINE-255", "R2-SESSION-123"]}],
      "hover": [{"latch": "gate", "slot": "gate", "sound": "town_druid/dout.wav", "cite": ["R2-ENGINE-254"]}],
-     "cite": ["R2-ENGINE-255", "DIV-2966"]},
+     "cite": ["R2-ENGINE-255", "DIV-2966", "owner"]},
     {"name": "menu", "tip": 235,
      "click": [{"menu": "game-menu", "cite": ["R2-ENGINE-255"]}],
      "cite": ["R2-ENGINE-255", "R2-ASSET-064"]},
-    {"name": "innkeeper", "row": 2, "no-tip": true,
+    {"name": "innkeeper", "row": 2, "row-text": "INNKEEPER", "no-tip": true,
      "click": [{"dialogue": "druidinnkeeper%d", "value": "stage", "cite": ["R2-ENGINE-255"]}],
-     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971"]},
-    {"name": "shopkeeper", "row": 3, "no-tip": true,
+     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971", "owner"]},
+    {"name": "shopkeeper", "row": 3, "row-text": "SHOPKEEPER", "no-tip": true,
      "click": [{"dialogue": "druidshopkeeper%d", "value": "stage", "cite": ["R2-ENGINE-255"]}],
-     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971"]}
+     "cite": ["R2-ENGINE-254", "R2-ENGINE-255", "DIV-2971", "owner"]}
   ],
   "pointer": {
     "off": [{"clear-latch": ["shop", "inn", "gate"], "cite": ["R2-ENGINE-254"]}],

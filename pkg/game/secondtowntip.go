@@ -14,28 +14,20 @@ type secondRoomTip struct {
 	away bool
 }
 
-func (t *secondCampaignScreen) tips() roomTipBuilder {
-	b := roomTipBuilder{in: t.install, pc: t.options}
-	if t.tipArt != nil {
-		b.art = t.tipArt()
-	}
-	return b
-}
-
 // loadRoomTip is a room entry's build (R2-ENGINE-308).
-func (t *secondCampaignScreen) loadRoomTip(room string) {
+func (t *townScreen) loadRoomTip(room string) {
 	c := t.state()
 	t.tip = secondRoomTip{of: c, room: room, revision: t.tip.revision + 1}
 	d, ok := t.composedTown()
-	if !ok || t.options == nil {
+	if !ok || t.pc == nil {
 		return
 	}
-	t.tip.text = t.tips().entryText(roomTipRow(t.install, d.Town, room))
+	t.tip.text = t.tips().entryText(roomTipRow(t.in, d.Town, room))
 }
 
 // arriveRoomTip builds the shown room's popup when the town is shown after
 // hidden or under another campaign.
-func (t *secondCampaignScreen) arriveRoomTip(shown bool, room string) {
+func (t *townScreen) arriveRoomTip(shown bool, room string) {
 	if !shown {
 		t.tip.away = true
 		return
@@ -45,19 +37,10 @@ func (t *secondCampaignScreen) arriveRoomTip(shown bool, room string) {
 	}
 }
 
-func (t *secondCampaignScreen) roomTipView(town, room string) ui.TipPanelView {
+func (t *townScreen) entryRoomTipView(town, room string) ui.TipPanelView {
 	p := t.tip
-	if p.of == nil || p.of != t.state() || p.room != room || p.closed || p.text == "" || t.options == nil {
+	if p.of == nil || p.of != t.state() || p.room != room || p.closed || p.text == "" || t.pc == nil {
 		return ui.TipPanelView{}
 	}
-	return t.tips().view(roomTipRow(t.install, town, room), p.text, p.revision)
-}
-
-func (t *secondCampaignScreen) CloseTip() { t.tip.closed = true }
-
-// ToggleTips leaves the open popup (R2-ENGINE-311).
-func (t *secondCampaignScreen) ToggleTips() {
-	if t.options != nil {
-		t.options.setTipsOff(!t.options.tipsOffNow())
-	}
+	return t.tips().view(roomTipRow(t.in, town, room), p.text, p.revision)
 }

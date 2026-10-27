@@ -19,11 +19,20 @@ func (t *townScreen) soundRoom() townRoom {
 	return t.room
 }
 
-func (t *townScreen) roomSoundPlayer(group audio.Channel) audio.Player {
+func (t *townScreen) roomSoundPlayer(group audio.Channel, requested ...string) audio.Player {
 	if t == nil || t.sess == nil {
 		return nil
 	}
-	room := t.soundRoom()
+	room := townRoomName(t.soundRoom())
+	if t.hostRules().AudioRoom == "requested" {
+		room = t.roomName()
+		if len(requested) != 0 {
+			room = requested[0]
+		}
+		if t.sound.soundDevice() == nil {
+			return nil
+		}
+	}
 	if t.roomAudio != nil && (t.audioRoom != room || t.roomAudio.Owner() != ui.DeliveryOwner(t.sound.soundDevice())) {
 		t.destroyRoomAudio()
 	}
@@ -44,6 +53,6 @@ func (t *townScreen) destroyRoomAudio() {
 	if t != nil {
 		t.roomAudio.Destroy()
 		t.roomAudio = nil
-		t.audioRoom = roomSquare
+		t.audioRoom = ""
 	}
 }

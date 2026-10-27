@@ -32,18 +32,18 @@ func traceStepHooks(t *testing.T, tr *townTrace) {
 			names[s.Hook] = true
 		}
 	}
-	saved := map[string]func(*townScreen, townRoom){}
+	saved := map[string]townHook{}
 	for name := range names {
 		hook := townHooks[name]
-		if hook == nil {
+		if hook.run == nil {
 			continue
 		}
 		saved[name] = hook
 		name := name
-		townHooks[name] = func(s *townScreen, room townRoom) {
-			tr.sound.log = append(tr.sound.log, "hook "+name+"@"+townRoomName(room))
-			hook(s, room)
-		}
+		townHooks[name] = townHook{offers: hook.offers, run: func(s *townScreen, room string) {
+			tr.sound.log = append(tr.sound.log, "hook "+name+"@"+room)
+			hook.run(s, room)
+		}}
 	}
 	t.Cleanup(func() {
 		for name, hook := range saved {

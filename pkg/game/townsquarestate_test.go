@@ -46,7 +46,8 @@ func (t *townScreen) sqVoice(slot string) town.Voice { return t.squareView().Voi
 
 // squareControlAt is the production square scene's hit test over f.
 func squareControlAt(f *FrontEnd, p image.Point) (ui.TownSquareControl, bool) {
-	return townSquareScene{f.TownScreen().(*townScreen)}.ControlAt(p)
+	screen := f.TownScreen().(*townScreen)
+	return townRoomView{t: screen, d: screen.townDescription(), room: "square"}.ControlAt(p)
 }
 
 // seededTownProcess is a process state with a stamped paint clock.

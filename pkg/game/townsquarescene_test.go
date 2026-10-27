@@ -17,7 +17,7 @@ func TestTownSquareSceneControlsFromTheMaskBytes(t *testing.T) {
 	f.TownSquareArt = resolved(exteriorTestArt(t), nil)
 	f.Town.announceMission(f.Town.currentMain())
 	_, screen := exteriorApp(t, f)
-	scene := townSquareScene{screen}
+	scene := townRoomView{t: screen, d: screen.townDescription(), room: "square"}
 	door := func(i int) ui.TownSquareControl {
 		return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: i}
 	}

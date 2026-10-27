@@ -16,14 +16,14 @@ import (
 // advances. The campaign position is constructed: the stage given, town 3
 // and mission 70 the destinations, the availability ordinary Leave50 adds to
 // (R2-SESSION-123, R2-SESSION-155), without playing the missions before it.
-func secondTownThree(t *testing.T, stage int32) (*FrontEnd, *ui.App, *secondCampaignScreen, *time.Time) {
+func secondTownThree(t *testing.T, stage int32) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
 	f := secondGameFront(t)
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	app := f.App("second town three")
 	app.Layout(640, 480)
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	if err := app.HeadlessActivate("new game"); err != nil {
 		t.Fatal(err)
@@ -44,7 +44,7 @@ func secondTownThree(t *testing.T, stage int32) (*FrontEnd, *ui.App, *secondCamp
 	return f, app, s, &now
 }
 
-func druidScene(t *testing.T, s *secondCampaignScreen) (*town.Description, *town.Scene) {
+func druidScene(t *testing.T, s *townScreen) (*town.Description, *town.Scene) {
 	t.Helper()
 	d, ok := s.composedTown()
 	if !ok || d.Town != "rom2-town3" {
@@ -54,7 +54,7 @@ func druidScene(t *testing.T, s *secondCampaignScreen) (*town.Description, *town
 }
 
 // druidPaint paints the shown room once.
-func druidPaint(s *secondCampaignScreen) *image.RGBA {
+func druidPaint(s *townScreen) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
 	s.TownSquareView().Scene.Paint(dst)
 	return dst
@@ -248,7 +248,7 @@ func TestReleaseSecondTownDruidPainterOrder(t *testing.T) {
 
 // druidStep admits one square step: the clock moves past the 100 ms period
 // and the screen paints once (R2-ENGINE-256).
-func druidStep(s *secondCampaignScreen, now *time.Time, d time.Duration) {
+func druidStep(s *townScreen, now *time.Time, d time.Duration) {
 	*now = now.Add(d)
 	s.AdvanceTownSquareAnimation()
 }
@@ -666,7 +666,7 @@ func TestReleaseSecondTownDruidColdLoadKeepsTheRoom(t *testing.T) {
 			secondTownShape(t, raw)
 			secondTownAssertSample(t, before, secondTownSampleNow(t, f, app))
 			cold, coldApp := secondTownCold(t, out, secondSaveFile(t, out, name))
-			s := cold.TownScreen().(*secondCampaignScreen)
+			s := cold.TownScreen().(*townScreen)
 			coldApp.SetTown(s)
 			c := cold.Town.second
 			if c.current != (partyPlace{2, 3}) || c.room != room || !s.AtTownSquare() {

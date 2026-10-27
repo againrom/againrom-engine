@@ -17,11 +17,11 @@ import (
 // secondShopLaterTown places a new campaign in town 2 at stage 30 or town 3
 // at stage 60, with the shop records every earlier departure writes
 // (R2-ENGINE-330), and the clock the scenes read under the test's control.
-func secondShopLaterTown(t *testing.T, id int) (*FrontEnd, *ui.App, *secondCampaignScreen, *time.Time) {
+func secondShopLaterTown(t *testing.T, id int) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
 	var f *FrontEnd
 	var app *ui.App
-	var s *secondCampaignScreen
+	var s *townScreen
 	var now *time.Time
 	if id == 2 {
 		f, app, s, now = secondTownTwo(t)
@@ -38,14 +38,14 @@ func secondShopLaterTown(t *testing.T, id int) (*FrontEnd, *ui.App, *secondCampa
 
 // secondShopTownOne is a new campaign in town 1 with the scene clock under
 // the test's control.
-func secondShopTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen, *time.Time) {
+func secondShopTownOne(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
 	f := secondGameFront(t)
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	app := f.App("first town shop")
 	app.Layout(640, 480)
-	s := f.TownScreen().(*secondCampaignScreen)
+	s := f.TownScreen().(*townScreen)
 	app.SetTown(s)
 	if err := app.HeadlessActivate("new game"); err != nil || !s.AtTownSquare() {
 		t.Fatal("new game town 1", err)
@@ -56,7 +56,7 @@ func secondShopTownOne(t *testing.T) (*FrontEnd, *ui.App, *secondCampaignScreen,
 
 // secondShopEnter opens the shop page from the square's row and runs its
 // scene; the page's art must load.
-func secondShopEnter(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampaignScreen) (*town.Scene, *town.Art) {
+func secondShopEnter(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) (*town.Scene, *town.Art) {
 	t.Helper()
 	secondShopActivate(t, f, app, "SHOP")
 	c := f.Town.second
@@ -74,7 +74,7 @@ func secondShopEnter(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampaignSc
 // secondShopArtLoaded requires the shop page in place of the square, with
 // the town's room, frame, shelf, table, menu, arrows and buttons
 // (R2-ENGINE-249) and its scene's interior.
-func secondShopArtLoaded(t *testing.T, s *secondCampaignScreen) {
+func secondShopArtLoaded(t *testing.T, s *townScreen) {
 	t.Helper()
 	d, _ := s.composedTown()
 	if a := s.roomArt(d, "shop"); a.err != nil || !s.AtTownShop() || s.AtTownSquare() {
@@ -95,7 +95,7 @@ func secondShopArtLoaded(t *testing.T, s *secondCampaignScreen) {
 }
 
 // secondShopPaint is the shop page's frame with no pointer.
-func secondShopPaint(s *secondCampaignScreen) *image.RGBA {
+func secondShopPaint(s *townScreen) *image.RGBA {
 	return ui.ComposeShopScreen(s.ShopScreen(), image.Point{}, false, nil, false)
 }
 
@@ -199,7 +199,7 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 // fourth-category row, button or elven picture; the druid inn's NPC 675
 // topic 78 then sets the slot and the class-4 mask (R2-ENGINE-331), and the
 // reopened page offers and selects the fourth category under hili_elven.
-func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *secondCampaignScreen) {
+func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) {
 	t.Helper()
 	c := f.Town.second
 	if c.bank[770] != 0 {
@@ -284,7 +284,7 @@ func secondShopClassFour(t *testing.T, c *secondCampaign) {
 
 // secondShopKeeperFrame checks that the page shows frame pic at at, where
 // it differs from the resting page base: the loss control.
-func secondShopKeeperFrame(t *testing.T, s *secondCampaignScreen, base image.Image, pic image.Image, at image.Point, what string) {
+func secondShopKeeperFrame(t *testing.T, s *townScreen, base image.Image, pic image.Image, at image.Point, what string) {
 	t.Helper()
 	p := druidDiffPoint(t, base, pic, at)
 	if !druidProbe(secondShopPaint(s), pic, at, p) {
@@ -309,7 +309,7 @@ func TestReleaseSecondTownShopKeepers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var f *FrontEnd
 			var app *ui.App
-			var s *secondCampaignScreen
+			var s *townScreen
 			var now *time.Time
 			if tc.id == 1 {
 				f, app, s, now = secondShopTownOne(t)

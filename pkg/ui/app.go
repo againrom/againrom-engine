@@ -1194,7 +1194,7 @@ func (a *App) SetNewGameDirect(g NewGameDirect) {
 // installed and opens, else the flow's own arm.
 func (a *App) activateNewGame() {
 	if a.flow.screen == ScreenMenu {
-		if town, ok := a.flow.town.(interface{ StartNewGame() error }); ok {
+		if town, ok := a.flow.town.(interface{ StartNewGame() error }); ok && startsInTown(a.flow.town) {
 			// A campaign that starts in town opens generation first when the
 			// wiring installed it; its accept starts the campaign.
 			if a.flow.newGameChargen != nil {

@@ -138,7 +138,7 @@ func TestTownTalkProfilesKeepEachGame(t *testing.T) {
 // declared once, on the seat both screens embed, and each reaches the window
 // rather than composing a notice itself; neither screen declares one.
 func TestTownScreensHoldOneTownTalk(t *testing.T) {
-	for _, screen := range []any{townScreen{}, secondCampaignScreen{}} {
+	for _, screen := range []any{townScreen{}} {
 		typ := reflect.TypeOf(screen)
 		windows := 0
 		var walk func(reflect.Type)
@@ -181,7 +181,7 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 				continue
 			}
 			recv := receiverName(fn.Recv.List[0].Type)
-			if recv != "townScreen" && recv != "secondCampaignScreen" && recv != "townTalkSeat" {
+			if recv != "townScreen" && recv != "chapterTownTalk" && recv != "sectionTownTalk" && recv != "townTalkSeat" {
 				continue
 			}
 			window := townTalkMethods[fn.Name.Name]
@@ -216,7 +216,7 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 // Each game keeps one page cursor: the first game's screen and the second
 // game's campaign hold one talkCursor, and no other part or payload field.
 func TestTownTalkHasOneCursor(t *testing.T) {
-	for _, holder := range []any{townScreen{}, secondCampaignScreen{}, secondCampaign{}, townDialogueState{}} {
+	for _, holder := range []any{townScreen{}, townScreen{}, secondCampaign{}, townDialogueState{}} {
 		typ := reflect.TypeOf(holder)
 		cursors := 0
 		for i := 0; i < typ.NumField(); i++ {

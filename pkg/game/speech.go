@@ -192,6 +192,9 @@ func (t *townScreen) resetTownSpeech() {
 // TownDialogueActive is driven by App after input. Rendering cannot start or
 // repeat a line; changing part, leaving the dialogue or exiting stops it.
 func (t *townScreen) TownDialogueActive(active bool) {
+	if t != nil && !t.hostRules().DialogueSpeech {
+		return
+	}
 	if t == nil || t.sess == nil {
 		return
 	}

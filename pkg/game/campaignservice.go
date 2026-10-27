@@ -15,8 +15,8 @@ import (
 // state happens to exist. Each implementation is stateless: the state it
 // reads and writes is the session's own.
 type campaignService interface {
-	// townScreen is the screen the town is shown on.
-	townScreen(f *FrontEnd) ui.TownScreen
+	// townAdapter supplies the common host's campaign state.
+	townAdapter(t *townScreen) townCampaignAdapter
 	// place is where the session's party stands: a town or a mission.
 	place(s *CampaignSession) partyPlace
 	// townSavePoint refuses a save taken off the map when the town is not

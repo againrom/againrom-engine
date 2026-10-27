@@ -39,7 +39,7 @@ func secondShopActivate(t *testing.T, f *FrontEnd, app *ui.App, rows ...string) 
 	t.Helper()
 	buttons := map[string]int{"UNDO": 0, "BUY": 1, "SELL": 2, "EXIT": 3}
 	for _, row := range rows {
-		s, ok := f.TownScreen().(*secondCampaignScreen)
+		s, ok := f.TownScreen().(*townScreen)
 		if !ok || !s.AtTownShop() {
 			if err := app.HeadlessActivate(row); err != nil {
 				t.Fatalf("town row %q: %v", row, err)
@@ -259,7 +259,7 @@ func TestReleaseSecondTownShopDealAndSave(t *testing.T) {
 	if c.room != secondTownShop || f.TownScreen().Header() != "ROM2 campaign: shop" || len(c.shop.shelves[0]) == 0 || c.shop.filled != 1 {
 		t.Fatalf("SHOP opened room %d, filled %d, %d entries", c.room, c.shop.filled, len(c.shop.shelves[0]))
 	}
-	secondShopArtLoaded(t, f.TownScreen().(*secondCampaignScreen))
+	secondShopArtLoaded(t, f.TownScreen().(*townScreen))
 	secondShopWitness(t, app, "town1-shop-open")
 	secondShopNamesResolve(t, f)
 	f.Town.gold = 5000

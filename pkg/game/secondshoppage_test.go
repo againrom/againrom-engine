@@ -12,14 +12,14 @@ import (
 )
 
 // secondShopPage is c's shop page with gold in the purse, shown.
-func secondShopPage(c *secondCampaign, gold int) *secondCampaignScreen {
-	s := &secondCampaignScreen{session: &CampaignSession{Town: &Town{second: c, gold: gold}}, install: &InstallResources{}}
-	s.bindShop()
+func secondShopPage(c *secondCampaign, gold int) *townScreen {
+	s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: c, gold: gold}}, in: &InstallResources{}}}
+	s.bindBankShop()
 	s.shop.shown = nil
 	return s
 }
 
-func (s *secondCampaignScreen) click(k ui.ShopControlKind, i int) ui.TownAction {
+func (s *townScreen) click(k ui.ShopControlKind, i int) ui.TownAction {
 	return s.ShopClick(ui.ShopControl{Kind: k, Index: i})
 }
 
@@ -34,13 +34,13 @@ func TestSecondShopPurchaseStopsAtTheBagBound(t *testing.T) {
 	s.click(ui.ShopControlShelfPick, 0)
 	s.click(ui.ShopControlShelfCell, 0)
 	s.click(ui.ShopControlButton, 1)
-	if s.session.Town.gold != 1000-125 || len(*c.heroBag()) != maxSecondBagUnits-1 || len(c.shop.selling()) != 1 {
-		t.Fatalf("a purchase up to the bound: gold %d bag %d selling %v", s.session.Town.gold, len(*c.heroBag()), c.shop.selling())
+	if s.sess.Town.gold != 1000-125 || len(*c.heroBag()) != maxSecondBagUnits-1 || len(c.shop.selling()) != 1 {
+		t.Fatalf("a purchase up to the bound: gold %d bag %d selling %v", s.sess.Town.gold, len(*c.heroBag()), c.shop.selling())
 	}
 	s.click(ui.ShopControlShelfCell, 0)
 	s.click(ui.ShopControlButton, 1)
-	if s.session.Town.gold != 1000-125 || len(*c.heroBag()) != maxSecondBagUnits-1 || len(c.shop.buying()) != 1 {
-		t.Fatalf("a purchase past the bound: gold %d bag %d buying %v", s.session.Town.gold, len(*c.heroBag()), c.shop.buying())
+	if s.sess.Town.gold != 1000-125 || len(*c.heroBag()) != maxSecondBagUnits-1 || len(c.shop.buying()) != 1 {
+		t.Fatalf("a purchase past the bound: gold %d bag %d buying %v", s.sess.Town.gold, len(*c.heroBag()), c.shop.buying())
 	}
 	if err := captureSecondCampaign(c).validate(); err != nil {
 		t.Fatalf("SAVE refused after a refused purchase: %v", err)
@@ -103,8 +103,8 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 		t.Fatalf("two enchanted items staged as %d places", len(c.shop.Table()))
 	}
 	s.click(ui.ShopControlButton, 1)
-	if s.session.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
-		t.Fatalf("enchanted partial buy: gold %d bag %d pending %d", s.session.Town.gold, len(*c.heroBag()), secondShopUnits(c))
+	if s.sess.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
+		t.Fatalf("enchanted partial buy: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
 	}
 
 	c = secondShopSample()
@@ -117,10 +117,10 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 		t.Fatalf("two units of a book staged as %d places", len(c.shop.Table()))
 	}
 	s.click(ui.ShopControlButton, 1)
-	if s.session.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
-		t.Fatalf("book partial buy: gold %d bag %d pending %d", s.session.Town.gold, len(*c.heroBag()), secondShopUnits(c))
+	if s.sess.Town.gold != 0 || len(*c.heroBag()) != 1 || secondShopUnits(c) != 1 {
+		t.Fatalf("book partial buy: gold %d bag %d pending %d", s.sess.Town.gold, len(*c.heroBag()), secondShopUnits(c))
 	}
-	s.session.Town.gold = 1000
+	s.sess.Town.gold = 1000
 	s.click(ui.ShopControlButton, 1)
 	v := s.ShopScreen()
 	if len(*c.heroBag()) != 2 || v.Pack[1].Count != 1 || v.Pack[2].Count != 1 {

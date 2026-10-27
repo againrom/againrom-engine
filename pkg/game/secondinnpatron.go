@@ -34,7 +34,7 @@ type secondInnPatronKey struct {
 // Humans row whose server id is the key, built as a party member by the one
 // character builder, carded by the one party projection and drawn by the
 // one figure composer (R2-SESSION-203, R2-SESSION-213).
-func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *secondInnPatron {
+func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *secondInnPatron {
 	seats := r.Seats
 	key := secondInnPatronKey{room: r, npc: npc}
 	if p := t.composed.patrons[key]; p != nil {
@@ -45,7 +45,7 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 		t.composed.patrons = map[secondInnPatronKey]*secondInnPatron{}
 	}
 	t.composed.patrons[key] = p
-	tbl := t.install.Table
+	tbl := t.in.Table
 	if tbl == nil || tbl.Humans == nil {
 		return p
 	}
@@ -54,7 +54,7 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 		return p
 	}
 	if seats.Patron != "" {
-		if src := t.install.Archives.artSource(); src != nil {
+		if src := t.in.Archives.artSource(); src != nil {
 			if frames, err := screenArtOf(src).Bind(r.Name, r.Art, seats.Patron, member.Class); err == nil && len(frames) > 0 {
 				p.frames = frames
 			}
@@ -64,7 +64,7 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 	// its experience, and its figure draws without the hero's backdrop.
 	member.PlayerCharacter = false
 	p.known = true
-	p.subject = partyPanelSubject(member, tbl, t.install.Words)
+	p.subject = partyPanelSubject(member, tbl, t.in.Words)
 	p.subject.Char.ExperienceWithheld = true
 	p.subject.Unplaced = true
 	// The sheet's heading (R2-ENGINE-581): the person's own name when it has
@@ -74,13 +74,13 @@ func (t *secondCampaignScreen) innPatron(r *town.RoomSpec, page *screenart.Set, 
 	if name := secondInnPersonName(tbl, npc); name != "" {
 		p.subject.Name, p.subject.Char.Name = name, name
 	} else if p.subject.OriginalPanel.Flags&0x11 != 0 {
-		p.subject.Role = t.install.Words.PanelCaptions[mainSlotMercenary]
+		p.subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
 	}
 	fig := memberFigureID(member)
-	if t.install.Archives != nil {
-		p.figure, p.mask = composeUnitFigure(t.install.Archives.Containers, equipmentFromSlots(member.Worn), fig)
+	if t.in.Archives != nil {
+		p.figure, p.mask = composeUnitFigure(t.in.Archives.Containers, equipmentFromSlots(member.Worn), fig)
 	}
-	p.info = t.install.wornItemLines(member, nil)
+	p.info = t.in.wornItemLines(member, nil)
 	return p
 }
 
@@ -95,7 +95,7 @@ func secondInnPersonName(tbl *mapload.Table, npc int) string {
 }
 
 // selectedPatron is the selected seat's person, nil without a selection.
-func (v secondTownView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *secondInnPatron {
+func (v townRoomView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *secondInnPatron {
 	list, _ := v.t.state().innSeats()
 	seat := v.t.composed.seat
 	if seat < 0 || seat >= len(list) {
@@ -105,14 +105,14 @@ func (v secondTownView) selectedPatron(r *town.RoomSpec, page *screenart.Set) *s
 }
 
 // paintPatron draws the selected seat's statistics card and full figure.
-func (v secondTownView) paintPatron(dst *image.RGBA, r *town.RoomSpec, page *screenart.Set) {
+func (v townRoomView) paintPatron(dst *image.RGBA, r *town.RoomSpec, page *screenart.Set) {
 	seats := r.Seats
 	p := v.selectedPatron(r, page)
 	if p == nil || !p.known {
 		return
 	}
 	if c := seats.Card; c != nil {
-		if a := v.t.install.ChargenAssets; a != nil && a.Presentation != nil {
+		if a := v.t.in.ChargenAssets; a != nil && a.Presentation != nil {
 			// The card board must be an RGBA picture; a nil one stays a nil image.
 			var body image.Image
 			if pic := rgbaOf(page.Picture(c.Art)); pic != nil {
