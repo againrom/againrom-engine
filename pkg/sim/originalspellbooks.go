@@ -31,8 +31,8 @@ func (w *World) ImportOriginalActorSpellbooks(books []OriginalActorSpellbook) er
 			return fmt.Errorf("original actor spellbooks: missing entity %d", book.ID)
 		}
 		e := w.entities[index]
-		if !e.Alive() && !originalDyingEntity(e) {
-			return fmt.Errorf("original actor spellbooks: entity %d is not living or dying", book.ID)
+		if !e.Alive() && !originalDyingEntity(e) && !w.originalCorpseEntity(book.ID) {
+			return fmt.Errorf("original actor spellbooks: entity %d is not living, dying or a loaded corpse", book.ID)
 		}
 		if book.Book.State != BookAbsent && book.Book.State != BookPresent {
 			return fmt.Errorf("original actor spellbooks: entity %d has no source presence", book.ID)

@@ -10,11 +10,14 @@ import (
 type originalBookCounts struct {
 	Restored, Absent, Empty, Spells int
 	Party, Excluded, Unmatched      int
+	Corpses                         int // of Restored, corpse entities
 }
 
 // applyOriginalActorSpellbooks imports no new actors and has no heuristic
 // fallback. Both source and target identities must be unique among living,
 // on-map actors. Persistent party restoration remains the party path's job.
+// A Corpse record gives its book to the corpse entity the dead join made of
+// it; LOAD runs this step again with those records after that join.
 func applyOriginalActorSpellbooks(ms *Mission, source []sav.ActorSpellbook, r *OriginalSaveResume) error {
 	if ms == nil || ms.Map == nil || ms.World == nil {
 		return fmt.Errorf("original actor spellbooks: mission has no map/world")
@@ -29,10 +32,23 @@ func applyOriginalActorSpellbooks(ms *Mission, source []sav.ActorSpellbook, r *O
 			byMapID[e.MapUnitID] = append(byMapID[e.MapUnitID], e)
 		}
 	}
-	var counts originalBookCounts
+	corpses := make(map[uint32]sim.EntityID)
+	for _, d := range ms.World.OriginalDeadActors() {
+		if _, held := ms.World.Entity(d.ID); held && d.Current.Stage >= 2 && d.Current.Stage <= 4 {
+			corpses[d.Source.Identity] = d.ID
+		}
+	}
+	counts := r.Books
 	var batch []sim.OriginalActorSpellbook
 	seen := make(map[uint16]bool)
 	for _, saved := range source {
+		if saved.Corpse {
+			if id, held := corpses[saved.Identity]; held {
+				batch = append(batch, counts.book(id, saved))
+				counts.Corpses++
+			}
+			continue
+		}
 		var target sim.Entity
 		if ms.actorRegistry != nil {
 			bound, err := registryTarget(ms, saved.Off)
@@ -72,23 +88,28 @@ func applyOriginalActorSpellbooks(ms *Mission, source []sav.ActorSpellbook, r *O
 			}
 			target = targets[0]
 		}
-		imported := sim.OriginalActorSpellbook{ID: target.ID,
-			KnownSpells: saved.KnownSpells(), Book: importedSpellbook(saved.HasSpellbook, saved.Spells)}
-		imported.CreatureSpells, imported.HasCreatureSpells = importedCreatureSpells(saved)
-		batch = append(batch, imported)
-		counts.Restored++
-		counts.Spells += len(saved.Spells)
-		if !saved.HasSpellbook {
-			counts.Absent++
-		} else if len(saved.Spells) == 0 {
-			counts.Empty++
-		}
+		batch = append(batch, counts.book(target.ID, saved))
 	}
 	if err := ms.World.ImportOriginalActorSpellbooks(batch); err != nil {
 		return err
 	}
 	r.Books = counts
 	return nil
+}
+
+// book is the imported value of one saved book for entity id, counted.
+func (c *originalBookCounts) book(id sim.EntityID, saved sav.ActorSpellbook) sim.OriginalActorSpellbook {
+	imported := sim.OriginalActorSpellbook{ID: id,
+		KnownSpells: saved.KnownSpells(), Book: importedSpellbook(saved.HasSpellbook, saved.Spells)}
+	imported.CreatureSpells, imported.HasCreatureSpells = importedCreatureSpells(saved)
+	c.Restored++
+	c.Spells += len(saved.Spells)
+	if !saved.HasSpellbook {
+		c.Absent++
+	} else if len(saved.Spells) == 0 {
+		c.Empty++
+	}
+	return imported
 }
 
 // importedCreatureSpells is the class slot import: an actor whose source has

@@ -139,7 +139,7 @@ func TestCurrentActorPopulationIncludesBoundLateRoots(t *testing.T) {
 		t.Fatal("late current holdings", holdings, err)
 	}
 	books, err := file.ActorSpellbooks(archives...)
-	if err != nil || len(books) != 1 || !books[0].HasSpellbook || books[0].KnownSpells() != 1<<3 || books[0].Spells[0].Range != 11 || books[0].Spells[0].ManaCost != 23 {
+	if err != nil || len(books) != 1 || books[0].Corpse || !books[0].HasSpellbook || books[0].KnownSpells() != 1<<3 || books[0].Spells[0].Range != 11 || books[0].Spells[0].ManaCost != 23 {
 		t.Fatal("late current book", books, err)
 	}
 	if plain, err := file.ActorPools(); err != nil || len(plain) != 0 {
@@ -151,8 +151,8 @@ func TestCurrentActorPopulationIncludesBoundLateRoots(t *testing.T) {
 	if plain, err := file.ActorHoldings(); err != nil || len(plain) != 0 {
 		t.Fatal("ordinary holdings admitted a late corpse", plain, err)
 	}
-	if plain, err := file.ActorSpellbooks(); err != nil || len(plain) != 0 {
-		t.Fatal("ordinary books admitted a late corpse", plain, err)
+	if plain, err := file.ActorSpellbooks(); err != nil || len(plain) != 1 || !plain[0].Corpse {
+		t.Fatal("ordinary books admitted a late corpse as an actor", plain, err)
 	}
 	file.Body = file.Body[:len(file.Body)-3]
 	if partial, err := file.ActorPools(archives...); err == nil || len(partial) != 0 {

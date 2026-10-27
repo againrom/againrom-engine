@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
@@ -464,6 +465,9 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 				return err
 			}
 			if err := applyOriginalDeadWithOrigins(ms, dead, &r, missionDocument, documentOrigins); err != nil {
+				return err
+			}
+			if err := applyOriginalActorSpellbooks(ms, slices.DeleteFunc(slices.Clone(books), func(b sav.ActorSpellbook) bool { return !b.Corpse }), &r); err != nil {
 				return err
 			}
 			if err := applyOriginalGroups(ms, &r); err != nil {

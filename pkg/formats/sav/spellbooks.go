@@ -3,6 +3,7 @@ package sav
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 )
 
 // ActorSpellbook is the narrow Unit-owned book projection, independent of
@@ -22,6 +23,10 @@ type ActorSpellbook struct {
 	// complete order block.
 	CreatureSpells    [CreatureSpellSlots]SavedCreatureSpell
 	HasCreatureSpells bool
+	// Corpse marks a dead-list record of decay stage 2..4 outside the current
+	// actor population; Identity joins it to the World's dead record.
+	Corpse   bool
+	Identity uint32
 }
 
 // CreatureSpellSlots is the number of class spell slots in an order block.
@@ -42,15 +47,23 @@ func (a ActorSpellbook) KnownSpells() uint32 { return savedSpellMembership(a.Spe
 // ActorSpellbooks follows every Player under one shared archive state
 // (SAV-DOC-053, SAV-ROSTER-024). Repeated actor references name one actor;
 // shared Spell references produce detached per-actor values (DIV-691).
-// A malformed late Player cannot publish a partial book population.
+// A malformed late Player cannot publish a partial book population. The dead
+// list's corpse records follow, marked Corpse, for the corpse book step.
 func (f *File) ActorSpellbooks(current ...uint16) ([]ActorSpellbook, error) {
 	doc, _, err := f.exactDocument()
 	if err != nil {
 		return nil, err
 	}
 	seen := make(map[*Record]bool)
+	records := currentActorRecords(doc.players, current, doc.dead)
+	population := len(records)
+	for _, r := range doc.dead {
+		if r != nil && !slices.Contains(records, r) && r.value("Stage") >= 2 && r.value("Stage") <= 4 {
+			records = append(records, r)
+		}
+	}
 	var out []ActorSpellbook
-	for _, r := range currentActorRecords(doc.players, current, doc.dead) {
+	for i, r := range records {
 		if seen[r] {
 			continue
 		}
@@ -69,7 +82,8 @@ func (f *File) ActorSpellbooks(current ...uint16) ([]ActorSpellbook, error) {
 		book := ActorSpellbook{Off: r.Off, RuntimeID: r.value("RuntimeID"),
 			MapUnitID: uint16(r.value("T08")), Cell: u16(position, 0),
 			Stage: uint8(r.value("Stage")), HP: int16(r.value("Health")),
-			HasSpellbook: r.value("HasSpellbook") == 1, SpellCount: r.Counts["Spells"], Spells: spells}
+			HasSpellbook: r.value("HasSpellbook") == 1, SpellCount: r.Counts["Spells"], Spells: spells,
+			Corpse: i >= population, Identity: r.value("Identity")}
 		if order := r.Raw["U158"]; len(order) == 148 {
 			book.HasCreatureSpells = true
 			for i := range book.CreatureSpells {

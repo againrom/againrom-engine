@@ -67,10 +67,10 @@ func deadBookRows(t *testing.T, d *sav.DocumentData) (map[string]deadBookRow, ma
 }
 
 // After LOAD of an original first-game SAV and an immediate SAVE, every dead
-// record whose body the World holds as no entity keeps the spellbook the
-// loaded record held: the World holds no book for that body, so the loaded
-// record is its source. The Spell object count moves only by the entity
-// bodies' books, and the SAVE loads cold.
+// record keeps the spellbook the loaded record held: a corpse entity holds
+// the book LOAD gave it, and a body the World holds as no entity takes its
+// loaded record's book. The Spell object count is the loaded one, and the
+// SAVE loads cold.
 func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	for _, c := range []struct{ name, hash string }{
@@ -105,8 +105,6 @@ func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// A body the World holds as an entity writes the entity's book,
-			// which LOAD of an original file does not fill (DIV-4121).
 			entity := map[string]bool{}
 			for _, d := range f.live.world.OriginalDeadActors() {
 				if _, held := f.live.world.Entity(d.ID); held {
@@ -115,7 +113,7 @@ func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 			}
 			before, beforeRecords, beforeSpells := deadBookRows(t, &loaded)
 			after, afterRecords, afterSpells := deadBookRows(t, &out)
-			books, kept, moved, delta := 0, 0, 0, 0
+			books, kept, moved := 0, 0, 0
 			for name, want := range before {
 				got, ok := after[name]
 				if !ok {
@@ -125,26 +123,22 @@ func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 				if want.has == "1" {
 					books++
 				}
-				if entity[name] {
-					if fmt.Sprint(got) != fmt.Sprint(want) {
-						moved++
-					}
-					delta += len(got.slots) - len(want.slots)
-					continue
+				if !entity[name] {
+					kept++
 				}
-				kept++
 				if fmt.Sprint(got) != fmt.Sprint(want) {
-					t.Errorf("%s: book after SAVE %+v, loaded %+v", name, got, want)
+					moved++
+					t.Errorf("%s (entity %v): book after SAVE %+v, loaded %+v", name, entity[name], got, want)
 				}
 			}
 			if len(after) != len(before) {
 				t.Errorf("dead records after SAVE %d, loaded %d", len(after), len(before))
 			}
-			if afterSpells != beforeSpells+delta {
-				t.Errorf("Spell objects after SAVE %d, loaded %d and %d slots the entity books moved", afterSpells, beforeSpells, delta)
+			if afterSpells != beforeSpells {
+				t.Errorf("Spell objects after SAVE %d, loaded %d", afterSpells, beforeSpells)
 			}
-			t.Logf("%d dead records, %d with a book; %d with no entity; %d entity bodies, %d write another book (DIV-4121), slot delta %d; Spell objects %d, loaded %d",
-				len(before), books, kept, len(entity), moved, delta, afterSpells, beforeSpells)
+			t.Logf("%d dead records, %d with a book; %d with no entity; %d entity bodies; %d write another book; Spell objects %d, loaded %d",
+				len(before), books, kept, len(entity), moved, afterSpells, beforeSpells)
 			// The actor values of a dead body the World holds as no entity
 			// come from its placement and the tables (DIV-4120); they are
 			// reported, not required.

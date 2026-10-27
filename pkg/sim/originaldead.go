@@ -224,6 +224,17 @@ func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...E
 	return nil
 }
 
+// originalCorpseEntity reports whether id is the entity of a loaded dead
+// record whose body is still held: a corpse of decay stage 2..4.
+func (w *World) originalCorpseEntity(id EntityID) bool {
+	for _, r := range w.originalDead {
+		if r.ID == id && r.terminal.Stage == 0 {
+			return indexOfEntity(w.entities, id) >= 0
+		}
+	}
+	return false
+}
+
 func (w *World) OriginalDeadActors() []OriginalDeadRecord {
 	out := make([]OriginalDeadRecord, 0, len(w.originalDead))
 	for _, r := range w.originalDead {

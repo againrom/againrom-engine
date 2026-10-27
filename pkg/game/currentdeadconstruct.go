@@ -137,7 +137,8 @@ func loadedDeadBook(doc *sav.DocumentData, object uint16) (has, header, count ui
 // its source: presence flag, header word, slot count, and each slot's Spell
 // copied with its loaded This when reserveRetainedDeadEffectKeys claimed it.
 // A loaded Spell two slots share stays one object. A body the World holds
-// as an entity writes the entity's book (DIV-4121); without a loaded record
+// as an entity writes the entity's book, which LOAD gave it from the same
+// record (applyOriginalActorSpellbooks); without a loaded record
 // the book stays as built.
 func (b *generatedDocumentBuilder) retainDeadBook(record *sav.DocumentRecordData, s sim.OriginalDeadSource, entity bool) error {
 	if entity {
