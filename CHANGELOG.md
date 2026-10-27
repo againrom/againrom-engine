@@ -47,6 +47,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] The map editor's Save As window starts in the map's own folder, or in a `maps` folder beside the saves for a new, archive or installed map, and saving there works even when Againrom is unpacked inside the game folder. A refusal to save into the game folder now says so in your language and names the `maps` folder. Before, the window started in the game folder and every save there failed.
 - [BASE] In the map editor's Scripts list a message action now shows as "Message" with the first line of its text, not as a plain "Action" with an English operation name, in English and Russian.
+- [ROM1] F5 in the map editor plays a map that lies in the game folder, and Save mod package saves a mod into a folder inside the opened map's folder; a refusal names whether the folder is, contains or lies inside the opened map's or the selected mod folder. Before, F5 refused every map in the game folder because its test folder lies there.
 
 ### For developers
 

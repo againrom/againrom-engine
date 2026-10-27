@@ -28,20 +28,44 @@ func testPlayRecordBytes(names []string) []byte {
 	return append(b, '\n')
 }
 
-func testPlayOwnership(folder string, protected []string) ([]string, error) {
+// packageGuard is a folder a mission package's folder must not overlap. The
+// package folder may not be dir or contain it, since writing there could
+// change the author's files. It may lie inside dir unless walked: a reader of
+// dir walks its subfolders and would take the package's files for dir's own.
+type packageGuard struct {
+	dir, name string
+	walked    bool
+}
+
+func testPlayOwnership(folder string, protected []packageGuard) ([]string, error) {
 	return missionPackageOwnership(folder, testPlayRecord, protected)
 }
 
-func missionPackageOwnership(folder, recordName string, protected []string) ([]string, error) {
-	for _, dir := range protected {
-		for _, pair := range [][2]string{{dir, folder}, {folder, dir}} {
-			inside, err := sameOrDescendantPhysical(pair[0], pair[1])
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", folder, err)
-			}
-			if inside {
-				return nil, fmt.Errorf("%s overlaps the opened map or selected mod folder %s", folder, dir)
-			}
+func missionPackageOwnership(folder, recordName string, protected []packageGuard) ([]string, error) {
+	noun := "the mod package folder"
+	if recordName == testPlayRecord {
+		noun = "the test folder"
+	}
+	for _, g := range protected {
+		inside, err := sameOrDescendantPhysical(g.dir, folder)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", folder, err)
+		}
+		contains, err := sameOrDescendantPhysical(folder, g.dir)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", folder, err)
+		}
+		relation := ""
+		switch {
+		case inside && contains:
+			relation = "is"
+		case contains:
+			relation = "contains"
+		case inside && g.walked:
+			relation = "lies inside"
+		}
+		if relation != "" {
+			return nil, fmt.Errorf("%s %s %s %s %s", noun, folder, relation, g.name, g.dir)
 		}
 	}
 	st, err := os.Lstat(folder)

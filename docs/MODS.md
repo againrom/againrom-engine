@@ -1459,5 +1459,8 @@ pages of the installed mission the map was opened from, or of its mod entry,
 including current text edits.
 Each F5 replaces the test mod's map and pages. A map the report finds an error
 in is not played; the report shows. The editor stays open, and nothing the
-author saved changes. A missing or failed game program is named on the
-message line. The second game has no test play.
+author saved changes. The map may lie in any folder, the game folder
+included: F5 refuses only when the test folder is or contains the opened
+map's folder, or is, contains or lies inside the selected mod folder. A
+missing or failed game program is named on the message line. The second game
+has no test play.

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -414,17 +413,19 @@ func (p editorPackageSpec) mission(b []byte, pages map[string][]byte) mod.Missio
 	return m
 }
 
-func (s *mapInspectionEdits) packageProtected() []string {
-	var out []string
-	if !isNewSource(s.source) && !strings.HasPrefix(s.source, "scenario/") {
+// packageProtected is what test play and Save mod package must not overlap.
+// The digest, pack and package save walk the selected mod folder.
+func (s *mapInspectionEdits) packageProtected() []packageGuard {
+	var out []packageGuard
+	if s.source != "" && !isNewSource(s.source) && !strings.HasPrefix(s.source, "scenario/") {
 		input := s.source
 		if strings.HasPrefix(input, "loose/") && s.inspector.archives != nil {
 			input = looseHostPath(s.inspector.archives.Root, input)
 		}
-		out = append(out, filepath.Dir(input))
+		out = append(out, packageGuard{dir: filepath.Dir(input), name: "the opened map's folder"})
 	}
 	if s.inspector.mod != nil {
-		out = append(out, s.inspector.mod.dir)
+		out = append(out, packageGuard{dir: s.inspector.mod.dir, name: "the selected mod folder", walked: true})
 	}
-	return slices.Compact(out)
+	return out
 }

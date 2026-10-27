@@ -100,20 +100,7 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Test play: no player profile: %w", err)
 	}
-	input := s.source
-	if strings.HasPrefix(input, "scenario/") || isNewSource(input) {
-		input = ""
-	} else if strings.HasPrefix(input, "loose/") {
-		input = looseHostPath(x.archives.Root, input)
-	}
-	var protected []string
-	if input != "" {
-		protected = append(protected, filepath.Dir(input))
-	}
-	if x.mod != nil {
-		protected = append(protected, x.mod.dir)
-	}
-	modsDir, err := writeTestMod(profile, x.archives.Root, m, protected...)
+	modsDir, err := writeTestMod(profile, x.archives.Root, m, s.packageProtected()...)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
@@ -228,7 +215,7 @@ func testPlayMissions(m mod.Mission) []byte {
 
 // writeTestMod validates the resulting mod before publishing it. Its record
 // admits replacement only of its own files and removal only of its old pages.
-func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected ...string) (string, error) {
+func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected ...packageGuard) (string, error) {
 	if profile.Directory == "" {
 		return "", errors.New("no player profile directory")
 	}
