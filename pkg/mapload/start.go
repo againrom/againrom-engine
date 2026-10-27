@@ -1227,6 +1227,7 @@ func startMissionScripted(m *alm.Map, t *Table, diff Difficulty, party []PartyMe
 	}
 	dropTownPotionRecords(out, party, st)
 	DeclareSourceConstructors(out, t)
+	declareSpellCreatures(out, t, diff)
 	if base.RandomMode() == random.Original {
 		out.SetRandom(random.Original, base.RandomState())
 	}

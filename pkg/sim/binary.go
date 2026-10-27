@@ -3150,7 +3150,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	casts, bookCasts, effects, attached, caused, err := decodeCasting(tail[used+gused+sused+cused+eused+tused+pused+spused+iwused:])
+	casts, bookCasts, effects, attached, caused, err := decodeCasting(tail[used+gused+sused+cused+eused+tused+pused+spused+iwused:], spells)
 	if err != nil {
 		return err
 	}
@@ -3277,6 +3277,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		// savedProjectiles and savedDiaries used to be carried the same way, with
 		// no rebuild rule of their own.
 		ghost:             w.ghost,
+		spellCreatures:    w.spellCreatures,
 		sourceDerive:      w.sourceDerive,
 		mergeOperands:     w.mergeOperands,
 		burst:             burstState{phases: w.burst.phases},

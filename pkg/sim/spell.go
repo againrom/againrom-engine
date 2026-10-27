@@ -61,6 +61,9 @@ type SpellRule struct {
 	// Transient book resolution; these fields never enter the table/wire.
 	bookInstance  bool
 	bookDefensive uint8
+	// itemCast marks a scroll or weapon release, which the second game's
+	// Stone Curse duration reads (R2-ENGINE-025).
+	itemCast bool
 
 	// Restorative is the row's own healing flag, the exact complement of
 	// Damaging over the one row that carries damage columns and heals with
@@ -380,12 +383,18 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		}
 		consumed, _ := w.raiseControlSpirit(ci, ti)
 		return consumed
-	}
-	if secondBlankCurse(rule) {
-		return true
+	case armSummon:
+		return ci >= 0 && w.castSummon(ci)
 	}
 	kind, mag, duration, mode := w.pointEffect(ti, rule, power)
-	if kind == EffectNone {
+	if rule.Second && rule.arm() == 20 {
+		// The second game's Stone Curse draws its duration 0..the ceiling
+		// pointEffect states; a draw of 0 attaches nothing (R2-ENGINE-025).
+		if duration = uint16(w.rng.uniform(int32(duration))); duration == 0 {
+			return false
+		}
+	}
+	if kind == EffectNone && !secondBlankCurse(rule) {
 		return false
 	}
 	if mode&effectTimedModes == 0 {
@@ -473,18 +482,12 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 			if duration == 0 {
 				duration = 1
 			}
-		} else if p := int32(0); ti >= 0 && ti < len(w.entities) {
-			p = w.entities[ti].Protection[3]
-			if p <= 0 {
-				break
-			}
-			if p > 100 {
-				p = 100
-			}
-			duration = uint16(uint32(duration) * uint32(100-p) / 100)
-			if duration == 0 {
-				duration = 1
-			}
+		} else if ti >= 0 && ti < len(w.entities) {
+			// The second game's duration is drawn at the apply up to this
+			// ceiling, and the effect is timed whatever its row parsed to
+			// (R2-ENGINE-025, R2-ENGINE-453).
+			duration = secondCurseCeiling(power, w.entities[ti].Protection[3], rule.itemCast)
+			mode |= EffectDuration
 		}
 	}
 	if m, ok := magnitudeUnder(w.rules, rule, power); ok && MagnitudeArm(rule.arm()) {
@@ -524,6 +527,17 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 	case 26:
 		if ci < 0 {
 			return "teleport has no caster"
+		}
+		return ""
+	case armSummon:
+		if ci < 0 {
+			return "summon has no caster"
+		}
+		if _, available := w.NextEntityID(); !available {
+			return "no entity id left to summon into"
+		}
+		if len(w.spellCreatures) == 0 {
+			return "no summon creature loaded"
 		}
 		return ""
 	}
@@ -583,7 +597,21 @@ func spellApplicable(rule SpellRule) bool {
 		return true
 	}
 	switch rule.arm() {
-	case 11, 14, 15, 18, 20, 23, 24, 25, 26, 27, 28:
+	case 11, 14, 15, 18, 20, 23, 24, 25, 26, 27, 28, armSummon:
+		return true
+	}
+	return false
+}
+
+// castsAtActor reports a row a book cast aims at an actor: a unit-target or
+// area row, or one of the arms that land on the actor named whatever the
+// row's target column says. Admission and release ask it alike.
+func castsAtActor(rule SpellRule) bool {
+	if rule.Area || rule.TargetsUnit {
+		return true
+	}
+	switch rule.arm() {
+	case 15, 18, 20, 23, 24, 25, 26, 27, 28, armSummon:
 		return true
 	}
 	return false
@@ -962,8 +990,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	if !spellApplicable(rule) {
 		return false
 	}
-	if !rule.Area && !rule.TargetsUnit && rule.arm() != 15 && rule.arm() != 18 && rule.arm() != 20 &&
-		rule.arm() != 23 && rule.arm() != 24 && rule.arm() != 25 && rule.arm() != 26 && rule.arm() != 27 && rule.arm() != 28 {
+	if !castsAtActor(rule) {
 		return false
 	}
 	vi := indexOfEntity(w.entities, victim)
@@ -1242,6 +1269,7 @@ func (w *World) secondSpellDamage(vi int, base, spread int64, school uint8) int6
 }
 
 func (w *World) weaponSpellApply(ai, ti int, rule SpellRule, power int32, obs *castObs) bool {
+	rule.itemCast = true
 	if rule.arm() == 14 || !spellApplicable(rule) {
 		return false
 	}
@@ -1838,8 +1866,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 	if !spellApplicable(rule) {
 		return "spell has no applicable arm"
 	}
-	if !rule.Area && !rule.TargetsUnit && rule.arm() != 15 && rule.arm() != 18 && rule.arm() != 20 &&
-		rule.arm() != 23 && rule.arm() != 24 && rule.arm() != 25 && rule.arm() != 26 && rule.arm() != 27 && rule.arm() != 28 {
+	if !castsAtActor(rule) {
 		return "spell does not target a unit"
 	}
 	vi := indexOfEntity(w.entities, victim)

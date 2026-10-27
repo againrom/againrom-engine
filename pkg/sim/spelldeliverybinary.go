@@ -187,7 +187,7 @@ func (w *World) spellDeliveryFault() error {
 		}
 		// Resolved book cost is a signed word; weapon power keeps its full
 		// signed actor domain. Table validation must not narrow either source.
-		if d.Rule.Delivery != 1 || d.Rule.bookInstance || d.Rule.bookDefensive != 0 || d.Rule.ID == 0 ||
+		if d.Rule.Delivery != 1 || d.Rule.bookInstance || d.Rule.itemCast || d.Rule.bookDefensive != 0 || d.Rule.ID == 0 ||
 			d.Rule.DamageMin < 0 || d.Rule.DamageMax < 0 ||
 			!d.HasCaster && d.Caster != 0 || d.AtCell != d.Rule.Area ||
 			d.BirthTick > w.tick || d.FanHead && (!d.HasCaster || d.Rule.arm() != 14 || d.AtCell) {

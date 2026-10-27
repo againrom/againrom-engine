@@ -272,7 +272,7 @@ func (w *World) removeAttachedAt(i int) bool {
 	e := w.attached[i]
 	if ti := indexOfEntity(w.entities, e.Target); ti >= 0 && w.entities[ti].ActorLoad.Source.Class != 0 {
 		n := w.sourceMutationCopy(ti)
-		if e.Mode&EffectContinuous == 0 {
+		if e.Mode&EffectContinuous == 0 && e.Kind != EffectNone {
 			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, -e.Magnitude); !ok {
 				return false
 			}
@@ -398,7 +398,7 @@ func (w *World) effectDelta(target EntityID, kind EffectKind) int32 {
 // same-id and Bless/Curse annihilation rules.
 func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind EffectKind, magnitude int32, duration uint16, mode EffectMode) bool {
 	ti := indexOfEntity(w.entities, target)
-	if ti < 0 || duration == 0 || kind == EffectNone {
+	if ti < 0 || duration == 0 || kind == EffectNone && !secondBlankCurse(rule) {
 		return false
 	}
 	poison := rule.arm() == 8 && mode&EffectContinuous != 0
@@ -416,6 +416,10 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 		}
 	}
 	i, exists := effectIndex(w.attached, target, rule.ID)
+	if exists && keepsLargerOnRepeat(rule) {
+		w.attached[i].Remaining = max(w.attached[i].Remaining, duration)
+		return true
+	}
 	if exists {
 		if mode&EffectContinuous != 0 {
 			w.attached[i].Remaining = duration

@@ -29,7 +29,9 @@ func originalActorEffect(value sim.SavedEffectObject, target sim.EntityID) (sim.
 	e.Mode = sim.EffectMode(value.Value.Mode)
 	kinds := map[uint8]sim.EffectKind{6: sim.EffectHealth, 8: sim.EffectHealthRegeneration, 11: sim.EffectManaRegeneration, 16: sim.EffectAbsorption, 17: sim.EffectSpeed, 19: sim.EffectScanRange, 21: sim.EffectProtectionFire, 22: sim.EffectProtectionWater, 23: sim.EffectProtectionAir, 24: sim.EffectProtectionEarth, 38: sim.EffectInvisible, 39: sim.EffectBless, 40: sim.EffectCurse}
 	e.Kind = kinds[value.Value.Kind]
-	if value.Value.Mode == 0 || value.Value.Mode > 7 || e.Spell > 28 || e.Kind == sim.EffectNone || e.Spell == 0 && (value.Value.Mode > 2 || e.Kind != sim.EffectHealthRegeneration && e.Kind != sim.EffectManaRegeneration && e.Kind != sim.EffectAbsorption) {
+	// Tag 0 is the blank effect a second-game Stone Curse attaches; the
+	// importer admits it only where the World's row attaches one.
+	if value.Value.Mode == 0 || value.Value.Mode > 7 || e.Spell > 28 || e.Kind == sim.EffectNone && (value.Value.Kind != 0 || e.Spell == 0) || e.Spell == 0 && (value.Value.Mode > 2 || e.Kind != sim.EffectHealthRegeneration && e.Kind != sim.EffectManaRegeneration && e.Kind != sim.EffectAbsorption) {
 		return e, fmt.Errorf("unsupported actor Effect id%d/kind%d/mode%d", value.E0C, value.Value.Kind, value.Value.Mode)
 	}
 	return e, nil
@@ -69,6 +71,9 @@ func importOriginalActorEffects(ms *Mission) error {
 				continue
 			}
 			effect, err := originalActorEffect(value, actor.EntityID)
+			if err == nil && effect.Kind == sim.EffectNone && !ms.World.BlankEffectRow(effect.Spell) {
+				err = fmt.Errorf("unsupported actor Effect id%d/kind%d/mode%d", value.E0C, value.Value.Kind, value.Value.Mode)
+			}
 			if err != nil || incoming[index] != 1 || seen[effect.Spell] {
 				metadata.Unavailable = fmt.Sprintf("actor %d Effect%d requires shared/unsupported attachment lifecycle: %v", actor.EntityID, index, err)
 				unsupported = true

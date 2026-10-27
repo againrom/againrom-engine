@@ -101,6 +101,9 @@ var nstPinned = []struct {
 		// worlds equal in bytes may differ in which template they raise from,
 		// and that is stated at the decode rather than left to be discovered.
 		{"ghost", "sim.GhostTemplate"},
+		// The actors a Summon cast builds from: install-derived input like
+		// ghost, carried across a decode the same way.
+		{"spellCreatures", "[]sim.SpellCreature"},
 		// Pure arithmetic code, rebound before any source producer. It holds
 		// no derived or actor state; all operands live in ActorLoad.Source.
 		{"sourceDerive", "sim.SourceDerive"},

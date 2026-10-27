@@ -178,7 +178,7 @@ func TestAttachedEffectDecoderAllowsZeroDurationAndRejectsEmptyIdentity(t *testi
 	if used := w.encodeCasting(data, 0); used != len(data) {
 		t.Fatalf("encodeCasting used %d bytes of %d", used, len(data))
 	}
-	_, _, _, attached, used, err := decodeCasting(data)
+	_, _, _, attached, used, err := decodeCasting(data, nil)
 	if err != nil {
 		t.Fatalf("decodeCasting rejected zero Remaining: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestAttachedEffectDecoderAllowsZeroDurationAndRejectsEmptyIdentity(t *testi
 		t.Run(tc.name, func(t *testing.T) {
 			malformed := append([]byte(nil), data...)
 			tc.zero(malformed)
-			if _, _, _, _, _, err := decodeCasting(malformed); err == nil {
+			if _, _, _, _, _, err := decodeCasting(malformed, nil); err == nil {
 				t.Fatalf("decodeCasting accepted an attached effect with empty %s", tc.name)
 			}
 		})

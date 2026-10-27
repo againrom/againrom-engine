@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Stone Curse now holds its target still, unable to move, attack or cast, for a random time that its Earth resistance shortens, and Summon calls a squirrel, a turtle or an animated foot to your side beside the caster, stronger as the caster's Astral skill grows; both last through a save and load. Before, Stone Curse did nothing and Summon could not be cast.
+
 ## 0.136.0
 
 ### For players

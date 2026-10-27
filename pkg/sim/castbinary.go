@@ -104,7 +104,7 @@ func (w *World) encodeCasting(b []byte, off int) int {
 	return off
 }
 
-func decodeCasting(data []byte) ([]scriptCast, []bookCast, []cellEffect, []attachedEffect, int, error) {
+func decodeCasting(data []byte, spells []SpellRule) ([]scriptCast, []bookCast, []cellEffect, []attachedEffect, int, error) {
 	need := func(off, n int, what string) error {
 		if off < 0 || n < 0 || off > len(data)-n {
 			return fmt.Errorf("sim: byte form truncated: %s needs %d byte(s), %d left", what, n, len(data)-off)
@@ -211,7 +211,7 @@ func decodeCasting(data []byte) ([]scriptCast, []bookCast, []cellEffect, []attac
 			// Remaining zero is a valid transient state. Instant 30 can author it
 			// after the ordinary effect pass, and that state must survive a save
 			// until the next pass removes the record.
-			if e.Kind == EffectNone || e.Spell == 0 && (e.HasCaster || e.Caster != 0 ||
+			if e.Kind == EffectNone && !blankEffectRowOf(spells, e.Spell) || e.Spell == 0 && (e.HasCaster || e.Caster != 0 ||
 				(e.Kind != EffectAbsorption && e.Kind != EffectHealthRegeneration && e.Kind != EffectManaRegeneration) ||
 				(e.Mode != EffectDuration && e.Mode != EffectContinuous)) {
 				return nil, nil, nil, nil, 0, fmt.Errorf("sim: attached effect %d has an empty field", len(attached))

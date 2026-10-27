@@ -107,6 +107,27 @@ func CheatActor(name string, hero bool, t *Table, diff Difficulty) (sim.Entity, 
 	return e, pack, worn, nil
 }
 
+// declareSpellCreatures builds, by CheatActor, every actor a second-game
+// Summon can create: each SummonCreatureNames row at levels 1 to 4
+// (R2-ENGINE-455). A first-game table declares none; a row the table lacks is
+// left out, and a Summon that rolls it creates nothing.
+func declareSpellCreatures(w *sim.World, t *Table, diff Difficulty) {
+	if w == nil || t == nil || t.SpellArms == nil {
+		return
+	}
+	var out []sim.SpellCreature
+	for k := range sim.SummonCreatureNames {
+		for level := int32(1); level <= 4; level++ {
+			name := sim.SummonCreatureName((level-1)*25, int32(k)+1)
+			e, pack, worn, err := CheatActor(name, false, t, diff)
+			if err == nil {
+				out = append(out, sim.SpellCreature{Name: name, Actor: e, Pack: pack, Worn: worn})
+			}
+		}
+	}
+	w.DeclareSpellCreatures(out)
+}
+
 // cheatPlacement keys a placement to the creature row named name by its class
 // and face, else to the human row named name as a composed npc. local sees
 // only that row.

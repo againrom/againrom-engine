@@ -87,6 +87,9 @@ func init() {
 	worldMethods = append(worldMethods, "ConstructMissionMovers", "ApplyMover")
 	worldWriters = append(worldWriters, "ConstructMissionMovers")
 	worldMethods = append(worldMethods, "HasEffectArm", "SpellArm")
+	// Summon's creature list is install-derived input, declared once per world.
+	worldMethods = append(worldMethods, "BlankEffectRow", "SpellCreatures", "DeclareSpellCreatures")
+	worldWriters = append(worldWriters, "DeclareSpellCreatures")
 	worldMethods = append(worldMethods, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	worldWriters = append(worldWriters, "ResetLoadedAreaCosts", "RewriteImportedLayerCosts")
 	// The Diary rules read install-derived rows set once per world.
@@ -174,6 +177,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"HasEffectSpell":       {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
 	"HasEffectArm":         {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint16(15))},
 	"SpellArm":             {reflect.ValueOf(uint16(15))},
+	"BlankEffectRow":       {reflect.ValueOf(uint16(18))},
 	"DropLanding":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(int32(0)), reflect.ValueOf(int32(0))},
 	"InvisibleTo":          {reflect.ValueOf(EntityID(7)), reflect.ValueOf(uint32(1))},
 	"CastingSpell":         {reflect.ValueOf(EntityID(7))},

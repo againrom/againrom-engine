@@ -1834,7 +1834,11 @@ type World struct {
 	sacks         []Sack
 	spells        []SpellRule
 	ghost         GhostTemplate
-	sourceDerive  SourceDerive
+	// spellCreatures are the actors a Summon cast creates, by Units row
+	// name (DeclareSpellCreatures). Install-derived input like ghost,
+	// carried across a decode and never encoded.
+	spellCreatures []SpellCreature
+	sourceDerive   SourceDerive
 	// mergeOperands holds, per item code, the definition blocks and weight
 	// its constructor writes (BindMergeOperands). Install-derived input like
 	// ghost, carried across a decode and never encoded.

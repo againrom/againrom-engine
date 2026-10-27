@@ -9,7 +9,7 @@ import (
 // complete serializer has no runtime caster field (SAV-EFFCHAIN-046).
 func newEffectAttachment(e sim.ActiveEffect) (sav.DocumentRecordData, error) {
 	kind := sim.OriginalEffectKind(e.Kind)
-	if kind == 0 || e.Mode == 0 || e.Mode&^(sim.EffectDuration|sim.EffectContinuous|sim.EffectCharges) != 0 {
+	if kind == 0 && e.Kind != sim.EffectNone || e.Mode == 0 || e.Mode&^(sim.EffectDuration|sim.EffectContinuous|sim.EffectCharges) != 0 {
 		return sav.DocumentRecordData{}, worldSaveUnsupportedf("actor %d effect %d has no complete Effect field constructor", e.Target, e.Spell)
 	}
 	row := sim.SavedEffectObject{E0C: uint8(e.Spell), Value: sim.ItemEffect{Kind: kind, Mode: uint8(e.Mode), Operand: uint32(uint16(e.Magnitude)) | uint32(e.Remaining)<<16}}

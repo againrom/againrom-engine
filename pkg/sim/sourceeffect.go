@@ -14,7 +14,7 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 	id := n.entities[ti].ID
 	remove := func(index int) bool {
 		e := n.attached[index]
-		if e.Mode&EffectContinuous == 0 {
+		if e.Mode&EffectContinuous == 0 && e.Kind != EffectNone {
 			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, -e.Magnitude); !ok {
 				return false
 			}
@@ -36,6 +36,10 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 			return true
 		}
 	}
+	if index, ok := effectIndex(n.attached, id, rule.ID); ok && keepsLargerOnRepeat(rule) {
+		w.attached[index].Remaining = max(w.attached[index].Remaining, duration)
+		return true
+	}
 	if index, ok := effectIndex(n.attached, id, rule.ID); ok {
 		if mode&EffectContinuous != 0 {
 			n.attached[index].Remaining = duration
@@ -46,8 +50,11 @@ func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind
 			return false
 		}
 	}
-	if _, ok := n.sourceEffectOnCandidate(ti, kind, magnitude); !ok {
-		return false
+	// A blank record (secondBlankCurse) moves no stat; its presence is the hold.
+	if kind != EffectNone {
+		if _, ok := n.sourceEffectOnCandidate(ti, kind, magnitude); !ok {
+			return false
+		}
 	}
 	index, _ := effectIndex(n.attached, id, rule.ID)
 	n.attached = append(n.attached, attachedEffect{})

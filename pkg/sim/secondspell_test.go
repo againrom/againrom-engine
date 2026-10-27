@@ -12,7 +12,7 @@ func secondRow(r SpellRule) SpellRule {
 
 func TestSecondGameArmsFollowThePublishedTable(t *testing.T) {
 	want := map[uint16]uint16{1: 1, 4: 5, 5: ArmNone, 6: 8, 7: 21, 10: 13, 11: 14, 12: 15,
-		15: 12, 16: ArmNone, 18: 20, 22: 25, 23: 26, 24: 6, 25: ArmNone, 26: 11, 27: 18, 28: 27, 29: 28,
+		15: 12, 16: ArmNone, 18: 20, 22: 25, 23: 26, 24: 6, 25: armSummon, 26: 11, 27: 18, 28: 27, 29: 28,
 		0: ArmNone, 30: ArmNone}
 	for id, arm := range want {
 		if got := SecondGameSpellArm(id); got != arm {
@@ -98,7 +98,7 @@ func TestSecondPoisonCloudAndInvisibilityTakeTheirOwnFormulas(t *testing.T) {
 	}
 }
 
-func TestSecondStoneCurseWithNoEffectKindLandsAndAttachesNothing(t *testing.T) {
+func TestSecondStoneCurseWithNoEffectKindAttachesABlankHold(t *testing.T) {
 	curse := secondRow(SpellRule{ID: 18, School: 4, TargetsUnit: true, SpellDuration: 10})
 	w := spWorld(t, 3, []SpellRule{curse}, spEnt(1, 0, 0), spEnt(2, 1, 0))
 	if r := w.pointEffectRefusal(0, 1, curse, 50); r != "" {
@@ -108,8 +108,8 @@ func TestSecondStoneCurseWithNoEffectKindLandsAndAttachesNothing(t *testing.T) {
 	if !w.ordinaryEffectPayload(0, 1, curse, 50) {
 		t.Fatal("second-game Stone Curse did not land")
 	}
-	if len(w.attached) != 0 || w.entities[1].HP != before.HP {
-		t.Error("second-game Stone Curse changed its target")
+	if len(w.attached) != 1 || w.attached[0].Kind != EffectNone || !w.stoneCursed(1) || w.entities[1].HP != before.HP {
+		t.Errorf("second-game Stone Curse attached %+v, want one blank hold", w.ActiveEffects())
 	}
 	first := curse
 	first.ID, first.Arm, first.Second = 20, 0, false
@@ -136,8 +136,8 @@ func TestSpellRuleLandsRefusesAStagedAreaWithNoProgram(t *testing.T) {
 		t.Error("Ice Missile does not land")
 	}
 	summon := secondRow(SpellRule{ID: 25, School: 5})
-	if SpellRuleLands(summon) {
-		t.Error("Summon, with no arm and no effect, lands")
+	if !SpellRuleLands(summon) {
+		t.Error("Summon, which runs its own arm, does not land")
 	}
 }
 

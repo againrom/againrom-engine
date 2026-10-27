@@ -3044,6 +3044,12 @@ package storyguard
 // witness steps for the mission's game menu and its pages, the town's Abort
 // Game page, the pack and spellbook keys and the signpost, all new code in
 // pkg/game/routewitness_release_test.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the second game's Stone Curse
+// and Summon rows, all on new code: pkg/sim/secondspell.go, the actor builder
+// pkg/sim/createactor.go, pkg/sim/spell.go, pkg/sim/world.go,
+// pkg/sim/sourceeffect.go, pkg/game/savactoreffects.go,
+// pkg/mapload/cheatfactory.go, their tests and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4487,
 	TestFileCount:  264,
@@ -3094,5 +3100,5 @@ var Committed = Baseline{
 	// pkg/game/mapmessagepages.go, the new tests pkg/game/mapdialogeditor_test.go
 	// and pkg/ui/dialogeditor_test.go, and this note. The merge with the test
 	// play overlap rule is re-measured on the merged tree.
-	CommentBytes: 9761452,
+	CommentBytes: 9769050,
 }
