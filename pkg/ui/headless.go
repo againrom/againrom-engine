@@ -501,6 +501,24 @@ func (a *App) HeadlessMinimap() (*image.RGBA, error) {
 	return pic, nil
 }
 
+// HeadlessMinimapComposed returns the framed minimap composed from the state
+// now, where HeadlessMinimap returns the picture the repaint gate still shows.
+func (a *App) HeadlessMinimapComposed() (*image.RGBA, error) {
+	v, err := a.headlessViewer()
+	if err != nil {
+		return nil, err
+	}
+	g, ok := v.minimapGeometry()
+	if !ok {
+		return nil, fmt.Errorf("minimap has no drawable map")
+	}
+	pic, _, ok := v.minimapCompose(g)
+	if !ok {
+		return nil, fmt.Errorf("minimap has no drawable map")
+	}
+	return pic, nil
+}
+
 // HeadlessMinimapMarkAt reports which mark colours the framed minimap holds
 // on the pixels a mark on cell (col, row) fills: local is the local
 // participant's colour, other every other owner's. It composes the picture the

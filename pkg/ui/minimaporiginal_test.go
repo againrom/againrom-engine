@@ -466,3 +466,27 @@ func TestOriginalMinimapRepaintGate(t *testing.T) {
 		t.Fatal("a moved view did not repaint")
 	}
 }
+
+// HeadlessMinimapComposed reads the state now; HeadlessMinimap keeps the gated picture.
+func TestHeadlessMinimapComposedBypassesRepaintGate(t *testing.T) {
+	v := originalViewer(t, 64, 64)
+	v.SetLocalOwner(1)
+	v.SetEntities([]MapEntity{{ID: 1, Cell: image.Pt(12, 12), Owner: 1, Life: LifeAlive}})
+	a := &App{flow: &flow{viewer: v, screen: ScreenMap}}
+	first, err := a.HeadlessMinimap()
+	if err != nil {
+		t.Fatal(err)
+	}
+	v.SetEntities([]MapEntity{{ID: 1, Cell: image.Pt(15, 15), Owner: 1, Life: LifeAlive}})
+	gated, _ := a.HeadlessMinimap()
+	if string(gated.Pix) != string(first.Pix) {
+		t.Fatal("loss control: the gate repainted within its steps")
+	}
+	composed, err := a.HeadlessMinimapComposed()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(composed.Pix) == string(first.Pix) {
+		t.Fatal("the composed minimap kept the old unit cell")
+	}
+}

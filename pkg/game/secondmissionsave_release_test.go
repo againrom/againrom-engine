@@ -267,9 +267,11 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 	}
 	s.HUD = sha256.Sum256(hud.Pix)
 	// A new mission's minimap hold is presentation no SAV carries; the sample
-	// reads the minimap as it stands once the hold ends.
+	// reads the minimap as it stands once the hold ends. It reads the picture
+	// composed now: the shown one is kept up to ten presentation steps, a count
+	// no SAV carries.
 	f.live.view.ReleaseMinimapContent()
-	mini, err := app.HeadlessMinimap()
+	mini, err := app.HeadlessMinimapComposed()
 	if err != nil {
 		t.Fatal(err)
 	}
