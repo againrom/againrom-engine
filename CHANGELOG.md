@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [ROM2] The Load page lists the saves the original game wrote and loads a town save with the hero, his spells, his bag and the gold; a save made during a mission is listed but cannot be loaded yet.
 - [ROM1] When the purse is shorter than the school's price, Exit shows the shortfall as a negative number and Train stays pressable but teaches nothing, as in the original.
+- [ROM1] In the school a second click on the selected skill row unselects it, and Train then shows 0 and Exit the whole purse, as in the original.
 - [ROM1] In the school a skill row lights only when you select it; the idle shine that runs over the rows plays only while the school's tip is open.
 - [ROM1] The shop sorts each shelf in the original's order: items a fighter can use first, then by kind, weapons as swords, axes, maces, spears and then ranged weapons, and cheapest first inside each group.
 - [ROM1] The horse, the woman and the dervish on the town square no longer return to the same places after you save and load; their places are new each time you start the game.

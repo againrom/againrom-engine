@@ -144,7 +144,7 @@ func TestReleaseSchoolCaptionsMatchInstalledWordsAndPixels(t *testing.T) {
 		}
 		v := s.TownSurface()
 		expected := [2]ui.TownSurfaceButton{
-			{Label: captions[0], Value: "0", Enabled: false},
+			{Label: captions[0], Value: "0", Enabled: true},
 			{Label: captions[1], Value: "100,000", Enabled: true},
 		}
 		if phase == 1 {

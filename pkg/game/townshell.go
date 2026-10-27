@@ -297,7 +297,7 @@ const schoolNoSelection = -1
 
 // clearSchoolSelection discards the pending skill and, with it, the price the
 // Train button quotes: selectedSchoolSlot answers false for a cleared cell, so
-// the button reports 0 and is disabled until a skill is clicked again.
+// the button reports 0 until a skill is clicked again.
 //
 // IT IS GATED ON THE SCHOOL ROOM because shopStepMember is one routine serving
 // three rooms here and three separate routines in the original. TOWN-138 reads
@@ -464,7 +464,12 @@ func (t *townScreen) TownSurfaceClick(c ui.TownSurfaceControl, double bool) ui.T
 			if c.Index < 0 || c.Index >= len(cells) || !cells[c.Index].Enabled {
 				return ui.TownAction{}
 			}
-			t.schoolCell = c.Index
+			// A press toggles the hit row (TOWN-564).
+			if t.schoolCell == c.Index {
+				t.schoolCell = schoolNoSelection
+			} else {
+				t.schoolCell = c.Index
+			}
 		} else {
 			candidates := t.tavernCandidates()
 			if c.Index < 0 || c.Index >= len(candidates) {

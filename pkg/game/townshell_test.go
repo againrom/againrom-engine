@@ -731,6 +731,64 @@ func TestSchoolExitShowsThePurseLeftAfterTheQuotedPrice(t *testing.T) {
 	}
 }
 
+// A press on the selected school row deselects it: Train quotes 0, Exit shows
+// the plain purse and Train sends nothing. A press on another row moves the
+// choice, and a press on an unselected row selects it again (TOWN-564).
+func TestSchoolSecondPressOnTheSelectedRowClearsTheChoice(t *testing.T) {
+	f := shellFrontEnd()
+	s := f.townUI
+	s.room = roomSchool
+	first, other := 0, 1
+	if f.Carried[0].Mage {
+		first, other = 5, 6
+	}
+	press := func(i int) {
+		t.Helper()
+		if a := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlCell, Index: i}, false); a.Msg != "" || a.Info || a.Open != nil {
+			t.Fatalf("press on row %d = %+v, want no action", i, a)
+		}
+	}
+	chosen := func() []int {
+		var out []int
+		for i, c := range s.TownSurface().Cells {
+			if c.Selected {
+				out = append(out, i)
+			}
+		}
+		return out
+	}
+	press(first)
+	if got := chosen(); !reflect.DeepEqual(got, []int{first}) {
+		t.Fatalf("after one press on row %d the selected rows are %v", first, got)
+	}
+	press(other)
+	if got := chosen(); !reflect.DeepEqual(got, []int{other}) {
+		t.Fatalf("a press on row %d did not move the choice: selected %v", other, got)
+	}
+	press(other)
+	if got := chosen(); len(got) != 0 {
+		t.Fatalf("a second press on the selected row left %v selected", got)
+	}
+	if _, _, ok := s.selectedSchoolSlot(); ok {
+		t.Fatal("a deselected school still quotes a skill")
+	}
+	v := s.TownSurface()
+	if want := ui.GroupDigits(int64(schoolPurseShown(f.Town.Gold(), 0, false))); v.Buttons[0].Value != "0" || v.Buttons[1].Value != want {
+		t.Fatalf("deselected: Train %q Exit %q, want \"0\" and the purse %q", v.Buttons[0].Value, v.Buttons[1].Value, want)
+	}
+	gold, before := f.Town.Gold(), f.Carried[0]
+	if act := s.TownSurfaceClick(ui.TownSurfaceControl{Kind: ui.TownSurfaceControlButton, Index: 0}, false); act.Msg != "" || act.Info || act.Open != nil {
+		t.Fatalf("Train with nothing chosen = %+v, want nothing", act)
+	}
+	if f.Town.Gold() != gold || !reflect.DeepEqual(f.Carried[0], before) {
+		t.Fatalf("Train with nothing chosen changed gold %d member %#v", f.Town.Gold(), f.Carried[0])
+	}
+	press(other)
+	if got := chosen(); !reflect.DeepEqual(got, []int{other}) {
+		t.Fatalf("a press on a deselected row did not select it: selected %v", got)
+	}
+}
+
 // TestSchoolShortPurseShowsANegativeExitAndTrainRefusesSilently covers
 // TOWN-563: a purse short by 488 shows Exit -488 with Train still pressable,
 // and a Train press then sends nothing: no line, no purse or skill change.
