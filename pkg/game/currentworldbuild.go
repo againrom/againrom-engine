@@ -46,7 +46,9 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	if err := b.reserveWorldEffectKeys(s.SavedDocument, w); err != nil {
 		return nil, err
 	}
-	b.reserveRetainedDeadEffectKeys()
+	if err := b.reserveRetainedDeadEffectKeys(w); err != nil {
+		return nil, err
+	}
 	// joined is the identity that joins each actor to its loaded record. It
 	// is read to join, as a cell record's key is; a cell key can name a body
 	// another actor stands on. A key the World holds for a structure, the
@@ -297,7 +299,8 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			mustSetRefs(&r, "Diary", []uint16{index})
 		}
 		if retained != nil {
-			if err := b.currentDeadRecord(&r, *retained); err != nil {
+			_, entity := w.Entity(e.ID)
+			if err := b.currentDeadRecord(&r, *retained, entity); err != nil {
 				return 0, 0, err
 			}
 		}

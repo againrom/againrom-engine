@@ -53,7 +53,9 @@ func TestRetainedDeadEffectsAreReEmitted(t *testing.T) {
 		t.Fatalf("dead root Effects read %+v %v", got, ok)
 	}
 	b := &generatedDocumentBuilder{loaded: &doc}
-	b.reserveRetainedDeadEffectKeys()
+	if err := b.reserveRetainedDeadEffectKeys(&sim.World{}); err != nil {
+		t.Fatal(err)
+	}
 	record := mustNewRecord("Human")
 	if err := b.retainDeadEffects(&record, 5, sim.OriginalDeadSource{Identity: 0x0f6a3530, Class: 2}); err != nil {
 		t.Fatal(err)

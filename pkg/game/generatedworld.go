@@ -30,6 +30,9 @@ type generatedDocumentBuilder struct {
 	// retainedKeys are the loaded Identities of retained dead Effects this
 	// builder claimed; each is written as loaded.
 	retainedKeys map[uint32]bool
+	// retainedSpells maps a loaded dead book's Spell object to the object
+	// this build wrote for it.
+	retainedSpells map[uint16]uint16
 }
 
 func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {

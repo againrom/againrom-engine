@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"slices"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
@@ -10,7 +11,7 @@ import (
 	"againrom/pkg/sim"
 )
 
-func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordData, body sim.OriginalDeadRecord) error {
+func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordData, body sim.OriginalDeadRecord, entity bool) error {
 	s, c := body.Source, body.Current
 	for _, v := range []sav.DocumentValueData{{Name: "Identity", Value: s.Identity}, {Name: "Reference", Value: s.OwnerKey}, {Name: "RuntimeID", Value: c.RuntimeID}, {Name: "T08", Value: uint32(s.MapUnitID)},
 		{Name: "Stage", Value: uint32(c.Stage)}, {Name: "Health", Value: uint32(uint16(c.HP))}, {Name: "U6C", Value: uint32(uint8(c.Timer))},
@@ -69,7 +70,121 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		}
 		mustSetRefs(record, savHeldWeaponField, []uint16{object})
 	}
+	if err := b.retainDeadBook(record, s, entity); err != nil {
+		return err
+	}
 	return b.retainDeadEffects(record, body.ID, s)
+}
+
+// loadedDeadObject is the loaded document's DeadActors root of the dead
+// source's Identity and class, or 0.
+func (b *generatedDocumentBuilder) loadedDeadObject(s sim.OriginalDeadSource) (uint16, error) {
+	if b.loaded == nil {
+		return 0, nil
+	}
+	var object uint16
+	for _, root := range b.loaded.DeadActors {
+		if root == 0 || int(root) > len(b.loaded.Objects) {
+			continue
+		}
+		r := &b.loaded.Objects[root-1]
+		if key, err := savedStructureValue(r, "Identity"); err == nil && key == s.Identity && r.Class == savedActorClass(s.Class) && root != object {
+			if object != 0 {
+				return 0, fmt.Errorf("retained dead actor %#x has two loaded records", s.Identity)
+			}
+			object = root
+		}
+	}
+	return object, nil
+}
+
+// loadedDeadBook reads the spellbook of a loaded dead record: its presence
+// flag, header word, slot count and the loaded Spell object of each slot. ok
+// is false when the record holds no well-formed book fields.
+func loadedDeadBook(doc *sav.DocumentData, object uint16) (has, header, count uint32, slots []uint16, ok bool) {
+	r := &doc.Objects[object-1]
+	has, err := savedStructureValue(r, "HasSpellbook")
+	if err != nil || has > 1 {
+		return 0, 0, 0, nil, false
+	}
+	if has == 0 {
+		return 0, 0, 0, nil, true
+	}
+	if header, err = savedStructureValue(r, "SpellsHeader"); err != nil {
+		return 0, 0, 0, nil, false
+	}
+	refs, found := savedObjectRefs(r, "Spells")
+	present := false
+	for _, c := range r.Counts {
+		if c.Name == "Spells" {
+			count, present = c.Count, true
+		}
+	}
+	if !found || !present {
+		return 0, 0, 0, nil, false
+	}
+	for _, ref := range refs {
+		if ref != 0 && (int(ref) > len(doc.Objects) || doc.Objects[ref-1].Class != "Spell") {
+			return 0, 0, 0, nil, false
+		}
+	}
+	return has, header, count, refs, true
+}
+
+// retainDeadBook writes the spellbook of a dead record whose body the World
+// holds as no entity from the loaded document's record of the same Identity
+// and class. The World holds no book for such a body, so the loaded record is
+// its source: presence flag, header word, slot count, and each slot's Spell
+// copied with its loaded This when reserveRetainedDeadEffectKeys claimed it.
+// A loaded Spell two slots share stays one object. A body the World holds
+// as an entity writes the entity's book (DIV-4121); without a loaded record
+// the book stays as built.
+func (b *generatedDocumentBuilder) retainDeadBook(record *sav.DocumentRecordData, s sim.OriginalDeadSource, entity bool) error {
+	if entity {
+		return nil
+	}
+	object, err := b.loadedDeadObject(s)
+	if err != nil || object == 0 {
+		return err
+	}
+	has, header, count, refs, ok := loadedDeadBook(b.loaded, object)
+	if !ok {
+		return nil
+	}
+	record.Values = slices.DeleteFunc(slices.Clone(record.Values), func(v sav.DocumentValueData) bool { return v.Name == "SpellsHeader" })
+	record.RefSlots = slices.DeleteFunc(slices.Clone(record.RefSlots), func(v sav.DocumentRefsData) bool { return v.Name == "Spells" })
+	record.Counts = slices.DeleteFunc(slices.Clone(record.Counts), func(v sav.DocumentCountData) bool { return v.Name == "Spells" })
+	savedObjectSetValue(record, "HasSpellbook", has)
+	if has == 0 {
+		return nil
+	}
+	savedObjectSetValue(record, "SpellsHeader", header)
+	slots := make([]uint16, len(refs))
+	for i, ref := range refs {
+		if ref == 0 {
+			continue
+		}
+		if b.retainedSpells == nil {
+			b.retainedSpells = map[uint16]uint16{}
+		}
+		if index := b.retainedSpells[ref]; index != 0 {
+			slots[i] = index
+			continue
+		}
+		spell := b.loaded.Objects[ref-1]
+		spell.Values = slices.Clone(spell.Values)
+		if key, err := savedStructureValue(&spell, "This"); err != nil || !b.retainedKeys[key] {
+			savedObjectSetValue(&spell, "This", b.identity())
+		}
+		index, err := b.append(spell)
+		if err != nil {
+			return err
+		}
+		b.retainedSpells[ref], slots[i] = index, index
+	}
+	savedObjectSetRefs(record, "Spells", slots, true)
+	mustSetCount(record, "Spells", count)
+	return nil
 }
 
 // retainDeadEffects writes the Effects a dead record keeps unexecuted, read
@@ -81,21 +196,9 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 // an Identity reserveRetainedDeadEffectKeys could not claim is left to the
 // minting pass.
 func (b *generatedDocumentBuilder) retainDeadEffects(record *sav.DocumentRecordData, body sim.EntityID, s sim.OriginalDeadSource) error {
-	if b.loaded == nil {
-		return nil
-	}
-	var object uint16
-	for _, root := range b.loaded.DeadActors {
-		if root == 0 || int(root) > len(b.loaded.Objects) {
-			continue
-		}
-		r := &b.loaded.Objects[root-1]
-		if key, err := savedStructureValue(r, "Identity"); err == nil && key == s.Identity && r.Class == savedActorClass(s.Class) && root != object {
-			if object != 0 {
-				return fmt.Errorf("retained dead actor %#x has two loaded records", s.Identity)
-			}
-			object = root
-		}
+	object, err := b.loadedDeadObject(s)
+	if err != nil {
+		return err
 	}
 	effects, ok := retainedDeadEffects(b.loaded, object)
 	if !ok || b.liveEffects[body] {
@@ -126,10 +229,20 @@ func (b *generatedDocumentBuilder) retainDeadEffects(record *sav.DocumentRecordD
 }
 
 // reserveRetainedDeadEffectKeys claims, before any key is minted, the Identity
-// of each Effect a loaded dead root keeps unexecuted (retainedDeadEffects).
-func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys() {
+// of each Effect a loaded dead root keeps unexecuted (retainedDeadEffects) and
+// the This of each Spell in the loaded book of a dead body the World holds as
+// no entity (retainDeadBook).
+func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys(w *sim.World) error {
 	if b.loaded == nil {
-		return
+		return nil
+	}
+	claim := func(key uint32) {
+		if key != 0 && !b.claimHeldKey(key) {
+			if b.retainedKeys == nil {
+				b.retainedKeys = map[uint32]bool{}
+			}
+			b.retainedKeys[key] = true
+		}
 	}
 	live := &liveEffectReader{doc: b.loaded}
 	for _, root := range b.loaded.DeadActors {
@@ -138,14 +251,30 @@ func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys() {
 			continue
 		}
 		for _, effect := range effects {
-			if key := effect.Token.Identity; key != 0 && !b.claimHeldKey(key) {
-				if b.retainedKeys == nil {
-					b.retainedKeys = map[uint32]bool{}
+			claim(effect.Token.Identity)
+		}
+	}
+	for _, body := range w.OriginalDeadActors() {
+		if _, entity := w.Entity(body.ID); entity {
+			continue
+		}
+		object, err := b.loadedDeadObject(body.Source)
+		if err != nil {
+			return err
+		}
+		if object == 0 {
+			continue
+		}
+		if _, _, _, refs, ok := loadedDeadBook(b.loaded, object); ok {
+			for _, ref := range refs {
+				if ref != 0 {
+					key, _ := savedStructureValue(&b.loaded.Objects[ref-1], "This")
+					claim(key)
 				}
-				b.retainedKeys[key] = true
 			}
 		}
 	}
+	return nil
 }
 
 // constructedSearchRadius gives an actor record this build constructs in a
@@ -223,7 +352,7 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 				}
 			}
 		}
-		if err := b.currentDeadRecord(&r, body); err != nil {
+		if err := b.currentDeadRecord(&r, body, false); err != nil {
 			return false, err
 		}
 		if typeID, present := ms.DeadArt[body.ID]; present {

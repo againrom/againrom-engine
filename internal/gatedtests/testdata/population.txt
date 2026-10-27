@@ -1488,4 +1488,5 @@ pkg/game.TestReleaseSecondTownRoomTips
 pkg/game.TestReleaseRuntimeIDsAfterLoadFollowTheCorpusReplay
 pkg/game.TestReleaseRuntimeIDCorpusPairs
 pkg/game.TestReleaseRuntimeIDOutpostChecksInShippedMaps
+pkg/game.TestReleaseOriginalResaveKeepsDeadSpellbooks
 pkg/game.TestReleaseSecondGameMinimapMarks
