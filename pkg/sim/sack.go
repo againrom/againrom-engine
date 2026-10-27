@@ -2,6 +2,7 @@ package sim
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 )
 
@@ -112,6 +113,14 @@ func sackItems(s Sack) ([]ItemInstance, error) {
 func makeSack(x, y int32, gold uint32, items []ItemInstance) Sack {
 	items = cloneItems(items)
 	return Sack{X: x, Y: y, Gold: gold, Items: itemCodes(items), ItemInstances: items}
+}
+
+func cloneGroundSacks(in []Sack) []Sack {
+	out := slices.Clone(in)
+	for i := range out {
+		out[i].ItemInstances = cloneItems(out[i].ItemInstances)
+	}
+	return out
 }
 
 func publicSack(s Sack) Sack {

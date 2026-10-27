@@ -283,10 +283,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 			w.carried[i] = cloneStacks(w.carried[i])
 		}
 		w.equipment = slices.Clone(w.equipment)
-		w.sacks = slices.Clone(w.sacks)
-		for i := range w.sacks {
-			w.sacks[i].ItemInstances = cloneItems(w.sacks[i].ItemInstances)
-		}
+		w.sacks = cloneGroundSacks(w.sacks)
 		for i := range w.carried {
 			for j := range w.carried[i] {
 				w.carried[i][j].ObjectID = 0

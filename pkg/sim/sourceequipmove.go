@@ -548,7 +548,7 @@ func (w *World) sourceTerminalLoot(i int, x, y int32, validCell bool) bool {
 			} else {
 				// All fallible producer work is done. The caller's candidate owns
 				// this sack slice too, including an existing destination's items.
-				w.sacks = w.Sacks()
+				w.sacks = cloneGroundSacks(w.sacks)
 				w.pourSack(x, y, gold, expandItems(w.carried[i]))
 			}
 		}
