@@ -303,10 +303,14 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 				if !ok || !itemOnlyAt(w, sourceStaff.ID, sim.SavedObjectOwner{Kind: sim.SavedOwnerActorPack, Entity: taker}) || staff.Spell != 0 || !reflect.DeepEqual(staff.Effects, sourceStaff.Effects) {
 					t.Fatal("pickup rerolled source staff/Effect identity")
 				}
-				sim.Step(w, []sim.Command{{Kind: sim.KindEquip, Entity: taker, X: int32(index), Y: 1}})
+				fresh.live.pending = append(fresh.live.pending, sim.Equip(taker, sim.ItemSlot(index), 1))
+				fresh.live.tick()
 				eq, _ := w.EquippedItems(taker)
 				if !reflect.DeepEqual(eq[0], want[0]) {
 					t.Fatal("looted staff changed on equip")
+				}
+				if e, _ := w.Entity(taker); e.Class != 24 {
+					t.Fatalf("taker holding the staff has class %d, want 24 (ANIM-107: a staff selects mage_st)", e.Class)
 				}
 				staff, ok = w.SavedObjects().Item(sourceStaff.ID)
 				if !ok || !itemOnlyAt(w, sourceStaff.ID, sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: taker, Slot: 1}) || staff.Spell == 0 || staff.Spell == sourceStaff.Spell || !reflect.DeepEqual(staff.Effects, sourceStaff.Effects) || itemMutationSpell1115(t, w.SavedObjects(), staff.Spell).Value != want[0].SourceEquipment.Spell {
@@ -317,6 +321,9 @@ func TestReleaseOriginalHoldings1108NaturalEmptyAndValuedStaff(t *testing.T) {
 				eq, _ = back.live.world.EquippedItems(taker)
 				if !reflect.DeepEqual(eq[0], want[0]) || !itemOnlyAt(back.live.world, sourceStaff.ID, sim.SavedObjectOwner{Kind: sim.SavedOwnerActorWorn, Entity: taker, Slot: 1}) {
 					t.Fatal("death/loot/equip staff is not worn by its taker after the SAV LOAD")
+				}
+				if e, _ := back.live.world.Entity(taker); e.Class != 24 {
+					t.Fatalf("taker's class after the SAV LOAD is %d, want 24", e.Class)
 				}
 				requireSameItemObjects(t, w, back.live.world)
 				requireAlteredItemWeight(t, w, written, sourceStaff.ID)

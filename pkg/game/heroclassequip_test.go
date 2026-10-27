@@ -74,6 +74,24 @@ func TestATwoHandedSwordSwappedForAOneHandedOneChangesTheClass(t *testing.T) {
 	requireHeroClass(t, mw, ms, 3, data.BodySwordsman, "after the swap")
 }
 
+func TestAStaffTakenUpOnTheStepLeavesTheNextOpenNothingToChange(t *testing.T) {
+	var worn [sim.EquipSlots]uint16
+	worn[0] = appearanceCode(equipRowSword2H)
+	member := mapload.PartyMember{ID: "hero", PlayerCharacter: true, StartingHero: true,
+		Body: string(data.BodySwordsman2H), BodyDir: data.HeroDirHeroes, WeaponMaterialized: true}
+	mw, ms := equipClassMission(t, member, 5, worn, []uint16{appearanceCode(equipRowStaff)})
+	mw.pending = append(mw.pending, sim.Equip(99, 0, 1))
+	mw.tickStep(nil, false)
+	requireHeroClass(t, mw, ms, 24, data.BodyMageStaff, "after the step")
+	hash := ms.World.Hash()
+	reopened := openMission(ms, nil, mw.units, worldFixtureViewer(t, ms.Map),
+		missionSource{HeroPictureAddress: equipClassBodyList()}, nil, nil)
+	requireHeroClass(t, reopened, ms, 24, data.BodyMageStaff, "at the next open")
+	if got := ms.World.Hash(); got != hash {
+		t.Errorf("the next open moved the World hash from %016x to %016x", hash, got)
+	}
+}
+
 // A mage whose staff comes off is an Unarmed Mage (23), no longer a Human Mage
 // (24).
 func TestAMagesWeaponRemovedChangesTheClass(t *testing.T) {
