@@ -455,7 +455,23 @@ func captureSecondShop(s secondShop, legacy []secondHeroItem) *currentSecondShop
 	return &currentSecondShop{Records: s.records, Hero: slices.Clone(legacy)}
 }
 
+// maxSecondShopDraws and maxSecondShopBound bound a record's draws and
+// quantity bound: the stock fill loops over the draws and draws a stack of
+// one to the bound plus one. The records the original writes hold at most
+// 100 and 2 (R2-ENGINE-263, R2-ENGINE-330).
+const (
+	maxSecondShopDraws = 1000
+	maxSecondShopBound = 100
+)
+
 func (c *currentSecondShop) validate() error {
+	for _, record := range c.Records {
+		for _, cat := range record {
+			if cat.Draws < 0 || cat.Draws > maxSecondShopDraws || cat.Bound < 0 || cat.Bound > maxSecondShopBound {
+				return fmt.Errorf("current second campaign shop record draws %d with quantity bound %d", cat.Draws, cat.Bound)
+			}
+		}
+	}
 	if len(c.Hero) > maxSecondShopItems {
 		return fmt.Errorf("current second campaign shop list is too long")
 	}

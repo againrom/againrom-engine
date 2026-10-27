@@ -28,7 +28,7 @@ func (f *File) SpellEffectArchiveLocation() (SpellEffectArchiveLocation, bool, e
 	if f == nil || f.Head.End < 0 || f.Head.End > len(f.Body) {
 		return SpellEffectArchiveLocation{}, false, fmt.Errorf("sav: invalid SpellEffect archive prefix")
 	}
-	w := &walker{b: f.Body, p: f.Head.End, next: 1,
+	w := &walker{b: f.Body, p: f.Head.End, next: 1, prof: f.profile(),
 		classes: map[uint16]string{}, objects: map[uint16]*Record{}}
 	if _, err := w.playerRecords(f.Head.PlayerCount); err != nil {
 		return SpellEffectArchiveLocation{}, false, err

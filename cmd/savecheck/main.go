@@ -49,6 +49,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 	killMember := fs.String("kill-member", "", "kill this stable party member id through the live driver and report mission outcome")
 	healWitness := fs.String("heal-witness", "", "run the full-health, wound-one, stop-at-full idle-heal witness for this stable member id")
 	campaignProgress := fs.Bool("campaign-progress", false, "print restored campaign state and drive its live mission completion headlessly")
+	party := fs.Bool("party", false, "print each loaded party member's statistics, pools, equipment and book, and the second campaign's place and bag")
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(stderr, "savecheck:", err)
 		return 2
@@ -84,7 +85,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 		return doSave(front, store, *mission, *ticks, stdout, stderr)
 	}
 	return doLoad(front, store, original, *name, *resave, *rebuild, *controlMember, *killMember,
-		*healWitness, *campaignProgress, stdout, stderr)
+		*healWitness, *campaignProgress, *party, stdout, stderr)
 }
 
 // doSave starts a mission through the SAME opener the game's own door uses,
@@ -142,7 +143,7 @@ func doTownSave(front *game.FrontEnd, store game.SaveStore, stdout, stderr io.Wr
 
 // doLoad is the second process: it knows nothing but the directory.
 func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalStore, want string,
-	resave bool, rebuild int, controlMember bool, killMember, healWitness string, campaignProgress bool,
+	resave bool, rebuild int, controlMember bool, killMember, healWitness string, campaignProgress, party bool,
 	stdout, stderr io.Writer) int {
 	// THE LIST COMES THROUGH THE SEAM and not from store.List, because the seam
 	// is what the LOAD GAME window calls: a tool that read the directory itself
@@ -209,6 +210,9 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 	if town {
 		fmt.Fprintf(stdout, "savecheck: town came back: chapter %d, available %v, done(10)=%v\n",
 			front.Town.Chapter(), front.Town.Available(), front.Town.Done(10))
+		if party {
+			reportParty(front, stdout)
+		}
 		// A town is a complete original-save authoring witness too. This arm
 		// used to return before the -resave flag was observed, which meant the
 		// tool advertised an original-to-Againrom round trip but could exercise
@@ -290,7 +294,10 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 			out, cells, total)
 	}
 	snapshot := front.LiveHeadlessSnapshot()
-	if game.IsOriginal(chosen) {
+	if party {
+		reportParty(front, stdout)
+	}
+	if game.IsOriginal(chosen) || party {
 		// WHAT THE PARTY ACTUALLY ARRIVED WITH, entity by entity. The resume's
 		// own counted report goes to stderr from inside the opener; this is the
 		// other end of the same claim, read off the world that was built — which
@@ -621,4 +628,44 @@ func reportUpgradeRepairs(stdout io.Writer, w *sim.World) {
 		"%d with a non-zero load, %d with a non-zero capacity, %d with a map placement id, "+
 		"%d of %d check(s) bind an item, %d spell rule(s), %d structure(s)\n",
 		len(w.ItemWeights()), len(w.Entities()), loads, capacities, mapIDs, bound, checks, len(w.Spells()), len(w.Structures()))
+}
+
+// reportParty prints the party the session carries, member by member, and
+// the second campaign's place and bag: the fields a LOAD of a saved hero is
+// checked against.
+func reportParty(front *game.FrontEnd, stdout io.Writer) {
+	for _, m := range front.NextParty() {
+		xp, hp, mana := int32(0), "-", "-"
+		if m.Carry != nil {
+			for _, v := range m.Carry.SkillXP {
+				xp += v
+			}
+		}
+		if m.Saved != nil {
+			hp = fmt.Sprintf("%d/%d", m.Saved.HP, m.Saved.MaxHP)
+			mana = fmt.Sprintf("%d/%d", m.Saved.Mana, m.Saved.MaxMana)
+		}
+		var worn, carried []uint16
+		for _, it := range m.WornItems {
+			if it.Code != 0 {
+				worn = append(worn, it.Code)
+			}
+		}
+		for _, it := range m.CarriedItems {
+			carried = append(carried, it.Code)
+		}
+		var book []int
+		for id := 1; id < 32; id++ {
+			if m.KnownSpells&(1<<id) != 0 {
+				book = append(book, id)
+			}
+		}
+		h := m.Hero
+		fmt.Fprintf(stdout, "savecheck: member %s %q hero=%v attributes %d/%d/%d/%d skills %v experience %d hp %s mana %s worn %#04x carried %#04x book %v\n",
+			m.ID, m.Name, m.StartingHero, h.Body, h.Reaction, h.Mind, h.Spirit, h.Skill, xp, hp, mana, worn, carried, book)
+	}
+	if s, ok := front.Town.SecondState(); ok {
+		fmt.Fprintf(stdout, "savecheck: second campaign at %d/%d room %d available %v bag %#04x\n",
+			s.Kind, s.ID, s.Room, s.Available, s.Bag)
+	}
 }

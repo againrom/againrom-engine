@@ -344,7 +344,16 @@ var programmes = map[string][]step{
 		{op: stpInline, name: "Diary", class: "Diary"},
 	},
 
-	"Unit": {
+	"Unit":     unitProgramme(Member{Name: "U158", Kind: KindRaw, Len: 148}),
+	"Humanoid": humanoidProgramme(true),
+	"Human":    {{op: stpClass, class: "Humanoid"}},
+}
+
+// unitProgramme is Unit::Serialize; rawTail is its sixth raw block, which
+// the profile names: the first game's 148-byte Order record or the second
+// game's 184 bytes without a decoded meaning.
+func unitProgramme(rawTail Member) []step {
+	return []step{
 		{op: stpClass, class: "Token"},
 		{op: stpList, name: "Effects"},
 		{op: stpU16List, name: "U15C"},
@@ -355,7 +364,7 @@ var programmes = map[string][]step{
 			{Name: "U114", Kind: KindRaw, Len: 24},
 			{Name: "UD4", Kind: KindRaw, Len: 64},
 			{Name: "U154", Kind: KindRaw, Len: 180},
-			{Name: "U158", Kind: KindRaw, Len: 148},
+			rawTail,
 		}},
 		{op: stpU16List, name: "U158_90"},
 		{op: stpRun, name: "UnitControl", members: unitStoreA},
@@ -368,15 +377,21 @@ var programmes = map[string][]step{
 			{op: stpClass, class: "Spellbook"},
 		}},
 		{op: stpRun, members: unitStoreC},
-	},
+	}
+}
 
-	"Humanoid": {
+// humanoidProgramme is Humanoid::Serialize; diary is the first game's Diary
+// reference after the twelve worn slots.
+func humanoidProgramme(diary bool) []step {
+	out := []step{
 		{op: stpClass, class: "Unit"},
 		{op: stpRun, name: "HumanoidXP", members: []Member{{Name: "H1CC", Kind: KindRaw, Len: 24}}},
 		{op: stpRefRun, name: "Worn", n: 12},
-		{op: stpObjRef, name: "Diary"},
-	},
-	"Human": {{op: stpClass, class: "Humanoid"}},
+	}
+	if diary {
+		out = append(out, step{op: stpObjRef, name: "Diary"})
+	}
+	return out
 }
 
 // groupProgramme is one group record, which is written INLINE inside a Player's
@@ -465,6 +480,10 @@ type Record struct {
 	// Structure starts only, for independent Player/Diary byte readers.
 	GroupActorRefOffs []int
 	DiaryRefOff       int
+
+	// prof is the profile of the walk that read the record; nil is the
+	// first game.
+	prof *Profile
 }
 
 // newRecord is one empty record of a class, at an offset, under an archive
@@ -522,6 +541,8 @@ type walker struct {
 	// retainGraph keeps every named array/header and nullable reference site
 	// needed by the inverse programme. Ordinary narrow readers remain unchanged.
 	retainGraph bool
+	// prof is the game whose programmes the walk runs; nil is the first game.
+	prof *Profile
 }
 
 // Walk reads the first non-null top-level Player, retaining the first-record
@@ -533,7 +554,7 @@ func (f *File) Walk() (*Record, error) {
 	if f.Head.End < 0 || f.Head.End > len(f.Body) {
 		return nil, fmt.Errorf("sav: Player list offset is outside the document")
 	}
-	w := &walker{b: f.Body, p: f.Head.End, next: 1, classes: map[uint16]string{}, objects: map[uint16]*Record{}}
+	w := &walker{b: f.Body, p: f.Head.End, next: 1, classes: map[uint16]string{}, objects: map[uint16]*Record{}, prof: f.profile()}
 	if f.Head.PlayerCount > maxListElements {
 		return nil, fmt.Errorf("sav: Player count exceeds bound")
 	}
@@ -623,7 +644,7 @@ func (w *walker) classRecord() (string, error) {
 // programme reaches take the indices after this one and a back-reference to
 // this object must name it rather than its first child.
 func (w *walker) body(class string, depth int) (*Record, error) {
-	prog, ok := programmes[class]
+	prog, ok := w.programmes()[class]
 	if !ok {
 		return nil, fmt.Errorf("sav: class %s has no serialization programme, so the walk "+
 			"cannot step over its record", class)
@@ -632,6 +653,7 @@ func (w *walker) body(class string, depth int) (*Record, error) {
 		return nil, fmt.Errorf("sav: archive object index space exhausted at %d", w.p)
 	}
 	rec := newRecord(class, w.p, w.next)
+	rec.prof = w.prof
 	w.objects[w.next] = rec
 	w.next++
 	if err := w.programme(prog, rec, depth); err != nil {
@@ -665,13 +687,13 @@ func (w *walker) step(s step, rec *Record, depth int) error {
 		}
 		return w.run(s.members, rec)
 	case stpClass:
-		prog, ok := programmes[s.class]
+		prog, ok := w.programmes()[s.class]
 		if !ok {
 			return fmt.Errorf("no programme for base class %s", s.class)
 		}
 		return w.programme(prog, rec, depth)
 	case stpInline:
-		prog, ok := programmes[s.class]
+		prog, ok := w.programmes()[s.class]
 		if !ok {
 			return fmt.Errorf("no programme for inline class %s", s.class)
 		}
@@ -860,7 +882,7 @@ func (w *walker) step(s step, rec *Record, depth int) error {
 		rec.Counts[s.name] += int(n)
 		for i := uint32(0); i < n; i++ {
 			group := newRecord("Group", w.p, 0)
-			if err := w.programme(groupProgramme, group, depth); err != nil {
+			if err := w.programme(w.groupSteps(), group, depth); err != nil {
 				return fmt.Errorf("group %d: %w", i, err)
 			}
 			group.End = w.p

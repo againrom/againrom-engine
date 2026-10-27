@@ -19,6 +19,18 @@ func secondHero() mapload.PartyMember {
 	return mapload.PartyMember{ID: "hero", PlayerCharacter: true, StartingHero: true}
 }
 
+// leaveBagToCampaign empties each member's pack: the second game's hero
+// carries his bag in the campaign, never into a mission (DIV-3043).
+func leaveBagToCampaign(party []mapload.PartyMember) {
+	for i := range party {
+		m := &party[i]
+		m.Carried, m.CarriedItems = nil, nil
+		if m.Carry != nil {
+			m.Carry.Items, m.Carry.ItemInstances, m.Carry.OrderedStacks = nil, nil, nil
+		}
+	}
+}
+
 // heroBag is the hero's pack, made when the campaign has no party yet.
 func (c *secondCampaign) heroBag() *[]sim.ItemInstance {
 	if len(c.party) == 0 {

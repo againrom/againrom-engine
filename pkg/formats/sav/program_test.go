@@ -28,6 +28,8 @@ type stream struct {
 	b       []byte
 	next    uint16
 	classes map[string]uint16
+	// second writes the second game's record shapes (SecondGame).
+	second bool
 }
 
 func newStream() *stream {
@@ -87,7 +89,11 @@ func (s *stream) token(cell uint16, fineX, fineY uint8, runtimeID uint32, defRow
 	s.u16(0x0777)
 	s.u32(fixState)
 	s.u32(runtimeID)
-	s.u8(defRow)
+	if s.second {
+		s.u16(uint16(defRow))
+	} else {
+		s.u8(defRow)
+	}
 	s.u16(0x0021)
 	// The map unit id is the LOW u16 of this dword.
 	s.u32(uint32(mapUnitID))
@@ -189,7 +195,11 @@ func (s *stream) human(c wantChar) {
 	} else {
 		s.raw(180, 0x54)
 	}
-	s.raw(148, 0x58)
+	if s.second {
+		s.raw(184, 0x5a)
+	} else {
+		s.raw(148, 0x58)
+	}
 	s.u16(0) // u16list *(*(+0x158)+0x90)
 	// The store arm's first nineteen bytes.
 	s.u8(0x49)
@@ -277,6 +287,9 @@ func (s *stream) human(c wantChar) {
 		}
 		s.null()
 	}
+	if s.second {
+		return
+	}
 	if c.journal < 0 {
 		s.null()
 		return
@@ -322,10 +335,16 @@ type walkFixture struct {
 	spellEffects func(*stream)
 	// morePlayers writes further top-level Player records after the first.
 	morePlayers []func(*stream)
+	// second writes a `Bsg&` file in the second game's record shapes; town
+	// writes no world half; tail, when non-nil, replaces what follows the
+	// label.
+	second, town bool
+	tail         []byte
 }
 
 func (f walkFixture) body() []byte {
 	s := newStream()
+	s.second = f.second
 	le32(&s.b, 0x50)
 	le32(&s.b, 0x05)
 	s.b = append(s.b, byte(len(f.mapName)))
@@ -365,6 +384,9 @@ func (f walkFixture) body() []byte {
 	}
 	s.u32(heroKey)
 	s.u32(0xa1a1a1a1) // the Player's own identity key
+	if f.second {
+		s.raw(2560, 0x25)
+	}
 
 	groups := f.groups
 	if groups < 1 {
@@ -389,6 +411,10 @@ func (f walkFixture) body() []byte {
 		s.u32(0x40404040)
 		s.u32(0x44444444)
 	}
+	if f.second {
+		s.raw(36, 0x36)
+		return f.worldEnd(s)
+	}
 	s.raw(32, 0x99)
 
 	// THE PLAYER'S OWN Diary, INLINE (SAV-PLDIARY-054): no tag introduces it
@@ -404,9 +430,17 @@ func (f walkFixture) body() []byte {
 	for _, write := range f.morePlayers {
 		write(s)
 	}
+	return f.worldEnd(s)
+}
 
-	// Complete world envelope after the Player list.
+// worldEnd writes what follows the Player list: the dead list, the world
+// half unless the fixture is a town, the sentinels and the trailer.
+func (f walkFixture) worldEnd(s *stream) []byte {
 	s.u32(afterPlayerList) // empty dead list
+	if f.town {
+		s.u8(0)
+		return f.trailer(s)
+	}
 	s.u8(1)
 	s.u32(0) // Buildings
 	if f.spellEffects != nil {
@@ -416,8 +450,18 @@ func (f walkFixture) body() []byte {
 	}
 	s.u16(0) // terrain blocks
 	s.u16(0) // terrain cells
-	s.raw(4+4374, 0)
-	s.u32(0) // Sacks
+	if f.second {
+		s.raw(4+secondSessionLen, 0)
+		s.u32(0) // Sacks
+		s.u32(0) // the extra Token list
+	} else {
+		s.raw(4+4374, 0)
+		s.u32(0) // Sacks
+	}
+	return f.trailer(s)
+}
+
+func (f walkFixture) trailer(s *stream) []byte {
 	s.u32(0xbadface1)
 	s.u32(0)
 	s.raw(400, 0)
@@ -431,6 +475,9 @@ func (f walkFixture) file() []byte {
 	blob := Compress(f.body())
 	out := make([]byte, headerLen)
 	copy(out, Magic)
+	if f.second {
+		copy(out, SecondGame.Magic)
+	}
 	binary.LittleEndian.PutUint32(out[4:], uint32(headerLen+len(blob)))
 	binary.LittleEndian.PutUint32(out[8:], MinVersion)
 	binary.LittleEndian.PutUint32(out[12:], uint32(len(blob)))
@@ -439,6 +486,9 @@ func (f walkFixture) file() []byte {
 	copy(region, "1234")
 	region[4] = 0
 	out = append(out, region...)
+	if f.tail != nil {
+		return append(out, f.tail...)
+	}
 	return append(out, "&YA1"...)
 }
 

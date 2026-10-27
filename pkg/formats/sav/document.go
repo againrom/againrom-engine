@@ -7,9 +7,11 @@ type document struct {
 	players, dead             []*Record
 	world                     *WorldHalf
 	buildings, effects, sacks []*Record
-	priorItems                map[*Record]bool
-	objects                   map[uint16]*Record
-	deadRoots                 DocumentDeadRootLocation
+	// extra is the second game's Token list after the Sacks.
+	extra      []*Record
+	priorItems map[*Record]bool
+	objects    map[uint16]*Record
+	deadRoots  DocumentDeadRootLocation
 	// trailer is world+0x118's 400-byte block (SAV-790, TrailerBody).
 	trailer    TrailerBody
 	trailerOff int
@@ -29,7 +31,7 @@ func (f *File) exactDocument() (*document, bool, error) {
 	if f == nil {
 		return nil, false, fmt.Errorf("sav: document requires a save")
 	}
-	w := &walker{b: f.Body, p: f.Head.End, next: 1,
+	w := &walker{b: f.Body, p: f.Head.End, next: 1, prof: f.profile(),
 		classes: map[uint16]string{}, objects: map[uint16]*Record{}}
 	players, err := w.playerRecords(f.Head.PlayerCount)
 	if err != nil {
@@ -71,6 +73,12 @@ func (f *File) exactDocument() (*document, bool, error) {
 		doc.sacks, err = w.groundCountedList("Sacks", "Sack")
 		if err != nil {
 			return nil, true, err
+		}
+		if w.profile().extraList {
+			doc.extra, err = w.groundCountedList("extra Tokens", "Token")
+			if err != nil {
+				return nil, true, err
+			}
 		}
 	}
 	marker, err := w.u32()

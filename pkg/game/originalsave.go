@@ -793,6 +793,9 @@ type originalCampaignDecode struct {
 	actions     *currentActionData
 	document    *sav.DocumentData
 	quickSpells [4]uint32
+	// fileSession is the session the file states in its own tail, nil when
+	// an engine document or nothing states it.
+	fileSession *currentSessionData
 	// randomSession is the random session the file recorded, or one seeded
 	// from the file's own bytes when it recorded none.
 	randomSession random.Session
@@ -801,9 +804,11 @@ type originalCampaignDecode struct {
 // decodeOriginalCampaign decodes and validates the complete campaign
 // projection of an original SAV over the install's campaign, from plain
 // values. It changes nothing: a malformed campaign tail cannot install a
-// party, purse, town or partial progress record. quickSpells are the ordinary
-// bindings the supplement may replace.
-func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quickSpells [4]uint32) (*originalCampaignDecode, error) {
+// party, purse, town or partial progress record. stated is what the file
+// states in its own records: the ordinary bindings the supplement may
+// replace, and a session a file without an engine document states.
+func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, stated originalFileState) (*originalCampaignDecode, error) {
+	quickSpells := stated.quickSpells
 	difficulty, err := campaignDifficulty(int64(sf.Head.Difficulty))
 	if err != nil {
 		return nil, err
@@ -812,28 +817,31 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 	// front-end field. A malformed campaign tail therefore cannot install a
 	// party, purse, town, or partial progress record.
 	n := int(sf.Head.Mission)
-	var currentSession *currentSessionData
+	currentSession := stated.session
 	var currentActions *currentActionData
 	var currentDocument *sav.DocumentData
 	savedRandom := random.Session{Seed: random.SeedOf(saved)}
-	if doc, err := sav.DecodeDocumentData(saved); err == nil {
-		recorded, ok, err := sav.ReadNativeSession(doc.State)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			savedRandom = random.Session{Seed: recorded.Seed, Mode: random.Mode(recorded.Mode), Shared: recorded.Shared, Reseeds: recorded.Reseeds}
-		}
-		a, err := readCurrentActions(&doc)
-		if err != nil {
-			return nil, err
-		}
-		if a != nil {
-			if !ok {
-				savedRandom = random.Session{}
+	// A file whose own tail states the session has no engine document.
+	if stated.session == nil {
+		if doc, err := sav.DecodeDocumentData(saved); err == nil {
+			recorded, ok, err := sav.ReadNativeSession(doc.State)
+			if err != nil {
+				return nil, err
 			}
-			currentSession = a.Session
-			currentActions, currentDocument = a, &doc
+			if ok {
+				savedRandom = random.Session{Seed: recorded.Seed, Mode: random.Mode(recorded.Mode), Shared: recorded.Shared, Reseeds: recorded.Reseeds}
+			}
+			a, err := readCurrentActions(&doc)
+			if err != nil {
+				return nil, err
+			}
+			if a != nil {
+				if !ok {
+					savedRandom = random.Session{}
+				}
+				currentSession = a.Session
+				currentActions, currentDocument = a, &doc
+			}
 		}
 	}
 	if currentSession != nil && currentSession.Difficulty != nil {
@@ -907,7 +915,7 @@ func decodeOriginalCampaign(sf *sav.File, saved []byte, campaign Campaign, quick
 	}
 	return &originalCampaignDecode{difficulty: difficulty, mission: n, town: restoredTown, progress: restoredProgress,
 		session: currentSession, actions: currentActions, document: currentDocument, quickSpells: quickSpells,
-		randomSession: savedRandom}, nil
+		fileSession: stated.session, randomSession: savedRandom}, nil
 }
 
 // restoreOriginalTown installs the between-mission game an original SAV

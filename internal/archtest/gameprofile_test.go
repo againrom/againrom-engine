@@ -144,6 +144,14 @@ func Sprint(a ...any) string { return "" }
 type World struct{}
 func (w *World) SecondGame() bool { return false }
 `,
+	"againrom/pkg/formats/sav": `package sav
+type Profile struct{ Game, Magic string }
+var FirstGame = &Profile{Magic: "Asg&"}
+var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&"}
+type File struct{ Profile *Profile }
+func (f *File) SecondGame() bool { return f.Profile == SecondGame }
+func (f *File) EnvelopeGame() string { return f.Profile.Game }
+`,
 	"reflect": `package reflect
 func DeepEqual(x, y any) bool { return false }
 `,
@@ -251,6 +259,14 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 			`func f(g base.Game) bool { return g.Edition().CompanionObjectiveMission > 0 }`},
 		{"concatenations holding a game compared", "compares a game",
 			`func f(g, h base.Game) bool { return g.Edition().Towns+"x" == h.Edition().Towns+"x" }`},
+		{"file asked which game it is", "asks the file which game it is",
+			`func f(sf *sav.File) bool { return sf.SecondGame() }`},
+		{"file profiles compared", "compares a file's game profile",
+			`func f(p *sav.Profile) bool { return p != sav.FirstGame }`},
+		{"profile game datum compared", "compares a file's game profile",
+			`func f(p *sav.Profile) bool { return p.Game == sav.SecondGame.Game }`},
+		{"switch on a file profile", "branches on a file's game profile",
+			`func f(p *sav.Profile) int { switch p { case sav.SecondGame: return 2 }; return 1 }`},
 	}
 	for _, m := range mutations {
 		got := profileMutationScan(t, m.body)
@@ -268,6 +284,12 @@ func f(g base.Game) int { return m[string(g.Edition().SaveTag)] }`},
 }`
 	if got := profileMutationScan(t, clean); len(got) != 0 {
 		t.Errorf("reading edition data was found as a choice: %v", got)
+	}
+	fileData := `func f(p *sav.Profile, sf *sav.File) (string, bool) {
+	return sf.EnvelopeGame() + p.Game, p != nil && p.Game != ""
+}`
+	if got := profileMutationScan(t, fileData); len(got) != 0 {
+		t.Errorf("reading a file profile's game datum was found as a choice: %v", got)
 	}
 }
 

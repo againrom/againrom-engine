@@ -97,14 +97,14 @@ func (w *walker) worldHalf() (*WorldHalf, error) {
 		return nil, err
 	}
 	out.CellRecDataOff = w.p
-	if err := w.skip("terrain cells", out.CellRecCount*cellRecLen); err != nil {
+	if err := w.skip("terrain cells", out.CellRecCount*w.profile().cellLen); err != nil {
 		return nil, err
 	}
 	if err := w.skip("terrain identity", 4); err != nil {
 		return nil, err
 	}
 	out.SessionOff = w.p
-	if err := w.skip("session", sessionLen); err != nil {
+	if err := w.skip("session", w.profile().sessionLen); err != nil {
 		return nil, err
 	}
 	return out, nil

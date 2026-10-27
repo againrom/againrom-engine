@@ -133,10 +133,12 @@ func groundClass(class, base string) bool {
 		return true
 	}
 	switch base {
+	case "Token":
+		return true
 	case "Unit":
 		return class == "Human" || class == "Humanoid"
 	case "Building":
-		return class == "Outpost" || class == "Tavern" || class == "Shop"
+		return class == "Outpost" || class == "Tavern" || class == "Shop" || class == "Pointer"
 	case "SpellEffect":
 		return class == "PointEffect" || class == "AreaEffect" || class == "SpellTransport"
 	case "Item":

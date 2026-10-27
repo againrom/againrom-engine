@@ -87,6 +87,9 @@ type Character struct {
 	// paired by index (SAV-HEROSKILL-064).
 	SkillLevels [CharacterSkillSlots]uint16
 	SkillXP     [CharacterSkillSlots]uint32
+	// MainSkill is the second game's main skill, the first DWORD of its
+	// experience block (R2-ENGINE-320); zero in the first game.
+	MainSkill uint32
 
 	// Experience is Unit+0x130, the aggregate of this character's six SkillXP
 	// values (SAV-HEROXP-063). It is retained separately because the original
@@ -405,9 +408,9 @@ func actorCharacter(r *Record) (Character, error) {
 	}
 	for i := range c.SkillLevels {
 		c.SkillLevels[i] = u16(skillBlock, 2+2*i)
-		if len(skillXPBlock) != 0 {
-			c.SkillXP[i] = u32(skillXPBlock, 4*i)
-		}
+	}
+	if len(skillXPBlock) != 0 {
+		c.MainSkill, c.SkillXP = humanoidXP(r, skillXPBlock)
 	}
 	var err error
 	if c.Town, err = townActorState(r); err != nil {

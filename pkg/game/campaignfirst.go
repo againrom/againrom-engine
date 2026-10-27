@@ -172,6 +172,12 @@ func (firstCampaignRules) difficultyRecord(d mapload.Difficulty) (uint32, bool) 
 	return uint32(d) - 1, true
 }
 
+// fileState reads the shortcut cells; the file states no session.
+func (firstCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
+	quick, err := originalQuickSpells(sf)
+	return originalFileState{quickSpells: quick}, err
+}
+
 func (firstCampaignRules) ownsGame(g base.Game) error {
 	if base.SameGame(g, base.GameROM1) {
 		return nil

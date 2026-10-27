@@ -8,6 +8,8 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 )
 
 type currentSecondLocation struct{ Kind, ID int }
@@ -221,7 +223,138 @@ func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base
 	return campaignOf(authored).validateAuthored(doc, a)
 }
 
+// refuseSecondFileDebt refuses, before any state changes, what the engine
+// cannot yet hold of a second-game file: a save made during a mission
+// (DIV-4155) and a book spell past the engine's book (DIV-4156).
+func refuseSecondFileDebt(sf *sav.File) error {
+	if sf.Head.Mission != 0 {
+		return fmt.Errorf("a second-game save made during mission %d cannot be loaded yet", sf.Head.Mission)
+	}
+	chars, err := sf.Party()
+	if err != nil {
+		return err
+	}
+	slots := len(sim.Spellbook{}.Slots)
+	for _, c := range chars {
+		for _, spell := range c.Spells {
+			if int(spell.ID) > slots {
+				return fmt.Errorf("second-game save: %s's book holds spell %d; the engine's book holds %d", c.Name, spell.ID, slots)
+			}
+		}
+	}
+	return nil
+}
+
+// secondFileSession is the current-session record a native second-game file
+// states through its campaign tail: the Scenario bank, the four shop
+// records (R2-SESSION-156, R2-SESSION-187), the availability records and
+// the current one (R2-SESSION-238, R2-SESSION-155), and the Player-1 hero's
+// bag (R2-SESSION-236). The tail stores no town room; a town opens at its
+// square (DIV-4153).
+func secondFileSession(sf *sav.File) (*currentSessionData, error) {
+	tail, err := sf.SecondTail()
+	if err != nil {
+		return nil, err
+	}
+	current, ok := tail.CurrentLocation()
+	if !ok {
+		return nil, fmt.Errorf("second-game save names no current location")
+	}
+	var shop secondShop
+	for l, record := range tail.Shops {
+		for k, cell := range record {
+			shop.records[l][k] = secondshop.Category(cell)
+		}
+	}
+	c := &currentSecondCampaign{Bank: tail.Bank, Current: currentSecondLocation{int(current.Kind), int(current.ID)},
+		Shop: captureSecondShop(shop, nil)}
+	if uint64(len(tail.Locations)) > maxSecondAvailable {
+		return nil, fmt.Errorf("second-game save holds %d locations", len(tail.Locations))
+	}
+	for _, l := range tail.Locations {
+		c.Available = append(c.Available, currentSecondLocation{int(l.Kind), int(l.ID)})
+	}
+	if c.Current.Kind == placeTown {
+		room := secondTownSquare
+		c.Room = &room
+	}
+	bag, err := secondFileBag(sf)
+	if err != nil {
+		return nil, err
+	}
+	if len(bag) != 0 {
+		hero := secondHero()
+		hero.CarriedItems = bag
+		c.Party = []currentPartyMember{captureCurrentParty(0, hero)}
+	}
+	if err := c.validate(); err != nil {
+		return nil, fmt.Errorf("second-game save: %w", err)
+	}
+	return &currentSessionData{Second: c}, nil
+}
+
+// secondFileBag is the Player-1 hero's bag as the second campaign's bag
+// units: one unit per stacked piece, each the bag's item form.
+func secondFileBag(sf *sav.File) ([]sim.ItemInstance, error) {
+	chars, err := sf.Party()
+	if err != nil {
+		return nil, err
+	}
+	return secondHeroBag(chars)
+}
+
+func secondHeroBag(chars []sav.Character) ([]sim.ItemInstance, error) {
+	var out []sim.ItemInstance
+	for _, c := range chars {
+		if !c.Hero {
+			continue
+		}
+		for _, p := range c.Items {
+			unit := sim.ItemInstance{Code: p.Code, Kind: p.Kind, Price: p.Price}
+			for _, e := range p.Effects {
+				unit.Effects = append(unit.Effects, sim.ItemEffect{Kind: e.Kind, Mode: e.Mode, Operand: e.Operand})
+			}
+			if _, ok := secondshop.FromInstance(unit); !ok {
+				return nil, fmt.Errorf("second-game save: bag item %#04x has no bag form", p.Code)
+			}
+			n := max(int(p.Stack), 1)
+			if len(out)+n > maxSecondBagUnits {
+				return nil, fmt.Errorf("second-game save: bag holds more than %d units", maxSecondBagUnits)
+			}
+			for range n {
+				out = append(out, unit.Clone())
+			}
+		}
+	}
+	return out, nil
+}
+
+// envelopeOf is the game the envelope of b names; empty for Asg& and for
+// bytes no envelope opens.
+func envelopeOf(b []byte) string {
+	if p, ok := sav.ProfileOf(b); ok {
+		return p.Game
+	}
+	return ""
+}
+
+// ownsEnvelope reports whether the envelope names a game, and game's
+// campaign's refusal when that game is another (R2-SESSION-017, DIV-3079).
+// The Asg& envelope, which the first game's originals and both games'
+// engine documents share, names none.
+func ownsEnvelope(envelope string, game base.Game) (named bool, err error) {
+	if envelope == "" {
+		return false, nil
+	}
+	return true, campaignOf(game).ownsGame(base.Game(envelope))
+}
+
 func validateOriginalGame(saved []byte, game base.Game) error {
+	// A native second-game file has no engine document: its envelope names
+	// its game.
+	if named, err := ownsEnvelope(envelopeOf(saved), game); named {
+		return err
+	}
 	doc, err := sav.DecodeDocumentData(saved)
 	if err != nil {
 		if refusal := campaignOf(game).undecodedSave(err); refusal != nil {

@@ -42,6 +42,14 @@ const simPackage = "pkg/sim/"
 
 const simPath = "againrom/pkg/sim"
 
+// Outside pkg/formats/sav, a SAV file's game is read only as the datum its
+// profile carries: a call of sav.File.SecondGame, a comparison of or switch
+// on sav.Profile values, and a comparison of a profile's Game with anything
+// but the empty string are choices by game.
+const savPackage = "pkg/formats/sav/"
+
+const savPath = "againrom/pkg/formats/sav"
+
 // ProfileAllowed are the sites outside pkg/base that may hold a finding, each
 // with its reason. A key is a file, or a file and one of its functions as
 // file#function. The two campaign service implementations, and the one
@@ -257,6 +265,9 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 				if s.editionDatum(n.X) && s.constant(n.Y) || s.editionDatum(n.Y) && s.constant(n.X) {
 					add(n, "tests edition data as a flag")
 				}
+				if !strings.HasPrefix(rel, savPackage) && s.comparesFileProfile(n) {
+					add(n, "compares a file's game profile")
+				}
 				if n.Op != token.EQL && n.Op != token.NEQ {
 					return true
 				}
@@ -264,6 +275,9 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 					add(n, "tests a second-campaign state for nil")
 				}
 			case *ast.SwitchStmt:
+				if n.Tag != nil && !strings.HasPrefix(rel, savPackage) && (s.savProfile(n.Tag) || s.profileGame(n.Tag)) {
+					add(n, "branches on a file's game profile")
+				}
 				if n.Tag != nil && s.identity(n.Tag) {
 					add(n, "branches on a game")
 					return true
@@ -305,6 +319,9 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 				if !strings.HasPrefix(rel, simPackage) && s.worldIdentity(n) {
 					add(n, "asks the World which game it is")
 				}
+				if !strings.HasPrefix(rel, savPackage) && s.selfIdentity(n, savPath, "File") {
+					add(n, "asks the file which game it is")
+				}
 			}
 			return true
 		})
@@ -315,8 +332,44 @@ func profileFindings(fset *token.FileSet, f *ast.File, info *types.Info, rel str
 // worldIdentity is a call of sim.World.SecondGame, the World's own answer to
 // which game it runs, outside pkg/sim.
 func (s *profileScan) worldIdentity(call *ast.CallExpr) bool {
+	return s.selfIdentity(call, simPath, "World")
+}
+
+// comparesFileProfile reports an equality or order comparison of
+// sav.Profile values, or of a profile's Game with anything but "". A test
+// for nil asks whether there is a profile, not which.
+func (s *profileScan) comparesFileProfile(n *ast.BinaryExpr) bool {
+	if s.savProfile(n.X) && !isNil(s.info, n.Y) || s.savProfile(n.Y) && !isNil(s.info, n.X) {
+		return true
+	}
+	return s.profileGame(n.X) && !s.emptyString(n.Y) || s.profileGame(n.Y) && !s.emptyString(n.X)
+}
+
+// savProfile reports whether e is a sav.Profile value or pointer.
+func (s *profileScan) savProfile(e ast.Expr) bool {
+	return isNamed(s.info.TypeOf(ast.Unparen(e)), savPath, "Profile")
+}
+
+// profileGame reports whether e reads the Game field of a sav.Profile.
+func (s *profileScan) profileGame(e ast.Expr) bool {
+	sel, ok := ast.Unparen(e).(*ast.SelectorExpr)
+	if !ok || sel.Sel.Name != "Game" {
+		return false
+	}
+	selection := s.info.Selections[sel]
+	return selection != nil && selection.Kind() == types.FieldVal && isNamed(selection.Recv(), savPath, "Profile")
+}
+
+func (s *profileScan) emptyString(e ast.Expr) bool {
+	tv, ok := s.info.Types[ast.Unparen(e)]
+	return ok && tv.Value != nil && tv.Value.Kind() == constant.String && constant.StringVal(tv.Value) == ""
+}
+
+// selfIdentity is a call of the SecondGame method of the named type
+// typeName in package pkg: a value's own answer to which game it belongs to.
+func (s *profileScan) selfIdentity(call *ast.CallExpr, pkg, typeName string) bool {
 	fn := s.stdFunc(call.Fun)
-	if fn == nil || fn.Name() != "SecondGame" || fn.Pkg().Path() != simPath {
+	if fn == nil || fn.Name() != "SecondGame" || fn.Pkg().Path() != pkg {
 		return false
 	}
 	sig, ok := fn.Type().(*types.Signature)
@@ -327,7 +380,7 @@ func (s *profileScan) worldIdentity(call *ast.CallExpr) bool {
 	if p, ok := t.(*types.Pointer); ok {
 		t = p.Elem()
 	}
-	return isNamed(t, simPath, "World")
+	return isNamed(t, pkg, typeName)
 }
 
 func typeUnder(t types.Type) types.Type {

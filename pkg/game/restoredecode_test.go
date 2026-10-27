@@ -16,7 +16,7 @@ func TestDecodeOriginalCampaignRestoresTheTownFromTheCampaignTail(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	d, err := decodeOriginalCampaign(sf, saved, c, [4]uint32{})
+	d, err := decodeOriginalCampaign(sf, saved, c, originalFileState{})
 	if err != nil {
 		t.Fatalf("decodeOriginalCampaign: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestDecodeOriginalCampaignRefusesATownOnlyFileBeforeTheCampaignTown(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := decodeOriginalCampaign(sf, saved, c, [4]uint32{}); err == nil || !strings.Contains(err.Error(), "before campaign town begins") {
+	if _, err := decodeOriginalCampaign(sf, saved, c, originalFileState{}); err == nil || !strings.Contains(err.Error(), "before campaign town begins") {
 		t.Fatalf("decodeOriginalCampaign error = %v, want the pre-town refusal", err)
 	}
 }

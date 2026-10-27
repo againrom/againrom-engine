@@ -70,9 +70,7 @@ func actorBasisFields(r *Record) (*ActorBasis, error) {
 		if len(r.Raw["H1CC"]) != 24 {
 			return nil, fmt.Errorf("sav: actor %d lacks Humanoid XP", r.Off)
 		}
-		for i := range b.SkillXP {
-			b.SkillXP[i] = u32(r.Raw["H1CC"], 4*i)
-		}
+		_, b.SkillXP = humanoidXP(r, r.Raw["H1CC"])
 	}
 	return b, nil
 }

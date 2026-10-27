@@ -110,8 +110,8 @@ func recordSpells(r *Record) ([]SavedSpell, error) {
 			return nil, fmt.Errorf("%w: actor at %d slot %d refers to %s", ErrSpellbook, r.Off, slot, ref.Class)
 		}
 		id := ref.value("S08")
-		if id == 0 || id > 28 || int(id) != slot {
-			return nil, fmt.Errorf("%w: actor at %d slot %d has spell ID %d (supported IDs 1..28 must match their slot)", ErrSpellbook, r.Off, slot, id)
+		if bound := r.profile().maxSpellID; id == 0 || id > bound || int(id) != slot {
+			return nil, fmt.Errorf("%w: actor at %d slot %d has spell ID %d (supported IDs 1..%d must match their slot)", ErrSpellbook, r.Off, slot, id, bound)
 		}
 		spells = append(spells, SavedSpell{Slot: slot, ID: uint8(id),
 			Range: uint8(ref.value("S09")), Defensive: uint8(ref.value("S0A")),
@@ -123,7 +123,7 @@ func recordSpells(r *Record) ([]SavedSpell, error) {
 func savedSpellMembership(spells []SavedSpell) uint32 {
 	var mask uint32
 	for _, spell := range spells {
-		if spell.ID > 0 && spell.ID <= 28 {
+		if spell.ID > 0 && uint32(spell.ID) <= SecondGame.maxSpellID {
 			mask |= uint32(1) << spell.ID
 		}
 	}

@@ -339,6 +339,25 @@ func (secondCampaignRules) recordDifficulty(s Snapshot, record *currentSessionDa
 
 func (secondCampaignRules) difficultyRecord(mapload.Difficulty) (uint32, bool) { return 0, false }
 
+// fileState refuses what the engine cannot yet hold of a Bsg& file, then
+// reads its session from the campaign tail; an empty shortcut array binds
+// no cell (DIV-4153 to DIV-4156).
+func (secondCampaignRules) fileState(sf *sav.File) (originalFileState, error) {
+	if err := refuseSecondFileDebt(sf); err != nil {
+		return originalFileState{}, err
+	}
+	quick, err := fileQuickSpells(sf, true)
+	if err != nil {
+		return originalFileState{}, err
+	}
+	session, err := secondFileSession(sf)
+	if err != nil {
+		return originalFileState{}, err
+	}
+	session.Game = base.GameROM2
+	return originalFileState{quickSpells: quick, session: session}, nil
+}
+
 func (secondCampaignRules) ownsGame(g base.Game) error {
 	if base.SameGame(g, base.GameROM2) {
 		return nil
@@ -434,4 +453,30 @@ func (c destinationTownCampaign) leave() {
 		s.leaveTown()
 		s.room = secondTownSquare
 	}
+}
+
+// SecondCampaignState is what a witness reads of the second campaign: the
+// current place, the town room, the destinations and the hero's bag codes.
+type SecondCampaignState struct {
+	Kind, ID, Room int
+	Available      [][2]int
+	Bag            []uint16
+}
+
+// SecondState answers the second campaign's state, false outside one.
+func (t *Town) SecondState() (SecondCampaignState, bool) {
+	if t == nil || t.second == nil {
+		return SecondCampaignState{}, false
+	}
+	c := t.second
+	out := SecondCampaignState{Kind: c.current.kind, ID: c.current.id, Room: int(c.room)}
+	for _, l := range c.available {
+		out.Available = append(out.Available, [2]int{l.kind, l.id})
+	}
+	if len(c.party) != 0 {
+		for _, it := range c.party[0].CarriedItems {
+			out.Bag = append(out.Bag, it.Code)
+		}
+	}
+	return out, true
 }

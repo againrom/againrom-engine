@@ -152,7 +152,7 @@ func (f *File) SetDiary(rec *Record, d Diary) error {
 	if err != nil {
 		return err
 	}
-	w := &walker{b: f.Body, p: rec.Off}
+	w := &walker{b: f.Body, p: rec.Off, prof: f.profile()}
 	n1, err := w.count()
 	if err != nil || n1 != d.Length {
 		return fmt.Errorf("sav: diary at %d: cannot relocate its own dword array", rec.Off)

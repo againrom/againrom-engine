@@ -71,7 +71,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	if err != nil {
 		return nil, err
 	}
-	quickSpells, err := originalQuickSpells(sf)
+	stated, err := fileCampaign(sf).fileState(sf)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 	// Diary owners require the raw PartyWalk records. Ordinary walk failures
 	// remain tolerated; malformed books have already been refused.
 	diaryChars, diaryPlayerRec, _ := sf.PartyWalk()
-	decoded, err := decodeOriginalCampaign(sf, saved, campaign, quickSpells)
+	decoded, err := decodeOriginalCampaign(sf, saved, campaign, stated)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		return nil, err
 	}
 	n := decoded.mission
-	quickSpells = decoded.quickSpells
+	quickSpells := decoded.quickSpells
 	session, hasSession, err := originalSessionState(sf)
 	if err != nil {
 		return nil, err
@@ -235,7 +235,13 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	} else {
 		mapload.NameParty(restored)
 		clearRestoredMissionPosition(restored)
-		if !report.Fallback {
+		// A file that states its session in its own tail has no city
+		// records of the first game's shapes: its town is built from the
+		// party, as a new campaign's is, and the hero's bag is the
+		// session's (secondFileSession).
+		if src.campaign.fileSession != nil {
+			leaveBagToCampaign(restored)
+		} else if !report.Fallback {
 			doc, err := sav.DecodeDocumentData(saved)
 			if err != nil {
 				return report, err

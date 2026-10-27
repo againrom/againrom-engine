@@ -31,6 +31,9 @@ const (
 // package does not understand is carried across a read/write cycle because it
 // was never moved, not because something remembered it.
 type File struct {
+	// Profile is the game whose magic opened the file; nil is the first game.
+	Profile *Profile
+
 	// Version is the container's version dword, written back as it was read.
 	Version uint32
 
@@ -77,6 +80,10 @@ type File struct {
 	campaign    *CampaignProjection
 	campaignErr error
 
+	// secondTail is a second-game file's campaign tail after the store.
+	secondTail    *SecondTail
+	secondTailErr error
+
 	// Head is the campaign half's fixed head.
 	Head Head
 
@@ -110,8 +117,9 @@ func Open(b []byte) (*File, error) {
 	if len(b) < headerLen {
 		return nil, fmt.Errorf("sav: %d bytes, shorter than the %d-byte header", len(b), headerLen)
 	}
-	if string(b[:4]) != Magic {
-		return nil, fmt.Errorf("sav: magic is % x, want %q", b[:4], Magic)
+	profile, ok := ProfileOf(b)
+	if !ok {
+		return nil, fmt.Errorf("sav: magic is % x, want %q or %q", b[:4], FirstGame.Magic, SecondGame.Magic)
 	}
 	blobEnd := binary.LittleEndian.Uint32(b[4:])
 	version := binary.LittleEndian.Uint32(b[8:])
@@ -135,6 +143,7 @@ func Open(b []byte) (*File, error) {
 	}
 	f := &File{
 		Version:     version,
+		Profile:     profile,
 		Body:        body,
 		LabelRegion: append([]byte(nil), b[blobEnd:blobEnd+labelLen]...),
 	}
@@ -172,6 +181,10 @@ func (f *File) splitTail(tail []byte) {
 	f.Store = append([]byte(nil), tail[:n]...)
 	f.TailRest = append([]byte(nil), tail[n:]...)
 	f.store = parsed
+	if f.SecondGame() {
+		f.secondTail, f.secondTailErr = parseSecondTail(f.TailRest)
+		return
+	}
 	if len(f.TailRest) != 0 {
 		campaign, err := parseCampaignProjection(f.TailRest)
 		if err != nil {
@@ -241,7 +254,7 @@ func (f *File) Marshal() []byte {
 		region = grown
 	}
 	out := make([]byte, headerLen, headerLen+len(blob)+labelLen+len(f.Store)+len(f.TailRest))
-	copy(out, Magic)
+	copy(out, f.profile().Magic)
 	binary.LittleEndian.PutUint32(out[4:], uint32(headerLen+len(blob)))
 	binary.LittleEndian.PutUint32(out[8:], f.Version)
 	binary.LittleEndian.PutUint32(out[12:], uint32(len(blob)))

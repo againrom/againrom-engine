@@ -57,7 +57,12 @@ func quickSpellsFromOriginalIndices(indices []int32) ([4]uint32, error) {
 // Missing legacy records default empty. Present but malformed records refuse
 // the whole load, before either the town or mission adoption boundary. The
 // bounded policy is ours; malformed original runtime behaviour is Unknown.
-func originalQuickSpells(file *sav.File) ([4]uint32, error) {
+func originalQuickSpells(file *sav.File) ([4]uint32, error) { return fileQuickSpells(file, false) }
+
+// fileQuickSpells reads the file's shortcut cells. emptyUnbound admits an
+// empty array as no binding: the second game's files hold one, and no claim
+// reads its index domain (DIV-4154).
+func fileQuickSpells(file *sav.File, emptyUnbound bool) ([4]uint32, error) {
 	value, present, err := file.StateLeaves().ReadLeaf("/SpellBook/Shortcuts")
 	if err != nil {
 		return [4]uint32{}, err
@@ -67,6 +72,9 @@ func originalQuickSpells(file *sav.File) ([4]uint32, error) {
 	}
 	if value.Dir || value.Type != reg.TypeIntArray {
 		return [4]uint32{}, fmt.Errorf("original quick spells: invalid source shape")
+	}
+	if len(value.Ints) == 0 && emptyUnbound {
+		return [4]uint32{}, nil
 	}
 	return quickSpellsFromOriginalIndices(value.Ints)
 }

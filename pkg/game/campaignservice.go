@@ -113,6 +113,25 @@ type campaignService interface {
 	// ownsGame refuses a save whose engine record names a game other than
 	// this campaign's.
 	ownsGame(g base.Game) error
+	// fileState is what an original save file of this game states in its
+	// own records, read before any state changes; the first game's files
+	// state no session (fileCampaign).
+	fileState(sf *sav.File) (originalFileState, error)
+}
+
+// originalFileState is what an original save file states in its own
+// records: the quick-spell bindings and, for a file whose game keeps the
+// session in its campaign tail rather than in an engine document, that
+// session.
+type originalFileState struct {
+	quickSpells [4]uint32
+	session     *currentSessionData
+}
+
+// fileCampaign is the campaign service of the game sf's envelope names;
+// the Asg& envelope names none and is read as the first game's.
+func fileCampaign(sf *sav.File) campaignService {
+	return campaignOf(base.Game(sf.EnvelopeGame()))
 }
 
 // errOtherGame is a campaign service's refusal of a game not its own.

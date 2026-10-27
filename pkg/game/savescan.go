@@ -25,6 +25,8 @@ type saveFacts struct {
 	opens  bool
 	label  []byte
 	ofGame bool
+	// envelope is the game the envelope names; empty for Asg&.
+	envelope string
 }
 
 var saveFactsCache = struct {
@@ -44,6 +46,7 @@ func factsOfBytes(b []byte, size int64, mod time.Time) *saveFacts {
 	if sf, err := sav.Open(b); err == nil {
 		f.opens = true
 		f.label = append([]byte(nil), sf.Label...)
+		f.envelope = sf.EnvelopeGame()
 	}
 	return f
 }
@@ -99,7 +102,8 @@ func originalSaveLabelOf(raw []byte, selector int) string {
 // extension and non-directories always; Bounded applies the save reader's size
 // limit and bounded read (the install reader has neither); Regular admits
 // regular files only; OfGame keeps the saves whose document belongs to Game;
-// First stops at the first save that passes.
+// First stops at the first save that passes. A file whose envelope names a
+// game other than Game, the zero Game being the first game's, never passes.
 type saveScan struct {
 	Dir     string
 	Bounded bool
@@ -107,6 +111,12 @@ type saveScan struct {
 	OfGame  bool
 	Game    base.Game
 	First   bool
+}
+
+// ownsEnvelope reports that f's envelope names no game or Game.
+func (s saveScan) ownsEnvelope(f *saveFacts) bool {
+	_, err := ownsEnvelope(f.envelope, s.Game)
+	return err == nil
 }
 
 // scannedSave is one save that passed the scan, newest first in the result.
@@ -148,7 +158,7 @@ func scanSaves(s saveScan) []scannedSave {
 			if readErr != nil {
 				continue
 			}
-			if f := factsOfBytes(b, 0, time.Time{}); f.opens {
+			if f := factsOfBytes(b, 0, time.Time{}); f.opens && s.ownsEnvelope(f) {
 				out = append(out, scannedSave{Name: e.Name(), Label: f.label})
 			}
 			continue
@@ -160,7 +170,7 @@ func scanSaves(s saveScan) []scannedSave {
 			continue
 		}
 		f, ok := readSaveFacts(s.Dir, e.Name(), fi, s.Bounded, s.Game, s.OfGame)
-		if !ok || !f.opens || (s.OfGame && !f.ofGame) {
+		if !ok || !f.opens || (s.OfGame && !f.ofGame) || !s.ownsEnvelope(&f) {
 			continue
 		}
 		out = append(out, scannedSave{Name: e.Name(), Label: f.label, Mod: fi.ModTime()})
