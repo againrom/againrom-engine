@@ -41,7 +41,8 @@ func secondShopOpen(t *townScreen, _ string) {
 }
 
 // bindShop binds the composed town's shop room to the one shop page: the
-// second campaign's deal and hero, the room's art, scene and rectangles from
+// second campaign's deal and bag, the campaign party as the customers whose
+// doll the pane shows, the room's art, scene and rectangles from
 // the town description and its keeper events (R2-ENGINE-269); the room's
 // pane spec adds the character panel and its book (dressShop).
 func (t *townScreen) bindBankShop() {
@@ -58,14 +59,14 @@ func (t *townScreen) bindBankShop() {
 			c.shop.rules()
 			return &c.shop.Shop
 		},
-		partyOf: func(s *CampaignSession) *[]mapload.PartyMember {
+		bag: func(s *CampaignSession) *[]sim.ItemInstance {
 			c := secondOf(s)
 			if c == nil {
-				return new([]mapload.PartyMember)
+				return new([]sim.ItemInstance)
 			}
-			c.heroBag()
-			return &c.party
+			return c.heroBag()
 		},
+		bagUnit:   secondshop.Unit,
 		racks:     t.shopRacks,
 		packUnits: maxSecondBagUnits,
 		value:     func(in sim.ItemInstance) int32 { return in.Price },
@@ -91,8 +92,12 @@ func (t *townScreen) bindBankShop() {
 					c.shop.choose(i)
 				}
 			},
-			stats:  func() { t.composed.heroStats = !t.composed.heroStats },
-			picker: t.secondPaneParty,
+			stats: func() { t.composed.heroStats = !t.composed.heroStats },
+			faces: func(entrySource, []mapload.PartyMember, *image.RGBA, map[int]*image.RGBA) {
+				if t.composed != nil {
+					t.composed.hero = nil
+				}
+			},
 			page: func() *town.ShopSpec {
 				if d, room, ok := t.composedRoom(); ok && d.Room(room) != nil {
 					return d.Room(room).Shop
@@ -205,9 +210,9 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 		}
 	}
 	if p := r.Pane; p != nil {
-		// The pane shows the campaign's party, the one the mission takes;
-		// the shop deals with the bag, so the doll takes no drag.
-		l.Character, l.Book, l.BookOffset, l.NoWear = true, p.Book, p.BookOffset.Pt(), true
+		// The pane and its doll are the campaign party's, the shop's
+		// customers; the strip is the campaign's bag (DIV-4081, DIV-3043).
+		l.Character, l.Book, l.BookOffset = true, p.Book, p.BookOffset.Pt()
 		hero, mask, info := t.heroPane(p)
 		v.Character = hero
 		v.Figure, v.SlotMask, v.OrdinaryDollMask, v.SlotInfo = hero.Figure, mask, mask, info

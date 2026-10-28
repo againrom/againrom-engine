@@ -1211,6 +1211,8 @@ pkg/game.TestReleaseSecondTownShopDealAndSave
 pkg/game.TestReleaseSecondTownShopKeepers
 pkg/game.TestReleaseSecondShopPageInput
 pkg/game.TestReleaseSecondShopItemsWithoutBagForm
+pkg/game.TestReleaseSecondShopDollWearsAndTakesOff
+pkg/game.TestReleaseSecondShopDoubleClickWearsTheItem
 pkg/game.TestReleaseSecondTownShopFullBagRefusesPurchase
 pkg/game.TestReleaseSecondTownShopBookPartialBuy
 pkg/game.TestReleaseSecondTownShopTableScrolls

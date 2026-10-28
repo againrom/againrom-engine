@@ -26,20 +26,24 @@ const (
 // Instance is one unit of it as the bag holds it, or false when the item
 // has no ID form: a part outside the equipment range or a row past 5 bits.
 func (t Tables) Instance(it Item) (sim.ItemInstance, bool) {
-	out := sim.ItemInstance{Price: min(it.Price, priceCap)}
+	part := 0
 	switch it.Table {
 	case Armor, Shield, Weapon:
-		part := t.Part(it)
+		part = t.Part(it)
+	}
+	return unit(it, part)
+}
+
+// unit is Instance over the item's equipment part, which the tables answer
+// for a shop item and the ID for a worn one.
+func unit(it Item, part int) (sim.ItemInstance, bool) {
+	out := sim.ItemInstance{Price: min(it.Price, priceCap), Kind: typeOf(it.Table)}
+	switch it.Table {
+	case Armor, Shield, Weapon:
 		if part < partWeapon || part >= partMagic || it.Row < 0 || it.Row > 0x1f || it.Class < 0 || it.Class > 7 || it.Material < 0 || it.Material > 0xf {
 			return sim.ItemInstance{}, false
 		}
 		out.Code = uint16(it.Material)<<12 | uint16(part)<<8 | uint16(it.Class)<<5 | uint16(it.Row)
-		switch it.Table {
-		case Armor:
-			out.Kind = typeArmor
-		case Weapon:
-			out.Kind = typeWeapon
-		}
 		if it.Level > 0 {
 			out.Effects = []sim.ItemEffect{{Kind: tagCastSpell, Operand: uint32(it.Spell&0xffff) | uint32(it.Level&0xffff)<<16}}
 		}
@@ -60,34 +64,78 @@ func (t Tables) Instance(it Item) (sim.ItemInstance, bool) {
 	return out, true
 }
 
-// FromInstance reads one bag unit back as a shop item of quantity 1, or
-// false when the instance is not one Instance writes.
-func FromInstance(in sim.ItemInstance) (Item, bool) {
-	part := int(in.Code>>8) & 0xf
-	it := Item{Count: 1, Price: in.Price}
-	if in.Price < 0 || in.ObjectID != 0 || in.NativeRecord != nil || in.WeightPresent || in.Weight != 0 || in.SourceEquipment != (sim.SourceEquipment{}) {
-		return Item{}, false
+// typeOf is the type byte of a table's units.
+func typeOf(table Kind) uint8 {
+	switch table {
+	case Armor:
+		return typeArmor
+	case Weapon:
+		return typeWeapon
 	}
-	switch {
-	case part == partMagic && in.Code&bookRow != 0:
-		it.Table, it.Spell = Book, int(in.Code&(bookRow-1))
-		if in.Code>>12 != 0 || in.Kind != 0 || len(in.Effects) != 1 || in.Effects[0] != (sim.ItemEffect{Kind: tagTeach, Operand: uint32(it.Spell)}) {
-			return Item{}, false
-		}
-		return it, true
+	return 0
+}
+
+// idItem reads an item ID as the shop item it names, quantity 1 with no
+// price or effect, or false when it names none: a part outside 1..14, or a
+// magic item or book with material bits.
+func idItem(code uint16) (Item, bool) {
+	it := Item{Count: 1}
+	switch part := int(code>>8) & 0xf; {
+	case part == partMagic && code&bookRow != 0:
+		it.Table, it.Spell = Book, int(code&(bookRow-1))
+		return it, code>>12 == 0
 	case part == partMagic:
-		it.Table, it.Row = Magic, int(in.Code&0xff)
-		return it, in.Code>>12 == 0 && in.Kind == 0 && len(in.Effects) == 0
-	case part == partWeapon && in.Kind == typeWeapon:
+		it.Table, it.Row = Magic, int(code&0xff)
+		return it, code>>12 == 0
+	case part == partWeapon:
 		it.Table = Weapon
-	case part == partShield && in.Kind == 0:
+	case part == partShield:
 		it.Table = Shield
-	case part > partShield && part < partMagic && in.Kind == typeArmor:
+	case part > partShield && part < partMagic:
 		it.Table = Armor
 	default:
 		return Item{}, false
 	}
-	it.Material, it.Class, it.Row = int(in.Code>>12), int(in.Code>>5)&7, int(in.Code)&0x1f
+	it.Material, it.Class, it.Row = int(code>>12), int(code>>5)&7, int(code)&0x1f
+	return it, true
+}
+
+// Unit is a worn item as the bag holds it: the shop item its ID names, at
+// its price and with its castspell effect, written by Instance's rule. A
+// unit Instance writes is its own Unit; an ID that names no shop item is
+// kept as it is.
+func Unit(in sim.ItemInstance) sim.ItemInstance {
+	if _, ok := FromInstance(in); ok {
+		return in.Clone()
+	}
+	it, ok := idItem(in.Code)
+	if !ok {
+		return in.Clone()
+	}
+	it.Price = max(0, in.Price)
+	if spell, level, cast := in.CastSpell(); cast && level > 0 && it.Table != Magic && it.Table != Book {
+		it.Spell, it.Level = int(spell), int(level)
+	}
+	if out, ok := unit(it, int(in.Code>>8)&0xf); ok {
+		return out
+	}
+	return in.Clone()
+}
+
+// FromInstance reads one bag unit back as a shop item of quantity 1, or
+// false when the instance is not one Instance writes.
+func FromInstance(in sim.ItemInstance) (Item, bool) {
+	it, ok := idItem(in.Code)
+	if !ok || in.Kind != typeOf(it.Table) || in.Price < 0 || in.ObjectID != 0 || in.NativeRecord != nil || in.WeightPresent || in.Weight != 0 || in.SourceEquipment != (sim.SourceEquipment{}) {
+		return Item{}, false
+	}
+	it.Price = in.Price
+	switch it.Table {
+	case Book:
+		return it, len(in.Effects) == 1 && in.Effects[0] == (sim.ItemEffect{Kind: tagTeach, Operand: uint32(it.Spell)})
+	case Magic:
+		return it, len(in.Effects) == 0
+	}
 	switch len(in.Effects) {
 	case 0:
 	case 1:

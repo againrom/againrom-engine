@@ -17,6 +17,11 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] In the shop you can now put items on and take them off: drag an item from the bag onto the hero in the panel to wear it, and drag a worn item back to the bag to take it off. An item the hero cannot use is refused, as in the first game; with NEXT the same works for Iglez, and what each one wears stays after SAVE and LOAD. Before, the hero in the shop took no item.
+- [ROM2] A double click on an item in the shop's bag now puts it on the hero shown in the panel, as in the first game; an item he cannot wear stays on the counter, and Undo puts it back in the bag. Before, the double click made the item vanish from the bag without any gold.
+
 ## 0.138.0
 
 ### For players

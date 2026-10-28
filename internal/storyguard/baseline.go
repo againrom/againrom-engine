@@ -3274,5 +3274,5 @@ var Committed = Baseline{
 	// MapEditor.PopupTipRects in pkg/ui/mapeditortrigger.go and of
 	// freeOffset in pkg/game/mapeditorselection_release_test.go, the
 	// changed test comments and this note.
-	CommentBytes: 9858299,
+	CommentBytes: 9862258,
 }

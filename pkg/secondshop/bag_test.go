@@ -59,4 +59,43 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 	if _, ok := FromInstance(bad); ok {
 		t.Fatal("a unit with an object identity decoded")
 	}
+	// A worn copy of each unit, with the fields the bag never writes, comes
+	// back as the unit Instance wrote.
+	for _, u := range bag {
+		worn := u.Clone()
+		worn.ObjectID, worn.Weight, worn.WeightPresent, worn.Kind = 7, 9, true, 3
+		worn.Effects = append(worn.Effects, sim.ItemEffect{Kind: 7})
+		if got := Unit(worn); !reflect.DeepEqual(got, u) {
+			t.Fatalf("the unit of %+v is %+v, want %+v", worn, got, u)
+		}
+	}
+}
+
+// TestUnitTakesTheBagForm puts worn items into the bag's form: a bag unit is
+// kept as it is, and a worn item built from a row loses the fields the bag
+// does not keep and takes the type byte of its part.
+func TestUnitTakesTheBagForm(t *testing.T) {
+	book := sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}
+	if got := Unit(book); !reflect.DeepEqual(got, book) {
+		t.Fatalf("the book unit became %+v", got)
+	}
+	for _, tc := range []struct {
+		in   sim.ItemInstance
+		kind uint8
+	}{
+		{sim.ItemInstance{ObjectID: 3, Code: 0x2101, Kind: 1, Price: 40, Weight: 9, WeightPresent: true}, 2},
+		{sim.ItemInstance{Code: 0x4201, Kind: 1, Price: 15}, 0},
+		{sim.ItemInstance{Code: 0x5321, Kind: 3, Price: 80, Effects: []sim.ItemEffect{{Kind: 41, Operand: 9 | 2<<16}, {Kind: 7}}}, 1},
+	} {
+		got := Unit(tc.in)
+		if got.Code != tc.in.Code || got.Kind != tc.kind || got.Price != tc.in.Price || got.ObjectID != 0 || got.WeightPresent {
+			t.Fatalf("Unit(%+v) = %+v, want kind %d", tc.in, got, tc.kind)
+		}
+		if _, ok := FromInstance(got); !ok {
+			t.Fatalf("Unit(%+v) = %+v has no bag form", tc.in, got)
+		}
+	}
+	if got := Unit(sim.ItemInstance{Code: 0x5321, Effects: []sim.ItemEffect{{Kind: 41, Operand: 9 | 2<<16}, {Kind: 7}}}); len(got.Effects) != 1 || got.Effects[0] != (sim.ItemEffect{Kind: 41, Operand: 9 | 2<<16}) {
+		t.Fatalf("the enchanted armour's effects are %+v, want its castspell only", got.Effects)
+	}
 }

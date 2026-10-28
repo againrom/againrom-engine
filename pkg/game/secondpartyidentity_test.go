@@ -123,8 +123,9 @@ func TestSecondPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 }
 
 // In the shop, PREVIOUS and NEXT step the party the pane shows: with
-// identity 22 carried, NEXT shows him and PREVIOUS the hero. A purchase made
-// while the pane shows him still lands in the bag member (DIV-3043).
+// identity 22 carried, NEXT shows him and PREVIOUS the hero. The doll is
+// his while the strip stays the bag, so a purchase made while the pane
+// shows him still lands in the bag (DIV-3043).
 func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	f, _, screen := secondCampaignFixtureFiles(t, false)
 	f.Table = identityTable()
@@ -143,8 +144,8 @@ func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	if v, _, _ := screen.heroPane(spec); v.MemberCount != 2 || v.Member != 1 || screen.heroFace().member != 1 {
 		t.Fatalf("NEXT shows member %d of %d, want identity 22, the second of 2", v.Member, v.MemberCount)
 	}
-	if screen.shopMemberIndex() != 0 {
-		t.Fatalf("the shop's customer is %d, want the bag member", screen.shopMemberIndex())
+	if screen.shopMemberIndex() != 1 || len(screen.shopPackItemInstances()) != len(*c.heroBag()) {
+		t.Fatalf("the shop's doll is member %d with a strip of %d units, want identity 22 beside the bag", screen.shopMemberIndex(), len(screen.shopPackItemInstances()))
 	}
 	screen.click(ui.ShopControlShelfPick, 0)
 	screen.click(ui.ShopControlShelfCell, 0)

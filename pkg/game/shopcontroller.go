@@ -19,11 +19,15 @@ type shopController struct {
 	// sess and in are the campaign the page trades in and its install.
 	sess *CampaignSession
 	in   *InstallResources
-	// dealOf and partyOf select the deal and the customer party of a
-	// session; nil selects the first game's (the session's Shop and
-	// Carried). A city transaction runs them over its candidate session.
-	dealOf  func(*CampaignSession) *Shop
-	partyOf func(*CampaignSession) *[]mapload.PartyMember
+	// dealOf selects the deal of a session; nil selects the first game's,
+	// the session's Shop. The customers are the session's Carried party. A
+	// city transaction runs them over its candidate session.
+	dealOf func(*CampaignSession) *Shop
+	// bag is the one pack the strip shows and the deal trades with, the same
+	// whichever member the panel shows, and bagUnit the form an item takes
+	// on entering it; a nil bag is the shown customer's own pack.
+	bag     func(*CampaignSession) *[]sim.ItemInstance
+	bagUnit func(sim.ItemInstance) sim.ItemInstance
 	// shop is the room the page stands in.
 	shop shopHost
 	// racks answers the room's four racks now; nil is the first game's
@@ -109,12 +113,8 @@ type shopHost struct {
 	// stepped follows the character picker from one member to another;
 	// stats toggles the character panel's mode; leave closes the room.
 	stepped func(from, to mapload.PartyMember)
-	// picker is the party the character panel shows and its PREVIOUS and
-	// NEXT step; nil is the customers. A purchase still lands with the
-	// customer the panel's index clamps to over the customers.
-	picker func() []mapload.PartyMember
-	stats  func()
-	leave  func() bool
+	stats   func()
+	leave   func() bool
 	// chose follows a rack the player chose; nil keeps the choice on the page.
 	chose func(i int)
 	// page is the room's shop drawing rules; nil keeps the zero rules.
@@ -175,9 +175,6 @@ func (t *shopController) deal() *Shop {
 
 // customers is the customer party's slot in the session.
 func (t *shopController) customers() *[]mapload.PartyMember {
-	if t.partyOf != nil {
-		return t.partyOf(t.sess)
-	}
 	return &t.sess.Carried
 }
 

@@ -400,13 +400,14 @@ func (t *shopController) shopPartyMember(i int) *mapload.PartyMember {
 // shopMemberPack is member's own container, shopPackItems' own Carry-vs-
 // Carried read restated for an arbitrary member rather than the shown one.
 func (t *shopController) shopPackItemInstances() []sim.ItemInstance {
+	var source []sim.ItemInstance
 	party := t.shopParty()
-	if len(party) == 0 {
+	if t.bag == nil && len(party) == 0 {
 		return nil
 	}
-	m := &party[t.shopMemberIndex()]
-	var source []sim.ItemInstance
-	if m.Carry != nil {
+	if t.bag != nil {
+		source = *t.bag(t.sess)
+	} else if m := &party[t.shopMemberIndex()]; m.Carry != nil {
 		if len(m.Carry.ItemInstances) > 0 || len(m.Carry.Items) == 0 {
 			source = m.Carry.ItemInstances
 		} else {
@@ -435,11 +436,24 @@ func (t *shopController) setShopPackItemInstances(items []sim.ItemInstance) bool
 }
 
 func (t *shopController) shopHasActorContainer() bool {
+	if t.bag != nil {
+		return true
+	}
 	m := t.shopPartyMember(t.shopMemberIndex())
 	return m == nil || m.Carry == nil || m.Carry.LiveLoad == nil || m.Carry.LiveLoad.Inventory.ContainerPresent
 }
 
 func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
+	if t.bag != nil {
+		bag := make([]sim.ItemInstance, len(items))
+		for k := range items {
+			if bag[k] = items[k].Clone(); t.bagUnit != nil {
+				bag[k] = t.bagUnit(items[k])
+			}
+		}
+		*t.bag(t.sess) = bag
+		return true
+	}
 	party := t.shopParty()
 	if len(party) == 0 {
 		return false
@@ -1177,6 +1191,13 @@ func (t *shopController) shopParty() []mapload.PartyMember {
 // Equipped array means "wearing nothing"; minting one here for a member who has
 // never finished a mission would strip what he starts wearing.
 func (t *shopController) shopPackItems() []uint16 {
+	if t.bag != nil {
+		var codes []uint16
+		for _, item := range *t.bag(t.sess) {
+			codes = append(codes, item.Code)
+		}
+		return codes
+	}
 	party := t.shopParty()
 	if len(party) == 0 {
 		return nil
@@ -1197,7 +1218,7 @@ func (t *shopController) shopPackStacks() []sim.ItemStack {
 		}
 		return nil
 	}
-	if m := t.shopPartyMember(t.shopMemberIndex()); m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
+	if m := t.shopPartyMember(t.shopMemberIndex()); t.bag == nil && m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
 		out := make([]sim.ItemStack, len(m.Carry.OrderedStacks))
 		for i, s := range m.Carry.OrderedStacks {
 			out[i] = sim.StackItem(s.Instance(), s.Count)
