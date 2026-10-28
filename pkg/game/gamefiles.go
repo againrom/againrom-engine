@@ -237,7 +237,11 @@ func speakerFaces(t *mapload.Table) map[int32]data.NPCFace {
 	if !files.humanSpeakers || t.Humans == nil {
 		return faces
 	}
-	out := data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, func(row int) data.Equipment {
+	companions := map[int32]int32{}
+	for _, p := range tableEdition(t).PartyIdentities {
+		companions[p.ServerID] = int32(p.Identity)
+	}
+	out := data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, companions, func(row int) data.Equipment {
 		return equipmentFromSlots(mapload.RowOutfit(row, t))
 	})
 	for k, v := range faces {

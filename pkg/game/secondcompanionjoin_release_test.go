@@ -1,7 +1,9 @@
 package game
 
 import (
+	"image"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -211,6 +213,73 @@ func TestReleaseSecondMissionThirtyStartsWithIglez(t *testing.T) {
 	secondThirtyParty(t, cold, "cold mission 30")
 	if cold.live.world.Hash() != f.live.world.Hash() {
 		t.Fatal("the cold LOAD of mission 30 differs from its SAV")
+	}
+}
+
+// TestReleaseSecondIglezTalksDrawHisPortrait: every page of the stage-30
+// Kaarg inn talk with NPC 22 draws a face, Iglez's on his own lines and the
+// hero's on the hero's (DIV-4199); in mission 30 a line of NPC 22 draws the
+// live Iglez and the hero's line draws the hero.
+func TestReleaseSecondIglezTalksDrawHisPortrait(t *testing.T) {
+	f, app, s, _ := secondTownTwo(t)
+	secondLaterChoose(t, app, "TAVERN")
+	s.TownSquareActive(true)
+	secondLaterChoose(t, app, "TALK 22")
+	lines := map[int]int{}
+	for page := 0; page < 64; page++ {
+		v := s.talkSource.talkView()
+		if !v.Open {
+			break
+		}
+		r, _ := s.dialoguePart()
+		speaker, named := tagSpeaker(r.tag)
+		if named && v.Page.Portrait {
+			lines[speaker]++
+			if v.Page.Face == nil {
+				t.Fatalf("page %d (%q): speaker %d draws no face", page, r.tag, speaker)
+			}
+		}
+		if err := app.HeadlessActivate("notice"); err != nil {
+			break
+		}
+	}
+	if lines[22] == 0 || lines[21] == 0 {
+		t.Fatalf("the talk's portrait lines by speaker %v, want lines of 22 and 21", lines)
+	}
+	if len(f.Carried) != 2 {
+		t.Fatalf("the talk left %d members, want the hero and Iglez", len(f.Carried))
+	}
+	payload, _ := readSecondGameMissionText(f.Archives.Containers, InstallTextCode(f.Archives.Containers, tableEdition(f.Table)), 30)
+	if !strings.Contains(strings.ToLower(string(payload)), "npc=22") {
+		t.Fatal("mission 30's text names no line of NPC 22")
+	}
+	secondLaterChoose(t, app, "EXIT", "GATES")
+	secondLaterEnter(t, f, app, 30)
+	composed := func(speaker int) figureID {
+		f.live.figurePics = map[figureCacheKey]*image.RGBA{}
+		if _, _, ok := f.live.SpeakerFace(speaker); !ok || len(f.live.figurePics) != 1 {
+			t.Fatalf("mission 30 speaker %d: ok %v, %d figures composed", speaker, ok, len(f.live.figurePics))
+		}
+		for key := range f.live.figurePics {
+			return key.fig
+		}
+		return figureID{}
+	}
+	var iglez, hero figureID
+	for _, a := range f.live.speakerActors {
+		switch {
+		case a.npc == 22:
+			iglez = a.fig
+		case a.me:
+			hero = a.fig
+		}
+	}
+	iglez.Hero, hero.Hero = true, true
+	if got := composed(22); got != iglez || iglez.Dir == "" {
+		t.Fatalf("mission 30 speaker 22 drew %+v, want the live Iglez %+v", got, iglez)
+	}
+	if got := composed(21); got != hero || got == iglez {
+		t.Fatalf("mission 30 speaker 21 drew %+v, want the hero %+v", got, hero)
 	}
 }
 

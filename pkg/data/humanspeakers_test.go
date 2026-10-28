@@ -15,7 +15,7 @@ func TestHumanSpeakerFaces(t *testing.T) {
 	}
 	var robe Equipment
 	robe.SetCode(5, 0x0301)
-	faces := HumanSpeakerFaces(c, 21, func(r int) Equipment {
+	faces := HumanSpeakerFaces(c, 21, nil, func(r int) Equipment {
 		if r == 1 {
 			return robe
 		}
@@ -42,8 +42,39 @@ func TestHumanSpeakerFaces(t *testing.T) {
 	if len(faces) != 3 {
 		t.Fatalf("records = %d, want 3", len(faces))
 	}
-	if _, ok := HumanSpeakerFaces(c, 0, nil)[21]; !ok {
+	if _, ok := HumanSpeakerFaces(c, 0, nil, nil)[21]; !ok {
 		t.Fatal("without a player key the row at 21 is its own record")
+	}
+}
+
+// A row companions names is a hero record, not the player's, at the identity
+// key its server id maps to; a row whose own server id is a mapped key keeps
+// that key.
+func TestHumanSpeakerFacesCompanionRow(t *testing.T) {
+	c := testCollection{
+		{},
+		{name: "Fighter_Hero", params: row(map[int]int32{16: 5, 17: 49, 18: 0, 24: 10220})},
+		{name: "ManMage_Unarmed", params: row(map[int]int32{16: 23, 17: 1, 18: 0, 24: 23})},
+		{name: "Mage_Hero", params: row(map[int]int32{16: 23, 17: 20, 18: 1, 24: 10230})},
+		{name: "Start", params: row(map[int]int32{16: 3, 17: 32, 18: 0, 24: 10210})},
+	}
+	faces := HumanSpeakerFaces(c, 21, map[int32]int32{10220: 22, 10230: 23}, nil)
+	iglez, ok := faces[22]
+	if !ok || iglez.Kind != NPCFigure || iglez.Dir != FigureDirManFighter || iglez.Face != 49 {
+		t.Fatalf("22 = %+v %v, want the man fighter of face 49", iglez, ok)
+	}
+	want := NPCTokens(NPCTokenHero) | NPCTokens(NPCTokenNotMe) | NPCTokens(NPCTokenFace) | NPCTokens(NPCTokenNotMage) | NPCTokens(NPCTokenNotFemale)
+	if iglez.Tokens != want {
+		t.Fatalf("22 tokens = %b, want %b", iglez.Tokens, want)
+	}
+	if mage := faces[23]; mage.Dir != FigureDirFor(true, false) || mage.Face != 1 || mage.Tokens.Has(NPCTokenHero) {
+		t.Fatalf("23 = %+v, want the row at its own server id 23", mage)
+	}
+	if me := faces[21]; me.Kind != NPCNoPicture || !me.Tokens.Has(NPCTokenMe) {
+		t.Fatalf("21 = %+v, want the player's key", me)
+	}
+	if len(faces) != 3 {
+		t.Fatalf("records = %d, want 3", len(faces))
 	}
 }
 

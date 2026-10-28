@@ -3262,5 +3262,11 @@ var Committed = Baseline{
 	// lossReason, guardedCharacterLost and guardedLossReason in
 	// pkg/game/world.go, the comment in outcomeText, the new test's comment
 	// and this note.
-	CommentBytes: 9855820,
+
+	// It rose for the companion identity's speaker record: the doc comment
+	// of data.HumanSpeakerFaces in pkg/data/humanspeakers.go, the new tests'
+	// comments in pkg/data/humanspeakers_test.go,
+	// pkg/game/speakercompanion_test.go and
+	// pkg/game/secondcompanionjoin_release_test.go, and this note.
+	CommentBytes: 9857677,
 }
