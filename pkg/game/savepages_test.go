@@ -2,10 +2,13 @@ package game
 
 import (
 	"fmt"
+	"image"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"againrom/pkg/ui"
 )
 
 func TestSecondSaveSlotTakesTheSmallestUnusedNumber(t *testing.T) {
@@ -59,6 +62,21 @@ func TestAnyGameSaveMatchesTheNamePatternWhateverTheContent(t *testing.T) {
 	}
 	if !anyGameSave(dir) {
 		t.Fatal("game0007.sav with any content is a save file")
+	}
+}
+
+// TestSecondGamePagesAskDeleteInTheQuestionWindow: the second game's Load and
+// Save pages ask their delete question in the measured window with the
+// engine's Yes and No. A page with no window shape asks in its body.
+func TestSecondGamePagesAskDeleteInTheQuestionWindow(t *testing.T) {
+	p := secondSavePages(&FrontEnd{})
+	if p.Save == nil {
+		t.Fatal("no save page")
+	}
+	for name, c := range map[string]ui.PageConfirm{"load": p.Load.Confirm, "save": p.Save.Confirm} {
+		if c.Window != secondPageQuestion || c.Window.Size != image.Pt(288, 224) || c.Yes != "Yes" || c.No != "No" {
+			t.Fatalf("%s page: window %+v, answers %q %q", name, c.Window, c.Yes, c.No)
+		}
 	}
 }
 

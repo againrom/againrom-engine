@@ -45,20 +45,14 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 			t.Ink = loadSelectedText
 		}
 		switch {
-		case t.Listing && v.ui.confirm:
+		case t.Listing && v.confirmingInPage():
 		case t.Box != (image.Rectangle{}):
 			drawTownShellText(pix, font, t.Text, t.Box, t.Ink)
 		default:
 			font.Draw(pix, t.Text, t.At.X, t.At.Y, t.Ink)
 		}
 	}
-	if c := v.page.Confirm; v.ui.confirm && c.Inline {
-		entry, _, _ := v.selected()
-		s := strings.ReplaceAll(c.Before, "#", " ") + a.flow.menuDisplayText(entry.Label) + strings.ReplaceAll(c.After, "#", " ")
-		for i, line := range NoticeLines(font, s, c.Label.Dx()) {
-			font.Draw(pix, string(line), c.At.X, c.At.Y+i*(font.Height()+1), townShellText)
-		}
-	} else if v.ui.confirm {
+	if c := v.page.Confirm; v.confirmingInPage() {
 		font.Draw(pix, strings.ReplaceAll(c.Before, "#", " "), c.At.X, c.At.Y, townShellText)
 		if entry, _, ok := v.selected(); ok {
 			label(entry.Label, c.Label, true)
@@ -68,7 +62,7 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 			a.drawPageName(pix, v)
 		}
 		pointer, pointerOK := a.pointerFrame()
-		pointerOK = pointerOK && v.ui.mismatch == nil
+		pointerOK = pointerOK && v.ui.mismatch == nil && !v.asking()
 		list := v.list
 		drawListBox(pix, font, a.media.scroll, a.pageListBox(v), list, func(row, width int) string {
 			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
@@ -76,7 +70,7 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	}
 	if message := a.flow.pageMessage(v); message != "" {
 		messageY := v.page.Message.Min.Y
-		if !v.ui.confirm {
+		if !v.confirmingInPage() {
 			messageY = max(messageY, a.pageListBox(v).Rect.Max.Y+2)
 		}
 		// Wrap the detail or refusal below the list; the row retains its full text.
@@ -89,15 +83,18 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	}
 	pointer, pointerOK := a.pointerFrame()
 	window := v.save == nil && v.ui.mismatch != nil
-	pageHover := pointerOK && !window
+	pageHover := pointerOK && !window && !v.asking()
 	for i, b := range v.page.Buttons {
 		inside := pageHover && pointer.In(b.Rect)
 		drawPushButton(pix, font, pushButton{Rect: b.Rect, Label: b.Caption, Hover: inside, Inside: inside,
 			Pressed: v.ui.press.Pressed(i), Disabled: a.flow.pageButtonDisabled(v, i)})
 	}
 	if window {
-		l := newNoticeWindowLayout(font, v.page.Panel)
-		v.ui.mismatch.compose(pix, font, l, a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
+		w := v.ui.mismatch
+		w.compose(pix, font, w.layout(font, v.page.Panel), a.flow.menuArt, a.media.scroll, a.modMismatchDisplay, pointer, pointerOK)
+	} else if v.asking() {
+		w := &v.ui.question
+		w.compose(pix, font, w.layout(font, v.page.Panel), a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
 	}
 	return pix, nil
 }

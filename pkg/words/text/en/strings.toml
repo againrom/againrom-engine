@@ -81,6 +81,10 @@
 "save.key_hint" = "Tab: focus   Enter: choose   Esc: cancel"
 "save.latin_name_hint" = "Use characters supported by the game font."
 
+# Save and load pages: the answers of the second game's delete question.
+"load.delete.yes" = "Yes"
+"load.delete.no" = "No"
+
 # Load page: the window listing a refusal over the mods. {mod}, {setting},
 # {saved} and {current} are the row's values; text in [ ] is drawn in red.
 "load.mods.title" = "The save does not match the active mods"

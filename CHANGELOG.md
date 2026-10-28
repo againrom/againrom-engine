@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Delete on the Save and Load pages now asks in a small box over the page, as in the original: "Are you sure you want to delete game" with the save's name, and the buttons Yes and No. No or Esc closes the box and keeps the same save chosen; Yes deletes it. Before, the question replaced the page's list and Ok answered it.
+
 ### For map makers and modders
 
 - [BASE] The trigger wizard has a new action, Order a group to a point: choose the group, the command (Swarm, Move, Swarm 2 or Patrol) and click the point on the map, and a shipped order of that kind opens as this row. A row of an editor window whose text ends in "..." shows its whole text under it while the pointer is over the row.

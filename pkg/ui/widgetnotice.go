@@ -9,11 +9,9 @@ import (
 )
 
 // A menu notice window is one kind with one builder: a window framed like the
-// page under it, a title, a list of rows that scrolls in the shared list well
-// with the shared bar, a hint below the list and one OK button. A row is a
-// sequence of runs; an alert run is drawn in the alert ink and every other
-// run in the page's ink. A long row wraps inside the well; the list scrolls
-// by wrapped lines, so no row runs off the window.
+// page under it, its rows, answers and shape all data. A row is a sequence of
+// runs; an alert run is drawn in the alert ink, every other run in the page's
+// ink. A long row wraps, so no row runs off the window.
 
 // inkRun is one run of a notice row; Alert draws it in the alert ink.
 type inkRun struct {
@@ -24,14 +22,30 @@ type inkRun struct {
 // noticeRow is one row of a notice window.
 type noticeRow []inkRun
 
-// noticeWindow is one open notice window: its words and rows, the first
-// visible line, the OK press latch and the bar's held gesture.
+// noticeWindow is one open notice window: its words, rows, answers and shape,
+// the first visible line, the answer press latch and the bar's held gesture.
 type noticeWindow struct {
-	Title, Hint, OK string
-	Rows            []noticeRow
-	top             int
-	press           buttonLatch
-	bar             scrollBarInput
+	Title, Hint string
+	// Answers are the buttons, left to right; Enter takes the first.
+	Answers []string
+	Rows    []noticeRow
+	Shape   NoticeShape
+	top     int
+	press   buttonLatch
+	bar     scrollBarInput
+}
+
+// NoticeShape is a notice window's geometry. The zero shape fills the page
+// less noticeWindowInset, its answers 96x24 and 12 pixels above its bottom.
+// A shape with a Size is that window centred on the page, with no title, list
+// or hint: its rows wrap to TextWidth and each line is centred, one every
+// Pitch pixels from TextTop; its answers are Answer in size, AnswerGap apart
+// and centred AnswerBottom pixels above its bottom.
+type NoticeShape struct {
+	Size                      image.Point
+	TextTop, TextWidth, Pitch int
+	Answer                    image.Point
+	AnswerGap, AnswerBottom   int
 }
 
 // noticeLine is one wrapped line of a row: its runs, as the font draws them,
@@ -52,21 +66,64 @@ const (
 
 var noticeAlertInk = color.RGBA{236, 76, 60, 255}
 
-// noticeWindowLayout is a notice window's geometry for one font.
+// noticeWindowLayout is a notice window's geometry for one font; Pitch is
+// positive in a text window.
 type noticeWindowLayout struct {
-	Body, Title, Hint, OK image.Rectangle
-	List                  listBox
+	Body, Title, Hint, Text image.Rectangle
+	Answers                 []image.Rectangle
+	List                    listBox
+	Pitch                   int
 }
 
-// newNoticeWindowLayout lays a window out over panel, the page under it: the
-// body is the panel less noticeWindowInset, so the page's own buttons lie
-// under the window. The list takes the rows the body leaves between the title
-// and the hint.
-func newNoticeWindowLayout(f *text.Font, panel image.Rectangle) noticeWindowLayout {
+// layout lays w out over panel, the page under it, by its shape.
+func (w *noticeWindow) layout(f *text.Font, panel image.Rectangle) noticeWindowLayout {
+	s := w.Shape
+	if s.Size == (image.Point{}) {
+		return newNoticeWindowLayout(f, panel, len(w.Answers))
+	}
+	at := panel.Min.Add(panel.Size().Sub(s.Size).Div(2))
+	b := image.Rectangle{Min: at, Max: at.Add(s.Size)}
+	answers := noticeAnswers(b, s.Answer, s.AnswerGap, s.AnswerBottom, len(w.Answers))
+	x := b.Min.X + (s.Size.X-s.TextWidth)/2
+	bottom := b.Max.Y
+	if len(answers) > 0 {
+		bottom = answers[0].Min.Y
+	}
+	return noticeWindowLayout{Body: b, Text: image.Rect(x, b.Min.Y+s.TextTop, x+s.TextWidth, bottom), Answers: answers, Pitch: s.Pitch}
+}
+
+// noticeAnswers places n answers of size, gap apart, centred in b and bottom
+// pixels above its bottom.
+func noticeAnswers(b image.Rectangle, size image.Point, gap, bottom, n int) []image.Rectangle {
+	x := (b.Min.X+b.Max.X)/2 - (n*size.X+(n-1)*gap)/2
+	y := b.Max.Y - bottom - size.Y
+	out := make([]image.Rectangle, n)
+	for i := range out {
+		out[i] = image.Rect(x, y, x+size.X, y+size.Y)
+		x += size.X + gap
+	}
+	return out
+}
+
+// answerAt is the answer under p.
+func (l noticeWindowLayout) answerAt(p image.Point) (int, bool) {
+	for i, r := range l.Answers {
+		if p.In(r) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// newNoticeWindowLayout lays a list window with answers answers out over
+// panel, the page under it: the body is the panel less noticeWindowInset, so
+// the page's own buttons lie under the window. The list takes the rows the
+// body leaves between the title and the hint.
+func newNoticeWindowLayout(f *text.Font, panel image.Rectangle, answers int) noticeWindowLayout {
 	b := panel.Inset(noticeWindowInset)
 	m := noticeWindowMargin
-	cx := (b.Min.X + b.Max.X) / 2
-	ok := image.Rect(cx-noticeOKWidth/2, b.Max.Y-12-noticeOKHeight, cx+noticeOKWidth/2, b.Max.Y-12)
+	buttons := noticeAnswers(b, image.Pt(noticeOKWidth, noticeOKHeight), m, 12, max(answers, 1))
+	ok := buttons[0]
 	hintHeight := noticeHintLines * (listFallbackPitch - listPitchExtra + 1)
 	if f != nil && f.Height() > 0 {
 		hintHeight = noticeHintLines * (f.Height() + 1)
@@ -76,29 +133,33 @@ func newNoticeWindowLayout(f *text.Font, panel image.Rectangle) noticeWindowLayo
 	rows := max((ok.Min.Y-8-hintHeight-8-listBottomExtra-top)/probe.Pitch, 1)
 	list := newListBox(image.Rect(b.Min.X+m, top, b.Max.X-m-widgetSpriteSize, top), rows, f)
 	return noticeWindowLayout{
-		Body:  b,
-		Title: image.Rect(b.Min.X+8, b.Min.Y+10, b.Max.X-8, b.Min.Y+34),
-		List:  list,
-		Hint:  image.Rect(b.Min.X+m, list.Rect.Max.Y+8, b.Max.X-m, ok.Min.Y-4),
-		OK:    ok,
+		Body:    b,
+		Title:   image.Rect(b.Min.X+8, b.Min.Y+10, b.Max.X-8, b.Min.Y+34),
+		List:    list,
+		Hint:    image.Rect(b.Min.X+m, list.Rect.Max.Y+8, b.Max.X-m, ok.Min.Y-4),
+		Answers: buttons,
 	}
 }
 
-// noticeLines wraps every row to the list's text width. display turns a run's
-// text into the bytes the font draws.
+// noticeLines wraps every row to the list's text width, or a text window's
+// width with no indent. display turns a run's text into the bytes the font
+// draws.
 func (w *noticeWindow) noticeLines(f *text.Font, l noticeWindowLayout, display func(string) string) []noticeLine {
-	width := l.List.Rect.Dx() - 2*listTextX
+	width, indent := l.List.Rect.Dx()-2*listTextX, noticeWrapIndent
+	if l.Pitch > 0 {
+		width, indent = l.Text.Dx(), 0
+	}
 	var out []noticeLine
 	for _, row := range w.Rows {
-		out = append(out, wrapNoticeRow(f, row, width, display)...)
+		out = append(out, wrapNoticeRow(f, row, width, indent, display)...)
 	}
 	return out
 }
 
 // wrapNoticeRow breaks a row at spaces into lines no wider than width; the
-// lines after the first are indented. A word wider than a line is broken
-// where it reaches the edge.
-func wrapNoticeRow(f *text.Font, row noticeRow, width int, display func(string) string) []noticeLine {
+// lines after the first are indented by indent. A word wider than a line is
+// broken where it reaches the edge.
+func wrapNoticeRow(f *text.Font, row noticeRow, width, indent int, display func(string) string) []noticeLine {
 	type piece struct {
 		text         string
 		alert, space bool
@@ -130,7 +191,7 @@ func wrapNoticeRow(f *text.Font, row noticeRow, width int, display func(string) 
 	}
 	flush := func() {
 		out = append(out, cur)
-		cur, x, gap = noticeLine{indent: noticeWrapIndent}, 0, nil
+		cur, x, gap = noticeLine{indent: indent}, 0, nil
 	}
 	for _, p := range pieces {
 		if p.space {
@@ -187,18 +248,36 @@ func noticeBar(l noticeWindowLayout, top, lines int) vScrollBar {
 	return vScrollBar{Rect: l.List.Bar(), Pos: top, Count: last + 1, Disabled: last == 0}
 }
 
-// step runs one tick of the window's input and reports whether it closes:
-// Enter or a released OK press closes it; the arrow, page, Home and End keys,
-// the wheel and the bar scroll the list. Escape is the caller's.
-func (w *noticeWindow) step(in appInput, p image.Point, ok bool, l noticeWindowLayout, lines int) bool {
+// step runs one tick of the window's input and reports the answer that
+// closes it: Enter takes the first, a released press the answer it began on.
+// In a list window the arrow, page, Home and End keys, the wheel and the bar
+// scroll the list. Escape is the caller's.
+func (w *noticeWindow) step(in appInput, p image.Point, ok bool, l noticeWindowLayout, lines int) (int, bool) {
 	if in.Unfocused {
 		w.press.Clear()
 		w.bar.reset()
-		return false
+		return 0, false
 	}
 	if in.Enter {
-		return true
+		return 0, true
 	}
+	if l.Pitch == 0 && w.scrollStep(in, p, ok, l, lines) {
+		return 0, false
+	}
+	at, on := l.answerAt(p)
+	if in.PrimaryPressed {
+		w.press.Press(at, ok && on)
+		return 0, false
+	}
+	if in.PrimaryReleased {
+		return w.press.Release(at, ok && on)
+	}
+	return 0, false
+}
+
+// scrollStep scrolls a list window by keys, wheel and bar and reports whether
+// the bar took the input.
+func (w *noticeWindow) scrollStep(in appInput, p image.Point, ok bool, l noticeWindowLayout, lines int) bool {
 	rows := l.List.Rows
 	switch {
 	case in.Up:
@@ -232,26 +311,57 @@ func (w *noticeWindow) step(in appInput, p image.Point, ok bool, l noticeWindowL
 			w.top = 0
 			w.scroll(pos, lines, rows)
 		}
-		return false
+		return true
 	}
-	if w.bar.active() {
-		return false
-	}
-	if in.PrimaryPressed {
-		w.press.Press(0, ok && p.In(l.OK))
-		return false
-	}
-	if in.PrimaryReleased {
-		_, activated := w.press.Release(0, ok && p.In(l.OK))
-		return activated
-	}
-	return false
+	return w.bar.active()
 }
 
-// compose draws the window laid out by l over dst: frame, title, the rows in the list well
-// with the bar, the hint and the OK button.
+// compose draws the window laid out by l over dst, then its answers.
 func (w *noticeWindow) compose(dst *image.RGBA, f *text.Font, l noticeWindowLayout, art *DialogFrame, frames []*image.RGBA, display func(string) string, pointer image.Point, pointerOK bool) {
 	lines := w.noticeLines(f, l, display)
+	if l.Pitch > 0 {
+		drawFrame(dst, windowFrame(l.Body, art))
+		w.composeText(dst, f, l, lines)
+	} else {
+		w.composeList(dst, f, l, art, frames, display, lines, pointer, pointerOK)
+	}
+	for i, r := range l.Answers {
+		label := ""
+		if i < len(w.Answers) {
+			label = w.Answers[i]
+		}
+		inside := pointerOK && pointer.In(r)
+		drawPushButton(dst, f, pushButton{Rect: r, Label: label, Hover: inside, Inside: inside, Pressed: w.press.Pressed(i)})
+	}
+}
+
+// composeText draws a text window's lines, each centred, while a line fits
+// above the answers.
+func (w *noticeWindow) composeText(dst *image.RGBA, f *text.Font, l noticeWindowLayout, lines []noticeLine) {
+	for i, ln := range lines {
+		y := l.Text.Min.Y + i*l.Pitch
+		if y+f.Height() > l.Text.Max.Y {
+			break
+		}
+		width := 0
+		for _, run := range ln.runs {
+			width += f.Advance(run.Text)
+		}
+		x := (l.Text.Min.X+l.Text.Max.X)/2 - width/2
+		for _, run := range ln.runs {
+			ink := townShellText
+			if run.Alert {
+				ink = noticeAlertInk
+			}
+			f.Draw(dst, run.Text, x, y, ink)
+			x += f.Advance(run.Text)
+		}
+	}
+}
+
+// composeList draws a list window's frame, title, rows in the list well with
+// the bar, and hint.
+func (w *noticeWindow) composeList(dst *image.RGBA, f *text.Font, l noticeWindowLayout, art *DialogFrame, frames []*image.RGBA, display func(string) string, lines []noticeLine, pointer image.Point, pointerOK bool) {
 	w.scroll(0, len(lines), l.List.Rows)
 	drawFrame(dst, windowFrame(l.Body, art))
 	drawTownShellText(dst, f, display(w.Title), l.Title, loadSelectedText)
@@ -277,6 +387,4 @@ func (w *noticeWindow) compose(dst *image.RGBA, f *text.Font, l noticeWindowLayo
 		}
 		f.Draw(dst, line, l.Hint.Min.X, l.Hint.Min.Y+i*(f.Height()+1), townShellText)
 	}
-	inside := pointerOK && pointer.In(l.OK)
-	drawPushButton(dst, f, pushButton{Rect: l.OK, Label: w.OK, Hover: inside, Inside: inside, Pressed: w.press.Pressed(0)})
 }

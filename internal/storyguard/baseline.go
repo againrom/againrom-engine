@@ -3182,5 +3182,11 @@ var Committed = Baseline{
 	// It rose for the U130 resave corpus audit's Againrom-written expectation:
 	// the doc comments of u130WantForAudit and u130MismatchesForAudit, the
 	// audit's comments, the helper test's comment and this note.
-	CommentBytes: 9817467,
+
+	// It rose for the second game's delete question window: the doc comments
+	// of the notice window's answers and shape in pkg/ui/widgetnotice.go, of
+	// the page's question in pkg/ui/savepage.go and pkg/ui/load_window.go, of
+	// the profile's window in pkg/game/savepages.go, the new tests' comments
+	// and this note.
+	CommentBytes: 9821312,
 }

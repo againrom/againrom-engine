@@ -35,6 +35,9 @@ type loadWindow struct {
 	// mismatch is the open window listing a refusal over the mods; it owns
 	// the page's input until it closes.
 	mismatch *noticeWindow
+	// question is the delete question of a page that asks in a window; it
+	// owns the page's input while the deletion awaits its answer.
+	question noticeWindow
 }
 
 func (w *loadWindow) resetPointer() {
@@ -92,16 +95,16 @@ func (v pageView) buttonAt(p image.Point) (int, bool) {
 // pageButtonDisabled reports whether page button i is disabled: Ok on a page
 // that needs a listed save while none is, or on a save page with an empty
 // name; Delete while no save can be deleted or a deletion awaits
-// confirmation.
+// confirmation in the page's body.
 func (f *flow) pageButtonDisabled(v pageView, i int) bool {
 	switch i {
 	case loadOKButton:
-		if v.ui.confirm {
+		if v.confirmingInPage() {
 			return false
 		}
 		return v.page.OKNeedsSave && len(v.saves) == 0 || v.save != nil && len(v.save.name) == 0
 	case loadDeleteButton:
-		return !f.canDeletePage(v) || v.ui.confirm
+		return !f.canDeletePage(v) || v.confirmingInPage()
 	}
 	return false
 }
@@ -177,6 +180,29 @@ func (f *flow) confirmDeletePage(v pageView) {
 		return
 	}
 	v.ui.remove, v.ui.confirm, f.msg = remove, true, ""
+	if c := v.page.Confirm; c.windowed() {
+		v.ui.question = c.question(f.menuDisplayText(entry.Label))
+	}
+}
+
+// stepPageQuestion drives the open delete question: its first answer deletes
+// as Ok does, any other leaves the question with the row still chosen.
+func (a *App) stepPageQuestion(v pageView, in appInput) {
+	font := a.flow.menuFont
+	if font == nil {
+		a.flow.cancelPage(v)
+		return
+	}
+	w := &v.ui.question
+	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	answer, done := w.step(in, p, ok, w.layout(font, v.page.Panel), 0)
+	switch {
+	case !done:
+	case answer == 0:
+		a.acceptPage(v)
+	default:
+		a.flow.cancelPage(v)
+	}
 }
 
 // cancelPage is Cancel: it leaves a confirmation, else closes the page.
@@ -200,6 +226,10 @@ func (a *App) stepPage(v pageView, in appInput) {
 	l := v.list
 	if v.ui.mismatch != nil {
 		a.stepModMismatch(v, in)
+		return
+	}
+	if v.asking() {
+		a.stepPageQuestion(v, in)
 		return
 	}
 	if in.Unfocused || l == nil {

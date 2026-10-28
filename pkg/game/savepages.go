@@ -22,8 +22,11 @@ var (
 	secondPagePanel   = image.Rect(82, 48, 558, 392)
 	secondPageTitle   = image.Rect(102, 56, 538, 84)
 	secondPageMessage = image.Rect(120, 372, 527, 396)
-	secondPageConfirm = ui.PageConfirm{At: image.Pt(120, 134), Label: image.Rect(120, 134, 527, 300), Inline: true}
 	secondPageName    = image.Rect(120, 98, 527, 122)
+	// secondPageQuestion is the delete question's window as the EN original
+	// draws it at 1024x768 (DIV-4176).
+	secondPageQuestion = ui.NoticeShape{Size: image.Pt(288, 224), TextTop: 57, TextWidth: 208, Pitch: 17,
+		Answer: image.Pt(82, 24), AnswerGap: 46, AnswerBottom: 28}
 	// secondSaveList and secondLoadList are the list arguments: 383 wide,
 	// the 24-pixel bar after them reaches the name box's right edge.
 	secondSaveList = image.Rect(120, 160, 503, 160)
@@ -77,9 +80,11 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 	if f.Font.Value() != nil {
 		selector = f.Font.Value().Selector
 	}
-	confirm := secondPageConfirm
-	confirm.Before = row(patch, 50, "Delete")
-	confirm.After = row(patch, 51, "?")
+	// The question is patch.txt row 50, the label and row 51 (R2-ENGINE-438);
+	// its answers are the engine's words.
+	confirm := ui.PageConfirm{Before: row(patch, 50, "Delete"), After: row(patch, 51, "?"), Window: secondPageQuestion,
+		Yes: encodeEngineWord(f.Words.Engine.Text("load.delete.yes"), selector),
+		No:  encodeEngineWord(f.Words.Engine.Text("load.delete.no"), selector)}
 	ok, del, cancel := row(dialogs, 0, "Ok"), row(dialogs, 157, "Delete"), row(dialogs, 1, "Cancel")
 	load := ui.SavePage{
 		Panel: secondPagePanel,

@@ -105,7 +105,7 @@ func TestALoadRefusedOverTheModsOpensTheWindowNotTheMessageLine(t *testing.T) {
 		t.Fatal("Enter did not close the window")
 	}
 	mismatchKey(t, a, "enter")
-	ok := newNoticeWindowLayout(a.flow.menuFont, loadPanel).OK.Min.Add(image.Pt(4, 4))
+	ok := newNoticeWindowLayout(a.flow.menuFont, loadPanel, 1).Answers[0].Min.Add(image.Pt(4, 4))
 	for _, action := range []string{"press", "release"} {
 		if err := a.HeadlessPointer(action, ok.X, ok.Y); err != nil {
 			t.Fatal(err)
@@ -150,7 +150,7 @@ func TestTheWindowDrawsTheMismatchedPartsInTheAlertInk(t *testing.T) {
 	a := mismatchApp(t, fixtureMismatch{everyMismatchKind})
 	mismatchKey(t, a, "enter")
 	pix := loadScrollTestFrame(t, a)
-	l := newNoticeWindowLayout(a.flow.menuFont, loadPanel)
+	l := newNoticeWindowLayout(a.flow.menuFont, loadPanel, 1)
 	count := func(r image.Rectangle, c [4]uint8) int {
 		n := 0
 		for y := r.Min.Y; y < r.Max.Y; y++ {
@@ -194,7 +194,7 @@ func TestALongListScrollsInsideTheWindow(t *testing.T) {
 	mismatchKey(t, a, "enter")
 	got, _ := a.HeadlessModMismatch()
 	rows := got.Visible
-	if len(got.Rows) != 40 || got.Lines < 40 || got.Lines <= rows || rows != newNoticeWindowLayout(a.flow.menuFont, loadPanel).List.Rows {
+	if len(got.Rows) != 40 || got.Lines < 40 || got.Lines <= rows || rows != newNoticeWindowLayout(a.flow.menuFont, loadPanel, 1).List.Rows {
 		t.Fatalf("%d rows in %d lines, %d visible", len(got.Rows), got.Lines, rows)
 	}
 	maxTop := got.Lines - rows
@@ -208,7 +208,7 @@ func TestALongListScrollsInsideTheWindow(t *testing.T) {
 			t.Fatalf("%s: top %d, want %d", s.key, got.Top, s.top)
 		}
 	}
-	l := newNoticeWindowLayout(a.flow.menuFont, loadPanel)
+	l := newNoticeWindowLayout(a.flow.menuFont, loadPanel, 1)
 	bottom := l.List.Bar().Max.Sub(image.Pt(4, 4))
 	for _, action := range []string{"press", "release"} {
 		if err := a.HeadlessPointer(action, bottom.X, bottom.Y); err != nil {
@@ -273,7 +273,7 @@ func TestClosingTheWindowLeavesTheLoadPagesMessageLineAsItWas(t *testing.T) {
 				t.Fatal("no window")
 			}
 			if closer == "ok" {
-				p := newNoticeWindowLayout(a.flow.menuFont, loadPanel).OK.Min.Add(image.Pt(4, 4))
+				p := newNoticeWindowLayout(a.flow.menuFont, loadPanel, 1).Answers[0].Min.Add(image.Pt(4, 4))
 				for _, action := range []string{"press", "release"} {
 					if err := a.HeadlessPointer(action, p.X, p.Y); err != nil {
 						t.Fatal(err)
@@ -301,12 +301,12 @@ func TestClosingTheWindowLeavesTheLoadPagesMessageLineAsItWas(t *testing.T) {
 func TestALongVersionWrapsInsideTheRowWithEveryCharacter(t *testing.T) {
 	a := mismatchApp(t, fixtureMismatch{everyMismatchKind})
 	font := a.flow.menuFont
-	l := newNoticeWindowLayout(font, loadPanel)
+	l := newNoticeWindowLayout(font, loadPanel, 1)
 	width := l.List.Rect.Dx() - 2*listTextX
 	version := strings.Repeat("W", 120)
 	row := modMismatchRow(a.flow.modMismatchWord(ModMismatchVersion), ModMismatchRow{Mod: "alpha", Saved: version, Current: "2"})
 	var joined strings.Builder
-	for i, line := range wrapNoticeRow(font, row, width, a.modMismatchDisplay) {
+	for i, line := range wrapNoticeRow(font, row, width, noticeWrapIndent, a.modMismatchDisplay) {
 		used := line.indent
 		for _, run := range line.runs {
 			used += font.Advance(run.Text)

@@ -213,7 +213,7 @@ func (a *App) headlessSavePageAction(action string) error {
 		if strings.EqualFold(strings.TrimSpace(action), "confirm") != s.ui.confirm {
 			return saveDialogError(action)
 		}
-		if a.flow.pageButtonDisabled(v, loadOKButton) {
+		if !s.ui.confirm && a.flow.pageButtonDisabled(v, loadOKButton) {
 			return fmt.Errorf("save page: Ok is disabled")
 		}
 		a.acceptPage(v)

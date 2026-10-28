@@ -73,14 +73,26 @@ type PageButton struct {
 }
 
 // PageConfirm is the delete confirmation: Before at At and the selected
-// label in Label. Inline instead draws Before, the label and After as one
-// text wrapped to Label's width from At. A '#' in either text is a space.
+// label in Label, in the page's body. A Window with a Size instead asks in a
+// notice window of that shape over the page: Before, the label and After as
+// one text, and the answers Yes and No. A '#' in either text is a space.
 type PageConfirm struct {
-	Before string
-	At     image.Point
-	Label  image.Rectangle
-	After  string
-	Inline bool
+	Before  string
+	At      image.Point
+	Label   image.Rectangle
+	After   string
+	Window  NoticeShape
+	Yes, No string
+}
+
+// windowed reports whether the page asks in a notice window.
+func (c PageConfirm) windowed() bool { return c.Window.Size != (image.Point{}) }
+
+// question is the window asking to delete the save whose label the font
+// draws as label.
+func (c PageConfirm) question(label string) noticeWindow {
+	s := strings.ReplaceAll(c.Before, "#", " ") + label + strings.ReplaceAll(c.After, "#", " ")
+	return noticeWindow{Rows: []noticeRow{{{Text: s}}}, Answers: []string{c.Yes, c.No}, Shape: c.Window}
 }
 
 // pageSeams holds a game's pages: loadSet and saveSet nil keep the first
@@ -169,6 +181,14 @@ type pageView struct {
 	saves []SaveEntry
 	save  *savePageState
 }
+
+// asking reports whether a deletion awaits its answer in the page's question
+// window.
+func (v pageView) asking() bool { return v.ui.confirm && v.page.Confirm.windowed() }
+
+// confirmingInPage reports whether a deletion awaits confirmation in the
+// page's own body.
+func (v pageView) confirmingInPage() bool { return v.ui.confirm && !v.page.Confirm.windowed() }
 
 // listFocus reports whether the list has the focus: always on a load page,
 // on a save page once a list key or a click in the list set it.

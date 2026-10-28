@@ -132,7 +132,7 @@ func modMismatchRow(word string, r ModMismatchRow) noticeRow {
 // words: a lead row for a save without a record and for an unreadable record,
 // one row per difference, and the hint for what the player can do.
 func (f *flow) modMismatchWindow(m ModMismatch) *noticeWindow {
-	w := &noticeWindow{Title: f.word("load.mods.title"), OK: f.word("load.mods.ok"), Hint: f.word("load.mods.hint")}
+	w := &noticeWindow{Title: f.word("load.mods.title"), Answers: []string{f.word("load.mods.ok")}, Hint: f.word("load.mods.hint")}
 	switch m.Reason {
 	case ModMismatchUnmarked:
 		w.Rows = append(w.Rows, modMismatchRow(f.word("load.mods.unmarked"), ModMismatchRow{}))
@@ -163,9 +163,9 @@ func (a *App) stepModMismatch(v pageView, in appInput) {
 		v.ui.mismatch = nil
 		return
 	}
-	l := newNoticeWindowLayout(font, v.page.Panel)
+	l := w.layout(font, v.page.Panel)
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	if w.step(in, p, ok, l, len(w.noticeLines(font, l, a.modMismatchDisplay))) {
+	if _, closed := w.step(in, p, ok, l, len(w.noticeLines(font, l, a.modMismatchDisplay))); closed {
 		v.ui.mismatch = nil
 		v.ui.resetPointer()
 	}
@@ -202,7 +202,7 @@ func (a *App) HeadlessModMismatch() (HeadlessModMismatch, bool) {
 		out.Rows = append(out.Rows, b.String())
 	}
 	if font := a.flow.menuFont; font != nil {
-		l := newNoticeWindowLayout(font, a.flow.loadPage().Panel)
+		l := w.layout(font, a.flow.loadPage().Panel)
 		out.Lines, out.List, out.Visible = len(w.noticeLines(font, l, a.modMismatchDisplay)), l.List.Rect, l.List.Rows
 	}
 	return out, true
