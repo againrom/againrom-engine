@@ -3,6 +3,7 @@ package game
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -39,6 +40,7 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 	}
 
 	total, worlds, cities, unreadable, mismatches := 0, 0, 0, 0, 0
+	nativeFiles, nativeRoots := 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -73,6 +75,26 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 			}
 			worlds++
 
+			// Roots bound as native areas leave the carried graph at LOAD
+			// (DIV-1271, DIV-2885), so the SpellEffect export refuses them;
+			// the cycle must keep the native areas and the carried graph.
+			document, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData: %v", err)
+			}
+			native, err := spellEffectRootsBoundNative(&document)
+			if err != nil {
+				t.Fatalf("spellEffectRootsBoundNative: %v", err)
+			}
+			actions, err := readCurrentActions(&document)
+			if err != nil {
+				t.Fatalf("readCurrentActions: %v", err)
+			}
+			nativeAreaRows := 0
+			if actions != nil {
+				nativeAreaRows = len(actions.NativeAreas)
+			}
+
 			ms, _, err := loadOriginalMission(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
@@ -84,6 +106,9 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 			// would otherwise compound on one another's patches.
 			before := make([][]byte, len(checkers))
 			for i, c := range checkers {
+				if c.name == "SpellEffects" && len(native) > 0 {
+					continue
+				}
 				target, err := sav.Open(raw)
 				if err != nil {
 					t.Fatalf("sav.Open (pre-cycle %s): %v", c.name, err)
@@ -112,7 +137,34 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 			// the same source file again, this time reading the resumed
 			// (post-cycle) world.
 			mismatchedHere := false
+			if len(native) > 0 {
+				nativeFiles++
+				nativeRoots += len(native)
+				areasBefore, err := ms.World.NativeAreaSaveStates()
+				if err != nil {
+					t.Fatalf("NativeAreaSaveStates (pre-cycle): %v", err)
+				}
+				areasAfter, err := resumed.NativeAreaSaveStates()
+				if err != nil {
+					t.Fatalf("NativeAreaSaveStates (post-cycle): %v", err)
+				}
+				if len(areasBefore) != nativeAreaRows {
+					mismatchedHere = true
+					t.Errorf("LOAD bound %d native area(s), the file's current actions name %d", len(areasBefore), nativeAreaRows)
+				}
+				if !reflect.DeepEqual(areasBefore, areasAfter) {
+					mismatchedHere = true
+					t.Errorf("native resume cycle changed the World's native areas: %d before, %d after", len(areasBefore), len(areasAfter))
+				}
+				if !reflect.DeepEqual(ms.World.SavedSpellEffects(), resumed.SavedSpellEffects()) {
+					mismatchedHere = true
+					t.Errorf("native resume cycle changed the carried SpellEffect graph")
+				}
+			}
 			for i, c := range checkers {
+				if c.name == "SpellEffects" && len(native) > 0 {
+					continue
+				}
 				target, err := sav.Open(raw)
 				if err != nil {
 					t.Fatalf("sav.Open (post-cycle %s): %v", c.name, err)
@@ -146,6 +198,6 @@ func TestNativeResumeCorpusCycle1139(t *testing.T) {
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d mismatching",
-		total, worlds, cities, unreadable, mismatches)
+	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d root(s) of %d file(s) bound as native effects, %d mismatching",
+		total, worlds, cities, unreadable, nativeRoots, nativeFiles, mismatches)
 }

@@ -3175,5 +3175,8 @@ var Committed = Baseline{
 	// unitResidualRecordForAudit, unitResidualWantForAudit and
 	// unitResidualSaveForAudit, the helper tests' comments, the audit's
 	// comment and this note.
-	CommentBytes: 9816353,
+
+	// It rose for the native-resume corpus audit's native-area expectation:
+	// the audit's comment, the helper test's comments and this note.
+	CommentBytes: 9816890,
 }
