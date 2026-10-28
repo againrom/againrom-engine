@@ -71,7 +71,7 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 					break
 				}
 			}
-			carried, err := moverRoutesCarriedForAudit(source, raw)
+			carried, err := carrierHeldForAudit(source, raw, currentCarrierMoverRoutes)
 			if err != nil {
 				t.Fatalf("writer carriers: %v", err)
 			}

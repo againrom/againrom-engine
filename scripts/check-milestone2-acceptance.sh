@@ -42,8 +42,9 @@
 # audit (TestSessionCorpusAudit1130), the cell-record audit
 # (TestCellRecordCorpusAudit1131), the spell-effect audit
 # (TestSpellEffectCorpusAudit1132), the mover-route audit
-# (TestMoverRouteCorpusAudit1134) and the diary audit
-# (TestDiaryCorpusAudit1135), which pass on both first-game roots.
+# (TestMoverRouteCorpusAudit1134), the diary audit
+# (TestDiaryCorpusAudit1135) and the ground-container audit
+# (TestGroundContainerCorpusAudit1136), which pass on both first-game roots.
 # An opt-in corpus audit joins this selection only when it passes on both
 # first-game roots; the rest stay opt-in and are not selected.
 #
@@ -136,8 +137,8 @@ cd "$here" || fail "cannot enter $here"
 # gate alone, so a chain can run it as its own leg beside the rest
 # (scripts/check-sav-roundtrip-gate.sh).
 case "${AGAINROM_M2_SAVGATE:-}" in
-"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131|TestSpellEffectCorpusAudit1132|TestMoverRouteCorpusAudit1134|TestDiaryCorpusAudit1135|TestSAVRoundTripGate)' ;;
-skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131|TestSpellEffectCorpusAudit1132|TestMoverRouteCorpusAudit1134|TestDiaryCorpusAudit1135)' ;;
+"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131|TestSpellEffectCorpusAudit1132|TestMoverRouteCorpusAudit1134|TestDiaryCorpusAudit1135|TestGroundContainerCorpusAudit1136|TestSAVRoundTripGate)' ;;
+skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131|TestSpellEffectCorpusAudit1132|TestMoverRouteCorpusAudit1134|TestDiaryCorpusAudit1135|TestGroundContainerCorpusAudit1136)' ;;
 only) pattern='^TestSAVRoundTripGate' ;;
 *) fail "AGAINROM_M2_SAVGATE must be unset, skip or only" ;;
 esac

@@ -24,7 +24,7 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 	}
 	f.SetDeterministicFrames(true)
 
-	total, worlds, cities, unreadable, nonEmpty, mismatches := 0, 0, 0, 0, 0, 0
+	total, worlds, cities, unreadable, nonEmpty, mismatches, uncarriedFiles, savedSacks := 0, 0, 0, 0, 0, 0, 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -66,10 +66,17 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 				nonEmpty++
 			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			carried, err := carrierHeldForAudit(source, raw, currentCarrierSacks)
+			if err != nil {
+				t.Fatalf("writer carriers: %v", err)
+			}
+
+			loaded, err := loadOriginalFront(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}
+			ms := loaded.CurrentMission()
+			report := ms.OriginalSaveReport()
 			if present && len(sacks) > 0 && !report.GroundApplied {
 				t.Fatal("a save with ground Sacks was not reported as having its ground state applied")
 			}
@@ -100,6 +107,37 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 				}
 			}
 			t.Logf("single carrier: %d Sack(s) cross-checked, %d not adopted by importSavedSackObjects", checked, skipped)
+
+			if !carried {
+				// An Againrom-written SAV without the Sacks bit is no oracle
+				// for the registry: LOAD keeps its Sacks unbound (DIV-2884),
+				// so the native export finds no live tail. The player's SAVE
+				// must write each Sack and its items unchanged.
+				uncarriedFiles++
+				s, _, err := loaded.Snapshot(true)
+				if err != nil {
+					t.Fatalf("Snapshot: %v", err)
+				}
+				saved, _, err := loaded.playerMissionSave(s, "ground container audit")
+				if err != nil {
+					t.Fatalf("SAVE: %v", err)
+				}
+				out, err := sav.Open(saved)
+				if err != nil {
+					t.Fatalf("sav.Open (SAVE): %v", err)
+				}
+				written, _, err := out.GroundSacks()
+				if err != nil {
+					t.Fatalf("SAVE's GroundSacks: %v", err)
+				}
+				if msg, ok := sameGroundSacksByCellForAudit(sacks, written); !ok {
+					mismatches++
+					t.Errorf("file vs SAVE ground Sacks: %s", msg)
+				}
+				savedSacks += len(sacks)
+				t.Logf("writer held no Sack carrier; SAVE wrote %d Sack(s) unchanged", len(sacks))
+				return
+			}
 
 			// Native export: write the live state back into a fresh decode of
 			// this file's own bytes, then compare the WHOLE FILE byte for byte
@@ -138,6 +176,6 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d non-empty, %d mismatching",
-		total, worlds, cities, unreadable, nonEmpty, mismatches)
+	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d non-empty, %d file(s) whose writer held no Sack carrier (%d Sack(s) checked through SAVE), %d mismatching",
+		total, worlds, cities, unreadable, nonEmpty, uncarriedFiles, savedSacks, mismatches)
 }

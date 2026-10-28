@@ -3165,5 +3165,9 @@ var Committed = Baseline{
 	// the doc comments of archiveActorsForAudit, moverRoutesCarriedForAudit
 	// and sameMoverRouteByIdentityForAudit, their tests' comments, the audit's
 	// comments and this note.
-	CommentBytes: 9813459,
+
+	// It rose for the ground-container corpus audit's SAVE expectation: the
+	// doc comments of carrierHeldForAudit and sameGroundSacksByCellForAudit,
+	// the helper test's comments, the audit's comment and this note.
+	CommentBytes: 9814409,
 }

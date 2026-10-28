@@ -46,6 +46,18 @@ func milestone2WriterCarriers(mf milestone2File) (uint32, bool, error) {
 	return a.WriterCarriers, true, nil
 }
 
+// carrierHeldForAudit reports whether a file's records of one carrier are an
+// oracle for what LOAD keeps: an original's always are, an Againrom-written
+// SAV's only when its WriterCarriers holds that bit. Without it LOAD binds the
+// carrier otherwise than it binds an original's (DIV-2885).
+func carrierHeldForAudit(source *sav.File, raw []byte, carrier uint32) (bool, error) {
+	bits, written, err := milestone2WriterCarriers(milestone2File{raw: raw, f: source})
+	if err != nil {
+		return false, err
+	}
+	return !written || bits&carrier != 0, nil
+}
+
 func milestone2CarrierCorpus(t *testing.T, carrier uint32, fn func(*testing.T, milestone2File, *FrontEnd)) int {
 	t.Helper()
 	return milestone2Corpus(t, func(t *testing.T, mf milestone2File, fe *FrontEnd) {

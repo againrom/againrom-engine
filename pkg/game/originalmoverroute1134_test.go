@@ -87,19 +87,6 @@ func archiveActorsForAudit(graph sav.SavedActorGraph) map[uint16]sav.ActorRecord
 	return out
 }
 
-// moverRoutesCarriedForAudit reports whether a file's mover/route records are
-// an oracle for the live saved motions: an original's always are, an
-// Againrom-written SAV's only when its WriterCarriers holds the mover/route
-// bit. Without it LOAD drops the imported motions and its actors carry no
-// source binding (DIV-2885).
-func moverRoutesCarriedForAudit(source *sav.File, raw []byte) (bool, error) {
-	bits, written, err := milestone2WriterCarriers(milestone2File{raw: raw, f: source})
-	if err != nil {
-		return false, err
-	}
-	return !written || bits&currentCarrierMoverRoutes != 0, nil
-}
-
 // sameMoverRouteByIdentityForAudit compares a file's living actors with the
 // records a SAVE wrote, joined by Identity: a SAVE renumbers archive indices.
 // Each living actor must be written once with its mover block and both route
