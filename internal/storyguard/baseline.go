@@ -3178,5 +3178,9 @@ var Committed = Baseline{
 
 	// It rose for the native-resume corpus audit's native-area expectation:
 	// the audit's comment, the helper test's comments and this note.
-	CommentBytes: 9816890,
+
+	// It rose for the U130 resave corpus audit's Againrom-written expectation:
+	// the doc comments of u130WantForAudit and u130MismatchesForAudit, the
+	// audit's comments, the helper test's comment and this note.
+	CommentBytes: 9817467,
 }
