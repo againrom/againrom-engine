@@ -3188,5 +3188,8 @@ var Committed = Baseline{
 	// the page's question in pkg/ui/savepage.go and pkg/ui/load_window.go, of
 	// the profile's window in pkg/game/savepages.go, the new tests' comments
 	// and this note.
-	CommentBytes: 9821312,
+
+	// It rose for the word table test reading a Words list: its doc comment
+	// and this note.
+	CommentBytes: 9821445,
 }

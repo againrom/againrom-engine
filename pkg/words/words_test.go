@@ -143,8 +143,9 @@ func TestLanguageReadsTheInstallEntry(t *testing.T) {
 
 // TestEveryUsedIDIsInTheEnglishTable reads the production sources of pkg/ui and
 // pkg/game for word lookups by a literal id: Text, word and menuWord, and a
-// literal id a data row holds in a field whose name ends in Word. Every id
-// read is in the English table, and every English id is read.
+// literal id a data row holds in a field whose name ends in Word, or a list
+// whose name ends in Words holds. Every id read is in the English table, and
+// every English id is read.
 func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	ids, err := IDs(Engine())
 	if err != nil {
@@ -169,29 +170,38 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 				t.Fatal(err)
 			}
 			ast.Inspect(f, func(n ast.Node) bool {
-				var arg ast.Expr
+				var args []ast.Expr
 				switch n := n.(type) {
 				case *ast.KeyValueExpr:
 					if key, ok := n.Key.(*ast.Ident); ok && strings.HasSuffix(key.Name, "Word") {
-						arg = n.Value
+						args = append(args, n.Value)
 					}
 				case *ast.CallExpr:
 					sel, ok := n.Fun.(*ast.SelectorExpr)
 					if ok && len(n.Args) == 1 && (sel.Sel.Name == "Text" || sel.Sel.Name == "word" || sel.Sel.Name == "menuWord") {
-						arg = n.Args[0]
+						args = append(args, n.Args[0])
+					}
+				case *ast.ValueSpec:
+					for i, v := range n.Values {
+						list, ok := v.(*ast.CompositeLit)
+						if ok && i < len(n.Names) && strings.HasSuffix(n.Names[i].Name, "Words") {
+							args = append(args, list.Elts...)
+						}
 					}
 				}
-				lit, ok := arg.(*ast.BasicLit)
-				if !ok || lit.Kind != token.STRING {
-					return true
-				}
-				id, err := strconv.Unquote(lit.Value)
-				if err != nil || !strings.Contains(id, ".") || strings.ContainsAny(id, " /\\") {
-					return true
-				}
-				used[id] = true
-				if !table[id] {
-					t.Errorf("%s reads %q, which the English table lacks", filepath.Base(name), id)
+				for _, arg := range args {
+					lit, ok := arg.(*ast.BasicLit)
+					if !ok || lit.Kind != token.STRING {
+						continue
+					}
+					id, err := strconv.Unquote(lit.Value)
+					if err != nil || !strings.Contains(id, ".") || strings.ContainsAny(id, " /\\") {
+						continue
+					}
+					used[id] = true
+					if !table[id] {
+						t.Errorf("%s reads %q, which the English table lacks", filepath.Base(name), id)
+					}
 				}
 				return true
 			})
