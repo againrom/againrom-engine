@@ -119,9 +119,9 @@ func TestTheFogStampSeedsWithTheSightWord(t *testing.T) {
 	}
 }
 
-// The AI reader and the second game's fog stay one cell per positive
-// accumulator cell.
-func TestTheFogStampLeavesTheAIReaderAndTheSecondGame(t *testing.T) {
+// The AI reader stays one cell per positive accumulator cell; the second
+// game's fog is the first game's 2x2 block stamp (DIV-4182).
+func TestTheFogStampLeavesTheAIReaderAndServesTheSecondGame(t *testing.T) {
 	t.Parallel()
 	e := Entity{ID: 1, X: 22, Y: 22, Owner: 1, ScanRange: 4, HP: 10, MaxHP: 10}
 	w, err := NewTerrainWorld(1, sightBounds, ModeCanonical, Terrain{}, []Entity{e}, nil)
@@ -131,11 +131,52 @@ func TestTheFogStampLeavesTheAIReaderAndTheSecondGame(t *testing.T) {
 	if n := litCount(w.actorSight(0)); n != 69 {
 		t.Errorf("the AI reader lights %d cells, want the range-4 disc's 69", n)
 	}
+	first := w.Sight(1)
+	if n := litCount(first); n != 88 {
+		t.Fatalf("the first game's fog lights %d cells, want the range-4 block's 88", n)
+	}
 	w.rom2 = &rom2ScriptState{}
-	if n := litCount(w.Sight(1)); n != 69 {
-		t.Errorf("the second game's fog lights %d cells, want the range-4 disc's 69", n)
+	stampDiff(t, "second game", w.Sight(1), first)
+	stampDiff(t, "second game moved body", w.SightOf(1, []EntityID{1}), first)
+	if n := litCount(w.actorSight(0)); n != 69 {
+		t.Errorf("the second game's AI reader lights %d cells, want 69", n)
 	}
-	if n := litCount(w.SightOf(1, []EntityID{1})); n != 69 {
-		t.Errorf("the second game's moved-body fog lights %d cells, want 69", n)
+}
+
+// The second game's first hero, Mind 25 and Agility 36, carries the sight
+// word 1648 (R2-ENGINE-290). On flat ground his fog stamp reaches seven cells
+// east and south and six north and west, in both games alike.
+func TestTheSecondGameHeroStampsHisSightWordBlock(t *testing.T) {
+	t.Parallel()
+	from := cell{x: 22, y: 22}
+	hero := Entity{ID: 1, X: from.x, Y: from.y, Owner: 1, ScanRange: 6, Humanoid: true, Mind: 25, Reaction: 36, HP: 10, MaxHP: 10}
+	if word := hero.SightWord(true); word != 1648 {
+		t.Fatalf("sight word %d, want 1648", word)
 	}
+	stamps := make([][]byte, 2)
+	for i, second := range []bool{false, true} {
+		w, err := NewTerrainWorld(1, sightBounds, ModeCanonical, Terrain{}, []Entity{hero}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if second {
+			w.rom2 = &rom2ScriptState{}
+		}
+		stamps[i] = w.Sight(1)
+		for _, d := range []struct {
+			name   string
+			dx, dy int32
+			want   int32
+		}{{"east", 1, 0, 7}, {"south", 0, 1, 7}, {"west", -1, 0, 6}, {"north", 0, -1, 6}} {
+			k := int32(0)
+			for w.sightShows(stamps[i], cell{x: from.x + (k+1)*d.dx, y: from.y + (k+1)*d.dy}) {
+				k++
+			}
+			if k != d.want {
+				t.Errorf("second game %v: the stamp reaches %d cells %s, want %d", second, k, d.name, d.want)
+			}
+		}
+		stampDiff(t, "block", stamps[i], blockStamp(w, from, 0, 1648))
+	}
+	stampDiff(t, "second game against first", stamps[1], stamps[0])
 }

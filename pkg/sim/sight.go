@@ -433,19 +433,16 @@ func (w *World) Sight(owner uint32) []byte {
 	return stamp
 }
 
-// fogStamp ORs one body's fog stamp into stamp. In the first game it is the
-// client stamp (TERR-FOG-266): the walk centres on the body's cell, and each
-// positive accumulator cell marks the 2x2 block (x,y)..(x+1,y+1) around a write
-// centre shifted by half the footprint side, which equals the class TileSize
-// the original adds on every shipped row (TERR-FOG-273); a one-cell body's write
-// centre is its cell. The second game keeps one cell per positive accumulator cell. Only the
+// fogStamp ORs one body's fog stamp into stamp: the client stamp
+// (TERR-FOG-266) in both games. The walk centres on the body's cell, seeded
+// with its sight word, and each positive accumulator cell marks the 2x2 block
+// (x,y)..(x+1,y+1) around a write centre shifted by half the footprint side,
+// which equals the class TileSize the original adds on every shipped row
+// (TERR-FOG-273); a one-cell body's write centre is its cell. The second
+// game's first mission reveals that block east and south (DIV-4182). Only the
 // fog reads this; the AI reader marches unchanged.
 func (w *World) fogStamp(stamp []byte, e *Entity) {
 	from := cellOf(e)
-	if w.SecondGame() {
-		w.marchSight(fogSight, stamp, from, int32(e.ScanRange))
-		return
-	}
 	var acc [sightArea]int32
 	w.marchInto(fogSight, nil, &acc, from, int32(e.SightWord(e.Humanoid)))
 	half := footprintSide(e.TokenSize) / 2

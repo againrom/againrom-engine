@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The hero now uncovers the map one cell further east and south, as in the original: on the first mission, at the start and after walking east, the cleared area ends on those sides where the original's does. Before, the dark edge stood one cell closer to the hero.
 - [ROM1] The README now says how to take the game files out of the GOG installer on macOS and Linux: one innoextract command unpacks them into a game folder, without Windows.
 - [ROM2] A click on a road signpost walks the hero to it and opens its message with Ok, such as "To Great Mage Skrakan's Tower" in the first mission; the game waits until Ok, Enter or Esc. Before, the hero walked next to the signpost and nothing opened.
 - [ROM2] Delete on the Save and Load pages now asks in a small box over the page, as in the original: "Are you sure you want to delete game" with the save's name, and the buttons Yes and No. No or Esc closes the box and keeps the same save chosen; Yes deletes it. Before, the question replaced the page's list and Ok answered it.

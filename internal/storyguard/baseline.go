@@ -3218,5 +3218,9 @@ var Committed = Baseline{
 	// drawPlacement and drawPlacementGround in pkg/ui/mapeditorplacement.go,
 	// of PreviewPlacement in pkg/game/mapinspectionpreview.go, the new tests'
 	// comments and this note.
-	CommentBytes: 9832943,
+
+	// It rose for the second game's fog stamp: fogStamp's doc in
+	// pkg/sim/sight.go, the second-game fog tests' comments in
+	// pkg/sim/fogstamp_test.go and this note.
+	CommentBytes: 9833400,
 }
