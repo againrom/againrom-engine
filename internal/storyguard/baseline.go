@@ -3235,5 +3235,13 @@ var Committed = Baseline{
 	// of BrushHeightMode, BrushStroke.Mode, the brush settings, brushState
 	// and the brush rows in pkg/ui/mapeditorbrush.go, of the new
 	// pkg/ui/mapeditorheightmode.go, the new tests' comments and this note.
-	CommentBytes: 9841460,
+
+	// It rose for the map editor's overlap refusal and placement marks: the
+	// doc comments of recordFeet, footprintOf, placementRefusal and
+	// placementError in pkg/game/mapinspectionedit.go, of groupFoot and
+	// CheckMove in pkg/game, of InspectionRecord.Footprint,
+	// InspectionDocument.Refused, SelectionRefusal, cellBoxLines,
+	// placementCells, footprint, newRecords and dragRefused in pkg/ui, the
+	// new tests' comments and this note.
+	CommentBytes: 9847295,
 }

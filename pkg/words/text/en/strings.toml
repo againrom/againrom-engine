@@ -594,6 +594,8 @@
 "editor.selection.sack" = "sack %d"
 "editor.selection.outside" = "%s: cell %d,%d is outside the map"
 "editor.selection.closed" = "%s: cell %d,%d is closed (%s)"
+"editor.placement.outside" = "structure footprint %d,%d %dx%d leaves the map"
+"editor.placement.overlap" = "footprint %d,%d %dx%d overlaps another object (%s)"
 "editor.selection.noplayer" = "%s: this map has no player %d"
 "editor.selection.refused" = "%s: %s"
 "editor.selection.recipes" = "recipes copied: %d"

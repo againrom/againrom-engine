@@ -32,7 +32,7 @@ func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.Ins
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(mapedit.KindStructure, m, i)
+		return true, s.checkPlacement(mapedit.KindStructure, m, i, image.Rectangle{})
 	})
 }
 

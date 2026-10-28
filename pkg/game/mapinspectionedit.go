@@ -143,7 +143,7 @@ func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui
 		if err := m.Move(k, index, nx, ny); err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(k, m, index)
+		return true, s.checkPlacement(k, m, index, image.Rectangle{})
 	})
 }
 
@@ -167,7 +167,7 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(k, m, i)
+		return true, s.checkPlacement(k, m, i, image.Rectangle{})
 	})
 }
 
@@ -410,6 +410,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && (value < f.Min || value > f.Max) {
 		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.inspectionUTF8(s.inspector.word(f.Label)), value, f.Min, f.Max)
 	}
+	was := s.footprintOf(m, k, index)
 	if err := m.SetField(k, index, key, value); err != nil {
 		return false, err
 	}
@@ -461,7 +462,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
 		return false, err
 	}
-	return true, s.checkPlacement(k, m, index)
+	return true, s.checkPlacement(k, m, index, was)
 }
 
 func insideMap(m *mapedit.Editor, cell image.Point, what string) error {
@@ -475,20 +476,109 @@ func insideMap(m *mapedit.Editor, cell image.Point, what string) error {
 	return nil
 }
 
+// recordFeet are the cells each structure and each unit of a map takes in
+// the world the game builds from it: a structure's footprint from the
+// installed tables, a unit's square of its class's TileSize at its cell.
+type recordFeet struct{ structures, units []image.Rectangle }
+
+func (x *MapInspector) feet(m *alm.Map) recordFeet {
+	var f recordFeet
+	for _, st := range mapload.Structures(m, x.table) {
+		f.structures = append(f.structures, structureFootprint(st))
+	}
+	for _, u := range m.Units {
+		n := 1
+		if x.units != nil {
+			if c := x.units.Classes[int32(u.ClassID)]; c != nil {
+				n = max(1, c.TileSize)
+			}
+		}
+		cell := unitCell(u)
+		f.units = append(f.units, image.Rectangle{Min: cell, Max: cell.Add(image.Pt(n, n))})
+	}
+	return f
+}
+
+// of is the footprints of the records of k; none for a kind that takes no
+// footprint.
+func (f recordFeet) of(k mapedit.Kind) []image.Rectangle {
+	switch k {
+	case mapedit.KindStructure:
+		return f.structures
+	case mapedit.KindUnit:
+		return f.units
+	}
+	return nil
+}
+
+// footprintOf is the footprint of k's record index on m; empty for a record
+// that takes none.
+func (s *mapInspectionEdits) footprintOf(m *mapedit.Editor, k mapedit.Kind, index int) image.Rectangle {
+	if k != mapedit.KindStructure && k != mapedit.KindUnit {
+		return image.Rectangle{}
+	}
+	view, err := m.Map()
+	if err != nil {
+		return image.Rectangle{}
+	}
+	if all := s.inspector.feet(view).of(k); index >= 0 && index < len(all) {
+		return all[index]
+	}
+	return image.Rectangle{}
+}
+
+// placementRefusal is a footprint a placement refuses, worded for the
+// editor.
+type placementRefusal string
+
+func (r placementRefusal) Error() string { return string(r) }
+
+// placedRecord names one record of a kind.
+type placedRecord struct {
+	kind  mapedit.Kind
+	index int
+}
+
 // checkPlacement refuses a structure whose footprint, as the world builds it
-// from the installed tables, leaves the map.
-func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, index int) error {
-	if k != mapedit.KindStructure {
+// from the installed tables, leaves the map, and a structure or unit whose
+// footprint shares a cell with another structure's or unit's. was is the
+// record's footprint before the edit: a footprint the edit leaves as it was
+// is not judged against the others, so a map that already holds an overlap
+// keeps it.
+func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, index int, was image.Rectangle) error {
+	if k != mapedit.KindStructure && k != mapedit.KindUnit {
 		return nil
 	}
 	view, err := m.Map()
 	if err != nil {
 		return err
 	}
-	st := mapload.Structures(view, s.inspector.table)[index]
-	r := structureFootprint(st)
-	if !r.In(image.Rect(0, 0, view.Width, view.Height)) {
-		return fmt.Errorf("structure footprint %d,%d %dx%d leaves the map", r.Min.X, r.Min.Y, r.Dx(), r.Dy())
+	return s.placementError(view, s.inspector.feet(view), k, index, was, nil)
+}
+
+// placementError is checkPlacement's judgement of k's record index on view,
+// whose footprints are feet. A record group holds is not judged against, so
+// a group placed together is judged on the settled edit.
+func (s *mapInspectionEdits) placementError(view *alm.Map, feet recordFeet, k mapedit.Kind, index int, was image.Rectangle, group map[placedRecord]bool) error {
+	all := feet.of(k)
+	if index < 0 || index >= len(all) {
+		return nil
+	}
+	r := all[index]
+	if k == mapedit.KindStructure && !r.In(image.Rect(0, 0, view.Width, view.Height)) {
+		return placementRefusal(fmt.Sprintf(s.inspector.word("editor.placement.outside"), r.Min.X, r.Min.Y, r.Dx(), r.Dy()))
+	}
+	if r == was {
+		return nil
+	}
+	name := "Unit"
+	if k == mapedit.KindStructure {
+		name = "Structure"
+	}
+	for j, o := range all {
+		if j != index && !group[placedRecord{k, j}] && r.Overlaps(o) {
+			return placementRefusal(fmt.Sprintf(s.inspector.word("editor.placement.overlap"), r.Min.X, r.Min.Y, r.Dx(), r.Dy(), s.recordName(ui.RecordRef{Kind: name, Index: j})))
+		}
 	}
 	return nil
 }

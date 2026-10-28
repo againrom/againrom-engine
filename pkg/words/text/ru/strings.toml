@@ -558,6 +558,8 @@
 "editor.selection.sack" = "мешок %d"
 "editor.selection.outside" = "%s: клетка %d,%d вне карты"
 "editor.selection.closed" = "%s: клетка %d,%d непроходима (%s)"
+"editor.placement.outside" = "контур постройки %d,%d %dx%d выходит за край карты"
+"editor.placement.overlap" = "контур %d,%d %dx%d пересекается с другим объектом (%s)"
 "editor.selection.noplayer" = "%s: на этой карте нет игрока %d"
 "editor.selection.refused" = "%s: %s"
 "editor.selection.recipes" = "скопировано рецептов: %d"

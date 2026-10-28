@@ -41,6 +41,10 @@ type InspectionRecord struct {
 	// Hover is the status strip's line while the pointer is on the record's
 	// cell, in the font's encoding; empty shows nothing.
 	Hover string
+
+	// Footprint is the cells the record takes in the world the game builds
+	// from the map; empty: the cells of Cell and Size.
+	Footprint image.Rectangle
 }
 
 type InspectionDocument struct {
@@ -61,6 +65,9 @@ type InspectionDocument struct {
 	// to a ground mover in the world the game builds from this map: zero for
 	// an open cell. nil: the host derives none and the view draws nothing.
 	Passability []PassArm
+	// Refused is, in a placement's preview, each record the placement
+	// refuses, with its footprint where it would have stood.
+	Refused []SelectionRefusal
 }
 
 type InspectionEdits interface {
@@ -178,6 +185,9 @@ type MapEditor struct {
 	placementKey                string
 	placementDoc, placementView *InspectionDocument
 	placementErr                error
+	dragCheckKey                string // the move dragCheck answers, on dragCheckDoc
+	dragCheckDoc                *InspectionDocument
+	dragCheck                   map[RecordRef]bool
 	cancelRestore               func()
 	listRestore                 func()
 	selection                   selectionState
@@ -660,21 +670,31 @@ type editorLine struct {
 func (e *MapEditor) markerLines() []editorLine {
 	v := e.doc.Viewer
 	var out []editorLine
-	if f, ok := e.placement(); ok && !f.Dragged {
-		c := editorGold
-		if f.Refused {
-			c = editorWarning
+	tint := func(refused bool) color.RGBA {
+		if refused {
+			return editorWarning
 		}
-		verts := v.cellSpace().vertices(v.cam, f.Cell.X, f.Cell.Y)
-		for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
-			a, b := verts[edge[0]], verts[edge[1]]
-			out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
+		return editorGold
+	}
+	f, placing := e.placement()
+	if placing && !f.Dragged {
+		// The footprints switch off leaves the anchor cell alone.
+		cells := f.Cells
+		if len(cells) == 0 || e.view.hideFootprints {
+			cells = []placementCells{{Rect: image.Rectangle{Min: f.Cell, Max: f.Cell.Add(image.Pt(1, 1))}, Refused: f.Refused}}
+		}
+		for _, c := range cells {
+			out = append(out, e.cellBoxLines(c.Rect, tint(c.Refused))...)
 		}
 	}
 	for i, r := range e.doc.Records {
 		member := e.inSelection(i)
+		dragRefused := false
 		if d := e.recordDrag; d != nil && d.moved && (i == d.record || d.group && member) {
-			r.Cell = r.Cell.Add(d.cell.Sub(d.origin)) // preview only; no model mutation until release
+			// preview only; no model mutation until release
+			offset := d.cell.Sub(d.origin)
+			r.Cell, r.Footprint = r.Cell.Add(offset), r.Footprint.Add(offset)
+			dragRefused = placing && f.Dragged && f.RefusedRecords[RecordRef{Kind: r.Kind, Index: r.Index}]
 		}
 		issue := !e.view.hideIssues && (r.Warning != "" || e.report.flagged[findingKey(r.Kind, r.Index)])
 		chosen := i == e.selected || member
@@ -689,18 +709,10 @@ func (e *MapEditor) markerLines() []editorLine {
 		}
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), c}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), c})
 		if chosen && !e.view.hideFootprints {
-			for cy := r.Cell.Y; cy < r.Cell.Y+max(1, r.Size.Y); cy++ {
-				for cx := r.Cell.X; cx < r.Cell.X+max(1, r.Size.X); cx++ {
-					if cx < 0 || cy < 0 || cx >= e.doc.Width || cy >= e.doc.Height {
-						continue
-					}
-					verts := v.cellSpace().vertices(v.cam, cx, cy)
-					for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
-						a, b := verts[edge[0]], verts[edge[1]]
-						out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
-					}
-				}
+			if dragRefused {
+				c = editorWarning
 			}
+			out = append(out, e.cellBoxLines(r.footprint(), c)...)
 		}
 	}
 	for _, cell := range e.reportCrosses() {
@@ -727,6 +739,24 @@ func (e *MapEditor) markerLines() []editorLine {
 	out = append(out, e.groupMarkerLines()...)
 	out = append(out, e.marqueeLines()...)
 	return append(e.gridLines(), out...)
+}
+
+// cellBoxLines are the outlines, in c, of every map cell of r; a cell off the
+// map is not drawn.
+func (e *MapEditor) cellBoxLines(r image.Rectangle, c color.RGBA) []editorLine {
+	v := e.doc.Viewer
+	r = r.Intersect(image.Rect(0, 0, e.doc.Width, e.doc.Height))
+	var out []editorLine
+	for cy := r.Min.Y; cy < r.Max.Y; cy++ {
+		for cx := r.Min.X; cx < r.Max.X; cx++ {
+			verts := v.cellSpace().vertices(v.cam, cx, cy)
+			for _, edge := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
+				a, b := verts[edge[0]], verts[edge[1]]
+				out = append(out, editorLine{a.DstX, a.DstY, b.DstX, b.DstY, c})
+			}
+		}
+	}
+	return out
 }
 
 func (e *MapEditor) Run() error {

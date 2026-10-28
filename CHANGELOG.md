@@ -34,6 +34,7 @@ modder or developer can notice gets no entry.
 - [BASE] The relation grid on the map editor's Players page now names the player over each column, written upwards, the same as the row's name ("1: Self"); before, the columns showed only 1, 2, 3. With the pointer over a square, a line under it says who stands how toward whom, such as "1: Self -> 2: Enemy: Hostile"; over a column's name, the whole name.
 - [BASE] The map editor's Forest tool has a Clear marks button left of the density buttons: it unticks every marked kind in the grid and the list at once. It is greyed out while no kind is marked.
 - [BASE] In the map editor, Ctrl+C of a selection box now copies every unit, structure and sack in the box, whichever list tab is open; before, with the Units tab open the structures and sacks were left out. Ctrl+V no longer pastes at once: it shows the copy see-through under the pointer, ground included, and a left click places it there as one undo step. Esc, a right click or another tool cancels it; the copy stays for the next Ctrl+V.
+- [BASE] The map editor no longer lets a structure stand on another structure, or a unit on another unit: adding, moving, dragging and pasting onto taken cells is refused with a note that names the object in the way. While you place, move, paste or drag, every cell the object will take is outlined, gold where it fits and red where it is refused. Maps that already hold such an overlap still open, and their other objects still move.
 
 ## 0.137.0
 

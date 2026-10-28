@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"math"
@@ -206,10 +207,16 @@ func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, kind string) int {
 }
 
 // trialAdd runs r's calls on a copy of the model, which it then drops, and
-// returns the copy and the new record's index.
+// returns the copy and the new record's index. When checkPlacement refuses
+// the new record's footprint, the copy holding it comes back with the
+// refusal.
 func (s *mapInspectionEdits) trialAdd(k newRecordKind, r ui.InspectionNewRecord) (*mapedit.Editor, int, error) {
 	m := s.model.Clone()
 	index, err := s.addOn(m, k, r)
+	var refusal placementRefusal
+	if errors.As(err, &refusal) {
+		return m, -1, err
+	}
 	if err != nil {
 		return nil, -1, err
 	}

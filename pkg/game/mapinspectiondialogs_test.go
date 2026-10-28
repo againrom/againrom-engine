@@ -191,7 +191,8 @@ func TestMapEditorDialogCancelSavePreservesStateAndFiles(t *testing.T) {
 	detachSource(t, cancelSource)
 	e.Select(0, true)
 	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
-	dragInspectionRecord(e, image.Pt(5, 6), image.Pt(7, 8))
+	// Unit 1 stands on 7,8, so the second drag stops beside it.
+	dragInspectionRecord(e, image.Pt(5, 6), image.Pt(8, 9))
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}

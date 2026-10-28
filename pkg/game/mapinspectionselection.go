@@ -121,25 +121,37 @@ func (s *mapInspectionEdits) CopyRecords(refs []ui.RecordRef) (ui.InspectionClip
 }
 
 // groupPlacement is one record of a move or a paste: the cell it is to stand
-// on and the call that puts it there, which answers its index afterwards.
+// on, its footprint there and the call that puts it there, which answers
+// its index afterwards.
 type groupPlacement struct {
 	ref   ui.RecordRef
 	kind  mapedit.Kind
 	cell  image.Point
+	foot  image.Rectangle
 	apply func(m *mapedit.Editor) (int, error)
 }
 
+// groupFoot is the footprint, among feet, of k's record index, which stands
+// on the cell from, moved to the cell to; a sack takes its one cell.
+func groupFoot(feet recordFeet, k mapedit.Kind, index int, from, to image.Point) image.Rectangle {
+	if all := feet.of(k); index >= 0 && index < len(all) {
+		return all[index].Add(to.Sub(from))
+	}
+	return image.Rectangle{Min: to, Max: to.Add(image.Pt(1, 1))}
+}
+
 // placeGroup applies every placement to m as one edit and answers the records
-// it placed and a note per record it refused. A record is refused when its
-// cell is outside the map, when its call fails, when a structure's footprint
-// leaves the map, or when the passability plane of the edited map closes a
+// it placed, a note per record it refused and each refused record with its
+// footprint. A record is refused when its cell is outside the map, when its
+// call fails, when checkPlacement's judgement of the settled edit refuses its
+// footprint, or when the passability plane of the edited map closes a
 // unit's cell to the unit's movement domain or a sack's cell to a ground
 // mover. Units and sacks do not shape that plane, so one more pass without
 // the closed ones settles the edit.
-func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacement) ([]ui.RecordRef, []string, error) {
+func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacement) ([]ui.RecordRef, []string, []ui.SelectionRefusal, error) {
 	view, err := m.Map()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	bounds := image.Rect(0, 0, int(view.Width), int(view.Height))
 	mark := m.Mark()
@@ -158,9 +170,6 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 			}
 			before := m.Mark()
 			i, err := it.apply(m)
-			if err == nil {
-				err = s.checkPlacement(it.kind, m, i)
-			}
 			if err != nil {
 				for m.Mark() > before {
 					m.Undo()
@@ -172,14 +181,33 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		}
 		after, err := m.Map()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
+		}
+		// The footprints are judged on the settled edit first: members
+		// that trade cells with each other are not judged against each
+		// other, and a refused one stays where it stood.
+		feet := s.inspector.feet(after)
+		group := map[placedRecord]bool{}
+		for n, it := range items {
+			if i, ok := placed[n]; ok {
+				group[placedRecord{it.kind, i}] = true
+			}
+		}
+		refused := false
+		for n, it := range items {
+			if i, ok := placed[n]; ok {
+				if err := s.placementError(after, feet, it.kind, i, image.Rectangle{}, group); err != nil {
+					closed[n] = s.refusalNote(it.ref, err)
+					refused = true
+				}
+			}
 		}
 		arms := mapload.GroundArms(after, s.inspector.table)
 		plane := mapload.PassabilityWith(after, s.inspector.table)
-		again := false
+		again := refused
 		for n, it := range items {
 			i, ok := placed[n]
-			if !ok || it.kind == mapedit.KindStructure || len(arms) != bounds.Dx()*bounds.Dy() || len(plane) != len(arms) {
+			if !ok || refused || it.kind == mapedit.KindStructure || len(arms) != bounds.Dx()*bounds.Dy() || len(plane) != len(arms) {
 				continue
 			}
 			c := it.cell.Y*bounds.Dx() + it.cell.X
@@ -203,13 +231,16 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		}
 		if !again {
 			var refs []ui.RecordRef
+			var out []ui.SelectionRefusal
 			for n, it := range items {
 				if i, ok := placed[n]; ok {
 					refs = append(refs, ui.RecordRef{Kind: it.ref.Kind, Index: i})
+				} else {
+					out = append(out, ui.SelectionRefusal{Ref: it.ref, Footprint: it.foot})
 				}
 			}
 			m.Squash(mark)
-			return refs, refusals, nil
+			return refs, refusals, out, nil
 		}
 		for m.Mark() > mark {
 			m.Undo()
@@ -250,6 +281,11 @@ func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point
 // keeping its fraction within the cell.
 func (s *mapInspectionEdits) moveItems(refs []ui.RecordRef, offset image.Point) ([]groupPlacement, error) {
 	var items []groupPlacement
+	view, err := s.model.Map()
+	if err != nil {
+		return nil, err
+	}
+	feet := s.inspector.feet(view)
 	for _, ref := range refs {
 		k, err := selectionKind(ref.Kind)
 		if err != nil {
@@ -260,8 +296,9 @@ func (s *mapInspectionEdits) moveItems(refs []ui.RecordRef, offset image.Point) 
 			return nil, err
 		}
 		index := ref.Index
-		cell := image.Pt(int(x>>8), int(y>>8)).Add(offset)
-		items = append(items, groupPlacement{ref: ref, kind: k, cell: cell, apply: func(m *mapedit.Editor) (int, error) {
+		from := image.Pt(int(x>>8), int(y>>8))
+		cell := from.Add(offset)
+		items = append(items, groupPlacement{ref: ref, kind: k, cell: cell, foot: groupFoot(feet, k, index, from, cell), apply: func(m *mapedit.Editor) (int, error) {
 			nx, ny := cellWords(cell, x, y)
 			return index, m.Move(k, index, nx, ny)
 		}})
@@ -290,11 +327,16 @@ func (s *mapInspectionEdits) PasteRecords(c ui.InspectionClip, cell image.Point)
 		return ui.SelectionEdit{}, err
 	}
 	offset := cell.Sub(clip.origin)
+	from, err := clip.source.Map()
+	if err != nil {
+		return ui.SelectionEdit{}, err
+	}
+	feet := s.inspector.feet(from)
 	var items []groupPlacement
 	for _, r := range clip.records {
 		r := r
 		target := r.cell.Add(offset)
-		items = append(items, groupPlacement{ref: r.ref, kind: r.kind, cell: target, apply: func(m *mapedit.Editor) (int, error) {
+		items = append(items, groupPlacement{ref: r.ref, kind: r.kind, cell: target, foot: groupFoot(feet, r.kind, r.ref.Index, r.cell, target), apply: func(m *mapedit.Editor) (int, error) {
 			if err := s.pasteOwner(m, clip.source, r); err != nil {
 				return -1, err
 			}
@@ -433,6 +475,7 @@ func (s *mapInspectionEdits) groupEdit(items []groupPlacement, format string, ex
 func (s *mapInspectionEdits) groupEditOn(first func(*mapedit.Editor) (bool, error), items []groupPlacement, format string, extra func(*mapedit.Editor) []string, keep []ui.RecordRef) (ui.SelectionEdit, error) {
 	var placed []ui.RecordRef
 	var refusals, more []string
+	var refused []ui.SelectionRefusal
 	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		mark, wrote := m.Mark(), false
 		if first != nil {
@@ -442,7 +485,7 @@ func (s *mapInspectionEdits) groupEditOn(first func(*mapedit.Editor) (bool, erro
 			}
 		}
 		var err error
-		placed, refusals, err = s.placeGroup(m, items)
+		placed, refusals, refused, err = s.placeGroup(m, items)
 		if err == nil && extra != nil {
 			more = extra(m)
 		}
@@ -452,7 +495,7 @@ func (s *mapInspectionEdits) groupEditOn(first func(*mapedit.Editor) (bool, erro
 	if err != nil {
 		return ui.SelectionEdit{}, err
 	}
-	out := ui.SelectionEdit{Doc: d, Selected: placed, Note: selectionNote(format, len(placed), len(items), more), Refusals: refusals}
+	out := ui.SelectionEdit{Doc: d, Selected: placed, Note: selectionNote(format, len(placed), len(items), more), Refusals: refusals, Refused: refused}
 	if d == nil {
 		out.Selected = keep
 	}

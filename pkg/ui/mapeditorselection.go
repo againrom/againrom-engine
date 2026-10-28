@@ -27,12 +27,22 @@ type InspectionClip interface {
 // SelectionEdit is the outcome of an edit of several records: the document
 // (nil when nothing changed), the records left selected, the status note, in
 // UTF-8, of what the edit did, and a note per record it refused. The status
-// line names the first refusals and counts the rest.
+// line names the first refusals and counts the rest. Refused is each refused
+// record.
 type SelectionEdit struct {
 	Doc      *InspectionDocument
 	Selected []RecordRef
 	Note     string
 	Refusals []string
+	Refused  []SelectionRefusal
+}
+
+// SelectionRefusal is a record a group edit refused: its address before the
+// edit (in the clip for a paste) and its footprint where the edit would have
+// put it.
+type SelectionRefusal struct {
+	Ref       RecordRef
+	Footprint image.Rectangle
 }
 
 // InspectionSelection is the optional seam of a host that edits several

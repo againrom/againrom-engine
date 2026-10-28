@@ -164,7 +164,10 @@ func (s *mapInspectionEdits) AddUnitTier(cell image.Point, class, tier int64) (*
 		if err != nil {
 			return false, err
 		}
-		_, err = m.PlaceUnit(rec)
-		return err == nil, err
+		i, err := m.PlaceUnit(rec)
+		if err != nil {
+			return false, err
+		}
+		return true, s.checkPlacement(mapedit.KindUnit, m, i, image.Rectangle{})
 	})
 }
