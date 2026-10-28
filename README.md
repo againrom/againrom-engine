@@ -47,6 +47,21 @@ game reads them from there. AgainROM reads only the game folder. Copy
 into a folder named `Allods` inside the game folder. A digital copy, for
 example from GOG, already holds that folder.
 
+### The GOG installer on macOS or Linux
+
+The GOG installer is a Windows program.
+[innoextract](https://constexpr.org/innoextract/) unpacks it without Windows
+and without running it:
+
+```sh
+innoextract --include app -d rom setup_rage_of_mages_2.1.0.3.exe
+```
+
+The folder `rom/app` is then the game folder: it holds every file listed above,
+`Allods` included. Checked with innoextract 1.9 on
+`setup_rage_of_mages_2.1.0.3.exe`: the 11 files equal those of the same
+release installed on Windows.
+
 ## Install on Windows
 
 1. Download the Windows AMD64 ZIP from
@@ -68,7 +83,8 @@ configuration files.
 
 Rage of Mages was never released for macOS. Copy the files listed under
 [Game files](#game-files) from a Windows install or the CD into one folder on
-the Mac, with `Allods` as a folder inside it.
+the Mac, with `Allods` as a folder inside it, or unpack them from
+[the GOG installer](#the-gog-installer-on-macos-or-linux).
 
 1. Download the macOS AMD64 ZIP for an Intel Mac, or the macOS ARM64 ZIP for
    Apple Silicon. Unpack it into a separate folder, not into the game folder.
@@ -92,7 +108,8 @@ bundle. Alternatively, run `./againrom -assets "/path/to/game folder"`.
 ## Install on Linux
 
 Copy the files listed under [Game files](#game-files) from a Windows install
-or the CD into one folder on Linux, with `Allods` as a folder inside it.
+or the CD into one folder on Linux, with `Allods` as a folder inside it, or
+unpack them from [the GOG installer](#the-gog-installer-on-macos-or-linux).
 File names are found in any letter case, so nothing needs renaming.
 
 1. Download the Linux x86_64 AppImage or tar.gz from
