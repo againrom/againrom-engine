@@ -3155,5 +3155,10 @@ var Committed = Baseline{
 	// It rose for the cell-record corpus audit's LOAD expectation: the doc
 	// comment of cellRecordsAfterLoad in pkg/game/cellrecordload_test.go, its
 	// copy note, the audit's comment and this note.
-	CommentBytes: 9811241,
+
+	// It rose for the spell-effect corpus audit's LOAD and SAVE expectation:
+	// the doc comments of spellEffectRootsBoundNative and
+	// spellEffectsWithoutOffsets in pkg/game/spelleffectload_test.go, the
+	// audit's two comments and this note.
+	CommentBytes: 9812321,
 }

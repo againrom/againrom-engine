@@ -3,6 +3,7 @@ package game
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -25,6 +26,7 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable, nonEmpty, mismatches := 0, 0, 0, 0, 0, 0
+	nativeFiles, nativeRoots := 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -65,11 +67,31 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 			if len(want) > 0 {
 				nonEmpty++
 			}
+			document, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData: %v", err)
+			}
+			native, err := spellEffectRootsBoundNative(&document)
+			if err != nil {
+				t.Fatalf("spellEffectRootsBoundNative: %v", err)
+			}
+			var carried []sav.SpellEffect
+			for i, e := range want {
+				if !native[i] {
+					carried = append(carried, e)
+				}
+			}
+			if len(native) > 0 {
+				nativeFiles++
+				nativeRoots += len(native)
+			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			loaded, err := loadOriginalFront(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}
+			ms := loaded.CurrentMission()
+			report := ms.OriginalSaveReport()
 			if !report.SpellEffectsApplied {
 				t.Fatal("spell effects were not applied")
 			}
@@ -82,11 +104,40 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 			// any tick: RestoreOriginal advances none. This walk never calls
 			// spellEffectConverter/applyOriginalSpellEffects, so a bug shared
 			// with the production conversion would not silently pass both this
-			// and the byte-level check below.
+			// and the byte-level check below. A root the file's current actions
+			// bind as a native area or delivery leaves the carried graph.
 			live := ms.World.SavedSpellEffects()
-			if msg, ok := sameSpellEffectGraphForAudit(want, live); !ok {
+			if msg, ok := sameSpellEffectGraphForAudit(carried, live); !ok {
 				mismatches++
 				t.Errorf("file vs live graph: %s", msg)
+			}
+			if len(native) > 0 {
+				// exportOriginalSpellEffects patches one value per source
+				// record and has no SAVE caller. The player's SAVE writes
+				// native roots back from their driver; its list must be the
+				// file's own.
+				s, _, err := loaded.Snapshot(true)
+				if err != nil {
+					t.Fatalf("Snapshot: %v", err)
+				}
+				saved, _, err := loaded.playerMissionSave(s, "spell effect audit")
+				if err != nil {
+					t.Fatalf("SAVE: %v", err)
+				}
+				written, err := sav.Open(saved)
+				if err != nil {
+					t.Fatalf("sav.Open (SAVE): %v", err)
+				}
+				got, present, err := written.SpellEffects()
+				if err != nil || !present {
+					t.Fatalf("SAVE's SpellEffects: present=%v err=%v", present, err)
+				}
+				if !reflect.DeepEqual(spellEffectsWithoutOffsets(got), spellEffectsWithoutOffsets(want)) {
+					mismatches++
+					t.Errorf("SAVE wrote %d SpellEffect root(s) unlike the file's %d", len(got), len(want))
+				}
+				t.Logf("top-level records=%d, %d bound as native effects", len(want), len(native))
+				return
 			}
 
 			// Native export: write the live state back into a fresh decode of
@@ -129,6 +180,6 @@ func TestSpellEffectCorpusAudit1132(t *testing.T) {
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d non-empty SpellEffect list(s), %d mismatching",
-		total, worlds, cities, unreadable, nonEmpty, mismatches)
+	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d non-empty SpellEffect list(s), %d root(s) of %d file(s) bound as native effects, %d mismatching",
+		total, worlds, cities, unreadable, nonEmpty, nativeRoots, nativeFiles, mismatches)
 }
