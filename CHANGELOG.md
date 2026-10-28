@@ -26,6 +26,10 @@ modder or developer can notice gets no entry.
 - [ROM2] In the shop you can now put items on and take them off: drag an item from the bag onto the hero in the panel to wear it, and drag a worn item back to the bag to take it off. An item the hero cannot use is refused, as in the first game; with NEXT the same works for Iglez, and what each one wears stays after SAVE and LOAD. Before, the hero in the shop took no item.
 - [ROM2] A double click on an item in the shop's bag now puts it on the hero shown in the panel, as in the first game; an item he cannot wear stays on the counter, and Undo puts it back in the bag. Before, the double click made the item vanish from the bag without any gold.
 
+### For map makers and modders
+
+- [BASE] F5 in the map editor now plays the map under the route of the mod package open in the W window: the guest companion, the mission it plays after, the town chapter, the gold and the mission number, or the replaced campaign mission. Before, F5 always played it as the first companion the campaign's first town grants. A route that Ctrl+S would refuse now refuses F5 with the same words.
+
 ## 0.138.0
 
 ### For players

@@ -75,7 +75,11 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if len(b) > mod.MaxFileBytes {
 		return "", fmt.Errorf("Test play: the map is %d bytes; a mod map holds at most %d", len(b), mod.MaxFileBytes)
 	}
-	m, err := x.testPlayMission(s.source, b)
+	var pkg *editorPackageSpec
+	if s.workspace != nil {
+		pkg = &s.workspace.Package
+	}
+	m, err := x.testPlayMission(s.source, b, pkg)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
@@ -86,6 +90,9 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 		} else {
 			m.Texts = ""
 		}
+	}
+	if err := x.checkMissionRoute(m); err != nil {
+		return "", fmt.Errorf("Test play: %w", err)
 	}
 	// The game loads the test mod through the same rule table; an error there
 	// would refuse the mod before the mission opens.
@@ -142,29 +149,38 @@ func TestPlayArgs(root, modsDir string, n int) ([]string, error) {
 	})
 }
 
-// testPlayMission wraps the map and its shared page source in a guest mission.
-func (x *MapInspector) testPlayMission(source string, b []byte) (mod.Mission, error) {
-	c, err := LoadCampaign(x.archives.Containers)
-	if err != nil {
-		return mod.Mission{}, err
+// testPlayMission wraps the map and its shared page source in the mission the
+// test mod declares: the route of the open mod package pkg when there is one,
+// else a guest mission of testPlayGuest.
+func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPackageSpec) (mod.Mission, error) {
+	var m mod.Mission
+	if pkg == nil {
+		c, err := LoadCampaign(x.archives.Containers)
+		if err != nil {
+			return mod.Mission{}, err
+		}
+		if m, err = testPlayGuest(c, x.archives.Containers); err != nil {
+			return mod.Mission{}, err
+		}
 	}
-	m, err := testPlayGuest(c, x.archives.Containers)
-	if err != nil {
-		return mod.Mission{}, err
-	}
-	m.MapBytes = b
-	m.TextFiles = map[string][]byte{}
+	pages := map[string][]byte{}
 	if p := x.editorPages(source); p != nil {
 		if p.err != nil {
 			return mod.Mission{}, p.err
 		}
 		for name, t := range p.files {
 			if missionPageName(name) {
-				m.TextFiles[name] = t
+				pages[name] = t
 			}
 		}
 	}
-	if len(m.TextFiles) > 0 {
+	if pkg != nil {
+		m = pkg.mission(b, pages)
+		m.Mod = TestPlayModID
+		return m, nil
+	}
+	m.MapBytes, m.TextFiles = b, pages
+	if len(pages) > 0 {
 		m.Texts = testPlayTexts
 	}
 	return m, nil

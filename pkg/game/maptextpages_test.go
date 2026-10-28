@@ -80,7 +80,7 @@ func TestMapPagesSourceOrder(t *testing.T) {
 				if p.err != nil || string(p.files["event02.txt"]) != want {
 					t.Fatalf("source: %q want %q: %v", p.files["event02.txt"], want, p.err)
 				}
-				m, err := f.x.testPlayMission(source, nil)
+				m, err := f.x.testPlayMission(source, nil, nil)
 				if err != nil || !reflect.DeepEqual(m.TextFiles, p.files) {
 					t.Fatalf("test play chose another source: %v", err)
 				}

@@ -27,6 +27,25 @@ func missionPackageFiles(title, description string, m mod.Mission, lang string) 
 	return files
 }
 
+// checkMissionRoute refuses the route of mission m, a guest or a replacing
+// one, that the open install does not bear out. Save mod package and test play
+// both stop on it before they write a file.
+func (x *MapInspector) checkMissionRoute(m mod.Mission) error {
+	c, err := LoadCampaign(x.archives.Containers)
+	if err != nil {
+		return err
+	}
+	switch m.Kind {
+	case mod.MissionReplace:
+		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Archives: x.archives}}
+		address, _ := MissionMap(m.Number)
+		return f.checkReplacing(m, address)
+	case mod.MissionGuest:
+		return checkGuest(c, x.archives.Containers, mod.MissionData{Missions: []mod.Mission{m}}, m)
+	}
+	return fmt.Errorf("unknown mission route %q", m.Kind)
+}
+
 func (s *mapInspectionEdits) openOrCreateWorkspace(dir string) (*ui.InspectionDocument, error) {
 	if dir == "" {
 		return nil, errors.New("choose an explicit new mod folder or an editor-owned package")
@@ -136,22 +155,8 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	m := p.mission(b, s.workspace.Pages)
-	c, err := LoadCampaign(x.archives.Containers)
-	if err != nil {
+	if err := x.checkMissionRoute(m); err != nil {
 		return "", err
-	}
-	if m.Kind == mod.MissionReplace {
-		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(c, nil), Archives: x.archives}}
-		address, _ := MissionMap(m.Number)
-		if err := f.checkReplacing(m, address); err != nil {
-			return "", err
-		}
-	} else if m.Kind == mod.MissionGuest {
-		if err := checkGuest(c, x.archives.Containers, mod.MissionData{Missions: []mod.Mission{m}}, m); err != nil {
-			return "", err
-		}
-	} else {
-		return "", fmt.Errorf("unknown mission route %q", m.Kind)
 	}
 	address, _ := MissionMap(m.Number)
 	if rows := x.CheckModMap(m, address); hasError(rows) {

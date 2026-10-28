@@ -165,7 +165,7 @@ func TestTestPlayInstallProfileWritesOnlyThePrivateFolderAndReplacesIt(t *testin
 		if err := s.model.SetAltitude(1, 1, height); err != nil {
 			t.Fatal(err)
 		}
-		m, err := f.x.testPlayMission(s.source, mustSaveBytes(t, s))
+		m, err := f.x.testPlayMission(s.source, mustSaveBytes(t, s), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

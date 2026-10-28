@@ -3303,5 +3303,9 @@ var Committed = Baseline{
 	// It rose for the trigger window's item list: the wizRow note in
 	// pkg/ui/mapeditorwizard.go, the doc comments of the new test in
 	// pkg/ui/mapeditorwizardchoice_test.go, and this note.
-	CommentBytes: 9876171,
+
+	// It rose for the test play's package route: the doc comments of
+	// checkMissionRoute and testPlayMission and of the new tests in
+	// pkg/game/mapedittestplayroute_test.go, and this note.
+	CommentBytes: 9877299,
 }
