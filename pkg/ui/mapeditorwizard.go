@@ -179,7 +179,9 @@ func (it wizItem) itemSlots() (types [10]uint32, at []int, fixed int) {
 // wizRow is one row: its item (-1 a pair or action kept as it stands), the
 // nodes it names now and, for a kept pair, its comparison; vals are its
 // field texts (the item, each parameter, then a chosen comparison) and orig
-// those it was read with, so an unchanged row keeps its nodes.
+// those it was read with, so an unchanged row keeps its nodes. origItem is
+// the item it was read with, -2 for a row added in the window: only a row
+// read as kept offers "Other" back.
 type wizRow struct {
 	condition        bool
 	item, origItem   int
@@ -483,7 +485,7 @@ func (e *MapEditor) wizardFields(v scriptView) {
 			}
 			choices = append(choices, InspectionChoice{int64(i), label})
 		}
-		if row.origItem < 0 {
+		if row.origItem == -1 {
 			choices = append(choices, InspectionChoice{-1, e.keptText(row)})
 		}
 		orig := row.orig
@@ -628,7 +630,7 @@ func (e *MapEditor) rewizard() {
 	for r := range w.rows {
 		row := &w.rows[r]
 		item, err := strconv.Atoi(strings.TrimSpace(row.vals[0]))
-		if err != nil || item < -1 || item >= len(wizItems(row.condition)) || item == -1 && row.origItem >= 0 {
+		if err != nil || item < -1 || item >= len(wizItems(row.condition)) || item == -1 && row.origItem != -1 {
 			item = row.item
 		}
 		if item == row.item {

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] The map editor no longer crashes when you add a condition or an action to a trigger and open its list: a new row lists only the ready conditions or actions, without the last choice "Other: Choose..." that closed the editor. A row the editor shows as "Other" still offers it, and choosing it again keeps that condition or action as it was.
 - [BASE] A map whose text pages exist only in the other language (for example only in the Russian folder on an English game) now shows those pages in the map editor and in the game; a page that exists in both languages shows the game's language. Before, such a map showed every page empty.
 - [ROM2] Dina now shows her portrait when she speaks, in town talks and in the missions: once she has joined, her lines show her, in what she is wearing. Before, her lines showed a man mage.
 - [ROM2] What the hero buys in the shop now goes with him into the mission: his bag's items are in his pack there, to wear, drop and pick up, and a bought potion can be drunk there; they stay after SAVE and LOAD, and after a won mission they are back in the bag at the next town, together with the items and potions he found, where the shop can sell them. Before, the bag stayed behind in town.

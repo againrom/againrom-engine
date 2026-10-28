@@ -3299,5 +3299,9 @@ var Committed = Baseline{
 	// of Mission.ReadTexts and readMissionTexts in pkg/mod/missions.go, the
 	// notes in pkg/game/maptextpages.go and pkg/game/modmission.go, and this
 	// note.
-	CommentBytes: 9874908,
+
+	// It rose for the trigger window's item list: the wizRow note in
+	// pkg/ui/mapeditorwizard.go, the doc comments of the new test in
+	// pkg/ui/mapeditorwizardchoice_test.go, and this note.
+	CommentBytes: 9876171,
 }
