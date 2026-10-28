@@ -32,6 +32,16 @@ type modesBase struct {
 	doc     func(InspectionEdits) *InspectionDocument
 	self    InspectionEdits
 	players []string
+	// relations are the relations SetField wrote, by player and the player
+	// it is toward; an unwritten one is 1.
+	relations map[[2]int]int64
+}
+
+func (p *modesBase) relation(i, j int) int64 {
+	if v, ok := p.relations[[2]int{i, j}]; ok {
+		return v
+	}
+	return 1
 }
 
 func (p *modesBase) next(format string, a ...any) (*InspectionDocument, error) {
@@ -62,16 +72,26 @@ func (p *modesBase) Fields(k string, i int) []InspectionField {
 		return []InspectionField{{Key: "a", Label: "First", Value: 11}, {Key: "b", Label: "Second", Value: 22}}
 	}
 	if k == "Player" && i >= 0 && i < len(p.players) {
-		return []InspectionField{
+		out := []InspectionField{
 			{Key: "name", Label: "Name", Text: true, TextValue: p.players[i]},
 			{Key: "colour", Label: "Colour (0..15)", Value: int64(i)},
 			{Key: "control", Label: "Control (0 human, 1 computer)", Value: 1},
-			{Key: "relation:0", Label: "Relation to Self", Value: 1},
 		}
+		for j, other := range p.players {
+			out = append(out, InspectionField{Key: fmt.Sprintf("relation:%d", j), Label: "Relation to " + other, Value: p.relation(i, j), Toward: j + 1})
+		}
+		return out
 	}
 	return nil
 }
 func (p *modesBase) SetField(k string, i int, key string, v int64) (*InspectionDocument, error) {
+	var j int
+	if _, err := fmt.Sscanf(key, "relation:%d", &j); err == nil && k == "Player" {
+		if p.relations == nil {
+			p.relations = map[[2]int]int64{}
+		}
+		p.relations[[2]int{i, j}] = v
+	}
 	return p.next("SetField %s %d %s %d", k, i, key, v)
 }
 func (p *modesBase) Undo() (*InspectionDocument, error) {

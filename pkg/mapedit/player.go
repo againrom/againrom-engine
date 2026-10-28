@@ -28,7 +28,7 @@ func playerFields(e *Editor, _ []byte) []Field {
 	out := append([]Field(nil), playerBaseFields...)
 	for i := 0; i < min(e.Count(KindPlayer), playerLimit); i++ {
 		out = append(out, Field{Key: fmt.Sprintf("relation%d", i), Label: fmt.Sprintf("Relation to player %d (0 neutral, 1 hostile, 2 ally)", i+1),
-			Offset: playerRelations + 2*i, Width: 2, Min: 0, Max: 2})
+			Offset: playerRelations + 2*i, Width: 2, Min: 0, Max: 2, Toward: i + 1})
 	}
 	return out
 }

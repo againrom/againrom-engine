@@ -137,6 +137,9 @@ type InspectionField struct {
 	// Shut lists choice values the list shows but refuses, each label
 	// carrying its reason.
 	Shut []int64
+	// Toward marks a player's relation field: the relation toward player
+	// Toward, counted from 1; zero for every other field.
+	Toward int
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.
@@ -180,6 +183,7 @@ type MapEditor struct {
 	selection                   selectionState
 	input                       editorInputState
 	place                       placeGrid
+	relations                   relationMatrix
 	groupsTop                   int    // the Groups window's first shown row
 	lastSeed                    uint32 // the seed the last whole-map command took
 	editorChrome

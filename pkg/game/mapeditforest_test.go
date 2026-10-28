@@ -255,10 +255,10 @@ func TestMapEditorForestPlantsTheShareOnOpenCellsOnly(t *testing.T) {
 		share int
 		set   func()
 	}{
-		{"sparse", 10, func() { d.button(4, 0, "Sparse") }},
-		{"medium", 25, func() { d.button(4, 1, "Medium") }},
-		{"dense", 50, func() { d.button(4, 2, "Dense") }},
-		{"solid", 100, func() { d.button(4, 3, "Solid") }},
+		{"sparse", 10, func() { d.button(4, 1, "Sparse") }},
+		{"medium", 25, func() { d.button(4, 2, "Medium") }},
+		{"dense", 50, func() { d.button(4, 3, "Dense") }},
+		{"solid", 100, func() { d.button(4, 4, "Solid") }},
 		{"typed 37", 37, func() {
 			d.button(3, 0, "the per cent button")
 			d.key("clear")
@@ -306,7 +306,7 @@ func TestMapEditorForestDragIsOneUndoStep(t *testing.T) {
 	d, x := newForestDriver(t, raw)
 	fenced := forestFenced(t, raw, x)
 	d.forest(2, 2)
-	d.button(4, 2, "Dense")
+	d.button(4, 3, "Dense")
 	path := []image.Point{{X: 24, Y: 16}, {X: 26, Y: 14}, {X: 30, Y: 20}, {X: 28, Y: 25}, {X: 32, Y: 26}}
 	d.stroke(false, path...)
 	planted := d.bytes()
@@ -348,11 +348,11 @@ func TestMapEditorForestRightButtonThinsTickedKindsOnly(t *testing.T) {
 	raw := forestMap(t)
 	d, _ := newForestDriver(t, raw)
 	d.forest(1, 16) // forestOakish alone
-	d.button(4, 3, "Solid")
+	d.button(4, 4, "Solid")
 	centre := image.Pt(20, 12)
 	d.stroke(false, centre)
 	planted := d.bytes()
-	d.button(4, 2, "Dense")
+	d.button(4, 3, "Dense")
 	d.stroke(true, centre)
 	thinned := d.bytes()
 	_, was := forestPlanes(t, planted)

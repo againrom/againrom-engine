@@ -205,8 +205,8 @@ func (e *MapEditor) forestPresetWord(i int) string {
 
 // forestPopupRows are the object brush's rows below the shape: the tool
 // with its One kind and Forest buttons and, in Forest mode, the density with
-// the button that asks for a typed per cent, a row of preset buttons and the
-// hint.
+// the button that asks for a typed per cent, a row of the button that clears
+// the marks, off while none is marked, and the preset buttons, and the hint.
 func (e *MapEditor) forestPopupRows() []popupRow {
 	tool := e.word("editor.brush.tool.one")
 	if e.brush.forest.on {
@@ -218,26 +218,30 @@ func (e *MapEditor) forestPopupRows() []popupRow {
 		return rows
 	}
 	buttons := make([]string, 0, len(forestShares)+1)
+	buttons = append(buttons, e.word("editor.brush.forest.clear"))
 	for i := range forestShares {
 		buttons = append(buttons, e.forestPresetWord(i))
 	}
 	rows = append(rows,
 		popupRow{Kind: popupText, Label: e.word("editor.brush.density"), Value: e.forestShareWord(), Buttons: []string{"%"}},
-		popupRow{Kind: popupText, Buttons: buttons},
+		popupRow{Kind: popupText, Buttons: buttons, Disabled: []bool{len(e.forestTicked()) == 0}},
 		popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), e.word("editor.brush.forest.hint"), 480)})
 	return rows
 }
 
 // forestRowButton is a press on button k of the tool row (row 2), the
-// density row's per cent button (row 3) or the presets row (row 4).
+// density row's per cent button (row 3) or the presets row (row 4), whose
+// first button unticks every kind in the grid and the list at once.
 func (e *MapEditor) forestRowButton(row, k int) {
 	switch {
 	case row == 2:
 		e.brush.forest.on = k == 1
 	case row == 3:
 		e.openPrompt(editorPrompt{kind: promptForestShare, path: strconv.Itoa(e.forestShare())})
-	case row == 4 && k < len(forestShares):
-		e.brush.forest.share = forestShares[k]
+	case row == 4 && k == 0:
+		e.brush.forest.ticks, e.message = nil, ""
+	case row == 4 && k <= len(forestShares):
+		e.brush.forest.share = forestShares[k-1]
 	}
 }
 

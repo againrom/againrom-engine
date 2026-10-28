@@ -27,16 +27,20 @@ const (
 	wpCell                            // "x,y", or a click on the map
 	wpBox                             // "x1,y1,x2,y2", or a box drawn on the map
 	wpMessage                         // a choice of message pages
+	wpCommand                         // a choice of the group commands that take a cell
 )
 
 // wizParam is one parameter of an item: its kind, its label's word, its
 // default number, and whether a node slot holds it (else the constant the
-// check is compared with does).
+// check is compared with does). A last parameter stands in the node's last
+// slots, as a group command's target group does (ALM-TRIG-045); the others
+// fill the slots from the first on.
 type wizParam struct {
 	kind      wizParamKind
 	labelWord string
 	def       int64
 	inNode    bool
+	last      bool
 }
 
 // wizItem is one entry of the ready list. A condition is its check compared
@@ -85,7 +89,8 @@ var wizConditions = []wizItem{
 // trigger), give a unit or group to a player
 // (PARTY-JOIN-025), move a unit (AI-SCRIPTGUARD-625), a unit or group off
 // and back on the map (TRIG-OFFMAP-041, TRIG-RETURN-042, TRIG-MAPGROUP-043)
-// and the drop cell the builder takes (TRIG-DROP-013).
+// and the drop cell the builder takes (TRIG-DROP-013), and a group order to
+// a cell (TRIG-GROUP-005, TRIG-GROUPBOUNDS-136).
 var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.gold", opcode: 23, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.gold", def: 500, inNode: true}}},
 	{labelWord: "editor.wizard.a.win", opcode: 4},
@@ -99,6 +104,9 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.groupoff", opcode: 32, params: []wizParam{pGroup}},
 	{labelWord: "editor.wizard.a.groupback", opcode: 33, params: []wizParam{pGroup}},
 	{labelWord: "editor.wizard.a.drop", opcode: scriptConstantOp, params: []wizParam{pPoint}},
+	{labelWord: "editor.wizard.a.order", opcode: scriptGroupCommand, params: []wizParam{
+		{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, last: true},
+		{kind: wpCommand, labelWord: "editor.wizard.p.command", def: 4, inNode: true}, pPoint}},
 }
 
 // scriptConstantOp is the build-time operation: a preset condition, or the
@@ -125,6 +133,8 @@ func paramTypes(k wizParamKind) []uint32 {
 		return []uint32{scriptX, scriptY}
 	case wpBox:
 		return []uint32{scriptX, scriptY, scriptX, scriptY}
+	case wpCommand:
+		return []uint32{scriptConst}
 	}
 	return []uint32{scriptInt}
 }
@@ -142,18 +152,28 @@ func (it wizItem) hasRadius() bool {
 // wizRadiusWord is the label word of a square's radius parameter.
 const wizRadiusWord = "editor.wizard.p.radius"
 
-// itemTypes are the slot types an item's node carries.
-func (it wizItem) itemTypes() []uint32 {
-	var out []uint32
+// itemSlots are the slot types an item's node carries, the slot each
+// parameter starts at (-1 for one no slot holds) and the slot its fixed
+// values start at.
+func (it wizItem) itemSlots() (types [10]uint32, at []int, fixed int) {
 	for _, p := range it.params {
-		if p.inNode {
-			out = append(out, paramTypes(p.kind)...)
+		t := paramTypes(p.kind)
+		switch {
+		case !p.inNode:
+			at = append(at, -1)
+		case p.last:
+			at = append(at, len(types)-len(t))
+			copy(types[len(types)-len(t):], t)
+		default:
+			at = append(at, fixed)
+			copy(types[fixed:], t)
+			fixed += len(t)
 		}
 	}
-	for _, f := range it.fixed {
-		out = append(out, f[0])
+	for k, f := range it.fixed {
+		types[fixed+k] = f[0]
 	}
-	return out
+	return types, at, fixed
 }
 
 // wizRow is one row: its item (-1 a pair or action kept as it stands), the
@@ -241,29 +261,20 @@ func (e *MapEditor) constantValue(id uint32) (int64, bool) {
 }
 
 // readParams are a node's parameter texts as item it reads them, false when
-// its slots are not the item's.
-func readParams(it wizItem, n InspectionScriptNode) ([]string, bool) {
-	if n.Opcode != it.opcode {
+// its slots are not the item's or its group command is not one the item
+// offers.
+func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode) ([]string, bool) {
+	want, at, fixed := it.itemSlots()
+	if n.Opcode != it.opcode || n.Types != want {
 		return nil, false
 	}
-	want := it.itemTypes()
-	for s := range n.Types {
-		t := uint32(0)
-		if s < len(want) {
-			t = want[s]
-		}
-		if n.Types[s] != t {
-			return nil, false
-		}
-	}
-	s := 0
 	var out []string
-	for _, p := range it.params {
-		if !p.inNode {
+	for k, p := range it.params {
+		if at[k] < 0 {
 			out = append(out, "")
 			continue
 		}
-		v := n.Values[s:]
+		v := n.Values[at[k]:]
 		switch p.kind {
 		case wpCell:
 			out = append(out, fmt.Sprintf("%d,%d", v[0], v[1]))
@@ -271,17 +282,40 @@ func readParams(it wizItem, n InspectionScriptNode) ([]string, bool) {
 			out = append(out, fmt.Sprintf("%d,%d,%d,%d", v[0], v[1], v[2], v[3]))
 		case wpNumber, wpMessage:
 			out = append(out, strconv.FormatInt(int64(int32(v[0])), 10))
+		case wpCommand:
+			if !slices.Contains(e.itemCommands(it), v[0]) {
+				return nil, false
+			}
+			out = append(out, strconv.FormatUint(uint64(v[0]), 10))
 		default:
 			out = append(out, strconv.FormatUint(uint64(v[0]), 10))
 		}
-		s += len(paramTypes(p.kind))
 	}
 	for k, f := range it.fixed {
-		if n.Values[s+k] != f[1] {
+		if n.Values[fixed+k] != f[1] {
 			return nil, false
 		}
 	}
 	return out, true
+}
+
+// itemCommands are the group commands whose signature, where a claim states
+// one, is item it's slots: for a target cell, 2, 4, 5 and 14
+// (TRIG-GROUPBOUNDS-136).
+func (e *MapEditor) itemCommands(it wizItem) []uint32 {
+	want, _, _ := it.itemSlots()
+	var out []uint32
+	for _, c := range e.doc.Script.Catalog.GroupCommands {
+		sig, ok := e.doc.Script.Catalog.signature(false, scriptGroupCommand, c)
+		var got [10]uint32
+		for s := range sig {
+			got[s] = sig[s].Type
+		}
+		if ok && got == want {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // readCondition is the item and field texts of the pair left cmp right, -1
@@ -293,7 +327,7 @@ func (e *MapEditor) readCondition(left, right, cmp uint32) (int, []string) {
 		return -1, []string{"-1"}
 	}
 	for i, it := range wizConditions {
-		params, ok := readParams(it, n)
+		params, ok := e.readParams(it, n)
 		if !ok || it.cmp >= 0 && uint32(it.cmp) != cmp || it.cmp < 0 && cmp > 5 {
 			continue
 		}
@@ -319,7 +353,7 @@ func (e *MapEditor) readAction(id uint32) (int, []string) {
 	n, ok := e.nodeByID(false, id)
 	if ok {
 		for i, it := range wizActions {
-			if params, ok := readParams(it, n); ok {
+			if params, ok := e.readParams(it, n); ok {
 				return i, append([]string{strconv.Itoa(i)}, params...)
 			}
 		}
@@ -480,6 +514,12 @@ func (e *MapEditor) wizardFields(v scriptView) {
 				n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 				f.Value = n
 				f.Choices = e.wizardChoices(p.kind, n)
+			case wpCommand:
+				n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+				f.Value = n
+				for _, c := range e.itemCommands(it) {
+					f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
+				}
 			default:
 				f.Text, f.TextValue = true, value
 			}
@@ -692,7 +732,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			pr := popupRow{Kind: popupEdit, Label: "  " + o.fields[i].Label, Value: o.buf[i]}
 			var buttons []string
 			switch p.kind {
-			case wpUnit, wpPlayer, wpGroup:
+			case wpUnit, wpPlayer, wpGroup, wpCommand:
 				pr.Kind, pr.Value = popupChoice, choiceText(o.fields[i], o.buf[i])
 				if p.kind == wpUnit {
 					buttons = []string{actPickUnit}
@@ -986,7 +1026,7 @@ func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, er
 	it := wizItems(row.condition)[row.item]
 	n := WizardNode{Opcode: it.opcode}
 	label := func(k int) string { return e.word(it.params[k].labelWord) }
-	s := 0
+	_, at, fixed := it.itemSlots()
 	var right int64
 	for k, p := range it.params {
 		text := strings.TrimSpace(row.vals[k+1])
@@ -1038,13 +1078,11 @@ func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, er
 			continue
 		}
 		for c, t := range paramTypes(p.kind) {
-			n.Types[s], n.Values[s] = t, uint32(int32(nums[c]))
-			s++
+			n.Types[at[k]+c], n.Values[at[k]+c] = t, uint32(int32(nums[c]))
 		}
 	}
-	for _, f := range it.fixed {
-		n.Types[s], n.Values[s] = f[0], f[1]
-		s++
+	for k, f := range it.fixed {
+		n.Types[fixed+k], n.Values[fixed+k] = f[0], f[1]
 	}
 	if !row.condition {
 		return n, 0, 0, nil

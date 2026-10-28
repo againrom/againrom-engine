@@ -60,6 +60,10 @@ type Brush struct {
 	// cells within the radius blend toward it by cosine from their own height
 	// (TERR-251). The brush is a circle of radius at least 1.
 	Set bool
+	// Flat, with Set, makes every cell the brush covers around every centre
+	// take Value, with no blend, in the brush's own shape and radius; the row
+	// step is then bounded as an added height's is.
+	Flat bool
 }
 
 // Scatter is the forest form of an object stroke. Each covered cell is drawn
@@ -107,10 +111,10 @@ func weight(f Falloff, d2, r int) int {
 	return cosineWeight[k]
 }
 
-// effective is b as it covers cells: a height-setting brush is a circle of
-// radius at least 1 (TERR-251).
+// effective is b as it covers cells: a height-setting brush that blends is a
+// circle of radius at least 1 (TERR-251).
 func (b Brush) effective() Brush {
-	if b.Set && b.Plane == PlaneHeight {
+	if b.Set && !b.Flat && b.Plane == PlaneHeight {
 		b.Shape, b.Radius = BrushCircle, max(b.Radius, 1)
 	}
 	return b
@@ -356,6 +360,14 @@ func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 	b = b.effective()
 	next := append([]byte(nil), old...)
 	in := make([]bool, len(old))
+	if b.Set && b.Flat {
+		target := byte(min(max(b.Value, 0), alm.MaxHeight))
+		for _, c := range at {
+			b.walk(c, w, h, func(x, y, _ int) { next[y*w+x], in[y*w+x] = target, true })
+		}
+		boundRows(next, in, at[0].Y, w)
+		return next
+	}
 	if b.Set {
 		// The first centre takes the target; each other cell within the radius
 		// blends from its own height toward it by the cosine of its distance

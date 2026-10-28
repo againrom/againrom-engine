@@ -18,6 +18,7 @@ var forestWordIDs = []string{
 	"editor.brush.density.dense",
 	"editor.brush.density.solid",
 	"editor.brush.forest.hint",
+	"editor.brush.forest.clear",
 	"editor.brush.forest.none",
 	"editor.brush.forest.status",
 	"editor.brush.share.bad",

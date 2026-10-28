@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -77,6 +78,63 @@ func TestMapEditorPlayersUseRecordFieldsAndOneEditPerKey(t *testing.T) {
 	_ = e.Key("players")
 	if e.filter != 0 {
 		t.Fatal("players key did not return to all records")
+	}
+}
+
+// The Players page shows the relations as a players x players matrix: row
+// i, column j a picture of player i's relation toward player j, the
+// diagonal inert. A click on a cell sets its next value as one host edit,
+// the SetField the field prompt writes; a value the claims do not name
+// shows as its number and a click starts it over at 0.
+func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
+	e, calls := newModesEditor(t, "full")
+	_ = e.Key("players")
+	s, ok := e.listSpec()
+	g := s.Grid
+	if !ok || g == nil || g.Rows != 2 || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||
+		!slices.Equal(g.ColHeads, []string{"1", "2"}) || !slices.Equal(g.RowHeads, []string{"Self", "Enemy"}) {
+		t.Fatalf("the Players page holds no 2x2 relation matrix: %+v", g)
+	}
+	legend := 0
+	for _, row := range s.Rows {
+		for v, w := range relationWords {
+			if row.Label == e.word(w) && len(row.Icons) == 1 && row.Icons[0] == relationIcon(int64(v)) {
+				legend++
+			}
+		}
+	}
+	if legend != 3 {
+		t.Fatalf("the matrix's legend names %d of the 3 values: %+v", legend, s.Rows)
+	}
+	cell, ok := e.PlaceGridCellRect(1)
+	if !ok {
+		t.Fatal("matrix cell 0,1 is not shown")
+	}
+	for _, want := range []int64{2, 0, 1} {
+		before := len(calls.lines)
+		chromeClick(e, center(cell))
+		if len(calls.lines) != before+1 || calls.lines[before] != fmt.Sprintf("SetField Player 0 relation:1 %d", want) {
+			t.Fatalf("a click on cell 0,1 made %q, want one SetField to %d", calls.lines[before:], want)
+		}
+		if s, _ := e.listSpec(); s.Grid == nil || s.Grid.Cells[1].Icon != relationIcon(want) {
+			t.Fatalf("cell 0,1 does not show %d after the click", want)
+		}
+	}
+	diagonal, _ := e.PlaceGridCellRect(3)
+	before := len(calls.lines)
+	chromeClick(e, center(diagonal))
+	if len(calls.lines) != before {
+		t.Fatal("a click on the diagonal made an edit", calls.lines[before:])
+	}
+	e.doc.Edits.(*modesFull).relations[[2]int{1, 0}] = 5
+	e.relations = relationMatrix{}
+	if s, _ := e.listSpec(); s.Grid.Cells[2].Icon != nil || s.Grid.Cells[2].Label != "5" {
+		t.Fatalf("an unnamed value shows as %+v", s.Grid.Cells[2])
+	}
+	other, _ := e.PlaceGridCellRect(2)
+	chromeClick(e, center(other))
+	if calls.lines[len(calls.lines)-1] != "SetField Player 1 relation:0 0" {
+		t.Fatal("a click on an unnamed value did not set 0", calls.lines)
 	}
 }
 

@@ -144,7 +144,7 @@ func TestReleaseMapEditorForestStrokeSavesAMapTheGameReads(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, before, x.table, radius)
 	e, _ := installedForest(t, x, forestScenario, radius)
-	r, ok := e.ListButtonRect(4, 2)
+	r, ok := e.ListButtonRect(4, 3)
 	(&editorClicker{t: t, now: time.Unix(55, 0)}).click(e, r, ok, "Dense")
 	forestPress(e, centre, false)
 	if !e.Dirty() {
@@ -224,7 +224,7 @@ func TestReleaseMapEditorForestWithoutAStrokeSavesUnchanged(t *testing.T) {
 			t.Fatal(err)
 		}
 		e, c := installedForest(t, x, key, 4)
-		for k := 0; k < 4; k++ {
+		for k := 1; k <= 4; k++ {
 			r, ok := e.ListButtonRect(4, k)
 			c.click(e, r, ok, "a density button")
 		}
@@ -278,7 +278,7 @@ func TestReleaseMapEditorForestFrames(t *testing.T) {
 	const radius = 6
 	centre := forestCentre(t, m, x.table, radius)
 	e, c := installedForest(t, x, forestScenario, radius)
-	r, ok := e.ListButtonRect(4, 2)
+	r, ok := e.ListButtonRect(4, 3)
 	c.click(e, r, ok, "Dense")
 	e.ShowCell(centre.Sub(image.Pt(8, 0)))
 	frame(e, "grid")

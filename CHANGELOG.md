@@ -17,6 +17,14 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] The trigger wizard has a new action, Order a group to a point: choose the group, the command (Swarm, Move, Swarm 2 or Patrol) and click the point on the map, and a shipped order of that kind opens as this row. A row of an editor window whose text ends in "..." shows its whole text under it while the pointer is over the row.
+- [BASE] Dragging inside a selection box in the map editor now moves the trees and other objects under the box together with its units, structures and sacks, as one undo step; the ground and its heights stay where they are. Before, the drag only drew a new box and the objects stayed behind.
+- [BASE] The map editor's Height tool has a new row, Sample height: press on a cell to take its height, and every cell the brush passes over while the button is held is set to that height, as one undo step.
+- [BASE] The map editor's Players page shows how every player stands toward every other as a grid of small pictures: a grey ring for neutral, a red cross for hostile, a green disc for ally. Click a square to switch it to the next relation; each click is one undo step.
+- [BASE] The map editor's Forest tool has a Clear marks button left of the density buttons: it unticks every marked kind in the grid and the list at once. It is greyed out while no kind is marked.
+
 ## 0.137.0
 
 ### For players

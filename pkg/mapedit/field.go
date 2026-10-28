@@ -49,6 +49,9 @@ type Field struct {
 	Element  int
 	Counter  int
 	Bit      uint32
+	// Toward is a player's relation field's other player, counted from 1;
+	// zero for every other field.
+	Toward int
 }
 
 // UnitField and UnitFieldCheck are the type-6 names of Field and FieldCheck.

@@ -51,3 +51,57 @@ func (s *mapInspectionEdits) CopyArea(refs []ui.RecordRef, box image.Rectangle) 
 	clip.patch, clip.origin = &p, box.Min
 	return clip, fmt.Sprintf(s.inspector.word("editor.selection.area"), box.Dx(), box.Dy(), len(clip.records)), nil
 }
+
+// MoveArea moves the records refs and the objects of the cell rectangle box
+// by offset cells as one edit, through the area copy's patch and its paste:
+// a patch of the cells box and its moved place span holds their tiles and
+// heights as they stand, no object on box and box's objects on the moved
+// cells, so its paste writes the object plane alone. The records then move
+// as MoveRecords moves them, on the moved objects. The moved box must lie on
+// the map.
+func (s *mapInspectionEdits) MoveArea(refs []ui.RecordRef, box image.Rectangle, offset image.Point) (ui.SelectionEdit, error) {
+	if offset == (image.Point{}) {
+		return ui.SelectionEdit{}, nil
+	}
+	w, h := s.model.GridSize()
+	span := box.Union(box.Add(offset))
+	if box.Empty() || !span.In(image.Rect(0, 0, w, h)) {
+		return ui.SelectionEdit{}, fmt.Errorf("the cells %v moved by %v leave the %dx%d map", box, offset, w, h)
+	}
+	from, err := s.model.CopyPatch(box.Min.X, box.Min.Y, box.Dx(), box.Dy())
+	if err != nil {
+		return ui.SelectionEdit{}, err
+	}
+	p, err := s.model.CopyPatch(span.Min.X, span.Min.Y, span.Dx(), span.Dy())
+	if err != nil {
+		return ui.SelectionEdit{}, err
+	}
+	moved := 0
+	if p.Objects != nil {
+		at := func(c image.Point) int { return (c.Y-span.Min.Y)*span.Dx() + c.X - span.Min.X }
+		for y := box.Min.Y; y < box.Max.Y; y++ {
+			for x := box.Min.X; x < box.Max.X; x++ {
+				p.Objects[at(image.Pt(x, y))] = 0
+			}
+		}
+		for i, b := range from.Objects {
+			p.Objects[at(image.Pt(box.Min.X+i%box.Dx(), box.Min.Y+i/box.Dx()).Add(offset))] = b
+			if b != 0 {
+				moved++
+			}
+		}
+	}
+	items, err := s.moveItems(refs, offset)
+	if err != nil {
+		return ui.SelectionEdit{}, err
+	}
+	objects := func(m *mapedit.Editor) (bool, error) {
+		return m.PastePatch(p, mapedit.Cell{X: span.Min.X, Y: span.Min.Y})
+	}
+	return s.groupEditOn(objects, items, s.inspector.word("editor.selection.moved"), func(*mapedit.Editor) []string {
+		if moved == 0 {
+			return nil
+		}
+		return []string{fmt.Sprintf(s.inspector.word("editor.selection.objects"), moved)}
+	}, refs)
+}

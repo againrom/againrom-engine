@@ -126,6 +126,9 @@ type editorRecordDrag struct {
 	// group is set when the record is one of several selected: the drag
 	// moves them all by the record's offset.
 	group bool
+	// box is set when the press fell inside the selection box: the drag
+	// moves the group with the objects under the box.
+	box bool
 	// area is the trigger area handle the drag carries; nil for a record.
 	area *areaHandle
 	// drop is the drop zone, plus one, the drag moves; 0 for none.
@@ -212,7 +215,10 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 				hit = i
 			}
 		}
-		if hit >= 0 {
+		if d, ok := e.boxPress(p, hit); ok {
+			e.recordDrag = d
+			e.doc.Viewer.dragging = false
+		} else if hit >= 0 {
 			r := e.doc.Records[hit]
 			x, y, _ := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 			e.recordDrag = &editorRecordDrag{kind: r.Kind, record: hit, index: r.Index, press: p, grab: image.Pt(x, y).Sub(r.Cell), cell: r.Cell, origin: r.Cell,
@@ -237,6 +243,9 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		e.cancelRecordDrag()
 		return true
 	}
+	if d.box {
+		cell = d.origin.Add(e.boxOffset(cell.Sub(d.origin)))
+	}
 	if math.Abs(float64(p.X-d.press.X)) > 4 || math.Abs(float64(p.Y-d.press.Y)) > 4 {
 		if !d.moved && e.selected != d.record && !d.group {
 			e.Select(d.record, false)
@@ -246,7 +255,9 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	d.cell = cell
 	if !in.PrimaryDown {
 		e.recordDrag = nil
-		if d.moved && d.group {
+		if d.moved && d.box {
+			_ = e.moveArea(cell.Sub(d.origin))
+		} else if d.moved && d.group {
 			_ = e.moveSelection(cell.Sub(d.origin))
 		} else if d.moved {
 			next, err := e.doc.Edits.Move(d.kind, d.index, cell)

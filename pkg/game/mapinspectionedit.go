@@ -229,7 +229,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	}
 	template := s.unitTemplate(k, index)
 	for _, f := range fields {
-		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil}
+		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
 			row.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
 		}

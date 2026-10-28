@@ -231,15 +231,25 @@ func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point
 	if offset == (image.Point{}) || len(refs) == 0 {
 		return ui.SelectionEdit{}, nil
 	}
+	items, err := s.moveItems(refs, offset)
+	if err != nil {
+		return ui.SelectionEdit{}, err
+	}
+	return s.groupEdit(items, s.inspector.word("editor.selection.moved"), nil, refs)
+}
+
+// moveItems are the placements that move every record by offset cells, each
+// keeping its fraction within the cell.
+func (s *mapInspectionEdits) moveItems(refs []ui.RecordRef, offset image.Point) ([]groupPlacement, error) {
 	var items []groupPlacement
 	for _, ref := range refs {
 		k, err := selectionKind(ref.Kind)
 		if err != nil {
-			return ui.SelectionEdit{}, err
+			return nil, err
 		}
 		x, y, err := s.model.Position(k, ref.Index)
 		if err != nil {
-			return ui.SelectionEdit{}, err
+			return nil, err
 		}
 		index := ref.Index
 		cell := image.Pt(int(x>>8), int(y>>8)).Add(offset)
@@ -248,7 +258,7 @@ func (s *mapInspectionEdits) MoveRecords(refs []ui.RecordRef, offset image.Point
 			return index, m.Move(k, index, nx, ny)
 		}})
 	}
-	return s.groupEdit(items, s.inspector.word("editor.selection.moved"), nil, refs)
+	return items, nil
 }
 
 // PasteRecords copies every record of the clip so that the clip's top-left

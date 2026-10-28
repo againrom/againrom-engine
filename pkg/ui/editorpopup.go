@@ -42,8 +42,10 @@ type popupRow struct {
 	Focus        bool       // the keyboard edits this row
 	Caret        int        // the caret's pixel offset in a focused edit
 	// Buttons are the captions of the row's own buttons, at its right end;
-	// a pick row without them carries the popup's PickLabel.
-	Buttons []string
+	// a pick row without them carries the popup's PickLabel. Disabled marks
+	// the buttons drawn greyed that take no press.
+	Buttons  []string
+	Disabled []bool
 	// Lines is a multi-line row's height in rows, zero for six; First is
 	// the first text line it shows while it is not typed in.
 	Lines, First int
@@ -68,19 +70,29 @@ type popupRowDrag struct {
 // popupGrid is a grid of picture cells as data: one widget for every grid
 // of pictures a popup shows. A cell is drawn pressed while it is the chosen
 // one and carries a tick while it is marked. Rows is how many rows show and
-// Top the first row shown; the columns follow the popup's width.
+// Top the first row shown; the columns follow the popup's width unless Cols
+// fixes them.
 type popupGrid struct {
 	Cells []popupGridCell
 	Side  int // a cell's side in pixels; zero is gridCellSide
 	Rows  int
 	Top   int
+	Cols  int
+	// RowHeads and ColHeads head a matrix: RowHeads[r] stands left of grid
+	// row r in a column HeadW pixels wide, ColHeads[c] above column c in a
+	// row one cell high.
+	RowHeads, ColHeads []string
+	HeadW              int
 }
 
-// popupGridCell is one cell of a grid.
+// popupGridCell is one cell of a grid. Label is drawn on a cell without a
+// picture; an Inert cell is drawn flat and takes no press.
 type popupGridCell struct {
 	Icon    *image.RGBA
+	Label   string
 	Pressed bool
 	Ticked  bool
+	Inert   bool
 }
 
 // gridCellSide is a grid cell's side when the grid names none.
@@ -98,12 +110,23 @@ func (g *popupGrid) height() int {
 	if g == nil {
 		return 0
 	}
-	return max(1, g.Rows)*g.side() + popupPad
+	return (max(1, g.Rows)+g.headRows())*g.side() + popupPad
+}
+
+// headRows is 1 when the grid's columns carry headings, else 0.
+func (g *popupGrid) headRows() int {
+	if len(g.ColHeads) > 0 {
+		return 1
+	}
+	return 0
 }
 
 // columns is how many cells a row of a grid width wide holds, its scroll bar
 // aside.
 func (g *popupGrid) columns(width int) int {
+	if g.Cols > 0 {
+		return g.Cols
+	}
 	return max(1, (width-widgetSpriteSize-2)/g.side())
 }
 
@@ -167,6 +190,7 @@ type popupRowRect struct {
 	Rect, Label, Control image.Rectangle
 	Button               image.Rectangle   // the first row button; empty otherwise
 	Buttons              []image.Rectangle // every row button, left to right
+	Off                  []bool            // the row's Disabled buttons
 	// Grip is a card row's drag handle and Card the card's whole box.
 	Grip, Card image.Rectangle
 }
@@ -192,6 +216,11 @@ type popupLayout struct {
 	Grid, GridBar                image.Rectangle
 	GridCells                    []image.Rectangle
 	GridFirst, GridCols, GridTop int
+	// GridRowHeads and GridColHeads are the shown headings' boxes, from
+	// row GridTop and column 0 on; GridInert marks the shown cells that
+	// take no press.
+	GridRowHeads, GridColHeads []image.Rectangle
+	GridInert                  []bool
 	// Drop is the card, counted among the spec's card rows, that a held card
 	// lands before, the card count for after the last, -1 for no drag;
 	// Marker is the bar drawn at that gap while the drop moves the card.
@@ -469,7 +498,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 				rr.Buttons[k] = image.Rect(x-w, y+1, x, y+pitch-1)
 				x -= w + 4
 			}
-			rr.Button = rr.Buttons[0]
+			rr.Button, rr.Off = rr.Buttons[0], row.Disabled
 			if rr.Control.Empty() {
 				rr.Label.Max.X = min(rr.Label.Max.X, x)
 			} else {
@@ -482,11 +511,19 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	l.Drop = -1
 	layoutCards(s, &l)
 	if g := s.Grid; g != nil {
-		side, shown := g.side(), max(1, g.Rows)
-		l.GridCols = g.columns(r.Dx() - 2*popupPad)
+		side, shown, top := g.side(), max(1, g.Rows), y
+		l.GridCols = g.columns(r.Dx() - 2*popupPad - g.HeadW)
 		total := g.totalRows(l.GridCols)
 		l.GridTop = max(0, min(g.Top, total-shown))
-		l.Grid = image.Rect(r.Min.X+popupPad, y, r.Min.X+popupPad+l.GridCols*side, y+shown*side)
+		x := r.Min.X + popupPad + g.HeadW
+		for c := 0; c < len(g.ColHeads) && c < l.GridCols; c++ {
+			l.GridColHeads = append(l.GridColHeads, image.Rect(x+c*side, y, x+(c+1)*side, y+side))
+		}
+		y += g.headRows() * side
+		for k := 0; k < shown && l.GridTop+k < len(g.RowHeads); k++ {
+			l.GridRowHeads = append(l.GridRowHeads, image.Rect(r.Min.X+popupPad, y+k*side, x, y+(k+1)*side))
+		}
+		l.Grid = image.Rect(x, y, x+l.GridCols*side, y+shown*side)
 		if total > shown {
 			l.GridBar = image.Rect(r.Max.X-popupPad-widgetSpriteSize, y, r.Max.X-popupPad, l.Grid.Max.Y)
 		}
@@ -494,8 +531,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		for i := l.GridFirst; i < len(g.Cells) && i < l.GridFirst+shown*l.GridCols; i++ {
 			at := image.Pt(l.Grid.Min.X+(i-l.GridFirst)%l.GridCols*side, y+(i-l.GridFirst)/l.GridCols*side)
 			l.GridCells = append(l.GridCells, image.Rectangle{Min: at, Max: at.Add(image.Pt(side, side))}.Inset(1))
+			l.GridInert = append(l.GridInert, g.Cells[i].Inert)
 		}
-		y += g.height()
+		y = top + g.height()
 	}
 	if s.List != nil {
 		l.List = newListBox(image.Rect(r.Min.X+popupPad, y, r.Max.X-popupPad-widgetSpriteSize-s.ListAside, y), max(1, s.ListRows), body)
@@ -590,7 +628,7 @@ func rowButtons(s popupSpec, row popupRow) []string {
 func (l popupLayout) rowButtonAt(p image.Point) (row, button int, ok bool) {
 	for _, r := range l.Rows {
 		for k, b := range r.Buttons {
-			if p.In(b) {
+			if p.In(b) && !(k < len(r.Off) && r.Off[k]) {
 				return r.Index, k, true
 			}
 		}
@@ -645,7 +683,7 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 		return popupGridBar, 0
 	}
 	for i, c := range l.GridCells {
-		if p.In(c) {
+		if p.In(c) && !l.GridInert[i] {
 			return popupGridPart, l.GridFirst + i
 		}
 	}
@@ -803,7 +841,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			}
 			drawFrame(dst, panelFrame(rr.Card.Intersect(l.Rect), ground, edge))
 			if row.Struck {
-				bodyText(label, row.Label, popupHintInk)
+				bodyText(label, editorClip(body, row.Label, label.Dx()-2), popupHintInk)
 				for k, b := range rr.Buttons {
 					drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
 				}
@@ -817,12 +855,12 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			}
 			label.Min.X += 18
 		}
-		bodyText(label, row.Label, ink.Label)
+		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
 		if row.Edit != nil {
 			drawEditorInput(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
 			for k, b := range rr.Buttons {
-				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
+				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 			}
 			continue
 		}
@@ -871,11 +909,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		case popupChoice, popupCard:
 			drawDropdown(dst, body, frames, dropdown{Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
 		default:
-			bodyText(rr.Control, row.Value, value)
+			bodyText(rr.Control, editorClip(body, row.Value, rr.Control.Dx()-2), value)
 		}
 		drawRowIcons(dst, body, l, rr, row)
 		for k, b := range rr.Buttons {
-			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Hover: pointerOK && pointer.In(b)})
+			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 		}
 	}
 	if !l.Marker.Empty() {
@@ -894,6 +932,84 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		disabled := i < len(s.Disabled) && s.Disabled[i]
 		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Hover: pointerOK && pointer.In(r)})
 	}
+	if tip, ok := popupTipAt(dst.Bounds(), title, body, s, l, pointer, pointerOK); ok {
+		drawFrame(dst, panelFrame(tip.Rect, ink.TitleGround, ink.Edge))
+		clip := dst.SubImage(tip.Rect.Inset(2)).(*image.RGBA)
+		for i, line := range tip.Lines {
+			body.Draw(clip, line, tip.Rect.Min.X+4, tip.Rect.Min.Y+4+i*fontHeight(body, 15), ink.Value)
+		}
+	}
+}
+
+// popupTip is the hover line: the whole text of a row the painter cuts,
+// wrapped to the row's width, in a box under the row.
+type popupTip struct {
+	Rect  image.Rectangle
+	Lines []string
+}
+
+// rowFull is shown row rr's whole text, label then value, and whether the
+// painter cuts any part of it: the label to its column, a value to its
+// control, by the same widths the painter clips to.
+func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, bool) {
+	if body == nil || row.Edit != nil || row.Kind == popupMultiline {
+		return "", false
+	}
+	full := strings.TrimSpace(row.Label + " " + row.Value)
+	if row.Kind == popupHeading {
+		f := title
+		if f == nil {
+			f = body
+		}
+		return full, f.Advance(row.Label) > rr.Rect.Dx()-4
+	}
+	label := rr.Label
+	if row.Kind == popupCard && !row.Struck {
+		label.Min.X += 18
+	}
+	cut := row.Label != "" && body.Advance(row.Label) > label.Dx()-2
+	room := -1
+	switch c := rr.Control; {
+	case c.Empty() || row.Value == "":
+	case row.Kind == popupSwitch:
+		room = c.Dx() - 12
+	case row.Kind == popupChoice || row.Kind == popupCard:
+		room = c.Dx() - min(c.Dx()/2, c.Dy()) - 2 - editTextX
+	case row.Kind == popupEdit || row.Kind == popupPick:
+		room = c.Dx() - 2 - editTextX
+	default:
+		room = c.Dx() - 2
+	}
+	if room >= 0 && body.Advance(row.Value) > room {
+		cut = true
+	}
+	return full, cut
+}
+
+// popupTipAt is the hover line of the shown row under p, false when the
+// pointer is over no row or the row shows its text whole. The box sits under
+// the row, or over it where bounds end first.
+func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l popupLayout, p image.Point, pointerOK bool) (popupTip, bool) {
+	if !pointerOK || body == nil {
+		return popupTip{}, false
+	}
+	for _, rr := range l.Rows {
+		if !p.In(rr.Rect) {
+			continue
+		}
+		full, cut := rowFull(title, body, s.Rows[rr.Index], rr)
+		if !cut {
+			return popupTip{}, false
+		}
+		lines := editorWrap(body, full, rr.Rect.Dx()-8)
+		h := len(lines)*fontHeight(body, 15) + 8
+		box := image.Rect(rr.Rect.Min.X, rr.Rect.Max.Y, rr.Rect.Max.X, rr.Rect.Max.Y+h)
+		if box.Max.Y > bounds.Max.Y {
+			box = box.Sub(image.Pt(0, h+rr.Rect.Dy()))
+		}
+		return popupTip{Rect: box, Lines: lines}, true
+	}
+	return popupTip{}, false
 }
 
 // drawRowIcons draws a row's pictures after its value, each square at the
@@ -923,9 +1039,34 @@ func drawRowIcons(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRe
 // picture, sunk and framed while chosen and ticked while marked, and the
 // grid's bar.
 func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *popupGrid, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool) {
+	head := func(r image.Rectangle, s string, centre bool) {
+		if body == nil || s == "" {
+			return
+		}
+		s = editorClip(body, s, r.Dx()-4)
+		x := r.Min.X + 2
+		if centre {
+			x = r.Min.X + (r.Dx()-body.Advance(s))/2
+		}
+		body.Draw(dst.SubImage(r).(*image.RGBA), s, x, r.Min.Y+(r.Dy()-fontHeight(body, 15))/2, ink.Label)
+	}
+	for k, r := range l.GridRowHeads {
+		head(r, g.RowHeads[l.GridTop+k], false)
+	}
+	for c, r := range l.GridColHeads {
+		head(r, g.ColHeads[c], true)
+	}
 	for i, c := range l.GridCells {
 		cell := g.Cells[l.GridFirst+i]
-		drawPushButton(dst, body, pushButton{Rect: c, Literal: true, Pressed: cell.Pressed, Inside: cell.Pressed, Hover: pointerOK && pointer.In(c)})
+		if cell.Inert {
+			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
+			continue
+		}
+		label, raise := "", 0
+		if cell.Icon == nil && cell.Label != "" {
+			label, raise = cell.Label, labelRaise(body)
+		}
+		drawPushButton(dst, body, pushButton{Rect: c, Label: label, Literal: true, LabelRaise: raise, Pressed: cell.Pressed, Inside: cell.Pressed, Hover: pointerOK && pointer.In(c)})
 		if cell.Pressed {
 			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
 		}

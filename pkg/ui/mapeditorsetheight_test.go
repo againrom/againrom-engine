@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -109,6 +110,58 @@ func TestSetHeightEscapeWritesNothing(t *testing.T) {
 	}
 	if e.brush.mode != brushHeight {
 		t.Fatal("Esc left the height brush")
+	}
+}
+
+// The fourth height row is Sample height: the press takes the pressed cell's
+// height, the status line shows it as the target while the button is held,
+// and the release is one stroke that sets every cell the brush covers along
+// the path to it. A press on another cell samples that cell. Set height
+// keeps its one-anchor stroke beside it.
+func TestSampleHeightPaintsThePressedHeightAlongTheDrag(t *testing.T) {
+	e, p, at := setHeightEditor(t)
+	_ = e.Key("down")
+	if !e.samplingHeight() || e.settingHeight() {
+		t.Fatal("the fourth height row is not Sample height")
+	}
+	if rows := e.brushRows(); len(rows) != 4 || rows[3] != "Sample height" {
+		t.Fatalf("height rows %q", rows)
+	}
+	pointerAt(e, at, true, 1)
+	for x := 21; x <= 24; x++ {
+		pointerAt(e, e.CellPoint(image.Pt(x, 20)), true, int64(x))
+	}
+	if s := e.statusText(); !strings.Contains(s, "target -27") {
+		t.Fatalf("status %q does not show the sample", s)
+	}
+	if len(p.strokes) != 0 {
+		t.Fatal("a stroke was written before the release")
+	}
+	pointerAt(e, e.CellPoint(image.Pt(24, 20)), false, 30)
+	if len(p.strokes) != 1 {
+		t.Fatalf("%d strokes", len(p.strokes))
+	}
+	s := p.strokes[0]
+	want := []image.Point{{20, 20}, {21, 20}, {22, 20}, {23, 20}, {24, 20}}
+	if s.Plane != BrushPlaneHeight || !s.Set || !s.Flat || s.Value != 37 || s.Radius != brushDefaultRadius || !slices.Equal(s.Cells, want) {
+		t.Fatalf("stroke %+v", s)
+	}
+	if e.brush.sampled || e.brush.down {
+		t.Fatal("the stroke outlived the release")
+	}
+	// The probe's document replaced the viewer; cell (18,22) is at 0.
+	e.ShowCell(image.Pt(20, 20))
+	other := e.CellPoint(image.Pt(18, 22))
+	pointerAt(e, other, true, 31)
+	pointerAt(e, other, false, 32)
+	if s := p.strokes[len(p.strokes)-1]; len(p.strokes) != 2 || s.Value != 0 || !s.Flat || len(s.Cells) != 1 {
+		t.Fatalf("strokes %+v", p.strokes)
+	}
+	_ = e.Key("up")
+	pointerAt(e, other, true, 33)
+	pointerAt(e, other, false, 34)
+	if s := p.strokes[len(p.strokes)-1]; len(p.strokes) != 3 || s.Flat || !s.Set {
+		t.Fatalf("Set height after Sample height wrote %+v", s)
 	}
 }
 

@@ -529,7 +529,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			s.Title = fmt.Sprintf(e.word("editor.node.condition"), v.node.ID)
 		}
 		for i, f := range o.fields {
-			row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), f.Label, 140), Value: o.buf[i]}
+			row := popupRow{Kind: popupEdit, Label: f.Label, Value: o.buf[i]}
 			if f.Key == "name" {
 				row.Value = e.editorHostText(o.buf[i])
 			}
@@ -903,6 +903,21 @@ func (e *MapEditor) PopupRowRect(n int) (image.Rectangle, bool) {
 		}
 	}
 	return image.Rectangle{}, false
+}
+
+// PopupRowFullText is the whole text of the object popup's row n and whether
+// the row cuts it, so that the hover line over the row shows it whole.
+func (e *MapEditor) PopupRowFullText(n int) (string, bool) {
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return "", false
+	}
+	for _, row := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if row.Index == n {
+			return rowFull(e.font, e.bodyFont(), s.Rows[n], row)
+		}
+	}
+	return "", false
 }
 
 // PopupButtonRect is the window rectangle of button n of the object popup's

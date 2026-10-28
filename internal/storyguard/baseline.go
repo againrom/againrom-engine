@@ -3128,5 +3128,25 @@ var Committed = Baseline{
 	// the Summon creature carry tests (pkg/sim/secondspell_test.go,
 	// pkg/game/originalholdings_test.go, pkg/game/secondspellrows_release_test.go)
 	// and the new pkg/game/secondseatworld_test.go.
-	CommentBytes: 9799220,
+
+	// It rose for the editor popup's hover line and the wizard's group order:
+	// doc comments on new code in pkg/ui/editorpopup.go, mapeditorwizard.go,
+	// mapeditortrigger.go, their tests and this note.
+
+	// It rose for the selection box's move: doc comments on new code in
+	// pkg/ui/mapeditorselection.go, mapeditormove.go, mapeditorterrain.go,
+	// pkg/game/mapinspectionterrain.go, their tests and this note.
+
+	// It rose for the height brush's Sample height row: doc comments on new
+	// code in pkg/mapedit/brush.go, pkg/ui/mapeditorbrush.go, their tests and
+	// this note.
+
+	// It rose for the Players page's relation matrix: doc comments on new
+	// code in pkg/ui/mapeditorplayers.go, the popup grid's headings in
+	// pkg/ui/editorpopup.go, the relation field's Toward in pkg/ui and
+	// pkg/mapedit, their tests and this note.
+	// It rose for the Forest tool's Clear marks button: the popup row's
+	// Disabled buttons in pkg/ui/editorpopup.go, pkg/ui/mapeditorforest.go,
+	// the new test and this note.
+	CommentBytes: 9810130,
 }

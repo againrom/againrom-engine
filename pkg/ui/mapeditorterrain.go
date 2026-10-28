@@ -19,9 +19,13 @@ type InspectionWholeMap interface {
 // InspectionAreaCopy is the optional seam of a host whose copy also takes the
 // terrain under a cell rectangle: the tiles, heights and objects of box with
 // the records refs, as one clip, whose paste puts box's top-left cell on the
-// target cell. refs may be empty.
+// target cell. refs may be empty. MoveArea moves the records refs and the
+// objects of box by offset cells as one edit: the objects go as a paste of
+// box's area puts them, the cells they leave hold none, and the tiles and
+// heights stay.
 type InspectionAreaCopy interface {
 	CopyArea(refs []RecordRef, box image.Rectangle) (InspectionClip, string, error)
+	MoveArea(refs []RecordRef, box image.Rectangle, offset image.Point) (SelectionEdit, error)
 }
 
 // The starting height a new map offers: 64 by default, 0 to 126 typed

@@ -376,6 +376,46 @@ func (e *MapEditor) moveSelection(offset image.Point) error {
 	return e.adoptSelection(h.MoveRecords(e.selection.refs, offset))
 }
 
+// boxPress is a press inside the selection box on no record, or on one the
+// group holds, of a host that moves an area: its drag moves the group with
+// the objects under the box. hit is the record the press would drag, or -1.
+func (e *MapEditor) boxPress(p image.Point, hit int) (*editorRecordDrag, bool) {
+	box := e.selection.box
+	_, area := e.doc.Edits.(InspectionAreaCopy)
+	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
+	cell := image.Pt(x, y)
+	if box.Empty() || !area || !ok || !cell.In(box) || hit >= 0 && !e.inSelection(hit) {
+		return nil, false
+	}
+	return &editorRecordDrag{record: -1, index: -1, press: p, cell: cell, origin: cell, group: true, box: true}, true
+}
+
+// boxOffset is offset cut so the selection box stays on the map.
+func (e *MapEditor) boxOffset(offset image.Point) image.Point {
+	b := e.selection.box
+	return image.Pt(max(-b.Min.X, min(offset.X, e.doc.Width-b.Max.X)), max(-b.Min.Y, min(offset.Y, e.doc.Height-b.Max.Y)))
+}
+
+// moveArea shifts the group and the objects under the selection box by
+// offset cells as one edit; the box follows what it moved.
+func (e *MapEditor) moveArea(offset image.Point) error {
+	h, ok := e.selectionHost()
+	area, isArea := h.(InspectionAreaCopy)
+	if !ok || !isArea {
+		e.noteSelection(e.word("editor.selection.nohost"), nil)
+		return nil
+	}
+	box := e.selection.box
+	r, err := area.MoveArea(e.selection.refs, box, offset)
+	if err := e.adoptSelection(r, err); err != nil {
+		return err
+	}
+	if r.Doc != nil {
+		e.selection.box = box.Add(offset)
+	}
+	return nil
+}
+
 // adoptSelection takes a group edit: its document, the records it leaves
 // selected and its note. An edit that changed nothing keeps the group.
 func (e *MapEditor) adoptSelection(r SelectionEdit, err error) error {
@@ -442,6 +482,8 @@ func (e *MapEditor) marqueeLines() []editorLine {
 		box = cellBox(m.from, m.to)
 	} else if _, area := e.doc.Edits.(InspectionAreaCopy); m != nil || box.Empty() || !area {
 		return nil
+	} else if d := e.recordDrag; d != nil && d.box && d.moved {
+		box = box.Add(d.cell.Sub(d.origin)) // preview only, as the records' marks
 	}
 	v := e.doc.Viewer
 	c := editorCondition

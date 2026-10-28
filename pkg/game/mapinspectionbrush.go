@@ -132,7 +132,7 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 	if !ok {
 		return false, fmt.Errorf("no brush plane %d", op.Plane)
 	}
-	b.Value, b.Radius, b.Shape, b.Set = op.Value, op.Radius, brushShapes[op.Shape], op.Set
+	b.Value, b.Radius, b.Shape, b.Set, b.Flat = op.Value, op.Radius, brushShapes[op.Shape], op.Set, op.Flat
 	if op.Plane == ui.BrushPlaneObjects && len(op.Forest.Kinds) > 0 {
 		var fenced []bool
 		if !op.Forest.Thin {
@@ -195,7 +195,7 @@ func strokeCells(op ui.BrushStroke) []mapedit.Cell {
 // model's own brush walk, so the marker shows what Paint writes.
 func (s *mapInspectionEdits) BrushCells(op ui.BrushStroke) []image.Point {
 	w, h := s.model.GridSize()
-	b := mapedit.Brush{Plane: brushPlanes[op.Plane].Plane, Radius: op.Radius, Shape: brushShapes[op.Shape], Set: op.Set}
+	b := mapedit.Brush{Plane: brushPlanes[op.Plane].Plane, Radius: op.Radius, Shape: brushShapes[op.Shape], Set: op.Set, Flat: op.Flat}
 	var out []image.Point
 	for _, c := range b.Footprint(strokeCells(op), w, h) {
 		out = append(out, image.Pt(c.X, c.Y))
