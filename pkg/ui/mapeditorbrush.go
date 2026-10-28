@@ -60,6 +60,19 @@ type BrushFill struct {
 	Variant int
 }
 
+// BrushHeightMode names how a Raise or Lower stroke lays its change: Step
+// adds it once to every cell the stroke covers, Level sets every covered
+// cell to the pressed cell's height plus it, Smooth adds it at every centre
+// faded from the centre to the rim. The zero value is Step.
+type BrushHeightMode uint8
+
+const (
+	HeightModeStep BrushHeightMode = iota
+	HeightModeLevel
+	HeightModeSmooth
+	heightModeCount
+)
+
 // BrushStroke is one pointer stroke as data: the plane, the value at each cell
 // (a terrain class, a height change, an object class code, or 1 to set and 0
 // to clear the tile word's impassable flag), the brush radius in cells, its
@@ -80,6 +93,8 @@ type BrushStroke struct {
 	// Flat, with Set, makes every cell the brush covers along Cells take
 	// Value, with no blend: the Sample height row's stroke.
 	Flat bool
+	// Mode, on the height plane without Set, is how the change Value is laid.
+	Mode BrushHeightMode
 }
 
 // InspectionBrushFill is the optional seam of a host that offers more than
@@ -112,11 +127,13 @@ const (
 	brushModeCount
 )
 
-// The brush settings the window offers: the radius a stroke starts with and
-// the height change each visited cell adds or takes.
+// The brush settings the window offers: the radius a stroke starts with, the
+// strength (the height change of a Raise or Lower stroke) it starts with,
+// and the strength's bound, the row step bound (TERR-245).
 const (
 	brushDefaultRadius = 2
 	brushHeightStep    = 8
+	brushMaxStrength   = 31
 )
 
 // brushKeyModes is the brush mode each brush key switches.
@@ -195,6 +212,10 @@ type brushState struct {
 	// sampled holds that stroke.
 	sample  int
 	sampled bool
+	// heightMode is the Raise and Lower rows' mode; strength their change,
+	// 0 until set (brushHeightStep).
+	heightMode BrushHeightMode
+	strength   int
 
 	radiusSet bool
 }
@@ -361,13 +382,20 @@ func (e *MapEditor) brushShapeWord(shape BrushShape) string {
 	return e.word("editor.brush.circle")
 }
 
+// brushLabelWidth is the label column of the brush list's rows.
+const brushLabelWidth = 90
+
 // brushPopupRows are the list's rows above the palette: the size with its
-// minus and plus buttons, and the shape with a button for each.
+// minus and plus buttons, and the shape with a button for each; the Height
+// tool adds the strength with its minus and plus buttons.
 func (e *MapEditor) brushPopupRows() []popupRow {
 	rows := []popupRow{
 		{Kind: popupText, Label: e.word("editor.brush.size"), Value: fmt.Sprint(e.brushRadius()), Buttons: []string{"-", "+"}},
 		{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
 			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}},
+	}
+	if e.brush.mode == brushHeight {
+		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.strength"), Value: fmt.Sprint(e.brushStrength()), Buttons: []string{"-", "+"}})
 	}
 	if e.brush.mode == brushTerrain && e.brushVariants() > 1 {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.fill"), Value: e.brushFillWord(),
@@ -446,7 +474,8 @@ func (e *MapEditor) setBrushFillButton(k int) {
 }
 
 // brushRowButton is a press on button k of the list's row: minus or plus on
-// the size row, Circle or Square on the shape row.
+// the size row, Circle or Square on the shape row, minus or plus on the
+// Height tool's strength row.
 func (e *MapEditor) brushRowButton(row, k int) {
 	switch row {
 	case 0:
@@ -454,7 +483,9 @@ func (e *MapEditor) brushRowButton(row, k int) {
 	case 1:
 		e.brush.shape = BrushShape(k)
 	case 2, 3, 4:
-		if e.brush.mode == brushObjects {
+		if e.brush.mode == brushHeight && row == 2 {
+			e.setBrushStrength(e.brushStrength() + 2*k - 1)
+		} else if e.brush.mode == brushObjects {
 			e.forestRowButton(row, k)
 		} else if row == 2 {
 			e.setBrushFillButton(k)
@@ -519,6 +550,9 @@ func (e *MapEditor) brushStatus() string {
 	}
 	if e.forestOn() {
 		return fmt.Sprintf(e.word("editor.brush.forest.status"), len(e.forestTicked()), e.forestShare(), e.brushRadius())
+	}
+	if e.raisingHeight() {
+		return fmt.Sprintf(e.word("editor.brush.height.status"), e.brushModeWord(e.brush.mode), rows[sel], e.heightModeWord(e.brush.heightMode), e.brushRadius(), e.brushStrength())
 	}
 	return fmt.Sprintf(e.word("editor.brush.status"), e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
 }
@@ -633,15 +667,18 @@ func (e *MapEditor) brushCommit() {
 	sel := e.brush.sel[e.brush.mode]
 	switch e.brush.mode {
 	case brushHeight:
-		op.Plane, op.Value = BrushPlaneHeight, brushHeightStep
+		op.Plane = BrushPlaneHeight
 		switch {
-		case sel == 1:
-			op.Value = -brushHeightStep
+		case sel < heightSetRow:
+			op.Value, op.Mode = e.brushStrength(), e.brush.heightMode
+			if sel == 1 {
+				op.Value = -op.Value
+			}
 		case set != nil:
 			op.Value, op.Set, op.Cells = set.target, true, []image.Point{set.anchor}
 		case sampled:
 			op.Value, op.Set, op.Flat = sample, true, true
-		case sel == heightSetRow || sel == heightSampleRow:
+		default:
 			return
 		}
 	case brushObjects:

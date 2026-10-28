@@ -683,7 +683,7 @@ func (e *MapEditor) listWindow() int {
 		return e.listFit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight() - e.forestGridHeight() - e.relationGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight() - e.forestGridHeight() - e.heightModeGridHeight() - e.relationGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -730,8 +730,10 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		}
 	case "brush":
 		s.Rows = e.brushPopupRows()
-		s.Width, s.LabelWidth, s.ListAside = e.popupWide(popList, 520), 90, e.brushAside()
+		s.Width, s.LabelWidth, s.ListAside = e.popupWide(popList, 520), brushLabelWidth, e.brushAside()
 		if g, ok := e.forestGridSpec(); ok {
+			s.Grid = g
+		} else if g, ok := e.heightModeGridSpec(); ok {
 			s.Grid = g
 		}
 	case "catalog":
@@ -1480,7 +1482,9 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 		if s, ok := e.listSpec(); ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
-					e.forestGridWheel(l, rows)
+					if e.forestOn() {
+						e.forestGridWheel(l, rows)
+					}
 				} else if e.filter != editorPlayersFilter {
 					e.placeGridWheel(l, rows)
 				}
@@ -1608,6 +1612,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			}
 		case popupGridPart:
 			switch {
+			case e.listKind() == "brush" && e.brush.mode == brushHeight:
+				e.heightModePress(n)
 			case e.listKind() == "brush":
 				e.forestGridPress(n)
 			case e.filter == editorPlayersFilter:

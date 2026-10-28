@@ -125,6 +125,9 @@ var brushPlanes = map[ui.BrushPlane]mapedit.Brush{
 }
 
 // paintStroke runs a window stroke on the model as one brush of its plane. A
+// Raise or Lower stroke's mode is data on the height brush: Step adds the
+// change once to each covered cell with no fall-off, Level is the flat set
+// at the pressed cell's height plus the change, Smooth the cosine add. A
 // forest stroke draws from a fresh seeded source and is fenced off the cells
 // the table's structure footprints attach; a nil table fences none.
 func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bool, error) {
@@ -133,6 +136,14 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 		return false, fmt.Errorf("no brush plane %d", op.Plane)
 	}
 	b.Value, b.Radius, b.Shape, b.Set, b.Flat = op.Value, op.Radius, brushShapes[op.Shape], op.Set, op.Flat
+	if op.Plane == ui.BrushPlaneHeight && !op.Set {
+		switch op.Mode {
+		case ui.HeightModeStep:
+			b.Falloff, b.Once = mapedit.FalloffNone, true
+		case ui.HeightModeLevel:
+			b.Set, b.Flat, b.Relative = true, true, true
+		}
+	}
 	if op.Plane == ui.BrushPlaneObjects && len(op.Forest.Kinds) > 0 {
 		var fenced []bool
 		if !op.Forest.Thin {

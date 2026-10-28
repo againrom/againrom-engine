@@ -86,7 +86,7 @@ func TestBrushWindowFillRowChoosesTheCentreFill(t *testing.T) {
 }
 
 // A host without tile variants shows no fill row, and the height brush shows
-// none either.
+// none either: its third row is the strength.
 func TestBrushWindowHasNoFillRowWithoutVariants(t *testing.T) {
 	e, _ := brushEditor(t)
 	_ = e.Key("terrain")
@@ -95,7 +95,7 @@ func TestBrushWindowHasNoFillRowWithoutVariants(t *testing.T) {
 	}
 	e2, _ := fillEditor(t)
 	_ = e2.Key("height")
-	if s, _ := e2.listSpec(); len(s.Rows) != 2 {
+	if s, _ := e2.listSpec(); len(s.Rows) != 3 || s.Rows[2].Label != "Strength" {
 		t.Fatalf("height brush rows %+v", s.Rows)
 	}
 }

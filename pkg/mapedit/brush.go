@@ -64,6 +64,13 @@ type Brush struct {
 	// take Value, with no blend, in the brush's own shape and radius; the row
 	// step is then bounded as an added height's is.
 	Flat bool
+	// Relative, with Set and Flat, makes Value the change from the height of
+	// the first centre's cell: the stroke levels its path at that height
+	// plus Value, clamped to 0..127.
+	Relative bool
+	// Once, on the height plane without Set, adds the change to each cell
+	// the stroke covers once, however many centres cover it.
+	Once bool
 }
 
 // Scatter is the forest form of an object stroke. Each covered cell is drawn
@@ -361,7 +368,11 @@ func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 	next := append([]byte(nil), old...)
 	in := make([]bool, len(old))
 	if b.Set && b.Flat {
-		target := byte(min(max(b.Value, 0), alm.MaxHeight))
+		v := b.Value
+		if b.Relative {
+			v += int(old[at[0].Y*w+at[0].X])
+		}
+		target := byte(min(max(v, 0), alm.MaxHeight))
 		for _, c := range at {
 			b.walk(c, w, h, func(x, y, _ int) { next[y*w+x], in[y*w+x] = target, true })
 		}
@@ -418,10 +429,14 @@ func abs(v int) int { return max(v, -v) }
 
 // addHeights adds the brush's change, faded by its fall-off, to next at every
 // cell the brush covers around the centres at, and marks those cells in in.
+// With Once a cell already marked takes no further change.
 func (b Brush) addHeights(next []byte, in []bool, at []Cell, w, h int) {
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, d2 int) {
 			i := y*w + x
+			if b.Once && in[i] {
+				return
+			}
 			in[i] = true
 			v := int(next[i]) + b.Value*weight(b.Falloff, d2, b.Radius)/64
 			next[i] = byte(min(max(v, 0), alm.MaxHeight))

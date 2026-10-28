@@ -153,6 +153,9 @@ func (p *modesFull) BrushObjects() []BrushObject {
 func (p *modesFull) BrushMaxRadius() int                    { return 16 }
 func (p *modesFull) BrushCells(s BrushStroke) []image.Point { return probeBrushCells(s, 64, 64) }
 func (p *modesFull) Paint(s BrushStroke) (*InspectionDocument, error) {
+	if s.Plane == BrushPlaneHeight && !s.Set {
+		return p.next("Paint %v %d %d %d mode %d", true, s.Value, s.Radius, len(s.Cells), s.Mode)
+	}
 	return p.next("Paint %v %d %d %d", s.Plane == BrushPlaneHeight, s.Value, s.Radius, len(s.Cells))
 }
 
@@ -363,6 +366,20 @@ func modesAct(e *MapEditor, name string) string {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			modesClick(e, center(l.List.Row(0)))
 		}
+	case "ui:height-mode1", "ui:height-mode2":
+		if s, ok := e.listSpec(); ok && s.Grid != nil {
+			if cells := layoutPopup(s, e.font, e.bodyFont()).GridCells; len(cells) == 3 {
+				modesClick(e, center(cells[int(name[len(name)-1]-'0')]))
+			}
+		}
+	case "ui:strength-plus":
+		if s, ok := e.listSpec(); ok {
+			for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+				if rr.Index == 2 && len(rr.Buttons) == 2 {
+					modesClick(e, center(rr.Buttons[1]))
+				}
+			}
+		}
 	case "ui:wheel-list":
 		modesWheel(e)
 	case "ui:esc-twice":
@@ -565,6 +582,11 @@ var modesPaths = []modesPath{
 	{"player-number", []string{"players", "down", "field", "tab"}},
 	{"paste-armed", []string{"ui:select0", "copy", "paste"}},
 	{"paste-group", []string{"ui:group", "copy", "paste"}},
+	// Four height rows keep the plain and mod hosts' sampled rows in place.
+	{"height-stroke", []string{"height", "ui:press-cell"}},
+	{"height-level", []string{"height", "ui:height-mode1", "ui:press-cell"}},
+	{"height-smooth", []string{"height", "ui:height-mode2", "ui:press-cell"}},
+	{"height-strength", []string{"height", "ui:strength-plus", "ui:strength-plus"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the

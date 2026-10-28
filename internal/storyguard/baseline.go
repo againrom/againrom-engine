@@ -3228,5 +3228,12 @@ var Committed = Baseline{
 	// hover in popupTipAt and drawTextUp in pkg/ui/editorpopup.go, of
 	// relationNameWords and relationGridSpec in pkg/ui/mapeditorplayers.go,
 	// the new tests' comments and this note.
-	CommentBytes: 9835983,
+
+	// It rose for the map editor's Height tool modes and strength: the doc
+	// comments of Brush.Relative, Brush.Once and addHeights in
+	// pkg/mapedit/brush.go, of paintStroke in pkg/game/mapinspectionbrush.go,
+	// of BrushHeightMode, BrushStroke.Mode, the brush settings, brushState
+	// and the brush rows in pkg/ui/mapeditorbrush.go, of the new
+	// pkg/ui/mapeditorheightmode.go, the new tests' comments and this note.
+	CommentBytes: 9841460,
 }

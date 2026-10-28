@@ -174,6 +174,9 @@ func (e *MapEditor) hoverHeight() (string, bool) {
 	if e.brush.sampled && e.brush.down {
 		return fmt.Sprintf(e.word("editor.height.target"), h-HeightLabelZero, e.brush.sample-HeightLabelZero), true
 	}
+	if target, ok := e.levelTarget(); ok {
+		return fmt.Sprintf(e.word("editor.height.target"), h-HeightLabelZero, target-HeightLabelZero), true
+	}
 	return fmt.Sprintf(e.word("editor.height.cell"), h-HeightLabelZero), true
 }
 
