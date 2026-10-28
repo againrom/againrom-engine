@@ -51,8 +51,46 @@ func companionSheets() missionSource {
 		"graphics/equipment/mfighter/1.256":  invBaseSheet(),
 		"graphics/equipment/mfighter/46.256": invBaseSheet(),
 		"graphics/equipment/mfighter/49.256": invBaseSheet(),
+		"graphics/equipment/mmage/1.256":     invBaseSheet(),
+		"graphics/equipment/fmage/20.256":    invBaseSheet(),
 	}
 }
+
+// dinaSpeakerTable is companionSpeakerTable with the rows of key 23: the man
+// mage whose own server id is 23 and Mage_Hero (server id 10230, face 20), the
+// row identity 23 is built from.
+func dinaSpeakerTable() *mapload.Table {
+	t := companionSpeakerTable()
+	mage := func(name string, serverID, face, gender int32) dbEntry {
+		e := companionHumansRow(name, serverID, face)
+		e.params[16], e.params[18] = 23, gender
+		return e
+	}
+	t.Humans = append(t.Humans.(dbCollection),
+		mage("ManMage_Unarmed", 23, 1, 0), mage("Mage_Hero", 10230, 20, 1))
+	return t
+}
+
+// dinaParty is the hero, with iglez identity 22 (face 49) and with dina
+// identity 23 (a woman mage, face 20), in the order the producer adds them.
+func dinaParty(iglez, dina bool) []mapload.PartyMember {
+	party := companionParty(iglez)
+	if dina {
+		party = append(party, mapload.PartyMember{ID: "npc:23", CompanionNPC: 23, PlayerCharacter: true, Class: 23,
+			FigureDir: string(data.FigureDirWomanMage), FigureFace: 20})
+	}
+	return party
+}
+
+// dinaFigures is what each speaker of the second game draws: Dina is a hero
+// woman mage, the table's row at key 23 a man mage who is not a hero.
+var (
+	dinaFigure      = figureID{Dir: data.FigureDirWomanMage, Face: 20, Hero: true}
+	manMageFigure   = figureID{Dir: data.FigureDirManMage, Face: 1}
+	iglezFigure     = figureID{Dir: data.FigureDirManFighter, Face: 49, Hero: true}
+	heroFigure      = figureID{Dir: data.FigureDirManFighter, Face: 1, Hero: true}
+	innPatronFigure = figureID{Dir: data.FigureDirManFighter, Face: 46}
+)
 
 // companionFace runs one SpeakerFace on a fresh cache and returns the figure
 // it composed.
@@ -133,5 +171,78 @@ func TestSecondGameMissionLineDrawsTheCompanionIdentity(t *testing.T) {
 	first.Edition = &edition
 	if rec, held := speakerFaces(first)[22]; held {
 		t.Fatalf("first game record 22 = %+v, want none", rec)
+	}
+}
+
+type dinaCase struct {
+	name    string
+	iglez   bool
+	dina    bool
+	speaker int
+	want    figureID
+}
+
+var dinaCases = []dinaCase{
+	{"Dina in the party", true, true, 23, dinaFigure},
+	{"Dina and no Iglez", false, true, 23, dinaFigure},
+	{"no member of identity 23", true, false, 23, manMageFigure},
+	{"the hero alone", false, false, 23, manMageFigure},
+	{"Iglez with Dina", true, true, 22, iglezFigure},
+	{"the hero with Dina", true, true, 21, heroFigure},
+	{"the inn patron with Dina", true, true, 2108, innPatronFigure},
+}
+
+// In a second-game town talk a line of NPC 23 draws the carried member of
+// identity 23, Dina, once she is in the party; with no such member it draws
+// the Humans row whose own server id is 23, as before. The other speakers keep
+// their faces.
+func TestSecondGameTownTalkDrawsDina(t *testing.T) {
+	faces := speakerFaces(dinaSpeakerTable())
+	for _, tc := range dinaCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := speakerResolver{src: companionSheets(), npcFaces: faces, cast: newSpeakerCast(dinaParty(tc.iglez, tc.dina), nil)}
+			if got := companionFace(t, r, tc.speaker); got != tc.want {
+				t.Fatalf("speaker %d drew %+v, want %+v", tc.speaker, got, tc.want)
+			}
+		})
+	}
+}
+
+// In a second-game mission the same lines draw from the mission's own cast.
+func TestSecondGameMissionLineDrawsDina(t *testing.T) {
+	faces := speakerFaces(dinaSpeakerTable())
+	for _, tc := range dinaCases {
+		t.Run(tc.name, func(t *testing.T) {
+			party := dinaParty(tc.iglez, tc.dina)
+			var ids []sim.EntityID
+			var entities []sim.Entity
+			var stocks []sim.Stock
+			for i := range party {
+				id := sim.EntityID(124 + i)
+				ids = append(ids, id)
+				entities = append(entities, sim.Entity{ID: id, X: int32(3 + 2*i), Y: 3, HP: 10, MaxHP: 10})
+				stocks = append(stocks, sim.Stock{ID: id})
+			}
+			w, err := sim.NewStockedWorld(1, sim.Bounds{Width: worldFixtureW, Height: worldFixtureH},
+				sim.ModeCanonical, sim.Terrain{}, entities, nil, sim.Relations{}, nil, stocks)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mw := &mapWorld{
+				world:         w,
+				mission:       &missionNotices{src: companionSheets(), party: party},
+				npcFaces:      faces,
+				speakerActors: missionSpeakers(nil, nil, nil, party, ids, nil),
+			}
+			mw.figurePics = map[figureCacheKey]*image.RGBA{}
+			if _, _, ok := mw.SpeakerFace(tc.speaker); !ok || len(mw.figurePics) != 1 {
+				t.Fatalf("speaker %d: ok %v, %d figures composed", tc.speaker, ok, len(mw.figurePics))
+			}
+			for key := range mw.figurePics {
+				if key.fig != tc.want {
+					t.Errorf("speaker %d drew %+v, want %+v", tc.speaker, key.fig, tc.want)
+				}
+			}
+		})
 	}
 }

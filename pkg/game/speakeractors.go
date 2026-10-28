@@ -337,11 +337,16 @@ func (c speakerCast) resolve(rec data.NPCFace) (speakerActor, bool) {
 // resolveNPC is resolve with the companion who joined as record npc tried
 // first, so a line of npc23 shows Danath or Naira and not another live hero
 // the same predicate admits. The original's candidate order is not decoded
-// (entitySpeakers); this order is ours (DIV-3150).
+// (entitySpeakers); this order is ours (DIV-3150). A record that holds a
+// Joined record admits the member by that one (DIV-4203).
 func (c speakerCast) resolveNPC(npc int32, rec data.NPCFace) (speakerActor, bool) {
 	if c.alive != nil && npc != 0 {
+		member := rec
+		if rec.Joined != nil {
+			member = *rec.Joined
+		}
 		for _, a := range c.actors {
-			if a.npc == npc && c.alive(a.id) && c.matches(rec, a) {
+			if a.npc == npc && c.alive(a.id) && c.matches(member, a) {
 				return a, true
 			}
 		}

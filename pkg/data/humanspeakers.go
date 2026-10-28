@@ -5,8 +5,10 @@ package data
 // at key me when positive. Server ids above 10000 give colliding keys
 // (R2-ENGINE-072) and no record, except a row companions names: companions
 // maps a row's server id to the identity key the party member built from it
-// carries. That record is a hero, never the player's own, and fills its key
-// only where no row's own server id is that key (DIV-4199).
+// carries. That record is a hero, never the player's own. It fills its key
+// where no row's own server id is that key (DIV-4199); where one is, the
+// row's record keeps the key and holds the hero's as Joined, which a speaker
+// of that identity in the party draws instead.
 func HumanSpeakerFaces(c Collection, me int32, companions map[int32]int32, outfit func(row int) Equipment) map[int32]NPCFace {
 	out := map[int32]NPCFace{}
 	joined := map[int32]NPCFace{}
@@ -46,7 +48,10 @@ func HumanSpeakerFaces(c Collection, me int32, companions map[int32]int32, outfi
 		}
 	}
 	for key, rec := range joined {
-		if _, held := out[key]; !held {
+		if own, held := out[key]; held {
+			own.Joined = &rec
+			out[key] = own
+		} else {
 			out[key] = rec
 		}
 	}

@@ -283,6 +283,76 @@ func TestReleaseSecondIglezTalksDrawHisPortrait(t *testing.T) {
 	}
 }
 
+// TestReleaseSecondDinaTalksDrawHerPortrait: once Dina is in the party, every
+// page of the town talk npc23talk49 whose speaker is NPC 23 draws her, a woman
+// mage who is a hero, and not the man mage the row at key 23 is (DIV-4203); in
+// mission 50 a line of NPC 23 draws the live Dina and a line of NPC 22 still
+// draws Iglez.
+func TestReleaseSecondDinaTalksDrawHerPortrait(t *testing.T) {
+	f, app, s, _ := secondTownTwo(t)
+	in := f.townInstall()
+	if !f.CampaignSession.addPartyIdentity(in, 22) || !f.CampaignSession.addPartyIdentity(in, 23) {
+		t.Fatalf("the party holds identities %v, want 21, 22 and 23", secondCarriedIdentities(f))
+	}
+	payload, err := readSecondTownTalk(&f.InstallResources, "npc23talk49")
+	if err != nil || len(payload) == 0 {
+		t.Fatalf("no npc23talk49 section: %v", err)
+	}
+	s.setTownDialogue(payload)
+	lines := 0
+	for page := 0; page < 64; page++ {
+		v := s.talkSource.talkView()
+		if !v.Open {
+			break
+		}
+		r, _ := s.dialoguePart()
+		if speaker, named := tagSpeaker(r.tag); named && v.Page.Portrait && speaker == 23 {
+			lines++
+			if v.Page.Face == nil {
+				t.Fatalf("page %d (%q): speaker 23 draws no face", page, r.tag)
+			}
+		}
+		if err := app.HeadlessActivate("notice"); err != nil {
+			break
+		}
+	}
+	dina := figureID{Dir: "fmage", Face: 20, Hero: true}
+	drawn := map[figureID]bool{}
+	for key := range s.talkFaces.figurePics {
+		drawn[key.fig] = true
+	}
+	if lines == 0 || !drawn[dina] || drawn[figureID{Dir: "mmage", Face: 1}] {
+		t.Fatalf("%d lines of speaker 23, figures drawn %v, want Dina %+v and no man mage", lines, drawn, dina)
+	}
+	c := f.Town.second
+	c.available = append(c.available, partyPlace{1, 50})
+	secondLaterChoose(t, app, "GATES")
+	secondLaterEnter(t, f, app, 50)
+	composed := func(speaker int) figureID {
+		f.live.figurePics = map[figureCacheKey]*image.RGBA{}
+		if _, _, ok := f.live.SpeakerFace(speaker); !ok || len(f.live.figurePics) != 1 {
+			t.Fatalf("mission 50 speaker %d: ok %v, %d figures composed", speaker, ok, len(f.live.figurePics))
+		}
+		for key := range f.live.figurePics {
+			return key.fig
+		}
+		return figureID{}
+	}
+	var iglez figureID
+	for _, a := range f.live.speakerActors {
+		if a.npc == 22 {
+			iglez = a.fig
+		}
+	}
+	iglez.Hero = true
+	if got := composed(23); got != dina {
+		t.Fatalf("mission 50 speaker 23 drew %+v, want the live Dina %+v", got, dina)
+	}
+	if got := composed(22); got != iglez || iglez.Dir == "" {
+		t.Fatalf("mission 50 speaker 22 drew %+v, want the live Iglez %+v", got, iglez)
+	}
+}
+
 // TestReleaseSecondMissionThirtyWithoutTheTalk is the loss control: mission
 // 30 offered without the talk starts with the hero alone and leaves 10002
 // unbound.

@@ -3287,5 +3287,12 @@ var Committed = Baseline{
 	// reworded KeptUnit in pkg/secondshop/bag.go and their tests, of
 	// secondMissionItem in pkg/game/secondparty.go, and of the potion tests in
 	// pkg/game/secondbagcarry_test.go and the release file.
-	CommentBytes: 9872122,
+
+	// It rose for the party identity's joined speaker record: the doc
+	// comments of NPCFace.Joined in pkg/data/npcface.go, of HumanSpeakerFaces
+	// in pkg/data/humanspeakers.go and of resolveNPC in
+	// pkg/game/speakeractors.go, the new tests' comments in
+	// pkg/data/humanspeakers_test.go, pkg/game/speakercompanion_test.go and
+	// pkg/game/secondcompanionjoin_release_test.go, and this note.
+	CommentBytes: 9874076,
 }

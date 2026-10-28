@@ -67,8 +67,17 @@ func TestHumanSpeakerFacesCompanionRow(t *testing.T) {
 	if iglez.Tokens != want {
 		t.Fatalf("22 tokens = %b, want %b", iglez.Tokens, want)
 	}
-	if mage := faces[23]; mage.Dir != FigureDirFor(true, false) || mage.Face != 1 || mage.Tokens.Has(NPCTokenHero) {
+	mage := faces[23]
+	if mage.Dir != FigureDirFor(true, false) || mage.Face != 1 || mage.Tokens.Has(NPCTokenHero) {
 		t.Fatalf("23 = %+v, want the row at its own server id 23", mage)
+	}
+	dina := mage.Joined
+	if dina == nil || dina.Dir != FigureDirFor(true, true) || dina.Face != 20 || dina.Joined != nil ||
+		!dina.Tokens.Has(NPCTokenHero) || !dina.Tokens.Has(NPCTokenNotMe) || dina.Tokens.Has(NPCTokenHuman) {
+		t.Fatalf("23 joined = %+v, want the hero record of the row at server id 10230", dina)
+	}
+	if iglez.Joined != nil {
+		t.Fatalf("22 joined = %+v, want none: no row holds the key", iglez.Joined)
 	}
 	if me := faces[21]; me.Kind != NPCNoPicture || !me.Tokens.Has(NPCTokenMe) {
 		t.Fatalf("21 = %+v, want the player's key", me)

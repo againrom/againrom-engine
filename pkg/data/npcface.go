@@ -231,6 +231,11 @@ type NPCFace struct {
 	// Worn is what a synthesised NPCFigure speaker wears; a registry record
 	// leaves it empty, so its speaker is bare (DLG-SPEAKER-022).
 	Worn Equipment
+
+	// Joined is the record of the party member who carries this key's identity
+	// when a row's own server id holds the key: a live member of that identity
+	// is matched by it, and with no such member the key's own record answers.
+	Joined *NPCFace
 }
 
 // SynthesisedFigure applies the Start token's archetype selection (DLG-SYNTH-042).
