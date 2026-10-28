@@ -19,17 +19,23 @@
 # the file does not name runs; with no timings file every ordinary test runs.
 # A test left out runs in the full set.
 #
-# pkg/game and pkg/ui, the two packages whose tests take longest, each run in
-# their own `go test` beside the other packages; pkg/game's skip list alone
-# fills most of a Windows command line. Results come from the Go test cache
-# where their inputs did not change. Each phase prints its seconds; the last
-# line names a run over AGAINROM_FAST_BOUND seconds (default 60).
+# pkg/game, pkg/ui and the other packages each have their own `go test`, side
+# by side with gofmt and the scan; pkg/game's skip list alone fills most of a
+# Windows command line. pkg/game's test binary takes about 30 s to compile, the
+# longest path, so the other two run at a lower priority, and pkg/game's
+# `go test` compiles first (-run '^$') and then runs the fast set in
+# AGAINROM_FAST_GAME_SHARDS (default 3) runs side by side, split by the letter
+# after "Test" into about equal timed sums, with -count=1, as storing a pkg/game
+# result in the test cache costs about 5 s. Other results come from the Go
+# test cache where their inputs did not change. Each phase prints its seconds;
+# the last line names a run over AGAINROM_FAST_BOUND seconds (default 60).
 set -u
 cd "$(dirname "$0")/.." || exit 2
 
 limit=${AGAINROM_FAST_LIMIT:-0.25}
 budget=${AGAINROM_FAST_BUDGET:-25}
 gamebudget=${AGAINROM_FAST_GAME_BUDGET:-80}
+shards=${AGAINROM_FAST_GAME_SHARDS:-3}
 bound=${AGAINROM_FAST_BOUND:-60}
 timings=${1:-${AGAINROM_TEST_TIMINGS:-$(go env GOCACHE).test-timings.txt}}
 rc=0
@@ -48,36 +54,24 @@ secs() {
 }
 started=$(now)
 
-phase=$(now)
-unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
-if [ -n "$unformatted" ]; then
-	printf '%s\n' "$unformatted"
-	echo "check-fast: gofmt lists the files above"
-	rc=1
-fi
-echo "check-fast: gofmt $(secs "$phase") s"
-
-phase=$(now)
-bash scripts/check-no-game-assets.sh || rc=1
-echo "check-fast: asset scan $(secs "$phase") s"
-
-phase=$(now)
 module=$(go list -m) || exit 2
 game="$module/pkg/game"
 ui="$module/pkg/ui"
-others=$(go list ./... | grep -vx -e "$game" -e "$ui") || exit 2
 
-# left holds "package<TAB>test<TAB>reason" for every test the fast set leaves
-# out: "limit" at or over the per-test limit, "budget" past its package's sum.
+# sel holds "package<TAB>test<TAB>verdict<TAB>seconds" for every timed test:
+# "limit" at or over the per-test limit, "budget" past its package's sum,
+# "fast" in the fast set. left holds the first three fields of the others.
+sel=
 left=
 if [ -f "$timings" ]; then
-	left=$(LC_ALL=C sort -t "$(printf '\t')" -k1,1 -k3,3n -k2,2 "$timings" | awk -F '\t' \
+	sel=$(LC_ALL=C sort -t "$(printf '\t')" -k1,1 -k3,3n -k2,2 "$timings" | awk -F '\t' \
 		-v limit="$limit" -v budget="$budget" -v gamebudget="$gamebudget" -v game="$game" '
 		$1 != pkg { pkg = $1; sum = 0; cap = ($1 == game ? gamebudget : budget) + 0 }
-		$3 + 0 >= limit + 0 { print $1 "\t" $2 "\tlimit"; next }
-		sum + $3 > cap { print $1 "\t" $2 "\tbudget"; next }
-		{ sum += $3 }
+		$3 + 0 >= limit + 0 { print $1 "\t" $2 "\tlimit\t" $3; next }
+		sum + $3 > cap { print $1 "\t" $2 "\tbudget\t" $3; next }
+		{ sum += $3; print $1 "\t" $2 "\tfast\t" $3 }
 	')
+	left=$(printf '%s\n' "$sel" | awk -F '\t' '$3 != "fast" { print $1 "\t" $2 "\t" $3 }')
 	printf '%s\n' "$left" | awk -F '\t' -v limit="$limit" -v budget="$budget" -v gamebudget="$gamebudget" -v file="$timings" '
 		$3 == "limit" { over++ }
 		$3 == "budget" { cut++; per[$1]++ }
@@ -89,35 +83,92 @@ else
 	echo "check-fast: no timings file $timings; every ordinary test runs"
 fi
 
-# skip <package|-> prints the skip pattern of one package, or with "-" of
-# every package but pkg/game and pkg/ui; empty when nothing is skipped.
+# skip <package|-> [alternative] prints the skip pattern of one package, or
+# with "-" of every package but pkg/game and pkg/ui, with the alternative
+# inside its one group; empty when nothing is skipped. A `|` outside the group
+# would make the testing package compile each part again for every name.
 skip() {
-	[ -n "$left" ] || return 0
-	printf '%s\n' "$left" | awk -F '\t' -v pkg="$1" -v game="$game" -v ui="$ui" '
-		(pkg == "-" ? $1 != game && $1 != ui : $1 == pkg) { names = names sep $2; sep = "|" }
-		END { if (names != "") printf "^(%s)$", names }
+	printf '%s\n' "$left" | awk -F '\t' -v pkg="$1" -v game="$game" -v ui="$ui" -v extra="${2:-}" '
+		NF && (pkg == "-" ? $1 != game && $1 != ui : $1 == pkg) { names = names sep $2; sep = "|" }
+		END { if (extra != "") names = names sep extra; if (names != "") printf "^(%s)$", names }
 	'
 }
-skipgame=$(skip "$game")
 skipui=$(skip "$ui")
 skipothers=$(skip -)
 
-# own <name> <skip> <package...> runs one `go test` and prints its seconds.
+# classes holds the letter ranges of every pkg/game shard but the last, which
+# takes the rest: the first range whose fast-set sum reaches 1/n of the total
+# closes a shard. Empty with no timings file or one shard: one run.
+classes=
+if [ -n "$sel" ] && [ "$shards" -gt 1 ]; then
+	classes=$(printf '%s\n' "$sel" | awk -F '\t' -v game="$game" -v n="$shards" '
+		$1 == game && $3 == "fast" { w[substr($2, 5, 1)] += $4; total += $4 }
+		END {
+			L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; k = 1; lo = "A"
+			for (i = 1; i < 26 && k < n; i++) {
+				c = substr(L, i, 1); acc += w[c]
+				if (acc >= total * k / n) { print lo "-" c; k++; lo = substr(L, i + 1, 1) }
+			}
+		}')
+fi
+
+# own <name> <skip> <go test argument...> runs one `go test` and prints its
+# seconds; with low set, under nice.
 own() {
 	local name=$1 pattern=$2 start code
 	shift 2
 	start=$(now)
-	go test -trimpath ${pattern:+-skip "$pattern"} "$@"
+	${low:+nice -n 10} go test -trimpath ${pattern:+-skip "$pattern"} "$@"
 	code=$?
 	echo "check-fast: go test $name $(secs "$start") s"
 	return "$code"
 }
-own pkg/game "$skipgame" "$game" &
+
+# gamerun compiles pkg/game's test binary, then runs its shards side by side.
+# A shard is chosen by -skip alone: -run beside -skip, two patterns, has the
+# testing package compile the long skip pattern again for every test.
+gamerun() {
+	local class pids= pid code=0 rest=
+	own "pkg/game compile" "" -run '^$' "$game" || return 1
+	for class in $classes; do
+		own "pkg/game Test[$class]" "$(skip "$game" "[^T].*|Test|Test[^$class].*")" -count=1 "$game" &
+		pids="$pids $!"
+		rest="Test[A-${class#*-}].*"
+	done
+	own "pkg/game${rest:+ rest}" "$(skip "$game" "$rest")" -count=1 "$game" || code=1
+	for pid in $pids; do
+		wait "$pid" || code=1
+	done
+	return "$code"
+}
+
+phase=$(now)
+gamerun &
 gamepid=$!
-own pkg/ui "$skipui" "$ui" &
+low=1 own pkg/ui "$skipui" "$ui" &
 uipid=$!
-# shellcheck disable=SC2086 # one argument per package
-own "other packages" "$skipothers" $others || rc=1
+others=$(go list ./... | grep -vx -e "$game" -e "$ui") || others=
+
+gofmtphase=$(now)
+unformatted=$(git ls-files -z '*.go' | xargs -0 gofmt -l)
+if [ -n "$unformatted" ]; then
+	printf '%s\n' "$unformatted"
+	echo "check-fast: gofmt lists the files above"
+	rc=1
+fi
+echo "check-fast: gofmt $(secs "$gofmtphase") s"
+
+scanphase=$(now)
+bash scripts/check-no-game-assets.sh || rc=1
+echo "check-fast: asset scan $(secs "$scanphase") s"
+
+if [ -n "$others" ]; then
+	# shellcheck disable=SC2086 # one argument per package
+	low=1 own "other packages" "$skipothers" $others || rc=1
+else
+	echo "check-fast: go list found no other packages"
+	rc=1
+fi
 wait "$gamepid" || rc=1
 wait "$uipid" || rc=1
 echo "check-fast: compile and tests $(secs "$phase") s"
