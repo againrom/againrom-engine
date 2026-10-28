@@ -443,6 +443,35 @@ func (t *shopController) shopHasActorContainer() bool {
 	return m == nil || m.Carry == nil || m.Carry.LiveLoad == nil || m.Carry.LiveLoad.Inventory.ContainerPresent
 }
 
+// memberWithPack is member holding items as his pack: in the carried form
+// when a mission wrote one, whose load follows, else in the town form. It is
+// false when the carried load refuses the pack.
+func memberWithPack(member mapload.PartyMember, items []sim.ItemInstance, table *mapload.Table, refresh bool) (mapload.PartyMember, bool) {
+	before := mapload.CloneParty([]mapload.PartyMember{member})[0]
+	next := mapload.CloneParty([]mapload.PartyMember{before})[0]
+	next.RetireOriginalHuman()
+	cloned := make([]sim.ItemInstance, len(items))
+	codes := make([]uint16, len(items))
+	for k := range items {
+		cloned[k] = items[k].Clone()
+		codes[k] = items[k].Code
+	}
+	if next.Carry != nil {
+		next.Carry.ItemInstances = cloned
+		next.Carry.Items = codes
+		if err := mapload.UpdatePartyLoad(before, &next, table, refresh, false); err != nil {
+			return mapload.PartyMember{}, false
+		}
+	} else {
+		next.CarriedItems = cloned
+		next.Carried = codes
+	}
+	// A worn layer is a unit the pack backs: a pack that no longer holds it
+	// takes it off, so buying the item back does not wear it again.
+	next.Layers = mapload.MemberLayers(next, table)
+	return next, true
+}
+
 func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
 	if t.bag != nil {
 		bag := make([]sim.ItemInstance, len(items))
@@ -462,29 +491,11 @@ func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstanc
 	if reflect.DeepEqual(t.shopPackItemInstances(), items) {
 		return true
 	}
-	before := mapload.CloneParty([]mapload.PartyMember{party[i]})[0]
-	next := mapload.CloneParty([]mapload.PartyMember{before})[0]
-	next.RetireOriginalHuman()
-	cloned := make([]sim.ItemInstance, len(items))
-	codes := make([]uint16, len(items))
-	for k := range items {
-		cloned[k] = items[k].Clone()
-		codes[k] = items[k].Code
-	}
-	if next.Carry != nil {
-		next.Carry.ItemInstances = cloned
-		next.Carry.Items = codes
-		if err := mapload.UpdatePartyLoad(before, &next, t.in.Table, refresh, false); err != nil {
-			return false
-		}
-	} else {
-		next.CarriedItems = cloned
-		next.Carried = codes
+	next, ok := memberWithPack(party[i], items, t.in.Table, refresh)
+	if !ok {
+		return false
 	}
 	party[i] = next
-	// A worn layer is a unit the pack backs: a pack that no longer holds it
-	// takes it off, so buying the item back does not wear it again.
-	party[i].Layers = mapload.MemberLayers(party[i], t.in.Table)
 	if t.sess.originalCity != nil {
 		t.sess.originalCity.trade = nil
 	}

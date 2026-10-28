@@ -9,18 +9,96 @@ import (
 	"againrom/pkg/sim"
 )
 
-// The second game's party is one member, the hero; his bag is the member's
-// pack of the engine's item instances (R2-ENGINE-402, R2-ENGINE-404). The
-// shop deals with that pack. The bag does not reach a mission (DIV-3043).
+// The second game's shop party is one member, the hero; his bag is the
+// member's pack of the engine's item instances (R2-ENGINE-402,
+// R2-ENGINE-404). The shop deals with that pack in a town. Outside a town
+// the bag's units are the campaign hero's pack, the one the party carry
+// takes into a mission and brings back (DIV-4191).
 
-// leftLocation follows a departure from a location: a nonzero slot 773
-// asks the addition producer for that identity (R2-ENGINE-106,
-// R2-ENGINE-379). Every ordinary departure zeroes the slot before its case
-// (R2-SESSION-047), and the producer reuses a carried identity.
+// leftLocation follows a departure from a location: the bag joins the
+// hero's pack, and a nonzero slot 773 asks the addition producer for that
+// identity (R2-ENGINE-106, R2-ENGINE-379). Every ordinary departure zeroes
+// the slot before its case (R2-SESSION-047), and the producer reuses a
+// carried identity.
 func (s *CampaignSession) leftLocation(in townInstall) {
-	if c := secondOf(s); c != nil && c.bank[773] != 0 {
+	c := secondOf(s)
+	if c == nil {
+		return
+	}
+	s.packBag(c, in.table)
+	if c.bank[773] != 0 {
 		s.addPartyIdentity(in, int(c.bank[773]))
 	}
+}
+
+// enteredTown follows the party's arrival at a town: each hero's pack unit
+// secondshop.KeptUnit takes home without a loss becomes the bag again, in
+// pack order, while the bag holds fewer than maxSecondBagUnits; the others,
+// such as a unit at a negative price, stay in his pack (DIV-4191). Only the
+// hero's pack comes home; a companion keeps his.
+func (s *CampaignSession) enteredTown(in townInstall) {
+	c := secondOf(s)
+	i := secondHeroIndex(s.Carried)
+	if c == nil || i < 0 {
+		return
+	}
+	var bag, kept []sim.ItemInstance
+	if len(c.party) != 0 {
+		bag = slices.Clone(c.party[0].CarriedItems)
+	}
+	held := len(bag)
+	for _, it := range mapload.MemberCarriedItems(s.Carried[i], in.table) {
+		if unit, ok := secondshop.KeptUnit(it, secondMissionItem(in.table)); ok && len(bag) < maxSecondBagUnits {
+			bag = append(bag, unit)
+		} else {
+			kept = append(kept, it)
+		}
+	}
+	if len(bag) == held {
+		return
+	}
+	if hero, ok := memberWithPack(s.Carried[i], kept, in.table, true); ok {
+		s.Carried[i] = hero
+		*c.heroBag() = bag
+	}
+}
+
+// packBag moves the bag's units to the end of the campaign hero's pack, each
+// in its mission form (secondshop.MissionUnit), so a bought potion can be
+// drunk there; the bag stays when the hero's carried load refuses them.
+func (s *CampaignSession) packBag(c *secondCampaign, table *mapload.Table) {
+	i := secondHeroIndex(s.Carried)
+	if i < 0 || len(c.party) == 0 || len(c.party[0].CarriedItems) == 0 {
+		return
+	}
+	pack := mapload.MemberCarriedItems(s.Carried[i], table)
+	for _, u := range c.party[0].CarriedItems {
+		pack = append(pack, secondshop.MissionUnit(u, secondMissionItem(table)))
+	}
+	if hero, ok := memberWithPack(s.Carried[i], pack, table, true); ok {
+		s.Carried[i] = hero
+		c.party[0].CarriedItems = nil
+	}
+}
+
+// secondMissionItem is the engine's one item decoder over table, the base
+// object a mission builds for an item ID.
+func secondMissionItem(table *mapload.Table) func(uint16) sim.ItemInstance {
+	return func(code uint16) sim.ItemInstance { return mapload.ItemInstanceFromCode(code, table) }
+}
+
+// secondHeroIndex is the campaign party's starting hero, else its first
+// member; -1 for an empty party.
+func secondHeroIndex(party []mapload.PartyMember) int {
+	for i, m := range party {
+		if m.StartingHero {
+			return i
+		}
+	}
+	if len(party) == 0 {
+		return -1
+	}
+	return 0
 }
 
 // secondHero is a new campaign's hero: the player's character with an
@@ -29,8 +107,8 @@ func secondHero() mapload.PartyMember {
 	return mapload.PartyMember{ID: "hero", PlayerCharacter: true, StartingHero: true}
 }
 
-// leaveBagToCampaign empties each member's pack: the second game's hero
-// carries his bag in the campaign, never into a mission (DIV-3043).
+// leaveBagToCampaign empties each member's pack: a town LOAD reads the
+// second game's hero bag into the campaign's bag (DIV-4153).
 func leaveBagToCampaign(party []mapload.PartyMember) {
 	for i := range party {
 		m := &party[i]

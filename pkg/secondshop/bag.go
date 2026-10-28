@@ -1,6 +1,8 @@
 package secondshop
 
 import (
+	"slices"
+
 	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
@@ -120,6 +122,45 @@ func Unit(in sim.ItemInstance) sim.ItemInstance {
 		return out
 	}
 	return in.Clone()
+}
+
+// MissionUnit is bag unit u as a mission holds it (DIV-4191): the item the
+// engine's decoder writes for u's ID, with u's price, and with u's castspell
+// or teachspell effect when it has one. A bought potion thus takes the type
+// and payload a potion the mission places has. The decoder is the caller's
+// (mapload.ItemInstanceFromCode over the install's table), as this package
+// reads no install table.
+func MissionUnit(u sim.ItemInstance, decode func(code uint16) sim.ItemInstance) sim.ItemInstance {
+	out := decode(u.Code)
+	out.Code, out.Price = u.Code, u.Price
+	if len(u.Effects) != 0 {
+		out.Effects = slices.Clone(u.Effects)
+	}
+	return out
+}
+
+// KeptUnit is the bag unit a unit of a hero's pack comes home as, or false
+// when the bag would lose part of it. A bag unit comes as it is. Any other
+// unit comes as Unit(in) when MissionUnit turns that back into in's ID,
+// type, price and effects; the weight and equipment a mission derives from
+// the ID do not count. It refuses a unit bound to a saved object or a native
+// record, one at a price below 0 or past the cap, and one whose effects or
+// type the mission form does not reproduce.
+func KeptUnit(in sim.ItemInstance, decode func(code uint16) sim.ItemInstance) (sim.ItemInstance, bool) {
+	if in.ObjectID != 0 || in.NativeRecord != nil {
+		return sim.ItemInstance{}, false
+	}
+	if _, ok := FromInstance(in); ok {
+		return in.Clone(), true
+	}
+	out := Unit(in)
+	if _, ok := FromInstance(out); !ok {
+		return sim.ItemInstance{}, false
+	}
+	if back := MissionUnit(out, decode); back.Code != in.Code || back.Kind != in.Kind || back.Price != in.Price || !slices.Equal(back.Effects, in.Effects) {
+		return sim.ItemInstance{}, false
+	}
+	return out, true
 }
 
 // FromInstance reads one bag unit back as a shop item of quantity 1, or

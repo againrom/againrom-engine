@@ -74,8 +74,12 @@ func (t *destinationTownMap) enterLocation(l partyPlace) ui.TownAction {
 	c := t.host.state()
 	if l.kind == placeTown {
 		c.current, c.room, c.mapOpen = l, secondTownSquare, nil
+		t.host.sess.enteredTown(t.host.in.townInstall())
 		return ui.TownAction{}
 	}
+	// A bag the map still holds, as after a LOAD at the map, goes with the
+	// hero (DIV-4191).
+	t.host.sess.packBag(c, t.host.in.townInstall().table)
 	return ui.TownAction{Open: t.host.openMission(l.id)}
 }
 

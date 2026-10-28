@@ -3274,5 +3274,18 @@ var Committed = Baseline{
 	// MapEditor.PopupTipRects in pkg/ui/mapeditortrigger.go and of
 	// freeOffset in pkg/game/mapeditorselection_release_test.go, the
 	// changed test comments and this note.
-	CommentBytes: 9862258,
+
+	// It rose for the second game's bag in a mission: the doc comments of
+	// enteredTown, packBag and secondHeroIndex in pkg/game/secondparty.go, of
+	// KeptUnit in pkg/secondshop/bag.go and its test in bag_test.go, of
+	// memberWithPack in pkg/game/shoproom.go, the
+	// mission-file bag note in pkg/game/currentsecondcampaign.go, the map
+	// entry note in pkg/game/secondworldmap.go, the new tests' comments in
+	// pkg/game/secondbagcarry_test.go and
+	// pkg/game/secondbagmission_release_test.go, and this note. It rose again
+	// for the bag unit's mission form: the doc comments of MissionUnit and the
+	// reworded KeptUnit in pkg/secondshop/bag.go and their tests, of
+	// secondMissionItem in pkg/game/secondparty.go, and of the potion tests in
+	// pkg/game/secondbagcarry_test.go and the release file.
+	CommentBytes: 9872122,
 }

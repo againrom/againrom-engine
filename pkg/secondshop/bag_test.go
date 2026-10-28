@@ -71,6 +71,70 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 	}
 }
 
+// bagTestDecode stands for the engine's item decoder: a weapon takes type
+// 2, armour and a shield type 1, and magic item 0x0e01 is a potion of type
+// 3 with a health payload.
+func bagTestDecode(code uint16) sim.ItemInstance {
+	out := sim.ItemInstance{Code: code}
+	switch part := code >> 8 & 0xf; {
+	case part == 1:
+		out.Kind = 2
+	case part >= 2 && part <= 12:
+		out.Kind = 1
+	case code == 0x0e01:
+		out.Kind, out.Price, out.Effects = 3, 7, []sim.ItemEffect{{Kind: 6, Operand: 30}}
+	}
+	return out
+}
+
+// TestMissionUnitTakesTheDecodersForm gives a bought potion the decoder's
+// type and payload at its own price, and keeps an enchanted weapon's
+// castspell. Fails when the mission form is the bag form.
+func TestMissionUnitTakesTheDecodersForm(t *testing.T) {
+	potion := MissionUnit(sim.ItemInstance{Code: 0x0e01, Price: 20}, bagTestDecode)
+	if want := (sim.ItemInstance{Code: 0x0e01, Kind: 3, Price: 20, Effects: []sim.ItemEffect{{Kind: 6, Operand: 30}}}); !reflect.DeepEqual(potion, want) {
+		t.Fatalf("the potion's mission form is %+v, want %+v", potion, want)
+	}
+	cast := []sim.ItemEffect{{Kind: 41, Operand: 9 | 2<<16}}
+	weapon := MissionUnit(sim.ItemInstance{Code: 0x2101, Kind: 2, Price: 40, Effects: cast}, bagTestDecode)
+	if want := (sim.ItemInstance{Code: 0x2101, Kind: 2, Price: 40, Effects: cast}); !reflect.DeepEqual(weapon, want) {
+		t.Fatalf("the weapon's mission form is %+v, want %+v", weapon, want)
+	}
+}
+
+// TestKeptUnitLosesNothing takes home a unit its bag form's mission form
+// gives back, with the weight a mission derives, a found potion among them,
+// and refuses one that would lose a price, an effect or a binding. Fails
+// when KeptUnit takes every Unit with a bag form, or compares the unit with
+// its bag form instead of its mission form.
+func TestKeptUnitLosesNothing(t *testing.T) {
+	cast := []sim.ItemEffect{{Kind: 41, Operand: 9 | 2<<16}}
+	for _, tc := range []struct {
+		in, want sim.ItemInstance
+	}{
+		{sim.ItemInstance{Code: 0x2101, Kind: 2, Price: 40, Weight: 9, WeightPresent: true, Effects: cast}, sim.ItemInstance{Code: 0x2101, Kind: 2, Price: 40, Effects: cast}},
+		{sim.ItemInstance{Code: 0x4201, Kind: 1, Price: 15}, sim.ItemInstance{Code: 0x4201, Price: 15}},
+		{sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}, sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}},
+		{sim.ItemInstance{Code: 0x0e01, Kind: 3, Price: 20, Effects: []sim.ItemEffect{{Kind: 6, Operand: 30}}}, sim.ItemInstance{Code: 0x0e01, Price: 20}},
+	} {
+		if got, ok := KeptUnit(tc.in, bagTestDecode); !ok || !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("KeptUnit(%+v) = %+v, %v; want %+v", tc.in, got, ok, tc.want)
+		}
+	}
+	for _, in := range []sim.ItemInstance{
+		{Code: 0x0e4d, Price: -1},
+		{Code: 0x5321, Kind: 1, Price: 80, Effects: append(cast, sim.ItemEffect{Kind: 7})},
+		{Code: 0x5321, Kind: 1, Price: 80, Effects: []sim.ItemEffect{{Kind: 41, Mode: 1, Operand: 9 | 2<<16}}},
+		{Code: 0x0e01, Kind: 3, Price: 20, Effects: []sim.ItemEffect{{Kind: 6, Operand: 50}}},
+		{Code: 0x0e01, Price: 20, Effects: cast},
+		{ObjectID: 3, Code: 0x2101, Kind: 2, Price: 40},
+	} {
+		if got, ok := KeptUnit(in, bagTestDecode); ok {
+			t.Fatalf("KeptUnit(%+v) kept it as %+v", in, got)
+		}
+	}
+}
+
 // TestUnitTakesTheBagForm puts worn items into the bag's form: a bag unit is
 // kept as it is, and a worn item built from a row loses the fields the bag
 // does not keep and takes the type byte of its part.

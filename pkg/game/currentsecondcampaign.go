@@ -226,9 +226,9 @@ func validateAuthoredGame(doc *sav.DocumentData, a *currentActionData, game base
 // secondFileSession is the current-session record a native second-game file
 // states through its campaign tail: the Scenario bank, the four shop
 // records (R2-SESSION-156, R2-SESSION-187), the availability records and
-// the current one (R2-SESSION-238, R2-SESSION-155), and the Player-1 hero's
-// bag (R2-SESSION-236). The tail stores no town room; a town opens at its
-// square (DIV-4153).
+// the current one (R2-SESSION-238, R2-SESSION-155), and, outside a
+// mission, the Player-1 hero's bag (R2-SESSION-236). The tail stores no
+// town room; a town opens at its square (DIV-4153).
 func secondFileSession(sf *sav.File) (*currentSessionData, error) {
 	tail, err := sf.SecondTail()
 	if err != nil {
@@ -260,7 +260,9 @@ func secondFileSession(sf *sav.File) (*currentSessionData, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(bag) != 0 {
+	// In a mission the bag is the mission hero's pack, which the file's
+	// world holds (DIV-4191).
+	if len(bag) != 0 && c.Current.Kind != placeMission {
 		hero := secondHero()
 		hero.CarriedItems = bag
 		c.Party = []currentPartyMember{captureCurrentParty(0, hero)}

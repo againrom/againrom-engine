@@ -54,13 +54,15 @@ func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondM
 
 // secondMissionContent is what a fixture mission holds beyond the empty map:
 // type-4 objects, type-7 action nodes, type-11c records, files of the main
-// archive, and the mission font, without which a notice takes no input.
+// archive, the mission font, without which a notice takes no input, and the
+// map's side: 40 cells when zero, which leaves the fallback drop off the map.
 type secondMissionContent struct {
 	objects  []alm.Object
 	actions  []alm.ScriptNode
 	pointers []alm.StructureAction
 	main     []synth.File
 	font     bool
+	side     int
 }
 
 // secondMissionMapOf is secondMissionMap with c's objects, action nodes and
@@ -137,7 +139,11 @@ func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
 	f := currentPoolFixtureFront(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, ScenarioArchive)
-	b := synth.Archive([]synth.File{{Path: "10.alm", Data: secondMissionMapOf(40, 40, c)}, {Path: "npc.reg", Data: synth.NPCReg(nil)}})
+	side := 40
+	if c.side != 0 {
+		side = c.side
+	}
+	b := synth.Archive([]synth.File{{Path: "10.alm", Data: secondMissionMapOf(side, side, c)}, {Path: "npc.reg", Data: synth.NPCReg(nil)}})
 	if err := os.WriteFile(path, b, 0o600); err != nil {
 		t.Fatal(err)
 	}
