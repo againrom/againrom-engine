@@ -25,7 +25,7 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 	}
 	f.SetDeterministicFrames(true)
 
-	total, worlds, cities, unreadable, mismatches := 0, 0, 0, 0, 0
+	total, worlds, cities, unreadable, mismatches, absentHeads := 0, 0, 0, 0, 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -67,6 +67,23 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 			if err != nil {
 				t.Fatalf("SessionState: %v", err)
 			}
+			doc, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData: %v", err)
+			}
+			if doc.World == nil || doc.World.Session.Raw08 != fileState.RawHead {
+				t.Fatal("the document's session head is not the session block's")
+			}
+			// A head its writer marked absent is dropped by LOAD and is
+			// written back as none (DIV-2885).
+			wantHead, err := sessionHeadAfterLoad(&doc)
+			if err != nil {
+				t.Fatalf("session head policy: %v", err)
+			}
+			if wantHead != fileState.RawHead {
+				absentHeads++
+				t.Log("session head marked absent by its writer: LOAD keeps none")
+			}
 
 			ms, report, err := loadOriginalMission(f, raw)
 			if err != nil {
@@ -84,9 +101,9 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 					t.Errorf("register %d: live=%d file=%d", i, v, fileState.Registers[i])
 				}
 			}
-			if got := ms.World.RawSessionHead(); got != fileState.RawHead {
+			if got := ms.World.RawSessionHead(); got != wantHead {
 				mismatches++
-				t.Errorf("RawSessionHead live/file differ:\n  live=%x\n  file=%x", got, fileState.RawHead)
+				t.Errorf("RawSessionHead live/file differ:\n  live=%x\n  want=%x\n  file=%x", got, wantHead, fileState.RawHead)
 			}
 			if got := ms.World.RawSessionMid(); got != fileState.RawMid {
 				mismatches++
@@ -122,7 +139,9 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 				mismatches++
 				t.Error("native export of the register span (0..400) does not reproduce the source file")
 			}
-			if !bytes.Equal(written.Body[base+1400:base+1848], source.Body[base+1400:base+1848]) {
+			wantSpans := append([]byte(nil), source.Body[base+1400:base+1848]...)
+			copy(wantSpans, wantHead[:])
+			if !bytes.Equal(written.Body[base+1400:base+1848], wantSpans) {
 				mismatches++
 				t.Error("native export of the two raw spans (1400..1848) does not reproduce the source file")
 			}
@@ -150,6 +169,6 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d mismatching",
-		total, worlds, cities, unreadable, mismatches)
+	t.Logf("audited %d file(s): %d world-half (%d with a head marked absent), %d between-mission, %d unreadable, %d mismatching",
+		total, worlds, absentHeads, cities, unreadable, mismatches)
 }

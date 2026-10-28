@@ -3148,5 +3148,8 @@ var Committed = Baseline{
 	// It rose for the Forest tool's Clear marks button: the popup row's
 	// Disabled buttons in pkg/ui/editorpopup.go, pkg/ui/mapeditorforest.go,
 	// the new test and this note.
-	CommentBytes: 9810130,
+	// It rose for the session-head expectation of the session-block corpus
+	// audit: the doc comment of sessionHeadAfterLoad in
+	// pkg/game/currentsessionhead_test.go, the audit's comment and this note.
+	CommentBytes: 9810710,
 }

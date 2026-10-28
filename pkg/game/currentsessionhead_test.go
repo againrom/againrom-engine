@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -120,5 +121,51 @@ func TestCurrentSessionHeadMalformedPolicyIsAtomicAndLegacyIsOrdinary(t *testing
 	}
 	if err := restoreAbsentSessionHead(w, &doc, bad); err != nil || w.RawSessionHead() != head {
 		t.Fatal("stale anchor altered ordinary data", err)
+	}
+}
+
+// sessionHeadAfterLoad is the session head a LOAD leaves live for the world
+// SAV whose document is doc: the head the document carries, or none when the
+// writer's current actions mark that head absent (DIV-2885). The decision is
+// restoreAbsentSessionHead's own, run on a scratch World.
+func sessionHeadAfterLoad(doc *sav.DocumentData) ([48]byte, error) {
+	if doc == nil || doc.World == nil {
+		return [48]byte{}, fmt.Errorf("session head: the document has no world")
+	}
+	actions, err := readCurrentActions(doc)
+	if err != nil || actions == nil {
+		return doc.World.Session.Raw08, err
+	}
+	var w sim.World
+	w.SetRawSessionHead(doc.World.Session.Raw08)
+	if err := restoreAbsentSessionHead(&w, doc, actions.AbsentSessionHead); err != nil {
+		return [48]byte{}, err
+	}
+	return w.RawSessionHead(), nil
+}
+
+func TestSessionHeadAfterLoadFollowsTheAbsencePolicy(t *testing.T) {
+	constructed := savedSessionHead([48]byte{}, [48]byte{})
+	doc := sav.DocumentData{World: &sav.DocumentWorldData{}}
+	doc.World.Session.Raw08 = constructed
+	if got, err := sessionHeadAfterLoad(&doc); err != nil || got != constructed {
+		t.Fatalf("a file without current actions: head %x, %v; want the file's own", got, err)
+	}
+	a := currentActionData{Version: 1, AbsentSessionHead: captureAbsentSessionHead(&doc, sessionHeadWorld(t))}
+	raw, err := json.Marshal(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sav.SetNativeActions(&doc.State, raw); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := sessionHeadAfterLoad(&doc); err != nil || got != ([48]byte{}) {
+		t.Fatalf("a head its writer marked absent: head %x, %v; want none", got, err)
+	}
+	edited := constructed
+	edited[20] ^= 0x5a
+	doc.World.Session.Raw08 = edited
+	if got, err := sessionHeadAfterLoad(&doc); err != nil || got != edited {
+		t.Fatalf("a head edited after the anchor: head %x, %v; want the edited head", got, err)
 	}
 }
