@@ -80,16 +80,20 @@ type popupGrid struct {
 	Cols  int
 	// RowHeads and ColHeads head a matrix: RowHeads[r] stands left of grid
 	// row r in a column HeadW pixels wide, ColHeads[c] above column c in a
-	// row one cell high.
+	// row one cell high. With HeadH set the column heads stand upright,
+	// reading from bottom to top, in a row HeadH pixels high, and the hover
+	// line over one shows it whole.
 	RowHeads, ColHeads []string
-	HeadW              int
+	HeadW, HeadH       int
 }
 
 // popupGridCell is one cell of a grid. Label is drawn on a cell without a
-// picture; an Inert cell is drawn flat and takes no press.
+// picture; an Inert cell is drawn flat and takes no press. Tip is the hover
+// line over the cell, empty for none.
 type popupGridCell struct {
 	Icon    *image.RGBA
 	Label   string
+	Tip     string
 	Pressed bool
 	Ticked  bool
 	Inert   bool
@@ -110,15 +114,19 @@ func (g *popupGrid) height() int {
 	if g == nil {
 		return 0
 	}
-	return (max(1, g.Rows)+g.headRows())*g.side() + popupPad
+	return max(1, g.Rows)*g.side() + g.headHeight() + popupPad
 }
 
-// headRows is 1 when the grid's columns carry headings, else 0.
-func (g *popupGrid) headRows() int {
-	if len(g.ColHeads) > 0 {
-		return 1
+// headHeight is the column heads' row height: HeadH for upright heads, one
+// cell for flat ones, 0 when the columns carry none.
+func (g *popupGrid) headHeight() int {
+	switch {
+	case len(g.ColHeads) == 0:
+		return 0
+	case g.HeadH > 0:
+		return g.HeadH
 	}
-	return 0
+	return g.side()
 }
 
 // columns is how many cells a row of a grid width wide holds, its scroll bar
@@ -517,9 +525,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		l.GridTop = max(0, min(g.Top, total-shown))
 		x := r.Min.X + popupPad + g.HeadW
 		for c := 0; c < len(g.ColHeads) && c < l.GridCols; c++ {
-			l.GridColHeads = append(l.GridColHeads, image.Rect(x+c*side, y, x+(c+1)*side, y+side))
+			l.GridColHeads = append(l.GridColHeads, image.Rect(x+c*side, y, x+(c+1)*side, y+g.headHeight()))
 		}
-		y += g.headRows() * side
+		y += g.headHeight()
 		for k := 0; k < shown && l.GridTop+k < len(g.RowHeads); k++ {
 			l.GridRowHeads = append(l.GridRowHeads, image.Rect(r.Min.X+popupPad, y+k*side, x, y+(k+1)*side))
 		}
@@ -988,7 +996,8 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 
 // popupTipAt is the hover line of the shown row under p, false when the
 // pointer is over no row or the row shows its text whole. The box sits under
-// the row, or over it where bounds end first.
+// the row, or over it where bounds end first. Over the grid it is the cell's
+// Tip or the whole upright column head, in a box as wide as its text.
 func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l popupLayout, p image.Point, pointerOK bool) (popupTip, bool) {
 	if !pointerOK || body == nil {
 		return popupTip{}, false
@@ -1009,7 +1018,37 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 		}
 		return popupTip{Rect: box, Lines: lines}, true
 	}
-	return popupTip{}, false
+	g := s.Grid
+	if g == nil {
+		return popupTip{}, false
+	}
+	at, full := image.Rectangle{}, ""
+	for c, r := range l.GridColHeads {
+		if g.HeadH > 0 && p.In(r) {
+			at, full = r, g.ColHeads[c]
+		}
+	}
+	for i, r := range l.GridCells {
+		if p.In(r) {
+			at, full = r, g.Cells[l.GridFirst+i].Tip
+		}
+	}
+	if full == "" {
+		return popupTip{}, false
+	}
+	lines, w := editorWrap(body, full, bounds.Dx()-8), 0
+	for _, line := range lines {
+		w = max(w, body.Advance(line))
+	}
+	h := len(lines)*fontHeight(body, 15) + 8
+	box := image.Rect(at.Min.X, at.Max.Y, at.Min.X+w+8, at.Max.Y+h)
+	if box.Max.X > bounds.Max.X {
+		box = box.Sub(image.Pt(box.Max.X-bounds.Max.X, 0))
+	}
+	if box.Max.Y > bounds.Max.Y {
+		box = box.Sub(image.Pt(0, h+at.Dy()))
+	}
+	return popupTip{Rect: box, Lines: lines}, true
 }
 
 // drawRowIcons draws a row's pictures after its value, each square at the
@@ -1054,6 +1093,10 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		head(r, g.RowHeads[l.GridTop+k], false)
 	}
 	for c, r := range l.GridColHeads {
+		if g.HeadH > 0 && body != nil {
+			drawTextUp(dst, body, editorClip(body, g.ColHeads[c], r.Dy()-4), r, ink.Label)
+			continue
+		}
 		head(r, g.ColHeads[c], true)
 	}
 	for i, c := range l.GridCells {
@@ -1084,6 +1127,32 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 	if !l.GridBar.Empty() {
 		bar := vScrollBar{Rect: l.GridBar, Pos: l.GridTop, Count: g.totalRows(l.GridCols) - max(1, g.Rows) + 1}
 		drawVScrollBar(dst, frames, bar.withPointer(pointer, pointerOK))
+	}
+}
+
+// drawTextUp draws s with the body font turned a quarter turn
+// counter-clockwise inside r: it reads from bottom to top, starts 2 pixels
+// above r's bottom and is centred across r. It is the one way the editor
+// draws upright text. The line is drawn into its own picture in its own
+// capture window, so no smoothed-text overlay redraws its glyphs unturned.
+func drawTextUp(dst *image.RGBA, body *text.Font, s string, r image.Rectangle, ink color.RGBA) {
+	if body == nil || s == "" {
+		return
+	}
+	w, h := body.Advance(s), fontHeight(body, 15)
+	if w <= 0 {
+		return
+	}
+	line := image.NewRGBA(image.Rect(0, 0, w, h))
+	text.Record(func() { body.Draw(line, s, 0, 0, ink) })
+	x0, y0, clip := r.Min.X+(r.Dx()-h)/2, r.Max.Y-2-w, r.Intersect(dst.Bounds())
+	for y := range h {
+		for x := range w {
+			c, at := line.RGBAAt(x, y), image.Pt(x0+y, y0+w-1-x)
+			if c.A != 0 && at.In(clip) {
+				dst.SetRGBA(at.X, at.Y, c)
+			}
+		}
 	}
 }
 

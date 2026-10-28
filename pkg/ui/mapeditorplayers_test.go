@@ -92,7 +92,7 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	s, ok := e.listSpec()
 	g := s.Grid
 	if !ok || g == nil || g.Rows != 2 || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||
-		!slices.Equal(g.ColHeads, []string{"1", "2"}) || !slices.Equal(g.RowHeads, []string{"Self", "Enemy"}) {
+		!slices.Equal(g.ColHeads, []string{"Self", "Enemy"}) || !slices.Equal(g.RowHeads, []string{"Self", "Enemy"}) {
 		t.Fatalf("the Players page holds no 2x2 relation matrix: %+v", g)
 	}
 	legend := 0

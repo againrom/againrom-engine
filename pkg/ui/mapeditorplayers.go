@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -90,6 +91,10 @@ const (
 // (AI-DIPLO-005).
 var relationWords = []string{"editor.relation.neutral", "editor.relation.hostile", "editor.relation.ally"}
 
+// relationNameWords are the same values' short names, by value, for a
+// cell's hover line.
+var relationNameWords = []string{"editor.relation.name.neutral", "editor.relation.name.hostile", "editor.relation.name.ally"}
+
 // relationMatrixOf reads the matrix of the open document once.
 func (e *MapEditor) relationMatrixOf() *relationMatrix {
 	m := &e.relations
@@ -118,8 +123,9 @@ func (e *MapEditor) relationMatrixOf() *relationMatrix {
 // relationGridSpec is the Players page's matrix as popup data: row i,
 // column j is player i's relation toward player j, a picture for a value
 // the claims name and its number for any other; the diagonal and a cell
-// the host offers no field for are inert. The rows are the matrix's
-// heading and its legend.
+// the host offers no field for are inert. Each column is headed upright
+// with its row's head; a cell's hover line names both players and the
+// value. The rows are the matrix's heading and its legend.
 func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	if e.listKind() != "records" || e.filter != editorPlayersFilter {
 		return nil, nil, false
@@ -129,7 +135,7 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	g := &popupGrid{Side: relationSide, Rows: n, Cols: n, HeadW: relationSide}
 	for i := range n {
 		g.RowHeads = append(g.RowHeads, m.labels[i])
-		g.ColHeads = append(g.ColHeads, strconv.Itoa(i+1))
+		g.ColHeads = append(g.ColHeads, m.labels[i])
 		if body := e.bodyFont(); body != nil {
 			g.HeadW = min(relationHeadMax, max(g.HeadW, body.Advance(m.labels[i])+8))
 		}
@@ -141,6 +147,11 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 				if cell.Icon = relationIcon(f.Value); cell.Icon == nil {
 					cell.Label = strconv.FormatInt(f.Value, 10)
 				}
+				name := strconv.FormatInt(f.Value, 10)
+				if f.Value >= 0 && f.Value < int64(len(relationNameWords)) {
+					name = e.word(relationNameWords[f.Value])
+				}
+				cell.Tip = fmt.Sprintf(e.word("editor.relation.cell"), m.labels[i], m.labels[j], name)
 			}
 			g.Cells = append(g.Cells, cell)
 		}
@@ -148,6 +159,7 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	if !offered {
 		return nil, nil, false
 	}
+	g.HeadH = g.HeadW
 	rows := []popupRow{{Kind: popupHeading, Label: e.word("editor.relation.title")}}
 	for v, w := range relationWords {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.word(w), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}})

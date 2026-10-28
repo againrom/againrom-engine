@@ -3222,5 +3222,11 @@ var Committed = Baseline{
 	// It rose for the second game's fog stamp: fogStamp's doc in
 	// pkg/sim/sight.go, the second-game fog tests' comments in
 	// pkg/sim/fogstamp_test.go and this note.
-	CommentBytes: 9833400,
+
+	// It rose for the relation matrix's upright column heads: the doc
+	// comments of popupGrid.HeadH, popupGridCell.Tip, headHeight, the grid
+	// hover in popupTipAt and drawTextUp in pkg/ui/editorpopup.go, of
+	// relationNameWords and relationGridSpec in pkg/ui/mapeditorplayers.go,
+	// the new tests' comments and this note.
+	CommentBytes: 9835983,
 }
