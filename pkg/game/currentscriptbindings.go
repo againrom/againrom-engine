@@ -140,6 +140,8 @@ func restoreCurrentScriptRoles(w *sim.World, roles *sim.Script) error {
 		shape := role
 		shape.Unit, shape.HasUnit, shape.Unit2, shape.HasUnit2 = in.Unit, in.HasUnit, in.Unit2, in.HasUnit2
 		shape.Structure, shape.HasStructure = in.Structure, in.HasStructure
+		// A form older than the source slot loads slot 0; it keeps it.
+		shape.Slot = in.Slot
 		if shape != *in {
 			return nil
 		}

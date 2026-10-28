@@ -32,6 +32,10 @@ func (p *currentScriptProgram) compile() (*sim.Script, error) {
 	if len(p.Checks) > 100 || len(p.Instants) > maxCurrentScriptNodes || len(p.Triggers) > maxCurrentScriptNodes {
 		return nil, fmt.Errorf("current script program exceeds its register/node bounds")
 	}
+	// A negative action slot is refused, as the World byte form refuses it.
+	if slices.ContainsFunc(p.Instants, func(in sim.ScriptInstant) bool { return in.Slot < 0 }) {
+		return nil, fmt.Errorf("current script program has a negative action slot")
+	}
 	triggers := slices.Clone(p.Triggers)
 	for i := range triggers {
 		triggers[i].Inert = false

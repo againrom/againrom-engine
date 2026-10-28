@@ -1,6 +1,7 @@
 package game
 
 import (
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -23,4 +24,21 @@ func (mw *mapWorld) restoreStructureUseMetadata(table *mapload.Table) {
 		}
 		mw.world.RestoreStructureUseMetadata(fresh)
 	}
+	if mw.mission != nil && mw.mission.state != nil {
+		restorePointerSlots(mw.world, mw.mission.state.Map, table)
+	}
+}
+
+// restorePointerSlots gives a loaded Pointer the action slot its map placement
+// derives, matched by ID, kind and cell, when the loaded form carried none.
+func restorePointerSlots(w *sim.World, m *alm.Map, table *mapload.Table) {
+	placed := mapload.Structures(m, table)
+	fresh := w.Structures()
+	for i, s := range fresh {
+		id := int(s.ID)
+		if sim.PointerKind(s.Kind) && id < len(placed) && placed[id].Kind == s.Kind && placed[id].Col == s.Col && placed[id].Row == s.Row {
+			fresh[i].UseAmount = placed[id].UseAmount
+		}
+	}
+	w.RestoreStructureUseMetadata(fresh)
 }

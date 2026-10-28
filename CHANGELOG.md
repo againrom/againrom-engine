@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A click on a road signpost walks the hero to it and opens its message with Ok, such as "To Great Mage Skrakan's Tower" in the first mission; the game waits until Ok, Enter or Esc. Before, the hero walked next to the signpost and nothing opened.
 - [ROM2] Delete on the Save and Load pages now asks in a small box over the page, as in the original: "Are you sure you want to delete game" with the save's name, and the buttons Yes and No. No or Esc closes the box and keeps the same save chosen; Yes deletes it. Before, the question replaced the page's list and Ok answered it.
 
 ### For map makers and modders

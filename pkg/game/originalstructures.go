@@ -163,6 +163,8 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 	if err := ms.World.ImportOriginalStructures(structures, sources, cells, grid); err != nil {
 		return err
 	}
+	// A Pointer takes its slot before a pending use that names it is restored.
+	restorePointerSlots(ms.World, ms.Map, table)
 	counts.Restored, counts.Absent = len(structures), len(ms.Map.Objects)-len(matched)
 	if report != nil {
 		report.Structures = counts

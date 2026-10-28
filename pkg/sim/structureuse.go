@@ -13,9 +13,25 @@ type StructureUse struct {
 
 func (w *World) StructureUses() []StructureUse { return slices.Clone(w.structureUses) }
 
+// PointerKind reports a second-game Pointer kind (R2-ENGINE-517). A Pointer's
+// UseAmount is its compiled action slot, Pointer +0x6c (R2-ENGINE-512).
+func PointerKind(kind uint16) bool { return kind >= 0x46 && kind <= 0x4b }
+
+// pointerSlot is the action slot a use runs; a slot at or below 0 runs
+// nothing (R2-ENGINE-518).
+func (s Structure) pointerSlot() int32 {
+	if !PointerKind(s.Kind) {
+		return 0
+	}
+	return s.UseAmount
+}
+
 func (s Structure) Usable() bool {
 	if s.Width == 0 || s.Height == 0 {
 		return false
+	}
+	if s.pointerSlot() > 0 {
+		return true
 	}
 	switch s.Kind {
 	case 15, 16, 28, 29, 34, 35, 39, 40, 66:
@@ -161,6 +177,10 @@ func (w *World) advanceStructureUse(scratch *routeScratch, i int) bool {
 
 func (w *World) applyStructureUse(i, si int) {
 	s := w.structures[si]
+	if slot := s.pointerSlot(); slot > 0 {
+		w.runStructureAction(slot)
+		return
+	}
 	if s.Kind == 28 || s.Kind == 29 {
 		w.structures[si].Field42 = 0
 		if s.Field42 == 0 {
@@ -195,6 +215,20 @@ func (w *World) applyStructureUse(i, si int) {
 	*w = n
 }
 
+// runStructureAction runs, once per arrival, the instant compiled from source
+// action slot slot; a slot no instant came from runs nothing.
+func (w *World) runStructureAction(slot int32) {
+	if w.script == nil {
+		return
+	}
+	for _, in := range w.script.instants {
+		if in.Slot == slot {
+			w.runInstantObserved(in, w.castObservation)
+			return
+		}
+	}
+}
+
 // UNIT-STRUCTZERO-080's local counter filter; callback placement in this
 // scheduler is explicit integration policy, not a measured wall-clock period.
 func (w *World) rechargeStructures() {
@@ -209,12 +243,19 @@ func (w *World) rechargeStructures() {
 }
 
 // RestoreStructureUseMetadata fills only fields older forms did not store.
-// Existing current metadata remains part of the saved world's identity.
+// Existing current metadata remains part of the saved world's identity. A
+// Pointer without a slot takes the slot of the same Pointer in fresh, which a
+// form older than the slot did not store.
 func (w *World) RestoreStructureUseMetadata(fresh []Structure) {
 	for _, s := range fresh {
 		i := indexOfStructure(w.structures, s.ID)
-		if i >= 0 && w.structures[i].Kind == 0 {
+		if i < 0 {
+			continue
+		}
+		if w.structures[i].Kind == 0 {
 			w.structures[i].Kind = s.Kind
+			w.structures[i].UseAmount = s.UseAmount
+		} else if w.structures[i].Kind == s.Kind && w.structures[i].pointerSlot() == 0 && s.pointerSlot() > 0 {
 			w.structures[i].UseAmount = s.UseAmount
 		}
 	}

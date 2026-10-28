@@ -3069,6 +3069,14 @@ package storyguard
 // pkg/game/savworldeffects.go, the spell id bound in pkg/sim/originalspellbooks.go,
 // the selection past the book's slots in pkg/game/savactionwire.go and
 // pkg/game/currentbookselection.go, and their tests.
+//
+// CommentBytes rises with the comments of the second-game signpost's SAV
+// LOAD: the Pointer slot derived before the pending use in
+// pkg/game/originalstructures.go and pkg/game/structureuse.go, the slot bound
+// in pkg/game/currentscriptprogram.go, the doc comments of the new tests in
+// pkg/game/pointersave_test.go and of the fixture data they add in
+// pkg/game/secondmissionload_test.go and pkg/game/secondoriginalfile_test.go,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4486,
 	TestFileCount:  264,
@@ -3191,5 +3199,15 @@ var Committed = Baseline{
 
 	// It rose for the word table test reading a Words list: its doc comment
 	// and this note.
-	CommentBytes: 9821445,
+
+	// It rose for the second game's Pointer use: the doc comments of
+	// alm.StructureActions in pkg/formats/alm/rom2.go, of PointerSlots in
+	// pkg/mapload/structureuse.go, of PointerKind, pointerSlot and
+	// runStructureAction in pkg/sim/structureuse.go, of restorePointerSlots
+	// in pkg/game/structureuse.go, the new tests' comments (the event window
+	// test in pkg/game/pointerevent_test.go among them) and this note. It
+	// rose again for the source action slot: ScriptInstant.Slot's doc,
+	// runtimeAction in pkg/mapload/script.go, pkg/sim/scriptslotbinary.go,
+	// the slot tests and the shape note in currentscriptbindings.go.
+	CommentBytes: 9828379,
 }

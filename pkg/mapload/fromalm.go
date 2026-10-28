@@ -464,6 +464,11 @@ func Structures(m *alm.Map, t *Table) []sim.Structure {
 			out[i].Blocking = f.Blocking
 		}
 	}
+	for i, slot := range PointerSlots(m) {
+		if slot != 0 {
+			out[i].UseAmount = slot
+		}
+	}
 	return out
 }
 

@@ -230,6 +230,18 @@ func secondSavedDocument(mission uint32, money uint32, hero *secondOriginalHero,
 // secondSavedWorld is secondSavedDocument with extra Tokens in the list
 // after the Sacks.
 func secondSavedWorld(mission uint32, money uint32, hero *secondOriginalHero, world bool, extra int) []byte {
+	return secondSavedWorldOf(mission, money, hero, world, extra, nil)
+}
+
+// secondSavedPointer is one Pointer of a fixture world's Buildings: its
+// cell, kind, map id and Token identity.
+type secondSavedPointer struct {
+	col, row, kind uint8
+	id, key        uint32
+}
+
+// secondSavedWorldOf is secondSavedWorld with pointers in the Buildings.
+func secondSavedWorldOf(mission uint32, money uint32, hero *secondOriginalHero, world bool, extra int, pointers []secondSavedPointer) []byte {
 	s := &secondStream{next: 1, classes: map[string]uint16{}}
 	s.u32(0x50)
 	s.u32(0x05)
@@ -280,7 +292,34 @@ func secondSavedWorld(mission uint32, money uint32, hero *secondOriginalHero, wo
 		return savedTrailer(s.b)
 	}
 	s.u8(1)
-	s.u32(0) // Buildings
+	s.u32(uint32(len(pointers))) // Buildings
+	for i, p := range pointers {
+		// A Building is the Token head, the 40 Building bytes and, for a
+		// Pointer, its +0x6c word (R2-ENGINE-603).
+		s.obj("Pointer")
+		s.u8(p.col)
+		s.u8(p.row)
+		s.u16(0)
+		s.u8(0x80)
+		s.u8(0x80)
+		s.raw(6)
+		s.u32(uint32(300 + i))
+		s.u16(0)
+		s.u16(uint16(p.kind))
+		s.u32(p.id)
+		s.u16(2)
+		s.u32(0)
+		s.u32(p.key)
+		s.u32(0) // no Reference
+		s.raw(22)
+		s.u8(p.kind)
+		s.raw(7)
+		s.u8(1) // width
+		s.u8(1) // height
+		s.u32(0)
+		s.u32(0)
+		s.u32(1)
+	}
 	s.u32(0) // SpellEffects
 	s.u16(0) // terrain blocks
 	s.u16(0) // terrain cells

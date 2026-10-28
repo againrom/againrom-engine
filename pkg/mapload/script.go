@@ -37,6 +37,10 @@ func isPlainParam(t uint32) bool {
 	return t == typeInt || t == typeX || t == typeY || t == typeConst
 }
 
+// runtimeAction reports an action node below the build floor: one that
+// takes a source action slot, compiled or omitted.
+func runtimeAction(n alm.ScriptNode) bool { return n.Opcode < scriptBuildFloor }
+
 // Compile-time forms do not reach runtime dispatch. ROM1 consumes drop cells;
 // ROM2 preserves packed coordinates without assigning an unknown consumer.
 const (
@@ -332,13 +336,16 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 	instantOf := make(map[uint32]int32, len(src.Actions))
 	buildTime := make(map[uint32]bool)
 	unbuilt := make(map[uint32]bool)
+	slot := int32(-1)
 	for _, n := range src.Actions {
 		var args [10]int32
 		var refd bound
 		if dialect != sim.ScriptROM2 || n.Opcode != scriptDropOpcode {
 			args, refd = bindScriptParams(n, refs, &rep, false, dialect)
 		}
-		if n.Opcode >= scriptBuildFloor {
+		if runtimeAction(n) {
+			slot++
+		} else {
 			buildTime[n.ID] = true
 			switch n.Opcode {
 			case scriptDropOpcode:
@@ -367,8 +374,12 @@ func compileScriptFrom(src alm.Script, refs ScriptRefs, dialect sim.ScriptDialec
 			continue
 		}
 		instantOf[n.ID] = int32(len(instants))
+		var source int32
+		if dialect == sim.ScriptROM2 {
+			source = slot
+		}
 		instants = append(instants, sim.ScriptInstant{
-			Op: int32(n.Opcode), Args: args,
+			Slot: source, Op: int32(n.Opcode), Args: args,
 			Unit: refd.unit, HasUnit: refd.hasUnit,
 			Unit2: refd.unit2, HasUnit2: refd.hasUnit2,
 			Group: refd.group, HasGroup: refd.hasGroup,

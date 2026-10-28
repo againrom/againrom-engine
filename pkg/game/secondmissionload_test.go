@@ -10,6 +10,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
@@ -49,23 +50,70 @@ func secondMissionFile(hero secondOriginalHero, store []byte) []byte {
 // and the first game's other nine records in the corpus order. The type-7
 // body is its three count words; a second-game map with no script still
 // runs the second game's script state, which holds the campaign bank.
-func secondMissionMap(w, h int) []byte {
+func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondMissionContent{}) }
+
+// secondMissionContent is what a fixture mission holds beyond the empty map:
+// type-4 objects, type-7 action nodes, type-11c records, files of the main
+// archive, and the mission font, without which a notice takes no input.
+type secondMissionContent struct {
+	objects  []alm.Object
+	actions  []alm.ScriptNode
+	pointers []alm.StructureAction
+	main     []synth.File
+	font     bool
+}
+
+// secondMissionMapOf is secondMissionMap with c's objects, action nodes and
+// type-11c records; the type-11 record follows type 7 when c has any.
+func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 	le := binary.LittleEndian
 	meta := make([]byte, 660)
 	le.PutUint32(meta[0x00:], uint32(w))
 	le.PutUint32(meta[0x04:], uint32(h))
 	le.PutUint32(meta[0x1c:], 1) // one type-5 group record
+	le.PutUint32(meta[0x20:], uint32(len(c.objects)))
+	le.PutUint32(meta[0x3c:], uint32(len(c.pointers)))
 	copy(meta[0x44:], "second")
 	group := make([]byte, 76)
 	copy(group[0x0c:], "Self")
+	var objects []byte
+	for _, o := range c.objects {
+		rec := make([]byte, 20)
+		le.PutUint32(rec[0x00:], o.X)
+		le.PutUint32(rec[0x04:], o.Y)
+		le.PutUint32(rec[0x08:], o.Kind)
+		le.PutUint16(rec[0x0c:], o.Field0C)
+		le.PutUint16(rec[0x12:], o.Field12)
+		objects = append(objects, rec...)
+	}
+	script := le.AppendUint32(nil, uint32(len(c.actions)))
+	for _, n := range c.actions {
+		rec := make([]byte, 796)
+		le.PutUint32(rec[0x40:], n.Opcode)
+		le.PutUint32(rec[0x44:], n.ID)
+		for k := range n.Value {
+			le.PutUint32(rec[0x4c+4*k:], n.Value[k])
+			le.PutUint32(rec[0x74+4*k:], n.Type[k])
+		}
+		script = append(script, rec...)
+	}
+	script = append(script, make([]byte, 8)...)
+	var pointers []byte
+	for _, r := range c.pointers {
+		pointers = le.AppendUint32(le.AppendUint32(le.AppendUint32(pointers, r.ID), r.Gate), r.Position)
+	}
 	payloads := map[int][]byte{0: meta, 1: make([]byte, 2*w*h), 2: make([]byte, w*h), 3: make([]byte, w*h),
-		4: nil, 5: group, 6: nil, 7: make([]byte, 12), 8: nil, 9: make([]byte, 4)}
+		4: objects, 5: group, 6: nil, 7: script, 8: nil, 9: make([]byte, 4), 11: pointers}
+	order := []int{0, 1, 2, 3, 5, 4, 9, 8, 6, 7}
+	if len(c.pointers) != 0 {
+		order = append(order, 11)
+	}
 	out := make([]byte, 20)
 	le.PutUint32(out[0:], 0x0052374D)
 	le.PutUint32(out[4:], 20)
-	le.PutUint32(out[12:], 10)
+	le.PutUint32(out[12:], uint32(len(order)))
 	le.PutUint32(out[16:], 1300)
-	for _, typeID := range []int{0, 1, 2, 3, 5, 4, 9, 8, 6, 7} {
+	for _, typeID := range order {
 		p := payloads[typeID]
 		hdr := make([]byte, 20)
 		le.PutUint32(hdr[0:], 7)
@@ -80,13 +128,27 @@ func secondMissionMap(w, h int) []byte {
 // secondMissionFront is a second-game front over a 40x40 mission 10 map.
 func secondMissionFront(t *testing.T) *FrontEnd {
 	t.Helper()
+	return secondMissionFrontOf(t, secondMissionContent{})
+}
+
+// secondMissionFrontOf is secondMissionFront over a mission holding c.
+func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
+	t.Helper()
 	f := currentPoolFixtureFront(t)
-	path := filepath.Join(t.TempDir(), ScenarioArchive)
-	b := synth.Archive([]synth.File{{Path: "10.alm", Data: secondMissionMap(40, 40)}, {Path: "npc.reg", Data: synth.NPCReg(nil)}})
+	dir := t.TempDir()
+	path := filepath.Join(dir, ScenarioArchive)
+	b := synth.Archive([]synth.File{{Path: "10.alm", Data: secondMissionMapOf(40, 40, c)}, {Path: "npc.reg", Data: synth.NPCReg(nil)}})
 	if err := os.WriteFile(path, b, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	fs, err := vfs.Open([]string{path}, nil)
+	paths := []string{path}
+	if len(c.main) != 0 {
+		paths = append(paths, filepath.Join(dir, MainArchive))
+		if err := os.WriteFile(paths[1], synth.Archive(c.main), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fs, err := vfs.Open(paths, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +158,9 @@ func secondMissionFront(t *testing.T) *FrontEnd {
 		t.Fatal("missing ROM2 profile")
 	}
 	f.Archives.Base = base.Match{Profile: profile}
+	if c.font {
+		f.Font = resolved(missionFont(), nil)
+	}
 	// The second game's spell table has 29 rows; Slow is the last, a speed
 	// effect with no damage.
 	rows := dbCollection{{}}
@@ -118,7 +183,13 @@ func secondMissionFront(t *testing.T) *FrontEnd {
 // whose save directory is dir.
 func secondMissionLoad(t *testing.T, dir, name string) (*FrontEnd, *ui.App) {
 	t.Helper()
-	f := secondMissionFront(t)
+	return secondMissionLoadOf(t, secondMissionContent{}, dir, name)
+}
+
+// secondMissionLoadOf is secondMissionLoad over a mission holding c.
+func secondMissionLoadOf(t *testing.T, c secondMissionContent, dir, name string) (*FrontEnd, *ui.App) {
+	t.Helper()
+	f := secondMissionFrontOf(t, c)
 	app := f.App("second-mission")
 	app.Layout(1024, 768)
 	// The second game lists its own directory, its originals among them.

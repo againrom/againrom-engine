@@ -128,6 +128,30 @@ func (m *Map) decodeUnitsROM2(p []byte) error {
 	return nil
 }
 
+// StructureAction is one type-11c record: the type-4 id of the structure it
+// names, its gate and the index of an action node (R2-ENGINE-512).
+type StructureAction struct {
+	ID, Gate, Position uint32
+}
+
+// StructureActions decodes the type-11c records of the type-11 extension, in
+// file order, after its 11a and 11b records. ok is false when the map carries
+// no type-11 record or its length disagrees with the type-0 counts.
+func (m *Map) StructureActions() (out []StructureAction, ok bool) {
+	p := m.Extension[1]
+	n := m.Meta.Count11
+	at := uint64(rom2Type11A)*uint64(n[0]) + uint64(rom2Type11B)*uint64(n[1])
+	if len(p) == 0 || uint64(len(p)) != at+uint64(rom2Type11C)*uint64(n[2]) {
+		return nil, false
+	}
+	le := binary.LittleEndian
+	for k := uint64(0); k < uint64(n[2]); k++ {
+		rec := p[at+k*rom2Type11C:]
+		out = append(out, StructureAction{ID: le.Uint32(rec), Gate: le.Uint32(rec[4:]), Position: le.Uint32(rec[8:])})
+	}
+	return out, true
+}
+
 // MusicArea is one type-12 record: centre and radius in tiles and four
 // themes, each an index into the mission list or -1 for none (R2-ASSET-084).
 type MusicArea struct {

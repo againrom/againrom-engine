@@ -452,7 +452,13 @@ type ScriptCheck struct {
 // B3, `TRIG-CHECK-053`), the check record's own Structure field on the same
 // terms: instant opcode 26 is the one action of the whole vocabulary that
 // names a structure.
+//
+// Slot is the second game's source action slot of the node the instant was
+// compiled from: the count of earlier action nodes below the build floor,
+// omitted nodes included. A Pointer names its action by this slot
+// (R2-ENGINE-520). The first game's instants keep 0.
 type ScriptInstant struct {
+	Slot         int32 `json:",omitempty"`
 	Op           int32
 	Args         [scriptParams]int32
 	Unit         EntityID
