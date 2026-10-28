@@ -3268,5 +3268,11 @@ var Committed = Baseline{
 	// comments in pkg/data/humanspeakers_test.go,
 	// pkg/game/speakercompanion_test.go and
 	// pkg/game/secondcompanionjoin_release_test.go, and this note.
-	CommentBytes: 9857677,
+
+	// It rose for the editor release tests after the box move, the hover
+	// line and the overlap refusal: the doc comments of
+	// MapEditor.PopupTipRects in pkg/ui/mapeditortrigger.go and of
+	// freeOffset in pkg/game/mapeditorselection_release_test.go, the
+	// changed test comments and this note.
+	CommentBytes: 9858299,
 }

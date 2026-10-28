@@ -920,6 +920,28 @@ func (e *MapEditor) PopupRowFullText(n int) (string, bool) {
 	return "", false
 }
 
+// PopupTipRects are the boxes of the hover lines ChromeImage draws now.
+func (e *MapEditor) PopupTipRects() []image.Rectangle {
+	var specs []popupSpec
+	if s, ok := e.listSpec(); ok {
+		specs = append(specs, s)
+	}
+	if s, _, ok := e.objectSpec(); ok {
+		specs = append(specs, s)
+	}
+	if s, ok := e.promptSpec(); ok {
+		specs = append(specs, s)
+	}
+	var out []image.Rectangle
+	for _, s := range specs {
+		l := layoutPopup(s, e.font, e.bodyFont())
+		if tip, ok := popupTipAt(image.Rect(0, 0, e.window.X, e.window.Y), e.font, e.bodyFont(), s, l, e.pointer, e.pointerOK); ok {
+			out = append(out, tip.Rect)
+		}
+	}
+	return out
+}
+
 // PopupButtonRect is the window rectangle of button n of the object popup's
 // button row.
 func (e *MapEditor) PopupButtonRect(n int) (image.Rectangle, bool) {

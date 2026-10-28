@@ -5,6 +5,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -15,15 +16,17 @@ import (
 )
 
 // writeEditorFrame draws the editor headless, checks that the window's text
-// overlay keeps every glyph of the installed fonts outside cover, and writes
+// overlay keeps every glyph of the installed fonts outside cover and the
+// hover lines, and writes
 // the frame as a PNG to path when write is set.
 func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
 	t.Helper()
 	screen := ebiten.NewImage(1280, 800)
 	e.Draw(screen)
 	screen.Dispose()
+	covers := append(e.PopupTipRects(), cover)
 	for _, ft := range e.TextFates() {
-		if ft.Fate == textsmooth.Hidden && image.Pt(ft.Call.X, ft.Call.Y).In(cover) {
+		if ft.Fate == textsmooth.Hidden && slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) {
 			continue
 		}
 		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Repeat {
@@ -54,7 +57,7 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 // the owner looks at. Without that directory it only drives the same steps.
 // In each state the window's text overlay keeps every glyph of the installed
 // fonts: none is undecided or left baked, and only text under an open
-// drop-down's list is hidden.
+// drop-down's list or a cut row's hover line is hidden.
 func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)

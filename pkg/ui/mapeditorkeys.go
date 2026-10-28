@@ -118,6 +118,7 @@ var (
 	lineSelectionMove = helpLine{Word: "editor.keys.selectionmove"}
 	lineSelectionEsc  = helpLine{Word: "editor.keys.selectionclear"}
 	lineSelectBox     = helpLine{Word: "editor.keys.selectbox"}
+	lineBoxMove       = helpLine{Word: "editor.keys.boxmove"}
 	lineGroups        = helpLine{Word: "editor.keys.groups"}
 	lineToGroup       = helpLine{Word: "editor.keys.togroup"}
 	linePlace         = helpLine{Word: "editor.keys.place"}
@@ -164,7 +165,7 @@ func init() {
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
 		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
-		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenAddCell, linePlace}}},
+		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenKeys, lineBoxMove}, {screenAddCell, linePlace}}},
 		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},
 		{label: "Ctrl+1..9", help: []helpEntry{{screenKeys, lineToGroup}, {screenSelection, lineToGroup}}},
 		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},

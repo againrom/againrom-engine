@@ -215,11 +215,42 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	t.Logf("%d records in the rectangle; paste status %q", n, e.StatusLine())
 }
 
+// freeOffset is the nearest offset that moves the footprints of units within
+// area onto cells ok takes and off every footprint of taken.
+func freeOffset(feet []image.Rectangle, units []int, taken []image.Rectangle, area image.Rectangle, ok func(image.Point) bool) (image.Point, bool) {
+	fits := func(d image.Point) bool {
+		for _, i := range units {
+			f := feet[i].Add(d)
+			if !f.In(area) || slices.ContainsFunc(taken, f.Overlaps) {
+				return false
+			}
+			for y := f.Min.Y; y < f.Max.Y; y++ {
+				for x := f.Min.X; x < f.Max.X; x++ {
+					if !ok(image.Pt(x, y)) {
+						return false
+					}
+				}
+			}
+		}
+		return true
+	}
+	for r := 1; r < max(area.Dx(), area.Dy()); r++ {
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if d := image.Pt(dx, dy); max(abs(dx), abs(dy)) == r && fits(d) {
+					return d, true
+				}
+			}
+		}
+	}
+	return image.Point{}, false
+}
+
 // TestReleaseMapEditorPasteTakesAShippedFlier copies a unit of a non-ground
 // movement domain (the map's Bees) the installed map places on a Water or
-// Mountain cell and pastes it on its own cell: the
-// paste takes it. Its control: a ground unit of the same map pasted on that
-// cell is refused, with the cell's arms named.
+// Mountain cell and pastes it on the nearest free cell of Water or Mountain
+// alone: the paste takes it. Its control: a ground unit of the same map
+// pasted on that cell is refused, with the cell's arms named.
 func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -253,6 +284,16 @@ func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
 	if flier < 0 || ground < 0 {
 		t.Fatalf("scenario/10.alm has no flier on Water or Mountain (%d) or no ground unit on an open cell (%d)", flier, ground)
 	}
+	from := at
+	feet := x.feet(m)
+	d, ok := freeOffset(feet.units, []int{flier}, feet.units, image.Rect(1, 1, int(m.Width)-1, int(m.Height)-1), func(c image.Point) bool {
+		a := arms[c.Y*int(m.Width)+c.X]
+		return a&(mapload.GroundWater|mapload.GroundMountain) != 0 && a&^(mapload.GroundWater|mapload.GroundMountain) == 0
+	})
+	if !ok {
+		t.Fatalf("scenario/10.alm has no free Water or Mountain cell for the flier at %v", from)
+	}
+	at = from.Add(d)
 	word := func(id string, a ...any) string { return x.inspectionUTF8(fmt.Sprintf(x.word(id), a...)) }
 	copyUnit := func(i int) {
 		t.Helper()
@@ -267,7 +308,7 @@ func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
 	copyUnit(flier)
 	pasteAt(t, e, at)
 	if s := e.StatusLine(); !strings.Contains(s, word("editor.selection.pasted", 1, 1)) {
-		t.Fatalf("the flier, unit %d at %v, pasted on its own cell: %q", flier, at, s)
+		t.Fatalf("the flier, unit %d at %v, pasted on the free cell %v: %q", flier, from, at, s)
 	}
 	_ = e.Key("undo")
 	copyUnit(ground)
@@ -275,9 +316,9 @@ func TestReleaseMapEditorPasteTakesAShippedFlier(t *testing.T) {
 	names := (&mapInspectionEdits{inspector: x}).armWords(arms[at.Y*int(m.Width)+at.X])
 	refusal := word("editor.selection.closed", fmt.Sprintf(x.word("editor.selection.unit"), ground), at.X, at.Y, strings.Join(names, ", "))
 	if s := e.StatusLine(); !strings.Contains(s, word("editor.selection.pasted", 0, 1)) || !strings.Contains(s, refusal) {
-		t.Fatalf("the ground unit %d pasted on the flier's cell %v: %q lacks %q", ground, at, s, refusal)
+		t.Fatalf("the ground unit %d pasted on the flier's free cell %v: %q lacks %q", ground, at, s, refusal)
 	}
-	t.Logf("flier unit %d at %v; ground unit %d refused: %q", flier, at, ground, e.StatusLine())
+	t.Logf("flier unit %d at %v pasted on %v; ground unit %d refused: %q", flier, from, at, ground, e.StatusLine())
 }
 
 // widestRefusals is the map's own edits with a paste that adds refusals.
@@ -323,7 +364,7 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 		}
 	}
 	// The group: the units of the first 7x7 cells round a unit that hold two
-	// or more units and no structure or sack, pasted back on their own cells.
+	// or more units and no structure or sack.
 	var box image.Rectangle
 	n := 0
 	for _, a := range e.Document().Records {
@@ -356,6 +397,7 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	var c image.Point
+	var units []int
 	first := true
 	for _, r := range e.Document().Records {
 		if r.Kind == "Unit" && r.Spatial && r.Cell.In(box) {
@@ -363,8 +405,22 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 				c, first = r.Cell, false
 			}
 			c = image.Pt(min(c.X, r.Cell.X), min(c.Y, r.Cell.Y))
+			units = append(units, r.Index)
 		}
 	}
+	// The group lands on the nearest open cells no unit or structure takes.
+	m, err := alm.Open(e.Document().SourceBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	arms, feet := mapload.GroundArms(m, x.table), x.feet(m)
+	d, ok := freeOffset(feet.units, units, append(slices.Clone(feet.units), feet.structures...), image.Rect(1, 1, int(m.Width)-1, int(m.Height)-1), func(p image.Point) bool {
+		return arms[p.Y*int(m.Width)+p.X] == 0
+	})
+	if !ok || !box.Add(d).In(image.Rect(0, 0, int(m.Width), int(m.Height))) {
+		t.Fatalf("scenario/10.alm has no open cells for the %d units of %v", n, box)
+	}
+	c = c.Add(d)
 	host, ok := e.Document().Edits.(*mapInspectionEdits)
 	if !ok {
 		t.Fatalf("the document's edits are %T", e.Document().Edits)
@@ -372,7 +428,7 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 	e.Document().Edits = widestRefusals{host, []string{widest, widest, widest}}
 	pasteAt(t, e, c)
 	if st := e.StatusLine(); !strings.Contains(st, x.inspectionUTF8(fmt.Sprintf(x.word("editor.selection.pasted"), n, n))) {
-		t.Fatalf("the paste of %d units on their own cells: %q", n, st)
+		t.Fatalf("the paste of %d units moved by %v onto open cells: %q", n, d, st)
 	}
 	line, width, whole, limit := e.StatusFit()
 	t.Logf("widest refusal %q; fitted %q, %d of %d (whole %d)", widest, line, width, limit, whole)
