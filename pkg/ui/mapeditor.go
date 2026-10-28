@@ -584,9 +584,7 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 		v.canvas.Clear()
 		v.drawFrame(v.canvas)
 		if f, ok := e.placement(); ok {
-			for _, s := range f.Sprites {
-				v.drawPlaneSprite(v.canvas, s)
-			}
+			e.drawPlacement(v.canvas, f)
 		}
 		e.drawMarkers(v.canvas)
 		ox, oy := v.place.Origin()

@@ -26,6 +26,10 @@ const (
 	pickArea pickKind = "area"
 	// pickWizardUnit is a unit on the map for the trigger wizard's row.
 	pickWizardUnit pickKind = "wizardunit"
+	// pickPaste is the paste brush: the copied records, and the terrain of
+	// an area copy, follow the pointer translucent until a click pastes
+	// them there.
+	pickPaste pickKind = "paste"
 )
 
 // promptKind is the text prompt in the rail.

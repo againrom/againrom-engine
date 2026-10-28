@@ -114,15 +114,27 @@ func selectArea(e *ui.MapEditor, a, b image.Point) {
 	e.Pointer(ui.Input{CursorX: q.X, CursorY: q.Y, Shift: true}, now)
 }
 
-// pasteAt scrolls cell into view, points at it and presses Ctrl+V.
+// pasteAt scrolls cell into view, points at it, presses Ctrl+V and clicks
+// there.
 func pasteAt(t *testing.T, e *ui.MapEditor, cell image.Point) {
 	t.Helper()
-	e.ShowCell(cell)
-	p := e.CellPoint(cell)
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	p := pointAt(e, cell)
 	if err := e.Key("paste"); err != nil {
 		t.Fatal(err)
 	}
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+}
+
+// pointAt scrolls cell into view and points at it. The first pointer event
+// finishes the scroll, so the point is taken again after it.
+func pointAt(e *ui.MapEditor, cell image.Point) image.Point {
+	e.ShowCell(cell)
+	p := e.CellPoint(cell)
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	p = e.CellPoint(cell)
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	return p
 }
 
 // groupRecords is every unit, structure and sack of the document, in its
@@ -502,5 +514,108 @@ func TestMapEditorPasteIntoAnotherMapTakesFreshGroups(t *testing.T) {
 	same, _ := editedMap(t, e)
 	if n := len(same.Units); n != 6 || same.Units[3].GroupID != scripted || same.Units[5].GroupID != scripted || strings.Contains(e.StatusLine(), "renumbered") {
 		t.Fatalf("a paste in the same map: %d units, status %q", n, e.StatusLine())
+	}
+}
+
+// A selection box drawn while a list tab is open selects that tab's records
+// only, but Ctrl+C takes every unit, structure and sack in the box, and the
+// paste into another map places them all. Loss control: the copy of the
+// box's selected records alone pastes the units without the structure and
+// the sack.
+func TestMapEditorBoxCopyOnAListTabTakesEveryKind(t *testing.T) {
+	raw := groupMap(t, 2)
+	m, _ := mapedit.New(raw)
+	for m.Count(mapedit.KindUnit) > 0 {
+		_ = m.Delete(mapedit.KindUnit, 0)
+	}
+	second := m.Bytes()
+	for _, tab := range []string{"units", "groups", "structures", "sacks"} {
+		t.Run(tab, func(t *testing.T) {
+			e := groupEditor(t, raw)
+			r, ok := e.BarRect(tab)
+			if !ok {
+				t.Fatalf("no %s tab", tab)
+			}
+			c := r.Min.Add(r.Size().Div(2))
+			e.Pointer(ui.Input{CursorX: c.X, CursorY: c.Y, PrimaryDown: true}, time.Unix(1, 0))
+			e.Pointer(ui.Input{CursorX: c.X, CursorY: c.Y}, time.Unix(1, 0))
+			dragCell(e, image.Pt(11, 11), image.Pt(23, 23))
+			if n := len(e.SelectedRecords()); n == 0 || n == len(groupRefs) {
+				t.Fatalf("the box on the %s tab selected %v", tab, e.SelectedRecords())
+			}
+			if err := e.Key("copy"); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(e.StatusLine(), "4 records") {
+				t.Errorf("status %q after the copy", e.StatusLine())
+			}
+			openSelectionMap(t, e, "second.alm", second)
+			pasteAt(t, e, image.Pt(18, 18))
+			got, sacks := editedMap(t, e)
+			if len(got.Units) != 2 || len(got.Objects) != 2 || len(sacks) != 2 {
+				t.Fatalf("the paste left %d units, %d structures, %d sacks (%s)", len(got.Units), len(got.Objects), len(sacks), e.StatusLine())
+			}
+			_ = e.Key("undo")
+			if !bytes.Equal(e.Document().SourceBytes, second) {
+				t.Fatal("one undo did not revert the paste")
+			}
+		})
+	}
+}
+
+// Ctrl+V arms the paste brush and changes no byte; the click pastes as one
+// undo step and disarms; a second Ctrl+V arms the same clip again. The
+// brush's preview is PasteRecords on a copy of the model: it leaves the map
+// as it was, so the click's paste matches one clone per record. Loss
+// controls: a preview that pastes into the model itself leaves the map
+// edited before the click; a Ctrl+V that pastes at once edits at the key.
+func TestMapEditorPasteBrushPastesOnClickAsOneUndoStep(t *testing.T) {
+	raw := groupMap(t, 2)
+	e := groupEditor(t, raw)
+	selectArea(e, image.Pt(11, 11), image.Pt(21, 21))
+	if err := e.Key("copy"); err != nil {
+		t.Fatal(err)
+	}
+	host := e.Document().Edits
+	clip, _, err := host.(ui.InspectionSelection).CopyRecords(groupRefs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cell := image.Pt(9, 22)
+	want := clonedAt(t, raw, raw, groupRefs, cell)
+	preview, err := host.(ui.InspectionPlacementPreview).PreviewPlacement(ui.InspectionNewRecord{Cell: cell, HasCell: true, Clip: clip})
+	if err != nil || !bytes.Equal(preview.SourceBytes, want) {
+		t.Fatalf("the preview is not the paste: %v", err)
+	}
+	p := pointAt(e, cell)
+	if err := e.Key("paste"); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(e.Document().SourceBytes, raw) || host.CanUndo() || !strings.Contains(e.StatusLine(), "Paste: click") {
+		t.Fatalf("Ctrl+V edited or did not arm: status %q", e.StatusLine())
+	}
+	click := func() {
+		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
+		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	}
+	click()
+	if !bytes.Equal(e.Document().SourceBytes, want) || !strings.Contains(e.StatusLine(), "Pasted 4 of 4") {
+		t.Fatalf("the click's paste differs from one clone per record (%s)", e.StatusLine())
+	}
+	_ = e.Key("undo")
+	if !bytes.Equal(e.Document().SourceBytes, raw) {
+		t.Fatal("one undo did not revert the paste")
+	}
+	click()
+	if !bytes.Equal(e.Document().SourceBytes, raw) {
+		t.Fatal("a click after the paste pasted again")
+	}
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
+	if err := e.Key("paste"); err != nil {
+		t.Fatal(err)
+	}
+	click()
+	if !bytes.Equal(e.Document().SourceBytes, want) {
+		t.Fatalf("the second Ctrl+V did not paste the same clip (%s)", e.StatusLine())
 	}
 }

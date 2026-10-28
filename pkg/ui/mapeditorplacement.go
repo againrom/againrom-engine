@@ -7,6 +7,8 @@ import (
 	"image/draw"
 	"strconv"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var editorGhost = color.RGBA{128, 128, 128, 128}
@@ -26,7 +28,15 @@ type placementFrame struct {
 	// Dragged marks a record drag's silhouettes: the drag marks its cells
 	// itself, so no cell box is drawn.
 	Dragged bool
+	// Ground is the cells of a paste's terrain patch, drawn translucent
+	// from GroundView, the preview of the map after the paste.
+	Ground     image.Rectangle
+	GroundView *Viewer
 }
+
+// editorGhostAlpha is the opacity of a placement's translucent ground, the
+// translucent sprites' own.
+const editorGhostAlpha = 0.5
 
 func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 	r, ok := e.addRunning()
@@ -80,24 +90,36 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 		if host, ok := e.doc.Edits.(InspectionCellCheck); ok {
 			f.Refused = host.CheckObjectCell(r.Kind, r.Index, f.Cell) != nil
 		}
-		f.Sprites = e.recordSprites(r, f.Cell.Sub(r.Cell))
+		f.Sprites = e.recordSprites(e.doc.Viewer, r, f.Cell.Sub(r.Cell))
 		if f.Refused {
 			f.Sprites = nil
 		}
 	}
-	if e.pick == pickAddCell {
+	if e.pick == pickAddCell || e.pick == pickPaste {
 		host, ok := e.doc.Edits.(InspectionPlacementPreview)
 		if !ok {
 			return f, true
 		}
-		r := e.addPlacement(f.Cell)
+		r := InspectionNewRecord{Cell: f.Cell, HasCell: true, Clip: e.selection.clip}
+		if e.pick == pickAddCell {
+			r = e.addPlacement(f.Cell)
+		}
 		key := fmt.Sprint(r)
+		if r.Clip != nil {
+			key = fmt.Sprint(r, e.doc.Viewer.flat)
+		}
 		if e.placementKey != key || e.placementDoc != e.doc {
 			e.placementKey, e.placementDoc = key, e.doc
 			e.placementView, e.placementErr = host.PreviewPlacement(r)
+			if d := e.placementView; d != nil && r.Clip != nil {
+				d.Viewer.SetFlat(e.doc.Viewer.flat)
+			}
 		}
 		f.Refused = e.placementErr != nil
-		if d := e.placementView; d != nil && !f.Refused {
+		if d := e.placementView; d != nil && !f.Refused && r.Clip != nil {
+			d.Viewer.cam = e.doc.Viewer.cam
+			e.pastePlacement(&f, d, r.Clip)
+		} else if d != nil && !f.Refused {
 			v := d.Viewer
 			v.cam = e.doc.Viewer.cam
 			var index int
@@ -139,6 +161,63 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 	return f, true
 }
 
+// pastePlacement fills f with what the paste brush's clip places, read off
+// d, the host's preview of the map after the paste: each record the paste
+// added, and for a terrain patch its cells on the map with the objects on
+// them.
+func (e *MapEditor) pastePlacement(f *placementFrame, d *InspectionDocument, clip InspectionClip) {
+	v := d.Viewer
+	next := map[string]int{}
+	for _, r := range e.doc.Records {
+		next[r.Kind] = max(next[r.Kind], r.Index+1)
+	}
+	for _, r := range d.Records {
+		if selectable(r.Kind) && r.Spatial && r.Index >= next[r.Kind] {
+			f.Sprites = append(f.Sprites, e.recordSprites(v, r, image.Point{})...)
+		}
+	}
+	size := clip.Patch()
+	if size.X <= 0 || size.Y <= 0 {
+		return
+	}
+	f.Ground = image.Rectangle{Min: f.Cell, Max: f.Cell.Add(size)}.Intersect(image.Rect(0, 0, d.Width, d.Height))
+	f.GroundView = v
+	for _, p := range v.staticPlacements() {
+		if p.Frame == nil || !p.Cell.In(f.Ground) {
+			continue
+		}
+		if rect, ok := spriteScreenRect(p.Rect(), v.cam); ok {
+			f.Sprites = append(f.Sprites, staticScreenRect{screenRect: rect, Frame: p.Frame, Mirror: p.Mirror})
+		}
+	}
+}
+
+// drawPlacement draws f over dst: a paste's ground translucent, then the
+// sprites.
+func (e *MapEditor) drawPlacement(dst *ebiten.Image, f placementFrame) {
+	e.drawPlacementGround(dst, f)
+	for _, s := range f.Sprites {
+		e.doc.Viewer.drawPlaneSprite(dst, s)
+	}
+}
+
+// drawPlacementGround paints the cells of f's ground as its preview draws
+// them, translucent.
+func (e *MapEditor) drawPlacementGround(dst triangleTarget, f placementFrame) {
+	v := f.GroundView
+	if v == nil || f.Ground.Empty() {
+		return
+	}
+	cells := func(fn func(tx, ty int)) {
+		for y := f.Ground.Min.Y; y < f.Ground.Max.Y; y++ {
+			for x := f.Ground.Min.X; x < f.Ground.Max.X; x++ {
+				fn(x, y)
+			}
+		}
+	}
+	v.drawTiles(dst, v.Mode() == ModeDisplaced, cells, editorGhostAlpha)
+}
+
 func (e *MapEditor) placementPicture() *image.RGBA {
 	f, ok := e.placement()
 	if !ok || len(f.Sprites) == 0 {
@@ -173,7 +252,7 @@ func (e *MapEditor) dragPlacement() (placementFrame, bool) {
 	offset := d.cell.Sub(d.origin)
 	for i, r := range e.doc.Records {
 		if i == d.record || d.group && e.inSelection(i) {
-			f.Sprites = append(f.Sprites, e.recordSprites(r, offset)...)
+			f.Sprites = append(f.Sprites, e.recordSprites(e.doc.Viewer, r, offset)...)
 		}
 	}
 	for i := range f.Sprites {
@@ -183,10 +262,9 @@ func (e *MapEditor) dragPlacement() (placementFrame, bool) {
 }
 
 // recordSprites are the map sprites of record r, shifted by offset cells: the
-// unit or structure body, a flat structure's floor and a sack, as the map
-// draws them.
-func (e *MapEditor) recordSprites(r InspectionRecord, offset image.Point) []staticScreenRect {
-	v := e.doc.Viewer
+// unit or structure body, a flat structure's floor and a sack, as v draws
+// them.
+func (e *MapEditor) recordSprites(v *Viewer, r InspectionRecord, offset image.Point) []staticScreenRect {
 	delta := e.CellPoint(r.Cell.Add(offset)).Sub(e.CellPoint(r.Cell))
 	var out []staticScreenRect
 	add := func(s staticScreenRect) {

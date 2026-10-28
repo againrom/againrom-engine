@@ -42,6 +42,14 @@ func (c *selectionClip) Len() int {
 	return len(c.records)
 }
 
+// Patch is the terrain patch's size in cells, zero for a clip without one.
+func (c *selectionClip) Patch() image.Point {
+	if c.patch == nil {
+		return image.Point{}
+	}
+	return image.Pt(c.patch.W, c.patch.H)
+}
+
 // selectionKind is the model section of a kind the group selection takes.
 func selectionKind(kind string) (mapedit.Kind, error) {
 	switch kind {

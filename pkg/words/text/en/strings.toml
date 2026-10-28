@@ -577,6 +577,7 @@
 "editor.selection.none" = "Select a unit, structure or sack first"
 "editor.selection.noclip" = "Nothing copied: Ctrl+C copies the selection"
 "editor.selection.nocell" = "Point at a map cell to paste"
+"editor.selection.armed" = "Paste: click a map cell to place the copy; Esc cancels."
 "editor.selection.nohost" = "This map cannot be edited"
 "editor.selection.unit" = "unit %d"
 "editor.selection.structure" = "structure %d"

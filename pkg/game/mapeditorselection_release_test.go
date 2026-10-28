@@ -191,9 +191,13 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 		was := bytes.Clone(e.Document().SourceBytes)
 		pp := e.CellPoint(centre.Add(off).Sub(image.Pt(3, 3)))
 		e.Pointer(ui.Input{CursorX: pp.X, CursorY: pp.Y}, now)
+		pp = e.CellPoint(centre.Add(off).Sub(image.Pt(3, 3)))
+		e.Pointer(ui.Input{CursorX: pp.X, CursorY: pp.Y}, now)
 		if err := e.Key("paste"); err != nil {
 			t.Fatal(err)
 		}
+		e.Pointer(ui.Input{CursorX: pp.X, CursorY: pp.Y, PrimaryDown: true}, now)
+		e.Pointer(ui.Input{CursorX: pp.X, CursorY: pp.Y}, now)
 		if strings.Contains(e.StatusLine(), word("editor.selection.pasted", n, n)) {
 			pasted = true
 			break

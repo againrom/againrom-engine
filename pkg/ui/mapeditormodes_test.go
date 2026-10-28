@@ -190,7 +190,8 @@ func (p *modesFull) Report() []InspectionFinding { return modesFindings }
 // modesClip is the full host's copied group.
 type modesClip []RecordRef
 
-func (c modesClip) Len() int { return len(c) }
+func (c modesClip) Len() int           { return len(c) }
+func (c modesClip) Patch() image.Point { return image.Point{} }
 
 func (p *modesFull) group(format string, a ...any) (SelectionEdit, error) {
 	d, err := p.next(format, a...)
@@ -562,6 +563,8 @@ var modesPaths = []modesPath{
 	{"players", []string{"players"}},
 	{"player-name", []string{"players", "down", "field"}},
 	{"player-number", []string{"players", "down", "field", "tab"}},
+	{"paste-armed", []string{"ui:select0", "copy", "paste"}},
+	{"paste-group", []string{"ui:group", "copy", "paste"}},
 }
 
 // modesSmallPaths are the paths also run against the hosts without the

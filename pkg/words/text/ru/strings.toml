@@ -541,6 +541,7 @@
 "editor.selection.none" = "Сначала выделите юнит, постройку или мешок"
 "editor.selection.noclip" = "Нечего вставить: Ctrl+C копирует выделение"
 "editor.selection.nocell" = "Наведите указатель на клетку карты"
+"editor.selection.armed" = "Вставка: щёлкните клетку карты, чтобы поставить копию; Esc отменяет."
 "editor.selection.nohost" = "Эту карту нельзя изменить"
 "editor.selection.unit" = "юнит %d"
 "editor.selection.structure" = "постройка %d"

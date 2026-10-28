@@ -3209,5 +3209,14 @@ var Committed = Baseline{
 	// rose again for the source action slot: ScriptInstant.Slot's doc,
 	// runtimeAction in pkg/mapload/script.go, pkg/sim/scriptslotbinary.go,
 	// the slot tests and the shape note in currentscriptbindings.go.
-	CommentBytes: 9828379,
+
+	// It rose for the map editor's paste brush: the doc comments of
+	// InspectionClip.Patch, cellRecords, selectionKey and pasteAt in
+	// pkg/ui/mapeditorselection.go, of pickPaste in pkg/ui/mapeditormode.go,
+	// of InspectionNewRecord.Clip in pkg/ui/mapeditoradd.go, of drawTiles in
+	// pkg/ui/viewer.go, of the placement frame's ground, pastePlacement,
+	// drawPlacement and drawPlacementGround in pkg/ui/mapeditorplacement.go,
+	// of PreviewPlacement in pkg/game/mapinspectionpreview.go, the new tests'
+	// comments and this note.
+	CommentBytes: 9832943,
 }

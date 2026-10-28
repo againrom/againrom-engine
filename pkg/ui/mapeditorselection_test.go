@@ -143,6 +143,7 @@ func TestMapEditorGroupKeys(t *testing.T) {
 	p := e.CellPoint(image.Pt(25, 25))
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
 	_ = e.Key("paste")
+	modesClick(e, p)
 	if got := lastCall(calls); got != fmt.Sprintf("PasteRecords %v %v", modesClip{refUnit0, refUnit1}, image.Pt(25, 25)) {
 		t.Errorf("paste called %q", got)
 	}
@@ -157,6 +158,7 @@ func TestMapEditorGroupKeys(t *testing.T) {
 	p = e.CellPoint(image.Pt(5, 6))
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
 	_ = e.Key("paste")
+	modesClick(e, p)
 	if got := lastCall(calls); got != fmt.Sprintf("PasteRecords %v %v", modesClip{refUnit0, refUnit1}, image.Pt(5, 6)) {
 		t.Errorf("paste in the second map called %q", got)
 	}

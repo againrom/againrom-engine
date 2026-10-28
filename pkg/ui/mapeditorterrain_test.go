@@ -37,7 +37,8 @@ type areaClip struct {
 	box  image.Rectangle
 }
 
-func (c areaClip) Len() int { return len(c.refs) + 1 }
+func (c areaClip) Len() int           { return len(c.refs) + 1 }
+func (c areaClip) Patch() image.Point { return c.box.Size() }
 
 func (p *terrainHost) CopyArea(refs []RecordRef, box image.Rectangle) (InspectionClip, string, error) {
 	p.calls.add("CopyArea %v %v", refs, box)
@@ -167,8 +168,12 @@ func TestBoxCopyTakesTheTerrainUnderTheBox(t *testing.T) {
 	if !slices.Equal(h.calls.lines, want) {
 		t.Fatalf("calls %q, want %q", h.calls.lines, want)
 	}
-	e.hoverCell, e.hoverOK = image.Pt(40, 40), true
+	e.ShowCell(image.Pt(40, 40))
+	p := e.CellPoint(image.Pt(40, 40))
+	e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
 	_ = e.Key("paste")
+	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(1, 0))
+	e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, time.Unix(1, 0))
 	if last := h.calls.lines[len(h.calls.lines)-1]; !strings.HasPrefix(last, "PasteRecords") {
 		t.Fatalf("an area clip with no records did not paste: %q", h.calls.lines)
 	}

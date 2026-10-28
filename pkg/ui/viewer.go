@@ -4007,27 +4007,37 @@ type triangleTarget interface {
 
 // drawFlat paints every visible cell as the quad its four un-displaced
 // lattice corners span, shaded by that cell's own corner scales.
-func (v *Viewer) drawFlat(target triangleTarget) {
-	var op ebiten.DrawTrianglesOptions
-	op.Filter = ebiten.FilterNearest
-
-	v.forEachDrawnTile(func(col, row int) {
-		img := v.cellImage(v.tileWord(col, row), col, row)
-		verts := terrainTextureVertices(withScales(flatTileVertices(v.cam, col, row), v.cornerScales(col, row)))
-		target.DrawTriangles(verts[:], quadIndices[:], img, &op)
-	})
-}
+func (v *Viewer) drawFlat(target triangleTarget) { v.drawTiles(target, false, v.forEachDrawnTile, 1) }
 
 // drawDisplaced paints the projected quads with the same cell textures as
 // flat mode. Each source UV is offset into the cached image's replicated edge;
 // destination positions and corner lighting remain unchanged.
 func (v *Viewer) drawDisplaced(target triangleTarget) {
+	v.drawTiles(target, true, v.forEachDrawnTile, 1)
+}
+
+// drawTiles paints each tile each visits as drawDisplaced, when displaced,
+// or drawFlat paints it, every colour channel of its vertices scaled by
+// alpha, so an alpha below 1 paints it translucent.
+func (v *Viewer) drawTiles(target triangleTarget, displaced bool, each func(func(tx, ty int)), alpha float32) {
 	var op ebiten.DrawTrianglesOptions
 	op.Filter = ebiten.FilterNearest
 
-	v.forEachDrawnTile(func(tx, ty int) {
+	each(func(tx, ty int) {
 		img := v.cellImage(v.tileWord(tx, ty), tx, ty)
-		verts := terrainTextureVertices(withScales(tileVertices(v.cam, v.proj, tx, ty), v.cornerScales(tx, ty)))
+		corners := flatTileVertices(v.cam, tx, ty)
+		if displaced {
+			corners = tileVertices(v.cam, v.proj, tx, ty)
+		}
+		verts := terrainTextureVertices(withScales(corners, v.cornerScales(tx, ty)))
+		if alpha != 1 {
+			for i := range verts {
+				verts[i].ColorR *= alpha
+				verts[i].ColorG *= alpha
+				verts[i].ColorB *= alpha
+				verts[i].ColorA *= alpha
+			}
+		}
 		target.DrawTriangles(verts[:], quadIndices[:], img, &op)
 	})
 }

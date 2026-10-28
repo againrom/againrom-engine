@@ -17,12 +17,15 @@ import (
 
 // InspectionNewRecord is a new record as the Add window has asked it so far:
 // its kind, the cell once a step chose one, and every other step's value in
-// step order. A step that chooses several values gives one entry each.
+// step order. A step that chooses several values gives one entry each. Clip,
+// when set, is the paste brush's clip instead: what PasteRecords would place
+// with the clip's origin on Cell.
 type InspectionNewRecord struct {
 	Kind    string
 	Cell    image.Point
 	HasCell bool
 	Values  []InspectionFieldValue
+	Clip    InspectionClip
 }
 
 // InspectionNewStep is what the host offers one step: its choices, none for

@@ -127,15 +127,15 @@ func boxCells(e *ui.MapEditor, box image.Rectangle) {
 	e.Pointer(ui.Input{CursorX: b.X, CursorY: b.Y}, now)
 }
 
-// hoverPaste puts the pointer on cell and presses Ctrl+V.
+// hoverPaste puts the pointer on cell, presses Ctrl+V and clicks there.
 func hoverPaste(t *testing.T, e *ui.MapEditor, cell image.Point) {
 	t.Helper()
-	e.ShowCell(cell)
-	p := e.CellPoint(cell)
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(2, 0))
+	p := pointAt(e, cell)
 	if err := e.Key("paste"); err != nil {
 		t.Fatal(err)
 	}
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, time.Unix(2, 0))
+	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, time.Unix(2, 0))
 }
 
 // treeBox is an 8 x 6 rectangle of the map below its top eight rows with at

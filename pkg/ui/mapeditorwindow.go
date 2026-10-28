@@ -1327,6 +1327,8 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 		parts = append(parts, e.word("editor.wizard.drawbox"))
 	case e.pick == pickArea:
 		parts = append(parts, e.word("editor.area.draw"))
+	case e.pick == pickPaste:
+		parts = append(parts, e.word("editor.selection.armed"))
 	}
 	parts = append(parts, e.selectionStatus(note)...)
 	return parts, e.helpLines()

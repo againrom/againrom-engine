@@ -257,6 +257,10 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.wizardUnitAt(p)
 		return
 	}
+	if pick == pickPaste {
+		_ = e.pasteAt(p)
+		return
+	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 	if !ok {
 		e.message = "Click a map cell."

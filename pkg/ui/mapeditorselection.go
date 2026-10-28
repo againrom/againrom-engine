@@ -16,8 +16,13 @@ type RecordRef struct {
 
 // InspectionClip is a copied set of records as the host keeps them: their
 // bytes and cells as they stood when copied. It outlives the document it came
-// from, so a paste may land in another map opened in the same window.
-type InspectionClip interface{ Len() int }
+// from, so a paste may land in another map opened in the same window. Patch
+// is the size in cells of the clip's terrain patch, zero when it holds none;
+// a paste puts the patch's top-left cell on the paste's cell.
+type InspectionClip interface {
+	Len() int
+	Patch() image.Point
+}
 
 // SelectionEdit is the outcome of an edit of several records: the document
 // (nil when nothing changed), the records left selected, the status note, in
@@ -225,15 +230,20 @@ func (e *MapEditor) selectCells(a, b image.Point) { e.selectCellsOf(a, b, nil) }
 // selectCellsOf is selectCells over kinds only; no kinds is every kind a
 // selection takes.
 func (e *MapEditor) selectCellsOf(a, b image.Point, kinds []string) {
-	box := cellBox(a, b)
+	e.noteSelection("", nil)
+	e.setSelection(e.cellRecords(cellBox(a, b), kinds))
+}
+
+// cellRecords are the records of kinds whose cell lies in box, in document
+// order; no kinds is every kind a selection takes.
+func (e *MapEditor) cellRecords(box image.Rectangle, kinds []string) []RecordRef {
 	var refs []RecordRef
 	for _, r := range e.doc.Records {
 		if selectable(r.Kind) && r.Spatial && r.Cell.In(box) && (len(kinds) == 0 || slices.Contains(kinds, r.Kind)) {
 			refs = append(refs, RecordRef{r.Kind, r.Index})
 		}
 	}
-	e.noteSelection("", nil)
-	e.setSelection(refs)
+	return refs
 }
 
 // toggleAt adds the record under frame point p to the group, or takes it out;
@@ -297,7 +307,10 @@ func (e *MapEditor) selectionHost() (InspectionSelection, bool) {
 }
 
 // selectionKey is Ctrl+C, which copies the group or the selected record, and
-// Ctrl+V, which pastes the copied records at the cell under the pointer.
+// Ctrl+V, which arms the paste brush: the next click on the map pastes the
+// copied records there. A copy of a selection box takes every unit,
+// structure and sack whose cell the box holds, whichever tab chose the box's
+// records.
 func (e *MapEditor) selectionKey(key string) error {
 	if e.doc == nil || e.catalog {
 		return nil
@@ -314,6 +327,8 @@ func (e *MapEditor) selectionKey(key string) error {
 		box := e.selection.box
 		if !ok || box.Empty() {
 			box = image.Rectangle{}
+		} else {
+			refs = e.cellRecords(box, nil)
 		}
 		if len(refs) == 0 && box.Empty() {
 			e.noteSelection(e.word("editor.selection.none"), nil)
@@ -339,11 +354,24 @@ func (e *MapEditor) selectionKey(key string) error {
 		e.noteSelection(e.word("editor.selection.noclip"), nil)
 		return nil
 	}
-	if !e.hoverOK {
+	e.leave(leaveBrush)
+	e.armPick(pickPaste)
+	return nil
+}
+
+// pasteAt is the armed paste brush's click: the clip pasted with its origin
+// on the ground cell under p, as one edit. The clip stays for the next Ctrl+V.
+func (e *MapEditor) pasteAt(p image.Point) error {
+	h, ok := e.selectionHost()
+	if !ok || e.selection.clip == nil {
+		return nil
+	}
+	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
+	if !ok {
 		e.noteSelection(e.word("editor.selection.nocell"), nil)
 		return nil
 	}
-	return e.adoptSelection(h.PasteRecords(e.selection.clip, e.hoverCell))
+	return e.adoptSelection(h.PasteRecords(e.selection.clip, image.Pt(x, y)))
 }
 
 // deleteSelection removes the group as one edit, after asking when it empties
