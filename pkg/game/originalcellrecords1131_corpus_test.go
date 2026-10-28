@@ -27,6 +27,7 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable, mismatches := 0, 0, 0, 0, 0
+	droppedRows, releasedKeys := 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -66,9 +67,43 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 			}
 			// Last-write-wins by key, independently of applyOriginalCellRecords'
 			// own dedup loop: SAV-CELLLOAD-109's own restore order.
-			want := map[uint16]sav.Cell{}
+			file := map[uint16]sav.Cell{}
 			for _, c := range fileCells {
-				want[c.Key] = c
+				file[c.Key] = c
+			}
+			// The rest of the table LOAD keeps as the file holds it.
+			doc, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData: %v", err)
+			}
+			dropped, released, err := cellRecordsAfterLoad(&doc)
+			if err != nil {
+				t.Fatalf("cellRecordsAfterLoad: %v", err)
+			}
+			afterLoad := func(c sav.Cell) sav.Cell {
+				if dropped[c.Key] {
+					c.LayerCount, c.Residue0, c.Residue1 = 0, 0, [2]byte{}
+					c.Ground, c.Air, c.Sack, c.SpellEffects = 0, 0, 0, [6]uint32{}
+				}
+				if released[c.Key][0] {
+					c.Ground = 0
+				}
+				if released[c.Key][1] {
+					c.Air = 0
+				}
+				return c
+			}
+			want := make(map[uint16]sav.Cell, len(file))
+			for key, c := range file {
+				want[key] = afterLoad(c)
+			}
+			droppedRows += len(dropped)
+			for _, slots := range released {
+				for _, r := range slots {
+					if r {
+						releasedKeys++
+					}
+				}
 			}
 
 			ms, report, err := loadOriginalMission(f, raw)
@@ -177,14 +212,26 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 			if err != nil {
 				t.Fatalf("sav.Open (re-decode written): %v", err)
 			}
+			expected, err := sav.Open(raw)
+			if err != nil {
+				t.Fatalf("sav.Open (expected export): %v", err)
+			}
+			for i, c := range fileCells {
+				if err := expected.SetCell(i, afterLoad(c)); err != nil {
+					t.Fatalf("SetCell (expected export): %v", err)
+				}
+			}
+			if expected, err = sav.Open(expected.Marshal()); err != nil {
+				t.Fatalf("sav.Open (re-decode expected): %v", err)
+			}
 			off := target.World.CellRecDataOff
 			size := target.World.CellRecCount * 54
-			if !bytes.Equal(written.Body[off:off+size], source.Body[off:off+size]) {
+			if !bytes.Equal(written.Body[off:off+size], expected.Body[off:off+size]) {
 				mismatches++
-				t.Error("native export of the cell-record table does not reproduce the source file")
+				t.Error("native export of the cell-record table does not reproduce the source file as LOAD keeps it")
 			}
 			nzBase, nzLayer, nzGround, nzAir, nzBuilding, nzSack, nzSE, nzRes0, nzRes1 := 0, 0, 0, 0, 0, 0, 0, 0, 0
-			for _, w := range want {
+			for _, w := range file {
 				if w.BaselineCost != 0 || w.BaselineStatic != 0 {
 					nzBase++
 				}
@@ -213,8 +260,8 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 					nzRes1++
 				}
 			}
-			t.Logf("records=%d unique=%d nonzero: baseline=%d layer=%d ground=%d air=%d building=%d sack=%d spelleffects=%d residue0=%d residue1=%d; diffFields=%d",
-				len(fileCells), len(want), nzBase, nzLayer, nzGround, nzAir, nzBuilding, nzSack, nzSE, nzRes0, nzRes1, diffFields)
+			t.Logf("records=%d unique=%d nonzero: baseline=%d layer=%d ground=%d air=%d building=%d sack=%d spelleffects=%d residue0=%d residue1=%d; dropped=%d released=%d; diffFields=%d",
+				len(fileCells), len(file), nzBase, nzLayer, nzGround, nzAir, nzBuilding, nzSack, nzSE, nzRes0, nzRes1, len(dropped), len(released), diffFields)
 		})
 		return nil
 	})
@@ -223,4 +270,5 @@ func TestCellRecordCorpusAudit1131(t *testing.T) {
 	}
 	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d mismatching",
 		total, worlds, cities, unreadable, mismatches)
+	t.Logf("LOAD dropped %d row(s) marked absent and released %d terminal corpse key(s)", droppedRows, releasedKeys)
 }

@@ -3151,5 +3151,9 @@ var Committed = Baseline{
 	// It rose for the session-head expectation of the session-block corpus
 	// audit: the doc comment of sessionHeadAfterLoad in
 	// pkg/game/currentsessionhead_test.go, the audit's comment and this note.
-	CommentBytes: 9810710,
+
+	// It rose for the cell-record corpus audit's LOAD expectation: the doc
+	// comment of cellRecordsAfterLoad in pkg/game/cellrecordload_test.go, its
+	// copy note, the audit's comment and this note.
+	CommentBytes: 9811241,
 }

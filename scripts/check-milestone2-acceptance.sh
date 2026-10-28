@@ -39,7 +39,8 @@
 # 1145 adds Buildings; 1151 adds Sacks and their item graphs. The projectile
 # audit and the two current-world SAV admission audits, which story proofs
 # name and which pass on both roots, are selected too. So is the session-block
-# audit (TestSessionCorpusAudit1130), which passes on both first-game roots.
+# audit (TestSessionCorpusAudit1130) and the cell-record audit
+# (TestCellRecordCorpusAudit1131), which pass on both first-game roots.
 # An opt-in corpus audit joins this selection only when it passes on both
 # first-game roots; the rest stay opt-in and are not selected.
 #
@@ -132,8 +133,8 @@ cd "$here" || fail "cannot enter $here"
 # gate alone, so a chain can run it as its own leg beside the rest
 # (scripts/check-sav-roundtrip-gate.sh).
 case "${AGAINROM_M2_SAVGATE:-}" in
-"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestSAVRoundTripGate)' ;;
-skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130)' ;;
+"") pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131|TestSAVRoundTripGate)' ;;
+skip) pattern='^(TestMilestone2|TestSAVRoundTrip1195|TestSAVConvertedCorpus|TestSAVByteIdentity1197|TestSAVWriterCensus|TestProjectileCorpusAudit|TestCurrentWorldSAV|TestSessionCorpusAudit1130|TestCellRecordCorpusAudit1131)' ;;
 only) pattern='^TestSAVRoundTripGate' ;;
 *) fail "AGAINROM_M2_SAVGATE must be unset, skip or only" ;;
 esac
