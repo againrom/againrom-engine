@@ -22,6 +22,9 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		}
 		return row
 	}
+	if row, ok := identityRow(member, t); ok {
+		return row
+	}
 	if member.CompanionNPC != 0 {
 		heroFemale := data.FigureDir(hero.FigureDir).Female()
 		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionNPC), 0, hero.Mage, heroFemale); ok {
@@ -43,6 +46,34 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		return 0
 	}
 	return row
+}
+
+// PartyIdentity is the party identity member carries under the table's
+// edition: the hero's own, or a companion's identity row (R2-ENGINE-105,
+// R2-ENGINE-106). An edition with no hero identity gives none.
+func PartyIdentity(member PartyMember, t *Table) (int, bool) {
+	if t == nil || t.Edition == nil || !t.Edition.BindsByIdentity() {
+		return 0, false
+	}
+	if member.StartingHero {
+		return t.Edition.HeroIdentity, true
+	}
+	if _, ok := t.Edition.PartyIdentity(member.CompanionNPC); ok && !member.Hired() {
+		return member.CompanionNPC, true
+	}
+	return 0, false
+}
+
+// identityRow is the Humans row of the identity row a companion was built
+// from.
+func identityRow(member PartyMember, t *Table) (int, bool) {
+	id, ok := PartyIdentity(member, t)
+	if !ok || member.StartingHero {
+		return 0, false
+	}
+	p, _ := t.Edition.PartyIdentity(id)
+	row := data.FindHumanByServerID(t.Humans, p.ServerID)
+	return row, row > 0 && row <= 255
 }
 
 // partyDyingTime is the dying time SourceActorSeed reads for the binding the

@@ -111,6 +111,23 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	if !in.campaign.townGrants(npc) {
 		return false
 	}
+	return s.carryCompanion(in, npc, func() (mapload.PartyMember, bool) {
+		if member, ok := s.Town.guestMission().joining(chapter, npc); ok {
+			s.Town.guest = nil
+			return member, true
+		}
+		member, ok := townCompanion(in, chapter, npc, s.Carried)
+		if ok {
+			joinedWornSpells(member.WornItems[:], in.table)
+		}
+		return member, ok
+	})
+}
+
+// carryCompanion appends companion npc, built by build, to the carried
+// party and reports whether it did. A companion already carried is reused
+// and not built again; an empty party carries nobody.
+func (s *CampaignSession) carryCompanion(in townInstall, npc int, build func() (mapload.PartyMember, bool)) bool {
 	for _, p := range s.Carried {
 		if p.CompanionNPC == npc {
 			return false
@@ -119,16 +136,43 @@ func (s *CampaignSession) carryTownCompanion(in townInstall, chapter, npc int) b
 	if len(s.Carried) == 0 {
 		return false
 	}
-	member, ok := s.Town.guestMission().joining(chapter, npc)
-	if ok {
-		s.Town.guest = nil
-	} else if member, ok = townCompanion(in, chapter, npc, s.Carried); ok {
-		joinedWornSpells(member.WornItems[:], in.table)
-	} else {
+	member, ok := build()
+	if !ok {
 		return false
 	}
 	s.Carried = mapload.OwnParty(append(s.Carried, member))
 	return true
+}
+
+// addPartyIdentity is the addition producer for the edition's identity
+// rows (R2-ENGINE-106): a carried member that already carries identity id
+// is reused; otherwise the member is built from the row's Humans row,
+// carries id and joins the party with the city state every member has.
+func (s *CampaignSession) addPartyIdentity(in townInstall, id int) bool {
+	row, ok := tableEdition(in.table).PartyIdentity(id)
+	if !ok || in.table == nil || in.table.Humans == nil {
+		return false
+	}
+	added := s.carryCompanion(in, id, func() (mapload.PartyMember, bool) {
+		spec := mapload.CharacterSpec{NPC: int32(id), Row: data.FindHumanByServerID(in.table.Humans, row.ServerID)}
+		member, ok := in.character(spec, in.localizedNPC(id-1, ""), s.Carried)
+		if ok {
+			joinedWornSpells(member.WornItems[:], in.table)
+		}
+		return member, ok
+	})
+	s.settleCompanionArrival(in, added)
+	return added
+}
+
+// addTalkIdentities runs the addition producer for every identity row
+// whose talk is the inn talk with NPC npc at topic.
+func (s *CampaignSession) addTalkIdentities(in townInstall, npc, topic int) {
+	for _, p := range tableEdition(in.table).PartyIdentities {
+		if p.TalkNPC != 0 && p.TalkNPC == npc && p.TalkTopic == topic {
+			s.addPartyIdentity(in, p.Identity)
+		}
+	}
 }
 
 // townCompanion is the member the town of chapter grants as companion npc to

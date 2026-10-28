@@ -13,6 +13,16 @@ import (
 // pack of the engine's item instances (R2-ENGINE-402, R2-ENGINE-404). The
 // shop deals with that pack. The bag does not reach a mission (DIV-3043).
 
+// leftLocation follows a departure from a location: a nonzero slot 773
+// asks the addition producer for that identity (R2-ENGINE-106,
+// R2-ENGINE-379). Every ordinary departure zeroes the slot before its case
+// (R2-SESSION-047), and the producer reuses a carried identity.
+func (s *CampaignSession) leftLocation(in townInstall) {
+	if c := secondOf(s); c != nil && c.bank[773] != 0 {
+		s.addPartyIdentity(in, int(c.bank[773]))
+	}
+}
+
 // secondHero is a new campaign's hero: the player's character with an
 // empty bag.
 func secondHero() mapload.PartyMember {

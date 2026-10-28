@@ -44,6 +44,9 @@ type secondCampaign struct {
 	// innBits is the inn page's copy of each option's high bit where Hire
 	// or Fire changed it during the current visit (R2-SESSION-191).
 	innBits map[int]bool
+	// talking is the inn talk the open conversation shows, nil when none
+	// is open; its end runs endInnTalk.
+	talking *secondInnOption
 }
 
 func newSecondCampaign() *secondCampaign {
@@ -239,10 +242,19 @@ func (t *townScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
 		return ui.TownAction{Msg: err.Error()}
 	}
 	c.talkTo(o)
-	if payload != nil {
-		t.setTownDialogue(payload)
+	if payload == nil {
+		t.endInnTalk(o)
+		return ui.TownAction{}
 	}
+	c.talking = &o
+	t.setTownDialogue(payload)
 	return ui.TownAction{}
+}
+
+// endInnTalk is the end of the inn talk o: the party gains each identity
+// the edition adds at that talk's end (DIV-4186).
+func (t *townScreen) endInnTalk(o secondInnOption) {
+	t.sess.addTalkIdentities(t.in.townInstall(), o.npc, o.topic)
 }
 
 // dialoguePart is the campaign's current section part and the audience it
@@ -341,6 +353,10 @@ func (t *sectionTownTalk) turnTownTalk() bool {
 	c.talk.next()
 	if _, ok := t.dialogueBody(); !ok {
 		c.talk.close()
+		if o := c.talking; o != nil {
+			c.talking = nil
+			t.host.endInnTalk(*o)
+		}
 	}
 	return true
 }

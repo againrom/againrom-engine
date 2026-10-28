@@ -610,9 +610,13 @@ func restoreMissionLoss(mw *mapWorld, r SnapshotResidue) {
 	if mw.mission == nil {
 		return
 	}
-	if r.MissionLost || mw.guardedCharacterLost() || mw.world.Outcome() == sim.OutcomeLost {
+	id, guardedLost := mw.guardedCharacterLost()
+	if r.MissionLost || guardedLost || mw.world.Outcome() == sim.OutcomeLost {
 		alreadyShown := mw.mission.outcome == sim.OutcomeLost && mw.mission.outcomeShown
 		mw.mission.announced, mw.mission.outcome = true, sim.OutcomeLost
+		if guardedLost {
+			mw.mission.lossReason = mw.guardedLossReason(id)
+		}
 		if !alreadyShown {
 			mw.showOutcome()
 		}

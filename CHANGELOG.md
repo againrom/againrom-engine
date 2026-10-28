@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Iglez now joins your party after you talk to him in the Kaarg inn, the talk where he asks you to come to Lairisha. He goes into the next missions beside the hero, comes back to town with the party, shows in the hero panel's PREVIOUS and NEXT, and stays after SAVE and LOAD. If he falls, the mission is lost with the mission's own notice of his death. The mission scripts that name him now work, so the second game's later missions no longer lose the parts written for him. Talking to him again adds no second Iglez. Dina, the mage, joins when the party leaves after mission 40, without a talk. Before, the hero always went alone.
 - [ROM2] The hero now uncovers the map one cell further east and south, as in the original: on the first mission, at the start and after walking east, the cleared area ends on those sides where the original's does. Before, the dark edge stood one cell closer to the hero.
 - [ROM1] The README now says how to take the game files out of the GOG installer on macOS and Linux: one innoextract command unpacks them into a game folder, without Windows.
 - [ROM2] A click on a road signpost walks the hero to it and opens its message with Ok, such as "To Great Mage Skrakan's Tower" in the first mission; the game waits until Ok, Enter or Esc. Before, the hero walked next to the signpost and nothing opened.

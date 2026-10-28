@@ -37,22 +37,22 @@ func TestTransferredCharacterLossGuardSurvivesRemovalAndCurrentResidue(t *testin
 		return partyWorld(t, w, townCompanionParty(), []sim.EntityID{1, 2})
 	}
 	mw := world(8, true)
-	if mw.guardedCharacterLost() {
+	if _, lost := mw.guardedCharacterLost(); lost {
 		t.Fatal("enemy companion's death counted as an owned character's death")
 	}
 	residue := mw.residue()
 	afterRemoval := world(0, false)
 	afterRemoval.applyResidue(residue)
-	if afterRemoval.guardedCharacterLost() || afterRemoval.mission.outcome == sim.OutcomeLost {
+	if _, lost := afterRemoval.guardedCharacterLost(); lost || afterRemoval.mission.outcome == sim.OutcomeLost {
 		t.Fatal("cold load forgot a transferred character after final removal")
 	}
 	returned := world(sim.SelfSlot, true)
 	returned.applyResidue(residue)
-	if !returned.guardedCharacterLost() {
+	if _, lost := returned.guardedCharacterLost(); !lost {
 		t.Fatal("a currently owned dead character inherited an enemy exemption")
 	}
 	missing := world(0, false)
-	if !missing.guardedCharacterLost() {
+	if _, lost := missing.guardedCharacterLost(); !lost {
 		t.Fatal("an absent owned character without a transfer record did not lose")
 	}
 	residue.MissionLost = true

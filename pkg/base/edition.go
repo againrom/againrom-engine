@@ -65,6 +65,16 @@ type Edition struct {
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
 
+	// HeroIdentity is the party identity the starting hero carries; a
+	// script's literal Unit reference 10001+k then names the party member
+	// whose identity is HeroIdentity+k. Zero names it by the hero ordinal
+	// role test instead.
+	HeroIdentity int
+
+	// PartyIdentities are the members the campaign's addition producer
+	// builds, one row per identity.
+	PartyIdentities []PartyIdentity
+
 	// TextCodePage is the code page the install writes a language's text
 	// files in, from the language's font and Windows code pages. The second
 	// game's are in the Windows one and its loaders convert them to the
@@ -103,6 +113,38 @@ type CutsceneArchive struct {
 	// Logos is the speed route whose archive the logos/ movies play from;
 	// a route Cutscenes does not map plays them from this archive.
 	Logos string
+}
+
+// PartyIdentity is one member the addition producer builds: the identity
+// he carries, the Humans row he is built from, by its serverID, and the
+// inn talk, by NPC key and topic, whose end adds him. A zero talk NPC is a
+// member no talk adds. FailureReason is the mission failure reason his fall
+// gives the loss notice, the mission text's failure section of that number;
+// zero leaves the generic body.
+type PartyIdentity struct {
+	Identity      int
+	ServerID      int32
+	TalkNPC       int
+	TalkTopic     int
+	FailureReason int32
+}
+
+// BindsByIdentity reports whether the edition names its hero band by party
+// identity (R2-ENGINE-107): a script's 10001+k is the member carrying
+// identity HeroIdentity+k, and no member binds by the hero ordinal role
+// test. An edition without a hero identity binds by that role test.
+func (e Edition) BindsByIdentity() bool {
+	return e.HeroIdentity != 0
+}
+
+// PartyIdentity is the edition's row for identity id.
+func (e Edition) PartyIdentity(id int) (PartyIdentity, bool) {
+	for _, p := range e.PartyIdentities {
+		if p.Identity == id {
+			return p, true
+		}
+	}
+	return PartyIdentity{}, false
 }
 
 // Campaign names a campaign model.
@@ -160,6 +202,17 @@ var secondEdition = Edition{
 		"video8": {Path: "video.res", Name: "video"},
 	},
 	DefaultCutscenes: "video4",
+	// The hero carries identity 21 (R2-ENGINE-105); literal 10001+k names
+	// identity 21+k (R2-ENGINE-107). Identity 22 is the Humans row with
+	// serverID 10220 and identity 23 the row with 10230 (R2-ENGINE-378,
+	// R2-ENGINE-072). The end of the stage-30 talk with NPC 22 adds 22
+	// (DIV-4186); slot 773 adds 23 at a location leave (R2-ENGINE-379).
+	// The fall of 22 shows the mission's failure3 section (DIV-4189).
+	HeroIdentity: 21,
+	PartyIdentities: []PartyIdentity{
+		{Identity: 22, ServerID: 10220, TalkNPC: 22, TalkTopic: 30, FailureReason: 3},
+		{Identity: 23, ServerID: 10230},
+	},
 	// The logos, then the intro cutscene, play before the menu
 	// (R2-ENGINE-338); the intro is cutpaths.txt row 0, video\intro\NN.smk
 	// (R2-ENGINE-423). The logo files and their order are a reading of the

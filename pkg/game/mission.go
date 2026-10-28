@@ -288,13 +288,25 @@ type heroScanActor struct {
 // party in list order, then placed in scan order (TRIG-MAPORD-105,
 // TRIG-MAPORD-108). Members count as named; a map with player capacity above
 // one resolves nothing. A party it resolves against is the binding roster
-// (ScriptRefs.Roster).
+// (ScriptRefs.Roster). An edition with a hero identity binds by the party's
+// identities alone, and the role test stays the first game's.
 func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, entity func(int) sim.EntityID, placed []heroScanActor) mapload.ScriptRefs {
 	var refs mapload.ScriptRefs
 	if len(party) == 0 || m != nil && m.Meta.Word70 > 1 {
 		return refs
 	}
 	refs.Roster = true
+	if edition := tableEdition(table); edition.BindsByIdentity() {
+		// The edition names its hero band by party identity: 10001+k is the
+		// first member carrying identity hero+k (R2-ENGINE-107).
+		hero := edition.HeroIdentity
+		for i, p := range party {
+			if id, ok := mapload.PartyIdentity(p, table); ok && id >= hero && id-hero <= 999 {
+				bindHeroOrdinal(&refs, id-hero, entity(i))
+			}
+		}
+		return refs
+	}
 	primary := 0
 	for i, p := range party {
 		if p.StartingHero {
@@ -320,23 +332,32 @@ func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.P
 		return placed[i-len(party)].ID
 	}
 	for k := 0; k <= maxHeroOrdinal; k++ {
-		i, ok := npc.ResolveHero(k, roster[primary], roster)
-		if !ok {
-			continue
-		}
-		switch k {
-		case 0:
-			refs.Hero, refs.HasHero = scanned(i), true
-		case 1:
-			refs.Companion, refs.HasCompanion = scanned(i), true
-		default:
-			if refs.Roles == nil {
-				refs.Roles = make(map[uint32]sim.EntityID)
-			}
-			refs.Roles[uint32(10001+k)] = scanned(i)
+		if i, ok := npc.ResolveHero(k, roster[primary], roster); ok {
+			bindHeroOrdinal(&refs, k, scanned(i))
 		}
 	}
 	return refs
+}
+
+// bindHeroOrdinal binds hero-band value 10001+k to id unless it is bound.
+func bindHeroOrdinal(refs *mapload.ScriptRefs, k int, id sim.EntityID) {
+	switch k {
+	case 0:
+		if !refs.HasHero {
+			refs.Hero, refs.HasHero = id, true
+		}
+	case 1:
+		if !refs.HasCompanion {
+			refs.Companion, refs.HasCompanion = id, true
+		}
+	default:
+		if refs.Roles == nil {
+			refs.Roles = make(map[uint32]sim.EntityID)
+		}
+		if _, bound := refs.Roles[uint32(10001+k)]; !bound {
+			refs.Roles[uint32(10001+k)] = id
+		}
+	}
 }
 
 // entrySource is the one thing StartMission needs of a filesystem: the bytes

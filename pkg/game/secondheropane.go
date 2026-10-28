@@ -86,9 +86,9 @@ func (t *townScreen) TownSquarePane(c ui.CharacterPaneCorner) {
 	case ui.CharacterPaneMode:
 		t.composed.heroStats = !t.composed.heroStats
 	case ui.CharacterPanePrev:
-		t.shopStepMember(-1)
+		t.stepMemberOver(t.secondPaneParty(), -1)
 	case ui.CharacterPaneNext:
-		t.shopStepMember(+1)
+		t.stepMemberOver(t.secondPaneParty(), +1)
 	}
 }
 

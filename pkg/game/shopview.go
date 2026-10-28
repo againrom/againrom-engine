@@ -499,13 +499,21 @@ func (t *shopController) clampTownMember() {
 // the index, the strip's own base returned to the first place, and the composed
 // figure taken from the cache the room filled on the way in.
 func (t *shopController) shopStepMember(step int) ui.TownAction {
-	party := t.shopParty()
+	if t.shop.picker != nil {
+		return t.stepMemberOver(t.shop.picker(), step)
+	}
+	return t.stepMemberOver(t.shopParty(), step)
+}
+
+// stepMemberOver is shopStepMember over the party a picker shows: the shop's
+// customers, or the second game's pane party, which is the campaign's.
+func (t *shopController) stepMemberOver(party []mapload.PartyMember, step int) ui.TownAction {
 	roster := townPickerMembers(party)
 	n := len(roster)
 	if n <= 1 {
 		return ui.TownAction{}
 	}
-	previous := t.shopMemberIndex()
+	previous := townPickerIndex(party, t.shopMember)
 	at := slices.Index(roster, previous)
 	if at < 0 {
 		at = 0

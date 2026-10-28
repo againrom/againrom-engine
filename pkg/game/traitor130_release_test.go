@@ -424,7 +424,7 @@ func runBetrayal130(t *testing.T, female, breederFirstPart bool) {
 			t.Fatalf("early attack did not retain authored defeat: lost=%d latch11=%v world=%d client=%d", lost,
 				x.f.live.world.ScriptLatched(11), x.f.live.world.Outcome(), x.f.live.mission.outcome)
 		}
-		if x.f.live.guardedCharacterLost() {
+		if _, lost := x.f.live.guardedCharacterLost(); lost {
 			t.Fatal("character death contaminated the scripted early-attack control")
 		}
 		x.cold(t, "authored early-attack defeat", nil)

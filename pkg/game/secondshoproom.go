@@ -91,7 +91,8 @@ func (t *townScreen) bindBankShop() {
 					c.shop.choose(i)
 				}
 			},
-			stats: func() { t.composed.heroStats = !t.composed.heroStats },
+			stats:  func() { t.composed.heroStats = !t.composed.heroStats },
+			picker: t.secondPaneParty,
 			page: func() *town.ShopSpec {
 				if d, room, ok := t.composedRoom(); ok && d.Room(room) != nil {
 					return d.Room(room).Shop

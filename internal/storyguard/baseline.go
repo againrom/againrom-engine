@@ -3243,5 +3243,24 @@ var Committed = Baseline{
 	// InspectionDocument.Refused, SelectionRefusal, cellBoxLines,
 	// placementCells, footprint, newRecords and dragRefused in pkg/ui, the
 	// new tests' comments and this note.
-	CommentBytes: 9847295,
+
+	// It rose for the second game's party identities: the doc comments of
+	// Edition.HeroIdentity, PartyIdentities and PartyIdentity in
+	// pkg/base/edition.go, of PartyIdentity and identityRow in
+	// pkg/mapload/partyhumanrow.go, of carryCompanion, addPartyIdentity and
+	// addTalkIdentities in pkg/game/campaignreturn.go, of leftLocation,
+	// endInnTalk, bindHeroOrdinal, stepMemberOver and the census party, the
+	// new tests' comments and this note.
+
+	// It rose for the shop pane's picker and the binding rule: the doc
+	// comments of shopHost.picker in pkg/game/shopcontroller.go and of
+	// Edition.BindsByIdentity in pkg/base/edition.go, the new shop tests'
+	// comments and this note.
+
+	// It rose for the loss notice of a fallen party identity: the doc
+	// comments of PartyIdentity.FailureReason in pkg/base/edition.go, of
+	// lossReason, guardedCharacterLost and guardedLossReason in
+	// pkg/game/world.go, the comment in outcomeText, the new test's comment
+	// and this note.
+	CommentBytes: 9855820,
 }

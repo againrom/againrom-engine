@@ -24,7 +24,7 @@ func TestGuardedCharacterLostDoesNotMisreadAReusedIdAsTheDepartedMembersDeath(t 
 	// reoccupies id 2 after the companion it belonged to already departed.
 	reused := world(&sim.Entity{ID: 2, Owner: sim.SelfSlot, HP: -10001, MaxHP: 50, TypeID: 5})
 	reused.mission.departed = map[sim.EntityID]bool{2: true}
-	if reused.guardedCharacterLost() {
+	if _, lost := reused.guardedCharacterLost(); lost {
 		t.Fatal("an unrelated summon reusing the departed companion's id read as that companion's death")
 	}
 	if !reused.mission.departed[2] {
@@ -36,7 +36,7 @@ func TestGuardedCharacterLostDoesNotMisreadAReusedIdAsTheDepartedMembersDeath(t 
 	// must still clear the exemption and count as a loss when dead.
 	returned := world(&sim.Entity{ID: 2, Owner: sim.SelfSlot, HP: -10001, MaxHP: 10, TypeID: sim.HumanTypeID, Humanoid: true})
 	returned.mission.departed = map[sim.EntityID]bool{2: true}
-	if !returned.guardedCharacterLost() {
+	if _, lost := returned.guardedCharacterLost(); !lost {
 		t.Fatal("a currently owned dead character inherited an exemption meant for a reused id")
 	}
 	if returned.mission.departed[2] {

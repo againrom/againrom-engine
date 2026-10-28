@@ -109,8 +109,12 @@ type shopHost struct {
 	// stepped follows the character picker from one member to another;
 	// stats toggles the character panel's mode; leave closes the room.
 	stepped func(from, to mapload.PartyMember)
-	stats   func()
-	leave   func() bool
+	// picker is the party the character panel shows and its PREVIOUS and
+	// NEXT step; nil is the customers. A purchase still lands with the
+	// customer the panel's index clamps to over the customers.
+	picker func() []mapload.PartyMember
+	stats  func()
+	leave  func() bool
 	// chose follows a rack the player chose; nil keeps the choice on the page.
 	chose func(i int)
 	// page is the room's shop drawing rules; nil keeps the zero rules.

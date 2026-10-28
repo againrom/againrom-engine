@@ -38,10 +38,11 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 0,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 32, EntryMaps: 45, WinMaps: 46, Ready: 14,
+		FixtureMaps: 0, EntryMaps: 45, WinMaps: 46, Ready: 43,
 		Exits: 15, GatedExits: 6, EngineExits: 14,
 	}
-	want.Omitted[CauseFixture] = SecondOmission{Nodes: 189, Triggers: 192, ActionTriggers: 8}
+	// The census party carries identities 21, 22 and 23, which bind every
+	// hero-band value the 46 maps name (10001, 10002 and 10003).
 	if got != want {
 		t.Errorf("census totals\n got %+v\nwant %+v", got, want)
 	}
@@ -61,8 +62,11 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		if slices.Contains(blockers, BlockMovie) || slices.Contains(blockers, BlockSave) || slices.Contains(blockers, BlockContinuation) != (c.Mission == 50) {
 			t.Errorf("mission %d blockers %v: only mission 50's unresolved record may block continuation", c.Mission, blockers)
 		}
+		if slices.Contains(blockers, BlockParty) || len(c.UnboundHeroes) != 0 {
+			t.Errorf("mission %d blockers %v leave hero-band values %v unbound", c.Mission, blockers, c.UnboundHeroes)
+		}
 		switch c.Mission {
-		case 10, 20, 21, 31, 32, 61, 82, 93:
+		case 10, 20, 21, 30, 31, 32, 61, 82, 93:
 			if len(blockers) != 0 {
 				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
 			}
@@ -72,13 +76,8 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 			if !slices.Contains(c.Spells, 7) || len(c.NoSpellRule) != 0 {
 				t.Errorf("mission %d spells %v, without a rule %v, want Blizzard named and every spell ruled", c.Mission, c.Spells, c.NoSpellRule)
 			}
-			want := []string{BlockParty}
-			if !slices.Equal(blockers, want) {
-				t.Errorf("mission %d blockers %v, want %v", c.Mission, blockers, want)
-			}
-		case 30:
-			if !slices.Equal(blockers, []string{BlockParty}) {
-				t.Errorf("mission 30 blockers %v, want the census party alone", blockers)
+			if len(blockers) != 0 {
+				t.Errorf("mission %d blockers %v, want none", c.Mission, blockers)
 			}
 		case 101:
 			if c.Run.Outcome != sim.OutcomeLost || c.Run.Reason != 5 || c.Run.DecidedAt != 32 || c.BornFallen != 1 {

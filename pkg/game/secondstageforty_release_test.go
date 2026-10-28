@@ -12,10 +12,9 @@ import (
 // secondStageFortyInn plays a new ROM2 campaign to the stage 30 inn and its
 // two mission talks, then applies the controller's ordinary departure of
 // mission 30 at the destination rows, which raises slot 768 to 40
-// (R2-SESSION-111). Installed mission 30 is not won here: its victory
-// trigger names a companion the party producer does not yet supply
-// (DIV-2391), so the departure is a disclosed constructed step. The
-// campaign then enters town 2 and its inn at stage 40.
+// (R2-SESSION-111). Installed mission 30 is not won here, so the departure
+// is a disclosed constructed step; the stage 30 talk with NPC 22 has added
+// Iglez (DIV-4186). The campaign then enters town 2 and its inn at stage 40.
 func secondStageFortyInn(t *testing.T, f *FrontEnd, app *ui.App) *secondCampaign {
 	t.Helper()
 	c := secondStageThirtyVisit(t, f, app)

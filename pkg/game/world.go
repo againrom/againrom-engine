@@ -866,6 +866,10 @@ type missionNotices struct {
 	announced    bool
 	outcome      sim.Outcome
 	outcomeShown bool
+	// lossReason is the failure reason the fallen guarded character's
+	// edition row names, zero for none (guardedLossReason). It is
+	// presentation: the notice reads it, the World never does.
+	lossReason int32
 	// delayedVictory is the live-session permission created by Continue. It is
 	// presentation/session state, not simulation state, and is deliberately
 	// reconstructed false when a save opens. victoryTaken makes the campaign
@@ -1772,12 +1776,12 @@ func (mw *mapWorld) settleNotices() {
 		// ends that window; a body at exactly 0 never decays (HERO-ZERO-070).
 		// The original loses on the primary's fall instead: DIV-219.
 		//
-		// ONE DEAD CHARACTER IS ENOUGH and the walk stops at it. Which one it
-		// was is not recorded: the notice says the same words whoever fell, and
-		// a field naming him would be state nothing reads.
+		// ONE DEAD CHARACTER IS ENOUGH and the walk stops at it. The failure
+		// reason his edition row names goes to the notice (DIV-4189).
 		o := sim.OutcomeUndecided
-		if mw.guardedCharacterLost() {
+		if id, lost := mw.guardedCharacterLost(); lost {
 			o = sim.OutcomeLost
+			m.lossReason = mw.guardedLossReason(id)
 		}
 		// THE OUTCOME COMES FROM Outcome() AND NEVER FROM THE COUNTERS, when the
 		// character test above left the question open. The counters only rise,
@@ -1826,7 +1830,9 @@ func (mw *mapWorld) settleNotices() {
 	}
 }
 
-func (mw *mapWorld) guardedCharacterLost() bool {
+// guardedCharacterLost reports the first guarded character the mission has
+// lost, by entity.
+func (mw *mapWorld) guardedCharacterLost() (sim.EntityID, bool) {
 	if mw.mission != nil {
 		for _, id := range mw.mission.guarded {
 			e, ok := mw.entity(id)
@@ -1847,11 +1853,27 @@ func (mw *mapWorld) guardedCharacterLost() bool {
 				continue
 			}
 			if !ok || (!e.Alive() && !e.Dying() && !e.Restorable()) {
-				return true
+				return id, true
 			}
 		}
 	}
-	return false
+	return 0, false
+}
+
+// guardedLossReason is the failure reason the loss of guarded character id
+// gives the notice: the FailureReason of his party identity's edition row,
+// zero for a member without one, the hero included (DIV-4189).
+func (mw *mapWorld) guardedLossReason(id sim.EntityID) int32 {
+	member := mw.missionPartyMember(id)
+	if member == nil {
+		return 0
+	}
+	identity, ok := mapload.PartyIdentity(*member, mw.mission.table)
+	if !ok {
+		return 0
+	}
+	row, _ := tableEdition(mw.mission.table).PartyIdentity(identity)
+	return row.FailureReason
 }
 
 func (mw *mapWorld) showOutcome() {

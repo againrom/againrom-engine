@@ -218,6 +218,7 @@ func (r secondCampaignRules) finishWon(f *FrontEnd, n int, ms *Mission) (int, st
 	}
 	// The output reads the bank before the case stores (R2-ENGINE-148).
 	output := town.second.complete(ms.World)
+	f.CampaignSession.leftLocation(f.townInstall())
 	if live := f.live; live != nil && live.view != nil {
 		movie := ""
 		if in := f.Archives; in != nil && in.Containers != nil {
@@ -287,6 +288,11 @@ func (secondCampaignRules) outcomeText(mw *mapWorld, body string) string {
 	m := mw.mission
 	if m.outcome == sim.OutcomeLost {
 		_, reason := mw.world.ScriptCounters()
+		if reason < 2 && m.lossReason > 0 {
+			// A guarded character's fall with no script reason takes his
+			// edition row's reason (DIV-4189).
+			reason = uint32(m.lossReason)
+		}
 		if reason >= 2 && uint64(reason-2) < uint64(len(m.failureText)) && m.failureText[reason-2] != "" {
 			body = m.failureText[reason-2]
 		}
@@ -459,7 +465,9 @@ func (c destinationTownCampaign) value(name string) int {
 func (c destinationTownCampaign) savePoint() bool { return c.bank().savePoint() }
 func (c destinationTownCampaign) leave() {
 	if s := c.bank(); s != nil {
-		s.leaveTown()
+		if s.leaveTown() {
+			c.t.sess.leftLocation(c.t.in.townInstall())
+		}
 		s.room = secondTownSquare
 	}
 }

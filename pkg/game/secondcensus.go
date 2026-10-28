@@ -116,6 +116,7 @@ type SecondMapCensus struct {
 	Gaps                       []SecondOpGap
 	Inert                      []int // map trigger positions an unsupported check holds
 	Omitted                    [secondCauses]SecondOmission
+	UnboundHeroes              []int32 // hero-band values the census party leaves unbound
 	BankSlots                  []int32 // scenario bank slots instant 35 writes
 
 	// SharedNodes counts compiled nodes whose opcode runs on the first game's
@@ -236,12 +237,24 @@ func SecondGameCensus(archives *Archives) ([]SecondMapCensus, error) {
 			out = append(out, SecondMapCensus{Mission: n, Err: err.Error()})
 			continue
 		}
-		party := MissionPartyAs(false, defs.StartWeapon, defs.Bodies, defs.Table)
+		party := secondCensusParty(defs)
 		c := secondMapCensus(m, n, defs.Table, party, archives.Containers)
 		c.Departure = secondDeparture(n, reach)
 		out = append(out, c)
 	}
 	return out, nil
+}
+
+// secondCensusParty is the census party: the fixture hero and every member
+// the edition's addition producer builds, in row order, on every map. The
+// campaign carries a member only after his join.
+func secondCensusParty(defs *Definitions) []mapload.PartyMember {
+	s := &CampaignSession{Carried: MissionPartyAs(false, defs.StartWeapon, defs.Bodies, defs.Table)}
+	in := townInstall{table: defs.Table, bodies: defs.Bodies}
+	for _, p := range tableEdition(defs.Table).PartyIdentities {
+		s.addPartyIdentity(in, p.Identity)
+	}
+	return s.Carried
 }
 
 func secondMapCensus(m *alm.Map, n int, t *mapload.Table, party []mapload.PartyMember, src entrySource) SecondMapCensus {
@@ -391,6 +404,11 @@ func secondScript(c *SecondMapCensus, m *alm.Map, authored []alm.Unit, t *maploa
 	_, fixture, err := mapload.CompileROM2ScriptFrom(src, refs)
 	if err != nil {
 		return err
+	}
+	for _, u := range fixture.Unresolved {
+		if SecondRefCause(u, authored) == CauseFixture {
+			c.UnboundHeroes = insertSorted(c.UnboundHeroes, int32(u.Value))
+		}
 	}
 	full, saturated, err := mapload.CompileROM2ScriptFrom(src, secondSaturatedRefs(refs, mapload.PartyEntity(m, 0)))
 	if err != nil {
@@ -935,7 +953,7 @@ func SecondTotals(cs []SecondMapCensus) SecondCensusTotals {
 func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 	head := "mission\tstart\trun\toutcome\tplaced\twithdrawn\tauthored_hp\tborn_fallen\tno_row\tstructures\tno_structure_row\tloot\tloot_dropped\tno_item_row\tspells\tno_spell_rule\t" +
 		"events\tno_event_text\treasons\tno_reason_text\tchecks\tinstants\ttriggers\tshared_nodes\tshared_checks\tshared_instants\tgaps\tinert\t" +
-		"fixture\tdynamic\twithdrawn_ref\tabsent\tstructure_ref\tbank_slots\t" +
+		"fixture\tdynamic\twithdrawn_ref\tabsent\tstructure_ref\tunbound_heroes\tbank_slots\t" +
 		"case\texits\tproducer\tengine_entry\tengine_win\tengine_adds\tengine_exits\tengine_save\tblockers\n"
 	if _, err := io.WriteString(w, head); err != nil {
 		return err
@@ -958,7 +976,7 @@ func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 		for _, o := range c.Omitted {
 			row = append(row, fmt.Sprintf("%d/%d/%d", o.Nodes, o.Triggers, o.ActionTriggers))
 		}
-		row = append(row, secondList(c.BankSlots), secondYes(d.Case), secondExitList(d.Exits, false), d.Producer,
+		row = append(row, secondList(c.UnboundHeroes), secondList(c.BankSlots), secondYes(d.Case), secondExitList(d.Exits, false), d.Producer,
 			secondYes(d.EngineEntry), secondYes(d.EngineWin), strings.Join(d.EngineAdds, ","), secondExitList(d.Exits, true), secondYes(d.EngineSave), strings.Join(c.Blockers(), ","))
 		if _, err := io.WriteString(w, strings.Join(row, "\t")+"\n"); err != nil {
 			return err
