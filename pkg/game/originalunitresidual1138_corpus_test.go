@@ -26,7 +26,7 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable := 0, 0, 0, 0
-	actorsChecked, loadMismatches, sightMismatches := 0, 0, 0
+	actorsChecked, loadMismatches, sightMismatches, savedActors, rewrittenHumans := 0, 0, 0, 0, 0
 	token18Values := map[uint16]int{}
 	trailerTurnValues, trailerScriptValues := map[uint32]int{}, map[uint32]int{}
 	trailerRoundTripMismatches := 0
@@ -83,39 +83,54 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ActorHoldings: %v", err)
 			}
-			byMapUnitID := make(map[uint16]sav.ActorHoldings, len(holdings))
 			for _, h := range holdings {
 				if h.Basis != nil {
 					token18Values[h.Basis.Token18]++
 				}
-				if h.MapUnitID != 0 {
-					byMapUnitID[h.MapUnitID] = h
-				}
 			}
+			graph, err := source.ActorGraph()
+			if err != nil {
+				t.Fatalf("ActorGraph: %v", err)
+			}
+			byArchive := archiveActorsForAudit(graph)
+			byMapUnit := unitResidualMapUnitsForAudit(byArchive)
 
-			ms, _, err := loadOriginalMission(f, raw)
+			loaded, err := loadOriginalFront(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}
-			for _, e := range ms.World.Entities() {
+			var unbound []sav.ActorRecord
+			for _, e := range loaded.CurrentMission().World.Entities() {
 				if e.MapUnitID == 0 {
 					continue
 				}
-				h, ok := byMapUnitID[e.MapUnitID]
-				if !ok || h.Basis == nil || !h.LoadState.Present {
+				a, ok := unitResidualRecordForAudit(e, byArchive, byMapUnit)
+				if !ok || a.Character.Basis == nil || !a.Character.LoadState.Present {
 					continue
 				}
 				actorsChecked++
-				if e.ActorLoad.OwnWeight != h.LoadState.OwnWeight || e.Load != int32(h.LoadState.Load) {
+				own, load, sight := unitResidualWantForAudit(a.Character)
+				// An entity without a load record holds no own weight word;
+				// its SAVE derives one, and is checked below.
+				ownHeld := !e.ActorLoad.Present || e.ActorLoad.OwnWeight == own
+				if !e.ActorLoad.Present {
+					unbound = append(unbound, a)
+				}
+				if !ownHeld || e.Load != int32(load) {
 					loadMismatches++
-					t.Errorf("map unit %d: live OwnWeight/Load %d/%d, file %d/%d",
-						e.MapUnitID, e.ActorLoad.OwnWeight, e.Load, h.LoadState.OwnWeight, h.LoadState.Load)
+					t.Errorf("map unit %d (archive %d): live OwnWeight/Load %d/%d, want %d/%d (file %d/%d)",
+						e.MapUnitID, a.ArchiveIndex, e.ActorLoad.OwnWeight, e.Load, own, load, a.Character.LoadState.OwnWeight, a.Character.LoadState.Load)
 				}
-				if wantCells := uint8(h.Basis.Human.Fields.Sight >> 8); e.ScanRange != wantCells {
+				if e.ScanRange != sight {
 					sightMismatches++
-					t.Errorf("map unit %d: live ScanRange %d, file whole-cell sight %d (raw %#04x)",
-						e.MapUnitID, e.ScanRange, wantCells, h.Basis.Human.Fields.Sight)
+					t.Errorf("map unit %d (archive %d): live ScanRange %d, file whole-cell sight %d (raw %#04x)",
+						e.MapUnitID, a.ArchiveIndex, e.ScanRange, sight, a.Character.Basis.Human.Fields.Sight)
 				}
+			}
+			if len(unbound) > 0 {
+				savedActors += len(unbound)
+				humans, l, s := unitResidualSaveForAudit(t, loaded, unbound)
+				rewrittenHumans, loadMismatches, sightMismatches = rewrittenHumans+humans, loadMismatches+l, sightMismatches+s
 			}
 			t.Logf("present=%v holdings=%d", source.World != nil, len(holdings))
 		})
@@ -126,8 +141,8 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 	}
 	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable",
 		total, worlds, cities, unreadable)
-	t.Logf("%d actor(s) cross-checked: %d OwnWeight/Load mismatches, %d sight mismatches",
-		actorsChecked, loadMismatches, sightMismatches)
+	t.Logf("%d actor(s) cross-checked, %d without a load record also through SAVE (%d native Human own weight(s) of 0 written by DIV-3358's rule): %d OwnWeight/Load mismatches, %d sight mismatches",
+		actorsChecked, savedActors, rewrittenHumans, loadMismatches, sightMismatches)
 	t.Logf("Token18 corpus distribution: %v (SAV-797: only 0 and 2 on the research corpus)", token18Values)
 	// SAV-649's own "0 in 44 of 45, 520 in one" finding is about the marker-
 	// adjacent global dword this package deliberately still skips uninspected
@@ -143,4 +158,53 @@ func TestUnitResidualCorpusAudit1138(t *testing.T) {
 	if loadMismatches != 0 || sightMismatches != 0 {
 		t.Fatalf("%d load mismatch(es), %d sight mismatch(es)", loadMismatches, sightMismatches)
 	}
+}
+
+// unitResidualSaveForAudit checks the player's SAVE of actors LOAD kept
+// without a load record: each is written once under its map unit ID with the
+// file's load, sight and Unit own weight. A native Human the file holds with
+// own weight 0 is written with its worn set's weight (DIV-3358) and counted.
+func unitResidualSaveForAudit(t *testing.T, loaded *FrontEnd, records []sav.ActorRecord) (humans, loads, sights int) {
+	t.Helper()
+	s, _, err := loaded.Snapshot(true)
+	if err != nil {
+		t.Fatalf("Snapshot: %v", err)
+	}
+	saved, _, err := loaded.playerMissionSave(s, "unit residual audit")
+	if err != nil {
+		t.Fatalf("SAVE: %v", err)
+	}
+	out, err := sav.Open(saved)
+	if err != nil {
+		t.Fatalf("sav.Open (SAVE): %v", err)
+	}
+	graph, err := out.ActorGraph()
+	if err != nil {
+		t.Fatalf("SAVE's ActorGraph: %v", err)
+	}
+	written := unitResidualMapUnitsForAudit(archiveActorsForAudit(graph))
+	for _, a := range records {
+		got := written[a.MapUnitID]
+		if len(got) != 1 || got[0].Character.Basis == nil || !got[0].Character.LoadState.Present {
+			loads++
+			t.Errorf("map unit %d: SAVE wrote %d record(s)", a.MapUnitID, len(got))
+			continue
+		}
+		own, load, sight := unitResidualWantForAudit(a.Character)
+		g := got[0].Character
+		ownHeld := g.LoadState.OwnWeight == own
+		if !ownHeld && a.Character.Basis.Class != "Unit" && own == 0 {
+			humans++
+			ownHeld = true
+		}
+		if !ownHeld || g.LoadState.Load != load {
+			loads++
+			t.Errorf("map unit %d: SAVE wrote OwnWeight/Load %d/%d, file %d/%d", a.MapUnitID, g.LoadState.OwnWeight, g.LoadState.Load, own, load)
+		}
+		if got := uint8(g.Basis.Human.Fields.Sight >> 8); got != sight {
+			sights++
+			t.Errorf("map unit %d: SAVE wrote whole-cell sight %d, file %d", a.MapUnitID, got, sight)
+		}
+	}
+	return humans, loads, sights
 }

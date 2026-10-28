@@ -3169,5 +3169,11 @@ var Committed = Baseline{
 	// It rose for the ground-container corpus audit's SAVE expectation: the
 	// doc comments of carrierHeldForAudit and sameGroundSacksByCellForAudit,
 	// the helper test's comments, the audit's comment and this note.
-	CommentBytes: 9814409,
+
+	// It rose for the unit-residual corpus audit's LOAD and SAVE expectation:
+	// the doc comments of unitResidualMapUnitsForAudit,
+	// unitResidualRecordForAudit, unitResidualWantForAudit and
+	// unitResidualSaveForAudit, the helper tests' comments, the audit's
+	// comment and this note.
+	CommentBytes: 9816353,
 }
