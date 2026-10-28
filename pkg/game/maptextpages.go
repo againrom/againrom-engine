@@ -69,10 +69,14 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 	var saved editorWorkspaceState
 	_ = json.Unmarshal(s.savedWorkspace, &saved)
 	lang := x.pageLanguage()
+	otherLang := map[string]string{"en": "ru", "ru": "en"}[lang]
 	for name, b := range s.workspace.Pages {
 		_, localized := files[lang+"/"+name]
 		_, common := files[name]
-		if before, exists := saved.Pages[name]; !exists || !bytes.Equal(before, b) || (!localized && !common) {
+		// An unchanged page from the other language's folder stays there.
+		other, fromOther := files[otherLang+"/"+name]
+		fromOther = fromOther && bytes.Equal(other, b)
+		if before, exists := saved.Pages[name]; !exists || !bytes.Equal(before, b) || (!localized && !common && !fromOther) {
 			files[lang+"/"+name] = bytes.Clone(b)
 		}
 	}
@@ -169,9 +173,15 @@ func (x *MapInspector) editorPages(source string) *modPages {
 			}
 		}
 	}
-	merge := func(files map[string][]byte) {
+	// The other language fills only a name no page of this one holds.
+	otherPages := map[string][]byte{}
+	merge := func(files map[string][]byte, other map[string]bool) {
 		for name, b := range files {
-			if missionPageName(name) {
+			switch {
+			case !missionPageName(name):
+			case other[name]:
+				otherPages[name] = b
+			default:
 				p.files[name] = b
 			}
 		}
@@ -179,12 +189,12 @@ func (x *MapInspector) editorPages(source string) *modPages {
 	if x.mod != nil {
 		if entry, ok := x.mod.entryFor(source); ok {
 			p.id, p.entry = x.mod.id, entry
-			files, err := entry.ReadTexts(x.mod.dir, x.pageLanguage())
+			files, other, err := entry.ReadTexts(x.mod.dir, x.pageLanguage())
 			if err != nil {
 				p.err = err
 				return p
 			}
-			merge(files)
+			merge(files, other)
 		}
 	}
 	if !strings.HasPrefix(source, "scenario/") && !isNewSource(source) {
@@ -193,12 +203,17 @@ func (x *MapInspector) editorPages(source string) *modPages {
 			path = looseHostPath(x.archives.Root, source)
 		}
 		m := mod.Mission{Map: filepath.Base(path)}
-		files, err := m.ReadTexts(filepath.Dir(path), x.pageLanguage())
+		files, other, err := m.ReadTexts(filepath.Dir(path), x.pageLanguage())
 		if err != nil {
 			p.err = err
 			return p
 		}
-		merge(files)
+		merge(files, other)
+	}
+	for name, b := range otherPages {
+		if _, held := p.files[name]; !held {
+			p.files[name] = b
+		}
 	}
 	if len(p.files) > 0 {
 		p.entry.Texts = testPlayTexts

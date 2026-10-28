@@ -85,7 +85,7 @@ func viewOf(t *testing.T, dir string) readerView {
 		if v.Strings[lang], err = LoadStrings(dir, lang); err != nil {
 			t.Fatal(err)
 		}
-		if v.Pages[lang], err = (Mission{Map: "maps/east.alm"}).ReadTexts(dir, lang); err != nil {
+		if v.Pages[lang], _, err = (Mission{Map: "maps/east.alm"}).ReadTexts(dir, lang); err != nil {
 			t.Fatal(err)
 		}
 	}

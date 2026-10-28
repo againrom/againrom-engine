@@ -59,6 +59,9 @@ func TestMapPagesSourceOrder(t *testing.T) {
 					f.x.mod = &editorMod{dir: filepath.Dir(source), id: "map", missions: mod.MissionData{Missions: []mod.Mission{{Kind: mod.MissionReplace, Number: 20, Map: "map.alm"}}}}
 				}
 				want := ""
+				if arm == "absent" {
+					want = "Wrong language"
+				}
 				if arm == "language" || arm == "unlanguaged" {
 					writeTestPlayInput(t, filepath.Join(folder, "event02.txt"), []byte("Fallback"))
 					want = "Fallback"
@@ -154,6 +157,56 @@ func TestMapPagesPackagePreservesOtherLanguage(t *testing.T) {
 	got, err = os.ReadFile(filepath.Join(folder, "mission", "text", "en", "event01.txt"))
 	if err != nil || string(got) != "Changed English page" {
 		t.Fatalf("W lost the active edit: %q: %v", got, err)
+	}
+}
+
+func TestMapPagesOtherLanguageFillsAndSaveAsKeepsTree(t *testing.T) {
+	f, e := workspaceFixture(t)
+	dir := t.TempDir()
+	a, b, c := filepath.Join(dir, "a.alm"), filepath.Join(dir, "b.alm"), filepath.Join(dir, "c.alm")
+	if _, err := e.Document().Edits.(*mapInspectionEdits).SaveAs(a); err != nil {
+		t.Fatal(err)
+	}
+	writeTestPlayInput(t, filepath.Join(dir, "a.text", "ru", "event01.txt"), []byte("Russian one"))
+	writeTestPlayInput(t, filepath.Join(dir, "a.text", "ru", "event02.txt"), []byte("Russian two"))
+	want := map[string][]byte{"event01.txt": []byte("Russian one"), "event02.txt": []byte("Russian two")}
+	if p := f.x.editorPages(a); p.err != nil || !reflect.DeepEqual(p.files, want) {
+		t.Fatalf("EN pages of a Russian-only map=%q: %v", p.files, p.err)
+	}
+	d, err := f.x.Open(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := d.Edits.(*mapInspectionEdits)
+	if _, err := s.SaveAs(b); err != nil {
+		t.Fatal(err)
+	}
+	if got := tree(t, filepath.Join(dir, "b.text")); !reflect.DeepEqual(got, map[string]string{"ru/event01.txt": "Russian one", "ru/event02.txt": "Russian two"}) {
+		t.Fatalf("Save As of unchanged fallback pages wrote %q", got)
+	}
+	d, err = f.x.Open(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s = d.Edits.(*mapInspectionEdits)
+	if _, err := s.SetWorkspaceField("pages", "page", "event02.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SetWorkspaceField("pages", "body", "English two"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.SaveAs(c); err != nil {
+		t.Fatal(err)
+	}
+	if got := tree(t, filepath.Join(dir, "c.text")); !reflect.DeepEqual(got, map[string]string{"ru/event01.txt": "Russian one", "ru/event02.txt": "Russian two", "en/event02.txt": "English two"}) {
+		t.Fatalf("Save As of a changed fallback page wrote %q", got)
+	}
+	if p := f.x.editorPages(c); p.err != nil || string(p.files["event01.txt"]) != "Russian one" || string(p.files["event02.txt"]) != "English two" {
+		t.Fatalf("EN pages of a map holding both languages=%q: %v", p.files, p.err)
+	}
+	f.x.archives.Base.Profile.Language = "russian"
+	if p := f.x.editorPages(c); p.err != nil || string(p.files["event02.txt"]) != "Russian two" {
+		t.Fatalf("RU pages=%q: %v", p.files, p.err)
 	}
 }
 

@@ -101,6 +101,36 @@ func TestSetModMissionsServesTheModsMapAndTextsUnderTheMissionNumber(t *testing.
 	}
 }
 
+func TestSetModMissionsOtherLanguagePageGivesWayToInstallPage(t *testing.T) {
+	f := guestFixtureFront(t)
+	dir := t.TempDir()
+	for name, body := range map[string]string{"scenario/26.alm": "x", "main/text/battle/m25/event01.txt": "Installed"} {
+		p := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	fs, err := vfs.Open(nil, []string{dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Archives = &Archives{Containers: fs}
+	m := guestDecl()
+	m.TextFiles = map[string][]byte{"event01.txt": []byte("Other one"), "event02.txt": []byte("Other two")}
+	m.OtherLanguageTexts = map[string]bool{"event01.txt": true, "event02.txt": true}
+	if _, err := f.SetModMissions(mod.MissionData{Missions: []mod.Mission{m}}); err != nil {
+		t.Fatal(err)
+	}
+	for address, want := range map[string]string{"main/text/battle/m25/event01.txt": "Installed", "main/text/battle/m25/event02.txt": "Other two"} {
+		if got, err := f.Archives.Containers.ReadFile(address); err != nil || string(got) != want {
+			t.Errorf("%s: %q %v, want %q", address, got, err, want)
+		}
+	}
+}
+
 func TestRecordWinOpensTheGuestMissionBeforeTheTown(t *testing.T) {
 	c := guestCampaign()
 	for name, tc := range map[string]struct {

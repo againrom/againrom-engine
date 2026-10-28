@@ -3294,5 +3294,10 @@ var Committed = Baseline{
 	// pkg/game/speakeractors.go, the new tests' comments in
 	// pkg/data/humanspeakers_test.go, pkg/game/speakercompanion_test.go and
 	// pkg/game/secondcompanionjoin_release_test.go, and this note.
-	CommentBytes: 9874076,
+
+	// It rose for the map pages' other-language fallback: the doc comments
+	// of Mission.ReadTexts and readMissionTexts in pkg/mod/missions.go, the
+	// notes in pkg/game/maptextpages.go and pkg/game/modmission.go, and this
+	// note.
+	CommentBytes: 9874908,
 }

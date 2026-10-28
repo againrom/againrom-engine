@@ -472,7 +472,10 @@ A map's own pages take priority: `<stem>.text/<lang>/`, then
 `<stem>.text/` beside its ALM. The declared `texts` folder supplies missing
 pages; a folder ending in `/en` or `/ru` also reads page files in its parent
 as a fallback. Other files in that parent are ignored. A replacing campaign mission finally keeps the install's
-page for a number the map and mod leave out. Priority applies per file.
+page for a number the map and mod leave out. Priority applies per file. A page
+name that none of these sources supplies for the install's language is taken
+from the same folders of the other language (`en` or `ru`), in the same order;
+the install's own page of that name still beats it.
 
 The map editor's Save As copies every language folder and unlanguaged page
 beside the new ALM into `<stem>.text/`. Changed workspace pages go into
@@ -481,7 +484,9 @@ even when the source has no pages. W copies the same tree to `mission/text/` and
 `texts = "mission/text/{lang}"`. An older package with only `mission/text/`
 continues to load. Saving an editor-owned package keeps its recorded
 unlanguaged and other-language pages. Unchanged unlanguaged pages stay
-unlanguaged. A language folder never substitutes for another language.
+unlanguaged. A page that exists only in the other language's folder shows in
+the editor and in the game, and Save As and W keep it in that folder: only a
+page changed in the workspace is written under the install's language.
 Page storage does not change ALM or SAV layout.
 
 ```toml

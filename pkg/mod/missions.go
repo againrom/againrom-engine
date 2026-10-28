@@ -87,11 +87,15 @@ type Mission struct {
 	OffLine int
 
 	language string
+	// textsTemplate is the declared texts path before langToken was replaced.
+	textsTemplate string
 
 	// MapBytes and TextFiles are the map and the text files as read from the
 	// mod folder when the mod loaded. TextFiles is keyed by file name.
 	MapBytes  []byte
 	TextFiles map[string][]byte
+	// OtherLanguageTexts names the TextFiles read from the other language.
+	OtherLanguageTexts map[string]bool
 }
 
 // GuestMember is one member of a guest party: a character of the character
@@ -348,7 +352,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			case "map":
 				err = pathIn(&m.Map)
 			case "texts":
-				err = pathIn(&m.Texts)
+				if err = pathIn(&m.Texts); err == nil && p.val.kind == tomlString {
+					m.textsTemplate = p.val.str
+				}
 			case "title":
 				err = text(&m.Title)
 			case "briefing":
@@ -556,15 +562,17 @@ func (m *Mission) ReadFiles(dir string) error {
 		return bad("map: %v", err)
 	}
 	m.MapBytes = b
-	m.TextFiles, err = m.ReadTexts(dir, m.language)
+	m.TextFiles, m.OtherLanguageTexts, err = m.ReadTexts(dir, m.language)
 	if err != nil {
 		return bad("texts: %v", err)
 	}
 	return nil
 }
 
-// ReadTexts reads a map's pages before its declared mission text folder.
-func (m Mission) ReadTexts(dir, lang string) (map[string][]byte, error) {
+// ReadTexts reads a map's pages before its declared mission text folder. A
+// name no folder of lang supplies is read from the other language's folders;
+// other names those.
+func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map[string]bool, err error) {
 	if lang == "" {
 		lang = path.Base(m.Texts)
 		if lang != "en" && lang != "ru" {
@@ -572,10 +580,12 @@ func (m Mission) ReadTexts(dir, lang string) (map[string][]byte, error) {
 		}
 	}
 	if lang != "en" && lang != "ru" {
-		return nil, fmt.Errorf("unsupported page language %q", lang)
+		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}
+	otherLang := map[string]string{"en": "ru", "ru": "en"}[lang]
 	folder := strings.TrimSuffix(m.Map, path.Ext(m.Map)) + ".text"
 	folders := []string{folder + "/" + lang, folder}
+	foldersOther := []string{folder + "/" + otherLang}
 	fallback := ""
 	if m.Texts != "" {
 		declared := strings.ReplaceAll(m.Texts, "{lang}", lang)
@@ -583,34 +593,48 @@ func (m Mission) ReadTexts(dir, lang string) (map[string][]byte, error) {
 		if tail := path.Base(declared); tail == "en" || tail == "ru" {
 			fallback = path.Dir(declared)
 		}
+		template := m.textsTemplate
+		if template == "" {
+			template = m.Texts
+		}
+		if declaredOther := path.Clean(strings.ReplaceAll(template, langToken, otherLang)); declaredOther != declared {
+			foldersOther = append(foldersOther, declaredOther)
+		}
 	}
-	files, err := readMissionTexts(dir, fallback, folders...)
+	files, other, err = readMissionTexts(dir, fallback, folders, foldersOther)
 	if errors.Is(err, os.ErrNotExist) && m.Texts == "" {
-		return map[string][]byte{}, nil
+		return map[string][]byte{}, nil, nil
 	}
-	return files, err
+	return files, other, err
 }
 
-func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byte, error) {
+// readMissionTexts reads folders in order, then the parent fallback, then
+// foldersOther for the names left. In foldersOther a bad path or file name is
+// passed over.
+func readMissionTexts(dir, fallback string, folders, foldersOther []string) (map[string][]byte, map[string]bool, error) {
 	t, err := OpenTree(dir)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	files := map[string][]byte{}
+	other := map[string]bool{}
 	found := false
 	if fallback != "" {
 		folders = append(folders, fallback)
 	}
-	for _, folder := range folders {
+	read := func(folder string, otherLanguage bool) error {
 		if !insidePath(folder) && !(folder == "." && folder == fallback) {
-			return nil, fmt.Errorf("texts %q is not a path inside its folder", folder)
+			if otherLanguage {
+				return nil
+			}
+			return fmt.Errorf("texts %q is not a path inside its folder", folder)
 		}
 		entries, err := t.ReadDir(folder)
 		if os.IsNotExist(err) {
-			continue
+			return nil
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 		found = true
 		for _, e := range entries {
@@ -618,26 +642,40 @@ func readMissionTexts(dir, fallback string, folders ...string) (map[string][]byt
 				continue
 			}
 			if !missionTextName.MatchString(e.Name()) {
-				if folder == fallback {
+				if folder == fallback || otherLanguage {
 					continue
 				}
-				return nil, fmt.Errorf("%s is not a mission text file name (a-z, 0-9 and '_', then .txt)", filepath.Join(dir, filepath.FromSlash(folder), e.Name()))
+				return fmt.Errorf("%s is not a mission text file name (a-z, 0-9 and '_', then .txt)", filepath.Join(dir, filepath.FromSlash(folder), e.Name()))
 			}
 			if _, exists := files[e.Name()]; exists {
 				continue
 			}
 			if len(files) >= MaxMissionTexts {
-				return nil, fmt.Errorf("at most %d files", MaxMissionTexts)
+				return fmt.Errorf("at most %d files", MaxMissionTexts)
 			}
 			b, _, err := t.ReadInside(folder + "/" + e.Name())
 			if err != nil {
-				return nil, err
+				return err
 			}
 			files[e.Name()] = b
+			if otherLanguage {
+				other[e.Name()] = true
+			}
+		}
+		return nil
+	}
+	for _, folder := range folders {
+		if err := read(folder, false); err != nil {
+			return nil, nil, err
+		}
+	}
+	for _, folder := range foldersOther {
+		if err := read(folder, true); err != nil {
+			return nil, nil, err
 		}
 	}
 	if !found {
-		return nil, fmt.Errorf("no such folder %s: %w", filepath.Join(dir, filepath.FromSlash(folders[len(folders)-1])), os.ErrNotExist)
+		return nil, nil, fmt.Errorf("no such folder %s: %w", filepath.Join(dir, filepath.FromSlash(folders[len(folders)-1])), os.ErrNotExist)
 	}
-	return files, nil
+	return files, other, nil
 }

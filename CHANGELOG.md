@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [BASE] A map whose text pages exist only in the other language (for example only in the Russian folder on an English game) now shows those pages in the map editor and in the game; a page that exists in both languages shows the game's language. Before, such a map showed every page empty.
 - [ROM2] Dina now shows her portrait when she speaks, in town talks and in the missions: once she has joined, her lines show her, in what she is wearing. Before, her lines showed a man mage.
 - [ROM2] What the hero buys in the shop now goes with him into the mission: his bag's items are in his pack there, to wear, drop and pick up, and a bought potion can be drunk there; they stay after SAVE and LOAD, and after a won mission they are back in the bag at the next town, together with the items and potions he found, where the shop can sell them. Before, the bag stayed behind in town.
 - [ROM2] In the shop you can now put items on and take them off: drag an item from the bag onto the hero in the panel to wear it, and drag a worn item back to the bag to take it off. An item the hero cannot use is refused, as in the first game; with NEXT the same works for Iglez, and what each one wears stays after SAVE and LOAD. Before, the hero in the shop took no item.

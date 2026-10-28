@@ -207,6 +207,12 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 		}
 		dir := mainPrefix + "text/battle/m" + strconv.Itoa(m.Number) + "/"
 		for _, name := range slices.Sorted(maps.Keys(m.TextFiles)) {
+			// A page of the other language gives way to the install's page.
+			if m.OtherLanguageTexts[name] {
+				if _, err := src.ReadFile(dir + name); err == nil {
+					continue
+				}
+			}
 			if err := serve(dir+name, EncodeInstallTextFile(m.TextFiles[name], selector)); err != nil {
 				return nil, nil, err
 			}
