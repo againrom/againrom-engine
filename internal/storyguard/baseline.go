@@ -3160,5 +3160,10 @@ var Committed = Baseline{
 	// the doc comments of spellEffectRootsBoundNative and
 	// spellEffectsWithoutOffsets in pkg/game/spelleffectload_test.go, the
 	// audit's two comments and this note.
-	CommentBytes: 9812321,
+
+	// It rose for the mover-route corpus audit's LOAD and SAVE expectation:
+	// the doc comments of archiveActorsForAudit, moverRoutesCarriedForAudit
+	// and sameMoverRouteByIdentityForAudit, their tests' comments, the audit's
+	// comments and this note.
+	CommentBytes: 9813798,
 }

@@ -26,6 +26,7 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable, nonEmptyRoute, mismatches, formRefusals := 0, 0, 0, 0, 0, 0, 0
+	dying, dyingFiles, uncarriedFiles, savedLiving := 0, 0, 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -70,11 +71,33 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 					break
 				}
 			}
+			carried, err := moverRoutesCarriedForAudit(source, raw)
+			if err != nil {
+				t.Fatalf("writer carriers: %v", err)
+			}
+			if !carried {
+				// An Againrom-written SAV without the mover/route bit is no
+				// oracle for the live motions: LOAD drops them (DIV-2885).
+				// Its player's SAVE is checked below instead.
+				uncarriedFiles++
+				want = map[uint16]sav.ActorRecord{}
+			}
+			fileDying := 0
+			for _, a := range want {
+				if a.Dead() {
+					fileDying++
+				}
+			}
+			if fileDying > 0 {
+				dying += fileDying
+				dyingFiles++
+			}
 
-			ms, _, err := loadOriginalMission(f, raw)
+			loaded, err := loadOriginalFront(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}
+			ms := loaded.CurrentMission()
 			if _, _, _, present := ms.World.SavedActorMotions(); !present {
 				mismatches++
 				t.Error("resumed world carries no saved motion state")
@@ -151,13 +174,41 @@ func TestMoverRouteCorpusAudit1134(t *testing.T) {
 					t.Errorf("native export of the mover/route state does not reproduce the source file: %d byte(s) differ", diff)
 				}
 			}
-			t.Logf("actors=%d", len(want))
+			if !carried {
+				// The live movers hold this file's mover/route state; the
+				// player's SAVE writes it for every living actor.
+				s, _, err := loaded.Snapshot(true)
+				if err != nil {
+					t.Fatalf("Snapshot: %v", err)
+				}
+				saved, _, err := loaded.playerMissionSave(s, "mover route audit")
+				if err != nil {
+					t.Fatalf("SAVE: %v", err)
+				}
+				out, err := sav.Open(saved)
+				if err != nil {
+					t.Fatalf("sav.Open (SAVE): %v", err)
+				}
+				savedGraph, err := out.ActorGraph()
+				if err != nil {
+					t.Fatalf("SAVE's ActorGraph: %v", err)
+				}
+				n, msg, ok := sameMoverRouteByIdentityForAudit(graph, savedGraph)
+				savedLiving += n
+				if !ok {
+					mismatches++
+					t.Errorf("file vs SAVE mover/route: %s", msg)
+				}
+				t.Logf("writer held no mover/route carrier; SAVE wrote %d living actor(s) unchanged", n)
+				return
+			}
+			t.Logf("actors=%d, %d dying", len(want), fileDying)
 		})
 		return nil
 	})
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d with a non-empty route, %d mismatching, %d failing the world's own byte-form round trip",
-		total, worlds, cities, unreadable, nonEmptyRoute, mismatches, formRefusals)
+	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d with a non-empty route, %d dying actor(s) of %d file(s) kept as entities, %d file(s) whose writer held no mover/route carrier (%d living actor(s) checked through SAVE), %d mismatching, %d failing the world's own byte-form round trip",
+		total, worlds, cities, unreadable, nonEmptyRoute, dying, dyingFiles, uncarriedFiles, savedLiving, mismatches, formRefusals)
 }
