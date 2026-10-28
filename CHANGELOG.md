@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.138.0
+
 ### For players
 
 - [ROM2] Iglez now shows his portrait when he speaks: in the Kaarg inn talk, in later town talks and in the missions. Before, his lines showed an empty portrait pane. Once he is in the party, the portrait shows what he is wearing.
