@@ -38,6 +38,8 @@ type poolFixtureActor struct {
 	loadWords                             *[4]int16 // speed, own-weight, current load, capacity
 	equipmentRuntime                      *[3]byte  // source reach, charge, relax
 	withdrawal                            *[2]int32 // Order +0x40 Withdraw, +0x44 Wimpy
+
+	diary *sav.Diary // a Human or Humanoid's Diary object; nil writes a null reference
 }
 
 type poolFixtureSpell struct {
@@ -299,7 +301,28 @@ func poolFixtureBodyWithSession(players []*poolFixturePlayer, dead []*poolFixtur
 					item(a.holdings.worn[slot])
 				}
 			}
-			u16(0)
+			if a.diary == nil {
+				u16(0)
+			} else {
+				obj("Diary")
+				words := make([]uint16, a.diary.Length)
+				counts := make([]uint32, a.diary.Length)
+				for i := range words {
+					words[i] = 1024
+				}
+				for _, e := range a.diary.Entries {
+					counts[e.Index], words[e.Index] = e.Count, e.Remaining
+				}
+				u16(uint16(len(counts)))
+				for _, v := range counts {
+					u32(v)
+				}
+				u16(uint16(len(words)))
+				for _, v := range words {
+					u16(v)
+				}
+				u32(1000 + uint32(index))
+			}
 		}
 	}
 	seenPlayers := map[*poolFixturePlayer]uint16{}

@@ -3070,7 +3070,7 @@ package storyguard
 // the selection past the book's slots in pkg/game/savactionwire.go and
 // pkg/game/currentbookselection.go, and their tests.
 var Committed = Baseline{
-	TestIdentCount: 4487,
+	TestIdentCount: 4486,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3090,7 +3090,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    31,
-		"longcommentgroups":      1690,
+		"longcommentgroups":      1689,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3165,5 +3165,5 @@ var Committed = Baseline{
 	// the doc comments of archiveActorsForAudit, moverRoutesCarriedForAudit
 	// and sameMoverRouteByIdentityForAudit, their tests' comments, the audit's
 	// comments and this note.
-	CommentBytes: 9813798,
+	CommentBytes: 9813459,
 }

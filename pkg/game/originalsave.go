@@ -315,13 +315,12 @@ type OriginalSaveResume struct {
 	Projectiles        int
 	ProjectilesApplied bool
 
-	// Diaries counts restored Diary records: the Player's own inline Diary plus
-	// every living Humanoid's own referenced Diary that resolved to an admitted
-	// actor, each carried as typed sparse entries (SAV-667, SAV-668) bound to
-	// its owner (sim.SavedDiaryOwner) rather than left as
-	// JournalChars/JournalEntries' pre-existing bare count. What an entry's
-	// Count/Remaining pair means is Unknown, so nothing here acts on it beyond
-	// carrying it (docs/DIVERGENCES.md).
+	// Diaries counts the Diaries the World carries once LOAD is complete: the
+	// Player's own inline Diary and the Diary of every Human or Humanoid it
+	// builds, whichever Player owns it, less those its writer marked absent.
+	// Each is typed sparse entries (SAV-667, SAV-668) bound to its owner
+	// (sim.SavedDiaryOwner). What an entry's Count/Remaining pair means is
+	// Unknown, so nothing here acts on it beyond carrying it.
 	Diaries        int
 	DiariesApplied bool
 

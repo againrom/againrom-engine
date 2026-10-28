@@ -3,6 +3,7 @@ package game
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -24,8 +25,12 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 		t.Fatalf("NewFrontEnd(%q): %v", assets, err)
 	}
 	f.SetDeterministicFrames(true)
+	sameDiary := func(present bool, got sav.Diary, wantPresent bool, want sav.Diary) bool {
+		return present == wantPresent && got.Length == want.Length && sameSavDiaryEntries1135(got.Entries, want.Entries)
+	}
 
 	total, worlds, cities, unreadable, nonEmpty, mismatches := 0, 0, 0, 0, 0, 0
+	otherPlayers, droppedFiles, saved := 0, 0, 0
 	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -59,7 +64,7 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				return
 			}
 			worlds++
-			wantChars, wantPlayerRec, walkErr := source.PartyWalk()
+			walked, wantPlayerRec, walkErr := source.PartyWalk()
 			if wantPlayerRec == nil {
 				t.Fatalf("PartyWalk: no player record, err=%v", walkErr)
 			}
@@ -67,85 +72,102 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 			if err != nil {
 				t.Fatalf("PlayerDiary: %v", err)
 			}
-			wantByOff := map[int]sav.Character{}
-			seen := map[int]bool{}
-			for _, c := range wantChars {
-				if seen[c.Off] || !c.HasDiary {
-					continue
+			// Every Human or Humanoid LOAD builds as an entity carries its
+			// Diary, whichever Player owns it (importSavedDiaries).
+			graph, err := source.ActorGraph()
+			if err != nil {
+				t.Fatalf("ActorGraph: %v", err)
+			}
+			var owners []sav.ActorRecord
+			for _, a := range archiveActorsForAudit(graph) {
+				if a.Character.HasDiary {
+					owners = append(owners, a)
 				}
-				seen[c.Off] = true
-				wantByOff[c.Off] = c
 			}
-			want := len(wantByOff)
-			if wantHasPlayer {
-				want++
+			slices.SortFunc(owners, func(a, b sav.ActorRecord) int { return int(a.ArchiveIndex) - int(b.ArchiveIndex) })
+			walkedOff := map[int]bool{}
+			for _, c := range walked {
+				walkedOff[c.Off] = true
 			}
-			if want > 1 {
+			fileOther := 0
+			for _, a := range owners {
+				if !walkedOff[a.Off] {
+					fileOther++
+				}
+			}
+			otherPlayers += fileOther
+			if len(owners) > 0 || wantHasPlayer && len(wantPlayer.Entries) > 0 {
 				nonEmpty++
 			}
+			doc, err := sav.DecodeDocumentData(raw)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData: %v", err)
+			}
+			dropped, err := diariesDroppedAtLoad(&doc)
+			if err != nil {
+				t.Fatalf("diariesDroppedAtLoad: %v", err)
+			}
+			if len(dropped) > 0 {
+				droppedFiles++
+			}
 
-			ms, report, err := loadOriginalMission(f, raw)
+			loaded, err := loadOriginalFront(f, raw)
 			if err != nil {
 				t.Fatalf("RestoreOriginal: %v", err)
 			}
+			ms := loaded.CurrentMission()
+			report := ms.OriginalSaveReport()
 			if !report.DiariesApplied {
 				t.Fatal("a world-half save did not apply diaries")
 			}
 			got := ms.World.SavedDiaries()
 			if report.Diaries != len(got) {
-				t.Fatalf("report.Diaries = %d, len(SavedDiaries()) = %d", report.Diaries, len(got))
-			}
-
-			gotHasPlayer := false
-			// Keyed directly by EntityID, d.Owner.Actor's own type: no reverse
-			// lookup is needed on this side, unlike exportOriginalDiaries, which
-			// starts from an EntityID with no file record in hand at all.
-			gotByEntity := map[sim.EntityID]sim.SavedDiary{}
-			for _, d := range got {
-				if d.Owner.Player {
-					gotHasPlayer = true
-					if d.Length != wantPlayer.Length || !sameLiveDiaryEntries1135(d.Entries, wantPlayer.Entries) {
-						mismatches++
-						t.Errorf("player diary length/entries = %d/%+v, want %d/%+v",
-							d.Length, d.Entries, wantPlayer.Length, wantPlayer.Entries)
-					}
-					continue
-				}
-				gotByEntity[d.Owner.Actor] = d
-			}
-			if gotHasPlayer != wantHasPlayer {
 				mismatches++
-				t.Errorf("player diary present = %v, want %v", gotHasPlayer, wantHasPlayer)
+				t.Errorf("report.Diaries = %d, len(SavedDiaries()) = %d", report.Diaries, len(got))
 			}
-			// Every carried actor diary must trace to a wanted file record, and
-			// every wanted record whose actor was admitted must be carried:
-			// registryTarget skips a Humanoid the registry never admitted (dead,
-			// excluded), which is why this checks admitted membership, not raw
-			// wantByOff population, on the same tolerance applyOriginalDiaries
-			// itself already applies.
-			for off, wc := range wantByOff {
-				bound, ok := ms.actorRegistry.actor(off)
-				if !ok {
-					continue // Not admitted: applyOriginalDiaries skips it too.
-				}
-				gd, ok := gotByEntity[bound.ID]
+			gotBy := map[sim.SavedDiaryOwner]sim.SavedDiary{}
+			for _, d := range got {
+				gotBy[d.Owner] = d
+			}
+			want := map[sim.SavedDiaryOwner]sav.Diary{}
+			if player := (sim.SavedDiaryOwner{Player: true}); wantHasPlayer && !dropped[player] {
+				want[player] = wantPlayer
+			}
+			droppedActor := map[uint16]bool{}
+			for _, a := range owners {
+				bound, ok := ms.actorRegistry.actor(a.Off)
 				if !ok {
 					mismatches++
-					t.Errorf("actor at %d (entity %d) has a file diary but nothing was carried", off, bound.ID)
+					t.Errorf("actor %d: LOAD builds it but the registry has no binding", a.ArchiveIndex)
 					continue
 				}
-				if gd.Length != wc.Diary.Length || !sameLiveDiaryEntries1135(gd.Entries, wc.Diary.Entries) {
+				if owner := (sim.SavedDiaryOwner{Actor: bound.ID}); dropped[owner] {
+					droppedActor[a.ArchiveIndex] = true
+				} else {
+					want[owner] = a.Character.Diary
+				}
+			}
+			for owner, wd := range want {
+				gd, ok := gotBy[owner]
+				if !ok {
 					mismatches++
-					t.Errorf("actor at %d diary length/entries = %d/%+v, want %d/%+v",
-						off, gd.Length, gd.Entries, wc.Diary.Length, wc.Diary.Entries)
+					t.Errorf("owner %+v has a file Diary but nothing was carried", owner)
+					continue
+				}
+				if gd.Length != wd.Length || !sameLiveDiaryEntries1135(gd.Entries, wd.Entries) {
+					mismatches++
+					t.Errorf("owner %+v diary length/entries = %d/%+v, want %d/%+v", owner, gd.Length, gd.Entries, wd.Length, wd.Entries)
+				}
+			}
+			for owner := range gotBy {
+				if _, ok := want[owner]; !ok {
+					mismatches++
+					t.Errorf("owner %+v carries a Diary the file does not give it", owner)
 				}
 			}
 
 			// Native export: write the live state back into a fresh decode of
-			// this file's own bytes, then compare the complete body, on
-			// TestMoverRouteCorpusAudit1134's own whole-body precedent, plus the
-			// re-decoded Diary content's own entry values (F-2: Length and
-			// len(Entries) alone do not prove a carried value round-trips).
+			// this file's own bytes and compare the complete body.
 			target, err := sav.Open(raw)
 			if err != nil {
 				t.Fatalf("sav.Open (export target): %v", err)
@@ -177,20 +199,71 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 			if err != nil {
 				t.Fatalf("PlayerDiary (re-decode written): %v", err)
 			}
-			if exportedHasPlayer != wantHasPlayer || exportedPlayer.Length != wantPlayer.Length ||
-				!sameSavDiaryEntries1135(exportedPlayer.Entries, wantPlayer.Entries) {
+			if !sameDiary(exportedHasPlayer, exportedPlayer, wantHasPlayer, wantPlayer) {
 				mismatches++
 				t.Errorf("native export player diary = present=%v %+v, want present=%v %+v",
 					exportedHasPlayer, exportedPlayer, wantHasPlayer, wantPlayer)
 			}
-			t.Logf("player diary present=%v length=%d entries=%d; %d actor diaries carried",
-				wantHasPlayer, wantPlayer.Length, len(wantPlayer.Entries), len(gotByEntity))
+
+			// The player's SAVE writes every carried Diary, joined by Identity:
+			// a SAVE renumbers archive indices. A Diary dropped as absent is no
+			// oracle: its writer did not hold it (DIV-2885).
+			s, _, err := loaded.Snapshot(true)
+			if err != nil {
+				t.Fatalf("Snapshot: %v", err)
+			}
+			out, _, err := loaded.playerMissionSave(s, "diary audit")
+			if err != nil {
+				t.Fatalf("SAVE: %v", err)
+			}
+			back, err := sav.Open(out)
+			if err != nil {
+				t.Fatalf("sav.Open (SAVE): %v", err)
+			}
+			_, savedPlayerRec, _ := back.PartyWalk()
+			savedPlayer, savedHasPlayer, err := sav.PlayerDiary(savedPlayerRec)
+			if err != nil {
+				t.Fatalf("PlayerDiary (SAVE): %v", err)
+			}
+			if player := (sim.SavedDiaryOwner{Player: true}); !dropped[player] && !sameDiary(savedHasPlayer, savedPlayer, wantHasPlayer, wantPlayer) {
+				mismatches++
+				t.Errorf("SAVE player diary = present=%v %+v, want present=%v %+v",
+					savedHasPlayer, savedPlayer, wantHasPlayer, wantPlayer)
+			}
+			savedGraph, err := back.ActorGraph()
+			if err != nil {
+				t.Fatalf("SAVE's ActorGraph: %v", err)
+			}
+			byIdentity := map[uint32][]sav.ActorRecord{}
+			for _, a := range savedGraph.Actors {
+				byIdentity[a.Identity] = append(byIdentity[a.Identity], a)
+			}
+			for _, a := range owners {
+				if droppedActor[a.ArchiveIndex] {
+					continue
+				}
+				sa := byIdentity[a.Identity]
+				if a.Identity == 0 || len(sa) != 1 {
+					mismatches++
+					t.Errorf("actor %d (identity %d): SAVE wrote %d record(s)", a.ArchiveIndex, a.Identity, len(sa))
+					continue
+				}
+				sd := sa[0].Character.Diary
+				if !sameDiary(sa[0].Character.HasDiary, sd, true, a.Character.Diary) {
+					mismatches++
+					t.Errorf("actor %d (identity %d): SAVE diary = present=%v %+v, want %+v",
+						a.ArchiveIndex, a.Identity, sa[0].Character.HasDiary, sd, a.Character.Diary)
+				}
+				saved++
+			}
+			t.Logf("player diary present=%v length=%d entries=%d; %d actor diaries in the file (%d of other Players), %d dropped as absent, %d carried",
+				wantHasPlayer, wantPlayer.Length, len(wantPlayer.Entries), len(owners), fileOther, len(dropped), len(got))
 		})
 		return nil
 	})
 	if walkErr != nil {
 		t.Fatal(walkErr)
 	}
-	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d with more than one diary, %d mismatching",
-		total, worlds, cities, unreadable, nonEmpty, mismatches)
+	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d with a Diary beyond an empty Player's, %d actor diaries of other Players, %d file(s) with diaries dropped as absent, %d actor diaries checked through SAVE, %d mismatching",
+		total, worlds, cities, unreadable, nonEmpty, otherPlayers, droppedFiles, saved, mismatches)
 }

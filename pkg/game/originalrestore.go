@@ -518,6 +518,9 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			publishSessionEntry(ms)
 			currentGroups, _, _ := ms.World.SavedGroups()
 			r.GroupsRestored, r.GroupIssues = len(currentGroups), ms.World.SavedGroupIssues()
+			// Counted last: the document import and the absence policy replace
+			// what applyOriginalDiaries carried.
+			r.Diaries = len(ms.World.SavedDiaries())
 			ms.originalSaveReport = &r
 			return nil
 		}

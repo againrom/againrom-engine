@@ -16,26 +16,52 @@ type DocumentDiaryLocation struct {
 }
 
 func (f *File) DocumentDiaryLocations() ([]DocumentDiaryLocation, error) {
-	doc, _, err := f.exactDocument()
+	owners, err := f.DiaryOwners()
 	if err != nil {
 		return nil, err
 	}
 	var out []DocumentDiaryLocation
-	for index, owner := range doc.objects {
-		if owner.Class != "Player" && owner.Class != "Human" && owner.Class != "Humanoid" {
-			continue
-		}
-		loc := DocumentDiaryLocation{OwnerArchiveIndex: index, OwnerClass: owner.Class,
-			OwnerOff: owner.Off, RefOff: owner.DiaryRefOff, Off: -1}
-		if owner.Class == "Player" {
+	for _, o := range owners {
+		loc := DocumentDiaryLocation{OwnerArchiveIndex: o.ArchiveIndex, OwnerClass: o.Owner.Class,
+			OwnerOff: o.Owner.Off, RefOff: o.Owner.DiaryRefOff, Off: -1}
+		if !o.Actor {
 			loc.RefOff = -1
 		}
-		if diaries := owner.Refs["Diary"]; len(diaries) != 0 {
-			loc.ArchiveIndex, loc.Off = diaries[0].Index, diaries[0].Off
+		if o.Diary != nil {
+			loc.ArchiveIndex, loc.Off = o.Diary.Index, o.Diary.Off
 		}
 		out = append(out, loc)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].OwnerArchiveIndex < out[j].OwnerArchiveIndex })
+	return out, nil
+}
+
+// DiaryOwner is a Player, whose Diary is inline, or a Human or Humanoid
+// (Actor), whose Diary object is nil when its reference is null.
+type DiaryOwner struct {
+	ArchiveIndex uint16
+	Actor        bool
+	Owner, Diary *Record
+}
+
+// DiaryOwners returns every Diary owner by archive index, dead list included.
+func (f *File) DiaryOwners() ([]DiaryOwner, error) {
+	doc, _, err := f.exactDocument()
+	if err != nil {
+		return nil, err
+	}
+	var out []DiaryOwner
+	for index, owner := range doc.objects {
+		actor := owner.Class == "Human" || owner.Class == "Humanoid"
+		if !actor && owner.Class != "Player" {
+			continue
+		}
+		o := DiaryOwner{ArchiveIndex: index, Actor: actor, Owner: owner}
+		if diaries := owner.Refs["Diary"]; len(diaries) != 0 {
+			o.Diary = diaries[0]
+		}
+		out = append(out, o)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ArchiveIndex < out[j].ArchiveIndex })
 	return out, nil
 }
 
