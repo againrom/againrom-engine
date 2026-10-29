@@ -83,13 +83,18 @@ else
 	echo "check-fast: no timings file $timings; every ordinary test runs"
 fi
 
-# skip <package|-> [alternative] prints the skip pattern of one package, or
-# with "-" of every package but pkg/game and pkg/ui, with the alternative
-# inside its one group; empty when nothing is skipped. A `|` outside the group
-# would make the testing package compile each part again for every name.
+# skip <package|-> [alternative] [keep] [drop] prints the skip pattern of one
+# package, or with "-" of every package but pkg/game and pkg/ui, with the
+# alternative inside its one group; empty when nothing is skipped. A `|` outside
+# the group would make the testing package compile each part again for every
+# name. A shard lists only the names its alternative does not already skip:
+# those matching keep and not drop, so no shard's pattern outgrows a Windows
+# command line.
 skip() {
-	printf '%s\n' "$left" | awk -F '\t' -v pkg="$1" -v game="$game" -v ui="$ui" -v extra="${2:-}" '
-		NF && (pkg == "-" ? $1 != game && $1 != ui : $1 == pkg) { names = names sep $2; sep = "|" }
+	printf '%s\n' "$left" | awk -F '\t' -v pkg="$1" -v game="$game" -v ui="$ui" -v extra="${2:-}" \
+		-v keep="${3:-}" -v drop="${4:-}" '
+		NF && (pkg == "-" ? $1 != game && $1 != ui : $1 == pkg) &&
+			(keep == "" || $2 ~ keep) && (drop == "" || $2 !~ drop) { names = names sep $2; sep = "|" }
 		END { if (extra != "") names = names sep extra; if (names != "") printf "^(%s)$", names }
 	'
 }
@@ -131,11 +136,11 @@ gamerun() {
 	local class pids= pid code=0 rest=
 	own "pkg/game compile" "" -run '^$' "$game" || return 1
 	for class in $classes; do
-		own "pkg/game Test[$class]" "$(skip "$game" "[^T].*|Test|Test[^$class].*")" -count=1 "$game" &
+		own "pkg/game Test[$class]" "$(skip "$game" "[^T].*|Test|Test[^$class].*" "^Test[$class]")" -count=1 "$game" &
 		pids="$pids $!"
 		rest="Test[A-${class#*-}].*"
 	done
-	own "pkg/game${rest:+ rest}" "$(skip "$game" "$rest")" -count=1 "$game" || code=1
+	own "pkg/game${rest:+ rest}" "$(skip "$game" "$rest" "" "${rest:+^${rest%.\*}}")" -count=1 "$game" || code=1
 	for pid in $pids; do
 		wait "$pid" || code=1
 	done
