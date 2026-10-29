@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] The shop table holds five kinds of items at most, as in the first game, and always shows all of them; before, it took more and hid the extra ones, which only the mouse wheel over the table brought into view.
+
 ## 0.140.1
 
 ### For players

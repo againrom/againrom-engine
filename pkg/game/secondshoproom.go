@@ -192,7 +192,7 @@ func shopButton(r *town.RoomSpec, name string) *town.ButtonSpec {
 // panel (R2-SESSION-204, R2-SESSION-217).
 func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 	l := ui.FirstShopLayout()
-	l.Character, l.Book, l.TableScroll = false, false, true
+	l.Character, l.Book = false, false
 	v.Layout = &l
 	d, room, ok := t.composedRoom()
 	if !ok {

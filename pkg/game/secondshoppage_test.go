@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"slices"
 	"testing"
 
 	"againrom/pkg/secondshop"
@@ -133,55 +134,98 @@ func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
 	}
 }
 
-// TestSecondShopPageTableScrolls stages six distinct items on the second
-// game's unbounded table: the strip shows the newest place, the wheel over
-// the table turns it one place at a time, every place is shown at some turn
-// and the shown places cost what BUY asks, and the sixth place returns to
-// its shelf by its own cell. The first game's table does not turn.
-func TestSecondShopPageTableScrolls(t *testing.T) {
+// TestSecondShopPageTableHoldsFive fills the second game's five places:
+// a sixth distinct lot is refused, a joining unit admitted, the wheel turns
+// nothing, return and undo free places. The first game's holds five too.
+func TestSecondShopPageTableHoldsFive(t *testing.T) {
 	c := secondShopSample()
-	c.shop.shelves[0] = nil
-	for i := 0; i < 6; i++ {
-		c.shop.shelves[0] = append(c.shop.shelves[0], magicUnit(69+i, 1, int64(10+i)))
+	c.shop.shelves[0] = []ShopItem{magicUnit(69, 2, 10)}
+	for row := 70; row < 74; row++ {
+		c.shop.shelves[0] = append(c.shop.shelves[0], magicUnit(row, 1, int64(row-59)))
+	}
+	*c.heroBag() = nil
+	for row := 80; row < 83; row++ {
+		units, _ := secondShopTestTables.Units(secondshop.Item{Table: secondshop.Magic, Row: row, Count: 1, Price: 20})
+		*c.heroBag() = append(*c.heroBag(), units...)
 	}
 	s := secondShopPage(c, 1000)
 	s.click(ui.ShopControlShelfPick, 0)
-	for i := 0; i < 6; i++ {
-		s.click(ui.ShopControlShelfCell, i)
+	s.click(ui.ShopControlShelfCell, 0)
+	s.click(ui.ShopControlPackCell, s.packCell(0))
+	s.click(ui.ShopControlPackCell, s.packCell(0))
+	s.click(ui.ShopControlShelfCell, 1)
+	s.click(ui.ShopControlShelfCell, 2)
+	if got := c.shop.Table(); len(got) != ShopTablePlaces || len(*c.heroBag()) != 1 {
+		t.Fatalf("five mixed lots: table %d places, bag %d", len(got), len(*c.heroBag()))
 	}
-	table := c.shop.Table()
+	s.click(ui.ShopControlShelfCell, 3)
+	s.click(ui.ShopControlPackCell, s.packCell(0))
+	if got := c.shop.Table(); len(got) != ShopTablePlaces || c.shop.shelves[0][3].Count != 1 || len(*c.heroBag()) != 1 {
+		t.Fatalf("a sixth distinct lot: table %d places, shelf entry %d, bag %d", len(got), c.shop.shelves[0][3].Count, len(*c.heroBag()))
+	}
+	s.click(ui.ShopControlShelfCell, 0)
+	if got := c.shop.Table(); len(got) != ShopTablePlaces || got[0].ShopItem.Count != 2 || c.shop.shelves[0][0].Count != 0 {
+		t.Fatalf("a joining unit at capacity: table %d places, first %d units", len(got), got[0].ShopItem.Count)
+	}
 	v := s.ShopScreen()
-	if len(table) != 6 || v.TableOffset != 1 || v.Table[4].Count != 1 || v.Table[4].Price != table[5].ShopItem.Price {
-		t.Fatalf("six places: table %d, strip from %d", len(table), v.TableOffset)
-	}
 	at := v.Layout.TableCellRect(0).Min.Add(image.Pt(40, 40))
-	if got := v.Layout.WheelAt(at); got != ui.ShopWheelTable {
+	if got := v.Layout.WheelAt(at); got != ui.ShopWheelNone {
 		t.Fatalf("the wheel over the second game's table turns region %d", got)
 	}
-	if got := ui.ShopWheelAt(at); got != ui.ShopWheelNone {
-		t.Fatalf("the wheel over the first game's table turns region %d", got)
-	}
-	shown, cost := map[int]bool{}, int32(0)
-	for _, turn := range []int{-1, -1, +1, +5} {
+	for _, turn := range []int{+1, -1, +5} {
 		s.ShopScroll(ui.ShopWheelTable, turn)
-		v = s.ShopScreen()
-		for i, cell := range v.Table {
-			k := v.TableOffset + i
-			if !cell.Occupied() || k >= len(table) || cell.Price != table[k].ShopItem.Price {
-				t.Fatalf("strip from %d: cell %d shows %d, place %d", v.TableOffset, i, cell.Price, k)
-			}
-			if !shown[k] {
-				shown[k], cost = true, cost+cell.Price*int32(cell.Count)
-			}
+		if v = s.ShopScreen(); v.TableOffset != 0 {
+			t.Fatalf("a turn of %d moved the strip to %d", turn, v.TableOffset)
 		}
 	}
-	if len(shown) != 6 || cost != v.Buy || v.TableOffset != 1 {
-		t.Fatalf("shown places %v cost %d, BUY %d, strip from %d", shown, cost, v.Buy, v.TableOffset)
+	table := c.shop.Table()
+	for i, cell := range v.Table {
+		if !cell.Occupied() || int32(cell.Count) != table[i].ShopItem.Count {
+			t.Fatalf("cell %d shows %d units, place %d holds %d", i, cell.Count, i, table[i].ShopItem.Count)
+		}
 	}
-	sixth := table[5].ShopItem
-	s.click(ui.ShopControlTableCell, 4)
-	if got := c.shop.Table(); len(got) != 5 || !shopItemEqual(got[4].ShopItem, table[4].ShopItem) || len(c.shop.shelves[0]) != 6 || c.shop.shelves[0][5].Count != 1 || !shopItemEqual(c.shop.shelves[0][5], sixth) {
-		t.Fatalf("the sixth place did not return to its shelf: table %d shelf %v", len(got), c.shop.shelves[0])
+	mine := slices.IndexFunc(table, func(p ShopPlace) bool { return p.Mine })
+	s.click(ui.ShopControlTableCell, mine)
+	if got := c.shop.Table(); len(got) != ShopTablePlaces-1 || len(*c.heroBag()) != 2 {
+		t.Fatalf("a returned place: table %d places, bag %d", len(got), len(*c.heroBag()))
+	}
+	s.click(ui.ShopControlPackCell, s.packCell(0))
+	if got := c.shop.Table(); len(got) != ShopTablePlaces || len(*c.heroBag()) != 1 {
+		t.Fatalf("the lot after a return: table %d places, bag %d", len(got), len(*c.heroBag()))
+	}
+	s.click(ui.ShopControlButton, 0)
+	units := func(row int) (n int32) {
+		for _, list := range c.shop.stock() {
+			for _, it := range list {
+				if it.Table == secondshop.Magic && it.Row == row {
+					n += it.Count
+				}
+			}
+		}
+		return n
+	}
+	if len(c.shop.Table()) != 0 || len(*c.heroBag()) != 3 || units(69) != 2 || units(70) != 1 || units(71) != 1 {
+		t.Fatalf("undo: table %d, bag %d, stock units %d %d %d", len(c.shop.Table()), len(*c.heroBag()), units(69), units(70), units(71))
+	}
+	s.click(ui.ShopControlShelfCell, 3)
+	s.click(ui.ShopControlButton, 1)
+	if len(c.shop.Table()) != 0 || s.sess.Town.gold != 1000-13 || len(*c.heroBag()) != 4 || c.shop.shelves[0][3].Count != 0 {
+		t.Fatalf("the lot after undo, bought: table %d gold %d bag %d", len(c.shop.Table()), s.sess.Town.gold, len(*c.heroBag()))
+	}
+
+	f, first := shopRoom(t, nil)
+	shelf := shopRoomShelves[roomWeapons].shelf
+	f.Shop.shelves[shelf] = nil
+	for i := range ShopTablePlaces + 1 {
+		f.Shop.shelves[shelf] = append(f.Shop.shelves[shelf], ShopItem{Code: 0x0101, Price: int32(10 + i), Count: 1})
+	}
+	click(first, ui.ShopControlShelfPick, roomWeapons)
+	for range ShopTablePlaces + 1 {
+		click(first, ui.ShopControlShelfCell, 0)
+	}
+	first.ShopScroll(ui.ShopWheelTable, +1)
+	if v := first.ShopScreen(); len(f.Shop.Table()) != ShopTablePlaces || len(f.Shop.Shelf(shelf)) != 1 || v.TableOffset != 0 || ui.ShopWheelAt(at) != ui.ShopWheelNone {
+		t.Fatalf("first game: table %d, shelf %d, strip from %d", len(f.Shop.Table()), len(f.Shop.Shelf(shelf)), v.TableOffset)
 	}
 }
 

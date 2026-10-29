@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -263,66 +264,114 @@ func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 	}
 }
 
-// TestReleaseSecondTownShopTableScrolls clicks town 1's six visible shelf
-// cells by pointer: the table holds six places, the wheel over the table
-// strip shows each of them, the shown places cost what BUY asks, the sixth
-// shows its lines under the pointer and returns to its shelf by its own
-// cell; BUY then settles the five left.
-func TestReleaseSecondTownShopTableScrolls(t *testing.T) {
+// TestReleaseSecondTownShopTableHoldsFive fills town 1's five places by
+// pointer: a sixth distinct lot is refused, a joining unit admitted, the
+// wheel turns nothing, return and UNDO free places, BUY settles.
+func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 	secondGameRoot(t)
 	f, app, s, _ := secondShopTownOne(t)
 	secondShopEnter(t, f, app, s)
 	c := f.Town.second
 	f.Town.gold = 100000
-	for i := 0; i < 6; i++ {
-		shopTap(t, app, secondShopPagePoint(t, app, "shelf", i), "press", "release")
+	cells := len(s.ShopScreen().Shelf)
+	stack, others := -1, []int(nil)
+	for cat := 0; cat < 4 && stack < 0; cat++ {
+		if !s.shelfOpen(cat) {
+			continue
+		}
+		secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[cat])
+		stack, others = -1, nil
+		for i, it := range c.shop.shelf() {
+			switch {
+			case i >= cells || it.Count < 1:
+			case stack < 0 && it.Count >= 2 && secondshop.Stacking.Merges(it, it):
+				stack = i
+			default:
+				others = append(others, i)
+			}
+		}
+		if len(others) < 3 {
+			stack = -1
+		}
 	}
-	table := c.shop.Table()
-	if len(table) != 6 {
-		t.Fatalf("six shelf cells staged %d places", len(table))
+	if stack < 0 {
+		t.Fatal("no shown category holds a stackable entry of two units beside three other entries")
 	}
-	secondShopWitness(t, app, "table-last-five")
+	var bag []sim.ItemInstance
+	keys := map[string]bool{}
+	for _, list := range c.shop.stock() {
+		for _, it := range list {
+			it.Count = 1
+			key := fmt.Sprintf("%d/%d/%d/%d/%d/%d", it.Table, it.Row, it.Class, it.Material, it.Spell, it.Level)
+			if units, ok := c.shop.tables.Units(it); ok && !keys[key] && len(keys) < 3 {
+				keys[key], bag = true, append(bag, units...)
+			}
+		}
+	}
+	if len(bag) != 3 {
+		t.Fatalf("the stock holds %d distinct bag items, want 3", len(bag))
+	}
+	*c.heroBag() = bag
+	shelf := func(i int) image.Point { return secondShopPagePoint(t, app, "shelf", i) }
+	pack := func() image.Point { return secondShopPagePoint(t, app, "pack", s.packCell(0)) }
+	places := func(want, bag int, what string) {
+		t.Helper()
+		if got := len(c.shop.Table()); got != want || len(*c.heroBag()) != bag || s.ShopScreen().TableOffset != 0 {
+			t.Fatalf("%s: table %d places (want %d), bag %d (want %d), strip from %d", what, got, want, len(*c.heroBag()), bag, s.ShopScreen().TableOffset)
+		}
+	}
+	// Two pack presses in a row would wear the unit.
+	for _, at := range []image.Point{shelf(stack), pack(), shelf(others[0]), pack(), shelf(others[1])} {
+		shopTap(t, app, at, "press", "release")
+		t.Logf("tap at %v: table %d places, bag %d", at, len(c.shop.Table()), len(*c.heroBag()))
+	}
+	places(ShopTablePlaces, 1, "five mixed lots")
+	sixth := c.shop.shelf()[others[2]].Count
+	shopTap(t, app, shelf(others[2]), "press", "release")
+	shopTap(t, app, pack(), "press", "release")
+	places(ShopTablePlaces, 1, "a sixth distinct lot")
+	if c.shop.shelf()[others[2]].Count != sixth {
+		t.Fatalf("the refused lot left the shelf: %d of %d", c.shop.shelf()[others[2]].Count, sixth)
+	}
+	shopTap(t, app, shelf(stack), "press", "release")
+	places(ShopTablePlaces, 1, "a joining unit at capacity")
+	if got := c.shop.Table()[0].ShopItem.Count; got != 2 {
+		t.Fatalf("the stackable place holds %d units after the joining unit", got)
+	}
+	secondShopWitness(t, app, "table-five")
 	strip := secondShopPagePoint(t, app, "table", 2)
-	shown, cost := map[int]bool{}, int32(0)
-	var v ui.ShopScreenView
-	for _, wheel := range []string{"wheel-up", "wheel-up", "wheel-down"} {
+	if got := s.ShopScreen().Layout.WheelAt(strip); got != ui.ShopWheelNone {
+		t.Fatalf("the wheel over the table turns region %d", got)
+	}
+	for _, wheel := range []string{"wheel-up", "wheel-down", "wheel-down"} {
 		if err := app.HeadlessPointer(wheel, strip.X, strip.Y); err != nil {
 			t.Fatal(wheel, err)
 		}
-		v = s.ShopScreen()
-		for i, cell := range v.Table {
-			k := v.TableOffset + i
-			if !cell.Occupied() || k >= len(table) || cell.Price != table[k].ShopItem.Price || !slices.Equal(cell.Text, s.label(table[k].ShopItem.Instance())) {
-				t.Fatalf("strip from %d: cell %d shows %q at %d, place %d", v.TableOffset, i, cell.Text, cell.Price, k)
-			}
-			if !shown[k] {
-				shown[k], cost = true, cost+cell.Price*int32(cell.Count)
-			}
+		places(ShopTablePlaces, 1, wheel)
+	}
+	table, v := c.shop.Table(), s.ShopScreen()
+	for i, cell := range v.Table {
+		if !cell.Occupied() || int32(cell.Count) != table[i].ShopItem.Count || !slices.Equal(cell.Text, s.label(table[i].ShopItem.Instance())) {
+			t.Fatalf("cell %d shows %q of %d, place %d holds %d", i, cell.Text, cell.Count, i, table[i].ShopItem.Count)
 		}
 	}
-	if len(shown) != 6 || cost != v.Buy || v.TableOffset != 1 {
-		t.Fatalf("shown places %v cost %d, BUY %d, strip from %d", shown, cost, v.Buy, v.TableOffset)
+	mine := slices.IndexFunc(table, func(p ShopPlace) bool { return p.Mine })
+	shopTap(t, app, secondShopPagePoint(t, app, "table", mine), "press", "release")
+	places(ShopTablePlaces-1, 2, "a returned place")
+	shopTap(t, app, pack(), "press", "release")
+	places(ShopTablePlaces, 1, "the lot after a return")
+	secondShopActivate(t, f, app, "UNDO")
+	places(0, 3, "undo")
+	if c.shop.shelf()[stack].Count < 2 || c.shop.shelf()[others[0]].Count < 1 {
+		t.Fatalf("undo left the shelf %v", c.shop.shelf())
 	}
-	last := secondShopPagePoint(t, app, "table", 4)
-	if lines, ok := ui.ShopHoverLines(v, last); !ok || len(lines) == 0 {
-		t.Fatalf("the sixth place shows no lines: %q", lines)
-	}
-	shopTap(t, app, last, "press", "release")
-	if got := c.shop.Table(); len(got) != 5 || !shopItemEqual(got[4].ShopItem, table[4].ShopItem) {
-		t.Fatalf("the sixth place did not leave the table: %d places", len(got))
-	}
-	bag, gold, buy := len(*c.heroBag()), f.Town.gold, int(s.ShopScreen().Buy)
+	price := c.shop.shelf()[others[2]].Price
+	shopTap(t, app, shelf(others[2]), "press", "release")
+	places(1, 3, "the lot after undo")
+	gold := f.Town.gold
 	secondShopActivate(t, f, app, "BUY")
-	if len(c.shop.Table()) != 0 || f.Town.gold != gold-buy || len(*c.heroBag()) != bag+secondShopPlacesUnits(table[:5]) {
-		t.Fatalf("BUY: table %d gold %d (from %d, BUY %d) bag %d (from %d)", len(c.shop.Table()), f.Town.gold, gold, buy, len(*c.heroBag()), bag)
+	places(0, 4, "BUY")
+	if f.Town.gold != gold-int(price) {
+		t.Fatalf("BUY at %d: gold %d -> %d", price, gold, f.Town.gold)
 	}
-}
-
-// secondShopPlacesUnits is the units of places.
-func secondShopPlacesUnits(places []ShopPlace) int {
-	n := 0
-	for _, p := range places {
-		n += int(p.ShopItem.Count)
-	}
-	return n
 }

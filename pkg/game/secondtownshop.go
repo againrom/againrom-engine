@@ -35,18 +35,19 @@ type secondShop struct {
 }
 
 // rules are the second game's buying and selling values (R2-ENGINE-266,
-// R2-ENGINE-333, R2-ENGINE-375): an unbounded deal, a buy that takes the
-// items before the first one the gold cannot pay (DIV-3065), an unpriced
-// item offered returned to the hero, an emptied entry kept as a placeholder
-// until the hero leaves, a returned or sold item filed by its record's
-// placement and merged by the shelf insert under secondshop.Stacking, and a
-// lot joining an equal place by that rule. They become the Shop's rules, so
-// the Shop's own deal methods trade by them.
+// R2-ENGINE-333, R2-ENGINE-375): the first game's five table places
+// (DIV-3046), a buy that takes the items before the first one the gold
+// cannot pay (DIV-3065), an unpriced item offered returned to the hero, an
+// emptied entry kept as a placeholder until the hero leaves, a returned or
+// sold item filed by its record's placement and merged by the shelf insert
+// under secondshop.Stacking, and a lot joining an equal place by that rule.
+// They become the Shop's rules, so the Shop's own deal methods trade by
+// them.
 func (s *secondShop) rules() shopRules[ShopItem, ShopShelf] {
 	record, tables := s.records[s.filled], s.tables
 	place := func(i ShopItem) ShopShelf { return ShopShelf(secondshop.Place(record, secondItem(i))) }
 	r := shopRules[ShopItem, ShopShelf]{
-		unpricedBack: true, keepEmptied: true, fallback: ShopShelf(len(secondshop.Record{}) - 1),
+		places: ShopTablePlaces, unpricedBack: true, keepEmptied: true, fallback: ShopShelf(len(secondshop.Record{}) - 1),
 		count: func(i ShopItem) int64 { return int64(i.Count) },
 		price: func(i ShopItem) int64 { return int64(i.Price) },
 		withCount: func(i ShopItem, n int64) ShopItem {
