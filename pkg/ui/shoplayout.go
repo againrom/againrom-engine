@@ -25,6 +25,10 @@ type ShopLayout struct {
 	ShelfPick [4]image.Rectangle
 	Merchant  image.Rectangle
 
+	// ShelfCaption is the main text line the hover over shelf i's category
+	// reads: the line that names what the category holds.
+	ShelfCaption [4]int
+
 	// Button is the four command buttons, top to bottom.
 	Button [4]image.Rectangle
 
@@ -64,6 +68,7 @@ var firstShopLayout = ShopLayout{
 	ShelfPick: shopShelfPickRects, Merchant: shopMerchantRect, Button: shopButtonRects,
 	Room: shopRoomOrigin, Frame: shopFrameOrigin, Message: shopMessageRect,
 	Character: true, Book: true,
+	ShelfCaption: [4]int{62, 63, 64, 65},
 }
 
 // FirstShopLayout answers the first game's page geometry, every panel shown.

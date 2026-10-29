@@ -358,7 +358,7 @@ func shopTooltip(v ShopScreenView, w Words, p image.Point) tooltipTarget {
 		slot = 55
 	case ShopControlShelfPick:
 		if c.Index >= 0 && c.Index < 4 {
-			slot = 62 + c.Index
+			slot = v.layout().ShelfCaption[c.Index]
 		}
 	case ShopControlMerchant:
 		slot = 61

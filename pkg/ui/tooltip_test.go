@@ -84,6 +84,27 @@ func TestTooltipShopStockSelectorsUseTheirInstalledTextSlots(t *testing.T) {
 	}
 }
 
+func TestTooltipShopShelfCaptionsAreTheLayoutsOwn(t *testing.T) {
+	w := AuthoredWords()
+	for i := 0; i < 4; i++ {
+		w.Hover[62+i] = fmt.Sprintf("stock %d", i)
+	}
+	first := FirstShopLayout()
+	if first.ShelfCaption != [4]int{62, 63, 64, 65} {
+		t.Fatalf("the first game's captions are lines %v", first.ShelfCaption)
+	}
+	other := first
+	other.ShelfCaption = [4]int{62, 64, 65, 63}
+	v := ShopScreenView{Font: messageFont(), Live: [4]bool{true, true, true, true}, Layout: &other}
+	for i, r := range other.ShelfPick {
+		tip := shopTooltip(v, w, r.Min)
+		want := w.Hover[other.ShelfCaption[i]]
+		if len(tip.lines) != 1 || tip.lines[0] != want {
+			t.Fatalf("shelf %d: %+v, want %q", i, tip, want)
+		}
+	}
+}
+
 type tooltipShopFixture struct {
 	view     ShopScreenView
 	dialogue bool

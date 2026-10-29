@@ -204,8 +204,12 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 	racks := t.shopRacks()
 	for k := range l.ShelfPick {
 		l.ShelfPick[k] = image.Rectangle{}
-		if b := shopButton(r, fmt.Sprintf("shelf/%d", k)); b != nil && racks[k].stocked {
+		b := shopButton(r, fmt.Sprintf("shelf/%d", k))
+		if b != nil && racks[k].stocked {
 			l.ShelfPick[k] = b.Rect.Rectangle()
+		}
+		if b != nil && b.Caption != nil {
+			l.ShelfCaption[k] = *b.Caption
 		}
 	}
 	if b := shopButton(r, "merchant"); b != nil {

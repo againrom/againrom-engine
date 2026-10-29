@@ -1219,6 +1219,7 @@ pkg/game.TestReleaseSecondTownShopFullBagRefusesPurchase
 pkg/game.TestReleaseSecondTownShopBookPartialBuy
 pkg/game.TestReleaseSecondTownShopTableScrolls
 pkg/game.TestReleaseSecondTownShopLaterTowns
+pkg/game.TestReleaseSecondShopShelfCaptions
 pkg/game.TestReleaseSecondTownDruidStaleStockSave
 pkg/game.TestReleaseSecondTownKaargDepartureStale
 pkg/secondshop.TestReleaseSecondShopTownOneFill

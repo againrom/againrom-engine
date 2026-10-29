@@ -248,10 +248,10 @@
      "shop": {"money-last": true, "table-shelf-back": true,
        "cite": ["R2-ENGINE-354", "R2-SESSION-206", "R2-ENGINE-402", "DIV-4090", "DIV-4092"]},
      "buttons": [
-       {"name": "shelf/0", "rect": [169, 5, 229, 207], "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
-       {"name": "shelf/1", "rect": [229, 63, 277, 213], "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
-       {"name": "shelf/2", "rect": [229, 5, 353, 63], "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
-       {"name": "shelf/3", "rect": [359, 5, 457, 265], "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
+       {"name": "shelf/0", "rect": [169, 5, 229, 207], "caption": 62, "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
+       {"name": "shelf/1", "rect": [229, 63, 277, 213], "caption": 64, "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
+       {"name": "shelf/2", "rect": [229, 5, 353, 63], "caption": 65, "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
+       {"name": "shelf/3", "rect": [359, 5, 457, 265], "caption": 63, "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
        {"name": "merchant", "rect": [289, 113, 361, 209], "cite": ["R2-ENGINE-354"]}
      ],
      "scene": {
