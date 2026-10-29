@@ -182,6 +182,7 @@ type Table struct {
 	// item table whose row name supplies the item kind and whose first signed
 	// parameter supplies stored value.
 	Magic, MagicItems data.Collection
+	CarryStockOnly    bool
 
 	// Names is the shipped item-name table (0151, ITEM-DISPNAME-036): a
 	// code's raw sixteen bits looked up directly, not resolved through
@@ -392,6 +393,7 @@ func Resolve(u alm.Unit, t *Table) Resolution {
 // keys a placement to a named row.
 type UnitKeys interface {
 	resolve(u alm.Unit, t *Table) Resolution
+	classPlacementFields() bool
 	cheatPlacement(name string, t, local *Table, placement alm.Unit) (int, alm.Unit, error)
 	// humanPlacement is the placement that resolves the Humans row with
 	// server id id.
@@ -407,6 +409,13 @@ func (serverKeys) humanPlacement(id int32) alm.Unit {
 type classKeys struct{}
 
 type serverKeys struct{}
+
+func (classKeys) classPlacementFields() bool  { return true }
+func (serverKeys) classPlacementFields() bool { return false }
+
+func (t *Table) ClassPlacementFields() bool {
+	return t != nil && t.unitKeys().classPlacementFields()
+}
 
 var (
 	// ClassUnitKeys select a definition by the placement's class and

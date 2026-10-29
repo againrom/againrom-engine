@@ -14,7 +14,19 @@ import (
 	"againrom/pkg/render/text"
 )
 
-type settingsPreviewProbe struct{ *popupHost }
+type settingsPreviewProbe struct {
+	*popupHost
+	hide     bool
+	readOnly bool
+}
+
+func (p *settingsPreviewProbe) Fields(kind string, index int) []InspectionField {
+	fields := p.popupHost.Fields(kind, index)
+	if p.readOnly && kind == "Unit" {
+		fields = append(fields, InspectionField{Key: "computed", ReadOnly: true})
+	}
+	return fields
+}
 
 func TestEditorCatalogCancelRetainsItsCheckpointWhenBrushChanges(t *testing.T) {
 	for _, brush := range []bool{false, true} {
@@ -83,7 +95,7 @@ func TestEditorListCancelRestoresModeAndPreviousPopup(t *testing.T) {
 func TestEditorCardKeepsUsedByLinesInContentColumn(t *testing.T) {
 	e, host := popupEditor(t)
 	_ = e.Open("popups")
-	e.doc.Edits = &settingsPreviewProbe{host}
+	e.doc.Edits = &settingsPreviewProbe{popupHost: host}
 	id := len(e.doc.Records)
 	e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: "Action", Index: 0})
 	e.doc.Script = &InspectionScriptModel{
@@ -113,20 +125,29 @@ func TestEditorCardKeepsUsedByLinesInContentColumn(t *testing.T) {
 	}
 }
 
-func (p *settingsPreviewProbe) UnitSettings(index int, values []InspectionFieldValue) (MapEntity, []InspectionField, error) {
+func (p *settingsPreviewProbe) UnitSettings(index int, values []InspectionFieldValue) (MapEntity, []InspectionField, *image.RGBA, error) {
 	body, _ := strconv.Atoi(p.units[index]["a"])
 	for _, v := range values {
 		if v.Key == "a" {
 			body = int(v.Value)
 		}
 	}
-	return MapEntity{ID: uint32(index), Char: UnitCharacter{Known: true, Band: CharacterBandPerson, Body: body}, HP: body, MaxHP: 100}, p.Fields("Unit", index), nil
+	pic := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	pic.Pix[0], pic.Pix[3] = byte(body), 255
+	fields := p.Fields("Unit", index)
+	if p.readOnly {
+		fields[len(fields)-1].Lines = []InspectionLine{{Text: fmt.Sprintf("Carrier %d", body)}}
+	}
+	if p.hide {
+		fields = fields[:1]
+	}
+	return MapEntity{ID: uint32(index), Char: UnitCharacter{Known: true, Band: CharacterBandPerson, Body: body}, HP: body, MaxHP: 100}, fields, pic, nil
 }
 
 func TestEditorUnitCardRebuildsForDraftWithoutApply(t *testing.T) {
 	e, host := popupEditor(t)
 	_ = e.Open("popups")
-	e.doc.Edits = &settingsPreviewProbe{host}
+	e.doc.Edits = &settingsPreviewProbe{popupHost: host}
 	e.Select(0, false)
 	s, _, _ := e.objectSpec()
 	if s.Card == nil {
@@ -151,11 +172,74 @@ func TestEditorUnitCardRebuildsForDraftWithoutApply(t *testing.T) {
 	if !changed || !bytes.Equal(raw, e.doc.SourceBytes) || len(host.calls) != 0 {
 		t.Fatal("draft card did not repaint, or wrote map")
 	}
+	s.Rows = make([]popupRow, 30)
+	s.MaxRows = len(s.Rows)
+	s.Size = image.Point{}
+	preview := image.NewRGBA(image.Rect(0, 0, 1280, 800))
+	e.drawObjectPreview(preview, s)
+	painted := false
+	for at := 0; at < len(preview.Pix); at += 4 {
+		painted = painted || preview.Pix[at] == 42 && preview.Pix[at+3] == 255
+	}
+	if !painted {
+		t.Fatal("draft doll did not reach the object preview painter")
+	}
+	s.Card.Char.Band = CharacterBandCreature
+	creature := image.NewRGBA(preview.Bounds())
+	e.drawObjectPreview(creature, s)
+	if !bytes.Equal(creature.Pix, make([]byte, len(creature.Pix))) {
+		t.Fatal("a creature received the human doll preview")
+	}
 	calls := text.Record(func() { e.ChromeImage() })
 	for _, call := range calls {
 		if call.Y >= l.Title.Max.Y+popupPad && call.Y < l.Rect.Max.Y && call.X < l.Rect.Min.X {
 			t.Fatal("card glyph captured outside its popup", call.X, call.Y)
 		}
+	}
+}
+
+func TestEditorUnitDraftHidesFieldsTheResolvedIdentityDoesNotRead(t *testing.T) {
+	e, host := popupEditor(t)
+	_ = e.Open("popups")
+	e.doc.Edits = &settingsPreviewProbe{popupHost: host, hide: true}
+	e.Select(0, false)
+	if _, _, ok := e.objectSpec(); !ok {
+		t.Fatal("missing object popup")
+	}
+	if e.fieldRow(0) < 0 || e.fieldRow(1) >= 0 || e.fieldRow(2) >= 0 {
+		t.Fatal("draft kept fields the host no longer admits")
+	}
+	if e.nextObjectField(0) != 0 {
+		t.Fatal("keyboard focuses a hidden field")
+	}
+}
+
+func TestEditorReadOnlyDraftLinesCannotReceiveFocusOrWrites(t *testing.T) {
+	e, host := popupEditor(t)
+	_ = e.Open("popups")
+	e.doc.Edits = &settingsPreviewProbe{popupHost: host, readOnly: true}
+	e.Select(0, false)
+	_, _, _ = e.objectSpec()
+	last := len(e.obj.fields) - 1
+	if e.fieldRow(last) >= 0 || e.nextObjectField(last-1) != 0 {
+		t.Fatal("read-only line takes keyboard focus")
+	}
+	e.obj.buf[last] = "attempted write"
+	if e.objectDirty() {
+		t.Fatal("read-only line makes the draft dirty")
+	}
+	e.obj.buf[0] = "37"
+	spec, _, _ := e.objectSpec()
+	seen := false
+	for _, row := range spec.Rows {
+		seen = seen || row.Label == "Carrier 37"
+	}
+	if !seen {
+		t.Fatal("read-only line did not rebuild for the draft")
+	}
+	e.applyObject()
+	if host.units[0]["a"] != "37" || host.units[0]["computed"] != "" {
+		t.Fatal("Apply included the read-only value", host.units[0])
 	}
 }
 

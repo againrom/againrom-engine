@@ -2,7 +2,28 @@ package sim
 
 const EquipSlots = 12
 
-func (w *World) equip(i, cindex, slot, displace int) {
+func (w *World) ReceiveStockItem(id EntityID, item ItemInstance, slot, displace int, use bool, retained ...ItemInstance) bool {
+	i := indexOfEntity(w.entities, id)
+	if i < 0 || item.Empty() || w.savedObjects != nil || w.entities[i].ActorLoad.Present {
+		return false
+	}
+	index, ok := w.addCarriedUnmerged(i, StackItem(item, 1))
+	if !ok {
+		return false
+	}
+	if use {
+		if item.Kind == 3 {
+			w.usePotion(i, index)
+		} else if slot > 0 {
+			w.equip(i, index, slot, displace, retained...)
+		}
+	}
+	w.carried[i] = foldContainer(w.carried[i])
+	w.recomputeLoad(i)
+	return true
+}
+
+func (w *World) equip(i, cindex, slot, displace int, retained ...ItemInstance) {
 	if w.entities[i].ActorLoad.Source.Class != 0 {
 		n := w.sourceMutationCopy(i)
 		if n.sourceEquipCommand(i, cindex) && n.savedMutationValid() {
@@ -83,6 +104,10 @@ func (w *World) equip(i, cindex, slot, displace int) {
 	w.clearFelled(i)
 	if slot == slotWeapon+1 {
 		w.wearWorn(i, slot)
+	}
+	if len(retained) > 0 && StackStateEqual(StackItem(item, 1), StackItem(retained[0], 1)) {
+		// A materialized row item keeps its constructor value.
+		w.equipment[i][slot-1] = retained[0].Clone()
 	}
 }
 

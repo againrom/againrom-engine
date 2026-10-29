@@ -174,26 +174,7 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	}
 	x := s.inspector
 	choices := []ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.message.nospeaker"))}}
-	if x.table != nil {
-		for _, e := range x.table.NPCCatalog.Records() {
-			id := int64(e.ID)
-			if id > 255 {
-				continue
-			}
-			if role, ok := x.speakerRole(id); ok {
-				choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(role))})
-				continue
-			}
-			name := e.Name
-			if name == "" && int(id) < len(x.table.NPCNames) {
-				name = x.table.NPCNames[id]
-			}
-			if name == "" {
-				name = e.Section
-			}
-			choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.messageUTF8([]byte(name))))})
-		}
-	}
+	choices = append(choices, x.npcChoices(255, true)...)
 	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int { return int(a.Value - b.Value) })
 	found := false
 	for _, c := range choices {

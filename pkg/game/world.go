@@ -2581,42 +2581,24 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 	if !mw.wearAllows(code) {
 		return
 	}
-	var displace int
-	switch slot {
-	case 1:
-		// Any weapon that is not a resolved one-handed melee weapon frees the
-		// shield hand in the same canonical command that wears it.
-		if !mapload.WeaponAllowsShield(code, mw.invParty.table) {
-			if worn, ok := mw.world.Equipped(id); ok && worn[1] != 0 {
-				displace = 2
-			}
-		}
-	case 2:
-		worn, ok := mw.world.Equipped(id)
-		if !ok {
+	worn, ok := mw.world.EquippedItems(id)
+	if !ok {
+		return
+	}
+	displace := mapload.EquipmentDisplacement(slot, uint16(code), worn, mw.invParty.table)
+	if slot == 2 && worn[0].Empty() && mw.currentWeaponFallbackActive() && mw.invParty.startWeapon != nil {
+		// The drawn fallback becomes a real item in the same tick.
+		// materializeFallbackWeapon first gives it an owned container
+		// instance. A weapon that leaves a hand free is worn by the first
+		// queued command and the shield command follows it before any frame
+		// can observe the pair; any other stays in the pack, where the shield
+		// alone is then worn.
+		element, materialized := mw.materializeFallbackWeapon()
+		if !materialized {
 			return
 		}
-		switch {
-		case worn[0] != 0:
-			// A weapon that fills both hands leaves for the pack in the same
-			// canonical command that wears the shield.
-			if !mapload.WeaponAllowsShield(data.ItemCode(worn[0]), mw.invParty.table) {
-				displace = 1
-			}
-		case mw.currentWeaponFallbackActive() && mw.invParty.startWeapon != nil:
-			// The drawn fallback becomes a real item in the same tick.
-			// materializeFallbackWeapon first gives it an owned container
-			// instance. A weapon that leaves a hand free is worn by the first
-			// queued command and the shield command follows it before any frame
-			// can observe the pair; any other stays in the pack, where the shield
-			// alone is then worn.
-			element, materialized := mw.materializeFallbackWeapon()
-			if !materialized {
-				return
-			}
-			if mapload.WeaponAllowsShield(mw.invParty.startWeapon.Code, mw.invParty.table) {
-				mw.pending = append(mw.pending, sim.Equip(id, sim.ItemSlot(element), 1))
-			}
+		if mapload.WeaponAllowsShield(mw.invParty.startWeapon.Code, mw.invParty.table) {
+			mw.pending = append(mw.pending, sim.Equip(id, sim.ItemSlot(element), 1))
 		}
 	}
 	mw.pending = append(mw.pending, sim.EquipDisplacing(id, sim.ItemSlot(idx), sim.EquipSlot(slot), sim.EquipSlot(displace)))

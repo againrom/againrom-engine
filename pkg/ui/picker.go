@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"strings"
 	"unicode/utf8"
 
 	"againrom/pkg/render/textfit"
@@ -128,6 +129,37 @@ type Picker struct {
 // is legal and selects nothing.
 func NewPicker(rows []PickerRow) *Picker {
 	return &Picker{rows: rows}
+}
+
+func (p *Picker) Find(query string, decode func(string) string) bool {
+	query = strings.ToLower(query)
+	for i, row := range p.rows {
+		text := row.Text
+		if decode != nil {
+			text = decode(text)
+		}
+		if row.Choosable && strings.Contains(strings.ToLower(text), query) {
+			p.Select(i)
+			return true
+		}
+	}
+	return false
+}
+
+func (p *Picker) MoveChoice(delta int) {
+	direction := 1
+	if delta < 0 {
+		direction = -1
+		delta = -delta
+	}
+	for step := 0; step < delta; step++ {
+		for i := p.Selection() + direction; i >= 0 && i < len(p.rows); i += direction {
+			if p.rows[i].Choosable {
+				p.Select(i)
+				break
+			}
+		}
+	}
 }
 
 // SetWindow limits the list to n rows on screen, and reports the picker so a

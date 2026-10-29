@@ -73,7 +73,7 @@ func TestALMScrollConstructionUsesItsGeneralValue(t *testing.T) {
 	table := &Table{Spells: spells, MagicItems: itemTestCollection{{}, {name: "Scroll Fire", params: []int32{3000}}}}
 	m := &alm.Map{Enchantments: []alm.Enchantment{{SpellRaw: 5 | 99<<16,
 		Elements: []alm.EnchantmentElement{{Kind: 1, Low: 17}}}}}
-	item, err := lootItemInstance(alm.LootElement{Code: 0xe01, TileMarkerIndex: 1}, m, table)
+	item, err := ItemInstanceFromLoot(alm.LootElement{Code: 0xe01, TileMarkerIndex: 1}, m, table)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,9 +240,9 @@ func TestALMLinkBuildsTheCompleteItemAndZeroLinkStaysPlain(t *testing.T) {
 		A: 1, B: 5, C: 12, SpellRaw: uint32(7) | uint32(uint16(15))<<16,
 		Elements: []alm.EnchantmentElement{{Kind: 41, Low: 3}, {Kind: 25, Low: 4}},
 	}}}
-	linked, err := lootItemInstance(alm.LootElement{Code: 0x0e1f, TileMarkerIndex: 1}, m, table)
+	linked, err := ItemInstanceFromLoot(alm.LootElement{Code: 0x0e1f, TileMarkerIndex: 1}, m, table)
 	if err != nil {
-		t.Fatalf("lootItemInstance: %v", err)
+		t.Fatalf("ItemInstanceFromLoot: %v", err)
 	}
 	wantEffects := []sim.ItemEffect{
 		{Kind: 44, Operand: 5 | 12<<8},
@@ -253,9 +253,9 @@ func TestALMLinkBuildsTheCompleteItemAndZeroLinkStaysPlain(t *testing.T) {
 	if linked.Code != 0x0e1f || linked.Price != 10000 || !reflect.DeepEqual(linked.Effects, wantEffects) {
 		t.Fatalf("linked item = %+v, want effects %+v and price 10000", linked, wantEffects)
 	}
-	plain, err := lootItemInstance(alm.LootElement{Code: 0x0e1f}, m, table)
+	plain, err := ItemInstanceFromLoot(alm.LootElement{Code: 0x0e1f}, m, table)
 	if err != nil {
-		t.Fatalf("zero-link lootItemInstance: %v", err)
+		t.Fatalf("zero-link ItemInstanceFromLoot: %v", err)
 	}
 	if plain.Price != 10000 || len(plain.Effects) != 0 {
 		t.Fatalf("zero-link Treasure = %+v, want value 10000 and no effect", plain)
@@ -279,9 +279,9 @@ func TestALMLinkKeepsScalarMagnitudesAndRepricesTheCompleteItem(t *testing.T) {
 		},
 	}}}
 
-	got, err := lootItemInstance(alm.LootElement{Code: 0x8134, TileMarkerIndex: 1}, m, table)
+	got, err := ItemInstanceFromLoot(alm.LootElement{Code: 0x8134, TileMarkerIndex: 1}, m, table)
 	if err != nil {
-		t.Fatalf("lootItemInstance: %v", err)
+		t.Fatalf("ItemInstanceFromLoot: %v", err)
 	}
 	wantEffects := []sim.ItemEffect{{Kind: 12, Operand: 5}, {Kind: 21, Operand: 5}}
 	if got.Code != 0x8134 || got.Kind != 2 || got.Price != 8957 || !reflect.DeepEqual(got.Effects, wantEffects) {
@@ -344,9 +344,9 @@ func TestALMLoadedReadableBookUsesSpellBookCostInsteadOfMagicItemsBase(t *testin
 	table := &Table{MagicItems: magicItems, Spells: spells}
 	m := &alm.Map{Enchantments: []alm.Enchantment{{SpellRaw: 26}}}
 
-	got, err := lootItemInstance(alm.LootElement{Code: 0x0e17, TileMarkerIndex: 1}, m, table)
+	got, err := ItemInstanceFromLoot(alm.LootElement{Code: 0x0e17, TileMarkerIndex: 1}, m, table)
 	if err != nil {
-		t.Fatalf("lootItemInstance: %v", err)
+		t.Fatalf("ItemInstanceFromLoot: %v", err)
 	}
 	wantEffects := []sim.ItemEffect{{Kind: 42, Operand: 26}}
 	if got.Code != 0x0e17 || got.Kind != 5 || got.Price != 735 || !reflect.DeepEqual(got.Effects, wantEffects) {

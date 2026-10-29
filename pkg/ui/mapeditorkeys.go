@@ -185,6 +185,7 @@ func init() {
 		{key: "undo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
 		{key: "redo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
 		{key: "tab", label: "Tab", live: promptFields, act: (*MapEditor).recordKey, help: []helpEntry{{screenPrompt, linePrompt}}},
+		{key: "applyobject", live: promptFields, act: (*MapEditor).keyObjectApply, unlisted: unlistedWindow},
 		{key: "newline", live: promptHears, act: (*MapEditor).keyNewline, unlisted: unlistedPrompt},
 		{key: "clear", live: promptHears, act: (*MapEditor).keyClear, unlisted: unlistedPrompt},
 		{key: "left", live: promptHears, act: (*MapEditor).keyText, unlisted: unlistedPrompt},
@@ -459,6 +460,19 @@ func (e *MapEditor) keyCatalog(string) error {
 }
 
 func (e *MapEditor) keyEnter(string) error {
+	if e.nativeUnitWindow() && e.dropdownOpen() && e.obj.choice != nil && !e.prompt.open() {
+		e.chooseObjectChoice(e.obj.choice.Selection())
+		return nil
+	}
+	if e.nativeUnitWindow() && e.objectTyping() {
+		if len(e.obj.fields[e.obj.focus].Choices) > 0 {
+			e.objectRowPress(popupRowControl, e.fieldRow(e.obj.focus))
+		} else {
+			e.unitSettings()
+			e.obj.focus = -1
+		}
+		return nil
+	}
 	if e.objectTyping() {
 		if e.messageTextField(e.obj.focus) {
 			e.TextInput("\n")
@@ -518,6 +532,16 @@ func (e *MapEditor) keyEnter(string) error {
 	return nil
 }
 
+func (e *MapEditor) keyObjectApply(string) error {
+	if !e.prompt.open() && !e.objectHidden && e.doc != nil {
+		e.loadObject()
+		if e.nativeUnitWindow() {
+			e.applyObject()
+		}
+	}
+	return nil
+}
+
 func (e *MapEditor) keyReport(string) error {
 	e.reportKey()
 	return nil
@@ -548,7 +572,7 @@ func (e *MapEditor) keyStep(key string) error {
 	}
 	if e.objectTyping() {
 		if e.dropdownOpen() {
-			editorListStep(e.obj.choice, delta)
+			e.obj.choice.MoveChoice(delta)
 			e.chooseObjectChoiceKeep()
 		} else {
 			e.objectStep(delta)
@@ -633,6 +657,14 @@ func (e *MapEditor) keyHistory(key string) error {
 }
 
 func (e *MapEditor) keyBackspace(string) error {
+	if !e.prompt.open() && !e.objectHidden && e.nativeUnitWindow() && e.dropdownOpen() {
+		query := []rune(e.obj.search)
+		if len(query) > 0 {
+			e.obj.search = string(query[:len(query)-1])
+			e.obj.choice.Find(e.obj.search, e.editorSearchText)
+		}
+		return nil
+	}
 	e.textKey("backspace")
 	return nil
 }

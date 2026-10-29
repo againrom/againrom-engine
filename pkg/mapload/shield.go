@@ -27,6 +27,16 @@ func WeaponAllowsShield(code data.ItemCode, t *Table) bool {
 	return ok && hands != 2
 }
 
+func EquipmentDisplacement(slot int, code uint16, worn [sim.EquipSlots]sim.ItemInstance, t *Table) int {
+	if slot == 1 && !worn[1].Empty() && !WeaponAllowsShield(data.ItemCode(code), t) {
+		return 2
+	}
+	if slot == 2 && !worn[0].Empty() && !WeaponAllowsShield(data.ItemCode(worn[0].Code), t) {
+		return 1
+	}
+	return 0
+}
+
 // NormalizeShieldLoadout moves a slot-2 shield that shares the hands with a
 // weapon leaving no free hand to the same owner's unbounded container. A shield
 // worn alone is valid. The complete instance is retained. It returns whether

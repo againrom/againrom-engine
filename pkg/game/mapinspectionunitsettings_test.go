@@ -70,7 +70,7 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 	}
 	s.inspector.table = table
 	for _, changes := range [][]ui.InspectionFieldValue{nil, {{Key: "hp", Value: 17}, {Key: "mana", Value: 5}, {Key: "body", Value: 31}, {Key: "defence", Value: 14}, {Key: "protection.fire", Value: 77}}} {
-		entity, fields, err := s.UnitSettings(0, changes)
+		entity, fields, _, err := s.UnitSettings(0, changes)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +113,7 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 	}
 	for _, key := range overrideKeys {
 		for _, value := range []int64{overrideAbsent(key), 7} {
-			_, fields, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: key, Value: value}})
+			_, fields, _, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: key, Value: value}})
 			if err != nil {
 				t.Fatal(key, value, err)
 			}
@@ -124,7 +124,7 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 		}
 	}
 	for _, value := range []int64{0, 3, 4294967295} {
-		_, fields, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "group", Value: value}})
+		_, fields, _, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "group", Value: value}})
 		if err != nil {
 			t.Fatal(err)
 		}

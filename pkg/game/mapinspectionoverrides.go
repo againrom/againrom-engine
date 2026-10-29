@@ -135,20 +135,37 @@ type unitTemplateView struct {
 	actual                unitValues
 	s                     *mapInspectionEdits
 	m                     *alm.Map
+	model                 *mapedit.Editor
 	index                 int
 }
 
 // unitTemplate is the field view of record index of kind k; nil for a
 // record that is no unit.
-func (s *mapInspectionEdits) unitTemplate(k mapedit.Kind, index int) *unitTemplateView {
+func (s *mapInspectionEdits) unitTemplate(k mapedit.Kind, index int, models ...*mapedit.Editor) *unitTemplateView {
 	if k != mapedit.KindUnit {
 		return nil
 	}
-	m, err := s.model.Map()
+	model := s.model
+	if len(models) > 0 {
+		model = models[0]
+	}
+	m, err := model.Map()
 	if err != nil || index < 0 || index >= len(m.Units) {
 		return nil
 	}
-	return &unitTemplateView{s: s, m: m, index: index}
+	return &unitTemplateView{s: s, m: m, model: model, index: index}
+}
+
+func (u *unitTemplateView) stock() (int, error) {
+	if u == nil || u.model == nil || u.s == nil || u.m == nil || u.index < 0 || u.index >= len(u.m.AuthoredUnits) {
+		return -1, fmt.Errorf("native Human placement is unavailable")
+	}
+	t := u.s.inspector.table
+	r := mapload.Resolve(u.m.AuthoredUnits[u.index], t)
+	if !t.ClassPlacementFields() || !r.Found() || r.Arm == mapload.ArmUnits {
+		return -1, fmt.Errorf("item rows require a native Human placement")
+	}
+	return u.model.UnitStock(u.index)
 }
 
 // label is the unit popup's label for field f. offered is false for a field
@@ -167,6 +184,14 @@ func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 		return x.word("editor.unit.field.definition"), true
 	case "group":
 		return x.word("editor.unit.field.group"), true
+	case "face":
+		return x.word("editor.unit.field.face"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
+	case "sex":
+		return x.word("editor.unit.field.sex"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
+	case "npcflag":
+		return "", false
+	case "npc":
+		return x.word("editor.unit.field.npc"), x.table.ClassPlacementFields() && len(x.table.NPCCatalog.Records()) > 0 && mapload.Resolve(u.m.Units[u.index], x.table).Arm != mapload.ArmUnits
 	}
 	if f.Check == mapedit.CheckUnitGear {
 		return x.overrideName(f.Key), gearOffered(u.m.Units[u.index], x.table)

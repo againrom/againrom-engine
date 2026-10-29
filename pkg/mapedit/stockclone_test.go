@@ -84,3 +84,24 @@ func TestUnitStockCloneRefusesBrokenRecipesWithoutMutation(t *testing.T) {
 		t.Fatal("a broken recipe clone wrote bytes or history")
 	}
 }
+
+func TestUnitWithoutStockClonesWithDuplicateIdentity(t *testing.T) {
+	e := freshRecords(t)
+	u, _ := e.NewUnitRecord(10*256+128, 11*256+128, 40, 2, 2)
+	_, _ = e.PlaceUnit(u)
+	_, _ = e.PlaceUnit(u)
+	_, _ = e.Place(mapedit.KindLoot, e.GroundSack(128, 128, 0x0101))
+	raw := e.Bytes()
+	m, _ := e.Map()
+	if m.Units[0].UnitID == 0 || m.Units[0].UnitID != m.Units[1].UnitID {
+		t.Fatal("fixture needs a shared nonzero identity")
+	}
+	i, err := e.CloneUnit(0, 12*256+128, 13*256+128)
+	if err != nil || i != 2 || e.Count(mapedit.KindLoot) != 1 {
+		t.Fatal("stockless duplicate identity cannot clone", i, err)
+	}
+	rec, _ := e.UnitRecord(i)
+	if binary.LittleEndian.Uint32(rec[0x18:]) != 0 || !e.Undo() || !bytes.Equal(raw, e.Bytes()) {
+		t.Fatal("clone retained a stock link or lost exact Undo")
+	}
+}

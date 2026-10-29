@@ -147,6 +147,15 @@ func (x *MapInspector) sheetLines(u alm.Unit, r mapload.Resolution, s unitSheet)
 	if r.Arm != mapload.ArmUnits {
 		line(fmt.Sprintf(enc(x.word("editor.unit.worn")), x.itemList(s.Worn[:])))
 	}
+	return append(out, x.corpseDropLines(s)...)
+}
+
+func (x *MapInspector) corpseDropLines(s unitSheet) []ui.InspectionLine {
+	v := s.Values
+	enc := x.inspectionUTF8
+	var out []ui.InspectionLine
+	head := func(text string) { out = append(out, ui.InspectionLine{Text: text, Role: "heading"}) }
+	line := func(text string) { out = append(out, ui.InspectionLine{Text: text}) }
 	head(enc(x.word("editor.unit.loot")))
 	if s.Suppressed {
 		line(enc(x.word("editor.unit.loot.nothing")))

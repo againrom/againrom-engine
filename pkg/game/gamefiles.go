@@ -18,15 +18,16 @@ import (
 // differently, each a value the one body calls. The last three are handed to
 // the definition table for the placement decoder.
 type gameFiles struct {
-	table         databin.Layout
-	openMap       func([]byte) (*alm.Map, error)
-	compileScript func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
-	loadMenu      func(*screenart.Set) (*menu.Assets, error)
-	briefing      func(src entrySource, e base.Edition, mission int) string
-	eventText     func(src entrySource, e base.Edition, mission, event int) ([]byte, bool)
-	unitKeys      mapload.UnitKeys
-	spellArms     func([]sim.SpellRule)
-	freshPlayers  mapload.PlayerPolicy
+	table          databin.Layout
+	openMap        func([]byte) (*alm.Map, error)
+	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
+	loadMenu       func(*screenart.Set) (*menu.Assets, error)
+	briefing       func(src entrySource, e base.Edition, mission int) string
+	eventText      func(src entrySource, e base.Edition, mission, event int) ([]byte, bool)
+	unitKeys       mapload.UnitKeys
+	carryStockOnly bool
+	spellArms      func([]sim.SpellRule)
+	freshPlayers   mapload.PlayerPolicy
 	// storedFormMerge keeps a plain item and a constructed one of the same
 	// code apart in a pack merge: no second-game claim states its equality.
 	storedFormMerge bool
@@ -202,6 +203,7 @@ var secondGameFiles = gameFiles{
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
 	},
 	unitKeys:             mapload.ServerUnitKeys,
+	carryStockOnly:       true,
 	spellArms:            mapload.SecondGameSpellArms,
 	freshPlayers:         mapload.NoFreshPlayers,
 	storedFormMerge:      true,

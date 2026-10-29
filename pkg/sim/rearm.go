@@ -33,14 +33,13 @@ type CombatBlock struct {
 	SecondaryDamage            SecondaryDamage
 }
 
-// DerivedBlock is the complete live sheet that pkg/data owns and pkg/sim
-// consumes. It crosses the determinism wall as finished integers: the caller
-// computes once at the fixed post-award point, and this world stores the result
-// before the next decision, hash, save, or UI projection can read it.
+// DerivedBlock carries a complete live recompute or a tick-zero placement
+// definition. The world stores the supplied integers before the next step.
 type DerivedBlock struct {
-	Combat         CombatBlock
-	MaxHP, MaxMana int32
-	Speed          int32
+	InitialPlacement *ActorDefinition
+	Combat           CombatBlock
+	MaxHP, MaxMana   int32
+	Speed            int32
 	// SpeedModifier is the signed modifier part of Speed (data.Derived).
 	SpeedModifier          int32
 	ScanRange              uint8
@@ -63,10 +62,9 @@ type DerivedBlock struct {
 	BodyPresent bool
 }
 
-// SetDerived replaces one actor's complete derived sheet without refilling its
-// pools. Current health and mana are preserved when a maximum rises and clamped
-// only when it falls. Active spell deltas are re-applied to the fresh base so a
-// level-up cannot erase Shield, Haste, Slow, Stone Curse, or protections.
+// SetDerived applies a live sheet without refilling pools, or a placement's
+// initial definition at tick zero. Live recomputes clamp falling maxima and
+// reapply active spell deltas.
 func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 	i := indexOfEntity(w.entities, id)
 	if i < 0 || d.Combat.XPSlot >= skillSlots || secondaryDamageFault(d.Combat.SecondaryDamage) != nil {
@@ -78,6 +76,20 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 		return false
 	}
 	e := &w.entities[i]
+	if d.InitialPlacement != nil {
+		if w.tick != 0 || w.savedObjects != nil || e.ActorLoad.Present {
+			return false
+		}
+		next := NewActor(*d.InitialPlacement, ActorPlacement{ID: e.ID, X: e.X, Y: e.Y, Facing: e.Facing,
+			Owner: e.Owner, Group: e.Group, MapUnitID: e.MapUnitID, ClientClassFixed: e.ClientClassFixed})
+		next.standAtPost()
+		if !next.Alive() {
+			PrepareAuthoredBody(&next)
+		}
+		next.Load = e.Load
+		*e = next
+		return true
+	}
 	if d.BodyPresent {
 		e.NativeBasis = e.NativeBasis.WithBody(uint16(d.Body))
 	}

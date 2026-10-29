@@ -216,57 +216,13 @@ func (mw *mapWorld) settleSkillBonus(id sim.EntityID, bonus [data.SkillSlots]int
 }
 
 func simDerivedBlock(d data.Derived, spellID uint16, source sim.WeaponSpellSource) sim.DerivedBlock {
-	if spellID == 0 && d.Combat.SpellPower == 0 {
-		source = sim.WeaponSpellNone
-	}
-	return sim.DerivedBlock{
-		MaxHP: d.HealthMax, MaxMana: d.ManaMax, Speed: d.Speed, SpeedModifier: d.SpeedModifier, ScanRange: derivedByte(d.Sight),
-		Reaction: d.Reaction, Mind: d.Mind, Spirit: d.Spirit, Capacity: d.Capacity,
-		Skill: d.Skill, SkillSet: true,
-		Body: d.Body, BodyPresent: true,
-		HealthRegeneration: d.HealthRegeneration, ManaRegeneration: d.ManaRegeneration,
-		RotationSpeed: d.RotationSpeed,
-		Combat: sim.CombatBlock{
-			DamageBase: d.Combat.DamageBase, DamageSpread: d.Combat.DamageSpread,
-			SecondBase: d.Combat.SecondBase, SecondSpread: d.Combat.SecondSpread,
-			ToHit: d.Combat.ToHit, Defence: d.Combat.Defence, Absorption: d.Combat.Absorption,
-			AttackCharge: d.Combat.AttackChargeTime, AttackRelax: d.Combat.AttackRelaxTime,
-			AlwaysHits: d.Combat.AlwaysHits, Reach: derivedByte(d.Combat.Reach),
-			XPSlot: uint8(creditedSlot(d.Combat.SkillSlot)), WeaponSpell: spellID,
-			WeaponSpellLevel: d.Combat.SpellPower, WeaponSpellSource: source, Protection: d.Protection,
-			Resistance: data.DamageKindResistance(d.Resistance),
-			SecondaryDamage: sim.SecondaryDamage{Base: d.SecondaryDamage.Base,
-				Spread: d.SecondaryDamage.Spread, Selector: d.SecondaryDamage.Selector},
-		},
-	}
+	return mapload.DerivedBlock(d, spellID, source)
 }
 
-func derivedByte(v int32) uint8 {
-	if v <= 0 {
-		return 0
-	}
-	if v >= 255 {
-		return 255
-	}
-	return uint8(v)
-}
+func creditedSlot(slot int32) int32 { return mapload.CreditedSlot(slot) }
 
 func EquipTarget(c data.ItemCode, t *mapload.Table) (int, bool) {
-	if t == nil || t.Shapes == nil || t.Materials == nil || t.Weapons == nil || t.Armors == nil {
-		return 0, false
-	}
-	if _, err := data.WeaponFromCode(c, t.Shapes, t.Materials, t.Weapons); err == nil {
-		return data.EquipSlotFor(c)
-	}
-	if t.Shields != nil {
-		if _, err := data.ShieldFromCode(c, t.Shapes, t.Materials, t.Shields); err == nil {
-			return data.EquipSlotFor(c)
-		}
-	}
-	if piece, err := data.ArmorFromCode(c, t.Shapes, t.Materials, t.Armors); err == nil {
-		return int(piece.Slot), true
-	}
-	return 0, false
+	return mapload.EquipTarget(c, t)
 }
 
 // Rearm derives combat from the current owned items. An empty slot can use
@@ -279,102 +235,20 @@ func Rearm(w *sim.World, id sim.EntityID, h data.Hero, profile data.Profile, fal
 // RearmWithLayers is Rearm for a character who also wears clothing layers; their
 // defence and absorption join the loadout's sum.
 func RearmWithLayers(w *sim.World, id sim.EntityID, h data.Hero, profile data.Profile, fallback *data.Weapon, everEquipped bool, t *mapload.Table, rotationBase int32, layers []uint16) (*data.Weapon, bool) {
-	items, _ := w.EquippedItems(id)
-	for _, entity := range w.Entities() {
-		if entity.ID == id && entity.ActorLoad.Source.Class != 0 {
-			if !items[0].Empty() || everEquipped || fallback == nil {
-				return mapload.CurrentItemWeapon(items[0], t), true
-			}
-			weapon := *fallback
-			return &weapon, true
-		}
+	before, _ := w.Entity(id)
+	weapon, ok := mapload.RearmWithLayers(w, id, h, profile, fallback, everEquipped, t, rotationBase, layers)
+	if ok && before.ActorLoad.Source.Class == 0 {
+		reportOriginalProfileRetirement(w, before)
 	}
-	loadout, ok := mapload.ResolveItemLoadout(items, fallback, everEquipped, t)
-	if !ok {
-		return nil, false
-	}
-	loadout.RotationSpeed = rotationBase
-	mapload.AddLayers(&loadout, layers, t)
-	return applyRearmLoadout(w, id, h, profile, loadout, items, t)
+	return weapon, ok
 }
 
 func applyRearmLoadout(w *sim.World, id sim.EntityID, h data.Hero, profile data.Profile,
 	loadout data.Loadout, items [sim.EquipSlots]sim.ItemInstance, t *mapload.Table) (*data.Weapon, bool) {
-	var before sim.Entity
-	for _, e := range w.Entities() {
-		if e.ID == id {
-			before = e
-			h = mapload.PotionHero(h, e.PotionStats)
-			break
-		}
-	}
-	weapon := loadout.Weapon
-	if before.ActorLoad.Source.Class != 0 {
-		return weapon, true
-	}
-	mapload.ApplyItemEffects(&loadout, items, profile.Fighter)
-	derived := h.Recompute(profile, loadout)
-	if before.Humanoid {
-		derived.RotationSpeed = mapload.HumanTurnRate(derived.Speed)
-	}
-	// Resolve the derived weapon spell through the installed table.
-	spellID, _ := mapload.SpellIDByToken(t, derived.Combat.SpellName)
-	source := sim.WeaponSpellNone
-	var authoritativeSpell uint16
-	var authoritativePower int32
-	for _, entity := range w.Entities() {
-		if entity.ID == id {
-			// Same explicit retention policy as the post-award recompute.
-			derived.Combat.SecondBase, derived.Combat.SecondSpread = entity.SecondBase, entity.SecondSpread
-			source = entity.WeaponSpellSource
-			authoritativeSpell = entity.WeaponSpell
-			authoritativePower = entity.WeaponSpellLevel
-			break
-		}
-	}
-	if source == sim.WeaponSpellInnate || source == sim.WeaponSpellLegacy {
-		spellID = authoritativeSpell
-		derived.Combat.SpellPower = authoritativePower
-	}
-	if spellID != 0 || derived.Combat.SpellPower != 0 {
-		if source == sim.WeaponSpellNone || source == sim.WeaponSpellItem {
-			source = sim.WeaponSpellLegacy
-		}
-	}
-	wrote := w.SetDerived(id, simDerivedBlock(derived, spellID, source))
-	if wrote {
+	before, _ := w.Entity(id)
+	weapon, ok := mapload.ApplyRearmLoadout(w, id, h, profile, loadout, items, t)
+	if ok && before.ActorLoad.Source.Class == 0 {
 		reportOriginalProfileRetirement(w, before)
-		w.SetPotionHeadroom(id, mapload.PotionHeadroom(h, derived))
 	}
-	return weapon, wrote
-}
-
-// creditedSlot narrows a recompute's own skill slot to one of the six an
-// entity's experience array holds, answering data.SkillGeneral for anything
-// else. MOVED HERE FROM world.go UNCHANGED: it belongs beside Rearm, its one
-// caller, not beside the front-end code that used to hold both.
-//
-// THE NARROWING IS NOT INVENTED HERE — it is Recompute's own, read one field
-// further. `activeSkill` answers a melee weapon's attack type, and "melee" is
-// `AttackType < 0xa` (data/weapon.go) while there are six slots, so a row of
-// attack type 6..9, or a negative one, is a melee weapon whose skill this
-// build holds no slot for. data/recompute.go's step 6a already decides what
-// such a slot is worth: its to-hit and damage terms are added only `if slot >
-// SkillGeneral && slot < SkillSlots`, so a slot outside that window
-// contributes no skill to the blow at all — which is exactly the state
-// `activeSkill` names SkillGeneral for when it is handed no melee weapon.
-// This function is that same window, and the same answer outside it.
-//
-// IT IS ALSO WHAT MAKES THE uint8 CONVERSION AT THE CALL SITE SAFE. Without
-// it a slot of -1 narrows to 255 and 256 narrows silently to 0 — the first
-// refused by SetCombat's own guard, the second accepted as a legal but wrong
-// slot. Narrowing first means the byte handed over is always one of the six,
-// so the guard on the far side is a second fence rather than the only one.
-// THE ROW IS REAL: the shipped Weapons table carries one of attack type -1,
-// on both lawful roots, and it resolves through data.WeaponFromCode as melee.
-func creditedSlot(slot int32) int32 {
-	if slot <= data.SkillGeneral || slot >= data.SkillSlots {
-		return data.SkillGeneral
-	}
-	return slot
+	return weapon, ok
 }

@@ -61,8 +61,27 @@ func (e *MapEditor) promptFields() []InspectionField {
 // record, E opens the field prompt and Tab moves it to the next field. Each
 // accepted change is one history entry.
 func (e *MapEditor) recordKey(key string) error {
+	if key == "tab" && !e.objectTyping() && !e.objectHidden && e.doc != nil {
+		e.loadObject()
+		if e.nativeUnitWindow() {
+			e.objectSpec()
+			e.focusObjectField(e.nextObjectField(-1))
+			return nil
+		}
+	}
 	if key == "tab" && e.objectTyping() {
-		e.obj.focus, e.obj.open = e.nextObjectField(e.obj.focus), -1
+		e.objectSpec()
+		next := e.nextObjectField(e.obj.focus)
+		if e.nativeUnitWindow() && e.fieldRow(next) <= e.fieldRow(e.obj.focus) {
+			e.obj.section = (e.obj.section + 1) % 4
+			if e.unitWindowWidth() >= 1100 && e.obj.section < 3 {
+				e.obj.section = 3
+			}
+			e.objectTop = 0
+			e.objectSpec()
+			next = e.nextObjectField(-1)
+		}
+		e.focusObjectField(next)
 		return nil
 	}
 	if key == "tab" && e.prompt.kind == promptAdd {
@@ -125,6 +144,13 @@ func (e *MapEditor) recordKey(key string) error {
 		return e.deleteSelected(kind, index)
 	case "field":
 		e.leave(leavePick | leavePrompt)
+		e.loadObject()
+		if e.nativeUnitWindow() {
+			e.objectHidden = false
+			e.objectSpec()
+			e.focusObjectField(e.nextObjectField(-1))
+			return nil
+		}
 		fields := e.promptFields()
 		if len(fields) == 0 {
 			e.message = "This record has no settable fields."

@@ -2,6 +2,7 @@ package mapload
 
 import (
 	"fmt"
+	"slices"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
@@ -345,8 +346,21 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	if err != nil {
 		return nil, nil, err
 	}
+	carryOnly := t != nil && t.CarryStockOnly
+	initialStock := loadout
+	if carryOnly {
+		initialStock = nil
+		for _, stock := range authoredStock {
+			var items []sim.ItemInstance
+			for _, element := range stock.items {
+				items = append(items, element.item)
+			}
+			initialStock = append(initialStock, sim.Stock{ID: stock.id, ItemInstances: items})
+		}
+		initialStock = append(initialStock, loadout...)
+	}
 	w, err := sim.NewStructuredWorld(Seed, b, sim.ModeCanonical, Planes(m, t), ents, nil,
-		relationFrom(groups), authoredSacks, append(authoredStock, loadout...), spellsFor(t),
+		relationFrom(groups), authoredSacks, initialStock, spellsFor(t),
 		ghostTemplate(t), Structures(m, t))
 	if err != nil {
 		return nil, nil, err
@@ -368,6 +382,59 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	// handed, which name the same codes in a shape that has not been folded
 	// yet.
 	declareItemWeights(w, t)
+	for _, stock := range authoredStock {
+		if carryOnly {
+			break
+		}
+		var healthDelta, manaDelta int32
+		var inherited [sim.EquipSlots]sim.ItemInstance
+		placement := units[int(stock.id)]
+		resolved := Resolve(placement, t)
+		if placement.Flags&0x80 != 0 && resolved.Found() && resolved.Arm != ArmUnits && resolved.Arm != ArmNPC {
+			inherited, _, _, err = HumanRowEquipment(t.humans().EntryStrings(resolved.Index), t)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		for _, element := range stock.items {
+			item := element.item
+			if element.use {
+				item = SourceConstructedItem(item, t)
+			}
+			if item.Empty() {
+				continue
+			}
+			DeclareCodeWeights(w, t, []uint16{item.Code})
+			slot, _ := EquipTarget(data.ItemCode(item.Code), t)
+			var retained []sim.ItemInstance
+			if element.use && slot > 0 && slot <= sim.EquipSlots && ItemRecipeEqual(item, inherited[slot-1]) {
+				item = inherited[slot-1].Clone()
+				retained = append(retained, item)
+			}
+			e, _ := w.Entity(stock.id)
+			if !e.Humanoid {
+				slot = 0
+			}
+			worn, _ := w.EquippedItems(stock.id)
+			displace := EquipmentDisplacement(slot, item.Code, worn, t)
+			if !w.ReceiveStockItem(stock.id, item, slot, displace, element.use, retained...) {
+				return nil, nil, fmt.Errorf("mapload: stock item %#04x could not reach actor %d", item.Code, stock.id)
+			}
+			after, _ := w.Entity(stock.id)
+			if element.use && item.Kind == 3 {
+				healthDelta += after.HP - e.HP
+				manaDelta += after.Mana - e.Mana
+			}
+			if element.use && (slot > 0 || e.PotionStats != after.PotionStats) {
+				if member, ok := roster[stock.id]; ok {
+					if _, ok := RearmWithLayers(w, stock.id, member.Hero, member.Profile, nil, true, t, e.RotationSpeed, nil,
+						InitialEquipment{Placement: units[int(stock.id)], HealthDelta: healthDelta, ManaDelta: manaDelta}); !ok {
+						return nil, nil, fmt.Errorf("mapload: stock equipment could not rebuild actor %d", stock.id)
+					}
+				}
+			}
+		}
+	}
 	if err := initializeCurrentPlayers(w, m, t); err != nil {
 		return nil, nil, err
 	}
@@ -492,7 +559,7 @@ func sacksFrom(m *alm.Map, t *Table) ([]sim.Sack, error) {
 		}
 		items := make([]sim.ItemInstance, len(r.Elements))
 		for i, e := range r.Elements {
-			items[i], err = lootItemInstance(e, m, t)
+			items[i], err = ItemInstanceFromLoot(e, m, t)
 			if err != nil {
 				return nil, err
 			}
@@ -502,50 +569,20 @@ func sacksFrom(m *alm.Map, t *Table) ([]sim.Sack, error) {
 	return out, nil
 }
 
-// stockFrom decodes a map's type-8 loot section into the sim.Stock entries a
-// world built from it should hold: one entry per STOCK record — the arm
-// sacksFrom skips — naming the entity that record's elements arrive in,
-// with no sack placed for it.
-//
-// THE JOIN IS A CORPUS JOIN, NOT A DECODED ONE (R-4). ITEM-OWNED-028, the
-// research row that establishes the stock arm, grades the ID SPACE ITSELF
-// Medium: nothing reads what writes the actor-side key, or what the shipped
-// values correspond to in the .alm's own record sets. What this function
-// relies on instead is a census over both lawful roots' campaign corpora, 28
-// maps each: 43 stock records per root, every one matching exactly one
-// unit's UnitID, none unmatched and none ambiguous. That is a BIJECTION OVER
-// 43 CASES, not a proof, which is why a miss costs only itself rather than
-// refusing the load or guessing an actor.
-//
-// A RECORD MATCHING NO UNIT, OR MORE THAN ONE, CONTRIBUTES NOTHING:
-// sacksFrom's own rule for a record it cannot place, restated for the owner
-// word instead of the cell. The unit-id-to-index map is built ONCE, over
-// m.Units, counting how many units carry each id as it goes — the count is
-// what "exactly one" reads, without a second pass over the units for every
-// record.
-//
-// THE ENTITY ID IS THE UNIT'S OWN INDEX: FromALMWith's own rule is that the
-// i-th unit takes id i, so the map built here is keyed by the widened
-// UnitID and valued by that same index, and the Stock this function emits
-// names it directly — there is no second translation between a unit and the
-// entity it became.
-//
-// UNITID IS WIDENED TO THE OWNER WORD'S OWN 32 BITS for the comparison,
-// never the other way: LootRecord.Owner is carried at the file's own u32
-// width and narrowed nowhere by this reader (loot.go's own precedent), so
-// narrowing it down to UnitID's 16 bits here would risk a collision no
-// research row states. Widening the smaller field costs nothing a shipped
-// record could observe.
-//
-// NEITHER THE CELL NOR THE GOLD IS READ ON THIS ARM: CellX, CellY and Gold
-// are what sacksFrom reads for the GROUND arm of this same walk; the
-// original never reads them for an owned record, so this function reads
-// Owner and Elements alone.
-//
-// A NIL MAP OR A LOOT DECODE ERROR IS NO STOCK — sacksFrom's own two rules
-// for the same two cases, read here rather than restated: loot is not what
-// makes a map playable.
-func stockFrom(m *alm.Map, t *Table) ([]sim.Stock, error) {
+// stockFrom joins owned records to unique placement IDs and retains element
+// order and the zero/nonzero dispatch predicate. Coordinates and gold belong
+// only to the ground arm. Unmatched or ambiguous owners contribute no stock.
+type ownedStockItem struct {
+	item sim.ItemInstance
+	use  bool
+}
+
+type ownedStock struct {
+	id    sim.EntityID
+	items []ownedStockItem
+}
+
+func stockFrom(m *alm.Map, t *Table) ([]ownedStock, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -562,7 +599,7 @@ func stockFrom(m *alm.Map, t *Table) ([]sim.Stock, error) {
 		count[id]++
 	}
 
-	var out []sim.Stock
+	var out []ownedStock
 	for _, r := range loot.Records {
 		if r.Ground() {
 			continue
@@ -571,19 +608,20 @@ func stockFrom(m *alm.Map, t *Table) ([]sim.Stock, error) {
 		if !ok || count[r.Owner] != 1 {
 			continue
 		}
-		items := make([]sim.ItemInstance, len(r.Elements))
+		items := make([]ownedStockItem, len(r.Elements))
 		for i, e := range r.Elements {
-			items[i], err = lootItemInstance(e, m, t)
+			items[i].item, err = ItemInstanceFromLoot(e, m, t)
+			items[i].use = e.Field04 != 0
 			if err != nil {
 				return nil, err
 			}
 		}
-		out = append(out, sim.Stock{ID: sim.EntityID(idx), ItemInstances: items})
+		out = append(out, ownedStock{id: sim.EntityID(idx), items: items})
 	}
 	return out, nil
 }
 
-func lootItemInstance(element alm.LootElement, m *alm.Map, t *Table) (sim.ItemInstance, error) {
+func ItemInstanceFromLoot(element alm.LootElement, m *alm.Map, t *Table) (sim.ItemInstance, error) {
 	item := ItemInstanceFromCode(element.ItemCode(), t)
 	if element.TileMarkerIndex == 0 {
 		return item, nil
@@ -635,6 +673,10 @@ func lootItemInstance(element alm.LootElement, m *alm.Map, t *Table) (sim.ItemIn
 	}
 	item.Price = RepriceItemInstance(item, t)
 	return item, nil
+}
+
+func ItemRecipeEqual(a, b sim.ItemInstance) bool {
+	return a.Code == b.Code && a.Kind == b.Kind && a.Price == b.Price && slices.Equal(a.Effects, b.Effects)
 }
 
 // relationFrom is the map's own diplomacy, stored the way the engine's map-load
@@ -833,7 +875,7 @@ func reachOf(reach int32) uint8 { return uint8(reach) }
 //
 // A refusal from either builder takes the world with it. A placement shipped
 // with half a definition is the failure the whole of this is against.
-func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
+func blockFor(u alm.Unit, t *Table, diff Difficulty, equipment ...[sim.EquipSlots]sim.ItemInstance) (spawnBlock, error) {
 	def, worn, ok, err := definitionFor(u, t, diff)
 	if err != nil {
 		return spawnBlock{}, err
@@ -847,6 +889,10 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty) (spawnBlock, error) {
 		return spawnBlock{}, err
 	}
 	if ok {
+		if len(equipment) > 0 {
+			hworn = equipment[0]
+			w = CurrentItemWeapon(hworn[0], t)
+		}
 		class := int32(u.ClassID)
 		if _, composed := t.composedNPCIndex(int32(u.ClassSubID)); composed && u.Flags&npcFlagBit != 0 {
 			class = h.TypeID

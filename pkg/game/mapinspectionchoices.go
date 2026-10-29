@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"slices"
 	"strings"
@@ -13,6 +14,23 @@ import (
 )
 
 func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) []ui.InspectionChoice {
+	if key == "npc" {
+		m, err := s.model.Map()
+		if err != nil || index < 0 || index >= len(m.AuthoredUnits) {
+			return nil
+		}
+		out := []ui.InspectionChoice{{Value: -1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.npc.none"))}}
+		for _, choice := range s.inspector.npcChoices(math.MaxUint16, false) {
+			u := m.AuthoredUnits[index]
+			u.Flags |= 1
+			u.ClassSubID = uint16(choice.Value)
+			r := mapload.Resolve(u, s.inspector.table)
+			if r.Arm == mapload.ArmNPC && r.Found() {
+				out = append(out, choice)
+			}
+		}
+		return out
+	}
 	if kind == "Enchantment" && key == "castkind" {
 		var out []ui.InspectionChoice
 		for i := 0; i < 4; i++ {
@@ -30,6 +48,42 @@ func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) [
 			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("%d: %s", i+1, s.inspector.inspectionUTF8(alm.PlayerNameText.Decode([]byte(p.Name))))})
 		}
 		return out
+	}
+	if key == "face" {
+		out := []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.inherit"))}}
+		m, err := s.model.Map()
+		if err != nil || index < 0 || index >= len(m.Units) {
+			return out
+		}
+		dir, _, ok := mapload.PlacedFigure(m.Units[index], s.inspector.table)
+		if !ok {
+			return out
+		}
+		cache := fmt.Sprintf("face:%s", dir)
+		if s.inspector.recordOptions == nil {
+			s.inspector.recordOptions = map[string][]ui.InspectionChoice{}
+		}
+		if choices, ok := s.inspector.recordOptions[cache]; ok {
+			return append(out, choices...)
+		}
+		var choices []ui.InspectionChoice
+		pictures := map[int64]*image.RGBA{}
+		for face := int64(1); face <= 127; face++ {
+			doll, _ := composeDoll(s.inspector.archives.artSource(), 0, data.Equipment{}, nil, dir, int(face), false)
+			if doll.Figure != nil {
+				choices = append(choices, ui.InspectionChoice{Value: face, Label: fmt.Sprintf("%d", face)})
+				pictures[face] = doll.Figure
+			}
+		}
+		s.inspector.recordOptions[cache] = choices
+		if s.inspector.recordPictures == nil {
+			s.inspector.recordPictures = map[string]map[int64]*image.RGBA{}
+		}
+		s.inspector.recordPictures[cache] = pictures
+		return append(out, choices...)
+	}
+	if key == "sex" {
+		return []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.male"))}, {Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.female"))}}
 	}
 	if key == "tier" {
 		m, err := s.model.Map()

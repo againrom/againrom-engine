@@ -174,6 +174,11 @@ func composeInventorySubject(src entrySource, id uint32, eq data.Equipment,
 // slot in the mask, so a press on it starts no drag of the anchor's item.
 func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipment, layers []figureLayer,
 	figureDir data.FigureDir, figureFace int) (ui.InventorySubject, []string) {
+	return composeDoll(src, id, eq, layers, figureDir, figureFace, true)
+}
+
+func composeDoll(src entrySource, id uint32, eq data.Equipment, layers []figureLayer,
+	figureDir data.FigureDir, figureFace int, icons bool) (ui.InventorySubject, []string) {
 	var subject ui.InventorySubject
 	subject.ID = id
 	var hoverCoverage figureSlotCoverage
@@ -213,7 +218,7 @@ func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipmen
 			default:
 				unread = append(unread, graphicsPrefix+data.ItemFigureLayerPath(figureDir, code))
 			}
-			if first[n] == i {
+			if icons && first[n] == i {
 				unread = append(unread, graphicsPrefix+data.ItemIconPath(code))
 			}
 		}
@@ -229,6 +234,9 @@ func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipmen
 		hoverCoverage = newFigureSlotCoverage(base.Bounds())
 	} else {
 		unread = append(unread, baseAddr)
+		if !icons {
+			return subject, unread
+		}
 	}
 
 	// HERO-FIGURE-059's mage programme paints slot 8's primary sheet before
@@ -315,7 +323,7 @@ func composeInventorySubjectLayered(src entrySource, id uint32, eq data.Equipmen
 					unread = append(unread, graphicsPrefix+path)
 				}
 			}
-			if first[n] == i {
+			if icons && first[n] == i {
 				iconAddr := graphicsPrefix + data.ItemIconPath(code)
 				if icon, err := loadItemIcon(src, iconAddr); err == nil {
 					// Each of the twelve slot icons comes from its own slot's

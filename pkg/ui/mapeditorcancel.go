@@ -24,6 +24,7 @@ func (e *MapEditor) cancelCheckpoint() func() {
 		chrome.model = &model
 	}
 	chrome.obj.buf = append([]string(nil), chrome.obj.buf...)
+	chrome.obj.pending = append([]InspectionFieldValue(nil), chrome.obj.pending...)
 	if chrome.obj.choice != nil {
 		choice := *chrome.obj.choice
 		chrome.obj.choice = &choice

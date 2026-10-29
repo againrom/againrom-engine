@@ -3,10 +3,12 @@ package game
 import (
 	"againrom/pkg/mapedit"
 	"fmt"
+	"image"
 	"strconv"
 
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -14,6 +16,7 @@ type inspectionUnitViews struct {
 	model    *mapedit.Editor
 	actual   []unitSheet
 	entities []ui.MapEntity
+	pictures map[uint32]*image.RGBA
 }
 
 func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
@@ -36,13 +39,13 @@ func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	return c.actual
 }
 
-func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, error) {
+func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, *image.RGBA, error) {
 	trial := *s
 	if len(values) > 0 {
 		trial.model = s.model.Clone()
 		trial.batch = trial.model
 		if _, err := trial.SetFields("Unit", index, values); err != nil {
-			return ui.MapEntity{}, nil, err
+			return ui.MapEntity{}, nil, nil, err
 		}
 	}
 	c := trial.unitViewCache()
@@ -50,35 +53,50 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 		if index >= 0 && index < len(c.entities) {
 			entity := c.entities[index]
 			entity.Knowledge, entity.KnowledgeKnown = 7, true
-			return entity, trial.Fields("Unit", index), nil
+			if pic, known := c.pictures[entity.ID]; known {
+				return entity, trial.Fields("Unit", index), pic, nil
+			}
 		}
 	}
 	m, err := trial.model.Map()
 	if err != nil {
-		return ui.MapEntity{}, nil, err
+		return ui.MapEntity{}, nil, nil, err
 	}
 	v, err := ui.NewViewer("", terrain.Grid{Width: m.Width, Height: m.Height, Tiles: terrain.RenderTileWords(m.Tiles), Altitudes: m.Altitudes}, s.inspector.tiles)
 	if err != nil {
-		return ui.MapEntity{}, nil, err
+		return ui.MapEntity{}, nil, nil, err
 	}
 	if s.inspector.panelWords != nil {
 		v.SetWords(*s.inspector.panelWords)
 	}
 	mw, err := openMapWorld(m, s.inspector.table, s.inspector.units, v)
 	if err != nil {
-		return ui.MapEntity{}, nil, err
+		return ui.MapEntity{}, nil, nil, err
 	}
 	c.entities = mw.entityDraws()
+	if c.pictures == nil {
+		c.pictures = make(map[uint32]*image.RGBA)
+	}
+	for _, entity := range c.entities {
+		if int(entity.ID) != index {
+			continue
+		}
+		id := sim.EntityID(entity.ID)
+		c.pictures[entity.ID] = nil
+		if fig, ok := mw.figures[id]; ok {
+			c.pictures[entity.ID], _ = composeUnitFigure(s.inspector.archives.artSource(), mw.equipmentOf(id), fig)
+		}
+	}
 	if len(values) == 0 {
 		s.unitViews = c
 	}
 	for _, entity := range c.entities {
 		if int(entity.ID) == index {
 			entity.Knowledge, entity.KnowledgeKnown = 7, true
-			return entity, trial.Fields("Unit", index), nil
+			return entity, trial.Fields("Unit", index), c.pictures[entity.ID], nil
 		}
 	}
-	return ui.MapEntity{}, nil, fmt.Errorf("unit %d has no actor", index)
+	return ui.MapEntity{}, nil, nil, fmt.Errorf("unit %d has no actor", index)
 }
 
 // describe fills the unit popup's view of field row: an identity field's
@@ -89,9 +107,18 @@ func (u *unitTemplateView) describe(row *ui.InspectionField) {
 		return
 	}
 	x := u.s.inspector
+	if row.Key == "npc" {
+		row.Meaning = x.word("editor.unit.npc.note")
+		return
+	}
+	if row.Key == "face" || row.Key == "sex" {
+		row.Group = x.word("editor.unit.look")
+		row.Meaning = x.word("editor.unit.look.note")
+		return
+	}
 	if row.Key == "gear" {
 		row.Group = x.word("editor.unit.group.equipment")
-		row.Choices = []ui.InspectionChoice{{Value: 0, Label: x.word("editor.unit.meaning.gear")}, {Value: 1, Label: x.word("editor.unit.meaning.skipgear")}}
+		row.Choices = []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.unit.meaning.gear"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.unit.meaning.skipgear"))}}
 		return
 	}
 	if group := overrideGroup(x, row.Key); group != "" {

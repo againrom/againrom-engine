@@ -76,7 +76,13 @@ func lootFields(e *Editor, rec []byte) []Field {
 	}
 	out = append(out, Field{Key: "additem", Label: "Add item code", Offset: len(rec), Width: 2, Min: 0, Max: math.MaxUint16,
 		Check: CheckItemCode, Element: lootElementSize, Counter: lootCountWord})
+	out = append(out, Field{Key: "prependitem", Label: "Insert first item code", Offset: head, Width: 2, Min: 1, Max: math.MaxUint16,
+		Check: CheckItemCode, Element: lootElementSize, Counter: lootCountWord, Insert: true})
 	for k := 0; k < n; k++ {
+		out = append(out, Field{Key: fmt.Sprintf("duplicate%d", k+1), Label: fmt.Sprintf("Duplicate item %d", k+1),
+			Offset: len(rec), Width: 2, Min: 0, Max: 1, Element: lootElementSize, Counter: lootCountWord, CopyOffset: head + k*lootElementSize})
+		out = append(out, Field{Key: fmt.Sprintf("use%d", k+1), Label: fmt.Sprintf("Item %d native dispatch", k+1),
+			Offset: head + k*lootElementSize + 4, Width: 2, Min: 0, Max: math.MaxUint16})
 		out = append(out, Field{Key: fmt.Sprintf("recipe%d", k+1), Label: fmt.Sprintf("Item %d recipe (0 = plain)", k+1),
 			Offset: head + k*lootElementSize + 6, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckItemRecipe})
 	}
@@ -84,33 +90,25 @@ func lootFields(e *Editor, rec []byte) []Field {
 }
 
 func (e *Editor) AddUnitStock(index int) (int, error) {
+	stock, err := e.UnitStock(index)
+	if err != nil {
+		return -1, err
+	}
+	if stock >= 0 {
+		return -1, fmt.Errorf("mapedit: unit %d already has stock %d", index, stock)
+	}
 	u, err := e.walkIndex(KindUnit, "add stock to", index)
 	if err != nil {
 		return -1, err
 	}
 	at, _ := u.at(index)
 	id := uint32(binary.LittleEndian.Uint16(e.data[at+unitID:]))
-	if id == 0 {
-		return -1, fmt.Errorf("mapedit: unit %d has no stock identity", index)
-	}
-	for i := 0; i < u.n(); i++ {
-		p, _ := u.at(i)
-		if i != index && uint32(binary.LittleEndian.Uint16(e.data[p+unitID:])) == id {
-			return -1, fmt.Errorf("mapedit: unit identity %d is ambiguous", id)
-		}
+	if e.u32(at+unitLootLink) != 0 {
+		return -1, fmt.Errorf("mapedit: unit %d already links a loot record", index)
 	}
 	w, err := e.placementSection(KindLoot, "add stock")
 	if err != nil {
 		return -1, err
-	}
-	for i := 0; i < w.n(); i++ {
-		p, _ := w.at(i)
-		if e.u32(p+lootOwner) == id {
-			return -1, fmt.Errorf("mapedit: unit %d already has stock %d", index, i)
-		}
-	}
-	if e.u32(at+unitLootLink) != 0 {
-		return -1, fmt.Errorf("mapedit: unit %d already links a loot record", index)
 	}
 	rec := make([]byte, e.lootHead())
 	binary.LittleEndian.PutUint32(rec[lootOwner:], id)
@@ -120,6 +118,50 @@ func (e *Editor) AddUnitStock(index int) (int, error) {
 	ed = append(ed, replace(at+unitLootLink, e.data[at+unitLootLink:at+unitLootLink+4], link[:]))
 	e.apply(ed)
 	return i, nil
+}
+
+func (e *Editor) UnitStock(index int, allowUnowned ...bool) (int, error) {
+	view, err := e.Map()
+	if err != nil || index < 0 || index >= len(view.Units) {
+		return -1, fmt.Errorf("mapedit: unit %d is unavailable", index)
+	}
+	id := uint32(view.Units[index].UnitID)
+	if id == 0 {
+		return -1, fmt.Errorf("mapedit: unit %d has no stock identity", index)
+	}
+	ambiguous := false
+	for i, u := range view.Units {
+		if i != index && uint32(u.UnitID) == id {
+			if len(allowUnowned) == 0 || !allowUnowned[0] {
+				return -1, fmt.Errorf("mapedit: unit identity %d is ambiguous", id)
+			}
+			ambiguous = true
+		}
+	}
+	loot, err := view.Loot()
+	if err != nil {
+		return -1, err
+	}
+	stock := -1
+	for i, r := range loot.Records {
+		if r.Owner == id {
+			if stock >= 0 {
+				return -1, fmt.Errorf("mapedit: unit %d owns several stocks", index)
+			}
+			stock = i
+		}
+	}
+	if ambiguous && stock >= 0 {
+		return -1, fmt.Errorf("mapedit: stocked unit identity %d is ambiguous", id)
+	}
+	rec, err := e.UnitRecord(index)
+	if err != nil {
+		return -1, err
+	}
+	if link := binary.LittleEndian.Uint32(rec[unitLootLink:]); stock >= 0 && link != 0 && link != uint32(stock+1) {
+		return -1, fmt.Errorf("mapedit: unit %d stock link disagrees with its owned stock", index)
+	}
+	return stock, nil
 }
 
 func refuseOwnedStockDeletion(e *Editor, units walk, index int) ([]part, error) {
@@ -155,27 +197,15 @@ func cloneUnitStockParts(e *Editor, units walk, src *Editor, sunits walk, source
 	}
 	at, _ := sunits.at(source)
 	id := uint32(binary.LittleEndian.Uint16(src.data[at+unitID:]))
-	stock := -1
-	for i := 0; i < loot.n(); i++ {
-		p, _ := loot.at(i)
-		if id != 0 && src.u32(p+lootOwner) == id {
-			if stock >= 0 {
-				return nil, fmt.Errorf("mapedit: unit identity %d owns several stocks", id)
-			}
-			stock = i
-		}
+	if id == 0 {
+		return nil, nil
+	}
+	stock, err := src.UnitStock(source, true)
+	if err != nil {
+		return nil, err
 	}
 	if stock < 0 {
 		return nil, nil
-	}
-	for i := 0; i < sunits.n(); i++ {
-		p, _ := sunits.at(i)
-		if i != source && uint32(binary.LittleEndian.Uint16(src.data[p+unitID:])) == id {
-			return nil, fmt.Errorf("mapedit: stocked unit identity %d is ambiguous", id)
-		}
-	}
-	if link := src.u32(at + unitLootLink); link != 0 && link != uint32(stock)+1 {
-		return nil, fmt.Errorf("mapedit: unit %d stock link disagrees with its owned stock", source)
 	}
 	p, size := loot.at(stock)
 	copy := cloneBytes(src.data[p : p+size])

@@ -194,12 +194,19 @@ func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 		if seen[f.Key] || f.Width != 1 && f.Width != 2 && f.Width != 4 || f.Offset < 8 || f.Offset+f.Width > 70 || f.Min > f.Max {
 			t.Fatalf("bad field row %+v", f)
 		}
-		if f.Width == 1 && (f.Min != 0 || f.Max != 255) || f.Bit != 0 && f.Max != 1 {
+		byteMax := int64(255)
+		if f.Mask != 0 {
+			if f.Bit != 0 || f.Min != 0 || f.Max != int64(f.Mask) || uint64(f.Mask) >= uint64(1)<<(8*f.Width) {
+				t.Fatalf("invalid masked field: %+v", f)
+			}
+			byteMax = int64(f.Mask)
+		}
+		if f.Width == 1 && (f.Min != 0 || f.Max != byteMax) || f.Bit != 0 && f.Max != 1 {
 			t.Fatalf("an override byte or bit holds more than its width: %+v", f)
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 24 || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] {
+	if len(seen) != 28 || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] || !seen["face"] || !seen["sex"] || !seen["npc"] || !seen["npcflag"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }

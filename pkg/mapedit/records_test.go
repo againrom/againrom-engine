@@ -335,8 +335,11 @@ func TestStockHasNoCellAndKeepsItsItems(t *testing.T) {
 		t.Fatal("a refused stock edit wrote")
 	}
 	fs, _ := e.Fields(mapedit.KindLoot, 0)
-	if len(fs) != 3 || fs[0].Key != "item1" || fs[1].Key != "additem" || fs[2].Key != "recipe1" {
+	if len(fs) != 6 || fs[0].Key != "item1" || fs[1].Key != "additem" || fs[2].Key != "prependitem" || fs[3].Key != "duplicate1" || fs[4].Key != "use1" || fs[5].Key != "recipe1" {
 		t.Fatalf("stock fields %+v", fs)
+	}
+	if v, err := e.FieldValue(mapedit.KindLoot, 0, "prependitem"); err != nil || v != 0 {
+		t.Fatal("insert action reads an existing item", v, err)
 	}
 	if err := e.SetField(mapedit.KindLoot, 0, "additem", 0x0202); err != nil {
 		t.Fatal(err)
@@ -358,7 +361,7 @@ func TestShortLootHeadHasNoGold(t *testing.T) {
 		t.Fatal(err)
 	}
 	fs, _ := e.Fields(mapedit.KindLoot, 0)
-	if len(fs) != 3 || fs[0].Key != "item1" || fs[2].Key != "recipe1" {
+	if len(fs) != 6 || fs[0].Key != "item1" || fs[4].Key != "use1" || fs[5].Key != "recipe1" {
 		t.Fatalf("short-head fields %+v", fs)
 	}
 	if r := lootElements(t, e.Bytes()); len(r) != 1 || r[0].Elements[0].ItemCode() != 0x0101 {

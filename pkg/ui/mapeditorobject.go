@@ -13,8 +13,10 @@ import (
 // rows come from the host's field table (InspectionEdits.Fields) and its
 // choices from the same table; Apply writes every changed field as one edit.
 
-// InspectionFieldValue is one field's new value for SetFields.
+// InspectionFieldValue is one edit. Equal Step values form a batch;
+// rising steps replay a draft within one history entry.
 type InspectionFieldValue struct {
+	Step      uint32
 	Key       string
 	Value     int64
 	Text      bool
@@ -35,23 +37,25 @@ type InspectionObjectSet interface {
 	SetObject(string, int, []InspectionFieldValue, *image.Point) (*InspectionDocument, error)
 }
 
-// objectEdit is the object popup's edit state: the fields read for one record
-// of one document, each field's typed text, the focused field and an open
-// drop-down.
+// objectEdit holds the popup's draft, fields, focus and open picker.
 type objectEdit struct {
-	move   *image.Point
-	unit   unitSettingsView
-	doc    *InspectionDocument
-	record int
-	fields []InspectionField
-	buf    []string
-	focus  int
-	open   int
-	choice *Picker
-	note   string
-	first  int // the spec row of the first field
-	data   int // the spec row of the data heading
-	cell   int // the spec row of the cell, -1 when it is not movable
+	pending []InspectionFieldValue
+	section int
+	detail  string
+	move    *image.Point
+	unit    unitSettingsView
+	doc     *InspectionDocument
+	record  int
+	fields  []InspectionField
+	buf     []string
+	focus   int
+	open    int
+	choice  *Picker
+	search  string
+	note    string
+	first   int // the spec row of the first field
+	data    int // the spec row of the data heading
+	cell    int // the spec row of the cell, -1 when it is not movable
 	// rowField maps a spec row to the field it edits; rowActs are the
 	// actions of a script popup row's buttons.
 	rowField map[int]int
@@ -128,13 +132,61 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	o.first = len(s.Rows)
 	o.rowField = map[int]int{}
 	card, fields := e.unitSettings()
+	native := e.nativeUnitWindow()
 	if card != nil {
 		s.Card = card
 		s.CardFont = e.cardFont
 	}
+	if native {
+		s.Width = max(420, e.unitWindowWidth()-32)
+		if s.Card != nil {
+			s.Width -= compactPanelW + popupPad
+		}
+		s.At = image.Pt(16, e.barHeight()+8)
+		if e.slack[popObject] || e.sizes[popObject] != (image.Point{}) {
+			s.At = e.objectAt
+		}
+		s.Tabs = []string{e.word("editor.person.identity"), e.word("editor.person.equipment"), e.word("editor.person.inventory"), e.word("editor.person.stats")}
+		s.ActiveTab = o.section
+		if e.unitWindowWidth() >= 1100 {
+			s.Columns = 3
+		}
+	}
+	textWidth := 378
+	if native {
+		textWidth = max(100, s.Width/max(1, s.Columns)-2*popupPad-20)
+	}
 	group := ""
-	for _, i := range fieldOrder(o.fields) {
+	order := fieldOrder(o.fields)
+	if native {
+		sort.SliceStable(order, func(i, j int) bool { return o.fields[order[i]].Parent == "" && o.fields[order[j]].Parent != "" })
+	}
+	for _, i := range order {
 		f := o.fields[i]
+		if native {
+			section := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[f.Section]
+			if s.Columns == 1 && section != o.section || s.Columns == 0 && section != o.section {
+				continue
+			}
+			if s.Columns > 1 && section >= 2 && section != max(2, o.section) {
+				continue
+			}
+			if f.Parent != "" && f.Parent != o.detail {
+				continue
+			}
+		}
+		start := len(s.Rows)
+		deferColumn := func() {
+			if native && s.Columns > 1 {
+				column := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 2}[f.Section]
+				for k := start; k < len(s.Rows); k++ {
+					s.Rows[k].Column = column
+				}
+			}
+		}
+		if fields != nil && !slices.ContainsFunc(fields, func(current InspectionField) bool { return current.Key == f.Key }) {
+			continue
+		}
 		if f.Group != group {
 			group = f.Group
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
@@ -144,21 +196,50 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				}
 			}
 		}
+		if f.ReadOnly {
+			for _, current := range fields {
+				if current.Key == f.Key {
+					f = current
+					break
+				}
+			}
+			for _, line := range f.Lines {
+				kind := popupText
+				if line.Role == "heading" {
+					kind = popupHeading
+				}
+				for _, part := range editorWrap(e.bodyFont(), line.Text, textWidth) {
+					s.Rows, *links = append(s.Rows, popupRow{Kind: kind, Label: part}), append(*links, 0)
+				}
+			}
+			deferColumn()
+			continue
+		}
 		o.rowField[len(s.Rows)] = i
-		row := popupRow{Kind: popupEdit, Label: editorClip(e.bodyFont(), e.editorHostText(f.Label), 150), Value: o.buf[i], Focus: i == o.focus}
+		label := e.editorHostText(f.Label)
+		if !native {
+			label = editorClip(e.bodyFont(), label, 150)
+		}
+		row := popupRow{Kind: popupEdit, Label: label, Value: o.buf[i], Focus: i == o.focus}
 		if len(f.Choices) > 0 {
 			row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
 		} else if f.Text {
 			row.Value = e.editorHostText(o.buf[i])
 		}
 		meaning := f.Meaning
+		if native && !f.Inherit && f.Key != o.detail && i != o.focus {
+			meaning = ""
+		}
 		if fields == nil && o.buf[i] != fieldInput(f) {
 			meaning = ""
 		}
 		inherited := f.Inherited
 		for _, current := range fields {
 			if current.Key == f.Key {
-				meaning, inherited = current.Meaning, current.Inherited
+				inherited = current.Inherited
+				if !native || f.Inherit || f.Key == o.detail || i == o.focus {
+					meaning = current.Meaning
+				}
 				break
 			}
 		}
@@ -176,14 +257,31 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		s.Rows, *links = append(s.Rows, row), append(*links, 0)
 		if meaning != "" {
-			for _, part := range editorWrap(e.bodyFont(), e.editorHostText(meaning), 378) {
+			for _, part := range editorWrap(e.bodyFont(), e.editorHostText(meaning), textWidth) {
 				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: part})
 				*links = append(*links, 0)
 			}
 		}
+		deferColumn()
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty(), false}
+	if native {
+		s.Buttons = append(s.Buttons, e.word("editor.person.reset"))
+		if body := e.bodyFont(); body != nil {
+			for _, label := range s.Buttons {
+				s.ButtonW = max(s.ButtonW, body.Advance(label)+20)
+			}
+		}
+		count := 0
+		for _, f := range o.fields {
+			if f.Inherit && f.Value != f.Absent {
+				count++
+			}
+		}
+		s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.person.overrides"), count))
+		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.word("editor.person.keys"), s.Width-20)...)
+	}
 	if o.note != "" {
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), 400)...)
 	}
@@ -241,6 +339,9 @@ func choiceText(f InspectionField, text string) string {
 }
 
 func (e *MapEditor) objectDirty() bool {
+	if len(e.obj.pending) > 0 {
+		return true
+	}
 	if e.obj.messageChanged || e.messagePage != 0 && e.messageFor != nil && e.messagePage != e.messageFrom {
 		return true
 	}
@@ -248,6 +349,9 @@ func (e *MapEditor) objectDirty() bool {
 		return true
 	}
 	for i, f := range e.obj.fields {
+		if f.ReadOnly {
+			continue
+		}
 		if e.obj.buf[i] != fieldInput(f) {
 			return true
 		}
@@ -271,15 +375,45 @@ func (e *MapEditor) fieldRow(i int) int {
 // nextObjectField is the field after i, in the order the rows show them,
 // that a row shows.
 func (e *MapEditor) nextObjectField(i int) int {
-	order := fieldOrder(e.obj.fields)
-	n := len(order)
-	at := slices.Index(order, i)
-	for k := 1; k <= n; k++ {
-		if j := order[(at+k+n)%n]; e.fieldRow(j) >= 0 {
-			return j
+	var rows []int
+	for row := range e.obj.rowField {
+		rows = append(rows, row)
+	}
+	sort.Ints(rows)
+	if len(rows) == 0 {
+		return -1
+	}
+	for at, row := range rows {
+		if e.obj.rowField[row] == i {
+			return e.obj.rowField[rows[(at+1)%len(rows)]]
 		}
 	}
-	return order[(at+1+n)%n]
+	return e.obj.rowField[rows[0]]
+}
+
+func (e *MapEditor) focusObjectField(i int) {
+	e.obj.focus, e.obj.open = i, -1
+	if i >= 0 && i < len(e.obj.fields) && e.nativeUnitWindow() {
+		f := e.obj.fields[i]
+		e.obj.detail = f.Key
+		if f.Parent != "" {
+			e.obj.detail = f.Parent
+		}
+	}
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return
+	}
+	row := e.fieldRow(e.obj.focus)
+	if row < 0 {
+		return
+	}
+	_, line := popupRowPosition(s, row)
+	if line < s.Top {
+		e.objectTop = line
+	} else if s.MaxRows > 0 && line >= s.Top+s.MaxRows {
+		e.objectTop = line - s.MaxRows + 1
+	}
 }
 
 // objectRowPress is a press on a field row or the cell's pick button.
@@ -299,6 +433,12 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		return
 	}
 	o.focus = i
+	if o.fields[i].Section != "" {
+		o.detail = o.fields[i].Key
+		if o.fields[i].Parent != "" {
+			o.detail = o.fields[i].Parent
+		}
+	}
 	if _, script := e.scriptPopup(); script && i == trigOnce && o.fields[i].Key == "once" {
 		if strings.TrimSpace(o.buf[i]) == "0" {
 			o.buf[i] = "1"
@@ -313,11 +453,12 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 			return
 		}
 		o.open = i
+		o.search = ""
 		f := o.fields[i]
 		rows := make([]PickerRow, len(f.Choices))
 		sel := 0
 		for k, c := range f.Choices {
-			rows[k] = PickerRow{Text: c.Label, Choosable: true}
+			rows[k] = PickerRow{Text: c.Label, Choosable: true, Icon: f.Icons[c.Value]}
 			if slices.Contains(f.Shut, c.Value) {
 				rows[k].Choosable, rows[k].Ink = false, popupHintInk
 			}
@@ -343,6 +484,9 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
 			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: min(10, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}
+			if o.search != "" {
+				d.Text = e.editorHostText(o.search)
+			}
 			// A list with a choice it shuts is as wide as its longest row, so
 			// the reason reads whole.
 			if body := e.bodyFont(); body != nil && len(o.fields[o.open].Shut) > 0 {
@@ -400,7 +544,7 @@ func (e *MapEditor) objectWheelDropdown(wheel float64) bool {
 	if !e.openDropdownHit(e.pointer) {
 		return false
 	}
-	e.obj.choice.Move(editorWheelRows(&e.listWheel, wheel))
+	e.obj.choice.MoveChoice(editorWheelRows(&e.listWheel, wheel))
 	return true
 }
 
@@ -441,7 +585,9 @@ func (e *MapEditor) chooseObjectChoiceKeep() {
 	o := &e.obj
 	if o.open >= 0 && o.open < len(o.fields) && o.choice != nil {
 		if k := o.choice.Selection(); k >= 0 && k < len(o.fields[o.open].Choices) {
-			o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[k].Value, 10)
+			if !slices.Contains(o.fields[o.open].Shut, o.fields[o.open].Choices[k].Value) {
+				o.buf[o.open] = strconv.FormatInt(o.fields[o.open].Choices[k].Value, 10)
+			}
 		}
 	}
 	e.retypeNode()
@@ -458,7 +604,7 @@ func (e *MapEditor) objectStep(delta int) bool {
 	rows := make([]PickerRow, len(f.Choices))
 	at := -1
 	for k, c := range f.Choices {
-		rows[k] = PickerRow{Text: c.Label, Choosable: true}
+		rows[k] = PickerRow{Text: c.Label, Choosable: !slices.Contains(f.Shut, c.Value)}
 		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[o.focus]) {
 			at = k
 		}
@@ -471,7 +617,7 @@ func (e *MapEditor) objectStep(delta int) bool {
 		m.Select(0)
 	} else {
 		m.Select(at)
-		editorListStep(m, delta)
+		m.MoveChoice(delta)
 	}
 	o.buf[o.focus] = strconv.FormatInt(f.Choices[m.Selection()].Value, 10)
 	e.retypeNode()
@@ -498,6 +644,14 @@ func (e *MapEditor) endFieldTyping() {
 
 // objectButton is Apply (0) or Cancel (1).
 func (e *MapEditor) objectButton(n int) {
+	if n == 2 && e.nativeUnitWindow() {
+		for i, f := range e.obj.fields {
+			if f.Inherit {
+				e.obj.buf[i] = ""
+			}
+		}
+		return
+	}
 	if n == 1 {
 		e.cancelPopup()
 		return
@@ -546,11 +700,18 @@ func (e *MapEditor) applyObject() {
 		return
 	}
 	var values []InspectionFieldValue
+	values = append(values, o.pending...)
 	for i, f := range o.fields {
+		if f.ReadOnly {
+			continue
+		}
 		if o.buf[i] == fieldInput(f) {
 			continue
 		}
 		v := InspectionFieldValue{Key: f.Key, Text: f.Text, TextValue: o.buf[i]}
+		if e.nativeUnitWindow() {
+			v.Step = uint32(len(o.pending) + 1)
+		}
 		if !f.Text {
 			n, err := fieldNumber(f, o.buf[i])
 			if err != nil {
@@ -579,7 +740,18 @@ func (e *MapEditor) applyObject() {
 	}
 	o.open, o.note = -1, ""
 	o.move = nil
+	section, detail, native := o.section, o.detail, e.nativeUnitWindow()
 	_ = e.adoptEdit(next, nil)
+	if native {
+		e.obj.doc = nil
+		e.loadObject()
+		e.obj.section, e.obj.detail = section, detail
+	}
+}
+
+func (e *MapEditor) ObjectFields() []InspectionField {
+	e.objectSpec()
+	return slices.Clone(e.obj.fields)
 }
 
 // setFields writes values through the host's one-edit seam, or field by

@@ -229,6 +229,9 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	}
 	template := s.unitTemplate(k, index)
 	for _, f := range fields {
+		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
+			continue
+		}
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
 			row.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
@@ -258,6 +261,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 			return nil
 		}
 		if k == mapedit.KindUnit {
+			template.unitFieldValue(&row)
 			template.describe(&row)
 		}
 		if scriptView != nil {
@@ -270,6 +274,44 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 	}
 	if k == mapedit.KindTrigger {
 		out = append(out, ui.InspectionField{Key: "order", Label: "Trigger order (0 first)", Value: int64(index)})
+	}
+	if k == mapedit.KindUnit {
+		out = append(out, s.equipmentFields(template)...)
+		out = append(out, s.inventoryFields(template)...)
+		if _, err := template.stock(); err == nil {
+			if sheets := s.unitViewSheets(); index < len(sheets) {
+				out = append(out, ui.InspectionField{Key: "resolved", ReadOnly: true, Section: "stats", Lines: s.inspector.sheetLines(template.m.Units[index], mapload.Resolve(template.m.Units[index], s.inspector.table), sheets[index])})
+			}
+			if templates, err := templateSheets(template.m, s.inspector.table); err == nil && index < len(templates) {
+				out = append(out, ui.InspectionField{Key: "overrides", ReadOnly: true, Section: "stats", Lines: s.inspector.overrideLines(s.model, index, templates[index])})
+			}
+			for i := range out {
+				f := &out[i]
+				if f.Section != "" {
+					continue
+				}
+				f.Section = "identity"
+				if f.Inherit {
+					f.Section = "stats"
+				}
+				if f.Key == "face" || f.Key == "sex" {
+					f.Section = "identity"
+				}
+				if f.Key == "gear" {
+					f.Section = "equipment"
+				}
+				if slot, _ := equipmentField(f.Key); slot > 0 {
+					f.Section = "equipment"
+					f.Parent = fmt.Sprintf("wear%d", slot)
+					if f.Key == f.Parent {
+						f.Parent = ""
+					}
+				}
+				if _, _, ok := carriedField(f.Key); ok || f.Key == "holdings" {
+					f.Section = "inventory"
+				}
+			}
+		}
 	}
 	return out
 }
@@ -306,15 +348,30 @@ func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.Inspe
 		return v.Key == "order" || k == mapedit.KindEnchantment && v.Key == "spell" && v.Value == 0
 	}
 	ordered := make([]ui.InspectionFieldValue, 0, len(values))
-	for _, v := range values {
-		if !last(v) {
-			ordered = append(ordered, v)
+	for start := 0; start < len(values); {
+		end := start + 1
+		for end < len(values) && values[end].Step == values[start].Step {
+			end++
 		}
-	}
-	for _, v := range values {
-		if last(v) {
-			ordered = append(ordered, v)
+		if start > 0 && values[start].Step < values[start-1].Step {
+			return nil, fmt.Errorf("edit steps are out of order")
 		}
+		var group []ui.InspectionFieldValue
+		for _, v := range values[start:end] {
+			if !last(v) {
+				group = append(group, v)
+			}
+		}
+		for _, v := range values[start:end] {
+			if last(v) {
+				group = append(group, v)
+			}
+		}
+		if k == mapedit.KindUnit {
+			group = orderUnitItemFields(group)
+		}
+		ordered = append(ordered, group...)
+		start = end
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		changed, mark := false, m.Mark()
@@ -334,6 +391,9 @@ func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.Inspe
 			changed = changed || c
 		}
 		m.Squash(mark)
+		if k == mapedit.KindUnit && m != s.model && bytes.Equal(m.Bytes(), s.model.Bytes()) {
+			return false, nil
+		}
 		if changed {
 			// A node's variable register is checked on the node the whole set
 			// leaves, not between its fields.
@@ -369,6 +429,15 @@ func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind string, k mapedi
 
 // setField is setFieldOn with the node's variable check when variable is set.
 func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64, variable bool) (bool, error) {
+	if prefix, field, ok := unitRecipeField(key); k == mapedit.KindUnit && ok {
+		return s.setUnitRecipeField(m, index, prefix, field, value)
+	}
+	if element, part, ok := carriedField(key); k == mapedit.KindUnit && ok {
+		return s.setCarried(m, index, element, part, value)
+	}
+	if slot, recipe := equipmentField(key); k == mapedit.KindUnit && slot > 0 {
+		return s.setEquipment(m, index, slot, recipe, value)
+	}
 	if k == mapedit.KindTrigger && key == "order" {
 		if value < 0 || value >= int64(m.Count(k)) {
 			return false, fmt.Errorf("no trigger position %d", value)
@@ -404,14 +473,30 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 			return false, err
 		}
 	}
-	if old, err := m.FieldValue(k, index, key); err != nil || old == value {
+	var look []mapedit.FieldSet
+	if f.Check == mapedit.CheckUnitLook {
+		look, err = s.inspector.lookFields(m, index, key, value)
+		if err != nil {
+			return false, err
+		}
+	}
+	if f.Check == mapedit.CheckUnitNPC {
+		if key != "npc" {
+			return false, fmt.Errorf("choose an NPC record to change the NPC flag")
+		}
+		value, look, err = s.inspector.npcFields(m, index, value)
+		if err != nil {
+			return false, err
+		}
+	}
+	if old, err := m.FieldValue(k, index, key); err != nil || old == value && len(look) == 0 {
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && (value < f.Min || value > f.Max) {
 		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.inspectionUTF8(s.inspector.word(f.Label)), value, f.Min, f.Max)
 	}
 	was := s.footprintOf(m, k, index)
-	if err := m.SetField(k, index, key, value); err != nil {
+	if err := m.SetFields(k, index, append(look, mapedit.FieldSet{Key: key, Value: value})...); err != nil {
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {

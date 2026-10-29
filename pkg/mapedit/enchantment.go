@@ -195,7 +195,10 @@ func (e *Editor) AddSpellFrom(template int, x, y, link uint32) (int, error) {
 	return i, err
 }
 
-func (e *Editor) AddItemRecipe(lootIndex, element int) (int, error) {
+func (e *Editor) AddItemRecipe(lootIndex, element int, template ...int) (int, error) {
+	if len(template) > 1 {
+		return -1, fmt.Errorf("mapedit: item recipe has more than one template")
+	}
 	w, err := e.walkIndex(KindLoot, "enchant an item of", lootIndex)
 	if err != nil {
 		return -1, err
@@ -206,14 +209,24 @@ func (e *Editor) AddItemRecipe(lootIndex, element int) (int, error) {
 		return -1, fmt.Errorf("mapedit: item number %d is outside 1..%d", element, (size-head)/lootElementSize)
 	}
 	p := at + head + (element-1)*lootElementSize + 6
-	if old := e.u32(p); old != 0 {
+	if old := e.u32(p); old != 0 && len(template) == 0 {
 		return -1, fmt.Errorf("mapedit: item %d already links recipe %d; select Enchantment #%d and use E", element, old, old-1)
 	}
 	recipes, err := e.walkSection(KindEnchantment, "add an item recipe")
 	if err != nil {
 		return -1, err
 	}
-	i, ed := e.appendRecordParts(recipes, make([]byte, enchantmentHead))
+	record := make([]byte, enchantmentHead)
+	if len(template) == 1 && template[0] >= 0 {
+		record, err = e.Record(KindEnchantment, template[0])
+		if err != nil {
+			return -1, err
+		}
+		if binary.LittleEndian.Uint32(record[4:]) != 0 || binary.LittleEndian.Uint32(record[8:]) != 0 {
+			return -1, fmt.Errorf("mapedit: item recipe template has cell coordinates")
+		}
+	}
+	i, ed := e.appendRecordParts(recipes, record)
 	var link [4]byte
 	binary.LittleEndian.PutUint32(link[:], uint32(i+1))
 	ed = append(ed, replace(p, e.data[p:p+4], link[:]))

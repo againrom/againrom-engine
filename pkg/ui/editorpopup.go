@@ -35,6 +35,7 @@ const (
 
 // popupRow is one row of a popup.
 type popupRow struct {
+	Column       int
 	Edit         *editorTextView
 	Kind         popupRowKind
 	Label, Value string
@@ -148,12 +149,15 @@ func (g *popupGrid) totalRows(cols int) int {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
-	Card     *PanelSubject
-	CardFont *text.Font
-	Title    string
-	At       image.Point
-	Width    int
-	Bounds   image.Rectangle
+	Columns   int
+	Tabs      []string
+	ActiveTab int
+	Card      *PanelSubject
+	CardFont  *text.Font
+	Title     string
+	At        image.Point
+	Width     int
+	Bounds    image.Rectangle
 	// Slack lets a dragged popup hang past the bounds, keeping its title row
 	// and popupKeepWide pixels of its width inside.
 	Slack    bool
@@ -206,6 +210,7 @@ type popupRowRect struct {
 // popupLayout is a built popup: every rectangle the painter fills and the
 // hit test reads.
 type popupLayout struct {
+	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
 	Rows               []popupRowRect
@@ -308,6 +313,10 @@ func popupFit(s popupSpec, body *text.Font, pitch, titleH, h int) (listRows, row
 	if len(s.Buttons) > 0 {
 		fixed += pitch + 4 + popupPad
 	}
+	if s.Columns > 1 && s.MaxRows > 0 {
+		minH = fixed + popupMinRows*pitch
+		return 0, min(popupRowCount(s)-s.Top, max(popupMinRows, (h-fixed)/pitch)), 0, minH
+	}
 	top := max(0, min(s.Top, len(s.Rows)))
 	rowH := func(r popupRow) int {
 		if r.Kind == popupMultiline {
@@ -369,8 +378,11 @@ func popupFit(s popupSpec, body *text.Font, pitch, titleH, h int) (listRows, row
 func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	pitch := fontHeight(body, 15) + popupRowExtra
 	titleH := fontHeight(title, 15) + popupRowExtra
+	if len(s.Tabs) > 0 {
+		titleH += pitch
+	}
 	w := max(160, s.Width)
-	if s.MaxRows > 0 && len(s.Rows) > s.MaxRows {
+	if s.MaxRows > 0 && popupRowCount(s) > s.MaxRows {
 		w += widgetSpriteSize + 2
 	}
 	sized := popupResizeEnabled && s.Size.X > 0 && s.Size.Y > 0
@@ -409,7 +421,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	if !s.Bounds.Empty() {
 		w = min(w, s.Bounds.Dx())
 	}
-	shown := len(s.Rows) - s.Top
+	shown := popupRowCount(s) - s.Top
 	if s.MaxRows > 0 {
 		shown = min(shown, s.MaxRows)
 	}
@@ -452,28 +464,48 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	}
 	l := popupLayout{Rect: r, Pitch: pitch, ListRows: s.ListRows, RowsFit: s.MaxRows}
 	l.Title = image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+titleH)
-	l.Close = image.Rect(r.Max.X-titleH, r.Min.Y+2, r.Max.X-2, r.Min.Y+titleH-2)
+	if len(s.Tabs) > 0 {
+		l.Title.Max.Y -= pitch
+		for i := range s.Tabs {
+			left := r.Min.X + popupPad + i*(w-2*popupPad)/len(s.Tabs)
+			right := r.Min.X + popupPad + (i+1)*(w-2*popupPad)/len(s.Tabs)
+			l.Tabs = append(l.Tabs, image.Rect(left, l.Title.Max.Y, right, l.Title.Max.Y+pitch))
+		}
+	}
+	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
 	contentRight := r.Max.X - popupPad
 	if s.Card != nil {
 		contentRight -= compactPanelW + popupPad
 	}
-	if s.MaxRows > 0 && len(s.Rows) > s.MaxRows {
-		l.RowBar = image.Rect(contentRight-widgetSpriteSize, l.Title.Max.Y+popupPad, contentRight, l.Title.Max.Y+popupPad+shown*pitch)
+	contentY := r.Min.Y + titleH + popupPad
+	if s.MaxRows > 0 && popupRowCount(s) > s.MaxRows {
+		l.RowBar = image.Rect(contentRight-widgetSpriteSize, contentY, contentRight, contentY+shown*pitch)
 		contentRight -= widgetSpriteSize + 2
 	}
 	labelW := s.LabelWidth
 	if labelW <= 0 {
 		labelW = (contentRight - r.Min.X - popupPad) * 2 / 5
 	}
-	y := l.Title.Max.Y + popupPad
-	for i := 0; i < shown; i++ {
-		row := s.Rows[s.Top+i]
+	y := contentY
+	for _, index := range popupShownRows(s, shown) {
+		row := s.Rows[index]
+		left, right := r.Min.X+popupPad, contentRight
+		if s.Columns > 1 {
+			column, line := popupRowPosition(s, index)
+			columnW := (contentRight - r.Min.X - popupPad) / s.Columns
+			left, right = left+column*columnW, left+(column+1)*columnW-popupPad
+			y = contentY + (line-s.Top)*pitch
+		}
 		rowH := pitch
 		if row.Kind == popupMultiline {
 			rowH = multilineRows(row) * pitch
 		}
-		rr := popupRowRect{Index: s.Top + i, Rect: image.Rect(r.Min.X+popupPad, y, contentRight, y+rowH)}
-		rr.Label = image.Rect(rr.Rect.Min.X, y, rr.Rect.Min.X+labelW, y+pitch)
+		rr := popupRowRect{Index: index, Rect: image.Rect(left, y, right, y+rowH)}
+		rowLabelW := labelW
+		if s.Columns > 1 {
+			rowLabelW = rr.Rect.Dx() * 2 / 5
+		}
+		rr.Label = image.Rect(rr.Rect.Min.X, y, rr.Rect.Min.X+rowLabelW, y+pitch)
 		rr.Control = image.Rect(rr.Label.Max.X+4, y+1, rr.Rect.Max.X, y+pitch-1)
 		if row.Kind == popupMultiline {
 			rr.Control.Max.Y = y + rowH - 1
@@ -515,6 +547,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		}
 		l.Rows = append(l.Rows, rr)
 		y += rowH
+	}
+	if s.Columns > 1 {
+		y = contentY + shown*pitch
 	}
 	l.Drop = -1
 	layoutCards(s, &l)
@@ -661,6 +696,7 @@ const (
 	popupGridPart                    // a grid cell; the index is the cell's
 	popupGridBar                     // the grid's scroll bar
 	popupRowGrip                     // a card's grip: a drag moves the card
+	popupTab
 )
 
 // hit reports the part under p and its row, list or button index.
@@ -673,6 +709,11 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	if p.In(l.Title) {
 		return popupTitle, 0
+	}
+	for i, tab := range l.Tabs {
+		if p.In(tab) {
+			return popupTab, i
+		}
 	}
 	if row, _, ok := l.rowButtonAt(p); ok {
 		return popupRowButton, row
@@ -796,7 +837,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
 	if !l.RowBar.Empty() {
-		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: len(s.Rows) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
+		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: popupRowCount(s) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
 	}
 	if s.Card != nil {
 		font := s.CardFont
@@ -806,6 +847,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		start := markCapture()
 		if pic := RenderCharacterPanel(CompactPanelLayout(nil), font, *s.Card); pic != nil {
 			at := image.Pt(l.Rect.Max.X-popupPad-compactPanelW, l.Title.Max.Y+popupPad)
+			if len(l.Tabs) > 0 {
+				at.Y = l.Tabs[0].Max.Y + popupPad
+			}
 			draw.Draw(dst, pic.Bounds().Add(at), pic, pic.Bounds().Min, draw.Over)
 			shiftCapture(start, at)
 		}
@@ -817,6 +861,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		title.Draw(clip, s.Title, l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 	}
 	drawPushButton(dst, body, pushButton{Rect: l.Close, Label: "x", Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
+	for i, tab := range l.Tabs {
+		drawPushButton(dst, body, pushButton{Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i, Hover: pointerOK && pointer.In(tab)})
+	}
 	bodyText := func(r image.Rectangle, s string, c color.RGBA) {
 		if body == nil || s == "" {
 			return

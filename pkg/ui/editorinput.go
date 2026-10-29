@@ -244,6 +244,11 @@ func (e *MapEditor) inputPropagate() {
 }
 
 func (e *MapEditor) insertText(s string) {
+	if !e.prompt.open() && !e.objectHidden && e.nativeUnitWindow() && e.dropdownOpen() && s != "" {
+		e.obj.search += s
+		e.obj.choice.Find(e.obj.search, e.editorSearchText)
+		return
+	}
 	if m, _ := e.inputModel(); m != nil && s != "" {
 		if m.typeText(s) {
 			e.inputChanged()
@@ -288,6 +293,14 @@ func editorPaste(m *TextInputState, p editorInputPolicy, s string) string {
 func (e *MapEditor) textKey(key string) bool {
 	ctrl, shift := strings.Contains(key, "ctrl+"), strings.Contains(key, "shift+")
 	key = strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(key, "ctrl+"), "shift+"), "ctrl+")
+	if !ctrl && !shift && (key == "left" || key == "right") && e.nativeUnitWindow() && e.objectTyping() && len(e.obj.fields[e.obj.focus].Choices) > 0 {
+		delta := 1
+		if key == "left" {
+			delta = -1
+		}
+		e.objectStep(delta)
+		return true
+	}
 	switch key {
 	case "left", "right", "home", "end", "up", "down", "backspace", "delete", "selectall", "copy", "cut", "paste", "textundo", "textredo":
 	default:

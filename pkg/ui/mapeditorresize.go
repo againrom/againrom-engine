@@ -97,13 +97,15 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		s.Slack = e.slack[popObject]
 	}
 	size := e.sizes[popObject]
-	if size == (image.Point{}) {
+	if size == (image.Point{}) && s.Size == (image.Point{}) {
 		return e.objectInputRows(s), links, true
 	}
-	s.Size, s.MinWidth = size, e.minWide[popObject]
+	if size != (image.Point{}) {
+		s.Size, s.MinWidth = size, e.minWide[popObject]
+	}
 	if s.MaxRows > 0 {
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
-		e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
+		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
 		s.Top = e.objectTop
 	}
 	return e.objectInputRows(s), links, true

@@ -25,10 +25,7 @@ var itemKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 // number each carries in an item code. The shield slot is the class of the
 // shields; every other slot is a place an armour is worn. Slot 1 is the weapon
 // class, which a mod cannot add to yet, and slots 3 and 11 hold no armour.
-var ItemSlots = map[string]int{
-	"shield": 2, "ring": 4, "amulet": 5, "head": 6, "body": 7,
-	"outer": 8, "bracers": 9, "gloves": 10, "boots": 12,
-}
+var ItemSlots = equipmentSlotNames(true)
 
 // ItemSlotNames lists the slot names in slot-number order.
 func ItemSlotNames() []string {
@@ -44,9 +41,16 @@ func ItemSlotNames() []string {
 // slot number each has in the twelve-slot record. A layer is drawn just before
 // (under) or just after (over) the item worn in its anchor slot, whether or not
 // that slot is occupied.
-var AnchorSlots = map[string]int{
-	"weapon": 1, "shield": 2, "ring": 4, "amulet": 5, "head": 6, "body": 7,
-	"outer": 8, "bracers": 9, "gloves": 10, "legs": 11, "boots": 12,
+var AnchorSlots = equipmentSlotNames(false)
+
+func equipmentSlotNames(items bool) map[string]int {
+	out := map[string]int{}
+	for _, slot := range EquipmentSlots() {
+		if items && slot.ModItem || !items && slot.Anchor {
+			out[slot.Name] = slot.Number
+		}
+	}
+	return out
 }
 
 // AnchorSlotNames lists the anchor names in slot-number order.

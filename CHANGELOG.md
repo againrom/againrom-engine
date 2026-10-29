@@ -26,8 +26,15 @@ modder or developer can notice gets no entry.
 - [ROM2] In the shop you can now put items on and take them off: drag an item from the bag onto the hero in the panel to wear it, and drag a worn item back to the bag to take it off. An item the hero cannot use is refused, as in the first game; with NEXT the same works for Iglez, and what each one wears stays after SAVE and LOAD. Before, the hero in the shop took no item.
 - [ROM2] A double click on an item in the shop's bag now puts it on the hero shown in the panel, as in the first game; an item he cannot wear stays on the counter, and Undo puts it back in the bag. Before, the double click made the item vanish from the bag without any gold.
 
+- [ROM1] Missions 110 and 111 now put on their starting equipment and use their starting potion instead of leaving those items in the bag. Replaced equipment stays in the bag.
+
 ### For map makers and modders
 
+- [ROM1] The map editor lets you choose an ordinary person's face and sex and preview the doll before applying the change. The appearance is stored in the map and stays after saving the mission.
+- [ROM1] A human placement can select a named NPC from the installed registry in the map editor. The choice keeps the original map storage and offers no custom placement name.
+- [ROM1] Worn equipment has a row per slot, item dropdowns, available material and tier choices, and private magic recipes. The preview shows displaced items in the bag. Empty keeps native storage: it copies retained row items for an ordinary Human and is unavailable for a named NPC.
+- [ROM1] A person's setup lets you add, replace, remove and duplicate carried items with private magic recipes. It shows the resulting bag and corpse loot before Apply, including displaced equipment and NPC loot suppression.
+- [ROM1] E opens one person setup window with a pinned doll, equipment, bag, loot and stat overrides. Wide windows show three columns; smaller windows use sections. Item lists support typing to find a name, and the whole draft applies or cancels together.
 - [BASE] F5 in the map editor now plays the map under the route of the mod package open in the W window: the guest companion, the mission it plays after, the town chapter, the gold and the mission number, or the replaced campaign mission. Before, F5 always played it as the first companion the campaign's first town grants. A route that Ctrl+S would refuse now refuses F5 with the same words.
 
 ## 0.138.0

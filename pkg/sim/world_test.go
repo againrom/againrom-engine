@@ -14,6 +14,8 @@ var worldMethods = []string{"ActiveEffects", "BindMergeOperands", "BindSourceDer
 var worldWriters = []string{"BindMergeOperands", "BindSourceDerive", "CompleteSackPickup", "CopyPotionEffects", "DeclareCellTails", "DeclareItemWeights", "DeclareStructures", "EquipSourceCarried", "EquipSourceItem", "HeadlessDamage", "HeadlessHeal", "HeadlessKill", "HeadlessKillPlayer", "HeadlessPlace", "ImportOriginalActorFacings", "ImportOriginalActorPools", "ImportOriginalActorProfiles", "ImportOriginalActorSpellbooks", "ImportOriginalActorStock", "ImportOriginalCellTails", "ImportOriginalDeadActors", "ImportOriginalGroups", "ImportOriginalLivingActors", "ImportOriginalSession", "ImportOriginalStructureHealth", "ImportSavedGroups", "MoveCarried", "ReplaceGroundSacks", "ReplaceStock", "RestoreActorLoad", "RestoreOneShotPlayerCasts", "RestorePotionEffect", "SetClientClass", "SetCombat", "SetDerived", "SetHumanMovement", "SetPotionHeadroom", "SetPurse", "SetRules", "TakeSack", "UnequipSource", "UnmarshalBinary", "UseCarriedPotion"}
 
 func init() {
+	worldMethods = append(worldMethods, "ReceiveStockItem")
+	worldWriters = append(worldWriters, "ReceiveStockItem")
 	worldMethods = append(worldMethods, "SecondGame", "SpellGame")
 	worldMethods = append(worldMethods, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
 	worldWriters = append(worldWriters, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")

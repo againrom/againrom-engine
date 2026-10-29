@@ -53,7 +53,7 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 		if s, _, ok := e.objectSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())
 			if p.In(l.RowBar) {
-				m := NewPicker(make([]PickerRow, len(s.Rows)-s.MaxRows+1)).SetWindow(1)
+				m := NewPicker(make([]PickerRow, popupRowCount(s)-s.MaxRows+1)).SetWindow(1)
 				m.Select(s.Top)
 				e.scroll.details = true
 				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m, false

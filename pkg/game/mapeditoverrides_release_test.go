@@ -28,6 +28,13 @@ type overrideTyper struct {
 	i int
 }
 
+func (o overrideTyper) section(section string) {
+	o.t.Helper()
+	if tab, ok := o.e.ObjectSectionRect(section); ok {
+		o.c.click(o.e, tab, true, "the field section")
+	}
+}
+
 func (o overrideTyper) set(key string, v int64) {
 	o.t.Helper()
 	fields := objectEdits(o.t, o.e).Fields("Unit", o.i)
@@ -45,7 +52,9 @@ func (o overrideTyper) set(key string, v int64) {
 // field scrolls field key into view and presses it.
 func (o overrideTyper) field(key string) int {
 	o.t.Helper()
-	n := fieldIndex(o.t, objectEdits(o.t, o.e).Fields("Unit", o.i), key)
+	fields := objectEdits(o.t, o.e).Fields("Unit", o.i)
+	n := fieldIndex(o.t, fields, key)
+	o.section(fields[n].Section)
 	o.e.ScrollDetails(-1000)
 	r, ok := o.e.FieldRect(n)
 	for k := 0; !ok && k < 60; k++ {
@@ -182,6 +191,7 @@ func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
 	// The edited placement: the popup lists each override beside the
 	// template's value, and its Normal-difficulty sheet is the game's spawn of
 	// the edited bytes.
+	typer.section("stats")
 	text := popupText(e)
 	name := x.overrideName("body")
 	want := x.inspectionUTF8(fmt.Sprintf(x.word("editor.unit.override.item"), name, 33, template[i].Values.Body))
@@ -211,6 +221,7 @@ func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
 	if !bytes.Equal(e.Document().SourceBytes, raw) {
 		t.Fatal("clearing every override did not restore the installed bytes")
 	}
+	typer.section("stats")
 	if !strings.Contains(popupText(e), x.inspectionUTF8(x.word("editor.unit.override.none"))) {
 		t.Fatalf("a placement without overrides does not say so:\n%s", popupText(e))
 	}
@@ -305,7 +316,9 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	}
 	fieldShot := func(e *ui.MapEditor, i int, key, name string) {
 		t.Helper()
-		n := fieldIndex(t, objectEdits(t, e).Fields("Unit", i), key)
+		fields := objectEdits(t, e).Fields("Unit", i)
+		n := fieldIndex(t, fields, key)
+		overrideTyper{t: t, c: c, e: e, i: i}.section(fields[n].Section)
 		e.ScrollDetails(-1000)
 		for k := 0; k < 60; k++ {
 			if _, ok := e.FieldRect(n); ok {
@@ -320,6 +333,90 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		return !hasTail(u) && gearOffered(u, x.table) && slices.ContainsFunc(s.Worn[:], func(it sim.ItemInstance) bool { return !it.Empty() })
 	})
 	e, typer := opened(key, i)
+	beforeLook := bytes.Clone(e.Document().SourceBytes)
+	lookMap, err := alm.Open(beforeLook)
+	if err != nil {
+		t.Fatal(err)
+	}
+	figureDir, face, ok := mapload.PlacedFigure(lookMap.Units[i], x.table)
+	if !ok {
+		t.Fatal("selected Human has no figure")
+	}
+	chosen := int64(1)
+	if face == 1 {
+		chosen = 2
+	}
+	typer.choose("face", chosen)
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	sex := int64(1)
+	if figureDir.Female() {
+		sex = 0
+	}
+	typer.choose("sex", sex)
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	_, _, picture, err := objectEdits(t, e).UnitSettings(i, nil)
+	if err != nil || picture == nil {
+		t.Fatal("native look has no installed doll preview", err)
+	}
+	fieldShot(e, i, "face", "human-face-sex-doll")
+	_ = e.Key("undo")
+	_ = e.Key("undo")
+	if !bytes.Equal(beforeLook, e.Document().SourceBytes) {
+		t.Fatal("look Undo changed unrelated native bytes")
+	}
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	host := objectEdits(t, e)
+	fields := host.Fields("Unit", i)
+	npc := int64(-1)
+	for k, choice := range fields[fieldIndex(t, fields, "npc")].Choices {
+		if k >= 10 {
+			break
+		}
+		if choice.Value < 0 {
+			continue
+		}
+		if _, _, pic, err := host.UnitSettings(i, []ui.InspectionFieldValue{{Key: "npc", Value: choice.Value}}); err == nil && pic != nil {
+			npc = choice.Value
+			break
+		}
+	}
+	if npc < 0 {
+		t.Fatal("no drawable NPC record in the first dropdown window")
+	}
+	typer.choose("npc", npc)
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	named, err := alm.Open(e.Document().SourceBytes)
+	if err != nil || named.Units[i].Flags&1 == 0 || int64(named.Units[i].ClassSubID) != npc {
+		t.Fatal("NPC dropdown did not write native identity", err)
+	}
+	fieldShot(e, i, "npc", "human-npc-record-doll")
+	_ = e.Key("undo")
+	if !bytes.Equal(beforeLook, e.Document().SourceBytes) {
+		t.Fatal("NPC Undo changed unrelated native bytes")
+	}
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	fields = objectEdits(t, e).Fields("Unit", i)
+	choices := fields[fieldIndex(t, fields, "carryadd")].Choices
+	if len(choices) < 2 {
+		t.Fatal("carried item catalog is empty")
+	}
+	typer.choose("carryadd", choices[1].Value)
+	e.Select(recordOf(e.Document(), "Unit", i), true)
+	fields = objectEdits(t, e).Fields("Unit", i)
+	if field := fields[fieldIndex(t, fields, "holdings")]; !field.ReadOnly || len(field.Lines) < 2 {
+		t.Fatal("missing read-only derived carrier and loot")
+	}
+	fieldShot(e, i, "carryadd", "human-carried-and-derived-loot")
+	for _, size := range []image.Point{{800, 600}, {640, 480}} {
+		e.Layout(size.X, size.Y)
+		fieldShot(e, i, "carryadd", fmt.Sprintf("human-setup-%dx%d", size.X, size.Y))
+	}
+	e.Layout(1280, 800)
+	_ = e.Key("undo")
+	if !bytes.Equal(beforeLook, e.Document().SourceBytes) {
+		t.Fatal("carried item Undo changed unrelated bytes")
+	}
+	e.Select(recordOf(e.Document(), "Unit", i), true)
 	fieldShot(e, i, "body", "human-fields-template")
 	scrollTo(t, e, sheetHeading)
 	shot(e, "human-sheet-before", image.Rectangle{})
@@ -339,6 +436,7 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		typer.set(k, overrideAbsent(k))
 		e.Select(recordOf(e.Document(), "Unit", i), true)
 	}
+	typer.section("stats")
 	scrollTo(t, e, overHeading)
 	shot(e, "human-overrides-cleared", image.Rectangle{})
 	// The refusal's two note lines grow the popup over the key strip.

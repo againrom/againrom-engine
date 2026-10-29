@@ -21,7 +21,28 @@ import (
 type modesCalls struct{ lines []string }
 
 func (c *modesCalls) add(format string, a ...any) {
+	for i, arg := range a {
+		if values, ok := arg.([]InspectionFieldValue); ok {
+			var parts []string
+			for _, v := range values {
+				part := fmt.Sprintf("{%s %d %t %s %t}", v.Key, v.Value, v.Text, v.TextValue, v.New)
+				if v.Step != 0 {
+					part = fmt.Sprintf("step=%d:%s", v.Step, part)
+				}
+				parts = append(parts, part)
+			}
+			a[i] = "[" + strings.Join(parts, " ") + "]"
+		}
+	}
 	c.lines = append(c.lines, fmt.Sprintf(format, a...))
+}
+
+func TestEditorModeCallLogIncludesDraftSteps(t *testing.T) {
+	c := &modesCalls{}
+	c.add("%v", []InspectionFieldValue{{Key: "body", Value: 3}, {Key: "body", Value: 4, Step: 1}})
+	if len(c.lines) != 1 || c.lines[0] != "[{body 3 false  false} step=1:{body 4 false  false}]" {
+		t.Fatal("draft diagnostic lost a field or step", c.lines)
+	}
 }
 
 // modesBase is a host that edits: every edit returns a fresh document and is
@@ -285,7 +306,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	return e, calls
 }
 
-var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown"}
+var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown", "applyobject"}
 
 var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:menu-fit", "ui:bar-undo", "ui:bar-redo", "ui:bar-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 

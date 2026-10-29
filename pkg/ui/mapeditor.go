@@ -124,14 +124,18 @@ type InspectionGoal struct {
 	OpenIndex int
 }
 
-// InspectionField is one settable field of a selected record and its value.
+// InspectionField is one control or derived read-only block of a record.
 type InspectionField struct {
-	Key, Label string
-	Meaning    string
-	Value      int64
-	Text       bool
-	TextValue  string
-	Choices    []InspectionChoice
+	Icons           map[int64]*image.RGBA
+	Section, Parent string
+	ReadOnly        bool
+	Lines           []InspectionLine
+	Key, Label      string
+	Meaning         string
+	Value           int64
+	Text            bool
+	TextValue       string
+	Choices         []InspectionChoice
 	// Group is the heading the field shows under; "" for none.
 	Group string
 	// Inherit marks a value the record may leave to its template: Absent is
@@ -166,6 +170,7 @@ type MapEditor struct {
 	maps                        []EditorMap
 	open                        InspectionOpener
 	hostText                    func(string) string
+	hostDecode                  func(string) string
 	nativeInput                 func() editorNativeInput
 	pathDialog                  editorPathDialog
 	selected                    int
@@ -220,7 +225,12 @@ func (e *MapEditor) Selected() int                 { return e.selected }
 
 // SetHostTextEncoder supplies the install's UTF-8-to-font encoding outside the
 // UI tier. Record and item strings are already font-encoded by the loader.
-func (e *MapEditor) SetHostTextEncoder(encode func(string) string) { e.hostText = encode }
+func (e *MapEditor) SetHostTextEncoder(encode func(string) string, decode ...func(string) string) {
+	e.hostText = encode
+	if len(decode) > 0 {
+		e.hostDecode = decode[0]
+	}
+}
 
 // Open opens the map named source. With unsaved changes it asks first.
 func (e *MapEditor) Open(source string) error {
@@ -479,6 +489,9 @@ func (e *MapEditor) Update() error {
 			}
 			if name == "enter" && native.pressed(ebiten.KeyShift) && e.multilinePrompt() {
 				name = "newline"
+			}
+			if name == "enter" && native.pressed(ebiten.KeyControl) && e.nativeUnitWindow() {
+				name = "applyobject"
 			}
 			if err := e.Key(name); err == ebiten.Termination {
 				return err

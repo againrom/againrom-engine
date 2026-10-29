@@ -24,25 +24,26 @@ import (
 // steps one; it opens no scheduler, save store or audio device. All installed
 // resources are read-only.
 type MapInspector struct {
-	archives      *Archives
-	tiles         *terrain.Tileset
-	statics       *terrain.StaticSet
-	objectRows    []ui.BrushObject // the objects list: the clear row, then each drawable class
-	swatches      []*image.RGBA    // the terrain list's pictures, by Palette row; nil until first asked
-	structures    *terrain.StructureSet
-	units         *terrain.UnitSet
-	sacks         []*terrain.StaticFrame
-	table         *mapload.Table
-	font          *text.Font
-	body          *text.Font // the documents font: rows, labels, values and report text
-	Maps          []MapEntry
-	mod           *editorMod    // the mod folder Save writes into; nil for Save As
-	testPlay      *TestPlayHost // the game the test play key starts; nil: no test play
-	rules         []mapRule     // the map report's rule table; nil is mapRules
-	recordOptions map[string][]ui.InspectionChoice
-	tiers         *tierCache // tiersOf's answers; nil computes each time
-	panelWords    *ui.Words
-	cardFont      *text.Font
+	archives       *Archives
+	tiles          *terrain.Tileset
+	statics        *terrain.StaticSet
+	objectRows     []ui.BrushObject // the objects list: the clear row, then each drawable class
+	swatches       []*image.RGBA    // the terrain list's pictures, by Palette row; nil until first asked
+	structures     *terrain.StructureSet
+	units          *terrain.UnitSet
+	sacks          []*terrain.StaticFrame
+	table          *mapload.Table
+	font           *text.Font
+	body           *text.Font // the documents font: rows, labels, values and report text
+	Maps           []MapEntry
+	mod            *editorMod    // the mod folder Save writes into; nil for Save As
+	testPlay       *TestPlayHost // the game the test play key starts; nil: no test play
+	rules          []mapRule     // the map report's rule table; nil is mapRules
+	recordOptions  map[string][]ui.InspectionChoice
+	recordPictures map[string]map[int64]*image.RGBA
+	tiers          *tierCache // tiersOf's answers; nil computes each time
+	panelWords     *ui.Words
+	cardFont       *text.Font
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {
@@ -113,7 +114,7 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 	if x.archives != nil {
 		e.SetWords(words.For(x.archives.Base.Profile.Language))
 	}
-	e.SetHostTextEncoder(x.inspectionUTF8)
+	e.SetHostTextEncoder(x.inspectionUTF8, func(value string) string { return x.messageUTF8([]byte(value)) })
 	return e
 }
 

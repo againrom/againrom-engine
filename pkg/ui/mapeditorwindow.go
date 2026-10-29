@@ -261,6 +261,15 @@ func (e *MapEditor) FieldRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
+func (e *MapEditor) ObjectSectionRect(section string) (image.Rectangle, bool) {
+	s, _, ok := e.objectSpec()
+	i := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[section]
+	if !ok || len(s.Tabs) != 4 {
+		return image.Rectangle{}, false
+	}
+	return layoutPopup(s, e.font, e.bodyFont()).Tabs[i], true
+}
+
 // GroupMemberRect is the window rectangle of member row n of the group
 // popup, when that row is shown.
 func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
@@ -919,6 +928,17 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		add(popupRow{Kind: popupText, Label: e.word("editor.object.cell"), Value: fmt.Sprintf("%d,%d  %dx%d", r.Cell.X, r.Cell.Y, r.Size.X, r.Size.Y)}, 0)
 	}
 	e.objectFieldRows(&s, &links)
+	if e.nativeUnitWindow() {
+		e.obj.data = -1
+		if s.Card != nil {
+			s.Width += compactPanelW + popupPad
+		}
+		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
+		s.Size = image.Pt(s.Width, e.popupBounds().Dy()-16)
+		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
+		s.Top = e.objectTop
+		return s, links, true
+	}
 	if e.hasUsedBy() {
 		e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 	}
@@ -1191,6 +1211,30 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		return // the group popup has no one record
 	}
 	r := e.doc.Records[e.selected]
+	if r.Kind == "Unit" && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
+		l := layoutPopup(s, e.font, e.bodyFont())
+		top := l.Title.Max.Y + popupPad + compactPanelH + popupPad
+		if len(l.Tabs) > 0 {
+			top += l.Pitch
+		}
+		bottom := l.Rect.Max.Y - popupPad
+		if len(l.Buttons) > 0 {
+			bottom = l.Buttons[0].Min.Y - popupPad
+		}
+		box := image.Rect(l.Rect.Max.X-popupPad-compactPanelW, top, l.Rect.Max.X-popupPad, bottom).Intersect(pic.Bounds())
+		if box.Empty() {
+			return
+		}
+		preview := e.obj.unit.picture
+		if preview == nil || preview.Bounds().Empty() {
+			if f := e.bodyFont(); f != nil {
+				f.Draw(pic.SubImage(box).(*image.RGBA), e.word("editor.unit.look.missing"), box.Min.X, box.Min.Y, editorGold)
+			}
+			return
+		}
+		editorBlit(pic.SubImage(box).(*image.RGBA), preview, fitRect(preview.Bounds().Size(), box), false)
+		return
+	}
 	if r.Preview == nil {
 		return
 	}
@@ -1655,6 +1699,8 @@ func (e *MapEditor) objectPress(p image.Point) {
 	}
 	s, links, _ := e.objectSpec()
 	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
+	case popupTab:
+		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
 		e.cancelPopup()
 	case popupRowGrip:

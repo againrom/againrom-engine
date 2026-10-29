@@ -6,9 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/formats/spr256"
 	"againrom/pkg/mapload"
-	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -202,85 +200,9 @@ func composeDollEvidence(src entrySource, slots [sim.EquipSlots]uint16, fig figu
 	return out
 }
 
-// composeUnitFigure is the doll for one composing actor: its base sheet with
-// each occupied slot's layer painted over it, in data.FigureDrawOrder — for
-// anyone but a mage the weapon or the shield, whichever data.FigureHeldLast
-// names, last over every other occupied slot (0151-layers-and-names T1, T7);
-// a mage follows the programme of its own — and, for a slot
-// data.HasItemFigureSecondaryLayer names, its second sheet too (T2).
-//
-// IT COMPOSES THE FIGURE AND NOT THE WORN ICONS. composeInventorySubject
-// (inventory.go) builds both, because the inventory window draws both; this box
-// draws one picture, and the twelve icon reads that function performs would be
-// twelve archive reads per newly selected actor for pictures nothing here shows.
-// The figure half is the same steps in the same order and is written here
-// rather than factored out of that function, because factoring it would leave
-// that one reading its own loop's guard from somewhere else. THE ORDER ITSELF
-// IS data.FigureDrawOrder, shared with that function so the two composers
-// cannot silently disagree on it (0151 T1's own brief).
-//
-// THE BODY LIST IS READ HERE, off src, THE SAME PRECEDENT world.go's own
-// refreshAppearance already set for invPartyGear.list (T7): this composer
-// carries no Table and no FrontEnd field to reach an already-read copy
-// through, so ReadBodyList runs again over the same shipped bytes — bounded
-// by mw.unitFigure's own cache, one read per (figure, equipment) pair this
-// build has not composed before, never per frame.
 func composeUnitFigure(src entrySource, eq data.Equipment, fig figureID) (*image.RGBA, *ui.SlotMask) {
-	if src == nil {
-		return nil, nil
-	}
-	sheets := sheetCache{src: src, decoded: map[string]*spr256.Sprite{}, converted: map[string][]*terrain.StaticFrame{}}
-	base := figureRGBA(&sheets, data.ItemFigureBasePath(fig.Dir, fig.Face))
-	if base == nil {
-		return nil, nil
-	}
-	// THE MASK IS BUILT BESIDE base, the moment there is a canvas of the right
-	// bounds to match — 1005 "the interactive doll", the same treatment
-	// composeInventorySubject (inventory.go) gives its own base.
-	mask := newFigureSlotMask(base.Bounds())
-	const mageCloakSlot = 8
-	if fig.Dir.Mage() {
-		if occupied, _ := eq.Occupied(mageCloakSlot); occupied {
-			code, _ := eq.Code(mageCloakSlot)
-			if layer := figureRGBA(&sheets, data.ItemFigureLayerPath(fig.Dir, code)); layer != nil {
-				composed := image.NewRGBA(base.Bounds())
-				// A FRESH CANVAS EARNS A FRESH MASK, same bounds and all zero
-				// again: nothing has painted composed yet.
-				mask = newFigureSlotMask(composed.Bounds())
-				paintFigureLayerMasked(composed, layer, mask, mageCloakSlot)
-				paintFigureLayerMasked(composed, base, mask, 0)
-				base = composed
-			}
-		}
-	}
-	list, _ := ReadBodyList(src)
-	for _, st := range data.FigureDrawSteps(fig.Dir, list, eq) {
-		n := st.Slot
-		occupied, _ := eq.Occupied(n)
-		if !occupied || st.Kind == data.FigureStepNone {
-			continue
-		}
-		if fig.Dir.Mage() && n == mageCloakSlot && !st.Secondary {
-			// Primary already stands behind the body.
-			continue
-		}
-		if st.Secondary && !data.HasItemFigureSecondaryLayer(n) {
-			continue
-		}
-		code, _ := eq.Code(n)
-		path := data.ItemFigureLayerPath(fig.Dir, code)
-		if st.Secondary {
-			path = data.ItemFigureSecondaryLayerPath(fig.Dir, code)
-		}
-		if layer := figureRGBA(&sheets, path); layer != nil {
-			if st.Kind == data.FigureStepTag {
-				tagFigureLayer(mask, layer, n, nil)
-			} else {
-				paintFigureLayerMasked(base, layer, mask, n)
-			}
-		}
-	}
-	return addFigureBackground(src, base, fig), mask
+	subject, _ := composeDoll(src, 0, eq, nil, fig.Dir, fig.Face, false)
+	return addFigureBackground(src, subject.Figure, fig), subject.SlotMask
 }
 
 // unitFigure is the composed doll for one entity, or nil for one this build

@@ -3089,7 +3089,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1862,
 		"scclause":        505,
-		"barestorynumber": 1705,
+		"barestorynumber": 1703,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3098,7 +3098,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    31,
-		"longcommentgroups":      1689,
+		"longcommentgroups":      1686,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3307,5 +3307,5 @@ var Committed = Baseline{
 	// It rose for the test play's package route: the doc comments of
 	// checkMissionRoute and testPlayMission and of the new tests in
 	// pkg/game/mapedittestplayroute_test.go, and this note.
-	CommentBytes: 9877299,
+	CommentBytes: 9871151,
 }

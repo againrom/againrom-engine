@@ -30,6 +30,8 @@ const (
 	CheckItemRecipe
 	CheckUnitTier // a secondary key that selects a Units row of the unit's class (ALM-CLS-052)
 	CheckUnitGear // flag bit 7, offered where the Human constructor reads it (ALM-FLAGPATH-109)
+	CheckUnitLook
+	CheckUnitNPC
 )
 
 // Field is one settable field of a record, at a record-relative
@@ -38,17 +40,20 @@ const (
 // is the record's end appends one. A field with Bit set is that one bit of
 // its word, 0 or 1; a write keeps the word's other bits.
 type Field struct {
-	Key      string // stable name a caller addresses the field by
-	Label    string // window text
-	Offset   int
-	Width    int // byte width; numeric fields are little-endian
-	Signed   bool
-	Text     *alm.TextField // a text field and its codec; nil: a number
-	Min, Max int64
-	Check    FieldCheck
-	Element  int
-	Counter  int
-	Bit      uint32
+	Key        string // stable name a caller addresses the field by
+	Label      string // window text
+	Offset     int
+	Width      int // byte width; numeric fields are little-endian
+	Signed     bool
+	Text       *alm.TextField // a text field and its codec; nil: a number
+	Min, Max   int64
+	Check      FieldCheck
+	Element    int
+	Counter    int
+	Bit        uint32
+	Mask       uint32
+	Insert     bool
+	CopyOffset int
 	// Toward is a player's relation field's other player, counted from 1;
 	// zero for every other field.
 	Toward int
@@ -90,6 +95,10 @@ var unitFields = []Field{
 	overrideByte("protection.earth", "Earth protection", 0x3e),
 	overrideByte("protection.astral", "Astral protection", 0x3f),
 	{Key: "gear", Label: "Skip the row's equipment", Offset: 0x0c, Width: 4, Min: 0, Max: 1, Check: CheckUnitGear, Bit: 0x80},
+	{Key: "face", Label: "Face", Offset: 0x0a, Width: 1, Min: 0, Max: 127, Check: CheckUnitLook, Mask: 0x7f},
+	{Key: "sex", Label: "Sex", Offset: 0x0c, Width: 4, Min: 0, Max: 1, Check: CheckUnitLook, Bit: 4},
+	{Key: "npc", Label: "NPC record", Offset: 0x0a, Width: 2, Min: 0, Max: math.MaxUint16, Check: CheckUnitNPC},
+	{Key: "npcflag", Label: "NPC flag", Offset: 0x0c, Width: 4, Min: 0, Max: 1, Check: CheckUnitNPC, Bit: 1},
 }
 
 // overrideByte is one override byte of the type-6 record: 0 keeps the
@@ -131,7 +140,7 @@ func (e *Editor) FieldValue(k Kind, i int, key string) (int64, error) {
 	if f.Text != nil {
 		return 0, fmt.Errorf("mapedit: %s is a text field", f.Label)
 	}
-	if f.Offset >= len(rec) {
+	if f.Insert || f.CopyOffset > 0 || f.Offset >= len(rec) {
 		return 0, nil
 	}
 	return f.decode(rec[f.Offset:]), nil
@@ -257,13 +266,17 @@ func (f Field) write(rec []byte, v int64) []byte {
 	}
 	count := binary.LittleEndian.Uint32(out[f.Counter:])
 	switch {
-	case f.Offset >= len(rec):
+	case f.Offset >= len(rec) || f.Insert:
 		if v == 0 {
 			return out
 		}
 		el := make([]byte, f.Element)
-		f.put(el, v)
-		out = append(out, el...)
+		if f.CopyOffset > 0 {
+			copy(el, rec[f.CopyOffset:f.CopyOffset+f.Element])
+		} else {
+			f.put(el, v)
+		}
+		out = append(out[:f.Offset], append(el, out[f.Offset:]...)...)
 		count++
 	case v == 0:
 		out = append(out[:f.Offset], out[f.Offset+f.Element:]...)
@@ -276,6 +289,12 @@ func (f Field) write(rec []byte, v int64) []byte {
 }
 
 func (f Field) put(b []byte, v int64) {
+	if f.Mask != 0 {
+		raw := f
+		raw.Mask = 0
+		raw.put(b, raw.decode(b)&^int64(f.Mask)|v&int64(f.Mask))
+		return
+	}
 	if f.Bit != 0 {
 		word := binary.LittleEndian.Uint32(b) &^ f.Bit
 		if v != 0 {
@@ -295,6 +314,11 @@ func (f Field) put(b []byte, v int64) {
 }
 
 func (f Field) decode(b []byte) int64 {
+	if f.Mask != 0 {
+		raw := f
+		raw.Mask = 0
+		return raw.decode(b) & int64(f.Mask)
+	}
 	switch {
 	case f.Bit != 0:
 		if binary.LittleEndian.Uint32(b)&f.Bit != 0 {

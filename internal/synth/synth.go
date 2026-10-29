@@ -465,6 +465,7 @@ type ALMUnit struct {
 	DefID        uint32 // +0x10
 	CurrentHP    int16  // +0x20 when HasCurrentHP
 	HasCurrentHP bool   // false writes the -1 derive-maximum sentinel
+	UnitID       uint16
 }
 
 // ALMOptions parameterises a synthetic map. The defaults produce a valid,
@@ -639,6 +640,7 @@ func almUnits(units []ALMUnit) []byte {
 		binary.LittleEndian.PutUint16(rec[0x0a:], u.ClassSubID)
 		binary.LittleEndian.PutUint32(rec[0x0c:], u.Flags)
 		binary.LittleEndian.PutUint32(rec[0x10:], u.DefID)
+		binary.LittleEndian.PutUint16(rec[0x40:], u.UnitID)
 		currentHP := int16(-1)
 		if u.HasCurrentHP {
 			currentHP = u.CurrentHP
