@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.139.0
+
 ### For players
 
 - [ROM2] A lost mission's long reason now shows whole, on several lines, with the window's buttons below it; before, it stopped after the first line.
