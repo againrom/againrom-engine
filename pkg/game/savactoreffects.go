@@ -367,7 +367,7 @@ func projectSavedActorEffects(state *SnapshotSAVDocument, world *sim.World) erro
 			state.ActorEffects.Unavailable = err.Error()
 			return nil
 		}
-		for _, name := range []string{"E0C", "E3C", "E3D", "E40"} {
+		for _, name := range []string{"T0C", "E0C", "E3C", "E3D", "E40"} {
 			value, _ := savedStructureValue(&current, name)
 			savedObjectSetValue(&next.Document.Objects[row.ObjectIndex-1], name, value)
 		}

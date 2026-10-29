@@ -227,9 +227,8 @@ func KeepGroupsForSave[G any](groups []G, at func(i int) (participant uint32, me
 // original's SAVE removes the Groups from its live Player lists before it
 // opens the file (SAV-1251). The World half and the document a SAVE writes
 // then hold the lists play continues with, so a LOAD resumes the same World.
-// Only a LOADed registry is pruned: the one a map start built stays as it is,
-// so a run that never LOADs saves what it saved before. It reports whether a
-// Group was removed.
+// The registry a map start built is pruned as a LOADed one is. It reports
+// whether a Group was removed.
 func (w *World) PruneGroupsForSave() bool {
 	pruned, _ := w.PruneGroupsForSaveUndo()
 	return pruned
@@ -241,7 +240,7 @@ func (w *World) PruneGroupsForSave() bool {
 // confirmed an overwrite, so it undoes the prune after the build and prunes
 // again when the file is written. The undo is never nil.
 func (w *World) PruneGroupsForSaveUndo() (bool, func()) {
-	if w.groupDialectNative() || w.savedGroups.fresh {
+	if w.groupDialectNative() {
 		return false, func() {}
 	}
 	s := cloneSavedGroups(w.savedGroups)

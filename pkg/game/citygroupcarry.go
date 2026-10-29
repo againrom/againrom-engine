@@ -162,12 +162,11 @@ func (t *Town) settleCityGroups(party []mapload.PartyMember) {
 	t.cityGroups, _ = reconcileCityGroups(t.cityGroups, party)
 }
 
-// pruneCityGroupsForSave removes from groups a LOAD read each group left with
-// no party member, as SAVE removes the empty Groups of a Player whose
-// participant word +28 is zero; the town's Player is that Player. Groups a
-// campaign built without a LOAD stay listed.
+// pruneCityGroupsForSave removes each group left with no party member, as
+// SAVE removes the empty Groups of a Player whose participant word +28 is
+// zero; the town's Player is that Player.
 func (t *Town) pruneCityGroupsForSave(party []mapload.PartyMember) {
-	if t == nil || !t.cityGroupsLoaded {
+	if t == nil {
 		return
 	}
 	groups, order := reconcileCityGroups(t.cityGroups, party)
@@ -178,15 +177,14 @@ func (t *Town) pruneCityGroupsForSave(party []mapload.PartyMember) {
 
 // writeCityGroups replaces the constructed single town group with the live
 // groups. Each group keeps its own field values and holds its members in live
-// order. When loaded, the groups came from a LOADed file and a group left with
-// no member is not written if the written Player's participant word +28 is
-// zero (sim.KeepGroupsForSave); a campaign that never LOADed writes every group.
-// The owner and group keys were remapped to the written Player or cleared
-// when the group was recorded.
+// order. A group left with no member is not written if the written Player's
+// participant word +28 is zero (sim.KeepGroupsForSave). The owner and group
+// keys were remapped to the written Player or cleared when the group was
+// recorded.
 //
 // It returns the party index of each written actor in group order, the order
 // the document lists them in, or nil when the town has no single Player.
-func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cityLiveGroup, loaded bool) []int {
+func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cityLiveGroup) []int {
 	if city == nil || len(city.Players) != 1 {
 		return nil
 	}
@@ -200,12 +198,9 @@ func writeCityGroups(city *sav.CityData, party []mapload.PartyMember, live []cit
 		participant = binary.LittleEndian.Uint32(written.Fixed[15:19])
 	}
 	groups, order := reconcileCityGroups(live, party)
-	var drops []bool
-	if loaded {
-		_, drops = sim.KeepGroupsForSave(groups, func(g int) (uint32, int, bool) {
-			return participant, len(order[g]), true
-		})
-	}
+	_, drops := sim.KeepGroupsForSave(groups, func(g int) (uint32, int, bool) {
+		return participant, len(order[g]), true
+	})
 	written.Groups = nil
 	for g := range groups {
 		if drops != nil && drops[g] {

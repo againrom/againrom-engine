@@ -166,8 +166,8 @@ func TestPruneGroupsForSaveFollowsTheParticipantWord(t *testing.T) {
 	}
 }
 
-// A World with no saved registry, or with the one its map start built, has
-// nothing to prune. The control prunes the same lists once a LOAD set them.
+// A World with no saved registry has nothing to prune. The registry a map
+// start built prunes the same lists as one a LOAD set.
 func TestPruneGroupsForSaveNativeDialect(t *testing.T) {
 	w := mustWorld(t, 113, Bounds{Width: 8, Height: 8}, []Entity{{ID: 1, Owner: 1, X: 1, Y: 1, HP: 1, MaxHP: 1}})
 	w.savedGroups = nil
@@ -178,8 +178,8 @@ func TestPruneGroupsForSaveNativeDialect(t *testing.T) {
 	for _, fresh := range []bool{true, false} {
 		w = selectorWorld(t, []uint32{1, 2}, [][2]uint32{{1, 1}, {1, 7}}, []Entity{{ID: 10, Owner: 1, Group: 1, X: 4, Y: 4, HP: 10, MaxHP: 10}})
 		w.savedGroups.fresh = fresh
-		if pruned := w.PruneGroupsForSave(); pruned == fresh {
-			t.Fatalf("map-start registry %t: pruned %t", fresh, pruned)
+		if !w.PruneGroupsForSave() {
+			t.Fatalf("map-start registry %t: not pruned", fresh)
 		}
 	}
 }

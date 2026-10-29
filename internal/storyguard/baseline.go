@@ -3385,11 +3385,29 @@ var Committed = Baseline{
 	// scan in internal/archtest/lossreason.go, the new tests' comments, and
 	// this note.
 
+	// It rose for the Effect token head: the doc comment of
+	// newEffectAttachment in pkg/game/worldsaveeffects.go, the comments of
+	// pkg/game/effecttokenhead_test.go, and this note.
+	// It rose for the dead records' loaded values: retainDeadValues in
+	// pkg/game/currentdeadconstruct.go, bodyWords in pkg/game/savbodywords.go,
+	// the comments of pkg/game/deadloadedvalues_test.go, the release
+	// witnesses that follow them, and this note.
+	// It rose for the acquisition order wire: ProjectActorAcquireOrder in
+	// pkg/sim/currentorder.go, pkg/game/acquireorderwire_test.go, this note.
+
+	// It rose for the map-start Group prune: the capture mode table in
+	// pkg/game/savecapture.go, pkg/game/mapstartgroupprune_test.go, this note.
+	// It rose for the town Group prune: pkg/game/townsavegroupprune_test.go,
+	// the release witness that follows it, and this note;
+	// pkg/game/citygroupcarry.go fell.
+
 	// It rose for the map editor opening a map path: the doc comments of
 	// reportFailure, assetRoot and runAs in cmd/mapedit/main.go, of
 	// InstallHolding in pkg/game/assetroot.go, of the starter settings reader
 	// in pkg/launch/starterini.go including SelectedKey, the new tests'
 	// comments in cmd/mapedit/main_test.go and pkg/launch/starterini_test.go,
 	// and this note.
-	CommentBytes: 9909887,
+
+	// The merge of the two deltas above is measured on the merged tree.
+	CommentBytes: 9915338,
 }

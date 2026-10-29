@@ -76,7 +76,7 @@ func TestTokenReferenceKeepsOnlyAnEarlierLoadedKey(t *testing.T) {
 
 // A dead record whose body the World holds as no entity writes the load
 // word U90 of its loaded record; a body the World holds as an entity keeps
-// the word its writer built.
+// the word its writer built until the dead projection (bodyWords).
 func TestDeadLoadWrittenFromTheLoadedRecord(t *testing.T) {
 	loadedHuman := mustNewRecord("Human")
 	mustSetValue(&loadedHuman, "Identity", 0x0f6a3530)
@@ -86,7 +86,7 @@ func TestDeadLoadWrittenFromTheLoadedRecord(t *testing.T) {
 	source := sim.OriginalDeadSource{Identity: 0x0f6a3530, Class: 2}
 
 	absent := mustNewRecord("Human")
-	if err := b.retainDeadLoad(&absent, source, false); err != nil {
+	if err := b.retainDeadValues(&absent, source, false); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := savedStructureValue(&absent, "U90"); err != nil || got != 22 {
@@ -94,14 +94,14 @@ func TestDeadLoadWrittenFromTheLoadedRecord(t *testing.T) {
 	}
 	held := mustNewRecord("Human")
 	want, _ := savedStructureValue(&held, "U90")
-	if err := b.retainDeadLoad(&held, source, true); err != nil {
+	if err := b.retainDeadValues(&held, source, true); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := savedStructureValue(&held, "U90"); got != want {
 		t.Fatalf("entity body U90 %d, want the built %d", got, want)
 	}
 	other := mustNewRecord("Human")
-	if err := b.retainDeadLoad(&other, sim.OriginalDeadSource{Identity: 0x0f6a3540, Class: 2}, false); err != nil {
+	if err := b.retainDeadValues(&other, sim.OriginalDeadSource{Identity: 0x0f6a3540, Class: 2}, false); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := savedStructureValue(&other, "U90"); got != want {

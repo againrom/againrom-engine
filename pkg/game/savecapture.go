@@ -26,13 +26,13 @@ type saveCaptureTransform struct {
 }
 
 // saveCaptureTransforms is the one table of which mode applies which
-// transform. A timer must not change hashed state, so it prunes nothing; a
-// tentative capture builds from the pruned lists and leaves the live game as
-// it was.
+// transform. A timer must not change hashed state, so like a tentative
+// capture it builds from the pruned lists and leaves the live game as it
+// was.
 var saveCaptureTransforms = map[saveCaptureMode]saveCaptureTransform{
 	captureTentative: {pruneGroups: true, restore: true},
 	captureCommitted: {pruneGroups: true},
-	captureTimer:     {},
+	captureTimer:     {pruneGroups: true, restore: true},
 }
 
 // captureSave is the one SAVE capture: every route that captures the running

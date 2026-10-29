@@ -12,6 +12,23 @@ import (
 // World holds no carrier for a body's run end (DIV-4059).
 var loadedBodyWords = []string{"U138"}
 
+// A Human body also keeps its load word: both archive arms copy it, and only
+// a derive or a weight change rewrites it (SAV-1378). The load the dead join
+// recomputes for the entity is the engine's own bookkeeping (DIV-4144).
+var loadedHumanBodyWords = []string{"U138", "U90"}
+
+// bodyWords are the words a body on the dead list keeps from its loaded
+// record: entity says whether the World holds it as an entity.
+func bodyWords(r *sav.DocumentRecordData, entity bool) []string {
+	switch {
+	case !entity:
+		return loadedTerminalWords
+	case r.Class == "Human":
+		return loadedHumanBodyWords
+	}
+	return loadedBodyWords
+}
+
 // A body that is no entity, a terminal record or a record no map unit binds,
 // has no World carrier for its order phase and completion, attack charge,
 // health hundredths and credit spell either; they also stay as loaded.

@@ -59,8 +59,8 @@ func searchRadiusSave(t *testing.T, f *FrontEnd, label string) ([]byte, sav.Docu
 // AI's and the dead's, holds the constructor's 5 at mover byte +0x08 (AI-692).
 // A body that is gone is written at its terminal stage. A SAV whose party and
 // living AI records hold 0 there LOADs with 0 in the World and SAVEs 0 again
-// (AI-693); a dead record holding 0 is written with 5 (DIV-3942), as is every
-// other record.
+// (AI-693). A dead record holding 0 whose body the World holds as no entity
+// keeps 0 from its loaded record; every other record is written with 5.
 func TestReleaseSaveWritesEveryActorsSearchRadius(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	const mission = 41
@@ -169,9 +169,18 @@ func TestReleaseSaveWritesEveryActorsSearchRadius(t *testing.T) {
 	if zeroInWorld != 2 {
 		t.Errorf("the LOADed World holds %d actors with search radius 0, want the 2 living zeroed records", zeroInWorld)
 	}
+	bodiless := map[uint32]bool{}
+	for _, d := range cold.live.world.OriginalDeadActors() {
+		if _, entity := cold.live.world.Entity(d.ID); !entity {
+			bodiless[d.Source.Identity] = true
+		}
+	}
 	_, again := searchRadiusSave(t, cold, "Search radius 2")
 	for _, r := range searchRadiusRecords(t, again) {
 		want := byte(5)
+		if deadZeroed[r.identity] && bodiless[r.identity] {
+			want = 0
+		}
 		if zeroed[r.identity] {
 			want = 0
 			delete(zeroed, r.identity)

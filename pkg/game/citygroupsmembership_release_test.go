@@ -85,9 +85,10 @@ func TestReleaseCitySAVWritesOneGroupPerHiredTypeSiegeIncluded(t *testing.T) {
 	}
 }
 
-// A hire group whose members all left stays in the document, empty, and a
-// later hire of its type opens a new group behind it (SAV-1234).
-func TestReleaseCitySAVKeepsAnEmptiedHireGroup(t *testing.T) {
+// A hire group whose members all left stays in the live list, empty, and the
+// town SAV does not write it: the town's Player has participant word zero
+// (SAV-1251). A refunded return removes only its own group.
+func TestReleaseCitySAVDropsAnEmptiedHireGroup(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f, screen := hireForOrderTest(t, "Emptied Hero")
 	hireInTown(t, f, 14, 6)
@@ -105,15 +106,15 @@ func TestReleaseCitySAVKeepsAnEmptiedHireGroup(t *testing.T) {
 	f.Carried = kept
 	f.Town.settleCityGroups(f.Carried)
 	_, _, lost := cityGroupsByName(t, writtenTownData(t, f))
-	if len(lost) != base+2 || len(lost[base]) == 0 || len(lost[base+1]) != 0 {
-		t.Fatalf("after the type-6 squad was lost the groups are %v, want the type-14 group and an empty group behind it", lost)
+	if len(lost) != base+1 || len(lost[base]) == 0 || emptyGroupCount(liveGroupIDs(f.Town.cityGroups)) != 1 {
+		t.Fatalf("after the type-6 squad was lost the SAV groups are %v and the live ones %v, want the type-14 group written and one empty live group", lost, liveGroupIDs(f.Town.cityGroups))
 	}
 	if _, ok := screen.toggleMercenary(14); !ok {
 		t.Fatal("return of the type-14 squad refused")
 	}
 	_, _, returned := cityGroupsByName(t, writtenTownData(t, f))
-	if len(returned) != base+1 || len(returned[base]) != 0 {
-		t.Fatalf("after the refunded return the groups are %v, want only the loss-created empty group", returned)
+	if len(returned) != base || emptyGroupCount(liveGroupIDs(f.Town.cityGroups)) != 1 {
+		t.Fatalf("after the refunded return the SAV groups are %v and the live ones %v, want no squad group written and the loss-created empty group live", returned, liveGroupIDs(f.Town.cityGroups))
 	}
 }
 

@@ -52,7 +52,7 @@ func TestLoadedCityGroupsFollowMembersAndGiveEachJoinerAGroup(t *testing.T) {
 	party := []mapload.PartyMember{{ID: "a"}, {ID: "b"}, {ID: "joiner"}, {ID: "old", MercenaryType: 4},
 		{ID: "m5", MercenaryType: 5}, {ID: "m3a", MercenaryType: 3}, {ID: "m3b", MercenaryType: 3}}
 	written := constructedTown(len(party))
-	order := writeCityGroups(&written, party, cityGroupsFromLoaded(party, loaded), true)
+	order := writeCityGroups(&written, party, cityGroupsFromLoaded(party, loaded))
 	if !slices.Equal(order, []int{1, 0, 3, 2, 4, 5, 6}) {
 		t.Fatalf("group order %v", order)
 	}
@@ -72,7 +72,7 @@ func TestLoadedCityGroupsFollowMembersAndGiveEachJoinerAGroup(t *testing.T) {
 func TestCityGroupsWithoutALoadedTownPutEachHireInItsOwnGroup(t *testing.T) {
 	party := []mapload.PartyMember{{ID: "hero"}, {ID: "m5", MercenaryType: 5}, {ID: "m3a", MercenaryType: 3}, {ID: "m3b", MercenaryType: 3}, {ID: "joiner"}}
 	written := constructedTown(len(party))
-	order := writeCityGroups(&written, party, nil, false)
+	order := writeCityGroups(&written, party, nil)
 	if !slices.Equal(order, []int{0, 4, 1, 2, 3}) {
 		t.Fatalf("group order %v", order)
 	}
@@ -87,15 +87,15 @@ func TestCityGroupsWithoutALoadedTownPutEachHireInItsOwnGroup(t *testing.T) {
 
 	plain := []mapload.PartyMember{{ID: "hero"}, {ID: "joiner"}}
 	unhired := constructedTown(len(plain))
-	if order := writeCityGroups(&unhired, plain, nil, false); !slices.Equal(order, []int{0, 1}) || !reflect.DeepEqual(unhired, constructedTown(len(plain))) {
+	if order := writeCityGroups(&unhired, plain, nil); !slices.Equal(order, []int{0, 1}) || !reflect.DeepEqual(unhired, constructedTown(len(plain))) {
 		t.Fatalf("a town with no loaded document and no hire changed its one group: %v", order)
 	}
 }
 
-// A town SAVE after a LOAD writes a group whose members all left only when the
-// written Player's participant word +28 is one (SAV-1251, SAV-1234). The
-// town's Player is the human one, word zero, so the emptied group is not
-// written. Controls: word one, and groups no LOAD read, write it empty.
+// A town SAVE writes a group whose members all left only when the written
+// Player's participant word +28 is one (SAV-1251, SAV-1234). The town's
+// Player is the human one, word zero, so the emptied group is not written.
+// Control: word one writes it empty.
 func TestCitySaveDropsAnEmptiedGroupOfTheHumanPlayer(t *testing.T) {
 	raw := func(b byte) []byte { r := make([]byte, 80); r[0] = b; return r }
 	live := []cityLiveGroup{
@@ -105,44 +105,46 @@ func TestCitySaveDropsAnEmptiedGroupOfTheHumanPlayer(t *testing.T) {
 	party := []mapload.PartyMember{{ID: "hero"}}
 	both := []sav.CityGroupData{{Raw80: raw(1), F44: nativeCityPlayerIdentity}, {Raw80: raw(2), F44: nativeCityPlayerIdentity, Actors: []uint16{2}}}
 	for _, tc := range []struct {
-		word   uint32
-		loaded bool
-		want   []sav.CityGroupData
+		word uint32
+		want []sav.CityGroupData
 	}{
-		{0, true, both[1:]},
-		{1, true, both},
-		{0, false, both},
+		{0, both[1:]},
+		{1, both},
 	} {
 		written := constructedTown(len(party))
 		fixed := make([]byte, 51)
 		binary.LittleEndian.PutUint32(fixed[15:], tc.word)
 		written.Objects[0].Player.Fixed = fixed
-		if order := writeCityGroups(&written, party, live, tc.loaded); !slices.Equal(order, []int{0}) {
-			t.Fatalf("word %d loaded %t: group order %v", tc.word, tc.loaded, order)
+		if order := writeCityGroups(&written, party, live); !slices.Equal(order, []int{0}) {
+			t.Fatalf("word %d: group order %v", tc.word, order)
 		}
 		if got := written.Objects[0].Player.Groups; !reflect.DeepEqual(got, tc.want) {
-			t.Fatalf("word %d loaded %t: written groups %+v, want %+v", tc.word, tc.loaded, got, tc.want)
+			t.Fatalf("word %d: written groups %+v, want %+v", tc.word, got, tc.want)
 		}
 	}
 }
 
-// A town SAVE after a LOAD removes the emptied group from the live list too,
-// so the town that plays on holds what its file holds. The control, a town no
-// LOAD set, keeps the group.
-func TestCitySaveRemovesAnEmptiedGroupFromALoadedTown(t *testing.T) {
-	party := []mapload.PartyMember{{ID: "hero"}}
-	for _, loaded := range []bool{true, false} {
-		town := &Town{cityGroupsLoaded: loaded, cityGroups: []cityLiveGroup{
+// A town SAVE removes the emptied group from the live list too, so the town
+// that plays on holds what its file holds. The control, a group that still
+// holds a party member, stays.
+func TestCitySaveRemovesAnEmptiedGroupFromTheLiveTown(t *testing.T) {
+	party := []mapload.PartyMember{{ID: "hero"}, {ID: "left"}}
+	for _, present := range []bool{false, true} {
+		town := &Town{cityGroups: []cityLiveGroup{
 			{Payload: cityConstructedGroup(), Members: []string{"left"}},
 			{Payload: cityConstructedGroup(), Members: []string{"hero"}},
 		}}
-		town.pruneCityGroupsForSave(party)
+		members := party[:1]
+		if present {
+			members = party
+		}
+		town.pruneCityGroupsForSave(members)
 		want := [][]string{{"left"}, {"hero"}}
-		if loaded {
+		if !present {
 			want = want[1:]
 		}
 		if got := liveGroupIDs(town.cityGroups); !reflect.DeepEqual(got, want) {
-			t.Fatalf("loaded %t: live groups %v, want %v", loaded, got, want)
+			t.Fatalf("member present %t: live groups %v, want %v", present, got, want)
 		}
 	}
 }

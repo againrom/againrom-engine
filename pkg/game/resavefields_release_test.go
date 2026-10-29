@@ -120,8 +120,9 @@ func TestReleaseOriginalResaveReferenceAndHumanLoad(t *testing.T) {
 			}
 			before, dead := humanLoadWords(t, &loaded)
 			after, _ := humanLoadWords(t, &out)
-			// A dead body the World holds as an entity writes the entity's
-			// load (DIV-4144); it is counted, not required.
+			// A dead Human the World holds as an entity keeps its loaded load
+			// only when its record is in no Group (bodyWords); a moved load is
+			// counted, not required.
 			held := map[uint32]bool{}
 			for _, d := range f.live.world.OriginalDeadActors() {
 				if _, ok := f.live.world.Entity(d.ID); ok {
@@ -151,7 +152,7 @@ func TestReleaseOriginalResaveReferenceAndHumanLoad(t *testing.T) {
 			if paired == 0 {
 				t.Fatal("no loaded Human is in the SAVE")
 			}
-			t.Logf("References kept %v, loaded misses %v; %d of %d Humans paired by Identity, %d dead with no entity; %d dead entity bodies write another U90 (DIV-4144)",
+			t.Logf("References kept %v, loaded misses %v; %d of %d Humans paired by Identity, %d dead with no entity; %d dead entity bodies write another U90",
 				keptAfter, missedBefore, paired, len(before), absent, heldMoved)
 		})
 	}
