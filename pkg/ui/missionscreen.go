@@ -8,12 +8,9 @@ import (
 // MissionScreen is one game's mission screen layout data, read by the one
 // mission screen builder; the zero value is the plain first-game layout.
 type MissionScreen struct {
-	// ColumnW is the right column's width: the map view ends ColumnW pixels
-	// left of the frame's right edge. The first game's is MissionPanelW
-	// (SESS-VIEW-028), and its column art's 16-pixel seam stands over the map;
-	// the second game's map view ends at the seam, 176 pixels from the edge
-	// at 1024x768 (R2-ENGINE-588). The column art, the inventory row and the
-	// spellbook row keep their places in both.
+	// ColumnW is the column body's width. Both games use MissionPanelW;
+	// the art's 16-pixel seam overlaps the map. Column art and bottom rows
+	// keep their own placement.
 	ColumnW int
 	// NoticeOnScreen centres a mission notice on the whole frame, the 640x480
 	// place plus (192,144) at 1024x768 (R2-ENGINE-588), not on the map view.

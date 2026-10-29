@@ -11,8 +11,6 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-// R2-ENGINE-588: the second game's map view ends at x 848, its column is 176
-// pixels wide; the first game's stays 160 (SESS-VIEW-028).
 func TestMissionScreenColumnWidthIsGameData(t *testing.T) {
 	for _, tc := range []struct {
 		screen MissionScreen

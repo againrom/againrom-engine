@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -61,5 +62,33 @@ func TestCrystalBlackPixelsPreserveTheMissionUnderlay(t *testing.T) {
 				t.Fatalf("mission pixel %v = %v (known %v), want %v", p, got, known, tc.want)
 			}
 		})
+	}
+}
+
+func TestCrystalSeamConsumesInputOverTheMap(t *testing.T) {
+	v := minimapViewer(t)
+	v.SetMissionScreen(MissionScreen{ColumnW: MissionPanelW})
+	v.Layout(MissionFrameW, MissionFrameH)
+	v.SetDialogFrame(&DialogFrame{
+		Minimap:     solidPic(160, 158, color.RGBA{A: 255}),
+		MinimapSeam: solidPic(16, 158, color.RGBA{A: 255}),
+	})
+	minimapSelect(v, 12)
+	for x := 848; x < 864; x++ {
+		if !v.mapSurfaceCaptures(x, 60) || !v.minimapCaptures(x, 60) {
+			t.Fatalf("seam x=%d is not a minimap overlap", x)
+		}
+		if _, ok := v.minimapCellAt(x, 60); ok {
+			t.Fatalf("seam x=%d names a minimap cell", x)
+		}
+		before := v.SaveApplication()
+		if orders, ok := minimapPress(v, x, 60); ok || len(orders) != 0 {
+			t.Fatalf("seam x=%d issues world commands: %+v", x, orders)
+		}
+		minimapRelease(v, x, 60)
+		after := v.SaveApplication()
+		if before.ViewX != after.ViewX || before.ViewY != after.ViewY || !slices.Equal(before.Selection, after.Selection) {
+			t.Fatalf("seam x=%d moves the camera or selection", x)
+		}
 	}
 }

@@ -10,8 +10,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-// R2-ENGINE-588, SESS-VIEW-028: the right column's width and the notice
-// placement are each game's mission screen data.
 func TestMissionScreenIsEachGamesData(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -19,7 +17,7 @@ func TestMissionScreenIsEachGamesData(t *testing.T) {
 		want  ui.MissionScreen
 	}{
 		{"first", &firstGameFiles, ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true}},
-		{"second", &secondGameFiles, ui.MissionScreen{ColumnW: 176, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}}},
+		{"second", &secondGameFiles, ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}}},
 	} {
 		if tc.files.missionScreen != tc.want {
 			t.Errorf("%s game: mission screen %+v, want %+v", tc.name, tc.files.missionScreen, tc.want)

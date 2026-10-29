@@ -3409,5 +3409,5 @@ var Committed = Baseline{
 	// and this note.
 
 	// The merge of the two deltas above is measured on the merged tree.
-	CommentBytes: 9917464,
+	CommentBytes: 9916971,
 }
