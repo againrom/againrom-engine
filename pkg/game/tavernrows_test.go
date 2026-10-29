@@ -129,7 +129,7 @@ func TestTavernLayerLeavesTheScenarioChapters(t *testing.T) {
 		}
 	}
 	rows, _ := c.Towns.tavernRows()
-	if want := (town.TavernRow{Town: 1, Chapter: 30, NPC: 22, Mission: 30}); len(rows) != 3 || rows[0] != want {
+	if want := town.ChapterOffer(1, 30, 22, 30); len(rows) != 3 || !rows[0].Equal(want) {
 		t.Fatalf("rows %+v, want layer 0 first", rows)
 	}
 }

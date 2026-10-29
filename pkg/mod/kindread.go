@@ -125,7 +125,7 @@ func readTowns(r DataReader, d *Data, rel string, src []byte) error {
 	if err != nil {
 		return err
 	}
-	d.Towns.Tavern = append(d.Towns.Tavern, rows...)
+	d.Towns.Offers = append(d.Towns.Offers, rows...)
 	for i := range records {
 		t := &records[i]
 		t.Dir = r.Dir

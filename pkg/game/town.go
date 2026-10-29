@@ -672,14 +672,9 @@ func (t *Town) spend(cost int) bool {
 	return true
 }
 
-func mercenaryUnitPrice(mission int) int {
-	ladder := [...]int{10, 15, 20, 40, 60, 80, 100, 600, 800, 1000, 6000, 8000, 10000}
-	i := mission/10 - 3
-	if i < 0 || i >= len(ladder) {
-		return 0
-	}
-	return ladder[i]
-}
+// mercenaryUnitPrice is the squad unit price factor at mission, by the
+// catalog's mercenary rule.
+func mercenaryUnitPrice(mission int) int { return tavernRule.UnitPrice(mission) }
 
 // Done reports whether mission n has been finished.
 func (t *Town) Done(n int) bool {

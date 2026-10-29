@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 )
 
 // TavernOffer is one whole-squad cell on the town screen.
@@ -53,15 +54,14 @@ func (t *townScreen) tavernMercenaries() []TavernOffer {
 	return out
 }
 
-// tavernStockIDPhase is the stock unit id of type 1 when no LOAD gave the
+// tavernRule is the mercenary rule of the shipped catalog that states one.
+// Its stock-id-phase is the stock unit id of type 1 when no LOAD gave the
 // allocator's state: the original builds one stock unit per type 1..15 in
 // type order at tavern entry and lists them in the walk of its actor map
-// (TAVERN-ORDER-015). This phase is fitted to one original screenshot, where
+// (TAVERN-ORDER-015). The phase is fitted to one original screenshot, where
 // types 1..10 share one sixteen-id block and 11..15 the next (DIV-1410).
-const tavernStockIDPhase = 6
-
-// tavernStockTypes is the number of stock units command 0x37 builds.
-const tavernStockTypes = 15
+// Its stock-types is the number of stock units command 0x37 builds.
+var tavernRule *town.MercenaryRule
 
 // tavernStockWalk is the mercenary types 1..15 in the order the actor-map walk
 // visits their stock units, given the ids of types 1..15: bucket
@@ -70,14 +70,15 @@ const tavernStockTypes = 15
 // Without ids it takes the fitted phase. It assumes the blocks land in
 // ascending buckets, which holds unless an id passes the table's last bucket.
 func tavernStockWalk(ids []uint32) []int {
-	if len(ids) != tavernStockTypes {
-		ids = make([]uint32, tavernStockTypes)
+	types := tavernRule.StockTypes
+	if len(ids) != types {
+		ids = make([]uint32, types)
 		for i := range ids {
-			ids[i] = uint32(tavernStockIDPhase + i)
+			ids[i] = uint32(tavernRule.StockIDPhase + i)
 		}
 	}
-	out := make([]int, 0, tavernStockTypes)
-	for typ := 1; typ <= tavernStockTypes; typ++ {
+	out := make([]int, 0, types)
+	for typ := 1; typ <= types; typ++ {
 		out = append(out, typ)
 	}
 	slices.SortStableFunc(out, func(a, b int) int {
@@ -107,8 +108,8 @@ func loadedTavernStockIDs(saved []byte, chars []sav.Character, table *mapload.Ta
 			released = append(released, c.RuntimeID)
 		}
 	}
-	ids := sim.RuntimeIDsAfterLoad(runtimeIDLoads(doc.Document, origins), released, tavernStockTypes)
-	if len(ids) != tavernStockTypes {
+	ids := sim.RuntimeIDsAfterLoad(runtimeIDLoads(doc.Document, origins), released, tavernRule.StockTypes)
+	if len(ids) != tavernRule.StockTypes {
 		return nil
 	}
 	return ids
@@ -231,18 +232,9 @@ func (t *townScreen) toggleMercenary(typ int) (string, bool) {
 	return "", true
 }
 
-func mercenaryLevel(mission int) int {
-	switch {
-	case mission >= 130:
-		return 4
-	case mission >= 100:
-		return 3
-	case mission >= 60:
-		return 2
-	default:
-		return 1
-	}
-}
+// mercenaryLevel is the squad level at mission, by the catalog's mercenary
+// rule.
+func mercenaryLevel(mission int) int { return tavernRule.Level(mission) }
 
 func (t *townScreen) buildMercenarySquad(typ, count int) ([]mapload.PartyMember, bool) {
 	if t == nil || t.sess == nil {

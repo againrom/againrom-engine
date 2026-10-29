@@ -24,16 +24,16 @@ func innAt(town int, stage int32, slots map[int]int32) *secondCampaign {
 // Stage 20 and unlisted stages have no body (R2-ENGINE-161); with every gate
 // at its zero-bank value each body offers these lists in store order.
 func TestSecondInnStageOptions(t *testing.T) {
-	o := func(kind, topic, npc int) secondInnOption { return secondInnOption{kind: kind, topic: topic, npc: npc} }
-	stage10 := []secondInnOption{o(0, 9, 207), o(0, 8, 2108), o(3, 10, 517)}
-	full30 := []secondInnOption{o(3, 30, 22), o(3, 31, 2108), o(0, 39, 2110)}
-	gated30 := []secondInnOption{o(3, 30, 22), o(0, 39, 2110)}
-	full40 := []secondInnOption{o(3, 40, 22), o(0, 48, 2108), o(3, 41, 2015), o(3, 42, 2111), o(3, 43, 2004)}
+	o := func(kind, topic, npc int) innOffer { return innOffer{kind: kind, topic: topic, npc: npc} }
+	stage10 := []innOffer{o(0, 9, 207), o(0, 8, 2108), o(3, 10, 517)}
+	full30 := []innOffer{o(3, 30, 22), o(3, 31, 2108), o(0, 39, 2110)}
+	gated30 := []innOffer{o(3, 30, 22), o(0, 39, 2110)}
+	full40 := []innOffer{o(3, 40, 22), o(0, 48, 2108), o(3, 41, 2015), o(3, 42, 2111), o(3, 43, 2004)}
 	for _, tc := range []struct {
 		town  int
 		stage int32
 		slots map[int]int32
-		want  []secondInnOption
+		want  []innOffer
 	}{
 		{1, 10, nil, stage10},
 		{2, 10, nil, stage10},
@@ -47,22 +47,22 @@ func TestSecondInnStageOptions(t *testing.T) {
 		{2, 120, nil, nil},
 		{2, 40, nil, full40},
 		{3, 40, nil, full40},
-		{2, 40, map[int]int32{937: 1, 939: -1}, []secondInnOption{o(3, 40, 22), o(0, 48, 2108), o(3, 42, 2111)}},
-		{2, 50, nil, []secondInnOption{o(0, 49, 23), o(3, 53, 2019)}},
-		{2, 50, map[int]int32{533: 1}, []secondInnOption{o(0, 49, 23), o(3, 51, 2), o(3, 53, 2019)}},
-		{2, 60, nil, []secondInnOption{o(3, 61, 2006), o(3, 63, 2109)}},
-		{2, 70, nil, []secondInnOption{o(3, 73, 2004), o(3, 72, 2108)}},
-		{2, 80, nil, []secondInnOption{o(3, 82, 2009)}},
-		{2, 80, map[int]int32{776: 1}, []secondInnOption{o(3, 81, 2010)}},
+		{2, 40, map[int]int32{937: 1, 939: -1}, []innOffer{o(3, 40, 22), o(0, 48, 2108), o(3, 42, 2111)}},
+		{2, 50, nil, []innOffer{o(0, 49, 23), o(3, 53, 2019)}},
+		{2, 50, map[int]int32{533: 1}, []innOffer{o(0, 49, 23), o(3, 51, 2), o(3, 53, 2019)}},
+		{2, 60, nil, []innOffer{o(3, 61, 2006), o(3, 63, 2109)}},
+		{2, 70, nil, []innOffer{o(3, 73, 2004), o(3, 72, 2108)}},
+		{2, 80, nil, []innOffer{o(3, 82, 2009)}},
+		{2, 80, map[int]int32{776: 1}, []innOffer{o(3, 81, 2010)}},
 		{3, 60, nil, nil},
-		{3, 60, map[int]int32{771: 1}, []secondInnOption{o(3, 70, 680), o(3, 71, 681)}},
-		{3, 80, map[int]int32{771: 1, 536: 1}, []secondInnOption{o(3, 70, 680), o(3, 71, 681), o(3, 83, 677)}},
-		{2, 90, nil, []secondInnOption{o(3, 90, 2004)}},
-		{3, 90, nil, []secondInnOption{o(3, 91, 681), o(3, 92, 2003)}},
-		{2, 100, nil, []secondInnOption{o(3, 100, 2006), o(3, 102, 2109)}},
-		{2, 100, map[int]int32{987: 1}, []secondInnOption{o(3, 100, 2006), o(3, 102, 2109), o(3, 103, 2005)}},
-		{3, 100, nil, []secondInnOption{o(3, 101, 681)}},
-		{2, 110, nil, []secondInnOption{o(3, 110, 2006)}},
+		{3, 60, map[int]int32{771: 1}, []innOffer{o(3, 70, 680), o(3, 71, 681)}},
+		{3, 80, map[int]int32{771: 1, 536: 1}, []innOffer{o(3, 70, 680), o(3, 71, 681), o(3, 83, 677)}},
+		{2, 90, nil, []innOffer{o(3, 90, 2004)}},
+		{3, 90, nil, []innOffer{o(3, 91, 681), o(3, 92, 2003)}},
+		{2, 100, nil, []innOffer{o(3, 100, 2006), o(3, 102, 2109)}},
+		{2, 100, map[int]int32{987: 1}, []innOffer{o(3, 100, 2006), o(3, 102, 2109), o(3, 103, 2005)}},
+		{3, 100, nil, []innOffer{o(3, 101, 681)}},
+		{2, 110, nil, []innOffer{o(3, 110, 2006)}},
 		{3, 110, nil, nil},
 		{1, 110, nil, nil},
 	} {
@@ -112,7 +112,7 @@ func TestSecondInnStageGates(t *testing.T) {
 		{stages: []int32{100}, town: 3, kind: 3, topic: 101, npc: 681, zero: []int{997}},
 		{stages: []int32{110}, town: 2, kind: 3, topic: 110, npc: 2006},
 	} {
-		want := secondInnOption{kind: row.kind, topic: row.topic, npc: row.npc}
+		want := innOffer{kind: row.kind, topic: row.topic, npc: row.npc}
 		offered := func(town int, stage int32, slots map[int]int32) bool {
 			for _, got := range innAt(town, stage, slots).innOptions() {
 				if got == want {
@@ -174,36 +174,36 @@ func TestSecondInnStageGates(t *testing.T) {
 // The fifteen fixed continuation stores and their gates (R2-ENGINE-217),
 // after the stage body's own stores.
 func TestSecondInnContinuationGates(t *testing.T) {
-	npc5 := secondInnOption{kind: 0, topic: 79, npc: 5}
-	npc675 := secondInnOption{kind: 0, topic: 78, npc: 675}
-	topic62 := secondInnOption{kind: 3, topic: 62, npc: 22}
-	f := func(topic int) secondInnOption { return secondInnOption{kind: 3, topic: topic, npc: 2022} }
-	body := func(topic, npc int) secondInnOption { return secondInnOption{kind: 3, topic: topic, npc: npc} }
+	npc5 := innOffer{kind: 0, topic: 79, npc: 5}
+	npc675 := innOffer{kind: 0, topic: 78, npc: 675}
+	topic62 := innOffer{kind: 3, topic: 62, npc: 22}
+	f := func(topic int) innOffer { return innOffer{kind: 3, topic: topic, npc: 2022} }
+	body := func(topic, npc int) innOffer { return innOffer{kind: 3, topic: topic, npc: npc} }
 	for _, tc := range []struct {
 		name  string
 		town  int
 		stage int32
 		slots map[int]int32
-		want  []secondInnOption
+		want  []innOffer
 	}{
-		{"npc5 and 675", 3, 70, map[int]int32{774: 1, 770: 1}, []secondInnOption{npc5, npc675}},
+		{"npc5 and 675", 3, 70, map[int]int32{774: 1, 770: 1}, []innOffer{npc5, npc675}},
 		{"stage 60 is not above 60", 3, 60, map[int]int32{774: 1, 770: 1}, nil},
 		{"signed stage", 3, -70, map[int]int32{774: 1, 770: 1}, nil},
-		{"774 must equal 1", 3, 70, map[int]int32{774: 2, 770: 1}, []secondInnOption{npc675}},
-		{"770 must equal 1", 3, 70, map[int]int32{774: 1, 770: -1}, []secondInnOption{npc5}},
-		{"other town", 2, 70, map[int]int32{774: 1, 770: 1}, []secondInnOption{body(73, 2004), body(72, 2108)}},
-		{"family A zero/zero", 2, 20, map[int]int32{959: 1}, []secondInnOption{f(74)}},
-		{"family A zero/nonzero", 2, 20, map[int]int32{959: 1, 781: 3}, []secondInnOption{f(75)}},
-		{"family A nonzero/nonzero", 2, 20, map[int]int32{959: 1, 776: 1, 781: 1}, []secondInnOption{f(76)}},
-		{"family A nonzero/zero", 2, 20, map[int]int32{959: 1, 776: -1}, []secondInnOption{f(77)}},
-		{"family A blocked", 2, 20, map[int]int32{959: 1, 972: 1}, []secondInnOption{f(84)}},
-		{"family B blocked", 2, 20, map[int]int32{970: 1, 981: 1}, []secondInnOption{f(93)}},
+		{"774 must equal 1", 3, 70, map[int]int32{774: 2, 770: 1}, []innOffer{npc675}},
+		{"770 must equal 1", 3, 70, map[int]int32{774: 1, 770: -1}, []innOffer{npc5}},
+		{"other town", 2, 70, map[int]int32{774: 1, 770: 1}, []innOffer{body(73, 2004), body(72, 2108)}},
+		{"family A zero/zero", 2, 20, map[int]int32{959: 1}, []innOffer{f(74)}},
+		{"family A zero/nonzero", 2, 20, map[int]int32{959: 1, 781: 3}, []innOffer{f(75)}},
+		{"family A nonzero/nonzero", 2, 20, map[int]int32{959: 1, 776: 1, 781: 1}, []innOffer{f(76)}},
+		{"family A nonzero/zero", 2, 20, map[int]int32{959: 1, 776: -1}, []innOffer{f(77)}},
+		{"family A blocked", 2, 20, map[int]int32{959: 1, 972: 1}, []innOffer{f(84)}},
+		{"family B blocked", 2, 20, map[int]int32{970: 1, 981: 1}, []innOffer{f(93)}},
 		{"family C blocked", 2, 20, map[int]int32{980: 1, 990: 1}, nil},
 		{"families in town 3", 3, 20, map[int]int32{959: 1}, nil},
-		{"topic 62 at 60", 2, 60, map[int]int32{949: 1}, []secondInnOption{body(61, 2006), body(63, 2109), topic62}},
-		{"topic 62 below 60", 2, 50, map[int]int32{949: 1}, []secondInnOption{{kind: 0, topic: 49, npc: 23}}},
-		{"topic 62 after 958", 2, 60, map[int]int32{949: 1, 958: 1}, []secondInnOption{body(61, 2006), body(63, 2109)}},
-		{"order", 2, 60, map[int]int32{949: 1, 959: 1, 970: 0}, []secondInnOption{body(61, 2006), f(74), topic62}},
+		{"topic 62 at 60", 2, 60, map[int]int32{949: 1}, []innOffer{body(61, 2006), body(63, 2109), topic62}},
+		{"topic 62 below 60", 2, 50, map[int]int32{949: 1}, []innOffer{{kind: 0, topic: 49, npc: 23}}},
+		{"topic 62 after 958", 2, 60, map[int]int32{949: 1, 958: 1}, []innOffer{body(61, 2006), body(63, 2109)}},
+		{"order", 2, 60, map[int]int32{949: 1, 959: 1, 970: 0}, []innOffer{body(61, 2006), f(74), topic62}},
 	} {
 		if got := innAt(tc.town, tc.stage, tc.slots).innOptions(); !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("%s: %v want %v", tc.name, got, tc.want)
@@ -215,7 +215,7 @@ func TestSecondInnContinuationGates(t *testing.T) {
 // current town, with the high bit from signed slot 512+i (R2-ENGINE-221).
 func TestSecondInnDynamicTail(t *testing.T) {
 	c := innAt(2, 20, map[int]int32{552: 2, 532: 1, 553: 2, 533: 2, 513: 4, 554: 2, 534: 3, 555: 1, 535: 1, 556: 2, 536: 1, 516: -5})
-	want := []secondInnOption{{kind: 1, npc: 1}, {kind: 2, npc: 2, high: true}, {kind: 1, npc: 5}}
+	want := []innOffer{{kind: 1, npc: 1}, {kind: 2, npc: 2, high: true}, {kind: 1, npc: 5}}
 	if got := c.innOptions(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("tail %v want %v", got, want)
 	}
@@ -228,7 +228,7 @@ func TestSecondInnDynamicTail(t *testing.T) {
 	l.completeBank(l.bank)
 	l.current = partyPlace{2, 2}
 	tail := l.innOptions()
-	if tail[len(tail)-1] != (secondInnOption{kind: 1, npc: 1}) {
+	if tail[len(tail)-1] != (innOffer{kind: 1, npc: 1}) {
 		t.Fatal("post-Leave20 tail", tail)
 	}
 }
@@ -239,27 +239,27 @@ func TestSecondInnDynamicTail(t *testing.T) {
 // class 4 to record 3's category 3 (R2-ENGINE-367, R2-ENGINE-331).
 func TestSecondInnTalkEffects(t *testing.T) {
 	for _, tc := range []struct {
-		o     secondInnOption
+		o     innOffer
 		add   []partyPlace
 		slots map[int]int32
 	}{
-		{secondInnOption{kind: 3, topic: 30, npc: 22}, []partyPlace{{1, 30}}, map[int]int32{533: 1, 553: 2}},
-		{secondInnOption{kind: 3, topic: 31, npc: 2108}, []partyPlace{{1, 31}}, nil},
-		{secondInnOption{kind: 3, topic: 10, npc: 517}, []partyPlace{{1, 10}}, map[int]int32{769: 1}},
-		{secondInnOption{kind: 3, topic: 30, npc: 23}, []partyPlace{{1, 30}}, nil},
-		{secondInnOption{kind: 0, topic: 39, npc: 2110}, nil, nil},
-		{secondInnOption{kind: 0, topic: 30, npc: 22}, nil, nil},
-		{secondInnOption{kind: 1, topic: 0, npc: 1}, nil, map[int]int32{512: 0}},
-		{secondInnOption{kind: 2, topic: 0, npc: 1}, nil, nil},
-		{secondInnOption{kind: 4, topic: 79, npc: 5}, nil, nil},
-		{secondInnOption{kind: 7, topic: 78, npc: 675}, nil, nil},
-		{secondInnOption{kind: 0, topic: 9, npc: 207}, nil, nil},
-		{secondInnOption{kind: 0, topic: 48, npc: 2108}, nil, nil},
-		{secondInnOption{kind: 0, topic: 49, npc: 23}, nil, nil},
-		{secondInnOption{kind: 0, topic: 78, npc: 675}, nil, map[int]int32{770: 2}},
-		{secondInnOption{kind: 3, topic: 78, npc: 675}, []partyPlace{{1, 78}}, nil},
-		{secondInnOption{kind: 0, topic: 79, npc: 5}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
-		{secondInnOption{kind: 0, topic: 3, npc: 5, high: true}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
+		{innOffer{kind: 3, topic: 30, npc: 22}, []partyPlace{{1, 30}}, map[int]int32{533: 1, 553: 2}},
+		{innOffer{kind: 3, topic: 31, npc: 2108}, []partyPlace{{1, 31}}, nil},
+		{innOffer{kind: 3, topic: 10, npc: 517}, []partyPlace{{1, 10}}, map[int]int32{769: 1}},
+		{innOffer{kind: 3, topic: 30, npc: 23}, []partyPlace{{1, 30}}, nil},
+		{innOffer{kind: 0, topic: 39, npc: 2110}, nil, nil},
+		{innOffer{kind: 0, topic: 30, npc: 22}, nil, nil},
+		{innOffer{kind: 1, topic: 0, npc: 1}, nil, map[int]int32{512: 0}},
+		{innOffer{kind: 2, topic: 0, npc: 1}, nil, nil},
+		{innOffer{kind: 4, topic: 79, npc: 5}, nil, nil},
+		{innOffer{kind: 7, topic: 78, npc: 675}, nil, nil},
+		{innOffer{kind: 0, topic: 9, npc: 207}, nil, nil},
+		{innOffer{kind: 0, topic: 48, npc: 2108}, nil, nil},
+		{innOffer{kind: 0, topic: 49, npc: 23}, nil, nil},
+		{innOffer{kind: 0, topic: 78, npc: 675}, nil, map[int]int32{770: 2}},
+		{innOffer{kind: 3, topic: 78, npc: 675}, []partyPlace{{1, 78}}, nil},
+		{innOffer{kind: 0, topic: 79, npc: 5}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
+		{innOffer{kind: 0, topic: 3, npc: 5, high: true}, nil, map[int]int32{536: 1, 556: 3, 774: 2}},
 	} {
 		c := innAt(2, 30, nil)
 		c.bank[533], c.bank[553] = -9, -9
@@ -330,25 +330,24 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 // unchanged.
 func TestSecondInnLaterTalksAdmitTheirTopic(t *testing.T) {
 	topics := 0
-	for _, stage := range []int32{40, 50, 60, 70, 80, 90, 100, 110} {
-		for _, e := range secondInnStages[stage] {
-			if e.kind != 3 {
-				continue
-			}
-			topics++
-			c := innAt(2, stage, nil)
-			c.bank[533], c.bank[999] = -9, 4
-			want := c.bank
-			c.talkTo(e.secondInnOption)
-			c.talkTo(e.secondInnOption)
-			if c.bank != want || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, e.topic}}) {
-				t.Errorf("TALK %d topic %d: available %v", e.npc, e.topic, c.available)
-			}
+	for _, r := range townBooks["rom2"].offerRows() {
+		if r.Kind != 3 || len(r.Stages) == 0 || r.Stages[0] < 40 {
+			continue
+		}
+		topics++
+		e := innOffer{kind: r.Kind, topic: r.Topic, npc: r.NPC}
+		c := innAt(2, int32(r.Stages[0]), nil)
+		c.bank[533], c.bank[999] = -9, 4
+		want := c.bank
+		c.talkTo(e)
+		c.talkTo(e)
+		if c.bank != want || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, e.topic}}) {
+			t.Errorf("TALK %d topic %d: available %v", e.npc, e.topic, c.available)
 		}
 	}
 	// Stages 60, 70 and 80 share one body of nine stores; the other bodies
 	// hold 14 kind 3 stores (R2-ENGINE-229 counts 23 distinct).
-	if topics != 14+3*9 {
+	if topics != 14+9 {
 		t.Fatal("kind 3 stage stores", topics)
 	}
 }

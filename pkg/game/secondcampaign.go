@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
@@ -46,7 +47,10 @@ type secondCampaign struct {
 	innBits map[int]bool
 	// talking is the inn talk the open conversation shows, nil when none
 	// is open; its end runs endInnTalk.
-	talking *secondInnOption
+	talking *innOffer
+	// offers are the inn rows of the mods' layered book the town screen
+	// binds, nil for the shipped book's; they are not saved.
+	offers []town.OfferRow
 }
 
 func newSecondCampaign() *secondCampaign {
@@ -236,8 +240,8 @@ func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 }
 
 // talk opens a speaker's conversation and runs its TalkTo.
-func (t *townScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
-	payload, err := readSecondTownTalk(t.in, secondTalkKey(o))
+func (t *townScreen) talk(c *secondCampaign, o innOffer) ui.TownAction {
+	payload, err := readSecondTownTalk(t.in, secondTalkKey(o.npc, o.topic))
 	if err != nil {
 		return ui.TownAction{Msg: err.Error()}
 	}
@@ -253,7 +257,7 @@ func (t *townScreen) talk(c *secondCampaign, o secondInnOption) ui.TownAction {
 
 // endInnTalk is the end of the inn talk o: the party gains each identity
 // the edition adds at that talk's end (DIV-4186).
-func (t *townScreen) endInnTalk(o secondInnOption) {
+func (t *townScreen) endInnTalk(o innOffer) {
 	t.sess.addTalkIdentities(t.in.townInstall(), o.npc, o.topic)
 }
 
@@ -317,10 +321,13 @@ func (c *secondCampaign) noticePending() bool {
 	return c != nil && (c.talk.payload != nil || c.talk.part != 0)
 }
 
+// secondTownText is the town text file the inn talks are sections of.
+const secondTownText = mainPrefix + "text/town.txt"
+
 // readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a
 // missing section shows no conversation (DIV-2635).
 func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
-	payload, err := install.Archives.Containers.ReadFile(mainPrefix + "text/town.txt")
+	payload, err := install.Archives.Containers.ReadFile(secondTownText)
 	if err != nil {
 		return nil, fmt.Errorf("initial campaign town: %w", err)
 	}

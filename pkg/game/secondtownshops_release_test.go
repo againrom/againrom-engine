@@ -229,7 +229,7 @@ func secondShopDruidGate(t *testing.T, f *FrontEnd, app *ui.App, s *townScreen) 
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
 	}
-	c.talkTo(secondInnOption{kind: 0, npc: 675, topic: 78})
+	c.talkTo(innOffer{kind: 0, npc: 675, topic: 78})
 	if c.bank[770] != 2 || c.shop.records[3][3].Mask != 0x2bc042f0|secondShopClass4 {
 		t.Fatalf("inn NPC 675 topic 78: bank 770 %d, record 3 category 3 mask %#x", c.bank[770], c.shop.records[3][3].Mask)
 	}

@@ -2,22 +2,19 @@ package game
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 
 	"againrom/pkg/mod"
 	"againrom/pkg/town"
 )
 
-// A first-game town's tavern talks and quests are rows of the town catalog
-// (town.TavernRow). Layer 0 is the scenario's: each chapter's InnNPC and
-// InnMission pairs, walking the shorter array (REG-SCN-064). A book no mod
-// layers a row over states no rows, and each chapter then reads its pairs
-// from the campaign's one scenario reader on every read; a layered book
-// holds the merged rows, which every tavern reader takes through
-// Campaign.chapter.
+// A first-game tavern row's layer 0 is the scenario's InnNPC and InnMission
+// pairs, walking the shorter array (REG-SCN-064). An unlayered book states
+// no rows and each chapter reads its own pairs.
 
-// chapter is chapter n's offer data with its tavern pairs read from the
-// catalog's rows, in row order.
+// chapter is chapter n's offer data, its tavern pairs from the catalog's
+// rows through the one offer builder.
 func (c Campaign) chapter(n int) Chapter {
 	ch := c.Chapters[n]
 	rows, ok := c.Towns.tavernRows()
@@ -25,18 +22,15 @@ func (c Campaign) chapter(n int) Chapter {
 		return ch
 	}
 	ch.InnNPC, ch.Inn = nil, nil
-	for _, r := range rows {
-		if r.Chapter == n {
-			ch.InnNPC = append(ch.InnNPC, r.NPC)
-			ch.Inn = append(ch.Inn, r.Mission)
-		}
+	for _, o := range innOffers(rows, innState{every: true, stage: n}) {
+		ch.InnNPC = append(ch.InnNPC, o.npc)
+		ch.Inn = append(ch.Inn, o.topic)
 	}
 	return ch
 }
 
-// chapterForms are the forms chapter n's tavern pairs can have been written
-// in: the merged rows, then layer 0, the scenario's pairs, when a tavern
-// layer changes the chapter.
+// chapterForms are chapter n's merged pairs, then the scenario's when a
+// layer changes them.
 func (c Campaign) chapterForms(n int) []Chapter {
 	merged := c.chapter(n)
 	base := c.Chapters[n]
@@ -46,157 +40,203 @@ func (c Campaign) chapterForms(n int) []Chapter {
 	return []Chapter{merged, base}
 }
 
-// tavernRows are the rows a layer stated, and whether one did.
-func (b *townBook) tavernRows() ([]town.TavernRow, bool) {
-	if b == nil || b.catalog == nil || b.catalog.Tavern == nil {
+// tavernRows are the tavern rows a layer stated, and whether one did.
+func (b *townBook) tavernRows() ([]town.OfferRow, bool) {
+	if b == nil || b.catalog == nil || b.catalog.OfferTable != town.TavernTable || b.catalog.Offers == nil {
 		return nil, false
 	}
-	return b.catalog.Tavern, true
+	return b.catalog.Offers, true
 }
 
-// addedTavernRow is the row of chapter that NPC record npc speaks when a
-// mod added it, rather than layer 0.
-func (b *townBook) addedTavernRow(chapter, npc int) (town.TavernRow, bool) {
+// addedTavernRow is npc's row in chapter when a mod added it.
+func (b *townBook) addedTavernRow(chapter, npc int) (town.OfferRow, bool) {
 	rows, _ := b.tavernRows()
 	for _, r := range rows {
-		if r.Chapter == chapter && r.NPC == npc {
-			return r, b.addedTavern[r.Key()]
+		if r.Chapter() == chapter && r.NPC == npc {
+			return r, b.addedOffers[town.TavernTable.Key(r)]
 		}
 	}
-	return town.TavernRow{}, false
+	return town.OfferRow{}, false
 }
 
-// scenarioTavern is layer 0 of the tavern rows: every chapter's pairs in
-// chapter order and the file's order, each in the first of towns that
-// offers its mission, town 1 when none does.
-func scenarioTavern(c Campaign, towns []town.Entry) []town.TavernRow {
+// scenarioTavern is layer 0 of the tavern rows in chapter and file order,
+// each in the first town offering its mission, else town 1.
+func scenarioTavern(c Campaign, towns []town.Entry) []town.OfferRow {
 	chapters := make([]int, 0, len(c.Chapters))
 	for n := range c.Chapters {
 		chapters = append(chapters, n)
 	}
 	slices.Sort(chapters)
-	out := []town.TavernRow{}
+	out := []town.OfferRow{}
 	for _, n := range chapters {
 		ch := c.Chapters[n]
 		for i := range min(len(ch.InnNPC), len(ch.Inn)) {
-			row := town.TavernRow{Town: chapterTown, Chapter: n, NPC: ch.InnNPC[i], Mission: ch.Inn[i]}
-			if i := slices.IndexFunc(towns, func(e town.Entry) bool { return townOffersMission(e, towns, row.Mission) }); i >= 0 {
-				row.Town = towns[i].ID
+			id := chapterTown
+			if j := slices.IndexFunc(towns, func(e town.Entry) bool { return townOffersMission(e, towns, ch.Inn[i]) }); j >= 0 {
+				id = towns[j].ID
 			}
-			out = append(out, row)
+			out = append(out, town.ChapterOffer(id, n, ch.InnNPC[i], ch.Inn[i]))
 		}
 	}
 	return out
 }
 
-// layerTavern applies the mods' tavern records over layer 0 of book's
-// towns through the one layer step, judging the rows after each mod: the
-// catalog's row rules, a chapter that is a main mission of the campaign, a
-// quest whose mission is a section of the campaign and whose town offers
-// it, and, for a row the mod adds or changes, an NPC record of the install
-// and a talk text the install or a loaded mod holds.
-func layerTavern(book *townBook, d mod.TownData, c Campaign, in modTownInstall) ([]mod.Override, error) {
-	towns := book.chapterTowns()
-	base := scenarioTavern(c, towns)
-	patches := make([]mod.Patch[town.TavernKey, town.TavernRow], 0, len(d.Tavern))
-	for _, r := range d.Tavern {
-		patches = append(patches, mod.Patch[town.TavernKey, town.TavernRow]{Source: r.Source, Key: r.Row.Key(), Fields: r.Fields, Off: r.Off, Apply: r.Apply})
-	}
-	layer0 := map[town.TavernKey]town.TavernRow{}
-	for _, r := range base {
-		layer0[r.Key()] = r
-	}
-	check := func(modID string, l *mod.Layered[town.TavernKey, town.TavernRow]) error {
-		cat := *book.catalog
-		cat.Tavern = l.Records
-		err := cat.Validate()
-		for i := 0; err == nil && i < len(l.Records); i++ {
-			r := l.Records[i]
-			if prior, ok := layer0[r.Key()]; ok && prior == r {
-				continue
-			}
-			err = checkTavernRow(r, c, towns, in)
-		}
-		for i := 0; err == nil && i < len(in.Joins.Joins); i++ {
-			err = checkJoinTalk(in.Joins.Joins[i], d, modID, l.Records)
-		}
-		if err == nil {
-			return nil
-		}
-		src := firstTavernSource(d, modID)
-		var te *town.TavernError
-		if errors.As(err, &te) {
-			if named, ok := l.Named[te.Row]; ok {
-				src = named
-			}
-		}
-		return src.Errorf("%v", err)
-	}
-	l, err := mod.Merge("tavern row", base, town.TavernRow.Key, patches, d.Order, check)
-	if err != nil {
-		return nil, err
-	}
-	cat := *book.catalog
-	cat.Tavern = append([]town.TavernRow{}, l.Records...)
-	book.catalog = &cat
-	book.addedTavern = map[town.TavernKey]bool{}
-	for _, r := range l.Records {
-		if _, ok := layer0[r.Key()]; !ok {
-			book.addedTavern[r.Key()] = true
-		}
-	}
-	return l.Overrides, nil
+// offerRules judge a row a mod adds or changes; a nil answer skips its
+// check. missions names where mission looks; talk answers where the row's
+// talk text stands and whether it is held.
+type offerRules struct {
+	stage    func(n int) bool
+	mission  func(n int) bool
+	missions string
+	offers   func(id, n int) bool
+	npc      func(n int) bool
+	talk     func(r town.OfferRow) (string, bool)
 }
 
-// firstTavernSource is mod's first tavern record.
-func firstTavernSource(d mod.TownData, modID string) mod.Source {
-	for _, r := range d.Tavern {
-		if r.Mod == modID {
-			return r.Source
+// offerRulesFor are table's rules: a tavern row's by the scenario and its
+// inn talk file, an inn row's by the world map and the town text.
+func offerRulesFor(table town.OfferTable, c Campaign, towns []town.Entry, in modTownInstall) offerRules {
+	r := offerRules{npc: in.NPC}
+	switch table {
+	case town.TavernTable:
+		r.stage = func(n int) bool { return containsMission(c.Main, n) }
+		r.mission = func(n int) bool { return containsMission(c.Main, n) || containsMission(c.Side, n) }
+		r.missions = "a mission section of the campaign"
+		r.offers = func(id, n int) bool {
+			e := slices.IndexFunc(towns, func(e town.Entry) bool { return e.ID == id })
+			return e >= 0 && townOffersMission(towns[e], towns, n)
+		}
+		if in.Text != nil {
+			r.talk = func(o town.OfferRow) (string, bool) {
+				path, _ := tavernTalkTextPath(o.NPC, o.Topic, o.Chapter())
+				return path, in.Text(path)
+			}
+		}
+	case town.InnTable:
+		r.mission, r.missions = in.Mission, "a mission record of the world map"
+		if in.Talk != nil {
+			r.talk = func(o town.OfferRow) (string, bool) {
+				key := secondTalkKey(o.NPC, o.Topic)
+				return "section " + key + " of " + secondTownText, in.Talk(key)
+			}
 		}
 	}
-	return d.First()
+	return r
 }
 
-// checkJoinTalk refuses mod modID's tavern records when they leave chapter
-// j.Chapter without the talk companion join j waits for, naming the last of
-// them that names the talk.
-func checkJoinTalk(j mod.CompanionJoin, d mod.TownData, modID string, rows []town.TavernRow) error {
-	if j.Building != mod.BuildingTavern || slices.ContainsFunc(rows, func(r town.TavernRow) bool { return r.Chapter == j.Chapter && r.NPC == j.Talk }) {
-		return nil
+// check judges row r of table.
+func (rules offerRules) check(r town.OfferRow, table town.OfferTable) error {
+	k := table.Key(r)
+	bad := func(format string, args ...any) error {
+		return town.OfferErrorf(k, "%s row %v: "+format, append([]any{table, k}, args...)...)
 	}
-	for _, r := range slices.Backward(d.Tavern) {
-		if r.Mod == modID && r.Row.Chapter == j.Chapter && r.Row.NPC == j.Talk {
-			k := r.Row.Key()
-			return town.TavernErrorf(k, "tavern row %v is switched off, but mod %q (%s line %d) makes companion %d join on this talk in chapter %d",
-				k, j.Mod, j.File, j.Line, j.Companion, j.Chapter)
+	if rules.stage != nil && !rules.stage(r.Chapter()) {
+		return bad("chapter %d is not a main mission of the campaign", r.Chapter())
+	}
+	if r.Kind == town.OfferMission {
+		if rules.mission != nil && !rules.mission(r.Topic) {
+			return bad("mission %d is not %s", r.Topic, rules.missions)
+		}
+		if rules.offers != nil && !rules.offers(r.Town, r.Topic) {
+			return bad("town %d does not offer mission %d", r.Town, r.Topic)
+		}
+	}
+	if rules.npc != nil && !rules.npc(r.NPC) {
+		return bad("npc %d is not a record of the install's NPC table", r.NPC)
+	}
+	if rules.talk != nil {
+		if where, ok := rules.talk(r); !ok {
+			return bad("its talk text %s is neither in the install nor served by a loaded mod", where)
 		}
 	}
 	return nil
 }
 
-// checkTavernRow is the campaign's and the install's rules for one row a
-// mod adds or changes.
-func checkTavernRow(r town.TavernRow, c Campaign, towns []town.Entry, in modTownInstall) error {
-	k := r.Key()
-	if !containsMission(c.Main, r.Chapter) {
-		return town.TavernErrorf(k, "tavern row %v: chapter %d is not a main mission of the campaign", k, r.Chapter)
-	}
-	if r.Mission != 0 {
-		if !containsMission(c.Main, r.Mission) && !containsMission(c.Side, r.Mission) {
-			return town.TavernErrorf(k, "tavern row %v: mission %d is not a mission section of the campaign", k, r.Mission)
-		}
-		e := slices.IndexFunc(towns, func(e town.Entry) bool { return e.ID == r.Town })
-		if e < 0 || !townOffersMission(towns[e], towns, r.Mission) {
-			return town.TavernErrorf(k, "tavern row %v: town %d does not offer mission %d", k, r.Town, r.Mission)
+// layerOffers merges the mods' offer records over book's rows, or the
+// scenario's when it states none, judging each mod's result: the catalog's
+// row bounds, the bank and offerRules for each added or changed row.
+func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) ([]mod.Override, error) {
+	table := book.catalog.OfferTable
+	for _, r := range d.Offers {
+		if r.Table != table {
+			return nil, r.Errorf("catalog %s takes [[%s]] offer rows, not [[%s]] ones", book.catalog.Catalog, table, r.Table)
 		}
 	}
-	if in.NPC != nil && !in.NPC(r.NPC) {
-		return town.TavernErrorf(k, "tavern row %v: npc %d is not a record of the install's NPC table", k, r.NPC)
+	towns := book.chapterTowns()
+	base := book.catalog.Offers
+	if base == nil {
+		base = scenarioTavern(c, towns)
 	}
-	path, _ := tavernTalkTextPath(r.NPC, r.Mission, r.Chapter)
-	if in.Text != nil && !in.Text(path) {
-		return town.TavernErrorf(k, "tavern row %v: its talk text %s is neither in the install nor served by a loaded mod", k, path)
+	rules := offerRulesFor(table, c, towns, in)
+	key := table.Key
+	patches := make([]mod.Patch[town.OfferKey, town.OfferRow], 0, len(d.Offers))
+	for _, r := range d.Offers {
+		patches = append(patches, mod.Patch[town.OfferKey, town.OfferRow]{Source: r.Source, Key: r.Key(), Fields: r.Fields, Off: r.Off, Apply: r.Apply})
+	}
+	layer0 := map[town.OfferKey]town.OfferRow{}
+	for _, r := range base {
+		layer0[key(r)] = r
+	}
+	check := func(modID string, l *mod.Layered[town.OfferKey, town.OfferRow]) error {
+		cat := *book.catalog
+		cat.Offers = l.Records
+		err := cat.Validate()
+		if err == nil {
+			err = checkOfferBank(cat.Offers, table)
+		}
+		for i := 0; err == nil && i < len(l.Records); i++ {
+			r := l.Records[i]
+			if prior, ok := layer0[key(r)]; ok && prior.Equal(r) {
+				continue
+			}
+			err = rules.check(r, table)
+		}
+		for i := 0; err == nil && i < len(in.Joins.Joins); i++ {
+			err = checkJoinTalk(in.Joins.Joins[i], d, modID, table, l.Records)
+		}
+		if err == nil {
+			return nil
+		}
+		src := d.First()
+		if i := slices.IndexFunc(d.Offers, func(r mod.OfferRecord) bool { return r.Mod == modID }); i >= 0 {
+			src = d.Offers[i].Source
+		}
+		var oe *town.OfferError
+		if errors.As(err, &oe) {
+			if named, ok := l.Named[oe.Row]; ok {
+				src = named
+			}
+		}
+		return src.Errorf("%v", err)
+	}
+	l, err := mod.Merge(fmt.Sprintf("%s row", table), base, key, patches, d.Order, check)
+	if err != nil {
+		return nil, err
+	}
+	cat := *book.catalog
+	cat.Offers = append([]town.OfferRow{}, l.Records...)
+	book.catalog = &cat
+	book.addedOffers = map[town.OfferKey]bool{}
+	for _, r := range l.Records {
+		if _, ok := layer0[key(r)]; !ok {
+			book.addedOffers[key(r)] = true
+		}
+	}
+	return l.Overrides, nil
+}
+
+// checkJoinTalk refuses mod modID's records when they drop the talk that
+// companion join j waits for, naming the last that names it.
+func checkJoinTalk(j mod.CompanionJoin, d mod.TownData, modID string, table town.OfferTable, rows []town.OfferRow) error {
+	talks := func(k town.OfferKey) bool { return k.Chapter == j.Chapter && k.NPC == j.Talk }
+	if j.Building != mod.BuildingTavern || slices.ContainsFunc(rows, func(r town.OfferRow) bool { return talks(table.Key(r)) }) {
+		return nil
+	}
+	for _, r := range slices.Backward(d.Offers) {
+		if k := r.Key(); r.Mod == modID && talks(k) {
+			return town.OfferErrorf(k, "%s row %v is switched off, but mod %q (%s line %d) makes companion %d join on this talk in chapter %d",
+				r.Table, k, j.Mod, j.File, j.Line, j.Companion, j.Chapter)
+		}
 	}
 	return nil
 }

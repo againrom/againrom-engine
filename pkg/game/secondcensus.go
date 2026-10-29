@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 )
 
 // SecondCensusTicks is how long the census runs each started map.
@@ -667,18 +668,15 @@ func secondProducer(n int) string {
 	case n == 62 || n >= 74 && n <= 77 || n >= 84 && n <= 87 || n >= 93 && n <= 96:
 		return "town 2 inn talk"
 	}
-	for _, stage := range slices.Sorted(maps.Keys(secondInnStages)) {
-		for _, e := range secondInnStages[stage] {
-			if e.kind != 3 || e.topic != n {
-				continue
-			}
-			if e.stage != 0 {
-				stage = e.stage
-			} else if stage >= 60 && stage <= 80 {
-				return "stage 60/70/80 inn talk"
-			}
-			return fmt.Sprintf("stage %d inn talk", stage)
+	for _, r := range secondBook().offerRows() {
+		if r.Kind != town.OfferMission || r.Topic != n || len(r.Stages) == 0 {
+			continue
 		}
+		stages := make([]string, len(r.Stages))
+		for i, s := range r.Stages {
+			stages[i] = fmt.Sprint(s)
+		}
+		return fmt.Sprintf("stage %s inn talk", strings.Join(stages, "/"))
 	}
 	target := fmt.Sprintf("mission %d", n)
 	for _, from := range slices.Sorted(maps.Keys(secondDepartureCases)) {

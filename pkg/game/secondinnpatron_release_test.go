@@ -158,7 +158,8 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 	if c.talk.payload == nil {
 		t.Fatal("Talk with seat 1 selected opened no talk")
 	}
-	if key := secondTalkKey(c.speakers()[1]); key != "npc2108talk8" {
+	if o := c.speakers()[1]; secondTalkKey(o.npc, o.topic) != "npc2108talk8" {
+		key := secondTalkKey(o.npc, o.topic)
 		t.Errorf("seat 1 talk key %s", key)
 	}
 }

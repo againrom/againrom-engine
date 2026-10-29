@@ -13,16 +13,16 @@ import (
 // nothing (R2-ENGINE-493, R2-SESSION-191).
 func TestSecondInnHireToggle(t *testing.T) {
 	c := innAt(2, 30, map[int]int32{514: 7})
-	c.talkTo(secondInnOption{kind: 1, npc: 1})
-	c.talkTo(secondInnOption{kind: 1, npc: 3})
-	c.talkTo(secondInnOption{kind: 1, npc: 20, high: true})
+	c.talkTo(innOffer{kind: 1, npc: 1})
+	c.talkTo(innOffer{kind: 1, npc: 3})
+	c.talkTo(innOffer{kind: 1, npc: 20, high: true})
 	if c.bank[512] != 1 || c.bank[514] != 0 || c.bank[531] != 1 {
 		t.Fatalf("toggle 512 %d 514 %d 531 %d", c.bank[512], c.bank[514], c.bank[531])
 	}
 	before := c.bank
-	c.talkTo(secondInnOption{kind: 2, npc: 1})
-	c.talkTo(secondInnOption{kind: 1, npc: 21})
-	c.talkTo(secondInnOption{kind: 1, npc: 0})
+	c.talkTo(innOffer{kind: 2, npc: 1})
+	c.talkTo(innOffer{kind: 1, npc: 21})
+	c.talkTo(innOffer{kind: 1, npc: 0})
 	if c.bank != before {
 		t.Fatal("kind 2 or a low ID outside 1..20 changed the bank")
 	}
@@ -67,7 +67,7 @@ func TestSecondInnHireAndFire(t *testing.T) {
 func TestSecondInnHireTakesFirstWord(t *testing.T) {
 	c := innAt(2, 50, map[int]int32{533: 1, 553: 2})
 	seats, hires := c.innSeats()
-	if hires != 1 || seats[0] != (secondInnOption{kind: 1, npc: 2}) || seats[1].npc != 23 {
+	if hires != 1 || seats[0] != (innOffer{kind: 1, npc: 2}) || seats[1].npc != 23 {
 		t.Fatalf("seats %v hires %d", seats, hires)
 	}
 	before := c.bank

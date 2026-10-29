@@ -19,9 +19,10 @@ import (
 // merged catalog passes the catalog decoder's rules, the campaign's opening
 // check and, for a stated map point, the world map's bounds, after each mod.
 // Every refusal names the mod, the file and the line. The campaign and the
-// session's town take the merged catalog. The returned lines name every
-// field a later mod sets over an earlier one. It runs once, after SetMods
-// and before any game is opened.
+// session's town take the merged catalog; a catalog of chapter towns needs
+// the campaign's scenario, which a catalog of bank towns does not read. The
+// returned lines name every field a later mod sets over an earlier one. It
+// runs once, after SetMods and before any game is opened.
 func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	if d.Empty() {
 		return nil, nil
@@ -29,9 +30,11 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	if f == nil || f.Archives == nil || f.Archives.Containers == nil {
 		return nil, errors.New("the front end has no archives to carry the mods' towns")
 	}
-	c := f.Campaign.Value()
-	if err := f.Campaign.Err(); err != nil {
-		return nil, d.First().Errorf("the install's campaign is unavailable for its towns: %v", err)
+	profile := f.Archives.Base.Profile
+	base := townBookOf(profile)
+	c, scenario := f.Campaign.Value(), f.Campaign.Err()
+	if scenario != nil && (base == nil || townCatalogTakesLayer(base.catalog)) {
+		return nil, d.First().Errorf("the install's campaign is unavailable for its towns: %v", scenario)
 	}
 	// A stated point stands inside the picture of every mode of the map.
 	bounds := func() (b image.Rectangle, ok bool) {
@@ -62,7 +65,6 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 		}
 		return shown, nil
 	}
-	profile := f.Archives.Base.Profile
 	in := modTownInstall{
 		Entry: func(key string) bool {
 			_, err := f.Archives.Containers.ReadFile(key)
@@ -80,12 +82,19 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	if f.Table != nil {
 		in.Joins = f.Table.Mods.Companions
 	}
-	book, list, err := layerTownBook(townBookOf(profile), d, c, bounds, encode, in)
+	if desc := WorldMapDescriptionFor(profile); desc != nil && desc.Records == "catalog" {
+		in.Mission = func(n int) bool { _, ok := desc.point(placeMission, n); return ok }
+	}
+	in.Talk = func(key string) bool {
+		body, err := readSecondTownTalk(&f.InstallResources, key)
+		return err == nil && body != nil
+	}
+	book, list, err := layerTownBook(base, d, c, bounds, encode, in)
 	if err != nil {
 		return nil, err
 	}
 	c.Towns = book
-	f.Campaign = resolved(c, nil)
+	f.Campaign = resolved(c, scenario)
 	f.Town = NewTown(c)
 	for _, o := range list {
 		overrides = append(overrides, o.String())
@@ -105,7 +114,15 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 		return nil, nil, first.Errorf("this base has no town catalog to layer")
 	}
 	if !townCatalogTakesLayer(base.catalog) {
-		return nil, nil, first.Errorf("town layers apply to the first game's catalog; catalog %s is not one", base.catalog.Catalog)
+		if len(d.Records) > 0 {
+			return nil, nil, first.Errorf("town layers apply to the first game's catalog; catalog %s takes [[%s]] offer rows only", base.catalog.Catalog, base.catalog.OfferTable)
+		}
+		book := *base
+		overrides, err := layerOffers(&book, d, c, in)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &book, overrides, nil
 	}
 	data := maps.Clone(townDescriptionData)
 	files := map[string]*mod.TownDescriptionFile{}
@@ -147,7 +164,9 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 	decoded := maps.Clone(base.descriptions)
 	hooks := shippedTownHooks()
 	catalogOf := func(entries []town.Entry) *town.Catalog {
-		return &town.Catalog{Catalog: base.catalog.Catalog, Cite: base.catalog.Cite, Towns: slices.Clone(entries)}
+		cat := *base.catalog
+		cat.Towns = slices.Clone(entries)
+		return &cat
 	}
 	check := func(modID string, l *mod.Layered[int, town.Entry]) error {
 		if src, off := l.Off[chapterTown]; off {
@@ -220,8 +239,8 @@ func layerTownBook(base *townBook, d mod.TownData, c Campaign, bounds func() (im
 		book.art[desc] = art
 	}
 	overrides := l.Overrides
-	if len(d.Tavern) > 0 {
-		rows, err := layerTavern(book, d, c, in)
+	if len(d.Offers) > 0 {
+		rows, err := layerOffers(book, d, c, in)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -266,7 +285,7 @@ func (f *FrontEnd) baseTownLayer(baseID string) (baseDumpLayer, error) {
 		layer.note = fmt.Sprintf("%s: the install's town title % x does not read back from UTF-8; name is left out", mod.TownsFile, f.Words.WorldHomeTitle)
 		head = append(head, layer.note+".")
 	}
-	var rows []town.TavernRow
+	var rows []town.OfferRow
 	if c := f.Campaign.Value(); layer.read && f.Campaign.Err() == nil {
 		rows = scenarioTavern(c, book.chapterTowns())
 		head = append(head, "Each [[tavern]] table is a tavern row of the scenario; keep town, chapter and npc of a row you change.")
@@ -362,6 +381,11 @@ type modTownInstall struct {
 	Text func(path string) bool
 	// NPC reports whether the install's NPC table holds a record.
 	NPC func(npc int) bool
+	// Mission reports whether the world map holds a mission record.
+	Mission func(n int) bool
+	// Talk reports whether the install's or a loaded mod's town text holds
+	// a talk section.
+	Talk func(key string) bool
 	// Joins are the companion joins the companions kind, which applies
 	// before the towns kind, recorded.
 	Joins mod.CompanionData

@@ -3315,5 +3315,16 @@ var Committed = Baseline{
 	// pkg/game/mapinspectionedit.go, the new tests' comments in
 	// pkg/ui/mapeditorobjectpick_test.go and
 	// pkg/game/mapinspectionobjectdrag_test.go, and this note.
-	CommentBytes: 9874884,
+
+	// It rose for the one inn offers builder: the doc comments of the inn
+	// rows and the mercenary rule in pkg/town/inn.go, of the builder, the hire
+	// producer and the bank check in pkg/game/innoffers.go, of the [[inn]]
+	// records in pkg/mod/towns.go, of the offer layer, the book binding and
+	// the moved rule constants in pkg/game, of the scan in
+	// internal/archtest/innoffers.go, the new tests' comments, and this note.
+	// It rose again for the comments of the inn row, mercenary rule and
+	// [[inn]] parse tests in pkg/town/inn_test.go, pkg/mod/towns_test.go and
+	// pkg/game/innoffers_test.go. It fell when tavern and inn rows became one
+	// row type with one parser and one validator.
+	CommentBytes: 9881863,
 }

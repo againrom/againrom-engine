@@ -413,11 +413,31 @@ func (c destinationTownCampaign) bank() *secondCampaign {
 	if c.t.sess == nil || c.t.sess.Town == nil {
 		return nil
 	}
-	return c.t.sess.Town.second
+	s := c.t.sess.Town.second
+	if s != nil {
+		// The campaign binds the rows of a layered book; the shipped
+		// book's are its default.
+		s.offers = nil
+		if b := c.book(); b != nil && b.catalog != secondBook().catalog {
+			s.offers = b.offerRows()
+		}
+	}
+	return s
 }
+
+// secondBook is the second game's shipped book: the book of a screen with
+// no install, and the default of the campaign's inn rows.
+func secondBook() *townBook { return townBooks["rom2"] }
+
+// book is the mods' layered book when a layer applies, the profile's
+// shipped book otherwise.
 func (c destinationTownCampaign) book() *townBook {
 	if c.t.in == nil || c.t.in.Archives == nil {
-		return townBooks["rom2"]
+		return secondBook()
+	}
+	if layered := c.t.in.Campaign.Value().Towns; layered != nil && townBookOf(c.t.profile()) != nil &&
+		layered.catalog.Catalog == townBookOf(c.t.profile()).catalog.Catalog {
+		return layered
 	}
 	return townBookOf(c.t.profile())
 }

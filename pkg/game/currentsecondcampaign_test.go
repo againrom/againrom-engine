@@ -84,7 +84,7 @@ func TestCurrentSecondTownRoomAndAvailabilityBounds(t *testing.T) {
 			c := newSecondCampaign()
 			c.room = room
 			if unlocked {
-				c.talkTo(secondInnOption{kind: 3, topic: 10, npc: 517})
+				c.talkTo(innOffer{kind: 3, topic: 10, npc: 517})
 			}
 			a := captureSecondCampaign(c)
 			raw, err := json.Marshal(a)

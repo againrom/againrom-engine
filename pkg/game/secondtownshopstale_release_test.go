@@ -38,7 +38,7 @@ func TestReleaseSecondTownDruidStaleStockSave(t *testing.T) {
 	if err := app.HeadlessKey("escape"); err != nil || c.room != secondTownSquare {
 		t.Fatal("escape", err)
 	}
-	c.talkTo(secondInnOption{kind: 0, npc: 675, topic: 78})
+	c.talkTo(innOffer{kind: 0, npc: 675, topic: 78})
 	dir := secondMissionSaveDirectory(t)
 	secondTownNamedSave(t, f, app, dir, "Stale")
 	runSpellWitnessChild(t, filepath.Join(dir, secondSaveFile(t, dir, "Stale")), "AGAINROM_SECOND_STALE_INPUT")

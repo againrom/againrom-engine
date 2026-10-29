@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"againrom/pkg/town"
 )
 
 // Every kind of data a mod carries is declared once, in dataKinds: its file
@@ -198,17 +200,21 @@ var dataKinds = []DataKind{
 		Script: true, read: readMissions,
 	},
 	{
-		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`",
+		Name: "towns", Files: []string{TownsFile}, Key: "`id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc`",
 		Class: CatalogData, Layer: LayerMerged, Dump: true,
-		Base:   "the install's town catalog; its tavern rows are the scenario's",
-		Shared: mergedShared + "; `off` switches a town or a tavern row off",
+		Base:   "the install's town catalog; its tavern rows are the scenario's, its inn rows the catalog's",
+		Shared: mergedShared + "; `off` switches a town, a tavern row or an inn row off",
 		Script: true, read: readTowns,
 		summary: func(d Data) string {
 			if d.Towns.Empty() {
 				return ""
 			}
-			if len(d.Towns.Tavern) > 0 {
-				return fmt.Sprintf("town records=%d tavern rows=%d", len(d.Towns.Records), len(d.Towns.Tavern))
+			tavern, inn := d.Towns.OfferRows(town.TavernTable), d.Towns.OfferRows(town.InnTable)
+			if inn > 0 {
+				return fmt.Sprintf("town records=%d tavern rows=%d inn rows=%d", len(d.Towns.Records), tavern, inn)
+			}
+			if tavern > 0 {
+				return fmt.Sprintf("town records=%d tavern rows=%d", len(d.Towns.Records), tavern)
 			}
 			return fmt.Sprintf("town records=%d", len(d.Towns.Records))
 		},

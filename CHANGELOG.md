@@ -37,6 +37,7 @@ modder or developer can notice gets no entry.
 - [ROM1] A person's setup lets you add, replace, remove and duplicate carried items with private magic recipes. It shows the resulting bag and corpse loot before Apply, including displaced equipment and NPC loot suppression.
 - [ROM1] E opens one person setup window with a pinned doll, equipment, bag, loot and stat overrides. Wide windows show three columns; smaller windows use sections. Item lists support typing to find a name, and the whole draft applies or cancels together.
 - [BASE] F5 in the map editor now plays the map under the route of the mod package open in the W window: the guest companion, the mission it plays after, the town chapter, the gold and the mission number, or the replaced campaign mission. Before, F5 always played it as the first companion the campaign's first town grants. A route that Ctrl+S would refuse now refuses F5 with the same words.
+- [ROM2] A mod can now add, change or switch off an inn talk: `[[inn]]` tables in the mod's `data/towns.toml` name a talk by its topic and speaker and say in which town, at which stage of the campaign and under which campaign conditions it shows, the same way a first-game mod edits a tavern talk with `[[tavern]]` tables. A talk the mod adds or changes must name a speaker, a talk text and, for a quest, a mission the game holds; otherwise the game names the mod, the file and the line at start and does not open. Before, the second game's inn talks could not be changed by a mod.
 
 ## 0.138.0
 

@@ -31,7 +31,7 @@ with `game.data.add`.
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
-| towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town or a tavern row off | Towns, Tavern rows, `docs/1486/story.md`, `docs/1513/story.md` |
+| towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
 
 The base dump writes layer 0 of towns only; the other catalog kinds have no
@@ -640,7 +640,8 @@ first game's town catalog, keyed by `id`, in the catalog's entry format
 (`docs/1485/story.md`). The install's catalog is layer 0; each mod's file is
 applied in load order. A table adds a town when no earlier layer holds its
 `id`, changes only the fields it names when one does, or switches the town
-off with `off = true`. The second game's catalog takes no layer.
+off with `off = true`. The second game's catalog takes no `[[town]]` or
+`[[tavern]]` layer; its inn rows take one (see "Inn rows").
 
 | key | value |
 |---|---|
@@ -770,6 +771,83 @@ The mod carries `files/en/main/text/inn/npc/npc41m50.txt` and
 `files/en/main/text/inn/npc/npc32m31.txt` (and the `ru` ones for a Russian
 install), each in the part form of the install's talk texts
 (`<part=1 npc=41>` and the words).
+
+### Inn rows
+
+On the second game the same file holds `[[inn]]` tables: the option rows of
+the towns' inns. A `[[tavern]]` row and an `[[inn]]` row are one row type,
+read by one parser and judged by one validator; the tavern row is its reduced
+shape, one chapter of one town. A catalog names the table its rows take
+(`offer-table`), and a table of the other game is refused. Layer 0 is the
+catalog's own rows, `pkg/game/towncatalogs/rom2.json` key `offers` under
+`"offer-table": "inn"`: the stage bodies of the inn's
+entry (stages 10, 30, 40, 50, the body stages 60, 70 and 80 share, 90, 100
+and 110), the town 3 talks of NPC records 5 and 675 after stage 60, and the
+town 2 mission talks of NPC records 2022 and 22 (R2-ENGINE-161,
+R2-ENGINE-215 to R2-ENGINE-228). The inn shows, in row order, every row the
+party's town, the stage (bank slot 768) and the bank admit, then the hire
+actors of the hire bank, which no row states. A table adds a row when no
+layer holds its key, changes the fields it names when one does, or switches
+the row off with `off = true`. A row a mod adds comes after the rows of
+layer 0.
+
+| key | value |
+|---|---|
+| `topic` | part of the key; the talk's topic, and for kind 3 the mission it makes available |
+| `npc` | part of the key; the NPC record that speaks, from 1 |
+| `kind` | 0, a talk; 3, a talk that makes mission `topic` available. A row that does not set it is a talk |
+| `town` | the town whose inn shows the row; 0 or absent shows it in every town |
+| `stages` | the stages the row shows at, each from 1; absent shows it at every stage |
+| `after` | from 1, the row shows only at a stage above it |
+| `zero` | bank slots (0 to 1023) that must hold 0 |
+| `nonzero` | bank slots that must hold a value other than 0 |
+| `one` | bank slots that must hold 1 |
+| `any` | bank slots of which at least one must hold a value other than 0 |
+| `off` | `true` switches the row off and stands alone in its table |
+
+A list a table sets replaces the row's list. The talk speaks the section
+`npc<npc>talk<topic>` of the install's town text, `main/text/town.txt`, as a
+row of layer 0 does. A merged row is refused at launch, naming the mod, the
+file, the line and the row, when its kind is not 0 or 3, its town is not a
+town of the catalog, a stage is not positive or a slot is outside the bank.
+A row a mod adds or changes is also refused, as a tavern row is, when:
+
+- its kind is 3 and `topic` is not a mission record of the world map;
+- its NPC record is not in the install's NPC table;
+- its talk section is in neither the install's town text nor a town text a
+  loaded mod carries (`files/<language>/main/text/town.txt`, see "Install
+  files"). The English and the Russian town texts do not hold the same
+  sections: `npc520talk7` and `npc2006talk110` are in the English text
+  alone (the rom2-en and rom2-ru installs, `main.res`).
+
+The second game loads these rows with no scenario of the first game's kind:
+its install holds no `scenario/scenario.reg`. The first game refuses
+`[[inn]]` tables; its tavern talks are `[[tavern]]` rows.
+
+```toml
+# Town 2's inn at stage 30 also hears NPC record 520 on topic 7. The
+# English town text holds that section; on a Russian install the mod also
+# carries a town text that holds it.
+[[inn]]
+topic  = 7
+npc    = 520
+kind   = 0
+town   = 2
+stages = [30]
+
+# NPC record 2108's stage 30 talk shows only while bank slot 927 holds 0
+# and slot 533 does not.
+[[inn]]
+topic   = 31
+npc     = 2108
+nonzero = [533]
+
+# NPC record 2110's stage 30 talk is switched off.
+[[inn]]
+topic = 39
+npc   = 2110
+off   = true
+```
 
 ### Town description format
 
@@ -992,10 +1070,13 @@ To make a mod from the dump:
 4. Run `againrom.exe -check -mods <name> -mods-dir <folder holding it>`; a
    refusal names the file and the line.
 
-The second game reads no towns layer. Its dump still lists its three towns
-in `data/towns.toml`, for reading, and says so in the file and in the
-printed lines; its `main.star` adds no file. A second-game town has no
-`name` key: the second game draws no name from its catalog.
+The second game reads no towns layer of `[[town]]` tables. Its dump still
+lists its three towns in `data/towns.toml`, for reading, and says so in the
+file and in the printed lines; its `main.star` adds no file. A second-game
+town has no `name` key: the second game draws no name from its catalog. The
+dump writes no `[[inn]]` table; a second-game mod that changes an inn row
+writes its own `data/towns.toml` holding only `[[inn]]` tables (see "Inn
+rows") and adds it in `main.star`.
 
 The dump refuses, writes nothing and names the reason when the folder:
 

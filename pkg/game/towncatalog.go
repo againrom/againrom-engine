@@ -66,8 +66,8 @@ type townBook struct {
 	art          map[*town.Description]map[string][]byte
 	// loads are the deferred art reads of each description in art.
 	loads map[*town.Description]*townArtLoads
-	// addedTavern are the catalog's tavern rows a mod added over layer 0.
-	addedTavern map[town.TavernKey]bool
+	// addedOffers are the catalog's offer rows a mod added over layer 0.
+	addedOffers map[town.OfferKey]bool
 }
 
 // modArt is the files a mod carries for description d's art; nil for a
@@ -101,6 +101,18 @@ func init() {
 		}
 		if c.Catalog != name {
 			panic(fmt.Sprintf("town catalog %q is registered as %q", c.Catalog, name))
+		}
+		if err := checkOfferBank(c.Offers, c.OfferTable); err != nil {
+			panic(err)
+		}
+		if c.Mercenaries != nil {
+			if tavernRule != nil {
+				panic(fmt.Sprintf("town catalog %q states a second mercenary rule", name))
+			}
+			if c.Mercenaries.StockTypes >= len(Town{}.mercHired) {
+				panic(fmt.Sprintf("town catalog %q: %d stock types pass the town's %d mercenary types", name, c.Mercenaries.StockTypes, len(Town{}.mercHired)-1))
+			}
+			tavernRule = c.Mercenaries
 		}
 		townBooks[name] = &townBook{catalog: c, descriptions: townDescriptions}
 	}

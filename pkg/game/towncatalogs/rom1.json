@@ -1,8 +1,12 @@
 {
   "catalog": "rom1",
-  "cite": ["TOWN-489"],
+  "cite": ["TOWN-489", "TAVERN-ORDER-015"],
   "towns": [
     {"id": 1, "description": "rom1", "hooks": "chapters", "offers": "chapter-keys", "map-point": {"object": 1},
      "cite": ["TOWN-489", "REG-GMAP-066", "REG-SCN-064"]}
-  ]
+  ],
+  "offer-table": "tavern",
+  "mercenaries": {"stock-types": 15, "stock-id-phase": 6, "price-from": 30, "price-step": 10,
+                  "price-ladder": [10, 15, 20, 40, 60, 80, 100, 600, 800, 1000, 6000, 8000, 10000],
+                  "levels": [{"from": 60, "level": 2}, {"from": 100, "level": 3}, {"from": 130, "level": 4}]}
 }

@@ -91,20 +91,106 @@ off     = true
 	if err != nil || len(towns) != 1 || len(rows) != 2 {
 		t.Fatalf("%d towns, %d rows: %v", len(towns), len(rows), err)
 	}
-	if rows[0].Row != (town.TavernRow{Town: 1, Chapter: 50, NPC: 41}) || rows[0].Line != 5 || len(rows[0].Fields) != 1 ||
+	if !rows[0].Row.Equal(town.ChapterOffer(1, 50, 41, 0)) || rows[0].Table != town.TavernTable || rows[0].Line != 5 || len(rows[0].Fields) != 1 ||
 		rows[0].Fields[0] != (PatchField{Name: "mission", Line: 9}) {
 		t.Fatalf("talk %+v", rows[0])
 	}
 	if !rows[1].Off || len(rows[1].Fields) != 1 || rows[1].Fields[0].Name != OffField {
 		t.Fatalf("switch-off %+v", rows[1])
 	}
-	r := town.TavernRow{Mission: 51}
+	r := town.OfferRow{Kind: town.OfferMission, Topic: 51}
 	rows[1].Apply(&r)
-	if r != (town.TavernRow{Town: 1, Chapter: 50, NPC: 25, Mission: 51}) {
+	if !r.Equal(town.ChapterOffer(1, 50, 25, 51)) {
 		t.Fatalf("an off record changed the mission: %+v", r)
 	}
-	if d := (TownData{Tavern: rows}); d.Empty() || d.First() != rows[0].Source {
+	if d := (TownData{Offers: rows}); d.Empty() || d.First() != rows[0].Source {
 		t.Fatal("a file of tavern rows alone reads as empty")
+	}
+}
+
+// Every key of an [[inn]] table reads into the inn row format; a record names
+// the fields it sets, and Apply sets those alone.
+func TestTownsReadInnRows(t *testing.T) {
+	src := `[[inn]]
+topic   = 38
+npc     = 2110
+kind    = 3
+town    = 2
+stages  = [30, 40]
+after   = 20
+zero    = [927]
+nonzero = [533]
+one     = [774]
+any     = [970, 971]
+
+[[inn]]
+topic   = 31
+npc     = 2108
+nonzero = [533]
+
+[[inn]]
+topic = 39
+npc   = 2110
+off   = true
+`
+	_, inns, err := ParseTowns("m", TownsFile, []byte(src))
+	if err != nil || len(inns) != 3 {
+		t.Fatalf("%d inn rows: %v", len(inns), err)
+	}
+	want := town.OfferRow{Kind: 3, Topic: 38, NPC: 2110, Town: 2, Stages: []int{30, 40}, After: 20,
+		Zero: []int{927}, Nonzero: []int{533}, One: []int{774}, Any: []int{970, 971}}
+	if !reflect.DeepEqual(inns[0].Row, want) || inns[0].Line != 1 || len(inns[0].Fields) != 8 {
+		t.Fatalf("full row %+v", inns[0])
+	}
+	shipped := town.OfferRow{Kind: 3, Topic: 31, NPC: 2108, Stages: []int{30}, Zero: []int{927}}
+	edited := shipped
+	inns[1].Apply(&edited)
+	if !reflect.DeepEqual(edited, town.OfferRow{Kind: 3, Topic: 31, NPC: 2108, Stages: []int{30}, Zero: []int{927}, Nonzero: []int{533}}) {
+		t.Fatalf("one-field edit %+v", edited)
+	}
+	if edited.Nonzero[0] = 1; inns[1].Row.Nonzero[0] != 533 {
+		t.Fatal("the applied list shares its record's array")
+	}
+	if !inns[2].Off || len(inns[2].Fields) != 1 || inns[2].Fields[0].Name != OffField {
+		t.Fatalf("switch-off %+v", inns[2])
+	}
+	if d := (TownData{Offers: inns}); d.Empty() || d.First() != inns[0].Source {
+		t.Fatal("a file of inn rows alone reads as empty")
+	}
+	for _, bad := range []struct{ src, want string }{
+		{"[[inn]]\ntopic = 1\n", "no npc"},
+		{"[[inn]]\ntopic = 1\nnpc = 0\nkind = 3\n", "npc"},
+		{"[[inn]]\ntopic = 1\nnpc = 2\n", "changes nothing"},
+		{"[[inn]]\ntopic = 1\nnpc = 2\noff = true\nkind = 3\n", "stands alone"},
+		{"[[inn]]\ntopic = 1\nnpc = 2\nstages = [0]\n", "stages"},
+		{"[[inn]]\ntopic = 1\nnpc = 2\nbank = 3\n", "unknown key"},
+		{"[[inn]]\ntopic = 1\nnpc = 2\nkind = 3\n[[inn]]\ntopic = 1\nnpc = 2\nkind = 0\n", "topic 1 npc 2"},
+	} {
+		if _, _, err := ParseTowns("m", TownsFile, []byte(bad.src)); err == nil || !strings.Contains(err.Error(), bad.want) {
+			t.Errorf("%q: %v", bad.src, err)
+		}
+	}
+}
+
+// One parser reads both tables into offer records, each in its table's key.
+func TestTownsReadOfferRowsOfBothTables(t *testing.T) {
+	src := "[[inn]]\ntopic = 9\nnpc = 207\nkind = 3\n\n[[tavern]]\ntown = 1\nchapter = 30\nnpc = 207\nmission = 31\n"
+	_, rows, err := ParseTowns("m", TownsFile, []byte(src))
+	if err != nil || len(rows) != 2 {
+		t.Fatalf("%d rows: %v", len(rows), err)
+	}
+	if rows[0].Table != town.InnTable || rows[0].Key() != (town.OfferKey{Table: town.InnTable, Topic: 9, NPC: 207}) ||
+		rows[0].Key().String() != "topic 9 npc 207" {
+		t.Fatalf("inn record %+v", rows[0])
+	}
+	var tavern town.OfferRow
+	rows[1].Apply(&tavern)
+	if rows[1].Table != town.TavernTable || !tavern.Equal(town.ChapterOffer(1, 30, 207, 31)) || tavern.Kind != town.OfferMission ||
+		rows[1].Key().String() != "town 1 chapter 30 npc 207" {
+		t.Fatalf("tavern record %+v as %+v", rows[1], tavern)
+	}
+	if d := (TownData{Offers: rows}); d.OfferRows(town.InnTable) != 1 || d.OfferRows(town.TavernTable) != 1 {
+		t.Fatal("the rows of each table are not counted apart")
 	}
 }
 
