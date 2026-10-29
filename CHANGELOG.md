@@ -17,7 +17,7 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
-## 0.140.0
+## 0.140.1
 
 ### For players
 
