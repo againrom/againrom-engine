@@ -233,7 +233,7 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 	}
 	v.Art = a.shop
 	v.Scene = roomScene{t.scene(d, room)}
-	v.TipPanel = t.entryRoomTipView(d.Town, room)
+	v.TipPanel = t.roomTipView(room)
 }
 
 // shopItemName is an item's name parts, the cell's name first (DIV-3046):

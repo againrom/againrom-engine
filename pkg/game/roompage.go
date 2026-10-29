@@ -142,15 +142,15 @@ func (t *townScreen) ShopInteriorActive(active bool) {
 
 // AdvanceShopInteriorAnimation is one paint of the shop page.
 func (t *townScreen) AdvanceShopInteriorAnimation() {
-	if t != nil && t.hostRules().Pages == "entry" {
-		if t.composed != nil && t.AtTownShop() {
-			t.advanceRoom()
-		}
-		return
-	}
 	if t == nil || !t.inShopInterior() {
 		return
 	}
 	t.advanceShopSecondTip()
+	if t.hostRules().Pages == "entry" {
+		if t.composed != nil {
+			t.advanceRoom()
+		}
+		return
+	}
 	t.shopPage().Advance()
 }

@@ -77,7 +77,7 @@ func TestReleaseSchoolIdleShineDrawsTheStoredSlotsShinePicture(t *testing.T) {
 		}
 		// The idle shine runs only while the tip popup exists (TOWN-564); the
 		// popup stays open and is left out of both composed frames.
-		if !s.tipShown(roomSchool) {
+		if !s.tipShown("school") {
 			t.Fatal("production school entry built no tip popup")
 		}
 		s.AdvanceTownSurfaceAnimation()

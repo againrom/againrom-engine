@@ -1,9 +1,6 @@
 package game
 
-import (
-	"againrom/pkg/town"
-	"againrom/pkg/ui"
-)
+import "againrom/pkg/town"
 
 type townCampaignAdapter interface {
 	book() *townBook
@@ -52,25 +49,3 @@ func (t *townScreen) displayRoom() string {
 	return t.roomName()
 }
 func (t *townScreen) state() *secondCampaign { return t.campaignTown().bank() }
-
-func (t *townScreen) loadHostTip(room string) {
-	if t.hostRules().Tips == "entry" {
-		t.loadRoomTip(room)
-		return
-	}
-	if r, ok := townRoomNames[room]; ok {
-		t.loadTip(r)
-	}
-}
-
-func (t *townScreen) hostTipView(d *town.Description, room string) ui.TipPanelView {
-	if t.hostRules().Tips == "entry" {
-		return t.entryRoomTipView(d.Town, room)
-	}
-	r := townRoomNames[room]
-	text, _ := t.tipTextSource(r)
-	if text == nil {
-		return ui.TipPanelView{}
-	}
-	return t.roomTipView(r, *text)
-}

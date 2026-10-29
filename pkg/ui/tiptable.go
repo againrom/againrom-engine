@@ -5,18 +5,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 )
 
 // TipTable is one game's tip popups as data: every popup the engine shows is
 // one row, read by the same code for every game. Art names the screen art
-// manifest the panel draws with; Panels are the text styles rows may name.
+// manifest the panel draws with; Panels are the text styles rows may name;
+// Rooms is the room popups' lifecycle rules.
 type TipTable struct {
 	Name   string          `json:"tips"`
 	Art    string          `json:"art"`
 	Panels []TipPanelStyle `json:"panels"`
+	Rooms  TipRooms        `json:"rooms"`
 	Rows   []TipRow        `json:"rows"`
 	Cite   []string        `json:"cite"`
+}
+
+// TipRooms is what a game adds to the one room popup lifecycle, in which a
+// room entry builds the popup, Close hides it until the next build and a
+// talk's end rereads its text. Resume builds the shown room's popup again
+// when the game menu returns to the town, which reopens a closed one;
+// Construct names the room whose popup the town screen builds when it is
+// made; EntryPaint repaints the shown square when a build changes its popup.
+// The zero value builds only at room entries.
+type TipRooms struct {
+	Resume     bool     `json:"resume"`
+	Construct  string   `json:"construct"`
+	EntryPaint bool     `json:"entry-paint"`
+	Cite       []string `json:"cite"`
 }
 
 // TipPanelStyle is how a row's text draws: Font "" is the install's tip
@@ -169,6 +186,9 @@ func (t *TipTable) validate() error {
 			return fmt.Errorf("row %s: a second row for %s", r.Name, key)
 		}
 		names[r.Name], keys[key] = true, true
+	}
+	if c := t.Rooms.Construct; c != "" && !slices.ContainsFunc(t.Rows, func(r TipRow) bool { return r.Event == "room-enter" && r.Room == c }) {
+		return fmt.Errorf("rooms: construct %q names no room-enter row's room", c)
 	}
 	return nil
 }

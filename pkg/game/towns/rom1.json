@@ -1,5 +1,5 @@
 {
-  "host": {"rows": "chapter-hints", "header": "chapter", "footer": "party", "talk": "building", "tip-lifecycle": "retained", "pages": "retained", "art": "pages", "header-prefix": "", "audio-room": "building", "leave": "room-map", "speech": true, "silent-square": true, "click-sounds": true, "dialogue-speech": true, "cache-screen": true, "eager-square": true, "starts-in-town": false, "cite": ["owner"], "shop": "chapter", "track-source": "description", "require-art": false, "current-hook-room": true},
+  "host": {"rows": "chapter-hints", "header": "chapter", "footer": "party", "talk": "building", "pages": "retained", "art": "pages", "header-prefix": "", "audio-room": "building", "leave": "room-map", "speech": true, "silent-square": true, "click-sounds": true, "dialogue-speech": true, "cache-screen": true, "eager-square": true, "starts-in-town": false, "cite": ["owner"], "shop": "chapter", "track-source": "description", "require-art": false, "current-hook-room": true},
   "town": "rom1-square",
   "cite": ["TOWN-489"],
   "view": {"size": [640, 480], "cite": ["TOWN-503", "DIV-1940"]},

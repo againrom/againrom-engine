@@ -81,107 +81,152 @@ func (t *townScreen) tips() roomTipBuilder {
 	return roomTipBuilder{in: t.in, pc: t.pc, art: t.art.tipPanel()}
 }
 
-// loadTip constructs one room popup and tests the global option once.
-func (t *townScreen) loadTip(room townRoom) {
+// reader is the builder without art: reading a text loads no panel art.
+func (t *townScreen) reader() roomTipBuilder { return roomTipBuilder{in: t.in, pc: t.pc} }
+
+// roomTip is the town's one room popup in both games. A room entry builds it
+// from the room's row (TOWN-516, R2-ENGINE-308); Close hides it until the
+// next build (R2-ENGINE-310); a talk's end rereads its text in place. What a
+// game adds is its tip table's Rooms rules and rows.
+type roomTip struct {
+	// of is the second-game campaign it was built in; nil in the first game.
+	of       *secondCampaign
+	room     string
+	text     string
+	closed   bool
+	revision uint64
+	// away is set while the composed town is hidden.
+	away bool
+	// second is set once the row's second text replaced the first
+	// (TOWN-517); each build clears it.
+	second bool
+}
+
+// roomTipRules is the game's room popup lifecycle data.
+func (t *townScreen) roomTipRules() ui.TipRooms {
+	if t == nil || t.in == nil {
+		return ui.TipRooms{}
+	}
+	if table := TipTable(t.in.profile().Edition()); table != nil {
+		return table.Rooms
+	}
+	return ui.TipRooms{}
+}
+
+// roomTipRow is room's row of the game's tip table in the current town, nil
+// when the room shows no tip.
+func (t *townScreen) roomTipRow(room string) *ui.TipRow {
+	town := ""
+	if d := t.townDescription(); d != nil {
+		town = d.Town
+	}
+	return roomTipRow(t.in, town, room)
+}
+
+// loadRoomTip is a room entry's build: a new popup for room, its text read
+// once while the tips option is on.
+func (t *townScreen) loadRoomTip(room string) {
 	if t == nil || t.sess == nil {
 		return
 	}
-	dst, _ := t.tipTextSource(room)
-	if dst == nil {
+	t.tip = roomTip{of: t.state(), room: room, revision: t.tip.revision + 1}
+	if _, ok := t.composedTown(); !ok || t.pc == nil {
 		return
 	}
-	t.tipRevision++
-	t.tipClosed[room] = false
-	if room == roomShop {
-		t.shopTipSecond = false
-	}
-	*dst = roomTipBuilder{in: t.in, pc: t.pc}.entryText(t.roomTip(room))
+	t.tip.text = t.reader().entryText(t.roomTipRow(room))
 }
 
-// rereadTip updates an existing popup's content without constructing another.
-func (t *townScreen) rereadTip(room townRoom) {
-	if t == nil || t.sess == nil {
+// arriveRoomTip builds the shown room's popup when the town is shown after
+// hidden or under another campaign.
+func (t *townScreen) arriveRoomTip(shown bool, room string) {
+	if !shown {
+		t.tip.away = true
 		return
 	}
-	dst, text := t.tipTextSource(room)
-	if dst != nil && *dst != "" {
-		t.readTipText(dst, text)
+	if t.tip.away || t.tip.of != t.state() {
+		t.loadRoomTip(room)
 	}
 }
 
-func (t *townScreen) tipTextSource(room townRoom) (*string, *ui.TipText) {
-	var dst *string
-	switch room {
-	case roomSquare:
-		dst = &t.townTip
-	case roomShop:
-		dst = &t.shopTip
-	case roomSchool:
-		dst = &t.schoolTip
-	case roomTavern:
-		dst = &t.tavernTip
+// rereadTip retexts room's built popup from its row without building
+// another: the popup keeps its closed state, revision and second latch.
+func (t *townScreen) rereadTip(room string) {
+	if t == nil || t.sess == nil || t.tip.room != room || t.tip.text == "" {
+		return
 	}
-	if row := t.roomTip(room); row != nil {
-		return dst, &row.Text
+	var text *ui.TipText
+	if row := t.roomTipRow(room); row != nil {
+		text = &row.Text
 	}
-	return dst, nil
+	t.tip.text = t.reader().read(text)
 }
 
-// roomTip is the room's row of the game's tip table, nil when the room shows
-// no tip.
-func (t *townScreen) roomTip(room townRoom) *ui.TipRow {
-	if t == nil {
-		return nil
-	}
-	return roomTipRow(t.in, "", townRoomName(room))
+// resetRoomTip forgets the popup's campaign, closed state and latches at a
+// new or loaded game; the text and revision stay for the room just entered.
+func (t *townScreen) resetRoomTip() {
+	t.tip = roomTip{room: t.tip.room, text: t.tip.text, revision: t.tip.revision}
 }
 
-// tipShown reports that the room's popup exists: entry built its text and the
-// player has not closed it.
-func (t *townScreen) tipShown(room townRoom) bool {
-	if t == nil || t.sess == nil || t.tipClosed[room] {
+// tipShown reports that room's popup exists: its entry built a text, under
+// the current campaign, and the player has not closed it.
+func (t *townScreen) tipShown(room string) bool {
+	if t == nil || t.sess == nil || t.pc == nil {
 		return false
 	}
-	dst, _ := t.tipTextSource(room)
-	return dst != nil && *dst != ""
+	p := t.tip
+	return p.of == t.state() && p.room == room && !p.closed && p.text != ""
 }
 
-func (t *townScreen) roomTipView(room townRoom, text string) ui.TipPanelView {
-	if t == nil || t.sess == nil || t.tipClosed[room] {
+// roomTipView projects room's popup, nothing when it is not shown.
+func (t *townScreen) roomTipView(room string) ui.TipPanelView {
+	if !t.tipShown(room) {
 		return ui.TipPanelView{}
 	}
-	return t.tips().view(t.roomTip(room), text, t.tipRevision)
+	return t.tips().view(t.roomTipRow(room), t.tip.text, t.tip.revision)
 }
 
-// advanceShopSecondTip retexts the open shop popup with its row's second
-// text once per shop activation, when the table holds an item
-// (TOWN-517). It reads no TipsMode: the popup exists only if the flag was set
-// at activation.
+// advanceShopSecondTip retexts the built popup with its row's second text
+// once per build, while the shop's table holds an item (TOWN-517). It reads
+// no TipsMode: the popup has a text only if the option was on at the build,
+// and a closed popup still takes the second text.
 func (t *townScreen) advanceShopSecondTip() {
-	if t == nil || t.sess == nil || t.shopTip == "" || t.shopTipSecond {
+	if t == nil || t.sess == nil || t.tip.text == "" || t.tip.second {
+		return
+	}
+	row := t.roomTipRow(t.tip.room)
+	if row == nil || row.Second.File == "" {
 		return
 	}
 	if shop := t.sess.Shop; shop == nil || len(shop.Table()) == 0 {
 		return
 	}
-	row := t.roomTip(roomShop)
-	if row == nil || row.Second.File == "" {
+	t.tip.second = true
+	t.tip.text = t.reader().read(&row.Second)
+}
+
+// CloseTip dismisses the built popup until the next build.
+func (t *townScreen) CloseTip() {
+	if t == nil {
 		return
 	}
-	t.shopTipSecond = true
-	t.readTipText(&t.shopTip, &row.Second)
+	t.tip.closed = true
 }
 
-func (t *townScreen) readTipText(dst *string, text *ui.TipText) {
-	*dst = roomTipBuilder{in: t.in, pc: t.pc}.read(text)
-}
-
-// tipView projects the constructed popup and the live global checkbox flag.
-func (t *townScreen) tipView(room townRoom, text string, rect image.Rectangle) ui.TipPanelView {
-	if t == nil || t.sess == nil || t.tipClosed[room] {
-		return ui.TipPanelView{}
+// ResumeTown is the game menu's return to the town: where the game's rules
+// say so, the shown room's popup is built again.
+func (t *townScreen) ResumeTown() {
+	if t != nil && t.roomTipRules().Resume && t.tip.room == t.roomName() {
+		t.loadRoomTip(t.tip.room)
 	}
-	return t.tips().panel(t.roomTip(room), text, rect, t.tipRevision)
+}
+
+// TownSquareEntryRevision is the popup's revision where the game repaints
+// the square at a build, else 0.
+func (t *townScreen) TownSquareEntryRevision() uint64 {
+	if t == nil || !t.roomTipRules().EntryPaint {
+		return 0
+	}
+	return t.tip.revision
 }
 
 // tipFont is the tip panel's own font2: the smaller of the two atlases
@@ -233,31 +278,13 @@ func (in *InstallResources) HoverHelp() *ui.HoverLook {
 	return ui.NewHoverLook(in.hoverStyle())
 }
 
-// CloseTip dismisses the current room's constructed popup.
-func (t *townScreen) CloseTip() {
-	if t.hostRules().Tips == "entry" {
-		t.tip.closed = true
-		return
-	}
-	if t == nil || int(t.room) >= len(t.tipClosed) {
-		return
-	}
-	t.tipClosed[t.room] = true
-}
-
 // ToggleTips flips the permanent suppression (spec behaviour 4). Satisfies
-// ui.TipScreen. It does not touch tipClosed or any already-loaded tip text:
-// TOWN-186's own gate is tested at a room's own construction, so the effect
-// reaches the next entry, not the panel already showing.
+// ui.TipScreen. It does not touch the built popup or its text: TOWN-186's
+// own gate is tested at a room's own build, so the effect reaches the next
+// entry, not the panel already showing.
 func (t *townScreen) ToggleTips() {
 	if t == nil || t.sess == nil {
 		return
 	}
 	t.pc.setTipsOff(!t.pc.tipsOffNow())
-}
-
-func (t *townScreen) ResumeTown() {
-	if t.hostRules().Tips == "retained" {
-		t.loadTip(t.room)
-	}
 }

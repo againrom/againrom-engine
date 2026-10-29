@@ -11,7 +11,7 @@ import (
 
 // openSchoolTip stands in for an entry with tips on: the fixtures carry no tip
 // row, and the idle shine runs only while the school's popup exists.
-func openSchoolTip(s *townScreen) { s.schoolTip, s.tipClosed[roomSchool] = "tip", false }
+func openSchoolTip(s *townScreen) { s.tip = roomTip{room: "school", text: "tip"} }
 
 func TestSchoolIdleEligibilityAndPostDrawClock(t *testing.T) {
 	f, s := diamondSchool(t)
@@ -167,7 +167,7 @@ func TestSchoolIdleShineNeedsTheTip(t *testing.T) {
 		s.AdvanceTownSurfaceAnimation()
 		return s.TownSurface()
 	}
-	s.schoolTip = ""
+	s.tip.text = ""
 	step(0)
 	for i := 0; i < 8; i++ {
 		if v := step(400 * time.Millisecond); v.SchoolIdleShine {

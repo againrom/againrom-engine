@@ -68,8 +68,7 @@ type townScreen struct {
 	worldMapAt *secondMapOpening
 	start      func() error
 	tags       eventTags
-	tipArt     func() *ui.TipPanelArt
-	tip        secondRoomTip
+	tip        roomTip
 
 	// shopController is the shop page; its session and install are the
 	// screen's campaign state and install too.
@@ -153,26 +152,6 @@ type townScreen struct {
 	tavernDetailInfo   [12][]string
 	tavernDetailPixels *image.RGBA
 	tavernDetailText   []text.DrawCall
-
-	// shopTip is the tip widget's own text, loaded once when the shop room is
-	// entered (SHOP-TIP-045; `DIV-132`). Empty whenever the install ships no
-	// `shop1.txt`, which draws no widget at all.
-	shopTip string
-	// shopTipSecond is the shop popup's once-per-activation latch for its
-	// second text (TOWN-517).
-	shopTipSecond bool
-
-	// townTip, schoolTip and tavernTip are the same widget's own text for the
-	// other three rooms this story adds it to (1018 spec behaviours 2, 5):
-	// town.txt, training.txt and inn.txt, loaded on the room's own entry
-	// exactly as shopTip is. Empty means nothing shipped, nothing suppressed
-	// it, or the front end could not read it — every one of those draws no
-	// panel, on ReadShopTip's own rule.
-	townTip, schoolTip, tavernTip string
-
-	// tipClosed belongs to each constructed room popup. loadTip renews it.
-	tipClosed   [roomTalk + 1]bool
-	tipRevision uint64
 
 	// worldMap is the gates' current presentation state. It is rebuilt from
 	// Town.Available on each entry; install art remains cached on FrontEnd.
@@ -260,9 +239,8 @@ func (t *townScreen) resetForNewGame() {
 	t.resetWorldMarkers()
 	t.resetWorldPosition()
 	t.worldMap, t.worldFlag1Frame = nil, 0
-	t.tipClosed = [roomTalk + 1]bool{}
 	t.worldMapOf, t.worldMapAt = nil, nil
-	t.tip = secondRoomTip{}
+	t.resetRoomTip()
 	if t.composed != nil {
 		t.composed.seat, t.composed.seatFrames, t.composed.patrons = -1, nil, nil
 		t.composed.hero, t.composed.innShown = nil, false
@@ -507,9 +485,6 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 	if d.Host.StartsInTown {
 		t.start = f.startSecondCampaign
 	}
-	if d.Host.Tips == "entry" {
-		t.tipArt = f.tipArt
-	}
 	if d.Host.Leave == "destinations" {
 		t.mapArt = f.worldMapAssets
 	}
@@ -518,17 +493,10 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 	if d.Host.CacheScreen {
 		f.townUI = t
 	}
-	if d.Host.Tips == "retained" {
-		t.loadTip(roomSquare)
+	if room := t.roomTipRules().Construct; room != "" {
+		t.loadRoomTip(room)
 	}
 	return t
-}
-
-func (t *townScreen) TownSquareEntryRevision() uint64 {
-	if t.hostRules().Tips == "entry" {
-		return 0
-	}
-	return t.tipRevision
 }
 
 // dialogueRoom is the room the open conversation stands over and returns to.

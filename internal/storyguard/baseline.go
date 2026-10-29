@@ -3129,7 +3129,7 @@ package storyguard
 // internal/archtest/townsquare.go and its test, the square view tests in
 // pkg/game/townsquareview_test.go, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4486,
+	TestIdentCount: 4480,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3391,5 +3391,5 @@ var Committed = Baseline{
 	// in pkg/launch/starterini.go including SelectedKey, the new tests'
 	// comments in cmd/mapedit/main_test.go and pkg/launch/starterini_test.go,
 	// and this note.
-	CommentBytes: 9910211,
+	CommentBytes: 9909887,
 }

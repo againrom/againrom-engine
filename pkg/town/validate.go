@@ -31,7 +31,6 @@ func (d *Description) Validate() error {
 			{"header", h.Header, []string{"chapter", "location"}},
 			{"footer", h.Footer, []string{"party", "services"}},
 			{"talk", h.Talk, []string{"building", "section"}},
-			{"tip-lifecycle", h.Tips, []string{"retained", "entry"}},
 			{"pages", h.Pages, []string{"retained", "entry"}},
 			{"art", h.Art, []string{"pages", "manifest"}},
 			{"audio-room", h.AudioRoom, []string{"building", "requested"}},

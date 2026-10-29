@@ -5,6 +5,7 @@
     {"name": "generator", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-314", "R2-ENGINE-274", "DIV-2769"]},
     {"name": "room", "font": "text", "inset": [20, 24, 28, 36], "cite": ["R2-ENGINE-274", "R2-ENGINE-313"]}
   ],
+  "rooms": {"resume": false, "construct": "", "entry-paint": false, "cite": ["R2-ENGINE-310", "DIV-4063"]},
   "rows": [
     {"name": "square", "event": "room-enter", "town": "rom2-town1", "room": "square",
      "text": {"file": "main/text/town.txt", "section": "tips1"}, "rect": [328, 0, 640, 200], "panel": "room",

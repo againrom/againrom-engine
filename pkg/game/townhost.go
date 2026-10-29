@@ -86,7 +86,7 @@ func (t *townScreen) TownSquareView() ui.TownSquareView {
 	if d == nil {
 		return ui.TownSquareView{}
 	}
-	v := ui.TownSquareView{Font: t.in.Font.Value(), Tip: t.hostTipView(d, room)}
+	v := ui.TownSquareView{Font: t.in.Font.Value(), Tip: t.roomTipView(room)}
 	if loaded {
 		v.Scene = townRoomView{t: t, d: d, room: room}
 	}

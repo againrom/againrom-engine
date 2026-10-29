@@ -4,6 +4,7 @@
   "panels": [
     {"name": "generator", "font": "text", "inset": [20, 24, 28, 36], "cite": ["MENU-137", "DIV-191"]}
   ],
+  "rooms": {"resume": true, "construct": "square", "entry-paint": true, "cite": ["TOWN-516", "owner"]},
   "rows": [
     {"name": "square", "event": "room-enter", "room": "square",
      "text": {"file": "main/text/tips/town.txt"}, "rect": [328, 0, 640, 200],

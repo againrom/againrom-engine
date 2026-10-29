@@ -232,7 +232,7 @@ func (c chapterTownCampaign) talkCursor() *talkCursor {
 func (c chapterTownCampaign) endTalk() {
 	c.t.room = c.t.dialogueRoom()
 	c.t.mercenaryTalk = 0
-	c.t.rereadTip(c.t.room)
+	c.t.rereadTip(c.t.roomName())
 }
 func (c chapterTownCampaign) condition(name string) bool {
 	return name == "gate-open" && c.ready() && (c.t.sess.Town.gateMission() != -1 || len(c.t.sess.Town.travelTowns()) > 0)

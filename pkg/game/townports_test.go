@@ -36,7 +36,7 @@ func TestUnboundTownScreenAnswersNothing(t *testing.T) {
 	if v := s.TownSquareView(); v.Scene != nil || v.Font != nil {
 		t.Fatalf("an unbound screen drew %+v", v)
 	}
-	s.loadTip(roomSquare)
+	s.loadRoomTip("square")
 }
 
 func TestCityBookCandidateIsDetachedUntilCommitted(t *testing.T) {

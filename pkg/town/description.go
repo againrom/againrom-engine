@@ -57,7 +57,6 @@ type HostSpec struct {
 	HeaderPrefix    string   `json:"header-prefix"`
 	Footer          string   `json:"footer"`
 	Talk            string   `json:"talk"`
-	Tips            string   `json:"tip-lifecycle"`
 	Pages           string   `json:"pages"`
 	Art             string   `json:"art"`
 	AudioRoom       string   `json:"audio-room"`

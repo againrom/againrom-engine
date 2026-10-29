@@ -1,5 +1,5 @@
 {
-  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "tip-lifecycle": "entry", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": false, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
+  "host": {"rows": "hotspots", "header": "location", "footer": "services", "talk": "section", "pages": "entry", "art": "manifest", "header-prefix": "ROM2 campaign", "audio-room": "requested", "leave": "destinations", "speech": false, "silent-square": false, "click-sounds": false, "dialogue-speech": false, "cache-screen": false, "eager-square": false, "starts-in-town": true, "cite": ["owner"], "shop": "bank", "track-source": "campaign", "require-art": true, "current-hook-room": false},
   "town": "rom2-town1",
   "cite": ["R2-ENGINE-239", "R2-ENGINE-245"],
   "view": {"size": [640, 480], "cite": ["R2-ENGINE-239"]},

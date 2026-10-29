@@ -157,7 +157,7 @@ var townConditions = map[string]func(t *townScreen) bool{
 	},
 	"save-admitted": func(t *townScreen) bool { return t.saveAdmitted() },
 	// The school's tip popup exists: built at entry and not closed.
-	"school-tip": func(t *townScreen) bool { return t.tipShown(roomSchool) },
+	"school-tip": func(t *townScreen) bool { return t.tipShown("school") },
 }
 
 // townHooks are the campaign hooks the description names, each run for the
@@ -184,7 +184,7 @@ var townHooks = map[string]townHook{
 	"release-audio": {run: func(t *townScreen, _ string) { t.destroyRoomAudio() }, offers: ""},
 	"set-room":      {run: func(t *townScreen, room string) { t.campaignTown().setRoom(room); t.composed.hero = nil }, offers: ""},
 	"talk-clear":    {run: func(t *townScreen, _ string) { t.npc, t.offer, t.talkPage.part = 0, TownOffer{}, 0 }, offers: "chapter-keys"},
-	"tip":           {run: func(t *townScreen, room string) { t.loadHostTip(room) }, offers: ""},
+	"tip":           {run: func(t *townScreen, room string) { t.loadRoomTip(room) }, offers: ""},
 	"school-reset": {run: func(t *townScreen, _ string) {
 		t.schoolSpent = [schoolLatchCount]bool{}
 		t.enterSchoolPage()

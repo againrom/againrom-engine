@@ -344,7 +344,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 			{Label: t.in.Words.SchoolTrain, Value: ui.GroupDigits(int64(price)), Enabled: true},
 			{Label: t.in.Words.SchoolExit, Value: ui.GroupDigits(int64(schoolPurseShown(t.sess.Town.Gold(), price, ok))), Enabled: true},
 		}
-		v.Tip = t.roomTipView(roomSchool, t.schoolTip)
+		v.Tip = t.roomTipView("school")
 		return v
 	}
 	candidates := t.tavernCandidates()
@@ -388,7 +388,7 @@ func (t *townScreen) TownSurface() ui.TownSurfaceView {
 		{Label: t.in.Words.TavernTalk, Enabled: talk},
 		{Label: t.in.Words.TavernExit, Value: ui.GroupDigits(int64(t.sess.Town.Gold())), Enabled: true},
 	}
-	v.Tip = t.roomTipView(roomTavern, t.tavernTip)
+	v.Tip = t.roomTipView("tavern")
 	return v
 }
 

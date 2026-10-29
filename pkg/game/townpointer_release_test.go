@@ -16,7 +16,7 @@ func TestReleaseTownPointerPopupEntryAndColdLoad(t *testing.T) {
 	r := newTownFiguresRig(t)
 	r.f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 	r.f.SetTipsOff(false)
-	r.s.loadTip(roomSquare)
+	r.s.loadRoomTip("square")
 	middle := func(rect image.Rectangle) image.Point { return rect.Min.Add(rect.Max).Div(2) }
 	pointer := func(edge string, p image.Point) {
 		t.Helper()
@@ -231,7 +231,7 @@ func TestReleaseTownPopupDismissalSurvivesDialogue(t *testing.T) {
 				t.Cleanup(r.app.StopAudio)
 				r.f.Options = OptionsStore{Path: filepath.Join(t.TempDir(), "options.txt")}
 				r.f.SetTipsOff(tipsOff)
-				r.s.loadTip(roomSquare)
+				r.s.loadRoomTip("square")
 				popup := func() ui.TipPanelView {
 					if route == "gate" {
 						return r.s.TownSquareView().Tip
@@ -266,7 +266,7 @@ func TestReleaseTownPopupDismissalSurvivesDialogue(t *testing.T) {
 						t.Fatal("owned Close did not dismiss installed popup")
 					}
 				}
-				revision := r.s.tipRevision
+				revision := r.s.tip.revision
 				if route == "tavern" {
 					if len(r.s.TownSurface().Cells) == 0 {
 						t.Fatal("installed tavern has no talk candidate")
@@ -288,8 +288,8 @@ func TestReleaseTownPopupDismissalSurvivesDialogue(t *testing.T) {
 				if popup().Showing() {
 					t.Errorf("dismissed %s popup recreated after dialogue close without room exit", route)
 				}
-				if !tipsOff && r.s.tipRevision != revision {
-					t.Errorf("dialogue close reconstructed popup revision %d -> %d", revision, r.s.tipRevision)
+				if !tipsOff && r.s.tip.revision != revision {
+					t.Errorf("dialogue close reconstructed popup revision %d -> %d", revision, r.s.tip.revision)
 				}
 				if route == "tavern" {
 					if r.s.room != roomTavern {
