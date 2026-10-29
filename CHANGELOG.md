@@ -24,6 +24,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] The map editor opens a map file you double-click or drop on it in Windows once `.alm` files are associated with it: `mapedit.exe "map.alm"` opens that map, and it finds the game files from its own folder, from the game folder that holds the map, or from the base selected in the starter. A map in a mod folder opens as a loose map. A start that fails writes its reason to `mapedit-error.log` in the Againrom folder of your user configuration folder when there is no console to show it.
+- [BASE] A town file's square now takes an optional `pane` entry, as a room's: with it the square shows the character pane. In a first-game town the square's pane needs `rect` `[480, 238, 640, 480]` and has no spellbook. A square without `pane` shows none, as before.
 
 ## 0.139.0
 

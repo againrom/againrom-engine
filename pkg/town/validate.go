@@ -83,6 +83,20 @@ func (d *Description) Validate() error {
 			return err
 		}
 	}
+	return validatePane(d.Square.Pane, func(format string, args ...any) error {
+		return fail("square: %s", fmt.Sprintf(format, args...))
+	})
+}
+
+// validatePane checks a character pane: a rectangle that is not empty and
+// the install's font or none.
+func validatePane(p *PaneSpec, fail func(string, ...any) error) error {
+	if p != nil && p.Rect.Rectangle().Empty() {
+		return fail("the pane rectangle %v is empty", p.Rect)
+	}
+	if p != nil && p.Font != "" && p.Font != PaneFontInstall {
+		return fail("the pane font %q is neither empty nor %q", p.Font, PaneFontInstall)
+	}
 	return nil
 }
 
@@ -175,11 +189,8 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 			return fail("seats request slot %q, which is no keyed slot of the page scene", s.Select)
 		}
 	}
-	if p := r.Pane; p != nil && p.Rect.Rectangle().Empty() {
-		return fail("the pane rectangle %v is empty", p.Rect)
-	}
-	if p := r.Pane; p != nil && p.Font != "" && p.Font != PaneFontInstall {
-		return fail("the pane font %q is neither empty nor %q", p.Font, PaneFontInstall)
+	if err := validatePane(r.Pane, fail); err != nil {
+		return err
 	}
 	names := map[string]bool{}
 	for i, b := range r.Buttons {

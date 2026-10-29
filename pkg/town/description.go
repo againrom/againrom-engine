@@ -492,11 +492,12 @@ type RoomMusicSpec struct {
 }
 
 // SquareSpec names the square as a room and orders the steps that return to
-// it.
+// it. Pane is the square's character pane, as a room's; nil shows none.
 type SquareSpec struct {
-	Name  string   `json:"name"`
-	Enter []Step   `json:"enter"`
-	Cite  []string `json:"cite"`
+	Name  string    `json:"name"`
+	Enter []Step    `json:"enter"`
+	Pane  *PaneSpec `json:"pane"`
+	Cite  []string  `json:"cite"`
 }
 
 // RoomSpec is one room reached from the square: the page that draws it and
@@ -621,6 +622,19 @@ func (d *Description) Scene(room string) *SceneSpec {
 		if d.Rooms[i].Name == room {
 			return d.Rooms[i].Scene
 		}
+	}
+	return nil
+}
+
+// Pane answers the named room's character pane: the square's name answers
+// the square's, a room its own, and a room without one or an unknown name
+// nil.
+func (d *Description) Pane(room string) *PaneSpec {
+	if room == d.Square.Name {
+		return d.Square.Pane
+	}
+	if r := d.Room(room); r != nil {
+		return r.Pane
 	}
 	return nil
 }

@@ -90,9 +90,7 @@ func (t *townScreen) TownSquareView() ui.TownSquareView {
 	if loaded {
 		v.Scene = townRoomView{t: t, d: d, room: room}
 	}
-	if r := d.Room(room); r != nil {
-		t.paneSquareView(&v, r, t.roomArt(d, room))
-	}
+	t.paneSquareView(&v, d, room)
 	return v
 }
 

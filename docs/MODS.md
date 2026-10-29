@@ -867,7 +867,7 @@ reason.
 | `pointer`, `sounds`, `actors`, `step` | the pointer shapes, sound slots and triggers, animated actors and the per-tick steps of a scene |
 | `layers` | the order the scene is drawn in: `art` or `actor`, `mode`, `at`, `clip`, `when` |
 | `music` | `track`, or `tracks` with `by` naming the value that chooses |
-| `square` | `name` and `enter`, the steps that put the party on the square |
+| `square` | `name` and `enter`, the steps that put the party on the square, and an optional `pane`, as a room's |
 | `rooms` | the rooms reached from the square, below |
 | `save` | `admitted-when`, a condition |
 
@@ -917,6 +917,8 @@ and `gates`, and the check refuses a description the game cannot play:
 - a `pane` of those rooms has `rect` `[480, 238, 640, 480]`, because the
   pages' own controls fill the rest of the screen; only the `shop` pane may
   have `"book": true`, and no pane has a `book_offset`;
+- a `pane` of the square has the same `rect`, no `"book": true` and no
+  `book_offset`;
 - the `school` scene has the actors `column` (program `target`), `training`
   (`training`), `diamond` (`bounce`) and `shine` (`cycle`).
 

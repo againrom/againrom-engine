@@ -65,17 +65,20 @@ func (t *townScreen) TownSquarePane(c ui.CharacterPaneCorner) {
 	}
 }
 
-// paneSquareView fills the room pane of v from the room spec r and the
-// selected patron's figure as a doll.
-func (t *townScreen) paneSquareView(v *ui.TownSquareView, r *town.RoomSpec, page *townRoomArt) {
-	if r == nil {
-		return
+// paneSquareView fills the pane of v from the shown room's pane data, the
+// square's or a page's, and on a page with seats the selected patron's
+// figure as a doll.
+func (t *townScreen) paneSquareView(v *ui.TownSquareView, d *town.Description, room string) {
+	r := d.Room(room)
+	var page *townRoomArt
+	if r != nil {
+		page = t.roomArt(d, room)
 	}
-	if r.Pane != nil {
+	if p := d.Pane(room); p != nil {
 		v.Pane = true
-		v.Hero, v.HeroSlotMask, v.HeroSlotInfo = t.heroPane(r.Pane)
+		v.Hero, v.HeroSlotMask, v.HeroSlotInfo = t.heroPane(p)
 	}
-	if r.Seats == nil || page == nil {
+	if r == nil || r.Seats == nil || page == nil {
 		return
 	}
 	view := townRoomView{t: t, room: r.Name}

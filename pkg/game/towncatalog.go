@@ -373,6 +373,13 @@ func checkChapterDescription(d *town.Description) error {
 			return fmt.Errorf("room %q pane book_offset %v is not zero; the %s page does not move its spellbook", name, p.BookOffset.Pt(), name)
 		}
 	}
+	// A square pane stands in the same character region, and the square
+	// has no spellbook page.
+	if p := d.Square.Pane; p != nil && p.Rect.Rectangle() != ui.TownCharacterRegion {
+		return fmt.Errorf("square pane rectangle %v is not the character region %v", p.Rect.Rectangle(), ui.TownCharacterRegion)
+	} else if p != nil && (p.Book || p.BookOffset != (town.Point{})) {
+		return errors.New("square pane has the spellbook corner or a book_offset; the square has no spellbook")
+	}
 	scene := d.Room("school").Scene
 	for _, want := range chapterSchoolActors {
 		if !slices.ContainsFunc(scene.Actors, func(a town.ActorSpec) bool { return a.Name == want.name && a.Program == want.program }) {

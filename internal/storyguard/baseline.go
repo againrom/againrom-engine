@@ -3122,6 +3122,12 @@ package storyguard
 //
 // CommentBytes rises with shownRun's note in pkg/ui/editorinputview.go, the
 // field edge test in pkg/ui/mapeditorfieldtext_test.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the square's pane in
+// pkg/town/description.go, pkg/town/validate.go and
+// pkg/game/towncatalog.go, the town square view guard in
+// internal/archtest/townsquare.go and its test, the square view tests in
+// pkg/game/townsquareview_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4486,
 	TestFileCount:  264,
@@ -3385,5 +3391,5 @@ var Committed = Baseline{
 	// in pkg/launch/starterini.go including SelectedKey, the new tests'
 	// comments in cmd/mapedit/main_test.go and pkg/launch/starterini_test.go,
 	// and this note.
-	CommentBytes: 9907739,
+	CommentBytes: 9910211,
 }
