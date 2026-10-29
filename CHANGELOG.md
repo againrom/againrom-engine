@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.140.0
+
 ### For players
 
 - [ROM2] The mission map now shows through the left edge of the right column, removing the black stripe beside its ornaments.
