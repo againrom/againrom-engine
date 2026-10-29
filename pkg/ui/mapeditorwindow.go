@@ -1401,6 +1401,12 @@ func (e *MapEditor) StatusFit() (line string, width, whole, limit int) {
 // note, and the mode's help lines.
 func (e *MapEditor) statusParts(note string) ([]string, []string) {
 	var parts []string
+	if e.mcp.last != "" {
+		parts = append(parts, e.mcp.last)
+	}
+	if e.mcp.connection != "" {
+		parts = append(parts, e.mcp.connection)
+	}
 	if e.hoverOK {
 		parts = append(parts, fmt.Sprintf("%d,%d", e.hoverCell.X, e.hoverCell.Y))
 		if h := e.hoverRecord(); h != "" {

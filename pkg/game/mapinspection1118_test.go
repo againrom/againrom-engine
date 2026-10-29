@@ -41,6 +41,11 @@ func inspectionSectionOffsets(t *testing.T, b []byte) map[uint32]int {
 
 func movedBytes1118(t *testing.T, before, after []byte, index int, cell image.Point) {
 	t.Helper()
+	checkMovedMapBytes(t, before, after, index, cell)
+}
+
+func checkMovedMapBytes(t *testing.T, before, after []byte, index int, cell image.Point) {
+	t.Helper()
 	if len(before) != len(after) {
 		t.Fatalf("length changed %d -> %d", len(before), len(after))
 	}

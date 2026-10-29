@@ -21,6 +21,37 @@ func profileInstall(t *testing.T) string {
 	return dir
 }
 
+func TestRuntimeProfilePreparesOnlyItsSelectedDirectory(t *testing.T) {
+	install := profileInstall(t)
+	t.Setenv("AGAINROM_PROFILE", "")
+	profile, err := ResolveRuntimeProfile("", filepath.Join(install, "mapedit.exe"), t.TempDir(), install)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := profile.PrepareDirectory(install)
+	if err != nil || dir != profile.Directory {
+		t.Fatalf("private directory %q: %v", dir, err)
+	}
+	t.Setenv("AGAINROM_PROFILE", filepath.Join(install, "explicit"))
+	profile, err = ResolveRuntimeProfile("", filepath.Join(t.TempDir(), "mapedit.exe"), t.TempDir(), install)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := profile.PrepareDirectory(install); err == nil {
+		t.Fatal("explicit profile bypassed the install fence")
+	}
+	outside := filepath.Join(t.TempDir(), "selected")
+	t.Setenv("AGAINROM_PROFILE", outside)
+	profile, err = ResolveRuntimeProfile("", filepath.Join(t.TempDir(), "mapedit.exe"), t.TempDir(), install)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err = profile.PrepareDirectory(install)
+	if err != nil || dir != outside {
+		t.Fatalf("external directory %q: %v", dir, err)
+	}
+}
+
 func TestRuntimeProfileEnvironmentDefaults(t *testing.T) {
 	install, mount, config := profileInstall(t), t.TempDir(), filepath.Join(t.TempDir(), "profile ü")
 	t.Setenv("AGAINROM_PROFILE", config)

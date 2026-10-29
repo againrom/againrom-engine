@@ -91,6 +91,7 @@ var allow = map[string][]string{
 	"pkg/shopstock": {},
 	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
 	"pkg/mapedit":   {"pkg/formats/alm"},
+	"pkg/editormcp": {},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf and reads the tile-group
 	// mask constant from the map format, its one owner; menus bind loader sets.
@@ -150,7 +151,7 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog"},
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.

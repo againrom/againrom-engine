@@ -167,6 +167,7 @@ type InspectionOpener func(string) (*InspectionDocument, error)
 // MapEditor is an authored-map canvas. It has no game App, command queue,
 // mission or simulation ticking seam. Host callbacks own edits and file writes.
 type MapEditor struct {
+	mcp                         editorMCP
 	doc                         *InspectionDocument
 	font                        *text.Font
 	maps                        []EditorMap
@@ -454,6 +455,11 @@ func editorWheelRows(remainder *float64, wheel float64) int {
 }
 
 func (e *MapEditor) Update() error {
+	e.mcpWatch()
+	if e.updateMCP() {
+		e.mcpTrackNative()
+		return nil
+	}
 	if e.exitAsked {
 		return ebiten.Termination
 	}
@@ -567,7 +573,7 @@ func (e *MapEditor) Update() error {
 	if native.justPressed(ebiten.KeyTab) && (e.prompt.fields() || e.objectTyping() || e.nativeUnitWindow() && !e.objectHidden) {
 		_ = e.Key("tab")
 	}
-	canvas := native.canvas
+	canvas := e.mcpCanvas(native.canvas)
 	if typing && !policy.panArrows {
 		canvas.PanLeft, canvas.PanRight, canvas.PanUp, canvas.PanDown = false, false, false, false
 	}
@@ -623,6 +629,7 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 	if kept := e.drawChrome(screen); len(kept) > 0 {
 		e.textOverlay.draw(screen, kept, 1, 0, 0)
 	}
+	e.drawMCP(screen)
 }
 
 // Host paths/errors are UTF-8. Installed record and item labels are already in

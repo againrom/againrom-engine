@@ -14,6 +14,11 @@ type RuntimeProfile struct {
 	Options   OptionsStore
 }
 
+func (p RuntimeProfile) PrepareDirectory(originalDir string) (string, error) {
+	dir, _, err := p.folder("", originalDir)
+	return dir, err
+}
+
 // ResolveRuntimeProfile grants only an implicit install-contained executable
 // its own private profile. Explicit output paths retain the ordinary fences.
 func ResolveRuntimeProfile(saveOverride, executable, userConfigDir, originalDir string) (RuntimeProfile, error) {

@@ -366,15 +366,8 @@ func (e *MapEditor) Key(key string) error {
 	if row == nil {
 		return nil
 	}
-	if e.prompt.open() || e.objectTyping() {
-		switch row.live {
-		case promptDeaf:
-			return nil
-		case promptFields:
-			if !e.prompt.fields() && !e.objectTyping() && e.prompt.kind != promptAreaTrigger {
-				return nil
-			}
-		}
+	if !e.keyRowHeard(row) {
+		return nil
 	}
 	switch key {
 	case "open", "saveas", "new", "unit", "structure", "sack", "player", "recipe", "metadata", "pages", "package", "field", "close", "testplay":

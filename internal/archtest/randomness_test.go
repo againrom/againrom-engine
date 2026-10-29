@@ -57,7 +57,7 @@ func TestCheckRandomnessPassesProseAndOtherNumbers(t *testing.T) {
 // TestRandomnessAllowListIsPinned holds the allow list to its entries and
 // proves an allowance admits only its own rule in its own file.
 func TestRandomnessAllowListIsPinned(t *testing.T) {
-	want := []string{"pkg/random/gosource.go math/rand", "pkg/random/msvc.go constant", "pkg/ui/panel.go hash/maphash"}
+	want := []string{"pkg/random/gosource.go math/rand", "pkg/random/msvc.go constant", "pkg/ui/panel.go hash/maphash", "pkg/editormcp/http.go crypto/rand"}
 	if len(RandomnessAllowed) != len(want) {
 		t.Fatalf("allow list %v changed", RandomnessAllowed)
 	}

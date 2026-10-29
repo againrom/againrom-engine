@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"againrom/internal/appicon"
 	"againrom/pkg/game"
@@ -113,6 +114,9 @@ func runAs(self string, args []string, out io.Writer) error {
 	newMap := flags.String("new", "", "start a new map of this size, e.g. 32x32 (width and height, 32 to 256 in steps of 8), or 32x32/altitude40 for a starting height of 0 to 126 (64 without it); with -out the blank map is written and the program exits")
 	out2 := flags.String("out", "", "with -new: the new .alm file to write the blank map to; the report is printed and the program exits")
 	modDir := flags.String("mod", "", "mod folder Save writes into: Ctrl+S writes the map to the path its data/missions.toml entry names, and refuses a map no entry names")
+	mcp := flags.String("mcp", "", "optional editor MCP transport: stdio or http")
+	mcpAddress := flags.String("mcp-address", "127.0.0.1:0", "MCP HTTP loopback address; port 0 chooses a free port")
+	mcpPace := flags.Duration("mcp-pace", 0, "pause between MCP tool calls (0..1m)")
 	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -120,6 +124,15 @@ func runAs(self string, args []string, out io.Writer) error {
 	if *version {
 		fmt.Fprintln(out, versionLine())
 		return nil
+	}
+	if *mcp != "" && *mcp != "stdio" && *mcp != "http" {
+		return fmt.Errorf("-mcp must be stdio or http")
+	}
+	if *mcpPace < 0 || *mcpPace > time.Minute {
+		return fmt.Errorf("-mcp-pace must be between 0 and 1m")
+	}
+	if *mcp != "" && (*list || *check || *snapshot != "" || *out2 != "") {
+		return fmt.Errorf("-mcp requires the editor window, excluding -list, -check, -snapshot and -out")
 	}
 	if flags.NArg() > 1 {
 		return fmt.Errorf("unexpected arguments: %v; give one map path, and flags before it", flags.Args())
@@ -270,6 +283,13 @@ func runAs(self string, args []string, out io.Writer) error {
 		return reportFindings(out, d)
 	}
 	e.SetPathDialog(pathdialog.Show, root)
+	if *mcp != "" {
+		stop, err := startMCP(e, *mcp, *mcpAddress, *mcpPace, self, userConfigDir, root, os.Stdin, out, os.Stderr)
+		if err != nil {
+			return err
+		}
+		defer stop()
+	}
 	return openWindow(e)
 }
 

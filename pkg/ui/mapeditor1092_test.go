@@ -18,6 +18,11 @@ import (
 
 func editor1092(t *testing.T) *MapEditor {
 	t.Helper()
+	return newMapEditorFixture(t)
+}
+
+func newMapEditorFixture(t *testing.T) *MapEditor {
+	t.Helper()
 	open := func(source string) (*InspectionDocument, error) {
 		if source == "bad" {
 			return nil, errors.New("refused map")

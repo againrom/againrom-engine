@@ -67,7 +67,7 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 
 func (e *MapEditor) askPath(kind pathdialog.Kind) {
 	e.rememberCancel()
-	if e.pathDialog.ask == nil {
+	if e.pathDialog.ask == nil || e.mcp.call != nil {
 		e.pathFallback(kind, nil)
 		return
 	}

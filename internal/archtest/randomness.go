@@ -52,6 +52,7 @@ var RandomnessAllowed = []RandomnessAllowance{
 	{"pkg/random/gosource.go", "math/rand", "the seeded mode's own generator; every stream takes its seed from the session"},
 	{"pkg/random/msvc.go", ruleConstant, "the original's recurrence lives here once"},
 	{"pkg/ui/panel.go", "hash/maphash", "the hash seed of a layout memo key; it orders no draw and decides no hashed state"},
+	{"pkg/editormcp/http.go", "crypto/rand", "unpredictable bearer credentials for the loopback transport; this stdlib-only protocol leaf cannot reach simulation or seed its streams"},
 }
 
 func randomnessAllowed(file, rule string) bool {
