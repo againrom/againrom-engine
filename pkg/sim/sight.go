@@ -419,32 +419,39 @@ func (w *World) groupSight(reader sightReader, members []int) []byte {
 	return stamp
 }
 
-// Sight is the fog reader: owned bodies below the third decay stage and with
-// a scan range stamp (TERR-TILE-079).
+// Sight is the fog reader: every body the fog stamp's gate admits for the
+// viewer owner stamps.
 func (w *World) Sight(owner uint32) []byte {
 	stamp := make([]byte, len(w.grid))
 	for i := range w.entities {
 		e := w.entities[i]
-		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 {
-			continue
-		}
-		w.fogStamp(stamp, &e)
+		w.fogStamp(stamp, owner, &e)
 	}
 	return stamp
 }
 
-// fogStamp ORs one body's fog stamp into stamp: the client stamp
-// (TERR-FOG-266) in both games. The walk centres on the body's cell, seeded
-// with its sight word, and each positive accumulator cell marks the 2x2 block
-// (x,y)..(x+1,y+1) around a write centre shifted by half the footprint side,
-// which equals the class TileSize the original adds on every shipped row
-// (TERR-FOG-273); a one-cell body's write centre is its cell. The second
-// game's first mission reveals that block east and south (DIV-4182). Only the
-// fog reads this; the AI reader marches unchanged.
-func (w *World) fogStamp(stamp []byte, e *Entity) {
+// fogRevealed is the stamp's owner gate: the viewer's reveal bit 0x8 for the
+// body's owner (R2-ENGINE-648, TERR-TILE-079). No claim names the bit's
+// writer in either game; the viewer's own slot holds it, and no other owner
+// is known to (DIV-4182).
+func fogRevealed(viewer, owner uint32) bool { return owner == viewer }
+
+// fogStamp ORs one body's fog stamp into stamp, the one walk of both games
+// (R2-ENGINE-643..646; TERR-FOG-266 states the first game's with the same
+// data). It returns unless the owner gate passes, the body is below the third
+// decay stage and its sight word is nonzero (R2-ENGINE-648). The walk centres
+// on the body's cell, seeded with the sight word (R2-ENGINE-644), and each
+// positive budget cell marks the 2x2 block (x,y)..(x+1,y+1) around a write
+// centre moved by half the footprint side (R2-ENGINE-646, TERR-FOG-273).
+// Only the fog reads this; the AI reader marches unchanged.
+func (w *World) fogStamp(stamp []byte, viewer uint32, e *Entity) {
+	word := e.SightWord(e.Humanoid)
+	if !fogRevealed(viewer, e.Owner) || e.Decay >= decayDarkStage || word == 0 {
+		return
+	}
 	from := cellOf(e)
 	var acc [sightArea]int32
-	w.marchInto(fogSight, nil, &acc, from, int32(e.SightWord(e.Humanoid)))
+	w.marchInto(fogSight, nil, &acc, from, int32(word))
 	half := footprintSide(e.TokenSize) / 2
 	for dy := int32(-sightHalf); dy <= sightHalf; dy++ {
 		for dx := int32(-sightHalf); dx <= sightHalf; dx++ {
@@ -461,17 +468,16 @@ func (w *World) fogStamp(stamp []byte, e *Entity) {
 	}
 }
 
-// SightOf is Sight restricted to the named entities: the same population
-// rule, the same march, the stamp of only those bodies. It is the fog
-// reader for a body that has just moved (TERR-TILE-079).
+// SightOf is Sight restricted to the named entities: the same gate, the
+// same march, the stamp of only those bodies. It is the fog reader for a
+// body that has just moved (TERR-TILE-079).
 func (w *World) SightOf(owner uint32, ids []EntityID) []byte {
 	stamp := make([]byte, len(w.grid))
 	for i := range w.entities {
 		e := w.entities[i]
-		if e.Owner != owner || e.Decay >= decayDarkStage || e.ScanRange == 0 || !containsEntityID(ids, e.ID) {
-			continue
+		if containsEntityID(ids, e.ID) {
+			w.fogStamp(stamp, owner, &e)
 		}
-		w.fogStamp(stamp, &e)
 	}
 	return stamp
 }
