@@ -95,7 +95,7 @@ func TestReleaseUnansweredHeroSpeakersUseRegistryArchetypes(t *testing.T) {
 					if !dirs[index].Mage() {
 						want.Figure = heroBackgroundExpected(t, f.Archives.Containers, dirs[index], want.Figure)
 					}
-					got, _, ok := town.speakerFace(speaker)
+					got, _, ok := town.talkFace(speaker)
 					if !ok || got == nil || want.Figure == nil || !bytes.Equal(got.Pix, want.Figure.Pix) {
 						t.Fatalf("primary %s npc%d: not %s/%d", dir, speaker, dirs[index], face)
 					}

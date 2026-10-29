@@ -230,11 +230,11 @@ func TestReleaseSecondIglezTalksDrawHisPortrait(t *testing.T) {
 	secondLaterChoose(t, app, "TALK 22")
 	lines := map[int]int{}
 	for page := 0; page < 64; page++ {
-		v := s.talkSource.talkView()
+		v := s.view()
 		if !v.Open {
 			break
 		}
-		r, _ := s.dialoguePart()
+		r := s.dialogue
 		speaker, named := tagSpeaker(r.tag)
 		if named && v.Page.Portrait {
 			lines[speaker]++
@@ -304,11 +304,11 @@ func TestReleaseSecondDinaTalksDrawHerPortrait(t *testing.T) {
 	s.setTownDialogue(payload)
 	lines := 0
 	for page := 0; page < 64; page++ {
-		v := s.talkSource.talkView()
+		v := s.view()
 		if !v.Open {
 			break
 		}
-		r, _ := s.dialoguePart()
+		r := s.dialogue
 		if speaker, named := tagSpeaker(r.tag); named && v.Page.Portrait && speaker == 23 {
 			lines++
 			if v.Page.Face == nil {
@@ -321,7 +321,7 @@ func TestReleaseSecondDinaTalksDrawHerPortrait(t *testing.T) {
 	}
 	dina := figureID{Dir: "fmage", Face: 20, Hero: true}
 	drawn := map[figureID]bool{}
-	for key := range s.talkFaces.figurePics {
+	for key := range s.resolver.figurePics {
 		drawn[key.fig] = true
 	}
 	if lines == 0 || !drawn[dina] || drawn[figureID{Dir: "mmage", Face: 1}] {

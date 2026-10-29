@@ -220,6 +220,20 @@ func (c chapterTownCampaign) townID() int {
 func (c chapterTownCampaign) ready() bool   { return c.t.sess != nil && c.t.sess.Town != nil }
 func (c chapterTownCampaign) present() bool { return true }
 func (c chapterTownCampaign) talking() bool { return c.t.room == roomTalk }
+
+func (c chapterTownCampaign) talkCursor() *talkCursor {
+	if !c.talking() {
+		return nil
+	}
+	return &c.t.talkPage
+}
+
+// endTalk returns to the opening room; the room popup keeps its lifetime.
+func (c chapterTownCampaign) endTalk() {
+	c.t.room = c.t.dialogueRoom()
+	c.t.mercenaryTalk = 0
+	c.t.rereadTip(c.t.room)
+}
 func (c chapterTownCampaign) condition(name string) bool {
 	return name == "gate-open" && c.ready() && (c.t.sess.Town.gateMission() != -1 || len(c.t.sess.Town.travelTowns()) > 0)
 }

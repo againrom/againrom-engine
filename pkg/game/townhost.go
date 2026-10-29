@@ -9,9 +9,6 @@ import (
 	"againrom/pkg/ui"
 )
 
-type chapterTownTalk struct{ host *townScreen }
-type sectionTownTalk struct{ host *townScreen }
-
 type townMapPage interface {
 	worldMapCampaign
 	atMap() bool
@@ -354,25 +351,6 @@ func (t *townScreen) Back() bool {
 	t.squareView().LeaveRoom(room)
 	return true
 }
-
-func (t *townScreen) boundTalkSource() townTalkSource {
-	if t.talkSource == nil {
-		if t.hostRules().Talk == "section" {
-			t.talkSource = &sectionTownTalk{t}
-		} else {
-			t.talkSource = &chapterTownTalk{t}
-		}
-	}
-	return t.talkSource
-}
-
-func (t *townScreen) talkView() ui.TownTalkView {
-	if t == nil {
-		return ui.TownTalkView{Profile: firstTownTalkProfile}
-	}
-	return t.boundTalkSource().talkView()
-}
-func (t *townScreen) turnTownTalk() bool { return t.boundTalkSource().turnTownTalk() }
 
 func (t *townScreen) Header() string {
 	if t.hostRules().Header == "location" {

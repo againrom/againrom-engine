@@ -217,7 +217,7 @@ func TestReleaseSecondTownOneSelectors(t *testing.T) {
 	// Speaker 97 has no record and no live unit: the box draws the fallback
 	// actor's bare doll, equipment/fmage/17, the picture of mfighter/14
 	// (R2-ENGINE-583, R2-ASSET-146).
-	face := s.talkView().Page.Face
+	face := s.view().Page.Face
 	src := f.Archives.Containers
 	fallback, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: data.FigureDirWomanMage, Face: 17})
 	knight, _ := composeUnitFigure(src, data.Equipment{}, figureID{Dir: data.FigureDirManFighter, Face: 14})

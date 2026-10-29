@@ -67,11 +67,9 @@ type townScreen struct {
 	worldMapOf *secondCampaign
 	worldMapAt *secondMapOpening
 	start      func() error
-	frame      func() *ui.DialogFrame
 	tags       eventTags
 	tipArt     func() *ui.TipPanelArt
 	tip        secondRoomTip
-	talkFaces  speakerResolver
 
 	// shopController is the shop page; its session and install are the
 	// screen's campaign state and install too.
@@ -105,7 +103,6 @@ type townScreen struct {
 	// a failed lookup.
 	talkPage talkCursor
 	townTalkSeat
-	dialogue townDialogueState
 
 	// innQueue is the missions the tavern's conversations have queued and
 	// leaving the tavern commits, in the order they were heard. It is the
@@ -113,12 +110,11 @@ type townScreen struct {
 	innQueue []int
 
 	// mercenaryTalk is the selected mercenary type whose own shipped
-	// text/inn/mercenary payload is open. talkDiagnostic is non-empty only
-	// when that external payload is missing or malformed; no shipped candidate
-	// is expected to take that diagnostic path.
-	mercenaryTalk  int
-	talkDiagnostic string
-	speech         townSpeech
+	// text/inn/mercenary payload is open. The seat's talkDiagnostic is
+	// non-empty only when that external payload is missing or malformed; no
+	// shipped candidate is expected to take that diagnostic path.
+	mercenaryTalk int
+	speech        townSpeech
 
 	// tavernSelection, schoolCell and townStats are the shared shell's
 	// presentation state. The tavern stores a producer-stable key rather than
@@ -266,7 +262,7 @@ func (t *townScreen) resetForNewGame() {
 	t.worldMap, t.worldFlag1Frame = nil, 0
 	t.tipClosed = [roomTalk + 1]bool{}
 	t.worldMapOf, t.worldMapAt = nil, nil
-	t.tip, t.talkFaces = secondRoomTip{}, speakerResolver{}
+	t.tip = secondRoomTip{}
 	if t.composed != nil {
 		t.composed.seat, t.composed.seatFrames, t.composed.patrons = -1, nil, nil
 		t.composed.hero, t.composed.innShown = nil, false
@@ -371,13 +367,12 @@ func (t *townScreen) openTownDialogue(building TownBuilding, offer TownOffer, np
 	if payload == nil {
 		return false
 	}
-	t.openTalk(t.boundTalkSource(), t.room == roomTalk)
+	wasOpen := t.room == roomTalk
 	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, building, npc, offer
 	t.talkPage.open(payload)
 	t.resetTownSpeech()
 	t.mercenaryTalk, t.talkDiagnostic = 0, ""
-	t.dialogue = newTownDialogue(payload)
-	t.lookupTownDialogue()
+	t.openTalk(t, payload, wasOpen)
 	return true
 }
 
@@ -459,15 +454,17 @@ func registerInnMissions(queue []int, register func(int)) {
 // A bad external file remains visible as a concise diagnostic instead of
 // silently substituting prose that no shipped candidate authored.
 func (t *townScreen) openMercenaryDialogue(typ int) {
-	t.openTalk(t.boundTalkSource(), t.room == roomTalk)
+	wasOpen := t.room == roomTalk
 	t.resetTownSpeech()
 	t.room, t.dialogueBuilding, t.npc, t.offer = roomTalk, TownTavern, 0, TownOffer{}
 	t.mercenaryTalk, t.talkDiagnostic = typ, ""
 	t.composeShopFaces()
 	payload := t.townPayload()
 	t.talkPage.open(payload)
-	t.dialogue = newTownDialogue(payload)
-	if !t.lookupTownDialogue() {
+	read := t.openTalk(t, payload, wasOpen)
+	// A candidate's talk takes the portrait shape whatever its text names.
+	t.dialogue.hasPortrait = true
+	if !read {
 		t.talkDiagnostic = fmt.Sprintf("Mercenary dialogue unavailable: npc%02d", typ)
 	}
 }
@@ -484,7 +481,7 @@ func (t *townScreen) townLines() []string {
 	var lines []string
 	var pages talkCursor
 	for pages.open(payload); ; pages.next() {
-		if !dialogue.lookup(pages, partyAudience(t.sess.Carried, nil)) {
+		if !dialogue.lookup(pages, t.talkAudience(), t.talkProfile()) {
 			break
 		}
 		lines = append(lines, dialogue.text)
@@ -509,9 +506,6 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 		pages: map[string]*town.Scene{}, defaults: d, composed: newTownSceneState(f), tags: f.campaign().eventTags()}
 	if d.Host.StartsInTown {
 		t.start = f.startSecondCampaign
-	}
-	if d.Host.Talk == "section" {
-		t.frame = f.gameMenuArt
 	}
 	if d.Host.Tips == "entry" {
 		t.tipArt = f.tipArt
@@ -706,31 +700,6 @@ func (t *townScreen) platoonTalkPicture(speaker int) (*image.RGBA, bool) {
 	return t.mercenaryTalkPicture(speaker)
 }
 
-func (t *townScreen) speakerFace(speaker int) (*image.RGBA, image.Rectangle, bool) {
-	rec := t.in.NPCFaces[int32(speaker)]
-	if !rec.Tokens.Has(data.NPCTokenPlatoon) {
-		return t.resolver.SpeakerFace(speaker)
-	}
-	var win image.Rectangle
-	if rec.HasWindow {
-		win = ui.NoticeFaceWindow(rec.WindowX, rec.WindowY)
-	}
-	pic, ok := t.platoonTalkPicture(speaker)
-	return pic, win, ok
-}
-
-// firstTownTalkProfile is the first game's town talk profile: a window with no
-// font draws nothing, the frame composer gets its frame, the button needs
-// area, and shows count every conversation opened while it stays open.
-var firstTownTalkProfile = ui.TownTalkProfile{CountShows: true, NeedsFont: true, ExposesFrame: true, ButtonNeedsArea: true}
-
-// talkView is the town talk as this game reads it: the current part, or the
-// diagnostic of a candidate whose words failed, with the speaker's talk
-// picture.
-
-// turnTownTalk attempts the next part; a failed lookup closes the
-// conversation to the room it was opened from.
-
 func townItemStacks(items []uint16) []sim.ItemStack {
 	var stacks []sim.ItemStack
 	positions := make(map[uint16]int)
@@ -903,7 +872,7 @@ func (f *FrontEnd) bindTown(t *townScreen) *townScreen {
 	if t.defaults == nil {
 		t.defaults = ROM1TownDescription()
 	}
-	t.boundTalkSource()
+	t.bindTalk(t)
 	t.bindShop()
 	t.mapPage()
 	t.bindServices(&f.RuntimeServices, &f.InstallResources, &f.Presentation)
@@ -939,34 +908,4 @@ func (t *townScreen) shopFaces(src entrySource, party []mapload.PartyMember, pla
 	if dir, ok := playerDirection(party); ok {
 		t.resolver.cast.playerDir, t.resolver.cast.hasPlayer = dir, true
 	}
-}
-
-func (t *chapterTownTalk) talkView() ui.TownTalkView {
-	if t == nil || t.host.room != roomTalk {
-		return ui.TownTalkView{Profile: firstTownTalkProfile}
-	}
-	line := t.host.dialogue.text
-	if t.host.talkDiagnostic != "" {
-		line = t.host.talkDiagnostic
-	}
-	return ui.TownTalkView{Profile: firstTownTalkProfile, Open: true,
-		Page: ui.TownTalkPage{Text: line, Face: t.host.dialogue.face, FaceWindow: t.host.dialogue.faceWindow,
-			Portrait: t.host.mercenaryTalk != 0 || t.host.dialogue.hasPortrait},
-		Art: ui.TownTalkArt{Words: t.host.in.Words, Frame: t.host.art.menuFrame(), Font: t.host.in.Font.Value()}}
-}
-
-func (t *chapterTownTalk) turnTownTalk() bool {
-	if t.host.room != roomTalk {
-		return false
-	}
-	t.host.talkPage.next()
-	if t.host.talkDiagnostic == "" && t.host.lookupTownDialogue() {
-		return true
-	}
-	t.host.dialogue.closeTips = t.host.dialogue.tips
-	t.host.room = t.host.dialogueRoom()
-	t.host.mercenaryTalk, t.host.talkDiagnostic = 0, ""
-	// Closing a conversation preserves the room popup's construction lifetime.
-	t.host.rereadTip(t.host.room)
-	return true
 }

@@ -464,6 +464,25 @@ func (c destinationTownCampaign) talking() bool {
 	s := c.bank()
 	return s != nil && s.talk.payload != nil
 }
+
+func (c destinationTownCampaign) talkCursor() *talkCursor {
+	if s := c.bank(); s != nil {
+		return &s.talk
+	}
+	return nil
+}
+
+func (c destinationTownCampaign) endTalk() {
+	s := c.bank()
+	if s == nil {
+		return
+	}
+	s.talk.close()
+	if o := s.talking; o != nil {
+		s.talking = nil
+		c.t.endInnTalk(*o)
+	}
+}
 func (c destinationTownCampaign) condition(name string) bool {
 	if f := secondTownConditions[name]; f != nil && c.bank() != nil {
 		return f(c.bank())

@@ -30,13 +30,9 @@ type routeTown interface {
 // routeRoom names the open room; a talk names the building it opened in.
 func (t *townScreen) routeRoom() string { return t.roomName() }
 
-// dialogueBody is the open conversation's page under its talk rule.
+// dialogueBody is the open conversation's page as the seat read it.
 func (t *townScreen) dialogueBody() (string, bool) {
-	if t.hostRules().Talk == "section" {
-		r, _ := t.dialoguePart()
-		return r.text, r.ok
-	}
-	if t.room != roomTalk {
+	if !t.view().Open {
 		return "", false
 	}
 	return t.dialogue.text, true

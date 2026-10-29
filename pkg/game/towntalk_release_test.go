@@ -123,7 +123,7 @@ func TestReleaseSecondTownTalkOKThroughTheWindow(t *testing.T) {
 			t.Fatalf("page %d: part %d, installed part found %v", page, c.talk.part, ok)
 		}
 		speaker, named := audience.tagRules().speaker(r.tag)
-		face, window, found := s.talkFaces.SpeakerFace(speaker)
+		face, window, found := s.resolver.SpeakerFace(speaker)
 		if !named || !found || face == nil {
 			t.Fatalf("page %d: speaker %d named %v has no face", page, speaker, named)
 		}

@@ -13,6 +13,10 @@ type townCampaignAdapter interface {
 	ready() bool
 	present() bool
 	talking() bool
+	// talkCursor is the campaign's town talk cursor, nil where the campaign
+	// has none to turn; endTalk is what the talk's end does to the campaign.
+	talkCursor() *talkCursor
+	endTalk()
 	condition(string) bool
 	value(string) int
 	savePoint() bool

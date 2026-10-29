@@ -4,23 +4,21 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
-	"againrom/pkg/ui"
 )
 
-// talkReaderGames is each game's reading of one cursor: the first game's
-// panel lookup and the second game's campaign read, both through the one
-// part reader.
+// talkReaderGames is each game's reading of one cursor: the one page lookup
+// under each game's tag rules and talk profile.
 func talkReaderGames() map[string]func(c talkCursor) (string, bool) {
-	return map[string]func(c talkCursor) (string, bool){
-		"first": func(c talkCursor) (string, bool) {
+	read := func(tags eventTags, p townTalkProfile) func(c talkCursor) (string, bool) {
+		return func(c talkCursor) (string, bool) {
 			d := newTownDialogue(c.payload)
-			ok := d.lookup(c, EventAudience{tags: firstEventTags{}})
+			ok := d.lookup(c, EventAudience{tags: tags}, p)
 			return d.text, ok
-		},
-		"second": func(c talkCursor) (string, bool) {
-			r := c.read(EventAudience{tags: secondEventTags{}}, nil)
-			return r.text, r.ok
-		},
+		}
+	}
+	return map[string]func(c talkCursor) (string, bool){
+		"first":  read(firstEventTags{}, firstTownTalkProfile),
+		"second": read(secondEventTags{}, secondTownTalkProfile),
 	}
 }
 
@@ -61,16 +59,18 @@ func TestTownTalkReaderPartCases(t *testing.T) {
 	}
 }
 
-// The two readers' one kept difference: the first game reads no part below 1,
-// the shared scan reads part 0.
+// The town talk of either game reads no part below 1; the shared scan reads
+// part 0.
 func TestTownTalkReaderLowestPart(t *testing.T) {
 	payload := []byte("<part=0>\r\nzero\r\n")
-	games := talkReaderGames()
-	if _, ok := games["first"](talkCursor{payload: payload}); ok {
-		t.Error("the first game read part 0")
+	for game, read := range talkReaderGames() {
+		if _, ok := read(talkCursor{payload: payload}); ok {
+			t.Errorf("the %s game read part 0", game)
+		}
 	}
-	if text, ok := games["second"](talkCursor{payload: payload}); !ok || text != "zero\r\n" {
-		t.Errorf("the second game read part 0 as %q %v, want zero", text, ok)
+	c := talkCursor{payload: payload}
+	if r := c.read(EventAudience{}, nil); !r.ok || r.text != "zero\r\n" {
+		t.Errorf("the shared scan read part 0 as %q %v, want zero", r.text, r.ok)
 	}
 }
 
@@ -80,13 +80,14 @@ func TestTownTalkReaderLowestPart(t *testing.T) {
 func TestTownTalkReaderFirstGameTagState(t *testing.T) {
 	payload := []byte("<part=1 iamfemale npc=5>\r\nher\r\n<part=1 iammale>\r\nhim\r\n<part=2 npc=8 iamfemale>\r\nx\r\n<part=3 tips=4>no break")
 	d := newTownDialogue(payload)
-	if !d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}) || d.text != "him" || d.portrait || d.speaker != 5 {
+	p := firstTownTalkProfile
+	if !d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}, p) || d.text != "him" || d.portrait || d.speaker != 5 {
 		t.Fatalf("part 1: text %q portrait %v speaker %d, want him false 5", d.text, d.portrait, d.speaker)
 	}
-	if d.lookup(talkCursor{payload: payload, part: 2}, EventAudience{}) || d.text != "him" || !d.portrait || d.speaker != 8 {
+	if d.lookup(talkCursor{payload: payload, part: 2}, EventAudience{}, p) || d.text != "him" || !d.portrait || d.speaker != 8 {
 		t.Fatalf("rejected part 2: text %q portrait %v speaker %d, want him true 8", d.text, d.portrait, d.speaker)
 	}
-	if d.lookup(talkCursor{payload: payload, part: 3}, EventAudience{}) || d.tips != 4 || d.displayPart != 1 {
+	if d.lookup(talkCursor{payload: payload, part: 3}, EventAudience{}, p) || d.tips != 4 || d.displayPart != 1 {
 		t.Fatalf("part 3: tips %d shown part %d, want 4 and 1", d.tips, d.displayPart)
 	}
 }
@@ -146,7 +147,7 @@ func TestFirstTownTalkCursorThroughTheSeat(t *testing.T) {
 func TestSecondTownTalkCursorThroughTheSeat(t *testing.T) {
 	c := newSecondCampaign()
 	s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: c}}, in: &InstallResources{}},
-		frame: func() *ui.DialogFrame { return nil }, tags: secondEventTags{}}
+		art: fakeTownArt{}, tags: secondEventTags{}}
 	for round := 0; round < 2; round++ {
 		s.setTownDialogue([]byte("<part=1>\r\nOne\r\n<part=2>\r\nTwo\r\n"))
 		for part, text := range []string{"One", "Two\r\n"} {

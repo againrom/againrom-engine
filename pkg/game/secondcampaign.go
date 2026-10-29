@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -261,36 +260,16 @@ func (t *townScreen) endInnTalk(o innOffer) {
 	t.sess.addTalkIdentities(t.in.townInstall(), o.npc, o.topic)
 }
 
-// dialoguePart is the campaign's current section part and the audience it
-// was read for.
-func (t *townScreen) dialoguePart() (dialogueRead, EventAudience) {
-	c := t.state()
-	if c == nil || c.talk.payload == nil {
-		return dialogueRead{}, EventAudience{}
-	}
-	audience := partyAudience(t.sess.Carried, nil)
-	audience.tags = t.tags
-	return c.talk.read(audience, nil), audience
-}
-
-// secondTownTalkProfile is the second game's town talk profile: no frame for
-// the frame composer, a font-less window still drawn, the button offered at
-// any size, and one show while the window is open.
-var secondTownTalkProfile = ui.TownTalkProfile{}
-
 // setTownDialogue opens a conversation and its speaker resolver.
 func (t *townScreen) setTownDialogue(payload []byte) {
 	if t.adapter == nil {
 		t.adapter = destinationTownCampaign{t}
 		t.defaults = townDescriptions["rom2-town1"]
 	}
-	if t.talkSource == nil {
-		t.talkSource = &sectionTownTalk{t}
-	}
 	c := t.state()
 	c.talk.open(payload)
-	t.talkFaces = t.townSpeakers()
-	t.openTalk(t.boundTalkSource(), false)
+	t.resolver = t.townSpeakers()
+	t.openTalk(t, payload, false)
 }
 
 // townSpeakers resolves a town speaker over the carried party as a mission
@@ -336,39 +315,4 @@ func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
 		return nil, nil
 	}
 	return []byte(body), nil
-}
-
-func (t *sectionTownTalk) talkView() ui.TownTalkView {
-	r, audience := t.host.dialoguePart()
-	if !r.ok {
-		return ui.TownTalkView{Profile: secondTownTalkProfile}
-	}
-	page := ui.TownTalkPage{Text: strings.TrimSpace(r.text),
-		Portrait: EventHasSpeaker(dialoguePayload(t.host.state().talk.payload))}
-	if speaker, named := audience.tagRules().speaker(r.tag); named && page.Portrait {
-		page.Face, page.FaceWindow, _ = t.host.talkFaces.SpeakerFace(speaker)
-	}
-	return ui.TownTalkView{Profile: secondTownTalkProfile, Open: true, Page: page,
-		Art: ui.TownTalkArt{Words: t.host.in.Words, Frame: t.host.frame(), Font: t.host.in.Font.Value()}}
-}
-
-func (t *sectionTownTalk) turnTownTalk() bool {
-	c := t.host.state()
-	if c == nil {
-		return false
-	}
-	c.talk.next()
-	if _, ok := t.dialogueBody(); !ok {
-		c.talk.close()
-		if o := c.talking; o != nil {
-			c.talking = nil
-			t.host.endInnTalk(*o)
-		}
-	}
-	return true
-}
-
-func (t *sectionTownTalk) dialogueBody() (string, bool) {
-	r, _ := t.host.dialoguePart()
-	return r.text, r.ok
 }

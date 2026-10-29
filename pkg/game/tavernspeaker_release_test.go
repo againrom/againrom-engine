@@ -80,7 +80,7 @@ func TestReleaseTavernDialogueDressesTheStockUnitItsSpeakerAnswersFor(t *testing
 				}
 				rec := f.NPCFaces[int32(speaker)]
 				object := s.tavernTalkObject(speaker)
-				pic, win, found := s.speakerFace(speaker)
+				pic, win, found := s.talkFace(speaker)
 				if object.stock == 0 {
 					if object.live < 0 && rec.Kind == data.NPCFigure && found {
 						bare, _ := composeUnitFigure(src, data.Equipment{},

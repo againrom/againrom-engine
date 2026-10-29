@@ -15,7 +15,10 @@ import (
 // townDialogueLayout is the first game's open talk layout and the payload it
 // pages, read through the town talk window.
 func (t *townScreen) townDialogueLayout() (ui.NoticeLayout, []byte, bool) {
-	v := t.talkView()
+	if t.talkHost == nil {
+		t.bindTalk(t)
+	}
+	v := t.view()
 	if !v.Open {
 		return ui.NoticeLayout{}, nil, false
 	}
@@ -51,7 +54,7 @@ func (p *talkPages) turn() bool {
 }
 
 func townTalkProfiles() map[string]ui.TownTalkProfile {
-	return map[string]ui.TownTalkProfile{"first": firstTownTalkProfile, "second": secondTownTalkProfile}
+	return map[string]ui.TownTalkProfile{"first": firstTownTalkProfile.window, "second": secondTownTalkProfile.window}
 }
 
 // The one window pages, presses and releases OK, counts revisions and places
@@ -181,7 +184,7 @@ func TestTownScreensHoldOneTownTalk(t *testing.T) {
 				continue
 			}
 			recv := receiverName(fn.Recv.List[0].Type)
-			if recv != "townScreen" && recv != "chapterTownTalk" && recv != "sectionTownTalk" && recv != "townTalkSeat" {
+			if recv != "townScreen" && recv != "townTalkSeat" {
 				continue
 			}
 			window := townTalkMethods[fn.Name.Name]

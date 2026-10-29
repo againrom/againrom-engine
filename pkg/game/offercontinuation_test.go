@@ -179,7 +179,7 @@ func TestOfferFailedLookupRetainsDisplayFaceAndVoice(t *testing.T) {
 		t.Fatal("independent retained-face loss control changes no rendered pixels")
 	}
 	s.talkPage.part = 2
-	if s.lookupTownDialogue() || s.dialogue.text != "Standing" || s.dialogue.face != face || s.dialogue.faceWindow != image.Rect(1, 2, 3, 4) || s.dialogue.displayPart != 1 || s.dialogue.speaker != 34 || !s.dialogue.portrait || s.dialogue.tips != 0 {
+	if s.readTalk() || s.dialogue.text != "Standing" || s.dialogue.face != face || s.dialogue.faceWindow != image.Rect(1, 2, 3, 4) || s.dialogue.displayPart != 1 || s.dialogue.speaker != 34 || !s.dialogue.portrait || s.dialogue.tips != 0 {
 		t.Fatal("failed parser changed delivered display or lost candidate metadata", s.dialogue)
 	}
 	retained, shown := s.TownDialogue()
@@ -237,14 +237,14 @@ func TestOfferPanelMetadataScanBounds(t *testing.T) {
 	for _, value := range []string{"", "+", "-", "2147483648", "-2147483649", "99999999999999999999999999"} {
 		payload := []byte(fmt.Sprintf("<part=1 tips=%s>no LF", value))
 		d := newTownDialogue(payload)
-		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}) || d.tips != 0 || d.text != "Nothing to say" {
+		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}, firstTownTalkProfile) || d.tips != 0 || d.text != "Nothing to say" {
 			t.Fatal("invalid integer updated panel or admitted header", value, d)
 		}
 	}
 	for _, value := range []string{"+7;", "-7;", " 7 rest"} {
 		payload := []byte(fmt.Sprintf("<part=1 tips=%s>no LF", value))
 		d := newTownDialogue(payload)
-		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}) || d.tips == 0 {
+		if d.lookup(talkCursor{payload: payload, part: 1}, EventAudience{}, firstTownTalkProfile) || d.tips == 0 {
 			t.Fatal("bounded signed integer store was lost", value, d)
 		}
 	}
