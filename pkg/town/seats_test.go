@@ -75,6 +75,8 @@ func TestDecodeRefusesBadControlsAndNumbers(t *testing.T) {
 		{"seats with a negative period", func(d obj) { room(d)["seats"].(obj)["frame-ms"] = -1 }, "frame period"},
 		{"seat compare typo", func(d obj) { room(d)["seats"].(obj)["compare"] = "greatr" }, "frame period"},
 		{"empty pane", func(d obj) { room(d)["pane"] = obj{"rect": list{480, 238, 480, 480}} }, "pane rectangle"},
+		{"pane font typo", func(d obj) { room(d)["pane"] = obj{"rect": list{480, 238, 640, 480}, "font": "instal"} },
+			`room inn: the pane font "instal" is neither empty nor "install"`},
 		{"empty button", func(d obj) { room(d)["buttons"].(list)[1].(obj)["rect"] = list{1, 1, 1, 9} }, "is empty"},
 		{"repeated button", func(d obj) { room(d)["buttons"].(list)[1].(obj)["name"] = "talk" }, "repeated"},
 		{"button art unknown", func(d obj) { room(d)["buttons"].(list)[1].(obj)["on"] = "of" }, `unknown page art "of"`},
@@ -101,6 +103,25 @@ func TestDecodeRefusesBadControlsAndNumbers(t *testing.T) {
 				t.Fatalf("error %q does not name %q", err, c.want)
 			}
 		})
+	}
+}
+
+// A pane font is empty or "install"; both decode to the field.
+func TestDecodeKeepsThePaneFont(t *testing.T) {
+	for _, font := range []string{"", PaneFontInstall} {
+		d := seatTown()
+		d["rooms"].(list)[0].(obj)["pane"] = obj{"rect": list{480, 238, 640, 480}, "font": font}
+		data, err := json.Marshal(d)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := Decode(data, testVocabulary)
+		if err != nil {
+			t.Fatalf("font %q: %v", font, err)
+		}
+		if p := got.Room("inn").Pane; p == nil || p.Font != font {
+			t.Fatalf("font %q: decoded pane %+v", font, p)
+		}
 	}
 }
 

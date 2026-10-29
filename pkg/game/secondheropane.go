@@ -41,41 +41,14 @@ func (t *townScreen) heroFace() *secondHeroFace {
 	return f
 }
 
-// heroPane is the character pane spec p shows: the shown member's figure or
-// statistics card, the card built as the inn's patron card is, with the
-// picker and mode corners and the book corner when p has one.
-func (t *townScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView, *ui.SlotMask, [12][]string) {
-	var info [12][]string
-	var panes TownCharacterPaneArt
-	var corners *ui.CharacterPaneCornerArt
-	if t.paneArt != nil {
-		panes, corners = t.paneArt()
+// heroFaceView is the shown member's face as the room panes draw it: his
+// figure, its slot map and his worn item text; nothing without a party.
+func (t *townScreen) heroFaceView(int) (*image.RGBA, *ui.SlotMask, [12][]string) {
+	f := t.heroFace()
+	if f == nil {
+		return nil, nil, [12][]string{}
 	}
-	var presentation *ui.ChargenPresentation
-	if a := t.in.ChargenAssets; a != nil {
-		presentation = a.Presentation
-	}
-	party := t.secondPaneParty()
-	var subject ui.PanelSubject
-	i := townPickerIndex(party, t.shopMember)
-	if len(party) > 0 {
-		subject = partyPanelSubject(party[i], t.in.Table, t.in.Words)
-		subject.Unplaced, subject.Selected = true, 1
-	}
-	v := presentation.CardView(subject, p.Rect.Rectangle(), image.Point{}, panes.Stats.Body, panes.Stats.Seam)
-	v.HasSubject = len(party) > 0
-	v.Statistics = t.composed.heroStats
-	v.FigurePane, v.CornerArt, v.Session = panes.Figure, corners, ui.CharacterPaneShop
-	v.NoBook, v.BookOpen = !p.Book, p.Book && t.shopBook
-	v.Member, v.MemberCount = townPickerPosition(party, i)
-	if presentation == nil {
-		v.Font, v.CardFont = t.in.Font.Value(), t.in.Font.Value()
-	}
-	var mask *ui.SlotMask
-	if f := t.heroFace(); f != nil {
-		v.Figure, mask, info = f.subject.Figure, f.subject.SlotMask, f.info
-	}
-	return v, mask, info
+	return f.subject.Figure, f.subject.SlotMask, f.info
 }
 
 // TownSquarePane acts on a click on a room pane's corner: the mode corner
@@ -84,7 +57,7 @@ func (t *townScreen) heroPane(p *town.PaneSpec) (ui.TownCharacterView, *ui.SlotM
 func (t *townScreen) TownSquarePane(c ui.CharacterPaneCorner) {
 	switch c {
 	case ui.CharacterPaneMode:
-		t.composed.heroStats = !t.composed.heroStats
+		t.townStats = !t.townStats
 	case ui.CharacterPanePrev:
 		t.stepMemberOver(t.secondPaneParty(), -1)
 	case ui.CharacterPaneNext:

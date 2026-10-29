@@ -210,7 +210,7 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 	if t.shop.dress != nil {
 		t.shop.dress(&v)
 	}
-	// The drag preview changes only the picture. townCharacterView resolves
+	// The drag preview changes only the picture. heroPane resolves
 	// canonical statistics and equipment, so copying the suppressed figure
 	// into that view makes the doll look unequipped while its numbers remain
 	// unchanged until ShopDrag actually commits the move.
@@ -833,6 +833,9 @@ func (t *shopController) shopClick(c ui.ShopControl) ui.TownAction {
 	case ui.ShopControlCharacterMode:
 		t.toggleStats()
 	case ui.ShopControlBook:
+		if !t.paneBook() {
+			return ui.TownAction{}
+		}
 		t.shopBook = !t.shopBook
 	case ui.ShopControlSpell:
 		// The shop's borrowed book is inspection-only. Its cells swallow the

@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/town"
+	"againrom/pkg/ui"
 )
 
 // The hook sets a catalog entry may name. Both bind the common host's
@@ -361,6 +362,15 @@ func checkChapterDescription(d *town.Description) error {
 	for _, name := range []string{"tavern", "shop", "school"} {
 		if d.Room(name).Scene == nil {
 			return fmt.Errorf("room %q has no scene; the %s page is drawn from it", name, name)
+		}
+		// The page's own controls fill the screen beside the character
+		// region, and only the shop has a spellbook page.
+		if p := d.Room(name).Pane; p != nil && p.Rect.Rectangle() != ui.TownCharacterRegion {
+			return fmt.Errorf("room %q pane rectangle %v is not the character region %v", name, p.Rect.Rectangle(), ui.TownCharacterRegion)
+		} else if p != nil && p.Book && name != "shop" {
+			return fmt.Errorf("room %q pane has the spellbook corner; the %s page has no spellbook", name, name)
+		} else if p != nil && p.BookOffset != (town.Point{}) {
+			return fmt.Errorf("room %q pane book_offset %v is not zero; the %s page does not move its spellbook", name, p.BookOffset.Pt(), name)
 		}
 	}
 	scene := d.Room("school").Scene

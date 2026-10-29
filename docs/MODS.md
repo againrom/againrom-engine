@@ -881,8 +881,19 @@ A click operation is an object with one of `room` (go to the named room),
 `hook`, `menu`, `dialogue`, or `if` with `then` and `else` lists. A room has
 `name`, `page`, `enter` and `exit` step lists, an optional `scene` (the same
 fields as the top level: `view`, `random`, `art`, `sounds`, `clocks`, `actors`,
-`layers`), `art`, `music`, `seats` and `buttons`. A step is `{ "hook": name }`
-or `{ "composer": "reset" }`.
+`layers`), `art`, `music`, `seats`, `buttons` and `pane`. A step is
+`{ "hook": name }` or `{ "composer": "reset" }`.
+
+A room's optional `pane` is the character pane its page shows: `rect`, the
+pane's rectangle `[x0, y0, x1, y1]`; `book`, `true` when the pane has the
+spellbook corner; and `font`, where `"install"` draws the pane's arrows and
+mode box in the game's own font and leaving it out draws them in the character
+generator's font. The pane's drawing, its doll and item drop, its picker
+arrows, its mode corner and its book corner all stand on `rect`. A shop pane
+with `"book": false` has no spellbook: no corner, the B key does nothing and
+the spell strip does not open. In a `chapters` town a `tavern`, `shop` or
+`school` room without `pane` takes the same room's pane of the shipped first
+town: `[480, 238, 640, 480]`, the book in the shop only, the game's own font.
 
 `page` is `tavern`, `shop`, `school` or `world-map`. Hooks are
 `gate-closed`, `release-audio`, `set-room`, `talk-clear`, `tip`,
@@ -903,6 +914,9 @@ and `gates`, and the check refuses a description the game cannot play:
   open the world map;
 - the `tavern`, `shop` and `school` rooms each have a `scene`, because their
   pages are drawn from it;
+- a `pane` of those rooms has `rect` `[480, 238, 640, 480]`, because the
+  pages' own controls fill the rest of the screen; only the `shop` pane may
+  have `"book": true`, and no pane has a `book_offset`;
 - the `school` scene has the actors `column` (program `target`), `training`
   (`training`), `diamond` (`bounce`) and `shine` (`cycle`).
 

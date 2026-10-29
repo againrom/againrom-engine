@@ -358,16 +358,11 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 		return 0, 0, fmt.Errorf("headless shop point: no shop room is open")
 	}
 	if kind == "doll_box" {
-		// THE DOLL'S OWN DRAWN AREA, NO PARTICULAR SLOT — the shared character
-		// figure's middle, shopDollAreaAt's own geometry with no mask consulted
-		// (shopscreen.go), HeadlessDollBoxPoint's own reasoning restated for the
-		// shop (round-2 adversarial review, tenth pass): the destination a pack-
-		// or shelf-origin drag resolves to when the release names no marked slot
-		// at all — a slot this member wears nothing in, or a member wearing
-		// nothing anywhere, which the mask- driven scan below can never answer
-		// for.
-		p := image.Pt((townCharacterFigure.Min.X+townCharacterFigure.Max.X)/2,
-			(townCharacterFigure.Min.Y+townCharacterFigure.Max.Y)/2)
+		// The pane figure's middle, no particular slot and no mask consulted:
+		// the destination of a drag whose release names no marked slot, which
+		// the mask-driven scan below can never answer for.
+		figure := characterPaneFigureRect(shopCharacterView(view).paneRect())
+		p := image.Pt((figure.Min.X+figure.Max.X)/2, (figure.Min.Y+figure.Max.Y)/2)
 		wx, wy, ok := a.nativeFrameToWindow(p)
 		if !ok {
 			return 0, 0, fmt.Errorf("headless shop doll box: stands outside the placed frame")
@@ -404,7 +399,7 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 		return 0, 0, fmt.Errorf("headless shop point: unknown surface %q; doll, doll_box, shelf, "+
 			"pack, table, picker_prev, picker_next, shelf_pick, button and merchant are supported", kind)
 	}
-	region := shopWantRegion(view.layout(), want)
+	region := shopWantRegion(view, want)
 	hits := shopHitPixels(view, want, grid, dollSlot, region)
 	if len(hits) == 0 {
 		return 0, 0, fmt.Errorf("headless shop point: the open room answers no pixel for %s %d", kind, index)
@@ -417,12 +412,13 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 	return wx, wy, nil
 }
 
-func shopWantRegion(l *ShopLayout, want ShopControl) image.Rectangle {
+func shopWantRegion(view ShopScreenView, want ShopControl) image.Rectangle {
+	l, pane := view.layout(), shopCharacterView(view).paneRect()
 	frame := image.Rect(0, 0, shopScreenW, shopScreenH)
 	region := frame
 	switch want.Kind {
 	case ShopControlDoll:
-		region = frame.Intersect(townCharacterFigure)
+		region = frame.Intersect(characterPaneFigureRect(pane))
 	case ShopControlShelfCell:
 		region = frame.Intersect(l.ShelfCellRect(want.Index))
 	case ShopControlPackCell:
@@ -430,9 +426,9 @@ func shopWantRegion(l *ShopLayout, want ShopControl) image.Rectangle {
 	case ShopControlTableCell:
 		region = frame.Intersect(l.TableCellRect(want.Index))
 	case ShopControlPickerPrev:
-		region = frame.Intersect(shopPickerPrevRect)
+		region = frame.Intersect(CharacterPaneCornerRect(pane, CharacterPanePrev))
 	case ShopControlPickerNext:
-		region = frame.Intersect(shopPickerNextRect)
+		region = frame.Intersect(CharacterPaneCornerRect(pane, CharacterPaneNext))
 	case ShopControlMerchant:
 		region = frame.Intersect(l.Merchant)
 	case ShopControlButton:
@@ -458,17 +454,9 @@ func shopHitPixels(view ShopScreenView, want ShopControl, grid bool, dollSlot in
 			var ok bool
 			switch {
 			case dollSlot >= 0:
-				// THE DOLL SURFACE IS ASKED OF OrdinaryDollMask, NEVER THE
-				// POSSIBLY-SUPPRESSED SlotMask shopGridControlAt reads (round-2
-				// adversarial review, eleventh pass, counterexample C1): a scenario that
-				// names "doll slot N" while a drag on that same slot is already armed
-				// and past TapSlop would otherwise ask a mask this build's own
-				// suppression has already cleared at that slot, and get back "no pixel
-				// answers" for the origin it is trying to release ON — the exact
-				// production identity shopReleaseIsOrigin exists to preserve. Resolving
-				// against OrdinaryDollMask directly, exactly as shopReleaseIsOrigin
-				// does, answers the slot's true location regardless of any drag this
-				// scenario step is itself mid-way through.
+				// The doll surface is asked of OrdinaryDollMask, never the
+				// possibly suppressed SlotMask, as shopReleaseIsOrigin does: a
+				// drag armed on the same slot has cleared it in SlotMask.
 				n, hit := shopDollSlotAt(view, view.OrdinaryDollMask, p)
 				got, ok = ShopControl{Kind: ShopControlDoll, Index: n}, hit
 			case grid:

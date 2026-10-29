@@ -124,6 +124,19 @@ type shopHost struct {
 	covered func() bool
 	// faces is the room's part of a recomposition of the party's figures.
 	faces func(src entrySource, party []mapload.PartyMember, player *image.RGBA, players map[int]*image.RGBA)
+	// face is member i's pane figure, slot map and worn item text.
+	face func(i int) (*image.RGBA, *ui.SlotMask, [12][]string)
+	// pane is the room's character pane; the book control is the pane's.
+	pane func() *town.PaneSpec
+}
+
+// paneBook reports whether the room's pane has the spellbook corner.
+func (t *shopController) paneBook() bool {
+	if t.shop.pane == nil {
+		return false
+	}
+	p := t.shop.pane()
+	return p != nil && p.Book
 }
 
 // shopKeeperEvent is a keeper event the page raises in the room's scene.
@@ -229,9 +242,14 @@ func (t *townScreen) bindChapterShop() {
 			v.Art = t.shopArt()
 			v.Scene = roomScene{t.shopPage()}
 			v.TipPanel = t.roomTipView(roomShop, t.shopTip)
-			v.Character = t.townCharacterView()
+			v.Character, _, _ = t.heroPane(t.chapterPane("shop"))
 			v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
 		},
+		face: func(i int) (*image.RGBA, *ui.SlotMask, [12][]string) {
+			mask, info := t.shopDollHover(i)
+			return t.shopFigure(i), mask, info
+		},
+		pane: func() *town.PaneSpec { return t.chapterPane("shop") },
 		stepped: func(from, to mapload.PartyMember) {
 			t.clearSchoolSelection()
 			t.retargetSchoolColumn(from.Mage, to.Mage)

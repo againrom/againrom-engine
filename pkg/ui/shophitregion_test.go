@@ -37,7 +37,7 @@ func TestShopWantRegionHoldsEveryHit(t *testing.T) {
 			view.Character.Statistics = stats
 			for _, pr := range probes {
 				full := shopHitPixels(view, pr.want, pr.grid, pr.dollSlot, frame)
-				fast := shopHitPixels(view, pr.want, pr.grid, pr.dollSlot, shopWantRegion(view.layout(), pr.want))
+				fast := shopHitPixels(view, pr.want, pr.grid, pr.dollSlot, shopWantRegion(view, pr.want))
 				if !slices.Equal(full, fast) {
 					t.Fatalf("book %v stats %v %+v: region scan lists %d pixels, frame scan %d", book, stats, pr.want, len(fast), len(full))
 				}

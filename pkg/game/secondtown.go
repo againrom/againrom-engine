@@ -66,10 +66,8 @@ type townSceneState struct {
 	// the screen.
 	pointer image.Point
 
-	// heroStats is the room panes' mode, the statistics card when set;
 	// hero is the shown member's face, composed again after a room entry.
-	heroStats bool
-	hero      *secondHeroFace
+	hero *secondHeroFace
 }
 
 // townRoomArt is one room's loaded art: its scene's and its page's.

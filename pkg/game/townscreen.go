@@ -72,7 +72,6 @@ type townScreen struct {
 	tipArt     func() *ui.TipPanelArt
 	tip        secondRoomTip
 	talkFaces  speakerResolver
-	paneArt    func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt)
 
 	// shopController is the shop page; its session and install are the
 	// screen's campaign state and install too.
@@ -265,7 +264,7 @@ func (t *townScreen) resetForNewGame() {
 	t.tip, t.talkFaces = secondRoomTip{}, speakerResolver{}
 	if t.composed != nil {
 		t.composed.seat, t.composed.seatFrames, t.composed.patrons = -1, nil, nil
-		t.composed.hero, t.composed.heroStats, t.composed.innShown = nil, false, false
+		t.composed.hero, t.composed.innShown = nil, false
 		t.composed.pointer = image.Pt(-1, -1)
 	}
 }
@@ -514,11 +513,6 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 	}
 	if d.Host.Leave == "destinations" {
 		t.mapArt = f.worldMapAssets
-	}
-	if d.Host.Shop == "bank" {
-		t.paneArt = func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) {
-			return f.characterPanes(), f.characterPaneCorners()
-		}
 	}
 	t.adapter = f.campaign().townAdapter(t)
 	f.bindTown(t)

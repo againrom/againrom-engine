@@ -215,7 +215,7 @@ func TestReleaseStatisticsCardFitsAtTheProductionFont(t *testing.T) {
 	s.townStats = true
 
 	t.Run("town", func(t *testing.T) {
-		v := s.townCharacterView()
+		v, _, _ := s.heroPane(s.chapterPane("shop"))
 		if !v.HasSubject {
 			t.Fatal("the production town character pane has no subject")
 		}

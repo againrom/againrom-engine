@@ -234,6 +234,7 @@
   "rooms": [
     {"name": "tavern", "page": "tavern",
      "music-rule": {"scene": "tavern", "cite": ["owner"]},
+     "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -349,6 +350,7 @@
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "shop", "page": "shop",
      "music-rule": {"scene": "shop", "cite": ["owner"]},
+     "pane": {"rect": [480, 238, 640, 480], "book": true, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},
@@ -480,6 +482,7 @@
      "cite": ["TOWN-475", "TOWN-477"]},
     {"name": "school", "page": "school",
      "music-rule": {"scene": "school", "by": "member-class", "cite": ["owner"]},
+     "pane": {"rect": [480, 238, 640, 480], "book": false, "font": "install", "cite": ["TOWN-353", "TOWN-354"]},
      "enter": [
        {"composer": "reset", "cite": ["TOWN-477"]},
        {"hook": "release-audio", "cite": ["TOWN-495"]},

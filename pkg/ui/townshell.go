@@ -397,10 +397,11 @@ func TownCandidateHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) 
 // doll pixel lies under p on the shared character pane, or false while the
 // pane shows statistics, over a corner control or over a blank pixel.
 func TownHeroHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) {
-	if !v.Hero.HasSubject || v.Hero.Statistics || v.HeroSlotMask == nil || !shopDollAreaAt(ShopScreenView{}, p) {
+	if !v.Hero.HasSubject || v.Hero.Statistics || v.HeroSlotMask == nil || !shopDollAreaAt(v.Hero, p) {
 		return nil, false
 	}
-	n, ok := v.HeroSlotMask.At(p.X-shopFigureRect.Min.X, p.Y-shopFigureRect.Min.Y)
+	q := p.Sub(characterPaneFigureOrigin(v.Hero.paneRect()))
+	n, ok := v.HeroSlotMask.At(q.X, q.Y)
 	if !ok || n < 1 || n > len(v.HeroSlotInfo) || len(v.HeroSlotInfo[n-1]) == 0 {
 		return nil, false
 	}

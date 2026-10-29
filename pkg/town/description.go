@@ -539,13 +539,18 @@ type ShopSpec struct {
 // PaneSpec is a page's character pane: the campaign's shown party member in
 // Rect as figure and worn items or as statistics card, with the picker and
 // mode corners, and the spellbook corner when Book. BookOffset moves the open
-// book from the table strip's corner.
+// book from the table strip's corner. Font is the chrome's font:
+// PaneFontInstall the install's, empty the generator's, the card's font.
 type PaneSpec struct {
 	Rect       Rect     `json:"rect"`
 	Book       bool     `json:"book"`
 	BookOffset Point    `json:"book_offset"`
+	Font       string   `json:"font"`
 	Cite       []string `json:"cite"`
 }
+
+// PaneFontInstall draws a pane's chrome in the install's font.
+const PaneFontInstall = "install"
 
 // Step is one entry or exit step: a composer step ("reset" the square view)
 // or a named campaign hook.

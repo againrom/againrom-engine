@@ -92,7 +92,8 @@ func (t *townScreen) bindBankShop() {
 					c.shop.choose(i)
 				}
 			},
-			stats: func() { t.composed.heroStats = !t.composed.heroStats },
+			stats: func() { t.townStats = !t.townStats },
+			face:  t.heroFaceView,
 			faces: func(entrySource, []mapload.PartyMember, *image.RGBA, map[int]*image.RGBA) {
 				if t.composed != nil {
 					t.composed.hero = nil
@@ -101,6 +102,12 @@ func (t *townScreen) bindBankShop() {
 			page: func() *town.ShopSpec {
 				if d, room, ok := t.composedRoom(); ok && d.Room(room) != nil {
 					return d.Room(room).Shop
+				}
+				return nil
+			},
+			pane: func() *town.PaneSpec {
+				if d, room, ok := t.composedRoom(); ok && d.Room(room) != nil {
+					return d.Room(room).Pane
 				}
 				return nil
 			},

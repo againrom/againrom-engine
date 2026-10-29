@@ -29,7 +29,8 @@ func TestShopCardPoolMaximumFollowsTheDerivedMaximum(t *testing.T) {
 		return int(int16(s.Stats[8])), int(int16(s.Stats[9]))
 	}
 
-	before := screen.townCharacterView().Subject
+	pane, _, _ := screen.heroPane(screen.chapterPane("shop"))
+	before := pane.Subject
 	health, healthMax := stored()
 	if health == healthMax {
 		t.Fatalf("the fixture stores %d/%d and cannot witness the pair", health, healthMax)
@@ -42,7 +43,8 @@ func TestShopCardPoolMaximumFollowsTheDerivedMaximum(t *testing.T) {
 		t.Fatalf("shopEquipFromPack = %+v, want \"worn\"", action)
 	}
 
-	after := screen.townCharacterView().Subject
+	pane, _, _ = screen.heroPane(screen.chapterPane("shop"))
+	after := pane.Subject
 	if after.Char.Body <= before.Char.Body {
 		t.Fatalf("Body went %d to %d wearing a Body item", before.Char.Body, after.Char.Body)
 	}

@@ -11,47 +11,22 @@ import (
 	"againrom/pkg/render/text"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
 
-func (t *townScreen) townCharacterView() ui.TownCharacterView {
-	panes := t.art.characterPanes()
-	// TWO FONTS, NOT ONE (1027 B1). Font is the shell chrome's — the chevrons
-	// and the mode box, both sized for font1's 16x15 cell. CardFont is the
-	// statistics card's, and it is tipFont's already-resolved font2 rather than
-	// a second resolution path: the card is the same 160x242 CompactPanelLayout
-	// the character generator composes at font2, and at font1 it truncates
-	// every right-column value away and pushes its last two rows off the bottom
-	// of the card. THE NINE CORNER BITMAPS REACH THE TOWN PANE TOO. `TOWN-353`
-	// establishes that the mission frame and the shop view carry ONE instance
-	// of this widget, so the shipped corner art is a property of the widget and
-	// not of the screen it is re-parented into. With `sess` at
-	// CharacterPaneShop, `TOWN-354`'s own art gates draw rect B's spellbook,
-	// rect C's mode bitmap and the party picker's ar1/ar2, and leave rects A
-	// and F unpainted. Without this push the town pane fell back to the
-	// authored chevrons and drew rect C nothing at all, because this project's
-	// stand-in chrome is not painted over the figure crop
-	// (drawCharacterPaneCorners' own rule) -- so the mode control the story
-	// moves to rect C would have been invisible on every town screen.
-	//
-	// The same inspection book can be toggled in every city room.
-	v := ui.TownCharacterView{Statistics: t.townStats, Font: t.in.Font.Value(), CardFont: t.in.tipFont(),
-		FigurePane: panes.Figure, StatsPane: panes.Stats,
-		CornerArt: t.art.characterCorners(), Session: ui.CharacterPaneShop, BookOpen: t.shopBook}
-	party := t.shopParty()
-	t.clampTownMember()
-	shown := t.shopMemberIndex()
-	v.Member, v.MemberCount = townPickerPosition(party, shown)
-	if len(party) == 0 {
-		return v
+// chapterPane is the pane spec of the first game's room named room. A room
+// with no pane record takes the same room's pane in the shipped description.
+func (t *townScreen) chapterPane(room string) *town.PaneSpec {
+	for _, d := range []*town.Description{t.townDescription(), t.defaults} {
+		if d == nil {
+			continue
+		}
+		if r := d.Room(room); r != nil && r.Pane != nil {
+			return r.Pane
+		}
 	}
-	m := party[shown]
-	v.HasSubject = true
-	v.Subject = partyPanelSubject(m, t.in.Table, t.in.Words)
-	v.Subject.Unplaced = true
-	v.Subject.Selected = 1
-	v.Figure = t.shopFigure(shown)
-	return v
+	return nil
 }
 
 func (t *townScreen) stepTownMember(step int) ui.TownAction {
@@ -340,12 +315,15 @@ const (
 
 // TownSurface resolves one full tavern or school frame.
 func (t *townScreen) TownSurface() ui.TownSurfaceView {
-	v := ui.TownSurfaceView{Font: t.in.Font.Value(), CardFont: t.in.tipFont(), HiredLabel: t.in.Words.TavernHired, Hero: t.townCharacterView(), HoverCell: -1, SchoolClass: -1}
+	school := t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool
+	pane := t.chapterPane("tavern")
+	if school {
+		pane = t.chapterPane("school")
+	}
+	v := ui.TownSurfaceView{Font: t.in.Font.Value(), CardFont: t.in.tipFont(), HiredLabel: t.in.Words.TavernHired, HoverCell: -1, SchoolClass: -1}
+	v.Hero, v.HeroSlotMask, v.HeroSlotInfo = t.heroPane(pane)
 	v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
-	v.HeroSlotMask, v.HeroSlotInfo = t.shopDollHover(t.shopMemberIndex())
-	// The school and the tavern have no spellbook: no corner, key or open page.
-	v.Hero.NoBook, v.Hero.BookOpen = true, false
-	if t.room == roomSchool || t.room == roomTalk && t.dialogueBuilding == TownSchool {
+	if school {
 		v.Kind, v.Title, v.Cells = ui.TownSurfaceSchool, "", t.schoolSurfaceCells()
 		v.SchoolArt = t.schoolArt()
 		v.Scene = roomScene{t.schoolPage()}

@@ -544,7 +544,7 @@ func TestShopDollHitAreaMatchesEveryVisibleSyntheticFigurePixel(t *testing.T) {
 			q := p.Sub(shopFigureRect.Min)
 			bottomControl := p.In(image.Rect(480, 440, 508, 480)) || p.In(image.Rect(481, 443, 513, 475)) ||
 				p.In(image.Rect(599, 443, 631, 475)) || p.In(image.Rect(606, 444, 638, 476))
-			want := p.In(townCharacterFigure) && !shopBookCornerHitAt(p) && !bottomControl &&
+			want := p.In(townCharacterFigure) && !shopBookCornerHitAt(shopCharRegion, p) && !bottomControl &&
 				frame.RGBAAt(p.X, p.Y) == figure.RGBAAt(q.X, q.Y)
 			n, got := shopDollSlotAt(v, mask, p)
 			if got != want || got && n != 4 {

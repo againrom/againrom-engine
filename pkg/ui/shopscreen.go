@@ -463,11 +463,14 @@ type ShopControl struct {
 // A POINT IN THE GAP BETWEEN TWO CELLS IS A MISS. The three grids are tested
 // cell by cell rather than by their regions, so the two-pixel gutters the cell
 // formulas leave hit nothing (spec AC-11).
-func ShopControlAt(p image.Point) (ShopControl, bool) { return firstShopLayout.controlAt(p) }
+func ShopControlAt(p image.Point) (ShopControl, bool) {
+	return firstShopLayout.controlAt(p, TownCharacterView{})
+}
 
-// controlAt is ShopControlAt on this layout. A panel the layout does not show
-// answers no control.
-func (l *ShopLayout) controlAt(p image.Point) (ShopControl, bool) {
+// controlAt is ShopControlAt on this layout with the character panel's
+// corners on pane's own rectangle. A panel the layout does not show answers no
+// control.
+func (l *ShopLayout) controlAt(p image.Point, pane TownCharacterView) (ShopControl, bool) {
 	if p.In(l.PackLeft) {
 		return ShopControl{Kind: ShopControlPackLeft}, true
 	}
@@ -498,16 +501,17 @@ func (l *ShopLayout) controlAt(p image.Point) (ShopControl, bool) {
 			return ShopControl{Kind: ShopControlPackCell, Index: i}, true
 		}
 	}
-	if l.Character && p.In(shopPickerPrevRect) {
+	r := pane.paneRect()
+	if l.Character && p.In(CharacterPaneCornerRect(r, CharacterPanePrev)) {
 		return ShopControl{Kind: ShopControlPickerPrev}, true
 	}
-	if l.Character && p.In(shopPickerNextRect) {
+	if l.Character && p.In(CharacterPaneCornerRect(r, CharacterPaneNext)) {
 		return ShopControl{Kind: ShopControlPickerNext}, true
 	}
-	if l.Character && p.In(shopCharacterModeRect) {
+	if l.Character && p.In(CharacterPaneCornerRect(r, CharacterPaneMode)) {
 		return ShopControl{Kind: ShopControlCharacterMode}, true
 	}
-	if l.Character && l.Book && shopBookCornerHitAt(p) {
+	if l.Character && l.Book && !pane.NoBook && shopBookCornerHitAt(r, p) {
 		return ShopControl{Kind: ShopControlBook}, true
 	}
 	if p.In(l.Merchant) {
@@ -536,10 +540,11 @@ func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool)
 	if mask == nil || mask.W <= 0 || mask.H <= 0 || !v.layout().Character {
 		return 0, false
 	}
-	if !shopDollAreaAt(v, p) {
+	pane := shopCharacterView(v)
+	if !shopDollAreaAt(pane, p) {
 		return 0, false
 	}
-	q := p.Sub(shopFigureRect.Min)
+	q := p.Sub(characterPaneFigureOrigin(pane.paneRect()))
 	n, ok := mask.At(q.X, q.Y)
 	if !ok {
 		return 0, false
@@ -553,42 +558,39 @@ func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool)
 // and the figure's own pixels are not required (TOWN-348). The mission's
 // heldItemBox is the same question.
 func shopPaneTakesItemAt(v ShopScreenView, p image.Point) bool {
-	return v.layout().Character && !v.layout().NoWear && p.In(shopCharRegion)
+	return v.layout().Character && !v.layout().NoWear && p.In(shopCharacterView(v).paneRect())
 }
 
 // shopDollAreaAt is shopDollSlotAt's own geometry, less the mask lookup: a
-// point the doll's own drawn area could show a marked pixel at, regardless
-// of whether one is drawn there right now. It answers where the figure's
-// slots can be pressed; where an item is taken is shopPaneTakesItemAt.
-func shopDollAreaAt(v ShopScreenView, p image.Point) bool {
-	if !p.In(townCharacterFigure) {
+// point the doll's own drawn area on pane could show a marked pixel at,
+// regardless of whether one is drawn there right now. It answers where the
+// figure's slots can be pressed; where an item is taken is
+// shopPaneTakesItemAt.
+func shopDollAreaAt(pane TownCharacterView, p image.Point) bool {
+	r := pane.paneRect()
+	if !p.In(characterPaneFigureRect(r)) {
 		return false
 	}
 	// Keep the existing Book and bottom-control precedence while exposing
 	// the feet between the bottom controls. The mode corner still shares
 	// its figure pixels through the gesture split (DIV-308).
-	if shopBookCornerHitAt(p) {
+	if shopBookCornerHitAt(r, p) {
 		return false
 	}
 	for _, c := range []CharacterPaneCorner{CharacterPaneBackpack, CharacterPanePrev, CharacterPaneNext, CharacterPaneMenu} {
-		if p.In(CharacterPaneCornerRect(TownCharacterRegion, c)) {
+		if p.In(CharacterPaneCornerRect(r, c)) {
 			return false
 		}
 	}
 	return true
 }
 
-// shopBookCornerHitAt reports whether p is inside rect B's own decoded hit
-// rectangle on the shop's pane (owner finding 3, round-2 adversarial return:
-// the authored "Book" plaque this project drew before the six corner
-// controls existed is deleted; DrawTownCharacterRegion's own rect B, drawn
-// with the shipped BookOpened.bmp/BookClosed.bmp art, is now the shop's own
-// book control and answers its own click here rather than through
-// shopBookRect, which is gone). CharacterPaneCornersAt returns every corner a
-// point reaches, TOWN-355's own overlap included; this asks only whether
-// Book is among them.
-func shopBookCornerHitAt(p image.Point) bool {
-	for _, c := range CharacterPaneCornersAt(shopCharRegion, CharacterPaneShop, 0, p) {
+// shopBookCornerHitAt reports whether p is inside rect B's decoded hit
+// rectangle on the shop's pane r, the book control DrawTownCharacterRegion
+// draws. CharacterPaneCornersAt returns every corner a point reaches,
+// TOWN-355's overlap included; this asks only whether Book is among them.
+func shopBookCornerHitAt(r image.Rectangle, p image.Point) bool {
+	for _, c := range CharacterPaneCornersAt(r, CharacterPaneShop, 0, p) {
 		if c == CharacterPaneBook {
 			return true
 		}
@@ -629,7 +631,7 @@ func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 	if v.bookOpen() && p.In(v.layout().Table) {
 		return ShopControl{}, false
 	}
-	if c, ok := v.layout().controlAt(p); ok {
+	if c, ok := v.layout().controlAt(p, shopCharacterView(v)); ok {
 		switch c.Kind {
 		case ShopControlShelfCell, ShopControlPackCell, ShopControlTableCell:
 			return c, true
@@ -639,17 +641,9 @@ func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 }
 
 // shopScreenControlAt applies the current presentation mode to the shop's
-// static geometry.
-//
-// BOOK NO LONGER TAKES ANYTHING AWAY (owner finding 3, round-2 adversarial
-// return). Before this round Book was the one control Statistics mode
-// removed: the authored "Book" plaque sat on the statistics card's own name
-// row and ComposeShopScreen drew neither its outline nor its label there, so
-// a control the player could not see had to stop answering a press. The
-// plaque is deleted; rect B's own decoded art (DrawTownCharacterRegion)
-// draws in both modes alike (characterPaneCornerDrawn's own Book gate is
-// `s&3 != 0`, unconditional on Statistics), so there is nothing left to
-// suppress.
+// geometry. The book corner draws and answers in both modes:
+// characterPaneCornerDrawn's Book gate is `s&3 != 0`, unconditional on
+// Statistics.
 func shopScreenControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 	if v.bookOpen() && p.In(v.layout().Table) {
 		i := -1
@@ -658,7 +652,7 @@ func shopScreenControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 		}
 		return ShopControl{Kind: ShopControlSpell, Index: i}, true
 	}
-	return v.layout().controlAt(p)
+	return v.layout().controlAt(p, shopCharacterView(v))
 }
 
 // The same inspection book serves all three city rooms.
@@ -713,8 +707,14 @@ func shopSpellEntryAt(v ShopScreenView, p image.Point) (SpellEntry, int, bool) {
 // no suppression, so shopGridControlAt's ordinary (possibly doll-suppressed,
 // but that is irrelevant off the doll) read already answers correctly.
 // bookOpen reports whether the spell book covers the table strip: the view
-// asks for it and the layout has the panel.
-func (v ShopScreenView) bookOpen() bool { return v.Book && v.layout().Book }
+// asks for it and the layout and the pane have the book.
+func (v ShopScreenView) bookOpen() bool { return v.Book && v.bookControl() }
+
+// bookControl reports whether the shop has a book control: the layout has
+// the panel and the pane has the book corner.
+func (v ShopScreenView) bookControl() bool {
+	return v.layout().Character && v.layout().Book && !shopCharacterView(v).NoBook
+}
 
 func shopReleaseIsOrigin(v ShopScreenView, origin ShopControl, p image.Point) bool {
 	if origin.Kind == ShopControlDoll {

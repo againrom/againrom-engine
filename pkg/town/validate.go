@@ -178,6 +178,9 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 	if p := r.Pane; p != nil && p.Rect.Rectangle().Empty() {
 		return fail("the pane rectangle %v is empty", p.Rect)
 	}
+	if p := r.Pane; p != nil && p.Font != "" && p.Font != PaneFontInstall {
+		return fail("the pane font %q is neither empty nor %q", p.Font, PaneFontInstall)
+	}
 	names := map[string]bool{}
 	for i, b := range r.Buttons {
 		where := fmt.Sprintf("button %d", i)

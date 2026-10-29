@@ -2861,7 +2861,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 		if in.Viewer.PrimaryDown {
 			a.suppressPrimaryRelease = true
 		}
-		if inShop {
+		if inShop && (in.PaneMode || shopView.bookControl()) {
 			kind := ShopControlBook
 			if in.PaneMode {
 				kind = ShopControlCharacterMode

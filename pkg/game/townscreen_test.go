@@ -62,7 +62,6 @@ func nonZeroTownScreen() *townScreen {
 	ts.tipArt = func() *ui.TipPanelArt { return nil }
 	ts.tip = secondRoomTip{room: "inn", text: "old", revision: 1}
 	ts.talkFaces = speakerResolver{npcFaces: map[int32]data.NPCFace{1: {}}}
-	ts.paneArt = func() (TownCharacterPaneArt, *ui.CharacterPaneCornerArt) { return TownCharacterPaneArt{}, nil }
 	ts.talkSource = &chapterTownTalk{ts}
 	ts.talkWindow.SetVisual(ui.DialogueButtonState{Hover: true, Pressed: true, Inside: true, Disabled: true}, ui.DialogueBackdrop{Clipped: true, Clip: image.Rect(1, 2, 3, 4)})
 	ts.square = newSquareScene(ts, ROM1TownDescription())
@@ -97,7 +96,6 @@ func TestResetForNewGameDropsExactlyTheGamePopulation(t *testing.T) {
 		"frame":               "install dialog art callback",
 		"tags":                "campaign tag vocabulary",
 		"tipArt":              "install tip art callback",
-		"paneArt":             "install pane art callback",
 		"sess":                "the campaign component the screen reads; does not change across a load",
 		"in":                  "the install component the screen reads; does not change across a load",
 		"sound":               "the audio service the screen plays through; does not change across a load",
