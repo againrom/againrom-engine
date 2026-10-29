@@ -11,20 +11,20 @@ bone-pike-packed rom1-en rules skill_cap=100
 bone-pike-packed rom1-en items 13e8994c566e128110403a17be0d8580970f950c225d0386311f49e905295df3
 bone-pike-packed rom1-en mark 5996db4421310222538788eed989d29e40dad4ce2ba0479fccba97a58ce3421d
 east-tavern rom1-en rules skill_cap=100
-east-tavern rom1-en towns 9fa736f043cfa333f5442660bdb06129933878faf9f429e76d10020f6034a001
+east-tavern rom1-en towns a8f81d74f506c5fd86c898266627fd0bb9a70d9daee369affacb9f8ce356870c
 east-tavern rom1-en files 35c93ef2499e5cbd393cb6ed35c69e272cd61c769129009dcea27471fcd2486a
 east-tavern rom1-en mark ef5bae71df2ea8b123b093f0de82b3de8685e1f6703fc40880132eab7b900834
 east-tavern-packed rom1-en rules skill_cap=100
-east-tavern-packed rom1-en towns 9fa736f043cfa333f5442660bdb06129933878faf9f429e76d10020f6034a001
+east-tavern-packed rom1-en towns a8f81d74f506c5fd86c898266627fd0bb9a70d9daee369affacb9f8ce356870c
 east-tavern-packed rom1-en files 35c93ef2499e5cbd393cb6ed35c69e272cd61c769129009dcea27471fcd2486a
 east-tavern-packed rom1-en mark ef5bae71df2ea8b123b093f0de82b3de8685e1f6703fc40880132eab7b900834
 east-town rom1-en refused mod "east-town": data/towns.toml:11: description "towns/east.json": towns/east.json: no such file in the mod folder
 east-town-packed rom1-en refused mod "east-town": data/towns.toml:11: description "towns/east.json": towns/east.json: no such file in the mod folder
 east-town-complete rom1-en rules skill_cap=100
-east-town-complete rom1-en towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
+east-town-complete rom1-en towns 84ac739ab9076b1127cb066db60a7cd896dac186cab82b46154cecb4edbf5681
 east-town-complete rom1-en mark 91eb5938be2cfb6b94588b6cfe6812762e2079eebe9968127de9a24547453035
 east-town-complete-packed rom1-en rules skill_cap=100
-east-town-complete-packed rom1-en towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
+east-town-complete-packed rom1-en towns 84ac739ab9076b1127cb066db60a7cd896dac186cab82b46154cecb4edbf5681
 east-town-complete-packed rom1-en mark 91eb5938be2cfb6b94588b6cfe6812762e2079eebe9968127de9a24547453035
 fire-ball-tune rom1-en rules skill_cap=100
 fire-ball-tune rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
@@ -36,11 +36,11 @@ guest-chain rom1-en refused mod "guest-chain": data/missions.toml:8: map: missio
 guest-chain-packed rom1-en refused mod "guest-chain": data/missions.toml:8: map: mission/en/map.alm: no such file in the mod folder
 guest-chain-complete rom1-en rules skill_cap=100
 guest-chain-complete rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
-guest-chain-complete rom1-en missions 57106291324f89abb057f008a66f63d93141ebd336635eb0fae4ffd9fe669bfc
+guest-chain-complete rom1-en missions 4a0bd92b8b49e5064a5bbf6e698c5fe9528ce0e25821dc8002335a56266a83e8
 guest-chain-complete rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
 guest-chain-complete-packed rom1-en rules skill_cap=100
 guest-chain-complete-packed rom1-en characters df8c0e772610f4e21b45ce3257e9218dafd3426d204643707cca6a9d8b823ddc
-guest-chain-complete-packed rom1-en missions 57106291324f89abb057f008a66f63d93141ebd336635eb0fae4ffd9fe669bfc
+guest-chain-complete-packed rom1-en missions 4a0bd92b8b49e5064a5bbf6e698c5fe9528ce0e25821dc8002335a56266a83e8
 guest-chain-complete-packed rom1-en mark a5116d935d879e6163af11745094fd746a108f758f3d2a3fda5b0c9814573534
 heavy-armor rom1-en rules skill_cap=100
 heavy-armor rom1-en items 8f35c81b26545f3503bf0b60a71ade859ea15d8fc1d73fc3d4b3fccb211d7d04
@@ -65,10 +65,10 @@ no-iron-pike-packed rom1-en mark 83d9e10de3f48c2b48fbafddd8c327379f4521212ae0409
 reniesta rom1-en refused mod "reniesta": data/missions.toml:5: map: mission/en/map.alm: no such file in the mod folder
 reniesta-packed rom1-en refused mod "reniesta": data/missions.toml:5: map: mission/en/map.alm: no such file in the mod folder
 reniesta-complete rom1-en rules skill_cap=100
-reniesta-complete rom1-en missions 9be51ac90e4e8fc5d62880464fe105d3824439ec5c0051faec74046f2597e277
+reniesta-complete rom1-en missions 05d433f61f22c788be3e56cb5d322edc85394f848a7246a872a6d0458b103085
 reniesta-complete rom1-en mark fffe50fcc6eefca2cea58d8dc533e0bc00fb9141b4e1e389e363dda0763aa732
 reniesta-complete-packed rom1-en rules skill_cap=100
-reniesta-complete-packed rom1-en missions 9be51ac90e4e8fc5d62880464fe105d3824439ec5c0051faec74046f2597e277
+reniesta-complete-packed rom1-en missions 05d433f61f22c788be3e56cb5d322edc85394f848a7246a872a6d0458b103085
 reniesta-complete-packed rom1-en mark fffe50fcc6eefca2cea58d8dc533e0bc00fb9141b4e1e389e363dda0763aa732
 reniesta-joins-on-talk rom1-en rules skill_cap=100
 reniesta-joins-on-talk rom1-en companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
@@ -81,11 +81,11 @@ skill-cap rom1-en mark e1434c99b87a746d1ef62257ef051d8af46924426833b91c6ad7757bb
 skill-cap-packed rom1-en rules skill_cap=150
 skill-cap-packed rom1-en mark e1434c99b87a746d1ef62257ef051d8af46924426833b91c6ad7757bb8bef103
 tavern-rows rom1-en rules skill_cap=100
-tavern-rows rom1-en towns b464be03d04ec2d9820466affcff60a987b8a3452c659aaa2f0ff6eba18e5422
+tavern-rows rom1-en towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-en files 35546ef4212704cd494e0dd72fb070f46b1577d69ddb19daf55a817eb008643e
 tavern-rows rom1-en mark c1b4914c281f5d09e18817cc8932fdad0afac6b1e5d15ab65b135970384519c8
 tavern-rows-packed rom1-en rules skill_cap=100
-tavern-rows-packed rom1-en towns b464be03d04ec2d9820466affcff60a987b8a3452c659aaa2f0ff6eba18e5422
+tavern-rows-packed rom1-en towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows-packed rom1-en files 35546ef4212704cd494e0dd72fb070f46b1577d69ddb19daf55a817eb008643e
 tavern-rows-packed rom1-en mark c1b4914c281f5d09e18817cc8932fdad0afac6b1e5d15ab65b135970384519c8
 war-glaive rom1-en rules skill_cap=100
@@ -111,8 +111,8 @@ all rom1-en screens 40c21fb4d8e2289151fe527d3f73800c26d1cd12b8d746c6d237d702a5ba
 all rom1-en companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-en spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-en bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-en missions da5edb023a4ce5b65fdedcf86ea860c138b14428051ccaa6ad992c70599192df
-all rom1-en towns 2e0775edf17f214c3ad34763299ec0da15bc337a69b840c04fcd56a0d4604e8a
+all rom1-en missions ec48cca8d923f385b986d86230a21c50d9c5d5e00c8bfdeef3ac743d3171b37e
+all rom1-en towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-en files 1a4824018884859e1046ab8d8fb3ce048f461d8b9299893bc8d9aa92681905e3
 all rom1-en mark 157ce6583f2eed3dcb86a056397c36b9e5ee7cba1665bc26453b99aa23442c9d
 archer-girl rom1-ru rules skill_cap=100
@@ -128,20 +128,20 @@ bone-pike-packed rom1-ru rules skill_cap=100
 bone-pike-packed rom1-ru items d9bf5cfd86d596f8ab265274a0f104e5ba553990d3980448f00ed212e66ba86f
 bone-pike-packed rom1-ru mark 1478e9b74e581635732f10e8c23b9a26f5f78d840df2ae35b462a29916b41742
 east-tavern rom1-ru rules skill_cap=100
-east-tavern rom1-ru towns 9fa736f043cfa333f5442660bdb06129933878faf9f429e76d10020f6034a001
+east-tavern rom1-ru towns a8f81d74f506c5fd86c898266627fd0bb9a70d9daee369affacb9f8ce356870c
 east-tavern rom1-ru files a185dc97856ad805884463a4222e5328b6eaa78f779ab4c4bd69b9f0b7f69e89
 east-tavern rom1-ru mark d6e64ca47463c176f91dede83696e2026ea08cb40ba7b287409affb530561a06
 east-tavern-packed rom1-ru rules skill_cap=100
-east-tavern-packed rom1-ru towns 9fa736f043cfa333f5442660bdb06129933878faf9f429e76d10020f6034a001
+east-tavern-packed rom1-ru towns a8f81d74f506c5fd86c898266627fd0bb9a70d9daee369affacb9f8ce356870c
 east-tavern-packed rom1-ru files a185dc97856ad805884463a4222e5328b6eaa78f779ab4c4bd69b9f0b7f69e89
 east-tavern-packed rom1-ru mark d6e64ca47463c176f91dede83696e2026ea08cb40ba7b287409affb530561a06
 east-town rom1-ru refused mod "east-town": data/towns.toml:11: description "towns/east.json": towns/east.json: no such file in the mod folder
 east-town-packed rom1-ru refused mod "east-town": data/towns.toml:11: description "towns/east.json": towns/east.json: no such file in the mod folder
 east-town-complete rom1-ru rules skill_cap=100
-east-town-complete rom1-ru towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
+east-town-complete rom1-ru towns 84ac739ab9076b1127cb066db60a7cd896dac186cab82b46154cecb4edbf5681
 east-town-complete rom1-ru mark 5e3f786ae6c293234c05a89a2c248e8bc7fa05e6b0d43601f7878dd07e5c4ed0
 east-town-complete-packed rom1-ru rules skill_cap=100
-east-town-complete-packed rom1-ru towns 02b94ec328c8131316aa8d98cecf20d159e3e27c1fb375fbf455ea78874e33d1
+east-town-complete-packed rom1-ru towns 84ac739ab9076b1127cb066db60a7cd896dac186cab82b46154cecb4edbf5681
 east-town-complete-packed rom1-ru mark 5e3f786ae6c293234c05a89a2c248e8bc7fa05e6b0d43601f7878dd07e5c4ed0
 fire-ball-tune rom1-ru rules skill_cap=100
 fire-ball-tune rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
@@ -153,11 +153,11 @@ guest-chain rom1-ru refused mod "guest-chain": data/missions.toml:8: map: missio
 guest-chain-packed rom1-ru refused mod "guest-chain": data/missions.toml:8: map: mission/ru/map.alm: no such file in the mod folder
 guest-chain-complete rom1-ru rules skill_cap=100
 guest-chain-complete rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
-guest-chain-complete rom1-ru missions 9acf4427a8ac9c738f5be1ede1934b90fc83c5f07ac5cc8b29c7b1031380da8c
+guest-chain-complete rom1-ru missions e8d668a35a43bb26b47acf985859ef64b9daef5413955104325c25d54a5463f8
 guest-chain-complete rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
 guest-chain-complete-packed rom1-ru rules skill_cap=100
 guest-chain-complete-packed rom1-ru characters 74a794b0b816656c2928a75514147611cca4f36bc81977357e1980643fafdc4f
-guest-chain-complete-packed rom1-ru missions 9acf4427a8ac9c738f5be1ede1934b90fc83c5f07ac5cc8b29c7b1031380da8c
+guest-chain-complete-packed rom1-ru missions e8d668a35a43bb26b47acf985859ef64b9daef5413955104325c25d54a5463f8
 guest-chain-complete-packed rom1-ru mark 6bb0fdaf5f3852de923b96f68e62be5e00fe4abcce2cccadaab1c4c6b7b53b00
 heavy-armor rom1-ru rules skill_cap=100
 heavy-armor rom1-ru items bf686dbcc7a826ef7173c7f02ba7313ef5a0d8c5807eeb1ab10621728d4edb8e
@@ -182,10 +182,10 @@ no-iron-pike-packed rom1-ru mark c4549c8330dbcca649987cd7506e818d6e1afe458443c95
 reniesta rom1-ru refused mod "reniesta": data/missions.toml:5: map: mission/ru/map.alm: no such file in the mod folder
 reniesta-packed rom1-ru refused mod "reniesta": data/missions.toml:5: map: mission/ru/map.alm: no such file in the mod folder
 reniesta-complete rom1-ru rules skill_cap=100
-reniesta-complete rom1-ru missions 72abc275b2dd7aaa1c6e8904edebdecd8ec49f991f2810fa31f9b17e1abf15b3
+reniesta-complete rom1-ru missions 84f7caee658ae90a78a5c070a2356025165eaad441a0effac100d29420cb9e49
 reniesta-complete rom1-ru mark 5e800b7230841962a6876af25d49c89b1d7a12d8d3ae3ea6d1453378ac112e93
 reniesta-complete-packed rom1-ru rules skill_cap=100
-reniesta-complete-packed rom1-ru missions 72abc275b2dd7aaa1c6e8904edebdecd8ec49f991f2810fa31f9b17e1abf15b3
+reniesta-complete-packed rom1-ru missions 84f7caee658ae90a78a5c070a2356025165eaad441a0effac100d29420cb9e49
 reniesta-complete-packed rom1-ru mark 5e800b7230841962a6876af25d49c89b1d7a12d8d3ae3ea6d1453378ac112e93
 reniesta-joins-on-talk rom1-ru rules skill_cap=100
 reniesta-joins-on-talk rom1-ru companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
@@ -198,11 +198,11 @@ skill-cap rom1-ru mark 341d07c7e533b0457c95e21bc1d01747333cf420bad39e10e47c08904
 skill-cap-packed rom1-ru rules skill_cap=150
 skill-cap-packed rom1-ru mark 341d07c7e533b0457c95e21bc1d01747333cf420bad39e10e47c089048691bb4
 tavern-rows rom1-ru rules skill_cap=100
-tavern-rows rom1-ru towns b464be03d04ec2d9820466affcff60a987b8a3452c659aaa2f0ff6eba18e5422
+tavern-rows rom1-ru towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-ru files b9b0738f17ed295a6f11c48294a9bc4eafcb21601dafe945d89cbddf79163b1d
 tavern-rows rom1-ru mark c295d19edbb0527be682d8e0774e373f65e027c53ac6a71390a8108faaa439e2
 tavern-rows-packed rom1-ru rules skill_cap=100
-tavern-rows-packed rom1-ru towns b464be03d04ec2d9820466affcff60a987b8a3452c659aaa2f0ff6eba18e5422
+tavern-rows-packed rom1-ru towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows-packed rom1-ru files b9b0738f17ed295a6f11c48294a9bc4eafcb21601dafe945d89cbddf79163b1d
 tavern-rows-packed rom1-ru mark c295d19edbb0527be682d8e0774e373f65e027c53ac6a71390a8108faaa439e2
 war-glaive rom1-ru rules skill_cap=100
@@ -228,7 +228,7 @@ all rom1-ru screens 7836d4df4c18b1e265bfcfa38a94d03408ca9aa19aa2249a13ecebf7496a
 all rom1-ru companions 8f78b01b7f827cced5f622b3b623b09ad191c5a1521386374fb5f3a8debce2ba
 all rom1-ru spells 6b99529878f5d12468e45d0a622526980895f3ccc1607462ea5dc1c359eca59b
 all rom1-ru bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac50592c
-all rom1-ru missions 44475ec2cfa3c02961c84ba4bc508a607a6e2356c1fd88f7d683cb6f158cbea4
-all rom1-ru towns 2e0775edf17f214c3ad34763299ec0da15bc337a69b840c04fcd56a0d4604e8a
+all rom1-ru missions 5af8aab0c17ce48813a5504a607ecbcaed9260f3c83f8d0c18ab9bf6b5fa82ca
+all rom1-ru towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-ru files 5d93396c71ee006011cdd12f7f718260c4e29b3b85f63e7d690a36c70137817e
 all rom1-ru mark 79b3ccdcdd742f81ffe6edde1328b577d49b6b97c1c4d6bc70078e4fb0d829a6
