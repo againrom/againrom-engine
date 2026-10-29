@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -217,7 +218,7 @@ func TestSettingsOfAModThatIsNotEnabledAreShownButNotPassed(t *testing.T) {
 		t.Fatalf("panel %q", texts(a))
 	}
 	a.play()
-	if len(r.fakes.started) != 1 || strings.Contains(strings.Join(r.fakes.started[0], " "), "-mod") {
+	if len(r.fakes.started) != 1 || slices.ContainsFunc(r.fakes.started[0], func(arg string) bool { return strings.HasPrefix(arg, "-mod") }) {
 		t.Fatalf("started %q", r.fakes.started)
 	}
 }

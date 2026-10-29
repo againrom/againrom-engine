@@ -20,16 +20,19 @@ import (
 type editorPackageSpec struct {
 	ID, Title, Kind                     string
 	Number, After, Guest, Chapter, Gold int
+	Party                               []mod.GuestMember
 }
 
 type editorWorkspaceState struct {
 	Pages   map[string][]byte
 	Package editorPackageSpec
+	Project *editorModDocument
 }
 
 type editorWorkspaceSnapshot struct {
-	mapEdit   bool
 	workspace *editorWorkspaceState
+	model     *mapedit.Editor
+	source    string
 }
 
 func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
@@ -37,6 +40,9 @@ func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
 		return nil
 	}
 	next := *w
+	next.Project = w.Project.clone()
+	party := mod.CloneMission(mod.Mission{Party: w.Package.Party})
+	next.Package.Party = party.Party
 	next.Pages = make(map[string][]byte, len(w.Pages))
 	for name, b := range w.Pages {
 		next.Pages[name] = bytes.Clone(b)
@@ -51,6 +57,8 @@ func workspaceBytes(w *editorWorkspaceState) []byte {
 	b, _ := json.Marshal(w)
 	return b
 }
+
+func decodeWorkspace(b []byte, w *editorWorkspaceState) { _ = json.Unmarshal(b, w) }
 
 func (s *mapInspectionEdits) checkpointPages() {
 	var saved editorWorkspaceState
@@ -78,8 +86,15 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 		if x.mod != nil {
 			if m, ok := x.mod.entryFor(s.source); ok {
 				w.Package = editorPackageSpec{ID: m.Mod, Title: x.mod.title, Kind: m.Kind, Number: m.Number, After: m.After, Guest: m.Guest, Chapter: m.Chapter, Gold: m.Gold}
+				w.Package.Party = mod.CloneMission(m).Party
+				w.Project = x.mod.document()
 			}
 		}
+	}
+	if x.mod != nil && w.Project == nil {
+		w.Project = x.mod.document()
+		w.Project.Selected = -1
+		w.Package.ID, w.Package.Title = x.mod.id, x.mod.title
 	}
 	if w.Package.Number == 0 && x.archives != nil && x.archives.Containers != nil {
 		if c, err := LoadCampaign(x.archives.Containers); err == nil {
@@ -94,7 +109,7 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 }
 
 func (s *mapInspectionEdits) rememberWorkspace(mapEdit bool) {
-	s.undoWorkspace = append(s.undoWorkspace, editorWorkspaceSnapshot{mapEdit, s.workspace})
+	s.undoWorkspace = append(s.undoWorkspace, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source})
 	s.redoWorkspace = nil
 	s.workspaceHistory = true
 }
@@ -105,22 +120,17 @@ func (s *mapInspectionEdits) travelWorkspace(undo bool) (*ui.InspectionDocument,
 		from, to = to, from
 	}
 	last := (*from)[len(*from)-1]
-	next := s.model
-	if last.mapEdit {
-		next = s.model.Clone()
-		if undo {
-			next.Undo()
-		} else {
-			next.Redo()
-		}
-	}
-	d, err := s.project(next)
+	trial := *s
+	trial.workspace, trial.model, trial.source = last.workspace, last.model, last.source
+	d, err := trial.project(last.model)
 	if err != nil {
 		return nil, err
 	}
-	*to = append(*to, editorWorkspaceSnapshot{last.mapEdit, s.workspace})
+	*to = append(*to, editorWorkspaceSnapshot{workspace: s.workspace, model: s.model, source: s.source})
 	*from = (*from)[:len(*from)-1]
-	s.model, s.workspace = next, last.workspace
+	s.model, s.workspace, s.source = last.model, last.workspace, last.source
+	d.Edits = s
+	s.refreshModSelection()
 	s.workspaceImage = workspaceBytes(s.workspace)
 	if d.Script != nil {
 		s.inspector.messageTargets(d.Script.Targets, s.workspace.Pages)
@@ -154,6 +164,7 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	if err := apply(next); err != nil {
 		return nil, err
 	}
+	s.syncModDocument(next, s.workspace.Pages, false)
 	image := workspaceBytes(next)
 	if bytes.Equal(image, s.workspaceImage) {
 		return nil, nil
@@ -216,7 +227,7 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 	case "package":
 		p := s.workspace.Package
 		dir := ""
-		if s.inspector.mod != nil && s.inspector.mod.owned {
+		if s.inspector.mod != nil {
 			dir = s.inspector.mod.dir
 		}
 		out := []ui.InspectionField{workspaceText("folder", "Mod folder: Enter creates or opens", dir), workspaceText("id", "Mod ID (new folder's name)", p.ID), workspaceText("title", "Mod title", p.Title), workspaceText("kind", "Route: guest or replace", p.Kind)}
@@ -226,17 +237,27 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		}{{"number", "Mission number", p.Number}, {"after", "Guest after won mission", p.After}, {"guest", "Guest companion", p.Guest}, {"chapter", "Guest town chapter", p.Chapter}, {"gold", "Guest gold", p.Gold}} {
 			out = append(out, ui.InspectionField{Key: row.key, Label: row.label, Value: int64(row.value)})
 		}
-		if m := s.inspector.mod; m != nil {
-			field := ui.InspectionField{Key: "source", Label: "Source mission / Up, Down", Value: 1}
-			for n, entry := range m.missions.Missions {
-				field.Choices = append(field.Choices, ui.InspectionChoice{Value: int64(n + 1), Label: fmt.Sprintf("%s: mission %d", entry.Key, entry.Number)})
-				if entry.Key == m.selected {
+		if m := s.workspace.Project; m != nil {
+			field := ui.InspectionField{Key: "source", Label: "Source mission / Up, Down"}
+			for n, entry := range m.Missions {
+				name := entry.Key
+				if entry.Title != "" {
+					name = entry.Title + " (" + entry.Key + ")"
+				}
+				if entry.Off {
+					name = s.inspector.word("editor.mod.disabled")
+				}
+				if entry.Kind == mod.MissionReplace {
+					name += " / " + s.inspector.word("editor.mod.replace")
+				}
+				field.Choices = append(field.Choices, ui.InspectionChoice{Value: int64(n + 1), Label: s.inspector.inspectionUTF8(fmt.Sprintf("%s: %d", name, entry.Number))})
+				if n == m.Selected {
 					field.Value = int64(n + 1)
 				}
 			}
 			out = append(out, field)
 		}
-		return out
+		return s.modFields(out)
 	}
 	return nil
 }
@@ -287,12 +308,18 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 	if key == "folder" {
 		return s.openOrCreateWorkspace(strings.TrimSpace(value))
 	}
+	if key == "folder-open" {
+		return s.openWorkspace(strings.TrimSpace(value))
+	}
 	if key == "source" {
 		index, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil {
 			return nil, err
 		}
 		return s.selectWorkspaceMission(index)
+	}
+	if next, handled, err := s.setModControl(key, value); handled {
+		return next, err
 	}
 	return s.changeWorkspace(func(w *editorWorkspaceState) error {
 		p := &w.Package
@@ -301,7 +328,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 			if !mod.ValidID(value) || value == TestPlayModID || !editorOrdinaryFilename(value) {
 				return fmt.Errorf("use an ordinary mod ID other than %s", TestPlayModID)
 			}
-			if s.inspector.mod != nil && s.inspector.mod.owned && s.inspector.mod.id != value {
+			if s.inspector.mod != nil && s.inspector.mod.id != value {
 				return fmt.Errorf("an opened package keeps its ID; create another package in a new folder")
 			}
 			p.ID = value
@@ -311,6 +338,12 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 			}
 			p.Title = value
 		case "kind":
+			if value == "0" {
+				value = mod.MissionGuest
+			}
+			if value == "1" {
+				value = mod.MissionReplace
+			}
 			if value != mod.MissionGuest && value != mod.MissionReplace {
 				return fmt.Errorf("route must be guest or replace")
 			}
@@ -329,6 +362,11 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 				p.Number = int(n)
 			case "after":
 				p.After = int(n)
+				if len(p.Party) == 0 {
+					if town, ok := s.modDestination(w); ok {
+						p.Chapter = town
+					}
+				}
 			case "guest":
 				p.Guest = int(n)
 			case "chapter":
@@ -406,6 +444,10 @@ func (p editorPackageSpec) mission(b []byte, pages map[string][]byte) mod.Missio
 	m := mod.Mission{Mod: p.ID, File: mod.MissionsFile, Kind: p.Kind, Key: "map", Number: p.Number, Map: testPlayMap, MapBytes: bytes.Clone(b), TextFiles: pages}
 	if p.Kind != mod.MissionReplace {
 		m.After, m.Guest, m.Chapter, m.Gold, m.Carry = p.After, p.Guest, p.Chapter, p.Gold, mod.CarryJoin
+		m.Party = mod.CloneMission(mod.Mission{Party: p.Party}).Party
+		if len(m.Party) != 0 {
+			m.Guest, m.Chapter, m.Carry = 0, 0, ""
+		}
 	}
 	if len(pages) > 0 {
 		m.Texts = testPlayTexts

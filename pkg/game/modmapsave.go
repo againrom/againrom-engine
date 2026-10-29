@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
@@ -18,13 +19,17 @@ import (
 // editorMod is the mod folder the map editor's Save writes into, with the
 // missions its data/missions.toml declares in the install's language.
 type editorMod struct {
-	dir      string
-	id       string
-	missions mod.MissionData
-	owned    bool
-	copyOnly bool
-	selected string
-	title    string
+	source, manifest []byte
+	digest           string
+	catalog          []mod.Character
+	contextIssue     string
+	dir              string
+	id               string
+	missions         mod.MissionData
+	owned            bool
+	copyOnly         bool
+	selected         string
+	title            string
 }
 
 // SetMod names the mod folder dir the editor's Save writes into: Save writes
@@ -77,6 +82,29 @@ func (x *MapInspector) SetMod(dir string) error {
 		owned = true
 	}
 	x.mod = &editorMod{dir: dir, id: e.Manifest.ID, missions: d, owned: owned, title: e.Manifest.Title}
+	x.mod.source = bytes.Clone(src)
+	x.mod.manifest, _, err = mod.ReadInside(dir, mod.ManifestName)
+	if err != nil {
+		x.mod = nil
+		return err
+	}
+	x.mod.digest, err = mod.ContentDigest(dir)
+	if err != nil {
+		x.mod = nil
+		return err
+	}
+	if result, e := modrt.Load([]mod.Entry{e}, BaseID(InspectInstall(root)), nil, modrt.Options{}); e == nil {
+		var installed []mod.Character
+		if x.table != nil {
+			installed = installCharacters(x.table)
+		}
+		_, x.mod.catalog, _, _ = mod.MergeCharacters(result.Characters, installed)
+		if err := checkMissionProjection(d.Missions, result.Missions); err != nil {
+			x.mod.contextIssue = err.Error()
+		}
+	} else {
+		x.mod.contextIssue = e.Error()
+	}
 	return nil
 }
 
@@ -142,7 +170,7 @@ func (s *mapInspectionEdits) SaveIntoMod() (string, error) {
 		return "", errors.New("no mod folder is named")
 	}
 	if m.copyOnly {
-		return "", errors.New("this imported mod is read-only; choose a new mod ID and folder with W to save an owned copy")
+		return "", errors.New("this imported mod is read-only; choose a folder with the same ID under another parent with W to save a complete copy")
 	}
 	if m.owned {
 		return s.saveIntoOwnedMod(m)

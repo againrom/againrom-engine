@@ -480,7 +480,7 @@ the install's own page of that name still beats it.
 The map editor's Save As copies every language folder and unlanguaged page
 beside the new ALM into `<stem>.text/`. Changed workspace pages go into
 `<stem>.text/<lang>/`. Both destinations must be new and outside the install,
-even when the source has no pages. W copies the same tree to `mission/text/` and declares
+even when the source has no pages. A new W package copies the same tree to `mission/text/` and declares
 `texts = "mission/text/{lang}"`. An older package with only `mission/text/`
 continues to load. Saving an editor-owned package keeps its recorded
 unlanguaged and other-language pages. Unchanged unlanguaged pages stay
@@ -1526,15 +1526,40 @@ it. Pages use UTF-8; an unrepresentable character or an oversized page is
 refused with the entered text retained. Map, page and route changes share
 Undo/Redo. Saving only an ALM refuses unsaved page or route changes.
 
-W selects a mod folder or creates an owned package in a new explicit folder.
-Its fields set the mod ID/title and the guest or campaign-replacement route;
-Tab selects the next field and Up/Down selects available choices. A source
-with several missions has a source-mission choice. An imported manual mod
-remains read-only: choose a new folder and ID to save the selected mission as
-an owned copy. The source files stay unchanged. An owned package contains one
-mission; select and copy other source missions separately. Ctrl+S stages the
-map, declaration and pages, validates them with the normal loader and then
-saves the package. Unrelated files survive updates; conflicts refuse the save.
+W opens the mod window. Its left column holds the working folder, ID, name,
+mission list and Publish folder. Its right column edits the selected mission's
+route, After win, companion or party, and purse. Enter accepts a value; Tab and
+Shift+Tab move focus. Choice lists search by name as text is typed. Select a
+member's detail button to edit level and equipment. Template retains the
+character's equipment; Empty removes it. Override all armour replaces every
+armour cell. The first member leads; a party has one to eight distinct members.
+Existing declared characters are choices. Creating character definitions and
+adding new tiles are outside this window.
+
+Open an unregistered map and choose Add map to append it. The mission choice
+and Open buttons switch maps with pending drafts retained. Move up/down or
+Alt+Up/Down changes list order; After win changes the chain. Removing a chain
+link asks before reconnecting its successors. Ctrl+Z and Ctrl+Y retain history
+across map switches. Undo after Save makes the project dirty again.
+
+A handwritten mod's first Save makes a complete copy under another parent
+with the same ID. ID stays fixed. Its scripts, translations, hidden files,
+replacement/disabled declarations and unexposed fields are retained. Disabled
+declarations are marked read-only. Changes to source files outside the editor
+require a reopen. Ctrl+S stages all drafts, checks every mission and party
+through the normal loader, and replaces the working folder only after admission.
+Custom scripts must load every edited mission under their default settings.
+Dependency sets that cannot load in the single-project context refuse with
+their loader error; their source stays unchanged.
+
+Publish uses the same packer as `-pack-mod`. Type an existing output folder
+outside installs and the working mod; it stays selected for the session.
+Publish asks Save and publish for unsaved changes, then separately asks Replace
+for an existing RES. Cancel writes nothing at that step. A folder with the same
+ID in the output directory is refused to avoid ambiguous discovery. The status
+shows the full `mod-<id>.res` path and declaration count. A failed Publish after
+Save reports that the mod was saved. Publish checks missing maps, chain links,
+parties and script admission before replacing the RES.
 
 To build a playable scenario, create its size with N, set D, add its units
 and structures, write an `event01.txt` page with X, and use F2 to connect a
@@ -1549,8 +1574,14 @@ to the path the mod's mission entry for it names (the entry whose `number` is
 the opened installed map's mission, or whose `map` is the opened file), and
 refuses a map no entry names.
 
-F5 plays the map as it stands, unsaved edits included. The editor writes the
-map into its own test mod, `testplay`, in the editor's player profile (the
+F5 plays the map as it stands, unsaved edits included. For an open mod project
+it copies the complete tree and drafts under the original ID inside the private
+test-play directory. Scripts, characters, other missions and the chain reach
+the normal loader. The selected mission is passed to `-mission`; F5 does not
+save the working mod or clear its dirty state.
+
+Without an open project, the editor writes the map into its own test mod,
+`testplay`, in the editor's player profile (the
 `testplay` folder beside `mapedit`, or `Againrom/testplay` when the editor runs
 from inside an install), and starts the game beside the editor on the same
 base with `-mods testplay -mods-dir <that folder> -mission <n>`: character

@@ -884,6 +884,9 @@ func (e *MapEditor) catalogOpen() {
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
 func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
+	if e.modWindow && !e.prompt.open() && !e.catalog {
+		return e.modSpec()
+	}
 	if e.messagePage != 0 && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
 		return e.messageSpec()
 	}
@@ -1691,6 +1694,9 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 // objectPress is a press on the object popup.
 func (e *MapEditor) objectPress(p image.Point) {
 	if e.openDropdownPress(p) {
+		return
+	}
+	if e.modPress(p) {
 		return
 	}
 	if _, ok := e.selectionSpec(); ok {

@@ -15,7 +15,7 @@ import (
 
 const editorPackageRecord = ".editor-files.json"
 
-func missionPackageFiles(title, description string, m mod.Mission, lang string) map[string][]byte {
+func missionPackageFiles(title, description string, m mod.Mission, lang string, trees ...map[string][]byte) map[string][]byte {
 	if m.Texts != "" {
 		m.Texts = testPlayTexts + "/{lang}"
 	}
@@ -23,6 +23,16 @@ func missionPackageFiles(title, description string, m mod.Mission, lang string) 
 	files := map[string][]byte{mod.ManifestName: []byte(manifest), "main.star": []byte(testPlayEntry), mod.MissionsFile: testPlayMissions(m), testPlayMap: bytes.Clone(m.MapBytes)}
 	for name, b := range m.TextFiles {
 		files[testPlayTexts+"/"+lang+"/"+name] = bytes.Clone(b)
+	}
+	if len(trees) != 0 {
+		for name := range files {
+			if strings.HasPrefix(name, testPlayTexts+"/") {
+				delete(files, name)
+			}
+		}
+		for name, b := range trees[0] {
+			files[testPlayTexts+"/"+name] = bytes.Clone(b)
+		}
 	}
 	return files
 }
@@ -56,7 +66,7 @@ func (s *mapInspectionEdits) openOrCreateWorkspace(dir string) (*ui.InspectionDo
 	}
 	if _, err := os.Lstat(abs); err == nil {
 		if s.Dirty() {
-			return nil, errors.New("save or undo changes before opening another mod package")
+			return nil, &ui.WorkspaceLeave{Folder: abs}
 		}
 		return s.openWorkspace(abs)
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -80,6 +90,16 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 	}
 	x.mod.copyOnly = !x.mod.owned
 	entry := x.mod.missions.Missions[0]
+	for _, candidate := range x.mod.missions.Missions {
+		if !candidate.Off {
+			entry = candidate
+			break
+		}
+	}
+	if entry.Off {
+		x.mod = old
+		return nil, errors.New("mod has no enabled mission")
+	}
 	x.mod.selected = entry.Key
 	d, err := x.Open(filepath.Join(dir, filepath.FromSlash(entry.Map)))
 	if err != nil {
@@ -89,21 +109,61 @@ func (s *mapInspectionEdits) openWorkspace(dir string) (*ui.InspectionDocument, 
 }
 
 func (s *mapInspectionEdits) selectWorkspaceMission(index int) (*ui.InspectionDocument, error) {
-	if s.Dirty() {
-		return nil, errors.New("save or undo changes before selecting another source mission")
-	}
+	return s.activateWorkspaceMission(index, true)
+}
+
+func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*ui.InspectionDocument, error) {
 	x := s.inspector
-	if x.mod == nil || index < 1 || index > len(x.mod.missions.Missions) {
+	if s.workspace.Project == nil || index < 1 || index > len(s.workspace.Project.Missions) {
 		return nil, errors.New("source mission selection is outside the package")
 	}
-	old := x.mod.selected
-	entry := x.mod.missions.Missions[index-1]
-	x.mod.selected = entry.Key
-	d, err := x.Open(filepath.Join(x.mod.dir, filepath.FromSlash(entry.Map)))
-	if err != nil {
-		x.mod.selected = old
+	w := cloneWorkspace(s.workspace)
+	if flush {
+		s.syncModDocument(w, w.Pages, !bytes.Equal(s.saved, s.model.Bytes()))
 	}
-	return d, err
+	entry := w.Project.Missions[index-1]
+	if entry.Off {
+		return nil, errors.New("disabled declaration has no map to open")
+	}
+	source := entry.Map
+	if x.mod != nil {
+		source = filepath.Join(x.mod.dir, filepath.FromSlash(entry.Map))
+	}
+	previous := ""
+	if x.mod != nil {
+		previous = x.mod.selected
+		x.mod.selected = entry.Key
+	}
+	var candidate *ui.InspectionDocument
+	var err error
+	if b, ok := w.Project.Files[entry.Map]; ok {
+		candidate, err = x.inspect(b, source)
+	} else {
+		candidate, err = x.Open(source)
+	}
+	if err != nil {
+		if x.mod != nil {
+			x.mod.selected = previous
+		}
+		return nil, err
+	}
+	next := candidate.Edits.(*mapInspectionEdits)
+	w.Project.Selected = index - 1
+	w.Package = modPackageSpec(entry, s.workspace.Package.ID, s.workspace.Package.Title)
+	w.Pages = next.workspace.Pages
+	for _, folder := range []string{strings.ReplaceAll(entry.Texts, "{lang}", x.pageLanguage()), filepath.ToSlash(filepath.Join(mapTextFolder(entry.Map), x.pageLanguage()))} {
+		for name, b := range w.Project.Files {
+			if folder != "" && filepath.ToSlash(filepath.Dir(name)) == folder {
+				w.Pages[filepath.Base(name)] = bytes.Clone(b)
+			}
+		}
+	}
+	s.model, s.source, s.workspace = next.model, source, w
+	s.saved = next.saved
+	s.workspaceImage = workspaceBytes(w)
+	s.refreshModSelection()
+	candidate.Edits = s
+	return candidate, nil
 }
 
 func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
@@ -125,6 +185,9 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	p := s.workspace.Package
+	if err := s.unchangedModSource(); err != nil {
+		return "", err
+	}
 	if !mod.ValidID(p.ID) || p.ID == TestPlayModID || !editorOrdinaryFilename(p.ID) {
 		return "", fmt.Errorf("invalid author mod ID %q", p.ID)
 	}
@@ -155,32 +218,43 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 		return "", err
 	}
 	m := p.mission(b, s.workspace.Pages)
-	if err := x.checkMissionRoute(m); err != nil {
+	missions := []mod.Mission{m}
+	files := map[string][]byte{}
+	if s.workspace.Project != nil {
+		files, missions, m, err = s.retainedPackageFiles(b)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		files = missionPackageFiles(p.Title, "Map editor mission package", m, x.pageLanguage())
+	}
+	if err := x.checkMissionSet(missions); err != nil {
 		return "", err
 	}
 	address, _ := MissionMap(m.Number)
 	if rows := x.CheckModMap(m, address); hasError(rows) {
 		return "", s.loaderRefusal(rows)
 	}
-	files := missionPackageFiles(p.Title, "Map editor mission package", m, x.pageLanguage())
-	pages, err := s.exportPageTree(folder, old)
-	if err != nil {
-		return "", err
-	}
-	for name := range files {
-		if strings.HasPrefix(name, testPlayTexts+"/") {
-			delete(files, name)
+	if s.workspace.Project == nil {
+		pages, err := s.exportPageTree(folder, old)
+		if err != nil {
+			return "", err
 		}
+		for name := range files {
+			if strings.HasPrefix(name, testPlayTexts+"/") {
+				delete(files, name)
+			}
+		}
+		for name, b := range pages {
+			files[testPlayTexts+"/"+name] = b
+		}
+		if len(pages) > 0 {
+			m.Texts = testPlayTexts + "/{lang}"
+		} else {
+			m.Texts = ""
+		}
+		files[mod.MissionsFile] = testPlayMissions(m)
 	}
-	for name, b := range pages {
-		files[testPlayTexts+"/"+name] = b
-	}
-	if len(pages) > 0 {
-		m.Texts = testPlayTexts + "/{lang}"
-	} else {
-		m.Texts = ""
-	}
-	files[mod.MissionsFile] = testPlayMissions(m)
 	for name, b := range files {
 		if !strings.HasPrefix(name, testPlayTexts+"/") || slices.Contains(old, name) {
 			continue
@@ -193,33 +267,24 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err := testPlayTargets(folder, old, files); err != nil {
 		return "", err
 	}
-	stage, err := stageMissionPackage(parent, folder, x.archives.Root, p.ID, editorPackageRecord, old, files, guard)
+	plan := missionPackagePlan{Check: x.admitMissionPackage, Expected: missions}
+	if s.workspace.Project != nil {
+		plan.Source = s.retainedSource(folder)
+	}
+	stage, err := stageMissionPackage(parent, folder, x.archives.Root, p.ID, editorPackageRecord, old, files, guard, plan)
 	if err != nil {
 		return "", err
 	}
-	cleanup := true
-	defer func() {
-		if cleanup {
-			_ = os.RemoveAll(stage)
-		}
-	}()
-	backup := filepath.Join(stage, "previous")
-	if len(old) > 0 {
-		if err := os.Rename(folder, backup); err != nil {
-			return "", err
-		}
-	}
-	if err := os.Rename(filepath.Join(stage, p.ID), folder); err != nil {
-		if len(old) > 0 {
-			if restore := os.Rename(backup, folder); restore != nil {
-				cleanup = false
-				return "", fmt.Errorf("publish failed: %v; old package retained at %s: %v", err, backup, restore)
-			}
-		}
+	if err := installMissionPackage(stage, folder, p.ID, len(old) > 0); err != nil {
 		return "", err
 	}
-	x.mod = &editorMod{dir: folder, id: p.ID, title: p.Title, owned: true, missions: mod.MissionData{Missions: []mod.Mission{m}}}
+	if err := x.SetMod(folder); err != nil {
+		return "", err
+	}
+	x.mod.selected = m.Key
+	s.workspace.Project = x.mod.document()
 	s.source = filepath.Join(folder, filepath.FromSlash(m.Map))
+	s.workspaceImage = workspaceBytes(s.workspace)
 	s.saved, s.savedWorkspace = s.model.Bytes(), s.workspaceImage
 	return s.source, nil
 }

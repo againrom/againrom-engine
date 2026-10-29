@@ -50,7 +50,11 @@ func setRoute(t *testing.T, e *ui.MapEditor, rows map[string]int, kind string) {
 			t.Fatal(err)
 		}
 	}
-	for key, value := range rows {
+	for _, key := range []string{"number", "after", "guest", "chapter", "gold"} {
+		value, ok := rows[key]
+		if !ok {
+			continue
+		}
 		if err := workspaceField(e, "package", index[key], strconv.Itoa(value)); err != nil {
 			t.Fatal(err)
 		}
@@ -129,12 +133,7 @@ func TestTestPlayRefusesARouteTheSaveRefusesInTheSameWords(t *testing.T) {
 	}
 }
 
-// A hand-written package whose mission names a party opens in the W window
-// with the party's mission number and after but no party: the window's route
-// holds guest, chapter and gold only, so test play and the package save
-// declare the mission with guest 0, which the mod loader refuses. Neither
-// writes a package.
-func TestTestPlayOfAPartyPackageDeclaresNoParty(t *testing.T) {
+func TestTestPlayOfAPartyPackageKeepsTheDeclaredParty(t *testing.T) {
 	f, e, _ := routeFixture(t)
 	original := append([]byte(nil), e.Document().SourceBytes...)
 	dir := writeEditorMod(t, t.TempDir(), "[[mission]]\nkey = \"party\"\nnumber = 25\nmap = \"mission/{lang}/map.alm\"\nafter = 20\nparty = [{ character = \"Monk\" }]\n")
@@ -152,11 +151,12 @@ func TestTestPlayOfAPartyPackageDeclaresNoParty(t *testing.T) {
 	_, saveErr := s.saveWorkspacePackage(filepath.Join(t.TempDir(), s.workspace.Package.ID))
 	_, playErr := s.TestPlay()
 	for name, err := range map[string]error{"package save": saveErr, "test play": playErr} {
-		if err == nil || !strings.Contains(err.Error(), "guest is 0; use 1 to 65535") {
+		if err != nil {
 			t.Errorf("%s: %v", name, err)
 		}
 	}
-	if got := tree(t, f.profile); len(got) != 0 || len(f.started) != 0 {
-		t.Fatalf("a refused test play wrote %v and started %q", keys(got), f.started)
+	played := loadWorkspaceMod(t, f.root, filepath.Join(f.profile, TestPlayModID, s.workspace.Package.ID))
+	if len(played.Party) != 1 || played.Party[0].Character != "Monk" || played.Guest != 0 || len(f.started) != 1 {
+		t.Fatalf("test play lost the party: %+v", played.Party)
 	}
 }

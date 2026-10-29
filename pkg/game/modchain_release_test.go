@@ -101,6 +101,11 @@ func rowHero(t *testing.T, f *FrontEnd, name string) data.Hero {
 func TestReleaseModMissionChainPlaysAndReturns(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	dir := assembledMods(t, chainModID, chainModID)
+	releaseMissionChainSAV(t, dir)
+}
+
+func releaseMissionChainSAV(t *testing.T, dir string) {
+	t.Helper()
 
 	plain := guestFront(t, dir)
 	if _, next := guestRoute(t, plain, []int{0, 0, 0}); next != 0 || plain.Town.Chapter() != 30 {

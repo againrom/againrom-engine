@@ -2,6 +2,14 @@ package ui
 
 import "fmt"
 
+type WorkspaceConfirmation struct{ Action, Message, Confirm string }
+
+func (e *WorkspaceConfirmation) Error() string { return e.Message }
+
+type WorkspaceLeave struct{ Folder string }
+
+func (e *WorkspaceLeave) Error() string { return "save, discard or cancel before opening another mod" }
+
 type InspectionWorkspace interface {
 	WorkspaceFields(scope string) []InspectionField
 	SetWorkspaceField(scope, key, value string) (*InspectionDocument, error)
@@ -27,6 +35,17 @@ func (e *MapEditor) keyWorkspace(key string) error {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leaveReport)
+	if key == "package" {
+		e.message = ""
+		e.modWindow = true
+		e.modConfirm = ""
+		e.objectHidden = false
+		e.obj.doc = nil
+		e.loadObject()
+		e.objectSpec()
+		e.FocusModField("folder")
+		return nil
+	}
 	e.openPrompt(editorPrompt{kind: promptWorkspace, scope: key, path: fieldInput(fields[0])})
 	return nil
 }
@@ -70,7 +89,7 @@ func (e *MapEditor) keyNewline(string) error {
 }
 
 func (e *MapEditor) keyClear(string) error {
-	if e.prompt.open() || e.messagePage != 0 && e.objectTyping() {
+	if e.prompt.open() || (e.messagePage != 0 || e.modWindow) && e.objectTyping() {
 		if m, _ := e.inputModel(); m != nil {
 			m.selectAll()
 			m.replace("")

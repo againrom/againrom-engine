@@ -50,7 +50,7 @@ type mapInspectionEdits struct {
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
-	return !bytes.Equal(s.saved, s.model.Bytes()) || !bytes.Equal(s.savedWorkspace, s.workspaceImage)
+	return !bytes.Equal(s.saved, s.model.Bytes()) || !sameWorkspace(s.savedWorkspace, s.workspaceImage)
 }
 func (s *mapInspectionEdits) CanUndo() bool {
 	if s.workspaceHistory {

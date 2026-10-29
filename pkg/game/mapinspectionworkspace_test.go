@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,7 +19,46 @@ import (
 )
 
 func workspaceField(e *ui.MapEditor, scope string, index int, value string) error {
+	if scope != "package" && e.ModWindowOpen() {
+		_ = e.Key("escape")
+	}
 	if err := e.Key(scope); err != nil {
+		return err
+	}
+	if scope == "package" {
+		keys := []string{"folder", "id", "title", "kind", "number", "after", "guest", "chapter", "gold", "source"}
+		if index >= len(keys) {
+			return fmt.Errorf("unknown workspace field")
+		}
+		key := keys[index]
+		if key == "kind" {
+			if value == "replace" {
+				value = "1"
+			} else if value == "guest" {
+				value = "0"
+			}
+		}
+		if !e.FocusModField(key) {
+			host, ok := e.Document().Edits.(ui.InspectionWorkspace)
+			if !ok {
+				return fmt.Errorf("no mod fields")
+			}
+			_, err := host.SetWorkspaceField(scope, key, value)
+			return err
+		}
+		var current ui.InspectionField
+		for _, f := range e.ObjectFields() {
+			if f.Key == key {
+				current = f
+				break
+			}
+		}
+		_ = e.Key("clear")
+		e.TextInput(value)
+		err := e.Key("enter")
+		if err == nil && len(current.Choices) > 0 && fmt.Sprint(current.Value) == value {
+			err = e.Key("enter")
+		}
 		return err
 	}
 	for n := 0; n < index; n++ {
@@ -151,17 +191,21 @@ func TestMapEditorWorkspaceMetadataAndPagesShareHistory(t *testing.T) {
 	}
 }
 
-func loadWorkspaceMod(t *testing.T, root, folder string) mod.Mission {
+func loadWorkspaceMod(t *testing.T, root, folder string, selected ...int) mod.Mission {
 	t.Helper()
 	entries, err := mod.Resolve(filepath.Dir(folder), []string{filepath.Base(folder)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	result, err := modrt.Load(entries, BaseID(InspectInstall(root)), nil, modrt.Options{})
-	if err != nil || len(result.Missions.Missions) != 1 {
+	index := 0
+	if len(selected) != 0 {
+		index = selected[0]
+	}
+	if err != nil || index < 0 || index >= len(result.Missions.Missions) || len(selected) == 0 && len(result.Missions.Missions) != 1 {
 		t.Fatalf("normal mod load: %v; missions %d", err, len(result.Missions.Missions))
 	}
-	return result.Missions.Missions[0]
+	return result.Missions.Missions[index]
 }
 
 func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
@@ -194,6 +238,9 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 	}
 	writeTestPlayInput(t, filepath.Join(folder, "author-notes.txt"), []byte("retain exact author bytes"))
 	writeTestPlayInput(t, filepath.Join(folder, "mission/text/event88.txt"), []byte("Retained page"))
+	if err := workspaceField(e, "package", 0, folder); err != nil {
+		t.Fatal(err)
+	}
 	workspacePage(t, e, "event01.txt", "Исправлено\nПродолжение")
 	if err := pastNotice(e, "saveas"); err != nil || e.Dirty() {
 		t.Fatalf("package save: %v", err)
@@ -204,7 +251,7 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 	if err := pastNotice(e, "testplay"); err != nil {
 		t.Fatal(err)
 	}
-	played := loadWorkspaceMod(t, f.root, filepath.Join(f.profile, TestPlayModID, TestPlayModID))
+	played := loadWorkspaceMod(t, f.root, filepath.Join(f.profile, TestPlayModID, "workspace"))
 	if string(played.TextFiles["event01.txt"]) != "Исправлено\nПродолжение" || !bytes.Equal(played.MapBytes, e.Document().SourceBytes) || len(f.started) != 1 {
 		t.Fatal("F5 did not stage authored map and pages")
 	}
@@ -284,8 +331,16 @@ func TestMapEditorWorkspaceRefusesBeforeChangingFiles(t *testing.T) {
 	s := e.Document().Edits.(*mapInspectionEdits)
 	workspacePage(t, e, "title.txt", "Changed")
 	before := tree(t, folder)
-	if err := workspaceField(e, "package", 0, folder); err == nil {
-		t.Fatal("opening a package discarded dirty pages")
+	if _, err := s.SetWorkspaceField("package", "folder", folder); err == nil {
+		t.Fatal("opening a dirty package did not ask")
+	} else {
+		var leave *ui.WorkspaceLeave
+		if !errors.As(err, &leave) {
+			t.Fatal(err)
+		}
+	}
+	if err := workspaceField(e, "package", 0, folder); err != nil {
+		t.Fatal("opening a package did not reach Save/Discard/Cancel", err)
 	}
 	_ = e.Key("escape")
 	if !reflect.DeepEqual(before, tree(t, folder)) || string(s.workspace.Pages["title.txt"]) != "Changed" {
@@ -329,14 +384,7 @@ func TestMapEditorWorkspaceImportsManualModAsAnOwnedCopy(t *testing.T) {
 	if !bytes.Equal(e.Document().SourceBytes, original) {
 		t.Fatal("initial import did not select first mission")
 	}
-	if err := e.Key("package"); err != nil {
-		t.Fatal(err)
-	}
-	for n := 0; n < 9; n++ {
-		_ = e.Key("tab")
-	}
-	_ = e.Key("down")
-	if err := e.Key("enter"); err != nil {
+	if err := workspaceField(e, "package", 9, "2"); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(e.Document().SourceBytes, second) || e.Document().Name != "Second map" {
@@ -351,18 +399,36 @@ func TestMapEditorWorkspaceImportsManualModAsAnOwnedCopy(t *testing.T) {
 	}
 	_ = e.Key("escape")
 	workspacePage(t, e, "title.txt", "Копия\nИзменена")
-	if err := workspaceField(e, "package", 9, "1"); err == nil {
-		t.Fatal("source change discarded unsaved pages")
-	}
-	_ = e.Key("escape")
-	if err := workspaceField(e, "package", 1, "ambush-copy"); err != nil {
+	if err := workspaceField(e, "package", 9, "1"); err != nil {
 		t.Fatal(err)
 	}
-	copyDir := filepath.Join(t.TempDir(), "ambush-copy")
+	if err := workspaceField(e, "package", 9, "2"); err != nil {
+		t.Fatal(err)
+	}
+	if string(e.Document().Edits.(*mapInspectionEdits).workspace.Pages["title.txt"]) != "Копия\nИзменена" {
+		t.Fatal("mission switch lost unsaved page")
+	}
+	_ = e.Key("escape")
+	if err := workspaceField(e, "package", 1, "ambush-copy"); err == nil {
+		t.Fatal("an imported project must keep its ID")
+	}
+	_ = e.Key("escape")
+	copyDir := filepath.Join(t.TempDir(), "ambush")
 	if err := workspaceField(e, "package", 0, copyDir); err != nil {
 		t.Fatal(err)
 	}
-	m := loadWorkspaceMod(t, f.root, copyDir)
+	entries, err := mod.Resolve(filepath.Dir(copyDir), []string{"ambush"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := modrt.Load(entries, BaseID(InspectInstall(f.root)), nil, modrt.Options{})
+	if err != nil || len(loaded.Missions.Missions) != 2 {
+		t.Fatalf("whole project copy: %v", err)
+	}
+	m, ok := loaded.Missions.Find("ambush", "second")
+	if !ok {
+		t.Fatal("copy lost selected mission")
+	}
 	if m.Kind != mod.MissionGuest || m.Number != 21 || string(m.TextFiles["title.txt"]) != "Копия\nИзменена" || string(m.TextFiles["event02.txt"]) != "Second mission only" || m.TextFiles["event01.txt"] != nil || !bytes.Equal(m.MapBytes, second) {
 		t.Fatal("owned copy lost the imported mission or text draft")
 	}

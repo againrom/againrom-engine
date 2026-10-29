@@ -9,11 +9,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// leaveStep is what the editor was about to do when unsaved changes stopped
-// it: close the window, or open the map named source.
+// leaveStep retains a close, map-open or mod-open continuation.
 type leaveStep struct {
-	open   bool
-	source string
+	open      bool
+	source    string
+	workspace bool
 }
 
 // The question's buttons, in order.
@@ -34,6 +34,9 @@ func (e *MapEditor) askLeave(step leaveStep) {
 func (e *MapEditor) runLeave(step leaveStep) error {
 	e.leave(leavePrompt)
 	e.saveThen = nil
+	if step.workspace {
+		return e.modAction("folder-open", step.source)
+	}
 	if step.open {
 		return e.openMap(step.source)
 	}

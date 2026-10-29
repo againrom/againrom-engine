@@ -86,6 +86,15 @@ func (e *MapEditor) loadObject() {
 		return
 	}
 	*o = objectEdit{doc: e.doc, record: e.selected, focus: -1, open: -1, cell: -1, pickField: -1}
+	if e.modWindow {
+		if host, ok := e.workspace(); ok {
+			o.fields = host.WorkspaceFields("package")
+			for _, f := range o.fields {
+				o.buf = append(o.buf, fieldInput(f))
+			}
+		}
+		return
+	}
 	if e.messagePage != 0 {
 		if host, ok := e.doc.Edits.(InspectionMessages); ok {
 			e.loadMessageFields(host.MessageParts(e.messagePage))
@@ -116,7 +125,10 @@ func (e *MapEditor) objectHasFields() bool {
 func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	e.loadObject()
 	o := &e.obj
-	r := e.doc.Records[e.selected]
+	r := InspectionRecord{Kind: "Mod"}
+	if !e.modWindow {
+		r = e.doc.Records[e.selected]
+	}
 	if r.Spatial && e.editable() && dragRank[r.Kind] > 0 && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
@@ -128,7 +140,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		return
 	}
-	s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
+	if !e.modWindow {
+		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
+	}
 	o.first = len(s.Rows)
 	o.rowField = map[int]int{}
 	card, fields := e.unitSettings()
@@ -163,6 +177,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	for _, i := range order {
 		f := o.fields[i]
+		if e.modWindow && f.Action && f.Column == 0 {
+			continue
+		}
+		if e.modWindow && f.Parent != "" && f.Parent != o.detail {
+			continue
+		}
 		if native {
 			section := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[f.Section]
 			if s.Columns == 1 && section != o.section || s.Columns == 0 && section != o.section {
@@ -177,6 +197,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		start := len(s.Rows)
 		deferColumn := func() {
+			if !native && s.Columns > 1 {
+				for k := start; k < len(s.Rows); k++ {
+					s.Rows[k].Column = f.Column
+				}
+			}
 			if native && s.Columns > 1 {
 				column := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 2}[f.Section]
 				for k := start; k < len(s.Rows); k++ {
@@ -225,6 +250,18 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
 		} else if f.Text {
 			row.Value = e.editorHostText(o.buf[i])
+		}
+		if f.Action {
+			row.Kind = popupChoice
+			row.Label = ""
+			row.Value = ""
+			row.Buttons = []string{e.editorHostText(f.Label)}
+		}
+		if e.modWindow && strings.HasSuffix(f.Key, ".character") {
+			row.Buttons = []string{"..."}
+		}
+		if e.modWindow && f.Key == "source" {
+			row.Buttons = []string{e.word("editor.mod.up"), e.word("editor.mod.down")}
 		}
 		meaning := f.Meaning
 		if native && !f.Inherit && f.Key != o.detail && i != o.focus {
@@ -433,6 +470,15 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		return
 	}
 	o.focus = i
+	if e.modWindow && o.fields[i].Action {
+		_ = e.modAction(o.fields[i].Key, "")
+		return
+	}
+	if e.modWindow && part == popupRowButton && strings.HasSuffix(o.fields[i].Key, ".character") {
+		o.detail = strings.TrimSuffix(o.fields[i].Key, "character")
+		e.focusObjectField(min(i+1, len(o.fields)-1))
+		return
+	}
 	if o.fields[i].Section != "" {
 		o.detail = o.fields[i].Key
 		if o.fields[i].Parent != "" {
@@ -577,6 +623,9 @@ func (e *MapEditor) chooseObjectChoice(row int) {
 	if commit {
 		e.applyObject()
 	}
+	if e.modWindow {
+		_ = e.applyModField()
+	}
 }
 
 // chooseObjectChoiceKeep sets the open drop-down's field to its highlighted
@@ -629,6 +678,8 @@ func (e *MapEditor) dropdownOpen() bool {
 	return e.obj.open >= 0 && e.obj.doc == e.doc && e.obj.record == e.selected
 }
 
+func (e *MapEditor) searchableObjectChoices() bool { return e.modWindow || e.nativeUnitWindow() }
+
 // objectTyping reports that the keyboard edits an object popup field.
 func (e *MapEditor) objectTyping() bool {
 	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.selected
@@ -644,6 +695,10 @@ func (e *MapEditor) endFieldTyping() {
 
 // objectButton is Apply (0) or Cancel (1).
 func (e *MapEditor) objectButton(n int) {
+	if e.modWindow {
+		e.modButton(n)
+		return
+	}
 	if n == 2 && e.nativeUnitWindow() {
 		for i, f := range e.obj.fields {
 			if f.Inherit {
@@ -663,6 +718,10 @@ func (e *MapEditor) objectButton(n int) {
 // parse, or a field the host refuses, shows its reason in the popup and
 // changes nothing.
 func (e *MapEditor) applyObject() {
+	if e.modWindow {
+		_ = e.applyModField()
+		return
+	}
 	if e.messagePage != 0 {
 		e.applyMessage()
 		return
@@ -785,6 +844,11 @@ func (e *MapEditor) setFields(kind string, index int, values []InspectionFieldVa
 
 // closeObject closes the object popup; the selection stays.
 func (e *MapEditor) closeObject() {
+	if e.modWindow {
+		e.obj.doc = nil
+	}
+	e.modWindow = false
+	e.modConfirm = ""
 	e.messagePage = 0
 	e.objectHidden = true
 	e.obj.open, e.obj.focus = -1, -1

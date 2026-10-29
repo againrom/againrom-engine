@@ -31,10 +31,18 @@ func popupRowCount(s popupSpec) int {
 func popupShownRows(s popupSpec, shown int) []int {
 	var out []int
 	for i := range s.Rows {
-		_, line := popupRowPosition(s, i)
-		if line >= s.Top && line < s.Top+shown {
+		column, line := popupRowPosition(s, i)
+		top := popupColumnTop(s, column)
+		if line >= top && line < top+shown {
 			out = append(out, i)
 		}
 	}
 	return out
+}
+
+func popupColumnTop(s popupSpec, column int) int {
+	if column < len(s.ColumnTops) {
+		return s.ColumnTops[column]
+	}
+	return s.Top
 }

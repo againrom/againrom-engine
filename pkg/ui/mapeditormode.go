@@ -92,18 +92,22 @@ func (p editorPrompt) fields() bool {
 
 // editorMode is every layer the window can be in.
 type editorMode struct {
-	catalog bool
-	prompt  editorPrompt
-	pick    pickKind
-	brush   brushState
-	report  reportState
-	panel   bool // the Map panel stands in the list popup under any list
+	modWindow       bool
+	modConfirm      string
+	modConfirmLabel string
+	modStatus       string
+	catalog         bool
+	prompt          editorPrompt
+	pick            pickKind
+	brush           brushState
+	report          reportState
+	panel           bool // the Map panel stands in the list popup under any list
 }
 
 // free reports that no layer takes the canvas: the catalogue, a prompt and an
 // armed pick each do.
 func (m *editorMode) free() bool {
-	return !m.catalog && !m.prompt.open() && m.pick == pickNone
+	return !m.modWindow && !m.catalog && !m.prompt.open() && m.pick == pickNone
 }
 
 // listView reports that the record list is what the rail shows.
@@ -237,7 +241,9 @@ func (e *MapEditor) closeReport() {
 
 // blocksCanvas reports that the map takes no pointer: the catalogue or a
 // prompt covers it. The Add window's cell pick leaves the map to the click.
-func (m *editorMode) blocksCanvas() bool { return m.catalog || m.prompt.open() && !m.addPicking() }
+func (m *editorMode) blocksCanvas() bool {
+	return m.modWindow || m.catalog || m.prompt.open() && !m.addPicking()
+}
 
 // addPicking reports that the Add window waits for a cell click on the map.
 func (m *editorMode) addPicking() bool { return m.prompt.kind == promptAdd && m.pick == pickAddCell }

@@ -149,15 +149,17 @@ func (g *popupGrid) totalRows(cols int) int {
 // Top is the first row shown and MaxRows how many rows show at most; List,
 // when set, is a list box over that model below the rows.
 type popupSpec struct {
-	Columns   int
-	Tabs      []string
-	ActiveTab int
-	Card      *PanelSubject
-	CardFont  *text.Font
-	Title     string
-	At        image.Point
-	Width     int
-	Bounds    image.Rectangle
+	ColumnTops  []int
+	ButtonFocus *int
+	Columns     int
+	Tabs        []string
+	ActiveTab   int
+	Card        *PanelSubject
+	CardFont    *text.Font
+	Title       string
+	At          image.Point
+	Width       int
+	Bounds      image.Rectangle
 	// Slack lets a dragged popup hang past the bounds, keeping its title row
 	// and popupKeepWide pixels of its width inside.
 	Slack    bool
@@ -422,6 +424,13 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		w = min(w, s.Bounds.Dx())
 	}
 	shown := popupRowCount(s) - s.Top
+	if len(s.ColumnTops) > 0 {
+		shown = 0
+		for i := range s.Rows {
+			column, line := popupRowPosition(s, i)
+			shown = max(shown, line-popupColumnTop(s, column)+1)
+		}
+	}
 	if s.MaxRows > 0 {
 		shown = min(shown, s.MaxRows)
 	}
@@ -494,7 +503,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			column, line := popupRowPosition(s, index)
 			columnW := (contentRight - r.Min.X - popupPad) / s.Columns
 			left, right = left+column*columnW, left+(column+1)*columnW-popupPad
-			y = contentY + (line-s.Top)*pitch
+			y = contentY + (line-popupColumnTop(s, column))*pitch
 		}
 		rowH := pitch
 		if row.Kind == popupMultiline {
@@ -985,7 +994,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	for i, r := range l.Buttons {
 		disabled := i < len(s.Disabled) && s.Disabled[i]
-		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Hover: pointerOK && pointer.In(r)})
+		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Focus: s.ButtonFocus != nil && *s.ButtonFocus == i, Hover: pointerOK && pointer.In(r)})
 	}
 	if tip, ok := popupTipAt(dst.Bounds(), title, body, s, l, pointer, pointerOK); ok {
 		drawFrame(dst, panelFrame(tip.Rect, ink.TitleGround, ink.Edge))

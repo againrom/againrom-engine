@@ -3326,5 +3326,5 @@ var Committed = Baseline{
 	// [[inn]] parse tests in pkg/town/inn_test.go, pkg/mod/towns_test.go and
 	// pkg/game/innoffers_test.go. It fell when tavern and inn rows became one
 	// row type with one parser and one validator.
-	CommentBytes: 9881863,
+	CommentBytes: 9881479,
 }

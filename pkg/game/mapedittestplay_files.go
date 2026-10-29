@@ -23,6 +23,13 @@ type testPlayFileRecord struct {
 	Files   []string
 }
 
+type missionPackagePlan struct {
+	ID, Record, Source string
+	Files              map[string][]byte
+	Check              func(modrt.Result) error
+	Expected           []mod.Mission
+}
+
 func testPlayRecordBytes(names []string) []byte {
 	b, _ := json.Marshal(testPlayFileRecord{Version: 1, Files: names})
 	return append(b, '\n')
@@ -102,12 +109,16 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 			page = rest
 		}
 		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap
-		if seen[rel] || !fixed && (page == rel || !missionPageName(page)) {
+		projectPath := recordName == editorPackageRecord && rel != "." && filepath.IsLocal(filepath.FromSlash(rel)) && !strings.Contains(rel, "\\")
+		if seen[rel] || !projectPath && !fixed && (page == rel || !missionPageName(page)) {
 			return nil, fmt.Errorf("%s has an invalid recorded path %q", folder, rel)
 		}
 		seen[rel] = true
 	}
 	for _, rel := range []string{mod.ManifestName, "main.star", mod.MissionsFile, testPlayMap} {
+		if recordName == editorPackageRecord && (rel == "main.star" || rel == testPlayMap) {
+			continue
+		}
 		if !seen[rel] {
 			return nil, fmt.Errorf("%s has an incomplete test play ownership record", folder)
 		}
@@ -138,7 +149,7 @@ func testPlayTargets(folder string, old []string, files map[string][]byte) error
 	return nil
 }
 
-func stageMissionPackage(profileDir, folder, root, id, record string, old []string, files map[string][]byte, guard func(string) error) (stage string, err error) {
+func stageMissionPackage(profileDir, folder, root, id, record string, old []string, files map[string][]byte, guard func(string) error, plans ...missionPackagePlan) (stage string, err error) {
 	stage, err = os.MkdirTemp(profileDir, ".testplay-*")
 	if err != nil {
 		return "", err
@@ -152,8 +163,13 @@ func stageMissionPackage(profileDir, folder, root, id, record string, old []stri
 	if err := os.Mkdir(dest, 0o755); err != nil {
 		return stage, err
 	}
-	if _, err := os.Stat(folder); err == nil {
-		if err := copyRetainedTestMod(folder, dest, old, record, guard); err != nil {
+	source, exclude := folder, old
+	retained := len(plans) != 0 && plans[0].Source != ""
+	if retained {
+		source, exclude = plans[0].Source, slices.Sorted(maps.Keys(files))
+	}
+	if _, err := os.Stat(source); err == nil {
+		if err := copyRetainedTestMod(source, dest, exclude, record, guard); err != nil {
 			return stage, err
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -164,15 +180,77 @@ func stageMissionPackage(profileDir, folder, root, id, record string, old []stri
 			return stage, err
 		}
 	}
-	if err := writeTestModFile(guard, profileDir, dest, record, testPlayRecordBytes(slices.Sorted(maps.Keys(files))), true); err != nil {
+	names := slices.Sorted(maps.Keys(files))
+	if retained {
+		names = nil
+		err = filepath.WalkDir(dest, func(p string, d fs.DirEntry, e error) error {
+			if e != nil {
+				return e
+			}
+			if d.IsDir() {
+				return nil
+			}
+			rel, e := filepath.Rel(dest, p)
+			if e != nil {
+				return e
+			}
+			if filepath.ToSlash(rel) != record {
+				names = append(names, filepath.ToSlash(rel))
+			}
+			if len(names) > 4096 {
+				return errors.New("mod ownership record holds at most 4096 files")
+			}
+			return nil
+		})
+		if err != nil {
+			return stage, err
+		}
+		slices.Sort(names)
+	}
+	receipt := testPlayRecordBytes(names)
+	if len(receipt) > 65536 {
+		return stage, errors.New("mod ownership record exceeds 65536 bytes")
+	}
+	if err := writeTestModFile(guard, profileDir, dest, record, receipt, true); err != nil {
 		return stage, err
 	}
 	entries, err := mod.Resolve(stage, []string{id})
 	if err != nil {
 		return stage, err
 	}
-	_, err = modrt.Load(entries, BaseID(InspectInstall(root)), nil, modrt.Options{})
+	result, err := modrt.Load(entries, BaseID(InspectInstall(root)), nil, modrt.Options{})
+	if err == nil && len(plans) != 0 && plans[0].Expected != nil {
+		err = checkMissionProjection(plans[0].Expected, result.Missions)
+	}
+	if err == nil && len(plans) != 0 && plans[0].Check != nil {
+		err = plans[0].Check(result)
+	}
 	return stage, err
+}
+
+func installMissionPackage(stage, folder, id string, owned bool) error {
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.RemoveAll(stage)
+		}
+	}()
+	backup := filepath.Join(stage, "previous")
+	if owned {
+		if err := os.Rename(folder, backup); err != nil {
+			return err
+		}
+	}
+	if err := os.Rename(filepath.Join(stage, id), folder); err != nil {
+		if owned {
+			if restore := os.Rename(backup, folder); restore != nil {
+				cleanup = false
+				return fmt.Errorf("package replacement failed: %v; old package retained at %s: %v", err, backup, restore)
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func copyRetainedTestMod(folder, dest string, old []string, record string, guard func(string) error) error {

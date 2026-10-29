@@ -146,6 +146,10 @@ func TestMapPagesPackagePreservesOtherLanguage(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeTestPlayInput(t, filepath.Join(folder, editorPackageRecord), testPlayRecordBytes(append(old, other)))
+	if err := workspaceField(e, "package", 0, folder); err != nil {
+		t.Fatal(err)
+	}
+	s = e.Document().Edits.(*mapInspectionEdits)
 	workspacePage(t, e, "event01.txt", "Changed English page")
 	if _, err := s.saveWorkspacePackage(folder); err != nil {
 		t.Fatal(err)
@@ -292,6 +296,10 @@ func TestMapPagesLegacyPackagePreservesCommon(t *testing.T) {
 	}
 	writeTestPlayInput(t, filepath.Join(folder, mod.MissionsFile), []byte(strings.ReplaceAll(string(mb), "mission/text/{lang}", "mission/text")))
 	writeTestPlayInput(t, filepath.Join(folder, editorPackageRecord), testPlayRecordBytes(old))
+	if err := workspaceField(e, "package", 0, folder); err != nil {
+		t.Fatal(err)
+	}
+	s = e.Document().Edits.(*mapInspectionEdits)
 	readRU := func() {
 		t.Helper()
 		b, err := os.ReadFile(filepath.Join(folder, mod.MissionsFile))

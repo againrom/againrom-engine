@@ -26,6 +26,9 @@ func fieldKind(kind string) bool {
 // selectedRecord is the kind and file-order index of the selected editable
 // record, or index -1.
 func (e *MapEditor) selectedRecord() (string, int) {
+	if e.modWindow && e.editable() {
+		return "Mod", 0
+	}
 	if !e.editable() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return "", -1
 	}

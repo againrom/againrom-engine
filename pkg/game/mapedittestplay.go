@@ -83,7 +83,24 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
-	if s.workspace != nil {
+	var plan *missionPackagePlan
+	if s.workspace != nil && s.workspace.Project != nil {
+		if err := s.unchangedModSource(); err != nil {
+			return "", fmt.Errorf("Test play: %w", err)
+		}
+		files, missions, current, e := s.retainedPackageFiles(b)
+		if e != nil {
+			return "", fmt.Errorf("Test play: %w", e)
+		}
+		if e := x.checkMissionSet(missions); e != nil {
+			return "", fmt.Errorf("Test play: %w", e)
+		}
+		m = current
+		plan = &missionPackagePlan{ID: s.workspace.Package.ID, Record: editorPackageRecord, Files: files, Check: x.admitMissionPackage, Expected: missions}
+		if x.mod != nil {
+			plan.Source = x.mod.dir
+		}
+	} else if s.workspace != nil {
 		m.TextFiles = cloneWorkspace(s.workspace).Pages
 		if len(m.TextFiles) > 0 {
 			m.Texts = testPlayTexts
@@ -91,14 +108,16 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 			m.Texts = ""
 		}
 	}
-	if err := x.checkMissionRoute(m); err != nil {
-		return "", fmt.Errorf("Test play: %w", err)
-	}
-	// The game loads the test mod through the same rule table; an error there
-	// would refuse the mod before the mission opens.
-	address, _ := MissionMap(m.Number)
-	if rows := x.CheckModMap(m, address); hasError(rows) {
-		return "", s.loaderRefusal(rows)
+	if plan == nil {
+		if err := x.checkMissionRoute(m); err != nil {
+			return "", fmt.Errorf("Test play: %w", err)
+		}
+		// The game loads the test mod through the same rule table; an error there
+		// would refuse the mod before the mission opens.
+		address, _ := MissionMap(m.Number)
+		if rows := x.CheckModMap(m, address); hasError(rows) {
+			return "", s.loaderRefusal(rows)
+		}
 	}
 	if st, err := os.Stat(h.Game); err != nil || !st.Mode().IsRegular() {
 		return "", fmt.Errorf("Test play: the game program %s is not beside the map editor", h.Game)
@@ -107,11 +126,15 @@ func (s *mapInspectionEdits) TestPlay() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Test play: no player profile: %w", err)
 	}
-	modsDir, err := writeTestMod(profile, x.archives.Root, m, s.packageProtected()...)
+	modsDir, err := writeTestMod(profile, x.archives.Root, m, plan, s.packageProtected()...)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
-	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number)
+	id := TestPlayModID
+	if plan != nil {
+		id = plan.ID
+	}
+	args, err := TestPlayArgs(x.archives.Root, modsDir, m.Number, id)
 	if err != nil {
 		return "", fmt.Errorf("Test play: %w", err)
 	}
@@ -128,7 +151,11 @@ func hasError(rows []ui.InspectionFinding) bool {
 
 // TestPlayArgs is the game's command line of a test play: the install root
 // and its base, the test mod from modsDir, and the direct start of mission n.
-func TestPlayArgs(root, modsDir string, n int) ([]string, error) {
+func TestPlayArgs(root, modsDir string, n int, ids ...string) ([]string, error) {
+	id := TestPlayModID
+	if len(ids) != 0 {
+		id = ids[0]
+	}
 	return launch.Build(func(st launch.Setting) []string {
 		switch st.Key {
 		case launch.Assets.Key:
@@ -139,7 +166,7 @@ func TestPlayArgs(root, modsDir string, n int) ([]string, error) {
 			}
 			return nil
 		case launch.Mods.Key:
-			return []string{TestPlayModID}
+			return []string{id}
 		case launch.ModsDir.Key:
 			return []string{modsDir}
 		case launch.Mission.Key:
@@ -211,27 +238,13 @@ func testPlayGuest(c Campaign, src *vfs.FS) (mod.Mission, error) {
 
 // testPlayMissions is the test mod's data/missions.toml for m.
 func testPlayMissions(m mod.Mission) []byte {
-	var sb strings.Builder
-	fmt.Fprintln(&sb, "[[mission]]")
-	if m.Kind == mod.MissionReplace {
-		fmt.Fprintf(&sb, "kind = %q\n", mod.MissionReplace)
-	}
-	fmt.Fprintf(&sb, "key     = %q\nnumber  = %d\nmap     = %q\n", m.Key, m.Number, m.Map)
-	if m.Texts != "" {
-		fmt.Fprintf(&sb, "texts   = %q\n", m.Texts)
-	}
-	if m.Kind != mod.MissionReplace {
-		fmt.Fprintf(&sb, "after   = %d\nguest   = %d\nchapter = %d\n", m.After, m.Guest, m.Chapter)
-		if m.Gold != 0 {
-			fmt.Fprintf(&sb, "gold = %d\n", m.Gold)
-		}
-	}
-	return []byte(sb.String())
+	b, _ := mod.WriteMissions(nil, nil, []mod.Mission{m})
+	return b
 }
 
 // writeTestMod validates the resulting mod before publishing it. Its record
 // admits replacement only of its own files and removal only of its old pages.
-func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected ...packageGuard) (string, error) {
+func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *missionPackagePlan, protected ...packageGuard) (string, error) {
 	if profile.Directory == "" {
 		return "", errors.New("no player profile directory")
 	}
@@ -241,8 +254,12 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 	}
 	profile.Directory = dir
 	modsDir := filepath.Join(profile.Directory, TestPlayModID)
-	folder := filepath.Join(modsDir, TestPlayModID)
-	old, err := testPlayOwnership(folder, protected)
+	id, record := TestPlayModID, testPlayRecord
+	if plan != nil {
+		id, record = plan.ID, plan.Record
+	}
+	folder := filepath.Join(modsDir, id)
+	old, err := missionPackageOwnership(folder, record, protected)
 	if err != nil {
 		return "", err
 	}
@@ -267,46 +284,50 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, protected 
 		lang = l.Code
 	}
 	files := missionPackageFiles("Map editor test play", "The map the map editor plays: written by its test play key, replaced by the next one.", m, lang)
+	options := missionPackagePlan{}
+	if plan != nil {
+		files, options = plan.Files, *plan
+	}
 	if err := testPlayTargets(folder, old, files); err != nil {
 		return "", err
 	}
 	if err := guard(profile.Directory); err != nil {
 		return "", err
 	}
-	stage, err := stageMissionPackage(profile.Directory, folder, root, TestPlayModID, testPlayRecord, old, files, guard)
+	if plan != nil && len(old) != 0 {
+		if err := filepath.WalkDir(folder, func(path string, d os.DirEntry, err error) error {
+			if err != nil || d.IsDir() {
+				return err
+			}
+			rel, err := filepath.Rel(folder, path)
+			if err != nil {
+				return err
+			}
+			rel = filepath.ToSlash(rel)
+			if rel != record && !slices.Contains(old, rel) {
+				return fmt.Errorf("%s is not a recorded test play file", path)
+			}
+			return nil
+		}); err != nil {
+			return "", err
+		}
+	}
+	stage, err := stageMissionPackage(profile.Directory, folder, root, id, record, old, files, guard, options)
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(stage)
 	modsDir, grant, err = profile.folder(TestPlayModID, root)
 	if err != nil {
+		_ = os.RemoveAll(stage)
 		return "", err
 	}
 	forget()
-	folder = filepath.Join(modsDir, TestPlayModID)
-	names := make([]string, 0, len(files))
-	for name := range files {
-		names = append(names, name)
+	folder = filepath.Join(modsDir, id)
+	if err := guard(modsDir); err != nil {
+		_ = os.RemoveAll(stage)
+		return "", err
 	}
-	slices.Sort(names)
-	for _, rel := range names {
-		if err := writeTestModFile(guard, modsDir, folder, rel, files[rel], false); err != nil {
-			return "", err
-		}
-	}
-	for _, rel := range old {
-		if _, kept := files[rel]; kept || !strings.HasPrefix(rel, testPlayTexts+"/") {
-			continue
-		}
-		full := filepath.Join(folder, filepath.FromSlash(rel))
-		if err := guard(filepath.Dir(full)); err != nil {
-			return "", err
-		}
-		if err := os.Remove(full); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return "", err
-		}
-	}
-	if err := writeTestModFile(guard, modsDir, folder, testPlayRecord, testPlayRecordBytes(names), true); err != nil {
+	if err := installMissionPackage(stage, folder, id, len(old) != 0); err != nil {
 		return "", err
 	}
 	return modsDir, nil

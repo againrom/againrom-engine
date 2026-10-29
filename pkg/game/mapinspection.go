@@ -24,6 +24,7 @@ import (
 // steps one; it opens no scheduler, save store or audio device. All installed
 // resources are read-only.
 type MapInspector struct {
+	modOutput      string
 	archives       *Archives
 	tiles          *terrain.Tileset
 	statics        *terrain.StaticSet

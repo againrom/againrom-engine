@@ -30,6 +30,8 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [ROM1] The map editor's W window manages mission lists, explicit win links and named parties with equipment. Page edits keep each language's pages, including pages beside the map; removing a replacement keeps its campaign links. Publish creates a packed RES and asks before saving changes or replacing an existing file; Test play keeps the complete mod project.
+- [ROM1] Opening a handwritten mod and saving it to a new folder now copies the whole mod with the same ID, including its other missions and language files. Reopen a mod before saving if its files have changed outside the editor.
 - [BASE] In the map editor a single tree, stone or other map object now moves the way a building does: drag it to another cell, or select it and press Delete to remove it; Undo puts it back. Before, a drag from a tree drew a selection box and Delete refused it. A unit, building or sack on the same cell still takes the drag first.
 - [ROM1] The map editor lets you choose an ordinary person's face and sex and preview the doll before applying the change. The appearance is stored in the map and stays after saving the mission.
 - [ROM1] A human placement can select a named NPC from the installed registry in the map editor. The choice keeps the original map storage and offers no custom placement name.

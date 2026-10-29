@@ -145,4 +145,29 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	r, ok = e.ListRowRect(1)
 	click(e, r, ok, "the first trigger")
 	shot(e, "triggers", image.Rectangle{})
+
+	e = editorChainReleaseProject(t)
+	e.Layout(640, 480)
+	if err := e.Key("package"); err != nil {
+		t.Fatal(err)
+	}
+	shot(e, "mod-window-small", image.Rectangle{})
+	if !e.FocusModField("source") {
+		t.Fatal("missing mission choice")
+	}
+	_ = e.Key("clear")
+	e.TextInput("2")
+	if err := e.Key("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if !e.FocusModField("party.1.weapon") {
+		t.Fatal("missing member equipment")
+	}
+	shot(e, "mod-party-small", image.Rectangle{})
+	publishEditorFixture(t, e, t.TempDir())
+	e.FocusModField("publish")
+	if err := e.Key("enter"); err != nil {
+		t.Fatal(err)
+	}
+	shot(e, "mod-replace-small", image.Rectangle{})
 }

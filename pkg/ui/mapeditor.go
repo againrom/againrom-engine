@@ -126,6 +126,8 @@ type InspectionGoal struct {
 
 // InspectionField is one control or derived read-only block of a record.
 type InspectionField struct {
+	Column          int
+	Action          bool
 	Icons           map[int64]*image.RGBA
 	Section, Parent string
 	ReadOnly        bool
@@ -473,6 +475,9 @@ func (e *MapEditor) Update() error {
 		if err := e.Key("close"); err != nil {
 			return err
 		}
+	}
+	if handled, err := e.modNativeKeys(native); handled {
+		return err
 	}
 	typing, policy := e.updateTextInput(native, time.Now())
 	for _, k := range []struct {

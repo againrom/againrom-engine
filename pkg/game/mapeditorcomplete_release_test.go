@@ -147,6 +147,8 @@ func TestReleaseMapEditorCompleteScenarioPackageSAV(t *testing.T) {
 		t.Fatal("W did not write an owned package", err)
 	}
 
+	parent = t.TempDir()
+	publishEditorFixture(t, e, parent)
 	f := guestFront(t, parent, id)
 	f.SetTipsOff(true)
 	app := f.App("complete authored map")

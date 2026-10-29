@@ -185,6 +185,7 @@ func init() {
 		{key: "undo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
 		{key: "redo", act: (*MapEditor).keyHistory, unlisted: unlistedSaveLine},
 		{key: "tab", label: "Tab", live: promptFields, act: (*MapEditor).recordKey, help: []helpEntry{{screenPrompt, linePrompt}}},
+		{key: "backtab", label: "Shift+Tab", live: promptHears, act: (*MapEditor).keyModBacktab, unlisted: unlistedWindow},
 		{key: "applyobject", live: promptFields, act: (*MapEditor).keyObjectApply, unlisted: unlistedWindow},
 		{key: "newline", live: promptHears, act: (*MapEditor).keyNewline, unlisted: unlistedPrompt},
 		{key: "clear", live: promptHears, act: (*MapEditor).keyClear, unlisted: unlistedPrompt},
@@ -351,6 +352,11 @@ func (e *MapEditor) Key(key string) error {
 	}
 	if e.textKey(key) {
 		return nil
+	}
+	if e.modWindow && !e.prompt.open() {
+		if handled, err := e.modKey(key); handled {
+			return err
+		}
 	}
 	if confirm := e.report.confirm; confirm != nil && !e.prompt.open() && (key == "enter" || key == "sack") {
 		e.report.confirm = nil
@@ -657,7 +663,7 @@ func (e *MapEditor) keyHistory(key string) error {
 }
 
 func (e *MapEditor) keyBackspace(string) error {
-	if !e.prompt.open() && !e.objectHidden && e.nativeUnitWindow() && e.dropdownOpen() {
+	if !e.prompt.open() && !e.objectHidden && e.searchableObjectChoices() && e.dropdownOpen() {
 		query := []rune(e.obj.search)
 		if len(query) > 0 {
 			e.obj.search = string(query[:len(query)-1])
