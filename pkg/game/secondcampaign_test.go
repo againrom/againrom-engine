@@ -120,6 +120,52 @@ func secondMapTravel(app *ui.App, screen *townScreen, l partyPlace) error {
 	return fmt.Errorf("no map record %v", l)
 }
 
+func TestSecondTownTalkProbeReadsTheBoundScreen(t *testing.T) {
+	f, app, screen := secondCampaignFixture(t, true)
+	app.Layout(640, 480)
+	for _, target := range []string{"new game", "TAVERN", "TALK 517"} {
+		if err := app.HeadlessActivate(target); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unbound := f.TownScreen().(*townScreen)
+	if unbound == screen {
+		t.Fatal("the uncached town builder returned the bound screen")
+	}
+	if _, open := unbound.TownDialogue(); open {
+		t.Fatal("an unbound screen inherited the bound screen's talk")
+	}
+	for page, words := range []string{"First page.", "Second page."} {
+		pic, open := screen.TownDialogue()
+		button, shown := screen.TownDialogueButton()
+		if !open || pic == nil || !shown || button.Empty() || f.Town.second.talk.part != page+1 {
+			t.Fatalf("page %d: no bound dialogue or button", page+1)
+		}
+		layout := f.Words.OnLayout(ui.AuthoredDialogueLayout()).WithPortrait(true).
+			WithDialogueButtonState(screen.talkWindow.ButtonState()).WithDialogueBackdrop(screen.talkWindow.Backdrop())
+		want := ui.RenderNotice(layout, f.Font.Value(), words, nil)
+		if !imagesEqual(pic, want) {
+			t.Fatalf("page %d: the bound dialogue did not draw %q", page+1, words)
+		}
+		frame, note, err := app.HeadlessFrame()
+		if err != nil || note != "" || frame == nil {
+			t.Fatalf("App town frame: %v %q", err, note)
+		}
+		at := image.Pt((640-pic.Bounds().Dx())/2, (480-pic.Bounds().Dy())/2)
+		for y := range pic.Bounds().Dy() {
+			for x := range pic.Bounds().Dx() {
+				if ink := pic.RGBAAt(x, y); ink.A == 255 && frame.RGBAAt(x+at.X, y+at.Y) != ink {
+					t.Fatalf("page %d: App lost the opaque dialogue pixel at %d,%d", page+1, x, y)
+				}
+			}
+		}
+		dialogueKeyPress(t, app, screen, "click")
+	}
+	if _, open := screen.TownDialogue(); open || f.Town.second.noticePending() {
+		t.Fatal("the final pointer acknowledgement left the talk open")
+	}
+}
+
 func TestSecondCampaignInputUnlockCancelAndFailedEntry(t *testing.T) {
 	f, app, screen := secondCampaignFixture(t, true)
 	if err := app.HeadlessActivate("new game"); err != nil {

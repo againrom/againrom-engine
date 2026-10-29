@@ -56,6 +56,7 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 			t.Run(fmt.Sprintf("female=%v/composed=%v", female, composed), func(t *testing.T) {
 				f, app := secondGeneratedMage(t, female)
 				s := f.TownScreen().(*townScreen)
+				app.SetTown(s)
 				if !composed {
 					s.composed = nil
 				}
@@ -65,6 +66,9 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 					}
 				}
 				c := f.Town.second
+				if c.talk.payload == nil {
+					t.Fatal("TALK 517 opened no conversation")
+				}
 				for page := 0; c.talk.payload != nil; page++ {
 					if page >= 64 {
 						t.Fatal("talk exceeded 64 pages")
@@ -80,6 +84,7 @@ func TestReleaseSecondTownMageTalkPointer(t *testing.T) {
 					if c.talk.payload != nil && c.talk.part == before {
 						t.Fatalf("OK pointer press/release left talk on page %d", before)
 					}
+					t.Logf("OK pointer: part %d -> %d, open=%v", before, c.talk.part, c.talk.payload != nil)
 				}
 			})
 		}

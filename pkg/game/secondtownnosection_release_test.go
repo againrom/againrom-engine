@@ -16,10 +16,12 @@ func TestReleaseSecondTownLoadWithoutInnSection(t *testing.T) {
 	secondTownShape(t, raw)
 
 	withSection, a := secondTownCold(t, dir, secondSaveFile(t, dir, "First town"))
+	withSectionScreen := withSection.TownScreen()
+	a.SetTown(withSectionScreen)
 	if err := a.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
-	if _, open := withSection.TownScreen().(ui.TownDialogueScreen).TownDialogue(); !open {
+	if _, open := withSectionScreen.(ui.TownDialogueScreen).TownDialogue(); !open {
 		t.Fatal("control: the installed section shows no conversation")
 	}
 	control := withSection.Town.second.bank
@@ -34,6 +36,8 @@ func TestReleaseSecondTownLoadWithoutInnSection(t *testing.T) {
 		f.Archives = &own
 	}
 	cold, b := secondTownCold(t, dir, secondSaveFile(t, dir, "First town"), without)
+	withoutSectionScreen := cold.TownScreen()
+	b.SetTown(withoutSectionScreen)
 	if got, _ := cold.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); bytes.Contains(got, []byte("npc517talk10")) {
 		t.Fatal("overlay left the section in place")
 	}
@@ -44,7 +48,7 @@ func TestReleaseSecondTownLoadWithoutInnSection(t *testing.T) {
 	if err := b.HeadlessActivate("TALK 517"); err != nil {
 		t.Fatal(err)
 	}
-	if _, open := cold.TownScreen().(ui.TownDialogueScreen).TownDialogue(); open {
+	if _, open := withoutSectionScreen.(ui.TownDialogueScreen).TownDialogue(); open {
 		t.Fatal("a missing section opened a conversation")
 	}
 	if cold.Town.second.bank != control {
