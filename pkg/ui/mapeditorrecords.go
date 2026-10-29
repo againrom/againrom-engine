@@ -117,6 +117,10 @@ func (e *MapEditor) recordKey(key string) error {
 	if key == "delete" && e.selectionShown() {
 		return e.deleteSelection()
 	}
+	if i := e.selectedScenery(); key == "delete" && i >= 0 {
+		e.leave(leaveDrag | leavePick)
+		return e.deleteSelected("Scenery", i)
+	}
 	if key == "field" && e.report.open && len(e.objectBack) == 0 && e.goalRecord(e.report.sel) >= 0 {
 		e.openGoal(e.report.sel)
 		return nil

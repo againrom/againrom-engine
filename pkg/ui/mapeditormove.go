@@ -215,7 +215,11 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 				hit = i
 			}
 		}
-		if d, ok := e.boxPress(p, hit); ok {
+		d, ok := e.boxPress(p, hit)
+		if !ok && hit < 0 {
+			hit = e.sceneryHit(p)
+		}
+		if ok {
 			e.recordDrag = d
 			e.doc.Viewer.dragging = false
 		} else if hit >= 0 {
@@ -261,12 +265,56 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 			_ = e.moveSelection(cell.Sub(d.origin))
 		} else if d.moved {
 			next, err := e.doc.Edits.Move(d.kind, d.index, cell)
-			_ = e.adoptEdit(next, err)
+			if e.adoptEdit(next, err) == nil && next != nil && d.kind == "Scenery" {
+				e.selectScenery(cell)
+			}
 		} else {
 			e.selectAt(p)
 		}
 	}
 	return true
+}
+
+// movesObjects reports a host that moves and deletes a map object, a Scenery
+// record, as its area move moves the object plane.
+func (e *MapEditor) movesObjects() bool {
+	_, ok := e.doc.Edits.(InspectionAreaCopy)
+	return ok
+}
+
+// sceneryHit is the map object under p when the host moves objects, else -1.
+// A press drags it only when no record a drag moves is on its cell, and the
+// group selection never takes it.
+func (e *MapEditor) sceneryHit(p image.Point) int {
+	if !e.movesObjects() {
+		return -1
+	}
+	for _, i := range e.hitsAt(p) {
+		if e.doc.Records[i].Kind == "Scenery" {
+			return i
+		}
+	}
+	return -1
+}
+
+// selectedScenery is the index of the selected map object when the host
+// deletes objects, else -1.
+func (e *MapEditor) selectedScenery() int {
+	if !e.movesObjects() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) || e.doc.Records[e.selected].Kind != "Scenery" {
+		return -1
+	}
+	return e.doc.Records[e.selected].Index
+}
+
+// selectScenery selects the map object on cell: a Scenery record's index
+// names its cell, so a moved object is found again by the cell it went to.
+func (e *MapEditor) selectScenery(cell image.Point) {
+	for i, r := range e.doc.Records {
+		if r.Kind == "Scenery" && r.Cell == cell {
+			e.Select(i, false)
+			return
+		}
+	}
 }
 
 // adoptPlacements takes the structure and sack layers of a viewer built over

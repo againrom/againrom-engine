@@ -14,10 +14,12 @@ import (
 
 // terrainHost is a full host that also takes the whole-map commands and the
 // area copy. Its height plane is alt; RandomHeights sets every height to the
-// seed modulo 128, so a test can name what the numbers then show.
+// seed modulo 128, so a test can name what the numbers then show. Its object
+// plane is objects, none when nil.
 type terrainHost struct {
 	modesFull
-	alt []uint8
+	alt     []uint8
+	objects []uint8
 }
 
 func (p *terrainHost) RandomTerrain(seed uint32) (*InspectionDocument, error) {
@@ -58,7 +60,7 @@ func terrainEditor(t *testing.T) (*MapEditor, *terrainHost, *[]string) {
 	}
 	h.calls, h.self = &modesCalls{}, h
 	h.doc = func(edits InspectionEdits) *InspectionDocument {
-		g := terrain.Grid{Width: terrainSide, Height: terrainSide, Tiles: make([]uint16, terrainSide*terrainSide), Altitudes: slices.Clone(h.alt)}
+		g := terrain.Grid{Width: terrainSide, Height: terrainSide, Tiles: make([]uint16, terrainSide*terrainSide), Altitudes: slices.Clone(h.alt), Overlay: slices.Clone(h.objects)}
 		v, err := NewViewer("terrain", g, &terrain.Tileset{})
 		if err != nil {
 			t.Fatal(err)
@@ -67,6 +69,11 @@ func terrainEditor(t *testing.T) (*MapEditor, *terrainHost, *[]string) {
 		d.Records = []InspectionRecord{
 			{Kind: "Unit", Index: 0, Section: 6, Cell: image.Pt(10, 10), Spatial: true, Size: image.Pt(1, 1)},
 			{Kind: "Unit", Index: 1, Section: 6, Cell: image.Pt(30, 30), Spatial: true, Size: image.Pt(1, 1)},
+		}
+		for i, b := range h.objects {
+			if b != 0 {
+				d.Records = append(d.Records, InspectionRecord{Kind: "Scenery", Section: 3, Index: i, Cell: image.Pt(i%terrainSide, i/terrainSide), Spatial: true, Size: image.Pt(1, 1)})
+			}
 		}
 		return d
 	}

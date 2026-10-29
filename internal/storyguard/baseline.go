@@ -3307,5 +3307,13 @@ var Committed = Baseline{
 	// It rose for the test play's package route: the doc comments of
 	// checkMissionRoute and testPlayMission and of the new tests in
 	// pkg/game/mapedittestplayroute_test.go, and this note.
-	CommentBytes: 9871151,
+
+	// It rose for the map object drag: the doc comments of movesObjects,
+	// sceneryHit, selectedScenery and selectScenery in pkg/ui/mapeditormove.go,
+	// of sceneryCell, moveScenery, deleteScenery and objectPatch in
+	// pkg/game/mapinspectionterrain.go and of Move and Delete in
+	// pkg/game/mapinspectionedit.go, the new tests' comments in
+	// pkg/ui/mapeditorobjectpick_test.go and
+	// pkg/game/mapinspectionobjectdrag_test.go, and this note.
+	CommentBytes: 9874884,
 }

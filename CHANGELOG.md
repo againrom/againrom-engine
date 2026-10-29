@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor a single tree, stone or other map object now moves the way a building does: drag it to another cell, or select it and press Delete to remove it; Undo puts it back. Before, a drag from a tree drew a selection box and Delete refused it. A unit, building or sack on the same cell still takes the drag first.
 - [ROM1] The map editor lets you choose an ordinary person's face and sex and preview the doll before applying the change. The appearance is stored in the map and stays after saving the mission.
 - [ROM1] A human placement can select a named NPC from the installed registry in the map editor. The choice keeps the original map storage and offers no custom placement name.
 - [ROM1] Worn equipment has a row per slot, item dropdowns, available material and tier choices, and private magic recipes. The preview shows displaced items in the bag. Empty keeps native storage: it copies retained row items for an ordinary Human and is unavailable for a named NPC.

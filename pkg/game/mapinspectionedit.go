@@ -122,8 +122,11 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 }
 
 // Move moves the record onto cell, keeping its fraction within the cell, as
-// one edit.
+// one edit. A Scenery record, a map object, moves as moveScenery moves it.
 func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	if kind == "Scenery" {
+		return s.moveScenery(index, cell)
+	}
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -171,7 +174,12 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 	})
 }
 
+// Delete removes the record as one edit; a Scenery record, a map object, goes
+// as deleteScenery clears it.
 func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocument, error) {
+	if kind == "Scenery" {
+		return s.deleteScenery(index)
+	}
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
