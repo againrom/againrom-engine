@@ -124,6 +124,18 @@ var speakerRoles = []struct {
 	{ID: 24, Word: "editor.message.role.24"},
 }
 
+func speakerRank(id int64) int {
+	if id < 0 {
+		return -1
+	}
+	for i, r := range speakerRoles {
+		if r.ID == id {
+			return i
+		}
+	}
+	return len(speakerRoles)
+}
+
 func (x *MapInspector) speakerRole(id int64) (string, bool) {
 	for _, r := range speakerRoles {
 		if r.ID == id {
@@ -175,7 +187,12 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	x := s.inspector
 	choices := []ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.message.nospeaker"))}}
 	choices = append(choices, x.npcChoices(255, true)...)
-	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int { return int(a.Value - b.Value) })
+	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int {
+		if ra, rb := speakerRank(a.Value), speakerRank(b.Value); ra != rb {
+			return ra - rb
+		}
+		return int(a.Value - b.Value)
+	})
 	found := false
 	for _, c := range choices {
 		found = found || c.Value == speaker

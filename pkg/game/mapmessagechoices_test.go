@@ -172,6 +172,29 @@ func TestMessageSpeakerAndLossControls(t *testing.T) {
 	}
 }
 
+func TestMessageSpeakerListStartsWithTheFourLeadingSpeakers(t *testing.T) {
+	_, e := workspaceFixture(t)
+	s := e.Document().Edits.(*mapInspectionEdits)
+	s.inspector.table = &mapload.Table{NPCCatalog: &data.NPCCatalog{Entries: []data.NPCEntry{
+		{ID: 3, Name: "A"}, {ID: 9, Name: "B"}, {ID: 21, Name: "x"}, {ID: 22, Name: "x"}, {ID: 23, Name: "x"}, {ID: 24, Name: "x"}, {ID: 30, Name: "C"}, {ID: 51, Name: "D"},
+	}}}
+	workspacePage(t, e, "event01.txt", "<part=1,npc=999>\nText")
+	fields := s.MessageFields(1)
+	var ids []int64
+	for _, c := range fields[1].Choices {
+		ids = append(ids, c.Value)
+	}
+	if want := []int64{-1, 21, 22, 23, 24, 3, 9, 30, 51, 999}; !slices.Equal(ids, want) {
+		t.Fatalf("speaker order %v, want %v", ids, want)
+	}
+	if fields[1].Value != 999 {
+		t.Fatal("stored speaker", fields[1].Value)
+	}
+	if _, err := s.SetMessage(1, "Text", 24); err != nil || string(s.workspace.Pages["event01.txt"]) != "<part=1,npc=24>\nText" {
+		t.Fatal("markup", err, string(s.workspace.Pages["event01.txt"]))
+	}
+}
+
 func TestMessageSpeakerRolesLabelIDs21To24(t *testing.T) {
 	roles := map[string][4]string{
 		"":        {"Main hero", "Traitor mage", "Monk", "Prisoner"},
