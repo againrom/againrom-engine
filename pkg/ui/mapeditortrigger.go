@@ -510,6 +510,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			if !o.shownAction(a) {
 				continue
 			}
+			actionGap(add, acts)
 			acts++
 			title, params := e.slotText(false, o.buf[trigActs+a])
 			add(popupRow{Kind: popupChoice, Label: fmt.Sprintf(e.word("editor.trigger.action"), acts), Value: title, Ink: editorGold}, trigActs+a, actEdit, actRemoveAct)

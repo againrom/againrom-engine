@@ -676,6 +676,17 @@ const (
 	actConfigure = "configure"
 )
 
+const actionGapRows = 1
+
+func actionGap(add func(popupRow, int, ...string), shown int) {
+	if shown == 0 {
+		return
+	}
+	for range actionGapRows {
+		add(popupRow{Kind: popupText}, -1)
+	}
+}
+
 // wizardSpec is the wizard as a popup: the name, the once switch, When, And
 // if and Do with their rows, and the buttons Apply, Cancel, New, Delete and
 // Details.
@@ -779,6 +790,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.wizard.do")}, -1)
 	for r, wr := range w.rows {
 		if !wr.condition {
+			actionGap(add, acts)
 			acts++
 			row(r)
 		}
