@@ -15,6 +15,12 @@ import (
 const ProtocolVersion = "2026-07-28"
 const LegacyVersion = "2025-11-25"
 const MaxMessage = 1 << 20
+const cacheTTLMillis = 300000
+
+var cacheableMethods = map[string]bool{
+	"server/discover": true,
+	"tools/list":      true,
+}
 
 type Tool struct {
 	Name        string         `json:"name"`
@@ -239,6 +245,10 @@ func (s *Server) Handle(ctx context.Context, data []byte, version string) ([]byt
 					_ = json.Unmarshal(b, &result)
 					result["resultType"] = "complete"
 					result["_meta"] = map[string]any{"io.modelcontextprotocol/serverInfo": info}
+					if cacheableMethods[r.Method] {
+						result["ttlMs"] = cacheTTLMillis
+						result["cacheScope"] = "public"
+					}
 					rsp.Result = result
 				}
 			}

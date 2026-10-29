@@ -40,6 +40,124 @@ func TestProtocolMessages(t *testing.T) {
 	}
 }
 
+func TestResultCacheHints(t *testing.T) {
+	const meta = `"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}`
+	text := Text("ready")
+	failure := Failure(fmt.Errorf("unavailable"))
+	for _, transport := range []string{"http", "stdio"} {
+		for _, tc := range []struct {
+			name, method, params, schema string
+			call                         *Result
+			cached, legacy               bool
+			code                         int
+		}{
+			{name: "discover", method: "server/discover", schema: "DiscoverResultResponse", cached: true},
+			{name: "list", method: "tools/list", schema: "ListToolsResultResponse", cached: true},
+			{name: "ping", method: "ping", schema: "JSONRPCResultResponse"},
+			{name: "text", method: "tools/call", params: `"name":"state",`, schema: "CallToolResultResponse", call: &text},
+			{name: "image", method: "tools/call", params: `"name":"state",`, schema: "CallToolResultResponse", call: &Result{Content: []Content{{Type: "image", Data: "AA==", MimeType: "image/png"}}}},
+			{name: "failure", method: "tools/call", params: `"name":"state",`, schema: "CallToolResultResponse", call: &failure},
+			{name: "unknown method", method: "missing", schema: "JSONRPCErrorResponse", code: -32601},
+			{name: "unknown tool", method: "tools/call", params: `"name":"missing",`, schema: "JSONRPCErrorResponse", code: -32602},
+			{name: "bad arguments", method: "tools/call", params: `"name":"state","arguments":[],`, schema: "JSONRPCErrorResponse", code: -32602},
+			{name: "legacy list", method: "tools/list", legacy: true},
+		} {
+			t.Run(transport+"/"+tc.name, func(t *testing.T) {
+				q := NewQueue()
+				defer q.Close()
+				s := New([]Tool{{Name: "state", Description: "Read state", InputSchema: map[string]any{"type": "object"}}}, q)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if tc.call != nil {
+					done := make(chan struct{})
+					go func() {
+						defer close(done)
+						select {
+						case c := <-q.requests:
+							c.Finish(*tc.call)
+						case <-ctx.Done():
+						}
+					}()
+					defer func() { cancel(); <-done }()
+				}
+				params := tc.params + meta
+				version := ProtocolVersion
+				if tc.legacy {
+					params, version = "", LegacyVersion
+				}
+				body := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":%q,"params":{%s}}`, tc.method, params)
+				var b []byte
+				if transport == "http" {
+					r := httptest.NewRequest("POST", "http://127.0.0.1:9911/mcp", strings.NewReader(body)).WithContext(ctx)
+					r.Header.Set("Content-Type", "application/json")
+					r.Header.Set("Authorization", "Bearer secret")
+					r.Header.Set("MCP-Protocol-Version", version)
+					r.Header.Set("Mcp-Method", tc.method)
+					if tc.method == "tools/call" {
+						name := "state"
+						if tc.name == "unknown tool" {
+							name = "missing"
+						}
+						r.Header.Set("Mcp-Name", name)
+					}
+					w := httptest.NewRecorder()
+					s.Handler("secret", "127.0.0.1:9911").ServeHTTP(w, r)
+					b = bytes.TrimSpace(w.Body.Bytes())
+				} else {
+					var out bytes.Buffer
+					if err := s.Serve(ctx, strings.NewReader(body+"\n"), &out); err != nil {
+						t.Fatal(err)
+					}
+					b = bytes.TrimSpace(out.Bytes())
+				}
+				if tc.legacy {
+					const want = `{"jsonrpc":"2.0","id":1,"result":{"tools":[{"name":"state","description":"Read state","inputSchema":{"type":"object"}}]}}`
+					if string(b) != want {
+						t.Fatalf("legacy bytes changed: %s", b)
+					}
+					return
+				}
+				t.Logf("schema %s: %s", tc.schema, b)
+				var envelope struct {
+					Result map[string]any
+					Error  *rpcError
+				}
+				decoder := json.NewDecoder(bytes.NewReader(b))
+				decoder.UseNumber()
+				if err := decoder.Decode(&envelope); err != nil {
+					t.Fatal(err)
+				}
+				if tc.code != 0 {
+					if envelope.Error == nil || envelope.Error.Code != tc.code || envelope.Result != nil {
+						t.Fatalf("error response: %s", b)
+					}
+					if bytes.Contains(b, []byte(`"ttlMs"`)) || bytes.Contains(b, []byte(`"cacheScope"`)) {
+						t.Fatalf("error has cache hints: %s", b)
+					}
+					return
+				}
+				result := envelope.Result
+				if envelope.Error != nil || result["resultType"] != "complete" {
+					t.Fatalf("incomplete result: %s", b)
+				}
+				if tc.cached {
+					number, ok := result["ttlMs"].(json.Number)
+					ttl, err := number.Int64()
+					if !ok || err != nil || ttl < 0 || result["cacheScope"] != "public" {
+						t.Errorf("missing or invalid public cache hints: %s", b)
+					}
+				} else {
+					for _, field := range []string{"ttlMs", "cacheScope"} {
+						if _, exists := result[field]; exists {
+							t.Errorf("%s has %s: %s", tc.method, field, b)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestQueueAppliesOnConsumerAndAcknowledgesInOrder(t *testing.T) {
 	q := NewQueue()
 	defer q.Close()

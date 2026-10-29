@@ -166,8 +166,11 @@ edits; `key {"name":"undo"}` uses the owner's normal history.
 ## Protocol and limits
 
 The current revision is `2026-07-28`: `server/discover`, per-request version and
-capability metadata, and `resultType: "complete"` are supported. HTTP requests
-also supply matching `MCP-Protocol-Version`, `Mcp-Method` and, for tools/call,
+capability metadata, and `resultType: "complete"` are supported. Modern
+`server/discover` and `tools/list` results include `ttlMs: 300000` and
+`cacheScope: "public"` over HTTP and stdio. Other results and legacy replies
+carry no cache hints. HTTP requests supply matching `MCP-Protocol-Version`,
+`Mcp-Method` and, for tools/call,
 `Mcp-Name` headers. Legacy `2025-11-25` clients can use `initialize`,
 `notifications/initialized`, `ping`, `tools/list` and `tools/call` on the same
 protocol layer. HTTP uses JSON responses without sessions or SSE streams.
@@ -198,5 +201,6 @@ move/undo/save/reopen witnesses, plus the visible first check above.
 ## References
 
 - [MCP versioning](https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning)
+- [MCP caching](https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching)
 - [MCP Streamable HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
 - [Claude Code MCP setup](https://code.claude.com/docs/en/mcp)
