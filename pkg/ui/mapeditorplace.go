@@ -28,6 +28,12 @@ type placeGrid struct {
 // placeGridRows is how many rows of the grid show.
 const placeGridRows = 3
 
+var placeGridSides = map[string]int{"Structure": 2*(gridCellSide-8) + 8}
+
+func placeGridShell(kind string, top int) *popupGrid {
+	return &popupGrid{Rows: placeGridRows, Top: top, Side: placeGridSides[kind]}
+}
+
 // placeGridKind is the record kind and the Add step the shown tab's grid
 // chooses: unit classes on the Units tab, structure kinds on the Structures
 // tab.
@@ -104,7 +110,7 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 	if len(choices) == 0 {
 		return nil, "", false
 	}
-	g := &popupGrid{Rows: placeGridRows, Top: e.place.top}
+	g := placeGridShell(kind, e.place.top)
 	r, chosen, placing := e.placing(key)
 	placing = placing && r.kind == kind
 	note := e.word("editor.place.hint")
@@ -120,10 +126,11 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 
 // placeGridHeight is the room the grid takes in the list popup, 0 with none.
 func (e *MapEditor) placeGridHeight() int {
-	if _, _, ok := e.placeGridKind(); !ok {
+	kind, _, ok := e.placeGridKind()
+	if !ok {
 		return 0
 	}
-	return (&popupGrid{Rows: placeGridRows}).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
+	return placeGridShell(kind, 0).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
 }
 
 // placeGridWheel scrolls the grid by the wheel's rows.
