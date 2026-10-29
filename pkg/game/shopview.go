@@ -275,7 +275,7 @@ func (t *shopController) shopEquippedItem(i, n int) (sim.ItemInstance, bool) {
 // passes the release's Shift modifier to its existing one/whole operation.
 // A miss or same-cell release leaves every item at its origin.
 func (t *shopController) ShopDrag(from, to ui.ShopControl) ui.TownAction {
-	if !t.shownRoom() {
+	if !t.shownRoom() || t.wornFixed && (from.Kind == ui.ShopControlDoll || to.Kind == ui.ShopControlDoll) {
 		return ui.TownAction{}
 	}
 	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell, func() ui.TownAction { return t.shopDrag(from, to) })
@@ -291,7 +291,12 @@ func (t *shopController) shopTableSounds(pick bool, act func() ui.TownAction) ui
 		t.play("table-pick")
 	}
 	before, places := t.shopTableUnits(), t.shopTablePlaces()
-	a := act()
+	var a ui.TownAction
+	if t.settle != nil {
+		a = t.settle(act)
+	} else {
+		a = act()
+	}
 	if !pick && t.shopTableUnits() > before {
 		t.play("table-drop")
 	}
@@ -795,7 +800,7 @@ func (t *shopController) shopIcons() map[uint16]*image.RGBA {
 // A CONTROL THE MODEL REFUSES ANSWERS A REASON AND MOVES NOTHING. An index
 // outside its own family is a miss, not a panic.
 func (t *shopController) ShopClick(c ui.ShopControl) ui.TownAction {
-	if !t.shownRoom() {
+	if !t.shownRoom() || t.wornFixed && c.Kind == ui.ShopControlDoll {
 		return ui.TownAction{}
 	}
 	pick := c.Kind == ui.ShopControlTableCell && !t.shopBook

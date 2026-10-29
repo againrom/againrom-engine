@@ -35,9 +35,17 @@ func (in *InstallResources) townInstall() townInstall {
 }
 
 func (f *FrontEnd) townInstall() townInstall {
-	in := f.InstallResources.townInstall()
-	in.stockMultiplier = f.runtime.shopStockMultiplier
-	return in
+	return f.runtime.townInstall(&f.InstallResources)
+}
+
+// townInstall is the install's definitions for a town operation with the
+// launch's shop stock multiplier.
+func (s *runtimeSwitches) townInstall(in *InstallResources) townInstall {
+	ti := in.townInstall()
+	if s != nil {
+		ti.stockMultiplier = s.shopStockMultiplier
+	}
+	return ti
 }
 
 // localizedNPC is the install's name for NPC index, or fallback when the
@@ -78,13 +86,21 @@ func (in townInstall) holdsCompanion(chapter, npc int) bool {
 // mission — the two agree without this method having to advance anything.
 func (s *CampaignSession) arriveInTown(in townInstall) {
 	s.Town.Arrive()
-	ceiling := int32(s.Town.ChapterData().ShopMax)
-	s.Shop = NewShop(ceiling)
-	s.Shop.stockMultiplier = in.stockMultiplier
-	s.Shop.GenerateWith(in.table, shopSeed(s.Town.Chapter(), s.Town.finishedCount(), ceiling), in.stock)
+	s.Shop = s.Town.newShop(in)
 	if s.Town.restoredCampaign() {
 		s.addChapterCompanions(in, s.Town.Chapter())
 	}
+}
+
+// newShop is the town's one stock builder: the chapter's ceiling and the
+// install's multiplier, drawn from in.stock or, when it is nil, from the
+// seed of the chapter and the missions finished.
+func (t *Town) newShop(in townInstall) *Shop {
+	ceiling := int32(t.ChapterData().ShopMax)
+	shop := NewShop(ceiling)
+	shop.stockMultiplier = in.stockMultiplier
+	shop.GenerateWith(in.table, shopSeed(t.Chapter(), t.finishedCount(), ceiling), in.stock)
+	return shop
 }
 
 func (s *CampaignSession) addChapterCompanions(in townInstall, chapter int) {

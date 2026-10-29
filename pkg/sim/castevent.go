@@ -103,6 +103,16 @@ type castObs struct {
 	projectileMarks  []ProjectileMark
 	purseCredits     []PurseCredit
 	itemGrants       []ItemGrant
+	shopUses         []StructureUse
+}
+
+// recordShopUse notes one completed use of a first-game Shop structure. The
+// use changes no world state; the client opens the Shop page for the user
+// (UNIT-STRUCTUSE-137).
+func (o *castObs) recordShopUse(actor EntityID, structure StructureID) {
+	if o != nil {
+		o.shopUses = append(o.shopUses, StructureUse{Entity: actor, Structure: structure})
+	}
 }
 
 // PurseCredit is one script money grant to a player's purse: the purse

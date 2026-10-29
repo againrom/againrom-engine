@@ -1013,6 +1013,9 @@ type Viewer struct {
 	// because the request carries nothing: the panel shows the whole collection
 	// and does not open on an element.
 	docRequest bool
+	// shopRequest is docRequest's twin for the Shop page a mission Shop
+	// structure use opens, raised through RaiseShop.
+	shopRequest bool
 
 	// Cell identities and one-shot requests store index plus one; zero
 	// means no preceding cell or pending action. TakeInventoryUnequip

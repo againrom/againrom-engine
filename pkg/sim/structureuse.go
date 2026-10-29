@@ -181,6 +181,10 @@ func (w *World) applyStructureUse(i, si int) {
 		w.runStructureAction(slot)
 		return
 	}
+	if (s.Kind == 34 || s.Kind == 35) && !w.SecondGame() {
+		w.castObservation.recordShopUse(w.entities[i].ID, s.ID)
+		return
+	}
 	if s.Kind == 28 || s.Kind == 29 {
 		w.structures[si].Field42 = 0
 		if s.Field42 == 0 {

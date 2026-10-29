@@ -1598,6 +1598,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		a.stepMedia(in, now)
 		return false
 	}
+	a.flow.settleMissionShop()
 	if a.flow.screen == ScreenTown {
 		if atTownSurface(a.flow.town) {
 			a.townSurfaceAnimationTick++
@@ -1902,6 +1903,12 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// makes an unusable item do nothing rather than open an empty
 			// sheet.
 			if v.TakeDocumentsRequest() && a.flow.openDocuments(ScreenMap) {
+				a.syncViewerLayout()
+				return false
+			}
+			// A Shop structure use opens the town's Shop page over the mission
+			// on the same gate; the map's clock stands while it shows (DIV-4219).
+			if v.TakeShopRequest() && a.flow.openMissionShop() {
 				a.syncViewerLayout()
 				return false
 			}

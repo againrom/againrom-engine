@@ -82,6 +82,10 @@ type townScreen struct {
 	townProcess *town.Process
 	pc          *PersistenceContext
 	openMission missionDoor
+	// switches are the launch's runtime switches; visit is the Shop page
+	// shown over a mission, nil while none shows.
+	switches *runtimeSwitches
+	visit    *missionShopVisit
 
 	room      townRoom
 	roomAudio *ui.AudioScope
@@ -235,6 +239,7 @@ func (t *townScreen) resetForNewGame() {
 	if t == nil {
 		return
 	}
+	t.dropMissionShop()
 	t.destroyRoomAudio()
 	t.atSquare()
 	t.dialogueBuilding, t.mercenaryTalk, t.talkDiagnostic = TownTavern, 0, ""

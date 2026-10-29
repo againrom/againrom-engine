@@ -637,6 +637,8 @@ type flow struct {
 	// because those two are the only mutations the seam has.
 	town     TownScreen
 	townList *Picker
+	// shopOverMap is set while the town's Shop page shows over a mission.
+	shopOverMap bool
 
 	// save, list and load are the save/load seam, and menuList, menuBack,
 	// loadList, loadBack and saves are the two screens over them. Nothing above
@@ -1664,6 +1666,7 @@ func (f *flow) escape() (exit bool) {
 		if f.town != nil && f.town.Back() {
 			f.refreshTown()
 			f.msg = ""
+			f.settleMissionShop()
 			return false
 		}
 		// AT THE SQUARE IT OPENS THE MINI-MENU, which is the map screen's own

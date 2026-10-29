@@ -638,10 +638,16 @@ func (s *Scene) EnterRoom(name string) {
 
 // LeaveRoom runs a room's exit steps, then the steps that return to the square.
 func (s *Scene) LeaveRoom(name string) {
+	s.ExitRoom(name)
+	s.EnterSquare()
+}
+
+// ExitRoom runs a room's exit steps alone, for a room shown over another
+// screen that the square does not stand behind.
+func (s *Scene) ExitRoom(name string) {
 	if room := s.rooms[name]; room != nil {
 		s.steps(room.Exit, room.Name)
 	}
-	s.EnterSquare()
 }
 
 // EnterSquare runs the steps that return to the square.

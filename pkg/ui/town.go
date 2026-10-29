@@ -125,6 +125,45 @@ type TownShopScreen interface {
 	ShopSuppressDoll(slot int)
 }
 
+// MissionShopScreen is the optional seam for the town's Shop page shown over
+// a mission. OpenMissionShop opens it for the waiting customer and reports
+// whether it opened; MissionShopOpen reports whether it still shows.
+type MissionShopScreen interface {
+	OpenMissionShop() bool
+	MissionShopOpen() bool
+}
+
+func missionShopOpen(t TownScreen) bool {
+	s, ok := t.(MissionShopScreen)
+	return ok && s.MissionShopOpen()
+}
+
+// openMissionShop shows the town screen in its Shop room over the mission.
+// The map stays armed under it and takes no tick while it shows.
+func (f *flow) openMissionShop() bool {
+	s, ok := f.town.(MissionShopScreen)
+	if f.screen != ScreenMap || !ok || !s.OpenMissionShop() {
+		return false
+	}
+	f.refreshTown()
+	f.setScreen(ScreenTown)
+	f.msg = ""
+	f.shopOverMap = true
+	return true
+}
+
+// settleMissionShop returns to the mission once the Shop page shown over it
+// has closed.
+func (f *flow) settleMissionShop() {
+	if !f.shopOverMap || missionShopOpen(f.town) {
+		return
+	}
+	f.shopOverMap = false
+	if f.screen == ScreenTown {
+		f.setScreen(ScreenMap)
+	}
+}
+
 // TownSquareArtScreen is the optional presentation seam for the town
 // square's own picture. A TownScreen that does not implement it, or whose
 // view carries no scene, keeps the row-button layout drawTown has always
@@ -522,6 +561,7 @@ func (f *flow) applyTownAction(act TownAction) {
 	if act.Info {
 		f.msg = ""
 	}
+	f.settleMissionShop()
 	if act.Open == nil {
 		return
 	}

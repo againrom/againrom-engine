@@ -92,6 +92,7 @@ func (a installTownArt) worldMap() *worldMapAssets     { return a.pr.worldMapAss
 func (t *townScreen) bindServices(rt *RuntimeServices, in *InstallResources, pr *Presentation) {
 	t.sound, t.draws = runtimeTownAudio{rt}, runtimeTownDraws{rt}
 	t.art, t.townProcess = installTownArt{in, pr}, &pr.townProcess
+	t.switches = &rt.runtime
 	if d := t.townDescription(); d != nil && t.hostRules().EagerSquare {
 		t.square = newSquareScene(t, d)
 	}

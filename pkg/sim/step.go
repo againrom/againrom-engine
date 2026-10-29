@@ -405,6 +405,8 @@ type Report struct {
 	ProjectileMarks  []ProjectileMark
 	PurseCredits     []PurseCredit
 	ItemGrants       []ItemGrant
+	// ShopUses names each first-game Shop structure use completed this step.
+	ShopUses []StructureUse
 }
 
 // StepReported is Step with all observations reported. StepObserved is this
@@ -415,7 +417,7 @@ func StepReported(w *World, cmds []Command) Report {
 	return Report{Tick: w.Tick(), ScriptMessages: obs.scriptMessages, Casts: obs.casts, ScriptCasts: obs.scriptCasts,
 		AreaPaints: obs.paints, Damages: obs.damages, Relocations: obs.relocations, CreatedActors: obs.createdActors,
 		FlightStarts: obs.flightStarts, ProjectilePhases: obs.projectilePhases, ProjectileMarks: obs.projectileMarks, PurseCredits: obs.purseCredits,
-		ItemGrants: obs.itemGrants}
+		ItemGrants: obs.itemGrants, ShopUses: obs.shopUses}
 }
 
 // StepWithdrawalTraced is Step with the successful phase-6 withdrawal

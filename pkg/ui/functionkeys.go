@@ -14,7 +14,7 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 		}
 		phase2 = v.readGameMenuContext().Campaign
 	case ScreenTown:
-		if _, open := townDialogue(a.flow.town); open {
+		if _, open := townDialogue(a.flow.town); open || missionShopOpen(a.flow.town) {
 			return false
 		}
 		phase2 = true

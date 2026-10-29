@@ -42,6 +42,11 @@ type shopController struct {
 	// label names an item as a cell's text, for a page with no item
 	// pictures; nil leaves the text empty.
 	label func(sim.ItemInstance) []string
+	// settle runs one gesture and commits what it changed to the place the
+	// customer's goods live; nil runs it alone. wornFixed refuses every
+	// gesture that touches the doll.
+	settle    func(act func() ui.TownAction) ui.TownAction
+	wornFixed bool
 	// The shop screen's own state. shopChosen is which of the four rectangles
 	// in the merchant's room has been clicked, shopNoShelf while none has;
 	// shopShelf is the shelf that pairs with it; the two bases are the first

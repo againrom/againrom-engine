@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A double click on an item in the shop's bag now puts it on the hero shown in the panel, as in the first game; an item he cannot wear stays on the counter, and Undo puts it back in the bag. Before, the double click made the item vanish from the bag without any gold.
 
 - [ROM1] Missions 110 and 111 now put on their starting equipment and use their starting potion instead of leaving those items in the bag. Replaced equipment stays in the bag.
+- [ROM1] A shop on a mission map now opens the town's shop page when your hero uses it: he can buy and sell with the gold and the bag he has in the mission, and Exit takes you back to the mission where you left it. The mission waits while the shop page is open, and what you bought stays after SAVE and LOAD.
 
 ### For map makers and modders
 

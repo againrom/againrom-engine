@@ -1163,6 +1163,23 @@ func (v *Viewer) TakeDocumentsRequest() bool {
 	return true
 }
 
+// RaiseShop asks the front end to open the Shop page over the mission, the
+// documents request's shape: one standing request, spent when taken.
+func (v *Viewer) RaiseShop() {
+	if v != nil {
+		v.shopRequest = true
+	}
+}
+
+// TakeShopRequest reads the pending Shop request and clears it.
+func (v *Viewer) TakeShopRequest() bool {
+	if v == nil || !v.shopRequest {
+		return false
+	}
+	v.shopRequest = false
+	return true
+}
+
 // inventoryWornSlotAt reports which of the twelve worn-box cells, if any,
 // stands under the window pixel (x, y) — wornSlotRects' own geometry, read
 // once here and by hoveredItemInfoAt (itempopup.go) for the same box, so a

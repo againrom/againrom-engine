@@ -321,6 +321,9 @@ func (t *townScreen) chooseFallback(i int) ui.TownAction {
 }
 
 func (t *townScreen) Back() bool {
+	if t.visit != nil {
+		return t.closeMissionShop()
+	}
 	if t.campaignTown().talking() {
 		t.AdvanceTownDialogue()
 		return true

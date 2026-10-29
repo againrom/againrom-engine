@@ -396,6 +396,9 @@ type mapWorld struct {
 	// no mission number, is a state nothing could act on. Together they are
 	// present or absent.
 	mission *missionNotices
+	// shop is the mission's Shop: the customer waiting for the page and the
+	// stock the mission's visits trade with. It reaches no world field or save.
+	shop missionShopState
 
 	// invSubject is the inventory window's own subject, exactly as openMission
 	// built it (docs/0110-inventory T4; plan D-7, D-8) — held HERE, not
@@ -4314,6 +4317,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	}
 	mw.observeScriptMessages(report.ScriptMessages)
 	mw.observeGrants(report.PurseCredits, report.ItemGrants)
+	mw.observeShopUses(report.ShopUses)
 	for _, observe := range reportSink {
 		observe(report)
 	}

@@ -603,6 +603,8 @@ func TestFlow(t *testing.T) {
 			"chargen": false, "chargenBegin": false,
 			"chargenBack": false, "chargenGate": false, "newGameChargen": false, "newGameDirect": false,
 			"town": false, "townList": false,
+			// One bool: the town screen shows the Shop page over the mission map.
+			"shopOverMap": false,
 			"endingSeams": false, "ending": false,
 			"endingPage": false, "endingTop": false, "endingFocus": false, "endingPress": false,
 			"saveGame": false, "saveList": false, "loadGame": false,
