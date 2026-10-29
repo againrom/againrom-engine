@@ -40,7 +40,11 @@ func TestRuntimeProfilePreparesOnlyItsSelectedDirectory(t *testing.T) {
 	if _, err := profile.PrepareDirectory(install); err == nil {
 		t.Fatal("explicit profile bypassed the install fence")
 	}
-	outside := filepath.Join(t.TempDir(), "selected")
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(base, "selected")
 	t.Setenv("AGAINROM_PROFILE", outside)
 	profile, err = ResolveRuntimeProfile("", filepath.Join(t.TempDir(), "mapedit.exe"), t.TempDir(), install)
 	if err != nil {
