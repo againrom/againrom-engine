@@ -234,9 +234,7 @@ func newApp(iniPath, selfPath, goos, starterVersion string, d deps) *app {
 	for _, b := range a.s.Bases {
 		a.inspectBase(b.Path)
 	}
-	if _, ok := a.s.basePath(a.s.LastBase); !ok && len(a.s.Bases) > 0 {
-		a.s.LastBase = a.s.Bases[0].Key
-	}
+	a.s.LastBase = launch.SelectedKey(a.s.Bases, a.s.LastBase)
 	if early != nil {
 		early()
 	}

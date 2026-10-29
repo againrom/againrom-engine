@@ -416,8 +416,9 @@ var allow = map[string][]string{
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
 	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
-	// the editor's test play) imports nothing of this tree.
-	"pkg/launch": {},
+	// the editor's test play) imports only the pkg/ini leaf, to read the
+	// starter's selected base for the editor.
+	"pkg/launch": {"pkg/ini"},
 }
 
 // Violation names one rejected edge.

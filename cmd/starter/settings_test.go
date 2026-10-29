@@ -19,7 +19,7 @@ func TestLoadSettingsReadsEveryKey(t *testing.T) {
 	got := loadSettings(f)
 	want := settings{
 		Againrom: `D:\game\againrom.exe`, CloseOnPlay: true, LastBase: "ru",
-		Bases:   []base{{"en", `C:\games\en`}, {"ru", `C:\games\ru`}},
+		Bases:   []base{{Key: "en", Path: `C:\games\en`}, {Key: "ru", Path: `C:\games\ru`}},
 		ModsDir: `D:\mods`, Enabled: []string{"b", "a"},
 		Sound: soundOff, Volume: "40", Movies: false, Video: video8x, Markers: true,
 		Saves: `D:\saves`, Mission: "12", Skill: "axe", ShopStockMultiplier: "1", Extra: `-foo "a b"`,

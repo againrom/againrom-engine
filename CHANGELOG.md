@@ -21,6 +21,10 @@ modder or developer can notice gets no entry.
 
 - [BASE] Under Darkness, a hero whose sight drops to nothing still uncovers the cells right around him, as in the original game; before, he uncovered none.
 
+### For map makers and modders
+
+- [BASE] The map editor opens a map file you double-click or drop on it in Windows once `.alm` files are associated with it: `mapedit.exe "map.alm"` opens that map, and it finds the game files from its own folder, from the game folder that holds the map, or from the base selected in the starter. A map in a mod folder opens as a loose map. A start that fails writes its reason to `mapedit-error.log` in the Againrom folder of your user configuration folder when there is no console to show it.
+
 ## 0.139.0
 
 ### For players

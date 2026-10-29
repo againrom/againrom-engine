@@ -3378,5 +3378,12 @@ var Committed = Baseline{
 	// of secondGameFailureEntries and the census fields in pkg/game, of the
 	// scan in internal/archtest/lossreason.go, the new tests' comments, and
 	// this note.
-	CommentBytes: 9904391,
+
+	// It rose for the map editor opening a map path: the doc comments of
+	// reportFailure, assetRoot and runAs in cmd/mapedit/main.go, of
+	// InstallHolding in pkg/game/assetroot.go, of the starter settings reader
+	// in pkg/launch/starterini.go including SelectedKey, the new tests'
+	// comments in cmd/mapedit/main_test.go and pkg/launch/starterini_test.go,
+	// and this note.
+	CommentBytes: 9907739,
 }

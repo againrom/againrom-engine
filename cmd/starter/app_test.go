@@ -266,7 +266,7 @@ func TestModListTickOrderAndBrokenFolders(t *testing.T) {
 		t.Fatalf("%+v", rows)
 	}
 	a.s.LastBase = "en"
-	a.s.Bases = []base{{"en", r.root}}
+	a.s.Bases = []base{{Key: "en", Path: r.root}}
 	a.inspectBase(r.root)
 	a.play()
 	if len(r.fakes.started) != 0 || !a.statusBad || !strings.Contains(a.status, "ghost") {

@@ -14,8 +14,8 @@ import (
 
 // Section and key names of the settings file.
 const (
-	secStarter = "starter"
-	secBases   = "bases"
+	secStarter = launch.StarterSection
+	secBases   = launch.BasesSection
 	secMods    = "mods"
 	secOptions = "options"
 
@@ -31,10 +31,7 @@ type modSetting struct {
 }
 
 // base is one named game root.
-type base struct {
-	Key  string
-	Path string
-}
+type base = launch.NamedBase
 
 // settings is everything the starter keeps between runs.
 type settings struct {
@@ -80,12 +77,7 @@ func loadSettings(f *ini.File) settings {
 	get := func(sec, key string) string { v, _ := f.Get(sec, key); return v }
 	s.Againrom = get(secStarter, "againrom")
 	s.CloseOnPlay = launch.ParseBool(get(secStarter, "close-on-play"), false)
-	s.LastBase = get(secStarter, "last-base")
-	for _, k := range f.Keys(secBases) {
-		if p := get(secBases, k); p != "" {
-			s.Bases = append(s.Bases, base{k, p})
-		}
-	}
+	s.Bases, s.LastBase = launch.ReadBases(f)
 	s.ModsDir = get(secMods, "dir")
 	s.Enabled = splitList(get(secMods, "enabled"))
 	s.AcceptUnmarked = launch.ParseBool(get(secMods, "accept-unmarked"), false)
@@ -110,7 +102,7 @@ func loadSettings(f *ini.File) settings {
 func (s settings) store(f *ini.File) {
 	f.Set(secStarter, "againrom", s.Againrom)
 	f.Set(secStarter, "close-on-play", launch.FormatBool(s.CloseOnPlay))
-	f.Set(secStarter, "last-base", s.LastBase)
+	f.Set(secStarter, launch.LastBaseKey, s.LastBase)
 	keep := map[string]bool{}
 	for _, b := range s.Bases {
 		keep[strings.ToLower(b.Key)] = true
@@ -180,7 +172,7 @@ func (s *settings) addBase(path string) string {
 		}
 		unique = key + "-" + strconv.Itoa(n)
 	}
-	s.Bases = append(s.Bases, base{unique, path})
+	s.Bases = append(s.Bases, base{Key: unique, Path: path})
 	return unique
 }
 
@@ -309,7 +301,7 @@ func (s settings) launchArgs(g gameLaunch) ([]string, error) {
 
 // defaultINIPath is the settings file beside the starter executable.
 func defaultINIPath(selfDir string) string {
-	return filepath.Join(selfDir, "starter.ini")
+	return launch.StarterINI(selfDir)
 }
 
 // modsDir is the directory mods are read from: the configured one, else the

@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -35,14 +36,69 @@ func openWindow(e *ui.MapEditor) error {
 	return desktop.run(e)
 }
 
+// newInspector opens the install at a root for the editor. A test replaces it.
+var newInspector = game.NewMapInspector
+
 func main() {
 	if err := run(os.Args[1:], os.Stdout); err != nil {
-		fmt.Fprintln(os.Stderr, "mapedit:", err)
+		userConfigDir, _ := os.UserConfigDir()
+		reportFailure(os.Stderr, userConfigDir, err)
 		os.Exit(1)
 	}
 }
 
+// errorLogName is the file beside the player profile that holds the error of a
+// start that could not show it.
+const errorLogName = "mapedit-error.log"
+
+// reportFailure shows why the program stopped. It writes the error to stderr; a
+// program started without a console has no stderr to write to, and then the
+// error is written to errorLogName in the Againrom folder of the user
+// configuration directory, the folder the player profile falls back to.
+func reportFailure(stderr io.Writer, userConfigDir string, err error) {
+	line := "mapedit: " + err.Error() + "\n"
+	if _, werr := io.WriteString(stderr, line); werr == nil {
+		return
+	}
+	if userConfigDir == "" {
+		return
+	}
+	dir := filepath.Join(userConfigDir, "Againrom")
+	if os.MkdirAll(dir, 0o700) == nil {
+		_ = os.WriteFile(filepath.Join(dir, errorLogName), []byte(line), 0o600)
+	}
+}
+
+// assetRoot is the install the editor reads, from the first source that names
+// one: -assets, AGAINROM_ASSETS, the install the program's own folders hold
+// (the discovery the game makes), the install that holds the map being opened,
+// and the base the starter beside the program has selected.
+func assetRoot(flagValue, envValue, mapPath, self string) string {
+	if root := game.ResolveAssetRoot(flagValue, envValue); root != "" {
+		return root
+	}
+	if root := game.DiscoverAssetRoot(game.ProcessDirs(self)...); root != "" {
+		return root
+	}
+	if root, ok := game.InstallHolding(mapPath); ok {
+		return root
+	}
+	if self != "" {
+		if base, ok := launch.StarterBase(filepath.Dir(self)); ok {
+			return game.DiscoverAssetRoot(base)
+		}
+	}
+	return ""
+}
+
 func run(args []string, out io.Writer) error {
+	self, _ := os.Executable()
+	return runAs(self, args, out)
+}
+
+// runAs is the command as the program at self: its folders and the starter
+// beside it name the install when no flag or variable does.
+func runAs(self string, args []string, out io.Writer) error {
 	flags := flag.NewFlagSet("mapedit", flag.ContinueOnError)
 	assets := flags.String("assets", "", "read-only installed asset root")
 	path := flags.String("map", "", "explicit ALM path or catalogue key, e.g. scenario/10.alm")
@@ -65,8 +121,14 @@ func run(args []string, out io.Writer) error {
 		fmt.Fprintln(out, versionLine())
 		return nil
 	}
-	if flags.NArg() != 0 {
-		return fmt.Errorf("unexpected arguments: %v", flags.Args())
+	if flags.NArg() > 1 {
+		return fmt.Errorf("unexpected arguments: %v; give one map path, and flags before it", flags.Args())
+	}
+	if flags.NArg() == 1 {
+		if *path != "" || *newMap != "" {
+			return fmt.Errorf("a map path argument %q excludes -map and -new", flags.Arg(0))
+		}
+		*path = flags.Arg(0)
 	}
 	parts := strings.Split(*size, "x")
 	w, h := 0, 0
@@ -95,14 +157,16 @@ func run(args []string, out io.Writer) error {
 	if *focusRef < 0 || (*focusRef > 0 && *selectRecord == "") {
 		return fmt.Errorf("-focus-reference requires -select and a positive reference index")
 	}
-	assetRoot := game.ResolveAssetRoot(*assets, os.Getenv("AGAINROM_ASSETS"))
-	x, err := game.NewMapInspector(assetRoot)
+	root := assetRoot(*assets, os.Getenv("AGAINROM_ASSETS"), *path, self)
+	if root == "" {
+		return fmt.Errorf("no asset root: pass -assets, set AGAINROM_ASSETS, or keep the program in the game folder")
+	}
+	x, err := newInspector(root)
 	if err != nil {
 		return err
 	}
-	self, _ := os.Executable()
 	userConfigDir, _ := os.UserConfigDir()
-	x.SetTestPlay(testPlayHost(self, userConfigDir, assetRoot))
+	x.SetTestPlay(testPlayHost(self, userConfigDir, root))
 	if *modDir != "" {
 		if err := x.SetMod(*modDir); err != nil {
 			return err
@@ -205,7 +269,7 @@ func run(args []string, out io.Writer) error {
 		}
 		return reportFindings(out, d)
 	}
-	e.SetPathDialog(pathdialog.Show, assetRoot)
+	e.SetPathDialog(pathdialog.Show, root)
 	return openWindow(e)
 }
 
