@@ -65,13 +65,14 @@ func (o overrideTyper) field(key string) int {
 	return n
 }
 
-// text types s over field key and presses Apply.
+// text types s over field key and presses Apply. The press puts the caret
+// where it lands, which can be inside the value, so the old value is
+// selected whole and removed before s is typed.
 func (o overrideTyper) text(key, s string) {
 	o.t.Helper()
 	o.field(key)
-	for k := 0; k < 16; k++ {
-		_ = o.e.Key("backspace")
-	}
+	_ = o.e.Key("selectall")
+	_ = o.e.Key("backspace")
 	o.e.TextInput(s)
 	r, ok := o.e.PopupButtonRect(0)
 	o.c.click(o.e, r, ok, "Apply")
@@ -311,6 +312,9 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		if err := e.Open(key); err != nil {
 			t.Fatal(err)
 		}
+		// The person setup window opens over the Map panel's rows, which it
+		// hides; the frames show the window alone, as the owner frames do.
+		closeMapPanel(t, e)
 		e.Select(recordOf(e.Document(), "Unit", i), true)
 		return e, overrideTyper{t: t, c: c, e: e, i: i}
 	}

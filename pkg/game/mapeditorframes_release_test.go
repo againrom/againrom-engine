@@ -148,6 +148,13 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 
 	e = editorChainReleaseProject(t)
 	e.Layout(640, 480)
+	// The mod window opens over the Map panel's rows; its frames show the
+	// window alone, as the other frames do. The project's set-up leaves the
+	// mod window open, and Esc closes it before the panel.
+	if e.ModWindowOpen() {
+		_ = e.Key("escape")
+	}
+	closeMapPanel(t, e)
 	if err := e.Key("package"); err != nil {
 		t.Fatal(err)
 	}

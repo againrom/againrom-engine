@@ -962,11 +962,14 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 				if body == nil {
 					return
 				}
+				// A value longer than the field ends in an ellipsis at the
+				// room rowFull measures, and the hover line shows it whole.
+				room := rr.Control.Dx() - 2 - editTextX
 				if row.Value == "" && row.Hint != "" {
-					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Hint, at.X, at.Y, popupHintInk)
+					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, popupHintInk)
 					return
 				}
-				body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), row.Value, at.X, at.Y, value)
+				body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), editorClip(body, row.Value, room), at.X, at.Y, value)
 			})
 		case popupSwitch:
 			// A long value ends in an ellipsis inside its button.

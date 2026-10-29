@@ -222,10 +222,13 @@ func TestReleaseTestPlayRefusesAnOversizedModPageBeforeWritingOrStarting(t *test
 	}
 	args := started[0]
 	code, out, stderr := checkRun(t, append(append([]string(nil), args...), "-check"), "")
-	if code != 0 || !strings.Contains(out, "mod 1: "+game.TestPlayModID+" ") || !strings.Contains(out, "againrom: mission ") {
+	// The test play of an open mod copies its tree under the mod's own ID
+	// into the test play folder, so the game loads mod "authored" and reads
+	// the page where the mod keeps it.
+	if code != 0 || !strings.Contains(out, "mod 1: authored ") || !strings.Contains(out, "againrom: mission ") {
 		t.Fatalf("in-bound -check %q: exit=%d stdout=%q stderr=%q", args, code, out, stderr)
 	}
-	copied, err := os.ReadFile(filepath.Join(runtimeProfile.Directory, game.TestPlayModID, game.TestPlayModID, "mission", "text", lang, "event01.txt"))
+	copied, err := os.ReadFile(filepath.Join(runtimeProfile.Directory, game.TestPlayModID, "authored", filepath.FromSlash(page)))
 	if err != nil || !bytes.Equal(copied, bound) {
 		t.Fatalf("in-bound test page was not published intact: %v", err)
 	}

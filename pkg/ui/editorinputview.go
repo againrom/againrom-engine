@@ -187,6 +187,24 @@ func (v *editorTextView) lineOffsets(span editorTextSpan, box image.Rectangle, f
 	return v.encode(string(r[span.from:span.to])), caret - shift, measure(lo) - shift, measure(hi) - shift, shift
 }
 
+// shownRun is the part of span a one-line field shows with its text moved
+// left by shift: the characters that lie wholly between left and right, x
+// being where the first starts. The field draws only these, so it cuts no
+// character at its edges, where a cut one may show no pixel at all.
+func (v *editorTextView) shownRun(span editorTextSpan, f *text.Font, shift, left, right int) (string, int) {
+	r := []rune(v.text)
+	at := func(i int) int { return f.Advance(v.encode(string(r[span.from:i]))) - shift }
+	from := span.from
+	for from < span.to && at(from) < left {
+		from++
+	}
+	to := from
+	for to < span.to && at(to+1) <= right {
+		to++
+	}
+	return v.encode(string(r[from:to])), at(from)
+}
+
 func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rectangle, ink popupInk, value color.RGBA) {
 	v := row.Edit
 	if f == nil {
@@ -201,10 +219,13 @@ func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rect
 	if !v.multiline {
 		label, caret, lo, hi, shift := v.lineOffsets(spans[0], box, f)
 		drawEditField(dst, editField{Rect: box, TextH: fontHeight(f, 15), Focus: row.Focus, Phase: true, Caret: caret, SelFrom: lo, SelTo: hi}, func(at image.Point) {
+			clip := dst.SubImage(box.Inset(2)).(*image.RGBA)
 			if label == "" && row.Hint != "" {
-				label, value = row.Hint, popupHintInk
+				f.Draw(clip, editorClip(f, row.Hint, box.Dx()-2-editTextX), at.X, at.Y, popupHintInk)
+				return
 			}
-			f.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), label, at.X-shift, at.Y, value)
+			shown, x := v.shownRun(spans[0], f, shift, 2-editTextX, box.Dx()-2-editTextX)
+			f.Draw(clip, shown, at.X+x, at.Y, value)
 		})
 		return
 	}

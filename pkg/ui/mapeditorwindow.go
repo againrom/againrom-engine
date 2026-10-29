@@ -133,16 +133,24 @@ func (e *MapEditor) word(id string) string {
 	return e.editorHostText(b.Text(id))
 }
 
-// barHeight is the top bar's height; the status strip has the same height, so
-// the map frame is the window less both and sits at scale 1.
-func (e *MapEditor) barHeight() int {
+// barRowHeight is the height of one row of the top bar and of the status
+// strip.
+func (e *MapEditor) barRowHeight() int {
 	return max(fontHeight(e.font, 15), fontHeight(e.bodyFont(), 15)) + 10
+}
+
+// barHeight is the top bar's height: one row, and more only in a window
+// narrower than the bar, where barRows wraps it. The map frame is the
+// window less the bar and the one-row status strip and sits at scale 1.
+func (e *MapEditor) barHeight() int {
+	entries := e.barRows()
+	return entries[len(entries)-1].rect.Max.Y + 3
 }
 
 // mapArea is the window rectangle the map fills.
 func (e *MapEditor) mapArea() image.Rectangle {
-	h := e.barHeight()
-	return image.Rect(0, h, e.window.X, max(h+1, e.window.Y-h))
+	top := e.barHeight()
+	return image.Rect(0, top, e.window.X, max(top+1, e.window.Y-e.barRowHeight()))
 }
 
 func (e *MapEditor) statusRect() image.Rectangle {
@@ -157,7 +165,30 @@ type barEntry struct {
 	rect       image.Rectangle
 }
 
+// barEntries is the top bar's entries in their rows, each with its state.
 func (e *MapEditor) barEntries() []barEntry {
+	entries := e.barRows()
+	for i := range entries {
+		switch entries[i].key {
+		case "map", "view":
+		case "brushes":
+			entries[i].disabled = e.brushHost() == nil
+		case "undo":
+			entries[i].disabled = !e.editable() || !e.doc.Edits.CanUndo()
+		case "redo":
+			entries[i].disabled = !e.editable() || !e.doc.Edits.CanRedo()
+		case "tools", "save":
+			entries[i].disabled = !e.editable()
+		default:
+			entries[i].disabled = e.doc == nil
+		}
+	}
+	return entries
+}
+
+// barRows places the top bar's entries, without their states, which the
+// window's layout does not read.
+func (e *MapEditor) barRows() []barEntry {
 	entries := []barEntry{
 		{key: "map", label: e.word("editor.bar.map"), menu: true},
 		{key: "units", label: e.word("editor.bar.units")},
@@ -167,14 +198,14 @@ func (e *MapEditor) barEntries() []barEntry {
 		{key: "players", label: e.word("editor.bar.players")},
 		{key: "scripts", label: e.word("editor.list.scripts")},
 		{key: "view", label: e.word("editor.bar.view"), menu: true},
-		{key: "brushes", label: e.word("editor.bar.brushes"), menu: true, disabled: e.brushHost() == nil},
-		{key: "tools", label: e.word("editor.bar.tools"), menu: true, disabled: !e.editable()},
-		{key: "undo", label: e.word("editor.bar.undo"), disabled: !e.editable() || !e.doc.Edits.CanUndo()},
-		{key: "redo", label: e.word("editor.bar.redo"), disabled: !e.editable() || !e.doc.Edits.CanRedo()},
-		{key: "save", label: e.word("editor.bar.save"), disabled: !e.editable()},
+		{key: "brushes", label: e.word("editor.bar.brushes"), menu: true},
+		{key: "tools", label: e.word("editor.bar.tools"), menu: true},
+		{key: "undo", label: e.word("editor.bar.undo")},
+		{key: "redo", label: e.word("editor.bar.redo")},
+		{key: "save", label: e.word("editor.bar.save")},
 	}
-	h := e.barHeight()
-	x := 4
+	h := e.barRowHeight()
+	x, top := 4, 0
 	for i := range entries {
 		w := 16
 		if e.font != nil {
@@ -183,10 +214,12 @@ func (e *MapEditor) barEntries() []barEntry {
 		if entries[i].menu {
 			w += h
 		}
-		if e.doc == nil && entries[i].key != "map" && entries[i].key != "view" {
-			entries[i].disabled = true
+		// An entry that would pass the window's right edge starts the next
+		// row, so a window narrower than the bar still shows every entry.
+		if x > 4 && e.window.X > 0 && x+w > e.window.X-4 {
+			x, top = 4, top+h
 		}
-		entries[i].rect = image.Rect(x, 3, x+w, h-3)
+		entries[i].rect = image.Rect(x, top+3, x+w, top+h-3)
 		x += w + 4
 	}
 	return entries
@@ -706,6 +739,15 @@ func (e *MapEditor) popupBounds() image.Rectangle {
 	return image.Rect(0, e.barHeight(), e.window.X, e.window.Y)
 }
 
+// popupRoom is the height a tall window sizes itself to: popupBounds above
+// the status strip, so the person and mod windows at their places leave the
+// status line in view at every window size.
+func (e *MapEditor) popupRoom() image.Rectangle {
+	b := e.popupBounds()
+	b.Max.Y = max(b.Min.Y+1, e.mapArea().Max.Y)
+	return b
+}
+
 // listSpec is the list popup as data.
 func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	kind := e.listKind()
@@ -935,13 +977,18 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	}
 	e.objectFieldRows(&s, &links)
 	if e.nativeUnitWindow() {
+		// The person window lists the triggers that use the unit under its
+		// fields on every section, as the unit popup lists them.
+		if e.hasUsedBy() {
+			e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
+		}
 		e.obj.data = -1
 		if s.Card != nil {
 			s.Width += max(compactPanelW, s.CardAside) + popupPad
 		}
 		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
 		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
-		s.Size = image.Pt(s.Width, min(620, height, e.popupBounds().Dy()-16))
+		s.Size = image.Pt(s.Width, min(620, height, e.popupRoom().Dy()-16))
 		s.MinWidth = s.Width
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))

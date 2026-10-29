@@ -364,7 +364,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 			s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(output), s.Width-20)...)
 		}
 	}
-	s.MaxRows = max(3, (s.Bounds.Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))
+	s.MaxRows = max(3, (e.popupRoom().Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))
 	e.objectTop = max(0, min(e.objectTop, max(0, popupRowCount(s)-s.MaxRows)))
 	s.Top = e.objectTop
 	s.ColumnTops = []int{0, e.objectTop}

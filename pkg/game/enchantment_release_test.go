@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -130,7 +131,7 @@ func TestReleaseEnchantedItemProducerPopulation(t *testing.T) {
 					linked[element.TileMarkerIndex] = true
 				}
 				want := releaseLootItem(t, element, m, f.Table)
-				if !releaseWorldHoldsLoot(ms.World, m, record, want) {
+				if !releaseWorldHoldsLoot(ms.World, m, record, want, element.Field04 != 0) {
 					t.Fatalf("mission %d record owner %d cell (%d,%d) does not hold decoded item %+v",
 						mission, record.Owner, record.CellX(), record.CellY(), want)
 				}
@@ -429,7 +430,7 @@ func TestConstructedScrollWholeStackSaleKeepsStockOverride(t *testing.T) {
 	}
 }
 
-func releaseWorldHoldsLoot(w *sim.World, m *alm.Map, record alm.LootRecord, want sim.ItemInstance) bool {
+func releaseWorldHoldsLoot(w *sim.World, m *alm.Map, record alm.LootRecord, want sim.ItemInstance, use bool) bool {
 	if record.Ground() {
 		for _, sack := range w.Sacks() {
 			if sack.X != record.CellX() || sack.Y != record.CellY() {
@@ -451,7 +452,20 @@ func releaseWorldHoldsLoot(w *sim.World, m *alm.Map, record alm.LootRecord, want
 			continue
 		}
 		items, ok := w.CarriedItems(sim.EntityID(i))
-		return ok && releaseItemsContain(items, want)
+		if ok && releaseItemsContain(items, want) {
+			return true
+		}
+		if !use {
+			return false
+		}
+		// An element with a nonzero +0x04 word is source-constructed into
+		// the owner's equipment or refused into its pack (DIV-4208): the
+		// owner holds the same recipe, its source fields added. A potion is
+		// used, and the used Item is destroyed (ITEM-USE-113).
+		worn, _ := w.EquippedItems(sim.EntityID(i))
+		return want.Kind == 3 || slices.ContainsFunc(slices.Concat(items, worn[:]), func(it sim.ItemInstance) bool {
+			return mapload.ItemRecipeEqual(it, want)
+		})
 	}
 	return false
 }

@@ -3097,6 +3097,31 @@ package storyguard
 // pkg/mapload/carry.go, of retireUnreached's record drop, of the town
 // arrival's error in pkg/game/secondparty.go, the arrival refusal test, and
 // this paragraph.
+//
+// CommentBytes rises with the doc comments of shownRun and popupRoom and the
+// edit field's ellipsis note in pkg/ui, the field and status line tests in
+// pkg/ui/mapeditorfieldtext_test.go, the Map panel notes in two editor frame
+// release tests, and this paragraph.
+//
+// CommentBytes rises with the person window's Used by note in
+// pkg/ui/mapeditorwindow.go, its test in pkg/ui/mapeditorpersonusedby_test.go,
+// and this paragraph.
+//
+// CommentBytes rises with the override typer's caret note in
+// pkg/game/mapeditoverrides_release_test.go and this paragraph.
+//
+// CommentBytes rises with the owned element note of releaseWorldHoldsLoot in
+// pkg/game/enchantment_release_test.go and this paragraph.
+//
+// CommentBytes rises with the test play note of an open mod in
+// cmd/againrom/testplay_release_test.go and this paragraph.
+//
+// CommentBytes rises with the bar row notes of barRowHeight, barHeight,
+// barEntries and barRows in pkg/ui/mapeditorwindow.go, the bar test in
+// pkg/ui/mapeditorbarwrap_test.go, and this paragraph.
+//
+// CommentBytes rises with shownRun's note in pkg/ui/editorinputview.go, the
+// field edge test in pkg/ui/mapeditorfieldtext_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4486,
 	TestFileCount:  264,
@@ -3353,5 +3378,5 @@ var Committed = Baseline{
 	// of secondGameFailureEntries and the census fields in pkg/game, of the
 	// scan in internal/archtest/lossreason.go, the new tests' comments, and
 	// this note.
-	CommentBytes: 9895443,
+	CommentBytes: 9900386,
 }
