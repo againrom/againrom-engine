@@ -462,6 +462,9 @@ func memberWithPack(member mapload.PartyMember, items []sim.ItemInstance, table 
 		if err := mapload.UpdatePartyLoad(before, &next, table, refresh, false); err != nil {
 			return mapload.PartyMember{}, false
 		}
+		// The town views hold the carried form's pack, as the carry
+		// writes them, so a SAVE and its LOAD read the same member.
+		mapload.SetCarriedFromCarry(&next)
 	} else {
 		next.CarriedItems = cloned
 		next.Carried = codes

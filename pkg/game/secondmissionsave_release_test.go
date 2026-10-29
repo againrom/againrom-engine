@@ -282,6 +282,20 @@ func secondAssertSample(t *testing.T, want, got secondSaveSample) {
 	t.Helper()
 	if !reflect.DeepEqual(want, got) {
 		t.Logf("other discriminators animation=%+v/%+v sun=%s/%s poses=%v registers=%v latches=%v counters=%d,%d/%d,%d actions=%v ignored=%v gold=%d/%d quick=%v/%v", want.Animation, got.Animation, want.Sun, got.Sun, reflect.DeepEqual(want.Poses, got.Poses), want.Registers == got.Registers, want.Latches == got.Latches, want.WinCount, want.LossCount, got.WinCount, got.LossCount, reflect.DeepEqual(want.Actions, got.Actions), reflect.DeepEqual(want.Ignored, got.Ignored), want.Gold, got.Gold, want.Quick, got.Quick)
+		for i := range want.Party {
+			if i >= len(got.Party) || bytes.Equal(want.Party[i], got.Party[i]) {
+				continue
+			}
+			var before, after mapload.PartyMember
+			_ = gob.NewDecoder(bytes.NewReader(want.Party[i])).Decode(&before)
+			_ = gob.NewDecoder(bytes.NewReader(got.Party[i])).Decode(&after)
+			a, b := reflect.ValueOf(before), reflect.ValueOf(after)
+			for field := 0; field < a.NumField(); field++ {
+				if !reflect.DeepEqual(a.Field(field).Interface(), b.Field(field).Interface()) {
+					t.Logf("party member%d %s before=%+v after=%+v", i, a.Type().Field(field).Name, a.Field(field).Interface(), b.Field(field).Interface())
+				}
+			}
+		}
 		for i, pose := range want.Poses {
 			if i < len(got.Poses) && !reflect.DeepEqual(pose, got.Poses[i]) {
 				t.Logf("pose difference before=%+v after=%+v", pose, got.Poses[i])

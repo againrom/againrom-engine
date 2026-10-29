@@ -64,6 +64,16 @@ func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSampl
 func secondTownAssertSample(t *testing.T, want, got secondTownSample) {
 	t.Helper()
 	if !reflect.DeepEqual(want, got) {
+		if want.Campaign != nil && got.Campaign != nil {
+			a, b := reflect.ValueOf(*want.Campaign), reflect.ValueOf(*got.Campaign)
+			for field := 0; field < a.NumField(); field++ {
+				if !reflect.DeepEqual(a.Field(field).Interface(), b.Field(field).Interface()) {
+					x, _ := json.Marshal(a.Field(field).Interface())
+					y, _ := json.Marshal(b.Field(field).Interface())
+					t.Logf("campaign %s before=%s after=%s", a.Type().Field(field).Name, x, y)
+				}
+			}
+		}
 		for i := range want.Party {
 			if i >= len(got.Party) || bytes.Equal(want.Party[i], got.Party[i]) {
 				continue

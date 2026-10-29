@@ -502,6 +502,22 @@ func scrollTo(t *testing.T, e *ui.MapEditor, heading string) {
 	e.ScrollDetails(at / 3)
 }
 
+// sectionTo shows the section that holds heading, then scrolls it into view.
+// Since the person setup window shows its sections one at a time, a
+// person's heading may lie in a section other than the one shown.
+func sectionTo(t *testing.T, c *editorClicker, e *ui.MapEditor, heading string) {
+	t.Helper()
+	for _, section := range []string{"identity", "equipment", "inventory", "stats"} {
+		if slices.Contains(e.PopupLines(), heading) {
+			break
+		}
+		if r, ok := e.ObjectSectionRect(section); ok {
+			c.click(e, r, true, "the "+section+" section")
+		}
+	}
+	scrollTo(t, e, heading)
+}
+
 // TestReleaseMapEditorUnitTierFrames writes the unit popup's tier and
 // characteristics frames, rendered headless from the install, as PNGs into
 // AGAINROM_EDITOR_FRAMES; without it the same steps run. In each frame the
@@ -561,7 +577,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 
 	e = opened(key)
 	e.Select(rec, true)
-	scrollTo(t, e, sheetHeading)
+	sectionTo(t, c, e, sheetHeading)
 	cell := e.Document().Records[rec].Cell
 	p := e.CellPoint(cell)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, c.now)
@@ -572,9 +588,9 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	})
 	e = opened(key)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
-	scrollTo(t, e, sheetHeading)
+	sectionTo(t, c, e, sheetHeading)
 	shot(e, "human-sheet", image.Rectangle{})
-	scrollTo(t, e, lootHeading)
+	sectionTo(t, c, e, lootHeading)
 	shot(e, "human-loot", image.Rectangle{})
 
 	key, i = unitWhere(t, x, "an NPC-named template", func(u alm.Unit, r mapload.Resolution, s unitSheet) bool {
@@ -582,7 +598,7 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	})
 	e = opened(key)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
-	scrollTo(t, e, lootHeading)
+	sectionTo(t, c, e, lootHeading)
 	shot(e, "npc-template-loot", image.Rectangle{})
 
 	key, i = unitWhere(t, x, "a named character", func(u alm.Unit, r mapload.Resolution, s unitSheet) bool {
@@ -590,6 +606,6 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	})
 	e = opened(key)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
-	scrollTo(t, e, sheetHeading)
+	sectionTo(t, c, e, sheetHeading)
 	shot(e, "npc-arm-sheet", image.Rectangle{})
 }

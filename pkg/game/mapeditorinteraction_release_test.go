@@ -62,6 +62,16 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 			for _, command := range []string{"unit", "structure", "sack", "field", "metadata", "pages", "package", "new", "open", "saveas", "recipe"} {
 				selected, mark := e.Selected(), s.model.Mark()
 				_ = e.Key(command)
+				// Since W opens the mod window instead of a prompt, its Close
+				// button, the fifth, is the Cancel there.
+				if e.ModWindowOpen() {
+					r, ok := e.PopupButtonRect(4)
+					trigClick(t, e, r, ok, "Close mod window")
+					if e.ModWindowOpen() {
+						t.Fatal("Close left the mod window open")
+					}
+					popups++
+				}
 				if _, ok := e.PromptRect(); ok {
 					button := 1
 					if command == "unit" || command == "structure" || command == "sack" {

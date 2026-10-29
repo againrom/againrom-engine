@@ -120,22 +120,25 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 
 			// Dragging: shelf to table stages a unit, BUY pays P for it; the
 			// hero's pack to the table offers it, SELL credits (P+1)/2.
-			gold := f.Town.gold
+			// Since the bag goes into the mission and comes back at the next
+			// town, a later town's bag already holds the hero's start unit:
+			// the purchase is the stack after those held, and the drag sells it.
+			gold, held := f.Town.gold, len(c.heroItems())
 			secondShopDrag(t, app, at, secondShopPagePoint(t, app, "table", 0))
 			if secondShopUnits(c) != 1 {
 				t.Fatalf("a drag from the shelf staged %d units", secondShopUnits(c))
 			}
 			secondShopActivate(t, f, app, "BUY")
-			if f.Town.gold != gold-int(want.Price) || len(c.heroItems()) != 1 {
-				t.Fatalf("buy at %d: gold %d -> %d, hero %v", want.Price, gold, f.Town.gold, c.heroItems())
+			if f.Town.gold != gold-int(want.Price) || len(c.heroItems()) != held+1 {
+				t.Fatalf("buy at %d beside %d held: gold %d -> %d, hero %v", want.Price, held, gold, f.Town.gold, c.heroItems())
 			}
 			gold = f.Town.gold
-			secondShopDrag(t, app, secondShopPagePoint(t, app, "pack", f.TownScreen().(*townScreen).packCell(0)), secondShopPagePoint(t, app, "table", 0))
-			if len(c.shop.selling()) != 1 {
+			secondShopDrag(t, app, secondShopPagePoint(t, app, "pack", f.TownScreen().(*townScreen).packCell(held)), secondShopPagePoint(t, app, "table", 0))
+			if len(c.shop.selling()) != 1 || c.shop.selling()[0].Price != want.Price {
 				t.Fatalf("a drag from the pack offered %v", c.shop.selling())
 			}
 			secondShopActivate(t, f, app, "SELL")
-			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(want.Price), 1)) || len(c.heroItems()) != 0 {
+			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(want.Price), 1)) || len(c.heroItems()) != held {
 				t.Fatalf("sale at %d: gold %d -> %d", want.Price, gold, f.Town.gold)
 			}
 			secondShopWitness(t, app, map[int]string{1: "town1", 2: "town2", 3: "town3"}[tc.id]+"-shop-input")

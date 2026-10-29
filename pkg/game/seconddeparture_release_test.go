@@ -105,10 +105,10 @@ func secondLaterColdProof(t *testing.T, path string) {
 	}
 	if proof.Town != nil {
 		f, app := secondTownCold(t, filepath.Dir(path), filepath.Base(path))
-		secondTownAssertSample(t, *proof.Town, secondTownSampleNow(t, f, app))
+		secondTownAssertSample(t, *proof.Town, secondLaterJSONSample(t, secondTownSampleNow(t, f, app)))
 		secondLaterAssertGraph(t, proof.TownGraph, f.Town.cityObjects, proof.TownSpells)
 		secondLaterTownAction(t, app)
-		secondTownAssertSample(t, *proof.Town, secondTownSampleNow(t, f, app))
+		secondTownAssertSample(t, *proof.Town, secondLaterJSONSample(t, secondTownSampleNow(t, f, app)))
 		secondTownNamedSave(t, f, app, filepath.Dir(path), "Fresh process town")
 		cold, _ := secondTownCold(t, filepath.Dir(path), secondSaveFile(t, filepath.Dir(path), "Fresh process town"))
 		secondLaterAssertGraph(t, f.Town.cityObjects, cold.Town.cityObjects, nil)
@@ -125,6 +125,72 @@ func secondLaterColdProof(t *testing.T, path string) {
 		secondMissionNamedSave(t, f, app, filepath.Dir(path), "Fresh process mission")
 	}
 	t.Log("fresh-process LOAD -> same composed presentation/current state -> next action -> resave")
+}
+
+// secondLaterJSONSample is s as the proof file carries it: the campaign
+// through its JSON form, as the parent process wrote it. Since the bag goes
+// into the mission and comes back at the next town, town 2's bag holds the
+// hero's start unit, and its member's unexported load state is in no JSON
+// file.
+func secondLaterJSONSample(t *testing.T, s secondTownSample) secondTownSample {
+	t.Helper()
+	raw, err := json.Marshal(s.Campaign)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Campaign = nil
+	if err := json.Unmarshal(raw, &s.Campaign); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// secondLaterArrivalGraph is the town's item graph after the arrival at
+// town 2, checked against the graph the mission returned. Since the bag
+// goes into the mission and comes back at the next town, the arrival moves
+// the hero's units that the bag takes out of his pack: his pack edges are
+// the returned ones of the stacks he kept, in order, every other root is as
+// returned, and each Item left keeps its returned node and record.
+func secondLaterArrivalGraph(t *testing.T, returned *cityObjectTopology, f *FrontEnd) *cityObjectTopology {
+	t.Helper()
+	arrived := f.Town.cityObjects.Clone()
+	if arrived == nil || len(arrived.Roots) != len(returned.Roots) {
+		t.Fatal("town 2 arrival lost the party's item graph")
+	}
+	hero := f.Carried[secondHeroIndex(f.Carried)]
+	for k, root := range arrived.Roots {
+		was := returned.Roots[k]
+		if string(root.PartyID) != hero.ID {
+			if !reflect.DeepEqual(root, was) {
+				t.Fatal("town 2 arrival changed a companion's item roots", string(root.PartyID))
+			}
+			continue
+		}
+		at := 0
+		for _, id := range root.Pack {
+			for at < len(was.Pack) && was.Pack[at] != id {
+				at++
+			}
+			if at == len(was.Pack) {
+				t.Fatal("town 2 arrival gave the hero a pack edge the mission did not return", root.Pack, was.Pack)
+			}
+			at++
+		}
+		if root.Worn != was.Worn || len(root.Pack) != len(cityMemberStacks(hero, f.Table)) {
+			t.Fatal("town 2 arrival graph does not hold the hero's worn set and kept stacks", root, was)
+		}
+	}
+	for _, item := range arrived.Items {
+		if row := cityItemTopologyByID(returned.Items, item.ID); row == nil || !reflect.DeepEqual(*row, item) || !reflect.DeepEqual(arrived.ItemRecords[item.ID], returned.ItemRecords[item.ID]) {
+			t.Fatal("town 2 arrival changed a kept Item's node or record", item.ID)
+		}
+	}
+	for id := range arrived.ItemRecords {
+		if cityItemTopologyByID(arrived.Items, id) == nil {
+			t.Fatal("town 2 arrival kept the record of a departed Item", id)
+		}
+	}
+	return arrived
 }
 
 func secondLaterGraph(t *testing.T, live *mapWorld, f *FrontEnd) *cityObjectTopology {
@@ -472,6 +538,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 						t.Fatal("duplicate acknowledgement advanced again")
 					}
 					secondLaterChoose(t, app, "town 2")
+					graph = secondLaterArrivalGraph(t, graph, f)
 					if app.HeadlessActivate("TALK 517") == nil {
 						t.Fatal("town2 reused the first-town talk")
 					}

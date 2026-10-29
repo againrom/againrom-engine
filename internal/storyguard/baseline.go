@@ -3077,6 +3077,26 @@ package storyguard
 // pkg/game/pointersave_test.go and of the fixture data they add in
 // pkg/game/secondmissionload_test.go and pkg/game/secondoriginalfile_test.go,
 // and this paragraph.
+//
+// CommentBytes rises with the doc comments of the town item graph that
+// follows the hero's pack at a town arrival, all on new code in
+// pkg/game/secondparty.go, pkg/game/cityobjectprojection.go and
+// pkg/game/shoproom.go, the second game's bag tests, and this paragraph.
+//
+// CommentBytes rises with the comments on the later towns' shop release
+// tests, whose bag holds the hero's start unit, and on the Kaarg shop's
+// customer beside the bag, and this paragraph.
+//
+// CommentBytes rises with the comment on the mod window's Close in the
+// editor's Cancel release test, and this paragraph.
+//
+// CommentBytes rises with the doc comment of the unit release tests' section
+// step for the person setup window, and this paragraph.
+//
+// CommentBytes rises with the doc comments of SetCarriedFromCarry in
+// pkg/mapload/carry.go, of retireUnreached's record drop, of the town
+// arrival's error in pkg/game/secondparty.go, the arrival refusal test, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4486,
 	TestFileCount:  264,
@@ -3333,5 +3353,5 @@ var Committed = Baseline{
 	// of secondGameFailureEntries and the census fields in pkg/game, of the
 	// scan in internal/archtest/lossreason.go, the new tests' comments, and
 	// this note.
-	CommentBytes: 9891257,
+	CommentBytes: 9895443,
 }

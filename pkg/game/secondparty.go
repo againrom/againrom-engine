@@ -35,12 +35,13 @@ func (s *CampaignSession) leftLocation(in townInstall) {
 // secondshop.KeptUnit takes home without a loss becomes the bag again, in
 // pack order, while the bag holds fewer than maxSecondBagUnits; the others,
 // such as a unit at a negative price, stay in his pack (DIV-4191). Only the
-// hero's pack comes home; a companion keeps his.
-func (s *CampaignSession) enteredTown(in townInstall) {
+// hero's pack comes home; a companion keeps his. When the town's item graph
+// cannot follow the pack, nothing moves and the error says why.
+func (s *CampaignSession) enteredTown(in townInstall) error {
 	c := secondOf(s)
 	i := secondHeroIndex(s.Carried)
 	if c == nil || i < 0 {
-		return
+		return nil
 	}
 	var bag, kept []sim.ItemInstance
 	if len(c.party) != 0 {
@@ -55,12 +56,66 @@ func (s *CampaignSession) enteredTown(in townInstall) {
 		}
 	}
 	if len(bag) == held {
-		return
+		return nil
 	}
-	if hero, ok := memberWithPack(s.Carried[i], kept, in.table, true); ok {
-		s.Carried[i] = hero
-		*c.heroBag() = bag
+	hero, ok := memberWithPack(s.Carried[i], kept, in.table, true)
+	if !ok {
+		return nil
 	}
+	party := slices.Clone(s.Carried)
+	party[i] = hero
+	graph, err := s.followHeroPack(s.Carried[i], party, i, in.table)
+	if err != nil {
+		return fmt.Errorf("the bag cannot come home: %w", err)
+	}
+	s.Carried[i] = hero
+	*c.heroBag() = bag
+	if graph != nil {
+		s.Town.cityObjects = graph
+	}
+	return nil
+}
+
+// followHeroPack builds the town's item graph for party, where member i's
+// pack lost units outside the shop (before is the member as he was): a stack
+// that stayed keeps its pack edge, a stack that left takes its edge with it,
+// and an Item no holder reaches retires with its record, as a shop sale
+// retires it. Positional edges would write a kept unit under a departed
+// unit's record in the town SAV. A town without a graph returns none.
+func (s *CampaignSession) followHeroPack(before mapload.PartyMember, party []mapload.PartyMember, i int, table *mapload.Table) (*cityObjectTopology, error) {
+	if s.Town == nil || s.Town.cityObjects == nil {
+		return nil, nil
+	}
+	g := s.Town.cityObjects.Clone()
+	for k := range g.Roots {
+		root := &g.Roots[k]
+		if string(root.PartyID) != before.ID {
+			continue
+		}
+		old, at := cityMemberStacks(before, table), 0
+		var pack []sim.SavedObjectID
+		for _, stack := range cityMemberStacks(party[i], table) {
+			for at < len(old) && !sim.StackStateEqual(old[at], stack) {
+				at++
+			}
+			id := sim.SavedObjectID(0)
+			if at < len(old) && at < len(root.Pack) {
+				id = root.Pack[at]
+			}
+			pack = append(pack, id)
+			at++
+		}
+		root.Pack = pack
+	}
+	p, err := newCityObjectProjection(g, party, table)
+	if err != nil {
+		return nil, err
+	}
+	p.retireUnreached()
+	if err := p.graph.Validate(); err != nil {
+		return nil, err
+	}
+	return p.graph, nil
 }
 
 // packBag moves the bag's units to the end of the campaign hero's pack, each

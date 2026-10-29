@@ -328,6 +328,17 @@ func setCarryHoldings(p *PartyMember) {
 	for i := range p.WornItems {
 		p.WornItems[i] = p.WornItems[i].Clone()
 	}
+	SetCarriedFromCarry(p)
+}
+
+// SetCarriedFromCarry is the pack half of setCarryHoldings: Carried and
+// CarriedItems become detached copies of Carry's pack. A member without
+// Carry keeps his views.
+func SetCarriedFromCarry(p *PartyMember) {
+	c := p.Carry
+	if c == nil {
+		return
+	}
 	p.Carried, p.CarriedItems = nil, nil
 	if c.Items != nil {
 		p.Carried = append(make([]uint16, 0, len(c.Items)), c.Items...)

@@ -158,18 +158,7 @@ func (t *shopController) validateCityShopRoots() error {
 	}
 	// Only a completed transaction can retire a detached merge input. Party,
 	// table and shelf aliases have all contributed their reachable children.
-	p.graph.Items = slices.DeleteFunc(p.graph.Items, func(row cityItemTopology) bool {
-		_, live := p.items[row.ID]
-		return !live
-	})
-	p.graph.Effects = slices.DeleteFunc(p.graph.Effects, func(id sim.SavedObjectID) bool {
-		_, live := p.effects[id]
-		return !live
-	})
-	p.graph.Spells = slices.DeleteFunc(p.graph.Spells, func(id sim.SavedObjectID) bool {
-		_, live := p.spells[id]
-		return !live
-	})
+	p.retireUnreached()
 	if err := p.graph.Validate(); err != nil {
 		return err
 	}

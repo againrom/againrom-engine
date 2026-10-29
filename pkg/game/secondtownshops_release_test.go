@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 	"os"
 	"path/filepath"
@@ -147,17 +148,21 @@ func TestReleaseSecondTownShopLaterTowns(t *testing.T) {
 			secondShopWitness(t, app, witness+"-shop-open")
 			f.Town.gold = 500000
 			first := c.shop.shelf()[c.shop.visibleShelf()[0]]
+			// Since the bag goes into the mission and comes back at the next
+			// town, a later town's bag already holds the hero's start unit:
+			// the purchase is the stack after those held, and the sale sells it.
+			held := len(c.heroItems())
 			secondShopActivate(t, f, app, "ITEM 1", "BUY")
-			if f.Town.gold != 500000-int(first.Price) || len(c.heroItems()) != 1 || c.heroItems()[0].Count != 1 {
-				t.Fatalf("buy of one at %d: gold %d hero %v", first.Price, f.Town.gold, c.heroItems())
+			if f.Town.gold != 500000-int(first.Price) || len(c.heroItems()) != held+1 || c.heroItems()[held].Count != 1 {
+				t.Fatalf("buy of one at %d beside %d held: gold %d hero %v", first.Price, held, f.Town.gold, c.heroItems())
 			}
 			gold := f.Town.gold
-			secondShopActivate(t, f, app, "MINE 1", "SELL")
-			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(first.Price), 1)) || len(c.heroItems()) != 0 {
+			secondShopActivate(t, f, app, fmt.Sprintf("MINE %d", held+1), "SELL")
+			if f.Town.gold != gold+int(secondshop.SaleCredit(int64(first.Price), 1)) || len(c.heroItems()) != held {
 				t.Fatalf("sale of one at %d: gold %d -> %d", first.Price, gold, f.Town.gold)
 			}
 			secondShopActivate(t, f, app, "SHELF 2", "ITEM 1", "BUY", "SHELF 1", "ITEM 2")
-			if c.shop.category != 0 || len(c.heroItems()) != 1 || len(c.shop.buying()) != 1 {
+			if c.shop.category != 0 || len(c.heroItems()) != held+1 || len(c.shop.buying()) != 1 {
 				t.Fatalf("second deal: hero %v buying %v", c.heroItems(), c.shop.buying())
 			}
 			secondShopWitness(t, app, witness+"-shop-deal-open")

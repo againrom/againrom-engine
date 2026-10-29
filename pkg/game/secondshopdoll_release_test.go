@@ -107,7 +107,7 @@ func secondDollReleaseCold(t *testing.T, f *FrontEnd, app *ui.App, name string, 
 	t.Helper()
 	dir := secondMissionSaveDirectory(t)
 	raw := secondTownNamedSave(t, f, app, dir, name)
-	cold, _ := secondTownCold(t, dir, name)
+	cold, _ := secondTownCold(t, dir, secondSaveFile(t, dir, name))
 	if len(cold.Carried) == 0 {
 		t.Fatal("the cold LOAD has no party")
 	}

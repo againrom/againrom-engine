@@ -244,12 +244,42 @@ func TestSecondBagArrivalKeepsWhatTheBagWouldLose(t *testing.T) {
 		t.Fatal("the hero's pack refused the units")
 	}
 	f.Carried[0] = hero
-	screen.sess.enteredTown(screen.in.townInstall())
+	if err := screen.sess.enteredTown(screen.in.townInstall()); err != nil {
+		t.Fatal(err)
+	}
 	if got, want := bagLabels(*f.Town.second.heroBag()), bagLabels([]sim.ItemInstance{secondBagPotion, secondBagWeapon}); !slices.Equal(got, want) {
 		t.Fatalf("bag %v, want %v", got, want)
 	}
 	if got, want := bagLabels(mapload.MemberCarriedItems(f.Carried[0], f.Table)), bagLabels([]sim.ItemInstance{unpriced, twice}); !slices.Equal(got, want) {
 		t.Fatalf("hero's pack %v, want %v", got, want)
+	}
+}
+
+// An arrival whose town item graph cannot follow the hero's pack moves
+// nothing and says so: the units stay in his pack, the bag stays as it was
+// and the graph is the one the town had. Fails when the arrival moves the
+// units and keeps a graph that writes them under the records of others.
+func TestSecondBagArrivalRefusesAGraphThatCannotFollow(t *testing.T) {
+	f, _, screen, _ := secondBagFront(t, nil)
+	hero, ok := memberWithPack(f.Carried[0], []sim.ItemInstance{secondBagPotion}, f.Table, true)
+	if !ok {
+		t.Fatal("the hero's pack refused the unit")
+	}
+	f.Carried[0] = hero
+	broken := &cityObjectTopology{}
+	f.Town.cityObjects = broken
+	bag := bagLabels(*f.Town.second.heroBag())
+	if err := screen.sess.enteredTown(screen.in.townInstall()); err == nil {
+		t.Fatal("the arrival accepted a town item graph with no header")
+	}
+	if got := bagLabels(*f.Town.second.heroBag()); !slices.Equal(got, bag) {
+		t.Fatalf("bag %v after the refused arrival, want %v", got, bag)
+	}
+	if got, want := bagLabels(mapload.MemberCarriedItems(f.Carried[0], f.Table)), bagLabels([]sim.ItemInstance{secondBagPotion}); !slices.Equal(got, want) {
+		t.Fatalf("hero's pack %v after the refused arrival, want %v", got, want)
+	}
+	if f.Town.cityObjects != broken {
+		t.Fatal("the refused arrival replaced the town item graph")
 	}
 }
 
@@ -378,13 +408,46 @@ func TestSecondBagComesHomeAsTheMissionLeftIt(t *testing.T) {
 	if len(c.party) != 0 && len(c.party[0].CarriedItems) != 0 {
 		t.Fatalf("after the victory the bag holds %d units on the map", len(c.party[0].CarriedItems))
 	}
-	(&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeTown, id: 2})
+	if at := (&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeTown, id: 2}); at.Msg != "" {
+		t.Fatalf("the arrival at town 2 reports %q", at.Msg)
+	}
 	wantBag := bagLabels(append(own, secondBagPotion, secondBagPotion))
 	if got := bagLabels(*c.heroBag()); !slices.Equal(got, wantBag) {
 		t.Fatalf("bag at town 2 %v, want %v", got, wantBag)
 	}
 	if left := mapload.MemberCarriedItems(f.Carried[0], f.Table); len(left) != 0 {
 		t.Fatalf("the hero's pack kept %v", bagLabels(left))
+	}
+	// The town views follow the carried pack; a stale view is what the
+	// town SAV's LOAD does not give back.
+	if hero := f.Carried[0]; hero.Carry == nil || len(hero.Carried) != 0 || len(hero.CarriedItems) != 0 {
+		t.Fatalf("the hero's town views hold %#04x and %d units beside the carried pack", hero.Carried, len(hero.CarriedItems))
+	}
+	// The town's item graph lets the units go with them: no pack edge of the
+	// hero, and no Item or record that no root reaches, which the town SAV
+	// would write under the kept units.
+	g := f.Town.cityObjects
+	if g == nil {
+		t.Fatal("the return left no town item graph")
+	}
+	reached := map[sim.SavedObjectID]bool{}
+	for _, root := range g.Roots {
+		if string(root.PartyID) == f.Carried[0].ID && len(root.Pack) != 0 {
+			t.Fatalf("the hero's town pack edges %v outlive his pack", root.Pack)
+		}
+		for _, id := range append(slices.Clone(root.Pack), root.Worn[:]...) {
+			reached[id] = true
+		}
+	}
+	for _, item := range g.Items {
+		if !reached[item.ID] {
+			t.Fatalf("town Item %d is held by no one", item.ID)
+		}
+	}
+	for id := range g.ItemRecords {
+		if !reached[id] {
+			t.Fatalf("town Item record %d is held by no one", id)
+		}
 	}
 	wantWorn := bagLabels([]sim.ItemInstance{secondBagWornWeapon, secondBagWornArmour, secondBagArmour})
 	if got := secondBagWorn(mapload.MemberItemEquipment(f.Carried[0], f.Table)); !slices.Equal(got, wantWorn) {
