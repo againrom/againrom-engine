@@ -70,6 +70,10 @@ type Edition struct {
 	// whose identity is HeroIdentity+k. Zero names it by the hero ordinal
 	// role test instead.
 	HeroIdentity int
+	// HeroFailureReason is the mission failure reason the hero's fall gives
+	// the loss notice, as a PartyIdentity's FailureReason does; zero leaves
+	// the generic body.
+	HeroFailureReason int32
 
 	// PartyIdentities are the members the campaign's addition producer
 	// builds, one row per identity.
@@ -207,11 +211,13 @@ var secondEdition = Edition{
 	// serverID 10220 and identity 23 the row with 10230 (R2-ENGINE-378,
 	// R2-ENGINE-072). The end of the stage-30 talk with NPC 22 adds 22
 	// (DIV-4186); slot 773 adds 23 at a location leave (R2-ENGINE-379).
-	// The fall of 22 shows the mission's failure3 section (DIV-4189).
-	HeroIdentity: 21,
+	// The fall of identity n sends failure reason n - 19 (R2-ENGINE-625):
+	// 2 for the hero, 3 for 22 and 4 for 23 (DIV-4224).
+	HeroIdentity:      21,
+	HeroFailureReason: 2,
 	PartyIdentities: []PartyIdentity{
 		{Identity: 22, ServerID: 10220, TalkNPC: 22, TalkTopic: 30, FailureReason: 3},
-		{Identity: 23, ServerID: 10230},
+		{Identity: 23, ServerID: 10230, FailureReason: 4},
 	},
 	// The logos, then the intro cutscene, play before the menu
 	// (R2-ENGINE-338); the intro is cutpaths.txt row 0, video\intro\NN.smk

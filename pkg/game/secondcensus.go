@@ -128,9 +128,16 @@ type SecondMapCensus struct {
 
 	// Events are the ordinary dialogue events the script raises and
 	// NoEventText those the mission text has no section for; Reasons and
-	// NoReasonText are the same for the failure reasons instant 5 stores.
+	// NoReasonText are the same for the failure reasons instant 5 stores
+	// and the census party's falls give (FallReasons). FailureEntries is
+	// the mission's failure cache size and SlotReasons the reasons whose
+	// entry is the main text slot; CountChecks counts check 18 nodes.
 	Events, NoEventText   []int32
 	Reasons, NoReasonText []int32
+	FallReasons           []int32
+	FailureEntries        int
+	SlotReasons           []int32
+	CountChecks           int
 
 	Departure SecondDeparture
 	Run       SecondRun
@@ -440,7 +447,15 @@ func secondScript(c *SecondMapCensus, m *alm.Map, authored []alm.Unit, t *maploa
 			c.Spells = insertSorted(c.Spells, spell)
 		}
 	}
+	for _, p := range party {
+		if r := partyFailureReason(p, t); r > 0 {
+			c.FallReasons = insertSorted(c.FallReasons, r)
+		}
+	}
 	for _, k := range full.Checks() {
+		if k.Op == sim.ScriptCheckVIP {
+			c.CountChecks++
+		}
 		if !secondClaimedCheck(k.Op) {
 			c.SharedNodes++
 			c.SharedChecks = insertSorted(c.SharedChecks, k.Op)
@@ -465,10 +480,16 @@ func secondText(c *SecondMapCensus, src entrySource, code TextCode) {
 			c.NoEventText = append(c.NoEventText, e)
 		}
 	}
-	labels := secondGameFailureText(src, code, c.Mission)
+	labels, slots := secondGameFailureEntries(src, code, c.Mission)
+	c.FailureEntries, c.SlotReasons = len(labels), slots
 	for _, r := range c.Reasons {
 		if r != 0 && (r < 2 || int(r-2) >= len(labels) || labels[r-2] == "") {
 			c.NoReasonText = append(c.NoReasonText, r)
+		}
+	}
+	for _, r := range c.FallReasons {
+		if r < 2 || int(r-2) >= len(labels) || labels[r-2] == "" {
+			c.NoReasonText = insertSorted(c.NoReasonText, r)
 		}
 	}
 }
@@ -950,7 +971,7 @@ func SecondTotals(cs []SecondMapCensus) SecondCensusTotals {
 // WriteSecondCensus prints one tab-separated row per map, then the totals.
 func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 	head := "mission\tstart\trun\toutcome\tplaced\twithdrawn\tauthored_hp\tborn_fallen\tno_row\tstructures\tno_structure_row\tloot\tloot_dropped\tno_item_row\tspells\tno_spell_rule\t" +
-		"events\tno_event_text\treasons\tno_reason_text\tchecks\tinstants\ttriggers\tshared_nodes\tshared_checks\tshared_instants\tgaps\tinert\t" +
+		"events\tno_event_text\treasons\tno_reason_text\tfall_reasons\tfailure_entries\tslot_reasons\tcount_checks\tchecks\tinstants\ttriggers\tshared_nodes\tshared_checks\tshared_instants\tgaps\tinert\t" +
 		"fixture\tdynamic\twithdrawn_ref\tabsent\tstructure_ref\tunbound_heroes\tbank_slots\t" +
 		"case\texits\tproducer\tengine_entry\tengine_win\tengine_adds\tengine_exits\tengine_save\tblockers\n"
 	if _, err := io.WriteString(w, head); err != nil {
@@ -969,6 +990,7 @@ func WriteSecondCensus(w io.Writer, cs []SecondMapCensus) error {
 			strconv.Itoa(c.Structures), strconv.Itoa(c.NoStructureRowKeys), strconv.Itoa(c.LootItems), strconv.Itoa(c.LootDropped),
 			secondList(c.NoItemRow), secondList(c.Spells), secondList(c.NoSpellRule),
 			secondList(c.Events), secondList(c.NoEventText), secondList(c.Reasons), secondList(c.NoReasonText),
+			secondList(c.FallReasons), strconv.Itoa(c.FailureEntries), secondList(c.SlotReasons), strconv.Itoa(c.CountChecks),
 			strconv.Itoa(c.Checks), strconv.Itoa(c.Instants), strconv.Itoa(c.Triggers),
 			strconv.Itoa(c.SharedNodes), secondList(c.SharedChecks), secondList(c.SharedInstants), secondGapList(c.Gaps), secondList(c.Inert)}
 		for _, o := range c.Omitted {

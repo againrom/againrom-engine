@@ -36,12 +36,19 @@ func readSecondGameMissionText(src entrySource, code TextCode, mission int) ([]b
 }
 
 func secondGameFailureText(src entrySource, code TextCode, mission int) []string {
+	labels, _ := secondGameFailureEntries(src, code, mission)
+	return labels
+}
+
+// secondGameFailureEntries is the mission's failure cache, entry n for
+// reason n + 2 (R2-ENGINE-629), and the reasons whose entry is the main
+// text slot because the mission text has no section for them.
+func secondGameFailureEntries(src entrySource, code TextCode, mission int) (labels []string, slots []int32) {
 	payload, ok := readSecondGameMissionText(src, code, mission)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	words := LoadInstallWords(src, code)
-	var labels []string
 	for reason := 2; reason < 1024; reason++ {
 		label := secondGameTextSection(payload, fmt.Sprintf("failure%d", reason))
 		if label == "" {
@@ -49,10 +56,11 @@ func secondGameFailureText(src entrySource, code TextCode, mission int) []string
 				break
 			}
 			label, _ = words.Global(0x118 + reason)
+			slots = append(slots, int32(reason))
 		}
 		labels = append(labels, label)
 	}
-	return labels
+	return labels, slots
 }
 
 // R2-ENGINE-049/050: first substring, two separator bytes, then the next '#'.

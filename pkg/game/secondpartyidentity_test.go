@@ -160,14 +160,14 @@ func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 }
 
 // When identity 22 falls, the guarded loss shows the mission text's failure3
-// section; the hero's fall keeps the generic body, not failure2 (DIV-4189).
+// section; the hero's fall shows failure2 (R2-ENGINE-625).
 func TestSecondGuardedLossOfIdentityTwentyTwoShowsFailureThree(t *testing.T) {
 	src := missionSource{"main/text/mission7.txt": []byte("#failure2\r\nThe hero is dead.\r\n#failure3\r\nIglez is dead.\r\n")}
 	for _, tc := range []struct {
 		name   string
 		fallen sim.EntityID
 		want   string
-	}{{"identity 22", 2, "Iglez is dead.\r\n"}, {"hero", 1, ""}} {
+	}{{"identity 22", 2, "Iglez is dead.\r\n"}, {"hero", 1, "The hero is dead.\r\n"}} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, err := sim.NewROM2Script(missionChecks(), []sim.ScriptInstant{}, []sim.ScriptTrigger{})
 			if err != nil {

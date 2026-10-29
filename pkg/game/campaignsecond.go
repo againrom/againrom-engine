@@ -286,16 +286,10 @@ func (secondCampaignRules) acknowledgeNotice(mw *mapWorld) bool {
 
 func (secondCampaignRules) outcomeText(mw *mapWorld, body string) string {
 	m := mw.mission
-	if m.outcome == sim.OutcomeLost {
-		_, reason := mw.world.ScriptCounters()
-		if reason < 2 && m.lossReason > 0 {
-			// A guarded character's fall with no script reason takes his
-			// edition row's reason (DIV-4189).
-			reason = uint32(m.lossReason)
-		}
-		if reason >= 2 && uint64(reason-2) < uint64(len(m.failureText)) && m.failureText[reason-2] != "" {
-			body = m.failureText[reason-2]
-		}
+	// The loss shows failure entry reason - 2 (R2-ENGINE-629); a reason
+	// outside the entries keeps the generic body (DIV-4223).
+	if r := int64(m.lossReason) - 2; m.outcome == sim.OutcomeLost && r >= 0 && r < int64(len(m.failureText)) && m.failureText[r] != "" {
+		body = m.failureText[r]
 	}
 	return body
 }

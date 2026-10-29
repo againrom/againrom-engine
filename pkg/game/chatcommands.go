@@ -221,8 +221,7 @@ func (mw *mapWorld) runChatCommand(row chatCommandRow, arg string) bool {
 		mw.view.SetCheatMapReveal(false)
 		mw.cheatNotice(row.reply)
 	case chatVictory:
-		mw.mission.announced = true
-		mw.mission.outcome = sim.OutcomeWon
+		mw.latchOutcome(sim.OutcomeWon, lossCause{})
 		mw.showOutcome()
 	case chatEventDialogue:
 		mw.openDialogue(int(cheatInteger(arg)))

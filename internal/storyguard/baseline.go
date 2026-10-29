@@ -3326,5 +3326,12 @@ var Committed = Baseline{
 	// [[inn]] parse tests in pkg/town/inn_test.go, pkg/mod/towns_test.go and
 	// pkg/game/innoffers_test.go. It fell when tavern and inn rows became one
 	// row type with one parser and one validator.
-	CommentBytes: 9880868,
+
+	// It rose for the one loss reason producer: the doc comments of
+	// lossCause, latchOutcome, missionLossReason and partyFailureReason in
+	// pkg/game/world.go, of Edition.HeroFailureReason in pkg/base/edition.go,
+	// of secondGameFailureEntries and the census fields in pkg/game, of the
+	// scan in internal/archtest/lossreason.go, the new tests' comments, and
+	// this note.
+	CommentBytes: 9884080,
 }

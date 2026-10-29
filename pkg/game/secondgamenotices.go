@@ -21,7 +21,7 @@ func (mw *mapWorld) observeSecondGameMessages(messages []int32) {
 	for _, event := range messages {
 		switch event {
 		case 255:
-			m.announced, m.outcome = true, sim.OutcomeLost
+			mw.latchOutcome(sim.OutcomeLost, lossCause{})
 		case 250:
 			if words := LoadInstallWords(m.src, InstallTextCode(m.src, m.edition())); words != nil {
 				if caption, ok := words.Global(0); ok {

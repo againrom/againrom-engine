@@ -866,9 +866,9 @@ type missionNotices struct {
 	announced    bool
 	outcome      sim.Outcome
 	outcomeShown bool
-	// lossReason is the failure reason the fallen guarded character's
-	// edition row names, zero for none (guardedLossReason). It is
-	// presentation: the notice reads it, the World never does.
+	// lossReason is the failure reason of a latched loss, zero for none
+	// (missionLossReason). It is presentation: the notice reads it, the
+	// World never does.
 	lossReason int32
 	// delayedVictory is the live-session permission created by Continue. It is
 	// presentation/session state, not simulation state, and is deliberately
@@ -1174,7 +1174,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	// Present it before a tick can run; NewAnnouncer has independently consumed
 	// the saved message latches, so no old dialogue or reward is replayed.
 	if outcome := mw.world.Outcome(); outcome != sim.OutcomeUndecided {
-		mw.mission.announced, mw.mission.outcome = true, outcome
+		mw.latchOutcome(outcome, lossCause{})
 		mw.showOutcome()
 	}
 	mw.seedSkillBaseline()
@@ -1776,12 +1776,12 @@ func (mw *mapWorld) settleNotices() {
 		// ends that window; a body at exactly 0 never decays (HERO-ZERO-070).
 		// The original loses on the primary's fall instead: DIV-219.
 		//
-		// ONE DEAD CHARACTER IS ENOUGH and the walk stops at it. The failure
-		// reason his edition row names goes to the notice (DIV-4189).
+		// ONE DEAD CHARACTER IS ENOUGH and the walk stops at it. His fall is
+		// the loss's cause, and missionLossReason turns it into the reason.
 		o := sim.OutcomeUndecided
+		var cause lossCause
 		if id, lost := mw.guardedCharacterLost(); lost {
-			o = sim.OutcomeLost
-			m.lossReason = mw.guardedLossReason(id)
+			o, cause = sim.OutcomeLost, lossCause{fallen: id, fell: true}
 		}
 		// THE OUTCOME COMES FROM Outcome() AND NEVER FROM THE COUNTERS, when the
 		// character test above left the question open. The counters only rise,
@@ -1796,7 +1796,7 @@ func (mw *mapWorld) settleNotices() {
 				mw.closeNotice()
 				m.outcomeShown, m.delayedVictory = false, false
 			}
-			m.announced, m.outcome = true, o
+			mw.latchOutcome(o, cause)
 		}
 	}
 
@@ -1815,7 +1815,7 @@ func (mw *mapWorld) settleNotices() {
 		// ever opened for it. The shipped campaign raises 0..25, so nothing that
 		// ships reaches this.
 		if e == ReservedMessageNumber {
-			m.announced, m.outcome = true, sim.OutcomeLost
+			mw.latchOutcome(sim.OutcomeLost, lossCause{})
 			continue
 		}
 		// The FIRST raise that yields text takes the screen and every later one
@@ -1860,19 +1860,56 @@ func (mw *mapWorld) guardedCharacterLost() (sim.EntityID, bool) {
 	return 0, false
 }
 
-// guardedLossReason is the failure reason the loss of guarded character id
-// gives the notice: the FailureReason of his party identity's edition row,
-// zero for a member without one, the hero included (DIV-4189).
-func (mw *mapWorld) guardedLossReason(id sim.EntityID) int32 {
-	member := mw.missionPartyMember(id)
-	if member == nil {
-		return 0
+// lossCause is what decided a mission's loss: the guarded character whose
+// fall did, when one did.
+type lossCause struct {
+	fallen sim.EntityID
+	fell   bool
+}
+
+// latchOutcome decides the mission. A loss takes the reason
+// missionLossReason gives its cause; a loss already latched keeps its
+// reason unless the cause is a fall, which a restore derives again
+// (DIV-4225).
+func (mw *mapWorld) latchOutcome(o sim.Outcome, c lossCause) {
+	m := mw.mission
+	if o == sim.OutcomeLost && (c.fell || !m.announced || m.outcome != sim.OutcomeLost) {
+		m.lossReason = mw.missionLossReason(c)
 	}
-	identity, ok := mapload.PartyIdentity(*member, mw.mission.table)
+	m.announced, m.outcome = true, o
+}
+
+// missionLossReason is the one producer of a lost mission's failure reason,
+// the number the loss notice selects the mission's failure text by
+// (R2-ENGINE-631). A fallen character gives the reason his party identity
+// carries in the edition: HeroFailureReason for the hero, a row's
+// FailureReason for a companion (R2-ENGINE-625). Any other loss, and a fall
+// the edition names no reason for, gives the reason the script stored:
+// instant 5 sets it and check 18 counts it (R2-ENGINE-624, R2-ENGINE-627).
+func (mw *mapWorld) missionLossReason(c lossCause) int32 {
+	if c.fell {
+		if member := mw.missionPartyMember(c.fallen); member != nil {
+			if r := partyFailureReason(*member, mw.mission.table); r > 0 {
+				return r
+			}
+		}
+	}
+	_, lost := mw.world.ScriptCounters()
+	return int32(lost)
+}
+
+// partyFailureReason is the failure reason the fall of member gives, zero
+// for a member whose identity the edition names none for.
+func partyFailureReason(member mapload.PartyMember, t *mapload.Table) int32 {
+	identity, ok := mapload.PartyIdentity(member, t)
 	if !ok {
 		return 0
 	}
-	row, _ := tableEdition(mw.mission.table).PartyIdentity(identity)
+	e := tableEdition(t)
+	if identity == e.HeroIdentity {
+		return e.HeroFailureReason
+	}
+	row, _ := e.PartyIdentity(identity)
 	return row.FailureReason
 }
 
