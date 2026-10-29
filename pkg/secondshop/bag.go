@@ -102,6 +102,14 @@ func idItem(code uint16) (Item, bool) {
 	return it, true
 }
 
+// BookSpell is the spell of a book ID, or false when the ID is not a book's:
+// the one reading of a book's ID that the picture, which the spell's school
+// owns, asks.
+func BookSpell(code uint16) (int, bool) {
+	it, ok := idItem(code)
+	return it.Spell, ok && it.Table == Book
+}
+
 // Unit is a worn item as the bag holds it: the shop item its ID names, at
 // its price and with its castspell effect, written by Instance's rule. A
 // unit Instance writes is its own Unit; an ID that names no shop item is

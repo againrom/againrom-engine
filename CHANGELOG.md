@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [ROM2] In the tavern, the people at the tables are headed with their own names, not the name of the next person in the list; before, a man could be headed as a woman.
 - [ROM2] In the Kaarg and druid shops the hover over a shelf now names what is on it; before, the names of the weapons, enchanted equipment and potions shelves were mixed up.
 - [BASE] Under Darkness, a hero whose sight drops to nothing still uncovers the cells right around him, as in the original game; before, he uncovered none.
+- [ROM2] The spell books in the shop show their picture, on the shelf, on the table and in your pack: each book wears the picture of its school of magic. Before, the cell was empty.
 
 ### For map makers and modders
 

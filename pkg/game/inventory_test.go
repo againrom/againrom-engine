@@ -810,7 +810,7 @@ func TestBuildInventoryPackComposesOneIconPerCodeInCarriedOrder(t *testing.T) {
 		addr2: packIconStream(0, 0xff, 0),
 	}
 
-	pack, _, unread := buildInventoryPack(src,
+	pack, _, unread := buildInventoryPack(src, nil,
 		[]sim.ItemStack{{Code: packCode1, Count: 1}, {Code: packCode2, Count: 1}}, map[uint16]*image.RGBA{})
 
 	if len(unread) != 0 {
@@ -846,7 +846,7 @@ func TestBuildInventoryPackComposesEveryCarriedElementWithNoCap(t *testing.T) {
 		src[addr] = packIconStream(byte(i), 0, 0)
 	}
 
-	pack, counts, unread := buildInventoryPack(src, stacks, map[uint16]*image.RGBA{})
+	pack, counts, unread := buildInventoryPack(src, nil, stacks, map[uint16]*image.RGBA{})
 
 	if len(unread) != 0 {
 		t.Fatalf("unread = %v, want none — every one of the ten elements is in the archive", unread)
@@ -864,7 +864,7 @@ func TestBuildInventoryPackComposesEveryCarriedElementWithNoCap(t *testing.T) {
 // A carrier of nothing answers nil rather than an empty slice, so a subject
 // built for an empty container presents exactly as one never built at all.
 func TestBuildInventoryPackAnswersNilForAnEmptyCarrier(t *testing.T) {
-	pack, counts, unread := buildInventoryPack(missionSource{}, nil, map[uint16]*image.RGBA{})
+	pack, counts, unread := buildInventoryPack(missionSource{}, nil, nil, map[uint16]*image.RGBA{})
 	if pack != nil || counts != nil || unread != nil {
 		t.Errorf("buildInventoryPack over no elements = (%v, %v, %v), want three nils", pack, counts, unread)
 	}
@@ -879,7 +879,7 @@ func TestBuildInventoryPackReportsUnreadAddressesInCarriedOrder(t *testing.T) {
 	addr3 := graphicsPrefix + data.ItemIconPath(data.ItemCode(packCode3))
 	src := missionSource{addr2: packIconStream(0, 0xff, 0)} // only the middle code reads
 
-	pack, _, unread := buildInventoryPack(src, []sim.ItemStack{
+	pack, _, unread := buildInventoryPack(src, nil, []sim.ItemStack{
 		{Code: packCode1, Count: 1}, {Code: packCode2, Count: 1}, {Code: packCode3, Count: 1},
 	}, map[uint16]*image.RGBA{})
 
@@ -912,7 +912,7 @@ func TestBuildInventoryPackRefusesANilSourceWithoutPanicking(t *testing.T) {
 		graphicsPrefix + data.ItemIconPath(data.ItemCode(packCode2)),
 	}
 
-	pack, _, unread := buildInventoryPack(nil,
+	pack, _, unread := buildInventoryPack(nil, nil,
 		[]sim.ItemStack{{Code: packCode1, Count: 1}, {Code: packCode2, Count: 1}}, map[uint16]*image.RGBA{})
 
 	for i, p := range pack {
@@ -936,14 +936,14 @@ func TestBuildInventoryPackCacheAvoidsRereadingAResolvedCode(t *testing.T) {
 	src := countingSource{missionSource{addr: packIconStream(0xff, 0, 0)}, &reads}
 	cache := map[uint16]*image.RGBA{}
 
-	if _, _, unread := buildInventoryPack(src, []sim.ItemStack{{Code: packCode1, Count: 1}}, cache); len(unread) != 0 {
+	if _, _, unread := buildInventoryPack(src, nil, []sim.ItemStack{{Code: packCode1, Count: 1}}, cache); len(unread) != 0 {
 		t.Fatalf("unread = %v, want none", unread)
 	}
 	if reads != 1 {
 		t.Fatalf("reads after the first compose = %d, want 1", reads)
 	}
 
-	if _, _, unread := buildInventoryPack(src, []sim.ItemStack{{Code: packCode1, Count: 1}}, cache); len(unread) != 0 {
+	if _, _, unread := buildInventoryPack(src, nil, []sim.ItemStack{{Code: packCode1, Count: 1}}, cache); len(unread) != 0 {
 		t.Fatalf("unread = %v, want none", unread)
 	}
 	if reads != 1 {
@@ -957,7 +957,7 @@ func TestBuildInventoryPackAnswersEachElementsOwnCount(t *testing.T) {
 	addr1 := graphicsPrefix + data.ItemIconPath(data.ItemCode(packCode1))
 	src := missionSource{addr1: packIconStream(0xff, 0, 0)} // packCode2 is left unread on purpose
 
-	_, counts, unread := buildInventoryPack(src,
+	_, counts, unread := buildInventoryPack(src, nil,
 		[]sim.ItemStack{{Code: packCode1, Count: 3}, {Code: packCode2, Count: 70_000}}, map[uint16]*image.RGBA{})
 
 	if len(unread) != 1 {

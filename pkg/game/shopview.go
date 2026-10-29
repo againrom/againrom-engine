@@ -778,7 +778,7 @@ func (t *shopController) shopIcon(code data.ItemCode) *image.RGBA {
 	if t.in.Archives != nil {
 		src = t.in.Archives.Containers
 	}
-	icons, _, _ := buildInventoryPack(src, []sim.ItemStack{{Code: uint16(code), Count: 1}}, cache)
+	icons, _, _ := buildInventoryPack(src, t.in.Table, []sim.ItemStack{{Code: uint16(code), Count: 1}}, cache)
 	if len(icons) == 0 {
 		return nil
 	}

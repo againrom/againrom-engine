@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -566,6 +567,29 @@ func loadItemIcon(src entrySource, addr string) (*image.RGBA, error) {
 	return f.RGBA(sprite.Palette), nil
 }
 
+// itemIconCode is the code whose picture an item shows. It is the item's own
+// code, except for a second-game spell book: its code names its spell (the
+// bag's identity), while its picture is its school's Book template, the one
+// shopBookCodes finds. A code that names an installed magic item row is that
+// row's own.
+func itemIconCode(table *mapload.Table, code uint16) data.ItemCode {
+	spell, ok := secondshop.BookSpell(code)
+	if !ok || table == nil || table.Spells == nil || spell <= 0 || spell >= table.Spells.Len() {
+		return data.ItemCode(code)
+	}
+	if table.MagicItems != nil && int(code&0xff) < table.MagicItems.Len() {
+		return data.ItemCode(code)
+	}
+	params := table.Spells.EntryParams(spell)
+	if len(params) <= 2 {
+		return data.ItemCode(code)
+	}
+	if book := shopSchoolTemplateCode(table, "Book", params[2]); book != 0 {
+		return book
+	}
+	return data.ItemCode(code)
+}
+
 // buildInventoryPack is T6's own builder, taking an ELEMENT per cell rather
 // than a code since 0138: one icon per carried ELEMENT, IN ELEMENT ORDER,
 // through loadItemIcon and data.ItemIconPath — the SAME .16a reader
@@ -674,7 +698,7 @@ func inventoryGold(subject ui.InventorySubject) uint32 {
 	return subject.PackCount[last]
 }
 
-func buildInventoryPack(src entrySource, stacks []sim.ItemStack, cache map[uint16]*image.RGBA) ([]*image.RGBA, []uint32, []string) {
+func buildInventoryPack(src entrySource, table *mapload.Table, stacks []sim.ItemStack, cache map[uint16]*image.RGBA) ([]*image.RGBA, []uint32, []string) {
 	if len(stacks) == 0 {
 		// A CARRIER OF NOTHING ANSWERS NIL AND NOT AN EMPTY SLICE, which is
 		// the same value ui.InventorySubject's own zero holds — so a subject
@@ -687,7 +711,7 @@ func buildInventoryPack(src entrySource, stacks []sim.ItemStack, cache map[uint1
 	var unread []string
 	for i, st := range stacks {
 		counts[i] = st.Count
-		addr := graphicsPrefix + data.ItemIconPath(data.ItemCode(st.Code))
+		addr := graphicsPrefix + data.ItemIconPath(itemIconCode(table, st.Code))
 		if src == nil {
 			unread = append(unread, addr)
 			continue

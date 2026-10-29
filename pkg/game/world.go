@@ -1049,7 +1049,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		// count, and only the elements reader carries the count back out of the
 		// world at all.
 		mw.invCodes, _ = mw.world.CarriedStacks(sim.EntityID(subject.ID))
-		subject.Pack, subject.PackCount, _ = buildInventoryPack(src, mw.invCodes, mw.invIconCache)
+		subject.Pack, subject.PackCount, _ = buildInventoryPack(src, t, mw.invCodes, mw.invIconCache)
 		subject.PackStars = itemStackStarFlags(mw.invCodes)
 
 		// invParty IS RESOLVED HERE, ALONGSIDE THE FIGURE (docs/0124-equip-
@@ -2461,7 +2461,7 @@ func (mw *mapWorld) switchInventorySubject(selected uint32) {
 	if mw.invIconCache == nil {
 		mw.invIconCache = make(map[uint16]*image.RGBA)
 	}
-	subject.Pack, subject.PackCount, _ = buildInventoryPack(mw.mission.src, stacks, mw.invIconCache)
+	subject.Pack, subject.PackCount, _ = buildInventoryPack(mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
 	subject.PackStars = itemStackStarFlags(stacks)
 	figureDir, figureFace := memberFigure(member)
 	mw.invParty.hero, mw.invParty.profile, mw.invParty.startWeapon = member.Hero, member.Profile, mapload.MemberWeapon(member, mw.invParty.table)
@@ -2532,7 +2532,7 @@ func (mw *mapWorld) refreshPack() {
 	if itemStacksEqual(stacks, mw.invCodes) && gold == inventoryGold(mw.invSubject) {
 		return
 	}
-	mw.invSubject.Pack, mw.invSubject.PackCount, _ = buildInventoryPack(mw.mission.src, stacks, mw.invIconCache)
+	mw.invSubject.Pack, mw.invSubject.PackCount, _ = buildInventoryPack(mw.mission.src, mw.mission.table, stacks, mw.invIconCache)
 	mw.invSubject.PackStars = itemStackStarFlags(stacks)
 	// THE POPUP'S OWN PACK TEXT MOVES WITH THE PACK (0151, defect 5), on the
 	// SAME stacks read this compares against invCodes — a second container

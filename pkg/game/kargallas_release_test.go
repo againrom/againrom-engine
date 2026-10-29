@@ -186,7 +186,7 @@ func TestReleaseKargallasNativeLootSharesPackCells(t *testing.T) {
 			}
 			stacks, _ := f.live.world.CarriedStacks(f.live.mission.ids[2])
 			check("mission LOAD", stacks)
-			_, counts, _ := buildInventoryPack(nil, stacks, nil)
+			_, counts, _ := buildInventoryPack(nil, nil, stacks, nil)
 			if len(counts) != len(stacks) {
 				t.Fatal("mission pack omits stack quantities")
 			}

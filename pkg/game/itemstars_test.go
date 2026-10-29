@@ -17,7 +17,7 @@ func TestMissionPackKeepsBaseIconsAndCarriesExactStarSelector(t *testing.T) {
 	enchanted := sim.StackItem(sim.ItemInstance{Code: code, Kind: 2, Effects: []sim.ItemEffect{{Kind: 41, Operand: 9}}}, 1)
 	potion := sim.StackItem(sim.ItemInstance{Code: code, Kind: 3, Effects: []sim.ItemEffect{{Kind: 17, Operand: 5}}}, 1)
 
-	icons, _, unread := buildInventoryPack(src, []sim.ItemStack{plain, enchanted, potion}, cache)
+	icons, _, unread := buildInventoryPack(src, nil, []sim.ItemStack{plain, enchanted, potion}, cache)
 	if len(unread) != 0 || len(icons) != 3 {
 		t.Fatalf("pack icons = %v, unread %v", icons, unread)
 	}
