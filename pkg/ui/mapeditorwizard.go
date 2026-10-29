@@ -28,6 +28,7 @@ const (
 	wpBox                             // "x1,y1,x2,y2", or a box drawn on the map
 	wpMessage                         // a choice of message pages
 	wpCommand                         // a choice of the group commands that take a cell
+	wpRelation
 )
 
 // wizParam is one parameter of an item: its kind, its label's word, its
@@ -41,6 +42,7 @@ type wizParam struct {
 	def       int64
 	inNode    bool
 	last      bool
+	slot      uint32
 }
 
 // wizItem is one entry of the ready list. A condition is its check compared
@@ -58,6 +60,7 @@ type wizItem struct {
 	rightParam    int
 	fixed         [][2]uint32
 	onePerTrigger bool
+	hintWord      string
 }
 
 var (
@@ -66,7 +69,23 @@ var (
 	pGroup  = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true}
 	pPoint  = wizParam{kind: wpCell, labelWord: "editor.wizard.p.point", inNode: true}
 	pArea   = wizParam{kind: wpBox, labelWord: "editor.wizard.p.area", inNode: true}
+
+	pToPlayer = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player2", def: 2, inNode: true}
 )
+
+func numbered(p wizParam) wizParam {
+	p.slot = scriptInt
+	return p
+}
+
+func (p wizParam) types() []uint32 {
+	if p.slot != 0 {
+		return []uint32{p.slot}
+	}
+	return paramTypes(p.kind)
+}
+
+var wizardRelationWords = []string{"editor.wizard.relation.peace", "editor.wizard.relation.hostile", "editor.wizard.relation.alliance"}
 
 // wizConditions are the ready conditions. Check 2 is a unit in a box
 // (TRIG-CHECKGEOM-130), 3 a unit within a radius of a cell (TRIG-DIST-014),
@@ -80,6 +99,7 @@ var wizConditions = []wizItem{
 	{labelWord: "editor.wizard.c.unitdead", opcode: 5, params: []wizParam{pUnit}, cmp: 0, right: 0, rightParam: -1},
 	{labelWord: "editor.wizard.c.groupcount", opcode: 1, params: []wizParam{pGroup, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
 	{labelWord: "editor.wizard.c.playercount", opcode: 8, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
+	{labelWord: "editor.wizard.c.relation", opcode: 10, hintWord: "editor.wizard.c.relation.hint", cmp: -1, rightParam: 2, params: []wizParam{pPlayer, pToPlayer, {kind: wpRelation, labelWord: "editor.wizard.p.relation"}}},
 	{labelWord: "editor.wizard.c.always", opcode: scriptConstantOp, cmp: 0, right: 1, rightParam: -1, fixed: [][2]uint32{{scriptInt, 1}}},
 }
 
@@ -107,6 +127,7 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.order", opcode: scriptGroupCommand, params: []wizParam{
 		{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, last: true},
 		{kind: wpCommand, labelWord: "editor.wizard.p.command", def: 4, inNode: true}, pPoint}},
+	{labelWord: "editor.wizard.a.relation", opcode: 10, hintWord: "editor.wizard.a.relation.hint", params: []wizParam{numbered(pPlayer), numbered(pToPlayer), {kind: wpRelation, labelWord: "editor.wizard.p.relation", inNode: true}}},
 }
 
 // scriptConstantOp is the build-time operation: a preset condition, or the
@@ -157,7 +178,7 @@ const wizRadiusWord = "editor.wizard.p.radius"
 // values start at.
 func (it wizItem) itemSlots() (types [10]uint32, at []int, fixed int) {
 	for _, p := range it.params {
-		t := paramTypes(p.kind)
+		t := p.types()
 		switch {
 		case !p.inNode:
 			at = append(at, -1)
@@ -282,7 +303,7 @@ func (e *MapEditor) readParams(it wizItem, n InspectionScriptNode) ([]string, bo
 			out = append(out, fmt.Sprintf("%d,%d", v[0], v[1]))
 		case wpBox:
 			out = append(out, fmt.Sprintf("%d,%d,%d,%d", v[0], v[1], v[2], v[3]))
-		case wpNumber, wpMessage:
+		case wpNumber, wpMessage, wpRelation:
 			out = append(out, strconv.FormatInt(int64(int32(v[0])), 10))
 		case wpCommand:
 			if !slices.Contains(e.itemCommands(it), v[0]) {
@@ -512,7 +533,7 @@ func (e *MapEditor) wizardFields(v scriptView) {
 			f := InspectionField{Key: w.wizardKey(r, fmt.Sprintf("p%d", k)), Label: e.word(p.labelWord)}
 			value := text(k + 1)
 			switch p.kind {
-			case wpUnit, wpPlayer, wpGroup, wpMessage:
+			case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation:
 				n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 				f.Value = n
 				f.Choices = e.wizardChoices(p.kind, n)
@@ -593,6 +614,10 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 		}
 	case wpMessage:
 		return e.parameterChoices(ScriptMessageParameter, value)
+	case wpRelation:
+		for v, word := range wizardRelationWords {
+			add(int64(v), e.word(word))
+		}
 	}
 	if !found {
 		label := strconv.FormatInt(value, 10)
@@ -745,7 +770,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			pr := popupRow{Kind: popupEdit, Label: "  " + o.fields[i].Label, Value: o.buf[i]}
 			var buttons []string
 			switch p.kind {
-			case wpUnit, wpPlayer, wpGroup, wpCommand:
+			case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation:
 				pr.Kind, pr.Value = popupChoice, choiceText(o.fields[i], o.buf[i])
 				if p.kind == wpUnit {
 					buttons = []string{actPickUnit}
@@ -766,6 +791,9 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 		if it.cmp < 0 {
 			i := at[w.wizardKey(r, "cmp")]
 			add(popupRow{Kind: popupChoice, Label: "  " + o.fields[i].Label, Value: choiceText(o.fields[i], o.buf[i])}, i)
+		}
+		if it.hintWord != "" {
+			text("    "+e.word(it.hintWord), "")
 		}
 	}
 	for r, wr := range w.rows {
@@ -1056,7 +1084,7 @@ func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, er
 			}
 			nums = append(nums, x)
 		}
-		want := len(paramTypes(p.kind))
+		want := len(p.types())
 		if len(nums) != want {
 			switch p.kind {
 			case wpCell:
@@ -1091,7 +1119,7 @@ func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, er
 			}
 			continue
 		}
-		for c, t := range paramTypes(p.kind) {
+		for c, t := range p.types() {
 			n.Types[at[k]+c], n.Values[at[k]+c] = t, uint32(int32(nums[c]))
 		}
 	}
