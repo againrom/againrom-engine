@@ -563,10 +563,9 @@ func (e *MapEditor) Update() error {
 		if native.justPressed(ebiten.KeyR) && !native.pressed(ebiten.KeyControl) {
 			_ = e.Key("report")
 		}
-	} else {
-		if (e.prompt.fields() || e.objectTyping()) && native.justPressed(ebiten.KeyTab) {
-			_ = e.Key("tab")
-		}
+	}
+	if native.justPressed(ebiten.KeyTab) && (e.prompt.fields() || e.objectTyping() || e.nativeUnitWindow() && !e.objectHidden) {
+		_ = e.Key("tab")
 	}
 	canvas := native.canvas
 	if typing && !policy.panArrows {

@@ -18,14 +18,19 @@ func (e *MapEditor) unitWindowWidth() int {
 }
 
 type InspectionUnitSettings interface {
-	UnitSettings(int, []InspectionFieldValue) (MapEntity, []InspectionField, *image.RGBA, error)
+	UnitSettings(int, []InspectionFieldValue) (MapEntity, []InspectionField, *InspectionUnitPreview, error)
+}
+
+type InspectionUnitPreview struct {
+	Doll, Face *image.RGBA
+	FaceWindow image.Rectangle
 }
 
 type unitSettingsView struct {
 	key     string
 	entity  MapEntity
 	fields  []InspectionField
-	picture *image.RGBA
+	picture *InspectionUnitPreview
 	ok      bool
 }
 

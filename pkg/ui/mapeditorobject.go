@@ -152,9 +152,13 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.CardFont = e.cardFont
 	}
 	if native {
-		s.Width = max(420, e.unitWindowWidth()-32)
+		s.Width = min(680, e.unitWindowWidth()-32)
+		if e.unitWindowWidth() >= 1100 {
+			s.Width = min(1180, e.unitWindowWidth()-32)
+		}
 		if s.Card != nil {
-			s.Width -= compactPanelW + popupPad
+			s.CardAside = compactPanelW + noticeFaceW + 2*popupPad
+			s.Width -= s.CardAside + popupPad
 		}
 		s.At = image.Pt(16, e.barHeight()+8)
 		if e.slack[popObject] || e.sizes[popObject] != (image.Point{}) {

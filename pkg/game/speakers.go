@@ -18,6 +18,8 @@ type speakerResolver struct {
 	figurePics    map[figureCacheKey]*image.RGBA
 	playerFigure  *image.RGBA
 	playerFigures map[int]*image.RGBA
+	figure        *figureID
+	equipment     data.Equipment
 
 	// cast is the live half of speaker resolution (speakeractors.go): who is
 	// standing on this map, and what the world says each of them is wearing.
@@ -108,7 +110,7 @@ func (r *speakerResolver) liveFigure(npc int32, rec data.NPCFace) (*image.RGBA, 
 // subject to be `Me` all answer false, and the window draws its pane empty.
 func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle, bool) {
 	rec, ok := r.npcFaces[int32(speaker)]
-	if !ok {
+	if !ok && r.figure == nil {
 		return nil, image.Rectangle{}, false
 	}
 	// THE LIVE SEARCH PRECEDES THE PICTURE KIND. The registry's Portrait,
@@ -116,6 +118,9 @@ func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle
 	// client actor walk found nobody. Running the switch first made a carried
 	// Brian synthetic and made npc23/Naira reuse the current inventory subject.
 	pic, live := r.liveFigure(int32(speaker), rec)
+	if r.figure != nil {
+		pic, live = r.speakerFigure(*r.figure, r.equipment), true
+	}
 	if !live {
 		switch rec.Kind {
 		case data.NPCPortrait:

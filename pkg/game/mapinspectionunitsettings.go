@@ -3,7 +3,6 @@ package game
 import (
 	"againrom/pkg/mapedit"
 	"fmt"
-	"image"
 	"strconv"
 
 	"againrom/pkg/mapload"
@@ -16,7 +15,7 @@ type inspectionUnitViews struct {
 	model    *mapedit.Editor
 	actual   []unitSheet
 	entities []ui.MapEntity
-	pictures map[uint32]*image.RGBA
+	pictures map[uint32]*ui.InspectionUnitPreview
 }
 
 func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
@@ -39,7 +38,7 @@ func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	return c.actual
 }
 
-func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, *image.RGBA, error) {
+func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, *ui.InspectionUnitPreview, error) {
 	trial := *s
 	if len(values) > 0 {
 		trial.model = s.model.Clone()
@@ -75,7 +74,7 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 	}
 	c.entities = mw.entityDraws()
 	if c.pictures == nil {
-		c.pictures = make(map[uint32]*image.RGBA)
+		c.pictures = make(map[uint32]*ui.InspectionUnitPreview)
 	}
 	for _, entity := range c.entities {
 		if int(entity.ID) != index {
@@ -84,7 +83,18 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 		id := sim.EntityID(entity.ID)
 		c.pictures[entity.ID] = nil
 		if fig, ok := mw.figures[id]; ok {
-			c.pictures[entity.ID], _ = composeUnitFigure(s.inspector.archives.artSource(), mw.equipmentOf(id), fig)
+			r := speakerResolver{src: s.inspector.archives.artSource(), figure: &fig, equipment: mw.equipmentOf(id)}
+			speaker := -1
+			if catalog := s.inspector.table.NPCCatalog; catalog != nil {
+				r.npcFaces = catalog.Faces
+			}
+			if m.Units[index].Flags&1 != 0 {
+				speaker = int(m.Units[index].ClassSubID)
+			}
+			pic, window, _ := r.SpeakerFace(speaker)
+			if pic != nil {
+				c.pictures[entity.ID] = &ui.InspectionUnitPreview{Doll: pic, Face: pic, FaceWindow: window}
+			}
 		}
 	}
 	if len(values) == 0 {

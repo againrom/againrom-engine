@@ -50,7 +50,7 @@ func TestEditorNativeNPCIdentityPreviewSaveUndoAndClone(t *testing.T) {
 		t.Fatal("wrong native identity catalog", seen)
 	}
 	_, previewFields, pic, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "npc", Value: 8}})
-	if err != nil || pic == nil || pic.RGBAAt(0, 0).R != 140 {
+	if err != nil || pic == nil || pic.Doll.RGBAAt(0, 0).R != 140 {
 		t.Fatal("NPC draft preview", err)
 	}
 	for _, f := range previewFields {

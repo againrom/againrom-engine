@@ -156,6 +156,7 @@ type popupSpec struct {
 	ActiveTab   int
 	Card        *PanelSubject
 	CardFont    *text.Font
+	CardAside   int
 	Title       string
 	At          image.Point
 	Width       int
@@ -302,7 +303,7 @@ func popupMinWidth(s popupSpec, body *text.Font) int {
 		}
 	}
 	if s.Card != nil {
-		w += compactPanelW + popupPad
+		w += max(compactPanelW, s.CardAside) + popupPad
 	}
 	return w
 }
@@ -484,7 +485,7 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
 	contentRight := r.Max.X - popupPad
 	if s.Card != nil {
-		contentRight -= compactPanelW + popupPad
+		contentRight -= max(compactPanelW, s.CardAside) + popupPad
 	}
 	contentY := r.Min.Y + titleH + popupPad
 	if s.MaxRows > 0 && popupRowCount(s) > s.MaxRows {

@@ -934,10 +934,13 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.nativeUnitWindow() {
 		e.obj.data = -1
 		if s.Card != nil {
-			s.Width += compactPanelW + popupPad
+			s.Width += max(compactPanelW, s.CardAside) + popupPad
 		}
 		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
-		s.Size = image.Pt(s.Width, e.popupBounds().Dy()-16)
+		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
+		s.Size = image.Pt(s.Width, min(620, height, e.popupBounds().Dy()-16))
+		s.MinWidth = s.Width
+		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
 		s.Top = e.objectTop
 		return s, links, true
@@ -1228,7 +1231,18 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		if box.Empty() {
 			return
 		}
-		preview := e.obj.unit.picture
+		var preview *image.RGBA
+		if pictures := e.obj.unit.picture; pictures != nil {
+			preview = pictures.Doll
+			if s.CardAside > compactPanelW {
+				at := image.Pt(l.Rect.Max.X-popupPad-s.CardAside, min(top, bottom-noticeFaceH))
+				face := AuthoredDialogueLayout().WithFaceWindow(pictures.FaceWindow)
+				face.Portrait = image.Rectangle{Min: at, Max: at.Add(image.Pt(noticeFaceW, noticeFaceH))}
+				face.PortraitAt = image.Point{}
+				face.Frame = nil
+				drawNoticePortrait(pic, face, pictures.Face)
+			}
+		}
 		if preview == nil || preview.Bounds().Empty() {
 			if f := e.bodyFont(); f != nil {
 				f.Draw(pic.SubImage(box).(*image.RGBA), e.word("editor.unit.look.missing"), box.Min.X, box.Min.Y, editorGold)

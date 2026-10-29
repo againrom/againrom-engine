@@ -27,7 +27,7 @@ func (p *personSettingsProbe) Fields(kind string, index int) []InspectionField {
 	return append(fields, InspectionField{Key: "carryadd", Label: "Add carried item", Section: "inventory", Choices: []InspectionChoice{{Value: 0, Label: "Choose"}, {Value: 257, Label: "Long Sword"}}}, InspectionField{Key: "body", Section: "stats", Label: "Body", Inherit: true})
 }
 
-func (p *personSettingsProbe) UnitSettings(index int, values []InspectionFieldValue) (MapEntity, []InspectionField, *image.RGBA, error) {
+func (p *personSettingsProbe) UnitSettings(index int, values []InspectionFieldValue) (MapEntity, []InspectionField, *InspectionUnitPreview, error) {
 	entity, _, pic, err := p.settingsPreviewProbe.UnitSettings(index, values)
 	fields := p.Fields("Unit", index)
 	for _, v := range values {
@@ -42,7 +42,7 @@ func (p *personSettingsProbe) UnitSettings(index int, values []InspectionFieldVa
 
 func TestEditorPersonWindowFitsAndPaintsBothLanguages(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
-		for _, size := range []image.Point{{1280, 800}, {800, 600}, {640, 480}} {
+		for _, size := range []image.Point{{1280, 800}, {800, 600}, {640, 480}, {1024, 768}, {1280, 1024}, {1920, 1080}} {
 			t.Run(lang+size.String(), func(t *testing.T) {
 				e, host := popupEditor(t)
 				_ = e.Open("popups")

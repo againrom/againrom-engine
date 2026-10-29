@@ -66,12 +66,12 @@ func TestEditorNativeFaceSexPreviewApplyUndoAndReopen(t *testing.T) {
 		t.Fatalf("inherited sex = %d, want female", got)
 	}
 	_, _, before, err := s.UnitSettings(0, nil)
-	if err != nil || before == nil || before.RGBAAt(0, 0).R != 40 {
+	if err != nil || before == nil || before.Doll.RGBAAt(0, 0).R != 40 {
 		t.Fatal("missing inherited face preview", err)
 	}
 	changes := []ui.InspectionFieldValue{{Key: "face", Value: 7}, {Key: "sex", Value: 0}}
 	_, _, preview, err := s.UnitSettings(0, changes)
-	if err != nil || preview == nil || preview.RGBAAt(0, 0).R != 140 {
+	if err != nil || preview == nil || preview.Doll.RGBAAt(0, 0).R != 140 {
 		t.Fatal("draft did not draw the selected face", err)
 	}
 	if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
@@ -100,7 +100,7 @@ func TestEditorNativeFaceSexPreviewApplyUndoAndReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, reloaded, err := doc.Edits.(*mapInspectionEdits).UnitSettings(0, nil)
-	if err != nil || reloaded == nil || !bytes.Equal(reloaded.Pix, preview.Pix) {
+	if err != nil || reloaded == nil || !bytes.Equal(reloaded.Doll.Pix, preview.Doll.Pix) {
 		t.Fatal("Save/reopen changed the preview", err)
 	}
 	if _, err := os.Stat(path); err != nil {
