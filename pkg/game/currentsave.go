@@ -264,7 +264,7 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 			return sav.DocumentData{}, nil, err
 		}
 	}
-	order := writeCityGroups(&city, s.Party, s.cityGroups)
+	order := writeCityGroups(&city, s.Party, s.cityGroups, s.cityGroupsLoaded)
 	city.MapName = s.LastMap
 	if err := nativeCityPlayerFormation(&city, s.ApplicationState, nil, s.townOptions); err != nil {
 		return sav.DocumentData{}, nil, err

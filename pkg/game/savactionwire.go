@@ -81,7 +81,6 @@ func projectNativeOrder(state *SnapshotSAVDocument, w *sim.World, entities []sim
 		o.State, o.Patrol = uint32(e.ActorState), nil
 	}
 	o = sim.ProjectActorOrderTargets(e, o, attack, escort)
-	o = sim.ProjectActorAcquireOrder(e, o)
 	o = sim.ProjectActorRetreatOrder(e, o)
 	o.Authored = false
 	return projectSavedOrderFields(&state.Document.Objects[index-1], o)

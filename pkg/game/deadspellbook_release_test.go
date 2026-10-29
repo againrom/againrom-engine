@@ -140,8 +140,8 @@ func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 			t.Logf("%d dead records, %d with a book; %d with no entity; %d entity bodies; %d write another book; Spell objects %d, loaded %d",
 				len(before), books, kept, len(entity), moved, afterSpells, beforeSpells)
 			// The actor values of a dead body the World holds as no entity
-			// come from its loaded record (retainDeadValues); a value that
-			// moved is reported, not required.
+			// come from its placement and the tables (DIV-4120); they are
+			// reported, not required.
 			for name, w := range beforeRecords {
 				g := afterRecords[name]
 				if g == nil || name != "Human 397802536" && name != "Human 385308024" {
@@ -160,7 +160,7 @@ func TestReleaseOriginalResaveKeepsDeadSpellbooks(t *testing.T) {
 				if err1 != nil || err2 != nil || !bytes.Equal(got, want) {
 					moved = append(moved, "U154")
 				}
-				t.Logf("%s actor values moved: %v", name, moved)
+				t.Logf("%s actor values moved (DIV-4120): %v", name, moved)
 			}
 			cold := releaseFront(t)
 			if _, _, err := cold.RestoreOriginal(written); err != nil {

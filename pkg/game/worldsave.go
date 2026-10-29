@@ -307,8 +307,11 @@ func projectDeadActors(state *SnapshotSAVDocument, world *sim.World, loaded *Sna
 		}
 		p[0], p[1], p[2], p[3], p[4], p[5] = byte(c.Cell), byte(c.Cell>>8), byte(c.Cell), byte(c.Cell>>8), c.FineX, c.FineY
 		binary.LittleEndian.PutUint32(p[8:], d.Source.TerrainKey)
-		_, entity := world.Entity(d.ID)
-		if err := keepLoadedBodyWords(r, loaded, bodyWords(r, entity)); err != nil {
+		words := loadedBodyWords
+		if _, entity := world.Entity(d.ID); !entity {
+			words = loadedTerminalWords
+		}
+		if err := keepLoadedBodyWords(r, loaded, words); err != nil {
 			return err
 		}
 	}

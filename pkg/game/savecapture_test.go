@@ -29,8 +29,7 @@ func captureGroupEffect(t *testing.T, mode saveCaptureMode) (before, during, aft
 
 // The mode table as built: a tentative capture builds from the pruned lists
 // and leaves the live World as it was; a committed capture prunes the live
-// World; a timer capture builds from the pruned lists and leaves the live
-// World as a tentative one does (SAV-1251).
+// World; a timer capture prunes nothing (SAV-1251).
 func TestSaveCaptureModesOnTheWorld(t *testing.T) {
 	check := func(t *testing.T) []string {
 		var failures []string
@@ -43,7 +42,7 @@ func TestSaveCaptureModesOnTheWorld(t *testing.T) {
 			failures = append(failures, "committed "+before+" / "+during+" / "+after)
 		}
 		before, during, after = captureGroupEffect(t, captureTimer)
-		if during == before || after != before {
+		if during != before || after != before {
 			failures = append(failures, "timer "+before+" / "+during+" / "+after)
 		}
 		return failures
@@ -52,49 +51,47 @@ func TestSaveCaptureModesOnTheWorld(t *testing.T) {
 		t.Fatal(failures)
 	}
 	// Loss controls: each wrong row is seen by the check above.
-	for _, c := range []struct {
-		mode  saveCaptureMode
-		wrong saveCaptureTransform
-	}{
-		{captureTentative, saveCaptureTransform{pruneGroups: true}},
-		{captureCommitted, saveCaptureTransform{pruneGroups: true, restore: true}},
-		{captureTimer, saveCaptureTransform{pruneGroups: true}},
-		{captureTimer, saveCaptureTransform{}},
+	for mode, wrong := range map[saveCaptureMode]saveCaptureTransform{
+		captureTentative: {pruneGroups: true},
+		captureCommitted: {pruneGroups: true, restore: true},
+		captureTimer:     {pruneGroups: true},
 	} {
-		kept := saveCaptureTransforms[c.mode]
-		saveCaptureTransforms[c.mode] = c.wrong
+		kept := saveCaptureTransforms[mode]
+		saveCaptureTransforms[mode] = wrong
 		failures := check(t)
-		saveCaptureTransforms[c.mode] = kept
+		saveCaptureTransforms[mode] = kept
 		if len(failures) != 1 {
-			t.Fatalf("mode %d row %+v: failures %v, want one", c.mode, c.wrong, failures)
+			t.Fatalf("mode %d row %+v: failures %v, want one", mode, wrong, failures)
 		}
 	}
 }
 
-// The town half of the table: the town's emptied group is removed by a
-// committed capture and put back by a tentative or timer one, whether or not
-// a LOAD set the town's groups.
+// The town half of the table: a LOADed town's emptied group is removed by a
+// committed capture, put back by a tentative one and left by a timer one.
+// The control, a town no LOAD set, keeps the group under every mode.
 func TestSaveCaptureModesOnTheTown(t *testing.T) {
 	party := []mapload.PartyMember{{ID: "hero"}}
-	for _, tc := range []struct {
-		mode   saveCaptureMode
-		pruned bool
-	}{{captureTentative, false}, {captureCommitted, true}, {captureTimer, false}} {
-		f := &FrontEnd{}
-		f.Carried = party
-		f.Town = &Town{cityGroups: []cityLiveGroup{
-			{Payload: cityConstructedGroup(), Members: []string{"left"}},
-			{Payload: cityConstructedGroup(), Members: []string{"hero"}},
-		}}
-		if err := f.captureSave(tc.mode, false, nil); err != nil {
-			t.Fatal(err)
-		}
-		want := [][]string{{"left"}, {"hero"}}
-		if tc.pruned {
-			want = want[1:]
-		}
-		if got := liveGroupIDs(f.Town.cityGroups); !reflect.DeepEqual(got, want) {
-			t.Fatalf("mode %d: live groups %v, want %v", tc.mode, got, want)
+	for _, loaded := range []bool{true, false} {
+		for _, tc := range []struct {
+			mode   saveCaptureMode
+			pruned bool
+		}{{captureTentative, false}, {captureCommitted, true}, {captureTimer, false}} {
+			f := &FrontEnd{}
+			f.Carried = party
+			f.Town = &Town{cityGroupsLoaded: loaded, cityGroups: []cityLiveGroup{
+				{Payload: cityConstructedGroup(), Members: []string{"left"}},
+				{Payload: cityConstructedGroup(), Members: []string{"hero"}},
+			}}
+			if err := f.captureSave(tc.mode, false, nil); err != nil {
+				t.Fatal(err)
+			}
+			want := [][]string{{"left"}, {"hero"}}
+			if loaded && tc.pruned {
+				want = want[1:]
+			}
+			if got := liveGroupIDs(f.Town.cityGroups); !reflect.DeepEqual(got, want) {
+				t.Fatalf("loaded %t mode %d: live groups %v, want %v", loaded, tc.mode, got, want)
+			}
 		}
 	}
 }

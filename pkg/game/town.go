@@ -142,6 +142,9 @@ type Town struct {
 	// cityGroups is the Player's group membership, replaced and never edited
 	// in place so a copied Town shares it.
 	cityGroups []cityLiveGroup
+	// cityGroupsLoaded marks groups a LOAD read from a file; only those lose
+	// an emptied group at SAVE (writeCityGroups).
+	cityGroupsLoaded bool
 
 	// documents is the campaign's document collection: one append-only list
 	// of (value, kind) pairs, deduplicated on the pair, in the order the
