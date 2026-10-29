@@ -230,6 +230,10 @@ type NoticeLayout struct {
 	ButtonBorder color.RGBA
 	ButtonText   color.RGBA
 
+	// GrowText makes Text hold every line of its body: WithBody grows the
+	// window by the lines that do not fit (DIV-4229). The outcome panels set it.
+	GrowText bool
+
 	// PortraitFill and PortraitBorder are what an EMPTY pane is painted with.
 	// They are OURS, exactly as the frame and the button's colours are; the
 	// installed backdrop (Frame.PortraitBack) covers them under the window.
@@ -272,6 +276,39 @@ func (l NoticeLayout) WithPortrait(on bool) NoticeLayout {
 	}
 	if !l.TextBesidePortrait.Empty() {
 		l.Text = l.TextBesidePortrait
+	}
+	return l
+}
+
+// WithBody is l resolved for body s. With GrowText, each wrapped line past
+// what Text holds adds one pitch to Text, to the box's height and to the top
+// of every button below the text; a box that then crosses the design space's
+// bottom edge moves up, and the growth stops at the design space's height.
+// A body that fits, and a layout without GrowText, keep l unchanged.
+func (l NoticeLayout) WithBody(f *text.Font, s string) NoticeLayout {
+	if !l.GrowText || f == nil {
+		return l
+	}
+	pitch := f.Height() + l.Pitch
+	if pitch <= 0 {
+		return l
+	}
+	more := len(noticeWrap(l, f, s)) - max(0, l.Text.Dy()/pitch)
+	more = min(more, (frame.H-l.Box.Dy())/pitch)
+	if more <= 0 {
+		return l
+	}
+	grow, below := more*pitch, l.Text.Max.Y
+	l.Text.Max.Y += grow
+	if !l.Button.Empty() && l.Button.Min.Y >= below {
+		l.Button = l.Button.Add(image.Pt(0, grow))
+	}
+	if !l.SecondaryButton.Empty() && l.SecondaryButton.Min.Y >= below {
+		l.SecondaryButton = l.SecondaryButton.Add(image.Pt(0, grow))
+	}
+	l.Box.Max.Y += grow
+	if over := l.Box.Max.Y - frame.H; over > 0 {
+		l.Box = l.Box.Sub(image.Pt(0, over))
 	}
 	return l
 }
@@ -430,6 +467,7 @@ func AuthoredOutcomeLayout() NoticeLayout {
 		Button:      image.Rect(outcomeButtonX, outcomeButtonY, outcomeButtonX+outcomeButtonW, outcomeButtonY+outcomeButtonH),
 		ButtonLabel: AuthoredNoticeButton,
 		Pitch:       noticePitch,
+		GrowText:    true,
 
 		Fill:         color.RGBA{R: 0x18, G: 0x10, B: 0x12, A: 0xf2},
 		Border:       color.RGBA{R: 0xc8, G: 0x9a, B: 0x3a, A: 0xff},
@@ -1036,7 +1074,8 @@ func (v *Viewer) SetSuccessNoticeLayout(success NoticeLayout) {
 //
 // THE OUTCOME NOTICE IS RESOLVED THE SAME WAY and is unaffected by it: its
 // layout has no pane at all, so WithPortrait empties the rectangle and the pane
-// is never drawn, whatever window the last speaker left behind.
+// is never drawn, whatever window the last speaker left behind. Its window is
+// then resolved for its body (WithBody), so paint and hit tests agree.
 func (v *Viewer) noticeLayout() NoticeLayout {
 	index := int(v.noticeKind)
 	if index < 0 || index >= len(v.noticeLayouts) {
@@ -1054,6 +1093,7 @@ func (v *Viewer) noticeLayout() NoticeLayout {
 		state := v.noticeButtonState
 		state.Disabled = l.ButtonState.Disabled
 		l.ButtonState, l.SecondaryState = state, v.noticeSecondState
+		l = l.WithBody(v.font, v.notice)
 	}
 	return l
 }

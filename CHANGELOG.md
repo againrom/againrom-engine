@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A lost mission's long reason now shows whole, on several lines, with the window's buttons below it; before, it stopped after the first line.
 - [BASE] The map editor no longer crashes when you add a condition or an action to a trigger and open its list: a new row lists only the ready conditions or actions, without the last choice "Other: Choose..." that closed the editor. A row the editor shows as "Other" still offers it, and choosing it again keeps that condition or action as it was.
 - [BASE] A map whose text pages exist only in the other language (for example only in the Russian folder on an English game) now shows those pages in the map editor and in the game; a page that exists in both languages shows the game's language. Before, such a map showed every page empty.
 - [ROM2] A lost mission now tells you why it was lost, in that mission's own words: when the hero dies, when Iglez or Dina dies, or when the mission's task fails. Before, the hero's or Dina's death showed only the general "mission failed" text.

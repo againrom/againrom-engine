@@ -3333,5 +3333,5 @@ var Committed = Baseline{
 	// of secondGameFailureEntries and the census fields in pkg/game, of the
 	// scan in internal/archtest/lossreason.go, the new tests' comments, and
 	// this note.
-	CommentBytes: 9884080,
+	CommentBytes: 9885249,
 }
