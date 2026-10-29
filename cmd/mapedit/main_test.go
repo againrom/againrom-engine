@@ -51,6 +51,15 @@ func installFolder(t *testing.T, dir string) string {
 	return dir
 }
 
+func resolvedTempDir(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
 func writeFile(t *testing.T, path, text string) string {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -82,7 +91,7 @@ func rootChosen(t *testing.T, self string, args ...string) string {
 // same root choice, here through the install that holds the map.
 func TestPositionalMapPathIsTheMapFlag(t *testing.T) {
 	t.Setenv("AGAINROM_ASSETS", "")
-	base := t.TempDir()
+	base := resolvedTempDir(t)
 	install := installFolder(t, filepath.Join(base, "install"))
 	m := writeFile(t, filepath.Join(install, "maps", "a.alm"), "x")
 	self := filepath.Join(base, "program", "mapedit.exe")
@@ -109,7 +118,7 @@ func TestRootComesFromTheProgramsFolder(t *testing.T) {
 // A program outside any install reads the install that holds the map.
 func TestRootComesFromTheInstallHoldingTheMap(t *testing.T) {
 	t.Setenv("AGAINROM_ASSETS", "")
-	base := t.TempDir()
+	base := resolvedTempDir(t)
 	install := installFolder(t, filepath.Join(base, "install"))
 	m := writeFile(t, filepath.Join(install, "deep", "er", "a.alm"), "x")
 	self := filepath.Join(base, "tools", "mapedit.exe")
