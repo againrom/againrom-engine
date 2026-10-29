@@ -1,5 +1,7 @@
 package ui
 
+import "strings"
+
 // The trigger editor's words with a number or role in their id: each id
 // is read by a literal, so the word tables' check sees every one.
 
@@ -144,8 +146,23 @@ func (e *MapEditor) cmpWordOf(k int64) (string, bool) {
 	return "", false
 }
 
+var commandPanelSlots = map[uint32]int{10: 0, 4: 1, 1: 2, 11: 3, 5: 5, 3: 6}
+
+func commandPanelLabel(label string) string {
+	label = strings.TrimSpace(label)
+	if i := strings.LastIndex(label, "<"); i >= 0 && len(label)-i == 3 && strings.HasSuffix(label, ">") {
+		label = strings.TrimSpace(label[:i])
+	}
+	return label
+}
+
 // commandWord is the name of a group command.
 func (e *MapEditor) commandWord(k uint32) (string, bool) {
+	if slot, ok := commandPanelSlots[k]; ok {
+		if w := commandPanelLabel(e.commandWords[slot]); w != "" {
+			return w, true
+		}
+	}
 	switch k {
 	case 1:
 		return e.word("editor.command.1"), true

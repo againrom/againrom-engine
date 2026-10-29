@@ -34,7 +34,7 @@ func TestTriggerWizardOrdersAGroupToAPointAsTheShippedOrder(t *testing.T) {
 	e.Fit()
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
 	shipped := trigLines(e)
-	for _, want := range []string{"Action Order a group to a point", "Group Group 21", "Command Swarm 2", "Point 30,25"} {
+	for _, want := range []string{"Action Order a group to a point", "Group Group 21", "Command Swarm", "Point 30,25"} {
 		if !strings.Contains(shipped, want) {
 			t.Fatalf("the shipped order reads as no wizard row (%q):\n%s", want, shipped)
 		}
@@ -43,7 +43,7 @@ func TestTriggerWizardOrdersAGroupToAPointAsTheShippedOrder(t *testing.T) {
 	wizPress(t, e, "+action", 0)
 	trigChoose(t, e, wizField(t, e, "a0.item"), "Order a group")
 	trigChoose(t, e, wizField(t, e, "a0.p0"), "Group 21")
-	trigChoose(t, e, wizField(t, e, "a0.p1"), "Swarm 2")
+	trigChoose(t, e, wizField(t, e, "a0.p1"), "Swarm")
 	wizPress(t, e, "a0.p2", 0) // On map
 	clickCell(e, image.Pt(30, 25))
 	wizApply(t, e)
@@ -66,7 +66,7 @@ func TestTriggerWizardOrdersAGroupToAPointAsTheShippedOrder(t *testing.T) {
 	reopened, _ := openGoalMap(t, saved)
 	reopened.Select(trigRecord(t, reopened, "Trigger", 1), true)
 	got := trigLines(reopened)
-	for _, want := range []string{"Action Order a group to a point", "Group Group 21", "Command Swarm 2", "Point 30,25"} {
+	for _, want := range []string{"Action Order a group to a point", "Group Group 21", "Command Swarm", "Point 30,25"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("the reloaded order lacks %q:\n%s", want, got)
 		}

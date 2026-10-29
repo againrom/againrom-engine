@@ -131,7 +131,7 @@ func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 		t.Fatalf("the trigger opens no wizard:\n%s", strings.Join(e.PopupLines(), "\n"))
 	}
 	lines := e.PopupLines()
-	for _, want := range []string{"Action Order a group to a point", "Group Group 5 (units: 7)", "Command Swarm 2", "Point 96,84"} {
+	for _, want := range []string{"Action Order a group to a point", "Group Group 5 (units: 7)", "Command Swarm", "Point 96,84"} {
 		if !slices.Contains(lines, want) {
 			t.Fatalf("the wizard lacks %q:\n%s", want, strings.Join(lines, "\n"))
 		}
@@ -144,7 +144,7 @@ func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 	for _, c := range e.obj.fields[command].Choices {
 		names = append(names, c.Label)
 	}
-	if !slices.Equal(names, []string{"Swarm", "Move", "Swarm 2", "Patrol"}) {
+	if !slices.Equal(names, []string{"Swarm as a crowd", "Move", "Swarm", "Patrol"}) {
 		t.Fatalf("the command choices %q", names)
 	}
 	order := slices.IndexFunc(wizActions, func(it wizItem) bool { return it.labelWord == "editor.wizard.a.order" })

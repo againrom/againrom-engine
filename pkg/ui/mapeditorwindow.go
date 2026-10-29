@@ -48,6 +48,7 @@ type editorChrome struct {
 	cardFont               *text.Font
 	book                   words.Book
 	hasBook                bool
+	commandWords           [8]string
 	listShown              bool
 	objectHidden           bool
 	listAt, objectAt       image.Point
@@ -112,6 +113,8 @@ func (e *MapEditor) SetCardFont(f *text.Font) { e.cardFont = f }
 
 // SetWords sets the word table the editor's own words are read from.
 func (e *MapEditor) SetWords(b words.Book) { e.book, e.hasBook = b, true }
+
+func (e *MapEditor) SetCommandWords(w [8]string) { e.commandWords = w }
 
 func (e *MapEditor) bodyFont() *text.Font {
 	if e.body != nil {

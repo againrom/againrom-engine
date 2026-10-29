@@ -84,6 +84,9 @@ func trigChoose(t *testing.T, e *ui.MapEditor, n int, want string) {
 	choices := e.DropdownChoices()
 	e.ScrollDropdown(-len(choices))
 	for row, c := range choices {
+		if i := slices.Index(choices, want); i >= 0 && row != i {
+			continue
+		}
 		if strings.Contains(c, want) {
 			for k := 0; k < len(choices)+10; k++ {
 				if r, ok := e.DropdownRowRect(row); ok {

@@ -115,6 +115,9 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 	if x.archives != nil {
 		e.SetWords(words.For(x.archives.Base.Profile.Language))
 	}
+	if x.panelWords != nil {
+		e.SetCommandWords(x.panelWords.Command)
+	}
 	e.SetHostTextEncoder(x.inspectionUTF8, func(value string) string { return x.messageUTF8([]byte(value)) })
 	return e
 }
