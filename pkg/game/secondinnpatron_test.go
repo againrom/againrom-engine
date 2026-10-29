@@ -1,20 +1,51 @@
 package game
 
 import (
+	"strings"
 	"testing"
 
-	"againrom/pkg/mapload"
+	"againrom/pkg/vfs"
 )
 
 // An inn patron's own name is the npcnames entry of a key of 1000 or more;
 // a smaller key has none and the sheet heads the card with Mercenary over
 // the type (R2-ENGINE-581, DIV-4087).
 func TestSecondInnPersonName(t *testing.T) {
-	tbl := &mapload.Table{NPCNames: make([]string, 2200)}
-	tbl.NPCNames[7], tbl.NPCNames[17], tbl.NPCNames[2108] = "Mercenary", "Mercenary", "Peasant"
-	for npc, want := range map[int]string{207: "", 517: "", 7: "", 2108: "Peasant", 5000: ""} {
-		if got := secondInnPersonName(tbl, npc); got != want {
+	lines := make([]string, 2200)
+	lines[6], lines[16] = "Mercenary", "Mercenary"
+	lines[2107], lines[2108], lines[2109] = "Peasant", "Neighbour", "Guard"
+	fsys, err := vfs.Open(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fsys.Overlay(npcNamesPath, func() ([]byte, error) { return []byte(strings.Join(lines, "\r\n")), nil })
+	in := &InstallResources{Archives: &Archives{Containers: fsys}}
+	for npc, want := range map[int]string{
+		207: "", 517: "", 7: "", 17: "", 2108: "Peasant", 2109: "Neighbour", 2110: "Guard", 3000: "", 5000: "",
+	} {
+		if got := secondInnPersonName(in, npc); got != want {
 			t.Errorf("key %d: %q, want %q", npc, got, want)
+		}
+	}
+}
+
+func TestSecondInnPatronNamesInstalled(t *testing.T) {
+	archives := secondGameRoot(t)
+	in := &InstallResources{Archives: archives}
+	payload, err := archives.Containers.ReadFile(npcNamesPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.ReplaceAll(string(in.textCode().Bytes(payload)), "\r\n", "\n"), "\n")
+	for _, npc := range []int{2108, 2110} {
+		want := lines[npc-1]
+		if want == "" {
+			t.Fatalf("NPC %d has an empty installed line", npc)
+		}
+		got := secondInnPersonName(in, npc)
+		t.Logf("NPC %d reads %q (line %d of %d; neighbours %q, %q)", npc, got, npc, len(lines), lines[npc-2], lines[npc])
+		if got != want {
+			t.Errorf("NPC %d reads %q, want its own line %q", npc, got, want)
 		}
 	}
 }

@@ -70,7 +70,7 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 	// one, else Mercenary above the type's unitname entry for an actor of
 	// flags 0x11, else the type's entry alone.
 	p.subject.Name, p.subject.Char.Name = "", ""
-	if name := secondInnPersonName(tbl, npc); name != "" {
+	if name := secondInnPersonName(t.in, npc); name != "" {
 		p.subject.Name, p.subject.Char.Name = name, name
 	} else if p.subject.OriginalPanel.Flags&0x11 != 0 {
 		p.subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
@@ -86,11 +86,11 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 // secondInnPersonName is the own name of inn NPC key npc, the string the
 // sheet heads its card with when it has one: the npcnames entry of a key of
 // 1000 or more, and none for a smaller key (DIV-4087).
-func secondInnPersonName(tbl *mapload.Table, npc int) string {
-	if npc < 1000 || npc >= len(tbl.NPCNames) {
+func secondInnPersonName(in *InstallResources, npc int) string {
+	if npc < 1000 {
 		return ""
 	}
-	return tbl.NPCNames[npc]
+	return in.localizedNPCName(npc-1, "")
 }
 
 // selectedPatron is the selected seat's person, nil without a selection.

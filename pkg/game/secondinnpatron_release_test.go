@@ -69,7 +69,7 @@ func TestReleaseSecondInnPatrons(t *testing.T) {
 		// any other with Mercenary above its type's unitname entry (DIV-4087).
 		role, wantName := f.Words.PanelCaptions[mainSlotMercenary], f.Words.UnitNames[want.typeID]
 		if want.ownName {
-			role, wantName = "", tbl.NPCNames[want.npc]
+			role, wantName = "", tbl.NPCNames[want.npc-1]
 		}
 		if name == "" || name != wantName || sub.Role != role {
 			t.Errorf("NPC %d heading %q / %q, want %q / %q", want.npc, sub.Role, name, role, wantName)

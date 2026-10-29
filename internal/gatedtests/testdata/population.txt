@@ -1108,6 +1108,7 @@ pkg/game.TestReleaseSecondMissionThirtyWithoutTheTalk
 pkg/game.TestReleaseSecondIglezTalksDrawHisPortrait
 pkg/game.TestReleaseSecondDinaTalksDrawHerPortrait
 pkg/game.TestReleaseSecondInnPatrons
+pkg/game.TestSecondInnPatronNamesInstalled
 pkg/game.TestReleaseSecondMissionTwentyFailureDoesNotLeave
 pkg/game.TestReleaseSecondCampaignCheatCommands
 pkg/game.TestReleaseSecondCampaignCheatLaunchFlag

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] In the tavern, the people at the tables are headed with their own names, not the name of the next person in the list; before, a man could be headed as a woman.
 - [BASE] Under Darkness, a hero whose sight drops to nothing still uncovers the cells right around him, as in the original game; before, he uncovered none.
 
 ### For map makers and modders
