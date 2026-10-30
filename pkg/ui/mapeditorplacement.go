@@ -5,8 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"strconv"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -77,45 +75,6 @@ func (e *MapEditor) newRecords(d *InspectionDocument) []InspectionRecord {
 // editorGhostAlpha is the opacity of a placement's translucent ground, the
 // translucent sprites' own.
 const editorGhostAlpha = 0.5
-
-func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
-	r, ok := e.addRunning()
-	if !ok {
-		return InspectionNewRecord{}
-	}
-	host, _ := e.addHost()
-	out := InspectionNewRecord{Kind: r.kind, Cell: cell, HasCell: true}
-	for i, step := range r.steps {
-		if step.Control == addCell || step.Control == addKind {
-			continue
-		}
-		text := e.addText(r, i)
-		offer := host.NewRecordStep(out, step.Key)
-		if step.Control == addMany {
-			values := r.many[i]
-			if v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64); err == nil {
-				values = append(append([]int64(nil), values...), v)
-			}
-			if len(values) == 0 && len(offer.Choices) > 0 {
-				values = []int64{offer.Choices[0].Value}
-			}
-			for _, v := range values {
-				out.Values = append(out.Values, InspectionFieldValue{Key: step.Key, Value: v})
-			}
-			continue
-		}
-		if step.Control == addName {
-			out.Values = append(out.Values, InspectionFieldValue{Key: step.Key, Text: true, TextValue: text})
-			continue
-		}
-		v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
-		if err != nil {
-			v = offer.Value
-		}
-		out.Values = append(out.Values, InspectionFieldValue{Key: step.Key, Value: v})
-	}
-	return out
-}
 
 func (e *MapEditor) placement() (placementFrame, bool) {
 	if f, ok := e.dragPlacement(); ok {

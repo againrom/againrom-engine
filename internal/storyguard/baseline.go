@@ -3457,5 +3457,5 @@ var Committed = Baseline{
 	// pkg/game/heldmarkprofile_test.go and
 	// pkg/render/terrain/heldmarkprogram_test.go, and this note. The merge
 	// with main is measured on the merged tree.
-	CommentBytes: 9947559,
+	CommentBytes: 9948524,
 }

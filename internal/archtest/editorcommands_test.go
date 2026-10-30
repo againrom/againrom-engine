@@ -116,6 +116,63 @@ func editorAddWalkViolations(files map[string]string) []string {
 	return out
 }
 
+// editorPlacementFile is the placement preview's file; a click on a cell and
+// the preview take the record from addRecord (addPlacement, in the Add
+// window's file), so the file asks no step's offer and fills no record.
+const editorPlacementFile = "pkg/ui/mapeditorplacement.go"
+
+func editorPlacementViolations(files map[string]string) []string {
+	source, ok := files[editorPlacementFile]
+	if !ok {
+		return []string{editorPlacementFile + ": missing"}
+	}
+	f, err := parser.ParseFile(token.NewFileSet(), editorPlacementFile, source, 0)
+	if err != nil {
+		return []string{editorPlacementFile + ": " + err.Error()}
+	}
+	var out []string
+	ast.Inspect(f, func(n ast.Node) bool {
+		switch n := n.(type) {
+		case *ast.SelectorExpr:
+			if n.Sel.Name == "NewRecordStep" || n.Sel.Name == "Values" {
+				out = append(out, editorPlacementFile+": "+n.Sel.Name+" is the Add window's record assembly")
+			}
+		case *ast.CompositeLit:
+			if id, ok := n.Type.(*ast.Ident); ok && id.Name == "InspectionFieldValue" {
+				out = append(out, editorPlacementFile+": an InspectionFieldValue is assembled by the Add window's addRecord")
+			}
+		}
+		return true
+	})
+	return out
+}
+
+func TestEditorPlacementTakesTheRecordFromAddRecord(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := LoadRandomnessSources(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range editorPlacementViolations(files) {
+		t.Error(v)
+	}
+	for _, source := range []string{`package ui;func f(h InspectionNewRecords){h.NewRecordStep(InspectionNewRecord{}, "tier")}`, `package ui;func f(r *InspectionNewRecord){r.Values=nil}`, `package ui;var v = InspectionFieldValue{Key: "tier"}`} {
+		if len(editorPlacementViolations(map[string]string{editorPlacementFile: source})) == 0 {
+			t.Fatal("guard accepted a second record assembly in the placement file", source)
+		}
+	}
+	if v := editorPlacementViolations(map[string]string{editorPlacementFile: `package ui;func f(e *MapEditor) InspectionNewRecord {return e.addPlacement(image.Point{})}`}); len(v) != 0 {
+		t.Fatal("guard refused a call of addPlacement", v)
+	}
+}
+
 func TestEditorAddRecordAsksTheAddWindowsWalk(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

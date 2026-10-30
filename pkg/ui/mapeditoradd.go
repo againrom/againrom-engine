@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -243,6 +244,61 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 		}
 	}
 	return out
+}
+
+// addPlacement is the record a click on cell adds, and the placement
+// preview's. It completes a copy of the open run the way the window would
+// walk it, then assembles it with addRecord: the cell is the cell step's
+// answer, a step the host leaves out stays out, and a step with no answer
+// takes the window's default (addDefault; a many step with no value the
+// first choice, the row the window's list highlights).
+func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
+	r, ok := e.addRunning()
+	host, hok := e.addHost()
+	if !ok || !hok {
+		return InspectionNewRecord{}
+	}
+	run := *r
+	run.at = -1
+	run.texts, run.skip = slices.Clone(r.texts), slices.Clone(r.skip)
+	run.many = make([][]int64, len(r.many))
+	for i, m := range r.many {
+		run.many[i] = slices.Clone(m)
+	}
+	if r.at >= 0 && r.at < len(run.steps) {
+		run.texts[r.at] = e.prompt.path
+		if v, err := strconv.ParseInt(strings.TrimSpace(e.prompt.path), 10, 64); err == nil && run.steps[r.at].Control == addMany && !slices.Contains(run.many[r.at], v) {
+			run.many[r.at] = append(run.many[r.at], v)
+		}
+	}
+	for i, st := range run.steps {
+		if st.Control == addCell {
+			run.texts[i] = fmt.Sprintf("%d,%d", cell.X, cell.Y)
+			continue
+		}
+		var offer InspectionNewStep
+		offer, run.skip[i] = e.addOffer(host, &run, i)
+		if run.skip[i] {
+			run.texts[i] = ""
+			continue
+		}
+		switch st.Control {
+		case addKind:
+		case addName:
+			if i > r.at {
+				run.texts[i] = addDefault(st, offer)
+			}
+		case addMany:
+			if len(run.many[i]) == 0 && len(offer.Choices) > 0 {
+				run.many[i] = []int64{offer.Choices[0].Value}
+			}
+		default:
+			if _, err := strconv.ParseInt(strings.TrimSpace(run.texts[i]), 10, 64); err != nil {
+				run.texts[i] = addDefault(st, offer)
+			}
+		}
+	}
+	return e.addRecord(&run, len(run.steps))
 }
 
 func parseCell(s string) (image.Point, bool) {

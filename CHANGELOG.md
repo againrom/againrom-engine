@@ -27,6 +27,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] A unit, structure or sack placed in the map editor with a click on a cell is now the same record as one added with Enter or with the add_record command. Before, a click wrote a value for a step the Add window leaves out (a unit of a class with no tiers got tier 0).
 - [BASE] An agent connected to the map editor over MCP can now build a map with direct commands instead of keys and clicks: make a new map of a size, paint terrain, heights, objects and passability, add units, structures, loot, players and triggers, set fields and map properties, place drop zones, and read records, Add steps, brushes and the map check. Each command makes the same change as the window and takes one step of the same Undo history.
 
 ## 0.140.2
