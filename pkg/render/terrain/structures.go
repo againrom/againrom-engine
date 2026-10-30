@@ -51,22 +51,11 @@ type StructureClass struct {
 	Indestructible bool
 	Usable         bool
 
-	// LightRadius and LightPulse are structures.reg's own decoded scalars
-	// (REG-STR-040), carried across unconsumed until the light-source pass
-	// (hotfix, owner report, DIV-1313): nonzero on exactly FIVE of the 66
-	// classes in both roots — ID 12 "Tower 1", ID 13 "Tower 2", ID 15
-	// "Well 2", ID 16 "Well 3" and ID 53 "Campfire" — and zero on every other
-	// class, including the other tower-named ones (Guard Tower, Skrakan
-	// Tower, Mage's tower). This was misstated as "exactly two" (the two
-	// towers alone) before the owner's own observation of the live game
-	// confirmed the well and the campfire glow as well (DIV-1313, amended).
-	// What unit either scalar is stored in, and how the original consumed
-	// them, remains Unknown; this tier and its one reader treat LightRadius
-	// as a plain selector — nonzero means "this class glows" — and as the
-	// radius that selector's own light mask dilates a structure's footprint
-	// by, in whole cells (owner observation, not a decoded consumer). Reading
-	// LightPulse at all records that the registry distinguishes these five
-	// classes on TWO independent keys, not merely one.
+	// LightRadius and LightPulse are structures.reg's own decoded scalars,
+	// nonzero on five classes (REG-125). A nonzero LightRadius makes the
+	// class stamp the light grid on its corner vertices moved by
+	// LightRadius-1, at a level LightPulse sets (TERR-LIGHT-285..287;
+	// pkg/game's structureLightStamps).
 	LightRadius int
 	LightPulse  int
 

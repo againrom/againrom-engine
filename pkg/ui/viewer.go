@@ -593,18 +593,9 @@ type Viewer struct {
 	spellLighting        map[image.Point]spellLightScale
 	spellTerrainLighting map[image.Point]float32
 
-	// structureLighting and structureTerrainLighting are spellLighting's own
-	// sibling planes (same absolute brightness-ladder units, same per-cell
-	// keying) for the light-source structures' own pulsing mask (owner report
-	// 2, DIV-1313 amended; pkg/ui/towerglow.go's refreshStructureLighting).
-	// Rebuilt once per frame from drawFrame, never read live from inside a
-	// vertex or sprite loop. Presentation-only: neither hashed nor persisted.
-	structureLighting        map[image.Point]float32
-	structureTerrainLighting map[image.Point]float32
-
-	// lightStamps and boltLightStamps are the projectile light-stamp grid
-	// (objectlight.go): every stamp, and only the stamps the Dynamic lighting
-	// option does not skip. Replaced on every game push. Presentation-only.
+	// lightStamps and boltLightStamps are the light-stamp grid of structures
+	// and projectiles (objectlight.go): every stamp, and only the stamps the
+	// Dynamic lighting option does not skip. Replaced on every game push. Presentation-only.
 	lightStamps     map[image.Point]uint8
 	boltLightStamps map[image.Point]uint8
 
@@ -3389,13 +3380,6 @@ func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	// DIV-1349).
 	v.refreshHoverLighting()
 
-	// THE STRUCTURE-LIGHT MASK, for the same reason and at the same point:
-	// spellTerrainScale/spellSpriteFactor (overlay.go) read it below, and
-	// v.anim's own pulse must read one consistent swing for every vertex and
-	// sprite this frame draws (hotfix, owner report 2, DIV-1313 amended;
-	// towerglow.go).
-	v.refreshStructureLighting()
-
 	if v.Mode() == ModeDisplaced {
 		v.drawDisplaced(mapSurface)
 	} else {
@@ -4146,14 +4130,6 @@ func (v *Viewer) cornerScales(tx, ty int) [4]float32 {
 	for i := range sc {
 		if brightness, ok := v.spellTerrainScale(vertices[i]); ok {
 			sc[i] = brightness
-		}
-		// REPLACE FOR THE SPELL PLANE, MAX FOR THE STRUCTURE MASK. Darkness
-		// writes 0.5 and must be able to pull a vertex below its own shading;
-		// a structure light must never pull one below anything, and its plane
-		// is built over a flat-ground reference that relief can exceed
-		// (structureTerrainScale's own doc, overlay.go).
-		if glow, ok := v.structureTerrainScale(vertices[i]); ok && glow > sc[i] {
-			sc[i] = glow
 		}
 		// A light stamp takes min(stamp, terrain level), the larger scale
 		// (lightStampTerrainScale). The black map margin stays black.

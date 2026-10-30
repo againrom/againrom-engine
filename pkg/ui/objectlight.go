@@ -7,8 +7,9 @@ import (
 )
 
 // LightStamp is one vertex write into the light-stamp grid, lower brighter
-// (MAGIC-269..271). Point marks a point-helper stamp, which Dynamic lighting
-// off skips; a path stamp reads no option (MAGIC-273).
+// (MAGIC-269..271, TERR-LIGHT-286). Point marks a stamp Dynamic lighting off
+// skips: the point helper's (MAGIC-273) and a structure's (TERR-LIGHT-285);
+// a path stamp reads no option.
 type LightStamp struct {
 	Vertex image.Point
 	Level  uint8
@@ -33,6 +34,15 @@ func (v *Viewer) SetLightStamps(stamps []LightStamp) {
 			v.boltLightStamps[s.Vertex] = s.Level
 		}
 	}
+}
+
+// StructureClass is the decoded class of a structures.reg kind, nil when the
+// viewer holds no structure set or no class at that kind.
+func (v *Viewer) StructureClass(kind uint16) *terrain.StructureClass {
+	if v.structureSet == nil {
+		return nil
+	}
+	return v.structureSet.Classes[kind&0xff]
 }
 
 // activeLightStamps is the grid read now: path stamps only with Dynamic

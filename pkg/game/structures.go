@@ -110,9 +110,8 @@ func LoadStructures(src terrain.EntrySource) (*terrain.StructureSet, error) {
 			// the three flags above do not.
 			ShadowY: int(c.ShadowY),
 
-			// LightRadius/LightPulse likewise cross unchanged (hotfix,
-			// DIV-1313): see terrain.StructureClass's own doc for why this
-			// tier reads them as a bare selector and nothing more.
+			// LightRadius/LightPulse likewise cross unchanged; the
+			// structure light stamps read them (REG-126).
 			LightRadius: int(c.LightRadius),
 			LightPulse:  int(c.LightPulse),
 		}

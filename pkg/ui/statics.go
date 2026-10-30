@@ -211,8 +211,8 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 				}
 				stone, translucent = marked[ref.Index].Stone, marked[ref.Index].Translucent
 				// Hover (DIV-1349) is composed by MAX with the cell-keyed
-				// spell/structure-light plane (spellSpriteFactor, DIV-1313
-				// amended), the same rule spellLightingCells already uses
+				// spell and stamp light (spellSpriteFactor), the same rule
+				// spellLightingCells already uses
 				// for its own overlapping sources (pkg/game/world.go), so a
 				// hovered unit standing in an already-lit cell is never
 				// DIMMED by taking the hover gain over the higher one it

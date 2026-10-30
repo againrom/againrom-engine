@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM1] Towers, wells and the campfire now light the ground and the units at their own corners as the original does, pulsing in step with the game's clock, and a destroyed tower gives no light.
 - [ROM2] Teleport now shows its picture where the caster stands and where he lands at once, plays its sound once in the middle of the cast, and the caster plays his whole casting animation.
 - [ROM2] A unit under Curse or Poison Cloud now shows that spell's own sparks while the effect lasts.
 - [ROM2] After you load a mission save the original game wrote, the enemies guard their places and attack your hero again.

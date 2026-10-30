@@ -730,10 +730,6 @@ func (v *Viewer) SetSpellLighting(cells []SpellLightCell) {
 // the SPELL plane only. It REPLACES the vertex's own relief shading at the
 // caller (cornerScales), which is what lets Darkness darken: its own
 // darknessBrightness is 0.5, below any shading a vertex can otherwise hold.
-//
-// The structure-light mask is deliberately NOT merged in here. It composes by
-// MAX at the caller instead, against the vertex's real shading — see
-// structureTerrainScale below.
 func (v *Viewer) spellTerrainScale(vertex image.Point) (float32, bool) {
 	if v.graphics.DisableLighting {
 		return 0, false
@@ -742,25 +738,8 @@ func (v *Viewer) spellTerrainScale(vertex image.Point) (float32, bool) {
 	return value, ok
 }
 
-// structureTerrainScale reads one vertex's structure-light mask (DIV-1313
-// amended; towerglow.go's refreshStructureLighting). Its caller composes it by
-// MAX rather than by replacement, for the reason refreshStructureLighting's own
-// falloff base states: this plane's values are built over the FLAT-GROUND
-// daytime reference (ShadeScale(46)), and relief lights a sloped vertex up to
-// ShadeScale(36) = 1.875, above that reference. Replacing would dim exactly
-// those vertices at the mask's rim. A max cannot, whatever the reference is
-// worth — a light only ever adds.
-func (v *Viewer) structureTerrainScale(vertex image.Point) (float32, bool) {
-	if v.graphics.DisableLighting {
-		return 0, false
-	}
-	value, ok := v.structureTerrainLighting[vertex]
-	return value, ok
-}
-
 // spellSpriteFactor reads one cell's sprite gain, over the SAME normalized
-// scale, composed by the same MAX rule as spellTerrainScale above (DIV-1313
-// amended).
+// scale as spellTerrainScale above.
 //
 // A cell with a stamped light-stamp corner takes the merged stamp level in
 // place of the Light/Darkness value, as the original's stamp sweep overwrites
@@ -782,9 +761,6 @@ func (v *Viewer) spellSpriteFactor(cell image.Point) float32 {
 	}
 	if stamped {
 		level = terrain.ShadeScale(4*row + 32)
-	}
-	if structure, ok := v.structureLighting[cell]; ok && structure > level {
-		level = structure
 	}
 	if level > 0 {
 		return level / normal

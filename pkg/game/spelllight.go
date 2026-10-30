@@ -93,16 +93,67 @@ func pictureLightStamps(out []ui.LightStamp, set *data.SpellPresentation, pictur
 	return out
 }
 
-// objectLightStamps is this push's stamps: objects in draw order, then Wall
-// of Fire, written after the object calls (MAGIC-272).
+// objectLightStamps is this push's stamps: structures, then objects in draw
+// order, then Wall of Fire, written after the object calls (TERR-LIGHT-288,
+// MAGIC-272).
 func (mw *mapWorld) objectLightStamps(ents []sim.Entity) []ui.LightStamp {
+	out := mw.structureLightStamps(nil)
 	if mw.projectiles == nil {
-		return mw.wallFireLightStamps(nil)
+		return mw.wallFireLightStamps(out)
 	}
 	bounds := mw.world.Bounds()
-	var out []ui.LightStamp
 	out = mw.savedProjectileLightStamps(out, bounds)
 	return mw.wallFireLightStamps(out)
+}
+
+// structureLightStamps is the structure walk in ID order (DIV-4294): a class
+// with a nonzero LightRadius R whose health word is positive writes one byte
+// to the (TileWidth+1)x(TileHeight+1) vertices of its rectangle moved by R-1
+// (TERR-LIGHT-285, TERR-LIGHT-286). The byte reads the viewer's tick counter
+// (TERR-LIGHT-287, DIV-4293). Dynamic lighting off skips it, as it skips the
+// point helper.
+func (mw *mapWorld) structureLightStamps(out []ui.LightStamp) []ui.LightStamp {
+	if mw.view == nil {
+		return out
+	}
+	tick := int32(mw.view.AnimationCounter())
+	for _, s := range mw.world.Structures() {
+		c := mw.view.StructureClass(s.Kind)
+		if c == nil || c.LightRadius == 0 || structureHealthWord(s) <= 0 {
+			continue
+		}
+		level := structureLightLevel(int32(c.LightPulse), tick)
+		x0, y0 := int(s.Col)+c.LightRadius-1, int(s.Row)+c.LightRadius-1
+		for y := y0; y <= y0+c.TileHeight; y++ {
+			for x := x0; x <= x0+c.TileWidth; x++ {
+				out = append(out, ui.LightStamp{Vertex: image.Pt(x, y), Level: level, Point: true})
+			}
+		}
+	}
+	return out
+}
+
+// structureHealthWord is the health word the client holds for a structure:
+// its current health when its maximum is nonzero, else 1000 (TERR-STRUCT-210).
+func structureHealthWord(s sim.Structure) int16 {
+	if s.MaxHealth == 0 {
+		return 1000
+	}
+	return int16(s.Field42)
+}
+
+// structureLightLevel is the stamp byte (TERR-LIGHT-287): 32 at pulse 0, else
+// a triangle wave of period 2*pulse from 32-pulse/2 to 32+pulse/2, with the
+// signed remainders of the original's division.
+func structureLightLevel(pulse, tick int32) uint8 {
+	if pulse == 0 {
+		return 32
+	}
+	m := tick % pulse
+	if tick%(2*pulse) < pulse {
+		return uint8(m - pulse/2 + 32)
+	}
+	return uint8(pulse/2 - m + 32)
 }
 
 // savedProjectileLightStamps stamps the armed World projectile records, a

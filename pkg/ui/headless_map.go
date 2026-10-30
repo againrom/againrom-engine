@@ -23,7 +23,6 @@ func (v *Viewer) HeadlessMapFrame(cell image.Point, w, h int) (*image.RGBA, []He
 	v.cam.SetZoom(1)
 	v.cam.CenterOn(v.cellWorldCentre(cell))
 	v.refreshHoverLighting()
-	v.refreshStructureLighting()
 	r := &headlessTerrainTarget{v: v, pix: image.NewRGBA(image.Rect(0, 0, w, h)), sources: map[*ebiten.Image]*image.RGBA{}}
 	if v.Mode() == ModeDisplaced {
 		v.drawDisplaced(r)
