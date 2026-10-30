@@ -41,8 +41,10 @@ func spellbookSave1096(present bool, ids ...byte) []byte {
 			spells[int(id)-1] = id
 		}
 	}
-	a := &poolFixtureActor{mapID: 91, cell: 0x0a0a, hp: 10, maxHP: 30, mana: 50, maxMana: 50, human: true, name: "First", spells: spells}
-	b := &poolFixtureActor{mapID: 92, cell: 0x0a0b, hp: 10, maxHP: 30, mana: 50, maxMana: 50, human: true, name: "Second", spells: []byte{}}
+	// Both heroes carry the female mage's type our SAVE writes for the
+	// fixture row's figure.
+	a := &poolFixtureActor{mapID: 91, cell: 0x0a0a, hp: 10, maxHP: 30, mana: 50, maxMana: 50, human: true, typeID: 0x24, name: "First", spells: spells}
+	b := &poolFixtureActor{mapID: 92, cell: 0x0a0b, hp: 10, maxHP: 30, mana: 50, maxMana: 50, human: true, typeID: 0x24, name: "Second", spells: []byte{}}
 	return savedContainer(poolFixtureBody([]*poolFixturePlayer{{groups: [][]*poolFixtureActor{{a, b}}}}, nil))
 }
 

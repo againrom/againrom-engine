@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -57,27 +56,6 @@ func nativeCityToken(identity, owner uint32, defRow byte, typeWord uint16) []byt
 	binary.LittleEndian.PutUint32(b[29:33], identity)
 	binary.LittleEndian.PutUint32(b[33:37], owner)
 	return b
-}
-
-// nativeCityRosterTypeWord carries the generated player character's class
-// and sex (HERO-CLASS-013, nonzero constructor mode). The drawable reads
-// these bits from typeID-0x21 (HERO-APPEAR-041/043), independently of DefRow.
-// Writing a fighter word for a mage makes ROM1 request heroes_l/mage_st,
-// which neither lawful install contains. Hired Humans use their own arm.
-func nativeCityRosterTypeWord(member mapload.PartyMember) uint16 {
-	word := uint16(0x21)
-	if member.Mage {
-		word += 2
-	}
-	if data.FigureDir(member.FigureDir).Female() {
-		word++
-	}
-	return word
-}
-
-// SAV-614, SAV-627, DIV-918
-func nativeCityHumanTypeWord(member mapload.PartyMember) uint16 {
-	return uint16(member.Class)
 }
 
 // nativeCityDefRow resolves the installed Humans-table row a generated
@@ -204,10 +182,12 @@ func nativeCityUnitData(identity, owner uint32, member, hero mapload.PartyMember
 	for i, v := range skillLevels {
 		binary.LittleEndian.PutUint16(rawA6[2+2*i:], v)
 	}
-	typeWord := nativeCityRosterTypeWord(member)
-	if member.Hired() {
-		typeWord = nativeCityHumanTypeWord(member)
-	}
+	// A player character's word carries his class and sex (HERO-CLASS-013).
+	// The drawable reads these bits from typeID-0x21 (HERO-APPEAR-041/043),
+	// independently of DefRow. Writing a fighter word for a mage makes ROM1
+	// request heroes_l/mage_st, which neither lawful install contains. A
+	// hired Human writes his own row's type (SAV-614, SAV-627, DIV-918).
+	typeWord := uint16(member.ServerTypeID())
 	// SAV-678: every install Human token holds publication mask 2.
 	token := nativeCityToken(identity, owner, nativeCityDefRow(member, hero, table), typeWord)
 	binary.LittleEndian.PutUint16(token[23:25], 2)

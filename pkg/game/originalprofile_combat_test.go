@@ -61,7 +61,8 @@ func TestOriginalProfile1107ElementalBlowAppAndNativeContinuation(t *testing.T) 
 					// SAV's own cached equipment runtime bytes, not a table recompute
 					// (BindSourceItemDefinition's doc). {1, 8, 4} repeats the melee-reach
 					// tuple literalProfile1107's fixture already uses in originalprofile_test.go.
-					{mapID: 91, cell: 0x0605, hp: 100, maxHP: 100, human: true,
+					// The hero carries the male fighter's type our SAVE writes for him.
+					{mapID: 91, cell: 0x0605, hp: 100, maxHP: 100, human: true, typeID: 0x21,
 						profile: attacker, holdings: profileHoldings1107(), equipmentRuntime: &[3]byte{1, 8, 4},
 						book: []*poolFixtureSpell{{id: 1, rangeByte: 7, cost: 3}}},
 					{mapID: 92, cell: 0x0606, hp: 100, maxHP: 100, profile: target, holdings: &holdingFixture{}},

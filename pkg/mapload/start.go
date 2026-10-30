@@ -327,6 +327,17 @@ type PartyMember struct {
 // Script joiners carry neither and retain the player-character rules.
 func (p PartyMember) Hired() bool { return p.MercenaryType != 0 || p.CampaignHireID() != 0 }
 
+// ServerTypeID is the type id the party mint gives this member and the type a
+// SAVE writes for a party hero. A hired man keeps his own row's type id. A
+// player character takes the player-character constructor's type: the gender
+// plus 0x23 for a mage or 0x21 otherwise (HERO-CLASS-013, PARTY-M20-031).
+func (p PartyMember) ServerTypeID() int32 {
+	if p.Hired() {
+		return p.Class
+	}
+	return sim.HeroTypeID(p.Mage, data.FigureDir(p.FigureDir).Female())
+}
+
 // CampaignHireID reads campaign hire membership independently of tavern types.
 func (p PartyMember) CampaignHireID() int {
 	if p.Temporary && p.CampaignHire >= 1 && p.CampaignHire <= 20 {
@@ -927,10 +938,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// id is. `PARTY-MERC-007` says a mercenary does not cross and that what
 		// crosses instead is the count per type; this tree implements neither
 		// the cull nor `MERC-DEATH-006`'s pool merge. See DIV-434.
-		typeID := sim.HeroTypeID(p.Mage, data.FigureDir(p.FigureDir).Female())
-		if p.Hired() {
-			typeID = p.Class
-		}
+		typeID := p.ServerTypeID()
 		dying, err := partyDyingTime(p, hero, typeID, t)
 		if err != nil {
 			return nil, Start{}, err

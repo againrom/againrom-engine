@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM1] A game saved in Againrom after a Control Spirit cast, then saved again in the original, now loads, and the dead body the spell used stays gone. Before, the game refused to load it.
+- [ROM1] Loading and saving again a game from an older Againrom, whose heroes all carried the male fighter's type, now saves each hero with their own class and sex. The original game stopped loading such a file with a missing-picture error for a mage.
 
 ## 0.141.0
 

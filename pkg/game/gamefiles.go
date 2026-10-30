@@ -63,6 +63,10 @@ type gameFiles struct {
 	// block, written on SAVE and read on LOAD (AI-WITHDRAW-027); no
 	// second-game claim places them there.
 	orderThresholds bool
+	// heroSavedType writes a party hero's SAV T0E from the hero, the
+	// player-character constructor's type (HERO-CLASS-013, HERO-191); no
+	// second-game claim states the rule.
+	heroSavedType bool
 	// missionBookClosed opens a new mission with the spellbook switched off,
 	// as the first game's own mission-start saves store it (DIV-4020); the
 	// second game follows by owner direction while no second-game claim
@@ -156,6 +160,7 @@ var firstGameFiles = gameFiles{
 	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
 	boundedSaveView:   true,
 	orderThresholds:   true,
+	heroSavedType:     true,
 	missionBookClosed: true,
 	table:             databin.ROM1Layout,
 	openMap:           alm.Open,

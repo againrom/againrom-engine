@@ -29,6 +29,7 @@ type poolFixtureActor struct {
 	name                                  string
 	runtime                               *uint32
 	timer                                 int8
+	typeID                                uint16 // the Token's T0E; zero in the older fixtures
 	spells                                []byte // nil absent; non-nil slots 1..n, zero null
 	class                                 string // explicit Humanoid fixture; otherwise the old human flag
 	profile                               *profileFixture1107
@@ -169,7 +170,7 @@ func poolFixtureBodyWithSession(players []*poolFixturePlayer, dead []*poolFixtur
 		}
 		u32(runtime)
 		b = append(b, 1) // definition row, deliberately unrelated to map ID
-		u16(0)
+		u16(a.typeID)
 		u32(uint32(a.mapID))
 		u16(0)
 		u32(0)
