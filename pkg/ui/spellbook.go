@@ -448,6 +448,10 @@ func (v *Viewer) ClearSpellbook() {
 	v.spellbookFixed = false
 }
 
+// SpellbookOwner is the unit whose book the bar holds; false is the
+// no-hero-selected state ClearSpellbook leaves.
+func (v *Viewer) SpellbookOwner() (uint32, bool) { return v.spellbookOwner, v.spellbookHeld }
+
 // SetSpellbookCatalog keeps all 24 installed cells visible in the two-row bar.
 // The ordinary setter remains a table-order/custom-book seam.
 func (v *Viewer) SetSpellbookCatalog(owner uint32, entries []SpellEntry) {

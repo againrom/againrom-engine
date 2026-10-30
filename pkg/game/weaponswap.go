@@ -50,11 +50,9 @@ func (mw *mapWorld) swapMember(id sim.EntityID) (mapload.PartyMember, bool) {
 	if mw == nil || mw.mission == nil || mw.world == nil {
 		return mapload.PartyMember{}, false
 	}
-	for i, mid := range mw.mission.ids {
-		if mid == id && i < len(mw.mission.party) {
-			m := mw.mission.party[i]
-			return m, !m.Hired() && data.ComposesFigure(m.Class)
-		}
+	if i := mw.managedMember(id); i >= 0 {
+		m := mw.mission.party[i]
+		return m, !m.Hired() && data.ComposesFigure(m.Class)
 	}
 	return mapload.PartyMember{}, false
 }

@@ -36,6 +36,8 @@ type currentGroupContinuation struct {
 	// reference the World holds by slot alone. LOAD restores the keyless
 	// reference while the file still names that key.
 	KeylessOwner uint32 `json:",omitempty"`
+	// Uncontained marks an authored Group no current Player held (DIV-788).
+	Uncontained bool `json:",omitempty"`
 }
 type currentNativeArea struct {
 	Object uint16
@@ -443,7 +445,7 @@ func projectCurrentActions(doc *sav.DocumentData, state *SnapshotSAVDocument, w 
 			found := false
 			for _, b := range state.GroupBindings.Groups {
 				if b.ID == g.ID {
-					row := currentGroupContinuation{Object: b.PlayerObject, Inline: b.InlineIndex, ID: g.ID, Authored: g.Authored}
+					row := currentGroupContinuation{Object: b.PlayerObject, Inline: b.InlineIndex, ID: g.ID, Authored: g.Authored, Uncontained: players && g.Authored && g.ContainerID == 0}
 					if !g.Authored && g.Owner.Class == 1 && g.Owner.Key == 0 && g.Owner.Archive == 0 && b.Owner.Class == 1 {
 						row.KeylessOwner = b.Owner.Key
 					}
@@ -1205,8 +1207,11 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 							}
 						}
 					}
-					rows = append(rows, sim.GroupContinuation{Group: b.ID, ID: row.ID, Authored: row.Authored, RootOnly: row.RootOnly, KeylessOwner: row.KeylessOwner})
+					rows = append(rows, sim.GroupContinuation{Group: b.ID, ID: row.ID, Authored: row.Authored, RootOnly: row.RootOnly, KeylessOwner: row.KeylessOwner, Uncontained: row.Uncontained})
 					b.ID, b.Authored, b.RootOnly = row.ID, row.Authored, row.RootOnly
+					if row.Uncontained {
+						b.ContainerID = 0
+					}
 					if b.RootOnly {
 						if err := validateActorRootGroup(ms.savedDocument.Document, b); err != nil {
 							return err

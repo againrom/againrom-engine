@@ -25,12 +25,11 @@ func newSavedGroupRecord() sav.DocumentRecordData {
 
 // Generated native command Groups carry a typed slot, not a source address.
 // Their exact native container identifies the Player that append installed as
-// owner. Without a native Player carrier, the current typed slot must identify
-// one ordinary transport Player. This is separate from imported owner precedence
+// owner. Without an exact container, the Player must hold the typed owner
+// Slot (firstSlotPlayer, DIV-788). This is separate from imported owner precedence
 // (SAV-GRPOWNER-561), where owner and enclosing Player can disagree.
 func validateAuthoredSavedGroupAuthority(state *SnapshotSAVDocument, binding SnapshotSAVGroupBinding, group sim.SavedGroup) error {
 	if !binding.Authored || !group.Authored || binding.ContainerID != group.ContainerID ||
-		binding.ContainerID == 0 && !state.GroupBindings.PlayersConstructed ||
 		group.Reference != (sim.SavedGroupReference{}) || binding.Reference != (SnapshotSAVGroupReferenceBinding{}) ||
 		group.Owner.Class != 1 || group.Owner.Key != 0 || group.Owner.Archive != 0 ||
 		binding.Owner.Class != 1 || binding.Owner.ObjectIndex != binding.PlayerObject || binding.Owner.Owner != group.Owner.Owner {
@@ -45,22 +44,16 @@ func validateAuthoredSavedGroupAuthority(state *SnapshotSAVDocument, binding Sna
 
 func bindAuthoredSavedGroup(state *SnapshotSAVDocument, group sim.SavedGroup, players map[uint32]uint16) (SnapshotSAVGroupBinding, error) {
 	b := SnapshotSAVGroupBinding{ID: group.ID, Authored: true, ContainerID: group.ContainerID, PlayerObject: players[group.ContainerID]}
-	if b.ContainerID == 0 && state.GroupBindings.PlayersConstructed && group.Owner.Class == 1 {
-		for _, player := range state.GroupBindings.Players {
-			slot, err := savedStructureValue(&state.Document.Objects[player.ObjectIndex-1], "Slot")
-			if err != nil {
-				return b, err
-			}
-			if uint32(uint16(slot)) != group.Owner.Owner {
-				continue
-			}
-			if b.PlayerObject != 0 {
-				return b, fmt.Errorf("Group %d has ambiguous current Player owner", group.ID)
-			}
-			b.PlayerObject = player.ObjectIndex
+	if b.ContainerID == 0 && group.Owner.Class == 1 {
+		// DIV-788 debt: no current Player holds the Group (two Players share
+		// its owner Slot). It is written in the first Player of that Slot, the
+		// rule the export applies to an actor's owner.
+		var err error
+		if b.PlayerObject, err = firstSlotPlayer(state, group.Owner.Owner); err != nil {
+			return b, err
 		}
 	}
-	if !state.GroupBindings.PlayersPresent || b.ContainerID == 0 && !state.GroupBindings.PlayersConstructed || b.PlayerObject == 0 {
+	if !state.GroupBindings.PlayersPresent || b.PlayerObject == 0 {
 		return b, fmt.Errorf("Group %d lacks an exact native Player container", group.ID)
 	}
 	key, err := savedStructureValue(&state.Document.Objects[b.PlayerObject-1], "This")
@@ -69,6 +62,21 @@ func bindAuthoredSavedGroup(state *SnapshotSAVDocument, group sim.SavedGroup, pl
 	}
 	b.Owner = SnapshotSAVGroupReferenceBinding{ObjectIndex: b.PlayerObject, Class: 1, Key: key, Owner: group.Owner.Owner}
 	return b, validateAuthoredSavedGroupAuthority(state, b, group)
+}
+
+// firstSlotPlayer is the document object of the first bound Player of this
+// Slot, or zero when none is.
+func firstSlotPlayer(state *SnapshotSAVDocument, slot uint32) (uint16, error) {
+	for _, player := range state.GroupBindings.Players {
+		value, err := savedStructureValue(&state.Document.Objects[player.ObjectIndex-1], "Slot")
+		if err != nil {
+			return 0, err
+		}
+		if uint32(uint16(value)) == slot {
+			return player.ObjectIndex, nil
+		}
+	}
+	return 0, nil
 }
 
 // Rebuild only inline Player lists from the authoritative current registry.
@@ -124,7 +132,7 @@ func projectSavedGroupRoster(state *SnapshotSAVDocument, world *sim.World, group
 		b, existed := old[g.ID]
 		var record sav.DocumentRecordData
 		if existed {
-			if bindings.FormationsPresent && g.OwnerID != savedFormationOwnerID(bindings, b.Owner) {
+			if bindings.FormationsPresent && savedFormationOwnerDiffers(bindings, b, g) {
 				return fmt.Sprintf("Group %d changed exact formation owner", g.ID), nil
 			}
 			if g.Authored != b.Authored || g.ContainerID != b.ContainerID {

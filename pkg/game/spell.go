@@ -178,9 +178,12 @@ func (mw *mapWorld) pushSpellbook() {
 	if mw == nil || mw.view == nil || mw.world == nil {
 		return
 	}
+	// The book of a unit the player does not own shows the no-hero state;
+	// the revealed map shows it (DIV-4313).
+	revealed := mw.view.FogRevealed()
 	var selected []sim.Entity
 	for _, id := range mw.view.SelectedUnits() {
-		if e, held := mw.entity(sim.EntityID(id)); held {
+		if e, held := mw.entity(sim.EntityID(id)); held && mw.playerMayManage(e.ID, revealed) {
 			e.AutoSpell = uint16(mw.autocastShown(e.ID, e.AutoSpell))
 			selected = append(selected, e)
 		}

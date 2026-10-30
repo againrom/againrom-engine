@@ -9,6 +9,9 @@ type GroupContinuation struct {
 	// KeylessOwner is the minted Player key the file names for an owner
 	// reference the World held by slot alone; zero when the World held a key.
 	KeylessOwner uint32
+	// Uncontained restores an authored Group no current Player held; the
+	// file writes it in its owner Slot's first Player (DIV-788).
+	Uncontained bool
 }
 
 func (w *World) GroupHighWater() uint32 {
@@ -45,6 +48,12 @@ func (w *World) RestoreGroupContinuations(rows []GroupContinuation, highWater ui
 			continue
 		}
 		g.ID, g.Authored = row.ID, row.Authored
+		if row.Uncontained {
+			if !row.Authored {
+				return fmt.Errorf("sim: only an authored Group restores without a container")
+			}
+			g.ContainerID, g.OwnerID = 0, 0
+		}
 		if g.Authored {
 			if g.Reference != (SavedGroupReference{}) || g.Owner.Class != 1 {
 				return fmt.Errorf("sim: authored Group lacks its current owner")

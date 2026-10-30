@@ -127,8 +127,14 @@ func savedFormationWorld(state *SnapshotSAVDocument, world *sim.World, project b
 	return nil
 }
 
+// savedFormationOwnerDiffers reports a Group whose formation owner is not its
+// binding's Player. A Group no current Player holds has none (DIV-788).
+func savedFormationOwnerDiffers(bindings *SnapshotSAVGroupBindings, binding SnapshotSAVGroupBinding, g sim.SavedGroup) bool {
+	return g.ContainerID != 0 && g.OwnerID != savedFormationOwnerID(bindings, binding.Owner)
+}
+
 func validateSavedFormationOwner(state *SnapshotSAVDocument, binding SnapshotSAVGroupBinding, g sim.SavedGroup) error {
-	if g.OwnerID != savedFormationOwnerID(state.GroupBindings, binding.Owner) {
+	if savedFormationOwnerDiffers(state.GroupBindings, binding, g) {
 		return fmt.Errorf("saved Group %d formation owner differs from exact binding", g.ID)
 	}
 	owner := g.Owner

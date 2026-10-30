@@ -37,9 +37,9 @@ func TestQuickSpellPopulationCapabilityAndCastFiltering(t *testing.T) {
 	// The cast now keeps its mode. Start the ownership admission probe from
 	// an explicitly cancelled mode, rather than relying on a cast to clear it.
 	v.cancelMapCommand()
-	v.sel, v.spellArmed = selection{5, 6, 7}, false
 	entities[0].Owner = 2
 	v.SetEntities(entities)
+	v.sel, v.spellArmed = selection{5, 6, 7}, false
 	v.quickSpell(0, false, -1, -1)
 	if v.spellArmed {
 		t.Fatal("a later owned caster bypassed primary ownership")

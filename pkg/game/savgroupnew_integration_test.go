@@ -5,13 +5,13 @@ import (
 	"encoding/binary"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 
 	"againrom/internal/synth"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
 const (
@@ -146,13 +146,22 @@ func newGroupLiteral(t *testing.T, f *FrontEnd, duplicateSlot bool, words ...uin
 
 func newGroupOpen1115(t *testing.T, destination int32, duplicateSlot bool) *FrontEnd {
 	t.Helper()
+	f, _ := newGroupOpenApp(t, destination, duplicateSlot)
+	return f
+}
+
+// newGroupOpenApp opens the synthetic exact-Player mission and also returns
+// the App showing it, for a test that drives its keys.
+func newGroupOpenApp(t *testing.T, destination int32, duplicateSlot bool) (*FrontEnd, *ui.App) {
+	t.Helper()
 	f := newGroupFront(t, destination)
 	raw := newGroupLiteral(t, f, duplicateSlot)
 	open, town, err := f.RestoreOriginal(raw)
 	if err != nil || town {
 		t.Fatal("synthetic exact Player original LOAD", town, err)
 	}
-	if err := f.App("new native Group integration").OpenMission(open); err != nil {
+	app := f.App("new native Group integration")
+	if err := app.OpenMission(open); err != nil {
 		t.Fatal(err)
 	}
 	clear(raw)
@@ -164,7 +173,7 @@ func newGroupOpen1115(t *testing.T, destination int32, duplicateSlot bool) *Fron
 	if actors[newGroupA].Owner != 1 || actors[newGroupB1115].Owner != 1 || actors[newGroupC1115].Owner != rightSlot {
 		t.Fatal("Player suffix did not independently set actor ownership", actors)
 	}
-	return f
+	return f, app
 }
 
 func newGroupActors1115(t *testing.T, w *sim.World) map[uint32]sim.Entity {
@@ -543,7 +552,7 @@ func TestSavedGroupNew1115OriginalGiveUnitDestinationWithoutCleanup(t *testing.T
 	}
 }
 
-func TestSavedGroupNew1115DuplicateSlotKeepsExactIdentityAndHandoverGap(t *testing.T) {
+func TestSavedGroupNew1115DuplicateSlotKeepsExactIdentityAndWritesHandover(t *testing.T) {
 	f := newGroupOpen1115(t, 1, true)
 	initial := newGroupDocument1115(t, f, newGroupInitial1115(), true)
 	a := newGroupActors1115(t, f.live.world)[newGroupA]
@@ -561,38 +570,97 @@ func TestSavedGroupNew1115DuplicateSlotKeepsExactIdentityAndHandoverGap(t *testi
 	if len(groups) != 6 || groups[0].ID != 2 || groups[1].ID != 3 || groups[2].ID != 6 || len(groups[2].Members) != 0 || groups[3].ID != 4 || groups[4].ID != 5 || groups[5].ID != 7 || groups[5].ContainerID != 0 || !slices.Equal(newGroupMemberKeys1115(t, f.live.world, groups[5]), []uint32{newGroupA}) {
 		t.Fatal("ambiguous handover inferred Player identity or ran ordinary cleanup", groups)
 	}
-	gap := groupDocumentSnapshot(t, f)
-	if !strings.Contains(gap.SavedDocument.GroupBindings.Unavailable, "exact native Player container") || !reflect.DeepEqual(gap.SavedDocument.GroupBindings.Players, initial.SavedDocument.GroupBindings.Players) || !reflect.DeepEqual(gap.SavedDocument.GroupBindings.Groups, initial.SavedDocument.GroupBindings.Groups) {
-		t.Fatal("ambiguous slot did not remain an atomic export gap", gap.SavedDocument.GroupBindings)
+	// DIV-788 debt: no current Player holds Group 7, so it is written in the
+	// first Player of its owner Slot.
+	current := groupDocumentSnapshot(t, f)
+	bindings := current.SavedDocument.GroupBindings
+	first := initial.SavedDocument.GroupBindings.Players[0].ObjectIndex
+	last := bindings.Groups[len(bindings.Groups)-1]
+	if bindings.Unavailable != "" || last.ID != 7 || last.ContainerID != 0 || !last.Authored || last.PlayerObject != first || last.Owner.ObjectIndex != first {
+		t.Fatal("ambiguous handover Group was not written in its Slot's first Player", bindings.Unavailable, last)
 	}
-	for _, object := range initial.SavedDocument.Document.Players {
-		if object != 0 && !reflect.DeepEqual(gap.SavedDocument.Document.Objects[object-1].Groups, initial.SavedDocument.Document.Objects[object-1].Groups) {
-			t.Fatal("failed Group transaction changed retained inline records", object)
+	newGroupGivenSaves(t, f, current, 1, map[uint32]uint32{newGroupA: 1})
+}
+
+// A party selection made before the handover loses the given unit, so the
+// next order to that selection builds a Group of one owner. SAVE writes it,
+// LOAD restores each unit under its own owner in its Group, and the loaded
+// world runs on.
+func TestSavedGroupNewPartyOrderAfterGiveUnitSavesAndLoads(t *testing.T) {
+	f, app := newGroupOpenApp(t, 2, false)
+	actors := newGroupActors(t, f.live.world)
+	var companion uint32 // the one other unit of the given unit's first owner
+	for key, e := range actors {
+		if key != newGroupA && e.Owner == actors[newGroupA].Owner {
+			companion = key
 		}
 	}
-	// DIV-788: an ambiguous destination has no exact current Player container.
-	hash := f.live.world.Hash()
-	if out, err := f.ExportCurrentSave(gap, "ambiguous Group container"); err == nil || out != nil || !strings.Contains(err.Error(), "exact native Player container") {
-		t.Fatal("ambiguous current Group writer gap changed", err)
+	if err := app.HeadlessKey("e"); err != nil {
+		t.Fatal(err)
 	}
-	if f.live.world.Hash() != hash || !reflect.DeepEqual(groupDocumentSnapshot(t, f).SavedDocument, gap.SavedDocument) {
-		t.Fatal("refused ambiguous Group SAVE changed source state")
+	if sel := f.live.view.SelectedUnits(); !slices.Contains(sel, uint32(actors[newGroupA].ID)) || !slices.Contains(sel, uint32(actors[companion].ID)) {
+		t.Fatal("fixture: the party selection lacks the given unit or its companion", sel)
 	}
-	for range 20 {
+	for i := 0; i < 32 && !f.live.world.ScriptLatched(0); i++ {
 		f.live.tick()
 	}
-	after := groupDocumentSnapshot(t, f)
-	if !strings.Contains(after.SavedDocument.GroupBindings.Unavailable, "exact native Player container") {
-		t.Fatal("next20 ticks erased the exact-container gap")
+	if actors = newGroupActors(t, f.live.world); actors[newGroupA].Owner != 2 {
+		t.Fatal("production original GiveUnit did not fire")
 	}
-	afterGroups, _, _ := f.live.world.SavedGroups()
-	if len(afterGroups) != 6 || afterGroups[5].ID != 7 || afterGroups[5].ContainerID != 0 || !slices.Equal(newGroupMemberKeys1115(t, f.live.world, afterGroups[5]), []uint32{newGroupA}) {
-		t.Fatal("ambiguous Group next20 gameplay changed exact identity", afterGroups)
+	// A right click orders each selected unit (mapWorld.enqueue).
+	for _, id := range f.live.view.SelectedUnits() {
+		f.live.enqueue(id, 24, 16)
 	}
-	for _, object := range initial.SavedDocument.Document.Players {
-		if object != 0 && !reflect.DeepEqual(after.SavedDocument.Document.Objects[object-1].Groups, initial.SavedDocument.Document.Objects[object-1].Groups) {
-			t.Fatal("next20 failed Group transaction changed retained inline records", object)
+	f.live.tick()
+	for _, g := range f.live.world.Entities() {
+		if group := savedGroupOf(f.live.world, g.ID); group != nil && group.Authored && group.Owner.Owner != g.Owner {
+			t.Fatal("an order built a Group of several owners", g.ID, group)
 		}
 	}
+	current := groupDocumentSnapshot(t, f)
+	if current.SavedDocument.GroupBindings.Unavailable != "" {
+		t.Fatal("the order left an export gap", current.SavedDocument.GroupBindings.Unavailable)
+	}
+	newGroupGivenSaves(t, f, current, 2, map[uint32]uint32{newGroupA: 2, companion: 1})
+}
 
+func savedGroupOf(w *sim.World, id sim.EntityID) *sim.SavedGroup {
+	groups, _, _ := w.SavedGroups()
+	for i, g := range groups {
+		for _, m := range g.Members {
+			if m.Bound && m.Entity == id {
+				return &groups[i]
+			}
+		}
+	}
+	return nil
+}
+
+// newGroupGivenSaves exports the current SAV, loads it cold, and checks for 20
+// ticks that the loaded world matches the source and each actor keeps its
+// owner inside a Group of that owner.
+func newGroupGivenSaves(t *testing.T, f *FrontEnd, current Snapshot, destination int32, owners map[uint32]uint32) {
+	t.Helper()
+	hash := f.live.world.Hash()
+	native, err := f.ExportCurrentSave(current, "handover Group")
+	if err != nil || f.live.world.Hash() != hash {
+		t.Fatal("handover Group SAVE", err)
+	}
+	loaded := newGroupFront(t, destination)
+	if _, err := loaded.LoadObservedSAV(native); err != nil {
+		t.Fatal("handover Group LOAD", err)
+	}
+	for tick := 0; tick <= 20; tick++ {
+		if loaded.live.world.Hash() != f.live.world.Hash() {
+			t.Fatal("loaded handover world differs from its source at tick", tick)
+		}
+		for key, owner := range owners {
+			actor := newGroupActors(t, loaded.live.world)[key]
+			if g := savedGroupOf(loaded.live.world, actor.ID); actor.Owner != owner || g == nil || g.Owner.Owner != owner {
+				t.Fatal("loaded handover lost its owner or Group at tick", tick, key, actor.Owner, g)
+			}
+		}
+		f.live.tick()
+		loaded.live.tick()
+	}
 }

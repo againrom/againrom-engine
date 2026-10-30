@@ -756,10 +756,37 @@ func ownedCandidate(ents []MapEntity, id uint32, localOwner uint32) bool {
 	}
 	for _, e := range ents {
 		if e.ID == id {
-			return e.Owner == localOwner
+			return localOwns(localOwner, e.Owner)
 		}
 	}
 	return false
+}
+
+func localOwns(localOwner, owner uint32) bool { return localOwner == 0 || owner == localOwner }
+
+// LocalOwns is ownedCandidate's test for a unit of this owner, for the
+// front-end's views of a unit's own state.
+func (v *Viewer) LocalOwns(owner uint32) bool { return localOwns(v.localOwner, owner) }
+
+// keepOwnedSelection holds a selection of several units to the units a
+// rectangle, a Shift click and a group assignment qualify. A unit that changed
+// owner while selected leaves it; a selection left with no owned unit keeps
+// its primary, as a plain click on a foreign unit does (DIV-4312).
+func keepOwnedSelection(cur selection, ents []MapEntity, localOwner uint32) selection {
+	present := presentSelected(cur, ents)
+	if len(present) < 2 || localOwner == 0 {
+		return cur
+	}
+	kept := make(selection, 0, len(cur))
+	for _, id := range cur {
+		if i := slices.IndexFunc(present, func(e MapEntity) bool { return e.ID == id }); i < 0 || localOwns(localOwner, present[i].Owner) {
+			kept = append(kept, id)
+		}
+	}
+	if len(presentSelected(kept, ents)) == 0 {
+		return selection{present[0].ID}
+	}
+	return kept
 }
 
 // oldSummaryForeign is `view+0x144` bit `0x4` over the selection a gesture

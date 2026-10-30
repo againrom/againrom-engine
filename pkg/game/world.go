@@ -2445,8 +2445,22 @@ func (mw *mapWorld) frameAdvance(advance func()) {
 // persistent party character is selected. Each subject is rebuilt from that
 // member and that entity's own stock; no inventory state is copied.
 func (mw *mapWorld) refreshInventorySelection() {
-	if mw == nil || mw.mission == nil || mw.view == nil {
+	if mw == nil || mw.mission == nil || mw.view == nil || mw.world == nil {
 		return
+	}
+	subject := sim.EntityID(mw.invSubject.ID)
+	if _, held := mw.entity(subject); mw.invSubjectSet && held && !mw.playerMayManage(subject, false) {
+		// A subject given to another player gives way to the first member
+		// the player manages, so its inventory cannot stay open or change.
+		for _, id := range mw.mission.ids {
+			if mw.managedMember(id) < 0 {
+				continue
+			}
+			mw.switchInventorySubject(uint32(id))
+			if mw.invSubject.ID == uint32(id) {
+				break
+			}
+		}
 	}
 	selected, ok := mw.view.SelectedUnit()
 	if !ok || mw.invSubjectSet && mw.invSubject.ID == selected {
@@ -2464,13 +2478,7 @@ func (mw *mapWorld) switchInventorySubject(selected uint32) {
 	if mw == nil || mw.mission == nil || mw.world == nil || mw.view == nil {
 		return
 	}
-	index := -1
-	for i, id := range mw.mission.ids {
-		if uint32(id) == selected && i < len(mw.mission.party) {
-			index = i
-			break
-		}
-	}
+	index := mw.managedMember(sim.EntityID(selected))
 	if index < 0 {
 		return
 	}
@@ -2973,6 +2981,34 @@ func (mw *mapWorld) missionPartyMember(id sim.EntityID) *mapload.PartyMember {
 		}
 	}
 	return nil
+}
+
+// managedMember is id's index in the party the mission opened with when the
+// player may open and change that member's inventory, worn items and swap,
+// else -1. A member given to another player (PARTY-JOIN-025) stays in the
+// party list and is refused, as a unit that never joined is (DIV-4312).
+func (mw *mapWorld) managedMember(id sim.EntityID) int {
+	if mw == nil || mw.mission == nil {
+		return -1
+	}
+	k := slices.Index(mw.mission.ids, id)
+	if k < 0 || k >= len(mw.mission.party) || !mw.playerMayManage(id, false) {
+		return -1
+	}
+	return k
+}
+
+// playerMayManage is the one test of whether the player may view a held
+// unit's own state: no other Player holds it (the local participant or no
+// Player owns it), or revealed is set (the spell book while the map is
+// revealed, DIV-4313). With no viewer no local participant is established
+// and every unit is owned (ui.LocalOwns).
+func (mw *mapWorld) playerMayManage(id sim.EntityID, revealed bool) bool {
+	if mw == nil || mw.world == nil {
+		return false
+	}
+	e, held := mw.entity(id)
+	return held && (revealed || e.Owner == 0 || mw.view == nil || mw.view.LocalOwns(e.Owner))
 }
 
 // resolveWeaponMaterialized folds member's own PERSISTED history together

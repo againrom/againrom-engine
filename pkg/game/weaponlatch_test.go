@@ -351,7 +351,7 @@ func TestRecomputeRaisedSkillsReadsTheLiveLatchNotTheMissionOpenSnapshot(t *test
 			// or rearm ever run for this tick, so a non-zero blow needs a
 			// number here independent of the derived combat block this test
 			// is itself about to witness change.
-			{ID: ally, X: 10, Y: 10, HP: 100, MaxHP: 100, Reach: 1, Owner: 2,
+			{ID: ally, X: 10, Y: 10, HP: 100, MaxHP: 100, Reach: 1, Owner: sim.SelfSlot,
 				GainsXP: true, TypeID: sim.HumanTypeID, Mind: reward.Mind, SkillXP: reward.SkillXP,
 				XPSlot: uint8(data.SkillBlade), DamageBase: 5, AlwaysHits: true,
 				AttackCharge: 1, AttackRelax: 1},

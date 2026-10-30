@@ -1,7 +1,6 @@
 package game
 
 import (
-	"slices"
 	"time"
 
 	"againrom/pkg/mapload"
@@ -26,20 +25,11 @@ func (mw *mapWorld) observeShopUses(uses []sim.StructureUse) {
 		return
 	}
 	for _, u := range uses {
-		if mw.shopMember(u.Entity) >= 0 {
+		if mw.managedMember(u.Entity) >= 0 {
 			mw.shop.customer, mw.shop.waiting = u.Entity, true
 			mw.view.RaiseShop()
 		}
 	}
-}
-
-// shopMember is id's index in the party the mission opened with, or -1.
-func (mw *mapWorld) shopMember(id sim.EntityID) int {
-	k := slices.Index(mw.mission.ids, id)
-	if k >= len(mw.mission.party) {
-		return -1
-	}
-	return k
 }
 
 // missionShopVisit is the Shop page shown over a mission: the town screen as
@@ -71,7 +61,7 @@ func (t *townScreen) OpenMissionShop() bool {
 	}
 	mw.shop.waiting = false
 	hero := mw.shop.customer
-	k := mw.shopMember(hero)
+	k := mw.managedMember(hero)
 	e, alive := mw.world.Entity(hero)
 	items, held := mw.world.CarriedItems(hero)
 	if k < 0 || !alive || !e.Alive() || !held {

@@ -3135,6 +3135,15 @@ package storyguard
 // pkg/game/mapeditmcpbrief_test.go and pkg/mapedit/brushmode_test.go, and
 // this paragraph.
 //
+// CommentBytes rises with the doc comments of the given unit's manage test
+// and selection in pkg/game/world.go, spell.go, pkg/ui/command.go and
+// spellbook.go, the shared-Slot Group writer in pkg/game/savgroupnew.go,
+// savformations.go, savgroupbindings.go, savactioncurrent.go and
+// pkg/sim/groupcontinuation.go, their tests in pkg/game/givenunit_test.go,
+// savgroupnew_integration_test.go, currentauthoredgroup_test.go and
+// pkg/ui/ownedselection_test.go, and this paragraph. TestIdentCount falls by
+// one with a test helper call replaced by its unnumbered form.
+//
 // CommentBytes rises with the doc comments of the second game's save
 // refusal reasons and SAVE after Continue in pkg/game and pkg/ui, their
 // tests, and this paragraph.
@@ -3143,7 +3152,7 @@ package storyguard
 // test, save notices, Open start folder, window resize cursor and heading
 // face in pkg/ui and pkg/game, their tests, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4475,
+	TestIdentCount: 4474,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3509,5 +3518,5 @@ var Committed = Baseline{
 	// pkg/game/mapeditbrush_release_test.go, and this note, less the ring
 	// bound's comments it removed. The merge with main is measured on the
 	// merged tree.
-	CommentBytes: 9968120,
+	CommentBytes: 9972206,
 }

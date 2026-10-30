@@ -131,7 +131,9 @@ func cloneSavedGroupBindings(src *SnapshotSAVGroupBindings, doc *sav.DocumentDat
 		}
 		seenSites[location] = true
 		if src.PlayersPresent && !src.PlayersConstructed {
-			if g.ContainerID == 0 || players[g.ContainerID] != g.PlayerObject {
+			// An authored Group no current Player holds is written in its
+			// owner Slot's first Player (DIV-788).
+			if g.ContainerID == 0 && !g.Authored || g.ContainerID != 0 && players[g.ContainerID] != g.PlayerObject {
 				return nil, fmt.Errorf("saved SAV Group binding names a different Player container")
 			}
 		} else if !src.PlayersConstructed && (g.ContainerID != 0 || g.Authored) {
@@ -289,7 +291,7 @@ func validateSavedGroupBindingWorld(state *SnapshotSAVDocument, world *sim.World
 		if !exists || g.Authored != binding.Authored || g.ContainerID != binding.ContainerID {
 			return fmt.Errorf("saved SAV Group %d lacks its source native registry entry", binding.ID)
 		}
-		if state.GroupBindings.FormationsPresent && g.OwnerID != savedFormationOwnerID(state.GroupBindings, binding.Owner) {
+		if state.GroupBindings.FormationsPresent && savedFormationOwnerDiffers(state.GroupBindings, binding, g) {
 			return fmt.Errorf("saved SAV Group %d formation owner differs from exact binding", binding.ID)
 		}
 		if binding.Authored {

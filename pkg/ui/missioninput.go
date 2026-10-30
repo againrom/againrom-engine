@@ -481,7 +481,7 @@ func (v *Viewer) groupKey(n int, ctrl, alt, shift bool) {
 		}
 	}
 	slices.Sort(next)
-	v.sel = next
+	v.sel = keepOwnedSelection(next, v.entities, v.localOwner)
 
 	if alt {
 		// The member mean, in world coordinates, which is what message 0x406

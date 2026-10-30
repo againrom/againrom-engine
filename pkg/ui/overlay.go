@@ -804,6 +804,7 @@ const (
 // passes on, passing none is what turns them off.
 func (v *Viewer) SetEntities(entities []MapEntity) {
 	v.entities = entities
+	v.sel = keepOwnedSelection(v.sel, entities, v.localOwner)
 	for _, entity := range entities {
 		v.soundMessages = append(v.soundMessages, soundMessage{entity: soundEntityOf(entity)})
 	}

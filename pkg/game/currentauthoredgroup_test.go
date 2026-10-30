@@ -9,7 +9,9 @@ import (
 	"againrom/pkg/sim"
 )
 
-func TestCurrentAuthoredGroupBindsAbsentContainerWithoutGuessing(t *testing.T) {
+// A Group with no exact container binds the first Player of its owner Slot
+// (DIV-788); an owner no Player holds, or no native identity, still refuses.
+func TestCurrentAuthoredGroupBindsAbsentContainerToItsSlotPlayer(t *testing.T) {
 	for _, change := range []string{"absent carrier", "native container", "missing native container", "ambiguous slot", "missing owner", "unknown owner", "missing native identity"} {
 		t.Run(change, func(t *testing.T) {
 			first, second := mustNewRecord("Player"), mustNewRecord("Player")
@@ -40,9 +42,13 @@ func TestCurrentAuthoredGroupBindsAbsentContainerWithoutGuessing(t *testing.T) {
 				t.Fatal(err)
 			}
 			binding, err := bindAuthoredSavedGroup(state, group, map[uint32]uint16{7: 1, 9: 2})
-			if change == "absent carrier" || change == "native container" {
+			if change == "absent carrier" || change == "native container" || change == "missing native container" {
 				if err != nil || binding.ContainerID != group.ContainerID || binding.PlayerObject != 2 || binding.Owner != (SnapshotSAVGroupReferenceBinding{Key: 200, Class: 1, ObjectIndex: 2, Owner: 2}) {
 					t.Fatal("current owner did not select its exact ordinary Player", binding, err)
+				}
+			} else if change == "ambiguous slot" {
+				if err != nil || binding.ContainerID != 0 || binding.PlayerObject != 1 || binding.Owner != (SnapshotSAVGroupReferenceBinding{Key: 100, Class: 1, ObjectIndex: 1, Owner: 2}) {
+					t.Fatal("a shared owner Slot did not select its first Player", binding, err)
 				}
 			} else if err == nil {
 				t.Fatal("missing or ambiguous authority acquired a Player", binding)
