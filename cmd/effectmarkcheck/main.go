@@ -93,7 +93,7 @@ func main() {
 	for _, tile := range sortedKeys(tiles) {
 		for _, k := range kinds {
 			kind := terrain.MarkKind(k.Spell)
-			records := terrain.EffectMarkRecords(kind, 0xffff, tile)
+			records := terrain.EffectMarkRecords(kind, kind, 0xffff, tile)
 			back, front := 0, 0
 			for _, r := range records {
 				if r.Depth > 0 {
@@ -118,7 +118,7 @@ func main() {
 	for _, m := range marks {
 		kind := terrain.MarkKind(int(m.Spell))
 		fmt.Printf("  cast spell %2d kind=%#04x attached=%-5v records=%d\n",
-			m.Spell, kind, m.Attached, len(terrain.EffectMarkRecords(kind, 0xffff, 1)))
+			m.Spell, kind, m.Attached, len(terrain.EffectMarkRecords(kind, kind, 0xffff, 1)))
 	}
 }
 

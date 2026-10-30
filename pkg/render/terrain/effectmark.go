@@ -60,9 +60,14 @@ const (
 	MarkCurse           = 0x3e // spell 27
 )
 
+// The second game's geometry programs that differ from every first-game kind:
+// its Bless ring (R2-ENGINE-693, generator arguments of R2-ENGINE-692) and its
+// Shield, whose meridian frames divide by the 28s envelope scale and whose
+// rings take the signed sweep. Its protections run the first game's
+// protection programs, whose records R2-ENGINE-693 states alike.
 const (
-	markKindLow  = 0x12
-	markKindHigh = 0x3e
+	MarkProgramSecondBless  = 0x100 + 48
+	MarkProgramSecondShield = 0x100 + 62
 )
 
 // MarkKind is the mark kind a spell id computes: `2*spellId + 8`
@@ -74,9 +79,12 @@ const (
 // expression and neither derives from the other.
 func MarkKind(spell int) int { return 2*spell + 8 }
 
-// EffectMarkRecords is the whole dispatch (MAGIC-MARK-061): the records kind
-// contributes for an actor whose class TileSize is tileSize, at the client
-// element's current countdown.
+// EffectMarkRecords is the whole dispatch (MAGIC-MARK-061): the records the
+// geometry program contributes for an actor whose class TileSize is tileSize,
+// at the client element's current countdown. Every record carries picture as
+// its record index: the program says where, how many and on which clock, the
+// picture says which sheet draws them. A first-game kind is its own program
+// and its own picture.
 //
 // IT ANSWERS NIL FOR EVERY NON-MARKING KIND, and that is half the contract. The
 // original's dispatch sends 35 of the 45 kinds in range to an arm that appends
@@ -89,22 +97,23 @@ func MarkKind(spell int) int { return 2*spell + 8 }
 // both fixed-anchor legacy inputs and target-mark countdown inputs.
 //
 // tileSize BELOW ONE IS TREATED AS ONE.
-func EffectMarkRecords(kind int, countdown uint16, tileSize int) []EffectMark {
-	if kind < markKindLow || kind > markKindHigh {
-		return nil
-	}
+func EffectMarkRecords(program, picture int, countdown uint16, tileSize int) []EffectMark {
 	if tileSize < 1 {
 		tileSize = 1
 	}
-	switch kind {
+	switch program {
 	case MarkProtectionFire, MarkProtectionWater, MarkProtectionAir, MarkProtectionEarth:
-		return protectionMarks(kind, countdown, tileSize)
+		return protectionMarks(program, picture, countdown, tileSize)
 	case MarkPoisonCloud:
-		return poisonCloudMarks(countdown, tileSize)
+		return poisonCloudMarks(picture, countdown, tileSize)
 	case MarkShield:
-		return shieldMarks(countdown, tileSize)
+		return shieldMarks(firstShield, picture, countdown, tileSize)
+	case MarkProgramSecondShield:
+		return shieldMarks(secondShield, picture, countdown, tileSize)
 	case MarkBless, MarkCurse:
-		return blessCurseMarks(kind, countdown, tileSize)
+		return blessCurseMarks(program, picture, countdown, tileSize)
+	case MarkProgramSecondBless:
+		return secondBlessMarks(picture, countdown, tileSize)
 	}
 	return nil
 }
@@ -125,7 +134,7 @@ func markBase(tileSize int) int { return tileSize * 32 }
 // the other effects, and nothing here does either.
 //
 // The phase is `countdown mod 6`.
-func protectionMarks(kind int, countdown uint16, tileSize int) []EffectMark {
+func protectionMarks(kind, picture int, countdown uint16, tileSize int) []EffectMark {
 	var dx, dy int
 	switch kind {
 	case MarkProtectionFire:
@@ -141,15 +150,15 @@ func protectionMarks(kind int, countdown uint16, tileSize int) []EffectMark {
 		DX:     dx,
 		DY:     dy - markBase(tileSize),
 		Depth:  0,
-		Record: kind,
+		Record: picture,
 		Phase:  int(countdown % 6),
 	}}
 }
 
-func poisonCloudMarks(countdown uint16, tileSize int) []EffectMark {
+func poisonCloudMarks(picture int, countdown uint16, tileSize int) []EffectMark {
 	return []EffectMark{{
 		DY:     -markBase(tileSize),
-		Record: MarkPoisonCloud,
+		Record: picture,
 		Phase:  int(countdown % 6),
 	}}
 }
@@ -187,7 +196,7 @@ const (
 // first-quadrant sweep of the five steps into a full circle of twenty marks —
 // the reading that agrees with the claim's own "twenty marks on a rotating
 // circle". DIV-075.
-func blessCurseMarks(kind int, countdown uint16, tileSize int) []EffectMark {
+func blessCurseMarks(kind, picture int, countdown uint16, tileSize int) []EffectMark {
 	base := markBase(tileSize)
 	out := make([]EffectMark, 0, blessSteps*4)
 	clock := int(^countdown) % blessSteps
@@ -205,9 +214,32 @@ func blessCurseMarks(kind int, countdown uint16, tileSize int) []EffectMark {
 				DX:     sign[0] * c,
 				DY:     -base,
 				Depth:  sign[1] * s,
-				Record: kind,
+				Record: picture,
 				Phase:  (blessInitialPhase(kind, index) + clock) % blessSteps,
 			})
+		}
+	}
+	return out
+}
+
+// secondBlessMarks is the second game's Bless ring (R2-ENGINE-693): for each
+// base angle a of 89, 71, 53, 35 and 17 degrees at t = a + 18(c mod 5), with
+// u and v the truncated 20 cos t and 20 sin t, the four records (u, v),
+// (v, -u), (-u, -v) and (-v, u) in (dx, depth), all `32*TileSize` above the
+// anchor and all on frame 4 - a/18. The twenty positions stay put, 18 degrees
+// apart; the frames advance round the ring with period 5 updates.
+func secondBlessMarks(picture int, countdown uint16, tileSize int) []EffectMark {
+	base := markBase(tileSize)
+	clock := int(countdown % blessSteps)
+	out := make([]EffectMark, 0, blessSteps*4)
+	for i := 0; i < blessSteps; i++ {
+		step := blessFirstStep - i*blessStepDegree
+		rad := float64(step+blessStepDegree*clock) * math.Pi / 180
+		u := ftol(math.Cos(rad) * blessRadius)
+		v := ftol(math.Sin(rad) * blessRadius)
+		for _, p := range [4][2]int{{u, v}, {v, -u}, {-u, -v}, {-v, u}} {
+			out = append(out, EffectMark{DX: p[0], DY: -base, Depth: p[1], Record: picture,
+				Phase: blessSteps - 1 - step/blessStepDegree})
 		}
 	}
 	return out
@@ -236,38 +268,57 @@ const (
 // after every A record; its PC53 envelope determines its frame, radius and
 // sampling interval, then it emits the upper/lower pair for every sample.
 // Axis duplicates are retained because the original producer retains them.
-func shieldMarks(countdown uint16, tileSize int) []EffectMark {
+//
+// The game's shieldProgram says what differs: the scale the meridian frame
+// divides |q| by, and whether the rings take the sweep's sign.
+func shieldMarks(program shieldProgram, picture int, countdown uint16, tileSize int) []EffectMark {
 	phase := int(countdown % shieldCycle)
 	theta := float64(4*phase) * math.Pi / 180
 	sin, cos := math.Sin(theta), math.Cos(theta)
 	fixedRadius := tileSize * shieldHeightScale
+	frameScale := tileSize * program.frameScale
 	out := make([]EffectMark, 0, fixedRadius*4)
 	for _, p := range sampledMidpointCircle(fixedRadius, 4) {
 		q := ftol(float64(p[1]) * float64(tileSize*shieldEnvelopeScale) / float64(fixedRadius))
-		frame := abs(4 - ftol(float64(abs(p[1])*5)/float64(fixedRadius)))
+		frame := abs(4 - ftol(float64(abs(p[1])*5)/float64(frameScale)))
 		xcos := ftol(float64(p[0]) * cos)
 		xsin := ftol(float64(p[0]) * sin)
 		out = append(out,
-			EffectMark{DX: xcos, DY: -q, Depth: tileSize*shieldBaseScale + xsin, Record: MarkShield, Phase: frame},
-			EffectMark{DX: -xsin, DY: -q, Depth: tileSize*shieldBaseScale + xcos, Record: MarkShield, Phase: frame},
+			EffectMark{DX: xcos, DY: -q, Depth: tileSize*shieldBaseScale + xsin, Record: picture, Phase: frame},
+			EffectMark{DX: -xsin, DY: -q, Depth: tileSize*shieldBaseScale + xcos, Record: picture, Phase: frame},
 		)
 	}
 
 	// Component B is independently rasterised after every Component A record.
 	// Its envelope preserves the original PC53, round-to-nearest operation
 	// boundaries; real-number division by 45 disagrees on shipped phases.
-	envelope := shieldEnvelopePC53(tileSize, phase)
+	envelope := shieldSweepPC53(tileSize, phase)
+	if !program.signedSweep {
+		envelope = abs(envelope)
+	}
 	frame := 4 - abs(phase-45)/9
 	ratio := float64(envelope) / float64(tileSize*shieldEnvelopeScale)
 	radius := ftol(math.Sin(math.Acos(ratio)) * float64(fixedRadius))
 	for _, p := range sampledMidpointCircle(radius, 2*frame) {
 		out = append(out,
-			EffectMark{DX: p[0], DY: -(envelope + tileSize*shieldBaseScale), Depth: p[1], Record: MarkShield, Phase: frame},
-			EffectMark{DX: p[0], DY: envelope - tileSize*shieldBaseScale, Depth: p[1], Record: MarkShield, Phase: frame},
+			EffectMark{DX: p[0], DY: -(envelope + tileSize*shieldBaseScale), Depth: p[1], Record: picture, Phase: frame},
+			EffectMark{DX: p[0], DY: envelope - tileSize*shieldBaseScale, Depth: p[1], Record: picture, Phase: frame},
 		)
 	}
 	return out
 }
+
+// shieldProgram is the data one game's Shield program differs by.
+type shieldProgram struct {
+	frameScale  int
+	signedSweep bool
+}
+
+var (
+	firstShield = shieldProgram{frameScale: shieldHeightScale}
+	// R2-ENGINE-693: f = |4 - trunc(5|q|/28s)|, h = trunc(28s(p/45 - 1)).
+	secondShield = shieldProgram{frameScale: shieldEnvelopeScale, signedSweep: true}
+)
 
 var (
 	shieldPhaseScaleNum = big.NewInt(6405119470038039)
@@ -278,13 +329,16 @@ func shieldPC53() *big.Float {
 	return new(big.Float).SetPrec(53).SetMode(big.ToNearestEven)
 }
 
-func shieldEnvelopePC53(tileSize, phase int) int {
+func shieldEnvelopePC53(tileSize, phase int) int { return abs(shieldSweepPC53(tileSize, phase)) }
+
+// shieldSweepPC53 is the signed ring height trunc(28T(p/45 - 1)); truncation
+// toward zero makes its magnitude the first game's envelope.
+func shieldSweepPC53(tileSize, phase int) int {
 	scale := shieldPC53().SetRat(new(big.Rat).SetFrac(
 		new(big.Int).Set(shieldPhaseScaleNum), new(big.Int).Set(shieldPhaseScaleDen)))
 	product := shieldPC53().Mul(shieldPC53().SetInt64(int64(phase)), scale)
 	shifted := shieldPC53().Sub(product, shieldPC53().SetInt64(1))
-	absolute := shieldPC53().Abs(shifted)
-	scaled := shieldPC53().Mul(absolute, shieldPC53().SetInt64(int64(tileSize*shieldEnvelopeScale)))
+	scaled := shieldPC53().Mul(shifted, shieldPC53().SetInt64(int64(tileSize*shieldEnvelopeScale)))
 	integer, _ := scaled.Int(nil)
 	return int(integer.Int64())
 }

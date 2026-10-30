@@ -21,7 +21,7 @@ func TestTheFourProtectionsFormTheDiamond(t *testing.T) {
 		MarkProtectionEarth: {0, -base + 6},
 	}
 	for kind, offset := range want {
-		got := EffectMarkRecords(kind, countdown, tile)
+		got := EffectMarkRecords(kind, kind, countdown, tile)
 		if len(got) != 1 {
 			t.Fatalf("kind %#x built %d records, want 1", kind, len(got))
 		}
@@ -43,7 +43,7 @@ func TestTheFourProtectionsFormTheDiamond(t *testing.T) {
 
 // TestPoisonCloudPutsOneMarkAboveTheActor — MAGIC-CLOUD-065's first arm.
 func TestPoisonCloudPutsOneMarkAboveTheActor(t *testing.T) {
-	got := EffectMarkRecords(MarkPoisonCloud, 100, 1)
+	got := EffectMarkRecords(MarkPoisonCloud, MarkPoisonCloud, 100, 1)
 	if len(got) != 1 {
 		t.Fatalf("built %d records, want 1", len(got))
 	}
@@ -66,7 +66,7 @@ func TestTheNonMarkingSpellsBuildNothing(t *testing.T) {
 	// slow, fire_arrow, fire_ball, wall_of_fire, fire_sacrifice — outside it.
 	outside := []int{0x40, 0x0a, 0x0c, 0x0e, 0x10}
 	for _, kind := range append(inRange, outside...) {
-		if got := EffectMarkRecords(kind, 500, 1); len(got) != 0 {
+		if got := EffectMarkRecords(kind, kind, 500, 1); len(got) != 0 {
 			t.Errorf("kind %#x built %d records, want none", kind, len(got))
 		}
 	}
@@ -74,7 +74,7 @@ func TestTheNonMarkingSpellsBuildNothing(t *testing.T) {
 	// one record, so the test above is discriminating and not vacuous.
 	for _, kind := range []int{MarkProtectionFire, MarkProtectionWater, MarkProtectionAir,
 		MarkProtectionEarth, MarkPoisonCloud, MarkShield, MarkBless, MarkCurse} {
-		if got := EffectMarkRecords(kind, 500, 1); len(got) == 0 {
+		if got := EffectMarkRecords(kind, kind, 500, 1); len(got) == 0 {
 			t.Errorf("kind %#x built no records, want at least one", kind)
 		}
 	}
@@ -86,7 +86,7 @@ func TestTheNonMarkingSpellsBuildNothing(t *testing.T) {
 // decoded geometry.
 func TestBlessAndCurseSweepOppositeWays(t *testing.T) {
 	for _, tc := range []struct{ kind int }{{MarkBless}, {MarkCurse}} {
-		got := EffectMarkRecords(tc.kind, 300, 1)
+		got := EffectMarkRecords(tc.kind, tc.kind, 300, 1)
 		if len(got) != 20 {
 			t.Fatalf("kind %#x built %d records, want 20", tc.kind, len(got))
 		}
@@ -121,8 +121,8 @@ func TestBlessAndCurseSweepOppositeWays(t *testing.T) {
 }
 
 func TestEveryBlessStarAnimatesFromItsOwnStartingFrame(t *testing.T) {
-	start := EffectMarkRecords(MarkBless, 0xffff, 1)
-	next := EffectMarkRecords(MarkBless, 0xfffe, 1)
+	start := EffectMarkRecords(MarkBless, MarkBless, 0xffff, 1)
+	next := EffectMarkRecords(MarkBless, MarkBless, 0xfffe, 1)
 	if len(start) != 20 || len(next) != 20 {
 		t.Fatalf("Bless built %d then %d stars, want 20 on both ticks", len(start), len(next))
 	}
@@ -156,7 +156,7 @@ func TestShieldUsesTheTwoExactDecodedComponents(t *testing.T) {
 		{3, 60, 28, 224, "7ebdb38f9376965cbb3253a34b6aa4888232c411cf3713b44f0dfc1b39ab624c"},
 	}
 	for _, tc := range cases {
-		got := EffectMarkRecords(MarkShield, uint16(tc.phase), tc.tile)
+		got := EffectMarkRecords(MarkShield, MarkShield, uint16(tc.phase), tc.tile)
 		if len(got) != tc.count {
 			t.Errorf("T=%d p=%d records=%d, want %d", tc.tile, tc.phase, len(got), tc.count)
 		}
@@ -173,7 +173,7 @@ func TestShieldUsesTheTwoExactDecodedComponents(t *testing.T) {
 // every fixed-radius A record precedes B, and phase zero emits no B record
 // instead of drawing frame -1.
 func TestShieldComponentOrderAndZeroRadius(t *testing.T) {
-	zero := EffectMarkRecords(MarkShield, 0, 1)
+	zero := EffectMarkRecords(MarkShield, MarkShield, 0, 1)
 	if len(zero) != 48 {
 		t.Fatalf("phase zero records=%d, want Component A's exact 48 and no Component B", len(zero))
 	}
@@ -182,7 +182,7 @@ func TestShieldComponentOrderAndZeroRadius(t *testing.T) {
 		t.Fatalf("first sampled A pair=%+v %+v, want duplicate %+v", zero[0], zero[1], wantA)
 	}
 
-	flat := EffectMarkRecords(MarkShield, 45, 1)
+	flat := EffectMarkRecords(MarkShield, MarkShield, 45, 1)
 	if len(flat) != 72 {
 		t.Fatalf("phase 45 records=%d, want 48 A followed by 24 B", len(flat))
 	}
@@ -205,12 +205,12 @@ func effectMarkHash(marks []EffectMark) string {
 // actor's footprint. A TileSize below one is treated as one, the key's own
 // registry default.
 func TestTileSizeScalesEveryOffset(t *testing.T) {
-	one := EffectMarkRecords(MarkPoisonCloud, 0, 1)[0]
-	three := EffectMarkRecords(MarkPoisonCloud, 0, 3)[0]
+	one := EffectMarkRecords(MarkPoisonCloud, MarkPoisonCloud, 0, 1)[0]
+	three := EffectMarkRecords(MarkPoisonCloud, MarkPoisonCloud, 0, 3)[0]
 	if three.DY != 3*one.DY {
 		t.Errorf("TileSize 3 put the mark at dy %d, want three times TileSize 1's %d", three.DY, one.DY)
 	}
-	if zero := EffectMarkRecords(MarkPoisonCloud, 0, 0)[0]; zero != one {
+	if zero := EffectMarkRecords(MarkPoisonCloud, MarkPoisonCloud, 0, 0)[0]; zero != one {
 		t.Errorf("TileSize 0 built %+v, want TileSize 1's %+v", zero, one)
 	}
 }

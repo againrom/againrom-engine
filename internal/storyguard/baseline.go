@@ -3449,5 +3449,13 @@ var Committed = Baseline{
 	// tests' comments in pkg/town/keep_test.go and
 	// pkg/game/townrawpick_test.go, and this note. The merge with main is
 	// measured on the merged tree.
-	CommentBytes: 9942916,
+
+	// It rose for the second game's held marks: heldMark, secondHeldMarks
+	// and heldMarkOf in pkg/game/effectmark.go, the heldMarks field in
+	// pkg/game/gamefiles.go, the second-game programs and shieldProgram in
+	// pkg/render/terrain/effectmark.go, the tests in
+	// pkg/game/heldmarkprofile_test.go and
+	// pkg/render/terrain/heldmarkprogram_test.go, and this note. The merge
+	// with main is measured on the merged tree.
+	CommentBytes: 9947559,
 }

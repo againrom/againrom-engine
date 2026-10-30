@@ -13,16 +13,47 @@ import (
 // One engine tick is one rebuild; native elapsed-time cadence remains unknown.
 const markElementStart = 0xffff
 
-// markElement is one open element: the actor it stands on, its kind, and its
-// countdown. They are held in one flat slice in canonical (entity, kind) order
-// so the rebuild's output order is a function of the set alone.
+// markElement is one open element: the actor it stands on, its kind (the
+// geometry program), its picture, and its countdown. They are held in one flat
+// slice in canonical (entity, kind) order so the rebuild's output order is a
+// function of the set alone.
 type markElement struct {
 	Entity    sim.EntityID
 	Kind      int
+	Picture   int
 	Count     uint16
 	Transient bool
 	Seed      uint32
 	Identity  markTargetIdentity
+}
+
+// heldMark is the held mark a lasting effect draws: the geometry program that
+// builds its records, where and on which clock, and the picture whose sheet
+// draws them.
+type heldMark struct{ program, picture int }
+
+// secondHeldMarks are the second game's six held marks by the first-game arm
+// its rows run (R2-ASSET-177 joins the rows): each picture is the row's cast
+// identifier and projectiles.reg type (R2-ENGINE-445), and each program
+// builds R2-ENGINE-693's records for that mark.
+var secondHeldMarks = map[uint16]heldMark{
+	5:  {terrain.MarkProtectionFire, 16},
+	10: {terrain.MarkProtectionWater, 24},
+	16: {terrain.MarkProtectionAir, 34},
+	22: {terrain.MarkProtectionEarth, 46},
+	23: {terrain.MarkProgramSecondBless, 48},
+	18: {terrain.MarkProgramSecondShield, 62},
+}
+
+// heldMarkOf is the held mark of an effect whose spell runs arm: the game's
+// own row, else the first game's, where the arm's kind is both the program
+// and the picture (MAGIC-MARK-061).
+func (g *gameFiles) heldMarkOf(arm uint16) heldMark {
+	if m, ok := g.heldMarks[arm]; ok {
+		return m
+	}
+	kind := terrain.MarkKind(int(arm))
+	return heldMark{kind, kind}
 }
 
 type markTargetIdentity struct {
@@ -44,38 +75,41 @@ func (mw *mapWorld) markTargetPresent(el markElement) bool {
 // advanceEffectMarks decrements old elements, then admits this tick's branch
 // observations at 32. Projectile retirement does not close a target mark.
 func (mw *mapWorld) advanceEffectMarks(marks ...sim.ProjectileMark) {
-	live := make(map[sim.EntityID]map[int]bool)
+	files := mw.files()
+	live := make(map[sim.EntityID]map[heldMark]bool)
 	for _, e := range mw.world.ActiveEffects() {
-		kind := terrain.MarkKind(int(mw.world.SpellArm(e.Spell)))
+		mark := files.heldMarkOf(mw.world.SpellArm(e.Spell))
 		if live[e.Target] == nil {
-			live[e.Target] = make(map[int]bool)
+			live[e.Target] = make(map[heldMark]bool)
 		}
-		live[e.Target][kind] = true
+		live[e.Target][mark] = true
 	}
 
 	kept := mw.markElements[:0]
-	held := make(map[sim.EntityID]map[int]bool, len(live))
+	held := make(map[sim.EntityID]map[heldMark]bool, len(live))
 	for _, el := range mw.markElements {
+		mark := heldMark{el.Kind, el.Picture}
 		if el.Transient {
 			if !mw.markTargetPresent(el) || el.Count <= 1 {
 				continue
 			}
-		} else if !live[el.Entity][el.Kind] {
+		} else if !live[el.Entity][mark] {
 			continue
 		}
 		el.Count--
 		kept = append(kept, el)
 		if held[el.Entity] == nil {
-			held[el.Entity] = make(map[int]bool)
+			held[el.Entity] = make(map[heldMark]bool)
 		}
-		held[el.Entity][el.Kind] = true
+		held[el.Entity][mark] = true
 	}
-	for entity, kinds := range live {
-		for kind := range kinds {
-			if held[entity][kind] {
+	for entity, marks := range live {
+		for mark := range marks {
+			if held[entity][mark] {
 				continue
 			}
-			kept = append(kept, markElement{Entity: entity, Kind: kind, Count: markElementStart})
+			kept = append(kept, markElement{Entity: entity, Kind: mark.program, Picture: mark.picture,
+				Count: markElementStart})
 		}
 	}
 	mw.markElements = kept
@@ -101,7 +135,7 @@ func (mw *mapWorld) refreshProjectileMark(m sim.ProjectileMark) {
 	if !ok || e.OffMap || targetMarkIdentity(e) != sourceMarkIdentity(m.Binding) {
 		return
 	}
-	el := markElement{Entity: m.Target, Kind: kind, Count: healBurstLife, Transient: true,
+	el := markElement{Entity: m.Target, Kind: kind, Picture: kind, Count: healBurstLife, Transient: true,
 		Seed: castSeed(0, mw.visualActorLabel(m.Target), (kind-8)/2), Identity: targetMarkIdentity(e)}
 	for i, old := range mw.markElements {
 		if old.Entity == m.Target && old.Kind == kind {
@@ -119,16 +153,16 @@ func (mw *mapWorld) markDraws(id sim.EntityID, tileSize int) []ui.UnitMark {
 		if el.Entity != id {
 			continue
 		}
-		sheet := mw.projectiles.Sheet(el.Kind)
+		sheet := mw.projectiles.Sheet(el.Picture)
 		if sheet == nil {
 			continue
 		}
-		records := terrain.EffectMarkRecords(el.Kind, el.Count, tileSize)
+		records := terrain.EffectMarkRecords(el.Kind, el.Picture, el.Count, tileSize)
 		if el.Transient {
 			if !mw.markTargetPresent(el) {
 				continue
 			}
-			records = showerMarkRecords(healBurst{picture: el.Kind, seed: el.Seed, tile: tileSize,
+			records = showerMarkRecords(healBurst{picture: el.Picture, seed: el.Seed, tile: tileSize,
 				drain: el.Kind == terrain.MarkDrainLife, age: healBurstLife - int(el.Count)})
 		}
 		for _, m := range records {

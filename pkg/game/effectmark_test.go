@@ -112,7 +112,7 @@ func TestTheRebuildTurnsAnElementIntoItsBuilderRecords(t *testing.T) {
 	mw := &mapWorld{world: w, projectiles: emSheets(terrain.MarkProtectionFire)}
 	mw.advanceEffectMarks()
 	got := mw.markDraws(2, 1)
-	want := terrain.EffectMarkRecords(terrain.MarkProtectionFire, mw.markElements[0].Count, 1)
+	want := terrain.EffectMarkRecords(terrain.MarkProtectionFire, terrain.MarkProtectionFire, mw.markElements[0].Count, 1)
 	if len(got) != len(want) {
 		t.Fatalf("the rebuild produced %d marks, want the builder's %d", len(got), len(want))
 	}

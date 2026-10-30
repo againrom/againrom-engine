@@ -127,6 +127,9 @@ type gameFiles struct {
 	// loadedTavernStock orders the tavern's mercenary cells after a town LOAD
 	// by the stock ids the loaded allocator gives (TAVERN-ORDER-015).
 	loadedTavernStock bool
+	// heldMarks is the held mark of a lasting effect by the arm its spell
+	// runs, where the game's geometry or picture is not the arm's own kind.
+	heldMarks map[uint16]heldMark
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
@@ -224,6 +227,7 @@ var secondGameFiles = gameFiles{
 	fallbackSpeakers: true,
 	flight: flightProfile{FlightProfile: sim.FlightProfile{Release: sim.ReleaseAtClient, StartFromMovedCaster: true, ShotsNeedArt: true},
 		drawnClass: true},
+	heldMarks: secondHeldMarks,
 }
 
 // speakerFaces is the speaker table of t's campaign.

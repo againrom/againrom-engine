@@ -812,7 +812,7 @@ func (f *FrontEnd) LiveHealFeedback() (bursts, sprites int) {
 		if el.Transient && f.live.markTargetPresent(el) {
 			bursts++
 			for _, m := range f.live.markDraws(el.Entity, f.live.effectTileSize(el.Entity)) {
-				if m.Mark.Record == el.Kind && m.Sheet.Frame(m.Mark.Phase) != nil {
+				if m.Mark.Record == el.Picture && m.Sheet.Frame(m.Mark.Phase) != nil {
 					sprites++
 				}
 			}

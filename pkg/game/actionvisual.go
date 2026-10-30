@@ -195,7 +195,8 @@ func (mw *mapWorld) restoreTargetMarks(rows []SnapshotTargetMark) {
 		if !ok || e.OffMap {
 			continue
 		}
-		mw.markElements = append(mw.markElements, markElement{Entity: r.Entity, Kind: int(r.Element >> 16),
+		kind := int(r.Element >> 16)
+		mw.markElements = append(mw.markElements, markElement{Entity: r.Entity, Kind: kind, Picture: kind,
 			Count: uint16(r.Element), Transient: true, Seed: r.Seed, Identity: targetMarkIdentity(e)})
 	}
 }
