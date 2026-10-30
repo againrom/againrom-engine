@@ -180,8 +180,9 @@ func (e *MapEditor) goalAt(p image.Point) {
 		if r.Kind != g.Pick {
 			continue
 		}
-		next, err := s.SetGoalTarget(sel, r.Kind, r.Index)
-		if e.adoptEdit(next, err) == nil && next != nil {
+		if ch, err := e.commandSetGoalTarget(goalTarget{Goal: sel, Target: RecordRef{Kind: r.Kind, Index: r.Index}}); err != nil {
+			e.message = err.Error()
+		} else if ch.doc != nil {
 			e.openGoals(s, sel)
 		}
 		return

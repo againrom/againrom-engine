@@ -377,27 +377,24 @@ func (e *MapEditor) liveMessageParts() []InspectionMessagePart {
 }
 
 func (e *MapEditor) applyMessage() {
-	host, ok := e.doc.Edits.(InspectionMessages)
-	if !ok || !e.captureMessageParts() {
+	if _, ok := e.doc.Edits.(InspectionMessages); !ok || !e.captureMessageParts() {
 		return
 	}
 	parts := e.liveMessageParts()
 	if e.messagePage == NewMessagePage {
-		e.createMessage(host, parts)
+		e.createMessage(parts)
 		return
 	}
 	if e.messageFor != nil && e.messagePage != e.messageFrom {
 		owner, err := e.dialogOwner()
-		var next *InspectionDocument
 		if err == nil {
-			next, err = host.PointMessageParts(owner, e.messagePage, parts)
+			_, err = e.commandWriteMessage(messageWrite{Owner: &owner, Page: e.messagePage, Parts: parts})
 		}
 		if err != nil {
 			e.obj.note = err.Error()
 			return
 		}
 		e.messageFrom = e.messagePage
-		_ = e.adoptEdit(next, nil)
 		e.obj.doc = nil
 		e.loadObject()
 		return
@@ -405,18 +402,16 @@ func (e *MapEditor) applyMessage() {
 	if !e.objectDirty() {
 		return
 	}
-	next, err := host.SetMessageParts(e.messagePage, parts)
-	if err != nil {
+	if _, err := e.commandWriteMessage(messageWrite{Page: e.messagePage, Parts: parts}); err != nil {
 		e.obj.note = err.Error()
 		return
 	}
-	_ = e.adoptEdit(next, nil)
 	e.obj.doc = nil
 	e.loadObject()
 }
 
 // createMessage writes the draft and its owner; Back returns to the owner.
-func (e *MapEditor) createMessage(host InspectionMessages, parts []InspectionMessagePart) {
+func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 	owner := e.messageNew
 	if e.messageFor != nil {
 		var err error
@@ -425,14 +420,15 @@ func (e *MapEditor) createMessage(host InspectionMessages, parts []InspectionMes
 			return
 		}
 	}
-	next, page, err := host.CreateMessageParts(owner, parts)
+	ch, err := e.commandWriteMessage(messageWrite{Owner: &owner, Page: NewMessagePage, Parts: parts})
 	if err != nil {
 		e.obj.note = err.Error()
 		return
 	}
-	if e.adoptEdit(next, nil) != nil || next == nil {
+	if ch.doc == nil {
 		return
 	}
+	page := *ch.page
 	back := e.objectBack
 	if owner.Kind == "Message" {
 		e.selectNewest("Action")

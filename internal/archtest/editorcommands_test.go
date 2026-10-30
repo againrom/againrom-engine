@@ -10,16 +10,25 @@ import (
 	"testing"
 )
 
-// editorCommandTable is the one file of the map editor that calls the host
-// operations the editor command table owns.
-const editorCommandTable = "pkg/ui/mapeditorcommands.go"
+// editorCommandTable is the file of the editor command table's rows;
+// editorCommandEdits holds the apply methods of its group, shop, message,
+// area and goal rows. They are the map editor's only files that call the
+// host operations the table owns.
+const (
+	editorCommandTable = "pkg/ui/mapeditorcommands.go"
+	editorCommandEdits = "pkg/ui/mapeditorcommandedits.go"
+)
 
 // editorCommandOps are the host operations the table owns; editorEditsOps
 // are those named on a document's Edits directly.
 var (
 	editorCommandOps = map[string]bool{"Paint": true, "AddRecord": true, "SetObject": true, "SetFields": true, "SetTextField": true,
 		"WriteTrigger": true, "SetDropCell": true, "AddDropZone": true, "MoveDropZone": true, "DeleteDropZone": true,
-		"SetWorkspaceField": true, "RandomTerrain": true, "RandomHeights": true}
+		"SetWorkspaceField": true, "RandomTerrain": true, "RandomHeights": true,
+		"MoveRecords": true, "DeleteRecords": true, "CopyRecords": true, "PasteRecords": true, "CopyArea": true, "MoveArea": true,
+		"SetUnitsGroup": true, "AddStock": true, "AddItemRecipe": true,
+		"SetMessageParts": true, "CreateMessageParts": true, "PointMessageParts": true, "SetMessage": true, "CreateMessage": true,
+		"AddBoxArea": true, "SetGoalTarget": true}
 	editorEditsOps = map[string]bool{"Move": true, "Clone": true, "Delete": true, "SetField": true, "Undo": true, "Redo": true}
 )
 
@@ -27,7 +36,7 @@ func editorCommandViolations(files map[string]string) []string {
 	var out []string
 	for p, source := range files {
 		base := path.Base(p)
-		if strings.HasSuffix(p, "_test.go") || path.Dir(p) != "pkg/ui" || p == editorCommandTable ||
+		if strings.HasSuffix(p, "_test.go") || path.Dir(p) != "pkg/ui" || p == editorCommandTable || p == editorCommandEdits ||
 			!strings.HasPrefix(base, "mapeditor") && !strings.HasPrefix(base, "editor") {
 			continue
 		}
@@ -64,18 +73,24 @@ func TestEditorEditsGoThroughTheCommandTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := files[editorCommandTable]; !ok {
-		t.Fatal("the command table file is missing", editorCommandTable)
+	for _, p := range []string{editorCommandTable, editorCommandEdits} {
+		if _, ok := files[p]; !ok {
+			t.Fatal("a command table file is missing", p)
+		}
 	}
 	for _, v := range editorCommandViolations(files) {
 		t.Error(v)
 	}
-	for _, source := range []string{`package ui;func f(e *MapEditor){e.doc.Edits.Delete("Unit",0)}`, `package ui;func f(h InspectionBrush){h.Paint(BrushStroke{})}`, `package ui;func f(h InspectionWholeMap){run:=h.RandomTerrain;_=run}`} {
+	for _, source := range []string{`package ui;func f(e *MapEditor){e.doc.Edits.Delete("Unit",0)}`, `package ui;func f(h InspectionBrush){h.Paint(BrushStroke{})}`, `package ui;func f(h InspectionWholeMap){run:=h.RandomTerrain;_=run}`,
+		`package ui;func f(h InspectionSelection){h.MoveRecords(nil, image.Point{})}`, `package ui;func f(h InspectionGroups){h.SetUnitsGroup(nil, 1)}`,
+		`package ui;func f(h InspectionMessages){h.SetMessageParts(1, nil)}`, `package ui;func f(h InspectionScript){h.SetGoalTarget(0, "Unit", 0)}`} {
 		if len(editorCommandViolations(map[string]string{"pkg/ui/mapeditorrecords.go": source})) == 0 {
 			t.Fatal("guard accepted an edit beside the command table", source)
 		}
-		if len(editorCommandViolations(map[string]string{editorCommandTable: source})) != 0 {
-			t.Fatal("guard refused the command table itself", source)
+		for _, p := range []string{editorCommandTable, editorCommandEdits} {
+			if len(editorCommandViolations(map[string]string{p: source})) != 0 {
+				t.Fatal("guard refused the command table itself", p, source)
+			}
 		}
 	}
 }
@@ -84,7 +99,7 @@ func TestEditorEditsGoThroughTheCommandTable(t *testing.T) {
 // ask the Add window's walk (addOffer, addRecord) for each step's offer, its
 // skip and the record, so no file of the table asks a step's offer, reads its
 // Absent mark or assembles a new record itself.
-var editorAddWalkFiles = []string{editorCommandTable, "pkg/ui/mapeditorcommandread.go"}
+var editorAddWalkFiles = []string{editorCommandTable, editorCommandEdits, "pkg/ui/mapeditorcommandread.go"}
 
 func editorAddWalkViolations(files map[string]string) []string {
 	var out []string
@@ -189,7 +204,7 @@ func TestEditorAddRecordAsksTheAddWindowsWalk(t *testing.T) {
 	for _, v := range editorAddWalkViolations(files) {
 		t.Error(v)
 	}
-	ok := map[string]string{"pkg/ui/mapeditorcommandread.go": "package ui"}
+	ok := map[string]string{"pkg/ui/mapeditorcommandread.go": "package ui", editorCommandEdits: "package ui"}
 	for _, source := range []string{`package ui;func f(h InspectionNewRecords){h.NewRecordStep(InspectionNewRecord{}, "tier")}`, `package ui;func f(o InspectionNewStep) bool {return o.Absent}`, `package ui;var r = InspectionNewRecord{Kind: "Unit"}`} {
 		ok[editorCommandTable] = source
 		if len(editorAddWalkViolations(ok)) == 0 {

@@ -33,8 +33,7 @@ func (e *MapEditor) keyRecords(key string) error {
 		e.openAdd("Structure")
 		return nil
 	}
-	host, ok := e.doc.Edits.(InspectionRecords)
-	if !ok {
+	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
 		return nil
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush | leaveReport)
@@ -44,11 +43,12 @@ func (e *MapEditor) keyRecords(key string) error {
 			e.message = "Select a unit first; K creates its stock."
 			return nil
 		}
-		next, err := host.AddStock(index)
-		if err := e.adoptEdit(next, err); err != nil {
+		ch, err := e.commandAddStock(index)
+		if err != nil {
+			e.message = err.Error()
 			return err
 		}
-		if next != nil {
+		if ch.doc != nil {
 			e.selectNewest("Stock")
 			e.message = "Stock created. E adds items; I adds an item recipe."
 		}
@@ -69,16 +69,16 @@ func (e *MapEditor) setItemRecipe(text string) error {
 		return fmt.Errorf("%s", e.message)
 	}
 	kind, index := e.selectedRecord()
-	host, ok := e.doc.Edits.(InspectionRecords)
-	if !ok {
+	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
 		return nil
 	}
-	next, err := host.AddItemRecipe(kind, index, n)
-	if err := e.adoptEdit(next, err); err != nil {
+	ch, err := e.commandAddItemRecipe(itemRecipe{Kind: kind, Index: index, Item: n})
+	if err != nil {
+		e.message = err.Error()
 		return err
 	}
 	e.leave(leavePrompt)
-	if next != nil {
+	if ch.doc != nil {
 		e.selectNewest("Enchantment")
 		e.message = "Recipe created. E edits its spell and ordered effects."
 	}

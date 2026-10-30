@@ -333,7 +333,7 @@ func (e *MapEditor) selectionKey(key string) error {
 	e.leave(leaveDrag | leavePick)
 	if key == "copy" {
 		refs := e.selectionRefs()
-		area, ok := h.(InspectionAreaCopy)
+		_, ok := h.(InspectionAreaCopy)
 		box := e.selection.box
 		if !ok || box.Empty() {
 			box = image.Rectangle{}
@@ -344,14 +344,7 @@ func (e *MapEditor) selectionKey(key string) error {
 			e.noteSelection(e.word("editor.selection.none"), nil)
 			return nil
 		}
-		var clip InspectionClip
-		var note string
-		var err error
-		if box.Empty() {
-			clip, note, err = h.CopyRecords(refs)
-		} else {
-			clip, note, err = area.CopyArea(refs, box)
-		}
+		clip, note, err := e.copyOf(refs, box)
 		if err != nil {
 			e.message = err.Error()
 			return err
@@ -372,8 +365,7 @@ func (e *MapEditor) selectionKey(key string) error {
 // pasteAt is the armed paste brush's click: the clip pasted with its origin
 // on the ground cell under p, as one edit. The clip stays for the next Ctrl+V.
 func (e *MapEditor) pasteAt(p image.Point) error {
-	h, ok := e.selectionHost()
-	if !ok || e.selection.clip == nil {
+	if _, ok := e.selectionHost(); !ok || e.selection.clip == nil {
 		return nil
 	}
 	x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
@@ -381,7 +373,8 @@ func (e *MapEditor) pasteAt(p image.Point) error {
 		e.noteSelection(e.word("editor.selection.nocell"), nil)
 		return nil
 	}
-	return e.adoptSelection(h.PasteRecords(e.selection.clip, image.Pt(x, y)))
+	_, err := e.commandPaste(recordsPaste{Clip: e.selection.clip, Cell: image.Pt(x, y)})
+	return err
 }
 
 // deleteSelection removes the group as one edit, after asking when it empties
@@ -395,23 +388,23 @@ func (e *MapEditor) deleteSelection() error {
 
 // deleteRecords removes the group as one edit.
 func (e *MapEditor) deleteRecords() error {
-	h, ok := e.selectionHost()
-	if !ok {
+	if _, ok := e.selectionHost(); !ok {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)
 		return nil
 	}
 	e.leave(leaveDrag | leavePick)
-	return e.adoptSelection(h.DeleteRecords(e.selection.refs))
+	_, err := e.commandDeleteRecords(e.selection.refs)
+	return err
 }
 
 // moveSelection shifts the group by offset cells as one edit.
 func (e *MapEditor) moveSelection(offset image.Point) error {
-	h, ok := e.selectionHost()
-	if !ok {
+	if _, ok := e.selectionHost(); !ok {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)
 		return nil
 	}
-	return e.adoptSelection(h.MoveRecords(e.selection.refs, offset))
+	_, err := e.commandMoveRecords(recordsMove{Refs: e.selection.refs, Offset: offset})
+	return err
 }
 
 // boxPress is a press inside the selection box on no record, or on one the
@@ -438,17 +431,16 @@ func (e *MapEditor) boxOffset(offset image.Point) image.Point {
 // offset cells as one edit; the box follows what it moved.
 func (e *MapEditor) moveArea(offset image.Point) error {
 	h, ok := e.selectionHost()
-	area, isArea := h.(InspectionAreaCopy)
-	if !ok || !isArea {
+	if _, isArea := h.(InspectionAreaCopy); !ok || !isArea {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)
 		return nil
 	}
 	box := e.selection.box
-	r, err := area.MoveArea(e.selection.refs, box, offset)
-	if err := e.adoptSelection(r, err); err != nil {
+	ch, err := e.commandMoveArea(areaMove{Refs: e.selection.refs, Box: box, Offset: offset})
+	if err != nil {
 		return err
 	}
-	if r.Doc != nil {
+	if ch.doc != nil {
 		e.selection.box = box.Add(offset)
 	}
 	return nil

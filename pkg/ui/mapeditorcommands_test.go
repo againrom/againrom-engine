@@ -43,6 +43,36 @@ func TestEditorCommandToolsComeFromTheTable(t *testing.T) {
 	}
 }
 
+// unit_settings answers the unit settings window's preview of draft values
+// and writes nothing; a text value and a missing unit are refused.
+func TestEditorUnitSettingsToolPreviewsWithoutWriting(t *testing.T) {
+	e, host := popupEditor(t)
+	_ = e.Open("popups")
+	e.doc.Edits = &settingsPreviewProbe{popupHost: host, readOnly: true}
+	p := newMCPPipe(t, e)
+	raw := string(e.doc.SourceBytes)
+	var out struct {
+		Unit   int
+		Fields []InspectionField
+	}
+	if err := json.Unmarshal([]byte(p.tool(t, "unit_settings", map[string]any{"index": 0, "fields": []any{map[string]any{"key": "a", "value": 42}}}).Content[0].Text), &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Unit != 0 || len(out.Fields) == 0 || len(out.Fields[len(out.Fields)-1].Lines) == 0 || out.Fields[len(out.Fields)-1].Lines[0].Text != "Carrier 42" {
+		t.Fatalf("unit_settings answers %+v", out)
+	}
+	for _, bad := range []map[string]any{{"index": 99}, {"index": 0, "fields": []any{map[string]any{"key": "a", "text": "x"}}}} {
+		b := p.request(t, "tools/call", map[string]any{"name": "unit_settings", "arguments": bad})
+		var r editormcp.Result
+		if json.Unmarshal(b, &r) != nil || !r.IsError {
+			t.Fatalf("unit_settings %v accepted: %s", bad, b)
+		}
+	}
+	if string(e.doc.SourceBytes) != raw || len(host.calls) != 0 || e.Dirty() {
+		t.Fatal("unit_settings wrote the map")
+	}
+}
+
 func TestEditorCommandToolsRefuseBadArgumentsAndKeepTheMap(t *testing.T) {
 	e := newMapEditorFixture(t)
 	e.Layout(800, 600)
@@ -69,7 +99,9 @@ func TestEditorCommandToolsRefuseBadArgumentsAndKeepTheMap(t *testing.T) {
 		{"move_record", unit(map[string]any{"x": nil})}, {"move_record", unit(map[string]any{"x": "one"})}, {"move_record", unit(map[string]any{"x": 50})},
 		{"move_record", unit(map[string]any{"index": 99})}, {"paint", map[string]any{"plane": "lava", "cells": [][]int{{1, 1}}}},
 		{"new_map", map[string]any{"width": 0, "height": 32}}, {"undo", map[string]any{"steps": 1}}, {"randomize", map[string]any{"plane": "terrain", "seed": -1}},
-		{"set_map_field", map[string]any{"scope": "package", "key": "name", "value": "x"}}, {"record", map[string]any{"kind": "Unit", "index": 99}},
+		{"set_map_field", map[string]any{"scope": "package", "key": "folder", "value": "x"}}, {"record", map[string]any{"kind": "Unit", "index": 99}},
+		{"move_records", map[string]any{"records": []any{}, "dx": 1, "dy": 0}}, {"set_units_group", map[string]any{"units": []int{3}, "group": -2}},
+		{"write_message", map[string]any{"parts": []any{map[string]any{"body": "x"}}}}, {"add_box_area", map[string]any{"area": []int{3, 3, 1, 1}}},
 	} {
 		var result editormcp.Result
 		b := p.request(t, "tools/call", map[string]any{"name": tc.name, "arguments": tc.args})

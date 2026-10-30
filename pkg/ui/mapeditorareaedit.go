@@ -627,8 +627,7 @@ func (e *MapEditor) areaWheel(wheel float64) bool {
 // refused in the prompt.
 func (e *MapEditor) areaCreate() {
 	a := e.prompt.area
-	host, ok := e.doc.Edits.(InspectionAreaAuthor)
-	if !ok {
+	if _, ok := e.doc.Edits.(InspectionAreaAuthor); !ok {
 		return
 	}
 	trigger := a.choice.Selection() - 1
@@ -636,17 +635,14 @@ func (e *MapEditor) areaCreate() {
 		a.note = fmt.Sprintf(e.word("editor.area.full"), trigger+1)
 		return
 	}
-	next, err := host.AddBoxArea(a.box, trigger)
+	ch, err := e.commandAddBoxArea(boxArea{Box: a.box, Trigger: trigger})
 	if err != nil {
 		a.note = e.editorHostText(err.Error())
 		return
 	}
 	e.leave(leavePrompt)
-	if e.adoptEdit(next, nil) == nil && next != nil {
-		if trigger < 0 {
-			trigger = len(e.doc.Script.Triggers) - 1
-		}
-		e.selectTrigger(trigger, false)
+	if ch.record != nil {
+		e.selectTrigger(ch.record.Index, false)
 	}
 }
 

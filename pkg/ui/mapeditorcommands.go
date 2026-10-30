@@ -22,10 +22,13 @@ import (
 // editor file calls a host operation a command owns (internal/archtest).
 
 // editorChange is what an applied command did: the document it adopted, nil
-// when the host changed nothing, and the record it names.
+// when the host changed nothing, the record it names, a group edit's outcome
+// and the message page a message command wrote.
 type editorChange struct {
 	doc    *InspectionDocument
 	record *RecordRef
+	group  *SelectionEdit
+	page   *uint32
 }
 
 // commandArg is one named argument: its JSON schema and whether it is
@@ -187,13 +190,14 @@ func editorCommandRows() []editorCommand {
 				opt("radius", intArg("Cells around each centre; default 0, the centre alone")), opt("shape", textArg("Brush shape; default circle", "circle", "square")),
 				opt("fill", textArg("Terrain centre fill; default pattern", "pattern", "random", "variant")), opt("variant", intArg("Terrain variant for fill variant, from 0")),
 				opt("set", boolArg("Height: value is the height the first centre takes, the radius blending toward it")), opt("flat", boolArg("Height with set: every covered cell takes value")),
-				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth"))},
+				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth")), opt("forest", forestArg())},
 			(*MapEditor).decodePaint, (*MapEditor).commandPaint),
-		typedCommand("add_record", "Add one record as the Add window does: values by step key (add_steps lists the steps and choices), x,y for a record on a cell",
+		typedCommand("add_record", "Add one record as the Add window does: values by step key (add_steps lists the steps and choices), x,y for a record on a cell; a Message takes parts and adds an action showing a new message page",
 			[]commandArg{req("kind", textArg("Record kind", addCommandKinds()...)), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),
 				opt("values", map[string]any{"type": "object", "description": "Step key to value: an integer, a text for a name step, a list of integers for a many step; a step left out takes its default",
-					"additionalProperties": map[string]any{"type": []string{"integer", "string", "array"}}})},
-			(*MapEditor).decodeAddRecord, (*MapEditor).commandAddRecord),
+					"additionalProperties": map[string]any{"type": []string{"integer", "string", "array"}}}),
+				opt("parts", messagePartsArg())},
+			(*MapEditor).decodeAddRecord, (*MapEditor).commandAdd),
 		typedCommand("set_field", "Set one field of a record, as the field prompt does",
 			[]commandArg{req("kind", textArg("Record kind")), req("index", intArg("Record index")), req("key", textArg("Field key")),
 				opt("value", intArg("Number value")), opt("text", textArg("Text value"))},
@@ -229,8 +233,40 @@ func editorCommandRows() []editorCommand {
 			[]commandArg{opt("index", intArg("Trigger index to rewrite; default -1 adds a trigger")), req("name", textArg("Trigger name")),
 				opt("once", boolArg("Run once; default true")), opt("conditions", triggerRowsArg(true)), req("actions", triggerRowsArg(false))},
 			(*MapEditor).decodeWriteTrigger, (*MapEditor).commandWriteTrigger),
-		typedCommand("set_map_field", "Set a map property, as the Metadata (M) and Pages (X) prompts do; map_fields lists the keys",
-			[]commandArg{req("scope", textArg("Field group", "metadata", "pages")), req("key", textArg("Field key")), req("value", textArg("Value as typed"))},
+		typedCommand("move_records", "Move several units, structures and sacks by dx,dy cells as one edit, as a drag of a selection does",
+			[]commandArg{req("records", recordRefsArg("The records, as a selection holds them")), req("dx", intArg("Cells right")), req("dy", intArg("Cells down"))},
+			(*MapEditor).decodeMoveRecords, (*MapEditor).commandMoveRecords),
+		typedCommand("delete_records", "Delete several units, structures and sacks as one edit, as Del on a selection does",
+			[]commandArg{req("records", recordRefsArg("The records, as a selection holds them"))},
+			(*MapEditor).decodeDeleteRecords, (*MapEditor).commandDeleteRecords),
+		typedCommand("copy_records", "Copy records, or an area with its tiles, heights, objects and records, and paste the copy with its top-left on cell x,y as one edit, as Ctrl+C and a Ctrl+V click do",
+			[]commandArg{opt("records", recordRefsArg("The records to copy")), opt("area", areaArg("The area to copy")), req("x", intArg("Paste cell x")), req("y", intArg("Paste cell y"))},
+			(*MapEditor).decodeCopyRecords, (*MapEditor).commandPaste),
+		typedCommand("move_area", "Move the records and the objects of an area by dx,dy cells as one edit, as a drag of a selection box does; the tiles and heights stay",
+			[]commandArg{req("area", areaArg("The area")), req("dx", intArg("Cells right")), req("dy", intArg("Cells down")),
+				opt("records", recordRefsArg("The records to move with it; default every unit, structure and sack in the area"))},
+			(*MapEditor).decodeMoveArea, (*MapEditor).commandMoveArea),
+		typedCommand("set_units_group", "Put units in a group, or take them out with group 0, as one edit, as the group keys and the To group question do",
+			[]commandArg{req("units", map[string]any{"type": "array", "items": map[string]any{"type": "integer"}, "minItems": 1, "description": "Unit indices, one player's"}),
+				req("group", intArg("Group number; 0 takes the units out of their groups; -1 is a new group, the lowest free number"))},
+			(*MapEditor).decodeSetUnitsGroup, (*MapEditor).commandSetUnitsGroup),
+		typedCommand("add_stock", "Create a unit's shop stock, as K on a selected unit does",
+			[]commandArg{req("unit", intArg("Unit index"))},
+			(*MapEditor).decodeAddStock, (*MapEditor).commandAddStock),
+		typedCommand("add_item_recipe", "Add an item recipe to a stock or a sack, as I and its item prompt do",
+			[]commandArg{req("kind", textArg("Record kind", "Stock", "Sack")), req("index", intArg("Record index")), req("item", intArg("Item number, from 1"))},
+			(*MapEditor).decodeAddItemRecipe, (*MapEditor).commandAddItemRecipe),
+		typedCommand("write_message", "Write a message's parts as the message editor's Apply does: page alone rewrites that page; action alone gives the action a new page; both point the action at the page and rewrite it",
+			[]commandArg{opt("page", intArg("Message page, from messages")), opt("action", intArg("Action record index whose message parameter takes the page")), req("parts", messagePartsArg())},
+			(*MapEditor).decodeWriteMessage, (*MapEditor).commandWriteMessage),
+		typedCommand("add_box_area", "Add a box area over cells to a trigger as one more condition pair, or to a new trigger, as the drawarea (L) tool does",
+			[]commandArg{req("area", areaArg("The box")), opt("trigger", intArg("Trigger index; default -1, a new trigger"))},
+			(*MapEditor).decodeAddBoxArea, (*MapEditor).commandAddBoxArea),
+		typedCommand("set_goal_target", "Point a script goal at a unit or structure, as a pick from the Goals (G) report does; goals lists the goals and the kind each takes",
+			[]commandArg{req("goal", intArg("Goal index, from goals")), req("kind", textArg("Record kind", "Unit", "Structure")), req("index", intArg("Record index"))},
+			(*MapEditor).decodeSetGoalTarget, (*MapEditor).commandSetGoalTarget),
+		typedCommand("set_map_field", "Set a map property, as the Metadata (M) and Pages (X) prompts and the mod package window (W) do; map_fields lists the keys",
+			[]commandArg{req("scope", textArg("Field group", "metadata", "pages", "package")), req("key", textArg("Field key")), req("value", textArg("Value as typed"))},
 			(*MapEditor).decodeMapField, (*MapEditor).commandSetMapField),
 		typedCommand("randomize", "Redraw the whole map's terrain or heights from seed, as Ctrl+E and Ctrl+Shift+R do",
 			[]commandArg{req("plane", textArg("What to redraw", "terrain", "heights")), req("seed", intArg("Seed, 0..4294967295"))},
@@ -622,6 +658,7 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 		Cells                    [][]int
 		Value, Radius, Variant   int
 		Set, Flat                bool
+		Forest                   *forestArgs
 	}](raw, editorCommandArgs("paint"))
 	if err != nil {
 		return BrushStroke{}, err
@@ -653,8 +690,8 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 		return op, fmt.Errorf("shape must be circle or square")
 	}
 	op.Shape = shape
-	if (a.Fill != "" || a.Variant != 0) && a.Plane != "terrain" || (a.Set || a.Flat || a.Mode != "") && a.Plane != "height" {
-		return op, fmt.Errorf("fill and variant are terrain arguments; set, flat and mode are height arguments")
+	if (a.Fill != "" || a.Variant != 0) && a.Plane != "terrain" || (a.Set || a.Flat || a.Mode != "") && a.Plane != "height" || a.Forest != nil && a.Plane != "objects" {
+		return op, fmt.Errorf("fill and variant are terrain arguments; set, flat and mode are height arguments; forest is an objects argument")
 	}
 	switch a.Plane {
 	case "terrain":
@@ -702,6 +739,14 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 		if !known {
 			return op, fmt.Errorf("object code %d is not in the brushes list", a.Value)
 		}
+		if a.Forest != nil {
+			if a.Value != 0 {
+				return op, fmt.Errorf("a forest stroke takes forest kinds, not value")
+			}
+			if op.Forest, err = e.forestOf(*a.Forest); err != nil {
+				return op, err
+			}
+		}
 	case "passability":
 		op.Plane = BrushPlanePassability
 		if a.Value != 0 && a.Value != 1 {
@@ -722,22 +767,37 @@ func addCommandKinds() []string {
 			out = append(out, k.Kind)
 		}
 	}
-	for _, k := range []string{"Action", "Condition"} {
-		out = append(out, k)
-	}
-	return out
+	return append(out, "Action", "Condition", "Message")
 }
 
-func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (InspectionNewRecord, error) {
+// decodeAddRecord is a record the Add window's walk assembles, or for a
+// Message the message editor's first Apply: an action showing a new page.
+func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 	a, err := decodeArgs[struct {
 		Kind   string
 		X, Y   *int
 		Values map[string]json.RawMessage
+		Parts  []messagePartArgs
 	}](raw, editorCommandArgs("add_record"))
 	if err != nil {
-		return InspectionNewRecord{}, err
+		return addValue{}, err
 	}
-	return e.newRecordOf(a.Kind, a.X, a.Y, a.Values, nil)
+	if a.Kind != "Message" {
+		if a.Parts != nil {
+			return addValue{}, fmt.Errorf("parts are a Message's")
+		}
+		rec, err := e.newRecordOf(a.Kind, a.X, a.Y, a.Values, nil)
+		return addValue{record: rec}, err
+	}
+	host, ok := e.doc.Edits.(InspectionMessages)
+	if !ok {
+		return addValue{}, errNoEditHost
+	}
+	if a.X != nil || a.Y != nil || a.Values != nil || a.Parts == nil {
+		return addValue{}, fmt.Errorf("a Message takes parts alone")
+	}
+	parts, err := e.messageParts(host, NewMessagePage, a.Parts)
+	return addValue{message: &messageWrite{Owner: &InspectionMessageOwner{Kind: "Message"}, Page: NewMessagePage, Parts: parts}}, err
 }
 
 // addStepSeen is one step as newRecordOf walked it: the host's offer, whether
@@ -1193,12 +1253,15 @@ func (e *MapEditor) decodeMapField(raw json.RawMessage) (mapField, error) {
 	if err != nil {
 		return a, err
 	}
-	if a.Scope != "metadata" && a.Scope != "pages" {
-		return a, fmt.Errorf("scope must be metadata or pages; the mod package uses its window panel")
+	if a.Scope != "metadata" && a.Scope != "pages" && a.Scope != "package" {
+		return a, fmt.Errorf("scope must be metadata, pages or package")
 	}
 	host, ok := e.workspace()
 	if !ok {
 		return a, errNoEditHost
+	}
+	if a.Scope == "package" && packageWindowOnly[a.Key] {
+		return a, fmt.Errorf("package field %q opens a folder or a mission; the mod package window (W) does that", a.Key)
 	}
 	for _, f := range host.WorkspaceFields(a.Scope) {
 		if f.Key == a.Key && !f.ReadOnly && !f.Action {
@@ -1207,6 +1270,11 @@ func (e *MapEditor) decodeMapField(raw json.RawMessage) (mapField, error) {
 	}
 	return a, fmt.Errorf("%s has no field %q", a.Scope, a.Key)
 }
+
+// packageWindowOnly are the mod package fields set_map_field leaves to the
+// window: the working folder, the output folder and the project's mission
+// choice open or switch what the window edits, not a value of the package.
+var packageWindowOnly = map[string]bool{"folder": true, "folder-open": true, "output": true, "source": true}
 
 func (e *MapEditor) decodeRandomize(raw json.RawMessage) (wholeMap, error) {
 	a, err := decodeArgs[struct {
@@ -1333,6 +1401,12 @@ func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange) ma
 		"message": e.mcpDisplay(e.message), "prompt_open": e.prompt.open()}
 	if e.editable() {
 		out["can_undo"], out["can_redo"] = e.doc.Edits.CanUndo(), e.doc.Edits.CanRedo()
+	}
+	if g := ch.group; g != nil {
+		out["selected"], out["note"], out["refusals"] = g.Selected, g.Note, g.Refusals
+	}
+	if ch.page != nil {
+		out["page"] = *ch.page
 	}
 	if ch.doc == nil {
 		return out

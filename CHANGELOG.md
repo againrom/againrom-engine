@@ -26,6 +26,10 @@ modder or developer can notice gets no entry.
 
 - [BASE] In the map editor, Ctrl+C copies the selected row of a report panel to the clipboard. In the MCP connection panel that copies the bearer token, the URL or the token file name without its label, and the panel says so. Before, the token was shown but could not be selected or copied.
 
+### For map makers and modders
+
+- [BASE] An agent connected to the map editor over MCP can now also move, delete and copy a selection or an area, put units in a group, add a shop stock and an item recipe, write message pages, add a box area to a trigger, point a goal at a unit, paint and thin forest, set mod package fields, and read the goals, the message pages and a unit's settings preview, each with the same change and Undo step as the window.
+
 ## 0.141.0
 
 ### For players

@@ -264,8 +264,7 @@ func (e *MapEditor) toGroupChosen() {
 // with no unit asks first, unless confirmed. skips are the notes of what
 // the action left out, shown with its outcome.
 func (e *MapEditor) groupTo(units []RecordRef, group, player int, skips []string, confirmed bool) {
-	h, ok := e.groupsHost()
-	if !ok {
+	if _, ok := e.groupsHost(); !ok {
 		e.noteSelection(e.word("editor.selection.nohost"), nil)
 		return
 	}
@@ -278,15 +277,9 @@ func (e *MapEditor) groupTo(units []RecordRef, group, player int, skips []string
 		e.openPrompt(editorPrompt{kind: promptGroupWarn, group: &groupPrompt{units: units, group: group, player: player, skips: skips, warn: warn}})
 		return
 	}
-	next, err := h.SetUnitsGroup(units, group)
-	if err != nil {
+	if _, err := e.commandSetUnitsGroup(unitsGroup{Units: units, Group: group}); err != nil {
 		e.noteSelection(e.editorHostText(err.Error()), nil)
 		return
-	}
-	if next != nil {
-		if err := e.adoptEdit(next, nil); err != nil {
-			return
-		}
 	}
 	note := fmt.Sprintf(e.word("editor.group.removed"), len(units))
 	if group != 0 {

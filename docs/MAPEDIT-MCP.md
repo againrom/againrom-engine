@@ -156,7 +156,12 @@ names, as `{"Kind","Index"}`), `dirty`, `can_undo`, `can_redo`, `message`
 (the status line), `prompt_open`, `cells` (up to 1024 changed cells as
 `[x,y]`) with `cells_total`, `planes` (the count of changed cells per plane:
 `terrain`, `passability`, `height`, `objects`), and `records` (up to 256
-changed records) with `records_total`. The report compares what the map
+changed records) with `records_total`. An edit of several records at once
+(`move_records`, `delete_records`, `copy_records`, `move_area`) also
+answers `selected` (the records the selection holds after it), `note` (the
+selection's status text) and `refusals` (a reason per record the host
+refused). A message edit answers `page`, the message page it wrote. The
+report compares what the map
 stores before and after the call: each cell's tile word, its passability
 bit, height and object byte, and each record's stored bytes, so a field
 change names its record. A call that changes nothing reports `changed`
@@ -168,8 +173,8 @@ empty text and inherits.
 | Tool | Arguments | Window route |
 | --- | --- | --- |
 | `new_map` | `width`, `height`; optional `altitude` (0..126, default 64), `multiplayer` | The catalogue's New question. Sizes are multiples of 8 from 32 to 256. Unsaved changes still ask. |
-| `paint` | `plane` (`terrain`, `height`, `objects`, `passability`), `cells` (`[[x,y],...]`, the stroke in order); optional `value`, `radius` (default 0), `shape` (`circle`, `square`), `fill` (`pattern`, `random`, `variant`) and `variant` for terrain; `set`, `flat`, `mode` (`step`, `level`, `smooth`) for height | One brush stroke. `value` is a terrain class or object code from `brushes`, a height change (-31..31, not 0), the height with `set`, or 1 to close and 0 to open a cell. |
-| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`. |
+| `paint` | `plane` (`terrain`, `height`, `objects`, `passability`), `cells` (`[[x,y],...]`, the stroke in order); optional `value`, `radius` (default 0), `shape` (`circle`, `square`), `fill` (`pattern`, `random`, `variant`) and `variant` for terrain; `set`, `flat`, `mode` (`step`, `level`, `smooth`) for height; `forest` (`{"kinds":[...],"share":25,"thin":false}`) for objects | One brush stroke. `value` is a terrain class or object code from `brushes`, a height change (-31..31, not 0), the height with `set`, or 1 to close and 0 to open a cell. With `forest` the stroke is the object brush's Forest stroke and `value` is left out: it plants the object classes `kinds` over `share` per cent (1..100, default 25) of the open cells it covers, or with `thin` removes that share of those classes. A forest stroke draws from the window's stroke seed, so two strokes over one map plant different cells. |
+| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key; `parts` for a `Message` | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`, `Message`. A `Message` takes `parts` alone (see `write_message`) and adds a new message page and an action that shows it, as the Add window's New message and the message editor's Apply do. |
 | `set_field` | `kind`, `index`, `key`; `value` (number) or `text` | The field prompt (F). `record` lists the keys. |
 | `set_fields` | `kind`, `index`, `fields` (a list of `{"key","value"}` for a number or `{"key","text"}` for a text) | A script record popup's Apply: one edit. |
 | `set_object` | `kind`, `index`; optional `fields`, `cell` (`[x,y]`) | The object popup's Apply: fields and a move as one edit. |
@@ -179,7 +184,17 @@ empty text and inherits.
 | `set_drop_cell` | `x`, `y` | The drop tool (D) on a map without drop zones. |
 | `add_drop_zone`, `move_drop_zone`, `delete_drop_zone` | `x`, `y`; `zone` (from 0) | The drop tool's click, drag and Del. |
 | `write_trigger` | `name`, `actions`; optional `conditions`, `once` (default true), `index` (default -1 adds a trigger) | The trigger wizard's Apply. Each row is `{"item", "params"}`, a condition also `comparison` when its comparison is chosen; `trigger_items` lists the items. A parameter is an integer, `[x,y]` for a cell or `[x1,y1,x2,y2]` for an area. |
-| `set_map_field` | `scope` (`metadata`, `pages`), `key`, `value` | The Metadata (M) and Pages (X) prompts. `map_fields` lists the keys. |
+| `move_records` | `records` (`[{"kind","index"},...]`), `dx`, `dy` | A drag of a selection: units, structures and sacks move together as one edit. A record that would leave the map or enter a closed cell is not moved: the report's `refusals` names it, as the window's drag does, and the other records move in the same step. |
+| `delete_records` | `records` | Del on a selection. |
+| `copy_records` | `records` or `area` (`[x0,y0,x1,y1]`, corners included); `x`, `y` | Ctrl+C and a Ctrl+V click on the same map. The copy's top-left lands on `x,y`. An area copy also carries the area's tiles, heights and objects. |
+| `move_area` | `area`, `dx`, `dy`; optional `records` (default every unit, structure and sack in the area) | A drag inside a selection box: the records and the objects move, the tiles and heights stay. |
+| `set_units_group` | `units` (unit indices of one player), `group` | The group keys (Ctrl+0..9) and the To group question. `group` 0 takes the units out of their groups; -1 is a new group, the lowest free number. |
+| `add_stock` | `unit` | K on a selected unit: the unit's shop stock. |
+| `add_item_recipe` | `kind` (`Stock`, `Sack`), `index`, `item` (from 1) | I and its item prompt. |
+| `write_message` | `parts`; `page`, `action` or both | The message editor's Apply. `page` alone rewrites that page; `action` alone gives the action a new page; both point the action at the page and rewrite it. A part is `{"body"}` for a new card, with `source` for a card the page holds (`messages` lists them) and optional `speaker`; a card of the page left out is struck. |
+| `add_box_area` | `area`; optional `trigger` (default -1, a new trigger) | The box area tool (L) and its trigger choice: one more box condition pair on the trigger. A trigger with three pairs is refused. |
+| `set_goal_target` | `goal`, `kind` (`Unit`, `Structure`), `index` | A pick from the Goals (G) report. `goals` lists the goals and the kind each takes. |
+| `set_map_field` | `scope` (`metadata`, `pages`, `package`), `key`, `value` | The Metadata (M) and Pages (X) prompts and the mod package window (W). `map_fields` lists the keys. The package fields `folder`, `folder-open`, `output` and `source` open a folder or switch the mission and stay in the window. |
 | `randomize` | `plane` (`terrain`, `heights`), `seed` | Ctrl+E and Ctrl+Shift+R. One seed on one map gives one result. |
 | `undo`, `redo` | `{}` | The window's Undo and Redo, the same function: it leaves a drag or pick and keeps an open message page on a page the map still holds. |
 
@@ -193,7 +208,10 @@ Read tools answer JSON and change nothing:
 | `brushes` | `{}` | Planes, terrain classes with names and variant counts, object codes with names, largest radius and height change. |
 | `check` | `{}` | The map report: every error and warning with its rule, record and cell. |
 | `trigger_items` | `{}` | The wizard's conditions and actions: item key, label, parameters with kind and default, comparison. |
-| `map_fields` | `scope` | The fields of the Metadata or Pages prompt. |
+| `map_fields` | `scope` | The fields of the Metadata or Pages prompt or of the mod package window. |
+| `goals` | `{}` | The Goals (G) report: goal index, arm, text, `pick` (the kind a target takes, empty when the goal takes none), the script record and the target's cell. |
+| `messages` | optional `page` | Without `page`, the message pages the map's script shows and their text; with it, the page's parts in order (`source`, `number`, `body`, `speaker`) and the speakers a part takes. |
+| `unit_settings` | `index`; optional `fields` (number fields) | The unit settings window's preview: every field of the unit as it reads with the given values set. Nothing is written. |
 
 ### Example: a small map from nothing
 
@@ -219,14 +237,43 @@ names the classes, `add_steps` the owner choices, `trigger_items` the
 condition's default hero. `TestMapEditorMCPBuildsAPlayableMapFromEmpty`
 runs this session on a synthetic table.
 
+### Example: a selection, a group, a stock, a message and a goal
+
+```text
+map             {"x":18,"y":14}
+move_records    {"records":[{"kind":"Unit","index":2},{"kind":"Unit","index":3}],"dx":0,"dy":4}
+set_units_group {"units":[2,3],"group":-1}
+add_stock       {"unit":0}
+add_record      {"kind":"Message","parts":[{"body":"Hold the bridge"},{"body":"Then go north"}]}
+messages        {"page":<page>}
+goals           {}
+set_goal_target {"goal":<goal>,"kind":"Unit","index":3}
+save_as         {"path":"C:\\Maps\\session.alm"}
+```
+
+`<page>` is the `page` the `add_record` report names; `<goal>` is a goal
+whose `pick` is `Unit`. Each edit is one Undo step.
+`TestMapEditorMCPExampleSessionSavesAndReopens` runs this session on a
+synthetic map with four units and a script with goals, then reopens the
+saved map and its message page.
+
 ### Not covered by typed tools
 
 These edits keep their window route only; drive them with `key`, `pointer`
-and `text`: moving, deleting, copying and pasting a selection or an area,
-units into a group, shop stock and item recipes, message text and the Add
-window's Message kind, a trigger's box area, goal targets, forest density
-and thinning strokes, and the mod package window's fields. No route resizes
-an open map. Save, Save As and Open remain the tools above.
+and `text`:
+
+- a paste into another open map;
+- a message page written from inside the trigger wizard, with the
+  wizard's unapplied trigger, as one edit; `write_trigger` and then
+  `write_message` give the same trigger and page in two steps;
+- the mod package window's folder, output and mission choice, and its
+  confirmations.
+
+The unit settings window's Apply is `set_object`; its preview is
+`unit_settings`.
+
+No route resizes an open map. Save, Save As and Open remain the tools
+above.
 
 ## Flags
 

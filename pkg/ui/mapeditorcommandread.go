@@ -25,9 +25,110 @@ func editorReaders() []editorReader {
 		{name: "brushes", help: "The paint planes, terrain classes with names and variant counts, object codes with names, and the largest radius", read: (*MapEditor).readBrushes},
 		{name: "check", help: "The map report: every error and warning the map's check finds, with its record and cell", read: (*MapEditor).readCheck},
 		{name: "trigger_items", help: "The trigger wizard's ready conditions and actions: item key, label, parameters with their kinds and defaults, and the comparison", read: (*MapEditor).readTriggerItems},
-		{name: "map_fields", help: "The map property fields of a group, as the Metadata (M) and Pages (X) prompts show them",
-			args: []commandArg{req("scope", textArg("Field group", "metadata", "pages"))}, read: (*MapEditor).readMapFields},
+		{name: "map_fields", help: "The map property fields of a group, as the Metadata (M) and Pages (X) prompts and the mod package window (W) show them",
+			args: []commandArg{req("scope", textArg("Field group", "metadata", "pages", "package"))}, read: (*MapEditor).readMapFields},
+		{name: "goals", help: "The script's goals as the Goals (G) report lists them: goal index, arm, text, the record kind a target takes (pick), the script record and the target's cell", read: (*MapEditor).readGoals},
+		{name: "messages", help: "Without page, the map's message pages and their text; with page, its parts in order (source, number, body, speaker) and the speakers a part takes",
+			args: []commandArg{opt("page", intArg("Message page"))}, read: (*MapEditor).readMessages},
+		{name: "unit_settings", help: "The unit settings window's preview: every field of a unit as it would read with the given number fields set; nothing is written",
+			args: []commandArg{req("index", intArg("Unit index")), opt("fields", fieldsArg())}, read: (*MapEditor).readUnitSettings},
 	}
+}
+
+func (e *MapEditor) readGoals(raw json.RawMessage) (any, error) {
+	if _, err := decodeArgs[struct{}](raw, nil); err != nil {
+		return nil, err
+	}
+	s, ok := e.script()
+	if !ok {
+		return nil, fmt.Errorf("this map has no script goals")
+	}
+	out := []map[string]any{}
+	for i, g := range s.Goals() {
+		row := map[string]any{"goal": i, "arm": g.Arm, "text": e.mcpDisplay(e.goalText(g)), "pick": g.Pick}
+		if g.Kind != "" {
+			row["record"] = RecordRef{Kind: g.Kind, Index: g.Index}
+		}
+		if g.HasCell {
+			row["cell"] = []int{g.Cell.X, g.Cell.Y}
+		}
+		out = append(out, row)
+	}
+	return out, nil
+}
+
+func (e *MapEditor) readMessages(raw json.RawMessage) (any, error) {
+	a, err := decodeArgs[struct{ Page *int64 }](raw, editorCommandArgs("messages"))
+	if err != nil {
+		return nil, err
+	}
+	if !e.editable() || e.doc.Script == nil {
+		return nil, fmt.Errorf("this map has no message pages")
+	}
+	host, ok := e.doc.Edits.(InspectionMessages)
+	if !ok {
+		return nil, fmt.Errorf("this map has no message pages")
+	}
+	if a.Page == nil {
+		out := []map[string]any{}
+		for _, t := range e.doc.Script.Targets[ScriptMessageParameter] {
+			if !t.NewMessage {
+				out = append(out, map[string]any{"page": t.Value, "text": e.mcpDisplay(t.Text)})
+			}
+		}
+		return out, nil
+	}
+	var parts []InspectionMessagePart
+	if *a.Page > 0 && *a.Page < int64(NewMessagePage) {
+		parts = host.MessageParts(uint32(*a.Page))
+	}
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("the map has no message page %d", *a.Page)
+	}
+	rows := []map[string]any{}
+	var speakers []InspectionChoice
+	for _, p := range parts {
+		rows = append(rows, map[string]any{"source": p.Source, "number": p.Number, "body": p.Body, "speaker": p.Speaker})
+		if f := host.MessageFields(uint32(*a.Page), p.Source); speakers == nil && len(f) == 2 {
+			speakers = e.plainChoices(f[1].Choices)
+		}
+	}
+	return map[string]any{"page": *a.Page, "parts": rows, "speakers": speakers}, nil
+}
+
+func (e *MapEditor) readUnitSettings(raw json.RawMessage) (any, error) {
+	a, err := decodeArgs[struct {
+		Index  int
+		Fields []fieldArgs
+	}](raw, editorCommandArgs("unit_settings"))
+	if err != nil {
+		return nil, err
+	}
+	if !e.editable() {
+		return nil, fmt.Errorf("no editable map is open")
+	}
+	host, ok := e.doc.Edits.(InspectionUnitSettings)
+	if !ok {
+		return nil, fmt.Errorf("this map has no unit settings window")
+	}
+	if _, err := e.recordOf("Unit", a.Index); err != nil {
+		return nil, err
+	}
+	o, err := e.objectValues("Unit", a.Index, a.Fields)
+	if err != nil {
+		return nil, err
+	}
+	for i := range o.Values {
+		if o.Values[i].Text {
+			return nil, fmt.Errorf("unit_settings previews number fields")
+		}
+		o.Values[i].Step = 1
+	}
+	_, fields, _, err := host.UnitSettings(a.Index, o.Values)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"unit": a.Index, "fields": e.plainFields(fields)}, nil
 }
 
 // plainRecord is r with its text as UTF-8 and without its picture.
@@ -137,6 +238,9 @@ func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 			kinds = append(kinds, map[string]string{"kind": k, "label": e.mcpDisplay(e.word(row.Word))})
 		}
 		return map[string]any{"kinds": kinds}, nil
+	}
+	if a.Kind == "Message" {
+		return map[string]any{"kind": a.Kind, "steps": []addStepRead{}, "parts": "a Message has no steps: add_record takes its parts, as write_message does"}, nil
 	}
 	var steps []addStepRead
 	at := map[string]int{}
@@ -252,8 +356,8 @@ func (e *MapEditor) readMapFields(raw json.RawMessage) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if a.Scope != "metadata" && a.Scope != "pages" {
-		return nil, fmt.Errorf("scope must be metadata or pages")
+	if a.Scope != "metadata" && a.Scope != "pages" && a.Scope != "package" {
+		return nil, fmt.Errorf("scope must be metadata, pages or package")
 	}
 	host, ok := e.workspace()
 	if !ok {
