@@ -51,7 +51,7 @@ func actorWitnessPatron(t *testing.T, s *townScreen, npc int) *secondInnPatron {
 
 func TestReleaseCampaignActorLossControls(t *testing.T) {
 	if os.Getenv("AGAINROM_ASSETS") == "" {
-		t.Skip("installed root required")
+		t.Skip("set AGAINROM_ASSETS to a lawful install")
 	}
 	if filepath.Base(os.Getenv("AGAINROM_ASSETS")) == "rom2-en" || filepath.Base(os.Getenv("AGAINROM_ASSETS")) == "rom2-ru" {
 		for _, dina := range []bool{false, true} {
