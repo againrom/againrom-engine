@@ -115,7 +115,8 @@ func runAs(self string, args []string, out io.Writer) error {
 	out2 := flags.String("out", "", "with -new: the new .alm file to write the blank map to; the report is printed and the program exits")
 	modDir := flags.String("mod", "", "mod folder Save writes into: Ctrl+S writes the map to the path its data/missions.toml entry names, and refuses a map no entry names")
 	mcp := flags.String("mcp", "", "optional editor MCP transport: stdio or http")
-	mcpAddress := flags.String("mcp-address", "127.0.0.1:0", "MCP HTTP loopback address; port 0 chooses a free port")
+	mcpAddress := flags.String("mcp-address", "127.0.0.1:0", "MCP HTTP loopback address; port 0 reuses the recorded port when it is free, else chooses a free port")
+	mcpNewToken := flags.Bool("mcp-new-token", false, "make a new MCP bearer token and record it; without this the token in the profile's mapedit-mcp.json is reused")
 	mcpPace := flags.Duration("mcp-pace", 0, "pause between MCP tool calls (0..1m)")
 	version := flags.Bool("version", false, "print the program name, game version and source revision, and exit")
 	if err := flags.Parse(args); err != nil {
@@ -284,7 +285,7 @@ func runAs(self string, args []string, out io.Writer) error {
 	}
 	e.SetPathDialog(pathdialog.Show, root)
 	if *mcp != "" {
-		stop, err := startMCP(e, *mcp, *mcpAddress, *mcpPace, self, userConfigDir, root, os.Stdin, out, os.Stderr)
+		stop, err := startMCP(e, *mcp, *mcpAddress, *mcpNewToken, *mcpPace, self, userConfigDir, root, os.Stdin, out, os.Stderr)
 		if err != nil {
 			return err
 		}

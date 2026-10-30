@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -87,45 +89,133 @@ func (s *Server) Handler(token, authority string) http.Handler {
 	})
 }
 
+// RecordName is the one file in the profile that keeps the MCP bearer token
+// and the last port across editor starts.
+const RecordName = "mapedit-mcp.json"
+
+// Listener is a running loopback endpoint. Notes lists what a start decided
+// that the player should know: a new or replaced record, or a port that was
+// taken.
 type Listener struct {
 	URL, Token, TokenFile string
+	Notes                 []string
 	server                *http.Server
 	done                  chan error
 }
 
-func (s *Server) Listen(address, profile string) (*Listener, error) {
-	host, _, err := net.SplitHostPort(address)
+// record is the stored form of RecordName. URL repeats the last address so a
+// client reads one file; Port is what the next start tries first.
+type record struct {
+	URL   string `json:"url"`
+	Token string `json:"token"`
+	Port  int    `json:"port"`
+}
+
+// readRecord returns the stored record, or why it cannot be used.
+func readRecord(file string) (record, error) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return record{}, err
+	}
+	var r record
+	if err := json.Unmarshal(b, &r); err != nil {
+		return record{}, fmt.Errorf("malformed: %v", err)
+	}
+	if raw, err := hex.DecodeString(r.Token); err != nil || len(raw) != 32 {
+		return record{}, fmt.Errorf("malformed: token is not 64 hex digits")
+	}
+	if r.Port < 0 || r.Port > 65535 {
+		return record{}, fmt.Errorf("malformed: port %d", r.Port)
+	}
+	return r, nil
+}
+
+// writeRecord replaces file with r: a temporary file in the same folder that
+// only the user can read, then a rename, so a crash leaves the old record or
+// the new one.
+func writeRecord(file string, r record) error {
+	content, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	if old, err := os.ReadFile(file); err == nil && string(old) == string(content)+"\n" {
+		return nil
+	}
+	f, err := os.CreateTemp(filepath.Dir(file), ".mapedit-mcp-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmp := f.Name()
+	_, werr := f.Write(append(content, '\n'))
+	if werr == nil {
+		werr = f.Sync()
+	}
+	if cerr := f.Close(); werr == nil {
+		werr = cerr
+	}
+	if werr == nil {
+		werr = os.Rename(tmp, file)
+	}
+	if werr != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("write MCP record: %v", werr)
+	}
+	return nil
+}
+
+// Listen opens the loopback endpoint and records its token and port in
+// profile. The token comes from the record of an earlier start unless newToken
+// asks for a new one or the record cannot be used. An address with port 0 first
+// tries the recorded port and takes a free one when that port is busy.
+func (s *Server) Listen(address, profile string, newToken bool) (*Listener, error) {
+	host, port, err := net.SplitHostPort(address)
 	if err != nil || host != "127.0.0.1" {
 		return nil, fmt.Errorf("MCP address must be 127.0.0.1:port")
 	}
-	secret := make([]byte, 32)
-	if _, err := rand.Read(secret); err != nil {
-		return nil, err
-	}
-	token := hex.EncodeToString(secret)
-	l, err := net.Listen("tcp4", address)
-	if err != nil {
-		return nil, err
-	}
 	if err := os.MkdirAll(profile, 0700); err != nil {
+		return nil, err
+	}
+	file := filepath.Clean(filepath.Join(profile, RecordName))
+	var notes []string
+	stored, readErr := readRecord(file)
+	switch {
+	case readErr == nil && !newToken:
+	case newToken:
+		notes = append(notes, "new bearer token recorded (-mcp-new-token)")
+	case errors.Is(readErr, os.ErrNotExist):
+		notes = append(notes, "no earlier MCP record; new bearer token recorded")
+	default:
+		notes = append(notes, fmt.Sprintf("MCP record %s unusable (%v); replaced with a new bearer token", file, readErr))
+	}
+	token := stored.Token
+	if readErr != nil || newToken {
+		secret := make([]byte, 32)
+		if _, err := rand.Read(secret); err != nil {
+			return nil, err
+		}
+		token = hex.EncodeToString(secret)
+	}
+	var l net.Listener
+	if port == "0" && readErr == nil && stored.Port > 0 {
+		l, err = net.Listen("tcp4", net.JoinHostPort(host, strconv.Itoa(stored.Port)))
+		if err != nil {
+			l = nil
+			notes = append(notes, fmt.Sprintf("recorded port %d is taken; using a free port", stored.Port))
+		}
+	}
+	if l == nil {
+		if l, err = net.Listen("tcp4", address); err != nil {
+			return nil, err
+		}
+	}
+	authority := l.Addr().String()
+	endpoint := "http://" + authority + "/mcp"
+	if err := writeRecord(file, record{URL: endpoint, Token: token, Port: l.Addr().(*net.TCPAddr).Port}); err != nil {
 		_ = l.Close()
 		return nil, err
 	}
-	content := fmt.Sprintf("{\"url\":%q,\"token\":%q}\n", "http://"+l.Addr().String()+"/mcp", token)
-	f, err := os.CreateTemp(profile, fmt.Sprintf("mapedit-mcp-%d-*.json", os.Getpid()))
-	if err != nil {
-		_ = l.Close()
-		return nil, err
-	}
-	file := filepath.Clean(f.Name())
-	_, writeErr := io.WriteString(f, content)
-	closeErr := f.Close()
-	if writeErr != nil || closeErr != nil {
-		_ = l.Close()
-		return nil, fmt.Errorf("write MCP token: %v / %v", writeErr, closeErr)
-	}
-	server := &http.Server{Handler: s.Handler(token, l.Addr().String()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 8192}
-	result := &Listener{URL: "http://" + l.Addr().String() + "/mcp", Token: token, TokenFile: file, server: server, done: make(chan error, 1)}
+	server := &http.Server{Handler: s.Handler(token, authority), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 8192}
+	result := &Listener{URL: endpoint, Token: token, TokenFile: file, Notes: notes, server: server, done: make(chan error, 1)}
 	go func() { result.done <- server.Serve(l) }()
 	return result, nil
 }

@@ -10,7 +10,7 @@ import (
 	"againrom/pkg/ui"
 )
 
-func startMCP(e *ui.MapEditor, transport, address string, pace time.Duration, self, config, root string, in io.ReadCloser, out, diagnostic io.Writer) (func(), error) {
+func startMCP(e *ui.MapEditor, transport, address string, newToken bool, pace time.Duration, self, config, root string, in io.ReadCloser, out, diagnostic io.Writer) (func(), error) {
 	server := e.EnableMCP(pace)
 	if transport == "stdio" {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -34,12 +34,18 @@ func startMCP(e *ui.MapEditor, transport, address string, pace time.Duration, se
 		e.CloseMCP()
 		return nil, err
 	}
-	listener, err := server.Listen(address, directory)
+	listener, err := server.Listen(address, directory, newToken)
 	if err != nil {
 		e.CloseMCP()
 		return nil, err
 	}
-	e.SetMCPConnection("MCP "+listener.URL, ui.MCPDetail{Value: listener.URL}, ui.MCPDetail{Label: "Bearer token: ", Value: listener.Token}, ui.MCPDetail{Label: "Token file: ", Value: listener.TokenFile})
-	fmt.Fprintf(diagnostic, "MCP: %s; bearer token in %s\n", listener.URL, listener.TokenFile)
+	details := []ui.MCPDetail{{Value: listener.URL}, {Label: "Bearer token: ", Value: listener.Token}, {Label: "Token file: ", Value: listener.TokenFile}}
+	line := fmt.Sprintf("MCP: %s; bearer token in %s", listener.URL, listener.TokenFile)
+	for _, note := range listener.Notes {
+		details = append(details, ui.MCPDetail{Label: "Note: ", Value: note})
+		line += "; " + note
+	}
+	e.SetMCPConnection("MCP "+listener.URL, details...)
+	fmt.Fprintln(diagnostic, line)
 	return func() { e.CloseMCP(); _ = listener.Close() }, nil
 }

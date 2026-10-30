@@ -17,9 +17,10 @@ root from a lawful installation. These commands are for the owner to run:
 ```
 
 The status strip shows the URL. A connection report in the window shows that
-URL, a random bearer token and its receipt path. The selected player
-profile contains `mapedit-mcp-<process-id>-<suffix>.json`, with `url` and `token` fields.
-The profile is resolved by the game's existing profile rules, including
+URL, the bearer token and the path of the MCP record, with a note row when the
+start made a new token or could not reuse the port. The selected player
+profile contains one record, `mapedit-mcp.json`, with `url`, `token` and `port`
+fields. The profile is resolved by the game's existing profile rules, including
 `AGAINROM_PROFILE`. An executable inside an installation uses its selected
 private `Againrom` profile, with the existing user configuration fallback.
 Explicit profile paths keep the install write fence.
@@ -30,12 +31,24 @@ Replace `TOKEN` with that window's token:
 claude mcp add --transport http againrom-editor http://127.0.0.1:8765/mcp --header "Authorization: Bearer TOKEN"
 ```
 
-The default address is `127.0.0.1:0`, which selects a free port. Use the URL
-printed in the window or stored in the profile when using that default.
-The token changes on every launch. The receipt remains after shutdown; a
-receipt does not imply that its process is still running. It is created
-exclusively with file mode `0600` on systems supporting those permission bits.
-Windows uses the profile directory's access control.
+The token and the port persist. Every start reads `mapedit-mcp.json` and reuses
+its token, so a client configured once keeps working after the editor restarts.
+The default address is `127.0.0.1:0`: the editor first tries the port the record
+holds and takes a free port only when that port is busy, for example because a
+second editor is running. The note row and the diagnostic line then say so, and
+the record keeps the new port. An address with a port, such as
+`127.0.0.1:8765`, is used as given and fails when the port is busy.
+
+To rotate the token, start the editor once with `-mcp-new-token`. It makes a new
+token, records it and reports it; later starts reuse the new one. A record that
+is missing, unreadable or malformed is replaced by a new one in the same way,
+with a diagnostic line, and never stops the editor from starting.
+
+The record remains after shutdown; it does not imply that its process is still
+running. It is written to a temporary file in the profile and renamed over the
+old record, so an interrupted start leaves the old record or the new one. The
+file mode is `0600` on systems supporting those permission bits. Windows uses
+the profile directory's access control.
 
 HTTP accepts authenticated POST requests at `/mcp`. GET and DELETE return 405.
 The listener binds only to `127.0.0.1`. Requests with an Origin must name the
@@ -280,7 +293,8 @@ above.
 | Flag | Default | Meaning |
 | --- | --- | --- |
 | `-mcp` | empty | `stdio` or `http`; empty disables MCP. |
-| `-mcp-address` | `127.0.0.1:0` | HTTP bind address; any other host is refused. |
+| `-mcp-address` | `127.0.0.1:0` | HTTP bind address; any other host is refused. Port 0 tries the recorded port first. |
+| `-mcp-new-token` | off | Make a new bearer token and record it in `mapedit-mcp.json`. |
 | `-mcp-pace` | `0` | Pause between tool calls, from zero to one minute. |
 
 MCP requires the window route. It cannot be combined with `-list`, `-check`,

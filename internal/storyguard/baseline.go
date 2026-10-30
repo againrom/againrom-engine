@@ -3472,5 +3472,5 @@ var Committed = Baseline{
 	// in internal/archtest/firstframe.go, the new tests' comments in
 	// pkg/game/firstframe_test.go and internal/archtest, and this note.
 	// The merge with main is measured on the merged tree.
-	CommentBytes: 9965263,
+	CommentBytes: 9966221,
 }

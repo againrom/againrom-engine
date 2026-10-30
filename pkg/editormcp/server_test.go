@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -281,10 +284,10 @@ func TestHTTPModernMetadataMatchesTheBody(t *testing.T) {
 
 func TestLoopbackListenerWritesTokenAndStops(t *testing.T) {
 	s := New(nil, NewQueue())
-	if _, err := s.Listen("0.0.0.0:0", t.TempDir()); err == nil {
+	if _, err := s.Listen("0.0.0.0:0", t.TempDir(), false); err == nil {
 		t.Fatal("public bind allowed")
 	}
-	l, err := s.Listen("127.0.0.1:0", t.TempDir())
+	l, err := s.Listen("127.0.0.1:0", t.TempDir(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,22 +352,136 @@ func TestStdioEndOfInputDisconnectsTheQueueButShutdownDoesNot(t *testing.T) {
 	}
 }
 
-func TestListenerCanRestartBesideAnOldTokenReceipt(t *testing.T) {
-	s := New(nil, NewQueue())
-	profile := t.TempDir()
-	first, err := s.Listen("127.0.0.1:0", profile)
+func listenOnce(t *testing.T, address, profile string, newToken bool) *Listener {
+	t.Helper()
+	l, err := New(nil, NewQueue()).Listen(address, profile, newToken)
 	if err != nil {
 		t.Fatal(err)
+	}
+	return l
+}
+
+func TestListenerKeepsTokenAndPortAcrossStarts(t *testing.T) {
+	profile := t.TempDir()
+	first := listenOnce(t, "127.0.0.1:0", profile, false)
+	if len(first.Notes) != 1 {
+		t.Fatal("first start should say it made a record", first.Notes)
 	}
 	if err := first.Close(); err != nil {
 		t.Fatal(err)
 	}
-	second, err := s.Listen("127.0.0.1:0", profile)
+	second := listenOnce(t, "127.0.0.1:0", profile, false)
+	defer second.Close()
+	if first.Token != second.Token || first.URL != second.URL || first.TokenFile != second.TokenFile {
+		t.Fatalf("second start changed the connection: %s %s / %s %s", first.URL, first.Token, second.URL, second.Token)
+	}
+	if len(second.Notes) != 0 {
+		t.Fatal("unexpected notes", second.Notes)
+	}
+	if filepath.Base(second.TokenFile) != RecordName {
+		t.Fatal("record name", second.TokenFile)
+	}
+	entries, err := os.ReadDir(profile)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("profile should hold the one record: %v %v", entries, err)
+	}
+}
+
+func TestListenerNewTokenOptionReplacesTheRecord(t *testing.T) {
+	profile := t.TempDir()
+	first := listenOnce(t, "127.0.0.1:0", profile, false)
+	first.Close()
+	second := listenOnce(t, "127.0.0.1:0", profile, true)
+	second.Close()
+	if first.Token == second.Token || len(second.Notes) != 1 {
+		t.Fatal("token not rotated", first.Token, second.Token, second.Notes)
+	}
+	third := listenOnce(t, "127.0.0.1:0", profile, false)
+	defer third.Close()
+	if third.Token != second.Token {
+		t.Fatal("rotated token not recorded")
+	}
+}
+
+func TestListenerReplacesAnUnusableRecord(t *testing.T) {
+	for name, content := range map[string]string{
+		"garbage":    "not json",
+		"empty":      "",
+		"short":      `{"url":"x","token":"abcd","port":1}`,
+		"not hex":    `{"url":"x","token":"` + strings.Repeat("z", 64) + `","port":1}`,
+		"bad port":   `{"url":"x","token":"` + strings.Repeat("a", 64) + `","port":70000}`,
+		"no token":   `{"url":"x","port":1}`,
+		"wrong type": `[1,2]`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			profile := t.TempDir()
+			if err := os.WriteFile(filepath.Join(profile, RecordName), []byte(content), 0600); err != nil {
+				t.Fatal(err)
+			}
+			l := listenOnce(t, "127.0.0.1:0", profile, false)
+			defer l.Close()
+			if len(l.Notes) != 1 || !strings.Contains(l.Notes[0], "unusable") || len(l.Token) != 64 {
+				t.Fatal("record not replaced with a note", l.Notes, l.Token)
+			}
+			r, err := readRecord(l.TokenFile)
+			if err != nil || r.Token != l.Token || r.URL != l.URL {
+				t.Fatal("replacement not stored", r, err)
+			}
+		})
+	}
+}
+
+func TestListenerTakenRecordedPortFallsBackWithTheSameToken(t *testing.T) {
+	profile := t.TempDir()
+	first := listenOnce(t, "127.0.0.1:0", profile, false)
+	first.Close()
+	r, err := readRecord(first.TokenFile)
 	if err != nil {
 		t.Fatal(err)
 	}
+	holder, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(r.Port)))
+	if err != nil {
+		t.Skip("recorded port was taken by another process:", err)
+	}
+	defer holder.Close()
+	second := listenOnce(t, "127.0.0.1:0", profile, false)
 	defer second.Close()
-	if first.TokenFile == second.TokenFile || first.Token == second.Token {
-		t.Fatal("reused token receipt or credentials")
+	if second.Token != first.Token || second.URL == first.URL {
+		t.Fatal("fallback should keep the token and change the port", first.URL, second.URL)
+	}
+	if len(second.Notes) != 1 || !strings.Contains(second.Notes[0], "taken") {
+		t.Fatal("fallback not reported", second.Notes)
+	}
+	if again, err := readRecord(second.TokenFile); err != nil || again.URL != second.URL {
+		t.Fatal("record keeps the last port", again, err)
+	}
+}
+
+func TestListenerExplicitPortIsUsedAsGiven(t *testing.T) {
+	profile := t.TempDir()
+	first := listenOnce(t, "127.0.0.1:0", profile, false)
+	first.Close()
+	r, _ := readRecord(first.TokenFile)
+	probe, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := probe.Addr().(*net.TCPAddr).Port
+	probe.Close()
+	if port == r.Port {
+		t.Skip("chosen port equals the recorded one")
+	}
+	second := listenOnce(t, net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), profile, false)
+	defer second.Close()
+	if second.Token != first.Token || !strings.HasSuffix(second.URL, ":"+strconv.Itoa(port)+"/mcp") {
+		t.Fatal("explicit port ignored", second.URL)
+	}
+	holder, err := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(port+1)))
+	if err != nil {
+		t.Skip(err)
+	}
+	defer holder.Close()
+	if _, err := New(nil, NewQueue()).Listen(holder.Addr().String(), profile, false); err == nil {
+		t.Fatal("a taken explicit port must fail, not fall back")
 	}
 }

@@ -19,12 +19,36 @@ func TestMCPFlagValidationIsHeadless(t *testing.T) {
 	}
 }
 
+func TestMCPHTTPKeepsItsTokenAcrossStartsUnlessAskedToRotate(t *testing.T) {
+	t.Setenv("AGAINROM_PROFILE", t.TempDir())
+	start := func(newToken bool) (string, func()) {
+		var diagnostic bytes.Buffer
+		stop, err := startMCP(ui.NewMapEditor(nil, nil, nil), "http", "127.0.0.1:0", newToken, 0, "", "", t.TempDir(), nil, io.Discard, &diagnostic)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return diagnostic.String(), stop
+	}
+	first, stop := start(false)
+	stop()
+	second, stop := start(false)
+	stop()
+	if !strings.Contains(first, "new bearer token") || strings.Contains(second, "new bearer token") || !strings.Contains(second, "mapedit-mcp.json") {
+		t.Fatal(first, second)
+	}
+	third, stop := start(true)
+	stop()
+	if !strings.Contains(third, "-mcp-new-token") {
+		t.Fatal(third)
+	}
+}
+
 func TestMCPStdioStartupAndShutdown(t *testing.T) {
 	e := ui.NewMapEditor(nil, nil, nil)
 	inRead, inWrite := io.Pipe()
 	outRead, outWrite := io.Pipe()
 	var diagnostic bytes.Buffer
-	stop, err := startMCP(e, "stdio", "", 0, "", "", "", inRead, outWrite, &diagnostic)
+	stop, err := startMCP(e, "stdio", "", false, 0, "", "", "", inRead, outWrite, &diagnostic)
 	if err != nil {
 		t.Fatal(err)
 	}

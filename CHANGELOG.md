@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor, Ctrl+C copies the selected row of a report panel to the clipboard. In the MCP connection panel that copies the bearer token, the URL or the token file name without its label, and the panel says so. Before, the token was shown but could not be selected or copied.
+- [BASE] The map editor keeps its MCP bearer token and address between runs, in one file, `mapedit-mcp.json`, in the player profile; a client set up once keeps working, and the new `-mcp-new-token` option replaces the token. Before, every run made a new token and a new file, and the address changed too.
 
 ### For map makers and modders
 
