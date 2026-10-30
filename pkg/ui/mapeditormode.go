@@ -24,8 +24,12 @@ const (
 	// pickArea is the draw tool: the next drag on the map draws a new
 	// trigger area.
 	pickArea pickKind = "area"
-	// pickWizardUnit is a unit on the map for the trigger wizard's row.
-	pickWizardUnit pickKind = "wizardunit"
+	// pickParamUnit is a unit, structure or unit of a group on the map for
+	// the armed trigger parameter field.
+	pickParamUnit pickKind = "paramunit"
+	// pickParamArea is a trigger area on the map for the armed trigger
+	// parameter field.
+	pickParamArea pickKind = "paramarea"
 	// pickPaste is the paste brush: the copied records, and the terrain of
 	// an area copy, follow the pointer translucent until a click pastes
 	// them there.
@@ -99,6 +103,7 @@ type editorMode struct {
 	catalog         bool
 	prompt          editorPrompt
 	pick            pickKind
+	pickNote        string // what the last click of the armed pick found
 	brush           brushState
 	report          reportState
 	panel           bool // the Map panel stands in the list popup under any list
@@ -133,7 +138,7 @@ func (e *MapEditor) leave(x exits) {
 		e.cancelRecordDrag()
 	}
 	if x&leavePick != 0 {
-		e.pick = pickNone
+		e.pick, e.pickNote = pickNone, ""
 	}
 	if x&leavePrompt != 0 {
 		e.prompt = editorPrompt{}
@@ -181,7 +186,7 @@ func (e *MapEditor) enterCatalog() {
 
 // armPick arms the next canvas click to pick kind.
 func (e *MapEditor) armPick(kind pickKind) {
-	e.pick, e.message = kind, ""
+	e.pick, e.message, e.pickNote = kind, "", ""
 }
 
 // keepPick keeps kind armed after a pick that does not end it, the message

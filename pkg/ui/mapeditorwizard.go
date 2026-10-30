@@ -212,14 +212,13 @@ type wizRow struct {
 }
 
 // wizardState is the wizard's rows, whether a row was added or removed,
-// and the fields a drawing or a unit pick on the map fills (-1 none).
+// and the fields a drawing on the map fills (-1 none).
 type wizardState struct {
 	rows       []wizRow
 	changed    bool
 	draw       int
 	drawRadius int
 	square     bool
-	unit       int
 }
 
 // triggerDetailsShown reports that trigger v shows the pair view.
@@ -237,7 +236,7 @@ func (e *MapEditor) wizardOpen() *wizardState {
 
 // loadWizard reads trigger v into rows.
 func (e *MapEditor) loadWizard(v scriptView) {
-	e.obj.wiz = &wizardState{rows: e.wizardRows(v.trigger), draw: -1, drawRadius: -1, unit: -1}
+	e.obj.wiz = &wizardState{rows: e.wizardRows(v.trigger), draw: -1, drawRadius: -1}
 	e.wizardFields(v)
 }
 
@@ -720,7 +719,8 @@ func (w *wizardState) dirty() bool {
 const (
 	actRemoveRow = "removerow"
 	actDraw      = "draw"
-	actPickUnit  = "pickunit"
+	actPickParam = "pickparam" // a unit, structure or group clicked on the map
+	actPickArea  = "pickarea"  // a trigger area clicked on the map
 	actConfigure = "configure"
 )
 
@@ -795,8 +795,10 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			switch p.kind {
 			case wpUnit, wpPlayer, wpGroup, wpCommand, wpRelation:
 				pr.Kind, pr.Value = popupChoice, choiceText(o.fields[i], o.buf[i])
+				if p.kind == wpUnit || p.kind == wpGroup {
+					buttons = []string{actPickParam}
+				}
 				if p.kind == wpUnit {
-					buttons = []string{actPickUnit}
 					if n, err := strconv.ParseInt(strings.TrimSpace(o.buf[i]), 10, 64); err == nil && n > 10000 {
 						heroes = true
 					}
@@ -804,10 +806,10 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 			case wpCell:
 				buttons = []string{actPick}
 				if wr.condition && it.hasRadius() {
-					buttons = []string{actDraw}
+					buttons = []string{actDraw, actPickArea}
 				}
 			case wpBox:
-				buttons = []string{actDraw}
+				buttons = []string{actDraw, actPickArea}
 			}
 			add(pr, i, buttons...)
 		}
@@ -920,11 +922,9 @@ func (e *MapEditor) wizardRowButton(act string, f int, hasField bool) {
 				}
 			}
 		}
-	case actPickUnit:
+	case actPickParam, actPickArea:
 		if hasField {
-			w.unit, o.focus = f, f
-			e.leave(leaveDrag)
-			e.armPick(pickWizardUnit)
+			e.armParamPick(f, act == actPickArea)
 		}
 	case actPick:
 		if hasField {
@@ -1013,32 +1013,6 @@ func (e *MapEditor) wizardAreaDrawn(h *areaHandle) {
 		o.buf[w.draw] = fmt.Sprintf("%d,%d,%d,%d", h.box[0], h.box[1], h.box[2], h.box[3])
 	}
 	w.draw, w.drawRadius = -1, -1
-}
-
-// wizardUnitAt gives the waiting unit field the unit under p, when a script
-// can name it.
-func (e *MapEditor) wizardUnitAt(p image.Point) {
-	w := e.obj.wiz
-	if w == nil || w.unit < 0 || w.unit >= len(e.obj.buf) {
-		return
-	}
-	f := w.unit
-	w.unit = -1
-	for _, id := range e.hitsAt(p) {
-		if e.doc.Records[id].Kind != "Unit" {
-			continue
-		}
-		for _, t := range e.doc.Script.Targets[scriptUnit] {
-			if t.Record == id {
-				e.obj.buf[f] = strconv.FormatUint(uint64(t.Value), 10)
-				e.obj.fields[f].Choices = e.wizardChoices(wpUnit, int64(t.Value))
-				return
-			}
-		}
-		e.obj.note = e.word("editor.wizard.nounit")
-		return
-	}
-	e.obj.note = e.word("editor.wizard.nounit")
 }
 
 // wizardPlan is the trigger the rows say, for the host to write.

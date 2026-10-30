@@ -1448,8 +1448,8 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 	switch {
 	case e.pick == pickDrop:
 		parts = append(parts, e.dropToolStatus())
-	case e.pick == pickWizardUnit:
-		parts = append(parts, e.word("editor.wizard.pickunit"))
+	case e.pick == pickParamUnit || e.pick == pickParamArea:
+		parts = append(parts, e.paramPickStatus()...)
 	case e.pick == pickArea && e.obj.wiz != nil && e.obj.wiz.draw >= 0 && e.obj.wiz.square:
 		parts = append(parts, e.word("editor.wizard.drawsquare"))
 	case e.pick == pickArea && e.obj.wiz != nil && e.obj.wiz.draw >= 0:

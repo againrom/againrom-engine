@@ -541,6 +541,9 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 			case len(f.Choices) > 0:
 				row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
 			}
+			if e.nodeFieldTarget(v, i) != targetNone {
+				acts = []string{actPickParam}
+			}
 			if f.Key == "opcode" {
 				add(popupRow{Kind: popupHeading, Label: e.word("editor.node.operation")}, -1)
 				row.Label = ""
@@ -592,6 +595,8 @@ func (e *MapEditor) actWord(a string) string {
 		return e.word("editor.wizard.draw")
 	case actConfigure:
 		return e.word("editor.wizard.configure")
+	case actPickArea:
+		return e.word("editor.wizard.pickarea")
 	}
 	return e.word("editor.object.pick")
 }
@@ -665,6 +670,10 @@ func (e *MapEditor) scriptRowButton(r, k int) {
 			o.pickField = f
 			e.leave(leaveDrag)
 			e.armPick(pickScriptCell)
+		}
+	case actPickParam, actPickArea:
+		if hasField {
+			e.armParamPick(f, acts[k] == actPickArea)
 		}
 	}
 }

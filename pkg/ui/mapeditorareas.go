@@ -248,19 +248,27 @@ func (e *MapEditor) AreaLabelRect(t int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
+// areaUnder is the smallest area covering cell, false when no shown area
+// does.
+func (e *MapEditor) areaUnder(cell image.Point) (InspectionArea, bool) {
+	if !e.areasShown() {
+		return InspectionArea{}, false
+	}
+	var best InspectionArea
+	found := false
+	for _, a := range e.doc.Script.Areas {
+		if cell.In(a.Rect) && (!found || a.Rect.Dx()*a.Rect.Dy() < best.Rect.Dx()*best.Rect.Dy()) {
+			best, found = a, true
+		}
+	}
+	return best, found
+}
+
 // areaAt is the trigger of the smallest area covering cell, false when no
 // area does.
 func (e *MapEditor) areaAt(cell image.Point) (int, bool) {
-	if !e.areasShown() {
-		return 0, false
-	}
-	best, size := -1, 0
-	for _, a := range e.doc.Script.Areas {
-		if cell.In(a.Rect) && (best < 0 || a.Rect.Dx()*a.Rect.Dy() < size) {
-			best, size = a.Trigger, a.Rect.Dx()*a.Rect.Dy()
-		}
-	}
-	return best, best >= 0
+	a, ok := e.areaUnder(cell)
+	return a.Trigger, ok
 }
 
 // selectTrigger selects trigger t and opens its popup.

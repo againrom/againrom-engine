@@ -278,8 +278,8 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.goalAt(p)
 		return
 	}
-	if pick == pickWizardUnit {
-		e.wizardUnitAt(p)
+	if pick == pickParamUnit || pick == pickParamArea {
+		e.paramAt(pick, p)
 		return
 	}
 	if pick == pickPaste {

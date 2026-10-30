@@ -31,6 +31,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, a trigger parameter that names a unit, a structure, a group or an area now has an "On map" button: press it, then click the unit, the structure, a unit of the group, or the area on the map, and the parameter is filled. The node window offers it for unit, structure and group parameters; the trigger wizard offers it for units, groups and areas ("Area on map"). A click that fits nothing says so on the status line and the pick stays armed; Esc or a right click cancels.
 - [BASE] In the map editor, with a menu open (Map, View, Brushes, Tools), a press on another menu's arrow now closes it and opens that one; before, View left Brushes dead.
 - [BASE] Saving a map in the editor now shows "Saving the map, please wait..." on the status line and then the saved file or the error; Open File starts in your `maps` folder; the pointer over the border or corner of a resizable editor window shows the resize cursor; the group headings of the Scripts list are drawn heavier.
 - [BASE] In the map editor, a terrain stroke now joins every terrain it meets, also where three terrains meet, such as Grass, Cracked and Stones; painting over a hard edge with one of its terrains joins it. Before, a stroke could leave a hard edge or corner at such a junction.

@@ -84,6 +84,9 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 		return placementFrame{}, false
 	}
 	f := placementFrame{Cell: e.hoverCell}
+	if r, ok := e.paramAreaHover(); ok {
+		f.Cells = []placementCells{{Rect: r}}
+	}
 	if e.pick == pickMove && e.selected >= 0 {
 		r := e.doc.Records[e.selected]
 		if host, ok := e.doc.Edits.(InspectionCellCheck); ok {
