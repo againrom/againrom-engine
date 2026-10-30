@@ -16,9 +16,12 @@ type editorPathReply struct {
 type editorPathDialog struct {
 	ask     pathdialog.Func
 	baseDir string
-	kind    pathdialog.Kind
-	pending <-chan editorPathReply
-	rearm   bool
+	// mapsFolder answers the profile folder the editor saves maps in, where
+	// the Open window starts; nil or an empty answer keeps the usual start.
+	mapsFolder func() string
+	kind       pathdialog.Kind
+	pending    <-chan editorPathReply
+	rearm      bool
 }
 
 func (e *MapEditor) SetPathDialog(ask pathdialog.Func, baseDir string) {
@@ -29,6 +32,9 @@ func (e *MapEditor) SetPathDialog(ask pathdialog.Func, baseDir string) {
 	}
 	e.pathDialog.ask, e.pathDialog.baseDir = ask, baseDir
 }
+
+// SetMapsFolder names the host's maps folder, which the Open window starts in.
+func (e *MapEditor) SetMapsFolder(folder func() string) { e.pathDialog.mapsFolder = folder }
 
 func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 	r := pathdialog.Request{
@@ -53,6 +59,11 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 					r.StartDir = filepath.Dir(absolute)
 				}
 			}
+		}
+	}
+	if kind == pathdialog.OpenFile && e.pathDialog.mapsFolder != nil {
+		if dir := e.pathDialog.mapsFolder(); dir != "" {
+			r.StartDir = dir
 		}
 	}
 	if kind == pathdialog.SaveFile && e.editable() {

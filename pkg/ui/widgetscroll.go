@@ -256,6 +256,8 @@ type listBox struct {
 	// space between the rows and the bar.
 	Framed bool
 	BarGap int
+	// HeadingFace draws the rows marked Heading; nil draws them as any row.
+	HeadingFace *text.Font
 }
 
 // newListBox places a list of rows rows at the argument rectangle's top
@@ -409,7 +411,11 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 				x, width = x+side+textX, width-side-textX
 			}
-			f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
+			face := f
+			if rows := m.Rows(); l.HeadingFace != nil && top+i < len(rows) && rows[top+i].Heading {
+				face = l.HeadingFace
+			}
+			face.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowText(top+i, width), x, r.Min.Y+listTextY, ink)
 		}
 	}
 	if l.Ruled {

@@ -284,6 +284,7 @@ func runAs(self string, args []string, out io.Writer) error {
 		return reportFindings(out, d)
 	}
 	e.SetPathDialog(pathdialog.Show, root)
+	e.SetMapsFolder(x.MapsFolder)
 	if *mcp != "" {
 		stop, err := startMCP(e, *mcp, *mcpAddress, *mcpNewToken, *mcpPace, self, userConfigDir, root, os.Stdin, out, os.Stderr)
 		if err != nil {

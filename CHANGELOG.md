@@ -30,6 +30,8 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, with a menu open (Map, View, Brushes, Tools), a press on another menu's arrow now closes it and opens that one; before, View left Brushes dead.
+- [BASE] Saving a map in the editor now shows "Saving the map, please wait..." on the status line and then the saved file or the error; Open File starts in your `maps` folder; the pointer over the border or corner of a resizable editor window shows the resize cursor; the group headings of the Scripts list are drawn heavier.
 - [BASE] In the map editor, a terrain stroke now joins every terrain it meets, also where three terrains meet, such as Grass, Cracked and Stones; painting over a hard edge with one of its terrains joins it. Before, a stroke could leave a hard edge or corner at such a junction.
 - [BASE] An agent connected to the map editor can now read the heights of an area, and the help says what each height brush mode does; saves and key presses answer a short result, a save that wrote its file no longer reports an error, and a missing folder is named. Before, heights could only be changed, not read, and each answer carried the whole window.
 - [BASE] In the map editor, Ctrl+C copies the selected row of a report panel to the clipboard. In the MCP connection panel that copies the bearer token, the URL or the token file name without its label, and the panel says so. Before, the token was shown but could not be selected or copied.

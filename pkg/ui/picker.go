@@ -65,6 +65,10 @@ type PickerRow struct {
 	// Ink draws the row's text in this colour, selected or not; the zero
 	// colour keeps the list's own inks.
 	Ink color.RGBA
+
+	// Heading marks a group heading, which a list box draws in its heading
+	// face when it has one, the rows under it in the list's own.
+	Heading bool
 }
 
 // Column edges in frame pixels from pickerLeft (TEXT-083); the hover

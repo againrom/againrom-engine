@@ -1099,6 +1099,13 @@ func (x *MapInspector) mapsFolder() (string, *runtimeProfileAccess) {
 	return dir, grant
 }
 
+// MapsFolder is the folder of the player profile the editor saves maps in,
+// where the Open window starts; empty when the editor has no player profile.
+func (x *MapInspector) MapsFolder() string {
+	dir, _ := x.mapsFolder()
+	return dir
+}
+
 // SaveFolder is the folder the Save As window starts in: the folder of the
 // map's own host file when the editor may write there, else the maps folder.
 func (s *mapInspectionEdits) SaveFolder() string {

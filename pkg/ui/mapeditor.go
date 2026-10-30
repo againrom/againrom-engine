@@ -269,6 +269,7 @@ func (e *MapEditor) openMap(source string) error {
 	}
 	next.Viewer.editorView = true
 	e.doc = next
+	e.saveStatus = saveNotice{}
 	e.cancelRestore = nil
 	e.listRestore = nil
 	e.Layout(e.window.X, e.window.Y)
@@ -473,6 +474,14 @@ func (e *MapEditor) Update() error {
 	if e.exitAsked {
 		return ebiten.Termination
 	}
+	e.deferSaves = true
+	defer func() { e.deferSaves = false }()
+	if ran, err := e.runDeferredSave(); ran {
+		if err == ebiten.Termination {
+			return err
+		}
+		return nil
+	}
 	if e.PollPathDialog() {
 		return nil
 	}
@@ -588,6 +597,7 @@ func (e *MapEditor) Update() error {
 		canvas.PanLeft, canvas.PanRight, canvas.PanUp, canvas.PanDown = false, false, false, false
 	}
 	e.Pointer(canvas, time.Now())
+	e.windowCursor()
 	return nil
 }
 

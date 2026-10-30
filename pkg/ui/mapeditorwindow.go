@@ -67,6 +67,7 @@ type editorChrome struct {
 	sizeKey                [popArea + 1]string      // the window a popup was sized for
 	promptAbs              image.Point              // a sized prompt's corner
 	listFit                int                      // the list rows a sized list popup fits
+	cursorShape            ebiten.CursorShapeType   // the pointer shape last set on the window
 	dragEdge               popupEdge                // the border a resize drag holds; zero is a move
 	dragCard               int                      // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
@@ -85,9 +86,12 @@ type editorChrome struct {
 	obj                    objectEdit
 	groupSel               editorGroup
 	exitAsked              bool
-	saveNote, saveNoteFor  string     // the status line's account of the last save, and the source it is for
-	saveErrors             int        // the errors a confirmed save is writing
-	saveThen               *leaveStep // the step a Save As asked from the question runs once saved
+	saveNote, saveNoteFor  string       // the status line's account of the last save, and the source it is for
+	saveStatus             saveNotice   // the status line's notice of a save
+	saveDeferred           func() error // the write a window frame waits on, so the writing notice is drawn first
+	deferSaves             bool         // set while the window's own update runs: a save waits one frame
+	saveErrors             int          // the errors a confirmed save is writing
+	saveThen               *leaveStep   // the step a Save As asked from the question runs once saved
 	objectBack             []objectPlace
 	messagePage            uint32
 	messageNew             InspectionMessageOwner // where a new message is named, while messagePage is NewMessagePage
@@ -623,7 +627,7 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 				if len(ids) == 0 {
 					text = fmt.Sprintf(e.word("editor.scripts.emptyheading"), text)
 				}
-				rows = append(rows, PickerRow{Text: text})
+				rows = append(rows, PickerRow{Text: text, Heading: true})
 				for _, id := range ids {
 					if id == e.selected {
 						sel = len(rows)
@@ -1428,6 +1432,9 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 			mark = "* "
 		}
 		parts = append(parts, mark+e.editorHostText(e.doc.Source))
+		if line := e.saveNoticeLine(); line != "" {
+			parts = append(parts, line)
+		}
 		if e.saveNote != "" && e.saveNoteFor == e.doc.Source {
 			parts = append(parts, e.editorHostText(e.saveNote))
 		}
@@ -1494,7 +1501,7 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 
 // chromeHit is the foremost chrome part under p.
 func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
-	if b, ok := e.openMenuEntry(); ok && p.In(e.menuDropdown(b, true).Bounds(e.font)) {
+	if b, ok := e.openMenuEntry(); ok && e.menuDropdown(b, true).Covers(e.font, p) {
 		return popMenu
 	}
 	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.areaDropdownHit(p)) {

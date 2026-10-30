@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"image"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // Resizable editor windows. The editor has three movable popup places: the
@@ -145,21 +147,70 @@ func (e *MapEditor) PopupRect() (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// resizePress starts a resize drag when p lies on a border of popup id.
-func (e *MapEditor) resizePress(id editorPopupID, p image.Point) bool {
+// resizeEdgeAt is the border of popup id a press at p would grab, none when
+// the popup is not resizable there.
+func (e *MapEditor) resizeEdgeAt(id editorPopupID, p image.Point) popupEdge {
 	if !resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
-		return false
+		return 0
 	}
 	s, ok := e.movableSpec(id)
 	if !ok {
-		return false
+		return 0
 	}
-	edge := layoutPopup(s, e.font, e.bodyFont()).edgeAt(p)
+	return layoutPopup(s, e.font, e.bodyFont()).edgeAt(p)
+}
+
+// resizePress starts a resize drag when p lies on a border of popup id.
+func (e *MapEditor) resizePress(id editorPopupID, p image.Point) bool {
+	edge := e.resizeEdgeAt(id, p)
 	if edge == 0 {
 		return false
 	}
 	e.drag, e.dragFrom, e.dragEdge = id, p, edge
 	return true
+}
+
+// setEditorCursorShape sets the window's pointer shape; a test replaces it.
+var setEditorCursorShape = ebiten.SetCursorShape
+
+// edgeCursorShape is the system resize cursor of a border: sideways for a
+// side, up and down for the top or bottom, diagonal for a corner.
+func edgeCursorShape(edge popupEdge) ebiten.CursorShapeType {
+	horizontal := edge&(edgeLeft|edgeRight) != 0
+	vertical := edge&(edgeTop|edgeBottom) != 0
+	switch {
+	case horizontal && vertical:
+		if (edge&edgeLeft != 0) == (edge&edgeTop != 0) {
+			return ebiten.CursorShapeNWSEResize
+		}
+		return ebiten.CursorShapeNESWResize
+	case horizontal:
+		return ebiten.CursorShapeEWResize
+	case vertical:
+		return ebiten.CursorShapeNSResize
+	}
+	return ebiten.CursorShapeDefault
+}
+
+// windowCursor is the one place the editor sets its window's pointer shape:
+// the resize cursor of the popup border a press would grab, or of the border
+// held in a resize drag, else the default. It only sets a shape that changed.
+func (e *MapEditor) windowCursor() {
+	shape := ebiten.CursorShapeDefault
+	switch {
+	case e.drag != popNone && e.dragEdge != 0:
+		shape = edgeCursorShape(e.dragEdge)
+	case e.drag == popNone && e.pointerOK && e.menu == "" && !e.down:
+		target := e.chromeHit(e.pointer)
+		modal := e.prompt.open() && !e.addPicking() || e.message != ""
+		if !modal || target == popPrompt {
+			shape = edgeCursorShape(e.resizeEdgeAt(target, e.pointer))
+		}
+	}
+	if shape != e.cursorShape {
+		e.cursorShape = shape
+		setEditorCursorShape(shape)
+	}
 }
 
 // resizePopup moves the held border by d. The size cannot pass the least the

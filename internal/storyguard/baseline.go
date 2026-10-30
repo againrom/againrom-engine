@@ -3138,6 +3138,10 @@ package storyguard
 // CommentBytes rises with the doc comments of the second game's save
 // refusal reasons and SAVE after Continue in pkg/game and pkg/ui, their
 // tests, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the map editor's bar menu hit
+// test, save notices, Open start folder, window resize cursor and heading
+// face in pkg/ui and pkg/game, their tests, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4475,
 	TestFileCount:  264,
@@ -3505,5 +3509,5 @@ var Committed = Baseline{
 	// pkg/game/mapeditbrush_release_test.go, and this note, less the ring
 	// bound's comments it removed. The merge with main is measured on the
 	// merged tree.
-	CommentBytes: 9964096,
+	CommentBytes: 9968120,
 }

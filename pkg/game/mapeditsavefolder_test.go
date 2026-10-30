@@ -204,3 +204,15 @@ func TestSaveAsInstallRefusalReadsInTheEditorsLanguage(t *testing.T) {
 		}
 	}
 }
+
+// The Open window starts in the profile's maps folder, the folder the editor
+// saves into; an inspector with no player profile names none.
+func TestMapsFolderIsTheFolderTheEditorSavesInto(t *testing.T) {
+	f := newSaveFolderFixture(t, "")
+	if got := f.x.MapsFolder(); got != f.maps {
+		t.Errorf("maps folder %q, want %q", got, f.maps)
+	}
+	if got := (&MapInspector{}).MapsFolder(); got != "" {
+		t.Errorf("an inspector with no profile names %q", got)
+	}
+}

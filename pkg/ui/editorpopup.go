@@ -991,7 +991,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK)
 	}
 	if l.HasList && s.ListText != nil {
-		drawListBox(dst, body, frames, l.List, s.List, s.ListText, pointer, pointerOK)
+		box := l.List
+		box.HeadingFace = title
+		drawListBox(dst, body, frames, box, s.List, s.ListText, pointer, pointerOK)
 	}
 	for i, r := range l.Notes {
 		bodyText(r, s.Notes[i], s.NoteInk)

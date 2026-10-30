@@ -215,3 +215,30 @@ func TestEditorSaveAsStartsInTheHostsSaveFolder(t *testing.T) {
 		}
 	}
 }
+
+// The Open window starts in the host's maps folder, whatever map is open; the
+// Save As window keeps the folder the host names for it, and an empty maps
+// folder leaves the usual start.
+func TestEditorOpenStartsInTheMapsFolder(t *testing.T) {
+	edits := &saveFolderEdits{folder: filepath.Join(t.TempDir(), "elsewhere")}
+	e := testPlayEditor(t, edits)
+	base, own := t.TempDir(), t.TempDir()
+	e.doc.Source = filepath.Join(own, "own.alm")
+	e.SetPathDialog(nil, base)
+	maps := filepath.Join(base, "profile", "maps")
+	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != own {
+		t.Fatalf("no maps folder named: Open starts in %q, want the open map's folder %q", got, own)
+	}
+	answer := maps
+	e.SetMapsFolder(func() string { return answer })
+	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != maps {
+		t.Errorf("Open starts in %q, want the maps folder %q", got, maps)
+	}
+	if got := e.pathRequest(pathdialog.SaveFile).StartDir; got != edits.folder {
+		t.Errorf("Save As starts in %q, want the host's save folder %q", got, edits.folder)
+	}
+	answer = ""
+	if got := e.pathRequest(pathdialog.OpenFile).StartDir; got != own {
+		t.Errorf("an empty maps folder: Open starts in %q, want %q", got, own)
+	}
+}

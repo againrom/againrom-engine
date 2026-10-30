@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"math"
+	"path/filepath"
 	"strings"
 
 	"againrom/pkg/render/text"
@@ -30,12 +32,15 @@ func (e *MapEditor) saveAs(path string) error {
 
 // saveWith runs one save and the steps after it; write is the save itself.
 func (e *MapEditor) saveWith(write func() (string, error)) error {
+	if e.deferSave(func() error { return e.saveWith(write) }) {
+		return nil
+	}
 	then, errs := e.saveThen, e.saveErrors
 	e.saveThen, e.saveErrors = nil, 0
 	if !e.editable() {
 		return nil
 	}
-	source, err := write()
+	source, err := e.writeSave(write)
 	if err != nil {
 		if r, ok := refusal(err); ok {
 			if r.Ask {
@@ -63,6 +68,80 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 	return e.leaveSaved(then)
 }
 
+// saveNotice is the status line's notice of a save: what stage it is at and,
+// for the last two, the file written or the error, as the host gave them.
+type saveNotice struct {
+	state  saveStage
+	detail string
+}
+
+type saveStage uint8
+
+const (
+	saveIdle saveStage = iota
+	saveWriting
+	saveWritten
+	saveFailed
+)
+
+// saveNoticeLine is the notice as the status line shows it, in the font's
+// encoding; empty when no save has a notice.
+func (e *MapEditor) saveNoticeLine() string {
+	switch n := e.saveStatus; n.state {
+	case saveWriting:
+		return e.word("editor.save.writing")
+	case saveWritten:
+		return fmt.Sprintf(e.word("editor.save.written"), e.editorHostText(n.detail))
+	case saveFailed:
+		return fmt.Sprintf(e.word("editor.save.failed"), e.editorHostText(n.detail))
+	}
+	return ""
+}
+
+// writeSave runs the write of one save with its notices on the status line:
+// "saving" before it, then the map written or why it was not.
+func (e *MapEditor) writeSave(write func() (string, error)) (string, error) {
+	e.saveStatus = saveNotice{state: saveWriting}
+	source, err := write()
+	switch r, refused := refusal(err); {
+	case err == nil:
+		e.saveStatus = saveNotice{saveWritten, filepath.Base(filepath.FromSlash(source))}
+	case refused && r.Ask: // the question that follows is the notice
+		e.saveStatus = saveNotice{}
+	default:
+		e.saveStatus = saveNotice{saveFailed, err.Error()}
+	}
+	return source, err
+}
+
+// deferSave holds a save for the window's next frame, so the writing notice is
+// drawn before a long write blocks the frame. It does nothing for a driver
+// that calls Key directly: that save runs at once.
+func (e *MapEditor) deferSave(run func() error) bool {
+	if !e.deferSaves || !e.editable() {
+		return false
+	}
+	then, errs := e.saveThen, e.saveErrors
+	e.saveStatus = saveNotice{state: saveWriting}
+	e.saveDeferred = func() error {
+		e.saveThen, e.saveErrors = then, errs
+		return run()
+	}
+	return true
+}
+
+// runDeferredSave runs the save deferSave held, and reports whether there was
+// one and what it answered.
+func (e *MapEditor) runDeferredSave() (bool, error) {
+	run := e.saveDeferred
+	if run == nil {
+		return false, nil
+	}
+	e.saveDeferred, e.deferSaves = nil, false
+	defer func() { e.deferSaves = true }()
+	return true, run()
+}
+
 // refreshGroup rebuilds the open group popup's group from the current document,
 // keyed by player and group number, and closes the popup when no member is left.
 func (e *MapEditor) refreshGroup() {
@@ -86,7 +165,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	if next == nil {
 		return nil // unavailable history or same-cell move
 	}
-	e.saveNote = ""
+	e.saveNote, e.saveStatus = "", saveNotice{}
 	if e.terrainDiffers(next) {
 		return e.adoptTerrainEdit(next, nil)
 	}

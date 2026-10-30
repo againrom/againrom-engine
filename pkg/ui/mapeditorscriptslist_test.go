@@ -59,7 +59,7 @@ func TestScriptsListEmptyHeadingsSayNone(t *testing.T) {
 	e.doc.Records, e.doc.Script = nil, &InspectionScriptModel{}
 	_ = e.Key("scripts")
 	rows, _ := e.listRows("records")
-	want := []PickerRow{{Text: "Triggers: none"}, {Text: "Variables: none"}, {Text: "Conditions: none"}, {Text: "Actions: none"}}
+	want := []PickerRow{{Text: "Triggers: none", Heading: true}, {Text: "Variables: none", Heading: true}, {Text: "Conditions: none", Heading: true}, {Text: "Actions: none", Heading: true}}
 	if !reflect.DeepEqual(rows, want) {
 		t.Fatal("empty headings", rows)
 	}

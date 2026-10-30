@@ -53,6 +53,20 @@ func (d dropdown) Bounds(f *text.Font) image.Rectangle {
 	return d.Rect.Union(l.Rect.Inset(-1)).Union(l.Bar())
 }
 
+// Covers reports whether p lies on the drop-down: the box, or the open list
+// with its rim and bar. A list wider than the box leaves the strip beside the
+// box free, which Bounds' rectangle does not.
+func (d dropdown) Covers(f *text.Font, p image.Point) bool {
+	if p.In(d.Rect) {
+		return true
+	}
+	if !d.Open {
+		return false
+	}
+	l := d.listBox(f)
+	return p.In(l.Rect.Inset(-1)) || p.In(l.Bar())
+}
+
 // drawDropdown is the one drop-down builder: the closed box as an edit
 // field's well with the text and an arrow push button, then, while open, a
 // fill and the shared list box over the drop-down's list model.
