@@ -3478,5 +3478,5 @@ var Committed = Baseline{
 	// pkg/sim/savedgroupsai.go, the tests in
 	// pkg/sim/secondguardroute_test.go, and this note. The merge with main
 	// is measured on the merged tree.
-	CommentBytes: 9967867,
+	CommentBytes: 9967115,
 }

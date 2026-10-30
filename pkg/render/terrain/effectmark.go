@@ -60,14 +60,11 @@ const (
 	MarkCurse           = 0x3e // spell 27
 )
 
-// The second game's geometry programs that differ from every first-game kind:
-// its Bless ring (R2-ENGINE-693, generator arguments of R2-ENGINE-692) and its
-// Shield, whose meridian frames divide by the 28s envelope scale and whose
-// rings take the signed sweep. Its protections run the first game's
-// protection programs, whose records R2-ENGINE-693 states alike.
+// Second-game ring and Shield programs (R2-ENGINE-693/698).
 const (
 	MarkProgramSecondBless  = 0x100 + 48
 	MarkProgramSecondShield = 0x100 + 62
+	MarkProgramSecondCurse  = 0x100 + 64
 )
 
 // MarkKind is the mark kind a spell id computes: `2*spellId + 8`
@@ -113,7 +110,9 @@ func EffectMarkRecords(program, picture int, countdown uint16, tileSize int) []E
 	case MarkBless, MarkCurse:
 		return blessCurseMarks(program, picture, countdown, tileSize)
 	case MarkProgramSecondBless:
-		return secondBlessMarks(picture, countdown, tileSize)
+		return secondRingMarks(blessFirstStep, -blessStepDegree, picture, countdown, tileSize)
+	case MarkProgramSecondCurse:
+		return secondRingMarks(0, blessStepDegree, picture, countdown, tileSize)
 	}
 	return nil
 }
@@ -222,18 +221,14 @@ func blessCurseMarks(kind, picture int, countdown uint16, tileSize int) []Effect
 	return out
 }
 
-// secondBlessMarks is the second game's Bless ring (R2-ENGINE-693): for each
-// base angle a of 89, 71, 53, 35 and 17 degrees at t = a + 18(c mod 5), with
-// u and v the truncated 20 cos t and 20 sin t, the four records (u, v),
-// (v, -u), (-u, -v) and (-v, u) in (dx, depth), all `32*TileSize` above the
-// anchor and all on frame 4 - a/18. The twenty positions stay put, 18 degrees
-// apart; the frames advance round the ring with period 5 updates.
-func secondBlessMarks(picture int, countdown uint16, tileSize int) []EffectMark {
+// secondRingMarks builds Bless and Curse from their base-angle sequences
+// (R2-ENGINE-693/698). Both have twenty radius-20 sparks and a five-update cycle.
+func secondRingMarks(firstStep, stepDelta, picture int, countdown uint16, tileSize int) []EffectMark {
 	base := markBase(tileSize)
 	clock := int(countdown % blessSteps)
 	out := make([]EffectMark, 0, blessSteps*4)
 	for i := 0; i < blessSteps; i++ {
-		step := blessFirstStep - i*blessStepDegree
+		step := firstStep + i*stepDelta
 		rad := float64(step+blessStepDegree*clock) * math.Pi / 180
 		u := ftol(math.Cos(rad) * blessRadius)
 		v := ftol(math.Sin(rad) * blessRadius)

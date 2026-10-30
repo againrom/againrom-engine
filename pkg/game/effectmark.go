@@ -32,17 +32,17 @@ type markElement struct {
 // draws them.
 type heldMark struct{ program, picture int }
 
-// secondHeldMarks are the second game's six held marks by the first-game arm
-// its rows run (R2-ASSET-177 joins the rows): each picture is the row's cast
-// identifier and projectiles.reg type (R2-ENGINE-445), and each program
-// builds R2-ENGINE-693's records for that mark.
+// secondHeldMarks selects the second game's held geometry and picture by arm
+// (R2-ASSET-177/179, R2-ENGINE-693/698).
 var secondHeldMarks = map[uint16]heldMark{
 	5:  {terrain.MarkProtectionFire, 16},
+	8:  {terrain.MarkPoisonCloud, 20},
 	10: {terrain.MarkProtectionWater, 24},
 	16: {terrain.MarkProtectionAir, 34},
 	22: {terrain.MarkProtectionEarth, 46},
 	23: {terrain.MarkProgramSecondBless, 48},
 	18: {terrain.MarkProgramSecondShield, 62},
+	27: {terrain.MarkProgramSecondCurse, 64},
 }
 
 // heldMarkOf is the held mark of an effect whose spell runs arm: the game's
