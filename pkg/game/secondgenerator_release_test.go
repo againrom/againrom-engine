@@ -150,10 +150,16 @@ func TestReleaseSecondGameGeneratorStartsTheFirstTown(t *testing.T) {
 	before := secondTownSampleNow(t, f, app)
 	raw := secondTownNamedSave(t, f, app, out, "Generated hero")
 	secondTownShape(t, raw)
-	doc, err := sav.DecodeDocumentData(raw)
+	// The second game's records hold the hero's main skill, the chosen
+	// water skill (R2-ENGINE-320).
+	records, err := sav.Open(raw)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if chars, err := records.Party(); err != nil || len(chars) != 1 || chars[0].MainSkill != 2 {
+		t.Fatalf("the Bsg& records' hero: %+v, %v", chars, err)
+	}
+	doc := engineSaveDocument(t, raw)
 	actions, err := readCurrentActions(&doc)
 	if err != nil {
 		t.Fatal(err)

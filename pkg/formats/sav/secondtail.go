@@ -68,13 +68,21 @@ func (f *File) SecondTail() (SecondTail, error) {
 	if f.secondTail == nil {
 		return SecondTail{}, fmt.Errorf("sav: the tail does not frame as a state store")
 	}
-	out := *f.secondTail
+	return *cloneSecondTail(f.secondTail), nil
+}
+
+// cloneSecondTail detaches every list of t; nil stays nil.
+func cloneSecondTail(t *SecondTail) *SecondTail {
+	if t == nil {
+		return nil
+	}
+	out := *t
 	out.Pairs = append([][2]uint32(nil), out.Pairs...)
 	out.Locations = append([]SecondLocation(nil), out.Locations...)
 	for i := range out.Buffers {
 		out.Buffers[i].Data = append([]byte(nil), out.Buffers[i].Data...)
 	}
-	return out, nil
+	return &out
 }
 
 // CurrentLocation is the record Current names, and false when it names none.
@@ -133,6 +141,64 @@ func parseSecondTail(b []byte) (*SecondTail, error) {
 	}
 	if r.p != len(b) {
 		return nil, fmt.Errorf("sav: second-game tail ends at %d of %d bytes", r.p, len(b))
+	}
+	return out, nil
+}
+
+// secondTailSize is the bytes serializeSecondTail writes for t, bounded
+// before any byte is appended.
+func secondTailSize(t *SecondTail) (uint64, error) {
+	if t == nil {
+		return 0, fmt.Errorf("sav: missing second-game tail")
+	}
+	if len(t.Pairs) > maxSecondTailN || len(t.Locations) > maxSecondTailN {
+		return 0, fmt.Errorf("sav: second-game tail lists exceed %d elements", maxSecondTailN)
+	}
+	n := 4 + 8*uint64(len(t.Pairs)) + 8 + secondBankLen + secondGridLen + 4 + secondNodeLen*uint64(len(t.Locations)) + 4
+	for _, b := range t.Buffers {
+		n += secondBufferHdr + uint64(len(b.Data))
+	}
+	if n > maxArchiveOutput {
+		return 0, fmt.Errorf("sav: second-game tail exceeds %d bytes", maxArchiveOutput)
+	}
+	return n, nil
+}
+
+// serializeSecondTail is parseSecondTail's inverse.
+func serializeSecondTail(t *SecondTail) ([]byte, error) {
+	n, err := secondTailSize(t)
+	if err != nil {
+		return nil, err
+	}
+	le := binary.LittleEndian
+	out := make([]byte, 0, n)
+	out = le.AppendUint32(out, uint32(len(t.Pairs)))
+	for _, p := range t.Pairs {
+		out = le.AppendUint32(le.AppendUint32(out, p[0]), p[1])
+	}
+	out = le.AppendUint32(le.AppendUint32(out, t.PairTail[0]), t.PairTail[1])
+	for _, v := range t.Bank {
+		out = le.AppendUint32(out, uint32(v))
+	}
+	for i := range 16 {
+		c := t.Shops[i/4][i%4]
+		for _, v := range []uint32{uint32(c.Min), uint32(c.Max), uint32(c.Draws), uint32(c.Bound), c.Mask} {
+			out = le.AppendUint32(out, v)
+		}
+	}
+	out = le.AppendUint32(out, uint32(len(t.Locations)))
+	for _, l := range t.Locations {
+		out = le.AppendUint32(le.AppendUint32(out, l.ID), l.Kind)
+		out = append(out, l.Raw[:]...)
+	}
+	out = le.AppendUint32(out, t.Current)
+	for _, b := range t.Buffers {
+		out = le.AppendUint16(le.AppendUint16(out, b.A), b.B)
+		out = le.AppendUint32(out, uint32(len(b.Data)))
+		out = append(out, b.Data...)
+	}
+	if uint64(len(out)) != n {
+		return nil, fmt.Errorf("sav: second-game tail wrote %d of %d bytes", len(out), n)
 	}
 	return out, nil
 }

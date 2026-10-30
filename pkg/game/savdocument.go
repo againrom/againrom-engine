@@ -13,6 +13,9 @@ const snapshotSAVDocumentVersion uint32 = 1
 
 func decodeSavedDocument(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObjectOrigin) {
 	doc, origins, err := sav.DecodeDocumentDataWithOrigins(raw)
+	if err == nil {
+		err = savedFormationBlock(&doc)
+	}
 	if err != nil {
 		// Partial legacy inputs remain playable through the established import
 		// path, but can never masquerade as a complete exportable document.

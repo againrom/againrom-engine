@@ -529,16 +529,8 @@ func (p *cityObjectProjection) holdings(b *generatedDocumentBuilder, index uint1
 		}
 	}
 	packedEquipment := len(refs)
-	var weight int32
-	for _, id := range root.Pack {
-		if id == 0 {
-			refs = append(refs, 0)
-			continue
-		}
-		refs = append(refs, p.chunks[id]...)
-		v := p.items[id]
-		weight += int32(currentCityItem(v.Instance(), b.table).Weight) * int32(v.Count)
-	}
+	pack, weight := p.packRefs(b, root)
+	refs = append(refs, pack...)
 	var spells []uint16
 	for slot, id := range book.Slots {
 		if id != 0 {
@@ -579,6 +571,46 @@ func (p *cityObjectProjection) holdings(b *generatedDocumentBuilder, index uint1
 		mustSetCount(r, "Spells", uint32(len(spells)+1))
 	}
 	return nil
+}
+
+// packRefs is the Inventory references of a root's pack, a zero for each
+// empty place, and the pack's weight.
+func (p *cityObjectProjection) packRefs(b *generatedDocumentBuilder, root cityPartyObjectRoots) ([]uint16, int32) {
+	var refs []uint16
+	var weight int32
+	for _, id := range root.Pack {
+		if id == 0 {
+			refs = append(refs, 0)
+			continue
+		}
+		refs = append(refs, p.chunks[id]...)
+		v := p.items[id]
+		weight += int32(currentCityItem(v.Instance(), b.table).Weight) * int32(v.Count)
+	}
+	return refs, weight
+}
+
+// appendPack writes the pack of party member id after the references record
+// index's Inventory holds and answers the references it wrote; the
+// Inventory's weight is the caller's.
+func (p *cityObjectProjection) appendPack(b *generatedDocumentBuilder, index uint16, id string) ([]uint16, error) {
+	for _, root := range p.graph.Roots {
+		if string(root.PartyID) != id {
+			continue
+		}
+		pack, _ := p.packRefs(b, root)
+		rebindCityItemOwners(&b.doc, index, pack)
+		r := &b.doc.Objects[index-1]
+		at := slices.IndexFunc(r.RefSlots, func(v sav.DocumentRefsData) bool { return v.Name == "Inventory" })
+		if at < 0 {
+			return nil, fmt.Errorf("%s record %d holds no Inventory", r.Class, index)
+		}
+		refs := append(slices.Clone(r.RefSlots[at].Objects), pack...)
+		mustSetRefs(r, "Inventory", refs)
+		mustSetCount(r, "Inventory", uint32(len(refs)))
+		return pack, nil
+	}
+	return nil, fmt.Errorf("party member %q has no pack", id)
 }
 
 // rebindCityItemOwners writes the holder's own owner Reference, its current

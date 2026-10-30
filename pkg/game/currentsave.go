@@ -91,7 +91,21 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, true); err != nil {
 		return nil, err
 	}
-	return sav.EncodeDocumentData(doc)
+	raw, err := sav.EncodeDocumentData(doc)
+	if err != nil {
+		return nil, err
+	}
+	native, ok, err := campaignOf(s.game).saveForm(f, s, doc)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return raw, nil
+	}
+	if native, err = sav.StoreEngineDocument(native, raw); err != nil {
+		return nil, err
+	}
+	return sav.EncodeDocumentData(native)
 }
 
 func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) {
@@ -176,13 +190,11 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err != nil {
 		return sav.DocumentData{}, nil, err
 	}
-	if tableCampaign(table).keepsTownActorState() {
-		if err := writeTownActors(&city, s.Party); err != nil {
-			return sav.DocumentData{}, nil, err
-		}
-		if err := writeTownPlayerColor(&city, s.playerColor); err != nil {
-			return sav.DocumentData{}, nil, err
-		}
+	if err := writeTownActors(&city, s.Party); err != nil {
+		return sav.DocumentData{}, nil, err
+	}
+	if err := writeTownPlayerColor(&city, s.playerColor); err != nil {
+		return sav.DocumentData{}, nil, err
 	}
 	order := writeCityGroups(&city, s.Party, s.cityGroups)
 	city.MapName = s.LastMap

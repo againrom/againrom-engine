@@ -163,15 +163,35 @@ func secondHero() mapload.PartyMember {
 }
 
 // leaveBagToCampaign empties each member's pack: a town LOAD reads the
-// second game's hero bag into the campaign's bag (DIV-4153).
-func leaveBagToCampaign(party []mapload.PartyMember) {
+// second game's hero bag into the campaign's bag (DIV-4153). A hero's unit
+// with no bag form (secondBagUnitForm) stays in his pack, as at a town's
+// arrival (DIV-4191).
+func leaveBagToCampaign(party []mapload.PartyMember, table *mapload.Table) error {
+	hero := secondHeroIndex(party)
 	for i := range party {
 		m := &party[i]
+		var kept []sim.ItemInstance
+		if i == hero {
+			for _, it := range mapload.MemberCarriedItems(*m, table) {
+				if !secondBagUnitForm(it) {
+					kept = append(kept, it)
+				}
+			}
+		}
+		if len(kept) != 0 {
+			next, ok := memberWithPack(*m, kept, table, true)
+			if !ok {
+				return fmt.Errorf("second-game save: the hero's pack cannot keep the %d units the bag has no form for", len(kept))
+			}
+			*m = next
+			continue
+		}
 		m.Carried, m.CarriedItems = nil, nil
 		if m.Carry != nil {
 			m.Carry.Items, m.Carry.ItemInstances, m.Carry.OrderedStacks = nil, nil, nil
 		}
 	}
+	return nil
 }
 
 // heroBag is the hero's pack, made when the campaign has no party yet.

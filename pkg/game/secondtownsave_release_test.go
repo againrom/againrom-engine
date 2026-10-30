@@ -201,12 +201,14 @@ func secondTownCold(t *testing.T, out, name string, prepare ...func(*FrontEnd)) 
 	return f, app
 }
 
+// secondTownShape: a town SAV is a Bsg& file whose engine document holds
+// the explicit city shape.
 func secondTownShape(t *testing.T, raw []byte) {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
+	if p, ok := sav.ProfileOf(raw); !ok || p != sav.SecondGame {
+		t.Fatal("the town SAV is not a Bsg& file")
 	}
+	doc := engineSaveDocument(t, raw)
 	actions, err := readCurrentActions(&doc)
 	if err != nil {
 		t.Fatal(err)
@@ -512,10 +514,7 @@ func TestReleaseSecondTownSaveEntryPoints(t *testing.T) {
 
 func secondTownChangeJSON(t *testing.T, raw []byte, change func(map[string]any)) []byte {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	a, err := readCurrentActions(&doc)
 	if err != nil {
 		t.Fatal(err)

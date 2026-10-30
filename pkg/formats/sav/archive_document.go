@@ -17,9 +17,19 @@ type archiveDocument struct {
 	world          *archiveWorld
 	marker, global uint32
 	trailer        TrailerBody
+	// prof is the game whose programmes and widths the document follows;
+	// nil is the first game's.
+	prof *Profile
 	// Import-only pointer join, captured by the same graph clone which erases
 	// source indices. Neither the archive writer nor persistence DTO emits it.
 	origins map[*Record]uint16
+}
+
+func (d *archiveDocument) profile() *Profile {
+	if d == nil || d.prof == nil {
+		return FirstGame
+	}
+	return d.prof
 }
 
 // TrailerBody is world+0x118's 400-byte block (SAV-646, SAV-790): a
@@ -78,10 +88,121 @@ func (w *walker) readTrailerBody() (TrailerBody, error) {
 
 type archiveWorld struct {
 	buildings, effects, sacks []*Record
-	blocks                    []BlockRecord
-	cells                     []archiveCell
-	terrainIdentity           uint32
-	session                   archiveSession
+	// extra is the profile's Token list after the Sacks.
+	extra           []*Record
+	blocks          []BlockRecord
+	cells           []archiveCell
+	terrainIdentity uint32
+	session         archiveSession
+	// cellRest is each entry's bytes past the profile's cell prefix, entry
+	// after entry; wideResults and wideDiplomacy the session fields the first
+	// game's typed block has no room for (Profile.wideResults).
+	cellRest      []byte
+	wideResults   []int32
+	wideDiplomacy []byte
+}
+
+// narrowCell reads one profile entry through the first game's cell fields up
+// to the profile's prefix; the bytes after it are returned whole.
+func narrowCell(p *Profile, rec []byte) (archiveCell, []byte, error) {
+	var full [cellRecLen]byte
+	n := 2 + p.cellPrefix()
+	if len(rec) != p.cellLen {
+		return archiveCell{}, nil, fmt.Errorf("sav: cell entry has %d bytes, want %d", len(rec), p.cellLen)
+	}
+	copy(full[:], rec[:n])
+	var c archiveCell
+	if err := binary.Read(bytes.NewReader(full[:]), binary.LittleEndian, &c); err != nil {
+		return archiveCell{}, nil, err
+	}
+	return c, rec[n:], nil
+}
+
+// widenCell is narrowCell's inverse. A first-game field past the prefix
+// must be zero: the profile's entry has no such field.
+func widenCell(p *Profile, c archiveCell, rest []byte) ([]byte, error) {
+	b, err := binary.Append(nil, binary.LittleEndian, c)
+	if err != nil {
+		return nil, err
+	}
+	n := 2 + p.cellPrefix()
+	if len(rest) != p.cellRest() {
+		return nil, fmt.Errorf("sav: cell rest has %d bytes, want %d", len(rest), p.cellRest())
+	}
+	for _, v := range b[n:] {
+		if v != 0 {
+			return nil, fmt.Errorf("sav: a %s cell entry has no first-game trigger tail", p.Magic)
+		}
+	}
+	return append(b[:n], rest...), nil
+}
+
+// narrowSession reads a profile's session block into the first game's
+// typed block, the result slots past its hundred and, row-major, the matrix
+// entries outside its 50x50 top-left (DIV-4170).
+func narrowSession(p *Profile, raw []byte) (archiveSession, []int32, []byte, error) {
+	l := p.session
+	if len(raw) != p.sessionLen {
+		return archiveSession{}, nil, nil, fmt.Errorf("sav: session has %d bytes, want %d", len(raw), p.sessionLen)
+	}
+	first := make([]byte, 0, sessionLen)
+	first = append(first, raw[l.results:l.results+4*triggerResultCount]...)
+	first = append(first, raw[l.latches:l.diplomacy]...)
+	var results []int32
+	for i := triggerResultCount; i < l.resultCount; i++ {
+		results = append(results, int32(u32(raw, l.results+4*i)))
+	}
+	var diplomacy []byte
+	side := l.diplomacySide
+	for r := range side {
+		row := raw[l.diplomacy+r*side : l.diplomacy+(r+1)*side]
+		if r < diplomacySide {
+			first = append(first, row[:diplomacySide]...)
+			diplomacy = append(diplomacy, row[diplomacySide:]...)
+		} else {
+			diplomacy = append(diplomacy, row...)
+		}
+	}
+	first = append(first, raw[l.diplomacy+side*side:]...)
+	if len(first) != sessionLen {
+		return archiveSession{}, nil, nil, fmt.Errorf("sav: the %s session layout does not narrow", p.Magic)
+	}
+	var s archiveSession
+	if err := binary.Read(bytes.NewReader(first), binary.LittleEndian, &s); err != nil {
+		return archiveSession{}, nil, nil, err
+	}
+	return s, results, diplomacy, nil
+}
+
+// widenSession is narrowSession's inverse.
+func widenSession(p *Profile, s archiveSession, results []int32, diplomacy []byte) ([]byte, error) {
+	l := p.session
+	if len(results) != p.wideResults() || len(diplomacy) != p.wideDiplomacy() {
+		return nil, fmt.Errorf("sav: session holds %d wide result slots and %d wide stances, want %d and %d",
+			len(results), len(diplomacy), p.wideResults(), p.wideDiplomacy())
+	}
+	first, err := binary.Append(nil, binary.LittleEndian, s)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]byte, p.sessionLen)
+	copy(out[l.results:], first[:4*triggerResultCount])
+	for i, v := range results {
+		put32(out, l.results+4*(triggerResultCount+i), uint32(v))
+	}
+	copy(out[l.latches:l.diplomacy], first[4*triggerResultCount:sessDiplomacy])
+	side, at := l.diplomacySide, 0
+	for r := range side {
+		row := out[l.diplomacy+r*side : l.diplomacy+(r+1)*side]
+		if r < diplomacySide {
+			copy(row, first[sessDiplomacy+r*diplomacySide:sessDiplomacy+(r+1)*diplomacySide])
+			at += copy(row[diplomacySide:], diplomacy[at:])
+		} else {
+			at += copy(row, diplomacy[at:])
+		}
+	}
+	copy(out[l.diplomacy+side*side:], first[sessDiplomacy+diplomacySide*diplomacySide:])
+	return out, nil
 }
 
 // archiveCell names every member of SAV-CELLLOAD-111's 52-byte payload. The
@@ -114,15 +235,23 @@ type archiveSession struct {
 }
 
 func parseArchiveDocument(body []byte) (*archiveDocument, error) {
+	return parseArchiveDocumentFor(body, FirstGame)
+}
+
+// parseArchiveDocumentFor reads body with the profile's programmes and widths.
+func parseArchiveDocumentFor(body []byte, prof *Profile) (*archiveDocument, error) {
 	if len(body) > maxArchiveOutput {
 		return nil, fmt.Errorf("sav: decoded archive exceeds %d bytes", maxArchiveOutput)
 	}
-	f := &File{Body: body}
+	if prof == nil {
+		prof = FirstGame
+	}
+	f := &File{Body: body, Profile: prof}
 	if err := f.readHead(); err != nil {
 		return nil, err
 	}
-	w := &walker{b: body, p: f.Head.End, next: 1, classes: map[uint16]string{}, objects: map[uint16]*Record{}, retainGraph: true}
-	d := &archiveDocument{head: f.Head}
+	w := &walker{b: body, p: f.Head.End, next: 1, classes: map[uint16]string{}, objects: map[uint16]*Record{}, retainGraph: true, prof: prof}
+	d := &archiveDocument{head: f.Head, prof: prof}
 	var err error
 	d.players, err = w.completeRoots("Players", f.Head.PlayerCount, "Player", true)
 	if err != nil {
@@ -155,18 +284,27 @@ func parseArchiveDocument(body []byte) (*archiveDocument, error) {
 		world.blocks = half.Blocks
 		world.cells = make([]archiveCell, half.CellRecCount)
 		for i := range world.cells {
-			off := half.CellRecDataOff + i*cellRecLen
-			if err := binary.Read(bytes.NewReader(body[off:off+cellRecLen]), binary.LittleEndian, &world.cells[i]); err != nil {
+			off := half.CellRecDataOff + i*prof.cellLen
+			cell, rest, err := narrowCell(prof, body[off:off+prof.cellLen])
+			if err != nil {
 				return nil, fmt.Errorf("sav: cell %d: %w", i, err)
 			}
+			world.cells[i] = cell
+			world.cellRest = append(world.cellRest, rest...)
 		}
 		world.terrainIdentity = u32(body, half.SessionOff-4)
-		if err := binary.Read(bytes.NewReader(body[half.SessionOff:half.SessionOff+sessionLen]), binary.LittleEndian, &world.session); err != nil {
+		world.session, world.wideResults, world.wideDiplomacy, err = narrowSession(prof, body[half.SessionOff:half.SessionOff+prof.sessionLen])
+		if err != nil {
 			return nil, fmt.Errorf("sav: session: %w", err)
 		}
 		world.sacks, err = w.completeCountedRoots("Sacks", "Sack")
 		if err != nil {
 			return nil, err
+		}
+		if prof.extraList {
+			if world.extra, err = w.completeCountedRoots("extra Tokens", "Token"); err != nil {
+				return nil, err
+			}
 		}
 	}
 	d.marker, err = w.u32()
@@ -224,6 +362,9 @@ func (d *archiveDocument) rootLists() []*[]*Record {
 	lists := []*[]*Record{&d.players, &d.dead}
 	if d.world != nil {
 		lists = append(lists, &d.world.buildings, &d.world.effects, &d.world.sacks)
+		if d.profile().extraList {
+			lists = append(lists, &d.world.extra)
+		}
 	}
 	return lists
 }
@@ -252,6 +393,7 @@ func serializeArchiveDocument(d *archiveDocument) ([]byte, error) {
 		return nil, fmt.Errorf("sav: extended map CString is unsupported")
 	}
 	w := newArchiveWriter()
+	w.prof = d.profile()
 	w.dword(d.head.CounterA)
 	w.dword(d.head.CounterB)
 	name, err := cityAppendCString(nil, d.head.MapName)
@@ -346,18 +488,30 @@ func (w *archiveWriter) worldDocument(world *archiveWorld) error {
 	if err := w.countedLength(len(world.cells)); err != nil {
 		return err
 	}
-	for _, cell := range world.cells {
-		b, err := binary.Append(nil, binary.LittleEndian, cell)
+	rest := w.prof.cellRest()
+	if len(world.cellRest) != rest*len(world.cells) {
+		return fmt.Errorf("sav: cell rest has %d bytes for %d entries", len(world.cellRest), len(world.cells))
+	}
+	for i, cell := range world.cells {
+		b, err := widenCell(w.prof, cell, world.cellRest[i*rest:(i+1)*rest])
 		if err != nil {
-			return err
+			return fmt.Errorf("sav: cell %d: %w", i, err)
 		}
 		w.put(b)
 	}
 	w.dword(world.terrainIdentity)
-	b, err := binary.Append(nil, binary.LittleEndian, world.session)
+	b, err := widenSession(w.prof, world.session, world.wideResults, world.wideDiplomacy)
 	if err != nil {
 		return err
 	}
 	w.put(b)
-	return w.rootList(world.sacks, "Sack", false)
+	if err := w.rootList(world.sacks, "Sack", false); err != nil {
+		return err
+	}
+	if w.prof.extraList {
+		return w.rootList(world.extra, "Token", false)
+	} else if len(world.extra) != 0 {
+		return fmt.Errorf("sav: a %s document has no Token list after the Sacks", w.prof.Magic)
+	}
+	return nil
 }

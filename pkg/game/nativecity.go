@@ -172,7 +172,11 @@ func nativeCityHumanHiredMembers(party []mapload.PartyMember) []mapload.PartyMem
 // the remaining unpromoted tails retain zero defaults (DIV-879).
 func nativeCityUnitData(identity, owner uint32, member, hero mapload.PartyMember, table *mapload.Table, stats [sav.UnitStatWords]uint16, skillLevels [sav.CharacterSkillSlots]uint16) sav.CityUnitData {
 	scalar2 := make([]byte, 55)
-	if member.Hired() && !nativeCitySiegeMember(member) {
+	if id, ok := mapload.PartyIdentity(member, table); ok {
+		// R2-ENGINE-105, R2-ENGINE-525: an edition that binds its party by
+		// identity holds it in the actor's WORD +0x14c.
+		binary.LittleEndian.PutUint32(scalar2[47:51], uint32(id))
+	} else if member.Hired() && !nativeCitySiegeMember(member) {
 		binary.LittleEndian.PutUint32(scalar2[47:51], uint32(member.MercenaryType))
 	}
 	for i, v := range stats {

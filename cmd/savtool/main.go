@@ -9,6 +9,8 @@
 //	savtool campaign FILE...       the embedded state store's decoded campaign projection
 //	savtool fog     FILE...        the tail's state store and the explored-terrain record
 //	savtool verify  FILE...        read each and re-emit it, reporting byte-identity
+//	savtool document FILE...       decode each as a document, encode it, compare by part
+//	savtool compare A B            compare two files by part
 //	savtool set     FILE -out PATH [edits]   read, modify, write
 //
 // verify is the tool's centre. It reads a save, re-emits it with the body
@@ -47,7 +49,7 @@ func main() {
 	}
 }
 
-const usage = "savtool {info|blocks|actors|party|objects|session|sacks|campaign|verify|lead|fog|set} FILE..."
+const usage = "savtool {info|blocks|actors|party|objects|session|sacks|campaign|verify|document|compare|lead|fog|set} FILE..."
 
 func run(args []string, out io.Writer) error {
 	if len(args) == 0 {
@@ -147,6 +149,16 @@ func run(args []string, out io.Writer) error {
 		return fog(out, rest)
 	case "set":
 		return set(out, rest)
+	case "document":
+		if len(rest) == 0 {
+			return fmt.Errorf("document takes at least one file")
+		}
+		return document(out, rest)
+	case "compare":
+		if len(rest) != 2 {
+			return fmt.Errorf("compare takes two files")
+		}
+		return compare(out, rest[0], rest[1])
 	}
 	return fmt.Errorf("unknown verb %q: %s", verb, usage)
 }

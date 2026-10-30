@@ -45,8 +45,11 @@ type cityStateRecord struct {
 	name  string
 }
 
-func parseCityState(raw []byte) (*cityState, error) {
-	return parseStateStore(raw, len(cityStateShape), -1, validateCityState)
+func parseCityState(raw []byte) (*cityState, error) { return parseCityStateFor(raw, FirstGame) }
+
+// parseCityStateFor reads a town store with the profile's shortcut width.
+func parseCityStateFor(raw []byte, p *Profile) (*cityState, error) {
+	return parseStateStore(raw, len(cityStateShape), -1, func(s *cityState) error { return validateCityStateFor(s, p) })
 }
 
 // parseStateStore detaches typed values from YA1 transport. A negative expected
@@ -183,19 +186,21 @@ func parseStateStore(raw []byte, expectedRoots, expectedRecords int, validate fu
 	return state, nil
 }
 
-func validateCityState(state *cityState) error {
+func validateCityState(state *cityState) error { return validateCityStateFor(state, FirstGame) }
+
+func validateCityStateFor(state *cityState, p *Profile) error {
 	shape, err := currentCityStateShape(state)
 	if err != nil {
 		return err
 	}
-	return validateStateShape(state, shape)
+	return validateStateShape(state, shape, p)
 }
 
 func currentCityStateShape(state *cityState) ([]stateDirectory, error) {
 	return placeSupplementLeaves(state, append([]stateDirectory(nil), cityStateShape...), cityForm)
 }
 
-func validateStateShape(state *cityState, shape []stateDirectory) error {
+func validateStateShape(state *cityState, shape []stateDirectory, p *Profile) error {
 	if state == nil {
 		return fmt.Errorf("sav: city state is nil")
 	}
@@ -243,8 +248,8 @@ func validateStateShape(state *cityState, shape []stateDirectory) error {
 		return fmt.Errorf("sav: city state Character/Name is not one NUL-terminated string")
 	}
 	shortcutsRecord, _, _ := lookup.read("/SpellBook/Shortcuts")
-	if shortcuts := shortcutsRecord.Value.Bytes; len(shortcuts) != 16 {
-		return fmt.Errorf("sav: city state SpellBook/Shortcuts has %d bytes, want 16", len(shortcuts))
+	if shortcuts := shortcutsRecord.Value.Bytes; p.shortcutBytes >= 0 && len(shortcuts) != p.shortcutBytes {
+		return fmt.Errorf("sav: city state SpellBook/Shortcuts has %d bytes, want %d", len(shortcuts), p.shortcutBytes)
 	}
 	return nil
 }
@@ -262,7 +267,11 @@ func cloneCityState(source *cityState) *cityState {
 }
 
 func serializeCityState(state *cityState) ([]byte, error) {
-	if err := validateCityState(state); err != nil {
+	return serializeCityStateFor(state, FirstGame)
+}
+
+func serializeCityStateFor(state *cityState, p *Profile) ([]byte, error) {
+	if err := validateCityStateFor(state, p); err != nil {
 		return nil, err
 	}
 	shape, err := currentCityStateShape(state)

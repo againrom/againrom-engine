@@ -234,7 +234,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 	}
 	if hasCurrent {
 		restored, cityCharacters = current, currentChars
-		keepLoadedTownActors(in.table, restored, currentChars)
+		keepLoadedTownActors(restored, currentChars)
 	} else {
 		mapload.NameParty(restored)
 		clearRestoredMissionPosition(restored)
@@ -243,7 +243,10 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 		// party, as a new campaign's is, and the hero's bag is the
 		// session's (secondFileSession).
 		if src.campaign.fileSession != nil {
-			leaveBagToCampaign(restored)
+			if err := leaveBagToCampaign(restored, in.table); err != nil {
+				return report, err
+			}
+			keepLoadedTownActors(restored, cityCharacters)
 		} else if !report.Fallback {
 			doc, err := sav.DecodeDocumentData(saved)
 			if err != nil {
@@ -253,7 +256,7 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 			if err != nil {
 				return report, err
 			}
-			keepLoadedTownActors(in.table, restored, cityCharacters)
+			keepLoadedTownActors(restored, cityCharacters)
 		}
 	}
 	cityObjects.publishSessionEntry()

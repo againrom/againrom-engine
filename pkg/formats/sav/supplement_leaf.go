@@ -18,7 +18,12 @@ const (
 	// NativeRandomPath: SAV-914..916 do not establish original preservation.
 	NativeRandomPath  = "/" + supplementDirectory + "/" + nativeRandomName
 	NativeSessionPath = "/" + supplementDirectory + "/" + nativeSessionName
+	// NativeFormPath: the original's acceptance of the leaf is unknown (DIV-4304).
+	NativeFormPath = "/" + supplementDirectory + "/" + nativeFormName
 )
+
+// MaxNativeForm bounds the engine document a profile file carries.
+const MaxNativeForm = 16 << 20
 
 const (
 	supplementDirectory = "CurrentState"
@@ -26,6 +31,7 @@ const (
 	nativeModsName      = "AgainromMods"
 	nativeRandomName    = "AgainromRng"
 	nativeSessionName   = "AgainromSeed"
+	nativeFormName      = "AgainromForm"
 )
 
 type leafFraming uint8
@@ -79,10 +85,16 @@ var (
 	nativeSessionLeaf = &supplementLeaf{directory: supplementDirectory, name: nativeSessionName, path: NativeSessionPath,
 		kind: 6, framing: fixedDwords, validate: validateNativeSession, forms: cityForm | worldForm,
 		refusals: leafRefusals{ambiguous: "sav: ambiguous or invalid AgainromSeed leaf", kind: nativeSessionRefusal}}
+	nativeFormLeaf = &supplementLeaf{directory: supplementDirectory, name: nativeFormName, path: NativeFormPath,
+		kind: 6, framing: framedPayload, bound: MaxNativeForm, forms: cityForm | worldForm,
+		refusals: leafRefusals{
+			ambiguous: "sav: ambiguous engine document leaf", kind: "sav: invalid engine document framing",
+			framing: "sav: invalid engine document framing", length: "sav: invalid engine document length",
+			padding: "sav: nonzero engine document padding", bound: "sav: the engine document requires a bounded application leaf"}}
 )
 
 // supplementLeaves is every leaf, in shape validation order.
-var supplementLeaves = []*supplementLeaf{nativeRandomLeaf, nativeSessionLeaf, nativeModsLeaf, nativeActionsLeaf}
+var supplementLeaves = []*supplementLeaf{nativeRandomLeaf, nativeSessionLeaf, nativeModsLeaf, nativeActionsLeaf, nativeFormLeaf}
 
 func (d *supplementLeaf) check(kind uint32, b []byte) error {
 	if kind != d.kind {
@@ -209,8 +221,12 @@ func placeSupplementLeaves(state *cityState, shape []stateDirectory, form leafFo
 
 // HasNativeActionsLeaf includes collisions so a malformed authored save cannot
 // fall through to the original-save route.
-func (f *File) HasNativeActionsLeaf() bool {
-	_, present, err := f.StateLeaves().ReadLeaf(nativeActionsLeaf.path)
+func (f *File) HasNativeActionsLeaf() bool { return f.carriesLeaf(nativeActionsLeaf) }
+
+// carriesLeaf reports a value record at d's path, a colliding one included,
+// without validating its value.
+func (f *File) carriesLeaf(d *supplementLeaf) bool {
+	_, present, err := f.StateLeaves().ReadLeaf(d.path)
 	return present || err != nil
 }
 

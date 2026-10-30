@@ -236,6 +236,7 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		}
 	}
 	out.StartingHero = c.Hero
+	out.DefinitionRow = heroRecordRow(out, c.DefRow, t)
 	if p.Policy != nil {
 		out.FigureFace = p.Policy.face(*p.ordinary)
 	}

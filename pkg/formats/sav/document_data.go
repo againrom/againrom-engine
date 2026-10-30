@@ -49,6 +49,13 @@ type DocumentData struct {
 	Objects  []DocumentRecordData
 	State    DocumentStateData
 	Campaign CityCampaignData
+	// Game names the profile the document is written in (ProfileNamed):
+	// empty is the first game's Asg& document, "rom2" the second game's
+	// Bsg& document, whose records follow the second game's programmes.
+	Game string
+	// SecondTail is the second game's campaign tail; a second-game document
+	// holds it and a zero Campaign, a first-game document neither.
+	SecondTail *SecondTail
 }
 
 // DocumentHeadData omits source offsets and the redundant Player count.
@@ -65,6 +72,19 @@ type DocumentWorldData struct {
 	Cells                     []DocumentCellData
 	TerrainIdentity           uint32
 	Session                   DocumentSessionData
+	// Extra is the second game's Token list after the Sacks (R2-ENGINE-601).
+	Extra []uint16
+	// CellRest is each terrain entry's bytes past the first game's cell
+	// fields the profile reads, entry after entry: 16 bytes per second-game
+	// entry (payload +0x2c..+0x3b, DIV-4171), none for the first game, whose
+	// Cells carry the trigger tail.
+	CellRest []byte
+	// SessionResults are the session's result slots past the hundred Session
+	// holds and SessionDiplomacy, row-major, the matrix entries outside its
+	// 50x50 top-left: 900 slots and 2,400 entries in the second game's block
+	// (DIV-4170), none in the first game's.
+	SessionResults   []int32
+	SessionDiplomacy []byte
 }
 
 // These named, exported value types retain every field of the typed wire
@@ -264,9 +284,10 @@ func shapeDocumentRecord(r *Record, group bool) (*documentRecordShape, error) {
 	if r == nil {
 		return nil, fmt.Errorf("sav: nil document record")
 	}
-	prog, ok := programmes[r.Class]
+	table := r.profile().programmes
+	prog, ok := table[r.Class]
 	if group && r.Class == "Group" {
-		prog, ok = groupProgramme, true
+		prog, ok = r.profile().group, true
 	}
 	if !ok || len(r.Class) > maxClassName {
 		return nil, fmt.Errorf("sav: unsupported document class %q", r.Class)
@@ -320,7 +341,7 @@ func shapeDocumentRecord(r *Record, group bool) (*documentRecordShape, error) {
 					}
 				}
 			case stpClass:
-				if err := walk(programmes[step.class]); err != nil {
+				if err := walk(table[step.class]); err != nil {
 					return err
 				}
 			case stpFlagged:
@@ -686,19 +707,24 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 	if _, err := worldStateSerializedSize(d.state); err != nil {
 		return DocumentData{}, err
 	}
+	prof := d.profile()
 	if d.archive.world == nil {
-		if err := validateCityState(d.state); err != nil {
+		if err := validateCityStateFor(d.state, prof); err != nil {
 			return DocumentData{}, err
 		}
-	} else if err := validateWorldState(d.state); err != nil {
+	} else if err := validateWorldStateFor(d.state, prof); err != nil {
 		return DocumentData{}, err
 	}
-	if _, err := archiveCampaignSize(d.campaign); err != nil {
+	if prof.scenarioTail {
+		if _, err := secondTailSize(d.second); err != nil {
+			return DocumentData{}, err
+		}
+	} else if _, err := archiveCampaignSize(d.campaign); err != nil {
 		return DocumentData{}, err
 	}
 	a := d.archive
 	h := a.head
-	out := DocumentData{Version: DocumentDataVersion, FileVersion: d.version, Label: cityDataCopy(d.label), Head: DocumentHeadData{h.CounterA, h.CounterB, h.MapName, h.Reserved, h.Mission, h.Difficulty, h.PlayerListField}, Marker: a.marker, GlobalDWord: a.global, Trailer: trailerBodyToArray(a.trailer)}
+	out := DocumentData{Version: DocumentDataVersion, FileVersion: d.version, Label: cityDataCopy(d.label), Head: DocumentHeadData{h.CounterA, h.CounterB, h.MapName, h.Reserved, h.Mission, h.Difficulty, h.PlayerListField}, Marker: a.marker, GlobalDWord: a.global, Trailer: trailerBodyToArray(a.trailer), Game: prof.Game}
 	b := documentDataBuilder{ids: map[*Record]uint16{}, inline: map[*Record]bool{}}
 	var err error
 	if out.Players, err = b.refs(a.players, 0); err != nil {
@@ -711,7 +737,8 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 		if len(w.blocks) > maxListElements || len(w.cells) > maxListElements {
 			return DocumentData{}, fmt.Errorf("sav: document terrain count exceeds bound")
 		}
-		out.World = &DocumentWorldData{Blocks: cityDataCopy(w.blocks), TerrainIdentity: w.terrainIdentity, Session: DocumentSessionData(w.session)}
+		out.World = &DocumentWorldData{Blocks: cityDataCopy(w.blocks), TerrainIdentity: w.terrainIdentity, Session: DocumentSessionData(w.session),
+			CellRest: cityDataCopy(w.cellRest), SessionResults: cityDataCopy(w.wideResults), SessionDiplomacy: cityDataCopy(w.wideDiplomacy)}
 		if len(w.cells) != 0 {
 			out.World.Cells = make([]DocumentCellData, len(w.cells))
 		}
@@ -721,7 +748,7 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 		for _, list := range []struct {
 			src []*Record
 			dst *[]uint16
-		}{{w.buildings, &out.World.Buildings}, {w.effects, &out.World.Effects}, {w.sacks, &out.World.Sacks}} {
+		}{{w.buildings, &out.World.Buildings}, {w.effects, &out.World.Effects}, {w.sacks, &out.World.Sacks}, {w.extra, &out.World.Extra}} {
 			if *list.dst, err = b.refs(list.src, 0); err != nil {
 				return DocumentData{}, err
 			}
@@ -729,7 +756,11 @@ func documentDataFromDocument(d *saveDocument, origins *[]DocumentObjectOrigin) 
 	}
 	out.Objects = b.objects
 	out.State = parsedStateData(d.state)
-	out.Campaign = cityToDataCampaign(*d.campaign, nil)
+	if prof.scenarioTail {
+		out.SecondTail = cloneSecondTail(d.second)
+	} else {
+		out.Campaign = cityToDataCampaign(*d.campaign, nil)
+	}
 	// The shared city helper preserves allocated empty struct slices. Gob does
 	// not, so the complete DTO chooses nil for both before native adoption.
 	// All other campaign slices already pass through cityDataCopy.
@@ -815,7 +846,7 @@ func documentDataGraph(data DocumentData, permutation []uint16) error {
 	}
 	lists := [][]uint16{data.Players, data.DeadActors}
 	if w := data.World; w != nil {
-		lists = append(lists, w.Buildings, w.Effects, w.Sacks)
+		lists = append(lists, w.Buildings, w.Effects, w.Sacks, w.Extra)
 	}
 	for _, list := range lists {
 		if err := refs(list, 0); err != nil {
@@ -912,6 +943,7 @@ func documentRecordFromDataMode(data DocumentRecordData, out *Record, objects []
 			return fmt.Errorf("sav: inline site also carries archive slots")
 		}
 		r := newRecord(v.Record.Class, 0, 0)
+		r.prof = out.prof
 		if err := documentRecordFromDataMode(v.Record, r, objects, false, depth+1, borrowRaw); err != nil {
 			return err
 		}
@@ -919,6 +951,7 @@ func documentRecordFromDataMode(data DocumentRecordData, out *Record, objects []
 	}
 	for _, v := range data.Groups {
 		r := newRecord(v.Class, 0, 0)
+		r.prof = out.prof
 		if err := documentRecordFromDataMode(v, r, objects, true, depth+1, borrowRaw); err != nil {
 			return err
 		}
@@ -966,12 +999,27 @@ func saveDocumentFromDataIndexedMode(data DocumentData, permutation []uint16, bo
 	if err := validateDocumentRoots(data); err != nil {
 		return nil, err
 	}
+	prof, err := ProfileNamed(data.Game)
+	if err != nil {
+		return nil, err
+	}
+	if prof.scenarioTail {
+		if !reflect.ValueOf(data.Campaign).IsZero() {
+			return nil, fmt.Errorf("sav: a %s document has no first-game campaign record", prof.Magic)
+		}
+		if _, err := secondTailSize(data.SecondTail); err != nil {
+			return nil, err
+		}
+	} else if data.SecondTail != nil {
+		return nil, fmt.Errorf("sav: a %s document has no second-game tail", prof.Magic)
+	}
 	if err := validateDocumentCampaign(data.Campaign); err != nil {
 		return nil, err
 	}
 	objects := make([]*Record, len(data.Objects))
 	for i, r := range data.Objects {
 		objects[i] = newRecord(r.Class, 0, 0)
+		objects[i].prof = prof
 	}
 	for i, r := range data.Objects {
 		if err := documentRecordFromDataMode(r, objects[i], objects, false, 0, borrowRaw); err != nil {
@@ -990,12 +1038,13 @@ func saveDocumentFromDataIndexedMode(data DocumentData, permutation []uint16, bo
 		return out
 	}
 	h := data.Head
-	a := &archiveDocument{head: Head{CounterA: h.CounterA, CounterB: h.CounterB, MapName: h.MapName, Reserved: h.Reserved, Mission: h.Mission, Difficulty: h.Difficulty, PlayerListField: h.PlayerListField}, players: refs(data.Players), dead: refs(data.DeadActors), marker: data.Marker, global: data.GlobalDWord, trailer: trailerBodyFromArray(data.Trailer)}
+	a := &archiveDocument{head: Head{CounterA: h.CounterA, CounterB: h.CounterB, MapName: h.MapName, Reserved: h.Reserved, Mission: h.Mission, Difficulty: h.Difficulty, PlayerListField: h.PlayerListField}, players: refs(data.Players), dead: refs(data.DeadActors), marker: data.Marker, global: data.GlobalDWord, trailer: trailerBodyFromArray(data.Trailer), prof: prof}
 	if w := data.World; w != nil {
 		if len(w.Blocks) > maxListElements || len(w.Cells) > maxListElements {
 			return nil, fmt.Errorf("sav: document terrain count exceeds bound")
 		}
-		a.world = &archiveWorld{buildings: refs(w.Buildings), effects: refs(w.Effects), sacks: refs(w.Sacks), blocks: cityDataCopy(w.Blocks), terrainIdentity: w.TerrainIdentity, session: archiveSession(w.Session)}
+		a.world = &archiveWorld{buildings: refs(w.Buildings), effects: refs(w.Effects), sacks: refs(w.Sacks), blocks: cityDataCopy(w.Blocks), terrainIdentity: w.TerrainIdentity, session: archiveSession(w.Session),
+			extra: refs(w.Extra), cellRest: cityDataCopy(w.CellRest), wideResults: cityDataCopy(w.SessionResults), wideDiplomacy: cityDataCopy(w.SessionDiplomacy)}
 		if len(w.Cells) != 0 {
 			a.world.cells = make([]archiveCell, len(w.Cells))
 		}
@@ -1008,21 +1057,23 @@ func saveDocumentFromDataIndexedMode(data DocumentData, permutation []uint16, bo
 		return nil, err
 	}
 	if a.world == nil {
-		err = validateCityState(s)
+		err = validateCityStateFor(s, prof)
 	} else {
-		err = validateWorldState(s)
+		err = validateWorldStateFor(s, prof)
 	}
 	if err != nil {
 		return nil, err
 	}
 	campaign := cityFromDataCampaign(data.Campaign, nil)
-	if _, err := archiveCampaignSize(&campaign); err != nil {
-		return nil, err
+	if !prof.scenarioTail {
+		if _, err := archiveCampaignSize(&campaign); err != nil {
+			return nil, err
+		}
 	}
 	if err := validateDocumentArchive(a); err != nil {
 		return nil, err
 	}
-	return &saveDocument{version: data.FileVersion, label: cityDataCopy(data.Label), archive: a, state: s, campaign: &campaign}, nil
+	return &saveDocument{version: data.FileVersion, label: cityDataCopy(data.Label), archive: a, state: s, campaign: &campaign, second: cloneSecondTail(data.SecondTail)}, nil
 }
 
 func documentDataEnvelope(version uint32, label []byte, mapName string, marker, global uint32) error {
@@ -1053,7 +1104,7 @@ func validateDocumentRoots(data DocumentData) error {
 				return fmt.Errorf("sav: document block keys are not strictly ordered")
 			}
 		}
-		lists = append(lists, rootList{w.Buildings, "Building", false}, rootList{w.Effects, "SpellEffect", false}, rootList{w.Sacks, "Sack", false})
+		lists = append(lists, rootList{w.Buildings, "Building", false}, rootList{w.Effects, "SpellEffect", false}, rootList{w.Sacks, "Sack", false}, rootList{w.Extra, "Token", false})
 	}
 	for _, list := range lists {
 		for _, id := range list.ids {
@@ -1139,6 +1190,7 @@ func validateDocumentCampaign(c CityCampaignData) error {
 // an output buffer. Clone must not admit a graph which only fails when a later
 // SAVE discovers an over-deep archive or an exhausted shared tag namespace.
 func validateDocumentArchive(a *archiveDocument) error {
+	table, groupSteps := a.profile().programmes, a.profile().group
 	var size uint64
 	add := func(n uint64) error {
 		if n > maxArchiveOutput-size {
@@ -1185,7 +1237,7 @@ func validateDocumentArchive(a *archiveDocument) error {
 		if len(seen)+len(classes) > maxDocumentDataObjects {
 			return fmt.Errorf("sav: document archive index bound exceeded")
 		}
-		return run(r, programmes[r.Class], depth)
+		return run(r, table[r.Class], depth)
 	}
 	run = func(r *Record, prog []step, depth int) error {
 		for _, s := range prog {
@@ -1200,11 +1252,11 @@ func validateDocumentArchive(a *archiveDocument) error {
 					n += uint64(width)
 				}
 			case stpClass:
-				if err := run(r, programmes[s.class], depth); err != nil {
+				if err := run(r, table[s.class], depth); err != nil {
 					return err
 				}
 			case stpInline:
-				if err := run(r.Refs[s.name][0], programmes[s.class], depth); err != nil {
+				if err := run(r.Refs[s.name][0], table[s.class], depth); err != nil {
 					return err
 				}
 			case stpObjRef, stpRefRun, stpList, stpContainer, stpSpellbook:
@@ -1230,7 +1282,7 @@ func validateDocumentArchive(a *archiveDocument) error {
 			case stpGroups:
 				n = 4
 				for _, g := range r.Groups {
-					if err := run(g, groupProgramme, depth); err != nil {
+					if err := run(g, groupSteps, depth); err != nil {
 						return err
 					}
 				}
@@ -1260,8 +1312,15 @@ func validateDocumentArchive(a *archiveDocument) error {
 		}
 	}
 	if w := a.world; w != nil {
-		if err := add(countWidth(len(w.blocks)) + uint64(len(w.blocks))*4 + countWidth(len(w.cells)) + uint64(len(w.cells))*cellRecLen + 4 + sessionLen); err != nil {
+		p := a.profile()
+		if err := add(countWidth(len(w.blocks)) + uint64(len(w.blocks))*4 + countWidth(len(w.cells)) + uint64(len(w.cells))*uint64(p.cellLen) + 4 + uint64(p.sessionLen)); err != nil {
 			return err
+		}
+		if len(w.cellRest) != len(w.cells)*p.cellRest() || len(w.wideResults) != p.wideResults() || len(w.wideDiplomacy) != p.wideDiplomacy() {
+			return fmt.Errorf("sav: document terrain or session widths do not match the %s profile", p.Magic)
+		}
+		if !p.extraList && len(w.extra) != 0 {
+			return fmt.Errorf("sav: a %s document has no Token list after the Sacks", p.Magic)
 		}
 	}
 	return add(size & 1)

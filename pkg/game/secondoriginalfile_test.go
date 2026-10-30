@@ -121,6 +121,11 @@ type secondOriginalHero struct {
 	cell       [2]uint8     // the Position's cell
 	spells     []uint8
 	bookSlots  int
+	// The actor state a town file holds (U50, U136, U6C) and the party
+	// identity (U148).
+	townState       uint32
+	townDone, timer uint8
+	identity        uint32
 }
 
 // human writes the second game's Human: Unit with its 184-byte sixth raw
@@ -144,7 +149,10 @@ func (s *secondStream) human(h secondOriginalHero) {
 	s.u16(0)
 	s.u8(1) // one cell wide
 	s.u8(1) // the ground movement domain
-	s.raw(17)
+	s.raw(2)
+	s.u32(h.townState) // U50
+	s.raw(10)
+	s.u8(h.timer) // U6C
 	if h.held != nil {
 		s.item(*h.held)
 	} else {
@@ -161,10 +169,11 @@ func (s *secondStream) human(h secondOriginalHero) {
 	s.u16(0x0800) // sight
 	s.u8(0)
 	s.u32(h.experience)
-	s.raw(3)
+	s.raw(2)
+	s.u8(h.townDone) // U136
 	s.u32(0)
-	s.u8(0) // stage
-	s.u32(0)
+	s.u8(0)           // stage
+	s.u32(h.identity) // U148
 	s.u32(0)
 	s.null()
 	if len(h.bag) == 0 {
@@ -519,13 +528,72 @@ func TestSecondHeroBagExpandsStacksAndRefusesForeignItems(t *testing.T) {
 	if len(bag) != 3 || bag[0].Code != 0x0205 || bag[2].Price != 40 {
 		t.Fatalf("bag %+v, want three units of the hero's shield", bag)
 	}
-	hero.Items = []sav.Piece{{Code: 0x0f01}}
-	if _, err := secondHeroBag([]sav.Character{hero}); err == nil || !strings.Contains(err.Error(), "no bag form") {
-		t.Fatalf("an item outside the bag's forms: %v", err)
+	hero.Items = []sav.Piece{{Code: 0x0f01}, shield}
+	if bag, err := secondHeroBag([]sav.Character{hero}); err != nil || len(bag) != 3 || bag[0].Code != 0x0205 {
+		t.Fatalf("an item outside the bag's forms stays out of the bag: %+v %v", bag, err)
 	}
 	hero.Items = []sav.Piece{{Code: 0x0205, Stack: maxSecondBagUnits}, {Code: 0x0205}}
 	if _, err := secondHeroBag([]sav.Character{hero}); err == nil || !strings.Contains(err.Error(), "more than") {
 		t.Fatalf("a bag past the unit bound: %v", err)
+	}
+}
+
+// A magic item the original writes at the price word 0xffffffff, as the
+// Kaarg town files hold magic row 77, has no bag form: a town LOAD keeps it
+// in the hero's pack, as a town arrival does (DIV-4191), and the town SAVE
+// writes it back in his Inventory at that price, which LOADs again.
+func TestSecondTownLoadKeepsAPieceTheBagHasNoFormFor(t *testing.T) {
+	hero := secondFixtureHero()
+	hero.bag = append(hero.bag, secondPiece{class: "Item", code: 0x0e4d, stack: 1, row: 77, price: 0xffffffff})
+	raw := secondFixtureTown("town", hero, 44)
+	for round := range 2 {
+		cold := coldSecondTown(t, raw)
+		var bag []uint16
+		for _, it := range cold.Town.second.party[0].CarriedItems {
+			bag = append(bag, it.Code)
+		}
+		pack := mapload.MemberCarriedItems(cold.Carried[secondHeroIndex(cold.Carried)], cold.Table)
+		if !slices.Equal(bag, []uint16{0x812d}) || len(pack) != 1 || pack[0].Code != 0x0e4d || pack[0].Price != -1 {
+			t.Fatalf("LOAD %d: bag %#04x, pack %+v; want the weapon in the bag and the magic item in the pack", round, bag, pack)
+		}
+		s, label, err := cold.Snapshot(false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if raw, err = cold.ExportCurrentSave(s, label); err != nil {
+			t.Fatal(err)
+		}
+		sf, err := sav.Open(withoutEngineDocument(t, raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		chars, err := sf.Party()
+		if err != nil || len(chars) != 1 {
+			t.Fatalf("SAVE %d: party %+v %v", round, chars, err)
+		}
+		var magic []sav.Piece
+		for _, p := range chars[0].Items {
+			if p.Code == 0x0e4d {
+				magic = append(magic, p)
+			}
+		}
+		if len(magic) != 1 || magic[0].Price != -1 || magic[0].Stack != 1 {
+			t.Fatalf("SAVE %d: the hero's Inventory holds %+v, want the magic item at price -1", round, chars[0].Items)
+		}
+		// Its record holds the magic row its ID names, as every original's
+		// Item record does (R2-ENGINE-403).
+		doc, err := sav.DecodeDocumentData(withoutEngineDocument(t, raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := range doc.Objects {
+			r := &doc.Objects[i]
+			if code, _ := savedStructureValue(r, "F40"); r.Class == "Item" && code == 0x0e4d {
+				if row, _ := savedStructureValue(r, "T0C"); row != 77 {
+					t.Fatalf("SAVE %d: the magic item's row %d, want 77", round, row)
+				}
+			}
+		}
 	}
 }
 
@@ -603,10 +671,21 @@ func TestLeaveBagToCampaignEmptiesEveryPack(t *testing.T) {
 		ID: "hero", Carried: []uint16{0x0205}, CarriedItems: []sim.ItemInstance{{Code: 0x0205}},
 		Carry: &mapload.Carry{Items: []uint16{0x0205}},
 	}}
-	leaveBagToCampaign(party)
+	if err := leaveBagToCampaign(party, nil); err != nil {
+		t.Fatal(err)
+	}
 	m := party[0]
 	if m.Carried != nil || m.CarriedItems != nil || m.Carry.Items != nil || m.ID != "hero" {
 		t.Fatalf("member %+v keeps a pack", m)
+	}
+	magic := sim.ItemInstance{Code: 0x0e4d, Price: -1}
+	party = []mapload.PartyMember{{ID: "hero", StartingHero: true, Carried: []uint16{0x0205, 0x0e4d},
+		CarriedItems: []sim.ItemInstance{{Code: 0x0205}, magic}}}
+	if err := leaveBagToCampaign(party, nil); err != nil {
+		t.Fatal(err)
+	}
+	if m := party[0]; len(m.CarriedItems) != 1 || m.CarriedItems[0].Code != magic.Code || m.CarriedItems[0].Price != -1 || !slices.Equal(m.Carried, []uint16{0x0e4d}) {
+		t.Fatalf("the hero keeps %+v, want the piece the bag has no form for", m)
 	}
 }
 

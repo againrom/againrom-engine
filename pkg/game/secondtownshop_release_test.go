@@ -120,10 +120,7 @@ func secondShopSAVFields(t *testing.T, doc *sav.DocumentData) []string {
 // the party member producer.
 func secondShopSaved(t *testing.T, raw []byte, saved *currentSecondCampaign) *currentActionData {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	actions, err := readCurrentActions(&doc)
 	if err != nil {
 		t.Fatal(err)

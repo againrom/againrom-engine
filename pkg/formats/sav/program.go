@@ -340,7 +340,7 @@ var programmes = map[string][]step{
 	"Player": {
 		{op: stpRun, members: playerMembers},
 		{op: stpGroups, name: "Groups"},
-		{op: stpRun, members: []Member{{Name: "PRaw32", Kind: KindRaw, Len: 32}}},
+		{op: stpRun, members: []Member{{Name: PlayerTailName, Kind: KindRaw, Len: PlayerTailLen}}},
 		{op: stpInline, name: "Diary", class: "Diary"},
 	},
 
@@ -702,6 +702,7 @@ func (w *walker) step(s step, rec *Record, depth int) error {
 		// entry: a later back-reference names the objects the archive
 		// numbered, and inserting one here would shift every one of them.
 		sub := newRecord(s.class, w.p, 0)
+		sub.prof = w.prof
 		if err := w.programme(prog, sub, depth); err != nil {
 			return fmt.Errorf("%s: %w", s.name, err)
 		}
@@ -882,6 +883,7 @@ func (w *walker) step(s step, rec *Record, depth int) error {
 		rec.Counts[s.name] += int(n)
 		for i := uint32(0); i < n; i++ {
 			group := newRecord("Group", w.p, 0)
+			group.prof = w.prof
 			if err := w.programme(w.groupSteps(), group, depth); err != nil {
 				return fmt.Errorf("group %d: %w", i, err)
 			}

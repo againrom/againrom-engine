@@ -18,7 +18,7 @@ func savedPlayerFormationFields(record *sav.DocumentRecordData) (int16, uint32, 
 	}
 	var tail []byte
 	for _, raw := range record.Raw {
-		if raw.Name == "PRaw32" {
+		if raw.Name == sav.PlayerTailName {
 			if tail != nil || len(raw.Bytes) != sav.PlayerTailLen {
 				return 0, 0, nil, fmt.Errorf("saved Player has an invalid formation block")
 			}
@@ -29,6 +29,20 @@ func savedPlayerFormationFields(record *sav.DocumentRecordData) (int16, uint32, 
 		return 0, 0, nil, fmt.Errorf("saved Player lacks its formation block")
 	}
 	return int16(uint16(command)), trigger, tail, nil
+}
+
+// savedFormationBlock refuses a document whose profile places no Player
+// formation block: the complete import binds each Player's formation from
+// it, so such a file keeps the partial import.
+func savedFormationBlock(doc *sav.DocumentData) error {
+	prof, err := sav.ProfileNamed(doc.Game)
+	if err != nil {
+		return err
+	}
+	if name, ok := prof.PlayerFormation(); !ok || name != sav.PlayerTailName {
+		return fmt.Errorf("no claim places the %s Player's formation block", prof.Magic)
+	}
+	return nil
 }
 
 func savedFormationOwnerID(bindings *SnapshotSAVGroupBindings, owner SnapshotSAVGroupReferenceBinding) uint32 {

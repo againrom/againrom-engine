@@ -118,6 +118,7 @@ func saveDocumentFromDataCellsOracle(data DocumentData, permutation []uint16, bo
 	objects := make([]*Record, len(data.Objects))
 	for i, r := range data.Objects {
 		objects[i] = newRecord(r.Class, 0, 0)
+		objects[i].prof = FirstGame
 	}
 	for i, r := range data.Objects {
 		if err := documentRecordFromDataMode(r, objects[i], objects, false, 0, borrowRaw); err != nil {
@@ -136,7 +137,7 @@ func saveDocumentFromDataCellsOracle(data DocumentData, permutation []uint16, bo
 		return out
 	}
 	h := data.Head
-	a := &archiveDocument{head: Head{CounterA: h.CounterA, CounterB: h.CounterB, MapName: h.MapName, Reserved: h.Reserved, Mission: h.Mission, Difficulty: h.Difficulty, PlayerListField: h.PlayerListField}, players: refs(data.Players), dead: refs(data.DeadActors), marker: data.Marker, global: data.GlobalDWord, trailer: trailerBodyFromArray(data.Trailer)}
+	a := &archiveDocument{head: Head{CounterA: h.CounterA, CounterB: h.CounterB, MapName: h.MapName, Reserved: h.Reserved, Mission: h.Mission, Difficulty: h.Difficulty, PlayerListField: h.PlayerListField}, players: refs(data.Players), dead: refs(data.DeadActors), marker: data.Marker, global: data.GlobalDWord, trailer: trailerBodyFromArray(data.Trailer), prof: FirstGame}
 	if w := data.World; w != nil {
 		if len(w.Blocks) > maxListElements || len(w.Cells) > maxListElements {
 			return nil, fmt.Errorf("sav: document terrain count exceeds bound")

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A game you save in a town is now written in the original game's own save format, so the original game can try to load it. A game saved during a mission is still written only in Againrom's own format.
 - [ROM1] A companion handed to another side during a mission (Reniesta in mission 130) leaves your party selection, and her pack, worn items, weapon swap and shop are closed to you; the spell book of a unit that is not yours shows "no hero selected" unless the map is revealed; quick save, save and the timed autosave work after the handover, and loading puts her back with the other side.
 - [ROM2] After you press Continue on a mission's victory panel you can now save the game; loading that save returns you to the mission map, where the victory panel opens again. Before, the save failed with "saving is not available for this game yet".
 - [ROM2] Where the game cannot be saved, a short line in the game's language now says why: finish the conversation, close the message, save in a town or on a mission instead of the world map, or the mission is lost. Before, F2 did nothing there, or the save page showed the same English line every time.

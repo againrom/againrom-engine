@@ -211,7 +211,7 @@ func TestSupplementLeafPlacementMatchesFrozenShape(t *testing.T) {
 			gotBytes, err := serializeCityState(city)
 			wantBytes, wantErr := []byte(nil), wantErr
 			if wantErr == nil {
-				if wantErr = validateStateShape(city, want); wantErr == nil {
+				if wantErr = validateStateShape(city, want, FirstGame); wantErr == nil {
 					wantBytes, wantErr = serializeStateStore(city, want)
 				}
 			}
@@ -227,7 +227,7 @@ func TestSupplementLeafPlacementMatchesFrozenShape(t *testing.T) {
 			gotBytes, err = serializeWorldState(world)
 			wantBytes = nil
 			if wantErr == nil {
-				if wantErr = validateStateShape(world, want); wantErr == nil {
+				if wantErr = validateStateShape(world, want, FirstGame); wantErr == nil {
 					wantBytes, wantErr = serializeStateStore(world, want)
 				}
 			}

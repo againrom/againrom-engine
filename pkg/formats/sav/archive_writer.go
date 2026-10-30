@@ -17,10 +17,12 @@ type archiveWriter struct {
 	classes map[string]uint16
 	objects map[*Record]uint16
 	err     error
+	// prof is the game whose programmes the writer runs.
+	prof *Profile
 }
 
 func newArchiveWriter() *archiveWriter {
-	return &archiveWriter{next: 1, classes: map[string]uint16{}, objects: map[*Record]uint16{}}
+	return &archiveWriter{next: 1, classes: map[string]uint16{}, objects: map[*Record]uint16{}, prof: FirstGame}
 }
 
 func serializeArchiveReferences(roots []*Record) ([]byte, error) {
@@ -74,7 +76,7 @@ func (w *archiveWriter) reference(r *Record, depth int) error {
 		w.word(index)
 		return w.err
 	}
-	prog, ok := programmes[r.Class]
+	prog, ok := w.prof.programmes[r.Class]
 	if !ok || len(r.Class) == 0 || len(r.Class) > maxClassName {
 		return fmt.Errorf("sav: no archive programme for class %q", r.Class)
 	}
@@ -160,7 +162,7 @@ func (w *archiveWriter) step(s step, r *Record, depth int) error {
 		}
 		w.put(b)
 	case stpClass:
-		prog, ok := programmes[s.class]
+		prog, ok := w.prof.programmes[s.class]
 		if !ok {
 			return fmt.Errorf("unknown base %q", s.class)
 		}
@@ -170,7 +172,7 @@ func (w *archiveWriter) step(s step, r *Record, depth int) error {
 		if len(refs) != 1 || refs[0] == nil || refs[0].Class != s.class {
 			return fmt.Errorf("inline %s needs one %s", s.name, s.class)
 		}
-		return w.programme(programmes[s.class], refs[0], depth)
+		return w.programme(w.prof.programmes[s.class], refs[0], depth)
 	case stpObjRef:
 		return w.refs(r, s.name, 1, depth)
 	case stpRefRun:
@@ -244,7 +246,7 @@ func (w *archiveWriter) step(s step, r *Record, depth int) error {
 			if group == nil || group.Class != "Group" {
 				return fmt.Errorf("invalid inline Group")
 			}
-			if err := w.programme(groupProgramme, group, depth); err != nil {
+			if err := w.programme(w.prof.group, group, depth); err != nil {
 				return err
 			}
 		}
@@ -284,6 +286,7 @@ func detachArchiveRecordsWithOrigins(roots []*Record) ([]*Record, map[*Record]ui
 			return out
 		}
 		out := newRecord(r.Class, 0, 0)
+		out.prof = r.prof
 		seen[r] = out
 		if r.Index != 0 {
 			origins[out] = r.Index

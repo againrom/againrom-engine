@@ -18,6 +18,13 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		fig := data.FigureDir(member.FigureDir)
 		_, row, ok := data.ChargenBase(t.Humans, fig.Mage(), fig.Female())
 		if !ok || row <= 0 || row > 255 {
+			// A hero an edition binds by identity is built from a Start_
+			// template (R2-ENGINE-105), not a chargen row; he keeps the row
+			// his loaded record names (R2-ENGINE-319: template load writes
+			// it to +0xc).
+			if row := int(member.DefinitionRow); t.Edition != nil && t.Edition.BindsByIdentity() && row > 0 && row < t.Humans.Len() {
+				return row
+			}
 			return 0
 		}
 		return row

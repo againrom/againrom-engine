@@ -110,6 +110,13 @@ func BookSpell(code uint16) (int, bool) {
 	return it.Spell, ok && it.Table == Book
 }
 
+// MagicRow is the magic table row a magic item's ID names, the row an Item
+// holds at +0xc (R2-ENGINE-403), or false when the ID names no magic item.
+func MagicRow(code uint16) (int, bool) {
+	it, ok := idItem(code)
+	return it.Row, ok && it.Table == Magic
+}
+
 // Unit is a worn item as the bag holds it: the shop item its ID names, at
 // its price and with its castspell effect, written by Instance's rule. A
 // unit Instance writes is its own Unit; an ID that names no shop item is

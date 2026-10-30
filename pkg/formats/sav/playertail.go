@@ -10,6 +10,9 @@ import "fmt"
 // exact span.
 const PlayerTailLen = 32
 
+// PlayerTailName is the first game's Player member that holds the block.
+const PlayerTailName = "PRaw32"
+
 // PlayerTailFormationByte is PRaw32's own index 0x1f. AI-FORM-037 (active,
 // consulted by this story and not re-derived here) already gives its whole
 // surface: the player constructor's own default (2), the one setter, and the
@@ -44,7 +47,7 @@ func PlayerTailFromRecord(rec *Record) (PlayerTail, error) {
 	if rec == nil {
 		return PlayerTail{}, fmt.Errorf("sav: no player record")
 	}
-	raw, ok := rec.Raw["PRaw32"]
+	raw, ok := rec.Raw[PlayerTailName]
 	if !ok || len(raw) != PlayerTailLen {
 		return PlayerTail{}, fmt.Errorf("sav: player at %d has no %d-byte tail", rec.Off, PlayerTailLen)
 	}

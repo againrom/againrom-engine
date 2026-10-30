@@ -39,6 +39,7 @@ var savByteProducers = map[string]savByteProducer{
 	"File.CellRecord":              {savReader, "returns a view of one record in an opened body"},
 	"NativeActions":                {savReader, "reads the native action supplement from a loaded document"},
 	"NativeMods":                   {savReader, "reads the mod mark payload from a loaded document"},
+	"EngineDocument":               {savReader, "reads the engine document a loaded second-game town file carries, or answers the input"},
 	"ReserveDocumentKeys":          {savReader, "allocates document key numbers, not bytes"},
 	"DocumentFragment.MarshalJSON": {savReader, "a JSON view of a fragment for tools, not SAV bytes"},
 }
@@ -48,6 +49,7 @@ var savByteProducers = map[string]savByteProducer{
 // caller is a finding; pkg/game is held by CheckSaveProducer.
 var savByteCallers = map[string]string{
 	"againrom/cmd/savtool verify":            "re-emits each opened save in memory to report byte identity; writes no file",
+	"againrom/cmd/savtool document":          "re-encodes each decoded save in memory to report the parts that differ; writes no file",
 	"againrom/cmd/savtool set":               "developer edit of an opened save, written only to an explicit -out path",
 	"againrom/internal/cityfixture Original": "synthetic town bytes; only tests import the package",
 }

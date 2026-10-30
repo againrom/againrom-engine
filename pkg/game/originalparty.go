@@ -586,7 +586,24 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 		look := heroAppearance(nil, 0, member, bodies)
 		member.Class, member.Body, member.BodyDir = look.Class, string(look.Body), look.Dir
 	}
+	member.DefinitionRow = heroRecordRow(member, c.DefRow, t)
 	return member
+}
+
+// heroRecordRow is the Humans row a loaded member keeps: for a hero no
+// chargen row builds, the row his record names (mapload.PartyHumanRow);
+// else the member's own.
+func heroRecordRow(member mapload.PartyMember, row uint8, t *mapload.Table) uint8 {
+	own := member.DefinitionRow
+	if !member.StartingHero || t == nil || t.Humans == nil {
+		return own
+	}
+	member.DefinitionRow = 0
+	if mapload.PartyHumanRow(member, member, t) != 0 {
+		return own
+	}
+	member.DefinitionRow = row
+	return uint8(mapload.PartyHumanRow(member, member, t))
 }
 
 // restoredCarry copies the six per-skill experience fields from this saved

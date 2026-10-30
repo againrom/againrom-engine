@@ -1,0 +1,233 @@
+package sav
+
+import (
+	"bytes"
+	"encoding/binary"
+	"slices"
+	"strings"
+	"testing"
+)
+
+// engineTownDocument is an engine town document in the first game's
+// records: one Player with its 32 preference bytes, one Human whose Order
+// block is not zero, and an action leaf.
+func engineTownDocument(t *testing.T) DocumentData {
+	t.Helper()
+	const identity, owner = uint32(0x20), uint32(0x10)
+	fixed := make([]byte, 51)
+	binary.LittleEndian.PutUint16(fixed[0:2], 1)
+	binary.LittleEndian.PutUint32(fixed[2:6], 1)
+	binary.LittleEndian.PutUint32(fixed[43:47], identity)
+	binary.LittleEndian.PutUint32(fixed[47:51], owner)
+	order := make([]byte, 148)
+	order[7] = 9
+	preferences := make([]byte, 32)
+	preferences[0x1f] = 2
+	unit := CityUnitData{
+		Token: cityTestToken(identity, owner, 0), RawA6: make([]byte, 24), RawBE: make([]byte, 22),
+		Raw114: make([]byte, 24), RawD4: make([]byte, 64), Raw154: make([]byte, 180), Raw158: order,
+		Scalar1: make([]byte, 19), Name: "Hero", Scalar2: make([]byte, 55),
+		ScalarTail: make([]byte, 17), XP: make([]byte, 24), Equipment: make([]uint16, 13),
+	}
+	city, err := CityFromData(CityData{
+		Version: CityDataVersion, FileVersion: MinVersion, Head: [13]uint32{12: 2},
+		PlayerList: 1, Players: []uint16{1}, Marker: GeneratedCityMarker,
+		TrailerState: make([]byte, generatedCityTrailerLen),
+		Objects: []CityObjectData{
+			{Class: "Player", Player: &CityPlayerData{
+				Name: "Player", Fixed: fixed, Raw32: preferences,
+				Groups: []CityGroupData{{Raw80: make([]byte, 80), F44: owner, Actors: []uint16{2}}},
+			}},
+			{Class: "Human", Unit: &unit},
+		},
+		State: NewCityStateData("Hero"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := city.DocumentData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := SetNativeActions(&doc.State, []byte(`{"Version":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	return doc
+}
+
+func documentRaw(t *testing.T, r DocumentRecordData, name string) []byte {
+	t.Helper()
+	for _, v := range r.Raw {
+		if v.Name == name {
+			return v.Bytes
+		}
+	}
+	t.Fatalf("%s record holds no %s", r.Class, name)
+	return nil
+}
+
+// TestEngineTownDocumentWritesTheSecondGameForm: a town document written in
+// the second game's profile is a Bsg& file in the second game's records
+// that decodes and re-encodes byte for byte, and its AgainromForm leaf
+// answers the engine's own Asg& bytes; the first game's profile leaves the
+// document as the engine wrote it.
+func TestEngineTownDocumentWritesTheSecondGameForm(t *testing.T) {
+	doc := engineTownDocument(t)
+	engine, err := EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if same, changed, err := DocumentInProfile(doc, FirstGame); err != nil || changed || same.Game != "" {
+		t.Fatalf("the first game's profile changed the document: %v %v", changed, err)
+	}
+	second, changed, err := DocumentInProfile(doc, SecondGame)
+	if err != nil || !changed {
+		t.Fatalf("second form: %v %v", changed, err)
+	}
+	second.SecondTail = &SecondTail{Pairs: [][2]uint32{{1, 1}}, Locations: []SecondLocation{{ID: 1, Kind: 2}}}
+	second.SecondTail.Bank[768] = 10
+	file := profileFile(t, second, engine)
+	if !bytes.HasPrefix(file, []byte("Bsg&")) {
+		t.Fatalf("the file opens with %q", file[:4])
+	}
+	got, err := DecodeDocumentData(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := EncodeDocumentData(got)
+	if err != nil || !bytes.Equal(again, file) {
+		t.Fatalf("the Bsg& file does not re-encode byte for byte: %v", err)
+	}
+	if got.Game != "rom2" || got.Marker != 0xbadface1 || got.GlobalDWord != 0xbadface1 || got.SecondTail == nil || got.SecondTail.Bank[768] != 10 {
+		t.Fatalf("game %q marker %#x global %#x tail %v", got.Game, got.Marker, got.GlobalDWord, got.SecondTail != nil)
+	}
+	if _, found, _ := got.State.ReadLeaf(NativeActionsPath); found {
+		t.Fatal("the second-game records carry the engine's action leaf")
+	}
+	if v, found, err := got.State.ReadLeaf("/SpellBook/Shortcuts"); err != nil || !found || v.Kind != 6 || len(v.Bytes) != 0 {
+		t.Fatalf("the town file's shortcut array: found %v kind %d, %d bytes, %v", found, v.Kind, len(v.Bytes), err)
+	}
+	if v, _, _ := doc.State.ReadLeaf("/SpellBook/Shortcuts"); len(v.Bytes) != 16 {
+		t.Fatalf("the engine document's shortcut array changed: %d bytes", len(v.Bytes))
+	}
+	player, human := got.Objects[got.Players[0]-1], got.Objects[1]
+	if p := documentRaw(t, player, "PRaw2560"); len(p) != 2560 || slices.ContainsFunc(p, func(b byte) bool { return b != 0 }) {
+		t.Fatal("Player's 2,560 bytes are not zero")
+	}
+	if p := documentRaw(t, player, "PRaw36"); len(p) != 36 || p[0x1f] != 2 || p[0x20] != 0xff {
+		t.Fatalf("Player's preference bytes % x", p)
+	}
+	if u := documentRaw(t, human, "URaw184"); len(u) != 184 || slices.ContainsFunc(u, func(b byte) bool { return b != 0 }) {
+		t.Fatal("Unit's sixth raw block is not 184 zero bytes")
+	}
+	if len(player.Inline) != 0 || slices.ContainsFunc(human.RefSlots, func(v DocumentRefsData) bool { return v.Name == "Diary" }) {
+		t.Fatal("a Diary site survived")
+	}
+	back, err := EngineDocument(file)
+	if err != nil || !bytes.Equal(back, engine) {
+		t.Fatalf("the leaf does not answer the engine document: %v", err)
+	}
+	if back, err := EngineDocument(engine); err != nil || !bytes.Equal(back, engine) {
+		t.Fatalf("an Asg& document is not answered as itself: %v", err)
+	}
+	for name, raw := range secondWriterFixtures(t) {
+		if back, err := EngineDocument(raw); err != nil || !bytes.Equal(back, raw) {
+			t.Fatalf("%s: a Bsg& file without the leaf is not answered as itself: %v", name, err)
+		}
+	}
+}
+
+func TestEngineTownDocumentRefusals(t *testing.T) {
+	doc := engineTownDocument(t)
+	engine, err := EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, err := DocumentInProfile(doc, SecondGame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.SecondTail = &SecondTail{Pairs: [][2]uint32{{1, 1}}, Locations: []SecondLocation{{ID: 1, Kind: 2}}}
+	file := profileFile(t, second, engine)
+	if _, err := StoreEngineDocument(second, file); err == nil {
+		t.Error("a Bsg& file was carried as the engine document")
+	}
+	if _, err := StoreEngineDocument(doc, engine); err == nil {
+		t.Error("an engine document was written as a profile document")
+	}
+	if _, _, err := DocumentInProfile(second, SecondGame); err == nil {
+		t.Error("a second-game document was converted again")
+	}
+	world := documentDataFixture(t)
+	if _, _, err := DocumentInProfile(world, SecondGame); err == nil || !strings.Contains(err.Error(), "world half") {
+		t.Errorf("a world document: %v", err)
+	}
+	// A leaf holding anything but an Asg& document refuses the LOAD.
+	nested := second
+	nested.State = second.State
+	if err := nativeFormLeaf.storePayload(&nested.State, file); err != nil {
+		t.Fatal(err)
+	}
+	bad, err := EncodeDocumentData(nested)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EngineDocument(bad); err == nil {
+		t.Error("a leaf holding a Bsg& file was answered")
+	}
+}
+
+// A town file whose engine document leaf is present but does not validate
+// refuses; only a file with no value record at the leaf's path is read as
+// the original's.
+func TestEngineDocumentRefusesALeafThatDoesNotValidate(t *testing.T) {
+	doc := engineTownDocument(t)
+	engine, err := EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, err := DocumentInProfile(doc, SecondGame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second.SecondTail = &SecondTail{Pairs: [][2]uint32{{1, 1}}, Locations: []SecondLocation{{ID: 1, Kind: 2}}}
+	records, err := EncodeDocumentData(second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := EngineDocument(records); err != nil || !bytes.Equal(got, records) {
+		t.Fatalf("a file without the leaf: %v, unchanged %v", err, bytes.Equal(got, records))
+	}
+	file := profileFile(t, second, engine)
+	at := bytes.Index(file, engine)
+	if at < 8 || binary.LittleEndian.Uint32(file[at-8:]) != 1 {
+		t.Fatalf("the leaf's framing is not found before the engine document (%d)", at)
+	}
+	damaged := bytes.Clone(file)
+	binary.LittleEndian.PutUint32(damaged[at-8:], 7)
+	if _, err := DecodeDocumentData(damaged); err == nil {
+		t.Fatal("the damaged framing decoded")
+	}
+	got, err := EngineDocument(damaged)
+	if err == nil {
+		t.Fatalf("a damaged leaf was read as the original's file (%d bytes)", len(got))
+	}
+	if !strings.Contains(err.Error(), "engine document") || len(err.Error()) > 512 {
+		t.Errorf("refusal: %v", err)
+	}
+}
+
+// profileFile is the file a town SAVE writes: the profile document with the
+// engine document in its leaf, encoded.
+func profileFile(t *testing.T, data DocumentData, engine []byte) []byte {
+	t.Helper()
+	stored, err := StoreEngineDocument(data, engine)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := EncodeDocumentData(stored)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return file
+}

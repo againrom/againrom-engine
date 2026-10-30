@@ -3519,7 +3519,31 @@ var Committed = Baseline{
 	// bound's comments it removed. The merge with main is measured on the
 	// merged tree.
 
+	// It rose for the second game's document writer: the profile's cell,
+	// session, shortcut and tail notes in pkg/formats/sav/profile.go,
+	// archive_document.go, document_data.go, save_document.go and
+	// secondtail.go, the tests in pkg/formats/sav/secondwriter_test.go, and
+	// this note.
+
+	// It rose for the second game's town file: the record form and the
+	// engine document leaf in pkg/formats/sav/engine_form.go, profile.go and
+	// supplement_leaf.go, saveForm and its holders in pkg/game/savform.go,
+	// campaignfirst.go, campaignsecond.go and campaignservice.go, appendPack
+	// in pkg/game/cityobjectprojection.go, the
+	// LOAD note in pkg/game/originalsave.go, the document and compare verbs
+	// in cmd/savtool, the new tests' comments in those packages, and this
+	// note. The merge with main is measured on the merged tree.
+
+	// It rose for the profile's Player formation member, the complete
+	// import's check of it, the refusal of an engine document leaf that
+	// does not validate, the town form's empty shortcut array, their tests,
+	// and this note. The merge with main is measured on the merged tree.
+
 	// It rose for the trigger parameter map pick: pkg/ui/mapeditorparampick.go,
 	// its test in pkg/ui/mapeditorparampick_test.go, and this note.
-	CommentBytes: 9978440,
+
+	// It rose for the second game's town LOAD and SAVE corrections: the bag
+	// piece with no bag form, the magic row, the hero's record row and
+	// identity, the town actor carrier, their tests, and this note.
+	CommentBytes: 9994759,
 }

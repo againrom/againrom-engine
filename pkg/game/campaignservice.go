@@ -29,6 +29,9 @@ type campaignService interface {
 	exportable(s Snapshot) error
 	// refuseCompleted refuses a town save of a campaign already completed.
 	refuseCompleted(f *FrontEnd, s Snapshot) error
+	// saveForm writes a SAVE's engine document in the records the game's
+	// original reads; false when they are the engine's own records.
+	saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error)
 	// recordProfile is the campaign's part of the campaign record a SAV
 	// carries: a record it states itself, that record's home word and the
 	// offer label source.
@@ -56,9 +59,10 @@ type campaignService interface {
 	arriveLoaded(f *FrontEnd, c *restoreCandidate)
 	// keepsTownSurface reports whether a load leaves the town screen as it is.
 	keepsTownSurface(c *restoreCandidate) bool
-	// keepsTownActorState reports whether the town carries a kept actor's
-	// mission state and the Player colour into a town SAVE. The second game
-	// writes constructor values: its claims do not state the rule.
+	// keepsTownActorState reports whether a member the mission's cull kept
+	// brings that actor's state to town. The second game's claims do not
+	// state the cull; in both games a town SAVE writes the actor state and
+	// Player colour a LOAD read, else the town constructor's.
 	keepsTownActorState() bool
 	// The four steps of a mission's acknowledged end.
 	beforeAdvance(f *FrontEnd, n int, ms *Mission, action ui.NoticeAction) string

@@ -82,9 +82,6 @@ func TestReleaseSecondOriginalTownLoadRoundTrip(t *testing.T) {
 		t.Fatalf("LOAD shows\n%+v\nwant\n%+v", got, want)
 	}
 	raw := secondTownNamedSave(t, f, app, out, "Our town")
-	if p, ok := sav.ProfileOf(raw); !ok || p != sav.FirstGame {
-		t.Fatal("our SAVE did not write the engine's document")
-	}
 	secondTownShape(t, raw)
 	cold, capp := secondTownCold(t, out, secondSaveFile(t, out, "Our town"))
 	if got := secondOriginalSampleOf(t, cold); !reflect.DeepEqual(got, want) {

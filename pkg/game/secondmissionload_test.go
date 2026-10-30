@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/internal/synth"
@@ -22,8 +23,26 @@ import (
 // mission files hold (R2-SESSION-244): in battle, View 8/29, Selection [1],
 // the given speed, open book and pressed slot.
 func secondMissionStore(speed, bookOpen, pressed int32) []byte {
+	return synth.Reg(0x11, secondMissionStoreNodes(speed, bookOpen, pressed))
+}
+
+// secondMissionWholeStore is secondMissionStore with the Character, Fog and
+// Projectiles directories each EN mission file holds, nine in all: the
+// store the complete document decode admits.
+func secondMissionWholeStore(speed, bookOpen, pressed int32) []byte {
+	nodes := append(secondMissionStoreNodes(speed, bookOpen, pressed),
+		synth.RegNode{Name: "Character", Kind: 0x01, Children: []synth.RegNode{{Name: "Name", Kind: 0x00, Str: "Hero"}}},
+		synth.RegNode{Name: "Fog", Kind: 0x01, Children: []synth.RegNode{
+			{Name: "Data", Kind: 0x06, Ints: []int32{1600}}, {Name: "FirstState", Kind: 0x02}}},
+		synth.RegNode{Name: "Projectiles", Kind: 0x01, Children: []synth.RegNode{
+			{Name: "FreeIndex", Kind: 0x02}, {Name: "IDs", Kind: 0x06, Ints: []int32{}}}})
+	slices.SortFunc(nodes, func(a, b synth.RegNode) int { return strings.Compare(a.Name, b.Name) })
+	return synth.Reg(0x11, nodes)
+}
+
+func secondMissionStoreNodes(speed, bookOpen, pressed int32) []synth.RegNode {
 	leaf := func(name string, v int32) synth.RegNode { return synth.RegNode{Name: name, Kind: 0x02, Int: v} }
-	return synth.Reg(0x11, []synth.RegNode{
+	return []synth.RegNode{
 		{Name: "CurrentState", Kind: 0x01, Children: []synth.RegNode{leaf("InBattle", 1)}},
 		{Name: "GameOptions", Kind: 0x01, Children: []synth.RegNode{
 			leaf("Wimpy", 0), leaf("ShowHP", 0), leaf("FlyingHP", 1), leaf("Formation", 1),
@@ -35,7 +54,7 @@ func secondMissionStore(speed, bookOpen, pressed int32) []byte {
 			leaf("IsOpen", bookOpen), leaf("Pressed", pressed), {Name: "Shortcuts", Kind: 0x06, Ints: []int32{}},
 		}},
 		{Name: "View", Kind: 0x01, Children: []synth.RegNode{leaf("X", 8), leaf("Y", 29)}},
-	})
+	}
 }
 
 // secondMissionFile is a mission-like second-game file in mission 10: the
@@ -319,6 +338,32 @@ func TestSecondMissionFileLoadFollowsTheFile(t *testing.T) {
 	s := secondMissionStateOf(t, f)
 	if s.attributes[2] != 44 || s.x != 3 || s.y != 5 {
 		t.Fatalf("mind %d at %d/%d, want 44 at 3/5", s.attributes[2], s.x, s.y)
+	}
+}
+
+// A mission file whose whole document decodes, as each EN mission file's
+// does, LOADs mission 10 with its hero. No claim places the second game's
+// Player formation block, so the file keeps the partial import and its
+// Groups keep their per-slot modes.
+func TestSecondMissionFileWithTheWholeStoreLoads(t *testing.T) {
+	raw := secondMissionFile(secondMissionFixtureHero(), secondMissionWholeStore(4, 0, -1))
+	if _, err := sav.DecodeDocumentData(raw); err != nil {
+		t.Fatalf("the fixture's document does not decode: %v", err)
+	}
+	f := secondMissionFront(t)
+	if _, town, err := f.RestoreOriginal(raw); err != nil || town {
+		t.Fatalf("LOAD: town %v, %v", town, err)
+	}
+	loaded, _, _ := secondMissionLoadFile(t, raw)
+	if n := loaded.live.mission.state.Number; n != 10 {
+		t.Fatalf("mission %d, want 10", n)
+	}
+	s := secondMissionStateOf(t, loaded)
+	if s.x != 11 || s.y != 21 || s.hp != 29 || s.mana != 75 || s.held != 0x812d {
+		t.Fatalf("hero %+v", s)
+	}
+	if groups, _, present := loaded.live.world.SavedGroups(); !present || len(groups) != 1 {
+		t.Fatalf("%d saved Groups, present %v", len(groups), present)
 	}
 }
 

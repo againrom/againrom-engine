@@ -6,7 +6,6 @@ import (
 	"slices"
 	"testing"
 
-	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -98,23 +97,17 @@ func TestTownActorLoadKeepsTheCarrierShape(t *testing.T) {
 	}
 }
 
-// Only the first game carries a kept actor's town state; a second-game town
-// LOAD fills no carrier, so its town SAVE keeps the constructor values.
+// Only the first game carries the cull's actor state to town; a town LOAD
+// fills the carrier from the actor record in both games.
 func TestOnlyTheFirstGameKeepsTownActorState(t *testing.T) {
 	if !(firstCampaignRules{}).keepsTownActorState() || (secondCampaignRules{}).keepsTownActorState() {
 		t.Fatal("town actor state switch: want first game true, second game false")
 	}
 	chars := []sav.Character{{Town: sav.TownActorState{State: cullActorState, Done: cullActorDone, Deadline: 623}}}
-	first := []mapload.PartyMember{{ID: "hero"}}
-	keepLoadedTownActors(nil, first, chars)
-	if first[0].Kept == nil || first[0].Kept.Deadline != 623 {
-		t.Fatalf("first-game LOAD carrier = %+v, want deadline 623", first[0].Kept)
-	}
-	second := base.GameROM2.Edition()
 	party := []mapload.PartyMember{{ID: "hero"}}
-	keepLoadedTownActors(&mapload.Table{Edition: &second}, party, chars)
-	if party[0].Kept != nil {
-		t.Fatalf("second-game LOAD carrier = %+v, want none", party[0].Kept)
+	keepLoadedTownActors(party, chars)
+	if party[0].Kept == nil || party[0].Kept.Deadline != 623 {
+		t.Fatalf("LOAD carrier = %+v, want deadline 623", party[0].Kept)
 	}
 }
 

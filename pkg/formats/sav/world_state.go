@@ -62,11 +62,14 @@ func parsedStateData(s *cityState) DocumentStateData {
 	return out
 }
 
-func parseWorldState(raw []byte) (*cityState, error) {
+func parseWorldState(raw []byte) (*cityState, error) { return parseWorldStateFor(raw, FirstGame) }
+
+// parseWorldStateFor reads a mission store with the profile's shortcut width.
+func parseWorldStateFor(raw []byte, p *Profile) (*cityState, error) {
 	if len(raw) > maxWorldStateBytes {
 		return nil, fmt.Errorf("sav: world state store has %d bytes, exceeds %d", len(raw), maxWorldStateBytes)
 	}
-	state, err := parseStateStore(raw, -1, -1, validateWorldState)
+	state, err := parseStateStore(raw, -1, -1, func(s *cityState) error { return validateWorldStateFor(s, p) })
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +181,10 @@ func worldStateSerializedSize(state *cityState) (uint64, error) {
 }
 
 func serializeWorldState(state *cityState) ([]byte, error) {
+	return serializeWorldStateFor(state, FirstGame)
+}
+
+func serializeWorldStateFor(state *cityState, p *Profile) ([]byte, error) {
 	state, err := narrowWorldProjectiles(state)
 	if err != nil {
 		return nil, err
@@ -186,18 +193,20 @@ func serializeWorldState(state *cityState) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := validateStateShape(state, shape); err != nil {
+	if err := validateStateShape(state, shape, p); err != nil {
 		return nil, err
 	}
 	return serializeStateStore(state, shape)
 }
 
-func validateWorldState(state *cityState) error {
+func validateWorldState(state *cityState) error { return validateWorldStateFor(state, FirstGame) }
+
+func validateWorldStateFor(state *cityState, p *Profile) error {
 	shape, err := worldStateShape(state)
 	if err != nil {
 		return err
 	}
-	return validateStateShape(state, shape)
+	return validateStateShape(state, shape, p)
 }
 
 func worldStateShape(state *cityState) ([]stateDirectory, error) {

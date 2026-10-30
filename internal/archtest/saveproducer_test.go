@@ -150,6 +150,7 @@ func Decompress([]byte) ([]byte, error) { return nil, nil }
 func (*File) CellRecord(int) ([]byte, error) { return nil, nil }
 func NativeActions(DocumentStateData) ([]byte, bool, error) { return nil, false, nil }
 func NativeMods(DocumentStateData) ([]byte, bool, error) { return nil, false, nil }
+func EngineDocument([]byte) ([]byte, error) { return nil, nil }
 func ReserveDocumentKeys(DocumentData, int) ([]uint32, error) { return nil, nil }
 func (DocumentFragment) MarshalJSON() ([]byte, error) { return nil, nil }
 func Open([]byte) (*File, error) { return nil, nil }
@@ -195,7 +196,7 @@ func TestSaveByteProducerListRejectsUnlistedProducer(t *testing.T) {
 }
 
 func TestSaveByteCallersRejectsNewCaller(t *testing.T) {
-	const savtool = `package main; import s "againrom/pkg/formats/sav"; func verify(f *s.File) []byte { return f.Marshal() }; func set(f *s.File) []byte { return f.Marshal() }; func info(f *s.File) ([]byte, error) { return f.CellRecord(0) }; func main() {}`
+	const savtool = `package main; import s "againrom/pkg/formats/sav"; func verify(f *s.File) []byte { return f.Marshal() }; func set(f *s.File) []byte { return f.Marshal() }; func document(d s.DocumentData) ([]byte, error) { return s.EncodeDocumentData(d) }; func info(f *s.File) ([]byte, error) { return f.CellRecord(0) }; func main() {}`
 	const fixture = `package cityfixture; import s "againrom/pkg/formats/sav"; func Original(p *s.CityProvenance) ([]byte, error) { return p.Marshal(s.CityUpdate{}) }`
 	for _, tc := range []struct {
 		name, savtool, other string

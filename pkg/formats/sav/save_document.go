@@ -16,6 +16,9 @@ type saveDocument struct {
 	archive  *archiveDocument
 	state    *cityState
 	campaign *cityCampaign
+	// second is the second game's campaign tail; a document whose profile
+	// writes the first game's campaign record has none.
+	second *SecondTail
 }
 
 func parseSaveDocument(b []byte) (*saveDocument, error) {
@@ -26,15 +29,16 @@ func parseSaveDocument(b []byte) (*saveDocument, error) {
 	if err != nil {
 		return nil, err
 	}
+	prof := f.profile()
 	d := &saveDocument{version: f.Version, label: append([]byte(nil), f.Label...)}
-	d.archive, err = parseArchiveDocument(f.Body)
+	d.archive, err = parseArchiveDocumentFor(f.Body, prof)
 	if err != nil {
 		return nil, err
 	}
 	if d.archive.world != nil {
-		d.state, err = parseWorldState(f.Store)
+		d.state, err = parseWorldStateFor(f.Store, prof)
 	} else {
-		d.state, err = parseCityState(f.Store)
+		d.state, err = parseCityStateFor(f.Store, prof)
 	}
 	if err != nil {
 		return nil, err
@@ -45,12 +49,19 @@ func parseSaveDocument(b []byte) (*saveDocument, error) {
 			d.state.values[path] = value
 		}
 	}
-	d.campaign, err = parseCityCampaign(f.TailRest)
+	if prof.scenarioTail {
+		d.second, err = parseSecondTail(f.TailRest)
+		d.campaign = &cityCampaign{}
+	} else {
+		d.campaign, err = parseCityCampaign(f.TailRest)
+	}
 	if err != nil {
 		return nil, err
 	}
 	return d, nil
 }
+
+func (d *saveDocument) profile() *Profile { return d.archive.profile() }
 
 // Preflight the compressed extent before Open allocates its output. Both the
 // declared count and the actual opcode expansion are bounded; trusting only
@@ -109,7 +120,13 @@ func serializeSaveDocument(d *saveDocument) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	campaignSize, err := archiveCampaignSize(d.campaign)
+	prof := d.profile()
+	var campaignSize uint64
+	if prof.scenarioTail {
+		campaignSize, err = secondTailSize(d.second)
+	} else {
+		campaignSize, err = archiveCampaignSize(d.campaign)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -118,14 +135,19 @@ func serializeSaveDocument(d *saveDocument) ([]byte, error) {
 	}
 	var state []byte
 	if d.archive.world != nil {
-		state, err = serializeWorldState(d.state)
+		state, err = serializeWorldStateFor(d.state, prof)
 	} else {
-		state, err = serializeCityState(d.state)
+		state, err = serializeCityStateFor(d.state, prof)
 	}
 	if err != nil {
 		return nil, err
 	}
-	campaign, err := serializeCityCampaign(d.campaign)
+	var campaign []byte
+	if prof.scenarioTail {
+		campaign, err = serializeSecondTail(d.second)
+	} else {
+		campaign, err = serializeCityCampaign(d.campaign)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +155,7 @@ func serializeSaveDocument(d *saveDocument) ([]byte, error) {
 		return nil, fmt.Errorf("sav: complete output exceeds %d bytes", maxArchiveOutput)
 	}
 	out := make([]byte, headerLen, headerLen+len(blob)+labelLen+len(state)+len(campaign))
-	copy(out, Magic)
+	copy(out, prof.Magic)
 	binary.LittleEndian.PutUint32(out[4:], uint32(headerLen+len(blob)))
 	binary.LittleEndian.PutUint32(out[8:], d.version)
 	binary.LittleEndian.PutUint32(out[12:], uint32(len(blob)))

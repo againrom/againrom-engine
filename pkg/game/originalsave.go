@@ -769,6 +769,11 @@ func (f *FrontEnd) restoreOriginal(saved []byte, guest *guestMission) (open ui.M
 			err = fmt.Errorf("%w (base %s: %s)", err, f.Base().ID(), note)
 		}
 	}()
+	// A town file in the second game's records carries the engine's own
+	// document, which the LOAD reads (DIV-4304).
+	if saved, err = sav.EngineDocument(saved); err != nil {
+		return nil, false, err
+	}
 	saved = repairLoadedEquipmentRows(saved)
 	if err := validateOriginalGame(saved, f.Base().Profile.GameOf()); err != nil {
 		return nil, false, err

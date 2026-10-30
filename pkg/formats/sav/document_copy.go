@@ -54,8 +54,10 @@ func copyValidatedDocumentData(data DocumentData, validated *saveDocument, permu
 		out.World = &DocumentWorldData{
 			Buildings: refs(w.Buildings), Effects: refs(w.Effects), Sacks: refs(w.Sacks),
 			Blocks: cityDataCopy(w.Blocks), Cells: cityDataCopy(w.Cells), TerrainIdentity: w.TerrainIdentity, Session: w.Session,
+			Extra: refs(w.Extra), CellRest: cityDataCopy(w.CellRest), SessionResults: cityDataCopy(w.SessionResults), SessionDiplomacy: cityDataCopy(w.SessionDiplomacy),
 		}
 	}
+	out.Game, out.SecondTail = data.Game, cloneSecondTail(data.SecondTail)
 	for _, r := range data.State.ValueRecords {
 		v := r.Value
 		v.Bytes = cityDataCopy(v.Bytes)

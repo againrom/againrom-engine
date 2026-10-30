@@ -158,8 +158,8 @@ func cloneWords(w []uint16) []uint16 {
 
 // keepLoadedTownActors fills the carrier of each restored member from the
 // actor record it was restored from; the two lists are parallel.
-func keepLoadedTownActors(table *mapload.Table, party []mapload.PartyMember, chars []sav.Character) {
-	if !tableCampaign(table).keepsTownActorState() || len(party) != len(chars) {
+func keepLoadedTownActors(party []mapload.PartyMember, chars []sav.Character) {
+	if len(party) != len(chars) {
 		return
 	}
 	for i := range party {

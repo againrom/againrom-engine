@@ -294,8 +294,10 @@ func secondHeroBag(chars []sav.Character) ([]sim.ItemInstance, error) {
 			for _, e := range p.Effects {
 				unit.Effects = append(unit.Effects, sim.ItemEffect{Kind: e.Kind, Mode: e.Mode, Operand: e.Operand})
 			}
-			if _, ok := secondshop.FromInstance(unit); !ok {
-				return nil, fmt.Errorf("second-game save: bag item %#04x has no bag form", p.Code)
+			// A piece with no bag form stays in the hero's pack
+			// (leaveBagToCampaign, DIV-4191).
+			if !secondBagUnitForm(unit) {
+				continue
 			}
 			n := max(int(p.Stack), 1)
 			if len(out)+n > maxSecondBagUnits {
@@ -307,6 +309,14 @@ func secondHeroBag(chars []sav.Character) ([]sim.ItemInstance, error) {
 		}
 	}
 	return out, nil
+}
+
+// secondBagUnitForm reports a file's hero piece the bag keeps: its ID,
+// type, price and effects are a bag unit's. A piece at a negative price,
+// such as magic item 0x0e4d at the original's 0xffffffff, has none.
+func secondBagUnitForm(in sim.ItemInstance) bool {
+	_, ok := secondshop.FromInstance(sim.ItemInstance{Code: in.Code, Kind: in.Kind, Price: in.Price, Effects: in.Effects})
+	return ok
 }
 
 // envelopeOf is the game the envelope of b names; empty for Asg& and for
