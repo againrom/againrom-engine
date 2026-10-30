@@ -264,8 +264,10 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 		} else if d.moved && d.group {
 			_ = e.moveSelection(cell.Sub(d.origin))
 		} else if d.moved {
-			next, err := e.doc.Edits.Move(d.kind, d.index, cell)
-			if e.adoptEdit(next, err) == nil && next != nil && d.kind == "Scenery" {
+			ch, err := e.commandMove(recordAt{Ref: RecordRef{Kind: d.kind, Index: d.index}, Cell: cell})
+			if err != nil {
+				e.message = err.Error()
+			} else if ch.doc != nil && d.kind == "Scenery" {
 				e.selectScenery(cell)
 			}
 		} else {

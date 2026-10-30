@@ -189,7 +189,9 @@ func (e *MapEditor) relationPress(n int) {
 	if f.Key == "" {
 		return
 	}
-	_ = e.adoptEdit(e.doc.Edits.SetField("Player", m.players[n/k], f.Key, relationNext(f.Value)))
+	if _, err := e.commandSetField(fieldEdit{Kind: "Player", Index: m.players[n/k], Value: InspectionFieldValue{Key: f.Key, Value: relationNext(f.Value)}}); err != nil {
+		e.message = err.Error()
+	}
 }
 
 // relationNext is the value a press on a cell holding v sets: the named

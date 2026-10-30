@@ -706,8 +706,9 @@ func (e *MapEditor) brushCommit() {
 		}
 		op.Plane, op.Value, op.Fill = BrushPlaneTerrain, terrains[sel].Class, e.brushFill()
 	}
-	next, err := host.Paint(op)
-	_ = e.adoptTerrainEdit(next, err)
+	if _, err := e.commandPaint(op); err != nil {
+		e.message = err.Error()
+	}
 }
 
 // terrainDiffers reports whether next shows other tiles, heights or objects

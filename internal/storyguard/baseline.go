@@ -3423,5 +3423,13 @@ var Committed = Baseline{
 	// TestIdentCount fell when appLeafInts lost its number. The merge with
 	// hotfixes sav-debt-h2 and
 	// sav-offer-chapter is measured on the merged tree.
-	CommentBytes: 9921763,
+
+	// It rose with the doc comments of the map editor's command table, all
+	// new code: pkg/ui/mapeditorcommands.go, pkg/ui/mapeditorcommandread.go,
+	// the typed field note in pkg/ui/mapeditormcp.go, the new tests in
+	// pkg/ui and pkg/game, the guard in internal/archtest, and this note;
+	// then with the change report's store seam (pkg/ui, pkg/game), the Add
+	// walk's addOffer and addDefault, their tests and the Add walk guard.
+	// The merge with main is measured on the merged tree.
+	CommentBytes: 9931877,
 }

@@ -499,7 +499,8 @@ func (e *MapEditor) newModeOpen(multi bool) error {
 	if multi {
 		source += NewMapMultiplayer
 	}
-	return e.Open(source)
+	_, err := e.commandNewMap(source)
+	return err
 }
 
 // newModeSpec is the new-map question as a popup description: the mode

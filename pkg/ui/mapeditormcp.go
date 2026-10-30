@@ -106,6 +106,9 @@ type editorTool struct {
 	editormcp.Tool
 	apply func(*MapEditor, editorToolArgs) error
 	read  func(*MapEditor, editorToolArgs) (any, error)
+	// typed decodes its own arguments: a command of the editor command
+	// table, or one of its readers.
+	typed func(*MapEditor, json.RawMessage) (any, error)
 }
 
 func editorToolSchema(fields map[string]string, required ...string) map[string]any {
@@ -150,6 +153,12 @@ func editorTools() []editorTool {
 		{Tool: editormcp.Tool{Name: "open", Description: "Open a path using the window's path prompt; unsaved changes still ask", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error { return e.mcpPath(pathdialog.OpenFile, a.Path) }},
 		{Tool: editormcp.Tool{Name: "save", Description: "Use the window Save route, including mod, validation and overwrite prompts", InputSchema: empty}, apply: func(e *MapEditor, _ editorToolArgs) error { return e.Key("saveas") }},
 		{Tool: editormcp.Tool{Name: "save_as", Description: "Use the window Save As path prompt; refusals and confirmations remain visible", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error { return e.mcpPath(pathdialog.SaveFile, a.Path) }},
+	}
+	for _, c := range editorCommandRows() {
+		rows = append(rows, editorTool{Tool: editormcp.Tool{Name: c.name, Description: c.help, InputSchema: commandSchema(c.args)}, typed: c.mcpRun})
+	}
+	for _, r := range editorReaders() {
+		rows = append(rows, editorTool{Tool: editormcp.Tool{Name: r.name, Description: r.help, InputSchema: commandSchema(r.args)}, typed: r.read})
 	}
 	for _, row := range editorKeyRows {
 		if row.key == "" {
@@ -278,6 +287,11 @@ func (e *MapEditor) updateMCP() bool {
 		if row.Name != c.Name {
 			continue
 		}
+		if row.typed != nil {
+			value, err := row.typed(e, c.Arguments)
+			m.err, m.read = err, func(*MapEditor, editorToolArgs) (any, error) { return value, nil }
+			break
+		}
 		m.args, m.err = decodeEditorTool(row, c.Arguments)
 		if m.err == nil {
 			m.read = row.read
@@ -372,22 +386,7 @@ func (e *MapEditor) mcpState() map[string]any {
 	for i := range report {
 		report[i].Text = e.mcpDisplay(report[i].Text)
 	}
-	for i := range fields {
-		fields[i].Icons = nil
-		fields[i].Label = e.mcpDisplay(fields[i].Label)
-		fields[i].Meaning = e.mcpDisplay(fields[i].Meaning)
-		fields[i].Section = e.mcpDisplay(fields[i].Section)
-		fields[i].Group = e.mcpDisplay(fields[i].Group)
-		fields[i].Inherited = e.mcpDisplay(fields[i].Inherited)
-		fields[i].Lines = append([]InspectionLine(nil), fields[i].Lines...)
-		for j := range fields[i].Lines {
-			fields[i].Lines[j].Text = e.mcpDisplay(fields[i].Lines[j].Text)
-		}
-		fields[i].Choices = append([]InspectionChoice(nil), fields[i].Choices...)
-		for j := range fields[i].Choices {
-			fields[i].Choices[j].Label = e.mcpDisplay(fields[i].Choices[j].Label)
-		}
-	}
+	fields = e.plainFields(fields)
 	return map[string]any{
 		"status": e.mcpDisplay(e.StatusLine()), "message": e.Message(),
 		"panel": e.mcpLines(e.PanelLines()), "popup": e.mcpLines(e.PopupLines()),
@@ -445,14 +444,7 @@ func (e *MapEditor) mcpMap(a editorToolArgs) (any, error) {
 		case "Trigger", "Condition", "Action":
 			group = "triggers"
 		}
-		r.Preview = nil
-		r.Label = e.mcpDisplay(r.Label)
-		r.Hover = e.mcpDisplay(r.Hover)
-		r.Details = e.mcpLines(r.Details)
-		r.Lines = append([]InspectionLine(nil), r.Lines...)
-		for i := range r.Lines {
-			r.Lines[i].Text = e.mcpDisplay(r.Lines[i].Text)
-		}
+		r = e.plainRecord(r)
 		records[group] = append(records[group], r)
 		if r.Spatial && cell.In(r.footprint()) {
 			objects = append(objects, r)

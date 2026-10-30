@@ -750,16 +750,14 @@ func (e *MapEditor) applyObject() {
 		if err == nil && len(values) == 0 {
 			return
 		}
-		var next *InspectionDocument
 		if err == nil {
-			next, err = e.setFields(kind, index, values)
+			_, err = e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values})
 		}
 		if err != nil {
 			o.note = err.Error()
 			return
 		}
 		o.open, o.note = -1, ""
-		_ = e.adoptEdit(next, nil)
 		return
 	}
 	var values []InspectionFieldValue
@@ -788,23 +786,13 @@ func (e *MapEditor) applyObject() {
 	if len(values) == 0 && o.move == nil {
 		return
 	}
-	var next *InspectionDocument
-	var err error
-	if host, ok := e.doc.Edits.(InspectionObjectSet); ok {
-		next, err = host.SetObject(kind, index, values, o.move)
-	} else if o.move != nil {
-		next, err = e.doc.Edits.Move(kind, index, *o.move)
-	} else {
-		next, err = e.setFields(kind, index, values)
-	}
-	if err != nil {
+	section, detail, native := o.section, o.detail, e.nativeUnitWindow()
+	if _, err := e.commandSetObject(recordFields{Kind: kind, Index: index, Values: values, Move: o.move}); err != nil {
 		o.note = err.Error()
 		return
 	}
 	o.open, o.note = -1, ""
 	o.move = nil
-	section, detail, native := o.section, o.detail, e.nativeUnitWindow()
-	_ = e.adoptEdit(next, nil)
 	if native {
 		e.obj.doc = nil
 		e.loadObject()
@@ -815,35 +803,6 @@ func (e *MapEditor) applyObject() {
 func (e *MapEditor) ObjectFields() []InspectionField {
 	e.objectSpec()
 	return slices.Clone(e.obj.fields)
-}
-
-// setFields writes values through the host's one-edit seam, or field by
-// field on a host without it.
-func (e *MapEditor) setFields(kind string, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
-	if host, ok := e.doc.Edits.(InspectionFieldSet); ok {
-		return host.SetFields(kind, index, values)
-	}
-	var next *InspectionDocument
-	for _, v := range values {
-		var d *InspectionDocument
-		var err error
-		if v.Text {
-			host, ok := e.doc.Edits.(InspectionTextFields)
-			if !ok {
-				return nil, fmt.Errorf("This host cannot edit text fields.")
-			}
-			d, err = host.SetTextField(kind, index, v.Key, v.TextValue)
-		} else {
-			d, err = e.doc.Edits.SetField(kind, index, v.Key, v.Value)
-		}
-		if err != nil {
-			return next, err
-		}
-		if d != nil {
-			next = d
-		}
-	}
-	return next, nil
 }
 
 // closeObject closes the object popup; the selection stays.

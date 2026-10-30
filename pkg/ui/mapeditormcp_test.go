@@ -157,7 +157,7 @@ func TestEditorMCPPipeDrivesWindowDoors(t *testing.T) {
 			}
 		}
 	}
-	if len(list.Tools) != count+11 {
+	if len(list.Tools) != count+11+len(editorCommandRows())+len(editorReaders()) {
 		t.Fatalf("tools %d keys %d", len(list.Tools), count)
 	}
 	t.Logf("tools=%d generated actions=%d", len(list.Tools), count)

@@ -48,8 +48,7 @@ func (e *MapEditor) applyModField() error {
 }
 
 func (e *MapEditor) modAction(key, value string) error {
-	host, ok := e.workspace()
-	if !ok {
+	if _, ok := e.workspace(); !ok {
 		return nil
 	}
 	focus, detail := e.obj.focus, e.obj.detail
@@ -60,7 +59,7 @@ func (e *MapEditor) modAction(key, value string) error {
 	} else if focus >= 0 {
 		fieldKey = e.obj.fields[focus].Key
 	}
-	next, err := host.SetWorkspaceField("package", key, value)
+	_, err := e.commandSetMapField(mapField{Scope: "package", Key: key, Value: value})
 	if err != nil {
 		var leave *WorkspaceLeave
 		if errors.As(err, &leave) {
@@ -81,7 +80,6 @@ func (e *MapEditor) modAction(key, value string) error {
 	}
 	e.modConfirm = ""
 	e.modStatus = ""
-	_ = e.adoptEdit(next, nil)
 	e.message = ""
 	e.modWindow = true
 	e.objectHidden = false

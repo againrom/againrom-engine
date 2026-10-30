@@ -52,11 +52,11 @@ func (e *MapEditor) dropZoneAt(p image.Point) (int, bool) {
 // dropAt is a click of the drop tool on cell: a zone there is selected, an
 // empty cell takes a new zone. A host without zones moves the one drop cell.
 func (e *MapEditor) dropAt(cell image.Point) {
-	z, ok := e.dropZones()
-	if !ok {
-		if s, ok := e.script(); ok {
-			next, err := s.SetDropCell(cell)
-			_ = e.adoptEdit(next, err)
+	if _, ok := e.dropZones(); !ok {
+		if _, ok := e.script(); ok {
+			if _, err := e.commandSetDropCell(cell); err != nil {
+				e.message = err.Error()
+			}
 		}
 		return
 	}
@@ -65,8 +65,9 @@ func (e *MapEditor) dropAt(cell image.Point) {
 		e.dropSel = zone + 1
 		return
 	}
-	next, err := z.AddDropZone(cell)
-	if e.adoptEdit(next, err) == nil && next != nil {
+	if ch, err := e.commandAddDropZone(cell); err != nil {
+		e.message = err.Error()
+	} else if ch.doc != nil {
 		e.dropSel = len(e.doc.Drops)
 	}
 	e.keepPick(pickDrop)
@@ -107,9 +108,10 @@ func (e *MapEditor) dragDrop(d *editorRecordDrag, in Input, p image.Point, insid
 	if !d.moved || d.cell == d.origin {
 		return true
 	}
-	if z, ok := e.dropZones(); ok {
-		next, err := z.MoveDropZone(zone, d.cell)
-		_ = e.adoptEdit(next, err)
+	if _, ok := e.dropZones(); ok {
+		if _, err := e.commandMoveDropZone(zoneAt{Zone: zone, Cell: d.cell}); err != nil {
+			e.message = err.Error()
+		}
 		e.dropSel = d.drop
 	}
 	return true
@@ -117,12 +119,13 @@ func (e *MapEditor) dragDrop(d *editorRecordDrag, in Input, p image.Point, insid
 
 // deleteDropZone deletes the selected zone; the tool stays armed.
 func (e *MapEditor) deleteDropZone() bool {
-	z, ok := e.dropZones()
+	_, ok := e.dropZones()
 	if !ok || !e.dropToolOn() || e.dropSel <= 0 || e.dropSel > len(e.doc.Drops) {
 		return false
 	}
-	next, err := z.DeleteDropZone(e.dropSel - 1)
-	if e.adoptEdit(next, err) == nil && next != nil {
+	if ch, err := e.commandDeleteDropZone(e.dropSel - 1); err != nil {
+		e.message = err.Error()
+	} else if ch.doc != nil {
 		e.dropSel = 0
 	}
 	e.keepPick(pickDrop)

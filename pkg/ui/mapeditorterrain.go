@@ -71,17 +71,16 @@ func (e *MapEditor) applyRandom(text string) error {
 		e.message = fmt.Sprintf(e.word("editor.random.badseed"), typed)
 		return nil
 	}
-	h, ok := e.wholeMapHost()
-	if !ok {
+	if _, ok := e.wholeMapHost(); !ok {
 		return nil
 	}
 	seed := uint32(n)
-	run, done := h.RandomTerrain, e.word("editor.random.terraindone")
+	done := e.word("editor.random.terraindone")
 	if key == "randomheights" {
-		run, done = h.RandomHeights, e.word("editor.random.heightsdone")
+		done = e.word("editor.random.heightsdone")
 	}
-	next, err := run(seed)
-	if err := e.adoptTerrainEdit(next, err); err != nil {
+	if _, err := e.commandRandomize(wholeMap{Heights: key == "randomheights", Seed: seed}); err != nil {
+		e.message = err.Error()
 		return err
 	}
 	e.lastSeed = seed

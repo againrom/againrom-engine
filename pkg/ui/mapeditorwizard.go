@@ -1146,25 +1146,22 @@ func (e *MapEditor) wizardNode(r int, row wizRow) (WizardNode, int64, uint32, er
 // applyWizard writes the rows through the host as one edit.
 func (e *MapEditor) applyWizard(v scriptView) {
 	o := &e.obj
-	host, ok := e.doc.Edits.(InspectionTriggerWizard)
-	if !ok {
+	if _, ok := e.doc.Edits.(InspectionTriggerWizard); !ok {
 		return
 	}
 	t, err := e.wizardPlan(v)
-	var next *InspectionDocument
+	var ch editorChange
 	if err == nil {
-		next, err = host.WriteTrigger(t)
+		ch, err = e.commandWriteTrigger(t)
 	}
 	if err != nil {
 		o.note = e.editorHostText(err.Error())
 		return
 	}
 	o.open, o.note = -1, ""
-	if next == nil {
+	if ch.doc == nil {
 		e.obj.doc = nil // nothing written: read the trigger again
-		return
 	}
-	_ = e.adoptEdit(next, nil)
 }
 
 // wizardButton is a press on the wizard's button row.

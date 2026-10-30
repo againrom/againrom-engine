@@ -15,18 +15,21 @@ import (
 	"time"
 
 	"againrom/pkg/editormcp"
+	"againrom/pkg/ui"
 )
 
-func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
-	original := inspectionFixtureBytes(t)
-	_, e, source := openTestMapEditor(t, original)
+// editorMCP serves e over an in-process pipe, running e's Update and frame
+// completion while a call waits, and answers a tool caller and one that
+// fails the test on a tool error. The pipe closes with the test.
+func editorMCP(t *testing.T, e *ui.MapEditor) (tool, must func(name string, args any) editormcp.Result) {
+	t.Helper()
 	server := e.EnableMCP(0)
 	inRead, inWrite := io.Pipe()
 	outRead, outWrite := io.Pipe()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	serverDone := make(chan error, 1)
 	go func() { serverDone <- server.Serve(ctx, inRead, outWrite) }()
-	defer func() {
+	t.Cleanup(func() {
 		e.CloseMCP()
 		cancel()
 		_ = inWrite.Close()
@@ -34,7 +37,7 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 		_ = outRead.Close()
 		_ = outWrite.Close()
 		<-serverDone
-	}()
+	})
 	scan := bufio.NewReader(outRead)
 	id := 0
 	call := func(method string, params any) json.RawMessage {
@@ -79,7 +82,7 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 			}
 		}
 	}
-	tool := func(name string, args any) editormcp.Result {
+	tool = func(name string, args any) editormcp.Result {
 		t.Helper()
 		var r editormcp.Result
 		b := call("tools/call", map[string]any{"name": name, "arguments": args})
@@ -88,7 +91,7 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 		}
 		return r
 	}
-	must := func(name string, args any) editormcp.Result {
+	must = func(name string, args any) editormcp.Result {
 		t.Helper()
 		r := tool(name, args)
 		if r.IsError {
@@ -97,6 +100,13 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 		return r
 	}
 	call("initialize", map[string]any{"protocolVersion": "2025-11-25", "capabilities": map[string]any{}, "clientInfo": map[string]string{"name": "fixture", "version": "1"}})
+	return tool, must
+}
+
+func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
+	original := inspectionFixtureBytes(t)
+	_, e, source := openTestMapEditor(t, original)
+	tool, must := editorMCP(t, e)
 	cell := must("cell", map[string]int{"x": 3, "y": 4})
 	var from struct{ X, Y int }
 	if json.Unmarshal([]byte(cell.Content[0].Text), &from) != nil {

@@ -116,6 +116,31 @@ func editKind(kind string) (mapedit.Kind, error) {
 	return k, nil
 }
 
+// Stored reads what d's map stores, for the editor's change report: the
+// planes as the file holds them, the passability bit in each tile word, and
+// the bytes of each record an edit addresses.
+func (s *mapInspectionEdits) Stored(d *ui.InspectionDocument) (ui.StoredMap, error) {
+	model, err := mapedit.New(d.SourceBytes)
+	if err != nil {
+		return ui.StoredMap{}, err
+	}
+	m, err := model.Map()
+	if err != nil {
+		return ui.StoredMap{}, err
+	}
+	out := ui.StoredMap{Tiles: m.Tiles, Altitudes: m.Altitudes, Overlay: m.Overlay, Records: map[ui.RecordRef][]byte{}}
+	for _, r := range d.Records {
+		k, ok := editKinds[r.Kind]
+		if !ok {
+			continue
+		}
+		if b, err := model.Record(k, r.Index); err == nil {
+			out.Records[ui.RecordRef{Kind: r.Kind, Index: r.Index}] = b
+		}
+	}
+	return out, nil
+}
+
 // cellWords keeps the source's fraction within the cell, as a move does.
 func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 	return uint32(cell.X)<<8 | x&255, uint32(cell.Y)<<8 | y&255

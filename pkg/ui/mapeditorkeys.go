@@ -634,24 +634,10 @@ func (e *MapEditor) keyUnit(string) error {
 
 // keyHistory is undo and redo: each is one history entry.
 func (e *MapEditor) keyHistory(key string) error {
-	e.leave(leaveDrag | leavePick)
-	if !e.editable() {
-		return nil
-	}
-	if key == "undo" && !e.doc.Edits.CanUndo() || key == "redo" && !e.doc.Edits.CanRedo() {
-		return nil
-	}
-	var next *InspectionDocument
-	var err error
-	if key == "undo" {
-		next, err = e.doc.Edits.Undo()
-	} else {
-		next, err = e.doc.Edits.Redo()
-	}
-	if err := e.adoptEdit(next, err); err != nil {
+	if _, err := e.commandHistory(key == "redo"); err != nil {
+		e.message = err.Error()
 		return err
 	}
-	e.refreshMessagePage()
 	return nil
 }
 

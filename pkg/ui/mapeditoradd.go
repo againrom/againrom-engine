@@ -252,6 +252,35 @@ func parseCell(s string) (image.Point, bool) {
 	return image.Pt(x, y), ok && ex == nil && ey == nil
 }
 
+// addOffer is step i of r as the window walks it: the host's offer for the
+// record of the kept steps before it, and whether the window leaves the step
+// out. The window's steps and add_record both walk through it.
+func (e *MapEditor) addOffer(host InspectionNewRecords, r *addRun, i int) (InspectionNewStep, bool) {
+	st := r.steps[i]
+	var offer InspectionNewStep
+	if st.Control == addKind {
+		for n, k := range st.Kinds {
+			row, _ := addKindOf(k)
+			offer.Choices = append(offer.Choices, InspectionChoice{Value: int64(n), Label: e.word(row.ChoiceWord)})
+		}
+	} else {
+		offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
+	}
+	return offer, st.Optional && (offer.Absent || st.Control != addNumber && len(offer.Choices) < 2)
+}
+
+// addDefault is the text an asked step starts at: the offer's value, its
+// text for a name, nothing for a cell or a many step.
+func addDefault(st addStep, offer InspectionNewStep) string {
+	switch st.Control {
+	case addCell, addMany:
+		return ""
+	case addName:
+		return offer.Text
+	}
+	return strconv.FormatInt(offer.Value, 10)
+}
+
 // enterAddStep asks step i, or the next step in direction dir the host
 // offers enough choices: its offer, its list and its text, the kept text or
 // the offer's default.
@@ -262,26 +291,14 @@ func (e *MapEditor) enterAddStep(i, dir int) {
 		return
 	}
 	for i >= 0 && i < len(r.steps) {
-		st := r.steps[i]
 		r.at = i
 		var offer InspectionNewStep
-		if st.Control == addKind {
-			for n, k := range st.Kinds {
-				row, _ := addKindOf(k)
-				offer.Choices = append(offer.Choices, InspectionChoice{Value: int64(n), Label: e.word(row.ChoiceWord)})
-			}
-		} else {
-			offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
-		}
-		r.skip[i] = st.Optional && (offer.Absent || st.Control != addNumber && len(offer.Choices) < 2)
+		offer, r.skip[i] = e.addOffer(host, r, i)
 		if !r.skip[i] {
 			r.offer, r.note = offer, ""
 			e.prompt.path = r.texts[i]
-			if e.prompt.path == "" && st.Control != addCell && st.Control != addMany {
-				e.prompt.path = strconv.FormatInt(offer.Value, 10)
-				if st.Control == addName {
-					e.prompt.path = offer.Text
-				}
+			if e.prompt.path == "" {
+				e.prompt.path = addDefault(r.steps[i], offer)
 			}
 			e.addList()
 			return
@@ -459,14 +476,13 @@ func (e *MapEditor) addFinish() {
 			return
 		}
 	}
-	host, _ := e.addHost()
-	rec := e.addRecord(r, len(r.steps))
-	next, err := host.AddRecord(rec)
+	ch, err := e.commandAddRecord(e.addRecord(r, len(r.steps)))
 	if err != nil {
 		r.note = e.editorHostText(err.Error())
 		return
 	}
-	if e.adoptEdit(next, nil) != nil || next == nil {
+	next := ch.doc
+	if next == nil {
 		return
 	}
 	e.leave(leavePrompt)
@@ -528,15 +544,13 @@ func (e *MapEditor) addPicked(cell image.Point) {
 	if !ok {
 		return
 	}
-	rec := e.addPlacement(cell)
-	host, _ := e.addHost()
-	next, err := host.AddRecord(rec)
+	ch, err := e.commandAddRecord(e.addPlacement(cell))
 	if err != nil {
 		r.note = e.editorHostText(err.Error())
 		e.armPick(pickAddCell)
 		return
 	}
-	if next != nil && e.adoptEdit(next, nil) == nil {
+	if next := ch.doc; next != nil {
 		if r.repeat {
 			e.placedNote(r)
 			e.keepPick(pickAddCell)

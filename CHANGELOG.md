@@ -22,6 +22,10 @@ modder or developer can notice gets no entry.
 - [ROM2] Iglez and the available mercenaries show their own figures in the inn. Hired mercenaries join the next mission and keep their appearance when you save and load.
 - [ROM1] A game the original saved while a building was selected now loads. The building stays selected, and your next save keeps it.
 
+### For map makers and modders
+
+- [BASE] An agent connected to the map editor over MCP can now build a map with direct commands instead of keys and clicks: make a new map of a size, paint terrain, heights, objects and passability, add units, structures, loot, players and triggers, set fields and map properties, place drop zones, and read records, Add steps, brushes and the map check. Each command makes the same change as the window and takes one step of the same Undo history.
+
 ## 0.140.2
 
 ### For players

@@ -726,8 +726,10 @@ func (e *MapEditor) newTrigger() {
 
 // deleteTrigger deletes the shown trigger; its nodes stay.
 func (e *MapEditor) deleteTrigger(v scriptView) {
-	next, err := e.doc.Edits.Delete("Trigger", v.index)
-	if e.adoptEdit(next, err) == nil && next != nil {
+	ch, err := e.commandDelete(RecordRef{Kind: "Trigger", Index: v.index})
+	if err != nil {
+		e.message = err.Error()
+	} else if ch.doc != nil {
 		e.selected = -1
 	}
 }

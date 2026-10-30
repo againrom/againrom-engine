@@ -230,17 +230,9 @@ func (e *MapEditor) setField(text string) error {
 		return nil
 	}
 	field := fields[e.prompt.field]
-	var next *InspectionDocument
-	var err error
-	if field.Text {
-		host, ok := e.doc.Edits.(InspectionTextFields)
-		if !ok {
-			err = fmt.Errorf("This host cannot edit text fields.")
-			return e.adoptEdit(nil, err)
-		}
-		kind, index := e.selectedRecord()
-		next, err = host.SetTextField(kind, index, field.Key, text)
-	} else {
+	kind, index := e.selectedRecord()
+	edit := fieldEdit{Kind: kind, Index: index, Value: InspectionFieldValue{Key: field.Key, Text: field.Text, TextValue: text}}
+	if !field.Text {
 		v, parseErr := fieldNumber(field, text)
 		if errors.Is(parseErr, errStoredAsInherited) {
 			e.message = e.fieldNumberNote(field, parseErr)
@@ -250,7 +242,6 @@ func (e *MapEditor) setField(text string) error {
 			e.message = "Enter a whole number."
 			return parseErr
 		}
-		kind, index := e.selectedRecord()
 		if v == NewMessageChoice {
 			if i := e.messageFieldOf(field.Key); i >= 0 {
 				e.leave(leavePrompt)
@@ -258,9 +249,10 @@ func (e *MapEditor) setField(text string) error {
 				return nil
 			}
 		}
-		next, err = e.doc.Edits.SetField(kind, index, field.Key, v)
+		edit.Value.TextValue, edit.Value.Value = "", v
 	}
-	if err := e.adoptEdit(next, err); err != nil {
+	if _, err := e.commandSetField(edit); err != nil {
+		e.message = err.Error()
 		return err
 	}
 	e.leave(leavePrompt)
@@ -323,8 +315,12 @@ func (e *MapEditor) pickAt(p image.Point) {
 		e.message = "Clone needs a selected unit, structure or sack."
 		return
 	}
-	next, err := e.doc.Edits.Clone(kind, index, image.Pt(x, y))
-	if e.adoptEdit(next, err) != nil || next == nil {
+	ch, err := e.commandClone(recordAt{Ref: RecordRef{Kind: kind, Index: index}, Cell: image.Pt(x, y)})
+	if err != nil {
+		e.message = err.Error()
+		return
+	}
+	if ch.doc == nil {
 		return
 	}
 	e.selectNewest(kind)
@@ -357,8 +353,8 @@ func (e *MapEditor) selectNewest(kind string, target ...RecordRef) {
 
 // deleteSelected removes the selected record.
 func (e *MapEditor) deleteSelected(kind string, index int) error {
-	next, err := e.doc.Edits.Delete(kind, index)
-	if err := e.adoptEdit(next, err); err != nil {
+	if _, err := e.commandDelete(RecordRef{Kind: kind, Index: index}); err != nil {
+		e.message = err.Error()
 		return err
 	}
 	e.selected = -1

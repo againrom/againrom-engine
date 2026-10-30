@@ -51,13 +51,13 @@ func (e *MapEditor) keyWorkspace(key string) error {
 }
 
 func (e *MapEditor) setWorkspaceField(value string) error {
-	host, ok := e.workspace()
+	_, ok := e.workspace()
 	fields := e.promptFields()
 	if !ok || e.prompt.field >= len(fields) {
 		return fmt.Errorf("workspace field is unavailable")
 	}
-	next, err := host.SetWorkspaceField(e.prompt.scope, fields[e.prompt.field].Key, value)
-	if err := e.adoptEdit(next, err); err != nil {
+	if _, err := e.commandSetMapField(mapField{Scope: e.prompt.scope, Key: fields[e.prompt.field].Key, Value: value}); err != nil {
+		e.message = err.Error()
 		return err
 	}
 	if e.prompt.scope == "pages" && fields[e.prompt.field].Key == "page" {

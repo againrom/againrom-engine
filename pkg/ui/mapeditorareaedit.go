@@ -389,8 +389,9 @@ func (e *MapEditor) areaRelease(h *areaHandle) {
 
 // writeArea writes an area's parameters through the host's one-edit seam.
 func (e *MapEditor) writeArea(kind string, index int, values []InspectionFieldValue) {
-	next, err := e.setFields(kind, index, values)
-	_ = e.adoptEdit(next, err)
+	if _, err := e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values}); err != nil {
+		e.message = err.Error()
+	}
 }
 
 // areaShared is the notice a change to node rec needs: a node more than one
