@@ -52,6 +52,9 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 		return err
 	}
 	e.doc.Source = source
+	if e.mcp.call != nil {
+		e.mcp.saved = source
+	}
 	e.leave(leavePrompt)
 	e.cancelRestore = nil
 	e.message = ""

@@ -53,6 +53,28 @@ func paintModeStroke(t *testing.T, b mapedit.Brush) (before, after []byte, in ma
 	return before, after, in
 }
 
+// A blending set stroke writes around its first centre alone, and its
+// footprint is that centre's circle, so the marker and the report name the
+// cells the stroke can write.
+func TestBlendingSetFootprintIsTheFirstCentresCircle(t *testing.T) {
+	b := mapedit.Brush{Plane: mapedit.PlaneHeight, Value: 60, Radius: 2, Set: true}
+	before, after, in := paintModeStroke(t, b)
+	first := modeDrag[0]
+	for i := range after {
+		x, y := i%brushSide, i/brushSide
+		circle := (x-first.X)*(x-first.X)+(y-first.Y)*(y-first.Y) <= 4
+		if in[i] != circle {
+			t.Fatalf("cell (%d,%d): footprint %v, first centre's circle %v", x, y, in[i], circle)
+		}
+		if after[i] != before[i] && !in[i] {
+			t.Fatalf("cell (%d,%d) changed %d -> %d outside the footprint", x, y, before[i], after[i])
+		}
+	}
+	if c := first.Y*brushSide + first.X; after[c] != 60 {
+		t.Fatalf("first centre is %d, want 60", after[c])
+	}
+}
+
 // A Step stroke (the add without fall-off, once per cell) raises or lowers
 // every cell its footprint covers by exactly the strength, the cells the
 // drag passes twice included, and leaves every other cell.

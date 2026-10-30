@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,18 @@ type editorChange struct {
 	page   *uint32
 	// removed marks a record the command deleted: the reference names
 	// where it stood.
+	removed bool
+	// touched is the cells a height stroke covers, each once.
+	touched []image.Point
+	// zone is the drop zone a drop-zone command added, moved or deleted.
+	zone *zoneChange
+}
+
+// zoneChange is a drop zone a command changed: its index in the map's drop
+// zones, its cell, and whether the command deleted it.
+type zoneChange struct {
+	zone    int
+	cell    image.Point
 	removed bool
 }
 
@@ -188,12 +201,19 @@ func editorCommandRows() []editorCommand {
 	newMap.opens = true
 	return []editorCommand{
 		newMap,
-		typedCommand("paint", "Paint one brush stroke over cells as one edit: terrain class, height change or set height, object code, or passability",
+		typedCommand("paint", "Paint one brush stroke over cells as one edit: terrain class, height change or set height, object code, or passability. "+
+			"The brush covers radius cells around each centre, in the order given; the line between two centres is not filled (the window's drag fills it from its pointer samples), so a line takes every centre on it. "+
+			"Height without set: value is a change of -31..31, not 0; mode step adds it once to every covered cell, however many centres cover it; "+
+			"level sets every covered cell to the first centre's height before the stroke plus value, clamped to 0..127, with no blend at the rim; "+
+			"smooth adds it around each centre in turn, the whole value at the centre and less toward the rim by a cosine that reaches 0 one cell past the radius, so overlapping centres add again. "+
+			"Height with set: value is a height 0..255, written clamped to 0..127; without flat only the first centre takes it and the cells of a circle of radius at least 1 around it move toward it by the cosine of their distance, the other centres unused; "+
+			"with flat every covered cell of every centre takes it. "+
+			"The brush bounds only some row steps, so a step above 31 can remain. Step, level, smooth and set with flat lower a covered cell that stands more than 31 above the cell in the row above it (covered or not), and in the rows above the first centre's row first raise a covered cell that stands more than 31 below the cell under it. Set without flat bounds only the covered cells whose column distance from the first centre is less than their row distance, each against its neighbour towards the first centre's row; the first centre's row and the other covered cells are not bounded. A cell the stroke does not cover never changes, so a covered cell can stand 32 or more from an uncovered neighbour. The heights tool reads the result",
 			[]commandArg{req("plane", textArg("Grid layer", "terrain", "height", "objects", "passability")), req("cells", cellsArg("Stroke centres in order")),
 				opt("value", intArg("Terrain class or object code from brushes; height change, or the height with set; passability 1 closes, 0 opens")),
 				opt("radius", intArg("Cells around each centre; default 0, the centre alone")), opt("shape", textArg("Brush shape; default circle", "circle", "square")),
 				opt("fill", textArg("Terrain centre fill; default pattern", "pattern", "random", "variant")), opt("variant", intArg("Terrain variant for fill variant, from 0")),
-				opt("set", boolArg("Height: value is the height the first centre takes, the radius blending toward it")), opt("flat", boolArg("Height with set: every covered cell takes value")),
+				opt("set", boolArg("Height: value is the height the first centre takes, a circle of radius at least 1 blending toward it")), opt("flat", boolArg("Height with set: every covered cell of every centre takes value")),
 				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth")), opt("forest", forestArg()),
 				opt("verbose", verboseArg())},
 			(*MapEditor).decodePaint, (*MapEditor).commandPaint),
@@ -225,7 +245,7 @@ func editorCommandRows() []editorCommand {
 		typedCommand("set_drop_cell", "Set the cell the party lands on, as the drop tool does on a map without drop zones",
 			[]commandArg{req("x", intArg("Cell x")), req("y", intArg("Cell y"))},
 			(*MapEditor).decodeDropCell, (*MapEditor).commandSetDropCell),
-		typedCommand("add_drop_zone", "Add a drop zone on cell x,y, as the drop tool's click on an empty cell does",
+		typedCommand("add_drop_zone", "Add a drop zone on cell x,y, as the drop tool's click on an empty cell does; a drop zone is a drop action of the script, and the result's drop_zone names the zone, its cell and the map's zone count",
 			[]commandArg{req("x", intArg("Cell x")), req("y", intArg("Cell y"))},
 			(*MapEditor).decodeAddDropZone, (*MapEditor).commandAddDropZone),
 		typedCommand("move_drop_zone", "Move drop zone zone (from 0, in the map reader's drops order) to cell x,y",
@@ -237,7 +257,7 @@ func editorCommandRows() []editorCommand {
 		typedCommand("write_trigger", "Write a trigger from the wizard's ready items (trigger_items lists them): conditions and actions, each an item and its parameters",
 			[]commandArg{opt("index", intArg("Trigger index to rewrite; default -1 adds a trigger")), req("name", textArg("Trigger name")),
 				opt("once", boolArg("Run once; default true")), opt("conditions", triggerRowsArg(true)), req("actions", triggerRowsArg(false))},
-			(*MapEditor).decodeWriteTrigger, (*MapEditor).commandWriteTrigger),
+			(*MapEditor).decodeWriteTrigger, (*MapEditor).commandWriteTriggerDialogue),
 		typedCommand("move_records", "Move several units, structures and sacks by dx,dy cells as one edit, as a drag of a selection does",
 			[]commandArg{req("records", recordRefsArg("The records, as a selection holds them")), req("dx", intArg("Cells right")), req("dy", intArg("Cells down"))},
 			(*MapEditor).decodeMoveRecords, (*MapEditor).commandMoveRecords),
@@ -315,11 +335,17 @@ func (e *MapEditor) commandPaint(op BrushStroke) (editorChange, error) {
 	if host == nil {
 		return editorChange{}, errNoEditHost
 	}
+	var touched []image.Point
+	if op.Plane == BrushPlaneHeight {
+		touched = host.BrushCells(op)
+	}
 	next, err := host.Paint(op)
 	if err != nil {
 		return editorChange{}, err
 	}
-	return e.adoptedTerrain(next)
+	ch, err := e.adoptedTerrain(next)
+	ch.touched = touched
+	return ch, err
 }
 
 func (e *MapEditor) commandAddRecord(rec InspectionNewRecord) (editorChange, error) {
@@ -499,7 +525,11 @@ func (e *MapEditor) commandAddDropZone(cell image.Point) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
-	return e.adopted(next, nil)
+	ch, err := e.adopted(next, nil)
+	if next != nil {
+		ch.zone = &zoneChange{zone: slices.Index(next.Drops, cell), cell: cell}
+	}
+	return ch, err
 }
 
 func (e *MapEditor) commandMoveDropZone(m zoneAt) (editorChange, error) {
@@ -511,7 +541,9 @@ func (e *MapEditor) commandMoveDropZone(m zoneAt) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
-	return e.adopted(next, nil)
+	ch, err := e.adopted(next, nil)
+	ch.zone = &zoneChange{zone: m.Zone, cell: m.Cell}
+	return ch, err
 }
 
 func (e *MapEditor) commandDeleteDropZone(zone int) (editorChange, error) {
@@ -519,11 +551,17 @@ func (e *MapEditor) commandDeleteDropZone(zone int) (editorChange, error) {
 	if !ok {
 		return editorChange{}, errNoEditHost
 	}
+	var cell image.Point
+	if zone >= 0 && zone < len(e.doc.Drops) {
+		cell = e.doc.Drops[zone]
+	}
 	next, err := z.DeleteDropZone(zone)
 	if err != nil {
 		return editorChange{}, err
 	}
-	return e.adopted(next, nil)
+	ch, err := e.adopted(next, nil)
+	ch.zone = &zoneChange{zone: zone, cell: cell, removed: true}
+	return ch, err
 }
 
 func (e *MapEditor) commandWriteTrigger(t WizardTrigger) (editorChange, error) {
@@ -1105,7 +1143,7 @@ func (e *MapEditor) decodeDropCell(raw json.RawMessage) (image.Point, error) {
 		return image.Point{}, err
 	}
 	if _, ok := e.dropZones(); ok {
-		return image.Point{}, fmt.Errorf("this map keeps drop zones: use add_drop_zone or move_drop_zone")
+		return image.Point{}, fmt.Errorf("this map keeps drop zones, each a drop action of its script: use add_drop_zone, move_drop_zone or delete_drop_zone")
 	}
 	return e.cellOn(a.X, a.Y)
 }
@@ -1162,6 +1200,10 @@ func triggerRowsArg(condition bool) map[string]any {
 	if condition {
 		props["comparison"] = intArg("For an item whose comparison the row chooses: 0..5")
 		help, most = "Conditions, up to 3", 3
+	} else if writeTriggerDialogue {
+		parts := messagePartsArg()
+		parts["description"] = "For one action row of a call whose item shows a message page (a.dialog): the parts of a new page the action shows, written with the trigger as one edit, as write_message writes them; the item's message parameter is then left out"
+		props["parts"] = parts
 	}
 	return map[string]any{"type": "array", "description": help, "maxItems": most,
 		"items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"item"}, "properties": props}}
@@ -1174,6 +1216,27 @@ type triggerRowArgs struct {
 	Item       string
 	Params     []json.RawMessage
 	Comparison *int
+	Parts      []messagePartArgs
+}
+
+// writeTriggerDialogue lets a write_trigger action row whose item shows a
+// message page carry parts: the trigger and the new page are one edit through
+// the message builder write_message uses. False keeps three calls:
+// write_trigger, the action index from its result, then write_message.
+const writeTriggerDialogue = true
+
+// triggerWrite is the trigger write_trigger writes and, with dialogue, the
+// new message page one of its actions shows, written in the same edit.
+type triggerWrite struct {
+	trigger  WizardTrigger
+	dialogue *messageWrite
+}
+
+func (e *MapEditor) commandWriteTriggerDialogue(w triggerWrite) (editorChange, error) {
+	if w.dialogue == nil {
+		return e.commandWriteTrigger(w.trigger)
+	}
+	return e.commandWriteMessage(*w.dialogue)
 }
 
 // commandWizardRow is the wizard row an MCP row names, its parameter texts as the
@@ -1228,7 +1291,7 @@ func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, 
 	return wizRow{condition: condition, item: at, origItem: -2, vals: vals}, nil
 }
 
-func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (WizardTrigger, error) {
+func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (triggerWrite, error) {
 	a, err := decodeArgs[struct {
 		Index      *int
 		Name       string
@@ -1237,42 +1300,75 @@ func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (WizardTrigger, erro
 		Actions    []triggerRowArgs
 	}](raw, editorCommandArgs("write_trigger"))
 	if err != nil {
-		return WizardTrigger{}, err
+		return triggerWrite{}, err
 	}
 	if _, ok := e.doc.Edits.(InspectionTriggerWizard); !ok || e.doc.Script == nil {
-		return WizardTrigger{}, errNoEditHost
+		return triggerWrite{}, errNoEditHost
 	}
 	t := WizardTrigger{Index: -1, Name: a.Name, Once: 1}
 	if a.Index != nil {
 		t.Index = *a.Index
 		if t.Index < -1 || t.Index >= len(e.doc.Script.Triggers) {
-			return t, fmt.Errorf("the map has no trigger %d", t.Index)
+			return triggerWrite{trigger: t}, fmt.Errorf("the map has no trigger %d", t.Index)
 		}
 	}
 	if a.Once != nil && !*a.Once {
 		t.Once = 0
 	}
 	var rows []wizRow
+	dialogue, shows := -1, -1
 	for _, list := range []struct {
 		condition bool
 		rows      []triggerRowArgs
 	}{{true, a.Conditions}, {false, a.Actions}} {
-		for _, r := range list.rows {
+		for k, r := range list.rows {
+			if r.Parts != nil {
+				switch {
+				case list.condition || !writeTriggerDialogue:
+					return triggerWrite{trigger: t}, fmt.Errorf("parts go on an action row whose item shows a message page")
+				case dialogue >= 0:
+					return triggerWrite{trigger: t}, fmt.Errorf("one action row of a call takes parts")
+				}
+				dialogue = k
+			}
 			row, err := e.commandWizardRow(list.condition, r)
 			if err != nil {
-				return t, err
+				return triggerWrite{trigger: t}, err
+			}
+			if dialogue == k && !list.condition {
+				shows = slices.IndexFunc(wizItems(false)[row.item].params, func(p wizParam) bool { return p.kind == wpMessage })
+				if shows < 0 {
+					return triggerWrite{trigger: t}, fmt.Errorf("item %q shows no message page; parts go on an action whose item does", r.Item)
+				}
+				if shows < len(r.Params) {
+					return triggerWrite{trigger: t}, fmt.Errorf("item %q: with parts the message parameter is left out", r.Item)
+				}
 			}
 			rows = append(rows, row)
 		}
 	}
 	if len(a.Actions) == 0 {
-		return t, fmt.Errorf("a trigger needs at least one action")
+		return triggerWrite{trigger: t}, fmt.Errorf("a trigger needs at least one action")
 	}
 	t, err = e.rowsPlan(t, rows)
 	if err != nil {
-		return t, errors.New(e.mcpDisplay(err.Error()))
+		return triggerWrite{trigger: t}, errors.New(e.mcpDisplay(err.Error()))
 	}
-	return t, nil
+	w := triggerWrite{trigger: t}
+	if dialogue < 0 {
+		return w, nil
+	}
+	host, ok := e.doc.Edits.(InspectionMessages)
+	if !ok {
+		return w, errNoEditHost
+	}
+	plan := t
+	m := messageWrite{Owner: &InspectionMessageOwner{Kind: "Trigger", Index: t.Index, Trigger: &plan, Action: dialogue}, Page: NewMessagePage}
+	if m.Parts, err = e.messageParts(host, NewMessagePage, a.Actions[dialogue].Parts); err != nil {
+		return w, err
+	}
+	w.dialogue = &m
+	return w, nil
 }
 
 func (e *MapEditor) decodeMapField(raw json.RawMessage) (mapField, error) {
@@ -1348,8 +1444,8 @@ func (e *MapEditor) decodeRedo(raw json.RawMessage) (struct{}, error) {
 // the status line as the window's own routes show it; the result names what
 // changed.
 func (c editorCommand) mcpRun(e *MapEditor, raw json.RawMessage) (any, error) {
-	if e.pathDialog.pending != nil || e.prompt.open() || e.objectTyping() {
-		return nil, fmt.Errorf("finish or cancel the current window prompt first")
+	if err := e.mcpBusy(); err != nil {
+		return nil, err
 	}
 	if !c.opens && (!e.editable() || e.catalog) {
 		return nil, fmt.Errorf("no editable map is open")
@@ -1377,7 +1473,7 @@ func (c editorCommand) mcpRun(e *MapEditor, raw json.RawMessage) (any, error) {
 }
 
 func verboseArg() map[string]any {
-	return boolArg("List every changed cell; default false, the count, the bounding cells and the planes alone")
+	return boolArg("List every changed cell and, for a height stroke, every covered cell's height before and after; default false, the count, the bounding cells, the planes and a height stroke's least and greatest change alone")
 }
 
 // commandTakes reports that args has an argument named name.
@@ -1482,6 +1578,13 @@ func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange, ce
 	if ch.page != nil {
 		out["page"] = *ch.page
 	}
+	if z := ch.zone; z != nil && e.doc != nil {
+		zone := map[string]any{"zone": z.zone, "cell": []int{z.cell.X, z.cell.Y}, "zones": len(e.doc.Drops)}
+		if z.removed {
+			zone["removed"] = true
+		}
+		out["drop_zone"] = zone
+	}
 	if ch.doc == nil {
 		return out
 	}
@@ -1518,11 +1621,48 @@ func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange, ce
 	if total > 0 {
 		out["cells_box"] = []int{box.Min.X, box.Min.Y, box.Max.X - 1, box.Max.Y - 1}
 	}
+	if len(ch.touched) > 0 {
+		change, heights := heightChange(a, b, ch.touched, after.Width)
+		out["height_change"] = change
+		if cells {
+			out["heights"] = heights
+		}
+	}
 	refs := changedRecords(before.Records, after.Records, a.Records, b.Records)
 	out["records_total"] = len(refs)
 	out["records"] = refs[:min(len(refs), reportRecords)]
 	out["warnings"] = e.editWarnings(refs, ch.record)
 	return out
+}
+
+// heightChange is what a height stroke did to the cells it covers, each once:
+// their count, how many changed, their bounding cells, and the least and
+// greatest change; and, up to reportCells of them, each cell as x, y, the
+// stored height before and after.
+func heightChange(a, b StoredMap, touched []image.Point, width int) (map[string]any, [][]int) {
+	var box image.Rectangle
+	low, high, changed := 0, 0, 0
+	heights := [][]int{}
+	for _, c := range touched {
+		i := c.Y*width + c.X
+		if i < 0 || i >= len(a.Altitudes) || i >= len(b.Altitudes) {
+			continue
+		}
+		was, now := int(a.Altitudes[i]), int(b.Altitudes[i])
+		d := now - was
+		if box.Empty() {
+			low, high = d, d
+		}
+		low, high = min(low, d), max(high, d)
+		if d != 0 {
+			changed++
+		}
+		box = box.Union(image.Rectangle{Min: c, Max: c.Add(image.Pt(1, 1))})
+		if len(heights) < reportCells {
+			heights = append(heights, []int{c.X, c.Y, was, now})
+		}
+	}
+	return map[string]any{"cells": len(touched), "changed": changed, "box": []int{box.Min.X, box.Min.Y, box.Max.X - 1, box.Max.Y - 1}, "min": low, "max": high}, heights
 }
 
 // editWarnings are the map check's findings on the records an edit touched:

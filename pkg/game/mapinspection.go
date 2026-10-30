@@ -261,6 +261,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		if !resolved.Found() {
 			r.Warning = joinInspectionWarning(r.Warning, "Definition unresolved")
 		}
+		r.Definition = x.unitDefinition(u, resolved)
 		r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", u.X, u.Y), fmt.Sprintf("Class/sub: %d / %d", u.ClassID, u.ClassSubID),
 			fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
 			fmt.Sprintf("Definition: %d (%s row %d)", u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),

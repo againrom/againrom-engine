@@ -3128,6 +3128,12 @@ package storyguard
 // pkg/game/towncatalog.go, the town square view guard in
 // internal/archtest/townsquare.go and its test, the square view tests in
 // pkg/game/townsquareview_test.go, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the map editor's MCP short
+// results, height read and change report, unit definition and one-call
+// dialogue in pkg/ui, pkg/game and pkg/mapedit, their tests in
+// pkg/game/mapeditmcpbrief_test.go and pkg/mapedit/brushmode_test.go, and
+// this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4475,
 	TestFileCount:  264,
@@ -3488,5 +3494,5 @@ var Committed = Baseline{
 	// teleportBookCast and castMessageSounds in pkg/game/spellbolt.go, the
 	// teleportCast field in pkg/game/gamefiles.go, the tests in
 	// pkg/game/secondteleport_test.go, and this note.
-	CommentBytes: 9974463,
+	CommentBytes: 9979880,
 }

@@ -182,6 +182,8 @@ func (e *MapEditor) commandWriteMessage(w messageWrite) (editorChange, error) {
 	case next == nil || w.Owner == nil:
 	case w.Owner.Kind == "Message":
 		ref = newestOf(next, "Action")
+	case w.Owner.Kind == "Trigger" && w.Owner.Index < 0:
+		ref = newestOf(next, "Trigger")
 	default:
 		ref = &RecordRef{Kind: w.Owner.Kind, Index: w.Owner.Index}
 	}

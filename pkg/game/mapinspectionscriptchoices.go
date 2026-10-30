@@ -40,7 +40,11 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 		case "Unit":
 			id := uint32(m.Units[r.Index].UnitID)
 			if id > 0 && id < 10001 && counts[r.Kind][id] == 1 {
-				add(mapload.ScriptUnit, id, i, r.Label, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.unitchoice")), id, r.Label), 0)
+				choice := fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.unitchoice")), id, r.Label)
+				if r.Definition != "" {
+					choice = fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.unitdefchoice")), id, r.Label, r.Definition)
+				}
+				add(mapload.ScriptUnit, id, i, r.Label, choice, 0)
 			}
 		case "Structure":
 			id := uint32(m.Objects[r.Index].Field12)

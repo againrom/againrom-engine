@@ -226,7 +226,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if err != nil {
 		return "", err
 	}
-	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
+	parent, err := mapOutputDirectory(abs)
 	if err != nil {
 		return "", err
 	}

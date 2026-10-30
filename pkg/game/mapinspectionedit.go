@@ -900,6 +900,20 @@ func (s *mapInspectionEdits) noteUnwritten(err error) {
 	}
 }
 
+// mapOutputDirectory is the physical folder a map save of abs writes into.
+// A save creates no folder, so a missing one is named as missing.
+func mapOutputDirectory(abs string) (string, error) {
+	dir := filepath.Dir(abs)
+	if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("the folder %s does not exist; a save creates no folder", dir)
+	}
+	parent, err := editorPhysicalDirectory(dir)
+	if err != nil {
+		return "", fmt.Errorf("resolve map output directory: %w", err)
+	}
+	return parent, nil
+}
+
 // Save As creates a new host file only. It cannot overwrite an input, an
 // existing file, or either preserved install, even through an alias. The
 // original-format save guard is reused for its physical-directory and archive
@@ -918,9 +932,9 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 	if !editorOrdinaryFilename(base) {
 		return "", fmt.Errorf("Save As needs an ordinary new filename, not a device or alternate stream")
 	}
-	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
+	parent, err := mapOutputDirectory(abs)
 	if err != nil {
-		return "", fmt.Errorf("resolve map output directory: %w", err)
+		return "", err
 	}
 	target := filepath.Join(parent, base)
 	if err := fenceEditorWrite(root, parent, "Save As", grants...); err != nil {
@@ -938,7 +952,7 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 			return "", err
 		}
 		if sameSaveName(target, resolvedInput) {
-			return "", fmt.Errorf("Save As cannot replace the source map")
+			return "", fmt.Errorf("Save As cannot replace the source map %s; Save writes over the map's own file", target)
 		}
 		if a, err := os.Stat(input); err == nil {
 			if b, err := os.Stat(target); err == nil && os.SameFile(a, b) {

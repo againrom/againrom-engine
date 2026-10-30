@@ -109,7 +109,7 @@ func TestMapEditorMCPVictoryTriggerNamesTheUnitAddRecordReports(t *testing.T) {
 			}
 		}
 	}
-	if err := json.Unmarshal([]byte(must("trigger_items", map[string]any{}).Content[0].Text), &items); err != nil {
+	if err := json.Unmarshal([]byte(must("trigger_items", map[string]any{"verbose": true}).Content[0].Text), &items); err != nil {
 		t.Fatal(err)
 	}
 	listed, heroTop, group := false, false, false

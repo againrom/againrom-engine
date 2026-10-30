@@ -35,6 +35,11 @@ type editorMCP struct {
 	gone             bool
 	nativeAt         image.Point
 	nativeKnown      bool
+	// brief is the window state the running call answers without verbose;
+	// nil answers the whole state.
+	brief []string
+	// saved is the file a save of the running call wrote; empty: none.
+	saved string
 }
 
 const mcpGoneLine = "MCP client disconnected (stdio input ended)"
@@ -103,6 +108,8 @@ type editorToolArgs struct {
 	// Discard drops unsaved changes on open, as the unsaved-changes
 	// question's open button does.
 	Discard bool `json:"discard"`
+	// Verbose answers the whole window state, or a reader's whole result.
+	Verbose bool `json:"verbose"`
 }
 
 type editorTool struct {
@@ -112,6 +119,37 @@ type editorTool struct {
 	// typed decodes its own arguments: a command of the editor command
 	// table, or one of its readers.
 	typed func(*MapEditor, json.RawMessage) (any, error)
+	// brief is the window state the tool answers without verbose; nil
+	// answers the whole state.
+	brief []string
+}
+
+// The window state a window tool answers without verbose: what a key, text,
+// pointer or open call concerns, and what a save concerns.
+var (
+	windowResult = []string{"last_call", "status", "message", "mode", "dirty", "path", "saved", "prompt", "prompt_open", "prompt_text", "popup", "dropdown", "report_open", "report_note", "selected"}
+	saveResult   = []string{"last_call", "saved", "path", "dirty", "status", "message", "prompt", "prompt_open", "report_open", "report_note", "report_asks"}
+)
+
+// everyToolOwnResult makes every tool answer its own result; the whole window
+// state comes with verbose true or through state. False keeps the whole state
+// on every tool but save, save_as and key.
+const everyToolOwnResult = true
+
+// ownResult reports that tool answers its own result unless verbose is true.
+func ownResult(tool string) bool {
+	return everyToolOwnResult || tool == "save" || tool == "save_as" || tool == "key"
+}
+
+// briefState is the keys of state the brief names.
+func briefState(state map[string]any, brief []string) map[string]any {
+	out := make(map[string]any, len(brief))
+	for _, k := range brief {
+		if v, ok := state[k]; ok {
+			out[k] = v
+		}
+	}
+	return out
 }
 
 func editorToolSchema(fields map[string]string, required ...string) map[string]any {
@@ -159,8 +197,24 @@ func editorTools() []editorTool {
 			}
 			return e.discardLeave()
 		}},
-		{Tool: editormcp.Tool{Name: "save", Description: "Use the window Save route, including mod, validation and overwrite prompts", InputSchema: empty}, apply: func(e *MapEditor, _ editorToolArgs) error { return e.Key("saveas") }},
-		{Tool: editormcp.Tool{Name: "save_as", Description: "Use the window Save As path prompt; refusals and confirmations remain visible", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error { return e.mcpPath(pathdialog.SaveFile, a.Path) }},
+		{Tool: editormcp.Tool{Name: "save", Description: "Use the window Save route, including mod, validation and overwrite prompts; a map without its own file is refused, save_as takes its path", InputSchema: empty}, brief: saveResult, apply: func(e *MapEditor, _ editorToolArgs) error {
+			if err := e.mcpBusy(); err != nil {
+				return err
+			}
+			return e.mcpSave(func() error { return e.Key("saveas") })
+		}},
+		{Tool: editormcp.Tool{Name: "save_as", Description: "Use the window Save As path prompt; refusals and confirmations remain visible", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, brief: saveResult, apply: func(e *MapEditor, a editorToolArgs) error {
+			return e.mcpSave(func() error { return e.mcpPath(pathdialog.SaveFile, a.Path) })
+		}},
+	}
+	for i := range rows {
+		switch rows[i].Name {
+		case "key", "text", "pointer", "open":
+			rows[i].brief = windowResult
+		}
+		if rows[i].brief != nil || rows[i].Name == "map" {
+			rows[i].InputSchema = withVerbose(rows[i].InputSchema)
+		}
 	}
 	for _, c := range editorCommandRows() {
 		rows = append(rows, editorTool{Tool: editormcp.Tool{Name: c.name, Description: c.help, InputSchema: commandSchema(c.args)}, typed: c.mcpRun})
@@ -173,9 +227,23 @@ func editorTools() []editorTool {
 			continue
 		}
 		name := row.key
-		rows = append(rows, editorTool{Tool: editormcp.Tool{Name: "action_" + name, Description: "Window key " + name + " (" + row.label + ")", InputSchema: empty}, apply: func(e *MapEditor, _ editorToolArgs) error { return e.Key(name) }})
+		rows = append(rows, editorTool{Tool: editormcp.Tool{Name: "action_" + name, Description: "Window key " + name + " (" + row.label + ")", InputSchema: withVerbose(empty)}, brief: windowResult, apply: func(e *MapEditor, _ editorToolArgs) error { return e.Key(name) }})
 	}
 	return rows
+}
+
+// withVerbose is schema with the verbose argument added.
+func withVerbose(schema map[string]any) map[string]any {
+	props := map[string]any{"verbose": map[string]any{"type": "boolean", "description": "Answer the whole window state, or the reader's whole result; default false"}}
+	for k, v := range schema["properties"].(map[string]any) {
+		props[k] = v
+	}
+	out := map[string]any{}
+	for k, v := range schema {
+		out[k] = v
+	}
+	out["properties"] = props
+	return out
 }
 
 func (e *MapEditor) EnableMCP(pace time.Duration) *editormcp.Server {
@@ -298,11 +366,13 @@ func (e *MapEditor) updateMCP() bool {
 		return false
 	}
 	m.call, m.err, m.read, m.drawn = c, nil, nil, false
+	m.args, m.brief, m.saved = editorToolArgs{}, nil, ""
 	m.last = "MCP: " + c.Name
 	for _, row := range m.rows {
 		if row.Name != c.Name {
 			continue
 		}
+		m.brief = row.brief
 		if row.typed != nil {
 			value, err := row.typed(e, c.Arguments)
 			m.err, m.read = err, func(*MapEditor, editorToolArgs) (any, error) { return value, nil }
@@ -364,8 +434,10 @@ func (e *MapEditor) CompleteMCPFrame(read func() (image.Image, error)) {
 		var err error
 		if m.read != nil {
 			value, err = m.read(e, m.args)
+		} else if state := e.mcpState(); m.brief != nil && !m.args.Verbose && ownResult(m.call.Name) {
+			value = briefState(state, m.brief)
 		} else {
-			value = e.mcpState()
+			value = state
 		}
 		if err != nil {
 			result = editormcp.Failure(err)
@@ -412,6 +484,7 @@ func (e *MapEditor) mcpState() map[string]any {
 		"selection": e.SelectedRecords(), "selected": e.Selected(), "object_fields": fields,
 		"dirty": e.Dirty(), "path": path, "help": e.mcpLines(e.allHelpLines()),
 		"mode_help": e.mcpLines(e.helpLines()), "last_call": e.mcp.last, "window": e.window,
+		"saved": e.mcp.saved, "report_note": e.mcpDisplay(e.report.note), "report_asks": e.report.confirm != nil,
 	}
 }
 
@@ -485,15 +558,46 @@ func (e *MapEditor) mcpMap(a editorToolArgs) (any, error) {
 	if n < len(g.Overlay) {
 		overlay = g.Overlay[n]
 	}
-	return map[string]any{"width": d.Width, "height": d.Height, "playable": PlayableText(d.Playable), "records": records, "script": script, "cell": map[string]any{"x": a.X, "y": a.Y, "terrain": tile, "height": height, "height_known": ok, "objects": objects, "overlay": overlay, "passability": pass, "border": e.BorderCell(cell)}}, nil
+	out := map[string]any{"width": d.Width, "height": d.Height, "playable": PlayableText(d.Playable), "cell": map[string]any{"x": a.X, "y": a.Y, "terrain": tile, "height": height, "height_known": ok, "objects": objects, "overlay": overlay, "passability": pass, "border": e.BorderCell(cell)}}
+	if a.Verbose || !ownResult("map") {
+		out["records"], out["script"] = records, script
+		return out, nil
+	}
+	counts := map[string]int{}
+	for group, list := range records {
+		counts[group] = len(list)
+	}
+	out["record_counts"] = counts
+	return out, nil
 }
 
+// mcpBusy refuses a call while the window waits for an answer: it names
+// what waits and how a call answers it.
+func (e *MapEditor) mcpBusy() error {
+	switch {
+	case e.pathDialog.pending != nil:
+		return fmt.Errorf("the system file dialog is open and waits for the person at the window")
+	case e.prompt.open():
+		title := ""
+		if s, ok := e.promptSpec(); ok {
+			title = e.mcpDisplay(s.Title)
+		}
+		return fmt.Errorf("the window prompt %q is open: key enter answers it, key escape closes it; state shows it", title)
+	case e.objectTyping():
+		return fmt.Errorf("a popup field is being typed: key enter keeps the text, key escape drops it")
+	}
+	return nil
+}
+
+// mcpPath answers the window's typed path prompt with path. A path the
+// window refuses closes the prompt again, so the next call finds the
+// window free; the refusal is the call's error.
 func (e *MapEditor) mcpPath(kind pathdialog.Kind, path string) error {
 	if strings.TrimSpace(path) == "" {
 		return fmt.Errorf("path must not be empty")
 	}
-	if e.pathDialog.pending != nil || e.prompt.open() || e.objectTyping() {
-		return fmt.Errorf("finish or cancel the current window prompt first")
+	if err := e.mcpBusy(); err != nil {
+		return err
 	}
 	if kind == pathdialog.SaveFile && !e.editable() {
 		return fmt.Errorf("no editable map")
@@ -501,7 +605,30 @@ func (e *MapEditor) mcpPath(kind pathdialog.Kind, path string) error {
 	e.rememberCancel()
 	e.pathFallback(kind, nil)
 	e.TextInput(path)
-	return e.Key("enter")
+	err := e.Key("enter")
+	if err != nil && e.prompt.open() && (e.prompt.kind == promptSave || e.prompt.kind == promptOpen) {
+		e.cancelPopup()
+	}
+	return err
+}
+
+// mcpSave runs a save route for an MCP call. A save that wrote its file
+// answers no error, and one the map's errors stopped answers the question
+// the window asks; a save that opened the Save As prompt, on a map without
+// its own file, closes it and names save_as.
+func (e *MapEditor) mcpSave(run func() error) error {
+	err := run()
+	if e.mcp.saved != "" {
+		return nil
+	}
+	if r, ok := refusal(err); ok && r.Ask && e.report.confirm != nil {
+		return nil
+	}
+	if err == nil && e.prompt.open() && e.prompt.kind == promptSave {
+		e.cancelPopup()
+		return fmt.Errorf("this map has no file of its own yet: save_as takes its path")
+	}
+	return err
 }
 
 func (e *MapEditor) mcpPointer(a editorToolArgs) error {

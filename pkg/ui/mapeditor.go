@@ -44,6 +44,10 @@ type InspectionRecord struct {
 	// Hover is the status strip's line while the pointer is on the record's
 	// cell, in the font's encoding; empty shows nothing.
 	Hover string
+	// Definition names the definition a unit's placement sets, in the font's
+	// encoding; empty for a unit whose class alone selects it, and for any
+	// other record.
+	Definition string
 
 	// Footprint is the cells the record takes in the world the game builds
 	// from the map; empty: the cells of Cell and Size.

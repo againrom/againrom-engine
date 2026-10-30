@@ -101,6 +101,25 @@ func (x *MapInspector) itemList(items []sim.ItemInstance) string {
 	return strings.Join(names, ", ")
 }
 
+// unitDefinition names the definition placement u sets, resolved as r, in
+// the font's encoding: the Humans row its npc flag or definition id reaches,
+// or the definition id no row answers. A placement whose class alone
+// selects its row sets none and gives "".
+func (x *MapInspector) unitDefinition(u alm.Unit, r mapload.Resolution) string {
+	enc := x.inspectionUTF8
+	switch {
+	case (r.Arm == mapload.ArmNPC || r.Arm == mapload.ArmServerID) && r.Found() && x.table != nil && x.table.Humans != nil:
+		return fmt.Sprintf(enc(x.word("editor.unit.definition")), r.Index, x.table.Humans.EntryName(r.Index))
+	case r.Arm == mapload.ArmServerID:
+		id := u.ServerID
+		if x.table == nil || x.table.ClassPlacementFields() {
+			id = u.DefID
+		}
+		return fmt.Sprintf(enc(x.word("editor.unit.nodefinition")), id)
+	}
+	return ""
+}
+
 // sheetLines are the unit popup's characteristics and loot sections for
 // placement u resolved as r, with headings, in the font's encoding: each
 // word is encoded and every installed name keeps its own bytes.

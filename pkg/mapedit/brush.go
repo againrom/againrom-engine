@@ -154,8 +154,14 @@ func (e *Editor) GridSize() (w, h int) {
 }
 
 // Footprint is every cell of a w x h grid a stroke of b through the centres
-// at covers, each once, in row order.
+// at covers, each once, in row order. A height-setting brush that blends
+// covers its effective circle around the first centre alone, as heights
+// writes it.
 func (b Brush) Footprint(at []Cell, w, h int) []Cell {
+	b = b.effective()
+	if b.Set && !b.Flat && b.Plane == PlaneHeight && len(at) > 1 {
+		at = at[:1]
+	}
 	in := map[Cell]bool{}
 	var out []Cell
 	for _, c := range at {
