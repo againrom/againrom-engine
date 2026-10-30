@@ -113,6 +113,9 @@ func (t *townScreen) scene(d *town.Description, room string) *town.Scene {
 		return s
 	}
 	s := town.NewScene(d, room, townSceneHost{t: t, room: room}, t.townProcess)
+	if s != nil {
+		t.bindRawDraws(s)
+	}
 	t.composed.scenes[key] = s
 	if room == d.Square.Name {
 		t.square = s
@@ -212,7 +215,7 @@ func (t *townScreen) advanceRoom() {
 		if list, _ := t.state().innSeats(); t.composed.seat >= 0 && t.composed.seat < len(list) {
 			frames = t.innPatron(r, t.roomArt(d, room).page, list[t.composed.seat].npc).frames
 		}
-		t.advanceSeats(r.Seats, frames)
+		t.advanceSeats(s, r.Seats, frames)
 	}
 }
 
@@ -253,18 +256,25 @@ func (t *townScreen) enterSeats() {
 }
 
 // advanceSeats advances the selected seat's actor one frame once its period
-// has passed; every other seat keeps its frame (R2-ENGINE-248).
-func (t *townScreen) advanceSeats(seats *town.SeatSpec, frames []image.Image) {
+// has passed; every other seat keeps its frame (R2-ENGINE-248). Seats on a
+// scene clock count the period from that clock's stamp (R2-ENGINE-686).
+func (t *townScreen) advanceSeats(s *town.Scene, seats *town.SeatSpec, frames []image.Image) {
 	st := t.composed
 	if st.seat < 0 || len(frames) == 0 {
 		return
 	}
-	now := t.sceneNow()
-	since, period := now.Sub(st.seatStamp), time.Duration(seats.FrameMS)*time.Millisecond
+	now, last := t.sceneNow(), st.seatStamp
+	if seats.Clock != "" {
+		last = s.Clock(seats.Clock)
+	}
+	since, period := now.Sub(last), time.Duration(seats.FrameMS)*time.Millisecond
 	if since < period || since == period && seats.Compare == "greater" {
 		return
 	}
 	st.seatStamp = now
+	if seats.Clock != "" {
+		s.SetClock(seats.Clock, now)
+	}
 	for len(st.seatFrames) <= st.seat {
 		st.seatFrames = append(st.seatFrames, 0)
 	}

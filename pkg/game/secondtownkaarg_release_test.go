@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"image"
 	"strings"
 	"testing"
@@ -17,7 +18,12 @@ import (
 // (R2-ENGINE-146), without playing missions 10 and 20.
 func secondTownTwo(t *testing.T) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
 	t.Helper()
-	f := secondGameFront(t)
+	return secondTownTwoOf(t, secondGameFront(t))
+}
+
+// secondTownTwoOf is secondTownTwo over a front the caller prepared.
+func secondTownTwoOf(t *testing.T, f *FrontEnd) (*FrontEnd, *ui.App, *townScreen, *time.Time) {
+	t.Helper()
 	now := time.Unix(100, 0)
 	f.TownAnimationNow = func() time.Time { return now }
 	app := f.App("second town two")
@@ -396,6 +402,19 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 	}
 	d, _ := s.composedTown()
 	art := s.roomArt(d, "inn")
+	// The taverner shows the series its first draw chose, at that series'
+	// point (R2-ENGINE-277). The left stats are not probed: seat 0's card
+	// covers them (R2-SESSION-203).
+	tav := s.scene(d, "inn").Actor("taverner").(*town.Alternating)
+	if tav.ShownState == 0 {
+		s.AdvanceTownSquareAnimation()
+	}
+	series := d.Scene("inn").Actors[0].States[max(tav.ShownState, 1)-1]
+	at := image.Pt(232, 88)
+	if series.At != nil {
+		at = image.Pt(series.At[0], series.At[1])
+	}
+	pic := art.scene.Pictures(series.Art)[tav.ShownFrame]
 	dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
 	s.TownSquareView().Scene.Paint(dst)
 	for _, probe := range []struct {
@@ -405,8 +424,7 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 		p    image.Point
 	}{
 		{"centre", art.scene.Pictures("center")[0], image.Pt(160, 0), image.Pt(300, 20)},
-		{"taverner", art.scene.Pictures("taverner")[0], image.Pt(232, 88), image.Pt(350, 230)},
-		{"left stats", art.scene.Pictures("left-stats")[0], image.Pt(0, 0), image.Pt(80, 100)},
+		{"taverner " + series.Name, pic, at, at.Add(pic.Bounds().Size().Div(2))},
 		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(560, 220)},
 	} {
 		q := probe.p.Sub(probe.at).Add(probe.pic.Bounds().Min)
@@ -429,6 +447,120 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 		t.Fatalf("GATES: %v current %v available %v", err, c.current, c.available)
 	}
 	t.Logf("inn rows %v", rows)
+}
+
+// TestReleaseSecondTownKaargInnTaverner runs the installed Kaarg inn under a
+// scripted tavern draw and a synthetic clock. The five taverner series load
+// whole at their sizes; a1 and then a5 run once each, one file a step more
+// than 100 ms apart, at their points; a1 requests Kman3; the first paint
+// requests Kvox8 and Kdish1 and each clock requests again after its drawn
+// wait. Kin1, requested at entry, finds no sample in the install
+// (R2-ENGINE-277, R2-ENGINE-687, R2-ASSET-073).
+func TestReleaseSecondTownKaargInnTaverner(t *testing.T) {
+	f := secondGameFront(t)
+	log := &secondTownSoundLog{}
+	f.SoundPlayer, f.speech.player = log, log
+	draws := []int{0, 32766, 16384, 32767, 0, 6242}
+	f.TavernRandom = func(n int) int {
+		if len(draws) == 0 {
+			return 0
+		}
+		v := draws[0]
+		draws = draws[1:]
+		return v % n
+	}
+	f, app, s, now := secondTownTwoOf(t, f)
+	t.Cleanup(app.StopAudio)
+	if err := app.HeadlessActivate("TAVERN"); err != nil || f.Town.second.room != secondTownInn {
+		t.Fatalf("TAVERN: %v room %v", err, f.Town.second.room)
+	}
+	s.TownSquareActive(true)
+	d, _ := s.composedTown()
+	art := s.roomArt(d, "inn")
+	for _, c := range []struct {
+		name string
+		n    int
+		size image.Point
+	}{{"a1", 15, image.Pt(248, 296)}, {"a2", 25, image.Pt(184, 188)}, {"a3", 3, image.Pt(44, 20)},
+		{"a4", 7, image.Pt(64, 64)}, {"a5", 29, image.Pt(84, 116)}} {
+		pics := art.scene.Pictures(c.name)
+		if len(pics) != c.n || pics[0] == nil || pics[0].Bounds().Size() != c.size {
+			t.Fatalf("series %s loaded %d files, want %d of %v", c.name, len(pics), c.n, c.size)
+		}
+	}
+	if _, ok := s.in.SoundBank.namedSample("town_kaarg/inn/kin1.wav"); ok {
+		t.Error("the install holds Kin1, which R2-ASSET-073 finds in neither archive")
+	}
+	for _, k := range []string{"kvox5", "kvox6", "kvox7", "kvox8", "kman2", "kman3", "kdish1", "kdish2", "kdish3", "kdish4"} {
+		if _, ok := s.in.SoundBank.namedSample("town_kaarg/inn/" + k + ".wav"); !ok {
+			t.Errorf("the install has no %s sample", k)
+		}
+	}
+	scene := s.scene(d, "inn")
+	tav := scene.Actor("taverner").(*town.Alternating)
+	if tav.ShownState != 0 {
+		t.Fatal("the taverner painted before the scripted paints")
+	}
+	probe := func(name string, at image.Point) {
+		t.Helper()
+		st := d.Scene("inn").Actors[0].States[tav.ShownState-1]
+		pic := art.scene.Pictures(st.Art)[tav.ShownFrame]
+		dst := image.NewRGBA(image.Rect(0, 0, 640, 480))
+		s.TownSquareView().Scene.Paint(dst)
+		p := at.Add(pic.Bounds().Size().Div(2))
+		q := p.Sub(at).Add(pic.Bounds().Min)
+		r1, g1, b1, _ := pic.At(q.X, q.Y).RGBA()
+		r2, g2, b2, _ := dst.At(p.X, p.Y).RGBA()
+		if st.Name != name || [3]uint32{r1, g1, b1} != [3]uint32{r2, g2, b2} {
+			t.Errorf("shows %s frame %d, want %s drawn at %v", st.Name, tav.ShownFrame, name, at)
+		}
+	}
+	start := len(log.lines)
+	var painted []string
+	for i := 0; i < 45; i++ {
+		step := 101 * time.Millisecond
+		if i == 0 {
+			step = 0
+		}
+		kaargStep(s, now, step)
+		painted = append(painted, fmt.Sprintf("%d.%d", tav.ShownState, tav.ShownFrame))
+		switch i {
+		case 0:
+			probe("a1", image.Pt(232, 88))
+		case 16:
+			probe("a5", image.Pt(248, 84))
+		}
+	}
+	// The first paint stamps the step clock and steps nothing; each later
+	// paint draws its file and then steps.
+	want := []string{"1.0"}
+	for n := 0; n < 15; n++ {
+		want = append(want, fmt.Sprintf("1.%d", n))
+	}
+	for n := 0; n < 29; n++ {
+		want = append(want, fmt.Sprintf("5.%d", n))
+	}
+	if strings.Join(painted, " ") != strings.Join(want, " ") {
+		t.Errorf("painted %v\nwant    %v", painted, want)
+	}
+	var sounds []string
+	for _, line := range log.lines[start:] {
+		if !strings.Contains(line, " priority=128 ") || !strings.Contains(line, " pcm=true") {
+			t.Errorf("request %s is not a 128-priority sample", line)
+		}
+		for _, k := range []string{"kin1", "kman2", "kman3", "kvox6", "kvox7", "kvox8", "kdish1", "kdish2", "kdish3", "kdish4"} {
+			if strings.Contains(strings.ToLower(line), k) {
+				sounds = append(sounds, k)
+			}
+		}
+	}
+	// a1 and the two clocks on the first paint (101 ms paints after it); the
+	// dish again at paint 20 (2020 ms), the voice at paint 30 (3030 ms) and
+	// the dish at paint 40, every later draw 0: Kdish1, Kvox6, Kdish1.
+	if got := strings.Join(sounds, " "); got != "kman3 kvox8 kdish1 kdish1 kvox6 kdish1" {
+		t.Errorf("requested %q, want kman3 kvox8 kdish1 kdish1 kvox6 kdish1", got)
+	}
+	t.Logf("Kvox5 loop on %v; requests %v", scene.LoopOn(), log.lines[start:])
 }
 
 // A SAV written in the Kaarg inn loads cold into the Kaarg inn page.

@@ -23,11 +23,15 @@ type SeatSpec struct {
 	// Patron is the bound page art of a seated person's own frames, its key
 	// formatted with the person's type id; a person whose frames do not load
 	// draws Actor. Empty draws Actor for every seat.
-	Patron  string   `json:"patron"`
-	Select  string   `json:"select"`
-	FrameMS int      `json:"frame-ms"`
-	Compare string   `json:"compare"`
-	Cite    []string `json:"cite"`
+	Patron  string `json:"patron"`
+	Select  string `json:"select"`
+	FrameMS int    `json:"frame-ms"`
+	Compare string `json:"compare"`
+	// Clock names a process clock of the page scene whose stamp the seat step
+	// reads and writes, so the step outlives every entry; empty stamps the
+	// step at each entry.
+	Clock string   `json:"clock"`
+	Cite  []string `json:"cite"`
 	// Card and Figure are where the selected seat's person shows its
 	// statistics card and its full figure; nil shows neither.
 	Card   *SeatCard   `json:"card"`

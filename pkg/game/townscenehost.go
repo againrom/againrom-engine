@@ -105,6 +105,31 @@ func sceneDrawFrom(draws townDraws, source string, n int) int {
 	return boundedPresentationRoll(nil, draws.stream(bind.stream), n)
 }
 
+// sceneRawFrom is one raw value 0..RandMax of a scene's host source: its
+// seam's draw of RandMax+1 when set, else its stream's raw value, which under
+// the original generator is rand() itself.
+func sceneRawFrom(draws townDraws, source string) int {
+	name := random.Name(source)
+	if bind, ok := sceneDraws[source]; ok {
+		if draw := bind.seam(draws); draw != nil {
+			return boundedPresentationRoll(draw, nil, random.RandMax+1)
+		}
+		name = bind.stream
+	}
+	if st := draws.stream(name); st != nil {
+		return st.Raw()
+	}
+	return 0
+}
+
+// bindRawDraws gives every host source of a built scene its raw values, so
+// each raw pick of the scene reads them.
+func (t *townScreen) bindRawDraws(s *town.Scene) {
+	for _, source := range s.HostSources() {
+		s.SetRawDraw(source, func() int { return sceneRawFrom(t.draws, source) })
+	}
+}
+
 func (t *townScreen) sceneSeed() int64 { return t.sound.wildlifeSeed() }
 
 func (t *townScreen) sceneCondition(name string) bool {

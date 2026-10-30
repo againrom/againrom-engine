@@ -303,7 +303,7 @@
        "lifecycle": "shown",
        "advance-when": "active",
        "actors": [
-         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "druid-keeper", "keep-index": true, "end": "all",
+         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "druid-keeper", "keep": true, "end": "all",
           "delay": {"draw": "idle", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000, "cite": ["R2-ENGINE-259", "DIV-3063"]},
           "idle-pick": {"draw": "idle", "raw": 32768, "form": "scaled", "n": 2, "cite": ["R2-ENGINE-259", "DIV-3063"]},
           "states": [

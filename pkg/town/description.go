@@ -201,8 +201,9 @@ type WaitSpec struct {
 
 // PickSpec is base plus draw(n) in the named arithmetic form. With Raw set,
 // the draw is a raw value r in [0,Raw) from a host source and the value is
-// base plus r/Divide, or base plus (r*n/(Raw-1))%n in the "scaled" form. With
-// Times set, the drawn value is multiplied by it.
+// base plus r/Divide, base plus (r*n/(Raw-1))%n in the "scaled" form, or
+// base plus r*n/Raw in the "fraction" form. With Times set, the drawn value
+// is multiplied by it.
 type PickSpec struct {
 	Draw   string   `json:"draw"`
 	Form   string   `json:"form"`
@@ -326,11 +327,16 @@ type ActorSpec struct {
 	Route *PickSpec `json:"route"`
 
 	// room programs: loop, alternating, selector, priority, bounce, cycle,
-	// target and training
+	// target and training. An alternating actor with Choice in place of
+	// Delay rests no wait: each paint at rest draws its next state. With
+	// Keep a priority actor's index, or an alternating actor's state and
+	// table step, outlives every entry.
 	Loop      int           `json:"loop"`
 	Clock     string        `json:"clock"`
 	Modulus   int           `json:"modulus"`
 	Delay     *PickSpec     `json:"delay"`
+	Choice    *PickSpec     `json:"choice"`
+	Keep      bool          `json:"keep"`
 	DelayMS   int           `json:"delay-ms"`
 	States    []StateSpec   `json:"states"`
 	On        []EventSpec   `json:"on"`
@@ -347,10 +353,8 @@ type ActorSpec struct {
 	Column    string        `json:"column"`
 	Value     string        `json:"value"`
 
-	// priority: the state an elapsed wait raises, and an index that
-	// outlives every entry
-	IdlePick  *PickSpec `json:"idle-pick"`
-	KeepIndex bool      `json:"keep-index"`
+	// priority: the state an elapsed wait raises
+	IdlePick *PickSpec `json:"idle-pick"`
 
 	// transit: the cells, the cells shown while Toward is chosen, and the
 	// two loops the cursor rests in

@@ -22,6 +22,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Iglez and the available mercenaries show their own figures in the inn. Hired mercenaries join the next mission and keep their appearance when you save and load.
 - [ROM2] Mission villagers, guards and brigands no longer all look like one man when inspected: each shows the face and body of his own kind, and the mage in the Astrologer mission walks with the hero mage's figure. Both stay after you save and load.
 - [ROM1] A game the original saved while a building was selected now loads. The building stays selected, and your next save keeps it.
+- [ROM2] The Kaarg innkeeper now moves through his five animations. The inn plays its background voices and clattering dishes.
 
 ### For map makers and modders
 

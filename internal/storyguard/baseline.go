@@ -3431,5 +3431,23 @@ var Committed = Baseline{
 	// then with the change report's store seam (pkg/ui, pkg/game), the Add
 	// walk's addOffer and addDefault, their tests and the Add walk guard.
 	// The merge with main is measured on the merged tree.
-	CommentBytes: 9934576,
+
+	// It rose for the Kaarg inn taverner and room sounds: the doc comments of
+	// the chooser, kept state and table motion in pkg/town/roomactors.go,
+	// pkg/town/scene.go and pkg/town/description.go, of the drawn-wait clock,
+	// the group pick and the fraction pick in pkg/town/scene.go,
+	// pkg/town/draws.go and pkg/town/validate.go, of the seat clock in
+	// pkg/town/seats.go and pkg/game/secondtown.go, the new tests' comments
+	// in pkg/town/choice_test.go, pkg/game/secondkaarginn_test.go and
+	// pkg/game/secondtownkaarg_release_test.go, and this note. The merge with
+	// main is measured on the merged tree.
+
+	// It rose again for the raw picks and the one keep store: the doc
+	// comments of HostSources, RawDraw, SetRawDraw and rawPick in
+	// pkg/town/draws.go, of keptProgress and keepKey in pkg/town/scene.go,
+	// of sceneRawFrom and bindRawDraws in pkg/game/townscenehost.go, the new
+	// tests' comments in pkg/town/keep_test.go and
+	// pkg/game/townrawpick_test.go, and this note. The merge with main is
+	// measured on the merged tree.
+	CommentBytes: 9942916,
 }

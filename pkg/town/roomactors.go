@@ -2,6 +2,7 @@ package town
 
 import (
 	"image"
+	"slices"
 	"time"
 )
 
@@ -39,29 +40,48 @@ func (l *Loop) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 // wait. A started state steps on its clock's period:
 // "forward" to its last frame, after which the index returns to zero while
 // the shown frame stays; "ping-pong" forward then back to the first frame;
-// "hold" on its first frame until its index reaches its Steps.
-// Each state keeps its own index and the last frame it showed.
+// "hold" on its first frame until its index reaches its Steps; "table"
+// through its table, one entry a step.
+// Each state keeps its own index and the last frame it showed. With Choice
+// the actor rests no wait: at rest each "arm" draws a value and starts the
+// state whose Picks hold it, and Step, the table's step, returns to zero.
 type Alternating struct {
 	still
 	spec       *ActorSpec
 	State      int // 0 resting, otherwise the 1-based running state
 	Index      []int
 	Cached     []int
+	Step       int
 	Direction  int
 	Delay      time.Duration
 	ShownState int
 	ShownFrame int
+	key        string
 }
 
 func (a *Alternating) reset(s *Scene) {
 	n := len(a.spec.States)
-	a.State, a.Direction, a.Delay, a.ShownState, a.ShownFrame = 0, 0, 0, 0, 0
+	a.State, a.Step, a.Direction, a.Delay, a.ShownState, a.ShownFrame = 0, 0, 0, 0, 0, 0
 	a.Index, a.Cached = make([]int, n), make([]int, n)
+	if a.spec.Keep {
+		a.key = s.keepKey(a.spec)
+		kept := s.proc.kept[a.key]
+		a.State, a.Step = kept.State, kept.Step
+	}
+}
+
+// keep stores a kept state and step in the process.
+func (a *Alternating) keep(s *Scene) {
+	if a.spec.Keep {
+		s.proc.kept[a.key] = keptProgress{State: a.State, Step: a.Step}
+	}
 }
 
 func (a *Alternating) enter(s *Scene, now time.Time) {
 	a.reset(s)
-	a.Delay = s.pickWait(*a.spec.Delay)
+	if a.spec.Delay != nil {
+		a.Delay = s.pickWait(*a.spec.Delay)
+	}
 }
 
 func (a *Alternating) finish(s *Scene, now time.Time, clearDirection bool) {
@@ -69,13 +89,41 @@ func (a *Alternating) finish(s *Scene, now time.Time, clearDirection bool) {
 	if clearDirection {
 		a.Direction = 0
 	}
-	a.Delay = s.pickWait(*a.spec.Delay)
+	if a.spec.Delay != nil {
+		a.Delay = s.pickWait(*a.spec.Delay)
+	}
 	s.SetClock(a.spec.Clock, now)
+}
+
+// choose draws a resting chooser's next state; a chosen state whose art is
+// missing leaves it resting.
+func (a *Alternating) choose(s *Scene) {
+	v := s.amount(*a.spec.Choice)
+	a.Step = 0
+	for i, st := range a.spec.States {
+		if !slices.Contains(st.Picks, v) {
+			continue
+		}
+		if s.Complete(st.Art, st.Complete) {
+			a.State = i + 1
+			for _, slot := range st.StartSounds {
+				s.sound(slot, "")
+			}
+		}
+		break
+	}
+	a.keep(s)
 }
 
 func (a *Alternating) phase(s *Scene, phase, name string, now time.Time) {
 	switch phase {
 	case "arm":
+		if a.spec.Choice != nil {
+			if a.State == 0 {
+				a.choose(s)
+			}
+			return
+		}
 		if now.Sub(s.Clock(a.spec.Clock)) <= a.Delay {
 			return
 		}
@@ -103,6 +151,9 @@ func (a *Alternating) phase(s *Scene, phase, name string, now time.Time) {
 		a.ShownState = a.State
 		if a.State > 0 {
 			a.ShownFrame = a.Cached[a.State-1]
+			if t := a.spec.States[a.State-1].Table; len(t) > 0 {
+				a.ShownFrame = t[min(a.Step, len(t)-1)]
+			}
 		}
 	case "cue":
 		if a.State == 0 {
@@ -115,6 +166,7 @@ func (a *Alternating) phase(s *Scene, phase, name string, now time.Time) {
 		}
 	case "advance":
 		a.advance(s, now)
+		a.keep(s)
 	}
 }
 
@@ -148,6 +200,12 @@ func (a *Alternating) advance(s *Scene, now time.Time) {
 	if st.Motion == "hold" {
 		if a.Index[i]++; a.Index[i] >= st.Steps {
 			a.Index[i] = 0
+			a.end(s, now, st, false)
+		}
+		return
+	}
+	if st.Motion == "table" {
+		if a.Step++; a.Step >= len(st.Table) {
 			a.end(s, now, st, false)
 		}
 		return
@@ -298,7 +356,7 @@ func (sel *Selector) draw(s *Scene, dst *image.RGBA, layer LayerSpec) {
 // restamping the actor's clock; End "all" then lowers every raised state.
 // Index i above zero shows frame i-1 of a complete state; otherwise the
 // actor shows its base art. A "cue" step requests the running state's frame
-// sound for the current index. With KeepIndex the index outlives every
+// sound for the current index. With Keep the index outlives every
 // entry and an ending entry: a state raised later starts from it.
 type Priority struct {
 	still
@@ -310,9 +368,9 @@ type Priority struct {
 
 func (q *Priority) reset(s *Scene) {
 	q.Raised, q.Index = make([]bool, len(q.spec.States)), 0
-	if q.spec.KeepIndex {
-		q.key = s.desc.Town + "/" + s.name + "/" + q.spec.Name
-		q.Index = s.proc.indexes[q.key]
+	if q.spec.Keep {
+		q.key = s.keepKey(q.spec)
+		q.Index = s.proc.kept[q.key].Index
 	}
 }
 
@@ -320,8 +378,8 @@ func (q *Priority) reset(s *Scene) {
 // entry.
 func (q *Priority) setIndex(s *Scene, i int) {
 	q.Index = i
-	if q.spec.KeepIndex {
-		s.proc.indexes[q.key] = i
+	if q.spec.Keep {
+		s.proc.kept[q.key] = keptProgress{Index: i}
 	}
 }
 

@@ -48,26 +48,35 @@ const LifecycleShown = "shown"
 // restamps it at now when the scene resumes: on every resume ("every"), or on
 // every resume after the first ("after-first"). A Process clock's stamp
 // outlives every reset and entry, kept in the Process; while it holds no
-// stamp a paint only stamps it and runs no group.
+// stamp a paint only stamps it and runs no group, unless Unstamped says
+// otherwise.
 type SceneClock struct {
-	Name       string   `json:"name"`
-	PeriodMS   *int     `json:"period-ms"`
-	Compare    string   `json:"compare"`
-	EntryMS    int      `json:"entry-ms"`
-	BackStamps bool     `json:"back-stamps"`
-	Rebase     string   `json:"rebase"`
-	Process    bool     `json:"process"`
-	Cite       []string `json:"cite"`
+	Name     string `json:"name"`
+	PeriodMS *int   `json:"period-ms"`
+	// Wait in place of a period draws the period at entry and after each
+	// admission; a process clock keeps it in the Process.
+	Wait       *PickSpec `json:"wait"`
+	Compare    string    `json:"compare"`
+	EntryMS    int       `json:"entry-ms"`
+	BackStamps bool      `json:"back-stamps"`
+	Rebase     string    `json:"rebase"`
+	Process    bool      `json:"process"`
+	// Unstamped is a process clock's paint while it holds no stamp: "stamp"
+	// stamps it and the paint goes on, "admit" admits it as long past.
+	Unstamped string   `json:"unstamped"`
+	Cite      []string `json:"cite"`
 }
 
 // StepGroup is a run of step entries, each "<phase> <actor>" or "sound
 // <slot>". A group bound to a clock runs only when the clock admits it; a
 // group "when" "active" runs only while the scene is entered and active.
+// With Pick the group runs the one entry the pick's value indexes.
 type StepGroup struct {
-	Clock string   `json:"clock"`
-	When  string   `json:"when"`
-	Run   []string `json:"run"`
-	Cite  []string `json:"cite"`
+	Clock string    `json:"clock"`
+	When  string    `json:"when"`
+	Pick  *PickSpec `json:"pick"`
+	Run   []string  `json:"run"`
+	Cite  []string  `json:"cite"`
 }
 
 // EventSpec binds an event the game raises to an actor's action.
@@ -85,15 +94,19 @@ type StateSpec struct {
 	Complete int    `json:"complete"`
 	// When is the wait parity that chooses an alternating state: "odd" or
 	// "even". With the actor's Modulus, Residues are the remainders of the
-	// wait's milliseconds that choose it instead.
+	// wait's milliseconds that choose it instead; with the actor's Choice,
+	// Picks are the drawn values that choose it.
 	When     string `json:"when"`
 	Residues []int  `json:"residues"`
+	Picks    []int  `json:"picks"`
 	// At draws the state's frame at this point in place of the layer's.
 	At *Point `json:"at"`
 	// Motion is "ping-pong" (forward to the last frame, then back to the
 	// first), "forward" (to the last frame, then the index returns to zero
-	// and the shown frame stays) or "hold" (the first frame for Steps steps).
+	// and the shown frame stays), "hold" (the first frame for Steps steps)
+	// or "table" (frame Table[i] at step i, ending after the last step).
 	Motion string `json:"motion"`
+	Table  []int  `json:"table"`
 	// Steps is the index at which a priority or held state ends.
 	Steps       int        `json:"steps"`
 	StartSounds []string   `json:"start-sounds"`
@@ -162,19 +175,31 @@ type Process struct {
 	lcg    map[string]*lcg
 	waits  map[string]*Wait
 	ends   map[string]int
-	// indexes are the priority actors' indexes that outlive every entry.
-	indexes map[string]int
+	// kept is the progress of the kept room actors, by keepKey.
+	kept map[string]keptProgress
+	// periods are the drawn periods of the process clocks that draw one.
+	periods map[string]time.Duration
 }
+
+// keptProgress is a kept room actor's progress that outlives every entry: a
+// priority actor's Index, an alternating actor's State and table Step.
+type keptProgress struct{ Index, State, Step int }
+
+// keepKey is the process key of a kept actor of the scene.
+func (s *Scene) keepKey(a *ActorSpec) string { return s.desc.Town + "/" + s.name + "/" + a.Name }
 
 func (p *Process) init() {
 	if p.lcg == nil {
 		p.lcg, p.waits, p.ends = map[string]*lcg{}, map[string]*Wait{}, map[string]int{}
 	}
-	if p.indexes == nil {
-		p.indexes = map[string]int{}
+	if p.kept == nil {
+		p.kept = map[string]keptProgress{}
 	}
 	if p.clocks == nil {
 		p.clocks = map[string]time.Time{}
+	}
+	if p.periods == nil {
+		p.periods = map[string]time.Duration{}
 	}
 }
 
@@ -201,11 +226,14 @@ type Scene struct {
 	slots  map[string]int
 	spots  map[string]*HotspotSpec
 	rooms  map[string]*RoomSpec
+	// raws are the host sources' raw values their raw picks read.
+	raws map[string]func() int
 }
 
 type sceneClock struct {
 	spec *SceneClock
 	last time.Time
+	wait time.Duration
 }
 
 // NewScene builds the scene of the named room of d over host, keeping its
@@ -315,6 +343,7 @@ func (s *Scene) enter(now time.Time) {
 	for _, c := range s.order {
 		if !c.spec.Process {
 			c.last = now.Add(time.Duration(c.spec.EntryMS) * time.Millisecond)
+			s.redraw(c)
 		}
 	}
 	for _, a := range s.actors {
@@ -383,7 +412,9 @@ func (s *Scene) pause() {
 
 // Advance is one paint of the scene: each step group in order. A scene that
 // advances only while active, or whose art is absent, does not advance. While
-// a process clock holds no stamp the paint only stamps it.
+// a process clock holds no stamp the paint only stamps it, unless the clock
+// says otherwise. A group on a clock that draws its period draws the next
+// after its entries run.
 func (s *Scene) Advance() {
 	if s.spec.AdvanceWhen == "active" && !s.active {
 		return
@@ -394,10 +425,12 @@ func (s *Scene) Advance() {
 	now := s.host.Now()
 	first := false
 	for _, c := range s.order {
-		if c.spec.Process && s.stamp(c).IsZero() {
-			s.setStamp(c, now)
-			first = true
+		if !c.spec.Process || !s.stamp(c).IsZero() || c.spec.Unstamped == "admit" {
+			continue
 		}
+		s.setStamp(c, now)
+		s.redraw(c)
+		first = first || c.spec.Unstamped == ""
 	}
 	if first {
 		return
@@ -406,18 +439,52 @@ func (s *Scene) Advance() {
 		if g.When == "active" && (!s.ready || !s.active) {
 			continue
 		}
-		if c := s.clocks[g.Clock]; c != nil {
+		c := s.clocks[g.Clock]
+		if c != nil {
 			last := s.stamp(c)
 			if c.spec.BackStamps && now.Before(last) {
 				s.setStamp(c, now)
 				return
 			}
-			if !elapsed(now.Sub(last), time.Duration(*c.spec.PeriodMS)*time.Millisecond, c.spec.Compare) {
+			if !elapsed(now.Sub(last), s.clockPeriod(c), c.spec.Compare) {
 				continue
 			}
 			s.setStamp(c, now)
 		}
-		s.runEntries(g.Run, now)
+		run := g.Run
+		if g.Pick != nil {
+			i := s.amount(*g.Pick)
+			run = run[max(0, min(i, len(run)-1)):][:1]
+		}
+		s.runEntries(run, now)
+		if c != nil {
+			s.redraw(c)
+		}
+	}
+}
+
+// clockPeriod answers a clock's period: its fixed one, or the one it drew.
+func (s *Scene) clockPeriod(c *sceneClock) time.Duration {
+	switch {
+	case c.spec.Wait != nil && c.spec.Process:
+		return s.proc.periods[c.spec.Name]
+	case c.spec.Wait != nil:
+		return c.wait
+	case c.spec.PeriodMS != nil:
+		return time.Duration(*c.spec.PeriodMS) * time.Millisecond
+	}
+	return 0
+}
+
+// redraw draws the next period of a clock that draws one.
+func (s *Scene) redraw(c *sceneClock) {
+	if c.spec.Wait == nil {
+		return
+	}
+	if d := s.pickWait(*c.spec.Wait); c.spec.Process {
+		s.proc.periods[c.spec.Name] = d
+	} else {
+		c.wait = d
 	}
 }
 
@@ -460,8 +527,8 @@ func (s *Scene) SetClock(name string, t time.Time) {
 }
 
 func (s *Scene) period(name string) time.Duration {
-	if c := s.clocks[name]; c != nil && c.spec.PeriodMS != nil {
-		return time.Duration(*c.spec.PeriodMS) * time.Millisecond
+	if c := s.clocks[name]; c != nil {
+		return s.clockPeriod(c)
 	}
 	return 0
 }

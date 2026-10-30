@@ -398,7 +398,7 @@
           ],
           "on": [{"event": "category-changed", "do": "select", "cite": ["R2-ENGINE-269", "DIV-4091"]}],
           "cite": ["R2-ENGINE-249", "DIV-4091"]},
-         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "generic-keeper", "keep-index": true,
+         {"name": "keeper", "program": "priority", "art": "keeper", "clock": "generic-keeper", "keep": true,
           "delay": {"draw": "idle", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000, "cite": ["R2-ENGINE-268"]},
           "states": [
             {"name": "idle", "art": "pose", "complete": 27, "steps": 28, "cite": ["R2-ENGINE-268", "DIV-3061"]},

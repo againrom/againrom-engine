@@ -43,19 +43,58 @@ func (s *Scene) generator(r *RandomSpec) *lcg {
 	return g
 }
 
-// RawDraw answers a generator's replacement raw values, nil when it runs.
-func (s *Scene) RawDraw(source string) func() int {
-	if r := s.random(source); r != nil && r.Source != "host" {
-		return s.generator(r).raw
+// HostSources names the scene's host draw sources in description order.
+func (s *Scene) HostSources() []string {
+	var out []string
+	for _, r := range s.spec.Random {
+		if r.Source == "host" {
+			out = append(out, r.Name)
+		}
 	}
-	return nil
+	return out
 }
 
-// SetRawDraw replaces a generator's raw values; tests pin a sequence with it.
+// RawDraw answers a source's raw values, nil when it has none set: a
+// generator's replacement, or the values a host source's raw picks read.
+func (s *Scene) RawDraw(source string) func() int {
+	r := s.random(source)
+	switch {
+	case r == nil:
+		return nil
+	case r.Source == "host":
+		return s.raws[source]
+	}
+	return s.generator(r).raw
+}
+
+// SetRawDraw sets a source's raw values 0..32767: a generator's replace its
+// own; a host source's are what its raw picks read in place of a bounded
+// draw. Tests pin a sequence with it.
 func (s *Scene) SetRawDraw(source string, raw func() int) {
-	if r := s.random(source); r != nil && r.Source != "host" {
+	r := s.random(source)
+	switch {
+	case r == nil:
+	case r.Source == "host":
+		if s.raws == nil {
+			s.raws = map[string]func() int{}
+		}
+		s.raws[source] = raw
+	default:
 		s.generator(r).raw = raw
 	}
+}
+
+// rawPick is a raw pick's value r in [0,n): the host source's raw value when
+// it has one set, else a bounded draw of n.
+func (s *Scene) rawPick(source string, n int) int {
+	if raw := s.raws[source]; raw != nil {
+		v := raw() % n
+		if v < 0 {
+			v += n
+		}
+		return v
+	}
+	return s.draw(source, "", n)
 }
 
 func (s *Scene) chance(c ChanceSpec) bool {
@@ -64,13 +103,16 @@ func (s *Scene) chance(c ChanceSpec) bool {
 
 // amount evaluates a pick: base plus a draw of n in the pick's form, times
 // Times; or, with Raw, base plus a raw draw r of [0,Raw) divided by Divide,
-// scaled in the "scaled" form, or r%n times Times in the "modulo" form.
+// scaled in the "scaled" form, r*n/Raw in the "fraction" form, or r%n times
+// Times in the "modulo" form.
 func (s *Scene) amount(p PickSpec) int {
 	if p.Raw > 0 {
-		r := s.draw(p.Draw, "", p.Raw)
+		r := s.rawPick(p.Draw, p.Raw)
 		switch {
 		case p.Form == "scaled":
 			return p.Base + (r*p.N/(p.Raw-1))%p.N
+		case p.Form == "fraction":
+			return p.Base + r*p.N/p.Raw
 		case p.Form == "modulo":
 			return p.Base + r%p.N*max(p.Times, 1)
 		case p.Divide > 0:

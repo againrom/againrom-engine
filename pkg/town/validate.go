@@ -187,6 +187,17 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		if s.Select != "" && !keyed {
 			return fail("seats request slot %q, which is no keyed slot of the page scene", s.Select)
 		}
+		if s.Clock != "" {
+			kept := false
+			if r.Scene != nil {
+				for _, c := range r.Scene.Clocks {
+					kept = kept || c.Name == s.Clock && c.Process
+				}
+			}
+			if !kept {
+				return fail("seats step on clock %q, which is no process clock of the page scene", s.Clock)
+			}
+		}
 	}
 	if err := validatePane(r.Pane, fail); err != nil {
 		return err
@@ -401,6 +412,20 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 		default:
 			return fail("clock %q rebase %q%s", c.Name, c.Rebase, accepted("every", "after-first"))
 		}
+		switch {
+		case c.Unstamped != "" && c.Unstamped != "stamp" && c.Unstamped != "admit":
+			return fail("clock %q unstamped %q%s", c.Name, c.Unstamped, accepted("stamp", "admit"))
+		case c.Unstamped != "" && !c.Process:
+			return fail("clock %q is unstamped %q but no process clock", c.Name, c.Unstamped)
+		}
+		if c.Wait != nil {
+			if c.PeriodMS != nil {
+				return fail("clock %q has both a period and a wait", c.Name)
+			}
+			if err := n.checkPick("clock "+c.Name, c.Wait); err != nil {
+				return err
+			}
+		}
 		n.clocks[c.Name] = c
 	}
 	for _, a := range s.Actors {
@@ -442,12 +467,21 @@ func (d *Description) validateScene(s *SceneSpec, rooms map[string]bool, fail fu
 		where := fmt.Sprintf("step group %d", i)
 		if g.Clock != "" {
 			c := n.clocks[g.Clock]
-			if c == nil || c.PeriodMS == nil {
+			if c == nil || c.PeriodMS == nil && c.Wait == nil {
 				return fail("%s is bound to clock %q, which has no period", where, g.Clock)
 			}
 		}
 		if g.When != "" && g.When != "active" {
 			return fail("%s has unknown when %q", where, g.When)
+		}
+		if p := g.Pick; p != nil {
+			if err := n.checkPick(where, p); err != nil {
+				return err
+			}
+			lo, hi := pickRange(*p)
+			if p.N <= 0 || p.Times > 0 || p.Divide > 0 || lo < 0 || hi >= len(g.Run) {
+				return fail("%s picks entries %d to %d of %d", where, lo, hi, len(g.Run))
+			}
 		}
 		if err := n.checkEntries(where, g.Run); err != nil {
 			return err
@@ -697,7 +731,14 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 		if err := needClock(true); err != nil {
 			return err
 		}
-		if err := n.needPick(where, a.Delay); err != nil {
+		pick := a.Delay
+		if a.Choice != nil {
+			if a.Delay != nil || a.Modulus != 0 {
+				return fail("a choice takes no delay and no modulus")
+			}
+			pick = a.Choice
+		}
+		if err := n.needPick(where, pick); err != nil {
 			return err
 		}
 		if len(a.States) == 0 {
@@ -707,7 +748,13 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 			return fail("negative modulus %d", a.Modulus)
 		}
 		for _, s := range a.States {
-			if a.Modulus > 0 {
+			if a.Choice != nil {
+				if s.When != "" || len(s.Residues) > 0 || len(s.Picks) == 0 {
+					return fail("state %q needs picks and neither parity nor residues under a choice", s.Name)
+				}
+			} else if len(s.Picks) > 0 {
+				return fail("state %q has picks and its actor no choice", s.Name)
+			} else if a.Modulus > 0 {
 				if s.When != "" || len(s.Residues) == 0 {
 					return fail("state %q needs residues and no parity under a modulus", s.Name)
 				}
@@ -719,11 +766,19 @@ func (n *sceneNames) validateActor(a ActorSpec) error {
 			} else if s.When != "odd" && s.When != "even" {
 				return fail("state %q has unknown parity %q", s.Name, s.When)
 			}
-			if s.Motion != "forward" && s.Motion != "ping-pong" && s.Motion != "hold" {
+			if s.Motion != "forward" && s.Motion != "ping-pong" && s.Motion != "hold" && s.Motion != "table" {
 				return fail("state %q has unknown motion %q", s.Name, s.Motion)
 			}
 			if s.Motion == "hold" && s.Steps <= 0 {
 				return fail("state %q holds for no steps", s.Name)
+			}
+			if (s.Motion == "table") != (len(s.Table) > 0) {
+				return fail("state %q has motion %q and %d table entries", s.Name, s.Motion, len(s.Table))
+			}
+			for _, f := range s.Table {
+				if f < 0 || f >= s.Complete {
+					return fail("state %q table frame %d outside its %d frames", s.Name, f, s.Complete)
+				}
 			}
 			if err := n.checkState(where, s); err != nil {
 				return err
@@ -1008,7 +1063,7 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 	var waits []*WaitSpec
 	var picks []*PickSpec
 	waits = append(waits, a.Wait, a.First)
-	picks = append(picks, a.Delay, a.HoldPick, a.Group, a.Count, a.Route, a.IdlePick)
+	picks = append(picks, a.Delay, a.Choice, a.HoldPick, a.Group, a.Count, a.Route, a.IdlePick)
 	for _, m := range a.Members {
 		waits = append(waits, m.Later)
 		picks = append(picks, m.SheetPick)
@@ -1040,15 +1095,35 @@ func (n *sceneNames) checkDraws(a ActorSpec, fail func(string, ...any) error) er
 		if p == nil {
 			continue
 		}
-		if p.Form != "" && p.Form != "scaled" && p.Form != "masked" && p.Form != "modulo" {
-			return fail("pick form %q%s", p.Form, accepted("scaled", "masked", "modulo"))
+		if msg := pickForm(*p); msg != "" {
+			return fail("%s", msg)
 		}
-		if p.Form == "modulo" && (p.Raw <= 0 || p.N <= 0) {
-			return fail("a modulo pick needs raw and n")
-		}
-		if p.Base < 0 || p.N < 0 || p.Raw < 0 || p.Divide < 0 || p.Times < 0 {
-			return fail("negative pick %+v", *p)
-		}
+	}
+	return nil
+}
+
+// pickForm names what is wrong with a pick's form or numbers, "" for
+// nothing.
+func pickForm(p PickSpec) string {
+	switch {
+	case p.Form != "" && p.Form != "scaled" && p.Form != "masked" && p.Form != "modulo" && p.Form != "fraction":
+		return fmt.Sprintf("pick form %q%s", p.Form, accepted("scaled", "masked", "modulo", "fraction"))
+	case (p.Form == "modulo" || p.Form == "fraction") && (p.Raw <= 0 || p.N <= 0):
+		return fmt.Sprintf("a %s pick needs raw and n", p.Form)
+	case p.Base < 0 || p.N < 0 || p.Raw < 0 || p.Divide < 0 || p.Times < 0:
+		return fmt.Sprintf("negative pick %+v", p)
+	}
+	return ""
+}
+
+// checkPick refuses a clock's or a group's pick that draws from an unknown
+// source or has a bad form.
+func (n *sceneNames) checkPick(where string, p *PickSpec) error {
+	if err := n.needPick(where, p); err != nil {
+		return err
+	}
+	if msg := pickForm(*p); msg != "" {
+		return n.fail("%s: %s", where, msg)
 	}
 	return nil
 }

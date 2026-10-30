@@ -15,7 +15,7 @@ func keeperScene() obj {
 		"art":    list{obj{"name": "base", "format": "picture", "key": "base.bmp"}, series("a1", 3), series("a2", 3)},
 		"sounds": obj{"slots": list{obj{"name": "man", "source": "shop", "key": "man.wav"}}},
 		"clocks": list{obj{"name": "idle", "compare": "at-least", "process": true}},
-		"actors": list{obj{"name": "q", "program": "priority", "art": "base", "clock": "idle", "end": "all", "keep-index": true,
+		"actors": list{obj{"name": "q", "program": "priority", "art": "base", "clock": "idle", "end": "all", "keep": true,
 			"delay":     obj{"draw": "s", "raw": 32768, "form": "modulo", "n": 5, "times": 1000, "base": 5000},
 			"idle-pick": obj{"draw": "s", "raw": 32768, "form": "scaled", "n": 2},
 			"states": list{

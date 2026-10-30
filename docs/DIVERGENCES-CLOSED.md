@@ -570,6 +570,12 @@ The Teleport sight hotfix closes the mission 80 exception:
 |---|---|---|---|---|---|---|---|---|
 | DIV-4189 | ROM2 campaign / the loss notice when a party identity falls | Owner, asked "When Iglez dies, show mission 30's own notice that he is dead?": "Yes, his own notice". Seat: the failure reason is data on identity 22's edition row; the hero's own fall is not changed | `R2-ENGINE-625` (High / Medium): the death of a class 0x21..0x3f actor sends identity - 19 as the failure reason, 3 for identity 22 and 2 for the hero (21). `R2-ENGINE-629` (High / Medium / Unknown): the failure screen takes cache entry reason - 2 | Iglez's fall in mission 30 shows `failure3` and the hero's fall `failure2`, both through missionLossReason, the one loss reason producer, from the edition's data; the remaining Medium link, the class each identity carries, is DIV-4224 | DEVIATION | Was: the reason on Iglez's fall was owner direction with no claim behind it, and the hero's fall showed the generic body; R2-ENGINE-625 publishes the producer the owner's ruling matches | A claim on what the original shows when identity 22 falls in mission 30 or when the hero falls, and on what stores the failure reason on such a loss; met by R2-ENGINE-625 | CLOSED |
 
+## Second game's Kaarg inn ambient sounds
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-2975 | ROM2 town 2 (Kaarg) / inn sounds | - | `R2-ENGINE-277` (High): the inn centre requests R(3)+1 of Kvox6, Kvox7 and Kvox8 and R(4)+1 of Kdish1..Kdish4, each after its own 2000+R(2000) ms. `R2-ENGINE-687` (High/Medium/Unknown): the same two clocks, each request storing 2000+R(2000) and now; entry requests Kin1 and loops Kvox5. `R2-ENGINE-247` (High/Medium): seat selection requests Helper | The Kaarg inn requests R(3) of Kvox6..8 and R(4) of Kdish1..4, each on its own clock of 2000+R(2000) ms drawn after each request, Kin1 and the Kvox5 loop at entry, and Helper on seat selection. What the first clock stamps and Kin1 do is DIV-4271 | FIDELITY-DEBT | Was: the Kaarg inn requested only Helper; the scene clock with a drawn wait and the step group that picks one entry now state the two clocks | The story that closes DIV-2972; met for the inn by the drawn-wait scene clock | CLOSED |
+
 ## Stale persistence rows the one SAV writer settled
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

@@ -1093,6 +1093,7 @@ pkg/game.TestReleaseSecondTownKaargGuardPosition
 pkg/game.TestReleaseSecondTownKaargPersonWaits
 pkg/game.TestReleaseSecondTownKaargPersonClicks
 pkg/game.TestReleaseSecondTownKaargInnPage
+pkg/game.TestReleaseSecondTownKaargInnTaverner
 pkg/game.TestReleaseSecondTownKaargColdLoadKeepsTheRoom
 pkg/game.TestReleaseSecondTownDruidMaskCensus
 pkg/game.TestReleaseSecondTownDruidPainterOrder

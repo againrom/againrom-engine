@@ -153,7 +153,10 @@ func TestRom2TownTwoDescriptionShape(t *testing.T) {
 		t.Fatal("the inn is not town 1's inn page kind")
 	}
 	seats, oneSeats := *r.Seats, *one.Seats
-	seats.Cite, oneSeats.Cite = nil, nil
+	if seats.Clock != "kaarg-seat" || oneSeats.Clock != "" {
+		t.Errorf("seat clocks %q, town 1 %q; the Kaarg seat step runs on its scene clock (R2-ENGINE-686)", seats.Clock, oneSeats.Clock)
+	}
+	seats.Cite, oneSeats.Cite, seats.Clock = nil, nil, ""
 	if !reflect.DeepEqual(seats, oneSeats) {
 		t.Errorf("seats %+v, town 1 %+v", seats, oneSeats)
 	}
