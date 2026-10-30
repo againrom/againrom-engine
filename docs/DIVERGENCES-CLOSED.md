@@ -576,6 +576,12 @@ The Teleport sight hotfix closes the mission 80 exception:
 |---|---|---|---|---|---|---|---|---|
 | DIV-2975 | ROM2 town 2 (Kaarg) / inn sounds | - | `R2-ENGINE-277` (High): the inn centre requests R(3)+1 of Kvox6, Kvox7 and Kvox8 and R(4)+1 of Kdish1..Kdish4, each after its own 2000+R(2000) ms. `R2-ENGINE-687` (High/Medium/Unknown): the same two clocks, each request storing 2000+R(2000) and now; entry requests Kin1 and loops Kvox5. `R2-ENGINE-247` (High/Medium): seat selection requests Helper | The Kaarg inn requests R(3) of Kvox6..8 and R(4) of Kdish1..4, each on its own clock of 2000+R(2000) ms drawn after each request, Kin1 and the Kvox5 loop at entry, and Helper on seat selection. What the first clock stamps and Kin1 do is DIV-4271 | FIDELITY-DEBT | Was: the Kaarg inn requested only Helper; the scene clock with a drawn wait and the step group that picks one entry now state the two clocks | The story that closes DIV-2972; met for the inn by the drawn-wait scene clock | CLOSED |
 
+## Second game's Teleport records
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-3105 | ROM2 magic / Teleport destination record | Owner: in the second game a spell shows and sounds as the original's instead of borrowing the first-game row with the same id | `R2-ENGINE-703` (High): the release makes two type-54 effects of 21 updates, one near the caster and a copy at the target cell centre, neither moving, each drawing frames 0..20. `R2-ENGINE-447` (High): identifier 54 takes frame update-1 | Teleport (54) builds two records at admission, one at the caster's point and one at the destination cell centre, each standing still for 21 updates and drawing frames 0..20. The raise, depth and first frame are DIV-4289 | UNKNOWN | Was: the record count was unread and the first game's shape was kept, each record living its sheet's Phases; `R2-ENGINE-703` states the count and the life | A claim on the records a second-game Teleport cast builds; met by `R2-ENGINE-703` | CLOSED |
+
 ## Stale persistence rows the one SAV writer settled
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

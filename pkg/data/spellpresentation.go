@@ -268,8 +268,9 @@ var firstSpellPresentation = SpellPresentation{
 
 // The second game's set: R2-ENGINE-445..448, R2-ENGINE-394. Lives other
 // than the chain's 13 and Blizzard's 16, the trail-free travel of 18 and
-// 40, the overlay join, the Teleport second record and LastSoundRow's
-// silent slots are chosen: DIV-3102..3106.
+// 40, the overlay join and LastSoundRow's silent slots are chosen:
+// DIV-3102..3104, DIV-3106. Teleport's two records of 21 updates are
+// R2-ENGINE-703's.
 var secondSpellPresentation = SpellPresentation{
 	Game: rules.SpellGameSecond, LastSoundRow: 29, SoundBase: 500,
 	BurstLight: burstLightSteps, BurstLightTail: LightStep{3, 0}, HasBurstLightTail: true,
@@ -294,7 +295,7 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 43, Overlay: true},
 		{ID: 46, LifePhases: true},
 		{ID: 48, LifePhases: true},
-		{ID: 54, LifePhases: true, SecondRecord: true},
+		{ID: 54, LifeTicks: 21, SecondRecord: true},
 		{ID: 56, LifeTicks: 1, Hidden: true},
 		{ID: 60, LifePhases: true},
 		{ID: 62, LifePhases: true},

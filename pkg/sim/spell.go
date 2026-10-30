@@ -1585,7 +1585,7 @@ func (w *World) withinCastReach(caster, target *Entity, reach int64) bool {
 }
 
 // chargeBookCast pays the admitted book cast of actor ci and starts its action.
-// A first-game Teleport whose caster faces its target is presented here; one
+// A Teleport whose caster faces its target is presented here; one
 // still turning is presented by presentAdmittedCasts on the tick its turn
 // ends. Its release reports no second cast.
 func (w *World) chargeBookCast(ci int, rule SpellRule) {
@@ -1596,7 +1596,7 @@ func (w *World) chargeBookCast(ci int, rule SpellRule) {
 	}
 }
 
-// presentAdmittedCasts presents each first-game Teleport that stepBookCasts
+// presentAdmittedCasts presents each Teleport that stepBookCasts
 // held for its caster's turn on this tick and whose countdown starts on the
 // next one. The original admits a cast only once its caster's facing equals
 // the heading (MOVE-107, MAGIC-340), and the countdown runs from that
@@ -1653,10 +1653,12 @@ func (w *World) presentBookCast(ci int, c bookCast, rule SpellRule) {
 	w.castObservation.recordAdmission(w, ci, c.Target, c.AtCell, rule, x, y)
 }
 
-// presentedAtAdmission reports a row whose cast message the first game sends
-// at admission rather than at the release: Teleport.
+// presentedAtAdmission reports a row whose cast message is sent at admission
+// rather than at the release: Teleport, in the first game (MAGIC-TELEPORT-371)
+// and in the second, whose cast routine pays and sends it before the wind-up
+// (R2-ENGINE-705).
 func (w *World) presentedAtAdmission(rule SpellRule) bool {
-	return !w.SecondGame() && rule.arm() == teleportSpellID
+	return rule.arm() == teleportSpellID
 }
 
 func (w *World) queueBookCast(c bookCast) bool {

@@ -60,8 +60,9 @@ func TestTheCastSiteTakesTheWorldsSet(t *testing.T) {
 		{"ice missile", 5, []int32{2048/200 - 1}, nil},
 		// Lightning, identifier 28: the 13-update path.
 		{"lightning", 10, []int32{13 - 1}, nil},
-		// Teleport, identifier 54: two records living the sheet's 9 phases.
-		{"teleport", 23, []int32{9 - 1, 9 - 1}, nil},
+		// Teleport, identifier 54: two records of 21 updates whatever the
+		// sheet holds (R2-ENGINE-703).
+		{"teleport", 23, []int32{21 - 1, 21 - 1}, nil},
 	} {
 		if got := castSegments(t, true, tc.row); !equalSegments(got, tc.second) {
 			t.Errorf("%s in the second game: segments %v, want %v", tc.name, got, tc.second)

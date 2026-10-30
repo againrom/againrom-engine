@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Teleport now shows its picture where the caster stands and where he lands at once, plays its sound once in the middle of the cast, and the caster plays his whole casting animation.
 - [ROM2] A unit under Curse or Poison Cloud now shows that spell's own sparks while the effect lasts.
 - [ROM2] After you load a mission save the original game wrote, the enemies guard their places and attack your hero again.
 - [ROM1] A game saved in Againrom after a Control Spirit cast, then saved again in the original, now loads, and the dead body the spell used stays gone. Before, the game refused to load it.

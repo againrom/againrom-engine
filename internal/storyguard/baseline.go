@@ -3483,5 +3483,10 @@ var Committed = Baseline{
 	// pkg/sim/savedgroupsai.go, the tests in
 	// pkg/sim/secondguardroute_test.go, and this note. The merge with main
 	// is measured on the merged tree.
-	CommentBytes: 9972093,
+
+	// It rose for the second game's Teleport caster: teleportCastProfile,
+	// teleportBookCast and castMessageSounds in pkg/game/spellbolt.go, the
+	// teleportCast field in pkg/game/gamefiles.go, the tests in
+	// pkg/game/secondteleport_test.go, and this note.
+	CommentBytes: 9974463,
 }

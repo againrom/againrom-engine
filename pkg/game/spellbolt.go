@@ -102,7 +102,9 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.Projectile
 		if ev.Weapon {
 			source = "weapon-cast-direct"
 		}
-		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), ev.Owner, from, source)
+		if mw.castMessageSounds(ev) {
+			mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), ev.Owner, from, source)
+		}
 		if !ev.Weapon {
 			span := mw.startBookCastRun(ev)
 			mw.scheduleBookCastSound(ev, span)
@@ -274,13 +276,31 @@ func (mw *mapWorld) startCastRun(id sim.EntityID) int {
 	return span
 }
 
-// startBookCastRun starts the run a book cast event plays. A first-game
-// Teleport is reported at its admission and its relocation follows on the
-// countdown, so its run is the caster class's own Attack timeline, one phase
-// per tick, drawn across the move (ANIM-TELEPORT-172). Every other cast keeps
-// the run scaled to its charge.
+// teleportCastProfile is a game's Teleport caster: run plays the caster
+// class's Attack timeline, and messageSound voices the cast message as well
+// as the run's AttackDelay hook.
+type teleportCastProfile struct {
+	run, messageSound bool
+}
+
+// teleportBookCast reports a book cast event of Teleport.
+func (mw *mapWorld) teleportBookCast(ev sim.CastEvent) bool {
+	return !ev.Weapon && mw.world.SpellArm(ev.Spell) == teleportArm
+}
+
+// castMessageSounds reports whether the cast message of ev plays its slot: a
+// second-game Teleport sounds from its caster's run alone (R2-ENGINE-704).
+func (mw *mapWorld) castMessageSounds(ev sim.CastEvent) bool {
+	return !mw.teleportBookCast(ev) || mw.files().teleportCast.messageSound
+}
+
+// startBookCastRun starts the run a book cast event plays. A Teleport is
+// reported at its admission and its relocation follows on the countdown, so
+// its run is the caster class's own Attack timeline, one phase per tick,
+// drawn across the move (ANIM-TELEPORT-172, R2-ENGINE-704). Every other cast
+// keeps the run scaled to its charge.
 func (mw *mapWorld) startBookCastRun(ev sim.CastEvent) int {
-	if mw.files().teleportCastRun && mw.world.SpellArm(ev.Spell) == teleportArm {
+	if mw.files().teleportCast.run && mw.teleportBookCast(ev) {
 		if c := mw.casterClass(ev.Caster); c != nil && len(c.Anim.AttackTrack) > 0 {
 			// advanceCastRuns takes a tick off in the admitting tick itself,
 			// so a run drawn on span ticks starts one above its span.

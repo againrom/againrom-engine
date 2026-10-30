@@ -116,9 +116,8 @@ type gameFiles struct {
 	// targetMarkOnRelease marks the target of a Wall or Summon-arm release
 	// with its cast picture.
 	targetMarkOnRelease bool
-	// teleportCastRun draws a Teleport cast as the caster class's Attack
-	// timeline, one phase per tick, across the move.
-	teleportCastRun bool
+	// teleportCast is how a Teleport cast's caster plays and sounds.
+	teleportCast teleportCastProfile
 	// commonBurstSound silences the cell sound of the picture 51 burst, which
 	// sounds from its common driver phase.
 	commonBurstSound bool
@@ -181,7 +180,7 @@ var firstGameFiles = gameFiles{
 	fogStampOnMove:      true,
 	flight:              flightProfile{registryRows: true},
 	targetMarkOnRelease: true,
-	teleportCastRun:     true,
+	teleportCast:        teleportCastProfile{run: true, messageSound: true},
 	commonBurstSound:    true,
 	projectileCounter:   true,
 	mageCardWeaponSpell: true,
@@ -232,7 +231,10 @@ var secondGameFiles = gameFiles{
 	fallbackSpeakers: true,
 	flight: flightProfile{FlightProfile: sim.FlightProfile{Release: sim.ReleaseAtClient, StartFromMovedCaster: true, ShotsNeedArt: true},
 		drawnClass: true},
-	heldMarks: secondHeldMarks,
+	// R2-ENGINE-704: state 8 for the type's attack frame list, Sfx 554 at
+	// AttackDelay from that run and none from the cast message.
+	teleportCast: teleportCastProfile{run: true},
+	heldMarks:    secondHeldMarks,
 }
 
 // speakerFaces is the speaker table of t's campaign.
