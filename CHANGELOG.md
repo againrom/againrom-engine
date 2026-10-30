@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.141.0
+
 ### For players
 
 - [ROM2] Bless, the four protections from the elements and the magic shield show their own pictures on the unit while they last.
