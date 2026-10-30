@@ -282,14 +282,14 @@ func TestReleaseMissionHandoffActivation(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f, _, _ := missionHandoffTown(t)
 	var before Snapshot
-	snapshotTown(f.Town, &before)
+	snapshotTown(f.Town, &before, f.campaign())
 	previousWorld, previousMission := f.live, f.liveMission
 	for _, mission := range []int{-1, 120} {
 		if _, _, _, _, _, _, _, _, _, _, err := f.MissionOpenerWith(mission, f.Carried)(); err == nil {
 			t.Fatalf("stage=failed-open: mission %d unexpectedly accepted", mission)
 		}
 		var after Snapshot
-		snapshotTown(f.Town, &after)
+		snapshotTown(f.Town, &after, f.campaign())
 		if !reflect.DeepEqual(before, after) || f.live != previousWorld || f.liveMission != previousMission {
 			t.Fatal("stage=failed-open: rejection changed town or live driver")
 		}
@@ -300,7 +300,7 @@ func TestReleaseMissionHandoffActivation(t *testing.T) {
 		t.Fatalf("stage=deferred-prepare: %v", err)
 	}
 	var prepared Snapshot
-	snapshotTown(f.Town, &prepared)
+	snapshotTown(f.Town, &prepared, f.campaign())
 	if activate == nil || !reflect.DeepEqual(before, prepared) || f.live != previousWorld || f.liveMission != previousMission {
 		t.Fatal("stage=deferred-prepare: uncommitted candidate changed town or live driver")
 	}
@@ -315,7 +315,7 @@ func TestReleaseMissionHandoffMismatchGuard(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f, _, projection := missionHandoffTown(t)
 	var before Snapshot
-	snapshotTown(f.Town, &before)
+	snapshotTown(f.Town, &before, f.campaign())
 	for _, source := range []string{"SAV"} {
 		_, _, err := f.RestoreOriginal(originalSaveWithCampaign(t, 131, projection))
 
@@ -323,7 +323,7 @@ func TestReleaseMissionHandoffMismatchGuard(t *testing.T) {
 			t.Fatalf("stage=mismatch-guard source=%s: %v", source, err)
 		}
 		var after Snapshot
-		snapshotTown(f.Town, &after)
+		snapshotTown(f.Town, &after, f.campaign())
 		if !reflect.DeepEqual(before, after) || f.live != nil || f.liveMission != 0 {
 			t.Fatal("stage=mismatch-guard: rejected LOAD mutated town or installed a mission")
 		}

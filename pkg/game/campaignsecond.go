@@ -69,7 +69,16 @@ func (secondCampaignRules) exportable(s Snapshot) error {
 // has no chapter record to complete.
 func (secondCampaignRules) refuseCompleted(*FrontEnd, Snapshot) error { return nil }
 
-func (secondCampaignRules) campaignProjection(s Snapshot) (sav.CampaignProjection, bool) {
+// recordProfile: the bank states the record of a session that holds the
+// destinations campaign; its town record carries its own home word, and a
+// SAVE writes the offer labels as LOAD stated them.
+func (secondCampaignRules) recordProfile() campaignRecordProfile {
+	return campaignRecordProfile{stated: secondStatedRecord,
+		statedHome:  [campaignRecordKinds]campaignHome{townRecord: homeTown},
+		offerLabels: offerLabelsAsLoaded}
+}
+
+func secondStatedRecord(s Snapshot) (sav.CampaignProjection, bool) {
 	if s.second == nil {
 		return sav.CampaignProjection{}, false
 	}

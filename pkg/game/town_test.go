@@ -182,7 +182,7 @@ func TestTheAuthoredTownTransitionRewardIsSeparateConfigurableAndPaidOnce(t *tes
 		t.Fatalf("purse after transition won twice = %d, want exactly-once %d", got, initialPlayerPurse+firstTownTransitionReward)
 	}
 	var snap Snapshot
-	snapshotTown(town, &snap)
+	snapshotTown(town, &snap, firstCampaignRules{})
 	restored := testRestoreTown(c, snap)
 	restored.Won(20)
 	if got := restored.Gold(); got != initialPlayerPurse+firstTownTransitionReward {

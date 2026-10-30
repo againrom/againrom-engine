@@ -95,7 +95,7 @@ func TestGateSnapshotRecordsAndHistoricalDefault(t *testing.T) {
 	town.Take(TownShop, 0)
 	town.Won(30)
 	var s Snapshot
-	snapshotTown(town, &s)
+	snapshotTown(town, &s, firstCampaignRules{})
 	back := testRestoreTown(town.camp, s)
 	if !reflect.DeepEqual(town.records, back.records) || back.gateMission() != 31 {
 		t.Fatal("detached snapshot lost current records", back.records)
@@ -117,7 +117,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		town := NewTown(c)
 		town.Arrive()
 		var s Snapshot
-		snapshotTown(town, &s)
+		snapshotTown(town, &s, firstCampaignRules{})
 		back := testRestoreTown(c, s)
 		if town.currentMain() != 30 || !reflect.DeepEqual(town.records, back.records) || back.gateMission() != -1 {
 			t.Fatal("Arrive record authority changed", town.records, back.records)
@@ -135,7 +135,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		town := NewTown(c)
 		town.open = true
 		var s Snapshot
-		snapshotTown(town, &s)
+		snapshotTown(town, &s, firstCampaignRules{})
 		if s.MainMission != 10 || s.CampaignRecords.Main.Mission != 10 {
 			t.Fatal("fixture did not preserve stale prologue identity")
 		}
@@ -146,7 +146,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 	})
 	t.Run("changed campaign keeps configured building rows", func(t *testing.T) {
 		var s Snapshot
-		snapshotTown(saveTown(t), &s)
+		snapshotTown(saveTown(t), &s, firstCampaignRules{})
 		changed := Campaign{Main: []int{30}, Side: []int{31}, Offered: []int{30}, Chapters: map[int]Chapter{30: {Mission: 30, Shop: []int{31}}}}
 		f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(changed, nil)}}
 		projection, err := nativeCampaignProjection(f, s)
@@ -169,7 +169,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		town.Take(TownShop, 0)
 		town.Won(30)
 		var s Snapshot
-		snapshotTown(town, &s)
+		snapshotTown(town, &s, firstCampaignRules{})
 		changed := town.camp
 		changed.Side = []int{41}
 		changed.Offered = []int{30, 40, 41}
@@ -192,7 +192,7 @@ func TestGateSnapshotConfigurationAndLegacyCompatibility(t *testing.T) {
 		town.Take(TownShop, 1)
 		town.Won(30)
 		var s Snapshot
-		snapshotTown(town, &s)
+		snapshotTown(town, &s, firstCampaignRules{})
 		s.CampaignRecords = nil
 		back := testRestoreTown(town.camp, s)
 		child := back.records.record(39)

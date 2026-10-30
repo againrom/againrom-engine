@@ -45,8 +45,10 @@ func (firstCampaignRules) refuseCompleted(f *FrontEnd, s Snapshot) error {
 	return nil
 }
 
-func (firstCampaignRules) campaignProjection(Snapshot) (sav.CampaignProjection, bool) {
-	return sav.CampaignProjection{}, false
+// recordProfile: the chapter progress states every record, and a SAVE
+// writes the current chapter's offer labels.
+func (firstCampaignRules) recordProfile() campaignRecordProfile {
+	return campaignRecordProfile{offerLabels: offerLabelsOfChapter}
 }
 
 func (r firstCampaignRules) validateSession(s *currentSessionData) error {

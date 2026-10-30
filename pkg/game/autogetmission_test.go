@@ -22,7 +22,7 @@ func TestAWonMissionTenWritesTheSecondMissionsOwnRouting(t *testing.T) {
 	}
 	town := newTownFromCampaignProgress(c, progress)
 	var first Snapshot
-	snapshotTown(town, &first)
+	snapshotTown(town, &first, firstCampaignRules{})
 	if first.Campaign.AutoGetMission != 20 || first.Campaign.Main.Announced {
 		t.Fatalf("mission 10 writes AutoGetMission %#x, announced %v; want 0x14, false",
 			first.Campaign.AutoGetMission, first.Campaign.Main.Announced)
@@ -32,7 +32,7 @@ func TestAWonMissionTenWritesTheSecondMissionsOwnRouting(t *testing.T) {
 		t.Fatalf("Won(10) = side %v, ok %v", side, ok)
 	}
 	var second Snapshot
-	snapshotTown(town, &second)
+	snapshotTown(town, &second, firstCampaignRules{})
 	if second.Campaign.Main.Mission != 20 || second.Campaign.AutoGetMission != 0xFFFFFFFF || !second.Campaign.Main.Announced {
 		t.Fatalf("after the mission-10 win the campaign writes main %d, AutoGetMission %#x, announced %v; want 20, 0xffffffff, true",
 			second.Campaign.Main.Mission, second.Campaign.AutoGetMission, second.Campaign.Main.Announced)
@@ -44,7 +44,7 @@ func TestAWonMissionTenWritesTheSecondMissionsOwnRouting(t *testing.T) {
 		t.Fatalf("Won(20) = side %v, ok %v", side, ok)
 	}
 	var home Snapshot
-	snapshotTown(town, &home)
+	snapshotTown(town, &home, firstCampaignRules{})
 	if home.Campaign.Main.Mission != 30 || home.Campaign.AutoGetMission != 0xFFFFFFFF || home.Campaign.Main.Announced {
 		t.Fatalf("after the mission-20 win the campaign writes main %d, AutoGetMission %#x, announced %v; want 30, 0xffffffff, false",
 			home.Campaign.Main.Mission, home.Campaign.AutoGetMission, home.Campaign.Main.Announced)
@@ -80,7 +80,7 @@ func TestALoadedSAVKeepsItsAutoGetMissionUntilAMissionEnd(t *testing.T) {
 		}
 		town := newTownFromCampaignProgress(c, progress)
 		var s Snapshot
-		snapshotTown(town, &s)
+		snapshotTown(town, &s, firstCampaignRules{})
 		if s.Campaign.AutoGetMission != tc.stored || s.Campaign.LastMission != tc.last {
 			t.Errorf("main %d stored %#x/%d writes AutoGetMission %#x, LastMission %d", tc.main, tc.stored, tc.last, s.Campaign.AutoGetMission, s.Campaign.LastMission)
 		}
@@ -88,7 +88,7 @@ func TestALoadedSAVKeepsItsAutoGetMissionUntilAMissionEnd(t *testing.T) {
 			t.Fatalf("Won(%d) = side %v, ok %v", tc.main, side, ok)
 		}
 		var won Snapshot
-		snapshotTown(town, &won)
+		snapshotTown(town, &won, firstCampaignRules{})
 		next := tc.main + mainMissionStride
 		if won.Campaign.Main.Mission != uint32(next) || won.Campaign.AutoGetMission != autoGetMissionValue(c, next) ||
 			won.Campaign.LastMission != lastMissionValue(c, next) || won.Campaign.Main.Announced != (tc.main == 10) {
@@ -107,7 +107,7 @@ func TestAFreshMissionTenWinAnnouncesTheSecondMission(t *testing.T) {
 		t.Fatalf("Won(10) = side %v, ok %v", side, ok)
 	}
 	var s Snapshot
-	snapshotTown(f.Town, &s)
+	snapshotTown(f.Town, &s, f.campaign())
 	projection, err := nativeCampaignProjectionForChapter(f, s, f.Town.Chapter())
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestALoadedAutoGetMissionAtOrBelowTheMainTravelsToTheMain(t *testing.T) {
 		next, msg := s.recordWin(c, tc.won, nil, nil, nil, nil,
 			townArrival{arrive: func() { arrived = true }, welcome: func(int) {}})
 		var snap Snapshot
-		snapshotTown(s.Town, &snap)
+		snapshotTown(s.Town, &snap, firstCampaignRules{})
 		travel := !tc.done
 		if next != tc.next || s.Town.Done(tc.won) != tc.done || arrived != tc.arrived || s.Town.Gold() != tc.gold ||
 			int(snap.Campaign.Main.Mission) != tc.wantMain || s.Offered != 0 && travel {

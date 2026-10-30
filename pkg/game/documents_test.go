@@ -162,7 +162,7 @@ func TestTheSaveCarriesTheCollectionInGrantOrder(t *testing.T) {
 	town.CollectDocuments(50)
 
 	var s Snapshot
-	snapshotTown(town, &s)
+	snapshotTown(town, &s, firstCampaignRules{})
 	if got, want := s.DocumentMission, 50; got != want {
 		t.Errorf("Snapshot.DocumentMission = %d, want %d", got, want)
 	}
@@ -243,7 +243,7 @@ func TestWonMissionGrantsItsDocumentsWithoutMissionEntry(t *testing.T) {
 		t.Errorf("after Won(10) the guard is %d, want 10", got)
 	}
 	s := Snapshot{}
-	snapshotTown(town, &s)
+	snapshotTown(town, &s, firstCampaignRules{})
 	if len(s.Documents) != 3 {
 		t.Errorf("snapshot carries %d documents, want 3", len(s.Documents))
 	}

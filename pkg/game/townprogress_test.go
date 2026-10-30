@@ -27,7 +27,7 @@ func requireClosedTown(t *testing.T, town *Town, main int) {
 			town.Open(), town.Chapter(), town.ChapterData().Mission, main, main)
 	}
 	var before Snapshot
-	snapshotTown(town, &before)
+	snapshotTown(town, &before, firstCampaignRules{})
 	for _, building := range []TownBuilding{TownTavern, TownShop, TownSchool} {
 		if offers := town.Offers(building); len(offers) != 0 {
 			t.Fatalf("closed building %d offers %+v", building, offers)
@@ -37,7 +37,7 @@ func requireClosedTown(t *testing.T, town *Town, main int) {
 		}
 	}
 	var after Snapshot
-	snapshotTown(town, &after)
+	snapshotTown(town, &after, firstCampaignRules{})
 	if !reflect.DeepEqual(before, after) {
 		t.Fatal("closed offer queries changed campaign state")
 	}
@@ -130,13 +130,13 @@ func TestTownMissionIdentityCommitsOnlyWithThePreparedWorld(t *testing.T) {
 		t.Fatalf("activated mission/main/open = %d/%d/%v", f.liveMission, f.Town.Chapter(), f.Town.Open())
 	}
 	var before Snapshot
-	snapshotTown(f.Town, &before)
+	snapshotTown(f.Town, &before, f.campaign())
 	world := f.live
 	if _, _, _, _, _, _, _, _, _, _, err := f.MissionOpener(30)(); err == nil {
 		t.Fatal("missing map unexpectedly opened")
 	}
 	var after Snapshot
-	snapshotTown(f.Town, &after)
+	snapshotTown(f.Town, &after, f.campaign())
 	if f.live != world || f.liveMission != 20 || !reflect.DeepEqual(before, after) {
 		t.Fatal("failed mission activation changed the live town or world")
 	}
@@ -150,7 +150,7 @@ func TestTownLegacyMainAndOrdinaryPreTownProjectionAgree(t *testing.T) {
 		town := testRestoreTown(c, legacy)
 		requireClosedTown(t, town, mission)
 		var current Snapshot
-		snapshotTown(town, &current)
+		snapshotTown(town, &current, firstCampaignRules{})
 		current.Mission = mission
 		if chapter, err := f.generatedCampaignChapter(current); current.MainMission != mission || err != nil || chapter != mission {
 			t.Fatalf("mission %d capture lost current main", mission)
@@ -192,7 +192,7 @@ func TestTownConsumedOffersSurviveArrivalAndColdCampaignRecords(t *testing.T) {
 	assertConsumed(f.Town)
 	for cycle := 0; cycle < 2; cycle++ {
 		snapshot := Snapshot{Mission: 31}
-		snapshotTown(f.Town, &snapshot)
+		snapshotTown(f.Town, &snapshot, f.campaign())
 		assertConsumed(testRestoreTown(c, snapshot))
 		projection := snapshot.Campaign
 		if !snapshot.CampaignState {

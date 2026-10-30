@@ -717,7 +717,7 @@ func TestReleaseSecondTownModalSaveBoundary(t *testing.T) {
 		t.Fatal("capture discarded open TALK")
 	}
 	blocked := quiet
-	snapshotTown(f.Town, &blocked)
+	snapshotTown(f.Town, &blocked, f.campaign())
 	for _, export := range []func(Snapshot, string) ([]byte, error){f.ExportCurrentSave, f.ExportCurrentWorldSave, f.ExportNativeCitySave, f.ExportOriginalSave} {
 		if raw, err := export(blocked, "blocked"); err == nil || len(raw) != 0 {
 			t.Fatal("producer discarded modal", err)

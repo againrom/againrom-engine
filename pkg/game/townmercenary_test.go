@@ -102,7 +102,7 @@ func TestMercenaryUnlockReachesEveryTown(t *testing.T) {
 	tw.Arrive()
 	tw.Won(30)
 	var s Snapshot
-	snapshotTown(tw, &s)
+	snapshotTown(tw, &s, firstCampaignRules{})
 	back := testRestoreTown(camp, s)
 	if !back.travelTo(2) || !back.MercenaryEnabled(4) {
 		t.Errorf("after a cold LOAD East enables type 4: %v", back.MercenaryEnabled(4))

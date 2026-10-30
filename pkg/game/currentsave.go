@@ -34,19 +34,11 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if s.CampaignState {
-		fame := fameFromSnapshot(s)
-		s.Fame = &fame
-		s.Campaign.MissionTime, s.Campaign.ScoreEvents, s.Campaign.ScoreEventsKnown = fame.Time, fame.Events, true
-	}
 	if vanilla := max(len(s.Documents), len(s.Campaign.Documents)); !sav.DocPayloadFits(s.DocPayload, vanilla) || !sav.DocPayloadFits(s.Campaign.Payload, vanilla) {
 		f.Town.dropDocPayload(vanilla)
 		s.DocPayload, s.Campaign.Payload = nil, nil
 	}
-	s.Campaign = f.cityCampaignMarkerPaths(f.currentCampaignMarkers(s.Campaign, s.WorldSelectedOnce))
-	if !s.CampaignState || s.Mission != 0 {
-		s.Campaign = f.campaignMapObjects(s.Campaign)
-	}
+	f.seatCarriedCampaignRecord(&s)
 	if s.Mission != 0 && f.live != nil && f.live.mission != nil && f.live.mission.state != nil {
 		m := f.live.mission.state.Map
 		base := sim.Terrain{Cost: mapload.Cost(m), Height: mapload.Height(m)}
@@ -145,55 +137,10 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
-	second := false
-	if projection, ok := f.campaign().campaignProjection(s); ok {
-		s.Campaign = projection
-		s.CampaignState, second = true, true
+	if s.Campaign, err = f.campaignRecord(s, missionRecord); err != nil {
+		return sav.DocumentData{}, err
 	}
-	if !s.CampaignState {
-		chapter, err := f.generatedCampaignChapter(s)
-		if err != nil {
-			return sav.DocumentData{}, err
-		}
-		s.Campaign, err = nativeCampaignProjectionForChapter(f, s, chapter)
-		if err != nil {
-			return sav.DocumentData{}, err
-		}
-		mission := int(s.Mission)
-		campaign := f.Campaign.Value()
-		if mission != 0 && !containsMission(campaign.Main, mission) &&
-			(containsMission(campaign.Side, mission) || containsMission(campaign.Offered, mission)) {
-			present := false
-			for _, child := range s.Campaign.Children {
-				if int(child.Mission) == mission {
-					present = true
-					break
-				}
-			}
-			if !present {
-				child := progressRecordFromCampaign(campaign, mission).savRecord(true)
-				child.Age = 0
-				s.Campaign.Children = append(s.Campaign.Children, child)
-			}
-		}
-		s.CampaignState = true
-		// A guest's mission is no mission of the waiting campaign.
-		if !s.guest.playing(mission) {
-			s.Campaign.SelectedMission = uint32(s.Mission)
-		}
-		// SAV-1094/REG-SCN-063: every original mission-10 save carries the
-		// next mission (20) under AutoGetMission (Campaign+0x110); every
-		// other mission, including 20 and every mission from 30 on, carries
-		// the original's own no-successor sentinel -1, or the party is stuck
-		// on the world map. scenario.reg's own [Mission<n>] section is the
-		// current-state source (Campaign.AutoAdvance), not a literal table.
-		s.Campaign.AutoGetMission = autoGetMissionValue(campaign, mission)
-		// A native mission's party stands on the mission's map object.
-		s.Campaign.FirstMapPoint = false
-	}
-	if !second {
-		s.Campaign = f.campaignTail(s.Campaign)
-	}
+	s.CampaignState = true
 	return currentWorldDocument(s, native, f.Table)
 }
 
@@ -330,30 +277,13 @@ func (f *FrontEnd) currentCityDocument(s Snapshot) (sav.DocumentData, error) {
 	if err := projectCurrentCityParty(&b.doc, s.Party, actors, &a, f.Table); err != nil {
 		return sav.DocumentData{}, err
 	}
-	campaign, second := s.Campaign, false
-	if projection, ok := f.campaign().campaignProjection(s); ok {
-		campaign = projection
-		s.CampaignState, second = true, true
-	}
-	if !s.CampaignState {
-		campaign, err = nativeCampaignProjection(f, s)
-		if err != nil {
-			return sav.DocumentData{}, err
-		}
-	}
-	if second {
-		// The second game's town record keeps its own home word.
-		campaign.FirstMapPoint = true
-	} else {
-		campaign = f.campaignTail(campaign)
+	campaign, err := f.campaignRecord(s, townRecord)
+	if err != nil {
+		return sav.DocumentData{}, err
 	}
 	b.doc, _, err = sav.ReindexDocumentData(b.doc)
 	if err != nil {
 		return sav.DocumentData{}, err
-	}
-	campaign = f.cityCampaignMarkerPaths(campaign)
-	if !s.CampaignState {
-		campaign = f.campaignMapObjects(campaign)
 	}
 	doc, err = sav.ProjectDocumentCampaign(b.doc, campaign)
 	if err != nil {

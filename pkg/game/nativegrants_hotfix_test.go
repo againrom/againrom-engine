@@ -62,7 +62,7 @@ func TestNativeCompanionGrantDefaultsAndAdmission(t *testing.T) {
 			town.takeAddHeroes(n)
 		}
 		var snapshot Snapshot
-		snapshotTown(town, &snapshot)
+		snapshotTown(town, &snapshot, firstCampaignRules{})
 		raw := snapshot.ConsumedHeroGrants
 
 		if prior != nil && !reflect.DeepEqual(prior, raw) {
@@ -82,7 +82,7 @@ func TestNativeCompanionGrantIsConsumedAndPersisted(t *testing.T) {
 		t.Fatal("consumed native grant was offered again", got)
 	}
 	var snapshot Snapshot
-	snapshotTown(town, &snapshot)
+	snapshotTown(town, &snapshot, firstCampaignRules{})
 	if got := testRestoreTown(c, snapshot).takeAddHeroes(30); len(got) != 0 {
 		t.Fatal("AGS restored a consumed grant", got)
 	}

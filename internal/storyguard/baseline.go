@@ -3457,5 +3457,20 @@ var Committed = Baseline{
 	// pkg/game/heldmarkprofile_test.go and
 	// pkg/render/terrain/heldmarkprogram_test.go, and this note. The merge
 	// with main is measured on the merged tree.
-	CommentBytes: 9948524,
+
+	// It rose for the one campaign record projection: the doc comments of
+	// its kinds, sources, overlays and profile in pkg/game/campaignrecord.go,
+	// of the two profiles in pkg/game/campaignfirst.go and
+	// pkg/game/campaignsecond.go, of its guard in
+	// internal/archtest/campaignrecord.go, the new tests' comments in
+	// pkg/game/campaignrecord_test.go, pkg/game/campaignrecordroute_test.go
+	// and internal/archtest, and this note, less the inline route comments
+	// it replaced in pkg/game/currentsave.go and pkg/game/resume.go.
+
+	// It rose again for the one first-frame restore: the doc comments of
+	// the source and its two rows in pkg/game/firstframe.go, of its guard
+	// in internal/archtest/firstframe.go, the new tests' comments in
+	// pkg/game/firstframe_test.go and internal/archtest, and this note.
+	// The merge with main is measured on the merged tree.
+	CommentBytes: 9958122,
 }

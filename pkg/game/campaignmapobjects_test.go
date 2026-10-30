@@ -54,7 +54,7 @@ func TestCurrentCampaignUsesCapturedTown(t *testing.T) {
 	f.Town.announceMission(20)
 	f.Town.documents = []Document{{Value: 91, Kind: 2}}
 	var captured Snapshot
-	snapshotTown(f.Town, &captured)
+	snapshotTown(f.Town, &captured, f.campaign())
 	want, err := nativeCampaignProjectionForChapter(f, captured, 20)
 	if err != nil || len(want.Documents) != 1 || want.Documents[0].Value != 91 {
 		t.Fatal("captured campaign", want, err)

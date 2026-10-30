@@ -23,7 +23,7 @@ func TestCityTopologySnapshotAndRestoreOwnTheirGraph(t *testing.T) {
 	town := NewTown(Campaign{})
 	town.cityObjects = g
 	var snapshot Snapshot
-	snapshotTown(town, &snapshot)
+	snapshotTown(town, &snapshot, firstCampaignRules{})
 	restored := testRestoreTown(Campaign{}, snapshot)
 	if !reflect.DeepEqual(restored.cityObjects, original) {
 		t.Fatal("city topology lost through Snapshot")

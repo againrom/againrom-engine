@@ -435,52 +435,32 @@ func (mw *mapWorld) restoreApplicationState(s *SnapshotApplicationState, origina
 		return fmt.Errorf("application restore needs a live map viewer")
 	}
 	s = cloneApplicationState(s)
+	// The first frame's source: an original save's decoded document, else a
+	// mission file's state store (the second game's mission files).
+	var src *firstFrameSource
+	if mw.mission != nil {
+		src = firstFrameSourceOf(mw.mission.state, original)
+	}
 	if s == nil {
 		// Legacy native snapshots did not record the current application. Their
 		// retained original Document cannot establish what the player changed.
 		// Preserve their nil additive field and ordinary native continuation.
-		if mw.mission == nil || mw.mission.state == nil {
+		if src == nil {
 			return nil
 		}
-		// A mission file without a complete document gives its own state
-		// store's application state (the second game's mission files).
-		if file := mw.mission.state.fileApplication; !original && file != nil {
-			var err error
-			if s, err = file.view(mw.view.SaveApplication(), mw.spells().BookRows); err != nil {
-				return err
-			}
-		} else {
-			if !original || mw.mission.state.savedDocument == nil || mw.mission.state.savedDocument.Document == nil {
-				return nil
-			}
-			document := mw.mission.state.savedDocument
-			raw, err := readOriginalApplicationState(document.Document)
-			if err != nil {
-				return err
-			}
-			ids, err := applicationActorIDs(document.Document, document.Actors, mw.world)
-			if err != nil {
-				return err
-			}
-			if s, err = (&fileApplication{raw: raw, ids: ids, structures: applicationStructureIDs(mw.world)}).view(mw.view.SaveApplication(), originalBookIDs); err != nil {
-				return err
-			}
-			actions, err := readCurrentActions(document.Document)
-			if err != nil {
-				return err
-			}
-			applyCurrentView(&s.View, raw, actions)
-			s.Baseline = s.View
+		var err error
+		if s, err = src.firstFrame(mw); err != nil || s == nil {
+			return err
 		}
 	}
 	if err := validateApplicationState(s); err != nil {
 		return err
 	}
-	if original {
+	if src != nil && src.fog != nil {
 		if mw.fog == nil {
 			return fmt.Errorf("original application has no native fog plane")
 		}
-		plane, err := originalFogPlane(mw.mission.state.savedDocument.Document, len(mw.fog.explored))
+		plane, err := src.fog(mw, len(mw.fog.explored))
 		if err != nil {
 			return err
 		}
@@ -513,8 +493,8 @@ func (mw *mapWorld) restoreApplicationState(s *SnapshotApplicationState, origina
 	// scheduled lighting cache after installing the saved time-flow setting.
 	mw.view.RestoreScheduledLightClock(mw.world.Tick())
 	mw.setCadenceMode(s.View.PeriodUS, s.View.PlayerPaused, s.View.Unpaced, false)
-	if original {
-		actions, err := readCurrentActions(mw.mission.state.savedDocument.Document)
+	if src != nil && src.animation {
+		actions, err := src.current(mw)
 		if err != nil {
 			return err
 		}

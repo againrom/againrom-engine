@@ -272,8 +272,9 @@ type SnapshotResidue struct {
 // snapshotTown reads the town's five fields out. It is a function in this
 // package rather than a method elsewhere because those fields are unexported
 // and stay that way: a save is not a reason to open the town's state to
-// every caller.
-func snapshotTown(t *Town, s *Snapshot) {
+// every caller. rules is the campaign whose profile the carried campaign
+// record and the offer labels follow.
+func snapshotTown(t *Town, s *Snapshot, rules campaignService) {
 	if t == nil {
 		return
 	}
@@ -283,7 +284,6 @@ func snapshotTown(t *Town, s *Snapshot) {
 	s.Open, s.Gold = t.open, t.gold
 	s.MainMission = t.currentMain()
 	s.SelectedMission = t.selectedMission()
-	s.OfferLabels = savedOfferLabels(t)
 	s.CityObjects = t.cityObjects.Clone()
 	s.cityGroups, s.cityGroupsLoaded = slices.Clone(t.cityGroups), t.cityGroupsLoaded
 	s.knowledge = slices.Clone(t.knowledge)
@@ -322,25 +322,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 	if t.progress == nil && t.main > 0 {
 		s.CampaignRecords = t.records.snapshot()
 	}
-	if t.progress != nil {
-		s.CampaignState = true
-		s.Campaign = t.progress.projection()
-		s.CampaignMarkerSelected = t.progress.markerSelected
-		s.Campaign.MercenaryWorking = s.Campaign.MercenaryWorking[:0]
-		s.Campaign.MercenaryPristine = s.Campaign.MercenaryPristine[:0]
-		s.Campaign.MercenaryHired = s.Campaign.MercenaryHired[:0]
-		for i := 1; i < 16; i++ {
-			s.Campaign.MercenaryWorking = append(s.Campaign.MercenaryWorking, uint16(t.mercPool[i]))
-			s.Campaign.MercenaryPristine = append(s.Campaign.MercenaryPristine, uint16(t.mercCapacity[i]))
-			s.Campaign.MercenaryHired = append(s.Campaign.MercenaryHired, t.mercHired[i])
-		}
-		s.Campaign.Payload = t.docPayload.Clone()
-		s.Campaign.Documents = s.Campaign.Documents[:0]
-		for _, d := range t.documents {
-			s.Campaign.Documents = append(s.Campaign.Documents,
-				sav.CampaignDocument{Value: uint32(d.Value), Kind: uint32(d.Kind)})
-		}
-	}
+	captureCampaignRecord(t, s, rules.recordProfile())
 	sortInts(s.Won)
 	sortInts(s.Available)
 	// Taken comes off a Go map, same as Won and Available above; unlike

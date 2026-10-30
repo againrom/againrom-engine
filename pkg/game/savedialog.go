@@ -264,7 +264,7 @@ func (f *FrontEnd) citySnapshotFromMission(captured Snapshot) (*FrontEnd, Snapsh
 	city.Party = mapload.CloneParty(n.Carried)
 	city.Offered = n.Town.Chapter()
 	n.Offered = city.Offered
-	snapshotTown(n.Town, &city)
+	snapshotTown(n.Town, &city, n.campaign())
 	if city.CampaignState && fame.Known {
 		city.Campaign.MissionTime = fame.Time
 		city.Campaign.ScoreEvents, city.Campaign.ScoreEventsKnown = fame.Events, true

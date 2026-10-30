@@ -120,7 +120,7 @@ func TestCityMissionReturnRetainsCountedRootsAndSharedChildren(t *testing.T) {
 	// The city snapshot's own clone boundary retains these exact edges.
 	town := &Town{cityObjects: graph}
 	var snapshot Snapshot
-	snapshotTown(town, &snapshot)
+	snapshotTown(town, &snapshot, firstCampaignRules{})
 	if !reflect.DeepEqual(snapshot.CityObjects, graph) {
 		t.Fatal("city snapshot lost return topology")
 	}
@@ -181,7 +181,7 @@ func TestCityMissionReturnProductionPathsInstallTheSameGraph(t *testing.T) {
 	f.live = &mapWorld{world: w, mission: &missionNotices{number: 10, party: party, ids: []sim.EntityID{7},
 		state: &Mission{Number: 10, World: w, Party: party, Start: mapload.Start{IDs: []sim.EntityID{7}}, savedDocument: state}}}
 	var captured Snapshot
-	snapshotTown(f.Town, &captured)
+	snapshotTown(f.Town, &captured, f.campaign())
 	captured.Party, captured.Mission, captured.Offered = mapload.CloneParty(party), 10, 10
 	before := w.Hash()
 	draft, city, _, err := f.citySnapshotFromMission(captured)

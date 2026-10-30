@@ -57,7 +57,7 @@ func configuredGateProjection(t *testing.T, town *Town) sav.CampaignProjection {
 		return town.progress.projection()
 	}
 	var s Snapshot
-	snapshotTown(town, &s)
+	snapshotTown(town, &s, firstCampaignRules{})
 	f := &FrontEnd{InstallResources: InstallResources{Campaign: resolved(town.camp, nil)}}
 	p, err := nativeCampaignProjection(f, s)
 	if err != nil {
@@ -102,7 +102,7 @@ func TestConfiguredMainRecordAcceptanceAndCompatibility(t *testing.T) {
 					t.Fatal("repeated registration reloads/consumes/pays")
 				}
 				var s Snapshot
-				snapshotTown(town, &s)
+				snapshotTown(town, &s, firstCampaignRules{})
 				back := testRestoreTown(c, s)
 				if !reflect.DeepEqual(before, back.currentRecords().snapshot()) || back.gateMission() != 40 || back.Gold() != 100 || !back.taken[offerRef{30, building, 0}] {
 					t.Fatal("additive continuation loses record or provenance")

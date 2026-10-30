@@ -29,9 +29,10 @@ type campaignService interface {
 	exportable(s Snapshot) error
 	// refuseCompleted refuses a town save of a campaign already completed.
 	refuseCompleted(f *FrontEnd, s Snapshot) error
-	// campaignProjection is the campaign record a save of s carries when the
-	// campaign states it itself rather than through its chapters.
-	campaignProjection(s Snapshot) (sav.CampaignProjection, bool)
+	// recordProfile is the campaign's part of the campaign record a SAV
+	// carries: a record it states itself, that record's home word and the
+	// offer label source.
+	recordProfile() campaignRecordProfile
 	// validateSession checks the campaign part of a decoded session record.
 	validateSession(s *currentSessionData) error
 	// validateAuthored checks a save the engine wrote for this campaign.

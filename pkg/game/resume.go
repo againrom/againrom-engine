@@ -103,7 +103,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	s.Fame = &fame
 	s.QuickSpells = f.quickSpells
 	s.guest = f.Town.guestMission().clone()
-	snapshotTown(f.Town, &s)
+	snapshotTown(f.Town, &s, f.campaign())
 	if s.CampaignState {
 		s.Campaign.MissionTime = fame.Time
 		s.Campaign.ScoreEvents = fame.Events
@@ -226,22 +226,12 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	if s.SavedDocument != nil && !s.CampaignState {
 		for _, e := range f.live.world.Entities() {
 			if e.SourceBinding.Generated() {
-				chapter, err := f.generatedCampaignChapter(s)
+				record, err := f.campaignRecord(s, resumedMissionRecord)
 				if err != nil {
 					return Snapshot{}, "", err
 				}
-				s.Campaign, err = nativeCampaignProjectionForChapter(f, s, chapter)
-				if err != nil {
-					return Snapshot{}, "", err
-				}
-				s.CampaignState = true
-				// The party stands on the mission's map object (SAV-1331).
-				s.Campaign.FirstMapPoint = false
+				s.Campaign, s.CampaignState = record, true
 				s.HeroGrantState, s.ConsumedHeroGrants = false, nil
-				// A guest's mission is no mission of the waiting campaign.
-				if !s.guest.playing(s.Mission) {
-					s.Campaign.SelectedMission = uint32(s.Mission)
-				}
 				break
 			}
 		}
