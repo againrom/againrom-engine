@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor, a terrain stroke now joins every terrain it meets, also where three terrains meet, such as Grass, Cracked and Stones; painting over a hard edge with one of its terrains joins it. Before, a stroke could leave a hard edge or corner at such a junction.
 - [BASE] An agent connected to the map editor can now read the heights of an area, and the help says what each height brush mode does; saves and key presses answer a short result, a save that wrote its file no longer reports an error, and a missing folder is named. Before, heights could only be changed, not read, and each answer carried the whole window.
 - [BASE] In the map editor, Ctrl+C copies the selected row of a report panel to the clipboard. In the MCP connection panel that copies the bearer token, the URL or the token file name without its label, and the panel says so. Before, the token was shown but could not be selected or copied.
 - [BASE] The map editor keeps its MCP bearer token and address between runs, in one file, `mapedit-mcp.json`, in the player profile; a client set up once keeps working, and the new `-mcp-new-token` option replaces the token. Before, every run made a new token and a new file, and the address changed too.

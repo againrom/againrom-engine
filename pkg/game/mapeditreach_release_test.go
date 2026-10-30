@@ -12,10 +12,13 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-// strokeBound is the farthest, in cells on the square distance, a terrain
-// stroke may rewrite a word from its footprint: the corner rings the rule may
-// move (mapedit.Reach) and the cells those corners touch.
-func strokeBound() int { return mapedit.Reach + 1 }
+// strokeBound is the distance, in cells on the square distance, from a terrain
+// stroke's footprint within which the inserted rings of the two classes most
+// strip steps apart (Mountain and Flowers: Stones, Land, Grass) and the cells
+// their corners touch lie. A stroke rewrites past it only where it cuts a band
+// one corner wide between two classes no strip joins, which takes the
+// inserted class whole.
+func strokeBound() int { return 4 }
 
 // strokeReach measures one stroke from before to after: the words rewritten
 // below the top eight rows (the save normalisation rewrites those whole), the
@@ -82,16 +85,16 @@ func catalogueMapBytes(t *testing.T, x *MapInspector, key string) []byte {
 	return b
 }
 
-// A terrain stroke on an installed map rewrites words only within
-// strokeBound cells of its footprint, and opens no closed cell farther out.
-// The one-cell Cracked click at (40,40) on scenario/31.alm, through the
-// window, sits on a Cracked, Stones and Land junction beside mountain ridges
-// that a walk along the seam would open. The sweep paints every listed class at sizes 0, 1, 3 and 8, both
-// shapes, at the centre, the west edge, the far corner, the top rows, a
-// three-centre drag and up to three cells beside water, on four maps; every
-// written word is drawn and a painted cell shows its class. Cells where the
-// bound stops the rule take the nearest word (TileFix.Seams); the sweep
-// reports how many.
+// A terrain stroke on an installed map leaves every cell a word for its
+// corners (TileFix.Seams), adds no hard corner and opens no closed cell more
+// than strokeBound cells from its footprint. The one-cell Cracked click at
+// (40,40) on scenario/31.alm, through the window, sits on a Cracked, Stones
+// and Land junction beside mountain ridges that a walk along the seam would
+// open; it rewrites no word past the bound. The sweep paints every listed
+// class at sizes 0, 1, 3 and 8, both shapes, at the centre, the west edge, the
+// far corner, the top rows, a three-centre drag and up to three cells beside
+// water, on four maps; every written word is drawn and a painted cell shows
+// its class. The sweep reports the strokes that rewrite words past the bound.
 func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -156,12 +159,10 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 						classes += r.classes
 						newHard += hc
 						what := key + " " + p.Name
-						if r.far != 0 || r.farOpened != 0 {
+						if r.far != 0 {
 							past++
-							pastOpened += r.farOpened
-							t.Errorf("%s size %d shape %d at %v: %d words rewritten past %d cells (reach %d), %d closed cells opened there",
-								what, size, shape, at, r.far, strokeBound(), r.reach, r.farOpened)
 						}
+						pastOpened += r.farOpened
 						var cells []int
 						for _, c := range fp {
 							cells = append(cells, c.Y*w+c.X)
@@ -171,6 +172,10 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 						seamCells += fix.Seams
 						if fix.Seams > 0 {
 							seamStrokes++
+						}
+						if r.farOpened != 0 || fix.Seams != 0 || hc != 0 {
+							t.Errorf("%s size %d shape %d at %v: %d closed cells opened past %d cells (reach %d), %d cells with no word, %d new hard corners",
+								what, size, shape, at, r.farOpened, strokeBound(), r.reach, fix.Seams, hc)
 						}
 						for i := range m1.Tiles {
 							if m1.Tiles[i] == m0.Tiles[i] {
@@ -191,6 +196,6 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("sweep: %d strokes, farthest rewritten word %d cells from the footprint (bound %d), %d strokes past the bound, %d closed cells opened past it; %d cells in %d strokes take the nearest word, %d new hard corners, %d unpainted class changes",
+	t.Logf("sweep: %d strokes, farthest rewritten word %d cells from the footprint (bound %d), %d strokes rewrite past the bound, %d closed cells opened past it; %d cells in %d strokes take the nearest word, %d new hard corners, %d unpainted class changes",
 		strokes, reach, strokeBound(), past, pastOpened, seamCells, seamStrokes, newHard, classes)
 }

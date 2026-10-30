@@ -217,11 +217,16 @@ func strokeOutcome(t *testing.T, ed *mapedit.Editor, b mapedit.Brush, at []maped
 	return before, after, fix.Seams, reach
 }
 
-// Strokes of three classes meeting at one place, and a run of random strokes,
-// rewrite no cell more than Reach+1 cells from the brush. A stroke adds a
-// hard corner below the top rows only where the bound stops the rule at a
-// three-class junction, and TileFix counts each such cell; the scripted steps
-// leave the junction of Sand, Stones and Cracked as two hard corners.
+// nearBrush is the farthest a scripted stroke in these tests rewrites a cell
+// from its brush, in cells.
+const nearBrush = 4
+
+// Strokes of three classes meeting at one place rewrite no cell more than
+// nearBrush cells from the brush. They and a run of random strokes leave every
+// cell a word for its corners and add no hard corner below the top rows. A
+// random stroke may rewrite farther: one that cuts a band one corner wide
+// between two classes no strip joins (Flowers round Savanna in Grass) gives
+// the whole band the inserted class.
 func TestStrokesAcrossThreeClassesStayNearTheBrush(t *testing.T) {
 	ed, _ := mapedit.New(brushMap(0x14, 40))
 	steps := []struct {
@@ -229,46 +234,44 @@ func TestStrokesAcrossThreeClassesStayNearTheBrush(t *testing.T) {
 		r    int
 		at   []mapedit.Cell
 		what string
-		hard int
 	}{
-		{mapedit.ClassSand, 3, []mapedit.Cell{{X: 9, Y: 12}}, "sand into land", 0},
-		{mapedit.ClassStones, 3, []mapedit.Cell{{X: 15, Y: 12}}, "land into stones beside sand", 0},
-		{mapedit.ClassMountain, 2, []mapedit.Cell{{X: 12, Y: 17}}, "sand into mountain", 0},
-		{mapedit.ClassCracked, 1, []mapedit.Cell{{X: 12, Y: 12}}, "a three-class corner", 6},
+		{mapedit.ClassSand, 3, []mapedit.Cell{{X: 9, Y: 12}}, "sand into land"},
+		{mapedit.ClassStones, 3, []mapedit.Cell{{X: 15, Y: 12}}, "land into stones beside sand"},
+		{mapedit.ClassMountain, 2, []mapedit.Cell{{X: 12, Y: 17}}, "sand into mountain"},
+		{mapedit.ClassCracked, 1, []mapedit.Cell{{X: 12, Y: 12}}, "a three-class corner"},
 	}
 	for _, s := range steps {
 		b := mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(s.c), Radius: s.r}
 		_, tiles, nearest, reach := strokeOutcome(t, ed, b, s.at)
-		if n := seams(tiles, brushSide); n != s.hard || reach > mapedit.Reach+1 || (nearest == 0) != (s.hard == 0) {
-			t.Errorf("%s: %d corners disagree (want %d), %d cells take the nearest word, reach %d", s.what, n, s.hard, nearest, reach)
+		if n := seams(tiles, brushSide); n != 0 || reach > nearBrush || nearest != 0 {
+			t.Errorf("%s: %d corners disagree, %d cells take the nearest word, reach %d", s.what, n, nearest, reach)
 		}
 	}
 	rng := rand.New(rand.NewPCG(7, 11))
-	nearestStrokes := 0
+	farthest := 0
 	for step := range 200 {
 		c := mapedit.Palette[rng.IntN(len(mapedit.Palette))].Class
 		b := mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(c), Radius: rng.IntN(3), Shape: mapedit.BrushShape(rng.IntN(2))}
 		at := []mapedit.Cell{{X: 6 + rng.IntN(12), Y: 12 + rng.IntN(6)}}
 		at = append(at, mapedit.Cell{X: at[0].X + rng.IntN(3) - 1, Y: at[0].Y + rng.IntN(3) - 1})
 		before, after, nearest, reach := strokeOutcome(t, ed, b, at)
-		if nearest > 0 {
-			nearestStrokes++
-		}
 		was, is := seamsFrom(before, brushSide, 8), seamsFrom(after, brushSide, 8)
-		if reach > mapedit.Reach+1 || nearest == 0 && is > was {
+		farthest = max(farthest, reach)
+		if nearest != 0 || is > was {
 			t.Fatalf("random stroke %d (class %d at %v, size %d, shape %d): reach %d, corners disagreeing %d -> %d, %d cells take the nearest word",
 				step, c, at, b.Radius, b.Shape, reach, was, is, nearest)
 		}
 	}
-	t.Logf("random strokes leaving cells with the nearest word: %d of 200", nearestStrokes)
+	t.Logf("random strokes: farthest rewrite %d cells from the brush", farthest)
 }
 
 // A one-cell Cracked stroke on the edge of a Stones band that crosses a Land
 // map meets three classes at one corner: Cracked joins both, Stones and Land
-// join each other, and no word shows all three. Without the bound the rule
-// would move one corner after another along the seam to the map's edge. The
-// stroke rewrites no cell more than Reach+1 cells from the painted cell, and
-// the cell where the bound stops the rule takes the nearest word.
+// join each other, and no word shows all three. Moving a corner towards
+// Cracked would carry the junction along the seam to the map's edge; instead
+// Stones gives way to Land around the painted cell. The stroke rewrites no
+// cell more than nearBrush cells from the painted cell and leaves every cell a
+// word for its corners.
 func TestThreeClassJunctionStaysNearTheStroke(t *testing.T) {
 	ed, _ := mapedit.New(brushMap(0x14, 40))
 	band := mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(mapedit.ClassStones), Radius: 3, Shape: mapedit.BrushSquare}
@@ -285,9 +288,9 @@ func TestThreeClassJunctionStaysNearTheStroke(t *testing.T) {
 			changed++
 		}
 	}
-	if reach > mapedit.Reach+1 || nearest == 0 || testClass(after[12*brushSide+6]) != mapedit.ClassCracked {
-		t.Errorf("Cracked on the Stones seam: %d cells rewritten, reach %d (bound %d), %d cells take the nearest word, painted cell shows %#x",
-			changed, reach, mapedit.Reach+1, nearest, after[12*brushSide+6])
+	if reach > nearBrush || nearest != 0 || seamsFrom(after, brushSide, 8) != 0 || testClass(after[12*brushSide+6]) != mapedit.ClassCracked {
+		t.Errorf("Cracked on the Stones seam: %d cells rewritten, reach %d (bound %d), %d cells take the nearest word, %d corners disagree, painted cell shows %#x",
+			changed, reach, nearBrush, nearest, seamsFrom(after, brushSide, 8), after[12*brushSide+6])
 	}
 }
 

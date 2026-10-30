@@ -3494,5 +3494,12 @@ var Committed = Baseline{
 	// teleportBookCast and castMessageSounds in pkg/game/spellbolt.go, the
 	// teleportCast field in pkg/game/gamefiles.go, the tests in
 	// pkg/game/secondteleport_test.go, and this note.
-	CommentBytes: 9957553,
+
+	// It rose for the terrain stroke's three-class junctions: rank and move
+	// in pkg/mapedit/corner.go, the tests in pkg/mapedit/junction_test.go and
+	// corner_test.go, the release test in
+	// pkg/game/mapeditbrush_release_test.go, and this note, less the ring
+	// bound's comments it removed. The merge with main is measured on the
+	// merged tree.
+	CommentBytes: 9960958,
 }

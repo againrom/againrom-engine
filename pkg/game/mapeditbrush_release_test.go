@@ -219,6 +219,62 @@ func TestReleaseMapEditorStrokesLeaveNoSeam(t *testing.T) {
 	}
 }
 
+// Terrain strokes through the window over three-class junctions on an
+// installed map: a Cracked and a Stones square painted side by side in a Grass
+// area, so Land rings both and a Cracked-Stones strip joins them. Strokes of
+// Grass, Land, Cracked and Stones at sizes 0, 1 and 3, both shapes, on the
+// points where the seam meets the Land ring and on the seam: no stroke leaves
+// a corner where the cells meeting show two classes and did not before, and
+// undo gives back the bytes.
+func TestReleaseMapEditorThreeClassJunctionsLeaveNoSeam(t *testing.T) {
+	firstgame.SkipOnSecondGame(t)
+	x := installedInspector(t)
+	e := openBrushEditor(t, x, "scenario/10.alm")
+	_ = e.Key("terrain")
+	original := e.Document().SourceBytes
+	at, painted := area(t, e, mapedit.ClassGrass, 14)
+	for _, s := range []struct {
+		class uint8
+		dx    int
+	}{{mapedit.ClassCracked, -5}, {mapedit.ClassStones, 4}} {
+		setBrush(t, e, s.class, 4, 1)
+		p := at.Add(image.Pt(s.dx, 0))
+		e.ShowCell(p)
+		pointerStroke(e, []image.Point{p})
+	}
+	junctions := []image.Point{at.Add(image.Pt(0, -5)), at.Add(image.Pt(-1, 5)), at.Add(image.Pt(-1, -1)), at.Add(image.Pt(0, 2))}
+	m := shownMap(t, e)
+	for _, class := range []uint8{mapedit.ClassGrass, mapedit.ClassLand, mapedit.ClassCracked, mapedit.ClassStones} {
+		for _, size := range []int{0, 1, 3} {
+			for shape := range 2 {
+				for _, j := range junctions {
+					setBrush(t, e, class, size, shape)
+					e.ShowCell(j)
+					before := e.Document().SourceBytes
+					pointerStroke(e, []image.Point{j})
+					changed, corners := hardEdges(m, shownMap(t, e))
+					if corners != 0 {
+						t.Errorf("class %d at %v, size %d, shape %d: %d cells rewritten, %d new hard corners", class, j, size, shape, changed, corners)
+					}
+					_ = e.Key("undo")
+					if string(e.Document().SourceBytes) != string(before) {
+						t.Fatalf("class %d at %v: undo did not restore the bytes", class, j)
+					}
+				}
+			}
+		}
+	}
+	for range 2 {
+		_ = e.Key("undo")
+	}
+	if painted {
+		_ = e.Key("undo")
+	}
+	if string(e.Document().SourceBytes) != string(original) {
+		t.Fatal("undo did not restore the map")
+	}
+}
+
 // The border view dims exactly the cells the game's border rule closes, on
 // an installed map of the root and on a map that is not square; hidden, it
 // dims none.

@@ -9,8 +9,9 @@ import "slices"
 // there, or the plane shows a hard edge. A stroke gives every corner of a
 // painted cell its class and rewrites each neighbour from its corners, as the
 // fixer rewrites the 3x3 (TERR-243); where no strip joins two classes the
-// neighbour takes the inserted class and the rewrite spreads out from it, no
-// farther than Reach corner rings from the painted cells.
+// neighbour takes the inserted class and the rewrite spreads out from it until
+// every cell it touches shows its corners, as the fixer recurses with no depth
+// limit.
 
 // Corner indices: north-west, north-east, south-west, south-east. Bit i of a
 // state is set when corner i holds the strip's primary class.
@@ -232,20 +233,12 @@ func init() {
 			frontier = next
 		}
 	}
-	for a := 1; a < ClassCount; a++ {
-		for b := 1; b < ClassCount; b++ {
-			if hops[a][b] < ClassCount {
-				Reach = max(Reach, hops[a][b]-1)
-			}
-		}
-	}
 }
 
-// Reach is how many corner rings around the painted cells a stroke may move:
-// one per class inserted between the two classes most family steps apart
-// (Mountain and Flowers: Stones, Land, Grass). A corner farther out keeps its
-// class, so a stroke rewrites no cell more than Reach+1 cells from the brush.
-var Reach int
+// rank orders the classes a corner may take in a stroke of class c: by family
+// steps from c, then by class number. A corner moves only to a class of lower
+// rank than the cell that moves it shows there, so a stroke ends.
+func rank(c, x uint8) int { return hops[c][x]*ClassCount + int(x) }
 
 // towards is the class one family step from x on a shortest way to c: the
 // fixer's base class of c when it is one, else the lowest-numbered class.
@@ -275,10 +268,12 @@ type TileFix struct {
 	painted map[int]bool
 	// Fill chooses the word of a painted cell that shows only the painted
 	// class; the zero value keeps the position pattern.
-	Fill Fill
-	near map[int]int // 1 + the ring of each corner within Reach rings of the painted cells
-	// Seams counts cells left with corners no word shows, where the bound
-	// stops the rule; each takes the word nearest its corners.
+	Fill  Fill
+	fixed map[int]bool // the corners of the painted cells
+	moved map[int]bool // the corners the stroke has written
+	// Seams counts cells left with corners no word shows; each takes the
+	// word nearest its corners. A cell no word shows always has a corner
+	// that may move, so the rule leaves none.
 	Seams int
 }
 
@@ -297,24 +292,23 @@ type TileChange struct {
 // Paint is the words a stroke of class c over the cells (indices into the
 // plane) gives, in cell order. Every corner of a painted cell takes c in each
 // cell that shares it. Then, while a touched cell's corners are ones no word
-// shows, of its corners within Reach rings of the painted cells the one whose
-// class lies most family steps from c moves one step towards c, in every cell
-// that shares it; the classes between c and a class no strip joins to it are
-// so inserted ring by ring. A corner one step from c moves only in the first
-// ring, so a three-class junction does not walk along a seam. A cell left
-// with corners no word shows takes the word nearest them (nearestQuad). A
-// cell whose corners still show its word keeps the word; a painted cell loses
-// bit 13, any other keeps it.
+// shows, one of its corners moves to a class of lower rank, in every cell
+// that shares it (move), until every touched cell shows its corners; the
+// classes between c and a class no strip joins to it are so inserted ring by
+// ring. A cell left with corners no word shows takes the word nearest them
+// (nearestQuad). A cell whose corners still show its word keeps the word; a
+// painted cell loses bit 13, any other keeps it.
 func (f *TileFix) Paint(cells []int, c uint8) []TileChange {
 	f.quads, f.known, f.painted, f.Seams = map[int]quad{}, map[int]bool{}, map[int]bool{}, 0
+	f.fixed, f.moved = map[int]bool{}, map[int]bool{}
 	cells = slices.Sorted(slices.Values(cells))
-	f.near = f.ring(cells)
 	var queue []int
 	for _, i := range cells {
 		f.painted[i] = true
 		f.read(i)
 		f.known[i] = true
 		for k := range 4 {
+			f.fixed[f.corner(i, k)] = true
 			queue = f.set(i, k, c, queue)
 		}
 	}
@@ -324,16 +318,11 @@ func (f *TileFix) Paint(cells []int, c uint8) []TileChange {
 		if _, _, ok := quadWords(q, 0); ok {
 			continue
 		}
-		var movable [4]bool
-		for k := range movable {
-			d := f.near[f.corner(i, k)]
-			movable[k] = d > 0 && (d <= 2 || hops[c][q[k]] > 1)
-		}
-		k := deepest(q, c, movable)
+		k, x := f.move(i, q, c)
 		if k < 0 {
 			continue
 		}
-		queue = append(f.set(i, k, towards(c, q[k]), queue), i)
+		queue = append(f.set(i, k, x, queue), i)
 	}
 	order := make([]int, 0, len(f.quads))
 	for i := range f.quads {
@@ -369,6 +358,80 @@ func (f *TileFix) Paint(cells []int, c uint8) []TileChange {
 		}
 	}
 	return out
+}
+
+// move is the corner of cell i, whose corners q no word shows, that moves in a
+// stroke of class c, and its new class; -1 when no corner of i may move. A
+// corner of a painted cell never moves. Where two classes no strip joins meet,
+// the corner whose class lies most family steps from c moves one step towards
+// c (deepest, towards). A diagonal split of two classes takes the class of
+// lower rank at one more corner. Three classes that strips join pairwise
+// (Cracked, Stones, Land) are a junction no word shows, and moving a corner
+// towards c would carry it along the seam of the other two; so a class gives
+// way to one of lower rank, preferring one the stroke has not written in this
+// cell beside a third it has, and the junction moves along the stroke's edge.
+func (f *TileFix) move(i int, q quad, c uint8) (int, uint8) {
+	var movable [4]bool
+	for k := range movable {
+		movable[k] = !f.fixed[f.corner(i, k)]
+	}
+	var classes []uint8
+	for _, x := range q {
+		if !slices.Contains(classes, x) {
+			classes = append(classes, x)
+		}
+	}
+	pairwise := true
+	for _, a := range classes {
+		for _, b := range classes {
+			pairwise = pairwise && (a == b || joined(a, b))
+		}
+	}
+	if pairwise && len(classes) <= 3 {
+		k, x, best := -1, uint8(0), [5]int{}
+		for _, a := range classes {
+			for _, b := range classes {
+				if rank(c, b) >= rank(c, a) {
+					continue
+				}
+				aWritten, thirdOld, at := 0, 1, -1
+				for n := range q {
+					w := f.moved[f.corner(i, n)]
+					if q[n] == a && w {
+						aWritten = 1
+					}
+					if q[n] != a && q[n] != b && w {
+						thirdOld = 0
+					}
+					if q[n] == a && movable[n] && at < 0 {
+						at = n
+					}
+				}
+				if len(classes) == 2 {
+					thirdOld = 0
+				}
+				score := [5]int{thirdOld, aWritten, b2i(b == c), -rank(c, a), -rank(c, b)}
+				if at >= 0 && (k < 0 || slices.Compare(score[:], best[:]) < 0) {
+					k, x, best = at, b, score
+				}
+			}
+		}
+		if k >= 0 {
+			return k, x
+		}
+	}
+	k := deepest(q, c, movable)
+	if k < 0 {
+		return -1, 0
+	}
+	return k, towards(c, q[k])
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // deepest is the corner of q to move towards c: of the movable corners whose
@@ -443,46 +506,15 @@ func (f *TileFix) corner(i, k int) int {
 	return (i/f.w+k>>1)*(f.w+1) + i%f.w + k&1
 }
 
-// ring is the set of corners within Reach rings (a square distance on the
-// corner grid) of a corner of a painted cell.
-func (f *TileFix) ring(cells []int) map[int]int {
-	near := map[int]int{}
-	var frontier []int
-	for _, i := range cells {
-		for k := range 4 {
-			if p := f.corner(i, k); near[p] == 0 {
-				near[p] = 1
-				frontier = append(frontier, p)
-			}
-		}
-	}
-	for d := range Reach {
-		var next []int
-		for _, p := range frontier {
-			px, py := p%(f.w+1), p/(f.w+1)
-			for dy := -1; dy <= 1; dy++ {
-				for dx := -1; dx <= 1; dx++ {
-					x, y := px+dx, py+dy
-					if x < 0 || y < 0 || x > f.w || y > f.h || near[y*(f.w+1)+x] > 0 {
-						continue
-					}
-					near[y*(f.w+1)+x] = d + 2
-					next = append(next, y*(f.w+1)+x)
-				}
-			}
-		}
-		frontier = next
-	}
-	return near
-}
-
 // set gives corner k of cell i the class x in every cell of a terrain class
-// that shares it, and queues each cell it changed. A corner outside the ring
-// keeps its class.
+// that shares it, and queues each cell it changed. A corner of a painted cell
+// keeps the painted class.
 func (f *TileFix) set(i, k int, x uint8, queue []int) []int {
-	if f.near[f.corner(i, k)] == 0 {
+	p := f.corner(i, k)
+	if f.fixed[p] && f.moved[p] {
 		return queue
 	}
+	f.moved[p] = true
 	px, py := i%f.w+k&1, i/f.w+k>>1
 	for _, s := range [4][3]int{{-1, -1, cornerSE}, {0, -1, cornerSW}, {-1, 0, cornerNE}, {0, 0, cornerNW}} {
 		cx, cy := px+s[0], py+s[1]
