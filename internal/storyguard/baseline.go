@@ -3472,5 +3472,11 @@ var Committed = Baseline{
 	// in internal/archtest/firstframe.go, the new tests' comments in
 	// pkg/game/firstframe_test.go and internal/archtest, and this note.
 	// The merge with main is measured on the merged tree.
-	CommentBytes: 9966221,
+
+	// It rose for the second game's loaded guard route: secondGuardRoute
+	// and savedRoute in pkg/sim/savedgroups.go, constructMissingOrders in
+	// pkg/sim/savedgroupsai.go, the tests in
+	// pkg/sim/secondguardroute_test.go, and this note. The merge with main
+	// is measured on the merged tree.
+	CommentBytes: 9967867,
 }

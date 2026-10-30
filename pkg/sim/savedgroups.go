@@ -526,6 +526,22 @@ func (w *World) savedActorDispatch(i int) {
 	}
 }
 
+// secondGuardRoute is programme byte 18 of the second game's Group dispatch,
+// its second guard handler (R2-ENGINE-507). The first game's dispatch acts on
+// no byte above 0x11 but 0xff (AI-ORDER-010).
+const secondGuardRoute uint8 = 0x12
+
+// savedRoute is the route a saved Group's programme byte +0x20 dispatches.
+// In the second game byte 18 takes the guard route, the one that game's
+// mission start gives the same Groups (DIV-4285); every other byte is its own
+// route.
+func (w *World) savedRoute(g *SavedGroup) uint8 {
+	if order := g.AI[0x20]; order != secondGuardRoute || !w.SecondGame() {
+		return order
+	}
+	return orderGuard
+}
+
 func (w *World) savedGroupPass(obs *castObs) { w.savedGroupPassTraced(obs, nil) }
 
 func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
@@ -544,7 +560,7 @@ func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 		if len(g.Members) == 0 {
 			g.AI[0x20] = 0xff
 		}
-		order := g.AI[0x20]
+		order := w.savedRoute(g)
 		members, complete := w.savedLiving(g)
 		if !complete {
 			continue

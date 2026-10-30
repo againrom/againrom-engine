@@ -202,7 +202,7 @@ func (w *World) joinSavedEngagedGroups() {
 		if !complete || len(members) == 0 {
 			continue
 		}
-		order := g.AI[0x20]
+		order := w.savedRoute(g)
 		if order == 0x11 {
 			order = orderSwarm2
 		}

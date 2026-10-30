@@ -38,12 +38,14 @@ func savedEscortBindingValid(o SavedActorOrder, entities []Entity, dead []origin
 	return len(matches) == 1 && matches[o.EscortTarget]
 }
 
-// constructMissingOrders gives a member of an older engine's registry the
-// order the stance setter builds (constructedOrder) when its Group's order
-// needs one: an older engine SAV carries no member order, and LOAD keeps the
-// state word its file holds until the Group first decides.
+// constructMissingOrders gives a member of an older engine's registry, or of
+// a second-game registry, the order the stance setter builds
+// (constructedOrder) when its Group's order needs one: an older engine SAV
+// carries no member order, the second game's actor reader yields none
+// (DIV-4172), and LOAD keeps the state word its file holds until the Group
+// first decides.
 func (w *World) constructMissingOrders(g *SavedGroup, members []int) {
-	if order := g.AI[0x20]; !w.savedGroups.native || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
+	if order := w.savedRoute(g); !w.savedGroups.native && !w.SecondGame() || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
 		return
 	}
 	for _, i := range members {
@@ -69,7 +71,7 @@ func (w *World) savedPrimaryIssue(g *SavedGroup) string {
 	if !complete {
 		return "primary dispatch has unmaterialized members"
 	}
-	order := g.AI[0x20]
+	order := w.savedRoute(g)
 	if order == orderSwarm && (int32(g.AI[10]) >= w.bounds.Width || int32(g.AI[11]) >= w.bounds.Height) {
 		return "Swarm destination is outside map"
 	}
