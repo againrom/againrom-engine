@@ -957,7 +957,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	canonicalizePartyAppearance(ms, units, src, list)
 	tiers := savedActorTiers(ms.Map, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument)
 	mw := newMapWorldWith(ms.World, nil, units,
-		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src), v)
+		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src, placedClientHeroes(ms, t)), v)
 	mw.installActorManifest(ms.ActorManifest)
 	mw.installCharacterDerivations(ms, t)
 	v.SetItemCastSink(mw.useScroll)
@@ -1645,9 +1645,10 @@ func partyArt(ms *Mission, units *terrain.UnitSet) map[sim.EntityID]*terrain.Uni
 
 // missionAppearanceArt keeps party art and resolves placed humans: a Hero type
 // is drawn from worn equipment on the PC sheet; any other type keeps the class
-// art of its Humans row.
+// art of its Humans row. heroes holds the hero type the client draws a placed
+// person with whose World type stays his row's (placedClientHeroes).
 // The retained roster body and archived dead types preserve corpse art on LOAD.
-func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyList, src terrain.EntrySource) map[sim.EntityID]*terrain.UnitClass {
+func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyList, src terrain.EntrySource, heroes map[sim.EntityID]int32) map[sim.EntityID]*terrain.UnitClass {
 	out := partyArt(ms, units)
 	if ms == nil || ms.World == nil || units == nil {
 		return out
@@ -1658,7 +1659,7 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 		}
 		if e, ok := ms.World.Entity(id); ok && e.Decay >= sim.DecayBones {
 			if class, matched := data.HeroBodyClass(data.HeroBody(member.Body)); matched {
-				if resolved := rosterBodyArt(units, src, e.TypeID, member.BodyDir, data.HeroBody(member.Body), class); resolved != nil {
+				if resolved := rosterBodyArt(units, src, drawnTypeID(e, heroes), member.BodyDir, data.HeroBody(member.Body), class); resolved != nil {
 					if out == nil {
 						out = make(map[sim.EntityID]*terrain.UnitClass)
 					}
@@ -1667,7 +1668,7 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 				}
 			}
 		}
-		if e, held := ms.World.Entity(id); held && !data.FigureIsHero(e.TypeID) {
+		if e, held := ms.World.Entity(id); held && !data.FigureIsHero(drawnTypeID(e, heroes)) {
 			// The entity's type id is the Humans-row class (ANIM-106); the roster
 			// class is a placement key after a SAV load.
 			if resolved := units.Classes[e.TypeID]; resolved != nil {
@@ -1684,7 +1685,7 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 		}
 		body, dir := look.Body, look.Dir
 		e, _ := ms.World.Entity(id)
-		resolved := rosterBodyArt(units, src, e.TypeID, dir, body, look.Class)
+		resolved := rosterBodyArt(units, src, drawnTypeID(e, heroes), dir, body, look.Class)
 		if resolved == nil {
 			continue
 		}
@@ -1711,6 +1712,37 @@ func missionAppearanceArt(ms *Mission, units *terrain.UnitSet, list data.BodyLis
 			out = make(map[sim.EntityID]*terrain.UnitClass)
 		}
 		out[id] = resolved
+	}
+	return out
+}
+
+// drawnTypeID is the type id e is drawn with: the client hero type heroes holds
+// for it, else its World type id.
+func drawnTypeID(e sim.Entity, heroes map[sim.EntityID]int32) int32 {
+	if typeID, ok := heroes[e.ID]; ok {
+		return typeID
+	}
+	return e.TypeID
+}
+
+// placedClientHeroes is the hero type the client draws each placed person with
+// whose World type id stays his row's (mapload.PlacedClientHero), keyed by the
+// entity the placement minted or, after a LOAD, the entity holding its map id.
+func placedClientHeroes(ms *Mission, t *mapload.Table) map[sim.EntityID]int32 {
+	if ms == nil || ms.Map == nil || ms.World == nil || t == nil {
+		return nil
+	}
+	var out map[sim.EntityID]int32
+	for _, placed := range placedEntities(ms.Map, ms.World.Entities(), ms.Start.Roster, ms.savedDocument) {
+		if placed.index < 0 || placed.index >= len(ms.Map.Units) {
+			continue
+		}
+		if typeID, ok := mapload.PlacedClientHero(ms.Map.Units[placed.index], t); ok {
+			if out == nil {
+				out = make(map[sim.EntityID]int32)
+			}
+			out[placed.id] = typeID
+		}
 	}
 	return out
 }

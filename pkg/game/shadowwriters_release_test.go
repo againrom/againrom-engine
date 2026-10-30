@@ -39,7 +39,7 @@ func TestReleaseUnitShadowHeroPairFollowsTheHeroTypeID(t *testing.T) {
 		if err != nil {
 			t.Fatalf("mission %d: %v", n, err)
 		}
-		art := missionAppearanceArt(ms, units, f.Bodies, f.Archives.Containers)
+		art := missionAppearanceArt(ms, units, f.Bodies, f.Archives.Containers, placedClientHeroes(ms, f.Table))
 		party := map[sim.EntityID]bool{}
 		for _, id := range ms.Start.IDs {
 			party[id] = true

@@ -398,6 +398,12 @@ type UnitKeys interface {
 	// humanPlacement is the placement that resolves the Humans row with
 	// server id id.
 	humanPlacement(id int32) alm.Unit
+	// placedFaceByte is the face byte the spawner writes for a person
+	// placement from its keys, and false where it writes none.
+	placedFaceByte(u alm.Unit, arm Arm) (uint8, bool)
+	// clientHero reports whether the client draws a person placement with
+	// the hero class while the server keeps the row's type id.
+	clientHero(u alm.Unit, r Resolution) bool
 }
 
 func (classKeys) humanPlacement(id int32) alm.Unit { return alm.Unit{DefID: uint32(id)} }

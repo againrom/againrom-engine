@@ -3431,5 +3431,5 @@ var Committed = Baseline{
 	// then with the change report's store seam (pkg/ui, pkg/game), the Add
 	// walk's addOffer and addDefault, their tests and the Add walk guard.
 	// The merge with main is measured on the merged tree.
-	CommentBytes: 9930590,
+	CommentBytes: 9934576,
 }

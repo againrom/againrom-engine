@@ -34,8 +34,8 @@ func secondGameNPCKeys(ms *Mission, table *mapload.Table) map[sim.EntityID]uint1
 			continue
 		}
 		key := uint16(params[slot])
-		if human && key > 10000 {
-			key = (key / 10) % 1000
+		if human {
+			key = mapload.PersonNPCWord(params[slot])
 		}
 		keys[placed.id] = key
 	}
