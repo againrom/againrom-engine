@@ -58,7 +58,7 @@ func TestMapEditorDialogSaveMatchesTextPathBytes(t *testing.T) {
 	detachSource(t, source)
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
-		dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
+		dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14))
 		if !e.Dirty() || !e.Document().Edits.CanUndo() {
 			t.Fatal("fixture did not retain the authored move")
 		}
@@ -133,7 +133,7 @@ func TestMapEditorDialogOpenLoadsChosenBytes(t *testing.T) {
 				t.Fatalf("open start = %q, want %q", request.StartDir, filepath.Dir(source))
 			}
 			d := e.Document()
-			if d == before || d.Source != path || !bytes.Equal(d.SourceBytes, chosen) || d.Records[0].Cell != image.Pt(9, 4) {
+			if d == before || d.Source != path || !bytes.Equal(d.SourceBytes, chosen) || d.Records[0].Cell != image.Pt(9, 12) {
 				t.Fatalf("chosen map was not loaded: source %q cell %v", d.Source, d.Records[0].Cell)
 			}
 			if e.Dirty() || d.Edits.CanUndo() || d.Edits.CanRedo() || e.Selected() != -1 || e.Message() != "" {
@@ -157,7 +157,7 @@ func TestMapEditorDialogInstallRefusalMatchesTextPath(t *testing.T) {
 	x.archives, y.archives = &Archives{Root: root}, &Archives{Root: root}
 	for _, e := range []*ui.MapEditor{textEditor, dialogEditor} {
 		e.Select(0, true)
-		dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
+		dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14))
 	}
 	if err := textEditor.Key("saveas"); err != nil {
 		t.Fatal(err)
@@ -190,9 +190,9 @@ func TestMapEditorDialogCancelSavePreservesStateAndFiles(t *testing.T) {
 	_, e, cancelSource := openTestMapEditor(t, inspectionFixtureBytes(t))
 	detachSource(t, cancelSource)
 	e.Select(0, true)
-	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
-	// Unit 1 stands on 7,8, so the second drag stops beside it.
-	dragInspectionRecord(e, image.Pt(5, 6), image.Pt(8, 9))
+	dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14))
+	// Unit 1 stands on 15,16, so the second drag stops beside it.
+	dragInspectionRecord(e, image.Pt(13, 14), image.Pt(16, 17))
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}

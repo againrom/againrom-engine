@@ -190,6 +190,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
 	d.Passability = passArms(mapload.GroundArms(m, x.table))
+	d.Playable = mapload.Playable(m)
 	feet := x.feet(m)
 	add := func(r ui.InspectionRecord) {
 		if r.Spatial && (r.Cell.X < 0 || r.Cell.Y < 0 || r.Cell.X >= m.Width || r.Cell.Y >= m.Height) {
@@ -220,7 +221,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
-		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID)}
+		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID), ScriptID: int(u.UnitID)}
 		var c *terrain.UnitClass
 		if x.units != nil {
 			c = x.units.Classes[int32(u.ClassID)]
@@ -281,7 +282,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	}
 	v.SetEntities(entities)
 	for i, o := range m.Objects {
-		r := ui.InspectionRecord{Kind: "Structure", Section: 4, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), Spatial: true, Size: image.Pt(1, 1), Footprint: feet.structures[i], Label: fmt.Sprintf("kind %d", o.Kind)}
+		r := ui.InspectionRecord{Kind: "Structure", Section: 4, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), Spatial: true, Size: image.Pt(1, 1), Footprint: feet.structures[i], Label: fmt.Sprintf("kind %d", o.Kind), ScriptID: int(o.Field12)}
 		one := g
 		one.Structures = g.Structures[i : i+1]
 		places, counts, _ := terrain.StructurePlacements(one, x.structures, nil, 0)

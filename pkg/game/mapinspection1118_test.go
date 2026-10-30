@@ -67,7 +67,7 @@ func checkMovedMapBytes(t *testing.T, before, after []byte, index int, cell imag
 
 func inspectionFixtureBytes(t *testing.T) []byte {
 	t.Helper()
-	b := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: triggerPayload1093(), Units: []synth.ALMUnit{{X: 3*256 + 128, Y: 4*256 + 255, ClassID: 300}, {X: 7*256 + 3, Y: 8*256 + 5, ClassID: 301}}})
+	b := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: triggerPayload1093(), Units: []synth.ALMUnit{{X: 11*256 + 128, Y: 12*256 + 255, ClassID: 300}, {X: 15*256 + 3, Y: 16*256 + 5, ClassID: 301}}})
 	s := inspectionSectionOffsets(t, b)
 	binary.LittleEndian.PutUint16(b[s[6]+0x40:], 2)
 	binary.LittleEndian.PutUint32(b[s[6]+0x42:], 5)
@@ -131,23 +131,23 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 	e.Select(0, true)
 	cam := *e.Document().Viewer.Camera()
 	oldTrigger := inspectRecord1093(t, e.Document(), "Condition", 2)
-	if len(oldTrigger.References) != 1 || oldTrigger.References[0].Targets[0].Cell != image.Pt(3, 4) {
+	if len(oldTrigger.References) != 1 || oldTrigger.References[0].Targets[0].Cell != image.Pt(11, 12) {
 		t.Fatal("fixture lacks Unit ID 2 reference")
 	}
-	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
+	dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14))
 	d := e.Document()
-	if !e.Dirty() || !d.Edits.CanUndo() || d.Edits.CanRedo() || e.Selected() != 0 || d.Records[0].Cell != image.Pt(5, 6) {
+	if !e.Dirty() || !d.Edits.CanUndo() || d.Edits.CanRedo() || e.Selected() != 0 || d.Records[0].Cell != image.Pt(13, 14) {
 		t.Fatal("pointer move did not retain edited selection/history")
 	}
 	if !reflect.DeepEqual(cam, *d.Viewer.Camera()) {
 		t.Fatal("unit drag panned or replaced camera")
 	}
-	movedBytes1118(t, b, d.SourceBytes, 0, image.Pt(5, 6))
-	if !strings.Contains(inspectText1093(d.Records[0]), "X/Y raw: 1408 / 1791") || d.Records[0].Warning == "" {
+	movedBytes1118(t, b, d.SourceBytes, 0, image.Pt(13, 14))
+	if !strings.Contains(inspectText1093(d.Records[0]), "X/Y raw: 3456 / 3839") || d.Records[0].Warning == "" {
 		t.Fatal("raw details or unresolved-art warning stale")
 	}
 	ref := inspectRecord1093(t, d, "Condition", 2).References[0]
-	if ref.Targets[0].Cell != image.Pt(5, 6) {
+	if ref.Targets[0].Cell != image.Pt(13, 14) {
 		t.Fatal("trigger UnitID placement was not refreshed")
 	}
 	changed := append([]byte(nil), d.SourceBytes...)
@@ -183,7 +183,7 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatalf("saved wrong bytes: %v", err)
 	}
 	fresh := x.Editor()
-	if err := fresh.Open(target); err != nil || fresh.Dirty() || fresh.Document().Edits.CanUndo() || !bytes.Equal(fresh.Document().SourceBytes, changed) || fresh.Document().Records[0].Cell != image.Pt(5, 6) {
+	if err := fresh.Open(target); err != nil || fresh.Dirty() || fresh.Document().Edits.CanUndo() || !bytes.Equal(fresh.Document().SourceBytes, changed) || fresh.Document().Records[0].Cell != image.Pt(13, 14) {
 		t.Fatalf("fresh editor reopen failed: %v", err)
 	}
 	_ = e.Key("undo")
@@ -195,11 +195,11 @@ func TestMapEditor1118LosslessMoveUndoSaveAsFreshOpen(t *testing.T) {
 		t.Fatal("redo back to saved bytes stayed dirty")
 	}
 	_ = e.Key("undo")
-	dragInspectionRecord(e, image.Pt(3, 4), image.Pt(6, 7))
+	dragInspectionRecord(e, image.Pt(11, 12), image.Pt(14, 15))
 	if e.Document().Edits.CanRedo() {
 		t.Fatal("new edit did not truncate redo branch")
 	}
-	movedBytes1118(t, b, e.Document().SourceBytes, 0, image.Pt(6, 7))
+	movedBytes1118(t, b, e.Document().SourceBytes, 0, image.Pt(14, 15))
 }
 
 func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
@@ -208,7 +208,7 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 			b := inspectionFixtureBytes(t)
 			_, e, _ := openTestMapEditor(t, b)
 			e.Select(0, true)
-			p := point1118(e, image.Pt(3, 4))
+			p := point1118(e, image.Pt(11, 12))
 			now := time.Unix(1, 0)
 			e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)
 			switch mode {
@@ -216,7 +216,7 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 				p.X += 6
 			case "escape":
 				_ = e.Key("escape")
-				p = point1118(e, image.Pt(6, 7))
+				p = point1118(e, image.Pt(14, 15))
 			case "bar":
 				p.Y = 2 // over the top bar, off the map
 			case "outside":
@@ -228,8 +228,8 @@ func TestMapEditor1118CancelledAndNoopDragsKeepHistory(t *testing.T) {
 				t.Fatal("cancel/no-op changed bytes or history")
 			}
 			// Release clears capture; the next valid drag must work normally.
-			dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6))
-			movedBytes1118(t, b, e.Document().SourceBytes, 0, image.Pt(5, 6))
+			dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14))
+			movedBytes1118(t, b, e.Document().SourceBytes, 0, image.Pt(13, 14))
 		})
 	}
 }
@@ -246,7 +246,7 @@ func TestMapEditor1118MalformedBoundsAndNoopAreAtomic(t *testing.T) {
 	if _, err := d.Edits.Move("Unit", 999, image.Pt(1, 1)); err == nil {
 		t.Fatal("invalid file-order index accepted")
 	}
-	if next, err := d.Edits.Move("Unit", 0, image.Pt(3, 4)); err != nil || next != nil || d.Edits.CanUndo() {
+	if next, err := d.Edits.Move("Unit", 0, image.Pt(11, 12)); err != nil || next != nil || d.Edits.CanUndo() {
 		t.Fatal("no-op recorded")
 	}
 	bad := filepath.Join(t.TempDir(), "bad.alm")

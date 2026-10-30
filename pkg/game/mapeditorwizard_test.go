@@ -117,7 +117,7 @@ func emptyScriptMap(t *testing.T, size int) []byte {
 	return built(t, synth.ALMOptions{Width: size, Height: size, Type7Payload: goalScript(nil, nil, nil)}, nil, nil).Bytes()
 }
 
-// heroAreaMap is a 40x40 map with no script, a drop zone at 5,5 added with
+// heroAreaMap is a 40x40 map with no script, a drop zone at 12,12 added with
 // the drop tool, and the owner's example built in the wizard: when the hero
 // enters the box box, give player 1 500 gold and win.
 func heroAreaMap(t *testing.T, box [4]int) (*ui.MapEditor, string) {
@@ -125,7 +125,7 @@ func heroAreaMap(t *testing.T, box [4]int) (*ui.MapEditor, string) {
 	e, path := openGoalMap(t, emptyScriptMap(t, 40))
 	e.Fit()
 	_ = e.Key("drop")
-	clickCell(e, image.Pt(5, 5))
+	clickCell(e, image.Pt(12, 12))
 	_ = e.Key("escape")
 	wizNewTrigger(t, e, "Treasure")
 	wizPress(t, e, "", 0)
@@ -352,8 +352,8 @@ func startEditedParty(t *testing.T, b []byte, party []mapload.PartyMember) *Miss
 func TestTriggerWizardMapStartsInTheGame(t *testing.T) {
 	e, _ := heroAreaMap(t, [4]int{10, 4, 12, 6})
 	m := startEdited(t, e.Document().SourceBytes)
-	if m.Start.Cells[0] != (mapload.Cell{X: 5, Y: 5}) {
-		t.Fatalf("the hero starts at %v, the drop zone is 5,5", m.Start.Cells[0])
+	if m.Start.Cells[0] != (mapload.Cell{X: 12, Y: 12}) {
+		t.Fatalf("the hero starts at %v, the drop zone is 12,12", m.Start.Cells[0])
 	}
 	c := m.World.Script().Checks()
 	if len(c) != 2 || c[0].Op != 2 || !c[0].HasUnit || c[0].Unit != m.Start.IDs[0] || [4]int32(c[0].Args[:4]) != [4]int32{10, 4, 12, 6} {

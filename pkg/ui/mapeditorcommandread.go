@@ -24,7 +24,7 @@ func editorReaders() []editorReader {
 			read: (*MapEditor).readAddSteps},
 		{name: "brushes", help: "The paint planes, terrain classes with names and variant counts, object codes with names, and the largest radius", read: (*MapEditor).readBrushes},
 		{name: "check", help: "The map report: every error and warning the map's check finds, with its record and cell", read: (*MapEditor).readCheck},
-		{name: "trigger_items", help: "The trigger wizard's ready conditions and actions: item key, label, parameters with their kinds and defaults, and the comparison", read: (*MapEditor).readTriggerItems},
+		{name: "trigger_items", help: "The trigger wizard's ready conditions and actions: item key, label, parameters with their kinds, defaults and, for a unit or group, the choices write_trigger takes (a unit also any hero of the band), and the comparison", read: (*MapEditor).readTriggerItems},
 		{name: "map_fields", help: "The map property fields of a group, as the Metadata (M) and Pages (X) prompts and the mod package window (W) show them",
 			args: []commandArg{req("scope", textArg("Field group", "metadata", "pages", "package"))}, read: (*MapEditor).readMapFields},
 		{name: "goals", help: "The script's goals as the Goals (G) report lists them: goal index, arm, text, the record kind a target takes (pick), the script record and the target's cell", read: (*MapEditor).readGoals},
@@ -185,6 +185,9 @@ func (e *MapEditor) readRecord(raw json.RawMessage) (any, error) {
 	if e.editable() {
 		fields = e.plainFields(e.doc.Edits.Fields(a.Kind, a.Index))
 	}
+	if r.Kind == "Unit" || r.Kind == "Structure" {
+		fields = append(fields, InspectionField{Key: "script_id", Label: "Script ID", Value: int64(r.ScriptID), ReadOnly: true})
+	}
 	return map[string]any{"record": e.plainRecord(r), "fields": fields}, nil
 }
 
@@ -306,16 +309,22 @@ func (e *MapEditor) readCheck(raw json.RawMessage) (any, error) {
 	}
 	out := []map[string]any{}
 	for _, f := range c.Report() {
-		row := map[string]any{"error": f.Error, "rule": f.Rule, "text": e.mcpDisplay(f.Text)}
-		if f.Kind != "" {
-			row["record"] = RecordRef{Kind: f.Kind, Index: f.Index}
-		}
-		if f.HasCell {
-			row["cell"] = []int{f.Cell.X, f.Cell.Y}
-		}
-		out = append(out, row)
+		out = append(out, e.findingRow(f))
 	}
 	return out, nil
+}
+
+// findingRow is one finding of the map's check as check and an edit's
+// warnings list it.
+func (e *MapEditor) findingRow(f InspectionFinding) map[string]any {
+	row := map[string]any{"error": f.Error, "rule": f.Rule, "text": e.mcpDisplay(f.Text)}
+	if f.Kind != "" {
+		row["record"] = RecordRef{Kind: f.Kind, Index: f.Index}
+	}
+	if f.HasCell {
+		row["cell"] = []int{f.Cell.X, f.Cell.Y}
+	}
+	return row
 }
 
 var wizParamNames = map[wizParamKind]string{wpUnit: "unit", wpPlayer: "player", wpGroup: "group", wpNumber: "number", wpCell: "cell", wpBox: "area", wpMessage: "message", wpCommand: "command", wpRelation: "relation"}
@@ -333,7 +342,18 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 			defaults := e.wizardDefaults(condition, i)
 			params := []map[string]any{}
 			for k, p := range it.params {
-				params = append(params, map[string]any{"kind": wizParamNames[p.kind], "label": e.mcpDisplay(e.word(p.labelWord)), "default": defaults[k+1]})
+				param := map[string]any{"kind": wizParamNames[p.kind], "label": e.mcpDisplay(e.word(p.labelWord)), "default": defaults[k+1]}
+				if p.kind == wpUnit || p.kind == wpGroup {
+					choices := e.plainChoices(e.wizardTargets(p.kind))
+					if choices == nil {
+						choices = []InspectionChoice{}
+					}
+					param["choices"] = choices
+				}
+				if p.kind == wpUnit {
+					param["hero_band"] = "10001..11000"
+				}
+				params = append(params, param)
 			}
 			row := map[string]any{"item": wizItemKey(it), "label": e.mcpDisplay(e.word(it.labelWord)), "params": params}
 			if condition && it.cmp < 0 {

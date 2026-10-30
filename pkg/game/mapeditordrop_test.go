@@ -57,7 +57,7 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	if on, _ := e.DropToolOn(); !on {
 		t.Fatal("D did not arm the drop tool")
 	}
-	clickCell(e, image.Pt(5, 5))
+	clickCell(e, image.Pt(12, 12))
 	clickCell(e, image.Pt(30, 8))
 	if on, sel := e.DropToolOn(); !on || sel != 1 {
 		t.Fatalf("the tool after two zones: on %v, selected %d", on, sel)
@@ -67,23 +67,23 @@ func TestDropToolAddsMovesAndDeletesZones(t *testing.T) {
 	if len(d) != 2 || len(sc.Triggers) != 2 {
 		t.Fatalf("%d drop actions and %d triggers", len(d), len(sc.Triggers))
 	}
-	dropShape(t, sc, d[0], image.Pt(5, 5))
+	dropShape(t, sc, d[0], image.Pt(12, 12))
 	dropShape(t, sc, d[1], image.Pt(30, 8))
-	if got := e.Document().Drops; len(got) != 2 || got[0] != image.Pt(5, 5) || got[1] != image.Pt(30, 8) {
+	if got := e.Document().Drops; len(got) != 2 || got[0] != image.Pt(12, 12) || got[1] != image.Pt(30, 8) {
 		t.Fatalf("the document's drops %v", got)
 	}
 
-	clickCell(e, image.Pt(5, 5))
+	clickCell(e, image.Pt(12, 12))
 	if _, sel := e.DropToolOn(); sel != 0 {
 		t.Fatalf("a click on zone 1 selected %d", sel)
 	}
-	dragCell(e, image.Pt(5, 5), image.Pt(9, 20))
+	dragCell(e, image.Pt(12, 12), image.Pt(9, 20))
 	sc = wizScript(t, e.Document().SourceBytes)
 	if d = drops(sc); len(d) != 2 {
 		t.Fatalf("the drag left %d zones", len(d))
 	}
 	dropShape(t, sc, d[0], image.Pt(9, 20))
-	if err := e.Key("undo"); err != nil || wizScript(t, e.Document().SourceBytes).Actions[0].Value[0] != 5 {
+	if err := e.Key("undo"); err != nil || wizScript(t, e.Document().SourceBytes).Actions[0].Value[0] != 12 {
 		t.Fatal("one Undo did not take the move back", err)
 	}
 	_ = e.Key("redo")

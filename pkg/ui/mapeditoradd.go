@@ -104,7 +104,7 @@ var addKinds = []addKindRow{
 	{Kind: "Unit", Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
 		{Key: "class", Word: "editor.add.class", Control: addSprites},
 		{Key: "tier", Word: "editor.unit.tier", Control: addChoice, Optional: true},
-		addOwner, addAt}},
+		addOwner, {Key: "group", Word: "editor.unit.field.group", Control: addNumber}, addAt}},
 	{Kind: "Structure", Word: "editor.add.structure", Filters: []int{2}, Steps: []addStep{
 		{Key: "kind", Word: "editor.add.kind", Control: addSprites}, addOwner, addAt}},
 	{Kind: "Sack", Word: "editor.add.sack", Filters: []int{3}, Steps: []addStep{

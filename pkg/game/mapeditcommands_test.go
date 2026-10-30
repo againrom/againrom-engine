@@ -114,9 +114,9 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 		window func(t *testing.T, e *ui.MapEditor)
 		calls  func(t *testing.T, e *ui.MapEditor) []commandCall
 	}{
-		{"move_record", moved, func(t *testing.T, e *ui.MapEditor) { dragInspectionRecord(e, image.Pt(3, 4), image.Pt(5, 6)) },
+		{"move_record", moved, func(t *testing.T, e *ui.MapEditor) { dragInspectionRecord(e, image.Pt(11, 12), image.Pt(13, 14)) },
 			func(t *testing.T, e *ui.MapEditor) []commandCall {
-				return []commandCall{{"move_record", recordArgs(e, 0, map[string]any{"x": 5, "y": 6})}}
+				return []commandCall{{"move_record", recordArgs(e, 0, map[string]any{"x": 13, "y": 14})}}
 			}},
 		{"add unit", authoring, func(t *testing.T, e *ui.MapEditor) {
 			addWindow(t, e, "unit", map[string]string{"class": "40", "cell": "9,10"})
@@ -163,25 +163,25 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 		}},
 		{"add_drop_zone", goal(), func(t *testing.T, e *ui.MapEditor) {
 			_ = e.Key("drop")
-			clickCell(e, image.Pt(5, 5))
+			clickCell(e, image.Pt(12, 12))
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
-			return []commandCall{{"add_drop_zone", map[string]any{"x": 5, "y": 5}}}
+			return []commandCall{{"add_drop_zone", map[string]any{"x": 12, "y": 12}}}
 		}},
-		{"move_drop_zone", goal(image.Pt(5, 5)), func(t *testing.T, e *ui.MapEditor) {
+		{"move_drop_zone", goal(image.Pt(12, 12)), func(t *testing.T, e *ui.MapEditor) {
 			_ = e.Key("drop")
-			clickCell(e, image.Pt(5, 5))
-			dragCell(e, image.Pt(5, 5), image.Pt(9, 20))
+			clickCell(e, image.Pt(12, 12))
+			dragCell(e, image.Pt(12, 12), image.Pt(9, 20))
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
 			return []commandCall{{"move_drop_zone", map[string]any{"zone": 0, "x": 9, "y": 20}}}
 		}},
-		{"delete_drop_zone", goal(image.Pt(5, 5), image.Pt(30, 8)), func(t *testing.T, e *ui.MapEditor) {
+		{"delete_drop_zone", goal(image.Pt(12, 12), image.Pt(30, 8)), func(t *testing.T, e *ui.MapEditor) {
 			_ = e.Key("drop")
 			clickCell(e, image.Pt(30, 8))
 			_ = e.Key("delete")
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
 			return []commandCall{{"delete_drop_zone", map[string]any{"zone": 1}}}
 		}},
-		{"write_trigger", goal(image.Pt(5, 5)), func(t *testing.T, e *ui.MapEditor) {
+		{"write_trigger", goal(image.Pt(12, 12)), func(t *testing.T, e *ui.MapEditor) {
 			wizNewTrigger(t, e, "Treasure")
 			wizPress(t, e, "", 0)
 			wizPress(t, e, "c0.p1", 0)
@@ -339,15 +339,7 @@ func TestMapEditorNewMapCommandMatchesTheWindow(t *testing.T) {
 // drop zone, a victory trigger; it saves, and the saved file reopens to the
 // same bytes and records.
 func TestMapEditorMCPBuildsAPlayableMapFromEmpty(t *testing.T) {
-	x := overlapInspector()
-	units := x.table.Units.(dbCollection) // the check reads a unit row's slots 0 to 37
-	for i, row := range units {
-		if len(row.params) > 0 {
-			units[i].params = append(row.params, make([]int32, 0x26-len(row.params))...)
-		}
-	}
-	e := x.Editor()
-	e.Layout(1280, 800)
+	e := agentEditor(t)
 	tool, must := editorMCP(t, e)
 	must("new_map", map[string]any{"width": 32, "height": 32})
 	if d := e.Document(); d == nil || d.Width != 32 || d.Height != 32 {
@@ -476,7 +468,7 @@ func TestMapEditorCommandReportNamesWhatTheMapHolds(t *testing.T) {
 	m := newMapWindow(t, &MapInspector{tiles: &terrain.Tileset{}}, 48)
 	_, must := editorMCP(t, m)
 	for _, c := range []commandCall{
-		{"paint", map[string]any{"plane": "passability", "value": 1, "radius": 1, "cells": [][]int{{10, 10}}}},
+		{"paint", map[string]any{"plane": "passability", "value": 1, "radius": 1, "cells": [][]int{{10, 10}}, "verbose": true}},
 		{"undo", map[string]any{}},
 		{"paint", map[string]any{"plane": "height", "value": 8, "radius": 2, "cells": [][]int{{24, 24}}}},
 	} {
@@ -489,8 +481,14 @@ func TestMapEditorCommandReportNamesWhatTheMapHolds(t *testing.T) {
 			total += n
 			planes[p] = float64(n)
 		}
+		// A paint lists the cells themselves only when the call asks for
+		// them; every report names their count, planes and bounding box.
 		cells, _ := r["cells"].([]any)
-		if total == 0 || r["cells_total"] != float64(total) || len(cells) != total || !reflect.DeepEqual(r["planes"], planes) {
+		listed := total
+		if c.name == "paint" && c.args["verbose"] != true {
+			listed = 0
+		}
+		if total == 0 || r["cells_total"] != float64(total) || len(cells) != listed || r["cells_box"] == nil || !reflect.DeepEqual(r["planes"], planes) {
 			t.Fatalf("%s %v: the map changed %v, the report says %v", c.name, c.args, want, r)
 		}
 	}

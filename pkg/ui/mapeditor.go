@@ -38,6 +38,9 @@ type InspectionRecord struct {
 	Lines          []InspectionLine
 	References     []InspectionReference
 	Player, Group  int // a unit's owner slot and group number; 0 is none
+	// ScriptID is the number a script parameter names a unit or structure
+	// by; 0 for any other record.
+	ScriptID int
 	// Hover is the status strip's line while the pointer is on the record's
 	// cell, in the font's encoding; empty shows nothing.
 	Hover string
@@ -68,6 +71,9 @@ type InspectionDocument struct {
 	// Refused is, in a placement's preview, each record the placement
 	// refuses, with its footprint where it would have stood.
 	Refused []SelectionRefusal
+	// Playable is the cells inside the map's border ring; empty when the
+	// ring covers the map or the host names none.
+	Playable image.Rectangle
 }
 
 type InspectionEdits interface {

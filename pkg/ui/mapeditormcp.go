@@ -100,6 +100,9 @@ type editorToolArgs struct {
 	Shift  bool    `json:"shift"`
 	Ctrl   bool    `json:"ctrl"`
 	Alt    bool    `json:"alt"`
+	// Discard drops unsaved changes on open, as the unsaved-changes
+	// question's open button does.
+	Discard bool `json:"discard"`
 }
 
 type editorTool struct {
@@ -149,8 +152,13 @@ func editorTools() []editorTool {
 		}},
 		{Tool: editormcp.Tool{Name: "state", Description: "Read window status, panels, popups, prompts, selection, fields, path, dirty flag and help", InputSchema: empty}, read: func(e *MapEditor, _ editorToolArgs) (any, error) { return e.mcpState(), nil }},
 		{Tool: editormcp.Tool{Name: "frame", Description: "PNG of the window's drawn frame, including the agent pointer", InputSchema: empty}},
-		{Tool: editormcp.Tool{Name: "map", Description: "Read map size and authored records plus one cell's terrain, height, objects and passability", InputSchema: editorToolSchema(map[string]string{"x": "integer", "y": "integer"}, "x", "y")}, read: (*MapEditor).mcpMap},
-		{Tool: editormcp.Tool{Name: "open", Description: "Open a path using the window's path prompt; unsaved changes still ask", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error { return e.mcpPath(pathdialog.OpenFile, a.Path) }},
+		{Tool: editormcp.Tool{Name: "map", Description: "Read map size, the playable area inside the 8-cell border ring (x0,y0..x1,y1) and authored records plus one cell's terrain, height, objects and passability", InputSchema: editorToolSchema(map[string]string{"x": "integer", "y": "integer"}, "x", "y")}, read: (*MapEditor).mcpMap},
+		{Tool: editormcp.Tool{Name: "open", Description: "Open a path using the window's path prompt; unsaved changes still ask unless discard is true", InputSchema: editorToolSchema(map[string]string{"path": "string", "discard": "boolean"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error {
+			if err := e.mcpPath(pathdialog.OpenFile, a.Path); err != nil || !a.Discard {
+				return err
+			}
+			return e.discardLeave()
+		}},
 		{Tool: editormcp.Tool{Name: "save", Description: "Use the window Save route, including mod, validation and overwrite prompts", InputSchema: empty}, apply: func(e *MapEditor, _ editorToolArgs) error { return e.Key("saveas") }},
 		{Tool: editormcp.Tool{Name: "save_as", Description: "Use the window Save As path prompt; refusals and confirmations remain visible", InputSchema: editorToolSchema(map[string]string{"path": "string"}, "path")}, apply: func(e *MapEditor, a editorToolArgs) error { return e.mcpPath(pathdialog.SaveFile, a.Path) }},
 	}
@@ -477,7 +485,7 @@ func (e *MapEditor) mcpMap(a editorToolArgs) (any, error) {
 	if n < len(g.Overlay) {
 		overlay = g.Overlay[n]
 	}
-	return map[string]any{"width": d.Width, "height": d.Height, "records": records, "script": script, "cell": map[string]any{"x": a.X, "y": a.Y, "terrain": tile, "height": height, "height_known": ok, "objects": objects, "overlay": overlay, "passability": pass, "border": e.BorderCell(cell)}}, nil
+	return map[string]any{"width": d.Width, "height": d.Height, "playable": PlayableText(d.Playable), "records": records, "script": script, "cell": map[string]any{"x": a.X, "y": a.Y, "terrain": tile, "height": height, "height_known": ok, "objects": objects, "overlay": overlay, "passability": pass, "border": e.BorderCell(cell)}}, nil
 }
 
 func (e *MapEditor) mcpPath(kind pathdialog.Kind, path string) error {

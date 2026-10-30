@@ -70,7 +70,7 @@ func spellCellAllowed(m *mapedit.Editor, index int) error {
 	if x == 0 && y == 0 {
 		return fmt.Errorf("cell spells cannot use the item-recipe cell 0,0")
 	}
-	return insideMap(m, image.Pt(int(x), int(y)), "spell cell")
+	return insideMap(m, image.Pt(int(x), int(y)), "spell cell", "Enchantment")
 }
 
 // spellTemplateKind is the kind of cell spell the Add window's template

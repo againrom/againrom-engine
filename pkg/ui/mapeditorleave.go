@@ -44,6 +44,15 @@ func (e *MapEditor) runLeave(step leaveStep) error {
 	return ebiten.Termination
 }
 
+// discardLeave answers an open question that holds a map open as its open
+// button does: the map opens and the unsaved changes are dropped.
+func (e *MapEditor) discardLeave() error {
+	if !e.prompt.open() || e.prompt.kind != promptLeave || !e.prompt.then.open {
+		return nil
+	}
+	return e.runLeave(e.prompt.then)
+}
+
 // leaveSaveAs starts the existing Save As route and runs the step once the
 // map is saved.
 func (e *MapEditor) leaveSaveAs() error {

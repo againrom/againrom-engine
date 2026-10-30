@@ -24,7 +24,7 @@ import (
 // and 0x0202.
 func openRecords(t *testing.T) ([]byte, *ui.MapEditor) {
 	t.Helper()
-	raw := synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: make([]byte, 12),
+	raw := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12),
 		Units: []synth.ALMUnit{{X: 3*256 + 128, Y: 4*256 + 128, ClassID: 40, ClassSubID: 2}},
 		Objects: []synth.ALMObject{
 			{X: 3*256 + 128, Y: 4*256 + 128, Kind: 5, Field12: 7},
@@ -97,9 +97,9 @@ func editedMap(t *testing.T, e *ui.MapEditor) (*alm.Map, []alm.LootRecord) {
 
 func TestMapEditorDragPrefersTheUnitOverTheStructureUnderIt(t *testing.T) {
 	_, e := openRecords(t)
-	dragCell(e, image.Pt(3, 4), image.Pt(6, 6))
+	dragCell(e, image.Pt(3, 4), image.Pt(14, 14))
 	m, _ := editedMap(t, e)
-	if m.Units[0].X>>8 != 6 || m.Objects[0].X>>8 != 3 {
+	if m.Units[0].X>>8 != 14 || m.Objects[0].X>>8 != 3 {
 		t.Fatalf("drag moved unit to %d and structure to %d", m.Units[0].X>>8, m.Objects[0].X>>8)
 	}
 }
@@ -124,24 +124,24 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 
 	// Move: select the structure, then drag it from its anchor.
 	e.Select(recordIndex(t, e, "Structure", 0), true)
-	dragCell(e, image.Pt(3, 4), image.Pt(5, 7))
+	dragCell(e, image.Pt(3, 4), image.Pt(13, 15))
 	step("move", func(m *alm.Map, _ []alm.LootRecord) bool {
-		return m.Objects[0].X == 5*256+128 && m.Objects[0].Y == 7*256+128 && m.Units[0].X>>8 == 3
+		return m.Objects[0].X == 13*256+128 && m.Objects[0].Y == 15*256+128 && m.Units[0].X>>8 == 3
 	})
-	_, err := e.Document().Edits.Move("Structure", 0, image.Pt(14, 14))
-	refused("a footprint past the map edge", err)
+	_, err := e.Document().Edits.Move("Structure", 0, image.Pt(30, 30))
+	refused("a cell in the border ring", err)
 
 	// Clone: C, then a click; the clone is selected.
 	e.Select(recordIndex(t, e, "Structure", 0), true)
-	clickCell(e, image.Pt(10, 2))
+	clickCell(e, image.Pt(18, 10))
 	if m, _ := editedMap(t, e); len(m.Objects) != 2 {
 		t.Fatal("a click without C cloned")
 	}
 	e.Select(recordIndex(t, e, "Structure", 0), true)
 	_ = e.Key("clone")
-	clickCell(e, image.Pt(10, 2))
+	clickCell(e, image.Pt(18, 10))
 	step("clone", func(m *alm.Map, _ []alm.LootRecord) bool {
-		return len(m.Objects) == 3 && m.Objects[2].X == 10*256+128 && m.Objects[2].Field12 == 8
+		return len(m.Objects) == 3 && m.Objects[2].X == 18*256+128 && m.Objects[2].Field12 == 8
 	})
 	if r := e.Document().Records[e.Selected()]; r.Kind != "Structure" || r.Index != 2 {
 		t.Fatalf("the clone is not selected: %+v", r)
@@ -161,12 +161,12 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	step("delete", func(m *alm.Map, _ []alm.LootRecord) bool { return len(m.Objects) == 2 })
 
 	// Add a sack: S opens the Add window, then the cell and the item code.
-	clickCell(e, image.Pt(6, 6))
+	clickCell(e, image.Pt(14, 14))
 	if _, l := editedMap(t, e); len(l) != 1 {
 		t.Fatal("a click without S added a sack")
 	}
 	_ = e.Key("sack")
-	e.TextInput("6,6")
+	e.TextInput("14,14")
 	_ = e.Key("enter")
 	e.TextInput("999")
 	_ = e.Key("enter")
@@ -175,7 +175,7 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	}
 	addSteps(t, e, map[string]string{"item": "257"})
 	step("add sack", func(_ *alm.Map, l []alm.LootRecord) bool {
-		return len(l) == 2 && l[1].Ground() && l[1].X == 6*256+128 && l[1].Y == 6*256+128 && len(l[1].Elements) == 1 && l[1].Elements[0].ItemCode() == 0x0101
+		return len(l) == 2 && l[1].Ground() && l[1].X == 14*256+128 && l[1].Y == 14*256+128 && len(l[1].Elements) == 1 && l[1].Elements[0].ItemCode() == 0x0101
 	})
 	if r := e.Document().Records[e.Selected()]; r.Kind != "Sack" || r.Index != 1 {
 		t.Fatalf("the new sack is not selected: %+v", r)
@@ -197,7 +197,7 @@ func TestMapEditorEditsStructuresAndSacksWithChecks(t *testing.T) {
 	// The stock record: items only, no cell.
 	e.Select(recordIndex(t, e, "Stock", 0), true)
 	_ = e.Key("clone")
-	clickCell(e, image.Pt(2, 2))
+	clickCell(e, image.Pt(10, 10))
 	if _, l := editedMap(t, e); len(l) != 2 || e.Message() == "" {
 		t.Fatal("a stock clone was accepted")
 	}

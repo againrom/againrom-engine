@@ -157,16 +157,16 @@ func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "destination"); err != nil {
-			return false, err
-		}
 		x, y, err := m.Position(k, index)
 		if err != nil {
 			return false, err
 		}
 		nx, ny := cellWords(cell, x, y)
 		if x == nx && y == ny {
-			return false, nil
+			return false, nil // a record left on its own cell, even one in the border ring
+		}
+		if err := insideMap(m, cell, "destination", kind); err != nil {
+			return false, err
 		}
 		if err := m.Move(k, index, nx, ny); err != nil {
 			return false, err
@@ -183,7 +183,7 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "clone cell"); err != nil {
+		if err := insideMap(m, cell, "clone cell", kind); err != nil {
 			return false, err
 		}
 		x, y, err := m.Position(k, index)
@@ -222,7 +222,7 @@ func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocum
 // Its words sit at the cell's centre and it carries no gold (DIV-3134).
 func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "sack cell"); err != nil {
+		if err := insideMap(m, cell, "sack cell", "Sack"); err != nil {
 			return false, err
 		}
 		if item <= 0 || item > math.MaxUint16 {
@@ -583,13 +583,32 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	return true, s.checkPlacement(k, m, index, was)
 }
 
-func insideMap(m *mapedit.Editor, cell image.Point, what string) error {
+// ringRefuses is the editor's border-ring rule (owner): a unit, a structure
+// or a drop cell may not stand on a cell of the border ring, which the game
+// does not show and where it removes a placed unit (TERR-PLACE-208). A
+// terrain, height, scenery, sack or spell cell may.
+var ringRefuses = map[string]bool{"Unit": true, "Structure": true, ringDrop: true}
+
+// ringDrop is the kind insideMap names a drop cell by.
+const ringDrop = "Drop"
+
+// insideMap refuses a cell outside the map and, for a kind ringRefuses names,
+// a cell of the border ring; what names the cell in the refusal.
+func insideMap(m *mapedit.Editor, cell image.Point, what, kind string) error {
 	view, err := m.Map()
 	if err != nil {
 		return err
 	}
+	return cellError(view, cell, what, kind)
+}
+
+// cellError is insideMap's judgement on the decoded map.
+func cellError(view *alm.Map, cell image.Point, what, kind string) error {
 	if !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
 		return fmt.Errorf("%s %d,%d is outside the map", what, cell.X, cell.Y)
+	}
+	if ringRefuses[kind] && mapload.InBorderRing(view, cell.X, cell.Y) {
+		return fmt.Errorf("%s %d,%d is in the border ring; the playable area is %s", what, cell.X, cell.Y, ui.PlayableText(mapload.Playable(view)))
 	}
 	return nil
 }

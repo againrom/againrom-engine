@@ -127,8 +127,8 @@ remain in the state and require the same confirmation as local input.
 | `cell` | `{"x":10,"y":12}` | Calls `ShowCell`, then `CellPoint`; returns window `x,y`. |
 | `state` | `{}` | Status, message, panel, popup, prompt, Help/report, dropdown, groups, selection, object fields, dirty flag, path and window size. |
 | `frame` | `{}` | Reads the editor's drawn window after Draw, including the agent pointer. It does not call the diagnostic snapshot composer. |
-| `map` | `{"x":10,"y":12}` | Open document size, players, units, structures, loot, script nodes/triggers, other records, and the cell's terrain, height, objects, overlay and passability. A missing plane is null or marked unknown. |
-| `open` | `{"path":"C:\\Maps\\map.alm"}` | Uses the window's typed Open prompt. Unsaved changes still ask before replacing the document. |
+| `map` | `{"x":10,"y":12}` | Open document size, `playable` (the cells inside the border ring, `x0,y0..x1,y1`), players, units, structures, loot, script nodes/triggers, other records, and the cell's terrain, height, objects, overlay and passability. A missing plane is null or marked unknown. |
+| `open` | `{"path":"C:\\Maps\\map.alm"}`; optional `discard` | Uses the window's typed Open prompt. Unsaved changes still ask before replacing the document; with `"discard":true` the question is answered as its Open button does and the changes are dropped. |
 | `save` | `{}` | Uses the window's Save key route, including in-place and mod destinations, validation and prompts. |
 | `save_as` | `{"path":"C:\\Maps\\copy.alm"}` | Uses the window's typed Save As prompt. Install fences, overwrite checks and validation remain active. |
 
@@ -165,11 +165,17 @@ nothing. A typed call is refused while a window prompt, path question or
 popup field is open; finish or cancel it with `key` first.
 
 An edit answers a JSON report: `changed`, `record` (the record the call
-names, as `{"Kind","Index"}`), `dirty`, `can_undo`, `can_redo`, `message`
-(the status line), `prompt_open`, `cells` (up to 1024 changed cells as
-`[x,y]`) with `cells_total`, `planes` (the count of changed cells per plane:
-`terrain`, `passability`, `height`, `objects`), and `records` (up to 256
-changed records) with `records_total`. An edit of several records at once
+names, as `{"Kind","Index"}`), `script_id` (when that record is a unit or
+structure: the number a script parameter names it by), `dirty`, `can_undo`,
+`can_redo`, `message` (the status line), `prompt_open`, `cells` (up to 1024
+changed cells as `[x,y]`) with `cells_total`, `cells_box` (the changed
+cells' bounding cells `[x0,y0,x1,y1]`, corners included), `planes` (the
+count of changed cells per plane: `terrain`, `passability`, `height`,
+`objects`), `records` (up to 256 changed records) with `records_total`, and
+`warnings`: the map check's findings (see `check`) on the records the edit
+changed or names, each with its `rule`, `error`, `text`, `record` and
+`cell`. `paint` and `randomize` list `cells` only with `"verbose":true`;
+without it they answer the count, the box and the planes. An edit of several records at once
 (`move_records`, `delete_records`, `copy_records`, `move_area`) also
 answers `selected` (the records the selection holds after it), `note` (the
 selection's status text) and `refusals` (a reason per record the host
@@ -178,26 +184,26 @@ report compares what the map
 stores before and after the call: each cell's tile word, its passability
 bit, height and object byte, and each record's stored bytes, so a field
 change names its record. A call that changes nothing reports `changed`
-false and no cells or records. `new_map` names `width` and `height`
-instead. A number field that stores 0 as "inherit" refuses a typed 0 with
+false and no cells or records. `new_map` names `width`, `height` and
+`playable` instead. A number field that stores 0 as "inherit" refuses a typed 0 with
 the field prompt's words; a field entry without `value` is the prompt's
 empty text and inherits.
 
 | Tool | Arguments | Window route |
 | --- | --- | --- |
-| `new_map` | `width`, `height`; optional `altitude` (0..126, default 64), `multiplayer` | The catalogue's New question. Sizes are multiples of 8 from 32 to 256. Unsaved changes still ask. |
-| `paint` | `plane` (`terrain`, `height`, `objects`, `passability`), `cells` (`[[x,y],...]`, the stroke in order); optional `value`, `radius` (default 0), `shape` (`circle`, `square`), `fill` (`pattern`, `random`, `variant`) and `variant` for terrain; `set`, `flat`, `mode` (`step`, `level`, `smooth`) for height; `forest` (`{"kinds":[...],"share":25,"thin":false}`) for objects | One brush stroke. `value` is a terrain class or object code from `brushes`, a height change (-31..31, not 0), the height with `set`, or 1 to close and 0 to open a cell. With `forest` the stroke is the object brush's Forest stroke and `value` is left out: it plants the object classes `kinds` over `share` per cent (1..100, default 25) of the open cells it covers, or with `thin` removes that share of those classes. A forest stroke draws from the window's stroke seed, so two strokes over one map plant different cells. |
-| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key; `parts` for a `Message` | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`, `Message`. A `Message` takes `parts` alone (see `write_message`) and adds a new message page and an action that shows it, as the Add window's New message and the message editor's Apply do. |
+| `new_map` | `width`, `height`; optional `altitude` (0..126, default 64), `multiplayer`, `discard` | The catalogue's New question. Sizes are multiples of 8 from 32 to 256. Unsaved changes still ask; `"discard":true` drops them as the question's Open button does. |
+| `paint` | `plane` (`terrain`, `height`, `objects`, `passability`), `cells` (`[[x,y],...]`, the stroke in order); optional `value`, `radius` (default 0), `shape` (`circle`, `square`), `fill` (`pattern`, `random`, `variant`) and `variant` for terrain; `set`, `flat`, `mode` (`step`, `level`, `smooth`) for height; `forest` (`{"kinds":[...],"share":25,"thin":false}`) for objects; `verbose` | One brush stroke. `value` is a terrain class or object code from `brushes`, a height change (-31..31, not 0), the height with `set`, or 1 to close and 0 to open a cell. With `forest` the stroke is the object brush's Forest stroke and `value` is left out: it plants the object classes `kinds` over `share` per cent (1..100, default 25) of the open cells it covers, or with `thin` removes that share of those classes. A forest stroke draws from the window's stroke seed, so two strokes over one map plant different cells. |
+| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key; `parts` for a `Message` | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. A unit's steps are class, tier, owner, group and cell; a unit, structure or drop zone is refused on a cell of the border ring. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`, `Message`. A `Message` takes `parts` alone (see `write_message`) and adds a new message page and an action that shows it, as the Add window's New message and the message editor's Apply do. |
 | `set_field` | `kind`, `index`, `key`; `value` (number) or `text` | The field prompt (F). `record` lists the keys. |
 | `set_fields` | `kind`, `index`, `fields` (a list of `{"key","value"}` for a number or `{"key","text"}` for a text) | A script record popup's Apply: one edit. |
 | `set_object` | `kind`, `index`; optional `fields`, `cell` (`[x,y]`) | The object popup's Apply: fields and a move as one edit. |
-| `move_record` | `kind`, `index`, `x`, `y` | A drag on the map. |
-| `clone_record` | `kind`, `index`, `x`, `y` | Clone (C) and a click. Units, structures and sacks. |
+| `move_record` | `kind`, `index`, `x`, `y` | A drag on the map. A unit or structure is refused on a cell of the border ring. |
+| `clone_record` | `kind`, `index`, `x`, `y` | Clone (C) and a click. Units, structures and sacks; a unit or structure is refused on a cell of the border ring. |
 | `delete_record` | `kind`, `index` | Del. |
-| `set_drop_cell` | `x`, `y` | The drop tool (D) on a map without drop zones. |
-| `add_drop_zone`, `move_drop_zone`, `delete_drop_zone` | `x`, `y`; `zone` (from 0) | The drop tool's click, drag and Del. |
-| `write_trigger` | `name`, `actions`; optional `conditions`, `once` (default true), `index` (default -1 adds a trigger) | The trigger wizard's Apply. Each row is `{"item", "params"}`, a condition also `comparison` when its comparison is chosen; `trigger_items` lists the items. A parameter is an integer, `[x,y]` for a cell or `[x1,y1,x2,y2]` for an area. |
-| `move_records` | `records` (`[{"kind","index"},...]`), `dx`, `dy` | A drag of a selection: units, structures and sacks move together as one edit. A record that would leave the map or enter a closed cell is not moved: the report's `refusals` names it, as the window's drag does, and the other records move in the same step. |
+| `set_drop_cell` | `x`, `y` | The drop tool (D) on a map without drop zones. A cell of the border ring is refused. |
+| `add_drop_zone`, `move_drop_zone`, `delete_drop_zone` | `x`, `y`; `zone` (from 0) | The drop tool's click, drag and Del. A cell of the border ring is refused. |
+| `write_trigger` | `name`, `actions`; optional `conditions`, `once` (default true), `index` (default -1 adds a trigger) | The trigger wizard's Apply. Each row is `{"item", "params"}`, a condition also `comparison` when its comparison is chosen; `trigger_items` lists the items. A parameter is an integer, `[x,y]` for a cell or `[x1,y1,x2,y2]` for an area. A unit or group parameter is one of the choices `trigger_items` lists, or a unit of the hero band 10001..11000; any other value is refused. |
+| `move_records` | `records` (`[{"kind","index"},...]`), `dx`, `dy` | A drag of a selection: units, structures and sacks move together as one edit. A record that would leave the map, enter the border ring (a unit or structure) or enter a closed cell is not moved: the report's `refusals` names it, as the window's drag does, and the other records move in the same step. |
 | `delete_records` | `records` | Del on a selection. |
 | `copy_records` | `records` or `area` (`[x0,y0,x1,y1]`, corners included); `x`, `y` | Ctrl+C and a Ctrl+V click on the same map. The copy's top-left lands on `x,y`. An area copy also carries the area's tiles, heights and objects. |
 | `move_area` | `area`, `dx`, `dy`; optional `records` (default every unit, structure and sack in the area) | A drag inside a selection box: the records and the objects move, the tiles and heights stay. |
@@ -208,23 +214,55 @@ empty text and inherits.
 | `add_box_area` | `area`; optional `trigger` (default -1, a new trigger) | The box area tool (L) and its trigger choice: one more box condition pair on the trigger. A trigger with three pairs is refused. |
 | `set_goal_target` | `goal`, `kind` (`Unit`, `Structure`), `index` | A pick from the Goals (G) report. `goals` lists the goals and the kind each takes. |
 | `set_map_field` | `scope` (`metadata`, `pages`, `package`), `key`, `value` | The Metadata (M) and Pages (X) prompts and the mod package window (W). `map_fields` lists the keys. The package fields `folder`, `folder-open`, `output` and `source` open a folder or switch the mission and stay in the window. |
-| `randomize` | `plane` (`terrain`, `heights`), `seed` | Ctrl+E and Ctrl+Shift+R. One seed on one map gives one result. |
+| `randomize` | `plane` (`terrain`, `heights`), `seed`; optional `verbose` | Ctrl+E and Ctrl+Shift+R. One seed on one map gives one result. |
 | `undo`, `redo` | `{}` | The window's Undo and Redo, the same function: it leaves a drag or pick and keeps an open message page on a page the map still holds. |
 
 Read tools answer JSON and change nothing:
 
 | Tool | Arguments | Answer |
 | --- | --- | --- |
-| `record` | `kind`, `index` | The record and every field: key, value, text, choices, read-only. |
+| `record` | `kind`, `index` | The record, with `ScriptID` for a unit or structure, and every field: key, value, text, choices, read-only. A unit or structure also has the read-only field `script_id`; no tool writes it. |
 | `records` | `x0`, `y0`, `x1`, `y1` | The records whose footprint meets the cell range, corners included. |
 | `add_steps` | optional `kind`, `x`, `y`, `values` | Without `kind`, the kinds `add_record` adds; with it, the steps in order with choices, defaults, whether each is asked, and a refusal of a given value. |
 | `brushes` | `{}` | Planes, terrain classes with names and variant counts, object codes with names, largest radius and height change. |
 | `check` | `{}` | The map report: every error and warning with its rule, record and cell. |
-| `trigger_items` | `{}` | The wizard's conditions and actions: item key, label, parameters with kind and default, comparison. |
+| `trigger_items` | `{}` | The wizard's conditions and actions: item key, label, parameters with kind and default, comparison. A unit or group parameter lists its `choices`: for a unit the placed units by script ID and the hero band 10001..11000, for a group the groups the map's units carry. A unit parameter also names `hero_band`, `10001..11000`. |
 | `map_fields` | `scope` | The fields of the Metadata or Pages prompt or of the mod package window. |
 | `goals` | `{}` | The Goals (G) report: goal index, arm, text, `pick` (the kind a target takes, empty when the goal takes none), the script record and the target's cell. |
 | `messages` | optional `page` | Without `page`, the message pages the map's script shows and their text; with it, the page's parts in order (`source`, `number`, `body`, `speaker`) and the speakers a part takes. |
 | `unit_settings` | `index`; optional `fields` (number fields) | The unit settings window's preview: every field of the unit as it reads with the given values set. Nothing is written. |
+
+### Script IDs, groups, the playable area and warnings
+
+- **Script IDs.** A script parameter names a unit or structure by its script
+  ID, not by its index. `add_record` answers the new unit's or structure's
+  `script_id`; `record` gives it as `ScriptID` and the read-only field
+  `script_id`; `trigger_items` lists the placed units' IDs and the hero band
+  10001..11000 as a unit parameter's `choices`, and
+  the groups the map's units carry as a group parameter's. `write_trigger` refuses
+  a unit or group value outside those choices. The window lists heroes 1 to 8
+  and keeps a loaded hero value. `check` names, under `script-reference`, a unit
+  value above 11000, which no placement holds.
+- **Groups.** A unit's Add steps include `group`. Without a `group` value a
+  new unit takes the lowest group number no unit of the map carries, so each
+  unit added that way is a script group of its own; a `group` value always
+  wins. `set_units_group` puts units in one group afterwards.
+- **Playable area.** The border ring is the 8 cells next to each edge of the
+  map (`mapload.Playable`); the game removes a unit placed there at load
+  (`TERR-PLACE-208`). `new_map` and `map` answer `playable` as `x0,y0..x1,y1`
+  (corners included), or `none` on a map of 16 cells or fewer on a side.
+  `add_record`, `move_record`, `clone_record`, `move_records`, `copy_records`
+  and the drop zone tools refuse a unit, a structure or a drop zone on a ring
+  cell, naming the playable area in the refusal. A structure is judged by
+  its cell, the footprint's top-left. Terrain, height, object (scenery) and
+  passability strokes take ring cells, and so does a sack or a cell spell
+  added on one. `check` warns of a structure whose footprint meets the ring
+  (`structure-border`): one from a map written elsewhere, or one whose cell
+  is playable and whose footprint reaches into the ring, which the edit's
+  `warnings` then name.
+- **Warnings.** An edit's `warnings` are the `check` findings on the records
+  it touched; they come from the same rule table, so `check` gives the same
+  rows for the whole map.
 
 ### Example: a small map from nothing
 
@@ -249,6 +287,30 @@ The values in angle brackets come from the reads before them: `brushes`
 names the classes, `add_steps` the owner choices, `trigger_items` the
 condition's default hero. `TestMapEditorMCPBuildsAPlayableMapFromEmpty`
 runs this session on a synthetic table.
+
+### Example: a village whose chief's death wins
+
+```text
+new_map       {"width":32,"height":32}
+add_record    {"kind":"Structure","x":16,"y":9,"values":{"kind":5}}
+add_record    {"kind":"Unit","x":10,"y":10,"values":{"class":40}}
+add_record    {"kind":"Unit","x":14,"y":14,"values":{"class":40}}
+record        {"kind":"Unit","index":1}
+add_record    {"kind":"Unit","x":18,"y":18,"values":{"class":40,"group":1}}
+trigger_items {}
+write_trigger {"name":"Chief","conditions":[{"item":"c.unitdead","params":[<chief>]}],"actions":[{"item":"a.win"}]}
+check         {}
+```
+
+`new_map` answers `"playable":"8,8..23,23"`, so every placement stands in
+8..23 on both axes. The second unit is the chief: `<chief>` is the
+`script_id` its `add_record` answers, which `record` gives as `ScriptID` and
+`trigger_items` lists among the `c.unitdead` unit choices. The first two
+units take groups 1 and 2, one each; the third joins group 1 because the
+call names it. A `c.unitdead` row naming a value the map does not hold,
+such as 20001, is refused. `TestMapEditorMCPVictoryTriggerNamesTheUnitAddRecordReports`
+runs this session on a synthetic table and finds the condition naming the
+chief's cell.
 
 ### Example: a selection, a group, a stock, a message and a goal
 

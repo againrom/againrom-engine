@@ -1,6 +1,10 @@
 package mapload
 
-import "againrom/pkg/formats/alm"
+import (
+	"image"
+
+	"againrom/pkg/formats/alm"
+)
 
 // WithdrawBorderPlacements removes, in place, every placed unit whose cell is in
 // the border ring and returns how many it removed. The original loader refuses
@@ -29,8 +33,22 @@ func InBorderRing(m *alm.Map, x, y int) bool {
 	return inBorderRing(x, y, int(m.Width), int(m.Height))
 }
 
+// Playable is the rectangle of m's cells inside the border ring: the cells a
+// unit can be placed on. It is empty on a map whose ring covers every cell.
+func Playable(m *alm.Map) image.Rectangle {
+	return playable(int(m.Width), int(m.Height))
+}
+
+func playable(w, h int) image.Rectangle {
+	r := image.Rectangle{Min: image.Pt(borderDepth, borderDepth), Max: image.Pt(w-borderDepth, h-borderDepth)}
+	if r.Empty() {
+		return image.Rectangle{}
+	}
+	return r
+}
+
 func inBorderRing(x, y, w, h int) bool {
-	return x < borderDepth || y < borderDepth || x >= w-borderDepth || y >= h-borderDepth
+	return !image.Pt(x, y).In(playable(w, h))
 }
 
 // withdrawnBefore lists, for each ring placement WithdrawBorderPlacements took

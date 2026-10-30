@@ -85,8 +85,9 @@ func TestTriggerWizardRefusesANumberOutsideThirtyTwoBits(t *testing.T) {
 }
 
 // A zone on a zero coordinate would start the hero on the random fallback
-// cell, not on the cell the tool shows; the tool refuses it, and a zone from
-// 1 holds the hero on the cell shown.
+// cell, not on the cell the tool shows; the tool refuses it, as it refuses
+// every cell of the border ring, and a zone on the first playable column
+// holds the hero on the cell shown.
 func TestDropZoneRefusesACellTheGameWouldMove(t *testing.T) {
 	for _, c := range []image.Point{{X: 0, Y: 20}, {X: 20, Y: 0}} {
 		e, _ := openGoalMap(t, emptyScriptMap(t, 160))
@@ -101,9 +102,9 @@ func TestDropZoneRefusesACellTheGameWouldMove(t *testing.T) {
 	e, _ := openGoalMap(t, emptyScriptMap(t, 160))
 	e.Fit()
 	_ = e.Key("drop")
-	clickCell(e, image.Pt(1, 20))
+	clickCell(e, image.Pt(8, 20))
 	if len(e.Document().Drops) != 1 {
-		t.Fatalf("a zone on 1,20 was not written")
+		t.Fatalf("a zone on 8,20 was not written")
 	}
 	z, ok := e.Document().Edits.(ui.InspectionDropZones)
 	if !ok {
@@ -113,7 +114,7 @@ func TestDropZoneRefusesACellTheGameWouldMove(t *testing.T) {
 		t.Fatal("a zone moved onto a zero coordinate")
 	}
 	m := startEdited(t, e.Document().SourceBytes)
-	if m.Start.Fallback || m.Start.Cells[0].X != 1 || m.Start.Cells[0].Y != 20 {
-		t.Fatalf("the hero starts at %v (fallback %v), the tool shows 1,20", m.Start.Cells[0], m.Start.Fallback)
+	if m.Start.Fallback || m.Start.Cells[0].X != 8 || m.Start.Cells[0].Y != 20 {
+		t.Fatalf("the hero starts at %v (fallback %v), the tool shows 8,20", m.Start.Cells[0], m.Start.Fallback)
 	}
 }

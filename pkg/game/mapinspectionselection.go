@@ -168,6 +168,10 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 				refusals = append(refusals, fmt.Sprintf(s.inspector.word("editor.selection.outside"), s.recordName(it.ref), it.cell.X, it.cell.Y))
 				continue
 			}
+			if err := cellError(view, it.cell, "cell", it.ref.Kind); err != nil {
+				refusals = append(refusals, s.refusalNote(it.ref, err))
+				continue
+			}
 			before := m.Mark()
 			i, err := it.apply(m)
 			if err != nil {

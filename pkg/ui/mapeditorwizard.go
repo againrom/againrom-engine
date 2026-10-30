@@ -588,21 +588,42 @@ func (o *objectEdit) bufAt(i int, def string) string {
 // unit the placed units a script can name and heroes 1 to 8, with value
 // kept when it is none of them.
 func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionChoice {
-	var out []InspectionChoice
-	found := false
-	add := func(v int64, label string) {
-		out = append(out, InspectionChoice{v, label})
-		found = found || v == value
+	switch kind {
+	case wpMessage:
+		return e.parameterChoices(ScriptMessageParameter, value)
 	}
+	out := e.wizardTargets(kind)
+	if kind == wpUnit {
+		out = slices.DeleteFunc(out, func(c InspectionChoice) bool { return c.Value >= 10001 && c.Value <= 11000 })
+		for h := int64(1); h <= 8; h++ {
+			out = append(out, InspectionChoice{10000 + h, fmt.Sprintf(e.word("editor.param.hero"), h)})
+		}
+	}
+	for _, c := range out {
+		if c.Value == value {
+			return out
+		}
+	}
+	label := strconv.FormatInt(value, 10)
+	if kind == wpUnit && value > 10000 {
+		label = fmt.Sprintf(e.word("editor.param.hero"), value-10000)
+	}
+	return append(out, InspectionChoice{value, label})
+}
+
+// wizardTargets are the values the wizard lists for a row parameter of kind:
+// for a unit the placed units a script can name and the hero band, for a
+// player or a group the script's targets of that kind, for a relation its
+// three words.
+func (e *MapEditor) wizardTargets(kind wizParamKind) []InspectionChoice {
+	var out []InspectionChoice
+	add := func(v int64, label string) { out = append(out, InspectionChoice{v, label}) }
 	switch kind {
 	case wpUnit:
 		for _, t := range e.doc.Script.Targets[scriptUnit] {
-			if t.Record >= 0 {
+			if t.Record >= 0 || t.Value >= 10001 && t.Value <= 11000 {
 				add(int64(t.Value), t.ChoiceText())
 			}
-		}
-		for h := int64(1); h <= 8; h++ {
-			add(10000+h, fmt.Sprintf(e.word("editor.param.hero"), h))
 		}
 	case wpPlayer:
 		for _, t := range e.doc.Script.Targets[scriptPlayer] {
@@ -612,21 +633,23 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 		for _, t := range e.doc.Script.Targets[scriptGroup] {
 			add(int64(t.Value), t.ChoiceText())
 		}
-	case wpMessage:
-		return e.parameterChoices(ScriptMessageParameter, value)
 	case wpRelation:
 		for v, word := range wizardRelationWords {
 			add(int64(v), e.word(word))
 		}
 	}
-	if !found {
-		label := strconv.FormatInt(value, 10)
-		if kind == wpUnit && value > 10000 {
-			label = fmt.Sprintf(e.word("editor.param.hero"), value-10000)
-		}
-		out = append(out, InspectionChoice{value, label})
-	}
 	return out
+}
+
+// wizardTargetAllowed reports that a unit or group parameter names value: a
+// value wizardTargets lists.
+func (e *MapEditor) wizardTargetAllowed(kind wizParamKind, value int64) bool {
+	for _, c := range e.wizardTargets(kind) {
+		if c.Value == value {
+			return true
+		}
+	}
+	return false
 }
 
 // keptText is a kept row in words: "Other: #3 Distance ... is at most #4

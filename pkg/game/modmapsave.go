@@ -254,8 +254,12 @@ func checkModMapDirectory(root, dir, target, rel string) error {
 	}
 	existing := target
 	for {
-		if _, err := os.Lstat(existing); err == nil {
+		_, err := os.Lstat(existing)
+		if err == nil {
 			break
+		}
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("inspect map output directory: %w", err)
 		}
 		next := filepath.Dir(existing)
 		if next == existing {
@@ -267,7 +271,11 @@ func checkModMapDirectory(root, dir, target, rel string) error {
 	if err != nil {
 		return fmt.Errorf("resolve map output directory: %w", err)
 	}
-	if inside, err := pathWithin(folder, physical); err != nil || !inside {
+	inside, err := pathWithin(folder, physical)
+	if err != nil {
+		return fmt.Errorf("resolve map output boundary: %w", err)
+	}
+	if !inside {
 		return fmt.Errorf("%s leads outside the mod folder", rel)
 	}
 	return fenceEditorWrite(root, physical, "Save")
@@ -295,7 +303,11 @@ func writeModMap(root, dir, rel string, data []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve mod folder: %w", err)
 	}
-	if inside, err := pathWithin(folder, parent); err != nil || !inside {
+	inside, err := pathWithin(folder, parent)
+	if err != nil {
+		return "", fmt.Errorf("resolve map output boundary: %w", err)
+	}
+	if !inside {
 		return "", fmt.Errorf("%s leads outside the mod folder", rel)
 	}
 	if err := fenceEditorWrite(root, parent, "Save"); err != nil {

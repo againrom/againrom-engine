@@ -3472,11 +3472,16 @@ var Committed = Baseline{
 	// in internal/archtest/firstframe.go, the new tests' comments in
 	// pkg/game/firstframe_test.go and internal/archtest, and this note.
 	// The merge with main is measured on the merged tree.
+	// It rose for new editor feedback code and witnesses in pkg/mapload's
+	// borderplacement files, pkg/game/mapcheck.go, mapinspectionadd.go,
+	// mapinspectionedit.go, mapeditcommands_test.go and mapeditagentfeedback_test.go, and pkg/ui's
+	// mapeditor.go, mapeditorcommands.go, mapeditorcommandread.go,
+	// mapeditorwizard.go, mapeditorleave.go and mapeditormcp.go, plus this note.
 
 	// It rose for the second game's loaded guard route: secondGuardRoute
 	// and savedRoute in pkg/sim/savedgroups.go, constructMissingOrders in
 	// pkg/sim/savedgroupsai.go, the tests in
 	// pkg/sim/secondguardroute_test.go, and this note. The merge with main
 	// is measured on the merged tree.
-	CommentBytes: 9967115,
+	CommentBytes: 9972093,
 }

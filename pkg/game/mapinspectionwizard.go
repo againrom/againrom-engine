@@ -378,13 +378,10 @@ func dropUnnamed(m *mapedit.Editor, before []alm.ScriptTrigger) error {
 // fixedDropCell refuses a cell the game would not land the hero on: a zero
 // on either axis asks for the random fallback cell (MISSION-DROP-002).
 func fixedDropCell(m *mapedit.Editor, cell image.Point) error {
-	if err := insideMap(m, cell, "drop cell"); err != nil {
-		return err
-	}
 	if cell.X == 0 || cell.Y == 0 {
 		return fmt.Errorf("drop cell %d,%d: a zero on either axis makes the game pick a random cell instead; use a cell from 1", cell.X, cell.Y)
 	}
-	return nil
+	return insideMap(m, cell, "drop cell", ringDrop)
 }
 
 // AddDropZone adds a drop zone on cell as the shipped maps write one.

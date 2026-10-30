@@ -107,7 +107,7 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 	original := inspectionFixtureBytes(t)
 	_, e, source := openTestMapEditor(t, original)
 	tool, must := editorMCP(t, e)
-	cell := must("cell", map[string]int{"x": 3, "y": 4})
+	cell := must("cell", map[string]int{"x": 11, "y": 12})
 	var from struct{ X, Y int }
 	if json.Unmarshal([]byte(cell.Content[0].Text), &from) != nil {
 		t.Fatal(cell)
@@ -116,12 +116,12 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 	if e.Selected() != 0 {
 		t.Fatalf("selected %d", e.Selected())
 	}
-	to := e.CellPoint(image.Pt(5, 6))
+	to := e.CellPoint(image.Pt(13, 14))
 	must("pointer", map[string]any{"action": "drag", "x": from.X, "y": from.Y, "to_x": to.X, "to_y": to.Y})
 	if !e.Dirty() || !e.Document().Edits.CanUndo() {
 		t.Fatal("real model has no history")
 	}
-	checkMovedMapBytes(t, original, e.Document().SourceBytes, 0, image.Pt(5, 6))
+	checkMovedMapBytes(t, original, e.Document().SourceBytes, 0, image.Pt(13, 14))
 	changed := bytes.Clone(e.Document().SourceBytes)
 	must("key", map[string]string{"name": "undo"})
 	if e.Dirty() || !bytes.Equal(original, e.Document().SourceBytes) {
@@ -136,7 +136,7 @@ func TestMapEditorMCPKeepsRealModelHistoryAndSavedBytes(t *testing.T) {
 		t.Fatal("dirty Open discarded work")
 	}
 	must("key", map[string]string{"name": "escape"})
-	must("map", map[string]int{"x": 5, "y": 6})
+	must("map", map[string]int{"x": 13, "y": 14})
 	if result := tool("save_as", map[string]string{"path": source}); !result.IsError {
 		t.Fatal("Save As overwrote the source")
 	}

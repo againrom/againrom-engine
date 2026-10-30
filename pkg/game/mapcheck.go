@@ -92,6 +92,10 @@ var mapRules = []mapRule{
 		Authority: "mapload.StructureCensus; terrain.StructurePlacements",
 		Meaning:   "a structure's footprint takes cells an earlier structure took",
 		run:       (*mapCheck).structureOverlap},
+	{ID: "structure-border", Error: false,
+		Authority: "TERR-PLACE-208, ALM-TERR-016; mapload.Playable",
+		Meaning:   "a structure's footprint meets the border ring, the closed cells round the map where the editor places no unit or structure",
+		run:       (*mapCheck).structureBorder},
 	{ID: "sack-duplicate", Error: false,
 		Authority: "ALM-SACK-065",
 		Meaning:   "two ground sacks share a cell and the world merges them into one",
@@ -384,6 +388,23 @@ func (c *mapCheck) recordOutside() []mapHit {
 	return out
 }
 
+// structureBorder names each structure inside the map whose footprint meets
+// the border ring; one outside the map is recordOutside's.
+func (c *mapCheck) structureBorder() []mapHit {
+	play := mapload.Playable(c.m)
+	var out []mapHit
+	for i, st := range mapload.Structures(c.m, c.x.table) {
+		r := structureFootprint(st)
+		if !r.In(image.Rect(0, 0, c.width(), c.height())) || r.In(play) {
+			continue
+		}
+		anchor := image.Pt(int(c.m.Objects[i].X>>8), int(c.m.Objects[i].Y>>8))
+		out = append(out, mapHit{Kind: "Structure", Index: i, Cell: anchor, HasCell: true,
+			Text: fmt.Sprintf("the structure's footprint %d,%d %dx%d meets the border ring; the playable area is %s", r.Min.X, r.Min.Y, r.Dx(), r.Dy(), ui.PlayableText(play))})
+	}
+	return out
+}
+
 // scriptNodeIndex is the index of the first node of nodes whose identity is id.
 func scriptNodeIndex(nodes []alm.ScriptNode, id uint32) int {
 	for i, n := range nodes {
@@ -395,11 +416,13 @@ func scriptNodeIndex(nodes []alm.ScriptNode, id uint32) int {
 }
 
 // scriptGroupParam is the parameter type code of a Target_Group value, and
-// scriptHeroBand the first Target_Unit value that names the party or an
-// external static unit and no placed unit.
+// scriptHeroBand to scriptHeroTop the Target_Unit values that name the party
+// and no placed unit. A value above the band names a static unit this engine
+// does not resolve, so the check names it as it names a missing placement.
 const (
 	scriptGroupParam = 2
 	scriptHeroBand   = 10001
+	scriptHeroTop    = 11000
 )
 
 func (c *mapCheck) scriptReference() []mapHit {
@@ -410,8 +433,8 @@ func (c *mapCheck) scriptReference() []mapHit {
 	_, report, err := tableFiles(c.x.table).compileScript(c.m, campaignScriptRefs(c.m, c.x.table, nil, sourceMission(c.source)))
 	if err == nil {
 		for _, u := range report.Unresolved {
-			if u.Kind == mapload.ScriptRefUnit && u.Value >= scriptHeroBand {
-				continue // the party and external static units, which no placement holds
+			if u.Kind == mapload.ScriptRefUnit && u.Value >= scriptHeroBand && u.Value <= scriptHeroTop {
+				continue // the party, which no placement holds
 			}
 			kind, nodes := "Action", c.script.Actions
 			if u.Condition {

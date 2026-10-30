@@ -10,7 +10,7 @@ import (
 
 func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "structure cell"); err != nil {
+		if err := insideMap(m, cell, "structure cell", "Structure"); err != nil {
 			return false, err
 		}
 		if err := s.inspector.checkStructureKind(kind); err != nil {

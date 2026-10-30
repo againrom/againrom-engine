@@ -29,6 +29,9 @@ type editorChange struct {
 	record *RecordRef
 	group  *SelectionEdit
 	page   *uint32
+	// removed marks a record the command deleted: the reference names
+	// where it stood.
+	removed bool
 }
 
 // commandArg is one named argument: its JSON schema and whether it is
@@ -177,10 +180,11 @@ func hasNull(v any) bool {
 
 // editorCommandRows is the table, in the order a map is built from nothing.
 func editorCommandRows() []editorCommand {
-	newMap := typedCommand("new_map", "Open a new empty map of width x height cells, as the catalogue's new-map question does; unsaved changes still ask",
+	newMap := typedCommand("new_map", "Open a new empty map of width x height cells, as the catalogue's new-map question does; unsaved changes still ask unless discard. The result names the playable area inside the 8-cell border ring",
 		[]commandArg{req("width", intArg("Cells across")), req("height", intArg("Cells down")),
-			opt("altitude", intArg("Starting height, 0..126; default 64")), opt("multiplayer", boolArg("A multiplayer map; default single-player"))},
-		(*MapEditor).decodeNewMap, (*MapEditor).commandNewMap)
+			opt("altitude", intArg("Starting height, 0..126; default 64")), opt("multiplayer", boolArg("A multiplayer map; default single-player")),
+			opt("discard", boolArg("Drop unsaved changes, as the unsaved-changes question's open button does; default false, the question stays open"))},
+		(*MapEditor).decodeNewMap, func(e *MapEditor, o mapOpening) (editorChange, error) { return e.commandNewMap(o.source, o.discard) })
 	newMap.opens = true
 	return []editorCommand{
 		newMap,
@@ -190,7 +194,8 @@ func editorCommandRows() []editorCommand {
 				opt("radius", intArg("Cells around each centre; default 0, the centre alone")), opt("shape", textArg("Brush shape; default circle", "circle", "square")),
 				opt("fill", textArg("Terrain centre fill; default pattern", "pattern", "random", "variant")), opt("variant", intArg("Terrain variant for fill variant, from 0")),
 				opt("set", boolArg("Height: value is the height the first centre takes, the radius blending toward it")), opt("flat", boolArg("Height with set: every covered cell takes value")),
-				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth")), opt("forest", forestArg())},
+				opt("mode", textArg("Height change: how it is laid; default step", "step", "level", "smooth")), opt("forest", forestArg()),
+				opt("verbose", verboseArg())},
 			(*MapEditor).decodePaint, (*MapEditor).commandPaint),
 		typedCommand("add_record", "Add one record as the Add window does: values by step key (add_steps lists the steps and choices), x,y for a record on a cell; a Message takes parts and adds an action showing a new message page",
 			[]commandArg{req("kind", textArg("Record kind", addCommandKinds()...)), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),
@@ -269,7 +274,7 @@ func editorCommandRows() []editorCommand {
 			[]commandArg{req("scope", textArg("Field group", "metadata", "pages", "package")), req("key", textArg("Field key")), req("value", textArg("Value as typed"))},
 			(*MapEditor).decodeMapField, (*MapEditor).commandSetMapField),
 		typedCommand("randomize", "Redraw the whole map's terrain or heights from seed, as Ctrl+E and Ctrl+Shift+R do",
-			[]commandArg{req("plane", textArg("What to redraw", "terrain", "heights")), req("seed", intArg("Seed, 0..4294967295"))},
+			[]commandArg{req("plane", textArg("What to redraw", "terrain", "heights")), req("seed", intArg("Seed, 0..4294967295")), opt("verbose", verboseArg())},
 			(*MapEditor).decodeRandomize, (*MapEditor).commandRandomize),
 		typedCommand("undo", "Undo the last edit of the history the window shares", nil, (*MapEditor).decodeUndo, func(e *MapEditor, _ struct{}) (editorChange, error) { return e.commandHistory(false) }),
 		typedCommand("redo", "Redo the next edit of the history the window shares", nil, (*MapEditor).decodeRedo, func(e *MapEditor, _ struct{}) (editorChange, error) { return e.commandHistory(true) }),
@@ -290,10 +295,14 @@ func (e *MapEditor) adoptedTerrain(next *InspectionDocument) (editorChange, erro
 
 var errNoEditHost = errors.New("this map cannot take that edit")
 
-// commandNewMap opens the new map of source.
-func (e *MapEditor) commandNewMap(source string) (editorChange, error) {
+// commandNewMap opens the new map of source; with discard it answers the
+// unsaved-changes question as its open button does.
+func (e *MapEditor) commandNewMap(source string, discard bool) (editorChange, error) {
 	before := e.doc
 	err := e.Open(source)
+	if err == nil && discard {
+		err = e.discardLeave()
+	}
 	ch := editorChange{}
 	if e.doc != before {
 		ch.doc = e.doc
@@ -458,7 +467,9 @@ func (e *MapEditor) commandDelete(ref RecordRef) (editorChange, error) {
 	if err != nil {
 		return editorChange{}, err
 	}
-	return e.adopted(next, &ref)
+	ch, err := e.adopted(next, &ref)
+	ch.removed = true
+	return ch, err
 }
 
 func (e *MapEditor) commandSetDropCell(cell image.Point) (editorChange, error) {
@@ -602,30 +613,37 @@ func (e *MapEditor) commandHistory(redo bool) (editorChange, error) {
 // The decoders: MCP arguments to a command's values, with the checks the
 // window's controls make before they call the command.
 
-func (e *MapEditor) decodeNewMap(raw json.RawMessage) (string, error) {
+// mapOpening is a map to open and whether its open drops unsaved changes.
+type mapOpening struct {
+	source  string
+	discard bool
+}
+
+func (e *MapEditor) decodeNewMap(raw json.RawMessage) (mapOpening, error) {
 	a, err := decodeArgs[struct {
 		Width, Height int
 		Altitude      *int
 		Multiplayer   bool
+		Discard       bool
 	}](raw, editorCommandArgs("new_map"))
 	if err != nil {
-		return "", err
+		return mapOpening{}, err
 	}
 	if a.Width <= 0 || a.Height <= 0 {
-		return "", fmt.Errorf("width and height must be positive")
+		return mapOpening{}, fmt.Errorf("width and height must be positive")
 	}
 	h := NewMapDefaultAltitude
 	if a.Altitude != nil {
 		var ok bool
 		if h, ok = newAltitude(strconv.Itoa(*a.Altitude)); !ok {
-			return "", fmt.Errorf("altitude must be 0..%d", NewMapTopAltitude)
+			return mapOpening{}, fmt.Errorf("altitude must be 0..%d", NewMapTopAltitude)
 		}
 	}
 	source := newMapAltitudeSource(fmt.Sprintf("new/%dx%d", a.Width, a.Height), h)
 	if a.Multiplayer {
 		source += NewMapMultiplayer
 	}
-	return source, nil
+	return mapOpening{source: source, discard: a.Discard}, nil
 }
 
 // editorCommandArgs is the argument list of the command named name.
@@ -1198,6 +1216,15 @@ func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, 
 		}
 		vals[len(it.params)+1] = strconv.Itoa(*a.Comparison)
 	}
+	for k, p := range it.params {
+		if p.kind != wpUnit && p.kind != wpGroup {
+			continue
+		}
+		v, err := strconv.ParseInt(strings.TrimSpace(vals[k+1]), 10, 64)
+		if err != nil || !e.wizardTargetAllowed(p.kind, v) {
+			return wizRow{}, fmt.Errorf("item %q parameter %d names %s %s, which the map does not hold; trigger_items lists the choices", a.Item, k, wizParamNames[p.kind], vals[k+1])
+		}
+	}
 	return wizRow{condition: condition, item: at, origItem: -2, vals: vals}, nil
 }
 
@@ -1331,6 +1358,13 @@ func (c editorCommand) mcpRun(e *MapEditor, raw json.RawMessage) (any, error) {
 	if c.opens {
 		before = nil
 	}
+	cells := true
+	if commandTakes(c.args, "verbose") {
+		var err error
+		if raw, cells, err = takeVerbose(raw); err != nil {
+			return nil, err
+		}
+	}
 	ch, err := c.run(e, raw)
 	if err != nil {
 		var bad argumentError
@@ -1339,7 +1373,40 @@ func (c editorCommand) mcpRun(e *MapEditor, raw json.RawMessage) (any, error) {
 		}
 		return nil, errors.New(e.mcpDisplay(err.Error()))
 	}
-	return e.changeReport(before, ch), nil
+	return e.changeReport(before, ch, cells), nil
+}
+
+func verboseArg() map[string]any {
+	return boolArg("List every changed cell; default false, the count, the bounding cells and the planes alone")
+}
+
+// commandTakes reports that args has an argument named name.
+func commandTakes(args []commandArg, name string) bool {
+	for _, a := range args {
+		if a.name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// takeVerbose is raw without its verbose argument, and that argument's value.
+func takeVerbose(raw json.RawMessage) (json.RawMessage, bool, error) {
+	var top map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &top); err != nil || top == nil {
+		return raw, false, fmt.Errorf("arguments must be an object")
+	}
+	given, ok := top["verbose"]
+	if !ok {
+		return raw, false, nil
+	}
+	var verbose bool
+	if err := json.Unmarshal(given, &verbose); err != nil || string(given) == "null" {
+		return raw, false, fmt.Errorf("verbose is true or false")
+	}
+	delete(top, "verbose")
+	out, err := json.Marshal(top)
+	return out, verbose, err
 }
 
 // The most cells and records a change report lists; the totals are given.
@@ -1392,13 +1459,20 @@ var cellPlanes = []struct {
 }
 
 // changeReport is what a command changed, compared on what the map stores:
-// whether the host changed the map, the record the command names, the cells
-// whose stored words differ with the count per plane, and the records added,
-// removed or with other stored bytes, by reference. A map newly opened,
-// before nil, or one of another size names its size instead.
-func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange) map[string]any {
+// whether the host changed the map, the record the command names with its
+// script id, the cells whose stored words differ (listed when cells) with
+// their count, bounding cells and count per plane, the records added,
+// removed or with other stored bytes, by reference, and the map check's
+// findings on those records. A map newly opened, before nil, or one of
+// another size names its size and playable area instead.
+func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange, cells bool) map[string]any {
 	out := map[string]any{"changed": ch.doc != nil, "record": ch.record, "dirty": e.Dirty(),
 		"message": e.mcpDisplay(e.message), "prompt_open": e.prompt.open()}
+	if r := ch.record; r != nil && !ch.removed && (r.Kind == "Unit" || r.Kind == "Structure") {
+		if rec, err := e.recordOf(r.Kind, r.Index); err == nil {
+			out["script_id"] = rec.ScriptID
+		}
+	}
 	if e.editable() {
 		out["can_undo"], out["can_redo"] = e.doc.Edits.CanUndo(), e.doc.Edits.CanRedo()
 	}
@@ -1413,13 +1487,14 @@ func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange) ma
 	}
 	after := e.doc
 	if before == nil || before.Width != after.Width || before.Height != after.Height || before.Viewer == nil || after.Viewer == nil {
-		out["width"], out["height"] = after.Width, after.Height
+		out["width"], out["height"], out["playable"] = after.Width, after.Height, PlayableText(after.Playable)
 		return out
 	}
 	a, b := storedMap(before), storedMap(after)
-	cells := [][]int{}
+	list := [][]int{}
 	planes := map[string]int{}
 	total := 0
+	var box image.Rectangle
 	for i := 0; i < after.Width*after.Height; i++ {
 		changed := false
 		for _, p := range cellPlanes {
@@ -1429,16 +1504,57 @@ func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange) ma
 			}
 		}
 		if changed {
-			if total++; len(cells) < reportCells {
-				cells = append(cells, []int{i % after.Width, i / after.Width})
+			c := image.Pt(i%after.Width, i/after.Width)
+			box = box.Union(image.Rectangle{Min: c, Max: c.Add(image.Pt(1, 1))})
+			if total++; len(list) < reportCells {
+				list = append(list, []int{c.X, c.Y})
 			}
 		}
 	}
-	out["cells"], out["cells_total"], out["planes"] = cells, total, planes
+	if cells {
+		out["cells"] = list
+	}
+	out["cells_total"], out["planes"] = total, planes
+	if total > 0 {
+		out["cells_box"] = []int{box.Min.X, box.Min.Y, box.Max.X - 1, box.Max.Y - 1}
+	}
 	refs := changedRecords(before.Records, after.Records, a.Records, b.Records)
 	out["records_total"] = len(refs)
 	out["records"] = refs[:min(len(refs), reportRecords)]
+	out["warnings"] = e.editWarnings(refs, ch.record)
 	return out
+}
+
+// editWarnings are the map check's findings on the records an edit touched:
+// the records it changed and the one it names.
+func (e *MapEditor) editWarnings(refs []RecordRef, named *RecordRef) []map[string]any {
+	out := []map[string]any{}
+	touched := map[RecordRef]bool{}
+	for _, r := range refs {
+		touched[r] = true
+	}
+	if named != nil {
+		touched[*named] = true
+	}
+	c, ok := e.checker()
+	if !ok || len(touched) == 0 {
+		return out
+	}
+	for _, f := range c.Report() {
+		if f.Kind != "" && touched[RecordRef{Kind: f.Kind, Index: f.Index}] {
+			out = append(out, e.findingRow(f))
+		}
+	}
+	return out
+}
+
+// PlayableText names a playable area as the editor's results give it: its
+// corner cells x0,y0..x1,y1, both included, or none.
+func PlayableText(r image.Rectangle) string {
+	if r.Empty() {
+		return "none"
+	}
+	return fmt.Sprintf("%d,%d..%d,%d", r.Min.X, r.Min.Y, r.Max.X-1, r.Max.Y-1)
 }
 
 // differs is whether cell i differs between two planes, each value seen

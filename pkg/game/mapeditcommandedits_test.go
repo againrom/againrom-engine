@@ -300,8 +300,8 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 		}, fixed(commandCall{"move_records", map[string]any{"records": refArgs(groupRefs...), "dx": 3, "dy": 2}})},
 		{"move_records past the edge", group(2), func(t *testing.T, e *ui.MapEditor) {
 			selectArea(e, image.Pt(11, 11), image.Pt(21, 21))
-			dragCell(e, image.Pt(14, 12), image.Pt(1, 12))
-		}, fixed(commandCall{"move_records", map[string]any{"records": refArgs(groupRefs...), "dx": -13, "dy": 0}})},
+			dragCell(e, image.Pt(14, 12), image.Pt(7, 12))
+		}, fixed(commandCall{"move_records", map[string]any{"records": refArgs(groupRefs...), "dx": -7, "dy": 0}})},
 		{"delete_records", group(2), func(t *testing.T, e *ui.MapEditor) {
 			selectArea(e, image.Pt(11, 11), image.Pt(21, 21))
 			if err := e.Key("delete"); err != nil {
@@ -460,13 +460,13 @@ func TestMapEditorCommandEditsMatchTheWindowRoutes(t *testing.T) {
 	}
 }
 
-// A move that takes some records past the map edge moves the rest and lists
-// the refused ones in the change report, as the window's drag does; a move
-// that takes every record past the edge changes nothing.
+// A move that takes some records into the border ring moves the rest and
+// lists the refused ones in the change report, as the window's drag does; a
+// move that takes every record past the edge changes nothing.
 func TestMapEditorMoveRecordsPastTheEdgeReportsRefusals(t *testing.T) {
 	e := groupEditor(t, groupMap(t, 2))
 	_, must := editorMCP(t, e)
-	r := commandReport(t, must("move_records", map[string]any{"records": refArgs(groupRefs...), "dx": -13, "dy": 0}))
+	r := commandReport(t, must("move_records", map[string]any{"records": refArgs(groupRefs...), "dx": -7, "dy": 0}))
 	refusals, _ := r["refusals"].([]any)
 	if r["changed"] != true || r["note"] != "Moved 1 of 4" || len(refusals) != 3 {
 		t.Fatalf("the partial move reports %v", r)

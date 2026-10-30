@@ -176,7 +176,7 @@ func ofRule(rows []ui.InspectionFinding, rule string) []ui.InspectionFinding {
 
 func TestMapRuleTableIsDataWithAKindPerRow(t *testing.T) {
 	errs := []string{"terrain-planes", "texts-folder", "map-decode", "mission-build", "record-outside", "script-reference", "owner-slot", "item-code", "structure-kind"}
-	warnings := []string{"unit-terrain", "structure-overlap", "sack-duplicate", "drop-cell", "victory", "stock-link", "mod-message-text", "message-overlap"}
+	warnings := []string{"unit-terrain", "structure-overlap", "structure-border", "sack-duplicate", "drop-cell", "victory", "stock-link", "mod-message-text", "message-overlap"}
 	var gotErrs, gotWarnings []string
 	seen := map[string]bool{}
 	for _, r := range mapRules {
@@ -265,7 +265,14 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 				return built(t, with(func(o *synth.ALMOptions) { o.Objects = []synth.ALMObject{hut(31, 31, 1)} }), nil, nil)
 			},
 			func() *mapedit.Editor {
-				return built(t, with(func(o *synth.ALMOptions) { o.Objects = []synth.ALMObject{hut(29, 29, 1)} }), nil, nil)
+				return built(t, with(func(o *synth.ALMOptions) { o.Objects = []synth.ALMObject{hut(22, 22, 1)} }), nil, nil)
+			}},
+		{"a structure footprint that meets the border ring", "structure-border", "Structure", 0,
+			func() *mapedit.Editor {
+				return built(t, with(func(o *synth.ALMOptions) { o.Objects = []synth.ALMObject{hut(23, 12, 1)} }), nil, nil)
+			},
+			func() *mapedit.Editor {
+				return built(t, with(func(o *synth.ALMOptions) { o.Objects = []synth.ALMObject{hut(22, 12, 1)} }), nil, nil)
 			}},
 		{"a sack outside the map", "record-outside", "Sack", 0,
 			func() *mapedit.Editor {
@@ -276,6 +283,9 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 			}},
 		{"a script naming a unit the map lacks", "script-reference", "Condition", 0,
 			func() *mapedit.Editor { return built(t, scriptWith(nil, alive(77)), nil, nil) },
+			func() *mapedit.Editor { return built(t, scriptWith(nil, alive(10)), nil, nil) }},
+		{"a script naming a unit above the hero band", "script-reference", "Condition", 0,
+			func() *mapedit.Editor { return built(t, scriptWith(nil, alive(12345)), nil, nil) },
 			func() *mapedit.Editor { return built(t, scriptWith(nil, alive(10)), nil, nil) }},
 		{"a script naming a structure the map lacks", "script-reference", "Condition", 0,
 			func() *mapedit.Editor {
@@ -388,7 +398,7 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 			}
 		})
 	}
-	// The party and external static units are not placed units.
+	// The party is not a placed unit.
 	if rows := findings(t, x, built(t, scriptWith(nil, alive(10001)), nil, nil), "x"); len(rows) != 0 {
 		t.Fatalf("a condition naming the party: %+v", rows)
 	}

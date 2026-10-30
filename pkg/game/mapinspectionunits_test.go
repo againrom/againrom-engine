@@ -33,7 +33,7 @@ func authoringTable() *mapload.Table {
 
 func openAuthoring(t *testing.T) ([]byte, *ui.MapEditor) {
 	t.Helper()
-	b := synth.ALM(synth.ALMOptions{Width: 16, Height: 16, Type7Payload: make([]byte, 12), Units: []synth.ALMUnit{
+	b := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12), Units: []synth.ALMUnit{
 		{X: 3*256 + 128, Y: 4*256 + 77, ClassID: 40, ClassSubID: 2},
 		{X: 7*256 + 3, Y: 8*256 + 5, ClassID: 40, ClassSubID: 2},
 	}})

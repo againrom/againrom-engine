@@ -499,7 +499,7 @@ func (e *MapEditor) newModeOpen(multi bool) error {
 	if multi {
 		source += NewMapMultiplayer
 	}
-	_, err := e.commandNewMap(source)
+	_, err := e.commandNewMap(source, false)
 	return err
 }
 

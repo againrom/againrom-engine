@@ -32,6 +32,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] An agent connected to the map editor over MCP can now also move, delete and copy a selection or an area, put units in a group, add a shop stock and an item recipe, write message pages, add a box area to a trigger, point a goal at a unit, paint and thin forest, set mod package fields, and read the goals, the message pages and a unit's settings preview, each with the same change and Undo step as the window.
+- [BASE] The map editor no longer places a unit, a building or a drop zone in the 8-cell border round the map, which the game does not show, and says where the playable area is. A new unit gets a group of its own unless you choose one. For an agent over MCP, adding a unit or building answers the number a trigger names it by, a trigger that names a unit or group the map does not hold is refused, and each edit lists the map check's warnings on what it changed.
 
 ## 0.141.0
 

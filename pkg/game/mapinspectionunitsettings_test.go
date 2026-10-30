@@ -32,7 +32,7 @@ func TestEditorUnitDefinitionMeaningFollowsResolutionArm(t *testing.T) {
 func TestEditorObjectMoveAndFieldsAreOneAtomicEdit(t *testing.T) {
 	raw, e := openAuthoring(t)
 	s := e.Document().Edits.(*mapInspectionEdits)
-	cell := image.Pt(5, 7)
+	cell := image.Pt(13, 15)
 	if _, err := s.SetObject("Unit", 0, []ui.InspectionFieldValue{{Key: "hp", Value: 17}}, &cell); err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestEditorObjectMoveAndFieldsAreOneAtomicEdit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if m.Units[0].X>>8 != 5 || m.Units[0].Y>>8 != 7 || m.Units[0].CurrentHP != 17 || s.model.Mark() != 1 {
+	if m.Units[0].X>>8 != 13 || m.Units[0].Y>>8 != 15 || m.Units[0].CurrentHP != 17 || s.model.Mark() != 1 {
 		t.Fatal("Apply did not group cell and fields")
 	}
 	if !s.model.Undo() || !bytes.Equal(raw, s.model.Bytes()) {

@@ -1,6 +1,7 @@
 package mapload_test
 
 import (
+	"image"
 	"testing"
 
 	"againrom/pkg/formats/alm"
@@ -54,5 +55,28 @@ func TestWithdrawBorderPlacementsKeepsInteriorUnitsInOrder(t *testing.T) {
 	}
 	if mapload.WithdrawBorderPlacements(nil) != 0 {
 		t.Fatal("nil map withdrew placements")
+	}
+}
+
+// The playable area is the cells InBorderRing leaves; a map of 16 cells or
+// fewer on an axis has none.
+func TestPlayableIsTheCellsInsideTheRing(t *testing.T) {
+	t.Parallel()
+	for _, c := range []struct {
+		w, h int
+		want image.Rectangle
+	}{{40, 36, image.Rect(8, 8, 32, 28)}, {64, 64, image.Rect(8, 8, 56, 56)}, {17, 40, image.Rect(8, 8, 9, 32)}, {16, 64, image.Rectangle{}}, {0, 0, image.Rectangle{}}} {
+		m := &alm.Map{Width: c.w, Height: c.h}
+		got := mapload.Playable(m)
+		if got != c.want {
+			t.Fatalf("%dx%d: playable %v, want %v", c.w, c.h, got, c.want)
+		}
+		for y := 0; y < c.h; y++ {
+			for x := 0; x < c.w; x++ {
+				if mapload.InBorderRing(m, x, y) == image.Pt(x, y).In(got) {
+					t.Fatalf("%dx%d: cell %d,%d disagrees with the ring", c.w, c.h, x, y)
+				}
+			}
+		}
 	}
 }

@@ -231,7 +231,11 @@ func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := witness.PlaceUnit(rec); err != nil {
+	index, err := witness.PlaceUnit(rec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := witness.SetField(mapedit.KindUnit, index, "group", 1); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(e.Document().SourceBytes, witness.Bytes()) {

@@ -272,12 +272,12 @@ func TestSetDropCellAddsADropActionToAMapWithout(t *testing.T) {
 	if len(e.Document().Drops) != 0 {
 		t.Fatal("the map has a drop cell")
 	}
-	next, err := scriptOf(t, e).SetDropCell(image.Pt(7, 9))
+	next, err := scriptOf(t, e).SetDropCell(image.Pt(9, 11))
 	if err != nil || next == nil || len(next.SourceBytes) != len(b)+796 {
 		t.Fatalf("add: %v", err)
 	}
 	m, _ := alm.Open(next.SourceBytes)
-	if cells := mapload.DropCells(m); len(cells) != 1 || cells[0] != (mapload.Cell{X: 7, Y: 9}) {
+	if cells := mapload.DropCells(m); len(cells) != 1 || cells[0] != (mapload.Cell{X: 9, Y: 11}) {
 		t.Fatalf("drop cells %v", cells)
 	}
 }

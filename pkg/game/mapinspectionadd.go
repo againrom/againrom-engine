@@ -10,6 +10,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
+	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -39,7 +40,7 @@ var newRecordKinds = map[string]newRecordKind{
 			if !ok {
 				return -1, fmt.Errorf("select a cell spell template")
 			}
-			if err := insideMap(s.batch, r.Cell, "spell cell"); err != nil {
+			if err := insideMap(s.batch, r.Cell, "spell cell", "Enchantment"); err != nil {
 				return -1, err
 			}
 			link := recordValue(r, "link")
@@ -250,6 +251,9 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	if err != nil {
 		return err
 	}
+	if ringRefuses[r.Kind] && mapload.Playable(view).Empty() {
+		return fmt.Errorf("the map has no playable area: its border ring covers every cell")
+	}
 	for _, v := range recordValues(r, key) {
 		switch key {
 		case "class":
@@ -290,7 +294,7 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 		}
 	}
 	if key == "cell" && r.HasCell {
-		return insideMap(s.model, r.Cell, "cell")
+		return insideMap(s.model, r.Cell, "cell", r.Kind)
 	}
 	return nil
 }
@@ -361,6 +365,8 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 			out.Choices = s.RecordChoices("Enchantment", -1, key)
 		case "owner":
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
+		case "group":
+			out.Value = s.newUnitGroup(r)
 		case "control":
 			out.Choices = []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.human"))},
 				{Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.computer"))}}
@@ -373,14 +379,17 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 }
 
 // newFieldDefault is the value field key of a new record of r's kind takes
-// from its bare add call, made with r's values for that call, on cell 0,0
-// before a cell is chosen.
+// from its bare add call, made with r's values for that call, on the first
+// playable cell before a cell is chosen.
 func (s *mapInspectionEdits) newFieldDefault(r ui.InspectionNewRecord, key string) (int64, string) {
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil || k.edit == "" {
 		return 0, ""
 	}
 	bare := ui.InspectionNewRecord{Kind: r.Kind, Cell: r.Cell, HasCell: true}
+	if view, err := s.model.Map(); err == nil && !r.HasCell {
+		bare.Cell = mapload.Playable(view).Min
+	}
 	for _, v := range r.Values {
 		if k.takes(v.Key) {
 			bare.Values = append(bare.Values, v)
@@ -389,7 +398,13 @@ func (s *mapInspectionEdits) newFieldDefault(r ui.InspectionNewRecord, key strin
 	if !k.complete(bare) {
 		return 0, ""
 	}
+	// A footprint refusal still leaves the bare record on the copy, whose
+	// fields are the defaults.
 	m, index, err := s.trialAdd(k, bare)
+	var refusal placementRefusal
+	if errors.As(err, &refusal) {
+		index, err = s.newIndex(m, k.edit), nil
+	}
 	if err != nil {
 		return 0, ""
 	}
@@ -410,6 +425,14 @@ func (s *mapInspectionEdits) newFieldDefault(r ui.InspectionNewRecord, key strin
 		return v, ""
 	}
 	return 0, ""
+}
+
+// newUnitGroup is the group the Add window's group step starts a new unit
+// in, given the values the record holds before the step (class, tier and
+// owner): the lowest group no unit of the map carries, so that a new unit
+// is a script group of its own until it is given another.
+func (s *mapInspectionEdits) newUnitGroup(r ui.InspectionNewRecord) int64 {
+	return s.freeGroup()
 }
 
 // freeGroup is the lowest group number no unit of the map carries, whoever

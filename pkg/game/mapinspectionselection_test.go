@@ -295,12 +295,11 @@ func TestMapEditorPasteRefusesARecordByName(t *testing.T) {
 	e := groupEditor(t, raw)
 	selectArea(e, image.Pt(11, 11), image.Pt(21, 21))
 	_ = e.Key("copy")
-	// Pasted at 30,30 unit 0 stands on an open cell, unit 1 at 32,30 and the
-	// sack at 31,33 in the border ring, and the structure at 38,38 with a 3x2
-	// footprint that leaves the map.
+	// Pasted at 30,30 unit 0 stands on an open cell, and unit 1 at 32,30,
+	// the sack at 31,33 and the structure at 38,38 in the border ring.
 	pasteAt(t, e, image.Pt(30, 30))
 	s := e.StatusLine()
-	for _, want := range []string{"Pasted 1 of 4", "unit 1: cell 32,30 is closed (border)", "structure 0: structure footprint 38,38 3x2 leaves the map", "1 more"} {
+	for _, want := range []string{"Pasted 1 of 4", "unit 1: cell 32,30 is in the border ring", "structure 0: cell 38,38 is in the border ring", "1 more"} {
 		if !strings.Contains(s, want) {
 			t.Errorf("status %q lacks %q", s, want)
 		}
@@ -374,7 +373,7 @@ func TestMapEditorPasteTakesAFlierOnACellClosedToGround(t *testing.T) {
 	_ = e.Key("undo")
 	// The border closes a cell to a flier too.
 	pasteAt(t, e, image.Pt(30, 30))
-	if s := e.StatusLine(); !strings.Contains(s, "unit 1: cell 32,30 is closed (border)") {
+	if s := e.StatusLine(); !strings.Contains(s, "unit 1: cell 32,30 is in the border ring") {
 		t.Fatalf("status %q: the flier on a border cell was not refused", s)
 	}
 	_ = e.Key("undo")

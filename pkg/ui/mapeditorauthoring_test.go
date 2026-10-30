@@ -76,7 +76,11 @@ func TestMapEditorNewRecordNamesAreVisibleBeforeCommit(t *testing.T) {
 				t.Fatal("a value outside the choices was taken", r.note, calls.lines)
 			}
 			_ = e.Key("backspace")
-			for _, k := range []string{"enter", "enter", "ui:text-cell", "enter"} {
+			steps := []string{"enter", "enter", "ui:text-cell", "enter"}
+			if key == "unit" { // the group step comes before the cell
+				steps = append([]string{"enter"}, steps...)
+			}
+			for _, k := range steps {
 				if k == "ui:text-cell" {
 					if key != "sack" {
 						e.TextInput("25,20")

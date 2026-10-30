@@ -16,7 +16,7 @@ func TestMapEditorRecordAuthoringMissingRoutes(t *testing.T) {
 		_, e := openRecords(t)
 		e.Select(recordIndex(t, e, "Structure", 0), true)
 		_ = e.Key("clone")
-		clickCell(e, image.Pt(10, 2))
+		clickCell(e, image.Pt(18, 10))
 		m, _ := editedMap(t, e)
 		if len(m.Objects) != 3 || m.Objects[2].Field12 == m.Objects[0].Field12 {
 			t.Fatal("the structure clone reuses the source script identity")
@@ -25,7 +25,7 @@ func TestMapEditorRecordAuthoringMissingRoutes(t *testing.T) {
 	t.Run("first structure", func(t *testing.T) {
 		_, e := openRecords(t)
 		n := len(e.Document().Records)
-		recordAddInput(t, e, "structure", image.Pt(10, 2), 5)
+		recordAddInput(t, e, "structure", image.Pt(18, 10), 5)
 		if len(e.Document().Records) != n+1 {
 			t.Fatal("J/kind/owner/cell adds no structure")
 		}
@@ -72,7 +72,7 @@ func TestMapEditorRecordAuthoringWindowHistoryAndRefusal(t *testing.T) {
 	e.Document().Viewer.SetFlat(true)
 	history := [][]byte{bytes.Clone(e.Document().SourceBytes)}
 	step := func() { history = append(history, bytes.Clone(e.Document().SourceBytes)) }
-	recordAddInput(t, e, "structure", image.Pt(3, 3), 5)
+	recordAddInput(t, e, "structure", image.Pt(12, 12), 5)
 	step()
 	recordFieldInput(t, e, "owner", 2)
 	step()

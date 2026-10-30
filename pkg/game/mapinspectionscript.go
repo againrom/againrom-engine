@@ -395,7 +395,7 @@ func registerCollides(sc alm.Script, next uint32) error {
 // action when the map has none (MISSION-DROP-002).
 func (s *mapInspectionEdits) SetDropCell(cell image.Point) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "drop cell"); err != nil {
+		if err := insideMap(m, cell, "drop cell", ringDrop); err != nil {
 			return false, err
 		}
 		view, err := m.Map()
