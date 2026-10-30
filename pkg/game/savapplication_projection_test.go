@@ -34,12 +34,40 @@ func TestApplicationSelectionOriginalResaveShortIDs(t *testing.T) {
 			for key, value := range tc.bindings {
 				before[key] = value
 			}
-			got, err := applicationSelection(tc.raw, tc.bindings)
-			if (err != nil) != tc.fail || !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("selection=%v error=%v want=%v fail=%v", got, err, tc.want, tc.fail)
+			got, structures, err := applicationSelection(tc.raw, tc.bindings, nil)
+			if (err != nil) != tc.fail || !reflect.DeepEqual(got, tc.want) || structures != nil {
+				t.Fatalf("selection=%v structures=%v error=%v want=%v fail=%v", got, structures, err, tc.want, tc.fail)
 			}
 			if !reflect.DeepEqual(tc.bindings, before) {
 				t.Fatal("selection remapped an actor runtime ID")
+			}
+		})
+	}
+}
+
+// A saved id no actor carries names the one structure whose record carries
+// it; an id neither carries, or one two structures carry, stays refused.
+func TestApplicationSelectionNamesAStructureNoActorCarries(t *testing.T) {
+	actors := map[uint32]uint32{9: 0x21000089, 10: 12}
+	for _, tc := range []struct {
+		name               string
+		raw                []uint32
+		structures         map[uint32]uint32
+		want, wantBuilding []uint32
+		fail               bool
+	}{
+		{"building alone", []uint32{5}, map[uint32]uint32{0: 5, 4: 6}, []uint32{}, []uint32{0}, false},
+		{"actor wins the whole id", []uint32{12}, map[uint32]uint32{3: 12}, []uint32{10}, nil, false},
+		{"actor wins the short id", []uint32{137}, map[uint32]uint32{3: 137}, []uint32{9}, nil, false},
+		{"actor and building", []uint32{12, 5}, map[uint32]uint32{4: 5}, []uint32{10}, []uint32{4}, false},
+		{"no carrier", []uint32{7}, map[uint32]uint32{0: 5}, nil, nil, true},
+		{"two buildings carry it", []uint32{5}, map[uint32]uint32{0: 5, 4: 5}, nil, nil, true},
+		{"one building twice", []uint32{5, 5}, map[uint32]uint32{0: 5}, nil, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, buildings, err := applicationSelection(tc.raw, actors, tc.structures)
+			if (err != nil) != tc.fail || !tc.fail && (!reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(buildings, tc.wantBuilding)) {
+				t.Fatalf("actors=%v structures=%v error=%v", got, buildings, err)
 			}
 		})
 	}

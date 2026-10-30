@@ -81,7 +81,7 @@ func applicationSnapshotFixture(t *testing.T) (*FrontEnd, Snapshot, *sim.World) 
 	return f, s, &world
 }
 
-func appLeafInts1170(t *testing.T, doc *sav.DocumentData, path string) []uint32 {
+func appLeafInts(t *testing.T, doc *sav.DocumentData, path string) []uint32 {
 	t.Helper()
 	value, err := readOriginalStateLeaf(doc, path, 6)
 	if err != nil {
@@ -118,19 +118,19 @@ func TestApplication1170ProjectsCurrentFogAndExactMultipleSelection(t *testing.T
 	if err := projectApplicationState(&doc, s, world); err != nil {
 		t.Fatal(err)
 	}
-	if got := appLeafInts1170(t, &doc, "/Fog/Data"); !slices.Equal(got, wantRuns) {
+	if got := appLeafInts(t, &doc, "/Fog/Data"); !slices.Equal(got, wantRuns) {
 		t.Fatalf("Fog/Data = %v", got)
 	}
 	if first, _ := readOriginalStateLeaf(&doc, "/Fog/FirstState", 2); first.Int32 != 0x8000 {
 		t.Fatalf("Fog starts %x", first.Int32)
 	}
-	if got := appLeafInts1170(t, &doc, "/Objects/Selection"); !slices.Equal(got, wantSelection) {
+	if got := appLeafInts(t, &doc, "/Objects/Selection"); !slices.Equal(got, wantSelection) {
 		t.Fatalf("Selection = %v, want %v", got, wantSelection)
 	}
-	if got := appLeafInts1170(t, &doc, "/SpellBook/Shortcuts"); !slices.Equal(got, []uint32{5, 0, 0xffffffff, 23}) {
+	if got := appLeafInts(t, &doc, "/SpellBook/Shortcuts"); !slices.Equal(got, []uint32{5, 0, 0xffffffff, 23}) {
 		t.Fatalf("shortcut indices = %v", got)
 	}
-	if slices.Equal(appLeafInts1170(t, &frozen, "/Fog/Data"), wantRuns) || slices.Equal(appLeafInts1170(t, &frozen, "/Objects/Selection"), wantSelection) {
+	if slices.Equal(appLeafInts(t, &frozen, "/Fog/Data"), wantRuns) || slices.Equal(appLeafInts(t, &frozen, "/Objects/Selection"), wantSelection) {
 		t.Fatal("freezing the historical Document unexpectedly passes the current-state oracle")
 	}
 	out, err := sav.EncodeDocumentData(doc)
@@ -171,7 +171,7 @@ func TestApplication1170ProjectsCurrentFogAndExactMultipleSelection(t *testing.T
 		t.Fatal(err)
 	}
 	lostFog, _, err := lost.Fog()
-	if err != nil || bytes.Equal(lostFog.Cells, s.Residue.FogExplored) || !slices.Equal(appLeafInts1170(t, &mutant, "/Objects/Selection"), wantSelection) {
+	if err != nil || bytes.Equal(lostFog.Cells, s.Residue.FogExplored) || !slices.Equal(appLeafInts(t, &mutant, "/Objects/Selection"), wantSelection) {
 		t.Fatal("single-cause Fog loss control failed", err)
 	}
 }

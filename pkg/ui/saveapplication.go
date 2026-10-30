@@ -14,7 +14,10 @@ import (
 // projection's canvas translation. Native saves keep fractional origins and
 // zoom; the original SAV writer must separately admit their integer-cell form.
 type SaveApplicationState struct {
-	Selection                    []uint32
+	Selection []uint32
+	// Structures are the selected structure IDs. The viewer holds at most one,
+	// and only while no actor is selected (selectedStructure).
+	Structures                   []uint32
 	ViewX, ViewY, Zoom           float64
 	InventoryOpen, SpellBookOpen bool
 	// MinimapOpen remains a historical wire field; false no longer hides the map.
@@ -43,6 +46,9 @@ func (v *Viewer) SaveApplication() SaveApplicationState {
 		ShowHealth: v.HealthBarsShown(), FlyingHP: v.numeralsOn(), TimeFlow: v.TimeFlow(),
 		PressedSpell: v.selectedSpell, PeriodUS: v.anim.Period(), Unpaced: v.unpaced, PlayerPaused: v.playerPaused,
 	}
+	if ref, ok := v.selectedStructure(); ok {
+		s.Structures = []uint32{ref.ID}
+	}
 	if v.cam != nil {
 		s.ViewX = v.cam.X / camera.CellSize
 		s.ViewY = (v.cam.Y + v.projectionMinY()) / camera.CellSize
@@ -52,12 +58,17 @@ func (v *Viewer) SaveApplication() SaveApplicationState {
 }
 
 func ValidateSaveApplication(s SaveApplicationState) error {
-	if len(s.Selection) > 1<<16 {
+	if len(s.Selection) > 1<<16 || len(s.Structures) > 1<<16 {
 		return fmt.Errorf("saved application selection exceeds 65536 actors")
 	}
 	for i, id := range s.Selection {
 		if i > 0 && id <= s.Selection[i-1] {
 			return fmt.Errorf("saved application selection is not a unique ascending entity list")
+		}
+	}
+	for i, id := range s.Structures {
+		if i > 0 && id <= s.Structures[i-1] {
+			return fmt.Errorf("saved application structure selection is not a unique ascending list")
 		}
 	}
 	for _, x := range []float64{s.ViewX, s.ViewY, s.Zoom} {
@@ -99,6 +110,14 @@ func (v *Viewer) RestoreSaveApplication(s SaveApplicationState) error {
 		}
 	}
 	v.sel = slices.Clone(s.Selection)
+	// One saved structure becomes the selected structure when no actor is
+	// selected and a plain click could select it; otherwise none is.
+	v.selStructure = InspectionSubject{}
+	if len(s.Selection) == 0 && len(s.Structures) == 1 {
+		if ref := (InspectionSubject{Kind: InspectionStructure, ID: s.Structures[0]}); v.selectableStructure(ref) {
+			v.selStructure = ref
+		}
+	}
 	v.hudHidden[hudPanelPack], v.hudHidden[hudPanelBook] = !s.InventoryOpen, !s.SpellBookOpen
 	v.hudHidden[hudPanelDoll], v.hudHidden[hudPanelWorn] = !s.DollOpen, !s.WornOpen
 	v.healthBarsHidden, v.numeralsHidden = !s.ShowHealth, !s.FlyingHP

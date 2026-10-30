@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For players
 
 - [ROM2] Iglez and the available mercenaries show their own figures in the inn. Hired mercenaries join the next mission and keep their appearance when you save and load.
+- [ROM1] A game the original saved while a building was selected now loads. The building stays selected, and your next save keeps it.
 
 ## 0.140.2
 

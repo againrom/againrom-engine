@@ -3129,7 +3129,7 @@ package storyguard
 // internal/archtest/townsquare.go and its test, the square view tests in
 // pkg/game/townsquareview_test.go, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4480,
+	TestIdentCount: 4475,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3412,5 +3412,16 @@ var Committed = Baseline{
 	// comments of writeCityGroups and pruneCityGroupsForSave, of
 	// pkg/game/neverloadedtowngroups_test.go and the release witness that
 	// follows it, and this note.
-	CommentBytes: 9919726,
+
+	// It rose for a saved selection naming a structure: the doc comments of
+	// fileApplication, applicationStructureIDs, applicationSelection and the
+	// structure arm of projectApplicationState in pkg/game/savapplication.go,
+	// of SaveApplicationState.Structures and the restore in
+	// pkg/ui/saveapplication.go, the new tests' comments in
+	// pkg/game/savselectionstructure_test.go and
+	// pkg/game/savapplication_projection_test.go, and this note.
+	// TestIdentCount fell when appLeafInts lost its number. The merge with
+	// hotfixes sav-debt-h2 and
+	// sav-offer-chapter is measured on the merged tree.
+	CommentBytes: 9921763,
 }

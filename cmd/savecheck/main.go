@@ -144,8 +144,8 @@ func reportWitness(front *game.FrontEnd, w *sim.World, ticks int, stdout io.Writ
 		fmt.Fprintf(stdout, "savecheck: witness bank %d set, 768=%d 769=%d\n", set, bank[768], bank[769])
 	}
 	if a, ok := front.LiveApplication(); ok {
-		fmt.Fprintf(stdout, "savecheck: witness view %.0f/%.0f zoom %.2f selection %v book open %v inventory open %v pressed %d period %dus paused %v\n",
-			a.ViewX, a.ViewY, a.Zoom, a.Selection, a.SpellBookOpen, a.InventoryOpen, a.PressedSpell, a.PeriodUS, a.PlayerPaused)
+		fmt.Fprintf(stdout, "savecheck: witness view %.0f/%.0f zoom %.2f selection %v structures %v book open %v inventory open %v pressed %d period %dus paused %v\n",
+			a.ViewX, a.ViewY, a.Zoom, a.Selection, a.Structures, a.SpellBookOpen, a.InventoryOpen, a.PressedSpell, a.PeriodUS, a.PlayerPaused)
 	}
 	front.LiveAdvance(ticks)
 	fmt.Fprintf(stdout, "savecheck: witness after %d ticks: tick %d hash %016x\n", ticks, w.Tick(), w.Hash())

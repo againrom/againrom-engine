@@ -57,6 +57,8 @@ func cloneApplicationState(s *SnapshotApplicationState) *SnapshotApplicationStat
 	out.View.Selection = append([]uint32(nil), s.View.Selection...)
 	out.Baseline.Selection = append([]uint32(nil), s.Baseline.Selection...)
 	out.Original.Selection = append([]uint32(nil), s.Original.Selection...)
+	out.View.Structures = append([]uint32(nil), s.View.Structures...)
+	out.Baseline.Structures = append([]uint32(nil), s.Baseline.Structures...)
 	return &out
 }
 
@@ -168,10 +170,26 @@ func pressedSpellID(rows []uint16, index int32) (uint32, error) {
 }
 
 // fileApplication is a mission file's application state read from its
-// state store, with the runtime ID of each imported living actor.
+// state store, with the runtime ID of each imported living actor and of each
+// saved structure.
 type fileApplication struct {
-	raw OriginalStateData
-	ids map[uint32]uint32
+	raw        OriginalStateData
+	ids        map[uint32]uint32
+	structures map[uint32]uint32
+}
+
+// applicationStructureIDs is the runtime ID of each structure the World keeps
+// a saved record for, keyed by structure ID.
+func applicationStructureIDs(w *sim.World) map[uint32]uint32 {
+	out := map[uint32]uint32{}
+	if w == nil {
+		return out
+	}
+	rows, _, _ := w.SavedStructures()
+	for _, row := range rows {
+		out[uint32(row.ID)] = row.RuntimeID
+	}
+	return out
 }
 
 // readFileApplication reads a mission file's application state for a world
@@ -191,18 +209,19 @@ func readFileApplication(sf *sav.File, w *sim.World) (*fileApplication, error) {
 			ids[uint32(e.ID)] = e.SourceBinding.RuntimeID
 		}
 	}
-	return &fileApplication{raw: raw, ids: ids}, nil
+	return &fileApplication{raw: raw, ids: ids, structures: applicationStructureIDs(w)}, nil
 }
 
 // view is the file's first frame over the viewer's current state: camera,
 // selection, panels, options, the pressed spell and the speed's period.
 func (a *fileApplication) view(view ui.SaveApplicationState, rows []uint16) (*SnapshotApplicationState, error) {
-	selection, err := applicationSelection(a.raw.Selection, a.ids)
+	selection, structures, err := applicationSelection(a.raw.Selection, a.ids, a.structures)
 	if err != nil {
 		return nil, err
 	}
 	raw := a.raw
-	view.Selection, view.ViewX, view.ViewY, view.Zoom = selection, float64(raw.ViewX), float64(raw.ViewY), 1
+	view.Selection, view.Structures = selection, structures
+	view.ViewX, view.ViewY, view.Zoom = float64(raw.ViewX), float64(raw.ViewY), 1
 	view.InventoryOpen, view.SpellBookOpen = raw.InventoryOpen != 0, raw.BookOpen != 0
 	view.ShowHealth, view.FlyingHP, view.TimeFlow = raw.ShowHP != 0, raw.FlyingHP != 0, raw.ShowTimeFlow != 0
 	view.PressedSpell, _ = pressedSpellID(rows, raw.Pressed)
@@ -341,13 +360,16 @@ func applicationActorIDs(doc *sav.DocumentData, bindings []SnapshotSAVActor, wor
 // of them when the selection repeats it as many times.
 //
 // The fallback to the low 16 bits applies only when no actor carries the
-// whole id, and only to as many actors as the selection names.
-func applicationSelection(runtime []uint32, byEntity map[uint32]uint32) ([]uint32, error) {
+// whole id, and only to as many actors as the selection names. An id no
+// actor carries names the structure whose saved record carries the whole id
+// (SAV-1360, MISSION-065); byStructure maps structure IDs to runtime IDs.
+func applicationSelection(runtime []uint32, byEntity, byStructure map[uint32]uint32) ([]uint32, []uint32, error) {
 	occurrences := map[uint32]int{}
 	for _, id := range runtime {
 		occurrences[id]++
 	}
 	selected := make([]uint32, 0, len(runtime))
+	var structures []uint32
 	for _, id := range runtime {
 		n, pending := occurrences[id]
 		if !pending {
@@ -369,8 +391,21 @@ func applicationSelection(runtime []uint32, byEntity map[uint32]uint32) ([]uint3
 				}
 			}
 		}
+		if len(found) == 0 {
+			var held []uint32
+			for structure, candidate := range byStructure {
+				if candidate == id {
+					held = append(held, structure)
+				}
+			}
+			if len(held) != 1 || n != 1 {
+				return nil, nil, fmt.Errorf("application selection runtime ID %d names no live actor and %d structures for %d entries", id, len(held), n)
+			}
+			structures = append(structures, held[0])
+			continue
+		}
 		if len(found) < n || short && len(found) != n {
-			return nil, fmt.Errorf("application selection runtime ID %d has %d live bindings for %d entries", id, len(found), n)
+			return nil, nil, fmt.Errorf("application selection runtime ID %d has %d live bindings for %d entries", id, len(found), n)
 		}
 		// More actors carry the whole id than the selection names: the
 		// lowest entity IDs take the entries (DIV-2504).
@@ -381,10 +416,11 @@ func applicationSelection(runtime []uint32, byEntity map[uint32]uint32) ([]uint3
 	slices.Sort(selected)
 	for i := 1; i < len(selected); i++ {
 		if selected[i] == selected[i-1] {
-			return nil, fmt.Errorf("application selection repeats native actor %d", selected[i])
+			return nil, nil, fmt.Errorf("application selection repeats native actor %d", selected[i])
 		}
 	}
-	return selected, nil
+	slices.Sort(structures)
+	return selected, structures, nil
 }
 
 func normalizedWimpy(raw int32) int {
@@ -426,7 +462,7 @@ func (mw *mapWorld) restoreApplicationState(s *SnapshotApplicationState, origina
 			if err != nil {
 				return err
 			}
-			if s, err = (&fileApplication{raw: raw, ids: ids}).view(mw.view.SaveApplication(), originalBookIDs); err != nil {
+			if s, err = (&fileApplication{raw: raw, ids: ids, structures: applicationStructureIDs(mw.world)}).view(mw.view.SaveApplication(), originalBookIDs); err != nil {
 				return err
 			}
 			actions, err := readCurrentActions(document.Document)
@@ -508,7 +544,7 @@ func (f *FrontEnd) captureApplicationState(mw *mapWorld) (*SnapshotApplicationSt
 			raw.Wimpy, raw.Formation = out.Original.Wimpy, out.Original.Formation
 		}
 		// A newly captured selection comes from the viewer, including empty.
-		raw.Selection, out.Baseline.Selection = nil, nil
+		raw.Selection, out.Baseline.Selection, out.Baseline.Structures = nil, nil, nil
 		out.Original, out.LocalOnly = raw, false
 		out.Baseline.ShowHealth, out.Baseline.FlyingHP, out.Baseline.TimeFlow = raw.ShowHP != 0, raw.FlyingHP != 0, raw.ShowTimeFlow != 0
 		out.Baseline.InventoryOpen, out.Baseline.SpellBookOpen = raw.InventoryOpen != 0, raw.BookOpen != 0
@@ -718,7 +754,7 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 		if err != nil {
 			return err
 		}
-		selection, err := applicationSelection(original.Selection, ids)
+		selection, structures, err := applicationSelection(original.Selection, ids, applicationStructureIDs(world))
 		if err != nil {
 			return err
 		}
@@ -726,7 +762,7 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 		if err != nil {
 			return err
 		}
-		base := ui.SaveApplicationState{Selection: selection, ViewX: float64(original.ViewX), ViewY: float64(original.ViewY), Zoom: 1,
+		base := ui.SaveApplicationState{Selection: selection, Structures: structures, ViewX: float64(original.ViewX), ViewY: float64(original.ViewY), Zoom: 1,
 			InventoryOpen: original.InventoryOpen != 0, SpellBookOpen: original.BookOpen != 0,
 			ShowHealth: original.ShowHP != 0, FlyingHP: original.FlyingHP != 0, TimeFlow: original.ShowTimeFlow != 0,
 			PressedSpell: pressed, PeriodUS: terrain.SpeedIndexPeriod(int(original.Speed))}
@@ -757,12 +793,21 @@ func projectApplicationState(doc *sav.DocumentData, s Snapshot, world *sim.World
 		// final runtime projection assigns their unique ordinary IDs.
 		selection[i] = id
 	}
-	if !currentSelection && slices.Equal(app.View.Selection, app.Baseline.Selection) {
-		mapped, err := applicationSelection(raw.Selection, ids)
+	// A selected structure writes the runtime ID its saved record carries,
+	// after the actors. A structure without a saved record has no runtime ID
+	// to write and is left out (DIV-2109).
+	structureIDs := applicationStructureIDs(world)
+	for _, structure := range app.View.Structures {
+		if id, found := structureIDs[structure]; found {
+			selection = append(selection, id)
+		}
+	}
+	if !currentSelection && slices.Equal(app.View.Selection, app.Baseline.Selection) && slices.Equal(app.View.Structures, app.Baseline.Structures) {
+		mapped, structures, err := applicationSelection(raw.Selection, ids, structureIDs)
 		if err != nil {
 			return err
 		}
-		if !slices.Equal(mapped, app.View.Selection) {
+		if !slices.Equal(mapped, app.View.Selection) || !slices.Equal(structures, app.View.Structures) {
 			return fmt.Errorf("current application selection baseline disagrees with runtime bindings")
 		}
 		selection = slices.Clone(raw.Selection)
