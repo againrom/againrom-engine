@@ -34,6 +34,18 @@ func TestWorldCarriersRunThroughOneSet(t *testing.T) {
 						defined[saveCaptureKey(obj)] = true
 					}
 				}
+				ast.Inspect(decl, func(node ast.Node) bool {
+					if it, ok := node.(*ast.InterfaceType); ok {
+						for _, m := range it.Methods.List {
+							for _, name := range m.Names {
+								if obj, _ := p.Info.Defs[name].(*types.Func); obj != nil {
+									defined[saveCaptureKey(obj)] = true
+								}
+							}
+						}
+					}
+					return true
+				})
 			}
 		}
 	}

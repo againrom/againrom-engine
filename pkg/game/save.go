@@ -283,7 +283,7 @@ func snapshotTown(t *Town, s *Snapshot) {
 	s.Open, s.Gold = t.open, t.gold
 	s.MainMission = t.currentMain()
 	s.SelectedMission = t.selectedMission()
-	s.OfferLabels = snapshotOfferLabels(t)
+	s.OfferLabels = savedOfferLabels(t)
 	s.CityObjects = t.cityObjects.Clone()
 	s.cityGroups, s.cityGroupsLoaded = slices.Clone(t.cityGroups), t.cityGroupsLoaded
 	s.knowledge = slices.Clone(t.knowledge)

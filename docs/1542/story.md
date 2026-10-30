@@ -38,7 +38,14 @@ The one writer is the SAV LOAD restore, `restoreSavedDocumentDecoded`
 (`pkg/game/savdocument.go`), at the line that seats `ms.savedDocument`. The
 two LOAD stagings that later replace the live World copy it by value
 (`savsackobjects.go`, `savplayerpurses.go`); the sim staging round trip in
-`originalliving.go` copies it onto its fresh receiver.
+`originalliving.go` copies it onto its fresh receiver. A third staging,
+`restoreOriginalActorStock` (`originalholdings.go`, `*ms.World = staged`),
+replaces the live World from a fresh receiver that does not copy the
+carrier, so the World falls to `NoLoadedRecord`. It relies on its order on
+the original-load door (`originalrestore.go`): `restoreOriginalActors`,
+its only caller, runs before `importSavedDocument` writes the carrier, so
+nothing is lost today. A reorder that ran it after `importSavedDocument`
+would drop the carrier.
 
 ### The carrier set
 
@@ -83,7 +90,9 @@ focused witnesses construct.
 
 ### Guard
 
-`internal/archtest/worldcarriers.go` names, for each hook of the set and for
+`internal/archtest/worldcarriers.go` names, for each hook of the set (the
+seat hook as the `campaignService.seatWorld` interface method and its two
+implementations) and for
 `sim.World.SetLoadedRecord`/`LoadedRecord`, the production functions that
 may reference it: the set itself; for the setter also the LOAD restore; for
 the reader also the two switched rules. A direct call of a hook elsewhere is
@@ -135,4 +144,10 @@ None is a second set: each is one call chain the set does not yet run.
   `secondMissionFile`, 27063 bytes each). It is the campaign projection's
   town chapter, not a World carrier, and no DIV row names it (searched
   `docs/divergences/*.md` for `OfferLabels`). The later resaves are equal.
+  Closed by hotfix sav-offer-chapter: the cold LOAD builds the town from a
+  session that states its own campaign, with no main mission list, so its
+  chapter is 0 by construction; the SAVE now writes the offer labels that
+  LOAD restored (`savedOfferLabels`, `currentoffers.go`), and
+  `TestASaveKeepsTheLiveWorldAndAResaveItsBytes` compares the first SAVE
+  with its resave.
 - The carriers left above.

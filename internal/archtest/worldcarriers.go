@@ -17,6 +17,9 @@ var worldCarrierOwners = map[string][]string{
 	"againrom/pkg/game.finalizeCurrentCarrierAbsence":        {worldCarrierSet},
 	"againrom/pkg/game.FrontEnd.finalizeCurrentPlaneResidue": {worldCarrierSet},
 	"againrom/pkg/game.finalizeCurrentWorldEffectTokens":     {worldCarrierSet},
+	"againrom/pkg/game.campaignService.seatWorld":            {worldCarrierSet},
+	"againrom/pkg/game.firstCampaignRules.seatWorld":         {worldCarrierSet},
+	"againrom/pkg/game.secondCampaignRules.seatWorld":        {worldCarrierSet},
 	"againrom/pkg/sim.World.SetLoadedRecord":                 {worldCarrierSet, "againrom/pkg/game.restoreSavedDocumentDecoded"},
 	"againrom/pkg/sim.World.LoadedRecord":                    {worldCarrierSet, "againrom/pkg/game.leaveUnboundEffectsOut", "againrom/pkg/game.secondCampaignRules.seatWorld"},
 }

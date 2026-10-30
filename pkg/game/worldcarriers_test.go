@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -85,9 +86,21 @@ func TestTheSavesAbsenceReadsTheWorldNotTheLoadedRecord(t *testing.T) {
 	}
 }
 
+func savedOfferChapter(raw []byte) string {
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		return "undecoded"
+	}
+	a, err := readCurrentActions(&doc)
+	if err != nil || a == nil || a.Session == nil || a.Session.OfferLabels == nil {
+		return "absent"
+	}
+	return strconv.Itoa(a.Session.OfferLabels.Chapter)
+}
+
 // The two invariants on the second game's mission file fixture: a SAVE never
 // changes the live World, and its next tick equals the next tick of a twin
-// that did not SAVE; our SAV of a World with a document, loaded and saved
+// that did not SAVE; each SAV, the first included, loaded and saved
 // again with no tick between, writes equal bytes.
 func TestASaveKeepsTheLiveWorldAndAResaveItsBytes(t *testing.T) {
 	file := secondMissionFile(secondMissionFixtureHero(), secondMissionStore(4, 0, -1))
@@ -112,12 +125,13 @@ func TestASaveKeepsTheLiveWorldAndAResaveItsBytes(t *testing.T) {
 	if len(first) == 0 {
 		t.Fatal("the SAVE wrote nothing")
 	}
-	// The first resave of a mission file's SAVE is not compared: its town
-	// chapter in the offer labels reads 0 after the cold LOAD (open debt of
-	// the campaign projection, not of a World carrier).
 	cold, _ := secondMissionLoad(t, dir, name)
 	resaveDir := t.TempDir()
 	resaved, second := worldCarrierSave(t, cold, resaveDir)
+	if !bytes.Equal(first, second) {
+		t.Fatalf("the first resave writes offer chapter %s where the SAVE wrote %s (%d bytes, not %d)",
+			savedOfferChapter(second), savedOfferChapter(first), len(second), len(first))
+	}
 	again, _ := secondMissionLoad(t, resaveDir, resaved)
 	loaded := again.live.world.Hash()
 	_, third := worldCarrierSave(t, again, t.TempDir())

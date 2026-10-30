@@ -20,6 +20,15 @@ func snapshotOfferLabels(t *Town) *currentOfferLabels {
 	return r
 }
 
+// savedOfferLabels is what a SAVE writes. A town with no main list and no
+// progress holds chapter 0 by construction; it writes the labels LOAD restored.
+func savedOfferLabels(t *Town) *currentOfferLabels {
+	if t != nil && t.offerLabels != nil && t.progress == nil && len(t.camp.Main) == 0 {
+		return cloneOfferLabels(t.offerLabels)
+	}
+	return snapshotOfferLabels(t)
+}
+
 func cloneOfferLabels(r *currentOfferLabels) *currentOfferLabels {
 	if r == nil {
 		return nil

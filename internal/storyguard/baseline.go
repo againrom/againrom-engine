@@ -3412,5 +3412,5 @@ var Committed = Baseline{
 	// comments of writeCityGroups and pruneCityGroupsForSave, of
 	// pkg/game/neverloadedtowngroups_test.go and the release witness that
 	// follows it, and this note.
-	CommentBytes: 9919772,
+	CommentBytes: 9919726,
 }
