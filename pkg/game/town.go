@@ -143,7 +143,8 @@ type Town struct {
 	// in place so a copied Town shares it.
 	cityGroups []cityLiveGroup
 	// cityGroupsLoaded marks groups a LOAD read from a file; only those lose
-	// an emptied group at SAVE (writeCityGroups).
+	// an emptied group from the live list at a committed SAVE
+	// (pruneCityGroupsForSave).
 	cityGroupsLoaded bool
 
 	// documents is the campaign's document collection: one append-only list

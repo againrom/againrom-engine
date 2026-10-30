@@ -3394,5 +3394,23 @@ var Committed = Baseline{
 
 	// It fell for backing out hotfix sav-debt-h before release 0.140.0, and
 	// rose with this note; the merge is measured on the reverted tree.
-	CommentBytes: 9915667,
+
+	// It rose for the Effect token head: the doc comment of
+	// newEffectAttachment in pkg/game/worldsaveeffects.go, the comments of
+	// pkg/game/effecttokenhead_test.go, and this note.
+
+	// It rose for the dead records' loaded values: retainDeadValues in
+	// pkg/game/currentdeadconstruct.go, the comments of
+	// pkg/game/deadloadedvalues_test.go, the release witnesses that follow
+	// them, and this note.
+
+	// It rose for the acquisition order wire: ProjectActorAcquireOrder in
+	// pkg/sim/currentorder.go, the comments of
+	// pkg/game/acquireorderwire_test.go, and this note.
+
+	// It rose for the town group write of a campaign never loaded: the
+	// comments of writeCityGroups and pruneCityGroupsForSave, of
+	// pkg/game/neverloadedtowngroups_test.go and the release witness that
+	// follows it, and this note.
+	CommentBytes: 9919772,
 }

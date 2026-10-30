@@ -70,7 +70,7 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		}
 		mustSetRefs(record, savHeldWeaponField, []uint16{object})
 	}
-	if err := b.retainDeadLoad(record, s, entity); err != nil {
+	if err := b.retainDeadValues(record, s, entity); err != nil {
 		return err
 	}
 	if err := b.retainDeadBook(record, s, entity); err != nil {
@@ -79,11 +79,22 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 	return b.retainDeadEffects(record, body.ID, s)
 }
 
-// retainDeadLoad writes the stored load word U90 of a dead record whose body
-// the World holds as no entity from the loaded record of the same Identity
-// and class. Both archive arms copy the word, and only a derive or a weight
-// change rewrites it (SAV-1378); the World holds no load for such a body.
-func (b *generatedDocumentBuilder) retainDeadLoad(record *sav.DocumentRecordData, s sim.OriginalDeadSource, entity bool) error {
+// retainedDeadValues and retainedDeadBlocks are the actor values a dead record
+// whose body the World holds as no entity takes from its loaded record: the
+// load word, which only a derive or a weight change rewrites (SAV-1378), the
+// reach, own weight and mana hundredths, the mover block with its search
+// radius (AI-693), the order record and the attack, defence and modifier
+// blocks. The World carries none of them for such a body.
+var (
+	retainedDeadValues = []string{"U90", "U12C", "U8E", "UA3"}
+	retainedDeadBlocks = []string{"U154", "U158", "UA6", "UBE", "UD4"}
+)
+
+// retainDeadValues writes retainedDeadValues and retainedDeadBlocks of a dead
+// record whose body the World holds as no entity from the loaded record of the
+// same Identity and class. The dead tuple is written apart, and a projection
+// that writes from the World later still wins.
+func (b *generatedDocumentBuilder) retainDeadValues(record *sav.DocumentRecordData, s sim.OriginalDeadSource, entity bool) error {
 	if entity {
 		return nil
 	}
@@ -91,11 +102,26 @@ func (b *generatedDocumentBuilder) retainDeadLoad(record *sav.DocumentRecordData
 	if err != nil || object == 0 {
 		return err
 	}
-	load, err := savedStructureValue(&b.loaded.Objects[object-1], "U90")
-	if err != nil {
-		return nil
+	source := &b.loaded.Objects[object-1]
+	for _, name := range retainedDeadValues {
+		if value, err := savedStructureValue(source, name); err == nil {
+			if err := savedActorSetValue(record, name, value); err != nil {
+				return err
+			}
+		}
 	}
-	return savedActorSetValue(record, "U90", load)
+	for _, field := range source.Raw {
+		if !slices.Contains(retainedDeadBlocks, field.Name) {
+			continue
+		}
+		if _, err := savedActorRaw(record, field.Name, len(field.Bytes)); err != nil {
+			return err
+		}
+		if err := savedStructureSetRaw(record, field.Name, field.Bytes); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // loadedDeadObject is the loaded document's DeadActors root of the dead
@@ -303,8 +329,9 @@ func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys(w *sim.World) e
 // constructedSearchRadius gives an actor record this build constructs in a
 // first-game document the constructor's mover byte +0x08, 5 (AI-692). The
 // World's own Mover replaces it for an actor the World still holds
-// (projectMotion), so it stands for a body that is gone; the byte a loaded
-// record of that body held is not carried (DIV-3942).
+// (projectMotion), and a dead record takes the mover block of its loaded
+// record (retainDeadValues), so it stands for a body that is gone and that no
+// loaded record holds (DIV-3942).
 func (b *generatedDocumentBuilder) constructedSearchRadius(r *sav.DocumentRecordData, w *sim.World) error {
 	if w.SecondGame() {
 		return nil
