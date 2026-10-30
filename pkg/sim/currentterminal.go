@@ -27,6 +27,13 @@ func (r CurrentTerminalActor) LeavesNoBody() bool {
 	return r.Stage != 0 && DecayStage(r.Stage) < DecayBones && r.HP < decayGoneHP
 }
 
+func (r CurrentTerminalActor) held() CurrentTerminalActor {
+	if absorbedDead(r.Stage, r.HP) {
+		r.Stage = consumedCorpseStage
+	}
+	return r
+}
+
 // CurrentTerminalActors returns terminal rows in ID order.
 func (w *World) CurrentTerminalActors() []CurrentTerminalActor {
 	return slices.Clone(w.currentTerminalActors)
@@ -132,6 +139,9 @@ func (w *World) importCurrentTerminalActors(batch []CurrentTerminalActor, replac
 		}
 		return 0
 	})
+	for i := range next.currentTerminalActors {
+		next.currentTerminalActors[i] = next.currentTerminalActors[i].held()
+	}
 	if err := currentTerminalActorsFault(next.currentTerminalActors, next.bounds); err != nil {
 		return err
 	}
@@ -164,7 +174,7 @@ func (w *World) hasCurrentTerminalActor(want CurrentTerminalActor) bool {
 			row.Worn, want.Worn = 0, 0
 			row.MaxHP, want.MaxHP = 0, 0
 			row.MaxHPPresent, want.MaxHPPresent = false, false
-			return row == want
+			return row.held() == want.held()
 		}
 	}
 	return false

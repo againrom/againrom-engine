@@ -193,6 +193,7 @@ func consumedCorpseLoadControl(t *testing.T, f *FrontEnd, app *ui.App, store Sav
 	}
 	if !wantError {
 		want := *a.Values[id].CurrentTerminal
+		want.Stage = 5 // DIV-4281
 		rows := f.live.world.CurrentTerminalActors()
 		if app.Screen() != ui.ScreenMap || f.live.world == world || len(rows) != 1 || rows[0] != want {
 			t.Fatal("readable stage/current-marker control", app.Screen(), rows, want)

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM1] A game saved in Againrom after a Control Spirit cast, then saved again in the original, now loads, and the dead body the spell used stays gone. Before, the game refused to load it.
+
 ## 0.141.0
 
 ### For players

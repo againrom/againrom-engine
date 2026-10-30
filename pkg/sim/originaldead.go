@@ -101,6 +101,19 @@ func deadSourceFault(s OriginalDeadSource, b Bounds) error {
 	return deadStateFaultWithPosition(s.State, b, s.MapUnitID != 0)
 }
 
+// absorbedDead: health -10001 below stage 5, which no original writer stores
+// (SAV-DEADLOAD-129, MAGIC-251); every LOAD holds it terminal (DIV-4281).
+func absorbedDead(stage uint8, hp int32) bool {
+	return stage >= uint8(DecayBones) && stage < consumedCorpseStage && hp == controlSpiritCorpseHP
+}
+
+func heldDeadState(s DeadActorState) DeadActorState {
+	if absorbedDead(s.Stage, int32(s.HP)) {
+		s.Stage, s.HP, s.RuntimeID = consumedCorpseStage, controlSpiritCorpseHP, 0
+	}
+	return s
+}
+
 // ImportOriginalDeadActors validates the entire uniquely joined batch before
 // touching the candidate. It bypasses death, drops, kill credit and RNG.
 //
@@ -110,6 +123,10 @@ func deadSourceFault(s OriginalDeadSource, b Bounds) error {
 func (w *World) ImportOriginalDeadActors(batch []OriginalDeadActor, current ...EntityID) error {
 	if w == nil || len(w.originalDead) != 0 {
 		return fmt.Errorf("original dead import requires a fresh world")
+	}
+	batch = slices.Clone(batch)
+	for i := range batch {
+		batch[i].Source.State = heldDeadState(batch[i].Source.State)
 	}
 	asBuilt := w.groupsAsConstructed()
 	currentIDs := make(map[EntityID]bool, len(current))
