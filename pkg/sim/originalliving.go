@@ -119,6 +119,7 @@ func (w *World) importLivingActors(batch []OriginalLivingActor, current map[Enti
 	checked.burst.phases = w.burst.phases
 	checked.rules = w.rules
 	checked.diary = w.diary
+	checked.loadedRecord = w.loadedRecord
 	// STORIES 1131..1135 primed this staging round trip's fresh checked
 	// receiver by hand for savedCellRecords, savedSpellEffects,
 	// savedProjectiles and savedDiaries: UnmarshalBinary's own composite

@@ -1,0 +1,53 @@
+package archtest
+
+import (
+	"go/ast"
+	"go/types"
+	"os"
+	"testing"
+)
+
+// Every World carrier hook is run through the one carrier set, and the
+// loaded-record carrier has one writer. Each function the rule names must
+// exist, so a rename cannot leave the rule holding nothing.
+func TestWorldCarriersRunThroughOneSet(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := FindModuleRoot(wd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	module, err := loadTypeCheckedModule(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var packages []*CheckedPackage
+	defined := map[string]bool{}
+	for _, p := range module.Packages {
+		packages = append(packages, p)
+		for _, file := range p.Files[:p.NumProd] {
+			for _, decl := range file.Decls {
+				if fn, ok := decl.(*ast.FuncDecl); ok {
+					if obj, _ := p.Info.Defs[fn.Name].(*types.Func); obj != nil {
+						defined[saveCaptureKey(obj)] = true
+					}
+				}
+			}
+		}
+	}
+	for key, owners := range worldCarrierOwners {
+		if !defined[key] {
+			t.Errorf("%s is not a production function", key)
+		}
+		for _, owner := range owners {
+			if !defined[owner] {
+				t.Errorf("owner %s of %s is not a production function", owner, key)
+			}
+		}
+	}
+	for _, finding := range CheckWorldCarriers(packages) {
+		t.Error(finding)
+	}
+}

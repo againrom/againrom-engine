@@ -120,7 +120,8 @@ func TestOnlyAZeroWorldUsesTheProvenFormMemo(t *testing.T) {
 			}
 			w.rules = r
 		},
-		"diary": func(w *World) { w.diary.rows = 1 },
+		"diary":         func(w *World) { w.diary.rows = 1 },
+		"loaded record": func(w *World) { w.loadedRecord = LoadedDocument },
 	} {
 		var w World
 		set(&w)

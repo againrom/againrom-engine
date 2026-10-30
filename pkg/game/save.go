@@ -82,6 +82,9 @@ type Snapshot struct {
 	// the World so a later save cannot substitute another mission's template.
 	// Nil on older checkpoints uses the installed mission constructor.
 	ghost *sim.GhostTemplate
+	// loadedRecord is the live World's loaded-record carrier, which the byte
+	// form does not carry (worldcarriers.go).
+	loadedRecord sim.LoadedRecord
 	// loadedDocument is the loaded document while the writer replaces
 	// SavedDocument with the World-built one; only unknown spans read it.
 	loadedDocument *SnapshotSAVDocument

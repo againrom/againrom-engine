@@ -3285,6 +3285,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		flightInputs:      w.flightInputs,
 		rules:             w.rules,
 		diary:             w.diary,
+		loadedRecord:      w.loadedRecord,
 		rawSessionHead:    carriedResume.head,
 		rawSessionMid:     carriedResume.mid,
 		savedCellRecords:  carriedResume.cellRecords,

@@ -27,6 +27,12 @@ var saveCaptureOwners = map[string][]string{
 // saveCaptureOwners from a function the table does not name. A recursive
 // reference is no route and is not reported.
 func CheckSaveCapture(packages []*CheckedPackage) []string {
+	return checkReferenceOwners(packages, saveCaptureOwners)
+}
+
+// checkReferenceOwners reports each production reference to a function of
+// owners from a function its row does not name.
+func checkReferenceOwners(packages []*CheckedPackage, owners map[string][]string) []string {
 	var findings []string
 	for _, p := range packages {
 		for _, file := range p.Files[:p.NumProd] {
@@ -47,7 +53,7 @@ func CheckSaveCapture(packages []*CheckedPackage) []string {
 						return true
 					}
 					key := saveCaptureKey(used)
-					allowed, listed := saveCaptureOwners[key]
+					allowed, listed := owners[key]
 					if listed && owner != key && !slices.Contains(allowed, owner) {
 						findings = append(findings, owner+" references "+key)
 					}

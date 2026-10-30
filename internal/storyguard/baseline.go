@@ -3394,5 +3394,5 @@ var Committed = Baseline{
 
 	// It fell for backing out hotfix sav-debt-h before release 0.140.0, and
 	// rose with this note; the merge is measured on the reverted tree.
-	CommentBytes: 9911422,
+	CommentBytes: 9916580,
 }

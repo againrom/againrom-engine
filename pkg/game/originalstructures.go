@@ -164,7 +164,7 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 		return err
 	}
 	// A Pointer takes its slot before a pending use that names it is restored.
-	restorePointerSlots(ms.World, ms.Map, table)
+	transformWorldCarriers(carrierLoad{w: ms.World, m: ms.Map, table: table})
 	counts.Restored, counts.Absent = len(structures), len(ms.Map.Objects)-len(matched)
 	if report != nil {
 		report.Structures = counts

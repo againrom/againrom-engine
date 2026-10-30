@@ -81,24 +81,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if s.Mission == 0 {
-		finalizeCurrentTownEffectOwners(&doc)
-	} else if s.SavedDocument != nil {
-		finalizeLoadedTokenReferences(&doc, s.SavedDocument.ReferenceMisses)
-	}
-	if err := finalizeCurrentObjectIdentityAbsence(&doc); err != nil {
-		return nil, err
-	}
-	if err := finalizeCurrentOrderSpellAbsence(&doc); err != nil {
-		return nil, err
-	}
-	if err := finalizeCurrentBookSelection(&doc); err != nil {
-		return nil, err
-	}
-	if err := finalizeCurrentCarrierAbsence(&doc, s.World); err != nil {
-		return nil, err
-	}
-	if err := f.finalizeCurrentPlaneResidue(&doc, s); err != nil {
+	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, false); err != nil {
 		return nil, err
 	}
 	sealCastSources(&doc)
@@ -123,7 +106,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := f.clampOriginalView(&doc); err != nil {
 		return nil, err
 	}
-	if err := finalizeCurrentWorldEffectTokens(&doc); err != nil {
+	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, true); err != nil {
 		return nil, err
 	}
 	return sav.EncodeDocumentData(doc)
@@ -138,8 +121,8 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	if err := w.UnmarshalBinary(s.World); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if l := s.SavedDocument; l != nil && l.Document == nil {
-		leaveUnboundEffectsOut(&w)
+	decodeWorldCarriers(s, &w)
+	if leaveAbsentCarriersOut(&w) {
 		raw, err := w.MarshalBinary()
 		if err != nil {
 			return sav.DocumentData{}, err

@@ -361,7 +361,7 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 // resume substitutes the saved world, anything else is seeded with the
 // between-mission purse.
 func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms *Mission, v *ui.Viewer) error {
-	if err := rules.seatWorld(r, ms); err != nil {
+	if err := seatWorldCarriers(carrierSeat{r: r, rules: rules, ms: ms}); err != nil {
 		return err
 	}
 	if r.fresh() {

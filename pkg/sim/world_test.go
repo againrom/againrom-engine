@@ -97,6 +97,9 @@ func init() {
 	// The Diary rules read install-derived rows set once per world.
 	worldMethods = append(worldMethods, "SetDiaryUnits", "CopyDiaryUnits", "KnowledgeLevel")
 	worldWriters = append(worldWriters, "SetDiaryUnits", "CopyDiaryUnits")
+	// The loaded-record carrier the SAV LOAD writes and no tick reads.
+	worldMethods = append(worldMethods, "LoadedRecord", "SetLoadedRecord")
+	worldWriters = append(worldWriters, "SetLoadedRecord")
 	worldMethods = append(worldMethods, "NativeAreaSaveStates", "NativeCastContinuations", "RandomState", "ImportOriginalActionClocks")
 	worldMethods = append(worldMethods, "RestoreRandomState")
 	worldMethods = append(worldMethods, "PendingSpellDeliveries")

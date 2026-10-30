@@ -1978,6 +1978,10 @@ type World struct {
 	savedDiaries []SavedDiary
 
 	diary diaryRuntime
+
+	// loadedRecord is the kind of SAV record a LOAD restored this World from
+	// (loadedrecord.go): provenance carried across a decode and never encoded.
+	loadedRecord LoadedRecord
 }
 
 // NewWorld returns a world seeded with seed, bounded by b, routing by mode, over

@@ -145,6 +145,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	s.World = b
 	ghost := f.live.world.Ghost()
 	s.ghost = &ghost
+	captureWorldCarriers(f.live.world, &s)
 	s.Residue = f.live.residue()
 	f.campaign().captureMission(f, &s)
 	s.ApplicationState, err = f.captureApplicationState(f.live)

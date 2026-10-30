@@ -142,8 +142,9 @@ func (secondCampaignRules) seatWorld(r missionRequest, ms *Mission) error {
 	// A fresh mission clears its span of the campaign bank; an original
 	// mission file's bank is the live one it saved and is seated unchanged.
 	// An engine document's policy record has already restored the live
-	// bank, which the campaign's copy of mission entry must not replace.
-	if r.snap == nil && r.town != nil && r.town.second != nil && (r.fresh() || ms.savedDocument == nil || ms.savedDocument.Document == nil) {
+	// bank, which the campaign's copy of mission entry must not replace; the
+	// World's loaded-record carrier names that LOAD.
+	if r.snap == nil && r.town != nil && r.town.second != nil && (r.fresh() || ms.World.LoadedRecord() != sim.LoadedDocument) {
 		bank := r.town.second.bank
 		if r.fresh() {
 			clear(bank[752:768]) // R2-ENGINE-048

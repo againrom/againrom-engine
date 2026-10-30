@@ -531,8 +531,11 @@ const unboundCarriedWorldEffects = "legacy native world effects have no current 
 // without a decoded document carried with no continuation: the file's spell
 // effects and each projectile no driver row moves. Every writer of the
 // document then reads the same projectiles. Any game's such LOAD takes it
-// (DIV-4175).
-func leaveUnboundEffectsOut(w *sim.World) {
+// (DIV-4175); the World's loaded-record carrier names that LOAD.
+func leaveUnboundEffectsOut(w *sim.World) bool {
+	if w.LoadedRecord() != sim.LoadedWithoutDocument {
+		return false
+	}
 	driven := map[uint16]bool{}
 	if d := w.SavedWorldEffectDrivers(); d != nil {
 		for _, p := range d.Projectiles {
@@ -544,6 +547,7 @@ func leaveUnboundEffectsOut(w *sim.World) {
 	store.IDs = slices.DeleteFunc(store.IDs, func(id uint16) bool { return !driven[id] })
 	w.SetSavedProjectiles(store)
 	w.SetSavedSpellEffects(nil)
+	return true
 }
 
 func (m *SnapshotSAVWorldEffects) unavailable(reason string) {

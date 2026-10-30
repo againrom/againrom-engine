@@ -25,7 +25,7 @@ func (mw *mapWorld) restoreStructureUseMetadata(table *mapload.Table) {
 		mw.world.RestoreStructureUseMetadata(fresh)
 	}
 	if mw.mission != nil && mw.mission.state != nil {
-		restorePointerSlots(mw.world, mw.mission.state.Map, table)
+		transformWorldCarriers(carrierLoad{w: mw.world, m: mw.mission.state.Map, table: table})
 	}
 }
 

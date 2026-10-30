@@ -239,6 +239,9 @@ func restoreSavedDocumentDecoded(ms *Mission, source *SnapshotSAVDocument, decod
 		return err
 	}
 	ms.savedDocument = state
+	if ms.World != nil {
+		ms.World.SetLoadedRecord(loadedRecordOf(state))
+	}
 	ms.restoreDeadArt()
 	return nil
 }

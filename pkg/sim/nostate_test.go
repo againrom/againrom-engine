@@ -184,6 +184,10 @@ var nstPinned = []struct {
 		// Install-derived Diary input (the Units length and each placed
 		// creature's row), carried across a decode like rules and ghost.
 		{"diary", "sim.diaryRuntime"},
+		// The kind of SAV record a LOAD restored the World from: provenance the
+		// LOAD writes and a SAVE's absence rules read, carried across a decode
+		// like ghost; no tick reads it.
+		{"loadedRecord", "sim.LoadedRecord"},
 	}},
 	{"Entity", reflect.TypeOf(Entity{}), []nstField{
 		{"SourceBinding", "sim.SourceBinding"},
