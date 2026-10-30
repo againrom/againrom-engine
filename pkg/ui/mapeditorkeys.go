@@ -169,7 +169,7 @@ func init() {
 		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},
 		{label: "Ctrl+1..9", help: []helpEntry{{screenKeys, lineToGroup}, {screenSelection, lineToGroup}}},
 		{label: "Shift", help: []helpEntry{{screenKeys, lineSelect}, {screenKeys, lineSelectClick}}},
-		{key: "copy", label: "Ctrl+C", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
+		{key: "copy", label: "Ctrl+C", act: (*MapEditor).keyCopy, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
 		{key: "paste", label: "Ctrl+V", act: (*MapEditor).selectionKey, help: []helpEntry{{screenKeys, lineCopy}, {screenSelection, lineCopy}}},
 		{key: "randomterrain", label: "Ctrl+E", act: (*MapEditor).keyRandom, help: keys(lineRandomTerrain)},
 		{key: "randomheights", label: "Ctrl+Shift+R", act: (*MapEditor).keyRandom, help: keys(lineRandomHeights)},

@@ -185,14 +185,22 @@ func (e *MapEditor) CloseMCP() {
 		e.mcp.queue.Close()
 	}
 }
-func (e *MapEditor) SetMCPConnection(line string, details ...string) {
+
+// MCPDetail is one row of the MCP connection panel: its label and its value.
+// Ctrl+C on the row copies the value alone.
+type MCPDetail struct{ Label, Value string }
+
+func (e *MapEditor) SetMCPConnection(line string, details ...MCPDetail) {
 	e.mcp.connection = line
 	if len(details) > 0 {
 		rows := make([]InspectionFinding, 0, len(details))
+		copies := make([]string, 0, len(details))
 		for _, detail := range details {
-			rows = append(rows, InspectionFinding{Rule: keyListRule, Text: detail})
+			rows = append(rows, InspectionFinding{Rule: keyListRule, Text: detail.Label + detail.Value})
+			copies = append(copies, detail.Value)
 		}
 		e.openReport(rows, "MCP connection", nil)
+		e.report.copies, e.report.hint = copies, e.word("editor.report.copyhint")
 	}
 }
 

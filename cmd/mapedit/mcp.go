@@ -39,7 +39,7 @@ func startMCP(e *ui.MapEditor, transport, address string, pace time.Duration, se
 		e.CloseMCP()
 		return nil, err
 	}
-	e.SetMCPConnection("MCP "+listener.URL, listener.URL, "Bearer token: "+listener.Token, "Token file: "+listener.TokenFile)
+	e.SetMCPConnection("MCP "+listener.URL, ui.MCPDetail{Value: listener.URL}, ui.MCPDetail{Label: "Bearer token: ", Value: listener.Token}, ui.MCPDetail{Label: "Token file: ", Value: listener.TokenFile})
 	fmt.Fprintf(diagnostic, "MCP: %s; bearer token in %s\n", listener.URL, listener.TokenFile)
 	return func() { e.CloseMCP(); _ = listener.Close() }, nil
 }

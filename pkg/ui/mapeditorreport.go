@@ -103,6 +103,10 @@ type reportState struct {
 	sel     int
 	flagged map[string]bool
 	goals   []InspectionGoal // set while the rows are the script panel's arms
+	// copies holds, by row, the text Ctrl+C copies when it differs from the
+	// row's own text; hint is a line the panel shows under its rows.
+	copies []string
+	hint   string
 	// confirm saves the map with its errors; set while the report is the
 	// question a refused save asked, gone with the report.
 	confirm func() error
@@ -206,10 +210,13 @@ func (e *MapEditor) askSaveWithErrors(r *ReportRefusal, again func() error) {
 // selectFinding selects the record finding i names and scrolls the map to it;
 // a finding that names a cell and no spatial record scrolls to the cell.
 func (e *MapEditor) selectFinding(i int) {
-	if e.doc == nil || i < 0 || i >= len(e.report.rows) {
+	if i < 0 || i >= len(e.report.rows) {
 		return
 	}
 	e.report.sel = i
+	if e.doc == nil {
+		return
+	}
 	f := e.report.rows[i]
 	e.selected, e.focusedReference = -1, 0
 	jumped := false
@@ -233,6 +240,37 @@ func (e *MapEditor) selectedFinding() (InspectionFinding, bool) {
 		return InspectionFinding{}, false
 	}
 	return e.report.rows[e.report.sel], true
+}
+
+// reportCopyText is the text Ctrl+C copies from report row n: the value the
+// row was opened with, a script arm's list text, a key list row's own text, or
+// a finding's line.
+func (e *MapEditor) reportCopyText(n int) string {
+	switch {
+	case n < 0 || n >= len(e.report.rows):
+		return ""
+	case n < len(e.report.copies) && e.report.copies[n] != "":
+		return e.report.copies[n]
+	case n < len(e.report.goals):
+		return e.goalText(e.report.goals[n])
+	case e.report.rows[n].Rule == keyListRule:
+		return e.report.rows[n].Text
+	}
+	return e.report.rows[n].Line()
+}
+
+// keyCopy is Ctrl+C: with a report panel showing it copies the selected row to
+// the text clipboard, unless a group of records is selected; otherwise it
+// copies the map selection.
+func (e *MapEditor) keyCopy(key string) error {
+	if e.listKind() != "report" || e.selectionShown() || e.report.sel >= len(e.report.rows) {
+		return e.selectionKey(key)
+	}
+	if err := textClipboard.write(e.reportCopyText(e.report.sel)); err != nil {
+		e.message = err.Error()
+		return err
+	}
+	return nil
 }
 
 // reportStep moves the selected finding by delta, as the arrow keys do.

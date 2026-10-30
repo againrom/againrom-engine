@@ -781,6 +781,9 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Notes = []string{e.word("editor.arms.hint")}
 		} else {
 			s.Notes = e.findingNotes(s.Width - 2*popupPad - 8)
+			if e.report.hint != "" {
+				s.Notes = append(s.Notes, e.report.hint)
+			}
 		}
 	case "brush":
 		s.Rows = e.brushPopupRows()
