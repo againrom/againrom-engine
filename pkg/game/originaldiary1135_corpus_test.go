@@ -121,9 +121,30 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				t.Fatal("a world-half save did not apply diaries")
 			}
 			got := ms.World.SavedDiaries()
-			if report.Diaries != len(got) {
+			// Another Player's Diary is carried unless it is at its
+			// construction default.
+			others, err := otherPlayerDiaries(&doc)
+			if err != nil {
+				t.Fatalf("otherPlayerDiaries: %v", err)
+			}
+			wantOthers, gotOthers := 0, 0
+			for _, d := range others {
+				if len(d.Entries) != 0 || d.Length != ms.World.DiaryRows() {
+					wantOthers++
+				}
+			}
+			for _, d := range got {
+				if d.Owner.PlayerID != 0 {
+					gotOthers++
+				}
+			}
+			if gotOthers != wantOthers {
 				mismatches++
-				t.Errorf("report.Diaries = %d, len(SavedDiaries()) = %d", report.Diaries, len(got))
+				t.Errorf("LOAD carries %d other Player Diaries, the file has %d beyond the default", gotOthers, wantOthers)
+			}
+			if report.Diaries+gotOthers != len(got) {
+				mismatches++
+				t.Errorf("report.Diaries = %d with %d other Player Diaries, len(SavedDiaries()) = %d", report.Diaries, gotOthers, len(got))
 			}
 			gotBy := map[sim.SavedDiaryOwner]sim.SavedDiary{}
 			for _, d := range got {
@@ -160,7 +181,7 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				}
 			}
 			for owner := range gotBy {
-				if _, ok := want[owner]; !ok {
+				if _, ok := want[owner]; !ok && owner.PlayerID == 0 {
 					mismatches++
 					t.Errorf("owner %+v carries a Diary the file does not give it", owner)
 				}
@@ -230,6 +251,25 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				t.Errorf("SAVE player diary = present=%v %+v, want present=%v %+v",
 					savedHasPlayer, savedPlayer, wantHasPlayer, wantPlayer)
 			}
+			backDoc, err := sav.DecodeDocumentData(out)
+			if err != nil {
+				t.Fatalf("DecodeDocumentData (SAVE): %v", err)
+			}
+			savedOthers, err := otherPlayerDiaries(&backDoc)
+			if err != nil {
+				t.Fatalf("otherPlayerDiaries (SAVE): %v", err)
+			}
+			if len(savedOthers) != len(others) {
+				mismatches++
+				t.Errorf("SAVE wrote %d other Player Diaries, the file has %d", len(savedOthers), len(others))
+			} else {
+				for i := range others {
+					if !sameDiary(true, savedOthers[i], true, others[i]) {
+						mismatches++
+						t.Errorf("SAVE other Player Diary %d = %+v, want %+v", i, savedOthers[i], others[i])
+					}
+				}
+			}
 			savedGraph, err := back.ActorGraph()
 			if err != nil {
 				t.Fatalf("SAVE's ActorGraph: %v", err)
@@ -266,4 +306,32 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 	}
 	t.Logf("audited %d file(s): %d world-half, %d between-mission, %d unreadable, %d with a Diary beyond an empty Player's, %d actor diaries of other Players, %d file(s) with diaries dropped as absent, %d actor diaries checked through SAVE, %d mismatching",
 		total, worlds, cities, unreadable, nonEmpty, otherPlayers, droppedFiles, saved, mismatches)
+}
+
+// otherPlayerDiaries reads each non-local Player's own Diary in object order.
+func otherPlayerDiaries(doc *sav.DocumentData) ([]sav.Diary, error) {
+	var out []sav.Diary
+	for i := range doc.Objects {
+		r := &doc.Objects[i]
+		if r.Class != "Player" {
+			continue
+		}
+		participant, err := savedStructureValue(r, "Participant")
+		if err != nil {
+			return nil, err
+		}
+		if participant == 0 {
+			continue
+		}
+		for _, in := range r.Inline {
+			if in.Record.Class == "Diary" {
+				d, err := sav.ReadDocumentDiary(in.Record)
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, d)
+			}
+		}
+	}
+	return out, nil
 }

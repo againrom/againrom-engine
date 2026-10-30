@@ -320,7 +320,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	}
 	diaries := map[sim.EntityID]bool{}
 	for _, d := range w.SavedDiaries() {
-		if !d.Owner.Player {
+		if d.Owner.IsActor() {
 			diaries[d.Owner.Actor] = true
 		}
 	}

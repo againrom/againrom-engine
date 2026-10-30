@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	"againrom/pkg/formats/sav"
@@ -13,6 +14,12 @@ func savedDiaryRecords(state *SnapshotSAVDocument, world *sim.World) (map[sim.Sa
 		return nil, fmt.Errorf("SAV diaries have no current world")
 	}
 	out := map[sim.SavedDiaryOwner]*sav.DocumentRecordData{}
+	// Every Player's own Diary: the local Player's, and another Player's by
+	// its current identity. A root no current Player names has no owner.
+	identities := map[uint16]uint32{}
+	for _, root := range currentPlayerRoots(state) {
+		identities[root.ObjectIndex] = root.ID
+	}
 	for i := range state.Document.Objects {
 		r := &state.Document.Objects[i]
 		if r.Class != "Player" {
@@ -22,14 +29,16 @@ func savedDiaryRecords(state *SnapshotSAVDocument, world *sim.World) (map[sim.Sa
 		if err != nil {
 			return nil, err
 		}
+		owner := sim.SavedDiaryOwner{Player: true}
 		if participant != 0 {
-			continue
+			if owner = (sim.SavedDiaryOwner{PlayerID: identities[uint16(i+1)]}); owner.PlayerID == 0 {
+				continue
+			}
 		}
 		for j := range r.Inline {
 			if r.Inline[j].Record.Class == "Diary" {
-				owner := sim.SavedDiaryOwner{Player: true}
 				if out[owner] != nil {
-					return nil, fmt.Errorf("SAV diaries have more than one local Player")
+					return nil, fmt.Errorf("SAV diaries have more than one Diary for one Player")
 				}
 				out[owner] = &r.Inline[j].Record
 			}
@@ -85,24 +94,29 @@ func importSavedDiaries(ms *Mission, state *SnapshotSAVDocument) error {
 		return err
 	}
 	var diaries []sim.SavedDiary
-	// Player first, then the binding's canonical entity order. Never map order.
-	owners := []sim.SavedDiaryOwner{{Player: true}}
-	for owner := range records {
-		if !owner.Player {
-			owners = append(owners, owner)
-		}
-	}
-	slices.SortFunc(owners[1:], func(a, b sim.SavedDiaryOwner) int { return int(a.Actor) - int(b.Actor) })
+	// The local Player, the other Players, then the binding's canonical
+	// entity order. Never map order.
+	owners := slices.SortedFunc(maps.Keys(records), sim.CompareSavedDiaryOwners)
 	for _, owner := range owners {
-		if r := records[owner]; r != nil {
-			d, err := sav.ReadDocumentDiary(*r)
-			if err != nil {
-				return err
-			}
-			diaries = append(diaries, sim.SavedDiary{Owner: owner, Length: d.Length, Entries: savDiaryEntriesToSaved(d.Entries)})
+		d, err := sav.ReadDocumentDiary(*records[owner])
+		if err != nil {
+			return err
 		}
+		diaries = append(diaries, sim.SavedDiary{Owner: owner, Length: d.Length, Entries: savDiaryEntriesToSaved(d.Entries)})
 	}
 	return ms.World.ImportOriginalDiaries(diaries)
+}
+
+func diaryOwnerDeparted(world *sim.World, o sim.SavedDiaryOwner) bool {
+	switch {
+	case o.Player:
+		return false
+	case o.PlayerID != 0:
+		players, _ := world.CurrentPlayers()
+		return !slices.ContainsFunc(players, func(p sim.SavedGroupPlayer) bool { return p.ID == o.PlayerID })
+	}
+	_, live := world.Entity(o.Actor)
+	return !live
 }
 
 func projectSavedDiaries(state *SnapshotSAVDocument, world *sim.World) error {
@@ -114,8 +128,9 @@ func projectSavedDiaries(state *SnapshotSAVDocument, world *sim.World) error {
 		r := records[d.Owner]
 		if r == nil {
 			// A departed actor with no written record takes its Diary with
-			// it (DIV-2501); a live owner must have its record.
-			if _, live := world.Entity(d.Owner.Actor); !d.Owner.Player && !live {
+			// it (DIV-2501), as a Player no current Player names does; a
+			// live owner must have its record.
+			if diaryOwnerDeparted(world, d.Owner) {
 				continue
 			}
 			return worldSaveUnsupportedf("current Diary owner has no exact object binding")

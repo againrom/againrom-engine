@@ -3518,5 +3518,5 @@ var Committed = Baseline{
 	// pkg/game/mapeditbrush_release_test.go, and this note, less the ring
 	// bound's comments it removed. The merge with main is measured on the
 	// merged tree.
-	CommentBytes: 9972206,
+	CommentBytes: 9974456,
 }

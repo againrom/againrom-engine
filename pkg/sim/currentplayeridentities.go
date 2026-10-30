@@ -48,6 +48,21 @@ func (w *World) RestoreCurrentPlayerIdentities(ids map[uint32]uint32) error {
 			p.PlayerID = ids[p.PlayerID]
 		}
 	}
+	// Another Player's Diary follows its Player's identity.
+	if len(w.savedDiaries) != 0 {
+		next.savedDiaries = cloneSavedDiaries(w.savedDiaries)
+	}
+	for i := range next.savedDiaries {
+		o := &next.savedDiaries[i].Owner
+		if o.PlayerID != 0 {
+			if o.PlayerID = ids[o.PlayerID]; o.PlayerID == 0 {
+				return fmt.Errorf("sim: current Player identity map lacks a Diary owner")
+			}
+		}
+	}
+	if err := savedDiaryOwnerFault(next.savedDiaries); err != nil {
+		return err
+	}
 	if err := next.currentPlayersFault(); err != nil {
 		return err
 	}

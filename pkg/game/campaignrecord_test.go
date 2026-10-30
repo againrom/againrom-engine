@@ -17,7 +17,9 @@ import (
 // campaign record went through the one projection: the SAV without its
 // label, the snapshot's carried record and its offer labels.
 var campaignRecordBaseDigests = map[string]string{
-	"mission progress/sav":               "760e6151d65b85359c6a7134",
+	// The loaded computer Player's zero-length Diary is kept, not rebuilt
+	// at the Units length.
+	"mission progress/sav":               "d959651b195ec8172e290369",
 	"mission progress/snapshot campaign": "d1b0dad36e60fe233e101fa6",
 	"second mission file/resave":         "81ccf23e6960590e2576d2f8",
 	"second mission file/sav":            "81ccf23e6960590e2576d2f8",

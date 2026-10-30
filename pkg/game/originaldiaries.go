@@ -140,6 +140,9 @@ func exportDiaries(f *sav.File, diaries []sim.SavedDiary, archiveIndexByEntity m
 	}
 	for _, d := range diaries {
 		var rec *sav.Record
+		if d.Owner.PlayerID != 0 {
+			continue // This export patches the walked Player and actors only.
+		}
 		if d.Owner.Player {
 			refs := playerRec.Refs["Diary"]
 			if len(refs) == 0 {

@@ -171,7 +171,7 @@ func players1154DocumentDifferences(want players1154Source, join map[uint16]uint
 
 type players1154LivePopulation struct {
 	players, purses, unavailable, playerDiaries, actorDiaries, entries int
-	manaOwners                                                         int
+	manaOwners, otherPlayerDiaries                                     int
 	excluded                                                           []string
 }
 
@@ -307,6 +307,10 @@ func players1154LiveDifferences(want players1154Source, join map[uint16]uint16, 
 		}
 	}
 	wanted := map[sim.SavedDiaryOwner]diary1154Raw{}
+	identities := map[uint16]uint32{}
+	for _, root := range currentPlayerRoots(state) {
+		identities[root.ObjectIndex] = root.ID
+	}
 	for _, d := range want.diaries {
 		loc := d.location
 		if loc.Off < 0 {
@@ -315,6 +319,16 @@ func players1154LiveDifferences(want players1154Source, join map[uint16]uint16, 
 		owner := sim.SavedDiaryOwner{}
 		if loc.OwnerClass == "Player" {
 			if loc.OwnerOff != firstOff {
+				// Another Player's Diary is carried by its current identity,
+				// except at its construction default.
+				raw := byOff[loc.OwnerOff]
+				if raw == nil || identities[join[raw.index]] == 0 || len(d.entries()) == 0 && len(d.dwords)/4 == world.DiaryRows() {
+					continue
+				}
+				owner.PlayerID = identities[join[raw.index]]
+				population.otherPlayerDiaries++
+				wanted[owner] = d
+				population.entries += len(d.entries())
 				continue
 			}
 			owner.Player = true

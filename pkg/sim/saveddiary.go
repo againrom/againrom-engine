@@ -1,15 +1,68 @@
 package sim
 
-import "fmt"
+import (
+	"cmp"
+	"fmt"
+	"slices"
+)
 
 // SavedDiaryOwner names which record a carried Diary was read from. Player
-// reports the Player's own embedded Diary (sav.PlayerDiary, SAV-662,
-// SAV-669: one per save); when Player is false, Actor is the owning living
-// entity's ID, resolved from the Humanoid's own +0x1e4 reference
-// (SAV-EMBED-039) by the importer, not by this package.
+// reports the local Player's own embedded Diary (sav.PlayerDiary, SAV-662,
+// SAV-669: one per save). A nonzero PlayerID reports another Player's
+// embedded Diary, named by its current Player identity (CurrentPlayers).
+// Otherwise Actor is the owning living entity's ID, resolved from the
+// Humanoid's own +0x1e4 reference (SAV-EMBED-039) by the importer, not by
+// this package.
 type SavedDiaryOwner struct {
-	Player bool
-	Actor  EntityID
+	Player   bool
+	Actor    EntityID
+	PlayerID uint32 `json:",omitempty"`
+}
+
+// IsActor reports an actor-owned Diary.
+func (o SavedDiaryOwner) IsActor() bool { return !o.Player && o.PlayerID == 0 }
+
+// CompareSavedDiaryOwners orders owners: the local Player, the other Players
+// by identity, then actors by entity ID.
+func CompareSavedDiaryOwners(a, b SavedDiaryOwner) int {
+	rank := func(o SavedDiaryOwner) (int, uint32) {
+		switch {
+		case o.Player:
+			return 0, 0
+		case o.PlayerID != 0:
+			return 1, o.PlayerID
+		}
+		return 2, uint32(o.Actor)
+	}
+	ra, ia := rank(a)
+	rb, ib := rank(b)
+	if ra != rb {
+		return ra - rb
+	}
+	return cmp.Compare(ia, ib)
+}
+
+// savedDiaryOwnerFault admits at most one local Player owner and no repeated
+// owner; a Player owner names no actor, and another Player names no actor.
+func savedDiaryOwnerFault(diaries []SavedDiary) error {
+	seen := make(map[SavedDiaryOwner]bool, len(diaries))
+	for _, d := range diaries {
+		o := d.Owner
+		switch {
+		case o.Player && (o.Actor != 0 || o.PlayerID != 0):
+			return fmt.Errorf("sim: carried Player diary carries a nonzero Actor id")
+		case o.PlayerID != 0 && o.Actor != 0:
+			return fmt.Errorf("sim: carried diary of Player %d carries a nonzero Actor id", o.PlayerID)
+		case seen[o] && o.Player:
+			return fmt.Errorf("sim: carried diaries have two Player owners")
+		case seen[o] && o.PlayerID != 0:
+			return fmt.Errorf("sim: carried diaries have duplicate owner Player %d", o.PlayerID)
+		case seen[o]:
+			return fmt.Errorf("sim: carried diaries have duplicate owner entity %d", o.Actor)
+		}
+		seen[o] = true
+	}
+	return nil
 }
 
 // SavedDiaryEntry is the sim-layer mirror of sav.DiaryEntry: one element pair
@@ -64,22 +117,17 @@ func (w *World) SetSavedDiaries(diaries []SavedDiary) {
 // name the same owner — sav.PlayerDiary and the actor importer each produce
 // at most one SavedDiary per owner, so a caller passing anything else built
 // the argument wrong, not this save.
+//
+// Another Player's Diary at its construction default (no entry, one element
+// per Units row) is not carried: SAVE writes that default for a Player whose
+// Diary the World does not hold.
 func (w *World) ImportOriginalDiaries(diaries []SavedDiary) error {
-	seenPlayer := false
-	seenActor := make(map[EntityID]bool, len(diaries))
-	for _, d := range diaries {
-		if d.Owner.Player {
-			if seenPlayer {
-				return fmt.Errorf("sim: saved diaries have two Player owners")
-			}
-			seenPlayer = true
-			continue
-		}
-		if seenActor[d.Owner.Actor] {
-			return fmt.Errorf("sim: saved diaries have duplicate owner entity %d", d.Owner.Actor)
-		}
-		seenActor[d.Owner.Actor] = true
+	if err := savedDiaryOwnerFault(diaries); err != nil {
+		return err
 	}
+	diaries = slices.DeleteFunc(slices.Clone(diaries), func(d SavedDiary) bool {
+		return d.Owner.PlayerID != 0 && len(d.Entries) == 0 && d.Length == w.DiaryRows()
+	})
 	w.savedDiaries = cloneSavedDiaries(diaries)
 	return nil
 }

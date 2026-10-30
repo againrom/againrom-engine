@@ -240,7 +240,7 @@ func (w *World) actorIdentityFields(ref func(*EntityID)) {
 	}
 	for i := range w.savedDiaries {
 		o := &w.savedDiaries[i].Owner
-		optional(&o.Actor, !o.Player)
+		optional(&o.Actor, o.IsActor())
 	}
 	if w.savedWorldEffects != nil {
 		for i := range w.savedWorldEffects.Projectiles {

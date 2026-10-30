@@ -46,6 +46,10 @@ func (w *World) SetDiaryUnits(rows int, units map[uint16]DiaryUnit) {
 	w.diary = diaryRuntime{rows: rows, units: maps.Clone(units)}
 }
 
+// DiaryRows is the installed Units collection length: a constructed Diary's
+// element count.
+func (w *World) DiaryRows() int { return w.diary.rows }
+
 // CopyDiaryUnits installs src's Diary input on w.
 func (w *World) CopyDiaryUnits(src *World) {
 	if src != nil {

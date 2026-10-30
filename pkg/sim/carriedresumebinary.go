@@ -35,8 +35,10 @@ import (
 //	Projectiles      u16 FreeIndex, u32 IDs count + that many u16 ids, u32
 //	                 Items count + that many 66-byte records; no two Items
 //	                 share an ID, IDs may repeat or name an id Items lacks
-//	Diaries          u32 count, then that many records: u8 Player (0/1), u32
-//	                 Actor (zero when Player), u32 Length, u32 Entries count
+//	Diaries          u32 count, then that many records: u8 owner kind (0
+//	                 actor, 1 local Player, 2 another Player), u32 Actor (zero
+//	                 for the local Player, the Player identity for kind 2),
+//	                 u32 Length, u32 Entries count
 //	                 + that many (u32 Index, u32 Count, u16 Remaining)
 //	                 triples, strictly ascending by Index and 0<=Index<Length;
 //	                 at most one Player owner and no repeated Actor owner
@@ -108,6 +110,13 @@ const carriedProjectileRecordLen = 2 + 16*4
 
 // carriedDiaryMinLen is one SavedDiary's fixed prefix before its entries.
 const carriedDiaryMinLen = 1 + 4 + 4 + 4
+
+// A carried Diary's owner kind byte. Kind 2 is absent from every older form.
+const (
+	carriedDiaryActor       byte = 0
+	carriedDiaryLocalPlayer byte = 1
+	carriedDiaryOtherPlayer byte = 2
+)
 
 // carriedSpellEffectMinLen is the smallest one spell-effect node can be: the
 // 15-byte fixed prefix plus four absent (one-byte) pointer slots.
@@ -591,8 +600,14 @@ func readCarriedProjectiles(r *savedObjectReader) SavedProjectiles {
 func appendCarriedDiaries(dst []byte, diaries []SavedDiary) []byte {
 	dst = binary.LittleEndian.AppendUint32(dst, uint32(len(diaries)))
 	for _, d := range diaries {
-		dst = append(dst, boolFlag(d.Owner.Player))
-		dst = binary.LittleEndian.AppendUint32(dst, uint32(d.Owner.Actor))
+		kind, id := carriedDiaryActor, uint32(d.Owner.Actor)
+		if d.Owner.Player {
+			kind = carriedDiaryLocalPlayer
+		} else if d.Owner.PlayerID != 0 {
+			kind, id = carriedDiaryOtherPlayer, d.Owner.PlayerID
+		}
+		dst = append(dst, kind)
+		dst = binary.LittleEndian.AppendUint32(dst, id)
 		dst = binary.LittleEndian.AppendUint32(dst, uint32(d.Length))
 		dst = binary.LittleEndian.AppendUint32(dst, uint32(len(d.Entries)))
 		for _, e := range d.Entries {
@@ -617,33 +632,32 @@ func readCarriedDiaries(r *savedObjectReader) []SavedDiary {
 		return nil
 	}
 	out := make([]SavedDiary, n)
-	seenPlayer := false
-	seenActor := make(map[EntityID]bool, n)
 	for i := range out {
 		d := &out[i]
-		d.Owner.Player = r.boolean()
-		actor := r.u32()
-		d.Owner.Actor = EntityID(actor)
+		kind := r.u8()
+		id := r.u32()
 		d.Length = int(r.u32())
 		if r.err != nil {
 			return nil
 		}
-		if d.Owner.Player {
-			if actor != 0 {
+		switch kind {
+		case carriedDiaryActor:
+			d.Owner.Actor = EntityID(id)
+		case carriedDiaryLocalPlayer:
+			if id != 0 {
 				r.err = fmt.Errorf("sim: carried Player diary carries a nonzero Actor id")
 				return nil
 			}
-			if seenPlayer {
-				r.err = fmt.Errorf("sim: carried diaries have two Player owners")
+			d.Owner.Player = true
+		case carriedDiaryOtherPlayer:
+			if id == 0 {
+				r.err = fmt.Errorf("sim: carried diary of another Player has no Player identity")
 				return nil
 			}
-			seenPlayer = true
-		} else {
-			if seenActor[d.Owner.Actor] {
-				r.err = fmt.Errorf("sim: carried diaries have duplicate owner entity %d", d.Owner.Actor)
-				return nil
-			}
-			seenActor[d.Owner.Actor] = true
+			d.Owner.PlayerID = id
+		default:
+			r.err = fmt.Errorf("sim: carried diary owner kind %d is not canonical", kind)
+			return nil
 		}
 		nEntries := r.u32()
 		if r.err != nil {
@@ -675,29 +689,11 @@ func readCarriedDiaries(r *savedObjectReader) []SavedDiary {
 			}
 		}
 	}
-	return out
-}
-
-func savedDiaryOwnerFault(diaries []SavedDiary) error {
-	seenPlayer := false
-	seenActor := make(map[EntityID]bool, len(diaries))
-	for _, d := range diaries {
-		if d.Owner.Player {
-			if d.Owner.Actor != 0 {
-				return fmt.Errorf("sim: carried Player diary carries a nonzero Actor id")
-			}
-			if seenPlayer {
-				return fmt.Errorf("sim: carried diaries have two Player owners")
-			}
-			seenPlayer = true
-			continue
-		}
-		if seenActor[d.Owner.Actor] {
-			return fmt.Errorf("sim: carried diaries have duplicate owner entity %d", d.Owner.Actor)
-		}
-		seenActor[d.Owner.Actor] = true
+	if err := savedDiaryOwnerFault(out); err != nil {
+		r.err = err
+		return nil
 	}
-	return nil
+	return out
 }
 
 // carriedResumeStateFault is MarshalBinary's own pre-encode check: every

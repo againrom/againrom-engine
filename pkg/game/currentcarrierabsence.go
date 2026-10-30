@@ -119,6 +119,8 @@ type currentDiaryRecord struct {
 }
 
 func currentDiaryRecords(doc *sav.DocumentData, a *currentActionData, world *sim.World) (map[sim.SavedDiaryOwner]currentDiaryRecord, error) {
+	// No Player roots: another Player's Diary has no absence row, since LOAD
+	// does not carry its construction default (sim.ImportOriginalDiaries).
 	state := &SnapshotSAVDocument{Document: doc}
 	for _, b := range a.Bindings {
 		if !b.Structure && !b.Missing {
@@ -284,21 +286,7 @@ func finalizeCurrentCarrierAbsence(doc *sav.DocumentData, worldBytes []byte) err
 		}
 		a.AbsentDiaries = append(a.AbsentDiaries, currentAbsentDiary{Owner: owner, Object: record.Object, Inline: record.Inline, Anchor: anchor})
 	}
-	slices.SortFunc(a.AbsentDiaries, func(x, y currentAbsentDiary) int {
-		if x.Owner.Player != y.Owner.Player {
-			if x.Owner.Player {
-				return -1
-			}
-			return 1
-		}
-		if x.Owner.Actor < y.Owner.Actor {
-			return -1
-		}
-		if x.Owner.Actor > y.Owner.Actor {
-			return 1
-		}
-		return 0
-	})
+	slices.SortFunc(a.AbsentDiaries, func(x, y currentAbsentDiary) int { return sim.CompareSavedDiaryOwners(x.Owner, y.Owner) })
 	if err := validateCurrentCarrierAbsence(doc, a); err != nil {
 		return err
 	}
@@ -361,12 +349,12 @@ func validateCurrentCarrierAbsence(doc *sav.DocumentData, a *currentActionData) 
 	}
 	owners := map[sim.SavedDiaryOwner]bool{}
 	for _, row := range a.AbsentDiaries {
-		if row.Owner.Player && row.Owner.Actor != 0 || owners[row.Owner] || row.Object == 0 || int(row.Object) > len(doc.Objects) || row.Anchor == ([32]byte{}) {
+		if !row.Owner.IsActor() && row.Owner.Actor != 0 || row.Owner.Player && row.Owner.PlayerID != 0 || owners[row.Owner] || row.Object == 0 || int(row.Object) > len(doc.Objects) || row.Anchor == ([32]byte{}) {
 			return fmt.Errorf("current Diary absence has an invalid owner, object or anchor")
 		}
 		owners[row.Owner] = true
 		r := &doc.Objects[row.Object-1]
-		if row.Owner.Player {
+		if !row.Owner.IsActor() {
 			if r.Class != "Player" || uint64(row.Inline) >= uint64(len(r.Inline)) || r.Inline[row.Inline].Record.Class != "Diary" {
 				return fmt.Errorf("current Player Diary absence has no embedded record")
 			}
