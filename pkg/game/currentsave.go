@@ -17,17 +17,7 @@ var errSavingUnavailable = fmt.Errorf("saving is not available for this game yet
 // point determines its shape; provenance supplies only unmodelled residue.
 func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	s.game = s.game.Normal()
-	if f.campaign().ownsGame(s.game) != nil {
-		return nil, fmt.Errorf("captured save game differs from installed game")
-	}
-	rules := campaignOf(s.game)
-	if err := rules.exportable(s); err != nil {
-		return nil, err
-	}
-	if s.WorldMapReturn != nil {
-		return nil, fmt.Errorf("return to the city before saving")
-	}
-	if err := rules.refuseCompleted(f, s); err != nil {
+	if err := f.admitSave(s); err != nil {
 		return nil, err
 	}
 	s, err := f.resolveShopSnapshot(s)

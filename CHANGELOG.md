@@ -19,6 +19,8 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] After you press Continue on a mission's victory panel you can now save the game; loading that save returns you to the mission map, where the victory panel opens again. Before, the save failed with "saving is not available for this game yet".
+- [ROM2] Where the game cannot be saved, a short line in the game's language now says why: finish the conversation, close the message, save in a town or on a mission instead of the world map, or the mission is lost. Before, F2 did nothing there, or the save page showed the same English line every time.
 - [ROM1] Towers, wells and the campfire now light the ground and the units at their own corners as the original does, pulsing in step with the game's clock, and a destroyed tower gives no light.
 - [ROM2] Teleport now shows its picture where the caster stands and where he lands at once, plays its sound once in the middle of the cast, and the caster plays his whole casting animation.
 - [ROM2] A unit under Curse or Poison Cloud now shows that spell's own sparks while the effect lasts.

@@ -9,12 +9,18 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 	switch a.flow.screen {
 	case ScreenMap:
 		v := a.flow.viewer
-		if v == nil || v.popupOpen() {
+		if v == nil {
 			return false
+		}
+		if v.popupOpen() {
+			return in.SaveGame && a.flow.showSaveRefusal(true)
 		}
 		phase2 = v.readGameMenuContext().Campaign
 	case ScreenTown:
-		if _, open := townDialogue(a.flow.town); open || missionShopOpen(a.flow.town) {
+		if _, open := townDialogue(a.flow.town); open {
+			return in.SaveGame && a.flow.showSaveRefusal(false)
+		}
+		if missionShopOpen(a.flow.town) {
 			return false
 		}
 		phase2 = true
@@ -44,6 +50,8 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 		action = gameMenuLoad
 	case in.LoadGame:
 		action = gameMenuDiplomacy
+	case in.SaveGame && phase2:
+		return a.flow.showSaveRefusal(false)
 	default:
 		return false
 	}

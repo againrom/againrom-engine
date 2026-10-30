@@ -47,13 +47,16 @@ type Snapshot struct {
 	second        *currentSecondCampaign
 	// towns is the first game's town record: nil while the party belongs to
 	// town 1 and every other town keeps its fresh state.
-	towns        *currentTowns
-	noticeOpen   bool
-	shop         *Shop
-	terrainBase  *sim.Terrain
-	mapAnimation *ui.AnimationState
-	mapMotion    []currentAnimationClock
-	CityObjects  *cityObjectTopology
+	towns      *currentTowns
+	noticeOpen bool
+	// victoryContinued: the victory panel was answered with Continue. The
+	// file carries the outcome, not this answer.
+	victoryContinued bool
+	shop             *Shop
+	terrainBase      *sim.Terrain
+	mapAnimation     *ui.AnimationState
+	mapMotion        []currentAnimationClock
+	CityObjects      *cityObjectTopology
 	// cityGroups is the town's live Player group membership at capture.
 	cityGroups       []cityLiveGroup
 	cityGroupsLoaded bool

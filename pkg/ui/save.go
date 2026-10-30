@@ -368,6 +368,9 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 		f.chooseMusicOption(action)
 	case gameMenuSave:
 		if !f.atGameSavePoint() {
+			if f.screen == ScreenGameMenu && f.menuBack == ScreenTown {
+				f.showSaveRefusal(false)
+			}
 			return
 		}
 		if f.saveDialogSeams.Prepare != nil {

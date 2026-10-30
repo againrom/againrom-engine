@@ -599,8 +599,10 @@ func TestFlow(t *testing.T) {
 			"rung": false, "stopped": false, "unpaced": false,
 			"preferredRung": false, "preferredRungSet": false, "persistRung": false,
 			"farRung": false, "farStopped": false, "farUnpaced": false,
-			"msg":     false,
-			"chargen": false, "chargenBegin": false,
+			"msg": false,
+			// The save refusal msg holds, so the game menu draws it with its font.
+			"saveRefused": false,
+			"chargen":     false, "chargenBegin": false,
 			"chargenBack": false, "chargenGate": false, "newGameChargen": false, "newGameDirect": false,
 			"town": false, "townList": false,
 			// One bool: the town screen shows the Shop page over the mission map.

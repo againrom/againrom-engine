@@ -81,7 +81,7 @@ func (f *FrontEnd) ConfigureSaveSeams(app *ui.App, store SaveStore, original Ori
 	seams.Prepare = func(request ui.SaveRequest) (ui.PreparedSave, error) {
 		queue.wait()
 		prepared, err := prepare(request)
-		if err != nil {
+		if err != nil || request.Admission {
 			return prepared, err
 		}
 		commit := prepared.Commit
@@ -118,6 +118,9 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 			return prepareLoadDelete(dir, saveDialogDeleteToken(name), fences, store.profile)
 		},
 		Prepare: func(request ui.SaveRequest) (ui.PreparedSave, error) {
+			if request.Admission {
+				return ui.PreparedSave{}, f.saveAdmission(request)
+			}
 			if request.Format != ui.SaveSAV {
 				return ui.PreparedSave{}, fmt.Errorf("save format must be SAV")
 			}
@@ -144,7 +147,7 @@ func (f *FrontEnd) SaveDialogSeams(store SaveStore, original OriginalStore, obse
 				return err
 			})
 			if err != nil {
-				return ui.PreparedSave{}, err
+				return ui.PreparedSave{}, f.playerSaveError(err)
 			}
 			payloads := []namedSavePayload{{".sav", raw}}
 			prepared, err := prepareNamedSave(request.Directory, name, payloads, fences, nil, store.profile)

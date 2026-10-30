@@ -545,6 +545,9 @@ type flow struct {
 	farUnpaced bool
 
 	msg string
+	// saveRefused is the last save refusal put on msg, in the menu font's
+	// encoding, so the game menu draws it with its own font.
+	saveRefused string
 
 	// chargen, chargenBegin, chargenBack and chargenGate are the generation
 	// screen's own state. Nothing above this comment concerns that screen at

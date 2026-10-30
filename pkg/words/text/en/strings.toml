@@ -88,6 +88,13 @@
 "save.key_hint" = "Tab: focus   Enter: choose   Esc: cancel"
 "save.latin_name_hint" = "Use characters supported by the game font."
 
+# Why a SAVE is refused at this point of the second game.
+"save.refused.talk" = "Finish the conversation before saving."
+"save.refused.notice" = "Close the message before saving."
+"save.refused.world_map" = "Save in a town or on a mission, not on the world map."
+"save.refused.lost" = "The mission is lost and cannot be saved."
+"save.refused.here" = "This place cannot be saved yet."
+
 # Save and load pages: the answers of the second game's delete question.
 "load.delete.yes" = "Yes"
 "load.delete.no" = "No"

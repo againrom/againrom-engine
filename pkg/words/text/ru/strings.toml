@@ -88,6 +88,13 @@
 "save.key_hint" = "Tab: выбор   Enter: действие   Esc: отмена"
 "save.latin_name_hint" = "Используйте символы игрового шрифта."
 
+# Why a SAVE is refused at this point of the second game.
+"save.refused.talk" = "Сначала закончите разговор."
+"save.refused.notice" = "Сначала закройте сообщение."
+"save.refused.world_map" = "Сохраняться можно в городе или на миссии, не на карте мира."
+"save.refused.lost" = "Миссия проиграна, ее нельзя сохранить."
+"save.refused.here" = "Здесь пока нельзя сохраниться."
+
 # Save and load pages: the answers of the second game's delete question.
 "load.delete.yes" = "Да"
 "load.delete.no" = "Нет"

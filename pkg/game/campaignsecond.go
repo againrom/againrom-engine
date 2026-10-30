@@ -23,11 +23,22 @@ func (secondCampaignRules) townAdapter(t *townScreen) townCampaignAdapter {
 	return destinationTownCampaign{t}
 }
 
+// townSavePoint refuses a town that holds an open talk, the world map (the
+// party has left every place) and a town the engine does not save yet.
 func (secondCampaignRules) townSavePoint(f *FrontEnd) error {
-	if f.Town == nil || !f.Town.second.savePoint() {
-		return errSavingUnavailable
+	var c *secondCampaign
+	if f.Town != nil {
+		c = f.Town.second
 	}
-	return nil
+	switch {
+	case c.savePoint():
+		return nil
+	case c.noticePending():
+		return refusedTalk
+	case c != nil && c.current == (partyPlace{}):
+		return refusedWorldMap
+	}
+	return refusedHere
 }
 
 func (secondCampaignRules) captureMission(f *FrontEnd, s *Snapshot) {
@@ -36,33 +47,40 @@ func (secondCampaignRules) captureMission(f *FrontEnd, s *Snapshot) {
 		s.mapAnimation = &animation
 		s.mapMotion = captureCurrentMapMotion(f.live)
 	}
-	s.noticeOpen = f.live.mission != nil && f.live.mission.open
+	m := f.live.mission
+	s.noticeOpen = m != nil && m.open
+	s.victoryContinued = m != nil && m.delayedVictory && !m.victoryTaken && m.outcome == sim.OutcomeWon
 }
 
+// exportable admits a quiet town and a mission map without a standing
+// message. A won mission is admitted once the player answered its panel
+// with Continue (owner direction, DIV-4298); a lost one never is.
 func (secondCampaignRules) exportable(s Snapshot) error {
-	if s.second == nil || s.noticeOpen {
-		return errSavingUnavailable
+	if s.second == nil {
+		return refusedHere
 	}
 	if s.Mission == 0 {
-		if s.second.validateTown() != nil || len(s.World) != 0 || len(s.Party) == 0 || s.Residue.hasMissionState() {
-			return errSavingUnavailable
+		if s.noticeOpen {
+			return refusedTalk
 		}
-	} else if !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.MissionLost || s.Residue.FogVisible == nil {
-		return errSavingUnavailable
+		if s.second.validateTown() != nil || len(s.World) != 0 || len(s.Party) == 0 || s.Residue.hasMissionState() {
+			return refusedHere
+		}
+		return s.second.validate()
 	}
-	if err := s.second.validate(); err != nil {
+	var w sim.World
+	if err := w.UnmarshalBinary(s.World); err != nil {
 		return err
 	}
-	if s.Mission != 0 {
-		var w sim.World
-		if err := w.UnmarshalBinary(s.World); err != nil {
-			return err
-		}
-		if w.Script().Dialect() != sim.ScriptROM2 || w.Outcome() != sim.OutcomeUndecided {
-			return errSavingUnavailable
-		}
+	switch {
+	case s.Residue.MissionLost || w.Outcome() == sim.OutcomeLost:
+		return refusedLost
+	case s.noticeOpen || w.Outcome() == sim.OutcomeWon && !s.victoryContinued:
+		return refusedNotice
+	case !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.FogVisible == nil || w.Script().Dialect() != sim.ScriptROM2:
+		return refusedHere
 	}
-	return nil
+	return s.second.validate()
 }
 
 // refuseCompleted admits every save exportable admitted: the second campaign

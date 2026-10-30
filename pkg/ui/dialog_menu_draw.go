@@ -54,8 +54,8 @@ func (a *App) gameMenuAcknowledgement() string {
 	if message == "" {
 		message = AuthoredWords().SaveAcknowledgement
 	}
-	if a.flow.msg == message {
-		return message
+	if a.flow.msg == message || a.flow.msg == a.flow.saveRefused {
+		return a.flow.msg
 	}
 	return ""
 }

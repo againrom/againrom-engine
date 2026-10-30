@@ -10,7 +10,10 @@ const SaveSAV SaveFormat = "SAV"
 // SaveRequest names one SAVE. Label, when set, is the label written into the
 // file; otherwise the name is.
 type SaveRequest struct {
-	OnMap           bool
+	OnMap bool
+	// Admission asks only whether this point admits a SAVE: Prepare returns
+	// the refusal the player reads, or nil, and builds no file.
+	Admission       bool `json:",omitempty"`
 	Directory, Name string
 	Label           string `json:",omitempty"`
 	Format          SaveFormat
