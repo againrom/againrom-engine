@@ -9,6 +9,8 @@ import (
 type currentPartyPolicy struct {
 	Temporary, PlayerCharacter                bool
 	MercenaryType                             uint8
+	CampaignHire                              uint8 `json:",omitempty"`
+	CampaignUnit                              bool  `json:",omitempty"`
 	CompanionNPC                              int
 	Body, BodyDir, FigureDir                  []byte
 	Mage                                      bool
@@ -45,6 +47,7 @@ func capturePartyPolicy(p mapload.PartyMember, c sav.DocumentCharacter, table *m
 	}
 	out := &currentPartyPolicy{
 		Temporary: p.Temporary, PlayerCharacter: p.PlayerCharacter, MercenaryType: p.MercenaryType,
+		CampaignHire: p.CampaignHire, CampaignUnit: p.CampaignUnit,
 		CompanionNPC: p.CompanionNPC, Body: []byte(body), BodyDir: []byte(p.BodyDir), FigureDir: []byte(p.FigureDir),
 		Mage: p.Mage, HealthColumn: p.Profile.HealthColumn, ManaColumn: p.Profile.ManaColumn,
 		HiredRotationSpeed: p.HiredRotationSpeed, SpellbookRestored: p.SpellbookRestored,
@@ -63,6 +66,7 @@ func capturePartyPolicy(p mapload.PartyMember, c sav.DocumentCharacter, table *m
 func (p currentPartyPolicy) member() mapload.PartyMember {
 	out := mapload.PartyMember{
 		Temporary: p.Temporary, PlayerCharacter: p.PlayerCharacter, MercenaryType: p.MercenaryType,
+		CampaignHire: p.CampaignHire, CampaignUnit: p.CampaignUnit,
 		CompanionNPC: p.CompanionNPC, Body: string(p.Body), BodyDir: string(p.BodyDir), FigureDir: string(p.FigureDir),
 		Mage: p.Mage, Profile: data.Profile{Fighter: p.UnitFighter, HealthColumn: p.HealthColumn, ManaColumn: p.ManaColumn},
 		HiredRotationSpeed: p.HiredRotationSpeed, SpellbookRestored: p.SpellbookRestored,

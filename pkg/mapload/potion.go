@@ -2,7 +2,6 @@ package mapload
 
 import (
 	"againrom/pkg/data"
-	"againrom/pkg/formats/alm"
 	"againrom/pkg/sim"
 )
 
@@ -34,8 +33,8 @@ func PartyDisplayWithTable(p PartyMember, t *Table) (d data.Derived, health, man
 	// The first two hire types use fixed creature templates, including in
 	// the town card. StartMission resolves this same placement block.
 	resolvedSiege := false
-	if p.MercenaryType == 1 || p.MercenaryType == 2 {
-		if b, err := blockFor(alm.Unit{ClassID: int16(p.Class), ClassSubID: uint16(p.FigureFace)}, t, DifficultyNormal); err == nil {
+	if p.UnitMember() {
+		if _, b, err := siegeDefinition(p, t); err == nil {
 			d = data.Derived{Body: p.Hero.Body, Reaction: b.reaction, Mind: b.mind, Spirit: b.spirit,
 				HealthMax: b.health, ManaMax: b.manaMax, Combat: b.combat,
 				Protection: b.protection, Speed: b.speed, Sight: int32(b.sight),

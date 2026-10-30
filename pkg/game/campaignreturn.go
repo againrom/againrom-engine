@@ -165,12 +165,12 @@ func (s *CampaignSession) carryCompanion(in townInstall, npc int, build func() (
 // is reused; otherwise the member is built from the row's Humans row,
 // carries id and joins the party with the city state every member has.
 func (s *CampaignSession) addPartyIdentity(in townInstall, id int) bool {
-	row, ok := tableEdition(in.table).PartyIdentity(id)
+	_, ok := tableEdition(in.table).PartyIdentity(id)
 	if !ok || in.table == nil || in.table.Humans == nil {
 		return false
 	}
 	added := s.carryCompanion(in, id, func() (mapload.PartyMember, bool) {
-		spec := mapload.CharacterSpec{NPC: int32(id), Row: data.FindHumanByServerID(in.table.Humans, row.ServerID)}
+		spec := mapload.CharacterSpec{NPC: int32(id)}
 		member, ok := in.character(spec, in.localizedNPC(id-1, ""), s.Carried)
 		if ok {
 			joinedWornSpells(member.WornItems[:], in.table)
@@ -206,7 +206,8 @@ func (in townInstall) character(s mapload.CharacterSpec, name string, party []ma
 	if !ok {
 		return mapload.PartyMember{}, false
 	}
-	if s.NPC != 0 && s.Row == 0 {
+	_, controlled := tableEdition(in.table).PartyIdentity(int(s.NPC))
+	if s.NPC != 0 && s.Row == 0 && !controlled {
 		member.Name = in.companionName(member)
 	} else if name != "" {
 		member.Name = name

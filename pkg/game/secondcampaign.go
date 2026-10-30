@@ -258,6 +258,7 @@ func (t *townScreen) talk(c *secondCampaign, o innOffer) ui.TownAction {
 // the edition adds at that talk's end (DIV-4186).
 func (t *townScreen) endInnTalk(o innOffer) {
 	t.sess.addTalkIdentities(t.in.townInstall(), o.npc, o.topic)
+	t.composed.patrons = nil
 }
 
 // setTownDialogue opens a conversation and its speaker resolver.
@@ -285,6 +286,17 @@ func (t *townScreen) townSpeakers() speakerResolver {
 	}
 	r := speakerResolver{units: t.in.Units, npcFaces: t.in.NPCFaces,
 		portraits: make(map[string]*image.RGBA), figurePics: make(map[figureCacheKey]*image.RGBA), cast: cast}
+	r.campaignActors = map[int]mapload.PartyMember{}
+	seats, _ := t.state().innSeats()
+	for _, seat := range seats {
+		_, controlled := tableEdition(t.in.Table).PartyIdentity(seat.npc)
+		if !controlled && seat.kind != 1 && seat.kind != 2 {
+			continue
+		}
+		if p, ok := t.campaignActor(seat.npc); ok {
+			r.campaignActors[seat.npc] = p
+		}
+	}
 	if t.in.Archives != nil {
 		r.src = t.in.Archives.Containers
 	}

@@ -609,7 +609,7 @@ func currentRecordActor(e sim.Entity, member, hero mapload.PartyMember, placemen
 	// for the same member (nativeCityDefRow); ROM1's reader recognises a
 	// persistent companion by that PC_ row.
 	humanRow := 0
-	if placement == nil && e.Humanoid && (member.CompanionNPC != 0 || member.MercenaryType != 0) {
+	if placement == nil && e.Humanoid && (member.CompanionNPC != 0 || member.MercenaryType != 0 || member.CampaignHireID() != 0) {
 		humanRow = int(nativeCityDefRow(member, hero, t))
 	}
 	basis, name, err := mapload.ConstructActorBasis(e, member, placement, t, key, runtime, human, humanRow)

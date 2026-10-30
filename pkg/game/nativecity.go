@@ -169,7 +169,7 @@ func nativeCityRosterMembers(party []mapload.PartyMember) []mapload.PartyMember 
 // different wire class from the Humans-table Human(0x1e8) hire
 // buildMercenarySquad's typ>=3 branch builds (MERC-LEVEL-005).
 func nativeCitySiegeMember(member mapload.PartyMember) bool {
-	return member.MercenaryType == 1 || member.MercenaryType == 2
+	return member.UnitMember()
 }
 
 // nativeCityHumanHiredMembers narrows the live party to the Human-type hired

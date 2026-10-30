@@ -95,6 +95,8 @@ type PartyMember struct {
 	// a hired unit.
 	MercenaryType uint8
 	DefinitionRow uint8
+	CampaignHire  uint8 `json:",omitempty"`
+	CampaignUnit  bool  `json:",omitempty"`
 
 	// SuppressCorpseLoot is the canonical template's death-container policy.
 	// It stays with party identity because a joined or hired actor may cross a
@@ -321,25 +323,22 @@ type PartyMember struct {
 	Kept *KeptActor
 }
 
-// Hired reports whether this member was taken on at the tavern, of ANY type
-// (owner). It is the one test three appearance sites and the inventory
-// switch go through, so a rule about mercenaries cannot come to mean two
-// different populations in two packages.
-//
-// IT IS NOT data.ComposesFigure(Class). That test answers a different question
-// -- whether a class is drawn by composing a sheet -- and it answers it for the
-// two siege types alone, Catapult and Ballista being the only shipped classes
-// at or above 0x1a that can join a party (`MERC-TYPE-001`, `UNIT-PICT-035`).
-// The eleven human types are all below the line and pass it. This field is what
-// separates a hired man from a player character, and both tavern builders write
-// it.
-//
-// A JOINER IS NOT HIRED. An actor a script hands to the player carries zero
-// here and keeps the player character's own laws, which is what `PARTY-MERC-007`
-// separates: a mercenary hangs off the Player's groups and does not cross a
-// mission boundary, while a handed-over person is judged by the boundary's own
-// three tests.
-func (p PartyMember) Hired() bool { return p.MercenaryType != 0 }
+// Hired recognizes a tavern type or temporary campaign hire membership.
+// Script joiners carry neither and retain the player-character rules.
+func (p PartyMember) Hired() bool { return p.MercenaryType != 0 || p.CampaignHireID() != 0 }
+
+// CampaignHireID reads campaign hire membership independently of tavern types.
+func (p PartyMember) CampaignHireID() int {
+	if p.Temporary && p.CampaignHire >= 1 && p.CampaignHire <= 20 {
+		return int(p.CampaignHire)
+	}
+	return 0
+}
+
+// UnitMember selects the Units constructor for a hired creature or siege unit.
+func (p PartyMember) UnitMember() bool {
+	return p.MercenaryType == 1 || p.MercenaryType == 2 || p.CampaignHireID() != 0 && p.CampaignUnit
+}
 
 // Start is what a mission start decided, beside the world it built.
 //
@@ -820,7 +819,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 		// humans (MERC-LEVEL-005). Resolve them through the placement block so
 		// Catapult and Ballista keep their Units-row combat, domain, footprint
 		// and equipment instead of being flattened into a zero-profile Hero.
-		if p.MercenaryType == 1 || p.MercenaryType == 2 {
+		if p.UnitMember() {
 			def, b, err := siegeDefinition(p, t)
 			if err != nil {
 				return nil, Start{}, err

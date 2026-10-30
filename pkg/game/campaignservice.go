@@ -44,6 +44,7 @@ type campaignService interface {
 	statesCampaign(s *currentSessionData) bool
 	// canEnter reports whether mission n is a destination the town offers.
 	canEnter(town *Town, n int) bool
+	missionParty(party []mapload.PartyMember, town *Town, table *mapload.Table) ([]mapload.PartyMember, error)
 	// enterMission records that mission n is under way.
 	enterMission(town *Town, n int)
 	// seatWorld gives a fresh mission's world the campaign's own state.

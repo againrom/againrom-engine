@@ -3140,7 +3140,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1862,
 		"scclause":        505,
-		"barestorynumber": 1703,
+		"barestorynumber": 1702,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3149,7 +3149,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    31,
-		"longcommentgroups":      1685,
+		"longcommentgroups":      1684,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3394,5 +3394,5 @@ var Committed = Baseline{
 
 	// It fell for backing out hotfix sav-debt-h before release 0.140.0, and
 	// rose with this note; the merge is measured on the reverted tree.
-	CommentBytes: 9916580,
+	CommentBytes: 9915667,
 }

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Iglez and the available mercenaries show their own figures in the inn. Hired mercenaries join the next mission and keep their appearance when you save and load.
+
 ## 0.140.2
 
 ### For players

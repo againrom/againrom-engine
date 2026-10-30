@@ -2,7 +2,6 @@ package game
 
 import (
 	"cmp"
-	"fmt"
 	"slices"
 
 	"againrom/pkg/data"
@@ -249,41 +248,14 @@ func buildMercenarySquad(table *mapload.Table, town *Town, typ, count int) ([]ma
 	if table == nil || count <= 0 {
 		return nil, false
 	}
-	if typ <= 2 {
-		return buildSiegeSquad(table, typ, count)
-	}
-	name := fmt.Sprintf("NPC%02d_%d", typ, mercenaryLevel(town.Chapter()))
-	i := data.FindHumanByName(table.Humans, name)
-	if i == data.NotFound {
+	base, ok := mapload.CampaignActor(table, mapload.CampaignActorSpec{
+		Profile:  firstHireProfile(typ),
+		Identity: typ, Stage: mercenaryLevel(town.Chapter()), MercenaryType: uint8(typ),
+	}, nil)
+	if !ok {
 		return nil, false
-	}
-	def, err := data.NewHumanDef(name, table.Humans.EntryParams(i))
-	if err != nil {
-		return nil, false
-	}
-	dir, face := data.FigureFor(def.TypeID, def.Face, def.Gender)
-	wornItems, carriedItems, weapon, err := mapload.HumanRowEquipment(table.Humans.EntryStrings(i), table)
-	if err != nil {
-		return nil, false
-	}
-	base := mapload.PartyMember{
-		Name: name, Temporary: true, MercenaryType: uint8(typ),
-		DefinitionRow:      uint8(i),
-		SuppressCorpseLoot: mapload.SuppressesCorpseLoot(name),
-		Mage:               dir.Mage(), Profile: def.Profile(),
-		FigureDir: string(dir), FigureFace: face, Hero: def.Hero(), KnownSpells: def.KnownSpells,
-		Weapon: weapon, WornItems: wornItems, CarriedItems: carriedItems,
-		HiredRotationSpeed: def.RotationSpeed,
-		Class:              def.TypeID,
 	}
 	joinedWornSpells(base.WornItems[:], table)
-	for slot, item := range wornItems {
-		base.Worn[slot] = item.Code
-	}
-	base.Carried = make([]uint16, len(carriedItems))
-	for i, item := range carriedItems {
-		base.Carried[i] = item.Code
-	}
 	out := make([]mapload.PartyMember, count)
 	for i := range out {
 		out[i] = base
@@ -292,15 +264,14 @@ func buildMercenarySquad(table *mapload.Table, town *Town, typ, count int) ([]ma
 }
 
 func buildSiegeSquad(table *mapload.Table, typ, count int) ([]mapload.PartyMember, bool) {
-	base, ok := siegeHireMember(table.Units, typ)
-	if !ok {
-		return nil, false
+	return buildMercenarySquad(table, nil, typ, count)
+}
+
+func firstHireProfile(typ int) mapload.CampaignActorProfile {
+	if typ <= 2 {
+		return mapload.CampaignActorProfile{UnitName: siegeHireName(typ), Temporary: true}
 	}
-	out := make([]mapload.PartyMember, count)
-	for i := range out {
-		out[i] = base
-	}
-	return out, true
+	return mapload.CampaignActorProfile{HumanName: "NPC%02d_%d", Temporary: true, RowFigure: true, RowRotation: true, RowDefinition: true}
 }
 
 // siegeHireName is the Units row name of a hired siege engine (tavern type 1
@@ -316,28 +287,7 @@ func siegeHireName(typ int) string {
 // Units row. A tavern hire and a restored saved Unit share it, so a loaded hire
 // equals a fresh one.
 func siegeHireMember(c data.Collection, typ int) (mapload.PartyMember, bool) {
-	name := siegeHireName(typ)
-	idx := data.NotFound
-	if c != nil {
-		for i := 1; i < c.Len(); i++ {
-			if c.EntryName(i) == name {
-				idx = i
-				break
-			}
-		}
-	}
-	if idx == data.NotFound {
-		return mapload.PartyMember{}, false
-	}
-	def, err := data.NewUnitDef(name, c.EntryParams(idx))
-	if err != nil {
-		return mapload.PartyMember{}, false
-	}
-	return mapload.PartyMember{
-		Name: name, Temporary: true, MercenaryType: uint8(typ), Class: def.TypeID,
-		FigureFace:         int(def.Face),
-		Hero:               data.Hero{Body: def.Body, Reaction: def.Reaction, Mind: def.Mind, Spirit: def.Spirit},
-		Profile:            data.Profile{HealthColumn: true, ManaColumn: def.ManaMax > 0},
-		HiredRotationSpeed: def.RotationSpeed,
-	}, true
+	return mapload.CampaignActor(&mapload.Table{Units: c}, mapload.CampaignActorSpec{
+		Profile: firstHireProfile(typ), MercenaryType: uint8(typ),
+	}, nil)
 }

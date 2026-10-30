@@ -772,8 +772,11 @@ func carriable(w *data.Weapon, t *Table) bool {
 // names a shield and eight armour cells beside his weapon, and this band is
 // the only one that ever resolves them, on this contract's own ground: a
 // units row carries none of the three.
-func definitionForHuman(u alm.Unit, t *Table) (def data.HumanDef, w *data.Weapon, worn [sim.EquipSlots]sim.ItemInstance, carried []sim.ItemInstance, ok bool, err error) {
+func definitionForHuman(u alm.Unit, t *Table, resolved ...Resolution) (def data.HumanDef, w *data.Weapon, worn [sim.EquipSlots]sim.ItemInstance, carried []sim.ItemInstance, ok bool, err error) {
 	r := Resolve(u, t)
+	if len(resolved) > 0 {
+		r = resolved[0]
+	}
 	if r.Arm == ArmUnits || !r.Found() {
 		return data.HumanDef{}, nil, [sim.EquipSlots]sim.ItemInstance{}, nil, false, nil
 	}
@@ -1133,19 +1136,26 @@ func unitWeaponItem(names []string, t *Table) (*data.Weapon, sim.ItemInstance, e
 // ok IS FALSE FOR EVERY PLACEMENT THAT RESOLVED THROUGH A CREATURE ROW OR
 // THROUGH NOTHING. There is no person row to template from, and neither can
 // cross the boundary anyway.
-func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID) (PartyMember, bool) {
-	d, w, worn, carried, ok, err := definitionForHuman(u, t)
+func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID, rows ...int) (PartyMember, bool) {
+	r := Resolve(u, t)
+	if len(rows) > 0 {
+		if t == nil || t.Humans == nil || rows[0] < 1 || rows[0] >= t.Humans.Len() {
+			return PartyMember{}, false
+		}
+		r = Resolution{Arm: ArmServerID, Index: rows[0]}
+	}
+	d, w, worn, carried, ok, err := definitionForHuman(u, t, r)
 	if err != nil || !ok {
 		return PartyMember{}, false
 	}
-	r := Resolve(u, t)
 	dir, face := placedFigure(u, r, d, t)
 	// The statistics carry the record's stat stores. The skill levels stay
 	// the row's: the skill stores reach the live levels, not the trained base.
 	hero := humanWithTailStats(d, u.Tail).Hero()
+	name := t.humans().EntryName(r.Index)
 	p := PartyMember{
 		ID:                 fmt.Sprintf("join:%d", uint32(id)),
-		Name:               personRowName(u, t),
+		Name:               name,
 		PlayerCharacter:    true,
 		Class:              d.TypeID,
 		Mage:               dir.Mage(),
@@ -1159,7 +1169,7 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID) (PartyMember, bool) {
 		WornItems:          cloneItemEquipment(worn),
 		CarriedItems:       cloneItemInstances(carried),
 		Weapon:             w,
-		SuppressCorpseLoot: SuppressesCorpseLoot(personRowName(u, t)),
+		SuppressCorpseLoot: SuppressesCorpseLoot(name),
 	}
 	if r.Arm == ArmNPC {
 		p.CompanionNPC = int(u.ClassSubID)

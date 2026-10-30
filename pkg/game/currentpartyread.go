@@ -193,6 +193,9 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 	if (p.Member == nil) == (p.Policy == nil) {
 		return mapload.PartyMember{}, fmt.Errorf("current party has absent or conflicting member policy")
 	}
+	if p.Policy != nil && (p.Policy.CampaignHire > 20 || p.Policy.CampaignUnit && p.Policy.CampaignHire == 0 || p.Policy.CampaignHire != 0 && (!p.Policy.Temporary || p.Policy.MercenaryType != 0 || p.Policy.PlayerCharacter)) {
+		return mapload.PartyMember{}, fmt.Errorf("current party has invalid campaign hire membership")
+	}
 	if p.Policy != nil && (p.Base == nil || p.Weapon == nil) {
 		return mapload.PartyMember{}, fmt.Errorf("current member has incomplete base or weapon policy")
 	}
@@ -204,6 +207,12 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		return out, nil
 	}
 	c := p.ordinary.Character
+	if out.CampaignHireID() != 0 {
+		if out.CampaignUnit != (c.Class == "Unit") {
+			return mapload.PartyMember{}, fmt.Errorf("campaign hire collection differs from its ordinary actor")
+		}
+		out.DefinitionRow = c.DefRow
+	}
 	if p.Template != nil {
 		out.Name = c.Name
 	}

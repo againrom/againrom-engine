@@ -3,8 +3,6 @@ package game
 import (
 	"image"
 
-	"againrom/pkg/data"
-	"againrom/pkg/mapload"
 	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -12,7 +10,7 @@ import (
 
 // secondInnPatron is one inn seat's person as the page shows it: the
 // statistics card's subject, the full figure and the frames of the seat.
-// A person whose Humans row does not resolve has no card and no figure.
+// A person whose campaign template does not resolve has no card or figure.
 type secondInnPatron struct {
 	known   bool
 	subject ui.PanelSubject
@@ -29,10 +27,8 @@ type secondInnPatronKey struct {
 	npc  int
 }
 
-// innPatron is the person of inn NPC key npc, built once per screen: the
-// Humans row whose server id is the key, built as a party member by the one
-// character builder, carded by the one party projection and drawn by the
-// one figure composer (R2-SESSION-203, R2-SESSION-213).
+// innPatron projects the resolved campaign actor through the shared card,
+// seat art and member portrait composers (R2-SESSION-203, R2-SESSION-213).
 func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *secondInnPatron {
 	seats := r.Seats
 	key := secondInnPatronKey{room: r, npc: npc}
@@ -45,10 +41,10 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 	}
 	t.composed.patrons[key] = p
 	tbl := t.in.Table
-	if tbl == nil || tbl.Humans == nil {
+	if tbl == nil {
 		return p
 	}
-	member, ok := mapload.CharacterMember(tbl, mapload.CharacterSpec{Row: data.FindHumanByServerID(tbl.Humans, int32(npc))}, nil)
+	member, ok := t.campaignActor(npc)
 	if !ok {
 		return p
 	}
@@ -70,23 +66,28 @@ func (t *townScreen) innPatron(r *town.RoomSpec, page *screenart.Set, npc int) *
 	// one, else Mercenary above the type's unitname entry for an actor of
 	// flags 0x11, else the type's entry alone.
 	p.subject.Name, p.subject.Char.Name = "", ""
-	if name := secondInnPersonName(t.in, npc); name != "" {
+	if name := secondInnPersonName(t.in, npc, member.Name); name != "" {
 		p.subject.Name, p.subject.Char.Name = name, name
 	} else if p.subject.OriginalPanel.Flags&0x11 != 0 {
 		p.subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
 	}
-	fig := memberFigureID(member)
 	if t.in.Archives != nil {
-		p.figure, p.mask = composeUnitFigure(t.in.Archives.Containers, equipmentFromSlots(member.Worn), fig)
+		portrait := composeMemberPortrait(t.in.Archives.Containers, t.in.Units, 0, equipmentFromSlots(member.Worn), member)
+		p.figure, p.mask = portrait.Figure, portrait.SlotMask
 	}
 	p.info = t.in.wornItemLines(member, nil)
 	return p
 }
 
-// secondInnPersonName is the own name of inn NPC key npc, the string the
-// sheet heads its card with when it has one: the npcnames entry of a key of
-// 1000 or more, and none for a smaller key (DIV-4087).
-func secondInnPersonName(in *InstallResources, npc int) string {
+// secondInnPersonName names a controlled actor from its resolved member, or
+// an ordinary key of 1000 or more from npcnames (DIV-4087, DIV-4199).
+func secondInnPersonName(in *InstallResources, npc int, resolved ...string) string {
+	if _, controlled := tableEdition(in.Table).PartyIdentity(npc); controlled {
+		if len(resolved) > 0 && resolved[0] != "" {
+			return resolved[0]
+		}
+		return in.localizedNPCName(npc-1, "")
+	}
 	if npc < 1000 {
 		return ""
 	}

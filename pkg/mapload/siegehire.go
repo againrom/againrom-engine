@@ -13,6 +13,18 @@ import (
 // equipment, so the block resolves through the same placement path and the
 // same definition as a map creature.
 func siegeDefinition(p PartyMember, t *Table) (sim.ActorDefinition, spawnBlock, error) {
+	if p.CampaignHireID() != 0 {
+		row := int(p.DefinitionRow)
+		if t == nil || t.Units == nil || row < 1 || row >= t.Units.Len() {
+			return sim.ActorDefinition{}, spawnBlock{}, fmt.Errorf("campaign Unit row %d unavailable", row)
+		}
+		d, worn, err := unitRowDefinition(t, row, DifficultyNormal)
+		if err != nil {
+			return sim.ActorDefinition{}, spawnBlock{}, err
+		}
+		b := unitRowBlock(p.Class, row, d, worn, t)
+		return b.actorDefinition(t), b, nil
+	}
 	b, err := blockFor(alm.Unit{ClassID: int16(p.Class), ClassSubID: uint16(p.FigureFace)}, t, DifficultyNormal)
 	if err != nil {
 		return sim.ActorDefinition{}, spawnBlock{}, err
@@ -33,7 +45,7 @@ type SiegeHire struct {
 // Units row), then completes its load from the row's own worn set. A Unit
 // carries own weight equal to its load.
 func SiegeHireActor(p PartyMember, t *Table, key uint32) (SiegeHire, error) {
-	if p.MercenaryType != 1 && p.MercenaryType != 2 {
+	if !p.UnitMember() {
 		return SiegeHire{}, fmt.Errorf("mapload: tavern type %d is not a siege hire", p.MercenaryType)
 	}
 	def, b, err := siegeDefinition(p, t)
@@ -47,7 +59,11 @@ func SiegeHireActor(p PartyMember, t *Table, key uint32) (SiegeHire, error) {
 	if key == 0 {
 		key = 1
 	}
-	basis, _, err := ConstructActorBasis(e, p, &placement, t, key, 1, nil, 0)
+	placed := &placement
+	if p.CampaignHireID() != 0 {
+		placed = nil
+	}
+	basis, _, err := ConstructActorBasis(e, p, placed, t, key, 1, nil, 0)
 	if err != nil {
 		return SiegeHire{}, err
 	}

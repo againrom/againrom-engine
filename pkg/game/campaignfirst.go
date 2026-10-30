@@ -75,6 +75,10 @@ func (firstCampaignRules) statesCampaign(*currentSessionData) bool { return fals
 
 func (firstCampaignRules) canEnter(*Town, int) bool { return true }
 
+func (firstCampaignRules) missionParty(party []mapload.PartyMember, _ *Town, _ *mapload.Table) ([]mapload.PartyMember, error) {
+	return party, nil
+}
+
 // place: the party stands in its live mission while one is open, and
 // otherwise in the town its town state belongs to once the campaign has
 // reached the town; before that it stands nowhere.

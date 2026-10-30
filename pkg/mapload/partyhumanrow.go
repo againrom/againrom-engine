@@ -22,6 +22,9 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		}
 		return row
 	}
+	if member.CampaignHireID() != 0 {
+		return int(member.DefinitionRow)
+	}
 	if row, ok := identityRow(member, t); ok {
 		return row
 	}
@@ -57,6 +60,9 @@ func PartyIdentity(member PartyMember, t *Table) (int, bool) {
 	}
 	if member.StartingHero {
 		return t.Edition.HeroIdentity, true
+	}
+	if id := member.CampaignHireID(); id != 0 {
+		return id, true
 	}
 	if _, ok := t.Edition.PartyIdentity(member.CompanionNPC); ok && !member.Hired() {
 		return member.CompanionNPC, true

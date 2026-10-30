@@ -42,6 +42,10 @@ func CampaignNPCMember(t *Table, npc int32, mission int, party []PartyMember) (P
 // display name and installed body are presentation facts applied by pkg/game;
 // this tier retains the row name and exact numeric payload.
 func CharacterMember(t *Table, s CharacterSpec, party []PartyMember) (PartyMember, bool) {
+	return CampaignActor(t, CampaignActorSpec{CharacterSpec: s, Profile: CampaignActorProfile{PlayerCharacter: true}}, party)
+}
+
+func characterTemplate(t *Table, s CharacterSpec, party []PartyMember, exactRow bool) (PartyMember, bool) {
 	if t == nil || t.Humans == nil {
 		return PartyMember{}, false
 	}
@@ -72,7 +76,7 @@ func CharacterMember(t *Table, s CharacterSpec, party []PartyMember) (PartyMembe
 			return PartyMember{}, false
 		}
 		id, ok := data.HumanServerID(t.Humans.EntryParams(row))
-		if !ok || data.FindHumanByServerID(t.Humans, id) != row {
+		if !exactRow && (!ok || data.FindHumanByServerID(t.Humans, id) != row) {
 			return PartyMember{}, false
 		}
 		serverID = id
@@ -92,7 +96,11 @@ func CharacterMember(t *Table, s CharacterSpec, party []PartyMember) (PartyMembe
 	// lookup. The constructor below then resolves the row's complete item
 	// cells through the ordinary placement path.
 	u := t.unitKeys().humanPlacement(serverID)
-	member, ok := rosterTemplate(u, local, 0)
+	var rows []int
+	if exactRow {
+		rows = []int{row}
+	}
+	member, ok := rosterTemplate(u, local, 0, rows...)
 	if !ok {
 		return PartyMember{}, false
 	}

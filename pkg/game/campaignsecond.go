@@ -132,6 +132,36 @@ func (secondCampaignRules) canEnter(town *Town, n int) bool {
 	return town == nil || town.second == nil || town.second.canEnter(n)
 }
 
+func (secondCampaignRules) missionParty(party []mapload.PartyMember, town *Town, table *mapload.Table) ([]mapload.PartyMember, error) {
+	if town == nil || town.second == nil {
+		return party, nil
+	}
+	c := town.second
+	out := make([]mapload.PartyMember, 0, len(party)+secondHireSlots)
+	seen := [secondHireSlots + 1]bool{}
+	for _, p := range party {
+		id := p.CampaignHireID()
+		if id != 0 {
+			if seen[id] || c.bank[511+id] == 0 || c.bank[531+id] == 0 {
+				continue
+			}
+			seen[id] = true
+		}
+		out = append(out, p)
+	}
+	for id := 1; id <= secondHireSlots; id++ {
+		if seen[id] || c.bank[511+id] == 0 || c.bank[531+id] == 0 {
+			continue
+		}
+		p, ok := mapload.CampaignActor(table, mapload.CampaignActorSpec{Profile: keyedCampaignActor, Identity: id, Stage: int(c.bank[768]), Hire: true}, nil)
+		if !ok {
+			return nil, fmt.Errorf("campaign hire %d at stage %d has no actor template", id, c.bank[768])
+		}
+		out = append(out, p)
+	}
+	return mapload.OwnParty(out), nil
+}
+
 func (secondCampaignRules) enterMission(town *Town, n int) {
 	if town != nil && town.second != nil {
 		town.second.current, town.second.mapOpen = partyPlace{kind: placeMission, id: n}, nil

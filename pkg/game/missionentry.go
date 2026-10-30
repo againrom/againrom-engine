@@ -120,6 +120,12 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	if err != nil {
 		return preparedMap{}, err
 	}
+	if r.fresh() {
+		r.party, err = ports.rules().missionParty(r.party, r.town, ports.install.missionTable())
+		if err != nil {
+			return preparedMap{}, err
+		}
+	}
 	mv, err := ports.install.decodeMission(addr)
 	if err != nil {
 		return preparedMap{}, err

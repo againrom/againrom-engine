@@ -11,15 +11,16 @@ import (
 )
 
 type speakerResolver struct {
-	src           entrySource
-	units         *terrain.UnitSet
-	npcFaces      map[int32]data.NPCFace
-	portraits     map[string]*image.RGBA
-	figurePics    map[figureCacheKey]*image.RGBA
-	playerFigure  *image.RGBA
-	playerFigures map[int]*image.RGBA
-	figure        *figureID
-	equipment     data.Equipment
+	src            entrySource
+	units          *terrain.UnitSet
+	npcFaces       map[int32]data.NPCFace
+	portraits      map[string]*image.RGBA
+	figurePics     map[figureCacheKey]*image.RGBA
+	playerFigure   *image.RGBA
+	playerFigures  map[int]*image.RGBA
+	figure         *figureID
+	equipment      data.Equipment
+	campaignActors map[int]mapload.PartyMember
 
 	// cast is the live half of speaker resolution (speakeractors.go): who is
 	// standing on this map, and what the world says each of them is wearing.
@@ -31,10 +32,7 @@ type speakerResolver struct {
 // together, so two speakers of one figure wearing different things are two
 // pictures and one speaker who re-equips is a third.
 //
-// THE WORN SET IS A PARAMETER, AND UNTIL 0160 IT WAS THE ZERO VALUE. This
-// function keyed on the figure alone, on the ground that an npc RECORD
-// carries no equipment — which is true of the record and was the wrong
-// thing to ask. `DLG-FIGURE-020` reads the dialogue site as calling the
+// THE WORN SET IS A PARAMETER. `DLG-FIGURE-020` reads the dialogue site as calling the
 // world figure compositor on the SPEAKER'S OWN DRAWABLE, so the equipment is
 // the speaker's, not the record's, and `DLG-FIGURE-021` establishes that no
 // layer is dropped because the picture is going to a dialogue.
@@ -63,8 +61,7 @@ func (r *speakerResolver) speakerFigure(fig figureID, eq data.Equipment) *image.
 // hardcoded 1. `REG-NPC-088` reads `Picture` into the synthesised actor's typeID
 // and `Face` into its face byte, and the formatter appends that byte as the
 // digit — so the four goblin records that differ only in `Face` name the four
-// goblin pictures. This line passed 1 until the key was decoded, and every
-// creature in every dialogue on both roots showed its first tier.
+// goblin pictures.
 //
 // THE WINDOW IS PASSED THROUGH AND NOT APPLIED. `REG-NPC-089` states it as an
 // origin in the picture's own pixels and the 72x96 extent is a constant of the
@@ -109,6 +106,10 @@ func (r *speakerResolver) liveFigure(npc int32, rec data.NPCFace) (*image.RGBA, 
 // not hold, a picture the install does not carry and a mission with no party
 // subject to be `Me` all answer false, and the window draws its pane empty.
 func (r *speakerResolver) SpeakerFace(speaker int) (*image.RGBA, image.Rectangle, bool) {
+	if p, known := r.campaignActors[speaker]; known {
+		pic := composeMemberPortrait(r.src, r.units, 0, mapload.EquipmentFromParty(p), p).Figure
+		return pic, image.Rectangle{}, pic != nil
+	}
 	rec, ok := r.npcFaces[int32(speaker)]
 	if !ok && r.figure == nil {
 		return nil, image.Rectangle{}, false

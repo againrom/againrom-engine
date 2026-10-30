@@ -243,6 +243,7 @@ func (t *townScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i int) {
 func (t *townScreen) enterSeats() {
 	c := t.state()
 	c.enterInn()
+	t.composed.patrons = nil
 	t.composed.seat = -1
 	if seats, _ := c.innSeats(); len(seats) > 0 {
 		t.composed.seat = 0
