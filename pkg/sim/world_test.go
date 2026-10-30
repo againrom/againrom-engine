@@ -71,6 +71,8 @@ func init() {
 	worldMethods = append(worldMethods, "WornWeight", "ContainerWeight")
 	worldMethods = append(worldMethods, "ReleaseCast", "ReleaseAreaBurst", "ProjectilePoint")
 	worldWriters = append(worldWriters, "ReleaseCast", "ReleaseAreaBurst")
+	worldMethods = append(worldMethods, "ReleaseCasts", "ReleaseScriptCasts", "ReleaseAreaPaints", "ReleaseClientShots")
+	worldWriters = append(worldWriters, "ReleaseCasts", "ReleaseScriptCasts", "ReleaseAreaPaints", "ReleaseClientShots")
 	worldWriters = append(worldWriters, "SetBurstPhases")
 	worldMethods = append(worldMethods, "HasFlightInputs", "SetFlightInputs")
 	worldWriters = append(worldWriters, "SetFlightInputs")

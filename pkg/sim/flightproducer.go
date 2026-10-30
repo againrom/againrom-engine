@@ -2,12 +2,31 @@ package sim
 
 import "slices"
 
-// FlightInputs is immutable installed input for the first game's record producers.
+// FlightInputs is the one record producer's immutable input.
 type FlightInputs struct {
 	Pictures  map[int32]FlightPicture
 	Classes   map[int32]FlightClass
 	ClassRule FlightClassRule
+	Profile   FlightProfile
 }
+
+// FlightProfile is how the games' producers differ; zero is the first game's.
+// A moved caster's Teleport start record stands where he stands, not at his
+// cast cell (MAGIC-TELEPORT-358), and a shot needs a picture the client draws.
+type FlightProfile struct {
+	Release              FlightRelease
+	StartFromMovedCaster bool
+	ShotsNeedArt         bool
+}
+
+// FlightRelease is a game's release clock: the step's, a shot on the actor's
+// FlightRun, or the client's, after its observation and on its swing clock.
+type FlightRelease uint8
+
+const (
+	ReleaseInStep FlightRelease = iota
+	ReleaseAtClient
+)
 
 type FlightPicture struct {
 	Present                  bool
@@ -16,6 +35,7 @@ type FlightPicture struct {
 	LifeTicks, LifeDivisor   int32
 	LifePhases, SecondRecord bool
 	CellLife                 int32
+	Drawn                    bool
 }
 
 type FlightClass struct {
@@ -42,8 +62,17 @@ type FlightStart struct {
 	X, Y    int32
 }
 
+// Released is what a release outside the step observed.
+type Released struct {
+	FlightStarts    []FlightStart
+	ProjectileMarks []ProjectileMark
+}
+
+// ShotClock answers a unit's swing count and whether his run is physical.
+type ShotClock func(EntityID) (swing int, physical bool)
+
 func (w *World) SetFlightInputs(in FlightInputs) {
-	copy := FlightInputs{Pictures: make(map[int32]FlightPicture, len(in.Pictures)), Classes: make(map[int32]FlightClass, len(in.Classes)), ClassRule: in.ClassRule}
+	copy := FlightInputs{Pictures: make(map[int32]FlightPicture, len(in.Pictures)), Classes: make(map[int32]FlightClass, len(in.Classes)), ClassRule: in.ClassRule, Profile: in.Profile}
 	for id, p := range in.Pictures {
 		copy.Pictures[id] = p
 	}
@@ -56,6 +85,10 @@ func (w *World) SetFlightInputs(in FlightInputs) {
 }
 
 func (w *World) HasFlightInputs() bool { return w.flightInputs != nil }
+
+func (w *World) releasesInStep() bool {
+	return w.flightInputs != nil && w.flightInputs.Profile.Release == ReleaseInStep
+}
 
 // SetClientClass stores the class a hero's visible equipment selects
 // (HERO-APPEAR-042), as the front end derives it after an equipment change or a
@@ -103,6 +136,8 @@ func (w *World) flightClass(id EntityID) FlightClass {
 	return w.flightInputs.Classes[class]
 }
 
+// shotOffset is 8*(the facing's ShootOffset pair-Center) (MAGIC-261,
+// SAV-1188, DIV-2656); false without a complete pair.
 func (c FlightClass) shotOffset(facing uint8) (int32, int32, bool) {
 	i := (int(facing>>4) - 8) & 14
 	if len(c.ShootOffset) < i+2 {
@@ -115,6 +150,8 @@ func (c FlightClass) selectionOffset() (int32, int32) {
 	return c.SelectionWidth/2 - c.CenterX, c.SelectionHeight/2 - c.CenterY
 }
 
+// castOffset is the shot offset, or the selection fallback without one and
+// for a two-record picture, plus 128*(TileSize-1) (DIV-2663).
 func (c FlightClass) castOffset(facing uint8, second bool) (int32, int32) {
 	x, y, ok := c.shotOffset(facing)
 	if !ok || second {
@@ -123,6 +160,9 @@ func (c FlightClass) castOffset(facing uint8, second bool) (int32, int32) {
 	a := (max(c.TileSize, 1) - 1) * 128
 	return x + a, y + a
 }
+
+// shotTick is the run's swing count a class's shot leaves on (SAV-1153).
+func (c FlightClass) shotTick() int64 { return max(int64(c.ShootDelay)-1, 0) }
 
 func (p FlightPicture) segments(dx, dy int32) int32 {
 	if p.LifeDivisor > 0 {
@@ -140,6 +180,14 @@ func (w *World) flightPreMove(obs *castObs, id uint16, picture int32) func(int32
 	}
 }
 
+// flightMarks keeps first-call marks no step reports.
+func (w *World) flightMarks(obs *castObs) func(ProjectileMark) {
+	if w.castObservation != nil {
+		return nil
+	}
+	return func(m ProjectileMark) { obs.projectileMarks = append(obs.projectileMarks, m) }
+}
+
 func (w *World) produceCast(ev *CastEvent, obs *castObs) {
 	ev.Produced = true
 	if ev.Rider {
@@ -150,12 +198,13 @@ func (w *World) produceCast(ev *CastEvent, obs *castObs) {
 	c := w.flightClass(ev.Caster)
 	x, y, ok := w.ProjectilePoint(ev.Caster)
 	ci := indexOfEntity(w.entities, ev.Caster)
-	if !ok || p.SecondRecord && (ci < 0 || w.entities[ci].X != ev.FromX || w.entities[ci].Y != ev.FromY) {
+	moved := ci < 0 || w.entities[ci].X != ev.FromX || w.entities[ci].Y != ev.FromY
+	if !ok || p.SecondRecord && !w.flightInputs.Profile.StartFromMovedCaster && moved {
 		x, y = ev.FromX*256+128, ev.FromY*256+128
 	}
 	dx, dy := c.castOffset(ev.Facing, p.SecondRecord)
 	rec := CastRecord{Caster: ev.Caster, Picture: picture, Phases: p.Phases, X: x + dx, Y: y + dy, AimX: ev.ToX*256 + 128, AimY: ev.ToY*256 + 128,
-		Dir: ProjectileDirection(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Segments: p.segments(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Owner: ev.Owner}
+		Dir: ProjectileDirection(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Segments: p.segments(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Owner: ev.Owner, Mark: w.flightMarks(obs)}
 	target, _ := w.Entity(ev.Target)
 	if !ev.AtCell && p.Homes && (ev.Target != 0 || ProjectileTargetKey(target) != 0) {
 		rec.Target, rec.HasTarget = ev.Target, true
@@ -194,7 +243,8 @@ func (w *World) produceScriptCast(ev *ScriptCastEvent, obs *castObs) {
 	}
 }
 
-func (w *World) produceAreaBursts(paint AreaPaint) {
+func (w *World) produceAreaBursts(paint *AreaPaint) {
+	paint.Produced = true
 	picture := int32(paint.Spell)*2 + 9
 	p := w.flightInputs.Pictures[picture]
 	if !p.Present {
@@ -203,6 +253,99 @@ func (w *World) produceAreaBursts(paint AreaPaint) {
 	for _, c := range paint.Cells {
 		w.ReleaseAreaBurst(AreaBurst{CellX: c.X, CellY: c.Y, Picture: picture, Segments: p.CellLife, Phases: p.Phases, Owner: paint.Owner})
 	}
+}
+
+func (w *World) produceEvents(obs *castObs) {
+	for i := range obs.scriptCasts {
+		if !obs.scriptCasts[i].Produced {
+			w.produceScriptCast(&obs.scriptCasts[i], obs)
+		}
+	}
+	for i := range obs.casts {
+		if !obs.casts[i].Produced {
+			w.produceCast(&obs.casts[i], obs)
+		}
+	}
+	for i := range obs.paints {
+		if !obs.paints[i].Produced {
+			w.produceAreaBursts(&obs.paints[i])
+		}
+	}
+}
+
+// ReleaseCasts builds the records of observed casts no step built.
+func (w *World) ReleaseCasts(events []CastEvent) Released {
+	return w.releaseObserved(castObs{casts: events})
+}
+
+// ReleaseScriptCasts is ReleaseCasts for cell-source casts.
+func (w *World) ReleaseScriptCasts(events []ScriptCastEvent) Released {
+	return w.releaseObserved(castObs{scriptCasts: events})
+}
+
+// ReleaseAreaPaints is ReleaseCasts for staged cells.
+func (w *World) ReleaseAreaPaints(paints []AreaPaint) {
+	w.releaseObserved(castObs{paints: paints})
+}
+
+func (w *World) releaseObserved(obs castObs) Released {
+	if w.flightInputs == nil {
+		return Released{}
+	}
+	w.produceEvents(&obs)
+	return Released{FlightStarts: obs.flightStarts, ProjectileMarks: obs.projectileMarks}
+}
+
+// ReleaseClientShots builds each shot the client's swing clock puts on its
+// class's release tick, for a World that releases at the client.
+func (w *World) ReleaseClientShots(clock ShotClock) Released {
+	if w.flightInputs == nil || w.flightInputs.Profile.Release != ReleaseAtClient || clock == nil {
+		return Released{}
+	}
+	var obs castObs
+	for i := range w.entities {
+		e := w.entities[i]
+		if w.HasEffectArm(e.ID, 20) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
+			continue
+		}
+		swing, physical := clock(e.ID)
+		if !physical {
+			continue
+		}
+		c := w.flightClass(e.ID)
+		if c.Projectile <= 0 || w.flightInputs.Profile.ShotsNeedArt && !w.flightInputs.Pictures[c.Projectile].Drawn {
+			continue
+		}
+		if int64(swing) != c.shotTick() || !w.shotInReach(e) {
+			continue
+		}
+		w.releaseShot(e, c, &obs)
+	}
+	return Released{FlightStarts: obs.flightStarts}
+}
+
+func (w *World) shotInReach(e Entity) bool {
+	switch e.AttackTargetKind {
+	case AttackTargetStructure:
+		if at := indexOfStructure(w.structures, StructureID(e.AttackTarget)); at >= 0 {
+			return InStructureReach(e, w.structures[at])
+		}
+	case AttackTargetUnit:
+		if at := indexOfEntity(w.entities, e.AttackTarget); at >= 0 {
+			return InReach(e, w.entities[at])
+		}
+	}
+	return false
+}
+
+// releaseShot: a ShootDelay-0 shot has missed one driver call.
+func (w *World) releaseShot(e Entity, c FlightClass, obs *castObs) {
+	dx, dy, _ := c.shotOffset(e.Facing)
+	late := 0
+	if c.ShootDelay == 0 {
+		late = 1
+	}
+	w.ReleaseUnitShot(UnitShot{Shooter: e.ID, Picture: c.Projectile, Phases: w.flightInputs.Pictures[c.Projectile].Phases, OffsetX: dx, OffsetY: dy, Late: late, PreMove: w.flightPreMove(obs, w.savedProjectiles.FreeIndex, c.Projectile)})
 }
 
 func (w *World) produceUnitShots(obs *castObs) {
@@ -244,31 +387,15 @@ func (w *World) produceUnitShots(obs *castObs) {
 		if !r.Active || r.Kind != AttackCharging || e.Reach <= 1 {
 			continue
 		}
-		if int64(r.Elapsed) != max(int64(c.ShootDelay)-1, 0) {
+		if int64(r.Elapsed) != c.shotTick() || !w.shotInReach(*e) {
 			continue
 		}
-		inReach := false
-		if e.AttackTargetKind == AttackTargetStructure {
-			if at := indexOfStructure(w.structures, StructureID(e.AttackTarget)); at >= 0 {
-				inReach = InStructureReach(*e, w.structures[at])
-			}
-		} else if at := indexOfEntity(w.entities, e.AttackTarget); at >= 0 {
-			inReach = InReach(*e, w.entities[at])
-		}
-		if !inReach {
-			continue
-		}
-		dx, dy, _ := c.shotOffset(e.Facing)
-		late := 0
-		if c.ShootDelay == 0 {
-			late = 1
-		}
-		w.ReleaseUnitShot(UnitShot{Shooter: e.ID, Picture: c.Projectile, Phases: w.flightInputs.Pictures[c.Projectile].Phases, OffsetX: dx, OffsetY: dy, Late: late, PreMove: w.flightPreMove(obs, w.savedProjectiles.FreeIndex, c.Projectile)})
+		w.releaseShot(*e, c, obs)
 	}
 }
 
 func (w *World) prepareFlightRuns() {
-	if w.SecondGame() || w.flightInputs == nil {
+	if !w.releasesInStep() {
 		return
 	}
 	for i := range w.entities {
@@ -290,17 +417,9 @@ func (w *World) prepareFlightRuns() {
 }
 
 func (w *World) produceFlights(obs *castObs) {
-	if w.SecondGame() || w.flightInputs == nil {
+	if !w.releasesInStep() {
 		return
 	}
-	for i := range obs.scriptCasts {
-		w.produceScriptCast(&obs.scriptCasts[i], obs)
-	}
-	for i := range obs.casts {
-		w.produceCast(&obs.casts[i], obs)
-	}
-	for _, p := range obs.paints {
-		w.produceAreaBursts(p)
-	}
+	w.produceEvents(obs)
 	w.produceUnitShots(obs)
 }

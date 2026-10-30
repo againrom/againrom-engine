@@ -107,9 +107,8 @@ type gameFiles struct {
 	// fogStampOnMove folds a moved party body's sight into the fog between
 	// the periodic refreshes; the second game's map keeps the refresh alone.
 	fogStampOnMove bool
-	// recordTrailFlight plays projectile flight and unit shots from the
-	// World's record trails; the second game keeps its client release clock.
-	recordTrailFlight bool
+	// flight is the record producer's profile.
+	flight flightProfile
 	// targetMarkOnRelease marks the target of a Wall or Summon-arm release
 	// with its cast picture.
 	targetMarkOnRelease bool
@@ -119,9 +118,6 @@ type gameFiles struct {
 	// commonBurstSound silences the cell sound of the picture 51 burst, which
 	// sounds from its common driver phase.
 	commonBurstSound bool
-	// startRecordAtCaster keeps a second flight record at the cell the
-	// caster cast from when the caster moved before the event was read.
-	startRecordAtCaster bool
 	// projectileCounter tracks and seeds the World's saved projectile free
 	// index across missions.
 	projectileCounter bool
@@ -175,11 +171,10 @@ var firstGameFiles = gameFiles{
 	dialogueDefault: dialogueDefaultText,
 
 	fogStampOnMove:      true,
-	recordTrailFlight:   true,
+	flight:              flightProfile{registryRows: true},
 	targetMarkOnRelease: true,
 	teleportCastRun:     true,
 	commonBurstSound:    true,
-	startRecordAtCaster: true,
 	projectileCounter:   true,
 	mageCardWeaponSpell: true,
 	loadedTavernStock:   true,
@@ -227,6 +222,8 @@ var secondGameFiles = gameFiles{
 	manaSpellcaster: true,
 	// R2-ENGINE-583.
 	fallbackSpeakers: true,
+	flight: flightProfile{FlightProfile: sim.FlightProfile{Release: sim.ReleaseAtClient, StartFromMovedCaster: true, ShotsNeedArt: true},
+		drawnClass: true},
 }
 
 // speakerFaces is the speaker table of t's campaign.

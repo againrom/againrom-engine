@@ -431,7 +431,7 @@ func StepWithdrawalTraced(w *World, cmds []Command) []WithdrawalDecision {
 }
 
 func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdrawals *withdrawalObs) {
-	if obs == nil && !w.SecondGame() && w.flightInputs != nil {
+	if obs == nil && w.releasesInStep() {
 		obs = &castObs{}
 	}
 	w.beginTurnSubTick()

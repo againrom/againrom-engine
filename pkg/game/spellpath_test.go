@@ -69,7 +69,7 @@ func TestAPathPictureStandsStillAndSpansItsWholeSegment(t *testing.T) {
 	x, y := records[0].X, records[0].Y
 
 	// The world holds no caster class, so the launch point is the caster's
-	// cell centre (castLaunch); both ends are display pixels.
+	// cell centre (castOffset); both ends are display pixels.
 	from, to := image.Pt(2*32+16, 2*32+16), image.Pt(8*32+16, 5*32+16)
 	for age := range 13 {
 		spCheckFigure(t, fmt.Sprintf("age %d", age), mw.boltDraws(nil), from, to)

@@ -117,8 +117,10 @@ func InspectCastFigure(src terrain.EntrySource, spell, cells int) ([]CastFigureE
 	}
 	mw := &mapWorld{world: w, projectiles: set, swing: map[sim.EntityID]int{},
 		phase: map[sim.EntityID]sim.AttackPhase{}, castRun: map[sim.EntityID]castRun{}}
-	mw.releaseCast(sim.CastEvent{Caster: 1, Target: 2, AtCell: true, Spell: uint16(spell),
-		FromX: 0, FromY: 0, ToX: int32(cells), ToY: 0}, 0)
+	events := []sim.CastEvent{{Caster: 1, Target: 2, AtCell: true, Spell: uint16(spell),
+		FromX: 0, FromY: 0, ToX: int32(cells), ToY: 0}}
+	mw.releaseObservedCasts(events)
+	mw.keepCastLook(events[0], 0)
 
 	picture := data.CastPicture(spell)
 	sheet := set.Sheet(picture)

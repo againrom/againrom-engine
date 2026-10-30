@@ -18,7 +18,7 @@ func withCurrentMenuDefinitions(t *testing.T, f *FrontEnd, extraHumanRows ...int
 	}
 	if table.FlightInputs == nil {
 		var err error
-		table.FlightInputs, err = loadFlightInputs(f.Archives.Containers, data.SpellPresentationNamed(f.Archives.Game().Edition().Spells))
+		table.FlightInputs, err = loadFlightInputs(f.Archives.Containers, data.SpellPresentationNamed(f.Archives.Game().Edition().Spells), filesOf(f.Archives.Game()).flight)
 		if err != nil {
 			t.Fatal(err)
 		}

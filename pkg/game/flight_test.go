@@ -23,6 +23,12 @@ func flightRecords(mw *mapWorld) []sim.SavedProjectile {
 	return records
 }
 
+func releaseCastEvent(mw *mapWorld, ev sim.CastEvent) {
+	events := []sim.CastEvent{ev}
+	mw.releaseObservedCasts(events)
+	mw.keepCastLook(events[0], 0)
+}
+
 // A cast aimed at a cell is drawn along its line of flight: the record's dir
 // is the sixteen-way direction from the launch cell to the aim cell, not the
 // caster's eight-way facing, so a Fire Ball off the compass lines is not
@@ -32,8 +38,8 @@ func TestCastRecordDirFollowsTheLineOfFlight(t *testing.T) {
 		mw := aoWorld(t)
 		from := image.Pt(6, 6)
 		to := from.Add(d)
-		mw.releaseCast(sim.CastEvent{Spell: 2, AtCell: true, Facing: 32,
-			FromX: int32(from.X), FromY: int32(from.Y), ToX: int32(to.X), ToY: int32(to.Y)}, 0)
+		releaseCastEvent(mw, sim.CastEvent{Spell: 2, AtCell: true, Facing: 32,
+			FromX: int32(from.X), FromY: int32(from.Y), ToX: int32(to.X), ToY: int32(to.Y)})
 		items := mw.world.SavedProjectiles().Items
 		if len(items) != 1 {
 			t.Fatalf("delta %v: %d records, want 1", d, len(items))
@@ -63,7 +69,7 @@ func TestCastAdapterActorZeroTargetUsesItsRuntimeKey(t *testing.T) {
 			}
 			mw := sbWorld(t)
 			mw.world, mw.projectiles.Homing = w, map[int]bool{10: true}
-			mw.releaseCast(sim.CastEvent{Caster: 1, Target: 0, AtCell: atCell, Spell: 1, FromX: 1, FromY: 4, ToX: 5, ToY: 4}, 0)
+			releaseCastEvent(mw, sim.CastEvent{Caster: 1, Target: 0, AtCell: atCell, Spell: 1, FromX: 1, FromY: 4, ToX: 5, ToY: 4})
 			items := w.SavedProjectiles().Items
 			if len(items) != 1 || w.SavedProjectiles().FreeIndex != 1 {
 				t.Fatalf("bound %v cell %v: record or allocator lost: %+v", bound, atCell, w.SavedProjectiles())

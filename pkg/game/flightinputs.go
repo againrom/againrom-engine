@@ -9,12 +9,20 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
-func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation) (*sim.FlightInputs, error) {
-	if spells.Game == rules.SpellGameSecond {
+// flightProfile is a game's record producer profile. registryRows reads the
+// installed registries at load, else the loaded art's rows; drawnClass takes
+// geometry from the class the client draws (spellClientClass).
+type flightProfile struct {
+	sim.FlightProfile
+	registryRows bool
+	drawnClass   bool
+}
+
+func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation, profile flightProfile) (*sim.FlightInputs, error) {
+	if !profile.registryRows {
 		return nil, nil
 	}
 	pictures, err := loadProjectileRecords(src)
@@ -25,7 +33,7 @@ func loadFlightInputs(src terrain.EntrySource, spells *data.SpellPresentation) (
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
-	in := buildFlightInputs(spells, installedPictureRows(pictures), installedClassRows(classes))
+	in := buildFlightInputs(spells, profile.FlightProfile, flightClassRule, installedPictureRows(pictures), installedClassRows(classes))
 	return &in, nil
 }
 
@@ -39,9 +47,9 @@ func flightPictures(spells *data.SpellPresentation) map[int32]sim.FlightPicture 
 }
 
 type flightPictureRow struct {
-	ID             int32
-	Present, Homes bool
-	Phases         uint16
+	ID                    int32
+	Present, Homes, Drawn bool
+	Phases                uint16
 }
 
 type flightClassRow struct {
@@ -51,11 +59,11 @@ type flightClassRow struct {
 
 // buildFlightInputs is the one producer of sim.FlightInputs; a source only
 // exposes its picture and class rows.
-func buildFlightInputs(spells *data.SpellPresentation, pictures []flightPictureRow, classes []flightClassRow) sim.FlightInputs {
-	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass), ClassRule: flightClassRule}
+func buildFlightInputs(spells *data.SpellPresentation, profile sim.FlightProfile, rule sim.FlightClassRule, pictures []flightPictureRow, classes []flightClassRow) sim.FlightInputs {
+	in := sim.FlightInputs{Pictures: flightPictures(spells), Classes: make(map[int32]sim.FlightClass), ClassRule: rule, Profile: profile}
 	for _, r := range pictures {
 		p := in.Pictures[r.ID]
-		p.Present, p.Homes, p.Phases = r.Present, r.Homes, r.Phases
+		p.Present, p.Homes, p.Drawn, p.Phases = r.Present, r.Homes, r.Drawn, r.Phases
 		p.CellLife = int32(spells.CellLife(r.ID))
 		in.Pictures[r.ID] = p
 	}
@@ -108,26 +116,37 @@ func flightClassRule(e sim.Entity) int32 {
 	return e.Class
 }
 
-// bindFlightInputs admits late synthetic bundles; installed Worlds bind at load.
+// bindFlightInputs binds the loaded art's rows to a World the load did not.
 func (mw *mapWorld) bindFlightInputs() {
-	if mw == nil || mw.world == nil || !mw.files().recordTrailFlight || mw.world.HasFlightInputs() {
+	if mw == nil || mw.world == nil || mw.world.HasFlightInputs() {
 		return
 	}
-	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units)))
+	profile := mw.files().flight
+	rule := flightClassRule
+	if profile.drawnClass {
+		rule = mw.drawnFlightClass
+	}
+	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), profile.FlightProfile, rule, syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units)))
 }
 
-// syntheticPictureRows: a sheet's row replaces its picture's row.
+func (mw *mapWorld) drawnFlightClass(e sim.Entity) int32 { return mw.spellClientClass(e.ID, e.Class) }
+
+// syntheticPictureRows: a sheet's row replaces its picture's row; a homing
+// row alone still homes.
 func syntheticPictureRows(set *terrain.EffectSet) []flightPictureRow {
 	if set == nil {
 		return nil
 	}
 	rows := make(map[int]flightPictureRow, len(set.Pictures)+len(set.Sheets))
+	for id := range set.Homing {
+		rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Drawn: shotDrawn(set, id)}
+	}
 	for id, present := range set.Pictures {
-		rows[id] = flightPictureRow{ID: int32(id), Present: present, Homes: set.Homes(id)}
+		rows[id] = flightPictureRow{ID: int32(id), Present: present, Homes: set.Homes(id), Drawn: shotDrawn(set, id)}
 	}
 	for id, sheet := range set.Sheets {
 		if sheet != nil {
-			rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Phases: flightPhases(sheet.Phases)}
+			rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Drawn: true, Phases: flightPhases(sheet.Phases)}
 		}
 	}
 	return slices.SortedFunc(maps.Values(rows), func(a, b flightPictureRow) int { return cmp.Compare(a.ID, b.ID) })

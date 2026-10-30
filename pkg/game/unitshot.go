@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"againrom/pkg/data"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 )
 
@@ -58,75 +59,30 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 	if c == nil || c.Projectile == 0 {
 		return 0, 0, false
 	}
-	drawn = c.Projectile == unitShotDeformationPicture && mw.projectiles.HasPicture(c.Projectile) || mw.projectiles.Sheet(c.Projectile) != nil
-	return c.Projectile, c.ShootDelay, drawn
+	return c.Projectile, c.ShootDelay, shotDrawn(mw.projectiles, c.Projectile)
 }
 
-// advanceUnitShots consumes first-game record trails. ROM2 retains its client
-// release clock beside the swing presentation.
+func shotDrawn(set *terrain.EffectSet, picture int) bool {
+	return picture == unitShotDeformationPicture && set.HasPicture(picture) || set.Sheet(picture) != nil
+}
+
+// advanceUnitShots hands the World this tick's swing clock, then keeps trails.
 func (mw *mapWorld) advanceUnitShots() {
-	if mw.files().recordTrailFlight && mw.world.HasFlightInputs() {
-		mw.advanceShotTrails()
-		return
-	}
-	ents := mw.world.EntityView()
-	for i := range ents {
-		e := &ents[i]
-		if mw.world.HasEffectArm(e.ID, 20) || !mw.shots.physical(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
-			continue
-		}
-		picture, delay, drawn := mw.classShot(mw.spellClientClass(e.ID, e.Class))
-		if !drawn || mw.swing[e.ID] != unitShotSwingTick(delay) || !mw.swingTargetInReach(ents, *e) {
-			continue
-		}
-		mw.releaseUnitShot(*e, picture, unitShotLate(delay))
-	}
+	mw.keepFlightStarts(mw.world.ReleaseClientShots(mw.shotClock).FlightStarts)
 	mw.advanceShotTrails()
 }
 
-// unitShotSwingTick is the swing count a unit shot's record is built on. The
-// clock's zero is the tick after the original's swing start, and the original
-// builds the record ShootDelay ticks after it (SAV-1153).
-func unitShotSwingTick(delay int) int { return max(delay-1, 0) }
-
-// unitShotLate is the driver calls a record has missed when built: ShootDelay 0
-// is created a tick before the clock's zero.
-func unitShotLate(delay int) int {
-	if delay == 0 {
-		return 1
-	}
-	return 0
+func (mw *mapWorld) shotClock(id sim.EntityID) (int, bool) {
+	return mw.swing[id], mw.shots.physical(id)
 }
 
-// releaseUnitShot builds the World record of e's shot: the class's picture and
-// phase count and the release offset its facing selects. The World aims it.
-func (mw *mapWorld) releaseUnitShot(e sim.Entity, picture, late int) {
-	var phases uint16
-	if sheet := mw.projectiles.Sheet(picture); sheet != nil && sheet.Phases > 0 && sheet.Phases <= 65535 {
-		phases = uint16(sheet.Phases)
-	}
-	dx, dy := mw.shotOffset(mw.spellClientClass(e.ID, e.Class), e.Facing)
-	id := mw.world.SavedProjectiles().FreeIndex
-	var start []image.Point
-	premove := func(x, y int32) { start = append(start, image.Pt(int(x), int(y))) }
-	if !mw.world.ReleaseUnitShot(sim.UnitShot{Shooter: e.ID, Picture: int32(picture), Phases: phases,
-		OffsetX: int32(dx), OffsetY: int32(dy), Late: late, PreMove: premove}) {
-		return
-	}
-	if mw.spells().TrailSlot(int32(picture)) >= 0 {
-		for _, at := range start {
-			mw.shots.appendTrail(id, at)
+// keepFlightStarts starts each smoke-leaving record's trail.
+func (mw *mapWorld) keepFlightStarts(starts []sim.FlightStart) {
+	for _, p := range starts {
+		if mw.spells().TrailSlot(p.Picture) >= 0 {
+			mw.shots.appendTrail(p.ID, image.Pt(int(p.X), int(p.Y)))
 		}
 	}
-}
-
-// shotOffset is the displacement of a class's release point from its
-// shooter's own point, in 256-per-cell units (SAV-1188): the cast producer's
-// own class offset for the facing. A class with no ShootOffset array releases
-// from the shooter's point.
-func (mw *mapWorld) shotOffset(class int32, facing uint8) (dx, dy int) {
-	off, _ := classShootOffset(mw.units.Classes[class], facing)
-	return off.X, off.Y
 }
 
 // noteShotPreMoves records, before the world steps, the point each armed

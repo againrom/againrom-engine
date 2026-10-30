@@ -20,7 +20,7 @@ type SnapshotSpellBolt struct {
 	Tag              int
 	Facing           uint8
 	Centered         bool
-	// Launch is the start offset from From's centre (castLaunch). An
+	// Launch is the start offset from From's centre (castOffset). An
 	// envelope written before it existed restores zero: the object then
 	// starts at its caster's cell centre for the rest of its short life.
 	Launch image.Point

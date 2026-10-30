@@ -1,54 +1,9 @@
 package game
 
 import (
-	"image"
-
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
-	"againrom/pkg/ui"
 )
-
-// castLaunchScale is the fine units one sprite pixel of a class offset stands
-// for (MAGIC-263 Medium; DIV-2656).
-const castLaunchScale = 8
-
-// castLaunch is a cast object's start from its caster's cell centre, in
-// ShotScale units: A+8*(ShootOffset pair-Center), or the Selection fallback
-// for an empty array and for an object that builds a second record at the
-// destination, Teleport (MAGIC-261). A adds 128*(TileSize-1).
-func castLaunch(c *terrain.UnitClass, facing uint8, teleport bool) image.Point {
-	if c == nil {
-		return image.Point{}
-	}
-	a := (max(c.TileSize, 1) - 1) * ui.ShotScale / 2
-	if off, ok := classShootOffset(c, facing); ok && !teleport {
-		return image.Pt(a, a).Add(off)
-	}
-	return image.Pt(a, a).Add(castSelectionDelta(c))
-}
-
-// classShootOffset is 8*(ShootOffset pair-Center) for the facing, the
-// displacement both shot producers add to their own base (MAGIC-261,
-// SAV-1188); false for a class with no complete array.
-func classShootOffset(c *terrain.UnitClass, facing uint8) (image.Point, bool) {
-	at := castLaunchPair(facing)
-	if c == nil || len(c.ShootOffset) < at+2 {
-		return image.Point{}, false
-	}
-	return image.Pt(castLaunchScale*(c.ShootOffset[at]-c.CenterX),
-		castLaunchScale*(c.ShootOffset[at+1]-c.CenterY)), true
-}
-
-// castLaunchPair is (facing>>4-8)&14; odd facings share the even pair before.
-func castLaunchPair(facing uint8) int {
-	return (int(facing>>4) - 8) & 14
-}
-
-// castSelectionDelta is trunc((Selection2-Selection1)/2)-Center per axis.
-func castSelectionDelta(c *terrain.UnitClass) image.Point {
-	return image.Pt((c.Selection.Max.X-c.Selection.Min.X)/2-c.CenterX,
-		(c.Selection.Max.Y-c.Selection.Min.Y)/2-c.CenterY)
-}
 
 // casterClass is the caster's class at the observation: equipment-selected
 // for a hero (MAGIC-262, DIV-2657). nil when absent.
@@ -61,8 +16,4 @@ func (mw *mapWorld) casterClass(id sim.EntityID) *terrain.UnitClass {
 		return nil
 	}
 	return mw.units.Classes[mw.spellClientClass(id, e.Class)]
-}
-
-func (mw *mapWorld) castLaunchFor(id sim.EntityID, facing uint8, picture int) image.Point {
-	return castLaunch(mw.casterClass(id), facing, mw.spells().Effect(int32(picture)).SecondRecord)
 }

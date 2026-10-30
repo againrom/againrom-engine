@@ -4,6 +4,7 @@ import (
 	"image"
 	"testing"
 
+	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -24,6 +25,34 @@ var (
 )
 
 var launchFacings = [8]uint8{0, 32, 64, 96, 128, 160, 192, 224}
+
+// castLaunch is the producer's first record start from the caster's cell
+// centre; second casts Teleport.
+func castLaunch(c *terrain.UnitClass, facing uint8, second bool) image.Point {
+	const class, at = 7, 5
+	units := &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{}}
+	if c != nil {
+		units.Classes[class] = c
+	}
+	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 32, Height: 32}, sim.ModeCanonical, nil,
+		[]sim.Entity{{ID: 1, X: at, Y: at, HP: 10, MaxHP: 10, Class: class}}, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	spell, picture := uint16(1), int32(10)
+	if second {
+		spell, picture = 26, teleportPicture
+	}
+	w.SetFlightInputs(buildFlightInputs(data.FirstSpellPresentation(), sim.FlightProfile{}, flightClassRule,
+		[]flightPictureRow{{ID: picture, Present: true, Drawn: true, Phases: 4}}, syntheticClassRows(units)))
+	starts := w.ReleaseCasts([]sim.CastEvent{{Caster: 1, Target: 2, AtCell: true, Spell: spell, FromX: at, FromY: at, ToX: at + 6, ToY: at, Facing: facing}}).FlightStarts
+	if len(starts) == 0 {
+		panic("the producer built no record")
+	}
+	return image.Pt(int(starts[0].X)-at*256-128, int(starts[0].Y)-at*256-128)
+}
+
+func launchPair(facing uint8) int { return (int(facing>>4) - 8) & 14 }
 
 var (
 	launchMageDeltas = [8]image.Point{{32, -288}, {128, -224}, {136, -128}, {72, -40},

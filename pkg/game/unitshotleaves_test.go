@@ -19,29 +19,48 @@ func TestUnitShotStartPairFollowsTheSixteenWayDir(t *testing.T) {
 	// The pair each sixteen-way dir 0..15 selects, written out: S (8) and the
 	// facing after it use pair 0, and the wheel runs on from there.
 	pairOf := [16]int{4, 4, 5, 5, 6, 6, 7, 7, 0, 0, 1, 1, 2, 2, 3, 3}
-	mw := &mapWorld{units: &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{1: c}}}
 	for dir := range 16 {
 		p := pairOf[dir]
 		want := image.Pt(8*(c.ShootOffset[2*p]-8), 8*(c.ShootOffset[2*p+1]-14))
 		for _, low := range []uint8{0, 15} {
 			facing := uint8(dir<<4) | low
-			got, ok := classShootOffset(c, facing)
-			if !ok || got != want {
-				t.Errorf("dir %d (facing byte %d): offset %v, want %v (pair %d)", dir, facing, got, want, p)
+			if got := castLaunch(c, facing, false); got != want {
+				t.Errorf("dir %d (facing byte %d): cast offset %v, want %v (pair %d)", dir, facing, got, want, p)
 			}
-			if dx, dy := mw.shotOffset(1, facing); image.Pt(dx, dy) != want {
-				t.Errorf("dir %d: unit shot offset %d,%d, want %v", dir, dx, dy, want)
+			if got := producerShotOffset(c, facing); got != want {
+				t.Errorf("dir %d (facing byte %d): unit shot offset %v, want %v (pair %d)", dir, facing, got, want, p)
 			}
 		}
 	}
-	none := &terrain.UnitClass{CenterX: 8, CenterY: 14}
-	mw.units.Classes[2] = none
-	if off, ok := classShootOffset(none, 128); ok || off != (image.Point{}) {
-		t.Errorf("a class with no array gives %v %v", off, ok)
+	if got := producerShotOffset(&terrain.UnitClass{CenterX: 8, CenterY: 14}, 128); got != (image.Point{}) {
+		t.Errorf("a class with no array releases %v from the shooter's point", got)
 	}
-	if dx, dy := mw.shotOffset(2, 128); dx != 0 || dy != 0 {
-		t.Errorf("a class with no array releases %d,%d from the shooter's point", dx, dy)
+}
+
+// producerShotOffset is the producer's shot start less a plain class's.
+func producerShotOffset(c *terrain.UnitClass, facing uint8) image.Point {
+	plain := terrain.UnitClass{CenterX: c.CenterX, CenterY: c.CenterY}
+	return producerShotStart(*c, facing).Sub(producerShotStart(plain, facing))
+}
+
+func producerShotStart(c terrain.UnitClass, facing uint8) image.Point {
+	const class = 7
+	c.Projectile, c.ShootDelay = 1, 1
+	archer := sim.Entity{ID: 1, X: 2, Y: 4, HP: 100, MaxHP: 100, Class: class, Owner: 1, Facing: facing, DesiredFacing: facing,
+		Reach: 6, HasAttackTarget: true, AttackTarget: 2, AttackTargetKind: sim.AttackTargetUnit}
+	victim := sim.Entity{ID: 2, X: 5, Y: 4, HP: 100, MaxHP: 100, Owner: 2}
+	w, err := sim.NewSpelledWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, []sim.Entity{archer, victim}, nil, nil)
+	if err != nil {
+		panic(err)
 	}
+	w.SetFlightInputs(buildFlightInputs(data.FirstSpellPresentation(), sim.FlightProfile{Release: sim.ReleaseAtClient}, flightClassRule,
+		[]flightPictureRow{{ID: 1, Present: true, Drawn: true, Phases: 1}},
+		syntheticClassRows(&terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{class: &c}})))
+	starts := w.ReleaseClientShots(func(sim.EntityID) (int, bool) { return 0, true }).FlightStarts
+	if len(starts) == 0 {
+		panic("the producer released no shot")
+	}
+	return image.Pt(int(starts[0].X), int(starts[0].Y))
 }
 
 // ANIM-140, SAV-1193: a record of a smoke-leaving picture holds no trail when

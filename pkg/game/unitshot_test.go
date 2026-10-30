@@ -477,6 +477,8 @@ func TestStoneHeldSwingDoesNotReleaseUnitShots(t *testing.T) {
 	rule := sim.SpellRule{ID: 20, ManaCost: 1, School: 4, MaxRange: 8, TargetsUnit: true,
 		SpellDuration: 1, EffectKind: sim.EffectAbsorption, EffectMode: sim.EffectDuration, EffectMagnitude: 5}
 	mw := shotWorld(t, units, set, []sim.SpellRule{rule}, shooter, shotVictim(2, 5, 4), caster)
+	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), secondGameFiles.flight.FlightProfile, flightClassRule,
+		syntheticPictureRows(set), syntheticClassRows(units)))
 	if why := mw.world.BookSpellRefusal(3, 1, 20); why != "" {
 		t.Fatalf("Stone Curse refused before admission: %s", why)
 	}
@@ -491,7 +493,7 @@ func TestStoneHeldSwingDoesNotReleaseUnitShots(t *testing.T) {
 		t.Fatalf("Stone Curse did not retain the admitted physical swing: %+v", held)
 	}
 	mw.shots.begin(1, sim.AttackCharging)
-	mw.swing[1], mw.phase[1] = unitShotSwingTick(shotArcherDelay), sim.AttackCharging
+	mw.swing[1], mw.phase[1] = max(shotArcherDelay-1, 0), sim.AttackCharging
 	before := mw.world.Hash()
 	for call := 0; call < 8; call++ {
 		mw.advanceUnitShots()

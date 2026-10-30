@@ -36,7 +36,7 @@ func (r *boltRNG) next() int {
 const boltUnitsPerPixel = ui.ShotScale / terrain.CellSize
 
 // castOrigin is a cast object's start point: the from cell's centre plus its
-// launch offset (castLaunch), in ShotScale units.
+// launch offset (castOffset), in ShotScale units.
 func castOrigin(from, launch image.Point) image.Point {
 	return from.Mul(ui.ShotScale).Add(launch)
 }

@@ -28,7 +28,7 @@ type spellBolt struct {
 	tag  int
 
 	// launch is the object's start relative to the from cell's centre, in
-	// ShotScale units (castLaunch, MAGIC-261).
+	// ShotScale units (castOffset, MAGIC-261).
 	launch image.Point
 }
 
@@ -107,10 +107,12 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.Projectile
 			span := mw.startBookCastRun(ev)
 			mw.scheduleBookCastSound(ev, span)
 		}
+		if !ev.Produced {
+			marks = append(marks, mw.releaseObservedCasts(events[i:i+1])...)
+			ev = events[i]
+		}
 		if ev.Produced {
 			mw.keepCastLook(ev, i)
-		} else if !ev.Rider {
-			marks = append(marks, mw.releaseCast(ev, i)...)
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
 		target, targetPresent := mw.entity(ev.Target)
@@ -162,17 +164,6 @@ const fireBallSpell = 2
 // decoded 22-tick life over an 11-frame half clock would otherwise wrap its
 // last visible tick from frame 10 back to frame 0 (ANIM-103).
 const fireBallBurstPicture = 13
-
-// armBurstPhases hands the World the installed phase count of the Fire_Ball
-// burst's sheet, which the World's burst record needs for its frame leaf.
-func (mw *mapWorld) armBurstPhases() {
-	if mw.files().recordTrailFlight && mw.world.HasFlightInputs() {
-		return
-	}
-	if sheet := mw.projectiles.Sheet(fireBallBurstPicture); sheet != nil && sheet.Phases > 0 && sheet.Phases <= 65535 {
-		mw.world.SetBurstPhases(uint16(sheet.Phases))
-	}
-}
 
 // seedRestoredRuns gives every entity restored mid-wind-up, and carrying no
 // saved animation clock of its own, the run clock a
@@ -563,10 +554,10 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 	return out
 }
 
-// observeAreaPaints voices staged cells. Their records already belong to World.
-// ROM2 retains the client release adapter.
+// observeAreaPaints voices staged cells and hands the World the ones its step
+// built no records for.
 func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
-	for _, p := range paints {
+	for i, p := range paints {
 		// Picture 51 sounds from its common driver phase; other staged cells
 		// retain their construction sound, including ROM2's delayed cell.
 		slot, delay := mw.spells().CellSound(int(p.Spell))
@@ -581,9 +572,7 @@ func (mw *mapWorld) observeAreaPaints(paints []sim.AreaPaint) {
 			at := image.Pt(int(c.X), int(c.Y))
 			mw.queueSpellSound(slot, p.Owner, at, delay, source)
 		}
-		if !mw.files().recordTrailFlight || !mw.world.HasFlightInputs() {
-			mw.releaseAreaBursts(p)
-		}
+		mw.releaseObservedPaints(paints[i : i+1])
 	}
 }
 

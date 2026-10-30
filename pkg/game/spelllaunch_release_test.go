@@ -215,7 +215,7 @@ func TestReleaseLightningLeavesTheStaffTipAndTheHandInEightDirections(t *testing
 		e, _ = mw.entity(hero)
 		_, _, points := mw.pathFigure(b)
 		at := image.Pt(int(e.X), int(e.Y))
-		if want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[(castLaunchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
+		if want := launchDisplay(mw, b.from, at.Mul(256).Add(c.deltas[(launchPair(e.Facing)/2+4)%8])); len(points) == 0 || !withinPixel(points[0], want) {
 			t.Fatalf("%s: an ordered cast at facing %d starts at %v, want %v", c.name, e.Facing, points, want)
 		}
 		t.Logf("%s: ordered cast at facing %d leaves %v", c.name, e.Facing, points[0])

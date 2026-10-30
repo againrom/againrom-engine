@@ -183,7 +183,7 @@ func TestABurstIsBuiltOnlyWhereTheGameShipsOne(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mw := sbWorld(t)
-			mw.releaseAreaBursts(sim.AreaPaint{Spell: tc.spell, Cells: []sim.CellPoint{{X: 4, Y: 4}}})
+			mw.releaseObservedPaints([]sim.AreaPaint{{Spell: tc.spell, Cells: []sim.CellPoint{{X: 4, Y: 4}}}})
 			records := flightRecords(mw)
 			if got := len(records); got != tc.want {
 				t.Fatalf("spell %d built %d bursts, want %d", tc.spell, got, tc.want)

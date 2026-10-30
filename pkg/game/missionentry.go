@@ -187,7 +187,6 @@ func enterMission(r missionRequest, ports missionPorts) (preparedMap, error) {
 	// draws no spell art.
 	mw.projectiles = ports.install.missionProjectiles()
 	mw.bindFlightInputs()
-	mw.armBurstPhases()
 	ports.audio.wireEffects(mw, mv.Viewer)
 	if err := settleMission(r, mw, mv.Viewer, ms, fog, ports.profile); err != nil {
 		return preparedMap{}, err

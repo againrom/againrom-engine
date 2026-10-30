@@ -266,9 +266,10 @@ type DamageEvent struct {
 //
 // Cells is freshly allocated per stage, so a consumer may hold it.
 type AreaPaint struct {
-	Spell uint16
-	Owner uint32
-	Cells []CellPoint
+	Produced bool
+	Spell    uint16
+	Owner    uint32
+	Cells    []CellPoint
 }
 
 // CellPoint is one map cell, in the exported coordinates CellEffect already

@@ -4283,9 +4283,7 @@ func (mw *mapWorld) tickWithCastSink(sink func([]sim.CastEvent)) int {
 // keeps only the state a projection would have written, for a no-window
 // instrument advancing several ticks before it reads the viewer.
 func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSink ...func(sim.Report)) int {
-	if mw.files().recordTrailFlight && !mw.world.HasFlightInputs() {
-		mw.bindFlightInputs()
-	}
+	mw.bindFlightInputs()
 	if mw.mission != nil && mw.mission.state != nil && mw.mission.state.resumeBookWalk {
 		ms := mw.mission.state
 		ms.resumeBookWalk = false
@@ -4304,11 +4302,7 @@ func (mw *mapWorld) tickStep(sink func([]sim.CastEvent), project bool, reportSin
 	mw.world.SetEquipmentClassRule(mw.equipmentClassRule(equipped))
 	report := sim.StepReported(mw.world, cmds)
 	mw.world.SetEquipmentClassRule(nil)
-	for _, p := range report.FlightStarts {
-		if mw.spells().TrailSlot(p.Picture) >= 0 {
-			mw.shots.appendTrail(p.ID, image.Pt(int(p.X), int(p.Y)))
-		}
-	}
+	mw.keepFlightStarts(report.FlightStarts)
 	mw.noteRelocated(report.Relocations)
 	if mw.mission != nil && mw.mission.state != nil {
 		for _, a := range report.CreatedActors {

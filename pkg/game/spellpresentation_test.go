@@ -37,7 +37,7 @@ func presentationWorld(t *testing.T, second bool) *mapWorld {
 func castSegments(t *testing.T, second bool, row uint16) []int32 {
 	t.Helper()
 	mw := presentationWorld(t, second)
-	mw.releaseCast(sim.CastEvent{Caster: 1, Target: 2, AtCell: true, Spell: row, FromX: 1, FromY: 1, ToX: 9, ToY: 1}, 0)
+	releaseCastEvent(mw, sim.CastEvent{Caster: 1, Target: 2, AtCell: true, Spell: row, FromX: 1, FromY: 1, ToX: 9, ToY: 1})
 	var out []int32
 	for _, p := range mw.world.SavedProjectiles().Items {
 		out = append(out, p.ActionSegments)

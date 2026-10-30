@@ -31,7 +31,7 @@ func TestFlightInputsUseRawRegistryWithoutArtOrPictureCeiling(t *testing.T) {
 			i("TileSize", 2), i("CenterX", 8), i("CenterY", 10), i("SelectionX1", 2), i("SelectionX2", 22),
 			i("SelectionY1", 3), i("SelectionY2", 27)}),
 	}
-	in, err := loadFlightInputs(src, data.FirstSpellPresentation())
+	in, err := loadFlightInputs(src, data.FirstSpellPresentation(), firstGameFiles.flight)
 	if err != nil || in == nil {
 		t.Fatalf("raw inputs: %v, %v", in, err)
 	}
@@ -51,7 +51,7 @@ func TestFlightInputsUseRawRegistryWithoutArtOrPictureCeiling(t *testing.T) {
 	}
 	delete(src, ProjectileRegistry)
 	delete(src, UnitRegistry)
-	if empty, err := loadFlightInputs(src, data.FirstSpellPresentation()); err != nil || empty == nil ||
+	if empty, err := loadFlightInputs(src, data.FirstSpellPresentation(), firstGameFiles.flight); err != nil || empty == nil ||
 		empty.Pictures[10].LifeDivisor != 200 || empty.Pictures[10].Present || len(empty.Classes) != 0 {
 		t.Fatalf("absent raw registries lost logical flight rules: %v, %v", empty, err)
 	}
@@ -96,7 +96,7 @@ func TestFlightInputsBindWithoutPresentationBundles(t *testing.T) {
 }
 
 func TestFlightInputsBindRawMapBeforeFirstTick(t *testing.T) {
-	in, err := loadFlightInputs(flightCatalogSource{}, data.FirstSpellPresentation())
+	in, err := loadFlightInputs(flightCatalogSource{}, data.FirstSpellPresentation(), firstGameFiles.flight)
 	if err != nil {
 		t.Fatal(err)
 	}
