@@ -58,7 +58,7 @@ func startupWindow(monW, monH int) (w, h int, whole bool) {
 }
 
 func configureStartupWindow(monW, monH int, goos string, windowed bool) {
-	applyWindowForm(windowPlan(monW, monH, goos, windowed))
+	applyWindow(GameWindow, windowPlan(monW, monH, goos, windowed))
 }
 
 // monitorSize reports the current monitor's size in the device-independent

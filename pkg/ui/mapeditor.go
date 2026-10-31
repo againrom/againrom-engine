@@ -826,9 +826,7 @@ func (e *MapEditor) cellBoxLines(r image.Rectangle, c color.RGBA) []editorLine {
 func (e *MapEditor) Run() error {
 	ebiten.SetRunnableOnUnfocused(true)
 	ebiten.SetWindowClosingHandled(true)
-	ebiten.SetWindowSize(1280, 800)
-	ebiten.SetWindowSizeLimits(640, 480, -1, -1)
 	ebiten.SetWindowTitle("Againrom Map Editor")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ApplyWindowRow(EditorWindow)
 	return ebiten.RunGame(e)
 }

@@ -4340,8 +4340,7 @@ func (v *Viewer) placeholderImage() *ebiten.Image {
 // Ebitengine reports as termination rather than an error.
 func (v *Viewer) Run() error {
 	ebiten.SetWindowTitle(v.title)
-	ebiten.SetWindowSize(DefaultWindowW, DefaultWindowH)
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	ApplyWindowRow(ViewerWindow)
 
 	if err := ebiten.RunGame(v); err != nil && err != ebiten.Termination {
 		return err

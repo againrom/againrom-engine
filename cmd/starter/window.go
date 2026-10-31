@@ -27,13 +27,15 @@ var desktop = struct {
 	run     func(ebiten.Game) error
 }{ui.SetWindowIcon, ebiten.RunGame}
 
+// starterWindow is the size the starter's layout is drawn for, fixed.
+var starterWindow = ui.WindowRow{W: winW, H: winH}
+
 func runWindow(a *app) error {
 	if a.deps.pathDialog == nil {
 		a.deps.pathDialog = pathdialog.Show
 	}
-	ebiten.SetWindowSize(winW, winH)
 	ebiten.SetWindowTitle(a.t(cWindowTitle, a.starterVersion))
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
+	ui.ApplyWindowRow(starterWindow)
 	ebiten.SetTPS(30)
 	ebiten.SetRunnableOnUnfocused(true)
 	desktop.setIcon(appicon.Images(appicon.Starter))
