@@ -1,65 +1,72 @@
 package archtest
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 )
 
-func pictureLiteralTests(t *testing.T, files map[string]string) []string {
+func pictureTests(t *testing.T, files map[string]string) string {
 	t.Helper()
-	picture := func(x ast.Expr) bool {
-		switch x := x.(type) {
-		case *ast.Ident:
-			return x.Name == "Picture" || x.Name == "picture"
-		case *ast.SelectorExpr:
-			return x.Sel.Name == "Picture"
-		}
-		return false
+	got, err := PictureConstantTests(files)
+	if err != nil {
+		t.Fatal(err)
 	}
-	number := func(x ast.Expr) bool {
-		lit, ok := x.(*ast.BasicLit)
-		return ok && lit.Kind == token.INT
-	}
-	var out []string
-	for name, source := range files {
-		if !strings.HasPrefix(name, "pkg/sim/") && !strings.HasPrefix(name, "pkg/game/") {
-			continue
-		}
-		f, err := parser.ParseFile(token.NewFileSet(), name, source, parser.SkipObjectResolution)
-		if err != nil {
-			t.Fatal(err)
-		}
-		ast.Inspect(f, func(n ast.Node) bool {
-			if b, ok := n.(*ast.BinaryExpr); ok && (b.Op == token.EQL || b.Op == token.NEQ) &&
-				(picture(b.X) && number(b.Y) || number(b.X) && picture(b.Y)) {
-				out = append(out, name)
-			}
-			return true
-		})
-	}
-	sort.Strings(out)
-	return out
+	return strings.Join(got, ",")
 }
 
-func TestPictureLiteralScanNamesEachTest(t *testing.T) {
-	got := pictureLiteralTests(t, map[string]string{
-		"pkg/sim/a.go":   "package sim\nfunc f(p P) bool { return p.Picture == 20 }\n",
-		"pkg/game/b.go":  "package game\nfunc g(picture int32) bool { return 51 != picture }\n",
-		"pkg/game/c.go":  "package game\n// p.Picture == 20\nfunc h(p P) bool { return p.Picture < 0 || p.Picture == n }\n",
-		"pkg/rules/d.go": "package rules\nfunc k(p P) bool { return p.Picture == 30 }\n",
+const pictureHeader = "package game\nimport pkgrules \"againrom/pkg/rules\"\nconst deformation = 7\nconst (\n\tfirst = iota\n\tsecond\n)\n"
+
+func TestPictureConstantScanNamesEachShape(t *testing.T) {
+	shapes := []struct {
+		name, source string
+		line         int
+	}{
+		{"equality with a named constant", "func f(p P) bool { return p.Picture == deformation }", 1},
+		{"equality with a literal", "func f(p P) bool { return p.Picture == 20 }", 1},
+		{"inequality with a literal", "func f(p P) bool { return 51 != picture }", 1},
+		{"inequality with a named constant", "func f(picture int) bool { return second != picture }", 1},
+		{"constant on the left", "func f(p P) bool { return deformation == p.Picture }", 1},
+		{"conversion around the picture", "func f(p P) bool { return int(p.Picture) == deformation }", 1},
+		{"conversion around the constant", "func f(p P) bool { return p.Picture == int32(deformation) }", 1},
+		{"parenthesised picture", "func f(p P) bool { return (picture) == 7 }", 1},
+		{"case arm with a literal", "func f(p P) int {\nswitch p.Picture {\ncase 7:\nreturn 1\n}\nreturn 0 }", 3},
+		{"case arm with a named constant", "func f(picture int) int {\nswitch picture {\ncase deformation:\nreturn 1\n}\nreturn 0 }", 3},
+		{"constant reached through an import", "func f(p P) bool { return p.Picture == pkgrules.Deformation }", 0},
+		{"ordered range checks", "func f(p P) bool { return p.Picture < 0 || p.Picture < 1 }", 0},
+		{"nil test", "func f(picture *int) bool { return picture == nil }", 0},
+		{"two values", "func f(a, b P) bool { return a.Picture != b.Picture }", 0},
+		{"a variable that is no constant", "func f(p P, n int) bool { return p.Picture == n }", 0},
+		{"a selector that is no import", "func f(p, q P) bool { return p.Picture == q.deformation }", 0},
+		{"another name", "func f(p P) bool { return p.Kind == 7 }", 0},
+		{"switch on another name", "func f(p P) int {\nswitch p.Kind {\ncase 7:\nreturn 1\n}\nreturn 0 }", 0},
+		{"a comment", "// p.Picture == 20\nfunc f() {}", 0},
+	}
+	for _, s := range shapes {
+		want := ""
+		if s.line > 0 {
+			want = fmt.Sprintf("pkg/game/x.go:%d", 7+s.line)
+		}
+		if got := pictureTests(t, map[string]string{"pkg/game/x.go": pictureHeader + s.source + "\n"}); got != want {
+			t.Errorf("%s: PictureConstantTests = %q, want %q", s.name, got, want)
+		}
+	}
+}
+
+func TestPictureConstantScanReadsAConstantThroughAnImport(t *testing.T) {
+	got := pictureTests(t, map[string]string{
+		"pkg/rules/a.go": "package rules\nconst Deformation = 7\nfunc f(p P) bool { return p.Picture == 30 }\n",
+		"pkg/game/x.go":  pictureHeader + "func f(p P) bool { return p.Picture == pkgrules.Deformation }\n",
+		"pkg/sim/b.go":   "package sim\nfunc g(p P) bool { return p.Picture == 51 }\n",
+		"cmd/tool/c.go":  "package main\nconst k = 4\nfunc h(picture int) bool { return picture != k }\n",
+		"pkg/ui/d.go":    "package ui\nfunc i(picture int) bool { return picture == k }\n",
 	})
-	if strings.Join(got, ",") != "pkg/game/b.go,pkg/sim/a.go" {
-		t.Fatalf("pictureLiteralTests = %v", got)
+	if want := "cmd/tool/c.go:3,pkg/game/x.go:8,pkg/sim/b.go:2"; got != want {
+		t.Fatalf("PictureConstantTests = %q, want %q (pkg/rules is exempt, and k is no constant of pkg/ui)", got, want)
 	}
 }
 
-// A projectile picture's capabilities are pkg/rules' picture rows: no source
-// in pkg/sim or pkg/game tests a picture against a number.
 func TestPictureCapabilitiesAreRows(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -76,7 +83,11 @@ func TestPictureCapabilitiesAreRows(t *testing.T) {
 	if _, ok := files["pkg/sim/savedcontinuation.go"]; !ok {
 		t.Fatal("pkg/sim/savedcontinuation.go is missing; the scan guards nothing")
 	}
-	for _, file := range pictureLiteralTests(t, files) {
-		t.Errorf("%s tests a projectile picture against a number; read rules.PictureCapabilityOf", file)
+	got, err := PictureConstantTests(files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, at := range got {
+		t.Errorf("%s tests a projectile picture against a number or a constant; read rules.PictureCapabilityOf", at)
 	}
 }

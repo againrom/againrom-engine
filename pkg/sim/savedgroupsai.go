@@ -45,7 +45,7 @@ func savedEscortBindingValid(o SavedActorOrder, entities []Entity, dead []origin
 // (DIV-4172), and LOAD keeps the state word its file holds until the Group
 // first decides.
 func (w *World) constructMissingOrders(g *SavedGroup, members []int) {
-	if order := w.savedRoute(g); !w.savedGroups.native && !w.SecondGame() || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
+	if order := w.savedRoute(g); !w.savedGroups.native && !w.groupRoute().constructsForOlderRegistry || order != 0 && order != 1 && order != 4 && order != 5 && order != 0x11 {
 		return
 	}
 	for _, i := range members {
@@ -145,9 +145,7 @@ func (w *World) savedAcquire(i int, o *SavedActorOrder) {
 		o.Raw[8] = 0
 	case e.HasAttackTarget:
 		o.Raw[8] = 5
-	case !w.SecondGame() && e.Owner != 0 && w.humanParticipantUnit(e):
-		// A human participant's unit with no target takes the heal arm, which
-		// leaves the order 0 unless it casts (AI-ACQUIRE-002, AI-349).
+	case w.groupRoute().humanHealArm && e.Owner != 0 && w.humanParticipantUnit(e):
 		o.Raw[8] = 0
 	default:
 		o.Raw[8] = 0xb
@@ -252,7 +250,7 @@ func (w *World) savedRoam(g *SavedGroup, members []int) {
 
 func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	members, complete := w.savedLiving(g)
-	guard := order == orderGuard && !w.SecondGame()
+	guard := order == orderGuard && w.groupRoute().guardOverMembers
 	if !complete || len(members) == 0 && !guard {
 		return
 	}

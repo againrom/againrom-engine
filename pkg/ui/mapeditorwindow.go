@@ -111,6 +111,7 @@ type editorView struct {
 	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
 	passability, hideBorder                                bool
 	heights                                                bool // the height numbers at the cell corners
+	playerColours                                          bool // each owned unit and structure under its player's colour
 }
 
 // SetBodyFont sets the plain font of rows, labels, values and report text.
@@ -390,6 +391,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"heightlabels", mark(e.view.heights, e.word("editor.view.heights"))},
 			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
 			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
+			{"playertint", mark(e.view.playerColours, e.word("editor.view.playertint"))},
 			{"report", e.word("editor.view.report")},
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
@@ -1299,6 +1301,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawHeightLabels(pic)
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
+	e.drawPlayerLegend(pic)
 	e.drawSidePanels(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)

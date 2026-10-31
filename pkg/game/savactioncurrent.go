@@ -1317,7 +1317,7 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if err := restoreAbsentSessionHead(ms.World, ms.savedDocument.Document, a.AbsentSessionHead); err != nil {
 		return err
 	}
-	if err := restoreCurrentCarrierAbsence(ms.World, ms.savedDocument.Document, a); err != nil {
+	if err := decodeWorldCarriersFrom(actionsRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
 	if a.Policy != nil && ms.savedDocument.WorldEffects != nil {

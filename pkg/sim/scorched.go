@@ -14,7 +14,7 @@ const scorchedSpanLen = 4
 func (w *World) ScorchedCells() []uint16 { return slices.Clone(w.scorchedCells) }
 
 func (w *World) scorchCells(spell uint16, cells []uint16) {
-	if spell != 2 && spell != 3 {
+	if !areaRow(spell).scorches {
 		return
 	}
 	for _, key := range cells {

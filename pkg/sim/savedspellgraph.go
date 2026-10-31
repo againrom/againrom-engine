@@ -185,7 +185,7 @@ func (w *World) paintSavedArea(i int) {
 	e := cellEffect{Key: d.Key, Spell: d.Spell, Mode: AreaModeCloud, Direction: v.AE48[2] >> 5}
 	if rule.Distribution == distributionWall {
 		e.Cells = w.wallCells(x, y, e.Direction)
-		if w.spellArm(d.Spell) == 19 {
+		if areaArmBlocks(w.spellArm(d.Spell)) {
 			e.Cells = w.skipOccupiedGround(e.Cells)
 		}
 	} else {
@@ -215,7 +215,7 @@ func (w *World) paintSavedArea(i int) {
 		w.recomputeSavedCell(key)
 	}
 	w.scorchCells(w.spellArm(d.Spell), e.Cells)
-	if w.spellArm(d.Spell) == 19 {
+	if areaArmBlocks(w.spellArm(d.Spell)) {
 		w.setWallCells(d.Cells, true)
 	}
 	w.refreshSavedPlaneBlocks()

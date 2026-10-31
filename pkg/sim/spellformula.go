@@ -55,21 +55,13 @@ func magnitudeUnder(r Rules, rule SpellRule, power int32) (int32, bool) {
 	return r.SpellFormulaAt(rules.FormulaMagnitude, rule.ID, power)
 }
 
-func MagnitudeArm(id uint16) bool {
-	switch id {
-	case 5, 7, 8, 10, 12, 16, 17, 18, 22, 23, 24, 27, 28:
-		return true
-	}
-	return false
-}
+func MagnitudeArm(id uint16) bool { return int(id) < len(magnitudeArms) && magnitudeArms[id] }
 
-func DurationArm(id uint16) bool {
-	switch id {
-	case 5, 10, 15, 16, 18, 20, 22, 23, 24, 27, 28:
-		return true
-	}
-	return false
-}
+func DurationArm(id uint16) bool { return int(id) < len(durationArms) && durationArms[id] }
+
+var magnitudeArms = [...]bool{5: true, 7: true, 8: true, 10: true, 12: true, 16: true, 17: true, 18: true, 22: true, 23: true, 24: true, 27: true, 28: true}
+
+var durationArms = [...]bool{5: true, 10: true, 15: true, 16: true, 18: true, 20: true, 22: true, 23: true, 24: true, 27: true, 28: true}
 
 func (w *World) rangeSpan(rule SpellRule) (lo, hi int64) {
 	lo, hi = 255, 0

@@ -220,12 +220,9 @@ func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 	switch rule.arm() {
 	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
 		return spellLastingTicksUnder(r, rule, power)
-	case 8:
-		// The second game's Poison Cloud effect lasts its Duration column on
-		// the 1.025 law (R2-ENGINE-024).
-		if rule.Second {
-			return spellLastingTicksUnder(r, rule, power)
-		}
+	}
+	if rule.Second && areaRow(rule.arm()).secondLasting {
+		return spellLastingTicksUnder(r, rule, power)
 	}
 	return rule.EffectDuration
 }

@@ -25,10 +25,11 @@ const (
 	shotClassBat    = 70 // row 7, whose draw arm blits no sheet
 	shotClassPlain  = 1  // no projectile at all
 
-	shotPictureArrow = 1
-	shotPictureBat   = 7
-	shotArcherDelay  = 2
-	shotLateDelay    = 6
+	shotPictureArrow           = 1
+	shotPictureBat             = 7
+	unitShotDeformationPicture = 7
+	shotArcherDelay            = 2
+	shotLateDelay              = 6
 )
 
 // shotArchive loads the fixture classes and projectile art: an indexed arrow
@@ -478,7 +479,7 @@ func TestStoneHeldSwingDoesNotReleaseUnitShots(t *testing.T) {
 		SpellDuration: 1, EffectKind: sim.EffectAbsorption, EffectMode: sim.EffectDuration, EffectMagnitude: 5}
 	mw := shotWorld(t, units, set, []sim.SpellRule{rule}, shooter, shotVictim(2, 5, 4), caster)
 	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), secondGameFiles.flight.FlightProfile, flightClassRule,
-		syntheticPictureRows(set), syntheticClassRows(units)))
+		syntheticPictureRows(mw.spells().Game, set), syntheticClassRows(units)))
 	if why := mw.world.BookSpellRefusal(3, 1, 20); why != "" {
 		t.Fatalf("Stone Curse refused before admission: %s", why)
 	}

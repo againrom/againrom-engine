@@ -81,16 +81,7 @@ func (a *Assets) Binding(b int) Button {
 	if a == nil || b < 1 || b > ButtonCount {
 		return Button{}
 	}
-	return a.table().Buttons[b-1]
-}
-
-// table is the loaded table; hand-assembled assets that set none keep the
-// first game's bindings, as the menu had before tables existed.
-func (a *Assets) table() Actions {
-	if a.actions == (Actions{}) {
-		return FirstActions
-	}
-	return a.actions
+	return a.Layout.Actions.Buttons[b-1]
 }
 
 // Bindings is the whole table the assets were loaded with.
@@ -98,11 +89,11 @@ func (a *Assets) Bindings() Actions {
 	if a == nil {
 		return Actions{}
 	}
-	return a.table()
+	return a.Layout.Actions
 }
 
 // Locked reports whether button b is locked while the front end reports
 // hasSave.
 func (a *Assets) Locked(b int, hasSave bool) bool {
-	return a != nil && a.table().LoadNeedsSave && !hasSave && a.Binding(b).Action == ActionLoad
+	return a != nil && a.Layout.Actions.LoadNeedsSave && !hasSave && a.Binding(b).Action == ActionLoad
 }

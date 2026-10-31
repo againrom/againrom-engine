@@ -556,6 +556,8 @@
 "editor.heights.on" = "Height numbers on: height of the top-left corner minus 64; zoomed out, every few vertices"
 "editor.heights.off" = "Height numbers off"
 "editor.view.border" = "Map border"
+"editor.view.playertint" = "Player colours (Y)"
+"editor.keys.playertint" = "Y: tint units, buildings by owner"
 "editor.brush.terrain" = "Terrain"
 "editor.brush.height" = "Height"
 "editor.brush.objects" = "Objects"

@@ -66,16 +66,13 @@ func (w *World) engagedFoes(owner uint32, members []int) []int {
 // member that can take one a victim. Bodies leave the list while a living foe
 // is engaged, on the candidate sweep's own living-first rule. A group that is
 // not engaged, or is not under an order that fights, gets its list back
-// unchanged. In the first game only a foe already inside the clipped list
-// counts: a member whose foe left the circle scores nothing and the arm
-// releases it (AI-GRPGUARD-074, AI-REISSUE-077). The second game keeps every
-// engaged foe past the clip (DIV-1523).
+// unchanged. The game's profile says whether a foe must be in the clipped list.
 func (w *World) withEngagedFoes(owner uint32, members []int, order uint8, cands []int) []int {
 	if owner == 0 || owner == SelfSlot || !engagedOrder(order) {
 		return cands
 	}
 	foes := w.engagedFoes(owner, members)
-	if !w.SecondGame() {
+	if w.groupRoute().engagedFoesClipped {
 		foes = inCircle(foes, cands)
 	}
 	if len(foes) == 0 {
@@ -151,17 +148,16 @@ type noticeCircle struct {
 }
 
 // heldCircle is a native Group's circle: the living members' sub-cell centre
-// and the frozen base widened by the margin. The second game keeps it.
+// and the frozen base widened by the margin.
 func (w *World) heldCircle(base uint8, members []int) noticeCircle {
 	cx, cy := groupCentroid(w.entities, members, subCellMean)
 	return noticeCircle{x: cx, y: cy, r: int64(noticeRadius(base))}
 }
 
 // storedCircle is a registry Group's circle as live Guard clips it: the
-// centre cell +0x28 its geometry refresh stored and the working radius +0x2d
-// (AI-740, AI-741). The second game keeps heldCircle.
+// centre cell +0x28 its geometry refresh stored and the working radius +0x2d.
 func (w *World) storedCircle(g *SavedGroup, members []int) noticeCircle {
-	if w.SecondGame() {
+	if w.groupRoute().heldCircle {
 		return w.heldCircle(g.AI[0x38], members)
 	}
 	return noticeCircle{x: int32(g.AI[0x28]), y: int32(g.AI[0x29]), r: int64(g.AI[0x2d])}
@@ -219,7 +215,7 @@ func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle,
 		return
 	}
 	foes := w.engagedFoes(owner, members)
-	if len(foes) != 0 && !w.SecondGame() {
+	if len(foes) != 0 && w.groupRoute().engagedFoesClipped {
 		foes = inCircle(foes, w.engagedCircle(owner, order, circle, members))
 	}
 	if len(foes) == 0 {

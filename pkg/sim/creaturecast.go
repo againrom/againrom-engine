@@ -11,42 +11,109 @@ const (
 	creatureAimCaster                        // a cast at the caster itself
 	creatureAimVictimCell                    // a cast at the victim's cell
 	creatureAimStepCell                      // a cast at the cell one step toward the victim
+	creatureAimScanCell                      // a cast at the first open cell around the victim
 )
 
-// creatureAimOf is the arm table: seven ids at the victim, nine at the caster,
-// eight at the victim's cell, Acid Stream and Teleport at the cell next to the
-// caster, and two at nothing. None of the 28 is aimed at an ally.
-func creatureAimOf(id uint32) creatureAim {
-	switch id {
-	case 1, 11, 13, 14, 20, 27, 28:
-		return creatureAimVictim
-	case 5, 6, 10, 15, 16, 18, 22, 23, 24:
-		return creatureAimCaster
-	case 2, 3, 7, 8, 12, 17, 19, 21:
-		return creatureAimVictimCell
-	case 9, 26:
-		return creatureAimStepCell
+// creatureAimProfile is a game's creature slot-cast aim: the aim of each key,
+// what the key is, and the planner's gates around the aim.
+type creatureAimProfile struct {
+	aims []creatureAim
+	// byArm: the key is the drawn row's first-game arm; else the drawn id
+	// itself, with no Spells column read (R2-ENGINE-653).
+	byArm bool
+	// scanBeyond: a scan aim casts only when caster and victim stand more
+	// than this many cells apart (R2-ENGINE-651, R2-ENGINE-654).
+	scanBeyond int64
+	// offMapVictimStops: a victim off the map stops the planner before the
+	// draw, with no attack (R2-ENGINE-655, DIV-4385).
+	offMapVictimStops bool
+}
+
+var firstGameCreatureAim = creatureAimProfile{aims: creatureAims[:], byArm: true}
+
+var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2, offMapVictimStops: true}
+
+func (w *World) creatureAimProfile() *creatureAimProfile {
+	if w.SecondGame() {
+		return &secondGameCreatureAim
+	}
+	return &firstGameCreatureAim
+}
+
+func (p *creatureAimProfile) aimOf(key uint32) creatureAim {
+	if key < uint32(len(p.aims)) {
+		return p.aims[key]
 	}
 	return creatureAimNone
 }
 
-// creatureAim is the aim of the table row id. A shared row takes its arm's
-// aim. A row with no singular arm is aimed by its own columns: a unit-target
-// row at the victim, an area row at the victim's cell (DIV-2619).
+// creatureAimOf is the first game's arm table: seven ids at the victim, nine
+// at the caster, eight at the victim's cell, Acid Stream and Teleport at the
+// cell next to the caster, and two at nothing. None is aimed at an ally.
+func creatureAimOf(id uint32) creatureAim { return firstGameCreatureAim.aimOf(id) }
+
+// secondCreatureAims is the second game's 29 cells by id; 22 aims at nothing
+// (R2-ENGINE-653).
+var secondCreatureAims = [...]creatureAim{
+	1: creatureAimVictim, 5: creatureAimVictim, 10: creatureAimVictim, 11: creatureAimVictim, 16: creatureAimVictim,
+	18: creatureAimVictim, 26: creatureAimVictim, 28: creatureAimVictim, 29: creatureAimVictim,
+	4: creatureAimCaster, 8: creatureAimCaster, 12: creatureAimCaster, 13: creatureAimCaster, 19: creatureAimCaster,
+	20: creatureAimCaster, 21: creatureAimCaster, 24: creatureAimCaster, 25: creatureAimCaster, 27: creatureAimCaster,
+	2: creatureAimVictimCell, 3: creatureAimVictimCell, 6: creatureAimVictimCell, 7: creatureAimVictimCell,
+	14: creatureAimVictimCell, 15: creatureAimVictimCell, 17: creatureAimVictimCell,
+	9: creatureAimStepCell, 23: creatureAimScanCell,
+}
+
+var creatureAims = [...]creatureAim{
+	1: creatureAimVictim, 11: creatureAimVictim, 13: creatureAimVictim, 14: creatureAimVictim,
+	20: creatureAimVictim, 27: creatureAimVictim, 28: creatureAimVictim,
+	5: creatureAimCaster, 6: creatureAimCaster, 10: creatureAimCaster, 15: creatureAimCaster, 16: creatureAimCaster,
+	18: creatureAimCaster, 22: creatureAimCaster, 23: creatureAimCaster, 24: creatureAimCaster,
+	2: creatureAimVictimCell, 3: creatureAimVictimCell, 7: creatureAimVictimCell, 8: creatureAimVictimCell,
+	12: creatureAimVictimCell, 17: creatureAimVictimCell, 19: creatureAimVictimCell, 21: creatureAimVictimCell,
+	9: creatureAimStepCell, 26: creatureAimStepCell,
+}
+
+// creatureAim is the aim of a drawn id in the world's game. By arm, a row
+// takes its arm's aim and an id with no row its own.
 func (w *World) creatureAim(id uint32) creatureAim {
-	rule, ok := w.findSpell(id)
-	if !ok {
-		return creatureAimOf(id)
+	p := w.creatureAimProfile()
+	if !p.byArm {
+		return p.aimOf(id)
 	}
-	switch arm := rule.arm(); {
-	case arm != ArmNone:
-		return creatureAimOf(uint32(arm))
-	case rule.TargetsUnit:
-		return creatureAimVictim
-	case rule.Area:
-		return creatureAimVictimCell
+	if rule, ok := w.findSpell(id); ok {
+		return p.aimOf(uint32(rule.arm()))
 	}
-	return creatureAimNone
+	return p.aimOf(id)
+}
+
+// creatureScanCell is the first cell of the 3 by 3 around the victim, rows
+// outer and columns inner, where the caster's whole footprint is open terrain,
+// and whether the scan found one. The packed cell 0 is no cell
+// (R2-ENGINE-654, DIV-4386).
+func (w *World) creatureScanCell(caster, victim Entity) (int32, int32, bool) {
+	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: victim.X, y: victim.Y}) <= w.creatureAimProfile().scanBeyond {
+		return 0, 0, false
+	}
+	for y := victim.Y - 1; y <= victim.Y+1; y++ {
+		for x := victim.X - 1; x <= victim.X+1; x++ {
+			if w.terrainOpenFootprint(caster, x, y) {
+				return x, y, x != 0 || y != 0
+			}
+		}
+	}
+	return 0, 0, false
+}
+
+// creatureKeepsPick is the planner's distance gate: a pick aimed by the scan
+// is dropped at or within the profile's distance, and the attack follows.
+func (w *World) creatureKeepsPick(i int, victim EntityID, id uint32) bool {
+	vi := indexOfEntity(w.entities, victim)
+	if id == 0 || vi < 0 || w.creatureAim(id) != creatureAimScanCell {
+		return id != 0
+	}
+	c, v := w.entities[i], w.entities[vi]
+	return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.creatureAimProfile().scanBeyond
 }
 
 // creatureStepCell is the cell one step from the caster toward the victim,
@@ -80,6 +147,9 @@ func (w *World) creatureAimOperands(i int, victim EntityID, id uint32) (target E
 	case creatureAimStepCell:
 		x, y = w.creatureStepCell(caster, v)
 		return 0, x, y, true, true
+	case creatureAimScanCell:
+		x, y, ok = w.creatureScanCell(caster, v)
+		return 0, x, y, true, ok
 	}
 	return 0, 0, 0, false, false
 }
@@ -96,7 +166,8 @@ func isRangeRefusal(refusal string) bool {
 // it. A cast out of range walks toward the victim and stays armed until it is
 // in range (MAGIC-239), and one drawn during a loaded strike waits for the
 // strike to end; a cast the engine refuses for any other reason leaves
-// the pass to the ordinary engage (DIV-1725). The result reports whether the
+// the pass to the ordinary engage (DIV-1725). The profile's gates stop it in
+// the second game's order (R2-ENGINE-655). The result reports whether the
 // selection took the pass.
 func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	e := w.entities[i]
@@ -106,8 +177,14 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !e.hasCreatureSpells() {
 		return w.mageEngageCast(i, victim)
 	}
+	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.creatureAimProfile().offMapVictimStops {
+		return true
+	}
 	w.engageDrew = append(w.engageDrew, e.ID)
 	id := w.creatureSpellPick(e)
+	if !w.creatureKeepsPick(i, victim, id) {
+		id = 0
+	}
 	if w.actorCastBusy(i) {
 		w.creatureReplaceCastOrder(i, id, victim)
 		return false
@@ -121,7 +198,8 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	}
 	target, x, y, atCell, ok := w.creatureAimOperands(i, victim, id)
 	if !ok {
-		return false
+		// A scan with no cell ends the call with no attack (R2-ENGINE-655).
+		return indexOfEntity(w.entities, victim) >= 0
 	}
 	w.dropCastApproach(i)
 	refusal := w.creatureCastRefusal(i, target, x, y, atCell, id, false)

@@ -56,6 +56,7 @@ func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 	secondTownSteps(t, app, 200)
 	mark("square")
 	secondShopActivate(t, f, app, "SHOP")
+	secondTownSteps(t, app, 200)
 	mark("shop")
 	f.Town.gold = 5000
 	secondShopActivate(t, f, app, "ITEM 1", "BUY")
@@ -114,7 +115,10 @@ func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 // archive: each decodes, Kin1 excepted, which the archive lacks (DIV-4271).
 func TestReleaseSecondTownRoomSoundKeysResolve(t *testing.T) {
 	archives := secondGameRoot(t)
-	bank := &SoundBank{src: archives.Containers.Fork()}
+	bank := OpenSounds(archives.Root)
+	if bank == nil {
+		t.Fatal("the root's sound archive does not open")
+	}
 	absent := map[string]bool{"town_kaarg/inn/kin1.wav": true}
 	for _, name := range []string{"rom2-town1", "rom2-town2", "rom2-town3"} {
 		for _, room := range []string{"shop", "inn"} {

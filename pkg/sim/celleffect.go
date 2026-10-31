@@ -127,7 +127,7 @@ func (w *World) placeCellEffect(key uint16, spell uint16, life uint16) bool {
 	if spell == 0 || life == 0 {
 		return false
 	}
-	if spell != 3 && w.anchorFull(key) {
+	if !areaRow(spell).uncapped && w.anchorFull(key) {
 		return false
 	}
 	at := len(w.effects)
@@ -342,7 +342,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		e.Direction = current.Direction
 		e.Current = &CurrentAreaPayload{Radius: current.Radius, Payload: current.Payload}
 	}
-	if rule.arm() == 4 && hasCaster {
+	if areaRow(rule.arm()).sacrifice && hasCaster {
 		if ci := indexOfEntity(w.entities, caster); ci >= 0 {
 			base, spread := sacrificeDamage(w.entities[ci], power)
 			e.DamageMin, e.DamageMax = base, base+spread
@@ -432,7 +432,7 @@ func (w *World) addAreaEffect(e cellEffect) bool {
 		release()
 		w.refreshSavedPlaneBlocks()
 	}
-	if w.spellArm(e.Spell) == 19 {
+	if areaArmBlocks(w.spellArm(e.Spell)) {
 		w.setWallCells(e.Cells, true)
 	}
 	return true
@@ -443,7 +443,7 @@ func (w *World) clearAreaCells(e cellEffect) {
 	if e.Mode != areaModeCloud {
 		return
 	}
-	if w.spellArm(e.Spell) == 19 {
+	if areaArmBlocks(w.spellArm(e.Spell)) {
 		w.setWallCells(e.Cells, false)
 	}
 	for _, key := range e.Cells {
@@ -859,7 +859,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// replacement/refresh rules (MAGIC-AREAAPPLY-038, UNIT-AREADIRECT-072).
 
 				applied := false
-				if rule.arm() == 2 {
+				if areaRow(rule.arm()).footprint {
 					// MAGIC-FIREDIV-047 divides the copied base and spread bytes
 					// independently by the actor footprint area. Reconstruct the
 					// endpoint only afterwards, so their remainders cannot carry.
@@ -883,16 +883,13 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 					continue
 				}
 				w.markSpellEffect(i, rule.ID)
-				// NO CAST AWARD IS PAID HERE (DIV-238). One was, per application,
-				// and it paid nothing for the six cloud and wall rows, which reach
-				// this walk only on a later pulse whose call passed the award over,
-				// and nothing for any area row whose landing reached no unit.
-				// castSpell and castBookAt pay the cast's own single award.
+				// NO CAST AWARD IS PAID HERE (DIV-238): castSpell and castBookAt
+				// pay the cast's own single award.
 				// A first-game Darkness hit runs the blow hook alone: turn
 				// flag, remembered cell and diplomacy flip, and no order. A
 				// pursuit of the caster comes only from a later group pass
 				// that finds it inside the circle (AI-707, MAGIC-LIGHTDARK-044).
-				if rule.arm() == 17 && ci >= 0 && ci != i {
+				if areaRow(rule.arm()).blow && ci >= 0 && ci != i {
 					if w.SecondGame() {
 						w.orderAttack(i, w.entities[ci].ID)
 					} else {
@@ -901,7 +898,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				}
 			}
 		}
-		if e.Mode != areaModeCloud && rule.arm() != 19 && rule.Damaging {
+		if e.Mode != areaModeCloud && !areaRow(rule.arm()).inert && rule.Damaging {
 			w.applyStructureSpellAt(x, y, rule, power)
 		}
 	}

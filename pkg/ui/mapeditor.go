@@ -37,7 +37,7 @@ type InspectionRecord struct {
 	Preview        *terrain.StaticFrame
 	Lines          []InspectionLine
 	References     []InspectionReference
-	Player, Group  int // a unit's owner slot and group number; 0 is none
+	Player, Group  int // a unit's or structure's owner slot and a unit's group number; 0 is none
 	// ScriptID is the number a script parameter names a unit or structure
 	// by; 0 for any other record.
 	ScriptID int
@@ -611,7 +611,7 @@ func (e *MapEditor) Update() error {
 		for _, k := range []struct {
 			key  ebiten.Key
 			name string
-		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}, {ebiten.KeyV, "heightlabels"}, {ebiten.KeyZ, "passview"}} {
+		}{{ebiten.KeyC, "clone"}, {ebiten.KeyDelete, "delete"}, {ebiten.KeyE, "field"}, {ebiten.KeyS, "sack"}, {ebiten.KeyD, "drop"}, {ebiten.KeyG, "goals"}, {ebiten.KeyT, "terrain"}, {ebiten.KeyH, "height"}, {ebiten.KeyB, "objects"}, {ebiten.KeyQ, "passability"}, {ebiten.KeyLeftBracket, "radiusdown"}, {ebiten.KeyRightBracket, "radiusup"}, {ebiten.KeyN, "new"}, {ebiten.KeyU, "unit"}, {ebiten.KeyJ, "structure"}, {ebiten.KeyK, "stock"}, {ebiten.KeyI, "recipe"}, {ebiten.KeyP, "players"}, {ebiten.KeyA, "player"}, {ebiten.KeyF5, "testplay"}, {ebiten.KeyM, "metadata"}, {ebiten.KeyX, "pages"}, {ebiten.KeyW, "package"}, {ebiten.KeyF1, "help"}, {ebiten.KeyF2, "scripts"}, {ebiten.KeyL, "drawarea"}, {ebiten.KeyV, "heightlabels"}, {ebiten.KeyZ, "passview"}, {ebiten.KeyY, "playertint"}} {
 			if native.justPressed(k.key) && !native.pressed(ebiten.KeyControl) {
 				_ = e.Key(k.name)
 			}
@@ -673,6 +673,7 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 			v.canvas = ebiten.NewImage(v.frameW, v.frameH)
 		}
 		v.canvas.Clear()
+		e.applyPlayerTint()
 		v.drawFrame(v.canvas)
 		if f, ok := e.placement(); ok {
 			e.drawPlacement(v.canvas, f)

@@ -18,20 +18,42 @@ type areaArm struct {
 	// draws: the program samples its cells from the world's stream, so the
 	// painted cells cannot be produced again and a SAVE carries them.
 	draws bool
+	// Capabilities, one per consumer question.
+	inert         bool // no payload reaches an actor or a structure
+	unattributed  bool
+	uncapped      bool // not counted toward a cell's six records
+	sacrifice     bool // damage from the caster's pools at impact
+	footprint     bool // MAGIC-FIREDIV-047
+	onMiss        bool // a weapon rider applies without a living hit
+	blow          bool // MAGIC-LIGHTDARK-044
+	poison        bool
+	secondLasting bool // R2-ENGINE-024
+	scorches      bool
+	ambient       bool
+	overlay       areaOverlay // MAGIC-OVERLAYART-051
+}
+
+type areaOverlay struct {
+	drawn      bool
+	slot       uint8
+	secondPass bool
 }
 
 const noAreaLayer int8 = -1
 
 var areaArms = [...]areaArm{
-	{arm: 2, layer: noAreaLayer, clears: []uint16{7, 8}},
-	{arm: 3, layer: 0, clears: []uint16{3, 7, 8}},
-	{arm: 4, layer: noAreaLayer, stages: 2, stage: fireSacrificeStage},
-	{arm: 7, layer: 1, clears: []uint16{7, 3}},
-	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3},
+	{arm: 2, layer: noAreaLayer, clears: []uint16{7, 8}, footprint: true, onMiss: true, scorches: true},
+	{arm: 3, layer: 0, clears: []uint16{3, 7, 8}, uncapped: true, scorches: true, ambient: true,
+		overlay: areaOverlay{drawn: true, slot: 0}},
+	{arm: 4, layer: noAreaLayer, stages: 2, stage: fireSacrificeStage, sacrifice: true},
+	{arm: 7, layer: 1, clears: []uint16{7, 3}, overlay: areaOverlay{drawn: true, slot: 2, secondPass: true}},
+	{arm: 8, layer: 2, clears: []uint16{8}, yieldsTo: 3, poison: true, secondLasting: true,
+		overlay: areaOverlay{drawn: true, slot: 3, secondPass: true}},
 	{arm: 9, layer: noAreaLayer, stages: 6, stage: acidStreamStage},
-	{arm: 12, layer: 4, clears: []uint16{12, 17}},
-	{arm: 17, layer: 5, clears: []uint16{12, 17}},
-	{arm: 19, layer: 3, blocks: true, clears: []uint16{19}},
+	{arm: 12, layer: 4, clears: []uint16{12, 17}, unattributed: true},
+	{arm: 17, layer: 5, clears: []uint16{12, 17}, blow: true},
+	{arm: 19, layer: 3, blocks: true, clears: []uint16{19}, inert: true, unattributed: true,
+		overlay: areaOverlay{drawn: true, slot: 1}},
 	{arm: 21, layer: noAreaLayer, stages: 32, stage: meteorStormStage, draws: true},
 }
 
@@ -54,6 +76,11 @@ func areaArmOf(arm uint16) (areaArm, bool) {
 	return areaArm{layer: noAreaLayer}, false
 }
 
+func areaRow(arm uint16) areaArm {
+	a, _ := areaArmOf(arm)
+	return a
+}
+
 // AreaArmLayer is the cell record slot the arm's cloud takes, if it takes one.
 func AreaArmLayer(arm uint16) (uint8, bool) {
 	a, _ := areaArmOf(arm)
@@ -71,6 +98,22 @@ func layerSpell(arm uint16) bool {
 func areaArmBlocks(arm uint16) bool {
 	a, _ := areaArmOf(arm)
 	return a.blocks
+}
+
+func AreaArmInert(arm uint16) bool {
+	a, _ := areaArmOf(arm)
+	return a.inert
+}
+
+func AreaArmAmbient(arm uint16) bool {
+	a, _ := areaArmOf(arm)
+	return a.ambient
+}
+
+// AreaArmOverlay is the arm's overlay slot and pass, if it draws one.
+func AreaArmOverlay(arm uint16) (slot int, secondPass, ok bool) {
+	a, _ := areaArmOf(arm)
+	return int(a.overlay.slot), a.overlay.secondPass, a.overlay.drawn
 }
 
 // areaArmClearsLayers reports an arm whose landing clears some layer.

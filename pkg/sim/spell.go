@@ -419,10 +419,8 @@ const effectTimedModes = EffectDuration | EffectContinuous | EffectCharges
 // on victim ti at power — MAGIC-EFFECT-015's per-arm magnitudes and
 // MAGIC-SING-019 (d)'s duration scaling, in one place.
 //
-// IT IS THE ONE PLACE THEY ARE COMPUTED, so the admission predicate
-// (pointEffectRefusal) and the apply (ordinaryEffect) cannot come to disagree
-// about whether an effect can land at all. That disagreement is what let a
-// book cast pay its mana for a release the apply then refused.
+// The admission predicate (pointEffectRefusal) and the apply
+// (ordinaryEffect) both read it, so they agree whether an effect lands.
 //
 // IT READS THE VICTIM AND WRITES NOTHING. Protection[3] enters spell 20's
 // duration, so the function takes an index rather than a rule alone; nothing
@@ -444,32 +442,15 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 	}
 	kind, mode := rule.EffectKind, rule.EffectMode
 	mag, duration := rule.EffectMagnitude, spellDurationOf(w.rules, rule, power, durationEffect)
+	if a := int(rule.arm()); a < len(pointMagnitudes) && pointMagnitudes[a] != nil {
+		mag = pointMagnitudes[a](rule, mag, power)
+	}
 	switch rule.arm() {
-	case 5, 10, 16, 22:
-		mag = power / 2
-	case 18:
-		mag = power/10 + 3
-	case 24:
-		mag = power/15 + 1
-	case 7, 28:
-		mag = -(power/15 + 1)
-	case 8:
-		if rule.Second {
-			mag = mag * (power + 45) / 45
-		} else {
-			mag = PoisonMagnitude(mag, power)
-		}
-	case 12:
-		mag = power/30 + 1
-	case 17:
-		mag = -1 - power/30
 	case 20:
 		// THE MAGNITUDE IS THE ROW'S OWN COLUMN AND NOT A LITERAL HERE.
 		// MAGIC-EFFECT-015 names stone_curse as one of the two arms that
 		// write no `+0x40`, which is what makes the `Effects` column's own
-		// number — the shipped `absorbtion=+5` — the magnitude. A 5 written
-		// here read the same on the shipped table and made the column dead,
-		// which is the customisation seam contract.md:66 claims.
+		// number — the shipped `absorbtion=+5` — the magnitude.
 		//
 		// THE DURATION IS SCALED BY protectionEarth (MAGIC-SING-019 (d)),
 		// floored at one tick: the only place a resistance shortens an
@@ -495,6 +476,26 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 	}
 	return kind, mag, duration, mode
 }
+
+// pointMagnitudes: MAGIC-EFFECT-015.
+var pointMagnitudes = [...]func(rule SpellRule, mag, power int32) int32{
+	5: halfPower, 10: halfPower, 16: halfPower, 22: halfPower,
+	18: func(_ SpellRule, _, power int32) int32 { return power/10 + 3 },
+	24: func(_ SpellRule, _, power int32) int32 { return power/15 + 1 },
+	7:  slowMagnitude, 28: slowMagnitude,
+	8: func(rule SpellRule, mag, power int32) int32 {
+		if rule.Second {
+			return mag * (power + 45) / 45
+		}
+		return PoisonMagnitude(mag, power)
+	},
+	12: func(_ SpellRule, _, power int32) int32 { return power/30 + 1 },
+	17: func(_ SpellRule, _, power int32) int32 { return -1 - power/30 },
+}
+
+func halfPower(_ SpellRule, _, power int32) int32 { return power / 2 }
+
+func slowMagnitude(_ SpellRule, _, power int32) int32 { return -(power/15 + 1) }
 
 // pointEffectRefusal names the row-specific condition an ordinary apply
 // requires of its victim, or the empty string when the apply will land.
@@ -1357,7 +1358,7 @@ func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castOb
 	if !ok || !w.wornWeaponHoldsSpell(a) {
 		return
 	}
-	if !positiveLivingHit && rule.arm() != 2 {
+	if !positiveLivingHit && !areaRow(rule.arm()).onMiss {
 		return
 	}
 	if !w.weaponSpellApply(ai, ti, rule, a.WeaponSpellLevel, obs) {

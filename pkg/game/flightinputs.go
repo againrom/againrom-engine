@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
@@ -126,23 +127,23 @@ func (mw *mapWorld) bindFlightInputs() {
 	if profile.drawnClass {
 		rule = mw.drawnFlightClass
 	}
-	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), profile.FlightProfile, rule, syntheticPictureRows(mw.projectiles), syntheticClassRows(mw.units)))
+	mw.world.SetFlightInputs(buildFlightInputs(mw.spells(), profile.FlightProfile, rule, syntheticPictureRows(mw.spells().Game, mw.projectiles), syntheticClassRows(mw.units)))
 }
 
 func (mw *mapWorld) drawnFlightClass(e sim.Entity) int32 { return mw.spellClientClass(e.ID, e.Class) }
 
 // syntheticPictureRows: a sheet's row replaces its picture's row; a homing
 // row alone still homes.
-func syntheticPictureRows(set *terrain.EffectSet) []flightPictureRow {
+func syntheticPictureRows(game rules.SpellGame, set *terrain.EffectSet) []flightPictureRow {
 	if set == nil {
 		return nil
 	}
 	rows := make(map[int]flightPictureRow, len(set.Pictures)+len(set.Sheets))
 	for id := range set.Homing {
-		rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Drawn: shotDrawn(set, id)}
+		rows[id] = flightPictureRow{ID: int32(id), Present: set.HasPicture(id), Homes: set.Homes(id), Drawn: shotDrawn(game, set, id)}
 	}
 	for id, present := range set.Pictures {
-		rows[id] = flightPictureRow{ID: int32(id), Present: present, Homes: set.Homes(id), Drawn: shotDrawn(set, id)}
+		rows[id] = flightPictureRow{ID: int32(id), Present: present, Homes: set.Homes(id), Drawn: shotDrawn(game, set, id)}
 	}
 	for id, sheet := range set.Sheets {
 		if sheet != nil {

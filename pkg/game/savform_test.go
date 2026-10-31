@@ -229,6 +229,121 @@ func TestSaveFormKeepsTheEngineRecords(t *testing.T) {
 	}
 }
 
+// savedFormCase is one game's SAVE of one document kind.
+type savedFormCase struct {
+	name  string
+	f     *FrontEnd
+	s     Snapshot
+	label string
+	rows  savedForms
+	magic string
+}
+
+func savedFormCases(t *testing.T) []savedFormCase {
+	t.Helper()
+	town := currentTrainingCity(t)
+	town.Campaign = resolved(saveCampaign(), nil)
+	town.Town, town.Offered = saveTown(t), 20
+	townSnapshot, townLabel, err := town.Snapshot(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mission, _ := itemMutationOpen(t, 1, false)
+
+	second, _, _ := secondCampaignFixtureFiles(t, false)
+	second.Table = secondDollTable()
+	hero := mapload.PartyMember{ID: "hero", Name: "Aldor", PlayerCharacter: true, StartingHero: true}
+	hero.Hero.Skill[2] = 20
+	second.Carried = []mapload.PartyMember{hero}
+	c := secondShopSample()
+	c.current, c.available, c.room = partyPlace{2, 1}, []partyPlace{{2, 1}, {1, 10}}, secondTownShop
+	c.bank[768] = 10
+	*c.heroBag() = []sim.ItemInstance{secondDollAxe, secondDollStaff}
+	second.Town.second, second.Town.gold = c, 500
+	secondTown, secondLabel, err := second.Snapshot(false)
+	if err != nil {
+		t.Fatal("second game town:", err)
+	}
+	secondMission, _, _ := secondMissionLoadFile(t, secondMissionFile(secondMissionFixtureHero(), secondMissionStore(4, 0, -1)))
+	secondMissionSnapshot, secondMissionLabel, err := secondMission.Snapshot(true)
+	if err != nil {
+		t.Fatal("second game mission:", err)
+	}
+	return []savedFormCase{
+		{"first game town", town, townSnapshot, townLabel, firstSavedForms, "Asg&"},
+		{"first game mission", mission, snapshotCurrentObjects(t, mission), "mission", firstSavedForms, "Asg&"},
+		{"second game town", second, secondTown, secondLabel, secondSavedForms, "Bsg&"},
+		{"second game mission", secondMission, secondMissionSnapshot, secondMissionLabel, secondSavedForms, "Bsg&"},
+	}
+}
+
+// Each game's SAVE of each document kind is written by its saved form row:
+// without the row the SAVE of that game and kind alone refuses, and the
+// second game's file holds the tail its row's writer wrote.
+func TestEachGameAndDocumentKindTakesItsSavedFormRow(t *testing.T) {
+	cases := savedFormCases(t)
+	export := func(c savedFormCase) ([]byte, error) { return c.f.ExportCurrentSave(c.s, c.label) }
+	for _, c := range cases {
+		raw, err := export(c)
+		if err != nil || !bytes.HasPrefix(raw, []byte(c.magic)) {
+			t.Fatalf("%s: %v", c.name, err)
+		}
+	}
+	for _, c := range cases {
+		kind := savedFormKind(c.s)
+		row := c.rows[kind]
+		delete(c.rows, kind)
+		for _, other := range cases {
+			if _, err := export(other); (err != nil) != (other.name == c.name) {
+				c.rows[kind] = row
+				t.Fatalf("without the %s row the %s SAVE answers %v", c.name, other.name, err)
+			}
+		}
+		c.rows[kind] = row
+		if c.magic != "Bsg&" {
+			continue
+		}
+		marked := row
+		marked.tail = func(s Snapshot) (*sav.SecondTail, error) {
+			tail, err := row.tail(s)
+			if err == nil {
+				tail.PairTail = [2]uint32{0xfeed, 0xbeef}
+			}
+			return tail, err
+		}
+		c.rows[kind] = marked
+		for _, other := range cases[2:] {
+			raw, err := export(other)
+			if err != nil {
+				c.rows[kind] = row
+				t.Fatal(other.name, err)
+			}
+			doc, err := sav.DecodeDocumentData(raw)
+			if err != nil || doc.SecondTail == nil {
+				c.rows[kind] = row
+				t.Fatal(other.name, err)
+			}
+			if marks := doc.SecondTail.PairTail == [2]uint32{0xfeed, 0xbeef}; marks != (other.name == c.name) {
+				c.rows[kind] = row
+				t.Fatalf("with the %s row's tail writer marked, the %s file's tail holds %v", c.name, other.name, doc.SecondTail.PairTail)
+			}
+		}
+		c.rows[kind] = row
+	}
+}
+
+// A saved form whose records and engine leaf disagree refuses: the identity
+// form carries no leaf, and a form that writes other records carries one.
+func TestSavedFormRecordsAndLeafAgree(t *testing.T) {
+	doc := sav.DocumentData{Label: []byte("x")}
+	if _, _, err := (savedForm{records: sav.FirstGame, leaf: true}).write(nil, Snapshot{}, doc); err == nil {
+		t.Fatal("the identity form wrote an engine leaf")
+	}
+	if _, _, err := (savedForm{}).write(nil, Snapshot{}, doc); err == nil {
+		t.Fatal("a missing form wrote the engine's records")
+	}
+}
+
 // engineSaveDocument is the engine's own document a SAV carries: the
 // AgainromForm leaf of a second-game town file, else the file itself.
 func engineSaveDocument(t *testing.T, raw []byte) sav.DocumentData {

@@ -3179,7 +3179,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1677,
+		"longcommentgroups":      1674,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3612,7 +3612,18 @@ var Committed = Baseline{
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
 
+	// It rose for the saved form rows: savedForm, its holder rows and their
+	// sources in pkg/game/savform.go, the producer's leaf note, the row test
+	// in savform_test.go, internal/archtest/savedform_test.go, and this note.
+
+	// It rose for the creature aim profile: creatureAimProfile, its two
+	// rows, creatureScanCell and creatureKeepsPick in pkg/sim's
+	// creaturecast.go, the new test creatureaimprofile_test.go, the guard
+	// internal/archtest/creatureaim_test.go, and this note.
+
+	// It fell: the deformation picture is a capability row.
+
 	// The side panels' correction (category palettes, minimize, cell
-	// tooltips) and its merge with main are measured on the merged tree.
-	CommentBytes: 10086177,
+	// tooltips) and its merges with main are measured on the merged tree.
+	CommentBytes: 10100258,
 }

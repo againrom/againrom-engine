@@ -33,9 +33,9 @@ func (firstCampaignRules) captureMission(_ *FrontEnd, s *Snapshot) { s.noticeOpe
 
 func (firstCampaignRules) exportable(Snapshot) error { return nil }
 
-// saveForm: the first game's original reads the engine's own records.
-func (firstCampaignRules) saveForm(_ *FrontEnd, _ Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error) {
-	return doc, false, nil
+// saveForm writes doc in the first game's saved form of its kind.
+func (firstCampaignRules) saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error) {
+	return firstSavedForms[savedFormKind(s)].write(f, s, doc)
 }
 
 func (firstCampaignRules) refuseCompleted(f *FrontEnd, s Snapshot) error {

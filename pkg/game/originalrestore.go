@@ -415,7 +415,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 	tails, hasTails, cellRecords, hasCellRecords := src.tails, src.hasTails, src.cellRecords, src.hasCellRecords
 	spellEffects, hasSpellEffects, projectiles, hasProjectiles := src.spellEffects, src.hasSpellEffects, src.projectiles, src.hasProjectiles
 	buildings, hasBuildings, ground, hasGround, groundUnsupported := src.buildings, src.hasBuildings, src.ground, src.hasGround, src.groundUnsupported
-	diaryPlayerRec, diaryChars, session, hasSession := src.diaryPlayerRec, src.diaryChars, src.session, src.hasSession
+	session, hasSession := src.session, src.hasSession
 	holdings, pools, books, profiles := src.holdings, src.pools, src.books, src.profiles
 	// The opener installs the returned fog plane after prepare.
 	return func(m *alm.Map) (*originalFog, error) {
@@ -479,7 +479,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := admitOriginalActorRegistry(ms, registry, in.table, missionDocument); err != nil {
 				return err
 			}
-			if err := applyOriginalDiaries(ms, diaryPlayerRec, diaryChars, &r); err != nil {
+			if err := decodeWorldCarriersFrom(archiveLiving, carrierDecode{w: ms.World, ms: ms, src: src, report: &r}); err != nil {
 				return err
 			}
 			if err := applyOriginalSession(ms, session, hasSession, &r); err != nil {
@@ -491,7 +491,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := applyOriginalFacings(ms, sf.Actors, r.Party.SourceOffsets); err != nil {
 				return err
 			}
-			if err := applyOriginalDeadWithOrigins(ms, dead, &r, missionDocument, documentOrigins); err != nil {
+			if err := decodeWorldCarriersFrom(archiveDead, carrierDecode{w: ms.World, ms: ms, src: src, report: &r}); err != nil {
 				return err
 			}
 			if err := applyOriginalActorSpellbooks(ms, slices.DeleteFunc(slices.Clone(books), func(b sav.ActorSpellbook) bool { return !b.Corpse }), &r); err != nil {

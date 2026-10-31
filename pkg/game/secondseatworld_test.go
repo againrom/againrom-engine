@@ -43,7 +43,7 @@ func TestSecondSeatWorldKeepsTheEngineDocumentsLiveBank(t *testing.T) {
 			}
 			w.SetLoadedRecord(c.kind)
 			ms := &Mission{World: w, savedDocument: c.doc}
-			if err := seatWorldCarriers(carrierSeat{r: c.r, rules: secondCampaignRules{}, ms: ms}); err != nil {
+			if err := seatWorldCarriers(entrySeat, carrierSeat{r: c.r, rules: secondCampaignRules{}, ms: ms}); err != nil {
 				t.Fatal(err)
 			}
 			got, _ := w.ROM2ScenarioState()

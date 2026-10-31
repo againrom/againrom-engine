@@ -44,15 +44,12 @@ type EffectMark struct {
 	Phase         int
 }
 
-// The ten kinds that reach a builder, plus the two that reach the unit draw's
-// own by-kind arms instead (MAGIC-MARK-061, MAGIC-ACTOR-066). A kind is
-// `2*spellId + 8` and is stated here as the literal the original's tables carry.
+// The kinds that reach a builder, plus the two that reach the unit draw's
+// own by-kind arms (MAGIC-MARK-061, MAGIC-ACTOR-066).
 const (
 	MarkProtectionFire  = 0x12 // spell 5
-	MarkHeal            = 0x14 // spell 6
 	MarkPoisonCloud     = 0x18 // spell 8
 	MarkProtectionWater = 0x1c // spell 10
-	MarkDrainLife       = 0x1e // spell 11
 	MarkInvisibility    = 0x26 // spell 15 — no mark; the actor's own sprite arm
 	MarkProtectionAir   = 0x28 // spell 16
 	MarkShield          = 0x2c // spell 18

@@ -141,19 +141,6 @@ func TestSpellRuleLandsRefusesAStagedAreaWithNoProgram(t *testing.T) {
 	}
 }
 
-func TestCreatureAimOfARowWithNoArmFollowsItsColumns(t *testing.T) {
-	ice := secondRow(SpellRule{ID: 5, TargetsUnit: true, Damaging: true, DamageMin: 5, DamageMax: 10})
-	area := secondRow(SpellRule{ID: 16, Area: true, Distribution: distributionDiamond, Damaging: true, DamageMin: 10, DamageMax: 30})
-	summon := secondRow(SpellRule{ID: 25})
-	heal := secondRow(SpellRule{ID: 24, Restorative: true, TargetsUnit: true})
-	w := spWorld(t, 1, []SpellRule{ice, area, summon, heal})
-	for id, want := range map[uint32]creatureAim{5: creatureAimVictim, 16: creatureAimVictimCell, 25: creatureAimNone, 24: creatureAimCaster} {
-		if got := w.creatureAim(id); got != want {
-			t.Errorf("creatureAim(%d) = %d, want %d", id, got, want)
-		}
-	}
-}
-
 // The tests below hold every consumer of an attached effect to the row's arm:
 // a second-game effect is stored under its own row id.
 

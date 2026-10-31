@@ -17,15 +17,22 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's scripts, players, groups, units, sacks and structures as a tree with a search, in the toolbar's order and words; a row selects as a click on the map does. A toolbar entry opens its branch and that category's palette, which places or acts and no longer lists records; resting the pointer on a palette cell for a moment names it. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» and a group's Delete group included; a double click on its title opens it as a separate window. Each panel's < or > button, F6, F7 and the View menu minimize a panel to a narrow strip and restore it, the inner edges drag to resize, and the editor remembers both; a narrow window minimizes the right panel first.
+
+## 0.144.0
+
 ### For players
 
+- [ROM2] Monsters cast their spells as in the original: a monster with Summon now summons, and a monster's Teleport lands next to its target only from more than two cells away; closer in, it fights instead.
 - [ROM2] The shop and the inn in each town play their sounds: entering, buying, selling, a refused buy, putting items on the table, scrolling the shelves, undo and leaving in the shop; hiring, dismissing, a refused hire, talking and leaving in the inn.
 - [ROM2] A mage learns a spell by reading its book, as in the first game: use the book from the pack in a mission, or drop it on the mage in the shop. The book is used up; a fighter, a mage who knows the spell and a book of Slow are refused.
 - [ROM2] Lifting an item out of the pack in the shop no longer leaves its name in the empty slot.
 
 ### For map makers and modders
 
-- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's scripts, players, groups, units, sacks and structures as a tree with a search, in the toolbar's order and words; a row selects as a click on the map does. A toolbar entry opens its branch and that category's palette, which places or acts and no longer lists records; resting the pointer on a palette cell for a moment names it. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» and a group's Delete group included; a double click on its title opens it as a separate window. Each panel's < or > button, F6, F7 and the View menu minimize a panel to a narrow strip and restore it, the inner edges drag to resize, and the editor remembers both; a narrow window minimizes the right panel first.
+- [BASE] The map editor's View menu has Player colours (key Y): every unit and building is tinted in its player's colour, each player of the map has its own, and a box in the lower left corner of the map lists the players with their colours.
 
 ## 0.143.0
 

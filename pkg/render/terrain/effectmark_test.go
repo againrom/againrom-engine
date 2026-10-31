@@ -218,8 +218,8 @@ func TestTileSizeScalesEveryOffset(t *testing.T) {
 // TestMarkKindIsTheEvenPictureID — MAGIC-MARK-061: `kind = 2*spellId + 8`, the
 // even half of MAGIC-PIC-026's pair, checked at the ten marking spells.
 func TestMarkKindIsTheEvenPictureID(t *testing.T) {
-	want := map[int]int{5: MarkProtectionFire, 6: MarkHeal, 8: MarkPoisonCloud,
-		10: MarkProtectionWater, 11: MarkDrainLife, 15: MarkInvisibility,
+	want := map[int]int{5: MarkProtectionFire, 6: 0x14, 8: MarkPoisonCloud,
+		10: MarkProtectionWater, 11: 0x1e, 15: MarkInvisibility,
 		16: MarkProtectionAir, 18: MarkShield, 20: MarkStoneCurse,
 		22: MarkProtectionEarth, 23: MarkBless, 27: MarkCurse}
 	for spell, kind := range want {

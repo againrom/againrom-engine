@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -515,17 +516,13 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 		if !ok {
 			continue
 		}
-		arm, pass := 0, ui.SpellOverlayA // MAGIC-OVERLAYART-051
-		switch mw.world.SpellArm(e.Spell) {
-		case 3:
-		case 19:
-			arm = 1
-		case 7:
-			arm, pass = 2, ui.SpellOverlayB
-		case 8:
-			arm, pass = 3, ui.SpellOverlayB
-		default:
+		slot, second, drawn := sim.AreaArmOverlay(mw.world.SpellArm(e.Spell))
+		if !drawn {
 			continue
+		}
+		pass := ui.SpellOverlayA
+		if second {
+			pass = ui.SpellOverlayB
 		}
 		sheet := mw.projectiles.Sheet(picture)
 		owner := uint32(0)
@@ -543,7 +540,7 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 				cells = append(cells, overlayCell{})
 			}
 			cell := &cells[i]
-			bit := uint8(1 << arm)
+			bit := uint8(1 << slot)
 			cell.mask |= bit
 			if cell.drawable&bit != 0 || sheet == nil {
 				continue
@@ -553,7 +550,7 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 				continue
 			}
 			cell.drawable |= bit
-			cell.draws[arm] = ui.SpellBolt{
+			cell.draws[slot] = ui.SpellBolt{
 				Cell:  at,
 				To:    at,
 				Pos:   image.Pt(at.X*ui.ShotScale, at.Y*ui.ShotScale),
@@ -562,8 +559,8 @@ func (mw *mapWorld) areaEffectDraws(effects []sim.CellEffect, ents []sim.Entity)
 		}
 	}
 	for _, cell := range cells {
-		for arm, draw := range cell.draws {
-			if cell.drawable&(1<<arm) == 0 || arm == 3 && cell.mask&(1<<2) != 0 {
+		for slot, draw := range cell.draws {
+			if cell.drawable&(1<<slot) == 0 || slot == 3 && cell.mask&(1<<2) != 0 {
 				continue
 			}
 			out = append(out, draw)
@@ -669,7 +666,7 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 			continue
 		}
 		cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))
-		if p.Picture == unitShotDeformationPicture {
+		if rules.PictureCapabilityOf(set.Game, p.Picture).Deformation {
 			if !mw.projectiles.HasPicture(int(p.Picture)) {
 				continue
 			}

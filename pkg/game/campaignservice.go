@@ -32,7 +32,8 @@ type campaignService interface {
 	// refuseCompleted refuses a town save of a campaign already completed.
 	refuseCompleted(f *FrontEnd, s Snapshot) error
 	// saveForm writes a SAVE's engine document in the records the game's
-	// original reads; false when they are the engine's own records.
+	// original reads, by the game's saved form row of the document's kind;
+	// false when the form is the identity form.
 	saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error)
 	// recordProfile is the campaign's part of the campaign record a SAV
 	// carries: a record it states itself, that record's home word and the

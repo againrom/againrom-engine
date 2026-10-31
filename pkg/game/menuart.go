@@ -12,5 +12,5 @@ func LoadMainMenuArt(src terrain.EntrySource, p base.Profile) (*menu.Assets, err
 	if err != nil {
 		return nil, err
 	}
-	return filesOf(p.GameOf()).loadMenu(set)
+	return menu.Load(set, filesOf(p.GameOf()).menuLayout)
 }

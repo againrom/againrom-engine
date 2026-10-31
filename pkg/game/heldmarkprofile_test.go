@@ -185,7 +185,7 @@ func TestFirstGameHeldMarksDrawAsOnTheBase(t *testing.T) {
 			write()
 		}
 	}
-	for _, kind := range []int{terrain.MarkHeal, terrain.MarkDrainLife} {
+	for _, kind := range []int{terrain.MarkKind(6), terrain.MarkKind(11)} {
 		for c := 1; c <= healBurstLife; c++ {
 			for _, seed := range []uint32{0, 0x9e3779b9} {
 				mw.markElements = []markElement{{Entity: 2, Kind: kind, Picture: kind, Count: uint16(c),

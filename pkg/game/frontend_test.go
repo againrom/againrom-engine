@@ -132,7 +132,7 @@ func TestTheHeadlessCheckLineIsWhatItWas(t *testing.T) {
 	// Two hot indices, one index that names no button, and one plain zero.
 	mask := image.NewPaletted(image.Rect(0, 0, 4, 1), nil)
 	copy(mask.Pix, []byte{0x80, 0x00, 0xc0, 0x07})
-	assets := &menu.Assets{Mask: mask}
+	assets := &menu.Assets{Mask: mask, Layout: menu.FirstLayout}
 
 	buttons := map[int]bool{}
 	for x := 0; x < 4; x++ {
