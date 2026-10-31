@@ -1741,16 +1741,10 @@ func (f *FrontEnd) AdvanceLine(n int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ms, err := StartMission(f.Archives.Containers, n, f.Table, diff, MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
+	ms, err := f.startLineMission(n, diff)
 	if err != nil {
 		return "", err
 	}
-	// AdvanceLine bypasses MissionOpener, so install the same participant purse
-	// that door installs before asking the real completion path what follows.
-	// Without this handoff the headless owner-facing report would say 500 after
-	// mission 20 while the windowed route says 600: it would have discarded the
-	// fresh participant's 100 before applying the transition reward.
-	ms.World.SetPurse(sim.SelfSlot, uint32(f.Town.Gold()))
 	successor, completion := f.FinishMission(n, ms.Party, ms.World, ms.Start.IDs)
 	if successor < 0 {
 		return "", errors.New(completion)
@@ -1777,6 +1771,23 @@ func (f *FrontEnd) AdvanceLine(n int) (string, error) {
 		line += fmt.Sprintf("; hero health %d/%d, mana %d/%d, skill xp %v", e.HP, e.MaxHP, e.Mana, e.MaxMana, e.SkillXP)
 	}
 	return line, nil
+}
+
+// startLineMission starts mission n for AdvanceLine with the start party.
+// AdvanceLine bypasses MissionOpener, so the carrier set's line seat installs
+// the participant purse that door installs before the completion path is
+// asked what follows. Without it the headless report would say 500 after
+// mission 20 while the windowed route says 600: it would discard the fresh
+// participant's 100 before applying the transition reward.
+func (f *FrontEnd) startLineMission(n int, diff mapload.Difficulty) (*Mission, error) {
+	ms, err := StartMission(f.Archives.Containers, n, f.Table, diff, MissionParty(f.StartWeapon.Value(), f.Bodies, f.Table))
+	if err != nil {
+		return nil, err
+	}
+	if err := seatWorldCarriers(lineSeat, carrierSeat{r: missionRequest{n: n, town: f.Town}, ms: ms}); err != nil {
+		return nil, err
+	}
+	return ms, nil
 }
 
 // MissionLine is the headless report for a mission the check mode was asked

@@ -366,7 +366,7 @@ func startMission(r missionRequest, mv *MapView, addr string, diff mapload.Diffi
 // resume substitutes the saved world, anything else is seeded with the
 // between-mission purse.
 func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms *Mission, v *ui.Viewer) error {
-	if err := seatWorldCarriers(carrierSeat{r: r, rules: rules, ms: ms}); err != nil {
+	if err := seatWorldCarriers(entrySeat, carrierSeat{r: r, rules: rules, ms: ms}); err != nil {
 		return err
 	}
 	if r.fresh() {
@@ -385,19 +385,6 @@ func seatWorld(r missionRequest, rules campaignService, table *mapload.Table, ms
 		// save's last cadence before openMission projects its current tick.
 		v.RestoreScheduledLightClock(ms.World.Tick())
 		return nil
-	}
-	// Seed a fresh mission from the between-mission purse. Exact Player
-	// bindings have already restored current Money in fog.after; a
-	// participant shortcut must not overwrite it or invent a SelfSlot.
-	if ms.savedDocument == nil || ms.savedDocument.PlayerPurses == nil {
-		gold := uint32(r.town.Gold())
-		if r.initialPurse != nil {
-			gold = *r.initialPurse
-		}
-		ms.World.SetPurse(sim.SelfSlot, gold)
-	}
-	if d := r.town.knowledgeDiaries(); r.fresh() && len(d) != 0 {
-		ms.World.SetSavedDiaries(d)
 	}
 	if _, hasClock := ms.World.SessionClock(); hasClock && !r.fresh() {
 		// DIV-779: original SAV does not establish the incoming light

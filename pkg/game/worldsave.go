@@ -122,10 +122,7 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectSavedActorActions(state, &world, s.loadedDocument); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if err := projectSavedDiaries(state, &world); err != nil {
-		return sav.DocumentData{}, err
-	}
-	if err := projectDeadActors(state, &world, s.loadedDocument); err != nil {
+	if err := writeWorldCarriers(carrierSave{s: &s, state: state, world: &world}, graphStage); err != nil {
 		return sav.DocumentData{}, err
 	}
 	if err := projectRemovedNativeBasis(state, &world); err != nil {

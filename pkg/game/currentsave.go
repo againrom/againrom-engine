@@ -63,7 +63,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, false); err != nil {
+	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, keysStage); err != nil {
 		return nil, err
 	}
 	sealCastSources(&doc)
@@ -88,7 +88,7 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err := f.clampOriginalView(&doc); err != nil {
 		return nil, err
 	}
-	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, true); err != nil {
+	if err := writeWorldCarriers(carrierSave{f: f, s: &s, doc: &doc}, lateStage); err != nil {
 		return nil, err
 	}
 	raw, err := sav.EncodeDocumentData(doc)
