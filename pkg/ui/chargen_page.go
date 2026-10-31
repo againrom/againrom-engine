@@ -1071,27 +1071,21 @@ func (c *Chargen) reservedNames() []string {
 	return nil
 }
 
-// chargenDollHoverLines is the item information of the worn slot whose doll
-// pixel lies under p on the detailed page, with the one-based slot number.
-// The mask is read from the figure's drawn origin, clipped to the doll box
-// exactly as composeChargenDetailedPage draws the figure.
-func chargenDollHoverLines(c *Chargen, p image.Point) ([]string, int, bool) {
+// dollHover describes the doll the detailed page shows and the item
+// information of its worn slots, or no doll off that page or with no preview.
+// The mask is laid at the figure's drawn origin and answered inside the doll
+// box, exactly as composeChargenDetailedPage draws the figure. A slot's tip
+// is keyed by the page and the one-based slot.
+func (c *Chargen) dollHover() DollHover {
 	if c == nil {
-		return nil, 0, false
+		return DollHover{}
 	}
 	l := c.layout()
 	if l == nil || c.stage != DetailedStage || c.preview.Doll == nil || c.preview.Worn == nil {
-		return nil, 0, false
+		return DollHover{}
 	}
 	d := &l.Detail
 	box := d.Doll.Rect.Rectangle()
-	if !p.In(box) {
-		return nil, 0, false
-	}
-	at := box.Min.Add(d.Preview.FigureOffset.Pt())
-	n, ok := c.preview.Worn.Mask.At(p.X-at.X, p.Y-at.Y)
-	if !ok || n < 1 || n > len(c.preview.Worn.Info) || len(c.preview.Worn.Info[n-1]) == 0 {
-		return nil, 0, false
-	}
-	return c.preview.Worn.Info[n-1], n, true
+	return DollHover{At: box.Min.Add(d.Preview.FigureOffset.Pt()), Clip: box, Mask: c.preview.Worn.Mask,
+		Info: c.preview.Worn.Info, Tip: DollTip{Kind: tooltipItem, WithSlot: true, Key: fmt.Sprintf("chargen-item/%d", c.stage)}}
 }

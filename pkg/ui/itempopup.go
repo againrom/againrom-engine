@@ -30,23 +30,17 @@ var popupTextColor = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
 // THE WORN BOX IS ASKED FIRST, THE DOLL FIGURE SECOND AND THE PACK BAR
 // THIRD. The doll box used to carry no per-cell text at all, on the ground
 // that it draws one whole figure and not twelve cells — 1005 ("the
-// interactive doll") is what changes that: dollFigureSlotAt answers a slot
-// number over the SAME mask a press reads, so a cursor over an occupied
+// interactive doll") is what changes that: dollSlotAt answers a slot
+// number over the SAME description a press reads, so a cursor over an occupied
 // layer's own pixels shows that slot's line, and one over the figure's
 // transparent pixels or its background still shows nothing, exactly as a
 // point outside every box already does.
 func (v *Viewer) hoveredItemInfoAt(x, y int) ([]string, bool) {
-	if i, ok := v.inventoryWornSlotAt(x, y); ok {
-		if len(v.invSubject.SlotInfo[i]) == 0 {
-			return nil, false
+	p := image.Pt(x, y)
+	for _, d := range [2]DollHover{v.wornHover(), v.dollHover()} {
+		if i, ok := dollSlotAt(d, p); ok {
+			return d.Lines(i)
 		}
-		return v.invSubject.SlotInfo[i], true
-	}
-	if i, ok := v.dollFigureSlotAt(x, y); ok {
-		if len(v.invSubject.SlotInfo[i]) == 0 {
-			return nil, false
-		}
-		return v.invSubject.SlotInfo[i], true
 	}
 	if idx, ok := v.inventoryPackCellAt(x, y); ok {
 		if idx < 0 || idx >= len(v.invSubject.PackInfo) || len(v.invSubject.PackInfo[idx]) == 0 {

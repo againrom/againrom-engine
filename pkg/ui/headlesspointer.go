@@ -142,9 +142,10 @@ func (a *App) HeadlessDollSlotPoint(slot int) (int, int, error) {
 			len(presentSelected(v.sel, v.entities)), len(v.entities))
 	}
 	var hits []image.Point
+	doll := v.dollHover()
 	for y := box.Min.Y; y < box.Max.Y; y++ {
 		for x := box.Min.X; x < box.Max.X; x++ {
-			if got, ok := v.dollFigureSlotAt(x, y); ok && got == slot-1 {
+			if got, ok := dollSlotAt(doll, image.Pt(x, y)); ok && got == slot-1 {
 				hits = append(hits, image.Pt(x, y))
 			}
 		}
@@ -204,12 +205,11 @@ func (a *App) HeadlessWornCellPoint(cell int) (int, int, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	box, ok := v.wornBox()
-	slots := wornSlotRects()
-	if !ok || cell < 0 || cell >= len(slots) {
+	cells := v.wornHover().Cells
+	if cell < 0 || cell >= len(cells) || cells[cell].Empty() {
 		return 0, 0, fmt.Errorf("headless worn cell %d: no visible cell", cell)
 	}
-	r := slots[cell].Add(box.Min)
+	r := cells[cell]
 	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 	return v.frameToWindow(p, "headless worn cell")
 }
@@ -361,7 +361,7 @@ func (a *App) HeadlessShopPoint(kind string, index int) (int, int, error) {
 		// The pane figure's middle, no particular slot and no mask consulted:
 		// the destination of a drag whose release names no marked slot, which
 		// the mask-driven scan below can never answer for.
-		figure := characterPaneFigureRect(shopCharacterView(view).paneRect())
+		figure := shopDollArea(view)
 		p := image.Pt((figure.Min.X+figure.Max.X)/2, (figure.Min.Y+figure.Max.Y)/2)
 		wx, wy, ok := a.nativeFrameToWindow(p)
 		if !ok {
@@ -418,7 +418,7 @@ func shopWantRegion(view ShopScreenView, want ShopControl) image.Rectangle {
 	region := frame
 	switch want.Kind {
 	case ShopControlDoll:
-		region = frame.Intersect(characterPaneFigureRect(pane))
+		region = frame.Intersect(shopDollArea(view))
 	case ShopControlShelfCell:
 		region = frame.Intersect(l.ShelfCellRect(want.Index))
 	case ShopControlPackCell:
@@ -457,7 +457,7 @@ func shopHitPixels(view ShopScreenView, want ShopControl, grid bool, dollSlot in
 				// The doll surface is asked of OrdinaryDollMask, never the
 				// possibly suppressed SlotMask, as shopReleaseIsOrigin does: a
 				// drag armed on the same slot has cleared it in SlotMask.
-				n, hit := shopDollSlotAt(view, view.OrdinaryDollMask, p)
+				n, hit := dollSlotAt(shopDollHover(view, view.OrdinaryDollMask), p)
 				got, ok = ShopControl{Kind: ShopControlDoll, Index: n}, hit
 			case grid:
 				got, ok = shopGridControlAt(view, p)

@@ -53,7 +53,7 @@ func (v *Viewer) tooltipTarget() tooltipTarget {
 		return tooltipTarget{}
 	}
 	if lines, ok := v.hoveredItemInfoAt(v.cursorX, v.cursorY); ok {
-		return tooltipTarget{tooltipItem, fmt.Sprintf("item/%d", v.invSubject.ID), lines, v.font}
+		return v.itemTip().Target(lines, v.font, 0)
 	}
 	// Unavailable answers no target rather than falling through to whatever
 	// sits under the same rectangle (TEXT-HOVERTEXT-052's required

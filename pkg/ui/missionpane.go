@@ -270,23 +270,6 @@ func (v *Viewer) TakeCharacterPaneMenu() bool {
 	return true
 }
 
-// characterPaneFigureAt reports that the window pixel stands on the pane's own
-// painted figure rather than on the pane frame —
-// shopDollAreaAt's own question for the mission screen.
-//
-// It is the geometry alone. Whether a slot is marked there is
-// dollFigureSlotAtMask's question, asked after this one.
-func (v *Viewer) characterPaneFigureAt(p image.Point) bool {
-	box, ok := v.dollBox()
-	if !ok {
-		return false
-	}
-	if !p.In(characterPaneFigureRect(box)) {
-		return false
-	}
-	return true
-}
-
 // missionCardPresent is the statistics card the mission column draws under
 // the fourth child's own background strip, and where its top-left corner
 // goes, or false for a frame with no room or no card font.

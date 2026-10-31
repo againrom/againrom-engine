@@ -288,11 +288,10 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 		if hint := characterStatsTooltip(surface.Hero, w, p); hint.key() != "" {
 			return hint
 		}
-		if lines, ok := TownHeroHoverLines(surface, p); ok {
-			return tooltipTarget{tooltipText, fmt.Sprintf("hero-item/%d/%d", surface.Hero.Subject.ID, surface.Hero.Member), lines, surface.Font}
-		}
-		if lines, ok := TownCandidateHoverLines(surface, p); ok {
-			return tooltipTarget{tooltipText, fmt.Sprintf("candidate-item/%d", surface.Candidate.Subject.ID), lines, surface.Font}
+		for _, doll := range [2]DollHover{surface.heroDollHover(), surface.candidateDollHover()} {
+			if lines, slot, ok := doll.TipAt(p); ok {
+				return doll.Tip.Target(lines, surface.Font, slot)
+			}
 		}
 		if card := surface.Page.Person.Card; surface.Kind == TownSurfaceTavern && card != nil {
 			if hint := characterStatsTooltip(*card, w, p); hint.key() != "" {
@@ -315,13 +314,15 @@ func (a *App) tooltipTargetWithSurface(known *TownSurfaceView) tooltipTarget {
 			if hint := characterStatsTooltip(square.Hero, w, p); hint.key() != "" {
 				return hint
 			}
-			if lines, ok := square.heroHoverLines(p); ok {
-				return tooltipTarget{tooltipText, fmt.Sprintf("hero-item/%d/%d", square.Hero.Subject.ID, square.Hero.Member), lines, square.Font}
+			doll := square.heroDollHover()
+			if lines, slot, ok := doll.TipAt(p); ok {
+				return doll.Tip.Target(lines, square.Font, slot)
 			}
 		}
-		for i, d := range square.Dolls {
-			if lines, ok := d.LinesAt(p); ok {
-				return tooltipTarget{tooltipText, fmt.Sprintf("room-item/%d", i), lines, square.Font}
+		for i := range square.Dolls {
+			doll := square.roomDollHover(i)
+			if lines, slot, ok := doll.TipAt(p); ok {
+				return doll.Tip.Target(lines, square.Font, slot)
 			}
 		}
 		if slot, ok := square.Scene.TipAt(p); ok {
@@ -340,7 +341,7 @@ func shopTooltip(v ShopScreenView, w Words, p image.Point) tooltipTarget {
 		return hint
 	}
 	if lines, ok := ShopHoverLines(v, p); ok {
-		return tooltipTarget{tooltipText, fmt.Sprintf("shop-item/%d/%d/%d/%d/%d", character.Subject.ID, v.Chosen, v.PackOffset, v.ShelfOffset, v.TableOffset), lines, v.Font}
+		return shopHoverTip(v).Target(lines, v.Font, 0)
 	}
 	c, ok := shopScreenControlAt(v, p)
 	if !ok {
@@ -440,8 +441,9 @@ func (a *App) chargenTooltip(p image.Point) tooltipTarget {
 		if card := d.Card.Rect.Rectangle(); slot == -1 && p.In(card) {
 			return characterStatsTooltip(c.CardView(), w, p)
 		}
-		if lines, n, ok := chargenDollHoverLines(c, p); ok && slot == -1 {
-			return tooltipTarget{tooltipItem, fmt.Sprintf("chargen-item/%d/%d", c.stage, n), lines, font}
+		doll := c.dollHover()
+		if lines, n, ok := doll.TipAt(p); ok && slot == -1 {
+			return doll.Tip.Target(lines, font, n)
 		}
 	}
 	return mainTooltip(w, slot, fmt.Sprintf("chargen/%d/%d/%d", c.stage, id, slot), font)

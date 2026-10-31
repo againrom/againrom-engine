@@ -432,5 +432,5 @@ func characterPaneFigureRect(pane image.Rectangle) image.Rectangle {
 // tap-to-unequip on a marked slot under rect B or rect C now flips that corner
 // instead; the drag remains, and this build's tap-to-unequip is its own
 // gesture rather than a decoded one. Nothing here excludes a pixel from the
-// slot map, so shopDollSlotAt and dollFigureSlotAt answer over the whole crop
+// slot map, so the shop's and the mission's doll descriptions answer over the whole crop
 // exactly as they did before this story.

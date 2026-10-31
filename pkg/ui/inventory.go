@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"strconv"
@@ -918,7 +919,7 @@ func (v *Viewer) inventoryPairTarget(x, y int) int {
 	if cell, ok := v.inventoryPackCellAt(x, y); ok {
 		return cell + 1
 	}
-	if slot, ok := v.inventoryWornSlotAt(x, y); ok {
+	if slot, ok := dollSlotAt(v.wornHover(), image.Pt(x, y)); ok {
 		return -slot - 1
 	}
 	return 0
@@ -1180,33 +1181,36 @@ func (v *Viewer) TakeShopRequest() bool {
 	return true
 }
 
-// inventoryWornSlotAt reports which of the twelve worn-box cells, if any,
-// stands under the window pixel (x, y) — wornSlotRects' own geometry, read
-// once here and by hoveredItemInfoAt (itempopup.go) for the same box, so a
-// press and a hover agree on where each of the twelve cells is.
+// wornHover describes the worn box's twelve cells in window pixels —
+// wornSlotRects' own geometry moved to the box — so a press and a hover agree
+// on where each of the twelve cells is. An undrawn box gives the empty
+// description, which answers no slot.
 //
-// THE ANSWER IS A SLOT INDEX, ZERO-BASED (0..11), matching Slots, SlotInfo
-// and wornSlotRects' own indexing — one below pkg/sim's own 1..12 slot
-// numbering (equip.go). A caller turning this into a sim.Command adds the
-// one back (pkg/game's enqueueUnequip).
-func (v *Viewer) inventoryWornSlotAt(x, y int) (int, bool) {
+// THE ANSWER OF dollSlotAt OVER IT IS A SLOT INDEX, ZERO-BASED (0..11),
+// matching Slots, SlotInfo and wornSlotRects' own indexing — one below
+// pkg/sim's own 1..12 slot numbering (equip.go). A caller turning this into a
+// sim.Command adds the one back (pkg/game's enqueueUnequip).
+func (v *Viewer) wornHover() DollHover {
 	box, ok := v.wornBox()
 	if !ok {
-		return 0, false
+		return DollHover{}
 	}
-	p := image.Pt(x, y).Sub(box.Min)
+	d := DollHover{Info: v.invSubject.SlotInfo, Tip: v.itemTip()}
 	for i, r := range wornSlotRects() {
-		if p.In(r) {
-			return i, true
-		}
+		d.Cells[i] = r.Add(box.Min)
 	}
-	return 0, false
+	return d
 }
 
-// dollFigureSlotAt reports which equipment slot, if any, owns the doll
-// figure's pixel under the window pixel (x, y) — SlotMask's own lookup, at
-// the placement drawInventoryPicture already centres the figure at inside
-// dollFigureRect (1005, "the interactive doll").
+// itemTip is the tip every item of the mission's inventory column shows: the
+// worn cells, the doll figure and the pack cells alike.
+func (v *Viewer) itemTip() DollTip {
+	return DollTip{Kind: tooltipItem, Key: fmt.Sprintf("item/%d", v.invSubject.ID)}
+}
+
+// dollHover describes the doll figure for the slot under a window pixel —
+// SlotMask's own lookup, at the placement drawInventoryPicture already
+// centres the figure at inside dollFigureRect (1005, "the interactive doll").
 //
 // THE WORN BOX AND THE PACK BAR KEEP inventoryEligible'S NARROWER GATE,
 // DELIBERATELY (wornBox's own doc, inventory.go): both compose PER-SLOT
@@ -1228,63 +1232,54 @@ func (v *Viewer) inventoryWornSlotAt(x, y int) (int, bool) {
 // draw order put one there — never a special-cased "nothing": the mask of
 // the drawn picture already carries the right answer.
 //
-// THE ANSWER IS ZERO-BASED (0..11), wornSlotRects' and inventoryWornSlotAt's
-// own indexing (Slots, SlotInfo) — one below SlotMask's own 1..12, which is
+// THE ANSWER OF dollSlotAt OVER IT IS ZERO-BASED (0..11), wornHover's own
+// indexing (Slots, SlotInfo) — one below SlotMask's own 1..12, which is
 // pkg/sim's own numbering carried unchanged from the compositor. A caller
 // turning this into a sim.Command adds the one back exactly as
 // enqueueUnequip already does for the worn box's own drain.
-func (v *Viewer) dollFigureSlotAt(x, y int) (int, bool) {
+func (v *Viewer) dollHover() DollHover {
 	mask := v.invSubject.SlotMask
 	if v.dollSuppressOwner == v.invSubject.ID && v.dollSuppressSlot != 0 && v.dollSuppressPic != nil {
 		mask = v.dollSuppressMask
 	}
-	return v.dollFigureSlotAtMask(x, y, mask)
+	return v.dollHoverOver(mask)
 }
 
-func (v *Viewer) dollFigureSlotAtUnsuppressed(x, y int) (int, bool) {
-	return v.dollFigureSlotAtMask(x, y, v.invSubject.SlotMask)
+// dollHoverUnsuppressed is dollHover over the ordinary mask, in force before
+// a drag suppressed anything.
+func (v *Viewer) dollHoverUnsuppressed() DollHover {
+	return v.dollHoverOver(v.invSubject.SlotMask)
 }
 
-// dollFigureSlotAtMask is dollFigureSlotAt's and
-// dollFigureSlotAtUnsuppressed's shared geometry: dollSubject's own
-// drawn-figure gate, then dollBox's own placement, over whichever mask the
-// caller names. shopDollSlotAt maps the 160x240 composed figure onto the
-// pane WITHOUT CENTRING, from characterPaneFigureOrigin, and restricts the
-// answer to the full 160x240 figure the pane paints; this does the same,
-// over the same two functions, so `TOWN-349`'s per-pixel slot map is one map
-// on both screens rather than two arrangements that happen to agree. The
-// pane's own corner controls subtract nothing from it: where rect B or rect
-// C shares a pixel with a marked slot the two are separated by gesture, in
-// command.go's corner arm (`DIV-308`).
-func (v *Viewer) dollFigureSlotAtMask(x, y int, mask *SlotMask) (int, bool) {
+// dollHoverOver is dollHover's and dollHoverUnsuppressed's shared geometry:
+// dollSubject's own drawn-figure gate, then dollBox's own placement, over
+// whichever mask the caller names. The shop maps the 160x240 composed figure
+// onto the pane WITHOUT CENTRING, from characterPaneFigureOrigin, and
+// restricts the answer to the full 160x240 figure the pane paints
+// (characterPaneDollHover); this does the same, over the same two functions,
+// so `TOWN-349`'s per-pixel slot map is one map on both screens rather than
+// two arrangements that happen to agree. The pane's own corner controls
+// subtract nothing from it: where rect B or rect C shares a pixel with a
+// marked slot the two are separated by gesture, in command.go's corner arm
+// (`DIV-308`).
+func (v *Viewer) dollHoverOver(mask *SlotMask) DollHover {
 	src, ok := v.dollSubject()
 	if !ok || src.figure == nil {
-		return 0, false
+		return DollHover{}
 	}
 	box, ok := v.dollBox()
 	if !ok {
-		return 0, false
+		return DollHover{}
 	}
-	if mask == nil || mask.W <= 0 || mask.H <= 0 {
-		return 0, false
-	}
-	p := image.Pt(x, y)
-	if !v.characterPaneFigureAt(p) {
-		return 0, false
-	}
-	o := characterPaneFigureOrigin(box)
-	n, ok := mask.At(x-o.X, y-o.Y)
-	if !ok {
-		return 0, false
-	}
-	return n - 1, true
+	return DollHover{At: characterPaneFigureOrigin(box), Clip: characterPaneFigureRect(box), Mask: mask,
+		Info: v.invSubject.SlotInfo, Tip: v.itemTip()}
 }
 
 // TakeInventoryUnequip reads the pending unequip request a double-click on
 // a worn-box cell raised, if any, and clears it in the same statement —
 // TakeInventoryEquip's own shape, over the worn box's own one-shot request
 // rather than the pack's. This file does not ask whether the cell named is
-// occupied: inventoryWornSlotAt is pure geometry, and a double-click on an
+// occupied: the worn box's description is pure geometry, and a double-click on an
 // empty cell raises a request the same as one on a worn item.
 //
 // THE TIER ABOVE DRAINS IT (pkg/game's unequipFromWorn); this file only

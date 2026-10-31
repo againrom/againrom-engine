@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -380,32 +381,61 @@ type TownSurfaceView struct {
 // tooltip at p. The answer is read-only presentation data: this helper does
 // not expose a control, item id, or mutation target to the input layer.
 func TownCandidateHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) {
-	f := v.Page.Person.Figure
-	if v.Kind != TownSurfaceTavern || !v.Candidate.HasSubject || v.CandidateSlotMask == nil || !p.In(f.Rect) {
-		return nil, false
+	return v.candidateDollHover().LinesAt(p)
+}
+
+// candidateDollHover describes the figure the tavern shows of the selected
+// candidate: the page's figure rectangle, the figure placed in it as the page
+// draws it, and the candidate's worn item text. A view that is not the
+// tavern, or has no candidate or no slot map, describes no doll.
+func (v TownSurfaceView) candidateDollHover() DollHover {
+	if v.Kind != TownSurfaceTavern || !v.Candidate.HasSubject || v.CandidateSlotMask == nil {
+		return DollHover{}
 	}
-	m := v.CandidateSlotMask
-	at := f.Origin(image.Pt(m.W, m.H))
-	slot, ok := m.At(p.X-at.X, p.Y-at.Y)
-	if !ok || slot < 1 || slot > len(v.CandidateSlotInfo) || len(v.CandidateSlotInfo[slot-1]) == 0 {
-		return nil, false
+	f, m := v.Page.Person.Figure, v.CandidateSlotMask
+	return DollHover{At: f.Origin(image.Pt(m.W, m.H)), Clip: f.Rect, Mask: m, Info: v.CandidateSlotInfo,
+		Tip: DollTip{Kind: tooltipText, Beside: true, Key: fmt.Sprintf("candidate-item/%d", v.Candidate.Subject.ID)}}
+}
+
+// heroDollHover describes the shown member's figure on the shared character
+// pane, or no doll while the pane shows statistics, has no member or no slot
+// map.
+func (v TownSurfaceView) heroDollHover() DollHover {
+	return townHeroDollHover(v.Hero, v.HeroSlotMask, v.HeroSlotInfo)
+}
+
+func townHeroDollHover(hero TownCharacterView, mask *SlotMask, info [12][]string) DollHover {
+	if !hero.HasSubject || hero.Statistics || mask == nil {
+		return DollHover{}
 	}
-	return v.CandidateSlotInfo[slot-1], true
+	d := characterPaneDollHover(hero, mask, info)
+	d.Tip = DollTip{Kind: tooltipText, Key: fmt.Sprintf("hero-item/%d/%d", hero.Subject.ID, hero.Member)}
+	return d
+}
+
+// characterPaneDollHover describes the figure the shared character pane
+// paints, over mask and with each slot's item text: the 160x240 source at the
+// pane's figure origin, without centring, answering inside the painted figure
+// except where the Book corner and the bottom controls stand. Their
+// rectangles are the ones a click on the pane reaches, and the mode corner
+// still shares its figure pixels through the gesture split (DIV-308).
+func characterPaneDollHover(pane TownCharacterView, mask *SlotMask, info [12][]string) DollHover {
+	r := pane.paneRect()
+	d := DollHover{At: characterPaneFigureOrigin(r), Clip: characterPaneFigureRect(r), Mask: mask, Info: info}
+	if CharacterPaneCornerLive(characterPaneModeFlag(r, CharacterPaneShop, 0), CharacterPaneShop, CharacterPaneBook) {
+		d.Holes = append(d.Holes, CharacterPaneCornerRect(r, CharacterPaneBook))
+	}
+	for _, c := range [...]CharacterPaneCorner{CharacterPaneBackpack, CharacterPanePrev, CharacterPaneNext, CharacterPaneMenu} {
+		d.Holes = append(d.Holes, CharacterPaneCornerRect(r, c))
+	}
+	return d
 }
 
 // TownHeroHoverLines returns the item information of the worn slot whose
 // doll pixel lies under p on the shared character pane, or false while the
 // pane shows statistics, over a corner control or over a blank pixel.
 func TownHeroHoverLines(v TownSurfaceView, p image.Point) ([]string, bool) {
-	if !v.Hero.HasSubject || v.Hero.Statistics || v.HeroSlotMask == nil || !shopDollAreaAt(v.Hero, p) {
-		return nil, false
-	}
-	q := p.Sub(characterPaneFigureOrigin(v.Hero.paneRect()))
-	n, ok := v.HeroSlotMask.At(q.X, q.Y)
-	if !ok || n < 1 || n > len(v.HeroSlotInfo) || len(v.HeroSlotInfo[n-1]) == 0 {
-		return nil, false
-	}
-	return v.HeroSlotInfo[n-1], true
+	return v.heroDollHover().LinesAt(p)
 }
 
 type TownSurfaceControlKind uint8
@@ -1212,8 +1242,9 @@ func ComposeTownSurface(v TownSurfaceView) *image.RGBA {
 	}
 	ComposeTipPanel(dst, v.Tip)
 	if v.HasHover && !v.SuppressHover {
-		if lines, ok := TownCandidateHoverLines(v, v.Hover); ok {
-			drawShopHover(dst, v.Font, lines, v.Hover)
+		doll := v.candidateDollHover()
+		if lines, ok := doll.LinesAt(v.Hover); ok {
+			doll.Tip.DrawBeside(dst, v.Font, lines, v.Hover)
 		}
 	}
 	return dst

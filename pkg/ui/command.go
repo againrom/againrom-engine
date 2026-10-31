@@ -1093,7 +1093,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 			if in.PrimaryReleased {
 				v.paneCornerGrab = false
 			}
-			if _, onSlot := v.dollFigureSlotAt(in.CursorX, in.CursorY); !onSlot {
+			if _, onSlot := dollSlotAt(v.dollHover(), image.Pt(in.CursorX, in.CursorY)); !onSlot {
 				return nil, false
 			}
 			// The pixel is both a corner and a marked equipment slot. Only a
@@ -1128,7 +1128,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// one that does is armed below into a drag, which a released
 				// double-click has already finished being.
 				v.dragCandKind, v.dragCandIdx = dragFromPack, cell
-			} else if slot, ok := v.inventoryWornSlotAt(in.CursorX, in.CursorY); ok {
+			} else if slot, ok := dollSlotAt(v.wornHover(), image.Pt(in.CursorX, in.CursorY)); ok {
 				if in.PrimaryDouble && slot+1 == wornCell {
 					v.invUnequipRequest = slot + 1
 				}
@@ -1138,10 +1138,10 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// to move, which is a different mechanism from the mask this
 				// story builds) — dragCandKind stays dragNone from the reset
 				// above.
-			} else if slot, ok := v.dollFigureSlotAt(in.CursorX, in.CursorY); ok {
+			} else if slot, ok := dollSlotAt(v.dollHover(), image.Pt(in.CursorX, in.CursorY)); ok {
 				// THE DRAG MACHINE'S SECOND SOURCE, and round 1's "press to take
 				// off" both start here: a press on the doll figure's own slot
-				// pixels — dollFigureSlotAt's own mask lookup, the same one the
+				// pixels — dollHover's own mask lookup, the same one the
 				// hover popup reads (itempopup.go) — is a candidate this gesture
 				// may still resolve as a tap (the release handling below) or arm
 				// into a drag (the check right after this block).
@@ -1204,10 +1204,10 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 					originSame = true
 				}
 			case dragFromDoll:
-				// dollFigureSlotAtUnsuppressed, NOT dollFigureSlotAt (round-2
+				// dollHoverUnsuppressed, NOT dollHover (round-2
 				// adversarial review, tenth pass, counterexample 1): while this drag has
 				// armed, refreshDollDrag (pkg/game) pushes a suppressed mask with the
-				// origin slot's own code cleared, and dollFigureSlotAt reads that mask
+				// origin slot's own code cleared, and dollHover reads that mask
 				// whenever the suppression is in force — so it can never answer the
 				// origin's own index at a release, and this arm of originSame was
 				// unreachable for any release reached with an armed drag. The origin's
@@ -1215,7 +1215,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// unsuppressed variant reads v.invSubject.SlotMask directly, in force
 				// before the drag suppressed anything, which is the question this
 				// comparison asks.
-				if slot, ok := v.dollFigureSlotAtUnsuppressed(in.CursorX, in.CursorY); ok && slot == v.dragCandIdx {
+				if slot, ok := dollSlotAt(v.dollHoverUnsuppressed(), image.Pt(in.CursorX, in.CursorY)); ok && slot == v.dragCandIdx {
 					originSame = true
 				}
 			}
@@ -1314,7 +1314,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 					case v.mapSurfaceCaptures(in.CursorX, in.CursorY) &&
 						!v.groundSurfaceCaptures(in.CursorX, in.CursorY):
 						// worn is true: the origin is equipment slot
-						// dragCandIdx (zero-based, dollFigureSlotAt's own
+						// dragCandIdx (zero-based, dollHover's own
 						// numbering). groundSurfaceCaptures, not
 						// inventoryCaptures alone — same fix, same reason, as
 						// the pack-origin arm above.
@@ -1340,11 +1340,11 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 				// v.dragCandKind == dragFromDoll" above already resolves every release
 				// that names the drag candidate's own doll slot, whether or not TapSlop
 				// was crossed getting there. A case testing the same condition again
-				// here — v.dragCandKind == dragFromDoll with dollFigureSlotAt(...) ==
+				// here — v.dragCandKind == dragFromDoll with dollHover's slot ==
 				// v.dragCandIdx — is reached only once originSame has already answered
 				// false for that exact comparison and v.dragActive is false, and a drag
-				// that never armed never pushes a suppression, so dollFigureSlotAt and
-				// dollFigureSlotAtUnsuppressed read the identical mask in that state:
+				// that never armed never pushes a suppression, so dollHover and
+				// dollHoverUnsuppressed read the identical mask in that state:
 				// the case's own condition could never differ from originSame's, and it
 				// is unreachable. It carried "press to take off" — this story's
 				// primary gesture — on code that never ran.

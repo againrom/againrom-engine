@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -49,8 +50,8 @@ var (
 
 	// The composed figure and SlotMask retain their 160x240 source coordinate
 	// system. The shared shell paints all of townCharacterFigure's 240
-	// rows; shopDollSlotAt still subtracts this source origin before asking the
-	// mask, then shopDollAreaAt restricts the answer to what was painted.
+	// rows; the doll description still subtracts this source origin before
+	// asking the mask, then restricts the answer to what was painted.
 	shopFigureRect = image.Rect(480, 240, 640, 480)
 
 	// The party picker's two 32x32 rects, panel-relative (1,205,33,237) and
@@ -428,12 +429,12 @@ const (
 	// and hover information, not for casting.
 	ShopControlSpell
 	// ShopControlDoll is a slot of the shown member's own figure, Index the
-	// zero-based slot shopDollSlotAt answers — dollFigureSlotAt's own
+	// zero-based slot dollSlotAt answers over shopDollHover — dollHover's own
 	// indexing (pkg/ui/inventory.go), restated for the shop's figure (1005
 	// round 2). It names both a drag ORIGIN (a worn item) and a drag
 	// DESTINATION (equip here); ShopControlAt never answers it — the doll is
 	// not one of the geometry's three grids — so a caller that wants it
-	// tests shopDollSlotAt itself, which shopGridControlAt below does first.
+	// asks shopDollHover itself, which shopGridControlAt below does first.
 	ShopControlDoll
 	ShopControlPackLeft
 	ShopControlPackRight
@@ -525,31 +526,38 @@ func (l *ShopLayout) controlAt(p image.Point, pane TownCharacterView) (ShopContr
 	return ShopControl{}, false
 }
 
-// shopDollSlotAt reports which equipment slot, if any, owns the shown
-// member's own VISIBLE figure pixel under point p — dollFigureSlotAt's own
-// lookup (pkg/ui/inventory.go), restated for the shared town character region.
-// The source and mask use shopFigureRect's 160x240 coordinates without
-// centring; DrawTownCharacterRegion paints all 240 rows.
+// shopDollHover describes the shown member's own VISIBLE figure over mask —
+// dollHover's own description (pkg/ui/inventory.go), restated for the shared
+// town character region. The source and mask use shopFigureRect's 160x240
+// coordinates without centring; DrawTownCharacterRegion paints all 240 rows.
+// A layout with no character panel describes no doll.
 //
-// THE ANSWER IS ZERO-BASED (0..11), dollFigureSlotAt's own indexing (1005
-// round 2).
+// THE ANSWER OF dollSlotAt OVER IT IS ZERO-BASED (0..11), dollHover's own
+// indexing (1005 round 2).
 //
 // The pane bounds, Book and the bottom controls refuse before the mask read.
-// The newly visible feet between those controls remain interactive.
-func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool) {
-	if mask == nil || mask.W <= 0 || mask.H <= 0 || !v.layout().Character {
-		return 0, false
+// The newly visible feet between those controls remain interactive. The
+// statistics sheet takes the tip away and leaves the press.
+func shopDollHover(v ShopScreenView, mask *SlotMask) DollHover {
+	d := DollHover{}
+	if v.layout().Character {
+		d = characterPaneDollHover(shopCharacterView(v), mask, v.SlotInfo)
 	}
-	pane := shopCharacterView(v)
-	if !shopDollAreaAt(pane, p) {
-		return 0, false
-	}
-	q := p.Sub(characterPaneFigureOrigin(pane.paneRect()))
-	n, ok := mask.At(q.X, q.Y)
-	if !ok {
-		return 0, false
-	}
-	return n - 1, true
+	d.Tip, d.NoTip = shopHoverTip(v), v.Character.Statistics
+	return d
+}
+
+// shopDollArea is the area the shop's doll answers in, whether or not the
+// figure marks a slot there right now.
+func shopDollArea(v ShopScreenView) image.Rectangle {
+	return characterPaneDollHover(shopCharacterView(v), nil, [12][]string{}).Clip
+}
+
+// shopHoverTip is how the shop shows the characteristics of what the pointer
+// is over: the doll's worn slots, and the three grids that share its tip.
+func shopHoverTip(v ShopScreenView) DollTip {
+	return DollTip{Kind: tooltipText, Beside: true,
+		Key: fmt.Sprintf("shop-item/%d/%d/%d/%d/%d", shopCharacterView(v).Subject.ID, v.Chosen, v.PackOffset, v.ShelfOffset, v.TableOffset)}
 }
 
 // shopPaneTakesItemAt reports whether a drag released at p lands on the
@@ -559,30 +567,6 @@ func shopDollSlotAt(v ShopScreenView, mask *SlotMask, p image.Point) (int, bool)
 // heldItemBox is the same question.
 func shopPaneTakesItemAt(v ShopScreenView, p image.Point) bool {
 	return v.layout().Character && !v.layout().NoWear && p.In(shopCharacterView(v).paneRect())
-}
-
-// shopDollAreaAt is shopDollSlotAt's own geometry, less the mask lookup: a
-// point the doll's own drawn area on pane could show a marked pixel at,
-// regardless of whether one is drawn there right now. It answers where the
-// figure's slots can be pressed; where an item is taken is
-// shopPaneTakesItemAt.
-func shopDollAreaAt(pane TownCharacterView, p image.Point) bool {
-	r := pane.paneRect()
-	if !p.In(characterPaneFigureRect(r)) {
-		return false
-	}
-	// Keep the existing Book and bottom-control precedence while exposing
-	// the feet between the bottom controls. The mode corner still shares
-	// its figure pixels through the gesture split (DIV-308).
-	if shopBookCornerHitAt(r, p) {
-		return false
-	}
-	for _, c := range []CharacterPaneCorner{CharacterPaneBackpack, CharacterPanePrev, CharacterPaneNext, CharacterPaneMenu} {
-		if p.In(CharacterPaneCornerRect(r, c)) {
-			return false
-		}
-	}
-	return true
 }
 
 // shopBookCornerHitAt reports whether p is inside rect B's decoded hit
@@ -624,7 +608,7 @@ func shopCharacterView(v ShopScreenView) TownCharacterView {
 // below that misses there.
 func shopGridControlAt(v ShopScreenView, p image.Point) (ShopControl, bool) {
 	if !v.Character.Statistics && !v.layout().NoWear {
-		if slot, ok := shopDollSlotAt(v, v.SlotMask, p); ok {
+		if slot, ok := dollSlotAt(shopDollHover(v, v.SlotMask), p); ok {
 			return ShopControl{Kind: ShopControlDoll, Index: slot}, true
 		}
 	}
@@ -694,7 +678,7 @@ func shopSpellEntryAt(v ShopScreenView, p image.Point) (SpellEntry, int, bool) {
 // A DOLL ORIGIN IS READ AGAINST OrdinaryDollMask, NEVER SlotMask. Once this
 // drag has crossed TapSlop, `ShopSuppressDoll` (this member's own per-frame
 // push) has already recomposed SlotMask with the origin's own slot cleared,
-// so `shopGridControlAt`'s own `shopDollSlotAt(v, v.SlotMask, p)` can never
+// so `shopGridControlAt`'s own `shopDollHover(v, v.SlotMask)` can never
 // answer the origin's own index again for as long as the drag stays armed —
 // a release back on the exact pixel the press began on found no slot there
 // at all, and the whole gesture (`ShopClick` AND `ShopDrag` alike) was
@@ -718,7 +702,7 @@ func (v ShopScreenView) bookControl() bool {
 
 func shopReleaseIsOrigin(v ShopScreenView, origin ShopControl, p image.Point) bool {
 	if origin.Kind == ShopControlDoll {
-		slot, ok := shopDollSlotAt(v, v.OrdinaryDollMask, p)
+		slot, ok := dollSlotAt(shopDollHover(v, v.OrdinaryDollMask), p)
 		return ok && slot == origin.Index
 	}
 	dest, ok := shopGridControlAt(v, p)
@@ -771,12 +755,9 @@ func ShopHoverLines(v ShopScreenView, p image.Point) ([]string, bool) {
 		}
 		return nil, false
 	}
-	if !v.Character.Statistics {
-		if slot, ok := shopDollSlotAt(v, v.SlotMask, p); ok {
-			if slot < 0 || slot >= len(v.SlotInfo) || len(v.SlotInfo[slot]) == 0 {
-				return nil, false
-			}
-			return v.SlotInfo[slot], true
+	if doll := shopDollHover(v, v.SlotMask); !doll.NoTip {
+		if slot, ok := dollSlotAt(doll, p); ok {
+			return doll.Lines(slot)
 		}
 	}
 	c, ok := shopScreenControlAt(v, p)
@@ -1132,7 +1113,7 @@ func ComposeShopScreen(v ShopScreenView, hover image.Point, hasHover bool, dragI
 
 	if hasHover && !v.SuppressHover {
 		if lines, ok := ShopHoverLines(v, hover); ok {
-			drawShopHover(dst, v.Font, lines, hover)
+			shopHoverTip(v).DrawBeside(dst, v.Font, lines, hover)
 		}
 	}
 

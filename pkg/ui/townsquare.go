@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 
 	"againrom/pkg/render/text"
@@ -64,37 +65,30 @@ type TownSquareView struct {
 	HeroSlotMask *SlotMask
 	HeroSlotInfo [12][]string
 
-	// Dolls are the room's other worn figures whose items answer a hover.
+	// Dolls are the room's other worn figures whose items answer a hover,
+	// each described by its slot map placed at At and answered inside Clip.
 	Dolls []TownSquareDoll
 }
 
-// TownSquareDoll is a worn figure a room shows: its slot map with the map's
-// origin at At, answered inside Clip, and each slot's worn item text.
-type TownSquareDoll struct {
-	At   image.Point
-	Clip image.Rectangle
-	Mask *SlotMask
-	Info [12][]string
+// heroDollHover describes the pane's figure, or no doll while the room shows
+// no pane.
+func (v TownSquareView) heroDollHover() DollHover {
+	if !v.Pane {
+		return DollHover{}
+	}
+	return townHeroDollHover(v.Hero, v.HeroSlotMask, v.HeroSlotInfo)
 }
 
-// LinesAt is the item text of the worn slot whose figure pixel is under p.
-func (d TownSquareDoll) LinesAt(p image.Point) ([]string, bool) {
-	if d.Mask == nil || !p.In(d.Clip) {
-		return nil, false
-	}
-	n, ok := d.Mask.At(p.X-d.At.X, p.Y-d.At.Y)
-	if !ok || n < 1 || n > len(d.Info) || len(d.Info[n-1]) == 0 {
-		return nil, false
-	}
-	return d.Info[n-1], true
+// roomDollHover describes the room's i'th worn figure with its tip.
+func (v TownSquareView) roomDollHover(i int) DollHover {
+	d := v.Dolls[i]
+	d.Tip = DollTip{Kind: tooltipText, Key: fmt.Sprintf("room-item/%d", i)}
+	return d
 }
 
 // heroHoverLines is the item text of the pane's worn slot under p.
 func (v TownSquareView) heroHoverLines(p image.Point) ([]string, bool) {
-	if !v.Pane {
-		return nil, false
-	}
-	return TownHeroHoverLines(TownSurfaceView{Hero: v.Hero, HeroSlotMask: v.HeroSlotMask, HeroSlotInfo: v.HeroSlotInfo}, p)
+	return v.heroDollHover().LinesAt(p)
 }
 
 // TownSquarePaneScreen is the optional seam a click on a room's character
