@@ -42,7 +42,7 @@ func packedID(name string) (string, bool) {
 // looksPacked reports whether a file of the mods directory is meant as a
 // packed mod: its name, case folded, is mod*.res.
 func looksPacked(name string) bool {
-	low := strings.ToLower(name)
+	low := namefold.Host(name)
 	return strings.HasPrefix(low, "mod") && strings.HasSuffix(low, PackedExt)
 }
 
@@ -444,7 +444,7 @@ func (t Tree) Digest() (string, error) {
 			}
 			return nil
 		}
-		if d.IsDir() || !d.Type().IsRegular() || strings.EqualFold(name, "README.md") && path.Dir(p) == "." {
+		if d.IsDir() || !d.Type().IsRegular() || namefold.HostEqual(name, "README.md") && path.Dir(p) == "." {
 			return nil
 		}
 		paths = append(paths, p)
@@ -460,7 +460,7 @@ func (t Tree) Digest() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		switch strings.ToLower(path.Ext(p)) {
+		switch namefold.Host(path.Ext(p)) {
 		case ".toml", ".star", ".txt", ".md":
 			data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
 		}

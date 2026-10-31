@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/locale"
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
@@ -178,7 +179,7 @@ func saveSlotNumber(name string) (int, bool) {
 
 // isGameSaveName is the original's game*.sav pattern.
 func isGameSaveName(name string) bool {
-	return len(name) >= len("game.sav") && strings.EqualFold(name[:4], "game") && strings.EqualFold(filepath.Ext(name), originalSaveExt)
+	return len(name) >= len("game.sav") && namefold.HostEqual(name[:4], "game") && namefold.HostEqual(filepath.Ext(name), originalSaveExt)
 }
 
 // anyGameSave reports whether dir holds a file named game*.sav, whatever its

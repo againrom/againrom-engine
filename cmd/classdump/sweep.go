@@ -6,10 +6,10 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/res"
+	"againrom/pkg/namefold"
 )
 
 // The two extensions the walk takes, matched case-folded like regtool's sweep:
@@ -190,20 +190,20 @@ func sweepDir(dir string, c *classes, w io.Writer) error {
 			return nil
 		}
 		switch {
-		case strings.EqualFold(filepath.Ext(path), almExt):
+		case namefold.HostEqual(filepath.Ext(path), almExt):
 			b, err := os.ReadFile(path)
 			if err != nil {
 				return skip(path, err)
 			}
 			return sweepOne(path, b)
 
-		case strings.EqualFold(filepath.Ext(path), resExt):
+		case namefold.HostEqual(filepath.Ext(path), resExt):
 			a, err := res.Open(path)
 			if err != nil {
 				return skip(path, err)
 			}
 			for _, e := range a.Entries() {
-				if !strings.EqualFold(filepath.Ext(e.Path), almExt) {
+				if !namefold.ArchiveTextEqual(filepath.Ext(e.Path), almExt) {
 					continue
 				}
 				// The source identity of an archived map is the pair that

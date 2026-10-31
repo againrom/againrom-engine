@@ -15,6 +15,7 @@ import (
 	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
@@ -779,7 +780,7 @@ func (s *mapInspectionEdits) OwnFile() (string, bool) {
 		root = s.inspector.archives.Root
 	}
 	abs, err := filepath.Abs(src)
-	if err != nil || !strings.EqualFold(filepath.Ext(abs), ".alm") || !editorOrdinaryFilename(filepath.Base(abs)) {
+	if err != nil || !namefold.HostEqual(filepath.Ext(abs), ".alm") || !editorOrdinaryFilename(filepath.Base(abs)) {
 		return "", false
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))
@@ -880,7 +881,7 @@ func mapOutputDirectory(abs string) (string, error) {
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
-	if strings.TrimSpace(path) == "" || !strings.EqualFold(filepath.Ext(path), ".alm") {
+	if strings.TrimSpace(path) == "" || !namefold.HostEqual(filepath.Ext(path), ".alm") {
 		return "", fmt.Errorf("Save As needs an explicit new .alm path")
 	}
 	// Require a resolvable existing parent. Unlike the shared save-directory
@@ -1092,7 +1093,7 @@ func editorOrdinaryFilename(name string) bool {
 		return false
 	}
 	stem, _, _ := strings.Cut(name, ".")
-	stem = strings.ToUpper(strings.TrimRight(stem, " "))
+	stem = namefold.HostUpper(strings.TrimRight(stem, " "))
 	switch stem {
 	case "CON", "PRN", "AUX", "NUL", "CLOCK$", "CONIN$", "CONOUT$":
 		return false
@@ -1115,7 +1116,7 @@ func editorOrdinaryFilename(name string) bool {
 // install kept under a gameversions directory; none for any other root.
 func preservedPairRoots(resolvedRoot string) []string {
 	parent := filepath.Dir(resolvedRoot)
-	if !strings.EqualFold(filepath.Base(parent), "gameversions") {
+	if !namefold.HostEqual(filepath.Base(parent), "gameversions") {
 		return nil
 	}
 	var roots []string

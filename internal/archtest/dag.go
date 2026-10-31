@@ -164,12 +164,12 @@ var allow = map[string][]string{
 	"pkg/game":           {"pkg/"},
 	"cmd/againrom":       {"pkg/", "internal/appicon", "internal/buildinfo"},
 	"cmd/restool":        {"pkg/formats/res", "pkg/vfs"},
-	"cmd/regtool":        {"pkg/formats/reg", "pkg/formats/res"},
+	"cmd/regtool":        {"pkg/formats/reg", "pkg/formats/res", "pkg/namefold"},
 	// classdump's -databin verb reaches the definition table through the vfs
 	// tier and resolves a map's placements through the map-loading tier, so its
 	// row grows by those two and by the table's own parser.
 	"cmd/classdump": {"pkg/data", "pkg/formats/reg", "pkg/formats/res", "pkg/formats/alm",
-		"pkg/formats/databin", "pkg/vfs", "pkg/mapload"},
+		"pkg/formats/databin", "pkg/vfs", "pkg/mapload", "pkg/namefold"},
 	// almtool's pass verb censuses the passability plane a map describes, and
 	// it counts through the derivation's own classifier rather than a copy of
 	// it, so the tool reaches the tier that owns that classifier.
@@ -194,7 +194,7 @@ var allow = map[string][]string{
 	// the authored node identities from formats/alm, reads the builder's joins
 	// from pkg/mapload and observes the resulting world through pkg/sim. Those
 	// four tiers are the evidence chain; the tool opens no lower archive leaf.
-	"cmd/scriptcoverage": {"pkg/base", "pkg/formats/alm", "pkg/game", "pkg/locale", "pkg/mapload", "pkg/sim"},
+	"cmd/scriptcoverage": {"pkg/base", "pkg/formats/alm", "pkg/game", "pkg/locale", "pkg/mapload", "pkg/namefold", "pkg/sim"},
 	// savecheck drives 0143's save/load loop against a real install in two
 	// processes. It names the wiring tier for the front end and the store,
 	// and pkg/sim for the world it reads a tick and a hash off — the same
@@ -203,7 +203,7 @@ var allow = map[string][]string{
 	"cmd/savecheck": {"pkg/game", "pkg/sim"},
 	// scenariofixture prepares explicit native UI-regression input through
 	// the frontend and changes only a detached world's controlled endpoint.
-	"cmd/scenariofixture": {"pkg/game", "pkg/sim"},
+	"cmd/scenariofixture": {"pkg/game", "pkg/namefold", "pkg/sim"},
 	// modmission copies an installed mission map and its texts into a mod
 	// folder; the front end knows the install's addresses, modrt its language.
 	"cmd/modmission": {"pkg/game", "pkg/modrt"},
@@ -222,7 +222,7 @@ var allow = map[string][]string{
 	// loader's tier alone, for texttool's own reason: the container filesystem
 	// reaches it as a return value, so listing and reading an archive entry
 	// costs it no import of the vfs or format tiers.
-	"cmd/dlgtool":     {"pkg/game"},
+	"cmd/dlgtool":     {"pkg/game", "pkg/namefold"},
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
@@ -339,7 +339,7 @@ var allow = map[string][]string{
 	"cmd/tippanelcheck":  {"pkg/game", "pkg/ui"},
 	"cmd/divcensus":      {"internal/divledger"},
 	"cmd/divreconstruct": {"internal/divledger"},
-	"cmd/plaqueseams":    {"pkg/game", "pkg/formats/bmp", "pkg/vfs", "pkg/intmath"},
+	"cmd/plaqueseams":    {"pkg/game", "pkg/formats/bmp", "pkg/vfs", "pkg/intmath", "pkg/namefold"},
 	// plaquescreens is the same hotfix's before/after evidence tool, on
 	// schoolcheck's own pattern: it opens an install through pkg/game
 	// (NewFrontEnd, FinishMission, TownScreen) and composes the four
@@ -419,7 +419,7 @@ var allow = map[string][]string{
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports only the pkg/ini leaf, to read the
 	// starter's selected base for the editor.

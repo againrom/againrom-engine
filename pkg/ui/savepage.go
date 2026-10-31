@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"strings"
+
+	"againrom/pkg/namefold"
 )
 
 // SavePage is one load or save page as data: its layout, captions, list
@@ -164,7 +166,7 @@ func (f *flow) loadPage() SavePage {
 // hidden reports whether a save page leaves name out of its list.
 func (p SavePage) hidden(name string) bool {
 	for _, h := range p.Hidden {
-		if strings.EqualFold(h, name) {
+		if namefold.HostEqual(h, name) {
 			return true
 		}
 	}

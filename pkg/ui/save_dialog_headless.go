@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"againrom/pkg/namefold"
 )
 
 // HeadlessSaveDialog is the visible dialog state. Paths and Existing are exact
@@ -236,5 +238,5 @@ func (a *App) headlessSavePageAction(action string) error {
 }
 
 func sameSavePath(a, b string) bool {
-	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+	return namefold.HostEqual(filepath.Clean(a), filepath.Clean(b))
 }

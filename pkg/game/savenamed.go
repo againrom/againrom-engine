@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
@@ -46,7 +47,7 @@ type validatedSaveName string
 
 func namedSaveBase(name string) (validatedSaveName, error) {
 	ext := filepath.Ext(name)
-	if strings.EqualFold(ext, ".ags") || strings.EqualFold(ext, ".sav") {
+	if namefold.HostEqual(ext, ".ags") || namefold.HostEqual(ext, ".sav") {
 		name = name[:len(name)-len(ext)]
 	}
 	if name == "" || name != strings.TrimSpace(name) || strings.HasSuffix(name, ".") || len(name) > 120 ||
@@ -58,7 +59,7 @@ func namedSaveBase(name string) (validatedSaveName, error) {
 			return "", fmt.Errorf("save name contains a control character")
 		}
 	}
-	device := strings.ToUpper(strings.SplitN(name, ".", 2)[0])
+	device := namefold.HostUpper(strings.SplitN(name, ".", 2)[0])
 	if device == "CON" || device == "PRN" || device == "AUX" || device == "NUL" ||
 		len(device) == 4 && (strings.HasPrefix(device, "COM") || strings.HasPrefix(device, "LPT")) && device[3] >= '0' && device[3] <= '9' {
 		return "", fmt.Errorf("save name is reserved by the operating system")

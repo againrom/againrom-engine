@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"image"
 	"path/filepath"
-	"strings"
+
+	"againrom/pkg/namefold"
 )
 
 type saveControl int
@@ -103,7 +104,7 @@ func (f *flow) refreshSaveDirectory() {
 // saveListName is a save row's text: the disk name without its one trailing
 // format suffix. SAV is the only format, so the suffix tells the player nothing.
 func saveListName(name string) string {
-	if strings.EqualFold(filepath.Ext(name), ".sav") {
+	if namefold.HostEqual(filepath.Ext(name), ".sav") {
 		return name[:len(name)-len(".sav")]
 	}
 	return name
@@ -115,7 +116,7 @@ func saveListName(name string) string {
 // name; stripping it would aim the next SAVE at a different file.
 func saveFieldName(name string) string {
 	shown := saveListName(name)
-	if ext := filepath.Ext(shown); strings.EqualFold(ext, ".sav") || strings.EqualFold(ext, ".ags") {
+	if ext := filepath.Ext(shown); namefold.HostEqual(ext, ".sav") || namefold.HostEqual(ext, ".ags") {
 		return name
 	}
 	return shown

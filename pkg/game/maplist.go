@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
 
@@ -186,7 +187,7 @@ func BuildMapList(loose, archive NamedReader) []MapEntry {
 		if a.FromArchive != b.FromArchive {
 			return !a.FromArchive // loose first
 		}
-		if fa, fb := strings.ToLower(a.Source), strings.ToLower(b.Source); fa != fb {
+		if fa, fb := namefold.Host(a.Source), namefold.Host(b.Source); fa != fb {
 			return fa < fb
 		}
 		return a.Source < b.Source
@@ -314,7 +315,7 @@ func DirMaps(root string, loose *vfs.FS) (NamedReader, error) {
 		if ent.IsDir() {
 			continue
 		}
-		if !strings.EqualFold(filepath.Ext(ent.Name()), mapExt) {
+		if !namefold.HostEqual(filepath.Ext(ent.Name()), mapExt) {
 			continue
 		}
 		d.names = append(d.names, ent.Name())
@@ -366,7 +367,7 @@ func ArchiveMaps(containers *vfs.FS) NamedReader {
 			continue
 		}
 		name := strings.TrimPrefix(e.Address, scenarioPrefix)
-		if !strings.EqualFold(filepath.Ext(name), mapExt) {
+		if !namefold.ArchiveTextEqual(filepath.Ext(name), mapExt) {
 			continue
 		}
 		m.names = append(m.names, name)

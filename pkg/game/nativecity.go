@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 	"reflect"
 	"slices"
-	"strings"
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 )
 
@@ -645,7 +645,7 @@ func nativeCityMarkerPicture(f *FrontEnd, mission int) (string, bool) {
 		return "", false
 	}
 	row := assets.data.Objects[object]
-	if !row.Valid || row.Picture == "" || strings.EqualFold(row.Picture, "nothing") {
+	if !row.Valid || row.Picture == "" || namefold.ArchiveTextEqual(row.Picture, "nothing") {
 		return "", false
 	}
 	return originalCityMarkerPath(row.Picture), true

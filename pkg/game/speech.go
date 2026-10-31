@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
 
@@ -72,7 +73,7 @@ func townSpeechTagPath(textPath, tag string, part int) (string, bool) {
 	if part < 1 {
 		return "", false
 	}
-	textPath = strings.ToLower(strings.ReplaceAll(textPath, `\`, "/"))
+	textPath = namefold.ArchiveText(strings.ReplaceAll(textPath, `\`, "/"))
 	if !strings.HasPrefix(textPath, "main/text/") || path.Clean(textPath) != textPath {
 		return "", false
 	}
@@ -82,7 +83,7 @@ func townSpeechTagPath(textPath, tag string, part int) (string, bool) {
 	}
 	name := fmt.Sprintf("%sp%d", strings.TrimSuffix(path.Base(relative), ".txt"), part)
 	if value := townSpeechOverride(tag); value != "" {
-		name = strings.ToLower(strings.ReplaceAll(value, `\`, "/"))
+		name = namefold.ArchiveText(strings.ReplaceAll(value, `\`, "/"))
 	}
 	if name == "" || path.Clean(name) != name || strings.ContainsAny(name, ":/") {
 		return "", false

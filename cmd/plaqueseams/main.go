@@ -41,6 +41,7 @@ import (
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/game"
 	"againrom/pkg/intmath"
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
 
@@ -274,7 +275,7 @@ func regionDiff(src *bmp.Image, xOff int, ref *bmp.Image) float64 {
 func census(src *vfs.FS, w io.Writer) error {
 	var addrs []string
 	for _, e := range src.Entries() {
-		if strings.Contains(e.Address, ifacePrefix) && strings.HasSuffix(strings.ToLower(e.Address), ".bmp") {
+		if strings.Contains(e.Address, ifacePrefix) && strings.HasSuffix(namefold.ArchiveText(e.Address), ".bmp") {
 			addrs = append(addrs, e.Address)
 		}
 	}

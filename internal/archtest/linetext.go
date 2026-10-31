@@ -318,6 +318,12 @@ func namesText(e ast.Expr, values map[string]string, addrs map[string]bool) bool
 	found := false
 	ast.Inspect(e, func(n ast.Node) bool {
 		switch n := n.(type) {
+		case *ast.SelectorExpr:
+			// A pkg/namefold policy is a function name, not a name spelling
+			// Text: ArchiveText folds the case of the address it is given.
+			if id, ok := n.X.(*ast.Ident); ok && id.Name == "namefold" {
+				return false
+			}
 		case *ast.BasicLit:
 			if n.Kind == token.STRING && strings.Contains(strings.ToLower(n.Value), "text/") {
 				found = true

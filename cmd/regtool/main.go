@@ -24,6 +24,7 @@ import (
 
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/res"
+	"againrom/pkg/namefold"
 )
 
 func main() {
@@ -103,7 +104,7 @@ func doSweep(dir string) error {
 		if err != nil {
 			return err
 		}
-		if d.IsDir() || !strings.EqualFold(filepath.Ext(path), ".res") {
+		if d.IsDir() || !namefold.HostEqual(filepath.Ext(path), ".res") {
 			return nil
 		}
 		a, err := res.Open(path)
@@ -112,7 +113,7 @@ func doSweep(dir string) error {
 			return nil
 		}
 		for _, e := range a.Entries() {
-			if !strings.EqualFold(filepath.Ext(e.Path), ".reg") {
+			if !namefold.ArchiveTextEqual(filepath.Ext(e.Path), ".reg") {
 				continue
 			}
 			total++

@@ -5,6 +5,7 @@ import (
 	"image"
 	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -80,7 +81,7 @@ func (f *FrontEnd) movieCatalog() []ui.CutsceneEntry {
 			break
 		}
 		title, ok := titles.At(i)
-		path = strings.ToLower(strings.TrimSpace(path))
+		path = namefold.ArchiveText(strings.TrimSpace(path))
 		if ok && title != "" && validMovieDirectory(path) {
 			out = append(out, ui.CutsceneEntry{Directory: path, Title: title})
 		}

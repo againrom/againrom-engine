@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/game"
 	"againrom/pkg/locale"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 )
 
@@ -206,7 +207,7 @@ func operationKeys() []operationKey {
 }
 
 func rootLabel(root string) string {
-	return strings.ToLower(filepath.Base(filepath.Clean(root)))
+	return namefold.Host(filepath.Base(filepath.Clean(root)))
 }
 
 func missionNames(archives *game.Archives) ([]struct {
@@ -219,7 +220,7 @@ func missionNames(archives *game.Archives) ([]struct {
 		Name   string
 	}
 	for _, name := range reader.Names() {
-		base := strings.TrimSuffix(strings.ToLower(name), filepath.Ext(name))
+		base := strings.TrimSuffix(namefold.ArchiveText(name), filepath.Ext(name))
 		n, err := strconv.Atoi(base)
 		if err != nil {
 			return nil, fmt.Errorf("campaign map %q has no numeric mission identity", name)

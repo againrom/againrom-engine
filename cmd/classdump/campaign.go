@@ -14,6 +14,7 @@ import (
 	"againrom/pkg/formats/databin"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
 
@@ -138,7 +139,7 @@ func (c *campaign) sources(root string) ([]source, error) {
 			continue
 		}
 		name := strings.TrimPrefix(e.Address, c.scenarioPrefix)
-		if !strings.EqualFold(filepath.Ext(name), mapExtension) {
+		if !namefold.ArchiveTextEqual(filepath.Ext(name), mapExtension) {
 			continue
 		}
 		addr := e.Address
@@ -151,7 +152,7 @@ func (c *campaign) sources(root string) ([]source, error) {
 	}
 	var loose []string
 	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), mapExtension) {
+		if e.IsDir() || !namefold.HostEqual(filepath.Ext(e.Name()), mapExtension) {
 			continue
 		}
 		loose = append(loose, e.Name())
@@ -246,7 +247,7 @@ func runCampaign(root, only string, w io.Writer) error {
 		fmt.Fprintf(w, "%-16s %8d %8d %8d %8d %8d   %s\n", s.name, len(m.Units),
 			t.taken[mapload.ArmUnits], t.taken[mapload.ArmServerID],
 			t.taken[mapload.ArmNPC], t.taken[mapload.ArmHumansByType], formatCells(drops))
-		if only != "" && strings.EqualFold(s.name, only) {
+		if only != "" && namefold.HostEqual(s.name, only) {
 			detail = m
 		}
 		total.addAll(t)

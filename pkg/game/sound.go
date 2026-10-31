@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/vfs"
 )
@@ -120,7 +121,7 @@ func (b *SoundBank) namedSample(path string) (audio.Sample, bool) {
 	if b == nil {
 		return audio.Sample{}, false
 	}
-	path = strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	path = namefold.ArchiveText(strings.ReplaceAll(path, `\`, "/"))
 	if c, ok := b.named[path]; ok {
 		return c.sample, c.ok
 	}
@@ -144,7 +145,7 @@ func (b *SoundBank) holdsNamed(path string) bool {
 	if b == nil {
 		return false
 	}
-	path = strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	path = namefold.ArchiveText(strings.ReplaceAll(path, `\`, "/"))
 	if c, ok := b.named[path]; ok && c.ok {
 		return true
 	}
@@ -259,7 +260,7 @@ func regSection(r *reg.Reg, name string) *reg.Node {
 		return nil
 	}
 	for _, c := range r.Root.Children {
-		if c.Dir && strings.EqualFold(c.Name, name) {
+		if c.Dir && namefold.ArchiveTextEqual(c.Name, name) {
 			return c
 		}
 	}
@@ -271,7 +272,7 @@ func regSection(r *reg.Reg, name string) *reg.Node {
 // fold is (lookup.go). Anything else — a differently spelled key, or a zero
 // or negative id no slot can be — is refused rather than guessed at.
 func sfxSlotID(name string) (int, bool) {
-	if len(name) <= 3 || !strings.EqualFold(name[:3], "sfx") {
+	if len(name) <= 3 || !namefold.ArchiveTextEqual(name[:3], "sfx") {
 		return 0, false
 	}
 	id, err := strconv.Atoi(name[3:])

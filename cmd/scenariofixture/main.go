@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"againrom/pkg/game"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 )
 
@@ -162,7 +163,7 @@ func validateOutput(assets, source, out string) error {
 			return err
 		}
 		// Case folding also rejects Windows aliases for the same directory.
-		targetFold, protectedFold := strings.ToLower(target), strings.ToLower(protected)
+		targetFold, protectedFold := namefold.Host(target), namefold.Host(protected)
 		if targetFold == protectedFold || strings.HasPrefix(targetFold, protectedFold+string(filepath.Separator)) {
 			return fmt.Errorf("output %q is inside protected input directory %q", target, protected)
 		}

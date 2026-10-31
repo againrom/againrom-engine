@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"againrom/pkg/installpath"
+	"againrom/pkg/namefold"
 )
 
 // SaveStore holds authored saves. Only a launch-issued private profile can
@@ -186,7 +187,7 @@ func saveDirFor(exe, wd string, roots ...string) string {
 // behaviour that shipped, which is the safe direction to fail in.
 func insideDir(parent, path string) bool {
 	p, c := filepath.Clean(parent), filepath.Clean(path)
-	if p == "" || p == "." || len(c) < len(p) || !strings.EqualFold(c[:len(p)], p) {
+	if p == "" || p == "." || len(c) < len(p) || !namefold.HostEqual(c[:len(p)], p) {
 		return false
 	}
 	return len(c) == len(p) || os.IsPathSeparator(c[len(p)]) || os.IsPathSeparator(p[len(p)-1])
@@ -482,7 +483,7 @@ func saveTempIsActive(dir os.FileInfo, name string) bool {
 
 func sameSaveName(a, b string) bool {
 	if runtime.GOOS == "windows" {
-		return strings.EqualFold(a, b)
+		return namefold.HostEqual(a, b)
 	}
 	return a == b
 }
@@ -669,11 +670,11 @@ func sameOrDescendantPhysical(parent, child string) (bool, error) {
 
 func directoryHasRequiredArchives(dir string) (bool, error) {
 	want := map[string]bool{
-		strings.ToLower(MainArchive):     false,
-		strings.ToLower(GraphicsArchive): false,
-		strings.ToLower(ScenarioArchive): false,
-		strings.ToLower(WorldArchive):    false,
-		strings.ToLower(MoviesArchive):   false,
+		namefold.Host(MainArchive):     false,
+		namefold.Host(GraphicsArchive): false,
+		namefold.Host(ScenarioArchive): false,
+		namefold.Host(WorldArchive):    false,
+		namefold.Host(MoviesArchive):   false,
 	}
 	// The shipped game and the supported runtime are Windows, where a direct
 	// lookup is case-insensitive. Besides being cheaper, these probes still
@@ -784,5 +785,5 @@ func (s OriginalStore) Read(name string) ([]byte, error) {
 // question is which reader a row belongs to, and a build that had to open a file
 // to find out would open every file in the list to draw it.
 func IsOriginal(name string) bool {
-	return strings.EqualFold(filepath.Ext(name), originalSaveExt)
+	return namefold.HostEqual(filepath.Ext(name), originalSaveExt)
 }

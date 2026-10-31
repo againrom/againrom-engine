@@ -16,6 +16,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -744,7 +745,7 @@ func (s HeadlessStep) validate(version int, stage string) error {
 	case "assert_shop":
 		return s.Shop.validate()
 	case "frame":
-		if !strings.EqualFold(filepath.Ext(s.Path), ".png") {
+		if !namefold.HostEqual(filepath.Ext(s.Path), ".png") {
 			return fmt.Errorf("frame path %q: the file must end in .png", s.Path)
 		}
 	}

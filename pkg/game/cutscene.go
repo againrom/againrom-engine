@@ -13,6 +13,7 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/installpath"
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 	"againrom/pkg/video"
 )
@@ -179,7 +180,7 @@ func CutsceneArchive(fourX, eightX bool) string {
 }
 
 func cutsceneMember(name string) (string, error) {
-	name = strings.ToLower(strings.ReplaceAll(name, `\`, "/"))
+	name = namefold.ArchiveText(strings.ReplaceAll(name, `\`, "/"))
 	if len(name) == 0 || len(name) > 240 || !strings.HasSuffix(name, ".smk") || strings.ContainsAny(name, ":\x00") {
 		return "", fmt.Errorf("video: invalid member name")
 	}

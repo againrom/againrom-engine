@@ -10,6 +10,7 @@ import (
 	"againrom/pkg/ini"
 	"againrom/pkg/launch"
 	"againrom/pkg/mod"
+	"againrom/pkg/namefold"
 )
 
 // Section and key names of the settings file.
@@ -160,7 +161,7 @@ func (s settings) basePath(key string) (string, bool) {
 // reused. It returns the key.
 func (s *settings) addBase(path string) string {
 	for _, b := range s.Bases {
-		if strings.EqualFold(b.Path, path) {
+		if namefold.HostEqual(b.Path, path) {
 			return b.Key
 		}
 	}
@@ -178,7 +179,7 @@ func (s *settings) addBase(path string) string {
 
 // baseKey turns the last folder of path into an ini key.
 func baseKey(path string) string {
-	name := strings.ToLower(filepath.Base(filepath.Clean(path)))
+	name := namefold.Host(filepath.Base(filepath.Clean(path)))
 	var b strings.Builder
 	for _, r := range name {
 		if r < unicode.MaxASCII && (unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '_') {

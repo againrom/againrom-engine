@@ -11,6 +11,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/formats/spr256"
+	"againrom/pkg/namefold"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/screenart"
 	"againrom/pkg/ui"
@@ -156,7 +157,7 @@ func (s screenArtSource) Sprites(key string) []image.Image {
 	if s.src == nil {
 		return nil
 	}
-	if strings.HasSuffix(strings.ToLower(key), ".256") {
+	if strings.HasSuffix(namefold.ArchiveText(key), ".256") {
 		raw, err := s.src.ReadFile(key)
 		if err != nil {
 			return nil

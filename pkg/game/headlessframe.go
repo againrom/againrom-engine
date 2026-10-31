@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
@@ -156,10 +157,10 @@ func (f *FrontEnd) checkHeadlessFramePaths(steps []HeadlessStep) error {
 		if err != nil {
 			return fmt.Errorf("step %d (frame): %w", i+1, err)
 		}
-		if first, dup := named[strings.ToLower(abs)]; dup {
+		if first, dup := named[namefold.Host(abs)]; dup {
 			return fmt.Errorf("step %d (frame): %s: step %d writes the same file", i+1, abs, first)
 		}
-		named[strings.ToLower(abs)] = i + 1
+		named[namefold.Host(abs)] = i + 1
 		if err := f.checkHeadlessFramePath(abs); err != nil {
 			return fmt.Errorf("step %d (frame): %w", i+1, err)
 		}

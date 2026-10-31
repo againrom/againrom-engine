@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"againrom/pkg/base"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/namefold"
 )
 
 // saveFacts is what a directory scan needs from one file: whether it opens as a
@@ -144,7 +144,7 @@ func scanSaves(s saveScan) []scannedSave {
 	}
 	var out []scannedSave
 	for _, e := range ents {
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(e.Name()), originalSaveExt) {
+		if e.IsDir() || !namefold.HostEqual(filepath.Ext(e.Name()), originalSaveExt) {
 			continue
 		}
 		fi, err := e.Info()

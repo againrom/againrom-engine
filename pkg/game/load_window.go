@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
@@ -146,7 +146,7 @@ func loadDeletePath(dir, token string, fences []string, profiles ...*runtimeProf
 	} else if IsOriginal(token) {
 		return "", fmt.Errorf("the original save is read-only")
 	}
-	if name != filepath.Base(name) || !strings.EqualFold(filepath.Ext(name), ".sav") {
+	if name != filepath.Base(name) || !namefold.HostEqual(filepath.Ext(name), ".sav") {
 		return "", fmt.Errorf("invalid save name")
 	}
 	root, err := namedSaveDirectory(dir, fences, profiles...)

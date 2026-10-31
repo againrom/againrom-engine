@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"againrom/pkg/game"
+	"againrom/pkg/namefold"
 )
 
 func main() {
@@ -140,7 +141,7 @@ func census(a *game.Archives, out io.Writer) error {
 // archive's own convention rather than a guess — the two preserved roots spell
 // their container names differently — and it costs nothing to be right about.
 func isEventText(addr string) bool {
-	a := strings.ToLower(addr)
+	a := namefold.ArchiveText(addr)
 	if !strings.HasPrefix(a, eventPrefix) || !strings.HasSuffix(a, ".txt") {
 		return false
 	}

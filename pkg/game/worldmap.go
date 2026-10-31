@@ -5,10 +5,10 @@ import (
 	"image"
 	"sort"
 	"strconv"
-	"strings"
 
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/intmath"
+	"againrom/pkg/namefold"
 	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -78,7 +78,7 @@ func ReadGlobalMap(r *reg.Reg) (*globalMapData, error) {
 
 	var missionSection *reg.Node
 	for _, n := range r.Root.Children {
-		if n.Dir && strings.EqualFold(n.Name, "MissionObjects") {
+		if n.Dir && namefold.ArchiveTextEqual(n.Name, "MissionObjects") {
 			missionSection = n
 			break
 		}
@@ -88,7 +88,7 @@ func ReadGlobalMap(r *reg.Reg) (*globalMapData, error) {
 	}
 	for _, n := range missionSection.Children {
 		if n.Dir || n.Type != reg.TypeInt || len(n.Name) <= len("Mission") ||
-			!strings.EqualFold(n.Name[:len("Mission")], "Mission") {
+			!namefold.ArchiveTextEqual(n.Name[:len("Mission")], "Mission") {
 			continue
 		}
 		mission, err := strconv.Atoi(n.Name[len("Mission"):])
@@ -318,7 +318,7 @@ func (a *worldMapAssets) marker(mission int, obj globalMapObject) *image.RGBA {
 		return a.markers[mission]
 	}
 	a.markerTried[mission] = true
-	if obj.Picture == "" || strings.EqualFold(obj.Picture, "nothing") || a.art == nil {
+	if obj.Picture == "" || namefold.ArchiveTextEqual(obj.Picture, "nothing") || a.art == nil {
 		return nil
 	}
 	if a.desc == nil || a.desc.RecordArt == "" {
@@ -613,7 +613,7 @@ func worldMapMarkerHasPicture(data *globalMapData, mission int) bool {
 		return false
 	}
 	row := data.Objects[object]
-	return row.Valid && row.Picture != "" && !strings.EqualFold(row.Picture, "nothing")
+	return row.Valid && row.Picture != "" && !namefold.ArchiveTextEqual(row.Picture, "nothing")
 }
 
 // frontWorldMapFilteredMarkers computes what enterWorldMap's own lazy
@@ -964,7 +964,7 @@ func (f *FrontEnd) WorldMapSweep() (string, error) {
 		}
 		object := a.data.Missions[m.Number]
 		obj := a.data.Objects[object]
-		hasPicture := obj.Picture != "" && !strings.EqualFold(obj.Picture, "nothing")
+		hasPicture := obj.Picture != "" && !namefold.ArchiveTextEqual(obj.Picture, "nothing")
 		selected, recorded := s.worldSelectedOnce[m.Number]
 		if hasPicture && (!recorded || !selected) {
 			return "", fmt.Errorf("world map sweep: mission %d picture %q was not retained by the selection writer", m.Number, obj.Picture)

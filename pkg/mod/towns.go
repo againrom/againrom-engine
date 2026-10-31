@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/town"
 )
 
@@ -288,7 +289,7 @@ func ModDescriptionName(id, path string) string { return id + ":" + path }
 
 // IsTownDescriptionFile reports whether a description value names a file of
 // the mod rather than an installed description.
-func IsTownDescriptionFile(v string) bool { return strings.HasSuffix(strings.ToLower(v), ".json") }
+func IsTownDescriptionFile(v string) bool { return strings.HasSuffix(namefold.Host(v), ".json") }
 
 // ParseTowns reads data/towns.toml of the mod id: its [[town]] tables and
 // its offer rows, [[tavern]] and [[inn]] tables. A refusal names the file

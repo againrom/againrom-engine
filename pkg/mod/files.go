@@ -151,7 +151,7 @@ func readInstallFiles(id string, fsys fs.FS, langs []string, lang string) ([]Ins
 			if !d.IsDir() {
 				return bad("stands outside a language folder; install files stand in %s/%s/ or %s/<language>/", FilesDir, CommonFiles, FilesDir)
 			}
-			low := strings.ToLower(parts[0])
+			low := namefold.Host(parts[0])
 			if !slices.Contains(langs, low) {
 				return bad("%q is not a language folder: the folders are %s", parts[0], strings.Join(langs, ", "))
 			}
@@ -167,7 +167,7 @@ func readInstallFiles(id string, fsys fs.FS, langs []string, lang string) ([]Ins
 		if len(parts) == 2 {
 			return bad("names no archive: a file stands at its install path, the archive's name and the path inside it")
 		}
-		kind, ok := fileKinds[strings.ToLower(path.Ext(rel))]
+		kind, ok := fileKinds[namefold.Host(path.Ext(rel))]
 		if !ok {
 			return bad("the game takes no install file of this kind; a mod carries .bmp pictures, .wav sounds and .txt texts")
 		}
@@ -185,7 +185,7 @@ func readInstallFiles(id string, fsys fs.FS, langs []string, lang string) ([]Ins
 		if kind == FileText && !utf8.Valid(b) {
 			return bad("is not UTF-8 text")
 		}
-		f := InstallFile{Mod: id, File: rel, Lang: strings.ToLower(parts[0]), Address: strings.Join(parts[1:], "/"), Kind: kind, Bytes: b}
+		f := InstallFile{Mod: id, File: rel, Lang: namefold.Host(parts[0]), Address: strings.Join(parts[1:], "/"), Kind: kind, Bytes: b}
 		for _, other := range byLang[f.Lang] {
 			if FoldAddress(other.Address) == FoldAddress(f.Address) {
 				return bad("names the install path of %s; one language folder holds one file per install path", other.File)

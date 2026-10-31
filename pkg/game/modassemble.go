@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
 
@@ -99,7 +100,7 @@ func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
 	code := TextCode{Selector: LanguageSelector(src)}
 	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(n) + "/"
 	for _, e := range src.Entries() {
-		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
+		name, ok := strings.CutPrefix(namefold.ArchiveText(e.Address), prefix)
 		if !ok || !missionPageName(name) {
 			continue
 		}

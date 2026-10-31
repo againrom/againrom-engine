@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"againrom/pkg/mod"
+	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
 
@@ -195,7 +196,7 @@ func (s *mapInspectionEdits) saveWorkspacePackage(dir string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.EqualFold(filepath.Base(abs), p.ID) {
+	if !namefold.HostEqual(filepath.Base(abs), p.ID) {
 		return "", fmt.Errorf("folder must be named %s, the mod ID", p.ID)
 	}
 	parent, err := editorPhysicalDirectory(filepath.Dir(abs))

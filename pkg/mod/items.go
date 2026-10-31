@@ -2,6 +2,7 @@ package mod
 
 import (
 	"againrom/pkg/locale"
+	"againrom/pkg/namefold"
 	"errors"
 	"fmt"
 	"os"
@@ -524,7 +525,7 @@ func checkModPath(file string, line int, what, p, ext string) error {
 	if clean != p || clean == ".." || strings.HasPrefix(clean, "../") {
 		return bad("%s %q is not a clean path inside the mod folder", what, p)
 	}
-	if !strings.EqualFold(path.Ext(p), ext) {
+	if !namefold.HostEqual(path.Ext(p), ext) {
 		return bad("%s %q is not a %s file", what, p, ext)
 	}
 	return nil
