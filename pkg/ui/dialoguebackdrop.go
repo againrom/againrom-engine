@@ -38,11 +38,7 @@ type dialogueBackdropState struct {
 
 func (s *dialogueBackdropState) shadowTable() *backdrop.Lookup {
 	if s.shadowLookup == nil || s.shadowLookup.Layout != s.policy.Layout || s.shadowLookup.Mode != s.policy.Mode {
-		var err error
-		s.shadowLookup, err = backdrop.NewLevel(s.policy.Layout, s.policy.Mode, 6)
-		if err != nil {
-			panic(err)
-		}
+		s.shadowLookup = s.policy.shadowTable()
 		if s.shadowTexture != nil {
 			s.shadowTexture.Dispose()
 			s.shadowTexture = nil
@@ -129,37 +125,37 @@ var submitDialogueShadow = func(dst *ebiten.Image, vertices []ebiten.Vertex, sha
 	dst.DrawTrianglesShader(vertices, []uint16{0, 1, 2, 1, 2, 3}, shader, op)
 }
 
+// applyFrameShadows plans the dialogue window's frame shadow over body at at
+// and runs the plan on the CPU.
 func (s *dialogueBackdropState) applyFrameShadows(dst *image.RGBA, art *DialogFrame, body image.Rectangle, at image.Point, calls []text.DrawCall) {
 	if dst == nil {
 		return
 	}
-	mask := dialogueShadowMask(art, body, at, 1, dialoguePolicyClip(s.policy, dst.Bounds()))
-	if mask == nil {
-		return
-	}
-	l := s.shadowTable()
-	for y := mask.Rect.Min.Y; y < mask.Rect.Max.Y; y++ {
-		for x := mask.Rect.Min.X; x < mask.Rect.Max.X; x++ {
-			c := dst.RGBAAt(x, y)
-			for n := uint8(0); n < mask.RGBAAt(x, y).A; n++ {
-				c = l.Color(c)
-			}
-			dst.SetRGBA(x, y, c)
-		}
-	}
-	remapCapturedMask(calls, mask.Rect, l, mask, mask.Rect.Min, true)
+	planFrameShadows(art.dialogueFrame(body, s.policy), at, 1, dst.Bounds(), shadowRemap, s.shadowTable).paint(dst, calls)
 }
 
+// drawFrameShadows plans the dialogue window's frame shadow over body at at,
+// scaled by scale, and runs the plan on the GPU.
 func (s *dialogueBackdropState) drawFrameShadows(dst *ebiten.Image, log *pixelLog, art *DialogFrame, body image.Rectangle, at image.Point, scale float64, calls []text.DrawCall) {
 	if dst == nil {
 		return
 	}
-	mask := dialogueShadowMask(art, body, at, scale, dialoguePolicyClip(s.policy, dst.Bounds()))
+	s.drawShadowPlan(dst, log, planFrameShadows(art.dialogueFrame(body, s.policy), at, scale, dst.Bounds(), shadowRemap, s.shadowTable), calls)
+}
+
+// drawShadowPlan runs a frame shadow plan on the GPU: the shader applies the
+// plan's table once per tile its mask counts. The shader has the remap blend
+// only, so a toned plan is refused.
+func (s *dialogueBackdropState) drawShadowPlan(dst *ebiten.Image, log *pixelLog, p frameShadowPlan, calls []text.DrawCall) {
+	mask := p.mask
 	if mask == nil {
 		s.shadowMask = nil
 		return
 	}
-	l := s.shadowTable()
+	if p.toned {
+		panic("frame shadow: the GPU executor runs the remap blend only")
+	}
+	l := p.table
 	if dialogueShadowProgram == nil {
 		var err error
 		dialogueShadowProgram, err = ebiten.NewShader([]byte(dialogueShadowShader))
@@ -222,11 +218,27 @@ func (s *dialogueBackdropState) rect(bounds image.Rectangle) image.Rectangle {
 	return bounds
 }
 
+// dialogueBackdropPlan is one backdrop remap: the rectangle it covers, the
+// table and the number of passes. dialogueBackdropState.plan builds it; apply
+// runs it on the CPU, drawWithCalls on the GPU and remapCaptured on captured
+// text.
+type dialogueBackdropPlan struct {
+	rect  image.Rectangle
+	table *backdrop.Lookup
+	shows uint64
+}
+
+// plan is the remap of shows passes over a destination of bounds.
+func (s *dialogueBackdropState) plan(bounds image.Rectangle, shows uint64) dialogueBackdropPlan {
+	return dialogueBackdropPlan{rect: s.rect(bounds), table: s.table(), shows: shows}
+}
+
 func (s *dialogueBackdropState) apply(pic *image.RGBA, shows uint64) {
 	if shows == 0 || pic == nil {
 		return
 	}
-	s.table().Apply(pic, pic.Bounds(), s.rect(pic.Bounds()), shows)
+	p := s.plan(pic.Bounds(), shows)
+	p.table.Apply(pic, pic.Bounds(), p.rect, p.shows)
 }
 
 func (a *App) SetDialogueBackdrop(p DialogueBackdrop) error {
@@ -356,8 +368,8 @@ func (s *dialogueBackdropState) drawWithCalls(dst *ebiten.Image, log *pixelLog, 
 	if shows == 0 || dst == nil {
 		return
 	}
-	l := s.table()
-	r := s.rect(dst.Bounds())
+	p := s.plan(dst.Bounds(), shows)
+	l, r := p.table, p.rect
 	if r.Empty() {
 		return
 	}
@@ -383,7 +395,7 @@ func (s *dialogueBackdropState) drawWithCalls(dst *ebiten.Image, log *pixelLog, 
 		bits = 5
 	}
 	// Every packed channel reaches a fixed point within 32 applications.
-	for pass := uint64(0); pass < min(shows, 32); pass++ {
+	for pass := uint64(0); pass < min(p.shows, 32); pass++ {
 		var copyOp ebiten.DrawImageOptions
 		copyOp.Blend = ebiten.BlendCopy
 		s.scratch.DrawImage(dst, &copyOp)
@@ -391,6 +403,6 @@ func (s *dialogueBackdropState) drawWithCalls(dst *ebiten.Image, log *pixelLog, 
 		vertices := []ebiten.Vertex{{DstX: 0, DstY: 0, SrcX: 0, SrcY: 0}, {DstX: float32(b.Dx()), DstY: 0, SrcX: float32(b.Dx()), SrcY: 0}, {DstX: 0, DstY: float32(b.Dy()), SrcX: 0, SrcY: float32(b.Dy())}, {DstX: float32(b.Dx()), DstY: float32(b.Dy()), SrcX: float32(b.Dx()), SrcY: float32(b.Dy())}}
 		submitDialogueBackdrop(dst.SubImage(r).(*ebiten.Image), vertices, dialogueBackdropProgram, &op)
 	}
-	log.remap(r, l, shows)
-	remapCaptured(calls, r, l, shows)
+	log.remap(r, l, p.shows)
+	remapCaptured(calls, r, l, p.shows)
 }

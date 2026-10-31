@@ -58,7 +58,7 @@ var widgetFrameDebt = map[string]string{
 var widgetNotAFrame = map[string]string{
 	"pkg/ui/framesmoothing.go:drawFinalFrame":      "presents the finished video frame",
 	"pkg/ui/viewer.go:drawFrame":                   "presents one video frame of the map",
-	"pkg/ui/dialoguebackdrop.go:drawFrameShadows":  "the dialogue backdrop's GPU twin of the kit's shadow pass",
+	"pkg/ui/dialoguebackdrop.go:drawFrameShadows":  "runs the kit's frame shadow plan on the GPU",
 	"pkg/ui/spellpopup.go:drawAutocastBorder":      "the animated autocast mark around a spell cell",
 	"pkg/ui/sackhighlight.go:drawSackOutline":      "an item contour from the outline texture",
 	"pkg/ui/dialogueportrait.go:drawFlippedBorder": "the dialogue portrait's art strip, mirrored",

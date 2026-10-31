@@ -3638,5 +3638,5 @@ var Committed = Baseline{
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10122626,
+	CommentBytes: 10130066,
 }

@@ -4192,9 +4192,10 @@ func (a *App) Draw(screen *ebiten.Image) {
 		calls, span := text.Captured(), a.wideDialogueCalls
 		shows := townDialogueShows(a.flow.town)
 		a.dialogueBackdrop.drawWithCalls(present, &a.presentLog, shows, calls[:span[0]])
-		remapCaptured(calls[span[1]:], a.dialogueBackdrop.rect(present.Bounds()), a.dialogueBackdrop.table(), shows)
+		remap := a.dialogueBackdrop.plan(present.Bounds(), shows)
+		remapCaptured(calls[span[1]:], remap.rect, remap.table, remap.shows)
 		art, body := townDialogueFrame(a.flow.town)
-		at := image.Pt((present.Bounds().Dx()-a.wideDialogue.Bounds().Dx())/2, (frame.H-a.wideDialogue.Bounds().Dy())/2)
+		at := planDetachedDialogue(present.Bounds(), a.wideDialogue, a.dialogueBackdrop.policy).at
 		a.dialogueBackdrop.drawFrameShadows(present, &a.presentLog, art, body, at, 1, calls[:span[0]])
 		if mask := a.dialogueBackdrop.shadowMask; mask != nil && art.valid() {
 			remapCapturedMask(calls[span[1]:], mask.Rect, a.dialogueBackdrop.shadowTable(), mask, mask.Rect.Min, true)
@@ -4245,37 +4246,38 @@ func (a *App) prepareWideCanvas(layout wideFrameLayout) *ebiten.Image {
 		a.wideCanvas = ebiten.NewImage(bounds.Dx(), bounds.Dy())
 	}
 	a.wideCanvas.Fill(wideFrameFill)
-	blitNativeIntoWide(a.wideCanvas, a.canvas, layout)
+	plan := layout.plan()
+	blitNativeIntoWide(a.wideCanvas, a.canvas, plan)
 	a.presentLog.reset(a.wideCanvas.Bounds())
 	a.presentLog.fill(a.wideCanvas.Bounds(), wideFrameFill)
-	logNativeIntoWide(&a.presentLog, &a.canvasLog, layout)
+	logNativeIntoWide(&a.presentLog, &a.canvasLog, plan)
 	return a.wideCanvas
 }
 
-// logNativeIntoWide records blitNativeIntoWide: a segment copied at scale
-// one is a layer of the source's own log, any other is unknown.
-func logNativeIntoWide(dst, src *pixelLog, layout wideFrameLayout) {
-	for _, segment := range layout.segments() {
-		destination := segment.destination()
-		if destination.Size() == segment.Source.Size() {
-			dst.overLayer(src, destination, destination.Min.Sub(segment.Source.Min))
+// logNativeIntoWide runs a composite plan on the pixel log: an unscaled blit
+// is a layer of the source's own log, a scaled one is unknown.
+func logNativeIntoWide(dst, src *pixelLog, p wideFramePlan) {
+	for _, b := range p.blits {
+		if !b.scaled() {
+			dst.overLayer(src, b.destination, b.destination.Min.Sub(b.source.Min))
 		} else {
-			dst.unknown(destination)
+			dst.unknown(b.destination)
 		}
 	}
 }
 
-func blitNativeIntoWide(dst, src *ebiten.Image, layout wideFrameLayout) {
+// blitNativeIntoWide runs a composite plan on the GPU, each blit scaled
+// nearest-neighbour onto its destination.
+func blitNativeIntoWide(dst, src *ebiten.Image, p wideFramePlan) {
 	if dst == nil || src == nil {
 		return
 	}
-	for _, segment := range layout.segments() {
-		part := src.SubImage(segment.Source).(*ebiten.Image)
-		destination := segment.destination()
+	for _, b := range p.blits {
+		part := src.SubImage(b.source).(*ebiten.Image)
 		var op ebiten.DrawImageOptions
-		op.GeoM.Scale(float64(destination.Dx())/float64(segment.Source.Dx()),
-			float64(destination.Dy())/float64(segment.Source.Dy()))
-		op.GeoM.Translate(float64(destination.Min.X), float64(destination.Min.Y))
+		op.GeoM.Scale(float64(b.destination.Dx())/float64(b.source.Dx()),
+			float64(b.destination.Dy())/float64(b.source.Dy()))
+		op.GeoM.Translate(float64(b.destination.Min.X), float64(b.destination.Min.Y))
 		op.Filter = ebiten.FilterNearest
 		dst.DrawImage(part, &op)
 	}
@@ -4289,20 +4291,18 @@ func paintDetachedTownDialogue(dst *ebiten.Image, dialogue *image.RGBA, log *pix
 	if dst == nil || dialogue == nil {
 		return
 	}
-	pic := ebiten.NewImageFromImage(dialogue)
-	at := image.Pt((dst.Bounds().Dx()-dialogue.Bounds().Dx())/2, (frame.H-dialogue.Bounds().Dy())/2)
-	var op ebiten.DrawImageOptions
-	op.GeoM.Translate(float64(at.X), float64(at.Y))
 	policy := DialogueBackdrop{}
 	if len(policies) > 0 {
 		policy = policies[0]
 	}
-	clip := dialoguePolicyClip(policy, dst.Bounds())
-	if clip.Empty() {
+	p := planDetachedDialogue(dst.Bounds(), dialogue, policy)
+	if p.clip.Empty() {
 		return
 	}
-	dst.SubImage(clip).(*ebiten.Image).DrawImage(pic, &op)
-	log.overClipped(dialogue, at, dialoguePolicyClip(policy, dst.Bounds()))
+	var op ebiten.DrawImageOptions
+	op.GeoM.Translate(float64(p.at.X), float64(p.at.Y))
+	dst.SubImage(p.clip).(*ebiten.Image).DrawImage(ebiten.NewImageFromImage(p.pic), &op)
+	log.overClipped(p.pic, p.at, p.clip)
 }
 
 // paintGameMenuOnWideCanvas leaves the widened town visible under one dim and
@@ -4327,9 +4327,9 @@ func (a *App) paintGameMenuOnWideCanvas(dst *ebiten.Image) {
 		drawDebugText(a.menuCanvas, &a.menuLog, msg, pickerLeft, pickerMessageY)
 	}
 	a.menuLog.end()
-	layout := newWideFrameLayout(dst.Bounds().Dx(), wideFrameCentered)
-	blitNativeIntoWide(dst, a.menuCanvas, layout)
-	logNativeIntoWide(&a.presentLog, &a.menuLog, layout)
+	plan := newWideFrameLayout(dst.Bounds().Dx(), wideFrameCentered).plan()
+	blitNativeIntoWide(dst, a.menuCanvas, plan)
+	logNativeIntoWide(&a.presentLog, &a.menuLog, plan)
 }
 
 // applyPointerMode tells the engine what flow.pointerWanted decided for this
@@ -4850,7 +4850,8 @@ func overlayTownDialogueWithPolicy(pix *image.RGBA, t TownScreen, state *dialogu
 		return
 	}
 	state.apply(pix, townDialogueShows(t))
-	remapCaptured(text.Captured()[:start], state.rect(pix.Bounds()), state.table(), townDialogueShows(t))
+	remap := state.plan(pix.Bounds(), townDialogueShows(t))
+	remapCaptured(text.Captured()[:start], remap.rect, remap.table, remap.shows)
 	ox, oy := dialogueOrigin(dialogue)
 	art, body := townDialogueFrame(t)
 	state.applyFrameShadows(pix, art, body, image.Pt(ox, oy), text.Captured()[:start])
@@ -4901,7 +4902,7 @@ func (a *App) drawTown() {
 	var err error
 	if dialogue, detached := a.detachedTownDialogue(); detached {
 		a.wideDialogueCalls = [2]int{wideDialogueCapture, markCapture()}
-		shiftCapture(wideDialogueCapture, image.Pt((a.baseWideFrameLayout().width-dialogue.Bounds().Dx())/2, (frame.H-dialogue.Bounds().Dy())/2))
+		shiftCapture(wideDialogueCapture, planDetachedDialogue(a.baseWideFrameLayout().bounds(), dialogue, a.dialogueBackdrop.policy).at)
 		pix, err = a.composeTownRoom()
 		if err == nil {
 			a.wideDialogue = dialogue

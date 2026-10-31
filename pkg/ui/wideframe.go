@@ -97,21 +97,56 @@ func (l wideFrameLayout) segments() []wideFrameSegment {
 // or duplicate seam remains between them. Centred mode is kept for modals whose
 // own geometry must remain intact.
 func (l wideFrameLayout) compose(src image.Image) *image.RGBA {
-	dst := image.NewRGBA(l.bounds())
+	p := l.plan()
+	dst := image.NewRGBA(p.bounds)
 	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: wideFrameFill}, image.Point{}, draw.Src)
 	if src == nil || src.Bounds().Dx() != frame.W || src.Bounds().Dy() != frame.H {
 		return dst
 	}
+	p.paint(dst, src, draw.Src)
+	return dst
+}
+
+// wideFrameBlit is one planned copy of a native rectangle into the wide
+// frame, scaled when the two sizes differ.
+type wideFrameBlit struct {
+	source, destination image.Rectangle
+}
+
+func (b wideFrameBlit) scaled() bool { return b.destination.Size() != b.source.Size() }
+
+// wideFramePlan is one native-to-wide composite: the wide frame's bounds and
+// the blits placing a native picture in it. wideFrameLayout.plan builds it;
+// paint runs it on the CPU, blitNativeIntoWide on the GPU and
+// logNativeIntoWide on the pixel log.
+type wideFramePlan struct {
+	bounds image.Rectangle
+	blits  []wideFrameBlit
+}
+
+// plan is the layout's composite route.
+func (l wideFrameLayout) plan() wideFramePlan {
+	p := wideFramePlan{bounds: l.bounds()}
 	for _, segment := range l.segments() {
-		source := segment.Source.Add(src.Bounds().Min)
-		destination := segment.destination()
-		if destination.Size() == source.Size() {
-			draw.Draw(dst, destination, src, source.Min, draw.Src)
+		p.blits = append(p.blits, wideFrameBlit{source: segment.Source, destination: segment.destination()})
+	}
+	return p
+}
+
+// paint runs the plan on a CPU destination: an unscaled blit draws src with
+// op, a scaled one is the nearest-neighbour stretch.
+func (p wideFramePlan) paint(dst *image.RGBA, src image.Image, op draw.Op) {
+	if dst == nil || src == nil {
+		return
+	}
+	for _, b := range p.blits {
+		source := b.source.Add(src.Bounds().Min)
+		if !b.scaled() {
+			draw.Draw(dst, b.destination, src, source.Min, op)
 			continue
 		}
-		drawNearest(dst, destination, src, source)
+		drawNearest(dst, b.destination, src, source)
 	}
-	return dst
 }
 
 func drawNearest(dst *image.RGBA, destination image.Rectangle, src image.Image, source image.Rectangle) {
@@ -231,13 +266,37 @@ func (a *App) detachedTownDialogue() (*image.RGBA, bool) {
 	return dialogue, open && dialogue != nil
 }
 
+// detachedDialoguePlan is a town dialogue kept whole on the wide frame: the
+// picture, the origin centring it and the clip it is drawn through.
+// planDetachedDialogue builds it; paint runs it on the CPU and
+// paintDetachedTownDialogue on the GPU.
+type detachedDialoguePlan struct {
+	pic  *image.RGBA
+	at   image.Point
+	clip image.Rectangle
+}
+
+// planDetachedDialogue centres dialogue on a wide frame of bounds, clipped
+// by policy.
+func planDetachedDialogue(bounds image.Rectangle, dialogue *image.RGBA, policy DialogueBackdrop) detachedDialoguePlan {
+	size := dialogue.Bounds().Size()
+	return detachedDialoguePlan{
+		pic:  dialogue,
+		at:   image.Pt((bounds.Dx()-size.X)/2, (frame.H-size.Y)/2),
+		clip: dialoguePolicyClip(policy, bounds),
+	}
+}
+
+// paint runs the plan on a CPU destination.
+func (p detachedDialoguePlan) paint(dst *image.RGBA) {
+	composeDialogueImageClipped(dst, p.pic, p.at, p.clip)
+}
+
 func overlayDetachedTownDialogue(dst, dialogue *image.RGBA) {
 	if dst == nil || dialogue == nil {
 		return
 	}
-	origin := image.Pt((dst.Bounds().Dx()-dialogue.Bounds().Dx())/2,
-		(frame.H-dialogue.Bounds().Dy())/2)
-	draw.Draw(dst, dialogue.Bounds().Add(origin), dialogue, dialogue.Bounds().Min, draw.Over)
+	planDetachedDialogue(dst.Bounds(), dialogue, DialogueBackdrop{}).paint(dst)
 }
 
 func (a *App) windowToNativeFrame(x, y int) (image.Point, bool) {

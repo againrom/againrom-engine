@@ -11,7 +11,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 
-	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 )
 
@@ -370,18 +369,15 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 	// by Layout, including an anchored town column or centred native surface.
 	wide := a.widenNativeFrame(pix)
 	if dialogue != nil {
+		p := planDetachedDialogue(wide.Bounds(), dialogue, a.dialogueBackdrop.policy)
 		a.dialogueBackdrop.apply(wide, townDialogueShows(a.flow.town))
 		art, body := townDialogueFrame(a.flow.town)
-		at := image.Pt((wide.Bounds().Dx()-dialogue.Bounds().Dx())/2, (frame.H-dialogue.Bounds().Dy())/2)
-		a.dialogueBackdrop.applyFrameShadows(wide, art, body, at, nil)
-	}
-	if dialogue != nil {
-		at := image.Pt((wide.Bounds().Dx()-dialogue.Bounds().Dx())/2, (frame.H-dialogue.Bounds().Dy())/2)
-		composeDialogueImageWithPolicy(wide, dialogue, at, a.dialogueBackdrop.policy)
+		a.dialogueBackdrop.applyFrameShadows(wide, art, body, p.at, nil)
+		p.paint(wide)
 	}
 	if menuPanel != nil {
 		draw.Draw(wide, wide.Bounds(), &image.Uniform{C: AuthoredNoticeBackdrop()}, image.Point{}, draw.Over)
-		copyNativeOver(wide, menuPanel, image.Pt((wide.Bounds().Dx()-frame.W)/2, 0), wide.Bounds())
+		newWideFrameLayout(wide.Bounds().Dx(), wideFrameCentered).plan().paint(wide, menuPanel, draw.Over)
 	}
 	a.paintTooltip(wide)
 	return wide, note, nil

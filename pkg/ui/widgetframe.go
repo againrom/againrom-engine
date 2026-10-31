@@ -134,7 +134,7 @@ func drawFrame(dst *image.RGBA, s frameSpec) {
 	if dst == nil {
 		return
 	}
-	drawFrameShadows(dst, s, nil)
+	planFrameShadows(s, image.Point{}, 1, dst.Bounds(), shadowOverPicture, s.Policy.shadowTable).paint(dst, nil)
 	drawFrameBody(dst, s)
 }
 
@@ -194,36 +194,90 @@ func drawFrameBody(dst *image.RGBA, s frameSpec) {
 	}
 }
 
-// drawFrameShadows applies the frame's mask shadows: level 6 over the
-// picture already there, or the shadow tone where it holds none. calls are
-// captured text drawn under the frame, remapped with it.
-func drawFrameShadows(dst *image.RGBA, s frameSpec, calls []text.DrawCall) {
-	row := s.row()
-	if dst == nil || !row.tiled || row.shadow == 0 || !s.Art.valid() {
-		return
-	}
-	l, err := backdrop.NewLevel(s.Policy.Layout, s.Policy.Mode, 6)
+// frameShadowLevel is the backdrop level a frame shadow remaps a picture to.
+const frameShadowLevel = 6
+
+// shadowTable is the level table a frame shadow remaps through in p's pixel
+// format.
+func (p DialogueBackdrop) shadowTable() *backdrop.Lookup {
+	l, err := backdrop.NewLevel(p.Layout, p.Mode, frameShadowLevel)
 	if err != nil {
 		panic(err)
 	}
-	clip := dialoguePolicyClip(s.Policy, dst.Bounds())
-	for _, tile := range frameShadowTiles(s.Art, s.body(), row) {
-		mask := s.Art.Pieces[tile.piece]
-		r := tile.bounds(mask).Intersect(dst.Bounds()).Intersect(clip)
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				if !dialogueMaskAt(mask, tile.at, x, y) {
-					continue
-				}
-				if c := dst.RGBAAt(x, y); c.A != 0 {
-					dst.SetRGBA(x, y, l.Color(c))
+	return l
+}
+
+// frameShadowBlend selects what one shadow tile does to a pixel it covers.
+type frameShadowBlend uint8
+
+const (
+	// shadowOverPicture remaps a pixel that holds a picture through the
+	// level table and gives an empty pixel the shadow tone: a frame
+	// composed apart from the scene behind it.
+	shadowOverPicture frameShadowBlend = iota
+	// shadowRemap remaps every covered pixel through the level table and
+	// keeps its alpha: the dialogue window over its backdrop.
+	shadowRemap
+)
+
+// frameShadowPlan is one frame's shadow pass: the shadow tiles in frame
+// coordinates, the mask counting the tiles over each destination pixel, and
+// the blend each tile applies. planFrameShadows builds it; paint runs it on
+// the CPU and dialogueBackdropState.drawShadowPlan on the GPU.
+type frameShadowPlan struct {
+	tiles []frameTile
+	mask  *image.RGBA
+	table *backdrop.Lookup
+	tone  color.RGBA
+	toned bool
+}
+
+// planFrameShadows is the one producer of a frame shadow: s's shadow tiles
+// placed at at and scaled by scale into a destination of bounds, clipped by
+// s's policy, blended through the table that table returns. A frame without
+// shadows, or whose shadows fall outside the clip, plans no mask.
+func planFrameShadows(s frameSpec, at image.Point, scale float64, bounds image.Rectangle, blend frameShadowBlend, table func() *backdrop.Lookup) frameShadowPlan {
+	row := s.row()
+	if !row.tiled || row.shadow == 0 || !s.Art.valid() || scale <= 0 {
+		return frameShadowPlan{}
+	}
+	p := frameShadowPlan{tiles: frameShadowTiles(s.Art, s.body(), row)}
+	p.mask = frameShadowMask(s.Art, p.tiles, at, scale, dialoguePolicyClip(s.Policy, bounds))
+	if p.mask == nil {
+		return p
+	}
+	p.table = table()
+	if blend == shadowOverPicture {
+		p.tone, p.toned = frameShadowTone, true
+	}
+	return p
+}
+
+// paint runs the plan on a CPU destination: a pixel takes the blend once per
+// tile over it, and captured text under the shadow takes the same.
+func (p frameShadowPlan) paint(dst *image.RGBA, calls []text.DrawCall) {
+	if dst == nil || p.mask == nil {
+		return
+	}
+	m := p.mask
+	for y := m.Rect.Min.Y; y < m.Rect.Max.Y; y++ {
+		for x := m.Rect.Min.X; x < m.Rect.Max.X; x++ {
+			n := m.RGBAAt(x, y).A
+			if n == 0 {
+				continue
+			}
+			c := dst.RGBAAt(x, y)
+			for ; n > 0; n-- {
+				if p.toned && c.A == 0 {
+					c = p.tone
 				} else {
-					dst.SetRGBA(x, y, frameShadowTone)
+					c = p.table.Color(c)
 				}
 			}
+			dst.SetRGBA(x, y, c)
 		}
-		remapCapturedMask(calls, r, l, mask, tile.at, false)
 	}
+	remapCapturedMask(calls, m.Rect, p.table, m, m.Rect.Min, true)
 }
 
 // frameTile is one blit of one frame piece, clipped to clip when that is
@@ -322,13 +376,10 @@ func frameShadowTiles(art *DialogFrame, body image.Rectangle, row frameRow) []fr
 	return shadows
 }
 
-// dialogueShadowMask is the window's shadow mask scaled into a presented
-// frame at at: the count of shadow pieces covering each pixel.
-func dialogueShadowMask(art *DialogFrame, body image.Rectangle, at image.Point, scale float64, clip image.Rectangle) *image.RGBA {
-	if !art.valid() || scale <= 0 {
-		return nil
-	}
-	tiles := frameShadowTiles(art, body, frameRows[frameWindow])
+// frameShadowMask is the plan's mask: tiles scaled by scale into a
+// destination at at and clipped to clip, as the count of shadow pieces
+// covering each pixel.
+func frameShadowMask(art *DialogFrame, tiles []frameTile, at image.Point, scale float64, clip image.Rectangle) *image.RGBA {
 	transform := func(r image.Rectangle) image.Rectangle {
 		return image.Rect(at.X+int(math.Floor(float64(r.Min.X)*scale)), at.Y+int(math.Floor(float64(r.Min.Y)*scale)), at.X+int(math.Ceil(float64(r.Max.X)*scale)), at.Y+int(math.Ceil(float64(r.Max.Y)*scale)))
 	}

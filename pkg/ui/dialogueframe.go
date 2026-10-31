@@ -52,10 +52,6 @@ func remapDialogueMask(dst, mask *image.RGBA, at image.Point, clip image.Rectang
 	remapCapturedMask(calls, r, l, mask, at, false)
 }
 
-func (art *DialogFrame) applyDialogueShadows(dst *image.RGBA, body image.Rectangle, policy DialogueBackdrop, calls []text.DrawCall) {
-	drawFrameShadows(dst, art.dialogueFrame(body, policy), calls)
-}
-
 // ComposeDialogueNotice applies the frame masks to the supplied scene before its image.
 func ComposeDialogueNotice(dst *image.RGBA, layout NoticeLayout, font *text.Font, body string, face *image.RGBA, at image.Point) {
 	if dst == nil {
@@ -66,7 +62,8 @@ func ComposeDialogueNotice(dst *image.RGBA, layout NoticeLayout, font *text.Font
 		return
 	}
 	if layout.Style == NoticeStyleDialogue {
-		layout.Frame.applyDialogueShadows(dst, image.Rectangle{Max: layout.Box.Size().Sub(image.Pt(noticeShadow, noticeShadow))}.Add(at), layout.DialogueBackdrop, nil)
+		s := layout.Frame.dialogueFrame(image.Rectangle{Max: layout.Box.Size().Sub(image.Pt(noticeShadow, noticeShadow))}.Add(at), layout.DialogueBackdrop)
+		planFrameShadows(s, image.Point{}, 1, dst.Bounds(), shadowOverPicture, s.Policy.shadowTable).paint(dst, nil)
 	}
 	composeDialogueImageWithPolicy(dst, pic, at, layout.DialogueBackdrop)
 }
@@ -79,7 +76,15 @@ func composeDialogueImageWithPolicy(dst, pic *image.RGBA, at image.Point, policy
 	if dst == nil || pic == nil {
 		return
 	}
-	r := image.Rectangle{Min: at, Max: at.Add(pic.Bounds().Size())}.Intersect(dialoguePolicyClip(policy, dst.Bounds()))
+	composeDialogueImageClipped(dst, pic, at, dialoguePolicyClip(policy, dst.Bounds()))
+}
+
+// composeDialogueImageClipped draws pic over dst at at, inside clip.
+func composeDialogueImageClipped(dst, pic *image.RGBA, at image.Point, clip image.Rectangle) {
+	if dst == nil || pic == nil {
+		return
+	}
+	r := image.Rectangle{Min: at, Max: at.Add(pic.Bounds().Size())}.Intersect(clip)
 	draw.Draw(dst, r, pic, pic.Bounds().Min.Add(r.Min.Sub(at)), draw.Over)
 }
 
