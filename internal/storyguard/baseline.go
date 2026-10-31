@@ -3614,6 +3614,14 @@ var Committed = Baseline{
 	// creaturecast.go, the new test creatureaimprofile_test.go, the guard
 	// internal/archtest/creatureaim_test.go, and this note.
 
+	// It rose for the summoned cap: summonKey in pkg/sim's world.go, the
+	// key section in summonkeybinary.go, summonCapPass and its constants in
+	// secondspell.go, the keyed death in step.go, the world pass phase in
+	// script.go, the tests in summoncap_test.go, the cold LOAD notes in
+	// pkg/game's secondspellrows_release_test.go, and this note. It rose
+	// again for summonKeyOf and its note, the caster-zero test, and the
+	// release test's comparison notes.
+
 	// It fell: the deformation picture is a capability row.
-	CommentBytes: 10079436,
+	CommentBytes: 10085585,
 }

@@ -1,5 +1,10 @@
 package sim
 
+import (
+	"cmp"
+	"slices"
+)
+
 // secondSpellArms maps a second-game spell id to the first-game arm of the
 // same spell (R2-ENGINE-019 names the rows, R2-ENGINE-024 groups them by
 // arm). Blizzard runs arm 21's sampled staged program: 32 pulses three area
@@ -157,9 +162,9 @@ func SummonCreatureName(astral, k int32) string {
 // kind 1..3, builds the creature its level names for the caster's Player and
 // places it alone in a new group by the positioning search around the
 // caster's cell. A failed placement aborts the cast; the cost is already paid
-// at the cast's entry (R2-ENGINE-544). The creature stays until it dies: when
-// the original's creature leaves is Unknown (DIV-4151); it is never a
-// reused dead unit and carries no summoned mark (DIV-4152).
+// at the cast's entry (R2-ENGINE-544). The creature carries the caster's key,
+// so the world pass caps it (summonCapPass); it is never a reused dead unit
+// and carries no summoned mark (DIV-4152).
 func (w *World) castSummon(ci int) bool {
 	caster := w.entities[ci]
 	k := 1 + w.rng.uniform(secondDrawSpan(int64(len(SummonCreatureNames))))
@@ -168,13 +173,65 @@ func (w *World) castSummon(ci int) bool {
 		return false
 	}
 	actor := c.Actor
-	actor.Owner = caster.Owner
+	actor.Owner, actor.summonKey = caster.Owner, summonKeyOf(caster.ID)
 	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true)
 	if err != nil {
 		return false
 	}
 	w.castObservation.recordCreatedActor(id, c.Name)
 	return true
+}
+
+// summonKeyOf is the key a caster gives its creatures: the id plus one, so a
+// real caster never yields 0, which means no key (R2-ENGINE-455 stores the
+// caster's own nonzero word, and the original reads 0 as no key). The map is
+// increasing, so the pass's ascending key order is ascending caster id.
+func summonKeyOf(caster EntityID) EntityID { return caster + 1 }
+
+// summonCapSpan is the span of the world pass's draw per key: 1..100.
+const summonCapSpan = 100
+
+// summonedDeathHP is the health a death stores on a keyed actor
+// (R2-ENGINE-776); it lies past the corpse ladder's last rung, so the body
+// leaves the world when its dwell ends.
+const summonedDeathHP = -10000
+
+// summonCapPass is the second game's world pass cap on summoned actors
+// (R2-ENGINE-776): count the keyed actors per key, draw r in 1..100 once per
+// key in ascending key order and mark the key when r < n, then give the first
+// keyed actor of each marked key, in ascending id, the death. So at most one
+// actor per key leaves per pass, and a key with one actor never loses it.
+func (w *World) summonCapPass() {
+	type keyCount struct {
+		key    EntityID
+		n      int
+		marked bool
+	}
+	var counts []keyCount
+	find := func(key EntityID) (int, bool) {
+		return slices.BinarySearchFunc(counts, key, func(c keyCount, k EntityID) int { return cmp.Compare(c.key, k) })
+	}
+	for i := range w.entities {
+		if key := w.entities[i].summonKey; key != 0 {
+			j, found := find(key)
+			if !found {
+				counts = slices.Insert(counts, j, keyCount{key: key})
+			}
+			counts[j].n++
+		}
+	}
+	for j := range counts {
+		counts[j].marked = int(1+w.rng.uniform(secondDrawSpan(summonCapSpan))) < counts[j].n
+	}
+	for i := range w.entities {
+		if key := w.entities[i].summonKey; key != 0 {
+			if j, _ := find(key); counts[j].marked {
+				counts[j].marked = false
+				w.entities[i].setCurrentHealth(summonedDeathHP)
+				w.clearFelled(i)
+			}
+		}
+	}
 }
 
 // secondPlacement is the second game's positioning search around (x, y)

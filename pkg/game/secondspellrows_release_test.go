@@ -1,6 +1,7 @@
 package game
 
 import (
+	"reflect"
 	"testing"
 
 	"againrom/pkg/sim"
@@ -10,8 +11,9 @@ import (
 // generated mage hero enters campaign mission 10, learns every spell by the
 // unlocked #modify cheat, casts Summon at itself (R2-ENGINE-455) and then
 // Stone Curse at the creature it made (R2-ENGINE-025, R2-ENGINE-454). A named
-// SAV and a cold LOAD give an equal World, the creature and the hold
-// included, and the next ticks stay equal.
+// SAV and a cold LOAD give equal actors, the creature and the hold included,
+// and equal effect records, stream and tick; the cold World's own SAV and cold LOAD give an equal World, and the next
+// ticks stay equal.
 func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testing.T) {
 	f, app := secondGeneratedMage(t, false)
 	for _, target := range []string{"TAVERN", "TALK 517"} {
@@ -97,9 +99,26 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 
 	out := secondMissionSaveDirectory(t)
 	secondMissionNamedSave(t, f, app, out, "Spell rows")
-	cold, _ := secondMissionColdAt(t, out, secondSaveFile(t, out, "Spell rows"), 10)
+	cold, coldApp := secondMissionColdAt(t, out, secondSaveFile(t, out, "Spell rows"), 10)
 	cold.live.stopped = true
-	assertCurrentWorldEqual(t, mw.world, cold.live.world, "cold LOAD")
+	// No SAV record holds the creature's caster key (R2-SESSION-326), so the
+	// cold LOAD equals the saved World in every actor field and holds the
+	// creature outside the summoned cap (R2-ENGINE-776); the two streams
+	// part at the next world pass, which draws for the saved World's key.
+	assertCurrentActorsEqual(t, mw.world, cold.live.world, "cold LOAD")
+	// Beyond the actors, the saved World and its cold LOAD hold the same
+	// effect records (the curse's remaining time, caster, kind and magnitude
+	// included), the same stream and the same tick: at SAVE time no world
+	// pass has drawn for the key yet.
+	if want, got := mw.world.ActiveEffects(), cold.live.world.ActiveEffects(); !reflect.DeepEqual(want, got) {
+		t.Fatalf("cold LOAD changed the effect records: %+v / %+v", want, got)
+	}
+	if want, got := mw.world.RandomState(), cold.live.world.RandomState(); want != got {
+		t.Fatalf("cold LOAD changed the stream: %#x / %#x", want, got)
+	}
+	if want, got := mw.world.Tick(), cold.live.world.Tick(); want != got {
+		t.Fatalf("cold LOAD changed the tick: %d / %d", want, got)
+	}
 	if !cold.live.world.HasEffectArm(creature.ID, 20) {
 		t.Fatal("cold LOAD lost the hold")
 	}
@@ -108,10 +127,16 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 	if got, want := len(cold.live.world.SpellCreatures()), len(mw.world.SpellCreatures()); got != want || got == 0 {
 		t.Fatalf("cold LOAD declares %d Summon creatures, the saved World %d", got, want)
 	}
+	// A SAVE of the cold World and its cold LOAD give an equal World, and the
+	// next ticks stay equal.
+	secondMissionNamedSave(t, cold, coldApp, out, "Spell rows again")
+	again, _ := secondMissionColdAt(t, out, secondSaveFile(t, out, "Spell rows again"), 10)
+	again.live.stopped = true
+	assertCurrentWorldEqual(t, cold.live.world, again.live.world, "second cold LOAD")
 	for range 8 {
-		f.LiveAdvance(1)
 		cold.LiveAdvance(1)
-		assertCurrentWorldEqual(t, mw.world, cold.live.world, "next tick")
+		again.LiveAdvance(1)
+		assertCurrentWorldEqual(t, cold.live.world, again.live.world, "next tick")
 	}
-	t.Logf("SAV, cold LOAD and 8 next ticks equal; World hash %#x", mw.world.Hash())
+	t.Logf("SAV, cold LOAD, its SAV and cold LOAD and 8 next ticks equal; World hash %#x", cold.live.world.Hash())
 }

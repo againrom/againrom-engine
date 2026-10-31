@@ -24,6 +24,16 @@ func generatedCampaignEntity(t *testing.T, f *FrontEnd, id sim.EntityID) sim.Ent
 
 func assertCurrentWorldEqual(t *testing.T, want, got *sim.World, cut string) {
 	t.Helper()
+	assertCurrentActorsEqual(t, want, got, cut)
+	if want = adoptLoadedAllocator(t, want, got); want.Hash() != got.Hash() {
+		currentMenuWorldDiagnostics(t, want, got)
+		t.Fatalf("%s: complete World hash changed: %x / %x", cut, want.Hash(), got.Hash())
+	}
+}
+
+// assertCurrentActorsEqual compares every exported field of every actor.
+func assertCurrentActorsEqual(t *testing.T, want, got *sim.World, cut string) {
+	t.Helper()
 	byID := map[sim.EntityID]sim.Entity{}
 	for _, e := range got.Entities() {
 		byID[e.ID] = e
@@ -42,10 +52,6 @@ func assertCurrentWorldEqual(t *testing.T, want, got *sim.World, cut string) {
 				t.Fatalf("%s actor%d %s: %v / %v", cut, a.ID, x.Type().Field(i).Name, x.Field(i).Interface(), y.Field(i).Interface())
 			}
 		}
-	}
-	if want = adoptLoadedAllocator(t, want, got); want.Hash() != got.Hash() {
-		currentMenuWorldDiagnostics(t, want, got)
-		t.Fatalf("%s: complete World hash changed: %x / %x", cut, want.Hash(), got.Hash())
 	}
 }
 

@@ -755,6 +755,13 @@ type Entity struct {
 	// It is uint16 because that is the field's width in the map record
 	// (alm.Unit.UnitID) and the key type of pkg/mapload's own table.
 	MapUnitID uint16
+
+	// summonKey is the caster key a second-game Summon gives its creature:
+	// summonKeyOf(caster id), 0 for every other actor (R2-ENGINE-455). The world
+	// pass caps the summoned actors of each key, and a death clears it
+	// (R2-ENGINE-776). It is unexported because no SAV record carries it
+	// (R2-SESSION-326): only the byte form's summoned key section does.
+	summonKey EntityID
 }
 
 // Guard is the constructor/felled default. Patrol, Defend, Follow and

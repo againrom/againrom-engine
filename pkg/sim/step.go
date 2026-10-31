@@ -848,6 +848,8 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			w.engagementPassTraced(obs, withdrawals)
 			w.actorPass()
 			w.withdrawalPassObserved(withdrawals)
+		case worldPassPhase:
+			w.summonCapPass()
 		case scriptReportPhase:
 			if tr != nil {
 				tr.Report = true
@@ -1542,6 +1544,12 @@ func (w *World) clearFelledActions(i int) {
 // observe residue.
 func (w *World) clearFelled(i int) {
 	if !w.entities[i].Alive() {
+		// A keyed death stores summonedDeathHP and clears the key, whichever
+		// route killed the actor (R2-ENGINE-776).
+		if e := &w.entities[i]; e.summonKey != 0 {
+			e.summonKey = 0
+			e.setCurrentHealth(summonedDeathHP)
+		}
 		w.clearFelledActions(i)
 		// AND THE DEATH ITSELF, which is the one thing here that is not a
 		// clearing: the stage, the dwell it owes, and the halved defence.

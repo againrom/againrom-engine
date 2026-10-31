@@ -819,6 +819,7 @@ func (o Outcome) defined() bool {
 const (
 	scriptCycle       = 16
 	scriptPassPhase   = 6
+	worldPassPhase    = 12 // the second game's world pass (R2-ENGINE-778)
 	scriptReportPhase = 15
 )
 

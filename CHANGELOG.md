@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Summoned creatures no longer stay forever, as in the original: while a mage has two or more, about once a second one of them may die and vanish, with a chance of about one in a hundred for each creature beyond the first, and the last one stays; a summoned creature killed in a fight now vanishes after its fall instead of decaying to bones. Creatures summoned before a save stay after loading it until they die.
+
 ## 0.144.0
 
 ### For players
