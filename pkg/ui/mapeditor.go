@@ -221,7 +221,6 @@ type MapEditor struct {
 	input                       editorInputState
 	place                       placeGrid
 	relations                   relationMatrix
-	groupsTop                   int    // the Groups window's first shown row
 	lastSeed                    uint32 // the seed the last whole-map command took
 	panels                      editorPanels
 	tree                        editorTree
@@ -323,7 +322,7 @@ func (e *MapEditor) fitZoom() float64 {
 
 func (e *MapEditor) Select(index int, jump bool) bool {
 	if index != e.selected {
-		e.panels.detached = 0
+		e.panels.detached = ""
 	}
 	e.messagePage = 0
 	if _, ok := e.scriptVariableRow(index); ok {
@@ -369,11 +368,14 @@ func (e *MapEditor) cellCenter(cell image.Point) (float64, float64) {
 	return e.doc.Viewer.cellWorldCentre(cell)
 }
 
-func (e *MapEditor) rows() []int {
+func (e *MapEditor) rows() []int { return e.recordsOf(e.filter) }
+
+// recordsOf are the records the records list filter shows, in its order.
+func (e *MapEditor) recordsOf(filter int) []int {
 	if e.doc == nil {
 		return nil
 	}
-	if e.filter == editorScriptsFilter {
+	if filter == editorScriptsFilter {
 		var out []int
 		for _, section := range e.scriptSections() {
 			out = append(out, section...)
@@ -382,8 +384,8 @@ func (e *MapEditor) rows() []int {
 	}
 	var out []int
 	for i, r := range e.doc.Records {
-		show := e.filter == 0
-		switch e.filter {
+		show := filter == 0
+		switch filter {
 		case 1:
 			show = r.Kind == "Unit"
 		case 2:

@@ -479,7 +479,7 @@ func (e *MapEditor) mcpState() map[string]any {
 		"status": e.mcpDisplay(e.StatusLine()), "message": e.Message(),
 		"panel": e.mcpLines(e.PanelLines()), "popup": e.mcpLines(e.PopupLines()),
 		"prompt": e.mcpLines(e.PromptNotes()), "prompt_open": e.prompt.open(), "prompt_text": e.prompt.path,
-		"report": report, "report_open": reportOpen, "groups": e.mcpLines(e.GroupsText()),
+		"report": report, "report_open": reportOpen, "groups": e.mcpLines(e.GroupsText()), "tree": e.mcpLines(e.TreeLines()),
 		"dropdown": e.mcpLines(e.DropdownChoices()), "catalog_open": e.catalog, "mode": e.helpScreen(),
 		"selection": e.SelectedRecords(), "selected": e.Selected(), "object_fields": fields,
 		"dirty": e.Dirty(), "path": path, "help": e.mcpLines(e.allHelpLines()),

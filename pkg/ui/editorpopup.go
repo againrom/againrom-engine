@@ -89,8 +89,8 @@ type popupGrid struct {
 }
 
 // popupGridCell is one cell of a grid. Label is drawn on a cell without a
-// picture; an Inert cell is drawn flat and takes no press. Tip is the hover
-// line over the cell, empty for none.
+// picture; an Inert cell is drawn flat and takes no press. Tip names the
+// cell in the hover tooltip, empty for none.
 type popupGridCell struct {
 	Icon    *image.RGBA
 	Label   string
@@ -158,9 +158,12 @@ type popupSpec struct {
 	CardFont    *text.Font
 	CardAside   int
 	Title       string
-	At          image.Point
-	Width       int
-	Bounds      image.Rectangle
+	// CloseLabel is the title row button's caption; empty is the close
+	// button's x.
+	CloseLabel string
+	At         image.Point
+	Width      int
+	Bounds     image.Rectangle
 	// Slack lets a dragged popup hang past the bounds, keeping its title row
 	// and popupKeepWide pixels of its width inside.
 	Slack    bool
@@ -887,7 +890,11 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
 		title.Draw(clip, s.Title, l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 	}
-	drawPushButton(dst, body, pushButton{Rect: l.Close, Label: "x", Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
+	closeLabel := "x"
+	if s.CloseLabel != "" {
+		closeLabel = s.CloseLabel
+	}
+	drawPushButton(dst, body, pushButton{Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	for i, tab := range l.Tabs {
 		drawPushButton(dst, body, pushButton{Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i, Hover: pointerOK && pointer.In(tab)})
 	}
@@ -1075,8 +1082,9 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 
 // popupTipAt is the hover line of the shown row under p, false when the
 // pointer is over no row or the row shows its text whole. The box sits under
-// the row, or over it where bounds end first. Over the grid it is the cell's
-// Tip or the whole upright column head, in a box as wide as its text.
+// the row, or over it where bounds end first. Over the grid it is the whole
+// upright column head, in a box as wide as its text; a cell's Tip shows in
+// the editor's hover tooltip after its delay.
 func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l popupLayout, p image.Point, pointerOK bool) (popupTip, bool) {
 	if !pointerOK || body == nil {
 		return popupTip{}, false
@@ -1105,11 +1113,6 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 	for c, r := range l.GridColHeads {
 		if g.HeadH > 0 && p.In(r) {
 			at, full = r, g.ColHeads[c]
-		}
-	}
-	for i, r := range l.GridCells {
-		if p.In(r) {
-			at, full = r, g.Cells[l.GridFirst+i].Tip
 		}
 	}
 	if full == "" {

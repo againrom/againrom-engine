@@ -37,7 +37,7 @@ func textEditor(t *testing.T) *MapEditor {
 	return e
 }
 
-// The area label and the trigger list row draw a trigger's UTF-8 name in the
+// The area label and the trigger's tree row draw a trigger's UTF-8 name in the
 // font's bytes, through the host encoder.
 func TestTriggerNameIsDrawnThroughTheHostEncoder(t *testing.T) {
 	e := textEditor(t)
@@ -45,7 +45,8 @@ func TestTriggerNameIsDrawnThroughTheHostEncoder(t *testing.T) {
 	if len(labels) != 1 || labels[0].text != "T1 WIN" {
 		t.Fatalf("area labels %+v", labels)
 	}
-	rows, _ := e.listRows("records")
+	e.showRecords(editorScriptsFilter)
+	rows := scriptsTreeRows(e)
 	found := false
 	for _, r := range rows {
 		found = found || strings.HasSuffix(r.Text, "  WIN")

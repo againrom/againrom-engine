@@ -27,7 +27,7 @@ func groupLinks(t *testing.T, e *MapEditor) []int {
 		t.Fatal("no group popup")
 	}
 	var out []int
-	for _, l := range links[2:] {
+	for _, l := range links[3:] {
 		if l < 0 && e.doc.Records[-l-1].Kind == "Unit" {
 			out = append(out, -l-1)
 		}
@@ -47,8 +47,14 @@ func TestEditorLargeGroupKeepsBackInsidePopup(t *testing.T) {
 		e.chooseGroup(g, true)
 		e.objectBack = []objectPlace{{kind: "Unit", index: 0}}
 		_, l := objectLayout(t, e)
-		if len(l.Buttons) != 1 || !l.Buttons[0].In(l.Rect) || !l.Buttons[0].In(e.popupBounds()) {
-			t.Fatalf("height %d: Back %v exceeds popup %v or bounds %v", height, l.Buttons, l.Rect, e.popupBounds())
+		// Delete group, then Back.
+		if len(l.Buttons) != 2 {
+			t.Fatalf("height %d: buttons %v, want Delete group and Back", height, l.Buttons)
+		}
+		for _, b := range l.Buttons {
+			if !b.In(l.Rect) || !b.In(e.popupBounds()) {
+				t.Fatalf("height %d: button %v exceeds popup %v or bounds %v", height, b, l.Rect, e.popupBounds())
+			}
 		}
 	}
 }
@@ -83,7 +89,7 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 	if got := fmt.Sprint(e.GroupMembers(), groupLinks(t, e)); got != "[2] [2]" {
 		t.Fatalf("after Redo: members and links %s", got)
 	}
-	chromeClick(e, center(objectRowRect(t, e, 2).Rect))
+	chromeClick(e, center(objectRowRect(t, e, 3).Rect))
 	if e.selected != 2 {
 		t.Fatalf("the member row opened record %d", e.selected)
 	}

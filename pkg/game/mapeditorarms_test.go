@@ -108,7 +108,7 @@ func TestArmPopupAndScriptsEditHaveSameBytesAndUndo(t *testing.T) {
 	other, _ := openGoalMap(t, b)
 	other.Layout(1280, 800)
 	_ = other.Key("scripts")
-	r, ok = other.ListRowRect(1)
+	r, ok = treeMemberRect(other, "scripts", 0)
 	trigClick(t, other, r, ok, "Scripts trigger")
 	r, ok = other.FieldRect(1)
 	trigClick(t, other, r, ok, "Fire once")

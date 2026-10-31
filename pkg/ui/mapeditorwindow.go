@@ -102,6 +102,8 @@ type editorChrome struct {
 	// NewMessagePage for none.
 	messageFor  *InspectionMessageOwner
 	messageFrom uint32
+	// tip is the hover tooltip over a palette's grid cells.
+	tip editorTip
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -200,28 +202,34 @@ func (e *MapEditor) barEntries() []barEntry {
 	return entries
 }
 
-// barKeys is the top bar's entries in their order: the Map menu, the panels,
-// the View and Tools menus, then Undo, Redo and Save. An entry with a menu
-// opens it; Objects and Trees open the object brush in its one-kind and its
-// Forest mode.
-var barKeys = []struct {
+// barKey is one top bar entry as data: its key, its word and whether it
+// opens a menu.
+type barKey struct {
 	key, labelWord string
 	menu           bool
-}{
-	{key: "map", labelWord: "editor.bar.map", menu: true},
-	{key: "scripts", labelWord: "editor.list.scripts"},
-	{key: "players", labelWord: "editor.bar.players"},
-	{key: "groups", labelWord: "editor.bar.groups"},
-	{key: "units", labelWord: "editor.bar.units"},
-	{key: "sacks", labelWord: "editor.bar.sacks"},
-	{key: "structures", labelWord: "editor.bar.structures"},
-	{key: "objects", labelWord: "editor.bar.objects"},
-	{key: "trees", labelWord: "editor.bar.trees"},
-	{key: "view", labelWord: "editor.bar.view", menu: true},
-	{key: "tools", labelWord: "editor.bar.tools", menu: true},
-	{key: "undo", labelWord: "editor.bar.undo"},
-	{key: "redo", labelWord: "editor.bar.redo"},
-	{key: "save", labelWord: "editor.bar.save"},
+}
+
+// barKeys is the top bar's entries in their order: the Map menu, the record
+// categories, the Objects and Trees brushes, the View and Tools menus, then
+// Undo, Redo and Save. An entry with a menu opens it; a category opens its
+// palette and its tree branch; Objects and Trees open the object brush in
+// its one-kind and its Forest mode.
+var barKeys = barKeyRows()
+
+func barKeyRows() []barKey {
+	rows := []barKey{{key: "map", labelWord: "editor.bar.map", menu: true}}
+	for _, c := range editorCategories {
+		rows = append(rows, barKey{key: c.key, labelWord: c.word})
+	}
+	return append(rows,
+		barKey{key: "objects", labelWord: "editor.bar.objects"},
+		barKey{key: "trees", labelWord: "editor.bar.trees"},
+		barKey{key: "view", labelWord: "editor.bar.view", menu: true},
+		barKey{key: "tools", labelWord: "editor.bar.tools", menu: true},
+		barKey{key: "undo", labelWord: "editor.bar.undo"},
+		barKey{key: "redo", labelWord: "editor.bar.redo"},
+		barKey{key: "save", labelWord: "editor.bar.save"},
+	)
 }
 
 // barRows places the top bar's entries, without their states, which the
@@ -386,8 +394,8 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
 			{"records", e.word("editor.view.records")},
-			{sidePanels[panelLeft].key, mark(e.panelsShown()[panelLeft] > 0, e.word(sidePanels[panelLeft].titleWord))},
-			{sidePanels[panelRight].key, mark(e.panelsShown()[panelRight] > 0, e.word(sidePanels[panelRight].titleWord))},
+			{sidePanels[panelLeft].key, mark(e.panelOpen(panelLeft), e.word(sidePanels[panelLeft].titleWord))},
+			{sidePanels[panelRight].key, mark(e.panelOpen(panelRight), e.word(sidePanels[panelRight].titleWord))},
 		}
 	case "tools":
 		items := []menuItem{{"newtrigger", e.word("editor.tools.newtrigger")}}
@@ -452,22 +460,14 @@ func (e *MapEditor) barAct(key string) {
 		}
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
-	case "units":
-		e.showRecords(1)
-	case "structures":
-		e.showRecords(2)
-	case "groups":
-		e.showRecords(editorGroupsFilter)
-	case "sacks":
-		e.showRecords(3)
-	case "players":
-		e.showRecords(editorPlayersFilter)
-	case "scripts":
-		e.showRecords(editorScriptsFilter)
 	case "undo", "redo":
 		_ = e.Key(key)
 	case "save":
 		_ = e.Key("saveas")
+	default:
+		if c, ok := categoryByKey(key); ok {
+			e.showRecords(c.filter)
+		}
 	}
 }
 
@@ -526,21 +526,51 @@ func (e *MapEditor) menuAct(key string) {
 // ends the run.
 func (e *MapEditor) ExitAsked() bool { return e.exitAsked }
 
-// showRecords opens the list popup on the records filter shows.
+// showRecords opens the list popup on the records filter shows. A record
+// category's filter opens its palette and its branch of the tree, by every
+// route: its bar entry, its key and an MCP call.
 func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
+	if c, ok := categoryOf(filter); ok {
+		e.treeReveal(c)
+		e.openPalette(c)
+		e.chooseFirstOf(filter)
+		return
+	}
+	e.openRecords(filter)
+}
+
+// openPalette shows category c's palette in the list popup; a category
+// whose palette holds nothing closes a shown palette instead. The selection
+// stays as it is.
+func (e *MapEditor) openPalette(c editorCategory) {
+	e.openRecords(c.filter)
+	if _, ok := e.listSpecBase(); !ok {
+		e.listShown, e.filter = false, 0
+	}
+}
+
+// openRecords opens the list popup on the records filter shows.
+func (e *MapEditor) openRecords(filter int) {
 	e.rememberListCancel("records")
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
 	e.filter, e.listShown = filter, true
-	if filter == editorPlayersFilter || filter == editorScriptsFilter {
-		if rows := e.rows(); len(rows) > 0 && !e.selectedIn(rows) {
-			e.Select(rows[0], false)
-		} else if len(rows) == 0 && filter == editorScriptsFilter {
-			e.selected = -1
-		}
+}
+
+// chooseFirstOf selects the first player or script record when the
+// Players or Scripts entry opens and the selection is none of them; an
+// empty Scripts list clears the selection.
+func (e *MapEditor) chooseFirstOf(filter int) {
+	if filter != editorPlayersFilter && filter != editorScriptsFilter {
+		return
+	}
+	if rows := e.recordsOf(filter); len(rows) > 0 && !e.selectedIn(rows) {
+		e.Select(rows[0], false)
+	} else if len(rows) == 0 && filter == editorScriptsFilter {
+		e.selected = -1
 	}
 }
 
@@ -659,32 +689,6 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		}
 		sel = e.brush.sel[e.brush.mode]
 	case "records":
-		if e.filter == editorScriptsFilter {
-			headings := []string{e.word("editor.scripts.triggers"), e.word("editor.scripts.variables"), e.word("editor.scripts.conditions"), e.word("editor.scripts.actions")}
-			for section, ids := range e.scriptSections() {
-				text := headings[section]
-				if len(ids) == 0 {
-					text = fmt.Sprintf(e.word("editor.scripts.emptyheading"), text)
-				}
-				rows = append(rows, PickerRow{Text: text, Heading: true})
-				for _, id := range ids {
-					if id == e.selected {
-						sel = len(rows)
-					}
-					rows = append(rows, PickerRow{Text: e.scriptRowText(id, section), Choosable: true})
-				}
-			}
-			break
-		}
-		if e.filter == editorGroupsFilter {
-			for n, g := range e.groups() {
-				rows = append(rows, PickerRow{Text: e.groupLabel(g), Choosable: true})
-				if g.player == e.groupSel.player && g.group == e.groupSel.group {
-					sel = n
-				}
-			}
-			break
-		}
 		for n, id := range e.rows() {
 			text := e.recordSummary(id)
 			if v, ok := e.scriptViewOf(id); ok && v.trigger != nil {
@@ -802,20 +806,27 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		return s, true
 	}
 	if e.groupsShown() {
-		s, _ := e.groupsSpec()
-		return s, true
+		return e.groupsSpec(), true
 	}
-	m := e.syncList(kind, e.listWindow())
+	// A record category's window is its palette: the tree lists the
+	// category's records, so the popup keeps only what is not that list.
+	palette := e.paletteShown()
+	var m *Picker
+	if !palette {
+		m = e.syncList(kind, e.listWindow())
+	}
 	if !e.listPlaced {
 		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
 	}
 	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
-	s.ListText = func(row, width int) string {
-		rows := m.Rows()
-		if row < 0 || row >= len(rows) {
-			return ""
+	if m != nil {
+		s.ListText = func(row, width int) string {
+			rows := m.Rows()
+			if row < 0 || row >= len(rows) {
+				return ""
+			}
+			return editorClip(e.bodyFont(), rows[row].Text, width)
 		}
-		return editorClip(e.bodyFont(), rows[row].Text, width)
 	}
 	switch kind {
 	case "report":
@@ -862,9 +873,12 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.LabelWidth = s.Width - 2*popupPad - 3*relationSide
 		}
 	}
-	if m.Len() > 0 {
+	if m != nil && m.Len() > 0 {
 		top, n := m.Visible()
 		s.Notes = append(s.Notes, fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len()))
+	}
+	if palette && len(s.Rows) == 0 && len(s.Notes) == 0 && len(s.Buttons) == 0 && s.Grid == nil {
+		return popupSpec{}, false
 	}
 	return s, true
 }
@@ -928,26 +942,6 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	case "brush":
 		e.brushRowClick(n)
 	case "records":
-		if e.filter == editorScriptsFilter {
-			row := 0
-			for _, ids := range e.scriptSections() {
-				row++
-				for _, id := range ids {
-					if row == n {
-						e.Select(id, true)
-						return
-					}
-					row++
-				}
-			}
-			return
-		}
-		if e.filter == editorGroupsFilter {
-			if gs := e.groups(); n >= 0 && n < len(gs) {
-				e.chooseGroup(gs[n], true)
-			}
-			return
-		}
 		if rows := e.rows(); n >= 0 && n < len(rows) {
 			e.Select(rows[n], true)
 		}
@@ -1003,6 +997,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	}
 	if s, links, ok := e.groupSpec(); ok {
 		e.objectBackButton(&s)
+		e.panels.hostable = true
 		return s, links, true
 	}
 	if s, ok := e.selectionSpec(); ok {
@@ -1324,6 +1319,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		d := e.menuDropdown(b, true)
 		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
 	}
+	e.drawTip(pic)
 	return pic
 }
 
@@ -1605,6 +1601,7 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
+	e.observeTip(p, now, in.PrimaryDown)
 	pressed := in.PrimaryDown && !e.down
 	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
 		e.tree.typing = false
@@ -1682,10 +1679,6 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 	switch target {
 	case popList:
-		if e.groupsShown() {
-			e.groupsTop = max(0, e.groupsTop+editorWheelRows(&e.listWheel, wheel))
-			return
-		}
 		if s, ok := e.listSpec(); ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
@@ -1882,6 +1875,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupTab:
 		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
+		if e.panels.hosted {
+			e.togglePanel(panelRight)
+			return
+		}
 		e.cancelPopup()
 	case popupRowGrip:
 		if e.messagePage != 0 {
@@ -1933,6 +1930,12 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
 			e.cancelPopup()
+			return
+		}
+		if e.groupSel.set && e.selected < 0 {
+			if n == 0 {
+				e.removeGroupOf(e.groupSel)
+			}
 			return
 		}
 		if v, ok := e.scriptPopup(); ok {

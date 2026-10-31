@@ -119,7 +119,7 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		if pressed {
 			note = fmt.Sprintf(e.word("editor.place.placing"), c.Label)
 		}
-		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed})
+		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label})
 	}
 	return g, note, true
 }

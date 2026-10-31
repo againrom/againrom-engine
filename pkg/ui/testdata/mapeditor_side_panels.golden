@@ -1,20 +1,25 @@
-== trigger-en-1280x800 de30239520be6ca9 panels=[260 520] map=(260,16)-(760,784)
+== trigger-en-1280x800 9b9096ddd66ab0d2 panels=[260 520] map=(260,16)-(760,784)
+ - Scripts (1)
+   Triggers
+>    Trigger 1  Hide them
+   Variables: none
+   Conditions: none
+   Actions: none
  - Players (2)
    Player #0  Self
    Player #1  Enemy
- - Triggers (1)
->  Trigger 1  Hide them
+ - Groups (2)
+   Group 1  P1  2 units
+   Group 2  P2  1 units
  - Units (5)
    Unit #0  unit0  P1  10,10
    Unit #1  unit1  P1  12,10
    Unit #2  unit2  P1  14,10
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
+ - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Groups (2)
-   Group 1  P1  2 units
-   Group 2  P2  1 units
 title "Trigger 1"
 2 "Name" "Hide them" [] ""
 6 "Fire once" "No: fires every second while the conditions hold" [] ""
@@ -25,23 +30,28 @@ title "Trigger 1"
 3 "  Group" "" [On map] ""
 0 "" "" [Add action] ""
 0 "With no condition the trigger never runs." "" [] ""
-== trigger-ru-1280x800 f5a333910bd986f1 panels=[260 520] map=(260,16)-(760,784)
+== trigger-ru-1280x800 10d981f9118c9372 panels=[260 520] map=(260,16)-(760,784)
+ - Сценарий (1)
+   Триггеры
+>    Триггер 1  Hide them
+   Переменные: нет
+   Условия: нет
+   Действия: нет
  - Игроки (2)
    Player #0  Self
    Player #1  Enemy
- - Триггеры (1)
->  Триггер 1  Hide them
+ - Группы (2)
+   Группа 1  P1  2 отр.
+   Группа 2  P2  1 отр.
  - Отряды (5)
    Unit #0  unit0  P1  10,10
    Unit #1  unit1  P1  12,10
    Unit #2  unit2  P1  14,10
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
+ - Мешки (0)
  - Постройки (1)
    Structure #0  hall  30,30
- - Группы (2)
-   Группа 1  P1  2 отр.
-   Группа 2  P2  1 отр.
 title "Триггер 1"
 2 "Название" "Hide them" [] ""
 6 "Один раз" "Нет: каждую секунду, пока условия выполнены" [] ""
@@ -52,7 +62,7 @@ title "Триггер 1"
 3 "  Группа" "" [На карте] ""
 0 "" "" [Добавить действие] ""
 0 "Без условия триггер не сработает." "" [] ""
-== search-en-1280x800 d0a8086c9765618e panels=[260 520] map=(260,16)-(760,784)
+== search-en-1280x800 3d045c3f2655ce21 panels=[260 520] map=(260,16)-(760,784)
  - Units (5)
    Unit #0  unit0  P1  10,10
    Unit #1  unit1  P1  12,10
@@ -67,20 +77,25 @@ title "Unit #3"
 0 "Used by: none" "" [] ""
 1 "Data" "" [] ""
 0 "unit3" "" [] ""
-== defaults-en-1024x768 3aa4990971c5b95e panels=[260 0] map=(260,16)-(1024,752)
+== defaults-en-1024x768 4cd443b01248ddfc panels=[260 16] map=(260,16)-(1008,752)
+ - Scripts (1)
+   Triggers
+     Trigger 1  Hide them
+   Variables: none
+   Conditions: none
+   Actions: none
  - Players (2)
    Player #0  Self
    Player #1  Enemy
- - Triggers (1)
-   Trigger 1  Hide them
+ - Groups (2)
+   Group 1  P1  2 units
+   Group 2  P2  1 units
  - Units (5)
    Unit #0  unit0  P1  10,10
    Unit #1  unit1  P1  12,10
    Unit #2  unit2  P1  14,10
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
+ - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Groups (2)
-   Group 1  P1  2 units
-   Group 2  P2  1 units

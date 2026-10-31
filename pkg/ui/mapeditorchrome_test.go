@@ -69,6 +69,18 @@ func listRowPoint(t *testing.T, e *MapEditor, n int) image.Point {
 	return center(l.List.Row(n - top))
 }
 
+// treeMemberPoint is the centre of member n of category key's tree
+// branch, the tree scrolled to show it.
+func treeMemberPoint(t *testing.T, e *MapEditor, key string, n int) image.Point {
+	t.Helper()
+	row := e.TreeMemberRow(key, n)
+	r, ok := e.TreeRowRect(row)
+	if row < 0 || !ok {
+		t.Fatalf("member %d of the %s branch is not in the tree", n, key)
+	}
+	return center(r)
+}
+
 func objectLayout(t *testing.T, e *MapEditor) (popupSpec, popupLayout) {
 	t.Helper()
 	s, _, ok := e.objectSpec()

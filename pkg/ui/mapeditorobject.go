@@ -836,7 +836,7 @@ func (e *MapEditor) closeObject() {
 	e.groupSel = editorGroup{}
 	e.objectBack = nil
 	e.selection.hidden = true
-	e.panels.detached = 0
+	e.panels.detached = ""
 }
 
 // followReference frames reference n and, when it names one record's cell,
@@ -936,8 +936,16 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
 	s := popupSpec{Title: e.groupLabel(g), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
-	links := []int{0, 0}
-	s.Rows = []popupRow{{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)}, {Kind: popupHeading, Label: e.word("editor.group.members")}}
+	// The member pictures and Delete group stand here, as the Groups list
+	// showed them on the group's row.
+	links := []int{0, 0, 0}
+	s.Rows = []popupRow{
+		{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)},
+		{Kind: popupText, Label: fmt.Sprintf(e.word("editor.group.number"), g.group), Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members)), Icons: e.memberIcons(g)},
+		{Kind: popupHeading, Label: e.word("editor.group.members")},
+	}
+	s.Buttons, s.Disabled = []string{e.word("editor.group.delete")}, []bool{false}
+	fitButtons(&s)
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {
 			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: editorClip(e.bodyFont(), e.recordSummary(id), s.Width-2*popupPad-8)})

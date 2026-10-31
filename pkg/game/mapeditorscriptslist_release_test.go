@@ -58,16 +58,15 @@ func expectedScriptSections(d *ui.InspectionDocument, sc alm.Script) [4][]int {
 	return out
 }
 
-func scriptsListRow(t *testing.T, e *ui.MapEditor, row int) image.Rectangle {
+// scriptsTreeRow is the window rectangle of member n of the tree's Scripts
+// branch: the triggers, then the variables, conditions and actions.
+func scriptsTreeRow(t *testing.T, e *ui.MapEditor, n int) image.Rectangle {
 	t.Helper()
-	for pages := 0; pages < 200; pages++ {
-		if r, ok := e.ListRowRect(row); ok {
-			return r
-		}
-		_ = e.Key("pagedown")
+	r, ok := treeMemberRect(e, "scripts", n)
+	if !ok {
+		t.Fatalf("Scripts member %d is not in the tree", n)
 	}
-	t.Fatalf("Scripts row %d is not reachable", row)
-	return image.Rectangle{}
+	return r
 }
 
 func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
@@ -100,21 +99,18 @@ func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
 			if e.Selected() != -1 {
 				_ = e.Key("escape")
 			}
-			_, _ = e.ListRowRect(0)
-			_ = e.Key("home")
-			wantRows := 4
+			wantRows := 0
 			for _, ids := range sections {
 				wantRows += len(ids)
 			}
-			if got := e.ListRowCount(); got != wantRows {
-				t.Fatalf("list rows=%d, want %d", got, wantRows)
+			if got := treeMemberCount(e, "scripts"); got != wantRows {
+				t.Fatalf("Scripts members=%d, want %d", got, wantRows)
 			}
 			row, counts := 0, [4]int{}
 			for section, records := range sections {
 				counts[section], totals[section] = len(records), totals[section]+len(records)
-				row++
 				for _, id := range records {
-					r := scriptsListRow(t, e, row)
+					r := scriptsTreeRow(t, e, row)
 					trigClick(t, e, r, true, "Scripts row")
 					if e.Selected() != id {
 						t.Fatalf("row %d selected %d, want %d", row, e.Selected(), id)
@@ -154,8 +150,7 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 	closeMapPanel(t, e)
 	_ = e.Key("scripts")
 	_ = e.Key("escape")
-	row := 2 + len(e.Document().Script.Triggers)
-	r := scriptsListRow(t, e, row)
+	r := scriptsTreeRow(t, e, len(e.Document().Script.Triggers))
 	writeEditorFrame(t, e, filepath.Join(dir, "scripts-variables-list-"+lang+".png"), dir != "", image.Rectangle{})
 	trigClick(t, e, r, true, "variable row")
 	writeEditorFrame(t, e, filepath.Join(dir, "scripts-variable-popup-"+lang+".png"), dir != "", image.Rectangle{})
@@ -188,8 +183,7 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 			writeEditorFrame(t, e, filepath.Join(dir, name+"-"+lang+".png"), dir != "", image.Rectangle{})
 		}
 		shot("scripts-list")
-		_ = e.Key("home")
-		r := scriptsListRow(t, e, 1)
+		r := scriptsTreeRow(t, e, 0)
 		trigClick(t, e, r, true, "trigger row")
 		shot("scripts-trigger")
 		_ = e.Key("escape")

@@ -148,7 +148,7 @@ func (e *MapEditor) forestGridSpec() (*popupGrid, bool) {
 	}
 	g := &popupGrid{Rows: forestGridRows, Top: e.brush.forest.top}
 	for _, o := range kinds {
-		g.Cells = append(g.Cells, popupGridCell{Icon: e.forestIcon(o.Code), Ticked: e.brush.forest.ticks[o.Code]})
+		g.Cells = append(g.Cells, popupGridCell{Icon: e.forestIcon(o.Code), Ticked: e.brush.forest.ticks[o.Code], Tip: e.objectWord(o)})
 	}
 	return g, true
 }

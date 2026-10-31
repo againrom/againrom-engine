@@ -73,8 +73,8 @@ func openUsedByGroup(t *testing.T, e *ui.MapEditor, row int) {
 	t.Helper()
 	r, ok := e.BarRect("groups")
 	trigClick(t, e, r, ok, "Groups")
-	r = scriptsListRow(t, e, row)
-	trigClick(t, e, r, true, "group")
+	r, ok = treeMemberRect(e, "groups", row)
+	trigClick(t, e, r, ok, "group")
 }
 
 func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
@@ -142,7 +142,7 @@ func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
 		}
 		r, ok := e.BarRect("groups")
 		trigClick(t, e, r, ok, "Groups")
-		groups := e.ListRowCount()
+		groups := treeMemberCount(e, "groups")
 		_ = e.Key("escape")
 		for group := 0; group < groups; group++ {
 			openUsedByGroup(t, e, group)

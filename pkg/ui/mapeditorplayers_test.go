@@ -89,6 +89,8 @@ func TestMapEditorPlayersUseRecordFieldsAndOneEditPerKey(t *testing.T) {
 func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("players")
+	// The chosen player's window floats clear of the palette's matrix.
+	e.objectAt = image.Pt(0, 0)
 	s, ok := e.listSpec()
 	g := s.Grid
 	if !ok || g == nil || g.Rows != 2 || g.Cols != 2 || len(g.Cells) != 4 || !g.Cells[0].Inert || !g.Cells[3].Inert || g.Cells[1].Inert || g.Cells[1].Icon != relationIcon(1) ||

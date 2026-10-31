@@ -676,6 +676,9 @@ func (e *MapEditor) keyFit(string) error {
 // cursor.
 func (e *MapEditor) keyPage(key string) error {
 	m := e.model
+	if e.paletteShown() {
+		m = nil // a palette has no list
+	}
 	add := false
 	if r, ok := e.addRunning(); ok {
 		m, add = r.list, true

@@ -54,13 +54,18 @@ func (h *tooltipController) styled(t tooltipTarget, p image.Point, bounds image.
 // ink, a shadow one pixel right and down when named, and, when authored,
 // every '#' line as written, blank ones kept and none wrapped. A nil style
 // is the shared hover help: popupTextColor, no shadow, lines trimmed, blank
-// ones dropped and wrapped.
+// ones dropped and wrapped. A box set names the fill and the bevel's two
+// colours in place of the hover box's own.
 type hoverStyle struct {
 	font     *text.Font
 	ink      color.RGBA
 	shadow   *color.RGBA
 	authored bool
+	box      *hoverBoxInk
 }
+
+// hoverBoxInk is a hover box's fill and its bevel's light and dark colours.
+type hoverBoxInk struct{ fill, light, dark color.RGBA }
 
 func (h *tooltipController) reset() {
 	h.key = ""

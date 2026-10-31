@@ -254,8 +254,10 @@ func TestReleaseEditorInteractionFrames(t *testing.T) {
 	}
 	r, ok := e.BarRect("units")
 	trigClick(t, e, r, ok, "Units")
-	e.ListRowRect(0)
-	_ = e.Key("end")
+	// The Units branch of the tree scrolled to its last unit.
+	if n := treeMemberCount(e, "units"); n > 0 {
+		_, _ = treeMemberRect(e, "units", n-1)
+	}
 	write("list-end")
 	_ = e.Key("escape")
 	_ = e.Key("unit")

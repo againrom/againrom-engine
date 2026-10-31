@@ -237,7 +237,7 @@ func TestScriptParameterOpenKindsAndCancel(t *testing.T) {
 			}
 			back := 2
 			if tc.kind == "" {
-				back = 0
+				back = 1 // after Delete group
 			}
 			r, ok = e.PopupButtonRect(back)
 			trigClick(t, e, r, ok, "Back")

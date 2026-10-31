@@ -73,7 +73,7 @@ func popupCases() []popupCase {
 			scriptWindowSet(t, e, "Action", 0, "opcode", "3")
 			_ = e.Key("scripts")
 			_ = e.Key("escape")
-			r, ok := e.ListRowRect(2)
+			r, ok := treeMemberRect(e, "scripts", 0)
 			trigClick(t, e, r, ok, "variable row")
 			return e
 		}},

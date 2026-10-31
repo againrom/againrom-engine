@@ -411,11 +411,11 @@ func (e *MapEditor) groupKey(key string) error {
 	return nil
 }
 
-// groupsAct is what a row of the Groups window does: the group it chooses,
-// unset for a row that does nothing.
+// groupsAct is what a line of the group list does: the group it chooses,
+// unset for a line that does nothing.
 type groupsAct struct{ group editorGroup }
 
-// groupsShown reports that the list popup shows the Groups window.
+// groupsShown reports that the list popup shows the Groups palette.
 func (e *MapEditor) groupsShown() bool {
 	return e.listKind() == "records" && e.filter == editorGroupsFilter
 }
@@ -431,41 +431,48 @@ func (e *MapEditor) memberIcons(g editorGroup) []*image.RGBA {
 	return out
 }
 
-// groupsSpec is the Groups window as data: per player a heading, then each
-// group's number, its member count and pictures, a cross that removes it
-// and the triggers that name it; below, the selection's unit count and the
-// two buttons that put the selection in a group and take it out.
-func (e *MapEditor) groupsSpec() (popupSpec, []groupsAct) {
-	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
-	}
-	body := e.bodyFont()
-	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.listAt, Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
+// groupsList is the map's group list as lines of text width wide: per
+// player a heading, then each group's number, its member count and the
+// triggers that name it. The tree lists the groups; GroupsText reads this.
+func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
+	var rows []popupRow
 	var acts []groupsAct
 	add := func(row popupRow, g editorGroup) {
-		s.Rows, acts = append(s.Rows, row), append(acts, groupsAct{group: g})
+		rows, acts = append(rows, row), append(acts, groupsAct{group: g})
 	}
-	text := s.Width - 2*popupPad - 8
 	player := 0
-	groups := e.groups()
-	for _, g := range groups {
+	for _, g := range e.groups() {
 		if g.player != player {
 			player = g.player
 			add(popupRow{Kind: popupHeading, Label: fmt.Sprintf(e.word("editor.group.playerheading"), g.player)}, editorGroup{})
 		}
 		label := fmt.Sprintf(e.word("editor.group.number"), g.group)
-		row := popupRow{Kind: popupLink, Label: label, Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members)), Buttons: []string{"x"}, Icons: e.memberIcons(g)}
+		row := popupRow{Kind: popupLink, Label: label, Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members))}
 		if e.groupSel.set && g.player == e.groupSel.player && g.group == e.groupSel.group {
 			row.Label, row.Ink = "> "+label, editorGold
 		}
 		add(row, g)
 		if users := e.groupUsers(g.group); len(users) > 0 {
-			for _, part := range editorWrap(body, fmt.Sprintf(e.word("editor.group.usedby"), strings.Join(users, "; ")), text) {
+			for _, part := range editorWrap(e.bodyFont(), fmt.Sprintf(e.word("editor.group.usedby"), strings.Join(users, "; ")), width) {
 				add(popupRow{Kind: popupText, Label: part}, editorGroup{})
 			}
 		}
 	}
-	if len(groups) == 0 {
+	return rows, acts
+}
+
+// groupsSpec is the Groups palette as data: with no group yet a hint, the
+// selection's unit count and the two buttons that put the selection in a
+// group and take it out. The tree lists the groups; a chosen group's window
+// in the right panel shows its members and deletes it.
+func (e *MapEditor) groupsSpec() popupSpec {
+	if !e.listPlaced {
+		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
+	}
+	body := e.bodyFont()
+	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.listAt, Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
+	text := s.Width - 2*popupPad - 8
+	if len(e.groups()) == 0 {
 		s.Notes = append(s.Notes, editorWrap(body, e.word("editor.group.empty"), text)...)
 	}
 	units := e.groupUnitsSelected()
@@ -480,28 +487,15 @@ func (e *MapEditor) groupsSpec() (popupSpec, []groupsAct) {
 			s.ButtonW = max(s.ButtonW, body.Advance(b)+16)
 		}
 	}
-	s.MaxRows = max(3, e.listWindow())
-	e.groupsTop = max(0, min(e.groupsTop, len(s.Rows)-s.MaxRows))
-	s.Top = e.groupsTop
-	return s, acts
+	return s
 }
 
-// groupsPress is a press on the Groups window.
+// groupsPress is a press on the Groups palette.
 func (e *MapEditor) groupsPress(p image.Point) {
-	s, acts := e.groupsSpec()
-	l := layoutPopup(s, e.font, e.bodyFont())
-	switch part, n := l.hit(p); part {
+	s, _ := e.listSpec()
+	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
 	case popupClose:
 		e.cancelPopup(popList)
-	case popupRowButton:
-		if n < len(acts) && acts[n].group.set {
-			e.removeGroupOf(acts[n].group)
-		}
-	case popupRowLine, popupRowControl:
-		if n < len(acts) && acts[n].group.set {
-			e.leave(leaveDrag | leavePick)
-			e.chooseGroup(acts[n].group, true)
-		}
 	case popupButton:
 		if n < len(s.Disabled) && s.Disabled[n] {
 			return
@@ -514,31 +508,31 @@ func (e *MapEditor) groupsPress(p image.Point) {
 	}
 }
 
-// GroupsRowRect is the window rectangle of the Groups window's row of
-// player's group number, and of its cross when cross is set.
+// GroupsRowRect is the window rectangle of player's group number's row in
+// the tree, when it shows; with cross set, of the Delete group button of
+// that group's window, while the group is chosen.
 func (e *MapEditor) GroupsRowRect(player, group int, cross bool) (image.Rectangle, bool) {
-	if !e.groupsShown() {
-		return image.Rectangle{}, false
+	if cross {
+		if !e.groupSel.set || e.selected >= 0 || e.groupSel.player != player || e.groupSel.group != group {
+			return image.Rectangle{}, false
+		}
+		return e.GroupDeleteRect()
 	}
-	s, acts := e.groupsSpec()
-	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if g := acts[rr.Index].group; g.set && g.player == player && g.group == group {
-			if cross {
-				return rr.Button, true
-			}
-			return rr.Label, true
+	for n, row := range e.treeRowsNow() {
+		if row.group.set && row.group.player == player && row.group.group == group {
+			return e.TreeRowRect(n)
 		}
 	}
 	return image.Rectangle{}, false
 }
 
-// GroupsButtonRect is the window rectangle of button n of the Groups window:
-// 0 To group, 1 Remove from group.
+// GroupsButtonRect is the window rectangle of button n of the Groups
+// palette: 0 To group, 1 Remove from group.
 func (e *MapEditor) GroupsButtonRect(n int) (image.Rectangle, bool) {
 	if !e.groupsShown() {
 		return image.Rectangle{}, false
 	}
-	s, _ := e.groupsSpec()
+	s, _ := e.listSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())
 	if n < 0 || n >= len(l.Buttons) {
 		return image.Rectangle{}, false
@@ -546,15 +540,16 @@ func (e *MapEditor) GroupsButtonRect(n int) (image.Rectangle, bool) {
 	return l.Buttons[n], true
 }
 
-// GroupsText is the Groups window's rows and notes as text, in the font's
-// bytes, for a headless driver.
+// GroupsText is the group list and the Groups palette's notes as text, in
+// the font's bytes, for a headless driver, while the palette shows.
 func (e *MapEditor) GroupsText() []string {
 	if !e.groupsShown() {
 		return nil
 	}
-	s, _ := e.groupsSpec()
+	s := e.groupsSpec()
+	rows, _ := e.groupsList(s.Width - 2*popupPad - 8)
 	var out []string
-	for _, r := range s.Rows {
+	for _, r := range rows {
 		out = append(out, strings.TrimSpace(r.Label+" "+r.Value))
 	}
 	return append(out, s.Notes...)

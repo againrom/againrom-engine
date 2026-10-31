@@ -125,7 +125,7 @@ remain in the state and require the same confirmation as local input.
 | `text` | `{"text":"value"}`; optional `verbose` | Calls `TextInput` on the focused field. |
 | `pointer` | `{"action":"click","x":400,"y":300}`; optional `verbose` | Calls `Pointer` at window pixels. |
 | `cell` | `{"x":10,"y":12}` | Calls `ShowCell`, then `CellPoint`; returns window `x,y`. |
-| `state` | `{}` | Status, message, panel, popup, prompt, Help/report, dropdown, groups, selection, object fields, dirty flag, path and window size. |
+| `state` | `{}` | Status, message, panel, popup, prompt, Help/report, dropdown, groups, tree (the left panel's rows, empty while it is minimized), selection, object fields, dirty flag, path and window size. |
 | `frame` | `{}` | Reads the editor's drawn window after Draw, including the agent pointer. It does not call the diagnostic snapshot composer. |
 | `map` | `{"x":10,"y":12}`; optional `verbose` | Without `verbose`: `width`, `height`, `playable` (the cells inside the border ring, `x0,y0..x1,y1`), `cell` (the cell's terrain, height, objects, overlay, passability and border flag; a missing plane is null or marked unknown) and `record_counts` (the count of each record group). It lists no players, units, structures or loot. With `"verbose":true` it lists them, with the other records (`records`) and the script nodes and triggers (`script`), instead of `record_counts`; the `records` tool lists the records meeting a cell range. |
 | `open` | `{"path":"C:\\Maps\\map.alm"}`; optional `discard`, `verbose` | Uses the window's typed Open prompt. Unsaved changes still ask before replacing the document; with `"discard":true` the question is answered as its Open button does and the changes are dropped. |

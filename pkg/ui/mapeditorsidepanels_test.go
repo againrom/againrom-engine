@@ -7,6 +7,8 @@ import (
 	"hash/fnv"
 	"image"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -100,7 +102,7 @@ func treeText(e *MapEditor) string {
 func treeRowOf(e *MapEditor, record int) int {
 	e.treeSpec()
 	for i, r := range e.tree.rows {
-		if r.branch == "" && !r.group.set && r.record == record {
+		if r.member && !r.group.set && r.record == record {
 			return i
 		}
 	}
@@ -131,37 +133,110 @@ func rowsText(s popupSpec) string {
 	return b.String()
 }
 
-// closedPanels is a profile file that closes both panels.
-var closedPanels = []byte(`{"left":{"open":false,"width":260},"right":{"open":false,"width":520}}`)
+// minimizedPanels is a profile file that minimizes both panels.
+var minimizedPanels = []byte(`{"left":{"minimized":true,"width":260},"right":{"minimized":true,"width":520}}`)
 
-// (a) With both panels closed, the map area, the status strip, the bar, every
-// popup and the map frame stand where they stood before the panels existed.
-// The recorded table was read from the editor without panels.
-func TestMapEditorClosedPanelsKeepTheChromeRects(t *testing.T) {
+// chromeRectsLine is one line of the chrome rectangles table, split into its
+// fields.
+type chromeRectsLine struct {
+	name, status, bar string
+	area              image.Rectangle
+	frame             image.Point
+	popups            []image.Rectangle
+}
+
+var (
+	chromeRectsField = regexp.MustCompile(`^(\S+ \S+) map=\((\d+),(\d+)\)-\((\d+),(\d+)\) status=(\S+) bar=(\[[^\]]*\]) popups=\[([^\]]*)\] cell=\S+ frame=(\d+)x(\d+) `)
+	chromeRectsRect  = regexp.MustCompile(`\((-?\d+),(-?\d+)\)-\((-?\d+),(-?\d+)\)`)
+)
+
+// chromeRectsLines splits the chrome rectangles table into its lines.
+func chromeRectsLines(t *testing.T, text string) []chromeRectsLine {
+	t.Helper()
+	num := func(s string) int {
+		n, err := strconv.Atoi(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	var out []chromeRectsLine
+	for _, ln := range strings.Split(strings.TrimSpace(strings.ReplaceAll(text, "\r\n", "\n")), "\n") {
+		m := chromeRectsField.FindStringSubmatch(ln)
+		if m == nil {
+			t.Fatalf("chrome line %q does not read", ln)
+		}
+		l := chromeRectsLine{name: m[1], status: m[6], bar: m[7], area: image.Rect(num(m[2]), num(m[3]), num(m[4]), num(m[5])), frame: image.Pt(num(m[9]), num(m[10]))}
+		for _, r := range chromeRectsRect.FindAllStringSubmatch(m[8], -1) {
+			l.popups = append(l.popups, image.Rect(num(r[1]), num(r[2]), num(r[3]), num(r[4])))
+		}
+		out = append(out, l)
+	}
+	return out
+}
+
+// (a) With both panels minimized, the map area is the area the editor had
+// before the panels existed less the two strips; the status strip and the
+// bar stand where they stood, the map frame fills the map area, and every
+// window that is not a record category's palette keeps its size. The
+// recorded table was read from the editor without panels.
+func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 	raw, err := os.ReadFile("testdata/mapeditor_chrome_rects.golden")
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := chromeRectsText(t, func(e *MapEditor) { e.SetPanelProfile(closedPanels, nil, nil) })
-	if got != strings.ReplaceAll(string(raw), "\r\n", "\n") {
-		g, w := strings.Split(got, "\n"), strings.Split(string(raw), "\n")
-		for i := range g {
-			if i < len(w) && g[i] != strings.TrimRight(w[i], "\r") {
-				t.Errorf("closed panels changed\n got %s\nwant %s", g[i], w[i])
+	probe, _ := groupsEditor(t)
+	strip := probe.panelStrip()
+	base := chromeRectsLines(t, string(raw))
+	got := chromeRectsLines(t, chromeRectsText(t, func(e *MapEditor) { e.SetPanelProfile(minimizedPanels, nil, nil) }))
+	if len(got) != len(base) {
+		t.Fatalf("%d chrome lines, the base has %d", len(got), len(base))
+	}
+	for i, g := range got {
+		b := base[i]
+		players := strings.HasSuffix(g.name, " players") || strings.HasSuffix(g.name, " players-own")
+		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y, b.area.Max.X-strip, b.area.Max.Y)
+		if players && b.area.Dx()-strip-sidePanels[panelLeft].width >= mapLeastWidth {
+			// The Players entry restores the left panel to show its branch.
+			want.Min.X = sidePanels[panelLeft].width
+		}
+		if g.name != b.name || g.area != want || g.status != b.status || g.bar != b.bar || g.frame != want.Size() {
+			t.Errorf("%s: map %v frame %v status %s, want map %v status %s", g.name, g.area, g.frame, g.status, want, b.status)
+		}
+		// The windows less the two strips keep their sizes; the players
+		// palette lost its record rows.
+		var windows []image.Rectangle
+		for _, r := range g.popups {
+			if r.Dx() != strip || r.Min.Y != g.area.Min.Y || r.Max.Y != g.area.Max.Y {
+				windows = append(windows, r)
 			}
 		}
-		t.Fatal("the chrome with closed panels differs from the recorded table")
+		if players {
+			continue
+		}
+		if len(windows) != len(b.popups) {
+			t.Errorf("%s: windows %v, the base %v", g.name, windows, b.popups)
+			continue
+		}
+		for n := range windows {
+			if windows[n].Size() != b.popups[n].Size() {
+				t.Errorf("%s: window %d is %v, the base %v", g.name, n, windows[n], b.popups[n])
+			}
+		}
 	}
 }
 
-// (b) A fresh profile opens both panels where they fit beside the map's least
-// width, else the left one, else none; open panels take their widths off the
-// map, which keeps its least width when the window or a panel's edge moves.
+// (b) A fresh profile restores both panels where they fit beside the map's
+// least width, else the left one, else none; a minimized panel shows its
+// strip. The panels take their widths off the map, which keeps its least
+// width when the window or a panel's edge moves.
 func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
+	probe, _, _ := panelsEditor(t, 1280, 800, "")
+	s := probe.panelStrip()
 	for _, c := range []struct {
 		w, h        int
 		left, right int
-	}{{1280, 800, 260, 520}, {1024, 768, 260, 0}, {640, 480, 0, 0}} {
+	}{{1280, 800, 260, 520}, {1024, 768, 260, s}, {640, 480, s, s}} {
 		e, _, _ := panelsEditor(t, c.w, c.h, "")
 		if got := e.panelsShown(); got != [2]int{c.left, c.right} {
 			t.Errorf("%dx%d shows panels %v, want %d and %d", c.w, c.h, got, c.left, c.right)
@@ -184,12 +259,13 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 			}
 		}
 	}
-	// A narrower window closes the right panel first, then the left.
+	// A narrower window minimizes the right panel first, then the left, and
+	// a wider one restores them again.
 	e, _, _ := panelsEditor(t, 1280, 800, "")
 	for _, c := range []struct {
 		w           int
 		left, right int
-	}{{1260, 260, 520}, {1259, 260, 0}, {740, 260, 0}, {739, 0, 0}, {1280, 260, 520}} {
+	}{{1260, 260, 520}, {1259, 260, s}, {740 + s, 260, s}, {739 + s, s, s}, {1280, 260, 520}} {
 		e.Layout(c.w, 800)
 		if got := e.panelsShown(); got != [2]int{c.left, c.right} || e.mapArea().Dx() < mapLeastWidth {
 			t.Errorf("window %d shows panels %v, map %v", c.w, got, e.mapArea())
@@ -214,25 +290,25 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 	if got := e.panelsShown()[panelRight]; got != 1280-mapLeastWidth-sidePanels[panelLeft].least {
 		t.Fatalf("the right edge dragged left gives %d", got)
 	}
-	if len(*saved) == 0 || !bytes.Contains((*saved)[len(*saved)-1], []byte(`"left":{"open":true,"width":180}`)) {
+	if len(*saved) == 0 || !bytes.Contains((*saved)[len(*saved)-1], []byte(`"left":{"minimized":false,"width":180}`)) {
 		t.Fatalf("the dragged widths were not kept: %q", *saved)
 	}
-	// F6 and F7 close and open the panels, and each change is kept.
+	// F6 and F7 minimize and restore the panels, and each change is kept.
 	before := len(*saved)
 	for _, k := range []string{"objectspanel", "propertiespanel"} {
 		if err := e.Key(k); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if got := e.panelsShown(); got != [2]int{} || len(*saved) != before+2 || e.mapArea().Min.X != 0 || e.mapArea().Max.X != 1280 {
+	if got := e.panelsShown(); got != [2]int{s, s} || len(*saved) != before+2 || e.mapArea().Min.X != s || e.mapArea().Max.X != 1280-s {
 		t.Fatalf("F6 and F7 left panels %v, %d saves, map %v", got, len(*saved)-before, e.mapArea())
 	}
 	_ = e.Key("objectspanel")
 	if got := e.panelsShown(); got[panelLeft] != sidePanels[panelLeft].least {
-		t.Fatalf("F6 reopened the left panel at %d", got[panelLeft])
+		t.Fatalf("F6 restored the left panel at %d", got[panelLeft])
 	}
-	// The View menu's two entries close and open the panels, marked while
-	// open.
+	// The View menu's two entries minimize and restore the panels, marked
+	// while restored.
 	e, _, _ = panelsEditor(t, 1280, 800, "")
 	for i, key := range []string{"objectspanel", "propertiespanel"} {
 		n, ok := e.MenuRow("view", key)
@@ -248,14 +324,14 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 			t.Fatal("the View menu did not open")
 		}
 		modesClick(e, center(r))
-		if e.panelsShown()[i] != 0 {
-			t.Fatalf("the View entry %s left panel %d open", key, i)
+		if e.panelOpen(i) || e.panelsShown()[i] != s {
+			t.Fatalf("the View entry %s left panel %d restored", key, i)
 		}
 	}
-	// A panel the window has no room for stays closed and says so.
+	// A panel the window has no room for stays minimized and says so.
 	e, _, _ = panelsEditor(t, 1024, 768, "")
 	_ = e.Key("propertiespanel")
-	if e.panelsShown()[panelRight] != 0 || e.message != e.word("editor.side.narrow") {
+	if e.panelOpen(panelRight) || e.message != e.word("editor.side.narrow") {
 		t.Fatalf("F7 at 1024 shows %v, message %q", e.panelsShown(), e.message)
 	}
 }
@@ -289,22 +365,27 @@ func dragPanelEdge(t *testing.T, e *MapEditor, id editorPopupID, dx int) {
 // player, trigger, unit, structure and group under it.
 func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
 	e, _, _ := panelsEditor(t, 1280, 800, "")
-	want := ` - Players (2)
+	want := ` - Scripts (1)
+   Triggers
+     Trigger 1  Hide them
+   Variables: none
+   Conditions: none
+   Actions: none
+ - Players (2)
    Player #0  Self
    Player #1  Enemy
- - Triggers (1)
-   Trigger 1  Hide them
+ - Groups (2)
+   Group 1  P1  2 units
+   Group 2  P2  1 units
  - Units (5)
    Unit #0  unit0  P1  10,10
    Unit #1  unit1  P1  12,10
    Unit #2  unit2  P1  14,10
    Unit #3  unit3  P2  16,10
    Unit #4  unit4  P2  18,10
+ - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
- - Groups (2)
-   Group 1  P1  2 units
-   Group 2  P2  1 units
 `
 	got := treeText(e)
 	if got != want {
@@ -327,18 +408,18 @@ func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
 	if err := e.Key("undo"); err != nil {
 		t.Fatal(err)
 	}
-	if got := treeText(e); !strings.Contains(got, " - Units (0)\n - Structures (1)") || !strings.Contains(got, " - Groups (0)\n") {
+	if got := treeText(e); !strings.Contains(got, " - Units (0)\n - Sacks (0)\n - Structures (1)") || !strings.Contains(got, " - Groups (0)\n") {
 		t.Fatalf("empty branches:\n%s", got)
 	}
 	// A branch row closes and opens its branch.
 	e, _, _ = panelsEditor(t, 1280, 800, "")
-	clickTreeRow(t, e, 3)
-	if got := treeText(e); !strings.Contains(got, " + Triggers (1)\n - Units (5)") {
-		t.Fatalf("a press on the Triggers branch:\n%s", got)
+	clickTreeRow(t, e, 0)
+	if got := treeText(e); !strings.Contains(got, " + Scripts (1)\n - Players (2)") {
+		t.Fatalf("a press on the Scripts branch:\n%s", got)
 	}
-	clickTreeRow(t, e, 3)
-	if got := treeText(e); !strings.Contains(got, " - Triggers (1)\n   Trigger 1  Hide them") {
-		t.Fatalf("a second press on the Triggers branch:\n%s", got)
+	clickTreeRow(t, e, 0)
+	if got := treeText(e); !strings.Contains(got, " - Scripts (1)\n   Triggers\n") {
+		t.Fatalf("a second press on the Scripts branch:\n%s", got)
 	}
 }
 
@@ -346,12 +427,12 @@ func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
 // case, under their open branches; other branches leave the tree.
 func TestMapEditorTreeSearchKeepsMatchingRows(t *testing.T) {
 	e, _, _ := panelsEditor(t, 1280, 800, "")
-	clickTreeRow(t, e, 3) // close Triggers: a search shows it open
+	clickTreeRow(t, e, 0) // close Scripts: a search shows it open
 	for _, c := range []struct{ search, want string }{
 		{"UNIT3", " - Units (1)\n   Unit #3  unit3  P2  16,10\n"},
 		{"#1", " - Players (1)\n   Player #1  Enemy\n - Units (1)\n   Unit #1  unit1  P1  12,10\n"},
-		{"hide", " - Triggers (1)\n   Trigger 1  Hide them\n"},
-		{"trigger 1", " - Triggers (1)\n   Trigger 1  Hide them\n"},
+		{"hide", " - Scripts (1)\n   Triggers\n     Trigger 1  Hide them\n"},
+		{"trigger 1", " - Scripts (1)\n   Triggers\n     Trigger 1  Hide them\n"},
 		{"group 2", " - Groups (1)\n   Group 2  P2  1 units\n"},
 		{"nothing", ""},
 	} {
@@ -420,7 +501,7 @@ func TestMapEditorTreeChoiceIsAMapClick(t *testing.T) {
 	_ = byKey.Key("group1")
 	e, _, _ := panelsEditor(t, 1280, 800, "")
 	e.treeSpec()
-	clickTreeRow(t, e, len(e.tree.rows)-2)
+	clickTreeRow(t, e, e.TreeMemberRow("groups", 0))
 	if !e.groupSel.set || fmt.Sprint(e.groupSel) != fmt.Sprint(byKey.groupSel) || refsText(e.selectionRefs()) != refsText(byKey.selectionRefs()) {
 		t.Fatalf("the group row chose %+v, the key %+v", e.groupSel, byKey.groupSel)
 	}
@@ -497,7 +578,7 @@ func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
 		}
 		// The same window floating at the panel's size.
 		width := e.sidePanelRect(panelRight).Dx()
-		e.panels.detached = e.selected + 1
+		e.panels.detached = e.detachKey()
 		floating, _, ok := e.objectSpec()
 		if !ok || e.panels.hosted {
 			t.Fatalf("record %d did not float", n)
@@ -558,12 +639,14 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 		want [2]panelState
 	}{
 		{"missing", nil, os.ErrNotExist, defaults},
-		{"unreadable", []byte(`{"left":{"open":false}}`), os.ErrPermission, defaults},
+		{"unreadable", []byte(`{"left":{"minimized":true}}`), os.ErrPermission, defaults},
 		{"broken", []byte(`{"left":`), nil, defaults},
-		{"wrong", []byte(`{"left":{"open":"yes","width":300}}`), nil, defaults},
+		{"wrong", []byte(`{"left":{"minimized":"yes","width":300}}`), nil, defaults},
 		{"list", []byte(`[1,2]`), nil, defaults},
-		{"one side", []byte(`{"right":{"open":false,"width":700}}`), nil, [2]panelState{{true, 260}, {false, 700}}},
-		{"clamped", []byte(`{"left":{"open":true,"width":9999},"right":{"open":true,"width":1}}`), nil, [2]panelState{{true, 420}, {true, 360}}},
+		{"one side", []byte(`{"right":{"minimized":true,"width":700}}`), nil, [2]panelState{{true, 260}, {false, 700}}},
+		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1}}`), nil, [2]panelState{{true, 420}, {true, 360}}},
+		// A side an earlier build kept as closed reads as minimized.
+		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [2]panelState{{false, 300}, {true, 600}}},
 	} {
 		if got := panelStateOf(c.data, c.err); got != c.want {
 			t.Errorf("%s: %v, want %v", c.name, got, c.want)
@@ -573,12 +656,12 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	dragPanelEdge(t, e, popTree, 20)
 	_ = e.Key("propertiespanel")
 	last := (*saved)[len(*saved)-1]
-	if string(last) != `{"left":{"open":true,"width":280},"right":{"open":false,"width":520}}`+"\n" {
+	if string(last) != `{"left":{"minimized":false,"width":280},"right":{"minimized":true,"width":520}}`+"\n" {
 		t.Fatalf("saved %q", last)
 	}
 	f, _, _ := panelsEditor(t, 1280, 800, "")
 	f.SetPanelProfile(last, nil, nil)
-	if f.panels.state != e.panels.state || f.panelsShown() != [2]int{280, 0} {
+	if f.panels.state != e.panels.state || f.panelsShown() != [2]int{280, f.panelStrip()} {
 		t.Fatalf("read back %v from %v", f.panels.state, e.panels.state)
 	}
 	var kept map[string]map[string]any
@@ -588,7 +671,7 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	// A failed write says why and keeps the panels as they are.
 	e.SetPanelProfile(last, nil, func([]byte) error { return fmt.Errorf("disk full") })
 	_ = e.Key("objectspanel")
-	if e.message != "disk full" || e.panelsShown()[panelLeft] != 0 {
+	if e.message != "disk full" || e.panelOpen(panelLeft) {
 		t.Fatalf("a failed write: message %q, panels %v", e.message, e.panelsShown())
 	}
 }

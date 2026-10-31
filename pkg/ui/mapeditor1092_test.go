@@ -50,13 +50,13 @@ func TestMapEditor1092NativePixelsSelectionFilteringAndTransactionalOpen(t *test
 	e.Layout(800, 600)
 	v := e.doc.Viewer
 	bar := e.barHeight()
-	if v.cam.ViewW != 800 || v.cam.ViewH != 600-2*bar || v.place.Scale() != 1 {
+	if v.cam.ViewW != e.mapArea().Dx() || v.cam.ViewH != 600-2*bar || v.place.Scale() != 1 {
 		t.Fatal("the map frame is not the window between the bar and the strip")
 	}
 	if _, oy := v.place.Origin(); int(oy) != bar {
 		t.Fatalf("the map frame starts at %v, not below the bar", oy)
 	}
-	e.filter, e.listShown = 1, true
+	e.filter, e.listShown = 0, true
 	e.Select(30, true)
 	e.listSpec()
 	if top, n := e.model.Visible(); e.model.Selection() < top || e.model.Selection() >= top+n {
@@ -64,7 +64,7 @@ func TestMapEditor1092NativePixelsSelectionFilteringAndTransactionalOpen(t *test
 	}
 	before := *v.cam
 	e.Select(30, false)
-	if e.filter != 1 {
+	if e.filter != 0 || !e.listShown {
 		t.Fatal("selection silently replaced user's filter")
 	}
 	old := e.doc
@@ -257,7 +257,7 @@ func TestMapEditor1092MinimumWindowAllSackDetailsReachTheObjectPopup(t *testing.
 	}
 	beforeCamera := *e.doc.Viewer.cam
 	before := e.ChromeImage()
-	if e.doc.Viewer.cam.ViewW != 640 || e.doc.Viewer.place.Scale() != 1 {
+	if e.doc.Viewer.cam.ViewW != e.mapArea().Dx() || e.doc.Viewer.place.Scale() != 1 {
 		t.Fatal("minimum window shrank glyphs")
 	}
 	seen := map[string]bool{}

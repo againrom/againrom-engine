@@ -149,7 +149,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	e = opened()
 	r, ok = e.BarRect("scripts")
 	click(e, r, ok, "the Scripts entry")
-	r, ok = e.ListRowRect(1)
+	r, ok = treeMemberRect(e, "scripts", 0)
 	click(e, r, ok, "the first trigger")
 	shot(e, "triggers", image.Rectangle{})
 
