@@ -6,6 +6,7 @@ import (
 	"image/draw"
 
 	"againrom/pkg/render/textfit"
+	"againrom/pkg/ui"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
@@ -97,10 +98,7 @@ func (a *app) render() *image.RGBA {
 		case iToggle:
 			fill(img, r, colButton)
 			strokeRect(img, r, colBorder)
-			mark := "[ ] "
-			if it.checked {
-				mark = "[x] "
-			}
+			mark := ui.CheckSpec{On: it.checked, Style: ui.CheckText}.Mark()
 			drawText(img, mark+it.text, r.Min.X+6, r.Min.Y+3, colText)
 		case iField:
 			fill(img, r, colPanel)
@@ -115,13 +113,11 @@ func (a *app) render() *image.RGBA {
 			}
 			drawText(img, fitTail(s, r.Dx()-10), r.Min.X+5, r.Min.Y+3, colText)
 		case iBaseRow, iModRow:
-			mark := "( ) "
+			style := ui.CheckRadioText
 			if it.kind == iModRow {
-				mark = "[ ] "
+				style = ui.CheckText
 			}
-			if it.checked {
-				mark = map[itemKind]string{iBaseRow: "(*) ", iModRow: "[x] "}[it.kind]
-			}
+			mark := ui.CheckSpec{On: it.checked, Style: style}.Mark()
 			drawText(img, fitHead(mark+it.text, r.Dx()-4), r.Min.X+2, r.Min.Y+1, it.tone.color())
 		}
 	}

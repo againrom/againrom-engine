@@ -338,18 +338,14 @@ func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// menuItem is one row of a bar menu. A row with no key is a group's heading,
-// which no press acts on.
+// menuItem is one row of a bar menu; a row with no key is a heading.
 type menuItem struct {
 	key, label string
 }
 
-// markWord is a switch's caption: "[x] " before it when on, "[ ] " when off.
+// markWord is a switch's caption: its CheckText mark, then id.
 func markWord(on bool, id string) string {
-	if on {
-		return "[x] " + id
-	}
-	return "[ ] " + id
+	return CheckSpec{On: on, Style: CheckText}.Mark() + id
 }
 
 func (e *MapEditor) menuItems(menu string) []menuItem {

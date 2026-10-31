@@ -9,8 +9,8 @@ import (
 	"againrom/pkg/render/text"
 )
 
-// radiob.256 frame pairs (MENU-123, MENU-124, MENU-125): round radio 0/1,
-// standard checkbox 2/3, tip checkbox 4/5.
+// radiob.256 frame pairs (MENU-123..125): round radio 0/1, standard checkbox
+// 2/3, tip checkbox 4/5.
 const (
 	radioOffFrame    = 0
 	checkOffFrame    = 2
@@ -27,16 +27,15 @@ const (
 	choiceTipCheck
 )
 
-// Label inks. The runtime ramp colours are Unknown (MENU-123..125); the
-// engine uses the menu text for the idle ramp and the menu gold for the
-// focus or pointer ramp.
+// Label inks. The runtime ramp colours are Unknown (MENU-123..125); idle uses
+// the menu text, focus or pointer the menu gold.
 var (
 	choiceIdleInk = gameMenuText
 	choiceHotInk  = loadSelectedText
 )
 
-// choiceGroup is one radio group or checkbox group: rows from the top of
-// Rect at the kind's pitch, the on state of each row, and the two frames.
+// choiceGroup is one radio or checkbox group: rows from the top of Rect at the
+// kind's pitch, each row's check, and the two frames.
 type choiceGroup struct {
 	Kind   choiceKind
 	Rect   image.Rectangle
@@ -61,11 +60,11 @@ func (g choiceGroup) pitch() int {
 	return 24
 }
 
-func (g choiceGroup) on(i int) bool {
+func (g choiceGroup) check(i int) CheckSpec {
 	if g.Kind == choiceRadio {
-		return i == g.Selected
+		return CheckSpec{On: i == g.Selected, Style: CheckArt}
 	}
-	return i < 32 && g.Mask&(1<<i) != 0
+	return CheckSpec{On: i < 32 && g.Mask&(1<<i) != 0, Style: CheckArt}
 }
 
 // RowRect is row i's band across the group.
@@ -74,8 +73,8 @@ func (g choiceGroup) RowRect(i int) image.Rectangle {
 	return image.Rect(g.Rect.Min.X, y, g.Rect.Max.X, y+g.pitch())
 }
 
-// RowAt is the row a press at p selects: the signed truncation of
-// (y-T)/pitch, for a point inside the group and a row that exists.
+// RowAt is the row a press at p selects: the signed truncation of (y-T)/pitch,
+// for a point inside the group and a row that exists.
 func (g choiceGroup) RowAt(p image.Point) (int, bool) {
 	if !p.In(g.Rect) {
 		return 0, false
@@ -84,8 +83,8 @@ func (g choiceGroup) RowAt(p image.Point) (int, bool) {
 	return i, i >= 0 && i < len(g.Labels)
 }
 
-// ink is row i's label ramp: a radio's selected row under focus, a whole
-// checkbox group under focus, or a tip row under the pointer.
+// ink is row i's label ramp: a radio's selected row or a whole checkbox group
+// under focus, or a tip row under the pointer.
 func (g choiceGroup) ink(i int) color.RGBA {
 	hot := false
 	switch g.Kind {
@@ -102,10 +101,9 @@ func (g choiceGroup) ink(i int) color.RGBA {
 	return choiceIdleInk
 }
 
-// drawChoiceGroup paints each row's frame with its level-4 shadow at
-// (+4,+4) and its label, then remaps a disabled group at level 3 over the
-// rectangle grown by one (MENU-123..125). Without a frame it draws a plain
-// box of the frame's size.
+// drawChoiceGroup paints each row's frame with its level-4 shadow at (+4,+4)
+// and its label, then remaps a disabled group at level 3 over the rectangle
+// grown by one (MENU-123..125). Without a frame it draws a plain box.
 func drawChoiceGroup(dst *image.RGBA, f *text.Font, g choiceGroup) {
 	kind := widgetCheck
 	if g.Kind == choiceRadio {
@@ -124,7 +122,7 @@ func drawChoiceGroup(dst *image.RGBA, f *text.Font, g choiceGroup) {
 	for i, label := range g.Labels {
 		at := image.Pt(g.Rect.Min.X+1, g.Rect.Min.Y+i*g.pitch())
 		pic := off
-		if g.on(i) {
+		if g.check(i).On {
 			pic = on
 		}
 		if pic != nil && !pic.Bounds().Empty() {
@@ -132,7 +130,7 @@ func drawChoiceGroup(dst *image.RGBA, f *text.Font, g choiceGroup) {
 		} else {
 			box := image.Rect(at.X+2, at.Y+2, at.X+size-2, at.Y+size-2)
 			tint := color.RGBA{0, 0, 0, 45}
-			if g.on(i) {
+			if g.check(i).On {
 				tint = color.RGBA{0, 7, 6, 220}
 			}
 			drawFrame(dst, frameSpec{Kind: frameTint, Rect: box, Fill: tint, Border: color.RGBA{57, 77, 65, 255}})

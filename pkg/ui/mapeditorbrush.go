@@ -297,7 +297,7 @@ func (e *MapEditor) brushRows() []string {
 			for _, o := range h.BrushObjects() {
 				word := e.objectWord(o)
 				if e.forestOn() && o.Code != 0 {
-					word = map[bool]string{false: "[ ] ", true: "[x] "}[e.brush.forest.ticks[o.Code]] + word
+					word = markWord(e.brush.forest.ticks[o.Code], word)
 				}
 				rows = append(rows, word)
 			}
