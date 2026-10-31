@@ -23,6 +23,10 @@ modder or developer can notice gets no entry.
 - [ROM2] A mage learns a spell by reading its book, as in the first game: use the book from the pack in a mission, or drop it on the mage in the shop. The book is used up; a fighter, a mage who knows the spell and a book of Slow are refused.
 - [ROM2] Lifting an item out of the pack in the shop no longer leaves its name in the empty slot.
 
+### For map makers and modders
+
+- [BASE] The map editor's View menu has Player colours (key Y): every unit and building is tinted in its player's colour, each player of the map has its own, and a box in the lower left corner of the map lists the players with their colours.
+
 ## 0.143.0
 
 ### For players

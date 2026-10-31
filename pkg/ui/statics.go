@@ -39,6 +39,7 @@ type staticScreenRect struct {
 	SackOutline        bool
 	Brightness         float32
 	Inspection         InspectionSubject
+	Tint               spriteTint
 }
 
 // staticScreenRects is the layer's visibility test and camera transform in
@@ -283,7 +284,8 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 		out = append(out, back...)
 		if r, ok := spriteScreenRect(rect, v.cam); f != nil && ok {
 			out = append(out, staticScreenRect{screenRect: r, Frame: f, Mirror: mirror,
-				Stone: stone, Translucent: translucent, Brightness: brightness, Inspection: inspection})
+				Stone: stone, Translucent: translucent, Brightness: brightness, Inspection: inspection,
+				Tint: v.tintOf(inspection)})
 		}
 		if ref.Kind == terrain.PlaneSack && v.sackHighlight && f != nil {
 			if r, ok := spriteScreenRect(rect, v.cam); ok {
@@ -361,6 +363,9 @@ func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {
 	if s.Stone {
 		img = v.stoneImage(s.Frame)
 	}
+	if s.Tint.On {
+		img = v.tintedImage(s.Frame, s.Stone, s.Tint.Color)
+	}
 	target.DrawImage(img, &op)
 }
 
@@ -410,7 +415,7 @@ func (v *Viewer) drawStructuresFlat(target imageTarget) {
 		if p.Class == nil || !p.Class.Flat {
 			continue
 		}
-		v.drawSprite(target, p.Frame, p.Rect())
+		v.drawSprite(target, p.Frame, p.Rect(), v.tintOf(InspectionSubject{Kind: InspectionStructure, ID: p.StructureID}))
 	}
 }
 
@@ -421,7 +426,7 @@ func (v *Viewer) drawStructuresFlat(target imageTarget) {
 // there is nothing to paint, and ebiten refuses an empty image. The texture comes
 // through staticImage, so object and structure art share one cache keyed on frame
 // identity and one palette walk.
-func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.Rectangle) {
+func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.Rectangle, tint spriteTint) {
 	if f == nil {
 		return
 	}
@@ -434,6 +439,10 @@ func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.
 	op.Filter = ebiten.FilterNearest
 	op.GeoM.Scale(zoom, zoom)
 	op.GeoM.Translate(s.X, s.Y)
+	if tint.On {
+		target.DrawImage(v.tintedImage(f, false, tint.Color), &op)
+		return
+	}
 	target.DrawImage(v.staticImage(f), &op)
 }
 

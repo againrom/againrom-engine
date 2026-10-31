@@ -126,6 +126,7 @@ var (
 	lineRandomHeights = helpLine{Word: "editor.keys.randomheights"}
 	lineHeightLabels  = helpLine{Word: "editor.keys.heightlabels"}
 	linePassView      = helpLine{Word: "editor.keys.passview"}
+	linePlayerTint    = helpLine{Word: "editor.keys.playertint"}
 )
 
 func init() {
@@ -175,6 +176,7 @@ func init() {
 		{key: "randomheights", label: "Ctrl+Shift+R", act: (*MapEditor).keyRandom, help: keys(lineRandomHeights)},
 		{key: "passview", label: "Z", act: (*MapEditor).keyPassView, help: keys(linePassView)},
 		{key: "heightlabels", label: "V", act: (*MapEditor).keyHeightLabels, help: keys(lineHeightLabels)},
+		{key: "playertint", label: "Y", act: (*MapEditor).keyPlayerTint, help: keys(linePlayerTint)},
 		{key: "escape", label: "Esc", live: promptHears, act: (*MapEditor).keyEscape, help: []helpEntry{{screenClone, lineCancel}, {screenDrop, lineCancel}, {screenGoal, lineTargetCancel}, {screenPlayers, lineRecords}, {screenPrompt, linePrompt}, {screenMove, lineCancel}, {screenAdd, lineAddNext}, {screenAddCell, lineBack}, {screenSelection, lineSelectionEsc}}},
 		{key: "up", label: "Up", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},
 		{key: "down", label: "Down", live: promptFields, act: (*MapEditor).keyStep, help: []helpEntry{{screenGoals, lineArms}, {screenPlayers, lineRosterFields}, {screenAdd, lineAddChoose}}},

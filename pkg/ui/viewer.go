@@ -587,6 +587,12 @@ type Viewer struct {
 	// It stays nil until a Stone Cursed unit is actually drawn.
 	stoneImages map[spriteTextureKey]*ebiten.Image
 
+	// subjectTint says which colour the sprite painter lays over a unit's or
+	// a structure's picture; nil draws every picture as it is. tintedImages
+	// caches the textures that makes, nil until one is drawn.
+	subjectTint  func(InspectionSubject) (color.RGBA, bool)
+	tintedImages map[spriteTintKey]*ebiten.Image
+
 	// spellLighting and spellTerrainLighting are rebuilt from live canonical
 	// area effects on every game push. The former is the per-cell actor input;
 	// the latter is the shared vertex plane terrain tiles sample. Both are
