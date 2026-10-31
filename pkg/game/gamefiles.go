@@ -51,7 +51,10 @@ type gameFiles struct {
 	// row: its label and the three levels, or none.
 	// terrainCosts is the address of the installed Terrain cost table every
 	// World of the game prices cells with; empty keeps the compiled table.
-	terrainCosts     string
+	terrainCosts string
+	// planeCosts is the address of the same table the cell planes and the
+	// map checker read; both games read it.
+	planeCosts       string
 	autoCastCaptions []int
 	// savePages are the game's own load and save pages, or nil for the
 	// first game's LOAD window and save dialog. ownSaves makes both pages
@@ -155,6 +158,9 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 	return value
 }
 
+// terrainCostsAddress is the installed Terrain cost table's address.
+const terrainCostsAddress = worldPrefix + "data/map.reg"
+
 var firstGameFiles = gameFiles{
 	missionPackClosed: true,
 	purseMoneyWord:    true,
@@ -176,7 +182,8 @@ var firstGameFiles = gameFiles{
 	unitKeys:        mapload.ClassUnitKeys,
 	freshPlayers:    mapload.SlotPlayers,
 	itemNameKeys:    ItemNameKeyAddress,
-	terrainCosts:    worldPrefix + "data/map.reg",
+	terrainCosts:    terrainCostsAddress,
+	planeCosts:      terrainCostsAddress,
 	dialogueDefault: dialogueDefaultText,
 
 	fogStampOnMove:      true,
@@ -193,6 +200,7 @@ var firstGameFiles = gameFiles{
 }
 
 var secondGameFiles = gameFiles{
+	planeCosts:          terrainCostsAddress,
 	missionPackClosed:   true,
 	missionHeroSelected: true,
 	missionScreen:       ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},

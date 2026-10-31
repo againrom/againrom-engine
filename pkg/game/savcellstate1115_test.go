@@ -129,8 +129,12 @@ func cellStateFront(t *testing.T) *FrontEnd {
 		t.Fatal(err)
 	}
 	f.Archives.Containers = fsys
-	if f.Table.TerrainCosts, err = readTerrainCosts(fsys, worldPrefix+"data/map.reg"); err != nil {
+	costs, ok, err := terrainCostTable(fsys, terrainCostsAddress)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if ok {
+		f.Table.TerrainCosts = &costs
 	}
 	return f
 }

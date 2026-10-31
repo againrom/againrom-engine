@@ -1,11 +1,6 @@
 package game
 
 import (
-	"errors"
-	"fmt"
-	"io/fs"
-
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -43,16 +38,9 @@ func readOriginalCellPlanes(m *alm.Map, source entrySource) (*sim.SavedCellPlane
 	if source == nil {
 		return nil, nil
 	}
-	raw, err := source.ReadFile(worldPrefix + "data/map.reg")
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil // Preserve absent authority on partial/custom inputs.
-	}
-	if err != nil {
-		return nil, fmt.Errorf("original terrain parameters: %w", err)
-	}
-	costs, err := data.OriginalTerrainCostTable(raw)
-	if err != nil {
-		return nil, fmt.Errorf("original terrain parameters: %w", err)
+	costs, ok, err := terrainCostTable(source, filesOf("").planeCosts)
+	if err != nil || !ok {
+		return nil, err // Preserve absent authority on partial/custom inputs.
 	}
 	return mapload.OriginalTerrainPlanes(m, costs)
 }

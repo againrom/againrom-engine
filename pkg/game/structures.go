@@ -293,9 +293,9 @@ func StructureTableRectangles(fsys *vfs.FS) (map[int][2]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, err := databin.Parse(b)
+	f, err := parseDefinitionTable(b, "")
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", tableAddress, err)
+		return nil, err
 	}
 
 	probe := &alm.Map{Objects: make([]alm.Object, 0, 0xff)}

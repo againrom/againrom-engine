@@ -128,9 +128,9 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", tableAddress, err)
 	}
-	f, err := databin.ParseWith(b, filesOf(g).table)
+	f, err := parseDefinitionTable(b, g)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", tableAddress, err)
+		return nil, err
 	}
 	npc, err := LoadNPCCatalog(fsys)
 	if err != nil {
@@ -165,8 +165,12 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 		Magic:      f.Collection(databin.Magic),
 		MagicItems: f.Collection(databin.MagicItems),
 	})}
-	if d.Table.TerrainCosts, err = readTerrainCosts(fsys, filesOf(g).terrainCosts); err != nil {
+	costs, haveCosts, err := terrainCostTable(fsys, filesOf(g).terrainCosts)
+	if err != nil {
 		return nil, err
+	}
+	if haveCosts {
+		d.Table.TerrainCosts = &costs
 	}
 	d.StartWeapon, d.StartWeaponErr = resolveStartingWeapon(f, PartySkillSlot())
 	// Not fatal, and reported by nothing beyond the field itself — see
@@ -195,25 +199,37 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	return d, nil
 }
 
-// readTerrainCosts is the installed Terrain cost table at addr, the one every
-// first-game World prices cells with (ALM-TERR-043). An install without the
-// file, and a game naming none, keep the compiled table (DIV-3093).
-func readTerrainCosts(fsys *vfs.FS, addr string) (*[11]byte, error) {
+// terrainCostTable is the installed Terrain cost table at addr, the one every
+// first-game World prices cells with (ALM-TERR-043); the sim, the cell planes
+// and the map checker read it here. ok is false for an install without the
+// file, and for a game naming no address: they keep the compiled table
+// (DIV-3093).
+func terrainCostTable(src entrySource, addr string) (costs [11]byte, ok bool, err error) {
 	if addr == "" {
-		return nil, nil
+		return costs, false, nil
 	}
-	raw, err := fsys.ReadFile(addr)
+	raw, err := src.ReadFile(addr)
 	if errors.Is(err, fs.ErrNotExist) {
-		return nil, nil
+		return costs, false, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("original terrain parameters: %w", err)
+		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
 	}
-	costs, err := data.OriginalTerrainCostTable(raw)
+	costs, err = data.OriginalTerrainCostTable(raw)
 	if err != nil {
-		return nil, fmt.Errorf("original terrain parameters: %w", err)
+		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
 	}
-	return &costs, nil
+	return costs, true, nil
+}
+
+// parseDefinitionTable parses the bytes of the placeable-definition table
+// under the layout of game g; the empty game is the first.
+func parseDefinitionTable(b []byte, g base.Game) (*databin.File, error) {
+	f, err := databin.ParseWith(b, filesOf(g).table)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", tableAddress, err)
+	}
+	return f, nil
 }
 
 // readUnder gives t the edition of game g and the placement decoder's values

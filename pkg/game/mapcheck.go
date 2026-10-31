@@ -8,13 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"io/fs"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -302,18 +300,7 @@ func (x *MapInspector) terrainCosts() (costs [11]byte, ok bool, err error) {
 	if x == nil || x.archives == nil || x.archives.Containers == nil {
 		return costs, false, nil
 	}
-	raw, err := x.archives.Containers.ReadFile(worldPrefix + "data/map.reg")
-	if errors.Is(err, fs.ErrNotExist) {
-		return costs, false, nil
-	}
-	if err != nil {
-		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
-	}
-	costs, err = data.OriginalTerrainCostTable(raw)
-	if err != nil {
-		return costs, false, fmt.Errorf("original terrain parameters: %w", err)
-	}
-	return costs, true, nil
+	return terrainCostTable(x.archives.Containers, filesOf(x.archives.Game()).planeCosts)
 }
 
 func (c *mapCheck) terrainPlanes() []mapHit {
