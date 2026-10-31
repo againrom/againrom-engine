@@ -89,7 +89,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		e, _ := newModesEditor(t, "full")
 		e.showRecords(f)
 		s, ok := e.listSpec()
-		if !ok || len(s.Buttons) != 1 || s.Buttons[0] != e.word("editor.button.add") {
+		if !ok || len(s.Buttons) == 0 || s.Buttons[len(s.Buttons)-1] != e.word("editor.button.add") {
 			t.Errorf("list %d shows no Add button: %v", f, s.Buttons)
 		}
 	}
@@ -134,7 +134,8 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 		e.leave(leavePrompt)
 		e.objectAt = image.Pt(0, e.window.Y) // the selected player's popup stands clear of the list
 		s, _ := e.listSpec()
-		modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[0]))
+		buttons := layoutPopup(s, e.font, e.bodyFont()).Buttons
+		modesClick(e, center(buttons[len(buttons)-1]))
 		if addKindNow(e) != kind {
 			t.Errorf("the Add button of list %d opened %q, want %s", f, addKindNow(e), kind)
 		}

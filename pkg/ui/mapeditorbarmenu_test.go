@@ -27,7 +27,7 @@ func barArrowClick(t *testing.T, e *MapEditor, key string) {
 // The open list is wider than its box, so it must not swallow the arrows of the
 // entries beside it.
 func TestMapEditorBarMenusOpenFromAnyOpenMenu(t *testing.T) {
-	menus := []string{"map", "view", "brushes", "tools"}
+	menus := []string{"map", "view", "tools"}
 	for _, first := range menus {
 		for _, second := range menus {
 			if first == second {

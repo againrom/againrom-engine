@@ -48,7 +48,7 @@ func TestEditorOpenDialogKeyAndMenu(t *testing.T) {
 				_ = e.Key("open")
 			} else {
 				chromeClick(e, barPoint(t, e, "map"))
-				chromeClick(e, menuPoint(t, e, 2))
+				chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "open")))
 			}
 			finishEditorDialog(t, e)
 			select {

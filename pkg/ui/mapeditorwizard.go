@@ -65,6 +65,7 @@ type wizItem struct {
 
 var (
 	pUnit   = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit", inNode: true}
+	pUnit2  = wizParam{kind: wpUnit, labelWord: "editor.wizard.p.unit2", inNode: true}
 	pPlayer = wizParam{kind: wpPlayer, labelWord: "editor.wizard.p.player", def: 1, inNode: true}
 	pGroup  = wizParam{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true}
 	pPoint  = wizParam{kind: wpCell, labelWord: "editor.wizard.p.point", inNode: true}
@@ -88,7 +89,8 @@ func (p wizParam) types() []uint32 {
 var wizardRelationWords = []string{"editor.wizard.relation.peace", "editor.wizard.relation.hostile", "editor.wizard.relation.alliance"}
 
 // wizConditions are the ready conditions. Check 2 is a unit in a box
-// (TRIG-CHECKGEOM-130), 3 a unit within a radius of a cell (TRIG-DIST-014),
+// (TRIG-CHECKGEOM-130), 3 a unit within a radius of a cell and 6 the
+// distance between two units, 255 when either is dead (TRIG-DIST-014),
 // 15 the distance from a cell to a player's nearest unit (TRIG-NEAREST-029),
 // 5 a unit alive, 1 a group's living count (TRIG-COUNT-015), 8 a player's
 // (TRIG-LISTREAD-131); a constant is preset to its value (TRIG-COND-003).
@@ -96,6 +98,7 @@ var wizConditions = []wizItem{
 	{labelWord: "editor.wizard.c.heroarea", opcode: 2, params: []wizParam{pUnit, pArea}, cmp: 0, right: 1, rightParam: -1},
 	{labelWord: "editor.wizard.c.playernear", opcode: 15, params: []wizParam{pPlayer, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3}}, cmp: 5, rightParam: 2},
 	{labelWord: "editor.wizard.c.unitnear", opcode: 3, params: []wizParam{pUnit, pPoint, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3, inNode: true}}, cmp: 0, right: 1, rightParam: -1},
+	{labelWord: "editor.wizard.c.unitnearunit", opcode: 6, hintWord: "editor.wizard.c.unitnearunit.hint", params: []wizParam{pUnit, pUnit2, {kind: wpNumber, labelWord: "editor.wizard.p.radius", def: 3}}, cmp: 5, rightParam: 2},
 	{labelWord: "editor.wizard.c.unitdead", opcode: 5, params: []wizParam{pUnit}, cmp: 0, right: 0, rightParam: -1},
 	{labelWord: "editor.wizard.c.groupcount", opcode: 1, params: []wizParam{pGroup, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
 	{labelWord: "editor.wizard.c.playercount", opcode: 8, params: []wizParam{pPlayer, {kind: wpNumber, labelWord: "editor.wizard.p.count"}}, cmp: -1, rightParam: 1},
@@ -595,7 +598,7 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 	if kind == wpUnit {
 		out = slices.DeleteFunc(out, func(c InspectionChoice) bool { return c.Value >= 10001 && c.Value <= 11000 })
 		for h := int64(1); h <= 8; h++ {
-			out = append(out, InspectionChoice{10000 + h, fmt.Sprintf(e.word("editor.param.hero"), h)})
+			out = append(out, InspectionChoice{10000 + h, e.heroLabel(h)})
 		}
 	}
 	for _, c := range out {
@@ -605,7 +608,7 @@ func (e *MapEditor) wizardChoices(kind wizParamKind, value int64) []InspectionCh
 	}
 	label := strconv.FormatInt(value, 10)
 	if kind == wpUnit && value > 10000 {
-		label = fmt.Sprintf(e.word("editor.param.hero"), value-10000)
+		label = e.heroLabel(value - 10000)
 	}
 	return append(out, InspectionChoice{value, label})
 }
@@ -1198,7 +1201,7 @@ func (e *MapEditor) wizardAreaLines() []editorLine {
 		it := wizConditions[row.item]
 		var r image.Rectangle
 		var centre image.Point
-		radius := -1
+		radius, hasCell := -1, false
 		for k, p := range it.params {
 			var nums []int
 			for _, part := range strings.Split(row.vals[k+1], ",") {
@@ -1213,7 +1216,7 @@ func (e *MapEditor) wizardAreaLines() []editorLine {
 			case p.kind == wpBox && len(nums) == 4:
 				r = image.Rect(nums[0], nums[1], nums[2]+1, nums[3]+1)
 			case p.kind == wpCell && len(nums) == 2:
-				centre = image.Pt(nums[0], nums[1])
+				centre, hasCell = image.Pt(nums[0], nums[1]), true
 				r = image.Rect(centre.X, centre.Y, centre.X+1, centre.Y+1)
 			case p.labelWord == wizRadiusWord && len(nums) == 1:
 				radius = nums[0]
@@ -1222,7 +1225,7 @@ func (e *MapEditor) wizardAreaLines() []editorLine {
 				}
 			}
 		}
-		if radius >= 0 && radius <= maxAreaRadius {
+		if hasCell && radius >= 0 && radius <= maxAreaRadius { // a radius around two units draws nothing
 			r = image.Rect(centre.X-radius, centre.Y-radius, centre.X+radius+1, centre.Y+radius+1)
 		}
 		if r = r.Intersect(bounds); !r.Empty() {

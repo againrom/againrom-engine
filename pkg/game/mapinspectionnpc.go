@@ -5,6 +5,8 @@ import (
 	"math"
 	"slices"
 
+	"againrom/pkg/base"
+	"againrom/pkg/data"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -56,25 +58,80 @@ func (x *MapInspector) npcChoices(maxID int64, roles bool) []ui.InspectionChoice
 		if id < 0 || id > maxID {
 			continue
 		}
-		if roles {
-			if role, ok := x.speakerRole(id); ok {
-				choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(role))})
-				continue
-			}
-		}
-		name := e.Name
-		line := id
-		if !roles {
-			line--
-		}
-		if name == "" && line >= 0 && line < int64(len(x.table.NPCNames)) {
-			name = x.table.NPCNames[line]
-		}
-		if name == "" {
-			name = e.Section
-		}
-		choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.messageUTF8([]byte(name))))})
+		choices = append(choices, ui.InspectionChoice{Value: id, Label: fmt.Sprintf("%d: %s", id, x.inspectionUTF8(x.npcName(e, roles)))})
 	}
 	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int { return int(a.Value - b.Value) })
 	return choices
+}
+
+// npcName is NPC record e's name in UTF-8. With roles, as the message popup
+// names a speaker, a speaker whose person depends on the first hero is its
+// role's word; otherwise the record's name, its npcnames.txt line, or its
+// section.
+func (x *MapInspector) npcName(e data.NPCEntry, roles bool) string {
+	id := int64(e.ID)
+	if roles {
+		if role, ok := x.speakerRole(id); ok {
+			return role
+		}
+	}
+	name := e.Name
+	line := id
+	if !roles {
+		line--
+	}
+	if name == "" && line >= 0 && line < int64(len(x.table.NPCNames)) {
+		name = x.table.NPCNames[line]
+	}
+	if name == "" {
+		name = e.Section
+	}
+	return x.messageUTF8([]byte(name))
+}
+
+// speakerLabel is speaker id's label in UTF-8 as the message popup builds
+// it, false when the install has no such speaker.
+func (x *MapInspector) speakerLabel(id int64) (string, bool) {
+	if role, ok := x.speakerRole(id); ok {
+		return role, true
+	}
+	if x.table == nil || x.table.NPCCatalog == nil || id < 0 || id > math.MaxInt32 {
+		return "", false
+	}
+	e, ok := x.table.NPCCatalog.Entry(int32(id))
+	if !ok {
+		return "", false
+	}
+	return x.npcName(e, true), true
+}
+
+// heroLabels builds the hero band's labels from the words format and
+// roleFormat, each text passed through encode. On a first-game install heroes
+// 1 to 6 name speakers 21 to 26 (TRIG-HEROTPL-076), and each carries that
+// speaker's label; on a second-game install the label stays a number.
+func (x *MapInspector) heroLabels(format, roleFormat string, encode func(string) string) ui.HeroLabels {
+	h := ui.HeroLabels{Format: encode(format), RoleFormat: encode(roleFormat)}
+	if x == nil {
+		return h
+	}
+	var profile base.Profile
+	if x.archives != nil {
+		profile = x.archives.Base.Profile
+	}
+	if !profile.HasFirstData() {
+		return h
+	}
+	h.Roles = map[int64]string{}
+	for n := int64(1); n <= 6; n++ {
+		if label, ok := x.speakerLabel(20 + n); ok {
+			h.Roles[n] = encode(label)
+		}
+	}
+	return h
+}
+
+// editorHeroLabels are the hero band's labels in the editor's words and the
+// font's bytes.
+func (x *MapInspector) editorHeroLabels() ui.HeroLabels {
+	return x.heroLabels(x.word("editor.param.hero"), x.word("editor.param.herorole"), x.inspectionUTF8)
 }

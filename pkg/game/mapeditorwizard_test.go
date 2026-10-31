@@ -171,7 +171,7 @@ func TestTriggerWizardBuildsTheHeroAreaExample(t *testing.T) {
 	r, ok := e.PopupButtonRect(4)
 	trigClick(t, e, r, ok, "Details")
 	got := trigLines(e)
-	for _, want := range []string{"Pair 1", "Unit hero 1, Corner 10,12, Opposite corner 14,15", "Compared with", "Value 1", "Action 1", "Action 2", "#" + strconv.Itoa(int(win.ID)) + " Win"} {
+	for _, want := range []string{"Pair 1", "Unit Hero 1: Main hero, Corner 10,12, Opposite corner 14,15", "Compared with", "Value 1", "Action 1", "Action 2", "#" + strconv.Itoa(int(win.ID)) + " Win"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("the Details view lacks %q:\n%s", want, got)
 		}

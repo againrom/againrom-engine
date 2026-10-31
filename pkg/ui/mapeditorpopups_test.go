@@ -211,7 +211,7 @@ func TestEditorMapPickerOpensByListAndMenu(t *testing.T) {
 		t.Fatal("a double click did not open the map")
 	}
 	chromeClick(e, barPoint(t, e, "map"))
-	chromeClick(e, menuPoint(t, e, 1))
+	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "catalog")))
 	if !e.catalog || e.menu != "" {
 		t.Fatal("Map > Open did not show the picker")
 	}
@@ -220,7 +220,7 @@ func TestEditorMapPickerOpensByListAndMenu(t *testing.T) {
 		t.Fatal("Esc did not close the picker over the open map")
 	}
 	chromeClick(e, barPoint(t, e, "map"))
-	chromeClick(e, menuPoint(t, e, 1))
+	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "catalog")))
 	l := listLayout(t, e)
 	chromeClick(e, center(l.Close))
 	if e.catalog {

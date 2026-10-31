@@ -272,7 +272,7 @@ func TestScriptParameterUnknownValueAndHeroHaveNoOpen(t *testing.T) {
 			t.Fatal("non-record has Open", line)
 		}
 	}
-	if !strings.Contains(trigLines(e), "hero 3") {
+	if !strings.Contains(trigLines(e), "Hero 3: Monk") {
 		t.Fatal("hero name", trigLines(e))
 	}
 	s = objectEdits(t, e)

@@ -210,13 +210,13 @@ func russianWord(s string) bool {
 	return cyrillic
 }
 
-// brushWords is every word the brushes show: the Brushes menu, each brush's
+// brushWords is every word the brushes show: the Tools menu, each brush's
 // rows and title, the passability status words, the height readout and the
 // help lines of the brush screens and of the keys that switch them.
 func brushWords(t *testing.T, e *MapEditor) []string {
 	t.Helper()
 	var out []string
-	for _, it := range e.menuItems("brushes") {
+	for _, it := range e.menuItems("tools") {
 		out = append(out, strings.TrimPrefix(strings.TrimPrefix(it.label, "[x] "), "[ ] "))
 	}
 	for _, mode := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
@@ -264,7 +264,7 @@ func TestMapEditorBrushWordsAreTheInstallsLanguage(t *testing.T) {
 	en, b := brushEditor(t)
 	en.doc.Edits = &paletteHost{*b}
 	gotEN := brushWords(t, en)
-	for _, want := range []string{"Terrain", "No brush", "Grass", "Road", "Raise", "Lower", "Block", "Unblock", "No object", "Terrain: Grass  size 2", "T: off / Drag: paint / [ ]: size", "Passable", "Water"} {
+	for _, want := range []string{"Terrain", "Brushes", "Grass", "Road", "Raise", "Lower", "Block", "Unblock", "No object", "Terrain: Grass  size 2", "T: off / Drag: paint / [ ]: size", "Passable", "Water"} {
 		if !slices.Contains(gotEN, want) {
 			t.Errorf("English install lacks %q", want)
 		}

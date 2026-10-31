@@ -3557,5 +3557,12 @@ var Committed = Baseline{
 	// It rose for the arrival of a potion or scroll saved with no effects in
 	// pkg/secondshop/bag.go, its tests in pkg/secondshop and pkg/game, and
 	// this note.
-	CommentBytes: 10009371,
+
+	// It rose for the map editor's tester layout: the bar, menu, map list
+	// and list button tables in pkg/ui/mapeditorwindow.go, the hero band's
+	// label builder in pkg/ui/mapeditortrigger.go and pkg/game's
+	// mapinspectionnpc.go, the map list's title reader in maplist.go,
+	// mapinspection.go and worldmap.go, the new tests' comments, and this
+	// note. The merge with main is measured on the merged tree.
+	CommentBytes: 10016022,
 }

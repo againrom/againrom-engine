@@ -78,38 +78,44 @@ func passMenu(t *testing.T, e *MapEditor, key string, n int) {
 	passClick(e, r)
 }
 
-// The Brushes menu turns on each brush and turns the brush off; a row of the
-// brush already on leaves it on. Its control, a press on a disabled entry,
-// changes nothing.
-func TestMapEditorBrushesMenuEntersEachMode(t *testing.T) {
+// The Tools menu's brush rows turn on each brush; a row of the brush already
+// on leaves it on. On a read-only document the menu lists no brush, and the
+// Objects and Trees entries are disabled and turn on nothing.
+func TestMapEditorToolsMenuEntersEachBrush(t *testing.T) {
 	e, _ := passEditor(t)
-	for n, want := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability, brushOff} {
-		passMenu(t, e, "brushes", n)
+	for _, want := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
+		passMenu(t, e, "tools", menuKeyRow(t, e, "tools", brushMenuKeys[want]))
 		if e.brush.mode != want || e.menu != "" {
-			t.Fatalf("menu row %d: mode %d menu %q, want mode %d", n, e.brush.mode, e.menu, want)
+			t.Fatalf("%s: mode %d menu %q, want mode %d", brushMenuKeys[want], e.brush.mode, e.menu, want)
 		}
 	}
-	passMenu(t, e, "brushes", 1)
-	passMenu(t, e, "brushes", 1)
+	height := menuKeyRow(t, e, "tools", "brush.height")
+	passMenu(t, e, "tools", height)
+	passMenu(t, e, "tools", height)
 	if e.brush.mode != brushHeight {
 		t.Fatalf("choosing the brush on turned it to %d", e.brush.mode)
 	}
-	items := e.menuItems("brushes")
-	if len(items) != 5 || !strings.HasPrefix(items[1].label, "[x] ") || !strings.HasPrefix(items[0].label, "[ ] ") {
+	items := e.menuItems("tools")
+	if !strings.HasPrefix(items[height].label, "[x] ") || !strings.HasPrefix(items[height-1].label, "[ ] ") {
 		t.Fatalf("menu rows %+v", items)
 	}
 
 	ro, _ := brushEditor(t)
 	ro.doc.Edits = nil // a document that cannot be edited offers no brush
-	for _, b := range ro.barEntries() {
-		if b.key == "brushes" && !b.disabled {
-			t.Fatal("the Brushes entry is live on a read-only document")
-		}
+	if _, ok := ro.MenuRow("tools", "brush.terrain"); ok {
+		t.Fatal("the Tools menu lists a brush on a read-only document")
 	}
-	r, _ := ro.BarRect("brushes")
-	passClick(ro, r)
-	if ro.menu != "" || ro.brush.mode != brushOff {
-		t.Fatal("a disabled Brushes entry opened its menu")
+	for _, key := range []string{"objects", "trees"} {
+		for _, b := range ro.barEntries() {
+			if b.key == key && !b.disabled {
+				t.Fatalf("the %s entry is live on a read-only document", key)
+			}
+		}
+		r, _ := ro.BarRect(key)
+		passClick(ro, r)
+		if ro.menu != "" || ro.brush.mode != brushOff {
+			t.Fatalf("a disabled %s entry turned on brush %d", key, ro.brush.mode)
+		}
 	}
 }
 

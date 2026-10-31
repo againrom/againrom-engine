@@ -29,6 +29,16 @@ func barPoint(t *testing.T, e *MapEditor, key string) image.Point {
 }
 
 // menuPoint is the centre of row n of the open menu.
+// menuKeyRow is the row of menu whose action is key.
+func menuKeyRow(t *testing.T, e *MapEditor, menu, key string) int {
+	t.Helper()
+	n, ok := e.MenuRow(menu, key)
+	if !ok {
+		t.Fatalf("the %s menu has no %s row", menu, key)
+	}
+	return n
+}
+
 func menuPoint(t *testing.T, e *MapEditor, n int) image.Point {
 	t.Helper()
 	b, ok := e.openMenuEntry()

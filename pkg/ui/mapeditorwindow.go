@@ -175,7 +175,7 @@ func (e *MapEditor) barEntries() []barEntry {
 	for i := range entries {
 		switch entries[i].key {
 		case "map", "view":
-		case "brushes":
+		case "objects", "trees":
 			entries[i].disabled = e.brushHost() == nil
 		case "undo":
 			entries[i].disabled = !e.editable() || !e.doc.Edits.CanUndo()
@@ -190,23 +190,36 @@ func (e *MapEditor) barEntries() []barEntry {
 	return entries
 }
 
+// barKeys is the top bar's entries in their order: the Map menu, the panels,
+// the View and Tools menus, then Undo, Redo and Save. An entry with a menu
+// opens it; Objects and Trees open the object brush in its one-kind and its
+// Forest mode.
+var barKeys = []struct {
+	key, labelWord string
+	menu           bool
+}{
+	{key: "map", labelWord: "editor.bar.map", menu: true},
+	{key: "scripts", labelWord: "editor.list.scripts"},
+	{key: "players", labelWord: "editor.bar.players"},
+	{key: "groups", labelWord: "editor.bar.groups"},
+	{key: "units", labelWord: "editor.bar.units"},
+	{key: "sacks", labelWord: "editor.bar.sacks"},
+	{key: "structures", labelWord: "editor.bar.structures"},
+	{key: "objects", labelWord: "editor.bar.objects"},
+	{key: "trees", labelWord: "editor.bar.trees"},
+	{key: "view", labelWord: "editor.bar.view", menu: true},
+	{key: "tools", labelWord: "editor.bar.tools", menu: true},
+	{key: "undo", labelWord: "editor.bar.undo"},
+	{key: "redo", labelWord: "editor.bar.redo"},
+	{key: "save", labelWord: "editor.bar.save"},
+}
+
 // barRows places the top bar's entries, without their states, which the
 // window's layout does not read.
 func (e *MapEditor) barRows() []barEntry {
-	entries := []barEntry{
-		{key: "map", label: e.word("editor.bar.map"), menu: true},
-		{key: "units", label: e.word("editor.bar.units")},
-		{key: "structures", label: e.word("editor.bar.structures")},
-		{key: "groups", label: e.word("editor.bar.groups")},
-		{key: "sacks", label: e.word("editor.bar.sacks")},
-		{key: "players", label: e.word("editor.bar.players")},
-		{key: "scripts", label: e.word("editor.list.scripts")},
-		{key: "view", label: e.word("editor.bar.view"), menu: true},
-		{key: "brushes", label: e.word("editor.bar.brushes"), menu: true},
-		{key: "tools", label: e.word("editor.bar.tools"), menu: true},
-		{key: "undo", label: e.word("editor.bar.undo")},
-		{key: "redo", label: e.word("editor.bar.redo")},
-		{key: "save", label: e.word("editor.bar.save")},
+	entries := make([]barEntry, len(barKeys))
+	for i, k := range barKeys {
+		entries[i] = barEntry{key: k.key, label: e.word(k.labelWord), menu: k.menu}
 	}
 	h := e.barRowHeight()
 	x, top := 4, 0
@@ -325,26 +338,30 @@ func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// menuItem is one row of a bar menu.
+// menuItem is one row of a bar menu. A row with no key is a group's heading,
+// which no press acts on.
 type menuItem struct {
 	key, label string
 }
 
-func (e *MapEditor) menuItems(menu string) []menuItem {
-	mark := func(on bool, id string) string {
-		if on {
-			return "[x] " + id
-		}
-		return "[ ] " + id
+// markWord is a switch's caption: "[x] " before it when on, "[ ] " when off.
+func markWord(on bool, id string) string {
+	if on {
+		return "[x] " + id
 	}
+	return "[ ] " + id
+}
+
+func (e *MapEditor) menuItems(menu string) []menuItem {
+	mark := markWord
 	switch menu {
 	case "map":
 		return []menuItem{
 			{"new", e.word("editor.menu.new")},
-			{"catalog", e.word("editor.menu.open")},
-			{"open", e.word("editor.menu.file")},
+			{"open", e.word("editor.menu.open")},
 			{"saveas", e.word("editor.menu.save")},
 			{"saveto", e.word("editor.menu.saveas")},
+			{"catalog", e.word("editor.menu.builtin")},
 			{"testplay", e.word("editor.menu.testplay")},
 			{"panel", e.word("editor.menu.panel")},
 			{"close", e.word("editor.menu.exit")},
@@ -365,25 +382,23 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"records", e.word("editor.view.records")},
 		}
 	case "tools":
-		return []menuItem{
-			{"newtrigger", e.word("editor.tools.newtrigger")},
-			{"drop", mark(e.pick == pickDrop, e.word("editor.tools.dropzones"))},
-			{"drawarea", mark(e.pick == pickArea, e.word("editor.tools.drawarea"))},
-			{"randomterrain", e.word("editor.tools.randomterrain")},
-			{"randomheights", e.word("editor.tools.randomheights")},
+		items := []menuItem{{"newtrigger", e.word("editor.tools.newtrigger")}}
+		if e.brushHost() != nil { // a map that takes no brush lists none
+			items = append(items, menuItem{"", e.word("editor.tools.brushes")})
+			for _, m := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
+				items = append(items, menuItem{brushMenuKeys[m], mark(e.brush.mode == m, e.brushModeWord(m))})
+			}
 		}
-	case "brushes":
-		var items []menuItem
-		for _, m := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
-			items = append(items, menuItem{brushMenuKeys[m], mark(e.brush.mode == m, e.brushModeWord(m))})
-		}
-		return append(items, menuItem{brushMenuKeys[brushOff], mark(e.brush.mode == brushOff, e.brushModeWord(brushOff))})
+		return append(items,
+			menuItem{"", e.word("editor.tools.wholemap")},
+			menuItem{"randomterrain", e.word("editor.tools.randomterrain")},
+			menuItem{"randomheights", e.word("editor.tools.randomheights")})
 	}
 	return nil
 }
 
-// brushMenuKeys is the Brushes menu row of each brush mode.
-var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability", brushOff: "brush.off"}
+// brushMenuKeys is the Tools menu row of each brush mode.
+var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability"}
 
 // menuDropdown is the open menu as a drop-down anchored on its bar entry.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
@@ -392,7 +407,10 @@ func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
 		for i, it := range items {
-			rows[i] = PickerRow{Text: it.label, Choosable: true}
+			rows[i] = PickerRow{Text: it.label, Choosable: it.key != ""}
+			if it.key == "" {
+				rows[i].Heading, rows[i].Ink = true, editorGold
+			}
 		}
 		if e.menuModel == nil {
 			e.menuModel = NewPicker(rows)
@@ -417,13 +435,15 @@ func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 func (e *MapEditor) barAct(key string) {
 	e.endFieldTyping()
 	switch key {
-	case "map", "view", "brushes", "tools":
+	case "map", "view", "tools":
 		if e.menu == key {
 			e.menu = ""
 		} else {
 			e.menu = key
 			e.menuModel = nil
 		}
+	case "objects", "trees":
+		e.objectBrush(key == "trees")
 	case "units":
 		e.showRecords(1)
 	case "structures":
@@ -474,7 +494,7 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.passability = !e.view.passability
 	case "border":
 		e.view.hideBorder = !e.view.hideBorder
-	case "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.off":
+	case "brush.terrain", "brush.height", "brush.objects", "brush.passability":
 		for mode, k := range brushMenuKeys {
 			if k == key {
 				e.chooseBrush(mode)
@@ -561,16 +581,26 @@ func (e *MapEditor) listKind() string {
 	return ""
 }
 
-// catalogRows are the map picker's rows: a heading, the new-map sizes, a
-// heading, the installed maps. The second result maps a row to its map, -1
-// for a heading.
+// catalogRows are the map picker's rows: under three headings the new-map
+// sizes, the single-player maps and the multiplayer maps. The second result
+// maps a row to its map, -1 for a heading.
 func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 	var rows []PickerRow
 	var maps []int
-	add := func(heading string, fresh bool) {
+	const fresh, single, multi = 0, 1, 2
+	group := func(m EditorMap) int {
+		switch {
+		case strings.HasPrefix(m.Key, "new/"):
+			return fresh
+		case m.Multiplayer:
+			return multi
+		}
+		return single
+	}
+	add := func(heading string, g int) {
 		first := true
 		for i, m := range e.maps {
-			if strings.HasPrefix(m.Key, "new/") != fresh {
+			if group(m) != g {
 				continue
 			}
 			if first {
@@ -578,14 +608,15 @@ func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 				first = false
 			}
 			label := m.Label
-			if fresh { // under its heading a new map is its size: "32 x 32"
+			if g == fresh { // under its heading a new map is its size: "32 x 32"
 				label = strings.Replace(strings.TrimPrefix(m.Key, "new/"), "x", " x ", 1)
 			}
 			rows, maps = append(rows, PickerRow{Text: "  " + label, Choosable: true}), append(maps, i)
 		}
 	}
-	add(e.word("editor.picker.new"), true)
-	add(e.word("editor.picker.installed"), false)
+	add(e.word("editor.picker.new"), fresh)
+	add(e.word("editor.picker.single"), single)
+	add(e.word("editor.picker.multi"), multi)
 	return rows, maps
 }
 
@@ -809,9 +840,10 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 				s.Notes = append(s.Notes, e.doc.ScriptNotice)
 			}
 		}
-		if _, ok := e.listAdd(); ok {
-			s.Buttons = []string{e.word("editor.button.add")}
+		for _, b := range e.listButtons() {
+			s.Buttons = append(s.Buttons, b.label)
 		}
+		s.ButtonFit = e.filter == editorScriptsFilter
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
 			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
@@ -845,6 +877,19 @@ func (e *MapEditor) findingNotes(width int) []string {
 		lines = append(lines[:4], more)
 	}
 	return lines
+}
+
+// listButtons are the keys and captions of the records list's buttons: on
+// the Scenario list the drop zone tool's switch, then Add where the list adds.
+func (e *MapEditor) listButtons() []menuItem {
+	var out []menuItem
+	if _, ok := e.script(); ok && e.listKind() == "records" && e.filter == editorScriptsFilter {
+		out = append(out, menuItem{"drop", markWord(e.pick == pickDrop, e.word("editor.tools.dropzones"))})
+	}
+	if _, ok := e.listAdd(); ok {
+		out = append(out, menuItem{"add", e.word("editor.button.add")})
+	}
+	return out
 }
 
 // listAdd is the kind the shown records list's Add button adds.
@@ -1655,7 +1700,7 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.menu = ""
 		case dropdownRow:
 			items := e.menuItems(e.menu)
-			if row < len(items) {
+			if row < len(items) && items[row].key != "" {
 				e.menuAct(items[row].key)
 			}
 		}
@@ -1764,8 +1809,14 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				} else {
 					_ = e.Key("open")
 				}
-			} else if row, ok := e.listAdd(); ok {
-				e.openAdd(row.Kind)
+			} else if bs := e.listButtons(); n < len(bs) {
+				switch bs[n].key {
+				case "drop":
+					e.scriptKey("drop")
+				case "add":
+					row, _ := e.listAdd()
+					e.openAdd(row.Kind)
+				}
 			}
 		}
 	}

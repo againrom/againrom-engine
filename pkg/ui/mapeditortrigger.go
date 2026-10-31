@@ -131,6 +131,27 @@ func (e *MapEditor) slotLabel(condition bool, opcode, command uint32, s int, t u
 	return e.paramWord(t)
 }
 
+// HeroLabels builds the label of a hero band value (10001 and up): Format
+// with the number shown, or RoleFormat with the number and the role when
+// Roles names the hero.
+type HeroLabels struct {
+	Format, RoleFormat string
+	Roles              map[int64]string
+}
+
+// Label is hero's label showing the number shown.
+func (h HeroLabels) Label(shown, hero int64) string {
+	if role, ok := h.Roles[hero]; ok && h.RoleFormat != "" {
+		return fmt.Sprintf(h.RoleFormat, shown, role)
+	}
+	return fmt.Sprintf(h.Format, shown)
+}
+
+// heroLabel is hero n's label in the editor's words.
+func (e *MapEditor) heroLabel(n int64) string {
+	return HeroLabels{Format: e.word("editor.param.hero"), RoleFormat: e.word("editor.param.herorole"), Roles: e.heroRoles}.Label(n, n)
+}
+
 // targetText names value v of a parameter of type t: a unit, a group with its
 // members, a player, a structure, or the number itself.
 func (e *MapEditor) targetText(t, v uint32) string {
@@ -139,7 +160,7 @@ func (e *MapEditor) targetText(t, v uint32) string {
 	}
 	if t == scriptUnit && v >= 10001 {
 		if v <= 11000 {
-			return fmt.Sprintf(e.word("editor.param.hero"), v-10000)
+			return e.heroLabel(int64(v) - 10000)
 		}
 		return fmt.Sprintf(e.word("editor.param.named"), v)
 	}

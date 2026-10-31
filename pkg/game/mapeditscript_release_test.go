@@ -333,7 +333,7 @@ func TestReleaseEveryInstalledMapListsItsScriptArmsAndWritesItsBytes(t *testing.
 				continue
 			}
 			arms[g.arm]++
-			if text, _, _ := describeTarget(m, g.param, g.value); strings.Contains(text, "not on the map") {
+			if text, _, _ := describeTarget(m, ui.HeroLabels{Format: "party role %d"}, g.param, g.value); strings.Contains(text, "not on the map") {
 				t.Logf("%s: %s arm names %s", key, g.arm, text)
 			}
 		}

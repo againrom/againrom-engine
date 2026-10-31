@@ -55,8 +55,9 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 			add(mapload.ScriptPlayer, uint32(r.Index+1), i, r.Label, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.playerchoice")), r.Label), 0)
 		}
 	}
+	heroes := x.editorHeroLabels()
 	for id := uint32(10001); id <= 11000; id++ {
-		add(mapload.ScriptUnit, id, -1, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.hero")), id-10000), "", 0)
+		add(mapload.ScriptUnit, id, -1, heroes.Label(int64(id)-10000, int64(id)-10000), "", 0)
 	}
 	seen := map[uint32]bool{}
 	for _, nodes := range [][]alm.ScriptNode{sc.Actions, sc.Conditions} {
@@ -65,7 +66,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 				v := n.Value[p]
 				if tag == mapload.ScriptUnit && v > 11000 && !seen[v] {
 					seen[v] = true
-					add(tag, v, -1, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.hero")), v-10000), "", 0)
+					add(tag, v, -1, heroes.Label(int64(v)-10000, int64(v)-10000), "", 0)
 				}
 			}
 		}

@@ -153,13 +153,14 @@ func (s *mapInspectionEdits) Goals() []ui.InspectionGoal {
 		return nil
 	}
 	var out []ui.InspectionGoal
+	heroes := s.inspector.heroLabels("party role %d", "party role %d: %s", func(s string) string { return s })
 	for _, g := range scriptGoalRows(sc) {
-		out = append(out, goalListing(m, sc, g))
+		out = append(out, goalListing(m, sc, heroes, g))
 	}
 	return out
 }
 
-func goalListing(m *alm.Map, sc alm.Script, g goalRow) ui.InspectionGoal {
+func goalListing(m *alm.Map, sc alm.Script, heroes ui.HeroLabels, g goalRow) ui.InspectionGoal {
 	pick := "Unit"
 	if g.param == scriptStructParam {
 		pick = "Structure"
@@ -176,7 +177,7 @@ func goalListing(m *alm.Map, sc alm.Script, g goalRow) ui.InspectionGoal {
 	if g.trigger >= 0 {
 		who = fmt.Sprintf("trigger %q", sc.Triggers[g.trigger].Name)
 	}
-	target, cell, has := describeTarget(m, g.param, g.value)
+	target, cell, has := describeTarget(m, heroes, g.param, g.value)
 	openKind, openIndex := "Condition", g.node
 	if g.trigger >= 0 {
 		openKind, openIndex = "Trigger", g.trigger
@@ -206,12 +207,12 @@ func (s *mapInspectionEdits) DropGoals() []ui.InspectionGoal {
 }
 
 // describeTarget names what a target value points at on the map, and the cell
-// it stands on.
-func describeTarget(m *alm.Map, param, value uint32) (string, image.Point, bool) {
+// it stands on; heroes names the hero band.
+func describeTarget(m *alm.Map, heroes ui.HeroLabels, param, value uint32) (string, image.Point, bool) {
 	switch param {
 	case scriptUnitParam:
 		if value >= scriptHeroBand {
-			return fmt.Sprintf("party role %d", value), image.Point{}, false
+			return heroes.Label(int64(value), int64(value)-10000), image.Point{}, false
 		}
 		for _, u := range m.Units {
 			if uint32(u.UnitID) == value {

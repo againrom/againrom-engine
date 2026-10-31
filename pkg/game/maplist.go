@@ -85,13 +85,18 @@ type MapEntry struct {
 	// exactly when the map row it was made from is, by construction rather than
 	// by a second arm here.
 	Mission int
+
+	// Title is the row's display title when its reader sets one: the map
+	// editor's list sets the recorded name, else the mission title file.
+	Title string
 }
 
 // Choosable reports whether the map can be picked.
 func (e MapEntry) Choosable() bool { return e.Err == nil }
 
 // Text renders the row: its source, the recorded name when there is one, and a
-// mark when the metadata would not read.
+// mark when the metadata would not read. A row with a Title reads
+// "Title (source)".
 //
 // It is ASCII because this screen's text is placeholder debug text drawn with
 // the engine's built-in font; rendering the game's own fonts is a later story.
@@ -109,9 +114,14 @@ func (e MapEntry) Text() string {
 	if e.Mission > 0 {
 		s = fmt.Sprintf("Mission %d: ", e.Mission)
 	}
-	s += e.Source
-	if e.Name != "" {
-		s += " - " + e.Name
+	switch {
+	case e.Title != "":
+		s += e.Title + " (" + e.Source + ")"
+	default:
+		s += e.Source
+		if e.Name != "" {
+			s += " - " + e.Name
+		}
 	}
 	if e.Err != nil {
 		s += "  [unreadable]"

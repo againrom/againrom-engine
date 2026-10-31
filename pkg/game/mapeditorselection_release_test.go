@@ -21,7 +21,7 @@ import (
 
 // TestReleaseMapEditorSelectionFrames drives the brush lists, the F1 key list
 // and a group selection on an installed map, and writes their frames into
-// AGAINROM_SELECTION_FRAMES when it is set: the Brushes menu, each brush's
+// AGAINROM_SELECTION_FRAMES when it is set: the Tools menu, each brush's
 // list, the key list, a Shift rectangle being drawn and the group it
 // selects, the group after a drag, and a pasted copy with its status line.
 // Each step's status words are the install language's.
@@ -56,9 +56,9 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	}
 	closeMapPanel(t, e)
 
-	r, ok := e.BarRect("brushes")
+	r, ok := e.BarRect("tools")
 	if !ok {
-		t.Fatal("no Brushes entry")
+		t.Fatal("no Tools entry")
 	}
 	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)

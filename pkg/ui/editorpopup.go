@@ -178,6 +178,9 @@ type popupSpec struct {
 	Disabled  []bool
 	// ButtonW is the button row's button width; zero is the default.
 	ButtonW int
+	// ButtonFit widens each button of the row to its caption where the
+	// caption needs more than the button width.
+	ButtonFit bool
 	// PickLabel is the pick-on-map button's caption.
 	PickLabel string
 	PickArmed bool
@@ -275,12 +278,12 @@ const popupMinRows = 3
 // buttons and each row's own buttons still fit beside a label and a field.
 func popupMinWidth(s popupSpec, body *text.Font) int {
 	w := 240
-	if n := len(s.Buttons); n > 0 {
-		bw := popupButtonW
-		if s.ButtonW > 0 {
-			bw = s.ButtonW
+	if ws := popupButtonWidths(s, body); len(ws) > 0 {
+		need := popupPad
+		for _, bw := range ws {
+			need += bw + popupPad
 		}
-		w = max(w, n*(bw+popupPad)+popupPad)
+		w = max(w, need)
 	}
 	for _, row := range s.Rows {
 		caps := rowButtons(s, row)
@@ -606,14 +609,11 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			y = r.Max.Y - popupPad - (pitch + 4)
 		}
 		x := r.Max.X - popupPad
-		bw := popupButtonW
-		if s.ButtonW > 0 {
-			bw = s.ButtonW
-		}
+		ws := popupButtonWidths(s, body)
 		l.Buttons = make([]image.Rectangle, n)
 		for i := n - 1; i >= 0; i-- {
-			l.Buttons[i] = image.Rect(x-bw, y, x, y+pitch+4)
-			x -= bw + popupPad
+			l.Buttons[i] = image.Rect(x-ws[i], y, x, y+pitch+4)
+			x -= ws[i] + popupPad
 		}
 	}
 	return l
@@ -664,6 +664,23 @@ func layoutCards(s popupSpec, l *popupLayout) {
 	if l.Drop != held && l.Drop != held+1 {
 		l.Marker = image.Rect(last.Rect.Min.X, y-2, last.Rect.Max.X, y+1)
 	}
+}
+
+// popupButtonWidths are the widths of the button row's buttons: the spec's
+// button width, or the default, each widened to its caption under ButtonFit.
+func popupButtonWidths(s popupSpec, body *text.Font) []int {
+	bw := popupButtonW
+	if s.ButtonW > 0 {
+		bw = s.ButtonW
+	}
+	ws := make([]int, len(s.Buttons))
+	for i, c := range s.Buttons {
+		ws[i] = bw
+		if s.ButtonFit && body != nil {
+			ws[i] = max(bw, body.Advance(c)+16)
+		}
+	}
+	return ws
 }
 
 // rowButtons are the captions of row's buttons.

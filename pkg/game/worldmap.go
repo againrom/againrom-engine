@@ -321,13 +321,28 @@ func WorldMapTextPaths(mission int) (title, briefing string, ok bool) {
 	return base + "title.txt", base + "briefmap.txt", true
 }
 
+// readMissionTitle is mission's title file as the install stores it, false
+// when it is missing or blank (TOWN-044). The world map and the editor's map
+// list read it here.
+func readMissionTitle(read func(string) ([]byte, error), mission int) ([]byte, bool) {
+	path, _, ok := WorldMapTextPaths(mission)
+	if !ok {
+		return nil, false
+	}
+	raw, err := read(path)
+	if err != nil || len(strings.TrimSpace(string(raw))) == 0 {
+		return nil, false
+	}
+	return raw, true
+}
+
 func (a *worldMapAssets) missionText(src entrySource, mission int) worldMapText {
 	if got, ok := a.texts[mission]; ok {
 		return got
 	}
-	titlePath, briefPath, _ := WorldMapTextPaths(mission)
+	_, briefPath, _ := WorldMapTextPaths(mission)
 	t := worldMapText{title: fmt.Sprintf("Mission %d", mission), brief: "Briefing unavailable"}
-	if raw, err := a.read(src, titlePath); err == nil && len(strings.TrimSpace(string(raw))) > 0 {
+	if raw, ok := readMissionTitle(func(p string) ([]byte, error) { return a.read(src, p) }, mission); ok {
 		t.title = string(raw)
 	}
 	if raw, err := a.read(src, briefPath); err == nil && len(strings.TrimSpace(string(raw))) > 0 {

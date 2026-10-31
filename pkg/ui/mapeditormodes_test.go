@@ -371,9 +371,11 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:press-cell":
 		modesPress(e, cell(25, 20), true)
 	case "ui:menu-maps":
-		menu("map", 1)
+		n, _ := e.MenuRow("map", "catalog")
+		menu("map", n)
 	case "ui:menu-open":
-		menu("map", 2)
+		n, _ := e.MenuRow("map", "open")
+		menu("map", n)
 	case "ui:menu-fit":
 		n, _ := e.MenuRow("view", "fit")
 		menu("view", n)

@@ -171,7 +171,12 @@ type InspectionChoice struct {
 	Label string
 }
 
-type EditorMap struct{ Key, Label string }
+// EditorMap is one row of the map list: its key, its label, and whether the
+// list shows it among the multiplayer maps (else the single-player maps).
+type EditorMap struct {
+	Key, Label  string
+	Multiplayer bool
+}
 type InspectionOpener func(string) (*InspectionDocument, error)
 
 // MapEditor is an authored-map canvas. It has no game App, command queue,
@@ -184,6 +189,7 @@ type MapEditor struct {
 	open                        InspectionOpener
 	hostText                    func(string) string
 	hostDecode                  func(string) string
+	heroRoles                   map[int64]string // hero N's role in host text; empty: the label is a number
 	nativeInput                 func() editorNativeInput
 	pathDialog                  editorPathDialog
 	selected                    int
@@ -244,6 +250,10 @@ func (e *MapEditor) SetHostTextEncoder(encode func(string) string, decode ...fun
 		e.hostDecode = decode[0]
 	}
 }
+
+// SetHeroRoles supplies the roles in host text the hero band's labels name:
+// hero N with a role reads "Hero N: role" (HeroLabels).
+func (e *MapEditor) SetHeroRoles(roles map[int64]string) { e.heroRoles = roles }
 
 // Open opens the map named source. With unsaved changes it asks first.
 func (e *MapEditor) Open(source string) error {
@@ -391,6 +401,16 @@ func (e *MapEditor) rows() []int {
 func (e *MapEditor) Pointer(in Input, now time.Time) {
 	if in.SecondaryDown && e.pick != pickNone {
 		e.leave(leavePick)
+		return
+	}
+	// A right press clears the brush as Esc does; in Forest mode the right
+	// button thins instead.
+	if in.SecondaryDown && e.brushActive() && !e.forestOn() && !e.brush.down {
+		if e.listKind() == "brush" {
+			e.cancelPopup(popList)
+		} else {
+			e.leave(leaveBrush)
+		}
 		return
 	}
 	if e.pathDialog.pending != nil {

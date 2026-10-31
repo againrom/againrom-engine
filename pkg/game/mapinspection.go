@@ -1,6 +1,7 @@
 package game
 
 import (
+	"cmp"
 	"fmt"
 	"image"
 	"os"
@@ -101,13 +102,22 @@ func NewMapInspector(root string) (*MapInspector, error) {
 
 func (x *MapInspector) Editor() *ui.MapEditor {
 	rows := newMapRows()
-	for _, e := range x.Maps {
+	// Archive maps by mission number, loose maps by title.
+	maps := slices.Clone(x.Maps)
+	for i := range maps {
+		maps[i].Name = alm.MapNameText.Decode([]byte(maps[i].Name))
+		maps[i].Title = x.mapTitle(maps[i])
+	}
+	mission := func(e MapEntry) int { n, _ := missionNumber(e); return n }
+	slices.SortStableFunc(maps, func(a, b MapEntry) int {
+		return cmp.Or(cmp.Compare(mission(a), mission(b)), cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title)))
+	})
+	for _, e := range maps {
 		key := "loose/" + e.Source
 		if e.FromArchive {
 			key = "scenario/" + e.Source
 		}
-		e.Name = alm.MapNameText.Decode([]byte(e.Name))
-		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text())})
+		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text()), Multiplayer: !e.FromArchive})
 	}
 	e := ui.NewMapEditor(x.font, rows, x.Open)
 	e.SetBodyFont(x.body)
@@ -119,7 +129,25 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		e.SetCommandWords(x.panelWords.Command)
 	}
 	e.SetHostTextEncoder(x.inspectionUTF8, func(value string) string { return x.messageUTF8([]byte(value)) })
+	e.SetHeroRoles(x.editorHeroLabels().Roles)
 	return e
+}
+
+// mapTitle is the title the editor lists map row e under: its recorded name,
+// else for an archive map its mission's title file, else "".
+func (x *MapInspector) mapTitle(e MapEntry) string {
+	if name := strings.TrimSpace(e.Name); name != "" {
+		return name
+	}
+	n, ok := missionNumber(e)
+	if !ok || x.archives == nil || x.archives.Containers == nil {
+		return ""
+	}
+	raw, ok := readMissionTitle(x.archives.Containers.ReadFile, n)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(x.messageUTF8(raw))
 }
 
 // inspectionUTF8 is the editor's host text in the font's bytes: the install

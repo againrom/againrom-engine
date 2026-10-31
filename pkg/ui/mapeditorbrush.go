@@ -139,7 +139,7 @@ const (
 // brushKeyModes is the brush mode each brush key switches.
 var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability}
 
-// brushModeWord is the word the Brushes menu and the list title give mode.
+// brushModeWord is the word the Tools menu and the list title give mode.
 func (e *MapEditor) brushModeWord(mode brushMode) string {
 	switch mode {
 	case brushTerrain:
@@ -151,7 +151,7 @@ func (e *MapEditor) brushModeWord(mode brushMode) string {
 	case brushPassability:
 		return e.word("editor.brush.passability")
 	}
-	return e.word("editor.brush.off")
+	return ""
 }
 
 // terrainWord is the word the terrain list gives the palette row the host
@@ -557,7 +557,22 @@ func (e *MapEditor) brushStatus() string {
 	return fmt.Sprintf(e.word("editor.brush.status"), e.brushModeWord(e.brush.mode), rows[sel], e.brushRadius())
 }
 
-// chooseBrush is a Brushes menu row: it turns mode on, or every brush off
+// objectBrush is the bar's Objects entry (forest false) and Trees entry
+// (forest true): the object brush on in that mode, or off when it is on in
+// that mode already.
+func (e *MapEditor) objectBrush(forest bool) {
+	if e.brushHost() == nil || e.catalog {
+		return
+	}
+	if e.brush.mode == brushObjects && e.brush.forest.on == forest {
+		e.toggleBrush(brushObjects)
+		return
+	}
+	e.chooseBrush(brushObjects)
+	e.brush.forest.on = forest
+}
+
+// chooseBrush is a Tools menu row: it turns mode on, or every brush off
 // for brushOff, and leaves a brush already on as it is.
 func (e *MapEditor) chooseBrush(mode brushMode) {
 	if e.brushHost() == nil || e.catalog {
