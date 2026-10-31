@@ -23,7 +23,7 @@ func currentWeapon(item sim.ItemInstance, fallback *data.Weapon, materialized bo
 			if fallback != nil && fallback.Code == data.ItemCode(item.Code) {
 				saved = fallback.Name
 			}
-			weapon.Name = ItemDisplayName(t, weapon.Code, saved, weapon.Name)
+			weapon.Name = ItemDisplayName(t, ItemSubject{Code: weapon.Code, Saved: saved, Form: ItemNameWeapon})
 		}
 		return weapon
 	}

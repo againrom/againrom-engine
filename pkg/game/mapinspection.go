@@ -371,12 +371,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 			}
 			r.Details = []string{fmt.Sprintf("Owner: %d  Gold: %d", l.Owner, l.Gold), fmt.Sprintf("X/Y raw: %d / %d", l.X, l.Y), fmt.Sprintf("Items: %d / I: recipe by item number", len(l.Elements))}
 			for n, e := range l.Elements {
-				name, known := mapload.ShippedItemName(x.table, data.ItemCode(e.ItemCode()))
-				if !known {
-					name = "unresolved item name"
+				name := mapload.ResolveItemName(x.table, mapload.ItemSubject{Code: data.ItemCode(e.ItemCode()), Form: mapload.ItemNameEditorRecord})
+				if !name.Known {
 					r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Item %d name unresolved", n))
 				}
-				r.Details = append(r.Details, fmt.Sprintf("Item %d: %s", n+1, name))
+				r.Details = append(r.Details, fmt.Sprintf("Item %d: %s", n+1, name.Text()))
 				r.Details = append(r.Details, fmt.Sprintf("%d: code %#04x class %d index %d", n, e.ItemCode(), alm.ItemClass(e.ItemCode()), alm.ItemIndex(e.ItemCode())), fmt.Sprintf("   raw04 %d enchantment %d", e.Field04, e.TileMarkerIndex))
 			}
 			add(r)

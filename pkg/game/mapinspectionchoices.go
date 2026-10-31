@@ -241,7 +241,7 @@ func recipeItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 	}
 	var out []ui.InspectionChoice
 	for i, item := range loot.Records[a.index].Elements {
-		name := mapload.ItemDisplayName(s.inspector.table, data.ItemCode(item.ItemCode()), "", fmt.Sprintf("item %#04x", item.ItemCode()))
+		name := mapload.ItemDisplayName(s.inspector.table, mapload.ItemSubject{Code: data.ItemCode(item.ItemCode()), Form: mapload.ItemNameEditorList})
 		out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Item %d: %s", i+1, name)})
 	}
 	return out
@@ -296,9 +296,9 @@ func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {
 		}
 	case "item":
 		if x.table != nil {
-			for code, name := range x.table.Names {
+			for _, code := range mapload.ShippedItemCodes(x.table) {
 				if code != 0 {
-					add(int64(code), name)
+					add(int64(code), mapload.ItemDisplayName(x.table, mapload.ItemSubject{Code: code, Form: mapload.ItemNameEditorList}))
 				}
 			}
 		}

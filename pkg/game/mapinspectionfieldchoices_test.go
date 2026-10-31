@@ -189,7 +189,10 @@ func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key s
 		}
 		var out []ui.InspectionChoice
 		for i, item := range loot.Records[index].Elements {
-			name := mapload.ItemDisplayName(s.inspector.table, data.ItemCode(item.ItemCode()), "", fmt.Sprintf("item %#04x", item.ItemCode()))
+			name, ok := mapload.ShippedItemName(s.inspector.table, data.ItemCode(item.ItemCode()))
+			if !ok {
+				name = fmt.Sprintf("item %#04x", item.ItemCode())
+			}
 			out = append(out, ui.InspectionChoice{Value: int64(i + 1), Label: fmt.Sprintf("Item %d: %s", i+1, name)})
 		}
 		return out

@@ -61,7 +61,7 @@ func (p currentPartyWeapon) restore(item sim.ItemInstance, materialized bool, t 
 			if p.NameCode != 0 && p.NameCode == item.Code {
 				saved = string(p.Name)
 			}
-			out.Name = mapload.ItemDisplayName(t, out.Code, saved, out.Name)
+			out.Name = mapload.ItemDisplayName(t, mapload.ItemSubject{Code: out.Code, Saved: saved, Form: mapload.ItemNameWeapon})
 		}
 		return out
 	}

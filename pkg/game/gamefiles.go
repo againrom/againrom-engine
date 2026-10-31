@@ -46,6 +46,8 @@ type gameFiles struct {
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
+	// itemNamer names an item with neither a saved nor a shipped name.
+	itemNamer mapload.ItemNamer
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
 	// row: its label and the three levels, or none.
 	// terrainCosts is the address of the installed Terrain cost table every
@@ -182,6 +184,7 @@ var firstGameFiles = gameFiles{
 	freshPlayers:    mapload.SlotPlayers,
 	creatureBooks:   mapload.FirstGameCreatureBooks,
 	itemNameKeys:    ItemNameKeyAddress,
+	itemNamer:       mapload.CodeItemNamer,
 	terrainCosts:    terrainCostsAddress,
 	planeCosts:      terrainCostsAddress,
 	dialogueDefault: dialogueDefaultText,
@@ -229,6 +232,7 @@ var secondGameFiles = gameFiles{
 	storedWeaponSpell:    true,
 	releasedSpellReadout: true,
 	itemNameKeys:         worldPrefix + "data/itemname.bin",
+	itemNamer:            mapload.RowItemNamer,
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},
 	savePages:        secondSavePages,

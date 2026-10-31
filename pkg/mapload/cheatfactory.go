@@ -19,10 +19,8 @@ func CheatItem(name string, t *Table) (sim.ItemInstance, bool) {
 			}
 		}
 	}
-	for code := 1; code <= 65535; code++ {
-		if display, ok := t.Names.NameFor(data.ItemCode(code)); ok && display == name {
-			return SourceConstructedItem(ItemInstanceFromCode(uint16(code), t), t), true
-		}
+	if code, ok := ShippedItemCode(t, name); ok {
+		return SourceConstructedItem(ItemInstanceFromCode(uint16(code), t), t), true
 	}
 	if _, _, rejected, err := ParseItemCell(name, t); err != nil || rejected != 0 {
 		return sim.ItemInstance{}, false

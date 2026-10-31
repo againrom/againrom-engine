@@ -247,53 +247,34 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 	v.TipPanel = t.roomTipView(room)
 }
 
-// shopItemName is an item's name parts, the cell's name first (DIV-3046):
-// the item's line in the shipped item-name table, else its data.bin row,
-// material and class names; then a castspell effect's spell and level. A book
-// is its spell's data.bin name.
+// shopItemRows are the resolver's row tables of the shop's item tables.
+var shopItemRows = map[secondshop.Kind]mapload.ItemRowTable{secondshop.Armor: mapload.ItemRowArmor,
+	secondshop.Shield: mapload.ItemRowShield, secondshop.Weapon: mapload.ItemRowWeapon,
+	secondshop.Magic: mapload.ItemRowMagic, secondshop.Book: mapload.ItemRowBook}
+
+// shopItemName is an item's caption lines, its name first (DIV-3046): the
+// resolver's name for its rows, keyed in the shipped item-name table by the
+// shop's name key; then a castspell effect's spell and level. A book is its
+// name alone.
 func (t *townScreen) shopItemName(it secondshop.Item) []string {
 	tab := t.in.Table
-	if tab == nil {
-		return []string{""}
-	}
-	name := func(c interface{ Len() int }, named func(int) string, i int) string {
-		if c == nil || i < 0 || i >= c.Len() {
-			return ""
-		}
-		return named(i)
-	}
-	collection := func(c data.Collection, i int) string {
-		if c == nil {
-			return ""
-		}
-		return name(c, c.EntryName, i)
-	}
-	scale := func(c data.ScaleTable, i int) string {
-		if c == nil {
-			return ""
-		}
-		return name(c, c.EntryName, i)
-	}
-	shipped := ""
+	s := mapload.ItemSubject{Keyless: true, Rows: &mapload.ItemRows{Table: shopItemRows[it.Table],
+		Row: it.Row, Material: it.Material, Class: it.Class, Spell: it.Spell}}
 	if tables, ok := secondShopTables(tab); ok {
 		if key, ok := tables.NameKey(it); ok {
-			shipped = mapload.ItemDisplayName(tab, data.ItemCode(key), "", "")
+			s.Code, s.Keyless = data.ItemCode(key), false
 		}
 	}
-	var parts []string
-	switch {
-	case it.Table == secondshop.Book:
-		return []string{collection(tab.Spells, it.Spell)}
-	case shipped != "":
-		parts = []string{shipped}
-	case it.Table == secondshop.Magic:
-		parts = []string{collection(tab.MagicItems, it.Row)}
-	default:
-		rows := map[secondshop.Kind]data.Collection{secondshop.Armor: tab.Armors, secondshop.Shield: tab.Shields, secondshop.Weapon: tab.Weapons}
-		parts = []string{collection(rows[it.Table], it.Row), scale(tab.Materials, it.Material), scale(tab.Shapes, it.Class)}
+	parts := mapload.ResolveItemName(tab, s).Lines
+	if tab == nil || it.Table == secondshop.Book {
+		return parts
 	}
 	if spell, level, ok := it.Instance().CastSpell(); ok && level > 0 {
-		parts = append(parts, fmt.Sprintf("%s %d", collection(tab.Spells, int(spell)), level))
+		name := ""
+		if tab.Spells != nil && int(spell) < tab.Spells.Len() {
+			name = tab.Spells.EntryName(int(spell))
+		}
+		parts = append(parts, fmt.Sprintf("%s %d", name, level))
 	}
 	return parts
 }

@@ -191,6 +191,9 @@ type Table struct {
 	// falls back to a different name for the code, never to refusing the
 	// item itself — this is a display fact, not a placement one.
 	Names data.ItemNames
+	// ItemNamer is the game's composer row for an item with neither a saved
+	// nor a shipped name; ResolveItemName asks it.
+	ItemNamer ItemNamer
 
 	// HeroNames are the four hero pictures' installed names, raw install
 	// bytes, in the character generator's picture order: male fighter, male

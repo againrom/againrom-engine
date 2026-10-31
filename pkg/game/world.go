@@ -4074,14 +4074,9 @@ func (mw *mapWorld) sackItemsAt(x, y int32) []uint16 {
 	return s.Items
 }
 
+// itemName is the player's name for code: mapload.ItemDisplayName's.
 func itemName(code data.ItemCode, table *mapload.Table) string {
-	fallback := code.Name()
-	if table != nil {
-		if w, err := data.WeaponFromCode(code, table.Shapes, table.Materials, table.Weapons); err == nil {
-			fallback = w.Name
-		}
-	}
-	return mapload.ItemDisplayName(table, code, "", fallback)
+	return mapload.ItemDisplayName(table, mapload.ItemSubject{Code: code})
 }
 
 // entity is the world's own entry for id, and whether it holds one. It reads
