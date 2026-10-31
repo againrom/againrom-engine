@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/ui"
 )
 
@@ -17,7 +18,7 @@ func rowShift(pic, cap *image.RGBA, r image.Rectangle) int {
 		for y := r.Min.Y + 4; y < r.Max.Y-4; y++ {
 			for x := r.Min.X; x < r.Max.X; x++ {
 				a, b := pic.RGBAAt(x, y), cap.RGBAAt(x, y+s)
-				d := absInt(int(a.R)-int(b.R)) + absInt(int(a.G)-int(b.G)) + absInt(int(a.B)-int(b.B))
+				d := intmath.Abs(int(a.R)-int(b.R)) + intmath.Abs(int(a.G)-int(b.G)) + intmath.Abs(int(a.B)-int(b.B))
 				sum += float64(d)
 				n++
 			}

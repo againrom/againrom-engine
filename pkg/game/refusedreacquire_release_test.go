@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -111,7 +112,7 @@ func openUnreachableMission(t *testing.T, placeBeside bool, offset int32, heroAt
 				continue
 			}
 			e, _ := live.entity(beside)
-			d := max(releaseAbs32(e.X-hero.X), releaseAbs32(e.Y-hero.Y))
+			d := max(intmath.Abs(e.X-hero.X), intmath.Abs(e.Y-hero.Y))
 			placed = (offset <= 1 && d == 1) || (offset > 1 && d >= 5)
 		}
 		if !placed {

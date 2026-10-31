@@ -1,6 +1,10 @@
 package sim
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/pkg/intmath"
+)
 
 // What a staged area effect reports to the client.
 
@@ -64,12 +68,12 @@ func TestAStagedCastReportsEveryStageItPaints(t *testing.T) {
 	// from the caster's own cell" is: every stage-0 cell touches the caster's
 	// cell and no stage-1 cell does.
 	for _, c := range stages[0].Cells {
-		if abs32(c.X-40) > 1 || abs32(c.Y-40) > 1 {
+		if intmath.Abs(c.X-40) > 1 || intmath.Abs(c.Y-40) > 1 {
 			t.Errorf("stage 0 cell %v is not adjacent to the caster's own (40,40)", c)
 		}
 	}
 	for _, c := range stages[1].Cells {
-		if abs32(c.X-40) <= 1 && abs32(c.Y-40) <= 1 {
+		if intmath.Abs(c.X-40) <= 1 && intmath.Abs(c.Y-40) <= 1 {
 			t.Errorf("stage 1 cell %v is inside the inner shell", c)
 		}
 	}

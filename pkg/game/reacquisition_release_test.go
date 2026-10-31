@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -212,7 +213,7 @@ func TestReleaseRangedWithdrawalWithNoRouteKeepsItsPickAcrossCycles(t *testing.T
 		if !e.Alive() || e.OffMap || e.Owner == 0 || e.Withdraw <= 0 || e.Reach <= 1 || !rel.Hostile(e.Owner, hero.Owner) {
 			continue
 		}
-		candidates = append(candidates, candidate{e.ID, max(releaseAbs32(e.X-hero.X), releaseAbs32(e.Y-hero.Y))})
+		candidates = append(candidates, candidate{e.ID, max(intmath.Abs(e.X-hero.X), intmath.Abs(e.Y-hero.Y))})
 	}
 	if len(candidates) == 0 {
 		t.Fatalf("mission %d holds no hostile ranged withdrawer", releaseRetreatRefusedMission)
@@ -254,7 +255,7 @@ func TestReleaseRangedWithdrawalWithNoRouteKeepsItsPickAcrossCycles(t *testing.T
 		if !h.Alive() {
 			return false, true
 		}
-		return max(releaseAbs32(s.X-h.X), releaseAbs32(s.Y-h.Y)) <= 2, false
+		return max(intmath.Abs(s.X-h.X), intmath.Abs(s.Y-h.Y)) <= 2, false
 	})
 	t.Logf("mission %d creature %d: blows beside the hero at ticks %v in %d counted ticks; %d tick(s) without an order (longest run %d); count ended: %s",
 		releaseRetreatRefusedMission, foe, c.blows, c.ticks, c.idle, c.longestIdle, c.ended)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -37,7 +38,7 @@ func TestReleaseAcquiredVictimLeavingReachTurnsWithoutWalking(t *testing.T) {
 				}
 			}
 			sort.SliceStable(foes, func(i, j int) bool {
-				return max(releaseAbs32(foes[i].X-hero.X), releaseAbs32(foes[i].Y-hero.Y)) < max(releaseAbs32(foes[j].X-hero.X), releaseAbs32(foes[j].Y-hero.Y))
+				return max(intmath.Abs(foes[i].X-hero.X), intmath.Abs(foes[i].Y-hero.Y)) < max(intmath.Abs(foes[j].X-hero.X), intmath.Abs(foes[j].Y-hero.Y))
 			})
 			if candidate >= len(foes) {
 				break
@@ -95,7 +96,7 @@ func acquiredVictimRound(t *testing.T, app *ui.App, live *mapWorld, heroID, foeI
 		if h.HasAttackTarget && !h.AcquirePursuit && h.HasTarget {
 			control = true
 		}
-		if max(releaseAbs32(foe.X-h.X), releaseAbs32(foe.Y-h.Y)) <= int32(h.Reach) && h.Transit == 0 {
+		if max(intmath.Abs(foe.X-h.X), intmath.Abs(foe.Y-h.Y)) <= int32(h.Reach) && h.Transit == 0 {
 			contact = true
 			t.Logf("candidate %d foe %d delay %d contact tick %d: foe (%d,%d) hero (%d,%d) phase %d", candidate, foeID, delay, live.world.Tick(), foe.X, foe.Y, h.X, h.Y, h.AttackPhase)
 			break
@@ -141,7 +142,7 @@ func acquiredVictimRound(t *testing.T, app *ui.App, live *mapWorld, heroID, foeI
 			continue
 		}
 		markers++
-		distance := max(releaseAbs32(foe.X-h.X), releaseAbs32(foe.Y-h.Y))
+		distance := max(intmath.Abs(foe.X-h.X), intmath.Abs(foe.Y-h.Y))
 		if h.AttackPhase == sim.AttackReady && distance > int32(h.Reach) && h.HasTarget {
 			t.Fatalf("tick %d: acquisition stored a walk beyond reach", live.world.Tick())
 		}

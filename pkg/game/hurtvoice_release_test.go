@@ -11,6 +11,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -54,7 +55,7 @@ func (h *hurtVoiceHeard) RequestSample(s audio.Sample, request audio.Request) au
 		placement := audio.Placement{Left: int(min(10000, gain*int64(10000-pan)/10000)),
 			Right: int(min(10000, gain*int64(10000+pan)/10000))}
 		if request.Geometry != geometry || request.Attenuation != attenuation || request.Pan != pan || request.Placement != placement ||
-			request.Priority != uint8((10000-absAudioTerm(attenuation))/100) || !request.SpatialKnown {
+			request.Priority != uint8((10000-intmath.Abs(attenuation))/100) || !request.SpatialKnown {
 			h.t.Fatalf("positional request differs from independent camera/fine-coordinate terms: %+v; geometry=%+v attenuation=%d pan=%d placement=%+v", request, geometry, attenuation, pan, placement)
 		}
 		for _, e := range h.front.live.world.Entities() {
@@ -118,13 +119,6 @@ func releaseAudioFromActor(t *testing.T, heard *hurtVoiceHeard, index int, id si
 		t.Fatalf("target sound coordinate is shared by actors %v; cannot identify actor %d", heard.recipients[index], id)
 	}
 	return true
-}
-
-func absAudioTerm(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }
 
 func observeReleaseAudio(t *testing.T, f *FrontEnd) *hurtVoiceHeard {

@@ -5,6 +5,8 @@ import (
 	"image"
 	"math"
 	"strings"
+
+	"againrom/pkg/intmath"
 )
 
 // Trigger areas edited on the map. With the areas shown, the selected
@@ -287,13 +289,13 @@ func (e *MapEditor) areaDragTo(h *areaHandle, c image.Point) {
 		h.box = b
 	case handleRim:
 		ctr := e.doc.Script.Areas[h.area].Centre
-		h.radius = min(maxAreaRadius, max(absInt(c.X-ctr.X), absInt(c.Y-ctr.Y)))
+		h.radius = min(maxAreaRadius, max(intmath.Abs(c.X-ctr.X), intmath.Abs(c.Y-ctr.Y)))
 	case handleCell:
 		h.box = [4]int{c.X, c.Y, -1, -1}
 	case handleDraw:
 		h.box = [4]int{min(h.from[0], c.X), min(h.from[1], c.Y), max(h.from[0], c.X), max(h.from[1], c.Y)}
 	case handleDrawSquare:
-		h.radius = min(maxAreaRadius, max(absInt(c.X-h.from[0]), absInt(c.Y-h.from[1])))
+		h.radius = min(maxAreaRadius, max(intmath.Abs(c.X-h.from[0]), intmath.Abs(c.Y-h.from[1])))
 	}
 }
 

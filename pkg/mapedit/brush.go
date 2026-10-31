@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/intmath"
 )
 
 // Plane names the grid layer a brush writes.
@@ -417,21 +418,19 @@ func (b Brush) heights(old []byte, at []Cell, w, h int) []byte {
 func boundSetRows(next []byte, in []bool, c Cell, w int) {
 	for y := c.Y - 1; y >= 0; y-- {
 		for x := 0; x < w; x++ {
-			if i := y*w + x; in[i] && abs(x-c.X) < c.Y-y && int(next[i+w])-int(next[i]) > rowStep {
+			if i := y*w + x; in[i] && intmath.Abs(x-c.X) < c.Y-y && int(next[i+w])-int(next[i]) > rowStep {
 				next[i] = next[i+w] - rowStep
 			}
 		}
 	}
 	for y := c.Y + 1; (y+1)*w <= len(next); y++ {
 		for x := 0; x < w; x++ {
-			if i := y*w + x; in[i] && abs(x-c.X) < y-c.Y && int(next[i])-int(next[i-w]) > rowStep {
+			if i := y*w + x; in[i] && intmath.Abs(x-c.X) < y-c.Y && int(next[i])-int(next[i-w]) > rowStep {
 				next[i] = next[i-w] + rowStep
 			}
 		}
 	}
 }
-
-func abs(v int) int { return max(v, -v) }
 
 // addHeights adds the brush's change, faded by its fall-off, to next at every
 // cell the brush covers around the centres at, and marks those cells in in.

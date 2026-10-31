@@ -1,6 +1,10 @@
 package sim
 
-import "sort"
+import (
+	"sort"
+
+	"againrom/pkg/intmath"
+)
 
 // AREA EFFECTS STANDING ON CELLS.
 //
@@ -526,7 +530,7 @@ func (w *World) diamondCells(cx, cy, r int32) []uint16 {
 	var p [][2]int32
 	for dy := -r; dy <= r; dy++ {
 		for dx := -r; dx <= r; dx++ {
-			if cellEffectAbs(dx)+cellEffectAbs(dy) <= r+1 {
+			if intmath.Abs(dx)+intmath.Abs(dy) <= r+1 {
 				p = append(p, [2]int32{cx + dx, cy + dy})
 			}
 		}
@@ -588,12 +592,6 @@ func (w *World) ringCellsAtOffsets(e cellEffect, offsets [][2]int32) []uint16 {
 		out = append(out, cellKey(x, y))
 	}
 	return out
-}
-func cellEffectAbs(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 var (

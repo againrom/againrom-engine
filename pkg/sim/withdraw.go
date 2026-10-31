@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/intmath"
+
 // WithdrawalDecision is one successful withdrawal arm observed at its exact
 // phase-6 boundary. Before is the ordinary group, actor or player decision the
 // tail received; After is the replacement the tail handed to movement. The
@@ -249,12 +251,12 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 		dy = 1
 	}
 	const stride = int64(3 * subCell)
-	if abs64(dx) >= abs64(dy) {
+	if intmath.Abs(dx) >= intmath.Abs(dy) {
 		px += sign64(dx) * stride
-		py += stride * dy / abs64(dx)
+		py += stride * dy / intmath.Abs(dx)
 	} else {
 		py += sign64(dy) * stride
-		px += stride * dx / abs64(dy)
+		px += stride * dx / intmath.Abs(dy)
 	}
 	return clampPlayable(px>>8, int64(w.bounds.Width)), clampPlayable(py>>8, int64(w.bounds.Height)), true
 }

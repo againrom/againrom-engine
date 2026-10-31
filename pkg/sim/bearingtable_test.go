@@ -1,12 +1,16 @@
 package sim
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/pkg/intmath"
+)
 
 // centreBearingTable is MOVE-175's half-sector table and its fold, written
 // out from the claim and not from headingOf: s from the signs and the 2:1
 // tests, then ((s + (s != 0)) & 0xfe) << 4 in a byte.
 func centreBearingTable(dx, dy int64) uint8 {
-	x, y := abs64(dx), abs64(dy)
+	x, y := intmath.Abs(dx), intmath.Abs(dy)
 	b := func(c bool) int64 {
 		if c {
 			return 1

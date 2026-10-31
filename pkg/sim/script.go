@@ -8,6 +8,8 @@ package sim
 import (
 	"fmt"
 	"sort"
+
+	"againrom/pkg/intmath"
 )
 
 // The two fixed arrays and their caps, which are CUSTOMISATION LIMITS and are
@@ -2427,7 +2429,7 @@ func scriptVIPDead(e Entity) bool {
 // The arithmetic is int64 so that two int32 coordinates at opposite ends of the
 // range cannot wrap into a small, plausible distance.
 func scriptDistance(ax, ay, bx, by int32) int64 {
-	dx, dy := abs64(int64(ax)-int64(bx)), abs64(int64(ay)-int64(by))
+	dx, dy := intmath.Abs(int64(ax)-int64(bx)), intmath.Abs(int64(ay)-int64(by))
 	if dx > dy {
 		return dx
 	}

@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/intmath"
+
 // A GROUP ORDER: one order over a set of entities.
 //
 // Every order this package had before named one entity, and a selection sent to
@@ -595,7 +597,7 @@ func floorDiv(a, b int64) int64 {
 // as a tight formation.
 func inFormation(ents []Entity, members []int, cx, cy int32) bool {
 	for _, i := range members {
-		dx, dy := abs64(int64(ents[i].X)-int64(cx)), abs64(int64(ents[i].Y)-int64(cy))
+		dx, dy := intmath.Abs(int64(ents[i].X)-int64(cx)), intmath.Abs(int64(ents[i].Y)-int64(cy))
 		if dx > dy {
 			dy = dx
 		}
@@ -604,16 +606,6 @@ func inFormation(ents []Entity, members []int, cx, cy int32) bool {
 		}
 	}
 	return true
-}
-
-// abs64 is the magnitude of v. The one value it cannot represent is the smallest
-// int64, which no coordinate difference reaches: both operands are int32-wide,
-// so their difference is bounded well inside the range.
-func abs64(v int64) int64 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // groupMinSpeed is the rate term a formation order stores: the minimum over the

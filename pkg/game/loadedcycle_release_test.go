@@ -10,6 +10,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -395,14 +396,7 @@ func (arena *loadedCycleArena) reload(t *testing.T) (*mapWorld, *sim.World) {
 }
 
 func cellDistance(e sim.Entity, x, y int32) int32 {
-	return max(absCell(e.X-x), absCell(e.Y-y))
-}
-
-func absCell(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
+	return max(intmath.Abs(e.X-x), intmath.Abs(e.Y-y))
 }
 
 // openGroundSquareBeside returns the top-left cell of the size-by-size square of
@@ -426,7 +420,7 @@ func openGroundSquareBeside(block []byte, width, height, size int, s sim.Structu
 			if !open {
 				continue
 			}
-			d := int(max(absCell(int32(x+size/2)-s.Col), absCell(int32(y+size/2)-s.Row)))
+			d := int(max(intmath.Abs(int32(x+size/2)-s.Col), intmath.Abs(int32(y+size/2)-s.Row)))
 			if d >= 9 && (best < 0 || d < best) {
 				bestX, bestY, best = x, y, d
 			}

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -113,7 +114,7 @@ func launchIssue(t *testing.T, mw *mapWorld, hero sim.EntityID) sim.EntityID {
 		if e.ID == hero || !e.Alive() || mw.world.BookSpellRefusal(hero, e.ID, spLightning) != "" {
 			continue
 		}
-		d := max(launchAbs(int(e.X-h.X)), launchAbs(int(e.Y-h.Y)))
+		d := max(intmath.Abs(int(e.X-h.X)), intmath.Abs(int(e.Y-h.Y)))
 		if best < 0 || d < best {
 			victim, best = e.ID, d
 		}
@@ -343,13 +344,6 @@ func TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath(t *testing.T) {
 	view.SetGraphicsOptions(ui.GraphicsOptions{})
 	t.Logf("unit %d scales lit %v unlit %v; ground luma lit %d unlit %d; %d stamps",
 		unit, litOn.scale, plainOff.scale, lumaSum(litOn.pix), lumaSum(darkOn.pix), len(stamps))
-}
-
-func launchAbs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }
 
 // launchDisplay is a launch point as the figure's native display pixel.

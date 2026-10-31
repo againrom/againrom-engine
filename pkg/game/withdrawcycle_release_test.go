@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 )
 
@@ -51,8 +52,8 @@ func TestReleaseRangedWithdrawalLetsItsLoadedShotResolveBeforeItFlees(t *testing
 		if !e.Alive() || e.OffMap || e.Owner == 0 || e.Withdraw <= 0 || e.Reach <= 1 || !rel.Hostile(e.Owner, self.Owner) {
 			continue
 		}
-		d := releaseAbs32(e.X - self.X)
-		if dy := releaseAbs32(e.Y - self.Y); dy > d {
+		d := intmath.Abs(e.X - self.X)
+		if dy := intmath.Abs(e.Y - self.Y); dy > d {
 			d = dy
 		}
 		candidates = append(candidates, candidate{e.ID, d})

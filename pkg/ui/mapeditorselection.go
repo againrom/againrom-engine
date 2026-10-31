@@ -5,6 +5,8 @@ import (
 	"image"
 	"slices"
 	"strings"
+
+	"againrom/pkg/intmath"
 )
 
 // RecordRef addresses one record of a document by its InspectionRecord Kind
@@ -170,7 +172,7 @@ func (e *MapEditor) marqueePointer(in Input, p image.Point, rail int) bool {
 	if cell, ok := e.selectionCell(p); ok {
 		m.to = cell
 	}
-	if absInt(p.X-m.start.X) > 4 || absInt(p.Y-m.start.Y) > 4 {
+	if intmath.Abs(p.X-m.start.X) > 4 || intmath.Abs(p.Y-m.start.Y) > 4 {
 		m.moved = true
 	}
 	if !in.PrimaryDown {

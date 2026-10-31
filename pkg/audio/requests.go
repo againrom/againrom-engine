@@ -1,6 +1,10 @@
 package audio
 
-import "image"
+import (
+	"image"
+
+	"againrom/pkg/intmath"
+)
 
 func FixedRequest(source, selector string, group Channel, priority uint8, repeat bool, placement Placement) Request {
 	return Request{Source: source, Recipe: source, VolumeTerm: "setting", Selector: selector, Group: group, Priority: priority,
@@ -12,7 +16,7 @@ func PositionalRequest(source, selector string, group Channel, fine image.Point,
 	if !ok {
 		return Request{}, false
 	}
-	request := FixedRequest(source, selector, group, uint8((10000-abs(terms.Attenuation))/100), false, SpatialPlacement(terms))
+	request := FixedRequest(source, selector, group, uint8((10000-intmath.Abs(terms.Attenuation))/100), false, SpatialPlacement(terms))
 	request.VolumeTerm, request.Attenuation, request.Pan = "distance+setting", terms.Attenuation, terms.Pan
 	request.Geometry, request.SourceFine = geometry, fine
 	return request, true
@@ -27,13 +31,6 @@ func AmbientRequest(source, selector string, repeat bool, cells []image.Point, g
 	request.VolumeTerm, request.Attenuation, request.Pan = "ambient+setting", terms.Attenuation, terms.Pan
 	request.Geometry = geometry
 	return request, true
-}
-
-func abs(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }
 
 type SampleRequester interface {

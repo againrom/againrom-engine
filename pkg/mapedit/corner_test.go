@@ -6,10 +6,11 @@ import (
 	"slices"
 	"testing"
 
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapedit"
 )
 
-func abs(v int) int { return max(v, -v) }
+var abs = intmath.Abs[int]
 
 // quadOf is the terrain class at the four corners of a tile word (NW, NE,
 // SW, SE), as the editor's strip table gives them (WordCorners) with

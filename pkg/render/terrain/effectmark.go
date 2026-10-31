@@ -3,6 +3,8 @@ package terrain
 import (
 	"math"
 	"math/big"
+
+	"againrom/pkg/intmath"
 )
 
 // THE EFFECT MARK RECORDS a lasting effect puts on its actor (1002; claims
@@ -275,7 +277,7 @@ func shieldMarks(program shieldProgram, picture int, countdown uint16, tileSize 
 	out := make([]EffectMark, 0, fixedRadius*4)
 	for _, p := range sampledMidpointCircle(fixedRadius, 4) {
 		q := ftol(float64(p[1]) * float64(tileSize*shieldEnvelopeScale) / float64(fixedRadius))
-		frame := abs(4 - ftol(float64(abs(p[1])*5)/float64(frameScale)))
+		frame := intmath.Abs(4 - ftol(float64(intmath.Abs(p[1])*5)/float64(frameScale)))
 		xcos := ftol(float64(p[0]) * cos)
 		xsin := ftol(float64(p[0]) * sin)
 		out = append(out,
@@ -289,9 +291,9 @@ func shieldMarks(program shieldProgram, picture int, countdown uint16, tileSize 
 	// boundaries; real-number division by 45 disagrees on shipped phases.
 	envelope := shieldSweepPC53(tileSize, phase)
 	if !program.signedSweep {
-		envelope = abs(envelope)
+		envelope = intmath.Abs(envelope)
 	}
-	frame := 4 - abs(phase-45)/9
+	frame := 4 - intmath.Abs(phase-45)/9
 	ratio := float64(envelope) / float64(tileSize*shieldEnvelopeScale)
 	radius := ftol(math.Sin(math.Acos(ratio)) * float64(fixedRadius))
 	for _, p := range sampledMidpointCircle(radius, 2*frame) {
@@ -324,7 +326,9 @@ func shieldPC53() *big.Float {
 	return new(big.Float).SetPrec(53).SetMode(big.ToNearestEven)
 }
 
-func shieldEnvelopePC53(tileSize, phase int) int { return abs(shieldSweepPC53(tileSize, phase)) }
+func shieldEnvelopePC53(tileSize, phase int) int {
+	return intmath.Abs(shieldSweepPC53(tileSize, phase))
+}
 
 // shieldSweepPC53 is the signed ring height trunc(28T(p/45 - 1)); truncation
 // toward zero makes its magnitude the first game's envelope.
@@ -381,10 +385,3 @@ func sampledMidpointCircle(radius, interval int) [][2]int {
 // here so that every builder rounds the same way and a builder cannot come to
 // round differently from its neighbour.
 func ftol(v float64) int { return int(v) }
-
-func abs(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}

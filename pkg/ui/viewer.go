@@ -18,6 +18,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/intmath"
 	"againrom/pkg/render/camera"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/terrain"
@@ -3181,7 +3182,7 @@ func (v *Viewer) dragIntent(in Input) (dx, dy float64) {
 	sdx := in.CursorX - v.dragX
 	sdy := in.CursorY - v.dragY
 	v.dragX, v.dragY = in.CursorX, in.CursorY
-	v.dragMoved += absInt(sdx) + absInt(sdy)
+	v.dragMoved += intmath.Abs(sdx) + intmath.Abs(sdy)
 
 	if v.boxing {
 		return 0, 0

@@ -248,11 +248,11 @@ func WorldMapCardAt(v WorldMapView, p image.Point) (int, bool) {
 	if p.In(worldMapCardRect(v, -1, -1)) {
 		return -1, true
 	}
-	base := minInt(v.CardBase, len(v.Missions))
+	base := min(v.CardBase, len(v.Missions))
 	if base < 0 {
 		base = 0
 	}
-	end := minInt(len(v.Missions), base+worldMapCardPage)
+	end := min(len(v.Missions), base+worldMapCardPage)
 	for i := base; i < end; i++ {
 		if p.In(worldMapCardRect(v, i, i-base)) {
 			return i, true
@@ -364,11 +364,11 @@ func ComposeWorldMap(v WorldMapView) *image.RGBA {
 	if !v.HideScrolls {
 		drawWorldMapCard(dst, v, -1, -1, words.WorldHomeTitle, words.WorldHomeDetail, 0)
 	}
-	base := minInt(v.CardBase, len(v.Missions))
+	base := min(v.CardBase, len(v.Missions))
 	if base < 0 {
 		base = 0
 	}
-	end := minInt(len(v.Missions), base+worldMapCardPage)
+	end := min(len(v.Missions), base+worldMapCardPage)
 	for i := base; !v.HideScrolls && i < end; i++ {
 		m := v.Missions[i]
 		detail := m.Briefing
@@ -539,11 +539,4 @@ func worldMapImagePresent(pic image.Image) bool {
 	default:
 		return true
 	}
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

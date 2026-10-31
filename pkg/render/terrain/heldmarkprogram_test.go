@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"testing"
+
+	"againrom/pkg/intmath"
 )
 
 // secondShieldClaim is R2-ENGINE-693's Shield entries at phase p and scale s,
@@ -16,7 +18,7 @@ func secondShieldClaim(p, s, picture int) []EffectMark {
 	var out []EffectMark
 	for _, pt := range sampledMidpointCircle(16*s, 4) {
 		x, y := float64(pt[0]), pt[1]
-		f := abs(4 - int(float64(5*abs(y))/float64(28*s)))
+		f := intmath.Abs(4 - int(float64(5*intmath.Abs(y))/float64(28*s)))
 		dy := -int(1.75 * float64(y))
 		out = append(out,
 			EffectMark{DX: int(x * cos), DY: dy, Depth: 11*s + int(x*sin), Record: picture, Phase: f},
@@ -24,7 +26,7 @@ func secondShieldClaim(p, s, picture int) []EffectMark {
 	}
 	h := int(float64(28*s) * (float64(float64(p)*(1.0/45)) - 1))
 	w := int(float64(16*s) * math.Sin(math.Acos(float64(h)/float64(28*s))))
-	k := 4 - abs(p-45)/9
+	k := 4 - intmath.Abs(p-45)/9
 	for _, pt := range sampledMidpointCircle(w, 2*k) {
 		out = append(out,
 			EffectMark{DX: pt[0], DY: -(11*s + h), Depth: pt[1], Record: picture, Phase: k},

@@ -4,6 +4,8 @@ import (
 	"image"
 	"math"
 	"slices"
+
+	"againrom/pkg/intmath"
 )
 
 const controlSpiritSpellID uint32 = 25
@@ -970,7 +972,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// between its press and release.
 	marqueeMoved := v.dragMoved
 	if in.PrimaryReleased {
-		marqueeMoved += absInt(in.CursorX-v.dragX) + absInt(in.CursorY-v.dragY)
+		marqueeMoved += intmath.Abs(in.CursorX-v.dragX) + intmath.Abs(in.CursorY-v.dragY)
 	}
 	if v.held && v.boxing && marqueeMoved > v.marqueeSlop() &&
 		(in.Viewer.PrimaryDown || in.PrimaryReleased) {
@@ -1760,13 +1762,3 @@ func (v *Viewer) LocalOwner() uint32 { return v.localOwner }
 // this package sees the one mode the press, the pointer and the marker all
 // read, and cannot come to believe there are two.
 func (v *Viewer) AttackArmed() bool { return v.attackMode() }
-
-// absInt is |v| for a screen-pixel delta. The accumulator sums it over both
-// axes, so a diagonal tick counts the two legs rather than the hypotenuse —
-// the same quantity dragIntent hands the camera, one metric for both.
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}

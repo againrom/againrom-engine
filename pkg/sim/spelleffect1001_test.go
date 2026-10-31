@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"againrom/pkg/intmath"
 )
 
 func effectMage(id EntityID, x, y int32, known uint32) Entity {
@@ -929,7 +931,7 @@ func TestTheCloudDiamondStopsAtTheLoopBoundNotAtTheFilter(t *testing.T) {
 		}
 		for dy := -tc.r; dy <= tc.r; dy++ {
 			for dx := -tc.r; dx <= tc.r; dx++ {
-				want := cellEffectAbs(dx)+cellEffectAbs(dy) <= tc.r+1
+				want := intmath.Abs(dx)+intmath.Abs(dy) <= tc.r+1
 				if containsKey(got, cellKey(20+dx, 20+dy)) != want {
 					t.Errorf("radius %d cell (%d,%d) painted = %v, want %v", tc.r, dx, dy, !want, want)
 				}

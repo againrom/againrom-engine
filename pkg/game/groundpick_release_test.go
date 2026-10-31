@@ -7,6 +7,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/intmath"
 	"againrom/pkg/render/camera"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -132,7 +133,7 @@ func releaseGroundWitnessPoint(t *testing.T, m *alm.Map, cam *camera.Camera, ent
 			// frames.
 			clear := true
 			for _, e := range entities {
-				if releaseAbs32(e.X-int32(col)) <= 4 && releaseAbs32(e.Y-int32(row)) <= 4 {
+				if intmath.Abs(e.X-int32(col)) <= 4 && intmath.Abs(e.Y-int32(row)) <= 4 {
 					clear = false
 					break
 				}
@@ -159,13 +160,6 @@ func releaseGroundWitnessPoint(t *testing.T, m *alm.Map, cam *camera.Camera, ent
 	}
 	t.Fatal("mission camera contains no unoccupied corner-mesh point that distinguishes the old mean picker")
 	return releaseGroundWitness{}
-}
-
-func releaseAbs32(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // TestReleaseGroundPickerQueuesTheCornerMeshCellOnRealMissionContent starts at

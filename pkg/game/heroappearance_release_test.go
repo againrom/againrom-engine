@@ -7,6 +7,7 @@ import (
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -214,7 +215,7 @@ func attackNearestHostile(t *testing.T, mw *mapWorld, id sim.EntityID) {
 		if v.ID == h.ID || v.Owner == h.Owner || !v.Alive() || v.OffMap || v.MaxHP <= 0 {
 			continue
 		}
-		if d := max(abs32(v.X-h.X), abs32(v.Y-h.Y)); best < 0 || d < best {
+		if d := max(intmath.Abs(v.X-h.X), intmath.Abs(v.Y-h.Y)); best < 0 || d < best {
 			target, best = v.ID, d
 		}
 	}

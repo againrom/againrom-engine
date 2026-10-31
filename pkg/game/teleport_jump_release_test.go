@@ -10,6 +10,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -232,7 +233,7 @@ func TestReleaseTeleportBookAndScrollDrawAtDestination(t *testing.T) {
 				inspectionCentre(mw, int(e.X), int(e.Y))
 				mid := teleportJumpGeometry(t, mw, draw, mw.clock.Period()/2)
 				full := teleportJumpGeometry(t, mw, draw, mw.clock.Period())
-				if draw.Step == (image.Point{}) || max(absCell(int32(draw.Step.X)), absCell(int32(draw.Step.Y))) != 1 || mid["sprite"] == full["sprite"] {
+				if draw.Step == (image.Point{}) || max(intmath.Abs(int32(draw.Step.X)), intmath.Abs(int32(draw.Step.Y))) != 1 || mid["sprite"] == full["sprite"] {
 					t.Fatal("one-cell walking lost its mid-tick shift", draw.Step, mid["sprite"], full["sprite"])
 				}
 				t.Logf("walking control tick%d Cell%v Step%v mid%v full%v", mw.world.Tick(), draw.Cell, draw.Step, mid["sprite"], full["sprite"])
@@ -311,7 +312,7 @@ func TestReleaseTeleportUnitTargetDrawsAtDestination(t *testing.T) {
 			arrival := teleportJumpPushed(t, mw, casterID)
 			destination := image.Pt(int(event.ToX), int(event.ToY))
 			delta := arrival.Cell.Sub(old.Cell)
-			if arrival.Cell != destination || max(absCell(int32(delta.X)), absCell(int32(delta.Y))) <= 1 {
+			if arrival.Cell != destination || max(intmath.Abs(int32(delta.X)), intmath.Abs(int32(delta.Y))) <= 1 {
 				t.Fatal("unit Teleport did not apply a multi-cell relocation to the aerial target", old.Cell, arrival.Cell, event)
 			}
 			inspectionCentre(mw, arrival.Cell.X, arrival.Cell.Y)
@@ -398,7 +399,7 @@ placements:
 			})
 			for _, event := range admitted {
 				delta := image.Pt(int(event.ToX-event.FromX), int(event.ToY-event.FromY))
-				if max(absCell(int32(delta.X)), absCell(int32(delta.Y))) != 1 {
+				if max(intmath.Abs(int32(delta.X)), intmath.Abs(int32(delta.Y))) != 1 {
 					t.Fatal("installed creature Teleport is not aimed at an adjacent cell", event)
 				}
 				actor := releaseEntity(t, mw, creature.ID)

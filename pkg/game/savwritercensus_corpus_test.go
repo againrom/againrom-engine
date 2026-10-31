@@ -35,6 +35,7 @@ import (
 
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -827,7 +828,7 @@ func writerCensusChange(f *FrontEnd, loadedView [2]int32, loadedViewSet bool) (w
 			if sk.X == alive[0].X && sk.Y == alive[0].Y {
 				continue
 			}
-			if d := max(abs32(sk.X-e.X), abs32(sk.Y-e.Y)); bestD < 0 || d < bestD {
+			if d := max(intmath.Abs(sk.X-e.X), intmath.Abs(sk.Y-e.Y)); bestD < 0 || d < bestD {
 				picker, best, bestD = e, sk, d
 			}
 		}
@@ -937,13 +938,6 @@ func writerCensusCamera(mw *mapWorld, loaded [2]int32, loadedSet bool, w *writer
 		return
 	}
 	w.changes = append(w.changes, "camera")
-}
-
-func abs32(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // writerCensusSave writes through the SAV dialog's Prepare and Commit, the

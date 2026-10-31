@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/intmath"
 	"againrom/pkg/ui"
 )
 
@@ -56,7 +57,7 @@ func TestEditorPopupsResizeByTheirBorders(t *testing.T) {
 			}
 			corner := func(r image.Rectangle) image.Point { return image.Pt(x(r), y(r)) }
 			before, after := borderDrag(t, e, corner, grow)
-			want := image.Pt(before.Dx()+absInt(grow.X), before.Dy()+absInt(grow.Y))
+			want := image.Pt(before.Dx()+intmath.Abs(grow.X), before.Dy()+intmath.Abs(grow.Y))
 			if after.Size() != want {
 				t.Fatalf("corner drag by %v: %v -> %v, want size %v", grow, before, after, want)
 			}

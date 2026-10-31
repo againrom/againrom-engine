@@ -7,6 +7,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -123,7 +124,7 @@ func measureStroke(before, after *alm.Map, fp []mapedit.Cell) strokeReach {
 	dist := func(i int) int {
 		d := 1 << 30
 		for _, c := range fp {
-			d = min(d, max(absInt(c.X-i%w), absInt(c.Y-i/w)))
+			d = min(d, max(intmath.Abs(c.X-i%w), intmath.Abs(c.Y-i/w)))
 		}
 		return d
 	}

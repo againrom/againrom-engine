@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/intmath"
+
 // heading is a facing byte one of the laws below produced (MOVE-116). Only
 // this file converts to it; internal/archtest refuses a conversion elsewhere.
 type heading uint8
@@ -10,7 +12,7 @@ func headingOf(dx, dy int64) uint8 {
 	if dx == 0 && dy == 0 {
 		return 224
 	}
-	x, y := abs64(dx), abs64(dy)
+	x, y := intmath.Abs(dx), intmath.Abs(dy)
 	if x > 2*y {
 		if dx < 0 {
 			return 192

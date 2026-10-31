@@ -14,6 +14,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/intmath"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/render/text"
@@ -2957,7 +2958,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 			// screens (round-2 adversarial review, eleventh pass, judged and left
 			// open — command.go's own TapSlop doc, closure.md).
 			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok {
-				if d := absInt(p.X-a.shopPressX) + absInt(p.Y-a.shopPressY); d > a.shopDragMoved {
+				if d := intmath.Abs(p.X-a.shopPressX) + intmath.Abs(p.Y-a.shopPressY); d > a.shopDragMoved {
 					a.shopDragMoved = d
 				}
 			}

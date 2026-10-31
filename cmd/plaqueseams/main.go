@@ -40,6 +40,7 @@ import (
 
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/game"
+	"againrom/pkg/intmath"
 	"againrom/pkg/vfs"
 )
 
@@ -258,7 +259,7 @@ func regionDiff(src *bmp.Image, xOff int, ref *bmp.Image) float64 {
 		for x := 0; x < ref.Width; x++ {
 			a := src.At(xOff+x, y)
 			b := ref.At(x, y)
-			sum += absInt(int(a.R)-int(b.R)) + absInt(int(a.G)-int(b.G)) + absInt(int(a.B)-int(b.B))
+			sum += intmath.Abs(int(a.R)-int(b.R)) + intmath.Abs(int(a.G)-int(b.G)) + intmath.Abs(int(a.B)-int(b.B))
 			n += 3
 		}
 	}
@@ -327,17 +328,10 @@ func seamScore(strip, plaque *bmp.Image) float64 {
 	for y := 0; y < strip.Height; y++ {
 		a := strip.At(strip.Width-1, y)
 		b := plaque.At(0, y)
-		sum += absInt(int(a.R)-int(b.R)) + absInt(int(a.G)-int(b.G)) + absInt(int(a.B)-int(b.B))
+		sum += intmath.Abs(int(a.R)-int(b.R)) + intmath.Abs(int(a.G)-int(b.G)) + intmath.Abs(int(a.B)-int(b.B))
 		n += 3
 	}
 	return float64(sum) / float64(n)
-}
-
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // writeComposite writes the 176-wide seam alone (strip at (0,0), plaque at

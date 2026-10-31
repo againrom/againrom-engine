@@ -13,6 +13,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/textfit"
 	"againrom/pkg/sim"
@@ -253,7 +254,7 @@ func freeOffset(feet []image.Rectangle, units []int, taken []image.Rectangle, ar
 	for r := 1; r < max(area.Dx(), area.Dy()); r++ {
 		for dy := -r; dy <= r; dy++ {
 			for dx := -r; dx <= r; dx++ {
-				if d := image.Pt(dx, dy); max(abs(dx), abs(dy)) == r && fits(d) {
+				if d := image.Pt(dx, dy); max(intmath.Abs(dx), intmath.Abs(dy)) == r && fits(d) {
 					return d, true
 				}
 			}

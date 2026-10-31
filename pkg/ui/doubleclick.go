@@ -4,6 +4,7 @@ import (
 	"image"
 	"time"
 
+	"againrom/pkg/intmath"
 	"againrom/pkg/ui/systemclick"
 )
 
@@ -94,5 +95,5 @@ func (d *doubleClick) inside(p image.Point, now time.Time) bool {
 		return false
 	}
 	dx, dy := p.X-d.point.X, p.Y-d.point.Y
-	return 2*absInt(dx) <= d.pair.Width && 2*absInt(dy) <= d.pair.Height
+	return 2*intmath.Abs(dx) <= d.pair.Width && 2*intmath.Abs(dy) <= d.pair.Height
 }

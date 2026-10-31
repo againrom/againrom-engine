@@ -3161,7 +3161,7 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1862,
+		"acclause":        1861,
 		"scclause":        505,
 		"barestorynumber": 1702,
 	},
@@ -3581,5 +3581,5 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10030440,
+	CommentBytes: 10030153,
 }

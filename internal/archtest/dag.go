@@ -74,8 +74,9 @@ var allow = map[string][]string{
 	"pkg/graphcopy": {},
 	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath"},
 	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
-	"pkg/sim":       {"pkg/rules", "pkg/random"},
+	"pkg/sim":       {"pkg/rules", "pkg/random", "pkg/intmath"},
 	"pkg/rules":     {},
+	"pkg/intmath":   {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random": {},
@@ -90,12 +91,12 @@ var allow = map[string][]string{
 	// its rules as a profile.
 	"pkg/shopstock": {},
 	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
-	"pkg/mapedit":   {"pkg/formats/alm"},
+	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
 	"pkg/editormcp": {},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf and reads the tile-group
 	// mask constant from the map format, its one owner; menus bind loader sets.
-	"pkg/render/terrain":    {"pkg/formats/bmp", "pkg/formats/alm"},
+	"pkg/render/terrain":    {"pkg/formats/bmp", "pkg/formats/alm", "pkg/intmath"},
 	"pkg/render/refraction": {},
 	"pkg/render/backdrop":   {},
 	"pkg/render/camera":     {},
@@ -124,7 +125,7 @@ var allow = map[string][]string{
 	// data plus arithmetic — nothing here knows a slot, an archive or a
 	// listener exists. Its one edge is the WAV format leaf, which owns the
 	// chunk walk, so no other tier's type crosses in.
-	"pkg/audio": {"pkg/formats/wav"},
+	"pkg/audio": {"pkg/formats/wav", "pkg/intmath"},
 	// The town composer builds a town view from a description. It holds no
 	// game fact and imports only the standard library; a game supplies its
 	// descriptions, art and hooks. Its art is read by the one screen art
@@ -151,7 +152,7 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp"},
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
@@ -188,7 +189,7 @@ var allow = map[string][]string{
 	// code-to-weapon recovery, data.WeaponFromCode — the same one
 	// cmd/wearcheck and cmd/paneldump already call, not a second reader of the
 	// tables invented here.
-	"cmd/missionrun": {"pkg/game", "pkg/mapload", "pkg/sim", "pkg/data"},
+	"cmd/missionrun": {"pkg/game", "pkg/mapload", "pkg/sim", "pkg/data", "pkg/intmath"},
 	// scriptcoverage starts every campaign mission through pkg/game, retains
 	// the authored node identities from formats/alm, reads the builder's joins
 	// from pkg/mapload and observes the resulting world through pkg/sim. Those
@@ -307,7 +308,7 @@ var allow = map[string][]string{
 	// pkg/formats/bmp to decode the sixteen rotation frames the front end
 	// does not load, and pkg/render/terrain only for the EntrySource type
 	// pkg/game already hands it. It names no simulation type.
-	"cmd/schoolcheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain"},
+	"cmd/schoolcheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain", "pkg/intmath"},
 	// buttonframecheck is 1017's own instrument, on schoolcheck's own
 	// pattern: it opens an install through pkg/game (OpenArchives) and asks
 	// pkg/ui for the production button wells (TownSurfaceButtonWell,
@@ -316,7 +317,7 @@ var allow = map[string][]string{
 	// decode the area pictures and button bitmaps directly, and
 	// pkg/render/terrain only for the EntrySource type pkg/game already
 	// hands it. It names no simulation type.
-	"cmd/buttonframecheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain"},
+	"cmd/buttonframecheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain", "pkg/intmath"},
 	// townsquarecheck is 1016's own instrument, on schoolcheck's own pattern:
 	// it opens an install through pkg/game (OpenArchives, LoadTownSquareArtFor,
 	// NewFrontEnd) and asks pkg/ui for the production town square constants
@@ -326,7 +327,7 @@ var allow = map[string][]string{
 	// labels, and pkg/render/terrain for the mask decoder and the
 	// EntrySource type pkg/game already hands it. It names no simulation
 	// type.
-	"cmd/townsquarecheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain"},
+	"cmd/townsquarecheck": {"pkg/game", "pkg/ui", "pkg/formats/bmp", "pkg/render/terrain", "pkg/intmath"},
 	// tippanelcheck is 1018 round 3's own instrument: it opens an install
 	// through pkg/game (NewFrontEnd) and drives the production town square,
 	// tavern, school, shop and chargen screens through pkg/ui's own exported
@@ -338,7 +339,7 @@ var allow = map[string][]string{
 	"cmd/tippanelcheck":  {"pkg/game", "pkg/ui"},
 	"cmd/divcensus":      {"internal/divledger"},
 	"cmd/divreconstruct": {"internal/divledger"},
-	"cmd/plaqueseams":    {"pkg/game", "pkg/formats/bmp", "pkg/vfs"},
+	"cmd/plaqueseams":    {"pkg/game", "pkg/formats/bmp", "pkg/vfs", "pkg/intmath"},
 	// plaquescreens is the same hotfix's before/after evidence tool, on
 	// schoolcheck's own pattern: it opens an install through pkg/game
 	// (NewFrontEnd, FinishMission, TownScreen) and composes the four
@@ -586,11 +587,11 @@ func Check(pkgImports map[string][]string) []Violation {
 }
 
 // CheckSimTests asserts that pkg/sim's test files import only the standard
-// library, keeping the determinism package pure even in its tests.
+// library and pkg/intmath, keeping the determinism package pure in its tests.
 func CheckSimTests(imports []string) []Violation {
 	var vs []Violation
 	for _, imp := range imports {
-		if classify(imp) != stdlib {
+		if imp != ModulePath+"/pkg/intmath" && classify(imp) != stdlib {
 			vs = append(vs, Violation{From: "pkg/sim (test)", Import: imp, Reason: "sim tests must import only the standard library"})
 		}
 	}

@@ -4,6 +4,8 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"againrom/pkg/intmath"
 )
 
 func blastWorld(t *testing.T, width, height int32, rule SpellRule, ents ...Entity) *World {
@@ -110,7 +112,7 @@ func TestBlastBurstsCoverTheClippedSquareAndStayBounded(t *testing.T) {
 				x, y := keyCell(key)
 				covered := false
 				for _, b := range got {
-					if abs32(b[0]-x) <= 1 && abs32(b[1]-y) <= 1 {
+					if intmath.Abs(b[0]-x) <= 1 && intmath.Abs(b[1]-y) <= 1 {
 						covered = true
 					}
 				}

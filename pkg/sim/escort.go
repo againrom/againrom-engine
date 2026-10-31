@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/intmath"
+
 func (w *World) clearEscort(i int) {
 	e := &w.entities[i]
 	wasEscort := escortState(e.ActorState) || e.HasEscortTarget || e.EscortOrder != escortOrderNone || e.EscortTurnPending
@@ -313,7 +315,7 @@ func (w *World) escortStepAway(i, ti int, stop int64) {
 	if dy == 0 {
 		dy = 1
 	}
-	adx, ady := abs64(dx), abs64(dy)
+	adx, ady := intmath.Abs(dx), intmath.Abs(dy)
 	major := stop * subCell
 	var px, py int64
 	if adx >= ady {

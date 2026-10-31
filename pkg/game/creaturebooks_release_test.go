@@ -10,6 +10,7 @@ import (
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -252,7 +253,7 @@ func TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed(t *testing.T) {
 	hero := ms.Start.IDs[0]
 	for _, p := range creatureApproachPlacements(t, f, m, ms, creatures) {
 		armed := p.armed
-		armedAt := int64(max(creatureAbs(armed.casterX-armed.heroX), creatureAbs(armed.casterY-armed.heroY)))
+		armedAt := int64(max(intmath.Abs(armed.casterX-armed.heroX), intmath.Abs(armed.casterY-armed.heroY)))
 		if armed.rec.Phase != sim.BookPhaseApproach || !armed.rec.Retained {
 			t.Fatalf("the out-of-range draw wrote %+v, want a retained armed approach", armed.rec)
 		}
@@ -278,7 +279,7 @@ func TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed(t *testing.T) {
 					h = o
 				}
 			}
-			d := int64(max(creatureAbs(e.X-h.X), creatureAbs(e.Y-h.Y)))
+			d := int64(max(intmath.Abs(e.X-h.X), intmath.Abs(e.Y-h.Y)))
 			if d >= armedAt {
 				t.Fatalf("the cast began at distance %d, the draw armed it at %d", d, armedAt)
 			}
@@ -291,13 +292,6 @@ func TestReleaseCreatureCastOutOfRangeWalksAndStaysArmed(t *testing.T) {
 		t.Logf("creature %d: a later draw ended the armed order before its cast", p.c.ID)
 	}
 	t.Fatal("no armed placement began its cast")
-}
-
-func creatureAbs(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // TestReleaseCreatureRetainedCastEndsAtAMissingDraw follows the first creature

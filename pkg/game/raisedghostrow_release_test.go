@@ -5,6 +5,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -189,7 +190,7 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	if !attached {
 		t.Fatal("ordinary Invisibility cast did not attach")
 	}
-	cheb := func(a, b sim.Entity) int32 { return max(ghostRowAbs(a.X-b.X), ghostRowAbs(a.Y-b.Y)) }
+	cheb := func(a, b sim.Entity) int32 { return max(intmath.Abs(a.X-b.X), intmath.Abs(a.Y-b.Y)) }
 	revealedByOther := func() bool {
 		target, _ := liveEntity(f, hidden.ID)
 		for _, e := range f.live.world.Entities() {
@@ -204,7 +205,7 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	for k := int32(ghost.SeeInvisible); k >= 1 && !isolated; k-- {
 		for x := -k; x <= k && !isolated; x++ {
 			for y := -k; y <= k && !isolated; y++ {
-				if max(ghostRowAbs(x), ghostRowAbs(y)) == k && w.HeadlessPlace(hidden.ID, ghost.X+x, ghost.Y+y) == nil {
+				if max(intmath.Abs(x), intmath.Abs(y)) == k && w.HeadlessPlace(hidden.ID, ghost.X+x, ghost.Y+y) == nil {
 					target, _ := liveEntity(f, hidden.ID)
 					d := cheb(ghost, target)
 					isolated = d >= 1 && d <= int32(ghost.SeeInvisible) && !revealedByOther()
@@ -249,11 +250,4 @@ func TestReleaseRaisedGhostTakesItsWholeUnitsRow(t *testing.T) {
 	coldGhost = raisedGhostEntity(t, cold, typ)
 	requireGhostRowColumns(t, "cold +256", coldGhost, def, general)
 	t.Logf("cold +256: Ghost id=%d owner=%d HP=%d/%d, all row columns retained, World hash=%016x", coldGhost.ID, coldGhost.Owner, coldGhost.HP, coldGhost.MaxHP, cold.live.world.Hash())
-}
-
-func ghostRowAbs(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }

@@ -6,6 +6,8 @@ import (
 	"image"
 	"image/color"
 	"math"
+
+	"againrom/pkg/intmath"
 )
 
 // BrushTerrain is one terrain the host lets the window paint. Swatch is a
@@ -661,7 +663,7 @@ func (b *brushState) extend(cell image.Point) {
 		return
 	}
 	dx, dy := cell.X-last.X, cell.Y-last.Y
-	n := max(absInt(dx), absInt(dy))
+	n := max(intmath.Abs(dx), intmath.Abs(dy))
 	for i := 1; i <= n; i++ {
 		step := image.Pt(last.X+(dx*i+cmp.Compare(dx, 0)*n/2)/n, last.Y+(dy*i+cmp.Compare(dy, 0)*n/2)/n)
 		if step != b.stroke[len(b.stroke)-1] {

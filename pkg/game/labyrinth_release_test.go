@@ -9,6 +9,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/audio"
+	"againrom/pkg/intmath"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -108,7 +109,7 @@ func labyrinthBeside(f *FrontEnd, mercs []sim.EntityID, id sim.EntityID) bool {
 		return false
 	}
 	for _, mid := range mercs {
-		if m, ok := f.live.entity(mid); ok && m.Alive() && max(releaseAbs32(e.X-m.X), releaseAbs32(e.Y-m.Y)) <= 1 {
+		if m, ok := f.live.entity(mid); ok && m.Alive() && max(intmath.Abs(e.X-m.X), intmath.Abs(e.Y-m.Y)) <= 1 {
 			return true
 		}
 	}
@@ -125,7 +126,7 @@ func labyrinthStriker(f *FrontEnd, mercs []sim.EntityID, lead sim.Entity) (sim.E
 			!f.live.world.Relations().Hostile(lead.Owner, e.Owner) {
 			continue
 		}
-		if m, ok := f.live.entity(e.AttackTarget); !ok || !m.Alive() || max(releaseAbs32(e.X-m.X), releaseAbs32(e.Y-m.Y)) > 1 {
+		if m, ok := f.live.entity(e.AttackTarget); !ok || !m.Alive() || max(intmath.Abs(e.X-m.X), intmath.Abs(e.Y-m.Y)) > 1 {
 			continue
 		}
 		if d := (e.X-lead.X)*(e.X-lead.X) + (e.Y-lead.Y)*(e.Y-lead.Y); distance < 0 || d < distance {

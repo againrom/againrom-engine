@@ -3,6 +3,8 @@ package sim
 import (
 	"reflect"
 	"testing"
+
+	"againrom/pkg/intmath"
 )
 
 // stepBounds is the extent every walk in this file stays inside. It IS a
@@ -11,19 +13,10 @@ import (
 // case of its own below.
 var stepBounds = Bounds{Width: 8, Height: 6}
 
-// abs32 and dist are the test's OWN arithmetic. AC-1's arrival tick is
-// max(|dx|,|dy|); the step computes no such quantity, so the test must, and the
-// hand-written paths below are checked against it rather than against the step.
-func abs32(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
+// dist is the test's own arrival tick, max(|dx|,|dy|), checked against the step.
 func dist(from Entity, to Command) int {
-	d := int(abs32(to.X - from.X))
-	if v := int(abs32(to.Y - from.Y)); v > d {
+	d := int(intmath.Abs(to.X - from.X))
+	if v := int(intmath.Abs(to.Y - from.Y)); v > d {
 		d = v
 	}
 	return d

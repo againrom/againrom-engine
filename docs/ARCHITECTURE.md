@@ -74,6 +74,7 @@ allow-map; the two must stay identical.
 | `pkg/data` | `pkg/vfs`, `pkg/formats/reg` | |
 | `pkg/sim` | `pkg/random` | stdlib and the random leaf (determinism wall) |
 | `pkg/random` | — | **stdlib only**: a leaf that reads no clock and no operating-system state |
+| `pkg/intmath` | — | **stdlib only**: the one generic `Abs`; `pkg/sim` (tests too), `pkg/mapedit`, `pkg/render/terrain`, `pkg/audio`, `pkg/ui` and the check tools name it |
 | `pkg/mapload` | `pkg/formats/alm`, `pkg/data`, `pkg/sim`, `pkg/random` | |
 | `pkg/mapedit` | `pkg/formats/alm` | stdlib and that leaf only: **no external module**, the `golang.org/x/text` grant stays the formats tier's, which is where both halves of the `.alm` string-field codecs live |
 | `pkg/render` | `pkg/sim` (read-only), `pkg/vfs` | |

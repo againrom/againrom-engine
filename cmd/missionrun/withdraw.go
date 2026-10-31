@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"againrom/pkg/game"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -227,7 +228,7 @@ func withdrawalHostiles(w *sim.World, actor sim.Entity, radius int32) []sim.Enti
 		side := int32(max(other.TokenSize, 1))
 		for dy := int32(0); dy < side; dy++ {
 			for dx := int32(0); dx < side; dx++ {
-				if withdrawalAbs(other.X+dx-actor.X) <= radius && withdrawalAbs(other.Y+dy-actor.Y) <= radius {
+				if intmath.Abs(other.X+dx-actor.X) <= radius && intmath.Abs(other.Y+dy-actor.Y) <= radius {
 					out = append(out, other)
 				}
 			}
@@ -288,11 +289,4 @@ func printWithdrawalWitness(out io.Writer, ms *game.Mission, w withdrawalWitness
 		w.tick, w.beforeX, w.beforeY, beforeTarget, beforeAttack, w.beforeFacing, w.beforeDesired, w.beforeRemaining)
 	fmt.Fprintf(out, "  after  tick=%d cell=(%d,%d) target=(%d,%d) facing=%d desired=%d remaining=%d\n",
 		w.tick+1, w.afterX, w.afterY, w.afterTargetX, w.afterTargetY, w.afterFacing, w.afterDesired, w.afterRemaining)
-}
-
-func withdrawalAbs(v int32) int32 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }

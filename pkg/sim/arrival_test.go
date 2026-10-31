@@ -6,7 +6,11 @@ package sim
 // the tick count it pins is the contract's — a second unit anywhere near the
 // path would make it a detour's, and the case would then measure the detour.
 
-import "testing"
+import (
+	"testing"
+
+	"againrom/pkg/intmath"
+)
 
 // arrivalBounds is roomy enough that no walk below reaches an edge: a clamped
 // walk would be measuring the clamp, which has cases of its own.
@@ -45,7 +49,7 @@ func TestAUnitArrivesAfterTheChebyshevDistanceUnderBothModes(t *testing.T) {
 				}
 				e := w.Entities()[0]
 
-				if abs32(e.X-prev.x) > 1 || abs32(e.Y-prev.y) > 1 {
+				if intmath.Abs(e.X-prev.x) > 1 || intmath.Abs(e.Y-prev.y) > 1 {
 					t.Fatalf("%s mode %d tick %d: the unit went (%d,%d) to (%d,%d), more than one cell on an axis",
 						tc.what, mode, tick, prev.x, prev.y, e.X, e.Y)
 				}

@@ -70,6 +70,7 @@ import (
 
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/game"
+	"againrom/pkg/intmath"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
@@ -295,7 +296,7 @@ func correlate(dst, patch *image.RGBA) correlation {
 	}
 	for y, r := range frac {
 		for x, f := range r {
-			if abs(x-out.at.X) <= separation && abs(y-out.at.Y) <= separation {
+			if intmath.Abs(x-out.at.X) <= separation && intmath.Abs(y-out.at.Y) <= separation {
 				continue
 			}
 			if f > out.next {
@@ -304,13 +305,6 @@ func correlate(dst, patch *image.RGBA) correlation {
 		}
 	}
 	return out
-}
-
-func abs(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 // maskBoxes answers each colour code's bounding box in mask coordinates.

@@ -351,7 +351,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// pkg/ui/heldkey is its leaf that reads held keyboard keys.
 	// pkg/pathdialog is the shared system path service; it imports no game state.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp"}
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {
@@ -393,9 +393,9 @@ func TestCheckSimTests(t *testing.T) {
 	if vs := CheckSimTests([]string{"testing", "bytes", "encoding/binary", "time"}); len(vs) != 0 {
 		t.Errorf("stdlib-only sim tests should be clean, got %v", vs)
 	}
-	vs := CheckSimTests([]string{"againrom/pkg/formats/res", "github.com/foo/bar"})
+	vs := CheckSimTests([]string{"againrom/pkg/formats/res", "github.com/foo/bar", "againrom/pkg/intmath"})
 	if len(vs) != 2 {
-		t.Fatalf("expected 2 sim-test violations (cross-tier + external), got %v", vs)
+		t.Fatalf("expected 2 sim-test violations (cross-tier + external; the integer helpers leaf is allowed), got %v", vs)
 	}
 }
 

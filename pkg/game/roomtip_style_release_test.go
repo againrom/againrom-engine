@@ -13,6 +13,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/spr256"
+	"againrom/pkg/intmath"
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
@@ -385,7 +386,7 @@ func assertReleaseTipText(t *testing.T, v roomTipRaster) {
 		last := line[lastNonSpace]
 		paragraphEnd := consumed == len(paragraphs[paragraph].glyphs)
 		if !paragraphEnd {
-			if absTipInt(last.X+tipGlyphRight(last.Glyph, v.view.Font.Spacing)-r.Max.X) > 1 {
+			if intmath.Abs(last.X+tipGlyphRight(last.Glyph, v.view.Font.Spacing)-r.Max.X) > 1 {
 				t.Errorf("non-final paragraph line at y=%d does not reach the right margin", y)
 			}
 			justified++
@@ -441,13 +442,6 @@ func assertReleaseTipText(t *testing.T, v roomTipRaster) {
 	if v.view.Rect.Dy() != wantHeight {
 		t.Errorf("panel height = %d, want %d for %d lines (claimed %d)", v.view.Rect.Dy(), wantHeight, len(lines), claimed)
 	}
-}
-
-func absTipInt(n int) int {
-	if n < 0 {
-		return -n
-	}
-	return n
 }
 
 func assertReleaseTipControls(t *testing.T, v roomTipRaster) {

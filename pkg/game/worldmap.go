@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/intmath"
 	"againrom/pkg/screenart"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
@@ -678,9 +679,9 @@ func worldMapRoute(graph *worldMapNodeGraph, start, end image.Point, step int) [
 
 func sampledLine(start, end image.Point, step int) []image.Point {
 	dx, dy := end.X-start.X, end.Y-start.Y
-	n := absInt(dx)
-	if absInt(dy) > n {
-		n = absInt(dy)
+	n := intmath.Abs(dx)
+	if intmath.Abs(dy) > n {
+		n = intmath.Abs(dy)
 	}
 	if n == 0 {
 		return []image.Point{start}
@@ -693,13 +694,6 @@ func sampledLine(start, end image.Point, step int) []image.Point {
 		out = append(out, end)
 	}
 	return out
-}
-
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
 }
 
 func sortedSelectedMissions(m map[int]bool) []int {

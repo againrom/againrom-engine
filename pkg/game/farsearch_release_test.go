@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 )
 
@@ -37,7 +38,7 @@ func releaseFarBudget(d int32) int32 { return max(5, d>>2) + d }
 
 // releaseFarDistance is the Chebyshev distance between two cells.
 func releaseFarDistance(a, b [2]int32) int32 {
-	return max(releaseAbs32(a[0]-b[0]), releaseAbs32(a[1]-b[1]))
+	return max(intmath.Abs(a[0]-b[0]), intmath.Abs(a[1]-b[1]))
 }
 
 // releaseStoredRoute is a route an entity holds after a tick that it did not hold

@@ -9,6 +9,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -265,7 +266,7 @@ func TestReleaseMissionEscortCloseReaimSAVColdLoadAndNative(t *testing.T) {
 		charge = escortActor(t, front, hero)
 		for attempt := 0; ; attempt++ {
 			actor := escortPlace(t, front, follower, charge.X-2, charge.Y)
-			if max(releaseAbs32(actor.X-charge.X), releaseAbs32(actor.Y-charge.Y)) <= int32(actor.EscortRange) {
+			if max(intmath.Abs(actor.X-charge.X), intmath.Abs(actor.Y-charge.Y)) <= int32(actor.EscortRange) {
 				break
 			}
 			if attempt == 31 {
@@ -299,7 +300,7 @@ func TestReleaseMissionEscortIdleTurnSAVColdLoadAndNative(t *testing.T) {
 	for k := 0; k < 32; k++ {
 		charge := escortPlace(t, f, hero, x, y)
 		actor := escortPlace(t, f, follower, x+2, y)
-		distance := max(releaseAbs32(actor.X-charge.X), releaseAbs32(actor.Y-charge.Y))
+		distance := max(intmath.Abs(actor.X-charge.X), intmath.Abs(actor.Y-charge.Y))
 		if distance >= 2 && distance <= int32(actor.EscortRange) {
 			break
 		}
@@ -394,7 +395,7 @@ func TestReleasePlayerDefenderInstalledHealSAVColdLoadAndNative(t *testing.T) {
 	for attempt := 0; ; attempt++ {
 		protected := escortPlace(t, f, target, int32(x+size/2), int32(y+size/2))
 		defender := escortPlace(t, f, caster, int32(x+size/2+2), int32(y+size/2))
-		distance := max(releaseAbs32(defender.X-protected.X), releaseAbs32(defender.Y-protected.Y))
+		distance := max(intmath.Abs(defender.X-protected.X), intmath.Abs(defender.Y-protected.Y))
 		if distance >= 2 && distance <= 3 {
 			break
 		}

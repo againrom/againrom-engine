@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -83,7 +84,7 @@ func TestReleaseCorneredSlingerCentredSeedRequestSAVColdLoadAndNextAction(t *tes
 		live.tick()
 		s, _ := live.entity(slinger)
 		h, _ := live.entity(hero)
-		if s.X != x || s.Y != y || h.X != 0 && max(releaseAbs32(h.X-x), releaseAbs32(h.Y-y)) != 2 {
+		if s.X != x || s.Y != y || h.X != 0 && max(intmath.Abs(h.X-x), intmath.Abs(h.Y-y)) != 2 {
 			t.Fatalf("tick %d: slinger (%d,%d) hero (%d,%d), want both held on their cells", live.world.Tick(), s.X, s.Y, h.X, h.Y)
 		}
 		if s.HasAttackTarget || s.HasTarget {

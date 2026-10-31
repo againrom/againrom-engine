@@ -8,6 +8,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/intmath"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -110,7 +111,7 @@ func openRoute(t *testing.T, m *alm.Map, start image.Point) walkRoute {
 			ok := true
 			free := func(i, j int) bool {
 				near := r.at(i, j).Sub(start)
-				return open(r.at(i, j)) && (abs(near.X) > 2 || abs(near.Y) > 2)
+				return open(r.at(i, j)) && (intmath.Abs(near.X) > 2 || intmath.Abs(near.Y) > 2)
 			}
 			for i := 0; i <= 9 && ok; i++ {
 				ok = free(i, 0)
@@ -353,11 +354,4 @@ func TestReleaseMapEditorPaintedHeightsReachTheHeightPlane(t *testing.T) {
 			t.Fatalf("a radius-0 height stroke changed height %d", i)
 		}
 	}
-}
-
-func abs(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
 }

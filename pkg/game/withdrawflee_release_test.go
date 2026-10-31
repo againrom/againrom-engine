@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 )
 
@@ -52,8 +53,8 @@ func TestReleaseRangedWithdrawalWhoseFleeCellHasNoRouteKeepsFighting(t *testing.
 		if !e.Alive() || e.OffMap || e.Owner == 0 || e.Withdraw <= 0 || e.Reach <= 1 || !rel.Hostile(e.Owner, hero.Owner) {
 			continue
 		}
-		d := releaseAbs32(e.X - hero.X)
-		if dy := releaseAbs32(e.Y - hero.Y); dy > d {
+		d := intmath.Abs(e.X - hero.X)
+		if dy := intmath.Abs(e.Y - hero.Y); dy > d {
 			d = dy
 		}
 		candidates = append(candidates, candidate{e.ID, d})
@@ -132,7 +133,7 @@ func TestReleaseRangedWithdrawalWhoseFleeCellHasNoRouteKeepsFighting(t *testing.
 			}
 		}
 		prev = s
-		near := h.Alive() && max(releaseAbs32(s.X-h.X), releaseAbs32(s.Y-h.Y)) <= 2
+		near := h.Alive() && max(intmath.Abs(s.X-h.X), intmath.Abs(s.Y-h.Y)) <= 2
 		if near {
 			together++
 			longestTogether = max(longestTogether, together)
