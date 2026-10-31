@@ -12,6 +12,10 @@ import (
 	"againrom/pkg/ui"
 )
 
+// schoolTeachSound is the sound the school's description binds to a paid
+// training step (TOWN-502).
+const schoolTeachSound = "town/school/teach.wav"
+
 func responseBank(t *testing.T, files []synth.File) *SpeechBank {
 	t.Helper()
 	root := t.TempDir()

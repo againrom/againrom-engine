@@ -27,6 +27,37 @@ func (t *townScreen) tavernPage() *town.Scene { return t.roomPage("tavern") }
 // TOWN-548, DIALOGUE-080); no second-game claim names these.
 func (t *townScreen) TownClickSounds() bool { return t.hostRules().ClickSounds }
 
+// roomEvent is an event a town host or a room page raises on a room: the
+// press of a roster cell or of the leave button, the offers of a roster and a
+// lesson taught. The room description's sound table binds an event to the
+// requests a room makes; a room whose table names none stays silent.
+type roomEvent string
+
+const (
+	roomEventCellPress roomEvent = "cell-press"
+	roomEventLeave     roomEvent = "leave-press"
+	roomEventTalk      roomEvent = "talk"
+	roomEventDismiss   roomEvent = "dismiss"
+	roomEventHire      roomEvent = "hire"
+	roomEventHireShort roomEvent = "hire-short"
+	roomEventTeach     roomEvent = "teach"
+)
+
+// raiseRoomEvent raises ev on the page of room.
+func (t *townScreen) raiseRoomEvent(room townRoom, ev roomEvent) {
+	t.roomSound(townRoomName(room), string(ev))
+}
+
+// raiseShownRoomEvent raises ev on the shown room of a composed town, the
+// second game's inn.
+func (t *townScreen) raiseShownRoomEvent(ev roomEvent) {
+	t.shownRoomSound(string(ev))
+}
+
+// shopRoomSound is the first game's shop page binding of the shop's own
+// events, the data form of a room sound request.
+func (t *townScreen) shopRoomSound(on string) { t.roomSound("shop", on) }
+
 // roomSound requests what the room description's sound table binds to one
 // named room event. Every town room interface sound goes through it.
 func (t *townScreen) roomSound(room, on string) {

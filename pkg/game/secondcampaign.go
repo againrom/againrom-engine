@@ -235,7 +235,7 @@ func (t *townScreen) StartNewGame() error {
 func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 	seats, hires := c.innSeats()
 	if i >= hires {
-		t.shownRoomSound("talk")
+		t.raiseShownRoomEvent(roomEventTalk)
 		return t.talk(c, seats[i])
 	}
 	npc := seats[i].npc
@@ -243,11 +243,11 @@ func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 	key := c.hireOrFire(npc)
 	switch {
 	case fired:
-		t.shownRoomSound("dismiss")
+		t.raiseShownRoomEvent(roomEventDismiss)
 	case c.hired(npc):
-		t.shownRoomSound("hire")
+		t.raiseShownRoomEvent(roomEventHire)
 	case key != "":
-		t.shownRoomSound("hire-short")
+		t.raiseShownRoomEvent(roomEventHireShort)
 	}
 	if key != "" {
 		return t.openTownText(key)

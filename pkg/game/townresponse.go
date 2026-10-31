@@ -39,9 +39,6 @@ func (t *townScreen) advanceTownResponse() {
 // class + 6*slot + 2*tier reaches 30 for the last mage tier (TOWN-502).
 const schoolLatchCount = 31
 
-// schoolTeachSound is the sound posted after a paid training step (TOWN-502).
-const schoolTeachSound = "town/school/teach.wav"
-
 // schoolSpeechTier is the tier of a skill level: 0 up to 20, 1 up to 50,
 // otherwise 2. The speech key carries the tier plus one (TOWN-502).
 func schoolSpeechTier(level int32) int {
@@ -87,7 +84,7 @@ func (t *townScreen) speakSchoolTraining(slot int) {
 		}
 		t.startTownResponse([]string{fmt.Sprintf("speech/training/npc%ds%dl%d.wav", npc, slot, tier+1)})
 	}
-	t.roomSound("school", "teach")
+	t.raiseRoomEvent(roomSchool, roomEventTeach)
 }
 
 // shopItemSpeechPercent bounds the tray draw (SHOP-109).

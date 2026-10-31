@@ -3156,6 +3156,11 @@ package storyguard
 // pkg/ui/savepoint.go and its callers in pkg/ui/functionkeys.go and
 // menurows.go, its table test in pkg/ui/savepointgate_test.go, the widened
 // scan in internal/archtest/saverefusal.go and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the room event doors in
+// pkg/game/roompage.go, the guard in internal/archtest/roomsounds.go and its
+// test, the room sound matrix test in pkg/game/townroomsoundmatrix_test.go,
+// and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3633,5 +3638,5 @@ var Committed = Baseline{
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10119124,
+	CommentBytes: 10122626,
 }

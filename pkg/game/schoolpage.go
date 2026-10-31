@@ -3,7 +3,6 @@ package game
 import (
 	"time"
 
-	"againrom/pkg/audio"
 	"againrom/pkg/town"
 )
 
@@ -119,17 +118,6 @@ func (t *townScreen) schoolColumnShown() (int, bool) {
 	}
 	frames := art.Scene["column"]
 	return col.Frame, col.Frame >= 0 && col.Frame < len(frames) && frames[col.Frame] != nil
-}
-
-func (t *townScreen) requestSchoolSound(name string) {
-	if t == nil || t.sess == nil || t.sound.soundDevice() == nil {
-		return
-	}
-	if sample, ok := t.in.SoundBank.namedSample(name); ok {
-		audio.Dispatch(t.roomSoundPlayer(audio.EffectsChannel), sample,
-			audio.FixedRequest("school-training", name, audio.EffectsChannel, 128, false,
-				audio.Placement{Left: audio.GainUnit, Right: audio.GainUnit}))
-	}
 }
 
 // schoolPanelClass is the displayed endpoint, not the newly selected class.

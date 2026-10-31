@@ -173,16 +173,16 @@ func (t *townScreen) pressMercenary(typ int) {
 	hired := t.sess.Town.MercenaryHired(typ)
 	if _, ok := t.toggleMercenary(typ); ok {
 		if hired {
-			t.roomSound("tavern", "dismiss")
+			t.raiseRoomEvent(roomTavern, roomEventDismiss)
 		} else {
-			t.roomSound("tavern", "hire")
+			t.raiseRoomEvent(roomTavern, roomEventHire)
 		}
 		return
 	}
 	if !hired {
 		if price, priced := t.mercenaryPrice(typ, t.sess.Town.MercenaryPool(typ)); priced && price > t.sess.Town.Gold() {
 			t.requestTavernSlotSound(tavernSlotHireRefused)
-			t.roomSound("tavern", "hire-short")
+			t.raiseRoomEvent(roomTavern, roomEventHireShort)
 		}
 	}
 }

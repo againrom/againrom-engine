@@ -240,7 +240,7 @@ func (t *shopController) leave() {
 func (t *townScreen) bindChapterShop() {
 	t.shop = shopHost{
 		shown: func() bool { return t.room == roomShop },
-		sound: func(on string) { t.roomSound("shop", on) },
+		sound: t.shopRoomSound,
 		scene: t.shopPage,
 		events: [shopKeeperEvents]string{shopKeeperBought: "merchant-yes", shopKeeperRefused: "merchant-no",
 			shopKeeperSold: "merchant-yes", shopKeeperRack: "rack"},

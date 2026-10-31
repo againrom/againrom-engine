@@ -395,12 +395,12 @@ func (t *townScreen) TownSurfacePress(c ui.TownSurfaceControl) {
 	switch {
 	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlCell:
 		if c.Index >= 0 && c.Index < len(t.tavernCandidates()) {
-			t.roomSound("tavern", "cell-press")
+			t.raiseRoomEvent(roomTavern, roomEventCellPress)
 		}
 		return
 	case t.room == roomTavern && c.Kind == ui.TownSurfaceControlButton && c.Index == tavernButtonExit,
 		t.room == roomSchool && c.Kind == ui.TownSurfaceControlButton && c.Index == 1:
-		t.roomSound(townRoomName(t.room), "leave-press")
+		t.raiseRoomEvent(t.room, roomEventLeave)
 		return
 	}
 	if t.room != roomSchool || c.Kind != ui.TownSurfaceControlCell || c.Index < 0 || c.Index >= 10 || t.schoolTrainingBusy() {
@@ -519,12 +519,12 @@ func (t *townScreen) townSurfaceButton(i int) ui.TownAction {
 				}
 				t.composeShopFaces()
 				t.openOfferDialogue(TownTavern, candidate.offer, candidate.offer.NPC)
-				t.roomSound("tavern", "talk")
+				t.raiseRoomEvent(roomTavern, roomEventTalk)
 				return ui.TownAction{}
 			}
 			if candidate.key.kind == tavernCandidateMercenary {
 				t.openMercenaryDialogue(candidate.merc.Type)
-				t.roomSound("tavern", "talk")
+				t.raiseRoomEvent(roomTavern, roomEventTalk)
 				return ui.TownAction{}
 			}
 		case tavernButtonExit:
