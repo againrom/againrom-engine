@@ -220,24 +220,24 @@ func TestGameMenuRowsComeFromTheWordSet(t *testing.T) {
 		w := AuthoredWords()
 		wantMission := []string{"SAVE GAME", "LOAD GAME", "GAME OPTIONS", "SOUND OPTIONS",
 			"QUEST OBJECTIVES", "END QUEST", "RETURN TO GAME"}
-		checkRows(t, missionGameMenuRows(w, true, true, true, true), wantMission)
+		checkRows(t, gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true}), wantMission)
 		wantTown := []string{"SAVE GAME", "LOAD GAME", "GAME OPTIONS", "SOUND OPTIONS", "ABORT GAME", "RETURN TO GAME"}
-		checkRows(t, townGameMenuRows(w), wantTown)
+		checkRows(t, gameMenuRootRows(firstGameMenuRows.Town, w, gameMenuRowState{}), wantTown)
 	})
 	t.Run("installed", func(t *testing.T) {
 		w := installedWords()
 		wantMission := []string{"Save Game", "Load Game", "Game Options", "Sound Options",
 			"Quest Objectives", "End Quest", "Return to Game"}
-		checkRows(t, missionGameMenuRows(w, true, true, true, true), wantMission)
+		checkRows(t, gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true}), wantMission)
 		wantTown := []string{"Save Game", "Load Game", "Game Options", "Sound Options", "Abort Game", "Return to Game"}
-		checkRows(t, townGameMenuRows(w), wantTown)
+		checkRows(t, gameMenuRootRows(firstGameMenuRows.Town, w, gameMenuRowState{}), wantTown)
 	})
 	// AC-8 at the row level: a set with one installed label and ten authored
 	// others draws exactly one installed row.
 	t.Run("per row", func(t *testing.T) {
 		w := AuthoredWords()
 		w.MenuEndQuest = "~End Quest"
-		rows := missionGameMenuRows(w, true, true, true, true)
+		rows := gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: true, canSound: true})
 		if got := gameMenuLabelText(rows[5].Label); got != "End Quest" {
 			t.Fatalf("row 5 = %q", got)
 		}

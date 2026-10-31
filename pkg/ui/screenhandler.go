@@ -80,7 +80,7 @@ func init() {
 	}
 	screenHandlers[ScreenLoad] = ScreenHandler{
 		Step: func(a *App, in appInput, now time.Time) bool {
-			if a.flow.nativeMissionMenu() {
+			if a.flow.menuPlacement().overMission() {
 				a.holdMapUnderMenu(in, now)
 			}
 			a.stepLoadWindow(in, now)

@@ -197,13 +197,14 @@ func gameMenuModRows(rows []gameMenuRow) int {
 
 // gameMenuPanelRectFor is the panel's rectangle for a row list: the decoded one,
 // grown for mod rows and centred with its shadow in the native canvas.
-func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, profiles ...GameMenuProfile) image.Rectangle {
-	p := gameMenuPanelRect(s, profiles...)
+func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, at ...menuPlacer) image.Rectangle {
+	pl := placementOf(at)
+	p := pl.panel(s)
 	if mods := gameMenuModRows(rows); mods > 0 {
 		need := gameMenuRowTop + gameMenuRowPitch*(gameMenuBaseRows(s)+mods) + gameMenuBottomMargin
 		if need > p.Dy() {
 			p.Max.Y = p.Min.Y + need
-			if len(profiles) > 0 && profiles[0].NativeMissionWindows {
+			if pl.centred {
 				box := windowFrame(p, nil).rect()
 				p = p.Add(image.Pt(0, (480-box.Dy())/2-box.Min.Y))
 			}
@@ -213,20 +214,8 @@ func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, profiles ...Gam
 }
 
 // gameMenuPanelRect is the panel's rectangle in frame coordinates.
-func gameMenuPanelRect(s gameMenuSurface, profiles ...GameMenuProfile) image.Rectangle {
-	if len(profiles) > 0 && profiles[0].NativeMissionWindows {
-		h := gameMenuMissionH
-		if s == gameMenuTown {
-			h = gameMenuTownH
-		}
-		return newDialogGeometry(gameMenuPanelW, h).Body()
-	}
-	if s == gameMenuTown {
-		return image.Rect(gameMenuPanelLeft, gameMenuTownTop,
-			gameMenuPanelLeft+gameMenuPanelW, gameMenuTownTop+gameMenuTownH)
-	}
-	return image.Rect(gameMenuPanelLeft, gameMenuMissionTop,
-		gameMenuPanelLeft+gameMenuPanelW, gameMenuMissionTop+gameMenuMissionH)
+func gameMenuPanelRect(s gameMenuSurface, at ...menuPlacer) image.Rectangle {
+	return placementOf(at).panel(s)
 }
 
 // gameMenuRowRect places row n inside the panel, counting from zero.
@@ -354,58 +343,6 @@ func lowerASCII(c byte) byte {
 	return c
 }
 
-// missionGameMenuRows is the mission surface (MENU-ITEM-011, High for the
-// list and its order).
-//
-// THE WORDS COME FROM w AND THE ORDER, THE ACTIONS AND THE DISABLES DO NOT.
-//
-// SEVEN ROWS AND NOT EIGHT. The original constructs eight and shows seven: load
-// and diplomacy are exclusive on campaign+0x6bc, a word whose meaning is not
-// decoded. This build maps that condition to its campaign boolean: campaign
-// gets Load and Quest; a standalone map gets Diplomacy and cannot save.
-func missionGameMenuRows(w Words, campaign, canSave, canLoad, canSound bool) []gameMenuRow {
-	second := gameMenuRow{Label: w.MenuDiplomacy, Fallback: 'D', Action: gameMenuDiplomacy, Enabled: true}
-	if campaign {
-		second = gameMenuRow{Label: w.MenuLoad, Fallback: 'L', Action: gameMenuLoad, Enabled: canLoad}
-	}
-	return []gameMenuRow{
-		{Label: w.MenuSave, Fallback: 'S', Action: gameMenuSave, Enabled: campaign && canSave},
-		second,
-		{Label: w.MenuGameOptions, Fallback: 'O', Action: gameMenuGameOptions, Enabled: true},
-		{Label: w.MenuSoundOptions, Fallback: 'N', Action: gameMenuSoundOptions, Enabled: canSound},
-		// The decoded residue: this row's constructor immediate is 0x4d = M and
-		// its label marks Q, so the shipped accelerator is Q and the immediate
-		// is inert (MENU-KEY-013). The fallback is carried as M for that reason
-		// — it is what the original passes, and it must stay unreachable.
-		{Label: w.MenuQuestObjectives, Fallback: 'M', Action: gameMenuQuestObjectives, Enabled: campaign},
-		{Label: w.MenuEndQuest, Fallback: 'E', Action: gameMenuEndQuest, Enabled: true},
-		{Label: w.MenuReturn, Fallback: 'R', Action: gameMenuReturn, Enabled: true},
-	}
-}
-
-// townGameMenuRows is the town surface (MENU-ITEM-012, High for the list and
-// its order), under missionGameMenuRows' own words rule.
-//
-// SAVE PRECEDES LOAD and the constructor's control ids for them are 2 and 1, so
-// the id is not the row. There is no game options row, no quest objectives row
-// and no diplomacy row.
-//
-// ABORT GAME CARRIES NO `~` on the English root and keeps its immediate, E
-// — the same message the mission's end quest row posts (MENU-KEY-013). On
-// the Russian root that row's label DOES carry a `~`, so the row's
-// accelerator is language-dependent while this code is not: the walk reads
-// whichever label arrives.
-func townGameMenuRows(w Words) []gameMenuRow {
-	return []gameMenuRow{
-		{Label: w.MenuSave, Fallback: 'S', Action: gameMenuSave, Enabled: true},
-		{Label: w.MenuLoad, Fallback: 'L', Action: gameMenuLoad, Enabled: true},
-		{Label: w.MenuGameOptions, Fallback: 'O', Action: gameMenuGameOptions, Enabled: true},
-		{Label: w.MenuSoundOptions, Fallback: 'N', Action: gameMenuSoundOptions, Enabled: true},
-		{Label: w.MenuAbort, Fallback: 'E', Action: gameMenuAbortGame, Enabled: true},
-		{Label: w.MenuReturn, Fallback: 'R', Action: gameMenuReturn, Enabled: true},
-	}
-}
-
 // gameMenuPickerRows is what the row list shows: the drawn label, and
 // whether the row can be chosen. A disabled row is LISTED.
 func gameMenuPickerRows(rows []gameMenuRow) []PickerRow {
@@ -511,11 +448,11 @@ func drawMenuLabel(dst *ebiten.Image, f *text.Font, s string, x, y int, c color.
 //
 // It draws nothing outside the panel rect: the dim behind it is the
 // caller's, on both paths.
-func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, profile GameMenuProfile, logs ...*pixelLog) {
+func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, at menuPlacer, logs ...*pixelLog) {
 	if dst == nil || list == nil || len(rows) == 0 {
 		return
 	}
-	p := gameMenuPanelRectFor(s, rows, profile)
+	p := gameMenuPanelRectFor(s, rows, at)
 	var log *pixelLog
 	if len(logs) > 0 {
 		log = logs[0]

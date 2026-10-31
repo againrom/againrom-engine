@@ -237,7 +237,7 @@ func TestUnmoddedGameMenuListIsUnchanged(t *testing.T) {
 	a := newTestApp(t, appRows(2), okLoader(t))
 	a.flow.openGameMenu(ScreenTown)
 	rows := a.flow.menuRows()
-	want := townGameMenuRows(a.flow.words)
+	want := gameMenuRootRows(firstGameMenuRows.Town, a.flow.words, gameMenuRowState{})
 	if len(rows) != len(want) {
 		t.Fatalf("%d rows, want %d", len(rows), len(want))
 	}

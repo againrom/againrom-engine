@@ -123,16 +123,8 @@ func (f *flow) menuRows() []gameMenuRow {
 			{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true},
 		}
 	}
-	if f.menuSurface == gameMenuTown {
-		rows := townGameMenuRows(f.words)
-		for i := range rows {
-			if rows[i].Action == gameMenuSave {
-				rows[i].Enabled = townCanSave(f.town)
-			}
-		}
-		return f.withModRows(rows)
-	}
-	return f.withModRows(missionGameMenuRows(f.words, f.menuContext.Campaign, f.menuCanSave, f.menuCanLoad, f.menuCanSound))
+	state := gameMenuRowState{campaign: f.menuContext.Campaign, canSave: f.menuCanSave, canLoad: f.menuCanLoad, canSound: f.menuCanSound, town: f.town}
+	return f.withModRows(gameMenuRootRows(f.pages.menu.rowsAt(f.menuSurface), f.words, state))
 }
 
 // withModRows appends one row for each mod screen placed in the in-game menu.
@@ -296,7 +288,7 @@ func (f *flow) openGameMenu(back Screen) {
 func (f *flow) setMenuUp(up bool) {
 	if f.viewer != nil {
 		f.viewer.menuUp = up
-		f.viewer.menuBackdrop = f.pages.menu.MissionBackdrop
+		f.viewer.menuBackdrop = f.pages.menu.placement().backdrop
 	}
 }
 
@@ -577,6 +569,7 @@ func (f *flow) closeGameMenu() {
 // GameMenuProfile is one game's game-menu data. The zero value is the first
 // game's behaviour.
 type GameMenuProfile struct {
+	Rows GameMenuRows
 	// NativeMissionWindows places hosted windows on the mission's pixel lattice.
 	NativeMissionWindows bool
 	// MissionBackdrop overrides the popup wash; zero keeps the notice backdrop.
@@ -640,7 +633,7 @@ func (f *flow) openLoad(back Screen) {
 	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
-	if f.nativeMissionMenu() {
+	if f.menuPlacement().overMission() {
 		f.setMenuUp(true)
 	}
 	if f.saveList == nil {

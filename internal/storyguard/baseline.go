@@ -3594,5 +3594,5 @@ var Committed = Baseline{
 	// mapcelladmission.go and its test, mapload's arm table in
 	// groundarms.go, the editor's arm rows in pkg/ui, the guard in
 	// internal/archtest/celladmission_test.go, and this note.
-	CommentBytes: 10055049,
+	CommentBytes: 10054602,
 }
