@@ -113,22 +113,8 @@ func milestone2Corpus(t *testing.T, fn func(t *testing.T, mf milestone2File, fe 
 func walkOriginalSaveCorpus(t *testing.T, corpus string, fn func(t *testing.T, mf milestone2File)) int {
 	t.Helper()
 	total, worlds, cities, unreadable := 0, 0, 0, 0
-	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
+	walkErr := walkFirstGameSaves(corpus, func(path, rel string) error {
 		total++
-		rel, relErr := filepath.Rel(corpus, path)
-		if relErr != nil {
-			rel = path
-		}
-		rel = filepath.ToSlash(rel)
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatalf("%s: %v", rel, err)

@@ -30,9 +30,13 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	x := installedInspector(t)
 	dir := os.Getenv("AGAINROM_SELECTION_FRAMES")
 	now := time.Unix(1, 0)
+	shotUnder := func(e *ui.MapEditor, name string, cover image.Rectangle) {
+		t.Helper()
+		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", cover)
+	}
 	shot := func(e *ui.MapEditor, name string) {
 		t.Helper()
-		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", image.Rectangle{})
+		shotUnder(e, name, image.Rectangle{})
 	}
 	word := func(id string, a ...any) string {
 		if len(a) == 0 {
@@ -63,7 +67,19 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)
 	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)
-	shot(e, "brushes-menu")
+	// The open menu is opaque: a map label beneath its rows is hidden.
+	var menu image.Rectangle
+	for n := 0; ; n++ {
+		row, ok := e.MenuRowRect(n)
+		if !ok {
+			break
+		}
+		menu = menu.Union(row)
+	}
+	if menu.Empty() {
+		t.Fatal("the Tools menu shows no row")
+	}
+	shotUnder(e, "brushes-menu", menu)
 	_ = e.Key("escape")
 	for _, b := range []struct{ key, word string }{
 		{"terrain", "editor.keys.terrain"}, {"height", "editor.keys.height"},

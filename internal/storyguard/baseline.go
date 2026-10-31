@@ -3171,7 +3171,7 @@ var Committed = Baseline{
 		"structtags.nontest":     0,
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
-		"stringliterals.test":    31,
+		"stringliterals.test":    30,
 		"longcommentgroups":      1679,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
@@ -3564,6 +3564,9 @@ var Committed = Baseline{
 	// mapinspectionnpc.go, the map list's title reader in maplist.go,
 	// mapinspection.go and worldmap.go, the new tests' comments, and this
 	// note. The merge with main is measured on the merged tree.
+	// It rose for the first game's one save corpus walk in pkg/game's
+	// firstgamecorpus_test.go, the release tests' notes on the rules they
+	// now follow, and this note.
 
 	// It rose for the second game's release fixes: the hero's mission row
 	// in pkg/game's currentpartypolicy.go, currentpartyread.go and
@@ -3572,5 +3575,5 @@ var Committed = Baseline{
 	// cityobjectprojection_test.go, secondbagcarry_test.go,
 	// secondmissionsave_release_test.go and
 	// secondoriginalload_release_test.go, and this note.
-	CommentBytes: 10022638,
+	CommentBytes: 10024340,
 }

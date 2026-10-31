@@ -179,7 +179,7 @@ func newWriterCensusTally() *writerCensusTally {
 }
 
 // writerCensusFiles walks AGAINROM_SAVE_CORPUS with the milestone-2 walker's
-// directory rule and returns every readable .sav, logging each unreadable one.
+// walk and returns every readable .sav, logging each unreadable one.
 func writerCensusFiles(t *testing.T) []milestone2File {
 	t.Helper()
 	return writerCensusWalk(t, true)
@@ -195,21 +195,7 @@ func writerCensusWalk(t *testing.T, logUnreadable bool) []milestone2File {
 	}
 	var out []milestone2File
 	unreadable := 0
-	err := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
-		rel, relErr := filepath.Rel(corpus, path)
-		if relErr != nil {
-			rel = path
-		}
-		rel = filepath.ToSlash(rel)
+	err := walkFirstGameSaves(corpus, func(path, rel string) error {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("%s: %w", rel, err)

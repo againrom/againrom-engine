@@ -85,7 +85,8 @@ func abandonReloadUnder(t *testing.T, raw []byte, dir string, ids ...string) *Fr
 }
 
 // A mission SAV taken inside mission 30 and loaded cold in a fresh front end
-// carries the party the mission was opened with and no town party. Abandoning it
+// carries the party the mission was opened with, as the campaign's party until
+// the mission ends. Abandoning it
 // brings that party home, the town SAVE writes, a cold LOAD restores it, the
 // quick-spell bindings are the ones the mission was opened with, and the mission
 // is entered again with that party and not the default hero.
@@ -94,8 +95,8 @@ func TestReleaseModAbandonOfALoadedMissionBringsTheSavedPartyHome(t *testing.T) 
 	store, entry := abandonMissionSave(t, abandonModDir, "mission-abandon")
 	g, a, screens := abandonLoadFront(t, store, OriginalStore{}, false, abandonModDir, "mission-abandon")
 	abandonLoadMission(t, g, a, 0)
-	if len(g.Carried) != 0 {
-		t.Fatalf("a mission LOAD installed a town party of %d, the witness needs none", len(g.Carried))
+	if !slices.Equal(partyIDs(g.Carried), partyIDs(loadedParty(g))) {
+		t.Fatalf("a mission LOAD carries %v, the loaded mission holds %v", partyIDs(g.Carried), partyIDs(loadedParty(g)))
 	}
 	want := homeParty(loadedParty(g))
 	if len(want) != len(entry.party) {
@@ -194,8 +195,8 @@ func TestReleaseModAbandonOfAnOriginalMissionSAV(t *testing.T) {
 				t.Logf("%s: mission %d offers no row (%d rows)", name, g.live.mission.number, rows)
 				continue
 			}
-			if len(g.Carried) != 0 {
-				t.Fatalf("%s: the LOAD installed a town party of %d", name, len(g.Carried))
+			if !slices.Equal(partyIDs(g.Carried), partyIDs(loadedParty(g))) {
+				t.Fatalf("%s: the LOAD carries %v, the loaded mission holds %v", name, partyIDs(g.Carried), partyIDs(loadedParty(g)))
 			}
 			want := homeParty(loadedParty(g))
 			if len(want) == 0 {

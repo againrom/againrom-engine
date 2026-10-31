@@ -32,6 +32,9 @@ func wizField(t *testing.T, e *ui.MapEditor, key string) int {
 func wizType(t *testing.T, e *ui.MapEditor, key, s string) {
 	t.Helper()
 	r, ok := e.FieldRect(wizField(t, e, key))
+	// A click puts the caret where it lands; at the field's right end it
+	// follows the text, which the backspaces then remove.
+	r.Min.X = max(r.Min.X, r.Max.X-4)
 	trigClick(t, e, r, ok, key)
 	for i := 0; i < 24; i++ {
 		_ = e.Key("backspace")

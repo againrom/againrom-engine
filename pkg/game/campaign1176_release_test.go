@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -119,9 +121,14 @@ func campaignSave(t *testing.T, f *FrontEnd, onMap bool) (SaveStore, Snapshot, [
 	if len(before.World) != 0 && len(written.World) != 0 {
 		before.World = formWithLoadedAllocator(t, before.World, written.World)
 	}
-	worldEqual := bytes.Equal(before.World, written.World)
-	if !worldEqual {
-		worldEqual = bytes.Equal(worldBytesWithConstructedCurrentSessionHead1115(t, before.World), written.World)
+	sameWorld := func(world []byte) bool {
+		return bytes.Equal(before.World, world) || bytes.Equal(worldBytesWithConstructedCurrentSessionHead1115(t, before.World), world)
+	}
+	worldEqual := sameWorld(written.World)
+	if !worldEqual && err == nil && len(before.World) != 0 {
+		if reverted, ok := loadedHeroTypesRestored(t, before, raw, filepath.Base(paths[0]), onMap); ok {
+			worldEqual = sameWorld(reverted)
+		}
 	}
 	if err != nil || !worldEqual || !reflect.DeepEqual(before.Documents, written.Documents) || before.Gold != written.Gold {
 		t.Logf("checkpoint components: World equal=%t, Documents equal=%t, Gold=%d -> %d", worldEqual, reflect.DeepEqual(before.Documents, written.Documents), before.Gold, written.Gold)
@@ -138,6 +145,64 @@ func campaignSave(t *testing.T, f *FrontEnd, onMap bool) (SaveStore, Snapshot, [
 		t.Fatal("written SAV differs from the current world, documents or purse", err)
 	}
 	return store, before, raw
+}
+
+// loadedHeroTypesRestored is the World a cold LOAD gives of raw with each
+// party hero's type set back to the one the World before SAVE held. Our SAVE
+// writes a party hero's type from the hero, and a loaded hero whose type
+// differed keeps it until a LOAD of that SAVE; with that one field undone the
+// LOAD gives the World before SAVE. ok is false when no hero's type moved or
+// a written type is not the hero's own.
+func loadedHeroTypesRestored(t *testing.T, before Snapshot, raw []byte, name string, onMap bool) ([]byte, bool) {
+	t.Helper()
+	var live sim.World
+	if live.UnmarshalBinary(before.World) != nil {
+		return nil, false
+	}
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		return nil, false
+	}
+	moved := 0
+	for i, id := range before.CurrentPartyIDs {
+		if i >= len(before.Party) || !before.Party[i].PlayerCharacter || before.Party[i].Hired() {
+			continue
+		}
+		e, ok := live.Entity(id)
+		if !ok {
+			continue
+		}
+		record := generatedActorRecord(t, &doc, id)
+		written, err := savedStructureValue(record, "T0E")
+		if err != nil || int32(written) == e.TypeID {
+			continue
+		}
+		if int32(written) != before.Party[i].ServerTypeID() {
+			return nil, false
+		}
+		t.Logf("party hero %d: SAVE wrote type %d, the loaded World holds %d", id, written, e.TypeID)
+		if err := savedActorSetValue(record, "T0E", uint32(e.TypeID)); err != nil {
+			t.Fatal(err)
+		}
+		moved++
+	}
+	if moved == 0 {
+		return nil, false
+	}
+	back, err := sav.EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := SaveStore{Dir: t.TempDir()}
+	if err := os.WriteFile(filepath.Join(store.Dir, name), back, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cold, _ := campaignCold(t, store)
+	reverted, _, err := cold.Snapshot(onMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reverted.World, true
 }
 
 func campaignCold(t *testing.T, store SaveStore) (*FrontEnd, *ui.App) {

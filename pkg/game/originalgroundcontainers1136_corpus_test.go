@@ -2,7 +2,6 @@ package game
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -25,22 +24,8 @@ func TestGroundContainerCorpusAudit1136(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable, nonEmpty, mismatches, uncarriedFiles, savedSacks := 0, 0, 0, 0, 0, 0, 0, 0
-	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
+	walkErr := walkFirstGameSaves(corpus, func(path, rel string) error {
 		total++
-		rel, relErr := filepath.Rel(corpus, path)
-		if relErr != nil {
-			rel = path
-		}
-		rel = filepath.ToSlash(rel)
 		t.Run(rel, func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {

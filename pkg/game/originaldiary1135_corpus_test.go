@@ -2,7 +2,6 @@ package game
 
 import (
 	"os"
-	"path/filepath"
 	"slices"
 	"testing"
 
@@ -31,22 +30,8 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 
 	total, worlds, cities, unreadable, nonEmpty, mismatches := 0, 0, 0, 0, 0, 0
 	otherPlayers, droppedFiles, saved := 0, 0, 0
-	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
+	walkErr := walkFirstGameSaves(corpus, func(path, rel string) error {
 		total++
-		rel, relErr := filepath.Rel(corpus, path)
-		if relErr != nil {
-			rel = path
-		}
-		rel = filepath.ToSlash(rel)
 		t.Run(rel, func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {
@@ -142,7 +127,9 @@ func TestDiaryCorpusAudit1135(t *testing.T) {
 				mismatches++
 				t.Errorf("LOAD carries %d other Player Diaries, the file has %d beyond the default", gotOthers, wantOthers)
 			}
-			if report.Diaries+gotOthers != len(got) {
+			// The report counts every Diary the LOAD keeps, another
+			// Player's included.
+			if report.Diaries != len(got) {
 				mismatches++
 				t.Errorf("report.Diaries = %d with %d other Player Diaries, len(SavedDiaries()) = %d", report.Diaries, gotOthers, len(got))
 			}

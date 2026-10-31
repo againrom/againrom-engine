@@ -131,18 +131,42 @@ func authoredRecordsMod(t *testing.T, arm string) (string, uint16) {
 	recordAddInput(t, e, "sack", image.Pt(17, 12), code)
 	recordRecipeInput(t, e, 9)
 	before := bytes.Clone(e.Document().SourceBytes)
-	recordAddInput(t, e, "unit", image.Pt(25, 20), int64(class))
-	ringFinding := false
-	for _, finding := range e.Document().Edits.(ui.InspectionChecker).Report() {
-		if finding.Rule == "unit-terrain" && finding.Kind == "Unit" && finding.Index == 3 && strings.Contains(finding.Text, "the game removes a unit placed there") {
-			ringFinding = true
+	// The Add window refuses a unit on the border-ring cell 25,20 and names
+	// the playable area; Cancel leaves the map's bytes.
+	if err := e.Key("unit"); err != nil {
+		t.Fatal(err)
+	}
+	ring := ""
+	for i := 0; i < 32 && ring == ""; i++ {
+		key, _, ok := e.AddStep()
+		if !ok {
+			t.Fatal("the Add window ended before its cell step")
+		}
+		switch key {
+		case "class":
+			_ = e.Key("clear")
+			e.TextInput(strconv.FormatInt(int64(class), 10))
+		case "cell":
+			_ = e.Key("clear")
+			e.TextInput("25,20")
+		}
+		if err := e.Key("enter"); err != nil {
+			t.Fatal(err)
+		}
+		if _, note, ok := e.AddStep(); ok && note != "" {
+			if key != "cell" {
+				t.Fatalf("the Add window refused step %s: %s", key, note)
+			}
+			ring = note
 		}
 	}
-	if !ringFinding {
-		t.Fatal("the authored border placement has no explanatory load-removal finding")
+	if !strings.Contains(ring, "border ring") {
+		t.Fatalf("the Add window took a unit on the ring cell 25,20: %q", ring)
 	}
-	if err := e.Key("undo"); err != nil || !bytes.Equal(before, e.Document().SourceBytes) {
-		t.Fatal("the ring-control placement was not undone exactly", err)
+	cancel, shown := e.PromptButtonRect(2)
+	trigClick(t, e, cancel, shown, "Cancel Add")
+	if _, _, open := e.AddStep(); open || !bytes.Equal(before, e.Document().SourceBytes) {
+		t.Fatal("Cancel after the ring refusal left the window open or changed the map")
 	}
 	wantSaved, err := alm.SaveForm(before)
 	if err != nil {

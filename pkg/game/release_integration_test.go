@@ -1915,16 +1915,8 @@ func TestReleaseABetweenMissionSaveStartsAtTheMapsOwnDrop(t *testing.T) {
 		t.Skip("no AGAINROM_SAVE_CORPUS: between-mission placement integration not requested")
 	}
 	var paths []string
-	if err := filepath.WalkDir(corpus, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if !d.IsDir() && strings.EqualFold(filepath.Ext(path), ".sav") {
-			paths = append(paths, path)
-		}
+	if err := walkFirstGameSaves(corpus, func(path, _ string) error {
+		paths = append(paths, path)
 		return nil
 	}); err != nil {
 		t.Fatalf("walk %s: %v", corpus, err)

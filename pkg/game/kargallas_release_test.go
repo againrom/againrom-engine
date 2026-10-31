@@ -86,6 +86,9 @@ func TestReleaseKargallasDragonHasTheFixedDragonBook(t *testing.T) {
 			t.Fatalf("dragon book/owner=%+v", e)
 		}
 		if interact {
+			// The book of a unit another Player holds shows under the map
+			// reveal only (DIV-4313).
+			f.live.view.SetFogReveal(true)
 			spellbookShow(t, a, f.live, id)
 		}
 		entries, fixed := selectedSpellbook(f.live.world.Rules(), []sim.Entity{e}, f.live.world.Spells(), f.live.spellNames, f.live.view.Words(), nil, originalBookIDs)

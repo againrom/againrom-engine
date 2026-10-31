@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -339,16 +338,7 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 	}
 	var stored, unmapped humanRouteTally
 	files, refused, experienceInput := 0, 0, 0
-	err := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || !strings.EqualFold(filepath.Ext(d.Name()), ".sav") {
-			return nil
-		}
+	err := walkFirstGameSaves(corpus, func(path, rel string) error {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return err
@@ -366,14 +356,13 @@ func TestReleaseHumanRoutesCompare(t *testing.T) {
 			return nil
 		}
 		files++
-		rel, _ := filepath.Rel(corpus, path)
 		for _, a := range holdings {
 			b := a.Basis
 			if b == nil || b.Class != "Human" {
 				continue
 			}
 			h := basisHumanState(*b)
-			c := storedHumanCase(fmt.Sprintf("%s actor %d", filepath.ToSlash(rel), a.MapUnitID), h)
+			c := storedHumanCase(fmt.Sprintf("%s actor %d", rel, a.MapUnitID), h)
 			sum := uint32(0)
 			for _, xp := range h.SkillXP {
 				sum += xp

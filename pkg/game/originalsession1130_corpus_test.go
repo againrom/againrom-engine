@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -26,22 +25,8 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 	f.SetDeterministicFrames(true)
 
 	total, worlds, cities, unreadable, mismatches, absentHeads := 0, 0, 0, 0, 0, 0
-	walkErr := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
+	walkErr := walkFirstGameSaves(corpus, func(path, rel string) error {
 		total++
-		rel, relErr := filepath.Rel(corpus, path)
-		if relErr != nil {
-			rel = path
-		}
-		rel = filepath.ToSlash(rel)
 		t.Run(rel, func(t *testing.T) {
 			raw, err := os.ReadFile(path)
 			if err != nil {
@@ -49,9 +34,8 @@ func TestSessionCorpusAudit1130(t *testing.T) {
 			}
 			source, err := sav.Open(raw)
 			if err != nil {
-				// A preserved file can fail to decode (game9000.sav is not
-				// an Asg& container at all); detected by the open failing,
-				// never by the file's name, and counted rather than
+				// A preserved file can fail to decode; detected by the open
+				// failing, never by the file's name, and counted rather than
 				// aborting the audit.
 				unreadable++
 				t.Logf("unreadable, skipped: %v", err)

@@ -2,10 +2,8 @@ package game
 
 import (
 	"fmt"
-	"io/fs"
 	"math"
 	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 
@@ -539,16 +537,7 @@ func TestReleaseCorpusLoadsNoOutOfBandSlot(t *testing.T) {
 	f := releaseFront(t)
 	f.SetDeterministicFrames(true)
 	loaded := 0
-	err := filepath.WalkDir(corpus, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
+	err := walkFirstGameSaves(corpus, func(path, _ string) error {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return err

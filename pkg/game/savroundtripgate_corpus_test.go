@@ -132,7 +132,6 @@ func (o savGateOutcome) keys() []string {
 // prefix; the longest prefix wins. A baselined key no prefix names fails, so
 // no recorded defect goes unnamed. The story document carries the evidence.
 var savGateCauses = map[string]string{
-	"unreadable original": "EXP-0261-owner-runs/game9000.sav is a generated Bsg& file whose document the second game's programmes do not walk",
 	"refused load restore: sim: restored current actions: saved actor cell ":                               "new owner SAVs game0005/game0006 in oldsaves7 have typed actor cell slots our LOAD refuses; the source and needed reader rule are Unknown (D54)",
 	"refused cycle save: project current holdings: current actor manifest has a repeated or absent source": "after a SAVE, LOAD and more kills, SAVE refuses in the actor manifest",
 	"mismatch visible.scene.frame":          "fallen actors restart their presentation death clock after LOAD; the view scene clock now resumes from World.Tick",
@@ -1029,29 +1028,18 @@ func savGateDecaySampled(rel string) bool {
 }
 
 // savGateCorpus discovers every original under AGAINROM_SAVE_CORPUS on the
-// milestone-2 walkers' own terms, skipping exp*-* directories.
+// milestone-2 walkers' own walk.
 func savGateCorpus(t *testing.T) []savGateCase {
 	corpus := os.Getenv("AGAINROM_SAVE_CORPUS")
 	if corpus == "" {
 		t.Fatal("AGAINROM_SAVE_CORPUS must name gameversions/saves")
 	}
 	var cases []savGateCase
-	err := filepath.WalkDir(corpus, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if skip := corpusDirSkip(d); skip != nil {
-			return skip
-		}
-		if d.IsDir() || filepath.Ext(d.Name()) != ".sav" {
-			return nil
-		}
-		rel, _ := filepath.Rel(corpus, path)
+	err := walkFirstGameSaves(corpus, func(path, rel string) error {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		rel = filepath.ToSlash(rel)
 		cases = append(cases, savGateVariants("corpus", rel, raw, 1, savGateDecaySampled(rel))...)
 		return nil
 	})

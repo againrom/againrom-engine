@@ -104,8 +104,6 @@ corpus resave	2026-08-24/game0021.sav resave	accepted	-
 corpus resave	2026-08-24/game9999.sav resave	accepted	-
 corpus resave	2026-08-27/EXP-0261-owner-runs/game0003.sav resave	accepted	-
 corpus resave	2026-08-27/EXP-0261-owner-runs/game0006.sav resave	accepted	-
-corpus resave	2026-08-27/EXP-0261-owner-runs/game9000.sav resave	unreadable	-
-corpus resave	2026-08-27/EXP-0261-owner-runs/game9000.sav resave	unreadable	unreadable original
 corpus resave	2026-08-27/EXP-0261-owner-runs/game9999.sav resave	accepted	-
 corpus resave	2026-08-30/EXP-0278-human-runtime-en/game0000.sav resave	accepted	-
 corpus resave	2026-08-30/EXP-0278-human-runtime-en/game0001.sav resave	accepted	-

@@ -131,7 +131,7 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 		t.Fatalf("add a unit: %v", err)
 	}
 	// A second unit is placed and undone; the history holds the edits.
-	if d, err := s.AddUnit(image.Pt(24, 24), int64(class)); err != nil || d == nil {
+	if d, err := s.AddUnit(image.Pt(20, 20), int64(class)); err != nil || d == nil {
 		t.Fatalf("add a second unit: %v", err)
 	}
 	if err := e.Key("undo"); err != nil {

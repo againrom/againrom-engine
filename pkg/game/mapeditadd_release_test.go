@@ -134,8 +134,9 @@ func addCases(in addInputs) []addCase {
 	return []addCase{
 		{"unit", []string{"unit"}, map[string]string{"class": fmt.Sprint(in.class), "tier": fmt.Sprint(in.tier), "owner": "1", "cell": cell},
 			func(t *testing.T, s *mapInspectionEdits) {
+				// The window's group step starts the unit in the lowest free group.
 				routeAdd(t, s, "Unit", func() error { _, err := s.AddUnitTier(in.cell, int64(in.class), int64(in.tier)); return err },
-					ui.InspectionFieldValue{Key: "owner", Value: 1})
+					ui.InspectionFieldValue{Key: "owner", Value: 1}, ui.InspectionFieldValue{Key: "group", Value: in.group})
 			}},
 		{"structure", []string{"structure"}, map[string]string{"kind": fmt.Sprint(in.kind), "owner": "2", "cell": cell},
 			func(t *testing.T, s *mapInspectionEdits) {
