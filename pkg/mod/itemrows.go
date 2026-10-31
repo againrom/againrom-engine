@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"againrom/pkg/locale"
 )
 
 // ItemMaterial allows or forbids one material for one tier of an armour,
@@ -233,7 +235,7 @@ func weaponParamIndex(key string) int {
 func itemText(file string, line int, key string, text func(string) (string, bool), lang string) (string, error) {
 	name, ok := text(key)
 	if !ok {
-		return "", &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf("text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile("en"))}
+		return "", &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf("text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile(locale.Fallback))}
 	}
 	if n := utf8.RuneCountInString(name); n == 0 || n > maxItemNameRunes {
 		return "", &ItemFileError{File: file, Line: line, Msg: fmt.Sprintf("the text of %q has %d characters; an item name has 1 to %d", key, n, maxItemNameRunes)}

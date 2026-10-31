@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"golang.org/x/text/encoding/charmap"
+
+	"againrom/pkg/locale"
 )
 
 // EncodeRune encodes r as one Windows-1251 byte, the byte a typed character
@@ -16,17 +18,13 @@ import (
 // Selector 1 applies the original's input conversion (TEXT-108): a typed byte
 // 0xC0..0xEF is stored 0x40 lower and 0xF0..0xFF 0x10 lower. The draw then runs
 // render/text.Convert on the stored byte, so a typed byte t reaches record t-0x30
-// over 0xC0..0xEF (records 144..191) and t-0x20 over 0xF0..0xFF (records
-// 208..223), the records that hold the typed letter in the 224-record fonts
-// (TEXT-109). The two shifts do not compose to one constant and are not meant to.
-// Selector 0 stores the typed byte and draws record t-0x20 (TEXT-110).
+// over 0xC0..0xEF and t-0x20 over 0xF0..0xFF, the records that hold the typed
+// letter in the 224-record fonts (TEXT-109). Selector 0 stores the typed byte and draws record t-0x20 (TEXT-110).
 //
 // A code point whose own Windows-1251 byte lies in 0x80..0xAF is refused at
-// selector 1. The original stores such a byte unchanged and draws another
-// letter for it; here the stored byte is Convert's shifted destination for a
-// letter in 0xC0..0xEF, so DecodeByte would read it back as that other letter.
-// 47 code points are refused (0x98 is unassigned), Ё among them; DIV-2330
-// records the difference.
+// selector 1: the original stores it unchanged and draws another letter, while
+// here that byte is the shifted form of a letter in 0xC0..0xEF. 47 code points
+// are refused (0x98 is unassigned), Ё among them; DIV-2330.
 func EncodeRune(r rune, selector int) (byte, bool) {
 	if r < 0x20 || r == 0x7f {
 		return 0, false
@@ -36,7 +34,7 @@ func EncodeRune(r rune, selector int) (byte, bool) {
 		return 0, false
 	}
 	v := b[0]
-	if selector == 1 {
+	if locale.FontRemaps(selector) {
 		switch {
 		case v >= 0xc0 && v <= 0xef:
 			v -= 0x40
@@ -49,33 +47,22 @@ func EncodeRune(r rune, selector int) (byte, bool) {
 	return v, true
 }
 
-// DecodeByte is EncodeRune's own inverse: given a byte this install actually
-// stored under selector — a SAVE label byte or an installed character-field
-// byte — it answers the rune EncodeRune produced that byte from.
+// DecodeByte is EncodeRune's exact inverse: given a byte this install stored
+// under selector (a SAVE label or character-field byte), it answers the rune
+// EncodeRune made it from.
 //
-// IT REFUSES ONLY A GENUINELY UNINTERPRETABLE BYTE: a control byte or 0x7f at
-// either selector, and — at selector 0 only, which applies no shift — 0x98,
-// unassigned in Windows-1251 itself. At selector 1 it never refuses a
-// non-control byte: the shift routes that same 0x98 to 0xD8 ('Ш') before the
-// codec ever sees it, so every byte in 0x20..0xFF except the two control
-// exclusions decodes to some letter.
+// It refuses only a control byte or 0x7f at either selector and, at selector 0
+// (no shift), 0x98, which Windows-1251 leaves unassigned. At selector 1 the
+// shift routes 0x98 to 0xD8, so every other byte in 0x20..0xFF decodes.
 //
-// THIS IS EncodeRune's EXACT INVERSE for every byte EncodeRune can now
-// produce: EncodeRune refuses the 47-value collision this comment used to
-// describe (see EncodeRune's own doc), so a stored byte in 0x80..0xAF this
-// build wrote itself can only have arrived via the shift, and undoing the
-// shift recovers the letter EncodeRune actually stored, exactly, not a
-// guess. For a byte this build did NOT write — a genuinely original .sav, or
-// data from before this fix — DecodeByte still cannot tell the difference
-// between "arrived via the shift" and "some other writer stored this
-// Windows-1251 byte unshifted", and always chooses the shift reading. That
-// choice is pinned, not proven: see DIV-1339.
+// A byte this build did not write (an original .sav) cannot be told from an
+// unshifted Windows-1251 byte; it always takes the shift reading (DIV-1339).
 func DecodeByte(b byte, selector int) (rune, bool) {
 	if b < 0x20 || b == 0x7f {
 		return 0, false
 	}
 	v := b
-	if selector == 1 {
+	if locale.FontRemaps(selector) {
 		switch {
 		case v >= 0x80 && v <= 0xaf:
 			v += 0x40

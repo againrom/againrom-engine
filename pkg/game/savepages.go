@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"againrom/pkg/base"
+	"againrom/pkg/locale"
 	"againrom/pkg/ui"
 )
 
@@ -96,12 +97,8 @@ func secondSavePages(f *FrontEnd) *ui.SavePages {
 		Message: secondPageMessage, Buttons: secondPageButtons(338, ok, del, cancel),
 		Confirm: confirm, OKNeedsSave: true,
 	}
-	// R2-ENGINE-443: the name box holds 0x7c bytes in EN and 0x80 in RU,
-	// read as 123 and 127 characters and a terminator.
-	limit := 123
-	if f.Base().Profile.Language == "russian" {
-		limit = 127
-	}
+	// The name box limit is the install language's record (R2-ENGINE-443).
+	limit := locale.OfEntry(f.Base().Profile.Language).SecondSaveNameLimit
 	save := ui.SavePage{
 		Panel: secondPagePanel,
 		Texts: []ui.PageText{

@@ -458,7 +458,7 @@ func itemRowFrom(id, file string, t tomlTable, text func(string) (string, bool),
 	}
 	name, ok := text(r.NameKey)
 	if !ok {
-		return ItemRow{}, bad(nameLine, "text key %q is not in %s (nor in %s)", r.NameKey, StringsFile(lang), StringsFile("en"))
+		return ItemRow{}, bad(nameLine, "text key %q is not in %s (nor in %s)", r.NameKey, StringsFile(lang), StringsFile(locale.Fallback))
 	}
 	if n := utf8.RuneCountInString(name); n == 0 || n > maxItemNameRunes {
 		return ItemRow{}, bad(nameLine, "the text of %q has %d characters; an item name has 1 to %d", r.NameKey, n, maxItemNameRunes)

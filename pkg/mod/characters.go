@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"againrom/pkg/locale"
 )
 
 // CharactersFile is the data file that edits named characters and adds
@@ -225,7 +227,7 @@ func characterRowFrom(id, file string, t tomlTable, text func(string) (string, b
 	if r.NameKey != "" {
 		name, ok := text(r.NameKey)
 		if !ok {
-			return CharacterRow{}, bad(nameLine, "text key %q is not in %s (nor in %s)", r.NameKey, StringsFile(lang), StringsFile("en"))
+			return CharacterRow{}, bad(nameLine, "text key %q is not in %s (nor in %s)", r.NameKey, StringsFile(lang), StringsFile(locale.Fallback))
 		}
 		if n := utf8.RuneCountInString(name); n == 0 || n > maxCharacterNameRunes {
 			return CharacterRow{}, bad(nameLine, "the text of %q has %d characters; a character name has 1 to %d", r.NameKey, n, maxCharacterNameRunes)

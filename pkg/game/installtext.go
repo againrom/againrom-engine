@@ -295,7 +295,7 @@ func InstallTextCode(src terrain.EntrySource, edition base.Edition) TextCode {
 // CharToOemA (R2-ENGINE-052, R2-ENGINE-093; DIV-2378, DIV-2844); any other
 // text keeps its bytes.
 func (c TextCode) Bytes(b []byte) []byte {
-	if c.From != 1251 || c.To != 866 {
+	if c.From != locale.WindowsCyrillic || c.To != locale.DOSCyrillic {
 		return b
 	}
 	return vfs.WindowsCyrillicToDOS(b)
@@ -305,7 +305,7 @@ func (c TextCode) Bytes(b []byte) []byte {
 // text files hold it, so a file a mod serves reads back through Bytes as
 // written.
 func (c TextCode) FileBytes(b []byte) []byte {
-	if c.From != 1251 || c.To != 866 {
+	if c.From != locale.WindowsCyrillic || c.To != locale.DOSCyrillic {
 		return b
 	}
 	return vfs.DOSCyrillicToWindows(b)

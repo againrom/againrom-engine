@@ -132,8 +132,17 @@ type captionRow struct {
 	source string
 }
 
-func row(id captionID, en, ru, source string) captionRow {
-	return captionRow{id: id, by: map[string]string{locale.Fallback: en, "ru": ru}, source: source}
+// row is a caption: a text per locale.All() language in order, then the source.
+func row(id captionID, textsThenSource ...string) captionRow {
+	langs := locale.All()
+	if len(textsThenSource) != len(langs)+1 {
+		panic(fmt.Sprintf("starter: caption %s has %d strings for %d languages and a source", id, len(textsThenSource), len(langs)))
+	}
+	by := make(map[string]string, len(langs))
+	for i, l := range langs {
+		by[l.Code] = textsThenSource[i]
+	}
+	return captionRow{id: id, by: by, source: textsThenSource[len(langs)]}
 }
 
 // captionRows is the one caption table. A format caption keeps the same verbs

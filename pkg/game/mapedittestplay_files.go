@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 )
@@ -105,7 +106,7 @@ func missionPackageOwnership(folder, recordName string, protected []packageGuard
 	seen := map[string]bool{}
 	for _, rel := range record.Files {
 		page := strings.TrimPrefix(rel, testPlayTexts+"/")
-		if lang, rest, ok := strings.Cut(page, "/"); ok && (lang == "en" || lang == "ru") {
+		if lang, rest, ok := strings.Cut(page, "/"); ok && locale.Known(lang) {
 			page = rest
 		}
 		fixed := rel == mod.ManifestName || rel == "main.star" || rel == mod.MissionsFile || rel == testPlayMap

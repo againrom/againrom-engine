@@ -326,7 +326,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 				}
 				v, ok := look(k)
 				if !ok {
-					return bad(p.line, "%s names text key %q, which text/%s/strings.toml and text/en/strings.toml do not hold", p.key, k, lang)
+					return bad(p.line, "%s names text key %q, which %s and %s do not hold", p.key, k, StringsFile(lang), StringsFile(locale.Fallback))
 				}
 				*dst = v
 				return nil
@@ -577,11 +577,11 @@ func (m *Mission) ReadFiles(dir string) error {
 func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map[string]bool, err error) {
 	if lang == "" {
 		lang = path.Base(m.Texts)
-		if lang != "en" && lang != "ru" {
-			lang = "en"
+		if !locale.Known(lang) {
+			lang = locale.Fallback
 		}
 	}
-	if lang != "en" && lang != "ru" {
+	if !locale.Known(lang) {
 		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}
 	otherLang := locale.Other(lang)
@@ -592,7 +592,7 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 	if m.Texts != "" {
 		declared := strings.ReplaceAll(m.Texts, "{lang}", lang)
 		folders = append(folders, declared)
-		if tail := path.Base(declared); tail == "en" || tail == "ru" {
+		if tail := path.Base(declared); locale.Known(tail) {
 			fallback = path.Dir(declared)
 		}
 		template := m.textsTemplate

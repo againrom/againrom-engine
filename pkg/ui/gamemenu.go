@@ -278,7 +278,7 @@ func gameMenuAccelerator(label string, fallback byte, selector int) byte {
 // original's own fold clauses reach it.
 func gameMenuLower(c byte, selector int) byte {
 	c = lowerASCII(c)
-	if locale.CodePageOf(selector) != 866 {
+	if locale.CodePageOf(selector) != locale.DOSCyrillic {
 		return c
 	}
 	switch {

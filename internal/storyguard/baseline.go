@@ -3172,7 +3172,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1674,
+		"longcommentgroups":      1673,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3615,5 +3615,5 @@ var Committed = Baseline{
 	// internal/archtest/creatureaim_test.go, and this note.
 
 	// It fell: the deformation picture is a capability row.
-	CommentBytes: 10079565,
+	CommentBytes: 10079436,
 }

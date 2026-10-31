@@ -53,8 +53,8 @@ var allow = map[string][]string{
 	"pkg/formats/fame": {},
 	// textinput is a formats leaf because CP1251 conversion is a byte-format
 	// concern. It may use the formats tier's narrowly-scoped x/text grant but
-	// cannot reach UI or game state.
-	"pkg/formats/textinput": {},
+	// cannot reach UI or game state; pkg/locale answers the font remap.
+	"pkg/formats/textinput": {"pkg/locale"},
 	// The item-name leaf pairs itemname.bin's key array with itemname.txt's
 	// line array and applies no code-page conversion of its own (0151 T12,
 	// ITEM-DISPNAME-036): a line is stored as the bytes the file ships, for
@@ -194,7 +194,7 @@ var allow = map[string][]string{
 	// the authored node identities from formats/alm, reads the builder's joins
 	// from pkg/mapload and observes the resulting world through pkg/sim. Those
 	// four tiers are the evidence chain; the tool opens no lower archive leaf.
-	"cmd/scriptcoverage": {"pkg/formats/alm", "pkg/game", "pkg/mapload", "pkg/sim"},
+	"cmd/scriptcoverage": {"pkg/base", "pkg/formats/alm", "pkg/game", "pkg/locale", "pkg/mapload", "pkg/sim"},
 	// savecheck drives 0143's save/load loop against a real install in two
 	// processes. It names the wiring tier for the front end and the store,
 	// and pkg/sim for the world it reads a tick and a hash off — the same

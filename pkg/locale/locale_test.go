@@ -1,6 +1,9 @@
 package locale
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Each lookup reaches the one record of its language, and an unknown key
 // reaches none.
@@ -36,11 +39,67 @@ func TestLookupsReachOneRecordPerLanguage(t *testing.T) {
 func TestShippedRecords(t *testing.T) {
 	en, _ := ByEntry("english")
 	ru, _ := ByEntry("russian")
-	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en", Counterpart: "ru"}) {
+	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123}) {
 		t.Fatalf("english = %+v", en)
 	}
-	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: "en"}) {
+	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: "en", SecondSaveNameLimit: 127}) {
 		t.Fatalf("russian = %+v", ru)
+	}
+	if WindowsCyrillic != 1251 || DOSCyrillic != 866 {
+		t.Fatalf("cyrillic code pages = %d, %d", WindowsCyrillic, DOSCyrillic)
+	}
+}
+
+func TestKnownIsTheLanguageSet(t *testing.T) {
+	for _, l := range All() {
+		if !Known(l.Code) {
+			t.Errorf("Known(%q) = false for a table row", l.Code)
+		}
+		if Known(l.Entry) || Known(l.BaseID) || Known(strings.ToUpper(l.Code)) || Known(l.Code+" ") {
+			t.Errorf("Known accepted a spelling of %q that is not its code", l.Code)
+		}
+	}
+	for _, code := range []string{"", "de", "EN", "en-US", "rom1-ru", "english", "/"} {
+		if Known(code) {
+			t.Errorf("Known(%q) = true", code)
+		}
+	}
+}
+
+func TestFallbackIsARowAndOfEntryFallsBackToIt(t *testing.T) {
+	ref, ok := ByCode(Fallback)
+	if !ok || !Known(Fallback) {
+		t.Fatal("the fallback has no record")
+	}
+	for _, l := range All() {
+		if OfEntry(l.Entry) != l {
+			t.Errorf("OfEntry(%q) is not its row", l.Entry)
+		}
+	}
+	for _, entry := range []string{"", "klingon", "English", "en"} {
+		if OfEntry(entry) != ref {
+			t.Errorf("OfEntry(%q) is not the fallback row", entry)
+		}
+	}
+}
+
+func TestSecondSaveNameLimitPerRow(t *testing.T) {
+	want := map[string]int{"english": 123, "russian": 127}
+	for _, l := range All() {
+		w, ok := want[l.Entry]
+		if !ok {
+			t.Errorf("row %q has no expected limit; state it", l.Entry)
+			continue
+		}
+		if l.SecondSaveNameLimit != w {
+			t.Errorf("%q limit = %d, want %d", l.Entry, l.SecondSaveNameLimit, w)
+		}
+		if OfEntry(l.Entry).SecondSaveNameLimit != w {
+			t.Errorf("%q limit through OfEntry differs", l.Entry)
+		}
+	}
+	if OfEntry("").SecondSaveNameLimit != 123 || OfEntry("klingon").SecondSaveNameLimit != 123 {
+		t.Error("an unknown entry did not read the English limit")
 	}
 }
 

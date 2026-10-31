@@ -279,7 +279,7 @@ func writeTestMod(profile RuntimeProfile, root string, m mod.Mission, plan *miss
 		}
 		return fenceEditorWrite(root, dir, "Test play")
 	})
-	lang := "en"
+	lang := locale.Fallback
 	if l, ok := locale.ByBaseSuffix(BaseID(InspectInstall(root))); ok {
 		lang = l.Code
 	}

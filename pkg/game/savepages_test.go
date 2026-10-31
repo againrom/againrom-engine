@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"againrom/pkg/base"
+	"againrom/pkg/locale"
 	"againrom/pkg/ui"
 )
 
@@ -76,6 +78,23 @@ func TestSecondGamePagesAskDeleteInTheQuestionWindow(t *testing.T) {
 	for name, c := range map[string]ui.PageConfirm{"load": p.Load.Confirm, "save": p.Save.Confirm} {
 		if c.Window != secondPageQuestion || c.Window.Size != image.Pt(288, 224) || c.Yes != "Yes" || c.No != "No" {
 			t.Fatalf("%s page: window %+v, answers %q %q", name, c.Window, c.Yes, c.No)
+		}
+	}
+}
+
+func TestSecondSavePageNameLimitFollowsTheInstallLanguage(t *testing.T) {
+	want := map[string]int{"english": 123, "russian": 127, "": 123, "other": 123}
+	for _, l := range locale.All() {
+		if _, ok := want[l.Entry]; !ok {
+			t.Fatalf("no expected limit for the language %q", l.Entry)
+		}
+	}
+	for entry, limit := range want {
+		f := &FrontEnd{}
+		f.Archives = &Archives{Containers: townTextFS(t, nil), Base: base.Match{Profile: base.Profile{Language: entry}}}
+		p := secondSavePages(f)
+		if p.Save == nil || p.Save.NameLimit != limit {
+			t.Errorf("language %q: name limit %+v, want %d", entry, p.Save, limit)
 		}
 	}
 }

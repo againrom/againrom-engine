@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
+	"againrom/pkg/locale"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -204,11 +206,7 @@ func operationKeys() []operationKey {
 }
 
 func rootLabel(root string) string {
-	label := strings.ToLower(filepath.Base(filepath.Clean(root)))
-	if label == "en" || label == "ru" {
-		return label
-	}
-	return label
+	return strings.ToLower(filepath.Base(filepath.Clean(root)))
 }
 
 func missionNames(archives *game.Archives) ([]struct {
@@ -465,10 +463,18 @@ func markReachable(result *coverageResult, m *loadedMap, family string, raw int)
 // leaves 30 checks and 30 actions naming 10002..10006 unbuilt on both roots:
 // 100.alm unit 245 takes 10004, so action 39 is built (TRIG-MAPORD-107).
 func expectedTotals(label string) (checks, instants, triggers int) {
-	if label == "ru" {
-		return 648, 729, 397
+	l, ok := locale.ByCode(label)
+	if !ok {
+		l, _ = locale.ByCode(locale.Fallback)
 	}
-	return 650, 729, 398
+	t := expectedByBase[l.BaseID]
+	return t[0], t[1], t[2]
+}
+
+// expectedByBase is checks, instants, triggers per language record's base id.
+var expectedByBase = map[string][3]int{
+	base.ROM1EN: {650, 729, 398},
+	base.ROM1RU: {648, 729, 397},
 }
 
 func validateDenominator(result *coverageResult) error {

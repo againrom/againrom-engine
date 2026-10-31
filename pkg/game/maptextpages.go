@@ -50,7 +50,7 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 				}
 			} else if entry.Texts != "" {
 				root := entry.Texts
-				if tail := filepath.Base(root); tail == "en" || tail == "ru" {
+				if tail := filepath.Base(root); locale.Known(tail) {
 					root = filepath.ToSlash(filepath.Dir(root))
 				}
 				if err := readPageTree(x.mod.dir, root, files, false, x.pageLanguage()); err != nil {
@@ -140,7 +140,7 @@ func readPageTree(dir, root string, files map[string][]byte, strict bool, lang s
 
 func (x *MapInspector) pageLanguage() string {
 	if x.archives == nil {
-		return "en"
+		return locale.Fallback
 	}
 	return words.Language(x.archives.Base.Profile.Language)
 }
@@ -241,7 +241,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if len(pages) == 0 {
 		return writeEditedMap(root, source, path, data, overwrite, grants...)
 	}
-	if lang != "en" && lang != "ru" {
+	if !locale.Known(lang) {
 		return "", fmt.Errorf("unsupported page language %q", lang)
 	}
 	stage, err := os.MkdirTemp(parent, ".map-pages-")

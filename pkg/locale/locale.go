@@ -29,19 +29,42 @@ type Locale struct {
 	FontRemap bool
 	// Counterpart is the code of the paired language.
 	Counterpart string
+	// SecondSaveNameLimit is the second game's save-name box length (R2-ENGINE-443).
+	SecondSaveNameLimit int
 }
 
 // Fallback is the code of the reference language: the engine's own words are
 // written in it, and a lookup a language lacks reads it.
 const Fallback = "en"
 
+// The code pages Cyrillic text files and the font use.
+const (
+	WindowsCyrillic = 1251
+	DOSCyrillic     = 866
+)
+
 var table = [...]Locale{
-	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en", Counterpart: "ru"},
-	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: Fallback},
+	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123},
+	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: DOSCyrillic, WindowsCodePage: WindowsCyrillic, FontRemap: true, Counterpart: Fallback, SecondSaveNameLimit: 127},
 }
 
 // All is every known language, in table order.
 func All() []Locale { return append([]Locale(nil), table[:]...) }
+
+// Known reports whether code names an install language.
+func Known(code string) bool {
+	_, ok := ByCode(code)
+	return ok
+}
+
+// OfEntry is ByEntry's record, the Fallback's for an unknown entry.
+func OfEntry(entry string) Locale {
+	if l, ok := ByEntry(entry); ok {
+		return l
+	}
+	l, _ := ByCode(Fallback)
+	return l
+}
 
 // ByEntry is the language of a main archive language entry.
 func ByEntry(entry string) (Locale, bool) {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"againrom/pkg/locale"
 )
 
 // ScreensFile is the data file that declares screens. A mod loads it from its
@@ -300,7 +302,7 @@ func screenFrom(id, file string, t tomlTable, text func(string) (string, bool), 
 	resolve := func(key string, line int, what string, maxRunes int) (string, error) {
 		v, ok := text(key)
 		if !ok {
-			return "", bad(line, "text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile("en"))
+			return "", bad(line, "text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile(locale.Fallback))
 		}
 		if n := utf8.RuneCountInString(strings.TrimSpace(v)); n == 0 || n > maxRunes {
 			return "", bad(line, "the text of %q has %d characters; %s has 1 to %d", key, n, what, maxRunes)
@@ -388,7 +390,7 @@ func actionFrom(id, file string, t tomlTable, text func(string) (string, bool), 
 	resolve := func(key string, line int, what string) (string, error) {
 		v, ok := text(key)
 		if !ok {
-			return "", bad(line, "text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile("en"))
+			return "", bad(line, "text key %q is not in %s (nor in %s)", key, StringsFile(lang), StringsFile(locale.Fallback))
 		}
 		if n := utf8.RuneCountInString(strings.TrimSpace(v)); n == 0 || n > maxActionMenuRunes {
 			return "", bad(line, "the text of %q has %d characters; %s has 1 to %d", key, n, what, maxActionMenuRunes)
