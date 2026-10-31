@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.144.0
+
 ### For players
 
 - [ROM2] Monsters cast their spells as in the original: a monster with Summon now summons, and a monster's Teleport lands next to its target only from more than two cells away; closer in, it fights instead.
