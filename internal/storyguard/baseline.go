@@ -3599,5 +3599,10 @@ var Committed = Baseline{
 	// menuKey in pkg/ui/menurows.go, FixedKey in gamemenu.go, TownRootPanel
 	// in save.go, secondGameMenu in pkg/game/gamefiles.go, the new tests
 	// secondgamemenu_test.go in pkg/ui and pkg/game, and this note.
-	CommentBytes: 10056549,
+
+	// It rose for the creature book source: CreatureBookRow, CreatureBooks
+	// and their two values in pkg/mapload/spell.go, the both-games test in
+	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
+	// this note.
+	CommentBytes: 10057617,
 }

@@ -42,7 +42,9 @@ func dragonClanMission(t *testing.T, move uint16, classBooks bool) (*sim.World, 
 		}
 	}
 	table := *defs.Table
-	table.ClassCreatureBooks = classBooks
+	if classBooks {
+		table.CreatureBooks = mapload.ClassCellBooks
+	}
 	party := MissionPartyAs(false, defs.StartWeapon, defs.Bodies, &table)
 	ms, err := StartMissionFrom(m, "", 131, &table, mapload.DifficultyNormal, party)
 	if err != nil {

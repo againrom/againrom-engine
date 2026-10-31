@@ -32,9 +32,8 @@ type gameFiles struct {
 	// storedFormMerge keeps a plain item and a constructed one of the same
 	// code apart in a pack merge: no second-game claim states its equality.
 	storedFormMerge bool
-	// classCreatureBooks leaves Dragon and Daemon without the first game's
-	// fixed books: no second-game claim states them.
-	classCreatureBooks bool
+	// creatureBooks is the creature book source; nil is the first game's.
+	creatureBooks *mapload.CreatureBooks
 	// storedOwnWeight keeps a native Human's stored own weight in a SAVE
 	// instead of its worn weight: no second-game claim states the rule.
 	storedOwnWeight bool
@@ -182,6 +181,7 @@ var firstGameFiles = gameFiles{
 	},
 	unitKeys:        mapload.ClassUnitKeys,
 	freshPlayers:    mapload.SlotPlayers,
+	creatureBooks:   mapload.FirstGameCreatureBooks,
 	itemNameKeys:    ItemNameKeyAddress,
 	terrainCosts:    terrainCostsAddress,
 	planeCosts:      terrainCostsAddress,
@@ -225,7 +225,7 @@ var secondGameFiles = gameFiles{
 	spellArms:            mapload.SecondGameSpellArms,
 	freshPlayers:         mapload.NoFreshPlayers,
 	storedFormMerge:      true,
-	classCreatureBooks:   true,
+	creatureBooks:        mapload.ClassCellBooks,
 	storedOwnWeight:      true,
 	storedWeaponSpell:    true,
 	releasedSpellReadout: true,
