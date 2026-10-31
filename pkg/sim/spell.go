@@ -1927,8 +1927,7 @@ func (w *World) computerMageGroupSees(ci, vi int) bool {
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
 	stamp := w.groupSight(aiSight, members)
 	w.stampAttackNotices(stamp, members, false)
-	return w.sightShows(stamp, cellOf(&target)) &&
-		(!w.hasAttachedSpell(target.ID, w.armSpellID(15)) || w.groupDetectsInvisible(members, cellOf(&target)))
+	return w.sightShows(stamp, cellOf(&target)) && w.perceives(perception{purpose: perceiveGroup, members: members, target: vi})
 }
 
 func (w *World) beginBookSpellAt(ci int, x, y int32, spellID uint32) bool {

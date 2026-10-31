@@ -3172,7 +3172,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1678,
+		"longcommentgroups":      1677,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3604,5 +3604,5 @@ var Committed = Baseline{
 	// and their two values in pkg/mapload/spell.go, the both-games test in
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
-	CommentBytes: 10062458,
+	CommentBytes: 10062440,
 }
