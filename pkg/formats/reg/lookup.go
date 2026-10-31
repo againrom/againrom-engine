@@ -1,5 +1,7 @@
 package reg
 
+import "againrom/pkg/namefold"
+
 // Two-level typed accessors over a parsed Reg: a section, then a key inside
 // it. Neither level goes deeper than that — the full tree stays exported
 // (Reg.Root) for anything that needs to walk further.
@@ -8,37 +10,13 @@ package reg
 // folds with a-z (0x61-0x7A), and every other byte — including every byte
 // >= 0x80 — compares as itself. 0xC0 and 0xFF) — see plan.md DD11.
 
-// foldASCII maps 'A'-'Z' to 'a'-'z' and leaves every other byte, ASCII or
-// not, unchanged.
-func foldASCII(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
-		return b - 'A' + 'a'
-	}
-	return b
-}
-
-// nameEqualFold reports whether a and b are equal under the ASCII-only fold:
-// equal length, and equal at every position after foldASCII. Whole names are
-// compared, not a truncated prefix.
-func nameEqualFold(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if foldASCII(a[i]) != foldASCII(b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 // findChild returns the first child of n, in node-table order, whose Name
 // matches name under the ASCII-only fold, or nil if none does. The format
 // permits duplicate sibling names and assigns no meaning to one, so "first
 // in table order" is the rule two runs agree on.
 func findChild(n *Node, name string) *Node {
 	for _, c := range n.Children {
-		if nameEqualFold(c.Name, name) {
+		if namefold.ArchiveEqual(c.Name, name) {
 			return c
 		}
 	}

@@ -9,12 +9,13 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/res"
+	"againrom/pkg/namefold"
 )
 
 // Pack is the mod folder dir packed into one RES file, and its manifest.
 // Every folder and regular file of the mod goes in at its path, except names
 // that start with a dot, which no mod reader takes. Two paths equal without
-// case (foldKey: ASCII and CP866 Cyrillic), which a packed mod could not tell
+// case (namefold.ModTree: ASCII and CP866 Cyrillic), which a packed mod could not tell
 // apart, are refused naming both. A link or another
 // non-regular file, a file over MaxInstallFileBytes, and a name the RES
 // cannot hold (over res.MaxNameBytes bytes, or a character CP866 has no byte
@@ -99,12 +100,12 @@ func Pack(dir string) (Manifest, []byte, error) {
 	return e.Manifest, b, nil
 }
 
-// refuseFoldTwins refuses two entries whose paths are one name under foldKey,
-// naming both.
+// refuseFoldTwins refuses two entries whose paths are one name under
+// namefold.ModTree, naming both.
 func refuseFoldTwins(id string, entries []res.WriteEntry) error {
 	seen := map[string]string{}
 	for _, e := range entries {
-		k := foldKey(e.Path)
+		k := namefold.ModTree(e.Path)
 		if other, dup := seen[k]; dup {
 			return Source{Mod: id, File: e.Path}.Errorf("cannot be packed: names the same file as %s; names compare without case", other)
 		}

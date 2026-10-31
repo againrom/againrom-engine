@@ -40,6 +40,7 @@ Go module `againrom`. Library packages live under `pkg/`, executables under
 | video | `pkg/video/smacker` | pure-Go port of libsmacker: Smacker (`.smk`) bitstream/Huffman-tree/DPCM video and audio decode; no game or simulation dependencies |
 | words | `pkg/words` | the engine's own words: one strings table per language, keyed by message id, in the mod text layout |
 | locale | `pkg/locale` | the install languages: one record per language (archive entry, selector, table code, base id, code page, font remap) |
+| namefold | `pkg/namefold` | the resource name case folding policies: archive ASCII, mod tree, host Unicode |
 | ui | `pkg/ui` | user interface |
 | game | `pkg/game` | wire the engine together; top-level config |
 | cmd | `cmd/againrom` | the game entry point |
@@ -59,8 +60,8 @@ allow-map; the two must stay identical.
 
 | Package | May import (intra-module) | Notes |
 |---|---|---|
-| `pkg/formats/res` | — | stdlib + `golang.org/x/text` only |
-| `pkg/formats/reg` | — | **stdlib only**, enforced (`.reg` stores bytes and the parser converts none of them, so it takes no text-encoding dependency) |
+| `pkg/formats/res` | `pkg/namefold` | stdlib + `golang.org/x/text` + the name folding leaf |
+| `pkg/formats/reg` | `pkg/namefold` | **stdlib + the name folding leaf only**, enforced (`.reg` stores bytes and the parser converts none of them, so it takes no text-encoding dependency) |
 | `pkg/formats/alm` | — | stdlib + `golang.org/x/text` only |
 | `pkg/formats/spr256` | `pkg/formats/pal` | **stdlib only** (`.256` carries no strings) |
 | `pkg/formats/spr16` | `pkg/formats/pal` | **stdlib only**, enforced (neither 16-bit grammar carries text, so it takes no text-encoding dependency) |
@@ -70,8 +71,8 @@ allow-map; the two must stay identical.
 | `pkg/formats/wav` | — | **stdlib only**, enforced (a WAV carries no text the engine reads) |
 | `pkg/formats/winicon` | — | **stdlib only**, enforced (an icon carries no strings, so it takes no text-encoding dependency) |
 | `pkg/formats/itemname` | — | **stdlib only**, enforced (0151 T12: a line is stored as the shipped bytes with no code-page conversion — pkg/render/text applies the conversion per drawn byte instead — so this format takes no text-encoding dependency) |
-| `pkg/vfs` | `pkg/formats/res` | |
-| `pkg/data` | `pkg/vfs`, `pkg/formats/reg` | |
+| `pkg/vfs` | `pkg/formats/res`, `pkg/namefold` | |
+| `pkg/data` | `pkg/vfs`, `pkg/formats/reg`, `pkg/namefold` | |
 | `pkg/sim` | `pkg/random` | stdlib and the random leaf (determinism wall) |
 | `pkg/random` | — | **stdlib only**: a leaf that reads no clock and no operating-system state |
 | `pkg/intmath` | — | **stdlib only**: the one generic `Abs`; `pkg/sim` (tests too), `pkg/mapedit`, `pkg/render/terrain`, `pkg/audio`, `pkg/ui` and the check tools name it |
@@ -86,10 +87,11 @@ allow-map; the two must stay identical.
 | `pkg/audio` | `pkg/formats/wav` | resampling, positional gain (`Place`) and stereo mixing (`Stereo`) as plain data plus arithmetic; no slot, archive, listener or device is a concept this package knows, and pkg/ui supplies the one concrete `Player` this tree ships. WAV bytes decode through the WAV leaf |
 | `pkg/video` | `pkg/video/smacker` | stdlib-only leaf for ARV2 frames and bounded playback, decoding in-process through its own `pkg/video/smacker` port; the windows/386 installed-DLL adapter remains only as the `-cutscene-check` gate-time oracle; no UI, archive, game or simulation types |
 | `pkg/video/smacker` | — | third-party-derived codec leaf (libsmacker port): pure bitstream/Huffman/DPCM decode, no knowledge of a player, a stream protocol or a game; cannot import `pkg/video` back |
-| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random`, `pkg/words`, `pkg/locale`, `pkg/ui/systemclick`, `pkg/ui/heldkey` and `pkg/pathdialog` | audio devices, video-frame players and system input services are presentation leaves; none can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language; `pkg/locale` the install language's code page and font remap |
+| `pkg/ui` | `pkg/render` and anything under `pkg/render/`, plus `pkg/audio`, `pkg/video`, `pkg/random`, `pkg/words`, `pkg/locale`, `pkg/ui/systemclick`, `pkg/ui/heldkey`, `pkg/pathdialog` and `pkg/namefold` | audio devices, video-frame players and system input services are presentation leaves; none can reach game or simulation state. `pkg/words` gives the screens the engine's own words in the install's language; `pkg/locale` the install language's code page and font remap |
 | `pkg/pathdialog` | none | one system file/folder dialog builder shared by the editor and starter; Windows uses x/sys and macOS uses purego/objc; callers apply its result on their own UI loop |
 | `pkg/words` | `pkg/mod`, `pkg/locale` | reads its embedded tables through the mod text lookup (`mod.Lookup`), the one lookup engine and mod words share; no UI, game or simulation types |
 | `pkg/locale` | — | **stdlib only**: the table of install languages, one record per language |
+| `pkg/namefold` | — | **stdlib only**: the three resource name folding policies (archive ASCII, mod tree, host Unicode) |
 | `cmd/cutscenehelper` | `pkg/video` | separately built Windows/386 native adapter; the normal game remains amd64 |
 | `pkg/game` | any `pkg/*` | top library tier |
 | `cmd/againrom` | any `pkg/*` | the game |

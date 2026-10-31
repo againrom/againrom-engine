@@ -1,6 +1,9 @@
 package data
 
-import "againrom/pkg/formats/reg"
+import (
+	"againrom/pkg/formats/reg"
+	"againrom/pkg/namefold"
+)
 
 // One key table per registry, and one descriptor beside it.
 //
@@ -329,31 +332,6 @@ var (
 // hard error. Reading that false as "absent" would inherit silently over a
 // malformed key. So the section node and the key node are resolved here, over
 // Reg.Root, and classified against the key table's own kind.
-//
-// The ASCII-only fold is this package's own copy: reg's is unexported, and the
-// .reg format is frozen, so the copy cannot drift out from under us.
-
-// foldASCII maps 'A'-'Z' to 'a'-'z' and leaves every other byte, ASCII or not,
-// unchanged. A byte >= 0x80 compares as itself.
-func foldASCII(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
-		return b - 'A' + 'a'
-	}
-	return b
-}
-
-// nameEqualFold reports whether a and b are equal under the ASCII-only fold.
-func nameEqualFold(a, b string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if foldASCII(a[i]) != foldASCII(b[i]) {
-			return false
-		}
-	}
-	return true
-}
 
 // findChild returns the first child of n whose name matches under the fold, in
 // node-table order, or nil. The format permits duplicate sibling names and
@@ -364,7 +342,7 @@ func findChild(n *reg.Node, name string) *reg.Node {
 		return nil
 	}
 	for _, c := range n.Children {
-		if nameEqualFold(c.Name, name) {
+		if namefold.ArchiveEqual(c.Name, name) {
 			return c
 		}
 	}

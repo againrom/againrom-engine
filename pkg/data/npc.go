@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/namefold"
 )
 
 // npcSectionPrefix is the stem every per-NPC section of the scenario NPC
@@ -241,7 +242,7 @@ func (n *NPCDefs) Mercenary(id int32) (MercenaryTerms, bool) {
 // bounded by the int32 the placement record supplies it from, so a section
 // numbered past that range is skipped rather than folded onto another.
 func npcSubscript(name string) (int32, bool) {
-	if len(name) <= len(npcSectionPrefix) || !nameEqualFold(name[:len(npcSectionPrefix)], npcSectionPrefix) {
+	if len(name) <= len(npcSectionPrefix) || !namefold.ArchiveEqual(name[:len(npcSectionPrefix)], npcSectionPrefix) {
 		return 0, false
 	}
 	digits := name[len(npcSectionPrefix):]

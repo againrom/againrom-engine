@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/res"
 	"againrom/pkg/installpath"
+	"againrom/pkg/namefold"
 )
 
 // identityMax is the byte length an archive identity is cut to. It is a
@@ -468,16 +469,7 @@ func snapshotOf(a archiveReader) snapshot {
 //
 // Nothing is trimmed.
 func fold(s string) string {
-	b := []byte(s)
-	for i, c := range b {
-		switch {
-		case c == '\\':
-			b[i] = '/'
-		case c >= 'A' && c <= 'Z':
-			b[i] = c - 'A' + 'a'
-		}
-	}
-	return string(b)
+	return namefold.Archive(strings.ReplaceAll(s, `\`, "/"))
 }
 
 // cut splits a folded address into its leading segment and the remainder

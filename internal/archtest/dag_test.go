@@ -351,7 +351,7 @@ func TestUITierAllowanceIsPinned(t *testing.T) {
 	// pkg/ui/heldkey is its leaf that reads held keyboard keys.
 	// pkg/pathdialog is the shared system path service; it imports no game state.
 	want := []string{"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath"}
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold"}
 
 	got, registered := allow["pkg/ui"]
 	if !registered {

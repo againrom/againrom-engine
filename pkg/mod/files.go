@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"againrom/pkg/locale"
+	"againrom/pkg/namefold"
 )
 
 // FilesDir is the folder of a mod that carries install files. Below it stand
@@ -88,13 +89,7 @@ func (d FileData) Empty() bool { return len(d.Files) == 0 }
 // FoldAddress is an install path as the archives compare it: ASCII letters
 // folded, backslashes read as slashes.
 func FoldAddress(a string) string {
-	b := []byte(strings.ReplaceAll(a, `\`, "/"))
-	for i, c := range b {
-		if c >= 'A' && c <= 'Z' {
-			b[i] = c - 'A' + 'a'
-		}
-	}
-	return string(b)
+	return namefold.Archive(strings.ReplaceAll(a, `\`, "/"))
 }
 
 // ReadInstallFiles reads the files/ folder of mod id at dir and answers the

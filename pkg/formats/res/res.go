@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"golang.org/x/text/encoding/charmap"
+
+	"againrom/pkg/namefold"
 )
 
 // Layout constants for the ROM1 .res container (little-endian). See the package
@@ -268,35 +270,15 @@ func DecodeCP866(raw []byte) string {
 	return string(s)
 }
 
-// foldASCII maps 'A'-'Z' to 'a'-'z' and leaves every other byte, ASCII or
-// not, unchanged.
-//
-// This is written by hand over bytes rather than delegated to
-// strings.ToLower/EqualFold. Entry names decode as CP866 (see decodeName),
-// so a byte >= 0x80 becomes a Cyrillic (or other) rune, and a Unicode fold
-// would collapse pairs the original engine keeps distinct; strings.EqualFold
-// has that same defect plus two more (the Kelvin sign U+212A folds to 'k',
-// the long s U+017F to 's'). The contract folds ASCII A-Z alone and nothing
-// else. See pkg/formats/reg/lookup.go for the identical idiom, applied there
-// to a byte-wise comparison instead of a folded string.
-func foldASCII(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
-		return b - 'A' + 'a'
-	}
-	return b
-}
-
 // normalize maps a lookup path or an archive path to the canonical index key:
-// '\' becomes '/', leading/trailing '/' are trimmed, and case is folded byte
-// by byte via foldASCII — only 'A'-'Z' changes; every other byte, including
-// every byte of a multi-byte UTF-8 sequence decoded from a high CP866 byte,
-// compares as itself.
+// '\' becomes '/', leading/trailing '/' are trimmed, and case is folded by the
+// archive policy (namefold.Archive) — only 'A'-'Z' changes; every other byte,
+// including every byte of a multi-byte UTF-8 sequence decoded from a high
+// CP866 byte, compares as itself. Entry names decode as CP866 (see
+// decodeName), so a Unicode fold would collapse pairs the original engine
+// keeps distinct.
 func normalize(p string) string {
 	p = strings.ReplaceAll(p, "\\", "/")
 	p = strings.Trim(p, "/")
-	b := []byte(p)
-	for i, c := range b {
-		b[i] = foldASCII(c)
-	}
-	return string(b)
+	return namefold.Archive(p)
 }

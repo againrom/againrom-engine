@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/namefold"
 )
 
 // EventTextPath is the address campaign mission n's event number e is read at.
@@ -91,24 +92,14 @@ const (
 // behaviour any shipped map has.
 const ReservedMessageNumber int32 = 255
 
-// asciiFold is b with an ASCII capital folded to lower case and every other byte
-// left EXACTLY as it is.
+// containsFold reports whether s contains lower, comparing with ASCII case
+// folded (namefold.ArchiveByte). lower MUST already be lower case.
 //
 // IT IS ASCII AND NOT UNICODE, and that is a correctness requirement rather than
 // a shortcut. A payload is the game's own byte string in the game's own code
 // page, so it is not UTF-8: running it through a Unicode case mapping decodes
 // every Cyrillic byte as an error rune and REPLACES it, changing the bytes and
-// the length of the very thing being searched. Nothing this file looks for is
-// outside ASCII, so folding only ASCII is both sufficient and lossless.
-func asciiFold(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
-		return b + ('a' - 'A')
-	}
-	return b
-}
-
-// containsFold reports whether s contains lower, comparing with ASCII case
-// folded. lower MUST already be lower case.
+// the length of the very thing being searched.
 //
 // It walks rather than allocating a folded copy, so the file test can be asked
 // of a whole payload without copying it.
@@ -119,7 +110,7 @@ func containsFold(s, lower string) bool {
 	for i := 0; i+len(lower) <= len(s); i++ {
 		j := 0
 		for ; j < len(lower); j++ {
-			if asciiFold(s[i+j]) != lower[j] {
+			if namefold.ArchiveByte(s[i+j]) != lower[j] {
 				break
 			}
 		}
@@ -136,7 +127,7 @@ func indexFold(s, lower string) int {
 	for i := 0; i+len(lower) <= len(s); i++ {
 		j := 0
 		for ; j < len(lower); j++ {
-			if asciiFold(s[i+j]) != lower[j] {
+			if namefold.ArchiveByte(s[i+j]) != lower[j] {
 				break
 			}
 		}

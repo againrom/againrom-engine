@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"time"
+
+	"againrom/pkg/namefold"
 )
 
 // headlessNow is the timestamp the first headless dispatch on an App carries.
@@ -284,16 +286,7 @@ func (a *App) HeadlessNoticeOpen() bool {
 }
 
 func equalFoldTrim(a, b string) bool {
-	a, b = trimASCIISpace(a), trimASCIISpace(b)
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if foldASCII(a[i]) != foldASCII(b[i]) {
-			return false
-		}
-	}
-	return true
+	return namefold.ArchiveEqual(trimASCIISpace(a), trimASCIISpace(b))
 }
 
 func trimASCIISpace(s string) string {
@@ -304,11 +297,4 @@ func trimASCIISpace(s string) string {
 		s = s[:len(s)-1]
 	}
 	return s
-}
-
-func foldASCII(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
-		return b + ('a' - 'A')
-	}
-	return b
 }

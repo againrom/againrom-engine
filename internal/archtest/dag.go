@@ -38,8 +38,8 @@ const starlarkModule = "go.starlark.net"
 // is a fail-closed violation, so packages added later cannot silently escape the
 // DAG.
 var allow = map[string][]string{
-	"pkg/formats/res":     {},
-	"pkg/formats/reg":     {},
+	"pkg/formats/res":     {"pkg/namefold"},
+	"pkg/formats/reg":     {"pkg/namefold"},
 	"pkg/formats/alm":     {},
 	"pkg/formats/spr256":  {"pkg/formats/pal"},
 	"pkg/formats/spr16":   {"pkg/formats/pal"},
@@ -72,8 +72,8 @@ var allow = map[string][]string{
 	// The graph copier is a reflection leaf a decoder uses to hand each
 	// reader its own copy of one decoded value.
 	"pkg/graphcopy": {},
-	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath"},
-	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules"},
+	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath", "pkg/namefold"},
+	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold"},
 	"pkg/sim":       {"pkg/rules", "pkg/random", "pkg/intmath"},
 	"pkg/rules":     {},
 	"pkg/intmath":   {},
@@ -152,7 +152,7 @@ var allow = map[string][]string{
 	// this a one-directional grant rather than the audio leaf learning what
 	// a viewer, a camera or an entity is.
 	"pkg/ui": {"pkg/render", "pkg/render/", "pkg/audio", "pkg/video", "pkg/random", "pkg/words", "pkg/locale",
-		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath"},
+		"pkg/ui/systemclick", "pkg/ui/heldkey", "pkg/pathdialog", "pkg/editormcp", "pkg/intmath", "pkg/namefold"},
 	"pkg/pathdialog": {},
 	// The system's double-click setting is a platform leaf: it reads the
 	// operating system and knows no screen.
@@ -397,7 +397,7 @@ var allow = map[string][]string{
 	// town catalog's entry format from pkg/town, and reads and writes a
 	// packed mod's RES through pkg/formats/res.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res"},
+	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res", "pkg/namefold"},
 	// The install languages: one record per language, read by every surface
 	// that depends on the install's language. A stdlib-only leaf.
 	"pkg/locale": {},
@@ -411,7 +411,10 @@ var allow = map[string][]string{
 	// The install name resolver maps a name under an install root onto the
 	// file on disk whatever the case of its name. It imports nothing of this
 	// tree; every reader of an install file builds its path through it.
-	"pkg/installpath": {},
+	"pkg/installpath": {"pkg/namefold"},
+	// The resource name folding policies: archive ASCII, mod tree and host
+	// Unicode. A stdlib-only leaf every name comparison names its policy in.
+	"pkg/namefold": {},
 	// The mod runtime runs a mod's Starlark script and hands the simulation
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.

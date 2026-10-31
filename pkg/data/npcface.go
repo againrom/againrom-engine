@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/namefold"
 )
 
 // What a dialogue speaker looks like: which of the two kinds of picture an NPC
@@ -158,7 +159,7 @@ const (
 // state the key at all, and the gate this feeds asks only whether it is stated.
 func hasKey(sec *reg.Node, key string) bool {
 	for _, k := range sec.Children {
-		if nameEqualFold(k.Name, key) {
+		if namefold.ArchiveEqual(k.Name, key) {
 			return true
 		}
 	}

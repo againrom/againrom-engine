@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"againrom/pkg/formats/res"
+	"againrom/pkg/namefold"
 )
 
 // PackedPrefix and PackedExt frame the file name of a packed mod in the mods
@@ -237,12 +238,12 @@ type packedNode struct {
 type packedTree struct {
 	a     packedArchive
 	root  *packedNode
-	byKey map[string]*packedNode // path folded by foldKey
+	byKey map[string]*packedNode // path folded by namefold.ModTree
 }
 
 // newPackedTree indexes a RES. A name that is empty, "." or "..", or holds
 // a slash or a backslash, and two names of one folder that differ only by
-// case (foldKey) are refused: no folder can hold them.
+// case (namefold.ModTree) are refused: no folder can hold them.
 func newPackedTree(a packedArchive) (*packedTree, error) {
 	nodes, roots := a.Tree()
 	t := &packedTree{a: a, root: &packedNode{index: -1, name: ".", path: ".", Dir: true}, byKey: map[string]*packedNode{}}
@@ -257,7 +258,7 @@ func newPackedTree(a packedArchive) (*packedTree, error) {
 			if parent.path != "." {
 				p = parent.path + "/" + n.Name
 			}
-			key := foldKey(p)
+			key := namefold.ModTree(p)
 			if other, dup := t.byKey[key]; dup {
 				return fmt.Errorf("the archive holds %s and %s, one name in a folder", other.path, p)
 			}
@@ -277,30 +278,6 @@ func newPackedTree(a packedArchive) (*packedTree, error) {
 		return nil, err
 	}
 	return t, nil
-}
-
-// foldRune is r with the case a Windows folder ignores, for every letter a
-// RES name can hold: ASCII A-Z, the Cyrillic capitals of CP866 (А-Я, Ё, Є, Ї,
-// Ў) to their small letters.
-func foldRune(r rune) rune {
-	switch {
-	case r >= 'A' && r <= 'Z':
-		return r - 'A' + 'a'
-	case r >= 0x410 && r <= 0x42F:
-		return r + 0x20
-	case r == 0x401 || r == 0x404 || r == 0x407:
-		return r + 0x50
-	case r == 0x40E:
-		return 0x45E
-	}
-	return r
-}
-
-// foldKey is a path with every letter of a RES name folded as foldRune does,
-// the way a packed mod matches names. The game's own reading of an install's
-// RES files folds ASCII only and does not use it.
-func foldKey(p string) string {
-	return strings.Map(foldRune, p)
 }
 
 // dottedPath reports whether a clean relative path has a component starting
@@ -326,7 +303,7 @@ func (t *packedTree) lookup(name string) (*packedNode, bool) {
 	if name == "." {
 		return t.root, true
 	}
-	n, ok := t.byKey[foldKey(name)]
+	n, ok := t.byKey[namefold.ModTree(name)]
 	return n, ok
 }
 

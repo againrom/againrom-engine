@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/pkg/formats/res"
+	"againrom/pkg/namefold"
 )
 
 // packFixture is a mod folder with every kind of file a mod reader takes:
@@ -318,7 +319,7 @@ func TestPackedNamesFoldEveryLetterARESCanHold(t *testing.T) {
 		}
 	}
 	for _, p := range []string{"карта.star", "КАРТА.star", "ЁЛКА.star", "ёлка.star", "ЄЇЎ", "єїў"} {
-		if foldKey(p) != foldKey(strings.ToLower(p)) {
+		if namefold.ModTree(p) != namefold.ModTree(strings.ToLower(p)) {
 			t.Errorf("%q not folded as its lower case", p)
 		}
 	}

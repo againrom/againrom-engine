@@ -19,6 +19,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"againrom/pkg/namefold"
 )
 
 // ErrAmbiguous is matched by every AmbiguousError.
@@ -115,7 +117,7 @@ func hostJoin(root, rel string) string {
 
 // Fold is the comparison form of a name: Unicode lower case. Two names are the
 // same install name when their Fold values are equal.
-func Fold(name string) string { return strings.ToLower(name) }
+func Fold(name string) string { return namefold.Host(name) }
 
 // segments splits rel, with either separator, into its names. An empty name,
 // "." or ".." is refused: an install-relative name never leaves its root.

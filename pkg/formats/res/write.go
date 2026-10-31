@@ -10,6 +10,8 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding/charmap"
+
+	"againrom/pkg/namefold"
 )
 
 // MaxNameBytes is the longest node name: the 16-byte name field holds the
@@ -97,7 +99,7 @@ func Write(entries []WriteEntry) ([]byte, error) {
 			last := i == len(parts)-1
 			var found *writeNode
 			for _, c := range at.children {
-				if bytes.Equal(foldBytes(c.name), foldBytes(name)) {
+				if bytes.Equal(namefold.ArchiveBytes(c.name), namefold.ArchiveBytes(name)) {
 					found = c
 				}
 			}
@@ -123,7 +125,7 @@ func Write(entries []WriteEntry) ([]byte, error) {
 		n := queue[0]
 		queue = queue[1:]
 		sort.Slice(n.children, func(i, j int) bool {
-			return bytes.Compare(foldBytes(n.children[i].name), foldBytes(n.children[j].name)) < 0
+			return bytes.Compare(namefold.ArchiveBytes(n.children[i].name), namefold.ArchiveBytes(n.children[j].name)) < 0
 		})
 		first[n] = len(order)
 		order = append(order, n.children...)
@@ -170,13 +172,4 @@ func Write(entries []WriteEntry) ([]byte, error) {
 		out = append(out, rec...)
 	}
 	return out, nil
-}
-
-// foldBytes is b with ASCII A-Z folded, the fold the linear lookup uses.
-func foldBytes(b []byte) []byte {
-	out := make([]byte, len(b))
-	for i, c := range b {
-		out[i] = foldASCII(c)
-	}
-	return out
 }
