@@ -36,7 +36,7 @@ func (mw *mapWorld) keepFlightLook(ids []uint16, look flightLook) {
 }
 
 func (mw *mapWorld) keepCastLook(ev sim.CastEvent, index int) {
-	look := flightLook{seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tag: index % chainTagCount}
+	look := flightLook{seed: mw.presentationSeed(liveCastIdentity(ev)), tag: index % chainTagCount}
 	for _, v := range ev.Victims {
 		look.links = append(look.links, image.Pt(int(v.X), int(v.Y)))
 	}
@@ -46,8 +46,8 @@ func (mw *mapWorld) keepCastLook(ev sim.CastEvent, index int) {
 	mw.keepFlightLook(ev.Records, look)
 }
 
-func (mw *mapWorld) keepScriptCastLook(ev sim.ScriptCastEvent, seed uint32) {
-	look := flightLook{seed: seed}
+func (mw *mapWorld) keepScriptCastLook(ev sim.ScriptCastEvent, id presentationIdentity) {
+	look := flightLook{seed: mw.presentationSeed(id)}
 	if mw.world.SpellArm(ev.Spell) == 13 {
 		look.links = []image.Point{image.Pt(int(ev.ToX), int(ev.ToY))}
 	} else {
@@ -103,7 +103,7 @@ func (mw *mapWorld) recordPaths(p sim.SavedProjectile, owner uint32) []spellBolt
 		if mw.spells().Effect(p.Picture).Chain {
 			return nil
 		}
-		look = flightLook{seed: uint32(p.ID) + 1}
+		look = flightLook{seed: mw.presentationSeed(presentationIdentity{rule: seedRestored, record: p.ID})}
 		look.links = []image.Point{image.Pt(floorDiv(int(p.ActionX), ui.ShotScale), floorDiv(int(p.ActionY), ui.ShotScale))}
 	}
 	cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))

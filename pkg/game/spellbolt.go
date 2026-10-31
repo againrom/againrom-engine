@@ -125,7 +125,7 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.Projectile
 			} else {
 				mw.healBursts = append(mw.healBursts, healBurst{at: to,
 					picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
-					seed: mw.visualCastSeed(ev.Caster, ev.Target, int(ev.Spell), ev.AtCell), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
+					seed: mw.presentationSeed(liveCastIdentity(ev)), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
 			}
 		}
 	}
@@ -151,10 +151,8 @@ func (mw *mapWorld) effectTileSize(id sim.EntityID) int {
 // tick for every row that reaches exactly one.
 const chainTagCount = 7
 
-// castSeed is one cast object's figure seed. It is a function of the caster,
-// the target and the spell, so the same replay draws the same bolt and two
-// casts in one tick do not draw one figure twice. A book cast takes the three
-// off its observation and a weapon-borne release off the attacking entity.
+// castSeed is the live seed rule: a replay draws the same bolt, and two casts
+// in one tick differ. A weapon-borne release's caster is the attacker.
 func castSeed(caster, target sim.EntityID, spell int) uint32 {
 	return uint32(caster)*2654435761 + uint32(target)*2246822519 + uint32(spell) + 1
 }

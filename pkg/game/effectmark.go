@@ -137,7 +137,7 @@ func (mw *mapWorld) refreshProjectileMark(m sim.ProjectileMark) {
 		return
 	}
 	el := markElement{Entity: m.Target, Kind: kind, Picture: kind, Count: healBurstLife, Transient: true,
-		Seed: castSeed(0, mw.visualActorLabel(m.Target), (kind-8)/2), Identity: targetMarkIdentity(e)}
+		Seed: mw.presentationSeed(presentationIdentity{rule: seedTargetMark, target: m.Target, spell: (kind - 8) / 2}), Identity: targetMarkIdentity(e)}
 	for i, old := range mw.markElements {
 		if old.Entity == m.Target && old.Kind == kind {
 			mw.markElements[i] = el

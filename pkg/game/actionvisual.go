@@ -115,6 +115,45 @@ func (mw *mapWorld) visualCastSeed(caster, target sim.EntityID, spell int, atCel
 	}
 	return castSeed(caster, target, spell)
 }
+
+type presentationSeedRule uint8
+
+const (
+	seedLive presentationSeedRule = iota
+	seedScript
+	seedTargetMark // caster 0 is literal
+	seedRestored   // SAV-1202
+)
+
+type presentationIdentity struct {
+	rule           presentationSeedRule
+	caster, target sim.EntityID
+	spell          int
+	atCell         bool
+	from, to       image.Point
+	index          int
+	record         uint16
+}
+
+func liveCastIdentity(ev sim.CastEvent) presentationIdentity {
+	return presentationIdentity{rule: seedLive, caster: ev.Caster, target: ev.Target, spell: int(ev.Spell), atCell: ev.AtCell}
+}
+
+// presentationSeed is the one figure-seed resolver.
+func (mw *mapWorld) presentationSeed(id presentationIdentity) uint32 {
+	switch id.rule {
+	case seedScript:
+		return uint32(id.from.X|id.from.Y<<8) ^ uint32(id.to.X|id.to.Y<<8)<<16 ^ uint32(id.index+1)
+	case seedTargetMark:
+		return castSeed(0, mw.visualActorLabel(id.target), id.spell)
+	case seedRestored:
+		return restoredDefaultSeed(id.record)
+	}
+	return mw.visualCastSeed(id.caster, id.target, id.spell, id.atCell)
+}
+
+func restoredDefaultSeed(record uint16) uint32 { return uint32(record) + 1 }
+
 func validateCastRuns(runs []SnapshotCastRun) error {
 	seen := map[sim.EntityID]bool{}
 	for _, r := range runs {
