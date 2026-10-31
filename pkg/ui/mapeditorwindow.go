@@ -33,7 +33,9 @@ const (
 	popMenu
 	popBar
 	popStatus
-	popArea // a trigger area's label on the map
+	popArea  // a trigger area's label on the map
+	popTree  // the left side panel's tree of the map
+	popProps // the right side panel while it hosts no window
 )
 
 // editorChrome is the chrome's state: the fonts, where each popup stands, the
@@ -60,16 +62,16 @@ type editorChrome struct {
 	menuModel              *Picker
 	drag                   editorPopupID
 	dragFrom               image.Point
-	promptShift            image.Point              // a dragged prompt's offset from its own place
-	slack                  [popArea + 1]bool        // a popup that was dragged may hang past the window's edges
-	sizes                  [popArea + 1]image.Point // the size a popup was dragged to; zero is its natural size
-	minWide                [popArea + 1]int         // the width a popup had when it was first sized
-	sizeKey                [popArea + 1]string      // the window a popup was sized for
-	promptAbs              image.Point              // a sized prompt's corner
-	listFit                int                      // the list rows a sized list popup fits
-	cursorShape            ebiten.CursorShapeType   // the pointer shape last set on the window
-	dragEdge               popupEdge                // the border a resize drag holds; zero is a move
-	dragCard               int                      // the card row, plus one, a drag holds by its grip; zero is none
+	promptShift            image.Point               // a dragged prompt's offset from its own place
+	slack                  [popProps + 1]bool        // a popup that was dragged may hang past the window's edges
+	sizes                  [popProps + 1]image.Point // the size a popup was dragged to; zero is its natural size
+	minWide                [popProps + 1]int         // the width a popup had when it was first sized
+	sizeKey                [popProps + 1]string      // the window a popup was sized for
+	promptAbs              image.Point               // a sized prompt's corner
+	listFit                int                       // the list rows a sized list popup fits
+	cursorShape            ebiten.CursorShapeType    // the pointer shape last set on the window
+	dragEdge               popupEdge                 // the border a resize drag holds; zero is a move
+	dragCard               int                       // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -151,10 +153,18 @@ func (e *MapEditor) barHeight() int {
 	return entries[len(entries)-1].rect.Max.Y + 3
 }
 
-// mapArea is the window rectangle the map fills.
+// mapArea is the window rectangle the map fills: the window between the bar
+// and the status strip, less the open side panels.
 func (e *MapEditor) mapArea() image.Rectangle {
 	top := e.barHeight()
-	return image.Rect(0, top, e.window.X, max(top+1, e.window.Y-e.barRowHeight()))
+	shown := e.panelsShown()
+	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], e.mapBottom(top))
+}
+
+// mapBottom is the map's and the side panels' bottom edge: the status
+// strip's top.
+func (e *MapEditor) mapBottom(top int) int {
+	return max(top+1, e.window.Y-e.barRowHeight())
 }
 
 func (e *MapEditor) statusRect() image.Rectangle {
@@ -376,6 +386,8 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
 			{"records", e.word("editor.view.records")},
+			{sidePanels[panelLeft].key, mark(e.panelsShown()[panelLeft] > 0, e.word(sidePanels[panelLeft].titleWord))},
+			{sidePanels[panelRight].key, mark(e.panelsShown()[panelRight] > 0, e.word(sidePanels[panelRight].titleWord))},
 		}
 	case "tools":
 		items := []menuItem{{"newtrigger", e.word("editor.tools.newtrigger")}}
@@ -795,7 +807,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	}
 	m := e.syncList(kind, e.listWindow())
 	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
+		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
 	}
 	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
 	s.ListText = func(row, width int) string {
@@ -977,6 +989,7 @@ func (e *MapEditor) catalogOpen() {
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
 func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
+	e.panels.hostable = false
 	if e.modWindow && !e.prompt.open() && !e.catalog {
 		return e.modSpec()
 	}
@@ -1000,6 +1013,9 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
+	// The record's own window and a script record's window stand in the
+	// right panel while it is shown; the windows above float.
+	e.panels.hostable = true
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
 		e.obj.data = -1
@@ -1007,10 +1023,15 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		return s, links, true
 	}
 	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
+		e.objectAt, e.objPlaced = image.Pt(e.mapArea().Max.X-8-420, e.barHeight()+8), true
 	}
 	r := e.doc.Records[e.selected]
 	e.loadObject()
+	// The person window's bag is the full inventory: it keeps its larger
+	// floating window.
+	if e.nativeUnitWindow() && e.obj.section == 2 {
+		e.panels.hostable = false
+	}
 	if e.obj.move != nil {
 		r.Cell = *e.obj.move
 	}
@@ -1283,12 +1304,13 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawHeightLabels(pic)
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
+	e.drawSidePanels(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawGoalLinks(pic, s)
 		e.drawBrushPreview(pic, s)
 	}
-	if s, _, ok := e.objectSpec(); ok {
+	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawObjectPreview(pic, s)
 	}
@@ -1548,11 +1570,22 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.areaDropdownHit(p)) {
 		return popPrompt
 	}
-	if s, _, ok := e.objectSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
+	object, _, objectOK := e.objectSpec()
+	hosted := e.panels.hosted
+	if objectOK && (!hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
 		return popObject
 	}
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popList
+	}
+	if r := e.sidePanelRect(panelRight); p.In(r) {
+		if objectOK && hosted {
+			return popObject
+		}
+		return popProps
+	}
+	if p.In(e.sidePanelRect(panelLeft)) {
+		return popTree
 	}
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
 		return popArea
@@ -1573,6 +1606,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
 	pressed := in.PrimaryDown && !e.down
+	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
+		e.tree.typing = false
+	}
 	if e.drag == popNone && e.inputPointer(in) {
 		return true
 	}
@@ -1596,6 +1632,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		} else {
 			if e.dragCard != 0 {
 				e.dropCard()
+			}
+			if _, ok := e.panelOf(e.drag); ok && e.dragEdge != 0 {
+				e.savePanels()
 			}
 			e.drag, e.dragEdge, e.dragCard = popNone, 0, 0
 			e.uiDown = false
@@ -1675,6 +1714,10 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 		if e.menuModel != nil {
 			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))
 		}
+	case popTree:
+		if e.tree.model != nil {
+			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
+		}
 	case popPrompt:
 		if !e.areaWheel(wheel) {
 			e.addWheel(wheel)
@@ -1684,10 +1727,14 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 
 // chromePress is a press on a chrome part.
 func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool) {
-	if e.resizePress(target, p) || e.titlePress(target, p) {
+	if e.resizePress(target, p) || e.panelTitlePress(target, p, double) || e.titlePress(target, p) {
 		return
 	}
 	switch target {
+	case popTree:
+		e.treePress(p)
+	case popProps:
+		e.propsPress(p)
 	case popMenu:
 		b, _ := e.openMenuEntry()
 		d := e.menuDropdown(b, true)

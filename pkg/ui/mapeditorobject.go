@@ -160,7 +160,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			s.CardAside = compactPanelW + noticeFaceW + 2*popupPad
 			s.Width -= s.CardAside + popupPad
 		}
-		s.At = image.Pt(16, e.barHeight()+8)
+		s.At = image.Pt(e.mapArea().Min.X+16, e.barHeight()+8)
 		if e.slack[popObject] || e.sizes[popObject] != (image.Point{}) {
 			s.At = e.objectAt
 		}
@@ -836,6 +836,7 @@ func (e *MapEditor) closeObject() {
 	e.groupSel = editorGroup{}
 	e.objectBack = nil
 	e.selection.hidden = true
+	e.panels.detached = 0
 }
 
 // followReference frames reference n and, when it names one record's cell,

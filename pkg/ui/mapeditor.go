@@ -220,6 +220,8 @@ type MapEditor struct {
 	relations                   relationMatrix
 	groupsTop                   int    // the Groups window's first shown row
 	lastSeed                    uint32 // the seed the last whole-map command took
+	panels                      editorPanels
+	tree                        editorTree
 	editorChrome
 }
 
@@ -317,6 +319,9 @@ func (e *MapEditor) fitZoom() float64 {
 }
 
 func (e *MapEditor) Select(index int, jump bool) bool {
+	if index != e.selected {
+		e.panels.detached = 0
+	}
 	e.messagePage = 0
 	if _, ok := e.scriptVariableRow(index); ok {
 		e.selected, e.objectTop, e.objectHidden = index, 0, false
@@ -432,6 +437,8 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		e.down = in.PrimaryDown
 		return
 	}
+	// The map's own window starts right of the left panel.
+	in.CursorX -= e.mapArea().Min.X
 	x, y := e.doc.Viewer.windowToFrame(in.CursorX, in.CursorY)
 	rail := e.doc.Viewer.cam.ViewW
 	p := image.Pt(x, y)
@@ -548,7 +555,12 @@ func (e *MapEditor) Update() error {
 			}
 		}
 	}
-	if !e.prompt.open() && !e.objectTyping() {
+	if !e.prompt.open() && !e.objectTyping() && !e.treeTyping() {
+		for _, p := range sidePanels {
+			if native.justPressed(p.hotkey) {
+				_ = e.Key(p.key)
+			}
+		}
 		if native.pressed(ebiten.KeyControl) {
 			if native.justPressed(ebiten.KeyZ) {
 				key := "undo"
@@ -632,9 +644,10 @@ func (e *MapEditor) Layout(w, h int) (int, int) {
 			v.canvas = nil
 		}
 		// The frame is the map area: centred in the window between a bar and
-		// a strip of equal height, it sits at scale 1 below the bar.
+		// a strip of equal height, it sits at scale 1 below the bar. Its
+		// window is the map area's columns; mapOrigin adds the left panel.
 		v.frameW, v.frameH = fw, fh
-		v.place = frame.Fit(fw, fh, w, h)
+		v.place = frame.Fit(fw, fh, fw, h)
 		v.syncMapViewport()
 		v.cam.SetMinimumZoom(math.Min(camera.ZoomMin, e.fitZoom()))
 	}
@@ -660,7 +673,7 @@ func (e *MapEditor) Draw(screen *ebiten.Image) {
 			e.drawPlacement(v.canvas, f)
 		}
 		e.drawMarkers(v.canvas)
-		ox, oy := v.place.Origin()
+		ox, oy := e.mapOrigin()
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(v.place.Scale(), v.place.Scale())
 		op.GeoM.Translate(ox, oy)

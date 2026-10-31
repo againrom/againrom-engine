@@ -3151,6 +3151,13 @@ package storyguard
 // CommentBytes rises with the doc comments of the map editor's bar menu hit
 // test, save notices, Open start folder, window resize cursor and heading
 // face in pkg/ui and pkg/game, their tests, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the map editor's side panels,
+// all new code: pkg/ui/mapeditorsidepanels.go, the tree row fields in
+// pkg/ui/picker.go, the profile writer in pkg/editormcp/profilefile.go,
+// cmd/mapedit/profile.go, their tests in pkg/ui/mapeditorsidepanels_test.go,
+// pkg/ui/mapeditorchromerects_test.go, pkg/editormcp/profilefile_test.go and
+// cmd/mapedit/profile_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4474,
 	TestFileCount:  264,
@@ -3589,5 +3596,5 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10032715,
+	CommentBytes: 10045430,
 }

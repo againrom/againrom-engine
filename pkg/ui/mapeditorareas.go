@@ -152,7 +152,7 @@ func (e *MapEditor) areaLabels() []areaLabel {
 	f := e.bodyFont()
 	h := fontHeight(f, 15) + 2
 	area := e.mapArea()
-	ox, oy := e.doc.Viewer.place.Origin()
+	ox, oy := e.mapOrigin()
 	var out []areaLabel
 	done := map[int]bool{}
 	for _, a := range e.doc.Script.Areas {
@@ -224,7 +224,7 @@ func (e *MapEditor) popupRects() []image.Rectangle {
 	if s, ok := e.promptSpec(); ok {
 		popups = append(popups, layoutPopup(s, e.font, e.bodyFont()).Rect)
 	}
-	return popups
+	return append(popups, e.panelRects()...)
 }
 
 // areaLabelAt is the trigger whose label is under the window point p.

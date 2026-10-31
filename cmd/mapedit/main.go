@@ -285,6 +285,7 @@ func runAs(self string, args []string, out io.Writer) error {
 		}
 		defer stop()
 	}
+	loadPanelProfile(e, self, userConfigDir, root)
 	return openWindow(e)
 }
 

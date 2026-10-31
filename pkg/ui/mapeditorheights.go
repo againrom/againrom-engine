@@ -64,7 +64,7 @@ func (e *MapEditor) heightLabels() []heightLabel {
 		covers = append(covers, b.rect)
 	}
 	area := e.mapArea()
-	ox, oy := v.place.Origin()
+	ox, oy := e.mapOrigin()
 	var out []heightLabel
 	v.forEachDrawnTile(func(c, r int) {
 		if c%k != 0 || r%k != 0 {
@@ -125,7 +125,7 @@ func (e *MapEditor) heightDragLabel() (heightLabel, bool) {
 	if f != nil {
 		w += f.Advance(text)
 	}
-	ox, oy := e.doc.Viewer.place.Origin()
+	ox, oy := e.mapOrigin()
 	at := image.Pt(int(float64(g.pointer.X)+ox)+14, int(float64(g.pointer.Y)+oy)+14)
 	return heightLabel{rect: image.Rectangle{Min: at, Max: at.Add(image.Pt(w, fontHeight(f, 15)+2))}, text: text}, true
 }

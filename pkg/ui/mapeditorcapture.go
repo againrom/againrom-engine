@@ -74,7 +74,7 @@ func (e *MapEditor) HeadlessFrame() (*image.RGBA, string, error) {
 	}
 	out := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	draw.Draw(out, out.Bounds(), image.NewUniform(color.RGBA{0, 0, 0, 255}), image.Point{}, draw.Src)
-	ox, oy := v.place.Origin()
+	ox, oy := e.mapOrigin()
 	editorBlit(out, pic, screenRect{X: ox, Y: oy, W: float64(v.frameW) * v.place.Scale(), H: float64(v.frameH) * v.place.Scale()}, false)
 	draw.Draw(out, out.Bounds(), e.ChromeImage(), image.Point{}, draw.Over)
 	return out, "CPU terrain + retained body placements + actual chrome; no GPU readback; shadows omitted", nil

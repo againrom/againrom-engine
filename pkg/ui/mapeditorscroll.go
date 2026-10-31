@@ -59,6 +59,13 @@ func (e *MapEditor) scrollTarget(p image.Point) (vScrollBar, *Picker, bool) {
 				return vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: m.Len()}, m, false
 			}
 		}
+	case popTree:
+		if s, ok := e.treeSpec(); ok {
+			l := layoutPopup(s, e.font, e.bodyFont())
+			if l.HasList && p.In(l.List.Bar()) {
+				return listBar(l.List, s.List), s.List, false
+			}
+		}
 	case popList:
 		if s, ok := e.listSpec(); ok {
 			l := layoutPopup(s, e.font, e.bodyFont())

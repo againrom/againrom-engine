@@ -21,6 +21,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] In the map editor, the trigger wizard names a relation as the Players page does: Neutral, Hostile, Ally (RU Нейтралитет, Вражда, Союз) instead of peace, hostile, alliance, and its Change relation action reads as the trigger list does (RU "Изменить отношение").
 - [BASE] In the map editor, the speaker list of a dialogue page shows each speaker's small portrait, the face the game shows when that speaker talks, and the page card shows the chosen speaker's portrait beside the name. The person window's NPC list shows the same portraits. A speaker with no face keeps an empty place.
+- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's players, triggers, units, structures and groups as a tree with a search; a row selects as a click on the map does. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» included; a double click on its title opens it as a separate window. F6 and F7 or the View menu open and close the panels, their inner edges drag to resize, and the editor remembers both. A narrow window shows the left panel only, or none.
 
 ## 0.142.0
 

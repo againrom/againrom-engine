@@ -138,29 +138,7 @@ func writeRecord(file string, r record) error {
 	if err != nil {
 		return err
 	}
-	if old, err := os.ReadFile(file); err == nil && string(old) == string(content)+"\n" {
-		return nil
-	}
-	f, err := os.CreateTemp(filepath.Dir(file), ".mapedit-mcp-*.tmp")
-	if err != nil {
-		return err
-	}
-	tmp := f.Name()
-	_, werr := f.Write(append(content, '\n'))
-	if werr == nil {
-		werr = f.Sync()
-	}
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr == nil {
-		werr = os.Rename(tmp, file)
-	}
-	if werr != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("write MCP record: %v", werr)
-	}
-	return nil
+	return WriteProfileFile(file, ".mapedit-mcp-*.tmp", "MCP record", append(content, '\n'))
 }
 
 // Listen opens the loopback endpoint and records its token and port in
