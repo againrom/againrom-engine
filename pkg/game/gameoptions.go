@@ -218,12 +218,7 @@ func (p *PersistenceContext) ensureGameOptionApplication(mw *mapWorld) {
 
 func (mw *mapWorld) formationSetting() int {
 	mode, _ := mw.world.CommandFormationMode(sim.SelfSlot)
-	value := 2
-	if mode == 0 {
-		value = 0
-	} else if mode == 2 {
-		value = 1
-	}
+	value := int(sim.FormationSettingOfMode(mode))
 	for _, c := range mw.pending {
 		if c.Kind == sim.KindPlayerParameter && c.Player == sim.SelfSlot && sim.PlayerParameter(c.X) == sim.PlayerParameterFormation {
 			value = int(c.Y)

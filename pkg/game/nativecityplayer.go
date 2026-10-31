@@ -42,7 +42,7 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 			return originalCityUnsupportedf("native Player formation: %v", err)
 		}
 		setting = app.Original.Formation
-		mode = formationModeOfSetting(setting)
+		mode = sim.FormationModeOfSetting(setting)
 	} else {
 		value, present, err := sav.ReadStateLeaf(17, nil, loaded, "/GameOptions/Formation")
 		if err != nil {
@@ -50,7 +50,7 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 		}
 		if present && value.Kind == 2 {
 			setting = value.Int32
-			mode = formationModeOfSetting(setting)
+			mode = sim.FormationModeOfSetting(setting)
 		}
 	}
 	if world != nil {
@@ -60,14 +60,7 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 			return originalCityUnsupportedf("native Player formation has no current command receiver")
 		}
 		if app == nil {
-			switch mode {
-			case 0:
-				setting = 0
-			case 2:
-				setting = 1
-			default:
-				setting = 2
-			}
+			setting = sim.FormationSettingOfMode(mode)
 		}
 	}
 	if data == nil || len(data.Players) != 1 || data.Players[0] == 0 || int(data.Players[0]) > len(data.Objects) {
@@ -92,15 +85,4 @@ func nativeCityPlayerFormation(data *sav.CityData, app *SnapshotApplicationState
 	}
 	player.Raw32[31] = mode
 	return nil
-}
-
-// formationModeOfSetting is AI-FORM-037's mapping, default arm included.
-func formationModeOfSetting(setting int32) uint8 {
-	switch setting {
-	case 0:
-		return 0
-	case 2:
-		return 1
-	}
-	return 2
 }

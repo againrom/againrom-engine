@@ -25,7 +25,7 @@ const (
 func (w *World) applyPlayerParameter(player uint32, selector PlayerParameter, value int32) {
 	switch selector {
 	case PlayerParameterFormation:
-		w.setCommandFormation(player, remapFormationParameter(value))
+		w.setCommandFormation(player, FormationModeOfSetting(value))
 	case PlayerParameterRetreat:
 		w.setRetreatMode(player, value)
 	case PlayerParameterAutoHealing:
@@ -71,19 +71,34 @@ func (w *World) setRetreatMode(player uint32, mode int32) {
 	}
 }
 
-// remapFormationParameter is the command arm's exact value table from
-// `AI-FORM-037`: 0 -> 0, 1 -> 2, 2 -> 1, and every other authored value takes
-// the arm's default 2. The trigger-instant road does not call this function and
-// keeps its raw store.
-func remapFormationParameter(value int32) uint8 {
-	switch value {
-	case 0:
-		return 0
-	case 1:
-		return 2
-	case 2:
-		return 1
-	default:
-		return 2
+// FormationRow is a UI setting index and the stored mode byte it commands.
+type FormationRow struct {
+	Setting int32
+	Mode    uint8
+}
+
+// FormationRows is `AI-FORM-037`'s table; FormationFallback answers the rest.
+var (
+	FormationRows     = [...]FormationRow{{0, 0}, {1, 2}, {2, 1}}
+	FormationFallback = FormationRow{Setting: 2, Mode: 2}
+)
+
+// FormationModeOfSetting is the mode a setting commands.
+func FormationModeOfSetting(setting int32) uint8 {
+	for _, r := range FormationRows {
+		if r.Setting == setting {
+			return r.Mode
+		}
 	}
+	return FormationFallback.Mode
+}
+
+// FormationSettingOfMode is the setting whose row holds mode.
+func FormationSettingOfMode(mode uint8) int32 {
+	for _, r := range FormationRows {
+		if r.Mode == mode {
+			return r.Setting
+		}
+	}
+	return FormationFallback.Setting
 }
