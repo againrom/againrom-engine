@@ -47,44 +47,94 @@ type EffectDrive struct {
 	Frame  EffectFrame
 }
 
-type effectDriveRow struct {
-	ids   []int32
-	drive EffectDrive
+// TargetMark is the mark a projectile picture's resolved actor call leaves
+// on its target.
+type TargetMark uint8
+
+const (
+	TargetMarkNone TargetMark = iota
+	TargetMarkHeal
+	TargetMarkDrainLife
+)
+
+// PictureCapability is one projectile picture's row: its target mark, its
+// update arm, Unbound, that its original-SAV continuation's picture-specific
+// consumers are not run (DIV-1814), and SoundPhase, the action phase whose
+// update plays its spell sound (0 for none).
+type PictureCapability struct {
+	Picture    int32
+	Mark       TargetMark
+	Drive      EffectDrive
+	Unbound    bool
+	SoundPhase int32
 }
 
-// The first game's arms (ANIM-143, ANIM-149, ANIM-PHASECLOCK-028,
-// MAGIC-BOLTSTILL-072, DIV-944) and the second game's (R2-ENGINE-447,
-// DIV-3101). An identifier no row names takes the zero EffectDrive.
-var effectDrives = [...][]effectDriveRow{
+var (
+	followHalf  = EffectDrive{EffectFollow, FrameHalf}
+	followFirst = EffectDrive{EffectFollow, FrameResolvedOne}
+	pathRamp    = EffectDrive{EffectPath, FrameRamp}
+)
+
+// The first game's rows (ANIM-143, ANIM-149, ANIM-PHASECLOCK-028,
+// MAGIC-BOLTSTILL-072, DIV-944, DIV-1814) and the second game's
+// (R2-ENGINE-447, DIV-3101). A picture no row names takes the zero row.
+var pictureCapabilities = [...][]PictureCapability{
 	SpellGameFirst: {
-		{[]int32{34, 36}, EffectDrive{EffectPath, FrameRamp}},
-		{[]int32{18, 24, 28, 40, 44, 48, 52, 54, 56, 62, 64}, EffectDrive{EffectFollow, FrameHalf}},
-		{[]int32{20, 30}, EffectDrive{EffectFollow, FrameResolvedOne}},
-		{[]int32{60}, EffectDrive{EffectStill, FrameCounterLess1}},
-		{[]int32{51}, EffectDrive{EffectTravel, FrameCounter}},
+		{Picture: 13, Unbound: true},
+		{Picture: 18, Drive: followHalf, Unbound: true},
+		{Picture: 20, Mark: TargetMarkHeal, Drive: followFirst, Unbound: true},
+		{Picture: 24, Drive: followHalf, Unbound: true},
+		{Picture: 28, Drive: followHalf, Unbound: true},
+		{Picture: 30, Mark: TargetMarkDrainLife, Drive: followFirst, Unbound: true},
+		{Picture: 34, Drive: pathRamp},
+		{Picture: 36, Drive: pathRamp, Unbound: true},
+		{Picture: 40, Drive: followHalf, Unbound: true},
+		{Picture: 44, Drive: followHalf, Unbound: true},
+		{Picture: 48, Drive: followHalf, Unbound: true},
+		{Picture: 51, Drive: EffectDrive{EffectTravel, FrameCounter}, Unbound: true, SoundPhase: 8},
+		{Picture: 52, Drive: followHalf, Unbound: true},
+		{Picture: 54, Drive: followHalf, Unbound: true},
+		{Picture: 56, Drive: followHalf, Unbound: true},
+		{Picture: 60, Drive: EffectDrive{EffectStill, FrameCounterLess1}},
+		{Picture: 62, Drive: followHalf, Unbound: true},
+		{Picture: 64, Drive: followHalf, Unbound: true},
 	},
 	SpellGameSecond: {
-		{[]int32{28, 30}, EffectDrive{EffectPath, FrameRamp}},
-		{[]int32{16, 20, 24, 34, 44, 46, 48, 50, 62, 64, 66}, EffectDrive{EffectFollow, FrameCounter}},
-		{[]int32{56, 60}, EffectDrive{EffectFollow, FrameHalf}},
-		{[]int32{54}, EffectDrive{EffectStill, FrameCounterLess1}},
-		{[]int32{23}, EffectDrive{EffectStill, FrameCounter}},
+		{Picture: 16, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 20, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 23, Drive: EffectDrive{EffectStill, FrameCounter}},
+		{Picture: 24, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 28, Drive: pathRamp},
+		{Picture: 30, Drive: pathRamp},
+		{Picture: 34, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 44, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 46, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 48, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 50, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 54, Drive: EffectDrive{EffectStill, FrameCounterLess1}},
+		{Picture: 56, Drive: followHalf},
+		{Picture: 60, Drive: followHalf},
+		{Picture: 62, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 64, Drive: EffectDrive{EffectFollow, FrameCounter}},
+		{Picture: 66, Drive: EffectDrive{EffectFollow, FrameCounter}},
 	},
+}
+
+// PictureCapabilityOf is projectile picture's row in game.
+func PictureCapabilityOf(game SpellGame, picture int32) PictureCapability {
+	if int(game) < len(pictureCapabilities) {
+		for _, row := range pictureCapabilities[game] {
+			if row.Picture == picture {
+				return row
+			}
+		}
+	}
+	return PictureCapability{Picture: picture}
 }
 
 // EffectDriveOf is the update arm identifier id takes in game.
 func EffectDriveOf(game SpellGame, id int32) EffectDrive {
-	if int(game) >= len(effectDrives) {
-		return EffectDrive{}
-	}
-	for _, row := range effectDrives[game] {
-		for _, v := range row.ids {
-			if v == id {
-				return row.drive
-			}
-		}
-	}
-	return EffectDrive{}
+	return PictureCapabilityOf(game, id).Drive
 }
 
 // rampFrames is the frame FrameRamp writes for counters 1..13.
