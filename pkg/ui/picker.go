@@ -61,6 +61,9 @@ type PickerRow struct {
 	// Icon is a picture a list box draws at the row's left, square at the
 	// row's height, with the text after it; nil draws the text alone.
 	Icon *image.RGBA
+	// IconCell keeps the picture's cell when Icon is nil, empty, so the row's
+	// text lines up with the rows of its list that carry a picture.
+	IconCell bool
 
 	// Ink draws the row's text in this colour, selected or not; the zero
 	// colour keeps the list's own inks.

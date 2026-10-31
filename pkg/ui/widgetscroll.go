@@ -406,7 +406,7 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 				ink = rows[top+i].Ink
 			}
 			x, width := r.Min.X+textX, r.Dx()-2*textX
-			if rows := m.Rows(); top+i < len(rows) && rows[top+i].Icon != nil {
+			if rows := m.Rows(); top+i < len(rows) && (rows[top+i].Icon != nil || rows[top+i].IconCell) {
 				side := max(1, r.Dy()-2)
 				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 				x, width = x+side+textX, width-side-textX

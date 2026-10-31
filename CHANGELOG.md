@@ -20,6 +20,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] In the map editor, the trigger wizard names a relation as the Players page does: Neutral, Hostile, Ally (RU Нейтралитет, Вражда, Союз) instead of peace, hostile, alliance, and its Change relation action reads as the trigger list does (RU "Изменить отношение").
+- [BASE] In the map editor, the speaker list of a dialogue page shows each speaker's small portrait, the face the game shows when that speaker talks, and the page card shows the chosen speaker's portrait beside the name. The person window's NPC list shows the same portraits. A speaker with no face keeps an empty place.
 
 ## 0.142.0
 

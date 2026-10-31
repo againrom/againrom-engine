@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"slices"
 
@@ -62,6 +63,46 @@ func (x *MapInspector) npcChoices(maxID int64, roles bool) []ui.InspectionChoice
 	}
 	slices.SortFunc(choices, func(a, b ui.InspectionChoice) int { return int(a.Value - b.Value) })
 	return choices
+}
+
+// npcPortraits are the faces of the NPC records the choices name, by choice
+// value: each the picture a dialogue shows when that NPC speaks (SpeakerFace
+// over the game's speaker records), cut as the dialogue pane cuts it. A choice
+// whose record has no face has no entry. Each face is composed once per
+// inspector.
+func (x *MapInspector) npcPortraits(choices []ui.InspectionChoice) map[int64]*image.RGBA {
+	if x == nil || x.table == nil || x.archives == nil {
+		return nil
+	}
+	if x.recordPictures == nil {
+		x.recordPictures = map[string]map[int64]*image.RGBA{}
+	}
+	cache := x.recordPictures["speaker"]
+	if cache == nil {
+		cache = map[int64]*image.RGBA{}
+		x.recordPictures["speaker"] = cache
+	}
+	var r *speakerResolver
+	out := map[int64]*image.RGBA{}
+	for _, c := range choices {
+		pic, tried := cache[c.Value]
+		if !tried {
+			if r == nil {
+				r = &speakerResolver{src: x.archives.artSource(), units: x.units, npcFaces: speakerFaces(x.table),
+					portraits: map[string]*image.RGBA{}, figurePics: map[figureCacheKey]*image.RGBA{}}
+			}
+			if c.Value >= 0 && c.Value <= math.MaxInt32 {
+				if face, window, ok := r.SpeakerFace(int(c.Value)); ok {
+					pic = ui.SpeakerPortrait(face, window)
+				}
+			}
+			cache[c.Value] = pic
+		}
+		if pic != nil {
+			out[c.Value] = pic
+		}
+	}
+	return out
 }
 
 // npcName is NPC record e's name in UTF-8. With roles, as the message popup

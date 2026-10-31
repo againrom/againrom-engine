@@ -367,6 +367,29 @@ func (e *MapEditor) groupNote(group string) string {
 	return note
 }
 
+// choiceRows are the drop-down rows of f's choices: each label, its picture
+// from f.Icons, and a shut choice listed in the hint ink and not choosable.
+// When any choice has a picture, a choice without one keeps an empty cell.
+func choiceRows(f InspectionField) []PickerRow {
+	rows := make([]PickerRow, len(f.Choices))
+	for k, c := range f.Choices {
+		rows[k] = PickerRow{Text: c.Label, Choosable: true, Icon: f.Icons[c.Value], IconCell: len(f.Icons) > 0}
+		if slices.Contains(f.Shut, c.Value) {
+			rows[k].Choosable, rows[k].Ink = false, popupHintInk
+		}
+	}
+	return rows
+}
+
+// choicePicture is the picture of the choice whose value the text holds, nil
+// for none.
+func choicePicture(f InspectionField, text string) *image.RGBA {
+	if v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64); err == nil {
+		return f.Icons[v]
+	}
+	return nil
+}
+
 // choiceText is the label of the choice whose value the text holds.
 func choiceText(f InspectionField, text string) string {
 	if v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64); err == nil {
@@ -505,13 +528,9 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		o.open = i
 		o.search = ""
 		f := o.fields[i]
-		rows := make([]PickerRow, len(f.Choices))
+		rows := choiceRows(f)
 		sel := 0
 		for k, c := range f.Choices {
-			rows[k] = PickerRow{Text: c.Label, Choosable: true, Icon: f.Icons[c.Value]}
-			if slices.Contains(f.Shut, c.Value) {
-				rows[k].Choosable, rows[k].Ink = false, popupHintInk
-			}
 			if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[i]) {
 				sel = k
 			}
@@ -654,10 +673,9 @@ func (e *MapEditor) objectStep(delta int) bool {
 		return false
 	}
 	f := o.fields[o.focus]
-	rows := make([]PickerRow, len(f.Choices))
+	rows := choiceRows(f)
 	at := -1
 	for k, c := range f.Choices {
-		rows[k] = PickerRow{Text: c.Label, Choosable: !slices.Contains(f.Shut, c.Value)}
 		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(o.buf[o.focus]) {
 			at = k
 		}

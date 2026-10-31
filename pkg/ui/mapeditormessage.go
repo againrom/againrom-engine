@@ -204,6 +204,9 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		}
 		speaker := 2*i + 1
 		head := popupRow{Kind: popupCard, Label: strconv.Itoa(number), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Span: 1}
+		if pic := choicePicture(o.fields[speaker], o.buf[speaker]); pic != nil {
+			head.Icons = []*image.RGBA{pic}
+		}
 		if live > 1 {
 			head.Buttons = []string{"x"}
 		}

@@ -404,6 +404,20 @@ func NoticeFaceWindow(x, y int) image.Rectangle {
 	return image.Rect(x, y, x+noticeFaceW, y+noticeFaceH)
 }
 
+// SpeakerPortrait is the face a dialogue pane shows for a speaker: window cut
+// from face, or the pane's own default window when window has no area, centred
+// on a transparent square the pane's height on a side, so a list row or a
+// field can draw it scaled down without stretching it. nil for a nil face.
+func SpeakerPortrait(face *image.RGBA, window image.Rectangle) *image.RGBA {
+	if face == nil {
+		return nil
+	}
+	out := image.NewRGBA(image.Rect(0, 0, noticeFaceH, noticeFaceH))
+	l := AuthoredDialogueLayout().WithFaceWindow(window)
+	blitNoticeWindow(out, out.Bounds(), image.Pt((noticeFaceH-noticeFaceW)/2, 0), l.PortraitWindow, face)
+	return out
+}
+
 // AuthoredDialogueLayout is the dialogue notice this project ships: the
 // original's dialogue panel, in the dialogue style.
 //
