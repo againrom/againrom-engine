@@ -225,13 +225,20 @@ func restorePartyCharacters(chars []sav.Character, err error, fresh []mapload.Pa
 		}
 		out = append(out, restoredMember(c, bodies, t, &r))
 	}
+	// A member the edition's addition producer built carries his identity
+	// in his record (R2-ENGINE-106), and is that companion.
+	for i, c := range chars {
+		if id, ok := originalPartyIdentity(c, t); ok {
+			out[i].CompanionNPC, out[i].ID = id, fmt.Sprintf("npc:%d", id)
+		}
+	}
 	// SAV records carry their Humans row, not this engine's CompanionNPC.
 	// Resolve it against the registry and the saved starting hero's axes.
 	// A row alone cannot name Reniesta: row 28 also constructs Fergard.
 	if t != nil && r.LeadRule == LeadNamed {
 		heroDir := data.FigureDir(out[0].FigureDir)
 		for i, c := range chars {
-			if c.Hero || out[i].Hired() {
+			if c.Hero || out[i].Hired() || out[i].CompanionNPC != 0 {
 				continue
 			}
 			if npc, ok := t.NPC.CampaignCompanionForRow(t.Humans, int(c.DefRow), heroDir.Mage(), heroDir.Female()); ok {
@@ -253,6 +260,9 @@ func persistentOriginalCharacter(c sav.Character, t *mapload.Table) bool {
 	if c.Hero {
 		return true
 	}
+	if _, ok := originalPartyIdentity(c, t); ok {
+		return true
+	}
 	if _, ok := originalSiegeHire(c, t); ok {
 		return true
 	}
@@ -265,6 +275,22 @@ func persistentOriginalCharacter(c sav.Character, t *mapload.Table) bool {
 	}
 	_, ok := originalMercenaryType(c, t)
 	return ok
+}
+
+// originalPartyIdentity is the party identity a saved companion carries in
+// WORD +0x14c (R2-ENGINE-105, R2-ENGINE-106, R2-ENGINE-525) under an edition
+// that binds its party by identity: a Human, not the hero, whose identity
+// the edition names and whose definition row is that identity's row.
+func originalPartyIdentity(c sav.Character, t *mapload.Table) (int, bool) {
+	if c.Hero || c.Class != "Human" || t == nil || t.Edition == nil || t.Humans == nil || !t.Edition.BindsByIdentity() {
+		return 0, false
+	}
+	id := int(uint16(c.DisplayBacking))
+	p, ok := t.Edition.PartyIdentity(id)
+	if !ok || id == t.Edition.HeroIdentity || int(c.DefRow) != data.FindHumanByServerID(t.Humans, p.ServerID) {
+		return 0, false
+	}
+	return id, true
 }
 
 // originalSiegeHire names the hired siege engine a saved Unit actor is: the
@@ -481,8 +507,9 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 
 	wornItems, carriedItems := restoredItemLoadout(c, r, t)
 
+	// A companion's identity word is not a mercenary type.
 	mercType, hired := 0, false
-	if !c.Hero {
+	if _, companion := originalPartyIdentity(c, t); !c.Hero && !companion {
 		mercType, hired = originalMercenaryType(c, t)
 	}
 	if hired {

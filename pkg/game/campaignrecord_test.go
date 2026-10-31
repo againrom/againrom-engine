@@ -15,14 +15,16 @@ import (
 
 // campaignRecordBaseDigests are the bytes each route wrote before its
 // campaign record went through the one projection: the SAV without its
-// label, the snapshot's carried record and its offer labels.
+// label, the snapshot's carried record and its offer labels. The second
+// game's mission file SAVE also holds the loaded tail's words a town SAVE
+// writes back (DIV-4306).
 var campaignRecordBaseDigests = map[string]string{
 	// The loaded computer Player's zero-length Diary is kept, not rebuilt
 	// at the Units length.
 	"mission progress/sav":               "d959651b195ec8172e290369",
 	"mission progress/snapshot campaign": "d1b0dad36e60fe233e101fa6",
-	"second mission file/resave":         "81ccf23e6960590e2576d2f8",
-	"second mission file/sav":            "81ccf23e6960590e2576d2f8",
+	"second mission file/resave":         "d6ef2e98d492c411ed85fa2e",
+	"second mission file/sav":            "d6ef2e98d492c411ed85fa2e",
 	"town chapter/sav":                   "e389207f3b64c63e1b653762",
 	"town chapter/snapshot campaign":     "be2e971a485a96bdb461ac08",
 	"town chapter/snapshot labels":       "0ca964b9fe0dc5fa909b358c",

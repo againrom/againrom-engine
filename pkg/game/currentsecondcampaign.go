@@ -21,6 +21,43 @@ type currentSecondCampaign struct {
 	Aux       *secondAux           `json:",omitempty"`
 	Shop      *currentSecondShop   `json:",omitempty"`
 	Party     []currentPartyMember `json:",omitempty"`
+	Kept      *secondTailKept      `json:",omitempty"`
+}
+
+// secondTailKept is what a loaded campaign tail held that no current state
+// and no claim produces: the pair list, the two words after it
+// (R2-SESSION-035) and each location record's 16 raw bytes
+// (R2-SESSION-032). A town SAVE writes them back; a campaign that loaded no
+// tail has none (DIV-4306).
+type secondTailKept struct {
+	Pairs     [][2]uint32
+	PairTail  [2]uint32
+	Locations []secondKeptLocation `json:",omitempty"`
+}
+
+type secondKeptLocation struct {
+	Kind, ID int
+	Raw      [16]byte
+}
+
+func (k *secondTailKept) clone() *secondTailKept {
+	if k == nil {
+		return nil
+	}
+	return &secondTailKept{Pairs: slices.Clone(k.Pairs), PairTail: k.PairTail, Locations: slices.Clone(k.Locations)}
+}
+
+// raw is the 16 bytes the loaded tail held for the location, zero for one it
+// did not list.
+func (k *secondTailKept) raw(l currentSecondLocation) [16]byte {
+	if k != nil {
+		for _, kl := range k.Locations {
+			if kl.Kind == l.Kind && kl.ID == l.ID {
+				return kl.Raw
+			}
+		}
+	}
+	return [16]byte{}
 }
 
 const maxSecondAvailable = 130
@@ -34,6 +71,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 		Aux       json.RawMessage
 		Shop      *currentSecondShop
 		Party     []currentPartyMember
+		Kept      *secondTailKept
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -48,7 +86,7 @@ func (c *currentSecondCampaign) UnmarshalJSON(raw []byte) error {
 	if err != nil {
 		return err
 	}
-	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop, Party: fields.Party}
+	next := currentSecondCampaign{Current: fields.Current, Available: available, Room: fields.Room, Shop: fields.Shop, Party: fields.Party, Kept: fields.Kept}
 	copy(next.Bank[:], bank)
 	if next.Aux, err = decodeSecondAux(fields.Aux); err != nil {
 		return err
@@ -87,6 +125,9 @@ func decodeSecondAux(raw json.RawMessage) (*secondAux, error) {
 func (c *currentSecondCampaign) validate() error {
 	if err := validateSecondParty(c.Party); err != nil {
 		return err
+	}
+	if c.Kept != nil && (len(c.Kept.Pairs) > maxSecondAvailable || len(c.Kept.Locations) > maxSecondAvailable) {
+		return fmt.Errorf("current second campaign keeps too many tail records")
 	}
 	if c.Shop != nil {
 		if err := c.Shop.validate(); err != nil {
@@ -157,7 +198,7 @@ func captureSecondCampaign(c *secondCampaign) *currentSecondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop, c.legacyHero), Party: captureSecondParty(c)}
+	out := &currentSecondCampaign{Bank: c.bank, Current: currentSecondLocation{c.current.kind, c.current.id}, Shop: captureSecondShop(c.shop, c.legacyHero), Party: captureSecondParty(c), Kept: c.kept.clone()}
 	if c.current.kind == placeTown {
 		room := c.room
 		out.Room = &room
@@ -174,6 +215,7 @@ func (c *currentSecondCampaign) clone() *currentSecondCampaign {
 	out := *c
 	out.Available = slices.Clone(c.Available)
 	out.Shop = c.Shop.clone()
+	out.Kept = c.Kept.clone()
 	if c.Party != nil {
 		out.Party = make([]currentPartyMember, len(c.Party))
 		for i, p := range c.Party {
@@ -194,7 +236,7 @@ func (c *currentSecondCampaign) restore() *secondCampaign {
 	if c == nil {
 		return nil
 	}
-	out := &secondCampaign{bank: c.Bank, current: partyPlace{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party)}
+	out := &secondCampaign{bank: c.Bank, current: partyPlace{c.Current.Kind, c.Current.ID}, shop: c.Shop.restore(), party: restoreSecondParty(c.Party), kept: c.Kept.clone()}
 	if c.Shop != nil {
 		out.legacyHero = slices.Clone(c.Shop.Hero)
 	}
@@ -245,12 +287,13 @@ func secondFileSession(sf *sav.File) (*currentSessionData, error) {
 		}
 	}
 	c := &currentSecondCampaign{Bank: tail.Bank, Current: currentSecondLocation{int(current.Kind), int(current.ID)},
-		Shop: captureSecondShop(shop, nil)}
+		Shop: captureSecondShop(shop, nil), Kept: &secondTailKept{Pairs: slices.Clone(tail.Pairs), PairTail: tail.PairTail}}
 	if uint64(len(tail.Locations)) > maxSecondAvailable {
 		return nil, fmt.Errorf("second-game save holds %d locations", len(tail.Locations))
 	}
 	for _, l := range tail.Locations {
 		c.Available = append(c.Available, currentSecondLocation{int(l.Kind), int(l.ID)})
+		c.Kept.Locations = append(c.Kept.Locations, secondKeptLocation{int(l.Kind), int(l.ID), l.Raw})
 	}
 	if c.Current.Kind == placeTown {
 		room := secondTownSquare

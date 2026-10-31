@@ -27,6 +27,10 @@ func secondContinuedWin(t *testing.T, f *FrontEnd, app *ui.App) {
 		t.Fatal(err)
 	}
 	mapload.BindSourceDerive(won)
+	// The won world keeps the loaded mission's scenario bank.
+	if bank, ok := mw.world.ROM2ScenarioState(); ok {
+		won.SetROM2ScenarioState(bank)
+	}
 	*mw.world = *won
 	for range 64 {
 		if _, kind, up := f.LiveNotice(); up && kind == ui.NoticeSuccess {

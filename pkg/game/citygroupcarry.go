@@ -238,7 +238,13 @@ func loadedPlayerGroups(source sav.CityData) []loadedPlayerGroup {
 	if player == nil || len(player.Fixed) != 51 {
 		return nil
 	}
-	key := binary.LittleEndian.Uint32(player.Fixed[47:51])
+	return loadedGroups(binary.LittleEndian.Uint32(player.Fixed[47:51]), player.Groups)
+}
+
+// loadedGroups is the groups of the loaded Player whose key is key, with the
+// owner and group keys remapped and the actor references as the file holds
+// them.
+func loadedGroups(key uint32, groups []sav.CityGroupData) []loadedPlayerGroup {
 	remap := func(v uint32) uint32 {
 		if v != 0 && v == key {
 			return nativeCityPlayerIdentity
@@ -246,7 +252,7 @@ func loadedPlayerGroups(source sav.CityData) []loadedPlayerGroup {
 		return 0
 	}
 	var out []loadedPlayerGroup
-	for _, g := range player.Groups {
+	for _, g := range groups {
 		out = append(out, loadedPlayerGroup{payload: sav.CityGroupData{Words20: slices.Clone(g.Words20), Raw80: slices.Clone(g.Raw80),
 			Words3c: slices.Clone(g.Words3c), F1c: g.F1c, F40: remap(g.F40), F44: remap(g.F44)}, actors: g.Actors})
 	}
@@ -276,6 +282,43 @@ func cityGroupsFromLoaded(party []mapload.PartyMember, loaded *SnapshotOriginalC
 		}
 		id := boundTo[binary.LittleEndian.Uint32(source.Objects[a-1].Unit.Token[29:33])]
 		return id, member[id]
+	})
+}
+
+// cityGroupsFromGraph is the live membership of a town loaded from a file
+// whose city has no first-game records: each group of the hero's Player with
+// the party members its actors are, an actor named by its identity key
+// through chars, which parallels party.
+func cityGroupsFromGraph(graph sav.SavedActorGraph, party []mapload.PartyMember, chars []sav.Character) []cityLiveGroup {
+	if len(party) != len(chars) {
+		return nil
+	}
+	byIdentity := map[uint32]int{}
+	for i, c := range chars {
+		byIdentity[c.Key] = i
+	}
+	var key uint32
+	byArchive := map[uint16]string{}
+	for _, a := range graph.Actors {
+		i, ok := byIdentity[a.Identity]
+		if !ok {
+			continue
+		}
+		byArchive[a.ArchiveIndex] = party[i].ID
+		if party[i].StartingHero {
+			key = a.Owner.Key
+		}
+	}
+	var groups []sav.CityGroupData
+	for _, g := range graph.Groups {
+		if key != 0 && g.Owner.Key == key {
+			groups = append(groups, sav.CityGroupData{Words20: g.Words, Raw80: g.AI[:], Words3c: g.AIWords,
+				Actors: g.Members, F1c: g.Selector, F40: g.Reference.Key, F44: g.Owner.Key})
+		}
+	}
+	return cityGroupsOver(loadedGroups(key, groups), func(a uint16) (string, bool) {
+		id, ok := byArchive[a]
+		return id, ok
 	})
 }
 

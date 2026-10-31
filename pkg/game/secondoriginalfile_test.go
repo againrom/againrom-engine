@@ -251,6 +251,18 @@ type secondSavedPointer struct {
 
 // secondSavedWorldOf is secondSavedWorld with pointers in the Buildings.
 func secondSavedWorldOf(mission uint32, money uint32, hero *secondOriginalHero, world bool, extra int, pointers []secondSavedPointer) []byte {
+	var party []secondOriginalHero
+	if hero != nil {
+		party = []secondOriginalHero{*hero}
+	}
+	return secondSavedPartyOf(mission, money, party, world, extra, pointers)
+}
+
+// secondSavedPartyOf is secondSavedWorldOf with the Player's party: the
+// first member is the hero, and each member stands in a group of his own,
+// as the original's files hold a joined companion. An empty party writes
+// one empty group.
+func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero, world bool, extra int, pointers []secondSavedPointer) []byte {
 	s := &secondStream{next: 1, classes: map[string]uint16{}}
 	s.u32(0x50)
 	s.u32(0x05)
@@ -278,22 +290,29 @@ func secondSavedWorldOf(mission uint32, money uint32, hero *secondOriginalHero, 
 	s.u16(0)
 	s.u16(0)
 	s.u32(0)
-	if hero != nil {
-		s.u32(hero.key)
+	if len(party) != 0 {
+		s.u32(party[0].key)
 	} else {
 		s.u32(0)
 	}
 	s.u32(0x0a000001) // the Player's own key
 	s.raw(2560)
-	s.u32(1) // one group
-	s.raw(2 + 80 + 2)
-	if hero != nil {
-		s.u32(1)
-		s.human(*hero)
-	} else {
+	// A group is its words, 80 AI bytes, words, its actors and three
+	// dwords, as the decoder's group programme reads it.
+	if len(party) == 0 {
+		s.u32(1) // one empty group
+		s.raw(2 + 80 + 2)
 		s.u32(0)
+		s.raw(12)
+	} else {
+		s.u32(uint32(len(party)))
+		for _, h := range party {
+			s.raw(2 + 80 + 2)
+			s.u32(1)
+			s.human(h)
+			s.raw(12)
+		}
 	}
-	s.raw(12)
 	s.raw(36)
 	s.u32(0) // dead list
 	if !world {

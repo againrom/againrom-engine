@@ -3546,11 +3546,16 @@ var Committed = Baseline{
 	// piece with no bag form, the magic row, the hero's record row and
 	// identity, the town actor carrier, their tests, and this note.
 
+	// It rose for the joined companion a second-game town file keeps, the
+	// loaded tail's words, the mission LOAD's carried party, their tests,
+	// the tests of that companion in an original mission file, and this
+	// note.
+
 	// It rose for the one shop enchant and shelf sort, pkg/shopstock/enchant.go
 	// and sort.go, the second game's enchant rules, sort keys, caption and
 	// price font in pkg/secondshop and pkg/game, their tests, and this note.
 	// It rose for the arrival of a potion or scroll saved with no effects in
 	// pkg/secondshop/bag.go, its tests in pkg/secondshop and pkg/game, and
 	// this note.
-	CommentBytes: 10004245,
+	CommentBytes: 10009371,
 }

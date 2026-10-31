@@ -38,6 +38,8 @@ type secondCampaign struct {
 	// legacyHero is an older document's hero list waiting for the
 	// install's tables to load into the bag.
 	legacyHero []secondHeroItem
+	// kept is what a loaded tail held that a town SAVE writes back.
+	kept *secondTailKept
 	// mapOpen is the map's current opening (openMap); nil while the party
 	// stands at a location and after a LOAD at the map.
 	mapOpen *secondMapOpening

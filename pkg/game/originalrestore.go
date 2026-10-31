@@ -295,6 +295,12 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 		if p, ok := cityDocument.(interface{ Data() sav.CityData }); ok {
 			s.Town.cityGroups = cityGroupsFromCurrent(p.Data(), currentActions)
 		}
+	} else if src.campaign.fileSession != nil {
+		graph, err := sf.ActorGraph()
+		if err != nil {
+			return report, fmt.Errorf("original between-mission save: %w", err)
+		}
+		s.Town.cityGroups = cityGroupsFromGraph(graph, s.Carried, cityCharacters)
 	} else if !hasCurrent {
 		s.Town.cityGroups = cityGroupsFromLoaded(s.Carried, s.originalCity.snapshot())
 	}
@@ -371,6 +377,15 @@ func (src *originalSource) planMission(in originalInstall, units *terrain.UnitSe
 	restored, report := RestoreParty(sf, fresh, in.bodies, in.table)
 	if err := applyModLayers(restored, src.modLayers, tableModContext(in.table).Items); err != nil {
 		return nil, err
+	}
+	// Until the mission ends the campaign's party is the file's, the
+	// World's own heroes, not a fresh one; the mission's end replaces it
+	// from the World.
+	if !report.Fallback && len(restored) != 0 {
+		carried := mapload.CloneParty(restored)
+		mapload.NameParty(carried)
+		clearRestoredMissionPosition(carried)
+		candidate.carried = carried
 	}
 	var savedPurse *uint32
 	for _, p := range sf.Players {

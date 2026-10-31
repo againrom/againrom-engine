@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"slices"
+	"strings"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
@@ -43,11 +44,14 @@ func writeSecondTownHolders(doc *sav.DocumentData, s Snapshot, table *mapload.Ta
 		if r.Class != "Human" {
 			continue
 		}
-		// R2-ENGINE-319: a Human not built from a hero template keeps the
-		// Humanoid initializer's 0 (DIV-4305).
+		// R2-ENGINE-319: a Human built from a `_Hero` or `Start_` template,
+		// such as a companion's identity row, holds his largest school; one
+		// built from another keeps the Humanoid initializer's 0 (DIV-4305).
 		main := uint32(0)
 		if uint16(i+1) == hero {
 			main = secondMainSkill(nativeCityHeroOf(s.Party).Hero)
+		} else if h, ok := secondTemplateHero(r, table); ok {
+			main = secondMainSkill(h)
 		}
 		at := slices.IndexFunc(r.Raw, func(v sav.DocumentRawData) bool { return v.Name == "H1CC" })
 		if at < 0 || len(r.Raw[at].Bytes) < 4 {
@@ -191,13 +195,39 @@ func secondMainSkill(h data.Hero) uint32 {
 	return uint32(best)
 }
 
+// secondTemplateHero is the skill levels of a Human record whose Humans row
+// is a `_Hero` or `Start_` template (R2-ENGINE-319), read from its own skill
+// block.
+func secondTemplateHero(r *sav.DocumentRecordData, table *mapload.Table) (data.Hero, bool) {
+	row, err := savedStructureValue(r, "T0C")
+	if err != nil || table == nil || table.Humans == nil || row == 0 || int(row) >= table.Humans.Len() {
+		return data.Hero{}, false
+	}
+	if name := table.Humans.EntryName(int(row)); !strings.Contains(name, "_Hero") && !strings.Contains(name, "Start_") {
+		return data.Hero{}, false
+	}
+	at := slices.IndexFunc(r.Raw, func(v sav.DocumentRawData) bool { return v.Name == "UA6" })
+	if at < 0 || len(r.Raw[at].Bytes) != 24 {
+		return data.Hero{}, false
+	}
+	var h data.Hero
+	for i := range data.SkillSlots {
+		h.Skill[i] = int32(binary.LittleEndian.Uint16(r.Raw[at].Bytes[2+2*i:]))
+	}
+	return h, true
+}
+
 // secondTownTail is a town SAVE's campaign tail: the scenario bank, the shop
 // records, the availability list and the current location's ordinal
-// (R2-SESSION-021, R2-SESSION-155). The pair list, the two words after it,
-// each location's 16 raw bytes and the nine client buffers hold the values
-// every original town holds, or zero (DIV-4306).
+// (R2-SESSION-021, R2-SESSION-155). No current state and no claim gives the
+// pair list, the two words after it or a location's 16 raw bytes: they are
+// the loaded tail's, else the [[1,1]] every original town holds and zero.
+// The nine client buffers are empty (DIV-4306).
 func secondTownTail(c *currentSecondCampaign) (*sav.SecondTail, error) {
 	t := &sav.SecondTail{Bank: c.Bank, Pairs: [][2]uint32{{1, 1}}}
+	if c.Kept != nil {
+		t.Pairs, t.PairTail = slices.Clone(c.Kept.Pairs), c.Kept.PairTail
+	}
 	records := secondshop.NewGameRecords
 	if c.Shop != nil {
 		records = c.Shop.Records
@@ -212,7 +242,7 @@ func secondTownTail(c *currentSecondCampaign) (*sav.SecondTail, error) {
 		return nil, fmt.Errorf("second-game town save: the current location is not available")
 	}
 	for _, l := range c.Available {
-		t.Locations = append(t.Locations, sav.SecondLocation{ID: uint32(l.ID), Kind: uint32(l.Kind)})
+		t.Locations = append(t.Locations, sav.SecondLocation{ID: uint32(l.ID), Kind: uint32(l.Kind), Raw: c.Kept.raw(l)})
 	}
 	t.Current = uint32(current)
 	return t, nil

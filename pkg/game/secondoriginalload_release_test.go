@@ -4,11 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -143,5 +145,61 @@ func TestReleaseSecondOriginalMissionLoadIsRefused(t *testing.T) {
 	}
 	if f.live != nil || f.liveMission != 0 {
 		t.Fatal("the refused LOAD changed the front end")
+	}
+}
+
+// secondCompanionMissionFiles are the original mission files that hold
+// identity 22 after the Kaarg inn talk: the corpus's mission 30 files and
+// the owner's mission 31 files, read-only from the save corpus.
+var secondCompanionMissionFiles = []struct {
+	dir, name string
+	mission   int
+}{
+	{"rom2-gog-original-2", "game0012.sav", 30},
+	{"rom2-gog-original-2", "game9999.sav", 30},
+	{"rom2-owner-kaarg-0051", "game0017.sav", 31},
+	{"rom2-owner-kaarg-0051", "game9999.sav", 31},
+}
+
+const secondCompanionCorpus = "../../../gameversions/saves/2026-10-30"
+
+// A LOAD of each original mission file holding identity 22 opens his
+// mission with him as the party member npc:22, whose fall gives reason 3
+// (R2-ENGINE-625), and the campaign's party carries the hero and him.
+func TestReleaseSecondOriginalMissionFileKeepsTheCompanion(t *testing.T) {
+	if _, err := os.Stat(secondCompanionCorpus); err != nil {
+		t.Skipf("no save corpus: %v", err)
+	}
+	for _, file := range secondCompanionMissionFiles {
+		t.Run(file.dir+"/"+file.name, func(t *testing.T) {
+			raw, err := os.ReadFile(filepath.Join(secondCompanionCorpus, file.dir, file.name))
+			if err != nil {
+				t.Skipf("no corpus file: %v", err)
+			}
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, file.name), raw, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			f := secondGameFront(t)
+			app := f.App("second-mission")
+			app.Layout(1024, 768)
+			save, list, load := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
+			app.SetSaveSeams(save, list, load)
+			groundAppLoad(t, app, list, file.name)
+			mw := f.live
+			if mw == nil || f.liveMission != file.mission {
+				t.Fatalf("the LOAD opened mission %d, want %d", f.liveMission, file.mission)
+			}
+			k := slices.IndexFunc(mw.mission.party, func(m mapload.PartyMember) bool { return m.ID == "npc:22" })
+			if k < 0 || k >= len(mw.mission.ids) || mw.mission.party[k].CompanionNPC != 22 {
+				t.Fatal("the mission's party holds no companion npc:22")
+			}
+			if r := partyFailureReason(mw.mission.party[k], mw.mission.table); r != 3 {
+				t.Fatalf("his fall gives reason %d, want 3", r)
+			}
+			if got := carriedIdentities(f.NextParty(), f.Table); !slices.Equal(got, []int{21, 22}) {
+				t.Fatalf("the campaign's party carries identities %v, want 21 and 22", got)
+			}
+		})
 	}
 }
