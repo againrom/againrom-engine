@@ -34,12 +34,14 @@ func (secondCampaignRules) townSavePoint(f *FrontEnd) error {
 	case c.savePoint():
 		return nil
 	case c.noticePending():
-		return refusedTalk
+		return secondRefusals.refuse(refusedTalk)
 	case c != nil && c.current == (partyPlace{}):
-		return refusedWorldMap
+		return secondRefusals.refuse(refusedWorldMap)
 	}
-	return refusedHere
+	return secondRefusals.refuse(refusedHere)
 }
+
+func (secondCampaignRules) refusals() *refusalTable { return secondRefusals }
 
 func (secondCampaignRules) captureMission(f *FrontEnd, s *Snapshot) {
 	if f.live.view != nil {
@@ -57,14 +59,14 @@ func (secondCampaignRules) captureMission(f *FrontEnd, s *Snapshot) {
 // with Continue (owner direction, DIV-4298); a lost one never is.
 func (secondCampaignRules) exportable(s Snapshot) error {
 	if s.second == nil {
-		return refusedHere
+		return secondRefusals.refuse(refusedHere)
 	}
 	if s.Mission == 0 {
 		if s.noticeOpen {
-			return refusedTalk
+			return secondRefusals.refuse(refusedTalk)
 		}
 		if s.second.validateTown() != nil || len(s.World) != 0 || len(s.Party) == 0 || s.Residue.hasMissionState() {
-			return refusedHere
+			return secondRefusals.refuse(refusedHere)
 		}
 		return s.second.validate()
 	}
@@ -74,11 +76,11 @@ func (secondCampaignRules) exportable(s Snapshot) error {
 	}
 	switch {
 	case s.Residue.MissionLost || w.Outcome() == sim.OutcomeLost:
-		return refusedLost
+		return secondRefusals.refuse(refusedLost)
 	case s.noticeOpen || w.Outcome() == sim.OutcomeWon && !s.victoryContinued:
-		return refusedNotice
+		return secondRefusals.refuse(refusedNotice)
 	case !secondSaveMission(int(s.Mission)) || s.second.Current != (currentSecondLocation{1, int(s.Mission)}) || s.Residue.FogVisible == nil || w.Script().Dialect() != sim.ScriptROM2:
-		return refusedHere
+		return secondRefusals.refuse(refusedHere)
 	}
 	return s.second.validate()
 }

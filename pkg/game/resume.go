@@ -78,16 +78,11 @@ func (mw *mapWorld) applyExplored(cols, rows int, explored []byte) bool {
 	return true
 }
 
-// Snapshot captures the running game.
-//
-// IT REFUSES A MAP THAT IS NOT A MISSION. A map opened from the picker names no
-// mission number, so there is nothing to resume it into; f.liveMission is zero
-// for exactly that case and for a front end holding no map at all, which is
-// what makes the refusal a property of one field rather than a rule someone
-// keeps (plan D-4).
+// Snapshot captures the running game. A map opened from the list names no
+// mission (f.liveMission is zero), so it is refused.
 func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	if t := f.townUI; t != nil && t.worldMap != nil && t.worldMap.returnMission != 0 {
-		return Snapshot{}, "", errors.New("return to the city before saving")
+		return Snapshot{}, "", f.campaign().refusals().refuse(refusedWorldMapReturn)
 	}
 	var s Snapshot
 	edition := f.Base().Profile.Edition()
@@ -120,13 +115,8 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 	if err != nil {
 		return Snapshot{}, "", err
 	}
-	// A SAVE TAKEN OFF THE MAP SCREEN IS A TOWN SAVE EVEN THOUGH A DRIVER IS
-	// STILL HELD. f.live is set when a map opens and is never cleared —
-	// nothing on the game side runs when a map screen is left — so the
-	// question "is a mission running" is the FRONT-END's to answer and it
-	// answers it with the screen the menu was opened over. Reading f.live alone
-	// would write a finished mission's world into a save taken in the town
-	// after it.
+	// A save taken off the map screen is a town save: f.live is never
+	// cleared, so the screen the menu was opened over decides.
 	if !onMap || f.live == nil {
 		if err := f.campaign().townSavePoint(f); err != nil {
 			return Snapshot{}, "", err
@@ -135,7 +125,7 @@ func (f *FrontEnd) Snapshot(onMap bool) (Snapshot, string, error) {
 		return s, fmt.Sprintf("town - gold %d", s.Gold), nil
 	}
 	if f.liveMission == 0 {
-		return Snapshot{}, "", errors.New("a map opened from the list is not a game and cannot be saved")
+		return Snapshot{}, "", f.campaign().refusals().refuse(refusedListMap)
 	}
 	b, err := worldBytes(f.live.world)
 	if err != nil {
