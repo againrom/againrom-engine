@@ -214,7 +214,7 @@ func TestAMapWithNoUnitsRecordHasNoUnitsAndTakesNoUnitEdit(t *testing.T) {
 
 			// Everything else about the map still edits, and the result is
 			// still a map: the refusal is this record's, not the model's.
-			if err := ed.SetTile(1, 0, gridNewTile); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 1, 0, gridNewTile); err != nil {
 				t.Errorf("SetTile was refused on the same map: %v", err)
 			}
 			reopensIdentically(t, "after a grid edit on a roster with no units", ed.Bytes())

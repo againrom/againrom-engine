@@ -26,7 +26,7 @@ func objectDragEditor(t *testing.T, objects map[image.Point]uint8) (*ui.MapEdito
 	}
 	doc, err = s.change(func(m *mapedit.Editor) (bool, error) {
 		for c, b := range objects {
-			if err := m.SetOverlay(c.X, c.Y, b); err != nil {
+			if err := m.SetCell(mapedit.GridRaw, mapedit.GridOverlay, c.X, c.Y, uint16(b)); err != nil {
 				return false, err
 			}
 		}

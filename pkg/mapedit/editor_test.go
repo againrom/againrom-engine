@@ -193,7 +193,7 @@ func TestAThinRosterLoadsAndTakesTheEditsItCanTake(t *testing.T) {
 				}
 			}
 			if r.overlay {
-				if err := ed.SetOverlay(0, 0, gridNewOverlay); err != nil {
+				if err := ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, 0, 0, gridNewOverlay); err != nil {
 					t.Fatalf("SetOverlay on a roster that carries type-3: %v", err)
 				}
 				if !ed.Undo() {
@@ -204,10 +204,10 @@ func TestAThinRosterLoadsAndTakesTheEditsItCanTake(t *testing.T) {
 			// type-0, type-1 and type-2 are in every accepted stream, so these
 			// three are available on every roster above.
 			before := ed.Bytes()
-			if err := ed.SetTile(2, 1, gridNewTile); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 2, 1, gridNewTile); err != nil {
 				t.Fatalf("SetTile on a thin roster: %v", err)
 			}
-			if err := ed.SetAltitude(0, 0, gridNewAltitude); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 0, 0, gridNewAltitude); err != nil {
 				t.Fatalf("SetAltitude on a thin roster: %v", err)
 			}
 			if err := ed.SetWord0C(0x5e5e5e5e); err != nil {
@@ -298,7 +298,7 @@ func TestTheModelSharesNoBufferWithItsCallerOrWithItself(t *testing.T) {
 
 	// A buffer taken before an edit still holds the bytes as they were.
 	before := ed.Bytes()
-	if err := ed.SetAltitude(0, 0, gridNewAltitude); err != nil {
+	if err := ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 0, 0, gridNewAltitude); err != nil {
 		t.Fatalf("SetAltitude: %v", err)
 	}
 	if !bytes.Equal(before, data) {
@@ -403,7 +403,7 @@ func TestUndoRestoresAndRedoReappliesTheExactBytes(t *testing.T) {
 			ed := newEditor(t, richFixture(order, fixUnitsMax))
 
 			before := ed.Bytes()
-			if err := ed.SetTile(2, 1, gridNewTile); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 2, 1, gridNewTile); err != nil {
 				t.Fatalf("SetTile: %v", err)
 			}
 			after := ed.Bytes()
@@ -447,11 +447,11 @@ func TestTwoMutationsUndoTwiceRedoTwice(t *testing.T) {
 			ed := newEditor(t, richFixture(order, fixUnitsMax))
 
 			s0 := ed.Bytes()
-			if err := ed.SetTile(0, 0, gridNewTile); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 0, 0, gridNewTile); err != nil {
 				t.Fatalf("SetTile: %v", err)
 			}
 			s1 := ed.Bytes()
-			if err := ed.SetOverlay(2, 1, gridNewOverlay); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, 2, 1, gridNewOverlay); err != nil {
 				t.Fatalf("SetOverlay: %v", err)
 			}
 			s2 := ed.Bytes()
@@ -493,7 +493,7 @@ func TestAMutationAfterAnUndoDiscardsTheRedoHistory(t *testing.T) {
 			ed := newEditor(t, richFixture(order, fixUnitsMax))
 
 			s0 := ed.Bytes()
-			if err := ed.SetTile(1, 0, gridNewTile); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 1, 0, gridNewTile); err != nil {
 				t.Fatalf("SetTile: %v", err)
 			}
 			s1 := ed.Bytes()
@@ -504,7 +504,7 @@ func TestAMutationAfterAnUndoDiscardsTheRedoHistory(t *testing.T) {
 				t.Fatal("Undo did not restore the pre-mutation bytes")
 			}
 
-			if err := ed.SetAltitude(2, 1, gridNewAltitude); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 2, 1, gridNewAltitude); err != nil {
 				t.Fatalf("SetAltitude: %v", err)
 			}
 			s2 := ed.Bytes()
@@ -545,7 +545,7 @@ func TestAMutationThatChangesNoByteIsStillRecorded(t *testing.T) {
 	same := m.Tiles[1*fixW+2]
 
 	before := ed.Bytes()
-	if err := ed.SetTile(2, 1, same); err != nil {
+	if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, 2, 1, same); err != nil {
 		t.Fatalf("SetTile to the value already there: %v", err)
 	}
 	if got := ed.Bytes(); !bytes.Equal(got, before) {

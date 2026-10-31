@@ -36,19 +36,25 @@ var gridLayers = []struct {
 }{
 	{
 		"tile", 1, 2,
-		func(ed *mapedit.Editor, x, y int) error { return ed.SetTile(x, y, gridNewTile) },
+		func(ed *mapedit.Editor, x, y int) error {
+			return ed.SetCell(mapedit.GridRaw, mapedit.GridTile, x, y, gridNewTile)
+		},
 		func(m *alm.Map, idx int) uint64 { return uint64(m.Tiles[idx]) },
 		gridNewTile,
 	},
 	{
 		"altitude", 2, 1,
-		func(ed *mapedit.Editor, x, y int) error { return ed.SetAltitude(x, y, gridNewAltitude) },
+		func(ed *mapedit.Editor, x, y int) error {
+			return ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, x, y, gridNewAltitude)
+		},
 		func(m *alm.Map, idx int) uint64 { return uint64(m.Altitudes[idx]) },
 		gridNewAltitude,
 	},
 	{
 		"overlay", 3, 1,
-		func(ed *mapedit.Editor, x, y int) error { return ed.SetOverlay(x, y, gridNewOverlay) },
+		func(ed *mapedit.Editor, x, y int) error {
+			return ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, x, y, gridNewOverlay)
+		},
 		func(m *alm.Map, idx int) uint64 { return uint64(m.Overlay[idx]) },
 		gridNewOverlay,
 	},
@@ -141,12 +147,12 @@ func TestGridSetterRejectsACellOutsideTheGrid(t *testing.T) {
 	}{
 		{"a fresh model", func(*testing.T, *mapedit.Editor) {}},
 		{"one accepted edit", func(t *testing.T, ed *mapedit.Editor) {
-			if err := ed.SetOverlay(0, 0, gridNewOverlay); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, 0, 0, gridNewOverlay); err != nil {
 				t.Fatalf("the set-up edit failed: %v", err)
 			}
 		}},
 		{"one edit, undone", func(t *testing.T, ed *mapedit.Editor) {
-			if err := ed.SetOverlay(0, 0, gridNewOverlay); err != nil {
+			if err := ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, 0, 0, gridNewOverlay); err != nil {
 				t.Fatalf("the set-up edit failed: %v", err)
 			}
 			if !ed.Undo() {
@@ -204,14 +210,14 @@ func TestSetOverlayRejectsAMapWithNoOverlayRecord(t *testing.T) {
 						len(m.Overlay), fixW*fixH)
 				}
 
-				rejectionChangesNothing(t, ed, func() error { return ed.SetOverlay(c.x, c.y, gridNewOverlay) })
+				rejectionChangesNothing(t, ed, func() error { return ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, c.x, c.y, gridNewOverlay) })
 
 				// The layers that ARE in the file are unaffected by the
 				// refusal: this is a per-record answer, not a mode.
-				if err := ed.SetTile(c.x, c.y, gridNewTile); err != nil {
+				if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, c.x, c.y, gridNewTile); err != nil {
 					t.Errorf("SetTile was refused on the same map: %v", err)
 				}
-				if err := ed.SetAltitude(c.x, c.y, gridNewAltitude); err != nil {
+				if err := ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, c.x, c.y, gridNewAltitude); err != nil {
 					t.Errorf("SetAltitude was refused on the same map: %v", err)
 				}
 				reopensIdentically(t, "after the accepted edits", ed.Bytes())

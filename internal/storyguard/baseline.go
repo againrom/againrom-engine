@@ -3172,7 +3172,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1679,
+		"longcommentgroups":      1678,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3589,5 +3589,5 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10033095,
+	CommentBytes: 10032882,
 }

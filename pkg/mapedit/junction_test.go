@@ -155,7 +155,7 @@ func TestStrokeOverTheOwnersBadEdgesRepairsThem(t *testing.T) {
 				case y == 20:
 					w = 0x012
 				}
-				if err := ed.SetTile(x, y, w); err != nil {
+				if err := ed.SetCell(mapedit.GridRaw, mapedit.GridTile, x, y, w); err != nil {
 					t.Fatal(err)
 				}
 			}

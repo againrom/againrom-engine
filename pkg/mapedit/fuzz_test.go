@@ -36,13 +36,13 @@ type fuzzOp struct {
 // accepted at least once.
 var fuzzOps = []fuzzOp{
 	{"SetTile", 4, func(ed *mapedit.Editor, a []byte) error {
-		return ed.SetTile(fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), binary.LittleEndian.Uint16(a[2:]))
+		return ed.SetCell(mapedit.GridRaw, mapedit.GridTile, fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), binary.LittleEndian.Uint16(a[2:]))
 	}},
 	{"SetAltitude", 3, func(ed *mapedit.Editor, a []byte) error {
-		return ed.SetAltitude(fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), a[2])
+		return ed.SetCell(mapedit.GridRaw, mapedit.GridAltitude, fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), uint16(a[2]))
 	}},
 	{"SetOverlay", 3, func(ed *mapedit.Editor, a []byte) error {
-		return ed.SetOverlay(fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), a[2])
+		return ed.SetCell(mapedit.GridRaw, mapedit.GridOverlay, fuzzCoord(a[0], fixW), fuzzCoord(a[1], fixH), uint16(a[2]))
 	}},
 	{"SetAngle", 4, func(ed *mapedit.Editor, a []byte) error {
 		return ed.SetAngle(math.Float32frombits(binary.LittleEndian.Uint32(a)))

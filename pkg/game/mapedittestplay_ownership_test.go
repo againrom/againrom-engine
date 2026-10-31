@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
 )
@@ -49,7 +50,7 @@ func TestTestPlayRefusesAnAuthoredDestination(t *testing.T) {
 			}
 			s := editorEdits(t, f.x, source)
 			s.saved = s.model.Bytes()
-			if err := s.model.SetAltitude(1, 1, 7); err != nil {
+			if err := s.model.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 1, 1, 7); err != nil {
 				t.Fatal(err)
 			}
 			before := tree(t, f.profile)
@@ -85,7 +86,7 @@ func TestTestPlayPreservesUnownedPagesAndRemovesOnlyRecordedPages(t *testing.T) 
 		foreign := filepath.Join(folder, "mission", "text", "event01.txt")
 		writeTestPlayInput(t, foreign, []byte("Author page added after test play"))
 		s = editorEdits(t, f.x, "new.alm")
-		if err := s.model.SetAltitude(1, 1, 7); err != nil {
+		if err := s.model.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 1, 1, 7); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := s.TestPlay(); err != nil {
@@ -162,7 +163,7 @@ func TestTestPlayInstallProfileWritesOnlyThePrivateFolderAndReplacesIt(t *testin
 	before := tree(t, install)
 	s := editorEdits(t, f.x, "scenario/20.alm")
 	for _, height := range []uint8{3, 7} {
-		if err := s.model.SetAltitude(1, 1, height); err != nil {
+		if err := s.model.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 1, 1, uint16(height)); err != nil {
 			t.Fatal(err)
 		}
 		m, err := f.x.testPlayMission(s.source, mustSaveBytes(t, s), nil)

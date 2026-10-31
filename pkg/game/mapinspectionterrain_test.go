@@ -115,7 +115,7 @@ func TestHostAreaCopyPastesTheTerrain(t *testing.T) {
 	}
 	if _, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		for x := 4; x < 12; x += 2 {
-			if err := m.SetOverlay(x, 6, uint8(x)); err != nil {
+			if err := m.SetCell(mapedit.GridRaw, mapedit.GridOverlay, x, 6, uint16(x)); err != nil {
 				return false, err
 			}
 		}

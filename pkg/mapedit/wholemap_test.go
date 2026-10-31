@@ -46,7 +46,7 @@ func terrainMap(t *testing.T) *mapedit.Editor {
 		}
 	}
 	for x := 8; x < 40; x += 3 {
-		if err := m.SetOverlay(x, 28, uint8(x)); err != nil {
+		if err := m.SetCell(mapedit.GridRaw, mapedit.GridOverlay, x, 28, uint16(uint8(x))); err != nil {
 			t.Fatal(err)
 		}
 	}

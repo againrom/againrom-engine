@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -123,7 +124,7 @@ func TestTestPlayWritesTheEditedMapIntoTheTestModAndStartsTheGame(t *testing.T) 
 	modBefore := tree(t, modDir)
 	s := editorEdits(t, f.x, opened)
 	s.saved = s.model.Bytes()
-	if err := s.model.SetAltitude(1, 1, 7); err != nil {
+	if err := s.model.SetCell(mapedit.GridRaw, mapedit.GridAltitude, 1, 1, 7); err != nil {
 		t.Fatal(err)
 	}
 	edited, err := s.model.SaveBytes()
