@@ -1,6 +1,10 @@
 package mapedit
 
-import "slices"
+import (
+	"slices"
+
+	"againrom/pkg/formats/alm"
+)
 
 // The terrain stroke's rule. A tile word shows the terrain at the four corners
 // of its cell: a strip word splits them between the strip's two classes, a
@@ -86,7 +90,7 @@ func groupFamily(g uint16) (family, bool) {
 // state, any other word as its class at all four corners. ok is false for a
 // word of no terrain class.
 func wordQuad(w uint16, class func(uint16) uint8) (quad, bool) {
-	i := w & 0x3ff
+	i := w & alm.TileIndexMask
 	water := i&0x300 == 0x200
 	g := i >> 6 & 15
 	if water {
@@ -368,9 +372,9 @@ func (f *TileFix) Paint(cells []int, c uint8) []TileChange {
 		} else if cur, ok := wordQuad(old, f.class); !ok || cur != q && (f.painted[i] || seen(cur) != seen(q)) {
 			next = quadWord(q, prefer, i%f.w, i/f.w)
 		}
-		next &^= blockedBit
+		next &^= alm.TileImpassable
 		if !f.painted[i] {
-			next |= old & blockedBit
+			next |= old & alm.TileImpassable
 		}
 		if next != old {
 			out = append(out, TileChange{Cell: i, Word: next})

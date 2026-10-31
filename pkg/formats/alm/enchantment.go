@@ -8,7 +8,7 @@ const enchantmentHeadSize = 26
 const enchantmentElementSize = 6
 
 func (m *Map) decodeEnchantments() error {
-	if !m.Present(9) {
+	if !m.Present(TypeTileMarkers) {
 		m.Enchantments = nil
 		return nil
 	}

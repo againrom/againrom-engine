@@ -38,9 +38,9 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 		if m.Count(k) >= 1000 {
 			return 0, fmt.Errorf("the script already holds 1000 triggers")
 		}
-		rec = make([]byte, 184)
+		rec = make([]byte, alm.ScriptTriggerSize)
 		copy(rec, "Trigger")
-		binary.LittleEndian.PutUint32(rec[0xb4:], 1)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptTriggerOnce:], 1)
 	} else {
 		if k == mapedit.KindCondition && m.Count(k) >= 100 {
 			return 0, fmt.Errorf("the script already uses 100 check registers")

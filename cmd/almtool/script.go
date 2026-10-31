@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"strings"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 )
 
@@ -74,7 +75,7 @@ func cmdScript(path string) error {
 	}
 	fmt.Printf("map:        %q  %dx%d  version=%d\n", m.Name, m.Width, m.Height, m.FormatVersion)
 	fmt.Printf("type7:      present=%v  entryCount=%d  body=%d bytes\n",
-		m.Present(7), m.Triggers.EntryCount, len(m.Triggers.Body))
+		m.Present(alm.TypeScript), m.Triggers.EntryCount, len(m.Triggers.Body))
 	if src.Empty() {
 		fmt.Println("script:     none — this map authors no mission script")
 		return nil

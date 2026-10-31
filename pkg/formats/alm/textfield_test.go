@@ -47,13 +47,13 @@ func TestTextFieldsStateTheirCodec(t *testing.T) {
 func TestScriptNamesReadThroughTheirField(t *testing.T) {
 	label, _ := charmap.Windows1251.NewEncoder().Bytes([]byte("Смерть"))
 	name, _ := charmap.Windows1251.NewEncoder().Bytes([]byte("Победа"))
-	node := make([]byte, scriptNodeSize)
+	node := make([]byte, ScriptNodeSize)
 	copy(node, label)
 	nodes, _, err := readScriptNodes(node, 0, 1, "action")
 	if err != nil || nodes[0].Label != "Смерть" {
 		t.Fatalf("node label %q %v", nodes[0].Label, err)
 	}
-	trig := make([]byte, scriptTriggerSize)
+	trig := make([]byte, ScriptTriggerSize)
 	copy(trig, name)
 	binary.LittleEndian.PutUint32(trig[0xb4:], 1)
 	triggers, _, err := readScriptTriggers(trig, 0, 1)

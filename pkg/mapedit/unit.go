@@ -7,22 +7,6 @@ import (
 	"againrom/pkg/formats/alm"
 )
 
-// The type-6 record: a fixed 70 bytes whose first two words are the
-// fixed-point coordinates, the unit id a clone renumbers, and the type-0 word
-// that says how many records there are. The fields a caller may set by name are
-// the table in field.go; every other byte is carried.
-const (
-	unitTypeID = 6
-
-	unitRecordSize = 70
-	unitX          = 0x00
-	unitY          = 0x04
-	unitID         = 0x40
-	unitLootLink   = 0x18 // 1-based index into the type-8 array, 0 for none
-
-	metaCount6 = 0x24
-)
-
 // UnitCount returns the number of type-6 records in the map, and zero on a map
 // that carries no type-6 record at all.
 //
@@ -80,7 +64,7 @@ func renumberUnit(e *Editor, w walk, rec []byte) error {
 	highest := uint32(0)
 	for k := 0; k < w.n(); k++ {
 		at, _ := w.at(k)
-		highest = max(highest, uint32(binary.LittleEndian.Uint16(e.data[at+unitID:])))
+		highest = max(highest, uint32(binary.LittleEndian.Uint16(e.data[at+alm.UnitID:])))
 	}
 	scripted, err := e.highestScriptUnit()
 	if err != nil {
@@ -90,7 +74,7 @@ func renumberUnit(e *Editor, w walk, rec []byte) error {
 	if highest >= 0xFFFF {
 		return fmt.Errorf("the highest unit id is already %d", highest)
 	}
-	binary.LittleEndian.PutUint16(rec[unitID:], uint16(highest+1))
+	binary.LittleEndian.PutUint16(rec[alm.UnitID:], uint16(highest+1))
 	return nil
 }
 
@@ -151,7 +135,7 @@ func (e *Editor) HighestGroup() (uint64, error) {
 // sizeWordPart is the part that moves a located record's own payloadSize word,
 // in its 20-byte header, by delta bytes.
 func (e *Editor) sizeWordPart(sp span, delta int) part {
-	return e.wordPart(sp.headerOff+recPayloadSize, delta)
+	return e.wordPart(sp.headerOff+alm.RecordPayloadSize, delta)
 }
 
 // wordPart builds the part that adds delta to the little-endian word at absolute

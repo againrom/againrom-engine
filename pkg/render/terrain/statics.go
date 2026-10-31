@@ -3,6 +3,8 @@ package terrain
 import (
 	"image"
 	"image/color"
+
+	"againrom/pkg/formats/alm"
 )
 
 // StaticPixel is one pixel of a decoded object frame: a palette index that is
@@ -277,7 +279,7 @@ func StaticPlacements(g Grid, set *StaticSet, lift func(col, row int) int, origi
 			// the registry's identity convention is decoded, and no bounds test is
 			// possible here.
 			c := set.Classes[b]
-			if len(g.Tiles) == g.Width*g.Height && g.Tiles[row*g.Width+col]&0x2000 != 0 && c != nil && c.Dead != nil {
+			if len(g.Tiles) == g.Width*g.Height && alm.Impassable(g.Tiles[row*g.Width+col]) && c != nil && c.Dead != nil {
 				c = c.Dead
 			}
 			if c == nil {

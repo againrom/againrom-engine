@@ -8,25 +8,6 @@ import (
 	"againrom/pkg/formats/alm"
 )
 
-// The type-7 payload is three counted arrays: actions and conditions of 796
-// bytes, then triggers of 184 (ALM-TRIG-044). A node is an opcode, an id and
-// ten parameter slots, each a value and a type code (ALM-TRIG-045,
-// ALM-TRIG-046). Action and condition nodes are two rows of the section
-// table; their settable fields are the typed parameter slots of the record.
-const (
-	scriptTypeID      = 7
-	scriptNodeSize    = 796
-	scriptTriggerSize = 184
-	scriptCountSize   = 4
-
-	nodeLabelLen = 64
-	nodeOpcode   = 0x40
-	nodeID       = 0x44
-	nodeValues   = 0x4c
-	nodeTypes    = 0x74
-	nodeSlots    = 10
-)
-
 // The parameter type codes of ALM-TRIG-046 a node field is offered for.
 const (
 	paramInt       = 1
@@ -44,7 +25,7 @@ type ScriptParam struct{ Type, Value uint32 }
 
 func scriptSection(name string, array int) *section {
 	size := scriptArraySizes[array]
-	sec := &section{name: name, typeID: scriptTypeID,
+	sec := &section{name: name, typeID: alm.TypeScript,
 		layout:   scriptLayout(array),
 		length:   func(_ *Editor, b []byte) int { return fixedLength(b, size) },
 		cellless: func([]byte) bool { return true },
@@ -60,7 +41,7 @@ func scriptSection(name string, array int) *section {
 
 // scriptArraySizes is the record size of the three arrays of the type-7
 // payload, in file order: actions, conditions, triggers.
-var scriptArraySizes = [3]int{scriptNodeSize, scriptNodeSize, scriptTriggerSize}
+var scriptArraySizes = [3]int{alm.ScriptNodeSize, alm.ScriptNodeSize, alm.ScriptTriggerSize}
 
 // scriptLayout locates array a (0 actions, 1 conditions, 2 triggers) in the type-7
 // payload. The three arrays must tile the payload exactly, as the engine's
@@ -72,14 +53,14 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 		var lay arrayLayout
 		off := 0
 		for k, size := range sizes {
-			if off+scriptCountSize > len(p) {
+			if off+alm.CountWordSize > len(p) {
 				return lay, fmt.Errorf("the type-7 payload ends before array %d", k)
 			}
 			n := uint64(binary.LittleEndian.Uint32(p[off:]))
-			if n > uint64(len(p)-off-scriptCountSize)/uint64(size) {
+			if n > uint64(len(p)-off-alm.CountWordSize)/uint64(size) {
 				return lay, fmt.Errorf("type-7 array %d counts %d records past the payload", k, n)
 			}
-			start := off + scriptCountSize
+			start := off + alm.CountWordSize
 			if k == a {
 				lay = arrayLayout{countAt: sp.abs(off), first: start, n: int(n), after: len(p) - (start + int(n)*size)}
 			}
@@ -95,13 +76,13 @@ func scriptLayout(a int) func(*Editor, span) (arrayLayout, error) {
 // nodeFields offers identity, parameter kinds and typed values. Unedited
 // bytes, including unknown parameter values and slot names, stay carried.
 func nodeFields(rec []byte) []Field {
-	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: nodeLabelLen, Text: &alm.ScriptLabelText},
-		{Key: "opcode", Label: "Operation", Offset: nodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
-		{Key: "id", Label: "Node ID", Offset: nodeID, Width: 4, Min: 1, Max: scriptMaxID}}
-	for i := 0; i < nodeSlots; i++ {
-		t := binary.LittleEndian.Uint32(rec[nodeTypes+4*i:])
-		out = append(out, Field{Key: fmt.Sprintf("type%d", i), Label: fmt.Sprintf("Par%d kind", i), Offset: nodeTypes + 4*i, Width: 4, Min: 0, Max: 9})
-		f := Field{Key: fmt.Sprintf("value%d", i), Offset: nodeValues + 4*i, Width: 4}
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText},
+		{Key: "opcode", Label: "Operation", Offset: alm.ScriptNodeOpcode, Width: 4, Min: 1, Max: math.MaxUint32},
+		{Key: "id", Label: "Node ID", Offset: alm.ScriptNodeID, Width: 4, Min: 1, Max: scriptMaxID}}
+	for i := 0; i < alm.ScriptParams; i++ {
+		t := binary.LittleEndian.Uint32(rec[alm.ScriptNodeTypes+4*i:])
+		out = append(out, Field{Key: fmt.Sprintf("type%d", i), Label: fmt.Sprintf("Par%d kind", i), Offset: alm.ScriptNodeTypes + 4*i, Width: 4, Min: 0, Max: 9})
+		f := Field{Key: fmt.Sprintf("value%d", i), Offset: alm.ScriptNodeValues + 4*i, Width: 4}
 		switch t {
 		case paramInt, paramConst:
 			f.Label, f.Signed, f.Min, f.Max = "integer", true, math.MinInt32, math.MaxInt32
@@ -129,16 +110,16 @@ func nodeFields(rec []byte) []Field {
 }
 
 func triggerFields() []Field {
-	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: nodeLabelLen, Text: &alm.ScriptLabelText}}
+	out := []Field{{Key: "name", Label: "Name", Offset: 0, Width: alm.ScriptLabelLen, Text: &alm.ScriptLabelText}}
 	for i := 0; i < 3; i++ {
-		out = append(out, Field{Key: fmt.Sprintf("left%d", i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: triggerPairs + 8*i, Width: 4, Max: scriptMaxID},
-			Field{Key: fmt.Sprintf("right%d", i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: triggerPairs + 8*i + 4, Width: 4, Max: scriptMaxID},
-			Field{Key: fmt.Sprintf("cmp%d", i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: triggerCompare + 4*i, Width: 4, Max: 5})
+		out = append(out, Field{Key: fmt.Sprintf("left%d", i), Label: fmt.Sprintf("Pair%d left condition ID (0 empty)", i+1), Offset: alm.ScriptTriggerPairs + 8*i, Width: 4, Max: scriptMaxID},
+			Field{Key: fmt.Sprintf("right%d", i), Label: fmt.Sprintf("Pair%d right condition ID", i+1), Offset: alm.ScriptTriggerPairs + 8*i + 4, Width: 4, Max: scriptMaxID},
+			Field{Key: fmt.Sprintf("cmp%d", i), Label: fmt.Sprintf("Pair%d comparison", i+1), Offset: alm.ScriptTriggerCompare + 4*i, Width: 4, Max: 5})
 	}
 	for i := 0; i < 4; i++ {
-		out = append(out, Field{Key: fmt.Sprintf("action%d", i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: triggerActions + 4*i, Width: 4, Max: scriptMaxID})
+		out = append(out, Field{Key: fmt.Sprintf("action%d", i), Label: fmt.Sprintf("Action%d ID (0 empty)", i+1), Offset: alm.ScriptTriggerActions + 4*i, Width: 4, Max: scriptMaxID})
 	}
-	return append(out, Field{Key: "once", Label: "Fire once", Offset: triggerOnce, Width: 4, Max: 1})
+	return append(out, Field{Key: "once", Label: "Fire once", Offset: alm.ScriptTriggerOnce, Width: 4, Max: 1})
 }
 
 func (e *Editor) Reorder(k Kind, from, to int) error {
@@ -182,19 +163,19 @@ func (e *Editor) Reorder(k Kind, from, to int) error {
 // NewScriptNode builds one node record: a zero record with the label, opcode,
 // id and the parameter slots set. At most ten parameters.
 func NewScriptNode(label string, opcode, id uint32, params ...ScriptParam) ([]byte, error) {
-	if len(params) > nodeSlots {
-		return nil, fmt.Errorf("mapedit: a node holds %d parameters, not %d", nodeSlots, len(params))
+	if len(params) > alm.ScriptParams {
+		return nil, fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, len(params))
 	}
-	if len(label) >= nodeLabelLen {
-		return nil, fmt.Errorf("mapedit: a node label is under %d bytes", nodeLabelLen)
+	if len(label) >= alm.ScriptLabelLen {
+		return nil, fmt.Errorf("mapedit: a node label is under %d bytes", alm.ScriptLabelLen)
 	}
-	rec := make([]byte, scriptNodeSize)
+	rec := make([]byte, alm.ScriptNodeSize)
 	copy(rec, label)
-	binary.LittleEndian.PutUint32(rec[nodeOpcode:], opcode)
-	binary.LittleEndian.PutUint32(rec[nodeID:], id)
+	binary.LittleEndian.PutUint32(rec[alm.ScriptNodeOpcode:], opcode)
+	binary.LittleEndian.PutUint32(rec[alm.ScriptNodeID:], id)
 	for i, p := range params {
-		binary.LittleEndian.PutUint32(rec[nodeValues+4*i:], p.Value)
-		binary.LittleEndian.PutUint32(rec[nodeTypes+4*i:], p.Type)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeValues+4*i:], p.Value)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptNodeTypes+4*i:], p.Type)
 	}
 	return rec, nil
 }
@@ -209,7 +190,7 @@ func (e *Editor) NextScriptID(k Kind) (uint32, error) {
 	next := uint32(1)
 	for i := 0; i < w.n(); i++ {
 		at, _ := w.at(i)
-		if id := e.u32(at + nodeID); id >= next {
+		if id := e.u32(at + alm.ScriptNodeID); id >= next {
 			if id == math.MaxUint32 {
 				return 0, fmt.Errorf("mapedit: node ID space is exhausted")
 			}
@@ -232,7 +213,7 @@ func (e *Editor) SetDropCell(x, y uint32) error {
 	}
 	for i := 0; i < w.n(); i++ {
 		at, _ := w.at(i)
-		if e.u32(at+nodeOpcode) == dropOpcode {
+		if e.u32(at+alm.ScriptNodeOpcode) == dropOpcode {
 			return e.SetFields(KindAction, i, FieldSet{"value0", int64(x)}, FieldSet{"value1", int64(y)})
 		}
 	}
@@ -259,11 +240,11 @@ func (e *Editor) SetScriptNode(k Kind, i int, label string, opcode uint32, param
 	if k != KindAction && k != KindCondition {
 		return fmt.Errorf("mapedit: %s holds no script node", sectionName(k))
 	}
-	if len(params) > nodeSlots {
-		return fmt.Errorf("mapedit: a node holds %d parameters, not %d", nodeSlots, len(params))
+	if len(params) > alm.ScriptParams {
+		return fmt.Errorf("mapedit: a node holds %d parameters, not %d", alm.ScriptParams, len(params))
 	}
-	if len(label) >= nodeLabelLen {
-		return fmt.Errorf("mapedit: a node label is under %d bytes", nodeLabelLen)
+	if len(label) >= alm.ScriptLabelLen {
+		return fmt.Errorf("mapedit: a node label is under %d bytes", alm.ScriptLabelLen)
 	}
 	w, err := e.walkIndex(k, "rewrite", i)
 	if err != nil {
@@ -273,17 +254,17 @@ func (e *Editor) SetScriptNode(k Kind, i int, label string, opcode uint32, param
 	rec := e.data[at : at+l]
 	next := cloneBytes(rec)
 	if label != "" {
-		clear(next[:nodeLabelLen])
+		clear(next[:alm.ScriptLabelLen])
 		copy(next, label)
 	}
-	binary.LittleEndian.PutUint32(next[nodeOpcode:], opcode)
-	for s := 0; s < nodeSlots; s++ {
+	binary.LittleEndian.PutUint32(next[alm.ScriptNodeOpcode:], opcode)
+	for s := 0; s < alm.ScriptParams; s++ {
 		var p ScriptParam
 		if s < len(params) {
 			p = params[s]
 		}
-		binary.LittleEndian.PutUint32(next[nodeValues+4*s:], p.Value)
-		binary.LittleEndian.PutUint32(next[nodeTypes+4*s:], p.Type)
+		binary.LittleEndian.PutUint32(next[alm.ScriptNodeValues+4*s:], p.Value)
+		binary.LittleEndian.PutUint32(next[alm.ScriptNodeTypes+4*s:], p.Type)
 	}
 	if string(next) == string(rec) {
 		return nil
@@ -323,10 +304,10 @@ func (e *Editor) AddDropZone(x, y uint32) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	trigger := make([]byte, scriptTriggerSize)
+	trigger := make([]byte, alm.ScriptTriggerSize)
 	copy(trigger, dropTrigger)
-	binary.LittleEndian.PutUint32(trigger[triggerActions:], id)
-	binary.LittleEndian.PutUint32(trigger[triggerOnce:], 1)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerActions:], id)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerOnce:], 1)
 	if _, err := e.PlaceAll([]Placement{{KindAction, action}, {KindTrigger, trigger}}); err != nil {
 		return 0, err
 	}
@@ -343,7 +324,7 @@ func (e *Editor) DropZones() ([]int, error) {
 	var out []int
 	for i := 0; i < w.n(); i++ {
 		at, _ := w.at(i)
-		if e.u32(at+nodeOpcode) == dropOpcode {
+		if e.u32(at+alm.ScriptNodeOpcode) == dropOpcode {
 			out = append(out, i)
 		}
 	}

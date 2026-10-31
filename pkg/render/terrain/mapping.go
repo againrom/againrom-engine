@@ -12,21 +12,26 @@ import (
 func RenderTileWords(stored []uint16) []uint16 {
 	words := slices.Clone(stored)
 	for i := range words {
-		words[i] &^= ImpassableBit
+		words[i] &^= alm.TileImpassable
 	}
 	return words
 }
+
+// The alm schema's tile bits, for pkg/ui, which reads tiles through this package.
+const (
+	ImpassableBit = alm.TileImpassable
+	TileGroupBits = alm.TileGroupBits
+)
+
+// IsImpassable is alm.Impassable. An impassable non-water cell composites over
+// dirt before blit (TERR-SEM-004).
+func IsImpassable(word uint16) bool { return alm.Impassable(word) }
 
 const (
 	tileGroupShift = 6 // g   = (w & 0x1fff) >> 6
 	tileBlendShift = 4 // b   = (w >> 4) & 3
 	tileBlendMask  = 3
 	tileSubMask    = 0xf // sub = w & 0xf
-
-	// ImpassableBit is bit 13 of a type1 tile word. An impassable non-water
-	// cell is composited over dirt.bmp before blit (TERR-SEM-004); the flag has
-	// no effect on which image or sub-cell is selected.
-	ImpassableBit = 0x2000
 
 	// Water occupies strip groups 8..11 (tile3, the animated group). The game's
 	// renderer replaces the group with 8 + phase; the game's animation-disable
@@ -86,10 +91,6 @@ func Resolve(word uint16) TileRef {
 	}
 	return TileRef{Slot: g*blendColumns + b, Sub: sub, Water: water}
 }
-
-// IsImpassable reports the type1 impassable flag (bit 13, 0x2000). An
-// impassable non-water cell composites over dirt before blit (TERR-SEM-004).
-func IsImpassable(word uint16) bool { return word&ImpassableBit != 0 }
 
 // DirtSubCell returns the dirt.bmp sub-cell that an impassable non-water cell at
 // map position (col, row) composites over: (col + row*5) & 3 (TERR-SEM-004).

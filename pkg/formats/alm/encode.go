@@ -97,17 +97,17 @@ type TextField struct {
 var (
 	// MapNameText is the type-0 name (+0x30) as the editor authors it
 	// (DIV-3386). EncodeName keeps the format's own ASCII rule (ALM-META-010).
-	MapNameText = TextField{Name: "name", Width: metaNameLen, Terminated: true}
+	MapNameText = TextField{Name: "name", Width: MetaNameLen, Terminated: true}
 	// DescriptionText is the type-0 description (+0x78) (ALM-META-010).
-	DescriptionText = TextField{Name: "description", Width: metaDescLen, Terminated: true}
+	DescriptionText = TextField{Name: "description", Width: MetaDescLen, Terminated: true}
 	// PlayerNameText is the type-5 player name (+0x0c). Map.Groups keeps the
 	// field's bytes, which the world carries; this reads them as text.
-	PlayerNameText = TextField{Name: "player name", Width: groupNameLen}
+	PlayerNameText = TextField{Name: "player name", Width: GroupNameLen}
 	// ScriptLabelText is a node's label (+0x000) and a trigger's name (+0x00).
 	// The game reads neither as text (ALM-NODEREAD-232, ALM-TRIGREAD-233).
-	ScriptLabelText = TextField{Name: "script label", Width: scriptLabelLen}
+	ScriptLabelText = TextField{Name: "script label", Width: ScriptLabelLen}
 	// mapNameASCII is the format's type-0 name rule, EncodeName's codec.
-	mapNameASCII = TextField{Name: "name", Width: metaNameLen, Terminated: true, ascii: true}
+	mapNameASCII = TextField{Name: "name", Width: MetaNameLen, Terminated: true, ascii: true}
 )
 
 // Decode is the field's text through its first NUL, as UTF-8.

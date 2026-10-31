@@ -27,7 +27,7 @@ func OriginalTerrainPlanes(m *alm.Map, costs [11]byte) (*sim.SavedCellPlanes, er
 		for x := 0; x < m.Width; x++ {
 			i, cell := y*m.Width+x, y*256+x
 			word := m.Tiles[i]
-			index := word & 0x3ff
+			index := word & alm.TileIndexMask
 			// These reachable pairs were never initialized by ROM1. Rejecting
 			// the producer is explicit; assigning our native fallback is not.
 			if index&0x300 != 0x200 && index&15 < 14 && (index>>6)&15 >= 13 {
@@ -35,7 +35,7 @@ func OriginalTerrainPlanes(m *alm.Map, costs [11]byte) (*sim.SavedCellPlanes, er
 			}
 			class, cost := classifyCosts(word, costs)
 			p.Cost[cell], p.Height[cell] = cost, m.Altitudes[i]
-			if word&0x2000 != 0 || class == classMountain {
+			if alm.Impassable(word) || class == classMountain {
 				p.Static[cell] = 1
 			}
 			if index&0x300 == 0x200 {

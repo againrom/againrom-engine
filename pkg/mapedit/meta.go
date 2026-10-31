@@ -9,23 +9,6 @@ import (
 	"againrom/pkg/formats/alm"
 )
 
-// The type-0 fields this story mutates, payload-relative — the same frame W and
-// H are read from in grid.go. Only the offsets a setter below writes are named:
-// the count words, the +0x28/+0x2c pair and the seven trailing text slots are
-// out of scope, and leaving them unnamed is what keeps this list from becoming a
-// second copy of the type-0 layout that a later correction could leave behind.
-const (
-	metaAngle   = 0x08
-	metaWord0C  = 0x0c
-	metaWord10  = 0x10
-	metaWord14  = 0x14
-	metaBitmask = 0x18
-	metaName    = 0x30
-	metaWord70  = 0x70
-	metaWord74  = 0x74
-	metaDesc    = 0x78
-)
-
 // SetAngle sets the type-0 f32 at +0x08 to v.
 //
 // The caller's float32 reaches the field as its own bit pattern, and nothing on
@@ -35,7 +18,7 @@ const (
 // float could come back quieted — so the field is written, never compared, and
 // never re-encoded from what was already there.
 func (e *Editor) SetAngle(v float32) error {
-	return e.setWord(metaAngle, math.Float32bits(v))
+	return e.setWord(alm.MetaAngle, math.Float32bits(v))
 }
 
 // SetWord0C sets the type-0 stored scalar at +0x0c to v as a whole 32-bit word.
@@ -43,24 +26,24 @@ func (e *Editor) SetAngle(v float32) error {
 // It, and the four setters below it, assert no meaning for any bit of v. The
 // format's own reader exposes these words raw because nothing has decoded them;
 // a setter that interpreted them would be claiming more than the reader does.
-func (e *Editor) SetWord0C(v uint32) error { return e.setWord(metaWord0C, v) }
+func (e *Editor) SetWord0C(v uint32) error { return e.setWord(alm.MetaWord0C, v) }
 
 // SetWord10 sets the type-0 stored scalar at +0x10 to v.
-func (e *Editor) SetWord10(v uint32) error { return e.setWord(metaWord10, v) }
+func (e *Editor) SetWord10(v uint32) error { return e.setWord(alm.MetaWord10, v) }
 
 // SetWord14 sets the type-0 stored scalar at +0x14 to v.
-func (e *Editor) SetWord14(v uint32) error { return e.setWord(metaWord14, v) }
+func (e *Editor) SetWord14(v uint32) error { return e.setWord(alm.MetaWord14, v) }
 
 // SetWord70 sets the type-0 stored scalar at +0x70 to v.
-func (e *Editor) SetWord70(v uint32) error { return e.setWord(metaWord70, v) }
+func (e *Editor) SetWord70(v uint32) error { return e.setWord(alm.MetaWord70, v) }
 
 // SetWord74 sets the type-0 stored scalar at +0x74 to v.
-func (e *Editor) SetWord74(v uint32) error { return e.setWord(metaWord74, v) }
+func (e *Editor) SetWord74(v uint32) error { return e.setWord(alm.MetaWord74, v) }
 
 // SetBitmask sets the type-0 low-bit word at +0x18 to v, on the same terms: the
 // whole word, no bit of it interpreted. A caller that derives the word from
 // tile words uses alm.TileGroupMask.
-func (e *Editor) SetBitmask(v uint32) error { return e.setWord(metaBitmask, v) }
+func (e *Editor) SetBitmask(v uint32) error { return e.setWord(alm.MetaBitmask, v) }
 
 // SetName sets the type-0 name field at +0x30 to s.
 //
@@ -76,7 +59,7 @@ func (e *Editor) SetName(s string) error {
 	if err != nil {
 		return fmt.Errorf("mapedit: %w", err)
 	}
-	e.writeMeta(metaName, img)
+	e.writeMeta(alm.MetaName, img)
 	return nil
 }
 
@@ -93,7 +76,7 @@ func (e *Editor) SetEncodedName(value []byte) error {
 		return fmt.Errorf("mapedit: name bytes do not round trip through Windows-1251")
 	}
 	copy(img, value)
-	e.writeMeta(metaName, img)
+	e.writeMeta(alm.MetaName, img)
 	return nil
 }
 
@@ -104,7 +87,7 @@ func (e *Editor) SetDescription(s string) error {
 	if err != nil {
 		return fmt.Errorf("mapedit: %w", err)
 	}
-	e.writeMeta(metaDesc, img)
+	e.writeMeta(alm.MetaDesc, img)
 	return nil
 }
 
@@ -137,6 +120,6 @@ func (e *Editor) setWord(rel int, v uint32) error {
 // format rather than an omission: type-0 is one of the records alm refuses a
 // stream without, so it is located on every buffer this model holds.
 func (e *Editor) writeMeta(rel int, img []byte) {
-	at := e.locate().required(metaTypeID).abs(rel)
+	at := e.locate().required(alm.TypeMeta).abs(rel)
 	e.apply(edit{replace(at, e.data[at:at+len(img)], img)})
 }

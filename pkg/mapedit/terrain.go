@@ -1,6 +1,10 @@
 package mapedit
 
-import "slices"
+import (
+	"slices"
+
+	"againrom/pkg/formats/alm"
+)
 
 // The terrain classes, numbered as the movement classifier numbers them
 // (TERR-PASS-050). The editor never classifies a word itself: a caller hands
@@ -187,7 +191,7 @@ func init() {
 // WordShape reports the shape of an installed-style tile word and the strip
 // group it sits in; ok is false for a word outside the listed shapes.
 func WordShape(w uint16) (s Shape, group uint16, ok bool) {
-	i := w & 0x3ff
+	i := w & alm.TileIndexMask
 	group = i >> 6 & 15
 	if i&0x300 == 0x200 {
 		group = waterGroup

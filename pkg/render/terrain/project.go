@@ -4,6 +4,8 @@ import (
 	"image"
 	"image/color"
 	"math"
+
+	"againrom/pkg/formats/alm"
 )
 
 // The projection: a map's altitude grid turned into the vertex mesh a
@@ -524,7 +526,7 @@ func compositeProjected(ts *Tileset, g Grid, heights []uint8, lt Light, scale in
 			}
 
 			var dirt *image.Paletted
-			if IsImpassable(word) && !ref.Water {
+			if alm.Impassable(word) && !ref.Water {
 				dirt = ts.Dirt.SubCell(DirtSubCell(col, row))
 			}
 

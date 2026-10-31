@@ -48,13 +48,13 @@ type newMapWord struct {
 // (ALM-SAVE-238); +0x20, +0x24, +0x28 and +0x2c are 0 (ALM-NEWMAP-236); the
 // bytes past the name and the 512 bytes at +0x78 are zero (DIV-3250).
 var newMapMeta = []newMapWord{
-	{metaAngle, 0x3f490fda, "ALM-NEWMAP-236"},
-	{metaWord0C, 360, "ALM-NEWMAP-236, ALM-METADEFAULT-186"},
-	{metaWord10, 21, "ALM-NEWMAP-236"},
-	{metaWord14, 63, "ALM-NEWMAP-236"},
-	{metaCount5, 2, "ALM-NEWMAP-236"},
-	{metaWord70, 4, "ALM-NEWMAP-236"},
-	{metaWord74, 1, "ALM-NEWMAP-236"},
+	{MetaAngle, 0x3f490fda, "ALM-NEWMAP-236"},
+	{MetaWord0C, 360, "ALM-NEWMAP-236, ALM-METADEFAULT-186"},
+	{MetaWord10, 21, "ALM-NEWMAP-236"},
+	{MetaWord14, 63, "ALM-NEWMAP-236"},
+	{MetaGroupCount, 2, "ALM-NEWMAP-236"},
+	{MetaWord70, 4, "ALM-NEWMAP-236"},
+	{MetaWord74, 1, "ALM-NEWMAP-236"},
 }
 
 // newMapName is the type-0 name of a new map (ALM-NEWMAP-236).
@@ -116,7 +116,7 @@ func (s NewMapSpec) Validate() error {
 }
 
 // tileSaveMask is the tile word bits the original save keeps (ALM-SAVE-238).
-const tileSaveMask = 0x23ff
+const tileSaveMask = TileImpassable | TileIndexMask
 
 // NewMap is the one constructor of a map from nothing. It returns a Document
 // opened through the same route as any other stream: the bytes are built from
@@ -131,19 +131,19 @@ func NewMap(spec NewMapSpec) (*Document, error) {
 	}
 	cells := spec.Width * spec.Height
 
-	meta := make([]byte, metaSize)
+	meta := make([]byte, MetaSize)
 	le := binary.LittleEndian
-	le.PutUint32(meta[metaW:], uint32(spec.Width))
-	le.PutUint32(meta[metaH:], uint32(spec.Height))
+	le.PutUint32(meta[MetaWidth:], uint32(spec.Width))
+	le.PutUint32(meta[MetaHeight:], uint32(spec.Height))
 	for _, w := range newMapMeta {
 		le.PutUint32(meta[w.off:], w.value)
 	}
-	le.PutUint32(meta[metaBitmask:], TileGroupMask([]uint16{spec.Tile}))
+	le.PutUint32(meta[MetaBitmask:], TileGroupMask([]uint16{spec.Tile}))
 	name, err := EncodeName(newMapName)
 	if err != nil {
 		return nil, err
 	}
-	copy(meta[metaName:], name)
+	copy(meta[MetaName:], name)
 
 	tiles := make([]byte, 2*cells)
 	for i := 0; i < cells; i++ {
@@ -154,19 +154,19 @@ func NewMap(spec NewMapSpec) (*Document, error) {
 		heights[i] = spec.Altitude
 	}
 
-	roster := make([]byte, 0, groupRecordSize*len(newMapRoster))
+	roster := make([]byte, 0, GroupSize*len(newMapRoster))
 	for i, p := range newMapRoster {
-		rec := make([]byte, groupRecordSize)
-		le.PutUint32(rec[0:], p.id)
-		le.PutUint32(rec[4:], p.side)
-		le.PutUint32(rec[8:], p.scalar)
-		copy(rec[0x0c:0x2c], p.name)
-		for k := 0; k < groupRelationLen; k++ {
+		rec := make([]byte, GroupSize)
+		le.PutUint32(rec[GroupColour:], p.id)
+		le.PutUint32(rec[GroupControl:], p.side)
+		le.PutUint32(rec[GroupScalar:], p.scalar)
+		copy(rec[GroupName:GroupName+GroupNameLen], p.name)
+		for k := 0; k < GroupRelationCount; k++ {
 			word := uint16(newMapRelationOther)
 			if k == i {
 				word = newMapRelationSelf
 			}
-			le.PutUint16(rec[groupRelationOff+2*k:], word)
+			le.PutUint16(rec[GroupRelations+2*k:], word)
 		}
 		roster = append(roster, rec...)
 	}
@@ -176,18 +176,18 @@ func NewMap(spec NewMapSpec) (*Document, error) {
 		4: nil, 6: nil, 8: nil,
 		9: make([]byte, newMapType9Size), 7: make([]byte, newMapType7Size),
 	}
-	out := make([]byte, fileHeaderSize)
-	le.PutUint32(out[fhMagic:], fileMagic)
-	le.PutUint32(out[fhHdrLen:], fileHdrLen)
-	le.PutUint32(out[fhDataSize:], uint32(4*cells+72))
-	le.PutUint32(out[fhRecordCount:], uint32(len(newMapRecords)))
-	le.PutUint32(out[fhFormatVersion:], newMapVersion)
+	out := make([]byte, FileHeaderSize)
+	le.PutUint32(out[FileMagicAt:], fileMagic)
+	le.PutUint32(out[FileHeaderLength:], fileHdrLen)
+	le.PutUint32(out[FileDataSize:], uint32(4*cells+72))
+	le.PutUint32(out[FileRecordCount:], uint32(len(newMapRecords)))
+	le.PutUint32(out[FileFormatVersion:], newMapVersion)
 	for _, id := range newMapRecords {
-		hdr := make([]byte, recordHeaderSize)
-		le.PutUint32(hdr[recTag:], recordTag)
-		le.PutUint32(hdr[recHdrLen:], recordHdrLen)
-		le.PutUint32(hdr[recPayloadSize:], uint32(len(payload[id])))
-		le.PutUint32(hdr[recTypeID:], id)
+		hdr := make([]byte, RecordHeaderSize)
+		le.PutUint32(hdr[RecordTag:], recordTag)
+		le.PutUint32(hdr[RecordHeaderLength:], recordHdrLen)
+		le.PutUint32(hdr[RecordPayloadSize:], uint32(len(payload[id])))
+		le.PutUint32(hdr[RecordTypeID:], id)
 		out = append(append(out, hdr...), payload[id]...)
 	}
 	return OpenDocument(out)

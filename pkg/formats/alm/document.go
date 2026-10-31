@@ -44,19 +44,19 @@ func OpenDocument(data []byte) (*Document, error) {
 	// ten, so an arithmetic slip here would be a slice-bounds panic on valid
 	// input rather than an impossible state. Bytes after the last record, which
 	// acceptance no longer forbids, are covered by no span and ride the copy.
-	n := binary.LittleEndian.Uint32(buf[fhRecordCount:])
+	n := binary.LittleEndian.Uint32(buf[FileRecordCount:])
 	d := &Document{data: buf, spans: make([]recordSpan, 0, minRecordCount)}
-	cursor := 0 + fileHeaderSize
+	cursor := 0 + FileHeaderSize
 	for i := uint32(0); i < n; i++ {
-		if cursor+recordHeaderSize > len(buf) {
+		if cursor+RecordHeaderSize > len(buf) {
 			break
 		}
-		size := uint64(binary.LittleEndian.Uint32(buf[cursor+recPayloadSize:]))
-		if size > uint64(len(buf)-cursor-recordHeaderSize) {
+		size := uint64(binary.LittleEndian.Uint32(buf[cursor+RecordPayloadSize:]))
+		if size > uint64(len(buf)-cursor-RecordHeaderSize) {
 			break
 		}
 		d.spans = append(d.spans, recordSpan{headerOff: cursor, payloadSize: int(size)})
-		cursor += recordHeaderSize + int(size)
+		cursor += RecordHeaderSize + int(size)
 	}
 	return d, nil
 }
@@ -82,7 +82,7 @@ func (d *Document) Map() (*Map, error) {
 // +0x10 of the retained copy on every call. The document stores no decoded
 // state, so the result cannot disagree with the written bytes.
 func (d *Document) Version() uint32 {
-	return binary.LittleEndian.Uint32(d.data[fhFormatVersion:])
+	return binary.LittleEndian.Uint32(d.data[FileFormatVersion:])
 }
 
 // RecordTypeIDs returns the records' typeIds in file order, read from each
@@ -94,7 +94,7 @@ func (d *Document) Version() uint32 {
 func (d *Document) RecordTypeIDs() []uint32 {
 	ids := make([]uint32, len(d.spans))
 	for i, sp := range d.spans {
-		ids[i] = binary.LittleEndian.Uint32(d.data[sp.headerOff+recTypeID:])
+		ids[i] = binary.LittleEndian.Uint32(d.data[sp.headerOff+RecordTypeID:])
 	}
 	return ids
 }
@@ -110,6 +110,6 @@ func (d *Document) RecordCount() int { return len(d.spans) }
 // index does: misuse, not data.
 func (d *Document) RecordPayload(i int) []byte {
 	sp := d.spans[i]
-	start := sp.headerOff + recordHeaderSize
+	start := sp.headerOff + RecordHeaderSize
 	return cloneBytes(d.data[start : start+sp.payloadSize])
 }

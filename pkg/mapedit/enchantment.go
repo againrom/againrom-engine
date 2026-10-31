@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+
+	"againrom/pkg/formats/alm"
 )
 
 const enchantmentHead = 26
@@ -14,7 +16,7 @@ func enchantmentDeleteParts(e *Editor, recipes walk, index int) ([]part, error) 
 	if spatial && !spellRecordKnown(e.data[at:at+size]) {
 		return nil, fmt.Errorf("mapedit: unknown spell record kind is read-only")
 	}
-	if !e.locate().carries(lootTypeID) {
+	if !e.locate().carries(alm.TypeLoot) {
 		return nil, nil
 	}
 	loot, err := e.walkSection(KindLoot, "check item links before deleting a recipe")
@@ -25,7 +27,7 @@ func enchantmentDeleteParts(e *Editor, recipes walk, index int) ([]part, error) 
 	last := map[uint32]int{}
 	for i := 0; i < loot.n(); i++ {
 		at, size := loot.at(i)
-		for p := at + e.lootHead() + 6; p < at+size; p += lootElementSize {
+		for p := at + e.lootHead() + 6; p < at+size; p += alm.LootElementSize {
 			link := e.u32(p)
 			if link == uint32(index)+1 && !spatial {
 				return nil, fmt.Errorf("mapedit: recipe %d is still linked by loot record %d; clear its item recipe link first", index+1, i)
@@ -205,10 +207,10 @@ func (e *Editor) AddItemRecipe(lootIndex, element int, template ...int) (int, er
 	}
 	at, size := w.at(lootIndex)
 	head := e.lootHead()
-	if element < 1 || element > (size-head)/lootElementSize {
-		return -1, fmt.Errorf("mapedit: item number %d is outside 1..%d", element, (size-head)/lootElementSize)
+	if element < 1 || element > (size-head)/alm.LootElementSize {
+		return -1, fmt.Errorf("mapedit: item number %d is outside 1..%d", element, (size-head)/alm.LootElementSize)
 	}
-	p := at + head + (element-1)*lootElementSize + 6
+	p := at + head + (element-1)*alm.LootElementSize + 6
 	if old := e.u32(p); old != 0 && len(template) == 0 {
 		return -1, fmt.Errorf("mapedit: item %d already links recipe %d; select Enchantment #%d and use E", element, old, old-1)
 	}

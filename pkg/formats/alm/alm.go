@@ -16,16 +16,8 @@ import (
 // [tag=7][hdrLen=20][payloadSize][typeId][f32] followed by pure payload
 // (ALM-FRAME-031). See the package doc and docs/0003-alm-container/spec.md.
 const (
-	fileMagic      = 0x0052374D // file header[0x00] "M7R\x00" as a little-endian u32
-	fileHeaderSize = 20         // magic + hdrLen + dataSize + recordCount + formatVersion
-	fileHdrLen     = 20         // file header[0x04]; the header's own length, constant
-
-	// typeIDCount is the size of the typeId INDEX SPACE, not a required record
-	// count: the loader dispatches each record through a 10-entry jump table, so
-	// 0..9 are the ids that select a case and an id at or above it selects none
-	// (ALM-REQ-055). The shipped writer emits one record per id, which is a
-	// regularity of that writer and not a rule the loader applies.
-	typeIDCount = 10
+	fileMagic  = 0x0052374D // file header[0x00] "M7R\x00" as a little-endian u32
+	fileHdrLen = 20         // file header[0x04]; the header's own length, constant
 
 	// minRecordCount is the loader's ONLY count gate (ALM-REQ-055). Below it the
 	// loader refuses; at or above it the file header's recordCount is simply the
@@ -35,68 +27,8 @@ const (
 	maxFormatVersion = 1001 // the loader's version gate (ALM-META-024)
 	skipHdrVersion   = 1000 // formatVersion that skips record headers (unimplemented, rejected)
 
-	recordHeaderSize = 20 // tag + hdrLen + payloadSize + typeId + perMapConst
-	recordTag        = 7  // record header[+0x00]; constant
-	recordHdrLen     = 20 // record header[+0x04]; == its own length
-
-	metaSize     = 632 // type-0 payload size, constant on all 38 corpus maps
-	metaNameLen  = 64  // type-0 name field (+0x30)
-	metaDescLen  = 64  // type-0 description field (+0x78)
-	metaBlockLen = 512
-	metaSlotsLen = 448 // type-0 trailing "<None>" slots (+0xb8): 7 x 64 B
-
-	objectRecordSize = 20   // type4 base record
-	objectExtSize    = 8    // type4 kind==0x21 extension
-	objectExtKind    = 0x21 // type4 kind (+0x08) value that appends an extension
-	groupRecordSize  = 76   // type5 record
-	groupNameLen     = 32   // type5 record: the player name at +0x0c
-	groupRelationOff = 0x2c // type5 record: the sixteen u16 diplomacy words
-	groupRelationLen = 16   // type5 record: how many of them there are
-	unitRecordSize   = 70   // type6 record
-
-	countWordSize = 4 // type7/type9 leading count word
-
-	// type1 (Tiles) cell bit fields (ALM-GRID-012).
-	tileIndexMask = 0x03ff // bits 0-9: tile index
-	impassableBit = 0x2000 // bit 13: impassable flag
-)
-
-// File-header field offsets (absolute).
-const (
-	fhMagic         = 0x00
-	fhHdrLen        = 0x04
-	fhDataSize      = 0x08
-	fhRecordCount   = 0x0c
-	fhFormatVersion = 0x10
-)
-
-// Record-header field offsets (record-relative).
-const (
-	recTag         = 0x00
-	recHdrLen      = 0x04
-	recPayloadSize = 0x08
-	recTypeID      = 0x0c
-	recWord10      = 0x10
-)
-
-const (
-	metaW       = 0x00
-	metaH       = 0x04
-	metaAngle   = 0x08
-	metaWord0C  = 0x0c
-	metaWord10  = 0x10
-	metaWord14  = 0x14
-	metaBitmask = 0x18
-	metaCount5  = 0x1c // #type5
-	metaCount4  = 0x20 // #type4
-	metaCount6  = 0x24 // #type6
-	metaWord28  = 0x28 // read-and-discarded by the loader (Unknown)
-	metaWord2C  = 0x2c // #type8 records (not required here; type8 is preserved raw)
-	metaName    = 0x30
-	metaWord70  = 0x70
-	metaWord74  = 0x74
-	metaDesc    = 0x78
-	metaSlots   = 0xb8
+	recordTag    = 7  // record header[+0x00]; constant
+	recordHdrLen = 20 // record header[+0x04]; == its own length
 )
 
 // Record is one decoded record header, in physical (file) order. tag and hdrLen
@@ -175,7 +107,7 @@ type Group struct {
 	Color, Participant uint32
 	Scalar             uint32
 	Name               string
-	Relation           [groupRelationLen]uint16
+	Relation           [GroupRelationCount]uint16
 }
 
 // Unit is one placed unit (type6), decoded from the 70-byte file record. X/Y are
@@ -264,17 +196,14 @@ type UnitTail struct {
 	SkipGear                     bool     // +0x0c bit 7
 }
 
-// unitFlagSkipGear is the flag bit the Human constructor's equipment gate reads.
-const unitFlagSkipGear = 0x80
-
 // decodeUnitTail reads rec's override block.
 func decodeUnitTail(rec []byte) UnitTail {
-	mana := int16(binary.LittleEndian.Uint16(rec[0x24:0x26]))
-	t := UnitTail{Body: rec[0x2c], Mind: rec[0x2d], Spirit: rec[0x2e], Reaction: rec[0x2f],
-		Mana: mana, HasMana: mana != -1, Defence: rec[0x31], Absorption: rec[0x32],
-		SkipGear: binary.LittleEndian.Uint32(rec[0x0c:0x10])&unitFlagSkipGear != 0}
-	copy(t.Skill[:], rec[0x36:0x3b])
-	copy(t.Protection[:], rec[0x3b:0x40])
+	mana := int16(binary.LittleEndian.Uint16(rec[UnitMana:]))
+	t := UnitTail{Body: rec[UnitBody], Mind: rec[UnitMind], Spirit: rec[UnitSpirit], Reaction: rec[UnitReaction],
+		Mana: mana, HasMana: mana != -1, Defence: rec[UnitDefence], Absorption: rec[UnitAbsorption],
+		SkipGear: binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagSkipGear != 0}
+	copy(t.Skill[:], rec[UnitSkills:])
+	copy(t.Protection[:], rec[UnitProtections:])
 	return t
 }
 
@@ -282,7 +211,7 @@ func decodeUnitTail(rec []byte) UnitTail {
 // word, and flag bit 7 clear where the tail read it.
 func (u Unit) WithoutTail() Unit {
 	if u.Tail.SkipGear {
-		u.Flags &^= unitFlagSkipGear
+		u.Flags &^= UnitFlagSkipGear
 	}
 	u.Tail = UnitTail{Mana: -1}
 	u.CurrentHP, u.HasCurrentHP = -1, false
@@ -395,7 +324,7 @@ type Map struct {
 	Enchantments []Enchantment
 
 	// present[t] is true iff the file actually carried a record with typeId t.
-	present [typeIDCount]bool
+	present [TypeIDCount]bool
 }
 
 // Present reports whether the accepted stream actually carried a record with
@@ -414,7 +343,7 @@ type Map struct {
 // have one player; supplying the default is a consumer-tier decision, and
 // Present(5) is what a consumer tests to take it.
 func (m *Map) Present(typeID uint32) bool {
-	if typeID >= typeIDCount {
+	if typeID >= TypeIDCount {
 		return false
 	}
 	return m.present[typeID]
@@ -423,10 +352,10 @@ func (m *Map) Present(typeID uint32) bool {
 // TileIndex returns the tile index of a type1 (Tiles) cell (bits 0-9,
 // ALM-GRID-012). Resolving the index to a terrain class is the mapload tier's
 // job, not this leaf.
-func TileIndex(cell uint16) uint16 { return cell & tileIndexMask }
+func TileIndex(cell uint16) uint16 { return cell & TileIndexMask }
 
 // Impassable reports the type1 impassable flag of a cell (bit 13, 0x2000).
-func Impassable(cell uint16) bool { return cell&impassableBit != 0 }
+func Impassable(cell uint16) bool { return cell&TileImpassable != 0 }
 
 // Open reads a ROM1 .alm map from an in-memory byte stream. It validates the
 // 20-byte file header (magic, hdrLen==20, recordCount>=3, formatVersion<=1001
@@ -457,15 +386,15 @@ func open(data []byte, d dialect) (*Map, error) {
 		DataSize:       f.fh.dataSize,
 		RecordCount:    f.fh.recordCount,
 		FormatVersion:  f.fh.formatVersion,
-		MetaRecordWord: f.headerWords[0],
+		MetaRecordWord: f.headerWords[TypeMeta],
 		Records:        f.records,
 		present:        f.present,
 	}
 
-	if err := m.decodeMeta(f.payloads[0], d); err != nil {
+	if err := m.decodeMeta(f.payloads[TypeMeta], d); err != nil {
 		return nil, err
 	}
-	if err := m.decodeGrids(f.payloads[1], f.payloads[2], f.payloads[3], f.present[3]); err != nil {
+	if err := m.decodeGrids(f.payloads[TypeTiles], f.payloads[TypeAltitude], f.payloads[TypeOverlay], f.present[TypeOverlay]); err != nil {
 		return nil, err
 	}
 	// A count word in type-0 that names records the file does not carry is
@@ -473,27 +402,27 @@ func open(data []byte, d dialect) (*Map, error) {
 	// own record is present, and its count is nothing but that case's loop bound
 	// (ALM-REQ-056). A shipped four-record map advertises 415 type-4 records it
 	// does not contain (ALM-CORP-060), and the loader reads none of them.
-	if f.present[4] {
-		if err := m.decodeObjects(f.payloads[4], d); err != nil {
+	if f.present[TypeObjects] {
+		if err := m.decodeObjects(f.payloads[TypeObjects], d); err != nil {
 			return nil, err
 		}
 	}
-	if f.present[5] {
-		if err := m.decodeGroups(f.payloads[5]); err != nil {
+	if f.present[TypeGroups] {
+		if err := m.decodeGroups(f.payloads[TypeGroups]); err != nil {
 			return nil, err
 		}
 	}
-	if f.present[6] {
+	if f.present[TypeUnits] {
 		if d == dialectROM2 {
-			err = m.decodeUnitsROM2(f.payloads[6])
+			err = m.decodeUnitsROM2(f.payloads[TypeUnits])
 		} else {
-			err = m.decodeUnits(f.payloads[6])
+			err = m.decodeUnits(f.payloads[TypeUnits])
 		}
 		if err != nil {
 			return nil, err
 		}
 	}
-	if err := m.decodeTriggers(f.payloads[7], f.payloads[8], f.payloads[9], f.present[7], f.present[9]); err != nil {
+	if err := m.decodeTriggers(f.payloads[TypeScript], f.payloads[TypeLoot], f.payloads[TypeTileMarkers], f.present[TypeScript], f.present[TypeTileMarkers]); err != nil {
 		return nil, err
 	}
 	if err := m.decodeEnchantments(); err != nil {
@@ -544,7 +473,7 @@ func OpenInfo(data []byte) (*Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, info, _, err := decodeMetaPayload(f.payloads[0])
+	_, info, _, err := decodeMetaPayload(f.payloads[TypeMeta])
 	if err != nil {
 		return nil, err
 	}
@@ -567,9 +496,9 @@ type recordFrame struct {
 	fh          fileHeader
 	ext         [3][]byte
 	extPresent  [3]bool
-	payloads    [typeIDCount][]byte
-	headerWords [typeIDCount]uint32
-	present     [typeIDCount]bool
+	payloads    [TypeIDCount][]byte
+	headerWords [TypeIDCount]uint32
+	present     [TypeIDCount]bool
 	records     []Record
 }
 
@@ -606,22 +535,22 @@ func walkRecords(data []byte) (recordFrame, error) { return walkRecordsIn(data, 
 func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 	var f recordFrame
 	fh := &f.fh
-	if len(data) < fileHeaderSize {
+	if len(data) < FileHeaderSize {
 		return f, fmt.Errorf("alm: stream too small: %d bytes", len(data))
 	}
-	if magic := binary.LittleEndian.Uint32(data[fhMagic : fhMagic+4]); magic != fileMagic {
+	if magic := binary.LittleEndian.Uint32(data[FileMagicAt : FileMagicAt+4]); magic != fileMagic {
 		return f, fmt.Errorf("alm: bad magic %#08x", magic)
 	}
-	fh.hdrLen = binary.LittleEndian.Uint32(data[fhHdrLen : fhHdrLen+4])
+	fh.hdrLen = binary.LittleEndian.Uint32(data[FileHeaderLength : FileHeaderLength+4])
 	if fh.hdrLen != fileHdrLen {
 		return f, fmt.Errorf("alm: file header length %d, want %d", fh.hdrLen, fileHdrLen)
 	}
-	fh.dataSize = binary.LittleEndian.Uint32(data[fhDataSize : fhDataSize+4])
-	fh.recordCount = binary.LittleEndian.Uint32(data[fhRecordCount : fhRecordCount+4])
+	fh.dataSize = binary.LittleEndian.Uint32(data[FileDataSize : FileDataSize+4])
+	fh.recordCount = binary.LittleEndian.Uint32(data[FileRecordCount : FileRecordCount+4])
 	if fh.recordCount < minRecordCount {
 		return f, fmt.Errorf("alm: recordCount %d, want at least %d", fh.recordCount, minRecordCount)
 	}
-	fh.formatVersion = binary.LittleEndian.Uint32(data[fhFormatVersion : fhFormatVersion+4])
+	fh.formatVersion = binary.LittleEndian.Uint32(data[FileFormatVersion : FileFormatVersion+4])
 	if err := checkVersion(fh.formatVersion, d); err != nil {
 		return f, err
 	}
@@ -634,17 +563,17 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 	// case simply runs again over the same pointer field (ALM-REQ-055).
 	records := make([]Record, 0, minRecordCount)
 
-	cursor := int64(fileHeaderSize)
+	cursor := int64(FileHeaderSize)
 	for i := uint32(0); i < fh.recordCount; i++ {
-		if cursor+recordHeaderSize > total {
+		if cursor+RecordHeaderSize > total {
 			return f, fmt.Errorf("alm: record %d header does not fit before EOF", i)
 		}
-		hdr := data[cursor : cursor+recordHeaderSize]
-		tag := binary.LittleEndian.Uint32(hdr[recTag : recTag+4])
-		rHdrLen := binary.LittleEndian.Uint32(hdr[recHdrLen : recHdrLen+4])
-		payloadSize := binary.LittleEndian.Uint32(hdr[recPayloadSize : recPayloadSize+4])
-		typeID := binary.LittleEndian.Uint32(hdr[recTypeID : recTypeID+4])
-		word10 := binary.LittleEndian.Uint32(hdr[recWord10 : recWord10+4])
+		hdr := data[cursor : cursor+RecordHeaderSize]
+		tag := binary.LittleEndian.Uint32(hdr[RecordTag : RecordTag+4])
+		rHdrLen := binary.LittleEndian.Uint32(hdr[RecordHeaderLength : RecordHeaderLength+4])
+		payloadSize := binary.LittleEndian.Uint32(hdr[RecordPayloadSize : RecordPayloadSize+4])
+		typeID := binary.LittleEndian.Uint32(hdr[RecordTypeID : RecordTypeID+4])
+		word10 := binary.LittleEndian.Uint32(hdr[RecordWord10 : RecordWord10+4])
 		if tag != recordTag && d == dialectROM1 {
 			return f, fmt.Errorf("alm: record %d tag %d, want %d", i, tag, recordTag)
 		}
@@ -652,7 +581,7 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 			return f, fmt.Errorf("alm: record %d hdrLen %d, want %d", i, rHdrLen, recordHdrLen)
 		}
 
-		payloadStart := cursor + recordHeaderSize
+		payloadStart := cursor + RecordHeaderSize
 		if d == dialectROM2 && typeID == 0 {
 			payloadSize = rom2MetaSize
 		}
@@ -663,11 +592,11 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 		// An id outside the jump table selects no case and is stepped over, no
 		// error recorded (ALM-REQ-055). Its bytes stay in the stream and are
 		// preserved by a Document; nothing here interprets them.
-		if d == dialectROM2 && typeID >= typeIDCount && typeID < typeIDCount+3 {
-			f.extPresent[typeID-typeIDCount] = true
-			f.ext[typeID-typeIDCount] = data[payloadStart:payloadEnd]
+		if d == dialectROM2 && typeID >= TypeIDCount && typeID < TypeIDCount+3 {
+			f.extPresent[typeID-TypeIDCount] = true
+			f.ext[typeID-TypeIDCount] = data[payloadStart:payloadEnd]
 		}
-		if typeID < typeIDCount {
+		if typeID < TypeIDCount {
 			f.present[typeID] = true
 			f.payloads[typeID] = data[payloadStart:payloadEnd]
 			f.headerWords[typeID] = word10
@@ -689,10 +618,10 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 	// builder dereferences the type-1 and type-2 planes per cell with no null
 	// test, so their absence is the loader's own status 5 / status 6
 	// (ALM-REQ-055). The messages keep the engine's names for them.
-	if !f.present[1] {
+	if !f.present[TypeTiles] {
 		return f, errors.New("alm: no type-1 record (tiles block not found)")
 	}
-	if !f.present[2] {
+	if !f.present[TypeAltitude] {
 		return f, errors.New("alm: no type-2 record (altitudes block not found)")
 	}
 	// STRICTER THAN THE ENGINE, deliberately. With no type-0 record the loader
@@ -702,7 +631,7 @@ func walkRecordsIn(data []byte, d dialect) (recordFrame, error) {
 	// "Match the engine" has no meaning there, so this reader requires the
 	// record instead of reproducing an undefined read. type-1 is required
 	// above, so in practice type-0 is required of every accepted stream.
-	if !f.present[0] {
+	if !f.present[TypeMeta] {
 		return f, errors.New("alm: no type-0 record, and type-1 or a content record is present")
 	}
 	return f, nil
@@ -728,30 +657,30 @@ func (m *Map) decodeMeta(p []byte, d dialect) error {
 }
 
 func decodeMetaPayload(p []byte) (angle float32, info Info, meta Meta, err error) {
-	if len(p) != metaSize {
-		return 0, info, meta, fmt.Errorf("alm: type-0 payload is %d bytes, want %d", len(p), metaSize)
+	if len(p) != MetaSize {
+		return 0, info, meta, fmt.Errorf("alm: type-0 payload is %d bytes, want %d", len(p), MetaSize)
 	}
-	angle = math.Float32frombits(binary.LittleEndian.Uint32(p[metaAngle : metaAngle+4]))
-	info.Width = int(binary.LittleEndian.Uint32(p[metaW : metaW+4]))
-	info.Height = int(binary.LittleEndian.Uint32(p[metaH : metaH+4]))
-	info.Name = mapNameASCII.Decode(p[metaName : metaName+metaNameLen])
-	info.Description = DescriptionText.Decode(p[metaDesc : metaDesc+metaDescLen])
-	info.ListDescription = DescriptionText.Decode(bytes.ReplaceAll(p[metaDesc:metaDesc+metaBlockLen], []byte{0x0a}, []byte{'#'}))
+	angle = math.Float32frombits(binary.LittleEndian.Uint32(p[MetaAngle : MetaAngle+4]))
+	info.Width = int(binary.LittleEndian.Uint32(p[MetaWidth : MetaWidth+4]))
+	info.Height = int(binary.LittleEndian.Uint32(p[MetaHeight : MetaHeight+4]))
+	info.Name = mapNameASCII.Decode(p[MetaName : MetaName+MetaNameLen])
+	info.Description = DescriptionText.Decode(p[MetaDesc : MetaDesc+MetaDescLen])
+	info.ListDescription = DescriptionText.Decode(bytes.ReplaceAll(p[MetaDesc:MetaDesc+MetaDescBlockLen], []byte{0x0a}, []byte{'#'}))
 
-	slots := make([]byte, metaSlotsLen)
-	copy(slots, p[metaSlots:metaSlots+metaSlotsLen])
+	slots := make([]byte, MetaSlotsLen)
+	copy(slots, p[MetaSlots:MetaSlots+MetaSlotsLen])
 	meta = Meta{
-		Word0C:  binary.LittleEndian.Uint32(p[metaWord0C : metaWord0C+4]),
-		Word10:  binary.LittleEndian.Uint32(p[metaWord10 : metaWord10+4]),
-		Word14:  binary.LittleEndian.Uint32(p[metaWord14 : metaWord14+4]),
-		Bitmask: binary.LittleEndian.Uint32(p[metaBitmask : metaBitmask+4]),
-		Count5:  binary.LittleEndian.Uint32(p[metaCount5 : metaCount5+4]),
-		Count4:  binary.LittleEndian.Uint32(p[metaCount4 : metaCount4+4]),
-		Count6:  binary.LittleEndian.Uint32(p[metaCount6 : metaCount6+4]),
-		Word28:  binary.LittleEndian.Uint32(p[metaWord28 : metaWord28+4]),
-		Word2C:  binary.LittleEndian.Uint32(p[metaWord2C : metaWord2C+4]),
-		Word70:  binary.LittleEndian.Uint32(p[metaWord70 : metaWord70+4]),
-		Word74:  binary.LittleEndian.Uint32(p[metaWord74 : metaWord74+4]),
+		Word0C:  binary.LittleEndian.Uint32(p[MetaWord0C : MetaWord0C+4]),
+		Word10:  binary.LittleEndian.Uint32(p[MetaWord10 : MetaWord10+4]),
+		Word14:  binary.LittleEndian.Uint32(p[MetaWord14 : MetaWord14+4]),
+		Bitmask: binary.LittleEndian.Uint32(p[MetaBitmask : MetaBitmask+4]),
+		Count5:  binary.LittleEndian.Uint32(p[MetaGroupCount : MetaGroupCount+4]),
+		Count4:  binary.LittleEndian.Uint32(p[MetaObjectCount : MetaObjectCount+4]),
+		Count6:  binary.LittleEndian.Uint32(p[MetaUnitCount : MetaUnitCount+4]),
+		Word28:  binary.LittleEndian.Uint32(p[MetaWord28 : MetaWord28+4]),
+		Word2C:  binary.LittleEndian.Uint32(p[MetaLootCount : MetaLootCount+4]),
+		Word70:  binary.LittleEndian.Uint32(p[MetaWord70 : MetaWord70+4]),
+		Word74:  binary.LittleEndian.Uint32(p[MetaWord74 : MetaWord74+4]),
 		Slots:   slots,
 	}
 	info.Word70, info.Word74 = meta.Word70, meta.Word74
@@ -811,28 +740,28 @@ func (m *Map) decodeObjects(p []byte, d dialect) error {
 	var objects []Object
 	cur := 0
 	for i := 0; i < n; i++ {
-		if cur+objectRecordSize > len(p) {
+		if cur+ObjectSize > len(p) {
 			return fmt.Errorf("alm: type4 record %d does not fit in payload (%d bytes)", i, len(p))
 		}
-		rec := p[cur : cur+objectRecordSize]
+		rec := p[cur : cur+ObjectSize]
 		obj := Object{
-			X:       binary.LittleEndian.Uint32(rec[0x00:0x04]),
-			Y:       binary.LittleEndian.Uint32(rec[0x04:0x08]),
-			Kind:    binary.LittleEndian.Uint32(rec[0x08:0x0c]),
-			Field0C: binary.LittleEndian.Uint16(rec[0x0c:0x0e]),
-			Field0E: binary.LittleEndian.Uint32(rec[0x0e:0x12]),
-			Field12: binary.LittleEndian.Uint16(rec[0x12:0x14]),
+			X:       binary.LittleEndian.Uint32(rec[ObjectX:]),
+			Y:       binary.LittleEndian.Uint32(rec[ObjectY:]),
+			Kind:    binary.LittleEndian.Uint32(rec[ObjectKind:]),
+			Field0C: binary.LittleEndian.Uint16(rec[ObjectPlacement:]),
+			Field0E: binary.LittleEndian.Uint32(rec[ObjectOwner:]),
+			Field12: binary.LittleEndian.Uint16(rec[ObjectIdentity:]),
 		}
-		cur += objectRecordSize
+		cur += ObjectSize
 
-		if obj.Kind == objectExtKind || (d == dialectROM2 && obj.Kind&rom2ObjectExt != 0) {
-			if cur+objectExtSize > len(p) {
+		if obj.Kind == ObjectExtKind || (d == dialectROM2 && obj.Kind&rom2ObjectExt != 0) {
+			if cur+ObjectExtSize > len(p) {
 				return fmt.Errorf("alm: type4 record %d: kind==0x21 extension does not fit in payload", i)
 			}
-			ext := make([]byte, objectExtSize)
-			copy(ext, p[cur:cur+objectExtSize])
+			ext := make([]byte, ObjectExtSize)
+			copy(ext, p[cur:cur+ObjectExtSize])
 			obj.Ext = ext
-			cur += objectExtSize
+			cur += ObjectExtSize
 		}
 		objects = append(objects, obj)
 	}
@@ -849,20 +778,20 @@ func (m *Map) decodeObjects(p []byte, d dialect) error {
 // same index in the array.
 func (m *Map) decodeGroups(p []byte) error {
 	n := int(m.Meta.Count5)
-	if uint64(len(p)) != uint64(groupRecordSize)*uint64(m.Meta.Count5) {
-		return fmt.Errorf("alm: type5 payload is %d bytes, want %d (76*#type5)", len(p), int64(groupRecordSize)*int64(m.Meta.Count5))
+	if uint64(len(p)) != uint64(GroupSize)*uint64(m.Meta.Count5) {
+		return fmt.Errorf("alm: type5 payload is %d bytes, want %d (76*#type5)", len(p), int64(GroupSize)*int64(m.Meta.Count5))
 	}
 	groups := make([]Group, n)
 	for i := 0; i < n; i++ {
-		rec := p[i*groupRecordSize : (i+1)*groupRecordSize]
+		rec := p[i*GroupSize : (i+1)*GroupSize]
 		g := Group{
-			Color:       binary.LittleEndian.Uint32(rec[0:4]),
-			Participant: binary.LittleEndian.Uint32(rec[4:8]),
-			Scalar:      binary.LittleEndian.Uint32(rec[0x08:0x0c]),
-			Name:        string(cstr(rec[0x0c : 0x0c+groupNameLen])),
+			Color:       binary.LittleEndian.Uint32(rec[GroupColour:]),
+			Participant: binary.LittleEndian.Uint32(rec[GroupControl:]),
+			Scalar:      binary.LittleEndian.Uint32(rec[GroupScalar:]),
+			Name:        string(cstr(rec[GroupName : GroupName+GroupNameLen])),
 		}
-		for k := 0; k < groupRelationLen; k++ {
-			off := groupRelationOff + 2*k
+		for k := 0; k < GroupRelationCount; k++ {
+			off := GroupRelations + 2*k
 			g.Relation[k] = binary.LittleEndian.Uint16(rec[off : off+2])
 		}
 		groups[i] = g
@@ -884,26 +813,26 @@ func (m *Map) decodeGroups(p []byte) error {
 // one more word off a record changes nothing about the record.
 func (m *Map) decodeUnits(p []byte) error {
 	n := int(m.Meta.Count6)
-	if uint64(len(p)) != uint64(unitRecordSize)*uint64(m.Meta.Count6) {
-		return fmt.Errorf("alm: type6 payload is %d bytes, want %d (70*#type6)", len(p), int64(unitRecordSize)*int64(m.Meta.Count6))
+	if uint64(len(p)) != uint64(UnitSize)*uint64(m.Meta.Count6) {
+		return fmt.Errorf("alm: type6 payload is %d bytes, want %d (70*#type6)", len(p), int64(UnitSize)*int64(m.Meta.Count6))
 	}
 	units := make([]Unit, n)
 	for i := 0; i < n; i++ {
-		rec := p[i*unitRecordSize : (i+1)*unitRecordSize]
-		currentHP := int16(binary.LittleEndian.Uint16(rec[0x20:0x22]))
+		rec := p[i*UnitSize : (i+1)*UnitSize]
+		currentHP := int16(binary.LittleEndian.Uint16(rec[UnitHP:]))
 		units[i] = Unit{
-			X: binary.LittleEndian.Uint32(rec[0x00:0x04]),
-			Y: binary.LittleEndian.Uint32(rec[0x04:0x08]),
+			X: binary.LittleEndian.Uint32(rec[UnitX:]),
+			Y: binary.LittleEndian.Uint32(rec[UnitY:]),
 			// int16 conversion of the u16 is the loader's MOVSX (ALM-CLS-038).
-			ClassID:      int16(binary.LittleEndian.Uint16(rec[0x08:0x0a])),
-			ClassSubID:   binary.LittleEndian.Uint16(rec[0x0a:0x0c]),
-			Flags:        binary.LittleEndian.Uint32(rec[0x0c:0x10]),
-			DefID:        binary.LittleEndian.Uint32(rec[0x10:0x14]),
-			Owner:        binary.LittleEndian.Uint32(rec[0x14:0x18]),
+			ClassID:      int16(binary.LittleEndian.Uint16(rec[UnitClass:])),
+			ClassSubID:   binary.LittleEndian.Uint16(rec[UnitSubID:]),
+			Flags:        binary.LittleEndian.Uint32(rec[UnitFlags:]),
+			DefID:        binary.LittleEndian.Uint32(rec[UnitDefinition:]),
+			Owner:        binary.LittleEndian.Uint32(rec[UnitOwner:]),
 			CurrentHP:    currentHP,
 			HasCurrentHP: currentHP != -1,
-			UnitID:       binary.LittleEndian.Uint16(rec[0x40:0x42]),
-			GroupID:      binary.LittleEndian.Uint32(rec[0x42:0x46]),
+			UnitID:       binary.LittleEndian.Uint16(rec[UnitID:]),
+			GroupID:      binary.LittleEndian.Uint32(rec[UnitGroup:]),
 			Tail:         decodeUnitTail(rec),
 		}
 	}
@@ -922,12 +851,12 @@ func (m *Map) decodeUnits(p []byte) error {
 func (m *Map) decodeTriggers(p7, p8, p9 []byte, has7, has9 bool) error {
 	m.Triggers = Triggers{Body: cloneBytes(nil)}
 	if has7 {
-		if len(p7) < countWordSize {
+		if len(p7) < CountWordSize {
 			return fmt.Errorf("alm: type7 payload %d bytes too small for the entryCount word", len(p7))
 		}
 		m.Triggers = Triggers{
-			EntryCount: binary.LittleEndian.Uint32(p7[0:countWordSize]),
-			Body:       cloneBytes(p7[countWordSize:]),
+			EntryCount: binary.LittleEndian.Uint32(p7[0:CountWordSize]),
+			Body:       cloneBytes(p7[CountWordSize:]),
 		}
 	}
 
@@ -935,12 +864,12 @@ func (m *Map) decodeTriggers(p7, p8, p9 []byte, has7, has9 bool) error {
 
 	m.TileMarkers = TileMarkers{Body: cloneBytes(nil)}
 	if has9 {
-		if len(p9) < countWordSize {
+		if len(p9) < CountWordSize {
 			return fmt.Errorf("alm: type9 payload %d bytes too small for the count word", len(p9))
 		}
 		m.TileMarkers = TileMarkers{
-			Count: binary.LittleEndian.Uint32(p9[0:countWordSize]),
-			Body:  cloneBytes(p9[countWordSize:]),
+			Count: binary.LittleEndian.Uint32(p9[0:CountWordSize]),
+			Body:  cloneBytes(p9[CountWordSize:]),
 		}
 	}
 	return nil

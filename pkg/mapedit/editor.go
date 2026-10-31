@@ -9,29 +9,6 @@ import (
 	"againrom/pkg/formats/alm"
 )
 
-// The container framing this model navigates by (docs/0003-alm-container): a
-// 20-byte file header whose +0x0c word counts the records, then that many
-// records, each a 20-byte header followed by its pure payload. Only the pieces
-// a navigator needs are named here — the count, a record's own length word, its
-// typeId, and the type-0 record every field offset in this package is relative
-// to.
-const (
-	fileHeaderSize   = 20
-	recordHeaderSize = 20
-
-	fhRecordCount = 0x0c
-
-	// typeIDCount is the size of the typeId INDEX SPACE, not a roster size: a
-	// record whose id is at or above it selects no section here, exactly as it
-	// selects no case in the engine's own loader.
-	typeIDCount = 10
-
-	recPayloadSize = 0x08
-	recTypeID      = 0x0c
-
-	metaTypeID = 0
-)
-
 // Editor is a headless edit session over one accepted ROM1 .alm map.
 //
 // Its whole state is the accepted bytes, an ordered log of the edits applied
@@ -253,8 +230,8 @@ func (s span) abs(rel int) int { return s.payloadOff + rel }
 // accessors below are the only way to read the array: required for the ids
 // acceptance guarantees, optional for the ids it does not.
 type frame struct {
-	record  [typeIDCount]span
-	present [typeIDCount]bool
+	record  [alm.TypeIDCount]span
+	present [alm.TypeIDCount]bool
 }
 
 // required returns the record carrying typeId tid, for the three ids
@@ -310,18 +287,18 @@ func (e *Editor) locate() frame {
 		f.record[tid] = span{headerOff: past, payloadOff: past}
 	}
 
-	n := e.u32(fhRecordCount)
-	cursor := fileHeaderSize
+	n := e.u32(alm.FileRecordCount)
+	cursor := alm.FileHeaderSize
 	for i := uint32(0); i < n; i++ {
-		if cursor+recordHeaderSize > len(e.data) {
+		if cursor+alm.RecordHeaderSize > len(e.data) {
 			break
 		}
-		start := cursor + recordHeaderSize
-		size := uint64(binary.LittleEndian.Uint32(e.data[cursor+recPayloadSize:]))
+		start := cursor + alm.RecordHeaderSize
+		size := uint64(binary.LittleEndian.Uint32(e.data[cursor+alm.RecordPayloadSize:]))
 		if size > uint64(len(e.data)-start) {
 			break
 		}
-		if tid := binary.LittleEndian.Uint32(e.data[cursor+recTypeID:]); tid < typeIDCount {
+		if tid := binary.LittleEndian.Uint32(e.data[cursor+alm.RecordTypeID:]); tid < alm.TypeIDCount {
 			f.record[tid] = span{headerOff: cursor, payloadOff: start, payloadSize: int(size)}
 			f.present[tid] = true
 		}

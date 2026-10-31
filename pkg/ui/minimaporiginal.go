@@ -101,7 +101,7 @@ func (v *Viewer) minimapOriginalTerrain() []color.RGBA {
 	lb := lookup.Bounds()
 	for row := 0; row < rows; row++ {
 		for col := 0; col < cols; col++ {
-			t := int(v.tileWord(col, row) & 0x1fff)
+			t := int(v.tileWord(col, row) & terrain.TileGroupBits)
 			x, y := t>>4, t&15
 			c := terrain.PlaceholderColor
 			if x < lb.Dx() && y < lb.Dy() {

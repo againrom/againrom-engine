@@ -1,6 +1,10 @@
 package mapedit
 
-import "fmt"
+import (
+	"fmt"
+
+	"againrom/pkg/formats/alm"
+)
 
 // The two whole-map commands. Each is one edit over one plane, and each
 // takes the caller's random source, Draw answering a number in 0..n-1, so one
@@ -11,7 +15,7 @@ import "fmt"
 // that state in table order; nil for a word outside the table or a state with
 // one word.
 func lookalikes(w uint16) []uint16 {
-	i := w & 0x3ff
+	i := w & alm.TileIndexMask
 	water := i&0x300 == 0x200
 	g := i >> 6 & 15
 	fg := g
@@ -32,7 +36,7 @@ func lookalikes(w uint16) []uint16 {
 	}
 	out := make([]uint16, len(ws))
 	for n, x := range ws {
-		out[n] = w&^0x3ff | compose(g, x)
+		out[n] = w&^alm.TileIndexMask | compose(g, x)
 	}
 	return out
 }
@@ -54,7 +58,7 @@ func (e *Editor) RandomizeTerrain(src func(n int) int) (bool, error) {
 	}
 	f := e.locate()
 	w, h := e.GridSize()
-	span := f.required(tileTypeID)
+	span := f.required(alm.TypeTiles)
 	old := e.tileWords(span, w*h)
 	next := append([]uint16(nil), old...)
 	for x := range w {
@@ -96,7 +100,7 @@ func (e *Editor) RandomizeHeights(src func(n int) int) (bool, error) {
 	}
 	f := e.locate()
 	w, h := e.GridSize()
-	span := f.required(altitudeTypeID)
+	span := f.required(alm.TypeAltitude)
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
 	next := old
 	for range max(1, w*h/reliefArea) {

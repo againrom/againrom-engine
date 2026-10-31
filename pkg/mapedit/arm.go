@@ -3,6 +3,8 @@ package mapedit
 import (
 	"encoding/binary"
 	"fmt"
+
+	"againrom/pkg/formats/alm"
 )
 
 // A win or lose arm is the script shape the shipped maps author: an action
@@ -43,12 +45,6 @@ const (
 	scriptRegisters = 100
 	scriptTriggers  = 1000
 	scriptMaxID     = 5000
-
-	// Trigger record offsets (ALM-TRIG-047, ALM-TRIGREAD-233).
-	triggerPairs   = 0x80
-	triggerActions = 0x98
-	triggerCompare = 0xa8
-	triggerOnce    = 0xb4
 )
 
 // Arm is one row of the arm table: what the arm's records say. Target is the
@@ -131,13 +127,13 @@ func (e *Editor) AddArm(kind ArmKind, target uint32) error {
 	if err != nil {
 		return err
 	}
-	trigger := make([]byte, scriptTriggerSize)
+	trigger := make([]byte, alm.ScriptTriggerSize)
 	copy(trigger, arm.TriggerName)
-	binary.LittleEndian.PutUint32(trigger[triggerPairs:], checkID)
-	binary.LittleEndian.PutUint32(trigger[triggerPairs+4:], checkID+1)
-	binary.LittleEndian.PutUint32(trigger[triggerActions:], actionID)
-	binary.LittleEndian.PutUint32(trigger[triggerCompare:], arm.Compare)
-	binary.LittleEndian.PutUint32(trigger[triggerOnce:], 1)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerPairs:], checkID)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerPairs+4:], checkID+1)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerActions:], actionID)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerCompare:], arm.Compare)
+	binary.LittleEndian.PutUint32(trigger[alm.ScriptTriggerOnce:], 1)
 	_, err = e.PlaceAll([]Placement{{KindAction, action}, {KindCondition, check}, {KindCondition, limit}, {KindTrigger, trigger}})
 	return err
 }

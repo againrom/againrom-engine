@@ -3163,7 +3163,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1861,
 		"scclause":        505,
-		"barestorynumber": 1702,
+		"barestorynumber": 1701,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3604,5 +3604,5 @@ var Committed = Baseline{
 	// and their two values in pkg/mapload/spell.go, the both-games test in
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
-	CommentBytes: 10064709,
+	CommentBytes: 10061343,
 }

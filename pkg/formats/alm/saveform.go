@@ -4,13 +4,7 @@ import (
 	"encoding/binary"
 )
 
-// The unit fields the save form touches (ALM-UNIT-040): the owner slot, the
-// loot link written as the loot index plus one, and the script unit id.
 const (
-	unitOwnerOff = 0x14
-	unitLootOff  = 0x18
-	unitIDOff    = 0x40
-
 	// saveFormVersion is the file version the original editor writes
 	// (ALM-SAVE-255). The layout rules below hold from it up; a file below it
 	// is returned as it is.
@@ -52,7 +46,7 @@ func SaveForm(data []byte) ([]byte, error) {
 		for i, tid := range doc.RecordTypeIDs() {
 			if tid == id {
 				sp := doc.spans[i]
-				start := sp.headerOff + recordHeaderSize
+				start := sp.headerOff + RecordHeaderSize
 				found = out[start : start+sp.payloadSize]
 			}
 		}
@@ -70,33 +64,33 @@ func SaveForm(data []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
-	unitOff := func(i int) int { return i * unitRecordSize }
+	unitOff := func(i int) int { return i * UnitSize }
 
 	for i := 0; i < nUnits; i++ {
 		u := units[unitOff(i):]
 		if players > 0 {
-			if o := le.Uint32(u[unitOwnerOff:]); o < 1 || o > uint32(players) {
-				le.PutUint32(u[unitOwnerOff:], firstSlot)
+			if o := le.Uint32(u[UnitOwner:]); o < 1 || o > uint32(players) {
+				le.PutUint32(u[UnitOwner:], firstSlot)
 			}
 		}
-		link := le.Uint32(u[unitLootOff:])
+		link := le.Uint32(u[UnitLoot:])
 		if link < 1 || link > uint32(len(heads)) {
-			le.PutUint32(u[unitLootOff:], 0)
+			le.PutUint32(u[UnitLoot:], 0)
 			continue
 		}
-		le.PutUint32(lootBytes[heads[link-1]+lootOwnerOff:], uint32(le.Uint16(u[unitIDOff:])))
+		le.PutUint32(lootBytes[heads[link-1]+LootOwner:], uint32(le.Uint16(u[UnitID:])))
 	}
 
 	unitByID := func(id uint32) int {
 		for i := 0; i < nUnits && id <= 0xffff; i++ {
-			if uint32(le.Uint16(units[unitOff(i)+unitIDOff:])) == id {
+			if uint32(le.Uint16(units[unitOff(i)+UnitID:])) == id {
 				return i
 			}
 		}
 		return -1
 	}
 	for j, h := range heads {
-		owner := le.Uint32(lootBytes[h+lootOwnerOff:])
+		owner := le.Uint32(lootBytes[h+LootOwner:])
 		if owner == 0 {
 			continue
 		}
@@ -105,26 +99,20 @@ func SaveForm(data []byte) ([]byte, error) {
 			if at = unitByID(orphanUnitID); at < 0 {
 				continue
 			}
-			le.PutUint32(lootBytes[h+lootOwnerOff:], orphanUnitID)
-			le.PutUint32(units[unitOff(at)+unitLootOff:], uint32(j+1))
+			le.PutUint32(lootBytes[h+LootOwner:], orphanUnitID)
+			le.PutUint32(units[unitOff(at)+UnitLoot:], uint32(j+1))
 		}
-		copy(lootBytes[h+lootXOff:h+lootXOff+8], units[unitOff(at):unitOff(at)+8])
+		copy(lootBytes[h+LootX:h+LootX+8], units[unitOff(at):unitOff(at)+8])
 	}
 	return out, nil
 }
 
-// Type-8 head offsets the save form uses (the Loot reader's layout).
-const (
-	lootOwnerOff = 0x04
-	lootXOff     = 0x08
-)
-
 // lootHeads returns the payload offset of each type-8 record's head, walked
 // as Loot walks them.
 func lootHeads(m *Map, b []byte) ([]int, error) {
-	head := lootHeadShort
-	if m.FormatVersion >= lootWideHeadVersion {
-		head = lootHeadWide
+	head := LootHeadShort
+	if m.FormatVersion >= LootWideHeadVersion {
+		head = LootHeadWide
 	}
 	var heads []int
 	off := 0
@@ -133,11 +121,11 @@ func lootHeads(m *Map, b []byte) ([]int, error) {
 			return nil, errLootWalk
 		}
 		n := int64(binary.LittleEndian.Uint32(b[off:]))
-		if n*lootElementSize > int64(len(b)-off-head) {
+		if n*LootElementSize > int64(len(b)-off-head) {
 			return nil, errLootWalk
 		}
 		heads = append(heads, off)
-		off += head + int(n)*lootElementSize
+		off += head + int(n)*LootElementSize
 	}
 	return heads, nil
 }

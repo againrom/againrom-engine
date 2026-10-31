@@ -458,7 +458,7 @@ func (c *mapCheck) scriptReference() []mapHit {
 // without a type-5 record plays with one synthesised side (ALM-REQ-056).
 func rosterSlotError(m *alm.Map, owner uint32) error {
 	slots := len(m.Groups)
-	if !m.Present(5) {
+	if !m.Present(alm.TypeGroups) {
 		slots = 1
 	}
 	if owner < 1 || int(owner) > slots {

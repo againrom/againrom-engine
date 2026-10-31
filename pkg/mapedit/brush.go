@@ -150,8 +150,8 @@ func (b Brush) walk(c Cell, w, h int, fn func(x, y, d2 int)) {
 
 // GridSize is the map's width and height in cells.
 func (e *Editor) GridSize() (w, h int) {
-	meta := e.locate().required(metaTypeID)
-	return int(e.u32(meta.abs(metaW))), int(e.u32(meta.abs(metaH)))
+	meta := e.locate().required(alm.TypeMeta)
+	return int(e.u32(meta.abs(alm.MetaWidth))), int(e.u32(meta.abs(alm.MetaHeight)))
 }
 
 // Footprint is every cell of a w x h grid a stroke of b through the centres
@@ -189,8 +189,8 @@ func (b Brush) Footprint(at []Cell, w, h int) []Cell {
 // is the classifier a tile stroke reads classes with.
 func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, error) {
 	f := e.locate()
-	meta := f.required(metaTypeID)
-	w, h := int(e.u32(meta.abs(metaW))), int(e.u32(meta.abs(metaH)))
+	meta := f.required(alm.TypeMeta)
+	w, h := int(e.u32(meta.abs(alm.MetaWidth))), int(e.u32(meta.abs(alm.MetaHeight)))
 	switch {
 	case len(at) == 0 || len(at) > maxCentres:
 		return false, fmt.Errorf("mapedit: a stroke needs between 1 and %d cells", maxCentres)
@@ -253,7 +253,7 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 	if !known {
 		return nil, fmt.Errorf("mapedit: %d is not a paintable terrain class", b.Value)
 	}
-	span := f.required(tileTypeID)
+	span := f.required(alm.TypeTiles)
 	old := e.tileWords(span, w*h)
 	painted := make([]bool, len(old))
 	var cells []int
@@ -281,7 +281,7 @@ func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(ui
 // marks none); then the type-0 tile-group mask is recomputed. next is
 // normalised in place.
 func (e *Editor) tileEdit(f frame, w int, old, next []uint16, cleared []bool) edit {
-	span, meta := f.required(tileTypeID), f.required(metaTypeID)
+	span, meta := f.required(alm.TypeTiles), f.required(alm.TypeMeta)
 	last := len(next) - 1
 	touched := next[last] != old[last]
 	for i := 0; i < 8*w && i < len(next) && !touched; i++ {
@@ -289,9 +289,9 @@ func (e *Editor) tileEdit(f frame, w int, old, next []uint16, cleared []bool) ed
 	}
 	if touched {
 		for i := 0; i < 8*w && i < len(next); i++ {
-			next[i] = next[last] &^ blockedBit
+			next[i] = next[last] &^ alm.TileImpassable
 			if cleared == nil || !cleared[i] {
-				next[i] |= old[i] & blockedBit
+				next[i] |= old[i] & alm.TileImpassable
 			}
 		}
 	}
@@ -300,7 +300,7 @@ func (e *Editor) tileEdit(f frame, w int, old, next []uint16, cleared []bool) ed
 		return nil
 	}
 	mask := alm.TileGroupMask(next)
-	if at := meta.abs(metaBitmask); e.u32(at) != mask {
+	if at := meta.abs(alm.MetaBitmask); e.u32(at) != mask {
 		var img [4]byte
 		binary.LittleEndian.PutUint32(img[:], mask)
 		ed = append(ed, replace(at, e.data[at:at+4], img[:]))
@@ -358,11 +358,8 @@ func byteRuns(span span, old, next []byte) edit {
 	return ed
 }
 
-// blockedBit is the tile word's impassable flag, kept on unpainted cells.
-const blockedBit = 0x2000
-
 func (e *Editor) heightStroke(f frame, b Brush, at []Cell, w, h int) edit {
-	span := f.required(altitudeTypeID)
+	span := f.required(alm.TypeAltitude)
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
 	return byteRuns(span, old, b.heights(old, at, w, h))
 }
@@ -474,7 +471,7 @@ func (e *Editor) objectStroke(f frame, b Brush, at []Cell, w, h int) (edit, erro
 	if b.Value < 0 || b.Value > 255 {
 		return nil, fmt.Errorf("mapedit: %d is not an object class code", b.Value)
 	}
-	span, err := f.optional("paint objects", overlayTypeID)
+	span, err := f.optional("paint objects", alm.TypeOverlay)
 	if err != nil {
 		return nil, err
 	}
@@ -509,11 +506,11 @@ func (e *Editor) scatterStroke(f frame, b Brush, at []Cell, w, h int, class func
 		}
 		kinds[c] = true
 	}
-	span, err := f.optional("paint objects", overlayTypeID)
+	span, err := f.optional("paint objects", alm.TypeOverlay)
 	if err != nil {
 		return nil, err
 	}
-	tiles := f.required(tileTypeID)
+	tiles := f.required(alm.TypeTiles)
 	old := append([]byte(nil), e.data[span.payloadOff:span.payloadOff+w*h]...)
 	next := append([]byte(nil), old...)
 	for _, c := range b.Footprint(at, w, h) {
@@ -542,15 +539,15 @@ func (e *Editor) impassableStroke(f frame, b Brush, at []Cell, w, h int) (edit, 
 	if b.Value != 0 && b.Value != 1 {
 		return nil, fmt.Errorf("mapedit: %d is not an impassable flag value", b.Value)
 	}
-	span := f.required(tileTypeID)
+	span := f.required(alm.TypeTiles)
 	old := e.tileWords(span, w*h)
 	next := append([]uint16(nil), old...)
 	for _, cell := range at {
 		b.walk(cell, w, h, func(x, y, _ int) {
 			i := y*w + x
-			next[i] = old[i] &^ blockedBit
+			next[i] = old[i] &^ alm.TileImpassable
 			if b.Value == 1 {
-				next[i] |= blockedBit
+				next[i] |= alm.TileImpassable
 			}
 		})
 	}
