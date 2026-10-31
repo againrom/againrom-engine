@@ -818,7 +818,10 @@ type missionNotices struct {
 	pendingMessages []int32
 	objectiveLabels []string
 	npcKeys         map[sim.EntityID]uint16
-	failureText     []string
+	// drawnHeroes is the hero type each placed person is drawn with whose
+	// World type id stays his row's (placedClientHeroes).
+	drawnHeroes map[sim.EntityID]int32
+	failureText []string
 
 	// pages is a notice whose text this tier composed and paged ITSELF, rather
 	// than one read out of an event file (1032 return 1). The load disclosure
@@ -956,8 +959,9 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 	list, _ := ReadBodyList(src)
 	canonicalizePartyAppearance(ms, units, src, list)
 	tiers := savedActorTiers(ms.Map, entityTiers(ms.Map, t), ms.World.Entities(), ms.savedDocument)
+	heroes := placedClientHeroes(ms, t)
 	mw := newMapWorldWith(ms.World, nil, units,
-		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src, placedClientHeroes(ms, t)), v)
+		tiers, missionCharacters(ms.Map, t, ms), missionAppearanceArt(ms, units, list, src, heroes), v)
 	mw.installActorManifest(ms.ActorManifest)
 	mw.installCharacterDerivations(ms, t)
 	v.SetItemCastSink(mw.useScroll)
@@ -1011,6 +1015,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 		ann: NewAnnouncer(ms.World, ms.Raises),
 	}
 	mw.mission.audience = partyAudience(ms.Party, npcFaces)
+	mw.mission.drawnHeroes = heroes
 	if ms.ActorManifest != nil {
 		for _, actor := range ms.ActorManifest.Actors {
 			if _, present := mw.chars[actor.ID]; !present {

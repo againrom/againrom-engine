@@ -3564,5 +3564,5 @@ var Committed = Baseline{
 	// mapinspectionnpc.go, the map list's title reader in maplist.go,
 	// mapinspection.go and worldmap.go, the new tests' comments, and this
 	// note. The merge with main is measured on the merged tree.
-	CommentBytes: 10016022,
+	CommentBytes: 10020486,
 }

@@ -3,6 +3,7 @@ package game
 import (
 	"io"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -199,8 +200,16 @@ func TestSpeakerIsOneMemberOfTheFirstNonEmptyTier(t *testing.T) {
 	}
 }
 
+// firstRecording is the first game's leaf a gesture asks of bank.
+func firstRecording(gesture ui.VoiceGesture, bank string, draw voiceDraw) string {
+	voice := unitVoice{name: bank, plain: bank == "m_peasant" || bank == "f_peasant"}
+	path := firstGameVoices.commandRecording(firstGameVoices.gestures[gesture], voice, func(string) bool { return true }, draw)
+	return strings.TrimSuffix(strings.TrimPrefix(path, bank+"/"), ".wav")
+}
+
 // TestCommandRecordingByGesture checks each gesture's recording and draws.
 func TestCommandRecordingByGesture(t *testing.T) {
+	commandRecording := firstRecording
 	script := &scriptedDraw{}
 	for _, tc := range []struct {
 		bank string

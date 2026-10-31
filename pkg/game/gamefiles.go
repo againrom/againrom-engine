@@ -133,6 +133,8 @@ type gameFiles struct {
 	// heldMarks is the held mark of a lasting effect by the arm its spell
 	// runs, where the game's geometry or picture is not the arm's own kind.
 	heldMarks map[uint16]heldMark
+	// unitVoices are the game's command and selection voices.
+	unitVoices unitVoiceRules
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
@@ -187,6 +189,7 @@ var firstGameFiles = gameFiles{
 	loadedTavernStock:   true,
 	// TAVERN-035, TEXT-135.
 	bookSpellcaster: true,
+	unitVoices:      firstGameVoices,
 }
 
 var secondGameFiles = gameFiles{
@@ -235,6 +238,7 @@ var secondGameFiles = gameFiles{
 	// AttackDelay from that run and none from the cast message.
 	teleportCast: teleportCastProfile{run: true},
 	heldMarks:    secondHeldMarks,
+	unitVoices:   secondGameVoices,
 }
 
 // speakerFaces is the speaker table of t's campaign.

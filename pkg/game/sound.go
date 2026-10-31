@@ -138,12 +138,19 @@ func (b *SoundBank) namedSample(path string) (audio.Sample, bool) {
 	return c.sample, c.ok
 }
 
-// holdsNamed reports whether the sound archive holds the sample path names.
+// holdsNamed reports whether the sound archive holds the sample path names,
+// decodable or not. A bank with no archive holds what it has decoded.
 func (b *SoundBank) holdsNamed(path string) bool {
-	if b == nil || b.src == nil {
-		return true
+	if b == nil {
+		return false
 	}
 	path = strings.ToLower(strings.ReplaceAll(path, `\`, "/"))
+	if c, ok := b.named[path]; ok && c.ok {
+		return true
+	}
+	if b.src == nil {
+		return false
+	}
 	_, err := b.src.ReadFile(sfxPrefix + path)
 	return !errors.Is(err, fs.ErrNotExist)
 }
