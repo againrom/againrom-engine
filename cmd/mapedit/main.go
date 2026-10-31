@@ -94,9 +94,9 @@ func run(args []string, out io.Writer) error {
 // beside it name the install when no flag or variable does.
 func runAs(self string, args []string, out io.Writer) error {
 	flags := flag.NewFlagSet("mapedit", flag.ContinueOnError)
-	assets := flags.String("assets", "", "read-only installed asset root")
+	assets := flags.String(launch.EditorAssets.Flag, "", launch.EditorAssets.Usage)
 	path := flags.String("map", "", "explicit ALM path or catalogue key, e.g. scenario/10.alm")
-	list := flags.Bool("list", false, "list installed map keys and exit")
+	list := flags.Bool(launch.EditorList.Flag, launch.EditorList.GameBool(), launch.EditorList.Usage)
 	check := flags.Bool("check", false, "load and report every record/warning without opening a window")
 	snapshot := flags.String("snapshot", "", "write a headless diagnostic PNG and exit (not GPU readback)")
 	selectRecord := flags.String("select", "", "select and jump to Kind:index, e.g. Sack:0")

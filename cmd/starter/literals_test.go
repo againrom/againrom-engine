@@ -14,11 +14,9 @@ import (
 )
 
 // notCaption lists the string literals the window files may hold because they
-// are not words the player reads: program arguments, a result kind, a data
+// are not words the player reads: a program name, a result kind, a data
 // sentinel, a temporary file pattern, a character set.
 var notCaption = map[string]string{
-	"-assets":               "program argument",
-	"-list":                 "program argument",
 	"againrom":              "program name in the version line",
 	"check":                 "background result kind",
 	"version":               "background result kind",
@@ -143,7 +141,7 @@ func f(a *app) {
 	a.fail("cannot play: %v", err)
 	text(1, 2, "settings: "+path, tone)
 	_ = errors.New("no base game selected")
-	_ = "-assets"
+	_ = "againrom"
 	_ = "%d. %s"
 }`
 	got := captionLiterals("x.go", []byte(src), false)
