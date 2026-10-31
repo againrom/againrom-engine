@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.143.0
+
 ### For players
 
 - [ROM2] A game you save during a mission, from the save page, with quick save or by the autosaves, is now written in the original game's own save format too, so the original game can try to load it; loading it in Againrom returns you to the same moment.
