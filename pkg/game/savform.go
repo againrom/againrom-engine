@@ -10,6 +10,7 @@ import (
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 )
 
 // secondTownForm is a second-game town SAVE's engine document in the second
@@ -18,7 +19,11 @@ func secondTownForm(table *mapload.Table, s Snapshot, doc sav.DocumentData) (sav
 	if err := writeSecondTownHolders(&doc, s, table); err != nil {
 		return sav.DocumentData{}, err
 	}
-	out, ok, err := sav.DocumentInProfile(doc, sav.SecondGame)
+	keeps, err := secondFormKeeps(s)
+	if err != nil {
+		return sav.DocumentData{}, err
+	}
+	out, ok, err := sav.DocumentInProfile(doc, sav.SecondGame, keeps)
 	if err != nil {
 		return sav.DocumentData{}, err
 	}
@@ -29,6 +34,30 @@ func secondTownForm(table *mapload.Table, s Snapshot, doc sav.DocumentData) (sav
 		return sav.DocumentData{}, err
 	}
 	return out, nil
+}
+
+// secondFormKeeps is what the second game's records hold that a mission's
+// World keeps beside the engine's records: each Pointer's word, by its
+// Token key. A town SAVE has no World.
+func secondFormKeeps(s Snapshot) (sav.ProfileKeeps, error) {
+	if len(s.World) == 0 {
+		return sav.ProfileKeeps{}, nil
+	}
+	var w sim.World
+	if err := w.UnmarshalBinary(s.World); err != nil {
+		return sav.ProfileKeeps{}, err
+	}
+	var keeps sav.ProfileKeeps
+	source, _, _ := w.SavedStructures()
+	for _, st := range source {
+		if st.Class == sim.SavedPointer {
+			if keeps.Pointers == nil {
+				keeps.Pointers = map[uint32]uint32{}
+			}
+			keeps.Pointers[st.SourceKey] = st.Pointer6C
+		}
+	}
+	return keeps, nil
 }
 
 // writeSecondTownHolders writes what the second game's Humans hold that the

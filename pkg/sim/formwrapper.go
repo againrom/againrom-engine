@@ -54,6 +54,7 @@ var formWrappers []formWrapper
 
 func init() {
 	formWrappers = []formWrapper{
+		{tokenRowFormVersion, "TKR1", trailerSpan32, baseOlder, (*World).unmarshalTokenRows},
 		{scriptSlotFormVersion, "SLT1", trailerSpan32, baseOlder, (*World).unmarshalScriptSlots},
 		{runtimeIDFormVersion, "RID1", trailerSpan32, baseOlder, (*World).unmarshalRuntimeIDs},
 		{passiveBodyFormVersion, "PBC1", trailerSpan32, baseOlder, (*World).unmarshalPassiveBodies},

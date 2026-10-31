@@ -76,7 +76,8 @@ func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondM
 // type-4 objects, type-7 action nodes, type-11c records, files of the main
 // archive, the mission font, without which a notice takes no input, and the
 // map's side: 40 cells when zero, which leaves the fallback drop off the map,
-// and the mission's number, 10 when zero.
+// the mission's number, 10 when zero, type-6 placements and Humans rows the
+// table holds at the given rows, the rows between them empty.
 type secondMissionContent struct {
 	objects  []alm.Object
 	actions  []alm.ScriptNode
@@ -85,6 +86,8 @@ type secondMissionContent struct {
 	font     bool
 	side     int
 	mission  int
+	units    []alm.Unit
+	humans   map[int]dbEntry
 }
 
 // secondMissionMapOf is secondMissionMap with c's objects, action nodes and
@@ -96,6 +99,7 @@ func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 	le.PutUint32(meta[0x04:], uint32(h))
 	le.PutUint32(meta[0x1c:], 1) // one type-5 group record
 	le.PutUint32(meta[0x20:], uint32(len(c.objects)))
+	le.PutUint32(meta[0x24:], uint32(len(c.units)))
 	le.PutUint32(meta[0x3c:], uint32(len(c.pointers)))
 	copy(meta[0x44:], "second")
 	group := make([]byte, 76)
@@ -122,12 +126,28 @@ func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 		script = append(script, rec...)
 	}
 	script = append(script, make([]byte, 8)...)
+	var units []byte
+	for _, u := range c.units {
+		rec := make([]byte, 48)
+		le.PutUint32(rec[0x00:], u.X)
+		le.PutUint32(rec[0x04:], u.Y)
+		le.PutUint16(rec[0x08:], uint16(u.ClassID))
+		le.PutUint16(rec[0x0a:], u.ClassSubID)
+		le.PutUint32(rec[0x0c:], u.Flags)
+		le.PutUint32(rec[0x10:], u.DefID)
+		le.PutUint32(rec[0x14:], u.ServerID)
+		le.PutUint32(rec[0x18:], u.Owner)
+		le.PutUint16(rec[0x24:], 0xffff)
+		le.PutUint16(rec[0x28:], u.UnitID)
+		le.PutUint32(rec[0x2c:], u.GroupID)
+		units = append(units, rec...)
+	}
 	var pointers []byte
 	for _, r := range c.pointers {
 		pointers = le.AppendUint32(le.AppendUint32(le.AppendUint32(pointers, r.ID), r.Gate), r.Position)
 	}
 	payloads := map[int][]byte{0: meta, 1: make([]byte, 2*w*h), 2: make([]byte, w*h), 3: make([]byte, w*h),
-		4: objects, 5: group, 6: nil, 7: script, 8: nil, 9: make([]byte, 4), 11: pointers}
+		4: objects, 5: group, 6: units, 7: script, 8: nil, 9: make([]byte, 4), 11: pointers}
 	order := []int{0, 1, 2, 3, 5, 4, 9, 8, 6, 7}
 	if len(c.pointers) != 0 {
 		order = append(order, 11)
@@ -207,6 +227,16 @@ func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
 		rows = append(rows, row)
 	}
 	f.Table.Spells = rows
+	if len(c.humans) != 0 {
+		humans := slices.Clone(f.Table.Humans.(dbCollection))
+		for row, e := range c.humans {
+			for len(humans) <= row {
+				humans = append(humans, dbEntry{})
+			}
+			humans[row] = e
+		}
+		f.Table.Humans = humans
+	}
 	f.Table = readUnder(base.GameROM2, f.Table)
 	return f
 }
@@ -229,6 +259,24 @@ func secondMissionLoadOf(t *testing.T, c secondMissionContent, dir, name string)
 	app.SetSaveSeams(save, list, load)
 	groundAppLoad(t, app, list, name)
 	return f, app
+}
+
+// savesOfGame is dir's saves of game g as the save scan admits them, the
+// second game's Bsg& files among the engine's documents, newest first, but
+// for skip.
+func savesOfGame(dir string, g base.Game, selector int, skip ...string) []SaveEntry {
+	var out []SaveEntry
+	for _, e := range scanSaves(saveScan{Dir: dir, Bounded: true, Game: g}) {
+		if !slices.Contains(skip, e.Name) {
+			out = append(out, SaveEntry{Name: e.Name, Label: e.rowLabel(selector), Mod: e.Mod})
+		}
+	}
+	return out
+}
+
+// secondSaveFiles is savesOfGame for the second game.
+func secondSaveFiles(dir string, skip ...string) ([]SaveEntry, error) {
+	return savesOfGame(dir, base.GameROM2, 0, skip...), nil
 }
 
 // secondMissionLoadFile writes b as game0001.sav and LOADs it.
@@ -391,17 +439,15 @@ func TestSecondMissionFileSaveColdLoadAndNextOrder(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := SaveStore{Dir: dir}.List()
-	if err != nil || len(entries) != 1 || entries[0].Name == "game0001.sav" {
+	entries, err := secondSaveFiles(dir, "game0001.sav")
+	if err != nil || len(entries) != 1 {
 		t.Fatalf("our SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 	}
 	written, err := os.ReadFile(filepath.Join(dir, entries[0].Name))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p, ok := sav.ProfileOf(written); !ok || p != sav.FirstGame {
-		t.Fatal("our SAVE is not our own document")
-	}
+	checkSecondMissionFile(t, written, 10)
 	if err := os.Remove(filepath.Join(dir, "game0001.sav")); err != nil {
 		t.Fatal(err)
 	}
@@ -461,7 +507,7 @@ func TestSecondMissionFileSaveLeavesAnUndrivenProjectileOut(t *testing.T) {
 		if err := app.HeadlessGameMenuAction("save"); err != nil {
 			t.Fatal(err)
 		}
-		entries, err := SaveStore{Dir: dir}.List()
+		entries, err := secondSaveFiles(dir, "game0001.sav")
 		if err != nil || len(entries) != 1 {
 			t.Fatalf("driven %v: our SAVE: %+v %v: %s", driven, entries, err, app.HeadlessMessage())
 		}
@@ -525,7 +571,7 @@ func TestSecondMissionFileSlowCastSavesAndColdLoads(t *testing.T) {
 		if _, err := save(true); err != nil {
 			t.Fatalf("tick %d: our SAVE: %v", w.Tick(), err)
 		}
-		entries, err := SaveStore{Dir: dir}.List()
+		entries, err := secondSaveFiles(dir, "game0001.sav")
 		if err != nil {
 			t.Fatal(err)
 		}

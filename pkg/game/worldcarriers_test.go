@@ -87,7 +87,11 @@ func TestTheSavesAbsenceReadsTheWorldNotTheLoadedRecord(t *testing.T) {
 }
 
 func savedOfferChapter(raw []byte) string {
-	doc, err := sav.DecodeDocumentData(raw)
+	engine, err := sav.EngineDocument(raw)
+	if err != nil {
+		return "undecoded"
+	}
+	doc, err := sav.DecodeDocumentData(engine)
 	if err != nil {
 		return "undecoded"
 	}

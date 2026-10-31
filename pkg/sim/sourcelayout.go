@@ -98,7 +98,7 @@ func putSourceBinding(b []byte, s *SourceBinding) {
 	le.PutUint16(b[1:], s.ArchiveIndex)
 	le.PutUint32(b[3:], s.Identity)
 	le.PutUint32(b[7:], s.RuntimeID)
-	b[11] = s.TokenRow
+	b[11] = byte(s.TokenRow)
 	le.PutUint16(b[12:], s.TypeID)
 	b[14], b[15] = s.Face, s.ClassFlags
 	le.PutUint32(b[16:], s.DisplayBacking)
@@ -113,7 +113,7 @@ func getSourceBinding(b []byte, s *SourceBinding) {
 	_ = b[sourceBindingLen-1]
 	le := binary.LittleEndian
 	*s = SourceBinding{Class: b[0], ArchiveIndex: le.Uint16(b[1:]), Identity: le.Uint32(b[3:]), RuntimeID: le.Uint32(b[7:]),
-		TokenRow: b[11], TypeID: le.Uint16(b[12:]), Face: b[14], ClassFlags: b[15], DisplayBacking: le.Uint32(b[16:]),
+		TokenRow: uint16(b[11]), TypeID: le.Uint16(b[12:]), Face: b[14], ClassFlags: b[15], DisplayBacking: le.Uint32(b[16:]),
 		GroupIndex: le.Uint32(b[20:]), GroupSelector: le.Uint32(b[24:]), GroupOwnerKey: le.Uint32(b[28:]),
 		GroupOwnerSlot: le.Uint16(b[32:]), GroupOwnerResolved: b[34] != 0}
 }

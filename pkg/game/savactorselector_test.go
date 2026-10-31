@@ -14,7 +14,7 @@ func TestCurrentCanonicalActorSelectorUsesLiteralTokenRow(t *testing.T) {
 			t.Run(fmt.Sprintf("%s/row%d", class, row), func(t *testing.T) {
 				doc, binding, initial := actorProjectionFixture(t, class)
 				entity := initial.Entities()[0]
-				entity.SourceBinding.TokenRow = row
+				entity.SourceBinding.TokenRow = uint16(row)
 				entity.SourceBinding.Face = row ^ 0x41
 				if class == "Human" {
 					entity.SourceBinding.TypeID = 33
@@ -57,7 +57,7 @@ func TestCurrentCanonicalActorSelectorUsesLiteralTokenRow(t *testing.T) {
 				for _, actor := range graph.Actors {
 					if actor.Cell == 0x0605 && actor.Class == class {
 						matched++
-						if file.Body[actor.Off+16] != row || actor.DefRow != row {
+						if file.Body[actor.Off+16] != row || actor.DefRow != uint16(row) {
 							t.Fatal("raw selector/cold literal row lost", file.Body[actor.Off+16], actor.DefRow)
 						}
 						if file.Body[actor.ControlOff+2] != entity.SourceBinding.Face || actor.Face != entity.SourceBinding.Face {

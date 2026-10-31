@@ -205,9 +205,9 @@ func anyGameSave(dir string) bool {
 // ownGameSaves lists the .sav files in dir that are saves of game g, newest
 // last write first, by their label. Detail is the label and the last write
 // time as the original's row hint formats it (R2-ENGINE-438). The engine's
-// saves carry the first game's Asg& envelope with the game named in their
-// current-session leaf, and its quick and timed saves are listed beside
-// game*.sav (DIV-2404, DIV-3079).
+// second-game saves are Bsg& files; an older one carries the first game's
+// Asg& envelope with the game named in its current-session leaf. Its quick
+// and timed saves are listed beside game*.sav (DIV-2404, DIV-3079).
 func ownGameSaves(dir string, selector int, g base.Game) []SaveEntry {
 	var out []SaveEntry
 	for _, e := range scanSaves(saveScan{Dir: dir, Bounded: true, Regular: true, OfGame: true, Game: g}) {

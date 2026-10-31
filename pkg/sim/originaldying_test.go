@@ -6,7 +6,7 @@ import (
 )
 
 func TestOriginalDying1144CleanupIsAtomicAndDoesNotReplayDeath(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	e := &w.entities[0]
 	e.HP, e.Decay, e.Dwell, e.Defence = -8, DecayFallen, 7, 20
 	before, rng := w.Hash(), w.rng.state
@@ -40,7 +40,7 @@ func TestOriginalDying1144CleanupIsAtomicAndDoesNotReplayDeath(t *testing.T) {
 			t.Fatal("native continuation differs")
 		}
 	}
-	plain := sourceBindingWorld1111(t)
+	plain := sourceBindingWorld(t)
 	plain.entities[0].HP, plain.entities[0].Decay = 0, DecayFallen
 	plain.entities[0].SourceBinding = SourceBinding{}
 	if err := plain.ImportOriginalDyingActors([]OriginalDyingActor{{ID: 7, HP: 0}}); err == nil {

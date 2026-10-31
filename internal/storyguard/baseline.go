@@ -3152,7 +3152,7 @@ package storyguard
 // test, save notices, Open start folder, window resize cursor and heading
 // face in pkg/ui and pkg/game, their tests, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4474,
+	TestIdentCount: 4460,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3594,5 +3594,5 @@ var Committed = Baseline{
 	// mapcelladmission.go and its test, mapload's arm table in
 	// groundarms.go, the editor's arm rows in pkg/ui, the guard in
 	// internal/archtest/celladmission_test.go, and this note.
-	CommentBytes: 10039598,
+	CommentBytes: 10055049,
 }

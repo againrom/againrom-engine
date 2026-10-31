@@ -27,7 +27,7 @@ func TestReleaseMissionSaveWritesCompanionRows(t *testing.T) {
 		f.Carried = append(f.Carried, member)
 	}
 	hero := nativeCityHeroOf(f.Carried)
-	want := map[string]byte{}
+	want := map[string]uint16{}
 	for _, m := range f.Carried {
 		if m.CompanionNPC != 0 {
 			want[m.Name] = nativeCityDefRow(m, hero, f.Table)

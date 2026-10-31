@@ -418,7 +418,7 @@ func TestDocumentData1115RejectsMalformedAndIgnoredFields(t *testing.T) {
 			r := documentRecordByClass(t, d, "Outpost")
 			r.Values[0], r.Values[1] = r.Values[1], r.Values[0]
 		},
-		"scalar width":      func(d *DocumentData) { *documentValue1115(t, documentRecordByClass(t, d, "Outpost"), "T0C") = 256 },
+		"scalar width":      func(d *DocumentData) { *documentValue1115(t, documentRecordByClass(t, d, "Outpost"), "T0C") = 0x10000 },
 		"scalar saturation": func(d *DocumentData) { *documentValue1115(t, documentRecordByClass(t, d, "Player"), "F54") = 0x8000 },
 		"extra text": func(d *DocumentData) {
 			r := documentRecordByClass(t, d, "Outpost")

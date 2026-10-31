@@ -31,6 +31,8 @@ type Building struct {
 	Tavern9C, Shop70   uint32
 	OutpostWords       [4]uint32 // +84, +88, +80, +8c in serializer order
 	OutpostRecords     [][8]byte
+	// Pointer6C is a second-game Pointer's +0x6c word (R2-ENGINE-603).
+	Pointer6C uint32
 }
 
 // Buildings reads the counted document list, validates the complete archive
@@ -78,7 +80,8 @@ func (f *File) Buildings() ([]Building, bool, error) {
 			Token18: uint16(record.value("T18")), Token1C: record.value("T1C"), Reference: record.value("Reference"),
 			Field46: uint16(record.value("B46")), Field48: uint8(record.value("B48")),
 			Tavern9C: record.value("T9C"), Shop70: record.value("S70"),
-			OutpostWords: [4]uint32{record.value("O84"), record.value("O88"), record.value("O80"), record.value("O8C")}}
+			OutpostWords: [4]uint32{record.value("O84"), record.value("O88"), record.value("O80"), record.value("O8C")},
+			Pointer6C:    record.value("P6C")}
 		copy(b.Position[:], position)
 		copy(b.Base52[:], record.Raw["B52"])
 		// The raw +52 image overlaps later scalar stores. LOAD's last writes

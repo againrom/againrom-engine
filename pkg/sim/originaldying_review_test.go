@@ -3,7 +3,7 @@ package sim
 import "testing"
 
 func TestOriginalDying1144ZeroTimerDoesNotAdvanceStage(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	w.entities[0].HP, w.entities[0].Decay, w.entities[0].Dwell = -10, DecayFallen, 0
 	w.entities[0].ActorLoad = ActorLoad{}
 	w.carried[0] = []ItemStack{{Code: 0x101, Count: 1}}
@@ -15,7 +15,7 @@ func TestOriginalDying1144ZeroTimerDoesNotAdvanceStage(t *testing.T) {
 }
 
 func TestOriginalDying1144LateAdmissionRefusalKeepsSavedGroups(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	if err := w.ImportSavedGroups([]SavedGroup{{ID: 1, Members: []SavedGroupMember{{Archive: 4, Entity: 7, Bound: true}}}}, nil); err != nil {
 		t.Fatal(err)
 	}

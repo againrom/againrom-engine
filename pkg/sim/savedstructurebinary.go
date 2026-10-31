@@ -29,7 +29,7 @@ func (w *World) appendSavedStructureSection(b []byte) []byte {
 			b = append(b, flag)
 			b = append(b, s.Position[:]...)
 			b = binary.LittleEndian.AppendUint32(b, s.RuntimeID)
-			b = append(b, s.Token0C)
+			b = append(b, byte(s.Token0C))
 			b = binary.LittleEndian.AppendUint16(b, s.Token0E)
 			b = binary.LittleEndian.AppendUint16(b, s.Token18)
 			b = binary.LittleEndian.AppendUint32(b, s.Token1C)
@@ -47,6 +47,9 @@ func (w *World) appendSavedStructureSection(b []byte) []byte {
 			b = binary.LittleEndian.AppendUint32(b, uint32(len(s.OutpostRecords)))
 			for _, row := range s.OutpostRecords {
 				b = append(b, row[:]...)
+			}
+			if s.Class == SavedPointer {
+				b = binary.LittleEndian.AppendUint32(b, s.Pointer6C)
 			}
 		}
 		b = binary.LittleEndian.AppendUint32(b, uint32(len(w.savedStructureCells)))
@@ -91,7 +94,7 @@ func splitSavedStructureSection(data []byte) (body []byte, present bool, source 
 		s.SourceKey, s.ArchiveIndex = r.u32(), r.u16()
 		s.AuthoredID, s.AuthoredIndex, s.HasAuthored = r.u32(), r.u32(), r.flag()
 		copy(s.Position[:], r.take(12))
-		s.RuntimeID, s.Token0C, s.Token0E, s.Token18 = r.u32(), r.u8(), r.u16(), r.u16()
+		s.RuntimeID, s.Token0C, s.Token0E, s.Token18 = r.u32(), uint16(r.u8()), r.u16(), r.u16()
 		s.Token1C, s.Reference = r.u32(), r.u32()
 		copy(s.Base52[:], r.take(22))
 		s.Kind, s.Field46, s.Field48 = r.u8(), r.u16(), r.u8()
@@ -108,6 +111,9 @@ func splitSavedStructureSection(data []byte) (body []byte, present bool, source 
 			for j := range s.OutpostRecords {
 				copy(s.OutpostRecords[j][:], r.take(8))
 			}
+		}
+		if s.Class == SavedPointer {
+			s.Pointer6C = r.u32()
 		}
 	}
 	count = r.u32()

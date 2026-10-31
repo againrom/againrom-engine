@@ -120,7 +120,7 @@ func TestFlightHighBandHireCurrentSAVKeepsClassPolicy(t *testing.T) {
 	f.Table.Humans = rows
 	party := MissionParty(nil, f.Bodies, f.Table)
 	hire := party[0]
-	hire.ID, hire.Name, hire.Class, hire.MercenaryType, hire.DefinitionRow = "high-hire", "NPC03_1", 33, 3, uint8(len(rows)-1)
+	hire.ID, hire.Name, hire.Class, hire.MercenaryType, hire.DefinitionRow = "high-hire", "NPC03_1", 33, 3, uint16(len(rows)-1)
 	hire.StartingHero, hire.PlayerCharacter, hire.Temporary = false, false, true
 	party = append(party, hire)
 	if err := f.App("high-band hire").OpenMission(f.MissionOpenerWith(10, party)); err != nil {

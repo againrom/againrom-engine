@@ -81,15 +81,24 @@ var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgram
 // 36 preference bytes follow the engine's 32 (DIV-4305); Unit's sixth raw
 // block is 184 zero bytes (DIV-4305); the Diary sites drop; the Token and
 // Effect words keep their low 16 bits (R2-ENGINE-209). The town writer's
-// SpellBook/Shortcuts array has no element (R2-SESSION-285).
-var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArrays: []string{"/SpellBook/Shortcuts"}, fields: []formField{
-	{site: formRaw, name: PlayerTailName, into: []formAdd{{"PRaw2560", zeroFill(2560)}, {"PRaw36", preferenceFill}}},
-	{site: formRaw, name: "U158", into: []formAdd{{"URaw184", zeroFill(184)}}},
-	{site: formInline, name: "Diary"},
-	{site: formSlot, name: "Diary"},
-	{site: formWord, name: "T0C"},
-	{site: formWord, name: "E0C"},
-}}
+// SpellBook/Shortcuts array has no element (R2-SESSION-285). A Building the
+// World holds as a Pointer is a Pointer record with its word (R2-ENGINE-603).
+var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArrays: []string{"/SpellBook/Shortcuts"}, dropClasses: []string{"Diary"}, pointer: formRetype{from: "Building", to: "Pointer", word: "P6C"},
+	// The key list holds the cells 0x807 up to 0xedee whose plane-two byte
+	// exceeds 0x0f (R2-SESSION-019); the entry map is written bucket by
+	// bucket, (key >> 4) mod 100, each entry holding its own key at +0x3a
+	// (R2-SESSION-310, R2-SESSION-311). Result slot 901 is 1: only the
+	// session init writes it (R2-SESSION-313); the diplomacy block opens
+	// 1 1 0 0, the constructor's bytes (R2-ENGINE-760).
+	terrain: &terrainForm{from: 0x807, to: 0xedee, above: 0x0f, buckets: 100, keyAt: 0x3a - 0x2c},
+	results: map[int]int32{901: 1}, diplomacyHead: []byte{1, 1, 0, 0}, fields: []formField{
+		{site: formRaw, name: PlayerTailName, into: []formAdd{{"PRaw2560", zeroFill(2560)}, {"PRaw36", preferenceFill}}},
+		{site: formRaw, name: "U158", into: []formAdd{{"URaw184", zeroFill(184)}}},
+		{site: formInline, name: "Diary"},
+		{site: formSlot, name: "Diary"},
+		{site: formWord, name: "T0C"},
+		{site: formWord, name: "E0C"},
+	}}
 
 const (
 	secondCellLen    = 62

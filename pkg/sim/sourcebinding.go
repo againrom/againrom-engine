@@ -12,7 +12,7 @@ type SourceBinding struct {
 	Class                                    uint8 // 1..3 imported; 4 generated Unit; 5 generated Human
 	ArchiveIndex                             uint16
 	Identity, RuntimeID                      uint32
-	TokenRow                                 uint8
+	TokenRow                                 uint16 // byte form: the low byte; tokenRowFormVersion: the high byte
 	TypeID                                   uint16
 	Face, ClassFlags                         uint8
 	DisplayBacking                           uint32
@@ -41,7 +41,7 @@ func (s SourceBinding) ActorClass() uint8 {
 	return s.Class
 }
 
-func (s SourceBinding) DefinitionRow() uint8 {
+func (s SourceBinding) DefinitionRow() uint16 {
 	if s.ActorClass() == 2 && s.TypeID >= 33 {
 		return 5
 	}

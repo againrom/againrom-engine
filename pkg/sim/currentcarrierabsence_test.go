@@ -45,7 +45,7 @@ func TestCurrentCarrierAbsenceIsIndependentAndAtomic(t *testing.T) {
 
 func TestCurrentSackKeyAbsenceDoesNotChangeOtherCellValues(t *testing.T) {
 	for _, carriers := range []uint8{CurrentSackKeyRecord, CurrentSackKeyMotion, CurrentSackKeyRecord | CurrentSackKeyMotion} {
-		w := sourceBindingWorld1111(t)
+		w := sourceBindingWorld(t)
 		w.SetSavedCellRecords([]SavedCellRecord{{Cell: 0x0101, Sack: 91, Residue0: 7, Ground: SavedCellActorSlot{Key: 41}}, {Cell: 0x0202, Sack: 92, Residue1: [2]byte{3, 5}}})
 		w.cellRecords = []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}
 		binary.LittleEndian.PutUint32(w.cellRecords[0].Payload[16:], 91)
@@ -72,7 +72,7 @@ func TestCurrentSackKeyAbsenceDoesNotChangeOtherCellValues(t *testing.T) {
 }
 
 func TestCurrentMotionCellAbsenceIsAtomicAndKeepsOtherCarriers(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	w.savedMotion = &savedActorMotionState{Blocks: []SavedActorBlock{{Cell: 0x0101, Dyn: 64}}}
 	w.cellRecords = []SavedActorCell{{Cell: 0x0101}, {Cell: 0x0202}}
 	w.SetSavedCellRecords([]SavedCellRecord{{Cell: 0x0101, Sack: 91}})

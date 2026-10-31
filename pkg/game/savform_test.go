@@ -220,16 +220,12 @@ func TestSecondTownSaveKeepsTheLoadedHeroRecord(t *testing.T) {
 	}
 }
 
-// TestSaveFormKeepsTheEngineRecords: the first game and a second-game
-// mission write the engine's own records (DIV-3079).
+// TestSaveFormKeepsTheEngineRecords: the first game writes the engine's own
+// records.
 func TestSaveFormKeepsTheEngineRecords(t *testing.T) {
 	doc := sav.DocumentData{Label: []byte("x")}
 	if _, ok, err := (firstCampaignRules{}).saveForm(nil, Snapshot{}, doc); ok || err != nil {
 		t.Fatalf("the first game's SAVE changed form: %v", err)
-	}
-	mission := Snapshot{Mission: 10, second: &currentSecondCampaign{}}
-	if _, ok, err := (secondCampaignRules{}).saveForm(nil, mission, doc); ok || err != nil {
-		t.Fatalf("a second-game mission SAVE changed form: %v", err)
 	}
 }
 

@@ -77,10 +77,10 @@ func TestEngineTownDocumentWritesTheSecondGameForm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if same, changed, err := DocumentInProfile(doc, FirstGame); err != nil || changed || same.Game != "" {
+	if same, changed, err := DocumentInProfile(doc, FirstGame, ProfileKeeps{}); err != nil || changed || same.Game != "" {
 		t.Fatalf("the first game's profile changed the document: %v %v", changed, err)
 	}
-	second, changed, err := DocumentInProfile(doc, SecondGame)
+	second, changed, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
 	if err != nil || !changed {
 		t.Fatalf("second form: %v %v", changed, err)
 	}
@@ -143,7 +143,7 @@ func TestEngineTownDocumentRefusals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, _, err := DocumentInProfile(doc, SecondGame)
+	second, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,12 +155,8 @@ func TestEngineTownDocumentRefusals(t *testing.T) {
 	if _, err := StoreEngineDocument(doc, engine); err == nil {
 		t.Error("an engine document was written as a profile document")
 	}
-	if _, _, err := DocumentInProfile(second, SecondGame); err == nil {
+	if _, _, err := DocumentInProfile(second, SecondGame, ProfileKeeps{}); err == nil {
 		t.Error("a second-game document was converted again")
-	}
-	world := documentDataFixture(t)
-	if _, _, err := DocumentInProfile(world, SecondGame); err == nil || !strings.Contains(err.Error(), "world half") {
-		t.Errorf("a world document: %v", err)
 	}
 	// A leaf holding anything but an Asg& document refuses the LOAD.
 	nested := second
@@ -177,6 +173,66 @@ func TestEngineTownDocumentRefusals(t *testing.T) {
 	}
 }
 
+// A mission document's world half is written in the second game's widths:
+// zero past the first game's cell fields, result slots and 50x50 stances,
+// and no first-game trigger tail in a cell.
+func TestEngineMissionDocumentInSecondGameWidths(t *testing.T) {
+	world := documentDataFixture(t)
+	if world.World == nil || len(world.World.Cells) == 0 {
+		t.Fatal("the fixture has no world half")
+	}
+	world.World.Cells[0].Power = 7
+	out, ok, err := DocumentInProfile(world, SecondGame, ProfileKeeps{})
+	if err != nil || !ok || out.World == nil {
+		t.Fatalf("a world document: %v %v", ok, err)
+	}
+	w := out.World
+	if len(w.CellRest) != SecondGame.cellRest()*len(w.Cells) || len(w.SessionResults) != SecondGame.wideResults() ||
+		len(w.SessionDiplomacy) != SecondGame.wideDiplomacy() {
+		t.Fatalf("cell rest %d, results %d, diplomacy %d", len(w.CellRest), len(w.SessionResults), len(w.SessionDiplomacy))
+	}
+	if w.Cells[0].Power != 0 || world.World.Cells[0].Power != 7 {
+		t.Fatal("the cell trigger tail was carried, or the input changed")
+	}
+}
+
+// A mission document's terrain and session follow the second game's
+// serializer: the key list holds only the window's cells above 0x0f, the
+// entries go bucket by bucket with their own key at +0x3a, result slot 901
+// is 1 and the diplomacy block opens 1 1 0 0.
+func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
+	doc := documentDataFixture(t)
+	if doc.World == nil {
+		t.Fatal("the fixture has no world half")
+	}
+	doc.World.Blocks = []BlockRecord{{Cell: 0x0005, Dyn: 0x1f, Static: 0x1f}, {Cell: 0x0900, Dyn: 0x07, Static: 0x07}, {Cell: 0x0901, Dyn: 0x1f, Static: 0x05}}
+	doc.World.Cells = []DocumentCellData{{Cell: 0x0630, Cost: 6}, {Cell: 0x0640, Cost: 7}}
+	doc.World.CellRest = nil
+	out, ok, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
+	if err != nil || !ok {
+		t.Fatalf("a world document: %v %v", ok, err)
+	}
+	w := out.World
+	if want := []BlockRecord{{Cell: 0x0901, Dyn: 0x1f, Static: 0x05}}; !slices.Equal(w.Blocks, want) {
+		t.Errorf("key list %v, want %v", w.Blocks, want)
+	}
+	if len(w.Cells) != 2 || w.Cells[0].Cell != 0x0640 || w.Cells[1].Cell != 0x0630 || w.Cells[0].Cost != 7 {
+		t.Errorf("entries %+v, want bucket 0 (0x640) before bucket 99 (0x630)", w.Cells)
+	}
+	rest := SecondGame.cellRest()
+	for i, c := range w.Cells {
+		if got := uint16(w.CellRest[i*rest+14]) | uint16(w.CellRest[i*rest+15])<<8; got != c.Cell {
+			t.Errorf("entry %#x holds key %#x at +0x3a", c.Cell, got)
+		}
+	}
+	if w.SessionResults[901-100] != 1 || !bytes.Equal(w.Session.DiplomacyHeader[:4], []byte{1, 1, 0, 0}) {
+		t.Errorf("result 901 %d, diplomacy head % x", w.SessionResults[801], w.Session.DiplomacyHeader)
+	}
+	if len(doc.World.Blocks) != 3 || doc.World.Cells[0].Cell != 0x0630 {
+		t.Error("the input document changed")
+	}
+}
+
 // A town file whose engine document leaf is present but does not validate
 // refuses; only a file with no value record at the leaf's path is read as
 // the original's.
@@ -186,7 +242,7 @@ func TestEngineDocumentRefusesALeafThatDoesNotValidate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, _, err := DocumentInProfile(doc, SecondGame)
+	second, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,4 +286,18 @@ func profileFile(t *testing.T, data DocumentData, engine []byte) []byte {
 		t.Fatal(err)
 	}
 	return file
+}
+
+// A Pointer the World keeps names a Building record of the document; a key
+// no Building record holds refuses the form, and the first game's records,
+// which have no form, are returned unchanged.
+func TestEngineDocumentPointerNamesABuildingRecord(t *testing.T) {
+	doc := documentDataFixture(t)
+	keeps := ProfileKeeps{Pointers: map[uint32]uint32{0x7fffff01: 5}}
+	if _, _, err := DocumentInProfile(doc, SecondGame, keeps); err == nil {
+		t.Fatal("a Pointer naming no Building record was written")
+	}
+	if _, changed, err := DocumentInProfile(doc, FirstGame, keeps); err != nil || changed {
+		t.Fatalf("the first game's records: changed %v: %v", changed, err)
+	}
 }

@@ -42,7 +42,7 @@ func hiredOrdinaryIdentity(t *testing.T, raw []byte, party []mapload.PartyMember
 		}
 	}
 	type identity struct {
-		row   uint8
+		row   uint16
 		hire  uint8
 		name  string
 		class int
@@ -54,7 +54,7 @@ func hiredOrdinaryIdentity(t *testing.T, raw []byte, party []mapload.PartyMember
 		}
 		row := member.DefinitionRow
 		if row == 0 {
-			row = uint8(data.FindHumanByName(table.Humans, member.Name))
+			row = uint16(data.FindHumanByName(table.Humans, member.Name))
 		}
 		name := member.Name
 		if name == table.Humans.EntryName(int(row)) && strings.HasPrefix(name, "NPC") {

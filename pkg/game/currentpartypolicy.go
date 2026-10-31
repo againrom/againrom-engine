@@ -24,7 +24,7 @@ type currentPartyPolicy struct {
 	// HeroRow is the Humans row of a mission's hero no chargen row builds
 	// (heroRecordRow); his actor's record holds the row his map placement
 	// chose instead. None is no row.
-	HeroRow uint8 `json:",omitempty"`
+	HeroRow uint16 `json:",omitempty"`
 }
 
 type currentPartyFace struct {

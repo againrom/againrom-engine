@@ -64,7 +64,7 @@ func TestSecondBagEffectlessScrollOfAMissionFileComesHome(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := SaveStore{Dir: dir}.List()
+	entries, err := secondSaveFiles(dir)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("mission SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 	}

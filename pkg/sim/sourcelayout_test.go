@@ -29,6 +29,31 @@ func randomLayoutValue(rng *rand.Rand, v reflect.Value) {
 	}
 }
 
+// sourceBindingLayout is SourceBinding as its 35 bytes hold it: the token
+// row's low byte.
+type sourceBindingLayout struct {
+	Class                                    uint8
+	ArchiveIndex                             uint16
+	Identity, RuntimeID                      uint32
+	TokenRow                                 uint8
+	TypeID                                   uint16
+	Face, ClassFlags                         uint8
+	DisplayBacking                           uint32
+	GroupIndex, GroupSelector, GroupOwnerKey uint32
+	GroupOwnerSlot                           uint16
+	GroupOwnerResolved                       bool
+}
+
+func layoutOfBinding(s SourceBinding) sourceBindingLayout {
+	return sourceBindingLayout{s.Class, s.ArchiveIndex, s.Identity, s.RuntimeID, uint8(s.TokenRow), s.TypeID, s.Face, s.ClassFlags,
+		s.DisplayBacking, s.GroupIndex, s.GroupSelector, s.GroupOwnerKey, s.GroupOwnerSlot, s.GroupOwnerResolved}
+}
+
+func bindingOfLayout(l sourceBindingLayout) SourceBinding {
+	return SourceBinding{l.Class, l.ArchiveIndex, l.Identity, l.RuntimeID, uint16(l.TokenRow), l.TypeID, l.Face, l.ClassFlags,
+		l.DisplayBacking, l.GroupIndex, l.GroupSelector, l.GroupOwnerKey, l.GroupOwnerSlot, l.GroupOwnerResolved}
+}
+
 // The field-by-field source codecs write and read exactly what
 // encoding/binary writes and reads, over every field and over arbitrary bytes.
 func TestSourceLayoutsMatchEncodingBinary(t *testing.T) {
@@ -38,7 +63,7 @@ func TestSourceLayoutsMatchEncodingBinary(t *testing.T) {
 	if n := binary.Size(SourceActor{}); n != sourceActorLen {
 		t.Fatalf("SourceActor encodes to %d bytes, layout has %d", n, sourceActorLen)
 	}
-	if n := binary.Size(SourceBinding{}); n != sourceBindingLen {
+	if n := binary.Size(sourceBindingLayout{}); n != sourceBindingLen {
 		t.Fatalf("SourceBinding encodes to %d bytes, layout has %d", n, sourceBindingLen)
 	}
 	rng := rand.New(rand.NewSource(7))
@@ -46,7 +71,7 @@ func TestSourceLayoutsMatchEncodingBinary(t *testing.T) {
 		var sb SourceBinding
 		randomLayoutValue(rng, reflect.ValueOf(&sb).Elem())
 		wantB := make([]byte, sourceBindingLen)
-		_, _ = binary.Encode(wantB, binary.LittleEndian, sb)
+		_, _ = binary.Encode(wantB, binary.LittleEndian, layoutOfBinding(sb))
 		gotB := make([]byte, sourceBindingLen)
 		putSourceBinding(gotB, &sb)
 		if !bytes.Equal(gotB, wantB) {
@@ -55,11 +80,12 @@ func TestSourceLayoutsMatchEncodingBinary(t *testing.T) {
 		rawB := make([]byte, sourceBindingLen)
 		rng.Read(rawB)
 		for _, b := range [][]byte{wantB, rawB} {
-			var x, y SourceBinding
+			var x sourceBindingLayout
+			var y SourceBinding
 			randomLayoutValue(rng, reflect.ValueOf(&y).Elem())
 			_, _ = binary.Decode(b, binary.LittleEndian, &x)
 			getSourceBinding(b, &y)
-			if x != y {
+			if bindingOfLayout(x) != y {
 				t.Fatalf("SourceBinding read %+v, want %+v", y, x)
 			}
 		}

@@ -176,15 +176,15 @@ func TestReleaseOriginalCityResaveSiegeUnit(t *testing.T) {
 func TestReleaseOriginalSiegeUnitRecognition(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	f := releaseFront(t)
-	rows := map[string]byte{}
-	other := byte(0)
+	rows := map[string]uint16{}
+	other := uint16(0)
 	for i := 1; i < f.Table.Units.Len(); i++ {
 		switch name := f.Table.Units.EntryName(i); name {
 		case "Catapult", "Ballista":
-			rows[name] = byte(i)
+			rows[name] = uint16(i)
 		default:
 			if other == 0 {
-				other = byte(i)
+				other = uint16(i)
 			}
 		}
 	}

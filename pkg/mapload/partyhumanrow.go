@@ -17,7 +17,7 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 	if member.StartingHero {
 		fig := data.FigureDir(member.FigureDir)
 		_, row, ok := data.ChargenBase(t.Humans, fig.Mage(), fig.Female())
-		if !ok || row <= 0 || row > 255 {
+		if !ok || row <= 0 || row > maxTokenRow {
 			// A hero an edition binds by identity is built from a Start_
 			// template (R2-ENGINE-105), not a chargen row; he keeps the row
 			// his loaded record names (R2-ENGINE-319: template load writes
@@ -38,7 +38,7 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 	if member.CompanionNPC != 0 {
 		heroFemale := data.FigureDir(hero.FigureDir).Female()
 		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionNPC), 0, hero.Mage, heroFemale); ok {
-			if row := data.FindHumanByServerID(t.Humans, serverID); row > 0 && row <= 255 {
+			if row := data.FindHumanByServerID(t.Humans, serverID); row > 0 && row <= maxTokenRow {
 				return row
 			}
 		}
@@ -47,12 +47,12 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		if row := int(member.DefinitionRow); row > 0 && row < t.Humans.Len() {
 			return row
 		}
-		if row := data.FindHumanByName(t.Humans, member.Name); row > 0 && row <= 255 {
+		if row := data.FindHumanByName(t.Humans, member.Name); row > 0 && row <= maxTokenRow {
 			return row
 		}
 	}
 	row := data.FindHumanByType(t.Humans, member.Class)
-	if row <= 0 || row > 255 {
+	if row <= 0 || row > maxTokenRow {
 		return 0
 	}
 	return row
@@ -86,7 +86,7 @@ func identityRow(member PartyMember, t *Table) (int, bool) {
 	}
 	p, _ := t.Edition.PartyIdentity(id)
 	row := data.FindHumanByServerID(t.Humans, p.ServerID)
-	return row, row > 0 && row <= 255
+	return row, row > 0 && row <= maxTokenRow
 }
 
 // partyDyingTime is the dying time SourceActorSeed reads for the binding the
@@ -94,7 +94,7 @@ func identityRow(member PartyMember, t *Table) (int, bool) {
 // from a SAV take one value. A member with no bound row keeps none.
 func partyDyingTime(member, hero PartyMember, typeID int32, t *Table) (int32, error) {
 	row := PartyHumanRow(member, hero, t)
-	binding := sim.SourceBinding{Class: sim.GeneratedHumanBinding, TokenRow: uint8(row), TypeID: uint16(typeID)}
+	binding := sim.SourceBinding{Class: sim.GeneratedHumanBinding, TokenRow: uint16(row), TypeID: uint16(typeID)}
 	if row <= 0 && binding.DefinitionRow() == 0 || t == nil || t.Humans == nil || int(binding.DefinitionRow()) >= t.Humans.Len() {
 		return 0, nil
 	}

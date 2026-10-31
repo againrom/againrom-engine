@@ -17,6 +17,13 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] A game you save during a mission, from the save page, with quick save or by the autosaves, is now written in the original game's own save format too, so the original game can try to load it; loading it in Againrom returns you to the same moment. Missions 73 and 86 still cannot be saved.
+- [ROM2] A mission you save after loading a mission save the original game wrote now keeps each building's type and each of the original's pointer records as the file held them. Before, a building whose type number was above 255 was saved with a wrong type, and a pointer record was saved as a plain building.
+- [ROM2] A mission save written in the original game's format now lists the map's changed cells, orders the ground entries and opens the diplomacy and script registers as the original does.
+- [ROM2] A game saved in a town whose party holds a man whose type number is above 255 is now saved, and loading it keeps his type. Before, such a town save failed.
+
 ### For map makers and modders
 
 - [BASE] In the map editor, the trigger wizard names a relation as the Players page does: Neutral, Hostile, Ally (RU Нейтралитет, Вражда, Союз) instead of peace, hostile, alliance, and its Change relation action reads as the trigger list does (RU "Изменить отношение").

@@ -11,7 +11,7 @@ func TestCurrentArchiveCoordinatesRelocateEveryTypedHolder(t *testing.T) {
 			var w *World
 			switch family {
 			case "actor and Groups":
-				w = sourceBindingWorld1111(t)
+				w = sourceBindingWorld(t)
 				if err := w.ImportSavedGroups([]SavedGroup{{ID: 1, Selector: 41,
 					Reference: SavedGroupReference{Key: 0x10000002, Archive: 2, Class: 1, Owner: 9},
 					Owner:     SavedGroupReference{Key: 0x10000002, Archive: 2, Class: 1, Owner: 9},
@@ -60,7 +60,7 @@ func TestCurrentArchiveCoordinatesRelocateEveryTypedHolder(t *testing.T) {
 }
 
 func TestCurrentArchiveCoordinatesAreAtomicAndDoNotAliasUnmovedHolders(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	if err := w.ImportSavedGroups([]SavedGroup{{ID: 1, Owner: SavedGroupReference{Class: 1, Archive: 2, Key: 0x10000002, Owner: 9}, Members: []SavedGroupMember{{Archive: 4, Entity: 7, Bound: true}}}}, nil); err != nil {
 		t.Fatal(err)
 	}

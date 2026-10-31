@@ -109,15 +109,15 @@ func CampaignActor(t *Table, s CampaignActorSpec, party []PartyMember) (PartyMem
 	}
 	p.Temporary, p.PlayerCharacter, p.MercenaryType = profile.Temporary, profile.PlayerCharacter, s.MercenaryType
 	if profile.RowDefinition {
-		p.DefinitionRow = uint8(row)
-		// The token row is one byte: a hire row above 255 binds the first
-		// Humans row of its TypeID (DIV-4249).
+		p.DefinitionRow = uint16(row)
+		// A hire row above 255 binds the first Humans row of its TypeID
+		// (DIV-4249).
 		if s.Hire && !unit && row > 255 {
 			first := data.FindHumanByType(t.Humans, p.Class)
 			if first <= 0 || first > 255 {
 				return PartyMember{}, false
 			}
-			p.DefinitionRow = uint8(first)
+			p.DefinitionRow = uint16(first)
 		}
 	}
 	if s.MercenaryType != 0 {

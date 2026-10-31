@@ -6,7 +6,7 @@ import (
 )
 
 func TestCurrentBlockAbsenceLeavesTerrainAndOtherMotionState(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	w.savedMotion = &savedActorMotionState{Blocks: []SavedActorBlock{{Cell: 0x0101, Dyn: 67, Static: 3}, {Cell: 0x0202, Dyn: 64}}}
 	w.cellRecords = []SavedActorCell{{Cell: 0x0101, Payload: [52]byte{3, 7}}}
 	w.SetSavedCellRecords([]SavedCellRecord{{Cell: 0x0101, Residue0: 13}})

@@ -31,7 +31,7 @@ func TestFreshPartyMemberBodyKeepsItsRowDyingTime(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		member PartyMember
-		row    uint8
+		row    uint16
 		dwell  int
 	}{
 		{"by type", PartyMember{Name: "Joined", Class: 7, FigureFace: 1, Hero: data.NewCampaignHero(data.SkillBlade)}, 1, 12},

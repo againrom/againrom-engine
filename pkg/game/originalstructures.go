@@ -52,9 +52,7 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 		id := sim.StructureID(len(ms.Map.Objects) + i)
 		ss := sim.SavedStructure{SourceKey: s.Identity, ArchiveIndex: s.ArchiveIndex,
 			AuthoredID: s.AuthoredID, Position: s.Position, RuntimeID: s.RuntimeID,
-			// The structure keeps the word's low byte: the high byte of the
-			// second game's word has no holder or consumer (DIV-4172).
-			Token0C: uint8(s.Token0C), Token0E: s.Token0E, Token18: s.Token18, Token1C: s.Token1C,
+			Token0C: s.Token0C, Token0E: s.Token0E, Token18: s.Token18, Token1C: s.Token1C,
 			Reference: s.Reference, Base52: s.Base52, Kind: s.Kind, Field46: s.Field46,
 			Field48: s.Field48, Blocking: s.Blocking, Tavern9C: s.Tavern9C, Shop70: s.Shop70,
 			OutpostWords: s.OutpostWords, OutpostRecords: s.OutpostRecords}
@@ -74,11 +72,13 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			counts.Unmatched++
 		}
 		switch s.Class {
-		case "Building", "Pointer":
-			// The second game's Pointer is a Building with one more word
-			// (R2-ENGINE-603); it keeps the Building's policy and the word
-			// has no consumer here (DIV-4172).
+		case "Building":
 			ss.Class = sim.SavedBuilding
+		case "Pointer":
+			// The second game's Pointer is a Building with one more word
+			// (R2-ENGINE-603); it keeps the Building's policy, and the word,
+			// which has no consumer here, is kept for its SAVE (DIV-4172).
+			ss.Class, ss.Pointer6C = sim.SavedPointer, s.Pointer6C
 		case "Outpost":
 			ss.Class = sim.SavedOutpost
 			counts.Subclasses++
@@ -93,6 +93,11 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 		}
 		if subjects != nil && subjects[s.Identity].Class.Generated() {
 			ss.Class, ss.ArchiveIndex = subjects[s.Identity].Class, 0
+		}
+		// The engine's records hold a Pointer as a Building; its binding
+		// row holds the class and the word.
+		if row := subjects[s.Identity]; subjects != nil && row.Class == sim.SavedPointer && ss.Class == sim.SavedBuilding {
+			ss.Class, ss.Pointer6C = sim.SavedPointer, row.Pointer6C
 		}
 		ss.ID = id
 		if _, exists := byKey[s.Identity]; exists || s.Identity == 0 {

@@ -17,6 +17,9 @@ type currentStructureBinding struct {
 	AuthoredIndex uint32
 	// RuntimeID is an older SAVE's coordinate; LOAD reads it and keeps the saved id.
 	RuntimeID *sim.ActorRuntimeCoordinate `json:",omitempty"`
+	// Pointer6C is a Pointer's +0x6c word, which the engine's Building
+	// record does not hold; zero for every other class.
+	Pointer6C uint32 `json:",omitempty"`
 }
 
 func captureCurrentStructureBindings(doc *sav.DocumentData, w *sim.World, a *currentActionData) error {
@@ -31,7 +34,7 @@ func captureCurrentStructureBindings(doc *sav.DocumentData, w *sim.World, a *cur
 			return err
 		}
 		rows[i] = currentStructureBinding{ID: s.ID, Object: object, SourceKey: s.SourceKey, Class: s.Class,
-			Ordinal: uint16(i), HasAuthored: s.HasAuthored, AuthoredIndex: s.AuthoredIndex}
+			Ordinal: uint16(i), HasAuthored: s.HasAuthored, AuthoredIndex: s.AuthoredIndex, Pointer6C: s.Pointer6C}
 	}
 	a.StructureBindings = &rows
 	return validateCurrentStructureBindings(doc, a)
@@ -60,7 +63,7 @@ func validateCurrentStructureBindings(doc *sav.DocumentData, a *currentActionDat
 	for i, row := range *a.StructureBindings {
 		if row.Object == 0 || int(row.Object) > len(doc.Objects) || !roots[row.Object] || used[row.Object] ||
 			row.SourceKey == 0 || keys[row.SourceKey] || row.Ordinal != uint16(i) || i > 0 && row.ID <= (*a.StructureBindings)[i-1].ID ||
-			row.Class < sim.SavedBuilding || row.Class > sim.GeneratedShop ||
+			!row.Class.Known() || row.Class != sim.SavedPointer && row.Pointer6C != 0 ||
 			row.HasAuthored && uint32(row.ID) != row.AuthoredIndex || !row.HasAuthored && row.AuthoredIndex != 0 {
 			return fmt.Errorf("current structures: aliased or invalid binding")
 		}

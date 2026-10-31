@@ -32,6 +32,7 @@ const (
 	nativeRandomName    = "AgainromRng"
 	nativeSessionName   = "AgainromSeed"
 	nativeFormName      = "AgainromForm"
+	nativeRowsName      = "AgainromRows"
 )
 
 type leafFraming uint8
@@ -91,10 +92,13 @@ var (
 			ambiguous: "sav: ambiguous engine document leaf", kind: "sav: invalid engine document framing",
 			framing: "sav: invalid engine document framing", length: "sav: invalid engine document length",
 			padding: "sav: nonzero engine document padding", bound: "sav: the engine document requires a bounded application leaf"}}
+	nativeRowsLeaf = &supplementLeaf{directory: supplementDirectory, name: nativeRowsName, path: "/" + supplementDirectory + "/" + nativeRowsName,
+		kind: 6, framing: fixedDwords, validate: validateTokenRows, forms: cityForm | worldForm,
+		refusals: leafRefusals{ambiguous: "sav: ambiguous or invalid AgainromRows leaf", kind: tokenRowsRefusal}}
 )
 
 // supplementLeaves is every leaf, in shape validation order.
-var supplementLeaves = []*supplementLeaf{nativeRandomLeaf, nativeSessionLeaf, nativeModsLeaf, nativeActionsLeaf, nativeFormLeaf}
+var supplementLeaves = []*supplementLeaf{nativeRandomLeaf, nativeSessionLeaf, nativeModsLeaf, nativeActionsLeaf, nativeFormLeaf, nativeRowsLeaf}
 
 func (d *supplementLeaf) check(kind uint32, b []byte) error {
 	if kind != d.kind {

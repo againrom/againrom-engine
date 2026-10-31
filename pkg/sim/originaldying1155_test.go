@@ -8,7 +8,7 @@ import (
 func TestOriginalDying1155LoadRetainsGroupAndSavedOrder(t *testing.T) {
 	for _, admission := range []bool{false, true} {
 		t.Run(map[bool]string{false: "source-tuple", true: "actor-admission"}[admission], func(t *testing.T) {
-			w := sourceBindingWorld1111(t)
+			w := sourceBindingWorld(t)
 			e := &w.entities[0]
 			e.TokenSize = 1
 			e.Owner, e.HP, e.Decay, e.Dwell, e.Defence = 3, -8, DecayFallen, 7, 20

@@ -46,7 +46,13 @@ func secondBagWorn(items [sim.EquipSlots]sim.ItemInstance) []string { return bag
 func secondBagFront(t *testing.T, bag []sim.ItemInstance) (*FrontEnd, *ui.App, *townScreen, string) {
 	t.Helper()
 	// The map holds the fallback drop, so the party stands on it.
-	f := secondMissionFrontOf(t, secondMissionContent{side: 128})
+	return secondBagFrontOf(t, bag, secondMissionContent{side: 128})
+}
+
+// secondBagFrontOf is secondBagFront over a mission 10 holding c.
+func secondBagFrontOf(t *testing.T, bag []sim.ItemInstance, mission secondMissionContent) (*FrontEnd, *ui.App, *townScreen, string) {
+	t.Helper()
+	f := secondMissionFrontOf(t, mission)
 	app := f.App("second-bag")
 	app.Layout(1024, 768)
 	dir := t.TempDir()
@@ -383,7 +389,7 @@ func TestSecondBagMissionSaveAndColdLoadKeepThePacks(t *testing.T) {
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := SaveStore{Dir: dir}.List()
+	entries, err := secondSaveFiles(dir)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("mission SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 	}
@@ -408,8 +414,8 @@ func TestSecondBagMissionSaveAndColdLoadKeepThePacks(t *testing.T) {
 // for a new campaign's hero, not the row of his actor, which the mission's
 // map placement chose. Fails with the LOAD giving him his actor's row.
 func TestSecondMissionSaveKeepsTheHeroRow(t *testing.T) {
-	rows := func(party []mapload.PartyMember) []uint8 {
-		var out []uint8
+	rows := func(party []mapload.PartyMember) []uint16 {
+		var out []uint16
 		for _, m := range party {
 			out = append(out, m.DefinitionRow)
 		}
@@ -428,7 +434,7 @@ func TestSecondMissionSaveKeepsTheHeroRow(t *testing.T) {
 		table.Humans = humans
 		f.Table = &table
 	}
-	for _, row := range []uint8{0, 2} {
+	for _, row := range []uint16{0, 2} {
 		f, app, screen, dir := secondBagFront(t, nil)
 		templates(f)
 		if mapload.PartyHumanRow(f.Carried[0], f.Carried[0], f.Table) != 0 {
@@ -444,7 +450,7 @@ func TestSecondMissionSaveKeepsTheHeroRow(t *testing.T) {
 		if err := app.HeadlessGameMenuAction("save"); err != nil {
 			t.Fatal(err)
 		}
-		entries, err := SaveStore{Dir: dir}.List()
+		entries, err := secondSaveFiles(dir)
 		if err != nil || len(entries) != 1 {
 			t.Fatalf("mission SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 		}

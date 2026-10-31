@@ -114,6 +114,9 @@ func (s *CampaignSession) missionCityProvenance(in townInstall, city, captured S
 			return nativeMissionItems(objects, unit, member, table, owner, seq, stacks)
 		}
 		var cityData sav.CityData
+		if err := nativeCityWideRows(city.Party, in.table); err != nil {
+			return nil, err
+		}
 		cityData, err = nativeCityDataConstruct(nativeCityRosterMembers(city.Party), nativeCityHumanHiredMembers(city.Party), in.table, city.Difficulty, attach, apply)
 		if err == nil {
 			err = nativeCityPlayerFormation(&cityData, captured.ApplicationState, world, nil)

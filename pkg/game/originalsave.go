@@ -135,7 +135,7 @@ func bindOriginalCity(document originalCityDocument, source []sav.Character,
 			state.unavailable = fmt.Errorf("original-compatible town save source identity %#08x has no semantic descriptor", character.Key)
 			return state
 		}
-		if descriptor.Hero != member.StartingHero || descriptor.DefRow != character.DefRow {
+		if descriptor.Hero != member.StartingHero || uint16(descriptor.DefRow) != character.DefRow {
 			state.unavailable = fmt.Errorf("original-compatible town save identity %#08x changed hero or definition identity during restore", character.Key)
 			return state
 		}
