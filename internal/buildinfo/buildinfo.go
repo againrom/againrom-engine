@@ -85,3 +85,20 @@ func Short(n int) string {
 func Line(name, version string) string {
 	return name + " " + version + " " + Revision()
 }
+
+// Program is a binary's name and its version Source text.
+type Program struct {
+	Name, Source string
+}
+
+// Version is Source's version, or "unknown" if malformed.
+func (p Program) Version() string {
+	v, err := ParseVersion(p.Source)
+	if err != nil {
+		return "unknown"
+	}
+	return v
+}
+
+// Line is the -version text.
+func (p Program) Line() string { return Line(p.Name, p.Version()) }

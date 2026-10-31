@@ -15,15 +15,16 @@ import (
 //go:embed rsrc_windows_amd64.syso
 var resource []byte
 
-// programVersion is the game version the resource carries, or "unknown" if it
-// cannot be read (a test pins that it can).
-func programVersion() string {
+var program = buildinfo.Program{Name: "mapedit", Source: resourceVersion()}
+
+// resourceVersion is the version the resource carries, or "" if unreadable.
+func resourceVersion() string {
 	v, err := versionres.FileVersion(resource)
 	if err != nil {
-		return "unknown"
+		return ""
 	}
 	return v
 }
 
 // versionLine is what -version prints.
-func versionLine() string { return buildinfo.Line("mapedit", programVersion()) }
+func versionLine() string { return program.Line() }

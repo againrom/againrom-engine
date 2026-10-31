@@ -110,7 +110,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if *shot != "" {
 		d.async = func(f func()) { f() }
 	}
-	a := newApp(*iniPath, self, runtime.GOOS, programVersion(), d)
+	a := newApp(*iniPath, self, runtime.GOOS, program.Version(), d)
 	if *shot != "" {
 		a.poll()
 		return writeScreenshot(a, *shot, stderr)

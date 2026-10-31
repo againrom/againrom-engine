@@ -554,7 +554,7 @@ func TestScreenshotWritesAPNGWithoutAWindow(t *testing.T) {
 
 func TestVersionFlag(t *testing.T) {
 	var out, errOut strings.Builder
-	if code := run([]string{"-version"}, &out, &errOut); code != 0 || !strings.HasPrefix(out.String(), "starter "+programVersion()+" ") || strings.Count(out.String(), "\n") != 1 {
+	if code := run([]string{"-version"}, &out, &errOut); code != 0 || !strings.HasPrefix(out.String(), "starter "+program.Version()+" ") || strings.Count(out.String(), "\n") != 1 {
 		t.Fatalf("%d %q %q", code, out.String(), errOut.String())
 	}
 	if code := run([]string{"-bogus"}, &out, &errOut); code != 2 {
@@ -563,7 +563,7 @@ func TestVersionFlag(t *testing.T) {
 }
 
 func TestVersionFileIsValid(t *testing.T) {
-	if programVersion() == "unknown" {
+	if program.Version() == "unknown" {
 		t.Fatalf("VERSION %q", versionFile)
 	}
 }

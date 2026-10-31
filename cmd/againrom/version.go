@@ -12,20 +12,12 @@ import (
 //go:embed VERSION
 var versionFile string
 
-// programVersion is the validated version, or "unknown" if the file is
-// malformed (a test pins that it is not).
-func programVersion() string {
-	v, err := buildinfo.ParseVersion(versionFile)
-	if err != nil {
-		return "unknown"
-	}
-	return v
-}
+var program = buildinfo.Program{Name: "againrom", Source: versionFile}
 
 // versionLine is what -version prints.
-func versionLine() string { return buildinfo.Line("againrom", programVersion()) }
+func versionLine() string { return program.Line() }
 
 // menuLabel is the small text the main menu shows in its corner.
 func menuLabel() string {
-	return "Againrom " + programVersion() + " (" + buildinfo.Short(7) + ")"
+	return "Againrom " + program.Version() + " (" + buildinfo.Short(7) + ")"
 }

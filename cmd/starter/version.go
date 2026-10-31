@@ -12,14 +12,8 @@ import (
 //go:embed VERSION
 var versionFile string
 
-func programVersion() string {
-	v, err := buildinfo.ParseVersion(versionFile)
-	if err != nil {
-		return "unknown"
-	}
-	return v
-}
+var program = buildinfo.Program{Name: "starter", Source: versionFile}
 
-func versionLine() string { return buildinfo.Line("starter", programVersion()) }
+func versionLine() string { return program.Line() }
 
 func shortRevision() string { return buildinfo.Short(7) }

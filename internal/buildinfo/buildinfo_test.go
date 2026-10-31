@@ -29,6 +29,19 @@ func TestLineAndShort(t *testing.T) {
 	}
 }
 
+func TestProgramIdentity(t *testing.T) {
+	p := Program{Name: "tool", Source: "1.2.3\n"}
+	if p.Version() != "1.2.3" || p.Line() != Line("tool", "1.2.3") {
+		t.Fatalf("%q %q", p.Version(), p.Line())
+	}
+	for _, src := range []string{"", "1.2", "01.2.3", "1.2.70000", "1.2.3\n4.5.6"} {
+		bad := Program{Name: "tool", Source: src}
+		if bad.Version() != "unknown" || bad.Line() != Line("tool", "unknown") {
+			t.Errorf("%q: %q %q", src, bad.Version(), bad.Line())
+		}
+	}
+}
+
 func TestStampOverridesToolchainRevision(t *testing.T) {
 	seat := []debug.BuildSetting{
 		{Key: "vcs.revision", Value: "76fe8a482e8480fe5f5cfc0242d2dcaff342643c"},
