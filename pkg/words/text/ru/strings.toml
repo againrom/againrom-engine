@@ -509,7 +509,7 @@
 "editor.heights.off" = "Числа высот выключены"
 "editor.view.border" = "Граница карты"
 "editor.view.playertint" = "Цвета игроков (Y)"
-"editor.keys.playertint" = "Y: цвета игроков, юниты и здания окрашены по владельцу"
+"editor.keys.playertint" = "Y: юниты, здания в цвете игрока"
 "editor.brush.terrain" = "Ландшафты"
 "editor.brush.height" = "Высота"
 "editor.brush.objects" = "Объекты"

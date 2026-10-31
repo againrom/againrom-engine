@@ -545,7 +545,7 @@
 "editor.heights.off" = "Height numbers off"
 "editor.view.border" = "Map border"
 "editor.view.playertint" = "Player colours (Y)"
-"editor.keys.playertint" = "Y: player colours, units and buildings tinted by owner"
+"editor.keys.playertint" = "Y: tint units, buildings by owner"
 "editor.brush.terrain" = "Terrain"
 "editor.brush.height" = "Height"
 "editor.brush.objects" = "Objects"
