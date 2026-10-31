@@ -143,9 +143,8 @@ func TestLanguageReadsTheInstallEntry(t *testing.T) {
 
 // TestEveryUsedIDIsInTheEnglishTable reads the production sources of pkg/ui and
 // pkg/game for word lookups by a literal id: Text, word and menuWord, and a
-// literal id a data row holds in a field whose name ends in Word, or a list
-// whose name ends in Words holds. Every id read is in the English table, and
-// every English id is read.
+// literal id in a field word or ...Word, or in a list whose name ends in
+// Words. Every id read is in the English table, and every English id is read.
 func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 	ids, err := IDs(Engine())
 	if err != nil {
@@ -173,8 +172,15 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 				var args []ast.Expr
 				switch n := n.(type) {
 				case *ast.KeyValueExpr:
-					if key, ok := n.Key.(*ast.Ident); ok && strings.HasSuffix(key.Name, "Word") {
-						args = append(args, n.Value)
+					if key, ok := n.Key.(*ast.Ident); ok {
+						switch {
+						case key.Name == "word" || strings.HasSuffix(key.Name, "Word"):
+							args = append(args, n.Value)
+						case strings.HasSuffix(key.Name, "Words"):
+							if list, ok := n.Value.(*ast.CompositeLit); ok {
+								args = append(args, list.Elts...)
+							}
+						}
 					}
 				case *ast.CallExpr:
 					sel, ok := n.Fun.(*ast.SelectorExpr)
