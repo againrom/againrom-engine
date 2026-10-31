@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 
@@ -4600,12 +4599,6 @@ const (
 	townSquareGap  = 20
 )
 
-var (
-	townButtonFill     = color.RGBA{R: 34, G: 39, B: 48, A: 255}
-	townButtonSelected = color.RGBA{R: 67, G: 78, B: 96, A: 255}
-	townButtonBorder   = color.RGBA{R: 205, G: 191, B: 143, A: 255}
-)
-
 func townSquareRect(i int) (x, y, w, h int) {
 	return townSquareLeft + (i%2)*(townSquareW+townSquareGap),
 		townSquareTop + (i/2)*(townSquareH+townSquareGap), townSquareW, townSquareH
@@ -4619,12 +4612,6 @@ func townSquareRowAt(x, y int) (int, bool) {
 		}
 	}
 	return 0, false
-}
-
-// townButton draws a row-list button on the canvas.
-func (a *App) townButton(x, y, w, h int, selected bool) {
-	drawTownButton(a.canvas, x, y, w, h, selected)
-	a.canvasLog.unknown(image.Rect(x, y, x+w, y+h).Inset(-1))
 }
 
 // writeCanvas uploads pic over the whole canvas.
@@ -4643,23 +4630,9 @@ func (a *App) printCanvas(s string, x, y int) {
 	drawDebugText(a.canvas, &a.canvasLog, s, x, y)
 }
 
-func drawTownButton(dst *ebiten.Image, x, y, w, h int, selected bool) {
-	fill := townButtonFill
-	if selected {
-		fill = townButtonSelected
-	}
-	ebitenutil.DrawRect(dst, float64(x), float64(y), float64(w), float64(h), fill)
-	ebitenutil.DrawRect(dst, float64(x), float64(y), float64(w), 2, townButtonBorder)
-	ebitenutil.DrawRect(dst, float64(x), float64(y+h-2), float64(w), 2, townButtonBorder)
-	ebitenutil.DrawRect(dst, float64(x), float64(y), 2, float64(h), townButtonBorder)
-	ebitenutil.DrawRect(dst, float64(x+w-2), float64(y), 2, float64(h), townButtonBorder)
-}
-
 // dialogueOrigin is where a composed dialogue picture is placed within the
 // 640x480 frame: centered, the one position every town room draws it at
-// (0157). Both drawTown's ebiten path and composeTownScreen's image/draw
-// path call this, so the position agrees even though the two blit through
-// different libraries.
+// (0157). composeTownScreen's overlay places the picture with it.
 func dialogueOrigin(dialogue *image.RGBA) (x, y int) {
 	b := dialogue.Bounds()
 	return (frame.W - b.Dx()) / 2, (frame.H - b.Dy()) / 2
@@ -4931,37 +4904,10 @@ func (a *App) drawTown() {
 	} else {
 		pix, err = a.composeTownScreen()
 	}
+	// The row-list room is composed too, by composeTownList, so the canvas is
+	// always an upload of a composed picture.
 	if err == nil {
 		a.writeCanvas(pix)
-		return
-	}
-	if a.flow.town == nil || a.flow.townList == nil {
-		return
-	}
-
-	// The row-list uses the same layout as its CPU capture.
-	dialogueCapture := markCapture()
-	dialogue, dialogueOpen := townDialogue(a.flow.town)
-	if dialogueOpen && dialogue != nil {
-		ox, oy := dialogueOrigin(dialogue)
-		shiftCapture(dialogueCapture, image.Pt(ox, oy))
-	}
-	paintTownList(a.flow.town, a.flow.townList, a.flow.msg, a.townButton, a.printCanvas)
-
-	if dialogueOpen && dialogue != nil {
-		a.dialogueBackdrop.drawWithCalls(a.canvas, &a.canvasLog, townDialogueShows(a.flow.town), text.Captured()[:dialogueCapture])
-		art, body := townDialogueFrame(a.flow.town)
-		sx, sy := dialogueOrigin(dialogue)
-		a.dialogueBackdrop.drawFrameShadows(a.canvas, &a.canvasLog, art, body, image.Pt(sx, sy), 1, text.Captured()[:dialogueCapture])
-		if dialoguePolicyClip(a.dialogueBackdrop.policy, a.canvas.Bounds()).Empty() {
-			return
-		}
-		pic := ebiten.NewImageFromImage(dialogue)
-		var op ebiten.DrawImageOptions
-		ox, oy := dialogueOrigin(dialogue)
-		op.GeoM.Translate(float64(ox), float64(oy))
-		a.canvas.SubImage(dialoguePolicyClip(a.dialogueBackdrop.policy, a.canvas.Bounds())).(*ebiten.Image).DrawImage(pic, &op)
-		a.canvasLog.overClipped(dialogue, image.Pt(ox, oy), dialoguePolicyClip(a.dialogueBackdrop.policy, a.canvas.Bounds()))
 	}
 }
 

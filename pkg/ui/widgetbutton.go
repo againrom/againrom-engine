@@ -77,6 +77,27 @@ type pushButton struct {
 	Policy     DialogueBackdrop
 	// Face, when set, makes the button a picture plaque.
 	Face *plaqueFace
+	// Style, when set, makes the button a flat box: a fill and a border, no
+	// bevel and no label art. Selected picks the style's selected fill.
+	Style    *pushButtonStyle
+	Selected bool
+}
+
+// pushButtonStyle is a flat push button's look: the fill at rest, the fill
+// while selected, and a border of Width pixels in one colour.
+type pushButtonStyle struct {
+	Fill, Selected, Border color.RGBA
+	Width                  int
+}
+
+// pushButtonRowList is the row-list room's button: a dark box that lightens
+// when selected, edged with a two-pixel gold border. The row's text is
+// printed over it by the room.
+var pushButtonRowList = pushButtonStyle{
+	Fill:     color.RGBA{R: 34, G: 39, B: 48, A: 255},
+	Selected: color.RGBA{R: 67, G: 78, B: 96, A: 255},
+	Border:   color.RGBA{R: 205, G: 191, B: 143, A: 255},
+	Width:    2,
 }
 
 type plaqueState uint8
@@ -162,9 +183,30 @@ func (b pushButton) sunk() bool { return b.Pressed && b.Inside }
 // and points, raised at rest and swapped while pressed inside, where the
 // shadow offset grows from 2 to 4 and the caption stays put. A disabled
 // button is remapped at level 3 after painting. A lone `~` underlines the
-// next character in the ink (TEXT-079).
+// next character in the ink (TEXT-079). A button with a Style is a flat box
+// instead: its fill, then its border on the four edges.
 func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 	recordWidget(widgetPushButton, b.Rect, b)
+	if b.Style != nil {
+		if dst == nil {
+			return
+		}
+		s, r := b.Style, b.Rect
+		fill := s.Fill
+		if b.Selected {
+			fill = s.Selected
+		}
+		paint := func(rect image.Rectangle, c color.RGBA) {
+			draw.Draw(dst, rect, image.NewUniform(c), image.Point{}, draw.Src)
+		}
+		paint(r, fill)
+		w := s.Width
+		paint(image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+w), s.Border)
+		paint(image.Rect(r.Min.X, r.Max.Y-w, r.Max.X, r.Max.Y), s.Border)
+		paint(image.Rect(r.Min.X, r.Min.Y, r.Min.X+w, r.Max.Y), s.Border)
+		paint(image.Rect(r.Max.X-w, r.Min.Y, r.Max.X, r.Max.Y), s.Border)
+		return
+	}
 	if b.Face != nil {
 		drawPlaque(dst, f, b)
 		return

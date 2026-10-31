@@ -66,10 +66,7 @@ var widgetNotAFrame = map[string]string{
 
 // widgetButtonDebt is every push button painter outside the kit. It may only
 // fall.
-var widgetButtonDebt = map[string]string{
-	"pkg/ui/app.go:drawTownButton":       "second-game town list button on the canvas",
-	"pkg/ui/townlist.go:composeTownList": "second-game town list button, the image twin in a closure",
-}
+var widgetButtonDebt = map[string]string{}
 
 // widgetNotAButton is every function the push button rule matches that
 // paints no push button.

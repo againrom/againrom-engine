@@ -3615,5 +3615,5 @@ var Committed = Baseline{
 	// internal/archtest/creatureaim_test.go, and this note.
 
 	// It fell: the deformation picture is a capability row.
-	CommentBytes: 10076520,
+	CommentBytes: 10079565,
 }
