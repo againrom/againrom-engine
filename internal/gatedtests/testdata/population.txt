@@ -1228,6 +1228,8 @@ pkg/game.TestReleaseSecondShopBookIcons
 pkg/game.TestReleaseSecondTownShopTableHoldsFive
 pkg/game.TestReleaseSecondTownShopLaterTowns
 pkg/game.TestReleaseSecondShopShelfCaptions
+pkg/game.TestReleaseSecondShopLiftedItemLeavesNoName
+pkg/game.TestReleaseFirstShopLiftedItemKeepsItsPriceFigure
 pkg/game.TestReleaseSecondTownDruidStaleStockSave
 pkg/game.TestReleaseSecondTownKaargDepartureStale
 pkg/secondshop.TestReleaseSecondShopTownOneFill

@@ -180,6 +180,10 @@ func (s *shopStarState) copyPhases(v *ShopScreenView) {
 	}
 }
 
+// omitShopStarSingleton empties the cell a single item was lifted from: its
+// picture and star trail go, and so does its name, which the cell painter would
+// otherwise draw in place of a missing picture. The cell keeps its back and
+// its price figure, as the first game's vacated cell does.
 func omitShopStarSingleton(v *ShopScreenView, origin ShopControl) {
 	var cell *ShopCell
 	switch origin.Kind {
@@ -197,7 +201,7 @@ func omitShopStarSingleton(v *ShopScreenView, origin ShopControl) {
 		}
 	}
 	if cell != nil && cell.Count <= 1 {
-		cell.Icon, cell.Star = nil, false
+		cell.Icon, cell.Star, cell.Text = nil, false, nil
 	}
 }
 
