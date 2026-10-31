@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"againrom/pkg/locale"
 )
 
 // MissionsFile is the data file that declares the missions a mod adds. A mod
@@ -582,7 +584,7 @@ func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map
 	if lang != "en" && lang != "ru" {
 		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}
-	otherLang := map[string]string{"en": "ru", "ru": "en"}[lang]
+	otherLang := locale.Other(lang)
 	folder := strings.TrimSuffix(m.Map, path.Ext(m.Map)) + ".text"
 	folders := []string{folder + "/" + lang, folder}
 	foldersOther := []string{folder + "/" + otherLang}

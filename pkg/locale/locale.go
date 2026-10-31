@@ -27,6 +27,8 @@ type Locale struct {
 	// FontRemap reports that the installed font moves a byte before it
 	// selects a record (text.Convert).
 	FontRemap bool
+	// Counterpart is the code of the paired language.
+	Counterpart string
 }
 
 // Fallback is the code of the reference language: the engine's own words are
@@ -34,8 +36,8 @@ type Locale struct {
 const Fallback = "en"
 
 var table = [...]Locale{
-	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en"},
-	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true},
+	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en", Counterpart: "ru"},
+	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: Fallback},
 }
 
 // All is every known language, in table order.
@@ -69,6 +71,12 @@ func ByCode(code string) (Locale, bool) {
 		}
 	}
 	return Locale{}, false
+}
+
+// Other is the code of the language paired with code, "" for an unknown one.
+func Other(code string) string {
+	l, _ := ByCode(code)
+	return l.Counterpart
 }
 
 // ByBaseSuffix is the language whose code ends a base id after a hyphen, as

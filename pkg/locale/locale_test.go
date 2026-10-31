@@ -36,10 +36,33 @@ func TestLookupsReachOneRecordPerLanguage(t *testing.T) {
 func TestShippedRecords(t *testing.T) {
 	en, _ := ByEntry("english")
 	ru, _ := ByEntry("russian")
-	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en"}) {
+	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en", Counterpart: "ru"}) {
 		t.Fatalf("english = %+v", en)
 	}
-	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true}) {
+	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: "en"}) {
 		t.Fatalf("russian = %+v", ru)
+	}
+}
+
+// Other answers what the callers' old literal pair answered.
+func TestOtherAnswersTheLanguagePair(t *testing.T) {
+	for code, want := range map[string]string{
+		"en":      "ru",
+		"ru":      "en",
+		"":        "",
+		"EN":      "",
+		"de":      "",
+		"en-US":   "",
+		" ru":     "",
+		"rom1-ru": "",
+	} {
+		if got := Other(code); got != want {
+			t.Errorf("Other(%q) = %q, want %q", code, got, want)
+		}
+	}
+	for _, l := range All() {
+		if back := Other(Other(l.Code)); back != l.Code {
+			t.Errorf("Other(Other(%q)) = %q", l.Code, back)
+		}
 	}
 }

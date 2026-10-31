@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/words"
 )
@@ -69,7 +70,7 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 	var saved editorWorkspaceState
 	_ = json.Unmarshal(s.savedWorkspace, &saved)
 	lang := x.pageLanguage()
-	otherLang := map[string]string{"en": "ru", "ru": "en"}[lang]
+	otherLang := locale.Other(lang)
 	for name, b := range s.workspace.Pages {
 		_, localized := files[lang+"/"+name]
 		_, common := files[name]
