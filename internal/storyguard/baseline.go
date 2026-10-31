@@ -3608,5 +3608,10 @@ var Committed = Baseline{
 	// It rose for the saved form rows: savedForm, its holder rows and their
 	// sources in pkg/game/savform.go, the producer's leaf note, the row test
 	// in savform_test.go, internal/archtest/savedform_test.go, and this note.
-	CommentBytes: 10070463,
+
+	// It rose for the creature aim profile: creatureAimProfile, its two
+	// rows, creatureScanCell and creatureKeepsPick in pkg/sim's
+	// creaturecast.go, the new test creatureaimprofile_test.go, the guard
+	// internal/archtest/creatureaim_test.go, and this note.
+	CommentBytes: 10073504,
 }
