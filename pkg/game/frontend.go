@@ -1678,7 +1678,7 @@ func withoutFallenBodies(party []mapload.PartyMember, ids []sim.EntityID, w *sim
 	}
 	lying := make(map[sim.EntityID]bool)
 	for _, e := range w.Entities() {
-		if !e.Alive() && e.HP <= -10 {
+		if !e.Alive() && e.InLife(sim.LifeBones) {
 			lying[e.ID] = true
 		}
 	}

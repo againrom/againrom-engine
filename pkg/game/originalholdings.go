@@ -95,7 +95,7 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 				r.StockParty++
 				continue
 			}
-			if actor.Stage != 0 || int16(actor.HP) <= 0 {
+			if actor.Stage != 0 || sim.LifeDecaying.Holds(int64(int16(actor.HP)), 0, false) {
 				r.StockDead++
 				continue
 			}

@@ -989,11 +989,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	}
 	aliveBeforeBlow := !t.Dead()
 	before := *t
-	if hp := int64(t.HP) - dmg; hp < int64(minHP) {
-		t.setCurrentHealth(minHP)
-	} else {
-		t.setCurrentHealth(int32(hp))
-	}
+	t.loseHealth(dmg)
 	w.reportPhysicalBlow(before, ti)
 	w.clearFelled(ti)
 	// The physical resolver writes attribution before an item rider can replace
@@ -1011,7 +1007,7 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 	// The physical award is reconsidered after the rider. A spell that drives
 	// the victim to -10 or below suppresses it even though the physical result
 	// itself was positive.
-	if w.entities[ti].HP > -10 {
+	if !w.entities[ti].InLife(LifeBones) {
 		w.payExperience(ai, ti, dmg, aliveBeforeBlow)
 	}
 }

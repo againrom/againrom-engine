@@ -64,9 +64,10 @@ func deadStateFault(s DeadActorState, b Bounds) error {
 }
 
 func deadStateFaultWithPosition(s DeadActorState, b Bounds, allowFinePosition bool) error {
-	if s.Stage < 2 || s.Stage > 5 || s.Timer != 0 || s.HP > -10 ||
-		(s.Stage == 5 && (s.HP >= -10000 || s.RuntimeID != 0)) ||
-		(s.Stage < 5 && (s.RuntimeID == 0 || s.HP < -600)) ||
+	hp := int64(s.HP)
+	if s.Stage < 2 || s.Stage > 5 || s.Timer != 0 || !LifeBones.Holds(hp, 0, false) ||
+		(s.Stage == 5 && (!LifeConsumed.Holds(hp, 0, false) || s.RuntimeID != 0)) ||
+		(s.Stage < 5 && (s.RuntimeID == 0 || LifeGone.Holds(hp, 0, false))) ||
 		(!allowFinePosition && (s.FineX != 128 || s.FineY != 128)) ||
 		int32(s.Cell&255) >= b.Width || int32(s.Cell>>8) >= b.Height {
 		return fmt.Errorf("unsupported late-dead state: stage %d HP %d timer %d runtime %d cell %#x fine %d,%d", s.Stage, s.HP, s.Timer, s.RuntimeID, s.Cell, s.FineX, s.FineY)
@@ -349,7 +350,7 @@ func (w *World) retireOriginalDead(id EntityID) {
 	}
 	e := w.entities[ei]
 	if e.SourceBinding.Class == 0 {
-		if e.HP < decayGoneHP {
+		if e.InLife(LifeGone) {
 			var worn uint16
 			for slot, item := range w.equipment[ei] {
 				if !item.Empty() {
@@ -384,7 +385,7 @@ func (w *World) retireOriginalDead(id EntityID) {
 		References: deadReferences(e)}
 	if m := w.motionFor(id); m != nil {
 		source.TerrainKey = m.Position.TerrainKey
-		if e.Decay < DecayBones || e.HP >= decayGoneHP {
+		if e.Decay < DecayBones || !e.InLife(LifeGone) {
 			m.Position.Cell, m.Position.PackedCell = state.Cell, state.Cell
 			m.Position.FineX, m.Position.FineY = state.FineX, state.FineY
 		}

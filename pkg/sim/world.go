@@ -1259,17 +1259,21 @@ func (e *Entity) clearTransit() {
 }
 
 // LifeState names a health test; Holds is the one query, which holds the
-// Undying rule. Decaying, Standing and DecayWalk ignore Undying and MaxHP.
+// Undying rule. The other states ignore Undying and MaxHP.
 type LifeState uint8
 
 const (
-	LifeAlive     LifeState = iota // not dead, not downed
-	LifeLiving                     // positive health, or undying
-	LifeDowned                     // zero health with a health system
-	LifeDead                       // negative health, not undying
-	LifeDecaying                   // health at or below zero
-	LifeStanding                   // health above zero
-	LifeDecayWalk                  // negative and above the representation floor
+	LifeAlive       LifeState = iota // not dead, not downed
+	LifeLiving                       // positive health, or undying
+	LifeDowned                       // zero health with a health system
+	LifeDead                         // negative health, not undying
+	LifeDecaying                     // health at or below zero
+	LifeStanding                     // health above zero
+	LifeDecayWalk                    // negative and above the representation floor
+	LifeBones                        // health at or below the first decay threshold
+	LifeGone                         // health below the last rung of the decay ladder
+	LifeConsumed                     // health at or below a consumed corpse's pinned value
+	LifeNonNegative                  // health at or above zero
 )
 
 // Holds reports whether health hp, maximum maxHP and the undying flag are in
@@ -1290,8 +1294,26 @@ func (s LifeState) Holds(hp, maxHP int64, undying bool) bool {
 		return hp > 0
 	case LifeDecayWalk:
 		return hp < 0 && hp > int64(minHP)
+	case LifeBones:
+		return hp <= decayBonesHP
+	case LifeGone:
+		return hp < decayGoneHP
+	case LifeConsumed:
+		return hp <= controlSpiritCorpseHP
+	case LifeNonNegative:
+		return hp >= 0
 	}
 	return false
+}
+
+// loseHealth takes amount from e's health and saturates at minHP, so a blow
+// larger than the field cannot wrap it.
+func (e *Entity) loseHealth(amount int64) {
+	if hp := int64(e.HP) - amount; hp < int64(minHP) {
+		e.setCurrentHealth(minHP)
+	} else {
+		e.setCurrentHealth(int32(hp))
+	}
 }
 
 // InLife asks Holds about e.
@@ -1325,7 +1347,7 @@ func (e *Entity) Living() bool { return e.InLife(LifeLiving) }
 // threshold at which they stop being combat subjects. Control Spirit owns its
 // separate bones-only exception at the spell call sites. An undying unit is a
 // living combat subject at any health.
-func (e *Entity) OrdinaryTargetable() bool { return e.HP > decayBonesHP || e.Undying }
+func (e *Entity) OrdinaryTargetable() bool { return !e.InLife(LifeBones) || e.Undying }
 
 // restorativeTargetable is the health population an ordinary restorative row
 // may raise. It is shared by spell admission and occupancy: a body which can

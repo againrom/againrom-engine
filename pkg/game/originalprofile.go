@@ -42,7 +42,7 @@ func applyOriginalActorProfiles(ms *Mission, source []sav.ActorCurrent, report *
 				report.ProfilesParty++
 				continue
 			}
-			if p.Stage != 0 || int16(p.HP) <= 0 || p.MapUnitID == 0 || int(p.Cell&255) >= int(ms.Map.Width) || int(p.Cell>>8) >= int(ms.Map.Height) {
+			if p.Stage != 0 || sim.LifeDecaying.Holds(int64(int16(p.HP)), 0, false) || p.MapUnitID == 0 || int(p.Cell&255) >= int(ms.Map.Width) || int(p.Cell>>8) >= int(ms.Map.Height) {
 				report.ProfilesExcluded++
 				continue
 			}

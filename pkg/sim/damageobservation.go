@@ -26,7 +26,7 @@ func (w *World) reportHealthMessage(before Entity, index int) {
 
 func (w *World) reportPhysicalBlow(before Entity, index int) {
 	after := w.entities[index]
-	if w.damageObservation == nil || before.MaxHP <= 0 || !before.OrdinaryTargetable() || before.Dead() && after.HP <= -10 {
+	if w.damageObservation == nil || before.MaxHP <= 0 || !before.OrdinaryTargetable() || before.Dead() && after.InLife(LifeBones) {
 		return
 	}
 	w.damageObservation.events = append(w.damageObservation.events, DamageEvent{Target: before.ID, BeforeHP: before.HP, AfterHP: after.HP})

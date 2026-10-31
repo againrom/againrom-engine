@@ -23,12 +23,12 @@ func (w *World) ReconcileTerminalActorRegistry(bindings map[EntityID]uint32) {
 		}
 	}
 	for _, d := range w.OriginalDeadActors() {
-		if d.Current.Stage >= uint8(DecayBones) && d.Current.HP <= -10 {
+		if d.Current.Stage >= uint8(DecayBones) && LifeBones.Holds(int64(d.Current.HP), 0, false) {
 			ids[d.ID], keys[d.Source.Identity] = true, true
 		}
 	}
 	for _, d := range w.currentTerminalActors {
-		if d.HP <= -10 {
+		if LifeBones.Holds(int64(d.HP), 0, false) {
 			ids[d.ID] = true
 		}
 	}

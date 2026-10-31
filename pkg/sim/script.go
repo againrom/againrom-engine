@@ -2395,7 +2395,7 @@ func scriptDead(e Entity) bool { return !e.Alive() && !e.Dying() }
 // stable, healable objective rather than a completed death (HERO-ZERO-070,
 // TRIG-REAP-017).
 func scriptVIPDead(e Entity) bool {
-	return scriptDead(e) && e.HP <= decayBonesHP
+	return scriptDead(e) && e.InLife(LifeBones)
 }
 
 // scriptDistance is the distance a check measures.

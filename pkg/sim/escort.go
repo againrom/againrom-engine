@@ -194,7 +194,7 @@ func (w *World) coverEngage(i, ti int) {
 		if !c.OrdinaryTargetable() {
 			continue
 		}
-		if c.HP < 1 {
+		if c.InLife(LifeDecaying) {
 			dead = append(dead, ci)
 			continue
 		}
@@ -293,7 +293,7 @@ func (w *World) actorCandidates(i int) []int {
 		if !c.OrdinaryTargetable() {
 			continue
 		}
-		if c.HP < 1 {
+		if c.InLife(LifeDecaying) {
 			dead = append(dead, ci)
 			continue
 		}

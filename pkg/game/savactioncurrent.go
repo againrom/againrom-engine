@@ -1007,7 +1007,7 @@ func resolveCurrentActions(ms *Mission, a *currentActionData) (map[sim.EntityID]
 						return nil, err
 					}
 					v.Decay = sim.DecayStage(stage)
-					if hp > 0 && stage == 1 {
+					if sim.LifeStanding.Holds(int64(hp), 0, false) && stage == 1 {
 						// Current health supersedes stale Stage 1 after healing.
 						v.Decay, v.Dwell = sim.DecayNone, 0
 					} else if stage != 0 {

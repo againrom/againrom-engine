@@ -1209,11 +1209,7 @@ func (w *World) applySpellDamage(ci, vi int, rule SpellRule, power int32) {
 	} else {
 		amount = w.secondSpellDamage(vi, base, spread, rule.School)
 	}
-	if hp := int64(target.HP) - amount; hp < int64(minHP) {
-		target.setCurrentHealth(minHP)
-	} else {
-		target.setCurrentHealth(int32(hp))
-	}
+	target.loseHealth(amount)
 	w.reportHealthLoss(before, vi)
 	// A blow that fells its victim leaves the same residue any other one
 	// does — clearFelled is the one rule for that, called here on its own

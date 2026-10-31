@@ -65,7 +65,7 @@ func applyOriginalActorPools(ms *Mission, source []sav.ActorPools, r *OriginalSa
 				r.PoolsParty++
 				continue
 			}
-			if saved.Stage != 0 || int16(saved.HP) <= 0 || saved.MapUnitID == 0 ||
+			if saved.Stage != 0 || sim.LifeDecaying.Holds(int64(int16(saved.HP)), 0, false) || saved.MapUnitID == 0 ||
 				int(saved.Cell&255) >= int(ms.Map.Width) || int(saved.Cell>>8) >= int(ms.Map.Height) {
 				r.PoolsExcluded++
 				continue

@@ -887,7 +887,7 @@ func (w *World) groupCandidates(g aiGroup, consume bool) []int {
 		if !c.OrdinaryTargetable() {
 			continue
 		}
-		if c.HP < 1 {
+		if c.InLife(LifeDecaying) {
 			dead = append(dead, i)
 		} else {
 			live = append(live, i)

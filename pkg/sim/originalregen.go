@@ -6,7 +6,7 @@ package sim
 // state-16 lifetime and callbacks remain explicit DIV-738/1016 limits.
 func (w *World) regenerateOriginalCurrent(i int, health bool) {
 	e := &w.entities[i]
-	if int16(e.HP) <= 0 {
+	if LifeDecaying.Holds(int64(int16(e.HP)), 0, false) {
 		return
 	}
 	rate := e.regenerationRate(w.tick)

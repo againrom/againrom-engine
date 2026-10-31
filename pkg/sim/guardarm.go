@@ -66,7 +66,7 @@ func (w *World) postCandidates(i int, post cell) []int {
 	var out []int
 	living := !w.SecondGame()
 	for ci, candidate := range w.entities {
-		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() || living && candidate.HP < 1 ||
+		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() || living && candidate.InLife(LifeDecaying) ||
 			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {
 			continue
 		}

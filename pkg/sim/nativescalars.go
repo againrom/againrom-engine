@@ -172,12 +172,12 @@ func (w *World) nativeLaterActorAction(e Entity) bool {
 
 func (w *World) nativeRemovedBasisNow(row NativeActorBasisRecord) NativeActorBasis {
 	for _, terminal := range w.currentTerminalActors {
-		if terminal.ID == row.ID && terminal.HP <= -10 {
+		if terminal.ID == row.ID && LifeBones.Holds(int64(terminal.HP), 0, false) {
 			return nativeTerminalScalarBasis(row.Basis)
 		}
 	}
 	for _, dead := range w.originalDead {
-		if dead.ID == row.ID && dead.terminal.HP <= -10 && dead.terminal.Stage >= uint8(DecayBones) {
+		if dead.ID == row.ID && LifeBones.Holds(int64(dead.terminal.HP), 0, false) && dead.terminal.Stage >= uint8(DecayBones) {
 			return nativeTerminalScalarBasis(row.Basis)
 		}
 	}

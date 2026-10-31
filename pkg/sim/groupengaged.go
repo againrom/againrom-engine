@@ -25,7 +25,7 @@ func (w *World) engagedFoes(owner uint32, members []int) []int {
 	var foes []int
 	add := func(fi int) {
 		f := w.entities[fi]
-		if f.OffMap || f.HP < 1 || !f.OrdinaryTargetable() || !w.relations.Hostile(owner, f.Owner) ||
+		if f.OffMap || f.InLife(LifeDecaying) || !f.OrdinaryTargetable() || !w.relations.Hostile(owner, f.Owner) ||
 			containsIndex(foes, fi) {
 			return
 		}
@@ -80,7 +80,7 @@ func (w *World) withEngagedFoes(owner uint32, members []int, order uint8, cands 
 	}
 	merged := make([]int, 0, len(cands)+len(foes))
 	for _, ci := range cands {
-		if w.entities[ci].HP >= 1 {
+		if w.entities[ci].InLife(LifeStanding) {
 			merged = append(merged, ci)
 		}
 	}

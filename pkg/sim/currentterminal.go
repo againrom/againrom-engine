@@ -24,7 +24,7 @@ type CurrentTerminalActor struct {
 // LeavesNoBody marks the row of a non-ground mover torn down before bones: the
 // original holds no actor for it (HERO-DEATH-026). Scripts still read the row.
 func (r CurrentTerminalActor) LeavesNoBody() bool {
-	return r.Stage != 0 && DecayStage(r.Stage) < DecayBones && r.HP < decayGoneHP
+	return r.Stage != 0 && DecayStage(r.Stage) < DecayBones && LifeGone.Holds(int64(r.HP), 0, false)
 }
 
 func (r CurrentTerminalActor) held() CurrentTerminalActor {
@@ -158,7 +158,7 @@ func currentTerminalActorsFault(rows []CurrentTerminalActor, bounds Bounds) erro
 	seen := map[EntityID]bool{}
 	for i, row := range rows {
 		if seen[row.ID] || i > 0 && rows[i-1].ID >= row.ID ||
-			row.HP >= decayGoneHP || row.Stage > consumedCorpseStage || row.Worn >= 1<<EquipSlots ||
+			!LifeGone.Holds(int64(row.HP), 0, false) || row.Stage > consumedCorpseStage || row.Worn >= 1<<EquipSlots ||
 			!row.MaxHPPresent && row.MaxHP != 0 ||
 			int32(row.Cell&255) >= bounds.Width || int32(row.Cell>>8) >= bounds.Height {
 			return fmt.Errorf("sim: invalid current terminal actor %d", row.ID)

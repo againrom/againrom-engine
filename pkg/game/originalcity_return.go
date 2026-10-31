@@ -117,7 +117,7 @@ func (b originalCityBinding) checkReturn(r *SnapshotCityReturn) error {
 	if source != nil {
 		a := p.Carry.LiveLoad
 		h := mapload.SourceHumanState(*source, a.Inventory.Accumulator)
-		if p.Hero != h.Hero() || source.Stats[8] != source.Stats[9] || source.Stats[11] != source.Stats[12] || int16(source.Stats[8]) <= 0 ||
+		if p.Hero != h.Hero() || source.Stats[8] != source.Stats[9] || source.Stats[11] != source.Stats[12] || sim.LifeDecaying.Holds(int64(int16(source.Stats[8])), 0, false) ||
 			source.Stats[4] != uint16(a.Movement.RawSpeed) || source.Stats[5] != uint16(a.Inventory.OwnWeight) ||
 			source.Stats[6] != uint16(a.Load) || source.Stats[7] != uint16(a.Capacity) {
 			return fmt.Errorf("city return has inconsistent or unnormalized current Human values")

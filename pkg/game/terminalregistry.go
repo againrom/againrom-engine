@@ -39,7 +39,7 @@ func projectTerminalActorRegistry(doc *sav.DocumentData, removed map[uint32]bool
 		stage, _ := savedStructureValue(r, "Stage")
 		health, _ := savedStructureValue(r, "Health")
 		key, _ := savedStructureValue(r, "Identity")
-		if int16(health) > -10 || stage < 2 && !removed[key] {
+		if !sim.LifeBones.Holds(int64(int16(health)), 0, false) || stage < 2 && !removed[key] {
 			continue
 		}
 		for _, field := range []string{"U50", "U54"} {
