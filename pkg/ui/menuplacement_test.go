@@ -13,7 +13,7 @@ var gameMenuProfiles = []struct {
 	profile GameMenuProfile
 }{
 	{"first", GameMenuProfile{}},
-	{"second", GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}},
+	{"second", GameMenuProfile{Rows: SecondGameMenuRows, TownRootPanel: image.Rect(100, 100, 540, 440), NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}},
 }
 
 // decodedRootRows is each place's decoded list, written apart from the data.
@@ -59,6 +59,9 @@ func TestProfileRowsAreTheDecodedRowsForBothGamesAndPlaces(t *testing.T) {
 				for _, place := range []gameMenuSurface{gameMenuMission, gameMenuTown} {
 					got := gameMenuRootRows(g.profile.rowsAt(place), w, s)
 					want := decodedRootRows(w, place == gameMenuTown, s)
+					if g.game == "second" && place == gameMenuTown {
+						want = popupRows(w, s)
+					}
 					if fmt.Sprint(got) != fmt.Sprint(want) {
 						t.Fatalf("%s game, place %d, state %+v:\n got %v\nwant %v", g.game, place, s, got, want)
 					}
@@ -110,6 +113,14 @@ func TestPlacementIsTodaysForBothGamesAndPlaces(t *testing.T) {
 		}
 		town := openTownMenu(t)
 		town.pages.menu = g.profile
+		root := decoded[gameMenuTown]
+		if second {
+			root = image.Rect(100, 100, 540, 440)
+		}
+		if got := town.menuPlacement(); got.overMission() || gameMenuPanelRect(gameMenuTown, got) != root || got.backdrop != g.profile.MissionBackdrop {
+			t.Fatalf("%s game town root placement %+v", g.game, got)
+		}
+		town.applyGameMenuAction(gameMenuAbortGame)
 		if got := town.menuPlacement(); got.overMission() || gameMenuPanelRect(gameMenuTown, got) != decoded[gameMenuTown] || got.backdrop != g.profile.MissionBackdrop {
 			t.Fatalf("%s game town menu placement %+v", g.game, got)
 		}

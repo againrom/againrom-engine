@@ -124,6 +124,8 @@ const (
 type gameMenuRow struct {
 	Label    string
 	Fallback byte
+	// FixedKey keys the row on Fallback whatever `~` the label carries.
+	FixedKey bool
 	Action   gameMenuAction
 	Enabled  bool
 	// Literal keeps informational text from treating a `~` in shipped map
@@ -146,6 +148,9 @@ func (r gameMenuRow) text() string {
 func (r gameMenuRow) accelerator(selector int) (byte, bool) {
 	if r.Literal {
 		return 0, false
+	}
+	if r.FixedKey {
+		return gameMenuLower(r.Fallback, selector), true
 	}
 	return gameMenuAccelerator(r.Label, r.Fallback, selector), true
 }
@@ -172,17 +177,9 @@ const (
 	gameMenuRowInsetR = 48
 )
 
-// gameMenuBaseRows is how many rows the shipped root list of a surface has, and
-// gameMenuBottomMargin the room kept under the last row when mod rows make the
-// panel taller than the decoded one.
+// gameMenuBottomMargin is the room kept under the last row when mod rows make
+// the panel taller than the decoded one.
 const gameMenuBottomMargin = 20
-
-func gameMenuBaseRows(s gameMenuSurface) int {
-	if s == gameMenuTown {
-		return 6
-	}
-	return 7
-}
 
 // gameMenuModRows counts the mod screen rows of a list.
 func gameMenuModRows(rows []gameMenuRow) int {
@@ -201,7 +198,7 @@ func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, at ...menuPlace
 	pl := placementOf(at)
 	p := pl.panel(s)
 	if mods := gameMenuModRows(rows); mods > 0 {
-		need := gameMenuRowTop + gameMenuRowPitch*(gameMenuBaseRows(s)+mods) + gameMenuBottomMargin
+		need := gameMenuRowTop + gameMenuRowPitch*len(rows) + gameMenuBottomMargin
 		if need > p.Dy() {
 			p.Max.Y = p.Min.Y + need
 			if pl.centred {

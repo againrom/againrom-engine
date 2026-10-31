@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"strings"
 
@@ -570,6 +571,8 @@ func (f *flow) closeGameMenu() {
 // game's behaviour.
 type GameMenuProfile struct {
 	Rows GameMenuRows
+	// TownRootPanel is the town root popup's panel; zero keeps the decoded one.
+	TownRootPanel image.Rectangle
 	// NativeMissionWindows places hosted windows on the mission's pixel lattice.
 	NativeMissionWindows bool
 	// MissionBackdrop overrides the popup wash; zero keeps the notice backdrop.

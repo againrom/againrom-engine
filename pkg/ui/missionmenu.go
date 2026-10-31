@@ -15,23 +15,24 @@ const (
 )
 
 // menuWindowPlacement places a window the menu hosts: anchor view, centred
-// or decoded panel origins, backdrop. Its frame is missionMenuRect.
+// or decoded panels, backdrop. Its frame is missionMenuRect.
 type menuWindowPlacement struct {
-	anchor            menuWindowAnchor
-	centred           bool
-	missionAt, townAt image.Point
-	backdrop          color.RGBA
+	anchor        menuWindowAnchor
+	centred       bool
+	mission, town image.Rectangle
+	backdrop      color.RGBA
 }
 
 // wideFramePlacement is the first game's.
 var wideFramePlacement = menuWindowPlacement{anchor: menuAnchorWideFrame,
-	missionAt: image.Pt(gameMenuPanelLeft, gameMenuMissionTop), townAt: image.Pt(gameMenuPanelLeft, gameMenuTownTop)}
+	mission: image.Rect(gameMenuPanelLeft, gameMenuMissionTop, gameMenuPanelLeft+gameMenuPanelW, gameMenuMissionTop+gameMenuMissionH),
+	town:    image.Rect(gameMenuPanelLeft, gameMenuTownTop, gameMenuPanelLeft+gameMenuPanelW, gameMenuTownTop+gameMenuTownH)}
 
 // placement is the placement builder.
 func (p GameMenuProfile) placement() menuWindowPlacement {
 	pl := wideFramePlacement
 	if p.NativeMissionWindows {
-		pl = menuWindowPlacement{anchor: menuAnchorMissionView, centred: true}
+		pl.anchor, pl.centred = menuAnchorMissionView, true
 	}
 	pl.backdrop = p.MissionBackdrop
 	return pl
@@ -51,26 +52,28 @@ func placementOf(at []menuPlacer) menuWindowPlacement {
 func (pl menuWindowPlacement) overMission() bool { return pl.anchor == menuAnchorMissionView }
 
 func (pl menuWindowPlacement) panel(s gameMenuSurface) image.Rectangle {
-	h, at := gameMenuMissionH, pl.missionAt
+	h, r := gameMenuMissionH, pl.mission
 	if s == gameMenuTown {
-		h, at = gameMenuTownH, pl.townAt
+		h, r = gameMenuTownH, pl.town
 	}
 	if pl.centred {
 		return newDialogGeometry(gameMenuPanelW, h).Body()
 	}
-	return image.Rect(at.X, at.Y, at.X+gameMenuPanelW, at.Y+h)
+	return r
 }
 
-// menuPlacement is the profile's over a mission, else the wide frame's.
+// menuPlacement is the profile's over a mission, else the wide frame's; the
+// profile's town root panel stands for the town root only.
 func (f *flow) menuPlacement() menuWindowPlacement {
 	if f == nil {
 		return wideFramePlacement
 	}
 	pl := f.pages.menu.placement()
-	if !pl.overMission() || f.menuBack != ScreenMap || !f.menuWindowShown() {
-		backdrop := pl.backdrop
-		pl = wideFramePlacement
-		pl.backdrop = backdrop
+	if f.menuBack != ScreenMap || !f.menuWindowShown() {
+		pl.anchor, pl.centred = menuAnchorWideFrame, false
+	}
+	if f.pages.menu.TownRootPanel != (image.Rectangle{}) && f.menuPage == gameMenuRoot {
+		pl.town = f.pages.menu.TownRootPanel
 	}
 	return pl
 }

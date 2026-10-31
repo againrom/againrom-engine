@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A mission you save after loading a mission save the original game wrote now keeps each building's type and each of the original's pointer records as the file held them. Before, a building whose type number was above 255 was saved with a wrong type, and a pointer record was saved as a plain building.
 - [ROM2] A mission save written in the original game's format now lists the map's changed cells, orders the ground entries and opens the diplomacy and script registers as the original does.
 - [ROM2] A game saved in a town whose party holds a man whose type number is above 255 is now saved, and loading it keeps his type. Before, such a town save failed.
+- [ROM2] In a town, the in-game menu shows the original's five buttons: Save Game, Load Game, Sound Options, Abort Game and Return to Game, with the keys S, L, N, E and R in both languages. The mission's menu is unchanged.
 
 ### For map makers and modders
 

@@ -5,15 +5,21 @@ type GameMenuRows struct {
 	Mission, Town []GameMenuRowSpec
 }
 
-// GameMenuRowSpec is one root row: label word, fallback key, action, and
-// when it is listed and enabled.
+// GameMenuRowSpec is one root row: label word, key, action, and when it is
+// listed and enabled.
 type GameMenuRowSpec struct {
 	word     menuWord
-	fallback byte
+	fallback menuKey
 	action   gameMenuAction
 	shown    menuRowCondition
 	enabled  menuRowCondition
 }
+
+// menuKey is a row's key letter; with menuKeyFixed the label's `~` does not
+// replace it.
+type menuKey uint16
+
+const menuKeyFixed menuKey = 0x100
 
 type menuWord int
 
@@ -111,6 +117,20 @@ var firstGameMenuRows = GameMenuRows{
 	},
 }
 
+// SecondGameMenuRows: the town statue's popup is the five buttons of
+// R2-ENGINE-441 and R2-ENGINE-569, dialogs.txt rows 34, 35, 37, 77 and 40
+// with the keys S, L, N, E and R read from a data block, not from the row
+// text; the mission keeps the first game's rows.
+var SecondGameMenuRows = GameMenuRows{
+	Town: []GameMenuRowSpec{
+		{menuWordSave, menuKeyFixed | 'S', gameMenuSave, menuRowAlways, menuRowTownSave},
+		{menuWordLoad, menuKeyFixed | 'L', gameMenuLoad, menuRowAlways, menuRowAlways},
+		{menuWordSoundOptions, menuKeyFixed | 'N', gameMenuSoundOptions, menuRowAlways, menuRowAlways},
+		{menuWordAbort, menuKeyFixed | 'E', gameMenuAbortGame, menuRowAlways, menuRowAlways},
+		{menuWordReturn, menuKeyFixed | 'R', gameMenuReturn, menuRowAlways, menuRowAlways},
+	},
+}
+
 func (p GameMenuProfile) rowsAt(s gameMenuSurface) []GameMenuRowSpec {
 	rows, first := p.Rows.Mission, firstGameMenuRows.Mission
 	if s == gameMenuTown {
@@ -129,7 +149,8 @@ func gameMenuRootRows(specs []GameMenuRowSpec, w Words, s gameMenuRowState) []ga
 		if !s.holds(r.shown) {
 			continue
 		}
-		rows = append(rows, gameMenuRow{Label: w.menuWord(r.word), Fallback: r.fallback, Action: r.action, Enabled: s.holds(r.enabled)})
+		rows = append(rows, gameMenuRow{Label: w.menuWord(r.word), Fallback: byte(r.fallback), FixedKey: r.fallback&menuKeyFixed != 0,
+			Action: r.action, Enabled: s.holds(r.enabled)})
 	}
 	return rows
 }

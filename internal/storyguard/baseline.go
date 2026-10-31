@@ -3594,5 +3594,10 @@ var Committed = Baseline{
 	// mapcelladmission.go and its test, mapload's arm table in
 	// groundarms.go, the editor's arm rows in pkg/ui, the guard in
 	// internal/archtest/celladmission_test.go, and this note.
-	CommentBytes: 10054602,
+
+	// It rose for the second game's town popup: SecondGameMenuRows and
+	// menuKey in pkg/ui/menurows.go, FixedKey in gamemenu.go, TownRootPanel
+	// in save.go, secondGameMenu in pkg/game/gamefiles.go, the new tests
+	// secondgamemenu_test.go in pkg/ui and pkg/game, and this note.
+	CommentBytes: 10056549,
 }

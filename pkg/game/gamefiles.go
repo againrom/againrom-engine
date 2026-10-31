@@ -1,6 +1,7 @@
 package game
 
 import (
+	"image"
 	"image/color"
 
 	"againrom/pkg/base"
@@ -199,12 +200,16 @@ var firstGameFiles = gameFiles{
 	unitVoices:      firstGameVoices,
 }
 
+// secondGameMenu's town popup stands at (100,100), 440x340 (R2-ENGINE-441).
+var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPanel: image.Rect(100, 100, 540, 440),
+	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
+
 var secondGameFiles = gameFiles{
 	planeCosts:          terrainCostsAddress,
 	missionPackClosed:   true,
 	missionHeroSelected: true,
 	missionScreen:       ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
-	gameMenu:            ui.GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2},
+	gameMenu:            secondGameMenu,
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,
