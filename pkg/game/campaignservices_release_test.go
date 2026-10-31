@@ -6,15 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"againrom/pkg/data"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -23,8 +20,7 @@ import (
 // The town services along the campaign chain: from a cold LOAD of each town's
 // SAV the tavern hires, the shop buys and sells and the school trains through
 // the App and the town screen's rooms. Expected rosters, prices and ceilings
-// are read from the installed scenario.reg and npc.reg with pkg/formats/reg,
-// independently of the campaign and NPC decoders.
+// are read through installedCampaign and installedNPCDefs.
 
 // serviceUnitPrice is MERC-PRICE-004's per-chapter factor: a jump table on
 // mission/10 - 3, every other mission 0.
@@ -33,67 +29,32 @@ var serviceUnitPrice = [...]int{10, 15, 20, 40, 60, 80, 100, 600, 800, 1000, 600
 // serviceMerc is one tavern squad: its type, head count and whole-squad price.
 type serviceMerc struct{ typ, count, price int }
 
-// serviceNPCRegistry parses the installed npc.reg.
-func serviceNPCRegistry(t *testing.T, f *FrontEnd) *reg.Reg {
-	t.Helper()
-	raw, err := f.Archives.Containers.ReadFile(NPCRegistry)
-	if err != nil {
-		t.Fatal(err)
-	}
-	npc, err := reg.Parse(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return npc
-}
-
-// serviceNPCPrices is each npc<id> section's PriceA and PriceB.
-func serviceNPCPrices(npc *reg.Reg) map[int][2]int {
-	out := map[int][2]int{}
-	for _, sec := range npc.Root.Children {
-		if len(sec.Name) <= 3 || !strings.EqualFold(sec.Name[:3], "npc") {
-			continue
-		}
-		id, err := strconv.Atoi(sec.Name[3:])
-		if err != nil {
-			continue
-		}
-		a, aok := npc.GetInt(sec.Name, "PriceA")
-		b, bok := npc.GetInt(sec.Name, "PriceB")
-		if aok && bok {
-			out[id] = [2]int{int(a), int(b)}
-		}
-	}
-	return out
-}
-
 // serviceRoster is MERC-SHELF-002's tavern for a chapter reached by the Main
 // line: the chapter's Mercenaries, unlocked by an EnableMercenary of a won main
-// mission, with a non-empty pool. No squad has been hired along the chain, so
-// each pool is [General] MercenaryCount (MERC-DEATH-006). Prices follow
-// MERC-PRICE-004 with npc.reg's PriceA and PriceB. Sorted by type.
-func serviceRoster(t *testing.T, r, npc *reg.Reg, chapter int) []serviceMerc {
+// mission, with a non-empty pool. No squad is hired along the chain, so each
+// pool is [General] MercenaryCount (MERC-DEATH-006). Prices follow
+// MERC-PRICE-004 with PriceA and PriceB. Sorted by type.
+func serviceRoster(t *testing.T, c Campaign, npc *data.NPCDefs, chapter int) []serviceMerc {
 	t.Helper()
 	unlocked := map[int]bool{}
 	for m := 10; m < chapter; m += 10 {
-		for _, typ := range chainInts(r, m, "EnableMercenary") {
+		for _, typ := range c.Chapters[m].EnableMercenary {
 			unlocked[typ] = true
 		}
 	}
-	pools, _ := r.GetIntArray("General", "MercenaryCount")
-	prices := serviceNPCPrices(npc)
+	pools := c.MercenaryCount
 	factor := serviceUnitPrice[chapter/10-3]
 	var out []serviceMerc
-	for _, typ := range chainInts(r, chapter, "Mercenaries") {
+	for _, typ := range c.Chapters[chapter].Mercenaries {
 		if !unlocked[typ] || typ < 1 || typ > len(pools) || pools[typ-1] <= 0 {
 			continue
 		}
-		p, ok := prices[typ]
+		p, ok := npc.Mercenary(int32(typ))
 		if !ok {
 			t.Fatalf("npc.reg holds no PriceA and PriceB for tavern type %d", typ)
 		}
-		count := int(pools[typ-1])
-		out = append(out, serviceMerc{typ, count, (p[0] + count*p[1]) * factor})
+		count := pools[typ-1]
+		out = append(out, serviceMerc{typ, count, (int(p.PriceA) + count*int(p.PriceB)) * factor})
 	}
 	slices.SortFunc(out, func(a, b serviceMerc) int { return a.typ - b.typ })
 	return out
@@ -171,7 +132,7 @@ func serviceOpen(t *testing.T, f *FrontEnd, app *ui.App, door string, room townR
 // map; the hired squads are carried, kept and in the mission party.
 func serviceTavern(t *testing.T, raw []byte, town chainTown, controls bool) {
 	f, app := campaignCold(t, serviceStore(t, raw))
-	r, npc := chainRegistry(t, f), serviceNPCRegistry(t, f)
+	r, npc := installedCampaign(t, f), installedNPCDefs(t, f)
 	want := serviceRoster(t, r, npc, town.chapter)
 	s := serviceOpen(t, f, app, "TAVERN", roomTavern)
 	chainRequire(t, serviceRosterState(f, want))
@@ -331,8 +292,7 @@ func servicePackEqual(a, b map[uint16]uint32) bool {
 // cold LOAD.
 func serviceShop(t *testing.T, raw []byte, town chainTown, controls bool) {
 	f, app := campaignCold(t, serviceStore(t, raw))
-	r := chainRegistry(t, f)
-	ceiling, _ := r.GetInt(fmt.Sprintf("Mission%d", town.chapter), "ShopMaxPrice")
+	ceiling := int32(installedCampaign(t, f).Chapters[town.chapter].ShopMax)
 	s := serviceOpen(t, f, app, "SHOP", roomShop)
 	chainRequire(t, serviceShelfState(f, ceiling))
 	member := s.shopPartyMember(s.shopMemberIndex())

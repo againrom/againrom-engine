@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -278,18 +277,11 @@ func TestReleaseCampaign1176TerminalAndSideRecovery(t *testing.T) {
 		t.Run(fmt.Sprint(mission), func(t *testing.T) {
 			f := releaseFront(t)
 			f.SetDeterministicFrames(true)
-			// Read the installed routing key independently of Campaign's
-			// successor logic. Only 150 satisfies SAV-890's two predicates.
-			raw, err := f.Archives.Containers.ReadFile(ScenarioRegistry)
-			if err != nil {
-				t.Fatal(err)
-			}
-			registry, err := reg.Parse(raw)
-			if err != nil {
-				t.Fatal(err)
-			}
-			last, _ := registry.GetInt(fmt.Sprintf("Mission%d", mission), "LastMission")
-			if (last != 0 && mission%10 == 0) != (mission == 150) {
+			// Read the installed routing key through installedCampaign. Only
+			// 150 satisfies SAV-890's two predicates.
+			installed := installedCampaign(t, f)
+			last := installed.Last[mission]
+			if (last && mission%10 == 0) != (mission == 150) {
 				t.Fatal("installed terminal predicate changed", mission, last)
 			}
 			prepareAcceptedCampaignMission(t, f, mission)
@@ -320,8 +312,8 @@ func TestReleaseCampaign1176TerminalAndSideRecovery(t *testing.T) {
 			// Side151 remains ordinary: independently read the installed
 			// Payment, and require unfinished main150 to stay accessible.
 			if mission == 151 {
-				payment, _ := registry.GetInt("Mission151", "Payment")
-				if f.Town.Gold() != purse+int(payment) || f.Town.Chapter() != 150 || f.Town.Done(150) {
+				payment := installed.Chapters[151].Payment
+				if f.Town.Gold() != purse+payment || f.Town.Chapter() != 150 || f.Town.Done(150) {
 					t.Fatal("side151 changed ordinary payout or main150", f.Town.Gold(), purse, payment, f.Town.Chapter())
 				}
 				takeCampaignOffer(t, f, 150)
@@ -373,7 +365,7 @@ func TestReleaseCampaign1176TerminalAndSideRecovery(t *testing.T) {
 					t.Fatal("cold side151 completion cannot enter offered main150", err)
 				}
 			}
-			t.Logf("mission %d: source LastMission=%d; script Victory, pending cold SAV, one transition, ending or town and menu usable; purse=%d", mission, last, gold)
+			t.Logf("mission %d: source LastMission set=%t; script Victory, pending cold SAV, one transition, ending or town and menu usable; purse=%d", mission, last, gold)
 		})
 	}
 }

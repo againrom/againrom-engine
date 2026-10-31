@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -19,55 +18,26 @@ import (
 // The chain follows the Main line from a fresh mission 10 to the end of the
 // campaign and enters each side mission a town offers from a cold LOAD of that
 // town. Wins use the reachability objective actions and App frames; it is not a
-// combat playthrough. Expected values are read from the installed registry,
-// independently of the campaign decoder.
+// combat playthrough. The registry is read through installedCampaign.
 
-func chainRegistry(t *testing.T, f *FrontEnd) *reg.Reg {
-	t.Helper()
-	raw, err := f.Archives.Containers.ReadFile(ScenarioRegistry)
-	if err != nil {
-		t.Fatal(err)
-	}
-	registry, err := reg.Parse(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return registry
-}
-
-// chainInts reads a key stored either as one integer or as an array.
-func chainInts(r *reg.Reg, mission int, key string) []int {
-	section := fmt.Sprintf("Mission%d", mission)
-	if v, ok := r.GetInt(section, key); ok {
-		return []int{int(v)}
-	}
-	values, _ := r.GetIntArray(section, key)
-	var out []int
-	for _, v := range values {
-		out = append(out, int(v))
-	}
-	return out
-}
-
-// chainPayment reads a payment straight from the installed registry.
+// chainPayment is a mission's scenario payment in the installed registry.
 func chainPayment(t *testing.T, f *FrontEnd, mission int) int {
 	t.Helper()
-	payment, _ := chainRegistry(t, f).GetInt(fmt.Sprintf("Mission%d", mission), "Payment")
-	return int(payment)
+	return installedCampaign(t, f).Chapters[mission].Payment
 }
 
-// chainOffers is each building's mission list in a chapter's section: the inn
-// pairs InnMission with InnNPC and its zero is an NPC with nothing to give.
-func chainOffers(r *reg.Reg, chapter int) map[TownBuilding][]int {
+// chainOffers is each building's mission list in a chapter: the inn pairs its
+// missions with its NPCs and its zero is an NPC with nothing to give.
+func chainOffers(c Campaign, chapter int) map[TownBuilding][]int {
 	out := map[TownBuilding][]int{}
-	inn, npc := chainInts(r, chapter, "InnMission"), chainInts(r, chapter, "InnNPC")
-	for i := 0; i < min(len(inn), len(npc)); i++ {
-		if inn[i] != 0 {
-			out[TownTavern] = append(out[TownTavern], inn[i])
+	ch := c.Chapters[chapter]
+	for i := 0; i < min(len(ch.Inn), len(ch.InnNPC)); i++ {
+		if ch.Inn[i] != 0 {
+			out[TownTavern] = append(out[TownTavern], ch.Inn[i])
 		}
 	}
-	for b, key := range map[TownBuilding]string{TownShop: "ShopMission", TownSchool: "TCMission"} {
-		for _, m := range chainInts(r, chapter, key) {
+	for b, list := range map[TownBuilding][]int{TownShop: ch.Shop, TownSchool: ch.School} {
+		for _, m := range list {
 			if m != 0 {
 				out[b] = append(out[b], m)
 			}
@@ -92,14 +62,14 @@ func chainSides(offers map[TownBuilding][]int, chapter int) []int {
 
 // chainPages is the collection after the record loads of every section up to
 // mission: text before picture, one append deduplicated on the pair.
-func chainPages(r *reg.Reg, mission int) []Document {
+func chainPages(c Campaign, mission int) []Document {
 	var out []Document
 	for n := 1; n <= mission; n++ {
 		for _, d := range []struct {
-			key  string
-			kind int
-		}{{"AddTextDocument", DocumentText}, {"AddPictureDocum", DocumentPicture}} {
-			for _, v := range chainInts(r, n, d.key) {
+			values []int
+			kind   int
+		}{{c.Chapters[n].TextDocuments, DocumentText}, {c.Chapters[n].PictureDocuments, DocumentPicture}} {
+			for _, v := range d.values {
 				if doc := (Document{v, d.kind}); !slices.Contains(out, doc) {
 					out = append(out, doc)
 				}
@@ -179,9 +149,8 @@ func chainTownState(f *FrontEnd, want chainTown) error {
 	return nil
 }
 
-// chainEnterByWorldMap accepts the offer, selects its world-map scroll and
-// travels into the mission. The scrolls are the accepted missions, each with
-// its installed payment.
+// chainEnterByWorldMap accepts the offer and travels into the mission by its
+// world-map scroll.
 func chainEnterByWorldMap(t *testing.T, f *FrontEnd, app *ui.App, mission int) {
 	t.Helper()
 	carried := chainSorted(chainCarriedNPCs(f))
@@ -385,8 +354,8 @@ func chainColdTown(t *testing.T, f *FrontEnd, want chainTown) (SaveStore, []byte
 
 // chainMercenaries names the first type a won mission's EnableMercenary list
 // leaves locked.
-func chainMercenaries(f *FrontEnd, r *reg.Reg, mission int) error {
-	for _, typ := range chainInts(r, mission, "EnableMercenary") {
+func chainMercenaries(f *FrontEnd, c Campaign, mission int) error {
+	for _, typ := range c.Chapters[mission].EnableMercenary {
 		if !f.Town.MercenaryEnabled(typ) {
 			return fmt.Errorf("mission %d left mercenary type %d locked", mission, typ)
 		}
@@ -399,8 +368,8 @@ func chainMercenaries(f *FrontEnd, r *reg.Reg, mission int) error {
 // chapter kept, its offer consumed and the chapter's own mission still open.
 func chainSide(t *testing.T, store SaveStore, town chainTown, side int) {
 	f, app := campaignCold(t, store)
-	r := chainRegistry(t, f)
-	for _, typ := range chainInts(r, side, "EnableMercenary") {
+	r := installedCampaign(t, f)
+	for _, typ := range r.Chapters[side].EnableMercenary {
 		if f.Town.MercenaryEnabled(typ) {
 			t.Fatalf("mercenary type %d is unlocked before side mission %d", typ, side)
 		}
@@ -490,7 +459,7 @@ func TestReleaseCampaignChainFromMission10(t *testing.T) {
 	f.Options = OptionsStore{}
 	f.Carried = f.ChargenParty(ui.ChargenResult{Name: "Chain traveler", Choices: []int{1, 0, 3}, Stats: []int{31, 27, 24, 29}})
 	app := f.App("campaign chain")
-	r := chainRegistry(t, f)
+	r := installedCampaign(t, f)
 
 	// Mission 10: fresh entry carries the collected pages and the document.
 	if err := app.OpenMission(f.MissionOpenerWith(10, f.NextParty())); err != nil {
@@ -576,7 +545,7 @@ func TestReleaseCampaignChainFromMission10(t *testing.T) {
 		}
 		purse := chainWinFrom(t, f, app, n, town.gold)
 		gold := purse + chainPayment(t, f, n)
-		if last, _ := r.GetInt(fmt.Sprintf("Mission%d", n), "LastMission"); last != 0 {
+		if r.Last[n] {
 			campaignReturn(t, f, app)
 			if gold != chainFinalPurse {
 				t.Fatalf("purse at the credits %d, want %d", gold, chainFinalPurse)
@@ -697,7 +666,7 @@ func chainTrimmedPagesTown(t *testing.T, townRaw []byte, pages int) *FrontEnd {
 }
 
 // chainSideLossControls removes the side completion and the unlock it pays.
-func chainSideLossControls(t *testing.T, f *FrontEnd, r *reg.Reg, check func(*FrontEnd) error) {
+func chainSideLossControls(t *testing.T, f *FrontEnd, r Campaign, check func(*FrontEnd) error) {
 	t.Run("side_completion_removed", func(t *testing.T) {
 		delete(f.Town.won, 41)
 		defer func() { f.Town.won[41] = true }()
@@ -708,7 +677,7 @@ func chainSideLossControls(t *testing.T, f *FrontEnd, r *reg.Reg, check func(*Fr
 	t.Run("mercenary_unlock_removed", func(t *testing.T) {
 		unlocks := f.Town.mercEnabled
 		defer func() { f.Town.mercEnabled = unlocks }()
-		for _, typ := range chainInts(r, 41, "EnableMercenary") {
+		for _, typ := range r.Chapters[41].EnableMercenary {
 			f.Town.mercEnabled[typ] = false
 		}
 		if check(f) == nil {
