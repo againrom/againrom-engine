@@ -11,7 +11,7 @@ func applyOriginalDying(ms *Mission, report *OriginalSaveResume) error {
 		a := binding.Source
 		// A current actor whose width operand restores positive health is
 		// living; its terminal wire stage cannot name it.
-		if h, current := ms.actorRegistry.health[binding.ID]; a.Dying() && (!current || h.HP <= 0) {
+		if h, current := ms.actorRegistry.health[binding.ID]; a.Dying() && (!current || sim.LifeDecaying.Holds(int64(h.HP), 0, false)) {
 			batch = append(batch, sim.OriginalDyingActor{ID: binding.ID, HP: a.HP, Timer: a.DyingTimer})
 		}
 	}

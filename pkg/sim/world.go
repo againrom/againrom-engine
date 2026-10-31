@@ -1251,37 +1251,67 @@ func (e *Entity) clearTransit() {
 	e.clearStride()
 }
 
+// LifeState names a health test; Holds is the one query, which holds the
+// Undying rule. Decaying, Standing and DecayWalk ignore Undying and MaxHP.
+type LifeState uint8
+
+const (
+	LifeAlive     LifeState = iota // not dead, not downed
+	LifeLiving                     // positive health, or undying
+	LifeDowned                     // zero health with a health system
+	LifeDead                       // negative health, not undying
+	LifeDecaying                   // health at or below zero
+	LifeStanding                   // health above zero
+	LifeDecayWalk                  // negative and above the representation floor
+)
+
+// Holds reports whether health hp, maximum maxHP and the undying flag are in
+// state s; a caller with no maximum or flag passes zero and false.
+func (s LifeState) Holds(hp, maxHP int64, undying bool) bool {
+	switch s {
+	case LifeAlive:
+		return undying || hp >= 0 && (hp != 0 || maxHP <= 0)
+	case LifeLiving:
+		return hp > 0 || undying
+	case LifeDowned:
+		return hp == 0 && maxHP > 0 && !undying
+	case LifeDead:
+		return hp < 0 && !undying
+	case LifeDecaying:
+		return hp <= 0
+	case LifeStanding:
+		return hp > 0
+	case LifeDecayWalk:
+		return hp < 0 && hp > int64(minHP)
+	}
+	return false
+}
+
+// InLife asks Holds about e.
+func (e *Entity) InLife(s LifeState) bool {
+	return s.Holds(int64(e.HP), int64(e.MaxHP), e.Undying)
+}
+
 // Dead reports whether e's health has fallen below zero.
 //
-// A dead entity is not advanced and is not given an order. It contributes
-// occupancy while it is dwelling or remains a restorative target — see counted
-// — and it IS eventually removed from the world, on the tick its decay reaches
-// the bottom of the ladder; until then dying changes its health, its stage and
-// its dwell, and nothing else about who the world holds.
-func (e *Entity) Dead() bool { return e.HP < 0 && !e.Undying }
+// A dead entity is not advanced and is given no order. It holds a cell while
+// dwelling or a restorative target (see counted), and leaves the world when its
+// decay reaches the bottom of the ladder.
+func (e *Entity) Dead() bool { return e.InLife(LifeDead) }
 
-// Downed reports whether e stands at exactly zero health with a health system —
-// the state between alive and dead.
+// Downed reports whether e stands at zero health with a health system.
 //
-// A downed entity is not advanced and is not given an order, and it KEEPS ITS
-// CELL: it is a body in the way. A further blow can finish it, while Heal or a
-// script health write can restore it above zero. An entity whose MaxHP is not
-// positive is never downed, because zero health is not a wound to a unit that
-// has no health system.
-func (e *Entity) Downed() bool { return e.HP == 0 && e.MaxHP > 0 && !e.Undying }
+// A downed entity is not advanced, is given no order and keeps its cell. A blow
+// can finish it; Heal or a script health write can restore it. A unit with no
+// positive MaxHP has no health system and is never downed.
+func (e *Entity) Downed() bool { return e.InLife(LifeDowned) }
 
-// Alive reports whether e is neither dead nor downed, which is what the third
-// state IS rather than a third comparison beside the other two.
-//
-// Written this way the three are pairwise exclusive and jointly total by
-// construction: Dead and Downed cannot both hold — one wants a negative health
-// and the other exactly zero — and this one is the complement of their union, so
-// no pair of integers can be in two states or in none.
-func (e *Entity) Alive() bool { return e.Undying || e.HP >= 0 && (e.HP != 0 || e.MaxHP <= 0) }
+// Alive reports whether e is neither dead nor downed: the complement of their
+// union, so the three are pairwise exclusive and jointly total.
+func (e *Entity) Alive() bool { return e.InLife(LifeAlive) }
 
-// Living is the positive-health test the actor rules write as HP > 0, with
-// an undying unit counted as living at any health.
-func (e *Entity) Living() bool { return e.HP > 0 || e.Undying }
+// Living is positive health; an undying unit is living at any health.
+func (e *Entity) Living() bool { return e.InLife(LifeLiving) }
 
 // OrdinaryTargetable reports whether an ordinary weapon, attack order or spell
 // may still name e. Bodies remain finishable through -9; -10 is the first decay
@@ -1305,9 +1335,8 @@ func (e *Entity) restorativeTargetable() bool {
 // the window in which a body lies where it fell, before anything walks its
 // health down and before it is torn down.
 //
-// IT IS NOT A FOURTH STATE. Alive, Downed and Dead stay pairwise exclusive and
-// jointly total over the health; this is a property of a not-alive entity's
-// DECAY, asked separately, and every unit it holds of is already Downed or Dead.
+// It is not a fourth state: it is a property of a not-alive entity's decay, so
+// every unit it holds of is already Downed or Dead.
 //
 // This is the minimum occupancy window. A restorable body may keep its cell
 // longer, through restorativeTargetable, so expiring Dwell cannot let a mover

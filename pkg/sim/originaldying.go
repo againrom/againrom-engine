@@ -12,7 +12,7 @@ type OriginalDyingActor struct {
 // Late corpses, unbound ALM bodies and ordinary living imports do not acquire
 // this admission by health alone.
 func originalDyingEntity(e Entity) bool {
-	return e.SourceBinding.Class != 0 && e.SourceBinding.RuntimeID != 0 && e.HP <= 0 && e.MaxHP > 0 && e.Decay == DecayFallen
+	return e.SourceBinding.Class != 0 && e.SourceBinding.RuntimeID != 0 && e.InLife(LifeDecaying) && e.MaxHP > 0 && e.Decay == DecayFallen
 }
 
 // ImportOriginalDyingActors publishes the source tuple after a detached actor
@@ -27,7 +27,7 @@ func (w *World) ImportOriginalDyingActors(batch []OriginalDyingActor) error {
 	seen := map[EntityID]bool{}
 	for _, d := range batch {
 		i := indexOfEntity(w.entities, d.ID)
-		if seen[d.ID] || i < 0 || d.HP > 0 || d.Timer < 0 {
+		if seen[d.ID] || i < 0 || LifeStanding.Holds(int64(d.HP), 0, false) || d.Timer < 0 {
 			return fmt.Errorf("unsupported original dying actor %d HP %d timer %d", d.ID, d.HP, d.Timer)
 		}
 		seen[d.ID] = true

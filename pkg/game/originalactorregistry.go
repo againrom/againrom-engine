@@ -341,14 +341,14 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 				healthPlan[e.ID] = current
 			}
 		}
-		if a.CurrentEntity && e.HP > 0 && a.Stage > 1 {
+		if a.CurrentEntity && e.InLife(sim.LifeStanding) && a.Stage > 1 {
 			return fmt.Errorf("current actor %d has positive health with terminal decay stage %d", a.ArchiveIndex, a.Stage)
 		}
 		// A healed current actor overrides stale Stage 1 and ALM decay.
-		if e.HP > 0 && (a.Stage == 0 || a.CurrentEntity && a.Stage == 1) {
+		if e.InLife(sim.LifeStanding) && (a.Stage == 0 || a.CurrentEntity && a.Stage == 1) {
 			e.Decay, e.Dwell = sim.DecayNone, 0
 		}
-		if a.Dying() && e.HP <= 0 {
+		if a.Dying() && e.InLife(sim.LifeDecaying) {
 			if a.DyingTimer < 0 || e.MaxHP <= 0 {
 				return fmt.Errorf("original dying actor %d: unsupported timer %d or maximum HP %d", a.ArchiveIndex, a.DyingTimer, e.MaxHP)
 			}
@@ -356,7 +356,7 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 		}
 		// Current continuation supplies the final lifecycle after the detached
 		// wire field/stock import. No death transition or gameplay runs here.
-		if a.CurrentEntity && !a.Dying() && e.HP <= 0 {
+		if a.CurrentEntity && !a.Dying() && e.InLife(sim.LifeDecaying) {
 			e.Decay, e.Dwell = sim.DecayFallen, 0
 		}
 		e.Reach, e.AttackCharge, e.AttackRelax = basis.Reach, int32(basis.AttackCharge), int32(basis.AttackRelax)

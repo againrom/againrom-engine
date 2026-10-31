@@ -162,7 +162,7 @@ func (f *FrontEnd) witnessCommandAcknowledgmentsWithClockControl(report io.Write
 		}
 		selected := false
 		for _, e := range probe.live.world.Entities() {
-			if e.Owner == sim.SelfSlot && e.HP > 0 && probe.live.voiceBank(e) != "" {
+			if e.Owner == sim.SelfSlot && e.InLife(sim.LifeStanding) && probe.live.voiceBank(e) != "" {
 				if err := a.HeadlessSelectEntity(uint32(e.ID)); err == nil {
 					selected = true
 					break

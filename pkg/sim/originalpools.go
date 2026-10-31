@@ -51,9 +51,9 @@ func (w *World) ImportOriginalActorPools(pools []OriginalActorPools, current ...
 				return fmt.Errorf("original actor pools: entity %d exceeds current wire widths", pool.ID)
 			}
 		} else {
-			validHP := pool.HP > 0
+			validHP := LifeStanding.Holds(int64(pool.HP), 0, false)
 			if originalDyingEntity(e) {
-				validHP = pool.HP <= 0 && pool.MaxHP > 0
+				validHP = LifeDecaying.Holds(int64(pool.HP), 0, false) && pool.MaxHP > 0
 			}
 			if !validHP || pool.MaxHP < pool.HP || pool.Mana < 0 || pool.MaxMana < pool.Mana {
 				return fmt.Errorf("original actor pools: entity %d has unsupported pools HP %d/%d mana %d/%d",

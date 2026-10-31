@@ -1932,7 +1932,7 @@ func (w *World) setUnitProperty(i int, selector, value int32) {
 		previous := *e
 		e.setCurrentHealth(int32(int16(uint16(value))))
 		w.reportHealthLoss(previous, i)
-		if e.HP <= 0 {
+		if e.InLife(LifeDecaying) {
 			w.clearFelled(i)
 		} else {
 			w.restoreAfterHealthGain(i, before)

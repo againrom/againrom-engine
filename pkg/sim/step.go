@@ -1666,7 +1666,7 @@ func (w *World) dropTerminalLoot(i int) bool {
 // this presentation instead of treating the body as a newly felled actor, and
 // repeated preparation cannot halve defence a second time.
 func PrepareAuthoredBody(e *Entity) {
-	if e == nil || e.MaxHP <= 0 || e.HP > 0 || e.Decay != DecayNone {
+	if e == nil || e.MaxHP <= 0 || e.InLife(LifeStanding) || e.Decay != DecayNone {
 		return
 	}
 	e.Decay = DecayFallen
@@ -1682,7 +1682,7 @@ func PrepareAuthoredBody(e *Entity) {
 // on that actor.
 func (w *World) restoreAfterHealthGain(i int, before int32) {
 	e := &w.entities[i]
-	if before > 0 || e.HP <= 0 || e.Decay == DecayNone {
+	if LifeStanding.Holds(int64(before), 0, false) || e.InLife(LifeDecaying) || e.Decay == DecayNone {
 		return
 	}
 	e.clearDecay()
@@ -1976,7 +1976,7 @@ func (w *World) decayPass() {
 		// representation's and not the ladder's, so a health already at it is a
 		// state this leaves alone rather than one it turns back into a living
 		// unit.
-		if w.SecondGame() && w.tick%decayCycle == decayPhase && e.HP < 0 && e.HP > minHP {
+		if w.SecondGame() && w.tick%decayCycle == decayPhase && e.InLife(LifeDecayWalk) {
 			e.setCurrentHealth(e.HP - 1)
 		}
 		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {

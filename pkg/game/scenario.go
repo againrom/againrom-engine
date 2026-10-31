@@ -416,7 +416,7 @@ func (w *HeadlessWorldSpec) validate() error {
 			return fmt.Errorf("world.units[%d] has no ref", i)
 		case seen[u.Ref]:
 			return fmt.Errorf("world.units[%d]: ref %q is used twice", i, u.Ref)
-		case u.HP <= 0:
+		case sim.LifeDecaying.Holds(int64(u.HP), 0, false):
 			return fmt.Errorf("world.units[%d] (%s): hp must be positive", i, u.Ref)
 		case u.MaxHP < 0:
 			return fmt.Errorf("world.units[%d] (%s): max_hp must not be negative", i, u.Ref)

@@ -126,13 +126,13 @@ func (w *World) decaySessionActors(c SessionClock) {
 			if e.CurrentProfileBasis == ProfileOriginalCurrent {
 				hp = int32(int16(hp))
 			}
-			if c.liveDecayDue() && hp < 0 && !e.Undying {
+			if c.liveDecayDue() && LifeDead.Holds(int64(hp), int64(e.MaxHP), e.Undying) {
 				wasTargetable := e.OrdinaryTargetable()
 				decaySessionHealth(e)
 				// Keep native lifecycle invariants when a retained unsigned
 				// word is first consumed as negative, or decrement wraps it
 				// positive. The original notification callback is Unknown.
-				if e.Decay == DecayNone || e.HP > 0 {
+				if e.Decay == DecayNone || e.InLife(LifeStanding) {
 					w.clearFelled(i)
 				}
 				e = &w.entities[i]
@@ -160,7 +160,7 @@ func (w *World) decaySessionActors(c SessionClock) {
 func decaySessionHealth(e *Entity) {
 	if e.CurrentProfileBasis == ProfileOriginalCurrent {
 		e.setCurrentHealth(int32(int16(uint16(e.HP) - 1)))
-	} else if e.HP < 0 && e.HP > minHP {
+	} else if e.InLife(LifeDecayWalk) {
 		// Native-domain arithmetic is retained; importing clocks does not
 		// authorize converting a native actor's health representation.
 		e.setCurrentHealth(e.HP - 1)

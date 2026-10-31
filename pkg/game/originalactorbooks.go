@@ -65,7 +65,7 @@ func applyOriginalActorSpellbooks(ms *Mission, source []sav.ActorSpellbook, r *O
 				counts.Party++
 				continue
 			}
-			if saved.RuntimeID == 0 || saved.Stage != 0 || saved.HP <= 0 || saved.MapUnitID == 0 ||
+			if saved.RuntimeID == 0 || saved.Stage != 0 || sim.LifeDecaying.Holds(int64(saved.HP), 0, false) || saved.MapUnitID == 0 ||
 				int(saved.Cell&255) >= int(ms.Map.Width) || int(saved.Cell>>8) >= int(ms.Map.Height) {
 				counts.Excluded++
 				continue
