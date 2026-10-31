@@ -16,15 +16,22 @@ import (
 )
 
 // writeEditorFrame draws the editor headless, checks that the window's text
-// overlay keeps every glyph of the installed fonts outside cover and the
-// hover lines, and writes
-// the frame as a PNG to path when write is set.
+// overlay keeps every glyph outside cover, the hover lines and the open
+// menu's list, and writes the frame as a PNG to path when write is set.
 func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
 	t.Helper()
 	screen := ebiten.NewImage(1280, 800)
 	e.Draw(screen)
 	screen.Dispose()
-	covers := append(e.PopupTipRects(), cover)
+	var menu image.Rectangle
+	for n := 0; ; n++ {
+		r, ok := e.MenuRowRect(n)
+		if !ok {
+			break
+		}
+		menu = menu.Union(r)
+	}
+	covers := append(e.PopupTipRects(), cover, menu)
 	for _, ft := range e.TextFates() {
 		if ft.Fate == textsmooth.Hidden && slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) {
 			continue
