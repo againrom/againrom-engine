@@ -72,6 +72,9 @@ type InspectionDocument struct {
 	// to a ground mover in the world the game builds from this map: zero for
 	// an open cell. nil: the host derives none and the view draws nothing.
 	Passability []PassArm
+	// PassArms names the bits of Passability, in the order the status line
+	// lists them; the host reads them from its one arm table.
+	PassArms []PassArmRow
 	// Refused is, in a placement's preview, each record the placement
 	// refuses, with its footprint where it would have stood.
 	Refused []SelectionRefusal

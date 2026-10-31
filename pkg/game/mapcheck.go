@@ -550,7 +550,7 @@ func (c *mapCheck) unitTerrain() []mapHit {
 		}
 		if ents[i].Domain.BlockedBy(c.plane[cell.Y*c.width()+cell.X]) {
 			text := fmt.Sprintf("the unit stands on cell %d,%d, which its movement class cannot enter", cell.X, cell.Y)
-			if mapload.InBorderRing(c.m, cell.X, cell.Y) {
+			if admissionOf("Unit", admitCheck).verdict(c.m, cell) == cellInRing {
 				text += "; the cell is in the border ring, and the game removes a unit placed there when the mission loads"
 			}
 			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true, Text: text})

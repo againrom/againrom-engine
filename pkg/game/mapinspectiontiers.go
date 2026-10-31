@@ -135,7 +135,7 @@ func (s *mapInspectionEdits) UnitTiers(class int64) ([]ui.InspectionChoice, int6
 // select a Units row of the class.
 func (s *mapInspectionEdits) AddUnitTier(cell image.Point, class, tier int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "unit cell", "Unit"); err != nil {
+		if err := s.admitCell(m, cell, "unit cell", "Unit", admitAdd); err != nil {
 			return false, err
 		}
 		if class < math.MinInt16 || class > math.MaxInt16 {
@@ -168,6 +168,6 @@ func (s *mapInspectionEdits) AddUnitTier(cell image.Point, class, tier int64) (*
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(mapedit.KindUnit, m, i, image.Rectangle{})
+		return true, s.checkPlacement(admissionOf("Unit", admitAdd), mapedit.KindUnit, m, i, image.Rectangle{})
 	})
 }

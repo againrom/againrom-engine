@@ -6,7 +6,36 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"againrom/pkg/mapload"
 )
+
+// The bits of the host's arm table, which the fixtures' documents carry.
+var (
+	passBorder = PassArm(mapload.GroundBorder)
+	passWater  = PassArm(mapload.GroundWater)
+	passFlag   = PassArm(mapload.GroundFlag)
+)
+
+// hostPassArms is the rows the host gives a document, read from mapload's
+// arm table as the host reads them.
+func hostPassArms() []PassArmRow {
+	var out []PassArmRow
+	for _, r := range mapload.GroundArmRows {
+		out = append(out, PassArmRow{Arm: PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder})
+	}
+	return out
+}
+
+// passArmRow is the host's row of arm.
+func passArmRow(arm PassArm) PassArmRow {
+	for _, r := range hostPassArms() {
+		if r.Arm == arm {
+			return r
+		}
+	}
+	return PassArmRow{}
+}
 
 // passProbe is a brush host whose terrains carry swatches and whose documents
 // carry a passability plane: the cells of the first row are closed by the
@@ -30,9 +59,9 @@ func (p *passProbe) Paint(s BrushStroke) (*InspectionDocument, error) {
 	next.Passability = append([]PassArm(nil), before...)
 	if s.Plane == BrushPlanePassability {
 		i := s.Cells[0].Y*next.Width + s.Cells[0].X
-		next.Passability[i] &^= PassFlag
+		next.Passability[i] &^= passFlag
 		if s.Value == 1 {
-			next.Passability[i] |= PassFlag
+			next.Passability[i] |= passFlag
 		}
 	}
 	return next, nil
@@ -48,10 +77,10 @@ func passEditor(t *testing.T) (*MapEditor, *passProbe) {
 	p := &passProbe{brushProbe: *b, swatch: swatch}
 	arms := make([]PassArm, e.doc.Width*e.doc.Height)
 	for x := 0; x < e.doc.Width; x++ {
-		arms[x] = PassBorder
+		arms[x] = passBorder
 	}
-	arms[30*e.doc.Width+30] = PassWater | PassFlag
-	e.doc.Passability = arms
+	arms[30*e.doc.Width+30] = passWater | passFlag
+	e.doc.Passability, e.doc.PassArms = arms, hostPassArms()
 	e.doc.Edits = p
 	p.doc = e.doc
 	return e, p
@@ -149,10 +178,10 @@ func TestMapEditorPassabilityBrushStrokes(t *testing.T) {
 	if len(p.strokes) != 2 || p.strokes[0].Plane != BrushPlanePassability || p.strokes[0].Value != 1 || p.strokes[1].Plane != BrushPlanePassability || p.strokes[1].Value != 0 {
 		t.Fatalf("strokes %+v", p.strokes)
 	}
-	if e.passArmAt(image.Pt(20, 20)) != PassFlag {
+	if e.passArmAt(image.Pt(20, 20)) != passFlag {
 		t.Fatal("the blocked cell is not shown closed")
 	}
-	if e.passArmAt(image.Pt(30, 30)) != PassWater {
+	if e.passArmAt(image.Pt(30, 30)) != passWater {
 		t.Fatal("unblocked water is not shown closed by Water alone")
 	}
 }

@@ -14,6 +14,24 @@ const (
 	GroundStructure                       // a placed structure's footprint
 )
 
+// GroundArmRow is one arm with the word ID the editor names it by.
+type GroundArmRow struct {
+	Arm  GroundArm
+	Word string
+}
+
+// GroundArmRows is every arm, in the order the editor names a cell's arms.
+// It is the one table of the arms: the host's refusals and the editor's
+// passability view both read it.
+var GroundArmRows = [...]GroundArmRow{
+	{GroundBorder, "editor.pass.border"},
+	{GroundMountain, "editor.pass.mountain"},
+	{GroundWater, "editor.pass.water"},
+	{GroundFlag, "editor.pass.flag"},
+	{GroundObject, "editor.pass.object"},
+	{GroundStructure, "editor.pass.structure"},
+}
+
 // GroundArms is, per in-bounds cell and row-major, why PassabilityWith(m, t)
 // closes the cell to a ground mover: zero exactly where that plane's ground
 // bit is clear. It reads the plane and the occupancy of the one derivation

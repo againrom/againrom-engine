@@ -230,10 +230,10 @@ func brushWords(t *testing.T, e *MapEditor) []string {
 		}
 		out = append(out, e.helpLines()...)
 	}
-	for arm := PassBorder; arm <= PassStructure; arm <<= 1 {
-		out = append(out, e.passArmWord(arm))
+	for _, r := range hostPassArms() {
+		out = append(out, e.word(r.Word))
 	}
-	out = append(out, e.word("editor.pass.open"), fmt.Sprintf(e.word("editor.pass.closed"), e.passArmWord(PassWater)), fmt.Sprintf(e.word("editor.height.cell"), 3))
+	out = append(out, e.word("editor.pass.open"), fmt.Sprintf(e.word("editor.pass.closed"), e.word(passArmRow(passWater).Word)), fmt.Sprintf(e.word("editor.height.cell"), 3))
 	for _, l := range []helpLine{lineBrush, linePassability} {
 		out = append(out, e.word(l.Word))
 	}

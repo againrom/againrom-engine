@@ -40,7 +40,7 @@ var newRecordKinds = map[string]newRecordKind{
 			if !ok {
 				return -1, fmt.Errorf("select a cell spell template")
 			}
-			if err := insideMap(s.batch, r.Cell, "spell cell", "Enchantment"); err != nil {
+			if err := s.admitCell(s.batch, r.Cell, "spell cell", "Enchantment", admitAdd); err != nil {
 				return -1, err
 			}
 			link := recordValue(r, "link")
@@ -251,8 +251,8 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	if err != nil {
 		return err
 	}
-	if ringRefuses[r.Kind] && mapload.Playable(view).Empty() {
-		return fmt.Errorf("the map has no playable area: its border ring covers every cell")
+	if err := playableAreaError(view, r.Kind, admitAdd); err != nil {
+		return err
 	}
 	for _, v := range recordValues(r, key) {
 		switch key {
@@ -294,7 +294,7 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 		}
 	}
 	if key == "cell" && r.HasCell {
-		return insideMap(s.model, r.Cell, "cell", r.Kind)
+		return s.admitCell(s.model, r.Cell, "cell", r.Kind, admitAdd)
 	}
 	return nil
 }

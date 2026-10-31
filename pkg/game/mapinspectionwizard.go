@@ -377,17 +377,17 @@ func dropUnnamed(m *mapedit.Editor, before []alm.ScriptTrigger) error {
 
 // fixedDropCell refuses a cell the game would not land the hero on: a zero
 // on either axis asks for the random fallback cell (MISSION-DROP-002).
-func fixedDropCell(m *mapedit.Editor, cell image.Point) error {
+func (s *mapInspectionEdits) fixedDropCell(m *mapedit.Editor, cell image.Point) error {
 	if cell.X == 0 || cell.Y == 0 {
 		return fmt.Errorf("drop cell %d,%d: a zero on either axis makes the game pick a random cell instead; use a cell from 1", cell.X, cell.Y)
 	}
-	return insideMap(m, cell, "drop cell", ringDrop)
+	return s.admitCell(m, cell, "drop cell", ringDrop, admitAdd)
 }
 
 // AddDropZone adds a drop zone on cell as the shipped maps write one.
 func (s *mapInspectionEdits) AddDropZone(cell image.Point) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := fixedDropCell(m, cell); err != nil {
+		if err := s.fixedDropCell(m, cell); err != nil {
 			return false, err
 		}
 		_, err := m.AddDropZone(uint32(cell.X), uint32(cell.Y))
@@ -398,7 +398,7 @@ func (s *mapInspectionEdits) AddDropZone(cell image.Point) (*ui.InspectionDocume
 // MoveDropZone moves zone's cell to cell.
 func (s *mapInspectionEdits) MoveDropZone(zone int, cell image.Point) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := fixedDropCell(m, cell); err != nil {
+		if err := s.fixedDropCell(m, cell); err != nil {
 			return false, err
 		}
 		at, err := dropZoneAction(m, zone)

@@ -3589,5 +3589,10 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10032715,
+
+	// It rose for the one cell admission table: pkg/game's
+	// mapcelladmission.go and its test, mapload's arm table in
+	// groundarms.go, the editor's arm rows in pkg/ui, the guard in
+	// internal/archtest/celladmission_test.go, and this note.
+	CommentBytes: 10036721,
 }

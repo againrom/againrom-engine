@@ -47,20 +47,21 @@ func (x *MapInspector) terrainSwatches() []*image.RGBA {
 	return x.swatches
 }
 
-// passArms is the window's form of the world's ground-block reasons.
+// passArms is the window's form of the world's ground-block reasons: the
+// same bits, which the document's PassArms names.
 func passArms(arms []mapload.GroundArm) []ui.PassArm {
-	pairs := [...]struct {
-		from mapload.GroundArm
-		to   ui.PassArm
-	}{{mapload.GroundBorder, ui.PassBorder}, {mapload.GroundMountain, ui.PassMountain}, {mapload.GroundWater, ui.PassWater},
-		{mapload.GroundFlag, ui.PassFlag}, {mapload.GroundObject, ui.PassObject}, {mapload.GroundStructure, ui.PassStructure}}
 	out := make([]ui.PassArm, len(arms))
 	for i, a := range arms {
-		for _, p := range pairs {
-			if a&p.from != 0 {
-				out[i] |= p.to
-			}
-		}
+		out[i] = ui.PassArm(a)
+	}
+	return out
+}
+
+// passArmRows is the window's form of mapload's arm table.
+func passArmRows() []ui.PassArmRow {
+	out := make([]ui.PassArmRow, len(mapload.GroundArmRows))
+	for i, r := range mapload.GroundArmRows {
+		out[i] = ui.PassArmRow{Arm: ui.PassArm(r.Arm), Word: r.Word, Border: r.Arm == mapload.GroundBorder}
 	}
 	return out
 }

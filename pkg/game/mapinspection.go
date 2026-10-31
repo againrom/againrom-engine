@@ -219,7 +219,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
-	d.Passability = passArms(mapload.GroundArms(m, x.table))
+	d.Passability, d.PassArms = passArms(mapload.GroundArms(m, x.table)), passArmRows()
 	d.Playable = mapload.Playable(m)
 	feet := x.feet(m)
 	add := func(r ui.InspectionRecord) {
