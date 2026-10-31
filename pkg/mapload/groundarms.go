@@ -24,12 +24,12 @@ type GroundArmRow struct {
 // It is the one table of the arms: the host's refusals and the editor's
 // passability view both read it.
 var GroundArmRows = [...]GroundArmRow{
-	{GroundBorder, "editor.pass.border"},
-	{GroundMountain, "editor.pass.mountain"},
-	{GroundWater, "editor.pass.water"},
-	{GroundFlag, "editor.pass.flag"},
-	{GroundObject, "editor.pass.object"},
-	{GroundStructure, "editor.pass.structure"},
+	{Arm: GroundBorder, Word: "editor.pass.border"},
+	{Arm: GroundMountain, Word: "editor.pass.mountain"},
+	{Arm: GroundWater, Word: "editor.pass.water"},
+	{Arm: GroundFlag, Word: "editor.pass.flag"},
+	{Arm: GroundObject, Word: "editor.pass.object"},
+	{Arm: GroundStructure, Word: "editor.pass.structure"},
 }
 
 // GroundArms is, per in-bounds cell and row-major, why PassabilityWith(m, t)

@@ -156,7 +156,7 @@ func TestEveryUsedIDIsInTheEnglishTable(t *testing.T) {
 		table[id] = true
 	}
 	used := map[string]bool{}
-	for _, dir := range []string{"../ui", "../game"} {
+	for _, dir := range []string{"../ui", "../game", "../mapload"} {
 		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 		if err != nil {
 			t.Fatal(err)
