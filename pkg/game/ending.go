@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"strings"
 
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
@@ -41,8 +40,8 @@ func (f *FrontEnd) endingArt() *ui.EndingView {
 		view := f.endingAssets
 		view.HallFont = f.documentFont()
 		if f.Archives != nil && f.Archives.Containers != nil {
-			if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "text/credits.txt"); err == nil {
-				view.Credits = strings.Split(strings.ReplaceAll(strings.TrimSpace(vfs.DecodeText(f.textCode().Bytes(raw))), "\r\n", "\n"), "\n")
+			if credits := installText(f.Archives.Containers, hallCreditsSource.at(), f.textCode()); credits.present() {
+				view.Credits = credits.lines()
 			}
 			set, _ := loadScreen(f.Archives.artSource(), ScreensDescription(f.profile()), "hall-of-fame")
 			view.HallBackground = rgbaOf(set.Picture("background"))

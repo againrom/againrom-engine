@@ -145,11 +145,16 @@ func (x *MapInspector) mapTitle(e MapEntry) string {
 	if !ok || x.archives == nil || x.archives.Containers == nil {
 		return ""
 	}
-	raw, ok := readMissionTitle(x.archives.Containers.ReadFile, n)
-	if !ok {
-		return ""
+	return installText(x.archives.Containers, editorTitleSource.at(n), x.pageCode()).text()
+}
+
+// pageCode is the text code the editor decodes page text under: its font's
+// selector.
+func (x *MapInspector) pageCode() TextCode {
+	if x.font == nil {
+		return TextCode{}
 	}
-	return strings.TrimSpace(x.messageUTF8(raw))
+	return TextCode{Selector: x.font.Selector}
 }
 
 // inspectionUTF8 is the editor's host text in the font's bytes: the install

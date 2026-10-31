@@ -22,12 +22,6 @@ package game
 // install text reader in this tree: a widget with nothing to show is a widget
 // that is not there. The text is in the font's code page under code.
 func ReadShopTip(src entrySource, addr string, code TextCode) (string, bool) {
-	if src == nil {
-		return "", false
-	}
-	b, err := src.ReadFile(addr)
-	if err != nil {
-		return "", false
-	}
-	return string(code.Bytes(b)), true
+	tip := installText(src, tipTextSource.named(addr), code)
+	return string(tip.bytes()), tip.present()
 }

@@ -58,11 +58,12 @@ func heroPictureNames(src entrySource, l *ui.GeneratorDescription, code TextCode
 	if l == nil {
 		return names, fmt.Errorf("no generator description")
 	}
-	b, err := src.ReadFile(l.Words.Names)
-	if err != nil {
+	table := installText(src, textTableSource.named(l.Words.Names), code)
+	if err := table.err(); err != nil {
 		return names, err
 	}
-	rows := SplitTextTable(code.Bytes(b))
+	rows := table.table()
+	var err error
 	for i, hero := range l.PreCreate.Heroes {
 		if names[i], err = chargenTextAt(rows, l.Words.Names, hero.NameLine); err != nil {
 			return [4]string{}, err
@@ -250,12 +251,12 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 			return nil, err
 		}
 	}
-	b, err := src.ReadFile(l.Words.Table)
-	if err != nil {
+	code := InstallTextCode(src, game.Edition())
+	table := installText(src, textTableSource.named(l.Words.Table), code)
+	if err := table.err(); err != nil {
 		return nil, err
 	}
-	code := InstallTextCode(src, game.Edition())
-	rows := SplitTextTable(code.Bytes(b))
+	rows := table.table()
 	a := &ChargenAssets{Presentation: p, Selector: LanguageSelector(src)}
 	get := func(slot int) (string, error) {
 		return chargenTextAt(rows, l.Words.Table, slot)
@@ -263,11 +264,11 @@ func LoadChargenAssets(src terrain.EntrySource, l *ui.GeneratorDescription, game
 	if a.HeroNames, err = heroPictureNames(src, l, code); err != nil {
 		return nil, err
 	}
-	nameRows, err := src.ReadFile(l.Words.Names)
-	if err != nil {
+	nameRows := installText(src, textTableSource.named(l.Words.Names), code)
+	if err := nameRows.err(); err != nil {
 		return nil, err
 	}
-	if a.EnterName, err = chargenTextAt(SplitTextTable(code.Bytes(nameRows)), l.Words.Names, pre.Name.EnterLine); err != nil {
+	if a.EnterName, err = chargenTextAt(nameRows.table(), l.Words.Names, pre.Name.EnterLine); err != nil {
 		return nil, err
 	}
 	if a.Prompt, err = get(pre.Name.Prompt.Slot); err != nil {

@@ -457,7 +457,7 @@ func (c destinationTownCampaign) unavailableTowns() []int {
 	return ids
 }
 func (c destinationTownCampaign) startCampaign() error {
-	if _, err := c.t.in.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); err != nil {
+	if err := installText(c.t.in.Archives.Containers, townTextSource.at(), TextCode{}).err(); err != nil {
 		return fmt.Errorf("initial campaign town: %w", err)
 	}
 	return c.t.start()

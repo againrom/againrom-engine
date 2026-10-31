@@ -311,11 +311,6 @@ func (c countedSource) ReadFile(path string) ([]byte, error) {
 	return c.src.ReadFile(path)
 }
 
-func (a *worldMapAssets) read(src entrySource, path string) ([]byte, error) {
-	a.reads[path]++
-	return src.ReadFile(path)
-}
-
 // marker is mission's own picture: frame 0 of the sheet its registry row
 // names, bound into the gates room's marker entry, read once.
 func (a *worldMapAssets) marker(mission int, obj globalMapObject) *image.RGBA {
@@ -339,39 +334,23 @@ func (a *worldMapAssets) marker(mission int, obj globalMapObject) *image.RGBA {
 }
 
 func WorldMapTextPaths(mission int) (title, briefing string, ok bool) {
-	if mission <= 0 {
-		return "", "", false
-	}
-	base := fmt.Sprintf("%stext/battle/m%d/", mainPrefix, mission)
-	return base + "title.txt", base + "briefmap.txt", true
+	t, b := missionTitleSource.at(mission), missionBriefMapSource.at(mission)
+	return t.path, b.path, t.ok
 }
 
-// readMissionTitle is mission's title file as the install stores it, false
-// when it is missing or blank (TOWN-044). The world map and the editor's map
-// list read it here.
-func readMissionTitle(read func(string) ([]byte, error), mission int) ([]byte, bool) {
-	path, _, ok := WorldMapTextPaths(mission)
-	if !ok {
-		return nil, false
-	}
-	raw, err := read(path)
-	if err != nil || len(strings.TrimSpace(string(raw))) == 0 {
-		return nil, false
-	}
-	return raw, true
-}
-
+// missionText is mission's title and briefing as the install stores them; a
+// file missing or blank keeps the default (TOWN-044).
 func (a *worldMapAssets) missionText(src entrySource, mission int) worldMapText {
 	if got, ok := a.texts[mission]; ok {
 		return got
 	}
-	_, briefPath, _ := WorldMapTextPaths(mission)
+	counted := countedSource{src: src, reads: a.reads}
 	t := worldMapText{title: fmt.Sprintf("Mission %d", mission), brief: "Briefing unavailable"}
-	if raw, ok := readMissionTitle(func(p string) ([]byte, error) { return a.read(src, p) }, mission); ok {
-		t.title = string(raw)
+	if title := installText(counted, missionTitleSource.at(mission), TextCode{}); title.present() {
+		t.title = string(title.bytes())
 	}
-	if raw, err := a.read(src, briefPath); err == nil && len(strings.TrimSpace(string(raw))) > 0 {
-		t.brief = string(raw)
+	if brief := installText(counted, missionBriefMapSource.at(mission), TextCode{}); brief.present() {
+		t.brief = string(brief.bytes())
 	}
 	a.texts[mission] = t
 	return t
@@ -931,8 +910,7 @@ func (f *FrontEnd) WorldMapSweep() (string, error) {
 		}
 		title, brief, _ := WorldMapTextPaths(mission)
 		for _, path := range []string{title, brief} {
-			raw, err := f.Archives.Containers.ReadFile(path)
-			if err != nil || len(raw) == 0 {
+			if !installText(f.Archives.Containers, worldMapPageSource.named(path), TextCode{}).present() {
 				return "", fmt.Errorf("world map sweep: mission %d missing non-empty %s", mission, path)
 			}
 		}

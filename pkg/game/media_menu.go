@@ -138,11 +138,8 @@ func (f *FrontEnd) creditsView() ui.CreditsView {
 	}
 	// The preserved credits nodes use LF internally, unlike the positional
 	// interface tables. Keep empty lines: they reserve space for logos.
-	if raw, err := f.Archives.Containers.ReadFile(mainPrefix + "text/credits.txt"); err == nil && len(raw) <= 256*1024 {
-		v.Lines = strings.Split(strings.TrimSuffix(strings.ReplaceAll(string(f.textCode().Bytes(raw)), "\r\n", "\n"), "\n"), "\n")
-		if len(v.Lines) > 4096 {
-			v.Lines = v.Lines[:4096]
-		}
+	if credits := installText(f.Archives.Containers, creditsRollSource.at(), f.textCode()); credits.present() {
+		v.Lines = credits.lines()
 	}
 	// Each manifest entry logo/<name> is the picture a line naming <name>
 	// shows (ui.CreditsLogoName).

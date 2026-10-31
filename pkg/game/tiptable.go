@@ -40,9 +40,9 @@ func TipTable(e base.Edition) *ui.TipTable { return tipTables[e.Tips] }
 // readTipText reads one row text from the install: the whole file, or one
 // section of it; empty when the install has none.
 func readTipText(src entrySource, t ui.TipText, code TextCode) string {
-	text, _ := ReadShopTip(src, t.File, code)
-	if t.Section == "" || text == "" {
+	if t.Section == "" {
+		text, _ := ReadShopTip(src, t.File, code)
 		return text
 	}
-	return secondGameTextSection([]byte(text), t.Section)
+	return installText(src, tipSectionSource.named(t.File), code).section(t.Section)
 }

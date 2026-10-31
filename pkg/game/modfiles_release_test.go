@@ -83,9 +83,9 @@ func modFilesInstall(t *testing.T) (*FrontEnd, int) {
 	return f, slot
 }
 
-// installText is the install's text file at address as UTF-8 lines, read as
-// the text readers read it.
-func installText(t *testing.T, f *FrontEnd, address string) []string {
+// installUTF8Lines is the install's text file at address as UTF-8 lines, read
+// as the text readers read it.
+func installUTF8Lines(t *testing.T, f *FrontEnd, address string) []string {
 	t.Helper()
 	raw, err := f.Archives.Containers.ReadFile(address)
 	if err != nil {
@@ -146,7 +146,7 @@ func writeInstallFilesMod(t *testing.T, f *FrontEnd, slot int, mods, id, extra, 
 		write("files/ru/main/text/battle/m10/briefing.txt", []byte("Идите на восток."))
 	}
 	write("files/common/sfx/"+f.SoundBank.entries[slot], modToneWAV())
-	sites := installText(t, f, SitesTextPath)
+	sites := installUTF8Lines(t, f, SitesTextPath)
 	write("files/en/main/text/sites.txt", withFirstLine(sites, "East"))
 	write("files/ru/main/text/sites.txt", withFirstLine(sites, "Восток"))
 }
@@ -399,7 +399,7 @@ func TestReleaseModInstallFilesOfTwoModsFollowTheLoadOrder(t *testing.T) {
 		t.Fatalf("unordered: %v", err)
 	}
 	writeInstallFilesMod(t, f, slot, mods, "second-art", "load-after = [\"first-art\"]\n", "")
-	sites := installText(t, f, SitesTextPath)
+	sites := installUTF8Lines(t, f, SitesTextPath)
 	common := filepath.Join(mods, "second-art", "files", "common", "main", "text")
 	if err := os.MkdirAll(common, 0o755); err != nil {
 		t.Fatal(err)
@@ -435,7 +435,7 @@ func TestReleaseSecondModInstallFilesDrawPlayAndPrintTheModsFiles(t *testing.T) 
 	mods := t.TempDir()
 	writeInstallFilesMod(t, f, slot, mods, "install-art", "", "")
 	address := mainPrefix + "text/mission10.txt"
-	lines := installText(t, f, address)
+	lines := installUTF8Lines(t, f, address)
 	text := strings.Join(lines, "\n")
 	at := strings.Index(strings.ToLower(text), "#briefing")
 	if at < 0 {
@@ -481,7 +481,7 @@ func TestReleaseModInstallFilesTextModIsMarkedAndItsSaveNeedsTheMod(t *testing.T
 	if f.Archives.Game() != base.GameROM1 {
 		t.Skip("the root holds the second game")
 	}
-	lines := installText(t, f, HeroPictureAddress)
+	lines := installUTF8Lines(t, f, HeroPictureAddress)
 	body := slices.Clone(lines)
 	for i, l := range body {
 		if strings.TrimSpace(l) == "" {

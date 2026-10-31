@@ -125,7 +125,7 @@ func (b *modFiles) serveInstallFiles(a *Archives, files []mod.InstallFile) error
 			if r, dropped := ModTextDropped(data, selector); dropped {
 				err = fmt.Errorf("the install's alphabet has no %q (%U)", r, r)
 			}
-			data = code.FileBytes(EncodeInstallTextFile(data, selector))
+			data = code.modTextFile(data, selector)
 		default:
 			err = fmt.Errorf("the game takes no install file of kind %q", file.Kind)
 		}

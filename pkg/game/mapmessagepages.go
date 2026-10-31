@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
@@ -80,17 +79,7 @@ func messageLines(body string) []string {
 }
 
 func (x *MapInspector) messageUTF8(b []byte) string {
-	if utf8.Valid(b) {
-		return string(b)
-	}
-	selector := 0
-	if x.font != nil {
-		selector = x.font.Selector
-	}
-	if decoded, ok := DecodeInstallTextFile(b, selector); ok {
-		return string(decoded)
-	}
-	return string(b)
+	return installText(nil, editorPageSource.holding(b), x.pageCode()).text()
 }
 
 func splitMessage(raw string) (string, int64) {

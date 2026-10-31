@@ -92,11 +92,7 @@ func (mw *mapWorld) cheatReply(code int, owner uint32) {
 	if code == 0 || mw.mission == nil || mw.mission.src == nil {
 		return
 	}
-	raw, err := mw.mission.src.ReadFile(MainTextPath)
-	if err != nil {
-		return
-	}
-	lines := strings.Split(strings.ReplaceAll(string(raw), "\r\n", "\n"), "\n")
+	lines := installText(mw.mission.src, cheatLinesSource.at(), TextCode{}).lines()
 	index := 221 + 2*(code-5)
 	if index < 0 || index+1 >= len(lines) {
 		return

@@ -42,11 +42,11 @@ func readItemNamesAt(src entrySource, keys string, code TextCode) (data.ItemName
 	if err != nil {
 		return nil, false
 	}
-	txt, err := src.ReadFile(ItemNameTextAddress)
-	if err != nil {
+	txt := installText(src, itemNameTextSource.at(), code)
+	if !txt.present() {
 		return nil, false
 	}
-	raw := itemname.Parse(bin, code.Bytes(txt))
+	raw := itemname.Parse(bin, txt.bytes())
 	names := make(data.ItemNames, len(raw))
 	for k, v := range raw {
 		names[data.ItemCode(k)] = v

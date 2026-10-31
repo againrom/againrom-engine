@@ -1596,11 +1596,7 @@ func (in *InstallResources) localizedNPCName(index int, fallback string) string 
 	if in == nil || in.Archives == nil || in.Archives.Containers == nil || index < 0 {
 		return fallback
 	}
-	payload, err := in.Archives.Containers.ReadFile(mainPrefix + "text/npcnames.txt")
-	if err != nil {
-		return fallback
-	}
-	lines := strings.Split(strings.ReplaceAll(string(in.textCode().Bytes(payload)), "\r\n", "\n"), "\n")
+	lines := installText(in.Archives.Containers, npcNameLinesSource.at(), in.textCode()).lines()
 	if index >= len(lines) || lines[index] == "" {
 		return fallback
 	}

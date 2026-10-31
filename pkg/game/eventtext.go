@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -29,10 +28,8 @@ import (
 // caller's arithmetic reaching an archive as a lookup that merely happens to
 // miss.
 func EventTextPath(mission, event int) (string, bool) {
-	if mission <= 0 || event <= 0 {
-		return "", false
-	}
-	return fmt.Sprintf("%stext/battle/m%d/event%02d.txt", mainPrefix, mission, event), true
+	a := eventTextSource.at(mission, event)
+	return a.path, a.ok
 }
 
 // ReadEventText reads the event text mission n's event number e names, and
@@ -50,18 +47,8 @@ func EventTextPath(mission, event int) (string, bool) {
 // mission, and each of those shows the player something the original does not.
 // Two values is what makes those unreachable from every call site at once.
 func ReadEventText(src entrySource, mission, event int) ([]byte, bool) {
-	if src == nil {
-		return nil, false
-	}
-	addr, ok := EventTextPath(mission, event)
-	if !ok {
-		return nil, false
-	}
-	b, err := src.ReadFile(addr)
-	if err != nil {
-		return nil, false
-	}
-	return b, true
+	text := installText(src, eventTextSource.at(mission, event), TextCode{})
+	return text.bytes(), text.present()
 }
 
 // The three literals this file looks for. THEY ARE SPELT ONCE AND IN LOWER CASE,

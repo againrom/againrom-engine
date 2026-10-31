@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"strings"
 
 	rendertext "againrom/pkg/render/text"
 	"againrom/pkg/town"
@@ -331,8 +330,9 @@ func (a *worldMapAssets) worldMapRecordText(in *InstallResources, kind string, i
 	if !a.recordTextTried {
 		a.recordTextTried = true
 		if in != nil && in.Archives != nil && in.Archives.Containers != nil {
-			if raw, err := a.read(in.Archives.Containers, t.Source); err == nil {
-				a.recordText = string(in.textCode().Bytes(raw))
+			counted := countedSource{src: in.Archives.Containers, reads: a.reads}
+			if records := installText(counted, worldMapRecordSource.named(t.Source), in.textCode()); records.present() {
+				a.recordText = string(records.bytes())
 			}
 		}
 	}
@@ -341,11 +341,7 @@ func (a *worldMapAssets) worldMapRecordText(in *InstallResources, kind string, i
 		if !ok {
 			return ""
 		}
-		body := secondGameTextSection([]byte(a.recordText), fmt.Sprintf(format, id))
-		if len(body) < t.Trim {
-			return ""
-		}
-		return strings.TrimRight(body[:len(body)-t.Trim], "\x00")
+		return installText(nil, heldSectionSource.holding([]byte(a.recordText)), TextCode{}).sectionCut(fmt.Sprintf(format, id), t.Trim)
 	}
 	return find(t.Name), find(t.Description)
 }

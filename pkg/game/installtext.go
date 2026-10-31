@@ -10,6 +10,8 @@ import (
 	"againrom/pkg/vfs"
 	"againrom/pkg/words"
 	"bytes"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -274,9 +276,11 @@ func spellBookRowName(s string) string {
 
 // TextCode is how an install's text files reach its font: the code page the
 // install writes them in and the one the font draws. The zero TextCode keeps
-// every byte.
+// every byte. Selector is the font selector the mod editor's page text is
+// decoded under; only the page codecs read it.
 type TextCode struct {
 	From, To int
+	Selector int
 }
 
 // InstallTextCode is the text code of src's install under edition: its
@@ -324,14 +328,7 @@ func (in *InstallResources) textCode() TextCode {
 // font's code page under code, and splits it. A read failure is no table,
 // which every accessor reports as absent.
 func LoadTextTable(src terrain.EntrySource, addr string, code TextCode) *TextTable {
-	if src == nil {
-		return nil
-	}
-	b, err := src.ReadFile(addr)
-	if err != nil {
-		return nil
-	}
-	return SplitTextTable(code.Bytes(b))
+	return installText(src, textTableSource.named(addr), code).table()
 }
 
 // Lines is how many lines the table holds. A nil table holds none.
@@ -400,10 +397,8 @@ func LoadInstallWords(src terrain.EntrySource, code TextCode) *InstallWords {
 		spellBookNames: LoadTextTable(src, SpellBookNamesTextPath, code),
 		Selector:       LanguageSelector(src),
 	}
-	if src != nil {
-		if b, err := src.ReadFile(HelpTextPath); err == nil {
-			w.help = string(code.Bytes(b))
-		}
+	if help := installText(src, helpTextSource.at(), code); help.present() {
+		w.help = string(help.bytes())
 	}
 	return w
 }
@@ -628,4 +623,294 @@ func (w *InstallWords) Words() ui.Words {
 		}
 	}
 	return out
+}
+
+// textCodec is how a text source row's bytes reach their reader.
+type textCodec uint8
+
+const (
+	storedBytes  textCodec = iota // the bytes as the install stores them
+	fontBytes                     // TextCode.Bytes: the font's code page
+	storedUTF8                    // the stored bytes as DOS Cyrillic, in UTF-8
+	fontUTF8                      // the font's bytes as DOS Cyrillic, in UTF-8
+	pageUTF8                      // DecodeInstallTextFile under the selector; kept when it does not decode
+	heldPageUTF8                  // pageUTF8 for bytes that are kept when they are UTF-8 already
+)
+
+// textAbsence is which read of a source row is no text.
+type textAbsence uint8
+
+const (
+	absentMissing textAbsence = iota // only a failed read; an empty file is text
+	absentEmpty                      // a failed read or a file of no bytes
+	absentBlank                      // a failed read or a file of only white space
+)
+
+// textForm is how a reader takes a row's text apart: whole, the loader's CR
+// walk, CRLF-or-LF lines, or #key sections.
+type textForm uint8
+
+const (
+	wholeText textForm = iota
+	tableLines
+	lfLines
+	keySections
+)
+
+// textEdge is what the row trims: white space at both ends before the split,
+// or one final LF after CRLF becomes LF.
+type textEdge uint8
+
+const (
+	edgeKept textEdge = iota
+	edgeTrimSpace
+	edgeFinalLF
+)
+
+// textSource is one row of installText. Its address form is fixed (address),
+// numbered (address is a pattern of positive numbers), named by the caller
+// (no address) or held (the caller already holds the bytes). A file over limit
+// bytes is absent; maxLines cuts a line list.
+type textSource struct {
+	address  string
+	numbered bool
+	held     bool
+	codec    textCodec
+	absence  textAbsence
+	limit    int
+	maxLines int
+	form     textForm
+	edge     textEdge
+}
+
+// The text source rows: every install text file pkg/game reads is read by
+// installText under one of them.
+var (
+	textTableSource       = &textSource{codec: fontBytes, form: tableLines}
+	helpTextSource        = &textSource{address: HelpTextPath, codec: fontBytes}
+	tipTextSource         = &textSource{codec: fontBytes}
+	tipSectionSource      = &textSource{codec: fontBytes, form: keySections}
+	briefingSource        = &textSource{address: mainPrefix + "text/battle/m%d/briefing.txt", numbered: true, codec: storedUTF8, edge: edgeTrimSpace}
+	eventTextSource       = &textSource{address: mainPrefix + "text/battle/m%d/event%02d.txt", numbered: true}
+	missionTextSource     = &textSource{address: mainPrefix + "text/mission%d.txt", numbered: true, codec: fontBytes, form: keySections}
+	townTextSource        = &textSource{address: secondTownText, codec: fontBytes, form: keySections}
+	townDialogueSource    = &textSource{}
+	missionTitleSource    = &textSource{address: mainPrefix + "text/battle/m%d/title.txt", numbered: true, absence: absentBlank}
+	missionBriefMapSource = &textSource{address: mainPrefix + "text/battle/m%d/briefmap.txt", numbered: true, absence: absentBlank}
+	editorTitleSource     = &textSource{address: mainPrefix + "text/battle/m%d/title.txt", numbered: true, codec: heldPageUTF8, absence: absentBlank, edge: edgeTrimSpace}
+	worldMapPageSource    = &textSource{absence: absentEmpty}
+	worldMapRecordSource  = &textSource{codec: fontBytes}
+	heldSectionSource     = &textSource{held: true, form: keySections}
+	missionPageSource     = &textSource{}
+	installedPageSource   = &textSource{codec: pageUTF8}
+	editorPageSource      = &textSource{held: true, codec: heldPageUTF8}
+	reportPartSource      = &textSource{held: true, codec: storedUTF8}
+	creditsRollSource     = &textSource{address: mainPrefix + "text/credits.txt", codec: fontBytes, limit: 256 * 1024, maxLines: 4096, form: lfLines, edge: edgeFinalLF}
+	hallCreditsSource     = &textSource{address: mainPrefix + "text/credits.txt", codec: fontUTF8, form: lfLines, edge: edgeTrimSpace}
+	npcNameLinesSource    = &textSource{address: mainPrefix + "text/npcnames.txt", codec: fontBytes, form: lfLines}
+	cheatLinesSource      = &textSource{address: MainTextPath, form: lfLines}
+	itemNameTextSource    = &textSource{address: ItemNameTextAddress, codec: fontBytes}
+	heroPictureSource     = &textSource{address: HeroPictureAddress}
+)
+
+// textAddress is one file of a row: its address, or the bytes a held row
+// holds. A numbered row refuses a number that is not positive.
+type textAddress struct {
+	row  *textSource
+	path string
+	ok   bool
+	held []byte
+}
+
+// at is the row's fixed address, or its pattern filled with n.
+func (s *textSource) at(n ...int) textAddress {
+	if !s.numbered {
+		return textAddress{row: s, path: s.address, ok: true}
+	}
+	args := make([]any, len(n))
+	for i, v := range n {
+		if v <= 0 {
+			return textAddress{row: s}
+		}
+		args[i] = v
+	}
+	return textAddress{row: s, path: fmt.Sprintf(s.address, args...), ok: true}
+}
+
+// named is the row read at the caller's address.
+func (s *textSource) named(path string) textAddress {
+	return textAddress{row: s, path: path, ok: true}
+}
+
+// holding is a held row over bytes the caller already holds.
+func (s *textSource) holding(b []byte) textAddress {
+	return textAddress{row: s, ok: true, held: b}
+}
+
+var (
+	errNoTextArchive = errors.New("no install text archive")
+	errNoTextAddress = errors.New("no install text address")
+)
+
+// lineText is one install text file as its row reads it.
+type lineText struct {
+	row     *textSource
+	body    []byte
+	ok      bool
+	readErr error
+}
+
+// installText reads the file at a under its row: the read, the absence rule
+// and the codec. Every install text file pkg/game reads comes through here.
+func installText(src entrySource, a textAddress, code TextCode) lineText {
+	t := lineText{row: a.row}
+	b := a.held
+	switch {
+	case a.row.held:
+	case !a.ok:
+		t.readErr = errNoTextAddress
+		return t
+	case src == nil:
+		t.readErr = errNoTextArchive
+		return t
+	default:
+		raw, err := src.ReadFile(a.path)
+		if err != nil {
+			t.readErr = err
+			return t
+		}
+		b = raw
+	}
+	switch {
+	case a.row.limit > 0 && len(b) > a.row.limit,
+		a.row.absence == absentEmpty && len(b) == 0,
+		a.row.absence == absentBlank && len(strings.TrimSpace(string(b))) == 0:
+		return t
+	}
+	t.body, t.ok = a.row.codec.decode(b, code), true
+	return t
+}
+
+func (c textCodec) decode(b []byte, code TextCode) []byte {
+	switch c {
+	case fontBytes:
+		return code.Bytes(b)
+	case storedUTF8:
+		return []byte(vfs.DecodeText(b))
+	case fontUTF8:
+		return []byte(vfs.DecodeText(code.Bytes(b)))
+	case heldPageUTF8:
+		if utf8.Valid(b) {
+			return b
+		}
+		fallthrough
+	case pageUTF8:
+		if u, ok := DecodeInstallTextFile(b, code.Selector); ok {
+			return u
+		}
+	}
+	return b
+}
+
+// present reports whether the row found text there.
+func (t lineText) present() bool { return t.ok }
+
+// err is the failed read's error, nil when the read succeeded.
+func (t lineText) err() error { return t.readErr }
+
+// bytes is the whole text, nil when absent.
+func (t lineText) bytes() []byte { return t.body }
+
+// text is the whole text with the row's edge trimmed.
+func (t lineText) text() string {
+	if t.row.edge == edgeTrimSpace {
+		return strings.TrimSpace(string(t.body))
+	}
+	return string(t.body)
+}
+
+func (t lineText) must(form textForm) {
+	if t.row.form != form {
+		panic("install text row read in another form")
+	}
+}
+
+// table is the loader's CR walk over the text, nil when absent.
+func (t lineText) table() *TextTable {
+	t.must(tableLines)
+	if !t.ok {
+		return nil
+	}
+	return SplitTextTable(t.body)
+}
+
+// lines is the text split on LF after CRLF becomes LF, nil when absent.
+func (t lineText) lines() []string {
+	t.must(lfLines)
+	if !t.ok {
+		return nil
+	}
+	s := string(t.body)
+	if t.row.edge == edgeTrimSpace {
+		s = strings.TrimSpace(s)
+	}
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	if t.row.edge == edgeFinalLF {
+		s = strings.TrimSuffix(s, "\n")
+	}
+	out := strings.Split(s, "\n")
+	if t.row.maxLines > 0 && len(out) > t.row.maxLines {
+		out = out[:t.row.maxLines]
+	}
+	return out
+}
+
+// section is key's section of the text, empty when it has none.
+func (t lineText) section(key string) string {
+	t.must(keySections)
+	if !t.ok {
+		return ""
+	}
+	return secondGameTextSection(t.body, key)
+}
+
+// sectionText is key's section in UTF-8, trimmed of white space, and whether
+// the text has the section.
+func (t lineText) sectionText(key string) (string, bool) {
+	s := t.section(key)
+	return strings.TrimSpace(vfs.DecodeText([]byte(s))), s != ""
+}
+
+// sectionCut is key's section less its last n bytes and the NULs before them;
+// empty when the section is shorter than n.
+func (t lineText) sectionCut(key string, n int) string {
+	s := t.section(key)
+	if len(s) < n {
+		return ""
+	}
+	return strings.TrimRight(s[:len(s)-n], "\x00")
+}
+
+// R2-ENGINE-049/050: first substring, two separator bytes, then the next '#'.
+func secondGameTextSection(payload []byte, key string) string {
+	source := string(dialoguePayload(payload))
+	at := strings.Index(source, "#"+strings.ToLower(key))
+	if at < 0 {
+		return ""
+	}
+	start := at + len(key) + 3
+	if start >= len(source) {
+		return ""
+	}
+	body := source[start:]
+	if end := strings.IndexByte(body, '#'); end >= 0 {
+		body = body[:end]
+	}
+	return body
+}
+
+// modTextFile is a mod's UTF-8 text file as the install's text files hold it:
+// EncodeInstallTextFile's bytes in the install's code page under c.
+func (c TextCode) modTextFile(b []byte, selector int) []byte {
+	return c.FileBytes(EncodeInstallTextFile(b, selector))
 }

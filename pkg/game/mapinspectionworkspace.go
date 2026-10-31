@@ -212,16 +212,7 @@ func (s *mapInspectionEdits) WorkspaceFields(scope string) []ui.InspectionField 
 		if s.page == "" {
 			s.page = "title.txt"
 		}
-		value := s.workspace.Pages[s.page]
-		if !utf8.Valid(value) {
-			selector := 0
-			if s.inspector.font != nil {
-				selector = s.inspector.font.Selector
-			}
-			if decoded, ok := DecodeInstallTextFile(value, selector); ok {
-				value = decoded
-			}
-		}
+		value := installText(nil, editorPageSource.holding(s.workspace.Pages[s.page]), s.inspector.pageCode()).bytes()
 		book := words.For(s.inspector.pageLanguage())
 		return []ui.InspectionField{workspaceText("page", book.Text("editor.pages.file"), s.page), workspaceText("body", book.Text("editor.pages.body"), string(value))}
 	case "package":

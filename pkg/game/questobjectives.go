@@ -5,21 +5,13 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
-	"againrom/pkg/vfs"
 )
 
 // MissionObjectives reads the installed briefing for this mission. The owner
 // identified m110's briefing on the original objectives panel. MISSION-TEXT-005
 // establishes the mission text family; ALM.Description is a map label.
 func MissionObjectives(src entrySource, mission int) string {
-	if src == nil || mission <= 0 {
-		return ""
-	}
-	raw, err := src.ReadFile(fmt.Sprintf("%stext/battle/m%d/briefing.txt", mainPrefix, mission))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(vfs.DecodeText(raw))
+	return installText(src, briefingSource.at(mission), TextCode{}).text()
 }
 
 // MissionObjectivesFor is the objectives text of the mission as game g's files
@@ -31,25 +23,22 @@ func MissionObjectivesFor(src entrySource, game base.Game, mission int) string {
 // secondGameBriefing is the briefing section of the second game's mission text
 // file.
 func secondGameBriefing(src entrySource, e base.Edition, mission int) string {
-	payload, ok := readSecondGameMissionText(src, InstallTextCode(src, e), mission)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(vfs.DecodeText([]byte(secondGameTextSection(payload, "briefing"))))
+	briefing, _ := installText(src, missionTextSource.at(mission), InstallTextCode(src, e)).sectionText("briefing")
+	return briefing
 }
 
 func secondGameObjectiveLabels(src entrySource, code TextCode, mission int) []string {
-	payload, ok := readSecondGameMissionText(src, code, mission)
-	if !ok {
+	text := installText(src, missionTextSource.at(mission), code)
+	if !text.present() {
 		return nil
 	}
 	var labels []string
 	for i := 0; i < 1024-752; i++ {
-		label := secondGameTextSection(payload, fmt.Sprintf("subobjective%d", i))
-		if label == "" {
+		label, ok := text.sectionText(fmt.Sprintf("subobjective%d", i))
+		if !ok {
 			break
 		}
-		labels = append(labels, strings.TrimSpace(vfs.DecodeText([]byte(label))))
+		labels = append(labels, label)
 	}
 	return labels
 }

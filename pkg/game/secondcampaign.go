@@ -335,11 +335,11 @@ const secondTownText = mainPrefix + "text/town.txt"
 // readSecondTownTalk reads the npc%dtalk%d section a TALK dispatches; a
 // missing section shows no conversation (DIV-2635).
 func readSecondTownTalk(install *InstallResources, key string) ([]byte, error) {
-	payload, err := install.Archives.Containers.ReadFile(secondTownText)
-	if err != nil {
+	town := installText(install.Archives.Containers, townTextSource.at(), install.textCode())
+	if err := town.err(); err != nil {
 		return nil, fmt.Errorf("initial campaign town: %w", err)
 	}
-	body := secondGameTextSection(install.textCode().Bytes(payload), key)
+	body := town.section(key)
 	if body == "" {
 		return nil, nil
 	}

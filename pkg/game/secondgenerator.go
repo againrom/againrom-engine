@@ -205,7 +205,7 @@ func (f *FrontEnd) startSecondGenerated(res ui.ChargenResult) error {
 	if f.Archives == nil || f.Archives.Containers == nil {
 		return fmt.Errorf("initial campaign town: no install")
 	}
-	if _, err := f.Archives.Containers.ReadFile(mainPrefix + "text/town.txt"); err != nil {
+	if err := installText(f.Archives.Containers, townTextSource.at(), TextCode{}).err(); err != nil {
 		return fmt.Errorf("initial campaign town: %w", err)
 	}
 	party := f.ChargenParty(res)

@@ -34,11 +34,11 @@ func ReadBodyList(src entrySource) (data.BodyList, bool) {
 	if src == nil {
 		return data.BodyList{}, false
 	}
-	b, err := src.ReadFile(HeroPictureAddress)
-	if err != nil {
+	pictures := installText(src, heroPictureSource.at(), TextCode{})
+	if !pictures.present() {
 		return data.BodyList{}, false
 	}
-	list := data.ParseBodyList(b)
+	list := data.ParseBodyList(pictures.bytes())
 	if choice, err := src.ReadFile(ModBodyChoiceAddress); err == nil {
 		list = applyBodyChoice(list, choice)
 	}

@@ -96,21 +96,18 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 // which a mod serves unchanged.
 func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
 	pages := map[string][]byte{}
-	selector := LanguageSelector(src)
+	code := TextCode{Selector: LanguageSelector(src)}
 	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(n) + "/"
 	for _, e := range src.Entries() {
 		name, ok := strings.CutPrefix(strings.ToLower(e.Address), prefix)
 		if !ok || !missionPageName(name) {
 			continue
 		}
-		b, err := src.ReadFile(e.Address)
-		if err != nil {
+		page := installText(src, installedPageSource.named(e.Address), code)
+		if err := page.err(); err != nil {
 			return nil, err
 		}
-		if u, ok := DecodeInstallTextFile(b, selector); ok {
-			b = u
-		}
-		pages[name] = b
+		pages[name] = page.bytes()
 	}
 	return pages, nil
 }

@@ -297,8 +297,7 @@ func (t *townScreen) townPayload() []byte {
 	if !ok || t.in.Archives == nil || t.in.Archives.Containers == nil {
 		return nil
 	}
-	payload, _ := t.in.Archives.Containers.ReadFile(path)
-	return payload
+	return installText(t.in.Archives.Containers, townDialogueSource.named(path), TextCode{}).bytes()
 }
 
 func (t *townScreen) townTextPath() (string, bool) {
@@ -331,11 +330,7 @@ func (t *townScreen) townPayloadFor(building TownBuilding, offer TownOffer, npc 
 	if !ok || t.in.Archives == nil || t.in.Archives.Containers == nil {
 		return nil
 	}
-	payload, err := t.in.Archives.Containers.ReadFile(path)
-	if err != nil {
-		return nil
-	}
-	return payload
+	return installText(t.in.Archives.Containers, townDialogueSource.named(path), TextCode{}).bytes()
 }
 
 // openTownDialogue retains a constructed panel after a failed first lookup.

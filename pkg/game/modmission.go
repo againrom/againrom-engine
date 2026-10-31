@@ -209,7 +209,7 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 		for _, name := range slices.Sorted(maps.Keys(m.TextFiles)) {
 			// A page of the other language gives way to the install's page.
 			if m.OtherLanguageTexts[name] {
-				if _, err := src.ReadFile(dir + name); err == nil {
+				if installText(src, missionPageSource.named(dir+name), TextCode{}).present() {
 					continue
 				}
 			}

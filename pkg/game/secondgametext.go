@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"strings"
 
 	"againrom/pkg/base"
 )
@@ -16,23 +15,17 @@ func ReadEventTextFor(src entrySource, game base.Game, mission, event int) ([]by
 // readSecondGameEventText is event's section of the second game's mission
 // text file.
 func readSecondGameEventText(src entrySource, code TextCode, mission, event int) ([]byte, bool) {
-	payload, ok := readSecondGameMissionText(src, code, mission)
-	if !ok {
+	text := installText(src, missionTextSource.at(mission), code)
+	if !text.present() {
 		return nil, false
 	}
-	body := secondGameTextSection(payload, fmt.Sprintf("event%d", event))
+	body := text.section(fmt.Sprintf("event%d", event))
 	return []byte(body), body != ""
 }
 
 func readSecondGameMissionText(src entrySource, code TextCode, mission int) ([]byte, bool) {
-	if src == nil || mission <= 0 {
-		return nil, false
-	}
-	payload, err := src.ReadFile(fmt.Sprintf("%stext/mission%d.txt", mainPrefix, mission))
-	if err != nil {
-		return nil, false
-	}
-	return code.Bytes(payload), true
+	text := installText(src, missionTextSource.at(mission), code)
+	return text.bytes(), text.present()
 }
 
 func secondGameFailureText(src entrySource, code TextCode, mission int) []string {
@@ -44,13 +37,13 @@ func secondGameFailureText(src entrySource, code TextCode, mission int) []string
 // reason n + 2 (R2-ENGINE-629), and the reasons whose entry is the main
 // text slot because the mission text has no section for them.
 func secondGameFailureEntries(src entrySource, code TextCode, mission int) (labels []string, slots []int32) {
-	payload, ok := readSecondGameMissionText(src, code, mission)
-	if !ok {
+	text := installText(src, missionTextSource.at(mission), code)
+	if !text.present() {
 		return nil, nil
 	}
 	words := LoadInstallWords(src, code)
 	for reason := 2; reason < 1024; reason++ {
-		label := secondGameTextSection(payload, fmt.Sprintf("failure%d", reason))
+		label := text.section(fmt.Sprintf("failure%d", reason))
 		if label == "" {
 			if reason > 4 {
 				break
@@ -61,22 +54,4 @@ func secondGameFailureEntries(src entrySource, code TextCode, mission int) (labe
 		labels = append(labels, label)
 	}
 	return labels, slots
-}
-
-// R2-ENGINE-049/050: first substring, two separator bytes, then the next '#'.
-func secondGameTextSection(payload []byte, key string) string {
-	source := string(dialoguePayload(payload))
-	at := strings.Index(source, "#"+strings.ToLower(key))
-	if at < 0 {
-		return ""
-	}
-	start := at + len(key) + 3
-	if start >= len(source) {
-		return ""
-	}
-	body := source[start:]
-	if end := strings.IndexByte(body, '#'); end >= 0 {
-		body = body[:end]
-	}
-	return body
 }

@@ -25,7 +25,6 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
-	"againrom/pkg/vfs"
 )
 
 // PlayWorld is the mission a mission-stage scenario drives: the world, and the
@@ -291,7 +290,7 @@ func (p *PlayWorld) watchAnnouncements(ms *Mission, src entrySource, faces map[i
 // The code page itself lives at the archive tier, which is where this package
 // reaches every other fact about a container entry (0027 SC-8).
 func decodeInstallText(s string) string {
-	return vfs.DecodeText([]byte(s))
+	return installText(nil, reportPartSource.holding([]byte(s)), TextCode{}).text()
 }
 
 // HeadlessAnnouncement is one announcement a drive raised.
