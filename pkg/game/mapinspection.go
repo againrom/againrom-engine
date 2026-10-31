@@ -54,10 +54,12 @@ func NewMapInspector(root string) (*MapInspector, error) {
 		return nil, err
 	}
 	x := &MapInspector{archives: a, tiles: terrain.LoadTileset(a.Containers), tiers: &tierCache{}}
-	if x.statics, err = LoadStatics(a.Containers); err != nil {
+	objects, err := LoadObjectCatalog(a.Containers)
+	if err != nil {
 		return nil, err
 	}
-	x.objectRows = objectBrushRows(a.Containers, x.statics)
+	x.statics = staticsOf(a.Containers, objects)
+	x.objectRows = objectBrushRows(objects, x.statics)
 	if x.structures, err = LoadStructures(a.Containers); err != nil {
 		return nil, err
 	}

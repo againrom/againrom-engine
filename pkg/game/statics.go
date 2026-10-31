@@ -1,25 +1,9 @@
 package game
 
 import (
-	"fmt"
-
-	"againrom/pkg/data"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 )
-
-// REG-OBJ-047
-
-// ObjectRegistry is the ADDRESS the object classes are loaded from: the graphics
-// container's identity segment and the entry inside it, folded and
-// forward-separated as every address is compared.
-//
-// The identity segment is part of the name because ONE string now identifies
-// this registry across every container an install ships, so this package
-// states which container its classes come from instead of leaving its caller
-// to know it out of band.
-const ObjectRegistry = graphicsPrefix + "objects/objects.reg"
 
 // LoadStatics decodes the object classes and their drawn frames out of the
 // graphics container into the render tier's bundle.
@@ -47,22 +31,15 @@ const ObjectRegistry = graphicsPrefix + "objects/objects.reg"
 // (SPR256-FRAME-023). The cache is per call and is dropped with it, so nothing
 // here holds an archive's bytes past the load.
 func LoadStatics(src terrain.EntrySource) (*terrain.StaticSet, error) {
-	if src == nil {
-		return nil, fmt.Errorf("%s: no graphics archive", ObjectRegistry)
-	}
-	stream, err := src.ReadFile(ObjectRegistry)
+	classes, err := LoadObjectCatalog(src)
 	if err != nil {
 		return nil, err
 	}
-	r, err := reg.Parse(stream)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ObjectRegistry, err)
-	}
-	classes, err := data.LoadObjectClasses(r)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ObjectRegistry, err)
-	}
+	return staticsOf(src, classes), nil
+}
 
+// staticsOf builds the bundle from an already loaded catalog.
+func staticsOf(src terrain.EntrySource, classes *ObjectCatalog) *terrain.StaticSet {
 	sheets := sheetCache{
 		src:       src,
 		decoded:   make(map[string]*spr256.Sprite),
@@ -121,7 +98,7 @@ func LoadStatics(src terrain.EntrySource) (*terrain.StaticSet, error) {
 		variant.Frame, variant.Index, variant.Timeline, variant.Dead = dead.Frames[0], 0, nil, nil
 		set.Classes[b].Dead = &variant
 	}
-	return set, nil
+	return set
 }
 
 // sheetCache reads and decodes each .256 sheet once per load, remembering the

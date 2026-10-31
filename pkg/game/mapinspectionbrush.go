@@ -7,9 +7,7 @@ import (
 	"slices"
 	"sync/atomic"
 
-	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
@@ -221,28 +219,20 @@ func (s *mapInspectionEdits) BrushMaxRadius() int { return mapedit.MaxRadius }
 // the object registry the game can draw (a class with a frame), in placement
 // byte order, named by its DescText. The editor words the clear row and a
 // class without a DescText in the install's language.
-func objectBrushRows(src terrain.EntrySource, set *terrain.StaticSet) []ui.BrushObject {
+func objectBrushRows(catalog *ObjectCatalog, set *terrain.StaticSet) []ui.BrushObject {
 	rows := []ui.BrushObject{{Code: 0}}
 	if set == nil {
 		return rows
-	}
-	names := map[int]string{}
-	if stream, err := src.ReadFile(ObjectRegistry); err == nil {
-		if r, err := reg.Parse(stream); err == nil {
-			if classes, err := data.LoadObjectClasses(r); err == nil {
-				for b := 1; b <= 0xff; b++ {
-					if c, ok := classes.ByCode(byte(b)); ok {
-						names[b] = c.DescText
-					}
-				}
-			}
-		}
 	}
 	for b := 1; b <= 0xff; b++ {
 		if c := set.Classes[b]; c == nil || c.Frame == nil {
 			continue
 		}
-		rows = append(rows, ui.BrushObject{Code: b, Name: names[b]})
+		name := ""
+		if catalog != nil {
+			name = catalog.Name(byte(b))
+		}
+		rows = append(rows, ui.BrushObject{Code: b, Name: name})
 	}
 	return rows
 }
