@@ -252,12 +252,11 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		return nil
 	}
 	var out []ui.InspectionField
-	var script alm.Script
-	var scriptView *alm.Map
+	var script *alm.Script
 	if scriptKind(k) {
 		if view, e := s.model.Map(); e == nil {
-			scriptView = view
-			script, _ = view.Script()
+			sc, _ := view.Script()
+			script = &sc
 		}
 	}
 	template := s.unitTemplate(k, index)
@@ -284,7 +283,7 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 				row.Label = label
 			}
 		}
-		row.Choices = s.RecordChoices(kind, index, f.Key)
+		row.Choices = s.fieldChoices(fieldChoiceAsk{kind: kind, index: index, key: f.Key, script: script})
 		if f.Text != nil {
 			row.TextValue, err = s.model.TextFieldValue(k, index, f.Key)
 		} else {
@@ -296,12 +295,6 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 		if k == mapedit.KindUnit {
 			template.unitFieldValue(&row)
 			template.describe(&row)
-		}
-		if scriptView != nil {
-			row.Choices = scriptFieldChoices(kind, f.Key, script, s.inspector.inspectionUTF8)
-			if strings.HasPrefix(f.Key, "value") {
-				row.Choices = s.scriptParameterChoices(script, k, index, f.Key)
-			}
 		}
 		out = append(out, row)
 	}
@@ -884,10 +877,8 @@ func mapOutputDirectory(abs string) (string, error) {
 	return parent, nil
 }
 
-// Save As creates a new host file only. It cannot overwrite an input, an
-// existing file, or either preserved install, even through an alias. The
-// original-format save guard is reused for its physical-directory and archive
-// checks, not for any SAV serialization. No directories are created here.
+// writeEditedMap writes a host file, never an input or a preserved install,
+// even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	if strings.TrimSpace(path) == "" || !strings.EqualFold(filepath.Ext(path), ".alm") {
 		return "", fmt.Errorf("Save As needs an explicit new .alm path")
