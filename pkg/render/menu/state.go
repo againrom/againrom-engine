@@ -1,11 +1,6 @@
 package menu
 
-import (
-	"image"
-	"image/draw"
-
-	"againrom/pkg/render/latch"
-)
+import "againrom/pkg/render/latch"
 
 // State is what the menu shows in one frame: which button is selected, and
 // whether it is shown pressed rather than merely hovered.
@@ -84,58 +79,4 @@ func (s *Selection) State() State {
 		return State{}
 	}
 	return State{Selected: s.hit}
-}
-
-// Overlay returns the single overlay a state asks for: the bitmap and the frame
-// rectangle to draw it at, or ok == false for none.
-//
-// "At most one" is structural here rather than a rule the caller must keep: the
-// signature cannot express two, and State cannot represent two. The rectangle is
-// the button's own row of the hover or pressed table, whose size is that bitmap's
-// own pixel size — so the overlay draws 1:1 in frame pixels and nothing is
-// resampled inside the frame.
-func (a *Assets) Overlay(s State) (img *image.RGBA, at image.Rectangle, ok bool) {
-	if a == nil || s.Selected < 1 || s.Selected > ButtonCount {
-		return nil, image.Rectangle{}, false
-	}
-	i := s.Selected - 1
-	hover, pressed := HoverRects[i], PressedRects[i]
-	if a.place != nil {
-		hover, pressed = a.place.hover[i], a.place.pressed[i]
-	}
-	if s.Pressed {
-		return a.Pressed[i], pressed, a.Pressed[i] != nil
-	}
-	return a.Hover[i], hover, a.Hover[i] != nil
-}
-
-// Compose renders one menu frame: the base brooch bitmap over the whole 640x480
-// frame, then at most one button overlay at its own rectangle.
-//
-// The overlay is copied OPAQUELY (draw.Src, not draw.Over). The source carries no
-// alpha either way, so the two would behave identically — Src is used to say in
-// the code that no blend is applied, because no blend is decoded. The research
-// establishes the overlays as opaque 24-bit rectangles and explicitly leaves any
-// blending the original may apply outside what it has established, so a colour
-// key or an alpha rule here would be invented rather than reproduced. If the real
-// menu turns out to show a seam at a rectangle edge, that is a discrepancy to
-// report upstream, not a licence to guess a rule.
-//
-// The result is a fresh image each call; the caller owns it.
-func (a *Assets) Compose(s State) *image.RGBA {
-	dst := image.NewRGBA(image.Rect(0, 0, FrameW, FrameH))
-	if a == nil || a.Base == nil {
-		return dst
-	}
-	draw.Draw(dst, dst.Bounds(), a.Base, a.Base.Bounds().Min, draw.Src)
-
-	if img, at, ok := a.Overlay(s); ok {
-		draw.Draw(dst, at, img, img.Bounds().Min, draw.Src)
-		if a.place != nil {
-			if c := a.place.caption[s.Selected-1]; c != nil {
-				draw.Draw(dst, captionRect, c, c.Bounds().Min, draw.Src)
-			}
-		}
-	}
-	return dst
 }

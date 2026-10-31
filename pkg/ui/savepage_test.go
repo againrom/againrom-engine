@@ -26,7 +26,7 @@ func secondAppAssets(t *testing.T) *menu.Assets {
 		draw.Draw(c, c.Bounds(), image.NewUniform(color.RGBA{0, 0, uint8(i * 20), 255}), image.Point{}, draw.Src)
 		set.Frames[fmt.Sprintf("caption/%d", i)] = []image.Image{c}
 	}
-	a, err := menu.LoadSecond(set)
+	a, err := menu.Load(set, menu.SecondLayout)
 	if err != nil {
 		t.Fatal(err)
 	}

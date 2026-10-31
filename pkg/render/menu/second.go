@@ -3,8 +3,6 @@ package menu
 import (
 	"fmt"
 	"image"
-
-	"againrom/pkg/screenart"
 )
 
 // Overlay and caption offsets: where each bitmap equals the base bitmap.
@@ -22,27 +20,13 @@ var (
 	captionRect = image.Rect(232, 200, 232+180, 200+80)
 )
 
-type secondPlacement struct {
-	hover, pressed [ButtonCount]image.Rectangle
-	caption        [ButtonCount]*image.RGBA
-}
-
-// LoadSecond binds the second game's resolved art to its layout and captions.
-func LoadSecond(set *screenart.Set) (*Assets, error) {
+// SecondLayout is the second game's row: one rectangle per button for hover and
+// pressed alike, the caption bitmaps caption/0..7 and its own binding table.
+var SecondLayout = func() Layout {
 	r := rects(secondPlace)
-	a, err := Load(set)
-	if err != nil {
-		return nil, err
+	l := Layout{Hover: r, Pressed: r, CaptionAt: captionRect, Actions: SecondActions}
+	for i := range l.Captions {
+		l.Captions[i] = fmt.Sprintf("caption/%d", i)
 	}
-	p := &secondPlacement{hover: r, pressed: r}
-	for i := range p.caption {
-		img, err := picture(set, fmt.Sprintf("caption/%d", i))
-		if err != nil {
-			return nil, err
-		}
-		p.caption[i] = img
-	}
-	a.place = p
-	a.actions = SecondActions
-	return a, nil
-}
+	return l
+}()

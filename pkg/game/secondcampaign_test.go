@@ -48,7 +48,7 @@ func secondCampaignFixtureFiles(t *testing.T, withTown bool, files ...synth.File
 		}
 	}
 	f := &FrontEnd{InstallResources: InstallResources{Archives: &Archives{Containers: fs, Base: base.Match{Profile: profile}},
-		Assets: &menu.Assets{Mask: mask}, Font: resolved(missionFont(), nil), Words: ui.AuthoredWords()},
+		Assets: &menu.Assets{Mask: mask, Layout: menu.FirstLayout}, Font: resolved(missionFont(), nil), Words: ui.AuthoredWords()},
 		CampaignSession: CampaignSession{Town: NewTown(Campaign{}), Carried: []mapload.PartyMember{{ID: "old", Name: "old hero"}}}}
 	app := f.App("campaign")
 	app.Layout(1024, 768)

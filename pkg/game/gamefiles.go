@@ -10,7 +10,6 @@ import (
 	"againrom/pkg/formats/databin"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/menu"
-	"againrom/pkg/screenart"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -22,7 +21,7 @@ type gameFiles struct {
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
 	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
-	loadMenu       func(*screenart.Set) (*menu.Assets, error)
+	menuLayout     menu.Layout
 	briefing       func(src entrySource, e base.Edition, mission int) string
 	eventText      func(src entrySource, e base.Edition, mission, event int) ([]byte, bool)
 	unitKeys       mapload.UnitKeys
@@ -172,7 +171,7 @@ var firstGameFiles = gameFiles{
 	table:             databin.ROM1Layout,
 	openMap:           alm.Open,
 	compileScript:     mapload.CompileScript,
-	loadMenu:          menu.Load,
+	menuLayout:        menu.FirstLayout,
 	briefing: func(src entrySource, _ base.Edition, mission int) string {
 		return MissionObjectives(src, mission)
 	},
@@ -215,7 +214,7 @@ var secondGameFiles = gameFiles{
 	table:               databin.ROM2Layout,
 	openMap:             alm.OpenROM2,
 	compileScript:       mapload.CompileROM2Script,
-	loadMenu:            menu.LoadSecond,
+	menuLayout:          menu.SecondLayout,
 	briefing:            secondGameBriefing,
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
 		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)

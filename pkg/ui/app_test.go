@@ -77,7 +77,7 @@ func appAssets(t *testing.T) *menu.Assets {
 		decode(fmt.Sprintf("hover/%d", i), fmt.Sprintf("main/graphics/mainmenu/button%d.bmp", i+1))
 		decode(fmt.Sprintf("pressed/%d", i), fmt.Sprintf("main/graphics/mainmenu/button%dp.bmp", i+1))
 	}
-	a, err := menu.Load(set)
+	a, err := menu.Load(set, menu.FirstLayout)
 	if err != nil {
 		t.Fatalf("menu.Load: %v", err)
 	}

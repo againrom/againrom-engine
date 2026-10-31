@@ -4,6 +4,7 @@ package menu
 import (
 	"fmt"
 	"image"
+	"image/draw"
 
 	"againrom/pkg/screenart"
 )
@@ -77,14 +78,11 @@ const ColumnSplit = 320
 // NewGameButton is the 1-based index of the brooch's top-left button — the one
 // the front-end treats as NEW GAME.
 //
-// It is COMPUTED from the placement table, never written down as a literal, and
-// that is the point. The research labels the mask's stored row order as
-// inferred, so a requirement anchored to a mask index would be one the layout
-// evidence cannot falsify: under one row order the visually top-left button
-// answers to index 0x80, under the other to 0xb0, and both satisfy every check
-// the research ran. Anchored to the rectangle instead, a wrong row order changes
-// only which art lights up — never which action a rectangle performs — and is
-// falsified the first time anyone hovers the top-left button in the real game.
+// It is COMPUTED from the placement table, never written down as a literal. The
+// research labels the mask's stored row order as inferred, so a requirement
+// anchored to a mask index could not be falsified; anchored to the rectangle, a
+// wrong row order changes only which art lights up, never which action a
+// rectangle performs.
 //
 // Note the rule is not "the topmost entry": the right column's top placement
 // begins four pixels higher than the left column's, so ranking by y alone picks
@@ -94,38 +92,18 @@ var NewGameButton = newGameButton()
 // LoadGameButton is the 1-based index of the brooch's top-RIGHT button — the one
 // the front-end treats as LOAD GAME.
 //
-// Same provenance as NewGameButton, and computed the same way for the same
-// reason. "The top-right corner of the brooch is where LOAD GAME lives" is
-// the owner's knowledge of the game, which is a claim about a POSITION on
-// screen, so it is anchored to the placement rectangle and never to a mask
-// index. If the inferred mask row order is wrong, a wrong row order changes
-// only which art lights up, never which rectangle performs which action.
-//
-// This is the third bound button of the eight. The other five carry commands the
-// research still reports as undecoded, and nothing here binds them.
+// Same provenance as NewGameButton, computed the same way: "LOAD GAME lives at
+// the top-right of the brooch" is a claim about a position, so it is anchored
+// to the placement rectangle and never to a mask index.
 var LoadGameButton = loadGameButton()
 
 // ExitButton is the 1-based index of the brooch button that quits the game.
 //
-// Unlike NewGameButton this one is a LITERAL, and the difference is provenance,
-// not taste. "The top-left button is NEW GAME" is the owner's knowledge of the
-// game — a claim about a position on screen — so it is anchored to a position and
-// computed from the placement table. "Button 8 quits" is decoded: the original's
-// click dispatcher posts WM_CLOSE for button 8, and the research names the
-// number, not a corner. Deriving this one geometrically would be inventing a
-// placement claim nobody made.
-//
-// The rectangle is a consequence, not the definition: placement entry 8 is
-// {324, 276, 208, 136}, the bottom entry of the right column, which is where a
-// human looks when checking this against the real brooch. It is exactly one of
-// the eight buttons; the other six carry commands the research reports as
-// undecoded, so nothing here binds them.
-//
-// This binding runs through the same inferred mask row order as everything else
-// (see the package doc): ButtonAt answers with a mask-derived number, so if that
-// inference is wrong the gem that quits is the top-right one instead. No design
-// avoids that, because the mask is the only thing that says what the cursor is
-// over — only a human at the real menu can settle it.
+// Unlike NewGameButton this one is a LITERAL: "button 8 quits" is decoded (the
+// original's click dispatcher posts WM_CLOSE for button 8), while "the top-left
+// button is NEW GAME" is a claim about a position. Its rectangle, the bottom
+// entry of the right column, is a consequence. The binding runs through the
+// inferred mask row order like every other button.
 const ExitButton = 8
 
 // HallOfFameButton is the third right-hand control. The installed base and
@@ -197,8 +175,26 @@ var maskButton = func() [256]uint8 {
 	return t
 }()
 
+// Layout is one game's main-menu row: where each button's hover and pressed
+// overlay is drawn, the art entries of its captions, and what releasing each
+// button does.
+//
+// Captions names the art entry of each button's caption bitmap, in button
+// order, and CaptionAt is the frame rectangle every caption is drawn at; a
+// game without captions leaves every entry empty.
+type Layout struct {
+	Hover, Pressed [ButtonCount]image.Rectangle
+	Captions       [ButtonCount]string
+	CaptionAt      image.Rectangle
+	Actions        Actions
+}
+
+// FirstLayout is the first game's row: the two placement tables, no captions
+// and its six decoded bindings.
+var FirstLayout = Layout{Hover: HoverRects, Pressed: PressedRects, Actions: FirstActions}
+
 // Assets is a validated main-menu asset set: the base screen, the hit mask, and
-// both overlays for every button.
+// both overlays for every button, with the layout row they were loaded with.
 //
 // Load returns nil on a missing or mistyped art entry. The screen art loader
 // validates each picture and mask against the manifest before binding.
@@ -208,15 +204,15 @@ type Assets struct {
 	Hover   [ButtonCount]*image.RGBA // per-button hover overlay
 	Pressed [ButtonCount]*image.RGBA // per-button pressed overlay
 
-	// place is nil for the first game, whose rectangles are the tables above.
-	place *secondPlacement
-	// actions binds each button to what its release does.
-	actions Actions
+	// Layout is the row the assets were loaded with.
+	Layout Layout
+	// Captions holds the bitmaps of Layout.Captions, in button order.
+	Captions [ButtonCount]*image.RGBA
 }
 
-// Load binds the first game's resolved main-menu art to its layout.
-func Load(set *screenart.Set) (*Assets, error) {
-	a := &Assets{actions: FirstActions}
+// Load binds a game's resolved main-menu art to its layout row.
+func Load(set *screenart.Set, l Layout) (*Assets, error) {
+	a := &Assets{Layout: l}
 	var err error
 	if a.Base, err = picture(set, "base"); err != nil {
 		return nil, err
@@ -230,6 +226,14 @@ func Load(set *screenart.Set) (*Assets, error) {
 			return nil, err
 		}
 		if a.Pressed[i], err = picture(set, fmt.Sprintf("pressed/%d", i)); err != nil {
+			return nil, err
+		}
+	}
+	for i, name := range l.Captions {
+		if name == "" {
+			continue
+		}
+		if a.Captions[i], err = picture(set, name); err != nil {
 			return nil, err
 		}
 	}
@@ -261,6 +265,49 @@ func (a *Assets) ButtonAt(p image.Point) int {
 		return 0
 	}
 	return int(maskButton[a.Mask.Pix[p.Y*a.Mask.Stride+p.X]])
+}
+
+// Overlay returns the single overlay a state asks for: the bitmap and the frame
+// rectangle to draw it at, or ok == false for none.
+//
+// "At most one" is structural here rather than a rule the caller must keep: the
+// signature cannot express two, and State cannot represent two. The rectangle is
+// the button's own row of the layout's hover or pressed rectangles, whose size is
+// that bitmap's own pixel size — so the overlay draws 1:1 in frame pixels and
+// nothing is resampled inside the frame.
+func (a *Assets) Overlay(s State) (img *image.RGBA, at image.Rectangle, ok bool) {
+	if a == nil || s.Selected < 1 || s.Selected > ButtonCount {
+		return nil, image.Rectangle{}, false
+	}
+	i := s.Selected - 1
+	if s.Pressed {
+		return a.Pressed[i], a.Layout.Pressed[i], a.Pressed[i] != nil
+	}
+	return a.Hover[i], a.Layout.Hover[i], a.Hover[i] != nil
+}
+
+// Compose renders one menu frame: the base brooch bitmap over the whole 640x480
+// frame, then at most one button overlay at its own rectangle, then that
+// button's caption when the layout has one.
+//
+// The overlay is copied OPAQUELY (draw.Src, not draw.Over): the overlays are
+// opaque 24-bit rectangles and no blend is decoded, so none is invented.
+//
+// The result is a fresh image each call; the caller owns it.
+func (a *Assets) Compose(s State) *image.RGBA {
+	dst := image.NewRGBA(image.Rect(0, 0, FrameW, FrameH))
+	if a == nil || a.Base == nil {
+		return dst
+	}
+	draw.Draw(dst, dst.Bounds(), a.Base, a.Base.Bounds().Min, draw.Src)
+
+	if img, at, ok := a.Overlay(s); ok {
+		draw.Draw(dst, at, img, img.Bounds().Min, draw.Src)
+		if c := a.Captions[s.Selected-1]; c != nil {
+			draw.Draw(dst, a.Layout.CaptionAt, c, c.Bounds().Min, draw.Src)
+		}
+	}
+	return dst
 }
 
 // MaskRegions reports, for each button, how many frame pixels carry that
