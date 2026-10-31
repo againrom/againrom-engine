@@ -313,7 +313,7 @@ func savedAreaPayload(e *SavedEffect) (EffectKind, EffectMode, bool) {
 }
 
 func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cells []uint16, caster ...EntityID) {
-	if w.spellArm(d.Spell) == 19 {
+	if areaRow(w.spellArm(d.Spell)).inert {
 		return
 	}
 	if e.AE44 != nil && e.AE44.Class == "Effect_DirectDamage" && SavedAreaPayloadSupported(e.AE44) {
@@ -366,7 +366,7 @@ func (w *World) applySavedAreaPayload(d SavedAreaDriver, e SavedSpellEffect, cel
 				}
 				if applied {
 					w.markSpellEffect(at, rule.ID)
-					if rule.arm() == 17 && len(caster) != 0 && caster[0] != w.entities[at].ID {
+					if areaRow(rule.arm()).blow && len(caster) != 0 && caster[0] != w.entities[at].ID {
 						if w.SecondGame() {
 							w.orderAttack(at, caster[0])
 						} else {

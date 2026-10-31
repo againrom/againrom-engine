@@ -140,7 +140,7 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 				}
 			}
 		}
-		if ms.World.SpellArm(d.Spell) != 19 && !sim.SavedAreaPayloadSupported(ms.World.SavedSpellEffects()[root].AE44) {
+		if !sim.AreaArmInert(ms.World.SpellArm(d.Spell)) && !sim.SavedAreaPayloadSupported(ms.World.SavedSpellEffects()[root].AE44) {
 			meta.unavailable("AreaEffect payload application is unbound: EDD48 field bridge or unsupported ordinary effect")
 		}
 		drivers.Areas = append(drivers.Areas, d)

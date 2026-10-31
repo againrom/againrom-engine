@@ -377,7 +377,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if ti < 0 || duration == 0 || kind == EffectNone && !secondBlankCurse(rule) {
 		return false
 	}
-	poison := rule.arm() == 8 && mode&EffectContinuous != 0
+	poison := areaRow(rule.arm()).poison && mode&EffectContinuous != 0
 	if w.entities[ti].ActorLoad.Source.Class != 0 && !poison {
 		return w.attachSourceEffect(ti, caster, rule, kind, magnitude, duration, mode)
 	}
@@ -476,7 +476,7 @@ func (w *World) stepAttachedEffects() {
 		beforeRemaining := e.Remaining
 		if e.Mode&EffectContinuous != 0 && beforeRemaining > 0 && beforeRemaining%8 == 0 {
 			if ti := indexOfEntity(w.entities, e.Target); ti >= 0 {
-				if w.spellArm(e.Spell) == 8 {
+				if areaRow(w.spellArm(e.Spell)).poison {
 					w.applyPoisonAttachment(i, ti)
 				} else if _, ok := w.applyEffectDelta(ti, e.Kind, e.Magnitude); !ok && w.entities[ti].ActorLoad.Source.Class != 0 {
 					i++

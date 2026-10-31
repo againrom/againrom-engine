@@ -267,7 +267,7 @@ func decodeCasting(data []byte, spells []SpellRule) ([]scriptCast, []bookCast, [
 			}
 			legacyKey, legacySeen = e.Key, true
 			legacyCount++
-			if legacyCount > cellEffectSlots && e.Spell != 3 {
+			if legacyCount > cellEffectSlots && !areaRow(e.Spell).uncapped {
 				return nil, nil, nil, nil, 0, fmt.Errorf("sim: a cell holds more than six legacy effects")
 			}
 		}

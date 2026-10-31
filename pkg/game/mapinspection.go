@@ -426,28 +426,28 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	for i, id := range ids {
 		last[id] = i
 	}
-	for i, id := range ids {
+	for i, section := range ids {
 		payload := doc.RecordPayload(i)
-		r := ui.InspectionRecord{Kind: "Section", Section: int(id), Index: i, Label: fmt.Sprintf("type %d, %d bytes", id, len(payload)), Details: []string{fmt.Sprintf("File record: %d", i), fmt.Sprintf("Payload bytes: %d", len(payload)), fmt.Sprintf("First bytes: %x", payload[:min(24, len(payload))])}}
-		if id >= 10 {
+		r := ui.InspectionRecord{Kind: "Section", Section: int(section), Index: i, Label: fmt.Sprintf("type %d, %d bytes", section, len(payload)), Details: []string{fmt.Sprintf("File record: %d", i), fmt.Sprintf("Payload bytes: %d", len(payload)), fmt.Sprintf("First bytes: %x", payload[:min(24, len(payload))])}}
+		if section >= 10 {
 			r.Warning = "Unknown section; raw bytes preserved"
 		}
-		if last[id] != i {
+		if last[section] != i {
 			r.Warning = joinInspectionWarning(r.Warning, "Overridden duplicate; raw bytes preserved, not rendered")
 		}
-		if last[id] == i && id == 8 && lootErr != nil {
+		if last[section] == i && section == 8 && lootErr != nil {
 			r.Warning = joinInspectionWarning(r.Warning, lootErr.Error())
 		}
-		if last[id] == i && id == 7 && scriptErr != nil {
+		if last[section] == i && section == 7 && scriptErr != nil {
 			r.Warning = joinInspectionWarning(r.Warning, scriptErr.Error())
 		}
-		if last[id] == i && id == 7 {
+		if last[section] == i && section == 7 {
 			r.Details = append([]string{d.ScriptNotice}, r.Details...)
 		}
-		if last[id] == i && id == 9 && len(m.Enchantments) != int(m.TileMarkers.Count) {
+		if last[section] == i && section == 9 && len(m.Enchantments) != int(m.TileMarkers.Count) {
 			r.Warning = joinInspectionWarning(r.Warning, fmt.Sprintf("Unresolved enchantment grammar: %d authored records", m.TileMarkers.Count))
 		}
-		if id == 0 {
+		if section == 0 {
 			r.Details = append(r.Details, x.inspectionUTF8(alm.MapNameText.Decode([]byte(m.Name))), x.inspectionUTF8(m.Description), fmt.Sprintf("Metadata: %+v", m.Meta))
 		}
 		add(r)

@@ -254,7 +254,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	// none, so every restore marks the cells of each standing wall cloud.
 	w.grid = slices.Clone(w.grid)
 	for _, e := range w.effects {
-		if w.spellArm(e.Spell) == 19 && e.Mode == areaModeCloud {
+		if areaArmBlocks(w.spellArm(e.Spell)) && e.Mode == areaModeCloud {
 			w.setWallCells(e.Cells, true)
 		}
 	}

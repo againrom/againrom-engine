@@ -183,19 +183,7 @@ func (w *World) rom2CellEffect(key uint16, layer int32) bool {
 		return false
 	}
 	for _, e := range w.effects {
-		l := int32(-1) // R2-ENGINE-053, DIV-2354
-		switch e.Spell {
-		case 3:
-			l = 0
-		case 6:
-			l = 2
-		case 17:
-			l = 3
-		case 15:
-			l = 4
-		case 14:
-			l = 5
-		}
+		l := int32(areaRow(SecondGameSpellArm(e.Spell)).layer) // R2-ENGINE-053, DIV-2354
 		if l != layer {
 			continue
 		}

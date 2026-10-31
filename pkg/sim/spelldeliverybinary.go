@@ -171,7 +171,7 @@ func (w *World) spellDeliveryFault() error {
 		}
 	}
 	for _, d := range w.deliveries {
-		if d.ConstructSacrifice && (d.Rule.arm() != 4 || !d.AtCell || d.Current == nil || SavedAreaPayloadSupported(&d.Current.Payload)) {
+		if d.ConstructSacrifice && (!areaRow(d.Rule.arm()).sacrifice || !d.AtCell || d.Current == nil || SavedAreaPayloadSupported(&d.Current.Payload)) {
 			return fmt.Errorf("sim: invalid deferred sacrifice construction")
 		}
 		if c := d.Current; c != nil {

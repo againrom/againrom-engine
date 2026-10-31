@@ -4912,7 +4912,7 @@ func (mw *mapWorld) push() {
 func wallFireAmbientCells(effects []sim.CellEffect) []image.Point {
 	var out []image.Point
 	for _, effect := range effects {
-		if effect.Spell != 3 {
+		if !sim.AreaArmAmbient(effect.Spell) {
 			continue
 		}
 		for _, cell := range effect.Cells {

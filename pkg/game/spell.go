@@ -6,6 +6,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 
 	"againrom/pkg/data"
@@ -465,7 +466,7 @@ var spellCaptions = []spellCaption{
 	{label: 182, signed: true, format: "%d", rangeSep: "...", value: func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
 		l := int64(c.Power)
 		switch {
-		case rule.ID != 24 && rule.ID != 7 && rule.ID != 28:
+		case !slices.Contains([]uint16{24, 7, 28}, rule.ID):
 			return 0, false
 		case c.HasMagnitude:
 			return int64(c.Magnitude), true

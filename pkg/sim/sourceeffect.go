@@ -4,7 +4,7 @@ package sim
 // adjusted to make a native clamped arithmetic inverse. Each attach/removal
 // reaches its own state0 dispatcher and derive, in an isolated candidate.
 func (w *World) attachSourceEffect(ti int, caster EntityID, rule SpellRule, kind EffectKind, magnitude int32, duration uint16, mode EffectMode) bool {
-	if rule.arm() == 8 && mode&EffectContinuous != 0 {
+	if areaRow(rule.arm()).poison && mode&EffectContinuous != 0 {
 		return w.attachEffect(w.entities[ti].ID, caster, rule, kind, magnitude, duration, mode)
 	}
 	if !w.sourceMutationReady(ti) {
