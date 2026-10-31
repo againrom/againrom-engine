@@ -14,9 +14,9 @@ import (
 // carrying mask as its blocking word: a changed structure.
 func changeSavedStructureBlocking(t *testing.T, raw []byte, st sim.Structure, mask uint32) []byte {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil || doc.World == nil {
-		t.Fatal("mission SAV", err)
+	doc := engineSaveDocument(t, raw)
+	if doc.World == nil {
+		t.Fatal("mission SAV holds no World")
 	}
 	changed := 0
 	for _, index := range doc.World.Buildings {
@@ -48,6 +48,19 @@ func changeSavedStructureBlocking(t *testing.T, raw []byte, st sim.Structure, ma
 		t.Fatalf("%d Building records at (%d,%d)", changed, st.Col, st.Row)
 	}
 	out, err := sav.EncodeDocumentData(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p, _ := sav.ProfileOf(raw); p == sav.FirstGame {
+		return out
+	}
+	file, err := sav.DecodeDocumentData(raw)
+	if err == nil {
+		file, err = sav.StoreEngineDocument(file, out)
+	}
+	if err == nil {
+		out, err = sav.EncodeDocumentData(file)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
