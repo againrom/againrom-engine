@@ -33,7 +33,7 @@ type areaAim struct {
 }
 
 func spellDeliveryTicks(rule SpellRule, x, y, toX, toY int32) uint16 {
-	if rule.arm() == 13 || rule.arm() == 14 {
+	if spellArmOf(rule.arm()).form != formFlight {
 		return 10
 	}
 	if rule.EffectSpeed <= 0 {
@@ -51,7 +51,7 @@ func spellDeliveryTicks(rule SpellRule, x, y, toX, toY int32) uint16 {
 // centre less one sub-unit per axis, and a cast at a cell at the cell's centre
 // (MAGIC-245). Other deliveries keep the Chebyshev distance (DIV-1271).
 func (w *World) spellDeliveryRemaining(d spellDelivery) uint16 {
-	if d.Rule.ID != fireBallSpell || d.Rule.EffectSpeed <= 0 {
+	if !rowIDFliesBySpeed(d.Rule.ID) || d.Rule.EffectSpeed <= 0 {
 		return spellDeliveryTicks(d.Rule, d.FromX, d.FromY, d.X, d.Y)
 	}
 	fx, fy := d.FromX*256+128, d.FromY*256+128
@@ -186,9 +186,9 @@ func (w *World) admitBookPayment(ci int, rule SpellRule) {
 	debitBook(&w.entities[ci], rule)
 	w.bookCasts[i].Paid = true
 	if w.bookCasts[i].AtCell || w.bookCasts[i].Target != w.entities[ci].ID {
-		w.removeAttachedSpell(w.entities[ci].ID, w.armSpellID(15))
+		w.removeAttachedSpell(w.entities[ci].ID, w.hidingSpell())
 	}
-	if rule.arm() == 14 && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
+	if spellArmOf(rule.arm()).prismatic && rule.Delivery == 2 && !w.bookCasts[i].AtCell {
 		ti := indexOfEntity(w.entities, w.bookCasts[i].Target)
 		if ti >= 0 {
 			level := int32(0)
@@ -221,7 +221,7 @@ func (w *World) observeAdmissionFans(obs *castObs) {
 		var victims []CellPoint
 		for j := i; j < len(w.deliveries); j++ {
 			p := w.deliveries[j]
-			if j > i && p.FanHead || p.BirthTick != d.BirthTick || p.Caster != d.Caster || p.Rule.arm() != 14 {
+			if j > i && p.FanHead || p.BirthTick != d.BirthTick || p.Caster != d.Caster || !spellArmOf(p.Rule.arm()).prismatic {
 				break
 			}
 			victims = append(victims, CellPoint{X: p.X, Y: p.Y})

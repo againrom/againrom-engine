@@ -18,8 +18,9 @@ const (
 // what the key is, and the planner's gates around the aim.
 type creatureAimProfile struct {
 	aims []creatureAim
-	// byArm: the key is the drawn row's first-game arm; else the drawn id
-	// itself, with no Spells column read (R2-ENGINE-653).
+	// byArm: the key is the drawn row's first-game arm, whose aim is its
+	// spell-arm row's; else the drawn id itself, the index into aims, with
+	// no Spells column read (R2-ENGINE-653).
 	byArm bool
 	// scanBeyond: a scan aim casts only when caster and victim stand more
 	// than this many cells apart (R2-ENGINE-651, R2-ENGINE-654).
@@ -29,7 +30,7 @@ type creatureAimProfile struct {
 	offMapVictimStops bool
 }
 
-var firstGameCreatureAim = creatureAimProfile{aims: creatureAims[:], byArm: true}
+var firstGameCreatureAim = creatureAimProfile{byArm: true}
 
 var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2, offMapVictimStops: true}
 
@@ -41,15 +42,19 @@ func (w *World) creatureAimProfile() *creatureAimProfile {
 }
 
 func (p *creatureAimProfile) aimOf(key uint32) creatureAim {
-	if key < uint32(len(p.aims)) {
+	switch {
+	case p.byArm && key <= 0xffff:
+		return spellArmOf(uint16(key)).creatureAim
+	case !p.byArm && key < uint32(len(p.aims)):
 		return p.aims[key]
 	}
 	return creatureAimNone
 }
 
-// creatureAimOf is the first game's arm table: seven ids at the victim, nine
-// at the caster, eight at the victim's cell, Acid Stream and Teleport at the
-// cell next to the caster, and two at nothing. None is aimed at an ally.
+// creatureAimOf is the first game's aim by arm: seven arms at the victim,
+// nine at the caster, eight at the victim's cell, Acid Stream and Teleport
+// at the cell next to the caster, and two at nothing. None is aimed at an
+// ally.
 func creatureAimOf(id uint32) creatureAim { return firstGameCreatureAim.aimOf(id) }
 
 // secondCreatureAims is the second game's 29 cells by id; 22 aims at nothing
@@ -62,16 +67,6 @@ var secondCreatureAims = [...]creatureAim{
 	2: creatureAimVictimCell, 3: creatureAimVictimCell, 6: creatureAimVictimCell, 7: creatureAimVictimCell,
 	14: creatureAimVictimCell, 15: creatureAimVictimCell, 17: creatureAimVictimCell,
 	9: creatureAimStepCell, 23: creatureAimScanCell,
-}
-
-var creatureAims = [...]creatureAim{
-	1: creatureAimVictim, 11: creatureAimVictim, 13: creatureAimVictim, 14: creatureAimVictim,
-	20: creatureAimVictim, 27: creatureAimVictim, 28: creatureAimVictim,
-	5: creatureAimCaster, 6: creatureAimCaster, 10: creatureAimCaster, 15: creatureAimCaster, 16: creatureAimCaster,
-	18: creatureAimCaster, 22: creatureAimCaster, 23: creatureAimCaster, 24: creatureAimCaster,
-	2: creatureAimVictimCell, 3: creatureAimVictimCell, 7: creatureAimVictimCell, 8: creatureAimVictimCell,
-	12: creatureAimVictimCell, 17: creatureAimVictimCell, 19: creatureAimVictimCell, 21: creatureAimVictimCell,
-	9: creatureAimStepCell, 26: creatureAimStepCell,
 }
 
 // creatureAim is the aim of a drawn id in the world's game. By arm, a row

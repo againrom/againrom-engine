@@ -344,7 +344,7 @@ func (w *World) approach(s *routeScratch, i int) int {
 	// a victim the world still has. Removing it at the blow instead let an
 	// invisible attacker that missed its to-hit roll stay invisible, and let
 	// one whose victim stood out of reach stay invisible indefinitely.
-	w.removeAttachedSpell(w.entities[i].ID, w.armSpellID(15))
+	w.removeAttachedSpell(w.entities[i].ID, w.hidingSpell())
 	if w.entities[i].PursuitIdle {
 		return -1
 	}
@@ -912,9 +912,9 @@ func (w *World) resolveBlow(ai, ti int, obs *castObs) {
 
 	damageDraw := w.rng.uniform(a.DamageSpread)
 	dmg := int64(a.DamageBase) + int64(damageDraw)
-	if chance, ok := w.attachedMagnitude(a.ID, w.armSpellID(23)); ok && w.rng.uniform(100) < chance {
+	if chance, ok := w.attachedMagnitude(a.ID, w.blessingSpell()); ok && w.rng.uniform(100) < chance {
 		dmg = int64(a.DamageBase) + int64(a.DamageSpread)
-	} else if chance, ok := w.attachedMagnitude(a.ID, w.armSpellID(27)); ok && w.rng.uniform(100) < chance {
+	} else if chance, ok := w.attachedMagnitude(a.ID, w.cursingSpell()); ok && w.rng.uniform(100) < chance {
 		dmg = int64(a.DamageBase)
 	}
 	roll := int64(w.rng.uniform(hitRollSpan)) + hitRollFloor

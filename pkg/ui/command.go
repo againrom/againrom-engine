@@ -8,7 +8,13 @@ import (
 	"againrom/pkg/intmath"
 )
 
-const controlSpiritSpellID uint32 = 25
+// SetSpellTakesBody sets the question a cast pick asks of a spell id: whether
+// the pick may name a body. The simulation's spell table answers it.
+func (v *Viewer) SetSpellTakesBody(takes func(id uint32) bool) { v.spellTakesBody = takes }
+
+func (v *Viewer) spellNamesBody(id uint32) bool {
+	return v.spellTakesBody != nil && v.spellTakesBody(id)
+}
 
 // TapSlop is how far the cursor may travel while the primary button is held,
 // in screen pixels, for the press and its release to still be a TAP rather
@@ -211,6 +217,7 @@ type gesture struct {
 	held      bool
 	spell     uint32
 	pointCast bool
+	bodySpell bool // the spell's pick may name a body
 	x, y      int
 	px, py    int
 
@@ -564,7 +571,7 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 	kind := cursorOrderKind(g.cursor)
 	// Only the cast cursor carries the spell (AI-CLICK-050).
 	if kind != orderKindCast {
-		g.spell, g.pointCast = 0, false
+		g.spell, g.pointCast, g.bodySpell = 0, false, false
 	}
 	if kind == orderKindCast {
 		present = bookCasters(present, g.spell)
@@ -616,7 +623,7 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 			}
 			return cur, nil, orders, true
 		}
-		allowCorpse := kind == orderKindCast && g.spell == controlSpiritSpellID
+		allowCorpse := kind == orderKindCast && g.bodySpell
 		if victim, hit := targetAt(ents, at, float64(g.x), float64(g.y), allowCorpse); hit {
 			orders := make([]order, 0, len(present))
 			for _, e := range present {
@@ -1506,6 +1513,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		cursor:    v.gestureCursorAt(in.CursorX, in.CursorY),
 		spell:     v.selectedSpell,
 		pointCast: v.bookTargetsPoint(v.selectedSpell),
+		bodySpell: v.spellNamesBody(v.selectedSpell),
 		shift:     v.shiftLatch,
 		x:         in.CursorX, y: in.CursorY, px: v.pressX, py: v.pressY,
 	}

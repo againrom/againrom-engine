@@ -1111,6 +1111,7 @@ type Viewer struct {
 	spellbookOwner uint32
 	spellbookHeld  bool // a unit is selected; entity id 0 is a real owner
 	selectedSpell  uint32
+	spellTakesBody func(id uint32) bool
 	spellbookFixed bool       // the installed 24-cell catalog, rather than a custom compact book
 	spellArmed     bool       // current spell and armed Cast mode are independent
 	spellNeedsBook bool       // book-chosen: live only while the book is shown
@@ -3931,7 +3932,7 @@ func (v *Viewer) drawPointer(dst *ebiten.Image, scale, originX, originY float64)
 			// centred on the pressed pixel, where a picture hangs from it.
 			x64, y64 := place(at)
 			x, y := float32(x64), float32(y64)
-			arm := float32(AttackAuthoredArm) * float32(scale)
+			arm := float32(AttackAuthoredReach) * float32(scale)
 			w := float32(AttackAuthoredWidth) * float32(scale)
 			vector.StrokeLine(dst, x-arm, y-arm, x+arm, y+arm, w, AttackMarkerColor, false)
 			vector.StrokeLine(dst, x-arm, y+arm, x+arm, y-arm, w, AttackMarkerColor, false)

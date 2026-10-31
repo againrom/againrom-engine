@@ -183,11 +183,7 @@ func spellRules(spells []data.Spell, second bool) []sim.SpellRule {
 func SecondGameSpellArms(rules []sim.SpellRule) {
 	sim.AssignSecondGameArms(rules)
 	for i := range rules {
-		arm := int(rules[i].Arm)
-		if rules[i].Arm == sim.ArmNone {
-			arm = 0
-		}
-		rules[i].Damaging, rules[i].Restorative = data.ClassifySpell(arm, rules[i].DamageMin, rules[i].DamageMax)
+		rules[i].Damaging, rules[i].Restorative = data.ClassifySpell(int(rules[i].Arm), rules[i].DamageMin, rules[i].DamageMax)
 	}
 }
 

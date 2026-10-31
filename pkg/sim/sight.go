@@ -617,7 +617,7 @@ func (w *World) groupDetects(q perception, t int, at cell) bool {
 
 // invisible reports an active Invisibility on the actor at index t.
 func (w *World) invisible(t int) bool {
-	return w.hasAttachedSpell(w.entities[t].ID, w.armSpellID(15))
+	return w.hasAttachedSpell(w.entities[t].ID, w.hidingSpell())
 }
 
 // detectsInvisible is the actor's own whole-cell detector radius test.

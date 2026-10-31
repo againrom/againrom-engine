@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/sim"
 )
 
 // lastSpellSlot is the last parameter slot LoadSpells reads: the Defensive
@@ -81,19 +83,6 @@ type SpellEffect struct {
 	Magnitude int32
 	Duration  uint16
 }
-
-// The two spell ids the game excludes from the shared damage arm BY ID
-// ALONE, though both carry a damage-shaped column pair: Heal turns its roll
-// into healing and Drain Life moves the roll from the victim to the caster,
-// and neither is damage in the sense Damaging names below. MAGIC-DMG-005:
-// "the whole arm is skipped when the pair sums to 0 or the spell is 6 (Heal)
-// or 11 (Drain Life), both of which carry damage columns and are not
-// damage." Named once, here, and read nowhere but LoadSpells' own
-// comparison.
-const (
-	healSpellID      = 6
-	drainLifeSpellID = 11
-)
 
 type Spell struct {
 	// Name is the row's own name, verbatim.
@@ -178,12 +167,12 @@ type Spell struct {
 	Effect SpellEffect
 
 	// Damaging is true iff this row's damage pair is positive — DamageMin or
-	// DamageMax clamped above zero — and the row's id is neither healSpellID
-	// nor drainLifeSpellID. Set here, by LoadSpells, and by nothing else.
+	// DamageMax clamped above zero — and the row's id is neither Heal's nor
+	// Drain Life's. Set here, by LoadSpells, and by nothing else.
 	Damaging bool
 
 	// Restorative is true iff this row's damage pair is positive and the row's
-	// id is healSpellID. It is the EXACT COMPLEMENT of Damaging over the heal
+	// id is Heal's. It is the EXACT COMPLEMENT of Damaging over the heal
 	// row and is computed from the same comparison: heal is refused from the
 	// damage arm because its roll is healing, so the one place that refuses it
 	// there is the one place that admits it here, and the two flags can never
@@ -272,9 +261,15 @@ func blankSpellEntry(c Collection, i int) bool {
 	return c.EntryName(i) == "" && len(c.EntryParams(i)) == 0
 }
 
+// ClassifySpell splits a positive damage pair by the arm id runs: Heal turns
+// its roll into healing and Drain Life moves it to the caster, so neither is
+// damage though both carry the pair (MAGIC-DMG-005).
 func ClassifySpell(id int, dmin, dmax int32) (damaging, restorative bool) {
 	pair := dmin > 0 || dmax > 0
-	return pair && id != healSpellID && id != drainLifeSpellID, pair && id == healSpellID
+	arm := uint16(id)
+	known := int(arm) == id
+	heals, drains := known && sim.SpellArmHeals(arm), known && sim.SpellArmDrains(arm)
+	return pair && !heals && !drains, pair && heals
 }
 
 // clampSpellByte admits an installed byte-valued cell into the canonical

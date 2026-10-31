@@ -1536,7 +1536,7 @@ const (
 
 // raysFlag: bit 7 on a point Prismatic Spray record puts the cap in the radius byte.
 func raysFlag(flags uint8, id uint16) bool {
-	return id == prismaticSpellID && flags&(spellFlagArea|spellFlagAreaHitsLo|spellFlagAreaHitsHi) == spellFlagAreaHitsHi
+	return spellArmOf(id).prismatic && flags&(spellFlagArea|spellFlagAreaHitsLo|spellFlagAreaHitsHi) == spellFlagAreaHitsHi
 }
 
 func itemByteLen(item ItemInstance) int {

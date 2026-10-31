@@ -85,17 +85,18 @@ func (w *World) escortHeal(i, ti int) bool {
 	if !(floor == 0 && target.HP < target.MaxHP || int64(floor) < int64(e.MaxMana)+3 && target.HP < target.MaxHP>>1) {
 		return false
 	}
-	rule, ok := w.bookSpell(e, 6)
+	heal := healArmAsID()
+	rule, ok := w.bookSpell(e, heal)
 	mana := e.Mana
 	if rule.bookInstance {
 		mana = int32(int16(mana))
 	}
-	if !ok || !rule.Restorative || rule.ManaCost > mana || w.bookSpellRefusal(i, target.ID, 6, false, false) != "" {
+	if !ok || !rule.Restorative || rule.ManaCost > mana || w.bookSpellRefusal(i, target.ID, heal, false, false) != "" {
 		return false
 	}
 	w.clearOrder(i)
 	w.entities[i].clearAttackBetweenCycles()
-	return w.beginBookSpellOnce(i, target.ID, 6)
+	return w.beginBookSpellOnce(i, target.ID, heal)
 }
 
 // AI-ORDER-039, AI-TURN-104, AI-RETAL-056, AI-395, AI-417

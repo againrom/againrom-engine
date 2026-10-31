@@ -73,10 +73,12 @@ var allow = map[string][]string{
 	// reader its own copy of one decoded value.
 	"pkg/graphcopy": {},
 	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath", "pkg/namefold"},
-	"pkg/data":      {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold"},
-	"pkg/sim":       {"pkg/rules", "pkg/random", "pkg/intmath"},
-	"pkg/rules":     {},
-	"pkg/intmath":   {},
+	// The data tier classifies a spell row's damage pair by asking the
+	// simulation's spell-arm table, the one owner of which arm heals or drains.
+	"pkg/data":    {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold", "pkg/sim"},
+	"pkg/sim":     {"pkg/rules", "pkg/random", "pkg/intmath"},
+	"pkg/rules":   {},
+	"pkg/intmath": {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random": {},

@@ -48,7 +48,7 @@ func (mw *mapWorld) keepCastLook(ev sim.CastEvent, index int) {
 
 func (mw *mapWorld) keepScriptCastLook(ev sim.ScriptCastEvent, id presentationIdentity) {
 	look := flightLook{seed: mw.presentationSeed(id)}
-	if mw.world.SpellArm(ev.Spell) == 13 {
+	if sim.SpellArmBolt(mw.world.SpellArm(ev.Spell)) {
 		look.links = []image.Point{image.Pt(int(ev.ToX), int(ev.ToY))}
 	} else {
 		for _, v := range ev.Victims {

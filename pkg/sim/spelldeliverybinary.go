@@ -190,7 +190,7 @@ func (w *World) spellDeliveryFault() error {
 		if d.Rule.Delivery != 1 || d.Rule.bookInstance || d.Rule.itemCast || d.Rule.bookDefensive != 0 || d.Rule.ID == 0 ||
 			d.Rule.DamageMin < 0 || d.Rule.DamageMax < 0 ||
 			!d.HasCaster && d.Caster != 0 || d.AtCell != d.Rule.Area ||
-			d.BirthTick > w.tick || d.FanHead && (!d.HasCaster || d.Rule.arm() != 14 || d.AtCell) {
+			d.BirthTick > w.tick || d.FanHead && (!d.HasCaster || !spellArmOf(d.Rule.arm()).prismatic || d.AtCell) {
 			return fmt.Errorf("sim: invalid prepared spell delivery")
 		}
 		if _, ok := cellIndexIn(w.bounds, d.X, d.Y); !ok {

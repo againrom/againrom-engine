@@ -76,7 +76,7 @@ func (w *World) HasEffectSpell(target EntityID, spell uint16) bool {
 // read this one lookup rather than carrying a second immobilisation flag that
 // could outlive the effect.
 func (w *World) stoneCursed(i int) bool {
-	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, w.armSpellID(20))
+	return i >= 0 && i < len(w.entities) && w.hasAttachedSpell(w.entities[i].ID, w.stoneCurseSpell())
 }
 
 // InvisibleTo reports whether target is hidden from the participant in roster
@@ -381,11 +381,7 @@ func (w *World) attachEffect(target, caster EntityID, rule SpellRule, kind Effec
 	if w.entities[ti].ActorLoad.Source.Class != 0 && !poison {
 		return w.attachSourceEffect(ti, caster, rule, kind, magnitude, duration, mode)
 	}
-	if rule.arm() == 23 || rule.arm() == 27 {
-		opposite := uint16(23)
-		if rule.arm() == 23 {
-			opposite = 27
-		}
+	if opposite := spellArmOf(rule.arm()).opposite; opposite != 0 {
 		if oi, ok := effectIndex(w.attached, target, w.armSpellID(opposite)); ok {
 			w.removeAttachedAt(oi)
 			return true

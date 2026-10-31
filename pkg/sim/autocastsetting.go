@@ -102,27 +102,23 @@ func (w *World) SetAutoCast(player uint32, s AutoCastSetting) bool {
 	return true
 }
 
-// autoCastLevelArms lists, per level bit, the first-game arms the level adds:
+// autoCastTiers lists, per level bit, the first-game arms the level adds:
 // Heal and Shield (R2-ENGINE-346); Bless and Haste; the four protections and
 // Invisibility (R2-ENGINE-347). Second-game rows reach them through their arm.
-var autoCastLevelArms = [...]struct {
+var autoCastTiers = [...]struct {
 	bit  AutoCastSetting
 	mana int32
 	arms []uint16
 }{
-	{0x08, 5, []uint16{6, 18}},
-	{0x10, 10, []uint16{23, 24}},
-	{0x20, 40, []uint16{16, 22, 5, 10, 15}},
+	{0x08, 5, autoCastArmsAt(1)},
+	{0x10, 10, autoCastArmsAt(2)},
+	{0x20, 40, autoCastArmsAt(3)},
 }
 
-// AutoCastLevelOfArm is the lowest level whose list holds arm, or zero.
+// AutoCastLevelOfArm is the level whose list holds arm, or zero.
 func AutoCastLevelOfArm(arm uint16) AutoCastSetting {
-	for i, l := range autoCastLevelArms {
-		for _, a := range l.arms {
-			if a == arm {
-				return autoCastLevelList[i]
-			}
-		}
+	if l := spellArmOf(arm).autoCast.level; l > 0 {
+		return autoCastLevelList[l-1]
 	}
 	return 0
 }
@@ -138,12 +134,6 @@ func (w *World) AutoCastCasts(s AutoCastSetting, id uint16) bool {
 	return l != 0 && s.Level()&l == l
 }
 
-const (
-	autoCastHeal         = 6
-	autoCastShield       = 18
-	autoCastInvisibility = 15
-)
-
 // supportCast is the level-gated sequence for the human player's mage at
 // slot ci (R2-ENGINE-346, R2-ENGINE-347, R2-ENGINE-362). Each attempt goes
 // through beginBookSpellOnce, the routine a player's own cast reaches, so
@@ -152,31 +142,32 @@ const (
 func (w *World) supportCast(ci int) {
 	caster := w.entities[ci]
 	s := w.AutoCast(caster.Owner)
-	if caster.Mana < autoCastLevelArms[0].mana || s&autoCastLevelArms[0].bit == 0 {
+	if caster.Mana < autoCastTiers[0].mana || s&autoCastTiers[0].bit == 0 {
 		return
 	}
-	if caster.HP != caster.MaxHP && w.autoCastAt(ci, ci, autoCastHeal, false) {
+	heal := autoCastRoleArm(autoCastHealer)
+	if caster.HP != caster.MaxHP && w.autoCastAt(ci, ci, heal, false) {
 		return
 	}
-	if w.autoCastAt(ci, ci, autoCastShield, true) {
+	if w.autoCastAt(ci, ci, autoCastRoleArm(autoCastShielder), true) {
 		return
 	}
 	candidates := w.autoCastCandidates(ci, s)
 	for _, ti := range candidates {
 		if t := w.entities[ti]; t.MaxHP > 0 && t.HP/t.MaxHP < 1 {
-			if w.autoCastAt(ci, ti, autoCastHeal, false) {
+			if w.autoCastAt(ci, ti, heal, false) {
 				return
 			}
 			break
 		}
 	}
-	for _, l := range autoCastLevelArms[1:] {
+	for _, l := range autoCastTiers[1:] {
 		if s&l.bit == 0 || w.entities[ci].Mana < l.mana {
 			return
 		}
 		for _, ti := range candidates {
 			for _, arm := range l.arms {
-				if arm == autoCastInvisibility && (ti == ci || w.autoCastNeutral(ci, ti)) {
+				if spellArmOf(arm).autoCast.role == autoCastHider && (ti == ci || w.autoCastNeutral(ci, ti)) {
 					continue
 				}
 				if w.autoCastAt(ci, ti, arm, true) {
@@ -185,7 +176,7 @@ func (w *World) supportCast(ci int) {
 			}
 		}
 	}
-	w.autoCastAt(ci, ci, autoCastInvisibility, true)
+	w.autoCastAt(ci, ci, autoCastRoleArm(autoCastHider), true)
 }
 
 // autoCastAt attempts arm on the actor at ti. A buff whose effect stands on
@@ -193,7 +184,7 @@ func (w *World) supportCast(ci int) {
 func (w *World) autoCastAt(ci, ti int, arm uint16, buff bool) bool {
 	id := w.spellIDOfArm(arm)
 	rule, ok := w.bookSpell(w.entities[ci], uint32(id))
-	if !ok || rule.arm() != arm || !knowsSpell(w.entities[ci], uint32(id)) || w.entities[ci].Mana < int32(rule.ManaCost) {
+	if !ok || !rule.runsArm(arm) || !knowsSpell(w.entities[ci], uint32(id)) || w.entities[ci].Mana < int32(rule.ManaCost) {
 		return false
 	}
 	if _, standing := effectIndex(w.attached, w.entities[ti].ID, id); buff && standing {

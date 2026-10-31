@@ -1,12 +1,10 @@
 package sim
 
-const prismaticSpellID = 14
-
 // prismaticBodyPrimary reports a body aimed as Prismatic Spray's primary.
 // A body is never the primary (owner, DIV-072); a fan already paid at
 // admission has passed this gate and keeps its release.
 func prismaticBodyPrimary(target Entity, rule SpellRule) bool {
-	return rule.arm() == prismaticSpellID && !target.Living()
+	return spellArmOf(rule.arm()).prismatic && !target.Living()
 }
 
 // prismaticGroup is the group whose shared sight chooses the secondaries:

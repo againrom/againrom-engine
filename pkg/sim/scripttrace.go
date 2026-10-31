@@ -68,9 +68,9 @@ const (
 	// ScriptSilenceVIPNoValue is a dispatched VIP arm. It writes no register by
 	// design; LostBefore and LostAfter say whether its side effect ran.
 	ScriptSilenceVIPNoValue ScriptSilence = 17
-	// ScriptSilenceDeadArm is one of the two dispatched dead arms. Its complete
-	// effect is deliberately no write.
-	ScriptSilenceDeadArm ScriptSilence = 18
+	// ScriptSilenceDeadCheck is one of the two dispatched dead arms. Its
+	// complete effect is deliberately no write.
+	ScriptSilenceDeadCheck ScriptSilence = 18
 	// ScriptSilenceHealthGate is a dispatched health check whose authored gate
 	// parameter did not select the write.
 	ScriptSilenceHealthGate ScriptSilence = 19

@@ -115,10 +115,11 @@ func segmentedTicks(power int32, base int32, scale durationScale) uint16 {
 // duration follows its Spell Duration column: Invisibility on the fast law and
 // a base of 3, Stone Curse segmented, every other row on the slow law.
 func spellLastingTicks(rule SpellRule, power int32) uint16 {
-	switch rule.arm() {
-	case 15:
+	law := spellArmOf(rule.arm()).durationLaw
+	switch law {
+	case lawFastThree:
 		return segmentedTicks(power, 3, durationFast)
-	case 20:
+	case lawSegmented:
 		return segmentedTicks(power, rule.SpellDuration, durationSlow)
 	}
 	return lastingTicks(power, rule.SpellDuration, durationSlow)
@@ -136,7 +137,7 @@ func spellRange(rule SpellRule, power int32) int64 {
 		return 0
 	}
 	divisor := int32(30)
-	if rule.arm() == 26 {
+	if spellArmOf(rule.arm()).fastRange {
 		divisor = 3
 	}
 	return int64(rule.MaxRange) + int64(power/divisor)
@@ -150,7 +151,7 @@ func spellRecordRange(rule SpellRule, power int32) int64 {
 	}
 	base := int32(rule.MaxRange)
 	switch {
-	case rule.arm() == 26:
+	case spellArmOf(rule.arm()).fastRange:
 		base += power / 3
 	case base != 0:
 		base += power / 30
@@ -188,7 +189,7 @@ func spellRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
-	if !rule.bookInstance && (rule.arm() == 26 || rule.MaxRange != 0) {
+	if !rule.bookInstance && (spellArmOf(rule.arm()).fastRange || rule.MaxRange != 0) {
 		if bonus, ok := rangeBonusFor(r, rule, power); ok {
 			return min(int64(rule.MaxRange)+bonus, 255)
 		}
@@ -197,7 +198,7 @@ func spellRecordRangeUnder(r Rules, rule SpellRule, power int32) int64 {
 }
 
 func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
-	if rule.Second && rule.arm() == 15 {
+	if rule.secondArm().powerDuration {
 		// The second game's Invisibility lasts P << 4 (R2-ENGINE-022), at
 		// application and in the spell record alike.
 		return uint16(min(int64(power)<<4, durationTickCeiling))
@@ -207,7 +208,7 @@ func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
 		return spellLastingTicks(rule, power)
 	}
 	base := int64(rule.SpellDuration)
-	if rule.arm() == 15 {
+	if spellArmOf(rule.arm()).durationLaw == lawFastThree {
 		base = 3
 	}
 	if base <= 0 {
@@ -217,8 +218,7 @@ func spellLastingTicksUnder(r Rules, rule SpellRule, power int32) uint16 {
 }
 
 func spellPointDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
-	switch rule.arm() {
-	case 15, 5, 10, 16, 18, 20, 22, 23, 24, 27, 28:
+	if spellArmOf(rule.arm()).lastingDuration {
 		return spellLastingTicksUnder(r, rule, power)
 	}
 	if rule.Second && areaRow(rule.arm()).secondLasting {

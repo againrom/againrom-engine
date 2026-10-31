@@ -119,14 +119,14 @@ func (mw *mapWorld) observeCasts(events []sim.CastEvent) (marks []sim.Projectile
 		}
 		mw.scheduleBlastSound(ev.Spell, ev.Owner, from, to, ev.Weapon && !ev.Rider)
 		target, targetPresent := mw.entity(ev.Target)
-		if arm := mw.world.SpellArm(ev.Spell); arm == 6 || arm == 11 {
+		if arm := mw.world.SpellArm(ev.Spell); sim.SpellArmHeals(arm) || sim.SpellArmDrains(arm) {
 			if mw.files().targetMarkOnRelease && !ev.AtCell && targetPresent {
 				marks = append(marks, sim.ProjectileMark{Target: target.ID,
 					Picture: int32(data.CastPicture(int(ev.Spell))), Binding: target.SourceBinding})
 			} else {
 				mw.healBursts = append(mw.healBursts, healBurst{at: to,
 					picture: data.CastPicture(int(ev.Spell)), owner: ev.TargetOwner,
-					seed: mw.presentationSeed(liveCastIdentity(ev)), tile: mw.effectTileSize(ev.Target), drain: arm == 11})
+					seed: mw.presentationSeed(liveCastIdentity(ev)), tile: mw.effectTileSize(ev.Target), drain: sim.SpellArmDrains(arm)})
 			}
 		}
 	}
@@ -157,9 +157,6 @@ const chainTagCount = 7
 func castSeed(caster, target sim.EntityID, spell int) uint32 {
 	return uint32(caster)*2654435761 + uint32(target)*2246822519 + uint32(spell) + 1
 }
-
-// fireBallSpell is the spell whose burst the World builds as a record.
-const fireBallSpell = 2
 
 // fireBallBurstPicture is the stationary explosion behind spell 2. Its
 // decoded 22-tick life over an 11-frame half clock would otherwise wrap its
@@ -284,7 +281,7 @@ type teleportCastProfile struct {
 
 // teleportBookCast reports a book cast event of Teleport.
 func (mw *mapWorld) teleportBookCast(ev sim.CastEvent) bool {
-	return !ev.Weapon && mw.world.SpellArm(ev.Spell) == teleportArm
+	return !ev.Weapon && sim.SpellArmTeleports(mw.world.SpellArm(ev.Spell))
 }
 
 // castMessageSounds reports whether the cast message of ev plays its slot: a
@@ -311,9 +308,6 @@ func (mw *mapWorld) startBookCastRun(ev sim.CastEvent) int {
 	}
 	return mw.startCastRun(ev.Caster)
 }
-
-// teleportArm is Teleport's spell arm.
-const teleportArm = 26
 
 // casting reports that id is inside a cast run this tier is playing. It is
 // the entity's OWN half of the swing gate: an entity resolving an attack
@@ -361,7 +355,7 @@ func scaleRun(elapsed, span, track int) int {
 // which is where the frame counter those runs index is advanced.
 func (mw *mapWorld) advanceCastRuns() {
 	for id, r := range mw.castRun {
-		if mw.world.HasEffectArm(id, 20) {
+		if mw.world.HasEffectArm(id, sim.StoneCurseSpellArm()) {
 			continue
 		}
 		if r.left <= 1 {

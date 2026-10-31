@@ -40,7 +40,7 @@ func (w *World) pointAttribution(ci, ti int, rule SpellRule) {
 	if rule.bookInstance {
 		defensive = rule.bookDefensive == 1
 	}
-	if rule.arm() == 11 || defensive || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
+	if spellArmOf(rule.arm()).drain || defensive || ci < 0 || ci >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
 		return
 	}
 	source := &w.entities[ci]

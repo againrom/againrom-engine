@@ -422,7 +422,7 @@ func (w *World) tickSavedArea(i int, obs *castObs) {
 		x, y := keyCell(d.Key)
 		w.applySavedAreaPayload(*d, *e, w.blastCellsInMap(x, y, int32(e.AE48[1])))
 		w.retireSavedArea(i)
-		if d.Spell == fireBallSpell {
+		if rowIDBursts(d.Spell) {
 			w.releaseFireBallBursts(x, y, int32(e.AE48[1]), 0)
 		}
 	}

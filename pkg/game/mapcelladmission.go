@@ -41,8 +41,8 @@ type admissionKey struct {
 	route cellRoute
 }
 
-// anyArm is every ground arm.
-const anyArm = ^mapload.GroundArm(0)
+// everyGround is every ground arm.
+const everyGround = ^mapload.GroundArm(0)
 
 // ringDrop is the kind a drop cell is admitted as.
 const ringDrop = "Drop"
@@ -55,14 +55,14 @@ var cellAdmissions = map[admissionKey]cellAdmission{
 	{"Unit", admitAdd}:          {bounds: true, ring: true, footprint: true},
 	{"Unit", admitMove}:         {bounds: true, ring: true, footprint: true},
 	{"Unit", admitField}:        {footprint: true},
-	{"Unit", admitGroup}:        {bounds: true, ring: true, arms: anyArm, domain: true, footprint: true},
+	{"Unit", admitGroup}:        {bounds: true, ring: true, arms: everyGround, domain: true, footprint: true},
 	{"Unit", admitCheck}:        {ring: true},
 	{"Structure", admitAdd}:     {bounds: true, ring: true, footprint: true},
 	{"Structure", admitMove}:    {bounds: true, ring: true, footprint: true},
 	{"Structure", admitField}:   {footprint: true},
 	{"Structure", admitGroup}:   {bounds: true, ring: true, footprint: true},
 	{"Sack", admitAdd}:          {bounds: true, arms: mapload.GroundBorder},
-	{"Sack", admitGroup}:        {bounds: true, arms: anyArm},
+	{"Sack", admitGroup}:        {bounds: true, arms: everyGround},
 	{"Enchantment", admitField}: {bounds: true},
 	{ringDrop, admitAdd}:        {bounds: true, ring: true},
 }

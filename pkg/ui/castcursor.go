@@ -93,7 +93,7 @@ func (v *Viewer) castSightCell(col, row int) bool {
 // castVictimAt is the unit decide would name for a cast click, less a unit the
 // party may not see.
 func (v *Viewer) castVictimAt(x, y int) (uint32, bool) {
-	id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), v.selectedSpell == controlSpiritSpellID)
+	id, hit := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), v.spellNamesBody(v.selectedSpell))
 	if !hit {
 		return 0, false
 	}

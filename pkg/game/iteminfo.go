@@ -232,12 +232,12 @@ func releasedSpellLines(code data.ItemCode, table *mapload.Table, spellID uint16
 		name = words.ItemSpellNames[spell.SpellID]
 	}
 	lines := []string{itemName(code, table), words.ItemMagic}
-	switch spell.Arm {
-	case 20:
+	switch {
+	case sim.SpellArmStoneCurse(spell.Arm):
 		return append(lines,
 			fmt.Sprintf("%s %s", name, spellDurationText(spell.DurationTicks, &words)),
 			fmt.Sprintf("%s %d", words.ItemRange, spell.MaxRange)), true
-	case 14:
+	case sim.SpellArmFiresRays(spell.Arm):
 		lines = append(lines, fmt.Sprintf("%s %s", words.ItemCasts, name))
 		if spell.HasDamage {
 			lines = append(lines, fmt.Sprintf("%s %d-%d", words.ItemDamage, spell.DamageMin, spell.DamageMax))

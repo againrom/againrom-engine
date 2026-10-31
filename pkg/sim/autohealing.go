@@ -89,7 +89,7 @@ func (w *World) unarmedHeal(ci int) (SpellRule, bool) {
 		if !w.globalHealAllowed(ci) {
 			return SpellRule{}, false
 		}
-		heal, ok := w.bookSpell(w.entities[ci], 6)
+		heal, ok := w.bookSpell(w.entities[ci], healArmAsID())
 		return heal, ok && heal.Restorative
 	}
 	heal, ok := w.knownRestorative(ci)

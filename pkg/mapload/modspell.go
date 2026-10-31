@@ -74,7 +74,7 @@ func ModSpellRefusal(t *Table, r mod.SpellRow) (line int, msg string) {
 	if r.AreaHits.Set && !sp.Area {
 		return r.AreaHits.Line, fmt.Sprintf("%s is not an area spell, so area_hits does not apply to it", sp.Name)
 	}
-	if r.Rays.Set && i+1 != sim.PrismaticSpellID {
+	if r.Rays.Set && !sim.SpellArmFiresRays(uint16(i+1)) {
 		return r.Rays.Line, fmt.Sprintf("%s does not fire rays, so rays does not apply to it", sp.Name)
 	}
 	return modSpellFormulaRefusal(sp, i+1, r)
@@ -139,7 +139,7 @@ func applyModSpellTargets(rules []sim.SpellRule, spells []data.Spell, d mod.Spel
 		rule := &rules[i]
 		rule.HealHostile = r.HealHostile.Set && r.HealHostile.Val && rule.Restorative
 		rule.SelfCast = r.SelfCast.Set && r.SelfCast.Val && rule.Damaging
-		if r.Rays.Set && rule.ID == sim.PrismaticSpellID {
+		if r.Rays.Set && sim.SpellArmFiresRays(rule.ID) {
 			rule.Rays, rule.Radius = uint8(r.Rays.Val), 0
 		}
 		if r.AreaHits.Set && rule.Area {

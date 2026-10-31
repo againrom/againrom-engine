@@ -11,7 +11,7 @@ var AttackMarkerColor = color.RGBA{R: 0xff, G: 0x40, B: 0x40, A: 0xff}
 
 // The authored attack pointer is a centered cross when pointer art is absent.
 const (
-	AttackAuthoredArm   = 7
+	AttackAuthoredReach = 7
 	AttackAuthoredWidth = 2
 )
 

@@ -268,5 +268,3 @@ func (w *World) standCaster(i int) {
 	w.syncSavedActorCommand(i)
 	w.syncSavedPost(i)
 }
-
-const teleportSpellID = 26

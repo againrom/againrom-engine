@@ -6,7 +6,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"slices"
 	"strings"
 
 	"againrom/pkg/data"
@@ -71,10 +70,6 @@ func spellSelfOnly(rule sim.SpellRule) bool {
 	return !rule.TargetsUnit && !rule.Area && rule.MaxRange == 0
 }
 
-// fireSacrificeSpellID is the second self spell: its row is an area, so the
-// row alone does not name it, and it keeps its cell order.
-const fireSacrificeSpellID = 4
-
 // spellArmOf is the first-game arm of the table row id, or id itself when the
 // table carries no such row.
 func spellArmOf(table []sim.SpellRule, id uint32) uint32 {
@@ -87,10 +82,11 @@ func spellArmOf(table []sim.SpellRule, id uint32) uint32 {
 }
 
 // spellSelfKind is the cast cursor's self kind: Shield by its row, Fire
-// Sacrifice by its id. Only the cursor and the click gate read it; the order
-// a click makes follows PointTarget.
+// Sacrifice by its arm, whose row is an area and keeps its cell order. Only
+// the cursor and the click gate read it; the order a click makes follows
+// PointTarget.
 func spellSelfKind(rule sim.SpellRule) bool {
-	return spellSelfOnly(rule) || rule.ArmID() == fireSacrificeSpellID && !rule.TargetsUnit && rule.Area
+	return spellSelfOnly(rule) || sim.SpellArmSelfAimed(rule.ArmID()) && !rule.TargetsUnit && rule.Area
 }
 
 func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
@@ -108,7 +104,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 		// strings and derives neither.
 		auto := e.AutoSpell != 0 && uint32(e.AutoSpell) == uint32(rule.ID)
 		characteristics := sim.SpellCharacteristicsFor(r, e, rule)
-		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || rule.ArmID() == 26), SelfOnly: spellSelfKind(rule),
+		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: spellSelfKind(rule),
 			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w)}
 		// THE ICON IS OPTIONAL AND ITS ABSENCE IS ORDINARY (0141;
 		// `MAGIC-ICON-024`). Four shipped spells are in no slot of the icon
@@ -169,7 +165,7 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 			knowers = []spellKnower{{rule, sim.SpellCharacteristicsFor(r, selected[0], rule)}}
 		}
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], Unavailable: !known,
-			PointTarget: known && !rule.TargetsUnit && (rule.Area || rule.ArmID() == 26), SelfOnly: known && spellSelfKind(rule),
+			PointTarget: known && !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: known && spellSelfKind(rule),
 			Info: spellPopupLines(knowers, names[rule.ID], &w)}
 		// Autocast remains the existing primary-unit gesture, not a new
 		// group policy inferred from the book-command population claim.
@@ -435,21 +431,17 @@ type spellCaption struct {
 	signed   bool // runs on any held value; the rest need a nonzero maximum
 	format   string
 	rangeSep string
-	value    func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool)
+	kind     sim.SpellCaption
 }
 
-func spellCaptionByID(ids []uint16, f, fromTable func(l int64) int64) func(sim.SpellRule, sim.SpellCharacteristics) (int64, bool) {
-	return func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
-		for _, want := range ids {
-			if want == rule.ID {
-				if c.HasMagnitude {
-					return fromTable(int64(c.Magnitude)), true
-				}
-				return f(int64(c.Power)), true
-			}
-		}
+// value is the block's number for one knower, held when the knower's row
+// states the block's caption.
+func (b spellCaption) value(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
+	kind, v := sim.SpellCaptionOf(rule, c)
+	if kind != b.kind || kind == sim.SpellCaptionNone {
 		return 0, false
 	}
+	return v, true
 }
 
 func inOriginalBook(id uint16) bool {
@@ -461,28 +453,16 @@ func inOriginalBook(id uint16) bool {
 	return false
 }
 
-// spellCaptions share the book and item formulas (TEXT-081, TEXT-133).
+// spellCaptions are the book and item caption blocks, one per caption a
+// spell-arm row states (TEXT-081, TEXT-133).
 var spellCaptions = []spellCaption{
-	{label: 182, signed: true, format: "%d", rangeSep: "...", value: func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
-		l := int64(c.Power)
-		switch {
-		case !slices.Contains([]uint16{24, 7, 28}, rule.ID):
-			return 0, false
-		case c.HasMagnitude:
-			return int64(c.Magnitude), true
-		case rule.ID == 24:
-			return l/15 + 1, true
-		}
-		return -(l/15 + 1), true
-	}},
-	{label: 183, format: "+%d", rangeSep: "...", value: spellCaptionByID([]uint16{5, 16, 10, 22}, func(l int64) int64 { return min(l/2, 100) }, func(m int64) int64 { return min(m, 100) })},
-	{label: 184, signed: true, format: "%d", rangeSep: "...", value: spellCaptionByID([]uint16{12, 17}, func(l int64) int64 { return -(l/30 + 1) }, func(m int64) int64 { return -m })},
-	{label: 185, format: "+%d%%", rangeSep: "...", value: spellCaptionByID([]uint16{23}, func(l int64) int64 { return 4*l/5 + 20 }, func(m int64) int64 { return m })},
-	{label: 187, format: "+%d%%", rangeSep: "...", value: spellCaptionByID([]uint16{27}, func(l int64) int64 { return 4*l/5 + 20 }, func(m int64) int64 { return m })},
-	{label: 186, format: "%d", rangeSep: "-", value: func(rule sim.SpellRule, c sim.SpellCharacteristics) (int64, bool) {
-		return int64(rule.RayLimit(c.Power)), rule.ID == 14
-	}},
-	{label: 217, format: "%d", rangeSep: "-", value: spellCaptionByID([]uint16{18}, func(l int64) int64 { return l/10 + 3 }, func(m int64) int64 { return m })},
+	{label: 182, signed: true, format: "%d", rangeSep: "...", kind: sim.SpellCaptionSpeed},
+	{label: 183, format: "+%d", rangeSep: "...", kind: sim.SpellCaptionProtection},
+	{label: 184, signed: true, format: "%d", rangeSep: "...", kind: sim.SpellCaptionLight},
+	{label: 185, format: "+%d%%", rangeSep: "...", kind: sim.SpellCaptionBless},
+	{label: 187, format: "+%d%%", rangeSep: "...", kind: sim.SpellCaptionCurse},
+	{label: 186, format: "%d", rangeSep: "-", kind: sim.SpellCaptionRays},
+	{label: 217, format: "%d", rangeSep: "-", kind: sim.SpellCaptionShield},
 }
 
 // autoCastSetting is the Player's setting with any queued change applied.

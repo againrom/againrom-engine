@@ -33,7 +33,7 @@ func (w *World) ImportOriginalPointCasts(casts []OriginalPointCast) int {
 		}
 		e := w.entities[i]
 		rule, ok := w.bookSpell(e, uint32(p.Spell))
-		if !ok || !e.Alive() || !knowsSpell(e, uint32(p.Spell)) || rule.arm() != teleportSpellID {
+		if !ok || !e.Alive() || !knowsSpell(e, uint32(p.Spell)) || !spellArmOf(rule.arm()).teleport {
 			continue
 		}
 		if _, inside := cellIndexIn(w.bounds, p.X, p.Y); !inside {

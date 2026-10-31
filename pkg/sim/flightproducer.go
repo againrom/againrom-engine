@@ -228,10 +228,10 @@ func (w *World) produceScriptCast(ev *ScriptCastEvent, obs *castObs) {
 	picture := int32(ev.Spell)*2 + 8
 	p := w.flightInputs.Pictures[picture]
 	segments := int32(0)
-	switch w.SpellArm(ev.Spell) {
-	case 13:
+	switch spellArmOf(w.spellArm(ev.Spell)).form {
+	case formBolt:
 		segments = 5
-	case 14:
+	case formFan:
 		segments = p.segments(0, 0)
 	default:
 		return
@@ -305,7 +305,7 @@ func (w *World) ReleaseClientShots(clock ShotClock) Released {
 	var obs castObs
 	for i := range w.entities {
 		e := w.entities[i]
-		if w.HasEffectArm(e.ID, 20) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
+		if w.holdsStoneCurse(e.ID) || !e.Alive() || !e.HasAttackTarget || e.Reach <= 1 {
 			continue
 		}
 		swing, physical := clock(e.ID)
@@ -356,7 +356,7 @@ func (w *World) produceUnitShots(obs *castObs) {
 			e.FlightRun = FlightRun{}
 			continue
 		}
-		if w.HasEffectArm(e.ID, 20) {
+		if w.holdsStoneCurse(e.ID) {
 			continue
 		}
 		r := e.FlightRun

@@ -339,7 +339,7 @@ func TestEveryCheckDispositionIsRecordedAtItsOwnBoundary(t *testing.T) {
 		{false, false, ScriptSilenceBuildTimeConstant},
 		{true, true, ScriptSilenceNone},
 		{true, false, ScriptSilenceVIPNoValue},
-		{true, false, ScriptSilenceDeadArm},
+		{true, false, ScriptSilenceDeadCheck},
 		{true, false, ScriptSilenceHealthGate},
 		{false, false, ScriptSilenceUnsupported},
 		{true, false, ScriptSilenceNoGroup},

@@ -5,33 +5,6 @@ import (
 	"slices"
 )
 
-// secondSpellArms maps a second-game spell id to the first-game arm of the
-// same spell (R2-ENGINE-019 names the rows, R2-ENGINE-024 groups them by
-// arm). Blizzard runs arm 21's sampled staged program: 32 pulses three area
-// updates apart, each one cell drawn x then y as RNG(5)-2 and admitted only
-// inside 8..dimension-9 (R2-ENGINE-391, R2-ENGINE-392). Ice Missile and
-// Diamond Dust reach the blank-effect default as Fire Arrow does and run its
-// damage block alone (R2-ENGINE-024). Summon runs armSummon.
-var secondSpellArms = [...]uint16{
-	1: 1, 2: 2, 3: 3, 4: 5, 5: ArmNone, 6: 8, 7: 21, 8: 10, 9: 9, 10: 13,
-	11: 14, 12: 15, 13: 16, 14: 17, 15: 12, 16: ArmNone, 17: 19, 18: 20, 19: 22,
-	20: 23, 21: 24, 22: 25, 23: 26, 24: 6, 25: armSummon, 26: 11, 27: 18, 28: 27,
-	29: 28,
-}
-
-// armSummon is the second game's Summon arm. The first game has no such
-// spell, so no first-game id names it.
-const armSummon uint16 = 0xfffe
-
-// SecondGameSpellArm is the arm a second-game row id runs; an id past the
-// published table runs none.
-func SecondGameSpellArm(id uint16) uint16 {
-	if int(id) < len(secondSpellArms) && id != 0 {
-		return secondSpellArms[id]
-	}
-	return ArmNone
-}
-
 // AssignSecondGameArms marks every row of a second-game table with its arm.
 func AssignSecondGameArms(rules []SpellRule) {
 	for i := range rules {
@@ -58,7 +31,7 @@ func secondDrainAmount(base int64, astral, draw int32) int64 {
 // own id (R2-ENGINE-453): kind none, magnitude 0. The record alone holds its
 // target, by the first game's Stone Curse hold (stoneCursed; R2-ENGINE-454).
 func secondBlankCurse(rule SpellRule) bool {
-	return rule.Second && rule.arm() == 20 && rule.EffectKind == EffectNone
+	return rule.secondArm().blankCurse && rule.EffectKind == EffectNone
 }
 
 // blankEffectRow reports whether the table row id attaches a blank effect.
@@ -94,7 +67,7 @@ func secondCurseCeiling(power, earth int32, item bool) uint16 {
 // its target and takes the larger magnitude and the larger duration
 // (R2-ENGINE-454). Every other row replaces the record.
 func keepsLargerOnRepeat(rule SpellRule) bool {
-	return rule.Second && rule.arm() == 20
+	return rule.secondArm().keepsLarger
 }
 
 // SpellCreature is one actor a spell creates, built by the loader from the
@@ -276,21 +249,6 @@ func SpellRuleLands(rule SpellRule) bool {
 		return false
 	}
 	return !rule.Area || areaModeFor(rule) != areaModeRing || ringStageCount(rule.arm()) != 0
-}
-
-// armSpellID is the row id an attached effect of arm carries. A first-game
-// table returns arm itself; a second-game table returns the row running arm,
-// or ArmNone, which no effect carries, when no row runs it.
-func (w *World) armSpellID(arm uint16) uint16 {
-	if len(w.spells) == 0 || !w.spells[0].Second {
-		return arm
-	}
-	for _, r := range w.spells {
-		if r.arm() == arm {
-			return r.ID
-		}
-	}
-	return ArmNone
 }
 
 // HasEffectArm reports whether target carries the lasting effect of the row

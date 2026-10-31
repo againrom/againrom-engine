@@ -220,10 +220,10 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		}
 		return false
 	}
-	first := !w.SecondGame()
+	second := w.SecondGame()
 	var choices []SpellRule
 	for _, rule := range w.spells {
-		if first && (rule.ID < 1 || rule.ID > lastBookSpellID) {
+		if !bookWalkTakes(rule.ID, second) {
 			continue
 		}
 		var resolved bool
@@ -235,11 +235,12 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		choices = append(choices, rule)
 	}
 	var id uint32
+	fallback, falls := bookWalkFallback(second)
 	switch {
 	case len(choices) > 0:
 		id = uint32(choices[w.rng.aiRange(int32(len(choices)))].ID)
-	case first && knowsSpell(e, lastBookSpellID):
-		id = lastBookSpellID
+	case falls && knowsSpell(e, fallback):
+		id = fallback
 	default:
 		return false
 	}
@@ -280,9 +281,6 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 	}
 	return false
 }
-
-// lastBookSpellID is the last id of the first game's spell book walk.
-const lastBookSpellID = 28
 
 // underCommand reports whether e is executing a player's order rather than
 // available to be decided over.

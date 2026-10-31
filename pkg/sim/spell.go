@@ -118,13 +118,6 @@ const ArmNone uint16 = 0xffff
 // ArmID is the first-game id of the behaviour the row runs.
 func (r SpellRule) ArmID() uint16 { return r.arm() }
 
-func (r SpellRule) arm() uint16 {
-	if r.Arm != 0 {
-		return r.Arm
-	}
-	return r.ID
-}
-
 // spellArm is the arm of the table row id, or id itself when the table
 // carries no such row.
 func (w *World) spellArm(id uint16) uint16 {
@@ -136,25 +129,7 @@ func (w *World) spellArm(id uint16) uint16 {
 	return id
 }
 
-// spellIDOfArm is the id of the first table row running arm, or arm itself
-// when no row runs it.
-func (w *World) spellIDOfArm(arm uint16) uint16 {
-	for _, r := range w.spells {
-		if r.arm() == arm {
-			return r.ID
-		}
-	}
-	return arm
-}
-
-// spellArmIs reports that a stored spell id names a row running arm.
-func (w *World) spellArmIs(id int64, arm uint16) bool {
-	return id >= 0 && id <= 0xffff && w.spellArm(uint16(id)) == arm
-}
-
 const MaxRays = 100
-
-const PrismaticSpellID = prismaticSpellID
 
 // RayLimit is the one ray-count rule, a maximum.
 func (r SpellRule) RayLimit(power int32) int {
@@ -315,7 +290,8 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		w.applySpellHealing(ti, rule, power)
 		return true
 	}
-	if rule.arm() == 11 && !rule.Damaging {
+	arm := spellArmOf(rule.arm())
+	if arm.drain && !rule.Damaging {
 		w.flipOnBlow(ci, ti)
 		// Drain Life's own arm caps the roll at victim health+10 and sends
 		// that amount to the skill sink before either pool changes. It never
@@ -358,8 +334,8 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		}
 		return true
 	}
-	switch rule.arm() {
-	case 26:
+	switch {
+	case arm.teleport:
 		if ci < 0 {
 			return false
 		}
@@ -377,17 +353,17 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		w.routes[ci] = nil
 		w.castObservation.recordRelocation(w.entities[ci], fromX, fromY)
 		return true
-	case 25:
+	case arm.controlSpirit:
 		if ci < 0 || w.entities[ti].Alive() || w.entities[ti].Decay != DecayBones {
 			return false
 		}
 		consumed, _ := w.raiseControlSpirit(ci, ti)
 		return consumed
-	case armSummon:
+	case arm.summon:
 		return ci >= 0 && w.castSummon(ci)
 	}
 	kind, mag, duration, mode := w.pointEffect(ti, rule, power)
-	if rule.Second && rule.arm() == 20 {
+	if rule.secondArm().drawnDuration {
 		// The second game's Stone Curse draws its duration 0..the ceiling
 		// pointEffect states; a draw of 0 attaches nothing (R2-ENGINE-025).
 		if duration = uint16(w.rng.uniform(int32(duration))); duration == 0 {
@@ -405,7 +381,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		return true
 	}
 	applied := w.attachEffect(targetID, casterID, rule, kind, mag, duration, mode)
-	if applied && (rule.arm() == 20 || rule.arm() == 27 || rule.arm() == 28) {
+	if applied && arm.attachAward {
 		w.awardSpellDamage(ci, ti, rule, int64(w.entities[ti].MaxHP)*3/100)
 	}
 	return applied
@@ -426,27 +402,23 @@ const effectTimedModes = EffectDuration | EffectContinuous | EffectCharges
 // duration, so the function takes an index rather than a rule alone; nothing
 // else about ti is read and no field of it is touched.
 func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, int32, uint16, EffectMode) {
-	switch rule.arm() {
-	case 23, 27:
-		kind := EffectBless
-		if rule.arm() == 27 {
-			kind = EffectCurse
+	arm := spellArmOf(rule.arm())
+	if own := arm.own; own.kind != EffectNone {
+		mag := int32(1)
+		if own.scaled {
+			mag = ownScaledMagnitude(power)
+			if m, ok := magnitudeUnder(w.rules, rule, power); ok {
+				mag = m
+			}
 		}
-		mag := power*4/5 + 20
-		if m, ok := magnitudeUnder(w.rules, rule, power); ok {
-			mag = m
-		}
-		return kind, mag, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
-	case 15:
-		return EffectInvisible, 1, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
+		return own.kind, mag, spellDurationOf(w.rules, rule, power, durationEffect), EffectDuration
 	}
 	kind, mode := rule.EffectKind, rule.EffectMode
 	mag, duration := rule.EffectMagnitude, spellDurationOf(w.rules, rule, power, durationEffect)
-	if a := int(rule.arm()); a < len(pointMagnitudes) && pointMagnitudes[a] != nil {
-		mag = pointMagnitudes[a](rule, mag, power)
+	if arm.magnitude != nil {
+		mag = arm.magnitude(rule, mag, power)
 	}
-	switch rule.arm() {
-	case 20:
+	if arm.stoneCurse {
 		// THE MAGNITUDE IS THE ROW'S OWN COLUMN AND NOT A LITERAL HERE.
 		// MAGIC-EFFECT-015 names stone_curse as one of the two arms that
 		// write no `+0x40`, which is what makes the `Effects` column's own
@@ -455,7 +427,7 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 		// THE DURATION IS SCALED BY protectionEarth (MAGIC-SING-019 (d)),
 		// floored at one tick: the only place a resistance shortens an
 		// effect instead of reducing damage.
-		if ti >= 0 && ti < len(w.entities) && !rule.Second {
+		if ti >= 0 && ti < len(w.entities) && !rule.secondArm().drawnDuration {
 			// MAGIC-303: the word times 100 less the signed Earth resistance
 			// in signed 32 bits, divided by 100, kept as a word; zero is one.
 			r := int32(int16(w.entities[ti].Protection[3]))
@@ -471,31 +443,11 @@ func (w *World) pointEffect(ti int, rule SpellRule, power int32) (EffectKind, in
 			mode |= EffectDuration
 		}
 	}
-	if m, ok := magnitudeUnder(w.rules, rule, power); ok && MagnitudeArm(rule.arm()) {
+	if m, ok := magnitudeUnder(w.rules, rule, power); ok && arm.formulaMagnitude {
 		mag = m
 	}
 	return kind, mag, duration, mode
 }
-
-// pointMagnitudes: MAGIC-EFFECT-015.
-var pointMagnitudes = [...]func(rule SpellRule, mag, power int32) int32{
-	5: halfPower, 10: halfPower, 16: halfPower, 22: halfPower,
-	18: func(_ SpellRule, _, power int32) int32 { return power/10 + 3 },
-	24: func(_ SpellRule, _, power int32) int32 { return power/15 + 1 },
-	7:  slowMagnitude, 28: slowMagnitude,
-	8: func(rule SpellRule, mag, power int32) int32 {
-		if rule.Second {
-			return mag * (power + 45) / 45
-		}
-		return PoisonMagnitude(mag, power)
-	},
-	12: func(_ SpellRule, _, power int32) int32 { return power/30 + 1 },
-	17: func(_ SpellRule, _, power int32) int32 { return -1 - power/30 },
-}
-
-func halfPower(_ SpellRule, _, power int32) int32 { return power / 2 }
-
-func slowMagnitude(_ SpellRule, _, power int32) int32 { return -(power/15 + 1) }
 
 // pointEffectRefusal names the row-specific condition an ordinary apply
 // requires of its victim, or the empty string when the apply will land.
@@ -507,11 +459,12 @@ func slowMagnitude(_ SpellRule, _, power int32) int32 { return -(power/15 + 1) }
 // answer for BookSpellRefusal, the lawful real-save instrument, and for the
 // pre-cost gate inside castSpell.
 func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) string {
-	if rule.Area || rule.Damaging || rule.Restorative || rule.arm() == 11 || rule.arm() == 14 {
+	arm := spellArmOf(rule.arm())
+	if rule.Area || rule.Damaging || rule.Restorative || arm.drain || arm.prismatic {
 		return ""
 	}
-	switch rule.arm() {
-	case 25:
+	switch {
+	case arm.controlSpirit:
 		if ci < 0 {
 			return "control spirit has no caster"
 		}
@@ -525,12 +478,12 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 			return "no ghost template loaded"
 		}
 		return ""
-	case 26:
+	case arm.teleport:
 		if ci < 0 {
 			return "teleport has no caster"
 		}
 		return ""
-	case armSummon:
+	case arm.summon:
 		if ci < 0 {
 			return "summon has no caster"
 		}
@@ -594,28 +547,14 @@ func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
 func SpellRuleApplicable(rule SpellRule) bool { return spellApplicable(rule) }
 
 func spellApplicable(rule SpellRule) bool {
-	if rule.Area || rule.Damaging || rule.Restorative || rule.EffectKind != EffectNone {
-		return true
-	}
-	switch rule.arm() {
-	case 11, 14, 15, 18, 20, 23, 24, 25, 26, 27, 28, armSummon:
-		return true
-	}
-	return false
+	return rule.Area || rule.Damaging || rule.Restorative || rule.EffectKind != EffectNone || spellArmOf(rule.arm()).applies
 }
 
 // castsAtActor reports a row a book cast aims at an actor: a unit-target or
 // area row, or one of the arms that land on the actor named whatever the
 // row's target column says. Admission and release ask it alike.
 func castsAtActor(rule SpellRule) bool {
-	if rule.Area || rule.TargetsUnit {
-		return true
-	}
-	switch rule.arm() {
-	case 15, 18, 20, 23, 24, 25, 26, 27, 28, armSummon:
-		return true
-	}
-	return false
+	return rule.Area || rule.TargetsUnit || spellArmOf(rule.arm()).atActor
 }
 
 // normaliseSpells is the constructor's own act over a caller's spell table:
@@ -641,7 +580,7 @@ func normaliseSpells(in []SpellRule) ([]SpellRule, error) {
 			return nil, fmt.Errorf("sim: spell %d has a negative mana cost %d", sp.ID, sp.ManaCost)
 		}
 		if sp.HealHostile && !sp.Restorative || sp.SelfCast && !sp.Damaging || sp.AreaHits > AreaHitsHostile || sp.AreaHits != AreaHitsAll && !sp.Area ||
-			sp.Rays != 0 && (sp.arm() != prismaticSpellID || sp.Rays > MaxRays) {
+			sp.Rays != 0 && (!spellArmOf(sp.arm()).prismatic || sp.Rays > MaxRays) {
 			return nil, fmt.Errorf("sim: spell %d sets a target filter its row has no arm for", sp.ID)
 		}
 		if sp.DamageMin < 0 || sp.DamageMax < 0 {
@@ -761,28 +700,29 @@ type WeaponSpellCharacteristics struct {
 }
 
 func weaponSpellCharacteristics(r Rules, rule SpellRule, power int32) (WeaponSpellCharacteristics, bool) {
-	if rule.arm() == 25 || !spellApplicable(rule) {
+	arm := spellArmOf(rule.arm())
+	if arm.controlSpirit || !spellApplicable(rule) {
 		return WeaponSpellCharacteristics{}, false
 	}
 	// Drain Life projects its transfer interval without the damaging flag;
 	// Stone Curse projects duration instead of damage.
-	if !rule.Damaging && rule.arm() != 11 && rule.arm() != 20 {
+	if !rule.Damaging && !arm.drain && !arm.stoneCurse {
 		return WeaponSpellCharacteristics{}, false
 	}
-	if rule.Damaging && !rule.TargetsUnit && rule.arm() != 14 {
+	if rule.Damaging && !rule.TargetsUnit && !arm.prismatic {
 		return WeaponSpellCharacteristics{}, false
 	}
 
 	out := WeaponSpellCharacteristics{SpellID: rule.ID, Arm: rule.arm(), MaxRange: rule.MaxRange}
-	if rule.Damaging || rule.arm() == 11 {
+	if rule.Damaging || arm.drain {
 		out.DamageMin, out.DamageMax = SpellDamagePair(r, rule, power)
 		out.HasDamage = true
 	}
-	if rule.arm() == 20 {
+	if arm.stoneCurse {
 		out.DurationTicks = spellDurationOf(r, rule, power, durationEffect)
 		out.HasDuration = true
 	}
-	if rule.arm() == 14 {
+	if arm.prismatic {
 		out.RayCount = uint8(rule.RayLimit(power))
 	}
 	return out, true
@@ -1061,24 +1001,25 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	}
 	w.refreshAppliedBook(ci, spellID)
 	if victim != caster.ID {
-		w.removeAttachedSpell(caster.ID, w.armSpellID(15))
+		w.removeAttachedSpell(caster.ID, w.hidingSpell())
 	}
 
+	arm := spellArmOf(rule.arm())
 	var raisedID EntityID
-	if rule.arm() == 25 {
+	if arm.controlSpirit {
 		raisedID, _ = w.NextEntityID()
 	}
 	var victims []CellPoint
 	if rule.Area {
 		w.landAreaAimed(areaAim{Target: victim, Has: true}, rule, uint16(power), caster.ID, true, caster.X, caster.Y, aimX, aimY, caster.Facing, true, obs)
-	} else if rule.arm() == 14 && rule.Delivery == 2 && w.bookAlreadyPaid(caster.ID, spellID) {
+	} else if arm.prismatic && rule.Delivery == 2 && w.bookAlreadyPaid(caster.ID, spellID) {
 		// Its fan was prepared at admission (MAGIC-CASTCLOCK-171).
-	} else if rule.arm() == 14 {
+	} else if arm.prismatic {
 		victims = w.applyPrismatic(ci, vi, rule, power)
 	} else if !w.ordinaryEffect(ci, vi, rule, power) {
 		return false
 	}
-	if rule.arm() == 25 {
+	if arm.controlSpirit {
 		// Control Spirit consumes its target and creates a new actor, so the
 		// indices resolved before apply no longer name the two actors. Rebind
 		// both before the common observation/training tail.
@@ -1117,13 +1058,13 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	if rule.Restorative && w.entities[vi].HP > healthBefore {
 		restored = w.entities[vi].HP - healthBefore
 	}
-	if !(rule.arm() == 14 && rule.Delivery == 2 && w.bookAlreadyPaid(casterID, spellID)) && !w.presentedAtAdmission(rule) {
+	if !(arm.prismatic && rule.Delivery == 2 && w.bookAlreadyPaid(casterID, spellID)) && !w.presentedAtAdmission(rule) {
 		obs.recordFromResult(w, ci, vi, rule, false, castFromX, castFromY, restored)
 		obs.recordVictims(victims)
 	}
 
 	// MAGIC-TRAIN-018
-	if rule.arm() != 14 {
+	if !arm.prismatic {
 		w.awardSkill(ci, int32(rule.School), (int64(rule.ManaCost)+1)/2, -1)
 	}
 	return true
@@ -1138,7 +1079,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 		return false
 	}
 	rule, ok := w.bookSpell(*caster, spellID)
-	if !ok || (!rule.Area && rule.arm() != 26) || !spellApplicable(rule) {
+	if !ok || (!rule.Area && !spellArmOf(rule.arm()).pointTarget) || !spellApplicable(rule) {
 		return false
 	}
 	var level int32
@@ -1166,7 +1107,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 		debitBook(caster, rule)
 	}
 	w.refreshAppliedBook(ci, spellID)
-	if rule.arm() == 26 {
+	if spellArmOf(rule.arm()).teleport {
 		if !w.presentedAtAdmission(rule) {
 			obs.recordAt(w, ci, rule, x, y)
 		}
@@ -1229,10 +1170,10 @@ func (w *World) directDamage(ci, vi int, base, spread int64, school uint8) int64
 	if ci >= 0 && ci < len(w.entities) {
 		source := w.entities[ci].ID
 		blessed := false
-		if chance, ok := w.attachedMagnitude(source, w.armSpellID(23)); ok {
+		if chance, ok := w.attachedMagnitude(source, w.blessingSpell()); ok {
 			blessed = w.rng.uniform(100) < chance
 		}
-		if _, ok := w.attachedMagnitude(source, w.armSpellID(27)); ok && !blessed {
+		if _, ok := w.attachedMagnitude(source, w.cursingSpell()); ok && !blessed {
 			w.rng.uniform(100)
 		}
 	}
@@ -1267,10 +1208,11 @@ func (w *World) secondSpellDamage(vi int, base, spread int64, school uint8) int6
 
 func (w *World) weaponSpellApply(ai, ti int, rule SpellRule, power int32, obs *castObs) bool {
 	rule.itemCast = true
-	if rule.arm() == 14 || !spellApplicable(rule) {
+	arm := spellArmOf(rule.arm())
+	if arm.prismatic || !spellApplicable(rule) {
 		return false
 	}
-	if rule.arm() == controlSpiritSpellID {
+	if arm.controlSpirit {
 		return w.queueControlSpirit(ai, ti)
 	}
 	if rule.Area {
@@ -1308,7 +1250,7 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 		return
 	}
 	// 4. and the row must actually land: weaponSpellApply's own refusals.
-	if rule.arm() == 14 {
+	if spellArmOf(rule.arm()).prismatic {
 		victims := w.applyPrismaticItem(ai, ti, rule, a.WeaponSpellLevel, true)
 		if len(victims) == 0 {
 			return
@@ -1326,7 +1268,7 @@ func (w *World) releaseWeaponSpell(ai, ti int, rule SpellRule, obs *castObs) {
 	}
 
 	w.markSpellEffect(ai, rule.ID)
-	if rule.Delivery != 2 && rule.arm() != controlSpiritSpellID {
+	if rule.Delivery != 2 && !spellArmOf(rule.arm()).controlSpirit {
 		w.markSpellEffect(ti, rule.ID)
 	}
 	obs.record(w, ai, ti, rule, true)
@@ -1361,7 +1303,7 @@ func (w *World) weaponRiderApply(ai, ti int, positiveLivingHit bool, obs *castOb
 		return
 	}
 	w.markSpellEffect(ai, rule.ID)
-	if rule.Delivery != 2 && rule.arm() != controlSpiritSpellID {
+	if rule.Delivery != 2 && !spellArmOf(rule.arm()).controlSpirit {
 		w.markSpellEffect(ti, rule.ID)
 	}
 	obs.record(w, ai, ti, rule, true)
@@ -1655,7 +1597,7 @@ func (w *World) presentBookCast(ci int, c bookCast, rule SpellRule) {
 // and in the second, whose cast routine pays and sends it before the wind-up
 // (R2-ENGINE-705).
 func (w *World) presentedAtAdmission(rule SpellRule) bool {
-	return rule.arm() == teleportSpellID
+	return spellArmOf(rule.arm()).teleport
 }
 
 func (w *World) queueBookCast(c bookCast) bool {
@@ -1800,7 +1742,7 @@ func (w *World) bookSpellCellAdmissionRange(ci int, x, y int32, spellID uint32, 
 	if !ok {
 		return "spell row absent"
 	}
-	if !rule.Area && rule.arm() != 26 {
+	if !rule.Area && !spellArmOf(rule.arm()).pointTarget {
 		return "spell does not target a cell"
 	}
 	if !spellApplicable(rule) {
@@ -2263,7 +2205,7 @@ func (w *World) autoCastMoment(i int) bool {
 // pool for a move of zero. The route-following autocast that would have
 // given the row a use unbidden is deferred by the same ruling and is not
 // built here.
-func autoCastable(rule SpellRule) bool { return rule.arm() != 26 }
+func autoCastable(rule SpellRule) bool { return !spellArmOf(rule.arm()).manualOnly }
 
 func (w *World) ageCastRecovery(released map[EntityID]bool) {
 	for i := range w.entities {
@@ -2616,7 +2558,7 @@ func (w *World) autoCastTargetWithin(ci int, rule SpellRule, reach int64, power 
 		var key int64
 		tier := 0
 		// Legacy policy selects bodies, friends or foes by the spell's arm.
-		if rule.arm() == 25 {
+		if spellArmOf(rule.arm()).controlSpirit {
 			if t.Alive() || t.Decay != DecayBones {
 				continue
 			}

@@ -3685,8 +3685,8 @@ func (mw *mapWorld) attackOrCast(entity, victim, spell uint32, x, y int, cell bo
 		if cell {
 			// Sight gates the cursor, not this seam; a Teleport point outside
 			// a populated fog plane is still dropped.
-			const teleportSpellID = 26
-			if spellArmOf(mw.world.Spells(), spell) == teleportSpellID && !mw.fog.contains(x, y) {
+			arm := spellArmOf(mw.world.Spells(), spell)
+			if uint32(uint16(arm)) == arm && sim.SpellArmTeleports(uint16(arm)) && !mw.fog.contains(x, y) {
 				return
 			}
 			id := sim.EntityID(entity)
@@ -4579,7 +4579,7 @@ func (mw *mapWorld) advanceOdometers() {
 	}
 	for _, e := range mw.world.EntityView() {
 		w := mw.walk[e.ID]
-		if mw.world.HasEffectArm(e.ID, 20) {
+		if mw.world.HasEffectArm(e.ID, sim.StoneCurseSpellArm()) {
 			// recordCells counted the proposed tick before the simulation held it.
 			if e.Transit > 0 && w.tick > 0 {
 				w.tick--
@@ -4629,7 +4629,7 @@ func (mw *mapWorld) advanceSwings() {
 	ents := mw.world.EntityView()
 	for i := range ents {
 		e := &ents[i]
-		if mw.world.HasEffectArm(e.ID, 20) {
+		if mw.world.HasEffectArm(e.ID, sim.StoneCurseSpellArm()) {
 			continue
 		}
 		was := mw.phase[e.ID]
@@ -4967,8 +4967,6 @@ func (mw *mapWorld) structureOwnerSlots() map[sim.StructureID]uint32 {
 }
 
 const (
-	lightSpellID           = 12
-	darknessSpellID        = 17
 	lightTerrainBrightness = float32(3)
 	lightSpriteBrightness  = float32(2)
 	darknessBrightness     = float32(0.5)
@@ -5019,10 +5017,10 @@ func spellLightingCells(effects []sim.CellEffect, bounds sim.Bounds) []ui.SpellL
 	}
 	for _, effect := range effects {
 		terrainBrightness, spriteBrightness := float32(0), float32(0)
-		switch effect.Spell {
-		case lightSpellID:
+		switch sim.SpellArmLighting(effect.Spell) {
+		case sim.SpellLightBright:
 			terrainBrightness, spriteBrightness = lightTerrainBrightness, lightSpriteBrightness
-		case darknessSpellID:
+		case sim.SpellLightDark:
 			terrainBrightness, spriteBrightness = darknessBrightness, darknessBrightness
 		default:
 			continue
@@ -5217,7 +5215,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 		}
 		cell := image.Point{X: int(e.X), Y: int(e.Y)}
 		fineX, fineY, finePosition := mw.world.ActorFinePosition(e.ID)
-		stone := mw.world.HasEffectArm(e.ID, 20)
+		stone := mw.world.HasEffectArm(e.ID, sim.StoneCurseSpellArm())
 		if stone && !finePosition {
 			// The held body and a cold LOAD use the same canonical SAV position.
 			fineX, fineY, finePosition = 128, 128, true
@@ -5360,7 +5358,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// drops a fallen unit's mark once this is false (DIV-1455).
 			Restorable: e.MaxHP > 0 && e.OrdinaryTargetable(),
 			DamageJolt: mw.damageJolt(e.ID),
-			Stone:      stone, Translucent: mw.world.HasEffectArm(e.ID, 15),
+			Stone:      stone, Translucent: mw.world.HasEffectArm(e.ID, sim.InvisibilitySpellArm()),
 			// The mana pair beside it, read off the same copy-handing entity read as
 			// everything else here and carried whole — no period, no remainder: the
 			// panel states a pool, not a rate.

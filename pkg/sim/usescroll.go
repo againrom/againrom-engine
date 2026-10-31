@@ -304,11 +304,12 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 	rule.itemCast = true
 	a := w.entities[ci]
 	if c.AtCell || c.Target != a.ID {
-		w.removeAttachedSpell(a.ID, w.armSpellID(15))
+		w.removeAttachedSpell(a.ID, w.hidingSpell())
 	}
+	arm := spellArmOf(rule.arm())
 	if c.AtCell {
 		applied := false
-		if rule.arm() == 26 {
+		if arm.teleport {
 			applied = true
 			obs.recordAt(w, ci, rule, c.X, c.Y)
 			if w.attachFootprint(ci, c.X, c.Y) {
@@ -322,7 +323,7 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 		}
 		if applied {
 			w.markSpellEffect(ci, rule.ID)
-			if rule.arm() != 26 {
+			if !arm.teleport {
 				obs.recordAt(w, ci, rule, c.X, c.Y)
 			}
 		}
@@ -334,12 +335,12 @@ func (w *World) releaseScroll(ci int, c ScrollCast, rule SpellRule, power int32,
 	}
 	var victims []CellPoint
 	applied := false
-	if rule.arm() == 14 {
+	if arm.prismatic {
 		victims = w.applyPrismaticItem(ci, ti, rule, power, true)
 		applied = len(victims) != 0
 	} else if rule.Area {
 		applied = w.landAreaAimed(areaAim{Target: c.Target, Has: true}, rule, uint16(power), a.ID, true, a.X, a.Y, c.X, c.Y, a.Facing, true, obs)
-	} else if rule.arm() == controlSpiritSpellID {
+	} else if arm.controlSpirit {
 		// The arm finds its corpse by the target's cell and never reads the
 		// target object (MAGIC-251).
 		if corpse := w.controlSpiritCorpseAt(w.entities[ti].X, w.entities[ti].Y, ti); corpse >= 0 &&

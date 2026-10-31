@@ -364,7 +364,7 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		release()
 		w.refreshSavedPlaneBlocks()
 		w.applyAreaCells(e, rule, cells)
-		if rule.ID == fireBallSpell {
+		if rowIDBursts(rule.ID) {
 			w.releaseFireBallBursts(anchorX, anchorY, int32(rule.Radius), w.casterOwner(caster, hasCaster))
 		}
 		return true

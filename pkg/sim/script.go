@@ -1208,7 +1208,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 		return
 
 	case ScriptCheckDead11, ScriptCheckDead13:
-		silence = ScriptSilenceDeadArm
+		silence = ScriptSilenceDeadCheck
 		return
 	}
 

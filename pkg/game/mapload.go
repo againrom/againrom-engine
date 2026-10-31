@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -252,6 +253,7 @@ func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallback
 	if err != nil {
 		return nil, err
 	}
+	viewer.SetSpellTakesBody(func(id uint32) bool { return id <= 0xffff && sim.SpellArmTakesBody(uint16(id)) })
 	files := filesOf(g)
 	viewer.SetSpellBookShown(!files.missionBookClosed)
 	viewer.SetPackShown(!files.missionPackClosed)

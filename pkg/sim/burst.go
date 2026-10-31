@@ -1,9 +1,5 @@
 package sim
 
-// fireBallSpell is the spell id whose area effect ends in one picture-13 burst
-// record (ANIM-111, ANIM-112: the burst picture is 2*spell+9).
-const fireBallSpell = 2
-
 // fireBallBurstSegments is the segment count the client arm that builds the
 // burst gives its record: with the start actionphase of -1 the record is
 // driven on 22 ticks and collected on the next (SAV-1144, SAV-1147).
@@ -32,8 +28,9 @@ type burstCell struct {
 // World owns the record. Zero leaves the burst on phase 0.
 func (w *World) SetBurstPhases(phases uint16) { w.burst.phases = phases }
 
-// fireBallBurstPicture is the picture the burst record carries.
-func fireBallBurstPicture() int32 { return 2*fireBallSpell + 9 }
+// fireBallBurstPicture is the picture the burst record carries: 2*arm+9 of
+// the bursting arm, picture 13 (ANIM-111, ANIM-112).
+func fireBallBurstPicture() int32 { return 2*int32(burstArm) + 9 }
 
 // releaseFireBallBurst builds the record client arm 0x86 builds when a
 // Fire_Ball area effect blasts at cell (cx, cy) (SAV-1144): the picture at the

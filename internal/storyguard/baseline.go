@@ -3661,5 +3661,27 @@ var Committed = Baseline{
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10172716,
+
+	// It rose for the spell-arm table: the row fields, capability
+	// functions and lookups in pkg/sim's new spellarms.go, its tests
+	// spellarms_test.go, spellarmmatrix_test.go and spellarmnames_test.go,
+	// pkg/game's spellarmnames_test.go, the guard internal/archtest's
+	// spellarms.go and its test, Viewer.SetSpellTakesBody in pkg/ui's
+	// command.go, data.ClassifySpell's doc, the DAG row's note, and this
+	// note. It fell by the id constants' comments the table replaced.
+
+	// It rose for the spell-arm site records, all new tests: pkg/sim's
+	// spellarmsiterecord_test.go, pkg/game's spellcaptionrecord_test.go, and
+	// this note.
+
+	// It rose for the Fire Ball burst and flight records in pkg/sim's
+	// spellarmsiterecord_test.go, and this note.
+
+	// It rose for the spell-arm rows' new fields: the caption, creature aim,
+	// burst and flight answers and their readers in pkg/sim's spellarms.go,
+	// the guard's id-match, book-id and id-table shapes in
+	// internal/archtest's spellarms.go, the popup's caption block method in
+	// pkg/game's spell.go, and this note. It fell by the creature aim
+	// table's and the Fire Ball constants' comments.
+	CommentBytes: 10185227,
 }
