@@ -36,10 +36,7 @@ func TestSecondMissionProofRetainsRawActorNameBytes(t *testing.T) {
 
 func secondChangeAnimationJSON(t *testing.T, raw []byte, field, value string) []byte {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	leaf, present, err := sav.NativeActions(doc.State)
 	if err != nil || !present {
 		t.Fatal("no current actions", err)

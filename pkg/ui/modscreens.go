@@ -351,7 +351,7 @@ func (a *App) composeModScreen() (*image.RGBA, error) {
 	}
 	s := f.modUI.screens[f.modUI.open]
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	if a.assets != nil && !f.nativeMissionMenu() {
+	if a.assets != nil && !f.menuPlacement().overMission() {
 		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
 	}
 	drawFrame(pix, windowFrame(modPanel, f.menuArt))

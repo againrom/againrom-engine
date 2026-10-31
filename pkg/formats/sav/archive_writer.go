@@ -19,6 +19,11 @@ type archiveWriter struct {
 	err     error
 	// prof is the game whose programmes the writer runs.
 	prof *Profile
+	// carryRows admits a Token row above a byte: the writer emits its low
+	// byte and collects the row for the caller's rows leaf. Without it such
+	// a row is refused.
+	carryRows bool
+	rows      []tokenRow
 }
 
 func newArchiveWriter() *archiveWriter {
@@ -152,6 +157,10 @@ func (w *archiveWriter) step(s step, r *Record, depth int) error {
 		// plain field's width; reject rather than silently truncating it.
 		for _, m := range s.members {
 			v := r.Value[m.Name]
+			if index, ok := w.objects[r]; ok && w.carryRows && wideTokenRow(r.Class, m, v) {
+				w.rows = append(w.rows, tokenRow{index, v})
+				continue
+			}
 			if (m.Kind == KindU8 && v > 0xff) || (m.Kind == KindU16 && v > 0xffff) {
 				return fmt.Errorf("%s value %d exceeds its field width", m.Name, v)
 			}

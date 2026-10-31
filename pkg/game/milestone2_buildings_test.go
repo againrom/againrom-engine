@@ -35,7 +35,7 @@ func building1145Raw(body []byte, off int, class string, archive uint16) (buildi
 	s := &want.source
 	s.SourceKey, s.ArchiveIndex, s.AuthoredID = u32(29), archive, u32(19)
 	copy(s.Position[:], b[:12])
-	s.RuntimeID, s.Token0C, s.Token0E, s.Token18, s.Token1C, s.Reference = u32(12), b[16], u16(17), u16(23), u32(25), u32(33)
+	s.RuntimeID, s.Token0C, s.Token0E, s.Token18, s.Token1C, s.Reference = u32(12), uint16(b[16]), u16(17), u16(23), u32(25), u32(33)
 	copy(s.Base52[:], b[37:59])
 	s.Kind, s.Field46, s.Field48, s.Blocking = b[59], u16(64), b[66], u32(69)
 	// The later scalar LOAD writes overlap the earlier raw +52 image.

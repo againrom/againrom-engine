@@ -79,10 +79,9 @@ type Table struct {
 	// first game's (DIV-762).
 	StoredFormMerge bool
 
-	// ClassCreatureBooks builds a Dragon or Daemon book from its class cells
-	// alone, without the first game's fixed creature books; false is the
-	// first game's.
-	ClassCreatureBooks bool
+	// CreatureBooks is the creature book source; nil is
+	// FirstGameCreatureBooks.
+	CreatureBooks *CreatureBooks
 
 	// CarriedWornSpellBuild builds a missing worn Weapon Spell at mission
 	// start for a member who arrives with carried state too; false is the

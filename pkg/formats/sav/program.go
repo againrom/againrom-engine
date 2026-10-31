@@ -569,7 +569,7 @@ func (f *File) Walk() (*Record, error) {
 		if rec.Class != "Player" {
 			return rec, fmt.Errorf("sav: first non-null top-level record is %s, not Player", rec.Class)
 		}
-		return rec, nil
+		return rec, w.applyFileRows(f, false)
 	}
 	return nil, fmt.Errorf("sav: Player list has no non-null owner record")
 }

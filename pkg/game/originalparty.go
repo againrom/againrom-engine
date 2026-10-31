@@ -574,7 +574,7 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 	if hired {
 		hiredRotationSpeed = rowRotationSpeed
 	}
-	name, definition := c.Name, uint8(0)
+	name, definition := c.Name, uint16(0)
 	if hired {
 		definition = c.DefRow
 		if name == "" {
@@ -620,12 +620,12 @@ func restoredMember(c sav.Character, bodies data.BodyList, t *mapload.Table,
 // heroRecordRow is the Humans row a loaded member keeps: for a hero no
 // chargen row builds, the row his record names (mapload.PartyHumanRow);
 // else the member's own.
-func heroRecordRow(member mapload.PartyMember, row uint8, t *mapload.Table) uint8 {
+func heroRecordRow(member mapload.PartyMember, row uint16, t *mapload.Table) uint16 {
 	if !heroKeepsRecordRow(member, t) {
 		return member.DefinitionRow
 	}
 	member.DefinitionRow = row
-	return uint8(mapload.PartyHumanRow(member, member, t))
+	return uint16(mapload.PartyHumanRow(member, member, t))
 }
 
 // heroKeepsRecordRow reports a starting hero no chargen row builds, whose
@@ -794,7 +794,7 @@ func restoredItemLoadout(c sav.Character, r *RestoredParty, tables ...*mapload.T
 	return worn, carried
 }
 
-func restoredHireWornEffects(worn [sim.EquipSlots]sim.ItemInstance, defRow byte, t *mapload.Table) [sim.EquipSlots]sim.ItemInstance {
+func restoredHireWornEffects(worn [sim.EquipSlots]sim.ItemInstance, defRow uint16, t *mapload.Table) [sim.EquipSlots]sim.ItemInstance {
 	if t == nil || t.Humans == nil {
 		return worn
 	}

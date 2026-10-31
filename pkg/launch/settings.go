@@ -151,9 +151,25 @@ var Settings = []Setting{Sound, Volume, Movies, Video, Markers, Chicken, Window,
 // Table is every row, in the order the game's arguments pass them.
 var Table = append(append([]Setting{Assets, Base, Mods, ModsDir, ModSetting, ModsAcceptUnmarked}, Settings...), Check, Version)
 
+// Rows is a launch table: the rows one program reads, in the order its
+// arguments pass them.
+type Rows []Setting
+
+// The map editor's rows. The starter passes the editor the asset root alone,
+// and the map list when it checks the base before the window opens.
+var (
+	EditorAssets = Setting{Key: "assets", Kind: Verbatim, Flag: "assets", Usage: "read-only installed asset root"}
+	EditorList   = Setting{Key: "list", Kind: Switch, Default: "false", Flag: "list", Usage: "list installed map keys and exit"}
+)
+
+// Editor is the map editor's launch table.
+var Editor = Rows{EditorAssets, EditorList}
+
 // ByKey returns the row with key.
-func ByKey(key string) (Setting, bool) {
-	for _, s := range Table {
+func ByKey(key string) (Setting, bool) { return Rows(Table).byKey(key) }
+
+func (rows Rows) byKey(key string) (Setting, bool) {
+	for _, s := range rows {
 		if s.Key == key {
 			return s, true
 		}
@@ -314,9 +330,13 @@ func (s Setting) Args(v string) ([]string, error) {
 	return nil, nil
 }
 
-// Build is the arguments for each row of Table with its values: the first,
-// or each for a row that repeats. The first refused value stops it.
-func Build(values func(Setting) []string) ([]string, error) {
+// Build is the game's arguments: Table's rows built with values.
+func Build(values func(Setting) []string) ([]string, error) { return Rows(Table).Build(values) }
+
+// Build is the arguments for each of the rows with its values: the first,
+// or each for a row that repeats. The first refused value stops it. A row's
+// Needs and Excludes name rows of the same table.
+func (rows Rows) Build(values func(Setting) []string) ([]string, error) {
 	first := func(s Setting) string {
 		if vs := values(s); len(vs) > 0 {
 			return vs[0]
@@ -324,8 +344,8 @@ func Build(values func(Setting) []string) ([]string, error) {
 		return ""
 	}
 	var args []string
-	for _, s := range Table {
-		if n, ok := ByKey(s.Needs); ok && strings.TrimSpace(first(n)) == "" {
+	for _, s := range rows {
+		if n, ok := rows.byKey(s.Needs); ok && strings.TrimSpace(first(n)) == "" {
 			continue
 		}
 		vs := values(s)
@@ -334,7 +354,7 @@ func Build(values func(Setting) []string) ([]string, error) {
 		}
 		for _, v := range vs {
 			if s.Excludes != "" && strings.TrimSpace(v) != "" {
-				if x, ok := ByKey(s.Excludes); ok && ParseBool(first(x), false) {
+				if x, ok := rows.byKey(s.Excludes); ok && ParseBool(first(x), false) {
 					return nil, &Refusal{Setting: s, Value: v, Clash: true}
 				}
 			}

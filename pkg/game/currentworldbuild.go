@@ -271,7 +271,8 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			return 0, 0, err
 		}
 		playerKey, _ := ownerKey(e)
-		mustSetToken(&r, nativeCityToken(source.Identity, playerKey, source.TokenRow, source.TypeID))
+		mustSetToken(&r, nativeCityToken(source.Identity, playerKey, byte(source.TokenRow), source.TypeID))
+		mustSetValue(&r, "T0C", uint32(source.TokenRow))
 		// SAV-1093/SAV-678: ordinary mask 2; observed off-map records 0.
 		mask := uint32(2)
 		if e.OffMap {

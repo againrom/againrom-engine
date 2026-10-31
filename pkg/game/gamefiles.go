@@ -1,6 +1,7 @@
 package game
 
 import (
+	"image"
 	"image/color"
 
 	"againrom/pkg/base"
@@ -31,9 +32,8 @@ type gameFiles struct {
 	// storedFormMerge keeps a plain item and a constructed one of the same
 	// code apart in a pack merge: no second-game claim states its equality.
 	storedFormMerge bool
-	// classCreatureBooks leaves Dragon and Daemon without the first game's
-	// fixed books: no second-game claim states them.
-	classCreatureBooks bool
+	// creatureBooks is the creature book source; nil is the first game's.
+	creatureBooks *mapload.CreatureBooks
 	// storedOwnWeight keeps a native Human's stored own weight in a SAVE
 	// instead of its worn weight: no second-game claim states the rule.
 	storedOwnWeight bool
@@ -181,6 +181,7 @@ var firstGameFiles = gameFiles{
 	},
 	unitKeys:        mapload.ClassUnitKeys,
 	freshPlayers:    mapload.SlotPlayers,
+	creatureBooks:   mapload.FirstGameCreatureBooks,
 	itemNameKeys:    ItemNameKeyAddress,
 	terrainCosts:    terrainCostsAddress,
 	planeCosts:      terrainCostsAddress,
@@ -199,12 +200,16 @@ var firstGameFiles = gameFiles{
 	unitVoices:      firstGameVoices,
 }
 
+// secondGameMenu's town popup stands at (100,100), 440x340 (R2-ENGINE-441).
+var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPanel: image.Rect(100, 100, 540, 440),
+	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
+
 var secondGameFiles = gameFiles{
 	planeCosts:          terrainCostsAddress,
 	missionPackClosed:   true,
 	missionHeroSelected: true,
 	missionScreen:       ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}},
-	gameMenu:            ui.GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2},
+	gameMenu:            secondGameMenu,
 	missionBookClosed:   true,
 	dialogueDefault:     dialogueDefaultText,
 	table:               databin.ROM2Layout,
@@ -220,7 +225,7 @@ var secondGameFiles = gameFiles{
 	spellArms:            mapload.SecondGameSpellArms,
 	freshPlayers:         mapload.NoFreshPlayers,
 	storedFormMerge:      true,
-	classCreatureBooks:   true,
+	creatureBooks:        mapload.ClassCellBooks,
 	storedOwnWeight:      true,
 	storedWeaponSpell:    true,
 	releasedSpellReadout: true,

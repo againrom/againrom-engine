@@ -634,10 +634,7 @@ func secondMissionSaveLosses(t *testing.T, mission int) {
 		t.Fatal(err)
 	}
 	// A second-game World holds no cell planes (DIV-3095), so its SAV claims no carrier.
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	if _, held := f.live.world.SavedCellPlanes(); held {
 		t.Fatal("second-game World holds cell planes")
 	}

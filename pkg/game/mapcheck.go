@@ -10,7 +10,6 @@ import (
 	"image"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"againrom/pkg/formats/alm"
@@ -183,15 +182,11 @@ type mapCheck struct {
 // sourceMission is the campaign mission an installed scenario map belongs to,
 // and 0 for any other source.
 func sourceMission(source string) int {
-	stem, ok := strings.CutPrefix(source, scenarioPrefix)
-	if !ok {
+	src := ui.ParseMapSource(source)
+	if src.Kind != ui.SourceScenario || !src.HasNumber || src.Number < 0 {
 		return 0
 	}
-	n, err := strconv.Atoi(strings.TrimSuffix(stem, ".alm"))
-	if err != nil || n < 0 {
-		return 0
-	}
-	return n
+	return src.Number
 }
 
 // modPages is what a mod ships for one mission entry that the rules read: the
@@ -550,7 +545,7 @@ func (c *mapCheck) unitTerrain() []mapHit {
 		}
 		if ents[i].Domain.BlockedBy(c.plane[cell.Y*c.width()+cell.X]) {
 			text := fmt.Sprintf("the unit stands on cell %d,%d, which its movement class cannot enter", cell.X, cell.Y)
-			if mapload.InBorderRing(c.m, cell.X, cell.Y) {
+			if admissionOf("Unit", admitCheck).verdict(c.m, cell) == cellInRing {
 				text += "; the cell is in the border ring, and the game removes a unit placed there when the mission loads"
 			}
 			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true, Text: text})
@@ -746,12 +741,8 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 func (s *mapInspectionEdits) textsStamp() string {
 	p := s.currentPages()
 	tree := map[string][]byte{}
-	source := s.source
-	if strings.HasPrefix(source, "loose/") && s.inspector.archives != nil {
-		source = looseHostPath(s.inspector.archives.Root, source)
-	}
 	var err error
-	if !isNewSource(source) && !strings.HasPrefix(source, "scenario/") {
+	if source, ok := mapHostPath(ui.ParseMapSource(s.source), s.inspector.archives); ok {
 		err = readPageTree(filepath.Dir(source), filepath.Base(mapTextFolder(source)), tree, true, s.inspector.pageLanguage())
 	}
 	b, _ := json.Marshal([]any{s.workspaceImage, p.files, tree, fmt.Sprint(p.err), fmt.Sprint(err)})

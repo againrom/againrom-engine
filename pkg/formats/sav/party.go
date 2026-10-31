@@ -96,17 +96,18 @@ type Character struct {
 	// serializes both forms.
 	Experience uint32
 
-	// DefRow is the head's +0x0c byte, which is a ROW INDEX INTO THE
+	// DefRow is the head's +0x0c row (a byte in the first game, a word in
+	// the second: R2-ENGINE-739), which is a ROW INDEX INTO THE
 	// COLLECTION THE CLASS PICKS: Humans for a Human record, Units for a
 	// Unit one. The class is the table and there is no kind field selecting
 	// it (ITEM-DEF-002, whose reading of Human::Serialize's own resolve at
 	// L07758 against L02111 is the same instruction sequence the four
 	// item classes use; DAT-OBJ-002 places L02111 as Humans).
 	//
-	// The row is re-derived at every load rather than stored, so this byte
+	// The row is re-derived at every load rather than stored, so this row
 	// is the whole of what the file says about which definition a character
 	// was built from.
-	DefRow         uint8
+	DefRow         uint16
 	DisplayBacking uint32
 
 	// Stage is the death stage at +0x13c. It is 0 for every character this
@@ -395,7 +396,7 @@ func actorCharacter(r *Record) (Character, error) {
 		// The map unit id is the LOW u16 of the head's T08 dword — the same
 		// head+0x13 identified by SAV-ID-015.
 		MapUnitID:      uint16(r.value("T08")),
-		DefRow:         uint8(r.value("T0C")),
+		DefRow:         uint16(r.value("T0C")),
 		DisplayBacking: r.value("U148"),
 		Stage:          uint8(r.value("Stage")),
 		Experience:     r.value("U130"),

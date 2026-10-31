@@ -164,12 +164,13 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 				refusals = append(refusals, why)
 				continue
 			}
-			if !it.cell.In(bounds) {
+			a := admissionOf(it.ref.Kind, admitGroup)
+			switch a.verdict(view, it.cell) {
+			case cellOutside:
 				refusals = append(refusals, fmt.Sprintf(s.inspector.word("editor.selection.outside"), s.recordName(it.ref), it.cell.X, it.cell.Y))
 				continue
-			}
-			if err := cellError(view, it.cell, "cell", it.ref.Kind); err != nil {
-				refusals = append(refusals, s.refusalNote(it.ref, err))
+			case cellInRing:
+				refusals = append(refusals, s.refusalNote(it.ref, a.refusal(view, it.cell, "cell")))
 				continue
 			}
 			before := m.Mark()
@@ -199,7 +200,7 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		}
 		refused := false
 		for n, it := range items {
-			if i, ok := placed[n]; ok {
+			if i, ok := placed[n]; ok && admissionOf(it.ref.Kind, admitGroup).footprint {
 				if err := s.placementError(after, feet, it.kind, i, image.Rectangle{}, group); err != nil {
 					closed[n] = s.refusalNote(it.ref, err)
 					refused = true
@@ -211,25 +212,19 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 		again := refused
 		for n, it := range items {
 			i, ok := placed[n]
-			if !ok || refused || it.kind == mapedit.KindStructure || len(arms) != bounds.Dx()*bounds.Dy() || len(plane) != len(arms) {
+			adm := admissionOf(it.ref.Kind, admitGroup)
+			if !ok || refused || adm.arms == 0 || len(arms) != bounds.Dx()*bounds.Dy() || len(plane) != len(arms) {
 				continue
 			}
 			c := it.cell.Y*bounds.Dx() + it.cell.X
-			a := arms[c]
-			if it.kind == mapedit.KindUnit && i < len(after.Units) {
-				d, err := mapload.UnitDomain(after.Units[i], s.inspector.table)
-				if err == nil && d != sim.DomainGround {
-					a = 0
-					if d.BlockedBy(plane[c]) {
-						a = arms[c] & mapload.GroundBorder
-						if a == 0 {
-							a = arms[c]
-						}
-					}
+			d := sim.DomainGround
+			if adm.domain && it.kind == mapedit.KindUnit && i < len(after.Units) {
+				if u, err := mapload.UnitDomain(after.Units[i], s.inspector.table); err == nil {
+					d = u
 				}
 			}
-			if a != 0 {
-				closed[n] = fmt.Sprintf(s.inspector.word("editor.selection.closed"), s.recordName(it.ref), it.cell.X, it.cell.Y, strings.Join(s.armWords(a), ", "))
+			if a := adm.closedArms(arms[c], plane[c], d); a != 0 {
+				closed[n] = s.closedNote(it.ref, it.cell, a)
 				again = true
 			}
 		}
@@ -254,15 +249,10 @@ func (s *mapInspectionEdits) placeGroup(m *mapedit.Editor, items []groupPlacemen
 
 // armWords are the passability words of the arms that close a cell.
 func (s *mapInspectionEdits) armWords(a mapload.GroundArm) []string {
-	pairs := [...]struct {
-		arm mapload.GroundArm
-		id  string
-	}{{mapload.GroundBorder, "editor.pass.border"}, {mapload.GroundMountain, "editor.pass.mountain"}, {mapload.GroundWater, "editor.pass.water"},
-		{mapload.GroundFlag, "editor.pass.flag"}, {mapload.GroundObject, "editor.pass.object"}, {mapload.GroundStructure, "editor.pass.structure"}}
 	var out []string
-	for _, p := range pairs {
-		if a&p.arm != 0 {
-			out = append(out, s.inspector.word(p.id))
+	for _, r := range mapload.GroundArmRows {
+		if a&r.Arm != 0 {
+			out = append(out, s.inspector.word(r.Word))
 		}
 	}
 	return out

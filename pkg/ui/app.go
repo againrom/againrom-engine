@@ -4437,7 +4437,7 @@ func (a *App) drawCursor(screen *ebiten.Image) {
 
 // drawGameMenuOverMap places the shared menu layer over the mission.
 func (a *App) drawGameMenuOverMap(screen *ebiten.Image) {
-	if !a.place.Valid() || !a.flow.nativeMissionMenu() && (a.flow.screen != ScreenGameMenu || a.flow.menuList == nil) {
+	if !a.place.Valid() || !a.flow.menuPlacement().overMission() && (a.flow.screen != ScreenGameMenu || a.flow.menuList == nil) {
 		return
 	}
 	if a.menuCanvas == nil {

@@ -41,7 +41,7 @@ func siegeTypes(t *testing.T, f *FrontEnd) map[int32]bool {
 
 // siegeSAVRows returns the token row of each placement-free siege actor in a
 // SAV, keyed by TypeID, and requires exactly one actor of each type.
-func siegeSAVRows(t *testing.T, raw []byte, types map[int32]bool) map[int32]uint8 {
+func siegeSAVRows(t *testing.T, raw []byte, types map[int32]bool) map[int32]uint16 {
 	t.Helper()
 	file, err := sav.Open(raw)
 	if err != nil {
@@ -51,7 +51,7 @@ func siegeSAVRows(t *testing.T, raw []byte, types map[int32]bool) map[int32]uint
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := map[int32]uint8{}
+	rows := map[int32]uint16{}
 	for _, a := range graph.Actors {
 		if a.Class != "Unit" || !types[int32(a.TypeID)] || a.MapUnitID != 0 {
 			continue

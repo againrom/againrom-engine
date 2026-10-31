@@ -64,7 +64,7 @@ func structureProjectionFixture(t *testing.T) (sav.DocumentData, *sim.World, []s
 		body = append(body, record[:]...)
 		source := sim.SavedStructure{ID: native[i], Class: []sim.SavedStructureClass{sim.SavedBuilding, sim.SavedOutpost, sim.SavedTavern, sim.SavedShop, sim.SavedBuilding}[i],
 			SourceKey: 0xabcde000 + uint32(i), ArchiveIndex: archives[i], RuntimeID: uint32(900 + i),
-			Token0C: byte(20 + i), Token0E: uint16(300 + i), Token18: uint16(400 + i), Token1C: uint32(500 + i),
+			Token0C: uint16(20 + i), Token0E: uint16(300 + i), Token18: uint16(400 + i), Token1C: uint32(500 + i),
 			Reference: 0xaabbccdd, Kind: byte(i + 1), Field46: uint16(600 + i), Field48: 13, Blocking: 5}
 		copy(source.Position[:], record[:12])
 		copy(source.Base52[:], record[37:59])

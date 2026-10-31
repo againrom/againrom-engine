@@ -3159,7 +3159,7 @@ package storyguard
 // pkg/ui/mapeditorchromerects_test.go, pkg/editormcp/profilefile_test.go and
 // cmd/mapedit/profile_test.go, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4474,
+	TestIdentCount: 4460,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3596,5 +3596,23 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10045430,
+
+	// It rose for the one cell admission table: pkg/game's
+	// mapcelladmission.go and its test, mapload's arm table in
+	// groundarms.go, the editor's arm rows in pkg/ui, the guard in
+	// internal/archtest/celladmission_test.go, and this note.
+
+	// It rose for the second game's town popup: SecondGameMenuRows and
+	// menuKey in pkg/ui/menurows.go, FixedKey in gamemenu.go, TownRootPanel
+	// in save.go, secondGameMenu in pkg/game/gamefiles.go, the new tests
+	// secondgamemenu_test.go in pkg/ui and pkg/game, and this note.
+
+	// It rose for the creature book source: CreatureBookRow, CreatureBooks
+	// and their two values in pkg/mapload/spell.go, the both-games test in
+	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
+	// this note.
+
+	// The merge of the map editor's side panels with main is measured on
+	// the merged tree.
+	CommentBytes: 10070498,
 }

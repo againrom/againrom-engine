@@ -140,7 +140,9 @@ func projectSavedStructures(document *sav.DocumentData, world *sim.World) error 
 
 func savedStructureClass(class sim.SavedStructureClass) string {
 	switch class.BaseClass() {
-	case sim.SavedBuilding:
+	case sim.SavedBuilding, sim.SavedPointer:
+		// The engine's records hold a Pointer as a Building; the second
+		// game's form writes its class and word (ProfileKeeps).
 		return "Building"
 	case sim.SavedOutpost:
 		return "Outpost"

@@ -67,6 +67,9 @@ func compareFiles(out io.Writer, a, b string, x, y []byte) error {
 		fmt.Fprintf(out, "  store leaves %s\n", sameLeaves(x, y))
 	}
 	if !bytes.Equal(fx.Body, fy.Body) {
+		for _, d := range worldDiffs(fx, fy) {
+			fmt.Fprintf(out, "  field %s\n", d)
+		}
 		dx, errx := sav.DecodeDocumentData(x)
 		dy, erry := sav.DecodeDocumentData(y)
 		if errx == nil && erry == nil {

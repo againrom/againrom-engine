@@ -101,6 +101,9 @@ func (f *File) exactDocument() (*document, bool, error) {
 	if len(w.b) != w.p+(w.p&1) {
 		return nil, present, fmt.Errorf("sav: document ends at %d, decoded size %d", w.p, len(w.b))
 	}
+	if err := w.applyFileRows(f, true); err != nil {
+		return nil, present, err
+	}
 	doc.objects = w.objects
 	return doc, present, nil
 }

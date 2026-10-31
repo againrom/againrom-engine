@@ -165,13 +165,13 @@ func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui
 		if x == nx && y == ny {
 			return false, nil // a record left on its own cell, even one in the border ring
 		}
-		if err := insideMap(m, cell, "destination", kind); err != nil {
+		if err := s.admitCell(m, cell, "destination", kind, admitMove); err != nil {
 			return false, err
 		}
 		if err := m.Move(k, index, nx, ny); err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(k, m, index, image.Rectangle{})
+		return true, s.checkPlacement(admissionOf(kind, admitMove), k, m, index, image.Rectangle{})
 	})
 }
 
@@ -183,7 +183,7 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "clone cell", kind); err != nil {
+		if err := s.admitCell(m, cell, "clone cell", kind, admitMove); err != nil {
 			return false, err
 		}
 		x, y, err := m.Position(k, index)
@@ -195,7 +195,7 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(k, m, i, image.Rectangle{})
+		return true, s.checkPlacement(admissionOf(kind, admitMove), k, m, i, image.Rectangle{})
 	})
 }
 
@@ -222,7 +222,7 @@ func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocum
 // Its words sit at the cell's centre and it carries no gold (DIV-3134).
 func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := insideMap(m, cell, "sack cell", "Sack"); err != nil {
+		if err := s.admitCell(m, cell, "sack cell", "Sack", admitAdd); err != nil {
 			return false, err
 		}
 		if item <= 0 || item > math.MaxUint16 {
@@ -533,7 +533,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
-		if err := spellCellAllowed(m, index); err != nil {
+		if err := s.spellCellAllowed(m, index); err != nil {
 			return false, err
 		}
 	}
@@ -580,37 +580,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 	if err := scriptCoordinateAllowed(view, k, index, key, value); err != nil {
 		return false, err
 	}
-	return true, s.checkPlacement(k, m, index, was)
-}
-
-// ringRefuses is the editor's border-ring rule (owner): a unit, a structure
-// or a drop cell may not stand on a cell of the border ring, which the game
-// does not show and where it removes a placed unit (TERR-PLACE-208). A
-// terrain, height, scenery, sack or spell cell may.
-var ringRefuses = map[string]bool{"Unit": true, "Structure": true, ringDrop: true}
-
-// ringDrop is the kind insideMap names a drop cell by.
-const ringDrop = "Drop"
-
-// insideMap refuses a cell outside the map and, for a kind ringRefuses names,
-// a cell of the border ring; what names the cell in the refusal.
-func insideMap(m *mapedit.Editor, cell image.Point, what, kind string) error {
-	view, err := m.Map()
-	if err != nil {
-		return err
-	}
-	return cellError(view, cell, what, kind)
-}
-
-// cellError is insideMap's judgement on the decoded map.
-func cellError(view *alm.Map, cell image.Point, what, kind string) error {
-	if !cell.In(image.Rect(0, 0, int(view.Width), int(view.Height))) {
-		return fmt.Errorf("%s %d,%d is outside the map", what, cell.X, cell.Y)
-	}
-	if ringRefuses[kind] && mapload.InBorderRing(view, cell.X, cell.Y) {
-		return fmt.Errorf("%s %d,%d is in the border ring; the playable area is %s", what, cell.X, cell.Y, ui.PlayableText(mapload.Playable(view)))
-	}
-	return nil
+	return true, s.checkPlacement(admissionOf(kind, admitField), k, m, index, was)
 }
 
 // recordFeet are the cells each structure and each unit of a map takes in
@@ -676,14 +646,14 @@ type placedRecord struct {
 	index int
 }
 
-// checkPlacement refuses a structure whose footprint, as the world builds it
-// from the installed tables, leaves the map, and a structure or unit whose
-// footprint shares a cell with another structure's or unit's. was is the
-// record's footprint before the edit: a footprint the edit leaves as it was
-// is not judged against the others, so a map that already holds an overlap
-// keeps it.
-func (s *mapInspectionEdits) checkPlacement(k mapedit.Kind, m *mapedit.Editor, index int, was image.Rectangle) error {
-	if k != mapedit.KindStructure && k != mapedit.KindUnit {
+// checkPlacement refuses, for an admission that judges the footprint, a
+// structure whose footprint, as the world builds it from the installed
+// tables, leaves the map, and a structure or unit whose footprint shares a
+// cell with another structure's or unit's. was is the record's footprint
+// before the edit: a footprint the edit leaves as it was is not judged
+// against the others, so a map that already holds an overlap keeps it.
+func (s *mapInspectionEdits) checkPlacement(a cellAdmission, k mapedit.Kind, m *mapedit.Editor, index int, was image.Rectangle) error {
+	if !a.footprint {
 		return nil
 	}
 	view, err := m.Map()
@@ -808,7 +778,7 @@ func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
 // installs.
 func (s *mapInspectionEdits) OwnFile() (string, bool) {
 	src := s.source
-	if src == "" || isNewSource(src) || strings.HasPrefix(src, "scenario/") || strings.HasPrefix(src, "loose/") {
+	if src == "" || ui.ParseMapSource(src).Kind != ui.SourceHost {
 		return "", false
 	}
 	root := ""
@@ -941,10 +911,11 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 		return "", err
 	}
 	input := source
-	if strings.HasPrefix(source, "scenario/") || isNewSource(source) {
+	switch src := ui.ParseMapSource(source); src.Kind {
+	case ui.SourceScenario, ui.SourceNew:
 		input = "" // archive address or a map built from nothing, never a writable host path
-	} else if strings.HasPrefix(source, "loose/") {
-		input = looseHostPath(root, source)
+	case ui.SourceLoose:
+		input = looseHostPath(root, src.Path)
 	}
 	if input != "" && !overwrite {
 		resolvedInput, err := resolvePathForSaveSafety(input)
@@ -1111,7 +1082,7 @@ func (x *MapInspector) MapsFolder() string {
 func (s *mapInspectionEdits) SaveFolder() string {
 	maps, grant := s.inspector.mapsFolder()
 	src := s.source
-	if src != "" && !isNewSource(src) && !strings.HasPrefix(src, "scenario/") && !strings.HasPrefix(src, "loose/") {
+	if src != "" && ui.ParseMapSource(src).Kind == ui.SourceHost {
 		root := ""
 		if s.inspector.archives != nil {
 			root = s.inspector.archives.Root

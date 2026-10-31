@@ -171,6 +171,9 @@ func TestStateLeafReadSupplements(t *testing.T) {
 				payload = make([]byte, 20)
 				binary.LittleEndian.PutUint32(payload, 1)
 			}
+			if d == nativeRowsLeaf {
+				payload = []byte{1, 0, 0, 0, 2, 0, 0, 0, 8, 1, 0, 0}
+			}
 			for _, variant := range []string{"exact", "case", "missing", "duplicate"} {
 				t.Run(variant, func(t *testing.T) {
 					state := stateReadVariant(d.path, variant, CityStateValueData{Kind: 6, Bytes: payload})

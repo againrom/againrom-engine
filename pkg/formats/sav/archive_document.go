@@ -386,14 +386,33 @@ func (d *archiveDocument) detachRoots() {
 }
 
 func serializeArchiveDocument(d *archiveDocument) ([]byte, error) {
+	b, _, err := writeArchiveDocument(d, false)
+	return b, err
+}
+
+// serializeArchiveDocumentRows also writes Token rows above a byte, as their
+// low byte, and returns them for the document's rows leaf.
+func serializeArchiveDocumentRows(d *archiveDocument) ([]byte, []tokenRow, error) {
+	return writeArchiveDocument(d, true)
+}
+
+func writeArchiveDocument(d *archiveDocument, carryRows bool) ([]byte, []tokenRow, error) {
 	if d == nil {
-		return nil, fmt.Errorf("sav: missing archive document")
+		return nil, nil, fmt.Errorf("sav: missing archive document")
 	}
+	w := newArchiveWriter()
+	w.prof, w.carryRows = d.profile(), carryRows
+	b, err := w.archiveDocument(d)
+	if err != nil {
+		return nil, nil, err
+	}
+	return b, w.rows, nil
+}
+
+func (w *archiveWriter) archiveDocument(d *archiveDocument) ([]byte, error) {
 	if len(d.head.MapName) >= 0xff {
 		return nil, fmt.Errorf("sav: extended map CString is unsupported")
 	}
-	w := newArchiveWriter()
-	w.prof = d.profile()
 	w.dword(d.head.CounterA)
 	w.dword(d.head.CounterB)
 	name, err := cityAppendCString(nil, d.head.MapName)

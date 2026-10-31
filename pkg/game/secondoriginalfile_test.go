@@ -243,10 +243,14 @@ func secondSavedWorld(mission uint32, money uint32, hero *secondOriginalHero, wo
 }
 
 // secondSavedPointer is one Pointer of a fixture world's Buildings: its
-// cell, kind, map id and Token identity.
+// cell, kind, map id, Token identity, Token row and +0x6c word. A building
+// one is a Building record, without the word.
 type secondSavedPointer struct {
 	col, row, kind uint8
 	id, key        uint32
+	token0C        uint16
+	word           uint32
+	building       bool
 }
 
 // secondSavedWorldOf is secondSavedWorld with pointers in the Buildings.
@@ -324,7 +328,11 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 	for i, p := range pointers {
 		// A Building is the Token head, the 40 Building bytes and, for a
 		// Pointer, its +0x6c word (R2-ENGINE-603).
-		s.obj("Pointer")
+		if p.building {
+			s.obj("Building")
+		} else {
+			s.obj("Pointer")
+		}
 		s.u8(p.col)
 		s.u8(p.row)
 		s.u16(0)
@@ -332,7 +340,7 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 		s.u8(0x80)
 		s.raw(6)
 		s.u32(uint32(300 + i))
-		s.u16(0)
+		s.u16(p.token0C)
 		s.u16(uint16(p.kind))
 		s.u32(p.id)
 		s.u16(2)
@@ -346,7 +354,9 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 		s.u8(1) // height
 		s.u32(0)
 		s.u32(0)
-		s.u32(1)
+		if !p.building {
+			s.u32(p.word)
+		}
 	}
 	s.u32(0) // SpellEffects
 	s.u16(0) // terrain blocks

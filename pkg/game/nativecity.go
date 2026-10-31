@@ -111,8 +111,51 @@ func nativeCityToken(identity, owner uint32, defRow byte, typeWord uint16) []byt
 // than the one actually hired or joined from. A Class no row declares (0, or
 // a template with no TypeID at all) safely falls out of the row<=0 bound
 // below the same way it always did.
-func nativeCityDefRow(member, hero mapload.PartyMember, table *mapload.Table) byte {
-	return byte(mapload.PartyHumanRow(member, hero, table))
+func nativeCityDefRow(member, hero mapload.PartyMember, table *mapload.Table) uint16 {
+	return uint16(mapload.PartyHumanRow(member, hero, table))
+}
+
+// nativeCityWideRow refuses a member whose Humans row the town head's one
+// byte cannot hold (R2-ENGINE-739: the second game's rows run past 255),
+// for a writer that has the head and no record to hold the row.
+func nativeCityWideRow(member, hero mapload.PartyMember, table *mapload.Table) error {
+	if row := nativeCityDefRow(member, hero, table); row > 0xff {
+		return originalCityUnsupportedf("native city head holds one byte of %s's Humans row %d", member.Name, row)
+	}
+	return nil
+}
+
+// nativeCityWideRows is nativeCityWideRow over a party's Humans.
+func nativeCityWideRows(party []mapload.PartyMember, table *mapload.Table) error {
+	hero := nativeCityHeroOf(party)
+	for _, member := range party {
+		if nativeCitySiegeMember(member) {
+			continue
+		}
+		if err := nativeCityWideRow(member, hero, table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// nativeCityHeadRows writes into doc, whose actors nativeCityDataConstruct
+// built from party, each Human's row above a byte: the head keeps the low
+// byte, the record holds the row.
+func nativeCityHeadRows(doc *sav.DocumentData, party []mapload.PartyMember, table *mapload.Table) {
+	hero := nativeCityHeroOf(party)
+	for i, member := range party {
+		row := nativeCityDefRow(member, hero, table)
+		if nativeCitySiegeMember(member) || row <= 0xff {
+			continue
+		}
+		for j := range doc.Objects {
+			r := &doc.Objects[j]
+			if identity, err := savedStructureValue(r, "Identity"); r.Class == "Human" && err == nil && identity == nativeCityIdentity(i) {
+				mustSetValue(r, "T0C", uint32(row))
+			}
+		}
+	}
 }
 
 // nativeCityHeroOf returns party's own starting hero, or the zero value when
@@ -193,7 +236,10 @@ func nativeCityUnitData(identity, owner uint32, member, hero mapload.PartyMember
 	// hired Human writes his own row's type (SAV-614, SAV-627, DIV-918).
 	typeWord := uint16(member.ServerTypeID())
 	// SAV-678: every install Human token holds publication mask 2.
-	token := nativeCityToken(identity, owner, nativeCityDefRow(member, hero, table), typeWord)
+	// The head holds the row's low byte; a record builder sets a wider row
+	// after (currentMemberActorRecord, nativeCityHeadRows) and a writer of
+	// the head alone refuses it (nativeCityWideRow).
+	token := nativeCityToken(identity, owner, byte(nativeCityDefRow(member, hero, table)), typeWord)
 	binary.LittleEndian.PutUint16(token[23:25], 2)
 	return sav.CityUnitData{
 		Token:      token,
@@ -219,6 +265,9 @@ func nativeCityUnitData(identity, owner uint32, member, hero mapload.PartyMember
 //
 // SAV-ORIGMIN-397, SAV-599, AI-DIFF-016, SAV-600
 func nativeCityData(roster, hired []mapload.PartyMember, table *mapload.Table, difficulty mapload.Difficulty) (sav.CityData, error) {
+	if err := nativeCityWideRows(slices.Concat(roster, hired), table); err != nil {
+		return sav.CityData{}, err
+	}
 	return nativeCityDataConstruct(roster, hired, table, difficulty, nativeCityAttachItems, nativeCityApplyHuman)
 }
 
@@ -227,6 +276,9 @@ func nativeCityData(roster, hired []mapload.PartyMember, table *mapload.Table, d
 // current live-derived approximation instead of refusing when no exact
 // source continuity survived (nativeCityApplyHumanApproximate).
 func nativeCityDataApproximate(roster, hired []mapload.PartyMember, table *mapload.Table, difficulty mapload.Difficulty) (sav.CityData, error) {
+	if err := nativeCityWideRows(slices.Concat(roster, hired), table); err != nil {
+		return sav.CityData{}, err
+	}
 	return nativeCityDataConstruct(roster, hired, table, difficulty, nativeCityAttachItems, nativeCityApplyHumanApproximate)
 }
 

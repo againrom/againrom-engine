@@ -26,21 +26,21 @@ func TestPauseRootPopulationAndDecodedGates(t *testing.T) {
 	}{
 		{
 			name: "campaign mission",
-			rows: missionGameMenuRows(w, true, true, false, true),
+			rows: gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: true, canSave: true, canLoad: false, canSound: true}),
 			actions: []gameMenuAction{gameMenuSave, gameMenuLoad, gameMenuGameOptions,
 				gameMenuSoundOptions, gameMenuQuestObjectives, gameMenuEndQuest, gameMenuReturn},
 			enabled: []bool{true, false, true, true, true, true, true},
 		},
 		{
 			name: "standalone map",
-			rows: missionGameMenuRows(w, false, true, true, false),
+			rows: gameMenuRootRows(firstGameMenuRows.Mission, w, gameMenuRowState{campaign: false, canSave: true, canLoad: true, canSound: false}),
 			actions: []gameMenuAction{gameMenuSave, gameMenuDiplomacy, gameMenuGameOptions,
 				gameMenuSoundOptions, gameMenuQuestObjectives, gameMenuEndQuest, gameMenuReturn},
 			enabled: []bool{false, true, true, false, false, true, true},
 		},
 		{
 			name: "town",
-			rows: townGameMenuRows(w),
+			rows: gameMenuRootRows(firstGameMenuRows.Town, w, gameMenuRowState{}),
 			actions: []gameMenuAction{gameMenuSave, gameMenuLoad, gameMenuGameOptions, gameMenuSoundOptions,
 				gameMenuAbortGame, gameMenuReturn},
 			enabled: []bool{true, true, true, true, true, true},

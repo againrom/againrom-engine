@@ -34,8 +34,18 @@ func pointerSaveMission() secondMissionContent {
 // pointerSaveFile is the fixture mission file with the hero at 11/21 and the
 // Pointer in its Buildings.
 func pointerSaveFile() []byte {
+	return pointerSaveFileOf(pointerSaveRecord())
+}
+
+// pointerSaveRecord is the fixture's Pointer, whose +0x6c word is 1.
+func pointerSaveRecord() secondSavedPointer {
+	return secondSavedPointer{col: 16, row: 21, kind: 0x4a, id: 42, key: 0x0b000001, word: 1}
+}
+
+// pointerSaveFileOf is pointerSaveFile with p in the place of the Pointer.
+func pointerSaveFileOf(p secondSavedPointer) []byte {
 	hero := secondMissionFixtureHero()
-	body := secondSavedWorldOf(10, 44, &hero, true, 0, []secondSavedPointer{{col: 16, row: 21, kind: 0x4a, id: 42, key: 0x0b000001}})
+	body := secondSavedWorldOf(10, 44, &hero, true, 0, []secondSavedPointer{p})
 	return labelledContainer(sav.SecondGame.Magic, "mission", body,
 		append(secondMissionStore(4, 0, -1), secondSavedTail(0, [2]uint32{10, placeMission})...))
 }
@@ -81,8 +91,8 @@ func TestPointerUseSavedOnTheWayColdLoadsAndRunsAsTheUninterruptedRun(t *testing
 	if err := app.HeadlessGameMenuAction("save"); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := SaveStore{Dir: dir}.List()
-	if err != nil || len(entries) != 1 || entries[0].Name == "game0001.sav" {
+	entries, err := secondSaveFiles(dir, "game0001.sav")
+	if err != nil || len(entries) != 1 {
 		t.Fatalf("our SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
 	}
 	name := entries[0].Name

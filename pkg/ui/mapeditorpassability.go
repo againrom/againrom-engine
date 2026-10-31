@@ -10,34 +10,37 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// PassArm is one reason a cell is closed to a ground mover, as the host's
-// world derivation names it.
+// PassArm is the set of reasons a cell is closed to a ground mover, as bits
+// of the host's world derivation; the document's PassArms names each bit.
 type PassArm uint8
 
-const (
-	PassBorder PassArm = 1 << iota
-	PassMountain
-	PassWater
-	PassFlag
-	PassObject
-	PassStructure
-)
+// PassArmRow is one arm of the host's table: its bit, the word ID the status
+// line names it by, and whether it is the border arm the border view dims.
+type PassArmRow struct {
+	Arm    PassArm
+	Word   string
+	Border bool
+}
 
-// passArmWord is the word the status line gives one arm.
-func (e *MapEditor) passArmWord(arm PassArm) string {
-	switch arm {
-	case PassBorder:
-		return e.word("editor.pass.border")
-	case PassMountain:
-		return e.word("editor.pass.mountain")
-	case PassWater:
-		return e.word("editor.pass.water")
-	case PassFlag:
-		return e.word("editor.pass.flag")
-	case PassObject:
-		return e.word("editor.pass.object")
+// passArmWords are the words of the arms in arms, in the table's order.
+func (e *MapEditor) passArmWords(arms PassArm) []string {
+	var out []string
+	for _, r := range e.doc.PassArms {
+		if arms&r.Arm != 0 {
+			out = append(out, e.word(r.Word))
+		}
 	}
-	return e.word("editor.pass.structure")
+	return out
+}
+
+// borderArm is the bit of the document's border arm; zero when it names none.
+func (e *MapEditor) borderArm() PassArm {
+	for _, r := range e.doc.PassArms {
+		if r.Border {
+			return r.Arm
+		}
+	}
+	return 0
 }
 
 // The passability view's two fills, straight alpha: an open cell is washed
@@ -72,7 +75,7 @@ func (e *MapEditor) borderShown() bool {
 
 // inBorder reports whether the host's world closes cell by its border arm.
 func (e *MapEditor) inBorder(cell image.Point) bool {
-	return e.passArmAt(cell)&PassBorder != 0
+	return e.passArmAt(cell)&e.borderArm() != 0
 }
 
 // borderQuads is a dimming fill for every drawn border cell, while the
@@ -149,13 +152,7 @@ func (e *MapEditor) hoverPassability() (string, bool) {
 	if arms == 0 {
 		return e.word("editor.pass.open"), true
 	}
-	var names []string
-	for arm := PassBorder; arm <= PassStructure; arm <<= 1 {
-		if arms&arm != 0 {
-			names = append(names, e.passArmWord(arm))
-		}
-	}
-	return fmt.Sprintf(e.word("editor.pass.closed"), strings.Join(names, ", ")), true
+	return fmt.Sprintf(e.word("editor.pass.closed"), strings.Join(e.passArmWords(arms), ", ")), true
 }
 
 // hoverHeight is the status line's height of the hovered cell while the

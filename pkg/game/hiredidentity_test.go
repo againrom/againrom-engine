@@ -126,12 +126,12 @@ func hiredActorCounts(t *testing.T, party []mapload.PartyMember, first, second i
 
 func TestHiredActorOrdinaryMarkerAndLegacyNameBoundary(t *testing.T) {
 	f, _ := cityRosterHiredFixture(t, []int{12, 13}, []int{3, 4})
-	row := uint8(data.FindHumanByName(f.Table.Humans, "NPC12_1"))
+	row := uint16(data.FindHumanByName(f.Table.Humans, "NPC12_1"))
 	for _, test := range []struct {
 		name     string
 		backing  uint32
 		ordinary string
-		row      uint8
+		row      uint16
 		want     bool
 	}{
 		{"anonymous", 12, "", row, true},
@@ -156,7 +156,7 @@ func TestHiredActorOrdinaryMarkerAndLegacyNameBoundary(t *testing.T) {
 
 func TestHiredActorRenamedCityKeepsDefinitionAndHire(t *testing.T) {
 	f, newFront := cityRosterHiredFixture(t, []int{12, 13}, []int{3, 4})
-	rows := map[string]uint8{}
+	rows := map[string]uint16{}
 	for i := range f.Carried {
 		member := &f.Carried[i]
 		if !member.Hired() {
@@ -189,7 +189,7 @@ func TestHiredActorCityResidueTakesNoHireBits(t *testing.T) {
 
 func TestHiredActorNamesProjectWithoutManifest(t *testing.T) {
 	f, _ := cityRosterHiredFixture(t, []int{12, 13}, []int{3, 4})
-	row := uint8(data.FindHumanByName(f.Table.Humans, "NPC12_1"))
+	row := uint16(data.FindHumanByName(f.Table.Humans, "NPC12_1"))
 	for _, test := range []struct {
 		name string
 		typ  uint8

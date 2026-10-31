@@ -6,7 +6,7 @@ import (
 )
 
 func TestCurrentSourceTerminal1170SurvivesCompactionAndColdSave(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	e := &w.entities[0]
 	e.HP, e.Decay, e.Dwell = -600, decayLast, 0
 	e.MapUnitID = 91

@@ -115,9 +115,9 @@ func (x *MapInspector) Editor() *ui.MapEditor {
 		return cmp.Or(cmp.Compare(mission(a), mission(b)), cmp.Compare(strings.ToLower(a.Title), strings.ToLower(b.Title)))
 	})
 	for _, e := range maps {
-		key := "loose/" + e.Source
+		key := ui.MapSourceKey(ui.SourceLoose, e.Source)
 		if e.FromArchive {
-			key = "scenario/" + e.Source
+			key = ui.MapSourceKey(ui.SourceScenario, e.Source)
 		}
 		rows = append(rows, ui.EditorMap{Key: key, Label: x.inspectionUTF8(e.Text()), Multiplayer: !e.FromArchive})
 	}
@@ -168,13 +168,13 @@ func (x *MapInspector) inspectionUTF8(s string) string {
 func (x *MapInspector) Open(source string) (*ui.InspectionDocument, error) {
 	var b []byte
 	var err error
-	switch {
-	case isNewSource(source):
+	switch src := ui.ParseMapSource(source); src.Kind {
+	case ui.SourceNew:
 		return x.openNew(source)
-	case strings.HasPrefix(source, "scenario/"):
+	case ui.SourceScenario:
 		b, err = x.archives.Containers.ReadFile(source)
-	case strings.HasPrefix(source, "loose/"):
-		b, err = x.archives.Loose.ReadFile(strings.TrimPrefix(source, "loose/"))
+	case ui.SourceLoose:
+		b, err = x.archives.Loose.ReadFile(src.Path)
 	default:
 		b, err = os.ReadFile(source)
 	}
@@ -182,6 +182,21 @@ func (x *MapInspector) Open(source string) (*ui.InspectionDocument, error) {
 		return nil, fmt.Errorf("open %s: %w", source, err)
 	}
 	return x.inspect(b, source)
+}
+
+// mapHostPath is the host file an editor source names: the source itself for
+// a host file, the install's file for a loose map (the source as written when
+// no install is open), and none for a new or scenario map.
+func mapHostPath(src ui.MapSource, a *Archives) (string, bool) {
+	switch src.Kind {
+	case ui.SourceNew, ui.SourceScenario:
+		return "", false
+	case ui.SourceLoose:
+		if a != nil {
+			return looseHostPath(a.Root, src.Path), true
+		}
+	}
+	return src.Text, true
 }
 
 func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument, error) {
@@ -219,7 +234,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	for _, c := range mapload.DropCells(m) {
 		d.Drops = append(d.Drops, image.Pt(int(c.X), int(c.Y)))
 	}
-	d.Passability = passArms(mapload.GroundArms(m, x.table))
+	d.Passability, d.PassArms = passArms(mapload.GroundArms(m, x.table)), passArmRows()
 	d.Playable = mapload.Playable(m)
 	feet := x.feet(m)
 	add := func(r ui.InspectionRecord) {

@@ -33,14 +33,12 @@ var campaignRecordBaseDigests = map[string]string{
 	"town progress/snapshot labels":      "355f8819b278efec7b034c20",
 }
 
-// campaignRecordSAVDigest is a SAV's digest with its label cleared, so a
-// label that names the time does not enter it.
+// campaignRecordSAVDigest is the digest of the engine document a SAV
+// carries, with its label cleared, so a label that names the time does not
+// enter it.
 func campaignRecordSAVDigest(t *testing.T, raw []byte) string {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	doc.Label = nil
 	out, err := sav.EncodeDocumentData(doc)
 	if err != nil {

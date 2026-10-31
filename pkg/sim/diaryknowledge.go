@@ -71,7 +71,8 @@ func (w *World) playerDiary() (SavedDiary, bool) {
 // through the installed placement rows.
 func (w *World) diaryUnitOf(e Entity) (DiaryUnit, bool) {
 	if e.SourceBinding.Class != 0 {
-		return DiaryUnit{Row: e.SourceBinding.TokenRow, Face: e.SourceBinding.Face}, true
+		// A Diary row is one byte; the second game's records hold no Diary.
+		return DiaryUnit{Row: uint8(e.SourceBinding.TokenRow), Face: e.SourceBinding.Face}, true
 	}
 	u, ok := w.diary.units[e.MapUnitID]
 	return u, ok

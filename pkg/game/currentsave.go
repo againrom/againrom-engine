@@ -212,6 +212,7 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err != nil {
 		return sav.DocumentData{}, nil, err
 	}
+	nativeCityHeadRows(&doc, s.Party, table)
 	doc, err = graftSnapshotCityResidue(doc, s)
 	if err != nil {
 		return sav.DocumentData{}, nil, err

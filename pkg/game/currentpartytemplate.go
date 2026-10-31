@@ -113,7 +113,12 @@ func currentMemberActorRecord(member, hero mapload.PartyMember, table *mapload.T
 			}
 		}
 	}
-	return sav.DocumentActorFromCityUnit(class, unit)
+	r, err := sav.DocumentActorFromCityUnit(class, unit)
+	// The city head holds the row's low byte; the record holds the row.
+	if row := nativeCityDefRow(member, hero, table); err == nil && class == "Human" && row > 0xff {
+		mustSetValue(&r, "T0C", uint32(row))
+	}
+	return r, err
 }
 
 func captureCurrentPartyTemplate(id sim.EntityID, member, hero mapload.PartyMember, table *mapload.Table) (currentPartyMember, error) {

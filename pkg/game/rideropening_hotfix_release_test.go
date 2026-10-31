@@ -85,7 +85,7 @@ func TestReleaseHiredRidersKeepTheRiderSpeedThroughSAVAndColdLoad(t *testing.T) 
 		}
 		dir, face := data.FigureFor(def.TypeID, def.Face, def.Gender)
 		want[def.Reaction] = def.Reaction/5 + 12 + 10
-		party = append(party, mapload.PartyMember{ID: name, Name: name, Temporary: true, MercenaryType: 8, DefinitionRow: uint8(row),
+		party = append(party, mapload.PartyMember{ID: name, Name: name, Temporary: true, MercenaryType: 8, DefinitionRow: uint16(row),
 			Profile: def.Profile(), Hero: def.Hero(), Class: def.TypeID, FigureDir: string(dir), FigureFace: face,
 			HiredRotationSpeed: def.RotationSpeed,
 			Saved:              &mapload.Saved{Cell: mapload.Cell{X: int32(55 + len(want)), Y: 54}, HP: 1000, MaxHP: 1000}})

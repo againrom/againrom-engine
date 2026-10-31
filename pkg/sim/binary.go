@@ -1641,10 +1641,10 @@ func (w *World) tailCapacity(body int) int {
 }
 
 // encodeInto writes the whole byte form: the form of play, then the passive
-// terminal contents, the runtime ids and the script slots as the outer
-// sections. Hash digests these bytes.
+// terminal contents, the runtime ids, the script slots and the wide token
+// rows as the outer sections. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))
+	return w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b)))))
 }
 
 // encodePlayInto writes every section except the passive terminal contents.

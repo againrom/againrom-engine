@@ -67,7 +67,7 @@ func (f *flow) popupOpen() bool {
 // read ScreenMap alone would have left the dim, the camera and the world's own
 // stop all reading false on every frame the panel stood on.
 func (f *flow) mapShowing() bool {
-	if f.nativeMissionMenu() {
+	if f.menuPlacement().overMission() {
 		return true
 	}
 	switch f.screen {

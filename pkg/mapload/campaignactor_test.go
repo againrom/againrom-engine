@@ -71,7 +71,7 @@ func TestCampaignHireHumansRowAboveTheTokenByteTakesItsTypesFirstRow(t *testing.
 	for _, tc := range []struct {
 		identity int
 		name     string
-		row      uint8
+		row      uint16
 	}{{1, "hire thirty", 5}, {2, "narrow hire", 200}} {
 		p, ok := mapload.CampaignActor(tbl, mapload.CampaignActorSpec{Profile: profile, Identity: tc.identity, Stage: 30, Hire: true}, nil)
 		if !ok || p.Name != tc.name || p.DefinitionRow != tc.row || p.Class != 15 {

@@ -198,7 +198,7 @@ func wantHireGroups(t *testing.T, f *FrontEnd, data sav.CityData, kept int, type
 			if wantName == f.Table.Humans.EntryName(int(row)) {
 				wantName = ""
 			}
-			if unit.Name != wantName || unit.Token[16] != row || binary.LittleEndian.Uint16(unit.Token[17:19]) != uint16(member.Class) ||
+			if unit.Name != wantName || uint16(unit.Token[16]) != row || binary.LittleEndian.Uint16(unit.Token[17:19]) != uint16(member.Class) ||
 				binary.LittleEndian.Uint32(unit.Scalar2[47:51]) != uint32(typ) || binary.LittleEndian.Uint16(unit.Token[23:25]) != 2 ||
 				binary.LittleEndian.Uint32(unit.Token[33:37]) != key {
 				t.Fatalf("hire group %d member %d: Name=%q row=%d class=%d hire=%d publication=%d owner=%#x; want Name=%q row=%d class=%d hire=%d publication=2 owner=%#x",

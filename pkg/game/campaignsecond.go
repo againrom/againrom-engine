@@ -589,11 +589,11 @@ func (t *Town) SecondState() (SecondCampaignState, bool) {
 	return out, true
 }
 
-// saveForm writes a town SAVE in the second game's records, which its
-// original reads; the engine's own document travels beside them. A mission
-// SAVE stays the engine's Asg& document (DIV-3079).
+// saveForm writes a town or mission SAVE in the second game's records,
+// which its original reads; the engine's own document travels beside them
+// (DIV-4304, DIV-4350).
 func (secondCampaignRules) saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error) {
-	if s.Mission != 0 || s.second == nil {
+	if s.second == nil {
 		return doc, false, nil
 	}
 	out, err := secondTownForm(f.Table, s, doc)

@@ -193,7 +193,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 	pointerStroke(e, []image.Point{water})
 	d1 := e.Document()
 	editorGroundCheck(t, x, d1, "terrain stroke")
-	if armAt(d1, water)&ui.PassWater == 0 {
+	if armAt(d1, water)&ui.PassArm(mapload.GroundWater) == 0 {
 		t.Fatalf("painted water reads arms %#x", armAt(d1, water))
 	}
 	_ = e.Key("undo")
@@ -210,7 +210,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 	pointerStroke(e, []image.Point{object})
 	d2 := e.Document()
 	editorGroundCheck(t, x, d2, "object stroke")
-	if armAt(d2, object)&ui.PassObject == 0 {
+	if armAt(d2, object)&ui.PassArm(mapload.GroundObject) == 0 {
 		t.Fatalf("a placed object reads arms %#x", armAt(d2, object))
 	}
 
@@ -220,7 +220,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 	pointerStroke(e, []image.Point{flag})
 	blocked := e.Document()
 	editorGroundCheck(t, x, blocked, "Block")
-	if armAt(blocked, flag) != ui.PassFlag {
+	if armAt(blocked, flag) != ui.PassArm(mapload.GroundFlag) {
 		t.Fatalf("a blocked cell reads arms %#x", armAt(blocked, flag))
 	}
 	if len(blocked.SourceBytes) != len(before) {
@@ -248,7 +248,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 	}
 	e.ShowCell(water)
 	pointerStroke(e, []image.Point{water})
-	if armAt(e.Document(), water) != ui.PassWater {
+	if armAt(e.Document(), water) != ui.PassArm(mapload.GroundWater) {
 		t.Fatalf("unblocked water reads arms %#x", armAt(e.Document(), water))
 	}
 	if s := hoverStatus(e, water); !strings.Contains(s, word("editor.pass.water")) {
@@ -258,7 +258,7 @@ func TestReleaseMapEditorPassabilityFollowsEveryEdit(t *testing.T) {
 
 	moved := false
 	for i, r := range e.Document().Records {
-		if r.Kind != "Structure" || armAt(e.Document(), r.Cell) != ui.PassStructure || r.Cell.X < 12 || r.Cell.Y < 12 {
+		if r.Kind != "Structure" || armAt(e.Document(), r.Cell) != ui.PassArm(mapload.GroundStructure) || r.Cell.X < 12 || r.Cell.Y < 12 {
 			continue
 		}
 		for _, off := range []image.Point{{0, 3}, {3, 0}, {0, -3}, {-3, 0}, {4, 4}} {
@@ -349,7 +349,7 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 	var water image.Point
 	for i, a := range d.Passability {
 		c := image.Pt(i%d.Width, i/d.Width)
-		if a&ui.PassWater != 0 && a&ui.PassBorder == 0 && c.X > 20 && c.Y > 20 {
+		if a&ui.PassArm(mapload.GroundWater) != 0 && a&ui.PassArm(mapload.GroundBorder) == 0 && c.X > 20 && c.Y > 20 {
 			water = c
 			break
 		}
@@ -399,7 +399,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 	closeMapPanel(t, e)
 	d := e.Document()
 	c := image.Pt(d.Width/2, d.Height/2)
-	d.Passability[c.Y*d.Width+c.X] = ui.PassBorder | ui.PassMountain | ui.PassWater | ui.PassFlag | ui.PassObject
+	d.Passability[c.Y*d.Width+c.X] = ui.PassArm(mapload.GroundBorder) | ui.PassArm(mapload.GroundMountain) | ui.PassArm(mapload.GroundWater) | ui.PassArm(mapload.GroundFlag) | ui.PassArm(mapload.GroundObject)
 	e.ShowCell(c)
 	tail, newMap := x.inspectionUTF8(x.word("editor.keys.help")), x.inspectionUTF8(x.word("editor.keys.new"))
 	check := func(what string, whole bool) string {

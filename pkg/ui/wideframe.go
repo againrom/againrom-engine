@@ -244,7 +244,7 @@ func (a *App) windowToNativeFrame(x, y int) (image.Point, bool) {
 	if a == nil {
 		return image.Point{}, false
 	}
-	if a.flow.nativeMissionMenu() {
+	if a.flow.menuPlacement().overMission() {
 		place, at := a.missionMenuPlacement()
 		p, ok := place.WindowToFrame(x, y)
 		p = p.Sub(at)
@@ -261,7 +261,7 @@ func (a *App) nativeFrameToWindow(p image.Point) (int, int, bool) {
 	if a == nil {
 		return 0, 0, false
 	}
-	if a.flow.nativeMissionMenu() {
+	if a.flow.menuPlacement().overMission() {
 		place, at := a.missionMenuPlacement()
 		return place.FrameToWindow(p.Add(at))
 	}

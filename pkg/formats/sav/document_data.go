@@ -335,7 +335,7 @@ func shapeDocumentRecord(r *Record, group bool) (*documentRecordShape, error) {
 						if err != nil {
 							return err
 						}
-						if (m.Kind == KindU8 && v > 0xff) || (m.Kind == KindU16 && v > 0xffff) || (m.Kind == KindU16Saturated && v > saturate) {
+						if (m.Kind == KindU8 && v > 0xff && !wideTokenRow(r.Class, m, v)) || (m.Kind == KindU16 && v > 0xffff) || (m.Kind == KindU16Saturated && v > saturate) {
 							return fmt.Errorf("sav: %s.%s exceeds its lossless field range", r.Class, m.Name)
 						}
 					}

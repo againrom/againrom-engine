@@ -162,9 +162,9 @@ func TestSavedActorDefinitionUsesExactClassAndUnsignedType(t *testing.T) {
 	for _, test := range []struct {
 		class     string
 		typ       uint16
-		row, want uint8
+		row, want uint16
 	}{
-		{"Unit", 65535, 7, 7}, {"Human", 0, 7, 7}, {"Human", 32, 7, 7},
+		{"Unit", 65535, 7, 7}, {"Human", 0, 7, 7}, {"Human", 32, 7, 7}, {"Human", 32, 264, 264},
 		{"Human", 33, 7, 5}, {"Human", 32768, 7, 5}, {"Human", 65535, 7, 5},
 	} {
 		a := ActorRecord{Actor: Actor{Class: test.class}, TypeID: test.typ, DefRow: test.row}

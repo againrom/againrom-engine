@@ -94,7 +94,7 @@ type PartyMember struct {
 	// MercenaryType is zero for a full hero and the 1-based mercenary type for
 	// a hired unit.
 	MercenaryType uint8
-	DefinitionRow uint8
+	DefinitionRow uint16
 	CampaignHire  uint8 `json:",omitempty"`
 	CampaignUnit  bool  `json:",omitempty"`
 

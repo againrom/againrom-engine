@@ -598,7 +598,7 @@ func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 	const fresh, single, multi = 0, 1, 2
 	group := func(m EditorMap) int {
 		switch {
-		case strings.HasPrefix(m.Key, "new/"):
+		case ParseMapSource(m.Key).Kind == SourceNew:
 			return fresh
 		case m.Multiplayer:
 			return multi
@@ -617,7 +617,7 @@ func (e *MapEditor) catalogRows() ([]PickerRow, []int) {
 			}
 			label := m.Label
 			if g == fresh { // under its heading a new map is its size: "32 x 32"
-				label = strings.Replace(strings.TrimPrefix(m.Key, "new/"), "x", " x ", 1)
+				label = strings.Replace(ParseMapSource(m.Key).Path, "x", " x ", 1)
 			}
 			rows, maps = append(rows, PickerRow{Text: "  " + label, Choosable: true}), append(maps, i)
 		}
@@ -918,7 +918,7 @@ func (e *MapEditor) listChoose(n int, open bool) {
 			return
 		}
 		e.model.Select(n)
-		if key := e.maps[maps[n]].Key; open && strings.HasPrefix(key, "new/") {
+		if key := e.maps[maps[n]].Key; open && ParseMapSource(key).Kind == SourceNew {
 			e.askNewMode(key)
 		} else if open {
 			_ = e.Open(key)

@@ -67,10 +67,7 @@ func missionAutosaveStore(t *testing.T) SaveStore {
 func missionAutosaveRow(t *testing.T, f *FrontEnd, store SaveStore, mission int) SaveEntry {
 	t.Helper()
 	store.Selector = f.textSelector()
-	rows, err := store.List()
-	if err != nil {
-		t.Fatal(err)
-	}
+	rows := savesOfGame(store.Dir, f.savedGame(), store.Selector)
 	label := fmt.Sprintf("autosave start mission %d", mission)
 	for _, row := range rows {
 		if row.Label == label {

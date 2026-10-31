@@ -49,6 +49,19 @@ func parseSaveDocument(b []byte) (*saveDocument, error) {
 			d.state.values[path] = value
 		}
 	}
+	var rows []tokenRow
+	if d.state, rows, err = takeTokenRows(d.state); err != nil {
+		return nil, err
+	}
+	if len(rows) != 0 {
+		byIndex := make(map[uint16]*Record, len(d.archive.origins))
+		for rec, index := range d.archive.origins {
+			byIndex[index] = rec
+		}
+		if err := applyTokenRows(rows, func(i uint16) *Record { return byIndex[i] }); err != nil {
+			return nil, err
+		}
+	}
 	if prof.scenarioTail {
 		d.second, err = parseSecondTail(f.TailRest)
 		d.campaign = &cityCampaign{}
@@ -111,12 +124,16 @@ func serializeSaveDocument(d *saveDocument) ([]byte, error) {
 	if len(d.label) >= labelLen || bytes.IndexByte(d.label, 0) >= 0 {
 		return nil, fmt.Errorf("sav: document label must fit one NUL-terminated label region")
 	}
-	body, err := serializeArchiveDocument(d.archive)
+	body, rows, err := serializeArchiveDocumentRows(d.archive)
+	if err != nil {
+		return nil, err
+	}
+	stateStore, err := withTokenRows(d.state, rows)
 	if err != nil {
 		return nil, err
 	}
 	blob := Compress(body)
-	stateSize, err := worldStateSerializedSize(d.state)
+	stateSize, err := worldStateSerializedSize(stateStore)
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +152,9 @@ func serializeSaveDocument(d *saveDocument) ([]byte, error) {
 	}
 	var state []byte
 	if d.archive.world != nil {
-		state, err = serializeWorldStateFor(d.state, prof)
+		state, err = serializeWorldStateFor(stateStore, prof)
 	} else {
-		state, err = serializeCityStateFor(d.state, prof)
+		state, err = serializeCityStateFor(stateStore, prof)
 	}
 	if err != nil {
 		return nil, err

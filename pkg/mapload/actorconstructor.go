@@ -9,6 +9,10 @@ import (
 	"againrom/pkg/sim"
 )
 
+// maxTokenRow is the largest definition row a Token holds: a word, as the
+// second game's Humans rows run past 255 (R2-ENGINE-739).
+const maxTokenRow = 0xffff
+
 // ConstructActorBasis captures the actual fresh spawn, with the exact table
 // selected by startMission. Current combat values, maintained base skills and
 // numeric modifiers have separate owners. This runs once before gameplay;
@@ -24,7 +28,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	face := uint8(member.FigureFace)
 	if placement != nil {
 		r := Resolve(*placement, t)
-		if r.Index < 0 || r.Index > 255 {
+		if r.Index < 0 || r.Index > maxTokenRow {
 			return e, "", fmt.Errorf("actor %d definition is unavailable", e.ID)
 		}
 		row = r.Index
@@ -45,7 +49,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 		// own chargen row and face, independently of the drawable class.
 		if member.StartingHero {
 			fig := data.FigureDir(member.FigureDir)
-			if _, n, ok := data.ChargenBase(t.Humans, fig.Mage(), fig.Female()); ok && n > 0 && n <= 255 {
+			if _, n, ok := data.ChargenBase(t.Humans, fig.Mage(), fig.Female()); ok && n > 0 && n <= maxTokenRow {
 				row = n
 			}
 		}
@@ -60,7 +64,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 				}
 			}
 		}
-		if row < 0 || row > 255 {
+		if row < 0 || row > maxTokenRow {
 			return e, "", fmt.Errorf("party actor %d definition is unavailable", e.ID)
 		}
 	} else if member.UnitMember() && member.CampaignHireID() != 0 {
@@ -117,7 +121,7 @@ func ConstructActorBasis(e sim.Entity, member PartyMember, placement *alm.Unit, 
 	}
 	s := HumanSourceActor(h, basis)
 	s.Reach, s.AttackCharge, s.AttackRelax, s.EquipmentRuntimePresent = e.Reach, uint8(e.AttackCharge), uint8(e.AttackRelax), true
-	e.SourceBinding = sim.SourceBinding{Class: class, Identity: key, RuntimeID: runtime, TokenRow: uint8(row), TypeID: uint16(e.TypeID), Face: face}
+	e.SourceBinding = sim.SourceBinding{Class: class, Identity: key, RuntimeID: runtime, TokenRow: uint16(row), TypeID: uint16(e.TypeID), Face: face}
 	if id := member.CampaignHireID(); id != 0 {
 		e.SourceBinding.DisplayBacking = uint32(id)
 	}

@@ -36,7 +36,7 @@ func strippedSourceBindingPin(form []byte) []byte {
 	return out
 }
 
-func sourceBindingWorld1111(t *testing.T) *World {
+func sourceBindingWorld(t *testing.T) *World {
 	t.Helper()
 	w, err := NewWorld(123, Bounds{Width: 8, Height: 8}, ModeCanonical, make([]byte, 64), []Entity{{ID: 7, X: 2, Y: 2, HP: 9, MaxHP: 31}})
 	if err != nil {
@@ -50,14 +50,14 @@ func sourceBindingWorld1111(t *testing.T) *World {
 }
 
 func TestSourceBinding1111WireAndHash(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	form, err := w.MarshalBinary()
 	if err != nil {
 		t.Fatal(err)
 	}
 	const at = 34 + 3*64 + 457
 	want := []byte{1, 4, 0, 4, 0, 0, 16, 73, 0, 0, 0, 7, 35, 0, 3, 0xa5, 0x78, 0x56, 0x34, 0x12, 1, 0, 0, 0, 41, 0, 0, 0, 2, 0, 0, 16, 9, 0, 1}
-	if form[0] != formatVersion || !bytes.Equal(form[at:at+35], want) || binary.Size(SourceBinding{}) != 35 {
+	if form[0] != formatVersion || !bytes.Equal(form[at:at+35], want) || binary.Size(sourceBindingLayout{}) != 35 {
 		t.Fatalf("literal source tail: %x", form[at:at+35])
 	}
 	var restored World
@@ -80,7 +80,7 @@ func TestSourceBinding1111WireAndHash(t *testing.T) {
 }
 
 func TestSourceBinding1111AdmissionLateFailureIsAtomic(t *testing.T) {
-	w := sourceBindingWorld1111(t)
+	w := sourceBindingWorld(t)
 	e := w.entities[0]
 	e.ID, e.SourceBinding.ArchiveIndex, e.SourceBinding.Identity, e.TokenSize = 8, 5, 0x10000005, 1
 	late := e

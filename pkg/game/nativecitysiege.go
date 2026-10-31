@@ -33,7 +33,10 @@ func nativeCitySiegeUnit(identity, owner uint32, member mapload.PartyMember, tab
 	b := hire.Basis
 	s := b.ActorLoad.Source
 	binding := b.SourceBinding
-	token := nativeCityToken(identity, owner, binding.TokenRow, binding.TypeID)
+	if binding.TokenRow > 0xff {
+		return sav.CityUnitData{}, originalCityUnsupportedf("native city head holds one byte of %s's Units row %d", member.Name, binding.TokenRow)
+	}
+	token := nativeCityToken(identity, owner, byte(binding.TokenRow), binding.TypeID)
 
 	scalar1 := make([]byte, 19)
 	domain := uint32(b.Domain) + 1

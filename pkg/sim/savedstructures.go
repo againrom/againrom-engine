@@ -20,7 +20,13 @@ const (
 	GeneratedOutpost
 	GeneratedTavern
 	GeneratedShop
+	// SavedPointer is the second game's Pointer: a Building with one more
+	// word, +0x6c (R2-ENGINE-603). It keeps the Building's policy.
+	SavedPointer
 )
+
+// Known reports a class the saved structure section holds.
+func (c SavedStructureClass) Known() bool { return c >= SavedBuilding && c <= SavedPointer }
 
 func (c SavedStructureClass) Generated() bool { return c >= GeneratedBuilding && c <= GeneratedShop }
 func (c SavedStructureClass) BaseClass() SavedStructureClass {
@@ -43,8 +49,9 @@ type SavedStructure struct {
 	HasAuthored               bool
 	Position                  [12]byte
 	RuntimeID                 uint32
-	Token0C                   uint8
-	Token0E, Token18          uint16
+	// Token0C is a word: the second game's Building rows run past 255. The
+	// section holds its low byte; tokenRowFormVersion holds a higher byte.
+	Token0C, Token0E, Token18 uint16
 	Token1C, Reference        uint32
 	Base52                    [22]byte
 	Kind                      uint8
@@ -54,6 +61,9 @@ type SavedStructure struct {
 	Tavern9C, Shop70          uint32
 	OutpostWords              [4]uint32
 	OutpostRecords            [][8]byte
+	// Pointer6C is a SavedPointer's +0x6c word, whose reader is Unknown
+	// (DIV-4172); the section writes it after a Pointer's record only.
+	Pointer6C uint32
 }
 
 // SavedStructureCell is the final cell overlay, in ascending packed-key order.
@@ -92,7 +102,7 @@ func validateSavedStructures(structures []Structure, source []SavedStructure, ce
 		if s.ID != structures[i].ID || (i > 0 && s.ID <= source[i-1].ID) {
 			return fmt.Errorf("saved structures: invalid native ordering at %d", i)
 		}
-		if s.Class < SavedBuilding || s.Class > GeneratedShop || s.SourceKey == 0 || keys[s.SourceKey] || (!s.Class.Generated() && s.ArchiveIndex == 0) || (s.Class.Generated() && s.ArchiveIndex != 0) || s.ArchiveIndex != 0 && archives[s.ArchiveIndex] {
+		if !s.Class.Known() || s.SourceKey == 0 || keys[s.SourceKey] || (!s.Class.Generated() && s.ArchiveIndex == 0) || (s.Class.Generated() && s.ArchiveIndex != 0) || s.ArchiveIndex != 0 && archives[s.ArchiveIndex] {
 			return fmt.Errorf("saved structures: invalid class/source identity at %d", i)
 		}
 		keys[s.SourceKey], archives[s.ArchiveIndex] = true, true
@@ -122,6 +132,9 @@ func validateSavedStructures(structures []Structure, source []SavedStructure, ce
 		}
 		if s.Class.BaseClass() != SavedTavern && s.Tavern9C != 0 {
 			return fmt.Errorf("saved structures: Tavern state on another class")
+		}
+		if s.Class != SavedPointer && s.Pointer6C != 0 {
+			return fmt.Errorf("saved structures: Pointer state on another class")
 		}
 	}
 	for i, c := range cells {

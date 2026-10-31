@@ -44,6 +44,9 @@ func graftNativeCityMember(data sav.CityData, member, hero mapload.PartyMember, 
 	// reference has to name the object that is actually in this graph.
 	playerIdentity := binary.LittleEndian.Uint32(playerFixed[47:51])
 	identity := nativeCityNextIdentity(data)
+	if err := nativeCityWideRow(member, hero, table); err != nil {
+		return data, err
+	}
 	unit := nativeCityUnitData(identity, playerIdentity, member, hero, table,
 		[sav.UnitStatWords]uint16{}, [sav.CharacterSkillSlots]uint16{})
 	binary.LittleEndian.PutUint32(unit.Token[12:16], nextSavedRuntimeID(cityRuntimeIDs(data.Objects)))

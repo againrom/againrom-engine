@@ -51,7 +51,7 @@ type ActorRecord struct {
 	TokenOwnerSlot uint16
 	Owner          ActorReference
 	TypeID         uint16
-	DefRow         uint8
+	DefRow         uint16
 	TokenSize      uint8
 	Domain         uint8
 	Face           uint8
@@ -161,7 +161,7 @@ func (f *File) SetActorMoverRoute(archiveIndex uint16, mover [180]byte, staticRo
 
 // DefinitionRow is the local class-specific LOAD binding, not an ALM lookup.
 // Exact Humanoid's null definition is an unsupported constructor boundary.
-func (a ActorRecord) DefinitionRow() (uint8, error) {
+func (a ActorRecord) DefinitionRow() (uint16, error) {
 	switch a.Class {
 	case "Unit":
 		return a.DefRow, nil
@@ -282,7 +282,7 @@ func currentActorGraph(players []*Record, current []uint16, dead ...[]*Record) (
 		entry := ActorRecord{Actor: actor, ArchiveIndex: record.Index, Identity: key,
 			CurrentEntity: slices.Contains(current, record.Index),
 			ControlOff:    record.UnitControlOff, StateOff: record.UnitStateOff,
-			TokenOwnerSlot: actor.OwnerSlot, TypeID: uint16(record.value("T0E")), DefRow: uint8(record.value("T0C")),
+			TokenOwnerSlot: actor.OwnerSlot, TypeID: uint16(record.value("T0E")), DefRow: uint16(record.value("T0C")),
 			TokenSize: uint8(record.value("U49")), Domain: uint8(record.value("U4A")),
 			Face: uint8(record.value("U4B")), ClassSelector: uint8(record.value("U4C")), DisplayBacking: record.value("U148"), DyingTimer: int8(record.value("U6C"))}
 		entry.HasOrder = len(record.Raw["U158"]) != 0

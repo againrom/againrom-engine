@@ -1029,21 +1029,42 @@ func (a *app) check() {
 	})
 }
 
-// mapEditorPlan resolves the map editor beside this program and its arguments
-// for the selected base, and reports why they cannot be had.
-func (a *app) mapEditorPlan() (string, []string, error) {
+// mapEditorPlan resolves the map editor beside this program, its arguments
+// for the selected base and the arguments of its map list check, and reports
+// why they cannot be had.
+func (a *app) mapEditorPlan() (exe string, start, check []string, err error) {
 	root, ok := a.selectedRoot()
 	if !ok {
-		return "", nil, captionErr(cNoBaseSelected)
+		return "", nil, nil, captionErr(cNoBaseSelected)
 	}
 	if info := a.infos[root]; !info.Valid() {
-		return "", nil, captionErr(cBaseNotInstall, a.s.LastBase, strings.Join(info.Missing, ", "))
+		return "", nil, nil, captionErr(cBaseNotInstall, a.s.LastBase, strings.Join(info.Missing, ", "))
 	}
-	exe := editorExecutable(a.selfPath, a.goos)
+	exe = editorExecutable(a.selfPath, a.goos)
 	if !fileExists(exe) {
-		return "", nil, captionErr(cEditorNotFound, exe)
+		return "", nil, nil, captionErr(cEditorNotFound, exe)
 	}
-	return exe, []string{"-assets", root}, nil
+	if start, err = editorArgs(root, false); err == nil {
+		check, err = editorArgs(root, true)
+	}
+	if err != nil {
+		return "", nil, nil, refusalErr(err)
+	}
+	return exe, start, check, nil
+}
+
+// editorArgs is the map editor's arguments for the asset root, with the map
+// list when list is set, built from the rows of launch.Editor.
+func editorArgs(root string, list bool) ([]string, error) {
+	return launch.Editor.Build(launch.One(func(st launch.Setting) string {
+		switch st.Key {
+		case launch.EditorAssets.Key:
+			return root
+		case launch.EditorList.Key:
+			return launch.FormatBool(list)
+		}
+		return st.Load("")
+	}))
 }
 
 // openMapEditor first runs the map editor's map list on the selected base,
@@ -1051,7 +1072,7 @@ func (a *app) mapEditorPlan() (string, []string, error) {
 // the way Play starts the game when the list passed, and otherwise shows the
 // editor's own error output, which a window started without a console loses.
 func (a *app) openMapEditor() {
-	exe, args, err := a.mapEditorPlan()
+	exe, args, check, err := a.mapEditorPlan()
 	if err != nil {
 		a.fail(cCannotOpenEditor, a.errText(err))
 		return
@@ -1059,7 +1080,7 @@ func (a *app) openMapEditor() {
 	a.ok(cCheckingEditor, filepath.Base(exe), a.s.LastBase)
 	a.output = nil
 	a.deps.async(func() {
-		out, err := a.deps.run(exe, append(append([]string{}, args...), "-list"))
+		out, err := a.deps.run(exe, check)
 		a.results <- result{kind: "editor", output: out, err: err, launch: append([]string{exe}, args...)}
 	})
 }

@@ -341,7 +341,7 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 		a.finishCutscenePresentation()
 		return pix, "", nil
 	}
-	if a.flow.nativeMissionMenu() {
+	if a.flow.menuPlacement().overMission() {
 		pic := a.GameMenuPanel()
 		if pic != nil {
 			place, at := a.missionMenuPlacement()

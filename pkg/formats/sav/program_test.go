@@ -586,7 +586,7 @@ func TestTheWalkReachesTheParticipantsOwnCharacters(t *testing.T) {
 	if h.Row() != 0x42 || h.Col() != 0x11 {
 		t.Errorf("the cell unpacks to (col %d, row %d)", h.Col(), h.Row())
 	}
-	if h.RuntimeID != want.runtimeID || h.MapUnitID != 0 || h.DefRow != want.defRow {
+	if h.RuntimeID != want.runtimeID || h.MapUnitID != 0 || h.DefRow != uint16(want.defRow) {
 		t.Errorf("id %d, map unit %d, definition row %d", h.RuntimeID, h.MapUnitID, h.DefRow)
 	}
 	if h.Stats != want.stats {

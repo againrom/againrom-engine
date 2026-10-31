@@ -13,7 +13,7 @@ import (
 // beneath it is composed independently, with the same centered modal placement.
 func (a *App) GameMenuPanel() (pic *image.RGBA) {
 	defer func() {
-		if a != nil && a.flow.nativeMissionMenu() && pic != nil {
+		if a != nil && a.flow.menuPlacement().overMission() && pic != nil {
 			a.paintTooltip(pic)
 		}
 	}()
@@ -21,7 +21,7 @@ func (a *App) GameMenuPanel() (pic *image.RGBA) {
 		return nil
 	}
 	if a.flow.screen != ScreenGameMenu {
-		if a.flow.nativeMissionMenu() {
+		if a.flow.menuPlacement().overMission() {
 			pic, _ := a.composeScreen()
 			return pic
 		}
@@ -77,9 +77,9 @@ func (a *App) menuPointer() gameMenuPointer {
 // composeGameMenuPanel draws the frame and one push button per row
 // (MENU-115, MENU-ART-014). The selected row is the keyboard focus. Status
 // and literal rows are text, not buttons.
-func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer, profiles ...GameMenuProfile) *image.RGBA {
+func composeGameMenuPanel(font *text.Font, s gameMenuSurface, rows []gameMenuRow, list *Picker, art *DialogFrame, pointer gameMenuPointer, at ...menuPlacer) *image.RGBA {
 	dst := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	panel := gameMenuPanelRectFor(s, rows, profiles...)
+	panel := gameMenuPanelRectFor(s, rows, at...)
 	drawFrame(dst, windowFrame(panel, art))
 	if list == nil {
 		return dst
