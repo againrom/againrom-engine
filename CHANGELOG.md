@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The shop and the inn in each town play their sounds: entering, buying, selling, a refused buy, putting items on the table, scrolling the shelves, undo and leaving in the shop; hiring, dismissing, a refused hire, talking and leaving in the inn.
 - [ROM2] A mage learns a spell by reading its book, as in the first game: use the book from the pack in a mission, or drop it on the mage in the shop. The book is used up; a fighter, a mage who knows the spell and a book of Slow are refused.
 
 ## 0.143.0

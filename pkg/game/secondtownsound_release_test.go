@@ -23,9 +23,10 @@ func (r *secondTownSoundLog) RequestSample(s audio.Sample, q audio.Request) audi
 // TestReleaseSecondTownRequestsTheSameSounds drives the second game's first
 // town through the App: the square, the shop with a buy, a sale and a shelf
 // change, and the tavern with its first talk. It logs every request and holds
-// them to the second town's own sound rows: no first-game room sample and no
-// priority but 128 (the first game's room sound table is not the second
-// game's).
+// them to the second town's own sound rows: the shop's entry, buy and sale
+// and the inn's TALK request the first game's room sounds (DIV-4372), no
+// request names a sound the description does not, and every priority is
+// 128.
 func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 	f := secondGameFront(t)
 	log := &secondTownSoundLog{}
@@ -39,8 +40,10 @@ func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 	// The menu's own requests before the town are not the town's.
 	start := len(log.lines)
 	steps := []string{}
+	at := map[string]int{}
 	mark := func(name string) {
-		steps = append(steps, fmt.Sprintf("%s@%d", name, len(log.lines)-start))
+		at[name] = len(log.lines) - start
+		steps = append(steps, fmt.Sprintf("%s@%d", name, at[name]))
 	}
 	// Hover the whole square on a 16-pixel grid, then let it run.
 	for y := 8; y < 768; y += 16 {
@@ -76,23 +79,61 @@ func TestReleaseSecondTownRequestsTheSameSounds(t *testing.T) {
 		t.Fatal(err)
 	}
 	mark("leave tavern")
-	firstGame := []string{"put_on.wav", "put_off.wav", "scroll.wav", "town/shop/depart.wav", "town/shop/inshop.wav",
-		"town/shop/start.wav", "town/shop/nofit.wav", "town/buy.wav", "town/sell.wav", "undo.wav", ":out.wav",
-		":add.wav", "noadd.wav", ":talk.wav", "town/school/enter.wav", "registry:2"}
+	unnamed := []string{"town/school/enter.wav", "town/school/teach.wav", "registry:2"}
 	town := log.lines[start:]
 	for _, line := range town {
-		for _, k := range firstGame {
+		for _, k := range unnamed {
 			if strings.Contains(line, k+" ") {
-				t.Errorf("the second town requested a first-game room sound: %s", line)
+				t.Errorf("the second town requested a sound its description does not name: %s", line)
 			}
 		}
 		if !strings.Contains(line, " priority=128 ") {
 			t.Errorf("the second town requested a priority other than 128: %s", line)
 		}
 	}
+	for _, w := range []struct{ from, to, key string }{
+		{"square", "shop", "town/shop/enter.wav"}, {"shop", "buy", "town/buy.wav"},
+		{"buy", "sell", "town/sell.wav"}, {"tavern", "talk", ":talk.wav"},
+	} {
+		found := false
+		for _, line := range town[at[w.from]:at[w.to]] {
+			found = found || strings.Contains(line, w.key+" ")
+		}
+		if !found {
+			t.Errorf("between %s and %s the second town requested no %s", w.from, w.to, w.key)
+		}
+	}
 	t.Logf("steps %s", strings.Join(steps, " "))
 	for i, line := range town {
 		t.Logf("request %d %s", i, line)
+	}
+}
+
+// TestReleaseSecondTownRoomSoundKeysResolve reads every key the three second
+// towns' shop and inn slots and triggers name from the root's own sound
+// archive: each decodes, Kin1 excepted, which the archive lacks (DIV-4271).
+func TestReleaseSecondTownRoomSoundKeysResolve(t *testing.T) {
+	archives := secondGameRoot(t)
+	bank := &SoundBank{src: archives.Containers.Fork()}
+	absent := map[string]bool{"town_kaarg/inn/kin1.wav": true}
+	for _, name := range []string{"rom2-town1", "rom2-town2", "rom2-town3"} {
+		for _, room := range []string{"shop", "inn"} {
+			sounds := townDescriptions[name].Scene(room).Sounds
+			keys := []string{}
+			for _, sl := range sounds.Slots {
+				keys = append(keys, sl.Key)
+			}
+			for _, tr := range sounds.Triggers {
+				if tr.Key != "" {
+					keys = append(keys, tr.Key)
+				}
+			}
+			for _, k := range keys {
+				if _, ok := bank.namedSample(k); ok == absent[k] {
+					t.Errorf("%s %s key %s: decoded %v, want %v", name, room, k, ok, !absent[k])
+				}
+			}
+		}
 	}
 }
 
