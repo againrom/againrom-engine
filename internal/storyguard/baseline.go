@@ -3564,5 +3564,13 @@ var Committed = Baseline{
 	// mapinspectionnpc.go, the map list's title reader in maplist.go,
 	// mapinspection.go and worldmap.go, the new tests' comments, and this
 	// note. The merge with main is measured on the merged tree.
-	CommentBytes: 10020486,
+
+	// It rose for the second game's release fixes: the hero's mission row
+	// in pkg/game's currentpartypolicy.go, currentpartyread.go and
+	// originalparty.go, the retired Effect records in
+	// cityobjectprojection.go, the tests' comments in
+	// cityobjectprojection_test.go, secondbagcarry_test.go,
+	// secondmissionsave_release_test.go and
+	// secondoriginalload_release_test.go, and this note.
+	CommentBytes: 10022638,
 }

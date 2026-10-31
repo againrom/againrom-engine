@@ -127,6 +127,9 @@ func stripCurrentPartyValues(a *currentActionData, w *sim.World, tables ...*mapl
 			}
 			p.Weapon = captureNamedPartyWeapon(member, equipment[0])
 			p.Policy = capturePartyPolicy(member, *p.ordinary, table)
+			if heroKeepsRecordRow(member, table) {
+				p.Policy.HeroRow = member.DefinitionRow
+			}
 			if e.Book.State != sim.BookLegacy {
 				p.Policy.LegacySpellbookPresent = false
 			}
@@ -236,7 +239,16 @@ func (p currentPartyMember) restoreFromState(state *currentPartyState, t *maploa
 		}
 	}
 	out.StartingHero = c.Hero
-	out.DefinitionRow = heroRecordRow(out, c.DefRow, t)
+	switch {
+	case p.Member != nil:
+		// The member's own record holds his row.
+	case p.City == nil:
+		// A mission actor's record holds the row his map placement chose.
+		out.DefinitionRow = heroRecordRow(out, p.Policy.HeroRow, t)
+	default:
+		// A town record holds the member's own row (nativeCityDefRow).
+		out.DefinitionRow = heroRecordRow(out, c.DefRow, t)
+	}
 	if p.Policy != nil {
 		out.FigureFace = p.Policy.face(*p.ordinary)
 	}

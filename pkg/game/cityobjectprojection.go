@@ -66,8 +66,9 @@ func cityMemberBook(p mapload.PartyMember, table *mapload.Table) [28]sim.SourceI
 }
 
 // retireUnreached drops each Item, Effect and Spell node no projected holder
-// reached, and the record of each Item it drops: a record left behind would
-// reserve its native key in the next town SAV, which its LOAD no longer holds.
+// reached, and the record of each Item and Effect it drops: a record left
+// behind would reserve its native key in the next town SAV and its identity
+// at the next mission's entry, which its LOAD no longer holds.
 func (p *cityObjectProjection) retireUnreached() {
 	p.graph.Items = slices.DeleteFunc(p.graph.Items, func(row cityItemTopology) bool {
 		_, live := p.items[row.ID]
@@ -82,10 +83,22 @@ func (p *cityObjectProjection) retireUnreached() {
 		_, live := p.effects[id]
 		return !live
 	})
+	for id := range p.graph.EffectRecords {
+		if _, live := p.effects[id]; !live {
+			delete(p.graph.EffectRecords, id)
+		}
+	}
 	p.graph.Spells = slices.DeleteFunc(p.graph.Spells, func(id sim.SavedObjectID) bool {
 		_, live := p.spells[id]
 		return !live
 	})
+	// An emptied list or record set is none, as the graph a LOAD builds.
+	if len(p.graph.Effects) == 0 {
+		p.graph.Effects = nil
+	}
+	if len(p.graph.EffectRecords) == 0 {
+		p.graph.EffectRecords = nil
+	}
 }
 
 func newCityObjectProjection(source *cityObjectTopology, party []mapload.PartyMember, table *mapload.Table) (*cityObjectProjection, error) {

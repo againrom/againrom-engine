@@ -587,12 +587,11 @@ func secondMissionSaveEntries(t *testing.T, mission int) {
 	t.Log("mission-start autosave tick0; F4/cold LOAD; F9; SaveSeams; three compat exporters; detached campaign mutation; timed autosave/cold LOAD")
 }
 
+// secondChangeSave changes the engine document a SAV carries, the
+// AgainromForm leaf of a second-game town file, and writes it as a SAV.
 func secondChangeSave(t *testing.T, raw []byte, change func(*currentActionData)) []byte {
 	t.Helper()
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	a, err := readCurrentActions(&doc)
 	if err != nil {
 		t.Fatal(err)

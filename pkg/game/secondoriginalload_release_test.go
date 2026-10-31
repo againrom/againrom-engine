@@ -183,8 +183,10 @@ func TestReleaseSecondOriginalMissionFileKeepsTheCompanion(t *testing.T) {
 			f := secondGameFront(t)
 			app := f.App("second-mission")
 			app.Layout(1024, 768)
-			save, list, load := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
-			app.SetSaveSeams(save, list, load)
+			// The game's own wiring: the main menu offers Load only when
+			// it has save files to show.
+			f.ConfigureSaveSeams(app, SaveStore{Dir: dir}, OriginalStore{}, nil)
+			_, list, _ := f.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
 			groundAppLoad(t, app, list, file.name)
 			mw := f.live
 			if mw == nil || f.liveMission != file.mission {

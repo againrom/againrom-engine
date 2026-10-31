@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"againrom/pkg/mapload"
@@ -255,6 +256,49 @@ func TestSecondBagArrivalKeepsWhatTheBagWouldLose(t *testing.T) {
 	}
 }
 
+// A unit with an Effect that comes home to the bag takes the Effect's record
+// out of the town's item graph with its node: a record no node holds keeps
+// its identity reserved at the next mission's entry, which the town SAV's
+// LOAD does not hold. Fails with the record left in the graph.
+func TestSecondBagArrivalDropsTheRecordOfADepartedEffect(t *testing.T) {
+	f, _, screen, _ := secondBagFront(t, nil)
+	enchanted := sim.ItemInstance{Code: 0x2104, Kind: 2, Price: 60, Effects: []sim.ItemEffect{{Kind: 41, Operand: 5 | 2<<16}}}
+	hero, ok := memberWithPack(f.Carried[0], []sim.ItemInstance{enchanted}, f.Table, true)
+	if !ok {
+		t.Fatal("the hero's pack refused the unit")
+	}
+	f.Carried[0] = hero
+	p, err := newCityObjectProjection(nil, f.Carried, f.Table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := p.graph
+	g.EffectRecords = map[sim.SavedObjectID]sim.SavedEffectObject{}
+	for k, id := range g.Effects {
+		serial := uint32(k + 1)
+		g.EffectRecords[id] = sim.SavedEffectObject{ID: id, Token: sim.SavedObjectToken{Identity: 0x62000000 + serial*16, RuntimeID: serial, T0E: 0x21}}
+	}
+	if len(g.EffectRecords) == 0 {
+		t.Fatal("the town graph holds no Effect")
+	}
+	f.Town.cityObjects = g
+	if err := screen.sess.enteredTown(screen.in.townInstall()); err != nil {
+		t.Fatal(err)
+	}
+	if got := bagLabels(*f.Town.second.heroBag()); !slices.Equal(got, bagLabels([]sim.ItemInstance{enchanted})) {
+		t.Fatalf("bag %v, want the enchanted weapon", got)
+	}
+	g = f.Town.cityObjects
+	for id := range g.EffectRecords {
+		if !slices.Contains(g.Effects, id) {
+			t.Fatalf("town Effect record %d outlives its Effect", id)
+		}
+	}
+	if len(g.EffectRecords) == 0 {
+		t.Fatal("the worn weapon's Effect record left with the bag's unit")
+	}
+}
+
 // An arrival whose town item graph cannot follow the hero's pack moves
 // nothing and says so: the units stay in his pack, the bag stays as it was
 // and the graph is the one the town had. Fails when the arrival moves the
@@ -356,6 +400,67 @@ func TestSecondBagMissionSaveAndColdLoadKeepThePacks(t *testing.T) {
 	}
 	if !slices.Contains(gotPacks[0], bagLabels([]sim.ItemInstance{secondBagArmour})[0]) {
 		t.Fatalf("cold LOAD hero pack %v lacks the bought armour", gotPacks[0])
+	}
+}
+
+// A second-game mission SAVE and its cold LOAD give each party member the
+// Humans row he had. A hero no chargen row builds keeps his own row, none
+// for a new campaign's hero, not the row of his actor, which the mission's
+// map placement chose. Fails with the LOAD giving him his actor's row.
+func TestSecondMissionSaveKeepsTheHeroRow(t *testing.T) {
+	rows := func(party []mapload.PartyMember) []uint8 {
+		var out []uint8
+		for _, m := range party {
+			out = append(out, m.DefinitionRow)
+		}
+		return out
+	}
+	// The second game's hero is built from a Start_ template, not from a
+	// chargen row (R2-ENGINE-105).
+	templates := func(f *FrontEnd) {
+		humans := slices.Clone(f.Table.Humans.(dbCollection))
+		for i := range humans {
+			if name, ok := strings.CutPrefix(humans[i].name, "PC_"); ok {
+				humans[i].name = "Start_" + name
+			}
+		}
+		table := *f.Table
+		table.Humans = humans
+		f.Table = &table
+	}
+	for _, row := range []uint8{0, 2} {
+		f, app, screen, dir := secondBagFront(t, nil)
+		templates(f)
+		if mapload.PartyHumanRow(f.Carried[0], f.Carried[0], f.Table) != 0 {
+			t.Fatal("the fixture hero has a chargen row")
+		}
+		f.Carried[0].DefinitionRow = row
+		secondBagEnter(t, f, app, screen)
+		want := rows(f.live.mission.party)
+		hero, _ := f.live.world.Entity(f.live.mission.ids[0])
+		if err := app.HeadlessKey("escape"); err != nil {
+			t.Fatal(err)
+		}
+		if err := app.HeadlessGameMenuAction("save"); err != nil {
+			t.Fatal(err)
+		}
+		entries, err := SaveStore{Dir: dir}.List()
+		if err != nil || len(entries) != 1 {
+			t.Fatalf("mission SAVE: %+v %v: %s", entries, err, app.HeadlessMessage())
+		}
+		cold := secondMissionFrontOf(t, secondMissionContent{side: 128})
+		templates(cold)
+		capp := cold.App("second-mission")
+		capp.Layout(1024, 768)
+		save, list, load := cold.SaveSeams(SaveStore{Dir: dir}, OriginalStore{}, nil)
+		capp.SetSaveSeams(save, list, load)
+		groundAppLoad(t, capp, list, entries[0].Name)
+		if cold.live == nil {
+			t.Fatal("the cold LOAD opened no mission")
+		}
+		if got := rows(cold.live.mission.party); !slices.Equal(got, want) {
+			t.Fatalf("hero row %d: the cold LOAD gives the party rows %v, want %v (the hero's actor row %d)", row, got, want, hero.SourceBinding.DefinitionRow())
+		}
 	}
 }
 

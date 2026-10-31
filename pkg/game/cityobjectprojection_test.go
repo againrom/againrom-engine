@@ -599,3 +599,20 @@ func TestCityObjectProjectionWritesTheWornWeaponAsHeld(t *testing.T) {
 		}
 	}
 }
+
+// A projection that retires every Effect of its graph leaves the graph with
+// no Effect list and no Effect record set, as the LOAD of its town SAV builds
+// it: a SAVE then LOAD of the town gives the graph it had. Fails with an
+// empty list or record set left in the graph.
+func TestCityObjectProjectionRetiringEveryEffectLeavesNone(t *testing.T) {
+	p := &cityObjectProjection{
+		graph: &cityObjectTopology{Version: cityObjectTopologyVersion, NextID: 4, Effects: []sim.SavedObjectID{3},
+			EffectRecords: map[sim.SavedObjectID]sim.SavedEffectObject{3: {ID: 3}}},
+		items: map[sim.SavedObjectID]sim.ItemStack{}, effects: map[sim.SavedObjectID]sim.ItemEffect{},
+		spells: map[sim.SavedObjectID]sim.SourceItemSpell{},
+	}
+	p.retireUnreached()
+	if p.graph.Effects != nil || p.graph.EffectRecords != nil {
+		t.Fatalf("retired graph Effects %#v records %#v, want none", p.graph.Effects, p.graph.EffectRecords)
+	}
+}
