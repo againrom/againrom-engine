@@ -54,14 +54,20 @@ func TestListBoxDrawsHeadingRowsInTheHeadingFace(t *testing.T) {
 	}
 }
 
-// The Scripts list marks its four group headings and no other row.
+// The tree's Scripts branch marks its four group headings and no member
+// row.
 func TestScriptsListMarksItsGroupHeadings(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	e.filter = editorScriptsFilter
-	rows, _ := e.listRows("records")
+	e.showRecords(editorScriptsFilter)
+	kinds := e.treeRowsNow()
+	rows := e.tree.model.Rows()
 	headings := 0
-	for i, r := range rows {
-		if r.Heading != !r.Choosable {
+	for i, k := range kinds {
+		if k.branch != "" || k.member && k.of != "scripts" {
+			continue
+		}
+		r := rows[i]
+		if r.Heading != !r.Choosable || r.Heading == k.member {
 			t.Errorf("row %d %q: Heading %v, Choosable %v", i, r.Text, r.Heading, r.Choosable)
 		}
 		if r.Heading {

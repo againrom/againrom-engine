@@ -39,10 +39,12 @@ func TestMapEditor1093TriggerListLateLinkOpensItsTargetAt640(t *testing.T) {
 	r.References = []InspectionReference{{Label: "target", Role: "action", Targets: []InspectionTarget{{Cell: image.Pt(35, 20), Size: image.Pt(1, 1)}}}}
 	e.doc.Records = append(e.doc.Records, r)
 	chromeClick(e, barPoint(t, e, "scripts"))
-	if e.filter != 7 || len(e.rows()) != 1 {
-		t.Fatal("the Scripts entry did not list the trigger")
+	if e.filter != 7 || len(e.rows()) != 1 || !e.paletteShown() {
+		t.Fatal("the Scripts entry did not show the scripts palette")
 	}
-	chromeClick(e, listRowPoint(t, e, 1))
+	// A 640 wide window keeps the tree minimized; the trigger is chosen as
+	// a tree row or a map click chooses it.
+	e.Select(40, false)
 	selected := e.selected
 	if selected != 40 {
 		t.Fatalf("selected %d", selected)

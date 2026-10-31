@@ -33,7 +33,9 @@ const (
 	popMenu
 	popBar
 	popStatus
-	popArea // a trigger area's label on the map
+	popArea  // a trigger area's label on the map
+	popTree  // the left side panel's tree of the map
+	popProps // the right side panel while it hosts no window
 )
 
 // editorChrome is the chrome's state: the fonts, where each popup stands, the
@@ -60,16 +62,16 @@ type editorChrome struct {
 	menuModel              *Picker
 	drag                   editorPopupID
 	dragFrom               image.Point
-	promptShift            image.Point              // a dragged prompt's offset from its own place
-	slack                  [popArea + 1]bool        // a popup that was dragged may hang past the window's edges
-	sizes                  [popArea + 1]image.Point // the size a popup was dragged to; zero is its natural size
-	minWide                [popArea + 1]int         // the width a popup had when it was first sized
-	sizeKey                [popArea + 1]string      // the window a popup was sized for
-	promptAbs              image.Point              // a sized prompt's corner
-	listFit                int                      // the list rows a sized list popup fits
-	cursorShape            ebiten.CursorShapeType   // the pointer shape last set on the window
-	dragEdge               popupEdge                // the border a resize drag holds; zero is a move
-	dragCard               int                      // the card row, plus one, a drag holds by its grip; zero is none
+	promptShift            image.Point               // a dragged prompt's offset from its own place
+	slack                  [popProps + 1]bool        // a popup that was dragged may hang past the window's edges
+	sizes                  [popProps + 1]image.Point // the size a popup was dragged to; zero is its natural size
+	minWide                [popProps + 1]int         // the width a popup had when it was first sized
+	sizeKey                [popProps + 1]string      // the window a popup was sized for
+	promptAbs              image.Point               // a sized prompt's corner
+	listFit                int                       // the list rows a sized list popup fits
+	cursorShape            ebiten.CursorShapeType    // the pointer shape last set on the window
+	dragEdge               popupEdge                 // the border a resize drag holds; zero is a move
+	dragCard               int                       // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -100,6 +102,8 @@ type editorChrome struct {
 	// NewMessagePage for none.
 	messageFor  *InspectionMessageOwner
 	messageFrom uint32
+	// tip is the hover tooltip over a palette's grid cells.
+	tip editorTip
 }
 
 // editorView is the View menu's switches over the map's annotations.
@@ -152,10 +156,18 @@ func (e *MapEditor) barHeight() int {
 	return entries[len(entries)-1].rect.Max.Y + 3
 }
 
-// mapArea is the window rectangle the map fills.
+// mapArea is the window rectangle the map fills: the window between the bar
+// and the status strip, less the open side panels.
 func (e *MapEditor) mapArea() image.Rectangle {
 	top := e.barHeight()
-	return image.Rect(0, top, e.window.X, max(top+1, e.window.Y-e.barRowHeight()))
+	shown := e.panelsShown()
+	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], e.mapBottom(top))
+}
+
+// mapBottom is the map's and the side panels' bottom edge: the status
+// strip's top.
+func (e *MapEditor) mapBottom(top int) int {
+	return max(top+1, e.window.Y-e.barRowHeight())
 }
 
 func (e *MapEditor) statusRect() image.Rectangle {
@@ -191,28 +203,34 @@ func (e *MapEditor) barEntries() []barEntry {
 	return entries
 }
 
-// barKeys is the top bar's entries in their order: the Map menu, the panels,
-// the View and Tools menus, then Undo, Redo and Save. An entry with a menu
-// opens it; Objects and Trees open the object brush in its one-kind and its
-// Forest mode.
-var barKeys = []struct {
+// barKey is one top bar entry as data: its key, its word and whether it
+// opens a menu.
+type barKey struct {
 	key, labelWord string
 	menu           bool
-}{
-	{key: "map", labelWord: "editor.bar.map", menu: true},
-	{key: "scripts", labelWord: "editor.list.scripts"},
-	{key: "players", labelWord: "editor.bar.players"},
-	{key: "groups", labelWord: "editor.bar.groups"},
-	{key: "units", labelWord: "editor.bar.units"},
-	{key: "sacks", labelWord: "editor.bar.sacks"},
-	{key: "structures", labelWord: "editor.bar.structures"},
-	{key: "objects", labelWord: "editor.bar.objects"},
-	{key: "trees", labelWord: "editor.bar.trees"},
-	{key: "view", labelWord: "editor.bar.view", menu: true},
-	{key: "tools", labelWord: "editor.bar.tools", menu: true},
-	{key: "undo", labelWord: "editor.bar.undo"},
-	{key: "redo", labelWord: "editor.bar.redo"},
-	{key: "save", labelWord: "editor.bar.save"},
+}
+
+// barKeys is the top bar's entries in their order: the Map menu, the record
+// categories, the Objects and Trees brushes, the View and Tools menus, then
+// Undo, Redo and Save. An entry with a menu opens it; a category opens its
+// palette and its tree branch; Objects and Trees open the object brush in
+// its one-kind and its Forest mode.
+var barKeys = barKeyRows()
+
+func barKeyRows() []barKey {
+	rows := []barKey{{key: "map", labelWord: "editor.bar.map", menu: true}}
+	for _, c := range editorCategories {
+		rows = append(rows, barKey{key: c.key, labelWord: c.word})
+	}
+	return append(rows,
+		barKey{key: "objects", labelWord: "editor.bar.objects"},
+		barKey{key: "trees", labelWord: "editor.bar.trees"},
+		barKey{key: "view", labelWord: "editor.bar.view", menu: true},
+		barKey{key: "tools", labelWord: "editor.bar.tools", menu: true},
+		barKey{key: "undo", labelWord: "editor.bar.undo"},
+		barKey{key: "redo", labelWord: "editor.bar.redo"},
+		barKey{key: "save", labelWord: "editor.bar.save"},
+	)
 }
 
 // barRows places the top bar's entries, without their states, which the
@@ -378,6 +396,8 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"fit", e.word("editor.view.fit")},
 			{"drawarea", e.word("editor.view.drawarea")},
 			{"records", e.word("editor.view.records")},
+			{sidePanels[panelLeft].key, mark(e.panelOpen(panelLeft), e.word(sidePanels[panelLeft].titleWord))},
+			{sidePanels[panelRight].key, mark(e.panelOpen(panelRight), e.word(sidePanels[panelRight].titleWord))},
 		}
 	case "tools":
 		items := []menuItem{{"newtrigger", e.word("editor.tools.newtrigger")}}
@@ -442,22 +462,14 @@ func (e *MapEditor) barAct(key string) {
 		}
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
-	case "units":
-		e.showRecords(1)
-	case "structures":
-		e.showRecords(2)
-	case "groups":
-		e.showRecords(editorGroupsFilter)
-	case "sacks":
-		e.showRecords(3)
-	case "players":
-		e.showRecords(editorPlayersFilter)
-	case "scripts":
-		e.showRecords(editorScriptsFilter)
 	case "undo", "redo":
 		_ = e.Key(key)
 	case "save":
 		_ = e.Key("saveas")
+	default:
+		if c, ok := categoryByKey(key); ok {
+			e.showRecords(c.filter)
+		}
 	}
 }
 
@@ -516,21 +528,51 @@ func (e *MapEditor) menuAct(key string) {
 // ends the run.
 func (e *MapEditor) ExitAsked() bool { return e.exitAsked }
 
-// showRecords opens the list popup on the records filter shows.
+// showRecords opens the list popup on the records filter shows. A record
+// category's filter opens its palette and its branch of the tree, by every
+// route: its bar entry, its key and an MCP call.
 func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
+	if c, ok := categoryOf(filter); ok {
+		e.treeReveal(c)
+		e.openPalette(c)
+		e.chooseFirstOf(filter)
+		return
+	}
+	e.openRecords(filter)
+}
+
+// openPalette shows category c's palette in the list popup; a category
+// whose palette holds nothing closes a shown palette instead. The selection
+// stays as it is.
+func (e *MapEditor) openPalette(c editorCategory) {
+	e.openRecords(c.filter)
+	if _, ok := e.listSpecBase(); !ok {
+		e.listShown, e.filter = false, 0
+	}
+}
+
+// openRecords opens the list popup on the records filter shows.
+func (e *MapEditor) openRecords(filter int) {
 	e.rememberListCancel("records")
 	e.leave(leaveDrag | leavePick | leaveReport | leaveCatalog | leaveBrush)
 	e.message = ""
 	e.filter, e.listShown = filter, true
-	if filter == editorPlayersFilter || filter == editorScriptsFilter {
-		if rows := e.rows(); len(rows) > 0 && !e.selectedIn(rows) {
-			e.Select(rows[0], false)
-		} else if len(rows) == 0 && filter == editorScriptsFilter {
-			e.selected = -1
-		}
+}
+
+// chooseFirstOf selects the first player or script record when the
+// Players or Scripts entry opens and the selection is none of them; an
+// empty Scripts list clears the selection.
+func (e *MapEditor) chooseFirstOf(filter int) {
+	if filter != editorPlayersFilter && filter != editorScriptsFilter {
+		return
+	}
+	if rows := e.recordsOf(filter); len(rows) > 0 && !e.selectedIn(rows) {
+		e.Select(rows[0], false)
+	} else if len(rows) == 0 && filter == editorScriptsFilter {
+		e.selected = -1
 	}
 }
 
@@ -649,32 +691,6 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		}
 		sel = e.brush.sel[e.brush.mode]
 	case "records":
-		if e.filter == editorScriptsFilter {
-			headings := []string{e.word("editor.scripts.triggers"), e.word("editor.scripts.variables"), e.word("editor.scripts.conditions"), e.word("editor.scripts.actions")}
-			for section, ids := range e.scriptSections() {
-				text := headings[section]
-				if len(ids) == 0 {
-					text = fmt.Sprintf(e.word("editor.scripts.emptyheading"), text)
-				}
-				rows = append(rows, PickerRow{Text: text, Heading: true})
-				for _, id := range ids {
-					if id == e.selected {
-						sel = len(rows)
-					}
-					rows = append(rows, PickerRow{Text: e.scriptRowText(id, section), Choosable: true})
-				}
-			}
-			break
-		}
-		if e.filter == editorGroupsFilter {
-			for n, g := range e.groups() {
-				rows = append(rows, PickerRow{Text: e.groupLabel(g), Choosable: true})
-				if g.player == e.groupSel.player && g.group == e.groupSel.group {
-					sel = n
-				}
-			}
-			break
-		}
 		for n, id := range e.rows() {
 			text := e.recordSummary(id)
 			if v, ok := e.scriptViewOf(id); ok && v.trigger != nil {
@@ -761,7 +777,7 @@ func (e *MapEditor) listWindow() int {
 		return e.listFit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.placeGridHeight() - e.forestGridHeight() - e.heightModeGridHeight() - e.relationGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight() - e.heightModeGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -792,20 +808,27 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 		return s, true
 	}
 	if e.groupsShown() {
-		s, _ := e.groupsSpec()
-		return s, true
+		return e.groupsSpec(), true
 	}
-	m := e.syncList(kind, e.listWindow())
+	// A record category's window is its palette: the tree lists the
+	// category's records, so the popup keeps only what is not that list.
+	palette := e.paletteShown()
+	var m *Picker
+	if !palette {
+		m = e.syncList(kind, e.listWindow())
+	}
 	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
+		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
 	}
-	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
-	s.ListText = func(row, width int) string {
-		rows := m.Rows()
-		if row < 0 || row >= len(rows) {
-			return ""
+	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	if m != nil {
+		s.ListText = func(row, width int) string {
+			rows := m.Rows()
+			if row < 0 || row >= len(rows) {
+				return ""
+			}
+			return editorClip(e.bodyFont(), rows[row].Text, width)
 		}
-		return editorClip(e.bodyFont(), rows[row].Text, width)
 	}
 	switch kind {
 	case "report":
@@ -852,9 +875,12 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.LabelWidth = s.Width - 2*popupPad - 3*relationSide
 		}
 	}
-	if m.Len() > 0 {
+	if m != nil && m.Len() > 0 {
 		top, n := m.Visible()
 		s.Notes = append(s.Notes, fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len()))
+	}
+	if palette && len(s.Rows) == 0 && len(s.Notes) == 0 && len(s.Buttons) == 0 && s.Grid == nil {
+		return popupSpec{}, false
 	}
 	return s, true
 }
@@ -918,30 +944,18 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	case "brush":
 		e.brushRowClick(n)
 	case "records":
-		if e.filter == editorScriptsFilter {
-			row := 0
-			for _, ids := range e.scriptSections() {
-				row++
-				for _, id := range ids {
-					if row == n {
-						e.Select(id, true)
-						return
-					}
-					row++
-				}
-			}
-			return
-		}
-		if e.filter == editorGroupsFilter {
-			if gs := e.groups(); n >= 0 && n < len(gs) {
-				e.chooseGroup(gs[n], true)
-			}
-			return
-		}
 		if rows := e.rows(); n >= 0 && n < len(rows) {
-			e.Select(rows[n], true)
+			e.chooseListed(rows[n])
 		}
 	}
+}
+
+// chooseListed is the choice of record id on a list row, the records list's
+// or the tree's: it selects the record and brings it into view, centring
+// the map on a unit, structure or other placed record and on a trigger's
+// area.
+func (e *MapEditor) chooseListed(id int) {
+	e.Select(id, true)
 }
 
 // catalogStep moves the picker's highlighted map, skipping headings.
@@ -979,6 +993,7 @@ func (e *MapEditor) catalogOpen() {
 // objectSpec is the selected record's popup as data, and the reference each
 // link row opens.
 func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
+	e.panels.hostable = false
 	if e.modWindow && !e.prompt.open() && !e.catalog {
 		return e.modSpec()
 	}
@@ -992,6 +1007,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	}
 	if s, links, ok := e.groupSpec(); ok {
 		e.objectBackButton(&s)
+		e.panels.hostable = true
 		return s, links, true
 	}
 	if s, ok := e.selectionSpec(); ok {
@@ -1002,6 +1018,9 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.doc == nil || e.catalog || e.objectHidden || e.pick != pickNone || e.prompt.kind == promptAdd || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return popupSpec{}, nil, false
 	}
+	// The record's own window and a script record's window stand in the
+	// right panel while it is shown; the windows above float.
+	e.panels.hostable = true
 	if v, ok := e.scriptPopup(); ok {
 		s, links := e.scriptSpec(v)
 		e.obj.data = -1
@@ -1009,10 +1028,15 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		return s, links, true
 	}
 	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
+		e.objectAt, e.objPlaced = image.Pt(e.mapArea().Max.X-8-420, e.barHeight()+8), true
 	}
 	r := e.doc.Records[e.selected]
 	e.loadObject()
+	// The person window's bag is the full inventory: it keeps its larger
+	// floating window.
+	if e.nativeUnitWindow() && e.obj.section == 2 {
+		e.panels.hostable = false
+	}
 	if e.obj.move != nil {
 		r.Cell = *e.obj.move
 	}
@@ -1033,8 +1057,8 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 			e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 		}
 		e.obj.data = -1
-		if s.Card != nil {
-			s.Width += max(compactPanelW, s.CardAside) + popupPad
+		if aside := e.hostedAside(s); aside > 0 {
+			s.Width += aside + popupPad
 		}
 		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
 		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
@@ -1050,7 +1074,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	}
 	e.obj.data = len(s.Rows)
 	add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
-	width := wide - 2*popupPad - 4
+	width := e.hostedWrap(s, wide-2*popupPad-4)
 	if r.Preview != nil {
 		width -= previewW + popupPad // the picture's column
 	}
@@ -1078,8 +1102,8 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		}
 	}
 	e.objectBackButton(&s)
-	if s.Card != nil {
-		s.Width += compactPanelW + popupPad
+	if aside := e.hostedAside(s); aside > 0 {
+		s.Width += aside + popupPad
 	}
 	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
 	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
@@ -1286,12 +1310,13 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
 	e.drawPlayerLegend(pic)
+	e.drawSidePanels(pic)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawGoalLinks(pic, s)
 		e.drawBrushPreview(pic, s)
 	}
-	if s, _, ok := e.objectSpec(); ok {
+	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawObjectPreview(pic, s)
 	}
@@ -1305,6 +1330,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		d := e.menuDropdown(b, true)
 		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
 	}
+	e.drawTip(pic)
 	return pic
 }
 
@@ -1319,24 +1345,23 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 	}
 	r := e.doc.Records[e.selected]
 	if r.Kind == "Unit" && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
-		l := layoutPopup(s, e.font, e.bodyFont())
-		top := l.Title.Max.Y + popupPad + compactPanelH + popupPad
-		if len(l.Tabs) > 0 {
-			top += l.Pitch
+		// The doll stands at the right of the room the layout leaves beside
+		// the card, the face left of it.
+		rest := layoutPopup(s, e.font, e.bodyFont()).CardRest
+		hasFace := s.CardAside > compactPanelW
+		left := rest.Max.X - compactPanelW
+		if hasFace {
+			left = max(left, rest.Min.X+noticeFaceW+popupPad)
 		}
-		bottom := l.Rect.Max.Y - popupPad
-		if len(l.Buttons) > 0 {
-			bottom = l.Buttons[0].Min.Y - popupPad
-		}
-		box := image.Rect(l.Rect.Max.X-popupPad-compactPanelW, top, l.Rect.Max.X-popupPad, bottom).Intersect(pic.Bounds())
+		box := image.Rect(left, rest.Min.Y, rest.Max.X, rest.Max.Y).Intersect(pic.Bounds())
 		if box.Empty() {
 			return
 		}
 		var preview *image.RGBA
 		if pictures := e.obj.unit.picture; pictures != nil {
 			preview = pictures.Doll
-			if s.CardAside > compactPanelW {
-				at := image.Pt(l.Rect.Max.X-popupPad-s.CardAside, min(top, bottom-noticeFaceH))
+			if hasFace {
+				at := image.Pt(rest.Min.X, min(rest.Min.Y, rest.Max.Y-noticeFaceH))
 				face := AuthoredDialogueLayout().WithFaceWindow(pictures.FaceWindow)
 				face.Portrait = image.Rectangle{Min: at, Max: at.Add(image.Pt(noticeFaceW, noticeFaceH))}
 				face.PortraitAt = image.Point{}
@@ -1551,11 +1576,24 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	if s, ok := e.promptSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.areaDropdownHit(p)) {
 		return popPrompt
 	}
-	if s, _, ok := e.objectSpec(); ok && (p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
+	object, _, objectOK := e.objectSpec()
+	hosted := e.panels.hosted
+	if objectOK && (!hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) || e.openDropdownHit(p)) {
 		return popObject
 	}
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popList
+	}
+	// A hosted window takes a press on what it draws, the rectangle its
+	// layout fills, as a floating one does.
+	if objectOK && hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
+		return popObject
+	}
+	if p.In(e.sidePanelRect(panelRight)) {
+		return popProps
+	}
+	if p.In(e.sidePanelRect(panelLeft)) {
+		return popTree
 	}
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
 		return popArea
@@ -1575,7 +1613,11 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
+	e.observeTip(p, now, in.PrimaryDown)
 	pressed := in.PrimaryDown && !e.down
+	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
+		e.tree.typing = false
+	}
 	if e.drag == popNone && e.inputPointer(in) {
 		return true
 	}
@@ -1599,6 +1641,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		} else {
 			if e.dragCard != 0 {
 				e.dropCard()
+			}
+			if _, ok := e.panelOf(e.drag); ok && e.dragEdge != 0 {
+				e.savePanels()
 			}
 			e.drag, e.dragEdge, e.dragCard = popNone, 0, 0
 			e.uiDown = false
@@ -1646,10 +1691,6 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 	switch target {
 	case popList:
-		if e.groupsShown() {
-			e.groupsTop = max(0, e.groupsTop+editorWheelRows(&e.listWheel, wheel))
-			return
-		}
 		if s, ok := e.listSpec(); ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
@@ -1678,6 +1719,10 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 		if e.menuModel != nil {
 			e.menuModel.Move(editorWheelRows(&e.listWheel, wheel))
 		}
+	case popTree:
+		if e.tree.model != nil {
+			e.tree.model.Scroll(editorWheelRows(&e.listWheel, wheel))
+		}
 	case popPrompt:
 		if !e.areaWheel(wheel) {
 			e.addWheel(wheel)
@@ -1687,10 +1732,14 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
 
 // chromePress is a press on a chrome part.
 func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool) {
-	if e.resizePress(target, p) || e.titlePress(target, p) {
+	if e.resizePress(target, p) || e.panelTitlePress(target, p, double) || e.titlePress(target, p) {
 		return
 	}
 	switch target {
+	case popTree:
+		e.treePress(p)
+	case popProps:
+		e.propsPress(p)
 	case popMenu:
 		b, _ := e.openMenuEntry()
 		d := e.menuDropdown(b, true)
@@ -1838,6 +1887,10 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupTab:
 		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
+		if e.panels.hosted {
+			e.togglePanel(panelRight)
+			return
+		}
 		e.cancelPopup()
 	case popupRowGrip:
 		if e.messagePage != 0 {
@@ -1889,6 +1942,12 @@ func (e *MapEditor) objectPress(p image.Point) {
 		}
 		if _, ok := e.scriptVariableRow(e.selected); ok {
 			e.cancelPopup()
+			return
+		}
+		if e.groupSel.set && e.selected < 0 {
+			if n == 0 {
+				e.removeGroupOf(e.groupSel)
+			}
 			return
 		}
 		if v, ok := e.scriptPopup(); ok {

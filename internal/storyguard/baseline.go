@@ -3152,6 +3152,13 @@ package storyguard
 // test, save notices, Open start folder, window resize cursor and heading
 // face in pkg/ui and pkg/game, their tests, and this paragraph.
 //
+// CommentBytes rises with the doc comments of the map editor's side panels,
+// all new code: pkg/ui/mapeditorsidepanels.go, the tree row fields in
+// pkg/ui/picker.go, the profile writer in pkg/editormcp/profilefile.go,
+// cmd/mapedit/profile.go, their tests in pkg/ui/mapeditorsidepanels_test.go,
+// pkg/ui/mapeditorchromerects_test.go, pkg/editormcp/profilefile_test.go and
+// cmd/mapedit/profile_test.go, and this paragraph.
+//
 // CommentBytes rises with the doc comments of the one save point gate in
 // pkg/ui/savepoint.go and its callers in pkg/ui/functionkeys.go and
 // menurows.go, its table test in pkg/ui/savepointgate_test.go, the widened
@@ -3634,9 +3641,19 @@ var Committed = Baseline{
 
 	// It fell: the deformation picture is a capability row.
 
+	// The side panels' correction (category palettes, minimize, cell
+	// tooltips) and its merges with main are measured on the merged tree.
+
+	// It rose for the test that the player legend stands in the map corner
+	// the side panels leave, and this note.
+
+	// It rose for the side panels' review correction: the popup flow that
+	// fits a window to the right panel, the grids' every-row rule, their
+	// tests, and this note.
+
 	// It rose for the Druids' town file: leaveBagToCampaign's companion
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10130066,
+	CommentBytes: 10162117,
 }

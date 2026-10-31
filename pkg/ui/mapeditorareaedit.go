@@ -695,7 +695,7 @@ func (e *MapEditor) areaHandleLines(a InspectionArea, r image.Rectangle) []edito
 // driver.
 func (e *MapEditor) AreaCornerPoint(c image.Point) image.Point {
 	x, y := e.corner(c)
-	ox, oy := e.doc.Viewer.place.Origin()
+	ox, oy := e.mapOrigin()
 	return image.Pt(int(math.Round(float64(x)+ox)), int(math.Round(float64(y)+oy)))
 }
 

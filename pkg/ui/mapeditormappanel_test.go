@@ -138,7 +138,10 @@ func TestMapPanelLinesStateTheMapAndOpenTheirPlace(t *testing.T) {
 			return e.prompt.kind == promptWorkspace && e.prompt.field == 1
 		}},
 		{"players", "Players 2 players, 2 sides", func(e *MapEditor, _ *mapPanelEdits) bool {
-			return e.listKind() == "records" && e.filter == editorPlayersFilter
+			// The tree shows the Players branch; this host offers no
+			// relation or Add, so the players palette holds nothing and
+			// does not open.
+			return e.panelOpen(panelLeft) && e.TreeBranchRow("players") >= 0 && (e.listKind() == "records" && e.filter == editorPlayersFilter || !e.listShown)
 		}},
 		{"mode", "Mode Single-player", func(e *MapEditor, _ *mapPanelEdits) bool {
 			return e.prompt.kind == promptWorkspace && e.prompt.field == 3 && e.prompt.path == "1"

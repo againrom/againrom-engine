@@ -329,6 +329,8 @@ func (e *MapEditor) inputAt(p image.Point, press bool) (*editorTextView, image.R
 		if !press {
 			return nearest, nearestBox
 		}
+	} else if v, box, ok := e.treeInputAt(p, press); ok {
+		return v, box
 	} else if s, _, ok := e.objectSpec(); ok {
 		l := layoutPopup(s, e.font, e.bodyFont())
 		for _, rr := range l.Rows {

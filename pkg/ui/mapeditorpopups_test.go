@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -234,11 +235,12 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 	original := string(e.doc.SourceBytes)
 	camera := e.doc.Viewer.cam.X + 1000*e.doc.Viewer.cam.Y
 	chromeClick(e, barPoint(t, e, "units"))
-	e.listSpec()
-	if e.listKind() != "records" || e.model.Len() != 6 {
-		t.Fatalf("the Units entry listed %q with %d rows", e.listKind(), e.model.Len())
+	// This host places and adds no unit: the Units palette holds nothing
+	// and does not open, and the tree lists the six units.
+	if e.listKind() != "" || e.TreeMemberRow("units", 5) < 0 || e.TreeMemberRow("units", 6) >= 0 {
+		t.Fatalf("the Units entry showed %q, the tree %q", e.listKind(), e.TreeLines())
 	}
-	chromeClick(e, listRowPoint(t, e, 2))
+	chromeClick(e, treeMemberPoint(t, e, "units", 2))
 	if e.selected != 2 || e.doc.Viewer.cam.X+1000*e.doc.Viewer.cam.Y == camera {
 		t.Fatal("a list row did not select and centre its unit")
 	}
@@ -311,15 +313,11 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 	if _, _, ok := e.objectSpec(); ok || e.selected != 2 {
 		t.Fatal("Esc did not close the object popup")
 	}
-	chromeClick(e, listRowPoint(t, e, 3))
+	chromeClick(e, treeMemberPoint(t, e, "units", 3))
 	_, l := objectLayout(t, e)
 	chromeClick(e, center(l.Close))
 	if _, _, ok := e.objectSpec(); ok {
 		t.Fatal("the close button did not close the object popup")
-	}
-	chromeClick(e, center(listLayout(t, e).Close))
-	if e.listKind() != "" {
-		t.Fatal("the close button did not close the list popup")
 	}
 }
 
@@ -337,15 +335,14 @@ func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 	e, _ := popupEditor(t)
 	_ = e.Open("popups")
 	chromeClick(e, barPoint(t, e, "groups"))
-	s0, acts := e.groupsSpec()
 	n := 0
-	for _, a := range acts {
-		if a.group.set {
+	for _, r := range e.treeRowsNow() {
+		if r.group.set {
 			n++
 		}
 	}
 	if n != 4 {
-		t.Fatalf("groups %+v", s0.Rows)
+		t.Fatalf("groups %q", e.TreeLines())
 	}
 	openGroup(t, e) // player 1, group 1: units 0 and 2
 	if got := fmt.Sprint(e.GroupMembers()); got != "[0 2]" {
@@ -358,10 +355,12 @@ func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 		t.Fatalf("the group marks %d lines, want two boxes", n)
 	}
 	s, links := func() (popupSpec, []int) { s, l, _ := e.objectSpec(); return s, l }()
-	if len(s.Rows) != 5 || links[2] != -1 || links[3] != -3 || s.Rows[4].Label != "Used by: none" {
-		t.Fatalf("group popup rows %+v links %v", s.Rows, links)
+	// The group's row with its members' pictures and Delete group stand in
+	// the group's window.
+	if len(s.Rows) != 6 || s.Rows[1].Label != "Group 1" || links[3] != -1 || links[4] != -3 || s.Rows[5].Label != "Used by: none" || !slices.Equal(s.Buttons, []string{"Delete group"}) {
+		t.Fatalf("group popup rows %+v links %v buttons %q", s.Rows, links, s.Buttons)
 	}
-	chromeClick(e, center(objectRowRect(t, e, 3).Rect))
+	chromeClick(e, center(objectRowRect(t, e, 4).Rect))
 	if e.selected != 2 || len(e.GroupMembers()) != 0 {
 		t.Fatal("a member row did not open its unit")
 	}
@@ -392,7 +391,7 @@ func TestEditorObjectPopupStepsAsideWhileACellIsPicked(t *testing.T) {
 	e, _ := popupEditor(t)
 	_ = e.Open("popups")
 	chromeClick(e, barPoint(t, e, "units"))
-	chromeClick(e, listRowPoint(t, e, 1))
+	chromeClick(e, treeMemberPoint(t, e, "units", 1))
 	if _, _, ok := e.objectSpec(); !ok {
 		t.Fatal("no object popup")
 	}

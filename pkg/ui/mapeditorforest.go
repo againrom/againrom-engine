@@ -31,9 +31,6 @@ type InspectionBrushIcons interface {
 // and solid. The default is medium.
 var forestShares = [4]int{10, 25, 50, 100}
 
-// forestGridRows is how many rows of the forest grid show.
-const forestGridRows = 3
-
 // forestState is the Forest mode's settings, kept for the session: whether
 // it is on, the ticked class codes, the typed or preset share (0 is the
 // default), the grid's first shown row, the pictures read so far, and the
@@ -146,19 +143,20 @@ func (e *MapEditor) forestGridSpec() (*popupGrid, bool) {
 	if len(kinds) == 0 {
 		return nil, false
 	}
-	g := &popupGrid{Rows: forestGridRows, Top: e.brush.forest.top}
+	g := &popupGrid{Top: e.brush.forest.top}
 	for _, o := range kinds {
-		g.Cells = append(g.Cells, popupGridCell{Icon: e.forestIcon(o.Code), Ticked: e.brush.forest.ticks[o.Code]})
+		g.Cells = append(g.Cells, popupGridCell{Icon: e.forestIcon(o.Code), Ticked: e.brush.forest.ticks[o.Code], Tip: e.objectWord(o)})
 	}
 	return g, true
 }
 
-// forestGridHeight is the room the forest grid takes in the list popup.
+// forestGridHeight is the room the brush window's list leaves the forest
+// grid: its least rows, and more where the room allows.
 func (e *MapEditor) forestGridHeight() int {
 	if !e.forestOn() {
 		return 0
 	}
-	return (&popupGrid{Rows: forestGridRows}).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
+	return (&popupGrid{Rows: gridLeastRows}).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
 }
 
 // forestGridWheel scrolls the forest grid by the wheel's rows.
@@ -167,7 +165,7 @@ func (e *MapEditor) forestGridWheel(l popupLayout, rows int) {
 		return
 	}
 	total := (len(e.forestKinds()) + l.GridCols - 1) / l.GridCols
-	e.brush.forest.top = max(0, min(e.brush.forest.top+rows, total-forestGridRows))
+	e.brush.forest.top = max(0, min(e.brush.forest.top+rows, total-l.GridRows))
 }
 
 // forestGridPress is a press on forest grid cell n: it ticks or unticks the

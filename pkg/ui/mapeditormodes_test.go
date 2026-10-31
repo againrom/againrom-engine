@@ -453,7 +453,7 @@ func modesProbe(e *MapEditor, calls *modesCalls, errText string, pixels bool) st
 	rows, open := e.ReportOpen()
 	fmt.Fprintf(&b, "err=%q msg=%q help=%q\n", errText, e.Message(), e.helpLines())
 	list, cursor := e.listKind(), -1
-	if s, ok := e.listSpec(); ok {
+	if s, ok := e.listSpec(); ok && s.List != nil {
 		cursor = s.List.Selection()
 	}
 	fmt.Fprintf(&b, "passview=%v\n", e.view.passability)

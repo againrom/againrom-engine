@@ -411,6 +411,14 @@ func drawListBox(dst *image.RGBA, f *text.Font, frames []*image.RGBA, l listBox,
 				editorBlit(dst, rows[top+i].Icon, screenRect{X: float64(x), Y: float64(r.Min.Y + 1), W: float64(side), H: float64(side)}, false)
 				x, width = x+side+textX, width-side-textX
 			}
+			if rows := m.Rows(); top+i < len(rows) && (rows[top+i].Indent > 0 || rows[top+i].Fold != FoldNone) {
+				row := rows[top+i]
+				x, width = x+row.Indent*listIndentStep, width-row.Indent*listIndentStep
+				if row.Fold != FoldNone {
+					f.Draw(dst.SubImage(r.Inset(1)).(*image.RGBA), rowFoldMarks[row.Fold], x, r.Min.Y+listTextY, ink)
+					x, width = x+listIndentStep, width-listIndentStep
+				}
+			}
 			face := f
 			if rows := m.Rows(); l.HeadingFace != nil && top+i < len(rows) && rows[top+i].Heading {
 				face = l.HeadingFace

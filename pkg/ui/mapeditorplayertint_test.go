@@ -370,3 +370,74 @@ func TestPlayerColourFollowsAMovedUnitThroughUndoAndRedo(t *testing.T) {
 		t.Fatalf("redo did not move the sprite again: %v, then %v", after.Y, got.Y)
 	}
 }
+
+// The legend stands in the bottom left corner of the map the side panels
+// leave, with the left panel restored or minimized, and Y, F6 and F7 each
+// change only their own state.
+func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
+	x := newTintFixture(t)
+	e := x.e
+	e.panels.state = [2]panelState{{Restored: true}, {Restored: true}}
+	e.Layout(1280, 800)
+	if !e.panelOpen(panelLeft) || !e.panelOpen(panelRight) {
+		t.Fatalf("panels at 1280x800 shown %v, want both restored", e.panelsShown())
+	}
+	_ = e.Key("playertint")
+	corner := func(state string) image.Rectangle {
+		t.Helper()
+		box, rows := e.playerLegend()
+		area := e.mapArea()
+		left, right := e.sidePanelRect(panelLeft), e.sidePanelRect(panelRight)
+		if box.Empty() || len(rows) != 3 {
+			t.Fatalf("%s: legend %v with %d rows", state, box, len(rows))
+		}
+		if !box.In(area) || box.Min.X != area.Min.X+6 || box.Max.Y != area.Max.Y-6 {
+			t.Fatalf("%s: legend %v is not in the map's bottom left corner %v", state, box, area)
+		}
+		if box.Overlaps(left) || box.Overlaps(right) || box.Min.X < left.Max.X {
+			t.Fatalf("%s: legend %v lies under a panel %v %v", state, box, left, right)
+		}
+		pic := e.ChromeImage()
+		r := rows[0]
+		if got := pic.RGBAAt(r.rect.Min.X+legendSwatch/2, r.rect.Min.Y+r.rect.Dy()/2); got != r.color {
+			t.Fatalf("%s: swatch pixel %v, want %v", state, got, r.color)
+		}
+		return box
+	}
+	open := corner("left restored")
+	if open.Min.X != sidePanels[panelLeft].width+6 {
+		t.Fatalf("legend left edge %d, want the restored panel's width %d plus 6", open.Min.X, sidePanels[panelLeft].width)
+	}
+	if err := e.Key("objectspanel"); err != nil {
+		t.Fatal(err)
+	}
+	if e.panelOpen(panelLeft) || !e.view.playerColours {
+		t.Fatalf("F6: left restored %v, player colours %v", e.panelOpen(panelLeft), e.view.playerColours)
+	}
+	if shut := corner("left minimized"); shut.Min.X != e.panelStrip()+6 || shut.Max.Y != open.Max.Y {
+		t.Fatalf("legend %v with the left strip, want left edge %d and bottom %d", shut, e.panelStrip()+6, open.Max.Y)
+	}
+	if err := e.Key("propertiespanel"); err != nil {
+		t.Fatal(err)
+	}
+	if e.panelOpen(panelRight) || !e.view.playerColours {
+		t.Fatalf("F7: right restored %v, player colours %v", e.panelOpen(panelRight), e.view.playerColours)
+	}
+	shown := e.panelsShown()
+	_ = e.Key("playertint")
+	if e.view.playerColours || e.panelsShown() != shown {
+		t.Fatalf("Y: player colours %v, panels %v, were %v", e.view.playerColours, e.panelsShown(), shown)
+	}
+	order := map[string]int{}
+	for i, it := range e.menuItems("view") {
+		order[it.key] = i
+	}
+	keys := []string{"areas", "playertint", "report", "records", sidePanels[panelLeft].key, sidePanels[panelRight].key}
+	for i := 1; i < len(keys); i++ {
+		a, okA := order[keys[i-1]]
+		b, okB := order[keys[i]]
+		if !okA || !okB || a >= b {
+			t.Fatalf("View menu order %v, want %v in that order", order, keys)
+		}
+	}
+}

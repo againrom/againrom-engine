@@ -17,7 +17,7 @@ func TestScriptsListDeleteKeepsVariableRefusal(t *testing.T) {
 	scriptWindowSet(t, e, "Action", 0, "opcode", "3")
 	_ = e.Key("scripts")
 	_ = e.Key("escape")
-	r, ok := e.ListRowRect(2)
+	r, ok := treeMemberRect(e, "scripts", 0)
 	trigClick(t, e, r, ok, "variable row")
 	if e.Selected() >= -1 || len(e.PopupLines()) == 0 {
 		t.Fatal("variable row did not open its read-only popup")

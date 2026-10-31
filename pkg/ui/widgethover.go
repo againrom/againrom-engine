@@ -40,7 +40,8 @@ func hoverBoxSize(lines []string, f *text.Font) image.Point {
 // (L+5,T+4+14i). The picture's right edge R is its last column and its
 // bottom B one past its last row, so every side keeps a one-pixel margin
 // outside the bevel. Without a ball picture the corners stay unpainted. The
-// text draws in style s, or popupTextColor without a shadow when s is nil.
+// text draws in style s, or popupTextColor without a shadow when s is nil;
+// a style's box names the fill and bevel colours instead.
 func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverStyle) *image.RGBA {
 	if f == nil || f.Height() <= 0 || len(lines) == 0 {
 		return nil
@@ -52,7 +53,11 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverSty
 	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
 	recordWidget(widgetHoverBox, img.Bounds(), lines)
 	r, b := size.X-1, size.Y
-	draw.Draw(img, image.Rect(1, 1, r-1, b-2), &image.Uniform{C: hoverFill}, image.Point{}, draw.Src)
+	box := hoverBoxInk{fill: hoverFill, light: hoverLight, dark: hoverDark}
+	if s != nil && s.box != nil {
+		box = *s.box
+	}
+	draw.Draw(img, image.Rect(1, 1, r-1, b-2), &image.Uniform{C: box.fill}, image.Point{}, draw.Src)
 	hline := func(y int, c color.RGBA) {
 		for x := 3; x <= r-3; x++ {
 			img.SetRGBA(x, y, c)
@@ -63,14 +68,14 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverSty
 			img.SetRGBA(x, y, c)
 		}
 	}
-	hline(1, hoverLight)
-	hline(2, hoverDark)
-	hline(b-3, hoverLight)
-	hline(b-2, hoverDark)
-	vline(1, hoverLight)
-	vline(2, hoverDark)
-	vline(r-2, hoverLight)
-	vline(r-1, hoverDark)
+	hline(1, box.light)
+	hline(2, box.dark)
+	hline(b-3, box.light)
+	hline(b-2, box.dark)
+	vline(1, box.light)
+	vline(2, box.dark)
+	vline(r-2, box.light)
+	vline(r-1, box.dark)
 	if ball != nil {
 		for _, at := range []image.Point{{0, 0}, {r - 3, 0}, {0, b - hoverBallSize}, {r - 3, b - hoverBallSize}} {
 			src := ball.Bounds()

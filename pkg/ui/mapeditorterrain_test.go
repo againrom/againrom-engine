@@ -198,7 +198,7 @@ func TestBoxCopyTakesTheTerrainUnderTheBox(t *testing.T) {
 // heightAt is the number the cell corner at window point p shows: the
 // stored height of the vertex whose corner is p, minus 64.
 func heightAt(e *MapEditor, alt []uint8, p image.Point) (string, bool) {
-	ox, oy := e.doc.Viewer.place.Origin()
+	ox, oy := e.mapOrigin()
 	for r := range terrainSide {
 		for c := range terrainSide {
 			x, y := e.corner(image.Pt(c, r))

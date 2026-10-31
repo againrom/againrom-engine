@@ -22,6 +22,11 @@ modder or developer can notice gets no entry.
 - [ROM2] After the Druids' mission the party arrives in the Druids' town with Iglez and Dina, each keeping what he carries, and the map also offers the mission the original adds there; loading a save made in that town no longer empties Iglez's pack.
 - [ROM2] Summoned creatures no longer stay forever, as in the original: while a mage has two or more, about once a second one of them may die and vanish, with a chance of about one in a hundred for each creature beyond the first, and the last one stays; a summoned creature killed in a fight now vanishes after its fall instead of decaying to bones. Creatures summoned before a save stay after loading it until they die.
 
+### For map makers and modders
+
+- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's scripts, players, groups, units, sacks and structures as a tree with a search, in the toolbar's order and words; a row selects as a row of the records list does and brings the unit, structure or trigger area into view. A toolbar entry opens its branch and that category's palette, which places or acts and no longer lists records; resting the pointer on a palette cell for a moment names it. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» and a group's Delete group included, fitted to the panel's width in both languages; a double click on its title opens it as a separate window. Each panel's < or > button, F6, F7 and the View menu minimize a panel to a narrow strip and restore it, the inner edges drag to resize, and the editor remembers both; a narrow window narrows and then minimizes the right panel first, so the tree stays in reach down to a 640-pixel window.
+- [BASE] The map editor's palettes open large enough to show every unit and building without scrolling when the screen has room; on a smaller screen they take the room there is and scroll the rest, and a size you drag stays.
+
 ## 0.144.0
 
 ### For players

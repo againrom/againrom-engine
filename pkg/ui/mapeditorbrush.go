@@ -799,7 +799,7 @@ func (e *MapEditor) CellPoint(cell image.Point) image.Point {
 	}
 	x, y := e.cellCenter(cell)
 	sx, sy := e.doc.Viewer.cam.WorldToScreen(x, y)
-	ox, oy := e.doc.Viewer.place.Origin()
+	ox, oy := e.mapOrigin()
 	return image.Pt(int(sx+ox), int(sy+oy))
 }
 

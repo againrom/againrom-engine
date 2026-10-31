@@ -34,6 +34,8 @@ func relationHeadsEditor(t *testing.T, book *words.Book, names []string) *MapEdi
 	if err := e.Key("players"); err != nil {
 		t.Fatal(err)
 	}
+	// The chosen player's window floats clear of the palette's matrix.
+	e.objectAt = image.Pt(0, 0)
 	return e
 }
 
@@ -101,10 +103,10 @@ func TestRelationMatrixHeadsEachColumnWithItsRowHead(t *testing.T) {
 	}
 }
 
-// The hover line over a matrix cell names both players and the value in the
-// editor's words, a value the claims do not name by its number; over a
-// column head it is the whole head. The diagonal, a row head and a row the
-// popup shows whole keep no hover line, and a cut row keeps its own.
+// The tooltip of a matrix cell names both players and the value in the
+// editor's words, a value the claims do not name by its number; the hover
+// line over a column head is the whole head. The diagonal, a row head and a
+// row the popup shows whole keep none, and a cut row keeps its own.
 func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 	ru, err := words.Load(words.Engine(), "ru")
 	if err != nil {
@@ -126,17 +128,13 @@ func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 			tipAt := func(p image.Point) (popupTip, bool) { return popupTipAt(bounds, e.font, body, s, l, p, true) }
 			for n, want := range tc.want {
 				cell := l.GridCells[n]
-				tip, ok := tipAt(center(cell))
-				if !ok || !slices.Equal(tip.Lines, []string{want}) {
-					t.Fatalf("cell %d hover line %q, want %q", n, tip.Lines, want)
-				}
-				if tip.Rect.Min != image.Pt(cell.Min.X, cell.Max.Y) || tip.Rect.Dx() != body.Advance(want)+8 || !tip.Rect.In(bounds) {
-					t.Fatalf("cell %d hover box %v under the cell %v", n, tip.Rect, cell)
+				if tip, at, ok := e.gridTipAt(center(cell)); !ok || tip != want || at != cell.Min {
+					t.Fatalf("cell %d tooltip %q at %v, want %q", n, tip, at, want)
 				}
 			}
 			for _, n := range []int{0, 5, 10, 15} {
-				if tip, ok := tipAt(center(l.GridCells[n])); ok {
-					t.Fatalf("diagonal cell %d has a hover line %q", n, tip.Lines)
+				if tip, _, ok := e.gridTipAt(center(l.GridCells[n])); ok {
+					t.Fatalf("diagonal cell %d has a tooltip %q", n, tip)
 				}
 			}
 			for c, r := range l.GridColHeads {
@@ -154,7 +152,8 @@ func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 					t.Fatalf("row %q hover line %v %q, cut %v", full, ok, tip.Lines, cut)
 				}
 			}
-			// The popup's painter draws the cell's hover line in its one box.
+			// The popup's painter draws no hover line for a cell: the timed
+			// tooltip draws it in the game's hover box.
 			frames := func(s popupSpec) int {
 				n := 0
 				widgetRecord = func(c widgetCall) {
@@ -169,7 +168,7 @@ func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 			bare, grid := s, *s.Grid
 			grid.Cells = slices.Clone(grid.Cells)
 			grid.Cells[1].Tip, bare.Grid = "", &grid
-			if over, off := frames(s), frames(bare); over != off+1 {
+			if over, off := frames(s), frames(bare); over != off {
 				t.Fatalf("frames with the cell's hover line %d, without %d", over, off)
 			}
 		})

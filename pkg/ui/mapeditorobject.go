@@ -158,9 +158,11 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		if s.Card != nil {
 			s.CardAside = compactPanelW + noticeFaceW + 2*popupPad
-			s.Width -= s.CardAside + popupPad
+			if aside := e.hostedAside(*s); aside > 0 {
+				s.Width -= aside + popupPad
+			}
 		}
-		s.At = image.Pt(16, e.barHeight()+8)
+		s.At = image.Pt(e.mapArea().Min.X+16, e.barHeight()+8)
 		if e.slack[popObject] || e.sizes[popObject] != (image.Point{}) {
 			s.At = e.objectAt
 		}
@@ -174,6 +176,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if native {
 		textWidth = max(100, s.Width/max(1, s.Columns)-2*popupPad-20)
 	}
+	textWidth = e.hostedWrap(*s, textWidth)
 	group := ""
 	order := fieldOrder(o.fields)
 	if native {
@@ -220,7 +223,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			group = f.Group
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
 			if note := e.groupNote(f.Group); note != "" {
-				for _, part := range editorWrap(e.bodyFont(), note, 378) {
+				for _, part := range editorWrap(e.bodyFont(), note, e.hostedWrap(*s, 378)) {
 					s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
 				}
 			}
@@ -324,7 +327,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.word("editor.person.keys"), s.Width-20)...)
 	}
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), 400)...)
+		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
 	}
 }
 
@@ -836,6 +839,7 @@ func (e *MapEditor) closeObject() {
 	e.groupSel = editorGroup{}
 	e.objectBack = nil
 	e.selection.hidden = true
+	e.panels.detached = ""
 }
 
 // followReference frames reference n and, when it names one record's cell,
@@ -935,8 +939,16 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
 	}
 	s := popupSpec{Title: e.groupLabel(g), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
-	links := []int{0, 0}
-	s.Rows = []popupRow{{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)}, {Kind: popupHeading, Label: e.word("editor.group.members")}}
+	// The member pictures and Delete group stand here, as the Groups list
+	// showed them on the group's row.
+	links := []int{0, 0, 0}
+	s.Rows = []popupRow{
+		{Kind: popupText, Label: e.word("editor.group.player"), Value: strconv.Itoa(g.player)},
+		{Kind: popupText, Label: fmt.Sprintf(e.word("editor.group.number"), g.group), Value: fmt.Sprintf(e.word("editor.group.count"), len(g.members)), Icons: e.memberIcons(g)},
+		{Kind: popupHeading, Label: e.word("editor.group.members")},
+	}
+	s.Buttons, s.Disabled, s.ButtonFit = []string{e.word("editor.group.delete")}, []bool{false}, true
+	fitButtons(&s)
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {
 			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: editorClip(e.bodyFont(), e.recordSummary(id), s.Width-2*popupPad-8)})

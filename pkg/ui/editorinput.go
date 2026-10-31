@@ -161,6 +161,10 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		if e.messagePage != 0 {
 			scope = "pages"
 		}
+	} else if e.treeTyping() {
+		// The tree's search field: plain text, no record field's rule.
+		p.limit = 64
+		return &e.tree.search, p, "tree"
 	} else {
 		return nil, p, key
 	}

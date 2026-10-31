@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -52,6 +53,9 @@ func TestEditorListCancelRestoresModeAndPreviousPopup(t *testing.T) {
 		for _, control := range []string{"escape", "close"} {
 			t.Run(kind+"/"+control, func(t *testing.T) {
 				e, calls := newModesEditor(t, "full")
+				// A palette restores the minimized left panel, which moves
+				// the map; the panel stands restored before the checkpoint.
+				e.SetPanelProfile(nil, os.ErrNotExist, nil)
 				e.cancelPopup(popList)
 				e.toggleBrush(brushTerrain)
 				e.listSpec()
@@ -252,7 +256,7 @@ func TestEditorListsClampAndThumbFollowsPointer(t *testing.T) {
 			var bar vScrollBar
 			switch where {
 			case "records":
-				e.showRecords(1)
+				e.showRecords(0)
 				s, _ := e.listSpec()
 				l := layoutPopup(s, e.font, e.bodyFont())
 				m = s.List
@@ -451,7 +455,7 @@ func TestEditorCancelClosesAndRestoresDraftAndPromptState(t *testing.T) {
 			continue
 		}
 		e, calls := newModesEditor(t, "full")
-		e.showRecords(1)
+		e.showRecords(0)
 		e.listSpec()
 		e.model.Select(2)
 		listSelection := e.model.Selection()

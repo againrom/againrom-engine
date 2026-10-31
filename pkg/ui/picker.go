@@ -72,7 +72,30 @@ type PickerRow struct {
 	// Heading marks a group heading, which a list box draws in its heading
 	// face when it has one, the rows under it in the list's own.
 	Heading bool
+
+	// Indent moves the row's text right by that many steps of a tree; zero
+	// draws the row as every flat list does.
+	Indent int
+	// Fold marks a tree branch row open or closed in front of its text;
+	// FoldNone draws no mark.
+	Fold RowFold
 }
+
+// RowFold is a tree row's open or closed mark.
+type RowFold uint8
+
+const (
+	FoldNone RowFold = iota
+	FoldOpen
+	FoldClosed
+)
+
+// rowFoldMarks are the marks a list box draws for an open and a closed
+// branch.
+var rowFoldMarks = [...]string{FoldOpen: "-", FoldClosed: "+"}
+
+// listIndentStep is one indent step of a tree row, in pixels.
+const listIndentStep = 14
 
 // Column edges in frame pixels from pickerLeft (TEXT-083); the hover
 // thresholds are the same edges.
@@ -130,6 +153,28 @@ type Picker struct {
 	// A zero window is pickerVisible, so a Picker built by a composite literal
 	// behaves exactly as one built before this field existed.
 	window int
+
+	// most is the most rows SetWindow admits; zero is pickerVisible. A list
+	// that fills a tall panel raises it with SetRowLimit.
+	most int
+}
+
+// SetRowLimit raises or lowers the most rows the list's window may hold; an
+// n below 1 restores pickerVisible.
+func (p *Picker) SetRowLimit(n int) *Picker {
+	if p == nil {
+		return nil
+	}
+	p.most = max(0, n)
+	return p
+}
+
+// rowLimit is the most rows the window may hold.
+func (p *Picker) rowLimit() int {
+	if p.most > 0 {
+		return p.most
+	}
+	return pickerVisible
 }
 
 // NewPicker builds a picker over rows. The first row is selected; an empty list
@@ -177,7 +222,7 @@ func (p *Picker) SetWindow(n int) *Picker {
 	if p == nil {
 		return nil
 	}
-	if n < 1 || n > pickerVisible {
+	if n < 1 || n > p.rowLimit() {
 		n = 0
 	}
 	p.window = n
@@ -187,8 +232,8 @@ func (p *Picker) SetWindow(n int) *Picker {
 
 // visibleRows is this list's window in rows.
 func (p *Picker) visibleRows() int {
-	if p.window <= 0 || p.window > pickerVisible {
-		return pickerVisible
+	if p.window <= 0 || p.window > p.rowLimit() {
+		return p.rowLimit()
 	}
 	return p.window
 }

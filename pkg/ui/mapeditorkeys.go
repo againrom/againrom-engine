@@ -127,6 +127,8 @@ var (
 	lineHeightLabels  = helpLine{Word: "editor.keys.heightlabels"}
 	linePassView      = helpLine{Word: "editor.keys.passview"}
 	linePlayerTint    = helpLine{Word: "editor.keys.playertint"}
+	linePanels        = helpLine{Word: "editor.keys.panels"}
+	linePanelFloat    = helpLine{Word: "editor.keys.panelfloat"}
 )
 
 func init() {
@@ -221,6 +223,11 @@ func init() {
 		{key: "carddown", live: promptHears, act: (*MapEditor).keyCard, unlisted: "the Alt+Up line names Alt+Up and Alt+Down"},
 		{label: "Apply", help: keys(helpLine{Word: "editor.keys.dialogue.apply"})},
 	}
+	// Each side panel's row opens and closes it.
+	for _, p := range sidePanels {
+		editorKeyRows = append(editorKeyRows, keyRow{key: p.key, label: p.label, act: (*MapEditor).keyPanel, help: keys(linePanels)})
+	}
+	editorKeyRows = append(editorKeyRows, keyRow{label: "Double-click", help: keys(linePanelFloat)})
 	// 1..9 choose a group and frame it; Ctrl+1..9 put the selection in it.
 	for n := '1'; n <= '9'; n++ {
 		editorKeyRows = append(editorKeyRows,
@@ -420,6 +427,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.obj.open = -1
 	case e.objectTyping():
 		e.cancelPopup()
+	case e.treeTyping():
+		e.tree.search, e.tree.typing = "", false
 	case e.report.open && e.message == "":
 		e.cancelPopup(popList)
 	case e.message != "":
@@ -461,6 +470,10 @@ func (e *MapEditor) keyCatalog(string) error {
 }
 
 func (e *MapEditor) keyEnter(string) error {
+	if e.treeTyping() {
+		e.tree.typing = false
+		return nil
+	}
 	if e.nativeUnitWindow() && e.dropdownOpen() && e.obj.choice != nil && !e.prompt.open() {
 		e.chooseObjectChoice(e.obj.choice.Selection())
 		return nil
@@ -665,6 +678,9 @@ func (e *MapEditor) keyFit(string) error {
 // cursor.
 func (e *MapEditor) keyPage(key string) error {
 	m := e.model
+	if e.paletteShown() {
+		m = nil // a palette has no list
+	}
 	add := false
 	if r, ok := e.addRunning(); ok {
 		m, add = r.list, true

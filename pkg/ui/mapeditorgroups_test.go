@@ -265,11 +265,19 @@ func TestMapEditorGroupsWindowRows(t *testing.T) {
 			t.Fatalf("the Groups window reads %q, lacks %q", got, want)
 		}
 	}
-	s, _ := e.groupsSpec()
-	for _, r := range s.Rows {
-		if strings.HasPrefix(r.Label, "Group") && (len(r.Buttons) != 1 || r.Buttons[0] != "x") {
-			t.Fatalf("row %q has no cross", r.Label)
-		}
+	// The palette lists no group; a group's pictures and its delete button
+	// stand in the chosen group's window.
+	if s, _ := e.listSpec(); s.List != nil || len(s.Rows) != 0 {
+		t.Fatalf("the Groups palette lists rows: %v", s.Rows)
+	}
+	r, ok := e.GroupsRowRect(1, 1, false)
+	if !ok {
+		t.Fatal("no tree row of group 1")
+	}
+	chromeClick(e, center(r))
+	s, _, _ := e.objectSpec()
+	if len(s.Rows) < 2 || s.Rows[1].Value != "2 units" || len(s.Rows[1].Icons) != len(e.memberIcons(e.groupSel)) || len(s.Buttons) == 0 || s.Buttons[0] != "Delete group" {
+		t.Fatalf("the group window lacks its pictures or Delete group: %+v %v", s.Rows, s.Buttons)
 	}
 }
 
@@ -379,9 +387,11 @@ func TestMapEditorCtrlNumberPutsTheSelectionInAGroup(t *testing.T) {
 func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 	e, p := groupsEditor(t)
 	chromeClick(e, barPoint(t, e, "groups"))
+	row, _ := e.GroupsRowRect(2, 2, false)
+	chromeClick(e, center(row))
 	cross, ok := e.GroupsRowRect(2, 2, true)
 	if !ok {
-		t.Fatal("no cross on group 2")
+		t.Fatal("no Delete group on group 2")
 	}
 	chromeClick(e, center(cross))
 	if got := strings.Join(p.calls.lines, "|"); got != "SetUnitsGroup [{Unit 3}] 0" || e.prompt.open() {
@@ -395,6 +405,8 @@ func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 		t.Fatalf("Remove wrote %v (prompt %v)", p.calls.lines, e.prompt.open())
 	}
 	// The last member: the question names the trigger.
+	row, _ = e.GroupsRowRect(1, 1, false)
+	chromeClick(e, center(row))
 	cross, _ = e.GroupsRowRect(1, 1, true)
 	chromeClick(e, center(cross))
 	if e.prompt.kind != promptGroupWarn || len(p.calls.lines) != 2 {

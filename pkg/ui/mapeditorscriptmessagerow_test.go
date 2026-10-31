@@ -39,7 +39,7 @@ func TestScriptsListMessageRowsShowTheirOwnKind(t *testing.T) {
 				}},
 			}
 			_ = e.Key("scripts")
-			rows, _ := e.listRows("records")
+			rows := scriptsTreeRows(e)
 			var got []string
 			for _, r := range rows {
 				got = append(got, strings.TrimSpace(r.Text))

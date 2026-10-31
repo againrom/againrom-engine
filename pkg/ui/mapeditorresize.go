@@ -28,6 +28,9 @@ func resizable(id editorPopupID) bool {
 // width, or while the popup is sized the width the size leaves beside the
 // scroll bar.
 func (e *MapEditor) popupWide(id editorPopupID, natural int) int {
+	if id == popObject && e.objectInPanel() {
+		return e.panelWide()
+	}
 	if sz := e.sizes[id]; sz.X > 0 {
 		return max(160, sz.X-widgetSpriteSize-2)
 	}
@@ -90,9 +93,13 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	s, links, ok := e.objectSpecBase()
 	s.Slack = e.slack[popObject]
+	e.panels.hosted = ok && e.objectInPanel()
 	if !ok {
 		e.sizes[popObject] = image.Point{}
 		return s, links, false
+	}
+	if e.panels.hosted {
+		return e.objectInputRows(e.hostedObject(s)), links, true
 	}
 	if e.dropForeignSize(popObject, s.Title) {
 		s, links, ok = e.objectSpecBase()
@@ -150,6 +157,12 @@ func (e *MapEditor) PopupRect() (image.Rectangle, bool) {
 // resizeEdgeAt is the border of popup id a press at p would grab, none when
 // the popup is not resizable there.
 func (e *MapEditor) resizeEdgeAt(id editorPopupID, p image.Point) popupEdge {
+	if _, ok := e.panelOf(id); ok {
+		if id == popObject && e.openDropdownHit(p) {
+			return 0
+		}
+		return e.panelEdgeAt(id, p)
+	}
 	if !resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
 		return 0
 	}
@@ -218,6 +231,10 @@ func (e *MapEditor) windowCursor() {
 // opposite the held one stays where it is.
 func (e *MapEditor) resizePopup(d image.Point) {
 	id := e.drag
+	if i, ok := e.panelOf(id); ok {
+		e.resizePanel(i, d)
+		return
+	}
 	s, ok := e.movableSpec(id)
 	if !ok {
 		return

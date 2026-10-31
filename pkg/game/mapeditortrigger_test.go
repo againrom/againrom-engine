@@ -42,6 +42,25 @@ func triggerMap(t *testing.T) []byte {
 	return built(t, o, nil, nil).Bytes()
 }
 
+// treeMemberRect is the window rectangle of member n of category key's
+// branch in the left panel's tree, the tree scrolled to show it.
+func treeMemberRect(e *ui.MapEditor, key string, n int) (image.Rectangle, bool) {
+	row := e.TreeMemberRow(key, n)
+	if row < 0 {
+		return image.Rectangle{}, false
+	}
+	return e.TreeRowRect(row)
+}
+
+// treeMemberCount is the number of member rows of category key's branch.
+func treeMemberCount(e *ui.MapEditor, key string) int {
+	n := 0
+	for e.TreeMemberRow(key, n) >= 0 {
+		n++
+	}
+	return n
+}
+
 // trigClick presses and releases at the centre of r.
 func trigClick(t *testing.T, e *ui.MapEditor, r image.Rectangle, ok bool, what string) {
 	t.Helper()

@@ -25,6 +25,9 @@ func (e *MapEditor) keyPlayers(string) error {
 	e.filter, e.listShown = 0, !wasPlayers
 	if !wasPlayers {
 		e.filter = editorPlayersFilter
+		if c, ok := categoryOf(editorPlayersFilter); ok {
+			e.treeReveal(c)
+		}
 	}
 	e.resetList(0)
 	rows := e.rows()
@@ -171,16 +174,6 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.word(r.descWord), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}})
 	}
 	return g, rows, true
-}
-
-// relationGridHeight is the room the matrix and its rows take in the list
-// popup, 0 with none.
-func (e *MapEditor) relationGridHeight() int {
-	g, rows, ok := e.relationGridSpec()
-	if !ok {
-		return 0
-	}
-	return g.height() + len(rows)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)
 }
 
 // relationPress is a press on matrix cell n: it sets the next relation

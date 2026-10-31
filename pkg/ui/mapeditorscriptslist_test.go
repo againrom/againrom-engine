@@ -29,10 +29,32 @@ func scriptsListEditor(t *testing.T) *MapEditor {
 	return e
 }
 
+// scriptsTreeRows are the rows of the tree's Scripts branch under its
+// branch row: the four section headings and their members.
+func scriptsTreeRows(e *MapEditor) []PickerRow {
+	kinds := e.treeRowsNow()
+	if len(kinds) == 0 {
+		return nil
+	}
+	rows := e.tree.model.Rows()
+	var out []PickerRow
+	in := false
+	for i, k := range kinds {
+		if k.branch != "" {
+			in = k.branch == "scripts"
+			continue
+		}
+		if in {
+			out = append(out, rows[i])
+		}
+	}
+	return out
+}
+
 func TestScriptsListHeadingsAndRecordOrder(t *testing.T) {
 	e := scriptsListEditor(t)
 	_ = e.Key("scripts")
-	rows, _ := e.listRows("records")
+	rows := scriptsTreeRows(e)
 	want := []string{"Triggers", "Trigger 1  Rule", "Variables", "Variable 1  Counter", "Conditions", "Condition 3  Unused condition", "Actions", "Action 2  Unused action"}
 	var got []string
 	for _, r := range rows {
@@ -58,8 +80,8 @@ func TestScriptsListEmptyHeadingsSayNone(t *testing.T) {
 	e := scriptsListEditor(t)
 	e.doc.Records, e.doc.Script = nil, &InspectionScriptModel{}
 	_ = e.Key("scripts")
-	rows, _ := e.listRows("records")
-	want := []PickerRow{{Text: "Triggers: none", Heading: true}, {Text: "Variables: none", Heading: true}, {Text: "Conditions: none", Heading: true}, {Text: "Actions: none", Heading: true}}
+	rows := scriptsTreeRows(e)
+	want := []PickerRow{{Text: "Triggers: none", Heading: true, Indent: 1}, {Text: "Variables: none", Heading: true, Indent: 1}, {Text: "Conditions: none", Heading: true, Indent: 1}, {Text: "Actions: none", Heading: true, Indent: 1}}
 	if !reflect.DeepEqual(rows, want) {
 		t.Fatal("empty headings", rows)
 	}
@@ -70,7 +92,7 @@ func TestScriptsListFreeRegister(t *testing.T) {
 	e.doc.Script.Actions[0].Values[1] = 67
 	e.doc.Script.Actions[0].VariableRegister = 67
 	_ = e.Key("scripts")
-	rows, _ := e.listRows("records")
+	rows := scriptsTreeRows(e)
 	for _, row := range rows {
 		if row.Text == "Variable 67" && row.Choosable {
 			return
@@ -86,7 +108,7 @@ func TestScriptsListVariableLinksAndSharedRegister(t *testing.T) {
 	m.Actions[1].AddressesVariable, m.Actions[1].VariableRegister = true, 0
 	m.Triggers[0].Acts[1] = 11
 	_ = e.Key("scripts")
-	rows, _ := e.listRows("records")
+	rows := scriptsTreeRows(e)
 	for i, want := range []string{"Variable 0 (shared with Condition 1)", "Variable 1  Counter", "Variable 67"} {
 		if rows[i+3].Text != want {
 			t.Fatalf("row %d = %q, want %q", i+3, rows[i+3].Text, want)
@@ -138,7 +160,7 @@ func TestScriptsListNoticeAndOverriddenRecords(t *testing.T) {
 	e = scriptsListEditor(t)
 	e.doc.Records = append(e.doc.Records, InspectionRecord{Kind: "Action", Index: 1}, InspectionRecord{Kind: "Condition", Index: 0}, InspectionRecord{Kind: "Trigger", Index: 0})
 	_ = e.Key("scripts")
-	if len(e.rows()) != 7 || e.ListRowCount() != 11 {
+	if len(e.rows()) != 7 || len(scriptsTreeRows(e)) != 11 {
 		t.Fatal("overridden records lost their generic rows", e.rows())
 	}
 }
@@ -152,7 +174,7 @@ func TestScriptsListRowsKeepTheirPopupAndSelection(t *testing.T) {
 		if !ok {
 			t.Fatal("no direct popup", id)
 		}
-		e.listChoose(2*n+1, true)
+		e.treeChoose(e.TreeMemberRow("scripts", n))
 		after, _, ok := e.objectSpec()
 		if !ok || e.Selected() != id || before.Title != after.Title || !reflect.DeepEqual(before.Rows, after.Rows) || !reflect.DeepEqual(before.Buttons, after.Buttons) {
 			t.Fatal("list row changed the record popup", id)
@@ -162,7 +184,7 @@ func TestScriptsListRowsKeepTheirPopupAndSelection(t *testing.T) {
 	if e.selectedTrigger() != 0 {
 		t.Fatal("trigger row lost the area selection")
 	}
-	e.listChoose(0, true)
+	e.treeChoose(e.TreeMemberRow("scripts", 0) - 1)
 	if e.Selected() != 2 {
 		t.Fatal("heading selected a record")
 	}
@@ -195,7 +217,7 @@ func TestScriptsListVariableRegisterAndLabel(t *testing.T) {
 		}
 		e.doc.Script.Conditions[1].Label = ""
 		_ = e.Key("scripts")
-		rows, _ := e.listRows("records")
+		rows := scriptsTreeRows(e)
 		if strings.TrimSpace(rows[3].Text) != "Variable 1" {
 			t.Fatalf("opcode %d: unnamed variable not named by register: %+v", opcode, rows)
 		}

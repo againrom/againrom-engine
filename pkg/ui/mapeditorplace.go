@@ -25,13 +25,12 @@ type placeGrid struct {
 	choices []InspectionChoice
 }
 
-// placeGridRows is how many rows of the grid show.
-const placeGridRows = 3
-
 var placeGridSides = map[string]int{"Structure": 2*(gridCellSide-8) + 8}
 
+// placeGridShell is kind's grid with no cells: it shows every row the room
+// holds.
 func placeGridShell(kind string, top int) *popupGrid {
-	return &popupGrid{Rows: placeGridRows, Top: top, Side: placeGridSides[kind]}
+	return &popupGrid{Top: top, Side: placeGridSides[kind]}
 }
 
 // placeGridKind is the record kind and the Add step the shown tab's grid
@@ -119,18 +118,9 @@ func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
 		if pressed {
 			note = fmt.Sprintf(e.word("editor.place.placing"), c.Label)
 		}
-		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed})
+		g.Cells = append(g.Cells, popupGridCell{Icon: e.placeIcon(kind, key, c.Value), Pressed: pressed, Tip: c.Label})
 	}
 	return g, note, true
-}
-
-// placeGridHeight is the room the grid takes in the list popup, 0 with none.
-func (e *MapEditor) placeGridHeight() int {
-	kind, _, ok := e.placeGridKind()
-	if !ok {
-		return 0
-	}
-	return placeGridShell(kind, 0).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
 }
 
 // placeGridWheel scrolls the grid by the wheel's rows.
@@ -139,7 +129,7 @@ func (e *MapEditor) placeGridWheel(l popupLayout, rows int) {
 		return
 	}
 	total := (len(e.place.choices) + l.GridCols - 1) / l.GridCols
-	e.place.top = max(0, min(e.place.top+rows, total-placeGridRows))
+	e.place.top = max(0, min(e.place.top+rows, total-l.GridRows))
 }
 
 // placeChoose is a press on grid cell n: it opens the Add window on that

@@ -69,7 +69,7 @@ func (e *MapEditor) heightModeGridSpec() (*popupGrid, bool) {
 	}
 	g := &popupGrid{Side: heightModeSide, Rows: 1, Cols: int(heightModeCount), RowHeads: []string{e.word("editor.brush.mode")}, HeadW: brushLabelWidth}
 	for m := range heightModeCount {
-		g.Cells = append(g.Cells, popupGridCell{Icon: heightModeIcon(m), Pressed: m == e.brush.heightMode})
+		g.Cells = append(g.Cells, popupGridCell{Icon: heightModeIcon(m), Pressed: m == e.brush.heightMode, Tip: e.heightModeWord(m)})
 	}
 	return g, true
 }

@@ -47,7 +47,7 @@ func TestEditorFailedPathDialogDropsCancelCheckpoint(t *testing.T) {
 				}
 				e.ShowCell(image.Pt(45, 45))
 				chromeClick(e, barPoint(t, e, "units"))
-				chromeClick(e, listRowPoint(t, e, 2))
+				chromeClick(e, treeMemberPoint(t, e, "units", 2))
 				if e.selected != 2 {
 					t.Fatalf("mouse did not select unit 2: %d", e.selected)
 				}
