@@ -99,10 +99,7 @@ func (a *App) tooltipPresent(bounds image.Rectangle) (*image.RGBA, image.Point, 
 	if !a.tooltip.visible(target.key()) {
 		return nil, image.Point{}, false
 	}
-	point, ok := a.place.WindowToFrame(a.tooltipPoint.X, a.tooltipPoint.Y)
-	if a.flow.menuPlacement().overMission() {
-		point, ok = a.windowToNativeFrame(a.tooltipPoint.X, a.tooltipPoint.Y)
-	}
+	point, ok := a.flow.menuPlacement().transform.tip(a, a.tooltipPoint.X, a.tooltipPoint.Y)
 	if !ok {
 		return nil, image.Point{}, false
 	}

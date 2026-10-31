@@ -84,7 +84,7 @@ func TestPlacementIsTodaysForBothGamesAndPlaces(t *testing.T) {
 	}
 	for _, g := range gameMenuProfiles {
 		second := g.profile.NativeMissionWindows
-		if got := g.profile.placement().backdrop; got != g.profile.MissionBackdrop {
+		if got := g.profile.placement().wash; got != g.profile.MissionBackdrop {
 			t.Fatalf("%s game backdrop %v", g.game, got)
 		}
 		for _, place := range []gameMenuSurface{gameMenuMission, gameMenuTown} {
@@ -101,7 +101,7 @@ func TestPlacementIsTodaysForBothGamesAndPlaces(t *testing.T) {
 		}
 		mission := openMissionMenu(t)
 		mission.pages.menu = g.profile
-		if got := mission.menuPlacement(); got.overMission() != second || gameMenuPanelRect(gameMenuMission, got) != map[bool]image.Rectangle{false: decoded[gameMenuMission], true: centred[gameMenuMission]}[second] {
+		if got := mission.menuPlacement(); (got.menuWindowHost == missionViewHost) != second || gameMenuPanelRect(gameMenuMission, got) != map[bool]image.Rectangle{false: decoded[gameMenuMission], true: centred[gameMenuMission]}[second] {
 			t.Fatalf("%s game mission menu placement %+v", g.game, got)
 		}
 		town := openTownMenu(t)
@@ -110,11 +110,11 @@ func TestPlacementIsTodaysForBothGamesAndPlaces(t *testing.T) {
 		if second {
 			root = image.Rect(100, 100, 540, 440)
 		}
-		if got := town.menuPlacement(); got.overMission() || gameMenuPanelRect(gameMenuTown, got) != root || got.backdrop != g.profile.MissionBackdrop {
+		if got := town.menuPlacement(); got.menuWindowHost != wideFrameHost || gameMenuPanelRect(gameMenuTown, got) != root || got.wash != g.profile.MissionBackdrop {
 			t.Fatalf("%s game town root placement %+v", g.game, got)
 		}
 		town.applyGameMenuAction(gameMenuAbortGame)
-		if got := town.menuPlacement(); got.overMission() || gameMenuPanelRect(gameMenuTown, got) != decoded[gameMenuTown] || got.backdrop != g.profile.MissionBackdrop {
+		if got := town.menuPlacement(); got.menuWindowHost != wideFrameHost || gameMenuPanelRect(gameMenuTown, got) != decoded[gameMenuTown] || got.wash != g.profile.MissionBackdrop {
 			t.Fatalf("%s game town menu placement %+v", g.game, got)
 		}
 	}

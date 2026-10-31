@@ -341,20 +341,9 @@ func (a *App) HeadlessFrame() (pix *image.RGBA, note string, err error) {
 		a.finishCutscenePresentation()
 		return pix, "", nil
 	}
-	if a.flow.menuPlacement().overMission() {
-		pic := a.GameMenuPanel()
-		if pic != nil {
-			place, at := a.missionMenuPlacement()
-			dst := image.NewRGBA(image.Rectangle{Max: place.WindowSize()})
-			for y := range dst.Bounds().Dy() {
-				for x := range dst.Bounds().Dx() {
-					if p, ok := place.WindowToFrame(x, y); ok {
-						dst.Set(x, y, pic.At(p.X-at.X, p.Y-at.Y))
-					}
-				}
-			}
-			return dst, "mission menu layer only; mission backdrop is absent", nil
-		}
+	placed := a.flow.menuPlacement().transform.placedPanel(a)
+	if placed != nil {
+		return placed, "mission menu layer only; mission backdrop is absent", nil
 	}
 	if a.flow.mapShowing() {
 		return nil, "", fmt.Errorf("headless frame: %s screen draws through Viewer.Draw directly onto the ebiten canvas, no CPU composite", a.Screen())

@@ -289,7 +289,7 @@ func (f *flow) openGameMenu(back Screen) {
 func (f *flow) setMenuUp(up bool) {
 	if f.viewer != nil {
 		f.viewer.menuUp = up
-		f.viewer.menuBackdrop = f.pages.menu.placement().backdrop
+		f.viewer.menuBackdrop = f.pages.menu.placement().wash
 	}
 }
 
@@ -633,9 +633,7 @@ func (f *flow) openLoad(back Screen) {
 	f.loadList = NewPicker(rows).SetWindow(loadVisibleRows)
 	f.loadBack = back
 	f.setScreen(ScreenLoad)
-	if f.menuPlacement().overMission() {
-		f.setMenuUp(true)
-	}
+	f.menuPlacement().underlay.raise(f)
 	if f.saveList == nil {
 		f.msg = "this build has nowhere to load from"
 	} else if len(f.saves) == 0 {

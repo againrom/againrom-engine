@@ -244,30 +244,12 @@ func (a *App) windowToNativeFrame(x, y int) (image.Point, bool) {
 	if a == nil {
 		return image.Point{}, false
 	}
-	if a.flow.menuPlacement().overMission() {
-		place, at := a.missionMenuPlacement()
-		p, ok := place.WindowToFrame(x, y)
-		p = p.Sub(at)
-		return p, ok && p.In(image.Rect(0, 0, frame.W, frame.H))
-	}
-	wide, ok := a.place.WindowToFrame(x, y)
-	if !ok {
-		return image.Point{}, false
-	}
-	return a.inputWideFrameLayout().wideToNative(wide)
+	return a.flow.menuPlacement().transform.toFrame(a, x, y)
 }
 
 func (a *App) nativeFrameToWindow(p image.Point) (int, int, bool) {
 	if a == nil {
 		return 0, 0, false
 	}
-	if a.flow.menuPlacement().overMission() {
-		place, at := a.missionMenuPlacement()
-		return place.FrameToWindow(p.Add(at))
-	}
-	wide, ok := a.inputWideFrameLayout().nativeToWide(p)
-	if !ok {
-		return 0, 0, false
-	}
-	return a.place.FrameToWindow(wide)
+	return a.flow.menuPlacement().transform.toWindow(a, p)
 }

@@ -200,11 +200,7 @@ func gameMenuPanelRectFor(s gameMenuSurface, rows []gameMenuRow, at ...menuPlace
 	if mods := gameMenuModRows(rows); mods > 0 {
 		need := gameMenuRowTop + gameMenuRowPitch*len(rows) + gameMenuBottomMargin
 		if need > p.Dy() {
-			p.Max.Y = p.Min.Y + need
-			if pl.centred {
-				box := windowFrame(p, nil).rect()
-				p = p.Add(image.Pt(0, (480-box.Dy())/2-box.Min.Y))
-			}
+			p = pl.grow(p, need)
 		}
 	}
 	return p

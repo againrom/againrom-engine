@@ -13,19 +13,15 @@ import (
 // beneath it is composed independently, with the same centered modal placement.
 func (a *App) GameMenuPanel() (pic *image.RGBA) {
 	defer func() {
-		if a != nil && a.flow.menuPlacement().overMission() && pic != nil {
-			a.paintTooltip(pic)
+		if a != nil {
+			a.flow.menuPlacement().tipOnPanel.paint(a, pic)
 		}
 	}()
 	if a == nil || a.flow == nil || a.flow.menuFont == nil {
 		return nil
 	}
 	if a.flow.screen != ScreenGameMenu {
-		if a.flow.menuPlacement().overMission() {
-			pic, _ := a.composeScreen()
-			return pic
-		}
-		return nil
+		return a.flow.menuPlacement().underlay.layer(a)
 	}
 	if a.flow.menuPage == gameMenuQuestObjectivesPage {
 		return a.questPicture()

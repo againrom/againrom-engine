@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"strings"
 
 	"againrom/pkg/locale"
@@ -26,9 +25,7 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 		return nil, fmt.Errorf("load list has no installed font")
 	}
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
-	if a.assets != nil && !a.flow.menuPlacement().overMission() {
-		draw.Draw(pix, pix.Bounds(), a.assets.Compose(a.sel.State()), image.Point{}, draw.Src)
-	}
+	a.flow.menuPlacement().backdrop.paint(a, pix)
 	drawFrame(pix, windowFrame(v.page.Panel, a.flow.menuArt))
 	label := func(value string, r image.Rectangle, selected bool) {
 		c := townShellText

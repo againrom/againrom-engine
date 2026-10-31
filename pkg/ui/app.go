@@ -4434,11 +4434,16 @@ func (a *App) drawCursor(screen *ebiten.Image) {
 	drawFinalFrame(screen, a.cursorTex.upload(c.Pic), &op, &cursorSharpBuf, a.frameSmoothingOff)
 }
 
-// drawGameMenuOverMap places the shared menu layer over the mission.
+// drawGameMenuOverMap places the shared menu layer over the mission when the
+// placement's underlay stands one there.
 func (a *App) drawGameMenuOverMap(screen *ebiten.Image) {
-	if !a.place.Valid() || !a.flow.menuPlacement().overMission() && (a.flow.screen != ScreenGameMenu || a.flow.menuList == nil) {
-		return
+	if a.place.Valid() {
+		a.flow.menuPlacement().underlay.drawOver(a.flow, func() { a.drawMenuLayerOverMap(screen) })
 	}
+}
+
+// drawMenuLayerOverMap composes the menu layer and blits it over the map.
+func (a *App) drawMenuLayerOverMap(screen *ebiten.Image) {
 	if a.menuCanvas == nil {
 		a.menuCanvas = ebiten.NewImage(frame.W, frame.H)
 	}
