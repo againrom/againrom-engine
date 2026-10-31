@@ -551,6 +551,17 @@ func TestCheck(t *testing.T) {
 			}
 		})
 
+		t.Run("the environment wins over the game folder", func(t *testing.T) {
+			t.Chdir(dir)
+			var out, errOut bytes.Buffer
+			if code := run([]string{"-check"}, envWith(t.TempDir()), &out, &errOut); code == 0 {
+				t.Errorf("exit = 0, want the variable's root to be used and to fail (stderr: %s)", errOut.String())
+			}
+			if strings.Contains(errOut.String(), "using the install found at") {
+				t.Errorf("stderr = %q, want no discovery when the variable was set", errOut.String())
+			}
+		})
+
 		// The fallback is LAST. A configured root that is not an install must
 		// still fail, or a mistyped -assets on a machine whose working directory
 		// happens to be an install would silently run the wrong game.

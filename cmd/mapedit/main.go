@@ -75,21 +75,14 @@ func reportFailure(stderr io.Writer, userConfigDir string, err error) {
 // (the discovery the game makes), the install that holds the map being opened,
 // and the base the starter beside the program has selected.
 func assetRoot(flagValue, envValue, mapPath, self string) string {
-	if root := game.ResolveAssetRoot(flagValue, envValue); root != "" {
-		return root
-	}
-	if root := game.DiscoverAssetRoot(game.ProcessDirs(self)...); root != "" {
-		return root
-	}
-	if root, ok := game.InstallHolding(mapPath); ok {
-		return root
-	}
-	if self != "" {
-		if base, ok := launch.StarterBase(filepath.Dir(self)); ok {
-			return game.DiscoverAssetRoot(base)
-		}
-	}
-	return ""
+	root, _ := game.FindAssetRoot(
+		game.AssetRootSource{Kind: game.AssetRootFlag, Value: flagValue},
+		game.AssetRootSource{Kind: game.AssetRootEnvironment, Value: envValue},
+		game.AssetRootSource{Kind: game.AssetRootProcessFolders, Value: self},
+		game.AssetRootSource{Kind: game.AssetRootOpenedFile, Value: mapPath},
+		game.AssetRootSource{Kind: game.AssetRootStarterBase, Value: self},
+	)
+	return root
 }
 
 func run(args []string, out io.Writer) error {

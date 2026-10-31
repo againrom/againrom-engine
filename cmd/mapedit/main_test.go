@@ -155,6 +155,36 @@ func TestRootComesFromTheStartersSelectedBase(t *testing.T) {
 	}
 }
 
+// The editor's order is the flag, the variable, the program's folders, the
+// install holding the map, then the starter's base; each step is removed in
+// turn and the next one takes over.
+func TestAssetRootOrder(t *testing.T) {
+	base := resolvedTempDir(t)
+	process := installFolder(t, filepath.Join(base, "process"))
+	opened := installFolder(t, filepath.Join(base, "opened"))
+	starter := installFolder(t, filepath.Join(base, "starter"))
+	m := writeFile(t, filepath.Join(opened, "a.alm"), "x")
+	tools := filepath.Join(base, "tools")
+	writeFile(t, filepath.Join(tools, "starter.ini"), "[bases]\na="+starter+"\n")
+	inProcess := filepath.Join(process, "mapedit.exe")
+	inTools := filepath.Join(tools, "mapedit.exe")
+	steps := []struct {
+		flag, env, mapPath, self, want string
+	}{
+		{"f", "e", m, inProcess, "f"},
+		{"", "e", m, inProcess, "e"},
+		{"", "", m, inProcess, process},
+		{"", "", m, inTools, opened},
+		{"", "", "", inTools, starter},
+		{"", "", "", filepath.Join(base, "none", "mapedit.exe"), ""},
+	}
+	for _, s := range steps {
+		if got := assetRoot(s.flag, s.env, s.mapPath, s.self); got != s.want {
+			t.Errorf("assetRoot(%q, %q, %q, %q) = %q, want %q", s.flag, s.env, s.mapPath, s.self, got, s.want)
+		}
+	}
+}
+
 // The flag and the variable keep their place ahead of every discovery.
 func TestRootFlagAndVariableWin(t *testing.T) {
 	base := t.TempDir()

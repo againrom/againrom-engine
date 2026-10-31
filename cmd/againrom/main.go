@@ -692,7 +692,11 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 
 	// Flag over environment over unset, decided in the one place that already
 	// owns that precedence.
-	root := game.ResolveAssetRoot(o.assets, getenv("AGAINROM_ASSETS"))
+	root, rootFrom := game.FindAssetRoot(
+		game.AssetRootSource{Kind: game.AssetRootFlag, Value: o.assets},
+		game.AssetRootSource{Kind: game.AssetRootEnvironment, Value: getenv("AGAINROM_ASSETS")},
+		game.AssetRootSource{Kind: game.AssetRootProcessFolders, Value: executable},
+	)
 
 	// A COPY OF THIS BINARY SITTING IN THE GAME FOLDER CONFIGURES ITSELF.
 	// Discovery is the LAST step of the precedence, so -assets and
@@ -703,10 +707,8 @@ func runWithProfilePaths(args []string, getenv func(string) string, stdout, stde
 	// discovered root is the one case where nobody typed the path — a run that
 	// silently chose between two installs on the same machine would be
 	// unattributable.
-	if root == "" {
-		if root = game.DiscoverAssetRoot(game.ProcessDirs(executable)...); root != "" {
-			fmt.Fprintf(stderr, "againrom: no -assets and no AGAINROM_ASSETS; using the install found at %s\n", root)
-		}
+	if root != "" && rootFrom == game.AssetRootProcessFolders {
+		fmt.Fprintf(stderr, "againrom: no -assets and no AGAINROM_ASSETS; using the install found at %s\n", root)
 	}
 	if root == "" {
 		fmt.Fprintf(stderr, "againrom: no asset root configured; pass -assets or set AGAINROM_ASSETS, or run this binary from inside the game folder\n%s\n", usage)

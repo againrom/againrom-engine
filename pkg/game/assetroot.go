@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"againrom/pkg/installpath"
+	"againrom/pkg/launch"
 )
 
 // ProcessDirs names the directories to search for an install when nobody
@@ -81,10 +82,76 @@ func InstallHolding(path string) (string, bool) {
 // — a CLI flag or the AGAINROM_ASSETS environment variable — and no game
 // install path is ever compiled into the source.
 func ResolveAssetRoot(flagValue, envValue string) string {
-	if v := strings.TrimSpace(flagValue); v != "" {
-		return v
+	root, _ := FindAssetRoot(
+		AssetRootSource{AssetRootFlag, flagValue},
+		AssetRootSource{AssetRootEnvironment, envValue},
+	)
+	return root
+}
+
+// AssetRootKind names one place a development tool may take its asset root
+// from. The kinds are ordered: the lower kind wins.
+type AssetRootKind int
+
+const (
+	// AssetRootFlag is the -assets value; AssetRootEnvironment is the value of
+	// AGAINROM_ASSETS. Either names a root without checking it.
+	AssetRootFlag AssetRootKind = iota
+	AssetRootEnvironment
+	// AssetRootProcessFolders is the install the program's working directory or
+	// own folder holds; its value is the program's path.
+	AssetRootProcessFolders
+	// AssetRootOpenedFile is the install that holds a file the program was
+	// asked to open; its value is that file's path.
+	AssetRootOpenedFile
+	// AssetRootStarterBase is the base the starter beside the program has
+	// selected; its value is the program's path.
+	AssetRootStarterBase
+)
+
+// AssetRootSource is one source a program admits to FindAssetRoot, with the
+// value that source reads from.
+type AssetRootSource struct {
+	Kind  AssetRootKind
+	Value string
+}
+
+// FindAssetRoot is the one precedence of a tool's asset root: the first admitted
+// source, in AssetRootKind order, that names a root, and the kind that named
+// it. A program admits only the sources it uses: the game the first three, the
+// map editor all five. The process folders always offer the working directory.
+func FindAssetRoot(sources ...AssetRootSource) (string, AssetRootKind) {
+	for kind := AssetRootFlag; kind <= AssetRootStarterBase; kind++ {
+		for _, s := range sources {
+			if s.Kind != kind {
+				continue
+			}
+			if root := assetRootFrom(s); root != "" {
+				return root, kind
+			}
+		}
 	}
-	return strings.TrimSpace(envValue)
+	return "", 0
+}
+
+func assetRootFrom(s AssetRootSource) string {
+	switch s.Kind {
+	case AssetRootFlag, AssetRootEnvironment:
+		return strings.TrimSpace(s.Value)
+	case AssetRootProcessFolders:
+		return DiscoverAssetRoot(ProcessDirs(s.Value)...)
+	case AssetRootOpenedFile:
+		root, _ := InstallHolding(s.Value)
+		return root
+	case AssetRootStarterBase:
+		if s.Value == "" {
+			return ""
+		}
+		if base, ok := launch.StarterBase(filepath.Dir(s.Value)); ok {
+			return DiscoverAssetRoot(base)
+		}
+	}
+	return ""
 }
 
 // DiscoverAssetRoot returns the first candidate directory that carries every
