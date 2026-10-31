@@ -11,46 +11,11 @@ import (
 
 func abs(v int) int { return max(v, -v) }
 
-// quadOf reads the terrain class at the four corners of a tile word (NW, NE,
-// SW, SE) from its shape alone: a pure word shows its class everywhere, an
-// edge the strip's primary class on the far side from Dir, an inner corner
-// everywhere but the corner Dir names, an outer corner (water) and a tip only
-// at one corner. The two classes are the strip pair testClass reads, Water
-// and Land for a water word.
+// quadOf is the terrain class at the four corners of a tile word (NW, NE,
+// SW, SE), as the editor's strip table gives them (WordCorners) with
+// testClass for any word outside a strip.
 func quadOf(w uint16) [4]uint8 {
-	c := testClass(w)
-	s, g, ok := mapedit.WordShape(w)
-	if !ok || s.Kind == mapedit.ShapePure {
-		return [4]uint8{c, c, c, c}
-	}
-	pairs := map[uint16][2]uint8{
-		0: {mapedit.ClassGrass, mapedit.ClassLand}, 1: {mapedit.ClassCracked, mapedit.ClassLand},
-		2: {mapedit.ClassSand, mapedit.ClassLand}, 3: {mapedit.ClassSavanna, mapedit.ClassLand},
-		4: {mapedit.ClassStones, mapedit.ClassLand}, 5: {mapedit.ClassCracked, mapedit.ClassStones},
-		6: {mapedit.ClassFlowers, mapedit.ClassSavanna}, 7: {mapedit.ClassMountain, mapedit.ClassStones},
-		8: {mapedit.ClassWater, mapedit.ClassLand}, 12: {mapedit.ClassRoad, mapedit.ClassLand},
-	}
-	p := pairs[g]
-	var primary [4]bool // corners NW NE SW SE
-	switch s.Kind {
-	case mapedit.ShapeEdge: // Dir N E S W names the side the other class lies on
-		far := [4][2]int{{2, 3}, {0, 2}, {0, 1}, {1, 3}}[s.Dir]
-		primary[far[0]], primary[far[1]] = true, true
-	case mapedit.ShapeInner: // Dir NW NE SW SE names the other class's corner
-		primary = [4]bool{true, true, true, true}
-		primary[s.Dir] = false
-	case mapedit.ShapeOuter: // water at the corner opposite Dir
-		primary[3-s.Dir] = true
-	case mapedit.ShapeTip: // the primary class at the corner Dir names
-		primary[s.Dir] = true
-	}
-	var q [4]uint8
-	for k := range q {
-		q[k] = p[1]
-		if primary[k] {
-			q[k] = p[0]
-		}
-	}
+	q, _ := mapedit.WordCorners(w, testClass)
 	return q
 }
 

@@ -111,6 +111,25 @@ func wordQuad(w uint16, class func(uint16) uint8) (quad, bool) {
 	return quad{c, c, c, c}, true
 }
 
+// WordCorners is the class word w shows at its corners north-west,
+// north-east, south-west and south-east, as a stroke reads them (wordQuad);
+// ok is false for a word of no terrain class.
+func WordCorners(w uint16, class func(uint16) uint8) (q [4]uint8, ok bool) {
+	return wordQuad(w, class)
+}
+
+// HardCorner reports whether the cells of the w-wide plane tiles that meet
+// at inner map point (px, py) show more than one class there, Flowers read
+// as Grass (seen): a hard edge on the drawn map.
+func HardCorner(tiles []uint16, w, px, py int, class func(uint16) uint8) bool {
+	at := func(x, y, k int) uint8 {
+		q, _ := wordQuad(tiles[y*w+x], class)
+		return seen(q)[k]
+	}
+	a := at(px-1, py-1, cornerSE)
+	return a != at(px, py-1, cornerSW) || a != at(px-1, py, cornerNE) || a != at(px, py, cornerNW)
+}
+
 // quadWords is the family and state of the words that show q; ok is false
 // when no word does: three classes, two that share no family, or a diagonal
 // split. Flowers and Grass meet without a seam, so a corner of one may be

@@ -24,9 +24,94 @@ func strokeBound() int { return 4 }
 // below the top eight rows (the save normalisation rewrites those whole), the
 // unpainted cells whose class changed, the farthest rewritten word from the
 // footprint, and the cells past the bound that changed a word or a class or
-// opened in the game's passability plane.
+// opened in the game's passability plane; offBand counts the cells opened
+// past the bound that lie on no rewritten band (onRewrittenBand).
 type strokeReach struct {
-	words, classes, reach, far, opened, farOpened int
+	words, classes, reach, far, opened, farOpened, offBand int
+}
+
+// cornerClass is the class m shows at map point (px, py), read from a cell
+// that has the point as a corner.
+func cornerClass(m *alm.Map, px, py int) uint8 {
+	x, y, k := px, py, 0
+	if x == m.Width {
+		x, k = x-1, k+1
+	}
+	if y == m.Height {
+		y, k = y-1, k+2
+	}
+	q, _ := mapedit.WordCorners(m.Tiles[y*m.Width+x], mapload.TileClass)
+	return q[k]
+}
+
+// joinedClasses is each pair of classes one word shows together in the
+// editor's strip table, and Flowers with Grass, which meet with no strip.
+func joinedClasses() map[[2]uint8]bool {
+	j := map[[2]uint8]bool{{mapedit.ClassFlowers, mapedit.ClassGrass}: true, {mapedit.ClassGrass, mapedit.ClassFlowers}: true}
+	for w := range uint16(0x400) {
+		if q, ok := mapedit.WordCorners(w, mapload.TileClass); ok {
+			for _, a := range q {
+				for _, b := range q {
+					j[[2]uint8{a, b}] = true
+				}
+			}
+		}
+	}
+	return j
+}
+
+// onRewrittenBand reports whether closed cell i, which a stroke opened, lies
+// on a band the stroke rewrote: a corner of the cell changed class, a
+// changed Water or Mountain corner took Land or Stones, a changed corner
+// joins the footprint through changed corners below row 8's top edge, and
+// within two corners of one the plane before held a band one corner wide
+// between two classes no strip joins.
+func onRewrittenBand(before, after *alm.Map, fp []mapedit.Cell, i int, joined map[[2]uint8]bool, linked map[int]bool) bool {
+	w, h := before.Width, before.Height
+	if len(linked) == 0 {
+		var queue []int
+		for _, c := range fp {
+			for k := range 4 {
+				if p := (c.Y+k>>1)*(w+1) + c.X + k&1; !linked[p] {
+					linked[p] = true
+					queue = append(queue, p)
+				}
+			}
+		}
+		for len(queue) > 0 {
+			p := queue[0]
+			queue = queue[1:]
+			for _, d := range [8][2]int{{-1, -1}, {0, -1}, {1, -1}, {-1, 0}, {1, 0}, {-1, 1}, {0, 1}, {1, 1}} {
+				nx, ny := p%(w+1)+d[0], p/(w+1)+d[1]
+				n := ny*(w+1) + nx
+				if nx >= 0 && ny >= 9 && nx <= w && ny <= h && !linked[n] && cornerClass(before, nx, ny) != cornerClass(after, nx, ny) {
+					linked[n] = true
+					queue = append(queue, n)
+				}
+			}
+		}
+	}
+	changed, oneStep, joins, band := false, true, false, false
+	for k := range 4 {
+		px, py := i%w+k&1, i/w+k>>1
+		a, b := cornerClass(before, px, py), cornerClass(after, px, py)
+		if a == b {
+			continue
+		}
+		changed = true
+		oneStep = oneStep && !(a == mapedit.ClassWater && b != mapedit.ClassLand || a == mapedit.ClassMountain && b != mapedit.ClassStones)
+		joins = joins || linked[py*(w+1)+px]
+		for qy := max(py-2, 9); qy <= min(py+2, h-1); qy++ {
+			for qx := max(px-2, 1); qx <= min(px+2, w-1); qx++ {
+				m := cornerClass(before, qx, qy)
+				for _, d := range [4][2]int{{1, 0}, {0, 1}, {1, 1}, {1, -1}} {
+					l, r := cornerClass(before, qx-d[0], qy-d[1]), cornerClass(before, qx+d[0], qy+d[1])
+					band = band || l != m && r != m && l != r && !joined[[2]uint8{l, r}]
+				}
+			}
+		}
+	}
+	return changed && oneStep && joins && band
 }
 
 func measureStroke(before, after *alm.Map, fp []mapedit.Cell) strokeReach {
@@ -58,11 +143,19 @@ func measureStroke(before, after *alm.Map, fp []mapedit.Cell) strokeReach {
 		}
 	}
 	pb, pa := mapload.Passability(before), mapload.Passability(after)
+	var joined map[[2]uint8]bool
+	linked := map[int]bool{}
 	for i := range pb {
 		if pb[i]&1 == 1 && pa[i]&1 == 0 {
 			r.opened++
 			if dist(i) > strokeBound() {
 				r.farOpened++
+				if joined == nil {
+					joined = joinedClasses()
+				}
+				if !onRewrittenBand(before, after, fp, i, joined, linked) {
+					r.offBand++
+				}
 			}
 		}
 	}
@@ -86,8 +179,9 @@ func catalogueMapBytes(t *testing.T, x *MapInspector, key string) []byte {
 }
 
 // A terrain stroke on an installed map leaves every cell a word for its
-// corners (TileFix.Seams), adds no hard corner and opens no closed cell more
-// than strokeBound cells from its footprint. The one-cell Cracked click at
+// corners (TileFix.Seams), adds no hard corner (hardEdges) and opens a
+// closed cell past strokeBound only on a band it rewrote. The one-cell
+// Cracked click at
 // (40,40) on scenario/31.alm, through the window, sits on a Cracked, Stones
 // and Land junction beside mountain ridges that a walk along the seam would
 // open; it rewrites no word past the bound. The sweep paints every listed
@@ -113,7 +207,7 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 	}
 
 	keys := installedMapKeys(x)
-	strokes, seamCells, seamStrokes, newHard, reach, past, pastOpened, classes := 0, 0, 0, 0, 0, 0, 0, 0
+	strokes, seamCells, seamStrokes, newHard, reach, past, pastOpened, offBand, classes := 0, 0, 0, 0, 0, 0, 0, 0, 0
 	for _, key := range []string{keys[0], keys[len(keys)/3], keys[2*len(keys)/3], keys[len(keys)-1]} {
 		src := catalogueMapBytes(t, x, key)
 		m0, err := alm.Open(src)
@@ -173,9 +267,10 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 						if fix.Seams > 0 {
 							seamStrokes++
 						}
-						if r.farOpened != 0 || fix.Seams != 0 || hc != 0 {
-							t.Errorf("%s size %d shape %d at %v: %d closed cells opened past %d cells (reach %d), %d cells with no word, %d new hard corners",
-								what, size, shape, at, r.farOpened, strokeBound(), r.reach, fix.Seams, hc)
+						offBand += r.offBand
+						if r.offBand != 0 || fix.Seams != 0 || hc != 0 {
+							t.Errorf("%s size %d shape %d at %v: %d closed cells opened past %d cells (reach %d), %d of them on no rewritten band, %d cells with no word, %d new hard corners",
+								what, size, shape, at, r.farOpened, strokeBound(), r.reach, r.offBand, fix.Seams, hc)
 						}
 						for i := range m1.Tiles {
 							if m1.Tiles[i] == m0.Tiles[i] {
@@ -196,6 +291,6 @@ func TestReleaseMapEditorStrokeStaysNearTheBrush(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("sweep: %d strokes, farthest rewritten word %d cells from the footprint (bound %d), %d strokes rewrite past the bound, %d closed cells opened past it; %d cells in %d strokes take the nearest word, %d new hard corners, %d unpainted class changes",
-		strokes, reach, strokeBound(), past, pastOpened, seamCells, seamStrokes, newHard, classes)
+	t.Logf("sweep: %d strokes, farthest rewritten word %d cells from the footprint (bound %d), %d strokes rewrite past the bound, %d closed cells opened past it, %d of them on no rewritten band; %d cells in %d strokes take the nearest word, %d new hard corners, %d unpainted class changes",
+		strokes, reach, strokeBound(), past, pastOpened, offBand, seamCells, seamStrokes, newHard, classes)
 }

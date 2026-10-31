@@ -3575,5 +3575,11 @@ var Committed = Baseline{
 	// cityobjectprojection_test.go, secondbagcarry_test.go,
 	// secondmissionsave_release_test.go and
 	// secondoriginalload_release_test.go, and this note.
-	CommentBytes: 10024340,
+
+	// It rose for the one hard-corner reading: WordCorners and HardCorner in
+	// pkg/mapedit's corner.go, the band rule of the stroke reach release
+	// test, the top-band test in junction_test.go, and this note. The merge
+	// with main is measured on the merged tree. The junction release test
+	// then says why a stroke that rewrites no word takes no undo.
+	CommentBytes: 10025393,
 }

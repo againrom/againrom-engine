@@ -24,47 +24,17 @@ func installedMapKeys(x *MapInspector) []string {
 	return keys
 }
 
-// stripClasses is the primary and secondary class of each strip group, water
-// (group 8) blending into Land.
-var stripClasses = map[uint16][2]uint8{
-	0: {mapedit.ClassGrass, mapedit.ClassLand}, 1: {mapedit.ClassCracked, mapedit.ClassLand},
-	2: {mapedit.ClassSand, mapedit.ClassLand}, 3: {mapedit.ClassSavanna, mapedit.ClassLand},
-	4: {mapedit.ClassStones, mapedit.ClassLand}, 5: {mapedit.ClassCracked, mapedit.ClassStones},
-	6: {mapedit.ClassFlowers, mapedit.ClassSavanna}, 7: {mapedit.ClassMountain, mapedit.ClassStones},
-	8: {mapedit.ClassWater, mapedit.ClassLand}, 12: {mapedit.ClassRoad, mapedit.ClassLand},
-}
-
 // installedCorners is the class word w shows at its corners north-west,
-// north-east, south-west and south-east, read from its shape: a strip word
-// splits them between its strip's classes, any other word shows its class at
-// all four. The family names the word's strip, or "pure" and its class.
+// north-east, south-west and south-east, as the editor's strip table gives
+// them (mapedit.WordCorners) with the movement classifier for any word
+// outside a strip. The family names the word's strip group, or "pure" and
+// its class.
 func installedCorners(w uint16) (q [4]uint8, family string) {
-	c := mapload.TileClass(w)
-	s, g, ok := mapedit.WordShape(w)
-	if !ok || s.Kind == mapedit.ShapePure {
-		return [4]uint8{c, c, c, c}, fmt.Sprintf("pure %d", c)
+	q, _ = mapedit.WordCorners(w, mapload.TileClass)
+	if s, g, ok := mapedit.WordShape(w); ok && s.Kind != mapedit.ShapePure {
+		return q, fmt.Sprintf("strip group %d", g)
 	}
-	p := stripClasses[g]
-	var primary [4]bool
-	switch s.Kind {
-	case mapedit.ShapeEdge:
-		far := [4][2]int{{2, 3}, {0, 2}, {0, 1}, {1, 3}}[s.Dir]
-		primary[far[0]], primary[far[1]] = true, true
-	case mapedit.ShapeInner:
-		primary = [4]bool{true, true, true, true}
-		primary[s.Dir] = false
-	case mapedit.ShapeOuter:
-		primary[3-s.Dir] = true
-	case mapedit.ShapeTip:
-		primary[s.Dir] = true
-	}
-	for k := range q {
-		q[k] = p[1]
-		if primary[k] {
-			q[k] = p[0]
-		}
-	}
-	return q, fmt.Sprintf("strip %d/%d", p[0], p[1])
+	return q, fmt.Sprintf("pure %d", mapload.TileClass(w))
 }
 
 // terrainPrediction is the corners a rule gives cell (x, y) of an installed

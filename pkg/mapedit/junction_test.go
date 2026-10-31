@@ -9,21 +9,14 @@ import (
 	"againrom/pkg/mapedit"
 )
 
-// hardAt reports whether the cells meeting at map point (px, py) of a w-wide
-// plane show more than one class there, Flowers read as Grass.
-func hardAt(tiles []uint16, w, px, py int) bool {
-	a := seenQuad(tiles[(py-1)*w+px-1])[3]
-	return a != seenQuad(tiles[(py-1)*w+px])[2] || a != seenQuad(tiles[py*w+px-1])[1] || a != seenQuad(tiles[py*w+px])[0]
-}
-
 // newHardCorners counts the inner map points below the top eight rows where
-// after shows a hard corner and before did not; before nil counts every hard
-// corner of after.
+// after shows a hard corner (mapedit.HardCorner) and before did not; before
+// nil counts every hard corner of after.
 func newHardCorners(before, after []uint16, w, h int) int {
 	n := 0
 	for py := 9; py < h; py++ {
 		for px := 1; px < w; px++ {
-			if hardAt(after, w, px, py) && (before == nil || !hardAt(before, w, px, py)) {
+			if mapedit.HardCorner(after, w, px, py, testClass) && (before == nil || !mapedit.HardCorner(before, w, px, py, testClass)) {
 				n++
 			}
 		}
@@ -238,5 +231,54 @@ func TestRandomStrokesOverEveryClassLeaveNoHardCorner(t *testing.T) {
 	t.Logf("400 strokes: %d cells with no word and %d new hard corners in %d strokes; farthest rewrite %d cells, most cells rewritten %d", seams, hard, seamStrokes, reach, most)
 	if seams != 0 || hard != 0 {
 		t.Errorf("random strokes leave %d cells with no word and %d new hard corners in %d strokes, want none", seams, hard, seamStrokes)
+	}
+}
+
+// A Grass stroke of size 8 over the top rows of a Land map (word 0x114):
+// TileFix leaves no hard corner, then the save normalisation writes the top
+// eight rows back to the last cell's word, so the hard corners lie on row
+// 8's top edge and none below.
+func TestStrokeOverTheTopRowsLeavesHardCornersOnlyAtTheSavedBand(t *testing.T) {
+	const land = 0x114
+	ed, err := mapedit.New(brushMap(land, 64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := ed.Map()
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := mapedit.Brush{Plane: mapedit.PlaneTile, Value: int(mapedit.ClassGrass), Radius: 8}
+	at := []mapedit.Cell{{X: 3, Y: 0}}
+	var cells []int
+	for _, c := range b.Footprint(at, brushSide, brushSide) {
+		cells = append(cells, c.Y*brushSide+c.X)
+	}
+	fix := mapedit.NewTileFix(before.Tiles, brushSide, brushSide, testClass)
+	fixed := append([]uint16(nil), before.Tiles...)
+	for _, ch := range fix.Paint(cells, mapedit.ClassGrass) {
+		fixed[ch.Cell] = ch.Word
+	}
+	if _, err := ed.Paint(b, at, testClass); err != nil {
+		t.Fatal(err)
+	}
+	after, err := ed.Map()
+	if err != nil {
+		t.Fatal(err)
+	}
+	band, fixBand := 0, 0
+	for px := 1; px < brushSide; px++ {
+		band += b2i(mapedit.HardCorner(after.Tiles, brushSide, px, 8, testClass))
+		fixBand += b2i(mapedit.HardCorner(fixed, brushSide, px, 8, testClass))
+	}
+	for i := range 8 * brushSide {
+		if after.Tiles[i] != land {
+			t.Fatalf("cell %d of the top rows holds %#x, want the last cell's word", i, after.Tiles[i])
+		}
+	}
+	below, fixBelow := newHardCorners(before.Tiles, after.Tiles, brushSide, brushSide), newHardCorners(before.Tiles, fixed, brushSide, brushSide)
+	t.Logf("hard corners at row 8: %d after the save normalisation, %d from TileFix alone; below: %d and %d", band, fixBand, below, fixBelow)
+	if band == 0 || fixBand != 0 || below != 0 || fixBelow != 0 || fix.Seams != 0 {
+		t.Errorf("row 8: %d hard corners after the stroke, %d from TileFix; below row 8: %d and %d; %d cells with no word", band, fixBand, below, fixBelow, fix.Seams)
 	}
 }

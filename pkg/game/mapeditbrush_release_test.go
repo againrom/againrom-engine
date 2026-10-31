@@ -129,42 +129,20 @@ func area(t *testing.T, e *ui.MapEditor, class uint8, r int) (at image.Point, pa
 	return at, true
 }
 
-// cornerAt is the class cell (x, y) of m shows at map point (px, py), one of
-// its four corners.
-func cornerAt(m *alm.Map, x, y, px, py int) uint8 {
-	q, _ := installedCorners(m.Tiles[y*m.Width+x])
-	return q[(px-x)+2*(py-y)]
-}
-
-// hard reports whether the four cells meeting at map point (px, py) of m
-// show more than one class there, Flowers read as Grass.
-func hard(m *alm.Map, px, py int) bool {
-	grass := func(c uint8) uint8 {
-		if c == mapedit.ClassFlowers {
-			return mapedit.ClassGrass
-		}
-		return c
-	}
-	first := grass(cornerAt(m, px-1, py-1, px, py))
-	for _, n := range [3][2]int{{px, py - 1}, {px - 1, py}, {px, py}} {
-		if grass(cornerAt(m, n[0], n[1], px, py)) != first {
-			return true
-		}
-	}
-	return false
-}
-
-// hardEdges counts the cells a stroke rewrote and the corners of those cells
-// where the cells meeting there show more than one class and did not before.
+// hardEdges counts the cells below the top eight rows a stroke rewrote and
+// their corners that are hard (mapedit.HardCorner) and were not before. Row
+// 8's top edge is left out: the save normalisation writes the rows above it
+// (ALM-SAVE-238).
 func hardEdges(before, after *alm.Map) (changed, hardCorners int) {
 	w := after.Width
+	hard := func(m *alm.Map, px, py int) bool { return mapedit.HardCorner(m.Tiles, w, px, py, mapload.TileClass) }
 	for y := 8; y < after.Height-1; y++ {
 		for x := 1; x < w-1; x++ {
 			if after.Tiles[y*w+x] == before.Tiles[y*w+x] {
 				continue
 			}
 			changed++
-			for py := y; py <= y+1; py++ {
+			for py := max(y, 9); py <= y+1; py++ {
 				for px := x; px <= x+1; px++ {
 					if hard(after, px, py) && !hard(before, px, py) {
 						hardCorners++
@@ -225,7 +203,8 @@ func TestReleaseMapEditorStrokesLeaveNoSeam(t *testing.T) {
 // Grass, Land, Cracked and Stones at sizes 0, 1 and 3, both shapes, on the
 // points where the seam meets the Land ring and on the seam: no stroke leaves
 // a corner where the cells meeting show two classes and did not before, and
-// undo gives back the bytes.
+// undo gives back the bytes. A stroke whose random fill rewrites no word
+// records no edit and takes no undo.
 func TestReleaseMapEditorThreeClassJunctionsLeaveNoSeam(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -256,7 +235,9 @@ func TestReleaseMapEditorThreeClassJunctionsLeaveNoSeam(t *testing.T) {
 					if corners != 0 {
 						t.Errorf("class %d at %v, size %d, shape %d: %d cells rewritten, %d new hard corners", class, j, size, shape, changed, corners)
 					}
-					_ = e.Key("undo")
+					if string(e.Document().SourceBytes) != string(before) {
+						_ = e.Key("undo")
+					}
 					if string(e.Document().SourceBytes) != string(before) {
 						t.Fatalf("class %d at %v: undo did not restore the bytes", class, j)
 					}
