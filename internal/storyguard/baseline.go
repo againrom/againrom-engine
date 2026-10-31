@@ -3623,5 +3623,10 @@ var Committed = Baseline{
 	// release test's comparison notes.
 
 	// It fell: the deformation picture is a capability row.
-	CommentBytes: 10085585,
+
+	// It rose for the Druids' town file: leaveBagToCampaign's companion
+	// packs, mission 52's add in completeBank, the town entry's clear in
+	// secondworldmap.go, their tests in secondtownfile_test.go and
+	// seconddruidstown_release_test.go, and this note.
+	CommentBytes: 10087840,
 }

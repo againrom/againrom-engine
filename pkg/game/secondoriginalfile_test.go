@@ -695,7 +695,7 @@ func TestSecondMissionFileStateReads(t *testing.T) {
 	}
 }
 
-func TestLeaveBagToCampaignEmptiesEveryPack(t *testing.T) {
+func TestLeaveBagToCampaignEmptiesTheHerosPack(t *testing.T) {
 	party := []mapload.PartyMember{{
 		ID: "hero", Carried: []uint16{0x0205}, CarriedItems: []sim.ItemInstance{{Code: 0x0205}},
 		Carry: &mapload.Carry{Items: []uint16{0x0205}},

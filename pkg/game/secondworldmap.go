@@ -74,6 +74,9 @@ func (t *destinationTownMap) enterLocation(l partyPlace) ui.TownAction {
 	c := t.host.state()
 	if l.kind == placeTown {
 		c.current, c.room, c.mapOpen = l, secondTownSquare, nil
+		// EnterLocation clears slots 752..767 at every location
+		// (R2-ENGINE-048); a mission's entry clears them as it seats.
+		clear(c.bank[752:768])
 		if err := t.host.sess.enteredTown(t.host.in.townInstall()); err != nil {
 			return ui.TownAction{Msg: err.Error()}
 		}

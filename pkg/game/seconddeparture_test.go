@@ -137,8 +137,11 @@ func TestSecondCampaignTwentyDepartureBankAndSelections(t *testing.T) {
 		if !screen.Back() || c.room != secondTownSquare || !reflect.DeepEqual(c.available, want21) {
 			t.Fatal("inn Back changed the campaign")
 		}
+		// Entering the town clears slots 752..767 and nothing else
+		// (R2-ENGINE-048).
+		clear(completedBank[752:768])
 		if c.bank != completedBank {
-			t.Fatal("town entry changed bank")
+			t.Fatal("town entry changed bank beyond slots 752..767")
 		}
 		raw, err := json.Marshal(captureSecondCampaign(c))
 		if err != nil {

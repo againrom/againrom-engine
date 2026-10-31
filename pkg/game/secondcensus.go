@@ -72,7 +72,7 @@ type SecondGate struct {
 }
 
 // SecondExit is one result a departure case can produce: a location it adds
-// ("mission 21", "town 3", "unresolved record") or a movie output ("movie
+// ("mission 21", "town 3", "mission 52") or a movie output ("movie
 // 5"), behind every gate it names. Engine says the controller produces it
 // exactly when those gates hold.
 type SecondExit struct {
@@ -669,7 +669,7 @@ var secondDepartureCases = map[int][]SecondExit{
 	30: {{Target: "movie 2"}},
 	31: {{Target: "mission 32"}},
 	40: {{Target: "mission 50"}, {Target: "mission 60"}},
-	50: {{Target: "town 3"}, {Target: "unresolved record", Gates: []SecondGate{{780, true}}}},
+	50: {{Target: "town 3"}, {Target: "mission 52", Gates: []SecondGate{{780, true}}}},
 	60: {{Target: "mission 80"}},
 	70: {{Target: "movie 3", Gates: []SecondGate{{777, false}, {778, true}}}},
 	80: {{Target: "movie 3", Gates: []SecondGate{{778, false}, {777, true}}}},

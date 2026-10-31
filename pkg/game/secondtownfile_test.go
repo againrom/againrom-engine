@@ -123,6 +123,82 @@ func TestSecondTownFileKeepsTheJoinedCompanion(t *testing.T) {
 	checkIdentityRecords(t, "the engine's SAVE", raw)
 }
 
+// druidsTownFile is an original town 3 file after mission 50's departure:
+// the hero, identity 22 and identity 23 in groups of their own, the hero
+// and identity 22 each carrying a staff and a robe in their own orders.
+func druidsTownFile() []byte {
+	staff := secondPiece{class: "Weapon", code: 0x812d, stack: 1, row: 13, kind: 2, price: 3819}
+	robe := secondPiece{class: "Armor", code: 0xf72d, stack: 1, row: 13, kind: 1, price: 250}
+	hero := secondFixtureHero()
+	hero.bag = []secondPiece{staff, robe}
+	iglez := identityMissionRecord()
+	iglez.bag = []secondPiece{robe, staff}
+	dina := identityMissionRecord()
+	dina.defRow, dina.mapUnitID, dina.key, dina.identity = 31, 126, 0x0ff00003, 23
+	tail := secondSavedTail(0, [2]uint32{3, placeTown})
+	binary.LittleEndian.PutUint32(tail[12+4*768:], 60)
+	return labelledContainer(sav.SecondGame.Magic, "druids", secondSavedPartyOf(0, 44, []secondOriginalHero{hero, iglez, dina}, false, 0, nil),
+		append(shortcutsStore(), tail...))
+}
+
+// humanPacks is each Human's Inventory item codes by its identity.
+func humanPacks(t *testing.T, raw []byte) map[uint32][]uint16 {
+	t.Helper()
+	doc, err := sav.DecodeDocumentData(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[uint32][]uint16{}
+	for i := range doc.Objects {
+		r := &doc.Objects[i]
+		if r.Class != "Human" {
+			continue
+		}
+		id, _ := savedStructureValue(r, "U148")
+		refs, _ := savedObjectRefs(r, "Inventory")
+		codes := []uint16{}
+		for _, ref := range refs {
+			code, _ := savedStructureValue(&doc.Objects[ref-1], "F40")
+			codes = append(codes, uint16(code))
+		}
+		out[id&0xffff] = codes
+	}
+	return out
+}
+
+// A LOAD of an original town file puts each carried piece where the file
+// holds it: the hero's pack goes to the campaign's bag, and each companion
+// keeps his own pack in its order. The SAVE after it writes each member's
+// pack in his own Human again.
+func TestSecondTownFileLoadKeepsEachCompanionsPack(t *testing.T) {
+	cold := coldIdentityTown(t, druidsTownFile())
+	if got := carriedIdentities(cold.Carried, cold.Table); !slices.Equal(got, []int{21, 22, 23}) {
+		t.Fatalf("LOAD carries identities %v, want 21, 22 and 23", got)
+	}
+	codes := func(m mapload.PartyMember) []uint16 {
+		var out []uint16
+		for _, it := range m.CarriedItems {
+			out = append(out, it.Code)
+		}
+		return out
+	}
+	packs := map[string][]uint16{}
+	for _, m := range cold.Carried {
+		packs[m.ID] = codes(m)
+	}
+	if !slices.Equal(packs["npc:22"], []uint16{0xf72d, 0x812d}) || len(packs["npc:23"]) != 0 {
+		t.Fatalf("the companions carry %v, want identity 22's robe and staff", packs)
+	}
+	c := cold.Town.second
+	if c == nil || c.current != (partyPlace{placeTown, 3}) || len(c.party) != 1 || !slices.Equal(codes(c.party[0]), []uint16{0x812d, 0xf72d}) {
+		t.Fatalf("the campaign stands at %+v with bag %v, want town 3 and the hero's staff and robe", c.current, c.party)
+	}
+	saved := humanPacks(t, exportTown(t, cold))
+	if !slices.Equal(saved[22], []uint16{0xf72d, 0x812d}) || len(saved[23]) != 0 || !slices.Equal(saved[21], []uint16{0x812d, 0xf72d}) {
+		t.Fatalf("the SAVE writes packs %v, want each member's own", saved)
+	}
+}
+
 // The pair list, the two words after it and each location's 16 raw bytes
 // of a loaded tail are written back by the town SAVE and by the SAVE after
 // a LOAD of that file; a location the file did not list writes zero.

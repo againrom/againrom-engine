@@ -45,6 +45,9 @@ func departureAdds(n int, bank [1024]int32) []partyPlace {
 	case 40:
 		return []partyPlace{{1, 50}, {1, 60}}
 	case 50:
+		if bank[780] != 0 {
+			return []partyPlace{{2, 3}, {1, 52}}
+		}
 		return []partyPlace{{2, 3}}
 	case 60:
 		return []partyPlace{{1, 80}}

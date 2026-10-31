@@ -38,29 +38,29 @@ func TestReleaseSecondGameSupportCensus(t *testing.T) {
 		Placements: placed, Withdrawn: 9, AuthoredHP: 296, BornFallen: 4, NoSpellMaps: 0,
 		Events: 425, NoReasonText: 2,
 		Checks: 986, Instants: 1334, Triggers: triggers, SharedNodes: 1146,
-		FixtureMaps: 0, EntryMaps: 45, WinMaps: 46, Ready: 43,
-		Exits: 15, GatedExits: 6, EngineExits: 14,
+		FixtureMaps: 0, EntryMaps: 46, WinMaps: 46, Ready: 45,
+		Exits: 15, GatedExits: 6, EngineExits: 15,
 	}
 	// The census party carries identities 21, 22 and 23, which bind every
 	// hero-band value the 46 maps name (10001, 10002 and 10003).
 	if got != want {
 		t.Errorf("census totals\n got %+v\nwant %+v", got, want)
 	}
-	// The one map no published producer reaches on the controller's walks
-	// over the four character choices: 52.
+	// The controller's walks over the four character choices reach every
+	// map: mission 52 through mission 50's bank780-gated add.
 	var unreached []int
 	for _, c := range census {
 		if slices.Contains(c.Blockers(), BlockEntry) {
 			unreached = append(unreached, c.Mission)
 		}
 	}
-	if want := []int{52}; !slices.Equal(unreached, want) {
-		t.Errorf("maps blocked on entry %v, want %v", unreached, want)
+	if len(unreached) != 0 {
+		t.Errorf("maps blocked on entry %v, want none", unreached)
 	}
 	for _, c := range census {
 		blockers := c.Blockers()
-		if slices.Contains(blockers, BlockMovie) || slices.Contains(blockers, BlockSave) || slices.Contains(blockers, BlockContinuation) != (c.Mission == 50) {
-			t.Errorf("mission %d blockers %v: only mission 50's unresolved record may block continuation", c.Mission, blockers)
+		if slices.Contains(blockers, BlockMovie) || slices.Contains(blockers, BlockSave) || slices.Contains(blockers, BlockContinuation) {
+			t.Errorf("mission %d blockers %v: no map may block continuation", c.Mission, blockers)
 		}
 		if slices.Contains(blockers, BlockParty) || len(c.UnboundHeroes) != 0 {
 			t.Errorf("mission %d blockers %v leave hero-band values %v unbound", c.Mission, blockers, c.UnboundHeroes)

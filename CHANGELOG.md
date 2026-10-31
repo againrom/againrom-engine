@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] After the Druids' mission the party arrives in the Druids' town with Iglez and Dina, each keeping what he carries, and the map also offers the mission the original adds there; loading a save made in that town no longer empties Iglez's pack.
 - [ROM2] Summoned creatures no longer stay forever, as in the original: while a mage has two or more, about once a second one of them may die and vanish, with a chance of about one in a hundred for each creature beyond the first, and the last one stays; a summoned creature killed in a fight now vanishes after its fall instead of decaying to bones. Creatures summoned before a save stay after loading it until they die.
 
 ## 0.144.0

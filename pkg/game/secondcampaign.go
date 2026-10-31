@@ -173,9 +173,11 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 		add(partyPlace{1, 60})
 		c.bank[773] = 23
 	case 50:
-		// The bank780-gated fixed record has no resolved type or ID and is
-		// not appended (DIV-2629).
+		// The bank780-gated fixed record is mission 52 (R2-ENGINE-419).
 		add(partyPlace{2, 3})
+		if c.bank[780] != 0 {
+			add(partyPlace{1, 52})
+		}
 		c.bank[771], c.bank[534], c.bank[554] = 1, 1, 3
 	case 60:
 		add(partyPlace{1, 80})

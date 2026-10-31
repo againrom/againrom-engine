@@ -154,7 +154,7 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 			}
 		}
 	})
-	want := []int{10, 20, 21, 30, 31, 32, 40, 41, 42, 43, 50, 51, 53, 60, 61, 62, 63, 70, 71, 72, 73, 74,
+	want := []int{10, 20, 21, 30, 31, 32, 40, 41, 42, 43, 50, 51, 52, 53, 60, 61, 62, 63, 70, 71, 72, 73, 74,
 		75, 76, 77, 80, 81, 82, 83, 84, 85, 86, 87, 90, 91, 92, 93, 94, 95, 96, 100, 101, 102, 103, 110}
 	if !slices.Equal(got, want) {
 		t.Fatalf("engine reaches %v, want %v", got, want)
@@ -173,11 +173,11 @@ func TestSecondControllerReachesAndContinuesOnlyItsMissions(t *testing.T) {
 		{n: 32, producer: "departure of 31", entry: true, win: true},
 		{n: 40, producer: "stage 40 inn talk", entry: true, win: true, exits: []string{"mission 50:yes", "mission 60:yes"}, engineAdds: []string{"mission 50", "mission 60"}},
 		{n: 41, producer: "stage 40 inn talk", entry: true, win: true},
-		{n: 52, win: true},
+		{n: 52, producer: "departure of 50", entry: true, win: true},
 		{n: 70, producer: "stage 60/70/80 inn talk", entry: true, win: true, exits: []string{"movie 3 if 777=0 778!=0:yes"}},
 		{n: 83, producer: "stage 80 inn talk", entry: true, win: true},
 		{n: 101, producer: "stage 100 inn talk", entry: true, win: true},
-		{n: 50, producer: "departure of 40", entry: true, win: true, exits: []string{"town 3:yes", "unresolved record if 780!=0:no"}, engineAdds: []string{"town 3"}},
+		{n: 50, producer: "departure of 40", entry: true, win: true, exits: []string{"town 3:yes", "mission 52 if 780!=0:yes"}, engineAdds: []string{"town 3", "mission 52"}},
 		{n: 60, producer: "departure of 40", entry: true, win: true, exits: []string{"mission 80:yes"}, engineAdds: []string{"mission 80"}},
 	} {
 		d := secondDeparture(tc.n, reach)
@@ -198,23 +198,23 @@ func censusExits(d SecondDeparture) []string {
 }
 
 // Every published exit stays, with its gates: both of mission 110's outputs,
-// and the opposite bank777/bank778 gates on the outputs of 70 and 80. The
-// engine produces each movie exactly under its gates; only mission 50's
-// unresolved record stays unproduced.
+// the opposite bank777/bank778 gates on the outputs of 70 and 80, and mission
+// 50's bank780 gate on mission 52. The engine produces each exactly under its
+// gates.
 func TestSecondDepartureKeepsEveryExitAndItsGates(t *testing.T) {
 	reach := secondEngineReach()
 	for n, want := range map[int][]string{
 		70:  {"movie 3 if 777=0 778!=0:yes"},
 		80:  {"movie 3 if 778=0 777!=0:yes"},
 		110: {"movie 5 if 779!=0:yes", "movie 4 if 779=0:yes"},
-		50:  {"town 3:yes", "unresolved record if 780!=0:no"},
+		50:  {"town 3:yes", "mission 52 if 780!=0:yes"},
 	} {
 		d := secondDeparture(n, reach)
 		if got := censusExits(d); !slices.Equal(got, want) {
 			t.Errorf("exits of %d = %v, want %v", n, got, want)
 		}
 		b := (SecondMapCensus{Mission: n, Departure: d}).Blockers()
-		if slices.Contains(b, BlockMovie) || slices.Contains(b, BlockContinuation) != (n == 50) {
+		if slices.Contains(b, BlockMovie) || slices.Contains(b, BlockContinuation) {
 			t.Errorf("blockers of %d = %v", n, b)
 		}
 	}
