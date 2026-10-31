@@ -3625,5 +3625,8 @@ var Committed = Baseline{
 
 	// The side panels' correction (category palettes, minimize, cell
 	// tooltips) and its merges with main are measured on the merged tree.
-	CommentBytes: 10100258,
+
+	// It rose for the test that the player legend stands in the map corner
+	// the side panels leave, and this note.
+	CommentBytes: 10100547,
 }
