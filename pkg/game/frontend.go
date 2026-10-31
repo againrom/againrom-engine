@@ -1499,36 +1499,8 @@ func (in *InstallResources) canonicalizeJoinedRoster(ms *Mission) {
 		return
 	}
 	for id, p := range ms.Start.Roster {
-		nameIndex := p.CompanionNPC - 1
-		if p.CompanionNPC >= 21 && p.CompanionNPC <= 24 {
-			selector := -1
-			for i, base := range data.ChargenBaseNames() {
-				if p.Name == base || strings.HasPrefix(p.Name, base+"_") {
-					selector = i
-					break
-				}
-			}
-			if selector < 0 {
-				selector = 0
-				if data.FigureDir(p.FigureDir).Female() {
-					selector++
-				}
-				if p.Mage {
-					selector += 2
-				}
-			}
-			nameIndex = 20 + selector
-		}
-		if p.CompanionNPC != 0 {
-			p.Name = in.localizedNPCName(nameIndex, p.Name)
-		} else if name, ok := in.modCharacterName(p.Name); ok {
-			// A mod named this definition row.
-			p.Name = name
-		} else if index := int(p.Class); index >= 0 && index < len(in.Words.UnitNames) && in.Words.UnitNames[index] != "" {
-			// Ordinary Humans carry a table key such as M_Brigand3 here.
-			// Resolve their type before equipment replaces the body class.
-			p.Name = in.Words.UnitNames[index]
-		}
+		// Resolve an ordinary Human's type before equipment replaces the body class.
+		p.Name = in.definitionName(p, int(p.Class), &in.Words, p.Name)
 		// Only a Hero placement derives its class from equipment (ANIM-106).
 		hero := true
 		if ms.World != nil {

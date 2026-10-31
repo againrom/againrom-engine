@@ -878,7 +878,7 @@ func (w *World) groupCandidates(g aiGroup, consume bool) []int {
 		if !w.sightShows(stamp, cellOf(c)) {
 			continue
 		}
-		if w.hasAttachedSpell(c.ID, w.armSpellID(15)) && !w.groupDetectsInvisible(g.members, cellOf(c)) {
+		if !w.perceives(perception{purpose: perceiveGroup, members: g.members, target: i}) {
 			continue
 		}
 		if !w.hostileTo(&decider, c) {
@@ -897,20 +897,6 @@ func (w *World) groupCandidates(g aiGroup, consume bool) []int {
 		return dead
 	}
 	return live
-}
-
-// groupDetectsInvisible applies each member's own detector radius. Candidate
-// terrain visibility is established by the shared group sight map before this
-// helper runs; a different member may therefore supply ordinary sight and the
-// detector that preserves the invisible candidate.
-func (w *World) groupDetectsInvisible(members []int, candidate cell) bool {
-	for _, i := range members {
-		if i >= 0 && i < len(w.entities) &&
-			cellOf(&w.entities[i]).chebyshevTo(candidate) <= int64(w.entities[i].SeeInvisible) {
-			return true
-		}
-	}
-	return false
 }
 
 // noticeBase is the geometry-and-floor half of a guarding group's notice

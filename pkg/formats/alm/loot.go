@@ -17,12 +17,6 @@ import (
 )
 
 const (
-	lootHeadShort   = 16 // owner/X/Y, no gold (FormatVersion < lootWideHeadVersion)
-	lootHeadWide    = 20 // owner/X/Y/gold (FormatVersion >= lootWideHeadVersion)
-	lootElementSize = 10 // one item entry inside a record
-
-	lootWideHeadVersion = 989 //
-
 	lootClassShift       = 8
 	lootClassMask        = 0x0f
 	lootIndexMask        = 0x1f
@@ -97,9 +91,9 @@ func ItemIndex(code uint16) uint8 {
 func (m *Map) Loot() (Loot, error) {
 	b := m.LootSection.Body
 
-	headSize := lootHeadShort
-	if m.FormatVersion >= lootWideHeadVersion {
-		headSize = lootHeadWide
+	headSize := LootHeadShort
+	if m.FormatVersion >= LootWideHeadVersion {
+		headSize = LootHeadWide
 	}
 
 	n := int64(m.Meta.Word2C)
@@ -112,28 +106,28 @@ func (m *Map) Loot() (Loot, error) {
 		}
 		head := b[off : off+headSize]
 		rec := LootRecord{
-			Owner: binary.LittleEndian.Uint32(head[0x04:0x08]),
-			X:     binary.LittleEndian.Uint32(head[0x08:0x0c]),
-			Y:     binary.LittleEndian.Uint32(head[0x0c:0x10]),
+			Owner: binary.LittleEndian.Uint32(head[LootOwner:]),
+			X:     binary.LittleEndian.Uint32(head[LootX:]),
+			Y:     binary.LittleEndian.Uint32(head[LootY:]),
 		}
-		if headSize == lootHeadWide {
-			rec.Gold = binary.LittleEndian.Uint32(head[0x10:0x14])
+		if headSize == LootHeadWide {
+			rec.Gold = binary.LittleEndian.Uint32(head[LootGold:])
 		}
-		elemN := int64(binary.LittleEndian.Uint32(head[0x00:0x04]))
+		elemN := int64(binary.LittleEndian.Uint32(head[LootCount:]))
 		off += headSize
 
-		span := elemN * lootElementSize
+		span := elemN * LootElementSize
 		if span > int64(len(b)-off) {
 			return Loot{}, fmt.Errorf("alm: type8 record %d declares %d element(s) at offset %d, which are %d byte(s), and %d remain",
 				i, elemN, off, span, len(b)-off)
 		}
 		elems := make([]LootElement, elemN)
 		for k := range elems {
-			e := b[off+int(k)*lootElementSize : off+(int(k)+1)*lootElementSize]
+			e := b[off+int(k)*LootElementSize : off+(int(k)+1)*LootElementSize]
 			elems[k] = LootElement{
-				Code:            binary.LittleEndian.Uint32(e[0x00:0x04]),
-				Field04:         binary.LittleEndian.Uint16(e[0x04:0x06]),
-				TileMarkerIndex: binary.LittleEndian.Uint32(e[0x06:0x0a]),
+				Code:            binary.LittleEndian.Uint32(e[LootElementCode:]),
+				Field04:         binary.LittleEndian.Uint16(e[LootElementField04:]),
+				TileMarkerIndex: binary.LittleEndian.Uint32(e[LootElementMarker:]),
 			}
 		}
 		off += int(span)

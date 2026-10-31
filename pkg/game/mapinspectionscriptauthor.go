@@ -38,9 +38,9 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 		if m.Count(k) >= 1000 {
 			return 0, fmt.Errorf("the script already holds 1000 triggers")
 		}
-		rec = make([]byte, 184)
+		rec = make([]byte, alm.ScriptTriggerSize)
 		copy(rec, "Trigger")
-		binary.LittleEndian.PutUint32(rec[0xb4:], 1)
+		binary.LittleEndian.PutUint32(rec[alm.ScriptTriggerOnce:], 1)
 	} else {
 		if k == mapedit.KindCondition && m.Count(k) >= 100 {
 			return 0, fmt.Errorf("the script already uses 100 check registers")
@@ -62,44 +62,6 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 	}
 	_, err := m.Place(k, rec)
 	return id, err
-}
-
-// scriptFieldChoices are a script field's choices, their labels in the font's
-// bytes through text.
-func scriptFieldChoices(kind, key string, sc alm.Script, text func(string) string) []ui.InspectionChoice {
-	var out []ui.InspectionChoice
-	switch {
-	case key == "opcode":
-		for _, row := range mapload.ScriptOperations(kind == "Condition") {
-			out = append(out, ui.InspectionChoice{Value: int64(row.Opcode), Label: row.Name})
-		}
-	case strings.HasPrefix(key, "type"):
-		for i, name := range mapload.ScriptParameterNames {
-			out = append(out, ui.InspectionChoice{Value: int64(i), Label: name})
-		}
-	case strings.HasPrefix(key, "cmp"):
-		for i, name := range mapload.ScriptComparisons {
-			out = append(out, ui.InspectionChoice{Value: int64(i), Label: name})
-		}
-	case key == "once":
-		out = []ui.InspectionChoice{{Value: 0, Label: "Repeat while true"}, {Value: 1, Label: "At most once"}}
-	case kind == "Trigger" && (strings.HasPrefix(key, "left") || strings.HasPrefix(key, "right") || strings.HasPrefix(key, "action")):
-		out = []ui.InspectionChoice{{Value: 0, Label: "Empty"}}
-		nodes := sc.Conditions
-		if strings.HasPrefix(key, "action") {
-			nodes = sc.Actions
-		}
-		counts := map[uint32]int{}
-		for _, n := range nodes {
-			counts[n.ID]++
-		}
-		for _, n := range nodes {
-			if n.ID > 0 && counts[n.ID] == 1 && !(strings.HasPrefix(key, "action") && n.Opcode >= 0x10000) {
-				out = append(out, ui.InspectionChoice{Value: int64(n.ID), Label: fmt.Sprintf("%d: %s", n.ID, text(n.Label))})
-			}
-		}
-	}
-	return out
 }
 
 func scriptNodes(sc alm.Script, k mapedit.Kind) []alm.ScriptNode {

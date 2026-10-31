@@ -409,7 +409,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		if len(script.Triggers) == 0 {
 			d.ScriptNotice = "No authored triggers"
 		}
-		if !m.Present(7) {
+		if !m.Present(alm.TypeScript) {
 			d.ScriptNotice = "Section 7 absent; no authored script"
 		}
 		if d.AgainromOnly = mapload.ScriptAgainromOnly(script); d.AgainromOnly {

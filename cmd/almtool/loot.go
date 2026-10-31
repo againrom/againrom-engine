@@ -19,7 +19,7 @@ func cmdLoot(path string) error {
 
 	fmt.Printf("map:   %q  %dx%d  version=%d\n", m.Name, m.Width, m.Height, m.FormatVersion)
 	fmt.Printf("type8: present=%v  #records (meta +0x2c)=%d  body=%d bytes\n",
-		m.Present(8), m.Meta.Word2C, len(m.LootSection.Body))
+		m.Present(alm.TypeLoot), m.Meta.Word2C, len(m.LootSection.Body))
 
 	var ground, stock, elements int
 	var totalGold uint64

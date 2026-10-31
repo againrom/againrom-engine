@@ -54,7 +54,7 @@ func (v *Viewer) destructibleScenery(cell uint16) bool {
 		return false
 	}
 	i := y*v.grid.Width + x
-	if i >= len(v.grid.Overlay) || i >= len(v.baseTileWords) || v.baseTileWords[i]&0x2000 != 0 {
+	if i >= len(v.grid.Overlay) || i >= len(v.baseTileWords) || terrain.IsImpassable(v.baseTileWords[i]) {
 		return false
 	}
 	c := v.staticSet.Classes[v.grid.Overlay[i]]
@@ -108,7 +108,7 @@ func (v *Viewer) SetScorchedCells(cells []uint16) {
 			continue
 		}
 		at := y*v.grid.Width + x
-		v.grid.Tiles[at] |= 0x2000
+		v.grid.Tiles[at] |= terrain.ImpassableBit
 	}
 	v.staticsFlat, v.staticCounts, v.animFlat = terrain.StaticPlacements(v.grid, v.staticSet, nil, 0, v.staticAnimGate)
 	if v.proj != nil {
@@ -122,7 +122,7 @@ func (v *Viewer) SetScorchedCells(cells []uint16) {
 func (v *Viewer) ScorchedScenery() (ground, objects int) {
 	for _, key := range v.scorchedCells {
 		x, y := int(key&255), int(key>>8)
-		if x < v.grid.Width && y < v.grid.Height && v.tileWord(x, y)&0x2000 != 0 && !terrain.Resolve(v.tileWord(x, y)).Water {
+		if x < v.grid.Width && y < v.grid.Height && terrain.IsImpassable(v.tileWord(x, y)) && !terrain.Resolve(v.tileWord(x, y)).Water {
 			ground++
 		}
 	}

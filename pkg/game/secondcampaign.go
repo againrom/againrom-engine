@@ -228,13 +228,26 @@ func (t *townScreen) StartNewGame() error {
 }
 
 // innAct runs inn seat i: Hire or Fire on a hire actor, TALK on a talk
-// actor (R2-ENGINE-496).
+// actor (R2-ENGINE-496). Each requests its room event: talk, hire, dismiss
+// for Fire and hire-short for a refused hire (DIV-4372).
 func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 	seats, hires := c.innSeats()
 	if i >= hires {
+		t.shownRoomSound("talk")
 		return t.talk(c, seats[i])
 	}
-	if key := c.hireOrFire(seats[i].npc); key != "" {
+	npc := seats[i].npc
+	fired := c.hired(npc)
+	key := c.hireOrFire(npc)
+	switch {
+	case fired:
+		t.shownRoomSound("dismiss")
+	case c.hired(npc):
+		t.shownRoomSound("hire")
+	case key != "":
+		t.shownRoomSound("hire-short")
+	}
+	if key != "" {
 		return t.openTownText(key)
 	}
 	return ui.TownAction{}

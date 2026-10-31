@@ -10,6 +10,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 
@@ -129,7 +130,7 @@ func TestReleaseShopBookShelfPopupShowsTheBookCard(t *testing.T) {
 		if k >= len(items) || !view.Shelf[c].Occupied() {
 			continue
 		}
-		spell, ok := items[k].Instance().BookSpell()
+		spell, ok := items[k].Instance().BookSpell(rules.SpellGameFirst)
 		if !ok {
 			continue
 		}

@@ -9,26 +9,20 @@ import (
 )
 
 const (
-	playerTypeID     = 5
-	playerRecordSize = 76
-	metaPlayerCount  = 0x1c
-	playerLimit      = 16
-	playerName       = 0x0c
-	playerNameSize   = 32
-	playerRelations  = 0x2c
+	playerLimit = 16
 )
 
 var playerBaseFields = []Field{
-	{Key: "name", Label: "Name", Offset: playerName, Width: playerNameSize, Text: &alm.PlayerNameText},
-	{Key: "colour", Label: "Colour slot", Offset: 0, Width: 4, Min: 0, Max: 15},
-	{Key: "control", Label: "Control (0 human, 1 computer)", Offset: 4, Width: 4, Min: 0, Max: 1},
+	{Key: "name", Label: "Name", Offset: alm.GroupName, Width: alm.GroupNameLen, Text: &alm.PlayerNameText},
+	{Key: "colour", Label: "Colour slot", Offset: alm.GroupColour, Width: 4, Min: 0, Max: 15},
+	{Key: "control", Label: "Control (0 human, 1 computer)", Offset: alm.GroupControl, Width: 4, Min: 0, Max: 1},
 }
 
 func playerFields(e *Editor, _ []byte) []Field {
 	out := append([]Field(nil), playerBaseFields...)
 	for i := 0; i < min(e.Count(KindPlayer), playerLimit); i++ {
 		out = append(out, Field{Key: fmt.Sprintf("relation%d", i), Label: fmt.Sprintf("Relation to player %d (0 neutral, 1 hostile, 2 ally)", i+1),
-			Offset: playerRelations + 2*i, Width: 2, Min: 0, Max: 2, Toward: i + 1})
+			Offset: alm.GroupRelations + 2*i, Width: 2, Min: 0, Max: 2, Toward: i + 1})
 	}
 	return out
 }
@@ -42,17 +36,17 @@ func (e *Editor) NewPlayerRecord() ([]byte, error) {
 	if w.n() >= playerLimit {
 		return nil, fmt.Errorf("mapedit: the roster already has %d players; maximum %d", w.n(), playerLimit)
 	}
-	rec := make([]byte, playerRecordSize)
+	rec := make([]byte, alm.GroupSize)
 	binary.LittleEndian.PutUint32(rec, uint32(min(w.n()+1, 15)))
 	binary.LittleEndian.PutUint32(rec[4:], 1)
 	binary.LittleEndian.PutUint32(rec[8:], 5000)
-	copy(rec[playerName:playerName+playerNameSize], fmt.Sprintf("New Player %d", w.n()+1))
+	copy(rec[alm.GroupName:alm.GroupName+alm.GroupNameLen], fmt.Sprintf("New Player %d", w.n()+1))
 	for j := 0; j < playerLimit; j++ {
 		value := uint16(1)
 		if j == w.n() {
 			value = 2
 		}
-		binary.LittleEndian.PutUint16(rec[playerRelations+2*j:], value)
+		binary.LittleEndian.PutUint16(rec[alm.GroupRelations+2*j:], value)
 	}
 	return rec, nil
 }
@@ -68,7 +62,7 @@ func validatePlayerPlacement(_ *Editor, w walk, rec []byte) error {
 			}
 		}
 	}
-	name := rec[playerName : playerName+playerNameSize]
+	name := rec[alm.GroupName : alm.GroupName+alm.GroupNameLen]
 	if at := bytes.IndexByte(name, 0); at >= 0 {
 		name = name[:at]
 	}
@@ -76,7 +70,7 @@ func validatePlayerPlacement(_ *Editor, w walk, rec []byte) error {
 		return fmt.Errorf("mapedit: Name must fit Windows-1251")
 	}
 	for j := 0; j < playerLimit; j++ {
-		if v := binary.LittleEndian.Uint16(rec[playerRelations+2*j:]); v > 2 {
+		if v := binary.LittleEndian.Uint16(rec[alm.GroupRelations+2*j:]); v > 2 {
 			return fmt.Errorf("mapedit: relation to player %d is %d, outside 0..2", j+1, v)
 		}
 	}
@@ -94,7 +88,7 @@ func playerDeleteParts(e *Editor, roster walk, index int) ([]part, error) {
 		kind   Kind
 		offset int
 		mask   uint32
-	}{{KindUnit, 0x14, ^uint32(0)}, {KindStructure, 0x0e, 0xffff}} {
+	}{{KindUnit, alm.UnitOwner, ^uint32(0)}, {KindStructure, alm.ObjectOwner, 0xffff}} {
 		if !roster.frame.carries(sections[owner.kind].typeID) {
 			continue
 		}
@@ -114,7 +108,7 @@ func playerDeleteParts(e *Editor, roster walk, index int) ([]part, error) {
 			}
 		}
 	}
-	if roster.frame.carries(scriptTypeID) {
+	if roster.frame.carries(alm.TypeScript) {
 		for _, kind := range []Kind{KindAction, KindCondition} {
 			w, err := e.walkSection(kind, "check player references")
 			if err != nil {
@@ -122,9 +116,9 @@ func playerDeleteParts(e *Editor, roster walk, index int) ([]part, error) {
 			}
 			for i := 0; i < w.n(); i++ {
 				at, _ := w.at(i)
-				for j := 0; j < nodeSlots; j++ {
-					p := at + nodeValues + 4*j
-					if e.u32(at+nodeTypes+4*j) != paramPlayer {
+				for j := 0; j < alm.ScriptParams; j++ {
+					p := at + alm.ScriptNodeValues + 4*j
+					if e.u32(at+alm.ScriptNodeTypes+4*j) != paramPlayer {
 						continue
 					}
 					value := e.u32(p)
@@ -146,7 +140,7 @@ func playerDeleteParts(e *Editor, roster walk, index int) ([]part, error) {
 			continue
 		}
 		at, _ := roster.at(i)
-		start, end := at+playerRelations+2*index, at+playerRecordSize
+		start, end := at+alm.GroupRelations+2*index, at+alm.GroupSize
 		next := append(cloneBytes(e.data[start+2:end]), 0, 0)
 		parts = append(parts, replace(start, e.data[start:end], next))
 	}

@@ -18,7 +18,7 @@ func (m *Map) CellBindings() ([]CellBinding, error) {
 	if m == nil {
 		return nil, nil
 	}
-	if m.Present(9) && uint64(len(m.Enchantments)) != uint64(m.TileMarkers.Count) {
+	if m.Present(TypeTileMarkers) && uint64(len(m.Enchantments)) != uint64(m.TileMarkers.Count) {
 		return nil, fmt.Errorf("alm: type-9 records do not tile the cell-binding payload")
 	}
 	var out []CellBinding

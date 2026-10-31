@@ -120,15 +120,16 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	return out
 }
 
-func (s *mapInspectionEdits) scriptParameterChoices(sc alm.Script, k mapedit.Kind, index int, key string) []ui.InspectionChoice {
+func scriptParameterChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	k, _ := editKind(a.kind)
 	if k != mapedit.KindAction && k != mapedit.KindCondition {
 		return nil
 	}
-	slot, err := strconv.Atoi(strings.TrimPrefix(key, "value"))
+	slot, err := strconv.Atoi(strings.TrimPrefix(a.key, "value"))
 	if err != nil || slot < 0 || slot >= 10 {
 		return nil
 	}
-	n := scriptNodes(sc, k)[index]
+	n := scriptNodes(*a.script, k)[a.index]
 	var out []ui.InspectionChoice
 	kind := scriptParameterKind(k == mapedit.KindCondition, n.Opcode, n.Type, slot)
 	current, found := int64(int32(n.Value[slot])), false

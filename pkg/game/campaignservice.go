@@ -22,6 +22,8 @@ type campaignService interface {
 	// townSavePoint refuses a save taken off the map when the town is not
 	// at a save point.
 	townSavePoint(f *FrontEnd) error
+	// refusals is the game's save point refusal table.
+	refusals() *refusalTable
 	// captureMission records the mission-only state a save taken on the map
 	// carries for this campaign.
 	captureMission(f *FrontEnd, s *Snapshot)

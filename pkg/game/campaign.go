@@ -160,6 +160,11 @@ type Campaign struct {
 	// Towns is the town catalog the campaign's party travels between, as the
 	// install's edition names it; nil holds town 1 alone.
 	Towns *townBook
+
+	// worldMap is the world-map catalog LoadCampaign read beside the
+	// scenario; the world-map assets take it. Nil for a campaign read
+	// from a registry alone.
+	worldMap *worldMapCatalog
 }
 
 // firstTownTransitionReward is the owner's authored reward for completing the
@@ -390,17 +395,14 @@ func LoadCampaign(fsys *vfs.FS) (Campaign, error) {
 		return Campaign{}, fmt.Errorf("%s: %w", ScenarioRegistry, err)
 	}
 	campaign := ReadCampaign(r)
-	if raw, err := fsys.ReadFile(globalMapRegistry); err == nil {
-		if parsed, err := reg.Parse(raw); err == nil {
-			if data, err := ReadGlobalMap(parsed); err == nil {
-				for mission, object := range data.Missions {
-					if object >= 0 && object < len(data.Objects) {
-						if campaign.MapObjects == nil {
-							campaign.MapObjects = make(map[int]int)
-						}
-						campaign.MapObjects[mission] = object
-					}
+	campaign.worldMap = readWorldMapCatalog(fsys)
+	if data := campaign.worldMap.data; data != nil {
+		for mission, object := range data.Missions {
+			if object >= 0 && object < len(data.Objects) {
+				if campaign.MapObjects == nil {
+					campaign.MapObjects = make(map[int]int)
 				}
+				campaign.MapObjects[mission] = object
 			}
 		}
 	}

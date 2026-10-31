@@ -9,7 +9,7 @@ import (
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/secondshop"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -571,10 +571,13 @@ func loadItemIcon(src entrySource, addr string) (*image.RGBA, error) {
 // the item's own code, except for a second-game spell book: its code names
 // its spell (the bag's identity), while its picture and name are its school's
 // Book template's, the one shopBookCodes finds (R2-ENGINE-712). A code that
-// names an installed magic item row is that row's own.
+// names an installed magic item row is that row's own. The code is read by
+// the second game's book form for every table, as before, so a first-game
+// item keeps its picture.
 func itemTemplateCode(table *mapload.Table, code uint16) data.ItemCode {
-	spell, ok := secondshop.BookSpell(code)
-	if !ok || table == nil || table.Spells == nil || spell <= 0 || spell >= table.Spells.Len() {
+	id, ok := sim.ItemInstance{Code: code}.BookSpell(rules.SpellGameSecond)
+	spell := int(id)
+	if !ok || table == nil || table.Spells == nil || spell >= table.Spells.Len() {
 		return data.ItemCode(code)
 	}
 	if table.MagicItems != nil && int(code&0xff) < table.MagicItems.Len() {

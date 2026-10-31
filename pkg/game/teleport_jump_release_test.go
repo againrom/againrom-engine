@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/intmath"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -81,7 +82,7 @@ func teleportJumpItem(t *testing.T, f *FrontEnd, scroll bool) sim.ItemInstance {
 			}
 			items, _ := mission.World.CarriedItems(sim.EntityID(index))
 			for _, item := range items {
-				if spell, ok := item.BookSpell(); ok && spell == 26 {
+				if spell, ok := item.BookSpell(rules.SpellGameFirst); ok && spell == 26 {
 					return item
 				}
 			}

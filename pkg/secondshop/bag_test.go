@@ -169,23 +169,6 @@ func TestKeptUnitLosesNothing(t *testing.T) {
 // TestUnitTakesTheBagForm puts worn items into the bag's form: a bag unit is
 // kept as it is, and a worn item built from a row loses the fields the bag
 // does not keep and takes the type byte of its part.
-// TestBookSpellReadsOnlyBookIDs reads the spell out of a book's ID and
-// refuses every other ID.
-func TestBookSpellReadsOnlyBookIDs(t *testing.T) {
-	for _, tc := range []struct {
-		code  uint16
-		spell int
-		ok    bool
-	}{
-		{0x0e81, 1, true}, {0x0e9a, 26, true}, {0x0eff, 127, true},
-		{0x0e03, 0, false}, {0x1e81, 0, false}, {0x2101, 0, false}, {0x0d81, 0, false},
-	} {
-		if spell, ok := BookSpell(tc.code); ok != tc.ok || (ok && spell != tc.spell) {
-			t.Errorf("BookSpell(%04x) = %d, %v; want %d, %v", tc.code, spell, ok, tc.spell, tc.ok)
-		}
-	}
-}
-
 func TestUnitTakesTheBagForm(t *testing.T) {
 	book := sim.ItemInstance{Code: 0x0e8c, Price: 1500, Effects: []sim.ItemEffect{{Kind: 42, Operand: 12}}}
 	if got := Unit(book); !reflect.DeepEqual(got, book) {

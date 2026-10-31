@@ -2,31 +2,85 @@ package game
 
 import (
 	"errors"
+	"strconv"
 
 	"againrom/pkg/ui"
 )
 
-// saveRefusal is a refused save point and the engine word that tells the
-// player why (DIV-4297). Logs and witnesses read errSavingUnavailable.
-type saveRefusal struct{ reasonWord string }
+// refusalCondition is a closed save point: the key of a refusal table row
+// and the target errors.Is matches the row by.
+type refusalCondition uint8
 
-func (r saveRefusal) Error() string { return errSavingUnavailable.Error() }
-
-func (r saveRefusal) Is(target error) bool { return target == errSavingUnavailable }
-
-var (
-	refusedTalk     = saveRefusal{reasonWord: "save.refused.talk"}
-	refusedNotice   = saveRefusal{reasonWord: "save.refused.notice"}
-	refusedWorldMap = saveRefusal{reasonWord: "save.refused.world_map"}
-	refusedLost     = saveRefusal{reasonWord: "save.refused.lost"}
-	refusedHere     = saveRefusal{reasonWord: "save.refused.here"}
+const (
+	refusedNoGame refusalCondition = iota + 1
+	refusedCompleted
+	refusedWorldMapReturn
+	refusedListMap
+	refusedTalk
+	refusedNotice
+	refusedWorldMap
+	refusedLost
+	refusedHere
+	refusalConditions
 )
 
-// playerSaveError is err as the save dialog shows it: a refusal is its
-// reason in the install's language, in UTF-8; any other error is itself.
-func (f *FrontEnd) playerSaveError(err error) error {
+func (c refusalCondition) Error() string { return "save refusal " + strconv.Itoa(int(c)) }
+
+// saveRefusal is a refusal table row: condition, the engine word naming the
+// reason (DIV-4297) and the error text. A row without a word shows its text
+// and names no reason.
+type saveRefusal struct {
+	condition  refusalCondition
+	reasonWord string
+	text       string
+}
+
+func (r saveRefusal) Error() string { return r.text }
+
+func (r saveRefusal) Is(target error) bool {
+	return target == r.condition || r.reasonWord != "" && target == errSavingUnavailable
+}
+
+// refusalTable is one game's save point refusals, keyed by condition.
+type refusalTable [refusalConditions]saveRefusal
+
+func refusals(rows ...saveRefusal) *refusalTable {
+	var t refusalTable
+	for _, r := range rows {
+		t[r.condition] = r
+	}
+	return &t
+}
+
+func (t *refusalTable) refuse(c refusalCondition) error { return t[c] }
+
+var (
+	firstRefusals = refusals(
+		saveRefusal{condition: refusedNoGame, text: "there is no game to save yet"},
+		saveRefusal{condition: refusedCompleted, text: "the campaign is complete; there is no save point after its ending"},
+		saveRefusal{condition: refusedWorldMapReturn, text: "return to the city before saving"},
+		saveRefusal{condition: refusedListMap, text: "a map opened from the list is not a game and cannot be saved"},
+	)
+	secondRefusals = refusals(
+		firstRefusals[refusedWorldMapReturn],
+		firstRefusals[refusedListMap],
+		saveRefusal{condition: refusedTalk, reasonWord: "save.refused.talk", text: errSavingUnavailable.Error()},
+		saveRefusal{condition: refusedNotice, reasonWord: "save.refused.notice", text: errSavingUnavailable.Error()},
+		saveRefusal{condition: refusedWorldMap, reasonWord: "save.refused.world_map", text: errSavingUnavailable.Error()},
+		saveRefusal{condition: refusedLost, reasonWord: "save.refused.lost", text: errSavingUnavailable.Error()},
+		saveRefusal{condition: refusedHere, reasonWord: "save.refused.here", text: errSavingUnavailable.Error()},
+	)
+)
+
+func refusalReason(err error) (saveRefusal, bool) {
 	var r saveRefusal
-	if errors.As(err, &r) {
+	return r, errors.As(err, &r) && r.reasonWord != ""
+}
+
+// playerSaveError is err as the save dialog shows it: a refusal's reason in
+// the install's language, in UTF-8; any other error is itself.
+func (f *FrontEnd) playerSaveError(err error) error {
+	if r, ok := refusalReason(err); ok {
 		return errors.New(f.Words.Engine.Text(r.reasonWord))
 	}
 	return err
@@ -44,7 +98,7 @@ func (f *FrontEnd) admitSave(s Snapshot) error {
 		return err
 	}
 	if s.WorldMapReturn != nil {
-		return errors.New("return to the city before saving")
+		return rules.refusals().refuse(refusedWorldMapReturn)
 	}
 	return rules.refuseCompleted(f, s)
 }
@@ -55,7 +109,7 @@ func (f *FrontEnd) saveAdmission(request ui.SaveRequest) error {
 	err := f.captureSave(captureTentative, request.OnMap, func(s Snapshot, _ string) error {
 		return f.admitSave(s)
 	})
-	if !errors.As(err, new(saveRefusal)) {
+	if _, ok := refusalReason(err); !ok {
 		return nil
 	}
 	return f.playerSaveError(err)

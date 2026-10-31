@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -128,7 +129,7 @@ func (mw *mapWorld) advanceEffectMarks(marks ...sim.ProjectileMark) {
 
 func (mw *mapWorld) refreshProjectileMark(m sim.ProjectileMark) {
 	kind := int(m.Picture)
-	if kind != terrain.MarkHeal && kind != terrain.MarkDrainLife {
+	if rules.PictureCapabilityOf(mw.world.SpellGame(), m.Picture).Mark == rules.TargetMarkNone {
 		return
 	}
 	e, ok := mw.entity(m.Target)
@@ -136,7 +137,7 @@ func (mw *mapWorld) refreshProjectileMark(m sim.ProjectileMark) {
 		return
 	}
 	el := markElement{Entity: m.Target, Kind: kind, Picture: kind, Count: healBurstLife, Transient: true,
-		Seed: castSeed(0, mw.visualActorLabel(m.Target), (kind-8)/2), Identity: targetMarkIdentity(e)}
+		Seed: mw.presentationSeed(presentationIdentity{rule: seedTargetMark, target: m.Target, spell: (kind - 8) / 2}), Identity: targetMarkIdentity(e)}
 	for i, old := range mw.markElements {
 		if old.Entity == m.Target && old.Kind == kind {
 			mw.markElements[i] = el
@@ -163,7 +164,8 @@ func (mw *mapWorld) markDraws(id sim.EntityID, tileSize int) []ui.UnitMark {
 				continue
 			}
 			records = showerMarkRecords(healBurst{picture: el.Picture, seed: el.Seed, tile: tileSize,
-				drain: el.Kind == terrain.MarkDrainLife, age: healBurstLife - int(el.Count)})
+				drain: rules.PictureCapabilityOf(mw.world.SpellGame(), int32(el.Kind)).Mark == rules.TargetMarkDrainLife,
+				age:   healBurstLife - int(el.Count)})
 		}
 		for _, m := range records {
 			out = append(out, ui.UnitMark{Sheet: sheet, Mark: m})

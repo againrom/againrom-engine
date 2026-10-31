@@ -2645,11 +2645,12 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 		mw.pending = append(mw.pending, sim.UsePotion(id, sim.ItemSlot(idx)))
 		return
 	}
-	if spell, readable := item.BookSpell(); item.Kind == 5 {
+	if game := mw.world.SpellGame(); item.IsBook(game) {
+		spell, readable := item.BookSpell(game)
 		if !readable || !mw.invParty.mage {
 			return
 		}
-		if reader, ok := mw.world.Entity(id); !ok || !sim.EntityBookReader(reader).Admits(spell) {
+		if reader, ok := mw.world.Entity(id); !ok || !sim.EntityBookReader(reader, game).Admits(spell) {
 			return
 		}
 		mw.pending = append(mw.pending, sim.ReadBook(id, sim.ItemSlot(idx)))
@@ -5214,11 +5215,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 	// small set of owners. The word table is read once for the same reason.
 	relations := mw.world.Relations()
 	spells := mw.world.Spells()
-	var unitNames []string
-	if mw.view != nil {
-		names := mw.view.Words().UnitNames
-		unitNames = names[:]
-	}
+	words := mw.drawnNameWords()
 	for i, e := range ents {
 		if e.Alive() {
 			delete(mw.died, e.ID)
@@ -5279,7 +5276,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			c = body
 		}
 
-		name, nameIndex, definitionCharName := mw.drawnName(&e, c, unitNames)
+		name, nameIndex, definitionCharName := mw.drawnName(&e, c, words)
 
 		// THE TWO EXPERIENCE-BEARING MEMBERS ARE OVERLAID FROM THE ENTITY OF THIS
 		// TICK, not from what the load computed — Combat below already reads e

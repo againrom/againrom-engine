@@ -235,7 +235,7 @@ func ambientStaticCells(g terrain.Grid, set *terrain.StaticSet) []ambientStaticC
 			continue
 		}
 		class := set.Classes[code]
-		if len(g.Tiles) == g.Width*g.Height && g.Tiles[i]&0x2000 != 0 && class.Dead != nil {
+		if len(g.Tiles) == g.Width*g.Height && terrain.IsImpassable(g.Tiles[i]) && class.Dead != nil {
 			class = class.Dead
 		}
 		fire := class.FireObject

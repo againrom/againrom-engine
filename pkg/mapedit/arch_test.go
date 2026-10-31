@@ -56,8 +56,8 @@ var almReferences = nameTable{
 // span.payloadSize/70, the other by reading the header word at that offset — and
 // a scan that watched only the first would leave the second route open.
 var payloadLengthNames = map[string]bool{
-	"payloadSize":    true,
-	"recPayloadSize": true,
+	"payloadSize":       true,
+	"RecordPayloadSize": true,
 }
 
 // payloadLengthReferences is every place either of those names may appear.
@@ -65,13 +65,13 @@ var payloadLengthNames = map[string]bool{
 // What the table says by omission is the point: no function that produces or
 // uses the unit count appears in it at all.
 var payloadLengthReferences = nameTable{
-	"editor.go/" + fileScope:         {"payloadSize", "recPayloadSize"},
-	"editor.go/(*Editor).locate":     {"payloadSize", "recPayloadSize"},
-	"unit.go/(*Editor).sizeWordPart": {"recPayloadSize"},
+	"editor.go/" + fileScope:         {"payloadSize"},
+	"editor.go/(*Editor).locate":     {"RecordPayloadSize", "payloadSize"},
+	"unit.go/(*Editor).sizeWordPart": {"RecordPayloadSize"},
 	// The section walk slices the payload and refuses a walk that does not
 	// consume it exactly; the count it walks is the type-0 word.
 	"section.go/(*Editor).walkSection":        {"payloadSize"},
-	"section.go/(*Editor).insertSectionParts": {"payloadSize", "recPayloadSize"},
+	"section.go/(*Editor).insertSectionParts": {"RecordPayloadSize", "payloadSize"},
 	"enchantment.go/enchantmentLayout":        {"payloadSize"},
 	// The type-7 layout walks the payload's three counted arrays and refuses a
 	// payload they do not tile.
@@ -258,8 +258,35 @@ func withEntry(base nameTable, key string, names ...string) nameTable {
 // SC-9 — the fences
 // ---------------------------------------------------------------------------
 
+// almEntryPoint is almQualified without the record layout constants of the
+// alm schema, which every setter reads its offsets from.
+func almEntryPoint(t *testing.T) func(ast.Node) (string, bool) {
+	t.Helper()
+	f, err := parser.ParseFile(token.NewFileSet(), "../formats/alm/schema.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	layout := map[string]bool{}
+	for _, decl := range f.Decls {
+		if g, ok := decl.(*ast.GenDecl); ok && g.Tok == token.CONST {
+			for _, s := range g.Specs {
+				for _, n := range s.(*ast.ValueSpec).Names {
+					layout["alm."+n.Name] = true
+				}
+			}
+		}
+	}
+	if len(layout) == 0 {
+		t.Fatal("the alm schema declares no constant")
+	}
+	return func(n ast.Node) (string, bool) {
+		name, ok := almQualified(n)
+		return name, ok && !layout[name]
+	}
+}
+
 func TestNonTestSourceNamesOnlyItsDeclaredAlmIdentifiers(t *testing.T) {
-	got := scanSources(t, almQualified)
+	got := scanSources(t, almEntryPoint(t))
 	for _, m := range mismatches(got, almReferences) {
 		t.Error(m)
 	}
@@ -346,7 +373,7 @@ func wrongTableCases(base nameTable, key string, extra string) []struct {
 }
 
 func TestTheAlmFenceFailsUnderADeliberatelyWrongTable(t *testing.T) {
-	got := scanSources(t, almQualified)
+	got := scanSources(t, almEntryPoint(t))
 	for _, c := range wrongTableCases(almReferences, "editor.go/New", "alm.Open") {
 		t.Run(c.name, func(t *testing.T) {
 			if m := mismatches(got, c.table); len(m) == 0 {

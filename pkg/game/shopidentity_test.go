@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"againrom/pkg/data"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -81,7 +82,7 @@ func TestShopIdentifiedBookUseConsumesSelectedNode(t *testing.T) {
 	f.Table = shopBookFixtureTable()
 	f.Carried[0].Mage = true
 	first := shopBookPool(f.Table, 1000)[0].Instance()
-	spell, _ := first.BookSpell()
+	spell, _ := first.BookSpell(rules.SpellGameFirst)
 	second := first.Clone()
 	first.ObjectID, second.ObjectID = 101, 202
 	setShopIdentityPack(f, first, second)

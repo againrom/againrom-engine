@@ -82,37 +82,13 @@ func (w *World) stoneCursed(i int) bool {
 // InvisibleTo reports whether target is hidden from the participant in roster
 // slot owner (1002; MAGIC-ACTOR-066).
 //
-// MAGIC-ACTOR-066 establishes that the unit draw gates the whole actor sprite
-// on a per-player bit whenever the actor carries the `invisibility` kind, and
-// skips the sprite when the bit is clear. THE BIT'S OWNING TABLE WAS NOT
-// IDENTIFIED, so what decides it is authored here: the participant sees the
-// actor when the actor is its own, or when one of its own actors stands within
-// its own decoded SeeInvisible detector radius of it. That is the same test
-// groupDetectsInvisible already applies for acquisition, so what a participant
-// may see and what its units may attack cannot come apart. DIV-074.
-//
-// IT IS OBSERVATION ONLY. Nothing here is read by the simulation, nothing is
-// stored, and nothing enters the byte form or the digest — ActiveEffects' own
-// terms, one function up.
+// MAGIC-ACTOR-066: the unit draw skips an invisible actor's sprite on a
+// per-player bit whose owning table was not identified. The participant's
+// actors decide it as a group under the perception query, so what a
+// participant sees and what its units may attack cannot come apart. DIV-074.
+// Observation only: nothing here is read by the simulation or stored.
 func (w *World) InvisibleTo(target EntityID, owner uint32) bool {
-	ti := indexOfEntity(w.entities, target)
-	if ti < 0 || !w.hasAttachedSpell(target, w.armSpellID(15)) {
-		return false
-	}
-	at := cellOf(&w.entities[ti])
-	for i := range w.entities {
-		e := w.entities[i]
-		if e.Owner != owner {
-			continue
-		}
-		if e.ID == target {
-			return false
-		}
-		if cellOf(&e).chebyshevTo(at) <= int64(e.SeeInvisible) {
-			return false
-		}
-	}
-	return true
+	return !w.perceives(perception{purpose: perceiveGroup, owner: owner, byOwner: true, target: indexOfEntity(w.entities, target)})
 }
 
 func effectIndex(a []attachedEffect, target EntityID, spell uint16) (int, bool) {

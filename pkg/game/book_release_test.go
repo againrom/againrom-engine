@@ -6,6 +6,7 @@ import (
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -39,7 +40,7 @@ func relocateReleaseMissionWorld(t *testing.T, m *Mission, table *mapload.Table,
 func carriedBookIndex(w *sim.World, id sim.EntityID, spell uint16) (int, bool) {
 	stacks, _ := w.CarriedStacks(id)
 	for i, stack := range stacks {
-		if got, ok := stack.Instance().BookSpell(); ok && got == spell {
+		if got, ok := stack.Instance().BookSpell(rules.SpellGameFirst); ok && got == spell {
 			return i, true
 		}
 	}
@@ -102,7 +103,7 @@ func TestReleaseMission80AstralBookTeachesTeleportAndReachesTheGrave(t *testing.
 	}
 	books := 0
 	for _, item := range ownerItems {
-		if spell, readable := item.BookSpell(); readable && spell == 26 {
+		if spell, readable := item.BookSpell(rules.SpellGameFirst); readable && spell == 26 {
 			books++
 			if item.Code != 0x0e17 || item.Kind != 5 {
 				t.Fatalf("mission 80 Teleport book = %+v, want code 0x0e17 kind 5", item)

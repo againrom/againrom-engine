@@ -7,6 +7,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -74,7 +75,7 @@ func TestBookPoolUsesInstalledCostAndNonMonotonicSchoolCodes(t *testing.T) {
 		t.Fatalf("book pool holds %d entries, want %d: %+v", len(pool), len(want), pool)
 	}
 	for _, item := range pool {
-		spell, ok := item.Instance().BookSpell()
+		spell, ok := item.Instance().BookSpell(rules.SpellGameFirst)
 		if !ok {
 			t.Fatalf("generated item is not a readable book: %+v", item)
 		}
@@ -111,7 +112,7 @@ func TestBookShelfGuaranteesEligibleSpellsAndKeepsCompleteIdentity(t *testing.T)
 		t.Fatalf("two spells sharing a school folded to %+v", folded)
 	}
 	for _, item := range folded {
-		spell, _ := item.Instance().BookSpell()
+		spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		wantCount := int32(1)
 		if spell == 7 {
 			wantCount = 2
@@ -129,7 +130,7 @@ func TestBookShelfGuaranteeRespectsInclusiveCeilingOnEveryRestock(t *testing.T) 
 			shop.Generate(shopBookFixtureTable(), seed)
 			seen := map[uint16]int32{}
 			for _, item := range shop.Shelf(ShelfBooks) {
-				spell, ok := item.Instance().BookSpell()
+				spell, ok := item.Instance().BookSpell(rules.SpellGameFirst)
 				if !ok || item.Price <= 0 || item.Price > ceiling {
 					t.Fatalf("ceiling%d seed%d: invalid book %+v", ceiling, seed, item)
 				}
@@ -167,7 +168,7 @@ func TestSoldUnreadBooksReturnToFourthShelfWithoutLosingSpellIdentity(t *testing
 	}
 	counts := map[uint16]int32{}
 	for _, item := range books {
-		spell, readable := item.Instance().BookSpell()
+		spell, readable := item.Instance().BookSpell(rules.SpellGameFirst)
 		if !readable {
 			t.Fatalf("returned book lost identity: %+v", item)
 		}
@@ -196,7 +197,7 @@ func TestFourthSelectorUsesInstalledGenericBookNameAndShowsBooks(t *testing.T) {
 			continue
 		}
 		found = true
-		spell, _ := items[i].Instance().BookSpell()
+		spell, _ := items[i].Instance().BookSpell(rules.SpellGameFirst)
 		spellName := f.Table.Spells.EntryName(int(spell))
 		if len(cell.Info) != 1 || cell.Info[0] != itemName(items[i].Code, f.Table)+" "+ui.AuthoredWords().ItemSpellOf+" "+spellName {
 			t.Fatalf("book cell info = %q, want the book's name alone and no price line", cell.Info)
@@ -209,7 +210,7 @@ func TestFourthSelectorUsesInstalledGenericBookNameAndShowsBooks(t *testing.T) {
 
 func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 	book := shopBookPool(shopBookFixtureTable(), 1000)[0].Instance()
-	spell, readable := book.BookSpell()
+	spell, readable := book.BookSpell(rules.SpellGameFirst)
 	if !readable {
 		t.Fatal("fixture is not a readable book")
 	}
@@ -260,7 +261,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Town.gold = 2000
 		screen.shopChosen = roomBooks
 		item := f.Shop.Shelf(ShelfBooks)[0]
-		spell, _ := item.Instance().BookSpell()
+		spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		if action := screen.shopEquipFromShelf(0); !strings.Contains(action.Msg, "bought and learned") {
 			t.Fatalf("first shelf read = %+v", action)
 		}
@@ -269,7 +270,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 			t.Fatalf("spell %d not learned", spell)
 		}
 		for i, it := range f.Shop.Shelf(ShelfBooks) {
-			if sp, _ := it.Instance().BookSpell(); sp == spell {
+			if sp, _ := it.Instance().BookSpell(rules.SpellGameFirst); sp == spell {
 				beforeUnits, beforeGold := shelfUnits(f.Shop, ShelfBooks), f.Town.Gold()
 				if action := screen.shopEquipFromShelf(i); action.Msg != "" {
 					t.Fatalf("known shelf read = %+v, want refused", action)
@@ -303,7 +304,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Town.gold = 2000
 		screen.shopChosen = roomBooks
 		item := f.Shop.Shelf(ShelfBooks)[0]
-		spell, _ := item.Instance().BookSpell()
+		spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		beforeUnits, beforeGold := shelfUnits(f.Shop, ShelfBooks), f.Town.Gold()
 		if action := screen.shopEquipFromShelf(0); !strings.Contains(action.Msg, "bought and learned") {
 			t.Fatalf("shelf read = %+v", action)
@@ -323,7 +324,7 @@ func TestShopEquipGestureReadsOneBookIntoTheSelectedMage(t *testing.T) {
 		f.Carried[0].Mage = true
 		f.Town.gold = 2000
 		item := f.Shop.Shelf(ShelfBooks)[0]
-		spell, _ := item.Instance().BookSpell()
+		spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		if !f.Shop.TakeFromShelf(ShelfBooks, 0, 1) {
 			t.Fatal("TakeFromShelf refused book")
 		}
@@ -353,7 +354,7 @@ func TestBookCodeIsTheInstalledBookRow(t *testing.T) {
 		t.Fatalf("book codes = %#04x", codes)
 	}
 	for _, item := range shopBookPool(table, 1000) {
-		spell, _ := item.Instance().BookSpell()
+		spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		if spell == 5 {
 			t.Fatal("a school with no Book row stocked a book")
 		}

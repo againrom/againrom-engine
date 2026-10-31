@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"slices"
+
+	"againrom/pkg/formats/alm"
 )
 
 // Kind names a record section an edit addresses by file-order index.
@@ -60,36 +62,36 @@ var sections map[Kind]*section
 
 func init() {
 	sections = map[Kind]*section{
-		KindUnit: {name: "unit", typeID: unitTypeID, count: metaCount6, x: unitX, y: unitY,
-			length:      func(_ *Editor, b []byte) int { return fixedLength(b, unitRecordSize) },
+		KindUnit: {name: "unit", typeID: alm.TypeUnits, count: alm.MetaUnitCount, x: alm.UnitX, y: alm.UnitY,
+			length:      func(_ *Editor, b []byte) int { return fixedLength(b, alm.UnitSize) },
 			renumber:    renumberUnit,
 			cloneParts:  cloneUnitStockParts,
 			fields:      func(*Editor, []byte) []Field { return unitFields },
 			deleteParts: refuseOwnedStockDeletion,
 		},
-		KindStructure: {name: "structure", typeID: structureTypeID, count: metaCount4, x: 0x00, y: 0x04, create: true, insertAfter: playerTypeID,
+		KindStructure: {name: "structure", typeID: alm.TypeObjects, count: alm.MetaObjectCount, x: alm.ObjectX, y: alm.ObjectY, create: true, insertAfter: alm.TypeGroups,
 			length:   structureLength,
 			reshape:  reshapeStructure,
 			fields:   structureFields,
 			renumber: renumberStructure,
 		},
-		KindLoot: {name: "sack", typeID: lootTypeID, count: metaCount8, x: lootX, y: lootY, create: true, insertAfter: 9,
+		KindLoot: {name: "sack", typeID: alm.TypeLoot, count: alm.MetaLootCount, x: alm.LootX, y: alm.LootY, create: true, insertAfter: alm.TypeTileMarkers,
 			length:     lootLength,
-			cellless:   func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[lootOwner:]) != 0 },
+			cellless:   func(rec []byte) bool { return binary.LittleEndian.Uint32(rec[alm.LootOwner:]) != 0 },
 			fields:     lootFields,
 			cloneParts: cloneSackRecipeParts,
 		},
 		KindAction:    scriptSection("action", 0),
 		KindCondition: scriptSection("condition", 1),
 		KindTrigger:   scriptSection("trigger", 2),
-		KindPlayer: {name: "player", typeID: playerTypeID, count: metaPlayerCount, create: true,
-			length:        func(_ *Editor, b []byte) int { return fixedLength(b, playerRecordSize) },
+		KindPlayer: {name: "player", typeID: alm.TypeGroups, count: alm.MetaGroupCount, create: true,
+			length:        func(_ *Editor, b []byte) int { return fixedLength(b, alm.GroupSize) },
 			cellless:      func([]byte) bool { return true },
 			fields:        playerFields,
 			validatePlace: validatePlayerPlacement,
 			deleteParts:   playerDeleteParts,
 		},
-		KindEnchantment: {name: "enchantment", typeID: 9, layout: enchantmentLayout,
+		KindEnchantment: {name: "enchantment", typeID: alm.TypeTileMarkers, layout: enchantmentLayout,
 			length: enchantmentLength, cellless: func([]byte) bool { return true }, fields: enchantmentFields,
 			deleteParts: enchantmentDeleteParts,
 		},
@@ -147,7 +149,7 @@ func (e *Editor) walkSection(k Kind, what string) (walk, error) {
 	if err != nil {
 		return walk{}, err
 	}
-	lay := arrayLayout{countAt: f.required(metaTypeID).abs(sec.count)}
+	lay := arrayLayout{countAt: f.required(alm.TypeMeta).abs(sec.count)}
 	lay.n = int(e.u32(lay.countAt))
 	if sec.layout != nil {
 		lay, err = sec.layout(e, sp)
@@ -194,7 +196,7 @@ func (e *Editor) placementSection(k Kind, what string) (walk, error) {
 	if f.carries(sec.typeID) || !sec.create {
 		return e.walkSection(k, what)
 	}
-	return walk{frame: f, sec: sec, countAt: f.required(metaTypeID).abs(sec.count), starts: []int{0}}, nil
+	return walk{frame: f, sec: sec, countAt: f.required(alm.TypeMeta).abs(sec.count), starts: []int{0}}, nil
 }
 
 func sectionName(k Kind) string {
@@ -280,22 +282,22 @@ func (e *Editor) appendRecordsParts(w walk, record []byte, count int) (int, edit
 }
 
 func (e *Editor) insertSectionParts(w walk, record []byte, count int) edit {
-	meta := w.frame.required(metaTypeID)
+	meta := w.frame.required(alm.TypeMeta)
 	anchor := meta
 	if w.frame.carries(w.sec.insertAfter) {
 		anchor = w.frame.required(w.sec.insertAfter)
 	}
-	framed := make([]byte, recordHeaderSize+len(record))
+	framed := make([]byte, alm.RecordHeaderSize+len(record))
 	binary.LittleEndian.PutUint32(framed, 7)
-	binary.LittleEndian.PutUint32(framed[4:], recordHeaderSize)
-	binary.LittleEndian.PutUint32(framed[recPayloadSize:], uint32(len(record)))
-	binary.LittleEndian.PutUint32(framed[recTypeID:], w.sec.typeID)
-	copy(framed[recordHeaderSize:], record)
+	binary.LittleEndian.PutUint32(framed[4:], alm.RecordHeaderSize)
+	binary.LittleEndian.PutUint32(framed[alm.RecordPayloadSize:], uint32(len(record)))
+	binary.LittleEndian.PutUint32(framed[alm.RecordTypeID:], w.sec.typeID)
+	copy(framed[alm.RecordHeaderSize:], record)
 	var word [4]byte
 	binary.LittleEndian.PutUint32(word[:], uint32(count))
 	return edit{
 		replace(anchor.abs(anchor.payloadSize), nil, framed),
-		e.wordPart(fhRecordCount, 1),
+		e.wordPart(alm.FileRecordCount, 1),
 		replace(w.countAt, e.data[w.countAt:w.countAt+4], word[:]),
 	}
 }
@@ -418,7 +420,7 @@ func (e *Editor) Delete(k Kind, i int) error {
 // becomes 0 and a link above it falls by one, so every other link still names
 // the record it named (DIV-3255). A map without units has none.
 func (e *Editor) unitLinkParts(i int) []part {
-	if !e.locate().carries(unitTypeID) {
+	if !e.locate().carries(alm.TypeUnits) {
 		return nil
 	}
 	uw, err := e.walkSection(KindUnit, "renumber unit loot links")
@@ -428,7 +430,7 @@ func (e *Editor) unitLinkParts(i int) []part {
 	var parts []part
 	for u := 0; u < uw.n(); u++ {
 		at, _ := uw.at(u)
-		p := at + unitLootLink
+		p := at + alm.UnitLoot
 		old := e.u32(p)
 		nv := old
 		switch {

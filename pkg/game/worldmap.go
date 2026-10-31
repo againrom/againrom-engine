@@ -188,17 +188,22 @@ func (p *Presentation) worldMapAssets(in *InstallResources) *worldMapAssets {
 		return p.worldMapCache.Value()
 	}
 	p.worldMapCache.begin()
-	return p.worldMapCache.store(loadWorldMapAssets(in.Archives))
+	return p.worldMapCache.store(loadWorldMapAssets(in.Archives, in.Campaign.Value().worldMap))
 }
 
 // coldWorldMapData is the campaign map's data as the first-use cache holds it,
 // or as a first read of the install would produce it when the cache has not
-// been tried. It takes the cache by value, so a first read is neither stored
-// nor visible to the owner of the cache.
-func coldWorldMapData(cache lazy[*worldMapAssets], archives *Archives) *globalMapData {
+// been tried, with the records of the campaign's catalog when one is given.
+// It takes the cache by value, so a first read is neither stored nor visible
+// to the owner of the cache.
+func coldWorldMapData(cache lazy[*worldMapAssets], archives *Archives, campaign ...*worldMapCatalog) *globalMapData {
 	assets := cache.Value()
 	if !cache.Tried() {
-		assets = loadWorldMapAssets(archives)
+		var catalog *worldMapCatalog
+		if len(campaign) > 0 {
+			catalog = campaign[0]
+		}
+		assets = loadWorldMapAssets(archives, catalog)
 	}
 	if assets != nil {
 		return assets.data
@@ -206,10 +211,37 @@ func coldWorldMapData(cache lazy[*worldMapAssets], archives *Archives) *globalMa
 	return nil
 }
 
-// loadWorldMapAssets reads the campaign map's records and its art as the
-// install's world-map description names them. Every picture is optional: one
-// that does not read is absent and drawn as nothing.
-func loadWorldMapAssets(archives *Archives) *worldMapAssets {
+// worldMapCatalog is the campaign map's registry records, read and parsed
+// once: its data, or the problem that kept them.
+type worldMapCatalog struct {
+	data    *globalMapData
+	problem string
+}
+
+// readWorldMapCatalog reads and parses the registry out of src.
+func readWorldMapCatalog(src entrySource) *worldMapCatalog {
+	c := &worldMapCatalog{}
+	raw, err := src.ReadFile(globalMapRegistry)
+	if err != nil {
+		c.problem = err.Error()
+		return c
+	}
+	parsed, err := reg.Parse(raw)
+	if err != nil {
+		c.problem = fmt.Sprintf("%s: %v", globalMapRegistry, err)
+		return c
+	}
+	if c.data, err = ReadGlobalMap(parsed); err != nil {
+		c.problem = err.Error()
+	}
+	return c
+}
+
+// loadWorldMapAssets reads the campaign map's art as the install's world-map
+// description names it and takes its records from catalog, the campaign's;
+// a campaign that carries none has them read here. Every picture is
+// optional: one that does not read is absent and drawn as nothing.
+func loadWorldMapAssets(archives *Archives, catalog *worldMapCatalog) *worldMapAssets {
 	a := &worldMapAssets{
 		markers: make(map[int]*image.RGBA), markerTried: make(map[int]bool),
 		texts: make(map[int]worldMapText), reads: make(map[string]int),
@@ -225,18 +257,10 @@ func loadWorldMapAssets(archives *Archives) *worldMapAssets {
 		return a
 	}
 	if a.desc.Records == "registry" {
-		if raw, err := a.read(src, globalMapRegistry); err == nil {
-			if parsed, err := reg.Parse(raw); err == nil {
-				a.data, err = ReadGlobalMap(parsed)
-				if err != nil {
-					a.problem = err.Error()
-				}
-			} else {
-				a.problem = fmt.Sprintf("%s: %v", globalMapRegistry, err)
-			}
-		} else {
-			a.problem = err.Error()
+		if catalog == nil {
+			catalog = readWorldMapCatalog(countedSource{src, a.reads})
 		}
+		a.data, a.problem = catalog.data, catalog.problem
 	}
 	a.art = screenart.NewLibrary(screenArtSource{countedSource{src, a.reads}})
 	a.manifest = a.desc.Art

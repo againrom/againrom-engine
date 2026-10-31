@@ -120,10 +120,7 @@ func TestReleaseSecondGameSaveKeepsOrderThresholdBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, err := sav.DecodeDocumentData(raw)
-	if err != nil {
-		t.Fatal(err)
-	}
+	doc := engineSaveDocument(t, raw)
 	a, err := readCurrentActions(&doc)
 	if err != nil || a == nil {
 		t.Fatal("action supplement", err)

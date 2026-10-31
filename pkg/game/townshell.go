@@ -169,8 +169,8 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 	// Generated template ids such as NPC06_1 are source keys, not the
 	// installed display name. A human template's own TypeID, rather than the
 	// equipment-derived body Class stored on PartyMember, indexes UnitNames.
-	// Let the shared panel projection resolve that localized name and then
-	// make it explicit so PanelFieldName's actual-name-first rule is obeyed.
+	// The definition stage resolves that localized name, a mod's name first,
+	// and makes it explicit so PanelFieldName's actual-name-first rule is obeyed.
 	nameIndex := int(m.Class)
 	if typ > 2 {
 		template := fmt.Sprintf("NPC%02d_%d", typ, mercenaryLevel(t.sess.Town.Chapter()))
@@ -181,15 +181,8 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 		}
 	}
 	subject.UnitNameIndex, subject.Char.UnitNameIndex = nameIndex, nameIndex
-	subject.Name = ""
-	subject.Char.Name = ""
-	if name, named := ui.PanelSubjectName(subject); named {
-		subject.Name = name
-		subject.Char.Name = name
-	}
-	if name, ok := t.in.Table.Mods.CharacterName(m.Name); ok {
-		subject.Name, subject.Char.Name = name, name
-	}
+	name := t.in.definitionName(m, nameIndex, &subject.Words, "")
+	subject.Name, subject.Char.Name = name, name
 	subject.Role = t.in.Words.PanelCaptions[mainSlotMercenary]
 	// A candidate is a live actor whose sheet prints its whole sight word
 	// (HERO-104); the recompute keeps only its high byte, the whole cells.

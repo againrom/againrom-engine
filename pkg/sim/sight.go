@@ -522,39 +522,119 @@ func (w *World) actorSight(i int) []byte {
 	return stamp
 }
 
-func (w *World) actorSees(i int, at cell) bool {
-	return w.sightShows(w.actorSight(i), at)
+// perceptionPurpose is why an observer looks at a target: one row of
+// perceptionRows each.
+type perceptionPurpose uint8
+
+const (
+	perceiveAttack perceptionPurpose = iota
+	perceiveCast
+	perceiveContinue
+	perceiveGroup
+)
+
+// perception is one question to the target perception query. A cell target
+// (atCell) is terrain sight alone. The group purpose reads members, or every
+// actor of owner when byOwner; the others read observer.
+type perception struct {
+	purpose  perceptionPurpose
+	observer int
+	members  []int
+	owner    uint32
+	byOwner  bool
+	target   int
+	at       cell
+	atCell   bool
 }
 
-// actorSeesEntity is the entity-target perception seam. Terrain sight is the
-// first half; an active Invisibility effect is the second. An actor always sees
-// itself, which keeps self-target restorative spells valid. An invisible actor
-// survives the second half only inside the observer's own SeeInvisible radius.
-func (w *World) actorSeesEntity(i, target int) bool {
-	if i < 0 || i >= len(w.entities) || target < 0 || target >= len(w.entities) {
-		return false
+// perceptionRow is a purpose's rule. Terrain sight is the first half, an
+// active Invisibility the second; an actor always sees itself.
+type perceptionRow struct {
+	noTargetSeen bool // the answer for a target index outside the World
+	onlyHidden   bool // continue: only an invisible target can be dropped
+	alliedSight  bool // cast: own or allied target needs terrain only (DIV-3996)
+	group        bool // the members' detectors; callers established terrain
+}
+
+var perceptionRows = [...]perceptionRow{
+	perceiveAttack:   {},
+	perceiveCast:     {alliedSight: true},
+	perceiveContinue: {noTargetSeen: true, onlyHidden: true},
+	perceiveGroup:    {noTargetSeen: true, group: true},
+}
+
+// perceives is the one target perception query.
+func (w *World) perceives(q perception) bool {
+	row := perceptionRows[q.purpose]
+	if q.atCell {
+		return w.sightShows(w.actorSight(q.observer), q.at)
 	}
-	if w.entities[i].ID == w.entities[target].ID {
+	t := q.target
+	if t < 0 || t >= len(w.entities) {
+		return row.noTargetSeen
+	}
+	at := cellOf(&w.entities[t])
+	if row.onlyHidden && !w.invisible(t) {
 		return true
 	}
-	observer, candidate := w.entities[i], w.entities[target]
-	if !w.actorSees(i, cellOf(&candidate)) {
+	if row.group {
+		return !w.invisible(t) || w.groupDetects(q, t, at)
+	}
+	i := q.observer
+	if i < 0 || i >= len(w.entities) {
 		return false
 	}
-	return !w.hasAttachedSpell(candidate.ID, w.armSpellID(15)) ||
-		cellOf(&observer).chebyshevTo(cellOf(&candidate)) <= int64(observer.SeeInvisible)
+	if row.alliedSight && i != t && w.ownOrAllied(&w.entities[i], &w.entities[t]) {
+		return w.sightShows(w.actorSight(i), at)
+	}
+	if w.entities[i].ID == w.entities[t].ID {
+		return true
+	}
+	if !w.sightShows(w.actorSight(i), at) {
+		return false
+	}
+	return !w.invisible(t) || w.detectsInvisible(i, at)
 }
 
-// castSeesEntity is the book-cast target perception: actorSeesEntity, except
-// that Invisibility does not hide a target its observer's owner owns or holds
-// as an ally (DIV-3996). Terrain sight still applies. Attack acquisition and
-// weapon spells keep actorSeesEntity, so no enemy target changes.
-func (w *World) castSeesEntity(i, target int) bool {
-	if i < 0 || i >= len(w.entities) || target < 0 || target >= len(w.entities) || i == target ||
-		!w.ownOrAllied(&w.entities[i], &w.entities[target]) {
-		return w.actorSeesEntity(i, target)
+// groupDetects reports a member that is the target or detects it.
+func (w *World) groupDetects(q perception, t int, at cell) bool {
+	sees := func(m int) bool { return w.entities[m].ID == w.entities[t].ID || w.detectsInvisible(m, at) }
+	if q.byOwner {
+		for m := range w.entities {
+			if w.entities[m].Owner == q.owner && sees(m) {
+				return true
+			}
+		}
+		return false
 	}
-	return w.actorSees(i, cellOf(&w.entities[target]))
+	for _, m := range q.members {
+		if m >= 0 && m < len(w.entities) && sees(m) {
+			return true
+		}
+	}
+	return false
+}
+
+// invisible reports an active Invisibility on the actor at index t.
+func (w *World) invisible(t int) bool {
+	return w.hasAttachedSpell(w.entities[t].ID, w.armSpellID(15))
+}
+
+// detectsInvisible is the actor's own whole-cell detector radius test.
+func (w *World) detectsInvisible(i int, at cell) bool {
+	return cellOf(&w.entities[i]).chebyshevTo(at) <= int64(w.entities[i].SeeInvisible)
+}
+
+func (w *World) actorSees(i int, at cell) bool {
+	return w.perceives(perception{purpose: perceiveAttack, observer: i, at: at, atCell: true})
+}
+
+func (w *World) actorSeesEntity(i, target int) bool {
+	return w.perceives(perception{purpose: perceiveAttack, observer: i, target: target})
+}
+
+func (w *World) castSeesEntity(i, target int) bool {
+	return w.perceives(perception{purpose: perceiveCast, observer: i, target: target})
 }
 
 // ownOrAllied reports a target of the observer's own player, or of a player
@@ -567,12 +647,10 @@ func (w *World) ownOrAllied(observer, target *Entity) bool {
 		w.relations.Locked(observer.Owner, target.Owner) && !w.hostileTo(observer, target)
 }
 
-// invisibleToActor narrows the continuing-order gate to Invisibility itself.
-// Ordinary attack orders retain their established acquisition rules; only a
-// target carrying spell 15 is dropped when the observer lacks detection.
+// invisibleToActor is the continuing-order gate: only an invisible target
+// the observer does not see is dropped.
 func (w *World) invisibleToActor(i, target int) bool {
-	return target >= 0 && target < len(w.entities) &&
-		w.hasAttachedSpell(w.entities[target].ID, w.armSpellID(15)) && !w.actorSeesEntity(i, target)
+	return !w.perceives(perception{purpose: perceiveContinue, observer: i, target: target})
 }
 
 // sightShows reports whether c is a cell the stamp lit.

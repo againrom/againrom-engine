@@ -22,19 +22,6 @@ import (
 	"fmt"
 )
 
-// The type-7 leaf sizes (ALM-TRIG-044, ALM-TRIG-045, ALM-TRIG-047). A node is
-// the same 796 bytes whether it is an action or a condition, which is why one
-// decoder reads both arrays.
-const (
-	scriptNodeSize    = 796 // an action or a condition record
-	scriptTriggerSize = 184 // a trigger record
-
-	scriptLabelLen  = 64 // the author's label at node +0x000 / trigger +0x00
-	scriptParams    = 10 // value[10] and type[10]
-	scriptPairs     = 3  // (left, right) condition-id pairs on a trigger
-	scriptActionRef = 4  // action-id slots on a trigger
-)
-
 // ScriptNode is one 796-byte type-7 node — an action or a condition, which have
 // the same record and are told apart only by which array they were read from
 // (ALM-TRIG-045).
@@ -63,8 +50,8 @@ type ScriptNode struct {
 	Label  string
 	Opcode uint32
 	ID     uint32
-	Value  [scriptParams]uint32
-	Type   [scriptParams]uint32
+	Value  [ScriptParams]uint32
+	Type   [ScriptParams]uint32
 }
 
 // ScriptTrigger is one 184-byte type-7 trigger record: the thing that binds
@@ -90,10 +77,10 @@ type ScriptNode struct {
 // string on any of the 421 shipped triggers and carry editor heap addresses.
 type ScriptTrigger struct {
 	Name  string
-	Left  [scriptPairs]uint32
-	Right [scriptPairs]uint32
-	Cmp   [scriptPairs]uint32
-	Acts  [scriptActionRef]uint32
+	Left  [ScriptPairs]uint32
+	Right [ScriptPairs]uint32
+	Cmp   [ScriptPairs]uint32
+	Acts  [ScriptActionRefs]uint32
 	Once  uint32
 }
 
@@ -131,7 +118,7 @@ func (s Script) Empty() bool {
 // the same as an error, and Present(7) is what tells a caller which of the two
 // it had — exactly as it does for every other absent record.
 func (m *Map) Script() (Script, error) {
-	if !m.Present(7) {
+	if !m.Present(TypeScript) {
 		return Script{}, nil
 	}
 
@@ -173,12 +160,12 @@ func (m *Map) Script() (Script, error) {
 
 // readCount reads one of the two count words the body carries inline.
 func readCount(b []byte, off int, what string) (int64, int, error) {
-	if len(b)-off < countWordSize {
+	if len(b)-off < CountWordSize {
 		return 0, off, fmt.Errorf("alm: type7 body has %d byte(s) left at the %s count word, want %d",
-			len(b)-off, what, countWordSize)
+			len(b)-off, what, CountWordSize)
 	}
-	n := int64(binary.LittleEndian.Uint32(b[off : off+countWordSize]))
-	return n, off + countWordSize, nil
+	n := int64(binary.LittleEndian.Uint32(b[off : off+CountWordSize]))
+	return n, off + CountWordSize, nil
 }
 
 // readScriptNodes reads n fixed-width node records from b at off.
@@ -188,22 +175,22 @@ func readCount(b []byte, off int, what string) (int64, int, error) {
 // buffer then satisfies. That check is what turns a wrong count into a refusal
 // here rather than into a walk that reads a trigger record as a node.
 func readScriptNodes(b []byte, off int, n int64, what string) ([]ScriptNode, int, error) {
-	span := n * scriptNodeSize
+	span := n * ScriptNodeSize
 	if n < 0 || span > int64(len(b)-off) {
 		return nil, off, fmt.Errorf("alm: type7 declares %d %s node(s), which are %d byte(s), and %d remain",
 			n, what, span, len(b)-off)
 	}
 	out := make([]ScriptNode, n)
 	for i := range out {
-		rec := b[off+i*scriptNodeSize : off+(i+1)*scriptNodeSize]
+		rec := b[off+i*ScriptNodeSize : off+(i+1)*ScriptNodeSize]
 		node := ScriptNode{
-			Label:  ScriptLabelText.Decode(rec[0x000:scriptLabelLen]),
-			Opcode: binary.LittleEndian.Uint32(rec[0x040:0x044]),
-			ID:     binary.LittleEndian.Uint32(rec[0x044:0x048]),
+			Label:  ScriptLabelText.Decode(rec[:ScriptLabelLen]),
+			Opcode: binary.LittleEndian.Uint32(rec[ScriptNodeOpcode:]),
+			ID:     binary.LittleEndian.Uint32(rec[ScriptNodeID:]),
 		}
-		for k := 0; k < scriptParams; k++ {
-			node.Value[k] = binary.LittleEndian.Uint32(rec[0x04c+4*k : 0x050+4*k])
-			node.Type[k] = binary.LittleEndian.Uint32(rec[0x074+4*k : 0x078+4*k])
+		for k := 0; k < ScriptParams; k++ {
+			node.Value[k] = binary.LittleEndian.Uint32(rec[ScriptNodeValues+4*k:])
+			node.Type[k] = binary.LittleEndian.Uint32(rec[ScriptNodeTypes+4*k:])
 		}
 		out[i] = node
 	}
@@ -213,25 +200,25 @@ func readScriptNodes(b []byte, off int, n int64, what string) ([]ScriptNode, int
 // readScriptTriggers reads n fixed-width trigger records from b at off, on the
 // same terms as readScriptNodes.
 func readScriptTriggers(b []byte, off int, n int64) ([]ScriptTrigger, int, error) {
-	span := n * scriptTriggerSize
+	span := n * ScriptTriggerSize
 	if n < 0 || span > int64(len(b)-off) {
 		return nil, off, fmt.Errorf("alm: type7 declares %d trigger(s), which are %d byte(s), and %d remain",
 			n, span, len(b)-off)
 	}
 	out := make([]ScriptTrigger, n)
 	for i := range out {
-		rec := b[off+i*scriptTriggerSize : off+(i+1)*scriptTriggerSize]
+		rec := b[off+i*ScriptTriggerSize : off+(i+1)*ScriptTriggerSize]
 		t := ScriptTrigger{
-			Name: ScriptLabelText.Decode(rec[0x00:scriptLabelLen]),
-			Once: binary.LittleEndian.Uint32(rec[0xb4:0xb8]),
+			Name: ScriptLabelText.Decode(rec[:ScriptLabelLen]),
+			Once: binary.LittleEndian.Uint32(rec[ScriptTriggerOnce:]),
 		}
-		for k := 0; k < scriptPairs; k++ {
-			t.Left[k] = binary.LittleEndian.Uint32(rec[0x80+8*k : 0x84+8*k])
-			t.Right[k] = binary.LittleEndian.Uint32(rec[0x84+8*k : 0x88+8*k])
-			t.Cmp[k] = binary.LittleEndian.Uint32(rec[0xa8+4*k : 0xac+4*k])
+		for k := 0; k < ScriptPairs; k++ {
+			t.Left[k] = binary.LittleEndian.Uint32(rec[ScriptTriggerPairs+8*k:])
+			t.Right[k] = binary.LittleEndian.Uint32(rec[ScriptTriggerPairs+4+8*k:])
+			t.Cmp[k] = binary.LittleEndian.Uint32(rec[ScriptTriggerCompare+4*k:])
 		}
-		for k := 0; k < scriptActionRef; k++ {
-			t.Acts[k] = binary.LittleEndian.Uint32(rec[0x98+4*k : 0x9c+4*k])
+		for k := 0; k < ScriptActionRefs; k++ {
+			t.Acts[k] = binary.LittleEndian.Uint32(rec[ScriptTriggerActions+4*k:])
 		}
 		out[i] = t
 	}

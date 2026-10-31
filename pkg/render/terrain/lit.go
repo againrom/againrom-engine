@@ -1,6 +1,10 @@
 package terrain
 
-import "image"
+import (
+	"image"
+
+	"againrom/pkg/formats/alm"
+)
 
 // CompositeLit draws a whole map's terrain with relief shading. It is the shaded
 // sibling of Composite (which stays available, unshaded, for comparison): each
@@ -54,7 +58,7 @@ func CompositeLit(ts *Tileset, g Grid, heights []uint8, lt Light, scale int) (*R
 			}
 
 			var dirt *image.Paletted
-			if IsImpassable(word) && !ref.Water {
+			if alm.Impassable(word) && !ref.Water {
 				dirt = ts.Dirt.SubCell(DirtSubCell(col, row))
 			}
 			// The far-edge +1 corner is clamped into the grid by CornerLevels -- the

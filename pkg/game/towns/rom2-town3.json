@@ -199,8 +199,22 @@
          {"name": "upper", "format": "picture", "key": "graphics/interface/inn/buttonsarea.bmp", "size": [160, 238], "required": true, "cite": ["R2-ENGINE-246", "DIV-2964"]}
        ],
        "sounds": {"slots": [
-         {"name": "helper", "source": "inn-interior", "key": "town/inn/helper.wav", "cite": ["R2-ENGINE-247", "R2-ENGINE-260"]}
-       ], "cite": ["R2-ENGINE-247", "DIV-2985"]},
+         {"name": "helper", "source": "inn-interior", "key": "town/inn/helper.wav", "cite": ["R2-ENGINE-247", "R2-ENGINE-260"]},
+         {"name": "water", "source": "inn-interior", "key": "town/inn/water.wav", "loop": true, "cite": ["R2-ENGINE-258", "DIV-4372"]},
+         {"name": "enter", "source": "inn-interior", "key": "town/inn/enter.wav", "cite": ["R2-ENGINE-258", "DIV-4372"]},
+         {"name": "out", "source": "inn-interior", "key": "out.wav", "cite": ["R2-ENGINE-246", "R2-ENGINE-687"]},
+         {"name": "add", "source": "inn-interior", "key": "add.wav", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"name": "noadd", "source": "inn-interior", "key": "noadd.wav", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"name": "nofit", "source": "inn-interior", "key": "town/shop/nofit.wav", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"name": "talk", "source": "inn-interior", "key": "talk.wav", "cite": ["R2-ENGINE-246", "R2-ENGINE-687"]}
+       ],
+       "triggers": [
+         {"on": "leave-press", "slot": "out", "cite": ["R2-ENGINE-246", "R2-ENGINE-687"]},
+         {"on": "hire", "slot": "add", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"on": "hire-short", "slot": "nofit", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"on": "dismiss", "slot": "noadd", "cite": ["R2-ENGINE-496", "DIV-4372"]},
+         {"on": "talk", "slot": "talk", "cite": ["R2-ENGINE-246", "R2-ENGINE-687"]}
+       ], "cite": ["R2-ENGINE-247", "DIV-2985", "DIV-4372"]},
        "clocks": [
          {"name": "cycle", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["R2-ENGINE-258", "DIV-2985"]},
          {"name": "taverner", "period-ms": 100, "compare": "greater", "rebase": "every", "cite": ["R2-ENGINE-258", "DIV-2985"]}
@@ -219,8 +233,10 @@
           ],
           "cite": ["R2-ENGINE-258", "DIV-2985"]}
        ],
+       "enter": ["sound enter"],
        "steps": [
          {"when": "active", "run": ["arm taverner", "publish water", "publish taverner"], "cite": ["R2-ENGINE-258", "DIV-2985"]},
+         {"when": "active", "run": ["sound water"], "cite": ["R2-ENGINE-258", "DIV-4372"]},
          {"when": "active", "clock": "cycle", "run": ["advance water"], "cite": ["R2-ENGINE-258"]},
          {"when": "active", "run": ["advance taverner"], "cite": ["R2-ENGINE-258"]}
        ],
@@ -293,11 +309,42 @@
          {"name": "a2", "format": "series", "key": "movies/shop_druid/a2%04d.bmp", "first": 2, "count": 29, "size": [72, 164], "required": true, "cite": ["R2-ENGINE-259"]}
        ],
        "random": [{"name": "idle", "source": "host", "cite": ["R2-ENGINE-259", "DIV-3061"]}],
+       "sounds": {
+         "slots": [
+           {"name": "put-on", "source": "shop-interior", "key": "put_on.wav", "restart": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "put-off", "source": "shop-interior", "key": "put_off.wav", "restart": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "shelf-scroll", "source": "shop-interior", "key": "scroll.wav", "restart": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "pack-scroll", "source": "shop-interior", "key": "scroll.wav", "restart": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "depart", "source": "shop-interior", "key": "town/shop/depart.wav", "restart": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "enter", "source": "shop-interior", "key": "town/shop/enter.wav", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "inshop", "source": "shop-interior", "key": "town/shop/inshop.wav", "loop": true, "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "start", "source": "shop-interior", "key": "town/shop/start.wav", "channel": "speech", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "nofit", "source": "shop-interior", "key": "town/shop/nofit.wav", "cite": ["R2-ENGINE-269", "DIV-4372"]},
+           {"name": "buy", "source": "shop-interior", "key": "town/buy.wav", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "sell", "source": "shop-interior", "key": "town/sell.wav", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "undo", "source": "shop-interior", "key": "undo.wav", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"name": "out", "source": "shop-interior", "key": "out.wav", "cite": ["R2-ENGINE-249", "DIV-4372"]}
+         ],
+         "triggers": [
+           {"on": "table-drop", "slot": "put-on", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"on": "table-pick", "slot": "put-off", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"on": "shelf-arrow", "slot": "shelf-scroll", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"on": "pack-arrow", "slot": "pack-scroll", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"on": "rack-changed", "slot": "depart", "cite": ["R2-ENGINE-269", "DIV-4372"]},
+           {"on": "buy", "slot": "buy", "cite": ["R2-ENGINE-269", "DIV-4372"]},
+           {"on": "buy-short", "slot": "nofit", "cite": ["R2-ENGINE-269", "DIV-4372"]},
+           {"on": "sell", "slot": "sell", "cite": ["R2-ENGINE-269", "DIV-4372"]},
+           {"on": "button-press-0", "slot": "undo", "cite": ["R2-ENGINE-249", "DIV-4372"]},
+           {"on": "button-press-3", "slot": "out", "cite": ["R2-ENGINE-249", "DIV-4372"]}
+         ],
+         "cite": ["R2-ENGINE-259", "DIV-4372"]},
+       "enter": ["sound depart", "sound enter", "sound inshop", "sound start"],
        "clocks": [
          {"name": "step", "period-ms": 100, "compare": "at-least", "entry-ms": -100, "cite": ["R2-ENGINE-259", "DIV-3061"]},
          {"name": "druid-keeper", "compare": "at-least", "process": true, "cite": ["R2-ENGINE-259", "DIV-3063"]}
        ],
        "steps": [
+         {"when": "active", "run": ["sound inshop"], "cite": ["R2-ENGINE-249", "DIV-4372"]},
          {"clock": "step", "when": "active", "run": ["arm keeper", "advance keeper"], "cite": ["R2-ENGINE-259"]}
        ],
        "lifecycle": "shown",

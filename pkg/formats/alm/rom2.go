@@ -58,11 +58,11 @@ func decodeMetaROM2(p []byte) (angle float32, info Info, meta Meta, err error) {
 	if len(p) != rom2MetaSize {
 		return 0, info, meta, fmt.Errorf("alm: type-0 payload is %d bytes, want %d", len(p), rom2MetaSize)
 	}
-	head := make([]byte, metaSize)
+	head := make([]byte, MetaSize)
 	copy(head, p[:rom2CountsAt])
-	copy(head[metaName:], p[rom2NameAt:rom2NameAt+metaNameLen])
-	copy(head[metaWord70:], p[rom2WordsAt:rom2WordsAt+8])
-	copy(head[metaDesc:], p[rom2DescAt:rom2DescAt+metaBlockLen])
+	copy(head[MetaName:], p[rom2NameAt:rom2NameAt+MetaNameLen])
+	copy(head[MetaWord70:], p[rom2WordsAt:rom2WordsAt+8])
+	copy(head[MetaDesc:], p[rom2DescAt:rom2DescAt+MetaDescBlockLen])
 	angle, info, meta, err = decodeMetaPayload(head)
 	if err != nil {
 		return 0, info, meta, err

@@ -3170,7 +3170,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1861,
 		"scclause":        505,
-		"barestorynumber": 1702,
+		"barestorynumber": 1701,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3179,7 +3179,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1678,
+		"longcommentgroups":      1677,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3612,7 +3612,7 @@ var Committed = Baseline{
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
 
-	// The merge of the map editor's side panels with main is measured on
-	// the merged tree.
-	CommentBytes: 10070498,
+	// The side panels' correction (category palettes, minimize, cell
+	// tooltips) and its merge with main are measured on the merged tree.
+	CommentBytes: 10086177,
 }

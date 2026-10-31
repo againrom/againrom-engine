@@ -35,7 +35,7 @@ func TestRandomTerrainWalksTheMapXOuterYInner(t *testing.T) {
 		t.Fatalf("only %d look-alike sizes", len(pool))
 	}
 	f := e.locate()
-	span := f.required(tileTypeID)
+	span := f.required(alm.TypeTiles)
 	old := e.tileWords(span, w*h)
 	next := slices.Clone(old)
 	for i := range next {

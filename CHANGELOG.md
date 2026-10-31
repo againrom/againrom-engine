@@ -19,6 +19,18 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The shop and the inn in each town play their sounds: entering, buying, selling, a refused buy, putting items on the table, scrolling the shelves, undo and leaving in the shop; hiring, dismissing, a refused hire, talking and leaving in the inn.
+- [ROM2] A mage learns a spell by reading its book, as in the first game: use the book from the pack in a mission, or drop it on the mage in the shop. The book is used up; a fighter, a mage who knows the spell and a book of Slow are refused.
+- [ROM2] Lifting an item out of the pack in the shop no longer leaves its name in the empty slot.
+
+### For map makers and modders
+
+- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's scripts, players, groups, units, sacks and structures as a tree with a search, in the toolbar's order and words; a row selects as a click on the map does. A toolbar entry opens its branch and that category's palette, which places or acts and no longer lists records; resting the pointer on a palette cell for a moment names it. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» and a group's Delete group included; a double click on its title opens it as a separate window. Each panel's < or > button, F6, F7 and the View menu minimize a panel to a narrow strip and restore it, the inner edges drag to resize, and the editor remembers both; a narrow window minimizes the right panel first.
+
+## 0.143.0
+
+### For players
+
 - [ROM2] A game you save during a mission, from the save page, with quick save or by the autosaves, is now written in the original game's own save format too, so the original game can try to load it; loading it in Againrom returns you to the same moment.
 - [ROM2] A mission you save after loading a mission save the original game wrote now keeps each building's type and each of the original's pointer records as the file held them. Before, a building whose type number was above 255 was saved with a wrong type, and a pointer record was saved as a plain building.
 - [ROM2] A mission save written in the original game's format now lists the map's changed cells, orders the ground entries and opens the diplomacy and script registers as the original does.
@@ -29,7 +41,6 @@ modder or developer can notice gets no entry.
 
 - [BASE] In the map editor, the trigger wizard names a relation as the Players page does: Neutral, Hostile, Ally (RU Нейтралитет, Вражда, Союз) instead of peace, hostile, alliance, and its Change relation action reads as the trigger list does (RU "Изменить отношение").
 - [BASE] In the map editor, the speaker list of a dialogue page shows each speaker's small portrait, the face the game shows when that speaker talks, and the page card shows the chosen speaker's portrait beside the name. The person window's NPC list shows the same portraits. A speaker with no face keeps an empty place.
-- [BASE] The map editor has two side panels. On the left, "Objects and scenarios" (RU «Объекты и сценарии») lists the map's scripts, players, groups, units, sacks and structures as a tree with a search, in the toolbar's order and words; a row selects as a click on the map does. A toolbar entry opens its branch and that category's palette, which places or acts and no longer lists records; resting the pointer on a palette cell for a moment names it. On the right, "Properties" (RU «Свойства») shows the selected object's window, a trigger's «Когда/Сделать» and a group's Delete group included; a double click on its title opens it as a separate window. Each panel's < or > button, F6, F7 and the View menu minimize a panel to a narrow strip and restore it, the inner edges drag to resize, and the editor remembers both; a narrow window minimizes the right panel first.
 - [BASE] The map editor no longer places a new sack on a cell of the map's border ring; moving or pasting one there was already refused, and adding one now gives the same message.
 
 ## 0.142.0

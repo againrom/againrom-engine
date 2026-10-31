@@ -18,7 +18,7 @@ const TileGroupBits = 0x1fff
 func TileGroupMask(words []uint16) uint32 {
 	var mask uint32
 	for _, w := range words {
-		mask |= 1 << ((uint32(w) & tileIndexMask) >> 6)
+		mask |= 1 << ((uint32(w) & TileIndexMask) >> 6)
 	}
 	if mask > 0xff {
 		mask |= 0xf00

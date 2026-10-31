@@ -1,6 +1,10 @@
 package mapedit
 
-import "fmt"
+import (
+	"fmt"
+
+	"againrom/pkg/formats/alm"
+)
 
 // Patch is a rectangle of the three cell planes, row by row: W x H tile
 // words, heights and object class bytes. Objects is nil when the map it was
@@ -22,9 +26,9 @@ func (e *Editor) CopyPatch(x, y, w, h int) (Patch, error) {
 		return Patch{}, fmt.Errorf("mapedit: a %dx%d patch at (%d,%d) is not on the %dx%d grid", w, h, x, y, gw, gh)
 	}
 	f := e.locate()
-	tiles, heights := e.tileWords(f.required(tileTypeID), gw*gh), f.required(altitudeTypeID)
+	tiles, heights := e.tileWords(f.required(alm.TypeTiles), gw*gh), f.required(alm.TypeAltitude)
 	p := Patch{W: w, H: h, Tiles: make([]uint16, 0, w*h), Heights: make([]byte, 0, w*h)}
-	objects, err := f.optional("copy objects", overlayTypeID)
+	objects, err := f.optional("copy objects", alm.TypeOverlay)
 	if err == nil {
 		p.Objects = make([]byte, 0, w*h)
 	}
@@ -53,8 +57,8 @@ func (e *Editor) PastePatch(p Patch, at Cell) (bool, error) {
 	}
 	f := e.locate()
 	gw, gh := e.GridSize()
-	tiles, heights := f.required(tileTypeID), f.required(altitudeTypeID)
-	objects, err := f.optional("paste objects", overlayTypeID)
+	tiles, heights := f.required(alm.TypeTiles), f.required(alm.TypeAltitude)
+	objects, err := f.optional("paste objects", alm.TypeOverlay)
 	if err != nil && p.Objects != nil {
 		for _, b := range p.Objects {
 			if b != 0 {

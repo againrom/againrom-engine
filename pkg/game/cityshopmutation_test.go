@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -208,7 +209,7 @@ func TestCityShopNullPositionAndEqualBookConsumption(t *testing.T) {
 	f.Carried[0].ID, f.Carried[0].Mage = "hero", true
 	f.Table = shopBookFixtureTable()
 	item := shopBookPool(f.Table, 1000)[0].Instance()
-	spell, _ := item.BookSpell()
+	spell, _ := item.BookSpell(rules.SpellGameFirst)
 	cityShopSetTestPack(t, f, 0, sim.StackItem(item, 1), sim.ItemStack{}, sim.StackItem(item, 1))
 	cityShopGraph(t, f)
 	before := slices.Clone(cityShopRoots(t, f, 0).Pack)

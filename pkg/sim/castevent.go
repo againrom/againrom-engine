@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/rules"
+
 // Cast observations are immutable step return values for presentation. They
 // enter neither World nor its byte form or digest; observing a step cannot
 // change simulation. Script traces have a separate consumer and are independent.
@@ -166,7 +168,10 @@ type ProjectilePhase struct {
 }
 
 func (o *castObs) recordProjectilePhase(w *World, p SavedProjectile, d SavedProjectileDriver) {
-	if o == nil || w.SecondGame() || p.Picture != 51 || p.ActionPhase != 8 {
+	if o == nil {
+		return
+	}
+	if phase := rules.PictureCapabilityOf(w.SpellGame(), p.Picture).SoundPhase; phase == 0 || p.ActionPhase != phase {
 		return
 	}
 	o.projectilePhases = append(o.projectilePhases, ProjectilePhase{ID: p.ID,

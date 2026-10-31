@@ -16,10 +16,7 @@ func (c Campaign) TerminalMission(n int) bool {
 }
 
 // A finished campaign is neither a city nor a mission, so no SAV holds it.
-var (
-	errCompletedCampaignFile = errors.New("this save holds a completed campaign; the game has no save point after the campaign ends, so it cannot be loaded")
-	errCompletedCampaignSave = errors.New("the campaign is complete; there is no save point after its ending")
-)
+var errCompletedCampaignFile = errors.New("this save holds a completed campaign; the game has no save point after the campaign ends, so it cannot be loaded")
 
 func (c Campaign) completedBy(t *Town) bool {
 	if t == nil {

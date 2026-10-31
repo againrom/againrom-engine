@@ -173,7 +173,7 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 	for i, ev := range events {
 		from := image.Pt(int(ev.FromX), int(ev.FromY))
 		to := image.Pt(int(ev.ToX), int(ev.ToY))
-		seed := uint32(from.X|from.Y<<8) ^ uint32(to.X|to.Y<<8)<<16 ^ uint32(i+1)
+		identity := presentationIdentity{rule: seedScript, from: from, to: to, index: i}
 		// UNIT-M10CAST-056 / MAGIC-DELIVER-035: direct-client Lightning carries
 		// flight parameter 5, not the normal caster's 13 calls; the source-cell
 		// Prismatic Spray links each resolved victim (MAGIC-281).
@@ -182,7 +182,7 @@ func (mw *mapWorld) observeScriptCasts(events []sim.ScriptCastEvent) {
 			ev = events[i]
 		}
 		if ev.Produced {
-			mw.keepScriptCastLook(ev, seed)
+			mw.keepScriptCastLook(ev, identity)
 		}
 		mw.playSpellSound(castSpellSoundSlot(mw.spells(), ev.Spell), 0, from, "scripted-cast")
 		mw.scheduleBlastSound(ev.Spell, 0, from, to, false)

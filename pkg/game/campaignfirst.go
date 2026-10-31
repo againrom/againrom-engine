@@ -22,10 +22,12 @@ func (firstCampaignRules) townAdapter(t *townScreen) townCampaignAdapter {
 
 func (firstCampaignRules) townSavePoint(f *FrontEnd) error {
 	if !f.Town.Open() {
-		return errors.New("there is no game to save yet")
+		return firstRefusals.refuse(refusedNoGame)
 	}
 	return nil
 }
+
+func (firstCampaignRules) refusals() *refusalTable { return firstRefusals }
 
 func (firstCampaignRules) captureMission(_ *FrontEnd, s *Snapshot) { s.noticeOpen = false }
 
@@ -45,7 +47,7 @@ func (firstCampaignRules) refuseCompleted(f *FrontEnd, s Snapshot) error {
 		return err
 	}
 	if f.Campaign.Value().completedBy(t) {
-		return errCompletedCampaignSave
+		return firstRefusals.refuse(refusedCompleted)
 	}
 	return nil
 }
@@ -106,7 +108,7 @@ func (firstCampaignRules) enterMission(*Town, int) {}
 func (firstCampaignRules) seatWorld(missionRequest, *Mission) error { return nil }
 
 func (firstCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (map[int]bool, error) {
-	return worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives)))
+	return worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives, f.Campaign.Value().worldMap)))
 }
 
 func (firstCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {

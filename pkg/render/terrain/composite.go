@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+
+	"againrom/pkg/formats/alm"
 )
 
 // maxRenderPixels caps a composite so a hostile or mistaken width/height/scale
@@ -176,7 +178,7 @@ func Composite(ts *Tileset, g Grid, scale int) (*Render, error) {
 			}
 
 			var dirt *image.Paletted
-			if IsImpassable(word) && !ref.Water {
+			if alm.Impassable(word) && !ref.Water {
 				dirt = ts.Dirt.SubCell(DirtSubCell(col, row))
 			}
 			drawCell(img, col*cellpx, row*cellpx, scale, src, dirt)

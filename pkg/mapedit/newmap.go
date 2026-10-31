@@ -23,7 +23,7 @@ func NewMap(spec alm.NewMapSpec) (*Editor, error) {
 // +0x20 reads -1 as "derive from the class" (UNIT-PLACE-034).
 const unitAbsentU16 = 0xFFFF
 
-var unitAbsentWords = [...]int{0x20, 0x22, 0x24, 0x26}
+var unitAbsentWords = [...]int{alm.UnitHP, alm.UnitHP + 2, alm.UnitMana, alm.UnitMana + 2}
 
 // NewUnitRecord builds one type-6 record for a unit of the given class key and
 // secondary key at the cell words x and y, owned by roster slot owner. Every override byte is
@@ -36,13 +36,13 @@ func (e *Editor) NewUnitRecord(x, y uint32, class int16, secondary uint16, owner
 	if err != nil {
 		return nil, err
 	}
-	rec := make([]byte, unitRecordSize)
+	rec := make([]byte, alm.UnitSize)
 	le := binary.LittleEndian
-	le.PutUint32(rec[unitX:], x)
-	le.PutUint32(rec[unitY:], y)
-	le.PutUint16(rec[0x08:], uint16(class))
-	le.PutUint16(rec[0x0a:], secondary)
-	le.PutUint32(rec[0x14:], owner)
+	le.PutUint32(rec[alm.UnitX:], x)
+	le.PutUint32(rec[alm.UnitY:], y)
+	le.PutUint16(rec[alm.UnitClass:], uint16(class))
+	le.PutUint16(rec[alm.UnitSubID:], secondary)
+	le.PutUint32(rec[alm.UnitOwner:], owner)
 	for _, off := range unitAbsentWords {
 		le.PutUint16(rec[off:], unitAbsentU16)
 	}

@@ -36,6 +36,14 @@ func (t *townScreen) roomSound(room, on string) {
 	t.roomPage(room).Trigger(on)
 }
 
+// shownRoomSound requests a room event on the shown room of a composed
+// town, the second game's shop and inn, whose names the description gives.
+func (t *townScreen) shownRoomSound(on string) {
+	if _, room, ok := t.composedRoom(); ok {
+		t.roomSound(room, on)
+	}
+}
+
 func (t *townScreen) shopPage() *town.Scene { return t.roomPage("shop") }
 
 // loadRoomSceneArt resolves a room scene's art as room description d names

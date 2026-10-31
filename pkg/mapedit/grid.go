@@ -3,19 +3,8 @@ package mapedit
 import (
 	"encoding/binary"
 	"fmt"
-)
 
-// The three grid layers and the two type-0 words that size them. Each layer's
-// payload is pure cells, row-major from its first byte, so cell (x,y) begins at
-// (y*W+x)*elem with elem that layer's own cell width — two bytes for a type-1
-// tile, one for a type-2 altitude or a type-3 overlay.
-const (
-	tileTypeID     = 1
-	altitudeTypeID = 2
-	overlayTypeID  = 3
-
-	metaW = 0x00
-	metaH = 0x04
+	"againrom/pkg/formats/alm"
 )
 
 // GridLayer names one of the three grid layers SetCell writes.
@@ -53,12 +42,12 @@ func (e *Editor) SetCell(p GridPolicy, layer GridLayer, x, y int, v uint16) erro
 	var name string
 	switch layer {
 	case GridTile:
-		grid, name = f.required(tileTypeID), "tile"
+		grid, name = f.required(alm.TypeTiles), "tile"
 	case GridAltitude:
-		grid, name = f.required(altitudeTypeID), "altitude"
+		grid, name = f.required(alm.TypeAltitude), "altitude"
 	case GridOverlay:
 		var err error
-		if grid, err = f.optional("set an overlay cell", overlayTypeID); err != nil {
+		if grid, err = f.optional("set an overlay cell", alm.TypeOverlay); err != nil {
 			return err
 		}
 		name = "overlay"
@@ -84,9 +73,9 @@ func (e *Editor) SetCell(p GridPolicy, layer GridLayer, x, y int, v uint16) erro
 // gridIndex resolves (x,y) against W and H read as unsigned, so a hostile width
 // cannot fold a rejection into an accepted index.
 func (e *Editor) gridIndex(f frame, layer string, x, y int) (idx, w, cells int, err error) {
-	meta := f.required(metaTypeID)
-	gw := e.u32(meta.abs(metaW))
-	gh := e.u32(meta.abs(metaH))
+	meta := f.required(alm.TypeMeta)
+	gw := e.u32(meta.abs(alm.MetaWidth))
+	gh := e.u32(meta.abs(alm.MetaHeight))
 	if x < 0 || y < 0 || uint64(x) >= uint64(gw) || uint64(y) >= uint64(gh) {
 		return 0, 0, 0, fmt.Errorf("mapedit: %s cell (%d,%d) is outside the %dx%d grid", layer, x, y, gw, gh)
 	}

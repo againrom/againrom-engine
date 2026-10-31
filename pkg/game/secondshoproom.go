@@ -82,6 +82,7 @@ func (t *townScreen) bindBankShop() {
 		},
 		shop: shopHost{
 			shown: t.bankShopShown,
+			sound: t.shownRoomSound,
 			scene: t.shopScene,
 			events: [shopKeeperEvents]string{shopKeeperBought: secondShopBought, shopKeeperRefused: secondShopRefused,
 				shopKeeperSold: secondShopSold, shopKeeperRack: secondShopCategoryChanged},

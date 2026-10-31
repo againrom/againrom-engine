@@ -287,6 +287,7 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 				}
 				return t.innAct(t.state(), i)
 			}
+			t.shownRoomSound("leave-press")
 			t.squareView().LeaveRoom(room)
 		}
 		return ui.TownAction{}

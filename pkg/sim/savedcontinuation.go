@@ -478,7 +478,7 @@ func (w *World) stepSavedProjectile(d *SavedProjectileDriver) *ProjectileMark {
 			p.ActionX, p.ActionY = w.projectileAimPoint(target)
 			resolved = true
 		}
-		if resolved && p.ActionSegments > 0 && !w.SecondGame() && (p.Picture == 20 || p.Picture == 30) {
+		if resolved && p.ActionSegments > 0 && rules.PictureCapabilityOf(w.SpellGame(), p.Picture).Mark != rules.TargetMarkNone {
 			mark = &ProjectileMark{Target: d.Target, Picture: p.Picture}
 			if at := indexOfEntity(w.entities, d.Target); at >= 0 {
 				mark.Binding = w.entities[at].SourceBinding

@@ -1,18 +1,60 @@
 package game
 
 import (
+	"strings"
+
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
 
-// drawnName is the name the map draws for e with class c (its composed body
-// when it has one): the caption and the selection card show it, the card
-// falling back to unitNames[nameIndex] when it is empty (ui.PanelSubjectName).
+// definitionName is the display name's definition stage for party member p:
+// its companion name, else its mod name, else its class row, else fallback.
+func (in *InstallResources) definitionName(p mapload.PartyMember, classIndex int, words *ui.Words, fallback string) string {
+	if p.CompanionNPC != 0 {
+		return in.localizedNPCName(companionNameRow(p), fallback)
+	}
+	if name, ok := in.modCharacterName(p.Name); ok {
+		return name
+	}
+	// An ordinary Human carries a table key such as M_Brigand3 as its name.
+	if name, ok := ui.DisplayName(ui.InspectionUnit, "", classIndex, words); ok {
+		return name
+	}
+	return fallback
+}
+
+// companionNameRow is companion p's row of the installed NPC names.
+func companionNameRow(p mapload.PartyMember) int {
+	if p.CompanionNPC < 21 || p.CompanionNPC > 24 {
+		return p.CompanionNPC - 1
+	}
+	selector := -1
+	for i, base := range data.ChargenBaseNames() {
+		if p.Name == base || strings.HasPrefix(p.Name, base+"_") {
+			selector = i
+			break
+		}
+	}
+	if selector < 0 {
+		selector = 0
+		if data.FigureDir(p.FigureDir).Female() {
+			selector++
+		}
+		if p.Mage {
+			selector += 2
+		}
+	}
+	return 20 + selector
+}
+
+// drawnName is the display name's entity stage: the name the map draws for e
+// with class c (its composed body when it has one), class row nameIndex.
 // definitionCharName reports that the character's own name is only its
 // definition row's, which an ordinary actor does not show.
-func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, unitNames []string) (name string, nameIndex int, definitionCharName bool) {
+func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Words) (name string, nameIndex int, definitionCharName bool) {
 	if c != nil {
 		name = c.Name
 	}
@@ -44,8 +86,8 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, unitNames []s
 		if ordinary {
 			name = ""
 		}
-		if nameIndex >= 0 && nameIndex < len(unitNames) && unitNames[nameIndex] != "" {
-			name = unitNames[nameIndex]
+		if className, ok := ui.DisplayName(ui.InspectionUnit, "", nameIndex, words); ok {
+			name = className
 		}
 	}
 	return name, nameIndex, definitionCharName
@@ -66,16 +108,19 @@ func (mw *mapWorld) shownName(id sim.EntityID) string {
 	if body := mw.art[e.ID]; body != nil {
 		c = body
 	}
-	var unitNames []string
-	if mw.view != nil {
-		names := mw.view.Words().UnitNames
-		unitNames = names[:]
-	}
-	name, nameIndex, _ := mw.drawnName(&e, c, unitNames)
-	if name == "" && nameIndex >= 0 && nameIndex < len(unitNames) {
-		name = unitNames[nameIndex]
-	}
+	words := mw.drawnNameWords()
+	name, nameIndex, _ := mw.drawnName(&e, c, words)
+	name, _ = ui.DisplayName(ui.InspectionUnit, name, nameIndex, words)
 	return name
+}
+
+// drawnNameWords is the word table the name stages read, nil without a view.
+func (mw *mapWorld) drawnNameWords() *ui.Words {
+	if mw.view == nil {
+		return nil
+	}
+	words := mw.view.Words()
+	return &words
 }
 
 func sourceActorDefinitionName(table *mapload.Table, binding sim.SourceBinding) string {

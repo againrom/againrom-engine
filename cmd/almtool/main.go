@@ -133,7 +133,7 @@ func cmdGrid(path, layer string) error {
 	}
 	switch layer {
 	case "tiles":
-		fmt.Printf("tiles %dx%d (u16: index=cell&0x3ff, impassable=cell&0x2000)\n", m.Width, m.Height)
+		fmt.Printf("tiles %dx%d (u16: index=cell&%#x, impassable=cell&%#x)\n", m.Width, m.Height, alm.TileIndexMask, alm.TileImpassable)
 		for y := 0; y < m.Height; y++ {
 			for x := 0; x < w; x++ {
 				cell := m.Tiles[y*w+x]

@@ -1126,6 +1126,11 @@ func CompactPanelLayout(background *image.RGBA) PanelLayout {
 	}
 }
 
+// PanelSubjectName is the name the card shows for s, from DisplayName.
+func PanelSubjectName(s PanelSubject) (string, bool) {
+	return DisplayName(s.Kind, s.Name, s.UnitNameIndex, &s.Words)
+}
+
 // panelText is the ONE place a subject becomes a field's text, and the one
 // place that says which fields exist at all.
 //
@@ -1143,16 +1148,6 @@ func CompactPanelLayout(background *image.RGBA) PanelLayout {
 //
 // A field this build does not define answers false, so an unknown constant in a
 // layout omits its row rather than drawing an empty one.
-func PanelSubjectName(s PanelSubject) (string, bool) {
-	if s.Name != "" {
-		return s.Name, true
-	}
-	if s.Kind != InspectionStructure && s.UnitNameIndex >= 0 && s.UnitNameIndex < len(s.Words.UnitNames) && s.Words.UnitNames[s.UnitNameIndex] != "" {
-		return s.Words.UnitNames[s.UnitNameIndex], true
-	}
-	return "", false
-}
-
 func panelText(s PanelSubject, f PanelField) (string, bool) {
 	if s.Kind == InspectionStructure {
 		switch f {
