@@ -106,7 +106,7 @@ func (firstCampaignRules) enterMission(*Town, int) {}
 func (firstCampaignRules) seatWorld(missionRequest, *Mission) error { return nil }
 
 func (firstCampaignRules) selectedMarkers(f *FrontEnd, src *originalSource) (map[int]bool, error) {
-	return worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives)))
+	return worldSelectedOnceFromSnapshot(worldMapMarkerMissions(src.campaign.town, coldWorldMapData(f.worldMapCache, f.Archives, f.Campaign.Value().worldMap)))
 }
 
 func (firstCampaignRules) arriveLoaded(f *FrontEnd, c *restoreCandidate) {

@@ -38,7 +38,7 @@ func (f *FrontEnd) SetModTowns(d mod.TownData) (overrides []string, err error) {
 	}
 	// A stated point stands inside the picture of every mode of the map.
 	bounds := func() (b image.Rectangle, ok bool) {
-		for _, m := range loadWorldMapAssets(f.Archives).modes {
+		for _, m := range loadWorldMapAssets(f.Archives, c.worldMap).modes {
 			switch {
 			case m.background == nil:
 			case !ok:

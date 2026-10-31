@@ -3604,5 +3604,5 @@ var Committed = Baseline{
 	// and their two values in pkg/mapload/spell.go, the both-games test in
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
-	CommentBytes: 10063994,
+	CommentBytes: 10064714,
 }
