@@ -85,15 +85,21 @@ const (
 	relationHeadMax = 140
 )
 
-// relationWords name the values the claims give a meaning: bit 0 is
-// hostile, an attack sets it while the low two bits are clear, and bit 1
+// relationValue is a value's short name and its legend description.
+type relationValue struct {
+	nameWord string
+	descWord string
+}
+
+// relationValues name the values the claims give a meaning, by value: bit 0
+// is hostile, an attack sets it while the low two bits are clear, and bit 1
 // blocks that (AI-DIPLO-004); the shipped maps hold 0, 1 and 2
 // (AI-DIPLO-005).
-var relationWords = []string{"editor.relation.neutral", "editor.relation.hostile", "editor.relation.ally"}
-
-// relationNameWords are the same values' short names, by value, for a
-// cell's hover line.
-var relationNameWords = []string{"editor.relation.name.neutral", "editor.relation.name.hostile", "editor.relation.name.ally"}
+var relationValues = []relationValue{
+	{nameWord: "editor.relation.name.neutral", descWord: "editor.relation.neutral"},
+	{nameWord: "editor.relation.name.hostile", descWord: "editor.relation.hostile"},
+	{nameWord: "editor.relation.name.ally", descWord: "editor.relation.ally"},
+}
 
 // relationMatrixOf reads the matrix of the open document once.
 func (e *MapEditor) relationMatrixOf() *relationMatrix {
@@ -148,8 +154,8 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 					cell.Label = strconv.FormatInt(f.Value, 10)
 				}
 				name := strconv.FormatInt(f.Value, 10)
-				if f.Value >= 0 && f.Value < int64(len(relationNameWords)) {
-					name = e.word(relationNameWords[f.Value])
+				if f.Value >= 0 && f.Value < int64(len(relationValues)) {
+					name = e.word(relationValues[f.Value].nameWord)
 				}
 				cell.Tip = fmt.Sprintf(e.word("editor.relation.cell"), m.labels[i], m.labels[j], name)
 			}
@@ -161,8 +167,8 @@ func (e *MapEditor) relationGridSpec() (*popupGrid, []popupRow, bool) {
 	}
 	g.HeadH = g.HeadW
 	rows := []popupRow{{Kind: popupHeading, Label: e.word("editor.relation.title")}}
-	for v, w := range relationWords {
-		rows = append(rows, popupRow{Kind: popupText, Label: e.word(w), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}})
+	for v, r := range relationValues {
+		rows = append(rows, popupRow{Kind: popupText, Label: e.word(r.descWord), Value: strconv.Itoa(v), Icons: []*image.RGBA{relationIcon(int64(v))}})
 	}
 	return g, rows, true
 }
@@ -197,7 +203,7 @@ func (e *MapEditor) relationPress(n int) {
 // relationNext is the value a press on a cell holding v sets: the named
 // values in turn, and the first after any other.
 func relationNext(v int64) int64 {
-	if v >= 0 && v < int64(len(relationWords)-1) {
+	if v >= 0 && v < int64(len(relationValues)-1) {
 		return v + 1
 	}
 	return 0

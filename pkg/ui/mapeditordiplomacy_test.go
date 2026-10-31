@@ -63,8 +63,8 @@ func TestTriggerWindowReadsDiplomacyInPlainWords(t *testing.T) {
 		shown    string
 		hint     string
 	}{
-		{"", [2]string{"Relation between players", "Change relation"}, "Veglud", []string{"peace", "hostile", "alliance"}, "hostile", "needs a second action"},
-		{"russian", [2]string{"Отношение игроков", "Изменить отношение игроков"}, "Veglud", []string{"мир", "вражда", "союз"}, "вражда", "нужно второе действие"},
+		{"", [2]string{"Relation between players", "Change relation"}, "Veglud", []string{"Neutral", "Hostile", "Ally"}, "Hostile", "needs a second action"},
+		{"russian", [2]string{"Отношение игроков", "Изменить отношение"}, "Veglud", []string{"Нейтралитет", "Вражда", "Союз"}, "Вражда", "нужно второе действие"},
 	} {
 		e, _ := diplomacyEditor(t, tc.language, 1)
 		lines := strings.Join(e.PopupLines(), "\n")
@@ -86,7 +86,7 @@ func TestTriggerWindowReadsDiplomacyInPlainWords(t *testing.T) {
 
 func TestTriggerWindowKeepsAnUnknownRelationAndWritesTheChosenOne(t *testing.T) {
 	e, host := diplomacyEditor(t, "", 7)
-	if got := relationChoices(e, "a0.p2"); !slices.Equal(got, []string{"peace", "hostile", "alliance", "7"}) {
+	if got := relationChoices(e, "a0.p2"); !slices.Equal(got, []string{"Neutral", "Hostile", "Ally", "7"}) {
 		t.Fatalf("a stored 7 offers %q", got)
 	}
 	v, _ := e.scriptPopup()

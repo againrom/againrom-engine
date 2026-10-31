@@ -86,8 +86,6 @@ func (p wizParam) types() []uint32 {
 	return paramTypes(p.kind)
 }
 
-var wizardRelationWords = []string{"editor.wizard.relation.peace", "editor.wizard.relation.hostile", "editor.wizard.relation.alliance"}
-
 // wizConditions are the ready conditions. Check 2 is a unit in a box
 // (TRIG-CHECKGEOM-130), 3 a unit within a radius of a cell and 6 the
 // distance between two units, 255 when either is dead (TRIG-DIST-014),
@@ -130,7 +128,7 @@ var wizActions = []wizItem{
 	{labelWord: "editor.wizard.a.order", opcode: scriptGroupCommand, params: []wizParam{
 		{kind: wpGroup, labelWord: "editor.wizard.p.group", inNode: true, last: true},
 		{kind: wpCommand, labelWord: "editor.wizard.p.command", def: 4, inNode: true}, pPoint}},
-	{labelWord: "editor.wizard.a.relation", opcode: 10, hintWord: "editor.wizard.a.relation.hint", params: []wizParam{numbered(pPlayer), numbered(pToPlayer), {kind: wpRelation, labelWord: "editor.wizard.p.relation", inNode: true}}},
+	{labelWord: "editor.action.op10", opcode: 10, hintWord: "editor.wizard.a.relation.hint", params: []wizParam{numbered(pPlayer), numbered(pToPlayer), {kind: wpRelation, labelWord: "editor.wizard.p.relation", inNode: true}}},
 }
 
 // scriptConstantOp is the build-time operation: a preset condition, or the
@@ -636,8 +634,8 @@ func (e *MapEditor) wizardTargets(kind wizParamKind) []InspectionChoice {
 			add(int64(t.Value), t.ChoiceText())
 		}
 	case wpRelation:
-		for v, word := range wizardRelationWords {
-			add(int64(v), e.word(word))
+		for v, r := range relationValues {
+			add(int64(v), e.word(r.nameWord))
 		}
 	}
 	return out

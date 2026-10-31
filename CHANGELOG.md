@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] In the map editor, the trigger wizard names a relation as the Players page does: Neutral, Hostile, Ally (RU Нейтралитет, Вражда, Союз) instead of peace, hostile, alliance, and its Change relation action reads as the trigger list does (RU "Изменить отношение").
+
 ## 0.142.0
 
 ### For players

@@ -3300,7 +3300,7 @@ var Committed = Baseline{
 	// It rose for the relation matrix's upright column heads: the doc
 	// comments of popupGrid.HeadH, popupGridCell.Tip, headHeight, the grid
 	// hover in popupTipAt and drawTextUp in pkg/ui/editorpopup.go, of
-	// relationNameWords and relationGridSpec in pkg/ui/mapeditorplayers.go,
+	// relationValues and relationGridSpec in pkg/ui/mapeditorplayers.go,
 	// the new tests' comments and this note.
 
 	// It rose for the map editor's Height tool modes and strength: the doc
@@ -3581,5 +3581,5 @@ var Committed = Baseline{
 	// test, the top-band test in junction_test.go, and this note. The merge
 	// with main is measured on the merged tree. The junction release test
 	// then says why a stroke that rewrites no word takes no undo.
-	CommentBytes: 10027511,
+	CommentBytes: 10027496,
 }

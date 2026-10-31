@@ -97,8 +97,8 @@ func TestPlayersPageMatrixCyclesARelationPerClick(t *testing.T) {
 	}
 	legend := 0
 	for _, row := range s.Rows {
-		for v, w := range relationWords {
-			if row.Label == e.word(w) && len(row.Icons) == 1 && row.Icons[0] == relationIcon(int64(v)) {
+		for v, r := range relationValues {
+			if row.Label == e.word(r.descWord) && len(row.Icons) == 1 && row.Icons[0] == relationIcon(int64(v)) {
 				legend++
 			}
 		}
