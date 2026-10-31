@@ -2645,11 +2645,12 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 		mw.pending = append(mw.pending, sim.UsePotion(id, sim.ItemSlot(idx)))
 		return
 	}
-	if spell, readable := item.BookSpell(); item.Kind == 5 {
+	if game := mw.world.SpellGame(); item.IsBook(game) {
+		spell, readable := item.BookSpell(game)
 		if !readable || !mw.invParty.mage {
 			return
 		}
-		if reader, ok := mw.world.Entity(id); !ok || !sim.EntityBookReader(reader).Admits(spell) {
+		if reader, ok := mw.world.Entity(id); !ok || !sim.EntityBookReader(reader, game).Admits(spell) {
 			return
 		}
 		mw.pending = append(mw.pending, sim.ReadBook(id, sim.ItemSlot(idx)))

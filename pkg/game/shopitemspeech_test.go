@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
@@ -25,22 +26,22 @@ func TestShopItemSpeechNamesOneRecording(t *testing.T) {
 	parts := []string{"speech/shop/s01i02p1.wav", "speech/shop/s01i02p2.wav", "speech/shop/s01i02p3.wav"}
 	plain := ShopItem{Code: 0x0102, Count: 1}
 	for v, want := range parts {
-		if got, ok := shopItemSpeech(plain, have(parts...), draw(v)); !ok || got != want {
+		if got, ok := shopItemSpeech(plain, rules.SpellGameFirst, have(parts...), draw(v)); !ok || got != want {
 			t.Fatalf("draw %d named %q, %v; want %q", v, got, ok, want)
 		}
 	}
-	if got, _ := shopItemSpeech(plain, have(parts[0], parts[2]), draw(1)); got != parts[2] {
+	if got, _ := shopItemSpeech(plain, rules.SpellGameFirst, have(parts[0], parts[2]), draw(1)); got != parts[2] {
 		t.Fatalf("a missing middle part: draw 1 named %q, want %q", got, parts[2])
 	}
-	if got, ok := shopItemSpeech(plain, have(), draw(0)); ok {
+	if got, ok := shopItemSpeech(plain, rules.SpellGameFirst, have(), draw(0)); ok {
 		t.Fatalf("an item without recordings named %q", got)
 	}
 	magic := ShopItem{Code: 0x0102, Count: 1, Effects: []sim.ItemEffect{{Kind: 3, Operand: 1}}}
 	effect := "speech/shop/effects/03.wav"
-	if got, _ := shopItemSpeech(magic, have(append([]string{effect}, parts...)...), draw(0)); got != effect {
+	if got, _ := shopItemSpeech(magic, rules.SpellGameFirst, have(append([]string{effect}, parts...)...), draw(0)); got != effect {
 		t.Fatalf("an item with a voiced effect named %q, want %q", got, effect)
 	}
-	if got, _ := shopItemSpeech(magic, have(parts...), draw(1)); got != parts[1] {
+	if got, _ := shopItemSpeech(magic, rules.SpellGameFirst, have(parts...), draw(1)); got != parts[1] {
 		t.Fatalf("an item whose effect has no recording named %q, want %q", got, parts[1])
 	}
 }

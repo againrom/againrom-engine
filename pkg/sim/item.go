@@ -240,27 +240,6 @@ func (i ItemInstance) CastSpell() (uint16, int32, bool) {
 	return 0, 0, false
 }
 
-// BookSpell returns the one spell taught by a readable book. Kind 5 is the
-// decoded Book object kind; a book with no teach effect, more than one teach
-// effect, or an out-of-mask spell id is not a readable one-spell book.
-func (i ItemInstance) BookSpell() (uint16, bool) {
-	if i.Kind != 5 {
-		return 0, false
-	}
-	var spell uint16
-	found := false
-	for _, e := range i.Effects {
-		if e.Kind != 42 {
-			continue
-		}
-		if found || e.Operand == 0 || e.Operand >= 32 {
-			return 0, false
-		}
-		spell, found = uint16(e.Operand), true
-	}
-	return spell, found
-}
-
 func weaponPairPresent(e Entity) bool {
 	return e.WeaponSpell != 0 || e.WeaponSpellLevel != 0
 }

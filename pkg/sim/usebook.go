@@ -1,19 +1,22 @@
 package sim
 
+import "againrom/pkg/rules"
+
 // BookReader is the part of an actor or party member that reading a one-spell
 // book touches: whether it may read, and its spellbook. A World actor and a
 // town party member each project into it, so both routes share one admission
-// and one transaction.
+// and one transaction. Game is the game whose book form the reader reads.
 type BookReader struct {
 	Alive bool
 	Mage  bool
 	Book  Spellbook
 	Known uint32
+	Game  rules.SpellGame
 }
 
-// EntityBookReader projects a World actor.
-func EntityBookReader(e Entity) BookReader {
-	return BookReader{Alive: e.Alive(), Mage: isMage(e), Book: e.Book, Known: e.KnownSpells}
+// EntityBookReader projects a World actor of game.
+func EntityBookReader(e Entity, game rules.SpellGame) BookReader {
+	return BookReader{Alive: e.Alive(), Mage: isMage(e), Book: e.Book, Known: e.KnownSpells, Game: game}
 }
 
 func (r BookReader) entity() Entity {
@@ -22,10 +25,10 @@ func (r BookReader) entity() Entity {
 	return e
 }
 
-// Admits reports whether the reader may use up a book of spell: alive, a mage
-// and not yet knowing the spell.
+// Admits reports whether the reader may use up a book of spell: alive, a mage,
+// not yet knowing the spell, and the spell one its game's book teaches.
 func (r BookReader) Admits(spell uint16) bool {
-	return r.Alive && r.Mage && !knowsSpell(r.entity(), uint32(spell))
+	return r.Alive && r.Mage && !knowsSpell(r.entity(), uint32(spell)) && bookTeaches(r.Game, spell)
 }
 
 // ReadBookSpell is the one transaction of reading a book: admit, learn the
@@ -59,11 +62,11 @@ func (w *World) readBook(i, cindex int) {
 		return
 	}
 	item := w.carried[i][cindex].Instance()
-	spell, ok := item.BookSpell()
+	spell, ok := item.BookSpell(w.SpellGame())
 	if !ok {
 		return
 	}
-	reader := EntityBookReader(w.entities[i])
+	reader := EntityBookReader(w.entities[i], w.SpellGame())
 	if !reader.Admits(spell) {
 		return
 	}

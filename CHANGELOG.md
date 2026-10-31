@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] A mage learns a spell by reading its book, as in the first game: use the book from the pack in a mission, or drop it on the mage in the shop. The book is used up; a fighter, a mage who knows the spell and a book of Slow are refused.
+
 ## 0.143.0
 
 ### For players

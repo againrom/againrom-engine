@@ -8,6 +8,7 @@ import (
 	"againrom/internal/firstgame"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -29,7 +30,7 @@ func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
 			shop.Generate(f.Table, seed)
 			seen := map[uint16]int32{}
 			for _, item := range shop.Shelf(ShelfBooks) {
-				if spell, ok := item.Instance().BookSpell(); ok {
+				if spell, ok := item.Instance().BookSpell(rules.SpellGameFirst); ok {
 					seen[spell] += item.Count
 					params := f.Table.Spells.EntryParams(int(spell))
 					if len(params) <= 21 || item.Price != params[21] || item.Price <= 0 || item.Price > ceiling {
@@ -95,14 +96,14 @@ func TestReleaseShopBookPurchaseReadAndMissionCarry(t *testing.T) {
 	// book this buys.
 	stock := f.Shop.Shelf(ShelfBooks)
 	at := slices.IndexFunc(stock, func(item ShopItem) bool {
-		spell, readable := item.Instance().BookSpell()
+		spell, readable := item.Instance().BookSpell(rules.SpellGameFirst)
 		return readable && item.Price > 0 && f.Carried[0].KnownSpells&(uint32(1)<<spell) == 0
 	})
 	if at < 0 {
 		t.Fatal("installed Spells rows generated no book the fixture mage lacks")
 	}
 	want := stock[at]
-	spell, _ := want.Instance().BookSpell()
+	spell, _ := want.Instance().BookSpell(rules.SpellGameFirst)
 
 	screen := f.TownScreen().(*townScreen)
 	screen.room = roomShop

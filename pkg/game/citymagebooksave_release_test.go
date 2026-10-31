@@ -6,6 +6,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -94,7 +95,7 @@ func cityMageBuyBook(t *testing.T, f *FrontEnd, app *ui.App, memberID string, it
 		t.Fatal(err)
 	}
 	cityShopPointer(t, app, "doll_box", 0, "move", "release")
-	spell, _ := item.Instance().BookSpell()
+	spell, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 	m := trainingPartyMember(t, f, memberID)
 	if m.KnownSpells&(1<<spell) == 0 || m.Book.State == sim.BookPresent && m.Book.Slots[spell-1] == (sim.BookSpell{}) || f.Town.Gold() != gold-int(item.Price) {
 		t.Fatalf("production book purchase did not teach spell %d: known %#x gold %d->%d chosen %d msg %q member %s", spell, m.KnownSpells, gold, f.Town.Gold(), shop.shopChosen, app.HeadlessMessage(), shop.shopPartyMember(shop.shopMemberIndex()).ID)
@@ -204,7 +205,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 
 	var candidates []ShopItem
 	for _, item := range shopBookPool(f.Table, 50000) {
-		if spell, ok := item.Instance().BookSpell(); ok && spell != 26 && member.KnownSpells&(1<<spell) == 0 {
+		if spell, ok := item.Instance().BookSpell(rules.SpellGameFirst); ok && spell != 26 && member.KnownSpells&(1<<spell) == 0 {
 			candidates = append(candidates, item)
 		}
 	}
@@ -222,7 +223,7 @@ func cityMageBookWitness(t *testing.T, f *FrontEnd, app *ui.App, store SaveStore
 	var spell uint32
 	probeID := cityMageMissionID(t, probe, memberID)
 	for _, item := range candidates {
-		s, _ := item.Instance().BookSpell()
+		s, _ := item.Instance().BookSpell(rules.SpellGameFirst)
 		if _, ok := cityMageNearest(cityMageCastCells(t, probe, probeApp, probeID, uint32(s))); ok {
 			chosen, spell = item, uint32(s)
 			break

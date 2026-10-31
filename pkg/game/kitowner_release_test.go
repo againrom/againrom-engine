@@ -11,6 +11,7 @@ import (
 	"againrom/internal/firstgame"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -82,7 +83,7 @@ func kitOwnerLearnSpell(t *testing.T, f *FrontEnd, app *ui.App) (mapload.PartyMe
 	var chosen ShopItem
 	var spell uint32
 	for _, item := range shopBookPool(f.Table, 50000) {
-		if s, ok := item.Instance().BookSpell(); ok && s != 26 && member.KnownSpells&(1<<s) == 0 {
+		if s, ok := item.Instance().BookSpell(rules.SpellGameFirst); ok && s != 26 && member.KnownSpells&(1<<s) == 0 {
 			chosen, spell = item, uint32(s)
 			break
 		}
@@ -298,7 +299,7 @@ func kitOwnerBuildCombat(t *testing.T) ([]byte, string) {
 	mage := f.Carried[mageIdx]
 	learned := map[uint32]bool{}
 	for _, item := range shopBookPool(f.Table, 50000) {
-		if s, ok := item.Instance().BookSpell(); ok && (s == 2 || s == 3) && mage.KnownSpells&(1<<s) == 0 {
+		if s, ok := item.Instance().BookSpell(rules.SpellGameFirst); ok && (s == 2 || s == 3) && mage.KnownSpells&(1<<s) == 0 {
 			cityMageBuyBook(t, f, app, mage.ID, item)
 			learned[uint32(s)] = true
 		}

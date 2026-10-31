@@ -103,14 +103,6 @@ func idItem(code uint16) (Item, bool) {
 	return it, true
 }
 
-// BookSpell is the spell of a book ID, or false when the ID is not a book's:
-// the one reading of a book's ID that the picture, which the spell's school
-// owns, asks.
-func BookSpell(code uint16) (int, bool) {
-	it, ok := idItem(code)
-	return it.Spell, ok && it.Table == Book
-}
-
 // MagicRow is the magic table row a magic item's ID names, the row an Item
 // holds at +0xc (R2-ENGINE-403), or false when the ID names no magic item.
 func MagicRow(code uint16) (int, bool) {

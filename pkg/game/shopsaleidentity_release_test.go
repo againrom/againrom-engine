@@ -11,6 +11,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/pkg/mapload"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -47,7 +48,7 @@ func staffSaleObserveLot(item ShopItem, index int, graph *cityObjectTopology) st
 		CityOrigins: append([]string(nil), item.CityOrigins...), Owners: append([]shopOwnerQuantity(nil), item.Owners...),
 		Count: item.Count, Instance: item.Instance().Clone()}
 	v.CastSpell, v.CastPower, v.HasCastSpell = v.Instance.CastSpell()
-	v.BookSpell, v.HasBookSpell = v.Instance.BookSpell()
+	v.BookSpell, v.HasBookSpell = v.Instance.BookSpell(rules.SpellGameFirst)
 	id := item.CityID
 	if id == 0 {
 		id = item.ObjectID

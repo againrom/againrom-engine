@@ -771,7 +771,7 @@ func (t *shopController) shopShieldDisplacesWeapon() bool {
 // It only validates; callers remove or buy exactly one source unit before
 // committing the spellbook bit, so every refusal is mutation-free.
 func (t *shopController) shopBookReader(item sim.ItemInstance) (*mapload.PartyMember, uint16, ui.TownAction, bool) {
-	spell, readable := item.BookSpell()
+	spell, readable := item.BookSpell(spellGame(t.in.Table))
 	if !readable {
 		return nil, 0, ui.TownAction{}, false
 	}
@@ -779,7 +779,7 @@ func (t *shopController) shopBookReader(item sim.ItemInstance) (*mapload.PartyMe
 	if member == nil || !member.Mage {
 		return nil, 0, ui.TownAction{}, true
 	}
-	if !partyBookReader(member).Admits(spell) {
+	if !partyBookReader(member, t.in.Table).Admits(spell) {
 		return nil, 0, ui.TownAction{}, true
 	}
 	return member, spell, ui.TownAction{}, true

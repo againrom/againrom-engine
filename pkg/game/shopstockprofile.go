@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
+	"againrom/pkg/rules"
 	"againrom/pkg/shopstock"
 	"againrom/pkg/sim"
 )
@@ -102,7 +103,7 @@ func (s *Shop) stockProfile(t *mapload.Table, r shopDrawSource) shopstock.Profil
 			},
 			Make: func(c shopStockCandidate, _ shopstock.Source) (ShopItem, bool) { return c.item.Clone(), true },
 			Finish: func(items []ShopItem, src shopstock.Source) []ShopItem {
-				items = shopGuaranteedBooks(items, books)
+				items = shopGuaranteedBooks(items, books, spellGame(t))
 				return order(append(items, shopPotionStock(t, src)...))
 			},
 		})
@@ -143,12 +144,12 @@ func shopShelfStack(t *mapload.Table) shopstock.Stack[ShopItem, shopStackKey] {
 
 // shopGuaranteedBooks is items with one book of each eligible spell the
 // random picks missed, taking no draw (owner policy, DIV-1025).
-func shopGuaranteedBooks(items, books []ShopItem) []ShopItem {
+func shopGuaranteedBooks(items, books []ShopItem, game rules.SpellGame) []ShopItem {
 	for _, book := range books {
-		spell, _ := book.Instance().BookSpell()
+		spell, _ := book.Instance().BookSpell(game)
 		found := false
 		for _, item := range items {
-			if got, ok := item.Instance().BookSpell(); ok && got == spell {
+			if got, ok := item.Instance().BookSpell(game); ok && got == spell {
 				found = true
 				break
 			}

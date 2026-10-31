@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/rules"
 )
 
 // Responses are optional presentation around an explicit item/skill choice.
@@ -106,14 +107,14 @@ func (t *townScreen) shopItemResponse(item ShopItem) {
 		return found
 	}
 	var names []string
-	if name, ok := shopItemSpeech(item, present, func(n int) int { return t.sceneDraw("idle", n) }); ok {
+	if name, ok := shopItemSpeech(item, spellGame(t.in.Table), present, func(n int) int { return t.sceneDraw("idle", n) }); ok {
 		names = []string{name}
 	}
 	t.startTownResponse(names)
 }
 
-// shopItemSpeech names the one recording of an item, or none.
-func shopItemSpeech(item ShopItem, present func(string) bool, draw func(int) int) (string, bool) {
+// shopItemSpeech names the one recording of an item of game, or none.
+func shopItemSpeech(item ShopItem, game rules.SpellGame, present func(string) bool, draw func(int) int) (string, bool) {
 	for _, effect := range item.Effects {
 		if effect.Kind > 0 && effect.Kind < 41 {
 			if name := fmt.Sprintf("speech/shop/effects/%02d.wav", effect.Kind); present(name) {
@@ -122,7 +123,7 @@ func shopItemSpeech(item ShopItem, present func(string) bool, draw func(int) int
 		}
 	}
 	instance := item.Instance()
-	spell, ok := instance.BookSpell()
+	spell, ok := instance.BookSpell(game)
 	if !ok {
 		var cast uint16
 		if cast, _, ok = instance.CastSpell(); ok {
