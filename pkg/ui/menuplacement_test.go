@@ -20,7 +20,7 @@ var gameMenuProfiles = []struct {
 func decodedRootRows(w Words, town bool, s gameMenuRowState) []gameMenuRow {
 	if town {
 		return []gameMenuRow{
-			{Label: w.MenuSave, Fallback: 'S', Action: gameMenuSave, Enabled: townCanSave(s.town)},
+			{Label: w.MenuSave, Fallback: 'S', Action: gameMenuSave, Enabled: !s.townSaveClosed},
 			{Label: w.MenuLoad, Fallback: 'L', Action: gameMenuLoad, Enabled: true},
 			{Label: w.MenuGameOptions, Fallback: 'O', Action: gameMenuGameOptions, Enabled: true},
 			{Label: w.MenuSoundOptions, Fallback: 'N', Action: gameMenuSoundOptions, Enabled: true},
@@ -43,19 +43,12 @@ func decodedRootRows(w Words, town bool, s gameMenuRowState) []gameMenuRow {
 	}
 }
 
-type savingTown struct {
-	TownScreen
-	can bool
-}
-
-func (t savingTown) CanSave() bool { return t.can }
-
 func TestProfileRowsAreTheDecodedRowsForBothGamesAndPlaces(t *testing.T) {
 	for _, g := range gameMenuProfiles {
 		for _, w := range []Words{AuthoredWords(), installedWords()} {
 			for bits := 0; bits < 32; bits++ {
 				s := gameMenuRowState{campaign: bits&1 != 0, canSave: bits&2 != 0, canLoad: bits&4 != 0,
-					canSound: bits&8 != 0, town: savingTown{can: bits&16 != 0}}
+					canSound: bits&8 != 0, townSaveClosed: bits&16 == 0}
 				for _, place := range []gameMenuSurface{gameMenuMission, gameMenuTown} {
 					got := gameMenuRootRows(g.profile.rowsAt(place), w, s)
 					want := decodedRootRows(w, place == gameMenuTown, s)

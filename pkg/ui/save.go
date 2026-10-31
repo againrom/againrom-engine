@@ -124,7 +124,7 @@ func (f *flow) menuRows() []gameMenuRow {
 			{Label: f.words.MenuReturn, Fallback: 'R', Action: gameMenuPageReturn, Enabled: true},
 		}
 	}
-	state := gameMenuRowState{campaign: f.menuContext.Campaign, canSave: f.menuCanSave, canLoad: f.menuCanLoad, canSound: f.menuCanSound, town: f.town}
+	state := gameMenuRowState{campaign: f.menuContext.Campaign, canSave: f.menuCanSave, canLoad: f.menuCanLoad, canSound: f.menuCanSound, townSaveClosed: !f.savePoint(saveMenuRow).open()}
 	return f.withModRows(gameMenuRootRows(f.pages.menu.rowsAt(f.menuSurface), f.words, state))
 }
 
@@ -360,10 +360,7 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	case gameMenuMusicTracks, gameMenuMusicRandom, gameMenuMusicPlay, gameMenuMusicStop:
 		f.chooseMusicOption(action)
 	case gameMenuSave:
-		if !f.atGameSavePoint() {
-			if f.screen == ScreenGameMenu && f.menuBack == ScreenTown {
-				f.showSaveRefusal(false)
-			}
+		if !f.savePoint(saveMenuAction).open() {
 			return
 		}
 		if f.saveDialogSeams.Prepare != nil {

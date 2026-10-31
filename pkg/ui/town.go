@@ -84,13 +84,6 @@ func startsInTown(t TownScreen) bool {
 	return true
 }
 
-func townCanSave(t TownScreen) bool {
-	if s, ok := t.(interface{ CanSave() bool }); ok {
-		return s.CanSave()
-	}
-	return true
-}
-
 // TownSquareScreen is the optional presentation seam for the town's four-door
 // square. Other rooms keep the row-button layout. A TownScreen that does not
 // implement this interface keeps the row-button layout too.

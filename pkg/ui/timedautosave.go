@@ -60,17 +60,7 @@ func (a *App) pollTimedAutosave(exit, unfocused bool) {
 	if f.gameOptions.Autosave.Poll == nil {
 		return
 	}
-	ready := !exit && !unfocused && a.cutscene == nil && !a.cutsceneDrain
-	_, dialogue := a.currentDialoguePointerOwner()
-	ready = ready && !dialogue
-	switch f.screen {
-	case ScreenMap:
-		ready = ready && f.viewer != nil && !f.viewer.NoticeOpen()
-	case ScreenTown:
-		ready = ready && f.town != nil && townCanSave(f.town)
-	default:
-		ready = false
-	}
+	ready := !exit && !unfocused && a.cutscene == nil && !a.cutsceneDrain && f.savePoint(saveAutosave).open()
 	if err := f.gameOptions.Autosave.Poll(f.viewer, f.screen == ScreenMap, ready); err != nil {
 		a.postAutosaveMessage("Timed autosave failed: " + err.Error())
 	}

@@ -3151,6 +3151,11 @@ package storyguard
 // CommentBytes rises with the doc comments of the map editor's bar menu hit
 // test, save notices, Open start folder, window resize cursor and heading
 // face in pkg/ui and pkg/game, their tests, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the one save point gate in
+// pkg/ui/savepoint.go and its callers in pkg/ui/functionkeys.go and
+// menurows.go, its table test in pkg/ui/savepointgate_test.go, the widened
+// scan in internal/archtest/saverefusal.go and its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3628,5 +3633,5 @@ var Committed = Baseline{
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10087840,
+	CommentBytes: 10090866,
 }

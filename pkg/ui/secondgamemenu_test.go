@@ -22,7 +22,7 @@ func gameMenuBaseRows(s gameMenuSurface) int {
 // from the data.
 func popupRows(w Words, s gameMenuRowState) []gameMenuRow {
 	return []gameMenuRow{
-		{Label: w.MenuSave, Fallback: 'S', FixedKey: true, Action: gameMenuSave, Enabled: townCanSave(s.town)},
+		{Label: w.MenuSave, Fallback: 'S', FixedKey: true, Action: gameMenuSave, Enabled: !s.townSaveClosed},
 		{Label: w.MenuLoad, Fallback: 'L', FixedKey: true, Action: gameMenuLoad, Enabled: true},
 		{Label: w.MenuSoundOptions, Fallback: 'N', FixedKey: true, Action: gameMenuSoundOptions, Enabled: true},
 		{Label: w.MenuAbort, Fallback: 'E', FixedKey: true, Action: gameMenuAbortGame, Enabled: true},

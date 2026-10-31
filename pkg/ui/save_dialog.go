@@ -43,22 +43,8 @@ func (a *App) SetSaveDialogSeams(seams SaveDialogSeams) {
 	}
 }
 
-func (f *flow) atGameSavePoint() bool {
-	if f.screen != ScreenGameMenu {
-		return false
-	}
-	switch f.menuBack {
-	case ScreenMap:
-		return true
-	case ScreenTown:
-		return townCanSave(f.town)
-	default:
-		return false
-	}
-}
-
 func (f *flow) openSaveDialog() {
-	if !f.atGameSavePoint() {
+	if !f.savePoint(saveMenuWindow).open() {
 		return
 	}
 	if f.pages.saveSet != nil {

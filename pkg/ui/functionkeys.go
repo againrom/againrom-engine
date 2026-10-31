@@ -5,29 +5,7 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 	if in.Unfocused || !in.SaveGame && !in.LoadGame && !in.QuickSave && !in.QuickLoad {
 		return false
 	}
-	phase2 := false
-	switch a.flow.screen {
-	case ScreenMap:
-		v := a.flow.viewer
-		if v == nil {
-			return false
-		}
-		if v.popupOpen() {
-			return in.SaveGame && a.flow.showSaveRefusal(true)
-		}
-		phase2 = v.readGameMenuContext().Campaign
-	case ScreenTown:
-		if _, open := townDialogue(a.flow.town); open {
-			return in.SaveGame && a.flow.showSaveRefusal(false)
-		}
-		if missionShopOpen(a.flow.town) {
-			return false
-		}
-		phase2 = true
-	default:
-		return false
-	}
-	if (in.QuickSave || in.QuickLoad) && phase2 && (a.flow.screen != ScreenTown || townCanSave(a.flow.town)) {
+	if (in.QuickSave || in.QuickLoad) && a.flow.savePoint(saveQuickKey).open() {
 		a.clearShopDrag()
 		a.townSurfacePress.Clear()
 		if v := a.flow.viewer; v != nil {
@@ -42,18 +20,30 @@ func (a *App) stepGameFunctionKeys(in appInput) bool {
 		a.stepQuickSave(in.QuickSave)
 		return true
 	}
+	// The Load key opens Load at an open point and Diplomacy on a map that is
+	// not a campaign. Pressed with Load, a Save the town refuses gives way to
+	// Load without a reason.
+	load, save := saveGate{row: pointNoScreen}, saveGate{row: pointNoScreen}
+	if in.LoadGame {
+		load = a.flow.savePoint(saveLoadKey)
+	}
+	if in.SaveGame {
+		kind := saveKey
+		if in.LoadGame {
+			kind = saveKeyWithLoad
+		}
+		save = a.flow.savePoint(kind)
+	}
 	var action gameMenuAction
 	switch {
-	case in.SaveGame && phase2 && (a.flow.screen != ScreenTown || townCanSave(a.flow.town)):
+	case save.open():
 		action = gameMenuSave
-	case in.LoadGame && phase2:
+	case load.open():
 		action = gameMenuLoad
-	case in.LoadGame:
+	case load.row == pointNotCampaign:
 		action = gameMenuDiplomacy
-	case in.SaveGame && phase2:
-		return a.flow.showSaveRefusal(false)
 	default:
-		return false
+		return save.shown
 	}
 	a.clearShopDrag()
 	a.townSurfacePress.Clear()

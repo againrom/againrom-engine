@@ -71,7 +71,8 @@ const (
 
 type gameMenuRowState struct {
 	campaign, canSave, canLoad, canSound bool
-	town                                 TownScreen
+	// townSaveClosed is the town Save row's save point closed.
+	townSaveClosed bool
 }
 
 func (s gameMenuRowState) holds(c menuRowCondition) bool {
@@ -87,7 +88,7 @@ func (s gameMenuRowState) holds(c menuRowCondition) bool {
 	case menuRowCanSound:
 		return s.canSound
 	case menuRowTownSave:
-		return townCanSave(s.town)
+		return !s.townSaveClosed
 	}
 	return true
 }

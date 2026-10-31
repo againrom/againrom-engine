@@ -29,7 +29,7 @@ func (s *savePageState) view() pageView {
 // openSavePage shows the configured save page with row 0 selected and an
 // empty name box.
 func (f *flow) openSavePage() {
-	if !f.atGameSavePoint() || f.pages.saveSet == nil {
+	if !f.savePoint(saveMenuWindow).open() || f.pages.saveSet == nil {
 		return
 	}
 	f.pages.save = &savePageState{page: *f.pages.saveSet, directory: f.saveDialogSeams.Directory, onMap: f.menuBack == ScreenMap}
