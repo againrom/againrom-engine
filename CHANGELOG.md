@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.142.0
+
 ### For players
 
 - [ROM2] Your hero, Iglez, Dina and your hired men now answer when you select them and when you order them to move, attack, swarm, defend, retreat or pick something up, each in their own voice, as in the original; a spell order stays silent. In the English edition only a male warrior hero speaks for now: the other voices are recorded in a form Againrom cannot play yet, and the hired men have no recordings there.
