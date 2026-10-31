@@ -1,6 +1,7 @@
 package secondshop
 
 import (
+	"math"
 	"os"
 	"reflect"
 	"sort"
@@ -8,6 +9,7 @@ import (
 
 	"againrom/pkg/formats/databin"
 	"againrom/pkg/random"
+	"againrom/pkg/sim"
 	"againrom/pkg/vfs"
 )
 
@@ -35,7 +37,7 @@ func installTables(t *testing.T) Tables {
 	}
 	return Tables{Shapes: f.Collection(databin.Shapes), Materials: f.Collection(databin.Materials),
 		Armors: f.Collection(databin.Armors), Shields: f.Collection(databin.Shields), Weapons: f.Collection(databin.Weapons),
-		MagicItems: f.Collection(databin.MagicItems), Spells: f.Collection(databin.Spells)}
+		MagicItems: f.Collection(databin.MagicItems), Spells: f.Collection(databin.Spells), Magic: f.Collection(databin.Magic)}
 }
 
 // swapped reads factor slot 3 where slot 2 is asked: the loss control of the
@@ -56,15 +58,28 @@ func count(items []Item) map[Kind]int {
 	return n
 }
 
+// levelCap is the claim's level cap of spell s on it in cat:
+// trunc((1.2^log2(budget/(10*c20)) - 1)*30), budget min(2*max - P, 100*P),
+// capped by the level field and 100; 0 when none (R2-ENGINE-265).
+func levelCap(tb Tables, it Item, s int, cat Category) int {
+	p := int64(tb.baseProduct(it) + 0.5)
+	budget := min(2*int64(cat.Max)-p, 100*p)
+	c20 := param(tb.Spells, s, colEnchant)
+	if c20 <= 0 || budget <= 0 {
+		return 0
+	}
+	return max(0, min(int((math.Pow(1.2, math.Log2(float64(budget)/(10*float64(c20))))-1)*30), tb.levelProduct(it), 100))
+}
+
 // enchantVariants counts the (base, spell, level) rows of an enchanted
 // category whose final price lies in its range (R2-ENGINE-265).
 func enchantVariants(tb Tables, cat Category) (n int, lo, hi int64) {
 	lo = 1 << 62
 	for _, base := range tb.Candidates(cat, nil) {
-		for _, s := range enchantSpells {
-			for level := 1; level <= tb.LevelCap(base, s, cat); level++ {
+		for _, s := range castSpells[0] {
+			for level := 1; level <= levelCap(tb, base, int(s), cat); level++ {
 				it := base
-				it.Spell, it.Level = s, level
+				it.Effects = []sim.ItemEffect{{Kind: tagCastSpell, Operand: uint32(s) | uint32(level)<<16}}
 				if p := tb.Price(it); p >= int64(cat.Min) && p <= int64(cat.Max) {
 					n++
 					lo, hi = min(lo, p), max(hi, p)
@@ -168,7 +183,7 @@ func TestReleaseSecondShopTownOneFill(t *testing.T) {
 		t.Errorf("category 3 holds %d books and %d potions, want 5 and 6", books, potions)
 	}
 	for _, it := range s[2] {
-		if it.Level < 1 || it.Price < 649 || it.Price > 1442 {
+		if len(it.Effects) != 1 || it.Effects[0].Kind != tagCastSpell || it.Price < 649 || it.Price > 1442 {
 			t.Errorf("category 2 item %+v outside the enchanted population", it)
 		}
 	}
@@ -213,7 +228,7 @@ func TestSecondShopSettlement(t *testing.T) {
 	if s[0][0].Count != 3 || len(s[0]) != 1 || gold != 10 {
 		t.Errorf("sale of 2 at 10 back: shelf %+v, gold %d; want merged 3 and 10", s[0], gold)
 	}
-	enchanted := Item{Table: Weapon, Row: 13, Material: 8, Spell: 1, Level: 3}
+	enchanted := Item{Table: Weapon, Row: 13, Material: 8, Effects: []sim.ItemEffect{{Kind: tagCastSpell, Operand: 1 | 3<<16}}}
 	if c := Place(NewGameRecords[1], enchanted); c != 2 {
 		t.Errorf("enchanted weapon placed in category %d, want 2", c)
 	}

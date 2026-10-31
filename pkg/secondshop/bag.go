@@ -45,10 +45,11 @@ func unit(it Item, part int) (sim.ItemInstance, bool) {
 		if part < partWeapon || part >= partMagic || it.Row < 0 || it.Row > 0x1f || it.Class < 0 || it.Class > 7 || it.Material < 0 || it.Material > 0xf {
 			return sim.ItemInstance{}, false
 		}
-		out.Code = uint16(it.Material)<<12 | uint16(part)<<8 | uint16(it.Class)<<5 | uint16(it.Row)
-		if it.Level > 0 {
-			out.Effects = []sim.ItemEffect{{Kind: tagCastSpell, Operand: uint32(it.Spell&0xffff) | uint32(it.Level&0xffff)<<16}}
+		if !enchantForm(it.Effects) {
+			return sim.ItemInstance{}, false
 		}
+		out.Code = uint16(it.Material)<<12 | uint16(part)<<8 | uint16(it.Class)<<5 | uint16(it.Row)
+		out.Effects = slices.Clone(it.Effects)
 	case Magic:
 		if it.Row < 0 || it.Row >= bookRow {
 			return sim.ItemInstance{}, false
@@ -118,7 +119,8 @@ func MagicRow(code uint16) (int, bool) {
 }
 
 // Unit is a worn item as the bag holds it: the shop item its ID names, at
-// its price and with its castspell effect, written by Instance's rule. A
+// its price and, for equipment, with its effects of the enchant's form,
+// written by Instance's rule. A
 // unit Instance writes is its own Unit; an ID that names no shop item is
 // kept as it is.
 func Unit(in sim.ItemInstance) sim.ItemInstance {
@@ -130,8 +132,16 @@ func Unit(in sim.ItemInstance) sim.ItemInstance {
 		return in.Clone()
 	}
 	it.Price = max(0, in.Price)
-	if spell, level, cast := in.CastSpell(); cast && level > 0 && it.Table != Magic && it.Table != Book {
-		it.Spell, it.Level = int(spell), int(level)
+	if it.Table != Magic && it.Table != Book {
+		if spell, level, cast := in.CastSpell(); cast && level > 0 {
+			it.Effects = []sim.ItemEffect{{Kind: tagCastSpell, Operand: uint32(spell) | uint32(level)<<16}}
+		} else {
+			for _, e := range in.Effects {
+				if e.Mode == 0 && e.Kind != 0 && e.Kind != tagCastSpell && e.Kind != tagTeach {
+					it.Effects = append(it.Effects, e)
+				}
+			}
+		}
 	}
 	if out, ok := unit(it, int(in.Code>>8)&0xf); ok {
 		return out
@@ -140,9 +150,9 @@ func Unit(in sim.ItemInstance) sim.ItemInstance {
 }
 
 // MissionUnit is bag unit u as a mission holds it (DIV-4191): the item the
-// engine's decoder writes for u's ID, with u's price, and with u's castspell
-// or teachspell effect when it has one. A bought potion thus takes the type
-// and payload a potion the mission places has. The decoder is the caller's
+// engine's decoder writes for u's ID, with u's price, and with u's effects
+// when it has any. A bought potion or scroll thus takes the type and payload
+// one the mission places has. The decoder is the caller's
 // (mapload.ItemInstanceFromCode over the install's table), as this package
 // reads no install table.
 func MissionUnit(u sim.ItemInstance, decode func(code uint16) sim.ItemInstance) sim.ItemInstance {
@@ -160,7 +170,9 @@ func MissionUnit(u sim.ItemInstance, decode func(code uint16) sim.ItemInstance) 
 // type, price and effects; the weight and equipment a mission derives from
 // the ID do not count. It refuses a unit bound to a saved object or a native
 // record, one at a price below 0 or past the cap, and one whose effects or
-// type the mission form does not reproduce.
+// type the mission form does not reproduce. A potion or scroll with no
+// effects, as a save written before the decoder gave a scroll its spell holds
+// it, comes as its bag form, which holds none either.
 func KeptUnit(in sim.ItemInstance, decode func(code uint16) sim.ItemInstance) (sim.ItemInstance, bool) {
 	if in.ObjectID != 0 || in.NativeRecord != nil {
 		return sim.ItemInstance{}, false
@@ -169,10 +181,15 @@ func KeptUnit(in sim.ItemInstance, decode func(code uint16) sim.ItemInstance) (s
 		return in.Clone(), true
 	}
 	out := Unit(in)
-	if _, ok := FromInstance(out); !ok {
+	it, ok := FromInstance(out)
+	if !ok {
 		return sim.ItemInstance{}, false
 	}
-	if back := MissionUnit(out, decode); back.Code != in.Code || back.Kind != in.Kind || back.Price != in.Price || !slices.Equal(back.Effects, in.Effects) {
+	back := MissionUnit(out, decode)
+	if it.Table == Magic && len(in.Effects) == 0 && (in.Kind == 3 || in.Kind == 4) {
+		back.Effects = nil
+	}
+	if back.Code != in.Code || back.Kind != in.Kind || back.Price != in.Price || !slices.Equal(back.Effects, in.Effects) {
 		return sim.ItemInstance{}, false
 	}
 	return out, true
@@ -192,19 +209,31 @@ func FromInstance(in sim.ItemInstance) (Item, bool) {
 	case Magic:
 		return it, len(in.Effects) == 0
 	}
-	switch len(in.Effects) {
-	case 0:
-	case 1:
-		e := in.Effects[0]
-		if e.Kind != tagCastSpell || e.Mode != 0 || e.Operand>>16 == 0 {
-			return Item{}, false
-		}
-		it.Spell, it.Level = int(e.Operand&0xffff), int(e.Operand>>16)
-	default:
+	if !enchantForm(in.Effects) {
 		return Item{}, false
 	}
+	it.Effects = slices.Clone(in.Effects)
 	return it, true
 }
+
+// enchantForm is whether effects are an enchanted equipment unit's, the
+// enchant's forms (R2-ENGINE-711): one castspell at a level above 0, or at
+// most maxEffects other effects of mode 0.
+func enchantForm(effects []sim.ItemEffect) bool {
+	if len(effects) > maxEffects {
+		return false
+	}
+	for _, e := range effects {
+		if e.Mode != 0 || e.Kind == 0 || e.Kind == tagTeach || e.Kind == tagCastSpell && (len(effects) != 1 || e.Operand>>16 == 0) {
+			return false
+		}
+	}
+	return true
+}
+
+// maxEffects is the most effects the enchant gives an item: a first pick and
+// two more (R2-ENGINE-711).
+const maxEffects = 3
 
 // Units is it as bag units: Quantity instances of one unit each.
 func (t Tables) Units(it Item) ([]sim.ItemInstance, bool) {

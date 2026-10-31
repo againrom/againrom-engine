@@ -179,7 +179,7 @@ func secondShopBagUnit(doc map[string]any) map[string]any {
 // units the page lists as before.
 func TestSecondShopOlderHeroListLoadsIntoBag(t *testing.T) {
 	older := []secondshop.Item{
-		{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Count: 1, Price: 900},
+		{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Effects: []sim.ItemEffect{castSpellEffect(4, 7)}, Count: 1, Price: 900},
 		{Table: secondshop.Magic, Row: 70, Count: 2, Price: 83},
 		{Table: secondshop.Book, Spell: 5, Count: 1, Price: 1000},
 	}
@@ -209,12 +209,17 @@ func TestSecondShopOlderHeroListLoadsIntoBag(t *testing.T) {
 	}
 }
 
-// secondHeroDocument is items as an older document's hero list writes them.
+// secondHeroDocument is items as an older document's hero list writes them:
+// an enchanted item's castspell as its spell and level.
 func secondHeroDocument(items []secondshop.Item) []secondHeroItem {
 	var out []secondHeroItem
 	for _, it := range items {
-		out = append(out, secondHeroItem{Kind: it.Table, Row: it.Row, Class: it.Class, Material: it.Material, Spell: it.Spell, Level: it.Level,
-			Quantity: int(it.Count), Price: int64(it.Price)})
+		h := secondHeroItem{Kind: it.Table, Row: it.Row, Class: it.Class, Material: it.Material, Spell: it.Spell,
+			Quantity: int(it.Count), Price: int64(it.Price)}
+		if spell, level, ok := it.Instance().CastSpell(); ok {
+			h.Spell, h.Level = int(spell), int(level)
+		}
+		out = append(out, h)
 	}
 	return out
 }

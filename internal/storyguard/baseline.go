@@ -3545,5 +3545,12 @@ var Committed = Baseline{
 	// It rose for the second game's town LOAD and SAVE corrections: the bag
 	// piece with no bag form, the magic row, the hero's record row and
 	// identity, the town actor carrier, their tests, and this note.
-	CommentBytes: 9994759,
+
+	// It rose for the one shop enchant and shelf sort, pkg/shopstock/enchant.go
+	// and sort.go, the second game's enchant rules, sort keys, caption and
+	// price font in pkg/secondshop and pkg/game, their tests, and this note.
+	// It rose for the arrival of a potion or scroll saved with no effects in
+	// pkg/secondshop/bag.go, its tests in pkg/secondshop and pkg/game, and
+	// this note.
+	CommentBytes: 10004245,
 }

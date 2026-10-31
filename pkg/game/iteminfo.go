@@ -310,8 +310,9 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 	if lines, ok := castWeaponInfoLines(item, table, words); ok {
 		return lines
 	}
-	lines := itemBaseInfoLines(data.ItemCode(item.Code), table, &words)
-	// Class-14 spell effects continue the name line (TEXT-090, TEXT-092).
+	lines := itemBaseInfoLines(itemTemplateCode(table, item.Code), table, &words)
+	// Class-14 spell effects continue the name line (TEXT-090, TEXT-092,
+	// R2-ENGINE-712).
 	book := item.Code&0xf00 == 0xe00
 	magic := false
 	for index, effect := range item.Effects {

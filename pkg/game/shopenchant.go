@@ -12,10 +12,7 @@ import (
 type shopDrawSource = shopstock.Source
 
 func shopDrawInclusive(r shopDrawSource, lo, hi int) (int, bool) {
-	if r == nil || hi < lo {
-		return 0, false
-	}
-	return lo + r.Intn(hi-lo+1), true
+	return shopstock.Inclusive(r, lo, hi)
 }
 
 type generatedEffect struct {
@@ -24,245 +21,71 @@ type generatedEffect struct {
 	cast   int32
 }
 
+func generatedOf(g shopstock.EffectDraw, ok bool) (generatedEffect, bool) {
+	return generatedEffect{effect: sim.ItemEffect(g.Effect), points: g.Points, cast: g.Cast}, ok
+}
+
+// shopCastSpells are the first game's cast spells, a mage's item's and a
+// fighter's (SHOP-121).
+var shopCastSpells = [2][]uint16{{1, 13, 14, 20, 11}, {20, 11}}
+
+// shopEnchantRules are the first game's enchant rules over t: the Magic and
+// Spells tables, its cast spells, the price of the summed effect points, the
+// price cap 9,999,999 and the effect-repeat rule repeat.
+func shopEnchantRules(t *mapload.Table, repeat shopstock.Repeat) shopstock.Enchant {
+	e := shopstock.Enchant{
+		CastSpells: shopCastSpells,
+		PointsPrice: func(points []int32) int64 {
+			sum := int32(0)
+			for _, p := range points {
+				sum += p
+			}
+			return int64(shopNonCastPrice(sum))
+		},
+		PriceCap: 9_999_999,
+		Repeat:   repeat,
+	}
+	if t != nil {
+		if t.Magic != nil {
+			e.Effects = t.Magic
+		}
+		if t.Spells != nil {
+			e.Spells = t.Spells
+		}
+	}
+	return e
+}
+
 // shopEnchantedItem is candidate c enchanted under the first game's
 // effect-repeat rule.
 func shopEnchantedItem(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDrawSource) (ShopItem, bool) {
 	return shopEnchant(c, ceiling, t, r, shopEffectRepeat)
 }
 
-// shopEnchant is candidate c with its effects: the first, then up to two
-// optional ones, joined under the effect-repeat rule repeat.
+// shopEnchant is candidate c with its effects by the one enchant: the first,
+// then up to two optional ones, joined under the effect-repeat rule repeat.
 func shopEnchant(c data.ShopCandidate, ceiling int32, t *mapload.Table, r shopDrawSource, repeat shopstock.Repeat) (ShopItem, bool) {
 	if t == nil || t.Magic == nil || r == nil {
 		return ShopItem{}, false
 	}
-	item := sim.ItemInstance{Code: uint16(c.Code), Kind: c.ItemKind, Price: c.Price}
-	remaining := c.MagCap
-	nonCastPoints := int32(0)
-	var castPrice int32
-	var entryPoints []int32
-
-	reprice := func() {
-		nonCastPoints = 0
-		for _, points := range entryPoints {
-			nonCastPoints += points
-		}
-		remaining = c.MagCap - nonCastPoints
-		price := int64(c.Price) + int64(shopNonCastPrice(nonCastPoints)) + int64(castPrice)
-		if price >= 9_999_999 {
-			item.Price = 9_999_999
-		} else {
-			item.Price = int32(price)
-		}
-	}
-
-	// addEffect follows the shop generator's add routine: an effect whose
-	// UsableBy mask shares no bit with a held effect is dropped, an effect of a
-	// held kind joins it by the effect-repeat rule, otherwise it appends.
-	addEffect := func(g generatedEffect) {
-		mask := shopEffectUsableBy(t.Magic, g.effect.Kind)
-		if mask != 3 {
-			for _, held := range item.Effects {
-				if shopEffectUsableBy(t.Magic, held.Kind)&mask == 0 {
-					reprice()
-					return
-				}
-			}
-		}
-		if i := shopstock.Held(item.Effects, func(e sim.ItemEffect) uint8 { return e.Kind }, g.effect.Kind, repeat); i >= 0 {
-			item.Effects[i].Operand = g.effect.Operand
-			entryPoints[i] = g.points
-			reprice()
-			return
-		}
-		item.Effects = append(item.Effects, g.effect)
-		entryPoints = append(entryPoints, g.points)
-		castPrice += g.cast
-		reprice()
-	}
-
-	construct := func(forced bool) (generatedEffect, bool) {
-		budget := int64(2)*int64(ceiling) - int64(item.Price)
-		if forced {
-			capBudget := int64(item.Price) * 100
-			if capBudget < budget {
-				budget = capBudget
-			}
-			for attempt := 1; attempt <= 100; attempt++ {
-				g, ok := shopCastEffect(false, budget, t, r)
-				if ok {
-					return g, attempt < 100
-				}
-			}
-			return generatedEffect{}, false
-		}
-		kind, ok := shopSelectEffectKind(t.Magic, c.Fighter, c.EffectSlot, r)
-		if !ok {
-			return generatedEffect{}, false
-		}
-		if kind == 41 {
-			// The weighted fighter route substitutes price*10 for the ordinary
-			// interaction budget.
-			return shopCastEffect(c.Fighter, int64(item.Price)*10, t, r)
-		}
-		return shopOrdinaryEffect(t.Magic, kind, budget, remaining, r)
-	}
-
-	first, ok := construct(c.ForcedCast)
+	base := shopstock.Base{Price: c.Price, Capacity: c.MagCap, Ceiling: ceiling, Slot: c.EffectSlot, Fighter: c.Fighter, Forced: c.ForcedCast}
+	effects, price, ok := shopEnchantRules(t, repeat).Apply(base, r)
 	if !ok {
 		return ShopItem{}, false
 	}
-	addEffect(first)
-	if first.effect.Kind == 41 {
-		return shopItemFromInstance(item, 1), true
-	}
-
-	for _, threshold := range []int{50, 25} {
-		gate, _ := shopDrawInclusive(r, 0, 100)
-		if gate >= threshold {
-			continue
-		}
-		g, ok := construct(false)
-		if !ok {
-			return shopItemFromInstance(item, 1), true
-		}
-		if g.effect.Kind == 41 {
-			// An optional cast is constructed and discarded, then ends the
-			// orchestrator before the capacity debit.
-			return shopItemFromInstance(item, 1), true
-		}
-		addEffect(g)
-	}
-	return shopItemFromInstance(item, 1), true
-}
-
-// shopEffectUsableBy reads the UsableBy parameter of a Magic row; a row
-// without it restricts nothing.
-func shopEffectUsableBy(magic data.Collection, kind uint8) int32 {
-	if magic == nil || int(kind) >= magic.Len() {
-		return 3
-	}
-	p := magic.EntryParams(int(kind))
-	if len(p) <= 3 {
-		return 3
-	}
-	return p[3]
-}
-
-func shopSelectEffectKind(magic data.Collection, fighter bool, slot int, r shopDrawSource) (uint8, bool) {
-	if magic == nil || slot < 1 || slot > 12 {
-		return 0, false
-	}
-	column := slot - 1
-	if !fighter {
-		column += 12
-	}
-	final := int32(0)
-	for kind := 1; kind < magic.Len(); kind++ {
-		p := magic.EntryParams(kind)
-		if len(p) > 4+column {
-			final = p[4+column]
-		}
-	}
-	if final <= 0 {
-		return 0, false
-	}
-	for attempt := 1; attempt < 100; attempt++ {
-		draw, _ := shopDrawInclusive(r, 1, int(final))
-		previous := int32(0)
-		for kind := 1; kind < magic.Len(); kind++ {
-			p := magic.EntryParams(kind)
-			endpoint := previous
-			if len(p) > 4+column {
-				endpoint = p[4+column]
-			}
-			if int32(draw) > previous && int32(draw) <= endpoint {
-				return uint8(kind), true
-			}
-			previous = endpoint
-		}
-	}
-	return 0, false
+	return shopItemFromInstance(sim.ItemInstance{Code: uint16(c.Code), Kind: c.ItemKind, Price: price, Effects: shopstock.EffectsAs[sim.ItemEffect](effects)}, 1), true
 }
 
 func shopOrdinaryEffect(magic data.Collection, kind uint8, budget int64, capacity int32, r shopDrawSource) (generatedEffect, bool) {
-	if magic == nil || int(kind) >= magic.Len() || budget <= 0 || capacity <= 0 {
-		return generatedEffect{}, false
+	e := shopstock.Enchant{}
+	if magic != nil {
+		e.Effects = magic
 	}
-	p := magic.EntryParams(int(kind))
-	if len(p) < 3 || p[0] <= 0 {
-		return generatedEffect{}, false
-	}
-	cost, minimum, maximum := p[0], p[1], p[2]
-	capacityMax := capacity / cost
-	x := float64(budget)/float64(50*int64(capacity)) - 1
-	if x <= 0 {
-		return generatedEffect{}, false
-	}
-	budgetMax := int32((70 / float64(cost)) * (math.Log(x) / math.Log(1.5)))
-	payloadMax := capacityMax
-	if budgetMax < payloadMax {
-		payloadMax = budgetMax
-	}
-	if maximum < payloadMax {
-		payloadMax = maximum
-	}
-	if payloadMax < minimum || payloadMax < 1 {
-		return generatedEffect{}, false
-	}
-	draw, _ := shopDrawInclusive(r, 1, int(payloadMax))
-	payload := int32(draw)
-	if payload < minimum {
-		payload = minimum
-	}
-	if kind >= 44 && kind <= 48 {
-		max := payloadMax
-		if max > 255 {
-			max = 255
-		}
-		base, _ := shopDrawInclusive(r, 1, int(max))
-		spread, ok := shopDrawInclusive(r, 1, int(max/2))
-		if !ok {
-			return generatedEffect{}, false
-		}
-		points := int32(base+spread) * cost
-		return generatedEffect{effect: sim.ItemEffect{Kind: kind,
-			Operand: uint32(uint8(base)) | uint32(uint8(spread))<<8}, points: points}, true
-	}
-	return generatedEffect{effect: sim.ItemEffect{Kind: kind, Operand: uint32(payload)}, points: payload * cost}, true
+	return generatedOf(e.Ordinary(kind, budget, capacity, r))
 }
 
 func shopCastEffect(fighter bool, budget int64, t *mapload.Table, r shopDrawSource) (generatedEffect, bool) {
-	ids := []uint16{1, 13, 14, 20, 11} // SHOP-121
-	if fighter {
-		ids = []uint16{20, 11}
-	}
-	at, _ := shopDrawInclusive(r, 0, len(ids)-1)
-	id := ids[at]
-	if t == nil || t.Spells == nil || int(id) >= t.Spells.Len() {
-		return generatedEffect{}, false
-	}
-	p := t.Spells.EntryParams(int(id))
-	if len(p) <= 20 || p[20] <= 0 {
-		return generatedEffect{}, false
-	}
-	scalar := p[20]
-	ratio := float64(budget) / float64(10*int64(scalar))
-	if ratio <= 1 {
-		return generatedEffect{}, false
-	}
-	rank := math.Log2(ratio)
-	powerMax := int32(30 * (math.Pow(1.2, rank) - 1))
-	if powerMax > 100 {
-		powerMax = 100
-	}
-	if powerMax <= 0 {
-		return generatedEffect{}, false
-	}
-	power, _ := shopDrawInclusive(r, 1, int(powerMax))
-	cast := int32(10 * float64(scalar) * math.Pow(2, math.Log(float64(power)/30+1)/math.Log(1.2)))
-	return generatedEffect{effect: sim.ItemEffect{Kind: 41,
-		Operand: uint32(id) | uint32(uint16(int16(power)))<<16}, cast: cast}, true
+	return generatedOf(shopEnchantRules(t, shopEffectRepeat).Cast(fighter, budget, 0, r))
 }
 
 func shopNonCastPrice(points int32) int32 {

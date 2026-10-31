@@ -46,7 +46,7 @@ func classifyShelf(items []secondshop.Item) shelfStockKind {
 			book++
 		}
 		if it.Table == secondshop.Armor || it.Table == secondshop.Shield || it.Table == secondshop.Weapon {
-			if it.Level > 0 {
+			if len(it.Effects) > 0 {
 				spelled++
 			} else {
 				plain++

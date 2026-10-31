@@ -70,6 +70,12 @@ func (t *townScreen) bindBankShop() {
 		racks:     t.shopRacks,
 		packUnits: maxSecondBagUnits,
 		value:     func(in sim.ItemInstance) int32 { return in.Price },
+		// A cell's caption describes the item as a mission holds it: a
+		// scroll with its spell, a potion with its payload (R2-ENGINE-711,
+		// R2-ENGINE-712).
+		described: func(in sim.ItemInstance) sim.ItemInstance {
+			return secondshop.MissionUnit(in, secondMissionItem(t.in.Table))
+		},
 		label: func(in sim.ItemInstance) []string {
 			it, _ := secondshop.FromInstance(in)
 			return t.shopItemName(it)
@@ -242,7 +248,7 @@ func (t *townScreen) dressShop(v *ui.ShopScreenView) {
 
 // shopItemName is an item's name parts, the cell's name first (DIV-3046):
 // the item's line in the shipped item-name table, else its data.bin row,
-// material and class names; then an enchanted item's spell and level. A book
+// material and class names; then a castspell effect's spell and level. A book
 // is its spell's data.bin name.
 func (t *townScreen) shopItemName(it secondshop.Item) []string {
 	tab := t.in.Table
@@ -285,8 +291,8 @@ func (t *townScreen) shopItemName(it secondshop.Item) []string {
 		rows := map[secondshop.Kind]data.Collection{secondshop.Armor: tab.Armors, secondshop.Shield: tab.Shields, secondshop.Weapon: tab.Weapons}
 		parts = []string{collection(rows[it.Table], it.Row), scale(tab.Materials, it.Material), scale(tab.Shapes, it.Class)}
 	}
-	if it.Level > 0 {
-		parts = append(parts, fmt.Sprintf("%s %d", collection(tab.Spells, it.Spell), it.Level))
+	if spell, level, ok := it.Instance().CastSpell(); ok && level > 0 {
+		parts = append(parts, fmt.Sprintf("%s %d", collection(tab.Spells, int(spell)), level))
 	}
 	return parts
 }

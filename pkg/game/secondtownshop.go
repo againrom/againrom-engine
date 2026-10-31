@@ -90,7 +90,7 @@ func secondShopItem(t secondshop.Tables, it secondshop.Item) (ShopItem, bool) {
 	in, ok := t.Instance(it)
 	out := shopItemFromInstance(in, it.Count)
 	back, _ := secondshop.FromInstance(in)
-	out.Table, out.Row, out.Class, out.Material, out.Spell, out.Level = back.Table, back.Row, back.Class, back.Material, back.Spell, back.Level
+	out.Table, out.Row, out.Class, out.Material, out.Spell = back.Table, back.Row, back.Class, back.Material, back.Spell
 	return out, ok
 }
 
@@ -277,7 +277,7 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 		dst *secondshop.Collection
 		src any
 	}{{&out.Shapes, t.Shapes}, {&out.Materials, t.Materials}, {&out.Armors, t.Armors}, {&out.Shields, t.Shields},
-		{&out.Weapons, t.Weapons}, {&out.MagicItems, t.MagicItems}, {&out.Spells, t.Spells}} {
+		{&out.Weapons, t.Weapons}, {&out.MagicItems, t.MagicItems}, {&out.Spells, t.Spells}, {&out.Magic, t.Magic}} {
 		c, is := x.src.(secondshop.Collection)
 		*x.dst, ok = c, ok && is && c != nil
 	}
@@ -443,10 +443,20 @@ type secondHeroItem struct {
 	Price    int64
 }
 
-// item is h; the bag codes a price at most the cap.
+// item is h; the bag codes a price at most the cap. An equipment item's
+// spell at a level above 0 is its castspell effect.
 func (h secondHeroItem) item() secondshop.Item {
-	return secondshop.Item{Table: h.Kind, Row: h.Row, Class: h.Class, Material: h.Material, Spell: h.Spell, Level: h.Level,
+	it := secondshop.Item{Table: h.Kind, Row: h.Row, Class: h.Class, Material: h.Material,
 		Count: int32(h.Quantity), Price: int32(min(h.Price, math.MaxInt32))}
+	switch h.Kind {
+	case secondshop.Book:
+		it.Spell = h.Spell
+	case secondshop.Armor, secondshop.Shield, secondshop.Weapon:
+		if h.Level > 0 {
+			it.Effects = []sim.ItemEffect{castSpellEffect(uint16(h.Spell), int32(h.Level))}
+		}
+	}
+	return it
 }
 
 func captureSecondShop(s secondShop, legacy []secondHeroItem) *currentSecondShop {

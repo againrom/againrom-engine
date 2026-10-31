@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The town shop now sorts each shelf, gives enchanted armour, shields and clothing one to three attribute bonuses and never a spell, names a book's and a scroll's spell in its hover text, and draws prices in the original's small font so they fit their plates. Bought scrolls and the hero's starting scroll now cast their spell in a mission. Scrolls in saves made before this change still come home to the bag after the next won mission and cast from then on; until then they cannot be cast. Before, a book's hover showed a number, a cloak could cast Lightning and a scroll could not be cast.
 - [ROM2] A game you save in a town is now written in the original game's own save format, so the original game can try to load it. A game saved during a mission is still written only in Againrom's own format.
 - [ROM1] A companion handed to another side during a mission (Reniesta in mission 130) leaves your party selection, and her pack, worn items, weapon swap and shop are closed to you; the spell book of a unit that is not yours shows "no hero selected" unless the map is revealed; quick save, save and the timed autosave work after the handover, and loading puts her back with the other side.
 - [ROM2] After you press Continue on a mission's victory panel you can now save the game; loading that save returns you to the mission map, where the victory panel opens again. Before, the save failed with "saving is not available for this game yet".

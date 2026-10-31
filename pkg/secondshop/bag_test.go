@@ -25,7 +25,7 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 	}
 	items := []Item{
 		{Table: Armor, Row: 7, Class: 3, Material: 5, Count: 1, Price: 4000},
-		{Table: Weapon, Row: 4, Class: 1, Material: 2, Spell: 9, Level: 3, Count: 1, Price: 7000},
+		{Table: Weapon, Row: 4, Class: 1, Material: 2, Effects: []sim.ItemEffect{{Kind: 41, Operand: 9 | 3<<16}}, Count: 1, Price: 7000},
 		{Table: Shield, Row: 2, Class: 0, Material: 1, Count: 1, Price: 300},
 		{Table: Magic, Row: 70, Count: 3, Price: 83},
 		{Table: Book, Spell: 12, Count: 1, Price: 1500},
@@ -64,7 +64,7 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 	for _, u := range bag {
 		worn := u.Clone()
 		worn.ObjectID, worn.Weight, worn.WeightPresent, worn.Kind = 7, 9, true, 3
-		worn.Effects = append(worn.Effects, sim.ItemEffect{Kind: 7})
+		worn.Effects = append(worn.Effects, sim.ItemEffect{Kind: 7, Mode: 1})
 		if got := Unit(worn); !reflect.DeepEqual(got, u) {
 			t.Fatalf("the unit of %+v is %+v, want %+v", worn, got, u)
 		}
@@ -72,8 +72,8 @@ func TestBagUnitsRoundTrip(t *testing.T) {
 }
 
 // bagTestDecode stands for the engine's item decoder: a weapon takes type
-// 2, armour and a shield type 1, and magic item 0x0e01 is a potion of type
-// 3 with a health payload.
+// 2, armour and a shield type 1, magic item 0x0e01 is a potion of type 3
+// with a health payload, and 0x0e1c a scroll of type 4 casting spell 1.
 func bagTestDecode(code uint16) sim.ItemInstance {
 	out := sim.ItemInstance{Code: code}
 	switch part := code >> 8 & 0xf; {
@@ -83,8 +83,39 @@ func bagTestDecode(code uint16) sim.ItemInstance {
 		out.Kind = 1
 	case code == 0x0e01:
 		out.Kind, out.Price, out.Effects = 3, 7, []sim.ItemEffect{{Kind: 6, Operand: 30}}
+	case code == 0x0e1c:
+		out.Kind, out.Price, out.Effects = 4, 50, []sim.ItemEffect{{Kind: 41, Operand: 1 | 50<<16}}
 	}
 	return out
+}
+
+// TestKeptUnitTakesAnEffectlessScrollHome takes home a scroll and a potion
+// whose saved mission form holds no effects, as a save written before the
+// decoder gave a scroll its spell holds them, as their bag forms, and still
+// takes the scroll with its decoded spell and refuses one with another
+// spell. Fails when the arrival asks an effect-less unit for the decoder's
+// effects.
+func TestKeptUnitTakesAnEffectlessScrollHome(t *testing.T) {
+	spell := []sim.ItemEffect{{Kind: 41, Operand: 1 | 50<<16}}
+	for _, tc := range []struct {
+		in, want sim.ItemInstance
+	}{
+		{sim.ItemInstance{Code: 0x0e1c, Kind: 4, Price: 50000}, sim.ItemInstance{Code: 0x0e1c, Price: 50000}},
+		{sim.ItemInstance{Code: 0x0e1c, Kind: 4, Price: 100, Effects: spell}, sim.ItemInstance{Code: 0x0e1c, Price: 100}},
+		{sim.ItemInstance{Code: 0x0e01, Kind: 3, Price: 20}, sim.ItemInstance{Code: 0x0e01, Price: 20}},
+	} {
+		if got, ok := KeptUnit(tc.in, bagTestDecode); !ok || !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("KeptUnit(%+v) = %+v, %v; want %+v", tc.in, got, ok, tc.want)
+		}
+	}
+	for _, in := range []sim.ItemInstance{
+		{Code: 0x0e1c, Kind: 4, Price: 100, Effects: []sim.ItemEffect{{Kind: 41, Operand: 2 | 50<<16}}},
+		{Code: 0x0e1c, Kind: 3, Price: 100},
+	} {
+		if got, ok := KeptUnit(in, bagTestDecode); ok {
+			t.Fatalf("KeptUnit(%+v) kept it as %+v", in, got)
+		}
+	}
 }
 
 // TestMissionUnitTakesTheDecodersForm gives a bought potion the decoder's

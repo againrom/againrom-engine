@@ -483,10 +483,11 @@ func ItemInstanceFromCode(code uint16, table *Table) sim.ItemInstance {
 	if len(params) > 0 {
 		item.Price = params[0]
 	}
-	if item.Kind == 3 {
-		// The installed Effects string owns the potion's payload. Reuse the
-		// ordered item grammar; an indeterminate operand leaves this item
-		// unusable instead of constructing a partly applied potion.
+	if item.Kind == 3 || item.Kind == 4 {
+		// The installed Effects string owns a potion's payload and a
+		// scroll's spell (R2-ENGINE-711). Reuse the ordered item grammar; an
+		// indeterminate operand leaves this item unusable instead of
+		// constructing a partly applied one.
 		values := table.MagicItems.EntryStrings(row)
 		if len(values) > 0 {
 			_, effects, rejected, err := ParseItemCell("{"+values[0]+"}", table)

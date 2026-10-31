@@ -567,12 +567,12 @@ func loadItemIcon(src entrySource, addr string) (*image.RGBA, error) {
 	return f.RGBA(sprite.Palette), nil
 }
 
-// itemIconCode is the code whose picture an item shows. It is the item's own
-// code, except for a second-game spell book: its code names its spell (the
-// bag's identity), while its picture is its school's Book template, the one
-// shopBookCodes finds. A code that names an installed magic item row is that
-// row's own.
-func itemIconCode(table *mapload.Table, code uint16) data.ItemCode {
+// itemTemplateCode is the code whose picture and name an item shows. It is
+// the item's own code, except for a second-game spell book: its code names
+// its spell (the bag's identity), while its picture and name are its school's
+// Book template's, the one shopBookCodes finds (R2-ENGINE-712). A code that
+// names an installed magic item row is that row's own.
+func itemTemplateCode(table *mapload.Table, code uint16) data.ItemCode {
 	spell, ok := secondshop.BookSpell(code)
 	if !ok || table == nil || table.Spells == nil || spell <= 0 || spell >= table.Spells.Len() {
 		return data.ItemCode(code)
@@ -711,7 +711,7 @@ func buildInventoryPack(src entrySource, table *mapload.Table, stacks []sim.Item
 	var unread []string
 	for i, st := range stacks {
 		counts[i] = st.Count
-		addr := graphicsPrefix + data.ItemIconPath(itemIconCode(table, st.Code))
+		addr := graphicsPrefix + data.ItemIconPath(itemTemplateCode(table, st.Code))
 		if src == nil {
 			unread = append(unread, addr)
 			continue

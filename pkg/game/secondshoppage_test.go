@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/secondshop"
+	"againrom/pkg/sim"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -92,7 +93,7 @@ func TestSecondShopOlderLargeStackLoads(t *testing.T) {
 // (R2-ENGINE-265, R2-ENGINE-266, DIV-3065); the bought books stay apart in
 // the bag view and each offered book opens its own place.
 func TestSecondShopPageKeepsUnstackableLotsApart(t *testing.T) {
-	armour := secondshop.Item{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Spell: 4, Level: 7, Count: 1, Price: 901}
+	armour := secondshop.Item{Table: secondshop.Armor, Row: 3, Class: 1, Material: 2, Effects: []sim.ItemEffect{{Kind: 15, Operand: 4}}, Count: 1, Price: 901}
 	c := secondShopSample()
 	*c.heroBag() = nil
 	c.shop.shelves[0] = secondShopItems(secondShopTestTables, []secondshop.Item{armour, armour})

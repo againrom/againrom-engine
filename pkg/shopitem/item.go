@@ -40,9 +40,8 @@ type Item struct {
 	Row      int   `json:"-"`
 	Class    int   `json:"-"`
 	Material int   `json:"-"`
-	// Spell is a book's spell or a weapon's enchanted spell, at Level.
+	// Spell is a book's spell; an enchanted item's spell is an Effect.
 	Spell int `json:"-"`
-	Level int `json:"-"`
 }
 
 func (i Item) Instance() sim.ItemInstance {

@@ -1,8 +1,6 @@
 package game
 
 import (
-	"sort"
-
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/shopstock"
@@ -33,33 +31,13 @@ type shopItemOrder struct {
 // A NIL TABLE SORTS NOTHING and leaves the shelf exactly as it was: the flag
 // and the weapon group are cells of a definition row.
 func shopSortShelf(items []ShopItem, t *mapload.Table) {
-	if t == nil || len(items) < 2 {
+	if t == nil {
 		return
 	}
-	type entry struct {
-		item  ShopItem
-		order shopItemOrder
-	}
-	sorted := make([]entry, len(items))
-	for i, item := range items {
-		sorted[i] = entry{item: item, order: shopOrderOf(item.Code, t)}
-	}
-	sort.SliceStable(sorted, func(a, b int) bool {
-		x, y := sorted[a], sorted[b]
-		if x.order.class != y.order.class {
-			return x.order.class < y.order.class
-		}
-		if x.order.kind != y.order.kind {
-			return x.order.kind < y.order.kind
-		}
-		if x.order.group != y.order.group {
-			return x.order.group < y.order.group
-		}
-		return x.item.Price < y.item.Price
+	shopstock.SortBy(items, func(item ShopItem) []int64 {
+		o := shopOrderOf(item.Code, t)
+		return []int64{int64(o.class), int64(o.kind), int64(o.group), int64(item.Price)}
 	})
-	for i := range sorted {
-		items[i] = sorted[i].item
-	}
 }
 
 // shopStackShelf folds every repeated item into one element carrying the

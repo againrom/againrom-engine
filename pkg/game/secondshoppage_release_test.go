@@ -302,7 +302,7 @@ func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 	for _, list := range c.shop.stock() {
 		for _, it := range list {
 			it.Count = 1
-			key := fmt.Sprintf("%d/%d/%d/%d/%d/%d", it.Table, it.Row, it.Class, it.Material, it.Spell, it.Level)
+			key := fmt.Sprintf("%d/%d/%d/%d/%d/%v", it.Table, it.Row, it.Class, it.Material, it.Spell, it.Effects)
 			if units, ok := c.shop.tables.Units(it); ok && !keys[key] && len(keys) < 3 {
 				keys[key], bag = true, append(bag, units...)
 			}

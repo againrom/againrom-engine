@@ -20,9 +20,10 @@ type Collection interface {
 }
 
 // Tables are the second game's data.bin collections the shop reads. Shapes
-// are the item classes and Materials the materials (R2-ENGINE-264).
+// are the item classes, Materials the materials and Magic the effect table,
+// data.bin group B (R2-ENGINE-264, R2-ENGINE-711).
 type Tables struct {
-	Shapes, Materials, Armors, Shields, Weapons, MagicItems, Spells Collection
+	Shapes, Materials, Armors, Shields, Weapons, MagicItems, Spells, Magic Collection
 	// Stocked are the items mods put in the shop: one unit each, filed by
 	// placement into every stock a fill draws.
 	Stocked []Item
@@ -55,9 +56,10 @@ const (
 )
 
 // The data.bin columns the rules read, as parameter-array slots: the price of
-// an equipment row, its body part, its weapon-mode word, a magic item's price,
-// a spell's enchant base and its book price (R2-ENGINE-264, R2-ENGINE-265,
-// R2-ENGINE-267, R2-ENGINE-327).
+// an equipment row, its body part, its use word, whose bit 0 is the fighter's,
+// a magic item's price, a spell's enchant base and its book price, and an
+// effect's point cost (R2-ENGINE-264, R2-ENGINE-265, R2-ENGINE-267,
+// R2-ENGINE-327, R2-ENGINE-710, R2-ENGINE-711).
 const (
 	colPrice     = 2
 	colPart      = 4
@@ -65,6 +67,7 @@ const (
 	colMagic     = 0
 	colEnchant   = 20
 	colBook      = 21
+	colCost      = 0
 )
 
 // The nine-double slots of a class or material record: the price factor and
@@ -102,7 +105,7 @@ type Item = shopitem.Item
 // stackable is the merge rule: a magic item, or an item with no effect
 // (R2-ENGINE-265). A book carries its spell and is not.
 func stackable(a Item) bool {
-	return a.Table == Magic || a.Table != Book && a.Level == 0
+	return a.Table == Magic || a.Table != Book && len(a.Effects) == 0
 }
 
 // SaleCredit is the gold a sale of q units at unit price P credits:
@@ -186,16 +189,13 @@ func (t Tables) NameKey(it Item) (uint16, bool) {
 }
 
 // Price is the unit price P of an item (R2-ENGINE-267): equipment
-// trunc(base product + 0.5) plus its enchanted spell's price, a magic item its
-// column 0, a book its spell's column 21; capped at 19999999.
+// trunc(base product + 0.5) plus its effects' prices, a magic item its column
+// 0, a book its spell's column 21; capped at 19999999.
 func (t Tables) Price(it Item) int64 {
 	var p int64
 	switch it.Table {
 	case Armor, Shield, Weapon:
-		p = int64(t.baseProduct(it) + 0.5)
-		if it.Level > 0 {
-			p += SpellEffectPrice(param(t.Spells, it.Spell, colEnchant), it.Level)
-		}
+		p = int64(t.baseProduct(it)+0.5) + t.effectsPrice(it.Effects)
 	case Magic:
 		p = int64(param(t.MagicItems, it.Row, colMagic))
 	case Book:

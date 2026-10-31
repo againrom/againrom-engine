@@ -90,7 +90,7 @@ func (t *shopController) ShopScreen() ui.ShopScreenView {
 		return v
 	}
 	v.Font = t.in.Font.Value()
-	v.PriceFont = t.in.tipFont()
+	v.PriceFont = t.in.missionCardFont()
 	v.Words = t.in.Words
 
 	shop := t.deal()
@@ -667,8 +667,17 @@ func (t *shopController) shopShelfCell(item ShopItem, purse int32) ui.ShopCell {
 		PlaquePrice: shopClientPrice(item.Code, item.Price),
 		Back:        back,
 		Star:        itemShowsStarTrail(instance),
-		Info:        itemInstanceInfoLines(instance, t.in.Table, t.in.Words),
+		Info:        t.itemInfo(instance),
 	}
+}
+
+// itemInfo is the caption of a cell holding instance: the item lines of the
+// form described gives it, else of instance itself.
+func (t *shopController) itemInfo(instance sim.ItemInstance) []string {
+	if t.described != nil {
+		instance = t.described(instance)
+	}
+	return itemInstanceInfoLines(instance, t.in.Table, t.in.Words)
 }
 
 // shopClientPrice is the unit price the client's copy of an item carries, the
@@ -720,7 +729,7 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 		Back:        shopCellBack(t.shopUsable(place.ShopItem.Code), affordable),
 		Mine:        place.Mine,
 		Star:        itemShowsStarTrail(instance),
-		Info:        itemInstanceInfoLines(instance, t.in.Table, t.in.Words),
+		Info:        t.itemInfo(instance),
 	}
 }
 
@@ -742,7 +751,7 @@ func (t *shopController) shopPackCell(st sim.ItemStack) ui.ShopCell {
 		Back:        shopCellBack(t.shopUsable(code), false),
 		Mine:        true,
 		Star:        itemShowsStarTrail(instance),
-		Info:        itemInstanceInfoLines(instance, t.in.Table, t.in.Words),
+		Info:        t.itemInfo(instance),
 	}
 }
 

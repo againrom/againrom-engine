@@ -254,7 +254,8 @@ func (in *InstallResources) tipFont() *text.Font {
 
 // missionCardFont is the font the mission screen's character card and
 // column texts draw in: the generation screen's text font, in which both
-// originals draw the statistics sheet (R2-ASSET-148), else the install's.
+// originals draw the statistics sheet (R2-ASSET-148) and a shop cell's price
+// (R2-ENGINE-713), else the install's.
 func (in *InstallResources) missionCardFont() *text.Font {
 	if a := in.ChargenAssets; a != nil && a.Presentation != nil && a.Presentation.Font != nil {
 		return a.Presentation.Font

@@ -42,6 +42,9 @@ type shopController struct {
 	// label names an item as a cell's text, for a page with no item
 	// pictures; nil leaves the text empty.
 	label func(sim.ItemInstance) []string
+	// described is the form of an item a cell's caption describes; nil
+	// describes the item as it is.
+	described func(sim.ItemInstance) sim.ItemInstance
 	// settle runs one gesture and commits what it changed to the place the
 	// customer's goods live; nil runs it alone. wornFixed refuses every
 	// gesture that touches the doll.
