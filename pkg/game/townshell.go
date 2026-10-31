@@ -194,10 +194,8 @@ func (t *townScreen) tavernCandidateDetail(typ int) (ui.TownCharacterView, *ui.S
 	// A candidate is a live actor whose sheet prints its whole sight word
 	// (HERO-104); the recompute keeps only its high byte, the whole cells.
 	if c := subject.Char; c.Mind+c.Reaction > 0 {
-		raw := data.SightSubCells(int32(c.Mind), int32(c.Reaction))
-		raw += int32(c.Sight)<<8 - raw&^0xff
-		if raw > 0 && raw <= 0xffff {
-			subject.Char.Sight256 = uint16(raw)
+		if word, ok := rules.SightWordIn(int32(c.Mind), int32(c.Reaction), int32(c.Sight)); ok {
+			subject.Char.Sight256 = word
 		}
 	}
 	subject.Unplaced, subject.Selected = true, 1

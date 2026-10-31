@@ -1,8 +1,6 @@
 package rules
 
-// SightDivisor and SightBase are the sight law's two constants
-// (HERO-SIGHT-007): the divisor the sum of Mind and Reaction is taken over,
-// and the term added after it.
+// SightDivisor and SightBase are HERO-SIGHT-007's divisor and added term.
 const (
 	SightDivisor int32 = 25
 	SightBase    int32 = 4
@@ -14,14 +12,21 @@ func SightSubCells(mind, reaction int32) int32 {
 	return (mind+reaction)*256/SightDivisor + SightBase*256
 }
 
-// SightWord is a Human's sight word in 1/256 cell: the fractional part
-// ((mind+reaction)/25 + 4) carries, and the whole-cell byte is replaced by
-// cells, the value the derive reports after equipment and effects.
-func SightWord(mind, reaction int32, cells int32) uint16 {
+// SightWordIn is a Human's sight word: SightSubCells with its whole-cell byte
+// replaced by cells. ok is false outside 1..0xffff.
+func SightWordIn(mind, reaction int32, cells int32) (word uint16, ok bool) {
 	raw := SightSubCells(mind, reaction)
 	raw += cells<<8 - raw&^0xff
 	if raw <= 0 || raw > 0xffff {
-		return uint16(max(0, min(cells, 255)) << 8)
+		return 0, false
 	}
-	return uint16(raw)
+	return uint16(raw), true
+}
+
+// SightWord is SightWordIn's word, or cells alone, clamped, when out of range.
+func SightWord(mind, reaction int32, cells int32) uint16 {
+	if word, ok := SightWordIn(mind, reaction, cells); ok {
+		return word
+	}
+	return uint16(max(0, min(cells, 255)) << 8)
 }
