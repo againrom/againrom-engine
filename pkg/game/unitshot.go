@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 )
 
@@ -16,8 +17,6 @@ import (
 // World advances it, SAVE writes it and a LOAD continues it. The world still
 // resolves the blow on its own countdown, which is independent of the record
 // (SAV-1132). DIV-1453 names the rules here that no claim states.
-
-const unitShotDeformationPicture = 7
 
 // unitShots is the map world's memory of ranged swings and of the records
 // in flight: the wind-up that opened each entity's current run, and each
@@ -59,11 +58,11 @@ func (mw *mapWorld) classShot(class int32) (picture, delay int, drawn bool) {
 	if c == nil || c.Projectile == 0 {
 		return 0, 0, false
 	}
-	return c.Projectile, c.ShootDelay, shotDrawn(mw.projectiles, c.Projectile)
+	return c.Projectile, c.ShootDelay, shotDrawn(mw.spells().Game, mw.projectiles, c.Projectile)
 }
 
-func shotDrawn(set *terrain.EffectSet, picture int) bool {
-	return picture == unitShotDeformationPicture && set.HasPicture(picture) || set.Sheet(picture) != nil
+func shotDrawn(game rules.SpellGame, set *terrain.EffectSet, picture int) bool {
+	return rules.PictureCapabilityOf(game, int32(picture)).Deformation && set.HasPicture(picture) || set.Sheet(picture) != nil
 }
 
 // advanceUnitShots hands the World this tick's swing clock, then keeps trails.

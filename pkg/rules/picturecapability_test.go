@@ -82,6 +82,23 @@ func TestEachPictureGetsTodaysMarkDriveUnboundAndSoundPhase(t *testing.T) {
 	}
 }
 
+func TestOnlyPictureSevenIsTheDeformation(t *testing.T) {
+	for _, game := range []SpellGame{SpellGameFirst, SpellGameSecond, SpellGameSecond + 1} {
+		for p := int32(-2); p <= 300; p++ {
+			row := PictureCapabilityOf(game, p)
+			want := p == 7 && game != SpellGameSecond+1
+			if row.Deformation != want {
+				t.Fatalf("game %d picture %d: deformation %t, want %t", game, p, row.Deformation, want)
+			}
+			if p == 7 {
+				if zero := (PictureCapability{Picture: 7, Deformation: want}); row != zero {
+					t.Fatalf("game %d picture 7: row %+v, want %+v", game, row, zero)
+				}
+			}
+		}
+	}
+}
+
 func TestEachGameNamesAPictureInOneRow(t *testing.T) {
 	for game, rows := range pictureCapabilities {
 		seen := map[int32]bool{}

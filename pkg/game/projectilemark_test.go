@@ -271,7 +271,7 @@ func TestProjectileTargetMarksRefreshKindsAndClearStaleBindings(t *testing.T) {
 		t.Fatal("same-kind refresh duplicated or coupled distinct kinds", mw.markElements)
 	}
 	wide := mw.markDraws(target, 3)
-	if len(wide) == 0 || wide[0].Mark.Record != terrain.MarkHeal {
+	if len(wide) == 0 || wide[0].Mark.Record != terrain.MarkKind(6) {
 		t.Fatal("shared target shower builder absent")
 	}
 	// A replacement source record cannot inherit a previous actor's mark.

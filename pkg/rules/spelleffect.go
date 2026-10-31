@@ -59,14 +59,16 @@ const (
 
 // PictureCapability is one projectile picture's row: its target mark, its
 // update arm, Unbound, that its original-SAV continuation's picture-specific
-// consumers are not run (DIV-1814), and SoundPhase, the action phase whose
-// update plays its spell sound (0 for none).
+// consumers are not run (DIV-1814), SoundPhase, the action phase whose
+// update plays its spell sound (0 for none), and Deformation, the background
+// deformation draw.
 type PictureCapability struct {
-	Picture    int32
-	Mark       TargetMark
-	Drive      EffectDrive
-	Unbound    bool
-	SoundPhase int32
+	Picture     int32
+	Mark        TargetMark
+	Drive       EffectDrive
+	Unbound     bool
+	SoundPhase  int32
+	Deformation bool
 }
 
 var (
@@ -80,6 +82,7 @@ var (
 // (R2-ENGINE-447, DIV-3101). A picture no row names takes the zero row.
 var pictureCapabilities = [...][]PictureCapability{
 	SpellGameFirst: {
+		{Picture: 7, Deformation: true},
 		{Picture: 13, Unbound: true},
 		{Picture: 18, Drive: followHalf, Unbound: true},
 		{Picture: 20, Mark: TargetMarkHeal, Drive: followFirst, Unbound: true},
@@ -100,6 +103,7 @@ var pictureCapabilities = [...][]PictureCapability{
 		{Picture: 64, Drive: followHalf, Unbound: true},
 	},
 	SpellGameSecond: {
+		{Picture: 7, Deformation: true},
 		{Picture: 16, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 20, Drive: EffectDrive{EffectFollow, FrameCounter}},
 		{Picture: 23, Drive: EffectDrive{EffectStill, FrameCounter}},

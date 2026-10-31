@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/render/terrain"
+	"againrom/pkg/rules"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -665,7 +666,7 @@ func (mw *mapWorld) savedProjectileScene(trails bool) []ui.SpellBolt {
 			continue
 		}
 		cell := image.Pt(floorDiv(int(p.X), ui.ShotScale), floorDiv(int(p.Y), ui.ShotScale))
-		if p.Picture == unitShotDeformationPicture {
+		if rules.PictureCapabilityOf(set.Game, p.Picture).Deformation {
 			if !mw.projectiles.HasPicture(int(p.Picture)) {
 				continue
 			}

@@ -3613,5 +3613,7 @@ var Committed = Baseline{
 	// rows, creatureScanCell and creatureKeepsPick in pkg/sim's
 	// creaturecast.go, the new test creatureaimprofile_test.go, the guard
 	// internal/archtest/creatureaim_test.go, and this note.
-	CommentBytes: 10076914,
+
+	// It fell: the deformation picture is a capability row.
+	CommentBytes: 10076902,
 }

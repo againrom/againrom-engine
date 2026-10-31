@@ -93,8 +93,8 @@ func TestTargetMarksUseCurrentFinePoseAndBothActorPasses(t *testing.T) {
 	v := identityViewer(t, cliffGrid(), cliffW*terrain.CellSize, cliffCanvasH)
 	e := withFrame(image.Pt(0, 1), entityArtA())
 	e.Marks = []UnitMark{
-		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: 3, DY: -12, Depth: 5, Record: terrain.MarkHeal}},
-		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: -2, DY: -18, Depth: -4, Record: terrain.MarkDrainLife}},
+		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: 3, DY: -12, Depth: 5, Record: terrain.MarkKind(6)}},
+		{Sheet: markSheet(), Mark: terrain.EffectMark{DX: -2, DY: -18, Depth: -4, Record: terrain.MarkKind(11)}},
 	}
 	back, front := v.entityMarkRects(e)
 	if len(back) != 1 || len(front) != 1 {
