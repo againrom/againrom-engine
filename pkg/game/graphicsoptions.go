@@ -6,48 +6,44 @@ import (
 	"againrom/pkg/ui"
 )
 
+// graphicsValues is the renderer flags the graphics rows of v name.
 func graphicsValues(v ui.GameOptionValues) ui.GraphicsOptions {
-	return ui.GraphicsOptions{Smoothing: v[ui.GameOptionSmoothing] != 0,
-		HideShadows: v[ui.GameOptionShadows] == 0, DisableLighting: v[ui.GameOptionLighting] == 0,
-		StaticObjects: v[ui.GameOptionAnimation] == 0, HideLootDots: v[ui.GameOptionLootDots] == 0}
+	var g ui.GraphicsOptions
+	for o, r := range gameOptionRows {
+		if r.graphics != nil {
+			r.graphics.set(&g, v[o])
+		}
+	}
+	return g
 }
 
-func defaultGraphicsValues() ui.GameOptionValues {
-	var v ui.GameOptionValues
-	v[ui.GameOptionSmoothing] = 1
-	v[ui.GameOptionShadows] = 1
-	v[ui.GameOptionLighting] = 1
-	v[ui.GameOptionAnimation] = 1
-	// Loot dots stay off until the player asks: the original's minimap marks
-	// no sack (MISSION-063, DIV-2954).
-	v[ui.GameOptionLootDots] = 0
-	return v
-}
-
+// graphicsValues writes the session's graphics flags into their rows of v.
 func (f *FrontEnd) graphicsValues(v *ui.GameOptionValues) {
-	v[ui.GameOptionSmoothing] = boolOption(f.graphics.Smoothing)
-	v[ui.GameOptionShadows] = boolOption(!f.graphics.HideShadows)
-	v[ui.GameOptionLighting] = boolOption(!f.graphics.DisableLighting)
-	v[ui.GameOptionAnimation] = boolOption(!f.graphics.StaticObjects)
-	v[ui.GameOptionLootDots] = boolOption(!f.graphics.HideLootDots)
+	for o, r := range gameOptionRows {
+		if r.graphics != nil {
+			v[o] = r.graphics.value(f.graphics)
+		}
+	}
 }
 
+// setGraphicsOption writes one graphics option with its group: every
+// graphics row is stored, with the rows' needs applied, and the live map
+// takes the whole group.
 func (f *FrontEnd) setGraphicsOption(onMap bool, option ui.GameOption, value int) error {
 	var v ui.GameOptionValues
 	f.graphicsValues(&v)
 	v[option] = value
-	if v[ui.GameOptionAnimation] == 0 {
-		v[ui.GameOptionLighting] = 0
-	}
+	v = v.Constrained()
 	if f.Options.Path != "" {
 		m, err := f.Options.readAll()
 		if err != nil {
 			return err
 		}
-		for o := ui.GameOptionSmoothing; o <= ui.GameOptionAnimation; o++ {
-			m[gameOptionKeys[o]] = strconv.Itoa(v[o])
+		for o, r := range gameOptionRows {
+			if r.graphics != nil {
+				m[gameOptionKeys[o]] = strconv.Itoa(v[o])
+			}
 		}
-		m[gameOptionKeys[ui.GameOptionLootDots]] = strconv.Itoa(v[ui.GameOptionLootDots])
 		if err := f.Options.writeAll(m); err != nil {
 			return err
 		}

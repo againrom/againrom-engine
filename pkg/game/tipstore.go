@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"againrom/pkg/render/terrain"
-	"againrom/pkg/ui"
 )
 
 // Local persisted game preferences (1018 spec behaviour 4).
@@ -350,22 +349,9 @@ func (f *FrontEnd) LoadOptions() {
 	f.smoothingOff.text = !smoothing
 	frame, _ := f.Options.FrameSmoothing()
 	f.smoothingOff.frame = !frame
-	f.wimpyMode, _ = f.Options.WimpyMode()
 	acknowledgments, _ := f.Options.Acknowledgments()
 	f.speech.acknowledgmentsOff = !acknowledgments
-	options, present, _ := f.Options.gameOptions()
-	defaults := defaultGraphicsValues()
-	for _, o := range [...]ui.GameOption{ui.GameOptionSmoothing, ui.GameOptionShadows, ui.GameOptionLighting,
-		ui.GameOptionAnimation, ui.GameOptionLootDots} {
-		if !present[o] {
-			options[o] = defaults[o]
-		}
-	}
-	f.graphics = graphicsValues(options)
-	if f.graphics.StaticObjects {
-		f.graphics.DisableLighting = true
-	}
-	f.showPathfinding = options[ui.GameOptionPathfinding] != 0
+	f.loadGameOptions()
 }
 
 // TipsOff is the permanent suppression's current state (1018 spec behaviour

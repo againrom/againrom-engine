@@ -323,6 +323,15 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 	if f.menuList != nil {
 		selection = f.menuList.Selection()
 	}
+	if o, ok := actionOption(action); ok {
+		if f.gameOptions.draft != nil {
+			f.cycleDraftOption(o)
+			f.rebuildGameMenu(gameMenuGameOptionsPage, selection)
+		} else {
+			f.cycleGameOption(o)
+		}
+		return
+	}
 	switch action {
 	case gameMenuReturn:
 		f.closeGameMenu()
@@ -416,13 +425,6 @@ func (f *flow) applyGameMenuAction(action gameMenuAction) {
 		} else if f.menuTips != nil && f.setMenuTips != nil {
 			f.setMenuTips(!f.menuTips())
 			f.rebuildGameMenu(gameMenuGameOptionsPage, selection)
-		}
-	case gameMenuDayNight, gameMenuHealth, gameMenuDamage, gameMenuFormation, gameMenuRetreat, gameMenuPathfinding, gameMenuSmoothing, gameMenuShadows, gameMenuLighting, gameMenuAnimation, gameMenuAutoHealing, gameMenuLootDots, gameMenuAutoCast:
-		if f.gameOptions.draft != nil {
-			f.cycleDraftOption(GameOption(action - gameMenuDayNight))
-			f.rebuildGameMenu(gameMenuGameOptionsPage, selection)
-		} else {
-			f.cycleGameOption(GameOption(action - gameMenuDayNight))
 		}
 	case gameMenuSpeedDown, gameMenuSpeedUp:
 		delta := -1

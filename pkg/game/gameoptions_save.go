@@ -7,9 +7,9 @@ import (
 	"againrom/pkg/ui"
 )
 
-// PendingGameOption is an additive AGS field. Old saves carry none. Only
-// formation, retreat, global healing and the automatic-casting level are
-// queued; display flags ride View.
+// PendingGameOption is an additive AGS field. Old saves carry none. Only the
+// option rows with a queued Player parameter are kept (formation, retreat,
+// global healing and the automatic-casting level); display flags ride View.
 type PendingGameOption struct {
 	Option ui.GameOption
 	Value  int
@@ -21,16 +21,12 @@ func pendingGameOptions(commands []sim.Command) []PendingGameOption {
 		if c.Kind != sim.KindPlayerParameter || c.Player != sim.SelfSlot {
 			continue
 		}
-		switch sim.PlayerParameter(c.X) {
-		case sim.PlayerParameterFormation:
-			out = append(out, PendingGameOption{ui.GameOptionFormation, int(c.Y)})
-		case sim.PlayerParameterRetreat:
-			out = append(out, PendingGameOption{ui.GameOptionRetreat, int(c.Y)})
-		case sim.PlayerParameterAutoHealing:
-			out = append(out, PendingGameOption{ui.GameOptionAutoHealing, int(c.Y)})
-		case sim.PlayerParameterAutoCast:
-			if c.Y >= 0 && c.Y <= 0xff {
-				out = append(out, PendingGameOption{ui.GameOptionAutoCast, sim.AutoCastSetting(c.Y).LevelNumber()})
+		for o, r := range gameOptionRows {
+			if r.queue == nil || sim.PlayerParameter(c.X) != r.queue.parameter {
+				continue
+			}
+			if v, ok := r.queue.value(c.Y); ok {
+				out = append(out, PendingGameOption{ui.GameOption(o), v})
 			}
 		}
 	}
@@ -42,7 +38,7 @@ func validatePendingGameOptions(orders []PendingGameOption) error {
 		return fmt.Errorf("pending game options exceed 4096 commands")
 	}
 	for _, order := range orders {
-		if (order.Option != ui.GameOptionFormation && order.Option != ui.GameOptionRetreat && order.Option != ui.GameOptionAutoHealing && order.Option != ui.GameOptionAutoCast) || order.Value < 0 || order.Value >= order.Option.Choices() {
+		if int(order.Option) >= len(gameOptionRows) || gameOptionRows[order.Option].queue == nil || order.Value < 0 || order.Value >= order.Option.Choices() {
 			return fmt.Errorf("invalid pending game option %d value %d", order.Option, order.Value)
 		}
 	}

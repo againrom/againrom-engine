@@ -41,6 +41,17 @@ type gameOptionDefinition struct {
 	rect          image.Rectangle
 	focus, commit int
 	steps         *gameOptionSteps
+	// needs are the options whose 0 forces this one to 0 on commit and in
+	// the store (Animation 0 forces Lighting 0, MENU-074).
+	needs []GameOption
+	// word is the engine's word for the label: it replaces the controls'
+	// label when wordWins, and stands in for an absent one otherwise.
+	word     string
+	wordWins bool
+	// choiceWords stand in for absent choice captions, one per value.
+	choiceWords []string
+	// unknown: a negative value, a party with no reading, shows "--".
+	unknown bool
 }
 
 // gameOptionSteps is a stepping row's data per Game Options column, the
@@ -56,23 +67,47 @@ type gameOptionSteps struct {
 // two rows' places an engine row that is not an option (the tooltip delay at
 // 55, Tips at 75, the timed autosave pair at 125).
 var gameOptionTable = [gameOptionCount]gameOptionDefinition{
-	GameOptionDayNight:    {"ShowTimeFlow", "day-night", 2, image.Rect(24, 104, 234, 128), 10, 0, nil},
-	GameOptionHealth:      {"ShowAllHitPoints", "show-health", 2, image.Rect(240, 48, 456, 72), 60, 5, nil},
-	GameOptionDamage:      {"ShowFlyingHP", "flying-damage", 2, image.Rect(240, 76, 456, 100), 70, 6, nil},
-	GameOptionFormation:   {"FormationMode", "formation", 3, image.Rect(24, 248, 216, 338), 110, 8, nil},
-	GameOptionRetreat:     {"WimpyMode", "retreat-mode", 3, image.Rect(240, 248, 408, 338), 120, 9, nil},
-	GameOptionPathfinding: {"ShowPathfinding", "pathfinding", 2, image.Rect(240, 224, 456, 248), 100, 7, nil},
-	GameOptionSmoothing:   {"Smoothing", "smoothing", 2, image.Rect(24, 128, 234, 152), 20, 1, nil},
-	GameOptionShadows:     {"Shadows", "shadows", 2, image.Rect(24, 152, 234, 176), 30, 2, nil},
-	GameOptionLighting:    {"Lighting", "lighting", 2, image.Rect(24, 176, 234, 200), 40, 3, nil},
-	GameOptionAnimation:   {"Animation", "animation", 2, image.Rect(24, 200, 234, 224), 50, 4, nil},
-	GameOptionAutoHealing: {"AutoCasting", "autohealing", 3, image.Rect(240, 132, 432, 224), 90, 10, nil},
-	GameOptionLootDots:    {"LootDots", "loot-dots", 2, image.Rect(24, 388, 234, 412), 130, 11, nil},
+	GameOptionDayNight:  {key: "ShowTimeFlow", name: "day-night", choices: 2, rect: image.Rect(24, 104, 234, 128), focus: 10, commit: 0},
+	GameOptionHealth:    {key: "ShowAllHitPoints", name: "show-health", choices: 2, rect: image.Rect(240, 48, 456, 72), focus: 60, commit: 5},
+	GameOptionDamage:    {key: "ShowFlyingHP", name: "flying-damage", choices: 2, rect: image.Rect(240, 76, 456, 100), focus: 70, commit: 6},
+	GameOptionFormation: {key: "FormationMode", name: "formation", choices: 3, rect: image.Rect(24, 248, 216, 338), focus: 110, commit: 8},
+	GameOptionRetreat:   {key: "WimpyMode", name: "retreat-mode", choices: 3, rect: image.Rect(240, 248, 408, 338), focus: 120, commit: 9},
+	GameOptionPathfinding: {key: "ShowPathfinding", name: "pathfinding", choices: 2, rect: image.Rect(240, 224, 456, 248), focus: 100, commit: 7,
+		word: "options.pathfinding", wordWins: true},
+	GameOptionSmoothing: {key: "Smoothing", name: "smoothing", choices: 2, rect: image.Rect(24, 128, 234, 152), focus: 20, commit: 1},
+	// The three graphics captions come from the install when it supplies
+	// them; the engine's words stand in only for an absent one.
+	GameOptionShadows: {key: "Shadows", name: "shadows", choices: 2, rect: image.Rect(24, 152, 234, 176), focus: 30, commit: 2,
+		word: "options.shadows"},
+	GameOptionLighting: {key: "Lighting", name: "lighting", choices: 2, rect: image.Rect(24, 176, 234, 200), focus: 40, commit: 3,
+		needs: []GameOption{GameOptionAnimation}, word: "options.lighting"},
+	GameOptionAnimation: {key: "Animation", name: "animation", choices: 2, rect: image.Rect(24, 200, 234, 224), focus: 50, commit: 4,
+		word: "options.animation"},
+	GameOptionAutoHealing: {key: "AutoCasting", name: "autohealing", choices: 3, rect: image.Rect(240, 132, 432, 224), focus: 90, commit: 10,
+		unknown: true},
+	GameOptionLootDots: {key: "LootDots", name: "loot-dots", choices: 2, rect: image.Rect(24, 388, 234, 412), focus: 130, commit: 11,
+		word: "options.loot_dots", wordWins: true},
 	// The automatic-casting level: Off, Minimum, Average, Maximum. The first
 	// game offers all four and starts Off (DIV-3006); the second offers its
-	// three levels and starts at Average, the constructor's (DIV-3007).
-	GameOptionAutoCast: {"AutoCastMode", "autocast-mode", 4, image.Rect(240, 340, 456, 364), 140, 12,
-		&gameOptionSteps{map[string][]int{"": {0, 1, 2, 3}, "rom1": {0, 1, 2, 3}, "rom2": {1, 2, 3}}, map[string]int{"": 0, "rom1": 0, "rom2": 2}}},
+	// three levels and starts at Average, the constructor's (DIV-3007). The
+	// row reads the install's captions when the game supplies them, the
+	// engine's words otherwise (DIV-3011).
+	GameOptionAutoCast: {key: "AutoCastMode", name: "autocast-mode", choices: 4, rect: image.Rect(240, 340, 456, 364), focus: 140, commit: 12,
+		steps: &gameOptionSteps{map[string][]int{"": {0, 1, 2, 3}, "rom1": {0, 1, 2, 3}, "rom2": {1, 2, 3}}, map[string]int{"": 0, "rom1": 0, "rom2": 2}},
+		word:  "options.autocast", choiceWords: []string{"options.autocast_off", "options.autocast_minimum", "options.autocast_average", "options.autocast_maximum"}},
+}
+
+// Constrained is v with each row's needs applied: a row whose needed option
+// is 0 is 0.
+func (v GameOptionValues) Constrained() GameOptionValues {
+	for o, d := range gameOptionTable {
+		for _, n := range d.needs {
+			if v[n] == 0 {
+				v[o] = 0
+			}
+		}
+	}
+	return v
 }
 
 // Offers lists the values the option offers in the given Game Options column.
@@ -187,26 +222,14 @@ type GameOptionControls struct {
 func (a *App) SetGameOptionControls(c GameOptionControls) {
 	if a != nil && a.flow != nil {
 		f := a.flow
-		c.Words.Labels[GameOptionPathfinding] = f.menuWord("options.pathfinding")
-		c.Words.Labels[GameOptionLootDots] = f.menuWord("options.loot_dots")
-		authored := [...]string{f.menuWord("options.shadows"),
-			f.menuWord("options.lighting"), f.menuWord("options.animation")}
-		// The three graphics captions come from the install when it supplies
-		// them; the authored words stand in only for an absent one.
-		for i, label := range authored {
-			if o := GameOptionShadows + GameOption(i); c.Words.Labels[o] == "" {
-				c.Words.Labels[o] = label
+		for o, d := range gameOptionTable {
+			if d.word != "" && (d.wordWins || c.Words.Labels[o] == "") {
+				c.Words.Labels[o] = f.menuWord(d.word)
 			}
-		}
-		// The automatic-casting row reads the install's captions when the
-		// game supplies them, the engine's words otherwise (DIV-3011).
-		if c.Words.Labels[GameOptionAutoCast] == "" {
-			c.Words.Labels[GameOptionAutoCast] = f.menuWord("options.autocast")
-		}
-		levels := [...]string{f.menuWord("options.autocast_off"), f.menuWord("options.autocast_minimum"), f.menuWord("options.autocast_average"), f.menuWord("options.autocast_maximum")}
-		for i, word := range levels {
-			if c.Words.Choices[GameOptionAutoCast][i] == "" {
-				c.Words.Choices[GameOptionAutoCast][i] = word
+			for i, word := range d.choiceWords {
+				if c.Words.Choices[o][i] == "" {
+					c.Words.Choices[o][i] = f.menuWord(word)
+				}
 			}
 		}
 		a.flow.gameOptions = c

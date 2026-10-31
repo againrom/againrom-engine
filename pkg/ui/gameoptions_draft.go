@@ -137,10 +137,7 @@ func (f *flow) commitGameOptions() error {
 	if f.menuTips != nil && f.setMenuTips != nil && d.tips != d.tipsStart {
 		f.setMenuTips(d.tips)
 	}
-	v := d.values
-	if v[GameOptionAnimation] == 0 {
-		v[GameOptionLighting] = 0
-	}
+	v := d.values.Constrained()
 	write := func(o GameOption) {
 		if v[o] < 0 || f.gameOptions.Write == nil {
 			return
@@ -196,7 +193,7 @@ func (f *flow) gameOptionsPageRows() []gameMenuRow {
 		if o.Choices() > 2 && d.values[o] >= 0 && d.values[o] < o.Choices() {
 			state = w.Choices[o][d.values[o]]
 		}
-		if o == GameOptionAutoHealing && d.values[o] < 0 {
+		if gameOptionTable[o].unknown && d.values[o] < 0 {
 			state = "--"
 		}
 		return gameMenuRow{Label: w.Labels[o] + ": " + state, Literal: true, Enabled: enabled, Action: optionAction(o)}

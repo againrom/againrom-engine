@@ -34,7 +34,9 @@ package archtest
 // missionPorts is the one new coordination point that wires the entry's ports.
 // 16 to 15: restoreOriginal is a decode, a detached-session operation and two
 // short coordinators, and none of them reaches three components alone.
+// 15 to 12: gameOptionValues, setGameOption and LoadOptions walk the option
+// rows, whose functions each reach one component.
 var CommittedComposition = CompositionBaseline{
 	Fields:       79,
-	Coordinators: 15,
+	Coordinators: 12,
 }

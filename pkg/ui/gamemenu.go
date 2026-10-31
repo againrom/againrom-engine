@@ -61,20 +61,13 @@ const (
 	gameMenuSpeedDown
 	gameMenuSpeedUp
 	gameMenuTooltipDelay
+	// gameMenuDayNight is the first of the Game Options rows' actions: one
+	// per option, in GameOption order (optionAction, actionOption).
 	gameMenuDayNight
-	gameMenuHealth
-	gameMenuDamage
-	gameMenuFormation
-	gameMenuRetreat
-	gameMenuPathfinding
-	gameMenuSmoothing
-	gameMenuShadows
-	gameMenuLighting
-	gameMenuAnimation
-	gameMenuAutoHealing
-	gameMenuLootDots
-	gameMenuAutoCast
-	gameMenuMusicVolume
+)
+
+const (
+	gameMenuMusicVolume = gameMenuDayNight + gameMenuAction(gameOptionCount) + iota
 	gameMenuEffectsVolume
 	gameMenuSpeechVolume
 	gameMenuAcknowledgments
