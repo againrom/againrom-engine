@@ -158,7 +158,7 @@ func (f *FrontEnd) ChargenSetup() ui.ChargenSetup {
 		}
 		setup.Preview = f.ChargenPreview
 	}
-	f.campaign().generatorSetup(f, &setup)
+	f.generatorSetup(&setup)
 	return setup
 }
 
@@ -184,25 +184,100 @@ func generatorCost(c ui.GeneratorCost, v int) int {
 	return int(math.Trunc(c.Factor*math.Pow(c.Base, float64(v-1)) + c.Round))
 }
 
-// firstGeneratorPresets are the four pictures' statistic and skill presets:
-// npc.reg's archetype section for each picture's sex and class, which the
-// original's Forward loads (HERO-STAT-001, HERO-CHARGEN-083; DIV-1277). A
-// section missing a key or holding an illegal spread keeps the generic start.
-func firstGeneratorPresets(f *FrontEnd, setup *ui.ChargenSetup) {
-	if f.Table == nil {
-		return
-	}
+// generatorProfile is a game's hero generator row: where each picture's
+// preset comes from, what the party producer reads and what an accepted
+// result begins. Each game's gameFiles holds one; generatorSetup,
+// generatorParty and generatorBegin read it for both games.
+type generatorProfile struct {
+	// templates makes each picture's Humans template row its statistic preset
+	// and the hero's base row (R2-ENGINE-285, R2-ASSET-076). Without it the
+	// preset is npc.reg's archetype section for the picture's sex and class,
+	// which the original's Forward loads (HERO-STAT-001, HERO-CHARGEN-083;
+	// DIV-1277), and the base row is data.ChargenBase's over f.Humans.
+	templates bool
+	// classProfile gives a hero without a base row his class's plain profile;
+	// without it he keeps the constructor default (HERO-163, HERO-164).
+	classProfile bool
+	// campaignOutfit takes the hero's weapon and school skill levels from the
+	// description's campaign part (R2-ENGINE-290; DIV-2772), and a description
+	// without one makes no party. Without it the hero holds the trained slot's
+	// weapon and keeps his row's skills.
+	campaignOutfit bool
+	// documents gives the hero the campaign's documents (DIV-305).
+	documents bool
+	// start is what an accepted result begins.
+	start generatorStart
+}
+
+// generatorStart is what an accepted generator result begins.
+type generatorStart int
+
+const (
+	// generatorStartMission opens the chosen mission with the generated party.
+	generatorStartMission generatorStart = iota
+	// generatorStartTown commits a new campaign at its first town and opens no
+	// map, so the generator shows the town (R2-ENGINE-283).
+	generatorStartTown
+)
+
+// generatorRow is the generator row of the front end's game.
+func (f *FrontEnd) generatorRow() generatorProfile { return f.campaign().files().generator }
+
+// generatorSetup gives each picture the preset its game's generator row
+// names, and marks a start in town on the setup. A picture whose source row
+// is missing, or whose archetype holds an illegal spread, keeps the generic
+// start.
+func (f *FrontEnd) generatorSetup(setup *ui.ChargenSetup) {
+	p := f.generatorRow()
+	setup.AcceptShowsTown = p.start == generatorStartTown
 	for i, h := range f.generator().PreCreate.Heroes {
 		if i >= len(setup.Presets) {
 			break
 		}
-		a, ok := f.Table.NPC.HeroArchetype(h.Sex != 0, h.Class != 0)
-		spread := data.Spread{Body: a.Body, Reaction: a.Reaction, Mind: a.Mind, Spirit: a.Spirit}
-		if ok && spread.Legal() {
-			setup.Presets[i] = []int{int(a.Body), int(a.Reaction), int(a.Mind), int(a.Spirit)}
-			setup.PresetSkills[i] = int(a.Skill)
+		if stats, skill, ok := f.generatorPreset(p, h); ok {
+			setup.Presets[i] = stats
+			setup.PresetSkills[i] = skill
 		}
 	}
+}
+
+// generatorPreset is picture h's four statistics and one-based skill under
+// row p, or false when the source holds none. A template row states no skill.
+func (f *FrontEnd) generatorPreset(p generatorProfile, h ui.GeneratorHero) ([]int, int, bool) {
+	if p.templates {
+		d, _, ok := generatorTemplate(missionHumans(f.Table), h.Template)
+		return []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}, 0, ok
+	}
+	if f.Table == nil {
+		return nil, 0, false
+	}
+	a, ok := f.Table.NPC.HeroArchetype(h.Sex != 0, h.Class != 0)
+	spread := data.Spread{Body: a.Body, Reaction: a.Reaction, Mind: a.Mind, Spirit: a.Spirit}
+	return []int{int(a.Body), int(a.Reaction), int(a.Mind), int(a.Spirit)}, int(a.Skill), ok && spread.Legal()
+}
+
+// generatorTemplate is the Humans row a hero picture names, by name.
+func generatorTemplate(humans data.Collection, name string) (data.HumanDef, int, bool) {
+	i := data.FindHumanByName(humans, name)
+	if name == "" || i == data.NotFound {
+		return data.HumanDef{}, data.NotFound, false
+	}
+	d, err := data.NewHumanDef(name, humans.EntryParams(i))
+	if err != nil {
+		return data.HumanDef{}, data.NotFound, false
+	}
+	return d, i, true
+}
+
+// heroTemplate is the template name of the picture standing for a sex and a
+// class.
+func heroTemplate(l *ui.GeneratorDescription, female, mage bool) string {
+	for _, h := range l.PreCreate.Heroes {
+		if (h.Sex != 0) == female && (h.Class != 0) == mage {
+			return h.Template
+		}
+	}
+	return ""
 }
 
 // chargenDerivedNames are the labels the consequence block shows, in the
@@ -437,24 +512,61 @@ func (f *FrontEnd) tableWeapons() (shapes, materials data.ScaleTable, weapons da
 // routine and never two that could disagree — class leads over the trained
 // slot on class's own arm, exactly as StartingWeaponName states.
 func (f *FrontEnd) ChargenParty(res ui.ChargenResult) []mapload.PartyMember {
-	return f.campaign().generatorParty(f, res)
+	return f.generatorParty(res)
 }
 
-// NewGameBegin is what an accepted new-game generator result does: the first
-// game opens mission n with the generated party; the second game commits its
-// new campaign and opens no map, so the generator shows the first town.
+// NewGameBegin is what an accepted new-game generator result does: the start
+// its game's generator row names.
 func (f *FrontEnd) NewGameBegin(n int) func(ui.ChargenResult) (ui.MapOpener, error) {
-	return f.campaign().generatorBegin(f, n)
+	return f.generatorBegin(f.generatorRow().start, n)
 }
 
-// firstGeneratorParty is the first game's party for a result.
-func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
-	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
-	class := chargenChoiceIndex(res, chargenChoiceClass) != 0
-	slot := data.SkillBlade + int32(chargenChoiceIndex(res, chargenChoiceSkill))
+// generatorBegin is what an accepted result begins under start: mission n
+// opened with the generated party, or a new campaign committed at its first
+// town with no map opened.
+func (f *FrontEnd) generatorBegin(start generatorStart, n int) func(ui.ChargenResult) (ui.MapOpener, error) {
+	if start == generatorStartTown {
+		return func(res ui.ChargenResult) (ui.MapOpener, error) { return nil, f.startGeneratedTown(res) }
+	}
+	return func(res ui.ChargenResult) (ui.MapOpener, error) { return f.NewGameOpener(n, res), nil }
+}
 
-	base, i, ok := data.ChargenBase(f.Humans, class, female)
-	profile, face, book, cells := chargenProfile(base, ok, f.Humans, i, constructorDefaultProfile())
+// generatorParty is the party a result makes under its game's generator row.
+// The chosen sex and class pick the base row; with campaignOutfit the weapon
+// is the campaign part's for the chosen skill, the school skills are cleared
+// and the fifth and the chosen skill stand at the part's levels
+// (R2-ENGINE-290). Item modifiers and the experience the original computes
+// are not carried (DIV-2772).
+func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
+	p := f.generatorRow()
+	var outfit *secondGenerator
+	if p.campaignOutfit {
+		g, err := f.secondGeneratorCampaign()
+		if err != nil {
+			return nil
+		}
+		outfit = g
+	}
+	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
+	mage := chargenChoiceIndex(res, chargenChoiceClass) != 0
+	skill := chargenChoiceIndex(res, chargenChoiceSkill)
+	slot := data.SkillBlade + int32(skill)
+
+	humans := f.Humans
+	var row data.HumanDef
+	var i int
+	var ok bool
+	if p.templates {
+		humans = missionHumans(f.Table)
+		row, i, ok = generatorTemplate(humans, heroTemplate(f.generator(), female, mage))
+	} else {
+		row, i, ok = data.ChargenBase(humans, mage, female)
+	}
+	missing := constructorDefaultProfile()
+	if p.classProfile {
+		missing = data.Profile{Fighter: !mage, HealthColumn: true}
+	}
+	profile, face, book, cells := chargenProfile(row, ok, humans, i, missing)
 
 	spread := data.Spread{
 		Body:     chargenStatValue(res, chargenStatBody),
@@ -463,24 +575,40 @@ func firstGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMembe
 		Spirit:   chargenStatValue(res, chargenStatSpirit),
 	}
 
-	shapes, materials, weapons := f.tableWeapons()
-	w, _ := resolveWeaponForSlot(class, female, shapes, materials, weapons, slot)
+	var w *data.Weapon
+	if outfit != nil {
+		w = generatorCampaignWeapon(outfit, f.Table, mage, female, skill)
+	} else {
+		shapes, materials, weapons := f.tableWeapons()
+		w, _ = resolveWeaponForSlot(mage, female, shapes, materials, weapons, slot)
+	}
 
-	return assembleParty(partyInputs{
+	party := assembleParty(partyInputs{
 		Name:      res.Name,
 		Spread:    spread,
 		Slot:      slot,
-		Mage:      class,
+		Mage:      mage,
 		Profile:   profile,
-		Dir:       data.FigureDirFor(class, female),
+		Dir:       data.FigureDirFor(mage, female),
 		Face:      face,
 		Book:      book,
 		Weapon:    w,
 		Cells:     cells,
 		List:      f.Bodies,
 		Table:     f.Table,
-		Documents: true,
+		Documents: p.documents,
 	})
+	if outfit != nil {
+		h := &party[0].Hero
+		for s := data.SkillBlade; s < data.SkillSlots; s++ {
+			h.Skill[s] = 0
+		}
+		h.Skill[data.SkillSlots-1] = outfit.FifthSkill
+		if slot > data.SkillGeneral && slot < data.SkillSlots {
+			h.Skill[slot] = outfit.ChosenSkill
+		}
+	}
+	return party
 }
 
 // encodeEngineWord is an engine word in the install's code page, the form the

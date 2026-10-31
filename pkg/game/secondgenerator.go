@@ -77,50 +77,10 @@ func (f *FrontEnd) secondGeneratorCampaign() (*secondGenerator, error) {
 	return nil, fmt.Errorf("generator %q has no second-game campaign part", name)
 }
 
-// generatorTemplate is the Humans row a hero picture names, by name.
-func generatorTemplate(humans data.Collection, name string) (data.HumanDef, int, bool) {
-	i := data.FindHumanByName(humans, name)
-	if name == "" || i == data.NotFound {
-		return data.HumanDef{}, data.NotFound, false
-	}
-	d, err := data.NewHumanDef(name, humans.EntryParams(i))
-	if err != nil {
-		return data.HumanDef{}, data.NotFound, false
-	}
-	return d, i, true
-}
-
-// heroTemplate is the template name of the picture standing for a sex and a
-// class.
-func heroTemplate(l *ui.GeneratorDescription, female, mage bool) string {
-	for _, h := range l.PreCreate.Heroes {
-		if (h.Sex != 0) == female && (h.Class != 0) == mage {
-			return h.Template
-		}
-	}
-	return ""
-}
-
-// secondGeneratorSetup gives each picture its template row's statistics as
-// its preset (R2-ENGINE-285, R2-ASSET-076), and an accepted result shows the
-// first town.
-func secondGeneratorSetup(f *FrontEnd, setup *ui.ChargenSetup) {
-	setup.AcceptShowsTown = true
-	l := f.generator()
-	for i, h := range l.PreCreate.Heroes {
-		if i >= len(setup.Presets) {
-			break
-		}
-		if d, _, ok := generatorTemplate(missionHumans(f.Table), h.Template); ok {
-			setup.Presets[i] = []int{int(d.Body), int(d.Reaction), int(d.Mind), int(d.Spirit)}
-		}
-	}
-}
-
-// secondGeneratorWeapon is the weapon the producer equips for a class, a sex
-// and a chosen school skill: the fighter's weapon of that skill, or the
+// generatorCampaignWeapon is the weapon a campaign part equips for a class, a
+// sex and a chosen school skill: the fighter's weapon of that skill, or the
 // mage's staff casting that school's spell (R2-ENGINE-290).
-func secondGeneratorWeapon(g *secondGenerator, t *mapload.Table, mage, female bool, skill int) *data.Weapon {
+func generatorCampaignWeapon(g *secondGenerator, t *mapload.Table, mage, female bool, skill int) *data.Weapon {
 	if t == nil || skill < 0 || skill >= len(g.FighterWeapons) {
 		return nil
 	}
@@ -139,61 +99,12 @@ func secondGeneratorWeapon(g *secondGenerator, t *mapload.Table, mage, female bo
 	return w
 }
 
-// secondGeneratorParty is the second game's producer: the template row of
-// the chosen picture with the result's statistics, school skills cleared,
-// the fifth skill and the chosen skill at their levels, and the chosen
-// skill's weapon in place of the row's own (R2-ENGINE-290). Item modifiers
-// and the experience the original computes are not carried (DIV-2772). A
-// description without a campaign part makes no party.
-func secondGeneratorParty(f *FrontEnd, res ui.ChargenResult) []mapload.PartyMember {
-	g, err := f.secondGeneratorCampaign()
-	if err != nil {
-		return nil
-	}
-	female := chargenChoiceIndex(res, chargenChoiceSex) != 0
-	mage := chargenChoiceIndex(res, chargenChoiceClass) != 0
-	skill := chargenChoiceIndex(res, chargenChoiceSkill)
-	slot := data.SkillBlade + int32(skill)
-
-	humans := missionHumans(f.Table)
-	base, i, ok := generatorTemplate(humans, heroTemplate(f.generator(), female, mage))
-	profile, face, book, cells := chargenProfile(base, ok, humans, i, data.Profile{Fighter: !mage, HealthColumn: true})
-	spread := data.Spread{
-		Body:     chargenStatValue(res, chargenStatBody),
-		Reaction: chargenStatValue(res, chargenStatReaction),
-		Mind:     chargenStatValue(res, chargenStatMind),
-		Spirit:   chargenStatValue(res, chargenStatSpirit),
-	}
-	party := assembleParty(partyInputs{
-		Name:    res.Name,
-		Spread:  spread,
-		Slot:    slot,
-		Mage:    mage,
-		Profile: profile,
-		Dir:     data.FigureDirFor(mage, female),
-		Face:    face,
-		Book:    book,
-		Weapon:  secondGeneratorWeapon(g, f.Table, mage, female, skill),
-		Cells:   cells,
-		List:    f.Bodies,
-		Table:   f.Table,
-	})
-	h := &party[0].Hero
-	for s := data.SkillBlade; s < data.SkillSlots; s++ {
-		h.Skill[s] = 0
-	}
-	h.Skill[data.SkillSlots-1] = g.FifthSkill
-	if slot > data.SkillGeneral && slot < data.SkillSlots {
-		h.Skill[slot] = g.ChosenSkill
-	}
-	return party
-}
-
-// startSecondGenerated is the second game's generator commit: a new campaign
+// startGeneratedTown is the town start of a generator result: a new campaign
 // at its first town with the hero the result makes, the character-choice
 // slots set from the class and the sex, the session difficulty and the
-// Player's opening gold (R2-ENGINE-283, R2-SESSION-077, R2-SESSION-131).
-func (f *FrontEnd) startSecondGenerated(res ui.ChargenResult) error {
+// Player's opening gold, the slots and the gold read from the description's
+// campaign part (R2-ENGINE-283, R2-SESSION-077, R2-SESSION-131).
+func (f *FrontEnd) startGeneratedTown(res ui.ChargenResult) error {
 	g, err := f.secondGeneratorCampaign()
 	if err != nil {
 		return err

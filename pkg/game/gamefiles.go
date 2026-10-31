@@ -139,6 +139,8 @@ type gameFiles struct {
 	heldMarks map[uint16]heldMark
 	// unitVoices are the game's command and selection voices.
 	unitVoices unitVoiceRules
+	// generator is the game's hero generator row (chargen.go).
+	generator generatorProfile
 }
 
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
@@ -200,6 +202,7 @@ var firstGameFiles = gameFiles{
 	// TAVERN-035, TEXT-135.
 	bookSpellcaster: true,
 	unitVoices:      firstGameVoices,
+	generator:       generatorProfile{documents: true, start: generatorStartMission},
 }
 
 // secondGameMenu's town popup stands at (100,100), 440x340 (R2-ENGINE-441).
@@ -255,6 +258,7 @@ var secondGameFiles = gameFiles{
 	teleportCast: teleportCastProfile{run: true},
 	heldMarks:    secondHeldMarks,
 	unitVoices:   secondGameVoices,
+	generator:    generatorProfile{templates: true, classProfile: true, campaignOutfit: true, start: generatorStartTown},
 }
 
 // speakerFaces is the speaker table of t's campaign.

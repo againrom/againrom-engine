@@ -3168,6 +3168,12 @@ package storyguard
 // pkg/game/roompage.go, the guard in internal/archtest/roomsounds.go and its
 // test, the room sound matrix test in pkg/game/townroomsoundmatrix_test.go,
 // and this paragraph.
+//
+// CommentBytes rises with the doc comments of the generator row
+// generatorProfile and its one setup, preset, party and start builders in
+// pkg/game/chargen.go, the record test in pkg/game/generatorprofile_test.go,
+// the guard in internal/archtest/generator.go and its test, and this
+// paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3655,5 +3661,5 @@ var Committed = Baseline{
 	// packs, mission 52's add in completeBank, the town entry's clear in
 	// secondworldmap.go, their tests in secondtownfile_test.go and
 	// seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10162087,
+	CommentBytes: 10165908,
 }
