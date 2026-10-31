@@ -3604,5 +3604,9 @@ var Committed = Baseline{
 	// and their two values in pkg/mapload/spell.go, the both-games test in
 	// creaturebook_test.go, internal/archtest/creaturebooks_test.go, and
 	// this note.
-	CommentBytes: 10066134,
+
+	// It rose for the saved form rows: savedForm, its holder rows and their
+	// sources in pkg/game/savform.go, the producer's leaf note, the row test
+	// in savform_test.go, internal/archtest/savedform_test.go, and this note.
+	CommentBytes: 10070463,
 }

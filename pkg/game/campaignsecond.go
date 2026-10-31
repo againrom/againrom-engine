@@ -591,13 +591,7 @@ func (t *Town) SecondState() (SecondCampaignState, bool) {
 	return out, true
 }
 
-// saveForm writes a town or mission SAVE in the second game's records,
-// which its original reads; the engine's own document travels beside them
-// (DIV-4304, DIV-4350).
+// saveForm writes doc in the second game's saved form of its kind.
 func (secondCampaignRules) saveForm(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.DocumentData, bool, error) {
-	if s.second == nil {
-		return doc, false, nil
-	}
-	out, err := secondTownForm(f.Table, s, doc)
-	return out, err == nil, err
+	return secondSavedForms[savedFormKind(s)].write(f, s, doc)
 }

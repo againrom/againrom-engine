@@ -95,11 +95,13 @@ func (f *FrontEnd) ExportCurrentSave(s Snapshot, label string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	native, ok, err := campaignOf(s.game).saveForm(f, s, doc)
+	// The game's saved form of the document's kind; the engine's own
+	// document travels in its leaf where the form writes other records.
+	native, leaf, err := campaignOf(s.game).saveForm(f, s, doc)
 	if err != nil {
 		return nil, err
 	}
-	if !ok {
+	if !leaf {
 		return raw, nil
 	}
 	if native, err = sav.StoreEngineDocument(native, raw); err != nil {
