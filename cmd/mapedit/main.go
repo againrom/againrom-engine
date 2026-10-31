@@ -189,11 +189,11 @@ func runAs(self string, args []string, out io.Writer) error {
 	}
 	if *list {
 		for _, m := range x.Maps {
-			prefix := "loose/"
+			kind := ui.SourceLoose
 			if m.FromArchive {
-				prefix = "scenario/"
+				kind = ui.SourceScenario
 			}
-			fmt.Fprintf(out, "%s%s\t%s\n", prefix, m.Source, m.Text())
+			fmt.Fprintf(out, "%s\t%s\n", ui.MapSourceKey(kind, m.Source), m.Text())
 		}
 		return nil
 	}

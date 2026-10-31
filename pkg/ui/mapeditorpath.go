@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"againrom/pkg/pathdialog"
 )
@@ -47,13 +46,14 @@ func (e *MapEditor) pathRequest(kind pathdialog.Kind) pathdialog.Request {
 	}
 	if e.doc != nil {
 		source := e.doc.Source
-		if source != "" && !strings.HasPrefix(source, "new/") {
+		src := ParseMapSource(source)
+		if source != "" && src.Kind != SourceNew {
 			if kind == pathdialog.SaveFile {
 				r.DefaultName = filepath.Base(filepath.FromSlash(source))
 			}
-			if !strings.HasPrefix(source, "scenario/") {
-				if strings.HasPrefix(source, "loose/") {
-					source = filepath.Join(e.pathDialog.baseDir, filepath.FromSlash(strings.TrimPrefix(source, "loose/")))
+			if src.Kind != SourceScenario {
+				if src.Kind == SourceLoose {
+					source = filepath.Join(e.pathDialog.baseDir, filepath.FromSlash(src.Path))
 				}
 				if absolute, err := filepath.Abs(source); err == nil {
 					r.StartDir = filepath.Dir(absolute)

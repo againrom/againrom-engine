@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"path/filepath"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -87,7 +86,7 @@ func (e *MapEditor) leaveSpec() popupSpec {
 // leaveName is the map as the question names it: a file by its own name, a
 // scenario or new map by its source.
 func (e *MapEditor) leaveName(source string) string {
-	if !strings.HasPrefix(source, "scenario/") && !strings.HasPrefix(source, "new/") {
+	if k := ParseMapSource(source).Kind; k != SourceScenario && k != SourceNew {
 		source = filepath.Base(filepath.FromSlash(source))
 	}
 	return e.editorHostText(source)

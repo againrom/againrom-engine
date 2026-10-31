@@ -2,7 +2,6 @@ package game
 
 import (
 	"path/filepath"
-	"strings"
 
 	"againrom/pkg/base"
 	"againrom/pkg/installpath"
@@ -209,11 +208,10 @@ func OpenContainers(path string) (*vfs.FS, error) {
 	return vfs.Open([]string{path}, nil)
 }
 
-// looseHostPath is the host path of the loose map a catalogue key
-// "loose/<name>" names under root, whatever the case of its name on disk. An
-// ambiguous name keeps the requested spelling; reading it reports the pair.
-func looseHostPath(root, source string) string {
-	rel := strings.TrimPrefix(source, "loose/")
+// looseHostPath is the host path of the loose map rel, a loose source's path,
+// names under root, whatever the case of its name on disk. An ambiguous name
+// keeps the requested spelling; reading it reports the pair.
+func looseHostPath(root, rel string) string {
 	if path, err := InstallFile(root, rel); err == nil {
 		return path
 	}

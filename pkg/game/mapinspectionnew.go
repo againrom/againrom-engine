@@ -22,7 +22,7 @@ import (
 // "new/<W>x<H>" is read by MapInspector.Open, the catalogue lists one row per
 // size of newMapSides, and the editor window, the command line and the tests
 // reach the map the same way.
-const newMapPrefix = "new/"
+var newMapPrefix = ui.MapSourceKey(ui.SourceNew, "")
 
 // newMapSides is the short list of sides the window offers, square maps. The
 // constructor accepts every multiple of 8 from 32 to 256 (DIV-3208).
@@ -160,7 +160,7 @@ func (x *MapInspector) secondaryKey(class int16) (uint16, error) {
 
 // isNewSource reports a source that names a map built from nothing and not
 // yet saved.
-func isNewSource(source string) bool { return strings.HasPrefix(source, newMapPrefix) }
+func isNewSource(source string) bool { return ui.ParseMapSource(source).Kind == ui.SourceNew }
 
 // unwrittenEntry is the mission of the mod whose map file the mod folder does
 // not hold yet: the entry a new map is saved under. It answers only when

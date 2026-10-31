@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
+	"againrom/pkg/ui"
 	"againrom/pkg/words"
 )
 
@@ -58,11 +59,7 @@ func (s *mapInspectionEdits) exportPageTree(folder string, recorded []string) (m
 			}
 		}
 	}
-	if !isNewSource(s.source) && !strings.HasPrefix(s.source, "scenario/") {
-		source := s.source
-		if strings.HasPrefix(source, "loose/") && x.archives != nil {
-			source = looseHostPath(x.archives.Root, source)
-		}
+	if source, ok := mapHostPath(ui.ParseMapSource(s.source), x.archives); ok {
 		if err := readPageTree(filepath.Dir(source), filepath.Base(mapTextFolder(source)), files, true, x.pageLanguage()); err != nil {
 			return nil, err
 		}
@@ -198,11 +195,7 @@ func (x *MapInspector) editorPages(source string) *modPages {
 			merge(files, other)
 		}
 	}
-	if !strings.HasPrefix(source, "scenario/") && !isNewSource(source) {
-		path := source
-		if strings.HasPrefix(source, "loose/") && x.archives != nil {
-			path = looseHostPath(x.archives.Root, source)
-		}
+	if path, ok := mapHostPath(ui.ParseMapSource(source), x.archives); ok {
 		m := mod.Mission{Map: filepath.Base(path)}
 		files, other, err := m.ReadTexts(filepath.Dir(path), x.pageLanguage())
 		if err != nil {

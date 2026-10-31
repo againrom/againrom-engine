@@ -778,7 +778,7 @@ func (s *mapInspectionEdits) SaveAs(path string) (string, error) {
 // installs.
 func (s *mapInspectionEdits) OwnFile() (string, bool) {
 	src := s.source
-	if src == "" || isNewSource(src) || strings.HasPrefix(src, "scenario/") || strings.HasPrefix(src, "loose/") {
+	if src == "" || ui.ParseMapSource(src).Kind != ui.SourceHost {
 		return "", false
 	}
 	root := ""
@@ -911,10 +911,11 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 		return "", err
 	}
 	input := source
-	if strings.HasPrefix(source, "scenario/") || isNewSource(source) {
+	switch src := ui.ParseMapSource(source); src.Kind {
+	case ui.SourceScenario, ui.SourceNew:
 		input = "" // archive address or a map built from nothing, never a writable host path
-	} else if strings.HasPrefix(source, "loose/") {
-		input = looseHostPath(root, source)
+	case ui.SourceLoose:
+		input = looseHostPath(root, src.Path)
 	}
 	if input != "" && !overwrite {
 		resolvedInput, err := resolvePathForSaveSafety(input)
@@ -1081,7 +1082,7 @@ func (x *MapInspector) MapsFolder() string {
 func (s *mapInspectionEdits) SaveFolder() string {
 	maps, grant := s.inspector.mapsFolder()
 	src := s.source
-	if src != "" && !isNewSource(src) && !strings.HasPrefix(src, "scenario/") && !strings.HasPrefix(src, "loose/") {
+	if src != "" && ui.ParseMapSource(src).Kind == ui.SourceHost {
 		root := ""
 		if s.inspector.archives != nil {
 			root = s.inspector.archives.Root

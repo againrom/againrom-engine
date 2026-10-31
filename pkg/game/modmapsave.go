@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"againrom/pkg/locale"
@@ -112,19 +111,17 @@ func (x *MapInspector) SetMod(dir string) error {
 // the mission whose number an installed scenario map has, or the mission
 // whose map path is the opened host file.
 func (m *editorMod) entryFor(source string) (mod.Mission, bool) {
-	if isNewSource(source) {
+	switch src := ui.ParseMapSource(source); src.Kind {
+	case ui.SourceNew:
 		return m.unwrittenEntry()
-	}
-	if stem, ok := strings.CutPrefix(source, scenarioPrefix); ok {
-		n, err := strconv.Atoi(strings.TrimSuffix(stem, ".alm"))
+	case ui.SourceScenario:
 		for _, e := range m.missions.Missions {
-			if err == nil && e.Number == n {
+			if src.HasNumber && e.Number == src.Number {
 				return e, true
 			}
 		}
 		return mod.Mission{}, false
-	}
-	if strings.HasPrefix(source, "loose/") {
+	case ui.SourceLoose:
 		return mod.Mission{}, false
 	}
 	opened, err := os.Stat(source)

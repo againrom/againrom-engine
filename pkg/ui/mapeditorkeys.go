@@ -511,7 +511,7 @@ func (e *MapEditor) keyEnter(string) error {
 	case promptItemRecipe:
 		return e.setItemRecipe(e.prompt.path)
 	case promptRectangle:
-		e.askNewMode("new/" + strings.TrimSpace(e.prompt.path))
+		e.askNewMode(MapSourceKey(SourceNew, strings.TrimSpace(e.prompt.path)))
 		return nil
 	case promptForestShare:
 		e.setForestShare(e.prompt.path)
