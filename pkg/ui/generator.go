@@ -479,12 +479,12 @@ func (h *GeneratorHover) style() *hoverStyle {
 	if h == nil {
 		return nil
 	}
-	s := &hoverStyle{ink: h.Ink.RGBA(), authored: h.Lines == "authored"}
+	p := hoverParams{ink: h.Ink.RGBA(), authored: h.Lines == "authored"}
 	if h.Shadow != nil {
 		shadow := h.Shadow.RGBA()
-		s.shadow = &shadow
+		p.shadow = &shadow
 	}
-	return s
+	return hoverStyleFor(hoverStyleGame, p)
 }
 
 // GeneratorTipCycles are both pages' highlight cycles while their tip shows.

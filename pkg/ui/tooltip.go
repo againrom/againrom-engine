@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/color"
 	"strings"
 	"time"
 
@@ -49,23 +48,6 @@ func (h *tooltipController) styled(t tooltipTarget, p image.Point, bounds image.
 	}
 	return tooltipPicture(t, p, bounds, h.ball, s)
 }
-
-// hoverStyle is how a hover box draws its text: the font when named, the
-// ink, a shadow one pixel right and down when named, and, when authored,
-// every '#' line as written, blank ones kept and none wrapped. A nil style
-// is the shared hover help: popupTextColor, no shadow, lines trimmed, blank
-// ones dropped and wrapped. A box set names the fill and the bevel's two
-// colours in place of the hover box's own.
-type hoverStyle struct {
-	font     *text.Font
-	ink      color.RGBA
-	shadow   *color.RGBA
-	authored bool
-	box      *hoverBoxInk
-}
-
-// hoverBoxInk is a hover box's fill and its bevel's light and dark colours.
-type hoverBoxInk struct{ fill, light, dark color.RGBA }
 
 func (h *tooltipController) reset() {
 	h.key = ""
@@ -160,21 +142,7 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 			lines = append(lines, wrapTooltipLine(part, t.font, width)...)
 		}
 	}
-	pic := composeHoverBox(lines, t.font, ball, s)
-	if pic == nil {
-		return nil, image.Point{}, false
-	}
-	// TEXT-HOVERPAINT-053: the cursor anchors the lower-left corner.
-	// Growing text moves the top upward, leaving the hovered item visible.
-	at := image.Pt(p.X, p.Y-pic.Bounds().Dy())
-	if at.X+pic.Bounds().Dx() > bounds.Max.X {
-		at.X = bounds.Max.X - pic.Bounds().Dx()
-	}
-	if at.Y+pic.Bounds().Dy() > bounds.Max.Y {
-		at.Y = bounds.Max.Y - pic.Bounds().Dy()
-	}
-	at.X, at.Y = max(bounds.Min.X, at.X), max(bounds.Min.Y, at.Y)
-	return pic, at, true
+	return placeHover(hoverDescription{lines, t.font, s, hoverAnchor{hoverAbove, p, bounds}}, ball)
 }
 
 // ComposeTooltipHint paints lines with font exactly as every hover hint is

@@ -44,7 +44,6 @@ import (
 // widgetFrameDebt is every frame painter outside the kit. It may only fall.
 var widgetFrameDebt = map[string]string{
 	"pkg/ui/shopscreen.go:outline":              "the one-pixel outline primitive the debt painters share",
-	"pkg/ui/shopscreen.go:drawShopHover":        "shop characteristics box",
 	"pkg/ui/shopscreen.go:drawShopChevron":      "shop chevron box",
 	"pkg/ui/townshell.go:drawTownShellBox":      "town shell control box",
 	"pkg/ui/townshell.go:drawTownShellOutline":  "town shell control outline",

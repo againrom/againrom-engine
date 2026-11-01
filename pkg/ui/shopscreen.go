@@ -1270,34 +1270,3 @@ func drawShopChevron(dst *image.RGBA, r image.Rectangle, dir int, live, fill boo
 		}
 	}
 }
-
-// drawShopHover paints the characteristics box beside the pointer, kept
-// inside the frame on both axes.
-func drawShopHover(dst *image.RGBA, font *text.Font, lines []string, at image.Point) {
-	if font == nil || len(lines) == 0 {
-		return
-	}
-	w, line := 0, font.Height()+2
-	for _, s := range lines {
-		if m, _ := font.Measure(s); m > w {
-			w = m
-		}
-	}
-	box := image.Rect(0, 0, w+10, len(lines)*line+8).Add(at.Add(image.Pt(shopHoverGap, shopHoverGap)))
-	if box.Max.X > shopScreenW {
-		box = box.Sub(image.Pt(box.Max.X-shopScreenW, 0))
-	}
-	if box.Max.Y > shopScreenH {
-		box = box.Sub(image.Pt(0, box.Max.Y-shopScreenH))
-	}
-	draw.Draw(dst, box, &image.Uniform{C: shopScreenFill}, image.Point{}, draw.Src)
-	outline(dst, box, invBorder)
-	for i, s := range lines {
-		font.Draw(dst, s, box.Min.X+5, box.Min.Y+4+i*line, shopTextColor)
-	}
-}
-
-// shopHoverGap is how far the hover box stands from the pointer, on both axes.
-// It is itemPopupOffset's own number for itemPopupOffset's own reason: far
-// enough that the pointer itself does not sit on the first glyph.
-const shopHoverGap = 14

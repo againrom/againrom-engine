@@ -131,6 +131,7 @@ func (t DollTip) Target(lines []string, font *text.Font, slot int) tooltipTarget
 // DrawBeside paints lines beside the pointer at, for a tip that asks it.
 func (t DollTip) DrawBeside(dst *image.RGBA, font *text.Font, lines []string, at image.Point) {
 	if t.Beside {
-		drawShopHover(dst, font, lines, at)
+		drawHover(dst, hoverDescription{lines, font, hoverStyleFor(hoverStyleShop, hoverParams{}),
+			hoverAnchor{hoverBeside, at, image.Rect(0, 0, shopScreenW, shopScreenH)}})
 	}
 }

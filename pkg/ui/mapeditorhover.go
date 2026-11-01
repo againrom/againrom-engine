@@ -22,7 +22,7 @@ type editorTip struct {
 // editorTipStyle is the game's hover box in the editor's body font, paper
 // ink, panel fill and gold bevel.
 func (e *MapEditor) editorTipStyle() *hoverStyle {
-	return &hoverStyle{font: e.bodyFont(), ink: editorPaper, box: &hoverBoxInk{fill: editorPanel, light: editorGold, dark: editorInk}}
+	return hoverStyleFor(hoverStyleEditor, hoverParams{font: e.bodyFont()})
 }
 
 // gridTipAt is the tip of the list popup's grid cell under p, and the cell's
