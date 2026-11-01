@@ -385,6 +385,16 @@ func (a *ActionContinuations) RemapActors(ref func(EntityID, bool) (EntityID, er
 // uses the same native invariants as an ordinary current World, not a LOAD-time
 // action completion or a recomputation from speed, mana or donor operands.
 func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]SavedObjectID) error {
+	_, held, _ := w.SavedGroups()
+	return w.restoreActions(a, objects, held)
+}
+
+// restoreActions takes loaded, the orders the document import installed. A
+// row without an order removes the actor's order, except that a living
+// patroller of a Player's Group keeps a patrol order: no World holds one
+// without it, and a row written while it was missing is not evidence that
+// the patrol ended. That order is PatrolOrder over its loaded order bytes.
+func (w *World) restoreActions(a ActionContinuations, objects map[SavedObjectID]SavedObjectID, loaded []SavedActorOrder) error {
 	if len(a.Actors) != len(w.entities) {
 		var got, want []EntityID
 		for _, e := range a.Actors {
@@ -448,6 +458,7 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 	n.savedGroups = cloneSavedGroups(w.savedGroups)
 	n.savedObjects = w.savedObjects.Clone()
 	seen := map[EntityID]bool{}
+	var patrols []SavedActorOrder
 	for _, v := range a.Actors {
 		i := indexOfEntity(n.entities, v.Entity)
 		if i < 0 || seen[v.Entity] {
@@ -533,6 +544,9 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 			}
 		} else if !n.groupDialectNative() {
 			n.savedGroups.Orders = slices.DeleteFunc(n.savedGroups.Orders, func(o SavedActorOrder) bool { return o.Entity == e.ID })
+			if o, ok := unstatedPatrolOrder(*e, loaded); ok {
+				patrols = append(patrols, o)
+			}
 		}
 		n.routes[i] = nil
 		for _, p := range v.Route {
@@ -599,6 +613,9 @@ func (w *World) RestoreActions(a ActionContinuations, objects map[SavedObjectID]
 	}
 	if err := restoreActionOrderOrdinals(n.savedGroups, a.Actors); err != nil {
 		return err
+	}
+	if len(patrols) != 0 {
+		n.savedGroups.Orders = append(n.savedGroups.Orders, patrols...)
 	}
 	n.bookCasts = nil
 	for _, v := range a.Books {

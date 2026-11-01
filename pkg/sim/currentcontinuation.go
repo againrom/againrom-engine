@@ -7,6 +7,9 @@ import "fmt"
 func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values map[EntityID]ActorValues, actions ActionContinuations, objects map[SavedObjectID]SavedObjectID, terminalMotions ...CurrentTerminalMotion) error {
 	next := *w
 	loaded := next.savedMotion
+	// The orders the document import installed; a policy without the Group
+	// carrier replaces the registry before the actions are restored.
+	_, orders, _ := next.SavedGroups()
 	if policy != nil {
 		if err := next.restoreCurrentPolicy(*policy); err != nil {
 			return err
@@ -21,7 +24,7 @@ func (w *World) RestoreCurrentContinuation(policy *CurrentWorldPolicy, values ma
 		}
 		next.syncConstructedMemberArchives()
 	}
-	if err := next.RestoreActions(actions, objects); err != nil {
+	if err := next.restoreActions(actions, objects, orders); err != nil {
 		return err
 	}
 	if err := next.restoreCurrentTerminalMotions(terminalMotions); err != nil {

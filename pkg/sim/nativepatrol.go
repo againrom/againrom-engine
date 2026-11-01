@@ -43,6 +43,23 @@ func patrolOrderFields(o *SavedActorOrder, e Entity, interrupted bool) {
 	o.Raw[8] = 0xb
 }
 
+// unstatedPatrolOrder is the order constructedOrder gives a living patroller
+// of a Player's Group, over the bytes of its order in loaded when that holds
+// one.
+func unstatedPatrolOrder(e Entity, loaded []SavedActorOrder) (SavedActorOrder, bool) {
+	if e.Owner == 0 || !e.Alive() || e.ActorState != actorStatePatrol {
+		return SavedActorOrder{}, false
+	}
+	for _, o := range loaded {
+		if o.Entity == e.ID {
+			p, ok := PatrolOrder(e, o.Raw)
+			p.Authored = true
+			return p, ok
+		}
+	}
+	return constructedOrder(e, uint32(actorStateGuard)), true
+}
+
 // PatrolOrder is the actor order a living patroller holds: state 0x0a and
 // the fields patrolOrderFields writes, its current move as destination and
 // order 1, and order 5 while it pursues a victim. raw supplies every other

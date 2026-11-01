@@ -3766,5 +3766,5 @@ var Committed = Baseline{
 	// in pkg/game's mapinspectionnpc.go, pkg/mapload's borderplacement.go,
 	// pkg/ui's editorpopup.go, mapeditormessage.go and mapeditorparampick.go,
 	// the new tests in both mapeditorspeakerpick_test.go files, and this note.
-	CommentBytes: 10331185,
+	CommentBytes: 10332292,
 }
