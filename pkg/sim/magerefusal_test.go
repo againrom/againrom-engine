@@ -21,7 +21,7 @@ func mrWalker(t *testing.T, name string, reach uint8, maxMana int32, second bool
 		w.entities[i].AttackPhase, w.entities[i].AttackCountdown = AttackBoundaryOne, 2
 	}
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	return w, i
 }
@@ -200,7 +200,7 @@ func mrIdle(t *testing.T, second bool) *World {
 	t.Helper()
 	w := engWorld(t, engRel(t), engFighter(1, SelfSlot, 10, 10), engFighter(2, 2, 30, 30))
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	return w
 }

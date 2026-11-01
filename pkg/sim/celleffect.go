@@ -890,7 +890,7 @@ func (w *World) applyAreaCells(e cellEffect, rule SpellRule, cells []uint16) {
 				// pursuit of the caster comes only from a later group pass
 				// that finds it inside the circle (AI-707, MAGIC-LIGHTDARK-044).
 				if areaRow(rule.arm()).blow && ci >= 0 && ci != i {
-					if w.SecondGame() {
+					if w.game.blowOrdersAttack {
 						w.orderAttack(i, w.entities[ci].ID)
 					} else {
 						w.flipOnBlow(ci, i)

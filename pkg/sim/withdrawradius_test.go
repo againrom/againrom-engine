@@ -180,7 +180,7 @@ func TestSecondGameWithdrawalKeepsScanRange(t *testing.T) {
 	wide := withdrawalFighter(2, 3, 26, 20, 100)
 	wide.TokenSize = 2
 	w := engWorld(t, engRel(t, [3]uint32{2, 3, 1}), self, wide)
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	if got := w.fleeSearchRadius(0); got != 7 {
 		t.Fatalf("second-game radius = %d, want ScanRange 7", got)
 	}

@@ -165,7 +165,7 @@ func (w *World) insertProjectile(record SavedProjectile, d SavedProjectileDriver
 	}
 	// A first-game World holds the table from construction; a second-game
 	// World's first projectile creates it.
-	if w.SecondGame() && w.savedWorldEffects == nil {
+	if w.game.nativeEffectDriver && w.savedWorldEffects == nil {
 		w.savedWorldEffects = &SavedWorldEffects{}
 	}
 	drivers := w.savedWorldEffects.Projectiles

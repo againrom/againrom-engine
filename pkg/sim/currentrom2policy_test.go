@@ -98,7 +98,7 @@ func TestCurrentROM2PolicyLossAndAtomicRefusal(t *testing.T) {
 				policy.ROM2.Groups = make([]CurrentROM2GroupActivity, maxROM2Groups+1)
 			case "dialect":
 				cold.script, _ = NewScript(nil, nil, nil)
-				cold.rom2 = nil
+				cold.rom2, cold.game = nil, gameProfile{}
 				before, _ = cold.MarshalBinary()
 			}
 			if err := cold.RestoreCurrentContinuation(&policy, nil, source.Actions(), nil); err == nil {

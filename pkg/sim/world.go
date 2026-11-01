@@ -1926,6 +1926,7 @@ type World struct {
 
 	script    *Script
 	rom2      *rom2ScriptState
+	game      gameProfile
 	registers [scriptRegisters]int32
 	latches   [scriptLatches]byte
 	won       uint32

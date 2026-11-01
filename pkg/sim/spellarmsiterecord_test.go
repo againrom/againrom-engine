@@ -72,7 +72,7 @@ func siteHealWorld(t *testing.T, second bool) *World {
 		t.Fatal(err)
 	}
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	w.ImportAutoHealing(2, 0)
 	w.cmdGroupOrder(ScriptInstant{Op: ScriptInstantGroupOrder, Group: 7, HasGroup: true,

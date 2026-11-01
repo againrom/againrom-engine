@@ -35,7 +35,7 @@ func constructorFacing(r *rng, id EntityID) uint8 {
 // that constructs an actor in a first-game World calls it once, in the
 // original's order of construction; a second-game World keeps its facing.
 func (w *World) constructFacing(e *Entity) {
-	if w.SecondGame() {
+	if w.game.nativeFacing {
 		return
 	}
 	e.Facing = constructorFacing(&w.rng, e.ID)
@@ -51,7 +51,7 @@ func (w *World) constructFacing(e *Entity) {
 // withdrawnBefore lists, in record order, how many World actors precede each
 // such placement. It runs on an unadvanced World only.
 func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int) {
-	if w == nil || w.tick != 0 || w.SecondGame() || d == nil {
+	if w == nil || w.tick != 0 || w.game.nativeFacing || d == nil {
 		return
 	}
 	next := 0
@@ -188,7 +188,7 @@ func (w *World) moverFor(id EntityID) *moverRecord {
 // current state: every actor of a first-game World except one whose Mover an
 // original-SAV import holds.
 func (w *World) moverExpected(e Entity) bool {
-	return !w.SecondGame() && w.motionFor(e.ID) == nil
+	return !w.game.nativeMovers && w.motionFor(e.ID) == nil
 }
 
 // setMover installs r, replacing e's record, on a fresh slice.
@@ -215,7 +215,7 @@ func (w *World) constructMover(e Entity) {
 // the one the builder gives it from its current state. A record the World
 // holds is kept.
 func (w *World) constructMovers() {
-	if w.SecondGame() {
+	if w.game.nativeMovers {
 		return
 	}
 	for _, e := range w.entities {
@@ -230,7 +230,7 @@ func (w *World) constructMovers() {
 // them: a map actor as the spawner places it, a carried member in joined as
 // the join walk replaces its Mover (MOVE-122). It runs on an unadvanced World.
 func (w *World) ConstructMissionMovers(joined []EntityID) {
-	if w == nil || w.tick != 0 || w.SecondGame() {
+	if w == nil || w.tick != 0 || w.game.nativeMovers {
 		return
 	}
 	w.movers = nil
@@ -307,7 +307,7 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 // loaded bytes: the World then holds the Mover as the World that wrote the
 // SAV held it. Every other actor keeps or receives its built record.
 func (w *World) adoptMovers(loaded *savedActorMotionState) {
-	if w.SecondGame() || loaded == nil {
+	if w.game.nativeMovers || loaded == nil {
 		return
 	}
 	for _, m := range loaded.Motions {

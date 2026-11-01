@@ -100,7 +100,7 @@ func (w *World) turnToStep(i int, x, y int32) bool {
 // projectileAimPoint supplies the cached-centre geometry for actor targets.
 // AI-674, AI-675
 func (w *World) projectileAimPoint(e Entity) (int32, int32) {
-	if w.SecondGame() {
+	if w.game.savedProjectileAim {
 		return w.savedProjectileTargetPoint(e)
 	}
 	x, y := w.moverFinePoint(e)

@@ -82,7 +82,7 @@ func (w *World) NormalizeMissionSurvivors(owner uint32) error {
 		e.CommandGroup = 0
 		// The cull leaves the action-run end the mission set (SAV-1353). The
 		// second game clears it: no second-game claim states that rule.
-		if w.script.Dialect() == ScriptROM2 {
+		if w.game.cullClearsActionClock {
 			e.ActionClock = ActionClock{}
 		}
 		e.SpellFX, e.SpellFXSpell = 0, 0

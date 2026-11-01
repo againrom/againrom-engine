@@ -180,7 +180,7 @@ func (w *World) engagementPassObserved(obs *castObs) { w.engagementPassTraced(ob
 func (w *World) engagementPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 	w.engageDrew = w.engageDrew[:0]
 	if !w.groupDialectNative() {
-		if w.rom2 == nil {
+		if !w.game.activityMask {
 			w.refreshSavedGroupActivity()
 		} else {
 			w.refreshROM2SavedGroupActivity(w.rom2ActivityMask())
@@ -220,10 +220,10 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		}
 		return false
 	}
-	second := w.SecondGame()
+	all := w.game.bookWalkAll
 	var choices []SpellRule
 	for _, rule := range w.spells {
-		if !bookWalkTakes(rule.ID, second) {
+		if !bookWalkTakes(rule.ID, all) {
 			continue
 		}
 		var resolved bool
@@ -235,7 +235,7 @@ func (w *World) mageEngageCast(i int, victim EntityID) bool {
 		choices = append(choices, rule)
 	}
 	var id uint32
-	fallback, falls := bookWalkFallback(second)
+	fallback, falls := bookWalkFallback(all)
 	switch {
 	case len(choices) > 0:
 		id = uint32(choices[w.rng.aiRange(int32(len(choices)))].ID)

@@ -141,7 +141,7 @@ func (w *World) fleeRefusedAt(i int, tx, ty int32) bool {
 // second game keeps ScanRange, since that evidence is first-game. DIV-347.
 func (w *World) fleeSearchRadius(i int) int64 {
 	e := &w.entities[i]
-	if w.SecondGame() {
+	if w.game.nativeMovers {
 		return int64(e.ScanRange)
 	}
 	if m := w.motionFor(e.ID); m != nil {
@@ -166,7 +166,7 @@ func (w *World) fleeSearchRadius(i int) int64 {
 func (w *World) withdrawalHostiles(i int, radius int64) []int {
 	self := w.entities[i]
 	centre := cellOf(&self)
-	first := !w.SecondGame()
+	anchors := w.game.withdrawAnchorCells
 	var out []int
 	for ci := range w.entities {
 		if ci == i {
@@ -176,7 +176,7 @@ func (w *World) withdrawalHostiles(i int, radius int64) []int {
 		if candidate.OffMap || !candidate.OrdinaryTargetable() || !w.hostileTo(&self, &candidate) || w.invisibleToActor(i, ci) {
 			continue
 		}
-		if !first {
+		if anchors {
 			if centre.chebyshevTo(cellOf(&candidate)) <= radius {
 				out = append(out, ci)
 			}
@@ -239,7 +239,7 @@ func (w *World) fleeCell(i int, hostile []int) (tx, ty int32, ok bool) {
 
 	mx, my := sx/count, sy/count
 	px, py := w.moverFinePoint(w.entities[i])
-	if !w.SecondGame() {
+	if !w.game.withdrawMoverPoint {
 		rx, ry := w.savedProjectileTargetPoint(w.entities[i])
 		px, py = int64(rx), int64(ry)
 	}

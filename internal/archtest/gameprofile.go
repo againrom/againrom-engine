@@ -62,14 +62,9 @@ var ProfileAllowed = map[string]string{
 
 // ProfileDebt is the findings not yet moved, per file. A count may only
 // fall; a file whose count reaches zero leaves the map in the same commit.
-// The three SAV code sites below ask the World which game it is; every other
-// choice reads the edition's data, the game's file readers or the campaign
-// service, so any new choice fails.
-var ProfileDebt = map[string]int{
-	"pkg/game/currentdeadconstruct.go": 1,
-	"pkg/game/savactionwire.go":        1,
-	"pkg/game/savactoractions.go":      1,
-}
+// Every choice reads the edition's data, the game's file readers, the
+// campaign service or the World's game profile, so any new choice fails.
+var ProfileDebt = map[string]int{}
 
 // ProfileFinding is one site and the shape found there. Func is the
 // enclosing function declaration's name, empty at package level.

@@ -147,7 +147,7 @@ func TestSecondGameDispatchKeepsItsGuardOnlyGate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.SecondGame() || !w.groupDialectNative() {
+	if !playsSecondGame(w) || !w.groupDialectNative() {
 		t.Fatal("fixture: not a second-game World")
 	}
 	w.tick = scriptPassPhase

@@ -64,7 +64,7 @@ func (w *World) postEngage(i int, post cell) bool {
 // no survivor stands within the radius (AI-704).
 func (w *World) postCandidates(i int, post cell) []int {
 	var out []int
-	living := !w.SecondGame()
+	living := !w.game.postKeepsDying
 	for ci, candidate := range w.entities {
 		if ci == i || candidate.OffMap || !candidate.OrdinaryTargetable() || living && candidate.InLife(LifeDecaying) ||
 			!w.hostileTo(&w.entities[i], &candidate) || post.chebyshevTo(cellOf(&candidate)) > postRadius {

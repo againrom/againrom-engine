@@ -3296,6 +3296,7 @@ func (w *World) unmarshalBinary(data []byte) error {
 		equipment:         equipment,
 		purses:            purses,
 		script:            st.script,
+		game:              newGameProfile(st.script.Dialect()),
 		registers:         st.registers,
 		latches:           st.latches,
 		won:               st.won,

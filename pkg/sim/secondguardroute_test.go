@@ -29,8 +29,8 @@ func guardRouteWorld(t *testing.T, second bool, route uint8) *World {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if w.SecondGame() != second {
-		t.Fatalf("fixture: SecondGame %v, want %v", w.SecondGame(), second)
+	if playsSecondGame(w) != second {
+		t.Fatalf("fixture: second game %v, want %v", playsSecondGame(w), second)
 	}
 	guard := SavedGroup{ID: 1, Selector: 1, Owner: SavedGroupReference{Class: 1, Owner: guardRouteSlot},
 		Members: []SavedGroupMember{{Archive: 2, Entity: guardRouteFoe, Bound: true}}}

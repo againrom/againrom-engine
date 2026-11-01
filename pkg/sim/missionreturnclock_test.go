@@ -26,6 +26,7 @@ func TestSecondGameMissionReturnClearsTheActionRunEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.script = script
+	w.initializeROM2Script()
 	e := &w.entities[0]
 	e.Owner, e.TypeID = SelfSlot, HumanTypeID
 	e.ActionClock = ActionClock{Known: true, End: 577}

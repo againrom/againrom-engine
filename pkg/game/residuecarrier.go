@@ -312,7 +312,7 @@ var residueCarriers = []residueCarrier{
 			},
 		},
 		sav: residueSAVKey{keys: []string{"Fog"}, write: func(p residueProjection) error {
-			if p.w.Script().Dialect() == sim.ScriptROM2 {
+			if p.w.SavesMissionFog() {
 				p.a.Fog = captureCurrentMissionFog(p.r)
 			}
 			return nil

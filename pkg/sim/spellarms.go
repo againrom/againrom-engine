@@ -385,14 +385,15 @@ func (w *World) spellIDTakesBody(id int64) bool {
 const lastBookSpellID = 28
 
 // bookWalkTakes reports a row id a game's creature book walk takes: the
-// first game's rows 1 through 28, every row of the second game.
-func bookWalkTakes(id uint16, second bool) bool {
-	return second || id >= 1 && id <= lastBookSpellID
+// first game's rows 1 through 28, every row when the walk takes all
+// (gameProfile.bookWalkAll).
+func bookWalkTakes(id uint16, all bool) bool {
+	return all || id >= 1 && id <= lastBookSpellID
 }
 
 // bookWalkFallback is the row a first-game walk with no choice falls back
-// to; the second game has none.
-func bookWalkFallback(second bool) (uint32, bool) { return lastBookSpellID, !second }
+// to; a walk that takes all has none.
+func bookWalkFallback(all bool) (uint32, bool) { return lastBookSpellID, !all }
 
 // secondSpellArms maps a second-game spell id to the first-game arm of the
 // same spell (R2-ENGINE-019 names the rows, R2-ENGINE-024 groups them by

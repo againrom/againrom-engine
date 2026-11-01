@@ -42,7 +42,7 @@ func staffRun(t *testing.T, rule SpellRule, reach uint8, ordered, second bool, e
 	rel := engRel(t, [3]uint32{caster.Owner, victim.Owner, relationHostile})
 	w := hlWorld(t, 5, rel, []SpellRule{rule}, caster, victim)
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	var cmds []Command
 	if ordered {

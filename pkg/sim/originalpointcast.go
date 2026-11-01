@@ -21,7 +21,7 @@ type OriginalPointCast struct {
 // a cell off the map, or a caster already holding a book cast (DIV-3328). It
 // answers how many it admitted.
 func (w *World) ImportOriginalPointCasts(casts []OriginalPointCast) int {
-	if w.SecondGame() {
+	if w.game.nativePointCasts {
 		return 0
 	}
 	staged := slices.Clone(w.bookCasts)

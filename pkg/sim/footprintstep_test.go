@@ -40,7 +40,7 @@ func TestFleeCellReadsTheActorAtItsRawPositionRecord(t *testing.T) {
 			t.Errorf("%s: flees to the cell the footprint centre gives", tc.name)
 		}
 		// The second game keeps the footprint centre.
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		if x, y, ok := w.fleeCell(0, []int{1}); !ok || x != tc.centreX || y != tc.centreY {
 			t.Errorf("%s second game: flees to (%d,%d,%t), want the centre's (%d,%d,true)", tc.name, x, y, ok, tc.centreX, tc.centreY)
 		}

@@ -848,7 +848,7 @@ func (w *World) scriptPassObserved(tr *ScriptTrace, obs *castObs) {
 	// The session clock runs this slot even when no checks are compiled; a
 	// second-game World without a program keeps its inert register bank.
 	hasProgram := s != nil && (len(s.checks) != 0 || len(s.instants) != 0 || len(s.triggers) != 0)
-	if w.SecondGame() && !hasProgram {
+	if w.game.bankedScript && !hasProgram {
 		return
 	}
 	// SAV-650: slot93 increments before both evaluators. Authored time
@@ -989,7 +989,7 @@ func (w *World) runCheck(c ScriptCheck, i int32, tr *ScriptTrace) {
 	defer func() {
 		tr.check(i, c, before, lostBefore, dispatched, wrote, silence, w)
 	}()
-	if w.rom2 != nil && rom2CheckSupported(c.Op) {
+	if w.game.bankedScript && rom2CheckSupported(c.Op) {
 		v, ok := w.rom2Check(c)
 		if ok {
 			write(v)
@@ -1510,7 +1510,7 @@ func (w *World) runInstant(in ScriptInstant) {
 }
 
 func (w *World) runInstantObserved(in ScriptInstant, obs *castObs) {
-	if w.rom2 != nil {
+	if w.game.bankedScript {
 		if in.Op == ScriptInstantMessage {
 			obs.recordScriptMessage(in.Args[0])
 			return
@@ -2321,7 +2321,7 @@ func (w *World) scriptReport() {
 	if w.outcome == OutcomeLost {
 		return
 	}
-	if w.rom2 != nil {
+	if w.game.bankedScript {
 		if int32(w.lost) > 0 {
 			w.outcome = OutcomeLost
 		} else if w.won != 0 {
@@ -2544,7 +2544,7 @@ func (w *World) SetRawSessionMid(v [sessionRawMidLen]byte)   { w.rawSessionMid =
 
 // ScriptPassJustRan reports whether the step just completed ran the script pass.
 func (w *World) ScriptPassJustRan() bool {
-	if !w.SecondGame() {
+	if !w.game.nativeTick {
 		return int32(uint32(w.tick)-1)%scriptCycle == scriptPassPhase
 	}
 	return w.tick > 0 && (w.tick-1)%scriptCycle == scriptPassPhase

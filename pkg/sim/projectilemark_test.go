@@ -48,7 +48,7 @@ func TestProjectileMarksExcludeCallsWithoutActorCallback(t *testing.T) {
 			case "other picture":
 				p.Picture = 18
 			case "second game":
-				w.rom2 = &rom2ScriptState{}
+				w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 			case "no target":
 				d.HasTarget, d.Target, p.ActionTarget = false, 0, 0
 			case "unresolved":

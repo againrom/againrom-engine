@@ -15,13 +15,13 @@ const (
 )
 
 // creatureAimProfile is a game's creature slot-cast aim: the aim of each key,
-// what the key is, and the planner's gates around the aim.
+// what the key is, and the planner's gates around the aim. The zero value is
+// the first game's.
 type creatureAimProfile struct {
+	// aims: the aim of each drawn id, the key itself, with no Spells column
+	// read (R2-ENGINE-653). Without it the key is the drawn row's first-game
+	// arm, whose aim is its spell-arm row's.
 	aims []creatureAim
-	// byArm: the key is the drawn row's first-game arm, whose aim is its
-	// spell-arm row's; else the drawn id itself, the index into aims, with
-	// no Spells column read (R2-ENGINE-653).
-	byArm bool
 	// scanBeyond: a scan aim casts only when caster and victim stand more
 	// than this many cells apart (R2-ENGINE-651, R2-ENGINE-654).
 	scanBeyond int64
@@ -30,22 +30,17 @@ type creatureAimProfile struct {
 	offMapVictimStops bool
 }
 
-var firstGameCreatureAim = creatureAimProfile{byArm: true}
+var firstGameCreatureAim = creatureAimProfile{}
 
 var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2, offMapVictimStops: true}
 
-func (w *World) creatureAimProfile() *creatureAimProfile {
-	if w.SecondGame() {
-		return &secondGameCreatureAim
-	}
-	return &firstGameCreatureAim
-}
+func (p *creatureAimProfile) byArm() bool { return p.aims == nil }
 
 func (p *creatureAimProfile) aimOf(key uint32) creatureAim {
 	switch {
-	case p.byArm && key <= 0xffff:
+	case p.byArm() && key <= 0xffff:
 		return spellArmOf(uint16(key)).creatureAim
-	case !p.byArm && key < uint32(len(p.aims)):
+	case !p.byArm() && key < uint32(len(p.aims)):
 		return p.aims[key]
 	}
 	return creatureAimNone
@@ -72,8 +67,8 @@ var secondCreatureAims = [...]creatureAim{
 // creatureAim is the aim of a drawn id in the world's game. By arm, a row
 // takes its arm's aim and an id with no row its own.
 func (w *World) creatureAim(id uint32) creatureAim {
-	p := w.creatureAimProfile()
-	if !p.byArm {
+	p := &w.game.creatureAim
+	if !p.byArm() {
 		return p.aimOf(id)
 	}
 	if rule, ok := w.findSpell(id); ok {
@@ -87,7 +82,7 @@ func (w *World) creatureAim(id uint32) creatureAim {
 // and whether the scan found one. The packed cell 0 is no cell
 // (R2-ENGINE-654, DIV-4386).
 func (w *World) creatureScanCell(caster, victim Entity) (int32, int32, bool) {
-	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: victim.X, y: victim.Y}) <= w.creatureAimProfile().scanBeyond {
+	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: victim.X, y: victim.Y}) <= w.game.creatureAim.scanBeyond {
 		return 0, 0, false
 	}
 	for y := victim.Y - 1; y <= victim.Y+1; y++ {
@@ -108,7 +103,7 @@ func (w *World) creatureKeepsPick(i int, victim EntityID, id uint32) bool {
 		return id != 0
 	}
 	c, v := w.entities[i], w.entities[vi]
-	return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.creatureAimProfile().scanBeyond
+	return (cell{x: c.X, y: c.Y}).chebyshevTo(cell{x: v.X, y: v.Y}) > w.game.creatureAim.scanBeyond
 }
 
 // creatureStepCell is the cell one step from the caster toward the victim,
@@ -172,7 +167,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !e.hasCreatureSpells() {
 		return w.mageEngageCast(i, victim)
 	}
-	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.creatureAimProfile().offMapVictimStops {
+	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.game.creatureAim.offMapVictimStops {
 		return true
 	}
 	w.engageDrew = append(w.engageDrew, e.ID)

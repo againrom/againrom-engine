@@ -35,7 +35,7 @@ func secondWorld(t *testing.T, seed uint64, b Bounds, spells []SpellRule, ents .
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.SecondGame() {
+	if !playsSecondGame(w) {
 		t.Fatal("not a second-game World")
 	}
 	return w

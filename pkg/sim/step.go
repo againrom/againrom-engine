@@ -471,7 +471,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			standing[w.entities[i].ID] = true
 		}
 	}
-	if !w.SecondGame() {
+	if !w.game.nativeTick {
 		w.beginSessionTick(tr, obs, withdrawals)
 	}
 	// A world with no layer at the start of a tick has nothing to recompute for
@@ -835,10 +835,10 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// arithmetic above is done on — the pre-increment tick — and the three
 	// script values are read after the phase because that is where they mean
 	// "what the script just did"; nothing later in a step moves any of them.
-	if tr != nil && w.SecondGame() {
+	if tr != nil && w.game.nativeTick {
 		tr.Tick = w.tick
 	}
-	if w.SecondGame() {
+	if w.game.nativeTick {
 		switch w.tick % scriptCycle {
 		case scriptPassPhase:
 			if tr != nil {
@@ -976,7 +976,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 		// AI-364). The owner-zero and participant populations keep their own
 		// behaviour (DIV-351); the second game's actors take its activity
 		// mask above.
-		if !w.SecondGame() && e.Owner != 0 && !w.humanParticipantUnit(*e) && w.executorProgress(i) == 0 && !w.executorActive(i, true) {
+		if !w.game.activityMask && e.Owner != 0 && !w.humanParticipantUnit(*e) && w.executorProgress(i) == 0 && !w.executorActive(i, true) {
 			continue
 		}
 		// AN ATTACKER IS AIMED BEFORE IT IS ADVANCED. An attack order carries a
@@ -1165,7 +1165,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 			// sixteenth stalled pass (answerRefusedWalk).
 			e.Stall++
 			if e.Stall >= stallLimit {
-				walk := !e.HasAttackTarget && !w.SecondGame()
+				walk := !e.HasAttackTarget && !w.game.nativeWalkRefusal
 				refused := w.pursuitRefused(scratch, i)
 				if w.restAt(scratch, i) && (refused || walk) {
 					w.answerRefusedPursuit(i, searchNear)
@@ -1260,7 +1260,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 	// this one — runs first. It is called every sub-tick, exactly as
 	// decayPass is below, and phase-gates only itself: there is no dispatch
 	// here for it to join.
-	if w.SecondGame() {
+	if w.game.nativeRegen {
 		w.regenPass()
 	}
 
@@ -1289,7 +1289,7 @@ func stepWorld(w *World, cmds []Command, tr *ScriptTrace, obs *castObs, withdraw
 
 	w.releaseHeldOrders()
 	w.releaseBodyReferences()
-	if !w.SecondGame() {
+	if !w.game.nativeTick {
 		w.endSessionTick(tr)
 	} else {
 		w.tick++
@@ -1950,7 +1950,7 @@ const (
 // kept anyway so that the one walk order in this file is the walk order in every
 // other.
 func (w *World) decayPass() {
-	if w.SecondGame() {
+	if w.game.nativeDecay {
 		w.decayHeldDead(w.tick%decayCycle == decayPhase)
 	}
 	var gone []EntityID
@@ -1962,7 +1962,7 @@ func (w *World) decayPass() {
 		}
 		// Already torn-down bodies belong to the pre-body phase-12 loop in
 		// source-clock sessions; their ladder is not an actor-body action.
-		if !w.SecondGame() && e.Decay >= DecayBones {
+		if !w.game.nativeDecay && e.Decay >= DecayBones {
 			continue
 		}
 		wasTargetable := e.OrdinaryTargetable()
@@ -1984,7 +1984,7 @@ func (w *World) decayPass() {
 		// representation's and not the ladder's, so a health already at it is a
 		// state this leaves alone rather than one it turns back into a living
 		// unit.
-		if w.SecondGame() && w.tick%decayCycle == decayPhase && e.InLife(LifeDecayWalk) {
+		if w.game.nativeDecay && w.tick%decayCycle == decayPhase && e.InLife(LifeDecayWalk) {
 			e.setCurrentHealth(e.HP - 1)
 		}
 		if e.Decay == DecayFallen && e.Dwell == 0 && !e.OrdinaryTargetable() {
@@ -1994,7 +1994,7 @@ func (w *World) decayPass() {
 			e = &w.entities[i]
 			// HERO-DEATH-026: teardown itself calls the dead ladder once,
 			// independently of the ordinary phase-12 dead-list walk.
-			if !w.SecondGame() && w.fullTick&1 == 0 {
+			if !w.game.nativeDecay && w.fullTick&1 == 0 {
 				decaySessionHealth(e)
 			}
 		}

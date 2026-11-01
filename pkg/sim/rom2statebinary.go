@@ -106,7 +106,7 @@ func (w *World) unmarshalROM2ScriptState(data []byte, proof formProof) error {
 	if err != nil {
 		return err
 	}
-	next.script, next.rom2 = script, state
+	next.script, next.rom2, next.game = script, state, newGameProfile(script.Dialect())
 	next.spells = append([]SpellRule(nil), next.spells...)
 	AssignSecondGameArms(next.spells)
 	if !next.marshalsTo(data, proof) {

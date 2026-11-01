@@ -8,11 +8,11 @@ func TestGroupRouteProfilePerGame(t *testing.T) {
 		second bool
 		rules  groupRouteProfile
 	}{
-		{"first", false, groupRouteProfile{guardOverMembers: true, humanHealArm: true, engagedFoesClipped: true}},
-		{"second", true, groupRouteProfile{constructsForOlderRegistry: true, heldCircle: true}},
+		{"first", false, groupRouteProfile{}},
+		{"second", true, groupRouteProfile{guardAt18: true, guardNeedsMembers: true, constructsForOlderRegistry: true,
+			noHumanHealArm: true, engagedFoesUnclipped: true, heldCircle: true}},
 	} {
 		w := guardRouteWorld(t, tc.second, 0)
-		p := w.groupRoute()
 		for b := 0; b < 256; b++ {
 			want := uint8(b)
 			if tc.second && b == 18 {
@@ -24,9 +24,7 @@ func TestGroupRouteProfilePerGame(t *testing.T) {
 				t.Errorf("%s game: byte %d routes to %d, want %d", tc.name, b, got, want)
 			}
 		}
-		rules := *p
-		rules.routes = [256]uint8{}
-		if rules != tc.rules {
+		if rules := w.game.groupRoute; rules != tc.rules {
 			t.Errorf("%s game rules = %+v, want %+v", tc.name, rules, tc.rules)
 		}
 	}

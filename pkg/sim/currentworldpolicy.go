@@ -148,7 +148,7 @@ func (w *World) RestoreCurrentClock(high uint32, known bool) error {
 	if known && high != 0 {
 		return fmt.Errorf("sim: invalid current clock")
 	}
-	if !w.SecondGame() {
+	if !w.game.nativeTick {
 		w.constructSessionClock()
 		return nil
 	}
@@ -243,7 +243,7 @@ func (w *World) restoreCurrentPolicy(p CurrentWorldPolicy) error {
 	}
 	// A first-game World keeps the cell planes its LOAD import built even when
 	// an older engine SAV did not mark them: every first-game World holds them.
-	dropPlanes := !p.PlaneCarrier && (w.SecondGame() || w.savedCellPlanes == nil)
+	dropPlanes := !p.PlaneCarrier && (w.game.nativeCellPlanes || w.savedCellPlanes == nil)
 	if !p.MotionCarrier && dropPlanes {
 		w.cellRecords = nil
 	}

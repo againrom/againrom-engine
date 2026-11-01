@@ -69,7 +69,7 @@ func (w *World) unmarshalMovers(data []byte, proof formProof) error {
 	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
-	if count > uint64(len(next.entities)) || next.SecondGame() {
+	if count > uint64(len(next.entities)) || next.game.nativeMovers {
 		return fail()
 	}
 	next.constructMovers()

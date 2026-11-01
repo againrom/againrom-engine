@@ -125,7 +125,7 @@ func TestROM2FormWrapsNativeTraining(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A second-game World builds no first-game Group registry.
-	w.script, w.rom2, w.savedGroups = s, &rom2ScriptState{}, nil
+	w.script, w.rom2, w.game, w.savedGroups = s, &rom2ScriptState{}, newGameProfile(ScriptROM2), nil
 	w.constructSessionClock()
 	raw, err := w.MarshalBinary()
 	if err != nil || raw[0] != 106 || raw[len(raw)-5] != 105 {

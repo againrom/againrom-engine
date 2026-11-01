@@ -22,7 +22,6 @@ func NewControlledScriptWorld(base *World, script *Script) (*World, error) {
 		return nil, fmt.Errorf("sim: restore controlled script world: %w", err)
 	}
 	out.script = script
-	out.rom2 = nil
 	out.initializeROM2Script()
 	native := false
 	if !out.groupDialectNative() && out.savedGroups.fresh && (out.savedGroups.native || out.groupsAsConstructed()) {

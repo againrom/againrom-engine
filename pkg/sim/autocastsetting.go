@@ -76,7 +76,7 @@ func (w *World) AutoCast(player uint32) AutoCastSetting {
 			return s
 		}
 	}
-	if w.SecondGame() {
+	if w.game.autoCastFullDefault {
 		return DefaultAutoCast
 	}
 	return DefaultAutoCast.Targets()

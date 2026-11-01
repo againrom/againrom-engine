@@ -119,7 +119,7 @@ func TestTheDriverTakesTheArmOfTheWorldsGame(t *testing.T) {
 	run := func(second bool, picture int32) []at {
 		w := shotWorld(t)
 		if second {
-			w.rom2 = &rom2ScriptState{}
+			w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		}
 		w.ReleaseCast(CastRecord{Picture: picture, Phases: 21, X: 300, Y: 400, AimX: 3000, AimY: 400, Segments: 13})
 		var out []at

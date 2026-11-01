@@ -42,7 +42,7 @@ func groupRouteIdentityCalls(t *testing.T, files map[string]string, names []stri
 func TestGroupRouteIdentityCallsNameAPlantedCall(t *testing.T) {
 	got := groupRouteIdentityCalls(t, map[string]string{
 		"pkg/sim/savedgroups.go":  "package sim\nfunc f(w *World) bool { return w.SecondGame() }\n",
-		"pkg/sim/groupengaged.go": "package sim\n// SecondGame in a comment\nfunc g(w *World) bool { return w.groupRoute().heldCircle }\n",
+		"pkg/sim/groupengaged.go": "package sim\n// SecondGame in a comment\nfunc g(w *World) bool { return w.game.groupRoute.heldCircle }\n",
 		"pkg/sim/other.go":        "package sim\nfunc h(w *World) bool { return w.SecondGame() }\n",
 	}, groupRouteFiles)
 	if len(got) != 1 || got[0] != "pkg/sim/savedgroups.go:2:32" {

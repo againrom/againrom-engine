@@ -226,7 +226,7 @@ func TestSecondKeyedDeathStoresTheSummonedHealthAndTheBodyLeavesAfterItsDwell(t 
 // ticks, exactly as the same World without keys.
 func TestFirstGameKeyedActorsMeetNoWorldPass(t *testing.T) {
 	keyed, plain := keyedWorld(t, 9, false, true, 101), keyedWorld(t, 9, false, false, 101)
-	if keyed.SecondGame() {
+	if playsSecondGame(keyed) {
 		t.Fatal("a second-game World")
 	}
 	for step := 0; step < 96; step++ {

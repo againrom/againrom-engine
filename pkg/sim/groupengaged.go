@@ -72,7 +72,7 @@ func (w *World) withEngagedFoes(owner uint32, members []int, order uint8, cands 
 		return cands
 	}
 	foes := w.engagedFoes(owner, members)
-	if w.groupRoute().engagedFoesClipped {
+	if !w.game.groupRoute.engagedFoesUnclipped {
 		foes = inCircle(foes, cands)
 	}
 	if len(foes) == 0 {
@@ -157,7 +157,7 @@ func (w *World) heldCircle(base uint8, members []int) noticeCircle {
 // storedCircle is a registry Group's circle as live Guard clips it: the
 // centre cell +0x28 its geometry refresh stored and the working radius +0x2d.
 func (w *World) storedCircle(g *SavedGroup, members []int) noticeCircle {
-	if w.groupRoute().heldCircle {
+	if w.game.groupRoute.heldCircle {
 		return w.heldCircle(g.AI[0x38], members)
 	}
 	return noticeCircle{x: int32(g.AI[0x28]), y: int32(g.AI[0x29]), r: int64(g.AI[0x2d])}
@@ -215,7 +215,7 @@ func (w *World) joinEngagedGroup(owner uint32, order uint8, circle noticeCircle,
 		return
 	}
 	foes := w.engagedFoes(owner, members)
-	if len(foes) != 0 && w.groupRoute().engagedFoesClipped {
+	if len(foes) != 0 && !w.game.groupRoute.engagedFoesUnclipped {
 		foes = inCircle(foes, w.engagedCircle(owner, order, circle, members))
 	}
 	if len(foes) == 0 {

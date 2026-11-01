@@ -18,8 +18,9 @@ const (
 	fogWalkReader = "fogSight"
 )
 
-// fogWalkIdentity is what a branch on the running game reads in pkg/sim.
-var fogWalkIdentity = map[string]bool{"SecondGame": true, "rom2": true}
+// fogWalkIdentity is what a branch on the running game reads in pkg/sim,
+// the World's game profile included.
+var fogWalkIdentity = map[string]bool{"SecondGame": true, "rom2": true, "game": true}
 
 // CheckFogWalk reports every production use of fogSight outside fogStamp,
 // a fogStamp that marches other than once, and a fogStamp that reads the

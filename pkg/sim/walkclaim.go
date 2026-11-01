@@ -67,7 +67,7 @@ func packedCell(x, y int32) uint16 { return uint16(x) | uint16(y)<<8 }
 // inside the Group the original leaves (DIV-1520).
 func (w *World) claimsWalk(i int) bool {
 	e := w.entities[i]
-	if w.SecondGame() || w.groupDialectNative() || e.ActorState == actorStateRetreat || e.PendingOrder.Kind != PendingNone || w.savedOrder(e.ID) == nil {
+	if w.game.nativeWalkRefusal || w.groupDialectNative() || e.ActorState == actorStateRetreat || e.PendingOrder.Kind != PendingNone || w.savedOrder(e.ID) == nil {
 		return false
 	}
 	g := w.savedGroupFor(e.ID)

@@ -44,7 +44,7 @@ func todayGroupDetectsInvisible(w *World, members []int, candidate cell) bool {
 
 func todayComputerMageGroupSees(w *World, ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if w.SecondGame() || w.humanParticipantUnit(caster) || !isMage(caster) {
+	if playsSecondGame(w) || w.humanParticipantUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
@@ -94,7 +94,7 @@ func perceptionWorld(t *testing.T, second, hidden bool, see uint8, x int32, owne
 	}
 	w := hlWorld(t, 101, castSightRelation(t, rel), spells, observer, target, member, mage)
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	if hidden && !w.attachEffect(2, 2, invisibility, EffectInvisible, 1, 30, EffectDuration) {
 		t.Fatal("invisibility did not attach")

@@ -7,11 +7,11 @@ import "testing"
 func TestAFirstGameWorldIsConstructedWithTheSessionClock(t *testing.T) {
 	b, ents := sample()
 	w := mustWorld(t, 1, b, ents)
-	if c, ok := w.SessionClock(); !ok || c != (SessionClock{}) || w.SecondGame() {
+	if c, ok := w.SessionClock(); !ok || c != (SessionClock{}) || playsSecondGame(w) {
 		t.Fatalf("constructed clock %+v present %v", c, ok)
 	}
 	asSecondGame(t, w)
-	if _, ok := w.SessionClock(); ok || !w.SecondGame() {
+	if _, ok := w.SessionClock(); ok || !playsSecondGame(w) {
 		t.Fatal("a second-game World holds a session clock")
 	}
 }

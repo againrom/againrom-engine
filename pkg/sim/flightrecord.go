@@ -1,15 +1,5 @@
 package sim
 
-import "againrom/pkg/rules"
-
-// SpellGame is the game whose spell effect rules this World's driver takes.
-func (w *World) SpellGame() rules.SpellGame {
-	if w.SecondGame() {
-		return rules.SpellGameSecond
-	}
-	return rules.SpellGameFirst
-}
-
 // CastRecord names one record a cast leaves as. The producer supplies installed
 // inputs; World owns identity, leaves, driver and flight. Damage stays with the
 // cast's own delivery.

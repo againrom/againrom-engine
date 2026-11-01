@@ -114,7 +114,7 @@ func TestSecondGameActivityClearSurvivesColdWorldAndReportParity(t *testing.T) {
 func TestSecondGameActivityDoesNotChangeFirstGameGroups(t *testing.T) {
 	w := secondGameActivityWorld(t, 1, 1)
 	w.script = nil
-	w.rom2 = nil
+	w.rom2, w.game = nil, gameProfile{}
 	w.constructSessionClock()
 	scriptTicks(w, 40, nil)
 	victim, _ := w.Entity(3)

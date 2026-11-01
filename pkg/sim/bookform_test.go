@@ -8,7 +8,7 @@ import (
 // library.
 var (
 	bookFirstGame  = (&World{}).SpellGame()
-	bookSecondGame = (&World{rom2: &rom2ScriptState{}}).SpellGame()
+	bookSecondGame = (&World{rom2: &rom2ScriptState{}, game: newGameProfile(ScriptROM2)}).SpellGame()
 )
 
 // Each game's book form reads its own items: the first game's a kind-5 item
@@ -100,7 +100,7 @@ func TestSecondGameWorldReadsABookIntoItsSlot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.SecondGame() {
+	if !playsSecondGame(w) {
 		t.Fatal("not a second-game World")
 	}
 	Step(w, []Command{ReadBook(7, ItemSlot(0))})

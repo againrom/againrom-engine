@@ -47,7 +47,7 @@ func TestComputerMageCastsWithGroupSightOnlyInsideSpellRange(t *testing.T) {
 			scout.OffMap = tc.offMapScout
 			w := hlWorld(t, 7, acEnemies(t), []SpellRule{hlArrow()}, mage, target, scout)
 			if tc.second {
-				w.rom2 = &rom2ScriptState{}
+				w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 			}
 			if w.actorSeesEntity(0, 1) {
 				t.Fatal("fixture target is personally visible")

@@ -657,7 +657,7 @@ func (w *World) weaponSpell(e Entity) (SpellRule, bool) {
 // rides the strike (MAGIC-379, MAGIC-AUTOCAST-020) until an equip builds it;
 // an innate spell has no Weapon to hold one.
 func (w *World) wornWeaponHoldsSpell(e Entity) bool {
-	if w.SecondGame() || e.WeaponSpellSource != WeaponSpellItem {
+	if w.game.keepsWeaponSpell || e.WeaponSpellSource != WeaponSpellItem {
 		return true
 	}
 	i := indexOfEntity(w.entities, e.ID)
@@ -946,7 +946,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	healthBefore := target.HP
 	// The second game revalidates perception at release; the first game's
 	// release has no sight gate (MAGIC-403).
-	if w.SecondGame() && !w.castSeesEntity(ci, vi) {
+	if w.game.releaseRevalidates && !w.castSeesEntity(ci, vi) {
 		return false
 	}
 	// A target without a health system spends nothing. A commanded heal on a
@@ -963,7 +963,7 @@ func (w *World) castSpell(ci int, victim EntityID, spellID uint32, aimX, aimY in
 	// 6. within the decoded power-scaled range, in whole cells, by the same Chebyshev
 	// distance the rest of this package measures a separation with —
 	// cell.chebyshevTo (route.go), reused rather than restated.
-	if w.SecondGame() && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
+	if w.game.releaseRevalidates && !w.withinCastReach(caster, target, spellRangeOf(w.rules, rule, power, rangeCast)) {
 		return false
 	}
 	// 6b. THE ROW'S OWN TARGET CONDITION, asked BEFORE the cost so that a
@@ -1089,7 +1089,7 @@ func (w *World) castBookAt(ci int, x, y int32, spellID uint32, obs *castObs) boo
 	power := spellPowerUnder(w.rules, rule, level, caster.Mind)
 	// Point orders use the book's range, not the caster's personal sight. The
 	// first game's release asks no range again (MAGIC-403).
-	if _, inside := cellIndexIn(w.bounds, x, y); !inside || w.SecondGame() &&
+	if _, inside := cellIndexIn(w.bounds, x, y); !inside || w.game.releaseRevalidates &&
 		(cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: x, y: y}) > spellRangeOf(w.rules, rule, power, rangeCast) ||
 		w.orderState(caster).recoveryWaiting() || !w.bookAlreadyPaid(caster.ID, spellID) && !bookAffords(*caster, rule) {
 		return false
@@ -1517,7 +1517,7 @@ func (w *World) strikeHoldsCast(i int, refusal string) bool {
 // cast at a cell measures the whole-cell maximum axis in both games
 // (MAGIC-REACH-180).
 func (w *World) withinCastReach(caster, target *Entity, reach int64) bool {
-	if w.SecondGame() {
+	if w.game.cellCastReach {
 		return (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: target.X, y: target.Y}) <= reach
 	}
 	return caster.ID == target.ID || int64(edgeDistance(caster, target)) <= reach
@@ -1860,7 +1860,7 @@ func (w *World) bookSpellAdmissionRange(ci int, victim EntityID, spellID uint32,
 
 func (w *World) computerMageGroupSees(ci, vi int) bool {
 	caster, target := w.entities[ci], w.entities[vi]
-	if w.SecondGame() || w.humanParticipantUnit(caster) || !isMage(caster) {
+	if w.game.noMageGroupSight || w.humanParticipantUnit(caster) || !isMage(caster) {
 		return false
 	}
 	members := w.groupLivingMembers(caster.Owner, effectiveGroup(&caster))
@@ -2101,7 +2101,7 @@ func (w *World) stepBookCasts(obs *castObs, interrupted map[EntityID]bool) map[E
 // application's own checks (MAGIC-404); a creature therefore arms no
 // approach there. The second game asks the whole admission again.
 func (w *World) releaseBookRefusal(ci int, c bookCast) string {
-	if w.SecondGame() {
+	if w.game.releaseRevalidates {
 		return w.retainedBookRefusal(ci, c)
 	}
 	if c.AtCell {
@@ -2272,7 +2272,7 @@ func (w *World) engaged(ci int) bool {
 // healArmRules reports whether e takes the heal arm's reach condition: a
 // first-game unit of a human participant (MAGIC-320, MAGIC-322).
 func (w *World) healArmRules(e Entity) bool {
-	return !w.SecondGame() && e.Owner != 0 && w.humanParticipantUnit(e)
+	return !w.game.noHealArmReach && e.Owner != 0 && w.humanParticipantUnit(e)
 }
 
 // victimInReach reports whether e holds a unit victim it can strike from

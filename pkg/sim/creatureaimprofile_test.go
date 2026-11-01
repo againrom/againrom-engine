@@ -23,7 +23,7 @@ func secondCreatureWorld(t *testing.T, spells []SpellRule, slots [CreatureSpellS
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.SecondGame() {
+	if !playsSecondGame(w) {
 		t.Fatal("not a second-game World")
 	}
 	wakeGroups(w)
@@ -280,7 +280,7 @@ func TestTheFirstGameCreatureAimIsTheArmTableForEveryID(t *testing.T) {
 		rows = append(rows, SpellRule{ID: id, ManaCost: 3, School: 1, MaxRange: 7})
 	}
 	w := creatureWorld(t, rows, [CreatureSpellSlots]CreatureSpell{}, 0, Spellbook{State: BookPresent})
-	if w.SecondGame() {
+	if playsSecondGame(w) {
 		t.Fatal("a first-game World reads as the second game")
 	}
 	want := map[uint32]aimOperands{}

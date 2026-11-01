@@ -38,7 +38,7 @@ func (w *World) unmarshalMoverRadii(data []byte, proof formProof) error {
 	if err := next.unmarshalForm(env.base(), proof); err != nil {
 		return err
 	}
-	if next.SecondGame() {
+	if next.game.nativeMovers {
 		return fail()
 	}
 	next.constructMovers()

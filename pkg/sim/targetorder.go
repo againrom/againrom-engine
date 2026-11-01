@@ -82,7 +82,7 @@ func (w *World) orderTargetPresent(e *Entity, o *SavedActorOrder, cast bool) boo
 
 // DIV-3310. Unresolved target rows become the established stand state on LOAD.
 func (w *World) normaliseSavedTargetOrders() {
-	if w.SecondGame() {
+	if w.game.nativeTargetOrders {
 		return
 	}
 	for i := range w.entities {
@@ -131,7 +131,7 @@ func (w *World) normaliseSavedTargetOrders() {
 }
 
 func (w *World) hasMissingTargetCast(e *Entity) bool {
-	if w.SecondGame() {
+	if w.game.nativeTargetOrders {
 		return false
 	}
 	if p := e.PendingOrder; p.Kind == PendingActorCast && indexOfEntity(w.entities, p.Target) < 0 {

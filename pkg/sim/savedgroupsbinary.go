@@ -61,7 +61,7 @@ func (w *World) appendSavedGroups(b []byte) []byte {
 		// constructed one keeps that mark, so the decoded World omits it
 		// again exactly when the live one does. A form without the byte
 		// holds an imported registry.
-		if s.fresh && !w.SecondGame() {
+		if s.fresh && !w.game.nativeGroups {
 			b = append(b, 1+layoutBool(s.native))
 		}
 	}

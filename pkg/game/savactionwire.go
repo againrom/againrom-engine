@@ -227,7 +227,7 @@ func projectCurrentCastWire(state *SnapshotSAVDocument, w *sim.World) error {
 			// MAGIC-253: manual walks clear the flag; selectors keep 1.
 			e, _ := w.Entity(caster)
 			raw[0x60] = 1
-			if !w.SecondGame() && armed && !e.HasAttackTarget {
+			if !w.KeepsCastRetain() && armed && !e.HasAttackTarget {
 				raw[0x60] = 0
 			}
 		}

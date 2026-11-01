@@ -115,7 +115,7 @@ func expectLoadedFog(t *testing.T, s *Snapshot) {
 	if err := world.UnmarshalBinary(s.World); err != nil {
 		t.Fatal(err)
 	}
-	if world.SecondGame() {
+	if playsSecondGame(&world) {
 		return
 	}
 	stamp := world.Sight(sim.SelfSlot)

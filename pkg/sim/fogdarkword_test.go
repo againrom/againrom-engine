@@ -11,7 +11,7 @@ func darkWorldSight(t *testing.T, second bool, owner uint32, es ...Entity) []byt
 		t.Fatal(err)
 	}
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	return w.Sight(owner)
 }

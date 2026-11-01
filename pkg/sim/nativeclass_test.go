@@ -97,7 +97,7 @@ func TestNativeClassLegacyDefaultAndOptionalCombinedWire(t *testing.T) {
 		next := *w
 		if rom2 {
 			next.script, _ = NewROM2Script(nil, nil, nil)
-			next.rom2 = &rom2ScriptState{}
+			next.rom2, next.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 			next.constructSessionClock()
 		}
 		base, _ := next.MarshalBinary()

@@ -100,7 +100,7 @@ func TestANativeHandOverStandsAtTheOwnCellAndKeepsTheLoadedStrike(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.SecondGame() || !w.groupDialectNative() {
+	if !playsSecondGame(w) || !w.groupDialectNative() {
 		t.Fatal("fixture: not a native-dialect World")
 	}
 	e := &w.entities[0]

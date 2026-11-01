@@ -135,7 +135,7 @@ func TestTheFogStampLeavesTheAIReaderAndServesTheSecondGame(t *testing.T) {
 	if n := litCount(first); n != 88 {
 		t.Fatalf("the first game's fog lights %d cells, want the range-4 block's 88", n)
 	}
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	stampDiff(t, "second game", w.Sight(1), first)
 	stampDiff(t, "second game moved body", w.SightOf(1, []EntityID{1}), first)
 	if n := litCount(w.actorSight(0)); n != 69 {
@@ -160,7 +160,7 @@ func TestTheSecondGameHeroStampsHisSightWordBlock(t *testing.T) {
 			t.Fatal(err)
 		}
 		if second {
-			w.rom2 = &rom2ScriptState{}
+			w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		}
 		stamps[i] = w.Sight(1)
 		for _, d := range []struct {

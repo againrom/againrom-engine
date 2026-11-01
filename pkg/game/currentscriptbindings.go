@@ -78,7 +78,7 @@ func currentScriptRolesProgram(w *sim.World, m *alm.Map, refs mapload.ScriptRefs
 }
 
 func restoreMission40CompanionObjective(ms *Mission) error {
-	if ms == nil || ms.Number != 40 || ms.World == nil || ms.World.Script() == nil || ms.World.Script().Dialect() == sim.ScriptROM2 {
+	if ms == nil || ms.Number != 40 || ms.World == nil || ms.World.Script() == nil || !ms.World.RestoresCompanionObjective() {
 		return nil
 	}
 	for i, member := range ms.Party {

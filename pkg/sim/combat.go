@@ -421,7 +421,7 @@ func (w *World) aimsAtDestination(i int, sub cell) bool {
 // participant's walk and a search aimed at a waypoint keep the stall count.
 func (w *World) refusesWalkAtOnce(i int, sub cell) bool {
 	e := w.entities[i]
-	return !w.SecondGame() && !e.HasAttackTarget && !w.humanParticipantUnit(e) && w.aimsAtDestination(i, sub)
+	return !w.game.nativeWalkRefusal && !e.HasAttackTarget && !w.humanParticipantUnit(e) && w.aimsAtDestination(i, sub)
 }
 
 // answerRefusedPursuit is the order machine's answer to a refused route for a
@@ -504,7 +504,7 @@ const (
 // another pending order keep their own answers.
 func (w *World) refusedWalkArm(i int) walkArm {
 	e := w.entities[i]
-	if w.SecondGame() || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
+	if w.game.nativeWalkRefusal || w.groupDialectNative() || e.PendingOrder.Kind != PendingNone {
 		return walkArmNone
 	}
 	if e.ActorState == actorStateRetreat {
@@ -577,7 +577,7 @@ func (w *World) closedOn(i, ti int) bool {
 // the act gate; the spell's range is neither (MAGIC-409, MAGIC-410). The
 // second game keeps the spell row's MaxRange in whole Chebyshev cells.
 func (w *World) weaponCastInRange(a, t Entity, rule SpellRule) bool {
-	if w.SecondGame() {
+	if w.game.cellCastReach {
 		return (cell{x: a.X, y: a.Y}).chebyshevTo(cell{x: t.X, y: t.Y}) <= int64(rule.MaxRange)
 	}
 	return edgeDistance(&a, &t) <= a.Reach

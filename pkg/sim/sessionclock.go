@@ -30,12 +30,6 @@ func (c SessionClock) healthDue() bool    { return int32(c.FullTick)%4 == 0 }
 func (c SessionClock) liveDecayDue() bool { return c.FullTick&3 == 0 }
 func (c SessionClock) deadDecayDue() bool { return c.FullTick&1 == 0 }
 
-// SecondGame reports a World running the second game's dialect. It is the one
-// dialect accessor for the carriers a first-game World always holds: a
-// second-game World keeps its native uint64 tick and carrier-free paths until
-// second-game evidence describes its carriers.
-func (w *World) SecondGame() bool { return w.rom2 != nil }
-
 // DerivedFullTick is the FullTick a World that started at 0/0 holds at
 // SubTick sub: (sub + 1) >> 4 (SAV-1210, SESS-086).
 func DerivedFullTick(sub uint32) uint32 {
@@ -48,7 +42,7 @@ func DerivedFullTick(sub uint32) uint32 {
 // clock DerivedFullTick derives from its sub-tick. A second-game World holds
 // none.
 func (w *World) constructSessionClock() {
-	if w.SecondGame() {
+	if w.game.nativeTick {
 		w.hasSessionClock, w.fullTick = false, 0
 		return
 	}
@@ -59,7 +53,7 @@ func (w *World) constructSessionClock() {
 	w.hasSessionClock, w.fullTick = true, DerivedFullTick(uint32(w.tick))
 }
 
-// SessionClock returns the session pair. False names a second-game World,
+// SessionClock returns the session pair. False names a World without one,
 // which keeps the native tick. The returned value owns no state.
 func (w *World) SessionClock() (SessionClock, bool) {
 	if !w.hasSessionClock {

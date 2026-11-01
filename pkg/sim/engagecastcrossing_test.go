@@ -52,7 +52,7 @@ func TestAMageCrossingIntoACellCastsAtItsCentre(t *testing.T) {
 // (R2-ENGINE-546, R2-ENGINE-560).
 func TestASecondGameMageCrossingIntoACellCastsAtItsCentre(t *testing.T) {
 	w := engageMageWorld(t, 1<<1, 100, hlArrow())
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	w.entities[0].Transit, w.entities[0].TransitTotal = 4, 8
 	if !w.orderAttack(0, 2) {
 		t.Fatal("the engage refused")
@@ -75,7 +75,7 @@ func TestASecondGameMageCrossingIntoACellCastsAtItsCentre(t *testing.T) {
 
 func TestASecondGameStandingMageCastsAtOnce(t *testing.T) {
 	w := engageMageWorld(t, 1<<1, 100, hlArrow())
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	if !w.orderAttack(0, 2) {
 		t.Fatal("the engage refused")
 	}
@@ -86,7 +86,7 @@ func TestASecondGameStandingMageCastsAtOnce(t *testing.T) {
 
 func TestASecondGameApproachedCastStartsAtTheCellCentre(t *testing.T) {
 	w := approachWorld(t)
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	armApproach(t, w, Cast(1, 2, 1))
 	held := 0
 	for range 300 {

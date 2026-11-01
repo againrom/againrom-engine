@@ -327,7 +327,7 @@ func (b *generatedDocumentBuilder) reserveRetainedDeadEffectKeys(w *sim.World) e
 // record (retainDeadValues), so it stands for a body that is gone and that no
 // loaded record holds (DIV-3942).
 func (b *generatedDocumentBuilder) constructedSearchRadius(r *sav.DocumentRecordData, w *sim.World) error {
-	if w.SecondGame() {
+	if w.NativeMovers() {
 		return nil
 	}
 	mover, err := savedActorRaw(r, "U154", 180)

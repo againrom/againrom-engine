@@ -122,6 +122,8 @@ var nstPinned = []struct {
 		{"itemWeights", "[]sim.ItemWeight"},
 		{"script", "*sim.Script"},
 		{"rom2", "*sim.rom2ScriptState"},
+		// Chosen from the script dialect the byte form carries: no state.
+		{"game", "sim.gameProfile"},
 		{"registers", "[100]int32"},
 		{"latches", "[1000]uint8"},
 		{"won", "uint32"},

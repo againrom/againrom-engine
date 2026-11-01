@@ -51,7 +51,7 @@ func TestTheSecondGameRechecksVisibilityBeforeReleaseButNotAfterCommit(t *testin
 	target := spEnt(2, 11, 10)
 	target.Owner = 2
 	w := visibilityWorld(t, Terrain{}, rule, caster, target)
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	// This probe moves the target explicitly; retaliation must not walk it
 	// back into sight after the committed hit.
 	for i := range w.groups {

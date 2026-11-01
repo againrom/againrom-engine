@@ -181,7 +181,7 @@ func (w *World) applyStructureUse(i, si int) {
 		w.runStructureAction(slot)
 		return
 	}
-	if (s.Kind == 34 || s.Kind == 35) && !w.SecondGame() {
+	if (s.Kind == 34 || s.Kind == 35) && !w.game.nativeShopUse {
 		w.castObservation.recordShopUse(w.entities[i].ID, s.ID)
 		return
 	}

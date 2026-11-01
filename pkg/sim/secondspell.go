@@ -5,7 +5,8 @@ import (
 	"slices"
 )
 
-// AssignSecondGameArms marks every row of a second-game table with its arm.
+// AssignSecondGameArms marks every row of a second-game table with its arm
+// and its format, Second. It runs where the table is loaded or decoded.
 func AssignSecondGameArms(rules []SpellRule) {
 	for i := range rules {
 		rules[i].Arm, rules[i].Second = SecondGameSpellArm(rules[i].ID), true

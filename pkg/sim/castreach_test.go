@@ -96,7 +96,7 @@ func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
 
 	second := func(tx int32, size uint8) *World {
 		w := reachWorld(t, tx, size)
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		return w
 	}
 	// Anchor distance 8, gap distance 7: out of reach here, in reach in the first game.
@@ -119,7 +119,7 @@ func TestTheSecondGameCastReachStaysTheAnchorCells(t *testing.T) {
 		t.Fatalf("second game: the wide target holds %d health after the release, want a hit", got)
 	}
 	// The gate agrees for the scroll route.
-	if (&World{rom2: &rom2ScriptState{}}).withinCastReach(&Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, &Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7) {
+	if (&World{rom2: &rom2ScriptState{}, game: newGameProfile(ScriptROM2)}).withinCastReach(&Entity{ID: 1, X: 10, Y: 10, TokenSize: 1}, &Entity{ID: 2, X: 2, Y: 10, TokenSize: 2}, 7) {
 		t.Fatal("second game: the gate admits anchor distance 8 at reach 7")
 	}
 }

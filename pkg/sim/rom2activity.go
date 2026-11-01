@@ -4,7 +4,7 @@ type rom2GroupKey struct{ owner, group uint32 }
 type rom2Activity struct{ active map[rom2GroupKey]bool }
 
 func (w *World) rom2ActivityMask() *rom2Activity {
-	if w.rom2 == nil {
+	if !w.game.activityMask {
 		return nil
 	}
 	var covered [32][32]bool

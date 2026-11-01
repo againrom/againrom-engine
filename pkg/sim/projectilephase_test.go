@@ -74,7 +74,7 @@ func TestProjectilePhaseObservationRequiresALiveFirstGameRecord(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := shotWorld(t)
 			if tc.second {
-				w.rom2 = &rom2ScriptState{}
+				w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 			}
 			w.ReleaseAreaBurst(AreaBurst{CellX: 3, CellY: 4, Picture: tc.picture, Segments: tc.segments, Phases: 16})
 			for range 20 {

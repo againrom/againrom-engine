@@ -52,9 +52,9 @@ func (w *World) actorPass() {
 		if order, _, ok := w.groupState(w.entities[i].Owner, effectiveGroup(&w.entities[i])); ok && order == orderRoam {
 			continue
 		}
-		// The first game enters every arm under Group order 0 alone
-		// (actorLayerDecides, AI-ORDER-010). The second game keeps its own
-		// dispatch, which gates only the guard arm.
+		// A World holding a Group registry enters every arm under Group
+		// order 0 alone (actorLayerDecides, AI-ORDER-010). A World without
+		// one keeps the native dispatch, which gates only the guard arm.
 		if !w.groupDialectNative() && !w.actorLayerDecides(i) {
 			continue
 		}

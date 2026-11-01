@@ -94,7 +94,7 @@ func fogWalkSight(t *testing.T, heights []byte, owner uint32, es ...Entity) []by
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	return w.Sight(owner)
 }
 

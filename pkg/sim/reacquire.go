@@ -73,7 +73,7 @@ func (w *World) suppressedAcquirer(e Entity) bool {
 // a first-game suppressed acquirer. The second game keeps its engage; no
 // second-game claim reads this test (AI-GUARD-007).
 func (w *World) engageRefused(i int) bool {
-	return !w.SecondGame() && w.suppressedAcquirer(w.entities[i])
+	return !w.game.keepsSuppressedAcquirer && w.suppressedAcquirer(w.entities[i])
 }
 
 // AI-673: row 6 rechecks suppression before a progress-zero gate or turn.

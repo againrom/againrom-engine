@@ -173,7 +173,7 @@ func TestAutoCastAbsentReadsTheGamesDefault(t *testing.T) {
 		if got := w.AutoCast(SelfSlot); got != AutoCastOwn || w.AutoCastStored(SelfSlot) {
 			t.Errorf("first game, %s: %#x stored %v, want Off", tc.name, got, w.AutoCastStored(SelfSlot))
 		}
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		if got := w.AutoCast(SelfSlot); got != DefaultAutoCast {
 			t.Errorf("second game, %s: %#x, want %#x", tc.name, got, DefaultAutoCast)
 		}
@@ -257,7 +257,7 @@ func TestAutoCastSupportOnTheAttackRouteFollowsTheCommandRange(t *testing.T) {
 	}{{1, 0, true}, {4, 0, false}, {1, 1, false}} {
 		enemy := acsUnit(3, 2, 3, 100)
 		w := acsWorld(t, acEnemies(t), AutoCastMinimum|AutoCastOwn, acsMask(1, 6), tc.armed, acsUnit(2, SelfSlot, 4, 40), enemy)
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		e := &w.entities[0]
 		e.Reach, e.AttackTarget, e.HasAttackTarget = tc.reach, 3, true
 		if tc.armed != 0 && w.attackRange(0) < 2 {

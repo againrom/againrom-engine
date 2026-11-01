@@ -63,7 +63,7 @@ type worldWornHolder struct {
 	i int
 }
 
-func (h worldWornHolder) KeepsWeaponSpell() bool { return h.w.SecondGame() }
+func (h worldWornHolder) KeepsWeaponSpell() bool { return h.w.game.keepsWeaponSpell }
 
 func (h worldWornHolder) DropWeaponSpell(_ int, item *ItemInstance) bool {
 	return h.w.replaceObjectSpell(item, SourceItemSpell{})

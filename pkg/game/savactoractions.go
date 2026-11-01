@@ -540,7 +540,7 @@ func originalAttackCycle(phase, complete, action uint32, progress byte, countdow
 // (HERO-CROSSHOLD-146, HERO-CADENCE-112).
 func holdOrderResidues(state *SnapshotSAVDocument, w *sim.World, held map[sim.EntityID]sim.HeldOrder) error {
 	var books map[uint16]uint32
-	if !w.SecondGame() {
+	if !w.ResidueOverBookCasts() {
 		books, _ = currentCastObjects(state.Document)
 	}
 	byID := map[sim.EntityID]sim.Entity{}

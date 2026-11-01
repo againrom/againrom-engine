@@ -38,7 +38,7 @@ func secondBookMission(t *testing.T, mage bool, items ...sim.ItemInstance) *mapW
 	if err != nil {
 		t.Fatalf("NewStockedSpelledWorld: %v", err)
 	}
-	if !w.SecondGame() {
+	if !playsSecondGame(w) {
 		t.Fatal("not a second-game World")
 	}
 	m := worldFixtureMap()
@@ -73,8 +73,8 @@ func TestSecondGameMageLearnsABookInAMission(t *testing.T) {
 	if err := back.UnmarshalBinary(raw); err != nil {
 		t.Fatal(err)
 	}
-	if back.Hash() != mw.world.Hash() || !back.SecondGame() {
-		t.Fatalf("LOAD hash %#x, SAVE hash %#x, second game %v", back.Hash(), mw.world.Hash(), back.SecondGame())
+	if back.Hash() != mw.world.Hash() || !playsSecondGame(&back) {
+		t.Fatalf("LOAD hash %#x, SAVE hash %#x, second game %v", back.Hash(), mw.world.Hash(), playsSecondGame(&back))
 	}
 	for _, got := range back.Entities() {
 		if got.ID == 7 && (got.KnownSpells != e.KnownSpells || got.Book != e.Book) {

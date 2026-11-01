@@ -13,7 +13,7 @@ func releaseWorld(t *testing.T, second bool, rule SpellRule) *World {
 	w := hlWorld(t, 7, acEnemies(t), []SpellRule{rule}, caster, enemy)
 	holdGroups(w)
 	if second {
-		w.rom2 = &rom2ScriptState{}
+		w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	}
 	return w
 }
@@ -147,7 +147,7 @@ func TestAFirstGameCreatureCastReleasesWithoutArmingAnApproach(t *testing.T) {
 		w := engageMageWorld(t, 1<<1, 100, hlArrow())
 		holdGroups(w)
 		if second {
-			w.rom2 = &rom2ScriptState{}
+			w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 		}
 		if !w.orderAttack(0, 2) {
 			t.Fatalf("second=%v: the engage refused", second)

@@ -154,7 +154,7 @@ func TestAreaSafetyUsesHitPolicyAndDoesNotDraw(t *testing.T) {
 	}
 	w := safeAreaWorld(t, true)
 	rule, _ := w.findSpell(2)
-	w.rom2 = &rom2ScriptState{}
+	w.rom2, w.game = &rom2ScriptState{}, newGameProfile(ScriptROM2)
 	if w.unsafeUnorderedArea(0, 1, rule) {
 		t.Fatal("second-game cast was filtered")
 	}
