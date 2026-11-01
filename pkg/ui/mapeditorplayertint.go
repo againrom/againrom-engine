@@ -45,8 +45,10 @@ func (e *MapEditor) playerCount() int {
 // are on: the colour of the player that owns a unit or structure of the open
 // map, and none for an object of owner 0 or of an owner the map has no player
 // for. It reads the records as they are now, so a move, an undo or a redo
-// keeps the tint with the object. Off, it is nil.
-func (e *MapEditor) playerTint() func(InspectionSubject) (color.RGBA, bool) {
+// keeps the tint with the object. Off, it is nil. While a player record is
+// selected only that player's objects answer, and with the brighter focus tint;
+// every other object answers none.
+func (e *MapEditor) playerTint() func(InspectionSubject) spriteTint {
 	if !e.view.playerColours || e.doc == nil {
 		return nil
 	}
@@ -60,13 +62,23 @@ func (e *MapEditor) playerTint() func(InspectionSubject) (color.RGBA, bool) {
 			owners[InspectionSubject{Kind: InspectionStructure, ID: uint32(r.Index)}] = r.Player
 		}
 	}
-	return func(s InspectionSubject) (color.RGBA, bool) {
+	focus := e.focusedPlayer()
+	return func(s InspectionSubject) spriteTint {
 		owner := owners[s]
-		if owner < 1 || owner > players {
-			return color.RGBA{}, false
+		if owner < 1 || owner > players || (focus != 0 && owner != focus) {
+			return spriteTint{}
 		}
-		return editorPlayerTints[owner-1], true
+		return spriteTint{Color: editorPlayerTints[owner-1], On: true, Focus: focus != 0}
 	}
+}
+
+// focusedPlayer is the number of the selected player record, or 0 when the
+// selection is not a player.
+func (e *MapEditor) focusedPlayer() int {
+	if kind, index := e.selectedRecord(); kind == KindPlayer && index >= 0 {
+		return index + 1
+	}
+	return 0
 }
 
 // applyPlayerTint hands the map view's sprite painter the tint of the moment,
@@ -83,15 +95,21 @@ func (e *MapEditor) keyPlayerTint(string) error {
 	return nil
 }
 
+// legendMutedInk is the label colour of a legend row whose player is not shown.
+var legendMutedInk = color.RGBA{0x7a, 0x70, 0x5c, 255}
+
 // legendSwatch is the side of a player's colour square in the legend.
 const legendSwatch = 10
 
 // legendRow is one player of the legend: its number, its record's label and
-// its colour.
+// its colour. focus marks the selected player; muted marks the other rows
+// while one player is selected, since their colour is not shown on the map.
 type legendRow struct {
 	rect  image.Rectangle
 	label string
 	color color.RGBA
+	focus bool
+	muted bool
 }
 
 // playerLegend is the legend box and its rows, in window coordinates, while
@@ -128,6 +146,7 @@ func (e *MapEditor) playerLegend() (image.Rectangle, []legendRow) {
 	box.Max.Y = area.Max.Y - 6
 	box.Min.Y = box.Max.Y - (2*pad + count*pitch)
 	box = box.Intersect(area)
+	focus := e.focusedPlayer()
 	var rows []legendRow
 	y := box.Min.Y + pad
 	for i := range labels {
@@ -135,7 +154,8 @@ func (e *MapEditor) playerLegend() (image.Rectangle, []legendRow) {
 			continue
 		}
 		rect := image.Rect(box.Min.X+pad, y, box.Max.X-pad, y+pitch)
-		rows = append(rows, legendRow{rect: rect, label: labels[i], color: editorPlayerTints[i]})
+		rows = append(rows, legendRow{rect: rect, label: labels[i], color: editorPlayerTints[i],
+			focus: focus == i+1, muted: focus != 0 && focus != i+1})
 		y += pitch
 	}
 	return box, rows
@@ -154,9 +174,29 @@ func (e *MapEditor) drawPlayerLegend(pic *image.RGBA) {
 	clip := pic.SubImage(box).(*image.RGBA)
 	for _, r := range rows {
 		swatch := image.Rect(r.rect.Min.X, r.rect.Min.Y+(r.rect.Dy()-legendSwatch)/2, r.rect.Min.X+legendSwatch, r.rect.Min.Y+(r.rect.Dy()-legendSwatch)/2+legendSwatch)
-		draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
+		ink := editorPaper
+		switch {
+		case r.muted:
+			ink = legendMutedInk
+			draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
+			draw.Draw(clip, swatch.Inset(1), image.NewUniform(editorInk), image.Point{}, draw.Src)
+		default:
+			draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
+		}
+		if r.focus {
+			gold := image.NewUniform(editorGold)
+			row := r.rect.Intersect(box)
+			for _, strip := range []image.Rectangle{
+				image.Rect(row.Min.X, row.Min.Y, row.Max.X, row.Min.Y+1),
+				image.Rect(row.Min.X, row.Max.Y-1, row.Max.X, row.Max.Y),
+				image.Rect(row.Min.X, row.Min.Y, row.Min.X+1, row.Max.Y),
+				image.Rect(row.Max.X-1, row.Min.Y, row.Max.X, row.Max.Y),
+			} {
+				draw.Draw(clip, strip, gold, image.Point{}, draw.Src)
+			}
+		}
 		if f != nil {
-			f.Draw(clip, r.label, swatch.Max.X+4, r.rect.Min.Y+1, editorPaper)
+			f.Draw(clip, r.label, swatch.Max.X+4, r.rect.Min.Y+1, ink)
 		}
 	}
 }

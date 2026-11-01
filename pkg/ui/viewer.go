@@ -590,7 +590,7 @@ type Viewer struct {
 	// subjectTint says which colour the sprite painter lays over a unit's or
 	// a structure's picture; nil draws every picture as it is. tintedImages
 	// caches the textures that makes, nil until one is drawn.
-	subjectTint  func(InspectionSubject) (color.RGBA, bool)
+	subjectTint  func(InspectionSubject) spriteTint
 	tintedImages map[spriteTintKey]*ebiten.Image
 
 	// spellLighting and spellTerrainLighting are rebuilt from live canonical

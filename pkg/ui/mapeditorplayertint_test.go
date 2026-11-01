@@ -146,15 +146,15 @@ func TestPlayerColoursTintOwnedObjectsOnly(t *testing.T) {
 	}
 	tint := editorPlayerTints
 	want := map[*ebiten.Image]int{
-		v.tintedImage(x.unit, false, tint[0]):  1,
-		v.tintedImage(x.unit, false, tint[1]):  1,
-		v.tintedImage(x.unit, false, tint[2]):  1,
-		v.staticImage(x.unit):                  2, // no owner, and an owner the map has no player for
-		v.tintedImage(x.plain, false, tint[1]): 1,
-		v.staticImage(x.plain):                 1,
-		v.tintedImage(x.flat, false, tint[2]):  1,
-		v.staticImage(x.object):                1,
-		v.staticImage(x.sack):                  1,
+		v.tintedImage(x.unit, false, tint[0], false):  1,
+		v.tintedImage(x.unit, false, tint[1], false):  1,
+		v.tintedImage(x.unit, false, tint[2], false):  1,
+		v.staticImage(x.unit):                         2, // no owner, and an owner the map has no player for
+		v.tintedImage(x.plain, false, tint[1], false): 1,
+		v.staticImage(x.plain):                        1,
+		v.tintedImage(x.flat, false, tint[2], false):  1,
+		v.staticImage(x.object):                       1,
+		v.staticImage(x.sack):                         1,
 	}
 	if got := count(on); !reflect.DeepEqual(got, want) {
 		t.Fatalf("mask on drew %d distinct pictures, want the %d of the owners", len(got), len(want))
@@ -175,7 +175,7 @@ func TestPlayerColoursBlendEveryOpaquePixel(t *testing.T) {
 	for _, f := range []*terrain.StaticFrame{x.unit, x.plain, x.flat} {
 		src := v.spritePixels(f)
 		for p, c := range []color.RGBA{tint[0], tint[1]} {
-			got := v.tintedPixels(f, false, c)
+			got := v.tintedPixels(f, false, c, false)
 			for y := 0; y < f.Height; y++ {
 				for X := 0; X < f.Width; X++ {
 					s, g := src.RGBAAt(X, y), got.RGBAAt(X, y)
@@ -191,7 +191,7 @@ func TestPlayerColoursBlendEveryOpaquePixel(t *testing.T) {
 				}
 			}
 		}
-		if reflect.DeepEqual(v.tintedPixels(f, false, tint[0]).Pix, v.tintedPixels(f, false, tint[1]).Pix) {
+		if reflect.DeepEqual(v.tintedPixels(f, false, tint[0], false).Pix, v.tintedPixels(f, false, tint[1], false).Pix) {
 			t.Fatal("two players share a tint")
 		}
 	}

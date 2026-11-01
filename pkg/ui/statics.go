@@ -364,7 +364,7 @@ func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {
 		img = v.stoneImage(s.Frame)
 	}
 	if s.Tint.On {
-		img = v.tintedImage(s.Frame, s.Stone, s.Tint.Color)
+		img = v.tintedImage(s.Frame, s.Stone, s.Tint.Color, s.Tint.Focus)
 	}
 	target.DrawImage(img, &op)
 }
@@ -440,7 +440,7 @@ func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.
 	op.GeoM.Scale(zoom, zoom)
 	op.GeoM.Translate(s.X, s.Y)
 	if tint.On {
-		target.DrawImage(v.tintedImage(f, false, tint.Color), &op)
+		target.DrawImage(v.tintedImage(f, false, tint.Color, tint.Focus), &op)
 		return
 	}
 	target.DrawImage(v.staticImage(f), &op)

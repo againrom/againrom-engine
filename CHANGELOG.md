@@ -29,6 +29,7 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor has a toolbar over the map in place of the View and Tools menus: select, the four brushes and draw trigger area on the left; a Layers drop-down with the map's view switches, grid, fit map, report and the two panel switches on the right, each with a tip naming it and its key. The report opens in a panel below the map (R or F8) that resizes and stays as you left it, random landscape and random heights are under Generate in the Map menu, and a new trigger is made from the Scripts palette's Add.
 - [BASE] The map editor shows a unit, a building or a sack in plain words first: a unit's name, owner, kind, tier, experience, life and group at once, its equipment and bag as items with their names and pictures, and its stats as a table; a building's type, owner, position and script target with the scripts that name it, and its placement word with its bits in a block that opens; a sack's items by name and picture, with codes, recipes and enchantments in a Details block. The window's "View: Plain" button (RU «Вид: Обычный») switches to the technical view of every map-file field and back, changes no value, and the editor remembers the choice.
 - [ROM2] The map editor's unit window shows the same speaker face as the game, for human speakers and stand-in faces too.
+- [BASE] In the map editor, with the player colours on, selecting a player makes that player's units and structures stand out in a brighter colour and draws every other one plain; the legend marks the selected player.
 
 ## 0.144.0
 
