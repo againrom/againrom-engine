@@ -388,7 +388,7 @@ var gameMenuText = color.RGBA{R: 0xf2, G: 0xe6, B: 0xc4, A: 0xff}
 // production use site. Production keeps the direct ebiten vector calls.
 var (
 	fillGameMenuRect   = vector.DrawFilledRect
-	strokeGameMenuRect = vector.StrokeRect
+	strokeGameMenuRect = frameStrokeRect
 	strokeGameMenuLine = vector.StrokeLine
 	drawGameMenuLabel  = drawMenuLabel
 )
@@ -429,13 +429,10 @@ func paintGameMenu(dst *ebiten.Image, f *text.Font, s gameMenuSurface, rows []ga
 	if len(logs) > 0 {
 		log = logs[0]
 	}
-	fillGameMenuRect(dst, float32(p.Min.X), float32(p.Min.Y),
-		float32(p.Dx()), float32(p.Dy()), gameMenuFill, false)
+	drawFrameVector(dst, panelFrame(p, gameMenuFill, gameMenuBorder), fillGameMenuRect, strokeGameMenuRect)
 	if log != nil {
 		log.overSolid(p, gameMenuFill)
 	}
-	strokeGameMenuRect(dst, float32(p.Min.X)+0.5, float32(p.Min.Y)+0.5,
-		float32(p.Dx())-1, float32(p.Dy())-1, 1, gameMenuBorder, false)
 
 	sel := list.Selection()
 	top, count := list.Visible()

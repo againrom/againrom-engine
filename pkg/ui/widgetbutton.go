@@ -196,15 +196,9 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 		if b.Selected {
 			fill = s.Selected
 		}
-		paint := func(rect image.Rectangle, c color.RGBA) {
-			draw.Draw(dst, rect, image.NewUniform(c), image.Point{}, draw.Src)
-		}
-		paint(r, fill)
-		w := s.Width
-		paint(image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+w), s.Border)
-		paint(image.Rect(r.Min.X, r.Max.Y-w, r.Max.X, r.Max.Y), s.Border)
-		paint(image.Rect(r.Min.X, r.Min.Y, r.Min.X+w, r.Max.Y), s.Border)
-		paint(image.Rect(r.Max.X-w, r.Min.Y, r.Max.X, r.Max.Y), s.Border)
+		flat := panelFrame(r, fill, s.Border)
+		flat.Width = s.Width
+		drawFrame(dst, flat)
 		return
 	}
 	if b.Face != nil {

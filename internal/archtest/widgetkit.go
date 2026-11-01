@@ -17,7 +17,8 @@ import (
 // A FRAME PAINTER is a production function in pkg/ui outside the kit files
 // (widget*.go) that is named like one (draw, paint, fill or stamp, then
 // Frame, Border, Box, Outline or NinePatch), calls the one-pixel outline
-// primitive, or reads a frame art's Pieces. widgetFrameDebt names the
+// primitive, or reads a frame art's Pieces; a function that hands its
+// frameSpec to drawFrame describes a frame and is none. widgetFrameDebt names the
 // painters the kit has not absorbed yet; widgetNotAFrame names the matches
 // that draw no frame, with the reason.
 
@@ -42,25 +43,18 @@ import (
 // Every list is keyed by the declaring file and the name, "pkg/ui/x.go:name".
 
 // widgetFrameDebt is every frame painter outside the kit. It may only fall.
-var widgetFrameDebt = map[string]string{
-	"pkg/ui/shopscreen.go:outline":              "the one-pixel outline primitive the debt painters share",
-	"pkg/ui/shopscreen.go:drawShopChevron":      "shop chevron box",
-	"pkg/ui/townshell.go:drawTownShellBox":      "town shell control box",
-	"pkg/ui/townshell.go:drawTownShellOutline":  "town shell control outline",
-	"pkg/ui/townshell.go:drawCharacterPaneBody": "character pane fallback outline",
-	"pkg/ui/townshell.go:ComposeTownSurface":    "town surface control outlines",
-	"pkg/ui/worldmap.go:drawWorldMapBorder":     "world map border",
-}
+var widgetFrameDebt = map[string]string{}
 
 // widgetNotAFrame is every function the frame rule matches that draws no
 // frame.
 var widgetNotAFrame = map[string]string{
-	"pkg/ui/framesmoothing.go:drawFinalFrame":      "presents the finished video frame",
-	"pkg/ui/viewer.go:drawFrame":                   "presents one video frame of the map",
-	"pkg/ui/dialoguebackdrop.go:drawFrameShadows":  "runs the kit's frame shadow plan on the GPU",
-	"pkg/ui/spellpopup.go:drawAutocastBorder":      "the animated autocast mark around a spell cell",
-	"pkg/ui/sackhighlight.go:drawSackOutline":      "an item contour from the outline texture",
-	"pkg/ui/dialogueportrait.go:drawFlippedBorder": "the dialogue portrait's art strip, mirrored",
+	"pkg/ui/framesmoothing.go:drawFinalFrame":     "presents the finished video frame",
+	"pkg/ui/viewer.go:drawFrame":                  "presents one video frame of the map",
+	"pkg/ui/dialoguebackdrop.go:drawFrameShadows": "runs the kit's frame shadow plan on the GPU",
+	"pkg/ui/spellpopup.go:drawAutocastBorder":     "the animated autocast mark around a spell cell",
+	"pkg/ui/sackhighlight.go:drawSackOutline":     "an item contour from the outline texture",
+	"pkg/ui/shopscreen.go:outline":                "the one-pixel selection and focus mark",
+	"pkg/ui/townshell.go:ComposeTownSurface":      "the hired mark inside a control box",
 }
 
 // widgetButtonDebt is every push button painter outside the kit. It may only
@@ -183,6 +177,9 @@ func CheckWidgetKit(files map[string]string) []Violation {
 
 // framePainter says why fn is a frame painter, or "" when it is not one.
 func framePainter(fn *ast.FuncDecl) string {
+	if callsDrawFrame(fn) {
+		return ""
+	}
 	if framePainterName.MatchString(fn.Name.Name) {
 		return "named as a frame painter"
 	}
@@ -206,6 +203,23 @@ func framePainter(fn *ast.FuncDecl) string {
 		})
 	}
 	return why
+}
+
+// callsDrawFrame reports whether fn hands a frameSpec to the kit's one frame
+// builder, drawFrame: it describes a frame and paints none.
+func callsDrawFrame(fn *ast.FuncDecl) bool {
+	found := false
+	if fn.Body != nil {
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			if c, ok := n.(*ast.CallExpr); ok {
+				if id, ok := c.Fun.(*ast.Ident); ok && id.Name == "drawFrame" {
+					found = true
+				}
+			}
+			return !found
+		})
+	}
+	return found
 }
 
 // buttonPainter says why fn paints a push button's face or press state, or

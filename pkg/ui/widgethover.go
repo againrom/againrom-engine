@@ -98,8 +98,7 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverSty
 		box = *s.box
 	}
 	if shape.outlined {
-		draw.Draw(img, img.Bounds(), &image.Uniform{C: box.fill}, image.Point{}, draw.Src)
-		outline(img, img.Bounds(), box.light)
+		drawFrame(img, panelFrame(img.Bounds(), box.fill, box.light))
 	} else {
 		paintHoverBevel(img, box, ball, shape)
 	}

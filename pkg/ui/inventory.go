@@ -316,15 +316,7 @@ func drawInventoryPictureShifted(dst *image.RGBA, area image.Rectangle, pic *ima
 // highlight (spellbook.go) — one cell painter for all three boxes, rather than
 // a second one differing in a single colour.
 func drawInventoryCell(dst *image.RGBA, box image.Rectangle, pic *image.RGBA, border color.RGBA) {
-	for y := box.Min.Y; y < box.Max.Y; y++ {
-		for x := box.Min.X; x < box.Max.X; x++ {
-			c := invCellFill
-			if x == box.Min.X || y == box.Min.Y || x == box.Max.X-1 || y == box.Max.Y-1 {
-				c = border
-			}
-			dst.SetRGBA(x, y, c)
-		}
-	}
+	drawFrame(dst, panelFrame(box, invCellFill, border))
 	drawInventoryPicture(dst, box.Inset(1), pic)
 }
 

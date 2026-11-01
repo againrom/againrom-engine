@@ -184,16 +184,7 @@ func (e *MapEditor) drawPlayerLegend(pic *image.RGBA) {
 			draw.Draw(clip, swatch, image.NewUniform(r.color), image.Point{}, draw.Src)
 		}
 		if r.focus {
-			gold := image.NewUniform(editorGold)
-			row := r.rect.Intersect(box)
-			for _, strip := range []image.Rectangle{
-				image.Rect(row.Min.X, row.Min.Y, row.Max.X, row.Min.Y+1),
-				image.Rect(row.Min.X, row.Max.Y-1, row.Max.X, row.Max.Y),
-				image.Rect(row.Min.X, row.Min.Y, row.Min.X+1, row.Max.Y),
-				image.Rect(row.Max.X-1, row.Min.Y, row.Max.X, row.Max.Y),
-			} {
-				draw.Draw(clip, strip, gold, image.Point{}, draw.Src)
-			}
+			outline(clip, r.rect.Intersect(box), editorGold)
 		}
 		if f != nil {
 			f.Draw(clip, r.label, swatch.Max.X+4, r.rect.Min.Y+1, ink)

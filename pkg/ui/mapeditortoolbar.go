@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image"
-	"image/draw"
 )
 
 // The toolbar: one row across the window between the top bar and the map.
@@ -205,8 +204,7 @@ func (e *MapEditor) toolTip(p image.Point) (string, image.Point, bool) {
 // button through the one icon button painter.
 func (e *MapEditor) drawToolbar(pic *image.RGBA) {
 	bar := e.toolbarRect()
-	draw.Draw(pic, bar, image.NewUniform(editorPanel), image.Point{}, draw.Src)
-	draw.Draw(pic, image.Rect(bar.Min.X, bar.Max.Y-1, bar.Max.X, bar.Max.Y), image.NewUniform(editorGold), image.Point{}, draw.Src)
+	drawFrame(pic, stripFrame(bar, edgeBottomBit))
 	for _, t := range e.toolbarEntries() {
 		drawIconButton(pic, iconButton{Rect: t.rect, Icon: t.icon, On: t.shown, Hover: e.pointerOK && e.pointer.In(t.rect), Disabled: t.closed})
 	}

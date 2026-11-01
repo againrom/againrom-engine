@@ -15,14 +15,10 @@ func drawDialoguePortrait(dst *image.RGBA, l NoticeLayout, face *image.RGBA) {
 	if l.Frame == nil || l.Frame.Portrait == nil {
 		fill = pane
 	}
-	for y := fill.Min.Y; y < fill.Max.Y; y++ {
-		for x := fill.Min.X; x < fill.Max.X; x++ {
-			c := l.PortraitFill
-			if l.Frame == nil && (x == pane.Min.X || y == pane.Min.Y || x == pane.Max.X-1 || y == pane.Max.Y-1) {
-				c = l.PortraitBorder
-			}
-			dst.SetRGBA(x, y, c)
-		}
+	if l.Frame == nil {
+		drawFrame(dst, panelFrame(pane, l.PortraitFill, l.PortraitBorder))
+	} else {
+		drawFrame(dst, frameSpec{Kind: frameFill, Rect: fill, Fill: l.PortraitFill})
 	}
 	surface := make([]uint16, noticeSurfaceW*noticeSurfaceH)
 	copyWindow := func(pic *image.RGBA, words []uint16, keyed bool) {
@@ -49,10 +45,12 @@ func drawDialoguePortrait(dst *image.RGBA, l NoticeLayout, face *image.RGBA) {
 		reverseDialoguePortraitRows(backgroundWords, background.Bounds().Dx(), background.Bounds().Dy())
 	}
 	if l.Frame != nil && l.Frame.Portrait != nil {
-		border := l.Frame.Portrait
-		for y := 0; y < min(border.Bounds().Dy(), noticeSurfaceH); y++ {
-			for x := 0; x < min(border.Bounds().Dx(), noticeSurfaceW); x++ {
-				c := border.RGBAAt(border.Bounds().Min.X+x, border.Bounds().Min.Y+y)
+		b := l.Frame.Portrait.Bounds()
+		border := image.NewRGBA(image.Rect(0, 0, noticeSurfaceW, noticeSurfaceH))
+		drawFrame(border, frameSpec{Kind: frameArt, Rect: image.Rect(0, 0, b.Dx(), b.Dy()), Art: l.Frame})
+		for y := 0; y < noticeSurfaceH; y++ {
+			for x := 0; x < noticeSurfaceW; x++ {
+				c := border.RGBAAt(x, y)
 				if c.A != 0 {
 					surface[y*noticeSurfaceW+x] = dialoguePackedWord(c, l.DialogueBackdrop.Layout)
 				}
@@ -122,19 +120,4 @@ func copyDialoguePortraitWords(dst []uint16, dw, dh, dp int, src []uint16, sw, s
 		}
 	}
 	return true
-}
-
-func drawFlippedBorder(dst *image.RGBA, surface image.Rectangle, border *image.RGBA) {
-	if border == nil {
-		return
-	}
-	b := border.Bounds()
-	for y := 0; y < min(b.Dy(), surface.Dy()); y++ {
-		for x := 0; x < min(b.Dx(), surface.Dx()); x++ {
-			c := border.RGBAAt(b.Min.X+x, b.Min.Y+y)
-			if c.A != 0 {
-				dst.SetRGBA(surface.Min.X+x, surface.Max.Y-1-y, c)
-			}
-		}
-	}
 }

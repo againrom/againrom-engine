@@ -8,6 +8,9 @@ import (
 
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/text"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // frameKind is one row of the frame table: every window, panel and border
@@ -33,7 +36,18 @@ const (
 	// frameTint is a translucent fill over the picture with a one-pixel
 	// border: the choice box drawn where a choice has no sprite art.
 	frameTint
+	// frameFill is the panel's fill alone.
+	frameFill
+	// frameArt is the dialogue portrait's border picture, drawn whole and
+	// unscaled from the body's corner, its clear pixels left out.
+	frameArt
+	// frameScroll is the world map's scroll card: a cap picture above and
+	// below and the paper picture repeated between them.
+	frameScroll
 )
+
+// frameScrollCap is the height of a scroll card's cap pictures.
+const frameScrollCap = 12
 
 // frameRow is how drawFrame draws one kind.
 type frameRow struct {
@@ -49,6 +63,10 @@ type frameRow struct {
 	// fill paints the panel's interior; border its one-pixel edge. blend
 	// draws the fill over the picture instead of replacing it.
 	fill, border, blend bool
+	// art draws the whole portrait picture of the spec's art.
+	art bool
+	// scroll draws the spec's scroll pictures.
+	scroll bool
 	// corner is the portrait border's unscaled corner.
 	corner image.Point
 }
@@ -60,12 +78,25 @@ var frameRows = [...]frameRow{
 	frameOutline:  {border: true},
 	framePortrait: {corner: image.Pt(22, 27)},
 	frameTint:     {fill: true, border: true, blend: true},
+	frameFill:     {fill: true},
+	frameArt:      {art: true},
+	frameScroll:   {scroll: true},
 }
 
 // frameShadowTone is the shadow a frame casts where the destination holds
 // no picture yet, as on a menu panel composed apart from the scene behind
 // it (DIV-2725).
 var frameShadowTone = color.RGBA{0, 0, 0, 96}
+
+// frameSides is a set of a border's edges.
+type frameSides uint8
+
+const (
+	edgeTopBit frameSides = 1 << iota
+	edgeBottomBit
+	edgeLeftBit
+	edgeRightBit
+)
 
 // frameSpec is one frame: its kind, its rectangle and its art or colours.
 type frameSpec struct {
@@ -78,6 +109,12 @@ type frameSpec struct {
 	Art *DialogFrame
 	// Fill and Border colour a panel or an outline.
 	Fill, Border color.RGBA
+	// Width is the border's thickness in pixels; zero is one.
+	Width int
+	// Scroll is a scroll card's top cap, paper and bottom cap.
+	Scroll [3]image.Image
+	// Sides names the edges the border has; zero is all four.
+	Sides frameSides
 	// Policy is the dialogue backdrop's pixel format and clip.
 	Policy DialogueBackdrop
 }
@@ -104,6 +141,14 @@ func (art *DialogFrame) valid() bool {
 // panelFrame is the flat panel over r.
 func panelFrame(r image.Rectangle, fill, border color.RGBA) frameSpec {
 	return frameSpec{Kind: framePanel, Rect: r, Fill: fill, Border: border}
+}
+
+// stripFrame is the editor's bar or strip over r: its ground with a gold
+// rule on one side.
+func stripFrame(r image.Rectangle, side frameSides) frameSpec {
+	s := panelFrame(r, editorPanel, editorGold)
+	s.Sides = side
+	return s
 }
 
 func (s frameSpec) row() frameRow {
@@ -165,6 +210,31 @@ func drawFrameBody(dst *image.RGBA, s frameSpec) {
 				}
 			}
 		}
+	case row.scroll:
+		top, paper, bottom := s.Scroll[0], s.Scroll[1], s.Scroll[2]
+		if top == nil || paper == nil || bottom == nil || paper.Bounds().Dy() <= 0 {
+			return
+		}
+		mid := image.Rect(body.Min.X, body.Min.Y+frameScrollCap, body.Max.X, body.Max.Y-frameScrollCap)
+		for y := mid.Min.Y; y < mid.Max.Y; y += paper.Bounds().Dy() {
+			part := image.Rect(mid.Min.X, y, mid.Max.X, min(y+paper.Bounds().Dy(), mid.Max.Y))
+			draw.Draw(dst, part, paper, paper.Bounds().Min, draw.Over)
+		}
+		draw.Draw(dst, image.Rect(body.Min.X, body.Min.Y, body.Max.X, body.Min.Y+frameScrollCap), top, top.Bounds().Min, draw.Over)
+		draw.Draw(dst, image.Rect(body.Min.X, body.Max.Y-frameScrollCap, body.Max.X, body.Max.Y), bottom, bottom.Bounds().Min, draw.Over)
+	case row.art:
+		if s.Art == nil || s.Art.Portrait == nil {
+			return
+		}
+		pic := s.Art.Portrait
+		r := body.Intersect(dst.Bounds())
+		for y := r.Min.Y; y < r.Max.Y; y++ {
+			for x := r.Min.X; x < r.Max.X; x++ {
+				if c := pic.RGBAAt(pic.Rect.Min.X+x-body.Min.X, pic.Rect.Min.Y+y-body.Min.Y); c.A != 0 {
+					dst.SetRGBA(x, y, c)
+				}
+			}
+		}
 	case row.corner != image.Point{}:
 		if s.Art != nil && s.Art.Portrait != nil {
 			drawFrameCorners(dst, body, s.Art.Portrait, row.corner.X, row.corner.Y)
@@ -182,15 +252,53 @@ func drawFrameBody(dst *image.RGBA, s frameSpec) {
 			draw.Draw(dst, r, &image.Uniform{C: s.Fill}, image.Point{}, op)
 		}
 		if row.border {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				dst.SetRGBA(x, r.Min.Y, s.Border)
-				dst.SetRGBA(x, r.Max.Y-1, s.Border)
+			w, sides := max(s.Width, 1), s.Sides
+			if sides == 0 {
+				sides = edgeTopBit | edgeBottomBit | edgeLeftBit | edgeRightBit
 			}
-			for y := r.Min.Y; y < r.Max.Y; y++ {
-				dst.SetRGBA(r.Min.X, y, s.Border)
-				dst.SetRGBA(r.Max.X-1, y, s.Border)
+			ink := &image.Uniform{C: s.Border}
+			for _, e := range [...]struct {
+				side frameSides
+				at   image.Rectangle
+			}{
+				{edgeTopBit, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+w)},
+				{edgeBottomBit, image.Rect(r.Min.X, r.Max.Y-w, r.Max.X, r.Max.Y)},
+				{edgeLeftBit, image.Rect(r.Min.X, r.Min.Y, r.Min.X+w, r.Max.Y)},
+				{edgeRightBit, image.Rect(r.Max.X-w, r.Min.Y, r.Max.X, r.Max.Y)},
+			} {
+				if sides&e.side != 0 {
+					draw.Draw(dst, e.at, ink, image.Point{}, draw.Src)
+				}
 			}
 		}
+	}
+}
+
+// DrawPanel draws the flat panel over r: the one frame builder for programs
+// outside this package.
+func DrawPanel(dst *image.RGBA, r image.Rectangle, fill, border color.RGBA) {
+	drawFrame(dst, panelFrame(r, fill, border))
+}
+
+// frameStrokeRect is the GPU stroke a frame's border is drawn with.
+var frameStrokeRect = vector.StrokeRect
+
+// drawFrameVector draws a flat frame on a GPU destination with the vector
+// calls the caller supplies: the fill over the body, then the border
+// centred on the pixel ring it covers. It reads the same spec drawFrame
+// reads; a caller supplies the calls so tests can observe them.
+func drawFrameVector(dst *ebiten.Image, s frameSpec, fill func(*ebiten.Image, float32, float32, float32, float32, color.Color, bool), stroke func(*ebiten.Image, float32, float32, float32, float32, float32, color.Color, bool)) {
+	recordWidget(widgetFrame, s.rect(), s)
+	row, r := s.row(), s.body()
+	if dst == nil || row.tiled || row.corner != (image.Point{}) {
+		return
+	}
+	if row.fill {
+		fill(dst, float32(r.Min.X), float32(r.Min.Y), float32(r.Dx()), float32(r.Dy()), s.Fill, false)
+	}
+	if row.border {
+		w := float32(max(s.Width, 1))
+		stroke(dst, float32(r.Min.X)+w/2, float32(r.Min.Y)+w/2, float32(r.Dx())-w, float32(r.Dy())-w, w, s.Border, false)
 	}
 }
 

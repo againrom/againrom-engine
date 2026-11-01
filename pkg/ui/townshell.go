@@ -888,8 +888,7 @@ func drawTownShellBox(dst *image.RGBA, r image.Rectangle, selected bool) {
 	if selected {
 		c = townShellSelected
 	}
-	draw.Draw(dst, r, &image.Uniform{C: c}, image.Point{}, draw.Src)
-	outline(dst, r, townShellBorder)
+	drawFrame(dst, panelFrame(r, c, townShellBorder))
 }
 
 // drawTownShellOutline is drawTownShellBox without its opaque fill, so a
@@ -900,7 +899,7 @@ func drawTownShellOutline(dst *image.RGBA, r image.Rectangle, selected bool) {
 	if selected {
 		c = townShellSelected
 	}
-	outline(dst, r, c)
+	drawFrame(dst, frameSpec{Kind: frameOutline, Rect: r, Border: c})
 }
 
 // DrawTownCharacterRegion paints the shared member projection and its
@@ -932,8 +931,7 @@ func drawCharacterPaneBody(dst *image.RGBA, v TownCharacterView) {
 	if pane.Body != nil {
 		drawTownPane(dst, pane, r, seam)
 	} else {
-		draw.Draw(dst, r, &image.Uniform{C: townShellPanel}, image.Point{}, draw.Src)
-		outline(dst, r, townShellBorder)
+		drawFrame(dst, panelFrame(r, townShellPanel, townShellBorder))
 	}
 	if v.HasSubject {
 		if v.Statistics {

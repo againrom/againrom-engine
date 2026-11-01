@@ -16,6 +16,8 @@ func TestCheckWidgetKitNamesEachViolation(t *testing.T) {
 			"package ui\nfunc drawPanelBorder() {}\n", "drawPanelBorder is a frame painter"},
 		{"a function calling outline", "pkg/ui/a.go",
 			"package ui\nfunc paintRow() { outline(nil, r, c) }\n", "paintRow is a frame painter"},
+		{"a spec wrapper handing its frame to drawFrame", "pkg/ui/a.go",
+			"package ui\nfunc drawPanelBorder() { drawFrame(dst, panelFrame(r, f, b)); outline(nil, r, c) }\n", ""},
 		{"a function reading frame pieces", "pkg/ui/a.go",
 			"package ui\nfunc tiles(a *DialogFrame) { _ = a.Pieces }\n", "tiles is a frame painter"},
 		{"a frame painter inside the kit", "pkg/ui/widgetx.go",

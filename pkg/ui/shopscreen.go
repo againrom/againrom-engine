@@ -1226,9 +1226,10 @@ func shopTipLines(font *text.Font, s string, width int) []string {
 // everything there).
 func drawShopChevron(dst *image.RGBA, r image.Rectangle, dir int, live, fill bool) {
 	if fill {
-		draw.Draw(dst, r, &image.Uniform{C: invFill}, image.Point{}, draw.Src)
+		drawFrame(dst, panelFrame(r, invFill, invBorder))
+	} else {
+		drawFrame(dst, frameSpec{Kind: frameOutline, Rect: r, Border: invBorder})
 	}
-	outline(dst, r, invBorder)
 	c := shopDimColor
 	if live {
 		c = shopMarkColor

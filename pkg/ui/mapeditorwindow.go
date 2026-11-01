@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/draw"
 	"strings"
 	"time"
 
@@ -1321,8 +1320,7 @@ var editorPopupInk = popupInk{Ground: editorPanel, Edge: editorGold, TitleGround
 func (e *MapEditor) ChromeImage() *image.RGBA {
 	pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	bar := image.Rect(0, 0, e.window.X, e.barHeight())
-	draw.Draw(pic, bar, image.NewUniform(editorPanel), image.Point{}, draw.Src)
-	draw.Draw(pic, image.Rect(0, bar.Max.Y-1, e.window.X, bar.Max.Y), image.NewUniform(editorGold), image.Point{}, draw.Src)
+	drawFrame(pic, stripFrame(bar, edgeBottomBit))
 	for _, b := range e.barEntries() {
 		if b.menu {
 			drawDropdown(pic, e.font, nil, e.menuDropdown(b, false), nil, e.pointer, e.pointerOK)
@@ -1332,8 +1330,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	}
 	e.drawToolbar(pic)
 	status := e.statusRect()
-	draw.Draw(pic, status, image.NewUniform(editorPanel), image.Point{}, draw.Src)
-	draw.Draw(pic, image.Rect(0, status.Min.Y, e.window.X, status.Min.Y+1), image.NewUniform(editorGold), image.Point{}, draw.Src)
+	drawFrame(pic, stripFrame(status, edgeTopBit))
 	if f := e.bodyFont(); f != nil {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}

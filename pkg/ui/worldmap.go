@@ -393,16 +393,11 @@ func drawWorldMapCard(dst *image.RGBA, v WorldMapView, index, slot int, title, _
 		top, paper, bottom = v.Pressed[0], v.Pressed[2], v.Pressed[1]
 	}
 	if worldMapImagePresent(top) && worldMapImagePresent(paper) && worldMapImagePresent(bottom) {
-		body := image.Rect(r.Min.X, r.Min.Y+12, r.Max.X, r.Max.Y-12)
-		for y := body.Min.Y; y < body.Max.Y; y += paper.Bounds().Dy() {
-			part := image.Rect(body.Min.X, y, body.Max.X, min(y+paper.Bounds().Dy(), body.Max.Y))
-			draw.Draw(dst, part, paper, paper.Bounds().Min, draw.Over)
-		}
-		draw.Draw(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+12), top, top.Bounds().Min, draw.Over)
-		draw.Draw(dst, image.Rect(r.Min.X, r.Max.Y-12, r.Max.X, r.Max.Y), bottom, bottom.Bounds().Min, draw.Over)
+		drawFrame(dst, frameSpec{Kind: frameScroll, Rect: r, Scroll: [3]image.Image{top, paper, bottom}})
 	} else {
-		draw.Draw(dst, r, &image.Uniform{C: worldMapPaper}, image.Point{}, draw.Src)
-		drawWorldMapBorder(dst, r, worldMapBorder)
+		s := panelFrame(r, worldMapPaper, worldMapBorder)
+		s.Width = 2
+		drawFrame(dst, s)
 	}
 	clipped := dst.SubImage(r.Inset(7)).(*image.RGBA)
 	if v.Font != nil {
@@ -433,13 +428,6 @@ func drawWorldMapLine(dst *image.RGBA, font *rendertext.Font, s string, x, y int
 	if font != nil {
 		font.Draw(dst, s, x, y, c)
 	}
-}
-
-func drawWorldMapBorder(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
-	draw.Draw(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+2), &image.Uniform{C: c}, image.Point{}, draw.Src)
-	draw.Draw(dst, image.Rect(r.Min.X, r.Max.Y-2, r.Max.X, r.Max.Y), &image.Uniform{C: c}, image.Point{}, draw.Src)
-	draw.Draw(dst, image.Rect(r.Min.X, r.Min.Y, r.Min.X+2, r.Max.Y), &image.Uniform{C: c}, image.Point{}, draw.Src)
-	draw.Draw(dst, image.Rect(r.Max.X-2, r.Min.Y, r.Max.X, r.Max.Y), &image.Uniform{C: c}, image.Point{}, draw.Src)
 }
 
 func stampAt(dst *image.RGBA, pic image.Image, p image.Point, fallback color.RGBA, radius int) {

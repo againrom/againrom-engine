@@ -3732,5 +3732,5 @@ var Committed = Baseline{
 	// comments in pkg/ui/mapeditorsidepanels.go, mapeditorpopupstore.go and
 	// mapeditorresize.go, and the tests mapeditorpanelundock_test.go and
 	// mapeditorpanelwidth_test.go.
-	CommentBytes: 10286413,
+	CommentBytes: 10290604,
 }

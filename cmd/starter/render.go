@@ -61,17 +61,6 @@ func drawText(dst *image.RGBA, s string, x, y int, c color.RGBA) {
 	d.DrawString(s)
 }
 
-func strokeRect(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
-	for _, e := range []image.Rectangle{
-		image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+1),
-		image.Rect(r.Min.X, r.Max.Y-1, r.Max.X, r.Max.Y),
-		image.Rect(r.Min.X, r.Min.Y, r.Min.X+1, r.Max.Y),
-		image.Rect(r.Max.X-1, r.Min.Y, r.Max.X, r.Max.Y),
-	} {
-		draw.Draw(dst, e, image.NewUniform(c), image.Point{}, draw.Src)
-	}
-}
-
 func fill(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
 	draw.Draw(dst, r, image.NewUniform(c), image.Point{}, draw.Src)
 }
@@ -81,8 +70,7 @@ func (a *app) render() *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, winW, winH))
 	fill(img, img.Bounds(), colBackground)
 	fill(img, image.Rect(0, 440+panelH, winW, winH), colPanel)
-	fill(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBackground)
-	strokeRect(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBorder)
+	ui.DrawPanel(img, image.Rect(10, 488+panelH, winW-10, winH-6), colBackground, colBorder)
 	for _, it := range a.layout() {
 		r := it.rect
 		switch it.kind {
@@ -91,22 +79,19 @@ func (a *app) render() *image.RGBA {
 		case iHeading:
 			drawText(img, it.text, r.Min.X, r.Min.Y, colAccent)
 		case iButton:
-			fill(img, r, colButton)
-			strokeRect(img, r, colBorder)
+			ui.DrawPanel(img, r, colButton, colBorder)
 			s := fitHead(it.text, r.Dx()-8)
 			drawText(img, s, r.Min.X+(r.Dx()-textWidth(s))/2, r.Min.Y+(r.Dy()-16)/2, colText)
 		case iToggle:
-			fill(img, r, colButton)
-			strokeRect(img, r, colBorder)
+			ui.DrawPanel(img, r, colButton, colBorder)
 			mark := ui.CheckSpec{On: it.checked, Style: ui.CheckText}.Mark()
 			drawText(img, mark+it.text, r.Min.X+6, r.Min.Y+3, colText)
 		case iField:
-			fill(img, r, colPanel)
+			edge := colBorder
 			if it.focused {
-				strokeRect(img, r, colFocus)
-			} else {
-				strokeRect(img, r, colBorder)
+				edge = colFocus
 			}
+			ui.DrawPanel(img, r, colPanel, edge)
 			s := it.text
 			if it.focused {
 				s += "|"
