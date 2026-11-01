@@ -374,7 +374,7 @@ func guestSpec(t *mapload.Table, c mod.Character, g mod.GuestMember, town int) (
 		_, direct := t.NPC.ServerID(c.NPC)
 		_, _, composed := t.NPC.ComposedArchetype(c.NPC, false, false)
 		if !direct && !composed {
-			portrait := t.NPCCatalog.Portraits()[c.NPC]
+			portrait := CatalogFaces(t)[c.NPC]
 			selector := 0
 			if portrait.Tokens.Has(data.NPCTokenFemale) {
 				selector++

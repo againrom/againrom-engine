@@ -3184,6 +3184,10 @@ package storyguard
 // rows in pkg/ui/linebreak.go, the surfaces test in
 // pkg/ui/linebreak_surfaces_test.go, the guard in
 // internal/archtest/wordwrap.go and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the one NPC face source in
+// pkg/game/gamefiles.go, the readers test in pkg/game/npcfacereaders_test.go,
+// the guard in internal/archtest/npcfaces.go and its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3700,5 +3704,5 @@ var Committed = Baseline{
 	// tests, and this note. It rose again for the view switch in the title
 	// row, the fold the block row takes from the tree, the hosted window's
 	// scroll to its last row, and their tests over a wide fixture.
-	CommentBytes: 10232971,
+	CommentBytes: 10235275,
 }

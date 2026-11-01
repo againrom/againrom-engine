@@ -266,14 +266,25 @@ var secondGameFiles = gameFiles{
 	generator:    generatorProfile{templates: true, classProfile: true, campaignOutfit: true, start: generatorStartTown},
 }
 
-// speakerFaces is the speaker table of t's campaign.
-func speakerFaces(t *mapload.Table) map[int32]data.NPCFace {
+// speakerFaces is the speaker table of t's campaign: the catalog's portraits,
+// then in the second game the Human speakers and the fallback faces for keys
+// the catalog lacks.
+func speakerFaces(t *mapload.Table) map[int32]data.NPCFace { return npcFaceList(t, true) }
+
+// CatalogFaces is the catalog's portraits alone, the rows of speakerFaces that
+// come from the catalog.
+func CatalogFaces(t *mapload.Table) map[int32]data.NPCFace { return npcFaceList(t, false) }
+
+// npcFaceList is the one source of an NPC face list, and the only reader of
+// the catalog's portraits. whole adds the rows the campaign builds beside the
+// catalog.
+func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 	if t == nil {
 		return nil
 	}
 	faces := t.NPCCatalog.Portraits()
 	files := tableFiles(t)
-	if !files.humanSpeakers || t.Humans == nil {
+	if !whole || !files.humanSpeakers || t.Humans == nil {
 		return faces
 	}
 	companions := map[int32]int32{}

@@ -83,11 +83,9 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 		id := sim.EntityID(entity.ID)
 		c.pictures[entity.ID] = nil
 		if fig, ok := mw.figures[id]; ok {
-			r := speakerResolver{src: s.inspector.archives.artSource(), figure: &fig, equipment: mw.equipmentOf(id)}
+			r := speakerResolver{src: s.inspector.archives.artSource(), figure: &fig, equipment: mw.equipmentOf(id),
+				npcFaces: speakerFaces(s.inspector.table)}
 			speaker := -1
-			if catalog := s.inspector.table.NPCCatalog; catalog != nil {
-				r.npcFaces = catalog.Faces
-			}
 			if m.Units[index].Flags&1 != 0 {
 				speaker = int(m.Units[index].ClassSubID)
 			}
