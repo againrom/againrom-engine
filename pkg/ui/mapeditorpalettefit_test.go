@@ -61,22 +61,19 @@ func paletteGrid(t *testing.T, e *MapEditor, key string) (popupSpec, popupLayout
 	return s, layoutPopup(s, e.font, e.bodyFont())
 }
 
-// A palette opens at the size that shows every cell when the room the map
-// gives holds them: wider first, then taller. Structures' large cells need
-// more rows than the room holds at 1280x800, so that window takes the room
-// down to the map's bottom edge and scrolls the rest.
+// A palette opens at a normal width and grows down to the room the map
+// gives, scrolling the rest. At 1280x800 the Units window shows every cell
+// in its rows; Structures' large cells need more rows than the room holds,
+// so that window takes the room down to the map's bottom edge.
 func TestMapEditorPalettesShowEveryCellTheRoomHolds(t *testing.T) {
 	e := paletteEditor(t, 1280, 800)
 	room := e.mapArea()
 	s, l := paletteGrid(t, e, "units")
-	if len(l.GridCells) != len(s.Grid.Cells) || !l.GridBar.Empty() {
-		t.Fatalf("Units shows %d of %d cells, scroll bar %v", len(l.GridCells), len(s.Grid.Cells), l.GridBar)
+	if !l.Rect.In(e.popupBounds()) || l.Rect.Dx() > room.Dx() || l.Rect.Dx() > 400 {
+		t.Fatalf("Units window %v leaves the room %v or opens wider than 400", l.Rect, room)
 	}
-	if !l.Rect.In(e.popupBounds()) || l.Rect.Dx() > room.Dx() {
-		t.Fatalf("Units window %v leaves the room %v", l.Rect, room)
-	}
-	if l.GridCols < len(s.Grid.Cells) && room.Max.X-l.Rect.Max.X >= s.Grid.side() {
-		t.Fatalf("Units window %v grew taller (%d columns) while the room %v had width", l.Rect, l.GridCols, room)
+	if l.GridCols < gridLeastCols || len(l.GridCells) != len(s.Grid.Cells) || !l.GridBar.Empty() {
+		t.Fatalf("Units shows %d of %d cells in %d columns, scroll bar %v", len(l.GridCells), len(s.Grid.Cells), l.GridCols, l.GridBar)
 	}
 
 	s, l = paletteGrid(t, e, "structures")

@@ -25,7 +25,7 @@ func resizable(id editorPopupID) bool {
 
 // listSpec is the list popup as data, at the size it was dragged to.
 func (e *MapEditor) listSpec() (popupSpec, bool) {
-	e.dropForeignSize(popList, e.listKind())
+	e.dropForeignSize(popList, e.windowKey(popList, ""))
 	s, ok := e.listSpecBase()
 	if !ok {
 		e.slackSpec(popList, &s)
@@ -35,6 +35,7 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 	if e.reportDocked() {
 		return e.dockReport(s), true
 	}
+	e.adoptKept(popList, &s)
 	e.placeSpec(popList, &s)
 	if e.places[popList].size == (image.Point{}) {
 		return s, true

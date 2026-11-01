@@ -315,18 +315,55 @@ func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte
 	e.panels.save = save
 	e.panels.state = panelStateOf(data, readErr)
 	e.props.plain = plainViewOf(data, readErr)
+	e.kept = keptSizesOf(data, readErr)
 	e.relayout()
+}
+
+// profileEntries is the profile file's top-level entries, each still
+// encoded, so that one entry that does not read costs no other.
+func profileEntries(data []byte, readErr error) map[string]json.RawMessage {
+	var all map[string]json.RawMessage
+	if readErr != nil || json.Unmarshal(data, &all) != nil {
+		return nil
+	}
+	return all
+}
+
+// keptWindowsEntry is the profile file's entry for the dragged sizes of the
+// windows that keep them.
+const keptWindowsEntry = "windows"
+
+// keptSizesOf reads the dragged window sizes from the profile file: one
+// width and height for each window that keeps its size. A missing, broken or
+// empty entry gives no size, and the window its default.
+func keptSizesOf(data []byte, readErr error) map[string]image.Point {
+	var windows map[string]json.RawMessage
+	if json.Unmarshal(profileEntries(data, readErr)[keptWindowsEntry], &windows) != nil {
+		return nil
+	}
+	var out map[string]image.Point
+	for _, name := range keptWindows {
+		var k struct{ Width, Height int }
+		if json.Unmarshal(windows[name], &k) != nil || k.Width <= 0 || k.Height <= 0 || k.Width > keptSizeMost || k.Height > keptSizeMost {
+			continue
+		}
+		if out == nil {
+			out = map[string]image.Point{}
+		}
+		out[name] = image.Pt(k.Width, k.Height)
+	}
+	return out
 }
 
 // plainViewOf reads the object window's view from the profile file: the
 // right panel's "view", plain unless it names the technical view. A
 // missing or broken file gives the plain view.
 func plainViewOf(data []byte, readErr error) bool {
-	var kept map[string]struct{ View string }
-	if readErr != nil || json.Unmarshal(data, &kept) != nil {
+	var kept struct{ View string }
+	if json.Unmarshal(profileEntries(data, readErr)[sidePanels[panelRight].name], &kept) != nil {
 		return true
 	}
-	return kept[sidePanels[panelRight].name].View != viewTechnical
+	return kept.View != viewTechnical
 }
 
 // The words the profile file keeps the object window's view as.
@@ -343,16 +380,29 @@ func panelStateOf(data []byte, readErr error) [len(sidePanels)]panelState {
 	for i, p := range sidePanels {
 		out[i] = panelState{Restored: !p.startMinimized, Width: p.width}
 	}
-	if readErr != nil {
+	entries := profileEntries(data, readErr)
+	if entries == nil {
 		return out
 	}
-	var kept map[string]struct {
+	kept := map[string]struct {
 		Minimized *bool
 		Open      *bool
 		Width     int
-	}
-	if json.Unmarshal(data, &kept) != nil {
-		return out
+	}{}
+	for _, p := range sidePanels {
+		raw, ok := entries[p.name]
+		if !ok {
+			continue
+		}
+		var k struct {
+			Minimized *bool
+			Open      *bool
+			Width     int
+		}
+		if json.Unmarshal(raw, &k) != nil {
+			return out
+		}
+		kept[p.name] = k
 	}
 	for i, p := range sidePanels {
 		k, ok := kept[p.name]
@@ -379,6 +429,13 @@ func (e *MapEditor) panelStateBytes() []byte {
 		view = viewPlain
 	}
 	kept[sidePanels[panelRight].name]["view"] = view
+	if len(e.kept) > 0 {
+		windows := map[string]any{}
+		for name, sz := range e.kept {
+			windows[name] = map[string]int{"width": sz.X, "height": sz.Y}
+		}
+		kept[keptWindowsEntry] = windows
+	}
 	b, _ := json.Marshal(kept)
 	return append(b, '\n')
 }

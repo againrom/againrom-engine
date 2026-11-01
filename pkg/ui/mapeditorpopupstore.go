@@ -189,11 +189,58 @@ func (e *MapEditor) popupWide(id editorPopupID, natural int) int {
 func (e *MapEditor) windowKey(id editorPopupID, title string) string {
 	switch popupRecords[id].key {
 	case keyByList:
+		if name := e.keptWindow(id); name != "" {
+			return e.listKind() + "/" + name
+		}
 		return e.listKind()
 	case keyByPrompt:
 		return fmt.Sprint(e.prompt.kind, e.message != "")
 	}
 	return title
+}
+
+// keptWindows names the list windows that keep the size they were dragged to
+// past their closing and the editor's run, by the record kind they place.
+var keptWindows = map[RecordKind]string{KindUnit: "units", KindStructure: "structures"}
+
+// keptSizeMost bounds a kept side that the profile file gives.
+const keptSizeMost = 16384
+
+// keptWindow is the name of the keeping window popup id shows, empty for a
+// window that keeps nothing.
+func (e *MapEditor) keptWindow(id editorPopupID) string {
+	if id != popList {
+		return ""
+	}
+	kind, _, ok := e.placeGridKind()
+	if !ok {
+		return ""
+	}
+	return keptWindows[kind]
+}
+
+// keepSize keeps popup id's size for the keeping window it shows.
+func (e *MapEditor) keepSize(id editorPopupID) {
+	name := e.keptWindow(id)
+	if name == "" || e.places[id].size == (image.Point{}) {
+		return
+	}
+	if e.kept == nil {
+		e.kept = map[string]image.Point{}
+	}
+	e.kept[name] = e.places[id].size
+}
+
+// adoptKept gives popup id, opened unsized with spec s, the size kept for the
+// window it shows.
+func (e *MapEditor) adoptKept(id editorPopupID, s *popupSpec) {
+	p := &e.places[id]
+	sz, ok := e.kept[e.keptWindow(id)]
+	if !ok || p.size != (image.Point{}) {
+		return
+	}
+	p.size, p.key = sz, e.windowKey(id, s.Title)
+	p.minWide = layoutPopup(*s, e.font, e.bodyFont()).Rect.Dx()
 }
 
 // dropPopup applies the parts of a policy to popup id's row.
@@ -286,6 +333,7 @@ func (e *MapEditor) resizeFloating(d image.Point) {
 		}
 	}
 	p.size = image.Pt(max(1, w), max(1, h))
+	e.keepSize(id)
 	s, _ = e.movableSpec(id)
 	now := layoutPopup(s, e.font, e.bodyFont()).Rect
 	at := r.Min

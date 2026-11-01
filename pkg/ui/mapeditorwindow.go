@@ -1661,7 +1661,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 			if e.dragCard != 0 {
 				e.dropCard()
 			}
-			if _, ok := e.panelOf(e.drag); ok && e.dragEdge != 0 {
+			if _, ok := e.panelOf(e.drag); (ok || e.keptWindow(e.drag) != "") && e.dragEdge != 0 {
 				e.savePanels()
 			}
 			e.drag, e.dragEdge, e.dragCard = popNone, 0, 0

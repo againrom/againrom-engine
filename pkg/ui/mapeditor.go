@@ -222,7 +222,8 @@ type MapEditor struct {
 	relations                   relationMatrix
 	lastSeed                    uint32 // the seed the last whole-map command took
 	panels                      editorPanels
-	props                       propertyView // the object window's plain or technical view
+	kept                        map[string]image.Point // the size each keeping list window was dragged to, by window name; outside editorChrome, so a cancelled window does not take it back
+	props                       propertyView           // the object window's plain or technical view
 	tree                        editorTree
 	editorChrome
 }

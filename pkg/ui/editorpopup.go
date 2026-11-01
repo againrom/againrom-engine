@@ -171,16 +171,21 @@ func gridRoom(s popupSpec) image.Rectangle {
 	return s.Room
 }
 
-// gridWidth is the width popup s takes, w its own, so that a grid of every
-// row whose columns follow the width holds every cell on one line, up to
-// the room right of the popup's left edge.
+// gridLeastCols is the columns a grid of every row shows at least, where the
+// room allows.
+const gridLeastCols = 6
+
+// gridWidth is the width popup s takes, w its own, widened only so that a
+// grid of every row whose columns follow the width shows gridLeastCols
+// columns, up to the room's width (the popup then stands left of its corner,
+// inside the bounds). The grid scrolls the rest.
 func gridWidth(s popupSpec, w int) int {
 	g, room := s.Grid, gridRoom(s)
 	if g == nil || g.Rows > 0 || g.Cols > 0 || room.Empty() {
 		return w
 	}
-	need := 2*popupPad + g.HeadW + len(g.Cells)*g.side() + widgetSpriteSize + 2
-	return max(w, min(need, room.Max.X-max(s.At.X, room.Min.X)))
+	need := 2*popupPad + g.HeadW + min(len(g.Cells), gridLeastCols)*g.side() + widgetSpriteSize + 2
+	return max(w, min(need, room.Dx()))
 }
 
 // fitGrid is popup s's grid with the rows it shows at outer width w, the
@@ -231,8 +236,8 @@ type popupSpec struct {
 	Width       int
 	Bounds      image.Rectangle
 	// Room is what a grid of every row (Rows 0) grows into while the popup
-	// keeps its own size: the width that holds every cell on one line, then
-	// the rows down to Room's bottom. Empty is Bounds.
+	// keeps its own size: the width that shows its least columns, then the
+	// rows down to Room's bottom. Empty is Bounds.
 	Room image.Rectangle
 	// Slack lets a dragged popup hang past the bounds, keeping its title row
 	// and popupKeepWide pixels of its width inside.
