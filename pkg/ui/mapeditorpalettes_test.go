@@ -266,9 +266,9 @@ func TestMapEditorPaletteOverTheSearchFieldMovesByItsTitle(t *testing.T) {
 func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		e, _, saved := panelsEditor(t, 1280, 800, lang)
-		strip := e.panelStrip()
-		if f := e.font; strip != fontHeight(f, 15)+popupRowExtra+2 || strip <= 0 {
-			t.Fatalf("strip %d", strip)
+		strip, low := e.panelStrip(panelLeft), e.panelStrip(panelBottom)
+		if f := e.font; strip != fontHeight(f, 15)+popupRowExtra+2 || strip <= 0 || low < strip {
+			t.Fatalf("strip %d, bottom strip %d", strip, low)
 		}
 		dragPanelEdge(t, e, popTree, 10)
 		for i, want := range []int{270, 520} {
@@ -318,7 +318,7 @@ func TestMapEditorPanelsMinimizeToAStrip(t *testing.T) {
 		}
 		g, _, _ := panelsEditor(t, 1280, 800, lang)
 		g.SetPanelProfile(last, nil, nil)
-		if g.panelOpen(panelLeft) || g.panelsShown() != [2]int{strip, 520} {
+		if g.panelOpen(panelLeft) || g.panelsShown() != [len(sidePanels)]int{strip, 520, low} {
 			t.Fatalf("read back %v", g.panelsShown())
 		}
 		_ = g.Key("objectspanel")

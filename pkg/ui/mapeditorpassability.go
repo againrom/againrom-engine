@@ -55,7 +55,7 @@ var (
 )
 
 // passabilityShown reports whether the map carries the passability fills:
-// the View menu's switch is on or the passability brush owns the canvas.
+// the Layers menu's switch is on or the passability brush owns the canvas.
 func (e *MapEditor) passabilityShown() bool {
 	if e.doc == nil || len(e.doc.Passability) != e.doc.Width*e.doc.Height || len(e.doc.Passability) == 0 {
 		return false
@@ -63,7 +63,7 @@ func (e *MapEditor) passabilityShown() bool {
 	return e.view.passability || e.brushActive() && e.brush.mode == brushPassability
 }
 
-// borderShown reports whether the map carries the border view: the View
+// borderShown reports whether the map carries the border view: the Layers
 // menu's switch is on, which it is until the user turns it off. The border
 // cells are those the host's world closes by its border arm.
 func (e *MapEditor) borderShown() bool {

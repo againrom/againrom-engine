@@ -21,10 +21,10 @@ func menuKeys(e *MapEditor, menu string) []string {
 
 // The Map menu reads Create new map, Open... (the file dialog), Save, Save
 // as..., then Built-in maps... (the installed maps' list) below them, in EN
-// and RU.
+// and RU; All records and the Generate group stand above Exit.
 func TestMapEditorMapMenuNamesItsRowsAndPutsTheBuiltInMapsBelow(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	if got, want := menuKeys(e, "map"), []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "panel", "close"}; !slices.Equal(got, want) {
+	if got, want := menuKeys(e, "map"), []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "panel", "records", "", "randomterrain", "randomheights", "", "close"}; !slices.Equal(got, want) {
 		t.Fatalf("the Map menu's rows are %v, want %v", got, want)
 	}
 	for _, c := range []struct {
@@ -81,15 +81,15 @@ func TestMapEditorMapListSplitsSingleAndMultiplayerMaps(t *testing.T) {
 }
 
 // The bar lists Map, then the panels Scripts (Scenario), Players, Groups,
-// Units, Sacks, Structures, Objects and Trees, then View and Tools; there is
-// no Brushes entry.
+// Units, Sacks, Structures, Objects and Trees, then Undo, Redo and Save;
+// there is no Brushes, View or Tools entry.
 func TestMapEditorBarListsThePanelsInTheirOrder(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	var got []string
 	for _, b := range e.barEntries() {
 		got = append(got, b.key)
 	}
-	want := []string{"map", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "view", "tools", "undo", "redo", "save"}
+	want := []string{"map", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "undo", "redo", "save"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("the bar reads %v, want %v", got, want)
 	}
@@ -122,9 +122,9 @@ func TestMapEditorObjectsAndTreesEntriesOpenTheObjectBrush(t *testing.T) {
 }
 
 // The Scenario list's bottom row holds the Drop zones toggle left of Add; it
-// turns the drop tool on and off and shows its state. Tools holds neither
-// Drop zones nor Draw trigger area; View and L still reach the area tool,
-// which on this map without a script says so.
+// turns the drop tool on and off and shows its state. No menu holds Drop
+// zones or Draw trigger area; the toolbar and L reach the area tool, which
+// on this map without a script says so.
 func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.showRecords(editorScriptsFilter)
@@ -154,59 +154,67 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 		t.Fatalf("the Units list's buttons are %q", s.Buttons)
 	}
 	for _, key := range []string{"drop", "dropzones", "drawarea"} {
-		if slices.Contains(menuKeys(e, "tools"), key) {
-			t.Errorf("Tools still lists %s", key)
+		for _, menu := range []string{"map", "layers"} {
+			if slices.Contains(menuKeys(e, menu), key) {
+				t.Errorf("%s lists %s", menu, key)
+			}
 		}
 	}
-	if !slices.Contains(menuKeys(e, "view"), "drawarea") {
-		t.Error("View no longer lists Draw trigger area")
-	}
 	_ = e.Key("escape")
+	modesClick(e, toolPoint(t, e, "drawarea"))
+	if e.message != e.word("editor.area.noscript") {
+		t.Fatalf("the toolbar no longer reaches the trigger area tool: %q", e.message)
+	}
+	e.message = ""
 	if err := e.Key("drawarea"); err != nil || e.message != e.word("editor.area.noscript") {
 		t.Fatalf("L no longer reaches the trigger area tool: %v %q", err, e.message)
 	}
 }
 
-// Tools holds New trigger, then the brushes under a Brushes heading, then
-// random terrain and random heights under a Whole map heading. There is no
-// No brush row and no Brushes menu; RU names the terrain brush Ландшафты. A
+// The Map menu holds random terrain and random heights under a Generate
+// heading, on a map that takes a brush and on one that takes none; no menu
+// holds a brush row or a Brushes menu. RU names the heading Генерация. A
 // press on a heading does nothing.
-func TestMapEditorToolsHoldTheBrushesAndTheWholeMapGroup(t *testing.T) {
+func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 	e, _ := passEditor(t)
-	want := []string{"newtrigger", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "", "randomterrain", "randomheights"}
-	if got := menuKeys(e, "tools"); !slices.Equal(got, want) {
-		t.Fatalf("Tools rows %v, want %v", got, want)
-	}
-	if e.menuItems("brushes") != nil {
-		t.Fatal("a Brushes menu remains")
-	}
-	for _, c := range []struct{ lang, brushes, terrain, whole, off string }{
-		{"", "Brushes", "Terrain", "Whole map", "No brush"},
-		{"russian", "Кисти", "Ландшафты", "Вся карта", "Без кисти"},
-	} {
-		e.SetWords(words.For(c.lang))
-		items := e.menuItems("tools")
-		if items[1].label != c.brushes || items[2].label != "[ ] "+c.terrain || items[6].label != c.whole {
-			t.Errorf("%q: Tools reads %+v", c.lang, items)
+	ro, _ := brushEditor(t)
+	ro.doc.Edits = nil // a document that cannot be edited takes no brush
+	for _, m := range []*MapEditor{e, ro} {
+		keys := menuKeys(m, "map")
+		at := slices.Index(keys, "randomterrain")
+		if at < 1 || keys[at-1] != "" || keys[at+1] != "randomheights" {
+			t.Fatalf("Map rows %v hold no Generate group", keys)
 		}
-		for _, it := range items {
-			if strings.Contains(it.label, c.off) {
-				t.Errorf("%q: Tools lists %q", c.lang, it.label)
+		for _, menu := range []string{"map", "layers"} {
+			for _, k := range menuKeys(m, menu) {
+				if strings.HasPrefix(k, "brush.") {
+					t.Errorf("%s lists %s", menu, k)
+				}
 			}
+		}
+	}
+	if e.menuItems("brushes") != nil || e.menuItems("tools") != nil || e.menuItems("view") != nil {
+		t.Fatal("a Brushes, Tools or View menu remains")
+	}
+	at := slices.Index(menuKeys(e, "map"), "randomterrain")
+	for _, c := range []struct{ lang, generate string }{{"", "Generate"}, {"russian", "Генерация"}} {
+		e.SetWords(words.For(c.lang))
+		if got := e.menuItems("map")[at-1].label; got != c.generate {
+			t.Errorf("%q: the Generate heading reads %q", c.lang, got)
 		}
 		if e.brushModeWord(brushOff) != "" {
 			t.Errorf("%q: the brush off reads %q", c.lang, e.brushModeWord(brushOff))
 		}
 	}
-	chromeClick(e, barPoint(t, e, "tools"))
+	chromeClick(e, barPoint(t, e, "map"))
 	b, _ := e.openMenuEntry()
 	rows := e.menuDropdown(b, true).List.Rows()
-	if rows[1].Choosable || rows[6].Choosable || !rows[2].Choosable {
+	if rows[at-1].Choosable || !rows[at].Choosable {
 		t.Fatalf("heading rows are choosable: %+v", rows)
 	}
-	chromeClick(e, menuPoint(t, e, 1))
-	if e.brush.mode != brushOff {
-		t.Fatalf("a press on the Brushes heading turned on brush %d", e.brush.mode)
+	chromeClick(e, menuPoint(t, e, at-1))
+	if e.prompt.open() || e.brush.mode != brushOff {
+		t.Fatalf("a press on the Generate heading opened prompt %d, brush %d", e.prompt.kind, e.brush.mode)
 	}
 }
 

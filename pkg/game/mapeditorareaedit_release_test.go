@@ -359,7 +359,7 @@ func TestReleaseMapEditorAreaFrames(t *testing.T) {
 }
 
 // TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps tries the draw tool, by
-// L and by the View menu item, on the installed multiplayer maps Beast and
+// L and by the toolbar button, on the installed multiplayer maps Beast and
 // LuMoir, as the root has them: it refuses with the multiplayer word and the
 // map's bytes are unchanged.
 func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
@@ -370,7 +370,7 @@ func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
 		if k := strings.ToLower(key); k != "loose/beast.alm" && k != "loose/lumoir.alm" {
 			continue
 		}
-		for _, route := range []string{"key", "menu"} {
+		for _, route := range []string{"key", "toolbar"} {
 			e := x.Editor()
 			e.Layout(1280, 800)
 			if err := e.Open(key); err != nil {
@@ -384,10 +384,7 @@ func TestReleaseMapEditorAreaDrawRefusesOnMultiplayerMaps(t *testing.T) {
 			if route == "key" {
 				_ = e.Key("drawarea")
 			} else {
-				r, ok := e.BarRect("view")
-				trigClick(t, e, r, ok, "View")
-				n, _ := e.MenuRow("view", "drawarea")
-				r, ok = e.MenuRowRect(n)
+				r, ok := e.ToolbarRect("drawarea")
 				trigClick(t, e, r, ok, "Draw trigger area")
 			}
 			if e.AreaDrawArmed() || e.Message() == "" || e.Dirty() || !bytes.Equal(e.Document().SourceBytes, before) {

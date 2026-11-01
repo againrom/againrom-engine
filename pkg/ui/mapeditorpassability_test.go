@@ -92,10 +92,14 @@ func passClick(e *MapEditor, r image.Rectangle) {
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y}, time.Unix(2, 0))
 }
 
-// passMenu clicks the bar entry key, then row n of its menu.
+// passMenu clicks the bar entry or toolbar button key, then row n of its
+// menu.
 func passMenu(t *testing.T, e *MapEditor, key string, n int) {
 	t.Helper()
 	r, ok := e.BarRect(key)
+	if !ok {
+		r, ok = e.ToolbarRect(key)
+	}
 	if !ok {
 		t.Fatalf("no %s entry", key)
 	}
@@ -107,32 +111,36 @@ func passMenu(t *testing.T, e *MapEditor, key string, n int) {
 	passClick(e, r)
 }
 
-// The Tools menu's brush rows turn on each brush; a row of the brush already
-// on leaves it on. On a read-only document the menu lists no brush, and the
-// Objects and Trees entries are disabled and turn on nothing.
+// The toolbar's brush buttons turn on each brush; the button of the brush
+// already on leaves it on, and the current one shows on. On a read-only
+// document the brush buttons are disabled, and the Objects and Trees entries
+// are disabled and turn on nothing.
 func TestMapEditorToolsMenuEntersEachBrush(t *testing.T) {
 	e, _ := passEditor(t)
 	for _, want := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
-		passMenu(t, e, "tools", menuKeyRow(t, e, "tools", brushMenuKeys[want]))
+		r, _ := e.ToolbarRect(brushMenuKeys[want])
+		passClick(e, r)
 		if e.brush.mode != want || e.menu != "" {
 			t.Fatalf("%s: mode %d menu %q, want mode %d", brushMenuKeys[want], e.brush.mode, e.menu, want)
 		}
 	}
-	height := menuKeyRow(t, e, "tools", "brush.height")
-	passMenu(t, e, "tools", height)
-	passMenu(t, e, "tools", height)
+	height, _ := e.ToolbarRect("brush.height")
+	passClick(e, height)
+	passClick(e, height)
 	if e.brush.mode != brushHeight {
 		t.Fatalf("choosing the brush on turned it to %d", e.brush.mode)
 	}
-	items := e.menuItems("tools")
-	if !strings.HasPrefix(items[height].label, "[x] ") || !strings.HasPrefix(items[height-1].label, "[ ] ") {
-		t.Fatalf("menu rows %+v", items)
+	if on, _, _ := e.ToolbarState("brush.height"); !on {
+		t.Fatal("the height brush button is not on")
+	}
+	if on, _, _ := e.ToolbarState("brush.terrain"); on {
+		t.Fatal("the terrain brush button is on with the height brush")
 	}
 
 	ro, _ := brushEditor(t)
 	ro.doc.Edits = nil // a document that cannot be edited offers no brush
-	if _, ok := ro.MenuRow("tools", "brush.terrain"); ok {
-		t.Fatal("the Tools menu lists a brush on a read-only document")
+	if _, off, _ := ro.ToolbarState("brush.terrain"); !off {
+		t.Fatal("the toolbar offers a brush on a read-only document")
 	}
 	for _, key := range []string{"objects", "trees"} {
 		for _, b := range ro.barEntries() {
@@ -194,7 +202,7 @@ func TestMapEditorPassabilityViewFillsAndNames(t *testing.T) {
 	if e.view.passability || len(e.passabilityQuads()) != 0 {
 		t.Fatal("the passability view is on by default")
 	}
-	items := e.menuItems("view")
+	items := e.menuItems("layers")
 	row := -1
 	for i, it := range items {
 		if it.key == "passview" {
@@ -202,11 +210,11 @@ func TestMapEditorPassabilityViewFillsAndNames(t *testing.T) {
 		}
 	}
 	if row < 0 {
-		t.Fatal("the View menu has no Passability row")
+		t.Fatal("the Layers menu has no Passability row")
 	}
-	passMenu(t, e, "view", row)
+	passMenu(t, e, "layers", row)
 	if !e.view.passability {
-		t.Fatal("the View row did not turn the view on")
+		t.Fatal("the Layers row did not turn the view on")
 	}
 	e.ShowCell(image.Pt(30, 30))
 	quads := e.passabilityQuads()

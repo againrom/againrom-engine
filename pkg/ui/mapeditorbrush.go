@@ -141,7 +141,7 @@ const (
 // brushKeyModes is the brush mode each brush key switches.
 var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability}
 
-// brushModeWord is the word the Tools menu and the list title give mode.
+// brushModeWord is the word the list title gives mode.
 func (e *MapEditor) brushModeWord(mode brushMode) string {
 	switch mode {
 	case brushTerrain:
@@ -575,7 +575,7 @@ func (e *MapEditor) objectBrush(forest bool) {
 	e.brush.forest.on = forest
 }
 
-// chooseBrush is a Tools menu row: it turns mode on, or every brush off
+// chooseBrush is a toolbar tool: it turns mode on, or every brush off
 // for brushOff, and leaves a brush already on as it is.
 func (e *MapEditor) chooseBrush(mode brushMode) {
 	if e.brushHost() == nil || e.catalog {

@@ -306,7 +306,7 @@ func slicesEqual[T comparable](a, b []T) bool {
 
 // TestReleaseMapEditorPassabilityFrames writes the owner's frames of the
 // editor's terrain tools into AGAINROM_PASSABILITY_FRAMES: the map with the
-// grid and the passability view off and on, the Brushes menu, the terrain
+// grid and the passability view off and on, the toolbar, the terrain
 // list with its swatches and the passability and height brushes' status
 // lines. Without that directory it drives the same steps.
 func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
@@ -324,10 +324,15 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 		e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)
 		now = now.Add(time.Second)
 	}
+	tool := func(e *ui.MapEditor, key string) {
+		t.Helper()
+		r, ok := e.ToolbarRect(key)
+		click(e, r, ok, "the "+key+" button")
+	}
 	menu := func(e *ui.MapEditor, bar, key string) {
 		t.Helper()
-		r, ok := e.BarRect(bar)
-		click(e, r, ok, "the "+bar+" entry")
+		r, ok := e.ToolbarRect(bar)
+		click(e, r, ok, "the "+bar+" button")
 		n, ok := e.MenuRow(bar, key)
 		if !ok {
 			t.Fatalf("the %s menu has no %s row", bar, key)
@@ -358,26 +363,22 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 		t.Fatal("the map has no interior water")
 	}
 	e.ShowCell(water)
-	menu(e, "view", "grid")
+	tool(e, "grid")
 	shot(e, "view-grid")
-	menu(e, "view", "passview")
+	menu(e, "layers", "passview")
 	if s := hoverStatus(e, water); !strings.Contains(s, x.inspectionUTF8(words.For(x.archives.Base.Profile.Language).Text("editor.pass.water"))) {
 		t.Fatalf("status %q does not name Water", s)
 	}
 	shot(e, "view-grid-passability")
-	r, ok := e.BarRect("tools")
-	click(e, r, ok, "the Tools entry")
-	shot(e, "brushes-menu")
-	n, _ := e.MenuRow("tools", "brush.terrain")
-	r, ok = e.MenuRowRect(n)
-	click(e, r, ok, "the Terrain row")
+	shot(e, "toolbar")
+	tool(e, "brush.terrain")
 	shot(e, "terrain-swatches")
-	menu(e, "tools", "brush.passability")
+	tool(e, "brush.passability")
 	_ = e.Key("down")
 	pointerStroke(e, []image.Point{water})
 	hoverStatus(e, water)
 	shot(e, "passability-brush-unblock-water")
-	menu(e, "tools", "brush.height")
+	tool(e, "brush.height")
 	hoverStatus(e, water)
 	shot(e, "height-brush-status")
 }
@@ -435,9 +436,9 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	r, ok := e.BarRect("view")
-	trigClick(t, e, r, ok, "View")
-	n, _ := e.MenuRow("view", "passview")
+	r, ok := e.ToolbarRect("layers")
+	trigClick(t, e, r, ok, "Layers")
+	n, _ := e.MenuRow("layers", "passview")
 	r, ok = e.MenuRowRect(n)
 	trigClick(t, e, r, ok, "Passability")
 	line := check("keys, view on", false)

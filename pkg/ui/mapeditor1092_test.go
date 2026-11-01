@@ -49,12 +49,12 @@ func TestMapEditor1092NativePixelsSelectionFilteringAndTransactionalOpen(t *test
 	e := editor1092(t)
 	e.Layout(800, 600)
 	v := e.doc.Viewer
-	bar := e.barHeight()
-	if v.cam.ViewW != e.mapArea().Dx() || v.cam.ViewH != 600-2*bar || v.place.Scale() != 1 {
-		t.Fatal("the map frame is not the window between the bar and the strip")
+	top := e.toolbarRect().Max.Y
+	if v.cam.ViewW != e.mapArea().Dx() || v.cam.ViewH != e.mapArea().Dy() || v.place.Scale() != 1 {
+		t.Fatal("the map frame is not the window between the toolbar and the bottom panel")
 	}
-	if _, oy := v.place.Origin(); int(oy) != bar {
-		t.Fatalf("the map frame starts at %v, not below the bar", oy)
+	if _, oy := v.place.Origin(); int(oy) != top {
+		t.Fatalf("the map frame starts at %v, not below the toolbar", oy)
 	}
 	e.filter, e.listShown = 0, true
 	e.Select(30, true)
@@ -153,7 +153,7 @@ func TestMapEditor1092LargeMapFitAndLocalZoomAtSupportedSizes(t *testing.T) {
 			if err := e.Open("large"); err != nil {
 				t.Fatal(err)
 			}
-			viewH := size.Y - 2*e.barHeight()
+			viewH := e.mapArea().Dy()
 			want := math.Min(float64(size.X)/float64(cells*32), float64(viewH)/float64(cells*32))
 			check := func() {
 				if math.Abs(v.cam.Zoom-want) > 1e-12 {

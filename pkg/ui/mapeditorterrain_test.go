@@ -90,7 +90,7 @@ func terrainEditor(t *testing.T) (*MapEditor, *terrainHost, *[]string) {
 	return e, h, &opened
 }
 
-// Ctrl+E and Ctrl+Shift+R, and their Tools rows, ask for a seed holding the
+// Ctrl+E and Ctrl+Shift+R, and their Map menu rows, ask for a seed holding the
 // one after the last used, 1 at first; Enter runs the command with the typed
 // seed and the status line names it; a seed that is not a whole number from
 // 0 to 4294967295 runs nothing and says why.
@@ -137,15 +137,15 @@ func TestRandomCommandsTakeTheTypedSeed(t *testing.T) {
 		t.Fatalf("a refused seed ran a command: %q", h.calls.lines)
 	}
 	var keys []string
-	for _, it := range e.menuItems("tools") {
+	for _, it := range e.menuItems("map") {
 		keys = append(keys, it.key)
 	}
 	if !slices.Contains(keys, "randomterrain") || !slices.Contains(keys, "randomheights") {
-		t.Fatalf("the Tools menu holds %q", keys)
+		t.Fatalf("the Map menu holds %q", keys)
 	}
 	e.menuAct("randomheights")
 	if e.prompt.kind != promptSeed || e.prompt.scope != "randomheights" || e.prompt.path != "78" {
-		t.Fatalf("the Tools row opened prompt %d %q %q", e.prompt.kind, e.prompt.scope, e.prompt.path)
+		t.Fatalf("the Generate row opened prompt %d %q %q", e.prompt.kind, e.prompt.scope, e.prompt.path)
 	}
 }
 
@@ -269,7 +269,7 @@ func TestHeightNumbersShowTheVertexHeightMinus64(t *testing.T) {
 	}
 	e.menuAct("heightlabels")
 	if rects, _ := e.HeightLabels(); len(rects) != 0 {
-		t.Fatal("the View row did not turn the numbers off")
+		t.Fatal("the Layers row did not turn the numbers off")
 	}
 }
 

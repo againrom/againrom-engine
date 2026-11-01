@@ -374,13 +374,13 @@ func TestEditorViewMenuSwitchesTheAnnotations(t *testing.T) {
 	_ = e.Open("popups")
 	e.Select(0, false)
 	with := len(e.markerLines())
-	chromeClick(e, barPoint(t, e, "view"))
-	chromeClick(e, menuPoint(t, e, 1)) // footprints
+	chromeClick(e, toolPoint(t, e, "layers"))
+	n, _ := e.MenuRow("layers", "footprints")
+	chromeClick(e, menuPoint(t, e, n))
 	if without := len(e.markerLines()); without != with-4 {
 		t.Fatalf("footprints off: %d lines, was %d", without, with)
 	}
-	chromeClick(e, barPoint(t, e, "view"))
-	chromeClick(e, menuPoint(t, e, 3)) // grid
+	chromeClick(e, toolPoint(t, e, "grid"))
 	e.doc.Viewer.cam.SetZoom(1)
 	if !e.view.grid || len(e.gridLines()) == 0 {
 		t.Fatal("the grid did not switch on")

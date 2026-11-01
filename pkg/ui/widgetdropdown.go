@@ -24,6 +24,12 @@ type dropdown struct {
 	Ink      color.RGBA
 	// ListWidth widens the open list past the box; zero is the box's width.
 	ListWidth int
+	// ListRight, when set, is the x the open list ends left of: a list that
+	// would pass it opens leftward from there.
+	ListRight int
+	// Icon, when set, draws the closed box as an icon button, sunk while
+	// the list is open: a toolbar's drop-down.
+	Icon *editorIcon
 }
 
 // button is the arrow button at the closed box's right end.
@@ -39,7 +45,11 @@ func (d dropdown) listBox(f *text.Font) listBox {
 	if d.List != nil {
 		rows = max(1, min(rows, d.List.Len()))
 	}
-	r := image.Rect(d.Rect.Min.X, d.Rect.Max.Y+1, d.Rect.Min.X+max(d.Rect.Dx(), d.ListWidth)-widgetSpriteSize, d.Rect.Max.Y+1)
+	x, w := d.Rect.Min.X, max(d.Rect.Dx(), d.ListWidth)
+	if d.ListRight > 0 && x+w > d.ListRight {
+		x = max(0, d.ListRight-w)
+	}
+	r := image.Rect(x, d.Rect.Max.Y+1, x+w-widgetSpriteSize, d.Rect.Max.Y+1)
 	return newListBox(r, max(1, rows), f)
 }
 
@@ -67,14 +77,31 @@ func (d dropdown) Covers(f *text.Font, p image.Point) bool {
 	return p.In(l.Rect.Inset(-1)) || p.In(l.Bar())
 }
 
-// drawDropdown is the one drop-down builder: the closed box as an edit
-// field's well with the text and an arrow push button, then, while open, a
-// fill and the shared list box over the drop-down's list model.
+// drawDropdown is the one drop-down builder: the closed box, an edit field's
+// well with the text and an arrow push button or, with Icon, an icon button,
+// then, while open, a fill and the shared list box over the drop-down's list
+// model.
 func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdown, rowText listRowText, pointer image.Point, pointerOK bool) {
 	recordWidget(widgetDropdown, d.Rect, d)
 	if dst == nil || d.Rect.Dx() < 8 || d.Rect.Dy() < 4 {
 		return
 	}
+	if d.Icon != nil {
+		drawIconButton(dst, iconButton{Rect: d.Rect, Icon: d.Icon, On: d.Open, Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled})
+	} else {
+		drawDropdownBox(dst, f, d, pointer, pointerOK)
+	}
+	if !d.Open || d.List == nil {
+		return
+	}
+	l := d.listBox(f)
+	drawFrame(dst, panelFrame(l.Rect.Union(l.Bar()).Inset(-2), d.Fill, d.Ink))
+	drawListBox(dst, f, frames, l, d.List, rowText, pointer, pointerOK)
+}
+
+// drawDropdownBox is the closed box: an edit field's well with the text and
+// an arrow push button.
+func drawDropdownBox(dst *image.RGBA, f *text.Font, d dropdown, pointer image.Point, pointerOK bool) {
 	arrow := d.button()
 	box := image.Rect(d.Rect.Min.X, d.Rect.Min.Y, arrow.Min.X, d.Rect.Max.Y)
 	th := 0
@@ -94,12 +121,6 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 	}
 	drawPushButton(dst, f, pushButton{Rect: arrow, Label: label, Literal: true, LabelRaise: labelRaise(f), Focus: d.Focus,
 		Hover: pointerOK && pointer.In(arrow), Disabled: d.Disabled})
-	if !d.Open || d.List == nil {
-		return
-	}
-	l := d.listBox(f)
-	drawFrame(dst, panelFrame(l.Rect.Union(l.Bar()).Inset(-2), d.Fill, d.Ink))
-	drawListBox(dst, f, frames, l, d.List, rowText, pointer, pointerOK)
 }
 
 // dropdownStep moves the highlighted choice by delta, wrapping at both ends:

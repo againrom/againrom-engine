@@ -275,7 +275,7 @@ func TestReleaseMapEditorNewMapStartingHeight(t *testing.T) {
 	}
 }
 
-// The height numbers on the installed map, through the View menu's key: off
+// The height numbers on the installed map, through the Layers menu's key: off
 // at first, then each shows the height of its corner minus 64, and after a
 // random-heights edit they show the new heights. Frames of both states for
 // the owner.

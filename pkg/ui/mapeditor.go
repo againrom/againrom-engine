@@ -630,11 +630,11 @@ func (e *MapEditor) Layout(w, h int) (int, int) {
 			disposeFrameCanvas(v.canvas)
 			v.canvas = nil
 		}
-		// The frame is the map area: centred in the window between a bar and
-		// a strip of equal height, it sits at scale 1 below the bar. Its
+		// The frame is the map area: centred at scale 1 in a window the map
+		// area's top above and below it, its top is the map area's top. Its
 		// window is the map area's columns; mapOrigin adds the left panel.
 		v.frameW, v.frameH = fw, fh
-		v.place = frame.Fit(fw, fh, fw, h)
+		v.place = frame.Fit(fw, fh, fw, 2*area.Min.Y+fh)
 		v.syncMapViewport()
 		v.cam.SetMinimumZoom(math.Min(camera.ZoomMin, e.fitZoom()))
 	}

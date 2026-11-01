@@ -6,10 +6,11 @@ import (
 	"time"
 )
 
-// barArrowClick presses and releases the arrow button of the bar drop-down key.
+// barArrowClick presses and releases the arrow button of the bar or toolbar
+// drop-down key.
 func barArrowClick(t *testing.T, e *MapEditor, key string) {
 	t.Helper()
-	for _, b := range e.barEntries() {
+	for _, b := range append(e.barEntries(), e.toolbarMenus()...) {
 		if b.key != key {
 			continue
 		}
@@ -22,12 +23,12 @@ func barArrowClick(t *testing.T, e *MapEditor, key string) {
 	t.Fatalf("no %s entry", key)
 }
 
-// With any bar menu open, a press on another bar drop-down's arrow closes the
-// open menu and opens that one; a press on the open menu's own arrow closes it.
-// The open list is wider than its box, so it must not swallow the arrows of the
-// entries beside it.
+// With any bar or toolbar menu open, a press on another drop-down's arrow
+// closes the open menu and opens that one; a press on the open menu's own
+// arrow closes it. The open list is wider than its box, so it must not
+// swallow the arrows of the entries beside it.
 func TestMapEditorBarMenusOpenFromAnyOpenMenu(t *testing.T) {
-	menus := []string{"map", "view", "tools"}
+	menus := []string{"map", "layers"}
 	for _, first := range menus {
 		for _, second := range menus {
 			if first == second {

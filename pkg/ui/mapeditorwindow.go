@@ -33,9 +33,12 @@ const (
 	popMenu
 	popBar
 	popStatus
-	popArea  // a trigger area's label on the map
-	popTree  // the left side panel's tree of the map
-	popProps // the right side panel while it hosts no window
+	popArea    // a trigger area's label on the map
+	popTree    // the left side panel's tree of the map
+	popProps   // the right side panel while it hosts no window
+	popReport  // the bottom panel while it shows no report, or its strip
+	popToolbar // the toolbar over the map
+	popCount
 )
 
 // editorChrome is the chrome's state: the fonts, where each popup stands, the
@@ -53,7 +56,7 @@ type editorChrome struct {
 	commandWords           [8]string
 	listShown              bool
 	objectHidden           bool
-	places                 [popProps + 1]popupStanding // where each movable popup stands, its size and its policy: the placement store
+	places                 [popCount]popupStanding // where each movable popup stands, its size and its policy: the placement store
 	model                  *Picker
 	modelKey               string
 	modelSync              int
@@ -98,7 +101,8 @@ type editorChrome struct {
 	tip editorTip
 }
 
-// editorView is the View menu's switches over the map's annotations.
+// editorView is the Layers menu's and the grid button's switches over the
+// map's annotations.
 type editorView struct {
 	hideDrops, hideFootprints, hideIssues, grid, hideAreas bool
 	passability, hideBorder                                bool
@@ -148,12 +152,12 @@ func (e *MapEditor) barHeight() int {
 	return entries[len(entries)-1].rect.Max.Y + 3
 }
 
-// mapArea is the window rectangle the map fills: the window between the bar
-// and the status strip, less the open side panels.
+// mapArea is the window rectangle the map fills: the window between the
+// toolbar and the status strip, less the side panels and the bottom panel.
 func (e *MapEditor) mapArea() image.Rectangle {
-	top := e.barHeight()
+	top := e.toolbarRect().Max.Y
 	shown := e.panelsShown()
-	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], e.mapBottom(top))
+	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], max(top+1, e.mapBottom(top)-shown[panelBottom]))
 }
 
 // mapBottom is the map's and the side panels' bottom edge: the status
@@ -163,15 +167,17 @@ func (e *MapEditor) mapBottom(top int) int {
 }
 
 func (e *MapEditor) statusRect() image.Rectangle {
-	return image.Rect(0, e.mapArea().Max.Y, e.window.X, e.window.Y)
+	return image.Rect(0, e.mapBottom(e.toolbarRect().Max.Y), e.window.X, e.window.Y)
 }
 
-// barEntry is one entry of the top bar.
+// barEntry is one entry of the top bar, or a toolbar button that opens a
+// menu, which shows its icon.
 type barEntry struct {
 	key, label string
 	menu       bool
 	disabled   bool
 	rect       image.Rectangle
+	icon       *editorIcon
 }
 
 // barEntries is the top bar's entries in their rows, each with its state.
@@ -179,14 +185,14 @@ func (e *MapEditor) barEntries() []barEntry {
 	entries := e.barRows()
 	for i := range entries {
 		switch entries[i].key {
-		case "map", "view":
+		case "map":
 		case "objects", "trees":
 			entries[i].disabled = e.brushHost() == nil
 		case "undo":
 			entries[i].disabled = !e.editable() || !e.doc.Edits.CanUndo()
 		case "redo":
 			entries[i].disabled = !e.editable() || !e.doc.Edits.CanRedo()
-		case "tools", "save":
+		case "save":
 			entries[i].disabled = !e.editable()
 		default:
 			entries[i].disabled = e.doc == nil
@@ -203,10 +209,10 @@ type barKey struct {
 }
 
 // barKeys is the top bar's entries in their order: the Map menu, the record
-// categories, the Objects and Trees brushes, the View and Tools menus, then
-// Undo, Redo and Save. An entry with a menu opens it; a category opens its
-// palette and its tree branch; Objects and Trees open the object brush in
-// its one-kind and its Forest mode.
+// categories, the Objects and Trees brushes, then Undo, Redo and Save. An
+// entry with a menu opens it; a category opens its palette and its tree
+// branch; Objects and Trees open the object brush in its one-kind and its
+// Forest mode. The view switches and the tools stand in the toolbar.
 var barKeys = barKeyRows()
 
 func barKeyRows() []barKey {
@@ -217,8 +223,6 @@ func barKeyRows() []barKey {
 	return append(rows,
 		barKey{key: "objects", labelWord: "editor.bar.objects"},
 		barKey{key: "trees", labelWord: "editor.bar.trees"},
-		barKey{key: "view", labelWord: "editor.bar.view", menu: true},
-		barKey{key: "tools", labelWord: "editor.bar.tools", menu: true},
 		barKey{key: "undo", labelWord: "editor.bar.undo"},
 		barKey{key: "redo", labelWord: "editor.bar.redo"},
 		barKey{key: "save", labelWord: "editor.bar.save"},
@@ -371,48 +375,35 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"catalog", e.word("editor.menu.builtin")},
 			{"testplay", e.word("editor.menu.testplay")},
 			{"panel", e.word("editor.menu.panel")},
+			{"records", e.word("editor.view.records")},
+			{"", e.word("editor.menu.generate")},
+			{"randomterrain", e.word("editor.tools.randomterrain")},
+			{"randomheights", e.word("editor.tools.randomheights")},
+			{"", ""},
 			{"close", e.word("editor.menu.exit")},
 		}
-	case "view":
+	case "layers":
 		return []menuItem{
+			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
+			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
 			{"drops", mark(!e.view.hideDrops, e.word("editor.view.drops"))},
 			{"footprints", mark(!e.view.hideFootprints, e.word("editor.view.footprints"))},
 			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
-			{"grid", mark(e.view.grid, e.word("editor.view.grid"))},
-			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
 			{"heightlabels", mark(e.view.heights, e.word("editor.view.heights"))},
-			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
-			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
+			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
 			{"playertint", mark(e.view.playerColours, e.word("editor.view.playertint"))},
-			{"report", e.word("editor.view.report")},
-			{"fit", e.word("editor.view.fit")},
-			{"drawarea", e.word("editor.view.drawarea")},
-			{"records", e.word("editor.view.records")},
-			{sidePanels[panelLeft].key, mark(e.panelOpen(panelLeft), e.word(sidePanels[panelLeft].titleWord))},
-			{sidePanels[panelRight].key, mark(e.panelOpen(panelRight), e.word(sidePanels[panelRight].titleWord))},
 		}
-	case "tools":
-		items := []menuItem{{"newtrigger", e.word("editor.tools.newtrigger")}}
-		if e.brushHost() != nil { // a map that takes no brush lists none
-			items = append(items, menuItem{"", e.word("editor.tools.brushes")})
-			for _, m := range []brushMode{brushTerrain, brushHeight, brushObjects, brushPassability} {
-				items = append(items, menuItem{brushMenuKeys[m], mark(e.brush.mode == m, e.brushModeWord(m))})
-			}
-		}
-		return append(items,
-			menuItem{"", e.word("editor.tools.wholemap")},
-			menuItem{"randomterrain", e.word("editor.tools.randomterrain")},
-			menuItem{"randomheights", e.word("editor.tools.randomheights")})
 	}
 	return nil
 }
 
-// brushMenuKeys is the Tools menu row of each brush mode.
+// brushMenuKeys is the row key of each brush mode: its toolbar button's.
 var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability"}
 
-// menuDropdown is the open menu as a drop-down anchored on its bar entry.
+// menuDropdown is the open menu as a drop-down anchored on its bar entry or
+// its toolbar button, whose list ends inside the window.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
-	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled}
+	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, Icon: entry.icon, ListRight: e.window.X}
 	if open && e.menu == entry.key {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
@@ -432,8 +423,12 @@ func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 	return d
 }
 
+// openMenuEntry is the bar entry or toolbar button of the open menu.
 func (e *MapEditor) openMenuEntry() (barEntry, bool) {
-	for _, b := range e.barEntries() {
+	if e.menu == "" {
+		return barEntry{}, false
+	}
+	for _, b := range append(e.barEntries(), e.toolbarMenus()...) {
 		if b.menu && b.key == e.menu {
 			return b, true
 		}
@@ -441,17 +436,23 @@ func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 	return barEntry{}, false
 }
 
+// toggleMenu opens menu key, or closes it when it is open.
+func (e *MapEditor) toggleMenu(key string) {
+	e.endFieldTyping()
+	if e.menu == key {
+		e.menu = ""
+		return
+	}
+	e.menu = key
+	e.menuModel = nil
+}
+
 // barAct is what a bar entry does.
 func (e *MapEditor) barAct(key string) {
 	e.endFieldTyping()
 	switch key {
-	case "map", "view", "tools":
-		if e.menu == key {
-			e.menu = ""
-		} else {
-			e.menu = key
-			e.menuModel = nil
-		}
+	case "map":
+		e.toggleMenu(key)
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
 	case "undo", "redo":
@@ -504,6 +505,11 @@ func (e *MapEditor) menuAct(key string) {
 		}
 	case "areas":
 		e.view.hideAreas = !e.view.hideAreas
+	case "select":
+		if e.pick == pickArea {
+			e.leave(leavePick)
+		}
+		e.chooseBrush(brushOff)
 	case "newtrigger":
 		if e.editable() && !e.catalog {
 			e.leave(leaveDrag | leavePick)
@@ -765,6 +771,9 @@ func (e *MapEditor) syncList(kind string, window int) *Picker {
 
 // listWindow is how many rows the list popup shows at this window size.
 func (e *MapEditor) listWindow() int {
+	if e.reportDocked() && e.panels.reportRows > 0 {
+		return e.panels.reportRows
+	}
 	if p := e.places[popList]; p.size != (image.Point{}) && p.fit > 0 {
 		return p.fit
 	}
@@ -776,8 +785,10 @@ func (e *MapEditor) listWindow() int {
 // visibleRows is the list popup's window in rows.
 func (e *MapEditor) visibleRows() int { return e.listWindow() }
 
+// popupBounds is where a floating window may stand: the window below the
+// toolbar.
 func (e *MapEditor) popupBounds() image.Rectangle {
-	return image.Rect(0, e.barHeight(), e.window.X, e.window.Y)
+	return image.Rect(0, e.toolbarRect().Max.Y, e.window.X, e.window.Y)
 }
 
 // popupRoom is the height a tall window sizes itself to: popupBounds above
@@ -903,6 +914,22 @@ func (e *MapEditor) listButtons() []menuItem {
 		out = append(out, menuItem{"add", e.word("editor.button.add")})
 	}
 	return out
+}
+
+// ListButtonKeyRect is the window rectangle of the records list's button
+// key ("drop", "add"): a headless driver presses it.
+func (e *MapEditor) ListButtonKeyRect(key string) (image.Rectangle, bool) {
+	s, ok := e.listSpec()
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	l := layoutPopup(s, e.font, e.bodyFont())
+	for n, b := range e.listButtons() {
+		if b.key == key && n < len(l.Buttons) {
+			return l.Buttons[n], true
+		}
+	}
+	return image.Rectangle{}, false
 }
 
 // listAdd is the kind the shown records list's Add button adds.
@@ -1285,6 +1312,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		}
 		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Hover: e.pointerOK && e.pointer.In(b.rect)})
 	}
+	e.drawToolbar(pic)
 	status := e.statusRect()
 	draw.Draw(pic, status, image.NewUniform(editorPanel), image.Point{}, draw.Src)
 	draw.Draw(pic, image.Rect(0, status.Min.Y, e.window.X, status.Min.Y+1), image.NewUniform(editorGold), image.Point{}, draw.Src)
@@ -1580,11 +1608,17 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	if p.In(e.sidePanelRect(panelLeft)) {
 		return popTree
 	}
+	if p.In(e.sidePanelRect(panelBottom)) {
+		return popReport
+	}
 	if _, ok := e.areaLabelAt(p); ok && e.pick == pickNone && !e.blocksCanvas() {
 		return popArea
 	}
 	if p.Y < e.barHeight() {
 		return popBar
+	}
+	if p.In(e.toolbarRect()) {
+		return popToolbar
 	}
 	if p.Y >= e.statusRect().Min.Y {
 		return popStatus
@@ -1660,7 +1694,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 		double := e.clicks.press(p, now)
 		if e.menu != "" && target != popMenu {
 			e.menu = ""
-			if target != popBar {
+			if target != popBar && target != popToolbar {
 				return true
 			}
 		}
@@ -1725,6 +1759,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		e.treePress(p)
 	case popProps:
 		e.propsPress(p)
+	case popReport:
+		e.reportPress(p)
+	case popToolbar:
+		e.toolbarPress(p)
 	case popMenu:
 		b, _ := e.openMenuEntry()
 		d := e.menuDropdown(b, true)
@@ -1810,7 +1848,11 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		}
 		switch part, n := l.hit(p); part {
 		case popupClose:
-			e.cancelPopup(popList)
+			if e.reportDocked() {
+				e.togglePanel(panelBottom)
+			} else {
+				e.cancelPopup(popList)
+			}
 		case popupRowButton:
 			if row, k, ok := l.rowButtonAt(p); ok && e.listKind() == "brush" {
 				e.brushRowButton(row, k)
@@ -1970,7 +2012,7 @@ func (e *MapEditor) hoverAt(p image.Point) {
 	}
 }
 
-// gridLines are the View menu's grid over the map as editor lines.
+// gridLines are the grid button's grid over the map as editor lines.
 func (e *MapEditor) gridLines() []editorLine {
 	if !e.view.grid {
 		return nil

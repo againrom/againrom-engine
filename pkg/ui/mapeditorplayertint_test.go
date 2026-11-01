@@ -252,11 +252,11 @@ func TestPlayerLegendListsEveryPlayerInItsColour(t *testing.T) {
 func TestViewMenuRowTogglesPlayerColours(t *testing.T) {
 	x := newTintFixture(t)
 	e := x.e
-	n, ok := e.MenuRow("view", "playertint")
+	n, ok := e.MenuRow("layers", "playertint")
 	if !ok {
-		t.Fatal("the View menu has no player colours row")
+		t.Fatal("the Layers menu has no player colours row")
 	}
-	row := func() string { return e.menuItems("view")[n].label }
+	row := func() string { return e.menuItems("layers")[n].label }
 	off := row()
 	if want := markWord(false, e.word("editor.view.playertint")); off != want {
 		t.Fatalf("row %q, want %q", off, want)
@@ -377,7 +377,7 @@ func TestPlayerColourFollowsAMovedUnitThroughUndoAndRedo(t *testing.T) {
 func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	x := newTintFixture(t)
 	e := x.e
-	e.panels.state = [2]panelState{{Restored: true}, {Restored: true}}
+	e.panels.state = [len(sidePanels)]panelState{{Restored: true}, {Restored: true}, {}}
 	e.Layout(1280, 800)
 	if !e.panelOpen(panelLeft) || !e.panelOpen(panelRight) {
 		t.Fatalf("panels at 1280x800 shown %v, want both restored", e.panelsShown())
@@ -414,8 +414,8 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	if e.panelOpen(panelLeft) || !e.view.playerColours {
 		t.Fatalf("F6: left restored %v, player colours %v", e.panelOpen(panelLeft), e.view.playerColours)
 	}
-	if shut := corner("left minimized"); shut.Min.X != e.panelStrip()+6 || shut.Max.Y != open.Max.Y {
-		t.Fatalf("legend %v with the left strip, want left edge %d and bottom %d", shut, e.panelStrip()+6, open.Max.Y)
+	if shut := corner("left minimized"); shut.Min.X != e.panelStrip(panelLeft)+6 || shut.Max.Y != open.Max.Y {
+		t.Fatalf("legend %v with the left strip, want left edge %d and bottom %d", shut, e.panelStrip(panelLeft)+6, open.Max.Y)
 	}
 	if err := e.Key("propertiespanel"); err != nil {
 		t.Fatal(err)
@@ -429,15 +429,22 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 		t.Fatalf("Y: player colours %v, panels %v, were %v", e.view.playerColours, e.panelsShown(), shown)
 	}
 	order := map[string]int{}
-	for i, it := range e.menuItems("view") {
+	for i, it := range e.menuItems("layers") {
 		order[it.key] = i
 	}
-	keys := []string{"areas", "playertint", "report", "records", sidePanels[panelLeft].key, sidePanels[panelRight].key}
+	keys := []string{"areas", "passview", "playertint"}
 	for i := 1; i < len(keys); i++ {
 		a, okA := order[keys[i-1]]
 		b, okB := order[keys[i]]
 		if !okA || !okB || a >= b {
-			t.Fatalf("View menu order %v, want %v in that order", order, keys)
+			t.Fatalf("Layers menu order %v, want %v in that order", order, keys)
 		}
+	}
+	tools := map[string]int{}
+	for i, b := range toolButtons {
+		tools[b.key] = i
+	}
+	if a, b := tools[sidePanels[panelLeft].key], tools[sidePanels[panelRight].key]; tools["report"] >= a || a >= b {
+		t.Fatalf("toolbar order %v, want report, then the two panels", tools)
 	}
 }

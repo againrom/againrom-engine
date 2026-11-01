@@ -20,7 +20,7 @@ func editorReaders() []editorReader {
 				opt("verbose", boolArg("List every field's choices; default false, a field of more than 32 choices is named under choices_omitted"))}, read: (*MapEditor).readRecord},
 		{name: "records", help: "List the records whose footprint meets the cell range x0,y0..x1,y1, both corners included",
 			args: []commandArg{req("x0", intArg("Left cell")), req("y0", intArg("Top cell")), req("x1", intArg("Right cell")), req("y1", intArg("Bottom cell"))}, read: (*MapEditor).readRecords},
-		{name: "heights", help: fmt.Sprintf("The stored height of every cell of the range x0,y0..x1,y1, both corners included, at most %d cells: rows top to bottom, each left to right, the range, the lowest and highest height, and label_zero, the height the View menu's numbers show as 0", heightsMost),
+		{name: "heights", help: fmt.Sprintf("The stored height of every cell of the range x0,y0..x1,y1, both corners included, at most %d cells: rows top to bottom, each left to right, the range, the lowest and highest height, and label_zero, the height the Layers menu's numbers show as 0", heightsMost),
 			args: []commandArg{req("x0", intArg("Left cell")), req("y0", intArg("Top cell")), req("x1", intArg("Right cell")), req("y1", intArg("Bottom cell"))}, read: (*MapEditor).readHeights},
 		{name: "add_steps", help: "Without kind, the kinds add_record adds; with kind, its steps in order with the host's choices and defaults, given the values so far",
 			args: []commandArg{opt("kind", textArg("Record kind")), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),

@@ -78,15 +78,15 @@ func setBrush(t *testing.T, e *ui.MapEditor, class uint8, size, shape int) {
 	pressRect(t, e, r, ok, "a shape button")
 }
 
-// toggleBorder presses the View menu's border row.
+// toggleBorder presses the toolbar's Layers menu's border row.
 func toggleBorder(t *testing.T, e *ui.MapEditor) {
 	t.Helper()
-	n, ok := e.MenuRow("view", "border")
+	n, ok := e.MenuRow("layers", "border")
 	if !ok {
-		t.Fatal("the View menu has no border row")
+		t.Fatal("the Layers menu has no border row")
 	}
-	r, ok := e.BarRect("view")
-	pressRect(t, e, r, ok, "the View entry")
+	r, ok := e.ToolbarRect("layers")
+	pressRect(t, e, r, ok, "the Layers button")
 	r, ok = e.MenuRowRect(n)
 	pressRect(t, e, r, ok, "the border row")
 }

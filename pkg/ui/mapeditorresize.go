@@ -32,6 +32,9 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 		e.popupClosed(popList)
 		return s, false
 	}
+	if e.reportDocked() {
+		return e.dockReport(s), true
+	}
 	e.placeSpec(popList, &s)
 	if e.places[popList].size == (image.Point{}) {
 		return s, true

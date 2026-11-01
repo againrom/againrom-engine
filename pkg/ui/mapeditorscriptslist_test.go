@@ -253,14 +253,14 @@ func TestScriptsRawSectionsAndEveryNodeRemainReachable(t *testing.T) {
 		InspectionRecord{Kind: "Section", Section: 7, Index: 10, Label: "Raw script"},
 		InspectionRecord{Kind: "Section", Section: 7, Index: 11, Label: "Duplicate script"})
 	found := false
-	for _, item := range e.menuItems("view") {
+	for _, item := range e.menuItems("map") {
 		if item.key == "records" {
 			found = true
 			e.menuAct(item.key)
 		}
 	}
 	if !found || e.filter != 0 || !e.listShown || len(e.rows()) != len(e.doc.Records) {
-		t.Fatal("View has no route to every physical record")
+		t.Fatal("the Map menu has no route to every physical record")
 	}
 	for id := range e.doc.Records {
 		e.listChoose(id, true)

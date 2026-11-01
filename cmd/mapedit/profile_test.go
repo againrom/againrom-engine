@@ -10,7 +10,8 @@ import (
 
 // The editor reads its side panels' state from the player profile the MCP
 // record lives in, and a panel key writes the new state back there. The
-// file here has the earlier open field; the write has the minimized one.
+// file here has the earlier open field and no bottom panel; the write has
+// the minimized field and the bottom panel's default.
 func TestPanelStateLivesInTheEditorProfile(t *testing.T) {
 	profile := t.TempDir()
 	t.Setenv("AGAINROM_PROFILE", profile)
@@ -25,7 +26,7 @@ func TestPanelStateLivesInTheEditorProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(file)
-	if want := `{"left":{"minimized":false,"width":300},"right":{"minimized":true,"view":"plain","width":520}}` + "\n"; err != nil || string(got) != want {
+	if want := `{"bottom":{"minimized":true,"width":180},"left":{"minimized":false,"width":300},"right":{"minimized":true,"view":"plain","width":520}}` + "\n"; err != nil || string(got) != want {
 		t.Fatalf("panel state %q, %v; want %q", got, err, want)
 	}
 	// A profile that cannot be resolved leaves the defaults and writes nothing.

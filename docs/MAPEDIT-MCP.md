@@ -285,7 +285,7 @@ more from an uncovered neighbour: `set` with `flat` 0 over a map at 64 leaves
 steps of 64 below the circle's lower half. Horizontal steps are never bounded. `heights`
 reads the stored result and `height_change` in the report counts it.
 
-The View menu's height numbers show 64 as 0. `heights` and the report's
+The Layers menu's height numbers show 64 as 0. `heights` and the report's
 `heights` give stored heights; `heights` names that offset as `label_zero`.
 
 Read tools answer JSON and change nothing:
@@ -294,7 +294,7 @@ Read tools answer JSON and change nothing:
 | --- | --- | --- |
 | `record` | `kind`, `index`; optional `verbose` | The record, with `ScriptID` for a unit or structure, and every field: key, value, text, choices, read-only. A unit or structure also has the read-only field `script_id`; no tool writes it. A unit that sets a definition names it in `Definition`: the Humans row its npc flag or definition id reaches, or the id no row answers. A field with more than 32 choices lists none; `choices_omitted` names each such field and its count, and `"verbose":true` lists them all. A message action's page list holds every page of the map. |
 | `records` | `x0`, `y0`, `x1`, `y1` | The records whose footprint meets the cell range, corners included. |
-| `heights` | `x0`, `y0`, `x1`, `y1` | The stored height of every cell of the range, corners included, at most 4096 cells: `rows` top to bottom, each left to right, `range`, `min`, `max` and `label_zero` (64, the height the View menu shows as 0). A reversed range or a cell off the map is refused. |
+| `heights` | `x0`, `y0`, `x1`, `y1` | The stored height of every cell of the range, corners included, at most 4096 cells: `rows` top to bottom, each left to right, `range`, `min`, `max` and `label_zero` (64, the height the Layers menu shows as 0). A reversed range or a cell off the map is refused. |
 | `add_steps` | optional `kind`, `x`, `y`, `values` | Without `kind`, the kinds `add_record` adds; with it, the steps in order with choices, defaults, whether each is asked, and a refusal of a given value. |
 | `brushes` | `{}` | Planes, terrain classes with names and variant counts, object codes with names, largest radius and height change. |
 | `check` | `{}` | The map report: every error and warning with its rule, record and cell. |

@@ -9,7 +9,7 @@ import (
 	"againrom/internal/witness"
 )
 
-// The Z key turns the passability view on and off, as the View row does.
+// The Z key turns the passability view on and off, as the Layers row does.
 func TestPassabilityViewHasAKey(t *testing.T) {
 	e, _ := brushEditor(t)
 	if e.view.passability {

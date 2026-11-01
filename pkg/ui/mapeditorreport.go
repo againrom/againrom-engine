@@ -128,10 +128,15 @@ func (e *MapEditor) ReportSelected() int {
 }
 
 // reportKey is the report key: it checks the map as it now stands and shows
-// the findings, or closes the panel when it already shows.
+// the findings in the bottom panel, restored for them, or closes the report
+// and minimizes that panel when it already shows.
 func (e *MapEditor) reportKey() {
 	if e.report.open {
+		docked := e.reportDocked()
 		e.leave(leaveReport)
+		if docked {
+			e.showPanel(panelBottom, false)
+		}
 		return
 	}
 	c, ok := e.checker()
@@ -139,6 +144,7 @@ func (e *MapEditor) reportKey() {
 		return
 	}
 	e.leave(leaveDrag | leavePick | leavePrompt)
+	e.showPanel(panelBottom, true)
 	rows := c.Report()
 	errs, warnings := CountFindings(rows)
 	e.openReport(rows, fmt.Sprintf("Report: %d errors, %d warnings", errs, warnings), nil)

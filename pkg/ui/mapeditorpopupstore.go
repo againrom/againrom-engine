@@ -56,7 +56,7 @@ type popupRecord struct {
 	closed popupReset
 }
 
-var popupRecords = [popProps + 1]popupRecord{
+var popupRecords = [popCount]popupRecord{
 	popList:   {key: keyByList, closed: resetSize | resetFit},
 	popObject: {key: keyByTitle, closed: resetSize},
 	popPrompt: {key: keyByPrompt, opened: resetShift | resetSlack, closed: resetShift | resetSlack | resetSize},
@@ -90,7 +90,7 @@ func (e *MapEditor) homeCorner(h popupHome) image.Point {
 	if h.Window {
 		base = image.Rectangle{Max: e.window}
 	}
-	y := e.barHeight() + h.Top
+	y := e.toolbarRect().Max.Y + h.Top
 	if h.Right {
 		return image.Pt(base.Max.X-h.Inset-h.Width, y)
 	}
@@ -115,7 +115,7 @@ func (e *MapEditor) promptCorner(c popupCentre, size image.Point) image.Point {
 	if c.Tall {
 		high -= size.Y
 	}
-	return image.Pt((e.window.X-size.X)/2, max(e.barHeight()+8, high/c.Div)).Add(e.places[popPrompt].shift)
+	return image.Pt((e.window.X-size.X)/2, max(e.toolbarRect().Max.Y+8, high/c.Div)).Add(e.places[popPrompt].shift)
 }
 
 // placedCorner is popup id's kept corner, set to home the first time it opens.

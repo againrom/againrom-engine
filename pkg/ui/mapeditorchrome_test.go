@@ -28,6 +28,16 @@ func barPoint(t *testing.T, e *MapEditor, key string) image.Point {
 	return image.Point{}
 }
 
+// toolPoint is the centre of the toolbar button key.
+func toolPoint(t *testing.T, e *MapEditor, key string) image.Point {
+	t.Helper()
+	r, ok := e.ToolbarRect(key)
+	if !ok {
+		t.Fatalf("no toolbar button %q", key)
+	}
+	return center(r)
+}
+
 // menuPoint is the centre of row n of the open menu.
 // menuKeyRow is the row of menu whose action is key.
 func menuKeyRow(t *testing.T, e *MapEditor, menu, key string) int {

@@ -28,8 +28,8 @@ func TestEditorBarWrapsOnlyInANarrowWindow(t *testing.T) {
 			}
 			rows[b.rect.Min.Y] = true
 		}
-		if area := e.mapArea(); area.Min.Y != e.barHeight() || e.statusRect().Dy() != row {
-			t.Errorf("%v: map area %v under a bar of %d and a status strip %v", size, area, e.barHeight(), e.statusRect())
+		if tb, area := e.toolbarRect(), e.mapArea(); tb.Min.Y != e.barHeight() || area.Min.Y != tb.Max.Y || e.statusRect().Dy() != row {
+			t.Errorf("%v: map area %v under a bar of %d, the toolbar %v and a status strip %v", size, area, e.barHeight(), tb, e.statusRect())
 		}
 		if size.X == 1280 && (len(rows) != 1 || e.barHeight() != row) {
 			t.Errorf("%v: the bar has %d rows and height %d at the default size", size, len(rows), e.barHeight())

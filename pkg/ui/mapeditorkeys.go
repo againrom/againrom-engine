@@ -69,6 +69,7 @@ const (
 	unlistedSaveLine = "the bottom line names Ctrl+Z, Ctrl+Y and Ctrl+S"
 	unlistedPrompt   = "the prompt names it"
 	unlistedRail     = "the rail has a button for it"
+	unlistedToolbar  = "the toolbar has a button for it"
 	unlistedWindow   = "a window control, not a map edit"
 	unlistedGroups   = "the 1..9 and Ctrl+1..9 help lines name it"
 )
@@ -207,7 +208,7 @@ func init() {
 		{label: "Popup", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.popup"}}}},
 		{label: "Unfocus", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.unfocus"}}}},
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
-		{key: "fit", act: (*MapEditor).keyFit, unlisted: unlistedRail},
+		{key: "fit", label: "F", act: (*MapEditor).keyFit, unlisted: unlistedToolbar},
 		{key: "triggers", act: (*MapEditor).keyScripts, unlisted: "the Scripts entry opens it"},
 		{key: "pageup", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},

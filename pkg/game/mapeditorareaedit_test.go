@@ -459,7 +459,7 @@ func multiplayerMap(t *testing.T, b []byte) []byte {
 }
 
 // A map with player capacity above one resolves no hero, so the draw tool
-// refuses there, from L and from the View menu item, and writes nothing; the
+// refuses there, from L and from the toolbar button, and writes nothing; the
 // same map in single-player mode arms it.
 func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
 	single := areaEditMap(t, true)
@@ -469,17 +469,14 @@ func TestAreaDrawRefusesOnAMultiplayerMap(t *testing.T) {
 		bytes []byte
 		armed bool
 	}{{"single-player", single, true}, {"multiplayer", multi, false}} {
-		for _, route := range []string{"key", "menu"} {
+		for _, route := range []string{"key", "toolbar"} {
 			t.Run(c.name+"/"+route, func(t *testing.T) {
 				e, _ := areaEditors(t, c.bytes)
 				e.Fit()
 				if route == "key" {
 					_ = e.Key("drawarea")
 				} else {
-					r, ok := e.BarRect("view")
-					trigClick(t, e, r, ok, "View")
-					n, _ := e.MenuRow("view", "drawarea")
-					r, ok = e.MenuRowRect(n)
+					r, ok := e.ToolbarRect("drawarea")
 					trigClick(t, e, r, ok, "Draw trigger area")
 				}
 				if e.AreaDrawArmed() != c.armed {

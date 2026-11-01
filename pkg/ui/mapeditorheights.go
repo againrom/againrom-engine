@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// HeightLabelZero is the stored height the View menu's height numbers show as
+// HeightLabelZero is the stored height the Layers menu's height numbers show as
 // 0: the height a new map starts at (TERR-246). A number is the stored height
 // minus this, so a lower point shows a negative number.
 const HeightLabelZero = NewMapDefaultAltitude
@@ -21,7 +21,7 @@ type heightLabel struct {
 	text string
 }
 
-// heightLabels are the View menu's height numbers. A stored height belongs to
+// heightLabels are the Layers menu's height numbers. A stored height belongs to
 // a mesh vertex: the height at index x+W*y lifts vertex (x, y), the top-left
 // corner of cell (x, y) (TERR-GEOM-031), so each number stands just inside
 // that corner. While a cell is at least as wide on screen as the widest

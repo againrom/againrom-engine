@@ -3704,5 +3704,5 @@ var Committed = Baseline{
 	// tests, and this note. It rose again for the view switch in the title
 	// row, the fold the block row takes from the tree, the hosted window's
 	// scroll to its last row, and their tests over a wide fixture.
-	CommentBytes: 10238262,
+	CommentBytes: 10248737,
 }

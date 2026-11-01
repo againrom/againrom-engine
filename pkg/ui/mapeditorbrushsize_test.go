@@ -171,7 +171,7 @@ func TestMapEditorBrushHelpNamesTheSizeControls(t *testing.T) {
 
 // The border view is on by default: it dims exactly the cells the host's
 // plane closes by the border arm and draws the edge between them and the
-// playable cells. The View row hides it; the passability view still names
+// playable cells. The Layers row hides it; the passability view still names
 // the border.
 func TestMapEditorBorderViewShowsTheBorderArm(t *testing.T) {
 	e, _ := passEditor(t)
@@ -200,17 +200,17 @@ func TestMapEditorBorderViewShowsTheBorderArm(t *testing.T) {
 	if lines := e.borderLines(); len(lines) == 0 {
 		t.Fatal("no edge line")
 	}
-	row, ok := e.MenuRow("view", "border")
+	row, ok := e.MenuRow("layers", "border")
 	if !ok {
-		t.Fatal("the View menu has no border row")
+		t.Fatal("the Layers menu has no border row")
 	}
-	passMenu(t, e, "view", row)
+	passMenu(t, e, "layers", row)
 	if len(e.borderQuads()) != 0 || len(e.borderLines()) != 0 || e.BorderCell(image.Pt(5, 0)) {
-		t.Fatal("the View row did not hide the border")
+		t.Fatal("the Layers row did not hide the border")
 	}
-	passMenu(t, e, "view", row)
+	passMenu(t, e, "layers", row)
 	if len(e.borderQuads()) == 0 {
-		t.Fatal("the View row did not show the border again")
+		t.Fatal("the Layers row did not show the border again")
 	}
 	e.view.passability = true
 	if len(e.borderQuads()) != 0 {

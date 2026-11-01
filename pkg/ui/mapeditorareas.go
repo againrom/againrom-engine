@@ -10,7 +10,7 @@ import (
 // The triggers on the map: every place a trigger's conditions and actions
 // name is outlined in that trigger's colour and labelled with its number and
 // name. The selected trigger's areas are gold; a click on an area or its
-// label selects the trigger. The View menu shows or hides them.
+// label selects the trigger. The Layers menu shows or hides them.
 
 // areaInks tell overlapping triggers apart; gold is the selection's.
 var areaInks = []color.RGBA{
@@ -20,7 +20,7 @@ var areaInks = []color.RGBA{
 
 func areaInk(trigger int) color.RGBA { return areaInks[trigger%len(areaInks)] }
 
-// areasShown reports that the View menu shows the trigger areas.
+// areasShown reports that the Layers menu shows the trigger areas.
 func (e *MapEditor) areasShown() bool {
 	return e.doc != nil && e.doc.Script != nil && !e.view.hideAreas
 }

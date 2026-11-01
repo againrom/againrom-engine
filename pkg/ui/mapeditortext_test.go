@@ -146,7 +146,7 @@ func TestMapEditorModalCoversSurviveTextPreparationAndDraw(t *testing.T) {
 					}
 					v := e.doc.Viewer
 					ox, oy := v.place.Origin()
-					if v.place.Scale() != 1 || ox != 0 || int(oy) != e.barHeight() || v.cam.ViewW != e.mapArea().Dx() || v.cam.ViewH != size.Y-2*e.barHeight() {
+					if v.place.Scale() != 1 || ox != 0 || int(oy) != e.mapArea().Min.Y || v.cam.ViewW != e.mapArea().Dx() || v.cam.ViewH != e.mapArea().Dy() {
 						t.Fatal("map placement changed")
 					}
 					for _, f := range e.TextFates() {

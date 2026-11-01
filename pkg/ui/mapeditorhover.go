@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-// The editor's hover tooltip over a palette's grid cells: the game's one
-// tooltip clock and hover box, in the editor's font and colours.
+// The editor's hover tooltip over a palette's grid cells and the toolbar's
+// buttons: the game's one tooltip clock and hover box, in the editor's font
+// and colours.
 
 // editorTipDelay is how long the pointer rests on a grid cell before the
 // cell's tooltip shows, in milliseconds: one of the game's tooltip delays.
@@ -46,10 +47,14 @@ func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
 }
 
 // observeTip gives the tooltip clock a pointer sample: the clock restarts on
-// a new cell and stops while a button is held or no cell is under p.
+// a new cell or toolbar button and stops while a button is held or neither
+// is under p.
 func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
 	e.tip.clock.setDelay(editorTipDelay)
 	text, at, ok := e.gridTipAt(p)
+	if !ok && e.chromeHit(p) == popToolbar {
+		text, at, ok = e.toolTip(p)
+	}
 	e.tip.text = text
 	e.tip.clock.observe(now, at, text, held || !ok)
 }
