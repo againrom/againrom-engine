@@ -35,69 +35,24 @@ type dialogueLine struct {
 	paragraphEnd bool
 }
 
-// dialogueWrap preserves the selected wrapper's markers. A nonprogressing
-// remainder is emitted once, whole, so custom text remains reachable (DIV-1619).
-func dialogueWrap(f *text.Font, s string, width int) []dialogueLine {
-	if f == nil || len(f.Glyphs) == 0 || width <= 0 || s == "" {
-		return nil
+// dialogueFlow breaks s to width by the original's dialogue paragraphs: a line
+// that ends its paragraph by fitting carries the paragraph-end marker, and a
+// remainder that makes no progress is emitted once, whole, so custom text
+// remains reachable (DIV-1619).
+func dialogueFlow(f *text.Font, s string, width int) []dialogueLine {
+	return dialogueLinesOf(dialogueRule, f, s, width)
+}
+
+// dialogueLinesOf is the dialogue lines of one dialogue-style row.
+func dialogueLinesOf(rule lineRule, f *text.Font, s string, width int) []dialogueLine {
+	lines := rule.lines(lineBox{Measure: inkedAdvanceOf(f), Width: width}, inkRun{Text: s})
+	out := make([]dialogueLine, len(lines))
+	for i, l := range lines {
+		out[i] = dialogueLine{text: l.Text(), paragraphEnd: l.Closed}
 	}
-	var raw []string
-	var markers []bool
-	appendLine := func(line string, end bool) { raw = append(raw, line); markers = append(markers, end) }
-	var pieces []string
-	for remaining := s; remaining != ""; {
-		end := strings.Index(remaining, "\r\n")
-		if end < 0 {
-			pieces = append(pieces, remaining)
-			break
-		}
-		pieces = append(pieces, strings.TrimLeft(remaining[:end], dialogueTrimBytes))
-		remaining = strings.TrimLeft(remaining[end+2:], dialogueTrimBytes)
-	}
-	for _, para := range pieces {
-		rest := strings.Trim(para, dialogueTrimBytes)
-		// Bare-CR paragraph replay does not progress; preserve its remainder.
-		if strings.Contains(para, "\r") {
-			rest = para
-		}
-		if rest == "" {
-			appendLine("", false)
-			continue
-		}
-		for rest != "" {
-			if strings.Contains(rest, "\r") {
-				appendLine(rest, false)
-				break
-			}
-			if f.Advance(rest) < width {
-				appendLine(rest+" \r", true)
-				break
-			}
-			words := strings.FieldsFunc(rest, func(r rune) bool { return r == ' ' || r == '\t' })
-			if len(words) == 0 {
-				appendLine("", false)
-				break
-			}
-			if f.Advance(words[0]) > width {
-				appendLine(words[0], false)
-				rest = strings.Join(words[1:], " ")
-				continue
-			}
-			n := 0
-			for n < len(words) && f.Advance(strings.Join(words[:n+1], " ")+" ") < width {
-				n++
-			}
-			if n == 0 {
-				appendLine(rest, false)
-				break
-			}
-			appendLine(strings.Join(words[:n], " ")+" ", false)
-			rest = strings.Join(words[n:], " ")
-		}
-	}
-	out := make([]dialogueLine, len(raw))
-	for i, line := range raw {
-		out[i] = dialogueLine{text: line, indent: i == 0 || markers[i-1], justify: i < len(raw)-1 && !markers[i], paragraphEnd: markers[i]}
+	for i := range out {
+		out[i].indent = i == 0 || out[i-1].paragraphEnd
+		out[i].justify = i < len(out)-1 && !out[i].paragraphEnd
 	}
 	return out
 }
@@ -173,7 +128,7 @@ func justifiedStartsWith(a DialogueArithmetic, x0, w int, widths []int) []int {
 // from x0.
 func drawDialogueLine(dst *image.RGBA, f *text.Font, ln dialogueLine, origin, x0, y, w int, arithmetic DialogueArithmetic, ink color.RGBA) {
 	visible := ln.visible()
-	words := strings.FieldsFunc(visible, func(r rune) bool { return r == ' ' || r == '\t' })
+	words := gapWords(visible)
 	if !ln.justify || len(words) < 2 {
 		drawDialogueRun(dst, f, visible, x0, y, ink)
 		return
@@ -211,7 +166,7 @@ func renderDialogueNotice(l NoticeLayout, f *text.Font, s string, face *image.RG
 	if pitch <= 0 {
 		return img
 	}
-	lines := dialogueWrap(f, s, l.Text.Dx())
+	lines := dialogueFlow(f, s, l.Text.Dx())
 	total, visible := len(lines), max(l.Text.Dy()/pitch, 0)
 	first := min(max(l.FirstLine, 0), max(total-visible, 0))
 	lines = lines[first:]

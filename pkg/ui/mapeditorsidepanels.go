@@ -383,7 +383,7 @@ func (e *MapEditor) propsSpec() (popupSpec, bool) {
 		hint = e.word("editor.side.floating")
 	}
 	s := popupSpec{Title: e.word(sidePanels[panelRight].titleWord), NoteInk: editorPaper}
-	for _, line := range editorWrap(e.bodyFont(), hint, e.sidePanelRect(panelRight).Dx()-2*popupPad-8) {
+	for _, line := range editorTextLines(e.bodyFont(), hint, e.sidePanelRect(panelRight).Dx()-2*popupPad-8) {
 		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
 	}
 	return e.inPanel(s, panelRight), true

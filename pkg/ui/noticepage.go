@@ -80,7 +80,7 @@ func NoticePagesOf(l NoticeLayout, f *text.Font, paras []string) []string {
 	}
 	var chunks []chunk
 	for _, p := range kept {
-		lines := noticeWrap(l, f, p)
+		lines := noticeBodyLines(l, f, p, 0)
 		if len(lines) == 0 {
 			continue
 		}
@@ -111,7 +111,7 @@ func NoticePagesOf(l NoticeLayout, f *text.Font, paras []string) []string {
 	var cur []string
 	used := 0
 	for _, c := range chunks {
-		if used > 0 && (used+c.lines > max || len(noticeWrap(l, f, strings.Join(cur, " ")+" "+c.text)) > max) {
+		if used > 0 && (used+c.lines > max || len(noticeBodyLines(l, f, strings.Join(cur, " ")+" "+c.text, 0)) > max) {
 			pages = append(pages, strings.Join(cur, " "))
 			cur, used = nil, 0
 		}
@@ -155,7 +155,7 @@ func (v *Viewer) DialogueClip(s string) (produced, drawn int) {
 	if v.font == nil || len(v.font.Glyphs) == 0 {
 		return 0, 0
 	}
-	produced = len(noticeWrap(l, v.font, s))
+	produced = len(noticeBodyLines(l, v.font, s, 0))
 	drawn = produced
 	if n := NoticeMaxLines(l, v.font); n < drawn {
 		drawn = n

@@ -293,7 +293,7 @@ func (l NoticeLayout) WithBody(f *text.Font, s string) NoticeLayout {
 	if pitch <= 0 {
 		return l
 	}
-	more := len(noticeWrap(l, f, s)) - max(0, l.Text.Dy()/pitch)
+	more := len(noticeBodyLines(l, f, s, 0)) - max(0, l.Text.Dy()/pitch)
 	more = min(more, (frame.H-l.Box.Dy())/pitch)
 	if more <= 0 {
 		return l
@@ -565,7 +565,7 @@ func (v *Viewer) noticeBackdropOf() (image.Rectangle, color.RGBA, bool) {
 // up and its profile names a visible colour.
 func (v *Viewer) menuBackdropUp() bool { return v.menuUp && v.menuBackdrop.A != 0 }
 
-// NoticeLines is s broken to width, in the font's own advance.
+// noticeFlowLines is s broken to width, in the font's own advance.
 //
 // THE RULE, and it has three parts that must be read together:
 //
@@ -585,72 +585,8 @@ func (v *Viewer) menuBackdropUp() bool { return v.menuUp && v.menuBackdrop.A != 
 //
 // A nil font, a font with no records, and a non-positive width all yield no
 // lines: there is no advance to measure with and no width to measure against.
-func NoticeLines(f *text.Font, s string, width int) []string {
-	if f == nil || len(f.Glyphs) == 0 || width <= 0 || s == "" {
-		return nil
-	}
-	var out []string
-	i := 0
-	for {
-		// A line never BEGINS with a break byte: leading ones are consumed, so
-		// no line is indented by whatever the author happened to type between
-		// two words.
-		for i < len(s) && noticeBreak(s[i]) {
-			i++
-		}
-		if i >= len(s) {
-			return out
-		}
-		// The longest prefix of the remainder that fits, and the last break byte
-		// inside it. Both are found in ONE forward walk over the bytes, adding
-		// each byte's own advance, so the measurement here and the pen the draw
-		// uses are the same arithmetic — a second measurement through Measure
-		// would be a box rather than a pen and would disagree on a glyph whose
-		// ink overhangs its advance.
-		pen, fit, brk := 0, i, -1
-		for j := i; j < len(s); j++ {
-			pen += f.Advance(s[j : j+1])
-			if pen > width {
-				break
-			}
-			fit = j + 1
-			if noticeBreak(s[j]) {
-				brk = j
-			}
-		}
-		if fit >= len(s) {
-			return append(out, s[i:])
-		}
-
-		// A cut is needed. THREE CASES, and only the third breaks a word:
-		//
-		//   - the byte that did not fit is itself a break, so the last word ends
-		//     exactly where the line does and nothing is backed over;
-		//   - a break byte lies inside what fits, so the line ends at the LAST
-		//     one — the last space that fits;
-		//   - there is none, so ONE WORD does not fit alone and is cut where it
-		//     stopped fitting.
-		end := fit
-		if !noticeBreak(s[fit]) {
-			if brk > i {
-				end = brk
-			} else if fit <= i {
-				// Narrower than the first glyph. At least one byte is always
-				// taken, or this would not terminate.
-				end = i + 1
-			}
-		}
-		// Trailing break bytes are not part of the line: they would draw as
-		// spaces hanging off its right edge.
-		for end > i && noticeBreak(s[end-1]) {
-			end--
-		}
-		if end <= i {
-			end = i + 1
-		}
-		out = append(out, s[i:end])
-		i = end
-	}
+func noticeFlowLines(f *text.Font, s string, width int) []string {
+	return noticeRule.plain(lineBox{Measure: inkedAdvanceOf(f), Width: width}, s)
 }
 
 // NoticeLayoutOf is the notice's picture as a list of lines, ALREADY CLAMPED
@@ -665,25 +601,25 @@ func NoticeLayoutOf(l NoticeLayout, f *text.Font, s string) []string {
 	if pitch <= 0 {
 		return nil
 	}
-	lines := noticeWrap(l, f, s)
-	if n := l.Text.Dy() / pitch; n < len(lines) {
-		if n < 0 {
-			n = 0
-		}
-		lines = lines[:n]
+	n := l.Text.Dy() / pitch
+	if n <= 0 {
+		return nil
 	}
-	return lines
+	return noticeBodyLines(l, f, s, n)
 }
 
-// noticeWrap is the lines l breaks s into at its text width, before any clamp:
+// noticeBodyLines is the lines l breaks s into, at most maxLines when that is set, at its text width, before any clamp:
 // the dialogue style's paragraph wrap, or the plain wrap of NoticeLines. Every
 // consumer that counts lines (the draw, the clamp, the pager) goes through it, so
 // they cannot disagree about where a line ends.
-func noticeWrap(l NoticeLayout, f *text.Font, s string) []string {
+func noticeBodyLines(l NoticeLayout, f *text.Font, s string, maxLines int) []string {
 	if l.Style != NoticeStyleDialogue {
-		return NoticeLines(f, s, l.Text.Dx())
+		return noticeRule.plain(lineBox{Measure: inkedAdvanceOf(f), Width: l.Text.Dx(), MaxLines: maxLines}, s)
 	}
-	lines := dialogueWrap(f, s, l.Text.Dx())
+	lines := dialogueFlow(f, s, l.Text.Dx())
+	if maxLines > 0 && len(lines) > maxLines {
+		lines = lines[:maxLines]
+	}
 	if len(lines) == 0 {
 		return nil
 	}

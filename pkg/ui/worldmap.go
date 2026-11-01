@@ -66,7 +66,7 @@ func WorldMapTextLines(t *WorldMapTextBlock) []string {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		lines = append(lines, wrapTooltipLine(line, t.LineFont, t.Width)...)
+		lines = append(lines, tooltipFlowLines(line, t.LineFont, t.Width)...)
 	}
 	if t.MaxLines > 0 && len(lines) > t.MaxLines {
 		lines = lines[:t.MaxLines]
@@ -205,7 +205,7 @@ func worldMapCardDetail(v WorldMapView, index int) []string {
 	var lines []string
 	for _, line := range strings.Split(strings.ReplaceAll(detail, "\r", ""), "\n") {
 		if strings.TrimSpace(line) != "" {
-			lines = append(lines, wrapTooltipLine(line, font, width)...)
+			lines = append(lines, tooltipFlowLines(line, font, width)...)
 		}
 	}
 	if payment > 0 {
@@ -213,7 +213,7 @@ func worldMapCardDetail(v WorldMapView, index int) []string {
 		if label == "" {
 			label = AuthoredWords().WorldPayment
 		}
-		lines = append(lines, wrapTooltipLine(fmt.Sprintf("%s: %d", label, payment), font, width)...)
+		lines = append(lines, tooltipFlowLines(fmt.Sprintf("%s: %d", label, payment), font, width)...)
 	}
 	return lines
 }

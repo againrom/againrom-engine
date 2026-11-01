@@ -347,26 +347,12 @@ func pageReturnRow() gameMenuRow {
 	return gameMenuRow{Label: "~RETURN TO MENU", Fallback: 'R', Action: gameMenuPageReturn, Enabled: true}
 }
 
-// wrapGameMenuText produces rows that fit the menu's 252-pixel text area on
+// gameMenuTextLines produces rows that fit the menu's 252-pixel text area on
 // the fixed-width fallback path. The install font is narrower for the shipped
 // prose used here. The bound remains conservative on that path.
-func wrapGameMenuText(s string) []string {
+func gameMenuTextLines(s string) []string {
 	const cols = 38
-	words := strings.Fields(s)
-	if len(words) == 0 {
-		return nil
-	}
-	var out []string
-	line := words[0]
-	for _, word := range words[1:] {
-		if len([]rune(line))+1+len([]rune(word)) <= cols {
-			line += " " + word
-			continue
-		}
-		out = append(out, line)
-		line = word
-	}
-	return append(out, line)
+	return gameMenuRule.plain(lineBox{Measure: runeCount, Width: cols}, s)
 }
 
 // The panel's own colours. They are this project's, not the original's frame art

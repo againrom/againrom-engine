@@ -220,7 +220,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			group = f.Group
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
 			if note := e.groupNote(f.Group); note != "" {
-				for _, part := range editorWrap(e.bodyFont(), note, e.hostedWrap(*s, 378)) {
+				for _, part := range editorTextLines(e.bodyFont(), note, e.hostedWrap(*s, 378)) {
 					s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
 				}
 			}
@@ -237,7 +237,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				if line.Role == "heading" {
 					kind = popupHeading
 				}
-				for _, part := range editorWrap(e.bodyFont(), line.Text, textWidth) {
+				for _, part := range editorTextLines(e.bodyFont(), line.Text, textWidth) {
 					s.Rows, *links = append(s.Rows, popupRow{Kind: kind, Label: part}), append(*links, 0)
 				}
 			}
@@ -298,7 +298,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		s.Rows, *links = append(s.Rows, row), append(*links, 0)
 		if meaning != "" {
-			for _, part := range editorWrap(e.bodyFont(), e.editorHostText(meaning), textWidth) {
+			for _, part := range editorTextLines(e.bodyFont(), e.editorHostText(meaning), textWidth) {
 				s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: part})
 				*links = append(*links, 0)
 			}
@@ -321,10 +321,10 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 		}
 		s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.person.overrides"), count))
-		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.word("editor.person.keys"), s.Width-20)...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.word("editor.person.keys"), s.Width-20)...)
 	}
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), e.hostedWrap(*s, 400))...)
 	}
 }
 

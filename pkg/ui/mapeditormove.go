@@ -13,7 +13,7 @@ import (
 func editorParagraphs(f *text.Font, s string, width int) []string {
 	var out []string
 	for _, paragraph := range strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n") {
-		out = append(out, editorWrap(f, paragraph, width)...)
+		out = append(out, editorTextLines(f, paragraph, width)...)
 	}
 	return out
 }

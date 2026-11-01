@@ -321,7 +321,7 @@ func TestModLinesLayOutEachKind(t *testing.T) {
 
 func TestModTextWrapCutsAWordWiderThanTheLine(t *testing.T) {
 	a := modTestApp(t, nil)
-	lines := a.modWrap(strings.Repeat("x", 200), 60)
+	lines := a.modTextLines(strings.Repeat("x", 200), 60)
 	if len(lines) < 3 {
 		t.Fatalf("%d lines", len(lines))
 	}

@@ -3,7 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-	"strings"
 
 	"againrom/pkg/render/text"
 )
@@ -151,85 +150,24 @@ func (w *noticeWindow) noticeLines(f *text.Font, l noticeWindowLayout, display f
 	}
 	var out []noticeLine
 	for _, row := range w.Rows {
-		out = append(out, wrapNoticeRow(f, row, width, indent, display)...)
+		out = append(out, noticeRowLines(f, row, width, indent, display)...)
 	}
 	return out
 }
 
-// wrapNoticeRow breaks a row at spaces into lines no wider than width; the
+// noticeRowLines breaks a row at spaces into lines no wider than width; the
 // lines after the first are indented by indent. A word wider than a line is
-// broken where it reaches the edge.
-func wrapNoticeRow(f *text.Font, row noticeRow, width, indent int, display func(string) string) []noticeLine {
-	type piece struct {
-		text         string
-		alert, space bool
+// broken where it reaches the edge. display turns a run's text into the bytes
+// the font draws.
+func noticeRowLines(f *text.Font, row noticeRow, width, indent int, display func(string) string) []noticeLine {
+	runs := make([]inkRun, len(row))
+	for i, r := range row {
+		runs[i] = inkRun{Text: display(r.Text), Alert: r.Alert}
 	}
-	var pieces []piece
-	for _, r := range row {
-		s := display(r.Text)
-		for s != "" {
-			space := s[0] == ' '
-			n := strings.IndexFunc(s, func(c rune) bool { return (c == ' ') != space })
-			if n < 0 {
-				n = len(s)
-			}
-			pieces = append(pieces, piece{s[:n], r.Alert, space})
-			s = s[n:]
-		}
-	}
-	var out []noticeLine
-	cur := noticeLine{}
-	x := 0
-	var gap []piece
-	add := func(p piece) {
-		if n := len(cur.runs); n > 0 && cur.runs[n-1].Alert == p.alert {
-			cur.runs[n-1].Text += p.text
-		} else {
-			cur.runs = append(cur.runs, inkRun{Text: p.text, Alert: p.alert})
-		}
-		x += f.Advance(p.text)
-	}
-	flush := func() {
-		out = append(out, cur)
-		cur, x, gap = noticeLine{indent: indent}, 0, nil
-	}
-	for _, p := range pieces {
-		if p.space {
-			if len(cur.runs) > 0 {
-				gap = append(gap, p)
-			}
-			continue
-		}
-		avail := width - cur.indent
-		gapWidth := 0
-		for _, g := range gap {
-			gapWidth += f.Advance(g.text)
-		}
-		if len(cur.runs) > 0 && x+gapWidth+f.Advance(p.text) > avail {
-			flush()
-			avail = width - cur.indent
-		} else {
-			for _, g := range gap {
-				add(g)
-			}
-			gap = nil
-		}
-		for len(cur.runs) == 0 && f.Advance(p.text) > avail-x {
-			n := 1
-			for n < len(p.text) && f.Advance(p.text[:n+1]) <= avail {
-				n++
-			}
-			add(piece{p.text[:n], p.alert, false})
-			p.text = p.text[n:]
-			flush()
-			avail = width - cur.indent
-		}
-		if p.text != "" {
-			add(p)
-		}
-	}
-	if len(cur.runs) > 0 || len(out) == 0 {
-		out = append(out, cur)
+	lines := noticeRowRule.lines(lineBox{Measure: advanceOf(f), Width: width, Indent: indent}, runs...)
+	out := make([]noticeLine, len(lines))
+	for i, l := range lines {
+		out[i] = noticeLine{runs: l.Runs, indent: l.Indent}
 	}
 	return out
 }
@@ -371,7 +309,7 @@ func (w *noticeWindow) composeList(dst *image.RGBA, f *text.Font, l noticeWindow
 		}
 	}
 	drawVScrollBar(dst, frames, noticeBar(l, w.top, len(lines)).withPointer(pointer, pointerOK))
-	for i, line := range NoticeLines(f, display(w.Hint), l.Hint.Dx()) {
+	for i, line := range noticeFlowLines(f, display(w.Hint), l.Hint.Dx()) {
 		if i >= noticeHintLines {
 			break
 		}

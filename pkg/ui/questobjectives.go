@@ -29,7 +29,7 @@ func (f *flow) questLines() []string {
 		s = f.word("quest.empty")
 	}
 	if f.menuFont == nil {
-		return wrapGameMenuText(s)
+		return gameMenuTextLines(s)
 	}
 	paras := strings.Split(strings.ReplaceAll(s, "\r\n", "\n"), "\n")
 	// Title, blank line, body: the title and the body's first line indent.
@@ -40,7 +40,7 @@ func (f *flow) questLines() []string {
 		if titled && i == 1 {
 			continue
 		}
-		wrapped := wrapShopTip(f.menuFont, f.menuDisplayText(para), 400)
+		wrapped := shopTipLines(f.menuFont, f.menuDisplayText(para), 400)
 		if titled && i <= 2 {
 			wrapped[0] = questIndent + wrapped[0]
 		}

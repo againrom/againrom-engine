@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"strings"
 
 	"againrom/pkg/render/text"
 )
@@ -1205,32 +1204,12 @@ func drawShopMessage(dst *image.RGBA, v ShopScreenView) {
 	v.Font.Draw(dst, s, x, l.Message.Min.Y, shopTextColor)
 }
 
-// wrapShopTip splits s into lines that each measure no wider than width under
+// shopTipLines splits s into lines that each measure no wider than width under
 // font, breaking only between words. A run with no spaces at all, or a single
 // word wider than width on its own, is returned as one line rather than cut
 // mid-glyph: this build has no hyphenation rule to reproduce or author.
-func wrapShopTip(font *text.Font, s string, width int) []string {
-	var lines []string
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	for _, para := range strings.Split(s, "\n") {
-		words := strings.Fields(para)
-		if len(words) == 0 {
-			lines = append(lines, "")
-			continue
-		}
-		line := words[0]
-		for _, w := range words[1:] {
-			candidate := line + " " + w
-			if cw, _ := font.Measure(candidate); cw <= width {
-				line = candidate
-				continue
-			}
-			lines = append(lines, line)
-			line = w
-		}
-		lines = append(lines, line)
-	}
-	return lines
+func shopTipLines(font *text.Font, s string, width int) []string {
+	return shopTipRule.plain(lineBox{Measure: boxOf(font), Width: width}, s)
 }
 
 // drawShopChevron paints one picker rect: a framed box with a triangle pointing

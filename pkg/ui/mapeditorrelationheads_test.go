@@ -148,7 +148,7 @@ func TestRelationMatrixHoverNamesBothPlayersAndTheValue(t *testing.T) {
 			for _, rr := range l.Rows {
 				full, cut := rowFull(e.font, body, s.Rows[rr.Index], rr)
 				tip, ok := tipAt(center(rr.Rect))
-				if ok != cut || ok && (!slices.Equal(tip.Lines, editorWrap(body, full, rr.Rect.Dx()-8)) || tip.Rect.Min != image.Pt(rr.Rect.Min.X, rr.Rect.Max.Y)) {
+				if ok != cut || ok && (!slices.Equal(tip.Lines, editorTextLines(body, full, rr.Rect.Dx()-8)) || tip.Rect.Min != image.Pt(rr.Rect.Min.X, rr.Rect.Max.Y)) {
 					t.Fatalf("row %q hover line %v %q, cut %v", full, ok, tip.Lines, cut)
 				}
 			}

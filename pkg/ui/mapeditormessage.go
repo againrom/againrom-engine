@@ -259,7 +259,7 @@ func (e *MapEditor) fitMessageText(s *popupSpec, k int) {
 	width := l.Rows[k].Control.Dx() - 8
 	count := 0
 	for _, line := range strings.Split(s.Rows[k].Value, "\n") {
-		count += len(editorWrap(body, line, width))
+		count += len(editorTextLines(body, line, width))
 	}
 	pitch, line := l.Pitch, fontHeight(body, 15)
 	spare := (s.Bounds.Dy() - l.Rect.Dy()) / pitch

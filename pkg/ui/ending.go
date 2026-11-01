@@ -80,7 +80,7 @@ func (a *App) SetCampaignEnding(source func() (EndingView, bool)) {
 			credits := strings.Join(view.Credits, "\n")
 			view.Credits = nil
 			if strings.TrimSpace(credits) != "" {
-				view.Credits = a.saveWrapped(credits, 544)
+				view.Credits = a.saveLines(credits, 544)
 			}
 		}
 		return view, complete

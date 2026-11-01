@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"unicode/utf8"
 
 	"againrom/pkg/render/text"
 )
@@ -26,44 +27,20 @@ type editorTextView struct {
 	first         int
 }
 
+// editorTextSpans breaks s into the rune spans of its lines: a newline ends a
+// line, a space is where a long line is cut when one fits, and the spans
+// together cover everything but the newlines.
 func editorTextSpans(s string, width int, measure func(string) int) []editorTextSpan {
-	r := []rune(s)
-	var spans []editorTextSpan
-	start, at, space, size := 0, 0, -1, 0
-	emit := func(end int) {
-		if end > start && r[end-1] == '\r' && (end == len(r) || r[end] == '\n') {
-			end--
-		}
-		spans = append(spans, editorTextSpan{start, end})
+	s = scrubUTF8(s)
+	lines := textSpanRule.lines(lineBox{Measure: measure, Width: width}, inkRun{Text: s})
+	spans := make([]editorTextSpan, len(lines))
+	from, runes := 0, 0
+	for i, l := range lines {
+		runes += utf8.RuneCountInString(s[from:l.From])
+		from = l.From
+		to := runes + utf8.RuneCountInString(s[from:l.To])
+		spans[i] = editorTextSpan{runes, to}
 	}
-	for at < len(r) {
-		if r[at] == '\r' && (at+1 == len(r) || r[at+1] == '\n') {
-			at++
-			continue
-		}
-		if r[at] == '\n' {
-			emit(at)
-			at++
-			start, space, size = at, -1, 0
-			continue
-		}
-		w := measure(string(r[at]))
-		if size+w > width && at > start {
-			end := at
-			if space >= start {
-				end = space + 1
-			}
-			emit(end)
-			start, at, space, size = end, end, -1, 0
-			continue
-		}
-		if r[at] == ' ' {
-			space = at
-		}
-		size += w
-		at++
-	}
-	emit(len(r))
 	return spans
 }
 

@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"strings"
 	"time"
 
 	"againrom/pkg/render/camera"
@@ -682,26 +681,10 @@ func (e *MapEditor) editorHostText(s string) string {
 	return s
 }
 
-func editorWrap(f *text.Font, s string, width int) []string {
-	if f == nil {
-		return []string{s}
-	}
-	var lines []string
-	var line string
-	for _, r := range []byte(strings.ReplaceAll(s, "\n", " ")) {
-		if line != "" && f.Advance(line+string([]byte{r})) > width {
-			// Break after the line's last space when it has one, so a
-			// word moves whole; the bytes stay in order either way.
-			cut := strings.LastIndexByte(line, ' ') + 1
-			if cut <= 0 || r == ' ' {
-				cut = len(line)
-			}
-			lines = append(lines, line[:cut])
-			line = line[cut:]
-		}
-		line += string([]byte{r})
-	}
-	return append(lines, line)
+// editorTextLines breaks s to width in the font's advance, nothing lost: the
+// lines laid end to end are s with its newlines made spaces.
+func editorTextLines(f *text.Font, s string, width int) []string {
+	return editorRule.plain(lineBox{Measure: advanceOf(f), Width: width}, s)
 }
 
 // editorFit is how the editor fits its text: in the font's bytes, one byte

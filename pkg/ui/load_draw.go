@@ -71,7 +71,7 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 			messageY = max(messageY, a.pageListBox(v).Rect.Max.Y+2)
 		}
 		// Wrap the detail or refusal below the list; the row retains its full text.
-		for i, line := range NoticeLines(font, a.flow.menuDisplayText(message), v.page.Message.Dx()) {
+		for i, line := range noticeFlowLines(font, a.flow.menuDisplayText(message), v.page.Message.Dx()) {
 			if i >= 2 {
 				break
 			}

@@ -139,7 +139,7 @@ func tooltipPicture(t tooltipTarget, p image.Point, bounds image.Rectangle, ball
 			if part == "" {
 				continue
 			}
-			lines = append(lines, wrapTooltipLine(part, t.font, width)...)
+			lines = append(lines, tooltipFlowLines(part, t.font, width)...)
 		}
 	}
 	return placeHover(hoverDescription{lines, t.font, s, hoverAnchor{hoverAbove, p, bounds}}, ball)
@@ -157,34 +157,8 @@ func ComposeTooltipHint(lines []string, font *text.Font, p image.Point, bounds i
 	return h.styled(tooltipTarget{tooltipText, "witness", lines, font}, p, bounds, look.hoverStyle())
 }
 
-func wrapTooltipLine(s string, font *text.Font, width int) []string {
-	if width <= 0 {
-		return nil
-	}
-	var out []string
-	for s != "" {
-		end, space := 0, 0
-		for i := 1; i <= len(s); i++ {
-			w, _ := font.Measure(s[:i])
-			if max(w, font.Advance(s[:i])) > width && i > 1 {
-				break
-			}
-			end = i
-			if s[i-1] == ' ' {
-				space = i
-			}
-		}
-		if end == 0 {
-			end = 1
-		}
-		if end < len(s) && space > 0 {
-			end = space
-		}
-		out = append(out, strings.TrimRight(s[:end], " "))
-		s = strings.TrimLeft(s[end:], " ")
-	}
-	if len(out) == 0 {
-		return []string{""}
-	}
-	return out
+// tooltipFlowLines breaks one hover help line to width, counting the wider of the
+// font's box and pen.
+func tooltipFlowLines(s string, font *text.Font, width int) []string {
+	return tooltipRule.plain(lineBox{Measure: reachOf(font), Width: width}, s)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 )
 
@@ -32,9 +33,9 @@ func TestDocumentTextColourMatchesTheOriginalReferenceScreenshots(t *testing.T) 
 func TestWrapDocumentTextDropsBlankSeparatorsAndIndentsEachParagraphsFirstLine(t *testing.T) {
 	font := documentsTestFont()
 	text := "AB CD\n\nEF GH IJ\n \nKL"
-	lines := wrapDocumentText(font, text, 1000, 20) // width 1000: nothing wraps within a paragraph
+	lines := documentLines(font, text, 1000, 20) // width 1000: nothing wraps within a paragraph
 	if len(lines) != 3 {
-		t.Fatalf("wrapDocumentText produced %d lines, want 3 -- a blank separator must not draw its own line",
+		t.Fatalf("documentLines produced %d lines, want 3 -- a blank separator must not draw its own line",
 			len(lines))
 	}
 	wantText := []string{"AB CD", "EF GH IJ", "KL"}
@@ -72,12 +73,12 @@ func TestWrapDocumentParagraphIndentsOnlyTheFirstLineAndNarrowsItsBudget(t *test
 		t.Fatalf("fixture space advance = %d, want 12 (this test's own arithmetic below assumes it)", adv)
 	}
 
-	noIndent := wrapDocumentParagraph(font, words, 60, 0)
+	noIndent := documentLines(font, strings.Join(words, " "), 60, 0)
 	if len(noIndent) != 2 || noIndent[0].text != "AB CD" || noIndent[1].text != "EF" {
 		t.Fatalf(`indent 0: got %+v, want ["AB CD" "EF"]`, noIndent)
 	}
 
-	indented := wrapDocumentParagraph(font, words, 60, 20)
+	indented := documentLines(font, strings.Join(words, " "), 60, 20)
 	if len(indented) != 2 || indented[0].text != "AB" || indented[1].text != "CD EF" {
 		t.Fatalf(`indent 20: got %+v, want ["AB" "CD EF"] -- the indent must narrow only the FIRST `+
 			`line's own budget`, indented)

@@ -763,7 +763,7 @@ func shopTipTestFont() *text.Font {
 	return f
 }
 
-// wrapShopTip breaks on whitespace, greedily, measuring each candidate line
+// shopTipLines breaks on whitespace, greedily, measuring each candidate line
 // against the font exactly as the widths it is asked to fit are measured вЂ”
 // the same font, not a hand-derived pixel count, so this cannot pass by
 // agreeing with an arithmetic mistake shared with the code under test.
@@ -773,14 +773,14 @@ func TestWrapShopTipBreaksGreedilyOnWhitespace(t *testing.T) {
 	threeWords, _ := font.Measure("ab cd ef")
 	oneWord, _ := font.Measure("ab")
 
-	if got := wrapShopTip(font, "ab cd ef", threeWords); len(got) != 1 || got[0] != "ab cd ef" {
-		t.Fatalf("width = all three words' own measure: wrapShopTip = %v, want one line", got)
+	if got := shopTipLines(font, "ab cd ef", threeWords); len(got) != 1 || got[0] != "ab cd ef" {
+		t.Fatalf("width = all three words' own measure: shopTipLines = %v, want one line", got)
 	}
-	if got := wrapShopTip(font, "ab cd ef", twoWords); len(got) != 2 || got[0] != "ab cd" || got[1] != "ef" {
-		t.Fatalf(`width = the first two words' own measure: wrapShopTip = %v, want ["ab cd" "ef"]`, got)
+	if got := shopTipLines(font, "ab cd ef", twoWords); len(got) != 2 || got[0] != "ab cd" || got[1] != "ef" {
+		t.Fatalf(`width = the first two words' own measure: shopTipLines = %v, want ["ab cd" "ef"]`, got)
 	}
-	if got := wrapShopTip(font, "ab cd ef", oneWord); len(got) != 3 || got[2] != "ef" {
-		t.Fatalf("width = one word's own measure: wrapShopTip = %v, want three lines", got)
+	if got := shopTipLines(font, "ab cd ef", oneWord); len(got) != 3 || got[2] != "ef" {
+		t.Fatalf("width = one word's own measure: shopTipLines = %v, want three lines", got)
 	}
 }
 
@@ -788,7 +788,7 @@ func TestWrapShopTipBreaksGreedilyOnWhitespace(t *testing.T) {
 // hyphenation rule to reproduce or invent.
 func TestWrapShopTipNeverSplitsAWordWiderThanTheRect(t *testing.T) {
 	font := shopTipTestFont()
-	if got := wrapShopTip(font, "abcdefghij", 1); len(got) != 1 || got[0] != "abcdefghij" {
+	if got := shopTipLines(font, "abcdefghij", 1); len(got) != 1 || got[0] != "abcdefghij" {
 		t.Fatalf("a lone word over width = %v, want it kept whole on one line", got)
 	}
 }
@@ -799,9 +799,9 @@ func TestWrapShopTipNeverSplitsAWordWiderThanTheRect(t *testing.T) {
 func TestWrapShopTipTreatsCRLFAsAParagraphBreak(t *testing.T) {
 	font := shopTipTestFont()
 	wide, _ := font.Measure("ab cd")
-	got := wrapShopTip(font, "ab\r\ncd", wide)
+	got := shopTipLines(font, "ab\r\ncd", wide)
 	if len(got) != 2 || got[0] != "ab" || got[1] != "cd" {
-		t.Fatalf(`wrapShopTip("ab\r\ncd") = %v, want ["ab" "cd"]`, got)
+		t.Fatalf(`shopTipLines("ab\r\ncd") = %v, want ["ab" "cd"]`, got)
 	}
 }
 

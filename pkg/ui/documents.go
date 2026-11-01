@@ -3,7 +3,6 @@ package ui
 import (
 	"image"
 	"image/color"
-	"strings"
 
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
@@ -179,14 +178,11 @@ func newDocumentPanel(art *DocumentPanelArt, font *text.Font, pages []DocumentPa
 		if page.Text == "" || font == nil {
 			continue
 		}
-		// wrapDocumentText is this screen's own greedy word wrap — DIV-302:
-		// the original's break rule itself is not decoded, and this is this
-		// build's approximation of it, same as wrapShopTip is everywhere
-		// else. It additionally indents and justifies (DIV-1387,
-		// docParagraphIndent's own header), which no other screen does; nothing
-		// here reaches wrapShopTip or changes what it does for its other
-		// callers.
-		p.lines[i] = wrapDocumentText(font, page.Text, docContentWidth, docParagraphIndent)
+		// The original's break rule itself is not decoded (DIV-302); the
+		// document row of the line breaker is this build's approximation of
+		// it. It additionally indents and justifies (DIV-1387,
+		// docParagraphIndent's own header), which no other screen does.
+		p.lines[i] = documentLines(font, page.Text, docContentWidth, docParagraphIndent)
 	}
 	return p
 }
@@ -207,66 +203,18 @@ type docLine struct {
 	justify bool
 }
 
-// wrapDocumentText splits s into docLines: a blank source line (after
-// strings.Fields finds no word on it) starts the next paragraph without
-// drawing a line of its own, and every other source line is wrapped
-// independently, exactly as wrapShopTip wraps each of strings.Split(s, "\n")'s
-// own elements today. The only two differences from that shared wrap are
-// paragraph indent on a group's own first line and justification on every
-// group but its last, both scoped to this screen alone.
-func wrapDocumentText(font *text.Font, s string, width, indent int) []docLine {
+// documentLines splits s into docLines: a blank source line starts the next
+// paragraph without drawing a line of its own, and every other source line is
+// broken independently by the document row of the line breaker. The row's
+// paragraph indent narrows a paragraph's first line; the lines that end their
+// paragraph are left ragged and every other line is justified.
+func documentLines(font *text.Font, s string, width, indent int) []docLine {
 	var out []docLine
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	for _, para := range strings.Split(s, "\n") {
-		words := strings.Fields(para)
-		if len(words) == 0 {
-			continue
-		}
-		out = append(out, wrapDocumentParagraph(font, words, width, indent)...)
+	box := lineBox{Measure: boxOf(font), Width: width, FirstIndent: indent}
+	for _, l := range documentRule.lines(box, inkRun{Text: s}) {
+		out = append(out, docLine{words: lineWords(l.Text()), text: l.Text(), indent: l.First, justify: !l.Last})
 	}
 	return out
-}
-
-// wrapDocumentParagraph greedily groups words into lines that each measure no
-// wider than width under font — width less indent for the very first group,
-// mirroring wrapShopTip's own algorithm otherwise. The first group is marked
-// to draw indented; every group but the last is marked to draw justified.
-func wrapDocumentParagraph(font *text.Font, words []string, width, indent int) []docLine {
-	firstWidth := width - indent
-	if firstWidth < 0 {
-		firstWidth = 0
-	}
-
-	var groups [][]string
-	line := words[0]
-	group := []string{words[0]}
-	for _, w := range words[1:] {
-		candidate := line + " " + w
-		limit := width
-		if len(groups) == 0 {
-			limit = firstWidth
-		}
-		if cw, _ := font.Measure(candidate); cw <= limit {
-			line = candidate
-			group = append(group, w)
-			continue
-		}
-		groups = append(groups, group)
-		line = w
-		group = []string{w}
-	}
-	groups = append(groups, group)
-
-	lines := make([]docLine, len(groups))
-	for i, g := range groups {
-		lines[i] = docLine{
-			words:   g,
-			text:    strings.Join(g, " "),
-			indent:  i == 0,
-			justify: i < len(groups)-1,
-		}
-	}
-	return lines
 }
 
 // drawDocumentLine draws one docLine's own words at (x, y): a plain

@@ -513,7 +513,7 @@ func TestSaveDialogWrapPreservesWholePathsAndLocalizesMissionMeaning(t *testing.
 		t.Fatalf("RU meaning = %+v", w)
 	}
 	mustSaveAction(t, a, "save")
-	wrapped := a.saveWrapped(path, 548)
+	wrapped := a.saveLines(path, 548)
 	if strings.Join(wrapped, "") != path || len(wrapped) < 18 {
 		t.Fatal("confirmation lost exact path characters")
 	}

@@ -93,7 +93,7 @@ func fitCharacterCardLines(l PanelLayout, f *text.Font, lines []panelLine, items
 			if hasRole {
 				y1, step = y1-1, step-1
 			}
-			if first, second, ok := wrapCardName(l, bg, f, ln.value, right-left, y1, step); ok {
+			if first, second, ok := splitCardName(l, bg, f, ln.value, right-left, y1, step); ok {
 				ln.value, ln.wrap = first, second
 				ln.at.Y = y1
 				ln.valueX, ln.width = panelCellMetrics(f, l.LabelGap, ln.label, ln.value)
@@ -219,31 +219,18 @@ func characterCardRowExtent(l PanelLayout, bg *image.RGBA, y, h int) (left, righ
 	return left + 1, right - 1
 }
 
-// wrapCardName splits a name that does not fit its row at a space into two
+// splitCardName splits a name that does not fit its row at a space into two
 // rows, at y and y+step, that each fit, choosing the split whose wider row is
 // narrower. It reports false when the name already fits one row or no split
 // fits.
-func wrapCardName(l PanelLayout, bg *image.RGBA, f *text.Font, name string, avail, y, step int) (first, second string, ok bool) {
-	if w, _ := f.Measure(name); w <= avail {
-		return "", "", false
-	}
+func splitCardName(l PanelLayout, bg *image.RGBA, f *text.Font, name string, avail, y, step int) (first, second string, ok bool) {
 	l1, r1 := characterCardRowExtent(l, bg, y, f.Height())
 	l2, r2 := characterCardRowExtent(l, bg, y+step, f.Height())
-	best := 0
-	for i := 1; i < len(name)-1; i++ {
-		if name[i] != ' ' {
-			continue
-		}
-		w1, _ := f.Measure(name[:i])
-		w2, _ := f.Measure(name[i+1:])
-		if w1 > r1-l1 || w2 > r2-l2 {
-			continue
-		}
-		if wide := max(w1, w2); !ok || wide < best {
-			first, second, best, ok = name[:i], name[i+1:], wide, true
-		}
+	rows := cardNameRule.lines(lineBox{Measure: boxOf(f), Width: avail, Rows: []int{r1 - l1, r2 - l2}}, inkRun{Text: name})
+	if len(rows) != 2 {
+		return "", "", false
 	}
-	return first, second, ok
+	return rows[0].Text(), rows[1].Text(), true
 }
 
 // The card's text columns in card pixels, measured from the original

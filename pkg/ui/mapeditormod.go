@@ -353,13 +353,13 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	if status == "" {
 		status = e.word("editor.mod.keys")
 	}
-	s.Notes = editorWrap(e.bodyFont(), e.editorHostText(status), s.Width-20)
+	s.Notes = editorTextLines(e.bodyFont(), e.editorHostText(status), s.Width-20)
 	if host, ok := e.doc.Edits.(interface{ ModSummary() string }); ok {
 		s.Notes = append([]string{editorClip(e.bodyFont(), e.editorHostText(host.ModSummary()), s.Width-20)}, s.Notes...)
 	}
 	if host, ok := e.doc.Edits.(interface{ ModOutput() string }); ok {
 		if output := host.ModOutput(); output != "" {
-			s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(output), s.Width-20)...)
+			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(output), s.Width-20)...)
 		}
 	}
 	s.MaxRows = max(3, (e.popupRoom().Dy()-fontHeight(e.font, 15)-len(s.Notes)*(fontHeight(e.bodyFont(), 15)+popupRowExtra)-60)/(fontHeight(e.bodyFont(), 15)+popupRowExtra))

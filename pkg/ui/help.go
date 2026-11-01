@@ -86,11 +86,11 @@ func helpGeometryOf(f *text.Font, s string) helpGeometry {
 	g.visible = bodyH / pitch
 	g.body = image.Rect(helpBodyX, helpBodyY, helpBodyX+helpBodyW, helpBodyY+bodyH)
 	g.text = g.body
-	n := len(dialogueWrap(f, s, g.body.Dx()))
+	n := len(dialogueFlow(f, s, g.body.Dx()))
 	if n*pitch > bodyH {
 		g.text.Max.X = g.body.Max.X - helpBarNarrow
 		g.bar = image.Rect(helpBarLeft, g.body.Min.Y, helpBarLeft+helpBarW, g.body.Max.Y)
-		n = len(dialogueWrap(f, s, g.text.Dx()))
+		n = len(dialogueFlow(f, s, g.text.Dx()))
 	}
 	g.lines = n
 	return g

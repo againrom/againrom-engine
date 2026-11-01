@@ -306,7 +306,7 @@ func TestALongVersionWrapsInsideTheRowWithEveryCharacter(t *testing.T) {
 	version := strings.Repeat("W", 120)
 	row := modMismatchRow(a.flow.modMismatchWord(ModMismatchVersion), ModMismatchRow{Mod: "alpha", Saved: version, Current: "2"})
 	var joined strings.Builder
-	for i, line := range wrapNoticeRow(font, row, width, noticeWrapIndent, a.modMismatchDisplay) {
+	for i, line := range noticeRowLines(font, row, width, noticeWrapIndent, a.modMismatchDisplay) {
 		used := line.indent
 		for _, run := range line.runs {
 			used += font.Advance(run.Text)

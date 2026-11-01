@@ -477,7 +477,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		if b := e.bodyFont(); b != nil {
 			w -= b.Advance(indent)
 		}
-		for _, part := range editorWrap(e.bodyFont(), body, w) {
+		for _, part := range editorTextLines(e.bodyFont(), body, w) {
 			add(popupRow{Kind: popupText, Label: indent + part, Ink: inspectionRoleColor(ink)}, -1)
 		}
 	}
@@ -580,7 +580,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 
 	}
 	if o.note != "" {
-		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(o.note), width)...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(o.note), width)...)
 	}
 	for r, acts := range o.rowActs {
 		for _, a := range acts {

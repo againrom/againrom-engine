@@ -354,7 +354,7 @@ func TestMapEditor1092ActualFourArtLayersReachDrawAndPreview(t *testing.T) {
 	// Wrapping must preserve shipped CP866 bytes rather than decoding them as
 	// UTF-8 and replacing each high byte with a replacement character.
 	raw := string([]byte{0x81, 0xe0, 0xae, 0xad, 0xa7, 0xae, 0xa2, 0xeb, 0xa9})
-	if got := strings.Join(editorWrap(panelFont(), raw, 4), ""); got != raw {
+	if got := strings.Join(editorTextLines(panelFont(), raw, 4), ""); got != raw {
 		t.Fatal("RU item name bytes corrupted by wrapping")
 	}
 }

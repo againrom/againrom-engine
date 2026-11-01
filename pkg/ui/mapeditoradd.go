@@ -737,7 +737,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	}
 	for _, note := range []string{r.note, e.editorHostText(e.message)} {
 		if note != "" {
-			s.Notes = append(s.Notes, editorWrap(body, note, w-2*popupPad-8)...)
+			s.Notes = append(s.Notes, editorTextLines(body, note, w-2*popupPad-8)...)
 		}
 	}
 	finish := e.word("editor.button.next")

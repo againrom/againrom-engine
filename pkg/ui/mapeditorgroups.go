@@ -453,7 +453,7 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 		}
 		add(row, g)
 		if users := e.groupUsers(g.group); len(users) > 0 {
-			for _, part := range editorWrap(e.bodyFont(), fmt.Sprintf(e.word("editor.group.usedby"), strings.Join(users, "; ")), width) {
+			for _, part := range editorTextLines(e.bodyFont(), fmt.Sprintf(e.word("editor.group.usedby"), strings.Join(users, "; ")), width) {
 				add(popupRow{Kind: popupText, Label: part}, editorGroup{})
 			}
 		}
@@ -470,12 +470,12 @@ func (e *MapEditor) groupsSpec() popupSpec {
 	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
 	text := s.Width - 2*popupPad - 8
 	if len(e.groups()) == 0 {
-		s.Notes = append(s.Notes, editorWrap(body, e.word("editor.group.empty"), text)...)
+		s.Notes = append(s.Notes, editorTextLines(body, e.word("editor.group.empty"), text)...)
 	}
 	units := e.groupUnitsSelected()
 	s.Notes = append(s.Notes, fmt.Sprintf(e.word("editor.group.selected"), units))
 	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = append(s.Notes, editorWrap(body, note, text)...)
+		s.Notes = append(s.Notes, editorTextLines(body, note, text)...)
 	}
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove")}
 	s.Disabled = []bool{units == 0, units == 0}
@@ -599,7 +599,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.bar.groups"), Value: strings.Join(numbers, ", ")})
 	}
 	if note := e.wholeSelectionNote(); note != "" {
-		s.Notes = editorWrap(e.bodyFont(), note, s.Width-2*popupPad-8)
+		s.Notes = editorTextLines(e.bodyFont(), note, s.Width-2*popupPad-8)
 	}
 	units := counts[KindUnit]
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove"), e.word("editor.selection.delete")}

@@ -881,7 +881,7 @@ func (e *MapEditor) findingNotes(width int) []string {
 	if !ok || f.Rule == keyListRule || f.Text == "" {
 		return nil
 	}
-	lines := editorWrap(e.bodyFont(), e.editorHostText(f.Text), width)
+	lines := editorTextLines(e.bodyFont(), e.editorHostText(f.Text), width)
 	if len(lines) > 5 {
 		more := lines[4] + textfit.Mark
 		if font := e.bodyFont(); font != nil {
@@ -1083,7 +1083,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 			kind = popupLink
 			l.Text = "> " + l.Text
 		}
-		for _, part := range editorWrap(e.bodyFont(), l.Text, width) {
+		for _, part := range editorTextLines(e.bodyFont(), l.Text, width) {
 			add(popupRow{Kind: kind, Label: part, Ink: inspectionRoleColor(l.Role)}, l.Reference)
 		}
 	}
@@ -1145,14 +1145,14 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		s.Rows = e.promptInputRows(text)
 		s.Buttons = []string{e.word("editor.button.ok"), e.word("editor.button.cancel")}
 		if fields := e.promptFields(); e.prompt.fields() && e.prompt.field < len(fields) && fields[e.prompt.field].Meaning != "" {
-			s.Notes = append(s.Notes, editorWrap(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
+			s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), e.editorHostText(fields[e.prompt.field].Meaning), text)...)
 		}
 	} else {
 		s.Title = e.word("editor.message.title")
 		s.Buttons = []string{e.word("editor.button.ok")}
 	}
 	if e.message != "" {
-		errors := editorWrap(e.bodyFont(), e.editorHostText(e.message), text)
+		errors := editorTextLines(e.bodyFont(), e.editorHostText(e.message), text)
 		if len(errors) > 6 {
 			more := errors[5] + textfit.Mark
 			if f := e.bodyFont(); f != nil {

@@ -1267,7 +1267,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			if body != nil {
 				var lines []string
 				for _, line := range strings.Split(row.Value, "\n") {
-					lines = append(lines, editorWrap(body, line, rr.Control.Dx()-8)...)
+					lines = append(lines, editorTextLines(body, line, rr.Control.Dx()-8)...)
 				}
 				visible := max(1, (rr.Control.Dy()-8)/fontHeight(body, 15))
 				start := max(0, min(row.First, len(lines)-visible))
@@ -1405,7 +1405,7 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 		if !cut {
 			return popupTip{}, false
 		}
-		lines := editorWrap(body, full, rr.Rect.Dx()-8)
+		lines := editorTextLines(body, full, rr.Rect.Dx()-8)
 		h := len(lines)*fontHeight(body, 15) + 8
 		box := image.Rect(rr.Rect.Min.X, rr.Rect.Max.Y, rr.Rect.Max.X, rr.Rect.Max.Y+h)
 		if box.Max.Y > bounds.Max.Y {
@@ -1426,7 +1426,7 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 	if full == "" {
 		return popupTip{}, false
 	}
-	lines, w := editorWrap(body, full, bounds.Dx()-8), 0
+	lines, w := editorTextLines(body, full, bounds.Dx()-8), 0
 	for _, line := range lines {
 		w = max(w, body.Advance(line))
 	}

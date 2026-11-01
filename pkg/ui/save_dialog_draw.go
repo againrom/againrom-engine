@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"strings"
 
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/textfit"
@@ -76,24 +75,11 @@ func (a *App) saveTextFit(value string, width int) string {
 	return textfit.Spec{Measure: a.saveTextWidth, Unit: textfit.Rune, Side: textfit.End}.Fit(value, width)
 }
 
-// Hard wrapping preserves every character of an exact target path, including
-// spaces. Paths are scrollable, never shortened to a basename or ellipsis.
-func (a *App) saveWrapped(value string, width int) []string {
-	var lines []string
-	for _, paragraph := range strings.Split(value, "\n") {
-		line := ""
-		for _, r := range paragraph {
-			next := line + string(r)
-			if line != "" && a.saveTextWidth(next) > width {
-				lines = append(lines, line)
-				line = string(r)
-			} else {
-				line = next
-			}
-		}
-		lines = append(lines, line)
-	}
-	return lines
+// saveLines breaks value by character, keeping every character of an exact
+// target path, spaces included. Paths are scrollable, never shortened to a
+// basename or ellipsis.
+func (a *App) saveLines(value string, width int) []string {
+	return saveRule.plain(lineBox{Measure: a.saveTextWidth, Width: width}, value)
 }
 
 func (a *App) saveConfirmationLines() []string {
@@ -102,7 +88,7 @@ func (a *App) saveConfirmationLines() []string {
 		return nil
 	}
 	if d.remove != nil {
-		return a.saveWrapped(d.removePath, 548)
+		return a.saveLines(d.removePath, 548)
 	}
 	if d.prepared == nil {
 		return nil
@@ -118,7 +104,7 @@ func (a *App) saveConfirmationLines() []string {
 			}
 		}
 		lines = append(lines, verb)
-		lines = append(lines, a.saveWrapped(path, 548)...)
+		lines = append(lines, a.saveLines(path, 548)...)
 		lines = append(lines, "")
 	}
 	return lines
@@ -263,7 +249,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	if d.request.OnMap {
 		detail = w.MapSAVDetail
 	}
-	for i, line := range a.saveWrapped(detail, 560) {
+	for i, line := range a.saveLines(detail, 560) {
 		if i >= 3 {
 			break
 		}
@@ -273,7 +259,7 @@ func (a *App) saveDialogPaint() (*savePaint, error) {
 	if message == "" {
 		message = w.KeyHint
 	}
-	for i, line := range a.saveWrapped(message, 560) {
+	for i, line := range a.saveLines(message, 560) {
 		if i >= 2 {
 			break
 		}

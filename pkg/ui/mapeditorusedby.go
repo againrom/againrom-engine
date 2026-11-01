@@ -13,7 +13,7 @@ type scriptPopupLink struct {
 }
 
 func (e *MapEditor) scriptPopupLink(s *popupSpec, links *[]int, row scriptPopupLink) {
-	for i, part := range editorWrap(e.bodyFont(), row.title, s.Width-2*popupPad-8) {
+	for i, part := range editorTextLines(e.bodyFont(), row.title, s.Width-2*popupPad-8) {
 		kind, link := popupText, 0
 		if i == 0 || row.nodes == nil {
 			kind, link = popupLink, -row.record-1

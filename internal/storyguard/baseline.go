@@ -3179,6 +3179,11 @@ package storyguard
 // panel, outcome and mission text functions in pkg/game/questobjectives.go,
 // the answers test in pkg/game/objectivesprofile_test.go, the guard in
 // internal/archtest/objectives.go and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the one line breaker and its
+// rows in pkg/ui/linebreak.go, the surfaces test in
+// pkg/ui/linebreak_surfaces_test.go, the guard in
+// internal/archtest/wordwrap.go and its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3688,5 +3693,5 @@ var Committed = Baseline{
 	// internal/archtest's spellarms.go, the popup's caption block method in
 	// pkg/game's spell.go, and this note. It fell by the creature aim
 	// table's and the Fire Ball constants' comments.
-	CommentBytes: 10208693,
+	CommentBytes: 10216451,
 }

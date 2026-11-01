@@ -64,7 +64,7 @@ func TestNoticeMaxLinesIsTheWindowsOwnClamp(t *testing.T) {
 		t.Errorf("NoticeMaxLines = %d, but NoticeLayoutOf draws %d lines of an overlong string", got, drawn)
 	}
 	// The clamp must bite for this to mean anything.
-	if produced := len(noticeWrap(l, f, long)); produced <= drawn {
+	if produced := len(noticeBodyLines(l, f, long, 0)); produced <= drawn {
 		t.Fatalf("the fixture produces %d lines and %d are drawn; it is not long enough to clip", produced, drawn)
 	}
 }
@@ -106,7 +106,7 @@ func TestNoticePagesOfNeverProducesAPageTheWindowClips(t *testing.T) {
 				t.Fatalf("%s: %d-line window: no pages", style, lines)
 			}
 			for i, p := range pages {
-				produced := len(noticeWrap(l, f, p))
+				produced := len(noticeBodyLines(l, f, p, 0))
 				drawn := len(NoticeLayoutOf(l, f, p))
 				if produced != drawn {
 					t.Errorf("%s: %d-line window, page %d of %d: %d lines produced, %d drawn — clipped\n%q",
@@ -188,10 +188,10 @@ func TestNoticePagesOfSplitsAParagraphTooLongForOnePage(t *testing.T) {
 		pages := NoticePagesOf(l, f, []string{one})
 		if len(pages) < 2 {
 			t.Fatalf("%s: a paragraph of %d lines came back as %d page(s)",
-				style, len(noticeWrap(l, f, one)), len(pages))
+				style, len(noticeBodyLines(l, f, one, 0)), len(pages))
 		}
 		for i, p := range pages {
-			if produced, drawn := len(noticeWrap(l, f, p)), len(NoticeLayoutOf(l, f, p)); produced != drawn {
+			if produced, drawn := len(noticeBodyLines(l, f, p, 0)), len(NoticeLayoutOf(l, f, p)); produced != drawn {
 				t.Errorf("%s: split page %d of %d: %d produced, %d drawn", style, i+1, len(pages), produced, drawn)
 			}
 		}

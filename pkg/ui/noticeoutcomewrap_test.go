@@ -27,12 +27,12 @@ func TestOutcomeBodyDrawsEveryLineInsideTheWindow(t *testing.T) {
 		stored := v.noticeLayouts[kind]
 		pitch := f.Height() + stored.Pitch
 		body := longOutcomeBody(stored)
-		if n := len(NoticeLines(f, body, stored.Text.Dx())); n <= stored.Text.Dy()/pitch {
+		if n := len(noticeFlowLines(f, body, stored.Text.Dx())); n <= stored.Text.Dy()/pitch {
 			t.Fatalf("kind %v setup: %d lines already fit the stored text rectangle", kind, n)
 		}
 		v.SetNotice(body, kind)
 		l := v.noticeLayout()
-		all := noticeWrap(l, f, body)
+		all := noticeBodyLines(l, f, body, 0)
 		drawn := NoticeLayoutOf(l, f, body)
 		if !reflect.DeepEqual(drawn, all) {
 			t.Fatalf("kind %v: %d of %d lines drawn", kind, len(drawn), len(all))

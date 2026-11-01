@@ -136,7 +136,7 @@ func (a *App) soundOptionsPicture() *image.RGBA {
 	font.Draw(dst, label, (mid.Max.X+soundOptionRect(gameMenuVolumeUp).Min.X)/2-font.Advance(label)/2,
 		mid.Min.Y+(mid.Dy()-font.Height())/2, gameMenuText)
 	message := f.menuDisplayText(f.msg)
-	for i, line := range NoticeLines(font, message, g.W()-80) {
+	for i, line := range noticeFlowLines(font, message, g.W()-80) {
 		if i == 2 {
 			break
 		}

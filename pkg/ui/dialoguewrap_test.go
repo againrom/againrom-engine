@@ -34,7 +34,7 @@ func TestDialogueWrapperSelectedControlsReachLayoutAndDraw(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var got []string
-			for _, ln := range dialogueWrap(f, tc.source, tc.width) {
+			for _, ln := range dialogueFlow(f, tc.source, tc.width) {
 				got = append(got, ln.text)
 			}
 			if !reflect.DeepEqual(got, tc.want) {
@@ -70,7 +70,7 @@ func TestDialogueWrapperFiniteRemainderKeepsBytes(t *testing.T) {
 		if s == "A B" {
 			width = 27
 		}
-		got := dialogueWrap(f, s, width)
+		got := dialogueFlow(f, s, width)
 		var joined []string
 		for _, ln := range got {
 			joined = append(joined, strings.TrimRight(ln.visible(), " \t"))
@@ -134,7 +134,7 @@ func TestDialogueDeclaredTrimAndSuffixReachWrapper(t *testing.T) {
 		{"\r\nA\r\n", []string{"", "A \r"}},
 	} {
 		var got []string
-		for _, line := range dialogueWrap(f, tc.input, 100) {
+		for _, line := range dialogueFlow(f, tc.input, 100) {
 			got = append(got, line.text)
 		}
 		if !reflect.DeepEqual(got, tc.want) {

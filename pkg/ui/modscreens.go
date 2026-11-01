@@ -201,44 +201,18 @@ func (a *App) modLineHeight() int {
 	return modFallbackLineH
 }
 
-// modWrap breaks s at spaces into lines no wider than width pixels. A word wider
-// than the line is cut where it no longer fits.
-func (a *App) modWrap(s string, width int) []string {
-	var out []string
-	line := ""
-	flush := func() {
-		if line != "" {
-			out = append(out, line)
-			line = ""
+// modTextLines breaks s at spaces into lines no wider than width pixels. A word
+// wider than the line is cut where it no longer fits.
+func (a *App) modTextLines(s string, width int) []string {
+	// Only a word that has to be cut is rebuilt from runes, which turns each
+	// byte that is not UTF-8 into U+FFFD; a word that fits keeps its bytes.
+	words := lineWords(s)
+	for i, w := range words {
+		if a.modMeasure(w) > width {
+			words[i] = scrubUTF8(w)
 		}
 	}
-	for _, word := range strings.Fields(s) {
-		for a.modMeasure(word) > width {
-			r := []rune(word)
-			n := len(r)
-			for n > 1 && a.modMeasure(string(r[:n])) > width {
-				n--
-			}
-			if line != "" {
-				flush()
-			}
-			out = append(out, string(r[:n]))
-			word = string(r[n:])
-		}
-		if word == "" {
-			continue
-		}
-		if line == "" {
-			line = word
-		} else if a.modMeasure(line+" "+word) <= width {
-			line += " " + word
-		} else {
-			flush()
-			line = word
-		}
-	}
-	flush()
-	return out
+	return modScreenRule.plain(lineBox{Measure: a.modMeasure, Width: width}, strings.Join(words, " "))
 }
 
 // modLines lays the open screen's body out as lines.
@@ -251,13 +225,13 @@ func (a *App) modLines(s ModScreen) []modLine {
 			if i > 0 {
 				lines = append(lines, modLine{})
 			}
-			for _, l := range a.modWrap(p, width) {
+			for _, l := range a.modTextLines(p, width) {
 				lines = append(lines, modLine{left: l})
 			}
 		}
 	case ModScreenList:
 		for _, item := range s.Items {
-			for i, l := range a.modWrap(item, width-modIndent) {
+			for i, l := range a.modTextLines(item, width-modIndent) {
 				if i == 0 {
 					lines = append(lines, modLine{left: "-", right: l})
 					continue
@@ -269,7 +243,7 @@ func (a *App) modLines(s ModScreen) []modLine {
 		labelW := width * modTableLabelFrac / 12
 		valueW := width - labelW - modIndent
 		for _, row := range s.Rows {
-			l, v := a.modWrap(row[0], labelW), a.modWrap(row[1], valueW)
+			l, v := a.modTextLines(row[0], labelW), a.modTextLines(row[1], valueW)
 			for i := 0; i < len(l) || i < len(v); i++ {
 				var ml modLine
 				if i < len(l) {

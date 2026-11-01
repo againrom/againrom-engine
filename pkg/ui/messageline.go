@@ -128,31 +128,11 @@ func messageCapacity(f *text.Font, viewH int) int {
 	return ((viewH &^ (messageViewSnap - 1)) / (f.Height() + messageLinePad)) / 2
 }
 
-// wrapMessage splits s into the lines that fit width: a line breaks at a
+// messageTextLines splits s into the lines that fit width: a line breaks at a
 // space, and holds text narrower than width. A word at least as wide as width
 // stands alone on its line (DIV-1500). A nil font or no width leaves s whole.
-func wrapMessage(f *text.Font, s string, width int) []string {
-	if s == "" {
-		return nil
-	}
-	if f == nil || width <= 0 || f.Advance(s) < width {
-		return []string{s}
-	}
-	var out []string
-	var line string
-	for i, word := range strings.Split(s, " ") {
-		if i == 0 {
-			line = word
-			continue
-		}
-		if candidate := line + " " + word; f.Advance(candidate) < width {
-			line = candidate
-			continue
-		}
-		out = append(out, line)
-		line = word
-	}
-	return append(out, line)
+func messageTextLines(f *text.Font, s string, width int) []string {
+	return messageRule.plain(lineBox{Measure: advanceOf(f), Width: width}, s)
 }
 
 // PostMessage puts text on the map message line in ink for life. The text
@@ -160,7 +140,7 @@ func wrapMessage(f *text.Font, s string, width int) []string {
 // A carriage return becomes a space (MISSION-MSGLINE-056).
 func (v *Viewer) PostMessage(s string, ink MessageInk, life time.Duration) {
 	view := v.viewportSize()
-	pieces := wrapMessage(v.font, strings.ReplaceAll(s, "\r", " "), view.X)
+	pieces := messageTextLines(v.font, strings.ReplaceAll(s, "\r", " "), view.X)
 	v.messages.post(pieces, ink, life, messageCapacity(v.font, view.Y))
 }
 
@@ -168,7 +148,7 @@ func (v *Viewer) PostMessage(s string, ink MessageInk, life time.Duration) {
 // the newest line standing (MISSION-MSGLINE-057). It reports whether it posted.
 func (v *Viewer) PostMessageUnlessNewest(s string, ink MessageInk, life time.Duration) bool {
 	view := v.viewportSize()
-	pieces := wrapMessage(v.font, strings.ReplaceAll(s, "", " "), view.X)
+	pieces := messageTextLines(v.font, strings.ReplaceAll(s, "", " "), view.X)
 	if n := len(v.messages.lines); len(pieces) == 1 && n > 0 && v.messages.lines[n-1].Text == pieces[0] {
 		return false
 	}

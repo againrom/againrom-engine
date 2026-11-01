@@ -206,7 +206,7 @@ func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
 		if l.warn {
 			ink = editorWarning
 		}
-		for n, part := range editorWrap(e.bodyFont(), l.value, width) {
+		for n, part := range editorTextLines(e.bodyFont(), l.value, width) {
 			label := ""
 			if n == 0 {
 				label = l.label
@@ -214,7 +214,7 @@ func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
 			s.Rows, links = append(s.Rows, popupRow{Kind: kind, Label: label, Value: part, Ink: ink}), append(links, l.link)
 		}
 	}
-	s.Notes = editorWrap(e.bodyFont(), e.word("editor.panel.hint"), e.popupWide(popList, panelWidth)-2*popupPad-4)
+	s.Notes = editorTextLines(e.bodyFont(), e.word("editor.panel.hint"), e.popupWide(popList, panelWidth)-2*popupPad-4)
 	return s, links
 }
 
@@ -237,7 +237,7 @@ func (e *MapEditor) PanelLines() []string {
 		out = append(out, r.Label+" "+r.Value)
 	}
 	for i, l := range out {
-		out[i] = strings.Join(strings.Fields(l), " ")
+		out[i] = collapseGaps(l)
 	}
 	return out
 }
@@ -549,7 +549,7 @@ func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupR
 	}
 	text := s.Width - 2*popupPad - 60
 	for _, n := range notes {
-		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), n, text)...)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), n, text)...)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
 	s.At = e.promptCorner(centreQuestion, l.Rect.Size())

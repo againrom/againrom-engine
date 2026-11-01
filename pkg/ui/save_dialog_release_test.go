@@ -147,11 +147,11 @@ func TestReleaseSaveDialogUsesInstalledFontWithoutClipping(t *testing.T) {
 						t.Errorf("button %s clips %q", saveControlName(c), label)
 					}
 				}
-				if tc.back == ScreenMap && tc.format == SaveSAV && len(a.saveWrapped(w.MapSAVDetail, 560)) > 3 {
+				if tc.back == ScreenMap && tc.format == SaveSAV && len(a.saveLines(w.MapSAVDetail, 560)) > 3 {
 					t.Error("mission SAV description loses a line")
 				}
 				if tc.format == SaveSAV {
-					if w.LatinNameHint == "" || !strings.Contains(w.KeyHint, w.LatinNameHint) || len(a.saveWrapped(w.KeyHint, 560)) > 2 {
+					if w.LatinNameHint == "" || !strings.Contains(w.KeyHint, w.LatinNameHint) || len(a.saveLines(w.KeyHint, 560)) > 2 {
 						t.Error("font character hint is absent or clipped")
 					}
 				}

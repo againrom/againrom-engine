@@ -84,7 +84,7 @@ func TestNoticeLinesBreaksAtTheLastSpaceThatFits(t *testing.T) {
 	f := panelFont()
 	// Wide enough for "aa bb" (2+space+2) and not for a third pair.
 	width := 4*noticeAdvanceOf + noticeSpaceAdvance
-	got := NoticeLines(f, "aa bb cc dd", width)
+	got := noticeFlowLines(f, "aa bb cc dd", width)
 	want := []string{"aa bb", "cc dd"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lines = %q, want %q — the break is the last space that fits", got, want)
@@ -95,7 +95,7 @@ func TestNoticeLinesBreaksAtTheLastSpaceThatFits(t *testing.T) {
 // that follows.
 func TestNoticeLinesDropsTheBreakByte(t *testing.T) {
 	f := panelFont()
-	got := NoticeLines(f, "aa   bb", 2*noticeAdvanceOf)
+	got := noticeFlowLines(f, "aa   bb", 2*noticeAdvanceOf)
 	want := []string{"aa", "bb"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lines = %q, want %q — no line begins with a space", got, want)
@@ -108,7 +108,7 @@ func TestNoticeLinesDropsTheBreakByte(t *testing.T) {
 // word.
 func TestNoticeLinesTreatsAuthoredLineBreaksAsBreaks(t *testing.T) {
 	f := panelFont()
-	got := NoticeLines(f, "aa\r\nbb", 4*noticeAdvanceOf)
+	got := noticeFlowLines(f, "aa\r\nbb", 4*noticeAdvanceOf)
 	want := []string{"aa", "bb"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lines = %q, want %q", got, want)
@@ -119,7 +119,7 @@ func TestNoticeLinesTreatsAuthoredLineBreaksAsBreaks(t *testing.T) {
 // show it at all — and only then.
 func TestNoticeLinesBreaksInsideAnOverWideWord(t *testing.T) {
 	f := panelFont()
-	got := NoticeLines(f, "abcdefg", 3*noticeAdvanceOf)
+	got := noticeFlowLines(f, "abcdefg", 3*noticeAdvanceOf)
 	want := []string{"abc", "def", "g"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("lines = %q, want %q — a word that does not fit alone is cut", got, want)
@@ -130,7 +130,7 @@ func TestNoticeLinesBreaksInsideAnOverWideWord(t *testing.T) {
 // must still produce every byte.
 func TestNoticeLinesTerminatesBelowOneGlyph(t *testing.T) {
 	f := panelFont()
-	got := NoticeLines(f, "abc", 1)
+	got := noticeFlowLines(f, "abc", 1)
 	if want := []string{"a", "b", "c"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("lines = %q, want %q — one byte a line rather than an endless loop", got, want)
 	}
@@ -149,7 +149,7 @@ func TestNoticeLayoutClampsToTheArea(t *testing.T) {
 	// one word per (area width / word width) is the wrap's own density.
 	perLine := l.Text.Dx() / (10*noticeAdvanceOf + noticeSpaceAdvance)
 	long := strings.TrimSpace(strings.Repeat("abcdefghij ", (want+4)*(perLine+1)))
-	all := noticeWrap(l, f, long)
+	all := noticeBodyLines(l, f, long, 0)
 	if len(all) <= want {
 		t.Fatalf("setup: the text produced %d lines, which the area's %d already holds", len(all), want)
 	}
@@ -890,8 +890,8 @@ func TestAFaceWithNoPaneIsDrawnNowhere(t *testing.T) {
 func TestThePaneNarrowsTheWrap(t *testing.T) {
 	f := panelFont()
 	s := strings.Repeat("abcdefghij ", 40)
-	wide := NoticeLines(f, s, noticeInkLayout().Text.Dx())
-	narrow := NoticeLines(f, s, noticePaneLayout().Text.Dx())
+	wide := noticeFlowLines(f, s, noticeInkLayout().Text.Dx())
+	narrow := noticeFlowLines(f, s, noticePaneLayout().Text.Dx())
 	if len(narrow) <= len(wide) {
 		t.Fatalf("beside a pane the words broke into %d lines and without one into %d; the pane must narrow the area",
 			len(narrow), len(wide))
