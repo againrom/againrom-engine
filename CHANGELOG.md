@@ -30,6 +30,7 @@ modder or developer can notice gets no entry.
 - [BASE] The map editor shows a unit, a building or a sack in plain words first: a unit's name, owner, kind, tier, experience, life and group at once, its equipment and bag as items with their names and pictures, and its stats as a table; a building's type, owner, position and script target with the scripts that name it, and its placement word with its bits in a block that opens; a sack's items by name and picture, with codes, recipes and enchantments in a Details block. The window's "View: Plain" button (RU «Вид: Обычный») switches to the technical view of every map-file field and back, changes no value, and the editor remembers the choice.
 - [ROM2] The map editor's unit window shows the same speaker face as the game, for human speakers and stand-in faces too.
 - [BASE] In the map editor, with the player colours on, selecting a player makes that player's units and structures stand out in a brighter colour and draws every other one plain; the legend marks the selected player.
+- [BASE] In the map editor, deleting a unit that owns a stock deletes the stock with it instead of refusing; one undo brings both back.
 
 ## 0.144.0
 

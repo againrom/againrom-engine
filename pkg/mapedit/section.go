@@ -67,7 +67,7 @@ func init() {
 			renumber:    renumberUnit,
 			cloneParts:  cloneUnitStockParts,
 			fields:      func(*Editor, []byte) []Field { return unitFields },
-			deleteParts: refuseOwnedStockDeletion,
+			deleteParts: ownedStockDeletionParts,
 		},
 		KindStructure: {name: "structure", typeID: alm.TypeObjects, count: alm.MetaObjectCount, x: alm.ObjectX, y: alm.ObjectY, create: true, insertAfter: alm.TypeGroups,
 			length:   structureLength,
@@ -395,14 +395,16 @@ func (e *Editor) Delete(k Kind, i int) error {
 	if err != nil {
 		return err
 	}
-	at, l := w.at(i)
-	ed := edit{
-		replace(at, e.data[at:at+l], nil),
-		e.sizeWordPart(w.span, -l),
-		e.wordPart(w.countAt, -1),
-	}
+	var ed edit
 	if k == KindLoot {
-		ed = append(ed, e.unitLinkParts(i)...)
+		ed = e.lootRemovalParts(w, []int{i}, -1)
+	} else {
+		at, l := w.at(i)
+		ed = edit{
+			replace(at, e.data[at:at+l], nil),
+			e.sizeWordPart(w.span, -l),
+			e.wordPart(w.countAt, -1),
+		}
 	}
 	if w.sec.deleteParts != nil {
 		parts, err := w.sec.deleteParts(e, w, i)
@@ -415,11 +417,31 @@ func (e *Editor) Delete(k Kind, i int) error {
 	return nil
 }
 
+// lootRemovalParts builds the parts that remove the loot records gone (indices
+// into the type-8 array, w its walk): each record's bytes, the section's one
+// size part and one count part, and the unit link parts. It is the one place
+// that removes loot records, for a sack or stock deletion and for the deletion
+// of the unit that owns the stock. Unit skipUnit (-1 for none) is being
+// removed in the same edit, so its link lies inside bytes already removed and
+// gets no part.
+func (e *Editor) lootRemovalParts(w walk, gone []int, skipUnit int) edit {
+	var ed edit
+	total := 0
+	for _, i := range gone {
+		at, l := w.at(i)
+		ed = append(ed, replace(at, e.data[at:at+l], nil))
+		total += l
+	}
+	ed = append(ed, e.sizeWordPart(w.span, -total), e.wordPart(w.countAt, -len(gone)))
+	return append(ed, e.unitLinkParts(gone, skipUnit)...)
+}
+
 // unitLinkParts renumbers the units' loot links (the word at +0x18, a 1-based
-// index into the type-8 array) for the removal of loot record i: a link to it
-// becomes 0 and a link above it falls by one, so every other link still names
-// the record it named (DIV-3255). A map without units has none.
-func (e *Editor) unitLinkParts(i int) []part {
+// index into the type-8 array) for the removal of the loot records gone: a
+// link to one becomes 0 and a link above it falls by the number of removed
+// records below it, so every other link still names the record it named
+// (DIV-3255). A map without units has none.
+func (e *Editor) unitLinkParts(gone []int, skipUnit int) []part {
 	if !e.locate().carries(alm.TypeUnits) {
 		return nil
 	}
@@ -429,15 +451,24 @@ func (e *Editor) unitLinkParts(i int) []part {
 	}
 	var parts []part
 	for u := 0; u < uw.n(); u++ {
+		if u == skipUnit {
+			continue
+		}
 		at, _ := uw.at(u)
 		p := at + alm.UnitLoot
 		old := e.u32(p)
 		nv := old
-		switch {
-		case old == uint32(i)+1:
-			nv = 0
-		case old > uint32(i)+1:
-			nv = old - 1
+		below := uint32(0)
+		for _, i := range gone {
+			switch {
+			case old == uint32(i)+1:
+				nv = 0
+			case old > uint32(i)+1:
+				below++
+			}
+		}
+		if nv != 0 {
+			nv = old - below
 		}
 		if nv != old {
 			var img [4]byte

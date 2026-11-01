@@ -489,13 +489,42 @@ func newestOf(d *InspectionDocument, kind RecordKind) *RecordRef {
 }
 
 func (e *MapEditor) commandDelete(ref RecordRef) (editorChange, error) {
+	var kept *InspectionRecord
+	if e.selected >= 0 && e.selected < len(e.doc.Records) {
+		if r := e.doc.Records[e.selected]; r.Kind == KindStock || r.Kind == KindSack {
+			kept = &r
+		}
+	}
 	next, err := e.doc.Edits.Delete(ref.Kind, ref.Index)
 	if err != nil {
 		return editorChange{}, err
 	}
 	ch, err := e.adopted(next, &ref)
 	ch.removed = true
+	if next != nil && kept != nil {
+		e.followLoot(*kept, ref)
+	}
 	return ch, err
+}
+
+// followLoot keeps a selected sack or stock selected across a delete that
+// moved its index: deleting a sack, a stock or the unit that owns a stock
+// lowers the index of the loot records after it. The record is found again by
+// its kind, label, cell and details, at its old index or the nearest lower
+// one; it is dropped when it is the record deleted or is gone.
+func (e *MapEditor) followLoot(was InspectionRecord, deleted RecordRef) {
+	e.selected = -1
+	if was.Kind == deleted.Kind && was.Index == deleted.Index {
+		return
+	}
+	best := -1
+	for i, r := range e.doc.Records {
+		if r.Kind == was.Kind && r.Index <= was.Index && r.Label == was.Label && r.Cell == was.Cell &&
+			slices.Equal(r.Details, was.Details) && (best < 0 || r.Index > e.doc.Records[best].Index) {
+			best = i
+		}
+	}
+	e.selected = best
 }
 
 func (e *MapEditor) commandSetDropCell(cell image.Point) (editorChange, error) {

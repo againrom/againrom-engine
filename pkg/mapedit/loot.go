@@ -146,7 +146,10 @@ func (e *Editor) UnitStock(index int, allowUnowned ...bool) (int, error) {
 	return stock, nil
 }
 
-func refuseOwnedStockDeletion(e *Editor, units walk, index int) ([]part, error) {
+// ownedStockDeletionParts removes, in the unit's own edit, every loot record
+// owned by the unit's identity. When another placed unit carries the same
+// identity the stock still belongs to it and stays.
+func ownedStockDeletionParts(e *Editor, units walk, index int) ([]part, error) {
 	if !e.locate().carries(alm.TypeLoot) {
 		return nil, nil
 	}
@@ -155,17 +158,26 @@ func refuseOwnedStockDeletion(e *Editor, units walk, index int) ([]part, error) 
 	if id == 0 {
 		return nil, nil
 	}
-	loot, err := e.walkSection(KindLoot, "check stock before deleting a unit")
+	for u := 0; u < units.n(); u++ {
+		if p, _ := units.at(u); u != index && uint32(binary.LittleEndian.Uint16(e.data[p+alm.UnitID:])) == id {
+			return nil, nil
+		}
+	}
+	loot, err := e.walkSection(KindLoot, "remove stock with a deleted unit")
 	if err != nil {
 		return nil, nil
 	}
+	var owned []int
 	for i := 0; i < loot.n(); i++ {
 		p, _ := loot.at(i)
 		if e.u32(p+alm.LootOwner) == id {
-			return nil, fmt.Errorf("mapedit: unit %d owns Stock #%d; delete that stock first", index, i)
+			owned = append(owned, i)
 		}
 	}
-	return nil, nil
+	if len(owned) == 0 {
+		return nil, nil
+	}
+	return e.lootRemovalParts(loot, owned, index), nil
 }
 
 func cloneUnitStockParts(e *Editor, units walk, src *Editor, sunits walk, source int, rec []byte, _ bool) ([]part, error) {

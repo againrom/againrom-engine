@@ -102,7 +102,6 @@ func TestMapEditorRecordAuthoringWindowHistoryAndRefusal(t *testing.T) {
 		func() error { _, err := host.AddStructure(image.Pt(31, 31), 5); return err },
 		func() error { _, err := host.SetField("Structure", 0, "owner", 3); return err },
 		func() error { _, err := host.AddStock(0); return err },
-		func() error { _, err := host.Delete("Unit", 0); return err },
 		func() error { _, err := host.AddItemRecipe("Stock", 0, 2); return err },
 		func() error { _, err := host.SetField("Stock", 0, "recipe1", 2); return err },
 	} {

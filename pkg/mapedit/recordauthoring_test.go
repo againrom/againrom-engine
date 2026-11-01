@@ -201,8 +201,8 @@ func TestRecordAuthoringRefusalsPreserveBytesAndHistory(t *testing.T) {
 	if _, err := e.AddUnitStock(0); err == nil || !bytes.Equal(e.Bytes(), raw) || e.CanUndo() {
 		t.Fatal("duplicate stock changed bytes or history")
 	}
-	if err := e.DeleteUnit(0); err == nil || !bytes.Equal(e.Bytes(), raw) || e.CanUndo() {
-		t.Fatal("deleting a stocked unit orphaned its stock")
+	if err := e.DeleteUnit(0); err != nil || e.Count(mapedit.KindLoot) != 0 || !e.Undo() || !bytes.Equal(e.Bytes(), raw) || e.CanUndo() {
+		t.Fatal("deleting a stocked unit orphaned its stock or was not one step")
 	}
 	for _, bad := range []int{-1, 0, 2, int(^uint(0) >> 1)} {
 		if _, err := e.AddItemRecipe(0, bad); err == nil || !bytes.Equal(e.Bytes(), raw) || e.CanUndo() {
