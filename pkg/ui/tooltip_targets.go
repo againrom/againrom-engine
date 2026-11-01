@@ -550,7 +550,7 @@ func (a *App) pageTooltip(p image.Point) tooltipTarget {
 	if v.list == nil || v.ui.confirm || v.ui.mismatch != nil || a.tooltip.baseFont == nil {
 		return tooltipTarget{}
 	}
-	if v.save != nil && v.page.NameHint != "" && p.In(v.page.NameBox) {
+	if v.save != nil && v.page.NameHint != "" && v.page.layout().holds(pageNameControl, p) {
 		return tooltipTarget{tooltipText, "page/name", tooltipLines(v.page.NameHint), a.tooltip.baseFont}
 	}
 	if !v.page.RowHint {

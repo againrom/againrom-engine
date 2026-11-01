@@ -16,33 +16,26 @@ const (
 )
 
 var (
-	savePanelRect  = image.Rect(24, 12, 616, 468)
-	saveListRect   = image.Rect(38, 88, 602, 235)
-	saveListArg    = image.Rect(38, 88, 578, 235)
+	savePanelRect = image.Rect(24, 12, 616, 468)
+	// saveDialogLayout is the dialog's control geometry; draw and hit read it.
+	saveDialogLayout = controlLayout{
+		{int(saveDirectoryControl), image.Rect(106, 52, 436, 79)},
+		{int(saveOpenControl), image.Rect(444, 52, 530, 79)},
+		{int(saveUpControl), image.Rect(538, 52, 602, 79)},
+		{int(saveListControl), image.Rect(38, 88, 602, 235)},
+		{int(saveNameControl), image.Rect(106, 266, 602, 293)},
+		{int(saveDeleteControl), image.Rect(138, 432, 254, 458)},
+		{int(saveWriteControl), image.Rect(262, 432, 378, 458)},
+		{int(saveCancelControl), image.Rect(386, 432, 502, 458)},
+	}
+	saveListRect = saveControlRect(saveListControl)
+	// saveListArg is the list's argument: the list control less the bar's
+	// 24 pixels.
+	saveListArg    = image.Rect(saveListRect.Min.X, saveListRect.Min.Y, saveListRect.Max.X-24, saveListRect.Max.Y)
 	saveFocusColor = color.RGBA{R: 0xc8, G: 0xa2, B: 0x56, A: 0xff}
 )
 
-func saveControlRect(c saveControl) image.Rectangle {
-	switch c {
-	case saveDirectoryControl:
-		return image.Rect(106, 52, 436, 79)
-	case saveOpenControl:
-		return image.Rect(444, 52, 530, 79)
-	case saveUpControl:
-		return image.Rect(538, 52, 602, 79)
-	case saveListControl:
-		return saveListRect
-	case saveNameControl:
-		return image.Rect(106, 266, 602, 293)
-	case saveDeleteControl:
-		return image.Rect(138, 432, 254, 458)
-	case saveWriteControl:
-		return image.Rect(262, 432, 378, 458)
-	case saveCancelControl:
-		return image.Rect(386, 432, 502, 458)
-	}
-	return image.Rectangle{}
-}
+func saveControlRect(c saveControl) image.Rectangle { return saveDialogLayout.rect(int(c)) }
 
 // saveListBox is the save dialog's shared list; its bar fills the list
 // rectangle's right 24 pixels.

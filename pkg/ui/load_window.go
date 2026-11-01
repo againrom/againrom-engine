@@ -69,7 +69,7 @@ const (
 	loadCancelButton
 )
 
-func loadButtonRect(i int) image.Rectangle { return firstLoadPage(LoadWindowWords{}).Buttons[i].Rect }
+func loadButtonRect(i int) image.Rectangle { return firstLoadPage(LoadWindowWords{}).layout().rect(i) }
 
 // pageListBox is a page's shared list.
 func (a *App) pageListBox(v pageView) listBox {
@@ -84,8 +84,9 @@ func (a *App) loadListBox() listBox { return a.pageListBox(a.flow.loadView()) }
 
 // buttonAt is the page button under p.
 func (v pageView) buttonAt(p image.Point) (int, bool) {
-	for i, b := range v.page.Buttons {
-		if p.In(b.Rect) {
+	layout := v.page.layout()
+	for i := range v.page.Buttons {
+		if layout.holds(i, p) {
 			return i, true
 		}
 	}
@@ -294,7 +295,7 @@ func (a *App) stepPage(v pageView, in appInput) {
 		button, onButton := v.buttonAt(p)
 		if v.save != nil && ok && !onButton && !v.ui.confirm {
 			switch {
-			case p.In(v.page.NameBox):
+			case v.page.layout().holds(pageNameControl, p):
 				v.save.listFocus = false
 			case p.In(box.Rect) || p.In(box.Bar()):
 				v.save.listFocus = true

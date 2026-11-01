@@ -418,7 +418,7 @@ func (a *App) stepSaveDialog(in appInput) {
 			}
 		}
 		if wheeled(in) && d.focus != saveListControl {
-			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && p.In(saveListRect) {
+			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && saveDialogLayout.holds(int(saveListControl), p) {
 				d.list.Move(saveListHover.wheelStep(in))
 			}
 		}
@@ -478,7 +478,7 @@ func saveLatchID(c saveControl, row int) int {
 
 func (d *saveDialog) controlAt(p image.Point) (saveControl, bool) {
 	for _, c := range d.controls() {
-		if p.In(saveControlRect(c)) {
+		if saveDialogLayout.holds(int(c), p) {
 			return c, true
 		}
 	}

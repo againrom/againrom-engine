@@ -81,9 +81,11 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	pointer, pointerOK := a.pointerFrame()
 	window := v.save == nil && v.ui.mismatch != nil
 	pageHover := pointerOK && !window && !v.asking()
+	layout := v.page.layout()
 	for i, b := range v.page.Buttons {
-		inside := pageHover && pointer.In(b.Rect)
-		drawPushButton(pix, font, pushButton{Rect: b.Rect, Label: b.Caption, Hover: inside, Inside: inside,
+		r := layout.rect(i)
+		inside := pageHover && pointer.In(r)
+		drawPushButton(pix, font, pushButton{Rect: r, Label: b.Caption, Hover: inside, Inside: inside,
 			Pressed: v.ui.press.Pressed(i), Disabled: a.flow.pageButtonDisabled(v, i)})
 	}
 	if window {

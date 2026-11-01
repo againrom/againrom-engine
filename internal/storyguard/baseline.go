@@ -3204,6 +3204,10 @@ package storyguard
 // into pkg/game/worldcarriers.go and their test, the guard's argument and
 // local shapes and its named readers in internal/archtest/worldcarriers.go
 // and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the control layout descriptor in
+// pkg/ui/controllayout.go and its test, and the guard in
+// internal/archtest/controllayout.go and its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3728,5 +3732,5 @@ var Committed = Baseline{
 	// comments in pkg/ui/mapeditorsidepanels.go, mapeditorpopupstore.go and
 	// mapeditorresize.go, and the tests mapeditorpanelundock_test.go and
 	// mapeditorpanelwidth_test.go.
-	CommentBytes: 10283044,
+	CommentBytes: 10286413,
 }

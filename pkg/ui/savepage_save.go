@@ -188,7 +188,7 @@ func (a *App) drawSaveScreen() {
 // drawPageName draws the save page's name box with its caret.
 func (a *App) drawPageName(pix *image.RGBA, v pageView) {
 	s, font := v.save, a.flow.menuFont
-	r := v.page.NameBox
+	r := v.page.layout().rect(pageNameControl)
 	start := 0
 	caret := min(s.caret, len(s.name))
 	for start < caret && a.saveTextWidth(string(s.name[start:caret])) > r.Dx()-16 {
