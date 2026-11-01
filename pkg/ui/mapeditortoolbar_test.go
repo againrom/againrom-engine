@@ -182,13 +182,14 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 				}
 				e.relayout()
 				bar := e.toolbarRect()
-				if want := image.Rect(0, e.barHeight(), size.X, e.barHeight()+toolbarHigh); bar != want {
+				high := dockedToolbarHigh(size.X)
+				if want := image.Rect(0, e.barHeight(), size.X, e.barHeight()+high); bar != want {
 					t.Fatalf("toolbar %v, want %v", bar, want)
 				}
 				prev := map[toolGroup]image.Rectangle{}
 				for _, b := range e.toolbarEntries() {
 					r := b.rect
-					if r.Dx() != toolSide || r.Dy() != toolSide || !r.In(bar) || r.Min.Y != bar.Min.Y+toolbarPad {
+					if side := high - 2*toolbarPad; r.Dx() != side || r.Dy() != side || !r.In(bar) || r.Min.Y != bar.Min.Y+toolbarPad {
 						t.Errorf("%s at %v outside %v", b.key, r, bar)
 					}
 					if p, ok := prev[b.group]; ok && r.Min.X != p.Max.X+toolGap {
@@ -199,12 +200,13 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 				first, _ := e.ToolbarRect("select")
 				last, _ := e.ToolbarRect(toolButtons[len(toolButtons)-1].key)
 				layers, _ := e.ToolbarRect("border")
-				if first.Min.X != 4 || last.Max.X != size.X-4 || layers.Min.X < prev[toolLeft].Max.X+toolGroupGap {
+				// The left group stands after the grip, 4 + 8 + 2 pixels in.
+				if first.Min.X != 14 || last.Max.X != size.X-4 || layers.Min.X < prev[toolLeft].Max.X+toolGroupGap {
 					t.Errorf("groups at %v..%v and %v..%v", first, prev[toolLeft], layers, last)
 				}
 				shown := e.panelsShown()
 				base := image.Rect(shown[panelLeft], e.barHeight(), size.X-shown[panelRight], size.Y-e.barRowHeight())
-				want := image.Rect(base.Min.X, base.Min.Y+toolbarHigh, base.Max.X, base.Max.Y-shown[panelBottom])
+				want := image.Rect(base.Min.X, base.Min.Y+high, base.Max.X, base.Max.Y-shown[panelBottom])
 				if got := e.mapArea(); got != want {
 					t.Errorf("map %v, want %v", got, want)
 				}

@@ -222,7 +222,7 @@ func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 	for i, g := range got {
 		b := base[i]
 		players := strings.HasSuffix(g.name, " players") || strings.HasSuffix(g.name, " players-own")
-		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y+toolbarHigh, b.area.Max.X-strip, b.area.Max.Y-low)
+		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y+dockedToolbarHigh(b.area.Dx()), b.area.Max.X-strip, b.area.Max.Y-low)
 		if lw := min(sidePanels[panelLeft].width, b.area.Dx()-strip-mapLeastWidth); players && lw >= sidePanels[panelLeft].least {
 			// The Players entry restores the left panel to show its branch,
 			// narrowed to the room beside the map's least width.

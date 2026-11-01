@@ -3732,5 +3732,10 @@ var Committed = Baseline{
 	// comments in pkg/ui/mapeditorsidepanels.go, mapeditorpopupstore.go and
 	// mapeditorresize.go, and the tests mapeditorpanelundock_test.go and
 	// mapeditorpanelwidth_test.go.
-	CommentBytes: 10290604,
+
+	// It rose for the toolbar's two sizes and its floating window: new doc
+	// comments in pkg/ui's mapeditortoolbar.go, widgeticon.go,
+	// mapeditoricons.go, mapeditorsidepanels.go, mapeditorpopupstore.go and
+	// mapeditorwindow.go, the test mapeditortoolbarsize_test.go, and this note.
+	CommentBytes: 10296760,
 }

@@ -152,7 +152,8 @@ func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
 }
 
 // floatPlace stands popup id's window at rectangle r: the corner and size of
-// a floating side panel's window, which may hang past the window's edges.
+// a floating side panel's or the toolbar's window, which may hang past the
+// window's edges.
 func (e *MapEditor) floatPlace(id editorPopupID, r image.Rectangle) {
 	e.places[id] = popupStanding{at: r.Min, placed: true, size: r.Size(), minWide: 1, slack: true}
 }
@@ -169,6 +170,15 @@ func (e *MapEditor) floatRect(id editorPopupID) image.Rectangle {
 func (e *MapEditor) floatSpec(s popupSpec, id editorPopupID) popupSpec {
 	e.placeSpec(id, &s)
 	s.At, s.Bounds, s.Fit = e.places[id].at, e.popupBounds(), true
+	return s
+}
+
+// contentSizedSpec is spec s of the floating window in store row id whose
+// content gives its size: placed as floatSpec places it, at that size, and
+// never sized by hand.
+func (e *MapEditor) contentSizedSpec(s popupSpec, id editorPopupID, size image.Point) popupSpec {
+	s = e.floatSpec(s, id)
+	s.Size, s.MinWidth = size, 1
 	return s
 }
 

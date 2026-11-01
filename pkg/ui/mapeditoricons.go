@@ -1,7 +1,8 @@
 package ui
 
 // The toolbar's icons as data for the one icon painter (widgeticon.go): each
-// a 16 by 16 bitmap of our own in the icon palette.
+// button's a 16 by 16 bitmap of our own in the icon palette, and the grip's
+// column of dots.
 
 var (
 	iconSelect = editorIcon{rows: []string{
@@ -345,5 +346,22 @@ var (
 		"#.......#gggggg#",
 		"################",
 		"................",
+	}}
+	// iconGrip marks the docked toolbar's grip: a drag from it floats the
+	// toolbar.
+	iconGrip = editorIcon{rows: []string{
+		"g.g",
+		"...",
+		"g.g",
+		"...",
+		"g.g",
+		"...",
+		"g.g",
+		"...",
+		"g.g",
+		"...",
+		"g.g",
+		"...",
+		"g.g",
 	}}
 )

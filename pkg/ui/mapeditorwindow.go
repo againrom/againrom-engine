@@ -1245,7 +1245,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 }
 
 // movableSpec is the popup id as drawn: the list, the object or the prompt
-// popup, or a floating side panel's window (a docked panel does not move).
+// popup, or a floating side panel's or the toolbar's window (a docked panel
+// does not move).
 func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 	switch id {
 	case popList:
@@ -1259,6 +1260,8 @@ func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 		return e.treeSpec()
 	case popProps:
 		return e.propsSpec()
+	case popToolbar:
+		return e.toolbarSpec()
 	}
 	return popupSpec{}, false
 }
@@ -1328,7 +1331,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 		}
 		drawPushButton(pic, e.font, pushButton{Rect: b.rect, Label: b.label, Literal: true, LabelRaise: labelRaise(e.font), Disabled: b.disabled, Hover: e.pointerOK && e.pointer.In(b.rect)})
 	}
-	e.drawToolbar(pic)
+	e.drawToolbar(pic, false)
 	status := e.statusRect()
 	drawFrame(pic, stripFrame(status, edgeTopBit))
 	if f := e.bodyFont(); f != nil {
@@ -1339,6 +1342,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawGroupBadges(pic)
 	e.drawPlayerLegend(pic)
 	e.drawSidePanels(pic)
+	e.drawToolbar(pic, true)
 	if s, ok := e.listSpec(); ok {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
 		e.drawGoalLinks(pic, s)
@@ -1611,6 +1615,9 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	}
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popList
+	}
+	if s, ok := e.toolbarSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
+		return popToolbar
 	}
 	for _, id := range []editorPopupID{popProps, popTree} {
 		if i := panelOfRow(id); e.panelFloats(i) {

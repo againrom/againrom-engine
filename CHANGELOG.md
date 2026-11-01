@@ -31,6 +31,8 @@ modder or developer can notice gets no entry.
 - [ROM2] The map editor's unit window shows the same speaker face as the game, for human speakers and stand-in faces too.
 - [BASE] In the map editor, with the player colours on, selecting a player makes that player's units and structures stand out in a brighter colour and draws every other one plain; the legend marks the selected player.
 - [BASE] In the map editor, deleting a unit that owns a stock deletes the stock with it instead of refusing; one undo brings both back.
+- [BASE] The map editor's toolbar icons are twice as large where the window has room for them; in a small window they keep their old size.
+- [BASE] The map editor's toolbar can float as its own window: drag it out by the dotted grip at its left end, move it by its top strip, and close the window to put the toolbar back over the map. The editor remembers a floating toolbar and its place.
 
 ## 0.144.0
 

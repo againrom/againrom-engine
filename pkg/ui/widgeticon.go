@@ -38,14 +38,17 @@ func (ic *editorIcon) size() image.Point {
 	return image.Pt(len(ic.rows[0]), len(ic.rows))
 }
 
-// drawIcon paints icon ic centred in box; with disabled set every pixel
-// takes the disabled ink.
-func drawIcon(dst *image.RGBA, box image.Rectangle, ic *editorIcon, disabled bool) {
+// drawIcon paints icon ic centred in box, each bitmap pixel a square of
+// scale by scale screen pixels of its colour; a scale of zero or one is one
+// screen pixel per bitmap pixel. With disabled set every pixel takes the
+// disabled ink.
+func drawIcon(dst *image.RGBA, box image.Rectangle, ic *editorIcon, disabled bool, scale int) {
 	size := ic.size()
 	if dst == nil || size == (image.Point{}) {
 		return
 	}
-	at := box.Min.Add(box.Size().Sub(size).Div(2))
+	scale = max(1, scale)
+	at := box.Min.Add(box.Size().Sub(size.Mul(scale)).Div(2))
 	for y, row := range ic.rows {
 		for x := 0; x < len(row); x++ {
 			c, ok := iconInk[row[x]]
@@ -55,8 +58,13 @@ func drawIcon(dst *image.RGBA, box image.Rectangle, ic *editorIcon, disabled boo
 			if disabled {
 				c = iconDisabledInk
 			}
-			if p := at.Add(image.Pt(x, y)); p.In(box) && p.In(dst.Bounds()) {
-				dst.SetRGBA(p.X, p.Y, c)
+			corner := at.Add(image.Pt(x, y).Mul(scale))
+			for dy := 0; dy < scale; dy++ {
+				for dx := 0; dx < scale; dx++ {
+					if p := corner.Add(image.Pt(dx, dy)); p.In(box) && p.In(dst.Bounds()) {
+						dst.SetRGBA(p.X, p.Y, c)
+					}
+				}
 			}
 		}
 	}
@@ -64,11 +72,12 @@ func drawIcon(dst *image.RGBA, box image.Rectangle, ic *editorIcon, disabled boo
 
 // iconButton is one icon push button: its rectangle and icon, whether it is
 // on (the current tool, a switch that is on, an open drop-down), under the
-// pointer, or disabled.
+// pointer, or disabled, and the scale its icon draws at (zero is one).
 type iconButton struct {
 	Rect                image.Rectangle
 	Icon                *editorIcon
 	On, Hover, Disabled bool
+	Scale               int
 }
 
 // iconOnFill is the well an icon button that is on shows behind its icon.
@@ -84,5 +93,5 @@ func drawIconButton(dst *image.RGBA, b iconButton) {
 		draw.Draw(dst, b.Rect.Inset(1), image.NewUniform(iconOnFill), image.Point{}, draw.Src)
 	}
 	drawPushButton(dst, nil, pushButton{Rect: b.Rect, Pressed: b.On, Inside: b.On, Hover: b.Hover, Disabled: b.Disabled})
-	drawIcon(dst, b.Rect.Inset(2), b.Icon, b.Disabled)
+	drawIcon(dst, b.Rect.Inset(2), b.Icon, b.Disabled, b.Scale)
 }

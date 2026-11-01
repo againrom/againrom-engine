@@ -97,13 +97,15 @@ type panelState struct {
 // a cancelled window does not take a panel's size back.
 type editorPanels struct {
 	state [len(sidePanels)]panelState
-	// floats marks a side panel that stands as a floating window; its
-	// corner and size are its row of the placement store.
-	floats [len(sidePanels)]bool
+	// floats marks, by its row of the placement store, a side panel or the
+	// toolbar that stands as a floating window; that row holds its corner
+	// and size.
+	floats [popCount]bool
 	save   func([]byte) error
-	// pull is a press on the title row of a docked side panel that has
-	// not yet moved far enough to undock it: the panel, the pointer's
-	// travel and whether a pull is in progress.
+	// pull is a press on the title row of a docked side panel, or on the
+	// toolbar's grip, that has not yet moved far enough to undock it: the
+	// store row it floats in, the pointer's travel and whether a pull is in
+	// progress.
 	pull pullState
 	// reportRows is the list rows the report fits in the bottom panel.
 	reportRows int
@@ -117,15 +119,17 @@ type editorPanels struct {
 	detached string
 }
 
-// pullState is a press held on a docked side panel's title row.
+// pullState is a press held on a docked side panel's title row or on the
+// toolbar's grip.
 type pullState struct {
 	on     bool
-	panel  int
+	row    editorPopupID
 	travel image.Point
 }
 
 // pullDistance is how far the pointer travels from a press on a panel's
-// title row before the panel undocks, so that a click does not.
+// title row or the toolbar's grip before it undocks, so that a click does
+// not.
 const pullDistance = 6
 
 // clampPanel is width held between panel i's least and greatest widths; a
@@ -142,17 +146,21 @@ func clampPanel(i, width int) int {
 }
 
 // panelFloats reports that side panel i stands as a floating window.
-func (e *MapEditor) panelFloats(i int) bool { return e.panels.floats[i] }
+func (e *MapEditor) panelFloats(i int) bool { return e.panels.floats[panelStoreRow(i)] }
 
 // panelOn reports that panel i shows, docked or floating.
 func (e *MapEditor) panelOn(i int) bool { return e.panelOpen(i) || e.panelFloats(i) }
 
-// panelStoreRow is panel i's row of the placement store while it floats.
+// panelStoreRow is panel i's row of the placement store while it floats;
+// the bottom panel, which does not float, has none.
 func panelStoreRow(i int) editorPopupID {
-	if i == panelLeft {
+	switch i {
+	case panelLeft:
 		return popTree
+	case panelRight:
+		return popProps
 	}
-	return popProps
+	return popNone
 }
 
 // panelStrip is minimized panel i's width: the title row's one button with
@@ -182,7 +190,7 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 	}
 	for i := range sidePanels {
 		w[i] = e.panelStrip(i)
-		if e.panels.floats[i] {
+		if e.panelFloats(i) {
 			w[i] = 0
 			continue
 		}
@@ -338,7 +346,7 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 	}
 	s := &e.panels.state[i]
 	if !show {
-		e.panels.floats[i] = false
+		e.panels.floats[panelStoreRow(i)] = false
 		// The report minimized with its panel closes rather than float.
 		if i == panelBottom && e.reportDocked() {
 			e.leave(leaveReport)
@@ -364,16 +372,16 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 // with the error reading it gave, and the writer that keeps a new state. A
 // missing or unreadable state restores both side panels at their default
 // widths and keeps the bottom panel minimized; a side panel the file keeps
-// floating stands as a window at its kept corner and size; a window too narrow for the
+// floating, and the toolbar it keeps floating, stand as windows at their kept
+// corners; a window too narrow for the
 // side panels shows the left one only, or neither.
 func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte) error) {
 	e.panels.save = save
 	e.panels.state = panelStateOf(data, readErr)
-	e.panels.floats = [len(sidePanels)]bool{}
-	for i, r := range panelFloatsOf(data, readErr) {
+	e.panels.floats = [popCount]bool{}
+	for k, r := range panelFloatsOf(data, readErr) {
 		if !r.Empty() {
-			e.panels.floats[i], e.panels.state[i].Restored = true, false
-			e.floatPlace(panelStoreRow(i), r)
+			e.floatAt(floatWindows[k].row, r)
 		}
 	}
 	e.props.plain = plainViewOf(data, readErr)
@@ -479,25 +487,43 @@ func panelStateOf(data []byte, readErr error) [len(sidePanels)]panelState {
 	return out
 }
 
-// floatEntry is the profile entry of a floating side panel: its window's
-// corner and size.
+// floatEntry is the profile entry of a floating window: its corner and size.
 const floatEntry = "float"
 
-// panelFloatsOf reads from the profile file the window of each side panel
-// that floats: its corner and size, empty for a docked panel. A missing or
-// broken entry, or a size the window cannot take, gives a docked panel, so a
-// file an earlier build wrote reads as it did.
-func panelFloatsOf(data []byte, readErr error) [len(sidePanels)]image.Rectangle {
-	var out [len(sidePanels)]image.Rectangle
+// floatWindows are the windows that float: the two side panels and the
+// toolbar, each by its entry in the profile file and its row of the
+// placement store.
+var floatWindows = [...]struct {
+	name string
+	row  editorPopupID
+}{
+	{sidePanels[panelLeft].name, popTree},
+	{sidePanels[panelRight].name, popProps},
+	{"toolbar", popToolbar},
+}
+
+// floatAt stands the window in store row id as a floating window at r; a
+// floating side panel no longer shows restored at its edge.
+func (e *MapEditor) floatAt(id editorPopupID, r image.Rectangle) {
+	e.floatPlace(id, r)
+	e.panels.floats[id] = true
+	if id != popToolbar {
+		e.panels.state[panelOfRow(id)].Restored = false
+	}
+}
+
+// panelFloatsOf reads from the profile file the window of each of
+// floatWindows that floats: its corner and size, empty for a docked one. A
+// missing or broken entry, or a size the window cannot take, gives a docked
+// window, so a file an earlier build wrote reads as it did.
+func panelFloatsOf(data []byte, readErr error) [len(floatWindows)]image.Rectangle {
+	var out [len(floatWindows)]image.Rectangle
 	entries := profileEntries(data, readErr)
-	for i, p := range sidePanels {
-		if p.place == placeBottom {
-			continue
-		}
+	for i, w := range floatWindows {
 		var k struct {
 			Float *struct{ X, Y, Width, Height int }
 		}
-		if json.Unmarshal(entries[p.name], &k) != nil || k.Float == nil {
+		if json.Unmarshal(entries[w.name], &k) != nil || k.Float == nil {
 			continue
 		}
 		f := k.Float
@@ -515,10 +541,16 @@ func (e *MapEditor) panelStateBytes() []byte {
 	for i, p := range sidePanels {
 		s := e.panels.state[i]
 		kept[p.name] = map[string]any{"minimized": !s.Restored, "width": clampPanel(i, s.Width)}
-		if e.panelFloats(i) {
-			at := e.floatRect(panelStoreRow(i))
-			kept[p.name][floatEntry] = map[string]int{"x": at.Min.X, "y": at.Min.Y, "width": at.Dx(), "height": at.Dy()}
+	}
+	for _, w := range floatWindows {
+		if !e.panels.floats[w.row] {
+			continue
 		}
+		if kept[w.name] == nil {
+			kept[w.name] = map[string]any{}
+		}
+		at := e.floatRect(w.row)
+		kept[w.name][floatEntry] = map[string]int{"x": at.Min.X, "y": at.Min.Y, "width": at.Dx(), "height": at.Dy()}
 	}
 	view := viewTechnical
 	if e.props.plain {
@@ -852,8 +884,17 @@ func (e *MapEditor) resizePanel(i int, d image.Point) {
 // panelTitlePress takes a press on the title row of a popup in a panel. A
 // double click on the right panel's window takes it out to float, leaving
 // the panel; a press on a side panel's title row that then travels
-// pullDistance undocks the panel (pullPanel).
+// pullDistance undocks the panel (pullPanel). A press on the docked toolbar's
+// grip pulls the toolbar the same way.
 func (e *MapEditor) panelTitlePress(id editorPopupID, p image.Point, double bool) bool {
+	if id == popToolbar {
+		if !p.In(e.toolbarGrip()) {
+			return false
+		}
+		e.drag, e.dragFrom, e.dragEdge = id, p, 0
+		e.panels.pull = pullState{on: true, row: popToolbar}
+		return true
+	}
 	i, ok := e.panelOf(id)
 	if !ok {
 		return false
@@ -866,14 +907,15 @@ func (e *MapEditor) panelTitlePress(id editorPopupID, p image.Point, double bool
 		e.panels.detached = e.detachKey()
 	case sidePanels[i].place != placeBottom && e.panelOpen(i):
 		e.drag, e.dragFrom, e.dragEdge = id, p, 0
-		e.panels.pull = pullState{on: true, panel: i}
+		e.panels.pull = pullState{on: true, row: panelStoreRow(i)}
 	}
 	return true
 }
 
 // pullPanel follows the pointer's travel d of a press held on a docked side
-// panel's title row. Past pullDistance the panel undocks and the drag goes on
-// as a drag of its window. It reports whether the pull took d.
+// panel's title row or the toolbar's grip. Past pullDistance the panel
+// undocks and the drag goes on as a drag of its window; the toolbar undocks
+// with its drag strip under the pointer. It reports whether the pull took d.
 func (e *MapEditor) pullPanel(d image.Point) bool {
 	pl := &e.panels.pull
 	if !pl.on {
@@ -883,9 +925,13 @@ func (e *MapEditor) pullPanel(d image.Point) bool {
 	if max(pl.travel.X, -pl.travel.X, pl.travel.Y, -pl.travel.Y) < pullDistance {
 		return true
 	}
-	travel, i := pl.travel, pl.panel
+	travel, row := pl.travel, pl.row
 	*pl = pullState{}
-	e.undockPanel(i)
+	if row == popToolbar {
+		e.undockToolbar(e.dragFrom)
+		return true
+	}
+	e.undockPanel(panelOfRow(row))
 	e.dragPopup(travel)
 	return true
 }
@@ -893,10 +939,7 @@ func (e *MapEditor) pullPanel(d image.Point) bool {
 // undockPanel turns side panel i into a floating window at the panel's own
 // rectangle: its place at the window edge then shows nothing.
 func (e *MapEditor) undockPanel(i int) {
-	r := e.sidePanelRect(i)
-	e.floatPlace(panelStoreRow(i), r)
-	e.panels.floats[i] = true
-	e.panels.state[i].Restored = false
+	e.floatAt(panelStoreRow(i), e.sidePanelRect(i))
 	e.relayout()
 }
 
@@ -1459,11 +1502,13 @@ func panelOfRow(id editorPopupID) int {
 }
 
 // dragsFloatingPanel reports that the drag in progress holds a floating side
-// panel's window.
+// panel's or the toolbar's window.
 func (e *MapEditor) dragsFloatingPanel() bool {
 	switch e.drag {
 	case popTree, popProps, popObject:
 		return e.panelFloats(panelOfRow(e.drag))
+	case popToolbar:
+		return e.toolbarFloats()
 	}
 	return false
 }
