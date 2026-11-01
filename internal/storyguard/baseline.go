@@ -3720,5 +3720,10 @@ var Committed = Baseline{
 	// tests, and this note. It rose again for the view switch in the title
 	// row, the fold the block row takes from the tree, the hosted window's
 	// scroll to its last row, and their tests over a wide fixture.
-	CommentBytes: 10275511,
+
+	// It rose for the docked report's fit in the bottom panel (its note
+	// window, the list's least rows, the note width), the check report's
+	// test for the Report button, the map rectangle accessor, their tests,
+	// and this note.
+	CommentBytes: 10278221,
 }

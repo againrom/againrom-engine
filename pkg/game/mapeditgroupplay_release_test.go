@@ -396,7 +396,7 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 // both axes, that no record covers: a press there starts a selection box.
 func boxCornerCell(t *testing.T, e *ui.MapEditor, at image.Point, dir int) image.Point {
 	t.Helper()
-	screen := image.Rect(420, 40, 1260, 760)
+	screen := e.MapRect()
 	for k := 5; k >= 2; k-- {
 		c := at.Add(image.Pt(dir*k, dir*k))
 		covered := false

@@ -70,10 +70,10 @@ func init() {
 		{key: "grid", icon: &iconGrid, word: "editor.tool.grid", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.view.grid }, off: noMap},
 		{key: "fit", icon: &iconFit, word: "editor.tool.fit", keyRow: "fit", group: toolRight, kind: toolAction, off: noMap},
 		{key: "report", icon: &iconReport, word: "editor.tool.report", keyRow: "report", group: toolRight, kind: toolSwitch,
-			on: func(e *MapEditor) bool { return e.report.open && len(e.report.goals) == 0 },
+			on: (*MapEditor).checkShown,
 			off: func(e *MapEditor) bool {
 				_, ok := e.checker()
-				return !ok && !e.report.open
+				return !ok && !e.checkShown()
 			}},
 		{key: sidePanels[panelLeft].key, icon: &iconObjectsPanel, word: "editor.tool.objectspanel", keyRow: sidePanels[panelLeft].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOpen(panelLeft) }},
 		{key: sidePanels[panelRight].key, icon: &iconPropertiesPanel, word: "editor.tool.propertiespanel", keyRow: sidePanels[panelRight].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOpen(panelRight) }},

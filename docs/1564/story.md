@@ -82,10 +82,34 @@ F8 beside F6 and F7.
 
 The third row of `sidePanels`: name `bottom`, key `reportpanel`, F8, height
 180 pixels (96 to 480), minimized at first, its strip titled "Report"
-(«Отчёт»). Its inner edge is its top edge; dragging it resizes the panel.
+(«Отчет»). Its inner edge is its top edge; dragging it resizes the panel.
 While the panel is restored the report docks in it; minimized, the report
 floats as before. Report (R) opens the report and restores the panel;
-pressed again it closes both. The editor profile keeps the panel's state
+pressed again it closes both.
+
+The Report button and R tell the check report from the other lists the
+report window shows. The button is drawn pressed only while the check
+findings show (`checkShown`): not the F1 key list, not the MCP connection
+list (both lists of `keyListRule` rows), not the script panel's arms.
+Pressed, or R, while one of those shows, it closes that list and opens the
+check report in the restored bottom panel; while the check report shows,
+it closes it as before. F8 is unchanged: it minimizes and restores the
+panel.
+
+The docked report stays inside the panel at every height the panel allows
+(`fitDocked`, through `layoutPopup`). Its note lines wrap at the panel's
+width less the room of the `...` mark. While the frame would be taller
+than the panel, the notes show fewer lines, down to one, and the last line
+shown carries the mark; the wheel over the note lines scrolls them one
+line a notch (`notesList`, a row of the one list model). Only then does the
+list keep fewer than `popupMinRows` rows (`popupSpec.ListLeast`), down to
+one. With the fixture font a 96-pixel panel shows two note lines beside
+three list rows. The fit holds while the title, one note line and one list
+row fit in 96 pixels: by the builder's arithmetic (3 font heights and 44
+pixels), title and body fonts up to 17 pixels high. The installed fonts'
+heights were not measured in this lane.
+
+The editor profile keeps the panel's state
 beside the side panels' (`"bottom":{"minimized":...,"width":...}`); a
 missing, broken or unreadable profile gives the default. The one writer,
 `panelStateBytes`, also writes the object window's view (`"view"` inside
@@ -146,6 +170,20 @@ exits 1.
 - (f) `TestMapEditorGenerateAndAddDoWhatTheirRowsDid`.
 - Also `TestMapEditorToolbarDisablesWhatTheMapRefuses` and
   `TestMapEditorToolbarTipsAndIcons`.
+- In `pkg/ui/mapeditorreportdock_test.go`, at 640x480, 1024x768, 1280x800
+  and 1920x1080, EN and RU:
+  - `TestMapEditorDockedReportStaysInsideTheBottomPanel`: a one-, two- and
+    five-line finding at the panel's least (96) and default (180) heights;
+    the frame inside the panel, the status line's pixels as with no report,
+    and every note line shown, scrolled to by the wheel. On `e0629879b`
+    48 of its 96 cases fail.
+  - `TestMapEditorReportButtonTellsTheCheckReportFromOtherLists`: no list,
+    the check report, the F1 key list and the MCP connection list, the
+    panel restored and minimized, pressed by the button and by R; the
+    switch state before and after and the press result. On `e0629879b` 64
+    of its 128 cases fail (the key and MCP lists).
+- `boxCornerCell` in `pkg/game/mapeditgroupplay_release_test.go` takes the
+  map rectangle from `MapRect` (not run here).
 
 ### Goldens
 
@@ -178,6 +216,15 @@ Re-recorded on the merge with `ff56581b7`, from the merged code:
   shows fewer rows before a scroll (EN 360: 5 to 3; RU 360: 4 to 3; EN 520
   and 800: 10 to 9; RU 520 and 800 unchanged), as the toolbar shortens the panel by 28 pixels; floating
   windows and the button lines are unchanged.
+
+Re-recorded with the docked report's fit and the Report button's rule:
+`mapeditor_modes.golden`, 84 hash tokens in 78 rows: the `help` column in
+78 rows, where the key list now leaves the Report button unpressed (the
+probe text and the chrome with the button's rectangle blanked are equal
+to `e0629879b` in all 9520 blocks), and the `report` column of the six
+paths that end with the script panel's arms open (`full/goals`,
+`goals-pick`, `goals-pick-miss`, `goals-second`, `terrain-goals`,
+`mod/goals`), where R now opens the check report in place of the arms.
 
 ### Witness
 

@@ -127,11 +127,20 @@ func (e *MapEditor) ReportSelected() int {
 	return e.report.sel
 }
 
+// checkShown reports that the report shows the map's check findings: not the
+// script panel's arms, nor a list whose rows are keyListRule rows (the F1 key
+// list and the MCP connection list).
+func (e *MapEditor) checkShown() bool {
+	r := e.report
+	return r.open && len(r.goals) == 0 && (len(r.rows) == 0 || r.rows[0].Rule != keyListRule)
+}
+
 // reportKey is the report key: it checks the map as it now stands and shows
-// the findings in the bottom panel, restored for them, or closes the report
-// and minimizes that panel when it already shows.
+// the findings in the bottom panel, restored for them, in place of any other
+// list the report shows, or closes the findings and minimizes that panel when
+// they already show.
 func (e *MapEditor) reportKey() {
-	if e.report.open {
+	if e.checkShown() {
 		docked := e.reportDocked()
 		e.leave(leaveReport)
 		if docked {
@@ -143,7 +152,7 @@ func (e *MapEditor) reportKey() {
 	if !ok || e.catalog {
 		return
 	}
-	e.leave(leaveDrag | leavePick | leavePrompt)
+	e.leave(leaveDrag | leavePick | leavePrompt | leaveReport)
 	e.showPanel(panelBottom, true)
 	rows := c.Report()
 	errs, warnings := CountFindings(rows)

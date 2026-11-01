@@ -247,7 +247,10 @@ type popupSpec struct {
 	MaxRows  int
 	List     *Picker
 	ListRows int
-	ListText listRowText
+	// ListLeast is the fewest list rows a sized popup keeps; zero is
+	// popupMinRows.
+	ListLeast int
+	ListText  listRowText
 	// ListAside is a column right of the list kept free for a picture.
 	ListAside int
 	Notes     []string
@@ -635,9 +638,12 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 		fixed += listBase + popupPad
 	}
 	// The least height holds the flexible part at its least rows.
-	least := fixed
+	least, listLeast := fixed, popupMinRows
+	if s.ListLeast > 0 {
+		listLeast = s.ListLeast
+	}
 	if s.List != nil {
-		least += popupMinRows * lp
+		least += listLeast * lp
 	}
 	if flexRows {
 		for i := top; i < len(s.Rows) && i < top+popupMinRows; i++ {
@@ -649,7 +655,7 @@ func popupFit(s popupSpec, body *text.Font, flow popupFlow, pitch, titleH, h int
 	avail := h - fixed
 	switch {
 	case s.List != nil:
-		listRows = max(popupMinRows, avail/lp)
+		listRows = max(listLeast, avail/lp)
 	case flexRows:
 		used := 0
 		for i := top; i < len(s.Rows); i++ {

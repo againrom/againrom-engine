@@ -304,7 +304,7 @@ func (e *MapEditor) panelFollow(link panelLink) {
 			e.scriptKey("goals")
 		}
 	case linkReport:
-		if !e.report.open {
+		if !e.checkShown() {
 			e.reportKey()
 		}
 	case linkTestPlay:

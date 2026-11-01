@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 
 	"againrom/pkg/editormcp"
+	"againrom/pkg/render/textfit"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -94,6 +96,8 @@ type editorPanels struct {
 	save  func([]byte) error
 	// reportRows is the list rows the report fits in the bottom panel.
 	reportRows int
+	// notes is the docked report's note window.
+	notes reportNotes
 	// hosted reports that the last object popup built stands in the right
 	// panel; hostable that the one being built is a window the panel takes.
 	hosted, hostable bool
@@ -596,15 +600,80 @@ func (e *MapEditor) dockReport(s popupSpec) popupSpec {
 	if s.List == nil {
 		return s
 	}
+	s = e.fitDocked(s)
 	if n := layoutPopup(s, e.font, e.bodyFont()).ListRows; n != e.panels.reportRows {
 		// The rows the panel fits are the list's window: build the popup
 		// again at that window, so its rows and its count line agree.
 		e.panels.reportRows = n
 		s, _ = e.listSpecBase()
-		s = e.inPanel(s, panelBottom)
+		s = e.fitDocked(e.inPanel(s, panelBottom))
 	}
 	s.ListRows = e.panels.reportRows
 	return s
+}
+
+// reportNotes is the window of the docked report's note lines: the first
+// line shown, how many show of how many, the wheel's remainder, and the
+// selection and first line the window belongs to.
+type reportNotes struct {
+	top, shown, count int
+	wheel             float64
+	key               string
+}
+
+// fitDocked keeps docked report s inside the bottom panel. While its frame
+// is taller than the panel, the notes show fewer lines, down to one, from
+// the line the wheel scrolled them to, and the last line shown carries the
+// mark that more follow; then the list keeps fewer rows, down to one.
+func (e *MapEditor) fitDocked(s popupSpec) popupSpec {
+	n := &e.panels.notes
+	all := s.Notes
+	key := fmt.Sprint(e.report.sel, len(all))
+	if len(all) > 0 {
+		key += all[0]
+	}
+	if key != n.key {
+		*n = reportNotes{key: key}
+	}
+	n.count, n.shown = len(all), len(all)
+	high := s.Bounds.Dy()
+	over := func() bool { return layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > high }
+	if !over() {
+		n.top = 0
+		return s
+	}
+	asked := n.top
+	for n.shown > 1 {
+		n.shown--
+		n.top = max(0, min(asked, n.count-n.shown))
+		s.Notes = slices.Clone(all[n.top : n.top+n.shown])
+		if last := len(s.Notes) - 1; n.top+n.shown < n.count && !strings.HasSuffix(s.Notes[last], textfit.Mark) {
+			s.Notes[last] = e.continuedLine(s.Notes[last], e.dockedNoteWidth())
+		}
+		if !over() {
+			return s
+		}
+	}
+	for s.ListLeast = popupMinRows - 1; s.ListLeast > 1 && over(); s.ListLeast-- {
+	}
+	return s
+}
+
+// notesWheel scrolls the docked report's note lines by the wheel while the
+// pointer stands on them and they do not all show; it reports whether it
+// took the wheel.
+func (e *MapEditor) notesWheel(l popupLayout, wheel wheelSource) bool {
+	n := &e.panels.notes
+	if !e.reportDocked() || n.shown >= n.count {
+		return false
+	}
+	for _, r := range l.Notes {
+		if e.pointer.In(r) {
+			n.top = max(0, min(n.count-n.shown, n.top+notesList.wheelAccumulated(&n.wheel, wheel)))
+			return true
+		}
+	}
+	return false
 }
 
 // panelSpecOf is the spec of the popup id that stands in a panel: the

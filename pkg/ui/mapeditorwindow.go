@@ -160,6 +160,10 @@ func (e *MapEditor) mapArea() image.Rectangle {
 	return image.Rect(shown[panelLeft], top, e.window.X-shown[panelRight], max(top+1, e.mapBottom(top)-shown[panelBottom]))
 }
 
+// MapRect is the window rectangle the map fills, between the toolbar, the
+// panels and the status strip: a headless driver aims at cells inside it.
+func (e *MapEditor) MapRect() image.Rectangle { return e.mapArea() }
+
 // mapBottom is the map's and the side panels' bottom edge: the status
 // strip's top.
 func (e *MapEditor) mapBottom(top int) int {
@@ -836,7 +840,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Width, s.ListAside = e.popupWide(popList, 560), 84
 			s.Notes = []string{e.word("editor.arms.hint")}
 		} else {
-			s.Notes = e.findingNotes(s.Width - 2*popupPad - 8)
+			s.Notes = e.findingNotes(e.noteWidth(s.Width))
 			if e.report.hint != "" {
 				s.Notes = append(s.Notes, e.report.hint)
 			}
@@ -894,13 +898,37 @@ func (e *MapEditor) findingNotes(width int) []string {
 	}
 	lines := editorTextLines(e.bodyFont(), e.editorHostText(f.Text), width)
 	if len(lines) > 5 {
-		more := lines[4] + textfit.Mark
-		if font := e.bodyFont(); font != nil {
-			more = editorFit(font).Continued(lines[4], width)
-		}
-		lines = append(lines[:4], more)
+		lines = append(lines[:4], e.continuedLine(lines[4], width))
 	}
 	return lines
+}
+
+// continuedLine is line with the mark that more text follows, fitted to
+// width.
+func (e *MapEditor) continuedLine(line string, width int) string {
+	if font := e.bodyFont(); font != nil {
+		return editorFit(font).Continued(line, width)
+	}
+	return line + textfit.Mark
+}
+
+// noteWidth is the width the list popup's note lines wrap at: the popup's,
+// or while the report stands in the bottom panel the panel's less the room
+// of the mark a scrolled line may carry (fitDocked), so the mark cuts none.
+func (e *MapEditor) noteWidth(popupWidth int) int {
+	if !e.reportDocked() {
+		return popupWidth - 2*popupPad - 8
+	}
+	mark := len(textfit.Mark)
+	if font := e.bodyFont(); font != nil {
+		mark = font.Advance(textfit.Mark)
+	}
+	return e.dockedNoteWidth() - mark
+}
+
+// dockedNoteWidth is the width of a note line in the bottom panel.
+func (e *MapEditor) dockedNoteWidth() int {
+	return e.sidePanelRect(panelBottom).Dx() - 2*popupPad - 8
 }
 
 // listButtons are the keys and captions of the records list's buttons: on
@@ -1710,7 +1738,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 	switch target {
 	case popList:
-		if s, ok := e.listSpec(); ok && s.Grid != nil {
+		if s, ok := e.listSpec(); ok && e.notesWheel(layoutPopup(s, e.font, e.bodyFont()), wheel) {
+			return
+		} else if ok && s.Grid != nil {
 			if l := layoutPopup(s, e.font, e.bodyFont()); e.pointer.In(l.Grid) || e.pointer.In(l.GridBar) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
 					if e.forestOn() {
