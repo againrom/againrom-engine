@@ -22,8 +22,7 @@ import (
 
 // TestReleaseMapEditorSelectionFrames drives the brush lists, the F1 key list
 // and a group selection on an installed map, and writes their frames into
-// AGAINROM_SELECTION_FRAMES when it is set: the Layers menu, each brush's
-// list, the key list, a Shift rectangle being drawn and the group it
+// AGAINROM_SELECTION_FRAMES when it is set: each brush's list, the key list, a Shift rectangle being drawn and the group it
 // selects, the group after a drag, and a pasted copy with its status line.
 // Each step's status words are the install language's.
 func TestReleaseMapEditorSelectionFrames(t *testing.T) {
@@ -61,27 +60,6 @@ func TestReleaseMapEditorSelectionFrames(t *testing.T) {
 	}
 	closeMapPanel(t, e)
 
-	r, ok := e.ToolbarRect("layers")
-	if !ok {
-		t.Fatal("no Layers button")
-	}
-	p := image.Pt((r.Min.X+r.Max.X)/2, (r.Min.Y+r.Max.Y)/2)
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: true}, now)
-	e.Pointer(ui.Input{CursorX: p.X, CursorY: p.Y}, now)
-	// The open menu is opaque: a map label beneath its rows is hidden.
-	var menu image.Rectangle
-	for n := 0; ; n++ {
-		row, ok := e.MenuRowRect(n)
-		if !ok {
-			break
-		}
-		menu = menu.Union(row)
-	}
-	if menu.Empty() {
-		t.Fatal("the Layers menu shows no row")
-	}
-	shotUnder(e, "layers-menu", menu)
-	_ = e.Key("escape")
 	for _, b := range []struct{ key, word string }{
 		{"terrain", "editor.keys.terrain"}, {"height", "editor.keys.height"},
 		{"passability", "editor.keys.passbrush"}, {"objects", "editor.keys.objects"},

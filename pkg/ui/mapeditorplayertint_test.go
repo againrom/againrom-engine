@@ -238,7 +238,7 @@ func TestPlayerLegendListsEveryPlayerInItsColour(t *testing.T) {
 	}
 	for y := 0; y < pic.Bounds().Dy(); y++ {
 		for px := 0; px < pic.Bounds().Dx(); px++ {
-			if !image.Pt(px, y).In(box) && pic.RGBAAt(px, y) != base.RGBAAt(px, y) {
+			if !image.Pt(px, y).In(box) && !image.Pt(px, y).In(e.toolbarRect()) && pic.RGBAAt(px, y) != base.RGBAAt(px, y) {
 				t.Fatalf("the legend changed pixel (%d,%d) outside its box", px, y)
 			}
 		}
@@ -252,24 +252,19 @@ func TestPlayerLegendListsEveryPlayerInItsColour(t *testing.T) {
 func TestViewMenuRowTogglesPlayerColours(t *testing.T) {
 	x := newTintFixture(t)
 	e := x.e
-	n, ok := e.MenuRow("layers", "playertint")
-	if !ok {
-		t.Fatal("the Layers menu has no player colours row")
+	on := func() bool { v, _, _ := e.ToolbarState("playertint"); return v }
+	if on() {
+		t.Fatal("the player colours switch shows on by default")
 	}
-	row := func() string { return e.menuItems("layers")[n].label }
-	off := row()
-	if want := markWord(false, e.word("editor.view.playertint")); off != want {
-		t.Fatalf("row %q, want %q", off, want)
+	passClick(e, toolRect(t, e, "playertint"))
+	if !e.view.playerColours || !on() {
+		t.Fatalf("after the click: on=%v switch=%v", e.view.playerColours, on())
 	}
-	e.menuAct("playertint")
-	if !e.view.playerColours || row() != markWord(true, e.word("editor.view.playertint")) || row() == off {
-		t.Fatalf("row after the click: %q on=%v", row(), e.view.playerColours)
-	}
-	e.menuAct("playertint")
-	if e.view.playerColours || row() != off {
+	passClick(e, toolRect(t, e, "playertint"))
+	if e.view.playerColours || on() {
 		t.Fatal("a second click did not turn the mode off")
 	}
-	if e.word("editor.view.playertint") == "editor.view.playertint" || e.word("editor.keys.playertint") == "editor.keys.playertint" {
+	if e.word("editor.tool.playertint") == "editor.tool.playertint" || e.word("editor.keys.playertint") == "editor.keys.playertint" {
 		t.Log("word table not set on this editor; the table test covers both languages")
 	}
 }
@@ -428,21 +423,12 @@ func TestPlayerLegendStandsInTheMapCornerThePanelsLeave(t *testing.T) {
 	if e.view.playerColours || e.panelsShown() != shown {
 		t.Fatalf("Y: player colours %v, panels %v, were %v", e.view.playerColours, e.panelsShown(), shown)
 	}
-	order := map[string]int{}
-	for i, it := range e.menuItems("layers") {
-		order[it.key] = i
-	}
-	keys := []string{"areas", "passview", "playertint"}
-	for i := 1; i < len(keys); i++ {
-		a, okA := order[keys[i-1]]
-		b, okB := order[keys[i]]
-		if !okA || !okB || a >= b {
-			t.Fatalf("Layers menu order %v, want %v in that order", order, keys)
-		}
-	}
 	tools := map[string]int{}
 	for i, b := range toolButtons {
 		tools[b.key] = i
+	}
+	if tools["playertint"] >= tools["grid"] {
+		t.Fatalf("toolbar order %v, want the layer switches before grid", tools)
 	}
 	if a, b := tools[sidePanels[panelLeft].key], tools[sidePanels[panelRight].key]; tools["report"] >= a || a >= b {
 		t.Fatalf("toolbar order %v, want report, then the two panels", tools)

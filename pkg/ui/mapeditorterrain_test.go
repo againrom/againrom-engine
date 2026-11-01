@@ -269,7 +269,7 @@ func TestHeightNumbersShowTheVertexHeightMinus64(t *testing.T) {
 	}
 	e.menuAct("heightlabels")
 	if rects, _ := e.HeightLabels(); len(rects) != 0 {
-		t.Fatal("the Layers row did not turn the numbers off")
+		t.Fatal("the height numbers switch did not turn the numbers off")
 	}
 }
 

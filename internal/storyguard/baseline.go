@@ -3725,5 +3725,5 @@ var Committed = Baseline{
 	// window, the list's least rows, the note width), the check report's
 	// test for the Report button, the map rectangle accessor, their tests,
 	// and this note.
-	CommentBytes: 10278221,
+	CommentBytes: 10277548,
 }

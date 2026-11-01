@@ -7,10 +7,9 @@ import (
 
 // The toolbar: one row across the window between the top bar and the map.
 // toolButtons is its one table and toolbarEntries its one builder: the left
-// group holds the tools, one of them current, the right group the layers
-// drop-down, the switches and the actions. A button performs its row key
-// through menuAct, the one path a menu row takes, and the layers drop-down
-// is a bar menu drawn by menuDropdown over the one picker.
+// group holds the tools, one of them current, the right group the layer
+// switches, the other switches and the actions. A button performs its row key
+// through menuAct, the one path a menu row takes.
 
 // toolKind is what a toolbar button is.
 type toolKind uint8
@@ -19,7 +18,6 @@ const (
 	toolPick   toolKind = iota // a tool: the current one shows on
 	toolSwitch                 // a switch: on while its state is
 	toolAction                 // a press does one thing
-	toolDrop                   // a press opens its menu as a drop-down
 )
 
 // toolGroup is the toolbar group a button stands in.
@@ -30,8 +28,7 @@ const (
 	toolRight                  // against the window's right edge
 )
 
-// toolButton is one toolbar button as data: the menu row key it performs or
-// the menu it opens, its icon, its tip's word, the key row whose label the
+// toolButton is one toolbar button as data: the menu row key it performs, its icon, its tip's word, the key row whose label the
 // tip names, its group and kind, a switch's state and when it is disabled.
 type toolButton struct {
 	key    string
@@ -66,7 +63,14 @@ func init() {
 		{key: brushMenuKeys[brushObjects], icon: &iconObjects, word: "editor.tool.objects", keyRow: "objects", kind: toolPick, off: noBrush},
 		{key: brushMenuKeys[brushPassability], icon: &iconPassability, word: "editor.tool.passability", keyRow: "passability", kind: toolPick, off: noBrush},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, off: func(e *MapEditor) bool { return !e.editable() }},
-		{key: "layers", icon: &iconLayers, word: "editor.tool.layers", group: toolRight, kind: toolDrop, off: noMap},
+		{key: "border", icon: &iconBorder, word: "editor.tool.border", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return !e.view.hideBorder }, off: noMap},
+		{key: "areas", icon: &iconAreas, word: "editor.tool.areas", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return !e.view.hideAreas }, off: noMap},
+		{key: "drops", icon: &iconDrops, word: "editor.tool.drops", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return !e.view.hideDrops }, off: noMap},
+		{key: "footprints", icon: &iconFootprints, word: "editor.tool.footprints", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return !e.view.hideFootprints }, off: noMap},
+		{key: "issues", icon: &iconIssues, word: "editor.tool.issues", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return !e.view.hideIssues }, off: noMap},
+		{key: "heightlabels", icon: &iconHeightLabels, word: "editor.tool.heightlabels", keyRow: "heightlabels", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.view.heights }, off: noMap},
+		{key: "passview", icon: &iconPassView, word: "editor.tool.passview", keyRow: "passview", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.view.passability }, off: noMap},
+		{key: "playertint", icon: &iconPlayerTint, word: "editor.tool.playertint", keyRow: "playertint", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.view.playerColours }, off: noMap},
 		{key: "grid", icon: &iconGrid, word: "editor.tool.grid", group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.view.grid }, off: noMap},
 		{key: "fit", icon: &iconFit, word: "editor.tool.fit", keyRow: "fit", group: toolRight, kind: toolAction, off: noMap},
 		{key: "report", icon: &iconReport, word: "editor.tool.report", keyRow: "report", group: toolRight, kind: toolSwitch,
@@ -141,27 +145,13 @@ func (e *MapEditor) toolbarEntries() []toolEntry {
 			t.shown = !t.closed && tool == b.key
 		case toolSwitch:
 			t.shown = b.on(e)
-		case toolDrop:
-			t.shown = e.menu == b.key
-		}
-	}
-	return out
-}
-
-// toolbarMenus are the toolbar's drop-down buttons as bar menu entries, which
-// menuDropdown draws and openMenuEntry finds.
-func (e *MapEditor) toolbarMenus() []barEntry {
-	var out []barEntry
-	for _, t := range e.toolbarEntries() {
-		if t.kind == toolDrop {
-			out = append(out, barEntry{key: t.key, label: e.word(t.word), menu: true, disabled: t.closed, rect: t.rect, icon: t.icon})
 		}
 	}
 	return out
 }
 
 // ToolbarRect is the window rectangle of the toolbar button key ("select",
-// "brush.terrain", "layers", "grid" and the rest): a headless driver presses
+// "brush.terrain", "border", "grid" and the rest): a headless driver presses
 // it.
 func (e *MapEditor) ToolbarRect(key string) (image.Rectangle, bool) {
 	for _, t := range e.toolbarEntries() {
@@ -184,17 +174,13 @@ func (e *MapEditor) ToolbarState(key string) (on, disabled, ok bool) {
 }
 
 // toolbarPress is a press at p on the toolbar: a button that is not disabled
-// performs its row key, or opens or closes its menu.
+// performs its row key.
 func (e *MapEditor) toolbarPress(p image.Point) {
 	for _, t := range e.toolbarEntries() {
 		if !p.In(t.rect) || t.closed {
 			continue
 		}
-		if t.kind == toolDrop {
-			e.toggleMenu(t.key)
-		} else {
-			e.menuAct(t.key)
-		}
+		e.menuAct(t.key)
 		return
 	}
 }
@@ -216,19 +202,12 @@ func (e *MapEditor) toolTip(p image.Point) (string, image.Point, bool) {
 }
 
 // drawToolbar draws the toolbar row: the bar's fill and gold rule, each
-// button through the one icon button painter and the layers drop-down
-// through the one drop-down builder.
+// button through the one icon button painter.
 func (e *MapEditor) drawToolbar(pic *image.RGBA) {
 	bar := e.toolbarRect()
 	draw.Draw(pic, bar, image.NewUniform(editorPanel), image.Point{}, draw.Src)
 	draw.Draw(pic, image.Rect(bar.Min.X, bar.Max.Y-1, bar.Max.X, bar.Max.Y), image.NewUniform(editorGold), image.Point{}, draw.Src)
 	for _, t := range e.toolbarEntries() {
-		if t.kind == toolDrop {
-			continue
-		}
 		drawIconButton(pic, iconButton{Rect: t.rect, Icon: t.icon, On: t.shown, Hover: e.pointerOK && e.pointer.In(t.rect), Disabled: t.closed})
-	}
-	for _, b := range e.toolbarMenus() {
-		drawDropdown(pic, e.font, nil, e.menuDropdown(b, false), nil, e.pointer, e.pointerOK)
 	}
 }

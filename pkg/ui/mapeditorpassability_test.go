@@ -92,23 +92,14 @@ func passClick(e *MapEditor, r image.Rectangle) {
 	e.Pointer(Input{CursorX: pt.X, CursorY: pt.Y}, time.Unix(2, 0))
 }
 
-// passMenu clicks the bar entry or toolbar button key, then row n of its
-// menu.
-func passMenu(t *testing.T, e *MapEditor, key string, n int) {
+// toolRect is the rectangle of toolbar button key.
+func toolRect(t *testing.T, e *MapEditor, key string) image.Rectangle {
 	t.Helper()
-	r, ok := e.BarRect(key)
+	r, ok := e.ToolbarRect(key)
 	if !ok {
-		r, ok = e.ToolbarRect(key)
+		t.Fatalf("no %s button", key)
 	}
-	if !ok {
-		t.Fatalf("no %s entry", key)
-	}
-	passClick(e, r)
-	r, ok = e.MenuRowRect(n)
-	if !ok {
-		t.Fatalf("the %s menu has no row %d", key, n)
-	}
-	passClick(e, r)
+	return r
 }
 
 // The toolbar's brush buttons turn on each brush; the button of the brush
@@ -202,19 +193,9 @@ func TestMapEditorPassabilityViewFillsAndNames(t *testing.T) {
 	if e.view.passability || len(e.passabilityQuads()) != 0 {
 		t.Fatal("the passability view is on by default")
 	}
-	items := e.menuItems("layers")
-	row := -1
-	for i, it := range items {
-		if it.key == "passview" {
-			row = i
-		}
-	}
-	if row < 0 {
-		t.Fatal("the Layers menu has no Passability row")
-	}
-	passMenu(t, e, "layers", row)
+	passClick(e, toolRect(t, e, "passview"))
 	if !e.view.passability {
-		t.Fatal("the Layers row did not turn the view on")
+		t.Fatal("the passability switch did not turn the view on")
 	}
 	e.ShowCell(image.Pt(30, 30))
 	quads := e.passabilityQuads()

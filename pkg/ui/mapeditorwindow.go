@@ -174,14 +174,12 @@ func (e *MapEditor) statusRect() image.Rectangle {
 	return image.Rect(0, e.mapBottom(e.toolbarRect().Max.Y), e.window.X, e.window.Y)
 }
 
-// barEntry is one entry of the top bar, or a toolbar button that opens a
-// menu, which shows its icon.
+// barEntry is one entry of the top bar.
 type barEntry struct {
 	key, label string
 	menu       bool
 	disabled   bool
 	rect       image.Rectangle
-	icon       *editorIcon
 }
 
 // barEntries is the top bar's entries in their rows, each with its state.
@@ -368,7 +366,6 @@ func markWord(on bool, id string) string {
 }
 
 func (e *MapEditor) menuItems(menu string) []menuItem {
-	mark := markWord
 	switch menu {
 	case "map":
 		return []menuItem{
@@ -386,17 +383,6 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 			{"", ""},
 			{"close", e.word("editor.menu.exit")},
 		}
-	case "layers":
-		return []menuItem{
-			{"border", mark(!e.view.hideBorder, e.word("editor.view.border"))},
-			{"areas", mark(!e.view.hideAreas, e.word("editor.view.areas"))},
-			{"drops", mark(!e.view.hideDrops, e.word("editor.view.drops"))},
-			{"footprints", mark(!e.view.hideFootprints, e.word("editor.view.footprints"))},
-			{"issues", mark(!e.view.hideIssues, e.word("editor.view.issues"))},
-			{"heightlabels", mark(e.view.heights, e.word("editor.view.heights"))},
-			{"passview", mark(e.view.passability, e.word("editor.view.passability"))},
-			{"playertint", mark(e.view.playerColours, e.word("editor.view.playertint"))},
-		}
 	}
 	return nil
 }
@@ -404,10 +390,10 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 // brushMenuKeys is the row key of each brush mode: its toolbar button's.
 var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability"}
 
-// menuDropdown is the open menu as a drop-down anchored on its bar entry or
-// its toolbar button, whose list ends inside the window.
+// menuDropdown is the open menu as a drop-down anchored on its bar entry,
+// whose list ends inside the window.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
-	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, Icon: entry.icon, ListRight: e.window.X}
+	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X}
 	if open && e.menu == entry.key {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
@@ -427,12 +413,12 @@ func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 	return d
 }
 
-// openMenuEntry is the bar entry or toolbar button of the open menu.
+// openMenuEntry is the bar entry of the open menu.
 func (e *MapEditor) openMenuEntry() (barEntry, bool) {
 	if e.menu == "" {
 		return barEntry{}, false
 	}
-	for _, b := range append(e.barEntries(), e.toolbarMenus()...) {
+	for _, b := range e.barEntries() {
 		if b.menu && b.key == e.menu {
 			return b, true
 		}

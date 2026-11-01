@@ -77,12 +77,12 @@ func scriptsAddTrigger(t *testing.T, e *MapEditor) {
 }
 
 // baseViewToolsRows are the row keys the View and Tools menus held, with
-// the one place each has now: the toolbar, the Layers drop-down, the Map
+// the one place each has now: the toolbar or the Map
 // menu or the Scenario palette's Add.
 var baseViewToolsRows = []struct{ key, place string }{
-	{"drops", "layers"}, {"footprints", "layers"}, {"issues", "layers"}, {"grid", "toolbar"},
-	{"passview", "layers"}, {"heightlabels", "layers"}, {"border", "layers"}, {"areas", "layers"},
-	{"playertint", "layers"}, {"report", "toolbar"}, {"fit", "toolbar"}, {"drawarea", "toolbar"},
+	{"drops", "toolbar"}, {"footprints", "toolbar"}, {"issues", "toolbar"}, {"grid", "toolbar"},
+	{"passview", "toolbar"}, {"heightlabels", "toolbar"}, {"border", "toolbar"}, {"areas", "toolbar"},
+	{"playertint", "toolbar"}, {"report", "toolbar"}, {"fit", "toolbar"}, {"drawarea", "toolbar"},
 	{"records", "map"}, {"objectspanel", "toolbar"}, {"propertiespanel", "toolbar"},
 	{"newtrigger", "scripts-add"}, {"brush.terrain", "toolbar"}, {"brush.height", "toolbar"},
 	{"brush.objects", "toolbar"}, {"brush.passability", "toolbar"},
@@ -96,11 +96,9 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	places := map[string][]string{}
 	for _, b := range toolButtons {
-		if b.kind != toolDrop {
-			places[b.key] = append(places[b.key], "toolbar")
-		}
+		places[b.key] = append(places[b.key], "toolbar")
 	}
-	for _, b := range append(e.barEntries(), e.toolbarMenus()...) {
+	for _, b := range e.barEntries() {
 		if b.key == "view" || b.key == "tools" {
 			t.Errorf("the bar still holds %s", b.key)
 		}
@@ -200,7 +198,7 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 				}
 				first, _ := e.ToolbarRect("select")
 				last, _ := e.ToolbarRect(toolButtons[len(toolButtons)-1].key)
-				layers, _ := e.ToolbarRect("layers")
+				layers, _ := e.ToolbarRect("border")
 				if first.Min.X != 4 || last.Max.X != size.X-4 || layers.Min.X < prev[toolLeft].Max.X+toolGroupGap {
 					t.Errorf("groups at %v..%v and %v..%v", first, prev[toolLeft], layers, last)
 				}
@@ -365,65 +363,112 @@ func TestMapEditorToolbarTipsAndIcons(t *testing.T) {
 	}
 }
 
-// layerSwitches is each Layers row's view switch as its mark shows it.
-var layerSwitches = map[string]func(e *MapEditor) bool{
-	"border":       func(e *MapEditor) bool { return !e.view.hideBorder },
-	"areas":        func(e *MapEditor) bool { return !e.view.hideAreas },
-	"drops":        func(e *MapEditor) bool { return !e.view.hideDrops },
-	"footprints":   func(e *MapEditor) bool { return !e.view.hideFootprints },
-	"issues":       func(e *MapEditor) bool { return !e.view.hideIssues },
-	"heightlabels": func(e *MapEditor) bool { return e.view.heights },
-	"passview":     func(e *MapEditor) bool { return e.view.passability },
-	"playertint":   func(e *MapEditor) bool { return e.view.playerColours },
+// layerSwitches is each layer switch's view state as the toolbar shows it,
+// in toolbar order.
+var layerSwitches = []struct {
+	key string
+	on  func(e *MapEditor) bool
+}{
+	{"border", func(e *MapEditor) bool { return !e.view.hideBorder }},
+	{"areas", func(e *MapEditor) bool { return !e.view.hideAreas }},
+	{"drops", func(e *MapEditor) bool { return !e.view.hideDrops }},
+	{"footprints", func(e *MapEditor) bool { return !e.view.hideFootprints }},
+	{"issues", func(e *MapEditor) bool { return !e.view.hideIssues }},
+	{"heightlabels", func(e *MapEditor) bool { return e.view.heights }},
+	{"passview", func(e *MapEditor) bool { return e.view.passability }},
+	{"playertint", func(e *MapEditor) bool { return e.view.playerColours }},
 }
 
-// (d) The Layers drop-down opens and closes from its button, which shows on
-// while it is open; each row toggles its view switch, and its mark follows.
-func TestMapEditorLayersDropDownTogglesEachSwitch(t *testing.T) {
-	for _, size := range []image.Point{{1280, 800}, {640, 480}} {
-		e, _ := newModesEditor(t, "full")
-		e.Layout(size.X, size.Y)
-		rows := e.menuItems("layers")
-		if len(rows) != len(layerSwitches) {
-			t.Fatalf("the Layers menu holds %d rows, want %d", len(rows), len(layerSwitches))
-		}
-		label := func(key string) string {
-			for _, it := range e.menuItems("layers") {
-				if it.key == key {
-					return it.label
+// (d) Each map layer is a toolbar switch, in the old Layers menu's order and
+// before grid; it shows on exactly while its layer shows, a press flips the
+// layer and the next press flips it back, and no button overlaps another at
+// any size in either language. No Layers button or menu remains.
+func TestMapEditorToolbarHoldsEachLayerSwitch(t *testing.T) {
+	for _, size := range []image.Point{{640, 480}, {1024, 768}, {1920, 1080}} {
+		for _, lang := range []string{"", "russian"} {
+			t.Run(fmt.Sprintf("%dx%d/%q", size.X, size.Y, lang), func(t *testing.T) {
+				e, _, _ := panelsEditor(t, size.X, size.Y, lang)
+				at := map[string]int{}
+				entries := e.toolbarEntries()
+				for i, b := range entries {
+					at[b.key] = i
+					for _, o := range entries[:i] {
+						if b.rect.Overlaps(o.rect) {
+							t.Errorf("%s at %v overlaps %s at %v", b.key, b.rect, o.key, o.rect)
+						}
+					}
 				}
-			}
-			return ""
+				if _, ok := at["layers"]; ok || e.menuItems("layers") != nil {
+					t.Error("a Layers button or menu remains")
+				}
+				for i, sw := range layerSwitches {
+					n, ok := at[sw.key]
+					if !ok {
+						t.Fatalf("no %s switch", sw.key)
+					}
+					if b := entries[n]; b.kind != toolSwitch || b.group != toolRight || b.icon == nil || b.word == "" {
+						t.Errorf("%s is %+v", sw.key, b)
+					}
+					if i > 0 && n != at[layerSwitches[i-1].key]+1 {
+						t.Errorf("%s stands at %d, not after %s", sw.key, n, layerSwitches[i-1].key)
+					}
+					if n >= at["grid"] {
+						t.Errorf("%s stands at %d, not before grid", sw.key, n)
+					}
+					if tip, _, ok := e.toolTip(center(entries[n].rect)); !ok || tip == "" || tip == entries[n].word {
+						t.Errorf("%s tip %q", sw.key, tip)
+					}
+				}
+				for _, sw := range layerSwitches {
+					for press := 0; press < 2; press++ {
+						was := sw.on(e)
+						if shown, closed, _ := e.ToolbarState(sw.key); shown != was || closed {
+							t.Fatalf("%s shows %v disabled %v while the layer is %v", sw.key, shown, closed, was)
+						}
+						modesClick(e, toolPoint(t, e, sw.key))
+						if sw.on(e) == was {
+							t.Fatalf("%s press %d left the layer %v", sw.key, press, was)
+						}
+						if shown, _, _ := e.ToolbarState(sw.key); shown != sw.on(e) {
+							t.Fatalf("%s shows %v after the press, the layer is %v", sw.key, shown, sw.on(e))
+						}
+					}
+				}
+				e.doc = nil
+				for _, sw := range layerSwitches {
+					if _, closed, _ := e.ToolbarState(sw.key); !closed {
+						t.Errorf("%s is enabled with no map", sw.key)
+					}
+				}
+			})
 		}
-		for _, row := range rows {
-			on := layerSwitches[row.key]
-			if on == nil {
-				t.Fatalf("Layers row %s has no switch", row.key)
-			}
-			was := on(e)
-			if !strings.HasPrefix(label(row.key), CheckSpec{On: was, Style: CheckText}.Mark()) {
-				t.Errorf("%s shows %q while %v", row.key, label(row.key), was)
-			}
-			modesClick(e, toolPoint(t, e, "layers"))
-			if shown, _, _ := e.ToolbarState("layers"); !shown || e.menu != "layers" {
-				t.Fatal("the Layers button did not open its menu")
-			}
-			b, _ := e.openMenuEntry()
-			if box := e.menuDropdown(b, true).listBox(e.font).Rect; !box.In(image.Rect(0, 0, size.X, size.Y)) {
-				t.Errorf("the Layers list at %v leaves the %v window", box, size)
-			}
-			modesClick(e, menuPoint(t, e, menuKeyRow(t, e, "layers", row.key)))
-			if on(e) == was || e.menu != "" {
-				t.Errorf("%s row: switch %v -> %v, menu %q", row.key, was, on(e), e.menu)
-			}
-			if !strings.HasPrefix(label(row.key), CheckSpec{On: !was, Style: CheckText}.Mark()) {
-				t.Errorf("%s shows %q after the press", row.key, label(row.key))
-			}
+	}
+}
+
+// The layer switches' icons are 16 by 16 and no two read alike; the tips of
+// the keyed layers name the key in both languages.
+func TestMapEditorLayerIconsDifferAndTipsNameKeys(t *testing.T) {
+	seen := map[string]string{}
+	for _, b := range toolButtons {
+		if b.icon == nil {
+			t.Errorf("%s has no icon", b.key)
+			continue
 		}
-		modesClick(e, toolPoint(t, e, "layers"))
-		modesClick(e, toolPoint(t, e, "layers"))
-		if shown, _, _ := e.ToolbarState("layers"); shown || e.menu != "" {
-			t.Error("a second press on Layers did not close its menu")
+		if sz := b.icon.size(); sz != image.Pt(16, 16) {
+			t.Errorf("%s icon is %v", b.key, sz)
+		}
+		sig := strings.Join(b.icon.rows, "/")
+		if o, dup := seen[sig]; dup {
+			t.Errorf("%s and %s share an icon", b.key, o)
+		}
+		seen[sig] = b.key
+	}
+	for _, lang := range []string{"", "russian"} {
+		e, _, _ := panelsEditor(t, 1280, 800, lang)
+		for key, label := range map[string]string{"heightlabels": "V", "passview": "Z", "playertint": "Y"} {
+			if tip, _, _ := e.toolTip(center(toolRect(t, e, key))); !strings.HasSuffix(tip, "("+label+")") {
+				t.Errorf("%q: %s tip %q lacks its key %s", lang, key, tip, label)
+			}
 		}
 	}
 }

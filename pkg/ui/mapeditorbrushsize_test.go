@@ -200,17 +200,13 @@ func TestMapEditorBorderViewShowsTheBorderArm(t *testing.T) {
 	if lines := e.borderLines(); len(lines) == 0 {
 		t.Fatal("no edge line")
 	}
-	row, ok := e.MenuRow("layers", "border")
-	if !ok {
-		t.Fatal("the Layers menu has no border row")
-	}
-	passMenu(t, e, "layers", row)
+	passClick(e, toolRect(t, e, "border"))
 	if len(e.borderQuads()) != 0 || len(e.borderLines()) != 0 || e.BorderCell(image.Pt(5, 0)) {
-		t.Fatal("the Layers row did not hide the border")
+		t.Fatal("the border switch did not hide the border")
 	}
-	passMenu(t, e, "layers", row)
+	passClick(e, toolRect(t, e, "border"))
 	if len(e.borderQuads()) == 0 {
-		t.Fatal("the Layers row did not show the border again")
+		t.Fatal("the border switch did not show the border again")
 	}
 	e.view.passability = true
 	if len(e.borderQuads()) != 0 {

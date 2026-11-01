@@ -154,7 +154,7 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 		t.Fatalf("the Units list's buttons are %q", s.Buttons)
 	}
 	for _, key := range []string{"drop", "dropzones", "drawarea"} {
-		for _, menu := range []string{"map", "layers"} {
+		for _, menu := range []string{"map"} {
 			if slices.Contains(menuKeys(e, menu), key) {
 				t.Errorf("%s lists %s", menu, key)
 			}
@@ -185,7 +185,7 @@ func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 		if at < 1 || keys[at-1] != "" || keys[at+1] != "randomheights" {
 			t.Fatalf("Map rows %v hold no Generate group", keys)
 		}
-		for _, menu := range []string{"map", "layers"} {
+		for _, menu := range []string{"map"} {
 			for _, k := range menuKeys(m, menu) {
 				if strings.HasPrefix(k, "brush.") {
 					t.Errorf("%s lists %s", menu, k)
@@ -193,8 +193,8 @@ func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 			}
 		}
 	}
-	if e.menuItems("brushes") != nil || e.menuItems("tools") != nil || e.menuItems("view") != nil {
-		t.Fatal("a Brushes, Tools or View menu remains")
+	if e.menuItems("brushes") != nil || e.menuItems("tools") != nil || e.menuItems("layers") != nil || e.menuItems("view") != nil {
+		t.Fatal("a Brushes, Tools, View or Layers menu remains")
 	}
 	at := slices.Index(menuKeys(e, "map"), "randomterrain")
 	for _, c := range []struct{ lang, generate string }{{"", "Generate"}, {"russian", "Генерация"}} {

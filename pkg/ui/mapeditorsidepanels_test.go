@@ -761,7 +761,7 @@ func TestMapEditorSidePanelsGolden(t *testing.T) {
 		{"defaults-en-1024x768", 1024, 768, "", "", -1, nil},
 		{"toolbar-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
 		{"toolbar-ru-1280x800", 1280, 800, "russian", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
-		{"layers-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "layers")) }},
+		{"layers-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "passview")) }},
 		{"report-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "report")) }},
 		{"nobrush-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { e.doc.Edits = noBrushHost{e.doc.Edits} }},
 	} {

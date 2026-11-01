@@ -374,9 +374,7 @@ func TestEditorViewMenuSwitchesTheAnnotations(t *testing.T) {
 	_ = e.Open("popups")
 	e.Select(0, false)
 	with := len(e.markerLines())
-	chromeClick(e, toolPoint(t, e, "layers"))
-	n, _ := e.MenuRow("layers", "footprints")
-	chromeClick(e, menuPoint(t, e, n))
+	chromeClick(e, toolPoint(t, e, "footprints"))
 	if without := len(e.markerLines()); without != with-4 {
 		t.Fatalf("footprints off: %d lines, was %d", without, with)
 	}

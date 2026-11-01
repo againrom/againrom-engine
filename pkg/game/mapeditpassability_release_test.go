@@ -329,17 +329,6 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 		r, ok := e.ToolbarRect(key)
 		click(e, r, ok, "the "+key+" button")
 	}
-	menu := func(e *ui.MapEditor, bar, key string) {
-		t.Helper()
-		r, ok := e.ToolbarRect(bar)
-		click(e, r, ok, "the "+bar+" button")
-		n, ok := e.MenuRow(bar, key)
-		if !ok {
-			t.Fatalf("the %s menu has no %s row", bar, key)
-		}
-		r, ok = e.MenuRowRect(n)
-		click(e, r, ok, "the "+key+" row")
-	}
 	shot := func(e *ui.MapEditor, name string) {
 		t.Helper()
 		writeEditorFrame(t, e, filepath.Join(dir, name+".png"), dir != "", image.Rectangle{})
@@ -365,7 +354,7 @@ func TestReleaseMapEditorPassabilityFrames(t *testing.T) {
 	e.ShowCell(water)
 	tool(e, "grid")
 	shot(e, "view-grid")
-	menu(e, "layers", "passview")
+	tool(e, "passview")
 	if s := hoverStatus(e, water); !strings.Contains(s, x.inspectionUTF8(words.For(x.archives.Base.Profile.Language).Text("editor.pass.water"))) {
 		t.Fatalf("status %q does not name Water", s)
 	}
@@ -436,10 +425,7 @@ func TestReleaseMapEditorStatusFitsWithPassability(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	r, ok := e.ToolbarRect("layers")
-	trigClick(t, e, r, ok, "Layers")
-	n, _ := e.MenuRow("layers", "passview")
-	r, ok = e.MenuRowRect(n)
+	r, ok := e.ToolbarRect("passview")
 	trigClick(t, e, r, ok, "Passability")
 	line := check("keys, view on", false)
 	_, _, full, limit := e.StatusFit()
