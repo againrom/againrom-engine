@@ -446,10 +446,6 @@ func (e *MapEditor) keyEscape(string) error {
 		e.cancelPopup(popList)
 	case e.panel:
 		e.cancelPopup(popList)
-	case e.Dirty():
-		e.askLeave(leaveStep{})
-	default:
-		return ebiten.Termination
 	}
 	return nil
 }

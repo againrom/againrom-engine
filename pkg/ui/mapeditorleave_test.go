@@ -46,14 +46,15 @@ func TestCloseKeyAsksWhenDirtyAndClosesWhenClean(t *testing.T) {
 	}
 }
 
-func TestEscapeLastStepAsksWhenDirty(t *testing.T) {
-	e, _ := leaveEditor(t, true)
-	if err := e.Key("escape"); err != nil || !asked(e) || e.ExitAsked() {
-		t.Fatalf("dirty Esc: err %v asked %v", err, asked(e))
-	}
-	e, _ = leaveEditor(t, false)
-	if err := e.Key("escape"); err != ebiten.Termination {
-		t.Fatalf("clean Esc: %v", err)
+func TestEscapeWithNothingOpenKeepsTheEditorRunning(t *testing.T) {
+	for _, dirty := range []bool{true, false} {
+		e, _ := leaveEditor(t, dirty)
+		if err := e.Key("escape"); err != nil || asked(e) || e.ExitAsked() {
+			t.Fatalf("dirty %v Esc: err %v asked %v exit %v", dirty, err, asked(e), e.ExitAsked())
+		}
+		if err := e.Update(); err == ebiten.Termination {
+			t.Fatalf("dirty %v: the editor closed after Esc", dirty)
+		}
 	}
 }
 
