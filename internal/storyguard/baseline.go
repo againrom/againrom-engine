@@ -3724,6 +3724,9 @@ var Committed = Baseline{
 	// It rose for the docked report's fit in the bottom panel (its note
 	// window, the list's least rows, the note width), the check report's
 	// test for the Report button, the map rectangle accessor, their tests,
-	// and this note.
-	CommentBytes: 10277548,
+	// and this note. It rose again by 5496 for the side panels' undock: new doc
+	// comments in pkg/ui/mapeditorsidepanels.go, mapeditorpopupstore.go and
+	// mapeditorresize.go, and the tests mapeditorpanelundock_test.go and
+	// mapeditorpanelwidth_test.go.
+	CommentBytes: 10283044,
 }

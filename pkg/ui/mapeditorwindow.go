@@ -1246,7 +1246,7 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 }
 
 // movableSpec is the popup id as drawn: the list, the object or the prompt
-// popup.
+// popup, or a floating side panel's window (a docked panel does not move).
 func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 	switch id {
 	case popList:
@@ -1256,6 +1256,10 @@ func (e *MapEditor) movableSpec(id editorPopupID) (popupSpec, bool) {
 		return s, ok
 	case popPrompt:
 		return e.promptSpec()
+	case popTree:
+		return e.treeSpec()
+	case popProps:
+		return e.propsSpec()
 	}
 	return popupSpec{}, false
 }
@@ -1611,6 +1615,13 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 	if s, ok := e.listSpec(); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
 		return popList
 	}
+	for _, id := range []editorPopupID{popProps, popTree} {
+		if i := panelOfRow(id); e.panelFloats(i) {
+			if s, ok := e.movableSpec(id); ok && p.In(layoutPopup(s, e.font, e.bodyFont()).Rect) {
+				return id
+			}
+		}
+	}
 	// A hosted window takes a press on what it draws, the rectangle its
 	// layout fills, as a floating one does.
 	if objectOK && hosted && p.In(layoutPopup(object, e.font, e.bodyFont()).Rect) {
@@ -1668,6 +1679,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 				}
 			case e.dragEdge != 0:
 				e.resizePopup(d)
+			case e.pullPanel(d):
 			default:
 				e.dragPopup(d)
 			}
@@ -1675,9 +1687,13 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 			if e.dragCard != 0 {
 				e.dropCard()
 			}
-			if _, ok := e.panelOf(e.drag); (ok || e.keptWindow(e.drag) != "") && e.dragEdge != 0 {
+			if _, ok := e.panelOf(e.drag); (ok || e.keptWindow(e.drag) != "") && e.dragEdge != 0 || e.dragsFloatingPanel() {
 				e.savePanels()
 			}
+			if e.panels.pull.on {
+				e.clicks.release()
+			}
+			e.panels.pull = pullState{}
 			e.drag, e.dragEdge, e.dragCard = popNone, 0, 0
 			e.uiDown = false
 		}
@@ -1930,7 +1946,7 @@ func (e *MapEditor) objectPress(p image.Point) {
 	case popupTab:
 		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
-		if e.panels.hosted {
+		if e.panels.hosted || e.panelFloats(panelRight) && e.panels.hostable {
 			e.togglePanel(panelRight)
 			return
 		}

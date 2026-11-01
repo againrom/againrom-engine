@@ -327,7 +327,7 @@ func TestMapEditorPanelsTakeTheirWidthsOffTheMap(t *testing.T) {
 		t.Fatalf("the right edge dragged left gives %d", got)
 	}
 	dragPanelEdge(t, e, popProps, -900)
-	if got := e.panelsShown()[panelRight]; got != min(sidePanels[panelRight].most, 1280-mapLeastWidth-sidePanels[panelLeft].least) {
+	if got := e.panelsShown()[panelRight]; got != 1280-mapLeastWidth-sidePanels[panelLeft].least {
 		t.Fatalf("the right edge dragged far left gives %d", got)
 	}
 	dragPanelEdge(t, e, popProps, e.panelsShown()[panelRight]-620)
@@ -679,7 +679,7 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 		{"wrong", []byte(`{"left":{"minimized":"yes","width":300}}`), nil, defaults},
 		{"list", []byte(`[1,2]`), nil, defaults},
 		{"one side", []byte(`{"right":{"minimized":true,"width":700}}`), nil, [len(sidePanels)]panelState{{true, 260}, {false, 700}, {false, 180}}},
-		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1},"bottom":{"minimized":false,"width":9999}}`), nil, [len(sidePanels)]panelState{{true, 420}, {true, 360}, {true, 480}}},
+		{"clamped", []byte(`{"left":{"minimized":false,"width":9999},"right":{"minimized":false,"width":1},"bottom":{"minimized":false,"width":9999}}`), nil, [len(sidePanels)]panelState{{true, 9999}, {true, 360}, {true, 480}}},
 		{"bottom", []byte(`{"bottom":{"minimized":false,"width":1}}`), nil, [len(sidePanels)]panelState{{true, 260}, {true, 520}, {true, 96}}},
 		// A side an earlier build kept as closed reads as minimized.
 		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {true, 600}, {false, 180}}},

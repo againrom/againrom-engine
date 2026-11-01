@@ -18,8 +18,10 @@ import (
 // panel shows the tree of the map's objects and scenarios, the right one the
 // selected record's window, the bottom one the report. A window in a panel
 // is the same popup a floating window is: inPanel gives it the panel's
-// rectangle as its place, its size and its bounds. A panel does not close: it
-// minimizes to a strip at its window edge that holds one restore button.
+// rectangle as its place, its size and its bounds. A left or right panel
+// undocks into a floating window placed through the placement store; its
+// edge then shows nothing. Closing the window, like minimizing a docked
+// panel, leaves a strip at the window edge that holds one restore button.
 
 // popupPlace is where a popup stands: floating over the map or in a panel.
 type popupPlace uint8
@@ -39,7 +41,9 @@ const (
 )
 
 // sidePanel is one panel as data: its place, its name in the profile file,
-// its default, least and greatest widths (heights for the bottom panel), the
+// its default and least widths and its greatest (heights for the bottom
+// panel; zero is none: a side panel grows until the map's least width is
+// left), the
 // word of its title, its key row's name, help label and keyboard key, the
 // words of its title row's minimize button and its strip's restore button,
 // the word that says the window has no room for it, whether a fresh profile
@@ -61,8 +65,8 @@ type sidePanel struct {
 // editor admits, 640 wide, beside the map's least width and the right
 // panel's strip. The bottom panel spans the map's width under it.
 var sidePanels = [3]sidePanel{
-	{place: placeLeft, name: "left", width: 260, least: 130, most: 420, titleWord: "editor.side.objects", key: "objectspanel", label: "F6", hotkey: ebiten.KeyF6, minimizeWord: "editor.side.toleft", restoreWord: "editor.side.toright", narrowWord: "editor.side.narrow"},
-	{place: placeRight, name: "right", width: 520, least: 360, most: 800, titleWord: "editor.side.properties", key: "propertiespanel", label: "F7", hotkey: ebiten.KeyF7, minimizeWord: "editor.side.toright", restoreWord: "editor.side.toleft", narrowWord: "editor.side.narrow"},
+	{place: placeLeft, name: "left", width: 260, least: 130, titleWord: "editor.side.objects", key: "objectspanel", label: "F6", hotkey: ebiten.KeyF6, minimizeWord: "editor.side.toleft", restoreWord: "editor.side.toright", narrowWord: "editor.side.narrow"},
+	{place: placeRight, name: "right", width: 520, least: 360, titleWord: "editor.side.properties", key: "propertiespanel", label: "F7", hotkey: ebiten.KeyF7, minimizeWord: "editor.side.toright", restoreWord: "editor.side.toleft", narrowWord: "editor.side.narrow"},
 	{place: placeBottom, name: "bottom", width: 180, least: 96, most: 480, titleWord: "editor.side.report", key: "reportpanel", label: "F8", hotkey: ebiten.KeyF8, minimizeWord: "editor.side.down", restoreWord: "editor.side.up", narrowWord: "editor.side.short", startMinimized: true, stripTitled: true},
 }
 
@@ -93,7 +97,14 @@ type panelState struct {
 // a cancelled window does not take a panel's size back.
 type editorPanels struct {
 	state [len(sidePanels)]panelState
-	save  func([]byte) error
+	// floats marks a side panel that stands as a floating window; its
+	// corner and size are its row of the placement store.
+	floats [len(sidePanels)]bool
+	save   func([]byte) error
+	// pull is a press on the title row of a docked side panel that has
+	// not yet moved far enough to undock it: the panel, the pointer's
+	// travel and whether a pull is in progress.
+	pull pullState
 	// reportRows is the list rows the report fits in the bottom panel.
 	reportRows int
 	// notes is the docked report's note window.
@@ -106,14 +117,42 @@ type editorPanels struct {
 	detached string
 }
 
+// pullState is a press held on a docked side panel's title row.
+type pullState struct {
+	on     bool
+	panel  int
+	travel image.Point
+}
+
+// pullDistance is how far the pointer travels from a press on a panel's
+// title row before the panel undocks, so that a click does not.
+const pullDistance = 6
+
 // clampPanel is width held between panel i's least and greatest widths; a
-// width of zero is the panel's default.
+// width of zero is the panel's default. A side panel has no greatest width.
 func clampPanel(i, width int) int {
 	p := sidePanels[i]
 	if width <= 0 {
 		return p.width
 	}
+	if p.most == 0 {
+		return max(p.least, width)
+	}
 	return max(p.least, min(p.most, width))
+}
+
+// panelFloats reports that side panel i stands as a floating window.
+func (e *MapEditor) panelFloats(i int) bool { return e.panels.floats[i] }
+
+// panelOn reports that panel i shows, docked or floating.
+func (e *MapEditor) panelOn(i int) bool { return e.panelOpen(i) || e.panelFloats(i) }
+
+// panelStoreRow is panel i's row of the placement store while it floats.
+func panelStoreRow(i int) editorPopupID {
+	if i == panelLeft {
+		return popTree
+	}
+	return popProps
 }
 
 // panelStrip is minimized panel i's width: the title row's one button with
@@ -143,6 +182,10 @@ func (e *MapEditor) panelsLaid() (w [len(sidePanels)]int, open [len(sidePanels)]
 	}
 	for i := range sidePanels {
 		w[i] = e.panelStrip(i)
+		if e.panels.floats[i] {
+			w[i] = 0
+			continue
+		}
 		if s := e.panels.state[i]; s.Restored {
 			w[i], open[i] = clampPanel(i, s.Width), true
 		}
@@ -202,8 +245,12 @@ func (e *MapEditor) sidePanelRect(i int) image.Rectangle {
 
 // inPanel places popup s in panel i: the one popup builder then lays it out
 // to fill the panel, fitting its tabs, buttons and labels to the panel's
-// width (popupFlowOf). Its title row's button minimizes the panel.
+// width (popupFlowOf). Its title row's button minimizes the panel. A floating panel is
+// placed through the store instead, and its title row button closes it.
 func (e *MapEditor) inPanel(s popupSpec, i int) popupSpec {
+	if e.panelFloats(i) {
+		return e.floatSpec(s, panelStoreRow(i))
+	}
 	dockSpec(&s, e.sidePanelRect(i))
 	s.CloseLabel = e.word(sidePanels[i].minimizeWord)
 	return s
@@ -212,7 +259,7 @@ func (e *MapEditor) inPanel(s popupSpec, i int) popupSpec {
 // stripSpec is minimized panel i: the popup frame with no title, whose title
 // row button restores the panel.
 func (e *MapEditor) stripSpec(i int) (popupSpec, bool) {
-	if e.window.X <= 0 || e.panelOpen(i) {
+	if e.window.X <= 0 || e.panelOpen(i) || e.panelFloats(i) {
 		return popupSpec{}, false
 	}
 	s := e.inPanel(popupSpec{NoteInk: editorPaper}, i)
@@ -240,7 +287,7 @@ func (e *MapEditor) PanelButtonRect(i int) (image.Rectangle, bool) {
 		s, ok = e.propsSpec()
 		if !ok {
 			s, _, ok = e.objectSpec()
-			ok = ok && e.panels.hosted
+			ok = ok && (e.panels.hosted || e.panelFloats(panelRight))
 		}
 	}
 	if !ok {
@@ -272,23 +319,26 @@ func (e *MapEditor) keyPanel(key string) error {
 	return nil
 }
 
-// togglePanel minimizes panel i when it shows restored, else restores it; a
-// panel the window has no room for stays minimized and says so.
+// togglePanel minimizes panel i when it shows restored, closes it to its
+// strip when it floats, else restores it; a panel the window has no room
+// for stays minimized and says so.
 func (e *MapEditor) togglePanel(i int) {
-	if !e.showPanel(i, !e.panelOpen(i)) {
+	if !e.showPanel(i, !e.panelOn(i)) {
 		e.message = e.word(sidePanels[i].narrowWord)
 	}
 }
 
 // showPanel restores panel i when show is set and minimizes it when not,
 // and reports whether the panel now shows as asked: a panel the window has
-// no room for stays minimized.
+// no room for stays minimized. A floating panel counts as shown; hiding it
+// closes it to its strip.
 func (e *MapEditor) showPanel(i int, show bool) bool {
-	if e.panelOpen(i) == show {
+	if e.panelOn(i) == show {
 		return true
 	}
 	s := &e.panels.state[i]
 	if !show {
+		e.panels.floats[i] = false
 		// The report minimized with its panel closes rather than float.
 		if i == panelBottom && e.reportDocked() {
 			e.leave(leaveReport)
@@ -313,11 +363,19 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 // SetPanelProfile gives the editor the panel state its profile file holds,
 // with the error reading it gave, and the writer that keeps a new state. A
 // missing or unreadable state restores both side panels at their default
-// widths and keeps the bottom panel minimized; a window too narrow for the
+// widths and keeps the bottom panel minimized; a side panel the file keeps
+// floating stands as a window at its kept corner and size; a window too narrow for the
 // side panels shows the left one only, or neither.
 func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte) error) {
 	e.panels.save = save
 	e.panels.state = panelStateOf(data, readErr)
+	e.panels.floats = [len(sidePanels)]bool{}
+	for i, r := range panelFloatsOf(data, readErr) {
+		if !r.Empty() {
+			e.panels.floats[i], e.panels.state[i].Restored = true, false
+			e.floatPlace(panelStoreRow(i), r)
+		}
+	}
 	e.props.plain = plainViewOf(data, readErr)
 	e.kept = keptSizesOf(data, readErr)
 	e.relayout()
@@ -421,12 +479,46 @@ func panelStateOf(data []byte, readErr error) [len(sidePanels)]panelState {
 	return out
 }
 
+// floatEntry is the profile entry of a floating side panel: its window's
+// corner and size.
+const floatEntry = "float"
+
+// panelFloatsOf reads from the profile file the window of each side panel
+// that floats: its corner and size, empty for a docked panel. A missing or
+// broken entry, or a size the window cannot take, gives a docked panel, so a
+// file an earlier build wrote reads as it did.
+func panelFloatsOf(data []byte, readErr error) [len(sidePanels)]image.Rectangle {
+	var out [len(sidePanels)]image.Rectangle
+	entries := profileEntries(data, readErr)
+	for i, p := range sidePanels {
+		if p.place == placeBottom {
+			continue
+		}
+		var k struct {
+			Float *struct{ X, Y, Width, Height int }
+		}
+		if json.Unmarshal(entries[p.name], &k) != nil || k.Float == nil {
+			continue
+		}
+		f := k.Float
+		if f.Width <= 0 || f.Height <= 0 || f.Width > keptSizeMost || f.Height > keptSizeMost || f.X < -keptSizeMost || f.X > keptSizeMost || f.Y < -keptSizeMost || f.Y > keptSizeMost {
+			continue
+		}
+		out[i] = image.Rect(f.X, f.Y, f.X+f.Width, f.Y+f.Height)
+	}
+	return out
+}
+
 // panelStateBytes is the panel state as the profile file keeps it.
 func (e *MapEditor) panelStateBytes() []byte {
 	kept := map[string]map[string]any{}
 	for i, p := range sidePanels {
 		s := e.panels.state[i]
 		kept[p.name] = map[string]any{"minimized": !s.Restored, "width": clampPanel(i, s.Width)}
+		if e.panelFloats(i) {
+			at := e.floatRect(panelStoreRow(i))
+			kept[p.name][floatEntry] = map[string]int{"x": at.Min.X, "y": at.Min.Y, "width": at.Dx(), "height": at.Dy()}
+		}
 	}
 	view := viewTechnical
 	if e.props.plain {
@@ -535,18 +627,18 @@ func (e *MapEditor) hostedObject(s popupSpec) popupSpec {
 // propsSpec is the restored right panel while it hosts no window: one hint
 // line.
 func (e *MapEditor) propsSpec() (popupSpec, bool) {
-	if !e.panelOpen(panelRight) {
+	if !e.panelOn(panelRight) {
 		return popupSpec{}, false
 	}
 	hint := e.word("editor.side.none")
 	if _, _, ok := e.objectSpec(); ok {
-		if e.panels.hosted {
+		if e.panels.hosted || e.panelFloats(panelRight) {
 			return popupSpec{}, false
 		}
 		hint = e.word("editor.side.floating")
 	}
 	s := popupSpec{Title: e.word(sidePanels[panelRight].titleWord), NoteInk: editorPaper}
-	for _, line := range editorTextLines(e.bodyFont(), hint, e.sidePanelRect(panelRight).Dx()-2*popupPad-8) {
+	for _, line := range editorTextLines(e.bodyFont(), hint, e.panelWidth(panelRight)-2*popupPad-8) {
 		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: line})
 	}
 	return e.inPanel(s, panelRight), true
@@ -556,8 +648,11 @@ func (e *MapEditor) propsSpec() (popupSpec, bool) {
 func (e *MapEditor) panelOf(id editorPopupID) (int, bool) {
 	switch id {
 	case popTree:
-		return panelLeft, e.window.X > 0
+		return panelLeft, e.window.X > 0 && !e.panelFloats(panelLeft)
 	case popProps:
+		if e.panelFloats(panelRight) {
+			return 0, false
+		}
 		if _, ok := e.stripSpec(panelRight); ok {
 			return panelRight, true
 		}
@@ -724,9 +819,10 @@ func (e *MapEditor) panelEdgeAt(id editorPopupID, p image.Point) popupEdge {
 	return layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont()).edgeAt(p) & inner
 }
 
-// resizePanel moves panel i's inner border by d, between the panel's least
-// and greatest widths and no further than the map's least width, or for the
-// bottom panel the map's least height, allows.
+// resizePanel moves panel i's inner border by d, no narrower than the
+// panel's least width, no wider than a bottom panel's greatest height, and
+// no further than the map's least width, or for the bottom panel the map's
+// least height, allows.
 func (e *MapEditor) resizePanel(i int, d image.Point) {
 	shown := e.panelsShown()
 	w := shown[i]
@@ -745,24 +841,72 @@ func (e *MapEditor) resizePanel(i int, d image.Point) {
 	} else {
 		room = e.window.X - mapLeastWidth - shown[1-i]
 	}
-	e.panels.state[i].Width = max(sidePanels[i].least, min(sidePanels[i].most, room, w))
+	w = min(room, w)
+	if m := sidePanels[i].most; m > 0 {
+		w = min(m, w)
+	}
+	e.panels.state[i].Width = max(sidePanels[i].least, w)
 	e.relayout()
 }
 
-// panelTitlePress takes a press on the title row of a popup in a panel: a
-// panel does not move, and a double click on the right panel's window takes
-// it out to float.
+// panelTitlePress takes a press on the title row of a popup in a panel. A
+// double click on the right panel's window takes it out to float, leaving
+// the panel; a press on a side panel's title row that then travels
+// pullDistance undocks the panel (pullPanel).
 func (e *MapEditor) panelTitlePress(id editorPopupID, p image.Point, double bool) bool {
-	if _, ok := e.panelOf(id); !ok {
+	i, ok := e.panelOf(id)
+	if !ok {
 		return false
 	}
 	if part, _ := layoutPopup(e.panelSpecOf(id), e.font, e.bodyFont()).hit(p); part != popupTitle {
 		return false
 	}
-	if double && id == popObject {
+	switch {
+	case double && id == popObject:
 		e.panels.detached = e.detachKey()
+	case sidePanels[i].place != placeBottom && e.panelOpen(i):
+		e.drag, e.dragFrom, e.dragEdge = id, p, 0
+		e.panels.pull = pullState{on: true, panel: i}
 	}
 	return true
+}
+
+// pullPanel follows the pointer's travel d of a press held on a docked side
+// panel's title row. Past pullDistance the panel undocks and the drag goes on
+// as a drag of its window. It reports whether the pull took d.
+func (e *MapEditor) pullPanel(d image.Point) bool {
+	pl := &e.panels.pull
+	if !pl.on {
+		return false
+	}
+	pl.travel = pl.travel.Add(d)
+	if max(pl.travel.X, -pl.travel.X, pl.travel.Y, -pl.travel.Y) < pullDistance {
+		return true
+	}
+	travel, i := pl.travel, pl.panel
+	*pl = pullState{}
+	e.undockPanel(i)
+	e.dragPopup(travel)
+	return true
+}
+
+// undockPanel turns side panel i into a floating window at the panel's own
+// rectangle: its place at the window edge then shows nothing.
+func (e *MapEditor) undockPanel(i int) {
+	r := e.sidePanelRect(i)
+	e.floatPlace(panelStoreRow(i), r)
+	e.panels.floats[i] = true
+	e.panels.state[i].Restored = false
+	e.relayout()
+}
+
+// panelWidth is the width side panel i's content has: its panel's, or its
+// window's while it floats.
+func (e *MapEditor) panelWidth(i int) int {
+	if e.panelFloats(i) {
+		return e.floatRect(panelStoreRow(i)).Dx()
+	}
+	return e.sidePanelRect(i).Dx()
 }
 
 // drawSidePanels draws the panels: the tree or its strip, the right panel's
@@ -1062,12 +1206,12 @@ func (e *MapEditor) treeReveal(c editorCategory) {
 
 // treeTyping reports that the search field takes the typed text.
 func (e *MapEditor) treeTyping() bool {
-	return e.tree.typing && e.panelOpen(panelLeft) && !e.prompt.open() && !e.objectTyping() && e.pathDialog.pending == nil
+	return e.tree.typing && e.panelOn(panelLeft) && !e.prompt.open() && !e.objectTyping() && e.pathDialog.pending == nil
 }
 
 // treeSpec is the restored left panel: the search field over the tree list.
 func (e *MapEditor) treeSpec() (popupSpec, bool) {
-	if !e.panelOpen(panelLeft) {
+	if !e.panelOn(panelLeft) {
 		return popupSpec{}, false
 	}
 	e.treeFollow()
@@ -1304,4 +1448,22 @@ func (e *MapEditor) treeInputAt(p image.Point, press bool) (*editorTextView, ima
 	}
 	v := e.inputView(editorTextSpan{0, len([]rune(e.tree.search))}, false)
 	return v, box, v != nil
+}
+
+// panelOfRow is the side panel whose floating window stands in store row id.
+func panelOfRow(id editorPopupID) int {
+	if id == popTree {
+		return panelLeft
+	}
+	return panelRight
+}
+
+// dragsFloatingPanel reports that the drag in progress holds a floating side
+// panel's window.
+func (e *MapEditor) dragsFloatingPanel() bool {
+	switch e.drag {
+	case popTree, popProps, popObject:
+		return e.panelFloats(panelOfRow(e.drag))
+	}
+	return false
 }

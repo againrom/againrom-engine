@@ -79,8 +79,8 @@ func init() {
 				_, ok := e.checker()
 				return !ok && !e.checkShown()
 			}},
-		{key: sidePanels[panelLeft].key, icon: &iconObjectsPanel, word: "editor.tool.objectspanel", keyRow: sidePanels[panelLeft].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOpen(panelLeft) }},
-		{key: sidePanels[panelRight].key, icon: &iconPropertiesPanel, word: "editor.tool.propertiespanel", keyRow: sidePanels[panelRight].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOpen(panelRight) }},
+		{key: sidePanels[panelLeft].key, icon: &iconObjectsPanel, word: "editor.tool.objectspanel", keyRow: sidePanels[panelLeft].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOn(panelLeft) }},
+		{key: sidePanels[panelRight].key, icon: &iconPropertiesPanel, word: "editor.tool.propertiespanel", keyRow: sidePanels[panelRight].key, group: toolRight, kind: toolSwitch, on: func(e *MapEditor) bool { return e.panelOn(panelRight) }},
 	}
 }
 

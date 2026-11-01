@@ -7,7 +7,8 @@ import (
 )
 
 // Resizable editor windows. The editor has three movable popup places: the
-// list, the object popup and the prompt. Each is built by layoutPopup from a
+// list, the object popup and the prompt, and a floating side panel's window
+// stands in the same store. Each is built by layoutPopup from a
 // popupSpec, and a size dragged on a border is the spec's Size, so the one
 // builder lays every window out from its current size: fields stretch,
 // lists and scrolled rows fit the height, wrapped text re-wraps to the width.
@@ -19,8 +20,9 @@ import (
 var popupResizeEnabled = true
 
 // resizable reports whether popup id is one of the three resizable places.
-func resizable(id editorPopupID) bool {
-	return popupResizeEnabled && (id == popList || id == popObject || id == popPrompt)
+func (e *MapEditor) resizable(id editorPopupID) bool {
+	floating := id == popTree && e.panelFloats(panelLeft) || id == popProps && e.panelFloats(panelRight)
+	return popupResizeEnabled && (id == popList || id == popObject || id == popPrompt || floating)
 }
 
 // listSpec is the list popup as data, at the size it was dragged to.
@@ -67,7 +69,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		s, links, ok = e.objectSpecBase()
 		e.slackSpec(popObject, &s)
 	}
-	if e.places[popObject].size == (image.Point{}) && s.Size == (image.Point{}) {
+	if e.places[e.storeRow(popObject)].size == (image.Point{}) && s.Size == (image.Point{}) {
 		return e.objectInputRows(s), links, true
 	}
 	e.placeSpec(popObject, &s)
@@ -119,7 +121,7 @@ func (e *MapEditor) resizeEdgeAt(id editorPopupID, p image.Point) popupEdge {
 		}
 		return e.panelEdgeAt(id, p)
 	}
-	if !resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
+	if !e.resizable(id) || id == popObject && e.openDropdownHit(p) || id == popPrompt && e.areaDropdownHit(p) {
 		return 0
 	}
 	s, ok := e.movableSpec(id)
