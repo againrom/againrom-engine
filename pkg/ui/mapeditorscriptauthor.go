@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"image"
 	"sort"
 	"strings"
 )
@@ -176,10 +175,7 @@ func (e *MapEditor) variableTitle(v scriptVariableView) string {
 
 func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) {
 	e.loadObject()
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
-	}
-	s := popupSpec{Title: e.variableTitle(v), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
+	s := popupSpec{Title: e.variableTitle(v), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
 	var links []int
 	for _, group := range []struct {
 		title string

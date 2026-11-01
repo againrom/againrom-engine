@@ -35,7 +35,7 @@ func relationHeadsEditor(t *testing.T, book *words.Book, names []string) *MapEdi
 		t.Fatal(err)
 	}
 	// The chosen player's window floats clear of the palette's matrix.
-	e.objectAt = image.Pt(0, 0)
+	e.places[popObject].at = image.Pt(0, 0)
 	return e
 }
 

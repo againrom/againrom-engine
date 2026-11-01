@@ -15,7 +15,7 @@ func (e *MapEditor) unitWindowWidth() int {
 		// The person window takes the window less 32: in the panel it fills it.
 		return e.sidePanelRect(panelRight).Dx() + 32
 	}
-	if width := e.sizes[popObject].X; width > 0 {
+	if width := e.places[popObject].size.X; width > 0 {
 		return min(e.window.X, width)
 	}
 	return e.window.X

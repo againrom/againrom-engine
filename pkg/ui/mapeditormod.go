@@ -314,7 +314,7 @@ func (e *MapEditor) modSpec() (popupSpec, []int, bool) {
 	e.loadObject()
 	o := &e.obj
 	o.rowActs = map[int][]string{}
-	s := popupSpec{Title: e.word("editor.mod.window"), Width: min(620, e.window.X-16), At: image.Pt(8, e.barHeight()+6), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
+	s := popupSpec{Title: e.word("editor.mod.window"), Width: min(620, e.window.X-16), At: e.homeCorner(homeMod), Bounds: e.popupBounds(), Columns: 2, NoteInk: editorPaper, LabelWidth: 80}
 	var links []int
 	e.objectFieldRows(&s, &links)
 	for _, f := range o.fields {

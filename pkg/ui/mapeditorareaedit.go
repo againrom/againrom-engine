@@ -544,7 +544,7 @@ func (e *MapEditor) areaTriggerSpec() popupSpec {
 	}
 	s.Rows = []popupRow{{Kind: popupChoice, Label: label, Value: value, Focus: true}}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
+	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
 	return s
 }
 

@@ -591,7 +591,7 @@ func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
 		if !ok || e.panels.hosted {
 			t.Fatalf("record %d did not float", n)
 		}
-		e.sizes[popObject], e.sizeKey[popObject] = image.Pt(width, 400), floating.Title
+		e.places[popObject].size, e.places[popObject].key = image.Pt(width, 400), floating.Title
 		floating, _, _ = e.objectSpec()
 		if rowsText(hosted) != rowsText(floating) {
 			t.Fatalf("record %d\nin the panel\n%s\nfloating\n%s", n, rowsText(hosted), rowsText(floating))

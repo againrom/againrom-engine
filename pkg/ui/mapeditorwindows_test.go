@@ -176,5 +176,5 @@ func TestPopupPicturesForTheNotes(t *testing.T) {
 		}
 	}
 	crop("popup.png", l.Rect.Inset(-4).Intersect(pic.Bounds()), 2)
-	crop("grip.png", image.Rect(l.Rect.Max.X-popupCorner-4, l.Rect.Max.Y-popupCorner-4, l.Rect.Max.X+2, l.Rect.Max.Y+2), 8)
+	crop("grip.png", image.Rect(l.Rect.Max.X-popupGripSide-4, l.Rect.Max.Y-popupGripSide-4, l.Rect.Max.X+2, l.Rect.Max.Y+2), 8)
 }

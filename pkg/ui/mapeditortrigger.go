@@ -450,10 +450,7 @@ const (
 func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 	e.loadObject()
 	o := &e.obj
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.mapArea().Max.X-8-scriptPopupWidth, e.barHeight()+8), true
-	}
-	s := popupSpec{At: e.objectAt, Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
+	s := popupSpec{At: e.placedCorner(popObject, homeTrigger), Width: e.popupWide(popObject, scriptPopupWidth), Bounds: e.popupBounds(), NoteInk: editorWarning, LabelWidth: 150}
 	o.rowField, o.rowActs, o.rowOpen = map[int]int{}, map[int][]string{}, map[int]int{}
 	var links []int
 	width := e.popupWide(popObject, scriptPopupWidth) - 2*popupPad - 8

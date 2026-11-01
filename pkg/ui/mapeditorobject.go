@@ -162,10 +162,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				s.Width -= aside + popupPad
 			}
 		}
-		s.At = image.Pt(e.mapArea().Min.X+16, e.barHeight()+8)
-		if e.slack[popObject] || e.sizes[popObject] != (image.Point{}) {
-			s.At = e.objectAt
-		}
+		s.At = e.personCorner(homePerson)
 		s.Tabs = []string{e.word("editor.person.identity"), e.word("editor.person.equipment"), e.word("editor.person.inventory"), e.word("editor.person.stats")}
 		s.ActiveTab = o.section
 		if e.unitWindowWidth() >= 1100 {
@@ -935,10 +932,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		return popupSpec{}, nil, false
 	}
 	e.loadObject()
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
-	}
-	s := popupSpec{Title: e.groupLabel(g), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
+	s := popupSpec{Title: e.groupLabel(g), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds()}
 	// The member pictures and Delete group stand here, as the Groups list
 	// showed them on the group's row.
 	links := []int{0, 0, 0}

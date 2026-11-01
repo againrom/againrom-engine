@@ -132,7 +132,7 @@ func TestMapEditorEveryAddRouteOpensTheAddWindow(t *testing.T) {
 			t.Errorf("A on list %d opened %q, want %s", f, addKindNow(e), kind)
 		}
 		e.leave(leavePrompt)
-		e.objectAt = image.Pt(0, e.window.Y) // the selected player's popup stands clear of the list
+		e.places[popObject].at = image.Pt(0, e.window.Y) // the selected player's popup stands clear of the list
 		s, _ := e.listSpec()
 		buttons := layoutPopup(s, e.font, e.bodyFont()).Buttons
 		modesClick(e, center(buttons[len(buttons)-1]))

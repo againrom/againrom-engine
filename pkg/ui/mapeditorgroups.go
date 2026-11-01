@@ -216,7 +216,7 @@ func (e *MapEditor) toGroupSpec() popupSpec {
 		return editorClip(e.bodyFont(), rows[row].Text, width)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
+	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
 	return s
 }
 
@@ -466,11 +466,8 @@ func (e *MapEditor) groupsList(width int) ([]popupRow, []groupsAct) {
 // group and take it out. The tree lists the groups; a chosen group's window
 // in the right panel shows its members and deletes it.
 func (e *MapEditor) groupsSpec() popupSpec {
-	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
-	}
 	body := e.bodyFont()
-	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.listAt, Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
+	s := popupSpec{Title: e.word("editor.bar.groups"), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 460), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: 96}
 	text := s.Width - 2*popupPad - 8
 	if len(e.groups()) == 0 {
 		s.Notes = append(s.Notes, editorWrap(body, e.word("editor.group.empty"), text)...)
@@ -576,10 +573,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	if !e.selectionShown() || e.selection.hidden || e.groupSel.set || e.pick != pickNone || e.prompt.kind == promptAdd || e.messagePage != 0 {
 		return popupSpec{}, false
 	}
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-8-420, e.barHeight()+8), true
-	}
-	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.objectAt, Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
+	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
 	counts := map[string]int{}
 	groups := map[int]bool{}
 	at := e.recordIndex()

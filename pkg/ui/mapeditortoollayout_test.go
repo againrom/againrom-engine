@@ -128,7 +128,7 @@ func TestMapEditorObjectsAndTreesEntriesOpenTheObjectBrush(t *testing.T) {
 func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.showRecords(editorScriptsFilter)
-	e.objectAt = image.Pt(0, e.window.Y) // a selected record's popup stands clear of the list
+	e.places[popObject].at = image.Pt(0, e.window.Y) // a selected record's popup stands clear of the list
 	s, ok := e.listSpec()
 	if !ok || !slices.Equal(s.Buttons, []string{"[ ] Drop zones (D)", "Add"}) {
 		t.Fatalf("the Scenario list's buttons are %q", s.Buttons)

@@ -126,7 +126,7 @@ func TestMapEditor1093WrappedContinuationClickAfterResize(t *testing.T) {
 	}
 	for _, size := range []image.Point{image.Pt(800, 600), image.Pt(640, 480)} {
 		e.Layout(size.X, size.Y)
-		e.objPlaced = false
+		e.places[popObject].placed = false
 		s, links, _ := e.objectSpec()
 		first := -1
 		for n := range s.Rows {

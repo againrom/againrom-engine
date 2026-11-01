@@ -53,8 +53,7 @@ type editorChrome struct {
 	commandWords           [8]string
 	listShown              bool
 	objectHidden           bool
-	listAt, objectAt       image.Point
-	listPlaced, objPlaced  bool
+	places                 [popProps + 1]popupStanding // where each movable popup stands, its size and its policy: the placement store
 	model                  *Picker
 	modelKey               string
 	modelSync              int
@@ -62,16 +61,9 @@ type editorChrome struct {
 	menuModel              *Picker
 	drag                   editorPopupID
 	dragFrom               image.Point
-	promptShift            image.Point               // a dragged prompt's offset from its own place
-	slack                  [popProps + 1]bool        // a popup that was dragged may hang past the window's edges
-	sizes                  [popProps + 1]image.Point // the size a popup was dragged to; zero is its natural size
-	minWide                [popProps + 1]int         // the width a popup had when it was first sized
-	sizeKey                [popProps + 1]string      // the window a popup was sized for
-	promptAbs              image.Point               // a sized prompt's corner
-	listFit                int                       // the list rows a sized list popup fits
-	cursorShape            ebiten.CursorShapeType    // the pointer shape last set on the window
-	dragEdge               popupEdge                 // the border a resize drag holds; zero is a move
-	dragCard               int                       // the card row, plus one, a drag holds by its grip; zero is none
+	cursorShape            ebiten.CursorShapeType // the pointer shape last set on the window
+	dragEdge               popupEdge              // the border a resize drag holds; zero is a move
+	dragCard               int                    // the card row, plus one, a drag holds by its grip; zero is none
 	uiDown                 bool
 	scroll                 editorScroll
 	objectTop              int
@@ -773,8 +765,8 @@ func (e *MapEditor) syncList(kind string, window int) *Picker {
 
 // listWindow is how many rows the list popup shows at this window size.
 func (e *MapEditor) listWindow() int {
-	if e.sizes[popList] != (image.Point{}) && e.listFit > 0 {
-		return e.listFit
+	if p := e.places[popList]; p.size != (image.Point{}) && p.fit > 0 {
+		return p.fit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
 	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight() - e.heightModeGridHeight()
@@ -817,10 +809,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	if !palette {
 		m = e.syncList(kind, e.listWindow())
 	}
-	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(e.mapArea().Min.X+8, e.barHeight()+8), true
-	}
-	s := popupSpec{Title: e.listTitle(kind), At: e.listAt, Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
+	s := popupSpec{Title: e.listTitle(kind), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
 	if m != nil {
 		s.ListText = func(row, width int) string {
 			rows := m.Rows()
@@ -1027,9 +1016,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		e.objectBackButton(&s)
 		return s, links, true
 	}
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.mapArea().Max.X-8-420, e.barHeight()+8), true
-	}
+	e.placedCorner(popObject, homeObjectMap)
 	r := e.doc.Records[e.selected]
 	e.loadObject()
 	// The person window's bag is the full inventory: it keeps its larger
@@ -1041,7 +1028,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		r.Cell = *e.obj.move
 	}
 	wide := e.popupWide(popObject, 420)
-	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.objectAt, Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
+	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.placedCorner(popObject, homeObjectMap), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)
@@ -1062,8 +1049,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		}
 		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
 		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
-		s.Size = image.Pt(s.Width, min(620, height, e.popupRoom().Dy()-16))
-		s.MinWidth = s.Width
+		naturalSize(&s, image.Pt(s.Width, min(620, height, e.popupRoom().Dy()-16)))
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
 		s.Top = e.objectTop
@@ -1129,8 +1115,6 @@ func (e *MapEditor) objectRowsShown(buttons bool) int {
 // promptSpec is the prompt and the message as one popup.
 func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 	if !e.prompt.open() && e.message == "" {
-		e.promptShift = image.Point{}
-		e.slack[popPrompt] = false
 		return popupSpec{}, false
 	}
 	if e.prompt.kind == promptAdd {
@@ -1182,14 +1166,8 @@ func (e *MapEditor) promptSpecBase() (popupSpec, bool) {
 		s.Notes = append(s.Notes, e.word("editor.prompt.multiline"))
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
+	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
 	return s, true
-}
-
-// promptPlace is a prompt popup's corner: its own place at, moved by the
-// drag of its title.
-func (e *MapEditor) promptPlace(at image.Point) image.Point {
-	return at.Add(e.promptShift)
 }
 
 // movableSpec is the popup id as drawn: the list, the object or the prompt
@@ -1233,33 +1211,6 @@ func (e *MapEditor) titlePress(id editorPopupID, p image.Point) bool {
 	}
 	e.drag, e.dragFrom, e.dragEdge = id, p, 0
 	return true
-}
-
-// dragPopup moves the dragged popup by d. The popup builder's slack clamp
-// keeps its title row and part of its width inside the window, and the kept
-// place is the clamped one, so a drag back moves it at once.
-func (e *MapEditor) dragPopup(d image.Point) {
-	s, ok := e.movableSpec(e.drag)
-	if !ok {
-		return
-	}
-	from := s.At
-	shown := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
-	e.slack[e.drag], s.Slack = true, true
-	s.At = shown.Add(d)
-	to := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
-	switch e.drag {
-	case popList:
-		e.listAt = to
-	case popObject:
-		e.objectAt = to
-	case popPrompt:
-		if e.sizes[popPrompt] != (image.Point{}) {
-			e.promptAbs = to
-		} else {
-			e.promptShift = e.promptShift.Add(to.Sub(from))
-		}
-	}
 }
 
 func (e *MapEditor) promptTitle() string {

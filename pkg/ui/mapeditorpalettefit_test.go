@@ -46,7 +46,7 @@ func paletteEditor(t *testing.T, w, h int) *MapEditor {
 	host.self, e.doc.Edits = host, host
 	setRightPanel(e, sidePanels[panelRight].width) // both panels open, as at first start
 	e.Layout(w, h)
-	e.listPlaced = false // the palette opens at its default place
+	e.places[popList].placed = false // the palette opens at its default place
 	return e
 }
 
@@ -119,15 +119,15 @@ func TestMapEditorPaletteKeepsItsDraggedSize(t *testing.T) {
 	e.drag, e.dragEdge = popList, edgeBottom
 	e.resizePopup(image.Pt(0, -l.Rect.Dy()/2))
 	e.drag, e.dragEdge = popNone, 0
-	want, dragged := e.sizes[popList], layoutPopup(mustListSpec(t, e), e.font, e.bodyFont()).Rect.Size()
+	want, dragged := e.places[popList].size, layoutPopup(mustListSpec(t, e), e.font, e.bodyFont()).Rect.Size()
 	if want == (image.Point{}) || dragged.Y >= l.Rect.Dy() {
 		t.Fatalf("the drag set size %v, window %v from %v", want, dragged, l.Rect.Size())
 	}
 	check := func(when string) {
 		t.Helper()
 		l := layoutPopup(mustListSpec(t, e), e.font, e.bodyFont())
-		if e.sizes[popList] != want || l.Rect.Size() != dragged || l.GridBar.Empty() {
-			t.Fatalf("%s: window %v, size %v, want %v at size %v with a scroll bar (%v)", when, l.Rect.Size(), e.sizes[popList], dragged, want, l.GridBar)
+		if e.places[popList].size != want || l.Rect.Size() != dragged || l.GridBar.Empty() {
+			t.Fatalf("%s: window %v, size %v, want %v at size %v with a scroll bar (%v)", when, l.Rect.Size(), e.places[popList].size, dragged, want, l.GridBar)
 		}
 	}
 	check("after the drag")

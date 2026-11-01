@@ -172,14 +172,11 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	if len(o.fields) == 0 {
 		return popupSpec{}, nil, false
 	}
-	if !e.objPlaced {
-		e.objectAt, e.objPlaced = image.Pt(e.window.X-668, e.barHeight()+8), true
-	}
 	title := fmt.Sprintf(e.word("editor.message.page"), e.messagePage)
 	if e.messagePage == NewMessagePage {
 		title = e.word("editor.message.newdialog")
 	}
-	s := popupSpec{Title: title, At: e.objectAt, Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
+	s := popupSpec{Title: title, At: e.placedCorner(popObject, homeMessage), Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
 	o.rowField, o.rowOpen = map[int]int{}, map[int]int{}
 	if f := e.dialogChoiceField(); f >= 0 {

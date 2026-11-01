@@ -85,8 +85,8 @@ func groupsEditor(t *testing.T) (*MapEditor, *groupsProbe) {
 	if err := e.Open("map0"); err != nil {
 		t.Fatal(err)
 	}
-	e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
-	e.objectAt, e.objPlaced = image.Pt(e.window.X, e.window.Y), true
+	e.places[popList].at, e.places[popList].placed = image.Pt(8, e.barHeight()+8), true
+	e.places[popObject].at, e.places[popObject].placed = image.Pt(e.window.X, e.window.Y), true
 	return e, p
 }
 
@@ -112,7 +112,7 @@ func refsText(refs []RecordRef) string { return fmt.Sprint(refs) }
 // second press on the pressed cell ends the placing.
 func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
-	e.listAt = image.Pt(8, e.barHeight()+8)
+	e.places[popList].at = image.Pt(8, e.barHeight()+8)
 	chromeClick(e, barPoint(t, e, "units"))
 	if n := e.PlaceGridLen(); n != 2 {
 		t.Fatalf("the Units grid holds %d cells, want the host's 2 classes", n)
@@ -180,7 +180,7 @@ func TestMapEditorBoxSelectsTheOpenTabsRecords(t *testing.T) {
 		t.Fatalf("a box with no tab selected %s", got)
 	}
 	e.showRecords(1)
-	e.listAt = image.Pt(e.window.X, e.window.Y)
+	e.places[popList].at = image.Pt(e.window.X, e.window.Y)
 	e.Fit()
 	dragOnMap(e, image.Pt(5, 5), image.Pt(35, 35))
 	if got := refsText(e.selection.refs); got != "[{Unit 0} {Unit 1}]" {
@@ -241,7 +241,7 @@ func TestMapEditorMovedSelectionShowsSilhouettesUntilRelease(t *testing.T) {
 // as one edit.
 func TestMapEditorSelectionPopupDeletesTheSelection(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
-	e.objectAt = image.Pt(400, 100)
+	e.places[popObject].at = image.Pt(400, 100)
 	e.Fit()
 	dragOnMap(e, image.Pt(5, 5), image.Pt(35, 35))
 	r, ok := e.SelectionButtonRect(2)
@@ -445,7 +445,7 @@ func TestMapEditorDeleteAsksBeforeEmptyingAUsedGroup(t *testing.T) {
 	for _, route := range []string{"key", "button", "single"} {
 		t.Run(route, func(t *testing.T) {
 			e, p := groupsEditor(t)
-			e.objectAt = image.Pt(400, 100)
+			e.places[popObject].at = image.Pt(400, 100)
 			want := "DeleteRecords [{Unit 0} {Unit 1}]"
 			if route == "single" {
 				e.setSelection([]RecordRef{{"Unit", 1}})

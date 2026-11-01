@@ -304,8 +304,8 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 	}
 	// The popups stand in the window's bottom-right corner, clear of the
 	// cells the gestures aim at.
-	e.listAt, e.listPlaced = image.Pt(e.window.X, e.window.Y), true
-	e.objectAt, e.objPlaced = image.Pt(e.window.X, e.window.Y), true
+	e.places[popList].at, e.places[popList].placed = image.Pt(e.window.X, e.window.Y), true
+	e.places[popObject].at, e.places[popObject].placed = image.Pt(e.window.X, e.window.Y), true
 	return e, calls
 }
 

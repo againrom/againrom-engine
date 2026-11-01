@@ -18,7 +18,7 @@ func TestPlayersWindowAndWizardNameARelationByTheSameWord(t *testing.T) {
 			players.SetWords(book)
 			_ = players.Key("players")
 			// The chosen player's window floats clear of the matrix.
-			players.objectAt = image.Pt(0, 0)
+			players.places[popObject].at = image.Pt(0, 0)
 			wizard, _ := wizardChoiceEditor(t)
 			wizard.SetWords(book)
 			choices := wizard.wizardTargets(wpRelation)

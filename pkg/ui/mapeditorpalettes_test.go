@@ -202,9 +202,9 @@ func TestMapEditorTreeShowsTheBranchPalette(t *testing.T) {
 		t.Fatalf("a player chosen shows %q filter %d, selected %d", e.listKind(), e.filter, e.selected)
 	}
 	// A second member of the same branch keeps the palette as it stands.
-	e.listAt = image.Pt(300, 300)
+	e.places[popList].at = image.Pt(300, 300)
 	clickTreeRow(t, e, e.TreeMemberRow("players", 0))
-	if !e.paletteShown() || e.filter != editorPlayersFilter || e.selected != 8 || e.listAt != image.Pt(300, 300) {
+	if !e.paletteShown() || e.filter != editorPlayersFilter || e.selected != 8 || e.places[popList].at != image.Pt(300, 300) {
 		t.Fatalf("a second player shows %q filter %d, selected %d", e.listKind(), e.filter, e.selected)
 	}
 	clickTreeRow(t, e, e.TreeMemberRow("groups", 0))
@@ -380,7 +380,7 @@ func TestMapEditorPaletteCellTooltipWaitsForTheDelay(t *testing.T) {
 		t.Fatalf("the tooltip delay is %d ms", editorTipDelay)
 	}
 	e, _ := newModesEditor(t, "full")
-	e.listAt = image.Pt(8, e.barHeight()+8)
+	e.places[popList].at = image.Pt(8, e.barHeight()+8)
 	chromeClick(e, barPoint(t, e, "units"))
 	cell, ok := e.PlaceGridCellRect(1)
 	g, _, _ := e.placeGridSpec()

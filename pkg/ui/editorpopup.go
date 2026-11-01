@@ -1105,10 +1105,10 @@ const (
 )
 
 // popupEdgeBand is how many pixels inside the border count as the border;
-// popupCorner is the side of the bottom-right square that resizes both ways.
+// popupGripSide (in the placement store) is the side of the bottom-right
+// square that resizes both ways.
 const (
 	popupEdgeBand = 8
-	popupCorner   = 16
 	// popupTopBand is the top border's band; the title row below it drags.
 	popupTopBand  = 4
 	popupKeepWide = 48
@@ -1151,7 +1151,7 @@ func (l popupLayout) edgeAt(p image.Point) popupEdge {
 	case p.Y >= l.Rect.Max.Y-popupEdgeBand:
 		e |= edgeBottom
 	}
-	if p.X >= l.Rect.Max.X-popupCorner && p.Y >= l.Rect.Max.Y-popupCorner {
+	if p.X >= l.Rect.Max.X-popupGripSide && p.Y >= l.Rect.Max.Y-popupGripSide {
 		return edgeRight | edgeBottom
 	}
 	// A row, list or button that reaches into the band keeps its press.
@@ -1563,7 +1563,7 @@ func drawGridTick(dst *image.RGBA, c image.Rectangle, ink color.RGBA) {
 }
 
 // drawPopupGrip marks the bottom-right corner where a drag resizes the popup:
-// four diagonal strokes, two pixels thick, inside the popupCorner square.
+// four diagonal strokes, two pixels thick, inside the grip square.
 func drawPopupGrip(dst *image.RGBA, r image.Rectangle, c color.RGBA) {
 	for k := 1; k <= 4; k++ {
 		for i := 0; i < 4*k-2; i++ {

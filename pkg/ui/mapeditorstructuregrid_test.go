@@ -8,7 +8,7 @@ import (
 func TestMapEditorStructureGridDrawsLargeCells(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	e.Layout(640, 480)
-	e.listAt = image.Pt(8, e.barHeight()+8)
+	e.places[popList].at = image.Pt(8, e.barHeight()+8)
 
 	chromeClick(e, barPoint(t, e, "units"))
 	units, ok := e.PlaceGridCellRect(0)

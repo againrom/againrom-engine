@@ -18,7 +18,7 @@ func TestMapEditorWindowCursorFollowsResizableBorders(t *testing.T) {
 	t.Cleanup(func() { setEditorCursorShape = was })
 
 	e, _ := newModesEditor(t, "full")
-	e.listAt = image.Pt(300, 200)
+	e.places[popList].at = image.Pt(300, 200)
 	e.showRecords(1)
 	r, ok := e.PopupRect()
 	if !ok {

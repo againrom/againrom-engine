@@ -166,8 +166,7 @@ func (e *MapEditor) sidePanelRect(i int) image.Rectangle {
 // to fill the panel, fitting its tabs, buttons and labels to the panel's
 // width (popupFlowOf). Its title row's button minimizes the panel.
 func (e *MapEditor) inPanel(s popupSpec, i int) popupSpec {
-	r := e.sidePanelRect(i)
-	s.At, s.Size, s.Bounds, s.MinWidth, s.Slack, s.Fit = r.Min, r.Size(), r, 1, false, true
+	dockSpec(&s, e.sidePanelRect(i))
 	s.CloseLabel = e.word(sidePanels[i].minimizeWord)
 	return s
 }

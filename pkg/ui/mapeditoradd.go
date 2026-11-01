@@ -747,7 +747,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 	s.Disabled = []bool{r.at <= r.first(), false, false}
 	l := layoutPopup(s, e.font, body)
 	// The top stays put while the steps grow the window downward.
-	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, e.window.Y/8)))
+	s.At = e.promptCorner(centreSteps, l.Rect.Size())
 	return s, acts
 }
 

@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -24,65 +23,24 @@ func resizable(id editorPopupID) bool {
 	return popupResizeEnabled && (id == popList || id == popObject || id == popPrompt)
 }
 
-// popupWide is the width a builder wraps and clips its text to: its natural
-// width, or while the popup is sized the width the size leaves beside the
-// scroll bar.
-func (e *MapEditor) popupWide(id editorPopupID, natural int) int {
-	if id == popObject && e.objectInPanel() {
-		return e.panelWide()
-	}
-	if sz := e.sizes[id]; sz.X > 0 {
-		return max(160, sz.X-widgetSpriteSize-2)
-	}
-	return natural
-}
-
-// windowKey names the window a place shows, so that a size dragged on one
-// window is not kept by the window that replaces it. The object popup is
-// named by its title, which the caller has built.
-func (e *MapEditor) windowKey(id editorPopupID, title string) string {
-	switch id {
-	case popList:
-		return e.listKind()
-	case popPrompt:
-		return fmt.Sprint(e.prompt.kind, e.message != "")
-	}
-	return title
-}
-
-// dropForeignSize returns popup id to its natural size when the window it
-// shows is not the one that was sized.
-func (e *MapEditor) dropForeignSize(id editorPopupID, key string) bool {
-	if e.sizes[id] == (image.Point{}) || e.sizeKey[id] == key {
-		return false
-	}
-	e.sizes[id] = image.Point{}
-	if id == popList {
-		e.listFit = 0
-	}
-	return true
-}
-
 // listSpec is the list popup as data, at the size it was dragged to.
 func (e *MapEditor) listSpec() (popupSpec, bool) {
 	e.dropForeignSize(popList, e.listKind())
 	s, ok := e.listSpecBase()
-	s.Slack = e.slack[popList]
 	if !ok {
-		e.sizes[popList], e.listFit = image.Point{}, 0
+		e.slackSpec(popList, &s)
+		e.popupClosed(popList)
 		return s, false
 	}
-	size := e.sizes[popList]
-	if size == (image.Point{}) {
+	e.placeSpec(popList, &s)
+	if e.places[popList].size == (image.Point{}) {
 		return s, true
 	}
-	s.Size, s.MinWidth = size, e.minWide[popList]
 	if s.List != nil {
 		if n := layoutPopup(s, e.font, e.bodyFont()).ListRows; n != s.ListRows {
-			e.listFit = n
+			e.fitListRows(n)
 			s, _ = e.listSpecBase()
-			s.Slack = e.slack[popList]
-			s.Size, s.MinWidth = size, e.minWide[popList]
+			e.placeSpec(popList, &s)
 		}
 	}
 	return s, true
@@ -92,10 +50,10 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 // dragged to, and the reference each link row opens.
 func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	s, links, ok := e.objectSpecBase()
-	s.Slack = e.slack[popObject]
+	e.slackSpec(popObject, &s)
 	e.panels.hosted = ok && e.objectInPanel()
 	if !ok {
-		e.sizes[popObject] = image.Point{}
+		e.popupClosed(popObject)
 		return s, links, false
 	}
 	if e.panels.hosted {
@@ -103,15 +61,12 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 	}
 	if e.dropForeignSize(popObject, s.Title) {
 		s, links, ok = e.objectSpecBase()
-		s.Slack = e.slack[popObject]
+		e.slackSpec(popObject, &s)
 	}
-	size := e.sizes[popObject]
-	if size == (image.Point{}) && s.Size == (image.Point{}) {
+	if e.places[popObject].size == (image.Point{}) && s.Size == (image.Point{}) {
 		return e.objectInputRows(s), links, true
 	}
-	if size != (image.Point{}) {
-		s.Size, s.MinWidth = size, e.minWide[popObject]
-	}
+	e.placeSpec(popObject, &s)
 	if s.MaxRows > 0 {
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
@@ -126,7 +81,7 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 	e.dropForeignSize(popPrompt, e.windowKey(popPrompt, ""))
 	s, ok := e.promptSpecBase()
 	if !ok {
-		e.sizes[popPrompt] = image.Point{}
+		e.popupClosed(popPrompt)
 		return s, false
 	}
 	return e.addInputRows(e.sizedPrompt(s)), true
@@ -136,10 +91,7 @@ func (e *MapEditor) promptSpec() (popupSpec, bool) {
 // to. The window, its hit tests and its drop-downs all take the spec through
 // here, so a press lands on the layout that is drawn.
 func (e *MapEditor) sizedPrompt(s popupSpec) popupSpec {
-	s.Slack = e.slack[popPrompt]
-	if size := e.sizes[popPrompt]; size != (image.Point{}) {
-		s.Size, s.At, s.MinWidth = size, e.promptAbs, e.minWide[popPrompt]
-	}
+	e.placeSpec(popPrompt, &s)
 	return s
 }
 
@@ -226,75 +178,12 @@ func (e *MapEditor) windowCursor() {
 	}
 }
 
-// resizePopup moves the held border by d. The size cannot pass the least the
-// content allows (layoutPopup holds it) or the window's bounds, and the border
-// opposite the held one stays where it is.
+// resizePopup moves the held border by d: a panel's inner border, or a floating
+// popup's border through the store.
 func (e *MapEditor) resizePopup(d image.Point) {
-	id := e.drag
-	if i, ok := e.panelOf(id); ok {
+	if i, ok := e.panelOf(e.drag); ok {
 		e.resizePanel(i, d)
 		return
 	}
-	s, ok := e.movableSpec(id)
-	if !ok {
-		return
-	}
-	r := layoutPopup(s, e.font, e.bodyFont()).Rect
-	bounds := e.popupBounds()
-	w, h := r.Dx(), r.Dy()
-	switch {
-	case e.dragEdge&edgeRight != 0:
-		w = min(w+d.X, bounds.Max.X-r.Min.X)
-	case e.dragEdge&edgeLeft != 0:
-		w = min(w-d.X, r.Max.X-bounds.Min.X)
-	}
-	switch {
-	case e.dragEdge&edgeBottom != 0:
-		h = min(h+d.Y, bounds.Max.Y-r.Min.Y)
-	case e.dragEdge&edgeTop != 0:
-		h = min(h-d.Y, r.Max.Y-bounds.Min.Y)
-	}
-	if e.sizes[id] == (image.Point{}) {
-		e.minWide[id] = r.Dx()
-		e.sizeKey[id] = e.windowKey(id, s.Title)
-		if id == popPrompt {
-			e.promptAbs = r.Min
-		}
-	}
-	e.sizes[id] = image.Pt(max(1, w), max(1, h))
-	s, _ = e.movableSpec(id)
-	now := layoutPopup(s, e.font, e.bodyFont()).Rect
-	at := r.Min
-	if e.dragEdge&edgeLeft != 0 {
-		at.X = r.Max.X - now.Dx()
-	}
-	if e.dragEdge&edgeTop != 0 {
-		at.Y = r.Max.Y - now.Dy()
-	}
-	e.placePopup(id, at)
-}
-
-// placePopup keeps popup id's corner at at, as far as the bounds allow.
-func (e *MapEditor) placePopup(id editorPopupID, at image.Point) {
-	switch id {
-	case popList:
-		e.listAt = at
-	case popObject:
-		e.objectAt = at
-	case popPrompt:
-		e.promptAbs = at
-	}
-	s, ok := e.movableSpec(id)
-	if !ok {
-		return
-	}
-	to := layoutPopup(s, e.font, e.bodyFont()).Rect.Min
-	switch id {
-	case popList:
-		e.listAt = to
-	case popObject:
-		e.objectAt = to
-	case popPrompt:
-		e.promptAbs = to
-	}
+	e.resizeFloating(d)
 }

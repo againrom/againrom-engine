@@ -22,9 +22,18 @@ var chromeRectStates = []struct {
 	{"help", func(e *MapEditor) { _ = e.Key("help") }},
 	{"saveas", func(e *MapEditor) { _ = e.Key("saveas") }},
 	// The windows at the places the editor gives them.
-	{"unit-own", func(e *MapEditor) { e.objPlaced, e.listPlaced = false, false; e.Select(0, false) }},
-	{"trigger-own", func(e *MapEditor) { e.objPlaced, e.listPlaced = false, false; e.Select(7, false) }},
-	{"players-own", func(e *MapEditor) { e.objPlaced, e.listPlaced = false, false; _ = e.Key("players") }},
+	{"unit-own", func(e *MapEditor) {
+		e.places[popObject].placed, e.places[popList].placed = false, false
+		e.Select(0, false)
+	}},
+	{"trigger-own", func(e *MapEditor) {
+		e.places[popObject].placed, e.places[popList].placed = false, false
+		e.Select(7, false)
+	}},
+	{"players-own", func(e *MapEditor) {
+		e.places[popObject].placed, e.places[popList].placed = false, false
+		_ = e.Key("players")
+	}},
 }
 
 // chromeRectSizes are the window sizes the chrome rectangles are read at.

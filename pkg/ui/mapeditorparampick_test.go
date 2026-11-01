@@ -73,7 +73,7 @@ func paramPickEditor(t *testing.T) (*MapEditor, *wizardWrites) {
 	}
 	// The popups stand in the window's bottom-right corner, clear of the
 	// cells the clicks aim at.
-	e.objectAt, e.objPlaced = image.Pt(e.window.X, e.window.Y), true
+	e.places[popObject].at, e.places[popObject].placed = image.Pt(e.window.X, e.window.Y), true
 	e.Fit()
 	return e, host
 }

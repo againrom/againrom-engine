@@ -51,7 +51,7 @@ func selectedTextEditor(t *testing.T, font *text.Font, size image.Point) (*MapEd
 		t.Fatal("selected record not admitted")
 	}
 	// The object popup stands where the prompt and the message cover it.
-	e.objectAt, e.objPlaced = image.Pt(size.X/2-200, size.Y/3), true
+	e.places[popObject].at, e.places[popObject].placed = image.Pt(size.X/2-200, size.Y/3), true
 	t.Cleanup(func() {
 		if e.chromeImage != nil {
 			e.chromeImage.Dispose()

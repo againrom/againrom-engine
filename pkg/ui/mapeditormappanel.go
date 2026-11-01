@@ -190,10 +190,7 @@ const panelWidth, panelLabelWidth = 440, 120
 // panelSpec is the Map panel as a popup description, and the link of each
 // row; a wrapped value continues on rows that open the same place.
 func (e *MapEditor) panelSpec() (popupSpec, []panelLink) {
-	if !e.listPlaced {
-		e.listAt, e.listPlaced = image.Pt(8, e.barHeight()+8), true
-	}
-	s := popupSpec{Title: e.word("editor.panel.title"), At: e.listAt, Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
+	s := popupSpec{Title: e.word("editor.panel.title"), At: e.placedCorner(popList, homeListWindow), Width: e.popupWide(popList, panelWidth), Bounds: e.popupBounds(), NoteInk: editorPaper, LabelWidth: panelLabelWidth}
 	p, ok := e.mapPanel()
 	if !ok {
 		return s, nil
@@ -555,6 +552,6 @@ func (e *MapEditor) questionRowsSpec(title string, notes []string, rows []popupR
 		s.Notes = append(s.Notes, editorWrap(e.bodyFont(), n, text)...)
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	s.At = e.promptPlace(image.Pt((e.window.X-l.Rect.Dx())/2, max(e.barHeight()+8, (e.window.Y-l.Rect.Dy())/3)))
+	s.At = e.promptCorner(centreQuestion, l.Rect.Size())
 	return s
 }
