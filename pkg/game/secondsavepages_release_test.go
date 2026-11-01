@@ -39,21 +39,6 @@ func secondFrame(t *testing.T, app *ui.App) *image.RGBA {
 	return pix
 }
 
-// secondButtonPoint is a frame point the mask gives to the button bound to
-// action.
-func secondButtonPoint(t *testing.T, f *FrontEnd, action menu.Action) image.Point {
-	t.Helper()
-	for y := 0; y < menu.FrameH; y++ {
-		for x := 0; x < menu.FrameW; x++ {
-			if b := f.Assets.ButtonAt(image.Pt(x, y)); b != 0 && f.Assets.Binding(b).Action == action {
-				return image.Pt(x, y)
-			}
-		}
-	}
-	t.Fatalf("no mask point for action %d", action)
-	return image.Point{}
-}
-
 func secondPageApp(t *testing.T, f *FrontEnd, dir string) *ui.App {
 	t.Helper()
 	app := f.App("second pages")

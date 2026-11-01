@@ -20,7 +20,6 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
-	"againrom/pkg/random"
 	"againrom/pkg/render/camera"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -43,8 +42,7 @@ func releaseFront(t *testing.T) *FrontEnd {
 	cleanupFrontAudio(t, f)
 	// A fixed presentation seed keeps the town wildlife positions, and so every
 	// town frame a release test composes, the same from run to run.
-	f.randomService().SetStreamSeed(random.TownWildlife, 1)
-	f.randomService().SetStreamSeed(random.AmbientBirds, 1)
+	witnessSeeds(f)
 	return f
 }
 

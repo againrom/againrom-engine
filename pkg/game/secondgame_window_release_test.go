@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"againrom/pkg/base"
-	"againrom/pkg/random"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/ui"
 )
@@ -22,8 +21,7 @@ func secondGameFront(t *testing.T) *FrontEnd {
 	}
 	cleanupFrontAudio(t, f)
 	f.MusicPlayer = &secondTestMusic{}
-	f.randomService().SetStreamSeed(random.TownWildlife, 1)
-	f.randomService().SetStreamSeed(random.AmbientBirds, 1)
+	witnessSeeds(f)
 	f.SetDeterministicFrames(true)
 	return f
 }

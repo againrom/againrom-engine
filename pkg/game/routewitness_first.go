@@ -3,8 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -449,76 +447,6 @@ var routeTownStages = func() []routeStage {
 	}
 	return out
 }()
-
-// townSaves loads each .sav of AGAINROM_ROUTE_SAVES, in name order, cold
-// through the menu's Load window and walks the town rows from there, with
-// the file name leading each row and its frames in saves/<file>/. The walk
-// buys, hires and saves nothing.
-func (w *routeWitness) townSaves() {
-	dir := os.Getenv("AGAINROM_ROUTE_SAVES")
-	if dir == "" {
-		w.rows = append(w.rows, strings.Join([]string{fmt.Sprint(len(w.rows) + 1), "town-saves", w.screen(), "", "", "wait", "none: AGAINROM_ROUTE_SAVES names no town save set", "", "", ""}, "\t"))
-		w.writeRoute()
-		return
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		w.t.Fatal(err)
-	}
-	for _, e := range entries {
-		name := e.Name()
-		if e.IsDir() || !strings.EqualFold(filepath.Ext(name), ".sav") {
-			continue
-		}
-		payload, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil {
-			w.t.Fatal(err)
-		}
-		originals := filepath.Join(w.t.TempDir(), "originals")
-		if err := os.MkdirAll(originals, 0o700); err != nil {
-			w.t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(originals, name), payload, 0o600); err != nil {
-			w.t.Fatal(err)
-		}
-		s, _ := newRouteWitness(w.t, false, originals)
-		if s.dir != "" {
-			s.dir = filepath.Join(s.dir, "saves", name)
-			if err := os.MkdirAll(s.dir, 0o700); err != nil {
-				w.t.Fatal(err)
-			}
-		}
-		s.save, s.stage = name, "load"
-		s.wait("menu")
-		r, ok := routeFind(s.menuRegions(), "")
-		for _, m := range s.menuRegions() {
-			b := 0
-			fmt.Sscanf(m.key, "%d", &b)
-			if s.f.Assets.Binding(b).Action == menu.ActionLoad {
-				r, ok = m, true
-			}
-		}
-		if !ok {
-			w.t.Fatal("town saves: the menu has no Load button")
-		}
-		s.click(r.key, r.rect, r.at, 2, nil)
-		s.expect("load", "Load")
-		before := s.screen()
-		if err := s.app.HeadlessActivate("@first"); err != nil {
-			w.t.Errorf("town saves: %s: %v", name, err)
-		}
-		s.until(400, func() bool { return s.app.Screen() == ui.ScreenTown })
-		s.record("load "+name, image.Rectangle{}, "activate", s.result(before, ""))
-		if s.app.Screen() != ui.ScreenTown {
-			w.t.Errorf("town saves: %s loads to %s: %q", name, s.screen(), s.app.HeadlessMessage())
-			s.writeRoute()
-			continue
-		}
-		s.dialoguePages("town entry", nil)
-		s.walk(routeTownStages, name)
-		w.t.Logf("%s: %d steps", name, len(s.rows))
-	}
-}
 
 // chooseMission clicks the first mission the world map offers, and again
 // while the map stays on it, as a choice and its confirmation.

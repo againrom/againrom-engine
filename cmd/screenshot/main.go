@@ -3,6 +3,11 @@
 //
 //	screenshot -list
 //	screenshot [-assets DIR] -out DIR [-screens NAME,NAME,...]
+//	screenshot [-assets DIR] -out DIR -route [-window 1024x768]
+//
+// -route walks the route witness (game.WriteRouteWitness, the walk
+// TestReleaseRouteWitness runs) on the CPU and writes its route.tsv and one
+// PNG per step under DIR/<edition>/.
 //
 // IT REPLACES SIX RE-IMPLEMENTATIONS OF ONE DECISION. Before this tool
 // existed, plaquescreens, townsquarecheck, schoolcheck, shopdump, paneldump
@@ -106,6 +111,8 @@ func run(args []string) int {
 	out := fs.String("out", "", "directory to write PNGs into")
 	screensFlag := fs.String("screens", "", "comma-separated screen names to capture (default: every known screen)")
 	list := fs.Bool("list", false, "print every screen this tool knows how to reach and exit")
+	route := fs.Bool("route", false, "walk the route witness instead and write route.tsv and its frames under -out/<edition>/")
+	window := fs.String("window", "1024x768", "the route walk's window size, WIDTHxHEIGHT")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
@@ -127,6 +134,20 @@ func run(args []string) int {
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		fmt.Fprintln(os.Stderr, "screenshot:", err)
 		return 2
+	}
+
+	if *route {
+		var size image.Point
+		if n, err := fmt.Sscanf(*window, "%dx%d", &size.X, &size.Y); n != 2 || err != nil || size.X <= 0 || size.Y <= 0 {
+			fmt.Fprintf(os.Stderr, "screenshot: -window %q is not WIDTHxHEIGHT\n", *window)
+			return 2
+		}
+		logf := func(format string, args ...any) { fmt.Printf(format+"\n", args...) }
+		if err := game.WriteRouteWitness(root, *out, size, logf, writePNG); err != nil {
+			fmt.Fprintln(os.Stderr, "screenshot:", err)
+			return 1
+		}
+		return 0
 	}
 
 	requested, err := selectScreens(*screensFlag)
