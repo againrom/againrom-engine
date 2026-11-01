@@ -369,7 +369,7 @@ func TestReleaseMapEditorGroupNoteFitsTheStatusStrip(t *testing.T) {
 	allArms := mapload.GroundBorder | mapload.GroundMountain | mapload.GroundWater | mapload.GroundFlag | mapload.GroundObject
 	widest := ""
 	for _, kind := range []string{"Unit", "Structure", "Sack"} {
-		name := s.recordName(ui.RecordRef{Kind: kind, Index: wide})
+		name := s.recordName(ui.RecordRef{Kind: ui.RecordKind(kind), Index: wide})
 		for _, r := range []string{
 			fmt.Sprintf(x.word("editor.selection.outside"), name, far, far),
 			fmt.Sprintf(x.word("editor.selection.closed"), name, far, far, strings.Join(s.armWords(allArms), ", ")),

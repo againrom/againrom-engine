@@ -23,15 +23,17 @@ type mapPanelEdits struct {
 	mode     int64
 }
 
-func (p *mapPanelEdits) Dirty() bool                                                { return false }
-func (p *mapPanelEdits) CanUndo() bool                                              { return false }
-func (p *mapPanelEdits) CanRedo() bool                                              { return false }
-func (p *mapPanelEdits) Undo() (*InspectionDocument, error)                         { return nil, nil }
-func (p *mapPanelEdits) Redo() (*InspectionDocument, error)                         { return nil, nil }
-func (p *mapPanelEdits) SaveAs(path string) (string, error)                         { return path, nil }
-func (p *mapPanelEdits) Move(string, int, image.Point) (*InspectionDocument, error) { return nil, nil }
-func (p *mapPanelEdits) Report() []InspectionFinding                                { return p.rows }
-func (p *mapPanelEdits) MapFacts() InspectionMapFacts                               { return p.facts }
+func (p *mapPanelEdits) Dirty() bool                        { return false }
+func (p *mapPanelEdits) CanUndo() bool                      { return false }
+func (p *mapPanelEdits) CanRedo() bool                      { return false }
+func (p *mapPanelEdits) Undo() (*InspectionDocument, error) { return nil, nil }
+func (p *mapPanelEdits) Redo() (*InspectionDocument, error) { return nil, nil }
+func (p *mapPanelEdits) SaveAs(path string) (string, error) { return path, nil }
+func (p *mapPanelEdits) Move(RecordKind, int, image.Point) (*InspectionDocument, error) {
+	return nil, nil
+}
+func (p *mapPanelEdits) Report() []InspectionFinding  { return p.rows }
+func (p *mapPanelEdits) MapFacts() InspectionMapFacts { return p.facts }
 func (p *mapPanelEdits) TestPlay() (string, error) {
 	p.plays++
 	return "playing", nil
@@ -44,7 +46,7 @@ func (p *mapPanelEdits) SaveIntoMod() (string, error) {
 func (p *mapPanelEdits) Goals() []InspectionGoal {
 	return []InspectionGoal{{Arm: "Win", Text: "add: the death of a unit wins", Pick: "Unit", Index: -1}}
 }
-func (p *mapPanelEdits) SetGoalTarget(int, string, int) (*InspectionDocument, error) {
+func (p *mapPanelEdits) SetGoalTarget(int, RecordKind, int) (*InspectionDocument, error) {
 	return nil, nil
 }
 func (p *mapPanelEdits) SetDropCell(image.Point) (*InspectionDocument, error) { return nil, nil }

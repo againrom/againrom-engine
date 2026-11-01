@@ -20,7 +20,7 @@ type InspectionPlacementPreview interface {
 // offset (MoveArea's when box is not empty), answering the records it
 // would refuse.
 type InspectionCellCheck interface {
-	CheckObjectCell(string, int, image.Point) error
+	CheckObjectCell(RecordKind, int, image.Point) error
 	CheckMove(refs []RecordRef, box image.Rectangle, offset image.Point) []RecordRef
 }
 
@@ -59,7 +59,7 @@ func (r InspectionRecord) footprint() image.Rectangle {
 // newRecords are the spatial records of d, the preview of the map after a
 // placement, past the last index of their kind the open document holds.
 func (e *MapEditor) newRecords(d *InspectionDocument) []InspectionRecord {
-	next := map[string]int{}
+	next := map[RecordKind]int{}
 	for _, r := range e.doc.Records {
 		next[r.Kind] = max(next[r.Kind], r.Index+1)
 	}
@@ -141,21 +141,21 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 			}
 			for _, s := range v.planeSprites() {
 				kind := InspectionUnit
-				if r.Kind == "Structure" {
+				if r.Kind == KindStructure {
 					kind = InspectionStructure
 				}
-				if r.Kind != "Sack" && s.Inspection.Kind == kind && int(s.Inspection.ID) == index {
+				if r.Kind != KindSack && s.Inspection.Kind == kind && int(s.Inspection.ID) == index {
 					f.Sprites = append(f.Sprites, s)
 				}
 			}
 			for _, p := range v.structurePlacements() {
-				if r.Kind == "Structure" && p.Class != nil && p.Class.Flat && int(p.StructureID) == index {
+				if r.Kind == KindStructure && p.Class != nil && p.Class.Flat && int(p.StructureID) == index {
 					if rect, ok := spriteScreenRect(p.Rect(), v.cam); ok {
 						f.Sprites = append(f.Sprites, staticScreenRect{screenRect: rect, Frame: p.Frame, Brightness: 1})
 					}
 				}
 			}
-			if r.Kind == "Sack" {
+			if r.Kind == KindSack {
 				places := v.sackLayer()
 				if len(places) > 0 {
 					p := places[len(places)-1]
@@ -179,7 +179,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 func (e *MapEditor) pastePlacement(f *placementFrame, d *InspectionDocument, clip InspectionClip) {
 	v := d.Viewer
 	for _, r := range e.newRecords(d) {
-		if selectable(r.Kind) {
+		if r.Kind.Placed() {
 			f.Sprites = append(f.Sprites, e.recordSprites(v, r, image.Point{})...)
 			f.Cells = append(f.Cells, placementCells{Rect: r.footprint()})
 		}
@@ -317,11 +317,11 @@ func (e *MapEditor) recordSprites(v *Viewer, r InspectionRecord, offset image.Po
 		out = append(out, s)
 	}
 	for _, s := range v.planeSprites() {
-		if (r.Kind == "Unit" && s.Inspection.Kind == InspectionUnit || r.Kind == "Structure" && s.Inspection.Kind == InspectionStructure) && int(s.Inspection.ID) == r.Index {
+		if (r.Kind == KindUnit && s.Inspection.Kind == InspectionUnit || r.Kind == KindStructure && s.Inspection.Kind == InspectionStructure) && int(s.Inspection.ID) == r.Index {
 			add(s)
 		}
 	}
-	if r.Kind == "Sack" {
+	if r.Kind == KindSack {
 		for _, s := range v.sackLayer() {
 			if s.Cell == r.Cell {
 				if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
@@ -332,7 +332,7 @@ func (e *MapEditor) recordSprites(v *Viewer, r InspectionRecord, offset image.Po
 		}
 	}
 	for _, s := range v.structurePlacements() {
-		if r.Kind == "Structure" && int(s.StructureID) == r.Index && s.Class != nil && s.Class.Flat {
+		if r.Kind == KindStructure && int(s.StructureID) == r.Index && s.Class != nil && s.Class.Flat {
 			if rect, ok := spriteScreenRect(s.Rect(), v.cam); ok {
 				add(staticScreenRect{screenRect: rect, Frame: s.Frame})
 			}

@@ -33,7 +33,9 @@ func (p *reportEdits) SaveAs(path string) (string, error) {
 	return path, nil
 }
 
-func (p *reportEdits) Move(string, int, image.Point) (*InspectionDocument, error) { return nil, nil }
+func (p *reportEdits) Move(RecordKind, int, image.Point) (*InspectionDocument, error) {
+	return nil, nil
+}
 
 func reportEditor(t *testing.T, edits InspectionEdits) *MapEditor {
 	t.Helper()
@@ -79,7 +81,7 @@ func TestReportKeyListsTheFindingsAndSelectingOneSelectsItsRecord(t *testing.T) 
 			return "", -1
 		}
 		r := e.doc.Records[e.Selected()]
-		return r.Kind, r.Index
+		return string(r.Kind), r.Index
 	}
 	if k, i := record(); k != "Condition" || i != 2 {
 		t.Fatalf("first finding selected %s %d", k, i)

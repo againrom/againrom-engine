@@ -36,7 +36,7 @@ type mapRule struct {
 // mapHit is where a rule found its record: Kind and Index address an
 // InspectionRecord, an empty Kind the whole map.
 type mapHit struct {
-	Kind    string
+	Kind    ui.RecordKind
 	Index   int
 	Cell    image.Point
 	HasCell bool
@@ -152,7 +152,7 @@ func (c *mapCheck) messageOverlap() []mapHit {
 			}
 		}
 		if count > 1 {
-			out = append(out, mapHit{Kind: "Trigger", Index: i, Text: c.x.word("editor.message.overlap")})
+			out = append(out, mapHit{Kind: ui.KindTrigger, Index: i, Text: c.x.word("editor.message.overlap")})
 		}
 	}
 	return out
@@ -282,11 +282,11 @@ func (c *mapCheck) inside(cell image.Point) bool {
 func unitCell(u alm.Unit) image.Point { return image.Pt(int(u.X>>8), int(u.Y>>8)) }
 
 // lootKind is the inspection kind of type-8 record r.
-func lootKind(r alm.LootRecord) string {
+func lootKind(r alm.LootRecord) ui.RecordKind {
 	if r.Ground() {
-		return "Sack"
+		return ui.KindSack
 	}
-	return "Stock"
+	return ui.KindStock
 }
 
 // terrainCosts reads the installed terrain cost table; ok is false when the
@@ -342,7 +342,7 @@ func (c *mapCheck) recordOutside() []mapHit {
 	var out []mapHit
 	for i, u := range c.m.Units {
 		if cell := unitCell(u); !c.inside(cell) {
-			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindUnit, Index: i, Cell: cell, HasCell: true,
 				Text: fmt.Sprintf("the unit stands at cell %d,%d, outside the %dx%d map", cell.X, cell.Y, c.width(), c.height())})
 		}
 	}
@@ -351,10 +351,10 @@ func (c *mapCheck) recordOutside() []mapHit {
 		r := structureFootprint(st)
 		switch {
 		case !c.inside(anchor):
-			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: anchor, HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: anchor, HasCell: true,
 				Text: fmt.Sprintf("the structure stands at cell %d,%d, outside the %dx%d map", anchor.X, anchor.Y, c.width(), c.height())})
 		case !r.In(image.Rect(0, 0, c.width(), c.height())):
-			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: anchor, HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: anchor, HasCell: true,
 				Text: fmt.Sprintf("the structure's footprint %d,%d %dx%d leaves the %dx%d map", r.Min.X, r.Min.Y, r.Dx(), r.Dy(), c.width(), c.height())})
 		}
 	}
@@ -363,7 +363,7 @@ func (c *mapCheck) recordOutside() []mapHit {
 			continue
 		}
 		if cell := image.Pt(int(r.CellX()), int(r.CellY())); !c.inside(cell) {
-			out = append(out, mapHit{Kind: "Sack", Index: i, Cell: cell, HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindSack, Index: i, Cell: cell, HasCell: true,
 				Text: fmt.Sprintf("the sack lies at cell %d,%d, outside the %dx%d map", cell.X, cell.Y, c.width(), c.height())})
 		}
 	}
@@ -381,7 +381,7 @@ func (c *mapCheck) structureBorder() []mapHit {
 			continue
 		}
 		anchor := image.Pt(int(c.m.Objects[i].X>>8), int(c.m.Objects[i].Y>>8))
-		out = append(out, mapHit{Kind: "Structure", Index: i, Cell: anchor, HasCell: true,
+		out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: anchor, HasCell: true,
 			Text: fmt.Sprintf("the structure's footprint %d,%d %dx%d meets the border ring; the playable area is %s", r.Min.X, r.Min.Y, r.Dx(), r.Dy(), ui.PlayableText(play))})
 	}
 	return out
@@ -418,16 +418,16 @@ func (c *mapCheck) scriptReference() []mapHit {
 			if u.Kind == mapload.ScriptRefUnit && u.Value >= scriptHeroBand && u.Value <= scriptHeroTop {
 				continue // the party, which no placement holds
 			}
-			kind, nodes := "Action", c.script.Actions
+			kind, nodes := ui.ScriptNodeKind(u.Condition), c.script.Actions
 			if u.Condition {
-				kind, nodes = "Condition", c.script.Conditions
+				nodes = c.script.Conditions
 			}
 			i := scriptNodeIndex(nodes, u.NodeID)
 			if i < 0 {
 				continue
 			}
 			out = append(out, mapHit{Kind: kind, Index: i,
-				Text: fmt.Sprintf("%s %d (opcode %#x) names %s %d, which the map does not hold", strings.ToLower(kind), u.NodeID, u.Opcode, u.Kind, u.Value)})
+				Text: fmt.Sprintf("%s %d (opcode %#x) names %s %d, which the map does not hold", strings.ToLower(kind.String()), u.NodeID, u.Opcode, u.Kind, u.Value)})
 		}
 	}
 	groups := map[uint32]bool{}
@@ -435,18 +435,18 @@ func (c *mapCheck) scriptReference() []mapHit {
 		groups[u.GroupID] = true
 	}
 	for _, family := range []struct {
-		kind  string
+		kind  ui.RecordKind
 		nodes []alm.ScriptNode
-	}{{"Action", c.script.Actions}, {"Condition", c.script.Conditions}} {
+	}{{ui.KindAction, c.script.Actions}, {ui.KindCondition, c.script.Conditions}} {
 		for i, n := range family.nodes {
 			for p, tag := range n.Type {
 				if tag == 3 && rosterSlotError(c.m, n.Value[p]) != nil {
 					out = append(out, mapHit{Kind: family.kind, Index: i,
-						Text: fmt.Sprintf("%s %d (opcode %#x) parameter %d names player %d, which the map does not hold", strings.ToLower(family.kind), n.ID, n.Opcode, p, n.Value[p])})
+						Text: fmt.Sprintf("%s %d (opcode %#x) parameter %d names player %d, which the map does not hold", strings.ToLower(family.kind.String()), n.ID, n.Opcode, p, n.Value[p])})
 				}
 				if tag == scriptGroupParam && n.Value[p] != 0 && !groups[n.Value[p]] {
 					out = append(out, mapHit{Kind: family.kind, Index: i,
-						Text: fmt.Sprintf("%s %d (opcode %#x) names group %d, which no unit holds", strings.ToLower(family.kind), n.ID, n.Opcode, n.Value[p])})
+						Text: fmt.Sprintf("%s %d (opcode %#x) names group %d, which no unit holds", strings.ToLower(family.kind.String()), n.ID, n.Opcode, n.Value[p])})
 				}
 			}
 		}
@@ -471,12 +471,12 @@ func (c *mapCheck) ownerSlot() []mapHit {
 	var out []mapHit
 	for i, u := range c.m.Units {
 		if err := rosterSlotError(c.m, u.Owner); err != nil {
-			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: unitCell(u), HasCell: true, Text: "the unit's " + err.Error()})
+			out = append(out, mapHit{Kind: ui.KindUnit, Index: i, Cell: unitCell(u), HasCell: true, Text: "the unit's " + err.Error()})
 		}
 	}
 	for i, o := range c.m.Objects {
 		if err := rosterSlotError(c.m, o.Field0E&0xffff); err != nil {
-			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: "the structure's " + err.Error()})
+			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: "the structure's " + err.Error()})
 		}
 	}
 	return out
@@ -508,7 +508,7 @@ func (c *mapCheck) structureKind() []mapHit {
 	var out []mapHit
 	for i, o := range c.m.Objects {
 		if err := c.x.checkStructureKind(int64(byte(o.Kind))); err != nil {
-			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: err.Error()})
+			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true, Text: err.Error()})
 		}
 	}
 	return out
@@ -545,10 +545,10 @@ func (c *mapCheck) unitTerrain() []mapHit {
 		}
 		if ents[i].Domain.BlockedBy(c.plane[cell.Y*c.width()+cell.X]) {
 			text := fmt.Sprintf("the unit stands on cell %d,%d, which its movement class cannot enter", cell.X, cell.Y)
-			if admissionOf("Unit", admitCheck).verdict(c.m, cell) == cellInRing {
+			if admissionOf(ui.KindUnit, admitCheck).verdict(c.m, cell) == cellInRing {
 				text += "; the cell is in the border ring, and the game removes a unit placed there when the mission loads"
 			}
-			out = append(out, mapHit{Kind: "Unit", Index: i, Cell: cell, HasCell: true, Text: text})
+			out = append(out, mapHit{Kind: ui.KindUnit, Index: i, Cell: cell, HasCell: true, Text: text})
 		}
 	}
 	return out
@@ -571,7 +571,7 @@ func (c *mapCheck) structureOverlap() []mapHit {
 		refused := mapload.StructureCensus(&cut, c.x.table).Refused
 		if refused > prev {
 			o := c.m.Objects[i]
-			out = append(out, mapHit{Kind: "Structure", Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindStructure, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), HasCell: true,
 				Text: fmt.Sprintf("the structure's footprint takes %d cells an earlier structure took", refused-prev)})
 		}
 		prev = refused
@@ -591,7 +591,7 @@ func (c *mapCheck) sackDuplicate() []mapHit {
 			continue
 		}
 		if first, ok := seen[cell]; ok {
-			out = append(out, mapHit{Kind: "Sack", Index: i, Cell: cell, HasCell: true,
+			out = append(out, mapHit{Kind: ui.KindSack, Index: i, Cell: cell, HasCell: true,
 				Text: fmt.Sprintf("the sack shares cell %d,%d with sack %d; the world merges them into one", cell.X, cell.Y, first)})
 			continue
 		}
@@ -626,7 +626,7 @@ func (c *mapCheck) dropCell() []mapHit {
 		default:
 			continue
 		}
-		h := mapHit{Kind: "Action", Index: -1, Cell: cell, HasCell: true, Text: text}
+		h := mapHit{Kind: ui.KindAction, Index: -1, Cell: cell, HasCell: true, Text: text}
 		if len(nodes) == len(cells) {
 			h.Index = nodes[k]
 		} else {
@@ -709,7 +709,7 @@ func (c *mapCheck) stockLink() []mapHit {
 		default:
 			continue
 		}
-		out = append(out, mapHit{Kind: "Unit", Index: i, Cell: unitCell(u), HasCell: true, Text: text})
+		out = append(out, mapHit{Kind: ui.KindUnit, Index: i, Cell: unitCell(u), HasCell: true, Text: text})
 	}
 	owners := make(map[uint32]int, len(c.m.Units))
 	for _, u := range c.m.Units {
@@ -717,7 +717,7 @@ func (c *mapCheck) stockLink() []mapHit {
 	}
 	for i, stock := range c.loot.Records {
 		if stock.Owner != 0 && owners[stock.Owner] != 1 {
-			out = append(out, mapHit{Kind: "Stock", Index: i,
+			out = append(out, mapHit{Kind: ui.KindStock, Index: i,
 				Text: fmt.Sprintf("stock owner unit id %d resolves to %d placed units; its inventory has no unique actor", stock.Owner, owners[stock.Owner])})
 		}
 	}

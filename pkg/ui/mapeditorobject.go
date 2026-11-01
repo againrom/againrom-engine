@@ -30,11 +30,11 @@ type InspectionFieldValue struct {
 // one record as one history entry, through the same checks as SetField and
 // SetTextField. A refused field refuses the whole set and changes nothing.
 type InspectionFieldSet interface {
-	SetFields(kind string, index int, values []InspectionFieldValue) (*InspectionDocument, error)
+	SetFields(kind RecordKind, index int, values []InspectionFieldValue) (*InspectionDocument, error)
 }
 
 type InspectionObjectSet interface {
-	SetObject(string, int, []InspectionFieldValue, *image.Point) (*InspectionDocument, error)
+	SetObject(RecordKind, int, []InspectionFieldValue, *image.Point) (*InspectionDocument, error)
 }
 
 // objectEdit holds the popup's draft, fields, focus and open picker.
@@ -125,17 +125,17 @@ func (e *MapEditor) objectHasFields() bool {
 func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	e.loadObject()
 	o := &e.obj
-	r := InspectionRecord{Kind: "Mod"}
+	r := InspectionRecord{Kind: KindMod}
 	if !e.modWindow {
 		r = e.doc.Records[e.selected]
 	}
-	if r.Spatial && e.editable() && dragRank[r.Kind] > 0 && len(s.Rows) > 0 {
+	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
 		o.cell = len(s.Rows) - 1
 	}
 	if len(o.fields) == 0 {
-		if r.Kind == "Scenery" || r.Kind == "Section" || !fieldKind(r.Kind) {
+		if !r.Kind.Fielded() {
 			s.Notes = append(s.Notes, e.word("editor.object.readonly"))
 		}
 		return
@@ -850,7 +850,7 @@ func (e *MapEditor) followReference(n int) {
 		return
 	}
 	for i, r := range e.doc.Records {
-		if i != e.selected && r.Spatial && r.Cell == targets[0].Cell && dragRank[r.Kind] > 0 {
+		if i != e.selected && r.Spatial && r.Cell == targets[0].Cell && r.Kind.Placed() {
 			e.openObjectRecord(i, false)
 			return
 		}
@@ -877,7 +877,7 @@ func (e *MapEditor) groups() []editorGroup {
 	at := map[[2]int]int{}
 	var out []editorGroup
 	for i, r := range e.doc.Records {
-		if r.Kind != "Unit" || r.Group == 0 {
+		if r.Kind != KindUnit || r.Group == 0 {
 			continue
 		}
 		k := [2]int{r.Player, r.Group}

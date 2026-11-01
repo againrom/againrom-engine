@@ -73,13 +73,13 @@ func (p *modesBase) next(format string, a ...any) (*InspectionDocument, error) {
 func (p *modesBase) Dirty() bool   { return p.dirty }
 func (p *modesBase) CanUndo() bool { return p.dirty }
 func (p *modesBase) CanRedo() bool { return !p.dirty }
-func (p *modesBase) Move(k string, i int, c image.Point) (*InspectionDocument, error) {
+func (p *modesBase) Move(k RecordKind, i int, c image.Point) (*InspectionDocument, error) {
 	return p.next("Move %s %d %v", k, i, c)
 }
-func (p *modesBase) Clone(k string, i int, c image.Point) (*InspectionDocument, error) {
+func (p *modesBase) Clone(k RecordKind, i int, c image.Point) (*InspectionDocument, error) {
 	return p.next("Clone %s %d %v", k, i, c)
 }
-func (p *modesBase) Delete(k string, i int) (*InspectionDocument, error) {
+func (p *modesBase) Delete(k RecordKind, i int) (*InspectionDocument, error) {
 	if k == "Player" {
 		if i == 0 {
 			return nil, fmt.Errorf("The first player cannot be deleted.")
@@ -88,7 +88,7 @@ func (p *modesBase) Delete(k string, i int) (*InspectionDocument, error) {
 	}
 	return p.next("Delete %s %d", k, i)
 }
-func (p *modesBase) Fields(k string, i int) []InspectionField {
+func (p *modesBase) Fields(k RecordKind, i int) []InspectionField {
 	if k == "Unit" || k == "Sack" || k == "Structure" {
 		return []InspectionField{{Key: "a", Label: "First", Value: 11}, {Key: "b", Label: "Second", Value: 22}}
 	}
@@ -105,7 +105,7 @@ func (p *modesBase) Fields(k string, i int) []InspectionField {
 	}
 	return nil
 }
-func (p *modesBase) SetField(k string, i int, key string, v int64) (*InspectionDocument, error) {
+func (p *modesBase) SetField(k RecordKind, i int, key string, v int64) (*InspectionDocument, error) {
 	var j int
 	if _, err := fmt.Sscanf(key, "relation:%d", &j); err == nil && k == "Player" {
 		if p.relations == nil {
@@ -149,7 +149,7 @@ type modesFull struct{ modesBase }
 func (p *modesFull) AddStock(unit int) (*InspectionDocument, error) {
 	return p.next("AddStock %d", unit)
 }
-func (p *modesFull) AddItemRecipe(kind string, index int, item int64) (*InspectionDocument, error) {
+func (p *modesFull) AddItemRecipe(kind RecordKind, index int, item int64) (*InspectionDocument, error) {
 	return p.next("AddItemRecipe %s %d %d", kind, index, item)
 }
 
@@ -159,7 +159,7 @@ func (p *modesFull) Goals() []InspectionGoal {
 		{Arm: "Lose", Text: "lose structure", Pick: "Structure", Kind: "Action", Index: 1},
 	}
 }
-func (p *modesFull) SetGoalTarget(g int, k string, i int) (*InspectionDocument, error) {
+func (p *modesFull) SetGoalTarget(g int, k RecordKind, i int) (*InspectionDocument, error) {
 	return p.next("SetGoalTarget %d %s %d", g, k, i)
 }
 func (p *modesFull) SetDropCell(c image.Point) (*InspectionDocument, error) {
@@ -194,7 +194,7 @@ func (p *modesFull) NewRecordStep(r InspectionNewRecord, key string) InspectionN
 	return InspectionNewStep{Choices: []InspectionChoice{{Value: 1, Label: "1: One"}, {Value: 2, Label: "2: Two"}}, Value: 1}
 }
 func (p *modesFull) CheckNewRecord(InspectionNewRecord, string) error { return nil }
-func (p *modesFull) NewRecordPreview(string, string, int64) *image.RGBA {
+func (p *modesFull) NewRecordPreview(RecordKind, string, int64) *image.RGBA {
 	return nil
 }
 func (p *modesFull) AddRecord(r InspectionNewRecord) (*InspectionDocument, error) {
@@ -203,7 +203,7 @@ func (p *modesFull) AddRecord(r InspectionNewRecord) (*InspectionDocument, error
 	}
 	return p.next("AddRecord %s %v %v %v", r.Kind, r.Cell, r.HasCell, r.Values)
 }
-func (p *modesFull) SetTextField(k string, i int, key, value string) (*InspectionDocument, error) {
+func (p *modesFull) SetTextField(k RecordKind, i int, key, value string) (*InspectionDocument, error) {
 	if k == "Player" && key == "name" {
 		p.players[i] = value
 	}

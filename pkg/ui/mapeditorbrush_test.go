@@ -29,8 +29,8 @@ func (p *brushProbe) BrushTerrains() []BrushTerrain {
 func (p *brushProbe) BrushObjects() []BrushObject {
 	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
 }
-func (p *brushProbe) Move(string, int, image.Point) (*InspectionDocument, error) { return nil, nil }
-func (p *brushProbe) BrushMaxRadius() int                                        { return 16 }
+func (p *brushProbe) Move(RecordKind, int, image.Point) (*InspectionDocument, error) { return nil, nil }
+func (p *brushProbe) BrushMaxRadius() int                                            { return 16 }
 func (p *brushProbe) BrushCells(s BrushStroke) []image.Point {
 	return probeBrushCells(s, p.doc.Width, p.doc.Height)
 }

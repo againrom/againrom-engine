@@ -18,7 +18,7 @@ func TestInspectionStructureRecordsCarryTheirOwnerSlot(t *testing.T) {
 	owners := map[string][]int{}
 	for _, r := range e.Document().Records {
 		if r.Kind == "Structure" || r.Kind == "Unit" {
-			owners[r.Kind] = append(owners[r.Kind], r.Player)
+			owners[string(r.Kind)] = append(owners[string(r.Kind)], r.Player)
 		}
 	}
 	if got := owners["Structure"]; len(got) != 2 || got[0] != 3 || got[1] != 0 {

@@ -353,11 +353,11 @@ func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uin
 	next := s.model.Clone()
 	mark := next.Mark()
 	kind, index, key := owner.Kind, owner.Index, owner.Key
-	if kind == "Message" {
+	if kind == ui.KindMessage {
 		if _, err := addScriptRecord(next, mapedit.KindAction); err != nil {
 			return nil, err
 		}
-		kind, index, key = "Action", next.Count(mapedit.KindAction)-1, "value0"
+		kind, index, key = ui.KindAction, next.Count(mapedit.KindAction)-1, "value0"
 	}
 	k, err := editKind(kind)
 	if err != nil {
@@ -373,7 +373,7 @@ func (s *mapInspectionEdits) pointMessage(owner ui.InspectionMessageOwner, n uin
 	}
 	if owner.Trigger != nil {
 		plan := *owner.Trigger
-		if kind != "Trigger" || plan.Index != index || owner.Action < 0 || owner.Action >= len(plan.Actions) {
+		if kind != ui.KindTrigger || plan.Index != index || owner.Action < 0 || owner.Action >= len(plan.Actions) {
 			return nil, errors.New(s.inspector.word("editor.message.unavailable"))
 		}
 		plan.Actions = slices.Clone(plan.Actions)

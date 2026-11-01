@@ -13,7 +13,7 @@ import (
 
 type personSettingsProbe struct{ *settingsPreviewProbe }
 
-func (p *personSettingsProbe) Fields(kind string, index int) []InspectionField {
+func (p *personSettingsProbe) Fields(kind RecordKind, index int) []InspectionField {
 	fields := p.settingsPreviewProbe.Fields(kind, index)
 	for i := range fields {
 		fields[i].Section = "identity"

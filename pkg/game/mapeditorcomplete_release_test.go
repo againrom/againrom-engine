@@ -84,7 +84,7 @@ func TestReleaseMapEditorCompleteScenarioPackageSAV(t *testing.T) {
 	win := scriptWindowAdd(t, e, "Action")
 	scriptWindowSet(t, e, "Action", win, "opcode", "4")
 	nodeID := func(kind string, index int) string {
-		for _, field := range e.Document().Edits.Fields(kind, index) {
+		for _, field := range e.Document().Edits.Fields(ui.RecordKind(kind), index) {
 			if field.Key == "id" {
 				return strconv.FormatInt(field.Value, 10)
 			}

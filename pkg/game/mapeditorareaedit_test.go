@@ -166,7 +166,7 @@ func TestAreaHandlesRewriteTheirParameters(t *testing.T) {
 			areaSelect(t, e, c.trigger)
 			a := areaOf(t, e, c.trigger, c.shape, c.at)
 			areaPress(e, c.from(e, a), e.CellPoint(c.to), true)
-			want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields(c.kind, c.index, c.values)
+			want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields(ui.RecordKind(c.kind), c.index, c.values)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -283,7 +283,7 @@ func TestAreaSharedNodeAsksBeforeTheChange(t *testing.T) {
 			areaPress(e, c.from(e, a), e.CellPoint(c.to), true)
 			r, ok = e.PromptButtonRect(0)
 			trigClick(t, e, r, ok, "Change all")
-			want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields(c.kind, c.index, c.values)
+			want, err := twin.Document().Edits.(ui.InspectionFieldSet).SetFields(ui.RecordKind(c.kind), c.index, c.values)
 			if err != nil || !bytes.Equal(e.Document().SourceBytes, want.SourceBytes) {
 				t.Fatalf("Change all wrote other bytes than SetFields: %v; message %q", err, e.Message())
 			}

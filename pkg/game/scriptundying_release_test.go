@@ -38,13 +38,13 @@ func authorUndyingScript(t *testing.T, e *ui.MapEditor) undyingNodes {
 	n := undyingNodes{conditions: s.model.Count(mapedit.KindCondition), actions: s.model.Count(mapedit.KindAction),
 		triggers: s.model.Count(mapedit.KindTrigger)}
 	for _, kind := range []string{"Condition", "Condition", "Action", "Action", "Action", "Trigger", "Trigger"} {
-		if _, err := s.AddScript(kind); err != nil {
+		if _, err := s.AddScript(ui.RecordKind(kind)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	set := func(kind string, index int, values ...ui.InspectionFieldValue) {
 		t.Helper()
-		if _, err := s.SetFields(kind, index, values); err != nil {
+		if _, err := s.SetFields(ui.RecordKind(kind), index, values); err != nil {
 			t.Fatalf("%s %d: %v", kind, index, err)
 		}
 	}

@@ -426,7 +426,7 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 		key, kind, field string
 		cell             image.Point
 	}{{"structure", "Structure", "kind", image.Pt(10, 18)}, {"unit", "Unit", "class", image.Pt(20, 20)}, {"sack", "Sack", "item", image.Pt(17, 12)}} {
-		rows := s.RecordChoices(c.kind, -1, c.field)
+		rows := s.RecordChoices(ui.RecordKind(c.kind), -1, c.field)
 		if len(rows) == 0 || rows[0].Label == "" || strings.Contains(rows[0].Label, "raw ") {
 			t.Fatalf("%s has no visible installed name: %+v", c.kind, rows)
 		}

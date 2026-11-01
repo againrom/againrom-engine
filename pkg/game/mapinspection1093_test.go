@@ -77,7 +77,7 @@ func inspectText1093(r ui.InspectionRecord) string {
 func inspectRecord1093(t *testing.T, d *ui.InspectionDocument, kind string, index int) ui.InspectionRecord {
 	t.Helper()
 	for _, r := range d.Records {
-		if r.Kind == kind && r.Index == index {
+		if string(r.Kind) == kind && r.Index == index {
 			return r
 		}
 	}

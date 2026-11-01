@@ -21,7 +21,7 @@ type settingsPreviewProbe struct {
 	readOnly bool
 }
 
-func (p *settingsPreviewProbe) Fields(kind string, index int) []InspectionField {
+func (p *settingsPreviewProbe) Fields(kind RecordKind, index int) []InspectionField {
 	fields := p.popupHost.Fields(kind, index)
 	if p.readOnly && kind == "Unit" {
 		fields = append(fields, InspectionField{Key: "computed", ReadOnly: true})

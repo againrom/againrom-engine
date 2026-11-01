@@ -232,7 +232,7 @@ func TestScriptParameterOpenKindsAndCancel(t *testing.T) {
 				if e.Selected() >= 0 || len(e.GroupMembers()) != 1 {
 					t.Fatal("group popup", e.Selected(), e.GroupMembers())
 				}
-			} else if e.Document().Records[e.Selected()].Kind != tc.kind {
+			} else if string(e.Document().Records[e.Selected()].Kind) != tc.kind {
 				t.Fatal("wrong record")
 			}
 			back := 2

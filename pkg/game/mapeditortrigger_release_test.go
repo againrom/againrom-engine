@@ -169,7 +169,7 @@ func driveTriggerBytes(t *testing.T, e, c *ui.MapEditor, ti int) {
 	}
 	fields := func(kind string, index int, values ...ui.InspectionFieldValue) *ui.InspectionDocument {
 		t.Helper()
-		d, err := set.SetFields(kind, index, values)
+		d, err := set.SetFields(ui.RecordKind(kind), index, values)
 		if err != nil || d == nil {
 			t.Fatal("SetFields", err)
 		}

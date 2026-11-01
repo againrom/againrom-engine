@@ -65,14 +65,14 @@ func (h *popupHost) commit() *InspectionDocument {
 func (h *popupHost) Dirty() bool   { return h.cursor > 1 }
 func (h *popupHost) CanUndo() bool { return h.cursor > 1 }
 func (h *popupHost) CanRedo() bool { return h.cursor < len(h.history) }
-func (h *popupHost) Move(string, int, image.Point) (*InspectionDocument, error) {
+func (h *popupHost) Move(RecordKind, int, image.Point) (*InspectionDocument, error) {
 	return nil, nil
 }
-func (h *popupHost) Clone(string, int, image.Point) (*InspectionDocument, error) {
+func (h *popupHost) Clone(RecordKind, int, image.Point) (*InspectionDocument, error) {
 	return nil, nil
 }
-func (h *popupHost) Delete(string, int) (*InspectionDocument, error) { return nil, nil }
-func (h *popupHost) SaveAs(string) (string, error)                   { return "", errors.New("no writer") }
+func (h *popupHost) Delete(RecordKind, int) (*InspectionDocument, error) { return nil, nil }
+func (h *popupHost) SaveAs(string) (string, error)                       { return "", errors.New("no writer") }
 func (h *popupHost) Undo() (*InspectionDocument, error) {
 	h.cursor--
 	h.restore(h.history[h.cursor-1])
@@ -84,7 +84,7 @@ func (h *popupHost) Redo() (*InspectionDocument, error) {
 	return h.doc(h), nil
 }
 
-func (h *popupHost) Fields(kind string, index int) []InspectionField {
+func (h *popupHost) Fields(kind RecordKind, index int) []InspectionField {
 	if kind != "Unit" {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (h *popupHost) set(index int, key string, value string) error {
 	return nil
 }
 
-func (h *popupHost) SetField(kind string, index int, key string, value int64) (*InspectionDocument, error) {
+func (h *popupHost) SetField(kind RecordKind, index int, key string, value int64) (*InspectionDocument, error) {
 	h.calls = append(h.calls, "SetField "+key)
 	if err := h.set(index, key, strconv.FormatInt(value, 10)); err != nil {
 		return nil, err
@@ -114,7 +114,7 @@ func (h *popupHost) SetField(kind string, index int, key string, value int64) (*
 	return h.commit(), nil
 }
 
-func (h *popupHost) SetTextField(kind string, index int, key, value string) (*InspectionDocument, error) {
+func (h *popupHost) SetTextField(kind RecordKind, index int, key, value string) (*InspectionDocument, error) {
 	h.calls = append(h.calls, "SetTextField "+key)
 	if err := h.set(index, key, value); err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func (h *popupHost) SetTextField(kind string, index int, key, value string) (*In
 	return h.commit(), nil
 }
 
-func (h *popupHost) SetFields(kind string, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
+func (h *popupHost) SetFields(kind RecordKind, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
 	h.calls = append(h.calls, fmt.Sprintf("SetFields %d", len(values)))
 	before := h.bytes()
 	for _, v := range values {

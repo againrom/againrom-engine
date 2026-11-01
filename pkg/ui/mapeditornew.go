@@ -5,5 +5,5 @@ func (e *MapEditor) unitKey() {
 	if e.catalog {
 		return
 	}
-	e.openAdd("Unit")
+	e.openAdd(KindUnit)
 }

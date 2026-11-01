@@ -131,7 +131,7 @@ func (s *mapInspectionEdits) inventoryFields(u *unitTemplateView) []ui.Inspectio
 			out = append(out, ui.InspectionField{Key: fmt.Sprintf("carry%d", i+1), Label: label, Group: x.word("editor.inventory.added"),
 				Value: int64(item.ItemCode()), Choices: choices})
 			out = append(out, ui.InspectionField{Key: fmt.Sprintf("carryrecipe%d", i+1), Label: label + " / " + x.word("editor.equipment.magic"), Group: x.word("editor.inventory.added"),
-				Parent: fmt.Sprintf("carry%d", i+1), Value: int64(item.TileMarkerIndex), Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices("Stock", stock, "recipe")...)})
+				Parent: fmt.Sprintf("carry%d", i+1), Value: int64(item.TileMarkerIndex), Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices(ui.KindStock, stock, "recipe")...)})
 			out = append(out, s.itemRecipeFields(fmt.Sprintf("carryrecipe%d", i+1), fmt.Sprintf("carry%d", i+1), "inventory", stock, i+1)...)
 		}
 	}
@@ -162,7 +162,7 @@ func (s *mapInspectionEdits) setStockRecipe(m *mapedit.Editor, stock, element in
 		return false, nil
 	}
 	if value == 0 {
-		return s.setField(m, "Stock", mapedit.KindLoot, stock, fmt.Sprintf("recipe%d", element), value, false)
+		return s.setField(m, ui.KindStock, mapedit.KindLoot, stock, fmt.Sprintf("recipe%d", element), value, false)
 	}
 	if value < -1 || value > int64(len(view.Enchantments)) {
 		return false, fmt.Errorf("item recipe is outside the map's native records")

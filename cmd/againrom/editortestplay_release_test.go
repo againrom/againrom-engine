@@ -60,7 +60,7 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 		key   string
 		value int64
 	}{{"Action", 1, "opcode", 4}, {"Trigger", 0, "left0", 1}, {"Trigger", 0, "right0", 1}, {"Trigger", 0, "action0", 2}} {
-		if _, err := s.SetField(v.kind, v.index, v.key, v.value); err != nil {
+		if _, err := s.SetField(ui.RecordKind(v.kind), v.index, v.key, v.value); err != nil {
 			t.Fatal(err)
 		}
 	}

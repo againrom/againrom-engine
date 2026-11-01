@@ -15,37 +15,36 @@ import (
 
 // fieldChoiceAsk is an editor field whose choices are asked.
 type fieldChoiceAsk struct {
-	kind   string
+	kind   ui.RecordKind
 	index  int
 	key    string
 	script *alm.Script
 }
 
-// fieldChoiceRow serves its kinds (none: every kind) and its field (a key
-// prefix when prefix).
+// fieldChoiceRow serves its kinds (none: every kind; scripted: the script
+// node kinds) and its field (a key prefix when prefix).
 type fieldChoiceRow struct {
-	kinds  []string
-	field  string
-	prefix bool
-	script bool
-	supply func(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice
+	kinds    []ui.RecordKind
+	scripted bool
+	field    string
+	prefix   bool
+	script   bool
+	supply   func(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice
 }
-
-var scriptRecordKinds = []string{"Action", "Condition", "Trigger"}
 
 // fieldChoiceRows is the field-choice registry, asked in order.
 var fieldChoiceRows = []fieldChoiceRow{
-	{kinds: scriptRecordKinds, field: "value", prefix: true, script: true, supply: scriptParameterChoices},
-	{kinds: scriptRecordKinds, field: "opcode", script: true, supply: scriptOperationChoices},
-	{kinds: scriptRecordKinds, field: "type", prefix: true, script: true, supply: enumerationChoices(mapload.ScriptParameterNames[:])},
-	{kinds: scriptRecordKinds, field: "cmp", prefix: true, script: true, supply: enumerationChoices(mapload.ScriptComparisons[:])},
-	{kinds: scriptRecordKinds, field: "once", script: true, supply: fixedChoices(ui.InspectionChoice{Value: 0, Label: "Repeat while true"}, ui.InspectionChoice{Value: 1, Label: "At most once"})},
-	{kinds: []string{"Trigger"}, field: "left", prefix: true, script: true, supply: scriptLinkChoices},
-	{kinds: []string{"Trigger"}, field: "right", prefix: true, script: true, supply: scriptLinkChoices},
-	{kinds: []string{"Trigger"}, field: "action", prefix: true, script: true, supply: scriptLinkChoices},
-	{kinds: scriptRecordKinds, prefix: true, script: true, supply: noChoices},
+	{scripted: true, field: "value", prefix: true, script: true, supply: scriptParameterChoices},
+	{scripted: true, field: "opcode", script: true, supply: scriptOperationChoices},
+	{scripted: true, field: "type", prefix: true, script: true, supply: enumerationChoices(mapload.ScriptParameterNames[:])},
+	{scripted: true, field: "cmp", prefix: true, script: true, supply: enumerationChoices(mapload.ScriptComparisons[:])},
+	{scripted: true, field: "once", script: true, supply: fixedChoices(ui.InspectionChoice{Value: 0, Label: "Repeat while true"}, ui.InspectionChoice{Value: 1, Label: "At most once"})},
+	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "left", prefix: true, script: true, supply: scriptLinkChoices},
+	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "right", prefix: true, script: true, supply: scriptLinkChoices},
+	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "action", prefix: true, script: true, supply: scriptLinkChoices},
+	{scripted: true, prefix: true, script: true, supply: noChoices},
 	{field: "npc", supply: npcFieldChoices},
-	{kinds: []string{"Enchantment"}, field: "castkind", supply: castKindChoices},
+	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "castkind", supply: castKindChoices},
 	{field: "owner", supply: ownerChoices},
 	{field: "face", supply: faceChoices},
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
@@ -61,7 +60,7 @@ var fieldChoiceRows = []fieldChoiceRow{
 }
 
 func (r fieldChoiceRow) serves(a fieldChoiceAsk) bool {
-	if r.script && a.script == nil || len(r.kinds) != 0 && !slices.Contains(r.kinds, a.kind) {
+	if r.script && a.script == nil || r.scripted && !a.kind.Scripted() || len(r.kinds) != 0 && !slices.Contains(r.kinds, a.kind) {
 		return false
 	}
 	if r.prefix {
@@ -79,7 +78,7 @@ func (s *mapInspectionEdits) fieldChoices(a fieldChoiceAsk) []ui.InspectionChoic
 	return nil
 }
 
-func (s *mapInspectionEdits) RecordChoices(kind string, index int, key string) []ui.InspectionChoice {
+func (s *mapInspectionEdits) RecordChoices(kind ui.RecordKind, index int, key string) []ui.InspectionChoice {
 	return s.fieldChoices(fieldChoiceAsk{kind: kind, index: index, key: key})
 }
 
@@ -125,7 +124,7 @@ func keyCatalogChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 
 func scriptOperationChoices(_ *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
 	var out []ui.InspectionChoice
-	for _, row := range mapload.ScriptOperations(a.kind == "Condition") {
+	for _, row := range mapload.ScriptOperations(a.kind == ui.KindCondition) {
 		out = append(out, ui.InspectionChoice{Value: int64(row.Opcode), Label: row.Name})
 	}
 	return out

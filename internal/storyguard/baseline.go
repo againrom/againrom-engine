@@ -3688,5 +3688,5 @@ var Committed = Baseline{
 	// internal/archtest's spellarms.go, the popup's caption block method in
 	// pkg/game's spell.go, and this note. It fell by the creature aim
 	// table's and the Fire Ball constants' comments.
-	CommentBytes: 10196815,
+	CommentBytes: 10200565,
 }

@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mod"
+	"againrom/pkg/ui"
 )
 
 func mapInputRule(codec alm.TextField) (int, func(rune) int) {
@@ -22,7 +23,7 @@ func mapInputRule(codec alm.TextField) (int, func(rune) int) {
 	}
 }
 
-func (s *mapInspectionEdits) InputRule(scope, kind, key string) (int, func(rune) int) {
+func (s *mapInspectionEdits) InputRule(scope string, kind ui.RecordKind, key string) (int, func(rune) int) {
 	if scope == "metadata" {
 		switch key {
 		case "name":
@@ -35,10 +36,10 @@ func (s *mapInspectionEdits) InputRule(scope, kind, key string) (int, func(rune)
 		return 1024, nil
 	}
 	if key == "name" {
-		switch kind {
-		case "Player":
+		switch {
+		case kind == ui.KindPlayer:
 			return mapInputRule(alm.PlayerNameText)
-		case "Trigger", "Condition", "Action":
+		case kind.Scripted():
 			return mapInputRule(alm.ScriptLabelText)
 		}
 	}

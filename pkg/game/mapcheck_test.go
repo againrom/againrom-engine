@@ -390,7 +390,7 @@ func TestMapRulesFindTheirDefectAndNothingInTheCleanMap(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := ofRule(findings(t, x, tc.defect(), "scenario/10.alm"), tc.rule)
-			if len(got) != 1 || got[0].Kind != tc.kind || got[0].Index != tc.index {
+			if len(got) != 1 || string(got[0].Kind) != tc.kind || got[0].Index != tc.index {
 				t.Fatalf("%s findings: %+v; want one on %s #%d", tc.rule, got, tc.kind, tc.index)
 			}
 			if rows := findings(t, x, tc.control(), "scenario/10.alm"); len(rows) != 0 {

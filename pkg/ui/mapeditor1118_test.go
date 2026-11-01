@@ -32,7 +32,7 @@ func (p *editorMoveProbe) Redo() (*InspectionDocument, error) {
 func (p *editorMoveProbe) SaveAs(string) (string, error) {
 	return "", fmt.Errorf("test writer refused")
 }
-func (p *editorMoveProbe) Move(_ string, index int, cell image.Point) (*InspectionDocument, error) {
+func (p *editorMoveProbe) Move(_ RecordKind, index int, cell image.Point) (*InspectionDocument, error) {
 	p.index, p.dirty = index, true
 	next := *p.doc
 	next.Records = append([]InspectionRecord(nil), next.Records...)

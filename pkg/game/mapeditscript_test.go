@@ -106,7 +106,7 @@ func TestGoalsListTheWinLoseAndProtectArms(t *testing.T) {
 	goals := scriptOf(t, e).Goals()
 	var arms []string
 	for _, g := range goals {
-		arms = append(arms, g.Arm+"/"+g.Pick)
+		arms = append(arms, g.Arm+"/"+string(g.Pick))
 	}
 	want := []string{"Win/Unit", "Win/Unit", "Lose/Unit", "Protect/Unit"}
 	if len(goals) != 4 || strings.Join(arms, " ") != strings.Join(want, " ") {

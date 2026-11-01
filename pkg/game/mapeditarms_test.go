@@ -44,7 +44,7 @@ func TestAMapWithoutArmsOffersToAddAWinAndALoseArm(t *testing.T) {
 	goals := scriptOf(t, e).Goals()
 	var rows []string
 	for _, g := range goals {
-		rows = append(rows, g.Arm+"/"+g.Pick+"/"+g.Text)
+		rows = append(rows, g.Arm+"/"+string(g.Pick)+"/"+g.Text)
 	}
 	want := []string{
 		"Win/Unit/add: the death of a unit wins",
@@ -82,7 +82,7 @@ func TestAddingAnArmWritesItsRecordsAndUndoRemovesThem(t *testing.T) {
 			e, _ := openGoalMap(t, b)
 			s := scriptOf(t, e)
 			row := goalIndex(t, s.Goals(), c.arm, c.text)
-			next, err := s.SetGoalTarget(row, c.pick, c.index)
+			next, err := s.SetGoalTarget(row, ui.RecordKind(c.pick), c.index)
 			if err != nil || next == nil {
 				t.Fatalf("add: %v", err)
 			}

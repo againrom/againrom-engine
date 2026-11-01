@@ -24,7 +24,7 @@ func (p *previewProbe) CheckNewRecord(InspectionNewRecord, string) error { retur
 func (p *previewProbe) AddRecord(InspectionNewRecord) (*InspectionDocument, error) {
 	return nil, nil
 }
-func (p *previewProbe) NewRecordPreview(kind, key string, value int64) *image.RGBA {
+func (p *previewProbe) NewRecordPreview(kind RecordKind, key string, value int64) *image.RGBA {
 	p.asked = append(p.asked, key)
 	if key != "object" || value <= 0 {
 		return nil

@@ -16,7 +16,7 @@ import (
 // admissionAnswer is what the admission of kind on route answers for cell:
 // "outside", "ring", "closed" by the ground arms, or "open".
 func admissionAnswer(view *alm.Map, arms []mapload.GroundArm, kind string, route cellRoute, cell image.Point) string {
-	a := admissionOf(kind, route)
+	a := admissionOf(ui.RecordKind(kind), route)
 	switch a.verdict(view, cell) {
 	case cellOutside:
 		return "outside"
@@ -70,7 +70,7 @@ func TestCellAdmissionRowsAnswerEachCell(t *testing.T) {
 		{"Enchantment", admitAdd, [3]string{"open", "open", "outside"}, false},
 		{"Enchantment", admitMove, [3]string{"open", "open", "outside"}, false},
 		{"Enchantment", admitField, [3]string{"open", "open", "outside"}, false},
-		{ringDrop, admitAdd, [3]string{"open", "ring", "outside"}, false},
+		{string(ringDrop), admitAdd, [3]string{"open", "ring", "outside"}, false},
 		{"Trigger", admitField, [3]string{"open", "open", "open"}, false},
 	}
 	for _, r := range rows {
@@ -78,8 +78,8 @@ func TestCellAdmissionRowsAnswerEachCell(t *testing.T) {
 		for i, c := range []image.Point{inside, edge, outside} {
 			got[i] = admissionAnswer(view, arms, r.kind, r.route, c)
 		}
-		if got != r.want || admissionOf(r.kind, r.route).footprint != r.feet {
-			t.Errorf("%s on route %d answers %v, footprint %v; want %v, %v", r.kind, r.route, got, admissionOf(r.kind, r.route).footprint, r.want, r.feet)
+		if got != r.want || admissionOf(ui.RecordKind(r.kind), r.route).footprint != r.feet {
+			t.Errorf("%s on route %d answers %v, footprint %v; want %v, %v", r.kind, r.route, got, admissionOf(ui.RecordKind(r.kind), r.route).footprint, r.want, r.feet)
 		}
 	}
 }

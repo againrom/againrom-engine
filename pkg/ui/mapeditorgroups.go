@@ -60,7 +60,7 @@ func (e *MapEditor) splitGroup(refs []RecordRef, player int) groupSplit {
 	out := groupSplit{player: player}
 	for _, ref := range refs {
 		i, ok := at[ref]
-		if !ok || ref.Kind != "Unit" {
+		if !ok || ref.Kind != KindUnit {
 			out.notUnits++
 			continue
 		}
@@ -341,7 +341,7 @@ func (e *MapEditor) removeFromGroup() {
 	player := 0
 	for _, ref := range refs {
 		i, ok := at[ref]
-		if !ok || ref.Kind != "Unit" {
+		if !ok || ref.Kind != KindUnit {
 			continue
 		}
 		r := e.doc.Records[i]
@@ -574,16 +574,19 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 		return popupSpec{}, false
 	}
 	s := popupSpec{Title: fmt.Sprintf(e.word("editor.selection.count"), len(e.selection.refs)), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), NoteInk: editorPaper}
-	counts := map[string]int{}
+	counts := map[RecordKind]int{}
 	groups := map[int]bool{}
 	at := e.recordIndex()
 	for _, ref := range e.selection.refs {
 		counts[ref.Kind]++
-		if i, ok := at[ref]; ok && ref.Kind == "Unit" && e.doc.Records[i].Group != 0 {
+		if i, ok := at[ref]; ok && ref.Kind == KindUnit && e.doc.Records[i].Group != 0 {
 			groups[e.doc.Records[i].Group] = true
 		}
 	}
-	for _, k := range []struct{ kind, word string }{{"Unit", "editor.bar.units"}, {"Structure", "editor.bar.structures"}, {"Sack", "editor.bar.sacks"}} {
+	for _, k := range []struct {
+		kind RecordKind
+		word string
+	}{{KindUnit, "editor.bar.units"}, {KindStructure, "editor.bar.structures"}, {KindSack, "editor.bar.sacks"}} {
 		if counts[k.kind] > 0 {
 			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word(k.word), Value: strconv.Itoa(counts[k.kind])})
 		}
@@ -598,7 +601,7 @@ func (e *MapEditor) selectionSpec() (popupSpec, bool) {
 	if note := e.wholeSelectionNote(); note != "" {
 		s.Notes = editorWrap(e.bodyFont(), note, s.Width-2*popupPad-8)
 	}
-	units := counts["Unit"]
+	units := counts[KindUnit]
 	s.Buttons = []string{e.word("editor.group.togroup"), e.word("editor.group.remove"), e.word("editor.selection.delete")}
 	s.Disabled = []bool{units == 0, units == 0, false}
 	if f := e.bodyFont(); f != nil {

@@ -13,7 +13,7 @@ import (
 type InspectionFinding struct {
 	Error   bool
 	Rule    string
-	Kind    string
+	Kind    RecordKind
 	Index   int
 	Cell    image.Point
 	HasCell bool
@@ -112,7 +112,7 @@ type reportState struct {
 	confirm func() error
 }
 
-func findingKey(kind string, index int) string { return fmt.Sprintf("%s#%d", kind, index) }
+func findingKey(kind RecordKind, index int) string { return fmt.Sprintf("%s#%d", kind, index) }
 
 // ReportOpen reports whether the report panel is showing, and its findings.
 func (e *MapEditor) ReportOpen() ([]InspectionFinding, bool) {

@@ -83,7 +83,7 @@ func (e *MapEditor) usesRows(uses []InspectionScriptUse) []scriptPopupLink {
 		for _, node := range row.nodes {
 			names = append(names, e.scriptRowText(node, 0))
 		}
-		if e.doc.Records[row.record].Kind == "Trigger" {
+		if e.doc.Records[row.record].Kind == KindTrigger {
 			row.title = fmt.Sprintf(e.word("editor.usedby.trigger"), e.scriptRowText(row.record, 0), strings.Join(names, "; "))
 		} else {
 			row.title = fmt.Sprintf(e.word("editor.usedby.unattached"), strings.Join(names, "; "))
@@ -100,7 +100,7 @@ func (e *MapEditor) hasUsedBy() bool {
 		return false
 	}
 	kind := e.doc.Records[e.selected].Kind
-	return kind == "Unit" || kind == "Structure" || kind == "Player"
+	return kind.Owned() || kind == KindPlayer
 }
 
 func (e *MapEditor) openObjectUse(record int) {

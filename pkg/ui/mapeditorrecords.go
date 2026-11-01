@@ -8,31 +8,16 @@ import (
 	"strings"
 )
 
-// dragRank orders the record kinds a drag can move when one press hits
-// several: a unit before a sack before a structure, whose footprint is the
-// widest. A kind without a rank is not moved by a drag.
-var dragRank = map[string]int{"Unit": 1, "Sack": 2, "Structure": 3}
-
-// editableKind reports a record kind the window clones, deletes and sets
-// fields of. A unit's stock has no cell and is reached from the list.
-func editableKind(kind string) bool { return dragRank[kind] > 0 || kind == "Stock" }
-
-// fieldKind reports a record kind whose fields the window sets: the editable
-// kinds, script nodes and nonspatial Players.
-func fieldKind(kind string) bool {
-	return editableKind(kind) || scriptRecord(kind) || kind == "Player" || kind == "Enchantment"
-}
-
 // selectedRecord is the kind and file-order index of the selected editable
 // record, or index -1.
-func (e *MapEditor) selectedRecord() (string, int) {
+func (e *MapEditor) selectedRecord() (RecordKind, int) {
 	if e.modWindow && e.editable() {
-		return "Mod", 0
+		return KindMod, 0
 	}
 	if !e.editable() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) {
 		return "", -1
 	}
-	if r := e.doc.Records[e.selected]; fieldKind(r.Kind) {
+	if r := e.doc.Records[e.selected]; r.Kind.Fielded() {
 		return r.Kind, r.Index
 	}
 	return "", -1
@@ -106,7 +91,7 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	if key == "sack" {
 		if !e.catalog {
-			e.openAdd("Sack")
+			e.openAdd(KindSack)
 		}
 		return nil
 	}
@@ -122,7 +107,7 @@ func (e *MapEditor) recordKey(key string) error {
 	}
 	if i := e.selectedScenery(); key == "delete" && i >= 0 {
 		e.leave(leaveDrag | leavePick)
-		return e.deleteSelected("Scenery", i)
+		return e.deleteSelected(KindScenery, i)
 	}
 	if key == "field" && e.report.open && len(e.objectBack) == 0 && e.goalRecord(e.report.sel) >= 0 {
 		e.openGoal(e.report.sel)
@@ -135,7 +120,7 @@ func (e *MapEditor) recordKey(key string) error {
 		}
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 || (key != "field" && !editableKind(kind) && !(key == "delete" && (kind == "Player" || kind == "Enchantment" || scriptRecord(kind)))) {
+	if index < 0 || (key != "field" && !kind.Editable() && !(key == "delete" && kind.Fielded())) {
 		e.message = "Select a unit, structure or sack first."
 		return nil
 	}
@@ -145,7 +130,7 @@ func (e *MapEditor) recordKey(key string) error {
 		e.armPick(pickClone)
 	case "delete":
 		e.leave(leavePick)
-		if kind == "Unit" && e.askDelete([]RecordRef{{kind, index}}, true) {
+		if kind == KindUnit && e.askDelete([]RecordRef{{kind, index}}, true) {
 			return nil
 		}
 		return e.deleteSelected(kind, index)
@@ -304,14 +289,14 @@ func (e *MapEditor) pickAt(p image.Point) {
 		return
 	}
 	if pick == pickMove {
-		if kind, index := e.selectedRecord(); index >= 0 && editableKind(kind) {
+		if kind, index := e.selectedRecord(); index >= 0 && kind.Editable() {
 			cell := image.Pt(x, y)
 			e.obj.move = &cell
 		}
 		return
 	}
 	kind, index := e.selectedRecord()
-	if index < 0 || !editableKind(kind) {
+	if index < 0 || !kind.Editable() {
 		e.message = "Clone needs a selected unit, structure or sack."
 		return
 	}
@@ -327,7 +312,7 @@ func (e *MapEditor) pickAt(p image.Point) {
 }
 
 // selectNewest selects the Add target, or the highest index of kind.
-func (e *MapEditor) selectNewest(kind string, target ...RecordRef) {
+func (e *MapEditor) selectNewest(kind RecordKind, target ...RecordRef) {
 	e.messagePage = 0
 	best := -1
 	for i, r := range e.doc.Records {
@@ -352,13 +337,13 @@ func (e *MapEditor) selectNewest(kind string, target ...RecordRef) {
 }
 
 // deleteSelected removes the selected record.
-func (e *MapEditor) deleteSelected(kind string, index int) error {
+func (e *MapEditor) deleteSelected(kind RecordKind, index int) error {
 	if _, err := e.commandDelete(RecordRef{Kind: kind, Index: index}); err != nil {
 		e.message = err.Error()
 		return err
 	}
 	e.selected = -1
-	if kind == "Player" && e.filter == editorPlayersFilter {
+	if kind == KindPlayer && e.filter == editorPlayersFilter {
 		if rows := e.rows(); len(rows) > 0 {
 			e.Select(rows[min(index, len(rows)-1)], false)
 		}

@@ -67,7 +67,7 @@ type areaPrompt struct {
 	choice *Picker // a new trigger first, then each trigger
 	open   bool
 	note   string
-	kind   string
+	kind   RecordKind
 	index  int
 	values []InspectionFieldValue
 	notes  []string
@@ -390,7 +390,7 @@ func (e *MapEditor) areaRelease(h *areaHandle) {
 }
 
 // writeArea writes an area's parameters through the host's one-edit seam.
-func (e *MapEditor) writeArea(kind string, index int, values []InspectionFieldValue) {
+func (e *MapEditor) writeArea(kind RecordKind, index int, values []InspectionFieldValue) {
 	if _, err := e.commandSetFields(recordFields{Kind: kind, Index: index, Values: values}); err != nil {
 		e.message = err.Error()
 	}

@@ -78,7 +78,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 			if filters[f] != "" {
 				t.Errorf("list %d adds %s and %s", f, filters[f], k.Kind)
 			}
-			filters[f] = k.Kind
+			filters[f] = string(k.Kind)
 		}
 	}
 	want := map[int]string{1: "Unit", 2: "Structure", 3: "Sack", editorPlayersFilter: "Player", editorScriptsFilter: "Script"}
@@ -109,7 +109,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 // addKindNow is the kind the open Add window adds, "" for none.
 func addKindNow(e *MapEditor) string {
 	if r, ok := e.addRunning(); ok {
-		return r.kind
+		return string(r.kind)
 	}
 	return ""
 }

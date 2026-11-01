@@ -10,7 +10,7 @@ import (
 
 // Move and Delete of the terrain host carry a Scenery record's byte on its
 // object plane, so the next document shows the object where the edit put it.
-func (p *terrainHost) Move(k string, i int, c image.Point) (*InspectionDocument, error) {
+func (p *terrainHost) Move(k RecordKind, i int, c image.Point) (*InspectionDocument, error) {
 	if k == "Scenery" {
 		b := p.objects[i]
 		p.objects[i], p.objects[c.Y*terrainSide+c.X] = 0, b
@@ -18,7 +18,7 @@ func (p *terrainHost) Move(k string, i int, c image.Point) (*InspectionDocument,
 	return p.modesFull.Move(k, i, c)
 }
 
-func (p *terrainHost) Delete(k string, i int) (*InspectionDocument, error) {
+func (p *terrainHost) Delete(k RecordKind, i int) (*InspectionDocument, error) {
 	if k == "Scenery" {
 		p.objects[i] = 0
 	}

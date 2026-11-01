@@ -5,7 +5,6 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
-	"strconv"
 	"testing"
 )
 
@@ -51,12 +50,8 @@ func TestCellSpellInspectionHasOneBuilder(t *testing.T) {
 					if !ok || key.Name != "Kind" {
 						continue
 					}
-					value, ok := kv.Value.(*ast.BasicLit)
-					if !ok || value.Kind != token.STRING {
-						continue
-					}
-					kind, _ := strconv.Unquote(value.Value)
-					if kind != "Enchantment" {
+					value, ok := kv.Value.(*ast.SelectorExpr)
+					if !ok || value.Sel.Name != "KindEnchantment" {
 						continue
 					}
 					count++

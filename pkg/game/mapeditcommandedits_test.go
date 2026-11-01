@@ -37,7 +37,7 @@ func refArgs(refs ...ui.RecordRef) []any {
 func newestOf(e *ui.MapEditor, kind string) int {
 	n := -1
 	for _, r := range e.Document().Records {
-		if r.Kind == kind {
+		if string(r.Kind) == kind {
 			n = max(n, r.Index)
 		}
 	}

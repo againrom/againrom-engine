@@ -157,7 +157,7 @@ func TestReleaseMapEditorArmsOpenAndKeepBytes(t *testing.T) {
 			for i, w := range want {
 				row := actual[i]
 				g := goals[row]
-				if g.Arm != w.arm || g.OpenKind != w.kind || g.OpenIndex != w.index {
+				if g.Arm != w.arm || string(g.OpenKind) != w.kind || g.OpenIndex != w.index {
 					t.Fatalf("row %d link=%+v want=%+v", row, g, w)
 				}
 				r := armOpenButton(t, e, row)
@@ -167,7 +167,7 @@ func TestReleaseMapEditorArmsOpenAndKeepBytes(t *testing.T) {
 				}
 				armSaveUnchanged(t, e, sources[mi])
 				backFromArm(t, e)
-				if e.ReportSelected() != row || e.Selected() != recordOf(e.Document(), g.Kind, g.Index) || len(e.PopupLines()) == 0 {
+				if e.ReportSelected() != row || e.Selected() != recordOf(e.Document(), string(g.Kind), g.Index) || len(e.PopupLines()) == 0 {
 					t.Fatal("Back lost G selection")
 				}
 				counts[w.arm]++

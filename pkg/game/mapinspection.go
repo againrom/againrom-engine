@@ -271,7 +271,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	}
 	for i, u := range m.Units {
 		cell := image.Pt(int(u.X>>8), int(u.Y>>8))
-		r := ui.InspectionRecord{Kind: "Unit", Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID), ScriptID: int(u.UnitID)}
+		r := ui.InspectionRecord{Kind: ui.KindUnit, Index: i, Section: 6, Cell: cell, Spatial: true, Size: image.Pt(1, 1), Footprint: feet.units[i], Label: fmt.Sprintf("class %d", u.ClassID), Player: int(u.Owner), Group: int(u.GroupID), ScriptID: int(u.UnitID)}
 		var c *terrain.UnitClass
 		if x.units != nil {
 			c = x.units.Classes[int32(u.ClassID)]
@@ -333,7 +333,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	}
 	v.SetEntities(entities)
 	for i, o := range m.Objects {
-		r := ui.InspectionRecord{Kind: "Structure", Section: 4, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), Spatial: true, Size: image.Pt(1, 1), Footprint: feet.structures[i], Label: fmt.Sprintf("kind %d", o.Kind), Player: int(o.Field0E & 0xffff), ScriptID: int(o.Field12)}
+		r := ui.InspectionRecord{Kind: ui.KindStructure, Section: 4, Index: i, Cell: image.Pt(int(o.X>>8), int(o.Y>>8)), Spatial: true, Size: image.Pt(1, 1), Footprint: feet.structures[i], Label: fmt.Sprintf("kind %d", o.Kind), Player: int(o.Field0E & 0xffff), ScriptID: int(o.Field12)}
 		one := g
 		one.Structures = g.Structures[i : i+1]
 		places, counts, _ := terrain.StructurePlacements(one, x.structures, nil, 0)
@@ -358,9 +358,9 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	var sacks []ui.MapSack
 	if lootErr == nil {
 		for i, l := range loot.Records {
-			r := ui.InspectionRecord{Kind: "Stock", Section: 8, Index: i, Label: fmt.Sprintf("owner %d", l.Owner), Size: image.Pt(1, 1)}
+			r := ui.InspectionRecord{Kind: lootKind(l), Section: 8, Index: i, Label: fmt.Sprintf("owner %d", l.Owner), Size: image.Pt(1, 1)}
 			if l.Ground() {
-				r.Kind, r.Label, r.Spatial, r.Cell = "Sack", "ground loot", true, image.Pt(int(l.CellX()), int(l.CellY()))
+				r.Label, r.Spatial, r.Cell = "ground loot", true, image.Pt(int(l.CellX()), int(l.CellY()))
 				sacks = append(sacks, ui.MapSack{Cell: r.Cell})
 				if len(x.sacks) > 0 {
 					r.Preview = x.sacks[0]
@@ -387,7 +387,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 		if b == 0 {
 			continue
 		}
-		r := ui.InspectionRecord{Kind: "Scenery", Section: 3, Index: i, Cell: image.Pt(i%m.Width, i/m.Width), Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", b), Details: []string{fmt.Sprintf("Overlay byte: %d", b)}}
+		r := ui.InspectionRecord{Kind: ui.KindScenery, Section: 3, Index: i, Cell: image.Pt(i%m.Width, i/m.Width), Spatial: true, Size: image.Pt(1, 1), Label: fmt.Sprintf("class %d", b), Details: []string{fmt.Sprintf("Overlay byte: %d", b)}}
 		if x.statics != nil && x.statics.Classes[b] != nil {
 			r.Preview = x.statics.Classes[b].Frame
 		}
@@ -432,7 +432,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	}
 	for i, section := range ids {
 		payload := doc.RecordPayload(i)
-		r := ui.InspectionRecord{Kind: "Section", Section: int(section), Index: i, Label: fmt.Sprintf("type %d, %d bytes", section, len(payload)), Details: []string{fmt.Sprintf("File record: %d", i), fmt.Sprintf("Payload bytes: %d", len(payload)), fmt.Sprintf("First bytes: %x", payload[:min(24, len(payload))])}}
+		r := ui.InspectionRecord{Kind: ui.KindSection, Section: int(section), Index: i, Label: fmt.Sprintf("type %d, %d bytes", section, len(payload)), Details: []string{fmt.Sprintf("File record: %d", i), fmt.Sprintf("Payload bytes: %d", len(payload)), fmt.Sprintf("First bytes: %x", payload[:min(24, len(payload))])}}
 		if section >= 10 {
 			r.Warning = "Unknown section; raw bytes preserved"
 		}

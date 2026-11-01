@@ -55,7 +55,7 @@ func TestEditorInputRulesUseStoredCodecs(t *testing.T) {
 		{"", "Condition", "name", alm.ScriptLabelText}, {"", "Action", "name", alm.ScriptLabelText},
 	} {
 		t.Run(c.scope+c.kind+c.key, func(t *testing.T) {
-			limit, size := s.InputRule(c.scope, c.kind, c.key)
+			limit, size := s.InputRule(c.scope, ui.RecordKind(c.kind), c.key)
 			want := c.codec.Width
 			if c.codec.Terminated {
 				want--

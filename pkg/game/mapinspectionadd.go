@@ -25,22 +25,22 @@ import (
 // values add does not take are fields of ("" for none), the keys add needs,
 // the keys it also takes, and whether the record stands on a cell.
 type newRecordKind struct {
-	edit     string
+	edit     ui.RecordKind
 	required []string
 	optional []string
 	spatial  bool
 	add      func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error)
 }
 
-var newRecordKinds = map[string]newRecordKind{
-	"Enchantment": {edit: "Enchantment", required: []string{"template"}, optional: []string{"link"}, spatial: true,
+var newRecordKinds = map[ui.RecordKind]newRecordKind{
+	ui.KindEnchantment: {edit: ui.KindEnchantment, required: []string{"template"}, optional: []string{"link"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			v := recordValue(r, "template")
 			kind, ok := spellTemplateKind(s.batch, v)
 			if !ok {
 				return -1, fmt.Errorf("select a cell spell template")
 			}
-			if err := s.admitCell(s.batch, r.Cell, "spell cell", "Enchantment", admitAdd); err != nil {
+			if err := s.admitCell(s.batch, r.Cell, "spell cell", ui.KindEnchantment, admitAdd); err != nil {
 				return -1, err
 			}
 			link := recordValue(r, "link")
@@ -52,41 +52,41 @@ var newRecordKinds = map[string]newRecordKind{
 			}
 			return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
 		}},
-	"Unit": {edit: "Unit", required: []string{"class"}, optional: []string{"tier"}, spatial: true,
+	ui.KindUnit: {edit: ui.KindUnit, required: []string{"class"}, optional: []string{"tier"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddUnitTier(r.Cell, recordValue(r, "class"), recordValue(r, "tier"))
-			return s.newIndex(s.batch, "Unit"), err
+			return s.newIndex(s.batch, ui.KindUnit), err
 		}},
-	"Structure": {edit: "Structure", required: []string{"kind"}, spatial: true,
+	ui.KindStructure: {edit: ui.KindStructure, required: []string{"kind"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			_, err := s.AddStructure(r.Cell, recordValue(r, "kind"))
-			return s.newIndex(s.batch, "Structure"), err
+			return s.newIndex(s.batch, ui.KindStructure), err
 		}},
 	// A sack is added with its first item; each other item is the
 	// sack's "additem" field, as the sack's popup adds one.
-	"Sack": {edit: "Sack", required: []string{"item"}, spatial: true,
+	ui.KindSack: {edit: ui.KindSack, required: []string{"item"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 			items := recordValues(r, "item")
 			if _, err := s.AddSack(r.Cell, items[0]); err != nil {
 				return -1, err
 			}
 			for _, item := range items[1:] {
-				if _, err := s.SetFields("Sack", s.batch.Count(mapedit.KindLoot)-1, []ui.InspectionFieldValue{{Key: "additem", Value: item}}); err != nil {
+				if _, err := s.SetFields(ui.KindSack, s.batch.Count(mapedit.KindLoot)-1, []ui.InspectionFieldValue{{Key: "additem", Value: item}}); err != nil {
 					return -1, err
 				}
 			}
-			return s.newIndex(s.batch, "Sack"), nil
+			return s.newIndex(s.batch, ui.KindSack), nil
 		}},
-	"Player": {edit: "Player", add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
+	ui.KindPlayer: {edit: ui.KindPlayer, add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
 		_, err := s.AddPlayer()
-		return s.newIndex(s.batch, "Player"), err
+		return s.newIndex(s.batch, ui.KindPlayer), err
 	}},
-	"Trigger":   {edit: "Trigger", add: addScriptOf("Trigger")},
-	"Action":    {edit: "Action", add: addScriptOf("Action")},
-	"Condition": {edit: "Condition", add: addScriptOf("Condition")},
+	ui.KindTrigger:   {edit: ui.KindTrigger, add: addScriptOf(ui.KindTrigger)},
+	ui.KindAction:    {edit: ui.KindAction, add: addScriptOf(ui.KindAction)},
+	ui.KindCondition: {edit: ui.KindCondition, add: addScriptOf(ui.KindCondition)},
 }
 
-func addScriptOf(kind string) func(*mapInspectionEdits, ui.InspectionNewRecord) (int, error) {
+func addScriptOf(kind ui.RecordKind) func(*mapInspectionEdits, ui.InspectionNewRecord) (int, error) {
 	return func(s *mapInspectionEdits, _ ui.InspectionNewRecord) (int, error) {
 		_, err := s.AddScript(kind)
 		return s.newIndex(s.batch, kind), err
@@ -129,10 +129,10 @@ func recordValue(r ui.InspectionNewRecord, key string) int64 {
 	return 0
 }
 
-func newRecordKindOf(kind string) (newRecordKind, error) {
+func newRecordKindOf(kind ui.RecordKind) (newRecordKind, error) {
 	k, ok := newRecordKinds[kind]
 	if !ok {
-		return newRecordKind{}, fmt.Errorf("the editor adds no %s record", strings.ToLower(kind))
+		return newRecordKind{}, fmt.Errorf("the editor adds no %s record", strings.ToLower(kind.String()))
 	}
 	return k, nil
 }
@@ -140,17 +140,17 @@ func newRecordKindOf(kind string) (newRecordKind, error) {
 // AddRecord adds the new record r as one edit: its kind's add call, then
 // every value the call does not take as a field of the new record.
 func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.InspectionDocument, error) {
-	if r.Kind == "Message" {
-		return s.NewMessage(ui.InspectionMessageOwner{Kind: "Message"})
+	if r.Kind == ui.KindMessage {
+		return s.NewMessage(ui.InspectionMessageOwner{Kind: ui.KindMessage})
 	}
 	k, err := newRecordKindOf(r.Kind)
 	if err != nil {
 		return nil, err
 	}
 	if !k.complete(r) {
-		return nil, fmt.Errorf("the new %s lacks a value", strings.ToLower(r.Kind))
+		return nil, fmt.Errorf("the new %s lacks a value", strings.ToLower(r.Kind.String()))
 	}
-	if r.Kind == "Enchantment" {
+	if r.Kind == ui.KindEnchantment {
 		if err := s.checkNewValue(r, "spell"); err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func (s *mapInspectionEdits) addOn(m *mapedit.Editor, k newRecordKind, r ui.Insp
 }
 
 // newIndex is the index of the record the kind's add call appended to m.
-func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, kind string) int {
+func (s *mapInspectionEdits) newIndex(m *mapedit.Editor, kind ui.RecordKind) int {
 	ek, err := editKind(kind)
 	if err != nil {
 		return -1
@@ -244,7 +244,7 @@ func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string
 
 // checkNewValue is the range and reference check of r's values of key.
 func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string) error {
-	if r.Kind == "Enchantment" && key == "spell" && recordValue(r, key) == 0 {
+	if r.Kind == ui.KindEnchantment && key == "spell" && recordValue(r, key) == 0 {
 		return fmt.Errorf("select a nonzero spell; None adds no cell spell record")
 	}
 	view, err := s.model.Map()
@@ -346,23 +346,23 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 			return out
 		}
 		out.Value, out.Text = s.newFieldDefault(r, key)
-		out.Choices = s.RecordChoices("Enchantment", -1, key)
+		out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
 	case "class":
-		out.Choices = s.RecordChoices("Unit", -1, "class")
+		out.Choices = s.RecordChoices(ui.KindUnit, -1, "class")
 		first()
 	case "tier":
 		out.Choices, out.Value = s.UnitTiers(recordValue(r, "class"))
 	case "kind":
-		out.Choices = s.RecordChoices("Structure", -1, "kind")
+		out.Choices = s.RecordChoices(ui.KindStructure, -1, "kind")
 		first()
 	case "item":
-		out.Choices = s.RecordChoices("Sack", -1, "item")
+		out.Choices = s.RecordChoices(ui.KindSack, -1, "item")
 	case "cell":
 	default:
 		out.Value, out.Text = s.newFieldDefault(r, key)
 		switch key {
 		case "spell":
-			out.Choices = s.RecordChoices("Enchantment", -1, key)
+			out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
 		case "owner":
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
 		case "group":
@@ -456,7 +456,7 @@ func (s *mapInspectionEdits) freeGroup() int64 {
 // NewRecordPreview is a unit class's standing sprite, a structure kind's
 // information picture or, under the key "object", the picture of the object
 // class a placement byte names.
-func (s *mapInspectionEdits) NewRecordPreview(kind, key string, value int64) *image.RGBA {
+func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, value int64) *image.RGBA {
 	x := s.inspector
 	switch key {
 	case "object":

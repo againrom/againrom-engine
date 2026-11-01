@@ -122,7 +122,7 @@ func TestMapEditorAddRefusesAnOverlappingStructureOrUnit(t *testing.T) {
 	} {
 		s := overlapHost(t, raw)
 		add := func(cell image.Point) error {
-			_, err := s.AddRecord(ui.InspectionNewRecord{Kind: c.kind, Cell: cell, HasCell: true, Values: []ui.InspectionFieldValue{{Key: c.key, Value: c.value}}})
+			_, err := s.AddRecord(ui.InspectionNewRecord{Kind: ui.RecordKind(c.kind), Cell: cell, HasCell: true, Values: []ui.InspectionFieldValue{{Key: c.key, Value: c.value}}})
 			return err
 		}
 		refusedEdit(t, s, raw, add(c.on), c.other)
@@ -142,12 +142,12 @@ func TestMapEditorMoveRefusesAnOverlappingStructureOrUnit(t *testing.T) {
 		{"Unit", 1, image.Pt(11, 21), image.Pt(12, 22), "unit 0"},
 	} {
 		s := overlapHost(t, raw)
-		_, err := s.Move(c.kind, c.index, c.on)
+		_, err := s.Move(ui.RecordKind(c.kind), c.index, c.on)
 		refusedEdit(t, s, raw, err, c.other)
 		// The Object window's cell field moves through the same check.
-		_, err = s.SetObject(c.kind, c.index, nil, &c.on)
+		_, err = s.SetObject(ui.RecordKind(c.kind), c.index, nil, &c.on)
 		refusedEdit(t, s, raw, err, c.other)
-		_, err = s.Move(c.kind, c.index, c.free)
+		_, err = s.Move(ui.RecordKind(c.kind), c.index, c.free)
 		acceptedEdit(t, s, raw, err)
 	}
 }
@@ -255,7 +255,7 @@ func TestMapEditorPreviewHoldsARefusedAddAndTheWorldFootprint(t *testing.T) {
 	s := overlapHost(t, overlapMap(t, image.Point{}))
 	feet := func(d *ui.InspectionDocument, kind string, index int) image.Rectangle {
 		for _, r := range d.Records {
-			if r.Kind == kind && r.Index == index {
+			if string(r.Kind) == kind && r.Index == index {
 				return r.Footprint
 			}
 		}

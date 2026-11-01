@@ -140,11 +140,11 @@ func TestReleaseMapInspection1092EveryAuthoredPlacement(t *testing.T) {
 		want := rawInspection1092(t, d.SourceBytes)
 		got := map[string][]image.Point{}
 		for _, r := range d.Records {
-			if _, ok := want[r.Kind]; ok {
-				got[r.Kind] = append(got[r.Kind], r.Cell)
-				totals[r.Kind]++
+			if _, ok := want[string(r.Kind)]; ok {
+				got[string(r.Kind)] = append(got[string(r.Kind)], r.Cell)
+				totals[string(r.Kind)]++
 				if r.Preview != nil {
-					art[r.Kind]++
+					art[string(r.Kind)]++
 				} else if r.Spatial && r.Warning == "" {
 					t.Fatalf("%s unmarked missing art: %+v", key, r)
 				}

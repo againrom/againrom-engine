@@ -196,7 +196,7 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 			w.prompt.path = map[string]string{"Action": "0", "Condition": "1"}[c.kind]
 			_ = w.Key("enter")
 		} else {
-			w.openAdd(c.kind)
+			w.openAdd(RecordKind(c.kind))
 		}
 		onCell := false
 		for n := 0; n < 16; n++ {
@@ -245,7 +245,7 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 			x, y = new(int), new(int)
 			*x, *y = 25, 20
 		}
-		got, err := m.newRecordOf(c.kind, x, y, values, nil)
+		got, err := m.newRecordOf(RecordKind(c.kind), x, y, values, nil)
 		if err != nil || !reflect.DeepEqual(got, wh.added[0]) {
 			t.Fatalf("%s %v: add_record builds %+v (%v), the Add window %+v", c.kind, c.values, got, err, wh.added[0])
 		}

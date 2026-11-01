@@ -8,10 +8,6 @@ import (
 
 const editorScriptsFilter = 7
 
-func scriptRecord(kind string) bool {
-	return kind == "Action" || kind == "Condition" || kind == "Trigger"
-}
-
 func (e *MapEditor) keyScripts(string) error {
 	e.showRecords(editorScriptsFilter)
 	return nil
@@ -49,14 +45,14 @@ func (e *MapEditor) scriptSections() [4][]int {
 	for id, r := range e.doc.Records {
 		section := -1
 		switch r.Kind {
-		case "Trigger":
+		case KindTrigger:
 			section = 0
-		case "Condition":
+		case KindCondition:
 			v, ok := e.scriptViewOf(id)
 			if !ok || !variables[id] && !conditions[v.node.ID] {
 				section = 2
 			}
-		case "Action":
+		case KindAction:
 			v, ok := e.scriptViewOf(id)
 			if !ok || !actions[v.node.ID] {
 				section = 3

@@ -334,7 +334,7 @@ func TestEditorInputsUseOneModel(t *testing.T) {
 		t.Run(kind, func(t *testing.T) {
 			c := fakeTextClipboard(t)
 			e := NewMapEditor(nil, nil, nil)
-			e.doc = &InspectionDocument{Records: []InspectionRecord{{Kind: kind}}}
+			e.doc = &InspectionDocument{Records: []InspectionRecord{{Kind: RecordKind(kind)}}}
 			e.selected = 0
 			e.obj = objectEdit{doc: e.doc, record: 0, focus: 0, open: -1, fields: []InspectionField{{Key: "name", Text: true}}, buf: []string{"one два"}}
 			_ = e.Key("ctrl+shift+left")

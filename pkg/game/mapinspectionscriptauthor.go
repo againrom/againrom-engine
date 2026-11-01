@@ -13,13 +13,14 @@ import (
 	"againrom/pkg/ui"
 )
 
+// scriptKind reports a model section that holds script nodes.
 func scriptKind(k mapedit.Kind) bool {
 	return k == mapedit.KindAction || k == mapedit.KindCondition || k == mapedit.KindTrigger
 }
 
-func (s *mapInspectionEdits) AddScript(kind string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) AddScript(kind ui.RecordKind) (*ui.InspectionDocument, error) {
 	k, err := editKind(kind)
-	if err != nil || !scriptKind(k) {
+	if err != nil || !kind.Scripted() {
 		return nil, fmt.Errorf("no script kind %q", kind)
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {

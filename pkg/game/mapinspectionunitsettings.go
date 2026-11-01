@@ -43,7 +43,7 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 	if len(values) > 0 {
 		trial.model = s.model.Clone()
 		trial.batch = trial.model
-		if _, err := trial.SetFields("Unit", index, values); err != nil {
+		if _, err := trial.SetFields(ui.KindUnit, index, values); err != nil {
 			return ui.MapEntity{}, nil, nil, err
 		}
 	}
@@ -53,7 +53,7 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 			entity := c.entities[index]
 			entity.Knowledge, entity.KnowledgeKnown = 7, true
 			if pic, known := c.pictures[entity.ID]; known {
-				return entity, trial.Fields("Unit", index), pic, nil
+				return entity, trial.Fields(ui.KindUnit, index), pic, nil
 			}
 		}
 	}
@@ -103,7 +103,7 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 	for _, entity := range c.entities {
 		if int(entity.ID) == index {
 			entity.Knowledge, entity.KnowledgeKnown = 7, true
-			return entity, trial.Fields("Unit", index), c.pictures[entity.ID], nil
+			return entity, trial.Fields(ui.KindUnit, index), c.pictures[entity.ID], nil
 		}
 	}
 	return ui.MapEntity{}, nil, nil, fmt.Errorf("unit %d has no actor", index)

@@ -161,9 +161,9 @@ func (s *mapInspectionEdits) Goals() []ui.InspectionGoal {
 }
 
 func goalListing(m *alm.Map, sc alm.Script, heroes ui.HeroLabels, g goalRow) ui.InspectionGoal {
-	pick := "Unit"
+	pick := ui.KindUnit
 	if g.param == scriptStructParam {
-		pick = "Structure"
+		pick = ui.KindStructure
 	}
 	if g.node < 0 {
 		text := "add a check that loses the mission when a unit dies"
@@ -178,13 +178,13 @@ func goalListing(m *alm.Map, sc alm.Script, heroes ui.HeroLabels, g goalRow) ui.
 		who = fmt.Sprintf("trigger %q", sc.Triggers[g.trigger].Name)
 	}
 	target, cell, has := describeTarget(m, heroes, g.param, g.value)
-	openKind, openIndex := "Condition", g.node
+	openKind, openIndex := ui.KindCondition, g.node
 	if g.trigger >= 0 {
-		openKind, openIndex = "Trigger", g.trigger
+		openKind, openIndex = ui.KindTrigger, g.trigger
 	}
-	return ui.InspectionGoal{Arm: g.arm, Pick: pick, Kind: "Condition", Index: g.node, Cell: cell, HasCell: has,
+	return ui.InspectionGoal{Arm: g.arm, Pick: pick, Kind: ui.KindCondition, Index: g.node, Cell: cell, HasCell: has,
 		OpenKind: openKind, OpenIndex: openIndex,
-		Text: fmt.Sprintf("%s: %s, %s", who, strings.ToLower(inspectionOperation("Condition", n.Opcode)), target)}
+		Text: fmt.Sprintf("%s: %s, %s", who, strings.ToLower(inspectionOperation(ui.KindCondition, n.Opcode)), target)}
 }
 
 func (s *mapInspectionEdits) DropGoals() []ui.InspectionGoal {
@@ -199,8 +199,8 @@ func (s *mapInspectionEdits) DropGoals() []ui.InspectionGoal {
 	var rows []ui.InspectionGoal
 	for i, n := range sc.Actions {
 		if n.Opcode == 0x10002 {
-			rows = append(rows, ui.InspectionGoal{Arm: "Drop", Kind: "Action", Index: i,
-				OpenKind: "Action", OpenIndex: i, Cell: image.Pt(int(n.Value[0]), int(n.Value[1])), HasCell: true})
+			rows = append(rows, ui.InspectionGoal{Arm: "Drop", Kind: ui.KindAction, Index: i,
+				OpenKind: ui.KindAction, OpenIndex: i, Cell: image.Pt(int(n.Value[0]), int(n.Value[1])), HasCell: true})
 		}
 	}
 	return rows
@@ -247,9 +247,9 @@ func describeTarget(m *alm.Map, heroes ui.HeroLabels, param, value uint32) (stri
 // parameter: a unit's id, a unit's group id or a structure's id word. A value
 // another record also holds would name that record in the script, so it is
 // refused.
-func goalValue(m *alm.Map, param uint32, kind string, index int) (uint32, error) {
+func goalValue(m *alm.Map, param uint32, kind ui.RecordKind, index int) (uint32, error) {
 	switch {
-	case param == scriptStructParam && kind == "Structure" && index < len(m.Objects):
+	case param == scriptStructParam && kind == ui.KindStructure && index < len(m.Objects):
 		id := uint32(m.Objects[index].Field12)
 		if id == 0 {
 			return 0, fmt.Errorf("structure %d has no structure id", index)
@@ -260,7 +260,7 @@ func goalValue(m *alm.Map, param uint32, kind string, index int) (uint32, error)
 			}
 		}
 		return id, nil
-	case param == scriptUnitParam && kind == "Unit" && index < len(m.Units):
+	case param == scriptUnitParam && kind == ui.KindUnit && index < len(m.Units):
 		id := uint32(m.Units[index].UnitID)
 		if id == 0 {
 			return 0, fmt.Errorf("unit %d has no unit id", index)
@@ -271,7 +271,7 @@ func goalValue(m *alm.Map, param uint32, kind string, index int) (uint32, error)
 			}
 		}
 		return id, nil
-	case param == scriptGroupParam && kind == "Unit" && index < len(m.Units):
+	case param == scriptGroupParam && kind == ui.KindUnit && index < len(m.Units):
 		if id := m.Units[index].GroupID; id != 0 {
 			return id, nil
 		}
@@ -283,7 +283,7 @@ func goalValue(m *alm.Map, param uint32, kind string, index int) (uint32, error)
 
 // SetGoalTarget points goal at the unit or structure record picked on the map,
 // as one edit, or adds a protect check for a picked unit.
-func (s *mapInspectionEdits) SetGoalTarget(goal int, kind string, index int) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetGoalTarget(goal int, kind ui.RecordKind, index int) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		view, err := m.Map()
 		if err != nil {

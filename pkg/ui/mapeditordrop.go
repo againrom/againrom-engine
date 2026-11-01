@@ -150,7 +150,7 @@ func dropScatter(cell image.Point, r int) image.Rectangle {
 func (e *MapEditor) dropPopulation() int {
 	n := 1
 	for _, r := range e.doc.Records {
-		if r.Kind == "Unit" && r.Player == 1 {
+		if r.Kind == KindUnit && r.Player == 1 {
 			n++
 		}
 	}

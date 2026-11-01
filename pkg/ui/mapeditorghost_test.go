@@ -36,7 +36,7 @@ func (h *ghostHost) PreviewPlacement(r InspectionNewRecord) (*InspectionDocument
 	return &d, nil
 }
 
-func (h *ghostHost) CheckObjectCell(string, int, image.Point) error {
+func (h *ghostHost) CheckObjectCell(RecordKind, int, image.Point) error {
 	if h.refuse {
 		return fmt.Errorf("refused")
 	}

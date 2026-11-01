@@ -22,7 +22,7 @@ import (
 // when set, is the paste brush's clip instead: what PasteRecords would place
 // with the clip's origin on Cell.
 type InspectionNewRecord struct {
-	Kind    string
+	Kind    RecordKind
 	Cell    image.Point
 	HasCell bool
 	Values  []InspectionFieldValue
@@ -47,7 +47,7 @@ type InspectionNewStep struct {
 type InspectionNewRecords interface {
 	NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep
 	CheckNewRecord(r InspectionNewRecord, key string) error
-	NewRecordPreview(kind, key string, value int64) *image.RGBA
+	NewRecordPreview(kind RecordKind, key string, value int64) *image.RGBA
 	AddRecord(r InspectionNewRecord) (*InspectionDocument, error)
 }
 
@@ -73,14 +73,15 @@ type addStep struct {
 	Word     string
 	Control  addControl
 	Optional bool
-	Kinds    []string
+	Kinds    []RecordKind
 }
 
 // addKindRow is one record kind the window adds: the kind the host adds, the
 // title word, the word a kind step offers it by, the list views whose Add
 // button opens it and its steps.
 type addKindRow struct {
-	Kind, Word string
+	Kind       RecordKind
+	Word       string
 	ChoiceWord string
 	Filters    []int
 	Steps      []addStep
@@ -94,34 +95,34 @@ var (
 
 // addKinds is every kind the Add window creates, as data.
 var addKinds = []addKindRow{
-	{Kind: "Enchantment", Word: "editor.cast.add", Filters: []int{5}, Steps: []addStep{
+	{Kind: KindEnchantment, Word: "editor.cast.add", Filters: []int{5}, Steps: []addStep{
 		{Key: "template", Word: "editor.cast.template", Control: addChoice},
 		{Key: "link", Word: "editor.cast.link", Control: addNumber}, addAt,
 		{Key: "spell", Word: "editor.cast.spell", Control: addChoice},
 		{Key: "power", Word: "editor.cast.powerstep", Control: addNumber},
 		{Key: "castkind", Word: "editor.cast.kind", Control: addChoice, Optional: true},
 		{Key: "range", Word: "editor.cast.range", Control: addNumber, Optional: true}}},
-	{Kind: "Unit", Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
+	{Kind: KindUnit, Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
 		{Key: "class", Word: "editor.add.class", Control: addSprites},
 		{Key: "tier", Word: "editor.unit.tier", Control: addChoice, Optional: true},
 		addOwner, {Key: "group", Word: "editor.unit.field.group", Control: addNumber}, addAt}},
-	{Kind: "Structure", Word: "editor.add.structure", Filters: []int{2}, Steps: []addStep{
+	{Kind: KindStructure, Word: "editor.add.structure", Filters: []int{2}, Steps: []addStep{
 		{Key: "kind", Word: "editor.add.kind", Control: addSprites}, addOwner, addAt}},
-	{Kind: "Sack", Word: "editor.add.sack", Filters: []int{3}, Steps: []addStep{
+	{Kind: KindSack, Word: "editor.add.sack", Filters: []int{3}, Steps: []addStep{
 		addAt, {Key: "item", Word: "editor.add.items", Control: addMany}}},
-	{Kind: "Player", Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
+	{Kind: KindPlayer, Word: "editor.add.player", Filters: []int{editorPlayersFilter}, Steps: []addStep{
 		addNamed, {Key: "colour", Word: "editor.add.colour", Control: addNumber},
 		{Key: "control", Word: "editor.add.control", Control: addChoice}}},
-	{Kind: "Trigger", Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
+	{Kind: KindTrigger, Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
-	{Kind: "Script", Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
-		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []string{"Action", "Condition", "Trigger", "Message"}}}},
-	{Kind: "Message", Word: "editor.message.new", ChoiceWord: "editor.message.new"},
-	{Kind: "Action", Word: "editor.add.action", ChoiceWord: "editor.add.kind.action"},
-	{Kind: "Condition", Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition"},
+	{Kind: KindScript, Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
+		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []RecordKind{KindAction, KindCondition, KindTrigger, KindMessage}}}},
+	{Kind: KindMessage, Word: "editor.message.new", ChoiceWord: "editor.message.new"},
+	{Kind: KindAction, Word: "editor.add.action", ChoiceWord: "editor.add.kind.action"},
+	{Kind: KindCondition, Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition"},
 }
 
-func addKindOf(kind string) (addKindRow, bool) {
+func addKindOf(kind RecordKind) (addKindRow, bool) {
 	for _, k := range addKinds {
 		if k.Kind == kind {
 			return k, true
@@ -147,7 +148,7 @@ func addKindFor(filter int) (addKindRow, bool) {
 // chosen values, the labels a kept step's choices read as, the steps left
 // out, the asked step's offer and list, and why the last step did not go on.
 type addRun struct {
-	kind       string
+	kind       RecordKind
 	title      string
 	steps      []addStep
 	at         int
@@ -176,7 +177,7 @@ func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
 }
 
 // openAdd opens the Add window on kind's first step.
-func (e *MapEditor) openAdd(kind string) {
+func (e *MapEditor) openAdd(kind RecordKind) {
 	row, ok := addKindOf(kind)
 	if _, host := e.addHost(); !ok || !host {
 		return
@@ -189,7 +190,7 @@ func (e *MapEditor) openAdd(kind string) {
 	run.setSteps(row.Steps)
 	e.openPrompt(editorPrompt{kind: promptAdd, add: run})
 	e.enterAddStep(0, 1)
-	if row.Kind == "Unit" || row.Kind == "Structure" || row.Kind == "Sack" {
+	if row.Kind.Placed() {
 		e.armPick(pickAddCell)
 	}
 }
@@ -524,11 +525,11 @@ func (r *addRun) first() int {
 // its last step with the reason.
 func (e *MapEditor) addFinish() {
 	r, _ := e.addRunning()
-	if r.kind == "Message" {
+	if r.kind == KindMessage {
 		if _, ok := e.doc.Edits.(InspectionMessages); ok {
 			e.leave(leavePrompt)
 			e.objectBack = nil
-			e.beginMessage(InspectionMessageOwner{Kind: "Message"}, false)
+			e.beginMessage(InspectionMessageOwner{Kind: KindMessage}, false)
 			return
 		}
 	}
@@ -542,9 +543,9 @@ func (e *MapEditor) addFinish() {
 		return
 	}
 	e.leave(leavePrompt)
-	if r.kind == "Message" {
+	if r.kind == KindMessage {
 		e.messagePage = 0
-		e.selectNewest("Action")
+		e.selectNewest(KindAction)
 		e.obj.doc = nil
 		e.loadObject()
 		for i, f := range e.obj.fields {

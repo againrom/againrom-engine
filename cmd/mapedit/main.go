@@ -215,7 +215,7 @@ func runAs(self string, args []string, out io.Writer) error {
 		}
 		found := false
 		for i, r := range e.Document().Records {
-			if strings.EqualFold(parts[0], r.Kind) && r.Index == n {
+			if strings.EqualFold(parts[0], r.Kind.String()) && r.Index == n {
 				e.Select(i, true)
 				found = true
 				break

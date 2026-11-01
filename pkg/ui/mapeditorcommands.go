@@ -218,7 +218,7 @@ func editorCommandRows() []editorCommand {
 				opt("verbose", verboseArg())},
 			(*MapEditor).decodePaint, (*MapEditor).commandPaint),
 		typedCommand("add_record", "Add one record as the Add window does: values by step key (add_steps lists the steps and choices), x,y for a record on a cell; a Message takes parts and adds an action showing a new message page",
-			[]commandArg{req("kind", textArg("Record kind", addCommandKinds()...)), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),
+			[]commandArg{req("kind", textArg("Record kind", kindWords(addCommandKinds()...)...)), opt("x", intArg("Cell x")), opt("y", intArg("Cell y")),
 				opt("values", map[string]any{"type": "object", "description": "Step key to value: an integer, a text for a name step, a list of integers for a many step; a step left out takes its default",
 					"additionalProperties": map[string]any{"type": []string{"integer", "string", "array"}}}),
 				opt("parts", messagePartsArg())},
@@ -279,7 +279,7 @@ func editorCommandRows() []editorCommand {
 			[]commandArg{req("unit", intArg("Unit index"))},
 			(*MapEditor).decodeAddStock, (*MapEditor).commandAddStock),
 		typedCommand("add_item_recipe", "Add an item recipe to a stock or a sack, as I and its item prompt do",
-			[]commandArg{req("kind", textArg("Record kind", "Stock", "Sack")), req("index", intArg("Record index")), req("item", intArg("Item number, from 1"))},
+			[]commandArg{req("kind", textArg("Record kind", kindWords(KindStock, KindSack)...)), req("index", intArg("Record index")), req("item", intArg("Item number, from 1"))},
 			(*MapEditor).decodeAddItemRecipe, (*MapEditor).commandAddItemRecipe),
 		typedCommand("write_message", "Write a message's parts as the message editor's Apply does: page alone rewrites that page; action alone gives the action a new page; both point the action at the page and rewrite it",
 			[]commandArg{opt("page", intArg("Message page, from messages")), opt("action", intArg("Action record index whose message parameter takes the page")), req("parts", messagePartsArg())},
@@ -288,7 +288,7 @@ func editorCommandRows() []editorCommand {
 			[]commandArg{req("area", areaArg("The box")), opt("trigger", intArg("Trigger index; default -1, a new trigger"))},
 			(*MapEditor).decodeAddBoxArea, (*MapEditor).commandAddBoxArea),
 		typedCommand("set_goal_target", "Point a script goal at a unit or structure, as a pick from the Goals (G) report does; goals lists the goals and the kind each takes",
-			[]commandArg{req("goal", intArg("Goal index, from goals")), req("kind", textArg("Record kind", "Unit", "Structure")), req("index", intArg("Record index"))},
+			[]commandArg{req("goal", intArg("Goal index, from goals")), req("kind", textArg("Record kind", kindWords(KindUnit, KindStructure)...)), req("index", intArg("Record index"))},
 			(*MapEditor).decodeSetGoalTarget, (*MapEditor).commandSetGoalTarget),
 		typedCommand("set_map_field", "Set a map property, as the Metadata (M) and Pages (X) prompts and the mod package window (W) do; map_fields lists the keys",
 			[]commandArg{req("scope", textArg("Field group", "metadata", "pages", "package")), req("key", textArg("Field key")), req("value", textArg("Value as typed"))},
@@ -366,7 +366,7 @@ func (e *MapEditor) commandAddRecord(rec InspectionNewRecord) (editorChange, err
 
 // fieldEdit is one field of a record: a number, or a text when Text.
 type fieldEdit struct {
-	Kind  string
+	Kind  RecordKind
 	Index int
 	Value InspectionFieldValue
 }
@@ -392,7 +392,7 @@ func (e *MapEditor) commandSetField(f fieldEdit) (editorChange, error) {
 // recordFields is several fields of one record and, for the object popup, the
 // cell it moves to.
 type recordFields struct {
-	Kind   string
+	Kind   RecordKind
 	Index  int
 	Values []InspectionFieldValue
 	Move   *image.Point
@@ -424,7 +424,7 @@ func (e *MapEditor) commandSetObject(o recordFields) (editorChange, error) {
 
 // setFields writes values through the host's one-edit seam, or field by
 // field on a host without it.
-func (e *MapEditor) setFields(kind string, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
+func (e *MapEditor) setFields(kind RecordKind, index int, values []InspectionFieldValue) (*InspectionDocument, error) {
 	if host, ok := e.doc.Edits.(InspectionFieldSet); ok {
 		return host.SetFields(kind, index, values)
 	}
@@ -478,7 +478,7 @@ func (e *MapEditor) commandClone(m recordAt) (editorChange, error) {
 }
 
 // newestOf is the record of kind with the highest index in d.
-func newestOf(d *InspectionDocument, kind string) *RecordRef {
+func newestOf(d *InspectionDocument, kind RecordKind) *RecordRef {
 	var out *RecordRef
 	for _, r := range d.Records {
 		if r.Kind == kind && (out == nil || r.Index > out.Index) {
@@ -580,7 +580,7 @@ func (e *MapEditor) commandWriteTrigger(t WizardTrigger) (editorChange, error) {
 			index = len(next.Script.Triggers) - 1
 		}
 		if index >= 0 && index < len(next.Script.Triggers) {
-			ref = &RecordRef{Kind: "Trigger", Index: index}
+			ref = &RecordRef{Kind: KindTrigger, Index: index}
 		}
 	}
 	return e.adopted(next, ref)
@@ -816,21 +816,21 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 
 // addCommandKinds are the Add window kinds a command adds: each kind whose
 // steps the window asks before one host add.
-func addCommandKinds() []string {
-	var out []string
+func addCommandKinds() []RecordKind {
+	var out []RecordKind
 	for _, k := range addKinds {
-		if len(k.Steps) > 0 && k.Kind != "Script" {
+		if len(k.Steps) > 0 && k.Kind != KindScript {
 			out = append(out, k.Kind)
 		}
 	}
-	return append(out, "Action", "Condition", "Message")
+	return append(out, KindAction, KindCondition, KindMessage)
 }
 
 // decodeAddRecord is a record the Add window's walk assembles, or for a
 // Message the message editor's first Apply: an action showing a new page.
 func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 	a, err := decodeArgs[struct {
-		Kind   string
+		Kind   RecordKind
 		X, Y   *int
 		Values map[string]json.RawMessage
 		Parts  []messagePartArgs
@@ -838,7 +838,7 @@ func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 	if err != nil {
 		return addValue{}, err
 	}
-	if a.Kind != "Message" {
+	if a.Kind != KindMessage {
 		if a.Parts != nil {
 			return addValue{}, fmt.Errorf("parts are a Message's")
 		}
@@ -853,7 +853,7 @@ func (e *MapEditor) decodeAddRecord(raw json.RawMessage) (addValue, error) {
 		return addValue{}, fmt.Errorf("a Message takes parts alone")
 	}
 	parts, err := e.messageParts(host, NewMessagePage, a.Parts)
-	return addValue{message: &messageWrite{Owner: &InspectionMessageOwner{Kind: "Message"}, Page: NewMessagePage, Parts: parts}}, err
+	return addValue{message: &messageWrite{Owner: &InspectionMessageOwner{Kind: KindMessage}, Page: NewMessagePage, Parts: parts}}, err
 }
 
 // addStepSeen is one step as newRecordOf walked it: the host's offer, whether
@@ -867,10 +867,10 @@ type addStepSeen func(st addStep, offer InspectionNewStep, skipped bool, refused
 // Enter checks it, and addRecord assembles the record. With seen it reads
 // instead of refusing: a missing cell or many value is left out and a
 // refused value is reported to seen.
-func (e *MapEditor) newRecordOf(kind string, x, y *int, values map[string]json.RawMessage, seen addStepSeen) (InspectionNewRecord, error) {
+func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]json.RawMessage, seen addStepSeen) (InspectionNewRecord, error) {
 	row, ok := addKindOf(kind)
 	host, hok := e.addHost()
-	if !ok || !hok || kind == "Script" || kind == "Message" {
+	if !ok || !hok || kind == KindScript || kind == KindMessage {
 		return InspectionNewRecord{}, fmt.Errorf("add_record adds no %q record", kind)
 	}
 	r := &addRun{kind: kind, at: -1}
@@ -967,7 +967,7 @@ func (e *MapEditor) newRecordOf(kind string, x, y *int, values map[string]json.R
 }
 
 // recordOf is the open document's record ref names.
-func (e *MapEditor) recordOf(kind string, index int) (InspectionRecord, error) {
+func (e *MapEditor) recordOf(kind RecordKind, index int) (InspectionRecord, error) {
 	if e.doc != nil {
 		for _, r := range e.doc.Records {
 			if r.Kind == kind && r.Index == index {
@@ -983,7 +983,7 @@ func (e *MapEditor) recordOf(kind string, index int) (InspectionRecord, error) {
 // A number passes the window's fieldNumber as the field prompt's text: no
 // value in an inheriting field is its empty text and inherits, and a 0 that
 // the field stores as inherited is refused with the prompt's words.
-func (e *MapEditor) fieldValue(kind string, index int, key string, value *int64, text *string) (InspectionFieldValue, error) {
+func (e *MapEditor) fieldValue(kind RecordKind, index int, key string, value *int64, text *string) (InspectionFieldValue, error) {
 	if _, err := e.recordOf(kind, index); err != nil {
 		return InspectionFieldValue{}, err
 	}
@@ -1024,7 +1024,7 @@ type fieldArgs struct {
 
 func (e *MapEditor) decodeSetField(raw json.RawMessage) (fieldEdit, error) {
 	a, err := decodeArgs[struct {
-		Kind  string
+		Kind  RecordKind
 		Index int
 		fieldArgs
 	}](raw, editorCommandArgs("set_field"))
@@ -1035,7 +1035,7 @@ func (e *MapEditor) decodeSetField(raw json.RawMessage) (fieldEdit, error) {
 	return fieldEdit{Kind: a.Kind, Index: a.Index, Value: v}, err
 }
 
-func (e *MapEditor) objectValues(kind string, index int, fields []fieldArgs) (recordFields, error) {
+func (e *MapEditor) objectValues(kind RecordKind, index int, fields []fieldArgs) (recordFields, error) {
 	o := recordFields{Kind: kind, Index: index}
 	for _, f := range fields {
 		v, err := e.fieldValue(kind, index, f.Key, f.Value, f.Text)
@@ -1049,7 +1049,7 @@ func (e *MapEditor) objectValues(kind string, index int, fields []fieldArgs) (re
 
 func (e *MapEditor) decodeSetFields(raw json.RawMessage) (recordFields, error) {
 	a, err := decodeArgs[struct {
-		Kind   string
+		Kind   RecordKind
 		Index  int
 		Fields []fieldArgs
 	}](raw, editorCommandArgs("set_fields"))
@@ -1064,7 +1064,7 @@ func (e *MapEditor) decodeSetFields(raw json.RawMessage) (recordFields, error) {
 
 func (e *MapEditor) decodeSetObject(raw json.RawMessage) (recordFields, error) {
 	a, err := decodeArgs[struct {
-		Kind   string
+		Kind   RecordKind
 		Index  int
 		Fields []fieldArgs
 		Cell   []int
@@ -1078,7 +1078,7 @@ func (e *MapEditor) decodeSetObject(raw json.RawMessage) (recordFields, error) {
 	}
 	if a.Cell != nil {
 		r, _ := e.recordOf(a.Kind, a.Index)
-		if !editableKind(a.Kind) || !r.Spatial {
+		if !a.Kind.Editable() || !r.Spatial {
 			return o, fmt.Errorf("a %s does not move", a.Kind)
 		}
 		if len(a.Cell) != 2 {
@@ -1097,7 +1097,7 @@ func (e *MapEditor) decodeSetObject(raw json.RawMessage) (recordFields, error) {
 }
 
 type recordArgs struct {
-	Kind  string
+	Kind  RecordKind
 	Index int
 	X, Y  int
 }
@@ -1111,7 +1111,7 @@ func (e *MapEditor) recordAtOf(name string, raw json.RawMessage) (recordAt, erro
 	if err != nil {
 		return recordAt{}, err
 	}
-	if !r.Spatial || name == "clone_record" && !editableKind(a.Kind) {
+	if !r.Spatial || name == "clone_record" && !a.Kind.Editable() {
 		return recordAt{}, fmt.Errorf("a %s record does not stand on the map here", a.Kind)
 	}
 	c, err := e.cellOn(a.X, a.Y)
@@ -1363,7 +1363,7 @@ func (e *MapEditor) decodeWriteTrigger(raw json.RawMessage) (triggerWrite, error
 		return w, errNoEditHost
 	}
 	plan := t
-	m := messageWrite{Owner: &InspectionMessageOwner{Kind: "Trigger", Index: t.Index, Trigger: &plan, Action: dialogue}, Page: NewMessagePage}
+	m := messageWrite{Owner: &InspectionMessageOwner{Kind: KindTrigger, Index: t.Index, Trigger: &plan, Action: dialogue}, Page: NewMessagePage}
 	if m.Parts, err = e.messageParts(host, NewMessagePage, a.Actions[dialogue].Parts); err != nil {
 		return w, err
 	}
@@ -1564,7 +1564,7 @@ var cellPlanes = []struct {
 func (e *MapEditor) changeReport(before *InspectionDocument, ch editorChange, cells bool) map[string]any {
 	out := map[string]any{"changed": ch.doc != nil, "record": ch.record, "dirty": e.Dirty(),
 		"message": e.mcpDisplay(e.message), "prompt_open": e.prompt.open()}
-	if r := ch.record; r != nil && !ch.removed && (r.Kind == "Unit" || r.Kind == "Structure") {
+	if r := ch.record; r != nil && !ch.removed && r.Kind.Addressed() {
 		if rec, err := e.recordOf(r.Kind, r.Index); err == nil {
 			out["script_id"] = rec.ScriptID
 		}

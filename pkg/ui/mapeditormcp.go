@@ -521,16 +521,16 @@ func (e *MapEditor) mcpMap(a editorToolArgs) (any, error) {
 	objects := []InspectionRecord{}
 	for _, r := range d.Records {
 		group := "other"
-		switch r.Kind {
-		case "Player":
+		switch {
+		case r.Kind == KindPlayer:
 			group = "players"
-		case "Unit":
+		case r.Kind == KindUnit:
 			group = "units"
-		case "Structure":
+		case r.Kind == KindStructure:
 			group = "structures"
-		case "Sack":
+		case r.Kind == KindSack:
 			group = "loot"
-		case "Trigger", "Condition", "Action":
+		case r.Kind.Scripted():
 			group = "triggers"
 		}
 		r = e.plainRecord(r)

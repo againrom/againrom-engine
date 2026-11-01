@@ -16,7 +16,7 @@ type editorInputPolicy struct {
 }
 
 type InspectionInputRules interface {
-	InputRule(scope, kind, key string) (int, func(rune) int)
+	InputRule(scope string, kind RecordKind, key string) (int, func(rune) int)
 }
 
 func editorNumericBytes(r rune) int {
@@ -105,7 +105,8 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		return utf8.RuneLen(r)
 	}}
 	var field *InspectionField
-	scope, kind, name := "", "", ""
+	scope, name := "", ""
+	var kind RecordKind
 	key := ""
 	var target *string
 	if e.pathDialog.pending != nil {

@@ -22,7 +22,7 @@ func TestMapReportFindsPlayerReferencesInBothNodeArrays(t *testing.T) {
 			if !row.Error || row.Index != 0 {
 				t.Fatalf("player reference has wrong location or severity: %+v", row)
 			}
-			seen[row.Kind] = true
+			seen[string(row.Kind)] = true
 		}
 	}
 	if !seen["Action"] || !seen["Condition"] {
@@ -40,7 +40,7 @@ func TestMapReportUsesStructureOwnerLowWordAndWholeUnitWord(t *testing.T) {
 		rows := ofRule(findings(t, checkInspector(), m, "fixture.alm"), "owner-slot")
 		counts := map[string]int{}
 		for _, row := range rows {
-			counts[row.Kind]++
+			counts[string(row.Kind)]++
 		}
 		wantStructure := 1
 		if owner == 0x10001 {

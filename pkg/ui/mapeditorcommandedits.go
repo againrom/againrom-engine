@@ -121,14 +121,14 @@ func (e *MapEditor) commandAddStock(unit int) (editorChange, error) {
 	}
 	var ref *RecordRef
 	if next != nil {
-		ref = newestOf(next, "Stock")
+		ref = newestOf(next, KindStock)
 	}
 	return e.adopted(next, ref)
 }
 
 // itemRecipe is item Item's recipe added to a stock or sack.
 type itemRecipe struct {
-	Kind  string
+	Kind  RecordKind
 	Index int
 	Item  int64
 }
@@ -144,7 +144,7 @@ func (e *MapEditor) commandAddItemRecipe(r itemRecipe) (editorChange, error) {
 	}
 	var ref *RecordRef
 	if next != nil {
-		ref = newestOf(next, "Enchantment")
+		ref = newestOf(next, KindEnchantment)
 	}
 	return e.adopted(next, ref)
 }
@@ -180,10 +180,10 @@ func (e *MapEditor) commandWriteMessage(w messageWrite) (editorChange, error) {
 	var ref *RecordRef
 	switch {
 	case next == nil || w.Owner == nil:
-	case w.Owner.Kind == "Message":
-		ref = newestOf(next, "Action")
-	case w.Owner.Kind == "Trigger" && w.Owner.Index < 0:
-		ref = newestOf(next, "Trigger")
+	case w.Owner.Kind == KindMessage:
+		ref = newestOf(next, KindAction)
+	case w.Owner.Kind == KindTrigger && w.Owner.Index < 0:
+		ref = newestOf(next, KindTrigger)
 	default:
 		ref = &RecordRef{Kind: w.Owner.Kind, Index: w.Owner.Index}
 	}
@@ -214,7 +214,7 @@ func (e *MapEditor) commandAddBoxArea(a boxArea) (editorChange, error) {
 		if t < 0 {
 			t = len(next.Script.Triggers) - 1
 		}
-		ref = &RecordRef{Kind: "Trigger", Index: t}
+		ref = &RecordRef{Kind: KindTrigger, Index: t}
 	}
 	return e.adopted(next, ref)
 }
@@ -281,7 +281,7 @@ func (e *MapEditor) groupRefs(refs []RecordRef) ([]RecordRef, error) {
 		if err != nil {
 			return nil, err
 		}
-		if !selectable(r.Kind) || !r.Spatial {
+		if !r.Kind.Placed() || !r.Spatial {
 			return nil, fmt.Errorf("a selection takes no %s record", ref.Kind)
 		}
 		if slices.Contains(refs[:i], ref) {
@@ -422,13 +422,13 @@ func (e *MapEditor) decodeSetUnitsGroup(raw json.RawMessage) (unitsGroup, error)
 	}
 	g := unitsGroup{Group: a.Group}
 	for i, u := range a.Units {
-		if _, err := e.recordOf("Unit", u); err != nil {
+		if _, err := e.recordOf(KindUnit, u); err != nil {
 			return g, err
 		}
 		if slices.Contains(a.Units[:i], u) {
 			return g, fmt.Errorf("unit %d is named twice", u)
 		}
-		g.Units = append(g.Units, RecordRef{Kind: "Unit", Index: u})
+		g.Units = append(g.Units, RecordRef{Kind: KindUnit, Index: u})
 	}
 	switch {
 	case a.Group == -1:
@@ -447,7 +447,7 @@ func (e *MapEditor) decodeAddStock(raw json.RawMessage) (int, error) {
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
 		return 0, errNoEditHost
 	}
-	_, err = e.recordOf("Unit", a.Unit)
+	_, err = e.recordOf(KindUnit, a.Unit)
 	return a.Unit, err
 }
 
@@ -459,7 +459,7 @@ func (e *MapEditor) decodeAddItemRecipe(raw json.RawMessage) (itemRecipe, error)
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
 		return a, errNoEditHost
 	}
-	if a.Kind != "Stock" && a.Kind != "Sack" {
+	if a.Kind != KindStock && a.Kind != KindSack {
 		return a, fmt.Errorf("a recipe goes in a Stock or a Sack")
 	}
 	_, err = e.recordOf(a.Kind, a.Index)
@@ -537,10 +537,10 @@ func (e *MapEditor) decodeWriteMessage(raw json.RawMessage) (messageWrite, error
 	}
 	w := messageWrite{Page: NewMessagePage}
 	if a.Action != nil {
-		if _, err := e.recordOf("Action", *a.Action); err != nil {
+		if _, err := e.recordOf(KindAction, *a.Action); err != nil {
 			return w, err
 		}
-		w.Owner = &InspectionMessageOwner{Kind: "Action", Index: *a.Action, Key: "value0"}
+		w.Owner = &InspectionMessageOwner{Kind: KindAction, Index: *a.Action, Key: "value0"}
 	}
 	if a.Page != nil {
 		if *a.Page <= 0 || *a.Page >= int64(NewMessagePage) {
@@ -583,7 +583,7 @@ func (e *MapEditor) decodeAddBoxArea(raw json.RawMessage) (boxArea, error) {
 func (e *MapEditor) decodeSetGoalTarget(raw json.RawMessage) (goalTarget, error) {
 	a, err := decodeArgs[struct {
 		Goal  int
-		Kind  string
+		Kind  RecordKind
 		Index int
 	}](raw, editorCommandArgs("set_goal_target"))
 	if err != nil {

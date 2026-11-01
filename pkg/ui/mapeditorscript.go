@@ -66,11 +66,11 @@ func (e *MapEditor) goalText(g InspectionGoal) string {
 	}
 	if g.OpenKind != "" {
 		format := e.word("editor.arms.Condition")
-		if g.OpenKind == "Trigger" {
+		if g.OpenKind == KindTrigger {
 			format = e.word("editor.arms.Trigger")
 		}
 		label := fmt.Sprintf(format, g.OpenIndex+1)
-		if g.OpenKind == "Trigger" && e.doc.Script != nil && g.OpenIndex < len(e.doc.Script.Triggers) {
+		if g.OpenKind == KindTrigger && e.doc.Script != nil && g.OpenIndex < len(e.doc.Script.Triggers) {
 			label += "  " + e.editorHostText(e.doc.Script.Triggers[g.OpenIndex].Name)
 		}
 		if g.HasCell {
@@ -187,7 +187,7 @@ func (e *MapEditor) goalAt(p image.Point) {
 		}
 		return
 	}
-	e.message = "Click a " + map[string]string{"Unit": "unit", "Structure": "structure"}[g.Pick] + " on the map."
+	e.message = "Click a " + map[RecordKind]string{KindUnit: "unit", KindStructure: "structure"}[g.Pick] + " on the map."
 }
 
 // dropMarkers are the cells the script drops the party on.

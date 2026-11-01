@@ -131,7 +131,7 @@ func TestMapEditorHostedWindowsFitEveryPanelWidth(t *testing.T) {
 				if kind == "group" {
 					e.chooseGroup(e.groups()[0], false)
 				} else {
-					e.Select(slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return r.Kind == kind }), false)
+					e.Select(slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return string(r.Kind) == kind }), false)
 				}
 				for _, p := range hostedFitProblems(e) {
 					t.Errorf("%s %s at %d: %s", lang, kind, width, p)

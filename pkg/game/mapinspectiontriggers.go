@@ -10,8 +10,8 @@ import (
 	"againrom/pkg/ui"
 )
 
-func inspectionOperation(kind string, opcode uint32) string {
-	return mapload.ScriptOperationName(kind == "Condition", opcode)
+func inspectionOperation(kind ui.RecordKind, opcode uint32) string {
+	return mapload.ScriptOperationName(kind == ui.KindCondition, opcode)
 }
 
 type inspectionScript struct {
@@ -37,32 +37,32 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 	for _, r := range d.Records {
 		t := ui.InspectionTarget{Cell: r.Cell, Size: r.Size}
 		switch r.Kind {
-		case "Unit":
+		case ui.KindUnit:
 			u := m.Units[r.Index]
 			s.units[uint32(u.UnitID)] = append(s.units[uint32(u.UnitID)], t)
 			s.groups[u.GroupID] = append(s.groups[u.GroupID], t)
-		case "Structure":
+		case ui.KindStructure:
 			id := uint32(m.Objects[r.Index].Field12)
 			s.structures[id] = append(s.structures[id], t)
 		}
 	}
 	model := &ui.InspectionScriptModel{}
 	for _, family := range []struct {
-		kind  string
+		kind  ui.RecordKind
 		nodes []alm.ScriptNode
 		out   *[]ui.InspectionScriptNode
-	}{{"Action", script.Actions, &model.Actions}, {"Condition", script.Conditions, &model.Conditions}} {
+	}{{ui.KindAction, script.Actions, &model.Actions}, {ui.KindCondition, script.Conditions, &model.Conditions}} {
 		for i, n := range family.nodes {
 			r := ui.InspectionRecord{Kind: family.kind, Section: 7, Index: i, Label: text(n.Label)}
 			s.node(&r, family.kind, n)
 			*family.out = append(*family.out, ui.InspectionScriptNode{Record: len(d.Records), ID: n.ID, Opcode: n.Opcode, Label: n.Label, Types: n.Type, Values: n.Value,
-				AddressesVariable: scriptAddressesVariable(family.kind == "Condition", n.Opcode), VariableRegister: scriptVariable(n)})
+				AddressesVariable: scriptAddressesVariable(family.kind == ui.KindCondition, n.Opcode), VariableRegister: scriptVariable(n)})
 			d.Records = append(d.Records, r)
 		}
 	}
 	for i, t := range script.Triggers {
 		model.Triggers = append(model.Triggers, ui.InspectionTrigger{Record: len(d.Records), Name: t.Name, Left: t.Left, Right: t.Right, Cmp: t.Cmp, Acts: t.Acts, Once: t.Once})
-		r := ui.InspectionRecord{Kind: "Trigger", Section: 7, Index: i, Label: text(t.Name)}
+		r := ui.InspectionRecord{Kind: ui.KindTrigger, Section: 7, Index: i, Label: text(t.Name)}
 		once := "repeat while conditions hold"
 		if t.Once != 0 {
 			once = "at most once per session"
@@ -92,7 +92,7 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		for p, id := range t.Acts {
 			label := "empty"
 			if id != 0 {
-				label = s.nodeCaption("Action", id)
+				label = s.nodeCaption(ui.KindAction, id)
 			}
 			s.line(&r, fmt.Sprintf("%d: A%d / %s", p+1, id, label), "action")
 		}
@@ -104,9 +104,9 @@ func inspectScript(d *ui.InspectionDocument, m *alm.Map, script alm.Script, text
 		// once, so C1==C1 does not bury the next clause in duplicate arguments.
 		seen := make(map[string]bool)
 		for _, family := range []struct {
-			kind string
+			kind ui.RecordKind
 			ids  []uint32
-		}{{"Condition", []uint32{t.Left[0], t.Right[0], t.Left[1], t.Right[1], t.Left[2], t.Right[2]}}, {"Action", t.Acts[:]}} {
+		}{{ui.KindCondition, []uint32{t.Left[0], t.Right[0], t.Left[1], t.Right[1], t.Left[2], t.Right[2]}}, {ui.KindAction, t.Acts[:]}} {
 			for _, id := range family.ids {
 				key := fmt.Sprintf("%s:%d", family.kind, id)
 				if id == 0 || seen[key] {
@@ -164,14 +164,14 @@ func scriptCatalog() ui.InspectionScriptCatalog {
 		}}
 }
 
-func (s *inspectionScript) nodeMap(kind string) map[uint32][]alm.ScriptNode {
-	if kind == "Condition" {
+func (s *inspectionScript) nodeMap(kind ui.RecordKind) map[uint32][]alm.ScriptNode {
+	if kind == ui.KindCondition {
 		return s.conditions
 	}
 	return s.actions
 }
 
-func (s *inspectionScript) nodeCaption(kind string, id uint32) string {
+func (s *inspectionScript) nodeCaption(kind ui.RecordKind, id uint32) string {
 	nodes := s.nodeMap(kind)[id]
 	if len(nodes) == 0 {
 		return fmt.Sprintf("Unresolved %s ID %d", kind, id)
@@ -200,8 +200,8 @@ func (s *inspectionScript) link(r *ui.InspectionRecord, label, role string, targ
 	r.Lines = append(r.Lines, ui.InspectionLine{Text: label, Role: role, Reference: ref})
 }
 
-func (s *inspectionScript) node(r *ui.InspectionRecord, kind string, n alm.ScriptNode) {
-	role := strings.ToLower(kind)
+func (s *inspectionScript) node(r *ui.InspectionRecord, kind ui.RecordKind, n alm.ScriptNode) {
+	role := strings.ToLower(kind.String())
 	op := inspectionOperation(kind, n.Opcode)
 	s.line(r, fmt.Sprintf("%s ID %d: %s", kind, n.ID, op), role)
 	s.line(r, fmt.Sprintf("Label: %s / opcode %d", s.text(n.Label), n.Opcode), "")
@@ -248,7 +248,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind string, n alm.Scrip
 	// distinct authored cells even when this node's center is byte-sized. Keep
 	// their raw point, but withhold a semantic map region instead of inventing
 	// an unmasked square or emulating the runtime's coordinate aliases.
-	if kind == "Condition" && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
+	if kind == ui.KindCondition && n.Opcode == 3 && n.Type[0] == 4 && n.Type[1] == 5 && n.Type[2] == 6 && n.Type[3] == 1 {
 		switch {
 		case n.Value[1] > 255 || n.Value[2] > 255 || s.m.Width > 256 || s.m.Height > 256:
 			s.issue(r, "Distance region withheld: byte-masked coordinates; authored point only")
@@ -259,7 +259,7 @@ func (s *inspectionScript) node(r *ui.InspectionRecord, kind string, n alm.Scrip
 			s.link(r, fmt.Sprintf("Distance square: %d,%d radius %d", x, y, radius), role, []ui.InspectionTarget{{Cell: image.Pt(x-radius, y-radius), Size: image.Pt(2*radius+1, 2*radius+1)}})
 		}
 	}
-	if kind == "Condition" && n.Opcode == 2 {
+	if kind == ui.KindCondition && n.Opcode == 2 {
 		s.line(r, "Box endpoints authored; edge rules unknown", "")
 	}
 }

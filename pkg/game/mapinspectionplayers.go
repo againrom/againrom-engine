@@ -18,7 +18,7 @@ func (s *mapInspectionEdits) AddPlayer() (*ui.InspectionDocument, error) {
 	})
 }
 
-func (s *mapInspectionEdits) SetTextField(kind string, index int, key, value string) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetTextField(kind ui.RecordKind, index int, key, value string) (*ui.InspectionDocument, error) {
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func setTextFieldOn(m *mapedit.Editor, k mapedit.Kind, index int, key, value str
 }
 
 func inspectionPlayer(model *mapedit.Editor, index int, name string) ui.InspectionRecord {
-	r := ui.InspectionRecord{Kind: "Player", Section: 5, Index: index, Label: fmt.Sprintf("%d: %s", index+1, name)}
+	r := ui.InspectionRecord{Kind: ui.KindPlayer, Section: 5, Index: index, Label: fmt.Sprintf("%d: %s", index+1, name)}
 	fields, err := model.Fields(mapedit.KindPlayer, index)
 	if err != nil {
 		r.Warning = err.Error()

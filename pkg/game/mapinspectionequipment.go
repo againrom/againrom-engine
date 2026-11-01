@@ -139,7 +139,7 @@ func (s *mapInspectionEdits) equipmentFields(u *unitTemplateView) []ui.Inspectio
 				}
 			}
 			out = append(out, ui.InspectionField{Key: fmt.Sprintf("wearrecipe%d", slot.Number), Label: label + " / " + x.word("editor.equipment.magic"),
-				Group: x.word("editor.unit.group.equipment"), Value: recipe, Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices("Stock", stock, "recipe")...)})
+				Group: x.word("editor.unit.group.equipment"), Value: recipe, Choices: append([]ui.InspectionChoice{{Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}, s.RecordChoices(ui.KindStock, stock, "recipe")...)})
 			out = append(out, s.itemRecipeFields(fmt.Sprintf("wearrecipe%d", slot.Number), fmt.Sprintf("wear%d", slot.Number), "equipment", stock, elementIndex)...)
 		}
 	}

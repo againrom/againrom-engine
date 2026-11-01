@@ -37,7 +37,7 @@ type cellAdmission struct {
 }
 
 type admissionKey struct {
-	kind  string
+	kind  ui.RecordKind
 	route cellRoute
 }
 
@@ -45,26 +45,26 @@ type admissionKey struct {
 const everyGround = ^mapload.GroundArm(0)
 
 // ringDrop is the kind a drop cell is admitted as.
-const ringDrop = "Drop"
+const ringDrop = ui.KindDrop
 
 // cellAdmissions is the editor's one admission table (owner): a unit, a
 // structure or a drop cell may not stand on the border ring; a sack may not
 // be added or grouped onto a cell the ground arms close as far as the row
 // says. A terrain, height, scenery or spell cell may.
 var cellAdmissions = map[admissionKey]cellAdmission{
-	{"Unit", admitAdd}:          {bounds: true, ring: true, footprint: true},
-	{"Unit", admitMove}:         {bounds: true, ring: true, footprint: true},
-	{"Unit", admitField}:        {footprint: true},
-	{"Unit", admitGroup}:        {bounds: true, ring: true, arms: everyGround, domain: true, footprint: true},
-	{"Unit", admitCheck}:        {ring: true},
-	{"Structure", admitAdd}:     {bounds: true, ring: true, footprint: true},
-	{"Structure", admitMove}:    {bounds: true, ring: true, footprint: true},
-	{"Structure", admitField}:   {footprint: true},
-	{"Structure", admitGroup}:   {bounds: true, ring: true, footprint: true},
-	{"Sack", admitAdd}:          {bounds: true, arms: mapload.GroundBorder},
-	{"Sack", admitGroup}:        {bounds: true, arms: everyGround},
-	{"Enchantment", admitField}: {bounds: true},
-	{ringDrop, admitAdd}:        {bounds: true, ring: true},
+	{ui.KindUnit, admitAdd}:          {bounds: true, ring: true, footprint: true},
+	{ui.KindUnit, admitMove}:         {bounds: true, ring: true, footprint: true},
+	{ui.KindUnit, admitField}:        {footprint: true},
+	{ui.KindUnit, admitGroup}:        {bounds: true, ring: true, arms: everyGround, domain: true, footprint: true},
+	{ui.KindUnit, admitCheck}:        {ring: true},
+	{ui.KindStructure, admitAdd}:     {bounds: true, ring: true, footprint: true},
+	{ui.KindStructure, admitMove}:    {bounds: true, ring: true, footprint: true},
+	{ui.KindStructure, admitField}:   {footprint: true},
+	{ui.KindStructure, admitGroup}:   {bounds: true, ring: true, footprint: true},
+	{ui.KindSack, admitAdd}:          {bounds: true, arms: mapload.GroundBorder},
+	{ui.KindSack, admitGroup}:        {bounds: true, arms: everyGround},
+	{ui.KindEnchantment, admitField}: {bounds: true},
+	{ringDrop, admitAdd}:             {bounds: true, ring: true},
 }
 
 // defaultAdmissions is the row of a kind the table does not list on a route.
@@ -72,7 +72,7 @@ var defaultAdmissions = map[cellRoute]cellAdmission{
 	admitAdd: {bounds: true}, admitMove: {bounds: true}, admitGroup: {bounds: true},
 }
 
-func admissionOf(kind string, route cellRoute) cellAdmission {
+func admissionOf(kind ui.RecordKind, route cellRoute) cellAdmission {
 	if a, ok := cellAdmissions[admissionKey{kind, route}]; ok {
 		return a
 	}
@@ -132,7 +132,7 @@ func (a cellAdmission) closedArms(arms mapload.GroundArm, plane byte, d sim.Doma
 // refusal. Its arms are judged on m too: a sack does not shape them. A
 // refused arm is named as a group edit names it, the record by the index the
 // new record would take.
-func (s *mapInspectionEdits) admitCell(m *mapedit.Editor, cell image.Point, what, kind string, route cellRoute) error {
+func (s *mapInspectionEdits) admitCell(m *mapedit.Editor, cell image.Point, what string, kind ui.RecordKind, route cellRoute) error {
 	view, err := m.Map()
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func (s *mapInspectionEdits) closedNote(ref ui.RecordRef, cell image.Point, arms
 
 // playableAreaError refuses, at its first step, a record whose row refuses
 // the ring, on a map whose ring covers every cell.
-func playableAreaError(view *alm.Map, kind string, route cellRoute) error {
+func playableAreaError(view *alm.Map, kind ui.RecordKind, route cellRoute) error {
 	if admissionOf(kind, route).ring && mapload.Playable(view).Empty() {
 		return fmt.Errorf("the map has no playable area: its border ring covers every cell")
 	}

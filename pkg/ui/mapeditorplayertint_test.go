@@ -285,7 +285,7 @@ type tintProbe struct {
 func (p *tintProbe) Dirty() bool   { return p.state == 1 }
 func (p *tintProbe) CanUndo() bool { return p.state == 1 }
 func (p *tintProbe) CanRedo() bool { return p.state == 0 }
-func (p *tintProbe) Move(string, int, image.Point) (*InspectionDocument, error) {
+func (p *tintProbe) Move(RecordKind, int, image.Point) (*InspectionDocument, error) {
 	p.state = 1
 	return p.build(1), nil
 }

@@ -169,9 +169,9 @@ func (e *MapEditor) paramAt(kind pickKind, p image.Point) {
 // p: the unit's or structure's number a script names it by, or the group
 // number of the unit.
 func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue, bool) {
-	kind, record := scriptUnit, "Unit"
+	kind, record := scriptUnit, KindUnit
 	if target == targetStructure {
-		kind, record = scriptStructure, "Structure"
+		kind, record = scriptStructure, KindStructure
 	}
 	for _, id := range e.hitsAt(p) {
 		r := e.doc.Records[id]

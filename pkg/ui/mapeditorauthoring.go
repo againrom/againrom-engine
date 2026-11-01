@@ -8,11 +8,11 @@ import (
 
 type InspectionRecords interface {
 	AddStock(unit int) (*InspectionDocument, error)
-	AddItemRecipe(kind string, index int, item int64) (*InspectionDocument, error)
+	AddItemRecipe(kind RecordKind, index int, item int64) (*InspectionDocument, error)
 }
 
 type InspectionRecordChoices interface {
-	RecordChoices(kind string, index int, key string) []InspectionChoice
+	RecordChoices(kind RecordKind, index int, key string) []InspectionChoice
 }
 
 func (e *MapEditor) recipeItemField() []InspectionField {
@@ -30,7 +30,7 @@ func (e *MapEditor) keyRecords(key string) error {
 	}
 	if key == "structure" {
 		e.leave(leaveReport)
-		e.openAdd("Structure")
+		e.openAdd(KindStructure)
 		return nil
 	}
 	if _, ok := e.doc.Edits.(InspectionRecords); !ok {
@@ -39,7 +39,7 @@ func (e *MapEditor) keyRecords(key string) error {
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush | leaveReport)
 	kind, index := e.selectedRecord()
 	if key == "stock" {
-		if kind != "Unit" {
+		if kind != KindUnit {
 			e.message = "Select a unit first; K creates its stock."
 			return nil
 		}
@@ -49,12 +49,12 @@ func (e *MapEditor) keyRecords(key string) error {
 			return err
 		}
 		if ch.doc != nil {
-			e.selectNewest("Stock")
+			e.selectNewest(KindStock)
 			e.message = "Stock created. E adds items; I adds an item recipe."
 		}
 		return nil
 	}
-	if kind != "Stock" && kind != "Sack" {
+	if kind != KindStock && kind != KindSack {
 		e.message = "Select a sack or stock first; I creates an item recipe."
 		return nil
 	}
@@ -79,7 +79,7 @@ func (e *MapEditor) setItemRecipe(text string) error {
 	}
 	e.leave(leavePrompt)
 	if ch.doc != nil {
-		e.selectNewest("Enchantment")
+		e.selectNewest(KindEnchantment)
 		e.message = "Recipe created. E edits its spell and ordered effects."
 	}
 	return nil

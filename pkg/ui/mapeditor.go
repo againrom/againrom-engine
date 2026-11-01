@@ -27,7 +27,7 @@ var editorWarning = color.RGBA{0xb8, 0x5e, 0x46, 255}
 var editorCondition = color.RGBA{0x78, 0xb6, 0xc2, 255}
 
 type InspectionRecord struct {
-	Kind           string
+	Kind           RecordKind
 	Section, Index int // original section and file-order index (cell index for type 3)
 	Label          string
 	Cell, Size     image.Point
@@ -89,11 +89,11 @@ type InspectionEdits interface {
 	CanRedo() bool
 	// Move, Clone, Delete, Fields and SetField address a record by its
 	// InspectionRecord Kind and Index. Players support Delete and Fields.
-	Move(kind string, index int, cell image.Point) (*InspectionDocument, error)
-	Clone(kind string, index int, cell image.Point) (*InspectionDocument, error)
-	Delete(kind string, index int) (*InspectionDocument, error)
-	Fields(kind string, index int) []InspectionField
-	SetField(kind string, index int, key string, value int64) (*InspectionDocument, error)
+	Move(kind RecordKind, index int, cell image.Point) (*InspectionDocument, error)
+	Clone(kind RecordKind, index int, cell image.Point) (*InspectionDocument, error)
+	Delete(kind RecordKind, index int) (*InspectionDocument, error)
+	Fields(kind RecordKind, index int) []InspectionField
+	SetField(kind RecordKind, index int, key string, value int64) (*InspectionDocument, error)
 	Undo() (*InspectionDocument, error)
 	Redo() (*InspectionDocument, error)
 	SaveAs(path string) (string, error)
@@ -118,7 +118,7 @@ type InspectionInPlace interface {
 // on the map.
 type InspectionScript interface {
 	Goals() []InspectionGoal
-	SetGoalTarget(goal int, kind string, index int) (*InspectionDocument, error)
+	SetGoalTarget(goal int, kind RecordKind, index int) (*InspectionDocument, error)
 	SetDropCell(cell image.Point) (*InspectionDocument, error)
 }
 
@@ -128,12 +128,12 @@ type InspectionScript interface {
 // target stands, when HasCell.
 type InspectionGoal struct {
 	Arm, Text string
-	Pick      string
-	Kind      string
+	Pick      RecordKind
+	Kind      RecordKind
 	Index     int
 	Cell      image.Point
 	HasCell   bool
-	OpenKind  string
+	OpenKind  RecordKind
 	OpenIndex int
 }
 
@@ -386,20 +386,14 @@ func (e *MapEditor) recordsOf(filter int) []int {
 	for i, r := range e.doc.Records {
 		show := filter == 0
 		switch filter {
-		case 1:
-			show = r.Kind == "Unit"
-		case 2:
-			show = r.Kind == "Structure"
-		case 3:
-			show = r.Kind == "Sack" || r.Kind == "Stock"
-		case 4:
-			show = r.Kind == "Scenery"
 		case 5:
 			show = !r.Spatial
 		case 6:
 			show = r.Warning != ""
-		case editorPlayersFilter:
-			show = r.Kind == "Player"
+		default:
+			if filter != 0 {
+				show = r.Kind.Listed() && r.Kind.Filter() == filter
+			}
 		}
 		if show {
 			out = append(out, i)

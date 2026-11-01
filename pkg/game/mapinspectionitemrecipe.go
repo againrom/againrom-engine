@@ -23,7 +23,7 @@ func (s *mapInspectionEdits) itemRecipeFields(prefix, parent, section string, st
 	if link == 0 || link > uint32(len(view.Enchantments)) {
 		return nil
 	}
-	fields := s.Fields("Enchantment", int(link-1))
+	fields := s.Fields(ui.KindEnchantment, int(link-1))
 	for i := range fields {
 		fields[i].Key = prefix + "." + fields[i].Key
 		fields[i].Parent, fields[i].Section = parent, section
@@ -83,7 +83,7 @@ func (s *mapInspectionEdits) setUnitRecipeField(m *mapedit.Editor, index int, pr
 			return false, err
 		}
 	}
-	changed, err := s.setField(m, "Enchantment", mapedit.KindEnchantment, recipe, key, value, false)
+	changed, err := s.setField(m, ui.KindEnchantment, mapedit.KindEnchantment, recipe, key, value, false)
 	if err != nil {
 		return false, err
 	}

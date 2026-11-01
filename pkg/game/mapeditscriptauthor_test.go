@@ -20,7 +20,7 @@ func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
 		t.Fatal(err)
 	}
 	addWindow(t, e, "player", map[string]string{"kind": map[string]string{"Action": "0", "Condition": "1", "Trigger": "2"}[kind]})
-	if e.Selected() < 0 || e.Document().Records[e.Selected()].Kind != kind {
+	if e.Selected() < 0 || string(e.Document().Records[e.Selected()].Kind) != kind {
 		t.Fatalf("no new %s selected: %d %s", kind, e.Selected(), e.Message())
 	}
 	return e.Document().Records[e.Selected()].Index
@@ -31,7 +31,7 @@ func scriptWindowSet(t *testing.T, e *ui.MapEditor, kind string, index int, key,
 	if !e.Select(recordOf(e.Document(), kind, index), false) {
 		t.Fatalf("no %s %d", kind, index)
 	}
-	fields := e.Document().Edits.Fields(kind, index)
+	fields := e.Document().Edits.Fields(ui.RecordKind(kind), index)
 	at := -1
 	for i, f := range fields {
 		if f.Key == key {
@@ -247,12 +247,12 @@ func TestScriptAuthoringReferencesRefuseWithoutMutation(t *testing.T) {
 		{"Trigger", "left0", 0, 404}, {"Trigger", "action0", 0, 404},
 		{"Trigger", "cmp0", 0, 6}, {"Trigger", "once", 0, 2}, {"Action", "value0", 0, 1},
 	} {
-		if _, err := s.SetField(c.kind, c.i, c.key, c.v); err == nil {
+		if _, err := s.SetField(ui.RecordKind(c.kind), c.i, c.key, c.v); err == nil {
 			t.Fatalf("accepted %+v", c)
 		}
 	}
 	for _, kind := range []string{"Action", "Condition"} {
-		if _, err := s.Delete(kind, 0); err == nil {
+		if _, err := s.Delete(ui.RecordKind(kind), 0); err == nil {
 			t.Fatal("deleted referenced " + kind)
 		}
 	}

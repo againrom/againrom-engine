@@ -21,37 +21,37 @@ type placeGrid struct {
 	top     int
 	icons   map[string]*image.RGBA
 	doc     *InspectionDocument
-	kind    string
+	kind    RecordKind
 	choices []InspectionChoice
 }
 
-var placeGridSides = map[string]int{"Structure": 2*(gridCellSide-8) + 8}
+var placeGridSides = map[RecordKind]int{KindStructure: 2*(gridCellSide-8) + 8}
 
 // placeGridShell is kind's grid with no cells: it shows every row the room
 // holds.
-func placeGridShell(kind string, top int) *popupGrid {
+func placeGridShell(kind RecordKind, top int) *popupGrid {
 	return &popupGrid{Top: top, Side: placeGridSides[kind]}
 }
 
 // placeGridKind is the record kind and the Add step the shown tab's grid
 // chooses: unit classes on the Units tab, structure kinds on the Structures
 // tab.
-func (e *MapEditor) placeGridKind() (kind, key string, ok bool) {
+func (e *MapEditor) placeGridKind() (kind RecordKind, key string, ok bool) {
 	if _, host := e.addHost(); !host || e.listKind() != "records" {
 		return "", "", false
 	}
 	switch e.filter {
 	case 1:
-		return "Unit", "class", true
+		return KindUnit, "class", true
 	case 2:
-		return "Structure", "kind", true
+		return KindStructure, "kind", true
 	}
 	return "", "", false
 }
 
 // placeChoices are the choices of the grid's step, as the host offers them
 // for the open document.
-func (e *MapEditor) placeChoices(kind, key string) []InspectionChoice {
+func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice {
 	host, ok := e.addHost()
 	if !ok {
 		return nil
@@ -65,7 +65,7 @@ func (e *MapEditor) placeChoices(kind, key string) []InspectionChoice {
 
 // placeIcon is the host's picture of choice value of kind's step key, read
 // once.
-func (e *MapEditor) placeIcon(kind, key string, value int64) *image.RGBA {
+func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.RGBA {
 	host, ok := e.addHost()
 	if !ok {
 		return nil

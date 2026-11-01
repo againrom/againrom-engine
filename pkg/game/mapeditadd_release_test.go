@@ -110,11 +110,11 @@ func routeAdd(t *testing.T, s *mapInspectionEdits, kind string, add func() error
 	if len(fields) == 0 {
 		return
 	}
-	ek, err := editKind(kind)
+	ek, err := editKind(ui.RecordKind(kind))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SetFields(kind, s.model.Count(ek)-1, fields); err != nil {
+	if _, err := s.SetFields(ui.RecordKind(kind), s.model.Count(ek)-1, fields); err != nil {
 		t.Fatal(kind, err)
 	}
 }
@@ -128,7 +128,7 @@ func addCases(in addInputs) []addCase {
 		}
 		return addCase{name: strings.ToLower(kind), keys: []string{"scripts", "player"}, values: v,
 			route: func(t *testing.T, s *mapInspectionEdits) {
-				routeAdd(t, s, kind, func() error { _, err := s.AddScript(kind); return err }, fields...)
+				routeAdd(t, s, kind, func() error { _, err := s.AddScript(ui.RecordKind(kind)); return err }, fields...)
 			}}
 	}
 	return []addCase{

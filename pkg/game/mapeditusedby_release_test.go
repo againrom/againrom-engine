@@ -137,7 +137,7 @@ func TestReleaseMapEditorUsedByCensusPreservesBytes(t *testing.T) {
 			if !slices.Equal(got, want) {
 				t.Fatalf("%s %s[%d] popup links=%v want=%v", key, record.Kind, record.Index, got, want)
 			}
-			popupLinks[map[string]uint32{"Unit": 4, "Structure": 9, "Player": 3}[record.Kind]] += len(got)
+			popupLinks[map[string]uint32{"Unit": 4, "Structure": 9, "Player": 3}[string(record.Kind)]] += len(got)
 			popups++
 		}
 		r, ok := e.BarRect("groups")

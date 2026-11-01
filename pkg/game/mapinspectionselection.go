@@ -51,20 +51,19 @@ func (c *selectionClip) Patch() image.Point {
 }
 
 // selectionKind is the model section of a kind the group selection takes.
-func selectionKind(kind string) (mapedit.Kind, error) {
-	switch kind {
-	case "Unit", "Structure", "Sack":
+func selectionKind(kind ui.RecordKind) (mapedit.Kind, error) {
+	if kind.Placed() {
 		return editKinds[kind], nil
 	}
-	return 0, fmt.Errorf("a %s record cannot be in a group", strings.ToLower(kind))
+	return 0, fmt.Errorf("a %s record cannot be in a group", strings.ToLower(kind.String()))
 }
 
 // recordName is the status note's name of a record.
 func (s *mapInspectionEdits) recordName(ref ui.RecordRef) string {
 	switch ref.Kind {
-	case "Unit":
+	case ui.KindUnit:
 		return fmt.Sprintf(s.inspector.word("editor.selection.unit"), ref.Index)
-	case "Structure":
+	case ui.KindStructure:
 		return fmt.Sprintf(s.inspector.word("editor.selection.structure"), ref.Index)
 	}
 	return fmt.Sprintf(s.inspector.word("editor.selection.sack"), ref.Index)
@@ -502,7 +501,7 @@ func (s *mapInspectionEdits) DeleteRecords(refs []ui.RecordRef) (ui.SelectionEdi
 	order := slices.Clone(refs)
 	slices.SortStableFunc(order, func(a, b ui.RecordRef) int {
 		if a.Kind != b.Kind {
-			return strings.Compare(a.Kind, b.Kind)
+			return strings.Compare(a.Kind.String(), b.Kind.String())
 		}
 		return b.Index - a.Index
 	})

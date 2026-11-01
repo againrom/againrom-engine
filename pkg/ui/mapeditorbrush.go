@@ -762,7 +762,7 @@ func (e *MapEditor) adoptTerrainEdit(next *InspectionDocument, err error) error 
 		return nil
 	}
 	old := e.doc.Viewer
-	var kind string
+	var kind RecordKind
 	index := -1
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
 		r := e.doc.Records[e.selected]

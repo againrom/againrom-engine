@@ -27,7 +27,7 @@ func (s *mapInspectionEdits) SetUnitsGroup(refs []ui.RecordRef, group int) (*ui.
 	owner := int64(-1)
 	in := map[int]bool{}
 	for _, ref := range refs {
-		if ref.Kind != "Unit" || ref.Index < 0 || ref.Index >= len(view.AuthoredUnits) {
+		if ref.Kind != ui.KindUnit || ref.Index < 0 || ref.Index >= len(view.AuthoredUnits) {
 			return nil, fmt.Errorf("no unit %s #%d", ref.Kind, ref.Index)
 		}
 		u := view.AuthoredUnits[ref.Index]

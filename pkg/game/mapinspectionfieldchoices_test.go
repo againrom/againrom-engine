@@ -22,7 +22,7 @@ func referenceFieldChoices(s *mapInspectionEdits, kind string, index int, key st
 		return referenceRecordChoices(s, kind, index, key)
 	}
 	if strings.HasPrefix(key, "value") {
-		k, _ := editKind(kind)
+		k, _ := editKind(ui.RecordKind(kind))
 		return referenceScriptParameterChoices(s, *script, k, index, key)
 	}
 	return referenceScriptFieldChoices(kind, key, *script, s.inspector.inspectionUTF8)
@@ -58,7 +58,7 @@ func checkFieldChoices(t *testing.T, name string, s *mapInspectionEdits, d *ui.I
 				faces++
 				s.inspector.recordOptions, s.inspector.recordPictures = nil, nil
 			}
-			want := referenceFieldChoices(s, r.Kind, r.Index, f.Key, script)
+			want := referenceFieldChoices(s, string(r.Kind), r.Index, f.Key, script)
 			if f.Key == "face" {
 				s.inspector.recordOptions, s.inspector.recordPictures = nil, nil
 			}
@@ -69,7 +69,7 @@ func checkFieldChoices(t *testing.T, name string, s *mapInspectionEdits, d *ui.I
 			asked++
 		}
 		if !scriptKind(k) {
-			want := referenceRecordChoices(s, r.Kind, r.Index, "recipeitem")
+			want := referenceRecordChoices(s, string(r.Kind), r.Index, "recipeitem")
 			if got := s.RecordChoices(r.Kind, r.Index, "recipeitem"); !reflect.DeepEqual(got, want) {
 				t.Errorf("%s %s %d recipeitem: choices %v, want %v", name, r.Kind, r.Index, got, want)
 			}
@@ -77,7 +77,7 @@ func checkFieldChoices(t *testing.T, name string, s *mapInspectionEdits, d *ui.I
 	}
 	for _, a := range addDialogAsks {
 		want := referenceRecordChoices(s, a[0], -1, a[1])
-		if got := s.RecordChoices(a[0], -1, a[1]); !reflect.DeepEqual(got, want) {
+		if got := s.RecordChoices(ui.RecordKind(a[0]), -1, a[1]); !reflect.DeepEqual(got, want) {
 			t.Errorf("%s add %s %s: choices %v, want %v", name, a[0], a[1], got, want)
 		}
 		asked++

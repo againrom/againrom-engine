@@ -66,7 +66,7 @@ func openRecords(t *testing.T) ([]byte, *ui.MapEditor) {
 func recordIndex(t *testing.T, e *ui.MapEditor, kind string, index int) int {
 	t.Helper()
 	for i, r := range e.Document().Records {
-		if r.Kind == kind && r.Index == index {
+		if string(r.Kind) == kind && r.Index == index {
 			return i
 		}
 	}

@@ -145,11 +145,11 @@ type refusedPlayerFields struct {
 	problem error
 }
 
-func (p refusedPlayerFields) SetTextField(string, int, string, string) (*InspectionDocument, error) {
+func (p refusedPlayerFields) SetTextField(RecordKind, int, string, string) (*InspectionDocument, error) {
 	return nil, p.problem
 }
 
-func (p refusedPlayerFields) Delete(string, int) (*InspectionDocument, error) {
+func (p refusedPlayerFields) Delete(RecordKind, int) (*InspectionDocument, error) {
 	return nil, p.problem
 }
 

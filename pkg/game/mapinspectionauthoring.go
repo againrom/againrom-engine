@@ -10,7 +10,7 @@ import (
 
 func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := s.admitCell(m, cell, "structure cell", "Structure", admitAdd); err != nil {
+		if err := s.admitCell(m, cell, "structure cell", ui.KindStructure, admitAdd); err != nil {
 			return false, err
 		}
 		if err := s.inspector.checkStructureKind(kind); err != nil {
@@ -32,7 +32,7 @@ func (s *mapInspectionEdits) AddStructure(cell image.Point, kind int64) (*ui.Ins
 		if err != nil {
 			return false, err
 		}
-		return true, s.checkPlacement(admissionOf("Structure", admitAdd), mapedit.KindStructure, m, i, image.Rectangle{})
+		return true, s.checkPlacement(admissionOf(ui.KindStructure, admitAdd), mapedit.KindStructure, m, i, image.Rectangle{})
 	})
 }
 
@@ -43,8 +43,8 @@ func (s *mapInspectionEdits) AddStock(unit int) (*ui.InspectionDocument, error) 
 	})
 }
 
-func (s *mapInspectionEdits) AddItemRecipe(kind string, index int, item int64) (*ui.InspectionDocument, error) {
-	if kind != "Sack" && kind != "Stock" {
+func (s *mapInspectionEdits) AddItemRecipe(kind ui.RecordKind, index int, item int64) (*ui.InspectionDocument, error) {
+	if kind != ui.KindSack && kind != ui.KindStock {
 		return nil, fmt.Errorf("select a sack or stock before creating an item recipe")
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {

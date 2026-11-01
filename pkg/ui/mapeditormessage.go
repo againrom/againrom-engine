@@ -34,7 +34,7 @@ const NewMessagePage uint32 = 1<<32 - 1
 
 // InspectionMessageOwner names the field or wizard action receiving a page.
 type InspectionMessageOwner struct {
-	Kind    string
+	Kind    RecordKind
 	Index   int
 	Key     string
 	Trigger *WizardTrigger
@@ -430,8 +430,8 @@ func (e *MapEditor) createMessage(parts []InspectionMessagePart) {
 	}
 	page := *ch.page
 	back := e.objectBack
-	if owner.Kind == "Message" {
-		e.selectNewest("Action")
+	if owner.Kind == KindMessage {
+		e.selectNewest(KindAction)
 		e.obj.doc = nil
 		e.loadObject()
 		back = append(e.objectBack, e.objectPlace())
@@ -697,7 +697,7 @@ func (e *MapEditor) configureDialog(field int) {
 			action++
 		}
 	}
-	owner := &InspectionMessageOwner{Kind: "Trigger", Index: v.index, Action: action}
+	owner := &InspectionMessageOwner{Kind: KindTrigger, Index: v.index, Action: action}
 	if target, ok := e.parameterTarget(field); ok {
 		e.openMessage(target.Value)
 		e.messageFor, e.messageFrom = owner, target.Value

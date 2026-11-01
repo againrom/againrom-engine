@@ -65,7 +65,7 @@ func scriptedUnit(t *testing.T, m *alm.Map) (int, uint16) {
 
 func recordOf(d *ui.InspectionDocument, kind string, index int) int {
 	for i, r := range d.Records {
-		if r.Kind == kind && r.Index == index {
+		if string(r.Kind) == kind && r.Index == index {
 			return i
 		}
 	}

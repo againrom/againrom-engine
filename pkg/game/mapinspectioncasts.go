@@ -26,7 +26,7 @@ var castWords = map[string]struct{ Word string }{
 var spellNewWord = map[uint16]string{0: "newtrap", 8: "newbook", 4: "newcaster"}
 
 func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map) ui.InspectionRecord {
-	r := ui.InspectionRecord{Kind: "Enchantment", Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
+	r := ui.InspectionRecord{Kind: ui.KindEnchantment, Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
 		Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
 	if e.X == 0 && e.Y == 0 {
 		return r
@@ -70,7 +70,7 @@ func (s *mapInspectionEdits) spellCellAllowed(m *mapedit.Editor, index int) erro
 	if x == 0 && y == 0 {
 		return fmt.Errorf("cell spells cannot use the item-recipe cell 0,0")
 	}
-	return s.admitCell(m, image.Pt(int(x), int(y)), "spell cell", "Enchantment", admitField)
+	return s.admitCell(m, image.Pt(int(x), int(y)), "spell cell", ui.KindEnchantment, admitField)
 }
 
 // spellTemplateKind is the kind of cell spell the Add window's template

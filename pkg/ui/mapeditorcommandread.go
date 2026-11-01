@@ -116,10 +116,10 @@ func (e *MapEditor) readUnitSettings(raw json.RawMessage) (any, error) {
 	if !ok {
 		return nil, fmt.Errorf("this map has no unit settings window")
 	}
-	if _, err := e.recordOf("Unit", a.Index); err != nil {
+	if _, err := e.recordOf(KindUnit, a.Index); err != nil {
 		return nil, err
 	}
-	o, err := e.objectValues("Unit", a.Index, a.Fields)
+	o, err := e.objectValues(KindUnit, a.Index, a.Fields)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ const recordChoicesShown = 32
 
 func (e *MapEditor) readRecord(raw json.RawMessage) (any, error) {
 	a, err := decodeArgs[struct {
-		Kind    string
+		Kind    RecordKind
 		Index   int
 		Verbose bool
 	}](raw, editorCommandArgs("record"))
@@ -199,7 +199,7 @@ func (e *MapEditor) readRecord(raw json.RawMessage) (any, error) {
 	if e.editable() {
 		fields = e.plainFields(e.doc.Edits.Fields(a.Kind, a.Index))
 	}
-	if r.Kind == "Unit" || r.Kind == "Structure" {
+	if r.Kind.Addressed() {
 		fields = append(fields, InspectionField{Key: "script_id", Label: "Script ID", Value: int64(r.ScriptID), ReadOnly: true})
 	}
 	out := map[string]any{"record": e.plainRecord(r), "fields": fields}
@@ -298,7 +298,7 @@ var addControlNames = map[addControl]string{addChoice: "choice", addSprites: "ch
 
 func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 	a, err := decodeArgs[struct {
-		Kind   string
+		Kind   RecordKind
 		X, Y   *int
 		Values map[string]json.RawMessage
 	}](raw, editorCommandArgs("add_steps"))
@@ -309,11 +309,11 @@ func (e *MapEditor) readAddSteps(raw json.RawMessage) (any, error) {
 		kinds := []map[string]string{}
 		for _, k := range addCommandKinds() {
 			row, _ := addKindOf(k)
-			kinds = append(kinds, map[string]string{"kind": k, "label": e.mcpDisplay(e.word(row.Word))})
+			kinds = append(kinds, map[string]string{"kind": k.String(), "label": e.mcpDisplay(e.word(row.Word))})
 		}
 		return map[string]any{"kinds": kinds}, nil
 	}
-	if a.Kind == "Message" {
+	if a.Kind == KindMessage {
 		return map[string]any{"kind": a.Kind, "steps": []addStepRead{}, "parts": "a Message has no steps: add_record takes its parts, as write_message does"}, nil
 	}
 	var steps []addStepRead

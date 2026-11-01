@@ -17,12 +17,12 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	add := func(kind, value uint32, record int, name, choice string, members int) {
 		out[kind] = append(out[kind], ui.InspectionScriptTarget{Value: value, Record: record, Name: name, Choice: choice, Members: members})
 	}
-	counts := map[string]map[uint32]int{"Unit": {}, "Structure": {}}
+	counts := map[ui.RecordKind]map[uint32]int{ui.KindUnit: {}, ui.KindStructure: {}}
 	for _, u := range m.Units {
-		counts["Unit"][uint32(u.UnitID)]++
+		counts[ui.KindUnit][uint32(u.UnitID)]++
 	}
 	for _, o := range m.Objects {
-		counts["Structure"][uint32(o.Field12)]++
+		counts[ui.KindStructure][uint32(o.Field12)]++
 	}
 	groups := map[uint32]int{}
 	var order []uint32
@@ -37,7 +37,7 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 	}
 	for i, r := range d.Records {
 		switch r.Kind {
-		case "Unit":
+		case ui.KindUnit:
 			id := uint32(m.Units[r.Index].UnitID)
 			if id > 0 && id < 10001 && counts[r.Kind][id] == 1 {
 				choice := fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.unitchoice")), id, r.Label)
@@ -46,12 +46,12 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 				}
 				add(mapload.ScriptUnit, id, i, r.Label, choice, 0)
 			}
-		case "Structure":
+		case ui.KindStructure:
 			id := uint32(m.Objects[r.Index].Field12)
 			if id > 0 && counts[r.Kind][id] == 1 {
 				add(mapload.ScriptStructure, id, i, r.Label, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.structurechoice")), id, r.Label), 0)
 			}
-		case "Player":
+		case ui.KindPlayer:
 			add(mapload.ScriptPlayer, uint32(r.Index+1), i, r.Label, fmt.Sprintf(x.inspectionUTF8(x.word("editor.param.playerchoice")), r.Label), 0)
 		}
 	}

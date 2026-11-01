@@ -41,7 +41,7 @@ type unitSettingsView struct {
 func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
 	kind, index := e.selectedRecord()
 	host, ok := e.doc.Edits.(InspectionUnitSettings)
-	if kind != "Unit" || !ok {
+	if kind != KindUnit || !ok {
 		return nil, nil
 	}
 	o := &e.obj

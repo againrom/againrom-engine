@@ -33,7 +33,7 @@ func (e *MapEditor) playerCount() int {
 	n := 0
 	if e.doc != nil {
 		for _, r := range e.doc.Records {
-			if r.Kind == "Player" {
+			if r.Kind == KindPlayer {
 				n = max(n, r.Index+1)
 			}
 		}
@@ -54,9 +54,9 @@ func (e *MapEditor) playerTint() func(InspectionSubject) (color.RGBA, bool) {
 	owners := map[InspectionSubject]int{}
 	for _, r := range e.doc.Records {
 		switch r.Kind {
-		case "Unit":
+		case KindUnit:
 			owners[InspectionSubject{Kind: InspectionUnit, ID: uint32(r.Index)}] = r.Player
-		case "Structure":
+		case KindStructure:
 			owners[InspectionSubject{Kind: InspectionStructure, ID: uint32(r.Index)}] = r.Player
 		}
 	}
@@ -110,7 +110,7 @@ func (e *MapEditor) playerLegend() (image.Rectangle, []legendRow) {
 	width := 0
 	count := 0
 	for _, r := range e.doc.Records {
-		if r.Kind != "Player" || r.Index < 0 || r.Index >= len(labels) {
+		if r.Kind != KindPlayer || r.Index < 0 || r.Index >= len(labels) {
 			continue
 		}
 		labels[r.Index], have[r.Index] = r.Label, true

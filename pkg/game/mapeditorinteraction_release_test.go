@@ -41,10 +41,10 @@ func TestReleaseEditorCancelPreservesInstalledMapBytes(t *testing.T) {
 			}
 			seen := map[string]bool{}
 			for i, r := range e.Document().Records {
-				if seen[r.Kind] {
+				if seen[string(r.Kind)] {
 					continue
 				}
-				seen[r.Kind] = true
+				seen[string(r.Kind)] = true
 				e.Select(i, false)
 				mark, selected := s.model.Mark(), e.Selected()
 				if rect, ok := e.PopupButtonRect(1); ok {

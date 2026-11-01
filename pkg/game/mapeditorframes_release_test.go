@@ -99,7 +99,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	}
 	first := func(e *ui.MapEditor, kind string) int {
 		for i, r := range e.Document().Records {
-			if r.Kind == kind {
+			if string(r.Kind) == kind {
 				return i
 			}
 		}

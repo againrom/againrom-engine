@@ -176,7 +176,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 	old.SetEntities(next.Viewer.entities)
 	old.adoptPlacements(next.Viewer)
 	next.Viewer = old
-	var kind string
+	var kind RecordKind
 	index := -1
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
 		r := e.doc.Records[e.selected]
@@ -199,7 +199,7 @@ func (e *MapEditor) adoptEdit(next *InspectionDocument, err error) error {
 }
 
 type editorRecordDrag struct {
-	kind          string
+	kind          RecordKind
 	record, index int
 	press         image.Point
 	grab, cell    image.Point
@@ -289,11 +289,11 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && e.free() {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
-			rank := dragRank[e.doc.Records[i].Kind]
+			rank := e.doc.Records[i].Kind.DragRank()
 			if rank == 0 || hit >= 0 && hit == e.selected {
 				continue // the selected record wins
 			}
-			if hit < 0 || i == e.selected || rank < dragRank[e.doc.Records[hit].Kind] {
+			if hit < 0 || i == e.selected || rank < e.doc.Records[hit].Kind.DragRank() {
 				hit = i
 			}
 		}
@@ -349,7 +349,7 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 			ch, err := e.commandMove(recordAt{Ref: RecordRef{Kind: d.kind, Index: d.index}, Cell: cell})
 			if err != nil {
 				e.message = err.Error()
-			} else if ch.doc != nil && d.kind == "Scenery" {
+			} else if ch.doc != nil && d.kind == KindScenery {
 				e.selectScenery(cell)
 			}
 		} else {
@@ -374,7 +374,7 @@ func (e *MapEditor) sceneryHit(p image.Point) int {
 		return -1
 	}
 	for _, i := range e.hitsAt(p) {
-		if e.doc.Records[i].Kind == "Scenery" {
+		if e.doc.Records[i].Kind == KindScenery {
 			return i
 		}
 	}
@@ -384,7 +384,7 @@ func (e *MapEditor) sceneryHit(p image.Point) int {
 // selectedScenery is the index of the selected map object when the host
 // deletes objects, else -1.
 func (e *MapEditor) selectedScenery() int {
-	if !e.movesObjects() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) || e.doc.Records[e.selected].Kind != "Scenery" {
+	if !e.movesObjects() || e.catalog || e.selected < 0 || e.selected >= len(e.doc.Records) || e.doc.Records[e.selected].Kind != KindScenery {
 		return -1
 	}
 	return e.doc.Records[e.selected].Index
@@ -394,7 +394,7 @@ func (e *MapEditor) selectedScenery() int {
 // names its cell, so a moved object is found again by the cell it went to.
 func (e *MapEditor) selectScenery(cell image.Point) {
 	for i, r := range e.doc.Records {
-		if r.Kind == "Scenery" && r.Cell == cell {
+		if r.Kind == KindScenery && r.Cell == cell {
 			e.Select(i, false)
 			return
 		}

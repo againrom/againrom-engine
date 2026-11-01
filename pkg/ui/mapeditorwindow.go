@@ -1295,7 +1295,7 @@ func (e *MapEditor) drawObjectPreview(pic *image.RGBA, s popupSpec) {
 		return // the group popup has no one record
 	}
 	r := e.doc.Records[e.selected]
-	if r.Kind == "Unit" && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
+	if r.Kind == KindUnit && s.Card != nil && s.Card.Char.Band == CharacterBandPerson {
 		// The doll stands at the right of the room the layout leaves beside
 		// the card, the face left of it.
 		rest := layoutPopup(s, e.font, e.bodyFont()).CardRest
@@ -1875,7 +1875,7 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		if n < len(links) && links[n] < 0 {
-			if e.hasUsedBy() && scriptRecord(e.doc.Records[-links[n]-1].Kind) {
+			if e.hasUsedBy() && e.doc.Records[-links[n]-1].Kind.Scripted() {
 				e.openObjectUse(-links[n] - 1)
 			} else {
 				e.openObjectRecord(-links[n]-1, true)

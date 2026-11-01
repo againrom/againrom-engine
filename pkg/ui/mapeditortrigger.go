@@ -34,15 +34,15 @@ func (e *MapEditor) scriptViewOf(id int) (scriptView, bool) {
 	m := e.doc.Script
 	r := e.doc.Records[id]
 	switch r.Kind {
-	case "Trigger":
+	case KindTrigger:
 		if r.Index < len(m.Triggers) && m.Triggers[r.Index].Record == id {
 			return scriptView{trigger: &m.Triggers[r.Index], index: r.Index}, true
 		}
-	case "Condition":
+	case KindCondition:
 		if r.Index < len(m.Conditions) && m.Conditions[r.Index].Record == id {
 			return scriptView{node: &m.Conditions[r.Index], condition: true, index: r.Index}, true
 		}
-	case "Action":
+	case KindAction:
 		if r.Index < len(m.Actions) && m.Actions[r.Index].Record == id {
 			return scriptView{node: &m.Actions[r.Index], index: r.Index}, true
 		}
@@ -748,12 +748,12 @@ func (e *MapEditor) newTrigger() {
 		e.obj.note = e.word("editor.trigger.applyfirst")
 		return
 	}
-	e.openAdd("Trigger")
+	e.openAdd(KindTrigger)
 }
 
 // deleteTrigger deletes the shown trigger; its nodes stay.
 func (e *MapEditor) deleteTrigger(v scriptView) {
-	ch, err := e.commandDelete(RecordRef{Kind: "Trigger", Index: v.index})
+	ch, err := e.commandDelete(RecordRef{Kind: KindTrigger, Index: v.index})
 	if err != nil {
 		e.message = err.Error()
 	} else if ch.doc != nil {

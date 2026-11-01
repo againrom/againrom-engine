@@ -10,7 +10,7 @@ import (
 )
 
 type InspectionTextFields interface {
-	SetTextField(kind string, index int, key, value string) (*InspectionDocument, error)
+	SetTextField(kind RecordKind, index int, key, value string) (*InspectionDocument, error)
 }
 
 const editorPlayersFilter = 8
@@ -112,14 +112,14 @@ func (e *MapEditor) relationMatrixOf() *relationMatrix {
 	}
 	*m = relationMatrix{doc: e.doc}
 	for _, r := range e.doc.Records {
-		if r.Kind == "Player" {
+		if r.Kind == KindPlayer {
 			m.players, m.labels = append(m.players, r.Index), append(m.labels, r.Label)
 		}
 	}
 	n := len(m.players)
 	for _, p := range m.players {
 		row := make([]InspectionField, n)
-		for _, f := range e.doc.Edits.Fields("Player", p) {
+		for _, f := range e.doc.Edits.Fields(KindPlayer, p) {
 			if f.Toward >= 1 && f.Toward <= n && !f.Text {
 				row[f.Toward-1] = f
 			}
@@ -188,7 +188,7 @@ func (e *MapEditor) relationPress(n int) {
 	if f.Key == "" {
 		return
 	}
-	if _, err := e.commandSetField(fieldEdit{Kind: "Player", Index: m.players[n/k], Value: InspectionFieldValue{Key: f.Key, Value: relationNext(f.Value)}}); err != nil {
+	if _, err := e.commandSetField(fieldEdit{Kind: KindPlayer, Index: m.players[n/k], Value: InspectionFieldValue{Key: f.Key, Value: relationNext(f.Value)}}); err != nil {
 		e.message = err.Error()
 	}
 }

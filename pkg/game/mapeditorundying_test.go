@@ -111,7 +111,7 @@ func TestEditorRefusesUndyingValuesOutsideTheirFields(t *testing.T) {
 		kind  string
 		value int64
 	}{{"Condition", 32768}, {"Condition", -32769}, {"Action", 2}, {"Action", -1}} {
-		if _, err := set.SetFields(tc.kind, 0, []ui.InspectionFieldValue{{Key: "value1", Value: tc.value}}); err == nil {
+		if _, err := set.SetFields(ui.RecordKind(tc.kind), 0, []ui.InspectionFieldValue{{Key: "value1", Value: tc.value}}); err == nil {
 			t.Fatalf("%s value %d accepted", tc.kind, tc.value)
 		}
 		if !bytes.Equal(e.Document().SourceBytes, before) {

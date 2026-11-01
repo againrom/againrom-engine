@@ -26,7 +26,7 @@ func TestArmsPointToTheirScriptRecord(t *testing.T) {
 	} {
 		t.Run(tc.arm+string(rune('0'+tc.row)), func(t *testing.T) {
 			g := s.Goals()[tc.row]
-			if g.Arm != tc.arm || g.OpenKind != tc.kind || g.OpenIndex != tc.index {
+			if g.Arm != tc.arm || string(g.OpenKind) != tc.kind || g.OpenIndex != tc.index {
 				t.Fatalf("arm link=%+v, want %s %d", g, tc.kind, tc.index)
 			}
 		})

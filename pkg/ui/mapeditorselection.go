@@ -12,7 +12,7 @@ import (
 // RecordRef addresses one record of a document by its InspectionRecord Kind
 // and Index.
 type RecordRef struct {
-	Kind  string
+	Kind  RecordKind
 	Index int
 }
 
@@ -81,10 +81,6 @@ type selectionMarquee struct {
 	// click selects as a click on the map does.
 	box bool
 }
-
-// selectable reports a record kind the group selection takes: the kinds a
-// drag moves.
-func selectable(kind string) bool { return dragRank[kind] > 0 }
 
 // selectionShown reports that several records are selected, so the group's
 // keys and help apply.
@@ -216,15 +212,13 @@ func (e *MapEditor) boxPointer(in Input, p image.Point, rail int) bool {
 // boxKinds are the record kinds a selection box takes: the open tab's kind
 // on the Units, Structures and Sacks tabs, units on the Groups tab, else
 // every kind a selection takes.
-func (e *MapEditor) boxKinds() []string {
+func (e *MapEditor) boxKinds() []RecordKind {
 	if e.listShown && e.listKind() == "records" {
-		switch e.filter {
-		case 1, editorGroupsFilter:
-			return []string{"Unit"}
-		case 2:
-			return []string{"Structure"}
-		case 3:
-			return []string{"Sack"}
+		if e.filter == editorGroupsFilter {
+			return []RecordKind{KindUnit}
+		}
+		if k, ok := placedKindOf(e.filter); ok {
+			return []RecordKind{k}
 		}
 	}
 	return nil
@@ -241,17 +235,17 @@ func (e *MapEditor) selectCells(a, b image.Point) { e.selectCellsOf(a, b, nil) }
 
 // selectCellsOf is selectCells over kinds only; no kinds is every kind a
 // selection takes.
-func (e *MapEditor) selectCellsOf(a, b image.Point, kinds []string) {
+func (e *MapEditor) selectCellsOf(a, b image.Point, kinds []RecordKind) {
 	e.noteSelection("", nil)
 	e.setSelection(e.cellRecords(cellBox(a, b), kinds))
 }
 
 // cellRecords are the records of kinds whose cell lies in box, in document
 // order; no kinds is every kind a selection takes.
-func (e *MapEditor) cellRecords(box image.Rectangle, kinds []string) []RecordRef {
+func (e *MapEditor) cellRecords(box image.Rectangle, kinds []RecordKind) []RecordRef {
 	var refs []RecordRef
 	for _, r := range e.doc.Records {
-		if selectable(r.Kind) && r.Spatial && r.Cell.In(box) && (len(kinds) == 0 || slices.Contains(kinds, r.Kind)) {
+		if r.Kind.Placed() && r.Spatial && r.Cell.In(box) && (len(kinds) == 0 || slices.Contains(kinds, r.Kind)) {
 			refs = append(refs, RecordRef{r.Kind, r.Index})
 		}
 	}
@@ -263,7 +257,7 @@ func (e *MapEditor) cellRecords(box image.Rectangle, kinds []string) []RecordRef
 func (e *MapEditor) toggleAt(p image.Point) {
 	hit := -1
 	for _, i := range e.hitsAt(p) {
-		if k := e.doc.Records[i].Kind; selectable(k) && (hit < 0 || dragRank[k] < dragRank[e.doc.Records[hit].Kind]) {
+		if k := e.doc.Records[i].Kind; k.Placed() && (hit < 0 || k.DragRank() < e.doc.Records[hit].Kind.DragRank()) {
 			hit = i
 		}
 	}
@@ -271,7 +265,7 @@ func (e *MapEditor) toggleAt(p image.Point) {
 		return
 	}
 	refs := slices.Clone(e.selection.refs)
-	if len(refs) == 0 && e.selected >= 0 && e.selected < len(e.doc.Records) && selectable(e.doc.Records[e.selected].Kind) {
+	if len(refs) == 0 && e.selected >= 0 && e.selected < len(e.doc.Records) && e.doc.Records[e.selected].Kind.Placed() {
 		r := e.doc.Records[e.selected]
 		refs = []RecordRef{{r.Kind, r.Index}}
 	}
@@ -299,7 +293,7 @@ func (e *MapEditor) selectionRefs() []RecordRef {
 		return e.selection.refs
 	}
 	if e.doc != nil && e.selected >= 0 && e.selected < len(e.doc.Records) {
-		if r := e.doc.Records[e.selected]; selectable(r.Kind) && r.Spatial {
+		if r := e.doc.Records[e.selected]; r.Kind.Placed() && r.Spatial {
 			return []RecordRef{{r.Kind, r.Index}}
 		}
 	}

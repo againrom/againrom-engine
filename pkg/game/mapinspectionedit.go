@@ -100,19 +100,19 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 
 // editKinds maps an inspection record kind to the model's record section.
 // A ground sack and a unit's stock are both type-8 records.
-var editKinds = map[string]mapedit.Kind{
-	"Unit": mapedit.KindUnit, "Structure": mapedit.KindStructure,
-	"Sack": mapedit.KindLoot, "Stock": mapedit.KindLoot,
-	"Action": mapedit.KindAction, "Condition": mapedit.KindCondition,
-	"Trigger":     mapedit.KindTrigger,
-	"Player":      mapedit.KindPlayer,
-	"Enchantment": mapedit.KindEnchantment,
+var editKinds = map[ui.RecordKind]mapedit.Kind{
+	ui.KindUnit: mapedit.KindUnit, ui.KindStructure: mapedit.KindStructure,
+	ui.KindSack: mapedit.KindLoot, ui.KindStock: mapedit.KindLoot,
+	ui.KindAction: mapedit.KindAction, ui.KindCondition: mapedit.KindCondition,
+	ui.KindTrigger:     mapedit.KindTrigger,
+	ui.KindPlayer:      mapedit.KindPlayer,
+	ui.KindEnchantment: mapedit.KindEnchantment,
 }
 
-func editKind(kind string) (mapedit.Kind, error) {
+func editKind(kind ui.RecordKind) (mapedit.Kind, error) {
 	k, ok := editKinds[kind]
 	if !ok {
-		return 0, fmt.Errorf("a %s record cannot be edited", strings.ToLower(kind))
+		return 0, fmt.Errorf("a %s record cannot be edited", strings.ToLower(kind.String()))
 	}
 	return k, nil
 }
@@ -149,8 +149,8 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 
 // Move moves the record onto cell, keeping its fraction within the cell, as
 // one edit. A Scenery record, a map object, moves as moveScenery moves it.
-func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui.InspectionDocument, error) {
-	if kind == "Scenery" {
+func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	if kind == ui.KindScenery {
 		return s.moveScenery(index, cell)
 	}
 	k, err := editKind(kind)
@@ -178,7 +178,7 @@ func (s *mapInspectionEdits) Move(kind string, index int, cell image.Point) (*ui
 
 // Clone copies the record onto cell, keeping the source's fraction within
 // the cell, as one edit. The model's section row chooses the copy's identity.
-func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) Clone(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -202,8 +202,8 @@ func (s *mapInspectionEdits) Clone(kind string, index int, cell image.Point) (*u
 
 // Delete removes the record as one edit; a Scenery record, a map object, goes
 // as deleteScenery clears it.
-func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocument, error) {
-	if kind == "Scenery" {
+func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (*ui.InspectionDocument, error) {
+	if kind == ui.KindScenery {
 		return s.deleteScenery(index)
 	}
 	k, err := editKind(kind)
@@ -223,7 +223,7 @@ func (s *mapInspectionEdits) Delete(kind string, index int) (*ui.InspectionDocum
 // Its words sit at the cell's centre and it carries no gold (DIV-3134).
 func (s *mapInspectionEdits) AddSack(cell image.Point, item int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
-		if err := s.admitCell(m, cell, "sack cell", "Sack", admitAdd); err != nil {
+		if err := s.admitCell(m, cell, "sack cell", ui.KindSack, admitAdd); err != nil {
 			return false, err
 		}
 		if item <= 0 || item > math.MaxUint16 {
@@ -243,7 +243,7 @@ const newSackFraction = 128
 
 // Fields lists the settable fields of the record with their current values,
 // in the order of its section's field table.
-func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField {
+func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.InspectionField {
 	k, err := editKind(kind)
 	if err != nil {
 		return nil
@@ -346,8 +346,8 @@ func (s *mapInspectionEdits) Fields(kind string, index int) []ui.InspectionField
 // SetField writes one field of the record as one edit, after the field's
 // range, its reference check and the record's placement check pass on the
 // edited map.
-func (s *mapInspectionEdits) SetField(kind string, index int, key string, value int64) (*ui.InspectionDocument, error) {
-	if value == ui.NewMessageChoice && kind == "Action" && key == "value0" {
+func (s *mapInspectionEdits) SetField(kind ui.RecordKind, index int, key string, value int64) (*ui.InspectionDocument, error) {
+	if value == ui.NewMessageChoice && kind == ui.KindAction && key == "value0" {
 		if view, err := s.model.Map(); err == nil {
 			if sc, err := view.Script(); err == nil && index >= 0 && index < len(sc.Actions) && scriptParameterKind(false, sc.Actions[index].Opcode, sc.Actions[index].Type, 0) == ui.ScriptMessageParameter {
 				return s.NewMessage(ui.InspectionMessageOwner{Kind: kind, Index: index, Key: key})
@@ -366,7 +366,7 @@ func (s *mapInspectionEdits) SetField(kind string, index int, key string, value 
 // SetFields writes several fields of one record as one edit: each through
 // the checks SetField or SetTextField applies, the trigger order last. A
 // refused field refuses the set and the model is unchanged.
-func (s *mapInspectionEdits) SetFields(kind string, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
+func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []ui.InspectionFieldValue) (*ui.InspectionDocument, error) {
 	k, err := editKind(kind)
 	if err != nil {
 		return nil, err
@@ -446,16 +446,16 @@ func (s *mapInspectionEdits) setNewNodeOn(m *mapedit.Editor, k mapedit.Kind, ind
 	if err != nil {
 		return false, err
 	}
-	return s.setFieldOn(m, "Trigger", k, index, key, int64(id))
+	return s.setFieldOn(m, ui.KindTrigger, k, index, key, int64(id))
 }
 
 // setFieldOn sets one numeric field on the model m after its checks.
-func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64) (bool, error) {
+func (s *mapInspectionEdits) setFieldOn(m *mapedit.Editor, kind ui.RecordKind, k mapedit.Kind, index int, key string, value int64) (bool, error) {
 	return s.setField(m, kind, k, index, key, value, true)
 }
 
 // setField is setFieldOn with the node's variable check when variable is set.
-func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.Kind, index int, key string, value int64, variable bool) (bool, error) {
+func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k mapedit.Kind, index int, key string, value int64, variable bool) (bool, error) {
 	if prefix, field, ok := unitRecipeField(key); k == mapedit.KindUnit && ok {
 		return s.setUnitRecipeField(m, index, prefix, field, value)
 	}
@@ -489,7 +489,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind string, k mapedit.
 		}
 	}
 	if f.Key == "" {
-		return false, fmt.Errorf("no %s field %q", strings.ToLower(kind), key)
+		return false, fmt.Errorf("no %s field %q", strings.ToLower(kind.String()), key)
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") {
 		if key == "spell" && value == 0 {
@@ -672,9 +672,9 @@ func (s *mapInspectionEdits) placementError(view *alm.Map, feet recordFeet, k ma
 	if r == was {
 		return nil
 	}
-	name := "Unit"
+	name := ui.KindUnit
 	if k == mapedit.KindStructure {
-		name = "Structure"
+		name = ui.KindStructure
 	}
 	for j, o := range all {
 		if j != index && !group[placedRecord{k, j}] && r.Overlaps(o) {

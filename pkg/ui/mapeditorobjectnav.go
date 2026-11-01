@@ -6,7 +6,7 @@ import (
 )
 
 type objectPlace struct {
-	kind       string
+	kind       RecordKind
 	index, top int
 	group      editorGroup
 	register   uint32
@@ -171,7 +171,7 @@ func (e *MapEditor) openParameter(field int) {
 	}
 	g := editorGroup{group: int(target.Value), set: true}
 	for i, r := range e.doc.Records {
-		if r.Kind == "Unit" && r.Group == g.group {
+		if r.Kind == KindUnit && r.Group == g.group {
 			g.members = append(g.members, i)
 			g.player = r.Player
 		}
