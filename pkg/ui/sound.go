@@ -108,7 +108,7 @@ type voiceMemory struct {
 // claim takes the voice timestamp for a voice that waits gap since the last
 // one, and refuses while the gap has not passed.
 func (m *voiceMemory) claim(now time.Time, gap time.Duration) bool {
-	if !m.at.IsZero() && now.Sub(m.at) < gap {
+	if !m.at.IsZero() && !(cadence{period: gap, gate: gateAtLeast}).due(m.at, now) {
 		return false
 	}
 	m.at = now

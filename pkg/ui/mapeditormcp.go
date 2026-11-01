@@ -358,7 +358,7 @@ func (e *MapEditor) updateMCP() bool {
 		}
 		return true
 	}
-	if time.Now().Before(m.next) {
+	if !gateAtLeast.reached(m.next, time.Now()) {
 		return false
 	}
 	c := m.queue.Next()

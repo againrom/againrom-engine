@@ -237,7 +237,7 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 		switch {
 		case a.media.at.IsZero() && a.media.steps > 0:
 			a.media.at = now
-		case a.media.at.IsZero() || now.Sub(a.media.at) >= creditsStepGap:
+		case a.media.at.IsZero() || (cadence{period: creditsStepGap, gate: gateAtLeast}).due(a.media.at, now):
 			a.media.steps++
 			a.media.at = now
 		}

@@ -80,9 +80,10 @@ func (h *tooltipController) visible(key string) bool {
 	if h == nil || key == "" || key != h.key {
 		return false
 	}
-	elapsed := h.now.Sub(h.since)
 	delay := time.Duration(h.delay) * time.Millisecond
-	return elapsed >= delay && elapsed < delay+25*time.Second
+	shown := cadence{period: delay, gate: gateAtLeast}
+	expired := cadence{period: delay + 25*time.Second, gate: gateAtLeast}
+	return shown.due(h.since, h.now) && !expired.due(h.since, h.now)
 }
 
 type tooltipTarget struct {

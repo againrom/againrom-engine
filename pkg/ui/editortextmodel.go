@@ -412,7 +412,7 @@ func (m *TextInputState) repeat(now time.Time, held map[string]bool) []string {
 		if !exists {
 			out = append(out, key)
 			m.repeating[key] = now.Add(editorRepeatDelay)
-		} else if !now.Before(next) {
+		} else if gateAtLeast.reached(next, now) {
 			out = append(out, key)
 			m.repeating[key] = next.Add((now.Sub(next)/editorRepeatRate + 1) * editorRepeatRate)
 		}

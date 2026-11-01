@@ -2796,7 +2796,7 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 		} else {
 			world.WorldMapHover(image.Pt(-1, -1))
 		}
-		if a.worldMapTickAt.IsZero() || now.Sub(a.worldMapTickAt) >= worldMapTickInterval {
+		if a.worldMapTickAt.IsZero() || (cadence{period: worldMapTickInterval, gate: gateAtLeast}).due(a.worldMapTickAt, now) {
 			a.worldMapTickAt = now
 			a.flow.applyTownAction(world.WorldMapTick())
 			if !world.AtWorldMap() || a.flow.screen != ScreenTown {

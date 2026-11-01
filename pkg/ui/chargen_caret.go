@@ -29,7 +29,7 @@ func (k *nameCaret) visible() bool {
 // frame is a pre-create frame.
 // A flip needs more than phase since the last flip or restart.
 func (k *nameCaret) paint(now time.Time, preCreate bool, phase time.Duration) {
-	if !k.frame.IsZero() && (k.stamp.IsZero() || k.frame.Sub(k.stamp) > phase) {
+	if !k.frame.IsZero() && (k.stamp.IsZero() || (cadence{period: phase}).due(k.stamp, k.frame)) {
 		k.hidden = !k.hidden
 		k.stamp = k.frame
 	}

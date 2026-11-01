@@ -90,7 +90,7 @@ func (c *ambientController) update(now time.Time, s ambientSnapshot) {
 		c.next = now.Add(c.nextDelay())
 	}
 	moved := !c.originReady || c.origin != s.geometry.Origin
-	due := now.After(c.next)
+	due := gateAfter.reached(c.next, now)
 	if !s.hasView {
 		c.stopLoop(AmbientRiver, &c.loop[AmbientRiver])
 		c.stopLoop(AmbientWallOfFire, &c.loop[AmbientWallOfFire])

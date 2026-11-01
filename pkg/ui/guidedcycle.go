@@ -23,7 +23,7 @@ func (g *guidedCycle) paint(now time.Time, steps [][]int, step, hovered int, hov
 	if !g.started {
 		g.started, g.hoverAt, g.stepAt, g.length, g.lastHovered = true, now, now, 1, -1
 	}
-	if now.Sub(g.hoverAt) < hoverWait {
+	if !(cadence{period: hoverWait, gate: gateAtLeast}).due(g.hoverAt, now) {
 		g.stepAt = now
 		return -1
 	}
@@ -46,7 +46,7 @@ func (g *guidedCycle) paint(now time.Time, steps [][]int, step, hovered int, hov
 		g.length = -1
 	}
 	g.lastHovered = -1
-	if now.Sub(g.stepAt) > stepGap && g.length > 0 {
+	if (cadence{period: stepGap}).due(g.stepAt, now) && g.length > 0 {
 		g.index = (g.index + 1) % g.length
 		g.stepAt = now
 	}

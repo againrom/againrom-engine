@@ -982,7 +982,7 @@ func (c *Chargen) advanceLoops(now time.Time, active bool) {
 		switch {
 		case c.loopAt[i].IsZero():
 			c.loopAt[i] = now
-		case now.Sub(c.loopAt[i]) > ms(loop.PeriodMS):
+		case (cadence{period: ms(loop.PeriodMS)}).due(c.loopAt[i], now):
 			c.loopCount[i]++
 			c.loopAt[i] = now
 		}

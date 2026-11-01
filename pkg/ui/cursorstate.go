@@ -1,6 +1,9 @@
 package ui
 
-import "image"
+import (
+	"image"
+	"time"
+)
 
 // CursorSlot is one of the engine's 28 named cursor registrations, resolved
 // to pictures this package can draw (SPR16A-CURSOR-067, SPR16A-CURSOR-046,
@@ -145,7 +148,7 @@ func (m *CursorManager) Advance(nowMillis int64) {
 	if slot == nil || slot.FrameCount <= 1 {
 		return
 	}
-	if nowMillis-m.lastTick > slot.PeriodMillis {
+	if (cadence{period: time.Duration(slot.PeriodMillis) * time.Millisecond}).dueMillis(m.lastTick, nowMillis) {
 		m.lastTick = nowMillis
 		m.frameIndex++
 		// The wrap happens HERE, before any reader below can observe an index

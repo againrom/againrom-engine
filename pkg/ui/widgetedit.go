@@ -99,7 +99,7 @@ func (c *caretBlink) tick(now time.Time) {
 		c.last = now
 		return
 	}
-	if now.Sub(c.last) > editBlink {
+	if (cadence{period: editBlink}).due(c.last, now) {
 		c.off, c.last = !c.off, now
 	}
 }
