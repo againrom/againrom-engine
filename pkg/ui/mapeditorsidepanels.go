@@ -1165,6 +1165,20 @@ func (e *MapEditor) treeMembers(c editorCategory) []treeMember {
 	return out
 }
 
+// treeMatches are category c's member rows a search for query keeps, in the
+// tree's order: those whose name or ID holds it, case aside; every row for a
+// blank query. The tree and the bar's search field both search by it.
+func (e *MapEditor) treeMatches(c editorCategory, query string) []treeMember {
+	query = strings.ToLower(strings.TrimSpace(query))
+	var out []treeMember
+	for _, m := range e.treeMembers(c) {
+		if query == "" || strings.Contains(m.key, query) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // treeChosen reports that row stands for the editor's selection.
 func (e *MapEditor) treeChosen(row treeRow) bool {
 	if !row.member {
@@ -1184,19 +1198,16 @@ func (e *MapEditor) treeRows() ([]PickerRow, []treeRow, int) {
 	if e.doc == nil {
 		return nil, nil, -1
 	}
-	query := strings.ToLower(strings.TrimSpace(e.tree.search))
+	query := strings.TrimSpace(e.tree.search)
 	var rows []PickerRow
 	var kinds []treeRow
 	sel := -1
 	for _, c := range editorCategories {
-		var shown []treeMember
+		shown := e.treeMatches(c, query)
 		count := 0
-		for _, m := range e.treeMembers(c) {
-			if query == "" || strings.Contains(m.key, query) {
-				shown = append(shown, m)
-				if m.row.member {
-					count++
-				}
+		for _, m := range shown {
+			if m.row.member {
+				count++
 			}
 		}
 		if query != "" && len(shown) == 0 {

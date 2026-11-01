@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"againrom/pkg/mapedit"
-	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -98,10 +97,6 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 			choose("wearrecipe1", -1)
 			choose("wearrecipe1.addeffect", 17)
 			typeValue("wearrecipe1.low1", 5)
-			choose("carryadd", 0x102)
-			choose("carryrecipe2", -1)
-			choose("carryrecipe2.addeffect", 17)
-			typeValue("carryrecipe2.low1", 9)
 			for _, v := range []struct {
 				key   string
 				value int64
@@ -120,10 +115,7 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 			m, _ := s.model.Map()
 			sheets, err := unitSheets(m, s.inspector.table)
 			if err != nil || m.Units[0].ClassSubID&127 != 7 || m.Units[0].Flags&5 != 0 || m.Units[0].DefID != 4321 || m.Units[0].GroupID != 4 ||
-				sheets[0].Worn[0].Code != 0x1122 || len(sheets[0].Worn[0].Effects) != 1 || sheets[0].Worn[0].Effects[0].Operand != 5 ||
-				!slices.ContainsFunc(sheets[0].Carried, func(it sim.ItemInstance) bool {
-					return it.Code == 0x102 && len(it.Effects) == 1 && it.Effects[0].Operand == 9
-				}) {
+				sheets[0].Worn[0].Code != 0x1122 || len(sheets[0].Worn[0].Effects) != 1 || sheets[0].Worn[0].Effects[0].Operand != 5 {
 				t.Fatal("whole draft lost an item or identity", err)
 			}
 			v := sheets[0].Values

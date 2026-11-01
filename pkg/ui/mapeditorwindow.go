@@ -177,6 +177,7 @@ func (e *MapEditor) statusRect() image.Rectangle {
 type barEntry struct {
 	key, label string
 	menu       bool
+	field      bool
 	disabled   bool
 	rect       image.Rectangle
 }
@@ -204,18 +205,20 @@ func (e *MapEditor) barEntries() []barEntry {
 	return entries
 }
 
-// barKey is one top bar entry as data: its key, its word and whether it
-// opens a menu.
+// barKey is one top bar entry as data: its key, its word, whether it opens
+// a menu and whether it is a text field whose menu lists what it finds.
 type barKey struct {
 	key, labelWord string
-	menu           bool
+	menu, field    bool
 }
 
 // barKeys is the top bar's entries in their order: the Map, Tools, View and
-// Window menus, the record categories, the Objects and Trees brushes, then
-// Undo, Redo and Save. An entry with a menu opens it; a category opens its
-// palette; Objects and Trees open the object brush in its one-kind and its
-// Forest mode. The Tools, View and Window menus hold the toolbar's rows.
+// Window menus, the record categories, the search field, the Objects and
+// Trees brushes, then Undo, Redo and Save. An entry with a menu opens it; a
+// category opens its palette; the search field takes the typed text and
+// lists its hits; Objects and Trees open the object brush in its one-kind
+// and its Forest mode. The Tools, View and Window menus hold the toolbar's
+// rows.
 var barKeys = barKeyRows()
 
 func barKeyRows() []barKey {
@@ -229,6 +232,7 @@ func barKeyRows() []barKey {
 		rows = append(rows, barKey{key: c.key, labelWord: c.word})
 	}
 	return append(rows,
+		barKey{key: searchKey, labelWord: "editor.bar.search", menu: true, field: true},
 		barKey{key: "objects", labelWord: "editor.bar.objects"},
 		barKey{key: "trees", labelWord: "editor.bar.trees"},
 		barKey{key: "undo", labelWord: "editor.bar.undo"},
@@ -242,17 +246,35 @@ func barKeyRows() []barKey {
 func (e *MapEditor) barRows() []barEntry {
 	entries := make([]barEntry, len(barKeys))
 	for i, k := range barKeys {
-		entries[i] = barEntry{key: k.key, label: e.word(k.labelWord), menu: k.menu}
+		entries[i] = barEntry{key: k.key, label: e.word(k.labelWord), menu: k.menu, field: k.field}
 	}
 	h := e.barRowHeight()
-	x, top := 4, 0
+	widths := make([]int, len(entries))
+	used := 4
 	for i := range entries {
 		w := 16
 		if e.font != nil {
 			w += e.font.Advance(entries[i].label)
 		}
-		if entries[i].menu {
+		if entries[i].menu && !entries[i].field {
 			w += h
+		}
+		widths[i] = w
+		if !entries[i].field {
+			used += w + 4
+		}
+	}
+	// The search field narrows to the room the bar's other entries leave in
+	// its one row, down to searchFieldMinW.
+	field := searchFieldW
+	if room := e.window.X - 4 - used - 4; e.window.X > 0 && room < field && room >= searchFieldMinW {
+		field = room
+	}
+	x, top := 4, 0
+	for i := range entries {
+		w := widths[i]
+		if entries[i].field {
+			w = field
 		}
 		// An entry that would pass the window's right edge starts the next
 		// row, so a window narrower than the bar still shows every entry.
@@ -379,6 +401,9 @@ func markWord(on bool, id string) string {
 // as its button's tip, a tool or switch row carries the mark while its
 // button shows on, and a row is disabled while its button is.
 func (e *MapEditor) menuItems(menu string) []menuItem {
+	if menu == searchKey {
+		return e.searchItems()
+	}
 	if menu == "map" {
 		return []menuItem{
 			{key: "new", label: e.word("editor.menu.new")},
@@ -421,6 +446,10 @@ var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHei
 // a disabled row draws in the hint ink and cannot be chosen.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X}
+	if entry.field {
+		row := e.searchRow()
+		d.Edit, d.EditFont, d.Ink = &row, e.bodyFont(), editorLight
+	}
 	if open && e.menu == entry.key {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
@@ -439,9 +468,14 @@ func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 		if e.menuModel == nil {
 			e.menuModel = NewPicker(rows)
 		}
+		shown := len(rows)
+		if entry.field {
+			// A map's hits run to hundreds: the list scrolls.
+			shown = min(shown, searchRows)
+		}
 		e.menuModel.SetRows(rows)
-		e.menuModel.SetWindow(len(rows))
-		d.Open, d.List, d.Rows = true, e.menuModel, len(rows)
+		e.menuModel.SetWindow(shown)
+		d.Open, d.List, d.Rows = true, e.menuModel, shown
 	}
 	return d
 }
@@ -472,6 +506,10 @@ func (e *MapEditor) toggleMenu(key string) {
 
 // barAct is what a bar entry does.
 func (e *MapEditor) barAct(key string) {
+	if key == searchKey {
+		_ = e.keySearch(key)
+		return
+	}
 	e.endFieldTyping()
 	for _, k := range barKeys {
 		if k.key == key && k.menu {
@@ -1100,11 +1138,6 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	e.placedCorner(popObject, homeObjectMap)
 	r := e.doc.Records[e.selected]
 	e.loadObject()
-	// The person window's bag is the full inventory: it keeps its larger
-	// floating window.
-	if _, plain := e.plainTable(); e.nativeUnitWindow() && e.obj.section == 2 && !plain {
-		e.panels.hostable = false
-	}
 	if e.obj.move != nil {
 		r.Cell = *e.obj.move
 	}
@@ -1706,6 +1739,9 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
 		e.tree.typing = false
 	}
+	if pressed {
+		e.searchPressOff(p)
+	}
 	if e.drag == popNone && e.inputPointer(in) {
 		return true
 	}
@@ -1844,8 +1880,14 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 		d := e.menuDropdown(b, true)
 		switch part, row := d.hit(e.font, p); part {
 		case dropdownToggle:
-			e.menu = ""
+			if e.menu != searchKey {
+				e.menu = ""
+			}
 		case dropdownRow:
+			if e.menu == searchKey {
+				e.chooseHit(row)
+				return
+			}
 			items := e.menuItems(e.menu)
 			if row < len(items) && items[row].key != "" && !items[row].off {
 				e.menuAct(items[row].key)

@@ -8,6 +8,7 @@ import (
 	"image"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -202,10 +203,10 @@ func chromeRectsLines(t *testing.T, text string) []chromeRectsLine {
 // before the panels and the toolbar existed less the two side strips, the
 // toolbar and the bottom panel's strip; the status strip stands where it
 // stood, the bar holds the entries it held less the View and Tools entries
-// after Trees, beside the Tools, View and Window menus after Map, the map
-// frame fills the map area, and every window that is not a record
-// category's palette keeps its size. The recorded table was read from the
-// editor without panels.
+// after Trees, beside the Tools, View and Window menus after Map and the
+// search field after the record categories, the map frame fills the map
+// area, and every window that is not a record category's palette keeps its
+// size. The recorded table was read from the editor without panels.
 func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 	raw, err := os.ReadFile("testdata/mapeditor_chrome_rects.golden")
 	if err != nil {
@@ -223,7 +224,9 @@ func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 		b := base[i]
 		players := strings.HasSuffix(g.name, " players") || strings.HasSuffix(g.name, " players-own")
 		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y+dockedToolbarHigh(b.area.Dx()), b.area.Max.X-strip, b.area.Max.Y-low)
-		bar, gotBar := chromeBarLess(t, b.bar, len(barKeys)-1, 9, 11), chromeBarLess(t, g.bar, len(barKeys), 1, 4)
+		search := slices.IndexFunc(barKeys, func(k barKey) bool { return k.key == searchKey })
+		gotBar := chromeBarLess(t, chromeBarLess(t, g.bar, len(barKeys), search, search+1), len(barKeys)-1, 1, 4)
+		bar := chromeBarLess(t, b.bar, len(barKeys)-2, 9, 11)
 		if g.name != b.name || g.area != want || g.status != b.status || gotBar != bar || g.frame != want.Size() {
 			t.Errorf("%s: map %v frame %v status %s bar %s, want map %v status %s bar %s", g.name, g.area, g.frame, g.status, gotBar, want, b.status, bar)
 		}
@@ -649,12 +652,12 @@ func TestMapEditorRightPanelHostsTheFloatingWindow(t *testing.T) {
 	if s, ok := e.propsSpec(); !ok || len(s.Rows) != 1 || s.Rows[0].Label != e.word("editor.side.none") {
 		t.Fatalf("an empty right panel shows %v", s.Rows)
 	}
-	// The full inventory and the dialogue page editor stay floating.
+	// The person window's bag stands in the panel as its other tabs do.
 	e.Select(0, false)
 	e.obj.section = 2
 	if e.nativeUnitWindow() {
-		if _, _, ok := e.objectSpec(); !ok || e.panels.hosted {
-			t.Fatal("the person window's inventory went into the panel")
+		if _, _, ok := e.objectSpec(); !ok || !e.panels.hosted {
+			t.Fatal("the person window's bag left the panel")
 		}
 	}
 }

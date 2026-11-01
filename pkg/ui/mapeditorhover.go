@@ -6,24 +6,26 @@ import (
 	"time"
 )
 
-// The editor's hover tooltip over a palette's grid cells and the toolbar's
-// buttons: the game's one tooltip clock and hover box, in the editor's font
-// and colours.
+// The editor's hover tooltip over a palette's grid cells, the toolbar's
+// buttons and the rows of an open speaker list: the game's one tooltip clock
+// and hover box, in the editor's font and colours.
 
 // editorTipDelay is how long the pointer rests on a grid cell before the
 // cell's tooltip shows, in milliseconds: one of the game's tooltip delays.
 const editorTipDelay = 300
 
-// editorTip is the tooltip clock and the text of the cell it times.
+// editorTip is the tooltip clock, the text of the cell it times and the
+// picture the tip shows under the text, nil for none.
 type editorTip struct {
-	clock tooltipController
-	text  string
+	clock   tooltipController
+	text    string
+	picture image.Image
 }
 
 // editorTipStyle is the game's hover box in the editor's body font, paper
-// ink, panel fill and gold bevel.
-func (e *MapEditor) editorTipStyle() *hoverStyle {
-	return hoverStyleFor(hoverStyleEditor, hoverParams{font: e.bodyFont()})
+// ink, panel fill and gold bevel, with picture under the text.
+func (e *MapEditor) editorTipStyle(picture image.Image) *hoverStyle {
+	return hoverStyleFor(hoverStyleEditor, hoverParams{font: e.bodyFont(), picture: picture})
 }
 
 // gridTipAt is the tip of the list popup's grid cell under p, and the cell's
@@ -46,16 +48,41 @@ func (e *MapEditor) gridTipAt(p image.Point) (string, image.Point, bool) {
 	return "", image.Point{}, false
 }
 
+// choiceTipAt is the tip of the open list's row under p when the field shows
+// its pictures in the tip: the choice's label, its picture at full size and
+// the row's corner; false over no row or a choice with no picture.
+func (e *MapEditor) choiceTipAt(p image.Point) (string, image.Image, image.Point, bool) {
+	o := &e.obj
+	d, ok := e.openDropdown()
+	if !ok || o.open >= len(o.fields) || !o.fields[o.open].IconTip || e.chromeHit(p) != popObject {
+		return "", nil, image.Point{}, false
+	}
+	f := o.fields[o.open]
+	part, row := d.hit(e.bodyFont(), p)
+	if part != dropdownRow || row >= len(f.Choices) {
+		return "", nil, image.Point{}, false
+	}
+	pic := f.Icons[f.Choices[row].Value]
+	if pic == nil {
+		return "", nil, image.Point{}, false
+	}
+	top, _ := d.List.Visible()
+	return f.Choices[row].Label, pic, d.listBox(e.bodyFont()).Row(row - top).Min, true
+}
+
 // observeTip gives the tooltip clock a pointer sample: the clock restarts on
-// a new cell or toolbar button and stops while a button is held or neither
-// is under p.
+// a new cell, toolbar button or list row and stops while a button is held or
+// none is under p.
 func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
 	e.tip.clock.setDelay(editorTipDelay)
-	text, at, ok := e.gridTipAt(p)
+	text, picture, at, ok := e.choiceTipAt(p)
+	if !ok {
+		text, at, ok = e.gridTipAt(p)
+	}
 	if !ok && e.chromeHit(p) == popToolbar {
 		text, at, ok = e.toolTip(p)
 	}
-	e.tip.text = text
+	e.tip.text, e.tip.picture = text, picture
 	e.tip.clock.observe(now, at, text, held || !ok)
 }
 
@@ -68,15 +95,14 @@ func (e *MapEditor) TipShown() string {
 	return e.tip.text
 }
 
-// drawTip draws the shown grid cell tooltip, its lower left corner at the
-// pointer.
+// drawTip draws the shown tooltip, its lower left corner at the pointer.
 func (e *MapEditor) drawTip(pic *image.RGBA) {
 	text := e.TipShown()
 	if text == "" {
 		return
 	}
 	t := tooltipTarget{kind: tooltipText, id: "editor", lines: []string{text}, font: e.bodyFont()}
-	if img, at, ok := tooltipPicture(t, e.pointer, pic.Bounds(), nil, e.editorTipStyle()); ok {
+	if img, at, ok := tooltipPicture(t, e.pointer, pic.Bounds(), nil, e.editorTipStyle(e.tip.picture)); ok {
 		draw.Draw(pic, img.Bounds().Add(at), img, image.Point{}, draw.Over)
 	}
 }

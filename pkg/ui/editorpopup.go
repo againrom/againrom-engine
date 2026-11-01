@@ -1302,7 +1302,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
 		if row.Edit != nil {
-			drawEditorInput(dst, body, row, rr.Control, ink, value)
+			drawEditRow(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
 			for k, b := range rr.Buttons {
 				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
@@ -1338,19 +1338,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 				}
 			}
 		case popupEdit, popupPick:
-			drawEditField(dst, editField{Rect: rr.Control, TextH: fontHeight(body, 15), Focus: row.Focus, Phase: true, Caret: row.Caret}, func(at image.Point) {
-				if body == nil {
-					return
-				}
-				// A value longer than the field ends in an ellipsis at the
-				// room rowFull measures, and the hover line shows it whole.
-				room := rr.Control.Dx() - 2 - editTextX
-				if row.Value == "" && row.Hint != "" {
-					body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, popupHintInk)
-					return
-				}
-				body.Draw(dst.SubImage(rr.Control.Inset(2)).(*image.RGBA), editorClip(body, row.Value, room), at.X, at.Y, value)
-			})
+			drawEditRow(dst, body, row, rr.Control, ink, value)
 		case popupSwitch:
 			// A long value ends in an ellipsis inside its button.
 			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})

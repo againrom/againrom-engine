@@ -182,6 +182,28 @@ func (v *editorTextView) shownRun(span editorTextSpan, f *text.Font, shift, left
 	return v.encode(string(r[from:to])), at(from)
 }
 
+// drawEditRow is the editor's one text field painter: the typed input
+// while row carries its text view, else the field's well with its value, or
+// its hint while empty, a value longer than the field ending in an ellipsis
+// at the room rowFull measures.
+func drawEditRow(dst *image.RGBA, body *text.Font, row popupRow, box image.Rectangle, ink popupInk, value color.RGBA) {
+	if row.Edit != nil {
+		drawEditorInput(dst, body, row, box, ink, value)
+		return
+	}
+	drawEditField(dst, editField{Rect: box, TextH: fontHeight(body, 15), Focus: row.Focus, Phase: true, Caret: row.Caret}, func(at image.Point) {
+		if body == nil {
+			return
+		}
+		room := box.Dx() - 2 - editTextX
+		if row.Value == "" && row.Hint != "" {
+			body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Hint, room), at.X, at.Y, popupHintInk)
+			return
+		}
+		body.Draw(dst.SubImage(box.Inset(2)).(*image.RGBA), editorClip(body, row.Value, room), at.X, at.Y, value)
+	})
+}
+
 func drawEditorInput(dst *image.RGBA, f *text.Font, row popupRow, box image.Rectangle, ink popupInk, value color.RGBA) {
 	v := row.Edit
 	if f == nil {
@@ -269,10 +291,18 @@ func (e *MapEditor) inputPointer(in Input) bool {
 		e.down = true
 		return true
 	}
-	if !in.PrimaryDown || e.down || e.menu != "" || e.dropdownOpen() {
+	if !in.PrimaryDown || e.down || e.menu != "" && e.menu != searchKey || e.dropdownOpen() {
 		return false
 	}
-	if v, box := e.inputAt(p, true); v != nil {
+	at := e.inputAt
+	if e.menu == searchKey {
+		// The open hit list takes every press but the field's own.
+		at = func(p image.Point, press bool) (*editorTextView, image.Rectangle) {
+			v, box, _ := e.searchInputAt(p, press)
+			return v, box
+		}
+	}
+	if v, box := at(p, true); v != nil {
 		e.input.model.drag(v.hit(p, box, e.bodyFont()), in.Shift)
 		e.input.drag = true
 		e.down, e.uiDown = true, false
@@ -307,6 +337,8 @@ func (e *MapEditor) inputAt(p image.Point, press bool) (*editorTextView, image.R
 			return nearest, nearestBox
 		}
 	} else if v, box, ok := e.treeInputAt(p, press); ok {
+		return v, box
+	} else if v, box, ok := e.searchInputAt(p, press); ok {
 		return v, box
 	} else if s, _, ok := e.objectSpec(); ok {
 		l := layoutPopup(s, e.font, e.bodyFont())

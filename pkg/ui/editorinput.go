@@ -162,6 +162,10 @@ func (e *MapEditor) inputTarget() (*string, editorInputPolicy, string) {
 		if e.messagePage != 0 {
 			scope = "pages"
 		}
+	} else if e.searchTyping() {
+		// The bar's search field: the tree search's plain text.
+		p.limit = 64
+		return &e.search.text, p, searchKey
 	} else if e.treeTyping() {
 		// The tree's search field: plain text, no record field's rule.
 		p.limit = 64
@@ -248,6 +252,9 @@ func (e *MapEditor) inputPropagate() {
 	*e.input.target = e.input.model.Text
 	if e.prompt.open() {
 		e.addFollow()
+	}
+	if e.input.key == searchKey {
+		e.searchFollow()
 	}
 }
 

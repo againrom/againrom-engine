@@ -78,7 +78,8 @@ func hoverBoxSize(lines []string, f *text.Font, s *hoverShape) image.Point {
 // outside the bevel. Without a ball picture the corners stay unpainted. The
 // outlined box is the fill under a one-pixel outline. The text draws in
 // style s, or popupTextColor without a shadow when s is nil; a style's box
-// names the colours instead and its shape the geometry.
+// names the colours instead and its shape the geometry; its picture draws at
+// its own size under the lines.
 func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverStyle) *image.RGBA {
 	if f == nil || len(lines) == 0 {
 		return nil
@@ -90,6 +91,12 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverSty
 	size := hoverBoxSize(lines, f, shape)
 	if !shape.outlined && size.X <= shape.padW {
 		return nil
+	}
+	var picture image.Image
+	if s != nil && s.picture != nil && !s.picture.Bounds().Empty() {
+		picture = s.picture
+		size.X = max(size.X, picture.Bounds().Dx()+shape.padW)
+		size.Y += picture.Bounds().Dy() + shape.textY
 	}
 	img := image.NewRGBA(image.Rect(0, 0, size.X, size.Y))
 	recordWidget(widgetHoverBox, img.Bounds(), lines)
@@ -113,6 +120,10 @@ func composeHoverBox(lines []string, f *text.Font, ball image.Image, s *hoverSty
 			f.DrawFlat(img, ln, x+1, y+1, *s.shadow)
 		}
 		f.Draw(img, ln, x, y, ink)
+	}
+	if picture != nil {
+		at := image.Pt(shape.textX, shape.textY+len(lines)*pitch)
+		draw.Draw(img, picture.Bounds().Sub(picture.Bounds().Min).Add(at), picture, picture.Bounds().Min, draw.Over)
 	}
 	return img
 }

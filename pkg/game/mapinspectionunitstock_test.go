@@ -18,6 +18,20 @@ import (
 // each can own a stock.
 func openIdentifiedUnits(t *testing.T) *ui.MapEditor {
 	t.Helper()
+	x, path := identifiedUnits(t)
+	e := x.Editor()
+	if err := e.Open(path); err != nil {
+		t.Fatal(err)
+	}
+	e.Layout(1280, 800)
+	e.Document().Viewer.SetFlat(true)
+	return e
+}
+
+// identifiedUnits writes the map of two identified units and returns the
+// inspector that opens it.
+func identifiedUnits(t *testing.T) (*MapInspector, string) {
+	t.Helper()
 	b := synth.ALM(synth.ALMOptions{Width: 32, Height: 32, Type7Payload: make([]byte, 12), Units: []synth.ALMUnit{
 		{X: 3*256 + 128, Y: 4*256 + 77, ClassID: 40, ClassSubID: 2, UnitID: 11},
 		{X: 7*256 + 3, Y: 8*256 + 5, ClassID: 40, ClassSubID: 2, UnitID: 12},
@@ -29,13 +43,7 @@ func openIdentifiedUnits(t *testing.T) *ui.MapEditor {
 	if err := os.WriteFile(path, b, 0600); err != nil {
 		t.Fatal(err)
 	}
-	e := x.Editor()
-	if err := e.Open(path); err != nil {
-		t.Fatal(err)
-	}
-	e.Layout(1280, 800)
-	e.Document().Viewer.SetFlat(true)
-	return e
+	return x, path
 }
 
 // stockedAuthoring is the authoring map with both its units given a stock

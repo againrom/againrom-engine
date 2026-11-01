@@ -43,6 +43,9 @@ func (e *MapEditor) keyRecords(key string) error {
 			e.message = "Select a unit first; K creates its stock."
 			return nil
 		}
+		// The new stock opens in its window as the unit's sack row opens
+		// it: Back returns to the unit.
+		back := append(e.objectBack, e.objectPlace())
 		ch, err := e.commandAddStock(index)
 		if err != nil {
 			e.message = err.Error()
@@ -50,6 +53,7 @@ func (e *MapEditor) keyRecords(key string) error {
 		}
 		if ch.doc != nil {
 			e.selectNewest(KindStock)
+			e.objectBack = back
 			e.message = "Stock created. E adds items; I adds an item recipe."
 		}
 		return nil

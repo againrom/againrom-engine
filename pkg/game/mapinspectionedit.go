@@ -298,6 +298,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			template.describe(&row)
 		}
 		out = append(out, row)
+		if element, part, ok := stockItemField(f.Key); k == mapedit.KindLoot && ok && part == "recipe" {
+			out = append(out, s.stockRecipeFields(index, element)...)
+		}
 	}
 	if k == mapedit.KindTrigger {
 		out = append(out, ui.InspectionField{Key: "order", Label: "Trigger order (0 first)", Value: int64(index)})
@@ -395,7 +398,10 @@ func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []u
 			}
 		}
 		if k == mapedit.KindUnit {
-			group = orderUnitItemFields(group)
+			group = orderItemFields(group, carriedField)
+		}
+		if k == mapedit.KindLoot {
+			group = orderItemFields(group, stockItemField)
 		}
 		ordered = append(ordered, group...)
 		start = end
@@ -464,6 +470,11 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	}
 	if slot, recipe := equipmentField(key); k == mapedit.KindUnit && slot > 0 {
 		return s.setEquipment(m, index, slot, recipe, value)
+	}
+	if k == mapedit.KindLoot {
+		if handled, changed, err := s.setStockItem(m, index, key, value); handled {
+			return changed, err
+		}
 	}
 	if k == mapedit.KindTrigger && key == "order" {
 		if value < 0 || value >= int64(m.Count(k)) {

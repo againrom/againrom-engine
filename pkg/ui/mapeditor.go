@@ -153,6 +153,10 @@ type InspectionField struct {
 	Choices         []InspectionChoice
 	// Group is the heading the field shows under; "" for none.
 	Group string
+	// IconTip shows a choice's picture at full size in the editor's tip
+	// over its row of the open list, and none in the row: a speaker's face,
+	// which a row's height cannot show.
+	IconTip bool
 	// Inherit marks a value the record may leave to its template: Absent is
 	// the value the record stores for that, which an empty field writes, and
 	// Inherited is the value the game uses meanwhile. An Absent of 0 means
@@ -166,6 +170,10 @@ type InspectionField struct {
 	// Toward marks a player's relation field: the relation toward player
 	// Toward, counted from 1; zero for every other field.
 	Toward int
+	// Link, on a read-only field, is the record its row opens in the one
+	// window, with Back to this one: a unit's sack. The zero RecordRef
+	// opens none.
+	Link RecordRef
 }
 
 // InspectionChoice is one value a field can take; Label is in the font's bytes.
@@ -226,6 +234,7 @@ type MapEditor struct {
 	kept                        map[string]image.Point // the size each keeping list window was dragged to, by window name; outside editorChrome, so a cancelled window does not take it back
 	props                       propertyView           // the object window's plain or technical view
 	tree                        editorTree
+	search                      barSearch
 	editorChrome
 }
 
@@ -547,7 +556,10 @@ func (e *MapEditor) Update() error {
 			}
 		}
 	}
-	if !e.prompt.open() && !e.objectTyping() && !e.treeTyping() {
+	if !e.prompt.open() && native.pressed(ebiten.KeyControl) && native.justPressed(ebiten.KeyF) {
+		_ = e.Key(searchKey)
+	}
+	if !e.prompt.open() && !e.objectTyping() && !e.treeTyping() && !e.searchTyping() {
 		for _, p := range sidePanels {
 			if native.justPressed(p.hotkey) {
 				_ = e.Key(p.key)
@@ -606,7 +618,7 @@ func (e *MapEditor) Update() error {
 		if native.justPressed(ebiten.KeyF3) {
 			_ = e.Key("casts")
 		}
-		if native.justPressed(ebiten.KeyF) {
+		if native.justPressed(ebiten.KeyF) && !native.pressed(ebiten.KeyControl) {
 			e.Fit()
 		}
 		if native.justPressed(ebiten.KeyR) && !native.pressed(ebiten.KeyControl) {

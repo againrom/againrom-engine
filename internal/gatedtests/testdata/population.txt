@@ -1540,3 +1540,4 @@ pkg/game.TestReleaseSecondBagPotionIsDrunkInMissionTen
 pkg/game.TestReleaseOwnedStockDispatchesOnBothShippedMaps
 pkg/game.TestReleaseEditorEmptyMaterializationPreservesHumanItems
 pkg/game.TestReleaseMapEditorFieldChoicesKeepTheirLists
+pkg/game.TestReleaseMapEditorUnitSackBytes

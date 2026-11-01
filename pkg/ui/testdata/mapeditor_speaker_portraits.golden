@@ -1,5 +1,8 @@
-row 0 No speaker picture=false cell=true
-row 1 5: Anna picture=true cell=true
-row 2 6: Bors picture=false cell=true
-list portrait pixels 64
-frame 7a1b374c
+en row 0 No speaker picture=false cell=false
+en row 1 5: Anna picture=false cell=false
+en row 2 6: Bors picture=false cell=false
+en tip 5: Anna box (1099,325)-(1206,444) face pixels 9216 frame 53ab0d94
+ru row 0 Без говорящего picture=false cell=false
+ru row 1 5: Анна picture=false cell=false
+ru row 2 6: Борис picture=false cell=false
+ru tip 5: Анна box (1099,325)-(1206,444) face pixels 9216 frame a4f4752a

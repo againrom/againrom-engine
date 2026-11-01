@@ -404,19 +404,33 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	if len(choices) < 2 {
 		t.Fatal("carried item catalog is empty")
 	}
-	typer.choose("carryadd", choices[1].Value)
+	// A carried item is added in the unit's sack's window, the stock's: the
+	// sack row opens one the unit has, and K adds one it lacks.
+	undos := 1
+	if link := fields[fieldIndex(t, fields, "sack")].Link; link.Kind == ui.KindStock {
+		e.Select(recordOf(e.Document(), string(ui.KindStock), link.Index), true)
+	} else {
+		if err := e.Key("stock"); err != nil {
+			t.Fatal(err)
+		}
+		_ = e.Key("escape")
+		undos++
+	}
+	recordFieldInput(t, e, "additem", choices[1].Value)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	fields = objectEdits(t, e).Fields("Unit", i)
 	if field := fields[fieldIndex(t, fields, "holdings")]; !field.ReadOnly || len(field.Lines) < 2 {
 		t.Fatal("missing read-only derived carrier and loot")
 	}
-	fieldShot(e, i, "carryadd", "human-carried-and-derived-loot")
+	fieldShot(e, i, "holdings", "human-carried-and-derived-loot")
 	for _, size := range []image.Point{{800, 600}, {640, 480}} {
 		e.Layout(size.X, size.Y)
-		fieldShot(e, i, "carryadd", fmt.Sprintf("human-setup-%dx%d", size.X, size.Y))
+		fieldShot(e, i, "holdings", fmt.Sprintf("human-setup-%dx%d", size.X, size.Y))
 	}
 	e.Layout(1280, 800)
-	_ = e.Key("undo")
+	for range undos {
+		_ = e.Key("undo")
+	}
 	if !bytes.Equal(beforeLook, e.Document().SourceBytes) {
 		t.Fatal("carried item Undo changed unrelated bytes")
 	}

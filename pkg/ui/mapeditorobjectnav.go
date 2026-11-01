@@ -1,9 +1,25 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 )
+
+// sackField reports that f, on record r, writes the unit's sack: an
+// editable field of the person window's bag. The sack's own window edits
+// it, as it edits a selected sack; the bag shows the row that opens it.
+func sackField(r InspectionRecord, f InspectionField) bool {
+	return r.Kind == KindUnit && f.Section == "inventory" && !f.ReadOnly
+}
+
+// linkedRecord is the document index of the record ref names, -1 for none.
+func (e *MapEditor) linkedRecord(ref RecordRef) int {
+	if ref.Kind == "" || e.doc == nil {
+		return -1
+	}
+	return slices.IndexFunc(e.doc.Records, func(r InspectionRecord) bool { return r.Kind == ref.Kind && r.Index == ref.Index })
+}
 
 type objectPlace struct {
 	kind       RecordKind
@@ -16,6 +32,7 @@ type objectPlace struct {
 	goalRow    int
 	hidden     bool
 	details    int // the trigger details view shown, as triggerDetails
+	section    int // the person window's tab shown
 }
 
 func objectParameter(t uint32) bool {
@@ -23,7 +40,7 @@ func objectParameter(t uint32) bool {
 }
 
 func (e *MapEditor) objectPlace() objectPlace {
-	p := objectPlace{index: -1, top: e.objectTop, group: e.groupSel, details: e.triggerDetails}
+	p := objectPlace{index: -1, top: e.objectTop, group: e.groupSel, details: e.triggerDetails, section: e.obj.section}
 	if v, ok := e.scriptVariableRow(e.selected); ok {
 		p.kind, p.register = "Variable", v.register
 		return p
@@ -114,6 +131,7 @@ func (e *MapEditor) backObject() {
 	e.objectBack, e.objectTop, e.triggerDetails = back, p.top, p.details
 	e.obj.doc = nil
 	e.loadObject()
+	e.obj.section = p.section
 	if p.draft != nil {
 		for i, f := range p.draft.fields {
 			if p.draft.buf[i] == fieldInput(f) {

@@ -30,6 +30,10 @@ type dropdown struct {
 	// Icon, when set, draws the closed box as an icon button, sunk while
 	// the list is open: a toolbar's drop-down.
 	Icon *editorIcon
+	// Edit, when set, draws the closed box as that text field: a search
+	// field whose open list holds its hits, its text in EditFont.
+	Edit     *popupRow
+	EditFont *text.Font
 }
 
 // button is the arrow button at the closed box's right end.
@@ -78,17 +82,20 @@ func (d dropdown) Covers(f *text.Font, p image.Point) bool {
 }
 
 // drawDropdown is the one drop-down builder: the closed box, an edit field's
-// well with the text and an arrow push button or, with Icon, an icon button,
-// then, while open, a fill and the shared list box over the drop-down's list
+// well with the text and an arrow push button, with Icon an icon button or
+// with Edit a text field, then, while open, a fill and the shared list box over the drop-down's list
 // model.
 func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdown, rowText listRowText, pointer image.Point, pointerOK bool) {
 	recordWidget(widgetDropdown, d.Rect, d)
 	if dst == nil || d.Rect.Dx() < 8 || d.Rect.Dy() < 4 {
 		return
 	}
-	if d.Icon != nil {
+	switch {
+	case d.Icon != nil:
 		drawIconButton(dst, iconButton{Rect: d.Rect, Icon: d.Icon, On: d.Open, Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled})
-	} else {
+	case d.Edit != nil:
+		drawEditRow(dst, d.EditFont, *d.Edit, d.Rect, popupInk{Ground: d.Fill, Edge: d.Ink}, d.Ink)
+	default:
 		drawDropdownBox(dst, f, d, pointer, pointerOK)
 	}
 	if !d.Open || d.List == nil {

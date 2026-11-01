@@ -3745,5 +3745,16 @@ var Committed = Baseline{
 	// mapeditorscriptslist_test.go, the tree follow marker in mapeditor.go and
 	// mapeditorsidepanels.go, the test mapeditorfollow_test.go, and this note.
 	// mapeditorscriptslist_test.go, and this note.
-	CommentBytes: 10303159,
+
+	// It rose for the bar's search field, the unit's sack in the stock's
+	// window and the speaker's face in the editor's tip: new doc comments in
+	// pkg/ui's mapeditorsearch.go, mapeditorobjectnav.go, mapeditorrecords.go,
+	// mapeditorhover.go, mapeditorplain.go and editorinputview.go, the tests
+	// mapeditorsearch_test.go and mapeditorunitsack_test.go in pkg/ui and
+	// pkg/game, mapeditorunitsack_release_test.go, and this note; then for
+	// the sack's item writers and rows: doc comments in pkg/game's
+	// mapinspectioninventory.go, mapinspectionitemrecipe.go and
+	// mapinspectionchoices.go, the tests mapeditorsackrecipe_test.go in
+	// pkg/game and pkg/ui and mapinspectionviews_test.go.
+	CommentBytes: 10317972,
 }

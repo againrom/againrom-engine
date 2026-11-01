@@ -8,6 +8,10 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
+
+	"againrom/pkg/formats/textinput"
+	"againrom/pkg/words"
 )
 
 // speakerPortraitInk is a colour no other part of the editor's frame uses, so
@@ -18,7 +22,15 @@ var speakerPortraitInk = color.RGBA{R: 0xff, B: 0xff, A: 0xff}
 // face, and speaker 6, who has none.
 type speakerPortraitEdits struct {
 	*editorTextEdits
-	face *image.RGBA
+	face   *image.RGBA
+	labels [3]string
+}
+
+// speakerLabels are the choice labels the host gives in each language: "No
+// speaker", then speakers 5 and 6, as the host's "id: name".
+var speakerLabels = map[string][3]string{
+	"en": {"No speaker", "5: Anna", "6: Bors"},
+	"ru": {"Без говорящего", "5: Анна", "6: Борис"},
 }
 
 func (*speakerPortraitEdits) MessageParts(uint32) []InspectionMessagePart {
@@ -26,8 +38,8 @@ func (*speakerPortraitEdits) MessageParts(uint32) []InspectionMessagePart {
 }
 func (s *speakerPortraitEdits) MessageFields(uint32, ...int) []InspectionField {
 	return []InspectionField{{Key: "body", Text: true}, {Key: "speaker", Value: -1,
-		Choices: []InspectionChoice{{Value: -1, Label: "No speaker"}, {Value: 5, Label: "5: Anna"}, {Value: 6, Label: "6: Bors"}},
-		Icons:   map[int64]*image.RGBA{5: s.face}}}
+		Choices: []InspectionChoice{{Value: -1, Label: s.labels[0]}, {Value: 5, Label: s.labels[1]}, {Value: 6, Label: s.labels[2]}},
+		Icons:   map[int64]*image.RGBA{5: s.face}, IconTip: true}}
 }
 func (*speakerPortraitEdits) SetMessage(uint32, string, int64) (*InspectionDocument, error) {
 	return nil, nil
@@ -45,16 +57,23 @@ func (*speakerPortraitEdits) PointMessageParts(InspectionMessageOwner, uint32, [
 	return nil, nil
 }
 
-// speakerPortraitEditor opens the two-card page; the face is a picture of
-// speakerPortraitInk the dialogue pane's size.
-func speakerPortraitEditor(t *testing.T) (*MapEditor, *image.RGBA) {
+// speakerPortraitEditor opens the two-card page in lang at 1920x1080, the
+// labels in the font's encoding as the host gives them; the face is a
+// picture of speakerPortraitInk the dialogue pane's size.
+func speakerPortraitEditor(t *testing.T, lang string) (*MapEditor, *image.RGBA) {
 	t.Helper()
-	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
+	font := wordsFont(lang)
+	e, edits := selectedTextEditor(t, font, image.Pt(1920, 1080))
+	e.SetWords(words.For(lang))
 	face := image.NewRGBA(image.Rect(0, 0, 96, 96))
 	for i := 0; i < len(face.Pix); i += 4 {
 		copy(face.Pix[i:i+4], []byte{speakerPortraitInk.R, speakerPortraitInk.G, speakerPortraitInk.B, speakerPortraitInk.A})
 	}
-	e.doc.Edits = &speakerPortraitEdits{editorTextEdits: edits, face: face}
+	s := &speakerPortraitEdits{editorTextEdits: edits, face: face}
+	for k, label := range speakerLabels[lang] {
+		s.labels[k], _ = textinput.EncodeText(label, font.Selector, textinput.Substitute)
+	}
+	e.doc.Edits = s
 	e.openMessage(1)
 	return e, face
 }
@@ -76,7 +95,7 @@ func portraitPixels(pic *image.RGBA, r image.Rectangle) int {
 // A page card shows its chosen speaker's portrait inside the speaker field,
 // after the name; a card whose speaker has no face shows none.
 func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
-	e, face := speakerPortraitEditor(t)
+	e, face := speakerPortraitEditor(t, "en")
 	s, _, ok := e.messageSpec()
 	if !ok {
 		t.Fatal("the message editor builds no popup")
@@ -104,42 +123,79 @@ func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
 	}
 }
 
-// The speaker list's rows: each speaker with a face carries its portrait, and
-// every other row keeps an empty portrait cell, "No speaker" first. The open
-// list is recorded in testdata/mapeditor_speaker_portraits.golden;
-// MAPEDITOR_SPEAKERS_WRITE=1 rewrites it.
-func TestSpeakerListDrawsEachSpeakersPortrait(t *testing.T) {
-	e, face := speakerPortraitEditor(t)
-	if _, _, ok := e.objectSpec(); !ok {
-		t.Fatal("the message editor builds no popup")
-	}
-	e.objectRowPress(popupRowControl, e.fieldRow(1))
-	if e.obj.open != 1 || e.obj.choice == nil {
-		t.Fatal("the speaker list did not open")
-	}
+// The speaker list names each speaker in the host's words, "No speaker"
+// first, and carries no small portrait. Resting the pointer on a speaker's
+// row shows the editor's one tip: the name over the face at its full size; a
+// row without a face shows none. The open lists and the tips are recorded in
+// testdata/mapeditor_speaker_portraits.golden; MAPEDITOR_SPEAKERS_WRITE=1
+// rewrites it.
+func TestSpeakerListNamesEachSpeaker(t *testing.T) {
 	var lines []string
-	for k, row := range e.obj.choice.Rows() {
-		if want := k == 1; (row.Icon == face) != want || !want && row.Icon != nil || !row.IconCell {
-			t.Errorf("row %d %q: picture %v, cell %v", k, row.Text, row.Icon != nil, row.IconCell)
+	for _, lang := range []string{"en", "ru"} {
+		e, face := speakerPortraitEditor(t, lang)
+		if _, _, ok := e.objectSpec(); !ok {
+			t.Fatal("the message editor builds no popup")
 		}
-		lines = append(lines, fmt.Sprintf("row %d %s picture=%v cell=%v", k, row.Text, row.Icon != nil, row.IconCell))
+		e.objectRowPress(popupRowControl, e.fieldRow(1))
+		if e.obj.open != 1 || e.obj.choice == nil {
+			t.Fatal("the speaker list did not open")
+		}
+		labels := e.doc.Edits.(*speakerPortraitEdits).labels
+		rows := e.obj.choice.Rows()
+		if len(rows) != len(labels) {
+			t.Fatalf("%s: the list has %d rows", lang, len(rows))
+		}
+		for k, row := range rows {
+			if row.Text != labels[k] || row.Icon != nil || row.IconCell {
+				t.Errorf("%s row %d %q: picture %v, cell %v; want %q alone", lang, k, row.Text, row.Icon != nil, row.IconCell, labels[k])
+			}
+			lines = append(lines, fmt.Sprintf("%s row %d %s picture=%v cell=%v", lang, k, speakerLabels[lang][k], row.Icon != nil, row.IconCell))
+		}
+		d, ok := e.openDropdown()
+		if !ok {
+			t.Fatal("the open list has no drop-down")
+		}
+		list := d.listBox(e.bodyFont())
+		if n := portraitPixels(e.ChromeImage(), list.Rect); n != 0 {
+			t.Errorf("%s: the open list draws %d portrait pixels", lang, n)
+		}
+		top, _ := d.List.Visible()
+		t0 := time.Unix(100, 0)
+		rest := func(row int, at time.Duration) {
+			p := center(list.Row(row - top))
+			e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, t0.Add(at))
+		}
+		rest(1, 0)
+		rest(1, editorTipDelay*time.Millisecond-time.Millisecond)
+		if got := e.TipShown(); got != "" {
+			t.Fatalf("%s: the tip %q shows before the delay", lang, got)
+		}
+		rest(1, editorTipDelay*time.Millisecond)
+		if got := e.TipShown(); got != labels[1] || e.tip.picture != face {
+			t.Fatalf("%s: the tip reads %q with picture %v, want %q with the face", lang, got, e.tip.picture != nil, labels[1])
+		}
+		pic := e.ChromeImage()
+		tip, at, ok := tooltipPicture(tooltipTarget{kind: tooltipText, id: "editor", lines: []string{labels[1]}, font: e.bodyFont()}, e.pointer, pic.Bounds(), nil, e.editorTipStyle(face))
+		if !ok {
+			t.Fatal("the tip composes no box")
+		}
+		box := tip.Bounds().Add(at)
+		n := portraitPixels(pic, box)
+		if want := face.Bounds().Dx() * face.Bounds().Dy(); n != want {
+			t.Errorf("%s: the tip draws %d face pixels, want the whole face's %d", lang, n, want)
+		}
+		h := fnv.New32a()
+		h.Write(pic.Pix)
+		lines = append(lines, fmt.Sprintf("%s tip %s box %v face pixels %d frame %08x", lang, speakerLabels[lang][1], box, n, h.Sum32()))
+		for k, row := range []int{0, 2} {
+			from := time.Duration(k+1) * time.Second
+			rest(row, from)
+			rest(row, from+editorTipDelay*time.Millisecond)
+			if got := e.TipShown(); got != "" {
+				t.Errorf("%s: row %d shows the tip %q", lang, row, got)
+			}
+		}
 	}
-	if rows := e.obj.choice.Rows(); len(rows) == 0 || rows[0].Text != "No speaker" {
-		t.Fatal("No speaker is not the first row")
-	}
-	pic := e.ChromeImage()
-	d, ok := e.openDropdown()
-	if !ok {
-		t.Fatal("the open list has no drop-down")
-	}
-	list := image.Rect(d.Rect.Min.X, d.Rect.Max.Y, d.Rect.Max.X, d.Rect.Max.Y+d.Rows*d.Rect.Dy()+4)
-	n := portraitPixels(pic, list)
-	if n == 0 {
-		t.Error("the open list draws no portrait")
-	}
-	h := fnv.New32a()
-	h.Write(pic.Pix)
-	lines = append(lines, fmt.Sprintf("list portrait pixels %d", n), fmt.Sprintf("frame %08x", h.Sum32()))
 	const path = "testdata/mapeditor_speaker_portraits.golden"
 	got := strings.Join(lines, "\n") + "\n"
 	if os.Getenv("MAPEDITOR_SPEAKERS_WRITE") != "" {

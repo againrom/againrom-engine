@@ -246,8 +246,9 @@ func technicalReachText(t *testing.T) string {
 							shown = append(shown, e.obj.fields[i].Key)
 						}
 					}
-					fmt.Fprintf(&b, "%s panel %d %s %s: %d button lines, rows %d..%d, fields %s\n", lang, width, e.doc.Records[record].Kind, section,
+					line := fmt.Sprintf("%s panel %d %s %s: %d button lines, rows %d..%d, fields %s", lang, width, e.doc.Records[record].Kind, section,
 						len(lines), s.Top, s.Top+len(l.Rows), strings.Join(shown, " "))
+					b.WriteString(strings.TrimRight(line, " ") + "\n")
 				}
 			}
 		}

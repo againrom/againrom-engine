@@ -192,7 +192,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 			if _, ok := toolbarFloating(e); ok || e.toolbarRect() != barBefore {
 				t.Fatalf("%s: a click or a short press on the grip floated the toolbar", name)
 			}
-			d := image.Pt(120, 90)
+			d := image.Pt(120, 70)
 			r.drag(grip, d)
 			l, ok := toolbarFloating(e)
 			if !ok {

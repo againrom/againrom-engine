@@ -45,7 +45,7 @@ func (u *unitTemplateView) unitFieldValue(row *ui.InspectionField) {
 		}
 	}
 	if u != nil && row.Key == "npc" {
-		row.Icons = u.s.inspector.npcPortraits(row.Choices)
+		row.Icons, row.IconTip = u.s.inspector.npcPortraits(row.Choices), true
 	}
 	if u != nil && row.Key == "npc" && u.m.Units[u.index].Flags&1 == 0 {
 		row.Value = -1

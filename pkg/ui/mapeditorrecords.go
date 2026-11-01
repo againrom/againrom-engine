@@ -44,6 +44,27 @@ func (e *MapEditor) promptFields() []InspectionField {
 	return e.doc.Edits.Fields(kind, index)
 }
 
+// sectionField is the first field Tab focuses in the person window's shown
+// tab, or in the next one when advance; a tab with no such field, as the bag
+// whose sack opens in its own window, is passed over. -1 for none.
+func (e *MapEditor) sectionField(advance bool) int {
+	for range 4 {
+		if advance {
+			e.obj.section = (e.obj.section + 1) % 4
+			if e.unitWindowWidth() >= 1100 && e.obj.section < 3 {
+				e.obj.section = 3
+			}
+			e.objectTop = 0
+			e.objectSpec()
+		}
+		if next := e.nextObjectField(-1); next >= 0 {
+			return next
+		}
+		advance = true
+	}
+	return -1
+}
+
 // recordKey handles the authoring keys: C arms a clone onto the next clicked
 // cell, S opens the Add window on a new sack, Delete removes the selected
 // record, E opens the field prompt and Tab moves it to the next field. Each
@@ -53,7 +74,7 @@ func (e *MapEditor) recordKey(key string) error {
 		e.loadObject()
 		if e.nativeUnitWindow() {
 			e.objectSpec()
-			e.focusObjectField(e.nextObjectField(-1))
+			e.focusObjectField(e.sectionField(false))
 			return nil
 		}
 	}
@@ -61,13 +82,7 @@ func (e *MapEditor) recordKey(key string) error {
 		e.objectSpec()
 		next := e.nextObjectField(e.obj.focus)
 		if e.nativeUnitWindow() && e.fieldRow(next) <= e.fieldRow(e.obj.focus) {
-			e.obj.section = (e.obj.section + 1) % 4
-			if e.unitWindowWidth() >= 1100 && e.obj.section < 3 {
-				e.obj.section = 3
-			}
-			e.objectTop = 0
-			e.objectSpec()
-			next = e.nextObjectField(-1)
+			next = e.sectionField(true)
 		}
 		e.focusObjectField(next)
 		return nil

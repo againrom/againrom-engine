@@ -2,6 +2,7 @@ package game
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"slices"
 	"strconv"
@@ -25,6 +26,10 @@ func viewsMap(t *testing.T) (*mapInspectionEdits, []byte) {
 		t.Fatal(err)
 	}
 	if err := s.model.SetField(mapedit.KindLoot, sack, "additem", 0x101); err != nil {
+		t.Fatal(err)
+	}
+	// The unit carries an item, so it has a stock its sack row opens.
+	if _, err := s.SetField("Unit", 0, "carryadd", 0x102); err != nil {
 		t.Fatal(err)
 	}
 	f.Archives.Containers.Overlay(graphicsPrefix+data.ItemIconPath(0x0e08), func() ([]byte, error) { return packIconStream(0xd0, 0x30, 0x10), nil })
@@ -82,7 +87,8 @@ func openBlocks(t *testing.T, e *ui.MapEditor, c *editorClicker) {
 
 // showField brings field key's row into the window: its section, its parent
 // slot's detail, the scroll that shows it. It reports whether the row
-// shows; a read-only field shows as its first line.
+// shows; a read-only field shows as its first line, or as the row its link
+// opens.
 func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool {
 	t.Helper()
 	fields := e.ObjectFields()
@@ -99,10 +105,19 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 	if tab, ok := e.ObjectSectionRect(f.Section); ok {
 		c.click(e, tab, true, "section "+f.Section)
 	}
+	// An editor with the host's encoder holds its rows in the font's code
+	// page; a fixture editor without one holds the label as it stands.
+	label := f.Label
+	if host, ok := e.Document().Edits.(*mapInspectionEdits); ok {
+		label = host.inspector.inspectionUTF8(label)
+	}
 	e.ScrollDetails(-1000)
 	for range 80 {
 		if f.ReadOnly {
 			if len(f.Lines) > 0 && slices.Contains(e.PopupLines(), f.Lines[0].Text) {
+				return true
+			}
+			if f.Link.Kind != "" && slices.ContainsFunc(e.PopupLines(), func(line string) bool { return strings.Contains(line, label) || strings.Contains(line, f.Label) }) {
 				return true
 			}
 		} else if _, ok := e.FieldRect(i); ok {
@@ -122,7 +137,7 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"owner": "main", "class": "main", "hp": "main", "mana": "main", "group": "main",
 		"face": "look", "sex": "look", "npc": "look", "npcflag": "look",
 		"gear": "equipment", "wear#": "equipment", "wearmaterial#": "equipment", "weartier#": "equipment", "wearrecipe#": "equipment",
-		"carry#": "bag", "carryrecipe#": "bag", "carryadd": "bag", "holdings": "bag",
+		"sack": "bag", "holdings": "bag",
 		"body": "stats", "mind": "stats", "spirit": "stats", "reaction": "stats", "defence": "stats", "absorption": "stats",
 		"skill.*": "stats", "protection.*": "stats", "resolved": "stats", "overrides": "stats",
 		"definition": "raw",
@@ -132,8 +147,17 @@ var gameFieldShapes = map[ui.RecordKind]map[string]string{
 		"placement": "placement",
 	},
 	ui.KindSack: {
-		"gold": "main", "item#": "main", "additem": "main", "use#": "details", "recipe#": "details",
+		"gold": "main", "item#": "main", "additem": "main", "use#": "details", "recipe#": "details", "recipe#.*": "details",
 	},
+	ui.KindStock: {
+		"gold": "main", "item#": "main", "additem": "main", "use#": "details", "recipe#": "details", "recipe#.*": "details",
+	},
+}
+
+// unitSackField reports that f is one of the unit's fields that write its
+// sack: the bag's editable fields, which the sack's own window edits.
+func unitSackField(kind ui.RecordKind, f ui.InspectionField) bool {
+	return kind == ui.KindUnit && f.Section == "inventory" && !f.ReadOnly
 }
 
 // viewsShape is key with its first number as "#" and anything after a dot
@@ -153,11 +177,12 @@ func viewsShape(key string) string {
 	return key[:start] + "#" + key[end:]
 }
 
-// (c) Every field the game's host gives a unit, a structure and a sack has
-// its block in the plain view and shows there once the blocks open, and
-// shows in the technical view in the section that holds it.
+// (c) Every field the game's host gives a unit, a structure, a sack and a
+// unit's sack has its block in the plain view and shows there once the
+// blocks open, and shows in the technical view in the section that holds
+// it; a unit's field that writes its sack shows in neither unit view.
 func TestEditorViewsPlaceEveryHostField(t *testing.T) {
-	for _, kind := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack} {
+	for _, kind := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock} {
 		s, _ := viewsMap(t)
 		c := &editorClicker{t: t}
 		plain := viewsWindow(t, s, true, kind)
@@ -168,6 +193,12 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 			t.Fatalf("%s has no fields", kind)
 		}
 		for _, f := range fields {
+			if unitSackField(kind, f) {
+				if _, shown := blocks[f.Key]; shown || showField(t, plain, c, f.Key) {
+					t.Errorf("%s %s: the unit's window edits its sack", kind, f.Key)
+				}
+				continue
+			}
 			want, listed := gameFieldShapes[kind][viewsShape(f.Key)]
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
@@ -178,8 +209,8 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 		}
 		technical := viewsWindow(t, s, false, kind)
 		for _, f := range technical.ObjectFields() {
-			if !showField(t, technical, c, f.Key) {
-				t.Errorf("%s %s does not show in the technical view", kind, f.Key)
+			if shown := showField(t, technical, c, f.Key); shown == unitSackField(kind, f) {
+				t.Errorf("%s %s shows %v in the technical view", kind, f.Key, shown)
 			}
 		}
 	}
@@ -198,6 +229,36 @@ func typeField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, valu
 		_ = e.Key("backspace")
 	}
 	e.TextInput(strconv.FormatInt(value, 10))
+	r, ok = e.PopupButtonRect(0)
+	c.click(e, r, ok, "Apply")
+}
+
+// chooseField opens field key's drop-down, chooses the row of the choice
+// value as a map maker does, and presses Apply.
+func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, value int64) {
+	t.Helper()
+	if !showField(t, e, c, key) {
+		t.Fatalf("%s does not show", key)
+	}
+	n := fieldIndex(t, e.ObjectFields(), key)
+	f := e.ObjectFields()[n]
+	at := slices.IndexFunc(f.Choices, func(choice ui.InspectionChoice) bool { return choice.Value == value })
+	if at < 0 {
+		t.Fatalf("%s offers no choice %d", key, value)
+	}
+	r, ok := e.FieldRect(n)
+	c.click(e, r, ok, key)
+	row := slices.Index(e.DropdownChoices(), f.Choices[at].Label)
+	if row < 0 {
+		t.Fatalf("%s's open list has no row %q: %q", key, f.Choices[at].Label, e.DropdownChoices())
+	}
+	e.ScrollDropdown(-len(f.Choices))
+	r, ok = e.DropdownRowRect(row)
+	for step := 0; !ok && step < len(f.Choices)+10; step++ {
+		e.ScrollDropdown(1)
+		r, ok = e.DropdownRowRect(row)
+	}
+	c.click(e, r, ok, fmt.Sprintf("%s's row %d", key, row))
 	r, ok = e.PopupButtonRect(0)
 	c.click(e, r, ok, "Apply")
 }

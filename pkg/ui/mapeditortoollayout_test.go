@@ -89,16 +89,16 @@ func TestMapEditorBarListsThePanelsInTheirOrder(t *testing.T) {
 	for _, b := range e.barEntries() {
 		got = append(got, b.key)
 	}
-	want := []string{"map", "tools", "view", "window", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "undo", "redo", "save"}
+	want := []string{"map", "tools", "view", "window", "scripts", "players", "groups", "units", "sacks", "structures", "search", "objects", "trees", "undo", "redo", "save"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("the bar reads %v, want %v", got, want)
 	}
 	e.SetWords(words.For("russian"))
 	var labels []string
-	for _, b := range e.barEntries()[:12] {
+	for _, b := range e.barEntries()[:13] {
 		labels = append(labels, b.label)
 	}
-	if want := []string{"Карта", "Инструменты", "Вид", "Окно", "Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Объекты", "Деревья"}; !slices.Equal(labels, want) {
+	if want := []string{"Карта", "Инструменты", "Вид", "Окно", "Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Поиск (Ctrl+F)", "Объекты", "Деревья"}; !slices.Equal(labels, want) {
 		t.Fatalf("the Russian panels read %q, want %q", labels, want)
 	}
 }

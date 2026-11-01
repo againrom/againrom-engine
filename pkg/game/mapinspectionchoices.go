@@ -50,8 +50,10 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
 	{field: "tier", supply: tierFieldChoices},
 	{field: "recipeitem", supply: recipeItemChoices},
+	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "recipe", prefix: true, supply: stockRecipeChoices},
 	{field: "recipe", prefix: true, supply: recipeChoices},
 	{field: "item", supply: catalogChoices("item", "")},
+	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "item", prefix: true, supply: stockItemChoices},
 	{field: "item", prefix: true, supply: catalogChoices("item", "Remove this item")},
 	{field: "additem", supply: catalogChoices("item", "")},
 	{field: "addeffect", supply: catalogChoices("effect", "")},
@@ -279,6 +281,43 @@ func recipeChoices(s *mapInspectionEdits, _ fieldChoiceAsk) []ui.InspectionChoic
 		}
 	}
 	return out
+}
+
+// stockRecipeChoices are a sack item's recipe choices: none, a new recipe
+// of the item's own, a copy of each recipe for the item alone, and each
+// recipe shared as it stands, under its own label, which the row shows for
+// the item's current link. The unit's own recipe rows ask "recipe" and
+// take recipeChoices.
+func stockRecipeChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	shared := recipeChoices(s, a)
+	if a.key == "recipe" || len(shared) == 0 {
+		return shared
+	}
+	x := s.inspector
+	out := []ui.InspectionChoice{shared[0], {Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}
+	for _, c := range shared[1:] {
+		out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), c.Label))})
+	}
+	return append(out, shared[1:]...)
+}
+
+// stockItemChoices are a sack item's choices: remove it, duplicate it (not
+// a unit's worn item, whose slot holds one), or another item.
+func stockItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
+	rows := catalogChoices("item", "Remove this item")(s, a)
+	element, part, ok := stockItemField(a.key)
+	if !ok || part != "" || len(rows) == 0 {
+		return rows
+	}
+	if m, err := s.model.Map(); err == nil {
+		if loot, err := m.Loot(); err == nil && a.index >= 0 && a.index < len(loot.Records) && element <= len(loot.Records[a.index].Elements) {
+			if loot.Records[a.index].Owner != 0 && loot.Records[a.index].Elements[element-1].Field04 != 0 {
+				return rows
+			}
+		}
+	}
+	duplicate := ui.InspectionChoice{Value: stockDuplicate, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.inventory.duplicate"))}
+	return append([]ui.InspectionChoice{rows[0], duplicate}, rows[1:]...)
 }
 
 func (x *MapInspector) recordCatalog(category string) []ui.InspectionChoice {

@@ -179,8 +179,6 @@ func unitRows(raw ...string) []string {
 		"3 Slot 1 | Sword",
 		"3 Slot 2 | Inherit",
 		"1 Bag |",
-		"3 Carried item 1 | Mace",
-		"2 Add carried item | 0",
 		"0 Corpse: Sword |",
 		"1 Stats |",
 		"1 Attributes |",
@@ -207,7 +205,7 @@ var plainShapes = map[RecordKind]map[string]string{
 		"owner": "main", "class": "main", "tier": "main", "hp": "main", "mana": "main", "group": "main",
 		"face": "look", "sex": "look",
 		"gear": "equipment", "wear#": "equipment", "wearmaterial#": "equipment", "wearrecipe#": "equipment",
-		"carry#": "bag", "carryadd": "bag", "holdings": "bag",
+		"sack": "bag", "holdings": "bag",
 		"body": "stats", "mind": "stats", "skill.*": "stats", "protection.*": "stats", "resolved": "stats",
 		"definition": "raw",
 	},
@@ -239,13 +237,20 @@ func fieldShape(key string) string {
 
 // (c) Every field of the fixture's unit, structure and sack is placed in a
 // block of the plain view, and every field is reachable in the technical
-// view: its row stands in the window in the section that holds it.
+// view: its row stands in the window in the section that holds it. A field
+// of the unit's sack is the sack's own window's.
 func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 	for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
 		e, _, _ := plainEditor(t, "en", minimizedPanels, record)
 		kind := e.doc.Records[record].Kind
 		blocks := e.PlainFieldBlocks()
 		for _, f := range e.ObjectFields() {
+			if sackField(e.doc.Records[record], f) {
+				if _, shown := blocks[f.Key]; shown {
+					t.Errorf("%s %s: the unit's window edits its sack", kind, f.Key)
+				}
+				continue
+			}
 			want, listed := plainShapes[kind][fieldShape(f.Key)]
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
@@ -256,6 +261,9 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 			t.Fatal("the switch kept the plain view")
 		}
 		for i, f := range e.ObjectFields() {
+			if sackField(e.doc.Records[record], f) {
+				continue
+			}
 			if tab, ok := e.ObjectSectionRect(f.Section); ok {
 				viewsClick(t, e, tab, ok, "section "+f.Section)
 			}

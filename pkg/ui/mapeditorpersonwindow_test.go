@@ -134,8 +134,8 @@ func TestEditorPersonNativeTabFromEveryField(t *testing.T) {
 				updateEditorKeys(t, e)
 				updateEditorKeys(t, e, ebiten.KeyTab)
 			}
-			if len(seen) != 4 {
-				t.Error("native Tab cannot visit every section", seen)
+			if len(seen) != 3 || seen["inventory"] {
+				t.Error("native Tab cannot visit every section with a field", seen)
 			}
 		})
 	}
@@ -172,7 +172,8 @@ func TestEditorPersonEveryFieldRemainsReachable(t *testing.T) {
 					}
 				}
 				for i, field := range e.obj.fields {
-					if field.Section == name && !seen[i] {
+					// A field of the unit's sack is the sack's own window's.
+					if field.Section == name && !seen[i] && !sackField(e.doc.Records[e.selected], field) {
 						t.Errorf("scrolling cannot reach %s", field.Key)
 					}
 				}

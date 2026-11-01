@@ -216,6 +216,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		if fields != nil && !slices.ContainsFunc(fields, func(current InspectionField) bool { return current.Key == f.Key }) {
 			return -1
 		}
+		if sackField(r, f) {
+			return -1
+		}
 		if heads && f.Group != group {
 			group = f.Group
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
@@ -231,6 +234,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 					f = current
 					break
 				}
+			}
+			if id := e.linkedRecord(f.Link); id >= 0 {
+				if label == "" {
+					label = e.editorHostText(f.Label)
+				}
+				s.Rows, *links = append(s.Rows, popupRow{Kind: popupLink, Label: "> " + label}), append(*links, -(id+1))
 			}
 			for _, line := range f.Lines {
 				kind := popupText
@@ -405,12 +414,17 @@ func (e *MapEditor) groupNote(group string) string {
 }
 
 // choiceRows are the drop-down rows of f's choices: each label, its picture
-// from f.Icons, and a shut choice listed in the hint ink and not choosable.
-// When any choice has a picture, a choice without one keeps an empty cell.
+// from f.Icons unless the tip shows it, and a shut choice listed in the hint
+// ink and not choosable. When any row has a picture, a choice without one
+// keeps an empty cell.
 func choiceRows(f InspectionField) []PickerRow {
 	rows := make([]PickerRow, len(f.Choices))
+	icons := f.Icons
+	if f.IconTip {
+		icons = nil
+	}
 	for k, c := range f.Choices {
-		rows[k] = PickerRow{Text: c.Label, Choosable: true, Icon: f.Icons[c.Value], IconCell: len(f.Icons) > 0}
+		rows[k] = PickerRow{Text: c.Label, Choosable: true, Icon: icons[c.Value], IconCell: len(icons) > 0}
 		if slices.Contains(f.Shut, c.Value) {
 			rows[k].Choosable, rows[k].Ink = false, popupHintInk
 		}

@@ -74,6 +74,9 @@ func TestMessageSpeakerListCarriesEachSpeakersFace(t *testing.T) {
 	workspacePage(t, e, "event01.txt", "<part=1,npc=999>\nText")
 	fields := s.MessageFields(1)
 	speaker := fields[1]
+	if !speaker.IconTip {
+		t.Error("the speaker list shows its faces in its rows, not at full size in the tip")
+	}
 
 	for _, id := range []int{51, 103} {
 		got, want := speaker.Icons[int64(id)], gameSpeakerPortrait(t, s.inspector, speakerFaces(s.inspector.table), id)
@@ -113,6 +116,9 @@ func TestPersonWindowNPCListCarriesTheSpeakerListsFaces(t *testing.T) {
 	s.inspector.table.NPCCatalog.Faces = faces
 	fields := s.Fields("Unit", 0)
 	npc := fields[fieldIndex(t, fields, "npc")]
+	if !npc.IconTip {
+		t.Error("the NPC list shows its faces in its rows, not at full size in the tip")
+	}
 	want := gameSpeakerPortrait(t, s.inspector, speakerFaces(s.inspector.table), 8)
 	if got := npc.Icons[8]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
 		t.Fatal("NPC 8 carries no face, or not the game's dialogue face")

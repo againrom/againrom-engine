@@ -111,7 +111,9 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 					}
 					var missed []string
 					for _, f := range e.obj.fields {
-						if !reached[f.Key] {
+						// A field of the unit's sack is the sack's own
+						// window's.
+						if !reached[f.Key] && !sackField(e.doc.Records[record], f) {
 							missed = append(missed, f.Key)
 						}
 					}

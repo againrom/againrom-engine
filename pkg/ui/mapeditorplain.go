@@ -86,10 +86,7 @@ var plainViews = map[RecordKind]plainView{
 			{key: "weartier#", order: 21, block: "equipment"},
 			{key: "wearrecipe#", order: 21, block: "equipment"},
 			{key: "wearrecipe#.*", order: 21, block: "equipment"},
-			{key: "carry#", order: 30, block: "bag", show: plainItem},
-			{key: "carryrecipe#", order: 30, block: "bag"},
-			{key: "carryrecipe#.*", order: 30, block: "bag"},
-			{key: "carryadd", order: 31, block: "bag"},
+			{key: "sack", order: 30, block: "bag"},
 			{key: "holdings", order: 32, block: "bag"},
 			{key: "body", order: 40, block: "stats"},
 			{key: "mind", order: 40, block: "stats"},
@@ -123,21 +120,27 @@ var plainViews = map[RecordKind]plainView{
 		},
 		rest: "raw",
 	},
-	KindSack: {
-		blocks: []plainBlock{
-			{id: "main"},
-			{id: "details", word: "editor.plain.details", fold: true},
-		},
-		rows: []plainRow{
-			{key: "gold", word: "editor.plain.gold", order: 1, block: "main"},
-			{key: "item#", word: "editor.plain.item", order: 2, block: "main", show: plainItem},
-			{key: "additem", word: "editor.plain.additem", order: 3, block: "main"},
-			{key: "item#", word: "editor.plain.code", order: 10, block: "details", show: plainCode},
-			{key: "recipe#", word: "editor.plain.recipe", order: 10, block: "details"},
-			{key: "use#", order: 10, block: "details"},
-		},
-		rest: "details",
+	KindSack:  sackPlainView,
+	KindStock: sackPlainView,
+}
+
+// sackPlainView is the plain table of a sack's window: a sack on the
+// ground's, and a unit's own sack's, which its unit's bag opens.
+var sackPlainView = plainView{
+	blocks: []plainBlock{
+		{id: "main"},
+		{id: "details", word: "editor.plain.details", fold: true},
 	},
+	rows: []plainRow{
+		{key: "gold", word: "editor.plain.gold", order: 1, block: "main"},
+		{key: "item#", word: "editor.plain.item", order: 2, block: "main", show: plainItem},
+		{key: "additem", word: "editor.plain.additem", order: 3, block: "main"},
+		{key: "item#", word: "editor.plain.code", order: 10, block: "details", show: plainCode},
+		{key: "recipe#", word: "editor.plain.recipe", order: 10, block: "details"},
+		{key: "recipe#.*", order: 10, block: "details"},
+		{key: "use#", order: 10, block: "details"},
+	},
+	rest: "details",
 }
 
 // plainMatch reports that key fits pattern, and the number a "#" took.
@@ -313,8 +316,9 @@ func (e *MapEditor) PlainFieldBlocks() map[string]string {
 		return nil
 	}
 	out := map[string]string{}
+	r := e.doc.Records[e.selected]
 	for _, p := range plainEntries(v, e.obj.fields) {
-		if p.field < 0 {
+		if p.field < 0 || sackField(r, e.obj.fields[p.field]) {
 			continue
 		}
 		key := e.obj.fields[p.field].Key
@@ -366,10 +370,11 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 	o.rowBlock = map[int]string{}
 	native := e.nativeUnitWindow()
 	entries := plainEntries(v, o.fields)
+	record := e.doc.Records[e.selected]
 	shown := ""
 	for _, p := range entries {
 		at := slices.IndexFunc(v.blocks, func(b plainBlock) bool { return b.id == p.block })
-		if at < 0 {
+		if at < 0 || p.field >= 0 && sackField(record, o.fields[p.field]) {
 			continue
 		}
 		b := v.blocks[at]

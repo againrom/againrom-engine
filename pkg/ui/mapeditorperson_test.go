@@ -182,8 +182,10 @@ func TestEditorPersonTabKeepsFocusVisibleAcrossSections(t *testing.T) {
 			t.Fatal("Tab focused a scrolled-out field", f.Key)
 		}
 	}
-	if len(seen) != 4 {
-		t.Fatal("keyboard cannot reach every section", seen)
+	// The bag holds no field Tab focuses: the unit's sack opens in its own
+	// window.
+	if len(seen) != 3 || seen["inventory"] {
+		t.Fatal("keyboard cannot reach every section with a field", seen)
 	}
 }
 

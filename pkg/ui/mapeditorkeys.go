@@ -209,6 +209,7 @@ func init() {
 		{label: "Unfocus", help: []helpEntry{{screenPrompt, helpLine{Word: "editor.keys.text.unfocus"}}}},
 		{key: "backspace", live: promptHears, act: (*MapEditor).keyBackspace, unlisted: unlistedPrompt},
 		{key: "fit", label: "F", act: (*MapEditor).keyFit, unlisted: unlistedToolbar},
+		{key: searchKey, label: "Ctrl+F", act: (*MapEditor).keySearch, unlisted: "the search field's hint names it"},
 		{key: "triggers", act: (*MapEditor).keyScripts, unlisted: "the Scripts entry opens it"},
 		{key: "pageup", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
 		{key: "pagedown", live: promptFields, act: (*MapEditor).keyPage, unlisted: "the list line names PgUp and PgDn"},
@@ -422,6 +423,8 @@ func (e *MapEditor) keyEscape(string) error {
 		e.prompt.area.open = false
 	case e.prompt.open():
 		e.cancelPopup()
+	case e.searchTyping():
+		e.searchLeave(true)
 	case e.menu != "":
 		e.menu = ""
 	case e.dropdownOpen():
@@ -467,6 +470,14 @@ func (e *MapEditor) keyCatalog(string) error {
 }
 
 func (e *MapEditor) keyEnter(string) error {
+	if e.searchTyping() {
+		if m := e.searchModel(); m != nil {
+			e.chooseHit(m.Selection())
+		} else {
+			e.searchLeave(false)
+		}
+		return nil
+	}
 	if e.treeTyping() {
 		e.tree.typing = false
 		return nil
@@ -576,6 +587,10 @@ func (e *MapEditor) keyStep(key string) error {
 	}
 	if e.prompt.fields() {
 		e.stepChoice(delta)
+		return nil
+	}
+	if e.searchTyping() {
+		dropdownStep(e.searchModel(), delta)
 		return nil
 	}
 	if e.objectTyping() {

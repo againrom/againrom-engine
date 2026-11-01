@@ -126,7 +126,7 @@ func TestEquipmentEditorAndStockUseSharedBuilders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want = map[string]string{"itemRecipeFields": "Fields", "setUnitRecipeField": "setField"}
+	want = map[string]string{"itemRecipeFields": "Fields", "setItemRecipeField": "setField", "setUnitRecipeField": "setItemRecipeField", "stockRecipeFields": "itemRecipeFields"}
 	for _, decl := range f.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || want[fn.Name.Name] == "" {
