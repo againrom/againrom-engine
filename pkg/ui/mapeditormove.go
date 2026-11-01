@@ -263,6 +263,34 @@ func (e *MapEditor) selectAt(p image.Point) {
 	e.Select(chosen, false)
 }
 
+// dragFades reports that a map drag has moved: the floating windows are
+// faded and take no pointer until the release or cancel.
+func (e *MapEditor) dragFades() bool {
+	return e.recordDrag != nil && e.recordDrag.moved
+}
+
+// chromeFaded is the floating windows over the map drawn on their own
+// transparent picture at editorDragFadeAlpha, frame, body and text alike; nil
+// when no moved drag is on. The windows show no hover. Their text stays plain
+// pixels: the calls it records are not kept, so the smoothed overlay does not
+// draw it at full opacity.
+func (e *MapEditor) chromeFaded() *image.RGBA {
+	if !e.dragFades() {
+		return nil
+	}
+	layer := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
+	ok := e.pointerOK
+	e.pointerOK = false
+	text.Record(func() { e.drawFloating(layer, true) })
+	e.pointerOK = ok
+	scale := float64(editorDragFadeAlpha)
+	k := uint32(scale * 256)
+	for i := range layer.Pix {
+		layer.Pix[i] = uint8(uint32(layer.Pix[i]) * k >> 8)
+	}
+	return layer
+}
+
 // Capture records before Viewer.step: otherwise the same primary drag pans the
 // ground. One release commits one history entry; previews never touch bytes.
 func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {

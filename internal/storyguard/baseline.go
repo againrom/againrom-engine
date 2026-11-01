@@ -3756,5 +3756,5 @@ var Committed = Baseline{
 	// mapinspectioninventory.go, mapinspectionitemrecipe.go and
 	// mapinspectionchoices.go, the tests mapeditorsackrecipe_test.go in
 	// pkg/game and pkg/ui and mapinspectionviews_test.go.
-	CommentBytes: 10320659,
+	CommentBytes: 10322991,
 }

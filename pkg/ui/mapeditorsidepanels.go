@@ -982,32 +982,47 @@ func (e *MapEditor) panelWidth(i int) int {
 // drawSidePanels draws the panels: the tree or its strip, the right panel's
 // window, its hint line or its strip, and the bottom panel's hint line or
 // its strip; the report in the bottom panel draws as the list popup.
-func (e *MapEditor) drawSidePanels(pic *image.RGBA) {
-	draw := func(s popupSpec) {
-		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+func (e *MapEditor) drawSidePanels(pic *image.RGBA, part sidePanelPart) {
+	wanted := func(floats bool) bool { return part == panelsAll || (part == panelsFloating) == floats }
+	draw := func(s popupSpec, floats bool) {
+		if wanted(floats) {
+			drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		}
 	}
 	if s, ok := e.stripSpec(panelLeft); ok {
-		draw(s)
+		draw(s, false)
 	} else if s, ok := e.treeSpec(); ok {
-		draw(s)
+		draw(s, e.panelFloats(panelLeft))
 	}
 	switch s, ok := e.stripSpec(panelRight); {
 	case ok:
-		draw(s)
+		draw(s, false)
 	default:
 		if s, _, ok := e.objectSpec(); ok && e.panels.hosted {
-			draw(s)
-			e.drawObjectPreview(pic, s)
+			draw(s, false)
+			if wanted(false) {
+				e.drawObjectPreview(pic, s)
+			}
 		} else if s, ok := e.propsSpec(); ok {
-			draw(s)
+			draw(s, e.panelFloats(panelRight))
 		}
 	}
 	if s, ok := e.stripSpec(panelBottom); ok {
-		draw(s)
+		draw(s, false)
 	} else if s, ok := e.reportHintSpec(); ok {
-		draw(s)
+		draw(s, false)
 	}
 }
+
+// sidePanelPart selects which of the panels drawSidePanels draws: all of
+// them, the docked ones or the floating ones.
+type sidePanelPart uint8
+
+const (
+	panelsAll sidePanelPart = iota
+	panelsDocked
+	panelsFloating
+)
 
 // panelRects are the shown panels' window rectangles.
 func (e *MapEditor) panelRects() []image.Rectangle {

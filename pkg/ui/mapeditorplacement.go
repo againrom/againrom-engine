@@ -76,6 +76,10 @@ func (e *MapEditor) newRecords(d *InspectionDocument) []InspectionRecord {
 // translucent sprites' own.
 const editorGhostAlpha = 0.5
 
+// editorDragFadeAlpha is the opacity of the windows that float over the map
+// while a map drag has moved, so the object can be put under them.
+const editorDragFadeAlpha = 0.15
+
 func (e *MapEditor) placement() (placementFrame, bool) {
 	if f, ok := e.dragPlacement(); ok {
 		return f, true

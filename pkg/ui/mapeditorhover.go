@@ -75,6 +75,11 @@ func (e *MapEditor) choiceTipAt(p image.Point) (string, image.Image, image.Point
 // none is under p.
 func (e *MapEditor) observeTip(p image.Point, now time.Time, held bool) {
 	e.tip.clock.setDelay(editorTipDelay)
+	if e.dragFades() {
+		e.tip.text, e.tip.picture = "", nil
+		e.tip.clock.observe(now, p, "", true)
+		return
+	}
 	text, picture, at, ok := e.choiceTipAt(p)
 	if !ok {
 		text, at, ok = e.gridTipAt(p)

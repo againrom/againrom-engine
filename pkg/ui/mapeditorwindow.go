@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"strings"
 	"time"
 
@@ -1392,8 +1393,20 @@ var editorPopupInk = popupInk{Ground: editorPanel, Edge: editorGold, TitleGround
 
 // ChromeImage composes the window's chrome over a transparent window-size
 // picture: the bar, the status strip, the list and object popups, the prompt
-// and, last, an open drop-down.
+// and, last, an open drop-down. While a map drag has moved, the windows that
+// float over the map are drawn faded (chromeFaded).
 func (e *MapEditor) ChromeImage() *image.RGBA {
+	pic := e.chromeCompose(e.dragFades())
+	if layer := e.chromeFaded(); layer != nil {
+		draw.Draw(pic, pic.Bounds(), layer, image.Point{}, draw.Over)
+	}
+	return pic
+}
+
+// chromeCompose draws the chrome in its order. With fade set the windows
+// that float over the map are left out: the docked panels, the bar and the
+// strip are drawn as they are, and chromeFaded draws the floating windows.
+func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	bar := image.Rect(0, 0, e.window.X, e.barHeight())
 	drawFrame(pic, stripFrame(bar, edgeBottomBit))
@@ -1414,12 +1427,33 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
 	e.drawPlayerLegend(pic)
-	e.drawSidePanels(pic)
+	if fade {
+		e.drawSidePanels(pic, panelsDocked)
+		if s, ok := e.listSpec(); ok && e.reportDocked() {
+			e.drawListWindow(pic, s)
+		}
+	} else {
+		e.drawSidePanels(pic, panelsAll)
+		e.drawFloating(pic, false)
+	}
+	if b, ok := e.openMenuEntry(); ok {
+		d := e.menuDropdown(b, true)
+		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
+	}
+	e.drawTip(pic)
+	return pic
+}
+
+// drawFloating draws the windows that float over the map: with only set the
+// floating panels first, then the floating toolbar, the list, the object
+// window, the prompt and the open drop-downs.
+func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
+	if only {
+		e.drawSidePanels(pic, panelsFloating)
+	}
 	e.drawToolbar(pic, true)
-	if s, ok := e.listSpec(); ok {
-		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
-		e.drawGoalLinks(pic, s)
-		e.drawBrushPreview(pic, s)
+	if s, ok := e.listSpec(); ok && !(only && e.reportDocked()) {
+		e.drawListWindow(pic, s)
 	}
 	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
 		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
@@ -1431,12 +1465,14 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 	}
 	e.drawOpenDropdown(pic)
 	e.drawAreaDropdown(pic)
-	if b, ok := e.openMenuEntry(); ok {
-		d := e.menuDropdown(b, true)
-		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
-	}
-	e.drawTip(pic)
-	return pic
+}
+
+// drawListWindow draws the list popup s with the links and the brush picture
+// that belong to it.
+func (e *MapEditor) drawListWindow(pic *image.RGBA, s popupSpec) {
+	drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+	e.drawGoalLinks(pic, s)
+	e.drawBrushPreview(pic, s)
 }
 
 // previewW and previewH bound the record's picture in the object popup.
@@ -1666,10 +1702,16 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 		pic = e.ChromeImage()
 		return pic, pic, nil, nil
 	}
-	calls = text.Record(func() { pic = e.ChromeImage() })
+	calls = text.Record(func() { pic = e.chromeCompose(e.dragFades()) })
 	blit = image.NewRGBA(pic.Bounds())
 	copy(blit.Pix, pic.Pix)
 	kept = textsmooth.Settle(blit, calls)
+	if layer := e.chromeFaded(); layer != nil {
+		// The faded windows keep their text as plain pixels, so it fades
+		// with them.
+		draw.Draw(pic, pic.Bounds(), layer, image.Point{}, draw.Over)
+		draw.Draw(blit, blit.Bounds(), layer, image.Point{}, draw.Over)
+	}
 	return pic, blit, calls, text.MarkErased(kept)
 }
 
