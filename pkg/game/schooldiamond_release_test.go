@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
@@ -144,17 +144,7 @@ func writeSchoolDiamondWitness(t *testing.T, f *FrontEnd, state string, pix *ima
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, "school-"+state+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(out, pix)
-	closeErr := out.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if closeErr != nil {
-		t.Fatal(closeErr)
-	}
-	t.Logf("school witness: %s", out.Name())
+	path := filepath.Join(dir, "school-"+state+".png")
+	witness.PNG(t, path, pix)
+	t.Logf("school witness: %s", path)
 }

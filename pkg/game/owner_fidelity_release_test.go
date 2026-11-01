@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -38,7 +38,7 @@ func releaseBottomHUDPixels(t *testing.T, f *FrontEnd, output string) {
 		t.Fatal(err)
 	}
 	defer file.Close()
-	pic, err := png.Decode(file)
+	pic, err := witness.Decode(file)
 	if err != nil {
 		t.Fatal(err)
 	}

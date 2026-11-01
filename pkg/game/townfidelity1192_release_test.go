@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -275,15 +275,5 @@ func capture1192(t *testing.T, name string, pic *image.RGBA) {
 	if err = os.MkdirAll(dest, 0700); err != nil {
 		t.Fatal(err)
 	}
-	f, err := os.Create(filepath.Join(dest, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = png.Encode(f, pic); err != nil {
-		f.Close()
-		t.Fatal(err)
-	}
-	if err = f.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dest, name+".png"), pic)
 }

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/random"
@@ -195,14 +195,7 @@ func secondShopWitness(t *testing.T, app *ui.App, name string) {
 	if err != nil || note != "" {
 		t.Fatal("shop frame", err, note)
 	}
-	out, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, picture); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), picture)
 }
 
 // secondShopNamesResolve checks that every item town 1's record admits,

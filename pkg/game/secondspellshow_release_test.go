@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -183,14 +183,7 @@ func secondSpellShowWrite(t *testing.T, name string, ticks []secondSpellShowTick
 	if err := os.WriteFile(filepath.Join(dir, name+".txt"), []byte(b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, secondSpellShowSheet(ticks)); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), secondSpellShowSheet(ticks))
 }
 
 // On the first campaign mission a mage's casts draw and voice the second

@@ -5,12 +5,12 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/render/text"
@@ -168,14 +168,7 @@ func TestReleaseWidgetEightReadsTheHoveredThenTheSelectedStructure(t *testing.T)
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			out, err := os.Create(filepath.Join(dir, "readout-"+what+".png"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := png.Encode(out, shot); err != nil {
-				t.Fatal(err)
-			}
-			out.Close()
+			witness.PNG(t, filepath.Join(dir, "readout-"+what+".png"), shot)
 		}
 	}
 

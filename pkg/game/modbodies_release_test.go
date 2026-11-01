@@ -6,13 +6,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -214,13 +214,7 @@ func writeModBodyRender(t *testing.T, f *FrontEnd, c modBodyCase, art *terrain.U
 		t.Fatal(err)
 	}
 	for name, row := range map[string][]*image.RGBA{"stand": stand, "swing": swing} {
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, stripOf(row, 3)); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, caseName(c.mod)+"-"+name+".png"), buf.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, caseName(c.mod)+"-"+name+".png"), stripOf(row, 3))
 	}
 }
 

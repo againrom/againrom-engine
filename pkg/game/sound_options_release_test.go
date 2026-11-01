@@ -1,7 +1,6 @@
 package game
 
 import (
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/audio"
 	"againrom/pkg/ui"
 )
@@ -130,14 +130,7 @@ func TestReleaseSoundOptions1187InstalledControls(t *testing.T) {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatal(err)
 		}
-		file, err := os.Create(filepath.Join(dir, "sound-options.png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(file, picture)
-		if closeErr := file.Close(); err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, "sound-options.png"), picture)
 	}
 	if err := a.HeadlessGameMenuAction("page-return"); err != nil {
 		t.Fatal(err)

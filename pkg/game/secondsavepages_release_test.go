@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/render/menu"
 	"againrom/pkg/ui"
 )
@@ -27,13 +27,7 @@ func secondPageWitness(t *testing.T, name string, pix *image.RGBA) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	var b bytes.Buffer
-	if err := png.Encode(&b, pix); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, name+".png"), b.Bytes(), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pix)
 }
 
 func secondFrame(t *testing.T, app *ui.App) *image.RGBA {

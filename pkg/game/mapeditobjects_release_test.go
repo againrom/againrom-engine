@@ -3,12 +3,12 @@ package game
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -279,16 +279,7 @@ func TestReleaseMapEditorPaintedObjectsLoadAsAModMissionAndBlockTheWalk(t *testi
 			if err != nil {
 				t.Fatal(err)
 			}
-			f, err := os.Create(filepath.Join(dir, "objects-stroke.png"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := png.Encode(f, pic); err != nil {
-				t.Fatal(err)
-			}
-			if err := f.Close(); err != nil {
-				t.Fatal(err)
-			}
+			witness.PNG(t, filepath.Join(dir, "objects-stroke.png"), pic)
 		}
 	})
 	fp := guestFrontWorld(t, dir)

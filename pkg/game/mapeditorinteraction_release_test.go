@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -240,16 +240,7 @@ func TestReleaseEditorInteractionFrames(t *testing.T) {
 			t.Fatal(err)
 		}
 		path := filepath.Join(dir, name+"-"+lang+".png")
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(f, pic); err != nil {
-			t.Fatal(err)
-		}
-		if err := f.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, path, pic)
 		t.Log(path)
 	}
 	r, ok := e.BarRect("units")

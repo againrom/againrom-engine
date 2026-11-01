@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -30,7 +30,7 @@ func screenshotWantPNG(t *testing.T, path string, want image.Image) {
 		t.Fatal(err)
 	}
 	defer file.Close()
-	got, err := png.Decode(file)
+	got, err := witness.Decode(file)
 	if err != nil || got.Bounds() != want.Bounds() {
 		t.Fatal("PNG dimensions", err)
 	}
@@ -45,8 +45,11 @@ func screenshotWantPNG(t *testing.T, path string, want image.Image) {
 
 func TestScreenshotPublicationPreservesExistingNames(t *testing.T) {
 	store := SaveStore{Dir: t.TempDir()}
+	// The file taking the first name is text, not an image: the test needs the
+	// name taken and the bytes kept.
+	taken := "screen0000.png"
 	seed := []byte("existing screenshot")
-	if err := os.WriteFile(filepath.Join(store.Dir, "screen0000.png"), seed, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(store.Dir, taken), seed, 0600); err != nil {
 		t.Fatal(err)
 	}
 	frame := screenshotFixture()
@@ -57,7 +60,7 @@ func TestScreenshotPublicationPreservesExistingNames(t *testing.T) {
 		}
 		screenshotWantPNG(t, filepath.Join(store.Dir, name), frame)
 	}
-	if got, err := os.ReadFile(filepath.Join(store.Dir, "screen0000.png")); err != nil || !bytes.Equal(got, seed) {
+	if got, err := os.ReadFile(filepath.Join(store.Dir, taken)); err != nil || !bytes.Equal(got, seed) {
 		t.Fatal("existing screenshot was replaced", err)
 	}
 	entries, err := os.ReadDir(store.Dir)

@@ -2,13 +2,14 @@ package appicon
 
 import (
 	"bytes"
-	"image/png"
 	"testing"
+
+	"againrom/internal/witness"
 )
 
 func TestEveryIconIsA256SquareWithAlphaAndAllSizes(t *testing.T) {
 	for _, n := range []Name{Game, MapEditor, Starter} {
-		cfg, err := png.DecodeConfig(bytes.NewReader(PNG(n)))
+		cfg, err := witness.DecodeConfig(bytes.NewReader(PNG(n)))
 		if err != nil || cfg.Width != 256 || cfg.Height != 256 {
 			t.Fatalf("%s: %v %dx%d", n, err, cfg.Width, cfg.Height)
 		}

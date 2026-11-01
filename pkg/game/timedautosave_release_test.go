@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -96,13 +96,7 @@ func TestReleaseTimedAutosaveCurrentStateAndOptions(t *testing.T) {
 			if err != nil {
 				t.Fatal("installed options frame", err)
 			}
-			var picture bytes.Buffer
-			if err := png.Encode(&picture, pix); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(filepath.Join(dir, "options.png"), picture.Bytes(), 0600); err != nil {
-				t.Fatal(err)
-			}
+			witness.PNG(t, filepath.Join(dir, "options.png"), pix)
 			action("timed-autosave")
 			action("autosave-minutes")
 			action("options-cancel")

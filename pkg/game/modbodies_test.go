@@ -1,11 +1,9 @@
 package game
 
 import (
-	"bytes"
 	"errors"
 	"image"
 	"image/color"
-	"image/png"
 	"io/fs"
 	"math"
 	"os"
@@ -14,6 +12,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/terrain"
@@ -92,11 +91,7 @@ func drawBodySheet(b mod.BodySheet, tint color.NRGBA) image.Image {
 
 func encodePNG(t *testing.T, img image.Image) []byte {
 	t.Helper()
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		t.Fatal(err)
-	}
-	return buf.Bytes()
+	return witness.Bytes(t, img)
 }
 
 // writeBodySheets draws both of b's sheets into its mod folder.

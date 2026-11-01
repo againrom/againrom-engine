@@ -5,13 +5,13 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/ui"
 )
@@ -151,15 +151,5 @@ func brianPortraitProof(t *testing.T, f *FrontEnd, pic *image.RGBA) {
 	if err := os.MkdirAll(filepath.Join(dir, locale), 0700); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, locale, "turnpoint-brian.png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, pic); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, locale, "turnpoint-brian.png"), pic)
 }

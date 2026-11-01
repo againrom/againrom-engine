@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -131,20 +131,8 @@ func releaseLoadScroll(t *testing.T, f *FrontEnd) {
 			t.Fatalf("%s scroll activated Load/Delete: %v/%v/%d", stage, loaded, prepared, removed)
 		}
 		name := stage + ".png"
-		file, err := os.Create(filepath.Join(out, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		encodeErr := png.Encode(file, pic)
-		closeErr := file.Close()
-		if encodeErr != nil || closeErr != nil {
-			t.Fatal(encodeErr, closeErr)
-		}
-		bytes, err := os.ReadFile(filepath.Join(out, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		hash := sha256.Sum256(bytes)
+		witness.PNG(t, filepath.Join(out, name), pic)
+		hash := sha256.Sum256(witness.Bytes(t, pic))
 		receipts = append(receipts, receipt{stage, input, x, y, selection, top, name, fmt.Sprintf("%x", hash), checked, counts})
 	}
 	pointer := func(action string, x, y int) {

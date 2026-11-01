@@ -2,7 +2,6 @@ package game
 
 import (
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -47,16 +47,7 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 	if !write {
 		return
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(f, pic); err != nil {
-		t.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path, pic)
 }
 
 // TestReleaseMapEditorOwnerFrames writes the editor's popups, rendered

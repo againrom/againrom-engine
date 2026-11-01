@@ -2,13 +2,13 @@ package game
 
 import (
 	"bytes"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 	"againrom/pkg/vfs"
@@ -53,15 +53,7 @@ func TestReleaseCampaign1180EndingCreditsHallSaveAndReset(t *testing.T) {
 		if err != nil || note != "" {
 			t.Fatal("ending composite", err, note)
 		}
-		file, err := os.Create(filepath.Join(artifact, name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(file, pix)
-		closeErr := file.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(artifact, name+".png"), pix)
 	}
 	if a.Screen() != ui.ScreenCredits {
 		t.Fatal("terminal Victory did not open the installed credits roll", a.Screen())

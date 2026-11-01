@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -269,15 +269,7 @@ func TestReleaseMapEditor1118MoveUndoRedoSaveAsReopen(t *testing.T) {
 					t.Fatal(err)
 				}
 				for name, pic := range map[string]*image.RGBA{"before": before, "moved": after, "prompt": prompt, "refused": refused, "reopened": reopened} {
-					f, err := os.Create(filepath.Join(dir, name+".png"))
-					if err != nil {
-						t.Fatal(err)
-					}
-					err = png.Encode(f, pic)
-					closeErr := f.Close()
-					if err != nil || closeErr != nil {
-						t.Fatalf("capture: %v %v", err, closeErr)
-					}
+					witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 				}
 			}
 			t.Logf("unit file index=%d id=%d %v->%v; all %d bytes checked; %s", chosen, id, from, to, len(b), note)

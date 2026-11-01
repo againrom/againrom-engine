@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/ui"
@@ -61,15 +61,7 @@ func messageFrame(t *testing.T, e *ui.MapEditor, lang, name string) {
 		if crop {
 			img, suffix = pic.SubImage(image.Rect(580, 28, 1280, 650)), "-crop"
 		}
-		f, err := os.Create(filepath.Join(dir, lang+"-"+name+suffix+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(f, img)
-		closeErr := f.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, lang+"-"+name+suffix+".png"), img)
 	}
 }
 

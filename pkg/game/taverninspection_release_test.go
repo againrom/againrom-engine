@@ -5,13 +5,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -420,19 +420,11 @@ func TestReleaseEveryMercenaryUsesInstalledTalkPortraitAndInspectionArt(t *testi
 				if err := os.MkdirAll(out, 0o755); err != nil {
 					t.Fatal(err)
 				}
-				file, err := os.Create(filepath.Join(out, fmt.Sprintf("candidate-%02d.png", typ)))
-				if err != nil {
-					t.Fatal(err)
-				}
 				shown := ui.TownSurfaceView{Kind: ui.TownSurfaceTavern,
 					TavernArt: f.TownTavernArt.Value(), Candidate: candidate, CandidatePixels: s.tavernDetailPixels, Font: f.Font.Value()}
 				s.setTavernPage(&shown, 0, 0)
 				pic := ui.ComposeTownSurface(shown)
-				encodeErr := png.Encode(file, pic)
-				closeErr := file.Close()
-				if encodeErr != nil || closeErr != nil {
-					t.Fatalf("portrait PNG: %v / %v", encodeErr, closeErr)
-				}
+				witness.PNG(t, filepath.Join(out, fmt.Sprintf("candidate-%02d.png", typ)), pic)
 			}
 			members, ok := s.buildMercenarySquad(typ, 1)
 			if !ok || len(members) != 1 {

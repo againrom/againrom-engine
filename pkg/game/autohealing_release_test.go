@@ -1,13 +1,13 @@
 package game
 
 import (
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -81,15 +81,7 @@ func TestReleaseAutoHealing1191MenuNativeAndOriginalSave(t *testing.T) {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatal(err)
 		}
-		out, err := os.Create(filepath.Join(dir, "autohealing-options.png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(out, a.GameMenuPanel())
-		closeErr := out.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, "autohealing-options.png"), a.GameMenuPanel())
 	}
 	s, _, err := f.Snapshot(true)
 	if err != nil {

@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -155,14 +155,7 @@ func writePlayerPanelWitness(t *testing.T, x *MapInspector, source string) {
 			}
 		}
 		path := filepath.Join(dir, "players-"+name+"-"+filepath.Base(os.Getenv("AGAINROM_ASSETS"))+".png")
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		encodeErr, closeErr := png.Encode(f, e.ChromeImage()), f.Close()
-		if encodeErr != nil || closeErr != nil {
-			t.Fatal("player panel witness", encodeErr, closeErr)
-		}
+		witness.PNG(t, path, e.ChromeImage())
 		t.Logf("headless player %s: %s", name, path)
 	}
 }

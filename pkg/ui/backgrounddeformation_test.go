@@ -5,13 +5,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/render/refraction"
 	"againrom/pkg/render/terrain"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -99,17 +99,7 @@ func deformationArtifacts(t *testing.T, label string, before, after *image.RGBA,
 				out.SetRGBA(x, y, item.pixels.RGBAAt(crop.Min.X+x/4, crop.Min.Y+y/4))
 			}
 		}
-		file, err := os.Create(filepath.Join(dir, label+"-"+item.name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(file, out); err != nil {
-			file.Close()
-			t.Fatal(err)
-		}
-		if err := file.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, label+"-"+item.name+".png"), out)
 	}
 }
 

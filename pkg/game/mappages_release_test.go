@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +11,7 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/internal/synth"
+	"againrom/internal/witness"
 )
 
 func TestReleaseMapEditorLooseMapPages(t *testing.T) {
@@ -96,16 +96,7 @@ func TestReleaseMapEditorLooseMapPages(t *testing.T) {
 		}
 		write := func(name string, img image.Image) {
 			t.Helper()
-			f, err := os.Create(filepath.Join(dir, lang+"-"+name+".png"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := png.Encode(f, img); err != nil {
-				t.Fatal(err)
-			}
-			if err := f.Close(); err != nil {
-				t.Fatal(err)
-			}
+			witness.PNG(t, filepath.Join(dir, lang+"-"+name+".png"), img)
 		}
 		write("pages", pic)
 		write("pages-crop", pic.SubImage(image.Rect(180, 170, 1100, 650)))

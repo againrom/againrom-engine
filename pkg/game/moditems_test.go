@@ -1,14 +1,13 @@
 package game
 
 import (
-	"bytes"
 	"encoding/binary"
 	"image"
 	"image/color"
-	"image/png"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/mapload"
@@ -324,11 +323,7 @@ func fixturePNG(t *testing.T, w, h int, f func(x, y int) color.NRGBA) []byte {
 			img.SetNRGBA(x, y, f(x, y))
 		}
 	}
-	var b bytes.Buffer
-	if err := png.Encode(&b, img); err != nil {
-		t.Fatal(err)
-	}
-	return b.Bytes()
+	return witness.Bytes(t, img)
 }
 
 func TestModIconSpriteRoundTripsThroughTheGamesDecoder(t *testing.T) {

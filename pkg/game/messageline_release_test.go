@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,6 +16,7 @@ import (
 	"golang.org/x/text/encoding/charmap"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/render/text"
 	"againrom/pkg/sim"
@@ -386,14 +386,7 @@ func writeMessageWitness(t *testing.T, pic *image.RGBA, at image.Point, lines in
 	draw.Draw(out, out.Bounds(), image.NewUniform(color.Black), image.Point{}, draw.Src)
 	draw.Draw(out, pic.Bounds().Add(at), pic, pic.Bounds().Min, draw.Over)
 	name := strings.NewReplacer("/", "-", " ", "-").Replace(t.Name()) + "-" + strconv.Itoa(lines) + "rows.png"
-	file, err := os.Create(filepath.Join(dir, name))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer file.Close()
-	if err := png.Encode(file, out); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name), out)
 }
 
 // requireMessagePixels compares the picture with what the map font paints for

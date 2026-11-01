@@ -2,12 +2,12 @@ package game
 
 import (
 	"bytes"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -83,15 +83,7 @@ func TestReleaseGraphicsOptions1190InstalledMenusAndColdLoad(t *testing.T) {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatal(err)
 		}
-		out, err := os.Create(filepath.Join(dir, "graphics-options.png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(out, pic)
-		closeErr := out.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, "graphics-options.png"), pic)
 	}
 	s, label, err := f.Snapshot(true)
 	if err != nil {

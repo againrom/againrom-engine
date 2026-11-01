@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -52,7 +52,21 @@ func TestReleaseActivePauseRenderedWorld(t *testing.T) {
 	t.Logf("%s", out)
 }
 
+// probeReporter lets the child process, which runs outside any test and draws
+// on the window thread, write its pictures through the witness helper; the
+// first error it is told of comes back from the probe.
+type probeReporter struct{ err error }
+
+func (p *probeReporter) Helper()      {}
+func (p *probeReporter) Name() string { return "TestReleaseActivePauseRenderedWorld" }
+func (p *probeReporter) Errorf(format string, args ...any) {
+	if p.err == nil {
+		p.err = fmt.Errorf(format, args...)
+	}
+}
+
 func runPausedPresentationProbe(dir string) error {
+	rep := &probeReporter{}
 	if _, err := effectRimOutputPath(os.Getenv("AGAINROM_ASSETS"), dir); err != nil {
 		return err
 	}
@@ -131,16 +145,8 @@ func runPausedPresentationProbe(dir string) error {
 			v.Draw(tex)
 			pic := image.NewRGBA(image.Rect(0, 0, 1024, 768))
 			tex.ReadPixels(pic.Pix)
-			file, err := os.Create(filepath.Join(dir, name+".png"))
-			if err != nil {
-				return nil, err
-			}
-			err = png.Encode(file, pic)
-			closed := file.Close()
-			if err != nil {
-				return nil, err
-			}
-			return pic, closed
+			witness.PNG(rep, filepath.Join(dir, name+".png"), pic)
+			return pic, rep.err
 		}
 		bright, err := capture("running")
 		if err != nil {
@@ -261,11 +267,11 @@ func runPausedPresentationProbe(dir string) error {
 			return err
 		}
 		fmt.Printf("installed mission20 App/sim/Viewer GPU: dim%d exact%d HUD%d; 150 paused frames, numeral retained; count%d→%d; queue%d; World%s SAV%s\n", dimmed, exactDim, hudSame, count, v.AnimationCounter(), len(queue), proof.WorldSHA256, proof.SAVSHA256)
-		return probeInstalledScenery(f, dir)
+		return probeInstalledScenery(f, dir, rep)
 	})
 }
 
-func probeInstalledScenery(f *FrontEnd, dir string) error {
+func probeInstalledScenery(f *FrontEnd, dir string, rep *probeReporter) error {
 	addr, _ := MissionMap(20)
 	raw, err := f.Archives.Containers.ReadFile(addr)
 	if err != nil {
@@ -373,16 +379,9 @@ func probeInstalledScenery(f *FrontEnd, dir string) error {
 			return fmt.Errorf("installed %s did not remove dim and restore exact retained frame", name)
 		}
 		pic := &image.RGBA{Pix: paused, Stride: 1024 * 4, Rect: image.Rect(0, 0, 1024, 768)}
-		file, err := os.Create(filepath.Join(dir, name+"-paused.png"))
-		if err != nil {
-			return err
-		}
-		encoded, closed := png.Encode(file, pic), file.Close()
-		if encoded != nil {
-			return encoded
-		}
-		if closed != nil {
-			return closed
+		witness.PNG(rep, filepath.Join(dir, name+"-paused.png"), pic)
+		if rep.err != nil {
+			return rep.err
 		}
 		fmt.Printf("installed %s cell%v: moving GPU control, 150 paused frames exact, resume pixels exact at retained count%d\n", name, cell, count)
 	}

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
@@ -362,17 +362,7 @@ func TestReleaseDifficultyLevelsInstalledArtAndPointer(t *testing.T) {
 		}
 		t.Logf("pointer-selected level%d: %d installed pixels", tc.level, checked)
 		if dir := os.Getenv("AGAINROM_DIFFICULTY_WITNESS"); dir != "" {
-			out, err := os.Create(filepath.Join(dir, fmt.Sprintf("difficulty-%d.png", tc.level)))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := png.Encode(out, frame); err != nil {
-				out.Close()
-				t.Fatal(err)
-			}
-			if err := out.Close(); err != nil {
-				t.Fatal(err)
-			}
+			witness.PNG(t, filepath.Join(dir, fmt.Sprintf("difficulty-%d.png", tc.level)), frame)
 		}
 	}
 }

@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"sort"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/intmath"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -155,14 +155,7 @@ func launchWritePNG(t *testing.T, dir, name string, pix image.Image) {
 	if dir == "" {
 		return
 	}
-	out, err := os.Create(filepath.Join(dir, name))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(out, pix)
-	if closeErr := out.Close(); err != nil || closeErr != nil {
-		t.Fatal(err, closeErr)
-	}
+	witness.PNG(t, filepath.Join(dir, name), pix)
 }
 
 // The installed mage holding a staff takes class 24, bare-handed class 23

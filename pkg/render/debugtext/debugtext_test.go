@@ -5,9 +5,10 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"testing"
+
+	"againrom/internal/witness"
 )
 
 func dependencyAtlas(t *testing.T) *image.RGBA {
@@ -21,7 +22,7 @@ func dependencyAtlas(t *testing.T) *image.RGBA {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	decoded, err := png.Decode(f)
+	decoded, err := witness.Decode(f)
 	if err != nil {
 		t.Fatal(err)
 	}

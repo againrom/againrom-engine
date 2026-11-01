@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -406,15 +406,5 @@ func companionGenderPixels(t *testing.T, f *FrontEnd, frame *image.RGBA, layout 
 
 func companionWidgetPNG(t *testing.T, path string, frame *image.RGBA) {
 	t.Helper()
-	out, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, frame); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path, frame)
 }

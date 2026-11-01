@@ -3,7 +3,6 @@ package game
 import (
 	"crypto/sha256"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -161,13 +161,5 @@ func completedTavernFrame(t *testing.T, app *ui.App, path string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(file, pix)
-	closeErr := file.Close()
-	if err != nil || closeErr != nil {
-		t.Fatal("tavern frame", err, closeErr)
-	}
+	witness.PNG(t, path, pix)
 }

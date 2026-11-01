@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -20,6 +19,7 @@ import (
 	"golang.org/x/image/math/fixed"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/render/frame"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
@@ -143,15 +143,7 @@ func debugFontSaveWitness(t *testing.T, name string, native, smooth *image.RGBA)
 		pic   *image.RGBA
 	}{{"native-debug-fragment", native}, {"method-c-debug-fragment", smooth}} {
 		path := filepath.Join(out, name+"-"+artifact.label+".png")
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(f, artifact.pic)
-		closeErr := f.Close()
-		if err != nil || closeErr != nil {
-			t.Fatalf("write %s: encode=%v close=%v", path, err, closeErr)
-		}
+		witness.PNG(t, path, artifact.pic)
 	}
 }
 

@@ -5,12 +5,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
+
+	"againrom/internal/witness"
 )
 
 type personPortraitProbe struct{ *personSettingsProbe }
@@ -57,15 +58,7 @@ func TestEditorPersonWindowOwnerFrames(t *testing.T) {
 			pic := e.ChromeImage()
 			t.Logf("editor=%dx%d popup=%v coverage=%.2f%% pitch=%d other-popup-pitch=%d rows=%d/%d", size.X, size.Y, l.Rect, float64(l.Rect.Dx()*l.Rect.Dy())*100/float64(size.X*size.Y), l.Pitch, layoutPopup(popupFixture(), e.font, e.bodyFont()).Pitch, len(l.Rows), len(s.Rows))
 			if dir := os.Getenv("AGAINROM_PERSON_FRAMES"); dir != "" && (size.X == 800 || size.X == 1280) {
-				file, err := os.Create(filepath.Join(dir, fmt.Sprintf("person-%dx%d.png", size.X, size.Y)))
-				if err != nil {
-					t.Fatal(err)
-				}
-				err = png.Encode(file, pic)
-				closeErr := file.Close()
-				if err != nil || closeErr != nil {
-					t.Fatal(err, closeErr)
-				}
+				witness.PNG(t, filepath.Join(dir, fmt.Sprintf("person-%dx%d.png", size.X, size.Y)), pic)
 			}
 			if !l.Rect.In(e.popupBounds()) || l.Rect.Dx() > 1180 || l.Rect.Dy() > 620 {
 				t.Error("person window exceeds its bounded natural size", l.Rect)

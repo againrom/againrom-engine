@@ -10,7 +10,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
@@ -38,13 +38,7 @@ func tooltipShotDir(t *testing.T) string {
 
 func writeTooltipShot(t *testing.T, name string, pic *image.RGBA) {
 	t.Helper()
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, pic); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(tooltipShotDir(t), name+".png"), buf.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(tooltipShotDir(t), name+".png"), pic)
 }
 
 func samePicture(a, b *image.RGBA) bool {

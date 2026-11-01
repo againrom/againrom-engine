@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -194,13 +194,7 @@ func missionAutosaveCold(t *testing.T, path string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var picture bytes.Buffer
-	if err := png.Encode(&picture, frame); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path+".chooser.png", picture.Bytes(), 0600); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path+".chooser.png", frame)
 	if err := app.HeadlessActivate("@first"); err != nil || app.Screen() != ui.ScreenMap || !f.live.mission.resumed {
 		t.Fatal("ordinary chooser cold LOAD", err, app.Screen())
 	}

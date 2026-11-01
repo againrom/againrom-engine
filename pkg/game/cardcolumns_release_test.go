@@ -3,13 +3,13 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -151,14 +151,7 @@ func TestReleaseStatisticsCardColumnsAreFlush(t *testing.T) {
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			out, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := png.Encode(out, pic); err != nil {
-				t.Fatal(err)
-			}
-			out.Close()
+			witness.PNG(t, filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)), pic)
 		}
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/pal"
 	"againrom/pkg/formats/reg"
@@ -531,14 +531,7 @@ func (w *shotWitness) raster(kind string, tick int, from, to image.Point, draws 
 		}
 	}
 	path := filepath.Join(w.dir, fmt.Sprintf("%s-%s-tick%d.png", w.name, kind, tick))
-	out, err := os.Create(path)
-	if err != nil {
-		w.t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, scaled); err != nil {
-		w.t.Fatal(err)
-	}
+	witness.PNG(w.t, path, scaled)
 }
 
 // overPic composites a premultiplied picture onto dst at at, mirrored left to

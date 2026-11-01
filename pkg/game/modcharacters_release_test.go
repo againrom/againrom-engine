@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
@@ -423,16 +423,7 @@ func TestReleaseModCharacterTavernScreenshot(t *testing.T) {
 		if withMod {
 			name = "tavern-archer-girl-" + base + ".png"
 		}
-		out, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(out, pix); err != nil {
-			t.Fatal(err)
-		}
-		if err := out.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, name), pix)
 		shots[i] = pix
 	}
 	if sameImage(shots[0], shots[1]) {

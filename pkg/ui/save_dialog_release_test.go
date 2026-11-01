@@ -3,12 +3,12 @@ package ui
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/formats/res"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/formats/textinput"
@@ -172,17 +172,7 @@ func writeSaveDialogCapture(t *testing.T, name string, pix *image.RGBA) {
 			t.Fatal(err)
 		}
 		path := filepath.Join(output, fmt.Sprintf("%s.png", name))
-		f, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(f, pix); err != nil {
-			_ = f.Close()
-			t.Fatal(err)
-		}
-		if err := f.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, path, pix)
 		t.Logf("capture %s", path)
 	}
 }

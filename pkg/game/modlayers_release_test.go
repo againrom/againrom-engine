@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,6 +12,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
@@ -313,17 +313,7 @@ func TestReleaseModLayersPaperdollPicture(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, "paperdoll-"+strings.ReplaceAll(locale, string(filepath.Separator), "_")+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, sheet); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, "paperdoll-"+strings.ReplaceAll(locale, string(filepath.Separator), "_")+".png"), sheet)
 }
 
 // layerMission opens mission 30 from a reloaded town and returns the hero.

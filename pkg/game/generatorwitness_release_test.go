@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -107,15 +107,6 @@ func TestReleaseGeneratorWitnessFrames(t *testing.T) {
 		if out == "" {
 			continue
 		}
-		file, err := os.Create(filepath.Join(out, fmt.Sprintf("%s-%s.png", tag, w.name)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := png.Encode(file, w.frame); err != nil {
-			t.Fatal(err)
-		}
-		if err := file.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(out, fmt.Sprintf("%s-%s.png", tag, w.name)), w.frame)
 	}
 }

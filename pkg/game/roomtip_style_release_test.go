@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/intmath"
 	"againrom/pkg/render/backdrop"
@@ -529,18 +529,7 @@ func writeReleaseTipRender(t *testing.T, v roomTipRaster) {
 		locale = "ru"
 	}
 	path := filepath.Join(dir, locale+"-"+v.name+".png")
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(f, v.with)
-	closeErr := f.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if closeErr != nil {
-		t.Fatal(closeErr)
-	}
+	witness.PNG(t, path, v.with)
 	t.Logf("render %s", path)
 }
 

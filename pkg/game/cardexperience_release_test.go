@@ -2,12 +2,12 @@ package game
 
 import (
 	"fmt"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -43,14 +43,7 @@ func cardExperienceWitness(t *testing.T, f *FrontEnd, app *ui.App, e sim.Entity,
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, pic); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)), pic)
 }
 
 // The XP line stands on a hero's card and on Brian's before he joins, and is

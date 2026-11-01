@@ -3,12 +3,12 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -92,14 +92,7 @@ func cardLoadShot(t *testing.T, app *ui.App, name string) {
 			t.Fatal(err)
 		}
 	}
-	out, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, pic); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, fmt.Sprintf("%s-%s.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), name)), pic)
 }
 
 // personSpellBook reports whether a person's card value, his spell mask

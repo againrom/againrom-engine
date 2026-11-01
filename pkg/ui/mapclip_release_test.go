@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -218,14 +218,7 @@ func TestReleaseMapViewportPaintsInstalledTerrain(t *testing.T) {
 						t.Logf("mission 20: %d viewport pixels painted; %d nonblack columns, %d nonblack rows; %d terrain submissions; camera (%g,%g)", size.X*size.Y, size.X, size.Y, r.draws, v.cam.X, v.cam.Y)
 						if output != "" {
 							label := strings.ReplaceAll(name, "/", "-")
-							file, err := os.Create(filepath.Join(output, label+".png"))
-							if err != nil {
-								t.Fatal(err)
-							}
-							encodeErr, closeErr := png.Encode(file, r.pixels), file.Close()
-							if encodeErr != nil || closeErr != nil {
-								t.Fatal(encodeErr, closeErr)
-							}
+							witness.PNG(t, filepath.Join(output, label+".png"), r.pixels)
 							proof := map[string]any{"mission": 20, "mode": mode, "viewport": size, "zoom": zoom, "position": position.name, "camera": [2]float64{v.cam.X, v.cam.Y}, "painted_pixels": size.X * size.Y, "nonblack_columns": size.X, "nonblack_rows": size.Y, "terrain_submissions": r.draws, "frame_sha256": fmt.Sprintf("%x", sha256.Sum256(r.pixels.Pix)), "raster_limit": "CPU pixel-centre raster of production terrain triangles; excludes structures, shroud, HUD and GPU coverage"}
 							data, err := json.MarshalIndent(proof, "", "  ")
 							if err != nil {

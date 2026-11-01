@@ -3,7 +3,6 @@ package game
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 )
@@ -35,13 +35,7 @@ func TestReleaseQuestObjectivesAndMainMenuHall(t *testing.T) {
 		if pix == nil {
 			t.Fatal("missing composition", name)
 		}
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, pix); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(artifacts, name+".png"), buf.Bytes(), 0644); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(artifacts, name+".png"), pix)
 	}
 	seed, err := os.ReadFile(filepath.Join(f.Archives.Root, "famehall.dat"))
 	if err != nil {

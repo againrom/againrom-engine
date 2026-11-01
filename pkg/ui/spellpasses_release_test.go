@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/formats/spr16"
@@ -142,17 +142,7 @@ func TestReleaseSpellPassesComposeInstalledArtAroundShadowsAndBodies(t *testing.
 					if err := os.MkdirAll(dir, 0o755); err != nil {
 						t.Fatal(err)
 					}
-					out, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-category%d-passes.png", cloud, category)))
-					if err != nil {
-						t.Fatal(err)
-					}
-					if err := png.Encode(out, target.pixels); err != nil {
-						out.Close()
-						t.Fatal(err)
-					}
-					if err := out.Close(); err != nil {
-						t.Fatal(err)
-					}
+					witness.PNG(t, filepath.Join(dir, fmt.Sprintf("%s-category%d-passes.png", cloud, category)), target.pixels)
 				}
 			})
 		}

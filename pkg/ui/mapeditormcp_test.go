@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/editormcp"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -194,7 +194,7 @@ func TestEditorMCPPipeDrivesWindowDoors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pic, err := png.Decode(strings.NewReader(string(raw)))
+	pic, err := witness.Decode(strings.NewReader(string(raw)))
 	if err != nil {
 		t.Fatal(err)
 	}

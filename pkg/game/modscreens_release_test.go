@@ -6,13 +6,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/render/frame"
@@ -174,17 +174,7 @@ func writeModShot(t *testing.T, name string, pix *image.RGBA) {
 		t.Fatal(err)
 	}
 	locale := strings.ReplaceAll(filepath.Base(os.Getenv("AGAINROM_ASSETS")), string(filepath.Separator), "_")
-	out, err := os.Create(filepath.Join(dir, name+"-"+locale+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, pix); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+"-"+locale+".png"), pix)
 }
 
 func modPointer(t *testing.T, app *ui.App, x, y int) {

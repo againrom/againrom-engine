@@ -3,13 +3,13 @@ package game
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
@@ -54,14 +54,7 @@ func TestReleaseModItemShopScreenshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	name := filepath.Join(dir, "shop-armour-"+f.ModSet().Base+".png")
-	out, err := os.Create(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, pix); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, name, pix)
 }
 
 func TestReleaseModItemNameDrawsInTheInstallAlphabet(t *testing.T) {

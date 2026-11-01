@@ -3,7 +3,6 @@ package game
 import (
 	"errors"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/text"
@@ -184,14 +184,7 @@ func townModFramesDir(t *testing.T, f *FrontEnd) string {
 
 func writeTownModPNG(t *testing.T, path string, pix image.Image) {
 	t.Helper()
-	file, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr := png.Encode(file, pix)
-	if err := file.Close(); err != nil || encodeErr != nil {
-		t.Fatal(encodeErr, err)
-	}
+	witness.PNG(t, path, pix)
 }
 
 // A Cyrillic town name on the install: the home scroll and the travel card

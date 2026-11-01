@@ -3,13 +3,13 @@ package game
 import (
 	"bytes"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -319,15 +319,7 @@ func TestReleaseGameOptions1186PreferencesAndCheckpoints(t *testing.T) {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		out, err := os.Create(filepath.Join(dir, "game-options.png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(out, pic)
-		closeErr := out.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, "game-options.png"), pic)
 	}
 	t.Log("five persisted controls; ordinary queued-choice SAV; opposite-profile cold LOAD and 64 next-tick option samples without replay; legacy SAV successors; SAV flags and retreat thresholds; installed pointer controls and panel")
 }

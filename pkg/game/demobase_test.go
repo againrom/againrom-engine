@@ -2,13 +2,13 @@ package game
 
 import (
 	"image"
-	"image/png"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/base"
 	"againrom/pkg/ui"
 )
@@ -112,14 +112,7 @@ func writeFramePNG(t *testing.T, path string, img image.Image) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	if err := png.Encode(f, img); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path, img)
 }
 
 func TestDemoBaseNewGameRunsTheFirstMission(t *testing.T) {

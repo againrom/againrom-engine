@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
@@ -248,17 +248,7 @@ func writeSchoolColumnWitness(t *testing.T, f *FrontEnd, frame int, pix *image.R
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, fmt.Sprintf("school-column-%02d.png", frame)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(out, pix)
-	closeErr := out.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if closeErr != nil {
-		t.Fatal(closeErr)
-	}
-	t.Logf("school column witness: %s", out.Name())
+	path := filepath.Join(dir, fmt.Sprintf("school-column-%02d.png", frame))
+	witness.PNG(t, path, pix)
+	t.Logf("school column witness: %s", path)
 }

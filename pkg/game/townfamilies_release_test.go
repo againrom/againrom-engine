@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/audio"
 	"againrom/pkg/town"
 )
@@ -25,17 +25,7 @@ func writeTownFamiliesShot(t *testing.T, dir, root, name string, pix *image.RGBA
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, name+".png")
-	file, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr := png.Encode(file, pix)
-	if closeErr := file.Close(); encodeErr == nil {
-		encodeErr = closeErr
-	}
-	if encodeErr != nil {
-		t.Fatal(encodeErr)
-	}
+	witness.PNG(t, path, pix)
 	return path
 }
 

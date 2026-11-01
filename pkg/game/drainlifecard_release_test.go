@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -15,6 +14,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -141,13 +141,7 @@ func TestReleaseDrainLifeItemCardUsesLiteralInstalledNamesDamageAndRange(t *test
 		if pic == nil {
 			return
 		}
-		var encoded bytes.Buffer
-		if err := png.Encode(&encoded, pic); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(dir, name+".png"), encoded.Bytes(), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 	}
 	writePicture("actual", actual)
 	writePicture("expected", expected)

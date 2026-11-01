@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -103,14 +103,7 @@ func (w *helpScrollbarStyleWitness) capture(t *testing.T, f *FrontEnd, name stri
 		t.Fatal("ordinary F1 body or geometry changed")
 	}
 	pic := helpFrame(t, f)
-	file, err := os.Create(filepath.Join(w.dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr, closeErr := png.Encode(file, pic), file.Close()
-	if encodeErr != nil || closeErr != nil {
-		t.Fatal(encodeErr, closeErr)
-	}
+	witness.PNG(t, filepath.Join(w.dir, name+".png"), pic)
 	w.manifest[name+"_pixels_sha256"] = fmt.Sprintf("%x", sha256.Sum256(pic.Pix))
 	return pic
 }

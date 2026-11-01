@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/formats/spr16"
@@ -342,16 +342,5 @@ func writeTownExteriorWitness(t *testing.T, f *FrontEnd, name string, pix *image
 	if err = os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(file, pix)
-	closeErr := file.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if closeErr != nil {
-		t.Fatal(closeErr)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pix)
 }

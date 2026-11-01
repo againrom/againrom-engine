@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/game"
 	"againrom/pkg/render/terrain"
@@ -334,7 +334,7 @@ func decodePNG(t *testing.T, path string) image.Image {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	img, err := png.Decode(f)
+	img, err := witness.Decode(f)
 	if err != nil {
 		t.Fatalf("decode %s: %v", path, err)
 	}
@@ -365,11 +365,7 @@ func markerCentre(col, row, originY, scale int) (x, y int) {
 // comparison against a file the tool wrote.
 func pngBytes(t *testing.T, img image.Image) []byte {
 	t.Helper()
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
-		t.Fatal(err)
-	}
-	return buf.Bytes()
+	return witness.Bytes(t, img)
 }
 
 // compositeOracle composites a fixture map directly through the render tier,
@@ -687,17 +683,14 @@ func TestRenderObjectsOverlay(t *testing.T) {
 	if err != nil {
 		t.Fatalf("baseline composite: %v", err)
 	}
-	var wantPNG bytes.Buffer
-	if err := png.Encode(&wantPNG, baseline.Image); err != nil {
-		t.Fatal(err)
-	}
+	wantPNG := witness.Bytes(t, baseline.Image)
 	gotPNG, err := os.ReadFile(plainPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(gotPNG, wantPNG.Bytes()) {
+	if !bytes.Equal(gotPNG, wantPNG) {
 		t.Errorf("render without -objects is %d bytes, want the compositor's own %d-byte output",
-			len(gotPNG), wantPNG.Len())
+			len(gotPNG), len(wantPNG))
 	}
 
 	plain := decodePNG(t, plainPath)
@@ -875,11 +868,7 @@ func TestRenderUnitsOverlay(t *testing.T) {
 		if withObjects {
 			terrain.DrawObjectMarkersAt(r.Image, anchorCells(m), m.Width, m.Height, terrain.CellSize, -r.OriginY*1)
 		}
-		var buf bytes.Buffer
-		if err := png.Encode(&buf, r.Image); err != nil {
-			t.Fatal(err)
-		}
-		return buf.Bytes()
+		return witness.Bytes(t, r.Image)
 	}
 	for _, tc := range []struct {
 		name    string

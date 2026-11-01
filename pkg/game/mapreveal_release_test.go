@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
@@ -256,15 +256,5 @@ func mapRevealFiles(t *testing.T, dir string) map[string]string {
 
 func mapRevealPNG(t *testing.T, path string, pic *image.RGBA) {
 	t.Helper()
-	out, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, pic); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path, pic)
 }

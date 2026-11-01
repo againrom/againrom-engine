@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -254,11 +254,7 @@ func secondSaveSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondSaveSampl
 		t.Fatal(err)
 	}
 	s.Viewport, s.Under = sha256.Sum256(viewport.Pix), sha256.Sum256(under.Pix)
-	var encoded bytes.Buffer
-	if err := png.Encode(&encoded, viewport); err != nil {
-		t.Fatal(err)
-	}
-	s.ViewportPNG = encoded.Bytes()
+	s.ViewportPNG = witness.Bytes(t, viewport)
 	s.Animation = f.live.view.SaveAnimation()
 	s.Sun = fmt.Sprintf("%+v", f.live.view.Sun())
 	hud, err := app.HeadlessBottomHUD()
@@ -303,8 +299,11 @@ func secondAssertSample(t *testing.T, want, got secondSaveSample) {
 		}
 		if want.Viewport != got.Viewport {
 			out := secondMissionSaveDirectory(t)
-			_ = os.WriteFile(filepath.Join(out, "CPUWant.png"), want.ViewportPNG, 0600)
-			_ = os.WriteFile(filepath.Join(out, "CPUGot.png"), got.ViewportPNG, 0600)
+			for name, raw := range map[string][]byte{"CPUWant.png": want.ViewportPNG, "CPUGot.png": got.ViewportPNG} {
+				if pic, err := witness.Decode(bytes.NewReader(raw)); err == nil {
+					witness.PNG(t, filepath.Join(out, name), pic)
+				}
+			}
 			t.Logf("viewport mismatch evidence %s; animation=%+v/%+v sun=%s/%s", out, want.Animation, got.Animation, want.Sun, got.Sun)
 		}
 		t.Fatalf("cold continuation differs: World=%v hash=%x/%x View=%+v/%+v campaign=%v party=%v objectives=%v fog=%v/%v pending=%v notices=%v HUD=%v minimap=%v viewport=%v/%v policy=%v program=%v partyIDs=%v won=%v offered=%d/%d", bytes.Equal(want.World, got.World), want.Hash, got.Hash, want.View, got.View, reflect.DeepEqual(want.Campaign, got.Campaign), reflect.DeepEqual(want.Party, got.Party), want.Objectives == got.Objectives, bytes.Equal(want.Explored, got.Explored), bytes.Equal(want.Visible, got.Visible), reflect.DeepEqual(want.Pending, got.Pending), reflect.DeepEqual(want.Notices, got.Notices), want.HUD == got.HUD, want.Minimap == got.Minimap, want.Viewport == got.Viewport, want.Under == got.Under, reflect.DeepEqual(want.Policy, got.Policy), reflect.DeepEqual(want.Program, got.Program), reflect.DeepEqual(want.PartyIDs, got.PartyIDs), reflect.DeepEqual(want.Won, got.Won), want.Offered, got.Offered)
@@ -383,17 +382,7 @@ func secondMissionNamedContinuation(t *testing.T, mission int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file, err := os.Create(filepath.Join(out, "CPUBefore.png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(file, frame); err != nil {
-		file.Close()
-		t.Fatal(err)
-	}
-	if err := file.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(out, "CPUBefore.png"), frame)
 	raw := secondMissionNamedSave(t, f, app, out, "First mission")
 	cold, a := secondMissionColdAt(t, out, secondSaveFile(t, out, "First mission"), mission)
 	secondAssertSample(t, before, secondSaveSampleNow(t, cold, a))

@@ -4,12 +4,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/base"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
@@ -50,14 +50,7 @@ func writeTipRender(t *testing.T, dir, name string, pic *image.RGBA) {
 	if dir == "" {
 		return
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer file.Close()
-	if err := png.Encode(file, pic); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 }
 
 // tipCycleFrames steps the App on its 20 ms headless clock and returns the

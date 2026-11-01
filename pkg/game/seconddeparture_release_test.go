@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -547,13 +547,7 @@ func TestReleaseSecondTownTwoContinuation(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					var encoded bytes.Buffer
-					if err := png.Encode(&encoded, frame); err != nil {
-						t.Fatal(err)
-					}
-					if err := os.WriteFile(filepath.Join(out, "TownBefore.png"), encoded.Bytes(), 0600); err != nil {
-						t.Fatal(err)
-					}
+					witness.PNG(t, filepath.Join(out, "TownBefore.png"), frame)
 					raw := secondTownNamedSave(t, f, app, out, "Second town")
 					secondTownShape(t, raw)
 					secondLaterLossControls(t, f, raw)

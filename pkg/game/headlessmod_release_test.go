@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -116,7 +116,7 @@ func readPNG(t *testing.T, path string) image.Image {
 		t.Fatal(err)
 	}
 	defer file.Close()
-	img, err := png.Decode(file)
+	img, err := witness.Decode(file)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -87,17 +87,7 @@ func noticeCapturePNG(t *testing.T, name string, img *image.RGBA) {
 	if !filepath.IsAbs(root) {
 		t.Fatal("explicit capture output required")
 	}
-	f, err := os.Create(filepath.Join(root, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(f, img); err != nil {
-		f.Close()
-		t.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(root, name+".png"), img)
 }
 
 func TestMissionNoticeCaptureDraw(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/ui"
 )
@@ -100,14 +100,6 @@ func usableHoverProof(t *testing.T, f *FrontEnd, a *ui.App, kind uint16, id uint
 		draw.Draw(frame, pic.Bounds().Add(image.Pt(8, 8)), pic, pic.Bounds().Min, draw.Src)
 		draw.Draw(frame, cursor.Bounds().Add(image.Pt(8, pic.Bounds().Dy()+16)), cursor, cursor.Bounds().Min, draw.Over)
 		path := filepath.Join(dir, fmt.Sprintf("%s-class%d-hover.png", filepath.Base(os.Getenv("AGAINROM_ASSETS")), kind))
-		out, err := os.Create(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(out, frame)
-		closeErr := out.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, path, frame)
 	}
 }

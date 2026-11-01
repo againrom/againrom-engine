@@ -1,16 +1,15 @@
 package game
 
 import (
-	"bytes"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
 	"againrom/pkg/ui"
@@ -96,13 +95,7 @@ func mismatchFrame(t *testing.T, name string, pix *image.RGBA) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	var b bytes.Buffer
-	if err := png.Encode(&b, pix); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, name+".png"), b.Bytes(), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pix)
 }
 
 // alertPixels counts the red pixels of r: the alert ink and the shades the

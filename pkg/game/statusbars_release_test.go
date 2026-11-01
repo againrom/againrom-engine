@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
@@ -314,12 +314,5 @@ func statusBarScaled(src *image.RGBA, r image.Rectangle, k int) *image.RGBA {
 
 func writeStatusBarFrame(t *testing.T, path string, img image.Image) {
 	t.Helper()
-	out, err := os.Create(path)
-	if err != nil {
-		t.Fatalf("write the frame: %v", err)
-	}
-	defer out.Close()
-	if err := png.Encode(out, img); err != nil {
-		t.Fatalf("encode %s: %v", path, err)
-	}
+	witness.PNG(t, path, img)
 }

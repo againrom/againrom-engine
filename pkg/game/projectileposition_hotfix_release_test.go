@@ -3,12 +3,12 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/data"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -160,15 +160,5 @@ func writeProjectilePainterFrame(t *testing.T, f *FrontEnd, kind string, draws [
 		}
 	}
 	path := filepath.Join(dir, fmt.Sprintf("%s-final-flight.png", kind))
-	out, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(out, canvas); err != nil {
-		out.Close()
-		t.Fatal(err)
-	}
-	if err := out.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, path, canvas)
 }

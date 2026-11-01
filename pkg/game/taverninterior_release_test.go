@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/ui"
 )
@@ -191,17 +191,7 @@ func TestReleaseTavernInterior1121InstalledAppFramesSoundsAndNative(t *testing.T
 			t.Fatal(err)
 		}
 		rootName := filepath.Base(filepath.Clean(f.Archives.Root))
-		out, err := os.Create(filepath.Join(dir, rootName+"-"+name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err = png.Encode(out, frame); err != nil {
-			out.Close()
-			t.Fatal(err)
-		}
-		if err = out.Close(); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, rootName+"-"+name+".png"), frame)
 	}
 
 	check := func(name string, actual *image.RGBA, candle, cauldron int, tender string, tenderFrame int) {

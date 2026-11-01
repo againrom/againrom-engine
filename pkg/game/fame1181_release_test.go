@@ -3,12 +3,12 @@ package game
 import (
 	"bytes"
 	"encoding/json"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/fame"
 	"againrom/pkg/ui"
 )
@@ -119,15 +119,7 @@ func TestReleaseFame1181TerminalResultColdHallAndSAV(t *testing.T) {
 		if err != nil || note != "" {
 			t.Fatal(err, note)
 		}
-		out, err := os.Create(filepath.Join(artifact, name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = png.Encode(out, pix)
-		closeErr := out.Close()
-		if err != nil || closeErr != nil {
-			t.Fatal(err, closeErr)
-		}
+		witness.PNG(t, filepath.Join(artifact, name+".png"), pix)
 	}
 	if a.Screen() != ui.ScreenCredits {
 		t.Fatal("the ending did not start with the credits roll", a.Screen())

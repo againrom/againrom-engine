@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
@@ -23,16 +23,7 @@ func dollHoverFrame(t *testing.T, name string, frame *image.RGBA) {
 	if dir == "" || frame == nil {
 		return
 	}
-	file, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := png.Encode(file, frame); err != nil {
-		t.Fatal(err)
-	}
-	if err := file.Close(); err != nil {
-		t.Fatal(err)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), frame)
 }
 
 // dollHoverPixel is the middle pixel, in raster order, that the mask marks

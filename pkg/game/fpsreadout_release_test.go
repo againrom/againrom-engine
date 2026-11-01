@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/formats/res"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/render/text"
@@ -360,15 +360,7 @@ func TestReleaseFPSReadoutCompositionAndSAVLoad(t *testing.T) {
 	if f.live.world.Hash() != beforeHash || !bytes.Equal(fpsCurrentSAV(t, f), beforeSAV) {
 		t.Fatal("sampling/composition/F12 changed World or SAV")
 	}
-	imageFile, err := os.Create(filepath.Join(dir, "readout.png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr := png.Encode(imageFile, pic)
-	closeErr := imageFile.Close()
-	if encodeErr != nil || closeErr != nil {
-		t.Fatal(encodeErr, closeErr)
-	}
+	witness.PNG(t, filepath.Join(dir, "readout.png"), pic)
 	id := f.live.mission.ids[0]
 	body, _ := f.live.entity(id)
 	if err := f.live.world.HeadlessDamage(id, 1); err != nil {

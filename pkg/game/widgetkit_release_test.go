@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
@@ -335,12 +335,5 @@ func writeWidgetKitPNG(t *testing.T, path string, pic image.Image) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	file, err := os.Create(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr, closeErr := png.Encode(file, pic), file.Close()
-	if encodeErr != nil || closeErr != nil {
-		t.Fatal(encodeErr, closeErr)
-	}
+	witness.PNG(t, path, pic)
 }

@@ -3,13 +3,13 @@ package versionres
 import (
 	"bytes"
 	"encoding/binary"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"againrom/internal/appicon"
 	"againrom/internal/archtest"
+	"againrom/internal/witness"
 )
 
 func moduleRoot(t *testing.T) string {
@@ -199,7 +199,7 @@ func TestEachObjectHoldsItsProgramsIcon(t *testing.T) {
 				if !bytes.Equal(body, appicon.PNG(p.Icon)) {
 					t.Errorf("%s: the 256 entry is not the embedded PNG", p.Describe())
 				}
-				if _, err := png.Decode(bytes.NewReader(body)); err != nil {
+				if _, err := witness.Decode(bytes.NewReader(body)); err != nil {
 					t.Errorf("%s: %v", p.Describe(), err)
 				}
 				continue

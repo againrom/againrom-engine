@@ -2,10 +2,11 @@ package ui
 
 import (
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"againrom/internal/witness"
 )
 
 // The Z key turns the passability view on and off, as the View row does.
@@ -166,14 +167,7 @@ func TestPopupPicturesForTheNotes(t *testing.T) {
 				out.SetRGBA(x, y, pic.RGBAAt(r.Min.X+x/scale, r.Min.Y+y/scale))
 			}
 		}
-		fh, err := os.Create(filepath.Join(dir, name))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer fh.Close()
-		if err := png.Encode(fh, out); err != nil {
-			t.Fatal(err)
-		}
+		witness.PNG(t, filepath.Join(dir, name), out)
 	}
 	crop("popup.png", l.Rect.Inset(-4).Intersect(pic.Bounds()), 2)
 	crop("grip.png", image.Rect(l.Rect.Max.X-popupGripSide-4, l.Rect.Max.Y-popupGripSide-4, l.Rect.Max.X+2, l.Rect.Max.Y+2), 8)

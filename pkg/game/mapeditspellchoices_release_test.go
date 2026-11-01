@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,6 +12,7 @@ import (
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -160,7 +160,7 @@ func TestReleaseScriptSpellPickerFrames(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				pic, err := png.Decode(full)
+				pic, err := witness.Decode(full)
 				closeErr := full.Close()
 				if err != nil || closeErr != nil {
 					t.Fatal(err, closeErr)
@@ -168,15 +168,7 @@ func TestReleaseScriptSpellPickerFrames(t *testing.T) {
 				crop := cover.Union(r).Inset(-12).Intersect(pic.Bounds())
 				cropped := image.NewRGBA(image.Rectangle{Max: crop.Size()})
 				draw.Draw(cropped, cropped.Bounds(), pic, crop.Min, draw.Src)
-				file, err := os.Create(filepath.Join(dir, "cast-spell-crop-"+installLanguage(x)+".png"))
-				if err != nil {
-					t.Fatal(err)
-				}
-				err = png.Encode(file, cropped)
-				closeErr = file.Close()
-				if err != nil || closeErr != nil {
-					t.Fatal(err, closeErr)
-				}
+				witness.PNG(t, filepath.Join(dir, "cast-spell-crop-"+installLanguage(x)+".png"), cropped)
 			}
 			t.Logf("frame root=%s map=%s record=%d value=%d", os.Getenv("AGAINROM_ASSETS"), key, n.Record, n.Values[4])
 			return

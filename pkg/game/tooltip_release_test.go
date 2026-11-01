@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -181,13 +181,5 @@ func tooltipReleasePNG(t *testing.T, name string, pic *image.RGBA) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	f, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = png.Encode(f, pic)
-	closeErr := f.Close()
-	if err != nil || closeErr != nil {
-		t.Fatal(err, closeErr)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 }

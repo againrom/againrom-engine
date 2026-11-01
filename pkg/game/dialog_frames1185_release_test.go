@@ -8,13 +8,13 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"againrom/internal/firstgame"
+	"againrom/internal/witness"
 	"againrom/pkg/ui"
 )
 
@@ -124,14 +124,7 @@ func witnessSaveChooserStyle(t *testing.T, f *FrontEnd) {
 		if err != nil || note != "" || pic.Bounds() != image.Rect(0, 0, 640, 480) {
 			t.Fatal("ordinary App chooser frame", note, err)
 		}
-		file, err := os.Create(filepath.Join(dir, name+".png"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		encodeErr, closeErr := png.Encode(file, pic), file.Close()
-		if encodeErr != nil || closeErr != nil {
-			t.Fatal(encodeErr, closeErr)
-		}
+		witness.PNG(t, filepath.Join(dir, name+".png"), pic)
 		manifest[name+"_pixels_sha256"] = fmt.Sprintf("%x", sha256.Sum256(pic.Pix))
 		return pic
 	}

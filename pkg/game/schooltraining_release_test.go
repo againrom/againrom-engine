@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"againrom/internal/witness"
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mapload"
@@ -370,18 +370,7 @@ func writeSchoolTrainingWitness(t *testing.T, f *FrontEnd, name string, pix *ima
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.Create(filepath.Join(dir, name+".png"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	encodeErr := png.Encode(out, pix)
-	closeErr := out.Close()
-	if encodeErr != nil {
-		t.Fatal(encodeErr)
-	}
-	if closeErr != nil {
-		t.Fatal(closeErr)
-	}
+	witness.PNG(t, filepath.Join(dir, name+".png"), pix)
 }
 
 // literalSchoolMovies composes the school's movie group from literal ROM1

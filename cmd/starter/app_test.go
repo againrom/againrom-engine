@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"image"
-	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
+	"againrom/internal/witness"
 	"againrom/pkg/game"
 )
 
@@ -532,7 +532,7 @@ func TestScreenshotWritesAPNGWithoutAWindow(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	img, err := png.Decode(f)
+	img, err := witness.Decode(f)
 	if err != nil || img.Bounds() != image.Rect(0, 0, winW, winH) {
 		t.Fatalf("%v %v", img, err)
 	}
