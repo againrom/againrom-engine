@@ -45,6 +45,7 @@ func TestTriggerNameIsDrawnThroughTheHostEncoder(t *testing.T) {
 	if len(labels) != 1 || labels[0].text != "T1 WIN" {
 		t.Fatalf("area labels %+v", labels)
 	}
+	e.showPanel(panelLeft, true)
 	e.showRecords(editorScriptsFilter)
 	rows := scriptsTreeRows(e)
 	found := false

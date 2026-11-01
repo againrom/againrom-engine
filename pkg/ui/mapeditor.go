@@ -322,6 +322,9 @@ func (e *MapEditor) fitZoom() float64 {
 }
 
 func (e *MapEditor) Select(index int, jump bool) bool {
+	if e.tree.entry {
+		e.tree.entry, e.tree.followed = false, ""
+	}
 	if index != e.selected {
 		e.panels.detached = ""
 	}

@@ -25,9 +25,6 @@ func (e *MapEditor) keyPlayers(string) error {
 	e.filter, e.listShown = 0, !wasPlayers
 	if !wasPlayers {
 		e.filter = editorPlayersFilter
-		if c, ok := categoryOf(editorPlayersFilter); ok {
-			e.treeReveal(c)
-		}
 	}
 	e.resetList(0)
 	rows := e.rows()
@@ -41,7 +38,7 @@ func (e *MapEditor) keyPlayers(string) error {
 			return nil
 		}
 	}
-	e.Select(rows[0], false)
+	e.selectUnfollowed(rows[0])
 	return nil
 }
 

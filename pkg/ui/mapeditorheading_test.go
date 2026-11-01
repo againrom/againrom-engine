@@ -58,6 +58,7 @@ func TestListBoxDrawsHeadingRowsInTheHeadingFace(t *testing.T) {
 // row.
 func TestScriptsListMarksItsGroupHeadings(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
+	e.showPanel(panelLeft, true)
 	e.showRecords(editorScriptsFilter)
 	kinds := e.treeRowsNow()
 	rows := e.tree.model.Rows()

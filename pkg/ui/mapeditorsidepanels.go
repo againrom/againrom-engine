@@ -101,7 +101,10 @@ type editorPanels struct {
 	// toolbar that stands as a floating window; that row holds its corner
 	// and size.
 	floats [popCount]bool
-	save   func([]byte) error
+	// toolbarHidden hides the toolbar, docked or floating; its row of the
+	// placement store keeps where it stood.
+	toolbarHidden bool
+	save          func([]byte) error
 	// pull is a press on the title row of a docked side panel, or on the
 	// toolbar's grip, that has not yet moved far enough to undock it: the
 	// store row it floats in, the pointer's travel and whether a pull is in
@@ -373,15 +376,18 @@ func (e *MapEditor) showPanel(i int, show bool) bool {
 // missing or unreadable state restores both side panels at their default
 // widths and keeps the bottom panel minimized; a side panel the file keeps
 // floating, and the toolbar it keeps floating, stand as windows at their kept
-// corners; a window too narrow for the
+// corners, and a toolbar it keeps hidden stays hidden; a window too narrow for the
 // side panels shows the left one only, or neither.
 func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte) error) {
 	e.panels.save = save
 	e.panels.state = panelStateOf(data, readErr)
-	e.panels.floats = [popCount]bool{}
-	for k, r := range panelFloatsOf(data, readErr) {
-		if !r.Empty() {
-			e.floatAt(floatWindows[k].row, r)
+	e.panels.floats, e.panels.toolbarHidden = [popCount]bool{}, false
+	for k, w := range panelFloatsOf(data, readErr) {
+		if !w.at.Empty() {
+			e.floatAt(floatWindows[k].row, w.at)
+		}
+		if floatWindows[k].row == popToolbar {
+			e.panels.toolbarHidden = w.hidden
 		}
 	}
 	e.props.plain = plainViewOf(data, readErr)
@@ -487,8 +493,12 @@ func panelStateOf(data []byte, readErr error) [len(sidePanels)]panelState {
 	return out
 }
 
-// floatEntry is the profile entry of a floating window: its corner and size.
-const floatEntry = "float"
+// floatEntry is the profile entry of a floating window: its corner and size;
+// hiddenEntry marks a hidden toolbar.
+const (
+	floatEntry  = "float"
+	hiddenEntry = "hidden"
+)
 
 // floatWindows are the windows that float: the two side panels and the
 // toolbar, each by its entry in the profile file and its row of the
@@ -512,25 +522,36 @@ func (e *MapEditor) floatAt(id editorPopupID, r image.Rectangle) {
 	}
 }
 
-// panelFloatsOf reads from the profile file the window of each of
-// floatWindows that floats: its corner and size, empty for a docked one. A
-// missing or broken entry, or a size the window cannot take, gives a docked
-// window, so a file an earlier build wrote reads as it did.
-func panelFloatsOf(data []byte, readErr error) [len(floatWindows)]image.Rectangle {
-	var out [len(floatWindows)]image.Rectangle
+// floatKept is what the profile file keeps of one of floatWindows: the
+// corner and size of a floating window, empty for a docked one, and whether
+// the window is hidden.
+type floatKept struct {
+	at     image.Rectangle
+	hidden bool
+}
+
+// panelFloatsOf reads from the profile file each of floatWindows: the corner
+// and size of one that floats and whether it is hidden. A missing or broken
+// entry, or a size the window cannot take, gives a docked window, and an
+// entry without "hidden" a shown one, so a file an earlier build wrote reads
+// as it did.
+func panelFloatsOf(data []byte, readErr error) [len(floatWindows)]floatKept {
+	var out [len(floatWindows)]floatKept
 	entries := profileEntries(data, readErr)
 	for i, w := range floatWindows {
 		var k struct {
-			Float *struct{ X, Y, Width, Height int }
+			Hidden bool
+			Float  *struct{ X, Y, Width, Height int }
 		}
-		if json.Unmarshal(entries[w.name], &k) != nil || k.Float == nil {
+		if json.Unmarshal(entries[w.name], &k) != nil {
 			continue
 		}
+		out[i].hidden = k.Hidden
 		f := k.Float
-		if f.Width <= 0 || f.Height <= 0 || f.Width > keptSizeMost || f.Height > keptSizeMost || f.X < -keptSizeMost || f.X > keptSizeMost || f.Y < -keptSizeMost || f.Y > keptSizeMost {
+		if f == nil || f.Width <= 0 || f.Height <= 0 || f.Width > keptSizeMost || f.Height > keptSizeMost || f.X < -keptSizeMost || f.X > keptSizeMost || f.Y < -keptSizeMost || f.Y > keptSizeMost {
 			continue
 		}
-		out[i] = image.Rect(f.X, f.Y, f.X+f.Width, f.Y+f.Height)
+		out[i].at = image.Rect(f.X, f.Y, f.X+f.Width, f.Y+f.Height)
 	}
 	return out
 }
@@ -543,14 +564,20 @@ func (e *MapEditor) panelStateBytes() []byte {
 		kept[p.name] = map[string]any{"minimized": !s.Restored, "width": clampPanel(i, s.Width)}
 	}
 	for _, w := range floatWindows {
-		if !e.panels.floats[w.row] {
+		hidden := w.row == popToolbar && e.panels.toolbarHidden
+		if !e.panels.floats[w.row] && !hidden {
 			continue
 		}
 		if kept[w.name] == nil {
 			kept[w.name] = map[string]any{}
 		}
-		at := e.floatRect(w.row)
-		kept[w.name][floatEntry] = map[string]int{"x": at.Min.X, "y": at.Min.Y, "width": at.Dx(), "height": at.Dy()}
+		if hidden {
+			kept[w.name][hiddenEntry] = true
+		}
+		if e.panels.floats[w.row] {
+			at := e.floatRect(w.row)
+			kept[w.name][floatEntry] = map[string]int{"x": at.Min.X, "y": at.Min.Y, "width": at.Dx(), "height": at.Dy()}
+		}
 	}
 	view := viewTechnical
 	if e.props.plain {
@@ -1070,9 +1097,11 @@ type editorTree struct {
 	window int
 	// followed is the selection the tree last opened a branch for.
 	followed string
-	// reveal is the branch the tree scrolls to its title row next; last the
-	// branch of the last member row chosen.
-	reveal, last string
+	// entry marks that followed holds a selection a category entry made
+	// itself; the next Select of any record clears it.
+	entry bool
+	// last is the branch of the last member row chosen.
+	last string
 }
 
 // treeRow is what a tree row stands for: a branch, a member (a record, a
@@ -1210,7 +1239,7 @@ func (e *MapEditor) treeRows() ([]PickerRow, []treeRow, int) {
 // treeFollow opens the branch that holds a selection made since the tree
 // last looked, so the selection's row shows.
 func (e *MapEditor) treeFollow() {
-	now := fmt.Sprint(e.selected, e.groupSel.set, e.groupSel.player, e.groupSel.group)
+	now := e.treeSelection()
 	if now == e.tree.followed || e.doc == nil {
 		return
 	}
@@ -1225,26 +1254,17 @@ func (e *MapEditor) treeFollow() {
 	}
 }
 
-// treeReveal opens category c's branch and has the tree scroll to its
-// title row, restoring the left panel when it is minimized. A search that
-// leaves the branch out is cleared.
-func (e *MapEditor) treeReveal(c editorCategory) {
-	delete(e.tree.closed, c.key)
-	e.tree.reveal = c.key
-	if q := strings.ToLower(strings.TrimSpace(e.tree.search)); q != "" {
-		hit := false
-		for _, m := range e.treeMembers(c) {
-			hit = hit || strings.Contains(m.key, q)
-		}
-		if !hit {
-			e.tree.search, e.tree.typing = "", false
-		}
-	}
-	if s := &e.panels.state[panelLeft]; !s.Restored {
-		s.Restored, s.Width = true, clampPanel(panelLeft, s.Width)
-		e.relayout()
-		e.savePanels()
-	}
+// treeSelection is the selection as the tree follows it.
+func (e *MapEditor) treeSelection() string {
+	return fmt.Sprint(e.selected, e.groupSel.set, e.groupSel.player, e.groupSel.group)
+}
+
+// selectUnfollowed selects record id as Select does, for a category entry
+// or key that picks the record itself: the tree takes it as followed and
+// opens no branch for it.
+func (e *MapEditor) selectUnfollowed(id int) {
+	e.Select(id, false)
+	e.tree.followed, e.tree.entry = e.treeSelection(), true
 }
 
 // treeTyping reports that the search field takes the typed text.
@@ -1286,15 +1306,6 @@ func (e *MapEditor) treeSpec() (popupSpec, bool) {
 		if sel >= 0 {
 			m.Select(sel)
 		}
-	}
-	if e.tree.reveal != "" {
-		for n, k := range kinds {
-			if k.branch == e.tree.reveal {
-				top, _ := m.Visible()
-				m.Scroll(n - top)
-			}
-		}
-		e.tree.reveal = ""
 	}
 	s.ListRows = e.tree.window
 	s.ListText = func(row, width int) string {

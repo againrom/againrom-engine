@@ -80,25 +80,25 @@ func TestMapEditorMapListSplitsSingleAndMultiplayerMaps(t *testing.T) {
 	}
 }
 
-// The bar lists Map, then the panels Scripts (Scenario), Players, Groups,
-// Units, Sacks, Structures, Objects and Trees, then Undo, Redo and Save;
-// there is no Brushes, View or Tools entry.
+// The bar lists the Map, Tools, View and Window menus, then the panels
+// Scripts (Scenario), Players, Groups, Units, Sacks, Structures, Objects and
+// Trees, then Undo, Redo and Save; there is no Brushes entry.
 func TestMapEditorBarListsThePanelsInTheirOrder(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	var got []string
 	for _, b := range e.barEntries() {
 		got = append(got, b.key)
 	}
-	want := []string{"map", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "undo", "redo", "save"}
+	want := []string{"map", "tools", "view", "window", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "undo", "redo", "save"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("the bar reads %v, want %v", got, want)
 	}
 	e.SetWords(words.For("russian"))
 	var labels []string
-	for _, b := range e.barEntries()[1:9] {
+	for _, b := range e.barEntries()[:12] {
 		labels = append(labels, b.label)
 	}
-	if want := []string{"Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Объекты", "Деревья"}; !slices.Equal(labels, want) {
+	if want := []string{"Карта", "Инструменты", "Вид", "Окно", "Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Объекты", "Деревья"}; !slices.Equal(labels, want) {
 		t.Fatalf("the Russian panels read %q, want %q", labels, want)
 	}
 }
@@ -172,8 +172,8 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 }
 
 // The Map menu holds random terrain and random heights under a Generate
-// heading, on a map that takes a brush and on one that takes none; no menu
-// holds a brush row or a Brushes menu. RU names the heading Генерация. A
+// heading, on a map that takes a brush and on one that takes none; the Map
+// menu holds no brush row and there is no Brushes menu. RU names the heading Генерация. A
 // press on a heading does nothing.
 func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 	e, _ := passEditor(t)
@@ -193,8 +193,8 @@ func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 			}
 		}
 	}
-	if e.menuItems("brushes") != nil || e.menuItems("tools") != nil || e.menuItems("layers") != nil || e.menuItems("view") != nil {
-		t.Fatal("a Brushes, Tools, View or Layers menu remains")
+	if e.menuItems("brushes") != nil || e.menuItems("layers") != nil {
+		t.Fatal("a Brushes or Layers menu remains")
 	}
 	at := slices.Index(menuKeys(e, "map"), "randomterrain")
 	for _, c := range []struct{ lang, generate string }{{"", "Generate"}, {"russian", "Генерация"}} {

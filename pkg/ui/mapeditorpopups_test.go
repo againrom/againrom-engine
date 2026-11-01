@@ -234,6 +234,7 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 	_ = e.Open("popups")
 	original := string(e.doc.SourceBytes)
 	camera := e.doc.Viewer.cam.X + 1000*e.doc.Viewer.cam.Y
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "units"))
 	// This host places and adds no unit: the Units palette holds nothing
 	// and does not open, and the tree lists the six units.
@@ -334,6 +335,7 @@ func TestEditorObjectPopupWithoutFieldsIsReadOnly(t *testing.T) {
 func TestEditorGroupRowHighlightsExactlyItsMembers(t *testing.T) {
 	e, _ := popupEditor(t)
 	_ = e.Open("popups")
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
 	n := 0
 	for _, r := range e.treeRowsNow() {
@@ -388,6 +390,7 @@ func TestEditorViewMenuSwitchesTheAnnotations(t *testing.T) {
 func TestEditorObjectPopupStepsAsideWhileACellIsPicked(t *testing.T) {
 	e, _ := popupEditor(t)
 	_ = e.Open("popups")
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "units"))
 	chromeClick(e, treeMemberPoint(t, e, "units", 1))
 	if _, _, ok := e.objectSpec(); !ok {

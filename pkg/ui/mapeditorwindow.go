@@ -185,8 +185,10 @@ type barEntry struct {
 func (e *MapEditor) barEntries() []barEntry {
 	entries := e.barRows()
 	for i := range entries {
+		if entries[i].menu {
+			continue
+		}
 		switch entries[i].key {
-		case "map":
 		case "objects", "trees":
 			entries[i].disabled = e.brushHost() == nil
 		case "undo":
@@ -209,15 +211,20 @@ type barKey struct {
 	menu           bool
 }
 
-// barKeys is the top bar's entries in their order: the Map menu, the record
-// categories, the Objects and Trees brushes, then Undo, Redo and Save. An
-// entry with a menu opens it; a category opens its palette and its tree
-// branch; Objects and Trees open the object brush in its one-kind and its
-// Forest mode. The view switches and the tools stand in the toolbar.
+// barKeys is the top bar's entries in their order: the Map, Tools, View and
+// Window menus, the record categories, the Objects and Trees brushes, then
+// Undo, Redo and Save. An entry with a menu opens it; a category opens its
+// palette; Objects and Trees open the object brush in its one-kind and its
+// Forest mode. The Tools, View and Window menus hold the toolbar's rows.
 var barKeys = barKeyRows()
 
 func barKeyRows() []barKey {
-	rows := []barKey{{key: "map", labelWord: "editor.bar.map", menu: true}}
+	rows := []barKey{
+		{key: "map", labelWord: "editor.bar.map", menu: true},
+		{key: "tools", labelWord: "editor.bar.tools", menu: true},
+		{key: "view", labelWord: "editor.bar.view", menu: true},
+		{key: "window", labelWord: "editor.bar.window", menu: true},
+	}
 	for _, c := range editorCategories {
 		rows = append(rows, barKey{key: c.key, labelWord: c.word})
 	}
@@ -354,9 +361,11 @@ func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
-// menuItem is one row of a bar menu; a row with no key is a heading.
+// menuItem is one row of a bar menu; a row with no key is a heading. A
+// disabled row does nothing.
 type menuItem struct {
 	key, label string
+	off        bool
 }
 
 // markWord is a switch's caption: its CheckText mark, then id.
@@ -364,42 +373,67 @@ func markWord(on bool, id string) string {
 	return CheckSpec{On: on, Style: CheckText}.Mark() + id
 }
 
+// menuItems is the rows of bar menu menu. The Map menu's rows are its own;
+// the Tools, View and Window menus take theirs from the toolbar's table, in
+// table order, with a heading row over a row that names one: a row reads
+// as its button's tip, a tool or switch row carries the mark while its
+// button shows on, and a row is disabled while its button is.
 func (e *MapEditor) menuItems(menu string) []menuItem {
-	switch menu {
-	case "map":
+	if menu == "map" {
 		return []menuItem{
-			{"new", e.word("editor.menu.new")},
-			{"open", e.word("editor.menu.open")},
-			{"saveas", e.word("editor.menu.save")},
-			{"saveto", e.word("editor.menu.saveas")},
-			{"catalog", e.word("editor.menu.builtin")},
-			{"testplay", e.word("editor.menu.testplay")},
-			{"panel", e.word("editor.menu.panel")},
-			{"records", e.word("editor.view.records")},
-			{"", e.word("editor.menu.generate")},
-			{"randomterrain", e.word("editor.tools.randomterrain")},
-			{"randomheights", e.word("editor.tools.randomheights")},
-			{"", ""},
-			{"close", e.word("editor.menu.exit")},
+			{key: "new", label: e.word("editor.menu.new")},
+			{key: "open", label: e.word("editor.menu.open")},
+			{key: "saveas", label: e.word("editor.menu.save")},
+			{key: "saveto", label: e.word("editor.menu.saveas")},
+			{key: "catalog", label: e.word("editor.menu.builtin")},
+			{key: "testplay", label: e.word("editor.menu.testplay")},
+			{key: "panel", label: e.word("editor.menu.panel")},
+			{key: "records", label: e.word("editor.view.records")},
+			{label: e.word("editor.menu.generate")},
+			{key: "randomterrain", label: e.word("editor.tools.randomterrain")},
+			{key: "randomheights", label: e.word("editor.tools.randomheights")},
+			{},
+			{key: "close", label: e.word("editor.menu.exit")},
 		}
 	}
-	return nil
+	var out []menuItem
+	for _, t := range e.toolbarEntries() {
+		if t.menu != menu {
+			continue
+		}
+		if t.headingWord != "" {
+			out = append(out, menuItem{label: e.word(t.headingWord)})
+		}
+		label := e.toolWord(t.toolButton)
+		if t.kind != toolAction {
+			label = markWord(t.shown, label)
+		}
+		out = append(out, menuItem{key: t.key, label: label, off: t.closed})
+	}
+	return out
 }
 
 // brushMenuKeys is the row key of each brush mode: its toolbar button's.
 var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability"}
 
 // menuDropdown is the open menu as a drop-down anchored on its bar entry,
-// whose list ends inside the window.
+// whose list ends inside the window and is wide enough for its longest row;
+// a disabled row draws in the hint ink and cannot be chosen.
 func (e *MapEditor) menuDropdown(entry barEntry, open bool) dropdown {
 	d := dropdown{Rect: entry.rect, Text: entry.label, Fill: editorPanel, Ink: editorPaper, ListWidth: 240, Disabled: entry.disabled, ListRight: e.window.X}
 	if open && e.menu == entry.key {
 		items := e.menuItems(entry.key)
 		rows := make([]PickerRow, len(items))
 		for i, it := range items {
-			rows[i] = PickerRow{Text: it.label, Choosable: it.key != ""}
-			if it.key == "" {
+			rows[i] = PickerRow{Text: it.label, Choosable: it.key != "" && !it.off}
+			switch {
+			case it.key == "":
 				rows[i].Heading, rows[i].Ink = true, editorGold
+			case it.off:
+				rows[i].Ink = popupHintInk
+			}
+			if e.font != nil {
+				d.ListWidth = max(d.ListWidth, e.font.Advance(it.label)+2*listTextX+widgetSpriteSize+8)
 			}
 		}
 		if e.menuModel == nil {
@@ -439,9 +473,13 @@ func (e *MapEditor) toggleMenu(key string) {
 // barAct is what a bar entry does.
 func (e *MapEditor) barAct(key string) {
 	e.endFieldTyping()
+	for _, k := range barKeys {
+		if k.key == key && k.menu {
+			e.toggleMenu(key)
+			return
+		}
+	}
 	switch key {
-	case "map":
-		e.toggleMenu(key)
 	case "objects", "trees":
 		e.objectBrush(key == "trees")
 	case "undo", "redo":
@@ -494,6 +532,8 @@ func (e *MapEditor) menuAct(key string) {
 		}
 	case "areas":
 		e.view.hideAreas = !e.view.hideAreas
+	case "toolbar":
+		e.toggleToolbar()
 	case "select":
 		if e.pick == pickArea {
 			e.leave(leavePick)
@@ -516,14 +556,14 @@ func (e *MapEditor) menuAct(key string) {
 func (e *MapEditor) ExitAsked() bool { return e.exitAsked }
 
 // showRecords opens the list popup on the records filter shows. A record
-// category's filter opens its palette and its branch of the tree, by every
-// route: its bar entry, its key and an MCP call.
+// category's filter opens its palette by every route, its bar entry, its key
+// and an MCP call, and leaves the side panels and the tree's branches as
+// they are, also when the Players or Scripts entry selects a record.
 func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
 	}
 	if c, ok := categoryOf(filter); ok {
-		e.treeReveal(c)
 		e.openPalette(c)
 		e.chooseFirstOf(filter)
 		return
@@ -557,7 +597,7 @@ func (e *MapEditor) chooseFirstOf(filter int) {
 		return
 	}
 	if rows := e.recordsOf(filter); len(rows) > 0 && !e.selectedIn(rows) {
-		e.Select(rows[0], false)
+		e.selectUnfollowed(rows[0])
 	} else if len(rows) == 0 && filter == editorScriptsFilter {
 		e.selected = -1
 	}
@@ -921,10 +961,10 @@ func (e *MapEditor) dockedNoteWidth() int {
 func (e *MapEditor) listButtons() []menuItem {
 	var out []menuItem
 	if _, ok := e.script(); ok && e.listKind() == "records" && e.filter == editorScriptsFilter {
-		out = append(out, menuItem{"drop", markWord(e.pick == pickDrop, e.word("editor.tools.dropzones"))})
+		out = append(out, menuItem{key: "drop", label: markWord(e.pick == pickDrop, e.word("editor.tools.dropzones"))})
 	}
 	if _, ok := e.listAdd(); ok {
-		out = append(out, menuItem{"add", e.word("editor.button.add")})
+		out = append(out, menuItem{key: "add", label: e.word("editor.button.add")})
 	}
 	return out
 }
@@ -1807,7 +1847,7 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			e.menu = ""
 		case dropdownRow:
 			items := e.menuItems(e.menu)
-			if row < len(items) && items[row].key != "" {
+			if row < len(items) && items[row].key != "" && !items[row].off {
 				e.menuAct(items[row].key)
 			}
 		}

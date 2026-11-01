@@ -146,6 +146,9 @@
 
 # Слова редактора карт.
 "editor.bar.map" = "Карта"
+"editor.bar.tools" = "Инструменты"
+"editor.bar.view" = "Вид"
+"editor.bar.window" = "Окно"
 "editor.bar.units" = "Отряды"
 "editor.bar.structures" = "Постройки"
 "editor.bar.groups" = "Группы"
@@ -560,6 +563,9 @@
 "editor.tool.report" = "Отчет"
 "editor.tool.objectspanel" = "Панель объектов и сценариев"
 "editor.tool.propertiespanel" = "Панель свойств"
+"editor.tool.brushes" = "Кисти"
+"editor.tool.toolbar" = "Панель инструментов"
+"editor.tool.reportpanel" = "Панель отчета"
 "editor.keys.heightlabels" = "V: числа высот, 64 дает 0 (панель инструментов)"
 "editor.heights.on" = "Числа высот включены: высота левого верхнего угла минус 64; при отдалении через несколько вершин"
 "editor.heights.off" = "Числа высот выключены"

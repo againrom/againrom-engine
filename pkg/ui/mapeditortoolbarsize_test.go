@@ -18,6 +18,19 @@ func dockedToolbarHigh(width int) int {
 	return 28
 }
 
+// toolbarButtons are the toolbar's entries that are buttons, in table order:
+// the rows that stand in a menu only are left out.
+func toolbarButtons(e *MapEditor) []toolEntry {
+	var out []toolEntry
+	all := e.toolbarEntries()
+	for _, b := range all {
+		if b.onToolbar() {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
 // toolbarFloatGrid is each button's column and row in the floating window,
 // as the owner's picture lays it out: rows 0 to 5 hold the six layer
 // switches on the left and the six tools on the right, then one button per
@@ -104,7 +117,7 @@ func TestMapEditorToolbarDrawsIconsAtTwiceTheirSize(t *testing.T) {
 				t.Errorf("%s: the toolbar row is %d high, want 42", name, got)
 			}
 			pic := e.ChromeImage()
-			for _, b := range e.toolbarEntries() {
+			for _, b := range toolbarButtons(e) {
 				if b.rect.Dx() != 36 || b.rect.Dy() != 36 {
 					t.Errorf("%s: %s is %v, want 36 square", name, b.key, b.rect)
 					continue
@@ -124,7 +137,7 @@ func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		e, _, _ := panelsEditor(t, 640, 480, lang)
 		window := image.Rect(0, 0, 640, 480)
-		entries := e.toolbarEntries()
+		entries := toolbarButtons(e)
 		var left, right image.Rectangle
 		for i, b := range entries {
 			if b.rect.Dx() != 22 || b.rect.Dy() != 22 || !b.rect.In(window) {
@@ -168,7 +181,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 			dockedPic := e.ChromeImage()
 			docked := map[string]toolEntry{}
 			tips := map[string]string{}
-			for _, b := range e.toolbarEntries() {
+			for _, b := range toolbarButtons(e) {
 				docked[b.key] = b
 				tips[b.key], _, _ = e.toolTip(center(b.rect))
 			}
@@ -200,7 +213,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 					t.Errorf("%s: panel %d at %v, want its top at %d", name, i, p, top)
 				}
 			}
-			entries := e.toolbarEntries()
+			entries := toolbarButtons(e)
 			side := entries[0].rect.Dx()
 			origin, _ := e.ToolbarRect("border")
 			pic := e.ChromeImage()
@@ -252,7 +265,7 @@ func TestMapEditorToolbarFloatsByGripDragAndDocksByClose(t *testing.T) {
 			if _, ok := toolbarFloating(e); ok || e.toolbarRect() != barBefore || e.mapArea() != mapBefore {
 				t.Errorf("%s: the close button left the row %v and the map %v, want %v and %v", name, e.toolbarRect(), e.mapArea(), barBefore, mapBefore)
 			}
-			for _, b := range e.toolbarEntries() {
+			for _, b := range toolbarButtons(e) {
 				if b.rect != docked[b.key].rect {
 					t.Errorf("%s: %s docks back at %v, was %v", name, b.key, b.rect, docked[b.key].rect)
 				}

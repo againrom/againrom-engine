@@ -149,6 +149,9 @@
 
 # The map editor's own words.
 "editor.bar.map" = "Map"
+"editor.bar.tools" = "Tools"
+"editor.bar.view" = "View"
+"editor.bar.window" = "Window"
 "editor.bar.units" = "Units"
 "editor.bar.structures" = "Structures"
 "editor.bar.groups" = "Groups"
@@ -596,6 +599,9 @@
 "editor.tool.report" = "Report"
 "editor.tool.objectspanel" = "Objects and scenarios panel"
 "editor.tool.propertiespanel" = "Properties panel"
+"editor.tool.brushes" = "Brushes"
+"editor.tool.toolbar" = "Toolbar"
+"editor.tool.reportpanel" = "Report panel"
 "editor.keys.heightlabels" = "V: height numbers, 64 shows 0 (toolbar)"
 "editor.heights.on" = "Height numbers on: height of the top-left corner minus 64; zoomed out, every few vertices"
 "editor.heights.off" = "Height numbers off"

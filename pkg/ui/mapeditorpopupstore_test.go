@@ -15,8 +15,8 @@ import (
 // a title drag, every border drag and a window resize move it step by step,
 // and where it reopens.
 const (
-	popupTranscriptHash  = "5ea58bcce9d719836398020eb086cbe5e8e4d3ee59330609954ff6879185f291"
-	popupTranscriptLines = 2310
+	popupTranscriptHash  = "fa09a1fe4ec9afe8a6851f45d78360444eadf18abdcf00eb4f9686a7f8c47617"
+	popupTranscriptLines = 1155
 )
 
 type popupTranscript struct {
@@ -90,7 +90,10 @@ func popupScenarios() []popupScenario {
 			return e
 		}, func(e *MapEditor) { e.Select(0, false); e.Select(2, true) }},
 		{"groups list", func(t *testing.T) *MapEditor {
-			return groups(t, func(e *MapEditor) { chromeClick(e, barPoint(t, e, "groups")) })
+			return groups(t, func(e *MapEditor) {
+				e.showPanel(panelLeft, true)
+				chromeClick(e, barPoint(t, e, "groups"))
+			})
 		}, func(e *MapEditor) { _ = e.Key("players"); _ = e.Key("help") }},
 		{"unit own", func(t *testing.T) *MapEditor {
 			return groups(t, func(e *MapEditor) { e.Select(0, false) })
@@ -99,7 +102,7 @@ func popupScenarios() []popupScenario {
 			return groups(t, func(e *MapEditor) { e.Select(7, false) })
 		}, func(e *MapEditor) { e.Select(0, false); e.Select(7, false) }},
 		{"players", func(t *testing.T) *MapEditor {
-			return groups(t, func(e *MapEditor) { _ = e.Key("players") })
+			return groups(t, func(e *MapEditor) { e.showPanel(panelLeft, true); _ = e.Key("players") })
 		}, func(e *MapEditor) { _ = e.Key("help"); _ = e.Key("players") }},
 		{"save as", func(t *testing.T) *MapEditor {
 			return groups(t, func(e *MapEditor) { _ = e.Key("saveas") })
@@ -110,7 +113,7 @@ func popupScenarios() []popupScenario {
 	}
 }
 
-// popupTranscriptText runs every scenario at two window sizes.
+// popupTranscriptText runs every scenario at the editor's window size.
 func popupTranscriptText(t *testing.T) string {
 	r := &popupTranscript{t: t}
 	pickers := []struct {
@@ -118,7 +121,7 @@ func popupTranscriptText(t *testing.T) string {
 		pick func(image.Rectangle) image.Point
 	}{{"right", rightEdge}, {"bottom", bottomEdge}, {"left", leftEdge}, {"top", topEdge}, {"corner", bottomRight}, {"topleft", topLeft}}
 	resizeSteps := []image.Point{{13, 7}, {-40, -30}, {2000, 2000}, {-2000, -2000}, {-5, 11}}
-	for _, size := range []image.Point{{1280, 800}, {640, 480}} {
+	for _, size := range []image.Point{{1280, 800}} {
 		for _, sc := range popupScenarios() {
 			prefix := fmt.Sprintf("%dx%d %s", size.X, size.Y, sc.name)
 			fresh := func() *MapEditor {

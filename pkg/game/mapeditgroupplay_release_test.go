@@ -384,6 +384,7 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 
 	r, ok = e.BarRect("groups")
 	c.click(e, r, ok, "the Groups entry")
+	showTree(e)
 	r, ok = e.GroupsRowRect(2, 2, false)
 	c.click(e, r, ok, "group 2's row")
 	if e.GroupBadges() == 0 || len(e.SelectedRecords()) == 0 {

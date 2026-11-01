@@ -1,4 +1,4 @@
-== unit-en-panel-1280x800 544457425d706edf window=(760,58)-(1280,784)
+== unit-en-panel-1280x800 005a40a1d546b274 window=(760,58)-(1280,784)
 title "Unit #0"
 4 "Position" "10,10  1x1" [] ""
 0 "Name" "Guard" [] ""
@@ -34,7 +34,7 @@ title "Unit #0"
 0 "Attack 12" "" [] ""
 1 "+ Map file fields" "" [] ""
 0 "Used by: none" "" [] ""
-== structure-en-panel-1280x800 755cd7d15f430f53 window=(760,58)-(1280,784)
+== structure-en-panel-1280x800 601145c5a5c7ac20 window=(760,58)-(1280,784)
 title "Structure #0"
 4 "Position" "20,20  2x2" [] ""
 3 "Type" "51: Hall" [] ""
@@ -46,7 +46,7 @@ title "Structure #0"
 5 "Trigger 1  Raid: Action 1  Burn the hall" "" [] ""
 1 "+ Placement word" "" [] ""
 1 "+ Data" "" [] ""
-== structure-placement-en-panel-1280x800 af07d892332aa050 window=(760,58)-(1280,784)
+== structure-placement-en-panel-1280x800 10a3460bc924832b window=(760,58)-(1280,784)
 title "Structure #0"
 4 "Position" "20,20  2x2" [] ""
 3 "Type" "51: Hall" [] ""
@@ -61,7 +61,7 @@ title "Structure #0"
 0 "Hex 0x0005; bits set: 0, 2" "" [] ""
 0 "Not 0: the building starts with its type's health." "" [] ""
 1 "+ Data" "" [] ""
-== sack-en-panel-1280x800 521d014055cba26c window=(760,58)-(1280,784)
+== sack-en-panel-1280x800 4b1efb4615da696b window=(760,58)-(1280,784)
 title "Sack #0"
 4 "Position" "14,12  1x1" [] ""
 2 "Gold" "30" [] ""
@@ -70,7 +70,7 @@ title "Sack #0"
 2 "Add an item" "0" [] ""
 1 "+ Details" "" [] ""
 1 "+ Data" "" [] ""
-== unit-en-floating-1280x800 45d8305acad2382e window=(32,66)-(712,620)
+== unit-en-floating-1280x800 e921e8da136c32c5 window=(32,66)-(712,620)
 title "Unit #0"
 4 "Position" "10,10  1x1" [] ""
 0 "Name" "Guard" [] ""
@@ -106,7 +106,7 @@ title "Unit #0"
 0 "Attack 12" "" [] ""
 1 "+ Map file fields" "" [] ""
 0 "Used by: none" "" [] ""
-== structure-en-floating-1280x800 f1f10a6bf2cfcfae window=(836,66)-(1256,256)
+== structure-en-floating-1280x800 e09f3636a061a27d window=(836,66)-(1256,256)
 title "Structure #0"
 4 "Position" "20,20  2x2" [] ""
 3 "Type" "51: Hall" [] ""
@@ -118,7 +118,7 @@ title "Structure #0"
 5 "Trigger 1  Raid: Action 1  Burn the hall" "" [] ""
 1 "+ Placement word" "" [] ""
 1 "+ Data" "" [] ""
-== structure-placement-en-floating-1280x800 c93a9f0f811d8325 window=(836,66)-(1256,298)
+== structure-placement-en-floating-1280x800 0b2c45a0f03f22ae window=(836,66)-(1256,298)
 title "Structure #0"
 4 "Position" "20,20  2x2" [] ""
 3 "Type" "51: Hall" [] ""
@@ -133,7 +133,7 @@ title "Structure #0"
 0 "Hex 0x0005; bits set: 0, 2" "" [] ""
 0 "Not 0: the building starts with its type's health." "" [] ""
 1 "+ Data" "" [] ""
-== sack-en-floating-1280x800 502bfa5d42d75f71 window=(836,66)-(1256,214)
+== sack-en-floating-1280x800 062777ddfb4a9a5e window=(836,66)-(1256,214)
 title "Sack #0"
 4 "Position" "14,12  1x1" [] ""
 2 "Gold" "30" [] ""
@@ -142,7 +142,7 @@ title "Sack #0"
 2 "Add an item" "0" [] ""
 1 "+ Details" "" [] ""
 1 "+ Data" "" [] ""
-== unit-ru-panel-1280x800 4425cb5554ab5235 window=(760,58)-(1280,784)
+== unit-ru-panel-1280x800 b80554bad9fe55d3 window=(760,58)-(1280,784)
 title "Unit #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "10,10  1x1" [] ""
 0 "\xc8\xec\xff" "Guard" [] ""
@@ -178,7 +178,7 @@ title "Unit #0"
 0 "Attack 12" "" [] ""
 1 "+ \xcf\xee\xeb\xff \xf4\xe0\xe9\xeb\xe0 \xea\xe0\xf0\xf2\xfb" "" [] ""
 0 "\xc8\xf1\xef\xee\xeb\xfc\xe7\xf3\xe5\xf2\xf1\xff \xe2: \xed\xe5\xf2" "" [] ""
-== structure-ru-panel-1280x800 aa24bd36bc5021d9 window=(760,58)-(1280,784)
+== structure-ru-panel-1280x800 51810dc467735677 window=(760,58)-(1280,784)
 title "Structure #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "20,20  2x2" [] ""
 3 "\xd2\xe8\xef" "51: Hall" [] ""
@@ -190,7 +190,7 @@ title "Structure #0"
 5 "\xd2\xf0\xe8\xe3\xe3\xe5\xf0 1  Raid: \xc4\xe5\xe9\xf1\xf2\xe2\xe8\xe5 1  Burn the hall" "" [] ""
 1 "+ \xd1\xeb\xee\xe2\xee \xf0\xe0\xe7\xec\xe5\xf9\xe5\xed\xe8\xff" "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== structure-placement-ru-panel-1280x800 783e0479327b2ac3 window=(760,58)-(1280,784)
+== structure-placement-ru-panel-1280x800 73b0c4ac5bdc817d window=(760,58)-(1280,784)
 title "Structure #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "20,20  2x2" [] ""
 3 "\xd2\xe8\xef" "51: Hall" [] ""
@@ -205,7 +205,7 @@ title "Structure #0"
 0 "\xd8\xe5\xf1\xf2\xed. 0x0005; \xe1\xe8\xf2\xfb: 0, 2" "" [] ""
 0 "\xcd\xe5 0: \xe7\xe4\xe0\xed\xe8\xe5 \xef\xee\xff\xe2\xeb\xff\xe5\xf2\xf1\xff \xf1\xee \xe7\xe4\xee\xf0\xee\xe2\xfc\xe5\xec \xf1\xe2\xee\xe5\xe3\xee \xf2\xe8\xef\xe0." "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== sack-ru-panel-1280x800 b859275e7d732842 window=(760,58)-(1280,784)
+== sack-ru-panel-1280x800 41dbf90cef08873c window=(760,58)-(1280,784)
 title "Sack #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "14,12  1x1" [] ""
 2 "\xc7\xee\xeb\xee\xf2\xee" "30" [] ""
@@ -214,7 +214,7 @@ title "Sack #0"
 2 "\xc4\xee\xe1\xe0\xe2\xe8\xf2\xfc \xef\xf0\xe5\xe4\xec\xe5\xf2" "0" [] ""
 1 "+ \xcf\xee\xe4\xf0\xee\xe1\xed\xee\xf1\xf2\xe8" "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== unit-ru-floating-1280x800 b98142369babee73 window=(32,66)-(712,620)
+== unit-ru-floating-1280x800 56f26d57855f8c69 window=(32,66)-(712,620)
 title "Unit #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "10,10  1x1" [] ""
 0 "\xc8\xec\xff" "Guard" [] ""
@@ -250,7 +250,7 @@ title "Unit #0"
 0 "Attack 12" "" [] ""
 1 "+ \xcf\xee\xeb\xff \xf4\xe0\xe9\xeb\xe0 \xea\xe0\xf0\xf2\xfb" "" [] ""
 0 "\xc8\xf1\xef\xee\xeb\xfc\xe7\xf3\xe5\xf2\xf1\xff \xe2: \xed\xe5\xf2" "" [] ""
-== structure-ru-floating-1280x800 3f6fff17e446b974 window=(836,66)-(1256,256)
+== structure-ru-floating-1280x800 16e744519b26d156 window=(836,66)-(1256,256)
 title "Structure #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "20,20  2x2" [] ""
 3 "\xd2\xe8\xef" "51: Hall" [] ""
@@ -262,7 +262,7 @@ title "Structure #0"
 5 "\xd2\xf0\xe8\xe3\xe3\xe5\xf0 1  Raid: \xc4\xe5\xe9\xf1\xf2\xe2\xe8\xe5 1  Burn the hall" "" [] ""
 1 "+ \xd1\xeb\xee\xe2\xee \xf0\xe0\xe7\xec\xe5\xf9\xe5\xed\xe8\xff" "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== structure-placement-ru-floating-1280x800 c4101776860c21ae window=(836,66)-(1256,298)
+== structure-placement-ru-floating-1280x800 326898fbb44af9cc window=(836,66)-(1256,298)
 title "Structure #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "20,20  2x2" [] ""
 3 "\xd2\xe8\xef" "51: Hall" [] ""
@@ -277,7 +277,7 @@ title "Structure #0"
 0 "\xd8\xe5\xf1\xf2\xed. 0x0005; \xe1\xe8\xf2\xfb: 0, 2" "" [] ""
 0 "\xcd\xe5 0: \xe7\xe4\xe0\xed\xe8\xe5 \xef\xee\xff\xe2\xeb\xff\xe5\xf2\xf1\xff \xf1\xee \xe7\xe4\xee\xf0\xee\xe2\xfc\xe5\xec \xf1\xe2\xee\xe5\xe3\xee \xf2\xe8\xef\xe0." "" [] ""
 1 "+ \xc4\xe0\xed\xed\xfb\xe5" "" [] ""
-== sack-ru-floating-1280x800 fb800fb3fa07a793 window=(836,66)-(1256,214)
+== sack-ru-floating-1280x800 d21a643cafaaf889 window=(836,66)-(1256,214)
 title "Sack #0"
 4 "\xcf\xee\xeb\xee\xe6\xe5\xed\xe8\xe5" "14,12  1x1" [] ""
 2 "\xc7\xee\xeb\xee\xf2\xee" "30" [] ""

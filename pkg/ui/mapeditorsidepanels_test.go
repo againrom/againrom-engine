@@ -150,10 +150,9 @@ var (
 	chromeRectsRect  = regexp.MustCompile(`\((-?\d+),(-?\d+)\)-\((-?\d+),(-?\d+)\)`)
 )
 
-// chromeBarLessViewAndTools is a recorded bar's entries less its View and
-// Tools entries, the 10th and 11th, with the entries after them moved left
-// into their place.
-func chromeBarLessViewAndTools(t *testing.T, bar string) string {
+// chromeBarLess is a bar of count entries less its entries from to to, with
+// the entries after them moved left into their place.
+func chromeBarLess(t *testing.T, bar string, count, from, to int) string {
 	t.Helper()
 	var rects []image.Rectangle
 	for _, m := range chromeRectsRect.FindAllStringSubmatch(bar, -1) {
@@ -163,12 +162,12 @@ func chromeBarLessViewAndTools(t *testing.T, bar string) string {
 		}
 		rects = append(rects, image.Rect(n[0], n[1], n[2], n[3]))
 	}
-	if len(rects) != len(barKeys)+2 {
-		t.Fatalf("the recorded bar has %d entries, want %d", len(rects), len(barKeys)+2)
+	if len(rects) != count {
+		t.Fatalf("the bar has %d entries, want %d", len(rects), count)
 	}
-	shift := image.Pt(rects[11].Min.X-rects[9].Min.X, 0)
-	out := append([]image.Rectangle(nil), rects[:9]...)
-	for _, r := range rects[11:] {
+	shift := image.Pt(rects[to].Min.X-rects[from].Min.X, 0)
+	out := append([]image.Rectangle(nil), rects[:from]...)
+	for _, r := range rects[to:] {
 		out = append(out, r.Sub(shift))
 	}
 	return fmt.Sprint(out)
@@ -202,7 +201,8 @@ func chromeRectsLines(t *testing.T, text string) []chromeRectsLine {
 // (a) With every panel minimized, the map area is the area the editor had
 // before the panels and the toolbar existed less the two side strips, the
 // toolbar and the bottom panel's strip; the status strip stands where it
-// stood, the bar holds the entries it held less View and Tools, the map
+// stood, the bar holds the entries it held less the View and Tools entries
+// after Trees, beside the Tools, View and Window menus after Map, the map
 // frame fills the map area, and every window that is not a record
 // category's palette keeps its size. The recorded table was read from the
 // editor without panels.
@@ -223,13 +223,9 @@ func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 		b := base[i]
 		players := strings.HasSuffix(g.name, " players") || strings.HasSuffix(g.name, " players-own")
 		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y+dockedToolbarHigh(b.area.Dx()), b.area.Max.X-strip, b.area.Max.Y-low)
-		if lw := min(sidePanels[panelLeft].width, b.area.Dx()-strip-mapLeastWidth); players && lw >= sidePanels[panelLeft].least {
-			// The Players entry restores the left panel to show its branch,
-			// narrowed to the room beside the map's least width.
-			want.Min.X = lw
-		}
-		if bar := chromeBarLessViewAndTools(t, b.bar); g.name != b.name || g.area != want || g.status != b.status || g.bar != bar || g.frame != want.Size() {
-			t.Errorf("%s: map %v frame %v status %s bar %s, want map %v status %s bar %s", g.name, g.area, g.frame, g.status, g.bar, want, b.status, bar)
+		bar, gotBar := chromeBarLess(t, b.bar, len(barKeys)-1, 9, 11), chromeBarLess(t, g.bar, len(barKeys), 1, 4)
+		if g.name != b.name || g.area != want || g.status != b.status || gotBar != bar || g.frame != want.Size() {
+			t.Errorf("%s: map %v frame %v status %s bar %s, want map %v status %s bar %s", g.name, g.area, g.frame, g.status, gotBar, want, b.status, bar)
 		}
 		// The windows less the three strips keep their sizes; the players
 		// palette lost its record rows.
@@ -725,7 +721,7 @@ type noBrushHost struct{ InspectionEdits }
 func toolbarText(e *MapEditor) string {
 	var b strings.Builder
 	b.WriteString("toolbar")
-	for _, t := range e.toolbarEntries() {
+	for _, t := range toolbarButtons(e) {
 		b.WriteString(" " + t.key)
 		if t.shown {
 			b.WriteString("*")

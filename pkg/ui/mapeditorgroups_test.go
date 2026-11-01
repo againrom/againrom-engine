@@ -258,6 +258,7 @@ func TestMapEditorSelectionPopupDeletesTheSelection(t *testing.T) {
 // member pictures and the triggers that name them.
 func TestMapEditorGroupsWindowRows(t *testing.T) {
 	e, _ := groupsEditor(t)
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
 	got := strings.Join(e.GroupsText(), "|")
 	for _, want := range []string{"Player 1|Group 1 2 units|Used by Trigger 1  Hide them: Action 1  off map|Player 2|Group 2 1 units", "Selected units: 0"} {
@@ -285,6 +286,7 @@ func TestMapEditorGroupsWindowRows(t *testing.T) {
 // and the number badge, and centres the view on them.
 func TestMapEditorGroupsRowChoosesAndFramesTheGroup(t *testing.T) {
 	e, _ := groupsEditor(t)
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
 	camX, camY := e.doc.Viewer.cam.X, e.doc.Viewer.cam.Y
 	r, ok := e.GroupsRowRect(1, 1, false)
@@ -386,6 +388,7 @@ func TestMapEditorCtrlNumberPutsTheSelectionInAGroup(t *testing.T) {
 // trigger names asks first and names the trigger, and Cancel writes nothing.
 func TestMapEditorRemoveFromGroupWarnsBeforeEmptyingAUsedGroup(t *testing.T) {
 	e, p := groupsEditor(t)
+	e.showPanel(panelLeft, true)
 	chromeClick(e, barPoint(t, e, "groups"))
 	row, _ := e.GroupsRowRect(2, 2, false)
 	chromeClick(e, center(row))

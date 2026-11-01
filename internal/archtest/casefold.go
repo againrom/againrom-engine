@@ -111,7 +111,6 @@ var CaseFoldAllowed = map[string]string{
 	"pkg/ui/headless.go#matchPickerRow":                                       "matches a row text of a scenario script",
 	"pkg/ui/headlesspointer.go#App.HeadlessDocumentPoint":                     "matches a control token of a scenario pointer step",
 	"pkg/ui/mapeditorsidepanels.go#MapEditor.treeKey":                         "matches a typed search text of the editor's tree",
-	"pkg/ui/mapeditorsidepanels.go#MapEditor.treeReveal":                      "matches a typed search text of the editor's tree",
 	"pkg/ui/mapeditorsidepanels.go#MapEditor.treeRows":                        "matches a typed search text of the editor's tree",
 	"pkg/ui/media_menu.go#App.headlessCutscene":                               "matches a cutscene title of a scenario script",
 	"pkg/ui/musicdescription.go#MusicDescription.Known":                       "matches a music track name of the music manifest",

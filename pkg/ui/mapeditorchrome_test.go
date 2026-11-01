@@ -83,6 +83,7 @@ func listRowPoint(t *testing.T, e *MapEditor, n int) image.Point {
 // branch, the tree scrolled to show it.
 func treeMemberPoint(t *testing.T, e *MapEditor, key string, n int) image.Point {
 	t.Helper()
+	e.showPanel(panelLeft, true) // a category entry leaves the panel as it is
 	row := e.TreeMemberRow(key, n)
 	r, ok := e.TreeRowRect(row)
 	if row < 0 || !ok {

@@ -3737,5 +3737,13 @@ var Committed = Baseline{
 	// comments in pkg/ui's mapeditortoolbar.go, widgeticon.go,
 	// mapeditoricons.go, mapeditorsidepanels.go, mapeditorpopupstore.go and
 	// mapeditorwindow.go, the test mapeditortoolbarsize_test.go, and this note.
-	CommentBytes: 10296760,
+
+	// It rose for the bar's Tools, View and Window menus and the hidden
+	// toolbar: new doc comments in pkg/ui's mapeditortoolbar.go,
+	// mapeditorwindow.go and mapeditorsidepanels.go, the test
+	// mapeditormenus_test.go, the tree helpers in pkg/game's
+	// mapeditorscriptslist_test.go, the tree follow marker in mapeditor.go and
+	// mapeditorsidepanels.go, the test mapeditorfollow_test.go, and this note.
+	// mapeditorscriptslist_test.go, and this note.
+	CommentBytes: 10302458,
 }

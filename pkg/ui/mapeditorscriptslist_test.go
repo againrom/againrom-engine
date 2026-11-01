@@ -26,12 +26,16 @@ func scriptsListEditor(t *testing.T) *MapEditor {
 		},
 		Triggers: []InspectionTrigger{{Record: 2, Name: "Rule", Left: [3]uint32{20}, Right: [3]uint32{21}, Acts: [4]uint32{10}}},
 	}
+	// The Scripts entry leaves the left panel as it is; the tree shows.
+	e.showPanel(panelLeft, true)
 	return e
 }
 
 // scriptsTreeRows are the rows of the tree's Scripts branch under its
-// branch row: the four section headings and their members.
+// branch row: the four section headings and their members, the left panel
+// shown.
 func scriptsTreeRows(e *MapEditor) []PickerRow {
+	e.showPanel(panelLeft, true)
 	kinds := e.treeRowsNow()
 	if len(kinds) == 0 {
 		return nil

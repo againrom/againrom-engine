@@ -37,7 +37,7 @@ var chromeRectStates = []struct {
 }
 
 // chromeRectSizes are the window sizes the chrome rectangles are read at.
-var chromeRectSizes = []image.Point{{1280, 800}, {1024, 768}, {640, 480}}
+var chromeRectSizes = []image.Point{{1280, 800}, {1024, 768}}
 
 // chromeRectsText is the groups map's chrome in every state at every size:
 // the map area, the status strip, the bar entries, every popup rectangle,

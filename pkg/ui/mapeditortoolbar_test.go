@@ -76,32 +76,31 @@ func scriptsAddTrigger(t *testing.T, e *MapEditor) {
 	}
 }
 
-// baseViewToolsRows are the row keys the View and Tools menus held, with
-// the one place each has now: the toolbar or the Map
-// menu or the Scenario palette's Add.
-var baseViewToolsRows = []struct{ key, place string }{
-	{"drops", "toolbar"}, {"footprints", "toolbar"}, {"issues", "toolbar"}, {"grid", "toolbar"},
-	{"passview", "toolbar"}, {"heightlabels", "toolbar"}, {"border", "toolbar"}, {"areas", "toolbar"},
-	{"playertint", "toolbar"}, {"report", "toolbar"}, {"fit", "toolbar"}, {"drawarea", "toolbar"},
-	{"records", "map"}, {"objectspanel", "toolbar"}, {"propertiespanel", "toolbar"},
-	{"newtrigger", "scripts-add"}, {"brush.terrain", "toolbar"}, {"brush.height", "toolbar"},
-	{"brush.objects", "toolbar"}, {"brush.passability", "toolbar"},
-	{"randomterrain", "map"}, {"randomheights", "map"},
+// baseViewToolsRows are the row keys the old View and Tools menus held, with
+// the places each has now: the toolbar and the bar menu that lists the
+// toolbar's row, or the Map menu, or the Scenario palette's Add.
+var baseViewToolsRows = []struct{ key, place, menu string }{
+	{"drops", "toolbar", "view"}, {"footprints", "toolbar", "view"}, {"issues", "toolbar", "view"}, {"grid", "toolbar", "view"},
+	{"passview", "toolbar", "view"}, {"heightlabels", "toolbar", "view"}, {"border", "toolbar", "view"}, {"areas", "toolbar", "view"},
+	{"playertint", "toolbar", "view"}, {"report", "toolbar", "view"}, {"fit", "toolbar", "view"}, {"drawarea", "toolbar", "tools"},
+	{"records", "map", ""}, {"objectspanel", "toolbar", "window"}, {"propertiespanel", "toolbar", "window"},
+	{"newtrigger", "scripts-add", ""}, {"brush.terrain", "toolbar", "tools"}, {"brush.height", "toolbar", "tools"},
+	{"brush.objects", "toolbar", "tools"}, {"brush.passability", "toolbar", "tools"},
+	{"randomterrain", "map", ""}, {"randomheights", "map", ""},
 }
 
-// (a) Every row key of the View and Tools menus has exactly one place, the
-// bar keeps neither menu, and pressing the row's place does what menuAct
-// does with the key on a fresh editor.
+// (a) Every row key of the old View and Tools menus stands at its places,
+// a toolbar button also in the bar menu that lists it, and pressing the
+// row's first place does what menuAct does with the key on a fresh editor.
 func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	places := map[string][]string{}
 	for _, b := range toolButtons {
-		places[b.key] = append(places[b.key], "toolbar")
+		if b.onToolbar() {
+			places[b.key] = append(places[b.key], "toolbar")
+		}
 	}
 	for _, b := range e.barEntries() {
-		if b.key == "view" || b.key == "tools" {
-			t.Errorf("the bar still holds %s", b.key)
-		}
 		if !b.menu {
 			continue
 		}
@@ -121,8 +120,9 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 		}
 	}
 	for _, r := range baseViewToolsRows {
-		if got := places[r.key]; len(got) != 1 || got[0] != r.place {
-			t.Errorf("row %s stands at %v, want once at %s", r.key, got, r.place)
+		want := strings.TrimSpace(r.place + " " + r.menu)
+		if got := strings.Join(places[r.key], " "); got != want {
+			t.Errorf("row %s stands at %q, want %q", r.key, got, want)
 		}
 	}
 	type fixture func(t *testing.T) (*MapEditor, *modesCalls)
@@ -188,6 +188,9 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 				}
 				prev := map[toolGroup]image.Rectangle{}
 				for _, b := range e.toolbarEntries() {
+					if !b.onToolbar() {
+						continue
+					}
 					r := b.rect
 					if side := high - 2*toolbarPad; r.Dx() != side || r.Dy() != side || !r.In(bar) || r.Min.Y != bar.Min.Y+toolbarPad {
 						t.Errorf("%s at %v outside %v", b.key, r, bar)
@@ -198,7 +201,7 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 					prev[b.group] = r
 				}
 				first, _ := e.ToolbarRect("select")
-				last, _ := e.ToolbarRect(toolButtons[len(toolButtons)-1].key)
+				last := prev[toolRight]
 				layers, _ := e.ToolbarRect("border")
 				// The left group stands after the grip, 4 + 8 + 2 pixels in.
 				if first.Min.X != 14 || last.Max.X != size.X-4 || layers.Min.X < prev[toolLeft].Max.X+toolGroupGap {
@@ -227,7 +230,7 @@ func TestMapEditorToolbarRectsAtEachSizeAndPanelState(t *testing.T) {
 					t.Errorf("status %v, want its top at %d", e.statusRect(), base.Max.Y)
 				}
 				for _, b := range e.toolbarEntries() {
-					if e.chromeHit(center(b.rect)) != popToolbar {
+					if b.onToolbar() && e.chromeHit(center(b.rect)) != popToolbar {
 						t.Errorf("%s does not hit the toolbar", b.key)
 					}
 				}
@@ -342,6 +345,9 @@ func TestMapEditorToolbarTipsAndIcons(t *testing.T) {
 			} else if b.keyRow != "" {
 				t.Errorf("%s names key row %q with no label", b.key, b.keyRow)
 			}
+			if !b.onToolbar() {
+				continue
+			}
 			rect, _ := e.ToolbarRect(b.key)
 			if tip, at, ok := e.toolTip(center(rect)); !ok || tip != want || at != rect.Min {
 				t.Errorf("%s tip %q at %v, want %q", b.key, tip, at, want)
@@ -349,6 +355,9 @@ func TestMapEditorToolbarTipsAndIcons(t *testing.T) {
 		}
 	}
 	for _, b := range toolButtons {
+		if !b.onToolbar() {
+			continue
+		}
 		if len(b.icon.rows) != 16 {
 			t.Errorf("%s icon has %d rows", b.key, len(b.icon.rows))
 		}
@@ -452,8 +461,7 @@ func TestMapEditorToolbarHoldsEachLayerSwitch(t *testing.T) {
 func TestMapEditorLayerIconsDifferAndTipsNameKeys(t *testing.T) {
 	seen := map[string]string{}
 	for _, b := range toolButtons {
-		if b.icon == nil {
-			t.Errorf("%s has no icon", b.key)
+		if !b.onToolbar() {
 			continue
 		}
 		if sz := b.icon.size(); sz != image.Pt(16, 16) {

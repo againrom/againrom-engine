@@ -170,6 +170,9 @@ func TestMapPanelLinesStateTheMapAndOpenTheirPlace(t *testing.T) {
 			if l.opens == nil {
 				return
 			}
+			// A line that opens a palette leaves the left panel as it
+			// is; shown, it holds the line's branch.
+			e.showPanel(panelLeft, true)
 			clickPanelRow(t, e, n)
 			if !l.opens(e, p) {
 				t.Fatalf("the line %q did not open its place: prompt %+v pick %q list %q", l.line, e.prompt, e.pick, e.listKind())
@@ -241,7 +244,7 @@ func TestMapPanelOpensFirstAndFromTheMapMenu(t *testing.T) {
 		t.Fatalf("the Map menu did not bring the panel back: %q", e.listKind())
 	}
 	items := e.menuItems("map")
-	if !slices.Contains(items, menuItem{"panel", "Map panel"}) {
+	if !slices.Contains(items, menuItem{key: "panel", label: "Map panel"}) {
 		t.Fatalf("map menu %v", items)
 	}
 	s, _ := e.panelSpec()

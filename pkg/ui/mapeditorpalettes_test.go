@@ -114,27 +114,24 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 	}
 }
 
-// branchShown reports that category key's branch row stands in the tree's
-// shown rows of a restored left panel.
-func branchShown(e *MapEditor, key string) bool {
-	s, ok := e.treeSpec()
-	n := e.TreeBranchRow(key)
-	if !ok || n < 0 {
-		return false
-	}
-	top, count := s.List.Visible()
-	return n >= top && n < top+count
-}
-
-// Every route to a palette restores a minimized left panel, opens the
-// category's branch and scrolls its title row into view: the bar entry, the
-// key, the MCP key call and the MCP pointer click on the bar.
-func TestMapEditorPaletteRoutesRevealTheirBranch(t *testing.T) {
+// Every route to a palette opens it and leaves the side panels and the tree
+// as they are: each bar category entry, the key, the MCP key call and the
+// MCP pointer click on the bar. A minimized left panel stays minimized and
+// the profile is not written; a shown one keeps its open and closed
+// branches and its search, also where the Players or Scripts route selects
+// a record. A record the map maker then selects on the map still opens its
+// branch.
+func TestMapEditorPaletteRoutesLeaveTheSidePanels(t *testing.T) {
 	routes := []struct {
 		name, key string
 		act       func(t *testing.T, e *MapEditor)
 	}{
-		{"bar", "structures", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "structures")) }},
+		{"bar units", "units", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "units")) }},
+		{"bar scripts", "scripts", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "scripts")) }},
+		{"bar players", "players", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "players")) }},
+		{"bar groups", "groups", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "groups")) }},
+		{"bar sacks", "sacks", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "sacks")) }},
+		{"bar structures", "structures", func(t *testing.T, e *MapEditor) { chromeClick(e, barPoint(t, e, "structures")) }},
 		{"key F2", "scripts", func(t *testing.T, e *MapEditor) { _ = e.Key("scripts") }},
 		{"key P", "players", func(t *testing.T, e *MapEditor) { _ = e.Key("players") }},
 		{"mcp key", "players", func(t *testing.T, e *MapEditor) {
@@ -145,46 +142,60 @@ func TestMapEditorPaletteRoutesRevealTheirBranch(t *testing.T) {
 			newMCPPipe(t, e).tool(t, "pointer", map[string]any{"action": "click", "x": at.X, "y": at.Y})
 		}},
 	}
-	for _, r := range routes {
-		t.Run(r.name, func(t *testing.T) {
-			e, _, saved := panelsEditor(t, 1280, 800, "")
-			e.SetPanelProfile(minimizedPanels, nil, func(b []byte) error {
-				*saved = append(*saved, b)
-				return nil
+	opened := func(t *testing.T, e *MapEditor, name, key string) {
+		t.Helper()
+		c, _ := categoryByKey(key)
+		if !e.paletteShown() && !e.groupsShown() || e.filter != c.filter {
+			t.Fatalf("the %s route shows %q filter %d", name, e.listKind(), e.filter)
+		}
+	}
+	for _, lang := range []string{"", "russian"} {
+		for _, r := range routes {
+			t.Run(fmt.Sprintf("%q/%s", lang, r.name), func(t *testing.T) {
+				e, _, saved := panelsEditor(t, 1920, 1080, lang)
+				e.SetPanelProfile(minimizedPanels, nil, func(b []byte) error {
+					*saved = append(*saved, b)
+					return nil
+				})
+				e.tree.closed = map[string]bool{r.key: true}
+				if e.panelOn(panelLeft) {
+					t.Fatal("the left panel did not minimize")
+				}
+				*saved = nil
+				r.act(t, e)
+				opened(t, e, r.name, r.key)
+				if e.panelOn(panelLeft) || !e.tree.closed[r.key] || len(*saved) != 0 {
+					t.Fatalf("the %s route left the panel shown %v, the branch closed %v, wrote %q", r.name, e.panelOn(panelLeft), e.tree.closed[r.key], *saved)
+				}
+				for _, all := range []bool{true, false} {
+					e, _, _ := panelsEditor(t, 1920, 1080, lang)
+					e.tree.closed = map[string]bool{}
+					for _, c := range editorCategories {
+						e.tree.closed[c.key] = all
+					}
+					e.tree.search = "u"
+					e.treeSpec()
+					before := fmt.Sprint(e.tree.closed)
+					r.act(t, e)
+					opened(t, e, r.name, r.key)
+					if _, ok := e.treeSpec(); !ok || fmt.Sprint(e.tree.closed) != before || e.tree.search != "u" {
+						t.Fatalf("the %s route with every branch closed %v left the tree %v search %q, was %s", r.name, all, e.tree.closed, e.tree.search, before)
+					}
+				}
 			})
-			// A closed branch, scrolled out of view, under a search that
-			// hides it.
-			e.tree.closed = map[string]bool{r.key: true}
-			e.tree.search = "zzz"
-			if e.panelOpen(panelLeft) {
-				t.Fatal("the left panel did not minimize")
-			}
-			r.act(t, e)
-			c, _ := categoryByKey(r.key)
-			if !e.panelOpen(panelLeft) || e.tree.closed[r.key] || !branchShown(e, r.key) {
-				t.Fatalf("the %s route left the panel %v, the branch closed %v, shown %v", r.name, e.panelOpen(panelLeft), e.tree.closed[r.key], branchShown(e, r.key))
-			}
-			if !e.paletteShown() || e.filter != c.filter {
-				t.Fatalf("the %s route shows %q filter %d", r.name, e.listKind(), e.filter)
-			}
-			if len(*saved) == 0 || !strings.Contains(string((*saved)[len(*saved)-1]), `"left":{"minimized":false`) {
-				t.Fatalf("the restored panel was not kept: %q", *saved)
-			}
-		})
+		}
 	}
-	// A branch scrolled below the window comes into view.
-	e, p, _ := panelsEditor(t, 1280, 400, "")
-	for i := 0; i < 40; i++ {
-		p.units = append(p.units, groupsUnit{1, 0, image.Pt(i, 20)})
+	// A unit selected on the map opens its closed branch.
+	e, _, _ := panelsEditor(t, 1920, 1080, "")
+	e.tree.closed = map[string]bool{"units": true}
+	chromeClick(e, barPoint(t, e, "units"))
+	e.treeSpec()
+	modesClick(e, e.CellPoint(image.Pt(10, 10)))
+	if e.selected != 0 {
+		t.Fatalf("the map click selected %d", e.selected)
 	}
-	p.dirty = true
-	_ = e.Key("undo")
-	if branchShown(e, "structures") {
-		t.Fatal("the Structures branch shows before the route")
-	}
-	chromeClick(e, barPoint(t, e, "structures"))
-	if !branchShown(e, "structures") {
-		t.Fatal("the Structures entry did not scroll its branch into view")
+	if e.treeSpec(); e.tree.closed["units"] {
+		t.Fatal("the unit selected on the map left its branch closed")
 	}
 }
 
@@ -215,6 +226,7 @@ func TestMapEditorTreeShowsTheBranchPalette(t *testing.T) {
 	// branch closes the scripts palette and opens none.
 	f, _ := popupEditor(t)
 	_ = f.Open("popups")
+	f.showPanel(panelLeft, true)
 	_ = f.Key("scripts")
 	if !f.paletteShown() || f.filter != editorScriptsFilter {
 		t.Fatalf("F2 shows %q", f.listKind())
@@ -224,7 +236,7 @@ func TestMapEditorTreeShowsTheBranchPalette(t *testing.T) {
 		t.Fatalf("the empty Units palette left %q filter %d", f.listKind(), f.filter)
 	}
 	chromeClick(f, barPoint(t, f, "units"))
-	if f.listKind() != "" || !branchShown(f, "units") {
+	if f.listKind() != "" || !f.panelOn(panelLeft) {
 		t.Fatalf("the Units entry with an empty palette shows %q", f.listKind())
 	}
 }

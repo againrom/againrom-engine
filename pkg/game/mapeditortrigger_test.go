@@ -42,9 +42,19 @@ func triggerMap(t *testing.T) []byte {
 	return built(t, o, nil, nil).Bytes()
 }
 
+// showTree shows the left panel as F6 does when it stands minimized: a
+// category entry opens its palette and leaves the panel as it is.
+func showTree(e *ui.MapEditor) {
+	if on, _, ok := e.ToolbarState("objectspanel"); ok && !on {
+		_ = e.Key("objectspanel")
+	}
+}
+
 // treeMemberRect is the window rectangle of member n of category key's
-// branch in the left panel's tree, the tree scrolled to show it.
+// branch in the left panel's tree, the panel shown and the tree scrolled to
+// show it.
 func treeMemberRect(e *ui.MapEditor, key string, n int) (image.Rectangle, bool) {
+	showTree(e)
 	row := e.TreeMemberRow(key, n)
 	if row < 0 {
 		return image.Rectangle{}, false
@@ -52,8 +62,10 @@ func treeMemberRect(e *ui.MapEditor, key string, n int) (image.Rectangle, bool) 
 	return e.TreeRowRect(row)
 }
 
-// treeMemberCount is the number of member rows of category key's branch.
+// treeMemberCount is the number of member rows of category key's branch,
+// the left panel shown.
 func treeMemberCount(e *ui.MapEditor, key string) int {
+	showTree(e)
 	n := 0
 	for e.TreeMemberRow(key, n) >= 0 {
 		n++

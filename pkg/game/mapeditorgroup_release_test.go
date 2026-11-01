@@ -56,6 +56,7 @@ func TestReleaseMapEditorGroupPopupFollowsUndoAndRedo(t *testing.T) {
 	}
 	r, ok := e.BarRect("groups")
 	clickRect(e, r, ok, &now)
+	showTree(e)
 	r, ok = e.GroupsRowRect(2, 2, false)
 	if !clickRect(e, r, ok, &now) {
 		t.Fatal("the Groups window shows no row of player 2's group 2 after the deletion")
