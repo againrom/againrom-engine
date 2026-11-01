@@ -322,13 +322,6 @@ func (r secondCampaignRules) returnToTown(f *FrontEnd, n int) {
 // selects it at acknowledgement.
 func (secondCampaignRules) openMission(v *ui.Viewer) { v.SetCompletionCutscene("") }
 
-func (secondCampaignRules) loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table) {
-	code := InstallTextCode(src, tableEdition(t))
-	mw.mission.objectiveLabels = secondGameObjectiveLabels(src, code, ms.Number)
-	mw.mission.npcKeys = secondGameNPCKeys(ms, t)
-	mw.mission.failureText = secondGameFailureText(src, code, ms.Number)
-}
-
 func (secondCampaignRules) scriptMessages(mw *mapWorld, messages []int32) {
 	mw.observeSecondGameMessages(messages)
 }
@@ -344,22 +337,8 @@ func (secondCampaignRules) acknowledgeNotice(mw *mapWorld) bool {
 	return true
 }
 
-func (secondCampaignRules) outcomeText(mw *mapWorld, body string) string {
-	m := mw.mission
-	// The loss shows failure entry reason - 2 (R2-ENGINE-629); a reason
-	// outside the entries keeps the generic body (DIV-4223).
-	if r := int64(m.lossReason) - 2; m.outcome == sim.OutcomeLost && r >= 0 && r < int64(len(m.failureText)) && m.failureText[r] != "" {
-		body = m.failureText[r]
-	}
-	return body
-}
-
 func (secondCampaignRules) eventAudience(mw *mapWorld) (EventAudience, bool) {
 	return mw.secondGameAudience(), true
-}
-
-func (secondCampaignRules) objectives(mw *mapWorld, briefing string) string {
-	return mw.secondGameObjectivePanel(briefing)
 }
 
 func (secondCampaignRules) chat() *chatAdapter { return &secondChat }

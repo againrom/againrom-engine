@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
+	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 )
 
 // MissionObjectives reads the installed briefing for this mission. The owner
@@ -43,15 +45,57 @@ func secondGameObjectiveLabels(src entrySource, code TextCode, mission int) []st
 	return labels
 }
 
-// missionObjectives is the objectives panel text: the briefing, extended by
-// the campaign service where its game keeps per-objective state.
-func (mw *mapWorld) missionObjectives(briefing string) string {
-	return mw.mission.campaign().objectives(mw, briefing)
+// objectivesProfile is a game's row of the objectives panel and outcome text:
+// subobjectives reads the mission text's sub-objective labels and shows each
+// opened one below the briefing, lossEntries shows the failure entry of a
+// lost mission's latched reason in place of the generic body, and npcKeys
+// reads the placed speakers' keys. The empty row is the briefing and the
+// body as given.
+type objectivesProfile struct {
+	subobjectives bool
+	lossEntries   bool
+	npcKeys       bool
 }
 
-// secondGameObjectivePanel adds each opened sub-objective of the second
-// game's scenario bank, marked done or failed, below the briefing.
-func (mw *mapWorld) secondGameObjectivePanel(briefing string) string {
+// loadMissionText reads the per-mission text the game's objectives row names.
+func loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table) {
+	row := mw.mission.files().objectives
+	if row == (objectivesProfile{}) {
+		return
+	}
+	code := InstallTextCode(src, tableEdition(t))
+	if row.subobjectives {
+		mw.mission.objectiveLabels = secondGameObjectiveLabels(src, code, ms.Number)
+	}
+	if row.npcKeys {
+		mw.mission.npcKeys = secondGameNPCKeys(ms, t)
+	}
+	if row.lossEntries {
+		mw.mission.failureText = secondGameFailureText(src, code, ms.Number)
+	}
+}
+
+// outcomeText is the outcome notice's text: the body as given, or for a lost
+// mission the failure entry of the latched loss reason - 2 (R2-ENGINE-629);
+// a reason outside the entries keeps the generic body (DIV-4223).
+func outcomeText(mw *mapWorld, body string) string {
+	m := mw.mission
+	if !m.files().objectives.lossEntries {
+		return body
+	}
+	if r := int64(m.lossReason) - 2; m.outcome == sim.OutcomeLost && r >= 0 && r < int64(len(m.failureText)) && m.failureText[r] != "" {
+		body = m.failureText[r]
+	}
+	return body
+}
+
+// missionObjectives is the one objectives panel producer: the briefing,
+// extended by each opened sub-objective of the scenario bank, marked done or
+// failed, where the game's row reads them.
+func (mw *mapWorld) missionObjectives(briefing string) string {
+	if !mw.mission.files().objectives.subobjectives {
+		return briefing
+	}
 	var rows []string
 	if briefing != "" {
 		rows = append(rows, briefing, "")

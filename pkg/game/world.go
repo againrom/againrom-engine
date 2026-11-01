@@ -1023,7 +1023,7 @@ func openMission(ms *Mission, t *mapload.Table, units *terrain.UnitSet, v *ui.Vi
 			}
 		}
 	}
-	mw.mission.campaign().loadMissionText(mw, src, ms, t)
+	loadMissionText(mw, src, ms, t)
 	// Start.IDs is parallel to the entering party. Later joiners are added by
 	// syncJoinedHeroes; guardedCharacterLost reads their current ownership.
 	mw.mission.guarded = guardedEntities(ms.Party, ms.Start.IDs)
@@ -1962,7 +1962,7 @@ func (mw *mapWorld) showOutcome() {
 	m.open, m.kind, m.payload, m.part, m.portrait = true, kind, nil, 0, false
 	m.outcomeShown = true
 	body := missionOutcomeText(mw.view, m.outcome)
-	body = m.campaign().outcomeText(mw, body)
+	body = outcomeText(mw, body)
 	mw.view.SetNotice(body, kind)
 	// VIDEO-SFX-016 places the fixed cue after the outcome child is created.
 	// SetNotice above is this front end's child creation boundary.

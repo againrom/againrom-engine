@@ -139,6 +139,9 @@ type gameFiles struct {
 	heldMarks map[uint16]heldMark
 	// unitVoices are the game's command and selection voices.
 	unitVoices unitVoiceRules
+	// objectives is the game's row of the objectives panel and outcome text
+	// (questobjectives.go).
+	objectives objectivesProfile
 	// generator is the game's hero generator row (chargen.go).
 	generator generatorProfile
 }
@@ -203,6 +206,7 @@ var firstGameFiles = gameFiles{
 	bookSpellcaster: true,
 	unitVoices:      firstGameVoices,
 	generator:       generatorProfile{documents: true, start: generatorStartMission},
+	objectives:      objectivesProfile{},
 }
 
 // secondGameMenu's town popup stands at (100,100), 440x340 (R2-ENGINE-441).
@@ -257,6 +261,7 @@ var secondGameFiles = gameFiles{
 	// AttackDelay from that run and none from the cast message.
 	teleportCast: teleportCastProfile{run: true},
 	heldMarks:    secondHeldMarks,
+	objectives:   objectivesProfile{subobjectives: true, lossEntries: true, npcKeys: true},
 	unitVoices:   secondGameVoices,
 	generator:    generatorProfile{templates: true, classProfile: true, campaignOutfit: true, start: generatorStartTown},
 }

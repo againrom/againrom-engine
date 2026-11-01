@@ -73,16 +73,14 @@ type campaignService interface {
 	route(f *FrontEnd, n, successor int) winRoute
 	returnToTown(f *FrontEnd, n int)
 	// The mission driver's campaign behaviour: the movie a departure picks,
-	// the per-mission text, the script message queue, the notice flow, the
-	// outcome text, the speaker audience and the objectives panel.
+	// the script message queue, the notice flow and the speaker audience.
+	// The per-mission text, the outcome text and the objectives panel are
+	// gameFiles.objectives rows.
 	openMission(v *ui.Viewer)
-	loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table)
 	scriptMessages(mw *mapWorld, messages []int32)
 	settleNotices(mw *mapWorld) bool
 	acknowledgeNotice(mw *mapWorld) bool
-	outcomeText(mw *mapWorld, body string) string
 	eventAudience(mw *mapWorld) (EventAudience, bool)
-	objectives(mw *mapWorld, briefing string) string
 	// The chat command adapter, and whether a mission opened from town runs
 	// in the campaign that adapter admits commands in.
 	chat() *chatAdapter

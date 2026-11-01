@@ -136,21 +136,15 @@ func (firstCampaignRules) returnToTown(f *FrontEnd, n int) {
 
 func (firstCampaignRules) openMission(*ui.Viewer) {}
 
-func (firstCampaignRules) loadMissionText(*mapWorld, entrySource, *Mission, *mapload.Table) {}
-
 func (firstCampaignRules) scriptMessages(*mapWorld, []int32) {}
 
 func (firstCampaignRules) settleNotices(*mapWorld) bool { return false }
 
 func (firstCampaignRules) acknowledgeNotice(*mapWorld) bool { return false }
 
-func (firstCampaignRules) outcomeText(_ *mapWorld, body string) string { return body }
-
 func (firstCampaignRules) eventAudience(*mapWorld) (EventAudience, bool) {
 	return EventAudience{}, false
 }
-
-func (firstCampaignRules) objectives(_ *mapWorld, briefing string) string { return briefing }
 
 func (firstCampaignRules) chat() *chatAdapter { return &firstChat }
 
