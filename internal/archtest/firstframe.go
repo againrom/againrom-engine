@@ -15,7 +15,7 @@ var firstFrameOwners = map[string][]string{
 	"againrom/pkg/game.fileApplication.view":             {"againrom/pkg/game.firstFrameSource.firstFrame"},
 	"againrom/pkg/game.applyCurrentView":                 {"againrom/pkg/game.firstFrameSource.firstFrame"},
 	"againrom/pkg/game.originalFogPlane":                 {"againrom/pkg/game.documentFirstFrame", "againrom/pkg/game.validateOriginalApplicationSource"},
-	"againrom/pkg/game.mapWorld.restoreApplicationState": {"againrom/pkg/game.settleMission"},
+	"againrom/pkg/game.mapWorld.restoreApplicationState": {"againrom/pkg/game.settleLoadedApplication"},
 }
 
 const firstFrameRestore = "againrom/pkg/game.mapWorld.restoreApplicationState"

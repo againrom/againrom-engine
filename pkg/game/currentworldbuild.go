@@ -26,8 +26,8 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		diaryRows = t.Units.Len()
 	}
 	b := &generatedDocumentBuilder{nextKey: 0x51000000, table: t}
-	if l := s.SavedDocument; l != nil {
-		b.loaded = l.Document
+	if err := buildWorldCarriers(seatBuild, carrierBuild{b: b, s: &s, w: w}); err != nil {
+		return nil, err
 	}
 	b.liveEffects = map[sim.EntityID]bool{}
 	for _, e := range w.ActiveEffects() {
@@ -43,34 +43,11 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 	// Every key the World holds stays reserved, so a minted key never
 	// collides with an identity a current object or reference names.
 	b.reserveCurrentForm(raw)
-	if err := b.reserveWorldEffectKeys(s.SavedDocument, w); err != nil {
+	if err := buildWorldCarriers(keysBuild, carrierBuild{b: b, s: &s, w: w}); err != nil {
 		return nil, err
 	}
-	if err := b.reserveRetainedDeadEffectKeys(w); err != nil {
+	if err := buildWorldCarriers(joinBuild, carrierBuild{b: b, s: &s, w: w}); err != nil {
 		return nil, err
-	}
-	// joined is the identity that joins each actor to its loaded record. It
-	// is read to join, as a cell record's key is; a cell key can name a body
-	// another actor stands on. A key the World holds for a structure, the
-	// terrain or a dead actor stays theirs. No minted key takes a joined one.
-	held := map[uint32]bool{currentTerrainKey(w): true}
-	if rows, _, present := w.SavedStructures(); present {
-		for _, row := range rows {
-			held[row.SourceKey] = true
-		}
-	}
-	for _, d := range w.OriginalDeadActors() {
-		held[d.Source.Identity] = true
-	}
-	joined := map[sim.EntityID]uint32{}
-	if l := s.SavedDocument; l != nil && l.Document != nil {
-		for _, a := range l.Actors {
-			if a.ObjectIndex != 0 && int(a.ObjectIndex) <= len(l.Document.Objects) {
-				if key, _ := savedStructureValue(&l.Document.Objects[a.ObjectIndex-1], "Identity"); key != 0 && !held[key] {
-					joined[a.EntityID], b.currentKeys[key] = key, true
-				}
-			}
-		}
 	}
 	terrain := currentTerrainKey(w)
 	if terrain == 0 {
@@ -177,8 +154,8 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 			// Exactly one Player is the local human.
 			participant = 1
 		}
-		if saved, present := currentPlayerName(s.SavedDocument, currentID); present {
-			name = saved
+		if err := buildWorldCarriers(playerBuild, carrierBuild{b: b, s: &s, w: w, player: currentID, name: &name}); err != nil {
+			return nil, err
 		}
 		mustSetText(&r, "Name", name)
 		percent, present := w.AutoHealing(slot)
@@ -247,7 +224,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 				break
 			}
 		}
-		key := joined[e.ID]
+		key := b.joined[e.ID]
 		if key == 0 {
 			key = heldActorKey(w, e.ID)
 		}
@@ -449,7 +426,7 @@ func (f *FrontEnd) materializeCurrentWorld(s Snapshot, w *sim.World) (*SnapshotS
 		return nil, err
 	}
 	b.doc.Campaign.Scalars[1] = 1
-	if err := b.currentWorldEffects(s.SavedDocument, w); err != nil {
+	if err := buildWorldCarriers(effectsBuild, carrierBuild{b: b, s: &s, w: w}); err != nil {
 		return nil, err
 	}
 	rows, err := savedPlayerPurseRows(state.Document, state.GroupBindings)

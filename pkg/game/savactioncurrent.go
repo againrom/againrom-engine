@@ -1099,7 +1099,7 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if err != nil {
 		return err
 	}
-	if err := restoreCurrentActorIdentities(ms, a); err != nil {
+	if err := decodeWorldCarriersFrom(identityRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
 	archiveCoordinates, err := prepareCurrentArchiveCoordinates(ms, a)
@@ -1290,10 +1290,10 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if tableFiles(table).orderThresholds {
 		matchCurrentWithdrawalThresholds(ms, a)
 	}
-	if err := matchCurrentBookSelection(ms.savedDocument.Document, a); err != nil {
+	if err := decodeWorldCarriersFrom(selectionRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
-	if err := matchCurrentOrderSpellAbsence(ms.savedDocument.Document, a); err != nil {
+	if err := decodeWorldCarriersFrom(orderRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
 	if err := matchCurrentEffectWidths(ms, a); err != nil {
@@ -1305,16 +1305,13 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 	if err := ms.World.RestoreNativeActorBases(a.RemovedNativeBases); err != nil {
 		return err
 	}
-	if err := restoreCurrentWorldEffectTokens(ms, a); err != nil {
+	if err := decodeWorldCarriersFrom(tokenRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
 	if err := restoreLegacyNativeObservations(ms, a); err != nil {
 		return err
 	}
 	if err := restoreCurrentArchiveCoordinates(ms, a, archiveCoordinates); err != nil {
-		return err
-	}
-	if err := restoreAbsentSessionHead(ms.World, ms.savedDocument.Document, a.AbsentSessionHead); err != nil {
 		return err
 	}
 	if err := decodeWorldCarriersFrom(actionsRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
@@ -1351,11 +1348,7 @@ func restoreOriginalActions(ms *Mission, table *mapload.Table) error {
 		// Best effort: a failure keeps the saved program and never refuses the load.
 		_ = restoreCurrentScriptBindings(ms, table)
 	}
-	planeResidue, err := matchingCurrentPlaneResidue(ms.savedDocument.Document, a.CellPlaneResidue)
-	if err != nil {
-		return err
-	}
-	if err := ms.World.RestoreCurrentCellCosts(a.CellCosts, planeResidue...); err != nil {
+	if err := decodeWorldCarriersFrom(cellRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a}); err != nil {
 		return err
 	}
 	// Extend detached bindings for reserved objects created by the same import.

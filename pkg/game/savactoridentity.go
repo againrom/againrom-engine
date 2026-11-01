@@ -102,13 +102,8 @@ func restoreCurrentActorIdentities(ms *Mission, a *currentActionData) error {
 	if err := ms.World.RestoreActorIdentities(ids, floor); err != nil {
 		return err
 	}
-	if len(terminalRows) != 0 {
-		if err := ms.World.ImportCurrentTerminalActors(terminalRows); err != nil {
-			return err
-		}
-		if err := restoreDepartedContents(ms, a, terminalRows); err != nil {
-			return err
-		}
+	if err := decodeWorldCarriersFrom(terminalRecord, carrierDecode{w: ms.World, ms: ms, state: ms.savedDocument, actions: a, terminal: terminalRows}); err != nil {
+		return err
 	}
 	ms.Start.IDs = slices.Clone(ms.Start.IDs)
 	ms.ActorManifest = cloneActorManifest(ms.ActorManifest)

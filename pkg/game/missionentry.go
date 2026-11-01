@@ -417,19 +417,12 @@ func settleMission(r missionRequest, mw *mapWorld, v *ui.Viewer, ms *Mission, fo
 			fog.done(applied)
 		}
 	}
+	if err := seatWorldCarriers(settleSeat, carrierSeat{r: r, ms: ms, mw: mw}); err != nil {
+		return err
+	}
 	var application *SnapshotApplicationState
 	if r.snap != nil {
 		application = r.snap.ApplicationState
-	}
-	if err := mw.restoreApplicationState(application, r.snap == nil && r.prepare != nil && ms.savedDocument != nil && ms.savedDocument.Document != nil); err != nil {
-		return err
-	}
-	if r.snap == nil && r.prepare != nil {
-		if err := mw.restoreOriginalActionView(); err != nil {
-			return err
-		}
-		mw.seedRestoredRuns()
-		mw.stampAfterLoad()
 	}
 	// A snapshot with no application record carries the camera on its own,
 	// and so does one whose record is the local-only game-option form, whose

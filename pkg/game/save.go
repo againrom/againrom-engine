@@ -289,7 +289,7 @@ func snapshotTown(t *Town, s *Snapshot, rules campaignService) {
 	s.SelectedMission = t.selectedMission()
 	s.CityObjects = t.cityObjects.Clone()
 	s.cityGroups, s.cityGroupsLoaded = slices.Clone(t.cityGroups), t.cityGroupsLoaded
-	s.knowledge = slices.Clone(t.knowledge)
+	_ = seatTownCarriers(townCapture, carrierTown{t: t, s: s})
 	s.playerColor = t.playerColor
 	s.tavernStockIDs = slices.Clone(t.tavernStockIDs)
 	s.HeroGrantState = true
@@ -380,7 +380,7 @@ func restoreTown(c Campaign, s Snapshot) (*Town, error) {
 	t.cityObjects = s.CityObjects.Clone()
 	t.guest = s.guest.clone()
 	t.cityGroups, t.cityGroupsLoaded = slices.Clone(s.cityGroups), s.cityGroupsLoaded
-	t.knowledge = slices.Clone(s.knowledge)
+	_ = seatTownCarriers(townRestore, carrierTown{t: t, s: &s})
 	t.playerColor = s.playerColor
 	t.tavernStockIDs = slices.Clone(s.tavernStockIDs)
 	t.gold = s.Gold

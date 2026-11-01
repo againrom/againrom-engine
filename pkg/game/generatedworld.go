@@ -33,6 +33,8 @@ type generatedDocumentBuilder struct {
 	// retainedSpells maps a loaded dead book's Spell object to the object
 	// this build wrote for it.
 	retainedSpells map[uint16]uint16
+	// joined is the identity that joins each actor to its loaded record.
+	joined map[sim.EntityID]uint32
 }
 
 func constructedGeneratedItem(item sim.ItemInstance, t *mapload.Table) sim.ItemInstance {

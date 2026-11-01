@@ -25,7 +25,10 @@ func decodeSavedDocument(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObject
 		}
 		return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Unavailable: reason}, nil
 	}
-	return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Document: &doc, ReferenceMisses: loadedTokenReferenceMisses(&doc)}, origins
+	state := &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Document: &doc}
+	// A file decode does not fail.
+	_ = decodeWorldCarriersFrom(fileRecord, carrierDecode{state: state})
+	return state, origins
 }
 
 // SnapshotSAVReferenceMiss is a Token Reference the loaded file held without
@@ -245,36 +248,7 @@ func restoreSavedDocumentDecoded(ms *Mission, source *SnapshotSAVDocument, decod
 	if ms.World != nil {
 		ms.World.SetLoadedRecord(loadedRecordOf(state))
 	}
-	ms.restoreDeadArt()
-	return nil
-}
-
-func (ms *Mission) restoreDeadArt() {
-	if ms.savedDocument == nil || ms.savedDocument.Document == nil {
-		return
-	}
-	for _, dead := range ms.World.OriginalDeadActors() {
-		if dead.Source.MapUnitID != 0 {
-			continue
-		}
-		for i := range ms.savedDocument.Document.Objects {
-			record := &ms.savedDocument.Document.Objects[i]
-			if record.Class != savedActorClass(dead.Source.Class) {
-				continue
-			}
-			key, err := savedStructureValue(record, "Identity")
-			if err != nil || key != dead.Source.Identity {
-				continue
-			}
-			typeID, err := savedStructureValue(record, "T0E")
-			if err == nil {
-				if ms.DeadArt == nil {
-					ms.DeadArt = map[sim.EntityID]uint16{}
-				}
-				ms.DeadArt[dead.ID] = uint16(typeID)
-			}
-		}
-	}
+	return decodeWorldCarriersFrom(heldRecord, carrierDecode{w: ms.World, ms: ms, state: state})
 }
 
 // fresh forwards to projectSavedActorValues below, under the same optional,

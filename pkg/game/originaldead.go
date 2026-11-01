@@ -45,7 +45,7 @@ func writeBodyReferences(doc *sav.DocumentData, record *sav.DocumentRecordData, 
 	}
 }
 
-// applyOriginalDead joins a dead record with a nonzero MapUnitID to the one
+// applyOriginalDeadWithOrigins joins a dead record with a nonzero MapUnitID to the one
 // authored placement it names. ROM1 instead reconstructs and rebinds its own
 // object graph; this bounded join is disclosed, and absence from the list
 // never implies death.
@@ -55,17 +55,6 @@ func writeBodyReferences(doc *sav.DocumentData, record *sav.DocumentRecordData, 
 // observed producer is a hired mercenary, never an ALM placement -- and is
 // carried instead as a virtual dead actor with no live entity, at a freshly
 // minted ID beyond every ID this World already holds.
-func applyOriginalDead(ms *Mission, source []sav.DeadActor, report *OriginalSaveResume, states ...*SnapshotSAVDocument) error {
-	var state *SnapshotSAVDocument
-	if len(states) > 1 {
-		return fmt.Errorf("original dead actors: repeated current document")
-	}
-	if len(states) == 1 {
-		state = states[0]
-	}
-	return applyOriginalDeadWithOrigins(ms, source, report, state, nil)
-}
-
 func applyOriginalDeadWithOrigins(ms *Mission, source []sav.DeadActor, report *OriginalSaveResume, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin) error {
 	if ms == nil || ms.Map == nil || ms.World == nil {
 		return fmt.Errorf("original dead actors: no map/world")

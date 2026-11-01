@@ -605,16 +605,8 @@ func resumeWorld(ms *Mission, s *Snapshot, table *mapload.Table) error {
 	// the world-side absence before any later SAVE; otherwise the native
 	// checkpoint would silently turn the retained constructor bytes into live
 	// simulation state on LOAD.
-	if document != nil && document.Document != nil {
-		actions, err := readCurrentActions(document.Document)
-		if err != nil {
-			return err
-		}
-		if actions != nil {
-			if err := restoreAbsentSessionHead(ms.World, document.Document, actions.AbsentSessionHead); err != nil {
-				return err
-			}
-		}
+	if err := decodeWorldCarriersFrom(resumeRecord, carrierDecode{w: ms.World, ms: ms, s: s, state: document}); err != nil {
+		return err
 	}
 	if err := rebuildActorPeople(ms, table); err != nil {
 		return err

@@ -287,7 +287,9 @@ func (s *CampaignSession) restoreOriginalTown(src *originalSource, in originalIn
 			break
 		}
 	}
-	s.Town.knowledge = savedPlayerDiary(src.diaryPlayerRec)
+	if err := seatTownCarriers(townArchive, carrierTown{t: s.Town, player: src.diaryPlayerRec}); err != nil {
+		return report, err
+	}
 	// A current SAV binds its group actors through its document, an
 	// original file through its provenance.
 	s.Town.cityGroups, s.Town.cityGroupsLoaded = nil, true
@@ -533,7 +535,9 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 				ms.fileApplication = app
 			}
 			ms.resumeBookWalk = true
-			publishSessionEntry(ms)
+			if err := decodeWorldCarriersFrom(entryRecord, carrierDecode{w: ms.World, ms: ms}); err != nil {
+				return err
+			}
 			currentGroups, _, _ := ms.World.SavedGroups()
 			r.GroupsRestored, r.GroupIssues = len(currentGroups), ms.World.SavedGroupIssues()
 			// Counted last: the document import and the absence policy replace

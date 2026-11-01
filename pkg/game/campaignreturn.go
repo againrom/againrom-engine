@@ -328,7 +328,7 @@ func (s *CampaignSession) carryMissionHome(in townInstall, n int, party []maploa
 	// mission's payment is applied. Both are the same participant-owned u32.
 	if w != nil && s.Town != nil {
 		s.Town.gold = int(w.Purse(sim.SelfSlot))
-		s.Town.carryKnowledge(w)
+		_ = seatTownCarriers(townCarry, carrierTown{t: s.Town, w: w})
 		if s.live != nil && s.live.world == w && s.live.mission != nil && s.live.mission.state != nil {
 			s.Town.playerColor = uint8(missionPlayerColor(s.live.mission.state.Map, sim.SelfSlot))
 		}

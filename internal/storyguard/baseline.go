@@ -3188,6 +3188,22 @@ package storyguard
 // CommentBytes rises with the doc comments of the one NPC face source in
 // pkg/game/gamefiles.go, the readers test in pkg/game/npcfacereaders_test.go,
 // the guard in internal/archtest/npcfaces.go and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the World carrier set's new
+// points, steps and step functions in pkg/game/worldcarriers.go, the carrier
+// matrix and step tests in pkg/game/worldcarriermatrix_test.go and
+// pkg/game/worldcarriermoved_test.go, the guard's field and nil-document
+// shapes in internal/archtest/worldcarriers.go and its test, and this
+// paragraph.
+//
+// CommentBytes rises with the doc comments of the carrier matrix's rows of a
+// planted loaded record in pkg/game/worldcarriermatrix_test.go, and this
+// paragraph.
+//
+// CommentBytes rises with the doc comments of the loaded-record steps moved
+// into pkg/game/worldcarriers.go and their test, the guard's argument and
+// local shapes and its named readers in internal/archtest/worldcarriers.go
+// and its test, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3704,5 +3720,5 @@ var Committed = Baseline{
 	// tests, and this note. It rose again for the view switch in the title
 	// row, the fold the block row takes from the tree, the hosted window's
 	// scroll to its last row, and their tests over a wide fixture.
-	CommentBytes: 10248737,
+	CommentBytes: 10260673,
 }

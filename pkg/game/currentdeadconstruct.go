@@ -70,13 +70,7 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		}
 		mustSetRefs(record, savHeldWeaponField, []uint16{object})
 	}
-	if err := b.retainDeadValues(record, s, entity); err != nil {
-		return err
-	}
-	if err := b.retainDeadBook(record, s, entity); err != nil {
-		return err
-	}
-	return b.retainDeadEffects(record, body.ID, s)
+	return buildWorldCarriers(deadRecordBuild, carrierBuild{b: b, record: record, body: body, entity: entity})
 }
 
 // retainedDeadValues and retainedDeadBlocks are the actor values a dead record
@@ -405,8 +399,8 @@ func (b *generatedDocumentBuilder) appendAbsentDeadRecords(w *sim.World, ms *Mis
 		if err := b.currentDeadRecord(&r, body, false); err != nil {
 			return false, err
 		}
-		if typeID, present := ms.DeadArt[body.ID]; present {
-			mustSetValue(&r, "T0E", uint32(typeID))
+		if err := buildWorldCarriers(absentDeadBuild, carrierBuild{b: b, ms: ms, record: &r, body: body}); err != nil {
+			return false, err
 		}
 		if r.Class != "Unit" && diaries[body.ID] {
 			index, err := b.append(mustNewDiaryRecord(diaryRows, 0))

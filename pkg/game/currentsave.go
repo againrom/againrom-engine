@@ -138,7 +138,7 @@ func (f *FrontEnd) currentMissionDocument(s Snapshot) (sav.DocumentData, error) 
 	// SAV-792, worldsave.go's own doc comment on currentWorldDocument).
 	native := s.NativeMissionTerrain
 	var err error
-	s.loadedDocument = s.SavedDocument
+	_ = decodeWorldCarriersFrom(materialRecord, carrierDecode{w: &w, s: &s})
 	s.SavedDocument, err = f.materializeCurrentWorld(s, &w)
 	if err != nil {
 		return sav.DocumentData{}, err
@@ -219,7 +219,7 @@ func cityBaseDocument(table *mapload.Table, s Snapshot) (sav.DocumentData, []int
 	if err != nil {
 		return sav.DocumentData{}, nil, err
 	}
-	if err := projectTownKnowledge(&doc, s.knowledge); err != nil {
+	if err := seatTownCarriers(townWrite, carrierTown{s: &s, doc: &doc}); err != nil {
 		return sav.DocumentData{}, nil, err
 	}
 	return doc, order, nil

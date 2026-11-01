@@ -77,6 +77,11 @@ func checkOwnersDefined(t *testing.T, owners map[string][]string, defined map[st
 func TestWorldCarriersRunThroughOneSet(t *testing.T) {
 	packages, defined := ownedProductionFunctions(t)
 	checkOwnersDefined(t, worldCarrierOwners, defined)
+	for _, owner := range worldCarrierNilDocumentOwners {
+		if !defined[owner] {
+			t.Errorf("nil-document owner %s is not a production function", owner)
+		}
+	}
 	for _, finding := range CheckWorldCarriers(packages) {
 		t.Error(finding)
 	}

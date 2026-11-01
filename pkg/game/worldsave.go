@@ -119,9 +119,6 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectMotion(state, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if err := projectSavedActorActions(state, &world, s.loadedDocument); err != nil {
-		return sav.DocumentData{}, err
-	}
 	if err := writeWorldCarriers(carrierSave{s: &s, state: state, world: &world}, graphStage); err != nil {
 		return sav.DocumentData{}, err
 	}
@@ -182,7 +179,7 @@ func currentWorldDocument(s Snapshot, fresh bool, tables ...*mapload.Table) (sav
 	if err := projectWorldEffectOrder(&doc, &world); err != nil {
 		return sav.DocumentData{}, err
 	}
-	if err := graftUnknownObjects(&doc, state, s.loadedDocument, &world); err != nil {
+	if err := writeWorldCarriers(carrierSave{s: &s, doc: &doc, state: state, world: &world}, graftStage); err != nil {
 		return sav.DocumentData{}, err
 	}
 	projectCurrentTerrain(&doc, &world, fresh)
