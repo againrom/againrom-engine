@@ -3745,5 +3745,5 @@ var Committed = Baseline{
 	// mapeditorscriptslist_test.go, the tree follow marker in mapeditor.go and
 	// mapeditorsidepanels.go, the test mapeditorfollow_test.go, and this note.
 	// mapeditorscriptslist_test.go, and this note.
-	CommentBytes: 10302458,
+	CommentBytes: 10303159,
 }

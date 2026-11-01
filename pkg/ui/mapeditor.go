@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"runtime/debug"
 	"time"
 
 	"againrom/pkg/render/camera"
@@ -817,5 +818,48 @@ func (e *MapEditor) Run() error {
 	ebiten.SetWindowClosingHandled(true)
 	ebiten.SetWindowTitle("Againrom Map Editor")
 	ApplyWindowRow(EditorWindow)
-	return ebiten.RunGame(e)
+	return ebiten.RunGame(&frameGuard{game: e})
+}
+
+// frameGuard is the one frame loop's recover: a panic in the editor's Update,
+// Draw or Layout becomes the error RunGame returns, with its message and
+// stack, so the program's failure report shows it and the exit code is not 0.
+// A panic in Draw cannot return, so the next Update returns it.
+type frameGuard struct {
+	game    ebiten.Game
+	failure error
+}
+
+func (g *frameGuard) catch(r any) {
+	if r != nil && g.failure == nil {
+		g.failure = fmt.Errorf("editor stopped by a panic: %v\n%s", r, debug.Stack())
+	}
+}
+
+func (g *frameGuard) Update() error {
+	if g.failure == nil {
+		func() {
+			defer func() { g.catch(recover()) }()
+			if err := g.game.Update(); err != nil {
+				g.failure = err
+			}
+		}()
+	}
+	return g.failure
+}
+
+func (g *frameGuard) Draw(screen *ebiten.Image) {
+	if g.failure != nil {
+		return
+	}
+	defer func() { g.catch(recover()) }()
+	g.game.Draw(screen)
+}
+
+func (g *frameGuard) Layout(w, h int) (int, int) {
+	if g.failure != nil {
+		return w, h
+	}
+	defer func() { g.catch(recover()) }()
+	return g.game.Layout(w, h)
 }
