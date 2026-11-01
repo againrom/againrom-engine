@@ -168,7 +168,6 @@ var (
 
 const (
 	modScrollBarX     = 512
-	modWheelLines     = 3
 	modIndent         = 14
 	modEntryW         = 200
 	modEntryH         = 28
@@ -421,15 +420,16 @@ func (a *App) stepModScreen(in appInput) {
 	if f.modUI.open < 0 || f.modUI.open >= len(f.modUI.screens) {
 		return
 	}
+	key, wheel := modScreenList.keyStep(in.Up, in.Down), modScreenList.wheelStep(in)
 	switch {
-	case in.Up:
-		f.modUI.top = max(0, f.modUI.top-1)
-	case in.Down:
-		f.modUI.top = min(a.modMaxTop(), f.modUI.top+1)
-	case in.WheelY > 0:
-		f.modUI.top = max(0, f.modUI.top-modWheelLines)
-	case in.WheelY < 0:
-		f.modUI.top = min(a.modMaxTop(), f.modUI.top+modWheelLines)
+	case key < 0:
+		f.modUI.top = max(0, f.modUI.top+key)
+	case key > 0:
+		f.modUI.top = min(a.modMaxTop(), f.modUI.top+key)
+	case wheel < 0:
+		f.modUI.top = max(0, f.modUI.top+wheel)
+	case wheel > 0:
+		f.modUI.top = min(a.modMaxTop(), f.modUI.top+wheel)
 	case in.Enter:
 		a.playUISound(UISoundCommonControl)
 		f.closeModScreen()
@@ -440,17 +440,10 @@ func (a *App) stepModScreen(in appInput) {
 	if a.modMaxTop() > 0 {
 		if req, pos := f.modUI.bar.step(a.modBar(f.modUI.top), p, inFrame, in); req != barNone {
 			visible := a.modVisibleLines()
-			switch req {
-			case barSetPos:
+			if req == barSetPos {
 				f.modUI.top = pos
-			case barLineUp:
-				f.modUI.top--
-			case barLineDown:
-				f.modUI.top++
-			case barPageUp:
-				f.modUI.top -= visible
-			case barPageDown:
-				f.modUI.top += visible
+			} else if step, ok := modScreenList.barStep(req, visible); ok {
+				f.modUI.top += step
 			}
 			f.modUI.top = min(max(f.modUI.top, 0), a.modMaxTop())
 		}

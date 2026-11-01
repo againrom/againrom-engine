@@ -2572,15 +2572,12 @@ func (a *App) SetSaveFiles(exists func() bool) {
 // notch on a Windows mouse, fractional on some trackpads — so a step scaled by it
 // would be a step nobody could state.
 func (a *App) stepPicker(in appInput) {
+	wheel, key := pickerList.wheelStep(in), pickerList.keyStep(in.Up, in.Down)
 	switch {
-	case in.WheelY > 0:
-		a.flow.picker.Move(-pickerWheelRows) // away from the user: towards row 0
-	case in.WheelY < 0:
-		a.flow.picker.Move(+pickerWheelRows)
-	case in.Up:
-		a.flow.picker.Move(-1)
-	case in.Down:
-		a.flow.picker.Move(+1)
+	case wheel != 0:
+		a.flow.picker.Move(wheel)
+	case key != 0:
+		a.flow.picker.Move(key)
 	case in.Enter:
 		a.activatePicker(a.flow.picker, a.flow.choose)
 		a.syncViewerLayout()
@@ -2808,11 +2805,12 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 				return // Arrival consumes this frame; stale map input cannot select a new trip.
 			}
 		}
+		wheel, key := worldMapList.wheelStep(in), worldMapList.keyStep(in.Up, in.Down)
 		switch {
-		case in.WheelY > 0 || in.Up:
-			world.WorldMapMove(-1)
-		case in.WheelY < 0 || in.Down:
-			world.WorldMapMove(+1)
+		case wheel < 0 || key < 0:
+			world.WorldMapMove(-worldMapList.key)
+		case wheel > 0 || key > 0:
+			world.WorldMapMove(+worldMapList.key)
 		case in.Enter:
 			a.flow.applyTownAction(world.WorldMapChoose())
 			a.syncViewerLayout()
@@ -2972,11 +2970,10 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 		// THE WHEEL TURNS THE REGION UNDER THE POINTER (owner, DIV-005). A wheel
 		// event whose pointer is not over the frame at all,
 		wheelAt, onFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
+		shopRows := shopRegion.wheelStep(in)
 		switch {
-		case in.WheelY > 0 && onFrame:
-			a.flow.scrollShop(wheelAt, -1)
-		case in.WheelY < 0 && onFrame:
-			a.flow.scrollShop(wheelAt, +1)
+		case shopRows != 0 && onFrame:
+			a.flow.scrollShop(wheelAt, shopRows)
 		case in.PrimaryPressed:
 			// THE DRAG MACHINE'S OWN ARM (1005 round 2): every press over the
 			// doll, the shelf grid or the pack strip is a candidate origin,
@@ -3191,15 +3188,12 @@ func (a *App) stepTownAt(in appInput, now time.Time) {
 		return
 	}
 
+	wheel, key := pickerList.wheelStep(in), pickerList.keyStep(in.Up, in.Down)
 	switch {
-	case in.WheelY > 0:
-		a.flow.townList.Move(-pickerWheelRows)
-	case in.WheelY < 0:
-		a.flow.townList.Move(+pickerWheelRows)
-	case in.Up:
-		a.flow.townList.Move(-1)
-	case in.Down:
-		a.flow.townList.Move(+1)
+	case wheel != 0:
+		a.flow.townList.Move(wheel)
+	case key != 0:
+		a.flow.townList.Move(key)
 	case in.Enter:
 		a.activatePicker(a.flow.townList, a.flow.chooseTown)
 		a.syncViewerLayout()
@@ -3240,15 +3234,12 @@ func (a *App) stepList(in appInput, list *Picker, choose func()) {
 	if list == nil {
 		return
 	}
+	wheel, key := pickerList.wheelStep(in), pickerList.keyStep(in.Up, in.Down)
 	switch {
-	case in.WheelY > 0:
-		list.Move(-pickerWheelRows)
-	case in.WheelY < 0:
-		list.Move(+pickerWheelRows)
-	case in.Up:
-		list.Move(-1)
-	case in.Down:
-		list.Move(+1)
+	case wheel != 0:
+		list.Move(wheel)
+	case key != 0:
+		list.Move(key)
 	case in.Enter:
 		a.activatePicker(list, choose)
 		a.syncViewerLayout()
@@ -3366,11 +3357,9 @@ func (a *App) stepGameMenu(in appInput) bool {
 		// activates nothing and drops the latch.
 		a.flow.menuPress.Clear()
 	}
-	switch {
-	case in.Up:
-		list.Move(-1)
-	case in.Down:
-		list.Move(+1)
+	switch key := pickerList.keyStep(in.Up, in.Down); {
+	case key != 0:
+		list.Move(key)
 	case in.Enter:
 		a.chooseGameMenu()
 		a.syncViewerLayout()

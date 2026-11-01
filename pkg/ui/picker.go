@@ -28,13 +28,6 @@ const (
 	pickerVisible  = 25  // rows on screen; the list occupies y in [40, 440)
 	pickerMessageY = 452 // where a failed load reports itself
 	pickerCols     = 104 // 8 + 104*6 = 632 <= 640, so a row cannot run off the frame
-
-	// pickerWheelRows is how far one wheel notch moves the selection. One row
-	// per notch feels broken on a 38-row list in a 25-row window; a whole page
-	// loses the reader's place. Three is the usual compromise and is stated here
-	// rather than at the dispatch, so the number and the window it moves through
-	// sit together.
-	pickerWheelRows = 3
 )
 
 // PickerRow is one line of the map list: the text to show, and whether it can be

@@ -148,13 +148,13 @@ func (a *App) stepQuestObjectives(in appInput) {
 		return
 	}
 	if in.Up {
-		f.questTop = max(0, f.questTop-1)
+		f.questTop = max(0, f.questTop+questList.keyStep(true, false))
 	}
 	if in.Down {
-		f.questTop++
+		f.questTop += questList.keyStep(false, true)
 	}
-	if in.WheelY != 0 {
-		f.questTop = max(0, f.questTop-int(in.WheelY)*3)
+	if wheeled(in) {
+		f.questTop = max(0, f.questTop+questList.wheelStep(in))
 	}
 	pitch := 16
 	if f.menuFont != nil {
@@ -165,17 +165,10 @@ func (a *App) stepQuestObjectives(in appInput) {
 	p, valid := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	if most > 0 {
 		if req, pos := f.questBar.step(questBar(f.questTop, most), p, valid, in); req != barNone {
-			switch req {
-			case barSetPos:
+			if req == barSetPos {
 				f.questTop = pos
-			case barLineUp:
-				f.questTop--
-			case barLineDown:
-				f.questTop++
-			case barPageUp:
-				f.questTop -= max(1, 100/pitch)
-			case barPageDown:
-				f.questTop += max(1, 100/pitch)
+			} else if step, ok := questList.barStep(req, max(1, 100/pitch)); ok {
+				f.questTop += step
 			}
 			f.questTop = min(max(f.questTop, 0), most)
 		}

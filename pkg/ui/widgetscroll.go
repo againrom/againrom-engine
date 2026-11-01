@@ -301,57 +301,6 @@ func listBar(l listBox, m *Picker) vScrollBar {
 	return b
 }
 
-// listKey is the shared list's four focused keys (MENU-120). Page Up first
-// selects the top row, then a page above it; Page Down first selects the last
-// visible row, then a page below it. It reports whether a key acted.
-func listKey(m *Picker, up, down, pageUp, pageDown bool) bool {
-	if m == nil || m.Len() == 0 {
-		return false
-	}
-	top, _ := m.Visible()
-	visible := m.visibleRows()
-	sel := m.Selection()
-	switch {
-	case up:
-		m.Select(clampIndex(sel-1, m.Len()))
-	case down:
-		m.Select(clampIndex(sel+1, m.Len()))
-	case pageUp:
-		target := top - visible
-		if sel != top {
-			target = top
-		}
-		m.Select(clampIndex(target, m.Len()))
-	case pageDown:
-		target := top + 2*visible - 1
-		if sel != top+visible-1 {
-			target = top + visible - 1
-		}
-		m.Select(clampIndex(target, m.Len()))
-	default:
-		return false
-	}
-	return true
-}
-
-// listBarRequest applies a bar request to its list: line and page requests
-// act as the arrow and page keys, and a dragged position selects that item.
-func listBarRequest(m *Picker, req barRequest, pos int) bool {
-	switch req {
-	case barLineUp:
-		return listKey(m, true, false, false, false)
-	case barLineDown:
-		return listKey(m, false, true, false, false)
-	case barPageUp:
-		return listKey(m, false, false, true, false)
-	case barPageDown:
-		return listKey(m, false, false, false, true)
-	case barSetPos:
-		return m != nil && m.Select(clampIndex(pos, m.Len()))
-	}
-	return false
-}
-
 var (
 	listRowInk      = townShellText
 	listSelectedInk = loadSelectedText

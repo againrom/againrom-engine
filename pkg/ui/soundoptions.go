@@ -194,10 +194,8 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		case in.End:
 			f.soundOptions.list.Select(f.soundOptions.list.Len() - 1)
 		}
-	} else if in.Up {
-		f.menuList.Move(-1)
-	} else if in.Down {
-		f.menuList.Move(1)
+	} else if key := pickerList.keyStep(in.Up, in.Down); key != 0 {
+		f.menuList.Move(key)
 	} else if in.Left || in.Right {
 		row := f.menuRows()[f.menuList.Selection()]
 		if channel, ok := soundActionChannel(row.Action); ok && row.Enabled {
@@ -224,8 +222,8 @@ func (a *App) stepSoundOptions(in appInput) bool {
 		return false
 	}
 	p, inFrame := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	if inFrame && p.In(soundOptionRect(gameMenuMusicTracks)) && f.soundOptions.list != nil && in.WheelY != 0 {
-		f.soundOptions.list.Move(-int(in.WheelY) * 3)
+	if inFrame && p.In(soundOptionRect(gameMenuMusicTracks)) && f.soundOptions.list != nil && wheeled(in) {
+		f.soundOptions.list.Move(soundTrackList.wheelStep(in))
 	}
 	if list := f.soundOptions.list; list != nil {
 		if req, pos := f.soundOptions.bar.step(listBar(soundTrackBox(f.menuFont), list), p, inFrame, in); req != barNone {

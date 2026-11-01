@@ -364,7 +364,8 @@ func (e *MapEditor) setBrushRadius(r int) {
 
 // brushWheel turns the Alt+wheel into size steps, one per notch, up for a
 // turn away from the user.
-func (e *MapEditor) brushWheel(wheel float64) {
+func (e *MapEditor) brushWheel(source wheelSource) {
+	wheel := source.wheelNotches()
 	if math.IsNaN(wheel) || math.IsInf(wheel, 0) {
 		return
 	}

@@ -832,7 +832,7 @@ func (e *MapEditor) addPrevious() int {
 }
 
 // addWheel steps the Add window's list as Up and Down do.
-func (e *MapEditor) addWheel(wheel float64) {
+func (e *MapEditor) addWheel(wheel wheelSource) {
 	if r, ok := e.addRunning(); ok && r.list != nil {
 		if rows := editorWheelRows(&e.listWheel, wheel); rows != 0 {
 			e.addMove(rows)

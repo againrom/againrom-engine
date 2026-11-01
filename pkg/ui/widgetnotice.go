@@ -279,37 +279,27 @@ func (w *noticeWindow) step(in appInput, p image.Point, ok bool, l noticeWindowL
 // the bar took the input.
 func (w *noticeWindow) scrollStep(in appInput, p image.Point, ok bool, l noticeWindowLayout, lines int) bool {
 	rows := l.List.Rows
+	wheel := noticeList.wheelStep(in)
 	switch {
-	case in.Up:
-		w.scroll(-1, lines, rows)
-	case in.Down:
-		w.scroll(1, lines, rows)
+	case in.Up || in.Down:
+		w.scroll(noticeList.keyStep(in.Up, in.Down), lines, rows)
 	case in.PageUp:
-		w.scroll(-rows, lines, rows)
+		w.scroll(-noticeList.pageUp(rows), lines, rows)
 	case in.PageDown:
-		w.scroll(rows, lines, rows)
+		w.scroll(noticeList.pageDown(rows), lines, rows)
 	case in.Home:
 		w.top = 0
 	case in.End:
 		w.top = noticeMaxTop(lines, rows)
-	case in.WheelY > 0:
-		w.scroll(-3, lines, rows)
-	case in.WheelY < 0:
-		w.scroll(3, lines, rows)
+	case wheel != 0:
+		w.scroll(wheel, lines, rows)
 	}
 	if req, pos := w.bar.step(noticeBar(l, w.top, lines), p, ok, in); req != barNone {
-		switch req {
-		case barLineUp:
-			w.scroll(-1, lines, rows)
-		case barLineDown:
-			w.scroll(1, lines, rows)
-		case barPageUp:
-			w.scroll(-rows, lines, rows)
-		case barPageDown:
-			w.scroll(rows, lines, rows)
-		case barSetPos:
+		if req == barSetPos {
 			w.top = 0
 			w.scroll(pos, lines, rows)
+		} else if step, ok := noticeList.barStep(req, rows); ok {
+			w.scroll(step, lines, rows)
 		}
 		return true
 	}

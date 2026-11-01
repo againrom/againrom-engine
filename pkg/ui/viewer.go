@@ -3057,15 +3057,15 @@ func (v *Viewer) step(in Input, now time.Time) {
 
 	// Over a switched-on pack the wheel scrolls the pack, one element per
 	// notch as its end strips do, and never zooms the map (owner).
-	if bar, onPack := v.packBarArea(); in.WheelY != 0 && onPack && image.Pt(in.CursorX, in.CursorY).In(bar) {
-		if in.WheelY > 0 {
-			v.ScrollPack(-1)
+	if bar, onPack := v.packBarArea(); wheeled(in) && onPack && image.Pt(in.CursorX, in.CursorY).In(bar) {
+		if step := packStrip.wheelStep(in); step < 0 {
+			v.ScrollPack(step)
 		} else {
-			v.ScrollPack(+1)
+			v.ScrollPack(+packStrip.wheel)
 		}
-	} else if in.WheelY != 0 {
+	} else if wheeled(in) {
 		factor := WheelZoomStep
-		if in.WheelY < 0 {
+		if wheelSign(in) < 0 {
 			factor = 1 / WheelZoomStep
 		}
 		sx, sy := float64(v.cam.ViewW)/2, float64(v.cam.ViewH)/2

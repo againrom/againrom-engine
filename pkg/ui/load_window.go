@@ -261,7 +261,7 @@ func (a *App) stepPage(v pageView, in appInput) {
 				v.save.listFocus = false
 			}
 		}
-		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || in.WheelY != 0 {
+		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || wheeled(in) {
 			v.ui.rowPressed = false
 			if v.save != nil {
 				v.save.listFocus = true
@@ -273,10 +273,8 @@ func (a *App) stepPage(v pageView, in appInput) {
 			l.Select(0)
 		case in.End && v.save == nil:
 			l.Select(len(l.Rows()) - 1)
-		case in.WheelY > 0:
-			l.Move(-3)
-		case in.WheelY < 0:
-			l.Move(3)
+		case pickerList.wheelStep(in) != 0:
+			l.Move(pickerList.wheelStep(in))
 		}
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)

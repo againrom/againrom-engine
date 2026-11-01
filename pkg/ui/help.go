@@ -215,22 +215,28 @@ func (v *Viewer) helpKeys(up, down, pageUp, pageDown bool) {
 		}
 		return
 	}
+	v.helpStep(up, down, pageUp, pageDown)
+}
+
+// helpStep moves the text control's line cursor or window by one key's step.
+func (v *Viewer) helpStep(up, down, pageUp, pageDown bool) {
+	h := v.help
 	g := v.helpGeo()
 	switch {
 	case pageUp:
 		if h.cur == h.scroll {
-			v.helpSetPos(h.scroll - g.visible)
+			v.helpSetPos(h.scroll - helpText.pageUp(g.visible))
 		} else {
 			v.helpSetPos(h.scroll)
 		}
 	case pageDown:
-		v.helpSetPos(h.scroll + g.visible - helpPageDownLess)
+		v.helpSetPos(h.scroll + helpText.pageDown(g.visible))
 	case up:
 		if h.cur > 0 {
-			v.helpSetPos(h.cur - 1)
+			v.helpSetPos(h.cur + helpText.keyStep(true, false))
 		}
 	case down:
-		v.helpSetPos(h.cur + 1)
+		v.helpSetPos(h.cur + helpText.keyStep(false, true))
 	}
 }
 
@@ -259,25 +265,17 @@ func helpBarParts(bar image.Rectangle, first, total, visible int) (up, down, tra
 // position, line up, line down, page up and page down, through the same
 // routines as its keys (MENU-078).
 func (v *Viewer) helpBarRequest(req barRequest, pos int) {
-	h := v.help
-	g := v.helpGeo()
 	switch req {
 	case barSetPos:
 		v.helpSetPos(pos)
 	case barLineUp:
-		if h.cur > 0 {
-			v.helpSetPos(h.cur - 1)
-		}
+		v.helpStep(true, false, false, false)
 	case barLineDown:
-		v.helpSetPos(h.cur + 1)
+		v.helpStep(false, true, false, false)
 	case barPageUp:
-		if h.cur == h.scroll {
-			v.helpSetPos(h.scroll - g.visible)
-		} else {
-			v.helpSetPos(h.scroll)
-		}
+		v.helpStep(false, false, true, false)
 	case barPageDown:
-		v.helpSetPos(h.scroll + g.visible - helpPageDownLess)
+		v.helpStep(false, false, false, true)
 	}
 }
 
@@ -300,11 +298,7 @@ func (v *Viewer) helpPointer(in appInput) bool {
 		return false
 	}
 	g := v.helpGeo()
-	if in.WheelY != 0 {
-		step := modWheelLines
-		if in.WheelY > 0 {
-			step = -step
-		}
+	if step := helpText.wheelStep(in); step != 0 {
 		v.helpScrollBy(step)
 	}
 	l := v.noticeLayout()

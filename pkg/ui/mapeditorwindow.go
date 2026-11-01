@@ -1581,8 +1581,8 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 			e.dragFrom = p
 			switch {
 			case e.dragCard != 0:
-				if in.WheelY != 0 {
-					e.chromeWheel(popObject, in.WheelY)
+				if wheeled(in) {
+					e.chromeWheel(popObject, in)
 				}
 			case e.dragEdge != 0:
 				e.resizePopup(d)
@@ -1618,8 +1618,8 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	if target == popNone && !modal {
 		return false
 	}
-	if in.WheelY != 0 {
-		e.chromeWheel(target, in.WheelY)
+	if wheeled(in) {
+		e.chromeWheel(target, in)
 	}
 	if pressed {
 		e.down, e.uiDown = true, true
@@ -1639,7 +1639,7 @@ func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 }
 
 // chromeWheel scrolls the popup under the pointer.
-func (e *MapEditor) chromeWheel(target editorPopupID, wheel float64) {
+func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 	switch target {
 	case popList:
 		if s, ok := e.listSpec(); ok && s.Grid != nil {

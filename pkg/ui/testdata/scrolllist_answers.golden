@@ -1,0 +1,2296 @@
+picker screen | start 0 | /0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | /-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | /-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | /-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | U/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | U/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | U/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | D/0 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+picker screen | start 0 | D/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | D/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | D/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | D/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | D/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | D/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PU/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PU/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PU/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PD/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PD/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | PD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | PD/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | H/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | H/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | H/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | H/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | E/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | E/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | E/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | E/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | UD/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | UD/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 0 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 0 | UD/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+picker screen | start 1 | /0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+picker screen | start 1 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | /-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | /-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | /-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | U/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | U/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | U/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | D/0 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+picker screen | start 1 | D/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | D/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | D/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | D/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | D/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | D/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PU/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+picker screen | start 1 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PU/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PU/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PU/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PD/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+picker screen | start 1 | PD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PD/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PD/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | PD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | PD/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | H/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+picker screen | start 1 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | H/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | H/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | H/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | E/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+picker screen | start 1 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | E/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | E/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | E/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | UD/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | UD/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 1 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+picker screen | start 1 | UD/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+picker screen | start 20 | /0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+picker screen | start 20 | /1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | /-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | /0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | /-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | /2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | /-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | U/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+picker screen | start 20 | U/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | U/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | U/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | U/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | U/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | U/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | D/0 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+picker screen | start 20 | D/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | D/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | D/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | D/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | D/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | D/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PU/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+picker screen | start 20 | PU/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PU/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PU/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PU/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PU/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PU/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PD/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+picker screen | start 20 | PD/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PD/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PD/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PD/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | PD/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | PD/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | H/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+picker screen | start 20 | H/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | H/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | H/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | H/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | H/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | H/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | E/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+picker screen | start 20 | E/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | E/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | E/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | E/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | E/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | E/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | UD/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+picker screen | start 20 | UD/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | UD/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | UD/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | UD/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 20 | UD/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+picker screen | start 20 | UD/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+picker screen | start 39 | /0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | /1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | /-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | /0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | /-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | /2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | /-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | U/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+picker screen | start 39 | U/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | U/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | U/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | U/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | U/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | U/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | D/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | D/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | D/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | D/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | D/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | D/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | D/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PU/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PU/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PU/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PU/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PU/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PU/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PU/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PD/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PD/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PD/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | PD/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | PD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | H/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | H/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | H/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | H/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | H/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | H/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | H/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | E/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | E/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | E/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | E/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | E/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | E/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | E/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | UD/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+picker screen | start 39 | UD/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | UD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | UD/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | UD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+picker screen | start 39 | UD/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+picker screen | start 39 | UD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 0 | /0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | /-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | /-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | /-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | U/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | U/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | U/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | D/0 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list screen | start 0 | D/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | D/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | D/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | D/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | D/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | D/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PU/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PU/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PU/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PD/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PD/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | PD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | PD/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | H/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | H/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | H/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | H/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | E/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | E/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | E/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | E/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | UD/-1 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | UD/-0.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 0 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 0 | UD/-2.5 | sel=3 top=0 n=25 | sel=6 top=0 n=25
+list screen | start 1 | /0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list screen | start 1 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | /-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | /-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | /-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | U/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | U/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | U/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | D/0 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list screen | start 1 | D/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | D/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | D/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | D/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | D/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | D/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PU/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list screen | start 1 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PU/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PU/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PU/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PD/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list screen | start 1 | PD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PD/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PD/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | PD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | PD/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | H/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list screen | start 1 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | H/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | H/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | H/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | E/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list screen | start 1 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | E/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | E/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | E/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | UD/-1 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | UD/-0.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 1 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list screen | start 1 | UD/-2.5 | sel=4 top=0 n=25 | sel=7 top=0 n=25
+list screen | start 20 | /0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list screen | start 20 | /1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | /-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | /0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | /-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | /2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | /-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | U/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list screen | start 20 | U/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | U/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | U/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | U/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | U/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | U/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | D/0 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list screen | start 20 | D/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | D/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | D/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | D/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | D/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | D/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PU/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list screen | start 20 | PU/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PU/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PU/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PU/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PU/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PU/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PD/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list screen | start 20 | PD/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PD/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PD/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PD/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | PD/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | PD/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | H/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list screen | start 20 | H/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | H/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | H/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | H/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | H/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | H/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | E/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list screen | start 20 | E/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | E/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | E/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | E/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | E/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | E/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | UD/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list screen | start 20 | UD/1 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | UD/-1 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | UD/0.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | UD/-0.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 20 | UD/2.5 | sel=17 top=0 n=25 | sel=14 top=0 n=25
+list screen | start 20 | UD/-2.5 | sel=23 top=0 n=25 | sel=26 top=2 n=25
+list screen | start 39 | /0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | /1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | /-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | /0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | /-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | /2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | /-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | U/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list screen | start 39 | U/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | U/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | U/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | U/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | U/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | U/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | D/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | D/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | D/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | D/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | D/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | D/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | D/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PU/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PU/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PU/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PU/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PU/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PU/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PU/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PD/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PD/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PD/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | PD/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | PD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | H/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | H/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | H/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | H/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | H/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | H/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | H/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | E/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | E/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | E/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | E/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | E/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | E/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | E/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | UD/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list screen | start 39 | UD/1 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | UD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | UD/0.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | UD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list screen | start 39 | UD/2.5 | sel=36 top=15 n=25 | sel=33 top=15 n=25
+list screen | start 39 | UD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 0 | /0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | /-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | U/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | D/0 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/1 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/-1 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/0.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/-0.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/2.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | D/-2.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list keys | start 0 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 0 | H/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | H/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | E/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 0 | UD/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | /0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | /-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | U/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | D/0 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/1 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/-1 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/0.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/-0.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/2.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | D/-2.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list keys | start 1 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 1 | H/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | H/-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | E/-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list keys | start 1 | UD/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 1 | UD/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | /0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | /-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | U/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/-1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/-0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | U/-2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | D/0 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/1 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/-1 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/0.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/-0.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/2.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | D/-2.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list keys | start 20 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list keys | start 20 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list keys | start 20 | H/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | H/-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | E/-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list keys | start 20 | UD/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/-1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/-0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 20 | UD/-2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list keys | start 39 | /0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | /-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | U/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/-1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/-0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | U/-2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | D/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | D/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PU/0 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/1 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/-1 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/0.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/-0.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/2.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PU/-2.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list keys | start 39 | PD/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | PD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | H/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | E/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list keys | start 39 | UD/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/-1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/-0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list keys | start 39 | UD/-2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 0 | /0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | /-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | U/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | D/0 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/1 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/-1 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/0.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/-0.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/2.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | D/-2.5 | sel=1 top=0 n=25 | sel=2 top=0 n=25
+list bar | start 0 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 0 | H/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | H/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | E/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 0 | UD/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 0 | UD/-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | /-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | U/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | U/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | D/0 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/1 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/-1 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/0.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/-0.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/2.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | D/-2.5 | sel=2 top=0 n=25 | sel=3 top=0 n=25
+list bar | start 1 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 1 | H/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | H/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 1 | E/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | E/-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/0 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/-1 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/-0.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 1 | UD/-2.5 | sel=1 top=0 n=25 | sel=1 top=0 n=25
+list bar | start 20 | /0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | /-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | U/0 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/-1 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/-0.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | U/-2.5 | sel=19 top=0 n=25 | sel=18 top=0 n=25
+list bar | start 20 | D/0 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/1 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/-1 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/0.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/-0.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/2.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | D/-2.5 | sel=21 top=0 n=25 | sel=22 top=0 n=25
+list bar | start 20 | PU/0 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/-1 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/-0.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PU/-2.5 | sel=0 top=0 n=25 | sel=0 top=0 n=25
+list bar | start 20 | PD/0 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/-1 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/-0.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | PD/-2.5 | sel=24 top=0 n=25 | sel=39 top=15 n=25
+list bar | start 20 | H/0 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/1 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/-1 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/0.5 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/-0.5 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/2.5 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | H/-2.5 | sel=10 top=0 n=25 | sel=10 top=0 n=25
+list bar | start 20 | E/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | E/-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/0 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/-1 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/-0.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 20 | UD/-2.5 | sel=20 top=0 n=25 | sel=20 top=0 n=25
+list bar | start 39 | /0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | /-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | U/0 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/-1 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/-0.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | U/-2.5 | sel=38 top=15 n=25 | sel=37 top=15 n=25
+list bar | start 39 | D/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | D/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PU/0 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/1 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/-1 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/0.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/-0.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/2.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PU/-2.5 | sel=15 top=15 n=25 | sel=0 top=0 n=25
+list bar | start 39 | PD/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | PD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | H/0 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/1 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/-1 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/0.5 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/-0.5 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/2.5 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | H/-2.5 | sel=19 top=15 n=25 | sel=19 top=15 n=25
+list bar | start 39 | E/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | E/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/0 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/-1 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/-0.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+list bar | start 39 | UD/-2.5 | sel=39 top=15 n=25 | sel=39 top=15 n=25
+mod screen | start 0 | /0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | /1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | /-1 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | /0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | /-0.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | /2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | /-2.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | U/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/-1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/-0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | U/-2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | D/0 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/1 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/-1 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/0.5 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/-0.5 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/2.5 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | D/-2.5 | top=1 max=20 | top=2 max=20
+mod screen | start 0 | PU/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PU/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PU/-1 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | PU/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PU/-0.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | PU/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PU/-2.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | PD/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PD/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PD/-1 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | PD/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PD/-0.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | PD/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | PD/-2.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | H/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | H/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | H/-1 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | H/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | H/-0.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | H/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | H/-2.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | E/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | E/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | E/-1 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | E/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | E/-0.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | E/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | E/-2.5 | top=3 max=20 | top=6 max=20
+mod screen | start 0 | UD/0 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/-1 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/-0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 0 | UD/-2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | /0 | top=1 max=20 | top=1 max=20
+mod screen | start 1 | /1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | /-1 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | /0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | /-0.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | /2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | /-2.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | U/0 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/-1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/-0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | U/-2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | D/0 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/1 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/-1 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/0.5 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/-0.5 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/2.5 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | D/-2.5 | top=2 max=20 | top=3 max=20
+mod screen | start 1 | PU/0 | top=1 max=20 | top=1 max=20
+mod screen | start 1 | PU/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PU/-1 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | PU/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PU/-0.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | PU/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PU/-2.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | PD/0 | top=1 max=20 | top=1 max=20
+mod screen | start 1 | PD/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PD/-1 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | PD/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PD/-0.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | PD/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | PD/-2.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | H/0 | top=1 max=20 | top=1 max=20
+mod screen | start 1 | H/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | H/-1 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | H/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | H/-0.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | H/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | H/-2.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | E/0 | top=1 max=20 | top=1 max=20
+mod screen | start 1 | E/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | E/-1 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | E/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | E/-0.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | E/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | E/-2.5 | top=4 max=20 | top=7 max=20
+mod screen | start 1 | UD/0 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/-1 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/-0.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 1 | UD/-2.5 | top=0 max=20 | top=0 max=20
+mod screen | start 5 | /0 | top=5 max=20 | top=5 max=20
+mod screen | start 5 | /1 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | /-1 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | /0.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | /-0.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | /2.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | /-2.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | U/0 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/1 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/-1 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/0.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/-0.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/2.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | U/-2.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | D/0 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/1 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/-1 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/0.5 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/-0.5 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/2.5 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | D/-2.5 | top=6 max=20 | top=7 max=20
+mod screen | start 5 | PU/0 | top=5 max=20 | top=5 max=20
+mod screen | start 5 | PU/1 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PU/-1 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | PU/0.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PU/-0.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | PU/2.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PU/-2.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | PD/0 | top=5 max=20 | top=5 max=20
+mod screen | start 5 | PD/1 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PD/-1 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | PD/0.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PD/-0.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | PD/2.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | PD/-2.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | H/0 | top=5 max=20 | top=5 max=20
+mod screen | start 5 | H/1 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | H/-1 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | H/0.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | H/-0.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | H/2.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | H/-2.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | E/0 | top=5 max=20 | top=5 max=20
+mod screen | start 5 | E/1 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | E/-1 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | E/0.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | E/-0.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | E/2.5 | top=2 max=20 | top=0 max=20
+mod screen | start 5 | E/-2.5 | top=8 max=20 | top=11 max=20
+mod screen | start 5 | UD/0 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/1 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/-1 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/0.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/-0.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/2.5 | top=4 max=20 | top=3 max=20
+mod screen | start 5 | UD/-2.5 | top=4 max=20 | top=3 max=20
+help text | start 0 | /0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | /1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | /-1 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | /0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | /-0.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | /2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | /-2.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | U/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | U/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | U/-1 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 0 | U/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | U/-0.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 0 | U/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | U/-2.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 0 | D/0 | first=1 last=39 cur=1 ok=false | first=2 last=39 cur=2 ok=false
+help text | start 0 | D/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | D/-1 | first=4 last=39 cur=4 ok=false | first=8 last=39 cur=8 ok=false
+help text | start 0 | D/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | D/-0.5 | first=4 last=39 cur=4 ok=false | first=8 last=39 cur=8 ok=false
+help text | start 0 | D/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | D/-2.5 | first=4 last=39 cur=4 ok=false | first=8 last=39 cur=8 ok=false
+help text | start 0 | PU/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | PU/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | PU/-1 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 0 | PU/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | PU/-0.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 0 | PU/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | PU/-2.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 0 | PD/0 | first=25 last=39 cur=25 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 0 | PD/1 | first=22 last=39 cur=22 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 0 | PD/-1 | first=28 last=39 cur=28 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 0 | PD/0.5 | first=22 last=39 cur=22 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 0 | PD/-0.5 | first=28 last=39 cur=28 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 0 | PD/2.5 | first=22 last=39 cur=22 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 0 | PD/-2.5 | first=28 last=39 cur=28 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 0 | H/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | H/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | H/-1 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | H/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | H/-0.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | H/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | H/-2.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | E/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | E/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | E/-1 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | E/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | E/-0.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | E/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | E/-2.5 | first=3 last=39 cur=3 ok=false | first=6 last=39 cur=6 ok=false
+help text | start 0 | UD/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | UD/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | UD/-1 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 0 | UD/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | UD/-0.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 0 | UD/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 0 | UD/-2.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | /0 | first=1 last=39 cur=1 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 1 | /1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | /-1 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | /0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | /-0.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | /2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | /-2.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | U/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | U/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | U/-1 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | U/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | U/-0.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | U/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | U/-2.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | D/0 | first=2 last=39 cur=2 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 1 | D/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | D/-1 | first=5 last=39 cur=5 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 1 | D/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | D/-0.5 | first=5 last=39 cur=5 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 1 | D/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | D/-2.5 | first=5 last=39 cur=5 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 1 | PU/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | PU/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | PU/-1 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 1 | PU/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | PU/-0.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 1 | PU/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | PU/-2.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 1 | PD/0 | first=26 last=39 cur=26 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 1 | PD/1 | first=23 last=39 cur=23 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 1 | PD/-1 | first=29 last=39 cur=29 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 1 | PD/0.5 | first=23 last=39 cur=23 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 1 | PD/-0.5 | first=29 last=39 cur=29 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 1 | PD/2.5 | first=23 last=39 cur=23 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 1 | PD/-2.5 | first=29 last=39 cur=29 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 1 | H/0 | first=1 last=39 cur=1 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 1 | H/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | H/-1 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | H/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | H/-0.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | H/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | H/-2.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | E/0 | first=1 last=39 cur=1 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 1 | E/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | E/-1 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | E/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | E/-0.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | E/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | E/-2.5 | first=4 last=39 cur=4 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 1 | UD/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | UD/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | UD/-1 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | UD/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | UD/-0.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 1 | UD/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 1 | UD/-2.5 | first=3 last=39 cur=3 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 5 | /0 | first=5 last=39 cur=5 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 5 | /1 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | /-1 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | /0.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | /-0.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | /2.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | /-2.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | U/0 | first=4 last=39 cur=4 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 5 | U/1 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | U/-1 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 5 | U/0.5 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | U/-0.5 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 5 | U/2.5 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | U/-2.5 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 5 | D/0 | first=6 last=39 cur=6 ok=false | first=7 last=39 cur=7 ok=false
+help text | start 5 | D/1 | first=3 last=39 cur=3 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 5 | D/-1 | first=9 last=39 cur=9 ok=false | first=13 last=39 cur=13 ok=false
+help text | start 5 | D/0.5 | first=3 last=39 cur=3 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 5 | D/-0.5 | first=9 last=39 cur=9 ok=false | first=13 last=39 cur=13 ok=false
+help text | start 5 | D/2.5 | first=3 last=39 cur=3 ok=false | first=1 last=39 cur=1 ok=false
+help text | start 5 | D/-2.5 | first=9 last=39 cur=9 ok=false | first=13 last=39 cur=13 ok=false
+help text | start 5 | PU/0 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | PU/1 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | PU/-1 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 5 | PU/0.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | PU/-0.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 5 | PU/2.5 | first=0 last=39 cur=0 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | PU/-2.5 | first=3 last=39 cur=3 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 5 | PD/0 | first=30 last=39 cur=30 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 5 | PD/1 | first=27 last=39 cur=27 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 5 | PD/-1 | first=33 last=39 cur=33 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 5 | PD/0.5 | first=27 last=39 cur=27 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 5 | PD/-0.5 | first=33 last=39 cur=33 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 5 | PD/2.5 | first=27 last=39 cur=27 ok=false | first=36 last=39 cur=36 ok=false
+help text | start 5 | PD/-2.5 | first=33 last=39 cur=33 ok=false | first=39 last=39 cur=39 ok=false
+help text | start 5 | H/0 | first=5 last=39 cur=5 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 5 | H/1 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | H/-1 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | H/0.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | H/-0.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | H/2.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | H/-2.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | E/0 | first=5 last=39 cur=5 ok=false | first=5 last=39 cur=5 ok=false
+help text | start 5 | E/1 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | E/-1 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | E/0.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | E/-0.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | E/2.5 | first=2 last=39 cur=2 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | E/-2.5 | first=8 last=39 cur=8 ok=false | first=11 last=39 cur=11 ok=false
+help text | start 5 | UD/0 | first=4 last=39 cur=4 ok=false | first=3 last=39 cur=3 ok=false
+help text | start 5 | UD/1 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | UD/-1 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 5 | UD/0.5 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | UD/-0.5 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+help text | start 5 | UD/2.5 | first=1 last=39 cur=1 ok=false | first=0 last=39 cur=0 ok=false
+help text | start 5 | UD/-2.5 | first=7 last=39 cur=7 ok=false | first=9 last=39 cur=9 ok=false
+notice window | start 0 | /0 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | /1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | /-1 | top=3 rows=17 | top=6 rows=17
+notice window | start 0 | /0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | /-0.5 | top=3 rows=17 | top=6 rows=17
+notice window | start 0 | /2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | /-2.5 | top=3 rows=17 | top=6 rows=17
+notice window | start 0 | U/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | U/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | D/0 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/1 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/-1 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/0.5 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/-0.5 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/2.5 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | D/-2.5 | top=1 rows=17 | top=2 rows=17
+notice window | start 0 | PU/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PU/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | PD/0 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/1 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/-1 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/0.5 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/-0.5 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/2.5 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | PD/-2.5 | top=17 rows=17 | top=34 rows=17
+notice window | start 0 | H/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | H/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | E/0 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/1 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/-1 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/-0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | E/-2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 0 | UD/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 0 | UD/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | /0 | top=1 rows=17 | top=1 rows=17
+notice window | start 1 | /1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | /-1 | top=4 rows=17 | top=7 rows=17
+notice window | start 1 | /0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | /-0.5 | top=4 rows=17 | top=7 rows=17
+notice window | start 1 | /2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | /-2.5 | top=4 rows=17 | top=7 rows=17
+notice window | start 1 | U/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | U/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | D/0 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/1 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/-1 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/0.5 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/-0.5 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/2.5 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | D/-2.5 | top=2 rows=17 | top=3 rows=17
+notice window | start 1 | PU/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PU/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | PD/0 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/1 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/-1 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/0.5 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/-0.5 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/2.5 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | PD/-2.5 | top=18 rows=17 | top=35 rows=17
+notice window | start 1 | H/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | H/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | E/0 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/1 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/-1 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/-0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | E/-2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 1 | UD/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 1 | UD/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | /0 | top=7 rows=17 | top=7 rows=17
+notice window | start 7 | /1 | top=4 rows=17 | top=1 rows=17
+notice window | start 7 | /-1 | top=10 rows=17 | top=13 rows=17
+notice window | start 7 | /0.5 | top=4 rows=17 | top=1 rows=17
+notice window | start 7 | /-0.5 | top=10 rows=17 | top=13 rows=17
+notice window | start 7 | /2.5 | top=4 rows=17 | top=1 rows=17
+notice window | start 7 | /-2.5 | top=10 rows=17 | top=13 rows=17
+notice window | start 7 | U/0 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/1 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/-1 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/0.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/-0.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/2.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | U/-2.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | D/0 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/1 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/-1 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/0.5 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/-0.5 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/2.5 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | D/-2.5 | top=8 rows=17 | top=9 rows=17
+notice window | start 7 | PU/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PU/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | PD/0 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/1 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/-1 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/0.5 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/-0.5 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/2.5 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | PD/-2.5 | top=24 rows=17 | top=41 rows=17
+notice window | start 7 | H/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | H/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 7 | E/0 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/1 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/-1 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/-0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | E/-2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 7 | UD/0 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/1 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/-1 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/0.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/-0.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/2.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 7 | UD/-2.5 | top=6 rows=17 | top=5 rows=17
+notice window | start 30 | /0 | top=30 rows=17 | top=30 rows=17
+notice window | start 30 | /1 | top=27 rows=17 | top=24 rows=17
+notice window | start 30 | /-1 | top=33 rows=17 | top=36 rows=17
+notice window | start 30 | /0.5 | top=27 rows=17 | top=24 rows=17
+notice window | start 30 | /-0.5 | top=33 rows=17 | top=36 rows=17
+notice window | start 30 | /2.5 | top=27 rows=17 | top=24 rows=17
+notice window | start 30 | /-2.5 | top=33 rows=17 | top=36 rows=17
+notice window | start 30 | U/0 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/1 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/-1 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/0.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/-0.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/2.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | U/-2.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | D/0 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/1 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/-1 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/0.5 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/-0.5 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/2.5 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | D/-2.5 | top=31 rows=17 | top=32 rows=17
+notice window | start 30 | PU/0 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/1 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/-1 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/0.5 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/-0.5 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/2.5 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PU/-2.5 | top=13 rows=17 | top=0 rows=17
+notice window | start 30 | PD/0 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/1 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/-1 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/-0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | PD/-2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | H/0 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/1 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/-1 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/-0.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | H/-2.5 | top=0 rows=17 | top=0 rows=17
+notice window | start 30 | E/0 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/1 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/-1 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/-0.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | E/-2.5 | top=43 rows=17 | top=43 rows=17
+notice window | start 30 | UD/0 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/1 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/-1 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/0.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/-0.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/2.5 | top=29 rows=17 | top=28 rows=17
+notice window | start 30 | UD/-2.5 | top=29 rows=17 | top=28 rows=17
+quest objectives | start 0 | /0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | /1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | /-1 | top=3 lines=78 | top=6 lines=78
+quest objectives | start 0 | /0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | /-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | /2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | /-2.5 | top=6 lines=78 | top=12 lines=78
+quest objectives | start 0 | U/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | U/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | U/-1 | top=3 lines=78 | top=5 lines=78
+quest objectives | start 0 | U/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | U/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | U/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | U/-2.5 | top=6 lines=78 | top=11 lines=78
+quest objectives | start 0 | D/0 | top=1 lines=78 | top=2 lines=78
+quest objectives | start 0 | D/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | D/-1 | top=4 lines=78 | top=8 lines=78
+quest objectives | start 0 | D/0.5 | top=1 lines=78 | top=2 lines=78
+quest objectives | start 0 | D/-0.5 | top=1 lines=78 | top=2 lines=78
+quest objectives | start 0 | D/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | D/-2.5 | top=7 lines=78 | top=14 lines=78
+quest objectives | start 0 | PU/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PU/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PU/-1 | top=3 lines=78 | top=6 lines=78
+quest objectives | start 0 | PU/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PU/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PU/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PU/-2.5 | top=6 lines=78 | top=12 lines=78
+quest objectives | start 0 | PD/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PD/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PD/-1 | top=3 lines=78 | top=6 lines=78
+quest objectives | start 0 | PD/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PD/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | PD/-2.5 | top=6 lines=78 | top=12 lines=78
+quest objectives | start 0 | H/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | H/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | H/-1 | top=3 lines=78 | top=6 lines=78
+quest objectives | start 0 | H/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | H/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | H/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | H/-2.5 | top=6 lines=78 | top=12 lines=78
+quest objectives | start 0 | E/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | E/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | E/-1 | top=3 lines=78 | top=6 lines=78
+quest objectives | start 0 | E/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | E/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | E/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | E/-2.5 | top=6 lines=78 | top=12 lines=78
+quest objectives | start 0 | UD/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 0 | UD/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | UD/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 0 | UD/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 0 | UD/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 0 | UD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 0 | UD/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | /0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | /1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | /-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | /0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | /-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | /2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | /-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | U/0 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | U/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | U/-1 | top=3 lines=78 | top=5 lines=78
+quest objectives | start 1 | U/0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | U/-0.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | U/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | U/-2.5 | top=6 lines=78 | top=11 lines=78
+quest objectives | start 1 | D/0 | top=2 lines=78 | top=3 lines=78
+quest objectives | start 1 | D/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | D/-1 | top=5 lines=78 | top=9 lines=78
+quest objectives | start 1 | D/0.5 | top=2 lines=78 | top=3 lines=78
+quest objectives | start 1 | D/-0.5 | top=2 lines=78 | top=3 lines=78
+quest objectives | start 1 | D/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | D/-2.5 | top=8 lines=78 | top=15 lines=78
+quest objectives | start 1 | PU/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PU/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | PU/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | PU/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PU/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PU/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | PU/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | PD/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PD/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | PD/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | PD/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PD/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | PD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | PD/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | H/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | H/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | H/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | H/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | H/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | H/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | H/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | E/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | E/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | E/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | E/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | E/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | E/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | E/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 1 | UD/0 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | UD/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | UD/-1 | top=4 lines=78 | top=7 lines=78
+quest objectives | start 1 | UD/0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | UD/-0.5 | top=1 lines=78 | top=1 lines=78
+quest objectives | start 1 | UD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 1 | UD/-2.5 | top=7 lines=78 | top=13 lines=78
+quest objectives | start 4 | /0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | /1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | /-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | /0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | /-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | /2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | /-2.5 | top=10 lines=78 | top=16 lines=78
+quest objectives | start 4 | U/0 | top=3 lines=78 | top=2 lines=78
+quest objectives | start 4 | U/1 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | U/-1 | top=6 lines=78 | top=8 lines=78
+quest objectives | start 4 | U/0.5 | top=3 lines=78 | top=2 lines=78
+quest objectives | start 4 | U/-0.5 | top=3 lines=78 | top=2 lines=78
+quest objectives | start 4 | U/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | U/-2.5 | top=9 lines=78 | top=14 lines=78
+quest objectives | start 4 | D/0 | top=5 lines=78 | top=6 lines=78
+quest objectives | start 4 | D/1 | top=2 lines=78 | top=0 lines=78
+quest objectives | start 4 | D/-1 | top=8 lines=78 | top=12 lines=78
+quest objectives | start 4 | D/0.5 | top=5 lines=78 | top=6 lines=78
+quest objectives | start 4 | D/-0.5 | top=5 lines=78 | top=6 lines=78
+quest objectives | start 4 | D/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | D/-2.5 | top=11 lines=78 | top=18 lines=78
+quest objectives | start 4 | PU/0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PU/1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | PU/-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | PU/0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PU/-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PU/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | PU/-2.5 | top=10 lines=78 | top=16 lines=78
+quest objectives | start 4 | PD/0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PD/1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | PD/-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | PD/0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PD/-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | PD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | PD/-2.5 | top=10 lines=78 | top=16 lines=78
+quest objectives | start 4 | H/0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | H/1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | H/-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | H/0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | H/-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | H/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | H/-2.5 | top=10 lines=78 | top=16 lines=78
+quest objectives | start 4 | E/0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | E/1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | E/-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | E/0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | E/-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | E/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | E/-2.5 | top=10 lines=78 | top=16 lines=78
+quest objectives | start 4 | UD/0 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | UD/1 | top=1 lines=78 | top=0 lines=78
+quest objectives | start 4 | UD/-1 | top=7 lines=78 | top=10 lines=78
+quest objectives | start 4 | UD/0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | UD/-0.5 | top=4 lines=78 | top=4 lines=78
+quest objectives | start 4 | UD/2.5 | top=0 lines=78 | top=0 lines=78
+quest objectives | start 4 | UD/-2.5 | top=10 lines=78 | top=16 lines=78
+ending credits | start 0 | /0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | /1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | /-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | /0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | /-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | /2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | /-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 0 | U/0 | top=0 focus=2 | top=0 focus=1
+ending credits | start 0 | U/1 | top=0 focus=2 | top=0 focus=1
+ending credits | start 0 | U/-1 | top=3 focus=2 | top=6 focus=1
+ending credits | start 0 | U/0.5 | top=0 focus=2 | top=0 focus=1
+ending credits | start 0 | U/-0.5 | top=0 focus=2 | top=0 focus=1
+ending credits | start 0 | U/2.5 | top=0 focus=2 | top=0 focus=1
+ending credits | start 0 | U/-2.5 | top=6 focus=2 | top=12 focus=1
+ending credits | start 0 | D/0 | top=0 focus=1 | top=0 focus=2
+ending credits | start 0 | D/1 | top=0 focus=1 | top=0 focus=2
+ending credits | start 0 | D/-1 | top=3 focus=1 | top=6 focus=2
+ending credits | start 0 | D/0.5 | top=0 focus=1 | top=0 focus=2
+ending credits | start 0 | D/-0.5 | top=0 focus=1 | top=0 focus=2
+ending credits | start 0 | D/2.5 | top=0 focus=1 | top=0 focus=2
+ending credits | start 0 | D/-2.5 | top=6 focus=1 | top=12 focus=2
+ending credits | start 0 | PU/0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PU/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PU/-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | PU/0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PU/-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PU/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PU/-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 0 | PD/0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PD/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PD/-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | PD/0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PD/-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | PD/-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 0 | H/0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | H/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | H/-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | H/0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | H/-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | H/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | H/-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 0 | E/0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | E/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | E/-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | E/0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | E/-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | E/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | E/-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 0 | UD/0 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | UD/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | UD/-1 | top=3 focus=0 | top=6 focus=0
+ending credits | start 0 | UD/0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | UD/-0.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | UD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 0 | UD/-2.5 | top=6 focus=0 | top=12 focus=0
+ending credits | start 1 | /0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | /1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | /-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | /0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | /-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | /2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | /-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 1 | U/0 | top=1 focus=2 | top=1 focus=1
+ending credits | start 1 | U/1 | top=0 focus=2 | top=0 focus=1
+ending credits | start 1 | U/-1 | top=4 focus=2 | top=7 focus=1
+ending credits | start 1 | U/0.5 | top=1 focus=2 | top=1 focus=1
+ending credits | start 1 | U/-0.5 | top=1 focus=2 | top=1 focus=1
+ending credits | start 1 | U/2.5 | top=0 focus=2 | top=0 focus=1
+ending credits | start 1 | U/-2.5 | top=7 focus=2 | top=13 focus=1
+ending credits | start 1 | D/0 | top=1 focus=1 | top=1 focus=2
+ending credits | start 1 | D/1 | top=0 focus=1 | top=0 focus=2
+ending credits | start 1 | D/-1 | top=4 focus=1 | top=7 focus=2
+ending credits | start 1 | D/0.5 | top=1 focus=1 | top=1 focus=2
+ending credits | start 1 | D/-0.5 | top=1 focus=1 | top=1 focus=2
+ending credits | start 1 | D/2.5 | top=0 focus=1 | top=0 focus=2
+ending credits | start 1 | D/-2.5 | top=7 focus=1 | top=13 focus=2
+ending credits | start 1 | PU/0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PU/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | PU/-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | PU/0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PU/-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PU/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | PU/-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 1 | PD/0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PD/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | PD/-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | PD/0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PD/-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | PD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | PD/-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 1 | H/0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | H/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | H/-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | H/0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | H/-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | H/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | H/-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 1 | E/0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | E/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | E/-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | E/0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | E/-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | E/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | E/-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 1 | UD/0 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | UD/1 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | UD/-1 | top=4 focus=0 | top=7 focus=0
+ending credits | start 1 | UD/0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | UD/-0.5 | top=1 focus=0 | top=1 focus=0
+ending credits | start 1 | UD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 1 | UD/-2.5 | top=7 focus=0 | top=13 focus=0
+ending credits | start 4 | /0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | /1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | /-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | /0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | /-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | /2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | /-2.5 | top=10 focus=0 | top=16 focus=0
+ending credits | start 4 | U/0 | top=4 focus=2 | top=4 focus=1
+ending credits | start 4 | U/1 | top=1 focus=2 | top=0 focus=1
+ending credits | start 4 | U/-1 | top=7 focus=2 | top=10 focus=1
+ending credits | start 4 | U/0.5 | top=4 focus=2 | top=4 focus=1
+ending credits | start 4 | U/-0.5 | top=4 focus=2 | top=4 focus=1
+ending credits | start 4 | U/2.5 | top=0 focus=2 | top=0 focus=1
+ending credits | start 4 | U/-2.5 | top=10 focus=2 | top=16 focus=1
+ending credits | start 4 | D/0 | top=4 focus=1 | top=4 focus=2
+ending credits | start 4 | D/1 | top=1 focus=1 | top=0 focus=2
+ending credits | start 4 | D/-1 | top=7 focus=1 | top=10 focus=2
+ending credits | start 4 | D/0.5 | top=4 focus=1 | top=4 focus=2
+ending credits | start 4 | D/-0.5 | top=4 focus=1 | top=4 focus=2
+ending credits | start 4 | D/2.5 | top=0 focus=1 | top=0 focus=2
+ending credits | start 4 | D/-2.5 | top=10 focus=1 | top=16 focus=2
+ending credits | start 4 | PU/0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PU/1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | PU/-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | PU/0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PU/-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PU/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | PU/-2.5 | top=10 focus=0 | top=16 focus=0
+ending credits | start 4 | PD/0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PD/1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | PD/-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | PD/0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PD/-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | PD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | PD/-2.5 | top=10 focus=0 | top=16 focus=0
+ending credits | start 4 | H/0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | H/1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | H/-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | H/0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | H/-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | H/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | H/-2.5 | top=10 focus=0 | top=16 focus=0
+ending credits | start 4 | E/0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | E/1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | E/-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | E/0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | E/-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | E/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | E/-2.5 | top=10 focus=0 | top=16 focus=0
+ending credits | start 4 | UD/0 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | UD/1 | top=1 focus=0 | top=0 focus=0
+ending credits | start 4 | UD/-1 | top=7 focus=0 | top=10 focus=0
+ending credits | start 4 | UD/0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | UD/-0.5 | top=4 focus=0 | top=4 focus=0
+ending credits | start 4 | UD/2.5 | top=0 focus=0 | top=0 focus=0
+ending credits | start 4 | UD/-2.5 | top=10 focus=0 | top=16 focus=0
+save list focused | start 0 | /0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | /1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | /-1 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | /0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | /-0.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | /2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | /-2.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | U/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | U/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | U/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | U/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | U/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | U/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | U/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | D/0 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | D/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | D/-1 | sel=2 top=0 n=25 focus=3 | sel=4 top=0 n=25 focus=3
+save list focused | start 0 | D/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | D/-0.5 | sel=2 top=0 n=25 focus=3 | sel=4 top=0 n=25 focus=3
+save list focused | start 0 | D/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | D/-2.5 | sel=2 top=0 n=25 focus=3 | sel=4 top=0 n=25 focus=3
+save list focused | start 0 | PU/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | PU/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | PU/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | PU/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | PU/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | PU/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | PU/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | PD/0 | sel=24 top=0 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 0 | PD/1 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 0 | PD/-1 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 0 | PD/0.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 0 | PD/-0.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 0 | PD/2.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 0 | PD/-2.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 0 | H/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | H/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | H/-1 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | H/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | H/-0.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | H/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | H/-2.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | E/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | E/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | E/-1 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | E/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | E/-0.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | E/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | E/-2.5 | sel=1 top=0 n=25 focus=3 | sel=2 top=0 n=25 focus=3
+save list focused | start 0 | UD/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | UD/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | UD/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | UD/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | UD/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 0 | UD/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 0 | UD/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | /0 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | /1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | /-1 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | /0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | /-0.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | /2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | /-2.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | U/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | U/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | U/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | U/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | U/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | U/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | U/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | D/0 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | D/1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | D/-1 | sel=3 top=0 n=25 focus=3 | sel=5 top=0 n=25 focus=3
+save list focused | start 1 | D/0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | D/-0.5 | sel=3 top=0 n=25 focus=3 | sel=5 top=0 n=25 focus=3
+save list focused | start 1 | D/2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | D/-2.5 | sel=3 top=0 n=25 focus=3 | sel=5 top=0 n=25 focus=3
+save list focused | start 1 | PU/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | PU/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | PU/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | PU/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | PU/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | PU/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | PU/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | PD/0 | sel=24 top=0 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 1 | PD/1 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 1 | PD/-1 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 1 | PD/0.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 1 | PD/-0.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 1 | PD/2.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 1 | PD/-2.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 1 | H/0 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | H/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | H/-1 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | H/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | H/-0.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | H/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | H/-2.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | E/0 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | E/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | E/-1 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | E/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | E/-0.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | E/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | E/-2.5 | sel=2 top=0 n=25 focus=3 | sel=3 top=0 n=25 focus=3
+save list focused | start 1 | UD/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | UD/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | UD/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | UD/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | UD/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 1 | UD/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 1 | UD/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 20 | /0 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | /1 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | /-1 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | /0.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | /-0.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | /2.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | /-2.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | U/0 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | U/1 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | U/-1 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | U/0.5 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | U/-0.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | U/2.5 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | U/-2.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | D/0 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | D/1 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | D/-1 | sel=22 top=0 n=25 focus=3 | sel=24 top=0 n=25 focus=3
+save list focused | start 20 | D/0.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | D/-0.5 | sel=22 top=0 n=25 focus=3 | sel=24 top=0 n=25 focus=3
+save list focused | start 20 | D/2.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | D/-2.5 | sel=22 top=0 n=25 focus=3 | sel=24 top=0 n=25 focus=3
+save list focused | start 20 | PU/0 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 20 | PU/1 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 20 | PU/-1 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 20 | PU/0.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 20 | PU/-0.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 20 | PU/2.5 | sel=0 top=0 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 20 | PU/-2.5 | sel=1 top=0 n=25 focus=3 | sel=1 top=0 n=25 focus=3
+save list focused | start 20 | PD/0 | sel=24 top=0 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 20 | PD/1 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 20 | PD/-1 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 20 | PD/0.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 20 | PD/-0.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 20 | PD/2.5 | sel=23 top=0 n=25 focus=3 | sel=23 top=0 n=25 focus=3
+save list focused | start 20 | PD/-2.5 | sel=25 top=1 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 20 | H/0 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | H/1 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | H/-1 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | H/0.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | H/-0.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | H/2.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | H/-2.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | E/0 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | E/1 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | E/-1 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | E/0.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | E/-0.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | E/2.5 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | E/-2.5 | sel=21 top=0 n=25 focus=3 | sel=22 top=0 n=25 focus=3
+save list focused | start 20 | UD/0 | sel=19 top=0 n=25 focus=3 | sel=18 top=0 n=25 focus=3
+save list focused | start 20 | UD/1 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | UD/-1 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | UD/0.5 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | UD/-0.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 20 | UD/2.5 | sel=18 top=0 n=25 focus=3 | sel=16 top=0 n=25 focus=3
+save list focused | start 20 | UD/-2.5 | sel=20 top=0 n=25 focus=3 | sel=20 top=0 n=25 focus=3
+save list focused | start 39 | /0 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | /1 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | /-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | /0.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | /-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | /2.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | /-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | U/0 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | U/1 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | U/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | U/0.5 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | U/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | U/2.5 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | U/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | D/0 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | D/1 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | D/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | D/0.5 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | D/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | D/2.5 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | D/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | PU/0 | sel=15 top=15 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 39 | PU/1 | sel=14 top=14 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 39 | PU/-1 | sel=16 top=15 n=25 focus=3 | sel=16 top=15 n=25 focus=3
+save list focused | start 39 | PU/0.5 | sel=14 top=14 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 39 | PU/-0.5 | sel=16 top=15 n=25 focus=3 | sel=16 top=15 n=25 focus=3
+save list focused | start 39 | PU/2.5 | sel=14 top=14 n=25 focus=3 | sel=0 top=0 n=25 focus=3
+save list focused | start 39 | PU/-2.5 | sel=16 top=15 n=25 focus=3 | sel=16 top=15 n=25 focus=3
+save list focused | start 39 | PD/0 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | PD/1 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | PD/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | PD/0.5 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | PD/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | PD/2.5 | sel=38 top=15 n=25 focus=3 | sel=38 top=15 n=25 focus=3
+save list focused | start 39 | PD/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | H/0 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | H/1 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | H/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | H/0.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | H/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | H/2.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | H/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | E/0 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | E/1 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | E/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | E/0.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | E/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | E/2.5 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | E/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | UD/0 | sel=38 top=15 n=25 focus=3 | sel=37 top=15 n=25 focus=3
+save list focused | start 39 | UD/1 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | UD/-1 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | UD/0.5 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | UD/-0.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list focused | start 39 | UD/2.5 | sel=37 top=15 n=25 focus=3 | sel=35 top=15 n=25 focus=3
+save list focused | start 39 | UD/-2.5 | sel=39 top=15 n=25 focus=3 | sel=39 top=15 n=25 focus=3
+save list hovered | start 0 | /0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | /1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | /-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | /0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | /-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | /2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | /-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | U/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | U/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | U/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | U/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | U/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | U/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | U/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | D/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | D/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | D/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | D/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | D/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | D/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | D/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | PU/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PU/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PU/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | PU/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PU/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PU/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PU/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | PD/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PD/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PD/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | PD/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PD/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PD/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | PD/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | H/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | H/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | H/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | H/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | H/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | H/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | H/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | E/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | E/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | E/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | E/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | E/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | E/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | E/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 0 | UD/0 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | UD/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | UD/-1 | sel=1 top=0 n=25 focus=4 | sel=2 top=0 n=25 focus=4
+save list hovered | start 0 | UD/0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | UD/-0.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | UD/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 0 | UD/-2.5 | sel=2 top=0 n=25 focus=4 | sel=4 top=0 n=25 focus=4
+save list hovered | start 1 | /0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | /1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | /-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | /0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | /-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | /2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | /-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | U/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | U/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | U/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | U/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | U/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | U/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | U/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | D/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | D/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | D/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | D/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | D/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | D/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | D/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | PU/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PU/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | PU/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | PU/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PU/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PU/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | PU/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | PD/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PD/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | PD/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | PD/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PD/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | PD/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | PD/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | H/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | H/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | H/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | H/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | H/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | H/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | H/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | E/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | E/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | E/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | E/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | E/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | E/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | E/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 1 | UD/0 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | UD/1 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | UD/-1 | sel=2 top=0 n=25 focus=4 | sel=3 top=0 n=25 focus=4
+save list hovered | start 1 | UD/0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | UD/-0.5 | sel=1 top=0 n=25 focus=4 | sel=1 top=0 n=25 focus=4
+save list hovered | start 1 | UD/2.5 | sel=0 top=0 n=25 focus=4 | sel=0 top=0 n=25 focus=4
+save list hovered | start 1 | UD/-2.5 | sel=3 top=0 n=25 focus=4 | sel=5 top=0 n=25 focus=4
+save list hovered | start 20 | /0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | /1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | /-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | /0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | /-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | /2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | /-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | U/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | U/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | U/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | U/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | U/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | U/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | U/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | D/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | D/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | D/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | D/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | D/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | D/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | D/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | PU/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PU/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | PU/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | PU/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PU/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PU/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | PU/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | PD/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PD/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | PD/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | PD/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PD/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | PD/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | PD/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | H/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | H/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | H/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | H/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | H/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | H/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | H/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | E/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | E/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | E/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | E/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | E/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | E/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | E/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 20 | UD/0 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | UD/1 | sel=19 top=0 n=25 focus=4 | sel=18 top=0 n=25 focus=4
+save list hovered | start 20 | UD/-1 | sel=21 top=0 n=25 focus=4 | sel=22 top=0 n=25 focus=4
+save list hovered | start 20 | UD/0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | UD/-0.5 | sel=20 top=0 n=25 focus=4 | sel=20 top=0 n=25 focus=4
+save list hovered | start 20 | UD/2.5 | sel=18 top=0 n=25 focus=4 | sel=16 top=0 n=25 focus=4
+save list hovered | start 20 | UD/-2.5 | sel=22 top=0 n=25 focus=4 | sel=24 top=0 n=25 focus=4
+save list hovered | start 39 | /0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | /1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | /-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | /0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | /-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | /2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | /-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | U/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | U/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | U/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | U/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | U/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | U/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | U/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | D/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | D/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | D/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | D/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | D/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | D/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | D/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PU/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PU/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | PU/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PU/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PU/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PU/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | PU/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PD/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PD/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | PD/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PD/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PD/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | PD/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | PD/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | H/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | H/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | H/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | H/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | H/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | H/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | H/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | E/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | E/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | E/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | E/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | E/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | E/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | E/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | UD/0 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | UD/1 | sel=38 top=15 n=25 focus=4 | sel=37 top=15 n=25 focus=4
+save list hovered | start 39 | UD/-1 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | UD/0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | UD/-0.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+save list hovered | start 39 | UD/2.5 | sel=37 top=15 n=25 focus=4 | sel=35 top=15 n=25 focus=4
+save list hovered | start 39 | UD/-2.5 | sel=39 top=15 n=25 focus=4 | sel=39 top=15 n=25 focus=4
+editor wheel | start 0 | /0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | /1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | /-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | /0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | /-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | /2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | /-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | U/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | U/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | U/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | U/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | U/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | U/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | U/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | D/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | D/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | D/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | D/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | D/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | D/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | D/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | PU/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | PU/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | PU/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | PU/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | PU/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | PU/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | PU/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | PD/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | PD/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | PD/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | PD/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | PD/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | PD/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | PD/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | H/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | H/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | H/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | H/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | H/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | H/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | H/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | E/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | E/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | E/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | E/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | E/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | E/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | E/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0
+editor wheel | start 0 | UD/0 | rows=[0] rem=0 | rows=[0 0] rem=0
+editor wheel | start 0 | UD/1 | rows=[-3] rem=0 | rows=[-3 -3] rem=0
+editor wheel | start 0 | UD/-1 | rows=[3] rem=0 | rows=[3 3] rem=0
+editor wheel | start 0 | UD/0.5 | rows=[-1] rem=-0.5 | rows=[-1 -2] rem=0
+editor wheel | start 0 | UD/-0.5 | rows=[1] rem=0.5 | rows=[1 2] rem=0
+editor wheel | start 0 | UD/2.5 | rows=[-7] rem=-0.5 | rows=[-7 -8] rem=0
+editor wheel | start 0 | UD/-2.5 | rows=[7] rem=0.5 | rows=[7 8] rem=0

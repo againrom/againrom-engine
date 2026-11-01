@@ -63,11 +63,7 @@ func (w *window) Update() error {
 	}
 	if _, dy := ebiten.Wheel(); dy != 0 {
 		x, y := ebiten.CursorPosition()
-		if dy > 0 {
-			a.wheel(image.Pt(x, y), -1)
-		} else {
-			a.wheel(image.Pt(x, y), 1)
-		}
+		a.wheel(image.Pt(x, y), ui.ListWheelLines(dy))
 	}
 	ctrl := heldkey.Pressed(ebiten.KeyControl)
 	switch {

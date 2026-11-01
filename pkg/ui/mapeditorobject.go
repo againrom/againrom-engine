@@ -609,7 +609,7 @@ func (e *MapEditor) openDropdownPress(p image.Point) bool {
 	return false
 }
 
-func (e *MapEditor) objectWheelDropdown(wheel float64) bool {
+func (e *MapEditor) objectWheelDropdown(wheel wheelSource) bool {
 	if !e.openDropdownHit(e.pointer) {
 		return false
 	}

@@ -133,7 +133,7 @@ func (r *chargenRepeat) tick(in appInput) bool {
 func (r *chargenRepeat) tickEvery(in appInput, delay, interval int) bool {
 	cursor := image.Pt(in.CursorX, in.CursorY)
 	message := !r.seen || cursor != r.cursor || in.PrimaryPressed || in.PrimaryReleased ||
-		in.SecondaryPressed || in.SecondaryReleased || in.WheelY != 0
+		in.SecondaryPressed || in.SecondaryReleased || wheeled(in)
 	r.seen, r.cursor = true, cursor
 	if in.PrimaryPressed {
 		r.afterDouble = in.PrimaryDouble

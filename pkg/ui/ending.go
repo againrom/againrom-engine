@@ -220,9 +220,9 @@ func (a *App) stepEnding(in appInput) {
 	if in.Up {
 		f.endingFocus = (f.endingFocus + len(buttons) - 1) % len(buttons)
 	}
-	if in.WheelY != 0 {
+	if wheeled(in) {
 		rows, count := f.endingRows()
-		f.endingTop = min(max(0, len(rows)-count), max(0, f.endingTop-int(in.WheelY)*3))
+		f.endingTop = min(max(0, len(rows)-count), max(0, f.endingTop+endingList.wheelStep(in)))
 	}
 	if in.Enter {
 		a.activateEnding(f.endingFocus)

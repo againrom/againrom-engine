@@ -260,11 +260,8 @@ func (a *App) stepMedia(in appInput, now time.Time) {
 	if in.End {
 		a.selectMovie(list.Len() - 1)
 	}
-	if in.WheelY > 0 {
-		list.Move(-3)
-	}
-	if in.WheelY < 0 {
-		list.Move(3)
+	if wheel := pickerList.wheelStep(in); wheel != 0 {
+		list.Move(wheel)
 	}
 	if in.Enter {
 		a.replayMovie()

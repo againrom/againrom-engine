@@ -420,9 +420,9 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	if e.pathDialog.pending != nil {
 		return
 	}
-	if in.Alt && in.WheelY != 0 && e.brushActive() {
+	if in.Alt && wheeled(in) && e.brushActive() {
 		// Alt+wheel sizes the brush; the plain wheel still zooms and scrolls.
-		e.brushWheel(in.WheelY)
+		e.brushWheel(in)
 		in.WheelY = 0
 	}
 	if e.chromePointer(in, now) {
@@ -477,18 +477,6 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 		}
 		e.selectAt(p)
 	}
-}
-
-// A high-resolution wheel may report less than one notch per update. Preserve
-// the remainder instead of discarding it on every float-to-int conversion.
-func editorWheelRows(remainder *float64, wheel float64) int {
-	if math.IsNaN(wheel) || math.IsInf(wheel, 0) {
-		return 0
-	}
-	*remainder -= math.Max(-100000, math.Min(100000, wheel)) * 3
-	rows := int(*remainder)
-	*remainder -= float64(rows)
-	return rows
 }
 
 func (e *MapEditor) Update() error {

@@ -397,11 +397,12 @@ func (a *App) stepSaveDialog(in appInput) {
 		return
 	}
 	if d.prepared != nil || d.remove != nil {
-		if in.Up || in.WheelY > 0 {
-			d.confirmTop--
+		wheel := confirmList.wheelStep(in)
+		if in.Up || wheel < 0 {
+			d.confirmTop -= confirmList.key
 		}
-		if in.Down || in.WheelY < 0 {
-			d.confirmTop++
+		if in.Down || wheel > 0 {
+			d.confirmTop += confirmList.key
 		}
 		a.clampSaveConfirmationScroll()
 	} else {
@@ -412,16 +413,13 @@ func (a *App) stepSaveDialog(in appInput) {
 		a.flow.editSaveText(in)
 		if d.focus == saveListControl && d.list != nil {
 			listKey(d.list, in.Up, in.Down, in.PageUp, in.PageDown)
-			if in.WheelY > 0 {
-				d.list.Move(-1)
-			}
-			if in.WheelY < 0 {
-				d.list.Move(1)
+			if wheel := saveListFocused.wheelStep(in); wheel != 0 {
+				d.list.Move(wheel)
 			}
 		}
-		if in.WheelY != 0 && d.focus != saveListControl {
+		if wheeled(in) && d.focus != saveListControl {
 			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && p.In(saveListRect) {
-				d.list.Move(-int(in.WheelY))
+				d.list.Move(saveListHover.wheelStep(in))
 			}
 		}
 	}

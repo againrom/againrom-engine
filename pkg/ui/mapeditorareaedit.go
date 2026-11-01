@@ -616,7 +616,7 @@ func (e *MapEditor) areaStep(delta int) {
 }
 
 // areaWheel scrolls the trigger choice's open list.
-func (e *MapEditor) areaWheel(wheel float64) bool {
+func (e *MapEditor) areaWheel(wheel wheelSource) bool {
 	if !e.areaDropdownHit(e.pointer) {
 		return false
 	}

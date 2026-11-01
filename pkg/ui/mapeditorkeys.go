@@ -568,10 +568,7 @@ func (e *MapEditor) brushKeyRow(key string) error {
 
 // keyStep moves the brush palette's row, else the report's selected finding.
 func (e *MapEditor) keyStep(key string) error {
-	delta := 1
-	if key == "up" {
-		delta = -1
-	}
+	delta := editorList.keyStep(key == "up", key != "up")
 	if e.prompt.kind == promptAdd {
 		e.addMove(delta)
 		return nil
@@ -601,18 +598,10 @@ func (e *MapEditor) keyStep(key string) error {
 		return nil
 	}
 	if e.listView() && (e.filter == editorPlayersFilter || e.filter == editorScriptsFilter) {
-		delta := 1
-		if key == "up" {
-			delta = -1
-		}
 		e.stepPlayer(delta)
 		return nil
 	}
-	if key == "up" {
-		e.reportStep(-1)
-	} else {
-		e.reportStep(1)
-	}
+	e.reportStep(delta)
 	return nil
 }
 

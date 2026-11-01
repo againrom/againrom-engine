@@ -19,7 +19,7 @@ func (a *App) updateTooltip(in appInput, now time.Time, changed bool) {
 	blocked := changed || in.Unfocused || a.cutscene != nil || a.cutsceneDrain ||
 		in.AnyKey || in.AnyHeld || in.PrimaryPressed || in.PrimaryReleased ||
 		in.SecondaryPressed || in.SecondaryReleased || in.Viewer.PrimaryDown ||
-		in.Viewer.SecondaryDown || in.WheelY != 0
+		in.Viewer.SecondaryDown || wheeled(in)
 	if blocked {
 		a.tooltip.observe(now, a.tooltipPoint, "", true)
 		return
@@ -35,7 +35,7 @@ func (v *Viewer) updateTooltip(in Input, now time.Time) {
 	if v.tooltip == nil {
 		v.tooltip = &tooltipController{delay: DefaultTooltipDelay}
 	}
-	blocked := in.Unfocused || in.PrimaryDown || in.SecondaryDown || in.WheelY != 0 ||
+	blocked := in.Unfocused || in.PrimaryDown || in.SecondaryDown || wheeled(in) ||
 		in.PanLeft || in.PanRight || in.PanUp || in.PanDown || v.popupOpen() || v.dragActive
 	v.tooltip.observe(now, image.Pt(in.CursorX, in.CursorY), v.tooltipTarget().key(), blocked)
 }

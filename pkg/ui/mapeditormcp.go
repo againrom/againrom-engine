@@ -79,7 +79,7 @@ func (e *MapEditor) mcpCanvas(native Input) Input {
 	if !m.mcpHeld() {
 		return native
 	}
-	person := native.PrimaryDown || native.SecondaryDown || native.MiddleDown || native.WheelY != 0 ||
+	person := native.PrimaryDown || native.SecondaryDown || native.MiddleDown || wheeled(native) ||
 		native.PanLeft || native.PanRight || native.PanUp || native.PanDown || moved
 	if !person && !m.queue.Closed() && !m.queue.Disconnected() {
 		held := m.input
