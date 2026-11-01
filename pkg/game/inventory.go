@@ -701,6 +701,21 @@ func inventoryGold(subject ui.InventorySubject) uint32 {
 	return subject.PackCount[last]
 }
 
+// itemIcon is the icon item code shows and the address it is read from: one
+// read per code, kept in cache; a failed or absent read is a nil icon.
+func itemIcon(src entrySource, table *mapload.Table, code uint16, cache map[uint16]*image.RGBA) (*image.RGBA, string) {
+	addr := graphicsPrefix + data.ItemIconPath(itemTemplateCode(table, code))
+	if src == nil {
+		return nil, addr
+	}
+	icon, tried := cache[code]
+	if !tried {
+		icon, _ = loadItemIcon(src, addr) // a failure resolves to a nil icon, cached alike
+		cache[code] = icon
+	}
+	return icon, addr
+}
+
 func buildInventoryPack(src entrySource, table *mapload.Table, stacks []sim.ItemStack, cache map[uint16]*image.RGBA) ([]*image.RGBA, []uint32, []string) {
 	if len(stacks) == 0 {
 		// A CARRIER OF NOTHING ANSWERS NIL AND NOT AN EMPTY SLICE, which is
@@ -714,16 +729,7 @@ func buildInventoryPack(src entrySource, table *mapload.Table, stacks []sim.Item
 	var unread []string
 	for i, st := range stacks {
 		counts[i] = st.Count
-		addr := graphicsPrefix + data.ItemIconPath(itemTemplateCode(table, st.Code))
-		if src == nil {
-			unread = append(unread, addr)
-			continue
-		}
-		icon, tried := cache[st.Code]
-		if !tried {
-			icon, _ = loadItemIcon(src, addr) // a failure resolves to a nil icon, cached alike
-			cache[st.Code] = icon
-		}
+		icon, addr := itemIcon(src, table, st.Code, cache)
 		if icon == nil {
 			unread = append(unread, addr)
 			continue

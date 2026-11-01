@@ -222,6 +222,7 @@ type MapEditor struct {
 	relations                   relationMatrix
 	lastSeed                    uint32 // the seed the last whole-map command took
 	panels                      editorPanels
+	props                       propertyView // the object window's plain or technical view
 	tree                        editorTree
 	editorChrome
 }

@@ -33,11 +33,25 @@ const (
 	popupCard
 )
 
+// blockRow is the heading of a block of rows that opens and closes. It
+// takes the tree's fold state, RowFold: the painter draws the state's mark
+// from rowFoldMarks before the label, which stays the block's word.
+func blockRow(label string, open bool) popupRow {
+	fold := FoldClosed
+	if open {
+		fold = FoldOpen
+	}
+	return popupRow{Kind: popupHeading, Label: label, Fold: fold}
+}
+
 // popupRow is one row of a popup.
 type popupRow struct {
-	Column       int
-	Edit         *editorTextView
-	Kind         popupRowKind
+	Column int
+	Edit   *editorTextView
+	Kind   popupRowKind
+	// Fold marks a heading that opens and closes the rows under it, as a
+	// tree row's Fold does; FoldNone is a plain heading.
+	Fold         RowFold
 	Label, Value string
 	Ink          color.RGBA // the value's ink; zero is the popup's paper
 	Focus        bool       // the keyboard edits this row
@@ -210,9 +224,12 @@ type popupSpec struct {
 	// CloseLabel is the title row button's caption; empty is the close
 	// button's x.
 	CloseLabel string
-	At         image.Point
-	Width      int
-	Bounds     image.Rectangle
+	// TitleButton is the caption of a button the title row holds left of
+	// its close button, as wide as its caption; empty is none.
+	TitleButton string
+	At          image.Point
+	Width       int
+	Bounds      image.Rectangle
 	// Room is what a grid of every row (Rows 0) grows into while the popup
 	// keeps its own size: the width that holds every cell on one line, then
 	// the rows down to Room's bottom. Empty is Bounds.
@@ -279,13 +296,15 @@ type popupLayout struct {
 	Tabs               []image.Rectangle
 	RowBar             image.Rectangle
 	Rect, Title, Close image.Rectangle
-	Rows               []popupRowRect
-	List               listBox
-	HasList            bool
-	Aside              image.Rectangle // the column ListAside keeps
-	Notes              []image.Rectangle
-	Buttons            []image.Rectangle
-	Pitch              int
+	// TitleButton is the title row's TitleButton, empty for none.
+	TitleButton image.Rectangle
+	Rows        []popupRowRect
+	List        listBox
+	HasList     bool
+	Aside       image.Rectangle // the column ListAside keeps
+	Notes       []image.Rectangle
+	Buttons     []image.Rectangle
+	Pitch       int
 	// ListRows and RowsFit are the list rows and the scrolled rows the
 	// layout shows: the spec's own, or the ones a sized popup fits.
 	ListRows, RowsFit int
@@ -756,6 +775,10 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		}
 	}
 	l.Close = image.Rect(r.Max.X-l.Title.Dy(), r.Min.Y+2, r.Max.X-2, l.Title.Max.Y-2)
+	if s.TitleButton != "" {
+		bw := popupButtonWidths(popupSpec{Buttons: []string{s.TitleButton}, ButtonW: 48, ButtonFit: true}, body)[0]
+		l.TitleButton = image.Rect(l.Close.Min.X-4-bw, l.Close.Min.Y, l.Close.Min.X-4, l.Close.Max.Y)
+	}
 	contentRight := r.Max.X - popupPad
 	cardY := r.Min.Y + titleH + popupPad
 	if s.Card != nil {
@@ -1038,6 +1061,7 @@ const (
 	popupGridBar                     // the grid's scroll bar
 	popupRowGrip                     // a card's grip: a drag moves the card
 	popupTab
+	popupTitleButton // the title row's TitleButton
 )
 
 // hit reports the part under p and its row, list or button index.
@@ -1047,6 +1071,9 @@ func (l popupLayout) hit(p image.Point) (popupPart, int) {
 	}
 	if p.In(l.Close) {
 		return popupClose, 0
+	}
+	if p.In(l.TitleButton) {
+		return popupTitleButton, 0
 	}
 	if p.In(l.Title) {
 		return popupTitle, 0
@@ -1194,8 +1221,13 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	drawFrame(dst, panelFrame(l.Title, ink.TitleGround, ink.Edge))
 	drawPopupGrip(dst, l.Rect, ink.Edge)
+	titleEnd := l.Close.Min.X
+	if !l.TitleButton.Empty() {
+		titleEnd = l.TitleButton.Min.X
+		drawPushButton(dst, body, pushButton{Rect: l.TitleButton, Label: s.TitleButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.TitleButton)})
+	}
 	if title != nil {
-		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, l.Close.Min.X-2, l.Title.Max.Y)).(*image.RGBA)
+		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, titleEnd-2, l.Title.Max.Y)).(*image.RGBA)
 		title.Draw(clip, s.Title, l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 	}
 	closeLabel := "x"
@@ -1222,7 +1254,12 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			band := rr.Rect.Intersect(l.Rect)
 			drawFrame(dst, panelFrame(band, ink.TitleGround, ink.Edge))
 			if title != nil {
-				title.Draw(dst.SubImage(band).(*image.RGBA), row.Label, rr.Rect.Min.X+4, rr.Rect.Min.Y+popupRowExtra/2, ink.Title)
+				x := rr.Rect.Min.X + 4
+				if row.Fold != FoldNone {
+					// The fold mark, as a tree row draws it before its text.
+					title.Draw(dst.SubImage(band).(*image.RGBA), rowFoldMarks[row.Fold], x, rr.Rect.Min.Y+popupRowExtra/2, ink.Title)
+				}
+				title.Draw(dst.SubImage(band).(*image.RGBA), row.Label, x+foldIndent(row), rr.Rect.Min.Y+popupRowExtra/2, ink.Title)
 			}
 			continue
 		}
@@ -1350,6 +1387,15 @@ type popupTip struct {
 	Lines []string
 }
 
+// foldIndent is how far a heading's label stands right of its fold mark:
+// a tree row's step, none for a heading that does not open and close.
+func foldIndent(row popupRow) int {
+	if row.Fold == FoldNone {
+		return 0
+	}
+	return listIndentStep
+}
+
 // rowFull is shown row rr's whole text, label then value, and whether the
 // painter cuts any part of it: the label to its column, a value to its
 // control, by the same widths the painter clips to.
@@ -1363,7 +1409,7 @@ func rowFull(title, body *text.Font, row popupRow, rr popupRowRect) (string, boo
 		if f == nil {
 			f = body
 		}
-		return full, f.Advance(row.Label) > rr.Rect.Dx()-4
+		return full, f.Advance(row.Label) > rr.Rect.Dx()-4-foldIndent(row)
 	}
 	label := rr.Label
 	if row.Kind == popupCard && !row.Struck {

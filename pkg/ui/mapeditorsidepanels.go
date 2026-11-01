@@ -255,8 +255,26 @@ func (e *MapEditor) togglePanel(i int) {
 func (e *MapEditor) SetPanelProfile(data []byte, readErr error, save func([]byte) error) {
 	e.panels.save = save
 	e.panels.state = panelStateOf(data, readErr)
+	e.props.plain = plainViewOf(data, readErr)
 	e.relayout()
 }
+
+// plainViewOf reads the object window's view from the profile file: the
+// right panel's "view", plain unless it names the technical view. A
+// missing or broken file gives the plain view.
+func plainViewOf(data []byte, readErr error) bool {
+	var kept map[string]struct{ View string }
+	if readErr != nil || json.Unmarshal(data, &kept) != nil {
+		return true
+	}
+	return kept[sidePanels[panelRight].name].View != viewTechnical
+}
+
+// The words the profile file keeps the object window's view as.
+const (
+	viewPlain     = "plain"
+	viewTechnical = "technical"
+)
 
 // panelStateOf reads the profile file's panel state; a side it does not
 // hold, or a file that does not read, takes the defaults. A side kept as
@@ -297,6 +315,11 @@ func (e *MapEditor) panelStateBytes() []byte {
 		s := e.panels.state[i]
 		kept[p.name] = map[string]any{"minimized": !s.Restored, "width": clampPanel(i, s.Width)}
 	}
+	view := viewTechnical
+	if e.props.plain {
+		view = viewPlain
+	}
+	kept[sidePanels[panelRight].name]["view"] = view
 	b, _ := json.Marshal(kept)
 	return append(b, '\n')
 }
@@ -363,9 +386,29 @@ func (e *MapEditor) hostedObject(s popupSpec) popupSpec {
 	if s.MaxRows == 0 {
 		s.MaxRows = popupRowCount(s)
 	}
-	s.MaxRows = max(1, layoutPopup(s, e.font, e.bodyFont()).RowsFit)
-	e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
-	s.Top = e.objectTop
+	// The rows that fit are counted from the first row shown; where they
+	// reach the last row, the first row shown is the least that still
+	// shows the last, so every row is in reach and the last page is full.
+	count, all := popupRowCount(s), s.MaxRows
+	fit := func(top int) int {
+		s.Top, s.MaxRows = top, all
+		return max(1, layoutPopup(s, e.font, e.bodyFont()).RowsFit)
+	}
+	top := max(0, min(e.objectTop, count-1))
+	if n := fit(top); top+n < count {
+		e.objectTop, s.Top, s.MaxRows = top, top, n
+		return s
+	}
+	lo := 0
+	for hi := top; lo < hi; {
+		if mid := (lo + hi) / 2; mid+fit(mid) >= count {
+			hi = mid
+		} else {
+			lo = mid + 1
+		}
+	}
+	n := fit(lo)
+	e.objectTop, s.Top, s.MaxRows = lo, lo, n
 	return s
 }
 

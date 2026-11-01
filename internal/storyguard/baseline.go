@@ -3693,5 +3693,12 @@ var Committed = Baseline{
 	// internal/archtest's spellarms.go, the popup's caption block method in
 	// pkg/game's spell.go, and this note. It fell by the creature aim
 	// table's and the Fire Ball constants' comments.
-	CommentBytes: 10216451,
+
+	// It rose for the object window's plain view: the plain tables and their
+	// builder in pkg/ui's mapeditorplain.go, the block row in editorpopup.go,
+	// the view kept in the editor profile, the item look in pkg/game, their
+	// tests, and this note. It rose again for the view switch in the title
+	// row, the fold the block row takes from the tree, the hosted window's
+	// scroll to its last row, and their tests over a wide fixture.
+	CommentBytes: 10232971,
 }

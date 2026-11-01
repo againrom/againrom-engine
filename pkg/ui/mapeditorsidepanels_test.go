@@ -128,7 +128,7 @@ func rowsText(s popupSpec) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "title %q\n", s.Title)
 	for _, r := range s.Rows {
-		fmt.Fprintf(&b, "%d %q %q %v %q\n", r.Kind, r.Label, r.Value, r.Buttons, r.Hint)
+		fmt.Fprintf(&b, "%d %q %q %v %q\n", r.Kind, markedLabel(r), r.Value, r.Buttons, r.Hint)
 	}
 	return b.String()
 }
@@ -188,7 +188,8 @@ func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
 	probe, _ := groupsEditor(t)
 	strip := probe.panelStrip()
 	base := chromeRectsLines(t, string(raw))
-	got := chromeRectsLines(t, chromeRectsText(t, func(e *MapEditor) { e.SetPanelProfile(minimizedPanels, nil, nil) }))
+	// The recorded rectangles are the technical view's, the base window.
+	got := chromeRectsLines(t, chromeRectsText(t, func(e *MapEditor) { e.SetPanelProfile(minimizedPanels, nil, nil); e.props.plain = false }))
 	if len(got) != len(base) {
 		t.Fatalf("%d chrome lines, the base has %d", len(got), len(base))
 	}
@@ -664,7 +665,7 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 	dragPanelEdge(t, e, popTree, 20)
 	_ = e.Key("propertiespanel")
 	last := (*saved)[len(*saved)-1]
-	if string(last) != `{"left":{"minimized":false,"width":280},"right":{"minimized":true,"width":520}}`+"\n" {
+	if string(last) != `{"left":{"minimized":false,"width":280},"right":{"minimized":true,"view":"plain","width":520}}`+"\n" {
 		t.Fatalf("saved %q", last)
 	}
 	f, _, _ := panelsEditor(t, 1280, 800, "")
@@ -706,6 +707,7 @@ func TestMapEditorSidePanelsGolden(t *testing.T) {
 		{"defaults-en-1024x768", 1024, 768, "", "", -1},
 	} {
 		e, _, _ := panelsEditor(t, c.w, c.h, c.lang)
+		e.props.plain = false // the recorded windows are the technical view's
 		if c.record >= 0 {
 			e.Select(c.record, false)
 		}

@@ -983,6 +983,7 @@ func (e *MapEditor) catalogOpen() {
 // link row opens.
 func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	e.panels.hostable = false
+	e.obj.viewOffer = false
 	if e.modWindow && !e.prompt.open() && !e.catalog {
 		return e.modSpec()
 	}
@@ -1021,7 +1022,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	e.loadObject()
 	// The person window's bag is the full inventory: it keeps its larger
 	// floating window.
-	if e.nativeUnitWindow() && e.obj.section == 2 {
+	if _, plain := e.plainTable(); e.nativeUnitWindow() && e.obj.section == 2 && !plain {
 		e.panels.hostable = false
 	}
 	if e.obj.move != nil {
@@ -1040,10 +1041,11 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.nativeUnitWindow() {
 		// The person window lists the triggers that use the unit under its
 		// fields on every section, as the unit popup lists them.
-		if e.hasUsedBy() {
+		if e.hasUsedBy() && !e.obj.usesShown {
 			e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 		}
 		e.obj.data = -1
+		e.viewSwitchButton(&s)
 		if aside := e.hostedAside(s); aside > 0 {
 			s.Width += aside + popupPad
 		}
@@ -1051,15 +1053,25 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
 		naturalSize(&s, image.Pt(s.Width, min(620, height, e.popupRoom().Dy()-16)))
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
-		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
-		s.Top = e.objectTop
+		e.clampObjectTop(&s, popupRowCount(s))
 		return s, links, true
 	}
-	if e.hasUsedBy() {
+	if e.hasUsedBy() && !e.obj.usesShown {
 		e.scriptLinkSection(&s, &links, e.word("editor.usedby.title"), e.usedByRows())
 	}
 	e.obj.data = len(s.Rows)
-	add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
+	// The plain view keeps the record's data lines in a block that opens
+	// and closes, closed at first.
+	closed := false
+	if data := (plainBlock{id: "data", fold: true}); e.obj.rowBlock != nil {
+		e.obj.rowBlock[len(s.Rows)] = data.id
+		add(blockRow(e.word("editor.object.data"), e.blockOpen(data)), 0)
+		if closed = !e.blockOpen(data); closed {
+			e.obj.data = -1
+		}
+	} else {
+		add(popupRow{Kind: popupHeading, Label: e.word("editor.object.data")}, 0)
+	}
 	width := e.hostedWrap(s, wide-2*popupPad-4)
 	if r.Preview != nil {
 		width -= previewW + popupPad // the picture's column
@@ -1073,6 +1085,9 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		lines = append(lines, InspectionLine{Text: d})
 	}
 	lines = append(lines, r.Lines...)
+	if closed {
+		lines = nil
+	}
 	for _, l := range lines {
 		if l.Role == "heading" {
 			add(popupRow{Kind: popupHeading, Label: l.Text}, 0)
@@ -1088,13 +1103,32 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		}
 	}
 	e.objectBackButton(&s)
+	e.viewSwitchButton(&s)
 	if aside := e.hostedAside(s); aside > 0 {
 		s.Width += aside + popupPad
 	}
 	s.MaxRows = e.objectRowsShown(len(s.Buttons) > 0 || e.objectHasFields())
-	e.objectTop = max(0, min(e.objectTop, len(s.Rows)-s.MaxRows))
-	s.Top = e.objectTop
+	if s.Fit && !e.objectInPanel() {
+		// A label over its field takes a second line: the window shows
+		// fewer rows so that it keeps inside the editor.
+		e.clampObjectTop(&s, len(s.Rows))
+		for s.MaxRows > popupMinRows && layoutPopup(s, e.font, e.bodyFont()).Rect.Dy() > e.popupBounds().Dy() {
+			s.MaxRows--
+		}
+	}
+	e.clampObjectTop(&s, len(s.Rows))
 	return s, links, true
+}
+
+// clampObjectTop holds the object window's first shown row where its last
+// rows still fill the floating window, count rows in all. A window in the
+// right panel fits its own rows: hostedObject holds it there, so the tail
+// the panel's height shows stays in reach.
+func (e *MapEditor) clampObjectTop(s *popupSpec, count int) {
+	if !e.objectInPanel() {
+		e.objectTop = max(0, min(e.objectTop, count-s.MaxRows))
+	}
+	s.Top = e.objectTop
 }
 
 // ScrollDetails moves the object popup's rows down by steps wheel notches.
@@ -1886,6 +1920,8 @@ func (e *MapEditor) objectPress(p image.Point) {
 			return
 		}
 		e.objectRowPress(part, n)
+	case popupTitleButton:
+		e.switchView()
 	case popupButton:
 		if len(e.objectBack) > 0 && n == len(s.Buttons)-1 {
 			e.backObject()

@@ -246,6 +246,27 @@ func recipeItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 	return out
 }
 
+// ItemLook is an item code's name, the editor list's form of the item-name
+// builder, and the icon the inventory shows for it.
+func (s *mapInspectionEdits) ItemLook(code int64) (string, *image.RGBA) {
+	x := s.inspector
+	if x == nil || code <= 0 || code > math.MaxUint16 {
+		return "", nil
+	}
+	name := mapload.ItemDisplayName(x.table, mapload.ItemSubject{Code: data.ItemCode(code), Form: mapload.ItemNameEditorList})
+	var src entrySource
+	if art := x.archives.artSource(); art != nil {
+		src = art
+	}
+	if x.itemIcons == nil {
+		x.itemIcons = map[uint16]*image.RGBA{}
+	}
+	icon, _ := itemIcon(src, x.table, uint16(code), x.itemIcons)
+	return name, icon
+}
+
+var _ ui.InspectionItemLook = (*mapInspectionEdits)(nil)
+
 func recipeChoices(s *mapInspectionEdits, _ fieldChoiceAsk) []ui.InspectionChoice {
 	m, err := s.model.Map()
 	if err != nil {

@@ -61,6 +61,12 @@ type objectEdit struct {
 	rowField map[int]int
 	rowActs  map[int][]string
 	rowOpen  map[int]int
+	// rowBlock maps a spec row to the plain view block it opens and closes;
+	// usesShown reports that the plain view listed the script nodes naming
+	// the record; viewOffer marks a view switch offer.
+	rowBlock  map[int]string
+	usesShown bool
+	viewOffer bool
 	// added marks a trigger's pairs (0..2) and action slots (3..6) shown
 	// before a node is chosen for them; types are a node's slot types as
 	// its chosen operation sets them; pickField is the field a cell pick
@@ -129,6 +135,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if !e.modWindow {
 		r = e.doc.Records[e.selected]
 	}
+	o.rowBlock, o.usesShown, o.viewOffer = nil, false, false
 	if r.Spatial && e.editable() && r.Kind.Placed() && len(s.Rows) > 0 {
 		s.Rows[len(s.Rows)-1].Kind = popupPick
 		s.PickLabel = e.word("editor.object.pick")
@@ -140,7 +147,16 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		}
 		return
 	}
-	if !e.modWindow {
+	_, offer := e.plainOffer()
+	plain, plainShown := e.plainTable()
+	if plainShown && r.Spatial && len(s.Rows) > 0 {
+		s.Rows[len(s.Rows)-1].Label = e.word("editor.plain.position")
+	}
+	// The plain view's words show whole: its labels are not cut to a
+	// column, and the window fits them as a window in the right panel
+	// does, the label column widened to them or a label over its field.
+	s.Fit = s.Fit || plainShown
+	if !e.modWindow && !plainShown {
 		s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.word("editor.object.fields")}), append(*links, 0)
 	}
 	o.first = len(s.Rows)
@@ -153,7 +169,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	if native {
 		s.Width = min(680, e.unitWindowWidth()-32)
-		if e.unitWindowWidth() >= 1100 {
+		if e.unitWindowWidth() >= 1100 && !plainShown {
 			s.Width = min(1180, e.unitWindowWidth()-32)
 		}
 		if s.Card != nil {
@@ -163,10 +179,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 		}
 		s.At = e.personCorner(homePerson)
-		s.Tabs = []string{e.word("editor.person.identity"), e.word("editor.person.equipment"), e.word("editor.person.inventory"), e.word("editor.person.stats")}
-		s.ActiveTab = o.section
-		if e.unitWindowWidth() >= 1100 {
-			s.Columns = 3
+		if !plainShown {
+			s.Tabs = []string{e.word("editor.person.identity"), e.word("editor.person.equipment"), e.word("editor.person.inventory"), e.word("editor.person.stats")}
+			s.ActiveTab = o.section
+			if e.unitWindowWidth() >= 1100 {
+				s.Columns = 3
+			}
 		}
 	}
 	textWidth := 378
@@ -175,30 +193,12 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	}
 	textWidth = e.hostedWrap(*s, textWidth)
 	group := ""
-	order := fieldOrder(o.fields)
-	if native {
-		sort.SliceStable(order, func(i, j int) bool { return o.fields[order[i]].Parent == "" && o.fields[order[j]].Parent != "" })
-	}
-	for _, i := range order {
+	// fieldRows adds field i's rows under label, its own when label is
+	// empty, after its group's heading where heads is set and the group
+	// changes. It reports the row that edits the field, -1 for none. Both
+	// views build their field rows through it.
+	fieldRows := func(i int, label string, heads bool) int {
 		f := o.fields[i]
-		if e.modWindow && f.Action && f.Column == 0 {
-			continue
-		}
-		if e.modWindow && f.Parent != "" && f.Parent != o.detail {
-			continue
-		}
-		if native {
-			section := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[f.Section]
-			if s.Columns == 1 && section != o.section || s.Columns == 0 && section != o.section {
-				continue
-			}
-			if s.Columns > 1 && section >= 2 && section != max(2, o.section) {
-				continue
-			}
-			if f.Parent != "" && f.Parent != o.detail {
-				continue
-			}
-		}
 		start := len(s.Rows)
 		deferColumn := func() {
 			if !native && s.Columns > 1 {
@@ -214,9 +214,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 		}
 		if fields != nil && !slices.ContainsFunc(fields, func(current InspectionField) bool { return current.Key == f.Key }) {
-			continue
+			return -1
 		}
-		if f.Group != group {
+		if heads && f.Group != group {
 			group = f.Group
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupHeading, Label: e.editorHostText(f.Group)}), append(*links, 0)
 			if note := e.groupNote(f.Group); note != "" {
@@ -242,11 +242,14 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				}
 			}
 			deferColumn()
-			continue
+			return -1
 		}
-		o.rowField[len(s.Rows)] = i
-		label := e.editorHostText(f.Label)
-		if !native {
+		n := len(s.Rows)
+		o.rowField[n] = i
+		if label == "" {
+			label = e.editorHostText(f.Label)
+		}
+		if !native && !plainShown {
 			label = editorClip(e.bodyFont(), label, 150)
 		}
 		row := popupRow{Kind: popupEdit, Label: label, Value: o.buf[i], Focus: i == o.focus}
@@ -304,6 +307,37 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 			}
 		}
 		deferColumn()
+		return n
+	}
+	if plainShown {
+		e.plainFieldRows(s, links, plain, fieldRows, textWidth)
+	} else {
+		order := fieldOrder(o.fields)
+		if native {
+			sort.SliceStable(order, func(i, j int) bool { return o.fields[order[i]].Parent == "" && o.fields[order[j]].Parent != "" })
+		}
+		for _, i := range order {
+			f := o.fields[i]
+			if e.modWindow && f.Action && f.Column == 0 {
+				continue
+			}
+			if e.modWindow && f.Parent != "" && f.Parent != o.detail {
+				continue
+			}
+			if native {
+				section := map[string]int{"identity": 0, "equipment": 1, "inventory": 2, "stats": 3}[f.Section]
+				if s.Columns == 1 && section != o.section || s.Columns == 0 && section != o.section {
+					continue
+				}
+				if s.Columns > 1 && section >= 2 && section != max(2, o.section) {
+					continue
+				}
+				if f.Parent != "" && f.Parent != o.detail {
+					continue
+				}
+			}
+			fieldRows(i, "", true)
+		}
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 	s.Disabled = []bool{!e.objectDirty(), false}
@@ -314,6 +348,9 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 				s.ButtonW = max(s.ButtonW, body.Advance(label)+20)
 			}
 		}
+	}
+	o.viewOffer = offer
+	if native {
 		count := 0
 		for _, f := range o.fields {
 			if f.Inherit && f.Value != f.Absent {
@@ -483,6 +520,10 @@ func (e *MapEditor) focusObjectField(i int) {
 // objectRowPress is a press on a field row or the cell's pick button.
 func (e *MapEditor) objectRowPress(part popupPart, n int) {
 	o := &e.obj
+	if id, ok := o.rowBlock[n]; ok {
+		e.toggleBlock(id)
+		return
+	}
 	if n == o.cell && part == popupRowButton {
 		e.leave(leaveDrag)
 		e.armPick(pickMove)

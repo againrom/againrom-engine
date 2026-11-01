@@ -43,7 +43,8 @@ type MapInspector struct {
 	rules          []mapRule     // the map report's rule table; nil is mapRules
 	recordOptions  map[string][]ui.InspectionChoice
 	recordPictures map[string]map[int64]*image.RGBA
-	tiers          *tierCache // tiersOf's answers; nil computes each time
+	itemIcons      map[uint16]*image.RGBA // ItemLook's icons by item code, read once each
+	tiers          *tierCache             // tiersOf's answers; nil computes each time
 	panelWords     *ui.Words
 	cardFont       *text.Font
 }

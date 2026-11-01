@@ -895,7 +895,11 @@ func (e *MapEditor) PopupLines() []string {
 	}
 	var out []string
 	for _, r := range s.Rows {
-		out = append(out, strings.TrimSpace(r.Label+" "+r.Value))
+		mark := ""
+		if r.Fold != FoldNone {
+			mark = rowFoldMarks[r.Fold] + " " // as TreeLines marks a branch
+		}
+		out = append(out, strings.TrimSpace(mark+r.Label+" "+r.Value))
 	}
 	return append(out, s.Notes...)
 }
