@@ -3756,5 +3756,15 @@ var Committed = Baseline{
 	// mapinspectioninventory.go, mapinspectionitemrecipe.go and
 	// mapinspectionchoices.go, the tests mapeditorsackrecipe_test.go in
 	// pkg/game and pkg/ui and mapinspectionviews_test.go.
-	CommentBytes: 10322991,
+
+	// It rose for the speaker picked by a click on a unit: doc comments in
+	// pkg/ui's mapeditorparampick.go and mapeditormessage.go and pkg/game's
+	// mapinspectionnpc.go, mapinspection.go and portrait.go, the tests
+	// mapeditorspeakerpick_test.go in pkg/ui and pkg/game, and this note.
+	//
+	// It rose a further amount for the correction of that pick: doc comments
+	// in pkg/game's mapinspectionnpc.go, pkg/mapload's borderplacement.go,
+	// pkg/ui's editorpopup.go, mapeditormessage.go and mapeditorparampick.go,
+	// the new tests in both mapeditorspeakerpick_test.go files, and this note.
+	CommentBytes: 10331185,
 }

@@ -1106,7 +1106,7 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 	if e.modWindow && !e.prompt.open() && !e.catalog {
 		return e.modSpec()
 	}
-	if e.messagePage != 0 && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {
+	if e.messagePage != 0 && !e.catalog && !e.objectHidden && (e.pick == pickNone || e.speakerPicking()) && e.prompt.kind != promptAdd {
 		return e.messageSpec()
 	}
 	if v, ok := e.scriptVariableRow(e.selected); ok && !e.catalog && !e.objectHidden && e.pick == pickNone && e.prompt.kind != promptAdd {

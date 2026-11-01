@@ -109,7 +109,8 @@ func TestMessageSpeakerListCarriesEachSpeakersFace(t *testing.T) {
 }
 
 // The person window's NPC list is the speaker list's builder: each record
-// with a face carries the same picture the speaker list carries for it.
+// with a face carries the same picture the speaker list carries for it, the
+// face a dialogue shows at mission start on this map.
 func TestPersonWindowNPCListCarriesTheSpeakerListsFaces(t *testing.T) {
 	_, s, _ := nativeIdentityEditor(t)
 	faces := map[int32]data.NPCFace{8: {Kind: data.NPCFigure, Dir: data.FigureDirWomanFighter, Face: 7, HasWindow: true}, 7: {Kind: data.NPCNoPicture}}
@@ -119,11 +120,13 @@ func TestPersonWindowNPCListCarriesTheSpeakerListsFaces(t *testing.T) {
 	if !npc.IconTip {
 		t.Error("the NPC list shows its faces in its rows, not at full size in the tip")
 	}
-	want := gameSpeakerPortrait(t, s.inspector, speakerFaces(s.inspector.table), 8)
-	if got := npc.Icons[8]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
-		t.Fatal("NPC 8 carries no face, or not the game's dialogue face")
+	for _, id := range []int{8, 7} {
+		want := missionStartFace(t, s, id)
+		if got := npc.Icons[int64(id)]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
+			t.Fatalf("NPC %d carries no face, or not the face a dialogue shows at mission start", id)
+		}
 	}
-	for _, id := range []int64{-1, 0, 7, 9} {
+	for _, id := range []int64{-1, 0, 9} {
 		if _, held := npc.Icons[id]; held {
 			t.Errorf("NPC %d has no face and carries a picture", id)
 		}

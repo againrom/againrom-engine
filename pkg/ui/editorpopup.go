@@ -394,7 +394,12 @@ func rowButtonWidths(s popupSpec, row popupRow, body *text.Font, pitch int) []in
 			ws[k] = max(48, body.Advance(c)+16)
 		}
 		if row.Kind == popupCard && !row.Struck {
+			// A card's cross is a square; a caption that does not fit inside
+			// the square takes its own width.
 			ws[k] = pitch - 2
+			if body != nil && body.Advance(c)+4 > ws[k] {
+				ws[k] = body.Advance(c) + 16
+			}
 		}
 	}
 	return ws

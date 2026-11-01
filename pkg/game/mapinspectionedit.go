@@ -44,6 +44,8 @@ type mapInspectionEdits struct {
 	facts    *ui.InspectionMapFacts // the Map panel's facts of the bytes in factsFor
 	factsFor []byte
 
+	speakers *editorSpeakers // the map at mission start for the speaker list and its pick
+
 	// batch is the model every edit call writes while AddRecord runs the
 	// calls of one new record; nil otherwise.
 	batch         *mapedit.Editor

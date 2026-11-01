@@ -282,10 +282,17 @@ func (mw *mapWorld) unitPicture(id sim.EntityID, class int32) *image.RGBA {
 		}
 		return mw.unitFigure(id)
 	}
-	if mw.units == nil {
+	return infoPortrait(mw.archive(), mw.units, class, mw.tiers[id], mw.portraits)
+}
+
+// infoPortrait is the info window's flat picture of an actor of class at
+// tier, nil without a unit-art bundle. The map editor's speaker pick asks it
+// which picture a creature shows.
+func infoPortrait(src entrySource, units *terrain.UnitSet, class int32, tier int, cache map[string]*image.RGBA) *image.RGBA {
+	if units == nil {
 		return nil
 	}
-	return classPortrait(mw.archive(), mw.units.Classes[class], mw.tiers[id], mw.portraits)
+	return classPortrait(src, units.Classes[class], tier, cache)
 }
 
 // inspectionUnitPicture reads current equipment, never the inventory interaction

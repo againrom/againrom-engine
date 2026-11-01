@@ -43,10 +43,14 @@ type MapInspector struct {
 	rules          []mapRule     // the map report's rule table; nil is mapRules
 	recordOptions  map[string][]ui.InspectionChoice
 	recordPictures map[string]map[int64]*image.RGBA
-	itemIcons      map[uint16]*image.RGBA // ItemLook's icons by item code, read once each
-	tiers          *tierCache             // tiersOf's answers; nil computes each time
-	panelWords     *ui.Words
-	cardFont       *text.Font
+	// speakerPictures and speakerFigures are the speaker list's class
+	// portraits by address and composed figures by figure and worn set.
+	speakerPictures map[string]*image.RGBA
+	speakerFigures  map[figureCacheKey]*image.RGBA
+	itemIcons       map[uint16]*image.RGBA // ItemLook's icons by item code, read once each
+	tiers           *tierCache             // tiersOf's answers; nil computes each time
+	panelWords      *ui.Words
+	cardFont        *text.Font
 }
 
 func NewMapInspector(root string) (*MapInspector, error) {

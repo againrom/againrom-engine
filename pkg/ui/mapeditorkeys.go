@@ -358,6 +358,7 @@ func (e *MapEditor) helpLines() []string {
 // Key and Pointer are the same input doors used by Update and headless proof.
 // A key with no row, or one the open prompt does not hear, does nothing.
 func (e *MapEditor) Key(key string) error {
+	defer e.dropLostPick()
 	if e.pathDialog.pending != nil {
 		return nil
 	}

@@ -30,6 +30,7 @@ func (*dialogueInputEdits) CreateMessageParts(InspectionMessageOwner, []Inspecti
 func (*dialogueInputEdits) PointMessageParts(InspectionMessageOwner, uint32, []InspectionMessagePart) (*InspectionDocument, error) {
 	return nil, nil
 }
+func (*dialogueInputEdits) UnitSpeaker(int) (int64, bool) { return 0, false }
 
 func TestDialogueLaterPageNativeUpdateUsesTextInput(t *testing.T) {
 	e, edits := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))

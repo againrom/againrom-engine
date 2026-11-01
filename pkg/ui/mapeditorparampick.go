@@ -8,9 +8,10 @@ import (
 )
 
 // A trigger parameter field that names a unit, a structure, a group or an
-// area has an "on the map" button: the next click on the map fills the field
-// with the value the field stores for what is under the pointer. The node
-// popup and the trigger wizard share this pick.
+// area, and a message card's speaker, has an "on the map" button: the next
+// click on the map fills the field with the value the field stores for what
+// is under the pointer. The node popup, the trigger wizard and the message
+// popup share this pick; a second press of the button disarms it.
 
 // paramTarget is what a trigger parameter field stores of a map pick.
 type paramTarget uint8
@@ -22,6 +23,7 @@ const (
 	targetGroup                 // a group number, read from a unit of the group
 	targetBox                   // an area as "x1,y1,x2,y2"
 	targetSquare                // an area as a point "x,y" with a radius field beside it
+	targetSpeaker               // the speaker record that shows the unit, from the host
 )
 
 // paramPickText is the status line's words of one target: what the click
@@ -37,6 +39,7 @@ var paramPickTexts = map[paramTarget]paramPickText{
 	targetGroup:     {pickWord: "editor.param.pickgroup", missWord: "editor.param.nogroup"},
 	targetBox:       {pickWord: "editor.param.pickarea", missWord: "editor.param.noarea"},
 	targetSquare:    {pickWord: "editor.param.picksquare", missWord: "editor.param.nosquare"},
+	targetSpeaker:   {pickWord: "editor.param.pickspeaker", missWord: "editor.param.nospeakerunit"},
 }
 
 // pickedValue is what a click found: a number for a unit, a structure or a
@@ -105,6 +108,9 @@ func (e *MapEditor) pickFieldTarget() paramTarget {
 	if o.pickField < 0 || o.pickField >= len(o.fields) || o.pickField >= len(o.buf) || o.doc != e.doc || o.record != e.selected {
 		return targetNone
 	}
+	if e.messagePage != 0 {
+		return e.messageFieldTarget(o.pickField)
+	}
 	v, ok := e.scriptPopup()
 	if !ok {
 		return targetNone
@@ -115,17 +121,50 @@ func (e *MapEditor) pickFieldTarget() paramTarget {
 	return e.nodeFieldTarget(v, o.pickField)
 }
 
+// messageFieldTarget is what field f of the message popup stores of a map
+// pick: the speaker of a card not struck.
+func (e *MapEditor) messageFieldTarget(f int) paramTarget {
+	o := &e.obj
+	if f%2 != 1 || f >= 2*len(o.messageParts) || o.messageGone[o.messageParts[f/2].Number] {
+		return targetNone
+	}
+	return targetSpeaker
+}
+
+// speakerPicking reports that the armed pick fills a message card's speaker.
+// The message popup stays shown meanwhile, so a second press of the card's
+// button disarms the pick.
+func (e *MapEditor) speakerPicking() bool {
+	return e.pick == pickParamUnit && e.pickFieldTarget() == targetSpeaker
+}
+
+// dropLostPick disarms a parameter pick whose field is gone: Apply, Cancel, a
+// struck card or any other step that ends the field leaves no click to
+// answer, and the next map click is then the ordinary one.
+func (e *MapEditor) dropLostPick() {
+	if (e.pick == pickParamUnit || e.pick == pickParamArea) && e.pickFieldTarget() == targetNone {
+		e.leave(leavePick)
+		e.obj.pickField = -1
+	}
+}
+
 // armParamPick arms the pick that fills field f: an area for an area button,
-// else a unit, structure or group.
+// else a unit, structure, group or speaker. A press while that pick is armed
+// for f disarms it.
 func (e *MapEditor) armParamPick(f int, area bool) {
 	o := &e.obj
-	o.focus, o.pickField = f, f
-	e.leave(leaveDrag)
+	kind := pickParamUnit
 	if area {
-		e.armPick(pickParamArea)
+		kind = pickParamArea
+	}
+	if e.pick == kind && o.pickField == f && e.pickFieldTarget() != targetNone {
+		e.leave(leavePick)
+		o.pickField = -1
 		return
 	}
-	e.armPick(pickParamUnit)
+	o.focus, o.pickField = f, f
+	e.leave(leaveDrag)
+	e.armPick(kind)
 }
 
 // paramPickStatus is the status line's part of the armed parameter pick: what
@@ -166,8 +205,8 @@ func (e *MapEditor) paramAt(kind pickKind, p image.Point) {
 }
 
 // unitValueAt is the number the field of target stores for the record under
-// p: the unit's or structure's number a script names it by, or the group
-// number of the unit.
+// p: the unit's or structure's number a script names it by, the group number
+// of the unit, or the speaker the host says shows the unit.
 func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue, bool) {
 	kind, record := scriptUnit, KindUnit
 	if target == targetStructure {
@@ -176,6 +215,14 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 	for _, id := range e.hitsAt(p) {
 		r := e.doc.Records[id]
 		if r.Kind != record {
+			continue
+		}
+		if target == targetSpeaker {
+			if host, ok := e.doc.Edits.(InspectionMessages); ok {
+				if n, ok := host.UnitSpeaker(r.Index); ok {
+					return pickedValue{number: n}, true
+				}
+			}
 			continue
 		}
 		if target == targetGroup {
@@ -218,6 +265,8 @@ func (e *MapEditor) paramPicked(target paramTarget, v pickedValue) {
 	f := o.pickField
 	o.pickField = -1
 	switch target {
+	case targetSpeaker:
+		o.buf[f] = strconv.FormatInt(v.number, 10)
 	case targetUnit, targetStructure, targetGroup:
 		o.buf[f] = strconv.FormatInt(v.number, 10)
 		o.fields[f].Choices = e.paramChoices(target, v.number)

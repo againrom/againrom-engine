@@ -189,7 +189,7 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	if !found {
 		choices = append(choices, ui.InspectionChoice{Value: speaker, Label: strconv.FormatInt(speaker, 10)})
 	}
-	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: x.npcPortraits(choices), IconTip: true}}
+	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: s.npcPortraits(choices), IconTip: true}}
 }
 
 func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64) (*ui.InspectionDocument, error) {

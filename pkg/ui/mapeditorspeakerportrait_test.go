@@ -56,6 +56,7 @@ func (*speakerPortraitEdits) CreateMessageParts(InspectionMessageOwner, []Inspec
 func (*speakerPortraitEdits) PointMessageParts(InspectionMessageOwner, uint32, []InspectionMessagePart) (*InspectionDocument, error) {
 	return nil, nil
 }
+func (*speakerPortraitEdits) UnitSpeaker(int) (int64, bool) { return 0, false }
 
 // speakerPortraitEditor opens the two-card page in lang at 1920x1080, the
 // labels in the font's encoding as the host gives them; the face is a

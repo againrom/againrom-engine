@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"math"
@@ -8,8 +9,10 @@ import (
 
 	"againrom/pkg/base"
 	"againrom/pkg/data"
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
@@ -65,44 +68,179 @@ func (x *MapInspector) npcChoices(maxID int64, roles bool) []ui.InspectionChoice
 	return choices
 }
 
+// editorSpeakers is the map at mission start as a dialogue's speaker
+// resolution reads it, kept while the map bytes and the table stay the same:
+// the map the mission opens (border placements withdrawn), the world built
+// from it at Normal difficulty, the cast missionSpeakers makes over that
+// world's placements and liveness, each creature's tier, the speaker records,
+// and the speaker list's faces.
+type editorSpeakers struct {
+	from  []byte
+	table *mapload.Table
+	// m is the map as the mission opens it; placed[i] is the index in m of the
+	// authored placement i, or -1 for a placement the border withdrew.
+	m       *alm.Map
+	placed  []int
+	world   *sim.World
+	tiers   map[sim.EntityID]int
+	records map[int32]data.NPCFace
+	cast    speakerCast
+	faces   map[int64]*image.RGBA
+}
+
+// missionStart is the map's editorSpeakers, built again when the map's
+// bytes or the table changed.
+func (s *mapInspectionEdits) missionStart() *editorSpeakers {
+	b, t := s.model.Bytes(), s.inspector.table
+	if sp := s.speakers; sp != nil && sp.table == t && bytes.Equal(sp.from, b) {
+		return sp
+	}
+	sp := &editorSpeakers{from: b, table: t, faces: map[int64]*image.RGBA{}}
+	s.speakers = sp
+	authored, err := s.model.Map()
+	if err != nil || t == nil {
+		return sp
+	}
+	// The mission opens the map with its border placements withdrawn, and the
+	// world build is free to change the map it is given.
+	m, err := s.model.Map()
+	if err != nil {
+		return sp
+	}
+	sp.placed = make([]int, len(authored.Units))
+	kept := 0
+	for i := range authored.Units {
+		sp.placed[i] = -1
+		if !mapload.BorderWithdrawn(authored, i) {
+			sp.placed[i] = kept
+			kept++
+		}
+	}
+	mapload.WithdrawBorderPlacements(m)
+	sp.m, sp.tiers, sp.records = m, entityTiers(m, t), speakerFaces(t)
+	world, roster, err := mapload.FromALMRoster(m, t, mapload.DifficultyNormal)
+	if err != nil || world == nil {
+		return sp
+	}
+	sp.world = world
+	// The mission driver's own questions of a world: who is alive and what each
+	// wears.
+	mw := &mapWorld{world: world}
+	sp.cast = newSpeakerCast(nil, &speakerWorld{
+		actors: missionSpeakers(m, t, roster, nil, nil, placedEntities(m, world.Entities(), roster, nil)),
+		alive:  mw.entityAlive, worn: mw.equipmentOf,
+	})
+	return sp
+}
+
+// speakerResolver resolves speakers over sp, through the inspector's picture
+// caches.
+func (s *mapInspectionEdits) speakerResolver(sp *editorSpeakers) *speakerResolver {
+	x := s.inspector
+	if x.speakerPictures == nil {
+		x.speakerPictures = map[string]*image.RGBA{}
+		x.speakerFigures = map[figureCacheKey]*image.RGBA{}
+	}
+	var src entrySource
+	if x.archives != nil {
+		src = x.archives.artSource()
+	}
+	return &speakerResolver{src: src, units: x.units, npcFaces: sp.records,
+		portraits: x.speakerPictures, figurePics: x.speakerFigures, cast: sp.cast}
+}
+
 // npcPortraits are the faces of the NPC records the choices name, by choice
-// value: each the picture a dialogue shows when that NPC speaks (SpeakerFace
-// over the game's speaker records), cut as the dialogue pane cuts it. A choice
-// whose record has no face has no entry. Each face is composed once per
-// inspector.
-func (x *MapInspector) npcPortraits(choices []ui.InspectionChoice) map[int64]*image.RGBA {
+// value: each the picture a dialogue on this map shows at mission start when
+// that NPC speaks, cut as the dialogue pane cuts it. A choice whose record
+// has no face has no entry.
+func (s *mapInspectionEdits) npcPortraits(choices []ui.InspectionChoice) map[int64]*image.RGBA {
+	x := s.inspector
 	if x == nil || x.table == nil || x.archives == nil {
 		return nil
 	}
-	if x.recordPictures == nil {
-		x.recordPictures = map[string]map[int64]*image.RGBA{}
-	}
-	cache := x.recordPictures["speaker"]
-	if cache == nil {
-		cache = map[int64]*image.RGBA{}
-		x.recordPictures["speaker"] = cache
-	}
+	sp := s.missionStart()
 	var r *speakerResolver
 	out := map[int64]*image.RGBA{}
 	for _, c := range choices {
-		pic, tried := cache[c.Value]
+		pic, tried := sp.faces[c.Value]
 		if !tried {
 			if r == nil {
-				r = &speakerResolver{src: x.archives.artSource(), units: x.units, npcFaces: speakerFaces(x.table),
-					portraits: map[string]*image.RGBA{}, figurePics: map[figureCacheKey]*image.RGBA{}}
+				r = s.speakerResolver(sp)
 			}
 			if c.Value >= 0 && c.Value <= math.MaxInt32 {
 				if face, window, ok := r.SpeakerFace(int(c.Value)); ok {
 					pic = ui.SpeakerPortrait(face, window)
 				}
 			}
-			cache[c.Value] = pic
+			sp.faces[c.Value] = pic
 		}
 		if pic != nil {
 			out[c.Value] = pic
 		}
 	}
 	return out
+}
+
+// UnitSpeaker is the speaker that shows placement unit at mission start. A
+// person takes its own NPC record when that record resolves to it, else the
+// lowest speaker that resolves to it. A creature takes the lowest speaker
+// whose picture is the one its info window shows.
+func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, bool) {
+	x := s.inspector
+	sp := s.missionStart()
+	if sp.m == nil || unit < 0 || unit >= len(sp.placed) || sp.placed[unit] < 0 {
+		return 0, false
+	}
+	unit = sp.placed[unit]
+	var ids []int64
+	for _, c := range x.npcChoices(255, true) {
+		ids = append(ids, c.Value)
+	}
+	u := sp.m.Units[unit]
+	r := mapload.Resolve(u, x.table)
+	if r.Arm == mapload.ArmUnits {
+		return s.creatureSpeaker(sp, unit, ids)
+	}
+	shows := func(id int64) bool {
+		rec, ok := sp.records[int32(id)]
+		if !ok {
+			return false
+		}
+		a, ok := sp.cast.resolveNPC(int32(id), rec)
+		return ok && a.id == sim.EntityID(unit)
+	}
+	if own := int64(u.ClassSubID); r.Arm == mapload.ArmNPC && slices.Contains(ids, own) && shows(own) {
+		return own, true
+	}
+	for _, id := range ids {
+		if shows(id) {
+			return id, true
+		}
+	}
+	return 0, false
+}
+
+// creatureSpeaker is the lowest of ids whose dialogue picture is the one the
+// info window shows for creature unit at mission start.
+func (s *mapInspectionEdits) creatureSpeaker(sp *editorSpeakers, unit int, ids []int64) (int64, bool) {
+	if sp.world == nil {
+		return 0, false
+	}
+	e, ok := sp.world.Entity(sim.EntityID(unit))
+	if !ok || data.ComposesFigure(e.Class) {
+		return 0, false
+	}
+	r := s.speakerResolver(sp)
+	want := infoPortrait(r.src, r.units, e.Class, sp.tiers[e.ID], r.portraits)
+	if want == nil {
+		return 0, false
+	}
+	for _, id := range ids {
+		if face, _, ok := r.SpeakerFace(int(id)); ok && face == want {
+			return id, true
+		}
+	}
+	return 0, false
 }
 
 // npcName is NPC record e's name in UTF-8. With roles, as the message popup

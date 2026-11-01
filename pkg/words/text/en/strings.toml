@@ -799,6 +799,8 @@
 "editor.param.nogroup" = "No unit of a group is there: the unit must carry a group number."
 "editor.param.noarea" = "No trigger area is there (the Layers menu shows or hides the areas)."
 "editor.param.nosquare" = "No point-and-radius trigger area is there (the Layers menu shows or hides the areas)."
+"editor.param.pickspeaker" = "Click a unit on the map for the speaker; Esc cancels."
+"editor.param.nospeakerunit" = "No speaker record shows a unit there."
 "editor.wizard.badbox" = "enter the area as x1,y1,x2,y2 with x1 <= x2 and y1 <= y2."
 "editor.wizard.outside" = "the cell lies outside the map."
 "editor.wizard.range" = "the number must lie between -2147483648 and 2147483647."

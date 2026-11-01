@@ -20,6 +20,9 @@ type InspectionMessages interface {
 	PointMessageParts(owner InspectionMessageOwner, page uint32, parts []InspectionMessagePart) (*InspectionDocument, error)
 	SetMessage(page uint32, body string, speaker int64) (*InspectionDocument, error)
 	CreateMessage(owner InspectionMessageOwner, body string, speaker int64) (*InspectionDocument, uint32, error)
+	// UnitSpeaker is the speaker of the speaker list that shows placement
+	// unit as a dialogue shows it at mission start, false when none does.
+	UnitSpeaker(unit int) (int64, bool)
 }
 
 type InspectionMessagePart struct {
@@ -178,7 +181,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	}
 	s := popupSpec{Title: title, At: e.placedCorner(popObject, homeMessage), Width: e.popupWide(popObject, 660), Bounds: e.popupBounds(), LabelWidth: 64, NoteInk: editorWarning,
 		Buttons: []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}}
-	o.rowField, o.rowOpen = map[int]int{}, map[int]int{}
+	o.rowField, o.rowOpen, o.rowActs = map[int]int{}, map[int]int{}, map[int][]string{}
 	if f := e.dialogChoiceField(); f >= 0 {
 		o.rowField[len(s.Rows)] = f
 		s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: o.fields[f].Label, Value: choiceText(o.fields[f], o.buf[f]), Focus: o.focus == f})
@@ -204,9 +207,11 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		if pic := choicePicture(o.fields[speaker], o.buf[speaker]); pic != nil {
 			head.Icons = []*image.RGBA{pic}
 		}
+		var acts []string
 		if live > 1 {
-			head.Buttons = []string{"x"}
+			head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
 		}
+		head.Buttons, o.rowActs[len(s.Rows)] = append(head.Buttons, e.actWord(actPickParam)), append(acts, actPickParam)
 		o.rowField[len(s.Rows)] = speaker
 		s.Rows = append(s.Rows, head)
 		lines := strings.Split(o.buf[2*i], "\n")
@@ -492,9 +497,16 @@ func (e *MapEditor) captureMessageParts() bool {
 	return true
 }
 
-// messageRowButton is a press on a card's cross or Restore, or on "+".
+// messageRowButton is a press on a card's cross, its "on the map" button or
+// Restore, or on "+".
 func (e *MapEditor) messageRowButton(row, button int) {
 	o := &e.obj
+	if acts := o.rowActs[row]; button >= 0 && button < len(acts) && acts[button] == actPickParam {
+		if f, ok := o.rowField[row]; ok {
+			e.armParamPick(f, false)
+		}
+		return
+	}
 	at, ok := o.rowOpen[row]
 	if !ok || button != 0 || !e.captureMessageParts() {
 		return
@@ -566,11 +578,32 @@ func (e *MapEditor) moveMessageCard(at, to int) bool {
 		return false
 	}
 	gone := o.messageGone
-	focus := o.focus
+	focus, pick := o.focus, o.pickField
+	// The card the pick is armed on stands where moved puts it: the moved
+	// group first, every other card in its order around it.
+	if pick >= 0 && pick < 2*len(o.messageParts) {
+		old, rank := pick/2, 0
+		for i := 0; i < old; i++ {
+			if (o.messageParts[i].Number == number) == (o.messageParts[old].Number == number) {
+				rank++
+			}
+		}
+		switch {
+		case o.messageParts[old].Number == number:
+			rank += before
+		case rank >= before:
+			rank += len(group)
+		}
+		pick = 2*rank + pick%2
+	}
 	e.loadMessageFields(moved)
 	o.messageGone, o.messageChanged, o.open, o.focus = gone, true, -1, -1
 	if focus >= 0 && focus < 2*len(moved) && focus/2 == at {
 		o.focus = 2*(before+lead) + focus%2
+	}
+	// An armed pick follows its card, as the focus does.
+	if pick >= 0 && pick < 2*len(moved) {
+		o.pickField = pick
 	}
 	return true
 }

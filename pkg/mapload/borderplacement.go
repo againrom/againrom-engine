@@ -28,6 +28,13 @@ func WithdrawBorderPlacements(m *alm.Map) int {
 	return n
 }
 
+// BorderWithdrawn reports whether WithdrawBorderPlacements removes placement i
+// of m.
+func BorderWithdrawn(m *alm.Map, i int) bool {
+	x, y := unitCell(m.Units[i])
+	return inBorderRing(int(x), int(y), int(m.Width), int(m.Height))
+}
+
 // InBorderRing reports whether cell x,y is in the border ring.
 func InBorderRing(m *alm.Map, x, y int) bool {
 	return inBorderRing(x, y, int(m.Width), int(m.Height))
