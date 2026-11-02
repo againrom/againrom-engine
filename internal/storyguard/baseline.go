@@ -3843,5 +3843,9 @@ var Committed = Baseline{
 	// It rose for the editor frame-time work: the doc comments of the frame
 	// probe test and its seam, installPagesKeep, textsStampKeep, chromeHitKeep
 	// and rectSave, the new tests, and this note.
-	CommentBytes: 10392582,
+
+	// It rose for the Druids' town release tests' Player groups: the doc
+	// comment of playerGroups and the corrected test comments in
+	// pkg/game/seconddruidstown_release_test.go, and this note.
+	CommentBytes: 10393043,
 }

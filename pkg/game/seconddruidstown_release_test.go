@@ -8,12 +8,13 @@ import (
 
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
 // secondDruidsCorpus is the owner's third original set: Kaarg after mission
-// 30, mission 40 (game0025, game0026), mission 50 won (game0029) and the
-// original's Druids' town (game0030), read-only.
+// 30, mission 40 (game0025, and game0026 won), mission 50 won (game0029) and
+// the original's Druids' town (game0030), read-only.
 const secondDruidsCorpus = "../../../gameversions/saves/2026-10-31/rom2-gog-original-3"
 
 func secondDruidsFile(t *testing.T, name string) []byte {
@@ -57,21 +58,45 @@ func sortedCodes(codes []uint16) []uint16 {
 	return slices.Compact(out)
 }
 
-// checkDruidsPacks: the town file raw holds each member's pack as game0030
-// does: identity 22's six pieces in the file's order, identity 23 none, and
-// the hero the file's pieces, the bag's after his own (DIV-4305).
-func checkDruidsPacks(t *testing.T, name string, raw []byte, file map[uint32][]uint16) {
+// playerGroups is each group of raw's first Player as its members' identities.
+func playerGroups(t *testing.T, raw []byte) [][]uint32 {
 	t.Helper()
-	got := humanPacks(t, raw)
-	if !slices.Equal(got[22], file[22]) || len(got[23]) != 0 || !slices.Equal(sortedCodes(got[21]), sortedCodes(file[21])) {
-		t.Fatalf("%s writes packs %x, want game0030's %x", name, got, file)
-	}
 	doc, err := sav.DecodeDocumentData(raw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if groups := doc.Objects[doc.Players[0]-1].Groups; len(groups) != 3 {
-		t.Fatalf("%s: the Player holds %d groups, want one per member", name, len(groups))
+	out := [][]uint32{}
+	for _, g := range doc.Objects[doc.Players[0]-1].Groups {
+		refs, _ := savedObjectRefs(&g, "Actors")
+		ids := []uint32{}
+		for _, ref := range refs {
+			id, _ := savedStructureValue(&doc.Objects[ref-1], "U148")
+			ids = append(ids, id&0xffff)
+		}
+		out = append(out, ids)
+	}
+	return out
+}
+
+// checkDruidsPacks: the town file raw holds each member's pack as game0030
+// does: identity 22's six pieces in the file's order, identity 23 none, and
+// the hero the file's pieces, the bag's after his own (DIV-4305). Its Player
+// holds game0030's groups, one of all three; ordered asks each group's
+// member order too (DIV-4416).
+func checkDruidsPacks(t *testing.T, name string, raw, original []byte, ordered bool) {
+	t.Helper()
+	got, file := humanPacks(t, raw), humanPacks(t, original)
+	if !slices.Equal(got[22], file[22]) || len(got[23]) != 0 || !slices.Equal(sortedCodes(got[21]), sortedCodes(file[21])) {
+		t.Fatalf("%s writes packs %x, want game0030's %x", name, got, file)
+	}
+	groups, want := playerGroups(t, raw), playerGroups(t, original)
+	if !ordered {
+		for _, g := range slices.Concat(groups, want) {
+			slices.Sort(g)
+		}
+	}
+	if !slices.EqualFunc(groups, want, slices.Equal) {
+		t.Fatalf("%s: the Player holds groups %v, want game0030's %v", name, groups, want)
 	}
 }
 
@@ -101,7 +126,7 @@ func TestReleaseSecondTownDruidsLoadKeepsEachPack(t *testing.T) {
 		!slices.Equal(carriedCodes(c.party[0]), []uint16{0x3142, 0xf8ab, 0x112a, 0x2133, 0x2133, 0x0103}) {
 		t.Fatalf("the campaign is %+v, want town 3 and the hero's other pieces in its bag", c)
 	}
-	checkDruidsPacks(t, "the SAVE after the LOAD", exportTown(t, f), file)
+	checkDruidsPacks(t, "the SAVE after the LOAD", exportTown(t, f), raw, true)
 }
 
 func sortedInts(v []int) []int {
@@ -112,8 +137,8 @@ func sortedInts(v []int) []int {
 
 // The departure of mission 50 from the owner's won mission file enters the
 // Druids' town as the original's file holds it: town 3 current at stage 60,
-// the same places and bank, the hero, identities 22 and 23 in groups of their
-// own, each member's pack.
+// the same places and bank, the hero and identities 22 and 23 in one group,
+// each member's pack.
 func TestReleaseSecondTownDruidsAfterMissionFifty(t *testing.T) {
 	want := secondGameFront(t)
 	original := secondDruidsFile(t, "game0030.sav")
@@ -139,19 +164,29 @@ func TestReleaseSecondTownDruidsAfterMissionFifty(t *testing.T) {
 	if got := carriedIdentities(f.Carried, f.Table); !slices.Equal(sortedInts(got), []int{21, 22, 23}) {
 		t.Fatalf("the departure carries identities %v, want 21, 22 and 23 once each", got)
 	}
-	checkDruidsPacks(t, "the departure's town SAVE", exportTown(t, f), humanPacks(t, original))
+	checkDruidsPacks(t, "the departure's town SAVE", exportTown(t, f), original, false)
 }
 
 // Leaving the owner's mission 40 adds identity 23 through the party's add
-// producer (R2-SESSION-301); a second leave adds nobody.
+// producer (R2-SESSION-301); a second leave adds nobody. game0026's Player
+// holds Outcome 1, so its LOAD stands on the victory panel.
 func TestReleaseSecondDinaJoinsAtMissionFortysLeave(t *testing.T) {
-	for _, name := range []string{"game0025.sav", "game0026.sav"} {
-		t.Run(name, func(t *testing.T) {
-			f, app := secondDruidsLoad(t, name)
+	for _, file := range []struct {
+		name string
+		won  bool
+	}{{"game0025.sav", false}, {"game0026.sav", true}} {
+		t.Run(file.name, func(t *testing.T) {
+			f, app := secondDruidsLoad(t, file.name)
 			if f.live == nil || f.liveMission != 40 {
 				t.Fatalf("the LOAD opened mission %d, want 40", f.liveMission)
 			}
-			secondContinuedWin(t, f, app)
+			_, kind, up := f.LiveNotice()
+			if won := f.live.world.Outcome() == sim.OutcomeWon && up && kind == ui.NoticeSuccess; won != file.won {
+				t.Fatalf("the LOAD stands won %v, want %v", won, file.won)
+			}
+			if !file.won {
+				secondContinuedWin(t, f, app)
+			}
 			if err := app.HeadlessActivate("victory"); err != nil {
 				t.Fatal(err)
 			}
