@@ -3904,5 +3904,5 @@ var Committed = Baseline{
 	// internal/archtest/equipmentplaces.go and its test, the writer map's
 	// note in equipmentbuilder_test.go, less the table's former comments in
 	// pkg/game/savequipmentslots.go.
-	CommentBytes: 10439647,
+	CommentBytes: 10443577,
 }

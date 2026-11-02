@@ -670,17 +670,19 @@ const (
 // textSource is one row of installText. Its address form is fixed (address),
 // numbered (address is a pattern of positive numbers), named by the caller
 // (no address) or held (the caller already holds the bytes). A file over limit
-// bytes is absent; maxLines cuts a line list.
+// bytes is absent; maxLines cuts a line list. A numbered row takes its first
+// number from zero when zeroFirst is set.
 type textSource struct {
-	address  string
-	numbered bool
-	held     bool
-	codec    textCodec
-	absence  textAbsence
-	limit    int
-	maxLines int
-	form     textForm
-	edge     textEdge
+	address   string
+	numbered  bool
+	zeroFirst bool
+	held      bool
+	codec     textCodec
+	absence   textAbsence
+	limit     int
+	maxLines  int
+	form      textForm
+	edge      textEdge
 }
 
 // The text source rows: every install text file pkg/game reads is read by
@@ -711,7 +713,16 @@ var (
 	cheatLinesSource      = &textSource{address: MainTextPath, form: lfLines}
 	itemNameTextSource    = &textSource{address: ItemNameTextAddress, codec: fontBytes}
 	heroPictureSource     = &textSource{address: HeroPictureAddress}
+	missionPageDirSource  = &textSource{address: mainPrefix + "text/battle/m%d/", numbered: true}
+	innNPCTextSource      = &textSource{address: mainPrefix + "text/inn/npc/npc%02dm%d.txt", numbered: true, zeroFirst: true}
+	innMercenarySource    = &textSource{address: mainPrefix + "text/inn/mercenary/npc%02d.txt", numbered: true}
+	shopTalkTextSource    = &textSource{address: mainPrefix + "text/shop/npc31m%d.txt", numbered: true}
+	schoolTalkTextSource  = &textSource{address: mainPrefix + "text/training/npc34m%d.txt", numbered: true}
 )
+
+// townBuildingTalkSource is the row of the text a town building's keeper
+// speaks.
+var townBuildingTalkSource = map[TownBuilding]*textSource{TownShop: shopTalkTextSource, TownSchool: schoolTalkTextSource}
 
 // textAddress is one file of a row: its address, or the bytes a held row
 // holds. A numbered row refuses a number that is not positive.
@@ -729,12 +740,36 @@ func (s *textSource) at(n ...int) textAddress {
 	}
 	args := make([]any, len(n))
 	for i, v := range n {
-		if v <= 0 {
+		if v < 0 || v == 0 && !(i == 0 && s.zeroFirst) {
 			return textAddress{row: s}
 		}
 		args[i] = v
 	}
 	return textAddress{row: s, path: fmt.Sprintf(s.address, args...), ok: true}
+}
+
+// within is the file called name inside the directory a directory row names.
+func (a textAddress) within(name string) textAddress {
+	if !a.ok {
+		return a
+	}
+	a.path += name
+	return a
+}
+
+// numbersIn reads the numbers of a numbered row's address out of path, as at
+// forms them. It reports false when path is not the row's form.
+func (s *textSource) numbersIn(path string, count int) ([]int, bool) {
+	n := make([]int, count)
+	args := make([]any, count)
+	for i := range n {
+		args[i] = &n[i]
+	}
+	form := strings.ReplaceAll(s.address, "%02d", "%d")
+	if got, err := fmt.Sscanf(path, form, args...); err != nil || got != count {
+		return nil, false
+	}
+	return n, true
 }
 
 // named is the row read at the caller's address.
@@ -872,6 +907,11 @@ func (t lineText) section(key string) string {
 		return ""
 	}
 	return secondGameTextSection(t.body, key)
+}
+
+// numberedSection is the section the key prefix followed by n names.
+func (t lineText) numberedSection(prefix string, n int) string {
+	return t.section(fmt.Sprintf("%s%d", prefix, n))
 }
 
 // sectionText is key's section in UTF-8, trimmed of white space, and whether

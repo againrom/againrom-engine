@@ -78,11 +78,11 @@ func TestMapPagesSourceOrder(t *testing.T) {
 					source, want = "scenario/20.alm", "Page two"
 				}
 				p := f.x.editorPages(source)
-				if p.err != nil || string(p.files["event02.txt"]) != want {
-					t.Fatalf("source: %q want %q: %v", p.files["event02.txt"], want, p.err)
+				if p.Err != nil || string(p.Files()["event02.txt"]) != want {
+					t.Fatalf("source: %q want %q: %v", p.Files()["event02.txt"], want, p.Err)
 				}
 				m, err := f.x.testPlayMission(source, nil, nil)
-				if err != nil || !reflect.DeepEqual(m.TextFiles, p.files) {
+				if err != nil || !reflect.DeepEqual(m.TextFiles, p.Files()) {
 					t.Fatalf("test play chose another source: %v", err)
 				}
 			})
@@ -175,8 +175,8 @@ func TestMapPagesOtherLanguageFillsAndSaveAsKeepsTree(t *testing.T) {
 	writeTestPlayInput(t, filepath.Join(dir, "a.text", "ru", "event01.txt"), []byte("Russian one"))
 	writeTestPlayInput(t, filepath.Join(dir, "a.text", "ru", "event02.txt"), []byte("Russian two"))
 	want := map[string][]byte{"event01.txt": []byte("Russian one"), "event02.txt": []byte("Russian two")}
-	if p := f.x.editorPages(a); p.err != nil || !reflect.DeepEqual(p.files, want) {
-		t.Fatalf("EN pages of a Russian-only map=%q: %v", p.files, p.err)
+	if p := f.x.editorPages(a); p.Err != nil || !reflect.DeepEqual(p.Files(), want) {
+		t.Fatalf("EN pages of a Russian-only map=%q: %v", p.Files(), p.Err)
 	}
 	d, err := f.x.Open(a)
 	if err != nil {
@@ -206,12 +206,12 @@ func TestMapPagesOtherLanguageFillsAndSaveAsKeepsTree(t *testing.T) {
 	if got := tree(t, filepath.Join(dir, "c.text")); !reflect.DeepEqual(got, map[string]string{"ru/event01.txt": "Russian one", "ru/event02.txt": "Russian two", "en/event02.txt": "English two"}) {
 		t.Fatalf("Save As of a changed fallback page wrote %q", got)
 	}
-	if p := f.x.editorPages(c); p.err != nil || string(p.files["event01.txt"]) != "Russian one" || string(p.files["event02.txt"]) != "English two" {
-		t.Fatalf("EN pages of a map holding both languages=%q: %v", p.files, p.err)
+	if p := f.x.editorPages(c); p.Err != nil || string(p.Files()["event01.txt"]) != "Russian one" || string(p.Files()["event02.txt"]) != "English two" {
+		t.Fatalf("EN pages of a map holding both languages=%q: %v", p.Files(), p.Err)
 	}
 	f.x.archives.Base.Profile.Language = "russian"
-	if p := f.x.editorPages(c); p.err != nil || string(p.files["event02.txt"]) != "Russian two" {
-		t.Fatalf("RU pages=%q: %v", p.files, p.err)
+	if p := f.x.editorPages(c); p.Err != nil || string(p.Files()["event02.txt"]) != "Russian two" {
+		t.Fatalf("RU pages=%q: %v", p.Files(), p.Err)
 	}
 }
 
@@ -262,11 +262,11 @@ func TestMapPagesSaveAsPreservesLanguageTree(t *testing.T) {
 	}
 	f.x.archives.Base.Profile.Language = "russian"
 	pa, pb := f.x.editorPages(a), f.x.editorPages(b)
-	if pa.err != nil || pb.err != nil || !reflect.DeepEqual(pa.files, pb.files) {
-		t.Fatalf("RU pages: a=%q b=%q errors=%v/%v", pa.files, pb.files, pa.err, pb.err)
+	if pa.Err != nil || pb.Err != nil || !reflect.DeepEqual(pa.Files(), pb.Files()) {
+		t.Fatalf("RU pages: a=%q b=%q errors=%v/%v", pa.Files(), pb.Files(), pa.Err, pb.Err)
 	}
-	if pc := f.x.editorPages(c); pc.err != nil || !reflect.DeepEqual(pa.files, pc.files) {
-		t.Fatalf("EN edit changed RU view=%q: %v", pc.files, pc.err)
+	if pc := f.x.editorPages(c); pc.Err != nil || !reflect.DeepEqual(pa.Files(), pc.Files()) {
+		t.Fatalf("EN edit changed RU view=%q: %v", pc.Files(), pc.Err)
 	}
 }
 
@@ -393,7 +393,7 @@ func TestMapPagesDiskEditsRefreshReport(t *testing.T) {
 	s := d.Edits.(*mapInspectionEdits)
 	now := time.Unix(1000, 0)
 	s.clock = func() time.Time { return now }
-	f.x.rules = []mapRule{{ID: "page", run: func(c *mapCheck) []mapHit { return []mapHit{{Text: string(c.pages.files["event01.txt"])}} }}}
+	f.x.rules = []mapRule{{ID: "page", run: func(c *mapCheck) []mapHit { return []mapHit{{Text: string(c.pages.Files()["event01.txt"])}} }}}
 	if got := s.Report(); len(got) != 1 || got[0].Text != "Before" {
 		t.Fatalf("initial report=%v", got)
 	}

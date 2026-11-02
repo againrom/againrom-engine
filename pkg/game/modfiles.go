@@ -158,12 +158,12 @@ const tavernTalkLeafForm = mainPrefix + "text/inn/npc/npc<NN>m<M>.txt"
 // isTavernTalkLeaf reports whether address is a tavern talk text's path as
 // TownNPCTextPath forms it, case folded.
 func isTavernTalkLeaf(address string) bool {
-	var npc, mission int
 	folded := mod.FoldAddress(address)
-	if _, err := fmt.Sscanf(folded, mainPrefix+"text/inn/npc/npc%dm%d.txt", &npc, &mission); err != nil {
+	n, ok := innNPCTextSource.numbersIn(folded, 2)
+	if !ok {
 		return false
 	}
-	path, ok := TownNPCTextPath(npc, mission)
+	path, ok := TownNPCTextPath(n[0], n[1])
 	return ok && mod.FoldAddress(path) == folded
 }
 

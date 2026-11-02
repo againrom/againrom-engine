@@ -29,7 +29,7 @@ var (
 	lineTextDecoders  = map[string]bool{"DecodeInstallTextFile": true, "SplitTextTable": true, "secondGameTextSection": true, "WindowsCyrillicToDOS": true, "DOSCyrillicToWindows": true}
 	lineTextReads     = map[string]bool{"ReadFile": true, "Entry": true, "ReadEntry": true}
 	lineTextTypes     = map[string]bool{"lineText": true, "textAddress": true, "textSource": true}
-	lineTextReaders   = map[string]bool{"installText": true, "ReadEventText": true, "ReadEventTextFor": true, "ReadShopTip": true, "readTipText": true, "MissionObjectives": true, "MissionObjectivesFor": true, "readSecondGameMissionText": true, "readSecondGameEventText": true, "secondGameBriefing": true, "messageUTF8": true}
+	lineTextReaders   = map[string]bool{"installText": true, "ReadEventText": true, "ReadEventTextFor": true, "ReadShopTip": true, "readTipText": true, "MissionObjectives": true, "MissionObjectivesFor": true, "secondGameBriefing": true, "messageUTF8": true}
 	lineTextCodeCalls = map[string]bool{"textCode": true, "InstallTextCode": true, "pageCode": true}
 )
 

@@ -154,68 +154,60 @@ func mapTextFolder(path string) string {
 	return strings.TrimSuffix(path, filepath.Ext(path)) + ".text"
 }
 
-func (x *MapInspector) editorPages(source string) *modPages {
-	p := &modPages{id: filepath.Base(source), files: map[string][]byte{}}
+// editorPages is the pages the editor shows for the map at source: the
+// install's pages of its mission, then the mod entry's, then the map's own
+// folder, resolved by mod.ResolvePages.
+func (x *MapInspector) editorPages(source string) *mod.MissionPages {
+	p := &mod.MissionPages{ID: filepath.Base(source)}
+	lang := x.pageLanguage()
+	var layers []mod.PageLayer
 	n := sourceMission(source)
 	if x.mod != nil {
 		if entry, ok := x.mod.entryFor(source); ok {
-			p.id, p.entry = x.mod.id, entry
+			p.ID, p.Entry = x.mod.id, entry
 			if entry.Kind == mod.MissionReplace {
 				n = entry.Number
 			}
 		}
 	}
 	if n > 0 {
-		if p.entry.Kind == "" {
-			p.entry = mod.Mission{Kind: mod.MissionReplace, Number: n}
+		if p.Entry.Kind == "" {
+			p.Entry = mod.Mission{Kind: mod.MissionReplace, Number: n}
 		}
 		if x.archives != nil && x.archives.Containers != nil {
-			p.files, p.err = x.installKeep.pages(x.archives.Containers, n)
-			if p.err != nil {
+			files, err := x.installKeep.pages(x.archives.Containers, n)
+			if err != nil {
+				p.Err = err
+				p.Pages = mod.ResolvePages(missionPageName)
 				return p
 			}
-		}
-	}
-	// The other language fills only a name no page of this one holds.
-	otherPages := map[string][]byte{}
-	merge := func(files map[string][]byte, other map[string]bool) {
-		for name, b := range files {
-			switch {
-			case !missionPageName(name):
-			case other[name]:
-				otherPages[name] = b
-			default:
-				p.files[name] = b
-			}
+			layers = append(layers, mod.PageLayer{Source: mod.PageInstall, Lang: lang, Files: files})
 		}
 	}
 	if x.mod != nil {
 		if entry, ok := x.mod.entryFor(source); ok {
-			p.id, p.entry = x.mod.id, entry
-			files, other, err := entry.ReadTexts(x.mod.dir, x.pageLanguage())
+			p.ID, p.Entry = x.mod.id, entry
+			layer, err := entry.ReadPageLayer(mod.PageMod, x.mod.dir, lang)
 			if err != nil {
-				p.err = err
+				p.Err = err
+				p.Pages = mod.ResolvePages(missionPageName, layers...)
 				return p
 			}
-			merge(files, other)
+			layers = append(layers, layer)
 		}
 	}
 	if path, ok := mapHostPath(ui.ParseMapSource(source), x.archives); ok {
-		m := mod.Mission{Map: filepath.Base(path)}
-		files, other, err := m.ReadTexts(filepath.Dir(path), x.pageLanguage())
+		layer, err := mod.Mission{Map: filepath.Base(path)}.ReadPageLayer(mod.PageMap, filepath.Dir(path), lang)
 		if err != nil {
-			p.err = err
+			p.Err = err
+			p.Pages = mod.ResolvePages(missionPageName, layers...)
 			return p
 		}
-		merge(files, other)
+		layers = append(layers, layer)
 	}
-	for name, b := range otherPages {
-		if _, held := p.files[name]; !held {
-			p.files[name] = b
-		}
-	}
-	if len(p.files) > 0 {
-		p.entry.Texts = testPlayTexts
+	p.Pages = mod.ResolvePages(missionPageName, layers...)
+	if len(p.Pages) > 0 {
+		p.Entry.Texts = testPlayTexts
 	}
 	return p
 }

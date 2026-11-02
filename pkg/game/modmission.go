@@ -207,15 +207,21 @@ func (f *FrontEnd) setModMissions(declared mod.MissionData) ([]mod.Override, []s
 		if err := serve(address, m.MapBytes); err != nil {
 			return nil, nil, err
 		}
-		dir := mainPrefix + "text/battle/m" + strconv.Itoa(m.Number) + "/"
-		for _, name := range slices.Sorted(maps.Keys(m.TextFiles)) {
-			// A page of the other language gives way to the install's page.
-			if m.OtherLanguageTexts[name] {
-				if installText(src, missionPageSource.named(dir+name), TextCode{}).present() {
-					continue
-				}
+		dir := missionPageDirSource.at(m.Number).path
+		// A page of the other language gives way to the install's page.
+		held := m.HeldPageLayer()
+		installed := mod.PageLayer{Source: mod.PageInstall, Lang: held.Lang, Files: map[string][]byte{}}
+		for name := range m.OtherLanguageTexts {
+			if installText(src, missionPageSource.named(dir+name), TextCode{}).present() {
+				installed.Files[name] = nil
 			}
-			if err := serve(dir+name, EncodeInstallTextFile(m.TextFiles[name], selector)); err != nil {
+		}
+		pages := mod.ResolvePages(nil, installed, held)
+		for _, name := range slices.Sorted(maps.Keys(pages)) {
+			if pages[name].Source != mod.PageMod {
+				continue
+			}
+			if err := serve(dir+name, EncodeInstallTextFile(pages[name].Bytes, selector)); err != nil {
 				return nil, nil, err
 			}
 		}

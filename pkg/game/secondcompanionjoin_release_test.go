@@ -252,7 +252,7 @@ func TestReleaseSecondIglezTalksDrawHisPortrait(t *testing.T) {
 	if len(f.Carried) != 2 {
 		t.Fatalf("the talk left %d members, want the hero and Iglez", len(f.Carried))
 	}
-	payload, _ := readSecondGameMissionText(f.Archives.Containers, InstallTextCode(f.Archives.Containers, tableEdition(f.Table)), 30)
+	payload := installText(f.Archives.Containers, missionTextSource.at(30), InstallTextCode(f.Archives.Containers, tableEdition(f.Table))).bytes()
 	if !strings.Contains(strings.ToLower(string(payload)), "npc=22") {
 		t.Fatal("mission 30's text names no line of NPC 22")
 	}

@@ -192,10 +192,10 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 	}
 	pages := map[string][]byte{}
 	if p := x.editorPages(source); p != nil {
-		if p.err != nil {
-			return mod.Mission{}, p.err
+		if p.Err != nil {
+			return mod.Mission{}, p.Err
 		}
-		for name, t := range p.files {
+		for name, t := range p.Files() {
 			if missionPageName(name) {
 				pages[name] = t
 			}

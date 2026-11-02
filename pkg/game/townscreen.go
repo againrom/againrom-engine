@@ -250,10 +250,8 @@ func (t *townScreen) resetForNewGame() {
 
 // TownNPCTextPath is the inn dialogue leaf for one NPC and live mission.
 func TownNPCTextPath(npc, mission int) (string, bool) {
-	if npc < 0 || mission <= 0 {
-		return "", false
-	}
-	return fmt.Sprintf("%stext/inn/npc/npc%02dm%d.txt", mainPrefix, npc, mission), true
+	a := innNPCTextSource.at(npc, mission)
+	return a.path, a.ok
 }
 
 // tavernTalkTextPath is the text a tavern row of NPC record npc speaks: its
@@ -273,23 +271,20 @@ func tavernTalkTextPath(npc, mission, chapter int) (string, bool) {
 func TownMercenaryTextPath(typ int) (string, bool) {
 	switch typ {
 	case 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14:
-		return fmt.Sprintf("%stext/inn/mercenary/npc%02d.txt", mainPrefix, typ), true
+		a := innMercenarySource.at(typ)
+		return a.path, a.ok
 	default:
 		return "", false
 	}
 }
 
 func TownBuildingTextPath(building TownBuilding, mission int) (string, bool) {
-	if mission <= 0 {
+	row, ok := townBuildingTalkSource[building]
+	if !ok {
 		return "", false
 	}
-	switch building {
-	case TownShop:
-		return fmt.Sprintf("%stext/shop/npc31m%d.txt", mainPrefix, mission), true
-	case TownSchool:
-		return fmt.Sprintf("%stext/training/npc34m%d.txt", mainPrefix, mission), true
-	}
-	return "", false
+	a := row.at(mission)
+	return a.path, a.ok
 }
 
 func (t *townScreen) townPayload() []byte {

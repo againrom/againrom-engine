@@ -626,7 +626,8 @@ func (m *Mission) ReadFiles(dir string) error {
 		return bad("map: %v", err)
 	}
 	m.MapBytes = b
-	m.TextFiles, m.OtherLanguageTexts, err = m.ReadTexts(dir, m.language)
+	layer, err := m.ReadPageLayer(PageMod, dir, m.language)
+	m.TextFiles, m.OtherLanguageTexts = layer.Files, layer.Other
 	if err != nil {
 		return bad("texts: %v", err)
 	}
@@ -637,12 +638,7 @@ func (m *Mission) ReadFiles(dir string) error {
 // name no folder of lang supplies is read from the other language's folders;
 // other names those.
 func (m Mission) ReadTexts(dir, lang string) (files map[string][]byte, other map[string]bool, err error) {
-	if lang == "" {
-		lang = path.Base(m.Texts)
-		if !locale.Known(lang) {
-			lang = locale.Fallback
-		}
-	}
+	lang = m.pageLang(lang)
 	if !locale.Known(lang) {
 		return nil, nil, fmt.Errorf("unsupported page language %q", lang)
 	}

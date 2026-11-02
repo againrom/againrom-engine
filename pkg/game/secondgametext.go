@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"againrom/pkg/base"
 )
 
@@ -10,22 +8,6 @@ import (
 // out.
 func ReadEventTextFor(src entrySource, game base.Game, mission, event int) ([]byte, bool) {
 	return filesOf(game).eventText(src, game.Edition(), mission, event)
-}
-
-// readSecondGameEventText is event's section of the second game's mission
-// text file.
-func readSecondGameEventText(src entrySource, code TextCode, mission, event int) ([]byte, bool) {
-	text := installText(src, missionTextSource.at(mission), code)
-	if !text.present() {
-		return nil, false
-	}
-	body := text.section(fmt.Sprintf("event%d", event))
-	return []byte(body), body != ""
-}
-
-func readSecondGameMissionText(src entrySource, code TextCode, mission int) ([]byte, bool) {
-	text := installText(src, missionTextSource.at(mission), code)
-	return text.bytes(), text.present()
 }
 
 func secondGameFailureText(src entrySource, code TextCode, mission int) []string {
@@ -43,7 +25,7 @@ func secondGameFailureEntries(src entrySource, code TextCode, mission int) (labe
 	}
 	words := LoadInstallWords(src, code)
 	for reason := 2; reason < 1024; reason++ {
-		label := text.section(fmt.Sprintf("failure%d", reason))
+		label := text.numberedSection("failure", reason)
 		if label == "" {
 			if reason > 4 {
 				break

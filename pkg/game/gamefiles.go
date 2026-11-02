@@ -227,7 +227,12 @@ var secondGameFiles = gameFiles{
 	menuLayout:          menu.SecondLayout,
 	briefing:            secondGameBriefing,
 	eventText: func(src entrySource, e base.Edition, mission, event int) ([]byte, bool) {
-		return readSecondGameEventText(src, InstallTextCode(src, e), mission, event)
+		text := installText(src, missionTextSource.at(mission), InstallTextCode(src, e))
+		if !text.present() {
+			return nil, false
+		}
+		body := text.numberedSection("event", event)
+		return []byte(body), body != ""
 	},
 	unitKeys:             mapload.ServerUnitKeys,
 	carryStockOnly:       true,

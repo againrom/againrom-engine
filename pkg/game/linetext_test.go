@@ -139,8 +139,13 @@ func lineTextRows() []lineTextRow {
 			}},
 		{"mission text", "main/text/mission10.txt",
 			func(src entrySource, _ []byte, code TextCode) any {
-				payload, ok := readSecondGameMissionText(src, code, 10)
-				ev, evOK := readSecondGameEventText(src, code, 10, 1)
+				text := installText(src, missionTextSource.at(10), code)
+				payload, ok := text.bytes(), text.present()
+				ev, evOK := []byte(nil), false
+				if text.present() {
+					body := text.numberedSection("event", 1)
+					ev, evOK = []byte(body), body != ""
+				}
 				labels, slots := secondGameFailureEntries(src, code, 10)
 				return []any{payload, ok, ev, evOK, secondGameBriefing(src, base.GameROM2.Edition(), 10),
 					secondGameObjectiveLabels(src, code, 10), labels, slots}

@@ -80,10 +80,10 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 	w := &editorWorkspaceState{Pages: map[string][]byte{}, Package: editorPackageSpec{ID: "authored-map", Title: "Authored map", Kind: mod.MissionGuest}}
 	x := s.inspector
 	if p := x.editorPages(s.source); p != nil {
-		if p.err != nil {
-			return p.err
+		if p.Err != nil {
+			return p.Err
 		}
-		for name, b := range p.files {
+		for name, b := range p.Files() {
 			if missionPageName(name) {
 				w.Pages[name] = bytes.Clone(b)
 			}
@@ -457,21 +457,21 @@ func (s *mapInspectionEdits) setMapMetadata(key, value string) (*ui.InspectionDo
 	})
 }
 
-func (s *mapInspectionEdits) currentPages() *modPages {
+func (s *mapInspectionEdits) currentPages() *mod.MissionPages {
 	p := s.inspector.editorPages(s.source)
-	if s.workspace == nil || p.err != nil {
+	if s.workspace == nil || p.Err != nil {
 		return p
 	}
 	var saved editorWorkspaceState
 	_ = json.Unmarshal(s.savedWorkspace, &saved)
 	for name, b := range s.workspace.Pages {
 		if before, exists := saved.Pages[name]; !exists || !bytes.Equal(before, b) {
-			p.files[name] = b
+			p.Put(name, b, s.inspector.pageLanguage())
 		}
 	}
-	m := s.workspace.Package.mission(s.model.Bytes(), p.files)
-	m.Mod = p.entry.Mod
-	p.entry = m
+	m := s.workspace.Package.mission(s.model.Bytes(), p.Files())
+	m.Mod = p.Entry.Mod
+	p.Entry = m
 	return p
 }
 

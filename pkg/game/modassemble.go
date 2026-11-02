@@ -98,7 +98,11 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 func installedPages(src *vfs.FS, n int) (map[string][]byte, error) {
 	pages := map[string][]byte{}
 	code := TextCode{Selector: LanguageSelector(src)}
-	prefix := mainPrefix + "text/battle/m" + strconv.Itoa(n) + "/"
+	dir := missionPageDirSource.at(n)
+	if !dir.ok {
+		return pages, nil
+	}
+	prefix := dir.path
 	for _, e := range src.Entries() {
 		name, ok := strings.CutPrefix(namefold.ArchiveText(e.Address), prefix)
 		if !ok || !missionPageName(name) {

@@ -46,7 +46,7 @@ func TestMapReportStampKeptUntilEditOrSecond(t *testing.T) {
 	s := d.Edits.(*mapInspectionEdits)
 	now := time.Unix(1000, 0)
 	s.clock = func() time.Time { return now }
-	f.x.rules = []mapRule{{ID: "page", run: func(c *mapCheck) []mapHit { return []mapHit{{Text: string(c.pages.files["event01.txt"])}} }}}
+	f.x.rules = []mapRule{{ID: "page", run: func(c *mapCheck) []mapHit { return []mapHit{{Text: string(c.pages.Files()["event01.txt"])}} }}}
 	if got := s.Report(); len(got) != 1 || got[0].Text != "Before" {
 		t.Fatalf("initial report=%v", got)
 	}

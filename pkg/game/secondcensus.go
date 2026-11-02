@@ -476,7 +476,7 @@ func secondSpecialEvent(e int32) bool { return e == 250 || e >= 253 && e <= 255 
 // mission screen uses.
 func secondText(c *SecondMapCensus, src entrySource, code TextCode) {
 	for _, e := range c.Events {
-		if _, ok := readSecondGameEventText(src, code, c.Mission, int(e)); !ok {
+		if installText(src, missionTextSource.at(c.Mission), code).numberedSection("event", int(e)) == "" {
 			c.NoEventText = append(c.NoEventText, e)
 		}
 	}
