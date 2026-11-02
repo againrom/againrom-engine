@@ -15,10 +15,10 @@ import (
 // that decides it; a placed record keeps its own record kind whatever
 // palette placed it.
 
-// structurePalette is the palette structure kind c lists in, given the
-// maximum health its Buildings entry gives (inTable false when the table
-// names none), and when the data does not settle it, the field that fails.
-func structurePalette(c *terrain.StructureClass, maxHealth int32, inTable bool) (ui.Palette, string) {
+// structurePalette is the palette structure kind c lists in, given
+// whether the Buildings table has an entry for it, and when the data does
+// not settle it, the field that fails.
+func structurePalette(c *terrain.StructureClass, inTable bool) (ui.Palette, string) {
 	switch {
 	case c == nil:
 		return ui.PaletteStructures, "structures.reg: no class"
@@ -38,12 +38,9 @@ func structurePalette(c *terrain.StructureClass, maxHealth int32, inTable bool) 
 		return ui.PaletteStructures, "Flat: no field marks a fixed bridge"
 	case !inTable:
 		return ui.PaletteStructures, "Buildings: no maximum health"
-	case maxHealth > 0:
-		// Indestructible with positive maximum health (TERR-STRUCT-210).
-		return ui.PaletteStructures, "Indestructible with Buildings maximum health above zero"
 	}
-	// Indestructible, maximum health zero, not usable: it draws no change
-	// and takes no click (TERR-STRUCT-210).
+	// Indestructible, not usable, not flat: it draws no change and takes no
+	// click (TERR-STRUCT-210), whatever its maximum health.
 	return ui.PaletteObjects, ""
 }
 
@@ -69,8 +66,8 @@ func structurePalettes(set *terrain.StructureSet, table *mapload.Table) (map[int
 		if c == nil {
 			continue
 		}
-		maxHealth, ok := mapload.StructureMaxHealth(table, byte(id))
-		p, why := structurePalette(c, maxHealth, ok)
+		_, ok := mapload.StructureMaxHealth(table, byte(id))
+		p, why := structurePalette(c, ok)
 		palettes[int64(id)] = p
 		if why != "" {
 			unsettled[int64(id)] = why

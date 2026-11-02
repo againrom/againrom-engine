@@ -3886,5 +3886,5 @@ var Committed = Baseline{
 	// internal/archtest, and this note. The join ends with its wizard session
 	// and a save: the comments of freshTrigger and joinsAdd in pkg/ui and the
 	// new test in pkg/game.
-	CommentBytes: 10433181,
+	CommentBytes: 10433096,
 }

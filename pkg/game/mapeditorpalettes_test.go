@@ -23,21 +23,24 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 	for _, c := range []struct {
 		name    string
 		class   *terrain.StructureClass
-		hp      int32
 		hpKnown bool
 		want    ui.Palette
 		why     string
 	}{
-		{"no class", nil, 0, true, ui.PaletteStructures, "structures.reg: no class"},
-		{"a bridge", &terrain.StructureClass{VariableSize: true, Indestructible: true}, 0, true, ui.PaletteStructures, ""},
-		{"a usable gate", &terrain.StructureClass{Usable: true, Indestructible: true}, 0, true, ui.PaletteStructures, ""},
-		{"a house that can be destroyed", &terrain.StructureClass{}, 500, true, ui.PaletteStructures, ""},
-		{"a flat mark", &terrain.StructureClass{Flat: true, Indestructible: true}, 0, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
-		{"no Buildings entry", &terrain.StructureClass{Indestructible: true}, 0, false, ui.PaletteStructures, "Buildings: no maximum health"},
-		{"indestructible with health", &terrain.StructureClass{Indestructible: true}, 1000, true, ui.PaletteStructures, "Indestructible with Buildings maximum health above zero"},
-		{"a fence", &terrain.StructureClass{Indestructible: true}, 0, true, ui.PaletteObjects, ""},
+		{"no class", nil, true, ui.PaletteStructures, "structures.reg: no class"},
+		{"a bridge", &terrain.StructureClass{VariableSize: true, Indestructible: true}, true, ui.PaletteStructures, ""},
+		{"a usable gate", &terrain.StructureClass{Usable: true, Indestructible: true}, true, ui.PaletteStructures, ""},
+		{"a house that can be destroyed", &terrain.StructureClass{}, true, ui.PaletteStructures, ""},
+		{"a flat mark", &terrain.StructureClass{Flat: true, Indestructible: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
+		{"no Buildings entry", &terrain.StructureClass{Indestructible: true}, false, ui.PaletteStructures, "Buildings: no maximum health"},
+		{"Well 1: indestructible, health, not usable", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},
+		{"Magic Well: usable with health", &terrain.StructureClass{Indestructible: true, Usable: true}, true, ui.PaletteStructures, ""},
+		{"Magic Symbol: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
+		{"Horizontal or vertical bridge: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
+		{"Teleport Pad or Campfire: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
+		{"a fence", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},
 	} {
-		if p, why := structurePalette(c.class, c.hp, c.hpKnown); p != c.want || why != c.why {
+		if p, why := structurePalette(c.class, c.hpKnown); p != c.want || why != c.why {
 			t.Errorf("%s: palette %d (%q), want %d (%q)", c.name, p, why, c.want, c.why)
 		}
 	}

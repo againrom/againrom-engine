@@ -30,11 +30,12 @@ this story's census names each place and holds it with a test.
   (DeadObject names the class a destroyed object leaves).
 - Census, EN = RU, base `7401537ae`, map `scenario/10.alm` of each original: before, Structures
   66 kinds, Objects 75 classes, Trees 75 classes, 75 records in two palettes; after, Structures
-  50 kinds, Objects 16 kinds and 33 classes, Trees 42 classes, none in two palettes. The census
+  49 kinds, Objects 17 kinds and 33 classes, Trees 42 classes, none in two palettes. The census
   file is the lane's `CENSUS.md`; the release test below repeats its counts.
-- Unsettled kinds, listed in Structures: 8 Well 1 (Indestructible with Buildings maximum health
-  1000), 27 Magic Symbol, 38 Horisontal Bridge, 48 Teleport Pad, 52 Vertical Bridge, 53 Campfire
-  (Flat: no field marks a fixed bridge).
+- Unsettled kinds, listed in Structures: 27 Magic Symbol, 38 Horisontal Bridge, 48 Teleport Pad,
+  52 Vertical Bridge, 53 Campfire (Flat: no field marks a fixed bridge). Well 1 (kind 8,
+  Indestructible with Buildings maximum health 1000, not usable, not flat) lists under Objects by
+  the owner's direction: a plain click does not select it and it is not switchable.
 - The map editor is our program: no divergence row.
 
 ## As built
@@ -93,7 +94,7 @@ that already held.
 
 Release test, not run in the lane:
 `pkg/game.TestReleaseMapEditorEachPaletteRecordListsInOnePalette` (population row) counts the
-installed palettes, checks that each record lists once and that the six unsettled kinds list in
+installed palettes, checks that each record lists once and that the five unsettled kinds list in
 Structures. The changed release tests `mapeditforest_release_test.go`,
 `mapeditobjectart_release_test.go` and `mapeditobjects_release_test.go` read the Trees and
 one-kind lists. The next release runs them on EN and RU.
