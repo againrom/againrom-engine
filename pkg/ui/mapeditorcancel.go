@@ -70,8 +70,14 @@ func (e *MapEditor) cancelPopup(target ...editorPopupID) {
 			e.cancelRestore = nil
 			restore()
 		} else {
+			// A placing that has added copies keeps no checkpoint; one the
+			// object brush began goes back to that brush.
+			r, placing := e.addRunning()
 			e.leave(leavePick | leavePrompt)
 			e.message = ""
+			if placing && r.brush {
+				e.objectBrush(false)
+			}
 		}
 		e.saveThen = nil
 		return

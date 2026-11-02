@@ -523,10 +523,9 @@ func Structures(m *alm.Map, t *Table) []sim.Structure {
 	for i, o := range m.Objects {
 		out[i] = sim.Structure{ID: sim.StructureID(i), Col: int32(o.X >> 8), Row: int32(o.Y >> 8)}
 		StructureUseMetadata(&out[i], uint16(byte(o.Kind)), t)
-		p, ok := buildingParams(o, c)
-		if ok && len(p) > healthMaxSlot {
-			out[i].Field42 = uint16(p[healthMaxSlot])
-			out[i].MaxHealth = uint16(p[healthMaxSlot])
+		if hp, ok := StructureMaxHealth(t, byte(o.Kind)); ok {
+			out[i].Field42 = uint16(hp)
+			out[i].MaxHealth = uint16(hp)
 		}
 		if o.Field0C == 0 && uint16(o.Kind) != 34 && uint16(o.Kind) != 35 {
 			out[i].Field42 = 0

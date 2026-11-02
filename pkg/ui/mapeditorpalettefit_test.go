@@ -34,7 +34,7 @@ func (h *cellCountHost) NewRecordStep(r InspectionNewRecord, key string) Inspect
 func (h *cellCountHost) BrushObjects() []BrushObject {
 	out := []BrushObject{{Code: 0, Name: "No object"}}
 	for c := 1; c <= h.trees; c++ {
-		out = append(out, BrushObject{Code: c, Name: fmt.Sprintf("Tree %d", c)})
+		out = append(out, BrushObject{Code: c, Name: fmt.Sprintf("Tree %d", c), Palette: PaletteTrees})
 	}
 	return out
 }

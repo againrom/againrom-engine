@@ -3863,5 +3863,12 @@ var Committed = Baseline{
 	// pkg/ui's mapeditorscriptauthor_test.go, the fixed button width of the
 	// Scripts popups (fitButtons) with its tests mapeditorscriptfit_test.go
 	// and mapeditormodlabels_test.go, and this note.
-	CommentBytes: 10410579,
+
+	// It rose for the map editor's one palette per record: the doc comments
+	// of pkg/game/mapeditorpalettes.go, mapload's StructureMaxHealth, the
+	// place grid, object rows, PaletteHolds and Esc back to the brush in
+	// pkg/ui, the new tests in pkg/ui, pkg/game and internal/archtest, the
+	// Trees window's One kind mode (pkg/ui/mapeditorbrush.go,
+	// mapeditorpalettes.go and the two new test files), and this note.
+	CommentBytes: 10422581,
 }

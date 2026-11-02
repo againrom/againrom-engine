@@ -837,7 +837,7 @@ func (e *MapEditor) listWindow() int {
 		return p.fit
 	}
 	pitch := fontHeight(e.bodyFont(), 15) + listPitchExtra
-	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight() - e.heightModeGridHeight()
+	avail := e.mapArea().Dy() - 4*(fontHeight(e.bodyFont(), 15)+popupRowExtra) - 40 - e.forestGridHeight() - e.heightModeGridHeight() - e.brushPlaceGridHeight()
 	return max(3, min(18, avail/pitch))
 }
 
@@ -907,6 +907,9 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Grid = g
 		} else if g, ok := e.heightModeGridSpec(); ok {
 			s.Grid = g
+		} else if g, note, ok := e.placeGridSpec(); ok {
+			s.Grid = g
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
 		}
 	case "catalog":
 		if e.doc == nil {
@@ -933,6 +936,9 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.Width = e.popupWide(popList, max(400, g.HeadW+g.Cols*g.side()+2*popupPad+widgetSpriteSize))
 			s.LabelWidth = s.Width - 2*popupPad - 3*relationSide
 		}
+	}
+	for _, note := range e.emptyPaletteNote() {
+		s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})
 	}
 	counter := m != nil && m.Len() > 0
 	if counter {
@@ -1964,6 +1970,8 @@ func (e *MapEditor) chromeWheel(target editorPopupID, wheel wheelSource) {
 				if rows := editorWheelRows(&e.listWheel, wheel); e.listKind() == "brush" {
 					if e.forestOn() {
 						e.forestGridWheel(l, rows)
+					} else if e.brush.mode == brushObjects {
+						e.placeGridWheel(l, rows)
 					}
 				} else if e.filter != editorPlayersFilter {
 					e.placeGridWheel(l, rows)
@@ -2116,8 +2124,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 			switch {
 			case e.listKind() == "brush" && e.brush.mode == brushHeight:
 				e.heightModePress(n)
-			case e.listKind() == "brush":
+			case e.listKind() == "brush" && e.forestOn():
 				e.forestGridPress(n)
+			case e.listKind() == "brush":
+				e.placeChoose(n)
 			case e.filter == editorPlayersFilter:
 				e.relationPress(n)
 			default:

@@ -244,11 +244,13 @@ func objectBrushRows(catalog *ObjectCatalog, set *terrain.StaticSet) []ui.BrushO
 		if c := set.Classes[b]; c == nil || c.Frame == nil {
 			continue
 		}
-		name := ""
+		name, palette := "", objectPalette(nil)
 		if catalog != nil {
 			name = catalog.Name(byte(b))
+			c, _ := catalog.ByCode(byte(b))
+			palette = objectPalette(c)
 		}
-		rows = append(rows, ui.BrushObject{Code: b, Name: name})
+		rows = append(rows, ui.BrushObject{Code: b, Name: name, Palette: palette})
 	}
 	return rows
 }

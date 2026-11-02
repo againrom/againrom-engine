@@ -180,6 +180,19 @@ func buildingParams(o alm.Object, c data.Collection) ([]int32, bool) {
 	return c.EntryParams(k), true
 }
 
+// StructureMaxHealth is the maximum health the definition entry of
+// structure kind gives a placed structure: position healthMaxSlot of the
+// entry buildingParams selects. ok is false when the table names no entry
+// or the entry is too short to carry the position. Structures seeds Field42
+// from it, and the map editor's palettes read it.
+func StructureMaxHealth(t *Table, kind byte) (int32, bool) {
+	p, ok := buildingParams(alm.Object{Kind: uint32(kind)}, t.buildings())
+	if !ok || len(p) <= healthMaxSlot {
+		return 0, false
+	}
+	return p[healthMaxSlot], true
+}
+
 // resolve is one placement against one collection, and the ORDER of its five
 // steps is contract rather than detail.
 //

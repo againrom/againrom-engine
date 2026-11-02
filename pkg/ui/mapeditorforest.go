@@ -37,6 +37,7 @@ var forestShares = [4]int{10, 25, 50, 100}
 // stroke in progress being a thinning one.
 type forestState struct {
 	on    bool
+	trees bool // the window is the Trees palette's: its One kind mode lists tree classes
 	ticks map[int]bool
 	share int
 	top   int
@@ -58,9 +59,9 @@ func (e *MapEditor) forestShare() int {
 	return forestShares[1]
 }
 
-// forestKinds are the forest grid's classes: every offered class but the
-// clear row, in the list's order. A host that has pictures offers only the
-// classes whose picture shows something.
+// forestKinds are the forest grid's classes: every offered class of the
+// Trees palette, in the list's order. A host that has pictures offers only
+// the classes whose picture shows something.
 func (e *MapEditor) forestKinds() []BrushObject {
 	h := e.brushHost()
 	if h == nil {
@@ -68,7 +69,7 @@ func (e *MapEditor) forestKinds() []BrushObject {
 	}
 	var out []BrushObject
 	for _, o := range h.BrushObjects() {
-		if o.Code != 0 && e.forestHasArt(o.Code) {
+		if o.tree() && e.forestHasArt(o.Code) {
 			out = append(out, o)
 		}
 	}
@@ -233,7 +234,7 @@ func (e *MapEditor) forestPopupRows() []popupRow {
 func (e *MapEditor) forestRowButton(row, k int) {
 	switch {
 	case row == 2:
-		e.brush.forest.on = k == 1
+		e.setForest(k == 1)
 	case row == 3:
 		e.openPrompt(editorPrompt{kind: promptForestShare, path: strconv.Itoa(e.forestShare())})
 	case row == 4 && k == 0:

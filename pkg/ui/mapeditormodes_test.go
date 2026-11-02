@@ -169,7 +169,7 @@ func (p *modesFull) BrushTerrains() []BrushTerrain {
 	return []BrushTerrain{{Class: 2, Name: "Grass"}, {Class: 8, Name: "Mountain"}, {Class: 9, Name: "Water"}}
 }
 func (p *modesFull) BrushObjects() []BrushObject {
-	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}}
+	return []BrushObject{{Code: 0, Name: "No object"}, {Code: 3, Name: "Oak"}, {Code: 4, Name: "Pine", Palette: PaletteTrees}}
 }
 func (p *modesFull) BrushMaxRadius() int                    { return 16 }
 func (p *modesFull) BrushCells(s BrushStroke) []image.Point { return probeBrushCells(s, 64, 64) }

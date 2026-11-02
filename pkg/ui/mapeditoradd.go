@@ -37,6 +37,9 @@ type InspectionNewStep struct {
 	Value   int64
 	Text    string
 	Absent  bool
+	// Palettes is the bar palette each choice of a structure kind step
+	// lists in, by value; a value it lacks lists in its own kind's palette.
+	Palettes map[int64]Palette
 	// Shut are the choice values the list shows but does not take: its
 	// headings.
 	Shut []int64
@@ -182,6 +185,9 @@ type addRun struct {
 	repeat bool
 	placed int
 	stroke *placeStroke
+	// brush marks a placing the object brush's grid began: Esc ends it
+	// back in that brush.
+	brush bool
 	// listed is the condition no pair names that the window puts into a
 	// trigger, 0 for a new one; relabel names the variable register the
 	// window labels, nil for a new variable.

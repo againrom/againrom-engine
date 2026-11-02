@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"againrom/internal/firstgame"
@@ -32,6 +33,12 @@ func objectRow(t *testing.T, s *mapInspectionEdits, n int) ui.BrushObject {
 		t.Fatalf("the objects list %v lacks the clear row or any class", rows)
 	}
 	return rows[1+n%(len(rows)-1)]
+}
+
+// oneKindRows are the rows the object brush's one-kind list shows of rows:
+// the clear row and every class outside the Trees palette.
+func oneKindRows(rows []ui.BrushObject) []ui.BrushObject {
+	return slices.DeleteFunc(slices.Clone(rows), func(r ui.BrushObject) bool { return r.Palette == ui.PaletteTrees })
 }
 
 // interiorCell is a cell whose radius-2 disc lies wholly inside the map.
@@ -265,7 +272,7 @@ func TestReleaseMapEditorPaintedObjectsLoadAsAModMissionAndBlockTheWalk(t *testi
 	dir := guestMods(t, guestModID)
 	var row ui.BrushObject
 	saveEditedGuestMap(t, x, dir, func(e *ui.MapEditor) {
-		rows := objectEdits(t, e).BrushObjects()
+		rows := oneKindRows(objectEdits(t, e).BrushObjects())
 		at := 1 + 21%(len(rows)-1)
 		row = rows[at]
 		e.ShowCell(route.at(4, 0))

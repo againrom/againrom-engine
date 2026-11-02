@@ -23,15 +23,16 @@ const forestScenario = "scenario/10.alm"
 // Vallenwood 1, Maple 1 and Oak 1 of the installed object registry.
 var forestTrees = []int{1, 4, 16, 19}
 
-// forestGridIndex is the forest grid cell of class code: the object list's
-// row less the clear row.
+// forestGridIndex is the forest grid cell of class code: its place among the
+// object list's classes of the Trees palette.
 func forestGridIndex(t *testing.T, x *MapInspector, code int) int {
 	t.Helper()
-	n := slices.IndexFunc(x.objectRows, func(r ui.BrushObject) bool { return r.Code == code })
-	if n < 1 {
-		t.Fatalf("the installed object list does not offer class %d", code)
+	trees := slices.DeleteFunc(slices.Clone(x.objectRows), func(r ui.BrushObject) bool { return r.Palette != ui.PaletteTrees })
+	n := slices.IndexFunc(trees, func(r ui.BrushObject) bool { return r.Code == code })
+	if n < 0 {
+		t.Fatalf("the installed Trees palette does not offer class %d", code)
 	}
-	return n - 1
+	return n
 }
 
 // installedForest opens key at 1280x800, closes the Map panel, turns the

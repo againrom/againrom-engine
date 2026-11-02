@@ -20,10 +20,12 @@ type BrushTerrain struct {
 }
 
 // BrushObject is one row of the objects list the host lets the window paint:
-// the class code a cell takes (0 is the row that clears objects) and its name.
+// the class code a cell takes (0 is the row that clears objects), its name and
+// the bar palette it lists in.
 type BrushObject struct {
-	Code int
-	Name string
+	Code    int
+	Name    string
+	Palette Palette
 }
 
 // BrushPlane names the grid layer a stroke writes.
@@ -294,7 +296,7 @@ func (e *MapEditor) brushRows() []string {
 	case brushObjects:
 		var rows []string
 		if h := e.brushHost(); h != nil {
-			for _, o := range h.BrushObjects() {
+			for _, o := range e.brushObjectRows() {
 				word := e.objectWord(o)
 				if e.forestOn() && o.Code != 0 {
 					word = markWord(e.brush.forest.ticks[o.Code], word)
@@ -333,7 +335,7 @@ func (e *MapEditor) drawBrushPreview(pic *image.RGBA, s popupSpec) {
 	if !ok {
 		return
 	}
-	objects := e.brushHost().BrushObjects()
+	objects := e.brushObjectRows()
 	sel := e.brush.sel[brushObjects]
 	if sel < 0 || sel >= len(objects) || objects[sel].Code == 0 {
 		return
@@ -538,7 +540,7 @@ func (e *MapEditor) brushRowClick(n int) {
 	if n >= 0 && n < len(e.brushRows()) {
 		e.brush.sel[e.brush.mode] = n
 		if h := e.brushHost(); h != nil && e.forestOn() {
-			if objects := h.BrushObjects(); n < len(objects) && objects[n].Code != 0 {
+			if objects := e.brushObjectRows(); n < len(objects) && objects[n].Code != 0 {
 				e.forestTick(objects[n].Code)
 			}
 		}
@@ -561,18 +563,34 @@ func (e *MapEditor) brushStatus() string {
 }
 
 // objectBrush is the bar's Objects entry (forest false) and Trees entry
-// (forest true): the object brush on in that mode, or off when it is on in
-// that mode already.
+// (forest true): the object brush on in that palette's first mode, or off
+// when it is on in that mode already. The Trees window keeps its One kind
+// mode, whose rows are the tree classes; the Objects window's rows are the
+// other classes.
 func (e *MapEditor) objectBrush(forest bool) {
 	if e.brushHost() == nil || e.catalog {
 		return
 	}
-	if e.brush.mode == brushObjects && e.brush.forest.on == forest {
+	if e.brush.mode == brushObjects && e.brush.forest.on == forest && e.brush.forest.trees == forest {
 		e.toggleBrush(brushObjects)
 		return
 	}
 	e.chooseBrush(brushObjects)
-	e.brush.forest.on = forest
+	if e.brush.forest.trees != forest {
+		e.brush.sel[brushObjects] = 0
+	}
+	e.brush.forest.trees = forest
+	e.setForest(forest)
+}
+
+// setForest puts the object brush in its Forest mode or its one-kind mode.
+// The two modes list different rows, so a row chosen in one names another
+// class in the other: a switched list starts on its clear row.
+func (e *MapEditor) setForest(on bool) {
+	if e.brush.forest.on != on {
+		e.brush.sel[brushObjects] = 0
+	}
+	e.brush.forest.on = on
 }
 
 // chooseBrush is a toolbar tool: it turns mode on, or every brush off
@@ -700,7 +718,7 @@ func (e *MapEditor) brushCommit() {
 			return
 		}
 	case brushObjects:
-		objects := host.BrushObjects()
+		objects := e.brushObjectRows()
 		if sel >= len(objects) {
 			return
 		}

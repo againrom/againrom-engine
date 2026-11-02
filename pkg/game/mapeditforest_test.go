@@ -70,7 +70,7 @@ func forestEditor(t *testing.T, raw []byte) (*ui.MapEditor, *MapInspector) {
 	set.Classes[5] = &terrain.StructureClass{ID: 5, Name: "s", TileWidth: 3, TileHeight: 2, FullHeight: 2}
 	x := &MapInspector{tiles: &terrain.Tileset{}, table: table, structures: set, objectRows: []ui.BrushObject{{Code: 0}}}
 	for _, c := range forestCodes {
-		x.objectRows = append(x.objectRows, ui.BrushObject{Code: c})
+		x.objectRows = append(x.objectRows, ui.BrushObject{Code: c, Palette: ui.PaletteTrees})
 	}
 	x.statics = forestStatics(forestCodes...)
 	e := x.Editor()

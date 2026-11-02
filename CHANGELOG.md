@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] In the map editor each placeable thing lists in one palette: Structures holds what can be selected, destroyed or switched and the bridges, Objects the decoration (fences and the like included), Trees the trees and bushes; before, every object listed in both Objects and Trees. A palette with nothing in a part says so, and what you place writes the same map as before, trees included: the Trees window plants a forest on open cells or paints one tree kind on every cell you cover.
 - [BASE] In the map editor's Scripts list, Add then Condition (RU «Условие») offers the trigger wizard's conditions with their fields and puts the condition into the first free pair of a trigger you pick or of a new trigger (RU «Новый триггер»), as the wizard writes it; a trigger with three pairs taken is refused. A condition no trigger uses has "Add to trigger" (RU «Добавить в триггер») in its window. Add then New variable (RU «Новая переменная») asks a label and lists the variable at once; the variable window edits and clears the label, and the label shows wherever the variable is chosen or named. The labels are kept in a file beside the map named like it with the ending .variables, which the game never reads; a map with no label writes none.
 
 ## 0.145.0

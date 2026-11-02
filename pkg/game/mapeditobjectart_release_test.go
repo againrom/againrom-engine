@@ -20,7 +20,7 @@ func TestReleaseMapEditorObjectBrushPaintsEachCodesOwnArt(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.Layout(1280, 800)
-	rows := objectEdits(t, e).BrushObjects()
+	rows := oneKindRows(objectEdits(t, e).BrushObjects())
 	groups := map[string][]int{}
 	for _, r := range rows {
 		n := strings.ToLower(r.Name)

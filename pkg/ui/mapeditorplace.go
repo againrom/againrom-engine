@@ -14,15 +14,20 @@ import (
 // places one copy, and a press held over the map places one on every cell
 // it crosses. Each copy is one Add, one history entry.
 
-// placeGrid is the tabs' grid state: its first shown row, the pictures the
-// host gave, by kind and value, and the choices of the document they were
-// read for.
+// The object brush's one-kind mode shows the same grid over the structure
+// kinds of the Objects palette, and a press on its cell places copies the
+// same way.
+
+// placeGrid is the tabs' grid state: its first shown row, and the object
+// brush's, the pictures the host gave, by kind and value, and the choices
+// of the document they were read for with the palette of each.
 type placeGrid struct {
-	top     int
-	icons   map[string]*image.RGBA
-	doc     *InspectionDocument
-	kind    RecordKind
-	choices []InspectionChoice
+	top, brushTop int
+	icons         map[string]*image.RGBA
+	doc           *InspectionDocument
+	kind          RecordKind
+	choices       []InspectionChoice
+	palettes      map[int64]Palette
 }
 
 var placeGridSides = map[RecordKind]int{KindStructure: 2*(gridCellSide-8) + 8}
@@ -49,6 +54,23 @@ func (e *MapEditor) placeGridKind() (kind RecordKind, key string, ok bool) {
 	return "", "", false
 }
 
+// placeGridOf is the record kind, the Add step and the palette of the grid
+// the list popup shows: on the Units tab every unit class, on the
+// Structures tab the structure kinds of the Structures palette, and in the
+// object brush's one-kind mode the structure kinds of the Objects palette.
+func (e *MapEditor) placeGridOf() (kind RecordKind, key string, palette Palette, ok bool) {
+	if kind, key, ok := e.placeGridKind(); ok {
+		if kind == KindStructure {
+			return kind, key, PaletteStructures, true
+		}
+		return kind, key, PaletteOwn, true
+	}
+	if _, host := e.addHost(); host && e.listKind() == "brush" && e.brush.mode == brushObjects && !e.brush.forest.on && !e.brush.forest.trees {
+		return KindStructure, "kind", PaletteObjects, true
+	}
+	return "", "", PaletteOwn, false
+}
+
 // placeChoices are the choices of the grid's step, as the host offers them
 // for the open document.
 func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice {
@@ -57,10 +79,53 @@ func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice
 		return nil
 	}
 	if e.place.doc != e.doc || e.place.kind != kind {
+		step := host.NewRecordStep(InspectionNewRecord{Kind: kind}, key)
 		e.place.doc, e.place.kind = e.doc, kind
-		e.place.choices = host.NewRecordStep(InspectionNewRecord{Kind: kind}, key).Choices
+		e.place.choices, e.place.palettes = step.Choices, step.Palettes
 	}
 	return e.place.choices
+}
+
+// placeShown are the choices the shown grid holds: those of its step that
+// list in its palette, every one for a palette of PaletteOwn.
+func (e *MapEditor) placeShown() []InspectionChoice {
+	kind, key, palette, ok := e.placeGridOf()
+	if !ok {
+		return nil
+	}
+	return e.placeIn(kind, key, palette)
+}
+
+// placeIn are the choices of kind's step key that list in palette.
+func (e *MapEditor) placeIn(kind RecordKind, key string, palette Palette) []InspectionChoice {
+	all := e.placeChoices(kind, key)
+	if palette == PaletteOwn {
+		return all
+	}
+	var out []InspectionChoice
+	for _, c := range all {
+		if e.place.palettes[c.Value].in(PaletteStructures) == palette {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// placeTop is the first shown row of the shown grid.
+func (e *MapEditor) placeTop() *int {
+	if e.listKind() == "brush" {
+		return &e.place.brushTop
+	}
+	return &e.place.top
+}
+
+// brushPlaceGridHeight is the room the brush window's list leaves the
+// Objects palette's grid of structure kinds: its least rows and the hint.
+func (e *MapEditor) brushPlaceGridHeight() int {
+	if _, _, palette, ok := e.placeGridOf(); !ok || palette != PaletteObjects || len(e.placeShown()) == 0 {
+		return 0
+	}
+	return (&popupGrid{Rows: gridLeastRows, Side: placeGridSides[KindStructure]}).height() + fontHeight(e.bodyFont(), 15) + popupRowExtra
 }
 
 // placeIcon is the host's picture of choice value of kind's step key, read
@@ -101,15 +166,15 @@ func (e *MapEditor) placing(key string) (*addRun, int64, bool) {
 // placeGridSpec is the shown tab's grid as data, and the note naming the
 // chosen cell.
 func (e *MapEditor) placeGridSpec() (*popupGrid, string, bool) {
-	kind, key, ok := e.placeGridKind()
+	kind, key, _, ok := e.placeGridOf()
 	if !ok {
 		return nil, "", false
 	}
-	choices := e.placeChoices(kind, key)
+	choices := e.placeShown()
 	if len(choices) == 0 {
 		return nil, "", false
 	}
-	g := placeGridShell(kind, e.place.top)
+	g := placeGridShell(kind, *e.placeTop())
 	r, chosen, placing := e.placing(key)
 	placing = placing && r.kind == kind
 	note := e.word("editor.place.hint")
@@ -128,19 +193,23 @@ func (e *MapEditor) placeGridWheel(l popupLayout, rows int) {
 	if l.GridCols <= 0 {
 		return
 	}
-	total := (len(e.place.choices) + l.GridCols - 1) / l.GridCols
-	e.place.top = max(0, min(e.place.top+rows, total-l.GridRows))
+	total := (len(e.placeShown()) + l.GridCols - 1) / l.GridCols
+	top := e.placeTop()
+	*top = max(0, min(*top+rows, total-l.GridRows))
 }
 
 // placeChoose is a press on grid cell n: it opens the Add window on that
 // choice's settings, with the cell pick armed, to place copies of it. A
-// press on the chosen cell ends the placing.
+// press on the chosen cell ends the placing. A press in the object brush
+// leaves the brush, as every Add does, and shows no records list while
+// the copies are placed; Esc goes back to the brush.
 func (e *MapEditor) placeChoose(n int) {
-	kind, key, ok := e.placeGridKind()
-	choices := e.placeChoices(kind, key)
+	kind, key, _, ok := e.placeGridOf()
+	choices := e.placeShown()
 	if !ok || n < 0 || n >= len(choices) {
 		return
 	}
+	fromBrush := e.listKind() == "brush"
 	if r, v, ok := e.placing(key); ok && r.kind == kind && v == choices[n].Value {
 		e.leave(leavePick | leavePrompt)
 		return
@@ -149,6 +218,9 @@ func (e *MapEditor) placeChoose(n int) {
 	r, ok := e.addRunning()
 	if !ok {
 		return
+	}
+	if fromBrush {
+		e.listShown, r.brush = false, true
 	}
 	r.repeat = true
 	e.prompt.path = strconv.FormatInt(choices[n].Value, 10)

@@ -354,6 +354,7 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		out.Choices, out.Value = s.UnitTiers(recordValue(r, "class"))
 	case "kind":
 		out.Choices = s.RecordChoices(ui.KindStructure, -1, "kind")
+		out.Palettes, _ = structurePalettes(s.inspector.structures, s.inspector.table)
 		first()
 	case "item":
 		out.Choices = s.RecordChoices(ui.KindSack, -1, "item")
