@@ -593,18 +593,9 @@ type Viewer struct {
 	subjectTint  func(InspectionSubject) spriteTint
 	tintedImages map[spriteTintKey]*ebiten.Image
 
-	// spellLighting and spellTerrainLighting are rebuilt from live canonical
-	// area effects on every game push. The former is the per-cell actor input;
-	// the latter is the shared vertex plane terrain tiles sample. Both are
-	// presentation-only and therefore neither hashed nor persisted.
-	spellLighting        map[image.Point]spellLightScale
-	spellTerrainLighting map[image.Point]float32
-
-	// lightStamps and boltLightStamps are the light-stamp grid of structures
-	// and projectiles (objectlight.go): every stamp, and only the stamps the
-	// Dynamic lighting option does not skip. Replaced on every game push. Presentation-only.
-	lightStamps     map[image.Point]uint8
-	boltLightStamps map[image.Point]uint8
+	// frameLight is the frame's light plane, replaced from the frame's light
+	// source list on every game push (objectlight.go).
+	frameLight lightPlane
 
 	shadowMasks map[*terrain.StaticFrame]*ebiten.Image
 
@@ -4127,24 +4118,11 @@ func withScales(verts [4]ebiten.Vertex, sc [4]float32) [4]ebiten.Vertex {
 	return out
 }
 
-// cornerScales combines terrain and spell lighting. Fog is applied after all
-// world art by drawShroud, so terrain and protruding structures share one mask.
+// cornerScales combines terrain shading and the frame's light plane
+// (mergeLight). Fog is applied after all world art by drawShroud, so terrain
+// and protruding structures share one mask.
 func (v *Viewer) cornerScales(tx, ty int) [4]float32 {
-	sc := v.cornerShading(tx, ty)
-	vertices := [4]image.Point{
-		image.Pt(tx, ty), image.Pt(tx+1, ty),
-		image.Pt(tx, ty+1), image.Pt(tx+1, ty+1),
-	}
-	for i := range sc {
-		if brightness, ok := v.spellTerrainScale(vertices[i]); ok {
-			sc[i] = brightness
-		}
-		// A light stamp takes min(stamp, terrain level), the larger scale
-		// (lightStampTerrainScale). The black map margin stays black.
-		if stamp, ok := v.lightStampTerrainScale(vertices[i]); ok && stamp > sc[i] && !v.borderDimmed(tx, ty) {
-			sc[i] = stamp
-		}
-	}
+	sc, _ := v.mergeLight(readLightCorners, image.Pt(tx, ty))
 	return sc
 }
 

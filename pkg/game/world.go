@@ -4878,7 +4878,6 @@ func (mw *mapWorld) push() {
 	mw.view.SetStructures(mw.structureDraws())
 	mw.view.SetScorchedCellsAt(mw.world.ScorchedCells(), uint64(mw.world.Tick()))
 	mw.view.SetLightClock(mw.world.Tick())
-	mw.view.SetSpellLighting(mw.spellLighting())
 	mw.view.SetAmbientWallFire(wallFireAmbientCells(mw.cellEffectsByArm()))
 	mw.view.SetSacks(mw.sackDraws())
 	mw.view.SetFog(mw.fog.project(), mw.fog.cols, mw.fog.rows)
@@ -4897,7 +4896,7 @@ func (mw *mapWorld) push() {
 	// frame with no tick behind it draws the same picture.
 	ents := mw.world.EntityView()
 	mw.view.SetSpellBolts(mw.boltDraws(ents))
-	mw.view.SetLightStamps(mw.objectLightStamps(ents))
+	mw.view.SetLightSources(mw.lightSources(ents))
 	mw.view.SetHealSprites(mw.healSpriteDraws())
 }
 

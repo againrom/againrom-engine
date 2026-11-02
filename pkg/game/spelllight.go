@@ -93,6 +93,12 @@ func pictureLightStamps(out []ui.LightStamp, set *data.SpellPresentation, pictur
 	return out
 }
 
+// lightSources is this push's light source list: the Light and Darkness
+// cells (spellLighting), then the stamps (objectLightStamps).
+func (mw *mapWorld) lightSources(ents []sim.Entity) []ui.LightSource {
+	return ui.LightSources(mw.spellLighting(), mw.objectLightStamps(ents))
+}
+
 // objectLightStamps is this push's stamps: structures, then objects in draw
 // order, then Wall of Fire, written after the object calls (TERR-LIGHT-288,
 // MAGIC-272).

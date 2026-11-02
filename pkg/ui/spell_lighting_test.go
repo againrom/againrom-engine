@@ -11,7 +11,7 @@ func TestSpellTerrainLightingWritesOneCellsFourSharedVertices(t *testing.T) {
 	v := overlayViewer(t, 8, 8, 8*terrain.CellSize, 8*terrain.CellSize)
 	cell := image.Pt(3, 3)
 	ordinary := [4]float32{1, 1, 1, 1}
-	v.SetSpellLighting([]SpellLightCell{{Cell: cell, Terrain: 3, Sprite: 2}})
+	v.SetLightSources(LightSources([]SpellLightCell{{Cell: cell, Terrain: 3, Sprite: 2}}, nil))
 
 	tests := []struct {
 		name string
@@ -32,7 +32,7 @@ func TestSpellTerrainLightingWritesOneCellsFourSharedVertices(t *testing.T) {
 		}
 	}
 
-	v.SetSpellLighting(nil)
+	v.SetLightSources(LightSources(nil, nil))
 	if got := v.cornerScales(cell.X, cell.Y); got != ordinary {
 		t.Fatalf("expired Light left scales %v, want restored %v", got, ordinary)
 	}
@@ -102,7 +102,7 @@ func TestSpellLightingAffectsOnlyTerrainAndActors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			v.SetSpellLighting([]SpellLightCell{{Cell: cell, Terrain: tc.terrain, Sprite: tc.sprite}})
+			v.SetLightSources(LightSources([]SpellLightCell{{Cell: cell, Terrain: tc.terrain, Sprite: tc.sprite}}, nil))
 			if got, want := v.cornerScales(cell.X, cell.Y),
 				([4]float32{tc.terrain, tc.terrain, tc.terrain, tc.terrain}); got != want {
 				t.Fatalf("terrain scales = %v, want %v", got, want)
@@ -150,7 +150,7 @@ func TestSpriteOnlySpellLightingReachesItsActorAndNotTerrain(t *testing.T) {
 	v.SetEntities(append(v.entities, MapEntity{Cell: outsideCell, Art: outsideArt, Frame: outsideFrame}))
 
 	before := v.cornerScales(cell.X, cell.Y)
-	v.SetSpellLighting([]SpellLightCell{{Cell: cell, Sprite: 2}})
+	v.SetLightSources(LightSources([]SpellLightCell{{Cell: cell, Sprite: 2}}, nil))
 	if got := v.cornerScales(cell.X, cell.Y); got != before {
 		t.Fatalf("sprite-only input changed terrain from %v to %v", before, got)
 	}

@@ -31,7 +31,7 @@ func TestGraphics1190DynamicLightKeepsDayNight(t *testing.T) {
 	v.SetTimeFlow(true)
 	sun := v.Sun()
 	cell := image.Pt(3, 3)
-	v.SetSpellLighting([]SpellLightCell{{Cell: cell, Terrain: 3, Sprite: 2}})
+	v.SetLightSources(LightSources([]SpellLightCell{{Cell: cell, Terrain: 3, Sprite: 2}}, nil))
 	if v.cornerScales(3, 3) != ([4]float32{3, 3, 3, 3}) {
 		t.Fatal("missing dynamic light")
 	}

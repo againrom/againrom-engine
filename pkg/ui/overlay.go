@@ -697,75 +697,11 @@ type SpellLightCell struct {
 	Terrain, Sprite float32
 }
 
-type spellLightScale struct{ sprite float32 }
-
-// SetSpellLighting replaces the derived spell-light plane. The input is copied
-// so expiry restoration is simply the next push omitting a cell.
-func (v *Viewer) SetSpellLighting(cells []SpellLightCell) {
-	if len(cells) == 0 {
-		v.spellLighting = nil
-		v.spellTerrainLighting = nil
-		return
-	}
-	next := make(map[image.Point]spellLightScale, len(cells))
-	vertices := make(map[image.Point]float32, len(cells)*4)
-	for _, c := range cells {
-		if c.Sprite > 0 {
-			if previous, ok := next[c.Cell]; !ok || c.Sprite > previous.sprite {
-				next[c.Cell] = spellLightScale{sprite: c.Sprite}
-			}
-		}
-		if c.Terrain > 0 {
-			vertices[c.Cell] = c.Terrain
-			vertices[c.Cell.Add(image.Pt(1, 0))] = c.Terrain
-			vertices[c.Cell.Add(image.Pt(0, 1))] = c.Terrain
-			vertices[c.Cell.Add(image.Pt(1, 1))] = c.Terrain
-		}
-	}
-	v.spellLighting = next
-	v.spellTerrainLighting = vertices
-}
-
-// spellTerrainScale reads one vertex's absolute terrain-ladder override from
-// the SPELL plane only. It REPLACES the vertex's own relief shading at the
-// caller (cornerScales), which is what lets Darkness darken: its own
-// darknessBrightness is 0.5, below any shading a vertex can otherwise hold.
-func (v *Viewer) spellTerrainScale(vertex image.Point) (float32, bool) {
-	if v.graphics.DisableLighting {
-		return 0, false
-	}
-	value, ok := v.spellTerrainLighting[vertex]
-	return value, ok
-}
-
-// spellSpriteFactor reads one cell's sprite gain, over the SAME normalized
-// scale as spellTerrainScale above.
-//
-// A cell with a stamped light-stamp corner takes the merged stamp level in
-// place of the Light/Darkness value, as the original's stamp sweep overwrites
-// the cell-bit stage (MAGIC-273). That merge reads no Lighting option, so a
-// Lightning bolt lights units with Dynamic lighting off.
+// spellSpriteFactor is one cell's sprite gain from the frame's light plane
+// (mergeLight).
 func (v *Viewer) spellSpriteFactor(cell image.Point) float32 {
-	// SpriteRow's decoded gain equals this terrain-ladder expression.
-	normal := terrain.ShadeScale(4*v.spriteRow() + 32)
-	row, stamped := v.lightStampSpriteRow(cell)
-	if v.graphics.DisableLighting {
-		if stamped {
-			return terrain.ShadeScale(4*row+32) / normal
-		}
-		return 1
-	}
-	level := float32(0)
-	if value, ok := v.spellLighting[cell]; ok {
-		level = value.sprite
-	}
-	if stamped {
-		level = terrain.ShadeScale(4*row + 32)
-	}
-	if level > 0 {
-		return level / normal
-	}
-	return 1
+	_, factor := v.mergeLight(readLightSprite, cell)
+	return factor
 }
 
 // ShotScale is the fixed-point scale MapEntity.Shot's coordinates are

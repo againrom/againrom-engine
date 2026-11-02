@@ -304,7 +304,7 @@ func TestReleaseALightningBoltLightsTheGroundAndAUnitOnItsPath(t *testing.T) {
 		view.SetGraphicsOptions(ui.GraphicsOptions{DisableLighting: off})
 		mw.push()
 		if !lit {
-			view.SetLightStamps(nil)
+			view.SetLightSources(ui.LightSources(mw.spellLighting(), nil))
 		}
 		if !sprites {
 			view.SetSpellBolts(nil)
