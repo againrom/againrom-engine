@@ -52,8 +52,10 @@ func TestMapEditorPlainBlocksTakeTheTreeFold(t *testing.T) {
 			}
 			e.toggleBlock(id)
 		}
-		if blocks == 0 {
-			t.Errorf("%s: no block that opens and closes", e.doc.Records[record].Kind)
+		// A unit's basic view is the card and the rows over it: no block
+		// opens and closes.
+		if (blocks == 0) != (record == viewsUnit) {
+			t.Errorf("%s: %d blocks that open and close", e.doc.Records[record].Kind, blocks)
 		}
 	}
 	// The painter draws the mark from rowFoldMarks: other marks, other

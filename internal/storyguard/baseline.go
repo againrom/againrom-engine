@@ -3775,5 +3775,17 @@ var Committed = Baseline{
 	// in pkg/game's mapinspectionnpc.go, pkg/mapload's borderplacement.go,
 	// pkg/ui's editorpopup.go, mapeditormessage.go and mapeditorparampick.go,
 	// the new tests in both mapeditorspeakerpick_test.go files, and this note.
-	CommentBytes: 10339828,
+
+	// It rose for the unit's basic view, the card drawn larger with its
+	// stats as inputs: new doc comments in pkg/ui's editorpopup.go,
+	// editorpopupcolumns.go, panel.go, mapeditorplain.go and
+	// mapeditorwindow.go, the tests mapeditorunitbasic_test.go,
+	// editorpopupplaced_test.go, cardcolumns_test.go and
+	// mapeditorpanelfit_test.go, the views fixture
+	// and the unit sack tests in pkg/ui and pkg/game,
+	// mapinspectionviews_test.go, and this note; then for the input that
+	// replaces the card's value and the words for a differing value: doc
+	// comments in editorpopup.go and mapeditorplain.go and the new test
+	// mapeditorunitbasicvalue_test.go.
+	CommentBytes: 10349301,
 }

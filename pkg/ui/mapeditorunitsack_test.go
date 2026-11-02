@@ -126,12 +126,19 @@ func sackRow(e *MapEditor) int {
 	return -1
 }
 
-// openUnitBag selects the unit and shows its bag: the Bag tab in the
-// technical view; the plain view shows the bag among its blocks.
+// openUnitBag selects the unit and shows its bag: the Bag tab of the
+// detailed view. The basic view shows no bag; from it the switch turns the
+// window to the detailed view first.
 func openUnitBag(t *testing.T, e *MapEditor, view string) {
 	t.Helper()
 	e.Select(viewsUnit, false)
-	if view == "technical" {
+	if view == "plain" {
+		if sackRow(e) >= 0 || strings.Contains(strings.Join(e.PopupLines(), "\n"), "Bag: Mace") {
+			t.Fatalf("the basic view shows the bag:\n%s", strings.Join(e.PopupLines(), "\n"))
+		}
+		clickSwitch(t, e)
+	}
+	{
 		r, ok := e.ObjectSectionRect("inventory")
 		if !ok {
 			t.Fatal("the person window shows no Bag tab")
@@ -185,6 +192,9 @@ func TestMapEditorUnitSackOpensInTheSackView(t *testing.T) {
 				if e.selected != sackStock {
 					t.Fatalf("the sack row selects %d", e.selected)
 				}
+				if view == "plain" {
+					clickSwitch(t, e) // the sack's basic view
+				}
 				// The same window as the stock selected on its own, but for
 				// Back; and the same view as the ground sack.
 				twin, _ := sackEditor(t, lang, view)
@@ -211,7 +221,9 @@ func TestMapEditorUnitSackOpensInTheSackView(t *testing.T) {
 					t.Fatal("no Back button")
 				}
 				chromeClick(e, center(r))
-				if e.selected != viewsUnit || view == "technical" && e.obj.section != 2 || sackRow(e) < 0 {
+				// Back shows the unit in the view the sack showed: the bag's
+				// tab in the detailed view, no bag in the basic view.
+				if e.selected != viewsUnit || view == "technical" && (e.obj.section != 2 || sackRow(e) < 0) || view == "plain" && sackRow(e) >= 0 {
 					t.Fatalf("Back shows record %d, section %d", e.selected, e.obj.section)
 				}
 			})
@@ -228,6 +240,9 @@ func TestMapEditorUnitSackEditUndoes(t *testing.T) {
 			e, h := sackEditor(t, "en", view)
 			openUnitBag(t, e, view)
 			pressSackRow(t, e)
+			if view == "plain" {
+				clickSwitch(t, e) // the sack's basic view
+			}
 			twin, th := sackEditor(t, "en", view)
 			twin.Select(sackStock, false)
 			for _, m := range []*MapEditor{e, twin} {

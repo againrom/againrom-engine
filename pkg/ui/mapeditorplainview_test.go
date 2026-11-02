@@ -122,8 +122,7 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 		open   []string
 		want   []string
 	}{
-		{"unit", viewsUnit, nil, unitRows("1 + Map file fields |")},
-		{"unit raw", viewsUnit, []string{"+ Map file fields"}, unitRows("1 - Map file fields |", "2 Definition id | 1234")},
+		{"unit", viewsUnit, nil, unitRows()},
 		{"structure", viewsStructure, nil, structureRows("1 + Placement word |", "1 + Data |")},
 		{"structure open", viewsStructure, []string{"+ Placement word", "+ Data"}, structureRows(
 			"1 - Placement word |",
@@ -157,57 +156,55 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 	}
 }
 
-// unitRows are the fixture unit's plain rows: the main parameters, look,
-// equipment and bag with each item by its name, the stats table, the raw
-// block raw, then the script uses.
-func unitRows(raw ...string) []string {
-	rows := []string{
+// unitRows are the fixture unit's basic rows: the name, the player, the
+// group, the kind and the tier, then a row on the card for each value the
+// card draws, in the card's order: the field's input where the fixture has
+// the field, else a line stating the value, then a line of words for a stat
+// whose card value differs from the stored one.
+func unitRows() []string {
+	return []string{
 		"4 Position | 10,10  1x1",
 		"0 Name | Guard",
-		"3 Owner | Self",
+		"3 Player | Self",
+		"2 Group | 2",
 		"3 Kind | 300: Fighter",
 		"2 Tier | 1",
-		"0 Experience | 1200",
-		"2 Life | 40",
-		"2 Mana |",
-		"2 Group | 2",
-		"1 Look |",
-		"2 Face | 7",
-		"2 Sex | 0",
-		"1 Equipment |",
-		"2 Gear set | 0",
-		"3 Slot 1 | Sword",
-		"3 Slot 2 | Inherit",
-		"1 Bag |",
-		"0 Corpse: Sword |",
-		"1 Stats |",
-		"1 Attributes |",
-		"0 " + inheritNote + " |",
+		"0  | Guard",
 		"2 Body | 12",
+		"0 AGILITY | 0",
+		"2 Health | 40",
 		"2 Mind |",
-		"1 Skills |",
-		"0 " + inheritNote + " |",
-		"2 Fire |",
-		"1 Protection |",
-		"0 " + inheritNote + " |",
+		"0 SPIRIT | 0",
+		"2 Mana |",
+		"0 BLADE | 0",
 		"2 Fire protection |",
-		"0 Attack 12 |",
+		"0 AXE | 0",
+		"0 WATER | 0",
+		"0 BLUDGEON | 0",
+		"0 AIR | 0",
+		"0 PIKE | 0",
+		"0 EARTH | 0",
+		"0 SHOOTING | 0",
+		"0 ASTRAL | 0",
+		"0 WEIGHT | 0.0",
+		"0 XP | 1200",
+		"0 SIGHT | 0.0",
+		"0 BODY: Derived by the game from the unit; in game: 10 |",
 	}
-	rows = append(rows, raw...)
-	return append(rows, "0 Used by: none |")
 }
 
 // plainShapes places every field shape of the fixture: the block of the
 // plain view whose row edits it. A shape this table lacks fails until the
 // plain table and this table place it.
 var plainShapes = map[RecordKind]map[string]string{
+	// A unit's field the basic view leaves out maps to "": it stands in the
+	// detailed view only. The fixture's skill.fire is no skill the card
+	// draws.
 	KindUnit: {
-		"owner": "main", "class": "main", "tier": "main", "hp": "main", "mana": "main", "group": "main",
-		"face": "look", "sex": "look",
-		"gear": "equipment", "wear#": "equipment", "wearmaterial#": "equipment", "wearrecipe#": "equipment",
-		"sack": "bag", "holdings": "bag",
-		"body": "stats", "mind": "stats", "skill.*": "stats", "protection.*": "stats", "resolved": "stats",
-		"definition": "raw",
+		"owner": "main", "class": "main", "tier": "main", "group": "main",
+		"hp": "card", "mana": "card", "body": "card", "mind": "card", "protection.*": "card",
+		"face": "", "sex": "", "gear": "", "wear#": "", "wearmaterial#": "", "wearrecipe#": "",
+		"sack": "", "holdings": "", "skill.*": "", "resolved": "", "definition": "",
 	},
 	KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -254,6 +251,10 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 			want, listed := plainShapes[kind][fieldShape(f.Key)]
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
+			}
+			// A unit's field in no block of the basic view has no row there.
+			if i := slices.IndexFunc(e.ObjectFields(), func(g InspectionField) bool { return g.Key == f.Key }); kind == KindUnit && (want == "") != (e.fieldRow(i) < 0) {
+				t.Errorf("%s %s: block %q, basic view row %d", kind, f.Key, want, e.fieldRow(i))
 			}
 		}
 		clickSwitch(t, e)
@@ -351,6 +352,37 @@ func TestMapEditorViewChoiceRoundTrip(t *testing.T) {
 	clickSwitch(t, f)
 	if !f.PlainView() || len(*again) == 0 || !strings.Contains(string((*again)[len(*again)-1]), `"view":"plain"`) {
 		t.Fatalf("the switch back: plain %v, saved %q", f.PlainView(), *again)
+	}
+}
+
+// The switch names the shown view Basic or Detailed, in English and
+// Russian, at 1920x1080; a profile that kept the technical view's word
+// opens the detailed view.
+func TestMapEditorViewSwitchNamesBasicAndDetailed(t *testing.T) {
+	for _, c := range []struct{ lang, basic, detailed string }{
+		{"en", "View: Basic", "View: Detailed"},
+		{"ru", "Вид: Обычный", "Вид: Детальный"},
+	} {
+		for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
+			e, _, _ := plainEditor(t, c.lang, minimizedPanels, record)
+			e.Layout(1920, 1080)
+			caption := func() string {
+				s, _, _ := e.objectSpec()
+				return s.TitleButton
+			}
+			if got := caption(); got != e.editorHostText(c.basic) || !e.PlainView() {
+				t.Errorf("%s record %d: switch %q plain %v, want %q", c.lang, record, got, e.PlainView(), c.basic)
+			}
+			clickSwitch(t, e)
+			if got := caption(); got != e.editorHostText(c.detailed) || e.PlainView() {
+				t.Errorf("%s record %d: switched %q plain %v, want %q", c.lang, record, got, e.PlainView(), c.detailed)
+			}
+		}
+		old, _, _ := plainEditor(t, c.lang, []byte(`{"right":{"minimized":true,"view":"technical","width":520}}`), viewsUnit)
+		old.Layout(1920, 1080)
+		if s, _, _ := old.objectSpec(); s.TitleButton != old.editorHostText(c.detailed) || old.PlainView() {
+			t.Errorf("%s: the technical profile opens %q plain %v, want %q", c.lang, s.TitleButton, old.PlainView(), c.detailed)
+		}
 	}
 }
 

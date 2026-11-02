@@ -43,7 +43,7 @@ func hostedFitProblems(e *MapEditor) []string {
 		r     image.Rectangle
 		press bool
 	}
-	var pieces []piece
+	var pieces, onCard []piece
 	text := func(f interface{ Advance(string) int }, what, t string, r image.Rectangle, room int) {
 		if f.Advance(t) > room {
 			bad("%s %q cut: %d wide in %d", what, t, f.Advance(t), room)
@@ -64,6 +64,15 @@ func hostedFitProblems(e *MapEditor) []string {
 	}
 	for _, rr := range l.Rows {
 		row := s.Rows[rr.Index]
+		if row.placed() {
+			// A cell of the card, or its input: inside the card, over no
+			// other cell.
+			if !rr.Rect.In(l.Card) {
+				bad("card cell %q %v outside the card %v", row.Label, rr.Rect, l.Card)
+			}
+			onCard = append(onCard, piece{what: "card cell " + row.Label + " " + row.Value, r: rr.Rect, press: !rr.Control.Empty()})
+			continue
+		}
 		switch {
 		case row.Kind == popupHeading:
 			text(title, "heading", row.Label, rr.Label, rr.Rect.Dx()-4)
@@ -93,6 +102,16 @@ func hostedFitProblems(e *MapEditor) []string {
 	}
 	if !l.CardRest.Empty() {
 		pieces = append(pieces, piece{what: "doll and face", r: l.CardRest})
+	}
+	for i, a := range onCard {
+		for _, b := range onCard[i+1:] {
+			if a.r.Overlaps(b.r) {
+				bad("%s %v over %s %v", a.what, a.r, b.what, b.r)
+			}
+		}
+		if a.press && e.chromeHit(center(a.r)) != popObject {
+			bad("a press on %s %v reaches %d", a.what, a.r, e.chromeHit(center(a.r)))
+		}
 	}
 	for i, a := range pieces {
 		if !a.r.In(l.Rect) {

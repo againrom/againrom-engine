@@ -154,6 +154,20 @@ func wordsFont(lang string) *text.Font {
 	return f
 }
 
+// cardFont is a card font of the installed card's proportions: ten pixels
+// high, six a letter, so the card's lines fit its 242 pixels.
+func cardFont() *text.Font {
+	f := &text.Font{Spacing: 1, Glyphs: make([]text.Glyph, 224)}
+	for k := range f.Glyphs {
+		g := text.Glyph{Width: 5, Height: 10, Pixels: make([]text.Pixel, 5*10), Advance: 5}
+		if k > 0 {
+			g.Pixels[(k%10)*5+k%5] = text.Pixel{Level: text.MaxLevel, Painted: true}
+		}
+		f.Glyphs[k] = g
+	}
+	return f
+}
+
 // wideWidths are the right panel's widths the tests set: its least, its
 // default and its greatest, and 0 for the panel minimized, the window
 // floating.
@@ -186,6 +200,7 @@ func wideEditor(t *testing.T, lang string, width int, view string, set map[strin
 	if width > 0 {
 		right = fmt.Sprintf(`"minimized":false,"width":%d`, width)
 	}
+	e.SetCardFont(cardFont())
 	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{%s,"view":%q}}`, right, view)), nil, nil)
 	e.Layout(1280, 800)
 	if err := e.Open("views"); err != nil {

@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
+	"againrom/pkg/render/text"
 	"againrom/pkg/ui"
 )
 
@@ -37,6 +38,15 @@ func viewsMap(t *testing.T) (*mapInspectionEdits, []byte) {
 	return s, s.model.Bytes()
 }
 
+// viewsCardFont is a card font of 224 records, each 5 by 10 pixels.
+func viewsCardFont() *text.Font {
+	f := &text.Font{Spacing: 1, Glyphs: make([]text.Glyph, 224)}
+	for k := range f.Glyphs {
+		f.Glyphs[k] = text.Glyph{Width: 5, Height: 10, Pixels: make([]text.Pixel, 5*10), Advance: 5}
+	}
+	return f
+}
+
 // viewsWindow opens the map in an editor whose profile chose the view,
 // plain or technical, with the record of kind selected.
 func viewsWindow(t *testing.T, s *mapInspectionEdits, plain bool, kind ui.RecordKind) *ui.MapEditor {
@@ -46,6 +56,9 @@ func viewsWindow(t *testing.T, s *mapInspectionEdits, plain bool, kind ui.Record
 		t.Fatal(err)
 	}
 	e := ui.NewMapEditor(nil, nil, func(string) (*ui.InspectionDocument, error) { return doc, nil })
+	// The unit's basic view places its inputs where the card's font draws
+	// each stat.
+	e.SetCardFont(viewsCardFont())
 	e.Layout(1280, 800)
 	view := "technical"
 	if plain {
@@ -130,17 +143,17 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 
 // gameFieldShapes places every field shape the game's host gives the
 // fixture's unit, structure and sack: the block of the plain view whose row
-// edits it. A shape the host adds fails here until the plain table and this
-// table place it.
+// edits it, "card" for an input on the unit's card, "" for a field only the
+// detailed view shows. A shape the host adds fails here until the plain
+// table and this table place it.
 var gameFieldShapes = map[ui.RecordKind]map[string]string{
 	ui.KindUnit: {
-		"owner": "main", "class": "main", "hp": "main", "mana": "main", "group": "main",
-		"face": "look", "sex": "look", "npc": "look", "npcflag": "look",
-		"gear": "equipment", "wear#": "equipment", "wearmaterial#": "equipment", "weartier#": "equipment", "wearrecipe#": "equipment",
-		"sack": "bag", "holdings": "bag",
-		"body": "stats", "mind": "stats", "spirit": "stats", "reaction": "stats", "defence": "stats", "absorption": "stats",
-		"skill.*": "stats", "protection.*": "stats", "resolved": "stats", "overrides": "stats",
-		"definition": "raw",
+		"owner": "main", "class": "main", "tier": "main", "group": "main", "npc": "main",
+		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
+		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
+		"face": "", "sex": "", "npcflag": "",
+		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
+		"sack": "", "holdings": "", "resolved": "", "overrides": "", "definition": "",
 	},
 	ui.KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -179,8 +192,9 @@ func viewsShape(key string) string {
 
 // (c) Every field the game's host gives a unit, a structure, a sack and a
 // unit's sack has its block in the plain view and shows there once the
-// blocks open, and shows in the technical view in the section that holds
-// it; a unit's field that writes its sack shows in neither unit view.
+// blocks open, or is a unit field the basic view leaves to the detailed
+// view, and shows in the technical view in the section that holds it; a
+// unit's field that writes its sack shows in neither unit view.
 func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 	for _, kind := range []ui.RecordKind{ui.KindUnit, ui.KindStructure, ui.KindSack, ui.KindStock} {
 		s, _ := viewsMap(t)
@@ -202,6 +216,13 @@ func TestEditorViewsPlaceEveryHostField(t *testing.T) {
 			want, listed := gameFieldShapes[kind][viewsShape(f.Key)]
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
+			}
+			if want == "" {
+				// The detailed view's own field: the basic view leaves it out.
+				if showField(t, plain, c, f.Key) {
+					t.Errorf("%s %s shows in the basic view", kind, f.Key)
+				}
+				continue
 			}
 			if !showField(t, plain, c, f.Key) {
 				t.Errorf("%s %s does not show in the plain view", kind, f.Key)
@@ -266,13 +287,14 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 // (d) The same edit typed in the plain view, in the technical view, and
 // written straight through the host's field writer, which the window used
 // before the plain view, gives the same map bytes; switching the view
-// before Apply changes none of them.
+// before Apply changes none of them. A unit's stat is typed in its input on
+// the card.
 func TestEditorViewsWriteTheSameBytes(t *testing.T) {
 	for _, edit := range []struct {
 		kind  ui.RecordKind
 		key   string
 		value int64
-	}{{ui.KindUnit, "hp", 50}, {ui.KindStructure, "placement", 7}, {ui.KindSack, "gold", 77}} {
+	}{{ui.KindUnit, "hp", 50}, {ui.KindUnit, "body", 31}, {ui.KindUnit, "protection.fire", 23}, {ui.KindStructure, "placement", 7}, {ui.KindSack, "gold", 77}} {
 		var got [][]byte
 		for _, mode := range []string{"plain", "technical", "switched"} {
 			s, raw := viewsMap(t)
@@ -280,6 +302,9 @@ func TestEditorViewsWriteTheSameBytes(t *testing.T) {
 			e := viewsWindow(t, s, mode != "technical", edit.kind)
 			if mode == "plain" {
 				openBlocks(t, e, c)
+				if block := e.PlainFieldBlocks()[edit.key]; edit.kind == ui.KindUnit && block != "card" {
+					t.Fatalf("the unit's %s stands in block %q, not on the card", edit.key, block)
+				}
 			}
 			if mode == "switched" {
 				r, ok := e.ViewSwitchRect()

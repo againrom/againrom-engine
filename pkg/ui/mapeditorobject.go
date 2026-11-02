@@ -520,8 +520,8 @@ func (e *MapEditor) focusObjectField(i int) {
 		return
 	}
 	row := e.fieldRow(e.obj.focus)
-	if row < 0 {
-		return
+	if row < 0 || row >= len(s.Rows) || s.Rows[row].placed() {
+		return // a row on the card never scrolls
 	}
 	_, line := popupRowPosition(s, row)
 	if line < s.Top {

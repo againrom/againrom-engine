@@ -1396,12 +1396,12 @@ func panelWornText(v [PanelWornSlots]string) (string, bool) {
 // panelLine is one row resolved against a subject and a font: where it starts
 // inside the panel, its two runs of text, and how wide the pair is.
 type panelLine struct {
-	field  PanelField
-	at     image.Point
-	label  string
-	value  string
-	valueX int // relative to at.X
-	width  int
+	field, rightField PanelField
+	at                image.Point
+	label             string
+	value             string
+	valueX            int // relative to at.X
+	width             int
 
 	// right, rightLabel, rightValue, rightX and rightValueX are the row's
 	// second column, present only when right is true. rightX is the SAME number
@@ -1600,6 +1600,13 @@ type PanelLineReport struct {
 	// Wrap is the second row of a name too wide for one, drawn at WrapAt.
 	Wrap   string
 	WrapAt image.Point
+
+	// Field and RightField name what the left and the right cell state;
+	// RightField is meaningful only when Right is. Indent is the left
+	// cell's own shift: its label pen is At.X+Indent and its value pen
+	// At.X+Indent+ValueX.
+	Field, RightField PanelField
+	Indent            int
 }
 
 // CharacterPanelReport is the layout RenderCharacterPanel would paint for the
@@ -1623,6 +1630,7 @@ func CharacterPanelReport(l PanelLayout, f *text.Font, s PanelSubject) []PanelLi
 			At: ln.at, Label: ln.label, Value: ln.value, ValueX: ln.valueX, Width: ln.width,
 			Right: ln.right, RightLabel: ln.rightLabel, RightValue: ln.rightValue,
 			RightX: ln.rightX, RightValueX: ln.rightValueX, Wrap: ln.wrap, WrapAt: ln.wrapAt,
+			Field: ln.field, RightField: ln.rightField, Indent: ln.leftIndent,
 		}
 		if i < len(full) {
 			r.FullValue, r.FullRightValue = full[i][0], full[i][1]
@@ -1875,7 +1883,7 @@ func layoutLines(l PanelLayout, f *text.Font, items []panelItem) []panelLine {
 				}
 			}
 		}
-		ln := panelLine{field: it.field, label: it.label, value: it.value, valueX: valueX, width: width, leftIndent: it.indent}
+		ln := panelLine{field: it.field, rightField: it.rightField, label: it.label, value: it.value, valueX: valueX, width: width, leftIndent: it.indent}
 
 		if it.right {
 			rValueX, rWidth := panelCellMetrics(f, l.LabelGap, it.rightLabel, it.rightValue)

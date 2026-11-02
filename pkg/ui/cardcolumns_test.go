@@ -109,6 +109,47 @@ func TestCardSightStatesOneDecimal(t *testing.T) {
 	}
 }
 
+// Each line of the card's report names the field each of its cells states:
+// the field of the layout row whose label the cell draws, and the left
+// cell's own shift.
+func TestCompactCardReportNamesEachCellsField(t *testing.T) {
+	f := panelFont()
+	l := CompactPanelLayout(cardColumnsBackground())
+	label := map[PanelField]string{}
+	indent := map[PanelField]int{}
+	for _, r := range l.Rows {
+		label[r.Field] = r.Label
+		indent[r.Field] = r.LabelIndent
+		if r.Right != nil {
+			label[r.Right.Field] = r.Right.Label
+		}
+	}
+	for name, s := range cardColumnsSubjects() {
+		named := 0
+		for _, r := range CharacterPanelReport(l, f, s) {
+			want, ok := label[r.Field]
+			if s.Char.Mage && r.Field == PanelFieldToHit {
+				want = "" // a mage's card draws no ATTACK label
+			}
+			if !ok || panelLabel(s, r.Field, want) != r.Label || r.Indent != indent[r.Field] {
+				t.Errorf("%s %q: field %d (in the layout %v) indent %d", name, r.Label, r.Field, ok, r.Indent)
+			}
+			if r.Label != "" {
+				named++
+			}
+			if want, ok := label[r.RightField]; r.Right && (!ok || panelLabel(s, r.RightField, want) != r.RightLabel) {
+				t.Errorf("%s %q: right field %d (in the layout %v)", name, r.RightLabel, r.RightField, ok)
+			}
+			if r.Value == s.Name && r.Field != PanelFieldName {
+				t.Errorf("%s: the name line names field %d", name, r.Field)
+			}
+		}
+		if named < 10 {
+			t.Errorf("%s: %d labelled lines, want the card's rows", name, named)
+		}
+	}
+}
+
 func TestCompactCardNameIsCentredOnTheOriginalsAxis(t *testing.T) {
 	f := panelFont()
 	l := CompactPanelLayout(cardColumnsBackground())

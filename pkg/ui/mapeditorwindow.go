@@ -1165,7 +1165,13 @@ func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
 		}
 		s.MaxRows = max(3, e.objectRowsShown(true)-3-len(s.Notes))
 		height := max(450, layoutPopup(s, e.font, e.bodyFont()).Rect.Dy())
-		naturalSize(&s, image.Pt(s.Width, min(620, height, e.popupRoom().Dy()-16)))
+		// The basic view's larger card under the rows takes the height it
+		// needs; the person window's other views keep their cap.
+		most := 620
+		if s.CardBelow {
+			most = height
+		}
+		naturalSize(&s, image.Pt(s.Width, min(most, height, e.popupRoom().Dy()-16)))
 		s.MaxRows = layoutPopup(s, e.font, e.bodyFont()).RowsFit
 		e.clampObjectTop(&s, popupRowCount(s))
 		return s, links, true

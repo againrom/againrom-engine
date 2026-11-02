@@ -90,8 +90,15 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 			for _, view := range []string{"plain", "technical"} {
 				for _, record := range []int{viewsUnit, viewsStructure, viewsSack} {
 					e := wideEditor(t, lang, width, view, nil)
+					basicUnit := view == "plain" && record == viewsUnit
+					if basicUnit {
+						// The unit's basic view is laid out for the least
+						// screen the editor takes.
+						e.Layout(1920, 1080)
+					}
 					e.Select(record, false)
 					e.objectSpec()
+					blocks := e.PlainFieldBlocks()
 					reached := map[string]bool{}
 					for _, section := range wideSections(e) {
 						openSection(t, e, section)
@@ -112,8 +119,19 @@ func TestMapEditorWindowReachesEveryField(t *testing.T) {
 					var missed []string
 					for _, f := range e.obj.fields {
 						// A field of the unit's sack is the sack's own
-						// window's.
-						if !reached[f.Key] && !sackField(e.doc.Records[record], f) {
+						// window's. The unit's basic view reaches the
+						// fields it places and no other: the rest stand in
+						// the detailed view.
+						if sackField(e.doc.Records[record], f) {
+							continue
+						}
+						if basicUnit && blocks[f.Key] == "" {
+							if reached[f.Key] {
+								t.Errorf("%s panel %d: the basic view shows %s, which it leaves to the detailed view", lang, width, f.Key)
+							}
+							continue
+						}
+						if !reached[f.Key] {
 							missed = append(missed, f.Key)
 						}
 					}
@@ -134,7 +152,7 @@ func plainWordsOf(e *MapEditor, record int, placement, kind int64) []string {
 	switch record {
 	case viewsUnit:
 		var out []string
-		for _, id := range []string{"position", "name", "owner", "kind", "tier", "experience", "life", "mana", "group", "look", "equipment", "bag", "stats", "raw"} {
+		for _, id := range []string{"position", "name", "player", "group", "kind", "tier"} {
 			out = append(out, w("editor.plain."+id))
 		}
 		return out

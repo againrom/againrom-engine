@@ -23,9 +23,19 @@ func lastButton(t *testing.T, e *ui.MapEditor, c *editorClicker) {
 }
 
 // openSackRow presses the selected unit's sack row and returns the record
-// of the stock it selects.
+// of the stock it selects. The unit's basic view shows no bag: from it the
+// switch turns to the detailed view, whose bag opens the sack, and turns
+// the sack's window back to the basic view.
 func openSackRow(t *testing.T, e *ui.MapEditor, c *editorClicker) int {
 	t.Helper()
+	basic := e.PlainView()
+	if basic {
+		if showField(t, e, c, "sack") {
+			t.Fatalf("the unit's basic view shows the bag: %q", e.PopupLines())
+		}
+		r, ok := e.ViewSwitchRect()
+		c.click(e, r, ok, "view switch")
+	}
 	fields := e.ObjectFields()
 	sack := fields[fieldIndex(t, fields, "sack")]
 	stock := slices.IndexFunc(e.Document().Records, func(r ui.InspectionRecord) bool { return r.Kind == sack.Link.Kind && r.Index == sack.Link.Index })
@@ -45,6 +55,10 @@ func openSackRow(t *testing.T, e *ui.MapEditor, c *editorClicker) int {
 	c.click(e, r, ok, "the sack row")
 	if e.Selected() != stock {
 		t.Fatalf("the sack row selects record %d, want the stock %d", e.Selected(), stock)
+	}
+	if basic {
+		r, ok := e.ViewSwitchRect()
+		c.click(e, r, ok, "view switch")
 	}
 	return stock
 }
