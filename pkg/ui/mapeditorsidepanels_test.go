@@ -683,7 +683,7 @@ func TestMapEditorPanelStateRoundTrip(t *testing.T) {
 		// A side an earlier build kept as closed reads as minimized.
 		{"earlier", []byte(`{"left":{"open":false,"width":300},"right":{"open":true,"width":600}}`), nil, [len(sidePanels)]panelState{{false, 300}, {true, 600}, {false, 180}}},
 	} {
-		if got := panelStateOf(c.data, c.err); got != c.want {
+		if got := readPanelProfile(c.data, c.err).sides; got != c.want {
 			t.Errorf("%s: %v, want %v", c.name, got, c.want)
 		}
 	}
