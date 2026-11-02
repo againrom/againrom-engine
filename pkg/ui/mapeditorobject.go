@@ -441,6 +441,15 @@ func choicePicture(f InspectionField, text string) *image.RGBA {
 	return nil
 }
 
+// choiceNote is the hover line of the picture of the choice whose value the
+// text holds, empty for none.
+func choiceNote(f InspectionField, text string) string {
+	if v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64); err == nil {
+		return f.IconNotes[v]
+	}
+	return ""
+}
+
 // choiceText is the label of the choice whose value the text holds.
 func choiceText(f InspectionField, text string) string {
 	if v, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64); err == nil {

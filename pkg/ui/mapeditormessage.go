@@ -217,7 +217,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		}
 		textRow = len(s.Rows)
 		o.rowField[textRow] = 2 * i
-		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*i, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker])})
+		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*i, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker]), PortraitTip: choiceNote(o.fields[speaker], o.buf[speaker])})
 	}
 	o.rowOpen[len(s.Rows)] = -1
 	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{"+"}})

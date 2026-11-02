@@ -157,6 +157,9 @@ type InspectionField struct {
 	// over its row of the open list, and none in the row: a speaker's face,
 	// which a row's height cannot show.
 	IconTip bool
+	// IconNotes are the hover lines of the pictures of the choices they
+	// name, by value: a dialogue card shows one over that speaker's portrait.
+	IconNotes map[int64]string
 	// Inherit marks a value the record may leave to its template: Absent is
 	// the value the record stores for that, which an empty field writes, and
 	// Inherited is the value the game uses meanwhile. An Absent of 0 means

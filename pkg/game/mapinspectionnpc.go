@@ -126,7 +126,7 @@ func (s *mapInspectionEdits) missionStart() *editorSpeakers {
 	// The mission driver's own questions of a world: who is alive and what each
 	// wears.
 	mw := &mapWorld{world: world}
-	sp.cast = newSpeakerCast(nil, &speakerWorld{
+	sp.cast = newSpeakerCast(editorHero(), &speakerWorld{
 		actors: missionSpeakers(m, t, roster, nil, nil, placedEntities(m, world.Entities(), roster, nil)),
 		alive:  mw.entityAlive, worn: mw.equipmentOf,
 	})
@@ -310,4 +310,14 @@ func (x *MapInspector) heroLabels(format, roleFormat string, encode func(string)
 // font's bytes.
 func (x *MapInspector) editorHeroLabels() ui.HeroLabels {
 	return x.heroLabels(x.word("editor.param.hero"), x.word("editor.param.herorole"), x.inspectionUTF8)
+}
+
+// editorHero is the player's hero the editor's speakers are built with: a
+// man, a fighter, the first face. A map has no player yet, and a speaker whose
+// face the game takes from the player's hero is shown as it is for a man.
+func editorHero() []mapload.PartyMember {
+	return []mapload.PartyMember{{
+		PlayerCharacter: true, StartingHero: true,
+		FigureDir: string(data.FigureDirManFighter), FigureFace: 1,
+	}}
 }

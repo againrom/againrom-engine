@@ -134,6 +134,16 @@ func (x *MapInspector) speakerRole(id int64) (string, bool) {
 	return "", false
 }
 
+// heroFaceNotes are the hover lines of the portraits of the speakers whose
+// person depends on the player's hero, by speaker.
+func (x *MapInspector) heroFaceNotes() map[int64]string {
+	notes := make(map[int64]string, len(speakerRoles))
+	for _, r := range speakerRoles {
+		notes[r.ID] = x.inspectionUTF8(x.word("editor.message.herofacetip"))
+	}
+	return notes
+}
+
 func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.InspectionField {
 	if s.prepareWorkspace() != nil {
 		return nil
@@ -189,7 +199,7 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	if !found {
 		choices = append(choices, ui.InspectionChoice{Value: speaker, Label: strconv.FormatInt(speaker, 10)})
 	}
-	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: s.npcPortraits(choices), IconTip: true}}
+	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: s.npcPortraits(choices), IconTip: true, IconNotes: s.inspector.heroFaceNotes()}}
 }
 
 func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64) (*ui.InspectionDocument, error) {

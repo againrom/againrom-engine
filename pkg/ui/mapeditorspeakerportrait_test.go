@@ -39,7 +39,7 @@ func (*speakerPortraitEdits) MessageParts(uint32) []InspectionMessagePart {
 func (s *speakerPortraitEdits) MessageFields(uint32, ...int) []InspectionField {
 	return []InspectionField{{Key: "body", Text: true}, {Key: "speaker", Value: -1,
 		Choices: []InspectionChoice{{Value: -1, Label: s.labels[0]}, {Value: 5, Label: s.labels[1]}, {Value: 6, Label: s.labels[2]}},
-		Icons:   map[int64]*image.RGBA{5: s.face}, IconTip: true}}
+		Icons:   map[int64]*image.RGBA{5: s.face}, IconTip: true, IconNotes: map[int64]string{5: "The face depends on the player's hero"}}}
 }
 func (*speakerPortraitEdits) SetMessage(uint32, string, int64) (*InspectionDocument, error) {
 	return nil, nil

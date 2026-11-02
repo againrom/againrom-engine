@@ -3828,5 +3828,9 @@ var Committed = Baseline{
 	// It rose for the dialogue page's speaker portrait and speaker label: the
 	// doc comments of drawRowPortrait, popupRow.Portrait and npcName, the
 	// new tests, and this note.
-	CommentBytes: 10382649,
+
+	// It rose for the hero speakers' portrait tip: the doc comments of
+	// editorHero, heroFaceNotes, choiceNote, rowPortraitBox, the new tests, and
+	// this note.
+	CommentBytes: 10384667,
 }

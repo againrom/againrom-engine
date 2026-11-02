@@ -1012,6 +1012,7 @@
 "editor.message.role.22" = "Маг-предатель"
 "editor.message.role.23" = "Монах"
 "editor.message.role.24" = "Узник"
+"editor.message.herofacetip" = "Лицо зависит от героя игрока"
 "editor.message.unavailable" = "Это поле не указывает на страницу сообщения."
 "editor.message.badspeaker" = "Выберите говорящего из npc.reg."
 "editor.message.full" = "Карта содержит не более %d страниц."

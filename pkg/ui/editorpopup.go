@@ -72,6 +72,8 @@ type popupRow struct {
 	// Portrait is a picture drawn in the label's column under the label,
 	// fitted to the control's height.
 	Portrait *image.RGBA
+	// PortraitTip is the hover line the portrait shows, empty for none.
+	PortraitTip string
 	// Span is how many rows after a card row its card holds. Struck marks a
 	// removed card: a strip with its label and buttons, no grip or value.
 	Span   int
@@ -1552,6 +1554,17 @@ func popupTipAt(bounds image.Rectangle, title, body *text.Font, s popupSpec, l p
 		row := s.Rows[rr.Index]
 		full, cut := rowFull(title, body, row, rr)
 		width := rr.Rect.Dx()
+		if row.PortraitTip != "" && row.Portrait != nil && p.In(rowPortraitBox(rr)) {
+			// The portrait's own tip reads whole under the portrait.
+			full, cut, width = row.PortraitTip, true, min(max(width, popupTipW), bounds.Dx())
+			lines := editorTextLines(body, full, width-8)
+			h := len(lines)*fontHeight(body, 15) + 8
+			box := image.Rect(rr.Rect.Min.X, rr.Rect.Max.Y, rr.Rect.Min.X+width, rr.Rect.Max.Y+h)
+			if box.Max.Y > bounds.Max.Y {
+				box = box.Sub(image.Pt(0, h+rr.Rect.Dy()))
+			}
+			return popupTip{Rect: box, Lines: lines}, true
+		}
 		if row.Tip != "" && row.Edit == nil {
 			// A row's own tip reads whole in a box at least popupTipW wide.
 			full, cut, width = row.Tip, true, min(max(width, popupTipW), bounds.Dx())
@@ -1621,13 +1634,19 @@ func drawRowIcons(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRe
 	}
 }
 
+// rowPortraitBox is where a row's portrait stands: the label's column at the
+// control's height.
+func rowPortraitBox(rr popupRowRect) image.Rectangle {
+	return image.Rect(rr.Rect.Min.X+2, rr.Control.Min.Y, rr.Label.Max.X-2, rr.Control.Max.Y)
+}
+
 // drawRowPortrait draws a row's portrait in the column the label takes, fitted
 // to the control's height.
 func drawRowPortrait(dst *image.RGBA, l popupLayout, rr popupRowRect, row popupRow) {
 	if row.Portrait == nil || row.Portrait.Bounds().Empty() || rr.Control.Empty() {
 		return
 	}
-	box := image.Rect(rr.Rect.Min.X+2, rr.Control.Min.Y, rr.Label.Max.X-2, rr.Control.Max.Y)
+	box := rowPortraitBox(rr)
 	if box.Empty() {
 		return
 	}

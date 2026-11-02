@@ -472,6 +472,7 @@
 "editor.message.role.22" = "Traitor mage"
 "editor.message.role.23" = "Monk"
 "editor.message.role.24" = "Prisoner"
+"editor.message.herofacetip" = "The face depends on the player's hero"
 "editor.message.unavailable" = "This field does not name a message page."
 "editor.message.badspeaker" = "Choose a speaker from npc.reg."
 "editor.message.full" = "A mission holds at most %d pages."
