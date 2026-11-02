@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"slices"
@@ -17,11 +18,19 @@ import (
 // trigger. A node the trigger named before and no trigger names after is
 // deleted, unless deleting it would move a register a variable addresses.
 
-// WriteTrigger writes t as one edit.
+// WriteTrigger writes t as one edit. A refusal for want of a register reads
+// in the editor's words.
 func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
 		if err := writeWizardTrigger(m, t); err != nil {
+			var taken registerTaken
+			switch {
+			case errors.As(err, &taken):
+				err = fmt.Errorf(s.inspector.word("editor.wizard.registers"), taken.register)
+			case errors.Is(err, errChecksFull):
+				err = errors.New(s.inspector.word("editor.wizard.checksfull"))
+			}
 			return false, err
 		}
 		changed := m.Mark() != mark
@@ -179,7 +188,7 @@ func writeWizardTrigger(m *mapedit.Editor, t ui.WizardTrigger) error {
 		slot := pairSlots[k]
 		keepsCmp := false
 		if len(before) > 0 {
-			keepsCmp = p.Left.Keep && p.Right.Keep && p.Cmp == before[0].Cmp[slot]
+			keepsCmp = p.Cmp == before[0].Cmp[slot]
 		}
 		if p.Cmp > 5 && !keepsCmp {
 			return fmt.Errorf("condition %d: comparison %d is outside 0..5", k+1, p.Cmp)
@@ -305,7 +314,7 @@ func wizardNode(m *mapedit.Editor, condition bool, n ui.WizardNode, refs map[uin
 	}
 	if condition {
 		if len(sc.Conditions)+1 > 100 {
-			return 0, fmt.Errorf("the script already uses 100 check registers")
+			return 0, errChecksFull
 		}
 		if err := registerCollision(sc, 1); err != nil {
 			return 0, err

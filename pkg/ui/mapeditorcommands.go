@@ -1303,7 +1303,7 @@ func (e *MapEditor) commandWizardRow(condition bool, a triggerRowArgs) (wizRow, 
 		vals[k+1] = strings.Join(parts, ",")
 	}
 	if a.Comparison != nil {
-		if !condition || it.cmp >= 0 {
+		if !condition || !it.chooseCmp {
 			return wizRow{}, fmt.Errorf("item %q has a fixed comparison", a.Item)
 		}
 		vals[len(it.params)+1] = strconv.Itoa(*a.Comparison)

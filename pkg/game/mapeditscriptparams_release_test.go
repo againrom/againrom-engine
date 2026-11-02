@@ -110,9 +110,13 @@ func TestReleaseMapEditorParameterCurrentPicksPreserveBytes(t *testing.T) {
 				}
 			}
 		}
-		wantNew := uint32(len(sc.Conditions))
-		for wantNew < 100 && used[wantNew] {
-			wantNew++
+		// A new variable takes the highest free register above the checks.
+		wantNew := uint32(100)
+		for r := 99; r >= len(sc.Conditions); r-- {
+			if !used[uint32(r)] {
+				wantNew = uint32(r)
+				break
+			}
 		}
 		foundNew := false
 		for _, target := range sc.Targets[ui.ScriptVariableParameter] {

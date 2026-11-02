@@ -3814,5 +3814,15 @@ var Committed = Baseline{
 	// CommentBytes rose again for the second campaign's one location entry and
 	// its departure rows: the doc comments of pkg/game/seconddeparture.go,
 	// seconddeparturebank_test.go and internal/archtest/secondlocation.go.
-	CommentBytes: 10371789,
+
+	// It rose for the trigger wizard's items of every shipped kind: doc
+	// comments in pkg/ui's mapeditorwizard.go, mapeditor.go and
+	// mapeditorobject.go, pkg/game's mapinspectionscript.go and
+	// mapinspectionscriptchoices.go, the tests mapeditorwizardkinds_test.go,
+	// mapeditorwizardkinds_release_test.go and internal/archtest's
+	// wizarditems_test.go, and this note.
+	//
+	// It rose a further amount for the doc comments of the wizard's never-comparison
+	// test and effect-time words test, and this note.
+	CommentBytes: 10381585,
 }

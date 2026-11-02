@@ -44,7 +44,7 @@ func addScriptRecord(m *mapedit.Editor, k mapedit.Kind) (uint32, error) {
 		binary.LittleEndian.PutUint32(rec[alm.ScriptTriggerOnce:], 1)
 	} else {
 		if k == mapedit.KindCondition && m.Count(k) >= 100 {
-			return 0, fmt.Errorf("the script already uses 100 check registers")
+			return 0, errChecksFull
 		}
 		var err error
 		if id, err = m.NextScriptID(k); err != nil {
@@ -287,12 +287,14 @@ func scriptParameterKind(condition bool, opcode uint32, types [10]uint32, slot i
 			return ui.ScriptEntrySpellParameter
 		case opcode == 29 && argument == 2:
 			return ui.ScriptAreaSpellParameter
+		case opcode == 34 && argument == 0:
+			return ui.ScriptPropertyParameter
 		}
 	}
 	if scriptAddressesVariable(condition, opcode) && scriptVariableSlot(types) == slot {
 		return ui.ScriptVariableParameter
 	}
-	if types[slot] >= ui.ScriptVariableParameter && types[slot] <= ui.ScriptAreaSpellParameter {
+	if types[slot] >= ui.ScriptVariableParameter && types[slot] <= ui.ScriptPropertyParameter {
 		return 0
 	}
 	return types[slot]

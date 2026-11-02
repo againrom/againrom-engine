@@ -90,6 +90,12 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 			add(ui.ScriptAreaSpellParameter, value, -1, spell.Label, spell.Label, 0)
 		}
 	}
+	for _, p := range []struct {
+		selector uint32
+		word     string
+	}{{selector: 6, word: "editor.param.property.health"}, {selector: 15, word: "editor.param.property.defence"}, {selector: 16, word: "editor.param.property.absorption"}} { // TRIG-PROPERTY-036
+		add(ui.ScriptPropertyParameter, p.selector, -1, x.inspectionUTF8(x.word(p.word)), "", 0)
+	}
 	registers := map[uint32]bool{}
 	for _, nodes := range [][]ui.InspectionScriptNode{d.Script.Actions, d.Script.Conditions} {
 		for _, n := range nodes {
@@ -110,7 +116,10 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 		}
 		add(ui.ScriptVariableParameter, r, -2-i, name, "", 0)
 	}
-	for r := uint32(0); r < 100; r++ {
+	// A new variable takes the highest free register, so the checks the map
+	// adds next, each at the next condition index, keep clear of it until the
+	// 100 registers cannot hold both.
+	for r := uint32(99); r < 100; r-- {
 		if !registers[r] && uint64(r) >= uint64(len(sc.Conditions)) {
 			add(ui.ScriptVariableParameter, r, -1, x.inspectionUTF8(x.word("editor.param.newvariable")), "", 0)
 			break

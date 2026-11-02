@@ -69,6 +69,7 @@ const (
 	ScriptSpellParameter uint32 = 12 + iota
 	ScriptEntrySpellParameter
 	ScriptAreaSpellParameter
+	ScriptPropertyParameter // the unit property action 34's selector names
 )
 
 // operations are the catalog's operations of a family.

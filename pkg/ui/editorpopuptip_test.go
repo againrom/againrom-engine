@@ -122,8 +122,9 @@ func groupOrderEditor(t *testing.T) *MapEditor {
 }
 
 // The wizard reads a group order as its own row: the group from the map's
-// groups, the command from the named commands that take a cell, the point a
-// cell; a new row of that item says the shipped node slot for slot.
+// groups, the command from the named commands an order item's slots take,
+// the point a cell; a new row of that item says the shipped node slot for
+// slot.
 func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 	e := groupOrderEditor(t)
 	e.Select(0, false)
@@ -131,7 +132,7 @@ func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 		t.Fatalf("the trigger opens no wizard:\n%s", strings.Join(e.PopupLines(), "\n"))
 	}
 	lines := e.PopupLines()
-	for _, want := range []string{"Action Order a group to a point", "Group Group 5 (units: 7)", "Command Swarm", "Point 96,84"} {
+	for _, want := range []string{"Action Order a group", "Group Group 5 (units: 7)", "Command Swarm", "Point 96,84"} {
 		if !slices.Contains(lines, want) {
 			t.Fatalf("the wizard lacks %q:\n%s", want, strings.Join(lines, "\n"))
 		}
@@ -144,7 +145,7 @@ func TestTriggerWizardReadsAndBuildsAGroupOrder(t *testing.T) {
 	for _, c := range e.obj.fields[command].Choices {
 		names = append(names, c.Label)
 	}
-	if !slices.Equal(names, []string{"Swarm as a crowd", "Move", "Swarm", "Patrol"}) {
+	if !slices.Equal(names, []string{"Swarm as a crowd", "Stand Ground", "Move", "Swarm", "Attack", "Patrol", "Roam", "Dwell (no effect)"}) {
 		t.Fatalf("the command choices %q", names)
 	}
 	order := slices.IndexFunc(wizActions, func(it wizItem) bool { return it.labelWord == "editor.wizard.a.order" })

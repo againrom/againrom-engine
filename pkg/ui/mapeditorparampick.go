@@ -91,6 +91,8 @@ func (e *MapEditor) wizardFieldTarget(f int) paramTarget {
 		return targetUnit
 	case wpGroup:
 		return targetGroup
+	case wpStructure:
+		return targetStructure
 	case wpBox:
 		return targetBox
 	case wpCell:
@@ -284,7 +286,7 @@ func (e *MapEditor) paramPicked(target paramTarget, v pickedValue) {
 // paramChoices are the choices of a unit, structure or group field after the
 // pick gave it value.
 func (e *MapEditor) paramChoices(target paramTarget, value int64) []InspectionChoice {
-	if e.obj.wiz != nil {
+	if e.obj.wiz != nil && target != targetStructure {
 		if target == targetGroup {
 			return e.wizardChoices(wpGroup, value)
 		}

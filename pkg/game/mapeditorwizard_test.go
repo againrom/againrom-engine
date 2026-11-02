@@ -245,13 +245,15 @@ func TestTriggerWizardEditsAndRemovesRows(t *testing.T) {
 	}
 	_ = e.Key("redo")
 
-	// Far keeps its pair and its cast as they stand.
+	// Far's pair, compared by "equals", and its cast read as ready items.
 	e.Select(trigRecord(t, e, "Trigger", 1), true)
-	if rows, kept := e.WizardRowCounts(); rows != 3 || kept != 2 {
+	if rows, kept := e.WizardRowCounts(); rows != 3 || kept != 0 {
 		t.Fatalf("Far shows %d rows, %d kept:\n%s", rows, kept, trigLines(e))
 	}
-	if !strings.Contains(trigLines(e), "Other: ") || !strings.Contains(trigLines(e), "Win the mission") {
-		t.Fatalf("Far's rows:\n%s", trigLines(e))
+	for _, want := range []string{"Any unit of a player near a point", "Comparison equals", "Win the mission", "Cast a spell from a point at a point"} {
+		if !strings.Contains(trigLines(e), want) {
+			t.Fatalf("Far's rows lack %q:\n%s", want, trigLines(e))
+		}
 	}
 
 	// Removing Near's message deletes the action; removing its condition

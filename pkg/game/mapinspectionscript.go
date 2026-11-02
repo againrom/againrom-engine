@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"strings"
@@ -370,6 +371,16 @@ func registerCollision(sc alm.Script, added int) error {
 	return nil
 }
 
+// registerTaken refuses a new check whose register a script variable uses.
+type registerTaken struct{ register uint32 }
+
+func (r registerTaken) Error() string {
+	return fmt.Sprintf("script variable %d would share the register of the new check", r.register)
+}
+
+// errChecksFull refuses a check beyond the 100 registers.
+var errChecksFull = errors.New("the script already uses 100 check registers")
+
 func registerCollides(sc alm.Script, next uint32) error {
 	for _, set := range []struct {
 		nodes   []alm.ScriptNode
@@ -382,7 +393,7 @@ func registerCollides(sc alm.Script, next uint32) error {
 			for p, tag := range n.Type {
 				if tag == 1 || tag == 5 || tag == 6 || tag == 7 {
 					if n.Value[p] == next {
-						return fmt.Errorf("script variable %d would share the register of the new check", next)
+						return registerTaken{next}
 					}
 					break
 				}

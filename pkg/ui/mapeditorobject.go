@@ -590,9 +590,46 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 				sel = k
 			}
 		}
-		o.choice = NewPicker(rows).SetWindow(min(10, len(rows)))
+		window := e.choiceWindow(i, len(rows))
+		o.choice = NewPicker(rows)
+		if window > pickerVisible {
+			o.choice.SetRowLimit(window)
+		}
+		o.choice.SetWindow(window)
 		o.choice.Select(sel)
 	}
+}
+
+// choiceWindow is the rows field i's open list of n choices shows: ten at
+// most, or for a field that lists all as many as fit below its row in the
+// window, ten at least.
+func (e *MapEditor) choiceWindow(i, n int) int {
+	rows := min(10, n)
+	if i < 0 || i >= len(e.obj.fields) || !e.obj.fields[i].ListAll {
+		return rows
+	}
+	control, ok := e.fieldControl(i)
+	if !ok {
+		return rows
+	}
+	pitch := newListBox(image.Rectangle{}, 1, e.bodyFont()).Pitch
+	fit := (e.window.Y - control.Max.Y - 1 - listBottomExtra) / pitch
+	return max(rows, min(n, fit))
+}
+
+// fieldControl is the control rectangle of field i's row in the object
+// popup, false when the popup shows no row for it.
+func (e *MapEditor) fieldControl(i int) (image.Rectangle, bool) {
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
+		if rr.Index == e.fieldRow(i) {
+			return rr.Control, true
+		}
+	}
+	return image.Rectangle{}, false
 }
 
 // openDropdown is the object popup's open drop-down, placed on its row.
@@ -607,7 +644,7 @@ func (e *MapEditor) openDropdown() (dropdown, bool) {
 	}
 	for _, rr := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if rr.Index == e.fieldRow(o.open) {
-			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: min(10, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}
+			d := dropdown{Rect: rr.Control, Text: s.Rows[rr.Index].Value, Open: true, List: o.choice, Rows: e.choiceWindow(o.open, o.choice.Len()), Focus: true, Fill: editorPanel, Ink: editorLight}
 			if o.search != "" {
 				d.Text = e.editorHostText(o.search)
 			}

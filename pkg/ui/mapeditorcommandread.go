@@ -398,7 +398,7 @@ func (e *MapEditor) findingRow(f InspectionFinding) map[string]any {
 	return row
 }
 
-var wizParamNames = map[wizParamKind]string{wpUnit: "unit", wpPlayer: "player", wpGroup: "group", wpNumber: "number", wpCell: "cell", wpBox: "area", wpMessage: "message", wpCommand: "command", wpRelation: "relation"}
+var wizParamNames = map[wizParamKind]string{wpUnit: "unit", wpPlayer: "player", wpGroup: "group", wpNumber: "number", wpCell: "cell", wpBox: "area", wpMessage: "message", wpCommand: "command", wpRelation: "relation", wpVariable: "variable", wpItem: "item", wpStructure: "structure", wpSpell: "spell", wpProperty: "property"}
 
 func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 	a, err := decodeArgs[struct{ Verbose bool }](raw, editorCommandArgs("trigger_items"))
@@ -439,7 +439,7 @@ func (e *MapEditor) readTriggerItems(raw json.RawMessage) (any, error) {
 				params = append(params, param)
 			}
 			row := map[string]any{"item": wizItemKey(it), "label": e.mcpDisplay(e.word(it.labelWord)), "params": params}
-			if condition && it.cmp < 0 {
+			if condition && it.chooseCmp {
 				row["comparison"] = "chosen, 0..5"
 			} else if condition {
 				row["comparison"] = it.cmp

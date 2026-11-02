@@ -157,7 +157,7 @@ func TestScriptNewVariableSkipsConditionSlots(t *testing.T) {
 					continue
 				}
 				found = true
-				if count == 100 || target.Value != uint32(count) {
+				if count == 100 || target.Value != 99 { // the highest free register
 					t.Fatalf("New variable register %d, condition slots %d", target.Value, count)
 				}
 			}
@@ -323,7 +323,7 @@ func TestScriptVariableChoicesAndTypedBytes(t *testing.T) {
 	e := parameterEditor(t)
 	e.Select(trigRecord(t, e, "Action", 1), false)
 	targets := e.Document().Script.Targets[ui.ScriptVariableParameter]
-	if len(targets) != 4 || targets[0].Name != "Funds" || targets[1].Name != "Variable 5" || targets[2].Name != "Variable 7" || targets[3].Value != 3 || targets[3].Name != "New variable" {
+	if len(targets) != 4 || targets[0].Name != "Funds" || targets[1].Name != "Variable 5" || targets[2].Name != "Variable 7" || targets[3].Value != 99 || targets[3].Name != "New variable" {
 		t.Fatalf("variable choices %v", targets)
 	}
 	var host []ui.InspectionChoice
@@ -411,7 +411,7 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	trigChoose(t, e, 2, "New variable")
 	r, ok = e.PopupButtonRect(0)
 	trigClick(t, e, r, ok, "Apply new variable")
-	if e.Document().Script.Actions[1].Values[0] != 3 {
+	if e.Document().Script.Actions[1].Values[0] != 99 {
 		t.Fatal("wrong new register")
 	}
 	if len(e.Document().Script.Conditions) != 3 {

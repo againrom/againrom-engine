@@ -46,7 +46,7 @@ func editableSlot(condition bool, n ui.InspectionScriptNode) (field, slot int, o
 		if t == 0 {
 			continue
 		}
-		if !condition && n.Opcode == 6 && s == 0 {
+		if !condition && (n.Opcode == 6 && s == 0 || n.Opcode == 34 && s == 1) { // a choice: a command, a property
 			field++
 			continue
 		}

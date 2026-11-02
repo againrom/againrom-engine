@@ -122,7 +122,7 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		otherShown bool
 	}
 	cases := []rowCase{
-		{"c0.item", true, 0, int64(len(wizConditions) - 1), [2]uint32{1, 2}, false},
+		{"c0.item", true, 0, int64(slices.IndexFunc(wizConditions, func(it wizItem) bool { return it.holds })), [2]uint32{1, 2}, false},
 		{"c1.item", true, 1, -1, [2]uint32{3, 2}, true},
 		{"c2.item", true, 2, 0, [2]uint32{}, false},
 		{"a0.item", false, 0, 1, [2]uint32{11}, false},
@@ -144,8 +144,8 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		}
 		orig := append([]string(nil), e.obj.wiz.rows[r].vals...)
 		for _, value := range append(values, c.orig) {
-			if e.obj.wiz.shut(r, int(value)) {
-				continue
+			if value <= wizHeading || e.obj.wiz.shut(r, int(value)) {
+				continue // a subject heading, or an item the trigger holds once
 			}
 			wizardChoose(t, e, c.key, value)
 			f = e.WizardField(c.key)
@@ -178,12 +178,22 @@ func TestTriggerWizardEveryItemChoiceHolds(t *testing.T) {
 		if got := e.obj.wiz.rows[r].vals; !slices.Equal(got, orig) {
 			t.Fatalf("%s: chosen back, the row holds %q; it was read with %q", c.key, got, orig)
 		}
-		want := len(items)
+		// The list shows each item but a variant, under one heading per
+		// subject.
+		want, subjects := 0, map[int]bool{}
+		for _, it := range items {
+			if !it.variant {
+				want++
+				subjects[it.subject] = true
+			}
+		}
+		ready := want
+		want += len(subjects)
 		if c.otherShown {
 			want++
 		}
 		if len(values) != want || slices.Contains(values, -1) != c.otherShown {
-			t.Fatalf("%s: choices %v; want the %d ready items, Other %v", c.key, values, len(items), c.otherShown)
+			t.Fatalf("%s: choices %v; want the %d ready items under %d headings, Other %v", c.key, values, ready, len(subjects), c.otherShown)
 		}
 	}
 	e.obj.open = -1

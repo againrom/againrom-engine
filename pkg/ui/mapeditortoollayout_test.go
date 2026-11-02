@@ -287,7 +287,7 @@ func TestMapEditorWizardOffersUnitNearUnit(t *testing.T) {
 		t.Fatal("no Unit near unit condition")
 	}
 	it := wizConditions[i]
-	types, _, _ := it.itemSlots()
+	types, _, _ := it.itemSlots(false)
 	if it.opcode != 6 || it.cmp != 5 || it.rightParam != 2 || types != [10]uint32{scriptUnit, scriptUnit} || it.hintWord == "" {
 		t.Fatalf("the condition reads %+v, slots %v", it, types)
 	}

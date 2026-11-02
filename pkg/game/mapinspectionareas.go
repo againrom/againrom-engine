@@ -67,7 +67,7 @@ func addBoxArea(m *mapedit.Editor, box image.Rectangle, trigger int) error {
 	}
 	one, found := unsharedConstant(sc, 1)
 	if need := 1 + refCount(!found); len(sc.Conditions)+need > 100 {
-		return fmt.Errorf("the script already uses 100 check registers")
+		return errChecksFull
 	}
 	if err := registerCollision(sc, 1+refCount(!found)); err != nil {
 		return err
