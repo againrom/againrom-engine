@@ -29,7 +29,7 @@
 # sums: pkg/ui's fast set takes about 50 s in one run. pkg/game's shards run
 # with -count=1, as storing a pkg/game result in the test cache costs about
 # 5 s. Other results come from the Go test cache where their inputs did not
-# change. Each phase prints its seconds; the last line names a run over
+# change; each checkout keeps its own results there (see timeout below). Each phase prints its seconds; the last line names a run over
 # AGAINROM_FAST_BOUND seconds (default 60).
 set -u
 cd "$(dirname "$0")/.." || exit 2
@@ -120,13 +120,29 @@ classes() {
 		}'
 }
 
+# timeout is go test's default of 10 minutes plus up to 100 s chosen by this
+# checkout's path, so the Go test cache keys every result by checkout too. The
+# cache keeps one record per test binary and arguments of the files its last
+# run opened, by absolute path. Checkouts sharing the cache build identical
+# binaries; without this each overwrites the others' record, and reading
+# another checkout's record resolves each of its paths through symbolic links
+# (internal/archtest's run opens about 62000: about 40 s, before the link and
+# again before the run) only to run the test anyway.
+checkout=$(pwd -W 2>/dev/null || pwd)
+timeout=0
+for ((i = 0; i < ${#checkout}; i++)); do
+	printf -v c '%d' "'${checkout:i:1}"
+	timeout=$(((timeout * 31 + c) % 100003))
+done
+timeout=$((600000 + timeout))ms
+
 # own <name> <skip> <go test argument...> runs one `go test` and prints its
 # seconds; with low set, under nice.
 own() {
 	local name=$1 pattern=$2 start code
 	shift 2
 	start=$(now)
-	${low:+nice -n 10} go test -trimpath ${pattern:+-skip "$pattern"} "$@"
+	${low:+nice -n 10} go test -trimpath -timeout "$timeout" ${pattern:+-skip "$pattern"} "$@"
 	code=$?
 	echo "check-fast: go test $name $(secs "$start") s"
 	return "$code"
