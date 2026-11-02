@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.145.0
+
 ### For players
 
 - [ROM1] A patrolling unit keeps its patrol when you save and load: after loading, it walks its route as before, and the next save keeps the route, so the original game no longer crashes loading that save.
