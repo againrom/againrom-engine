@@ -275,6 +275,10 @@ func projectSavedActorActions(state *SnapshotSAVDocument, world *sim.World, load
 				}
 			}
 		}
+		if e.Alive() {
+			keepLoadedActionLinks(state, loaded, world, entities, e, r,
+				keepLoadedOrder || e.HasAttackTarget || e.Retreat.Known || e.PendingOrder.Kind != sim.PendingNone)
+		}
 	}
 	return nil
 }

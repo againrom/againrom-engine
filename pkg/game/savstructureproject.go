@@ -182,11 +182,9 @@ func projectSavedStructureRecord(record *sav.DocumentRecordData, source sim.Save
 		position[0], position[1] = byte(live.Col), byte(live.Row)
 		binary.LittleEndian.PutUint16(position[2:], uint16(live.Row<<8|live.Col))
 	}
+	// No Building code writes its raw record after the constructor, so the
+	// original writes the bytes its LOAD read (SAV-1385, SAV-1386).
 	base := source.Base52
-	// LOAD's later scalar stores overlap the raw +52 image. Do not emit a
-	// stale second geometry/blocking value after an ordinary current SAVE.
-	base[14], base[15] = live.Width, live.Height
-	binary.LittleEndian.PutUint32(base[18:], live.Blocking)
 	if err := savedStructureSetRaw(record, "Block12", position[:]); err != nil {
 		return err
 	}
@@ -300,12 +298,6 @@ func projectUnregisteredStructureGeometry(document *sav.DocumentData, world *sim
 			{Name: "B64", Value: structure.Blocking}, {Name: "B68", Value: structure.Attach},
 		} {
 			_ = savedStructureSetValue(match, value.Name, value.Value)
-		}
-		for _, raw := range match.Raw {
-			if raw.Name == "B52" && len(raw.Bytes) == 22 {
-				raw.Bytes[14], raw.Bytes[15] = structure.Width, structure.Height
-				binary.LittleEndian.PutUint32(raw.Bytes[18:], structure.Blocking)
-			}
 		}
 	}
 }

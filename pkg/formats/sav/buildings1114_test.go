@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestBuildings1114AliasAndLateScalarStores(t *testing.T) {
+func TestBuildings1114AliasAndRawRecord(t *testing.T) {
 	f, offsets := buildingDocumentFixture()
 	// Replace the second full object by a plain MFC reference to the first.
 	// Header count stays three; the unique roster has two objects.
@@ -24,9 +24,11 @@ func TestBuildings1114AliasAndLateScalarStores(t *testing.T) {
 	if err != nil || len(rows) != 2 {
 		t.Fatalf("alias: %+v %v", rows, err)
 	}
-	if rows[0].Base52[13] != 93 || rows[0].Base52[14] != 3 || rows[0].Base52[15] != 2 ||
-		binary.LittleEndian.Uint32(rows[0].Base52[18:]) != 5 {
-		t.Fatal("late scalar stores did not win")
+	// The raw block is the Building's own record; the width, height and
+	// blocking fields after it do not overwrite it (SAV-1385).
+	if rows[0].Base52[13] != 93 || rows[0].Base52[14] != 94 || rows[0].Base52[15] != 95 ||
+		binary.LittleEndian.Uint32(rows[0].Base52[18:]) != 0x65646362 || rows[0].Width != 3 || rows[0].Blocking != 5 {
+		t.Fatal("raw record or separate fields changed", rows[0].Base52, rows[0].Width, rows[0].Blocking)
 	}
 	if rows[0].ArchiveIndex != 2 || rows[1].ArchiveIndex != 3 {
 		t.Fatalf("archive identity: %+v", rows)

@@ -4,7 +4,7 @@ import "testing"
 
 func TestMilestone2Buildings(t *testing.T) {
 	sessionCorpusAudit(t)
-	files, records, cells, nonzero, normalized, mismatches := 0, 0, 0, 0, 0, 0
+	files, records, cells, nonzero, rawNonzero, mismatches := 0, 0, 0, 0, 0, 0
 	classes := map[string]int{"Building": 0, "Outpost": 0, "Tavern": 0, "Shop": 0}
 	var refused []milestone2ResumeRefusal
 	milestone2CarrierCorpus(t, currentCarrierBuildings, func(t *testing.T, mf milestone2File, fe *FrontEnd) {
@@ -30,8 +30,8 @@ func TestMilestone2Buildings(t *testing.T) {
 		}
 		for _, w := range want {
 			classes[[]string{"", "Building", "Outpost", "Tavern", "Shop"}[w.source.Class]]++
-			if w.normalized {
-				normalized++
+			if w.rawNonzero {
+				rawNonzero++
 			}
 		}
 		sources, liveCells, present := ms.World.SavedStructures()
@@ -41,7 +41,7 @@ func TestMilestone2Buildings(t *testing.T) {
 		}
 	})
 	milestone2LogRefusals(t, "buildings", refused)
-	t.Logf("buildings: %d world files resumed, %d records, %d cell links (%d nonzero), %d normalized raw/scalar overlaps, %d mismatches, %d refused", files, records, cells, nonzero, normalized, mismatches, len(refused))
+	t.Logf("buildings: %d world files resumed, %d records, %d cell links (%d nonzero), %d nonzero raw records, %d mismatches, %d refused", files, records, cells, nonzero, rawNonzero, mismatches, len(refused))
 	t.Logf("buildings: class population %v; zero means no original-corpus witness for that subclass", classes)
 	if files == 0 || records == 0 {
 		t.Fatal("no Building population compared")

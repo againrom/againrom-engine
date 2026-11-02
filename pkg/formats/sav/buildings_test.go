@@ -55,7 +55,6 @@ func TestBuildingsExactCountedHealthProjection(t *testing.T) {
 			ArchiveIndex: uint16(2 + i), RuntimeID: uint32(90 - i), Token0C: 1, Token0E: 0x21,
 			Token18: 0x1818, Token1C: 0x1c1c1c1c, Field48: 2}
 		want.Position = [12]byte{uint8(5 + i), 6, uint8(5 + i), 6, 128, 128, 0x77, 0x07, 0x20, 0xa0, 0x34, 0x12}
-		want.Base52[14], want.Base52[15], want.Base52[18] = 3, 2, 5
 		if !reflect.DeepEqual(got[i], want) {
 			t.Fatalf("row %d = %+v, want %+v", i, got[i], want)
 		}

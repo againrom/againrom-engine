@@ -3904,5 +3904,12 @@ var Committed = Baseline{
 	// internal/archtest/equipmentplaces.go and its test, the writer map's
 	// note in equipmentbuilder_test.go, less the table's former comments in
 	// pkg/game/savequipmentslots.go.
-	CommentBytes: 10443577,
+
+	// It rose for the loaded action links and the Building's raw record: the
+	// doc comments of the new pkg/game/savloadedlinks.go and its test, the
+	// raw-record notes in pkg/formats/sav/buildings.go, pkg/sim/savedstructures.go,
+	// pkg/game/savstructureproject.go and the two Building constructors, the
+	// new tests in pkg/game/savstructurecurrent_test.go, less the overlap
+	// comments they replace, and this note.
+	CommentBytes: 10446911,
 }

@@ -41,6 +41,7 @@ func structureFixtureSave(rows []sav.Building, cells ...sav.DocumentCellData) []
 		binary.LittleEndian.PutUint16(record[17:], uint16(row.Kind))
 		binary.LittleEndian.PutUint32(record[19:], row.AuthoredID)
 		binary.LittleEndian.PutUint32(record[29:], uint32(700+i))
+		copy(record[37:59], row.Base52[:])
 		record[59] = row.Kind
 		binary.LittleEndian.PutUint16(record[60:], row.Health)
 		binary.LittleEndian.PutUint16(record[62:], row.MaxHealth)

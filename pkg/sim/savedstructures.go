@@ -40,6 +40,8 @@ func (c SavedStructureClass) BaseClass() SavedStructureClass {
 // geometry and footprint masks belong to the live Structure. SourceKey is
 // never a native handle. AuthoredIndex binds a compiled ALM script reference only
 // when HasAuthored is true; absent ALM objects cannot resurrect on that path.
+// Base52 is the Building's embedded 22-byte record, which no Building code
+// writes after its zeroing constructor; it is the bytes a LOAD read (SAV-1385).
 type SavedStructure struct {
 	ID                        StructureID
 	Class                     SavedStructureClass
@@ -120,9 +122,6 @@ func validateSavedStructures(structures []Structure, source []SavedStructure, ce
 		st := structures[i]
 		if st.Col != int32(s.Position[0]) || st.Row != int32(s.Position[1]) {
 			return fmt.Errorf("saved structures: position disagrees at %d", i)
-		}
-		if s.Base52[14] != st.Width || s.Base52[15] != st.Height || binary.LittleEndian.Uint32(s.Base52[18:]) != s.Blocking {
-			return fmt.Errorf("saved structures: overlapping base fields disagree at %d", i)
 		}
 		if s.Class.BaseClass() != SavedOutpost && (s.OutpostWords != [4]uint32{} || len(s.OutpostRecords) != 0) {
 			return fmt.Errorf("saved structures: Outpost state on another class")

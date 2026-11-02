@@ -18,7 +18,7 @@ import (
 type building1145Want struct {
 	live       sim.Structure
 	source     sim.SavedStructure
-	normalized bool
+	rawNonzero bool
 	next       int
 }
 
@@ -38,12 +38,9 @@ func building1145Raw(body []byte, off int, class string, archive uint16) (buildi
 	s.RuntimeID, s.Token0C, s.Token0E, s.Token18, s.Token1C, s.Reference = u32(12), uint16(b[16]), u16(17), u16(23), u32(25), u32(33)
 	copy(s.Base52[:], b[37:59])
 	s.Kind, s.Field46, s.Field48, s.Blocking = b[59], u16(64), b[66], u32(69)
-	// The later scalar LOAD writes overlap the earlier raw +52 image.
-	// Preserve the other 16 raw bytes; the final width/height/blocking win.
-	rawBase := s.Base52
-	s.Base52[14], s.Base52[15] = b[67], b[68]
-	copy(s.Base52[18:22], b[69:73])
-	want.normalized = rawBase != s.Base52
+	// The raw block is the Building's own record, apart from the width,
+	// height and blocking fields after it; LOAD keeps all 22 bytes (SAV-1385).
+	want.rawNonzero = s.Base52 != [22]byte{}
 	switch class {
 	case "Building":
 		s.Class = sim.SavedBuilding

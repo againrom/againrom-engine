@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [BASE] Saving after loading a save of the original game keeps each character's current target, spell and aim point as that save held them, and each building's data as the original wrote it; before, some characters lost the target or spell and each building's data was rewritten.
+
 ### For map makers and modders
 
 - [BASE] The map editor no longer quits when you drag a character window in its detailed mode down or to the side past the editor's edge; the window stops with its title row inside the editor, as the other editor windows do.

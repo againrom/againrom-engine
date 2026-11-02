@@ -1,7 +1,6 @@
 package sav
 
 import (
-	"encoding/binary"
 	"fmt"
 )
 
@@ -83,11 +82,9 @@ func (f *File) Buildings() ([]Building, bool, error) {
 			OutpostWords: [4]uint32{record.value("O84"), record.value("O88"), record.value("O80"), record.value("O8C")},
 			Pointer6C:    record.value("P6C")}
 		copy(b.Position[:], position)
+		// The raw block is the Building's own 22-byte record, apart from the
+		// width, height and blocking fields after it (SAV-1385).
 		copy(b.Base52[:], record.Raw["B52"])
-		// The raw +52 image overlaps later scalar stores. LOAD's last writes
-		// are the runtime values, not an independent second shape/mask.
-		b.Base52[14], b.Base52[15] = b.Width, b.Height
-		binary.LittleEndian.PutUint32(b.Base52[18:], b.Blocking)
 		raw := record.Raw["O6C"]
 		if len(raw) != 0 {
 			b.OutpostRecords = make([][8]byte, len(raw)/8)

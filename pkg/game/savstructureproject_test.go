@@ -68,8 +68,6 @@ func structureProjectionFixture(t *testing.T) (sav.DocumentData, *sim.World, []s
 			Reference: 0xaabbccdd, Kind: byte(i + 1), Field46: uint16(600 + i), Field48: 13, Blocking: 5}
 		copy(source.Position[:], record[:12])
 		copy(source.Base52[:], record[37:59])
-		source.Base52[14], source.Base52[15] = 1, 1
-		binary.LittleEndian.PutUint32(source.Base52[18:], 5)
 		switch class {
 		case "Outpost":
 			source.OutpostWords = [4]uint32{0x12345678, 0x87654321, 0xabcdef01, 0xfedcba09}
@@ -198,7 +196,6 @@ func TestSavedStructuresProjection1115DamageGeometrySuffixesAndCells(t *testing.
 			wantPosition[0], wantPosition[1], wantPosition[2], wantPosition[3] = 21, 22, 21, 22
 		}
 		wantBase := wantSource.Base52
-		wantBase[14], wantBase[15] = wantLive.Width, wantLive.Height
 		if got.Position != wantPosition || got.Base52 != wantBase || got.RuntimeID != uint32(900+i) || got.AuthoredID != 0 || got.Token0C != uint16(20+i) || got.Token0E != uint16(300+i) || got.Token18 != uint16(400+i) || got.Token1C != uint32(500+i) || got.Reference != 0xaabbccdd || got.Kind != byte(i+1) || got.Field46 != uint16(600+i) || got.Field48 != 13 || got.Blocking != 5 {
 			t.Fatal("retained base/Token field changed", i, got)
 		}

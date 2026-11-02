@@ -1,7 +1,6 @@
 package game
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"againrom/pkg/mod"
@@ -36,8 +35,7 @@ func constructCurrentBuildings(ms *Mission, src entrySource, groups *mod.Terrain
 		s := sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(),
 			Kind: uint8(st.Kind), Token0E: st.Kind, Token18: 2, Blocking: st.Blocking}
 		copy(s.Position[:], constructedPositionBlock(st.Col, st.Row, terrain))
-		s.Base52[14], s.Base52[15] = st.Width, st.Height
-		binary.LittleEndian.PutUint32(s.Base52[18:], st.Blocking)
+		// Base52 keeps the Building constructor's zero record (SAV-1385).
 		if uint64(st.ID) < uint64(len(ms.Map.Objects)) {
 			if object := ms.Map.Objects[st.ID]; object.Field12 != 0 {
 				s.AuthoredID, s.AuthoredIndex, s.HasAuthored = uint32(object.Field12), uint32(st.ID), true

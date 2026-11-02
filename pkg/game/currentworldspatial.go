@@ -165,8 +165,7 @@ func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *m
 			// original Building record carries it.
 			s = sim.SavedStructure{ID: st.ID, Class: sim.GeneratedBuilding, SourceKey: b.identity(), Kind: uint8(st.Kind), Token0E: uint16(st.Kind), Token18: 2, Blocking: st.Blocking}
 			copy(s.Position[:], constructedPositionBlock(st.Col, st.Row, b.doc.World.TerrainIdentity))
-			s.Base52[14], s.Base52[15] = st.Width, st.Height
-			binary.LittleEndian.PutUint32(s.Base52[18:], s.Blocking)
+			// Base52 keeps the Building constructor's zero record (SAV-1385).
 			for i, o := range m.Objects {
 				if uint32(i) == uint32(st.ID) && o.Field12 != 0 {
 					s.AuthoredIndex, s.AuthoredID, s.HasAuthored = uint32(i), uint32(o.Field12), true
