@@ -85,39 +85,28 @@ func innOffers(rows []town.OfferRow, s innState) []innOffer {
 // innBankSlots is the size of the campaign bank the rows' gates read.
 const innBankSlots = 1024
 
-// bankHero is the starting hero bank holds in the catalog's hero slots,
-// nonzero for a mage and for a female hero. Nil slots read a male fighter: a
-// catalog without them states no row by class or sex, so every row admits
-// that hero.
-func bankHero(h *town.HeroSlots, bank *[innBankSlots]int32) herokind.Kind {
-	if h == nil {
-		return herokind.MaleFighter
+// replaceHeroGate clears the part of row's class and sex that rec's lists
+// replace. The hero slots hold a fighter and a male hero at zero and a mage
+// and a female hero at nonzero, so that part is a gate of the list it reads
+// as, and a record that sets zero or nonzero replaces it with the list's
+// other gates. The part in a list rec does not set stays as class or sex.
+func replaceHeroGate(row *town.OfferRow, rec mod.OfferRecord) {
+	sets := func(list string) bool {
+		return slices.ContainsFunc(rec.Fields, func(f mod.PatchField) bool { return f.Name == list })
 	}
-	return herokind.Of(bank[h.Mage] != 0, bank[h.Female] != 0)
-}
-
-// heroAsGates restates row's class and sex as gates on the hero slots h, a
-// mage or female hero in nonzero and a fighter or male hero in zero, and
-// clears them, when rec sets zero or nonzero: rec then replaces that list's
-// part of the hero's gate with the list's other gates, and the part in the
-// list it does not set stays.
-func heroAsGates(row *town.OfferRow, rec mod.OfferRecord, h *town.HeroSlots) {
-	if h == nil || row.Class == "" && row.Sex == "" ||
-		!slices.ContainsFunc(rec.Fields, func(f mod.PatchField) bool { return f.Name == "zero" || f.Name == "nonzero" }) {
-		return
-	}
-	for _, g := range []struct {
-		word, zero, nonzero string
-		slot                int
-	}{{row.Class, herokind.Fighter, herokind.Mage, h.Mage}, {row.Sex, herokind.Male, herokind.Female, h.Female}} {
-		switch g.word {
-		case g.zero:
-			row.Zero = append(slices.Clone(row.Zero), g.slot)
-		case g.nonzero:
-			row.Nonzero = append(slices.Clone(row.Nonzero), g.slot)
+	zero, nonzero := sets("zero"), sets("nonzero")
+	for _, word := range []*string{&row.Class, &row.Sex} {
+		switch *word {
+		case herokind.Fighter, herokind.Male:
+			if zero {
+				*word = ""
+			}
+		case herokind.Mage, herokind.Female:
+			if nonzero {
+				*word = ""
+			}
 		}
 	}
-	row.Class, row.Sex = "", ""
 }
 
 // checkOfferRows refuses a row of table whose gates read a slot outside the

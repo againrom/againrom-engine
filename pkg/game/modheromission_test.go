@@ -87,10 +87,10 @@ func TestModMissionAfterAWinIsTheStartingHerosMap(t *testing.T) {
 	for k, key := range map[herokind.Kind]string{herokind.MaleFighter: "fighter", herokind.FemaleFighter: "fighter",
 		herokind.MaleMage: "mage_male", herokind.FemaleMage: "mage_female"} {
 		party := heroParty(k)
-		if got := mapload.StartingHeroKind(party); got != k {
+		if got := mapload.StartingHeroKind(mapload.HeroHold{Party: party}); got != k {
 			t.Fatalf("party of a %v reads a %v", k, got)
 		}
-		m, ok := d.AfterWin(20, mapload.StartingHeroKind(party))
+		m, ok := d.AfterWin(20, mapload.StartingHeroKind(mapload.HeroHold{Party: party}))
 		if !ok || m.Key != key {
 			t.Fatalf("a %v: %+v %v, want %q", k, m, ok, key)
 		}
@@ -158,7 +158,7 @@ func TestModMissionLaterLinkIsChosenByTheSavedHero(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := mapload.StartingHeroKind(back.heroParty(heroParty(herokind.MaleFighter))); got != k {
+		if got := mapload.StartingHeroKind(mapload.HeroHold{Party: back.heroParty(heroParty(herokind.MaleFighter))}); got != k {
 			t.Fatalf("the saved %v chooses as a %v", k, got)
 		}
 	}

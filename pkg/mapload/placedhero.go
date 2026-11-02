@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/herokind"
 	"againrom/pkg/sim"
+	"againrom/pkg/town"
 )
 
 // PlacedHero is a map placement the hero-ordinal scan can return: its record
@@ -90,7 +91,7 @@ func placedHeroName(u alm.Unit, t *Table, party []PartyMember) string {
 	id := int32(u.ClassSubID)
 	line := int(id)
 	if _, composed := t.composedNPCIndex(id); composed {
-		hero := StartingHeroKind(party)
+		hero := StartingHeroKind(HeroHold{Party: party})
 		mage, female, _ := t.NPC.ComposedArchetype(id, hero.Mage(), hero.Female())
 		line = 21 + int(herokind.Of(mage, female))
 	}
@@ -116,11 +117,26 @@ func placedHeroFace(name string, column int32) uint8 {
 	return uint8(face) & 0x3f
 }
 
-// StartingHeroKind is the one reading of the party's starting hero's class
-// and sex that a choice by the hero takes: the member marked as the starting
-// hero, else the first.
-func StartingHeroKind(party []PartyMember) herokind.Kind {
-	p := StartingHero(party)
+// HeroHold is where a campaign holds the starting hero a choice by the hero
+// reads. With Slots, the hero is the campaign bank's values at the catalog's
+// hero slots, the second game's form (R2-ENGINE-283); without, the party's
+// starting hero, the first game's and a mod chain's.
+type HeroHold struct {
+	Party []PartyMember
+	Slots *town.HeroSlots
+	Bank  []int32
+}
+
+// StartingHeroKind is the one reading of the starting hero's class and sex
+// that a choice by the hero takes: nonzero in the mage slot and in the
+// female slot of h's bank, a slot outside it reading zero, or else the
+// party member marked as the starting hero, else the first.
+func StartingHeroKind(h HeroHold) herokind.Kind {
+	if s := h.Slots; s != nil {
+		set := func(i int) bool { return i >= 0 && i < len(h.Bank) && h.Bank[i] != 0 }
+		return herokind.Of(set(s.Mage), set(s.Female))
+	}
+	p := StartingHero(h.Party)
 	return herokind.Of(p.Mage, data.FigureDir(p.FigureDir).Female())
 }
 

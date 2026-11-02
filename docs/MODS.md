@@ -844,11 +844,12 @@ read in the bank slots the catalog's `hero-slots` names (776 nonzero for a
 mage, 781 for a female hero, R2-ENGINE-217, R2-ENGINE-424); the same chooser
 picks a guest mission by `class` and `sex` (see Missions by starting hero).
 A mod's table does not set `class` or `sex`. A row of the table that names
-neither `zero` nor `nonzero` keeps a layer 0 row's `class` and `sex`. A row
-that names `zero`, `nonzero` or both turns them back into slot gates first,
-a fighter or male hero in `zero` and a mage or female hero in `nonzero`, and
-then replaces the lists it names: the gate on the hero slots in a list it
-names goes, the one in a list it does not name stays. A table adds a row when no
+neither `zero` nor `nonzero` keeps a layer 0 row's `class` and `sex`. The
+hero slots hold a fighter or male hero in `zero` and a mage or female hero in
+`nonzero`, so a row that names `zero`, `nonzero` or both replaces that part
+of the hero condition with the list it names: the part in a list it names
+goes from `class` and `sex`, and the part in a list it does not name stays
+there. A table adds a row when no
 layer holds its key, changes the fields it names when one does, or switches
 the row off with `off = true`. A row a mod adds comes after the rows of
 layer 0.

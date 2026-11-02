@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"againrom/pkg/mapload"
 	"againrom/pkg/town"
 	"againrom/pkg/ui"
 )
@@ -13,7 +14,7 @@ import (
 // of the hire bank (R2-ENGINE-215, R2-ENGINE-217, R2-ENGINE-221). It
 // changes no state.
 func (c *secondCampaign) innOptions() []innOffer {
-	hero := bankHero(secondBook().catalog.HeroSlots, &c.bank)
+	hero := mapload.StartingHeroKind(mapload.HeroHold{Slots: secondBook().catalog.HeroSlots, Bank: c.bank[:]})
 	return innOffers(c.offerRows(), innState{town: c.current.id, stage: int(c.bank[768]), bank: &c.bank, hero: hero, hire: true})
 }
 

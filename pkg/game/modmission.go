@@ -575,7 +575,7 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 		return 0, ""
 	}
 	missions := f.Table.Mods.Missions
-	m, ok := missions.AfterWin(n, mapload.StartingHeroKind(f.Carried))
+	m, ok := missions.AfterWin(n, mapload.StartingHeroKind(mapload.HeroHold{Party: f.Carried}))
 	if !ok {
 		return 0, ""
 	}
@@ -640,7 +640,7 @@ func (f *FrontEnd) finishGuestMission(n int, party []mapload.PartyMember,
 		}
 	}
 	missions := f.Table.Mods.Missions
-	if next, ok := missions.AfterWin(n, mapload.StartingHeroKind(g.heroParty(f.Carried))); ok {
+	if next, ok := missions.AfterWin(n, mapload.StartingHeroKind(mapload.HeroHold{Party: g.heroParty(f.Carried)})); ok {
 		town, _ := f.townInstall().campaign.NextMission(g.links()[0].After)
 		start, err := f.guestParty(next, town.Mission, g.heroParty(f.Carried), f.Carried)
 		if err != nil {

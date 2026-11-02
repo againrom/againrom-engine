@@ -3217,6 +3217,12 @@ package storyguard
 // in internal/archtest/dag.go, and this paragraph. It rises further with the
 // doc comment of heroAsGates in pkg/game/innoffers.go and the comments of its
 // test, pkg/game/heroinnmod_test.go.
+//
+// CommentBytes rises with the doc comments of HeroHold in
+// pkg/mapload/placedhero.go and of replaceHeroGate in pkg/game/innoffers.go,
+// the dag entry's note in internal/archtest/dag.go, the new tests
+// pkg/mapload/startingherochoice_test.go and
+// pkg/game/startingherochoice_test.go, and this paragraph.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3787,5 +3793,5 @@ var Committed = Baseline{
 	// replaces the card's value and the words for a differing value: doc
 	// comments in editorpopup.go and mapeditorplain.go and the new test
 	// mapeditorunitbasicvalue_test.go.
-	CommentBytes: 10350120,
+	CommentBytes: 10351984,
 }

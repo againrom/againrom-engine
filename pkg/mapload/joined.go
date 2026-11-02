@@ -55,15 +55,8 @@ func characterTemplate(t *Table, s CharacterSpec, party []PartyMember, exactRow 
 		if t.NPC == nil || len(party) == 0 {
 			return PartyMember{}, false
 		}
-		primary := party[0]
-		for _, member := range party {
-			if member.StartingHero {
-				primary = member
-				break
-			}
-		}
-		id, ok := t.NPC.CampaignServerID(s.NPC, s.Mission, primary.Mage,
-			data.FigureDir(primary.FigureDir).Female())
+		hero := StartingHeroKind(HeroHold{Party: party})
+		id, ok := t.NPC.CampaignServerID(s.NPC, s.Mission, hero.Mage(), hero.Female())
 		if !ok {
 			return PartyMember{}, false
 		}

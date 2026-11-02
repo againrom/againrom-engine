@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"againrom/pkg/herokind"
+	"againrom/pkg/mapload"
 	"againrom/pkg/town"
 )
 
@@ -59,7 +60,7 @@ func TestSecondInnFamiliesChooseByTheStartingHero(t *testing.T) {
 				bank[s] = v
 			}
 			in := innAt(2, 20, bank)
-			if got := herokind.Choose(bankHero(slots, &in.bank), sets, -1); got != c.at {
+			if got := herokind.Choose(mapload.StartingHeroKind(mapload.HeroHold{Slots: slots, Bank: in.bank[:]}), sets, -1); got != c.at {
 				t.Errorf("family %v, 776=%d 781=%d: chooser takes %d, want %d", fam.topics, c.mage, c.female, got, c.at)
 			}
 			if got, want := in.innOptions(), f(fam.topics[c.at]); !reflect.DeepEqual(got, want) {
@@ -101,11 +102,11 @@ func TestInnRowHeroesAreReadByTheChooser(t *testing.T) {
 		want         herokind.Kind
 	}{{0, 0, herokind.MaleFighter}, {0, 3, herokind.FemaleFighter}, {-1, 1, herokind.FemaleMage}, {1, 0, herokind.MaleMage}} {
 		bank[5], bank[6] = tc.mage, tc.female
-		if got := bankHero(slots, &bank); got != tc.want {
+		if got := mapload.StartingHeroKind(mapload.HeroHold{Slots: slots, Bank: bank[:]}); got != tc.want {
 			t.Errorf("bank %d/%d reads %v, want %v", tc.mage, tc.female, got, tc.want)
 		}
 	}
-	if got := bankHero(nil, &bank); got != herokind.MaleFighter {
+	if got := mapload.StartingHeroKind(mapload.HeroHold{Bank: bank[:]}); got != herokind.MaleFighter {
 		t.Errorf("no slots read %v", got)
 	}
 	mage := town.OfferRow{Kind: 3, Topic: 7, NPC: 40, Class: "mage", Sex: "female"}

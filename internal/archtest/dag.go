@@ -95,7 +95,9 @@ var allow = map[string][]string{
 	// The shop stock generator of both games is a leaf: each game supplies
 	// its rules as a profile.
 	"pkg/shopstock": {},
-	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind"},
+	// The map tier reads the starting hero in the hero slots a town catalog
+	// names, the town package's type.
+	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town"},
 	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
 	"pkg/editormcp": {},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},

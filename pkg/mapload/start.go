@@ -1098,15 +1098,8 @@ func tableForPartyNPCs(t *Table, party []PartyMember, mission int) *Table {
 	if t == nil || t.NPC == nil || t.Humans == nil || len(party) == 0 {
 		return t
 	}
-	primary := party[0]
-	for _, p := range party {
-		if p.StartingHero {
-			primary = p
-			break
-		}
-	}
-	playerMage := primary.Mage
-	playerFemale := data.FigureDir(primary.FigureDir).Female()
+	hero := StartingHeroKind(HeroHold{Party: party})
+	playerMage, playerFemale := hero.Mage(), hero.Female()
 	resolved := make(map[int32]int)
 	for id := int32(21); id <= 24; id++ { // REG-SCN-098: the npc21..24 branch
 		serverID, ok := t.NPC.CampaignServerID(id, mission, playerMage, playerFemale)

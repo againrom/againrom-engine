@@ -22,15 +22,15 @@ func TestStartingHeroKindReadsTheMarkedMembersClassAndSex(t *testing.T) {
 	} {
 		hero := PartyMember{ID: "hero", StartingHero: true, Mage: tc.mage, FigureDir: string(tc.dir)}
 		guest := PartyMember{ID: "npc:22", Mage: !tc.mage, FigureDir: string(data.FigureDirWomanMage)}
-		if got := StartingHeroKind([]PartyMember{guest, hero}); got != tc.want {
+		if got := StartingHeroKind(HeroHold{Party: []PartyMember{guest, hero}}); got != tc.want {
 			t.Errorf("marked %v: %v", tc.want, got)
 		}
 		hero.StartingHero = false
-		if got := StartingHeroKind([]PartyMember{hero, guest}); got != tc.want || StartingHero([]PartyMember{hero, guest}).ID != "hero" {
+		if got := StartingHeroKind(HeroHold{Party: []PartyMember{hero, guest}}); got != tc.want || StartingHero([]PartyMember{hero, guest}).ID != "hero" {
 			t.Errorf("first %v: %v", tc.want, got)
 		}
 	}
-	if got := StartingHeroKind(nil); got != herokind.MaleFighter {
+	if got := StartingHeroKind(HeroHold{}); got != herokind.MaleFighter {
 		t.Errorf("no party: %v", got)
 	}
 }

@@ -96,7 +96,7 @@ func TestSetModMissionsServesTheModsMapAndTextsUnderTheMissionNumber(t *testing.
 	if _, err := shared.ReadFile("scenario/25.alm"); err == nil {
 		t.Error("the overlay reached the shared filesystem")
 	}
-	if got, ok := f.Table.Mods.Missions.AfterWin(20, mapload.StartingHeroKind(nil)); !ok || got.Key != "prologue" {
+	if got, ok := f.Table.Mods.Missions.AfterWin(20, mapload.StartingHeroKind(mapload.HeroHold{})); !ok || got.Key != "prologue" {
 		t.Fatalf("recorded %+v", f.Table.Mods.Missions)
 	}
 }

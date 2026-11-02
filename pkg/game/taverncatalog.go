@@ -172,7 +172,7 @@ func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) 
 	patches := make([]mod.Patch[town.OfferKey, town.OfferRow], 0, len(d.Offers))
 	for _, r := range d.Offers {
 		apply := func(row *town.OfferRow) {
-			heroAsGates(row, r, book.catalog.HeroSlots)
+			replaceHeroGate(row, r)
 			r.Apply(row)
 		}
 		patches = append(patches, mod.Patch[town.OfferKey, town.OfferRow]{Source: r.Source, Key: r.Key(), Fields: r.Fields, Off: r.Off, Apply: apply})

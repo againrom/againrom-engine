@@ -36,8 +36,8 @@ func PartyHumanRow(member, hero PartyMember, t *Table) int {
 		return row
 	}
 	if member.CompanionNPC != 0 {
-		heroFemale := data.FigureDir(hero.FigureDir).Female()
-		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionNPC), 0, hero.Mage, heroFemale); ok {
+		k := StartingHeroKind(HeroHold{Party: []PartyMember{hero}})
+		if serverID, ok := t.NPC.CampaignServerID(int32(member.CompanionNPC), 0, k.Mage(), k.Female()); ok {
 			if row := data.FindHumanByServerID(t.Humans, serverID); row > 0 && row <= maxTokenRow {
 				return row
 			}
