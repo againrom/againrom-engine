@@ -3810,5 +3810,5 @@ var Committed = Baseline{
 	// comments in editorpopup.go and mapeditorplain.go and the new test
 	// mapeditorunitbasicvalue_test.go.
 	// CommentBytes rose again for the editor's one panel profile reader.
-	CommentBytes: 10367056,
+	CommentBytes: 10369063,
 }

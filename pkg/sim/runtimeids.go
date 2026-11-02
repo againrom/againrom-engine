@@ -15,17 +15,40 @@ import (
 // SAV-1372); nothing releases them. Items and Effects take no id.
 const runtimeIDSpace = 1 << 16
 
-type runtimeIDMarks [runtimeIDSpace / 64]uint64
+// RuntimeIDSet is the allocator's mark set: every runtime id the engine
+// gives, for a World or for a SAV city document, is the lowest clear bit of
+// one. An id is masked to its low 16 bits, the width of Token +0x04's bit
+// space.
+type RuntimeIDSet [runtimeIDSpace / 64]uint64
 
-func (m *runtimeIDMarks) mark(id uint32) {
+// NewRuntimeIDSet is a set with bit 0 marked.
+func NewRuntimeIDSet() *RuntimeIDSet {
+	m := new(RuntimeIDSet)
+	m.Mark(0)
+	return m
+}
+
+// Mark sets the low 16 bits of id.
+func (m *RuntimeIDSet) Mark(id uint32) {
 	b := uint16(id)
 	m[b>>6] |= 1 << (b & 63)
 }
 
-func (m *runtimeIDMarks) marked(id uint16) bool { return m[id>>6]&(1<<(id&63)) != 0 }
+// Release clears the low 16 bits of id; bit 0 stays marked.
+func (m *RuntimeIDSet) Release(id uint32) {
+	if b := uint16(id); b != 0 {
+		m[b>>6] &^= 1 << (b & 63)
+	}
+}
 
-// lowestClear returns the lowest clear bit, or 0 when every bit is marked.
-func (m *runtimeIDMarks) lowestClear() uint32 {
+// Marked reports whether the low 16 bits of id are set.
+func (m *RuntimeIDSet) Marked(id uint32) bool {
+	b := uint16(id)
+	return m[b>>6]&(1<<(b&63)) != 0
+}
+
+// LowestClear returns the lowest clear bit, or 0 when every bit is marked.
+func (m *RuntimeIDSet) LowestClear() uint32 {
 	for i, word := range m {
 		if word != ^uint64(0) {
 			for b := 0; b < 64; b++ {
@@ -73,23 +96,22 @@ func (w *World) eachRuntimeIDOwner(f func(uint32)) {
 	}
 }
 
-func (w *World) runtimeIDMarks() *runtimeIDMarks {
-	m := new(runtimeIDMarks)
-	m.mark(0)
+func (w *World) runtimeIDMarks() *RuntimeIDSet {
+	m := NewRuntimeIDSet()
 	w.eachRuntimeIDOwner(func(id uint32) {
 		if id != 0 {
-			m.mark(id)
+			m.Mark(id)
 		}
 	})
 	for _, id := range w.runtimeOrphans {
-		m.mark(uint32(id))
+		m.Mark(uint32(id))
 	}
 	return m
 }
 
 // allocateRuntimeID returns the lowest clear bit. The caller stores it in its
 // object before the next allocation.
-func (w *World) allocateRuntimeID() uint32 { return w.runtimeIDMarks().lowestClear() }
+func (w *World) allocateRuntimeID() uint32 { return w.runtimeIDMarks().LowestClear() }
 
 // NextRuntimeID is the id the allocator gives next.
 func (w *World) NextRuntimeID() uint32 { return w.allocateRuntimeID() }
@@ -99,7 +121,7 @@ func (w *World) RuntimeIDMarks() []uint16 {
 	m := w.runtimeIDMarks()
 	var out []uint16
 	for id := 0; id < runtimeIDSpace; id++ {
-		if m.marked(uint16(id)) {
+		if m.Marked(uint32(id)) {
 			out = append(out, uint16(id))
 		}
 	}
@@ -163,16 +185,15 @@ func (w *World) RestoreGroundSackRuntimeIDs(ids []uint32) error {
 // bit. Bits no World object carries stay marked.
 func (w *World) RestoreRuntimeIDs(records []RuntimeIDLoad) {
 	m := loadedRuntimeIDMarks(records)
-	owned := new(runtimeIDMarks)
-	owned.mark(0)
+	owned := NewRuntimeIDSet()
 	w.eachRuntimeIDOwner(func(id uint32) {
 		if id != 0 {
-			owned.mark(id)
+			owned.Mark(id)
 		}
 	})
 	w.runtimeOrphans = nil
 	for id := 1; id < runtimeIDSpace; id++ {
-		if m.marked(uint16(id)) && !owned.marked(uint16(id)) {
+		if m.Marked(uint32(id)) && !owned.Marked(uint32(id)) {
 			w.runtimeOrphans = append(w.runtimeOrphans, uint16(id))
 		}
 	}
@@ -181,15 +202,14 @@ func (w *World) RestoreRuntimeIDs(records []RuntimeIDLoad) {
 // loadedRuntimeIDMarks is the bitmap World LOAD leaves (SAV-1371): bit 0,
 // then each record in archive order marks the low 16 bits of its non-zero
 // saved id, a Sack's constructor first taking the lowest clear bit.
-func loadedRuntimeIDMarks(records []RuntimeIDLoad) *runtimeIDMarks {
-	m := new(runtimeIDMarks)
-	m.mark(0)
+func loadedRuntimeIDMarks(records []RuntimeIDLoad) *RuntimeIDSet {
+	m := NewRuntimeIDSet()
 	for _, r := range records {
 		if r.Sack {
-			m.mark(m.lowestClear())
+			m.Mark(m.LowestClear())
 		}
 		if r.Saved != 0 {
-			m.mark(r.Saved)
+			m.Mark(r.Saved)
 		}
 	}
 	return m
@@ -202,17 +222,15 @@ func loadedRuntimeIDMarks(records []RuntimeIDLoad) *runtimeIDMarks {
 func RuntimeIDsAfterLoad(records []RuntimeIDLoad, released []uint32, n int) []uint32 {
 	m := loadedRuntimeIDMarks(records)
 	for _, id := range released {
-		if b := uint16(id); b != 0 {
-			m[b>>6] &^= 1 << (b & 63)
-		}
+		m.Release(id)
 	}
 	out := make([]uint32, 0, n)
 	for range n {
-		id := m.lowestClear()
+		id := m.LowestClear()
 		if id == 0 {
 			break
 		}
-		m.mark(id)
+		m.Mark(id)
 		out = append(out, id)
 	}
 	return out
@@ -245,8 +263,8 @@ func (w *World) InsertActorRuntimeIDs(ids []EntityID) {
 	marks := w.runtimeIDMarks()
 	for _, id := range ids {
 		if i := indexOfEntity(w.entities, id); i >= 0 && !w.entities[i].OffMap && w.carriedRuntimeID(i) == 0 {
-			w.entities[i].SourceBinding.RuntimeID = marks.lowestClear()
-			marks.mark(w.entities[i].SourceBinding.RuntimeID)
+			w.entities[i].SourceBinding.RuntimeID = marks.LowestClear()
+			marks.Mark(w.entities[i].SourceBinding.RuntimeID)
 		}
 	}
 }
@@ -258,8 +276,8 @@ func (w *World) InsertSackRuntimeIDs() {
 	marks := w.runtimeIDMarks()
 	for i := range w.sacks {
 		if s := &w.sacks[i]; s.ObjectID == 0 && s.runtimeID == 0 {
-			s.runtimeID = marks.lowestClear()
-			marks.mark(s.runtimeID)
+			s.runtimeID = marks.LowestClear()
+			marks.Mark(s.runtimeID)
 		}
 	}
 }
@@ -300,14 +318,14 @@ func (w *World) runtimeIDFault() error {
 	if len(w.runtimeOrphans) == 0 {
 		return nil
 	}
-	owned := new(runtimeIDMarks)
+	owned := NewRuntimeIDSet()
 	w.eachRuntimeIDOwner(func(id uint32) {
 		if id != 0 {
-			owned.mark(id)
+			owned.Mark(id)
 		}
 	})
 	for _, id := range w.runtimeOrphans {
-		if owned.marked(id) {
+		if owned.Marked(uint32(id)) {
 			return fmt.Errorf("sim: runtime orphan bit %d is carried", id)
 		}
 	}

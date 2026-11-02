@@ -12,11 +12,18 @@ import (
 	"againrom/pkg/sim"
 )
 
-func reserveSavedRuntimeID(used map[uint32]bool, class string, id uint32) {
-	used[id] = true
+// markSavedRuntimeID marks one Token id in the document's set. A Human, Unit,
+// Building or Sack carries its id in the allocator's 16-bit space; an Item or
+// Effect Token holds a full identity word, which marks a bit only when it lies
+// inside that space.
+func markSavedRuntimeID(set *sim.RuntimeIDSet, class string, id uint32) {
 	switch class {
 	case "Human", "Unit", "Building", "Sack":
-		used[uint32(uint16(id))] = true
+		set.Mark(id)
+	default:
+		if id <= 0xFFFF {
+			set.Mark(id)
+		}
 	}
 }
 
@@ -127,8 +134,10 @@ func projectCurrentRuntimeIDs(doc *sav.DocumentData, s Snapshot) error {
 	return sav.SetNativeActions(&doc.State, raw)
 }
 
-func cityRuntimeIDs(objects []sav.CityObjectData) map[uint32]bool {
-	used := map[uint32]bool{0: true}
+// mintCityRuntimeID is the runtime id the next Unit of a city document takes:
+// the lowest clear bit over the Tokens its objects carry.
+func mintCityRuntimeID(objects []sav.CityObjectData) (uint32, error) {
+	set := sim.NewRuntimeIDSet()
 	for _, o := range objects {
 		var token []byte
 		switch {
@@ -140,19 +149,14 @@ func cityRuntimeIDs(objects []sav.CityObjectData) map[uint32]bool {
 			token = o.Effect.Token
 		}
 		if len(token) >= 16 {
-			reserveSavedRuntimeID(used, o.Class, binary.LittleEndian.Uint32(token[12:16]))
+			markSavedRuntimeID(set, o.Class, binary.LittleEndian.Uint32(token[12:16]))
 		}
 	}
-	return used
-}
-
-func nextSavedRuntimeID(used map[uint32]bool) uint32 {
-	id := uint32(1)
-	for used[id] {
-		id++
+	id := set.LowestClear()
+	if id == 0 {
+		return 0, fmt.Errorf("city document has no free runtime id")
 	}
-	used[id] = true
-	return id
+	return id, nil
 }
 
 // runtimeIDLoads lists the Token-derived records of a loaded document in

@@ -333,18 +333,25 @@ func nativeCityDataConstruct(roster, hired []mapload.PartyMember, table *mapload
 			if err != nil {
 				return sav.CityData{}, err
 			}
-			binary.LittleEndian.PutUint32(unit.Token[12:16], nextSavedRuntimeID(cityRuntimeIDs(objects)))
+			runtimeID, err := mintCityRuntimeID(objects)
+			if err != nil {
+				return sav.CityData{}, err
+			}
+			binary.LittleEndian.PutUint32(unit.Token[12:16], runtimeID)
 			objects = append(objects, sav.CityObjectData{Class: "Unit", Unit: &unit})
 			actors = append(actors, uint16(len(objects)))
 			continue
 		}
 		unit := nativeCityUnitData(identity, nativeCityPlayerIdentity, member, combined[heroIndex], table,
 			[sav.UnitStatWords]uint16{}, [sav.CharacterSkillSlots]uint16{})
-		binary.LittleEndian.PutUint32(unit.Token[12:16], nextSavedRuntimeID(cityRuntimeIDs(objects)))
+		runtimeID, err := mintCityRuntimeID(objects)
+		if err != nil {
+			return sav.CityData{}, err
+		}
+		binary.LittleEndian.PutUint32(unit.Token[12:16], runtimeID)
 		if err := nativeCityInitializeHumanMovement(&unit, table); err != nil {
 			return sav.CityData{}, err
 		}
-		var err error
 		if objects, err = attach(objects, &unit, member, table, identity, &itemSeq); err != nil {
 			return sav.CityData{}, err
 		}

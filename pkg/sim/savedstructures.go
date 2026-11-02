@@ -165,8 +165,8 @@ func (w *World) ConstructSavedStructures(source []SavedStructure, cells []SavedS
 	marks := w.runtimeIDMarks()
 	for i := range source {
 		if source[i].RuntimeID == 0 {
-			source[i].RuntimeID = marks.lowestClear()
-			marks.mark(source[i].RuntimeID)
+			source[i].RuntimeID = marks.LowestClear()
+			marks.Mark(source[i].RuntimeID)
 		}
 	}
 	if err := validateSavedStructures(w.structures, source, cells); err != nil {

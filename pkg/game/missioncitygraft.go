@@ -49,7 +49,11 @@ func graftNativeCityMember(data sav.CityData, member, hero mapload.PartyMember, 
 	}
 	unit := nativeCityUnitData(identity, playerIdentity, member, hero, table,
 		[sav.UnitStatWords]uint16{}, [sav.CharacterSkillSlots]uint16{})
-	binary.LittleEndian.PutUint32(unit.Token[12:16], nextSavedRuntimeID(cityRuntimeIDs(data.Objects)))
+	runtimeID, err := mintCityRuntimeID(data.Objects)
+	if err != nil {
+		return data, err
+	}
+	binary.LittleEndian.PutUint32(unit.Token[12:16], runtimeID)
 	if err := nativeCityInitializeHumanMovement(&unit, table); err != nil {
 		return data, err
 	}
