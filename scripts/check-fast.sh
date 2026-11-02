@@ -21,14 +21,16 @@
 #
 # pkg/game, pkg/ui and the other packages each have their own `go test`, side
 # by side with gofmt and the scan; pkg/game's skip list alone fills most of a
-# Windows command line. pkg/game's test binary takes about 30 s to compile, the
-# longest path, so the other two run at a lower priority, and pkg/game's
-# `go test` compiles first (-run '^$') and then runs the fast set in
-# AGAINROM_FAST_GAME_SHARDS (default 3) runs side by side, split by the letter
-# after "Test" into about equal timed sums, with -count=1, as storing a pkg/game
-# result in the test cache costs about 5 s. Other results come from the Go
-# test cache where their inputs did not change. Each phase prints its seconds;
-# the last line names a run over AGAINROM_FAST_BOUND seconds (default 60).
+# Windows command line. pkg/game's test binary takes about 35 s to compile, the
+# longest path, so the other two run at a lower priority. pkg/game and pkg/ui
+# each compile first (-run '^$', -vet=off), then run go test's vet pass beside
+# the fast set in shards, AGAINROM_FAST_GAME_SHARDS and AGAINROM_FAST_UI_SHARDS
+# (default 3 each) runs split by the letter after "Test" into about equal timed
+# sums: pkg/ui's fast set takes about 50 s in one run. pkg/game's shards run
+# with -count=1, as storing a pkg/game result in the test cache costs about
+# 5 s. Other results come from the Go test cache where their inputs did not
+# change. Each phase prints its seconds; the last line names a run over
+# AGAINROM_FAST_BOUND seconds (default 60).
 set -u
 cd "$(dirname "$0")/.." || exit 2
 
@@ -36,6 +38,7 @@ limit=${AGAINROM_FAST_LIMIT:-0.25}
 budget=${AGAINROM_FAST_BUDGET:-25}
 gamebudget=${AGAINROM_FAST_GAME_BUDGET:-80}
 shards=${AGAINROM_FAST_GAME_SHARDS:-3}
+uishards=${AGAINROM_FAST_UI_SHARDS:-3}
 bound=${AGAINROM_FAST_BOUND:-60}
 timings=${1:-${AGAINROM_TEST_TIMINGS:-$(go env GOCACHE).test-timings.txt}}
 rc=0
@@ -98,24 +101,24 @@ skip() {
 		END { if (extra != "") names = names sep extra; if (names != "") printf "^(%s)$", names }
 	'
 }
-skipui=$(skip "$ui")
 skipothers=$(skip -)
 
-# classes holds the letter ranges of every pkg/game shard but the last, which
-# takes the rest: the first range whose fast-set sum reaches 1/n of the total
-# closes a shard. Empty with no timings file or one shard: one run.
-classes=
-if [ -n "$sel" ] && [ "$shards" -gt 1 ]; then
-	classes=$(printf '%s\n' "$sel" | awk -F '\t' -v game="$game" -v n="$shards" '
-		$1 == game && $3 == "fast" { w[substr($2, 5, 1)] += $4; total += $4 }
+# classes <package> <n> prints the letter ranges of every shard of the
+# package's fast set but the last, which takes the rest: the first range whose
+# fast-set sum reaches 1/n of the total closes a shard. Empty with no timings
+# file or one shard: one run.
+classes() {
+	[ -n "$sel" ] && [ "$2" -gt 1 ] || return 0
+	printf '%s\n' "$sel" | awk -F '\t' -v pkg="$1" -v n="$2" '
+		$1 == pkg && $3 == "fast" { w[substr($2, 5, 1)] += $4; total += $4 }
 		END {
 			L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; k = 1; lo = "A"
 			for (i = 1; i < 26 && k < n; i++) {
 				c = substr(L, i, 1); acc += w[c]
 				if (acc >= total * k / n) { print lo "-" c; k++; lo = substr(L, i + 1, 1) }
 			}
-		}')
-fi
+		}'
+}
 
 # own <name> <skip> <go test argument...> runs one `go test` and prints its
 # seconds; with low set, under nice.
@@ -129,18 +132,25 @@ own() {
 	return "$code"
 }
 
-# gamerun compiles pkg/game's test binary, then runs its shards side by side.
-# A shard is chosen by -skip alone: -run beside -skip, two patterns, has the
-# testing package compile the long skip pattern again for every test.
-gamerun() {
-	local class pids= pid code=0 rest=
-	own "pkg/game compile" "" -run '^$' "$game" || return 1
-	for class in $classes; do
-		own "pkg/game Test[$class]" "$(skip "$game" "[^T].*|Test|Test[^$class].*" "^Test[$class]")" -count=1 "$game" &
+# shardrun <package> <name> <shards> [go test argument...] compiles one
+# package's test binary without go test's vet pass, then runs that vet pass
+# and the fast set's shards side by side, each shard with the arguments: vet
+# waits for the compile and the run waits for vet, so on the longest path they
+# would add their seconds. A shard is chosen by -skip alone: -run beside -skip,
+# two patterns, has the testing package compile the long skip pattern again
+# for every test.
+shardrun() {
+	local pkg=$1 name=$2 n=$3 class pids= pid code=0 rest=
+	shift 3
+	own "$name compile" "" -vet=off -run '^$' "$pkg" || return 1
+	own "$name vet" "" -run '^$' "$pkg" &
+	pids=$!
+	for class in $(classes "$pkg" "$n"); do
+		own "$name Test[$class]" "$(skip "$pkg" "[^T].*|Test|Test[^$class].*" "^Test[$class]")" -vet=off "$@" "$pkg" &
 		pids="$pids $!"
 		rest="Test[A-${class#*-}].*"
 	done
-	own "pkg/game${rest:+ rest}" "$(skip "$game" "$rest" "" "${rest:+^${rest%.\*}}")" -count=1 "$game" || code=1
+	own "$name${rest:+ rest}" "$(skip "$pkg" "$rest" "" "${rest:+^${rest%.\*}}")" -vet=off "$@" "$pkg" || code=1
 	for pid in $pids; do
 		wait "$pid" || code=1
 	done
@@ -148,9 +158,9 @@ gamerun() {
 }
 
 phase=$(now)
-gamerun &
+shardrun "$game" pkg/game "$shards" -count=1 &
 gamepid=$!
-low=1 own pkg/ui "$skipui" "$ui" &
+low=1 shardrun "$ui" pkg/ui "$uishards" &
 uipid=$!
 others=$(go list ./... | grep -vx -e "$game" -e "$ui") || others=
 
