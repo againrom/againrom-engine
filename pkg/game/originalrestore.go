@@ -508,7 +508,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := restoreOriginalRandomState(ms, src.campaign.randomSession, src.currentRandom); err != nil {
 				return err
 			}
-			if err := importOriginalCellPlanes(ms, in.archives.Containers); err != nil {
+			if err := importOriginalCellPlanes(ms, in.archives.Containers, in.table.ModTerrain()); err != nil {
 				return err
 			}
 			if err := importSavedSackObjects(ms, ms.savedDocument); err != nil {

@@ -3218,13 +3218,29 @@ package storyguard
 // doc comment of heroAsGates in pkg/game/innoffers.go and the comments of its
 // test, pkg/game/heroinnmod_test.go.
 //
+// CommentBytes rises with the doc comments of a mod's terrain groups: the
+// data kind in pkg/mod/terrain.go and pkg/mod/kinds.go, the mask in
+// pkg/formats/alm/tilegroup.go, the rows' land kind in
+// pkg/mapload/passability.go, originalterrain.go, tilegroups.go and spawn.go,
+// the strip rule in pkg/render/terrain/tileset.go, the group brush in
+// pkg/mapedit/groupbrush.go, brush.go, corner.go and terrain.go, the game's
+// check, editor list, planes and minimap colours in pkg/game/modterrain.go,
+// modfiles.go, mapinspectionbrush.go, originalcellplanes.go and
+// pkg/ui/minimaporiginal.go, their tests, and this paragraph. TestIdentCount
+// falls by six: the numbered terrain cost helper in pkg/mapload lost its
+// number, and a new test calls it. It rises further with the note on the
+// terrain kind's place in pkg/mod/kinds.go, the doc comment of lookalikes in
+// pkg/mapedit/wholemap.go, the new tests pkg/game/modgroupmission_test.go
+// and TestRandomTerrainKeepsModGroupCells, and modGroupCells in
+// pkg/game/modterrainsave_test.go.
+//
 // CommentBytes rises with the doc comments of HeroHold in
 // pkg/mapload/placedhero.go and of replaceHeroGate in pkg/game/innoffers.go,
 // the dag entry's note in internal/archtest/dag.go, the new tests
 // pkg/mapload/startingherochoice_test.go and
 // pkg/game/startingherochoice_test.go, and this paragraph.
 var Committed = Baseline{
-	TestIdentCount: 4460,
+	TestIdentCount: 4454,
 	TestFileCount:  264,
 	CommentForms: map[string]int{
 		"specclause":      0,
@@ -3793,5 +3809,5 @@ var Committed = Baseline{
 	// replaces the card's value and the words for a differing value: doc
 	// comments in editorpopup.go and mapeditorplain.go and the new test
 	// mapeditorunitbasicvalue_test.go.
-	CommentBytes: 10351984,
+	CommentBytes: 10364282,
 }

@@ -22,7 +22,7 @@ func TestCurrentTerrainOwnsModeledFieldsWithoutRawPlanes(t *testing.T) {
 	}
 	hash := w.Hash()
 	for _, source := range []entrySource{nil, fstest.MapFS{}, f.Archives.Containers} {
-		p, err := currentSpatialPlanes(w, f.live.mission.state.Map, source)
+		p, err := currentSpatialPlanes(w, f.live.mission.state.Map, source, nil)
 		if err != nil || p.Cost[0] != 43 || p.Static[0]&7 != 7 || p.Dynamic[0]&7 != 7 || p.Height[0] != 19 {
 			t.Fatal("constructor replaced current modeled terrain", p, err)
 		}
@@ -30,7 +30,7 @@ func TestCurrentTerrainOwnsModeledFieldsWithoutRawPlanes(t *testing.T) {
 			t.Fatal("ordinary construction changed native authority")
 		}
 	}
-	if _, err := currentSpatialPlanes(w, f.live.mission.state.Map, fstest.MapFS{worldPrefix + "data/map.reg": &fstest.MapFile{Data: []byte("bad registry")}}); err == nil {
+	if _, err := currentSpatialPlanes(w, f.live.mission.state.Map, fstest.MapFS{worldPrefix + "data/map.reg": &fstest.MapFile{Data: []byte("bad registry")}}, nil); err == nil {
 		t.Fatal("malformed installed terrain was accepted")
 	}
 	doc := sav.DocumentData{World: &sav.DocumentWorldData{Blocks: []sav.BlockRecord{{Cell: 0, Static: 0x80, Dyn: 0x90}, {Cell: 0xffff, Static: 0x52, Dyn: 0x53}}}}

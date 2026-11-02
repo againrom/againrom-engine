@@ -12,6 +12,7 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/formats/bmp"
 	"againrom/pkg/mod"
+	"againrom/pkg/render/terrain"
 	"againrom/pkg/vfs"
 )
 
@@ -107,8 +108,20 @@ func (b *modFiles) serveInstallFiles(a *Archives, files []mod.InstallFile) error
 			// lacks; only that folder takes a new path.
 			err = nil
 		}
+		if _, _, strip := terrain.ModGroupStrip(mod.FoldAddress(file.Address)); errors.Is(err, fs.ErrNotExist) && file.Kind == mod.FilePicture && strip {
+			// A strip of a tile group past the install's is new: it is held
+			// to the loader's strip rule, not to an installed picture.
+			if _, serr := terrain.ReadStrip(file.Bytes); serr != nil {
+				return file.Errorf("the terrain strip %s is not one the tile loader reads (an 8-bit BMP with its own colour table, %d px wide, 1 to %d cells of %d px): %v",
+					file.Address, terrain.CellSize, terrain.MaxStripFrames, terrain.CellSize, serr)
+			}
+			if err := b.serveBytes(file.Mod, file.File, file.Address, file.Bytes); err != nil {
+				return err
+			}
+			continue
+		}
 		if errors.Is(err, fs.ErrNotExist) {
-			return file.Errorf("the install holds no file %s; a mod shadows a file the archives %s hold, and adds a file only as a tavern talk text %s", file.Address, strings.Join(shadowedArchives(), ", "), tavernTalkLeafForm)
+			return file.Errorf("the install holds no file %s; a mod shadows a file the archives %s hold, and adds a file only as a tavern talk text %s or a terrain strip of a group it adds (%s)", file.Address, strings.Join(shadowedArchives(), ", "), tavernTalkLeafForm, terrain.GroupStripPath(mod.FirstModTerrainGroup, 0))
 		}
 		if err != nil {
 			return file.Errorf("the install's file %s: %v", file.Address, err)

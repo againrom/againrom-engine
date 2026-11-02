@@ -1,0 +1,8 @@
+id          = "snow-field"
+title       = "Snow field"
+version     = "1.0.0"
+author      = "Againrom"
+description = "Two new terrain groups: snow (group 13) and ice (group 31). Their strips are written by the tests that use this mod."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

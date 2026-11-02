@@ -277,7 +277,7 @@ func derive(m *alm.Map, t *Table) ([]byte, StructureCounts) {
 // deriveTaken is derive with the occupancy beside the plane: which cells a
 // footprint attached, nil when no footprint was walked.
 func deriveTaken(m *alm.Map, t *Table) ([]byte, StructureCounts, []bool) {
-	plane := Passability(m)
+	plane := TerrainPassability(m, t)
 	w, h, ok := extent(m)
 	if !ok {
 		// No cells: there is nothing for a footprint to attach to, so the

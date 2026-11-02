@@ -99,10 +99,20 @@ func beforeTurnStateForm(t *testing.T, raw []byte) []byte {
 // parameters; absence of map.reg in older fixtures remains meaningful.
 func cellStateFront(t *testing.T) *FrontEnd {
 	t.Helper()
+	return cellStateFrontWith(t, nil)
+}
+
+// cellStateFrontWith is cellStateFront whose mission map is edit's result
+// over the fixture map's bytes; a nil edit keeps the fixture map.
+func cellStateFrontWith(t *testing.T, edit func([]byte) []byte) *FrontEnd {
+	t.Helper()
 	f := newGroupFront(t, -1)
 	mapBytes, err := f.Archives.Containers.ReadFile("scenario/10.alm")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if edit != nil {
+		mapBytes = edit(mapBytes)
 	}
 	npcBytes, err := f.Archives.Containers.ReadFile("scenario/npc.reg")
 	if err != nil {
@@ -144,7 +154,7 @@ func cellStateFront(t *testing.T) *FrontEnd {
 func withMissionCellPlanes(t *testing.T, f *FrontEnd, w *sim.World) {
 	t.Helper()
 	m := f.live.mission.state.Map
-	base, err := readOriginalCellPlanes(m, f.Archives.Containers)
+	base, err := readOriginalCellPlanes(m, f.Archives.Containers, f.Table.ModTerrain())
 	if err != nil || base == nil {
 		t.Fatal("fixture install lacks its terrain planes", err)
 	}
@@ -157,7 +167,7 @@ func withMissionCellPlanes(t *testing.T, f *FrontEnd, w *sim.World) {
 // original LOAD does: the installed base under the document's Block records.
 func withLoadedCellPlanes(t *testing.T, f *FrontEnd, w *sim.World) {
 	t.Helper()
-	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers)
+	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers, f.Table.ModTerrain())
 	if err != nil || base == nil {
 		t.Fatal("fixture install lacks its terrain planes", err)
 	}

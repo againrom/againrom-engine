@@ -30,6 +30,7 @@ with `game.data.add`.
 | spells | `data/spells.toml` | `target` and the field; `[global]` keys | catalog, kept until an unscheduled spell catalog story | no: one field of one spell, and one global key, is set by one mod | Spell damage columns, `docs/1341/story.md`, `DIV-2364` |
 | body sheets | `data/bodies.toml` | `name` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later sheet replaces the whole sheet; `off` switches a sheet off | Body sheets, `DIV-2913`, `DIV-2914`, `DIV-3910` |
 | weapon bodies | `data/wpnbodies.toml` (a mod folder may also use `data/weapon-bodies.toml`) | the weapon row, by `weapon`, `row` or both | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a weapon row is never switched off | Weapon bodies, `DIV-2912`, `DIV-3911` |
+| terrain | `data/terrain.toml` | `group` | configuration | no: a group is one mod's | New terrain tiles, `docs/1573/story.md`, `DIV-4412`, `DIV-4413` |
 | missions | `data/missions.toml` | `number`; `key` within the mod | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; a later mission replaces the whole mission; `off` switches a mission off; one guest mission plays after one win | Missions, `docs/1408/story.md`, `docs/1508/story.md`, `DIV-4001` |
 | towns | `data/towns.toml` | `id`; a tavern row by `town`, `chapter` and `npc`; an inn row by `topic` and `npc` | catalog, merged | yes, when `load-after` orders the mods: the later wins and the check names the override; without an order the launch is refused; `off` switches a town, a tavern row or an inn row off | Towns, Tavern rows, Inn rows, `docs/1486/story.md`, `docs/1513/story.md`, `docs/1532/story.md` |
 | settings | `settings.toml` | the table name | configuration | no: a setting is its mod's own | `docs/1267/story.md` |
@@ -97,7 +98,9 @@ A file replaces a file the install holds. One folder also takes new files:
 changes (see "Tavern rows"). A new file there is a text named as the game
 names a talk text, `npc<NN>m<M>.txt`: the NPC record in at least two digits
 and the mission, or the chapter for a talk with nothing to give
-(`npc41m50.txt`). A new path anywhere else is refused as before.
+(`npc41m50.txt`). The terrain strips of a group the mod adds are new
+files too (see "New terrain tiles"). A new path anywhere else is refused as
+before.
 
 Language folders are `common`, `en` and `ru`. On an install the game reads
 the folder of the install's language (`en` on `rom1-en` and `rom2-en`, `ru`
@@ -151,6 +154,77 @@ the one line of text that names the same differences.
 Not served: `speech.res`, `music.res`, loose files beside the install's
 resource files, and pictures in `.256`, `.16a`, `.16`, `.pal`, `.reg`,
 `.alm` form.
+
+## New terrain tiles
+
+A mod adds terrain tile groups 13 to 31; the install's groups 0 to 12 stay as
+they are. A group is one row of the mod's `data/terrain.toml` and four strips
+under `files/common/`, one for each blend column, at the tile loader's path:
+group g, column b is `graphics/terrain/tile<G>-<VV>.bmp` with G = g/4 + 1 and
+VV = 4 * (g mod 4) + b in two digits.
+
+```
+snow-field/
+  mod.toml
+  main.star                                    game.data.add("data/terrain.toml")
+  data/terrain.toml
+  files/common/graphics/terrain/tile4-04.bmp   group 13, column 0
+  files/common/graphics/terrain/tile4-05.bmp   group 13, column 1
+  files/common/graphics/terrain/tile4-06.bmp   group 13, column 2
+  files/common/graphics/terrain/tile4-07.bmp   group 13, column 3
+  files/common/graphics/terrain/tile8-12.bmp   group 31, columns 0 to 3:
+  files/common/graphics/terrain/tile8-13.bmp   tile8-12 to tile8-15
+  files/common/graphics/terrain/tile8-14.bmp
+  files/common/graphics/terrain/tile8-15.bmp
+```
+
+```toml
+[[group]]
+group = 13
+kind = "grass"
+name = "Snow"
+minimap = "#e8f0f8"
+
+[[group]]
+group = 31
+kind = "mountain"
+name = "Ice"
+```
+
+| field | rule |
+|---|---|
+| `group` | 13..31, required; one row per group |
+| `kind` | required: `land`, `grass`, `flowers`, `sand`, `cracked`, `stones`, `savanna`, `mountain`, `water` or `road`. A cell of the group takes that kind's cost, passability and block: `mountain` and `water` block (DIV-4413) |
+| `name` | required, 1 to 32 bytes; the map editor's terrain list shows it |
+| `minimap` | optional `#rrggbb`; without it the minimap uses the kind's colour |
+
+A strip is an 8-bit BMP with its own colour table, which the game draws
+with; it is 32 px wide and 1 to 14 cells of 32 px tall. Cell f from the top
+is frame f of that column, and a cell's tile word names its frame. A strip
+that replaces one of the install's groups 0 to 12 keeps the rule of "Install
+files" instead.
+
+`againrom -check` and the launch refuse, naming the mod and the file: a strip
+outside the strip rule, a strip of a group no row of the same mod adds, a row
+whose group lacks one of its four strips, a row outside 13..31, a second row
+for a group, a row without `group`, `kind` or `name`, an unknown kind, and a
+group that two mods add.
+
+A mod that adds a group changes game state: a save made with it holds the
+mod in its mark and is refused without it.
+
+With the mod open in the map editor (`mapedit -mod <mod folder>` or the mod
+chosen in the editor), the terrain list shows each group after the install's
+terrains, by its `name` and with its first frame as the swatch. The brush
+paints whole cells of the group. Its words are every frame of the group's
+four strips, so a stroke mixes the four strips: each cell takes one word,
+chosen by the brush's fill (the cell's position, a draw, or the one variant
+chosen). It leaves its neighbours as they are: a mod group's cell takes no
+corner blend, and Random terrain (Ctrl+E) leaves it unchanged. The saved map keeps the words and sets the group's bit in the
+map's group mask (DIV-4412). The game refuses a map whose mask or cells name
+a group no active mod adds, or a frame the group's strip lacks, naming the
+group and the map. Publish packs the strips and `data/terrain.toml` with the
+rest of the mod.
 
 ## Packed mods
 
@@ -1464,7 +1538,8 @@ question kept. From a terminal, `-new 32x32/altitude40` gives the same.
 
 Ctrl+E (Tools: Random terrain) asks for a seed and redraws every cell's tile
 among the tiles that show the same terrain and the same corners, so no
-transition moves. Ctrl+Shift+R (Tools: Random heights) asks for a seed and lays
+transition moves; a cell of a mod's terrain group stays as it is.
+Ctrl+Shift+R (Tools: Random heights) asks for a seed and lays
 one hill or hollow per 64 cells over the heights the map has, through the
 height brush. The prompt offers the last seed plus one; the same seed on the
 same map gives the same map. Each command changes only its own plane and is

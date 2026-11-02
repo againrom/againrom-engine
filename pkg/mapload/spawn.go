@@ -1233,6 +1233,9 @@ type ModContext struct {
 	Bodies data.BodyList
 	// Missions are the missions the mods add, played by a guest party.
 	Missions mod.MissionData
+	// Terrain are the tile groups the mods add, each with its land kind and
+	// the frames of its strips.
+	Terrain mod.TerrainData
 }
 
 // ModItem is an item a mod added, in the form the save writer and the shop

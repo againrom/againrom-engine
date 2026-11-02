@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] A mod can add new terrain: up to 19 new ground types, each with its own pictures, its land kind (such as grass, water or mountain) and a name the map editor's terrain list shows; the editor paints them and the game draws them, walks on them and shows them on the minimap. See "New terrain tiles" in docs/MODS.md.
 - [BASE] Esc no longer closes the map editor, with or without unsaved changes; close it with the window's close button or Exit in the map menu.
 - [BASE] While you drag a unit, structure, sack or other map object with the mouse, the windows and panels floating over the map turn almost see-through and ignore the mouse, so you can drop the object on a cell under them; they return when you let go. The top bar, the status line and the side panels docked beside the map stay as they are.
 - [BASE] If the map editor stops because of a program error, it now says why: the message and the place it happened are written to the console, or, when it has none, to mapedit-error.log in the Againrom folder of your user configuration directory, and the program exits with an error code; before, such a stop was silent.

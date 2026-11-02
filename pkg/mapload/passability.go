@@ -2,6 +2,7 @@ package mapload
 
 import (
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
@@ -121,10 +122,39 @@ const waterCost = 8
 // the same set by algebra rather than by construction, so folding one into the
 // other would assert an identity the decode does not.
 func classify(word uint16) (class, cost uint8) {
-	return classifyCosts(word, classCost)
+	return classifyCosts(word, classCost, nil)
 }
 
-func classifyCosts(word uint16, costs [11]uint8) (class, cost uint8) {
+// modGroupRow is the mod row of the group word w names: a group past the
+// install's that one of groups adds. Such a cell takes the row's land kind,
+// not the class its low ten bits would give (DIV-4413).
+func modGroupRow(w uint16, groups *mod.TerrainData) (mod.TerrainGroup, bool) {
+	if groups == nil || alm.TileGroup(w) < alm.InstallTileGroups {
+		return mod.TerrainGroup{}, false
+	}
+	return groups.Group(alm.TileGroup(w))
+}
+
+// rawWater is the block plane's water arm: the raw index test, taken ahead
+// of any classification (TERR-PASS-049), or a mod group of the water kind.
+func rawWater(w uint16, groups *mod.TerrainData) bool {
+	if row, ok := modGroupRow(w, groups); ok {
+		return row.Class == classWater
+	}
+	i := int(alm.TileIndex(w))
+	return i >= waterLo && i < waterHi
+}
+
+// classifyCosts is the classifier under the cost table costs, with the land
+// kinds of the mod groups in groups (nil: none). A mod group's cell takes
+// its kind's class and that class's cost; water takes the water arm's cost.
+func classifyCosts(word uint16, costs [11]uint8, groups *mod.TerrainData) (class, cost uint8) {
+	if row, ok := modGroupRow(word, groups); ok {
+		if row.Class == classWater {
+			return classWater, waterCost
+		}
+		return row.Class, costs[row.Class]
+	}
 	i := int(alm.TileIndex(word))
 
 	// Water first, and taken whole. Its cost is the entry literal and the water
@@ -213,12 +243,11 @@ func (a arms) block() byte {
 // x, y, w and h are compared in int, so the border test on a map narrower than
 // the ring underflows nothing and the whole-map case falls out of the arithmetic
 // rather than being special-cased.
-func cellArms(word uint16, overlay uint8, x, y, w, h int) arms {
-	i := int(alm.TileIndex(word))
-	class, _ := classify(word)
+func cellArms(word uint16, overlay uint8, x, y, w, h int, groups *mod.TerrainData) arms {
+	class, _ := classifyCosts(word, classCost, groups)
 	return arms{
 		impassable: alm.Impassable(word),
-		water:      i >= waterLo && i < waterHi,
+		water:      rawWater(word, groups),
 		mountain:   class == classMountain,
 		scenery:    overlay != 0,
 		border:     inBorderRing(x, y, w, h),
@@ -271,16 +300,21 @@ func planeAt[T uint16 | uint8](plane []T, i int) T {
 // It is exported because a world has no grid reader: this is the only way a
 // caller can see what a map's cells came out as, and the census below is the only
 // way to see which arm made them that.
-func Passability(m *alm.Map) []byte {
+func Passability(m *alm.Map) []byte { return TerrainPassability(m, nil) }
+
+// TerrainPassability is Passability with the land kinds of the mod groups
+// t's mods add; a nil t adds none.
+func TerrainPassability(m *alm.Map, t *Table) []byte {
 	w, h, ok := extent(m)
 	if !ok {
 		return nil
 	}
+	groups := t.ModTerrain()
 	out := make([]byte, w*h)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			i := y*w + x
-			out[i] = cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), x, y, w, h).block()
+			out[i] = cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), x, y, w, h, groups).block()
 		}
 	}
 	return out
@@ -318,7 +352,7 @@ func Census(m *alm.Map) Counts {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			i := y*w + x
-			a := cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), x, y, w, h)
+			a := cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), x, y, w, h, nil)
 			b := a.block()
 
 			c.Value[b]++
@@ -367,14 +401,17 @@ func Census(m *alm.Map) Counts {
 func Cost(m *alm.Map) []byte { return CostWith(m, classCost) }
 
 // CostWith is Cost under the Terrain cost table costs (Cost[0..10]).
-func CostWith(m *alm.Map, costs [11]uint8) []byte {
+func CostWith(m *alm.Map, costs [11]uint8) []byte { return costPlane(m, costs, nil) }
+
+// costPlane is CostWith with the land kinds of the mod groups in groups.
+func costPlane(m *alm.Map, costs [11]uint8, groups *mod.TerrainData) []byte {
 	w, h, ok := extent(m)
 	if !ok {
 		return nil
 	}
 	out := make([]byte, w*h)
 	for i := range out {
-		_, c := classifyCosts(planeAt(m.Tiles, i), costs)
+		_, c := classifyCosts(planeAt(m.Tiles, i), costs, groups)
 		out[i] = c
 	}
 	return out
@@ -426,9 +463,9 @@ func Height(m *alm.Map) []byte {
 // terrain's constructor planes and the map's Overlay plane; a Table without one
 // (the second game, a tool without an install) yields neither.
 func Planes(m *alm.Map, t *Table) sim.Terrain {
-	out := sim.Terrain{Block: PassabilityWith(m, t), Cost: CostWith(m, t.TerrainCostTable()), Height: Height(m)}
+	out := sim.Terrain{Block: PassabilityWith(m, t), Cost: costPlane(m, t.TerrainCostTable(), t.ModTerrain()), Height: Height(m)}
 	if t != nil && t.TerrainCosts != nil && !t.DocumentCellPlanes && m != nil {
-		out.Base, out.BaseFault = OriginalTerrainPlanes(m, *t.TerrainCosts)
+		out.Base, out.BaseFault = OriginalTerrainPlanesWith(m, *t.TerrainCosts, t.ModTerrain())
 		out.Overlay = m.Overlay
 	}
 	return out

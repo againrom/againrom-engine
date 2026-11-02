@@ -88,7 +88,7 @@ func TestOriginalTerrainCostTable1115MalformedRegistry(t *testing.T) {
 
 // The unusual values catch premature narrowing and upward rounding:
 // e.g. (3*211+246)>>2 must be 219, with a wide accumulator and truncation.
-func originalTerrainCosts1115() [11]byte {
+func originalTerrainCosts() [11]byte {
 	return [11]byte{255, 3, 251, 19, 23, 29, 211, 31, 246, 241, 37}
 }
 
@@ -132,7 +132,7 @@ func assertOriginalTerrainPlanes1115(t *testing.T, got *sim.SavedCellPlanes, wid
 	if got == nil {
 		t.Fatal("missing raw original planes")
 	}
-	if got.Costs != originalTerrainCosts1115() {
+	if got.Costs != originalTerrainCosts() {
 		t.Fatalf("retained cost parameters = %v", got.Costs)
 	}
 	byCell := make(map[int]originalTerrainCell1115, len(edits))
@@ -165,7 +165,7 @@ func TestOriginalTerrainPlanes1115FullExtentAndExactBorders(t *testing.T) {
 	for _, size := range [][2]int{{8, 8}, {16, 16}, {24, 24}, {256, 256}, {24, 40}, {40, 24}, {8, 256}, {256, 8}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			m := originalTerrainMap1115(size[0], size[1])
-			got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts1115())
+			got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -242,7 +242,7 @@ func TestOriginalTerrainPlanes1115LiteralIngestAndCustomBlends(t *testing.T) {
 		m.Tiles[i], m.Overlay[i] = c.word, c.overlay
 	}
 	beforeTiles, beforeHeight, beforeOverlay := slices.Clone(m.Tiles), slices.Clone(m.Altitudes), slices.Clone(m.Overlay)
-	got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts1115())
+	got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestOriginalTerrainPlanes1115RejectsUninitializedPairs(t *testing.T) {
 				word := uint16(group<<6 | column<<4 | subcell)
 				m := originalTerrainMap1115(24, 24)
 				m.Tiles[9*m.Width+9] = word
-				got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts1115())
+				got, err := mapload.OriginalTerrainPlanes(m, originalTerrainCosts())
 				if err == nil || got != nil {
 					t.Fatalf("uninitialized group/column/subcell %d/%d/%d (%04x) returned planes=%t, err=%v", group, column, subcell, word, got != nil, err)
 				}
@@ -299,7 +299,7 @@ func TestOriginalTerrainPlanes1115RejectsIncompleteInputs(t *testing.T) {
 		{"invalid reject cost", func(_ **alm.Map, c *[11]byte) { c[0] = 0 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			m, costs := originalTerrainMap1115(24, 24), originalTerrainCosts1115()
+			m, costs := originalTerrainMap1115(24, 24), originalTerrainCosts()
 			tc.edit(&m, &costs)
 			if got, err := mapload.OriginalTerrainPlanes(m, costs); err == nil || got != nil {
 				t.Fatalf("incomplete input returned planes=%t, err=%v", got != nil, err)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/bmp"
 )
 
@@ -154,12 +155,7 @@ func LoadTileset(src EntrySource) *Tileset {
 			ts.Missing = append(ts.Missing, path)
 			return nil
 		}
-		img, err := bmp.DecodePaletted(data)
-		if err != nil {
-			ts.Missing = append(ts.Missing, path)
-			return nil
-		}
-		strip, err := SliceStrip(img)
+		strip, err := ReadStrip(data)
 		if err != nil {
 			ts.Missing = append(ts.Missing, path)
 			return nil
@@ -178,6 +174,49 @@ func LoadTileset(src EntrySource) *Tileset {
 	ts.Dirt = load(DirtPath)
 	return ts
 }
+
+// MaxStripFrames is the most frames a strip may hold: the installed land and
+// road strips' 14. The draw takes frame w&15 with no bound, and in the
+// original frames 14 and 15 of a 14-frame strip read its palette and past
+// its buffer (TERR-TILE-294).
+const MaxStripFrames = 14
+
+// ReadStrip is the loader's reading of one strip file: an uncompressed 8-bit
+// BMP whose pixels each name an entry of its own colour table, the table the
+// draw resolves every pixel of the strip through; CellSize wide; a whole
+// number of cells tall, from 1 to MaxStripFrames.
+func ReadStrip(data []byte) (*Strip, error) {
+	img, err := bmp.DecodePaletted(data)
+	if err != nil {
+		return nil, err
+	}
+	strip, err := SliceStrip(img)
+	if err != nil {
+		return nil, err
+	}
+	if n := len(strip.SubCells); n > MaxStripFrames {
+		return nil, fmt.Errorf("terrain: strip holds %d frames, at most %d", n, MaxStripFrames)
+	}
+	return strip, nil
+}
+
+// ModGroupStrip reports the tile group and column a folded address (lower
+// case, / separators) of a strip names when the group is past the install's:
+// the loader reads group g's column b at TilePath((g>>2)+1, (g&3)*4+b)
+// (TERR-TILE-292).
+func ModGroupStrip(folded string) (g, b int, ok bool) {
+	for g := alm.InstallTileGroups; g < alm.TileGroupCount; g++ {
+		for b := 0; b < blendColumns; b++ {
+			if folded == GroupStripPath(g, b) {
+				return g, b, true
+			}
+		}
+	}
+	return 0, 0, false
+}
+
+// GroupStripPath is the address of tile group g's strip for column b.
+func GroupStripPath(g, b int) string { return TilePath(g>>2+1, (g&3)*blendColumns+b) }
 
 // DecodeBMP8 is bmp.DecodePaletted under its former name, kept only for the
 // world-map loader and cmd/townsquarecheck until the town composer moves them.

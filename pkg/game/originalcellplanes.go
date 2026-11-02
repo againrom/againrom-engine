@@ -3,6 +3,7 @@ package game
 import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
@@ -11,11 +12,11 @@ import (
 // static/dynamic Blocks. SAV-CELLLOAD-109/110 do not recompute these planes or
 // copy Cell.Cost into current cost. Later ordinary cell operations own those
 // writes. This does not replay the still-unknown pre-entry bootstrap tick.
-func importOriginalCellPlanes(ms *Mission, source entrySource) error {
+func importOriginalCellPlanes(ms *Mission, source entrySource, groups *mod.TerrainData) error {
 	if ms == nil || ms.World == nil || ms.savedDocument == nil || ms.savedDocument.Document == nil || ms.savedDocument.Document.World == nil {
 		return nil
 	}
-	base, err := readOriginalCellPlanes(ms.Map, source)
+	base, err := readOriginalCellPlanes(ms.Map, source, groups)
 	if err != nil || base == nil {
 		return err
 	}
@@ -34,7 +35,7 @@ func importOriginalCellPlanes(ms *Mission, source entrySource) error {
 	return nil
 }
 
-func readOriginalCellPlanes(m *alm.Map, source entrySource) (*sim.SavedCellPlanes, error) {
+func readOriginalCellPlanes(m *alm.Map, source entrySource, groups *mod.TerrainData) (*sim.SavedCellPlanes, error) {
 	if source == nil {
 		return nil, nil
 	}
@@ -42,5 +43,5 @@ func readOriginalCellPlanes(m *alm.Map, source entrySource) (*sim.SavedCellPlane
 	if err != nil || !ok {
 		return nil, err // Preserve absent authority on partial/custom inputs.
 	}
-	return mapload.OriginalTerrainPlanes(m, costs)
+	return mapload.OriginalTerrainPlanesWith(m, costs, groups)
 }

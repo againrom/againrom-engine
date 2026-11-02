@@ -26,7 +26,13 @@ func itemMutationFront1115(t *testing.T, defensive int32) *FrontEnd {
 
 func itemMutationFront(t *testing.T, defensive int32) *FrontEnd {
 	t.Helper()
-	f := cellStateFront(t)
+	return itemMutationFrontWith(t, defensive, nil)
+}
+
+// itemMutationFrontWith is itemMutationFront over cellStateFrontWith's map.
+func itemMutationFrontWith(t *testing.T, defensive int32, edit func([]byte) []byte) *FrontEnd {
+	t.Helper()
+	f := cellStateFrontWith(t, edit)
 	f.SetDeterministicFrames(true)
 	weapon := make([]int32, 16)
 	weapon[5], weapon[12], weapon[13], weapon[14], weapon[15] = 2, 13, 17, 1, 1

@@ -128,7 +128,7 @@ func (f *FrontEnd) finalizeCurrentPlaneResidue(doc *sav.DocumentData, s Snapshot
 	if !present {
 		return nil
 	}
-	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers)
+	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers, f.Table.ModTerrain())
 	if err != nil || base == nil {
 		return err
 	}

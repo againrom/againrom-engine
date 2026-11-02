@@ -101,6 +101,9 @@ func (x *MapInspector) SetMod(dir string) error {
 		if err := checkMissionProjection(d.Missions, result.Missions); err != nil {
 			x.mod.contextIssue = err.Error()
 		}
+		if err := x.useModTerrain(result); err != nil {
+			x.mod.contextIssue = err.Error()
+		}
 	} else {
 		x.mod.contextIssue = e.Error()
 	}

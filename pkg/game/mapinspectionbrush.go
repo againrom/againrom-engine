@@ -23,7 +23,7 @@ func (s *mapInspectionEdits) BrushTerrains() []ui.BrushTerrain {
 	for i, p := range mapedit.Palette {
 		out[i] = ui.BrushTerrain{Class: int(p.Class), Name: p.Name, Swatch: swatches[i]}
 	}
-	return out
+	return append(out, modBrushTerrains(s.inspector.table, s.inspector.tiles)...)
 }
 
 // terrainSwatches is one picture per Palette row: the cell its base word
@@ -35,16 +35,21 @@ func (x *MapInspector) terrainSwatches() []*image.RGBA {
 	}
 	x.swatches = make([]*image.RGBA, len(mapedit.Palette))
 	for i, p := range mapedit.Palette {
-		ref := terrain.Resolve(p.Word)
-		cell := x.tiles.Slot(ref.Slot).SubCell(ref.Sub)
-		if cell == nil {
-			continue
-		}
-		pic := image.NewRGBA(cell.Bounds())
-		draw.Draw(pic, pic.Bounds(), cell, cell.Bounds().Min, draw.Src)
-		x.swatches[i] = pic
+		x.swatches[i] = swatchOf(x.tiles, p.Word)
 	}
 	return x.swatches
+}
+
+// swatchOf is the cell tile word w draws from tiles; nil where tiles lack it.
+func swatchOf(tiles *terrain.Tileset, w uint16) *image.RGBA {
+	ref := terrain.Resolve(w)
+	cell := tiles.Slot(ref.Slot).SubCell(ref.Sub)
+	if cell == nil {
+		return nil
+	}
+	pic := image.NewRGBA(cell.Bounds())
+	draw.Draw(pic, pic.Bounds(), cell, cell.Bounds().Min, draw.Src)
+	return pic
 }
 
 // passArms is the window's form of the world's ground-block reasons: the
@@ -95,6 +100,10 @@ func (s *mapInspectionEdits) BrushObjectIcon(code int) *image.RGBA {
 
 // BrushVariants is how many look-alike tiles the terrain class has.
 func (s *mapInspectionEdits) BrushVariants(class int) int {
+	if g, ok := mapedit.BrushGroup(class); ok {
+		row, _ := s.inspector.table.ModTerrainGroup(g)
+		return len(groupWords(row))
+	}
 	return len(mapedit.Variants(uint8(class)))
 }
 
@@ -154,6 +163,12 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 		}
 		b.Scatter = mapedit.Scatter{Classes: op.Forest.Kinds, Share: op.Forest.Share, Thin: op.Forest.Thin,
 			Draw: random.NewGo(int64(strokeSeed())).Intn, Fenced: fenced}
+	}
+	if g, ok := mapedit.BrushGroup(op.Value); ok && op.Plane == ui.BrushPlaneTerrain {
+		row, found := table.ModTerrainGroup(g)
+		if b.Words = groupWords(row); !found || len(b.Words) == 0 {
+			return false, fmt.Errorf("no mod open in the editor adds terrain group %d", g)
+		}
 	}
 	if op.Plane == ui.BrushPlaneTerrain {
 		b.Fill = mapedit.Fill{Mode: brushFills[op.Fill.Mode], Variant: op.Fill.Variant}

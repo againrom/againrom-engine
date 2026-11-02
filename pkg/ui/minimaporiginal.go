@@ -18,6 +18,9 @@ import (
 type MinimapPaint struct {
 	Colours     *image.RGBA
 	OwnerShades [16]color.RGBA
+	// GroupColours are the colours of the tile groups a mod adds, by group;
+	// a zero colour leaves the group to the lookup.
+	GroupColours [32]color.RGBA
 }
 
 // minimapOriginalState is the first game's paint data and what the minimap
@@ -104,7 +107,9 @@ func (v *Viewer) minimapOriginalTerrain() []color.RGBA {
 			t := int(v.tileWord(col, row) & terrain.TileGroupBits)
 			x, y := t>>4, t&15
 			c := terrain.PlaceholderColor
-			if x < lb.Dx() && y < lb.Dy() {
+			if g := t >> 6; g < len(st.paint.GroupColours) && st.paint.GroupColours[g].A != 0 {
+				c = st.paint.GroupColours[g]
+			} else if x < lb.Dx() && y < lb.Dy() {
 				c = lookup.RGBAAt(lb.Min.X+x, lb.Min.Y+y)
 			}
 			factor := 32

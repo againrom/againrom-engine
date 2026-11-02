@@ -9,6 +9,7 @@ import (
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
@@ -62,8 +63,8 @@ func projectCurrentTerrain(doc *sav.DocumentData, w *sim.World, fresh bool) {
 	slices.SortFunc(doc.World.Blocks, func(a, b sav.BlockRecord) int { return int(a.Cell) - int(b.Cell) })
 }
 
-func (b *generatedDocumentBuilder) currentActorCells(w *sim.World, m *alm.Map, src entrySource) error {
-	planes, err := currentSpatialPlanes(w, m, src)
+func (b *generatedDocumentBuilder) currentActorCells(w *sim.World, m *alm.Map, src entrySource, groups *mod.TerrainData) error {
+	planes, err := currentSpatialPlanes(w, m, src, groups)
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func (b *generatedDocumentBuilder) currentActorCells(w *sim.World, m *alm.Map, s
 }
 
 func (b *generatedDocumentBuilder) currentSpatial(w *sim.World, m *alm.Map, t *mapload.Table, src entrySource) error {
-	planes, err := currentSpatialPlanes(w, m, src)
+	planes, err := currentSpatialPlanes(w, m, src, t.ModTerrain())
 	if err != nil {
 		return err
 	}
@@ -457,11 +458,11 @@ func currentBlockPlaneDelta(planes *sim.SavedCellPlanes, record map[uint16]sav.D
 // Existing raw planes retain their full authority. Without that carrier the
 // one plane builder folds the current native grid's modelled fields over the
 // installed terrain's constructor planes.
-func currentSpatialPlanes(w *sim.World, m *alm.Map, src entrySource) (*sim.SavedCellPlanes, error) {
+func currentSpatialPlanes(w *sim.World, m *alm.Map, src entrySource, groups *mod.TerrainData) (*sim.SavedCellPlanes, error) {
 	if planes, present := w.SavedCellPlanes(); present {
 		return planes, nil
 	}
-	base, err := readOriginalCellPlanes(m, src)
+	base, err := readOriginalCellPlanes(m, src, groups)
 	if err != nil {
 		return nil, err
 	}

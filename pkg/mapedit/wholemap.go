@@ -12,9 +12,13 @@ import (
 
 // lookalikes lists the words that show what tile word w shows: its strip
 // group and the corner state of the corner rule's table, every look-alike of
-// that state in table order; nil for a word outside the table or a state with
-// one word.
+// that state in table order; nil for a word outside the table, a word of a
+// mod group (whose low bits read as an install group) or a state with one
+// word.
 func lookalikes(w uint16) []uint16 {
+	if opaqueWord(w) {
+		return nil
+	}
 	i := w & alm.TileIndexMask
 	water := i&0x300 == 0x200
 	g := i >> 6 & 15

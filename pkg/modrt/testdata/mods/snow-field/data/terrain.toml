@@ -1,0 +1,11 @@
+# Snow walks as grass; ice blocks as mountain does.
+[[group]]
+group   = 13
+kind    = "grass"
+name    = "Snow"
+minimap = "#e8f0f8"
+
+[[group]]
+group = 31
+kind  = "mountain"
+name  = "Ice"

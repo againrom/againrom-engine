@@ -11,17 +11,36 @@ const MaxHeight = 127
 // group mask (ALM-SAVE-238).
 const TileGroupBits = 0x1fff
 
+// The strip groups by where their pictures come from: the installs ship
+// groups 0 to InstallTileGroups-1 (ALM-TILE-336), and the tile loader holds
+// TileGroupCount groups, one +0x18 mask bit each (TERR-TILE-291,
+// TERR-TILE-292); the groups between are a mod's.
+const (
+	InstallTileGroups = 13
+	TileGroupCount    = 32
+)
+
+// TileGroup is the strip group tile word w names (TERR-TILE-291).
+func TileGroup(w uint16) int { return int(w&TileGroupBits) >> 6 }
+
 // TileGroupMask is the type-0 +0x18 word of a tile plane holding the words
-// given: one bit per strip group in use, 0xf00 added when a group above 7 is
-// present, and the result bounded at TileGroupBits (ALM-SAVE-238). The new-map
+// given. The install groups take one bit each, 0xf00 added when a group above
+// 7 is present, bounded at TileGroupBits (ALM-SAVE-238); each mod group in use
+// adds its own bit above that bound, which the original editor's cap would
+// drop (DIV-4412). A group past the loader's names no bit. The new-map
 // builder and the editor's brush both write the mask through this function.
 func TileGroupMask(words []uint16) uint32 {
-	var mask uint32
+	var install, mods uint32
 	for _, w := range words {
-		mask |= 1 << ((uint32(w) & TileIndexMask) >> 6)
+		switch g := TileGroup(w); {
+		case g < InstallTileGroups:
+			install |= 1 << g
+		case g < TileGroupCount:
+			mods |= 1 << g
+		}
 	}
-	if mask > 0xff {
-		mask |= 0xf00
+	if install > 0xff {
+		install |= 0xf00
 	}
-	return min(mask, TileGroupBits)
+	return min(install, TileGroupBits) | mods
 }

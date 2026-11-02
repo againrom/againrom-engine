@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
@@ -12,6 +13,13 @@ import (
 // ordered ingest and border stores. This is the constructor baseline only;
 // saved overlays and later object callbacks belong to the caller.
 func OriginalTerrainPlanes(m *alm.Map, costs [11]byte) (*sim.SavedCellPlanes, error) {
+	return OriginalTerrainPlanesWith(m, costs, nil)
+}
+
+// OriginalTerrainPlanesWith is OriginalTerrainPlanes with the land kinds of
+// the mod groups in groups: a mod group's cell takes its row's class, cost
+// and water block (DIV-4413).
+func OriginalTerrainPlanesWith(m *alm.Map, costs [11]byte, groups *mod.TerrainData) (*sim.SavedCellPlanes, error) {
 	if m == nil || m.Width < 8 || m.Width > 256 || m.Height < 8 || m.Height > 256 {
 		return nil, fmt.Errorf("original terrain requires dimensions in 8..256")
 	}
@@ -28,17 +36,18 @@ func OriginalTerrainPlanes(m *alm.Map, costs [11]byte) (*sim.SavedCellPlanes, er
 			i, cell := y*m.Width+x, y*256+x
 			word := m.Tiles[i]
 			index := word & alm.TileIndexMask
+			_, modGroup := modGroupRow(word, groups)
 			// These reachable pairs were never initialized by ROM1. Rejecting
 			// the producer is explicit; assigning our native fallback is not.
-			if index&0x300 != 0x200 && index&15 < 14 && (index>>6)&15 >= 13 {
+			if !modGroup && index&0x300 != 0x200 && index&15 < 14 && (index>>6)&15 >= 13 {
 				return nil, fmt.Errorf("original terrain cell %04x uses an uninitialized terrain pair", cell)
 			}
-			class, cost := classifyCosts(word, costs)
+			class, cost := classifyCosts(word, costs, groups)
 			p.Cost[cell], p.Height[cell] = cost, m.Altitudes[i]
 			if alm.Impassable(word) || class == classMountain {
 				p.Static[cell] = 1
 			}
-			if index&0x300 == 0x200 {
+			if rawWater(word, groups) {
 				p.Static[cell] = 1
 			}
 			if m.Overlay[i] != 0 {

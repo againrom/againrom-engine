@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
 
-func constructCurrentBuildings(ms *Mission, src entrySource) error {
+func constructCurrentBuildings(ms *Mission, src entrySource, groups *mod.TerrainData) error {
 	if ms == nil || ms.World == nil || ms.Map == nil {
 		return fmt.Errorf("current Building constructor lacks a mission")
 	}
@@ -16,7 +17,7 @@ func constructCurrentBuildings(ms *Mission, src entrySource) error {
 	if len(live) == 0 {
 		return nil
 	}
-	planes, err := currentSpatialPlanes(w, ms.Map, src)
+	planes, err := currentSpatialPlanes(w, ms.Map, src, groups)
 	if err != nil {
 		return err
 	}

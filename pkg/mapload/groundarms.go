@@ -53,7 +53,7 @@ func GroundArms(m *alm.Map, t *Table) []GroundArm {
 			out[i] = GroundStructure
 			continue
 		}
-		a := cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), i%w, i/w, w, h)
+		a := cellArms(planeAt(m.Tiles, i), planeAt(m.Overlay, i), i%w, i/w, w, h, t.ModTerrain())
 		for _, arm := range [...]struct {
 			on  bool
 			arm GroundArm

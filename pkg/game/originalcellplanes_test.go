@@ -46,7 +46,7 @@ func TestOriginalCellPlanes1115ParameterFailuresDoNotPartlyAdopt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = importOriginalCellPlanes(&ms, source)
+			err = importOriginalCellPlanes(&ms, source, nil)
 			if (err != nil) != wantError || source.address != "world/data/map.reg" {
 				t.Fatalf("read/admission: address=%q err=%v", source.address, err)
 			}

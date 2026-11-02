@@ -192,6 +192,21 @@ var dataKinds = []DataKind{
 			return fmt.Sprintf("weapon bodies=%d body sheets=%d", len(d.Bodies.Weapons), len(d.Bodies.Bodies))
 		},
 	},
+	// The terrain rows apply before the missions: a mission's map check reads
+	// the land kinds of the mod groups its map uses.
+	{
+		Name: "terrain", Files: []string{TerrainFile}, Key: "`group`",
+		Class: ConfigurationData, Layer: LayerOwn,
+		Base:   "a mod's terrain groups are additions, groups 13 to 31 with their strips; the install's groups 0 to 12 take no row",
+		Shared: "no: a group is one mod's",
+		Script: true, read: readTerrain,
+		summary: func(d Data) string {
+			if d.Terrain.Empty() {
+				return ""
+			}
+			return fmt.Sprintf("terrain groups=%d", len(d.Terrain.Groups))
+		},
+	},
 	{
 		Name: "missions", Files: []string{MissionsFile}, Key: "`number`; `key` within the mod",
 		Class: CatalogData, Layer: LayerMerged,
@@ -312,6 +327,7 @@ type Data struct {
 	Bodies   BodyData
 	Missions MissionData
 	Towns    TownData
+	Terrain  TerrainData
 
 	// spellGlobals and spellFields name the mod that set each spell global
 	// and each field of a spell.

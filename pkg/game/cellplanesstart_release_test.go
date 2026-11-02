@@ -37,7 +37,7 @@ func cellPlaneMissionPair(t *testing.T, f *FrontEnd, n int) (planes, native *Mis
 		}
 		ms, err := startMissionFromWith(m, addr, n, table, openDifficulty, nil, nil)
 		if err == nil {
-			err = constructCurrentBuildings(ms, f.Archives.Containers)
+			err = constructCurrentBuildings(ms, f.Archives.Containers, f.Table.ModTerrain())
 		}
 		if err != nil {
 			t.Fatalf("mission %d: %v", n, err)
@@ -608,7 +608,7 @@ func TestReleaseCellPlanesSurviveSaveColdLoadAndTicks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers)
+	base, err := readOriginalCellPlanes(f.live.mission.state.Map, f.Archives.Containers, f.Table.ModTerrain())
 	if err != nil || base == nil {
 		t.Fatal("installed constructor planes", err)
 	}

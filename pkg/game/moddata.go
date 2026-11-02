@@ -60,6 +60,7 @@ var modDataAppliers = map[string]modDataApply{
 		r.Overrides = append(r.Overrides, overrides...)
 		return err
 	},
+	"terrain":  func(f *FrontEnd, d mod.Data, _ *ModDataReport) error { return f.setModTerrain(d.Terrain) },
 	"settings": func(*FrontEnd, mod.Data, *ModDataReport) error { return nil },
 }
 

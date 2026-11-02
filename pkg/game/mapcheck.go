@@ -302,7 +302,7 @@ func (c *mapCheck) terrainPlanes() []mapHit {
 	c.terrainRan = true
 	costs, ok, err := c.x.terrainCosts()
 	if err == nil && ok {
-		_, err = mapload.OriginalTerrainPlanes(c.m, costs)
+		_, err = mapload.OriginalTerrainPlanesWith(c.m, costs, c.x.table.ModTerrain())
 	}
 	c.terrainErr = err
 	if err != nil {

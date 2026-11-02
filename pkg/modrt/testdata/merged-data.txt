@@ -80,6 +80,10 @@ skill-cap rom1-en rules skill_cap=150
 skill-cap rom1-en mark e1434c99b87a746d1ef62257ef051d8af46924426833b91c6ad7757bb8bef103
 skill-cap-packed rom1-en rules skill_cap=150
 skill-cap-packed rom1-en mark e1434c99b87a746d1ef62257ef051d8af46924426833b91c6ad7757bb8bef103
+snow-field rom1-en rules skill_cap=100
+snow-field rom1-en mark a1bfdb2b8960146689281ed08995a4ba65edc6e9f46145b55e8fe98714d851c9
+snow-field-packed rom1-en rules skill_cap=100
+snow-field-packed rom1-en mark a1bfdb2b8960146689281ed08995a4ba65edc6e9f46145b55e8fe98714d851c9
 tavern-rows rom1-en rules skill_cap=100
 tavern-rows rom1-en towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-en files 35546ef4212704cd494e0dd72fb070f46b1577d69ddb19daf55a817eb008643e
@@ -114,7 +118,7 @@ all rom1-en bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac505
 all rom1-en missions ec48cca8d923f385b986d86230a21c50d9c5d5e00c8bfdeef3ac743d3171b37e
 all rom1-en towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-en files 1a4824018884859e1046ab8d8fb3ce048f461d8b9299893bc8d9aa92681905e3
-all rom1-en mark 157ce6583f2eed3dcb86a056397c36b9e5ee7cba1665bc26453b99aa23442c9d
+all rom1-en mark dde9b938234ced793bd3a293e6f39add25d4518d7b51a2c4ac77eb0a9972fbfb
 archer-girl rom1-ru rules skill_cap=100
 archer-girl rom1-ru characters 09b57c207fafbf8e137c626666c4bb5dd950fc67f0c48863ee14d3c83d332532
 archer-girl rom1-ru mark ac4df27391cce95455e7fc57ea68087bd9657eccf717cb7972fdf8c271093ddc
@@ -197,6 +201,10 @@ skill-cap rom1-ru rules skill_cap=150
 skill-cap rom1-ru mark 341d07c7e533b0457c95e21bc1d01747333cf420bad39e10e47c089048691bb4
 skill-cap-packed rom1-ru rules skill_cap=150
 skill-cap-packed rom1-ru mark 341d07c7e533b0457c95e21bc1d01747333cf420bad39e10e47c089048691bb4
+snow-field rom1-ru rules skill_cap=100
+snow-field rom1-ru mark 417b2d5d408115dafb03d485e37629a6c65da9a890f759418ee908fed63cbeb2
+snow-field-packed rom1-ru rules skill_cap=100
+snow-field-packed rom1-ru mark 417b2d5d408115dafb03d485e37629a6c65da9a890f759418ee908fed63cbeb2
 tavern-rows rom1-ru rules skill_cap=100
 tavern-rows rom1-ru towns 6c3b9c47424acf05c00c849c17833f35c941f18aa000bbbc25520311efd509a6
 tavern-rows rom1-ru files b9b0738f17ed295a6f11c48294a9bc4eafcb21601dafe945d89cbddf79163b1d
@@ -231,4 +239,4 @@ all rom1-ru bodies f6392ec5e108b49adc1a2c821cbccabc2fb072da7f40246c209616bdac505
 all rom1-ru missions 5af8aab0c17ce48813a5504a607ecbcaed9260f3c83f8d0c18ab9bf6b5fa82ca
 all rom1-ru towns 101605475eb088819586526c68b4467e0a47f73048e61976c6b35d5c45c0a491
 all rom1-ru files 5d93396c71ee006011cdd12f7f718260c4e29b3b85f63e7d690a36c70137817e
-all rom1-ru mark 79b3ccdcdd742f81ffe6edde1328b577d49b6b97c1c4d6bc70078e4fb0d829a6
+all rom1-ru mark cdde7211a4412bb9a74ea5c05064380159daacfa3eec9aae45a4cc91b6258c50

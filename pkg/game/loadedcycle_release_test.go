@@ -198,7 +198,7 @@ func openLoadedCycleArenaChoices(t *testing.T, heroCount, structure int, choices
 			}
 		}
 	}
-	if err := constructCurrentBuildings(&candidate, f.Archives.Containers); err != nil {
+	if err := constructCurrentBuildings(&candidate, f.Archives.Containers, f.Table.ModTerrain()); err != nil {
 		t.Fatal(err)
 	}
 	live.mission.state = &candidate

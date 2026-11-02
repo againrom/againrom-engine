@@ -187,5 +187,6 @@ func missionMinimapPaint(in *InstallResources) *ui.MinimapPaint {
 		c := in.Units.OwnerPalettes[k][minimapShadeEntry]
 		p.OwnerShades[k] = color.RGBA{R: c.R, G: c.G, B: c.B, A: 0xff}
 	}
+	minimapGroupColours(p, in.Table)
 	return p
 }

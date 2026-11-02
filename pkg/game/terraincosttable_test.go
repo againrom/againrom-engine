@@ -52,7 +52,7 @@ func TestTerrainCostAddressesOfTheGameRows(t *testing.T) {
 
 // A root without map.reg gives no planes and the checker no table.
 func TestRootWithoutTerrainParametersGivesNoPlanes(t *testing.T) {
-	planes, err := readOriginalCellPlanes(&alm.Map{}, memorySource{})
+	planes, err := readOriginalCellPlanes(&alm.Map{}, memorySource{}, nil)
 	if planes != nil || err != nil {
 		t.Fatalf("planes %v, err %v", planes, err)
 	}

@@ -74,7 +74,7 @@ func TestReleaseStructureUse1150(t *testing.T) {
 			}
 			witness := *live.mission.state
 			witness.World = world
-			if err = constructCurrentBuildings(&witness, f.Archives.Containers); err != nil {
+			if err = constructCurrentBuildings(&witness, f.Archives.Containers, f.Table.ModTerrain()); err != nil {
 				t.Fatal(err)
 			}
 			if err = world.DeclareItemWeights(live.world.ItemWeights()); err != nil {

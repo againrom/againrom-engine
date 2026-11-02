@@ -53,6 +53,10 @@ type Brush struct {
 	// Fill chooses the words of the tile plane's centre cells; the zero value
 	// is the position pattern.
 	Fill Fill
+	// Words, on the tile plane, are the words of the mod tile group Value
+	// names (GroupBrush): the stroke paints whole cells, each taking one of
+	// them by Fill, with no corner transitions.
+	Words []uint16
 	// Scatter, when it names classes, makes an object stroke plant or thin a
 	// mix instead of writing Value.
 	Scatter Scatter
@@ -245,6 +249,9 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 }
 
 func (e *Editor) tileStroke(f frame, b Brush, at []Cell, w, h int, class func(uint16) uint8) (edit, error) {
+	if len(b.Words) > 0 {
+		return e.groupStroke(f, b, at, w, h)
+	}
 	c := uint8(b.Value)
 	known := false
 	for _, p := range Palette {

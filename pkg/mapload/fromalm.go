@@ -271,6 +271,13 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 	if !diff.defined() {
 		return nil, nil, fmt.Errorf("mapload: difficulty %d is not 1, 2 or 3", int32(diff))
 	}
+	// A table is the installed context a map is played in; with one, a map
+	// naming a tile group nothing draws is refused before any walk.
+	if t != nil {
+		if err := CheckTileGroups(m, t); err != nil {
+			return nil, nil, err
+		}
+	}
 
 	var units []alm.Unit
 	var groups []alm.Group

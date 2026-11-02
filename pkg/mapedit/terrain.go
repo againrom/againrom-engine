@@ -223,10 +223,14 @@ func ownStrip(c uint8) strip {
 
 func compose(group uint16, w word) uint16 { return group<<6 | uint16(w.b)<<4 | uint16(w.s) }
 
-func pickVariant(ws []word, x, y int) word {
+func pickVariant(ws []word, x, y int) word { return ws[patternIndex(len(ws), x, y)] }
+
+// patternIndex is the position pattern's pick among n look-alike words for
+// the cell at (x, y).
+func patternIndex(n, x, y int) int {
 	h := uint32(x)*0x9e3779b1 ^ uint32(y)*0x85ebca77
 	h ^= h >> 15
-	return ws[h%uint32(len(ws))]
+	return int(h % uint32(n))
 }
 
 func pureWord(c uint8, x, y int) uint16 {

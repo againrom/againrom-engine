@@ -21,7 +21,7 @@ type installMission struct {
 func (s installMission) missionTable() *mapload.Table { return s.in.Table }
 
 func (s installMission) constructCurrentBuildings(ms *Mission) error {
-	return constructCurrentBuildings(ms, s.in.Archives.Containers)
+	return constructCurrentBuildings(ms, s.in.Archives.Containers, s.in.Table.ModTerrain())
 }
 
 func (s installMission) decodeMission(addr string) (*MapView, error) {

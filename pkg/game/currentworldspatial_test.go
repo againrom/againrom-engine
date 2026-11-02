@@ -51,7 +51,7 @@ func TestCurrentCloudRecordsOwnFirstBlockProjection(t *testing.T) {
 				m := &alm.Map{Width: 32, Height: 32}
 				if retained {
 					b.doc.World.Cells = []sav.DocumentCellData{old}
-					err = b.currentActorCells(w, m, nil)
+					err = b.currentActorCells(w, m, nil, nil)
 				} else {
 					err = b.currentSpatial(w, m, &mapload.Table{}, nil)
 				}

@@ -46,6 +46,9 @@ var almReferences = nameTable{
 	"brush.go/(Brush).addHeights":           {"alm.MaxHeight"},
 	"brush.go/(*Editor).tileEdit":           {"alm.TileGroupMask"},
 	"brush.go/waterIndex":                   {"alm.TileIndex"},
+	"groupbrush.go/(*Editor).groupStroke":   {"alm.TileGroup"},
+	"groupbrush.go/BrushGroup":              {"alm.InstallTileGroups", "alm.TileGroupCount"},
+	"groupbrush.go/opaqueWord":              {"alm.InstallTileGroups", "alm.TileGroup"},
 }
 
 // payloadLengthNames are the two identifiers by which a record's own payload

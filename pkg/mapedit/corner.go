@@ -90,6 +90,9 @@ func groupFamily(g uint16) (family, bool) {
 // state, any other word as its class at all four corners. ok is false for a
 // word of no terrain class.
 func wordQuad(w uint16, class func(uint16) uint8) (quad, bool) {
+	if opaqueWord(w) {
+		return quad{}, false
+	}
 	i := w & alm.TileIndexMask
 	water := i&0x300 == 0x200
 	g := i >> 6 & 15
