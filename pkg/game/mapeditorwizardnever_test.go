@@ -28,7 +28,7 @@ func TestReleaseTriggerWizardEditsTheInstalledNeverComparisonPair(t *testing.T) 
 	}
 	before := append([]byte(nil), e.Document().SourceBytes...)
 	e.Select(trigRecord(t, e, "Trigger", 0), true)
-	trigChoose(t, e, wizField(t, e, "c0.p0"), "New variable")
+	trigChoose(t, e, wizField(t, e, "c0.p0"), x.inspectionUTF8(x.word("editor.param.newvariable")))
 	wizApply(t, e)
 	if strings.Contains(trigLines(e), "outside 0..5") {
 		t.Fatalf("the edit was refused:\n%s", trigLines(e))
