@@ -61,6 +61,27 @@ func TestEditorLargeGroupKeepsBackInsidePopup(t *testing.T) {
 	}
 }
 
+func TestGroupMemberRectOpensItsMember(t *testing.T) {
+	e, _ := popupEditor(t)
+	_ = e.Open("popups")
+	openGroup(t, e)
+	members := e.GroupMembers()
+	if len(members) != 2 {
+		t.Fatalf("group members %v", members)
+	}
+	if _, ok := e.GroupMemberRect(len(members)); ok {
+		t.Fatal("a member row past the last member is shown")
+	}
+	r, ok := e.GroupMemberRect(1)
+	if !ok {
+		t.Fatal("member row 1 is not shown")
+	}
+	chromeClick(e, center(r))
+	if e.selected != members[1] {
+		t.Fatalf("member row 1 opened record %d, want %d", e.selected, members[1])
+	}
+}
+
 func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 	e, h := popupEditor(t)
 	_ = e.Open("popups")

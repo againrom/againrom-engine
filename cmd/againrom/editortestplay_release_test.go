@@ -45,9 +45,9 @@ func TestReleaseEditorTestPlayLaunchEntryWinAndAcknowledgement(t *testing.T) {
 	}
 	s := e.Document().Edits
 	author := s.(interface {
-		AddScript(kind string) (*ui.InspectionDocument, error)
+		AddScript(kind ui.RecordKind) (*ui.InspectionDocument, error)
 	})
-	for _, kind := range []string{"Condition", "Action", "Trigger"} {
+	for _, kind := range []ui.RecordKind{"Condition", "Action", "Trigger"} {
 		if _, err := author.AddScript(kind); err != nil {
 			t.Fatal(err)
 		}

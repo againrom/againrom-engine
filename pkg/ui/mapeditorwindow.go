@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"slices"
 	"strings"
 	"time"
 
@@ -372,12 +373,16 @@ func (e *MapEditor) ObjectSectionRect(section string) (image.Rectangle, bool) {
 // GroupMemberRect is the window rectangle of member row n of the group
 // popup, when that row is shown.
 func (e *MapEditor) GroupMemberRect(n int) (image.Rectangle, bool) {
-	s, _, ok := e.groupSpec()
-	if !ok || n < 0 {
+	s, links, ok := e.groupSpec()
+	if !ok || n < 0 || n >= len(e.groupSel.members) {
+		return image.Rectangle{}, false
+	}
+	row := slices.IndexFunc(links, func(l int) bool { return l < 0 }) + n
+	if row < n || row >= len(links) || links[row] != -(e.groupSel.members[n]+1) {
 		return image.Rectangle{}, false
 	}
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
-		if r.Index == 2+n {
+		if r.Index == row {
 			return r.Rect, true
 		}
 	}

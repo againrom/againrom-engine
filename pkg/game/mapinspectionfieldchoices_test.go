@@ -99,7 +99,44 @@ func TestFieldChoiceRegistryGivesTodaysLists(t *testing.T) {
 	}
 }
 
+func referenceSackChoices(s *mapInspectionEdits, index int, key string) ([]ui.InspectionChoice, bool) {
+	x := s.inspector
+	if n, err := strconv.Atoi(strings.TrimPrefix(key, "recipe")); err == nil && n > 0 && strings.HasPrefix(key, "recipe") {
+		shared := referenceRecordChoices(s, "", index, "recipe")
+		if len(shared) == 0 {
+			return shared, true
+		}
+		out := []ui.InspectionChoice{shared[0], {Value: -1, Label: x.inspectionUTF8(x.word("editor.equipment.newrecipe"))}}
+		for _, c := range shared[1:] {
+			out = append(out, ui.InspectionChoice{Value: -c.Value - 1, Label: x.inspectionUTF8(fmt.Sprintf(x.word("editor.inventory.recipecopy"), c.Label))})
+		}
+		return append(out, shared[1:]...), true
+	}
+	n, err := strconv.Atoi(strings.TrimPrefix(key, "item"))
+	if err != nil || n <= 0 || !strings.HasPrefix(key, "item") {
+		return nil, false
+	}
+	rows := referenceRecordChoices(s, "", index, key)
+	if m, err := s.model.Map(); err == nil {
+		if loot, err := m.Loot(); err == nil && index >= 0 && index < len(loot.Records) && n <= len(loot.Records[index].Elements) {
+			if loot.Records[index].Owner != 0 && loot.Records[index].Elements[n-1].Field04 != 0 {
+				return rows, true
+			}
+		}
+	}
+	if len(rows) == 0 {
+		return rows, true
+	}
+	duplicate := ui.InspectionChoice{Value: -1, Label: x.inspectionUTF8(x.word("editor.inventory.duplicate"))}
+	return append([]ui.InspectionChoice{rows[0], duplicate}, rows[1:]...), true
+}
+
 func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key string) []ui.InspectionChoice {
+	if kind == string(ui.KindSack) || kind == string(ui.KindStock) {
+		if rows, ok := referenceSackChoices(s, index, key); ok {
+			return rows
+		}
+	}
 	if key == "npc" {
 		m, err := s.model.Map()
 		if err != nil || index < 0 || index >= len(m.AuthoredUnits) {

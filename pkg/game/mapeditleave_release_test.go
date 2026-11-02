@@ -88,8 +88,16 @@ func TestReleaseMapEditorCloseWithUnsavedChangesAsks(t *testing.T) {
 	if e.ExitAsked() || !e.Dirty() {
 		t.Fatal("Cancel did not return to the editor unchanged")
 	}
-	_ = e.Key("escape")
+	if err := e.Key("escape"); err != nil || e.ExitAsked() || !e.Dirty() {
+		t.Fatalf("Esc with nothing open: err %v exit %v dirty %v", err, e.ExitAsked(), e.Dirty())
+	}
+	if _, asked := e.PromptRect(); asked {
+		t.Fatal("Esc with nothing open asked a question")
+	}
 	shot(e, "leave-close-escape")
+	if err := e.Key("close"); err != nil || e.ExitAsked() {
+		t.Fatalf("the window close button pressed after Cancel: err %v exit %v", err, e.ExitAsked())
+	}
 	if err := e.Key("close"); err != ebiten.Termination || !e.ExitAsked() {
 		t.Fatalf("the window close button pressed again: err %v exit %v", err, e.ExitAsked())
 	}

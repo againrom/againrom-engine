@@ -351,9 +351,10 @@ func TestReleaseMapEditorInstalledTextIsCapturedAtScaleOne(t *testing.T) {
 	}
 	e.Layout(smoothingW, smoothingH)
 	v := e.Document().Viewer
-	// The map fills the window between the top bar and the status strip.
-	if got := v.Placement().Scale(); got != 1 || v.FrameSize().X != smoothingW || v.FrameSize().Y >= smoothingH || v.FrameSize().Y < smoothingH-80 {
-		t.Fatalf("editor native layout frame=%v scale=%g", v.FrameSize(), got)
+	// The map fills its area at scale one.
+	area := e.MapRect()
+	if got := v.Placement().Scale(); got != 1 || v.FrameSize() != area.Size() || !area.In(image.Rect(0, 0, smoothingW, smoothingH)) || area.Dx() < smoothingW-80 || area.Dy() < smoothingH-160 {
+		t.Fatalf("editor native layout frame=%v area=%v scale=%g", v.FrameSize(), area, got)
 	}
 	screen := ebiten.NewImage(smoothingW, smoothingH)
 	t.Cleanup(screen.Dispose)

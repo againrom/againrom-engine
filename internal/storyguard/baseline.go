@@ -3847,5 +3847,5 @@ var Committed = Baseline{
 	// It rose for the Druids' town release tests' Player groups: the doc
 	// comment of playerGroups and the corrected test comments in
 	// pkg/game/seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10393043,
+	CommentBytes: 10393013,
 }
