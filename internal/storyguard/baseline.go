@@ -3810,5 +3810,9 @@ var Committed = Baseline{
 	// comments in editorpopup.go and mapeditorplain.go and the new test
 	// mapeditorunitbasicvalue_test.go.
 	// CommentBytes rose again for the editor's one panel profile reader.
-	CommentBytes: 10369063,
+
+	// CommentBytes rose again for the second campaign's one location entry and
+	// its departure rows: the doc comments of pkg/game/seconddeparture.go,
+	// seconddeparturebank_test.go and internal/archtest/secondlocation.go.
+	CommentBytes: 10371789,
 }

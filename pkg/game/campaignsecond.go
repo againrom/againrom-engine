@@ -206,7 +206,7 @@ func (secondCampaignRules) seatWorld(r missionRequest, ms *Mission) error {
 	if r.snap == nil && r.town != nil && r.town.second != nil && (r.fresh() || ms.World.LoadedRecord() != sim.LoadedDocument) {
 		bank := r.town.second.bank
 		if r.fresh() {
-			clear(bank[752:768]) // R2-ENGINE-048
+			enterLocation(&bank)
 		}
 		if !ms.World.SetROM2ScenarioState(bank) {
 			return fmt.Errorf("campaign mission has no ROM2 scenario bank")

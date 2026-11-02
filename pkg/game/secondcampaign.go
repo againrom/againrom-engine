@@ -131,7 +131,7 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 	n := c.current.id
 	output := -1
 	c.bank = bank
-	c.bank[773] = 0
+	secondDepartureReset(&c.bank)
 	for i := 0; i < 20; i++ {
 		if c.bank[532+i] != 0 {
 			c.bank[532+i] = 1
@@ -154,52 +154,8 @@ func (c *secondCampaign) completeBank(bank [1024]int32) int {
 			c.available = append(c.available, l)
 		}
 	}
-	switch n {
-	case 10:
-		add(partyPlace{1, 20})
-		output = 1
-	case 20:
-		add(partyPlace{2, 2})
-		if c.bank[772] != 0 {
-			add(partyPlace{1, 21})
-		}
-		c.bank[532], c.bank[552] = 1, 2
-	case 30:
-		output = 2
-	case 31:
-		add(partyPlace{1, 32})
-	case 40:
-		add(partyPlace{1, 50})
-		add(partyPlace{1, 60})
-		c.bank[773] = 23
-	case 50:
-		// The bank780-gated fixed record is mission 52 (R2-ENGINE-419).
-		add(partyPlace{2, 3})
-		if c.bank[780] != 0 {
-			add(partyPlace{1, 52})
-		}
-		c.bank[771], c.bank[534], c.bank[554] = 1, 1, 3
-	case 60:
-		add(partyPlace{1, 80})
-		c.bank[537], c.bank[557], c.bank[774] = 1, 2, 1
-	case 70:
-		c.bank[535], c.bank[555] = 1, 3
-		if c.bank[777] == 0 && c.bank[778] != 0 {
-			output = 3
-		}
-		c.bank[777], c.bank[770] = 1, 1
-	case 80:
-		if c.bank[778] == 0 && c.bank[777] != 0 {
-			output = 3
-		}
-		c.bank[778] = 1
-	case 100:
-		c.bank[538], c.bank[558] = 1, 2
-	case 110:
-		output = 4
-		if c.bank[779] != 0 {
-			output = 5
-		}
+	if row, ok := secondDepartureFor(n); ok {
+		output = row.run(c, add)
 	}
 	c.shop.depart(n)
 	if n%10 == 0 {

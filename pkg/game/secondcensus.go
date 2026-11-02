@@ -660,21 +660,19 @@ func secondRun(w *sim.World, ticks int) (run SecondRun) {
 	return run
 }
 
-// secondDepartureCases holds every exit of each published ordinary-departure
-// case with its gates, in case-body order (R2-ENGINE-145, R2-ENGINE-146,
-// R2-ENGINE-148). A case with no exit stores no output and adds nothing.
-var secondDepartureCases = map[int][]SecondExit{
-	10: {{Target: "mission 20"}, {Target: "movie 1"}},
-	20: {{Target: "town 2"}, {Target: "mission 21", Gates: []SecondGate{{772, true}}}},
-	30: {{Target: "movie 2"}},
-	31: {{Target: "mission 32"}},
-	40: {{Target: "mission 50"}, {Target: "mission 60"}},
-	50: {{Target: "town 3"}, {Target: "mission 52", Gates: []SecondGate{{780, true}}}},
-	60: {{Target: "mission 80"}},
-	70: {{Target: "movie 3", Gates: []SecondGate{{777, false}, {778, true}}}},
-	80: {{Target: "movie 3", Gates: []SecondGate{{778, false}, {777, true}}}},
-	90: nil, 100: nil,
-	110: {{Target: "movie 5", Gates: []SecondGate{{779, true}}}, {Target: "movie 4", Gates: []SecondGate{{779, false}}}},
+// secondDepartureExits answers every exit of mission n's departure row with
+// its gates, the locations first and then the movies, in row order. A row with
+// no exit stores no output and adds nothing.
+func secondDepartureExits(n int) ([]SecondExit, bool) {
+	row, ok := secondDepartureFor(n)
+	var out []SecondExit
+	for _, e := range row.exits {
+		out = append(out, SecondExit{Target: secondLocationName(e.target), Gates: slices.Clone(e.gates)})
+	}
+	for _, m := range row.output {
+		out = append(out, SecondExit{Target: fmt.Sprintf("movie %d", m.movie), Gates: slices.Clone(m.gates)})
+	}
+	return out, ok
 }
 
 // secondProducer names the published route that makes a mission available:
@@ -700,9 +698,10 @@ func secondProducer(n int) string {
 		return fmt.Sprintf("stage %s inn talk", strings.Join(stages, "/"))
 	}
 	target := fmt.Sprintf("mission %d", n)
-	for _, from := range slices.Sorted(maps.Keys(secondDepartureCases)) {
-		if slices.ContainsFunc(secondDepartureCases[from], func(e SecondExit) bool { return e.Target == target }) {
-			return fmt.Sprintf("departure of %d", from)
+	for _, row := range secondDepartures {
+		exits, _ := secondDepartureExits(row.from)
+		if slices.ContainsFunc(exits, func(e SecondExit) bool { return e.Target == target }) {
+			return fmt.Sprintf("departure of %d", row.from)
 		}
 	}
 	return ""
@@ -776,7 +775,7 @@ func secondEngineReachFrom(c *secondCampaign) map[int]bool {
 
 func secondDeparture(n int, reach map[int]bool) SecondDeparture {
 	d := SecondDeparture{Producer: secondProducer(n), EngineEntry: reach[n], EngineSave: secondSaveMission(n), EngineWin: secondContinues(n)}
-	exits, ok := secondDepartureCases[n]
+	exits, ok := secondDepartureExits(n)
 	d.Case = ok
 	var open [1024]int32
 	for _, e := range exits {
