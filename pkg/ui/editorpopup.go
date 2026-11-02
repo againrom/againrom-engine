@@ -59,8 +59,10 @@ type popupRow struct {
 	// Buttons are the captions of the row's own buttons, at its right end;
 	// a pick row without them carries the popup's PickLabel. Disabled marks
 	// the buttons drawn greyed that take no press.
+	// Armed marks the buttons drawn pressed in: the one that armed a map pick.
 	Buttons  []string
 	Disabled []bool
+	Armed    []bool
 	// Lines is a multi-line row's height in rows, zero for six; First is
 	// the first text line it shows while it is not typed in.
 	Lines, First int
@@ -1410,7 +1412,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			drawEditRow(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
 			for k, b := range rr.Buttons {
-				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
+				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 			}
 			continue
 		}
@@ -1454,7 +1456,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 		}
 		drawRowIcons(dst, body, l, rr, row)
 		for k, b := range rr.Buttons {
-			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed, Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
+			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 		}
 	}
 	if !l.Marker.Empty() {

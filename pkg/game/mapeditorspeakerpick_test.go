@@ -205,23 +205,26 @@ func TestUnitSpeakerIsTheRecordThatShowsTheUnit(t *testing.T) {
 		name string
 		unit int
 		want int64
-		none bool
+		miss ui.SpeakerCause
 	}{
 		{name: "the paladin's own record", unit: 0, want: 25},
 		{name: "the fighter's lowest record", unit: 1, want: 12},
-		{name: "no record shows the woman", unit: 2, none: true},
+		{name: "no record shows the woman", unit: 2, miss: ui.SpeakerNotFirst},
 		{name: "the goblin's tier 2 portrait", unit: 3, want: 41},
-		{name: "no placement", unit: 4, none: true},
+		{name: "no placement", unit: 4, miss: ui.SpeakerNoMission},
 	} {
-		got, ok := s.UnitSpeaker(tc.unit)
-		if tc.none {
-			if ok {
-				t.Errorf("%s: unit %d takes speaker %d", tc.name, tc.unit, got)
+		got, why := s.UnitSpeaker(tc.unit)
+		if tc.miss != ui.SpeakerShown {
+			if tc.miss == ui.SpeakerNotFirst && (why.Record != 3 || why.Cell != pickPaladinCell) {
+				t.Errorf("%s: record %d first at %v, want record 3 at %v", tc.name, why.Record, why.Cell, pickPaladinCell)
+			}
+			if why.Cause != tc.miss {
+				t.Errorf("%s: unit %d takes speaker %d with cause %d, want cause %d", tc.name, tc.unit, got, why.Cause, tc.miss)
 			}
 			continue
 		}
-		if !ok || got != tc.want {
-			t.Errorf("%s: unit %d takes speaker %d (%v), want %d", tc.name, tc.unit, got, ok, tc.want)
+		if why.Cause != ui.SpeakerShown || got != tc.want {
+			t.Errorf("%s: unit %d takes speaker %d (cause %d), want %d", tc.name, tc.unit, got, why.Cause, tc.want)
 		}
 	}
 	if rec, ok := s.speakers.cast.resolveNPC(3, speakerPickFaces()[3]); !ok || rec.id != 0 {
@@ -265,7 +268,7 @@ func TestSpeakerListPortraitsAreTheMissionStartFaces(t *testing.T) {
 	if bytes.Equal(own.Pix, before[3].Pix) {
 		t.Fatal("the fixture's record 3 looks the same live and bare, so the test cannot tell the two apart")
 	}
-	if pick, ok := s.UnitSpeaker(1); !ok || !bytes.Equal(before[pick].Pix, missionStartFace(t, s, 12).Pix) {
+	if pick, why := s.UnitSpeaker(1); why.Cause != ui.SpeakerShown || !bytes.Equal(before[pick].Pix, missionStartFace(t, s, 12).Pix) {
 		t.Fatal("the fighter's picked speaker does not carry the fighter's face")
 	}
 	// The paladin and the fighter wear the same face-1 figure, so both go.
@@ -341,17 +344,17 @@ func TestSpeakerCastIsTheGamesLiveCast(t *testing.T) {
 		if got := s.MessageFields(1)[1].Icons[3]; got == nil || !bytes.Equal(got.Pix, own.Pix) {
 			t.Error("record 3's list face is not its own picture")
 		}
-		if got, ok := s.UnitSpeaker(0); ok {
-			t.Errorf("the corpse is picked for record %d", got)
+		if got, why := s.UnitSpeaker(0); why.Cause != ui.SpeakerDown {
+			t.Errorf("the corpse is picked for record %d with cause %d, want down", got, why.Cause)
 		}
 	})
 	t.Run("a corpse and a live man", func(t *testing.T) {
 		_, s := speakerPickEditorOn(t, speakerPickMapOf([]synth.ALMUnit{dead(pickFighterCell, 1), pickUnit(pickLadyCell, 3, 0, 0, 2)}))
-		if got, ok := s.UnitSpeaker(1); !ok || got != 3 {
-			t.Errorf("the live man is picked for record %d (%v), want 3", got, ok)
+		if got, why := s.UnitSpeaker(1); why.Cause != ui.SpeakerShown || got != 3 {
+			t.Errorf("the live man is picked for record %d (cause %d), want 3", got, why.Cause)
 		}
-		if got, ok := s.UnitSpeaker(0); ok {
-			t.Errorf("the corpse is picked for record %d", got)
+		if got, why := s.UnitSpeaker(0); why.Cause != ui.SpeakerDown {
+			t.Errorf("the corpse is picked for record %d with cause %d, want down", got, why.Cause)
 		}
 		a, ok := s.speakers.cast.resolveNPC(12, speakerPickFaces()[12])
 		if !ok || a.id != 1 {
@@ -361,11 +364,11 @@ func TestSpeakerCastIsTheGamesLiveCast(t *testing.T) {
 	t.Run("a withdrawn border placement", func(t *testing.T) {
 		_, s := speakerPickEditorOn(t, speakerPickMapOf([]synth.ALMUnit{
 			pickUnit(image.Pt(2, 2), 3, 0, 0, 1), pickUnit(pickFighterCell, 3, 0, 0, 2)}))
-		if got, ok := s.UnitSpeaker(0); ok {
-			t.Errorf("the withdrawn placement is picked for record %d", got)
+		if got, why := s.UnitSpeaker(0); why.Cause != ui.SpeakerBorder {
+			t.Errorf("the withdrawn placement is picked for record %d with cause %d, want border", got, why.Cause)
 		}
-		if got, ok := s.UnitSpeaker(1); !ok || got != 3 {
-			t.Errorf("the placement after it is picked for record %d (%v), want 3", got, ok)
+		if got, why := s.UnitSpeaker(1); why.Cause != ui.SpeakerShown || got != 3 {
+			t.Errorf("the placement after it is picked for record %d (cause %d), want 3", got, why.Cause)
 		}
 	})
 }

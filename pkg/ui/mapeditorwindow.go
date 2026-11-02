@@ -1084,9 +1084,36 @@ func (e *MapEditor) catalogOpen() {
 	}
 }
 
-// objectSpec is the selected record's popup as data, and the reference each
-// link row opens.
+// objectSpecBase is the selected record's popup as data, and the reference
+// each link row opens, with the button that armed the map pick drawn armed.
 func (e *MapEditor) objectSpecBase() (popupSpec, []int, bool) {
+	s, links, ok := e.objectSpecRows()
+	if ok {
+		e.markArmedPick(&s)
+	}
+	return s, links, ok
+}
+
+// markArmedPick marks the button of the field whose map pick is armed, so the
+// popup row painter draws it pressed in: the message card, the node popup and
+// the trigger wizard share it.
+func (e *MapEditor) markArmedPick(s *popupSpec) {
+	if (e.pick != pickParamUnit && e.pick != pickParamArea) || e.pickFieldTarget() == targetNone {
+		return
+	}
+	row := e.fieldRow(e.obj.pickField)
+	if row < 0 || row >= len(s.Rows) {
+		return
+	}
+	for k, act := range e.obj.rowActs[row] {
+		if act == actPickParam || act == actPickArea {
+			s.Rows[row].Armed = make([]bool, max(k+1, len(s.Rows[row].Buttons)))
+			s.Rows[row].Armed[k] = true
+		}
+	}
+}
+
+func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 	e.panels.hostable = false
 	e.obj.viewOffer = false
 	if e.modWindow && !e.prompt.open() && !e.catalog {

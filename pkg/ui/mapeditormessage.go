@@ -21,8 +21,33 @@ type InspectionMessages interface {
 	SetMessage(page uint32, body string, speaker int64) (*InspectionDocument, error)
 	CreateMessage(owner InspectionMessageOwner, body string, speaker int64) (*InspectionDocument, uint32, error)
 	// UnitSpeaker is the speaker of the speaker list that shows placement
-	// unit as a dialogue shows it at mission start, false when none does.
-	UnitSpeaker(unit int) (int64, bool)
+	// unit as a dialogue shows it at mission start. When none does, the
+	// miss says why; the zero miss says a speaker does.
+	UnitSpeaker(unit int) (int64, SpeakerMiss)
+}
+
+// SpeakerCause is why no speaker record shows a unit. The zero value says a
+// record does.
+type SpeakerCause uint8
+
+const (
+	SpeakerShown       SpeakerCause = iota
+	SpeakerNoMission                // the map's mission start could not be built
+	SpeakerBorder                   // the border withdraws the unit at mission start
+	SpeakerNoPlacement              // the placement's keys name no definition
+	SpeakerDown                     // the unit starts down or dead
+	SpeakerNoFit                    // no speaker record's terms fit the person
+	SpeakerNotFirst                 // a record fits, but its first unit is another
+	SpeakerNoPicture                // no speaker record carries the creature's picture
+)
+
+// SpeakerMiss is the answer of UnitSpeaker when no record shows the unit.
+// For SpeakerNotFirst, Record is the best fitting record and Cell the cell
+// of the unit the game shows for it.
+type SpeakerMiss struct {
+	Cause  SpeakerCause
+	Record int64
+	Cell   image.Point
 }
 
 type InspectionMessagePart struct {
@@ -189,6 +214,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	live := e.messageLive()
 	numbers := map[int]int{}
 	textRow := -1
+	pickCard := ""
 	for i, part := range o.messageParts {
 		o.rowOpen[len(s.Rows)] = i
 		if o.messageGone[part.Number] {
@@ -204,6 +230,9 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		}
 		speaker := 2*i + 1
 		head := popupRow{Kind: popupCard, Label: strconv.Itoa(number), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Span: 1}
+		if speaker == o.pickField {
+			pickCard = head.Label
+		}
 		var acts []string
 		if live > 1 {
 			head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
@@ -226,6 +255,11 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	}
 	if o.note != "" {
 		s.Notes = append(s.Notes, e.editorHostText(o.note))
+	}
+	// A refused speaker pick answers at the card whose pick is armed.
+	if e.speakerPicking() && e.pickWhy != "" && pickCard != "" {
+		why := fmt.Sprintf(e.word("editor.speaker.why.card"), pickCard, e.pickWhy)
+		s.Notes = append(s.Notes, editorTextLines(e.bodyFont(), why, e.hostedWrap(s, 620))...)
 	}
 	if e.dragCard > 0 {
 		s.Drag = &popupRowDrag{Row: e.dragCard - 1, At: e.pointer}

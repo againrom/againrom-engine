@@ -3832,5 +3832,12 @@ var Committed = Baseline{
 	// It rose for the hero speakers' portrait tip: the doc comments of
 	// editorHero, heroFaceNotes, choiceNote, rowPortraitBox, the new tests, and
 	// this note.
-	CommentBytes: 10384667,
+
+	// It rose for the speaker pick's reasons: the doc comments of
+	// SpeakerCause, SpeakerMiss, UnitSpeaker, personMiss, creatureSpeaker,
+	// speakerCast.actor and speakerWhy, the new tests, and this note.
+	//
+	// It rose a further amount for the armed pick button: the doc comments of
+	// popupRow.Armed and markArmedPick, the new test, and this note.
+	CommentBytes: 10388483,
 }

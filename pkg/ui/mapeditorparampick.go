@@ -47,6 +47,9 @@ var paramPickTexts = map[paramTarget]paramPickText{
 type pickedValue struct {
 	number int64
 	area   InspectionArea
+	// why, on a pick that found nothing, says why in whole sentences: the
+	// speaker pick fills it.
+	why string
 }
 
 // nodeFieldTarget is what field f of a node popup stores of a map pick.
@@ -200,7 +203,7 @@ func (e *MapEditor) paramAt(kind pickKind, p image.Point) {
 	}
 	if !ok {
 		e.keepPick(kind)
-		e.pickNote = e.word(paramPickTexts[target].missWord)
+		e.pickNote, e.pickWhy = e.word(paramPickTexts[target].missWord), v.why
 		return
 	}
 	e.paramPicked(target, v)
@@ -214,6 +217,11 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 	if target == targetStructure {
 		kind, record = scriptStructure, KindStructure
 	}
+	var miss pickedValue
+	if target == targetSpeaker {
+		miss.why = e.speakerWhy(nil)
+	}
+	refused := false
 	for _, id := range e.hitsAt(p) {
 		r := e.doc.Records[id]
 		if r.Kind != record {
@@ -221,8 +229,12 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 		}
 		if target == targetSpeaker {
 			if host, ok := e.doc.Edits.(InspectionMessages); ok {
-				if n, ok := host.UnitSpeaker(r.Index); ok {
+				n, why := host.UnitSpeaker(r.Index)
+				if why.Cause == SpeakerShown {
 					return pickedValue{number: n}, true
+				}
+				if !refused {
+					miss.why, refused = e.speakerWhy(&why), true
 				}
 			}
 			continue
@@ -239,7 +251,35 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 			}
 		}
 	}
-	return pickedValue{}, false
+	return miss, false
+}
+
+// speakerWhy says in whole sentences why the speaker pick found no speaker:
+// no unit under the pointer when miss is nil, else the host's cause for the
+// unit.
+func (e *MapEditor) speakerWhy(miss *SpeakerMiss) string {
+	if miss == nil {
+		return e.word("editor.speaker.why.nounit")
+	}
+	switch miss.Cause {
+	case SpeakerBorder:
+		return e.word("editor.speaker.why.border")
+	case SpeakerNoPlacement:
+		return e.word("editor.speaker.why.noplacement")
+	case SpeakerDown:
+		return e.word("editor.speaker.why.down")
+	case SpeakerNoFit:
+		return e.word("editor.speaker.why.nofit")
+	case SpeakerNotFirst:
+		record := strconv.FormatInt(miss.Record, 10)
+		if o := &e.obj; o.pickField >= 0 && o.pickField < len(o.fields) {
+			record = choiceText(o.fields[o.pickField], record)
+		}
+		return fmt.Sprintf(e.word("editor.speaker.why.notfirst"), record, miss.Cell.X, miss.Cell.Y)
+	case SpeakerNoPicture:
+		return e.word("editor.speaker.why.nopicture")
+	}
+	return e.word("editor.speaker.why.nomission")
 }
 
 // areaValueAt is the trigger area under p that the field of target can

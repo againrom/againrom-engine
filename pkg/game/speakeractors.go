@@ -313,6 +313,16 @@ type speakerCast struct {
 	hasPlayer bool
 }
 
+// actor is the candidate with entity id, false when the cast holds none.
+func (c speakerCast) actor(id sim.EntityID) (speakerActor, bool) {
+	for _, a := range c.actors {
+		if a.id == id {
+			return a, true
+		}
+	}
+	return speakerActor{}, false
+}
+
 // resolve is the first live candidate the record's own predicate admits, or no
 // speaker at all.
 //

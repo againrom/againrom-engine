@@ -102,6 +102,7 @@ type editorMode struct {
 	prompt          editorPrompt
 	pick            pickKind
 	pickNote        string // what the last click of the armed pick found
+	pickWhy         string // why that click found no speaker, whole, for the message popup
 	brush           brushState
 	report          reportState
 	panel           bool // the Map panel stands in the list popup under any list
@@ -136,7 +137,7 @@ func (e *MapEditor) leave(x exits) {
 		e.cancelRecordDrag()
 	}
 	if x&leavePick != 0 {
-		e.pick, e.pickNote = pickNone, ""
+		e.pick, e.pickNote, e.pickWhy = pickNone, "", ""
 	}
 	if x&leavePrompt != 0 {
 		e.prompt = editorPrompt{}
@@ -184,7 +185,7 @@ func (e *MapEditor) enterCatalog() {
 
 // armPick arms the next canvas click to pick kind.
 func (e *MapEditor) armPick(kind pickKind) {
-	e.pick, e.message, e.pickNote = kind, "", ""
+	e.pick, e.message, e.pickNote, e.pickWhy = kind, "", "", ""
 }
 
 // keepPick keeps kind armed after a pick that does not end it, the message

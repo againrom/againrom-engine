@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"math/bits"
 	"slices"
 
 	"againrom/pkg/base"
@@ -184,12 +185,16 @@ func (s *mapInspectionEdits) npcPortraits(choices []ui.InspectionChoice) map[int
 // UnitSpeaker is the speaker that shows placement unit at mission start. A
 // person takes its own NPC record when that record resolves to it, else the
 // lowest speaker that resolves to it. A creature takes the lowest speaker
-// whose picture is the one its info window shows.
-func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, bool) {
+// whose picture is the one its info window shows. When no speaker shows the
+// unit, the miss says why.
+func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, ui.SpeakerMiss) {
 	x := s.inspector
 	sp := s.missionStart()
-	if sp.m == nil || unit < 0 || unit >= len(sp.placed) || sp.placed[unit] < 0 {
-		return 0, false
+	if sp.m == nil || sp.world == nil || unit < 0 || unit >= len(sp.placed) {
+		return 0, ui.SpeakerMiss{Cause: ui.SpeakerNoMission}
+	}
+	if sp.placed[unit] < 0 {
+		return 0, ui.SpeakerMiss{Cause: ui.SpeakerBorder}
 	}
 	unit = sp.placed[unit]
 	var ids []int64
@@ -210,37 +215,74 @@ func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, bool) {
 		return ok && a.id == sim.EntityID(unit)
 	}
 	if own := int64(u.ClassSubID); r.Arm == mapload.ArmNPC && slices.Contains(ids, own) && shows(own) {
-		return own, true
+		return own, ui.SpeakerMiss{}
 	}
 	for _, id := range ids {
 		if shows(id) {
-			return id, true
+			return id, ui.SpeakerMiss{}
 		}
 	}
-	return 0, false
+	return 0, s.personMiss(sp, unit, ids)
+}
+
+// personMiss is why no speaker shows person unit of the mission start: the
+// placement makes no live person, the person starts down, no record's terms
+// fit it, or a record fits it and shows another unit first. For the last, the
+// record is the one with most terms (the lowest on a tie) and the cell the
+// first unit that record shows.
+func (s *mapInspectionEdits) personMiss(sp *editorSpeakers, unit int, ids []int64) ui.SpeakerMiss {
+	actor, ok := sp.cast.actor(sim.EntityID(unit))
+	if !ok {
+		return ui.SpeakerMiss{Cause: ui.SpeakerNoPlacement}
+	}
+	if !sp.cast.alive(actor.id) {
+		return ui.SpeakerMiss{Cause: ui.SpeakerDown}
+	}
+	best, terms := int64(-1), -1
+	for _, id := range ids {
+		rec, ok := sp.records[int32(id)]
+		if !ok || !sp.cast.matches(rec, actor) {
+			continue
+		}
+		if n := bits.OnesCount32(uint32(rec.Tokens)); n > terms {
+			best, terms = id, n
+		}
+	}
+	if best < 0 {
+		return ui.SpeakerMiss{Cause: ui.SpeakerNoFit}
+	}
+	first, ok := sp.cast.resolveNPC(int32(best), sp.records[int32(best)])
+	if !ok || int(first.id) >= len(sp.m.Units) {
+		return ui.SpeakerMiss{Cause: ui.SpeakerNoFit}
+	}
+	at := sp.m.Units[first.id]
+	return ui.SpeakerMiss{Cause: ui.SpeakerNotFirst, Record: best, Cell: image.Pt(int(at.X>>8), int(at.Y>>8))}
 }
 
 // creatureSpeaker is the lowest of ids whose dialogue picture is the one the
-// info window shows for creature unit at mission start.
-func (s *mapInspectionEdits) creatureSpeaker(sp *editorSpeakers, unit int, ids []int64) (int64, bool) {
-	if sp.world == nil {
-		return 0, false
-	}
+// info window shows for creature unit at mission start. No speaker carries
+// the picture of a creature of a class the speaker list does not name, or of
+// a unit whose class composes a figure.
+func (s *mapInspectionEdits) creatureSpeaker(sp *editorSpeakers, unit int, ids []int64) (int64, ui.SpeakerMiss) {
 	e, ok := sp.world.Entity(sim.EntityID(unit))
-	if !ok || data.ComposesFigure(e.Class) {
-		return 0, false
+	if !ok {
+		return 0, ui.SpeakerMiss{Cause: ui.SpeakerNoPlacement}
+	}
+	miss := ui.SpeakerMiss{Cause: ui.SpeakerNoPicture}
+	if data.ComposesFigure(e.Class) {
+		return 0, miss
 	}
 	r := s.speakerResolver(sp)
 	want := infoPortrait(r.src, r.units, e.Class, sp.tiers[e.ID], r.portraits)
 	if want == nil {
-		return 0, false
+		return 0, miss
 	}
 	for _, id := range ids {
 		if face, _, ok := r.SpeakerFace(int(id)); ok && face == want {
-			return id, true
+			return id, ui.SpeakerMiss{}
 		}
 	}
-	return 0, false
+	return 0, miss
 }
 
 // npcName is NPC record e's name in UTF-8. With roles, as the message popup

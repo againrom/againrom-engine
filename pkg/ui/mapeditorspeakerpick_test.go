@@ -50,9 +50,11 @@ func (*speakerPickEdits) CreateMessageParts(InspectionMessageOwner, []Inspection
 func (*speakerPickEdits) PointMessageParts(InspectionMessageOwner, uint32, []InspectionMessagePart) (*InspectionDocument, error) {
 	return nil, nil
 }
-func (*speakerPickEdits) UnitSpeaker(unit int) (int64, bool) {
-	n, ok := map[int]int64{0: 5, 2: 7}[unit]
-	return n, ok
+func (*speakerPickEdits) UnitSpeaker(unit int) (int64, SpeakerMiss) {
+	if n, ok := map[int]int64{0: 5, 2: 7}[unit]; ok {
+		return n, SpeakerMiss{}
+	}
+	return 0, SpeakerMiss{Cause: SpeakerNotFirst, Record: 5, Cell: image.Pt(9, 8)}
 }
 
 // speakerPickEditor opens a 64 by 64 map with the three units in lang at
