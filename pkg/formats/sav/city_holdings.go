@@ -220,10 +220,15 @@ func applyCityEquipment(d *cityDocument, actor *cityObject, g *CityEquipmentGrap
 	if err != nil {
 		return nil, err
 	}
-	actor.unit.reference74 = slots[0]
-	actor.unit.reference78 = slots[1]
-	for i := 2; i < len(slots); i++ {
-		actor.unit.equipment[i] = slots[i]
+	for slot, place := range EquipmentPlaces() {
+		switch place.Field {
+		case HeldWeaponField:
+			actor.unit.reference74 = slots[slot]
+		case HeldShieldField:
+			actor.unit.reference78 = slots[slot]
+		default:
+			actor.unit.equipment[place.Ordinal] = slots[slot]
+		}
 	}
 	var next uint16
 	for index := range d.objects {

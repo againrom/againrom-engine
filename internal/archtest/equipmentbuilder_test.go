@@ -152,6 +152,49 @@ func TestEquipmentEditorAndStockUseSharedBuilders(t *testing.T) {
 	if len(want) != 0 {
 		t.Fatal("missing item recipe field routes", want)
 	}
+	// Each reader and writer of a saved actor's held and worn items routes
+	// its slots through sav's one slot table.
+	policy := map[string]map[string][]string{
+		"pkg/game/originalholdings.go":     {"restoreOriginalActorStock": {"EquipmentPlaces", "EquipmentFieldSlot", "WornOverlap", "EquipmentSlotPlace"}},
+		"pkg/game/savequipmentslots.go":    {"writeSavEquipment": {"EquipmentPlaces"}, "readSavEquipment": {"EquipmentPlaces", "WornOverlap"}},
+		"pkg/formats/sav/holdings.go":      {"actorHoldings": {"EquipmentPlaces", "CarriesWorn"}},
+		"pkg/formats/sav/party.go":         {"actorCharacter": {"EquipmentFields"}},
+		"pkg/formats/sav/dead.go":          {"DeadActors": {"EquipmentFields"}},
+		"pkg/formats/sav/city_holdings.go": {"applyCityEquipment": {"EquipmentPlaces"}},
+	}
+	for file, callers := range policy {
+		f, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, file), nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, decl := range f.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || callers[fn.Name.Name] == nil || fn.Body == nil {
+				continue
+			}
+			called := map[string]bool{}
+			ast.Inspect(fn.Body, func(n ast.Node) bool {
+				if call, ok := n.(*ast.CallExpr); ok {
+					switch fun := call.Fun.(type) {
+					case *ast.Ident:
+						called[fun.Name] = true
+					case *ast.SelectorExpr:
+						called[fun.Sel.Name] = true
+					}
+				}
+				return true
+			})
+			for _, name := range callers[fn.Name.Name] {
+				if !called[name] {
+					t.Errorf("%s %s does not route its slots through sav's %s", file, fn.Name.Name, name)
+				}
+			}
+			delete(callers, fn.Name.Name)
+		}
+		if len(callers) != 0 {
+			t.Errorf("%s: saved-equipment routes missing: %v", file, callers)
+		}
+	}
 }
 
 func TestNativeItemEncoderChecksTheExistingDecoder(t *testing.T) {

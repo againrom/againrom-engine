@@ -7,51 +7,10 @@ import (
 	"againrom/pkg/sim"
 )
 
-// An actor record keeps its equipment in three fields: HeldWeapon and
-// HeldShield hold one ref each, and Worn holds one ref per slot. Each slot has
-// one home in savEquipmentSlots. A Worn position whose slot lives in a held
-// field is an overlap position, which a writer leaves empty. A Unit record has
-// no Worn. Writers and readers that disagree at the edges pass policy as data.
-const (
-	savHeldWeaponField = "HeldWeapon"
-	savHeldShieldField = "HeldShield"
-	savWornField       = "Worn"
-)
-
-var savEquipmentFields = [3]string{savHeldWeaponField, savHeldShieldField, savWornField}
-
-type savSlotPlace struct {
-	Field   string
-	Ordinal int
-}
-
-var savEquipmentSlots = [sim.EquipSlots]savSlotPlace{
-	{savHeldWeaponField, 0}, {savHeldShieldField, 0},
-	{savWornField, 2}, {savWornField, 3}, {savWornField, 4}, {savWornField, 5}, {savWornField, 6},
-	{savWornField, 7}, {savWornField, 8}, {savWornField, 9}, {savWornField, 10}, {savWornField, 11},
-}
-
-// savEquipmentSlotRef is the field and position that hold one slot.
-func savEquipmentSlotRef(slot int) (string, int) {
-	return savEquipmentSlots[slot].Field, savEquipmentSlots[slot].Ordinal
-}
-
-// savEquipmentFieldSlot is the slot one position of an equipment field
-// stands for: a held field's own slot, or the Worn position's slot.
-func savEquipmentFieldSlot(field string, ordinal int) (int, bool) {
-	if field == savWornField {
-		return ordinal, true
-	}
-	for slot, place := range savEquipmentSlots {
-		if place.Field == field {
-			return slot, true
-		}
-	}
-	return 0, false
-}
-
-// savClassCarriesWorn reports whether records of a class have the Worn field.
-func savClassCarriesWorn(class string) bool { return class != "Unit" }
+// Each slot's home in an actor record's equipment fields is sav's one slot
+// table; a slot width other than the simulation's does not compile. Writers
+// and readers that disagree at the edges pass policy as data.
+var _ [sim.EquipSlots]sav.EquipmentPlace = sav.EquipmentPlaces()
 
 // savWornRule decides whether a site writes or reads a record's Worn field.
 type savWornRule uint8
@@ -72,9 +31,9 @@ var (
 
 func (rule savWornRule) carries(r *sav.DocumentRecordData) bool {
 	if rule == savWornByClass {
-		return savClassCarriesWorn(r.Class)
+		return sav.CarriesWorn(r.Class)
 	}
-	_, ok := savedObjectRefs(r, savWornField)
+	_, ok := savedObjectRefs(r, sav.WornField)
 	return ok
 }
 
@@ -82,15 +41,15 @@ func (rule savWornRule) carries(r *sav.DocumentRecordData) bool {
 // slot order, through the site's own setter.
 func writeSavEquipment(refs [sim.EquipSlots]uint16, carriesWorn bool, set func(field string, refs []uint16)) {
 	var worn [sim.EquipSlots]uint16
-	for slot, place := range savEquipmentSlots {
-		if place.Field == savWornField {
+	for slot, place := range sav.EquipmentPlaces() {
+		if place.Field == sav.WornField {
 			worn[place.Ordinal] = refs[slot]
 			continue
 		}
 		set(place.Field, []uint16{refs[slot]})
 	}
 	if carriesWorn {
-		set(savWornField, worn[:])
+		set(sav.WornField, worn[:])
 	}
 }
 
@@ -178,15 +137,15 @@ func savedObjectRefsGetter(r *sav.DocumentRecordData) savRefsGetter {
 func readSavEquipment(r *sav.DocumentRecordData, p savEquipmentPolicy, get savRefsGetter) (savEquipmentView, error) {
 	var v savEquipmentView
 	var worn []uint16
-	if p.Worn == savWornByField || savClassCarriesWorn(r.Class) {
-		refs, ok, err := get(savWornField)
+	if p.Worn == savWornByField || sav.CarriesWorn(r.Class) {
+		refs, ok, err := get(sav.WornField)
 		if err != nil || ok && p.High == savWornExactLength && len(refs) != sim.EquipSlots {
-			return v, &savEquipmentError{Fault: savWornShapeFault, Field: savWornField, Err: err}
+			return v, &savEquipmentError{Fault: savWornShapeFault, Field: sav.WornField, Err: err}
 		}
 		worn = refs
 	}
-	for slot, place := range savEquipmentSlots {
-		if place.Field == savWornField {
+	for slot, place := range sav.EquipmentPlaces() {
+		if place.Field == sav.WornField {
 			continue
 		}
 		refs, ok, err := get(place.Field)
@@ -221,14 +180,14 @@ func readSavEquipment(r *sav.DocumentRecordData, p savEquipmentPolicy, get savRe
 		}
 	}
 	for at, ref := range worn {
-		refused := at < sim.EquipSlots && savEquipmentSlots[at].Field != savWornField && p.Low == savLowRefused ||
+		refused := sav.WornOverlap(at) && p.Low == savLowRefused ||
 			at >= sim.EquipSlots && p.High == savHighRefused
 		if refused && ref != 0 {
-			return v, &savEquipmentError{Fault: savOverlapFault, Field: savWornField}
+			return v, &savEquipmentError{Fault: savOverlapFault, Field: sav.WornField}
 		}
 	}
-	for slot, place := range savEquipmentSlots {
-		if place.Field == savWornField && place.Ordinal < len(worn) {
+	for slot, place := range sav.EquipmentPlaces() {
+		if place.Field == sav.WornField && place.Ordinal < len(worn) {
 			v.Refs[slot], v.Located[slot] = worn[place.Ordinal], true
 		}
 	}

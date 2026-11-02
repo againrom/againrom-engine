@@ -131,7 +131,7 @@ func documentFragment(data DocumentFragment, strict bool) (DocumentFragment, []u
 				class := data.Objects[index-1].Class
 				valid := false
 				switch slot.Name {
-				case "HeldWeapon", "HeldShield", "Worn", "Inventory":
+				case HeldWeaponField, HeldShieldField, WornField, "Inventory":
 					valid = class == "Item" || class == "Weapon" || class == "Armor" || class == "Shield"
 				case "Effects":
 					valid = class == "Effect"

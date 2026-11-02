@@ -368,8 +368,8 @@ func unitProgramme(rawTail Member) []step {
 		}},
 		{op: stpU16List, name: "U158_90"},
 		{op: stpRun, name: "UnitControl", members: unitStoreA},
-		{op: stpObjRef, name: "HeldWeapon"},
-		{op: stpObjRef, name: "HeldShield"},
+		{op: stpObjRef, name: HeldWeaponField},
+		{op: stpObjRef, name: HeldShieldField},
 		{op: stpRun, name: "UnitState", members: unitStoreB},
 		{op: stpObjRef, name: "U68"},
 		{op: stpFlagged, name: "HasInventory", sub: []step{{op: stpContainer, name: "Inventory"}}},
@@ -386,7 +386,7 @@ func humanoidProgramme(diary bool) []step {
 	out := []step{
 		{op: stpClass, class: "Unit"},
 		{op: stpRun, name: "HumanoidXP", members: []Member{{Name: "H1CC", Kind: KindRaw, Len: 24}}},
-		{op: stpRefRun, name: "Worn", n: 12},
+		{op: stpRefRun, name: WornField, n: EquipmentSlots},
 	}
 	if diary {
 		out = append(out, step{op: stpObjRef, name: "Diary"})
@@ -718,7 +718,7 @@ func (w *walker) step(s step, rec *Record, depth int) error {
 			if err != nil {
 				return err
 			}
-			if s.name == "Worn" {
+			if s.name == WornField {
 				rec.WornSlots = append(rec.WornSlots, obj)
 			}
 			if w.retainGraph {

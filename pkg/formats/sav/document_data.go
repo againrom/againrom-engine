@@ -968,7 +968,7 @@ func documentRecordFromDataMode(data DocumentRecordData, out *Record, objects []
 		return fmt.Errorf("sav: document record omits canonical counts/slots/inline sites")
 	}
 	out.SpellSlots = append([]*Record(nil), out.RefSlots["Spells"]...)
-	out.WornSlots = append([]*Record(nil), out.RefSlots["Worn"]...)
+	out.WornSlots = append([]*Record(nil), out.RefSlots[WornField]...)
 	return nil
 }
 

@@ -531,11 +531,11 @@ func validateSavedItemBindingWorldDecoded(state *SnapshotSAVDocument, world *sim
 		}
 		carriesWorn := itemBindingCheckWorn.carries(record)
 		for slot, value := range items {
-			field, ordinal := savEquipmentSlotRef(slot)
-			if field == savWornField && !carriesWorn {
+			place := sav.EquipmentSlotPlace(slot)
+			if place.Field == sav.WornField && !carriesWorn {
 				continue
 			}
-			if err := checkRef(field, ordinal, value); err != nil {
+			if err := checkRef(place.Field, place.Ordinal, value); err != nil {
 				return err
 			}
 		}
@@ -543,9 +543,10 @@ func validateSavedItemBindingWorldDecoded(state *SnapshotSAVDocument, world *sim
 	}
 	stripEquipment := func(record *sav.DocumentRecordData) {
 		record.RefSlots = slices.DeleteFunc(slices.Clone(record.RefSlots), func(ref sav.DocumentRefsData) bool {
-			return slices.Contains(savEquipmentFields[:], ref.Name)
+			equipment := sav.EquipmentFields()
+			return slices.Contains(equipment[:], ref.Name)
 		})
-		record.Counts = slices.DeleteFunc(slices.Clone(record.Counts), func(count sav.DocumentCountData) bool { return count.Name == savWornField })
+		record.Counts = slices.DeleteFunc(slices.Clone(record.Counts), func(count sav.DocumentCountData) bool { return count.Name == sav.WornField })
 	}
 	for _, actor := range state.Actors {
 		actual := state.Document.Objects[actor.ObjectIndex-1]

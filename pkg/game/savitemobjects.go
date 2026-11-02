@@ -249,7 +249,7 @@ func savedDocumentIncoming(doc *sav.DocumentData) map[uint16]uint32 {
 // object already held, not a second live owner, so it must not inflate the
 // ambiguous-ownership count below.
 var savedItemOwnershipRefSlots = map[string]bool{
-	"Contents": true, "Inventory": true, savHeldWeaponField: true, savHeldShieldField: true, savWornField: true,
+	"Contents": true, "Inventory": true, sav.HeldWeaponField: true, sav.HeldShieldField: true, sav.WornField: true,
 }
 
 // savedItemOwnershipIncoming counts, per object index, how many OWNERSHIP ref

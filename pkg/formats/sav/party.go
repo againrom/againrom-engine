@@ -426,7 +426,7 @@ func actorCharacter(r *Record) (Character, error) {
 	// twelve at +0x198 are the armour. All fourteen are equipment, so they are
 	// one list here and the consumer routes each by the slot its own code
 	// carries rather than by which site it was read from.
-	for _, site := range []string{"HeldWeapon", "HeldShield", "Worn"} {
+	for _, site := range EquipmentFields() {
 		for _, ref := range r.Refs[site] {
 			c.Worn = append(c.Worn, piece(ref))
 		}

@@ -164,9 +164,12 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 			codes = append(codes, p.Code)
 			return nil
 		}
-		for slot, piece := range []*sav.Piece{actor.HeldWeapon, actor.HeldShield} {
-			if piece != nil {
-				if (slot == 0 && piece.Class != "Weapon") || (slot == 1 && piece.Class != "Shield") {
+		for slot, place := range sav.EquipmentPlaces() {
+			if place.Field == sav.WornField {
+				continue
+			}
+			if piece := actor.HeldPiece(place.Field); piece != nil {
+				if piece.Class != place.ItemClass {
 					return fmt.Errorf("original holdings actor %d: wrong held item class %s", actor.Off, piece.Class)
 				}
 				if err := add(*piece, slot); err != nil {
@@ -174,12 +177,13 @@ func restoreOriginalActorStock(ms *Mission, source []sav.ActorHoldings, table *m
 				}
 			}
 		}
-		for slot, piece := range actor.Worn {
+		for ordinal, piece := range actor.Worn {
 			if piece != nil {
-				if slot < 2 {
+				slot, _ := sav.EquipmentFieldSlot(sav.WornField, ordinal)
+				if sav.WornOverlap(ordinal) {
 					return fmt.Errorf("original holdings actor %d: armor slot %d overlaps native held role", actor.Off, slot+1)
 				}
-				if piece.Class != "Armor" {
+				if piece.Class != sav.EquipmentSlotPlace(slot).ItemClass {
 					return fmt.Errorf("original holdings actor %d: wrong armor class %s", actor.Off, piece.Class)
 				}
 				if err := add(*piece, slot); err != nil {

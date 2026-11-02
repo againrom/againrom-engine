@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -170,7 +171,7 @@ func (b *generatedDocumentBuilder) currentTerminalCarried(index uint16, carried 
 // file stays that record's.
 func (b *generatedDocumentBuilder) passiveDeadContents(index uint16, body sim.OriginalDeadRecord, kept sim.PassiveBody, w *sim.World) error {
 	r := &b.doc.Objects[index-1]
-	weapon, _ := savedObjectRefs(r, savHeldWeaponField)
+	weapon, _ := savedObjectRefs(r, sav.HeldWeaponField)
 	weapon = slices.Clone(weapon)
 	worn := kept.Worn
 	if body.Source.HeldWeapon.Present {
@@ -180,7 +181,7 @@ func (b *generatedDocumentBuilder) passiveDeadContents(index uint16, body sim.Or
 		return err
 	}
 	if body.Source.HeldWeapon.Present {
-		mustSetRefs(&b.doc.Objects[index-1], savHeldWeaponField, weapon)
+		mustSetRefs(&b.doc.Objects[index-1], sav.HeldWeaponField, weapon)
 	}
 	return b.currentTerminalCarried(index, kept.Carried, w)
 }

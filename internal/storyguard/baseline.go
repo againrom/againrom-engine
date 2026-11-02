@@ -3895,5 +3895,14 @@ var Committed = Baseline{
 	//
 	// It rose for the person window drag fix: blitNoticeWindow's doc comment,
 	// the new test's, and this note.
-	CommentBytes: 10436251,
+	//
+	// It rose for the record of each saved-equipment reader: the doc comments
+	// of pkg/game/savequipmentreaders_test.go and
+	// pkg/formats/sav/cityequipmentrecord_test.go, and this note. It rose
+	// again for sav's one slot table: the doc comments of
+	// pkg/formats/sav/equipmentplaces.go, the guard
+	// internal/archtest/equipmentplaces.go and its test, the writer map's
+	// note in equipmentbuilder_test.go, less the table's former comments in
+	// pkg/game/savequipmentslots.go.
+	CommentBytes: 10439647,
 }

@@ -64,15 +64,17 @@ func (f *File) DeadActors() ([]DeadActor, error) {
 			Stage: uint8(r.value("Stage")), HP: int16(r.value("Health")), MaxHP: uint16(r.value("HealthMax")), Timer: int8(r.value("U6C")),
 			TypeID:  uint16(r.value("T0E")),
 			Effects: r.Counts["Effects"], Carried: r.Counts["Inventory"],
-			Worn:             len(r.Refs["HeldWeapon"]) + len(r.Refs["HeldShield"]) + len(r.Refs["Worn"]),
 			ContainerPresent: r.value("HasInventory") != 0,
 			References:       [5]uint32{r.value("U5C"), r.value("U64"), r.value("U44"), 0, r.value("U40")},
 			ContainerTail:    [2]uint32{r.value("Inventory1C"), r.value("Inventory20")},
 		}
+		for _, field := range EquipmentFields() {
+			d.Worn += len(r.Refs[field])
+		}
 		if refs := r.Refs["U68"]; len(refs) != 0 {
 			d.References[3] = refs[0].value("Identity")
 		}
-		if refs := r.Refs["HeldWeapon"]; len(refs) == 1 {
+		if refs := r.Refs[HeldWeaponField]; len(refs) == 1 {
 			d.HeldWeapon, _ = projectDeadWeapon(refs[0])
 		}
 		out = append(out, d)

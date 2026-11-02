@@ -21,27 +21,27 @@ func TestSavEquipmentSlotLayoutTable(t *testing.T) {
 		name  string
 		carry bool
 	}{{"Unit", false}, {"Humanoid", true}, {"Human", true}} {
-		if got := savClassCarriesWorn(class.name); got != class.carry {
+		if got := sav.CarriesWorn(class.name); got != class.carry {
 			t.Fatalf("%s carries Worn = %v, want %v", class.name, got, class.carry)
 		}
 		for slot := range want {
-			field, ordinal := savEquipmentSlotRef(slot)
+			field, ordinal := sav.EquipmentSlotPlace(slot).Field, sav.EquipmentSlotPlace(slot).Ordinal
 			if (place{field, ordinal}) != want[slot] {
 				t.Fatalf("%s slot %d at %s[%d], want %v", class.name, slot, field, ordinal, want[slot])
 			}
 			if field == "Worn" && !class.carry {
 				continue
 			}
-			if back, ok := savEquipmentFieldSlot(field, ordinal); !ok || back != slot {
+			if back, ok := sav.EquipmentFieldSlot(field, ordinal); !ok || back != slot {
 				t.Fatalf("%s %s[%d] reads back as slot %d %v, want %d", class.name, field, ordinal, back, ok, slot)
 			}
 		}
 	}
-	if _, ok := savEquipmentFieldSlot("Inventory", 0); ok {
+	if _, ok := sav.EquipmentFieldSlot("Inventory", 0); ok {
 		t.Fatal("Inventory maps to an equipment slot")
 	}
-	if want := [3]string{"HeldWeapon", "HeldShield", "Worn"}; savEquipmentFields != want {
-		t.Fatalf("fields %v, want %v", savEquipmentFields, want)
+	if want := [3]string{"HeldWeapon", "HeldShield", "Worn"}; sav.EquipmentFields() != want {
+		t.Fatalf("fields %v, want %v", sav.EquipmentFields(), want)
 	}
 }
 

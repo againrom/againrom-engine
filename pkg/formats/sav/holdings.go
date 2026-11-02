@@ -11,7 +11,7 @@ type ActorHoldings struct {
 	MapUnitID, Cell, HP    uint16
 	Stage                  uint8
 	HeldWeapon, HeldShield *Piece
-	Worn                   [12]*Piece
+	Worn                   [EquipmentSlots]*Piece
 	Items                  []Piece // A zero Piece is one explicit null inventory slot.
 	LoadState              ActorLoadState
 	Basis                  *ActorBasis
@@ -107,25 +107,24 @@ func actorHoldings(doc *document, current []uint16) ([]ActorHoldings, error) {
 			p := piece(item)
 			return &p, nil
 		}
-		for slot, site := range []string{"HeldWeapon", "HeldShield"} {
-			refs := actor.Refs[site]
+		for _, place := range EquipmentPlaces() {
+			if place.Field == WornField {
+				continue
+			}
+			refs := actor.Refs[place.Field]
 			if len(refs) > 1 {
-				return nil, fmt.Errorf("sav: actor %d repeats %s", actor.Off, site)
+				return nil, fmt.Errorf("sav: actor %d repeats %s", actor.Off, place.Field)
 			}
 			if len(refs) == 0 {
 				continue
 			}
-			p, err := project(refs[0])
+			p, err := project(refs[place.Ordinal])
 			if err != nil {
 				return nil, err
 			}
-			if slot == 0 {
-				a.HeldWeapon = p
-			} else {
-				a.HeldShield = p
-			}
+			a.setHeldPiece(place.Field, p)
 		}
-		if actor.Class != "Unit" && len(actor.WornSlots) != 12 {
+		if CarriesWorn(actor.Class) && len(actor.WornSlots) != EquipmentSlots {
 			return nil, fmt.Errorf("sav: actor %d lacks sparse armor slots", actor.Off)
 		}
 		for slot, item := range actor.WornSlots {

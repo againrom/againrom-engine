@@ -693,7 +693,8 @@ func currentSackWireKey(world *sim.World, cell uint16) (uint32, error) {
 // Remove only known Item edges whose current native owner has gone away.
 // Other source references and retained actor operands keep their own authority.
 func clearCurrentRetiredActorItems(record *sav.DocumentRecordData, actor sim.EntityID, items map[uint16]sim.SavedObjectID, registry *sim.SavedObjects) {
-	for _, field := range append([]string{"Inventory"}, savEquipmentFields[:]...) {
+	equipment := sav.EquipmentFields()
+	for _, field := range append([]string{"Inventory"}, equipment[:]...) {
 		refs, present := savedObjectRefs(record, field)
 		if !present {
 			continue
@@ -702,7 +703,7 @@ func clearCurrentRetiredActorItems(record *sav.DocumentRecordData, actor sim.Ent
 		changed := false
 		for ordinal, ref := range refs {
 			owner := sim.SavedObjectOwner{Kind: sim.SavedOwnerActorPack, Entity: actor}
-			if slot, ok := savEquipmentFieldSlot(field, ordinal); ok {
+			if slot, ok := sav.EquipmentFieldSlot(field, ordinal); ok {
 				owner.Kind, owner.Slot = sim.SavedOwnerActorWorn, uint32(slot+1)
 			}
 			id, known := items[ref]

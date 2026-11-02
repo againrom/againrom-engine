@@ -68,7 +68,7 @@ func (b *generatedDocumentBuilder) currentDeadRecord(record *sav.DocumentRecordD
 		if err != nil {
 			return err
 		}
-		mustSetRefs(record, savHeldWeaponField, []uint16{object})
+		mustSetRefs(record, sav.HeldWeaponField, []uint16{object})
 	}
 	return buildWorldCarriers(deadRecordBuild, carrierBuild{b: b, record: record, body: body, entity: entity})
 }
