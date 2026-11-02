@@ -809,6 +809,21 @@ func (e *MapEditor) objectTyping() bool {
 	return !e.prompt.open() && e.obj.focus >= 0 && e.obj.focus < len(e.obj.fields) && e.obj.doc == e.doc && e.obj.record == e.selected
 }
 
+// FieldFocus is the record popup field the keyboard edits, -1 for none,
+// and the rune span its text selection covers, caret to caret when nothing
+// is selected, for a headless driver.
+func (e *MapEditor) FieldFocus() (field, from, to int) {
+	if !e.objectTyping() {
+		return -1, 0, 0
+	}
+	m, _ := e.inputModel()
+	if m == nil {
+		return e.obj.focus, 0, 0
+	}
+	from, to = m.selection()
+	return e.obj.focus, from, to
+}
+
 // endFieldTyping ends field typing as Esc does, without applying the typed
 // value. A click on the bar or a menu row calls it before acting.
 func (e *MapEditor) endFieldTyping() {

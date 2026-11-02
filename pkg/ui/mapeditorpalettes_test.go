@@ -52,11 +52,12 @@ func TestMapEditorTreeBranchesAreTheBarsRecordEntries(t *testing.T) {
 	}
 }
 
-// Each category's palette holds no record row and no "x-y / n" count: the
-// placement grid with its note and Add for Units and Structures, Add for
-// Sacks, the hint, the drop zone switch and Add for Scripts, the relation
-// matrix and Add for Players, the selection notes and the two group buttons
-// for Groups.
+// Each category's palette but Scenario holds no record row and no "x-y / n"
+// count: the placement grid with its note and Add for Units and Structures,
+// Add for Sacks, the relation matrix and Add for Players, the selection
+// notes and the two group buttons for Groups. The Scenario palette keeps
+// the hint, the drop zone switch and Add, and lists New trigger over the
+// tree's Scenario rows (TestMapEditorScenarioPaletteListsTheTreesRows).
 func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 	count := regexp.MustCompile(`^\d+-\d+ / \d+$`)
 	for _, c := range editorCategories {
@@ -66,6 +67,13 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 			s, ok := e.listSpec()
 			if !ok || !e.paletteShown() && !e.groupsShown() {
 				t.Fatalf("the %s palette did not open", c.key)
+			}
+			if c.key == "scripts" {
+				add := e.word("editor.button.add")
+				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 2 || s.Buttons[1] != add || s.List == nil {
+					t.Errorf("the scripts palette %q %q, list %v", s.Notes, s.Buttons, s.List != nil)
+				}
+				return
 			}
 			if s.List != nil || e.ListRowCount() != 0 {
 				t.Fatalf("the %s palette holds a list of %d rows", c.key, e.ListRowCount())
@@ -96,10 +104,6 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 			case "sacks":
 				if !slices.Equal(s.Buttons, []string{add}) {
 					t.Errorf("the sacks palette buttons %q", s.Buttons)
-				}
-			case "scripts":
-				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 2 || s.Buttons[1] != add {
-					t.Errorf("the scripts palette %q %q", s.Notes, s.Buttons)
 				}
 			case "players":
 				if s.Grid == nil || s.Grid.Rows != 2 || !slices.Contains(s.Buttons, add) {

@@ -758,6 +758,72 @@ func (e *MapEditor) newTrigger() {
 	e.openAdd(KindTrigger)
 }
 
+// freshTrigger is the trigger the one click added, the document its add made
+// and the wizard session that click opened; wiz nil for none.
+type freshTrigger struct {
+	doc   *InspectionDocument
+	index int
+	wiz   *wizardState
+}
+
+// addTriggerNow is the one-click trigger, the New trigger command row's
+// action: it adds the trigger the Add window's trigger steps add with every
+// proposal accepted, as one history entry, closes the list popup and opens
+// the trigger in the wizard, its name field focused with its text selected,
+// so typing replaces the name. A shown popup with unapplied edits keeps
+// them and says so.
+func (e *MapEditor) addTriggerNow() {
+	host, ok := e.addHost()
+	row, _ := addKindOf(KindTrigger)
+	if !ok || !e.triggerNowOpen() {
+		return
+	}
+	if e.objectDirty() {
+		e.obj.note = e.word("editor.trigger.applyfirst")
+		return
+	}
+	e.leave(leaveDrag | leavePick | leavePrompt | leaveReport | leaveBrush)
+	e.closeList()
+	run := &addRun{kind: row.Kind}
+	run.setSteps(row.Steps)
+	ch, err := e.commandAddRecord(e.addAccepted(host, run, -1, image.Point{}))
+	if err != nil {
+		e.message = e.editorHostText(err.Error())
+		return
+	}
+	if ch.doc == nil {
+		return
+	}
+	e.selectNewest(KindTrigger, ch.doc.AddedRecord)
+	e.obj.doc = nil
+	e.loadObject()
+	if e.wizardOpen() == nil {
+		return
+	}
+	e.fresh = freshTrigger{doc: e.doc, index: ch.doc.AddedRecord.Index, wiz: e.obj.wiz}
+	e.focusObjectField(trigName)
+	if m, _ := e.inputModel(); m != nil {
+		m.selectAll()
+	}
+}
+
+// triggerNowOpen reports that the open map takes the one-click trigger: its
+// host adds records, as the Add window's trigger steps need.
+func (e *MapEditor) triggerNowOpen() bool {
+	_, ok := e.addHost()
+	return ok && e.addKindOpen(KindTrigger)
+}
+
+// joinsAdd reports that the Apply of trigger index is the first one of the
+// wizard session the one-click add opened, so the write joins the add's
+// history entry and one undo takes the named trigger out. A wizard read
+// again (Cancel, another selection, a later opening) is a new session, and
+// a written save ends the join.
+func (e *MapEditor) joinsAdd(index int) bool {
+	f := e.fresh
+	return f.wiz != nil && f.wiz == e.obj.wiz && f.doc == e.doc && f.index == index
+}
+
 // deleteTrigger deletes the shown trigger; its nodes stay.
 func (e *MapEditor) deleteTrigger(v scriptView) {
 	ch, err := e.commandDelete(RecordRef{Kind: KindTrigger, Index: v.index})

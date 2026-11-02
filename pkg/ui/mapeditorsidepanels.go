@@ -1224,14 +1224,22 @@ func (e *MapEditor) treeChosen(row treeRow) bool {
 // bar's order. A search keeps the members whose name or ID holds it, under
 // their branches, open; a branch then counts its matches.
 func (e *MapEditor) treeRows() ([]PickerRow, []treeRow, int) {
+	return e.treeRowsOf(editorCategories, e.tree.search, e.tree.closed)
+}
+
+// treeRowsOf are the tree rows of the branches of categories cats, searched
+// for query, with the branches closed holds shut. The tree shows every
+// category with its own search and closed branches; the Scenario palette
+// lists the Scenario branch open and unsearched.
+func (e *MapEditor) treeRowsOf(cats []editorCategory, query string, closed map[string]bool) ([]PickerRow, []treeRow, int) {
 	if e.doc == nil {
 		return nil, nil, -1
 	}
-	query := strings.TrimSpace(e.tree.search)
+	query = strings.TrimSpace(query)
 	var rows []PickerRow
 	var kinds []treeRow
 	sel := -1
-	for _, c := range editorCategories {
+	for _, c := range cats {
 		shown := e.treeMatches(c, query)
 		count := 0
 		for _, m := range shown {
@@ -1242,7 +1250,7 @@ func (e *MapEditor) treeRows() ([]PickerRow, []treeRow, int) {
 		if query != "" && len(shown) == 0 {
 			continue
 		}
-		open := query != "" || !e.tree.closed[c.key]
+		open := query != "" || !closed[c.key]
 		fold := FoldOpen
 		if !open {
 			fold = FoldClosed
@@ -1415,8 +1423,24 @@ func (e *MapEditor) TreeLines() []string {
 	if !ok {
 		return nil
 	}
+	return rowLines(s.List.Rows())
+}
+
+// ListLines are the list popup's rows as text, as TreeLines writes the
+// tree's, for a headless driver; none while the popup shows no list.
+func (e *MapEditor) ListLines() []string {
+	s, ok := e.listSpec()
+	if !ok || s.List == nil {
+		return nil
+	}
+	return rowLines(s.List.Rows())
+}
+
+// rowLines are list rows as text, indented two spaces a step, a branch with
+// its fold mark.
+func rowLines(rows []PickerRow) []string {
 	var out []string
-	for _, r := range s.List.Rows() {
+	for _, r := range rows {
 		mark := ""
 		if r.Fold != FoldNone {
 			mark = rowFoldMarks[r.Fold] + " "
@@ -1467,6 +1491,12 @@ func (e *MapEditor) treeChoose(n int) {
 		}
 		return
 	}
+	e.memberChoose(r)
+}
+
+// memberChoose is the choice of member row r, the tree's or the Scenario
+// palette's.
+func (e *MapEditor) memberChoose(r treeRow) {
 	if c, ok := categoryByKey(r.of); ok && r.of != e.tree.last {
 		if shown, ok := categoryOf(e.filter); !e.paletteShown() || !ok || shown.key != c.key {
 			e.openPalette(c)

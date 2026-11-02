@@ -18,10 +18,12 @@ import (
 // trigger. A node the trigger named before and no trigger names after is
 // deleted, unless deleting it would move a register a variable addresses.
 
-// WriteTrigger writes t as one edit. A refusal for want of a register reads
-// in the editor's words.
+// WriteTrigger writes t as one edit, or with t.Join as part of the history
+// entry before it, so one undo takes back both. A refusal for want of a
+// register reads in the editor's words.
 func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDocument, error) {
-	return s.change(func(m *mapedit.Editor) (bool, error) {
+	steps := len(s.undoWorkspace)
+	d, err := s.change(func(m *mapedit.Editor) (bool, error) {
 		mark := m.Mark()
 		if err := writeWizardTrigger(m, t); err != nil {
 			var taken registerTaken
@@ -37,6 +39,10 @@ func (s *mapInspectionEdits) WriteTrigger(t ui.WizardTrigger) (*ui.InspectionDoc
 		m.Squash(mark)
 		return changed, nil
 	})
+	if t.Join && d != nil && steps > 0 && len(s.undoWorkspace) == steps+1 {
+		s.undoWorkspace = s.undoWorkspace[:steps]
+	}
+	return d, err
 }
 
 // wizardScript is m's decoded script.

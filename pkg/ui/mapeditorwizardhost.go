@@ -29,13 +29,16 @@ type WizardPair struct {
 
 // WizardTrigger is the trigger the wizard writes: Index -1 adds a trigger.
 // A node the trigger named before and no trigger names after is deleted
-// where deleting it moves no variable register.
+// where deleting it moves no variable register. Join makes the write part
+// of the history entry before it: the editor sets it on the first Apply of
+// a one-click trigger while that trigger's add is the last edit.
 type WizardTrigger struct {
 	Index   int
 	Name    string
 	Once    uint32
 	Pairs   []WizardPair
 	Actions []WizardNode
+	Join    bool
 }
 
 // InspectionDropZones is implemented by edits whose host adds, moves and

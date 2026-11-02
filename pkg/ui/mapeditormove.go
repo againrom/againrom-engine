@@ -57,6 +57,7 @@ func (e *MapEditor) saveWith(write func() (string, error)) error {
 		return err
 	}
 	e.doc.Source = source
+	e.fresh = freshTrigger{}
 	if e.mcp.call != nil {
 		e.mcp.saved = source
 	}

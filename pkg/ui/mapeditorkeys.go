@@ -168,6 +168,7 @@ func init() {
 		{key: "package", label: "W", act: (*MapEditor).keyWorkspace, help: keys(lineMap)},
 		{key: "help", label: "F1", act: (*MapEditor).keyHelp, help: keys(lineHelp)},
 		{key: "drawarea", label: "L", act: (*MapEditor).keyDrawArea, help: keys(lineArea)},
+		{key: "newtrigger", label: "F4", act: (*MapEditor).menuKey, help: keys(helpLine{Word: "editor.keys.newtrigger"})},
 		{label: "click", help: []helpEntry{{screenClone, lineCloneCell}, {screenDrop, lineDropCell}, {screenGoal, lineTargetCell}, {screenMove, lineMoveCell}, {screenAddCell, lineAddCell}}},
 		{label: "Drag", help: []helpEntry{{screenKeys, lineSelectBox}, {screenKeys, lineBoxMove}, {screenAddCell, linePlace}}},
 		{label: "1..9", help: []helpEntry{{screenKeys, lineGroups}, {screenSelection, lineGroups}}},
@@ -671,6 +672,13 @@ func (e *MapEditor) keyBackspace(string) error {
 	return nil
 }
 
+// menuKey performs the command row key names through menuAct, the path its
+// menu row takes.
+func (e *MapEditor) menuKey(key string) error {
+	e.menuAct(key)
+	return nil
+}
+
 func (e *MapEditor) keyFit(string) error {
 	e.Fit()
 	return nil
@@ -680,8 +688,8 @@ func (e *MapEditor) keyFit(string) error {
 // cursor.
 func (e *MapEditor) keyPage(key string) error {
 	m := e.model
-	if e.paletteShown() {
-		m = nil // a palette has no list
+	if e.paletteShown() && e.filter != editorScriptsFilter {
+		m = nil // no palette but Scenario's has a list
 	}
 	add := false
 	if r, ok := e.addRunning(); ok {

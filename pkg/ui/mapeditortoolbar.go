@@ -98,6 +98,7 @@ func init() {
 		{key: brushMenuKeys[brushObjects], icon: &iconObjects, word: "editor.tool.objects", keyRow: "objects", kind: toolPick, cell: image.Pt(1, 3), off: noBrush, menu: "tools"},
 		{key: brushMenuKeys[brushPassability], icon: &iconPassability, word: "editor.tool.passability", keyRow: "passability", kind: toolPick, cell: image.Pt(1, 4), off: noBrush, menu: "tools"},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, cell: image.Pt(1, 5), off: func(e *MapEditor) bool { return !e.editable() }, menu: "tools"},
+		{key: "newtrigger", word: "editor.tool.newtrigger", keyRow: "newtrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.triggerNowOpen() }, menu: "tools"},
 		{key: "border", icon: &iconBorder, word: "editor.tool.border", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 0), on: func(e *MapEditor) bool { return !e.view.hideBorder }, off: noMap, menu: "view"},
 		{key: "areas", icon: &iconAreas, word: "editor.tool.areas", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 1), on: func(e *MapEditor) bool { return !e.view.hideAreas }, off: noMap, menu: "view"},
 		{key: "drops", icon: &iconDrops, word: "editor.tool.drops", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 2), on: func(e *MapEditor) bool { return !e.view.hideDrops }, off: noMap, menu: "view"},

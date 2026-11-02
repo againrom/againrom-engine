@@ -1488,14 +1488,23 @@ func (e *MapEditor) applyWizard(v scriptView) {
 		o.note = e.editorHostText(err.Error())
 		return
 	}
+	t.Join = e.joinsAdd(v.index)
 	ch, err := e.commandWriteTrigger(t)
 	if err != nil {
 		o.note = err.Error() // host text: the popup encodes its note
 		return
 	}
 	o.open, o.note = -1, ""
+	if ch.doc != nil {
+		e.fresh = freshTrigger{}
+	}
 	if ch.doc == nil {
 		e.obj.doc = nil // nothing written: read the trigger again
+		if t.Join {
+			// The session goes on with the rows read again.
+			e.loadObject()
+			e.fresh.wiz = e.obj.wiz
+		}
 	}
 }
 

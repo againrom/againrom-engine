@@ -449,6 +449,7 @@ func TestScriptsNewVariableIsALabelledRegister(t *testing.T) {
 // openVariable opens the Scripts tree's row whose text is title.
 func openVariable(t *testing.T, e *ui.MapEditor, title string) {
 	t.Helper()
+	closePalette(e)
 	for n := 0; ; n++ {
 		r, ok := treeMemberRect(e, "scripts", n)
 		if !ok {

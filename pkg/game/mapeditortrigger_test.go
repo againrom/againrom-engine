@@ -50,6 +50,15 @@ func showTree(e *ui.MapEditor) {
 	}
 }
 
+// closePalette closes the list popup, and any window in front of it, with
+// Escape: the Scenario palette lists the tree's rows and can stand over
+// the tree's.
+func closePalette(e *ui.MapEditor) {
+	for i := 0; i < 4 && slices.Contains(e.OpenWindows(), "list"); i++ {
+		_ = e.Key("escape")
+	}
+}
+
 // treeMemberRect is the window rectangle of member n of category key's
 // branch in the left panel's tree, the panel shown and the tree scrolled to
 // show it.

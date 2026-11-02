@@ -3877,5 +3877,14 @@ var Committed = Baseline{
 	// the guard internal/archtest/heroband.go, the new tests, and this note.
 	// It rose a further amount for mapload.TableEdition, the guard's first
 	// edition shape, and this note.
-	CommentBytes: 10426285,
+
+	// It rose for the one-click trigger and the Scenario palette's record
+	// rows: the doc comments of addTriggerNow, freshTrigger, scenarioRows,
+	// scenarioChoose, treeRowsOf, memberChoose, addAccepted, OpenWindows,
+	// FieldFocus, ListLines and WizardTrigger.Join in pkg/ui, the join in
+	// pkg/game's WriteTrigger, the new tests in pkg/ui, pkg/game and
+	// internal/archtest, and this note. The join ends with its wizard session
+	// and a save: the comments of freshTrigger and joinsAdd in pkg/ui and the
+	// new test in pkg/game.
+	CommentBytes: 10433181,
 }

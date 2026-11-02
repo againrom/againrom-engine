@@ -284,11 +284,7 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 }
 
 // addPlacement is the record a click on cell adds, and the placement
-// preview's. It completes a copy of the open run the way the window would
-// walk it, then assembles it with addRecord: the cell is the cell step's
-// answer, a step the host leaves out stays out, and a step with no answer
-// takes the window's default (addDefault; a many step with no value the
-// first choice, the row the window's list highlights).
+// preview's: a copy of the open run, completed by addAccepted.
 func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 	r, ok := e.addRunning()
 	host, hok := e.addHost()
@@ -296,7 +292,6 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 		return InspectionNewRecord{}
 	}
 	run := *r
-	run.at = -1
 	run.texts, run.skip = slices.Clone(r.texts), slices.Clone(r.skip)
 	run.many = make([][]int64, len(r.many))
 	for i, m := range r.many {
@@ -308,13 +303,25 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 			run.many[r.at] = append(run.many[r.at], v)
 		}
 	}
+	return e.addAccepted(host, &run, r.at, cell)
+}
+
+// addAccepted completes run the way the window would walk it, every step
+// after asked taking its proposal, then assembles it with addRecord: the
+// cell is the cell step's answer, a step the host leaves out stays out, and
+// a step with no answer takes the window's default (addDefault; a many step
+// with no value the first choice, the row the window's list highlights).
+// The placement takes the open run's answers so far; the one-click trigger
+// takes a new run with none (asked -1).
+func (e *MapEditor) addAccepted(host InspectionNewRecords, run *addRun, asked int, cell image.Point) InspectionNewRecord {
+	run.at = -1
 	for i, st := range run.steps {
 		if st.Control == addCell {
 			run.texts[i] = fmt.Sprintf("%d,%d", cell.X, cell.Y)
 			continue
 		}
 		var offer InspectionNewStep
-		offer, run.skip[i] = e.addOffer(host, &run, i)
+		offer, run.skip[i] = e.addOffer(host, run, i)
 		if run.skip[i] {
 			run.texts[i] = ""
 			continue
@@ -322,7 +329,7 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 		switch st.Control {
 		case addKind:
 		case addName:
-			if i > r.at {
+			if i > asked {
 				run.texts[i] = addDefault(st, offer)
 			}
 		case addMany:
@@ -335,7 +342,7 @@ func (e *MapEditor) addPlacement(cell image.Point) InspectionNewRecord {
 			}
 		}
 	}
-	return e.addRecord(&run, len(run.steps))
+	return e.addRecord(run, len(run.steps))
 }
 
 func parseCell(s string) (image.Point, bool) {

@@ -48,6 +48,10 @@ type editorChrome struct {
 	// triggerDetails is the trigger, plus one, whose popup shows the pair
 	// view instead of the wizard; 0 shows the wizard.
 	triggerDetails int
+	// fresh is the one-click trigger whose first Apply joins its add's
+	// history entry, while its wizard session lasts and no save stands
+	// between.
+	fresh freshTrigger
 	// dropSel is the drop zone, plus one, the drop tool has selected.
 	dropSel                int
 	body                   *text.Font
@@ -339,6 +343,26 @@ func (e *MapEditor) ListButtonRect(n, k int) (image.Rectangle, bool) {
 	return image.Rectangle{}, false
 }
 
+// OpenWindows names the windows open over the map, in the order a press
+// tests them: "menu" (a bar menu's drop-down), "prompt", "object" (the
+// record popup) and "list" (the list popup), for a headless driver.
+func (e *MapEditor) OpenWindows() []string {
+	var out []string
+	if _, ok := e.openMenuEntry(); ok {
+		out = append(out, "menu")
+	}
+	if _, ok := e.promptSpec(); ok {
+		out = append(out, "prompt")
+	}
+	if _, _, ok := e.objectSpec(); ok {
+		out = append(out, "object")
+	}
+	if _, ok := e.listSpec(); ok {
+		out = append(out, "list")
+	}
+	return out
+}
+
 func (e *MapEditor) ListRowCount() int {
 	if s, ok := e.listSpec(); ok && s.List != nil {
 		return s.List.Len()
@@ -570,10 +594,7 @@ func (e *MapEditor) menuAct(key string) {
 		}
 		e.chooseBrush(brushOff)
 	case "newtrigger":
-		if e.editable() && !e.catalog {
-			e.leave(leaveDrag | leavePick)
-			e.newTrigger()
-		}
+		e.addTriggerNow()
 	default:
 		if e.Key(key) == ebiten.Termination {
 			e.exitAsked = true
@@ -748,6 +769,10 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 		}
 		sel = e.brush.sel[e.brush.mode]
 	case "records":
+		if e.filter == editorScriptsFilter {
+			rows, _, sel = e.scenarioRows()
+			break
+		}
 		for n, id := range e.rows() {
 			text := e.recordSummary(id)
 			if v, ok := e.scriptViewOf(id); ok && v.trigger != nil {
@@ -874,9 +899,11 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	}
 	// A record category's window is its palette: the tree lists the
 	// category's records, so the popup keeps only what is not that list.
+	// The Scenario palette lists its records too, as the tree does, under
+	// New trigger.
 	palette := e.paletteShown()
 	var m *Picker
-	if !palette {
+	if !palette || e.filter == editorScriptsFilter {
 		m = e.syncList(kind, e.listWindow())
 	}
 	s := popupSpec{Title: e.listTitle(kind), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
@@ -1062,9 +1089,27 @@ func (e *MapEditor) listChoose(n int, open bool) {
 	case "brush":
 		e.brushRowClick(n)
 	case "records":
+		if e.filter == editorScriptsFilter {
+			e.scenarioChoose(n)
+			return
+		}
 		if rows := e.rows(); n >= 0 && n < len(rows) {
 			e.chooseListed(rows[n])
 		}
+	}
+}
+
+// scenarioChoose is a press on Scenario palette row n: New trigger performs
+// its command row, a record row chooses its record as its tree row does.
+func (e *MapEditor) scenarioChoose(n int) {
+	rows, kinds, _ := e.scenarioRows()
+	switch {
+	case n < 0 || n >= len(rows) || !rows[n].Choosable:
+	case n == 0:
+		e.menuAct("newtrigger")
+	case kinds[n].member:
+		e.model.Select(n)
+		e.memberChoose(kinds[n])
 	}
 }
 

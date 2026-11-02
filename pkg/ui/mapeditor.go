@@ -630,6 +630,9 @@ func (e *MapEditor) Update() error {
 		if native.justPressed(ebiten.KeyF3) {
 			_ = e.Key("casts")
 		}
+		if native.justPressed(ebiten.KeyF4) {
+			_ = e.Key("newtrigger")
+		}
 		if native.justPressed(ebiten.KeyF) && !native.pressed(ebiten.KeyControl) {
 			e.Fit()
 		}

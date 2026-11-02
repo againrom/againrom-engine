@@ -99,6 +99,7 @@ func TestReleaseMapEditorScriptsListUntouchedBytes(t *testing.T) {
 			if e.Selected() != -1 {
 				_ = e.Key("escape")
 			}
+			closePalette(e)
 			wantRows := 0
 			for _, ids := range sections {
 				wantRows += len(ids)

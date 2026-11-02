@@ -78,13 +78,13 @@ func scriptsAddTrigger(t *testing.T, e *MapEditor) {
 
 // baseViewToolsRows are the row keys the old View and Tools menus held, with
 // the places each has now: the toolbar and the bar menu that lists the
-// toolbar's row, or the Map menu, or the Scenario palette's Add.
+// toolbar's row, or the Map menu, or the Tools menu alone.
 var baseViewToolsRows = []struct{ key, place, menu string }{
 	{"drops", "toolbar", "view"}, {"footprints", "toolbar", "view"}, {"issues", "toolbar", "view"}, {"grid", "toolbar", "view"},
 	{"passview", "toolbar", "view"}, {"heightlabels", "toolbar", "view"}, {"border", "toolbar", "view"}, {"areas", "toolbar", "view"},
 	{"playertint", "toolbar", "view"}, {"report", "toolbar", "view"}, {"fit", "toolbar", "view"}, {"drawarea", "toolbar", "tools"},
 	{"records", "map", ""}, {"objectspanel", "toolbar", "window"}, {"propertiespanel", "toolbar", "window"},
-	{"newtrigger", "scripts-add", ""}, {"brush.terrain", "toolbar", "tools"}, {"brush.height", "toolbar", "tools"},
+	{"newtrigger", "tools", ""}, {"brush.terrain", "toolbar", "tools"}, {"brush.height", "toolbar", "tools"},
 	{"brush.objects", "toolbar", "tools"}, {"brush.passability", "toolbar", "tools"},
 	{"randomterrain", "map", ""}, {"randomheights", "map", ""},
 }
@@ -107,15 +107,6 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 		for _, it := range e.menuItems(b.key) {
 			if it.key != "" {
 				places[it.key] = append(places[it.key], b.key)
-			}
-		}
-	}
-	if row, ok := addKindFor(editorScriptsFilter); ok {
-		for _, st := range row.Steps {
-			for _, k := range st.Kinds {
-				if k == KindTrigger {
-					places["newtrigger"] = append(places["newtrigger"], "scripts-add")
-				}
 			}
 		}
 	}
@@ -144,17 +135,6 @@ func TestMapEditorViewAndToolsRowsHaveOnePlaceEach(t *testing.T) {
 			switch r.place {
 			case "toolbar":
 				modesClick(got, toolPoint(t, got, r.key))
-			case "scripts-add":
-				scriptsAddTrigger(t, got)
-				if addKindNow(want) != "Trigger" {
-					t.Fatalf("menuAct opened %q", addKindNow(want))
-				}
-				addAdvance(t, want, 6)
-				addAdvance(t, got, 6)
-				if fmt.Sprint(wantCalls.lines) != fmt.Sprint(gotCalls.lines) || len(gotCalls.lines) == 0 {
-					t.Fatalf("Add wrote %v, menuAct %v", gotCalls.lines, wantCalls.lines)
-				}
-				return
 			default:
 				openMenuRow(t, got, r.place, r.key)
 			}
@@ -610,7 +590,8 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 
 // (f) The Map menu's Generate group runs random landscape and random
 // heights as their keys do, and the Scenario palette's Add, choosing
-// Trigger, adds the trigger New trigger added.
+// Trigger, walks the trigger steps the trigger popup's New walks and adds
+// the same trigger.
 func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	e, _, _ := terrainEditor(t)
 	items := e.menuItems("map")
@@ -642,7 +623,7 @@ func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	byAdd, addCalls := newModesEditor(t, "full")
 	byRow, rowCalls := newModesEditor(t, "full")
 	scriptsAddTrigger(t, byAdd)
-	byRow.menuAct("newtrigger")
+	byRow.newTrigger()
 	for i := 0; i < 6 && addKindNow(byRow) != ""; i++ {
 		addAdvance(t, byRow, 1)
 		addAdvance(t, byAdd, 1)

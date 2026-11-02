@@ -16,7 +16,7 @@ func TestScriptsListDeleteKeepsVariableRefusal(t *testing.T) {
 	scriptWindowSet(t, e, "Action", 0, "value0", "0")
 	scriptWindowSet(t, e, "Action", 0, "opcode", "3")
 	_ = e.Key("scripts")
-	_ = e.Key("escape")
+	closePalette(e)
 	r, ok := treeMemberRect(e, "scripts", 0)
 	trigClick(t, e, r, ok, "variable row")
 	if e.Selected() >= -1 || len(e.PopupLines()) == 0 {
