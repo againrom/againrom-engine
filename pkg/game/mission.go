@@ -264,18 +264,6 @@ func campaignScriptRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyM
 	return refs
 }
 
-// maxHeroOrdinal: ordinal k reads section 21+k of a 256-section table (TRIG-HEROFAIL-078).
-const maxHeroOrdinal = 234
-
-// heroTraits is what a hero ordinal reads of a member; a hired unit is never a woman.
-func heroTraits(p mapload.PartyMember) data.HeroTraits {
-	return data.HeroTraits{
-		Female: !p.Hired() && data.FigureDir(p.FigureDir).Female(),
-		Mage:   p.Mage,
-		Face:   uint8(p.FigureFace) & 0x3f,
-	}
-}
-
 // heroScanActor is a named map placement the ordinal scan reaches after the
 // party, with the entity it is bound to.
 type heroScanActor struct {
@@ -283,59 +271,28 @@ type heroScanActor struct {
 	Traits data.HeroTraits
 }
 
-// campaignScriptPartyRefs resolves hero ordinal k (value 10001+k) to the first
-// actor that passes its role test (TRIG-HEROORD-075, TRIG-HEROTPL-076): the
-// party in list order, then placed in scan order (TRIG-MAPORD-105,
-// TRIG-MAPORD-108). Members count as named; a map with player capacity above
-// one resolves nothing. A party it resolves against is the binding roster
-// (ScriptRefs.Roster). An edition with a hero identity binds by the party's
-// identities alone, and the role test stays the first game's.
+// campaignScriptPartyRefs binds the hero band (value 10001+k) through the
+// binder, mapload.BindHeroBand: the party in list order, then placed in scan
+// order (TRIG-MAPORD-105, TRIG-MAPORD-108). Members count as named; a map
+// with player capacity above one resolves nothing. A party it resolves
+// against is the binding roster (ScriptRefs.Roster).
 func campaignScriptPartyRefs(m *alm.Map, table *mapload.Table, party []mapload.PartyMember, entity func(int) sim.EntityID, placed []heroScanActor) mapload.ScriptRefs {
 	var refs mapload.ScriptRefs
 	if len(party) == 0 || m != nil && m.Meta.Word70 > 1 {
 		return refs
 	}
 	refs.Roster = true
-	if edition := tableEdition(table); edition.BindsByIdentity() {
-		// The edition names its hero band by party identity: 10001+k is the
-		// first member carrying identity hero+k (R2-ENGINE-107).
-		hero := edition.HeroIdentity
-		for i, p := range party {
-			if id, ok := mapload.PartyIdentity(p, table); ok && id >= hero && id-hero <= 999 {
-				bindHeroOrdinal(&refs, id-hero, entity(i))
-			}
-		}
-		return refs
+	traits := make([]data.HeroTraits, len(placed))
+	for i, a := range placed {
+		traits[i] = a.Traits
 	}
-	primary := 0
-	for i, p := range party {
-		if p.StartingHero {
-			primary = i
-			break
-		}
-	}
-	var npc *data.NPCDefs
-	if table != nil {
-		npc = table.NPC
-	}
-	roster := make([]data.HeroTraits, len(party), len(party)+len(placed))
-	for i, p := range party {
-		roster[i] = heroTraits(p)
-	}
-	for _, a := range placed {
-		roster = append(roster, a.Traits)
-	}
-	scanned := func(i int) sim.EntityID {
+	mapload.BindHeroBand(table, party, traits, func(k, i int) {
 		if i < len(party) {
-			return entity(i)
+			bindHeroOrdinal(&refs, k, entity(i))
+			return
 		}
-		return placed[i-len(party)].ID
-	}
-	for k := 0; k <= maxHeroOrdinal; k++ {
-		if i, ok := npc.ResolveHero(k, roster[primary], roster); ok {
-			bindHeroOrdinal(&refs, k, scanned(i))
-		}
-	}
+		bindHeroOrdinal(&refs, k, placed[i-len(party)].ID)
+	})
 	return refs
 }
 

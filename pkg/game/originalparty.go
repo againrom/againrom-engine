@@ -278,16 +278,16 @@ func persistentOriginalCharacter(c sav.Character, t *mapload.Table) bool {
 }
 
 // originalPartyIdentity is the party identity a saved companion carries in
-// WORD +0x14c (R2-ENGINE-105, R2-ENGINE-106, R2-ENGINE-525) under an edition
-// that binds its party by identity: a Human, not the hero, whose identity
-// the edition names and whose definition row is that identity's row.
+// WORD +0x14c (R2-ENGINE-105, R2-ENGINE-106, R2-ENGINE-525) under the
+// edition's identity source: a Human, not the hero, whose identity names a
+// companion's row and whose definition row is that identity's row.
 func originalPartyIdentity(c sav.Character, t *mapload.Table) (int, bool) {
-	if c.Hero || c.Class != "Human" || t == nil || t.Edition == nil || t.Humans == nil || !t.Edition.BindsByIdentity() {
+	if c.Hero || c.Class != "Human" || t == nil || t.Humans == nil {
 		return 0, false
 	}
 	id := int(uint16(c.DisplayBacking))
-	p, ok := t.Edition.PartyIdentity(id)
-	if !ok || id == t.Edition.HeroIdentity || int(c.DefRow) != data.FindHumanByServerID(t.Humans, p.ServerID) {
+	p, ok := mapload.CompanionIdentity(id, t)
+	if !ok || int(c.DefRow) != data.FindHumanByServerID(t.Humans, p.ServerID) {
 		return 0, false
 	}
 	return id, true

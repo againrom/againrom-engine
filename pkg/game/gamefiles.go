@@ -310,14 +310,8 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 // filesOf are the file readers of game g.
 func filesOf(g base.Game) *gameFiles { return campaignOf(g).files() }
 
-// tableEdition is the edition a definition table was read under; a nil table,
-// or one read without an edition, is the first game's.
-func tableEdition(t *mapload.Table) base.Edition {
-	if t == nil || t.Edition == nil {
-		return base.Game("").Edition()
-	}
-	return *t.Edition
-}
+// tableEdition is mapload.TableEdition(t), as a value.
+func tableEdition(t *mapload.Table) base.Edition { return *mapload.TableEdition(t) }
 
 // tableCampaign and tableFiles are the campaign service and file readers of
 // that edition.

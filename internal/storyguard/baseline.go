@@ -3870,5 +3870,12 @@ var Committed = Baseline{
 	// pkg/ui, the new tests in pkg/ui, pkg/game and internal/archtest, the
 	// Trees window's One kind mode (pkg/ui/mapeditorbrush.go,
 	// mapeditorpalettes.go and the two new test files), and this note.
-	CommentBytes: 10422581,
+
+	// It rose for the one hero-band binder: the doc comments of
+	// mapload.BindHeroBand, CompanionIdentity and the identity sources in
+	// pkg/mapload/partyhumanrow.go, base.HeroBand in pkg/base/edition.go,
+	// the guard internal/archtest/heroband.go, the new tests, and this note.
+	// It rose a further amount for mapload.TableEdition, the guard's first
+	// edition shape, and this note.
+	CommentBytes: 10426285,
 }

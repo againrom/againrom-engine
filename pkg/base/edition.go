@@ -65,10 +65,12 @@ type Edition struct {
 	// compiled script must keep alive; zero for none.
 	CompanionObjectiveMission int
 
-	// HeroIdentity is the party identity the starting hero carries; a
-	// script's literal Unit reference 10001+k then names the party member
-	// whose identity is HeroIdentity+k. Zero names it by the hero ordinal
-	// role test instead.
+	// HeroBand is the identity source a script's literal Unit reference
+	// 10001+k is bound by.
+	HeroBand HeroBand
+	// HeroIdentity is the party identity the starting hero carries under
+	// the identity source; 10001+k then names the party member whose
+	// identity is HeroIdentity+k.
 	HeroIdentity int
 	// HeroFailureReason is the mission failure reason the hero's fall gives
 	// the loss notice, as a PartyIdentity's FailureReason does; zero leaves
@@ -133,13 +135,19 @@ type PartyIdentity struct {
 	FailureReason int32
 }
 
-// BindsByIdentity reports whether the edition names its hero band by party
-// identity (R2-ENGINE-107): a script's 10001+k is the member carrying
-// identity HeroIdentity+k, and no member binds by the hero ordinal role
-// test. An edition without a hero identity binds by that role test.
-func (e Edition) BindsByIdentity() bool {
-	return e.HeroIdentity != 0
-}
+// HeroBand names an identity source: what a script's hero band 10001+k is
+// bound by.
+type HeroBand int
+
+const (
+	// HeroBandRole binds 10001+k to the first actor that passes hero
+	// ordinal k's role test (TRIG-HEROORD-075); no member carries a party
+	// identity.
+	HeroBandRole HeroBand = iota
+	// HeroBandIdentity binds 10001+k to the member carrying party identity
+	// HeroIdentity+k (R2-ENGINE-107), and no member by the role test.
+	HeroBandIdentity
+)
 
 // PartyIdentity is the edition's row for identity id.
 func (e Edition) PartyIdentity(id int) (PartyIdentity, bool) {
@@ -179,6 +187,7 @@ var firstEdition = Edition{
 	Options:                   "rom1",
 	Spells:                    "rom1",
 	CompanionObjectiveMission: 40,
+	HeroBand:                  HeroBandRole,
 	Cutscenes: map[string]CutsceneArchive{
 		"video4": {Path: "Allods/video4.res", Name: "video4"},
 		"video8": {Path: "Allods/video8.res", Name: "video8", Logos: "video4"},
@@ -213,6 +222,7 @@ var secondEdition = Edition{
 	// (DIV-4186); slot 773 adds 23 at a location leave (R2-ENGINE-379).
 	// The fall of identity n sends failure reason n - 19 (R2-ENGINE-625):
 	// 2 for the hero, 3 for 22 and 4 for 23 (DIV-4224).
+	HeroBand:          HeroBandIdentity,
 	HeroIdentity:      21,
 	HeroFailureReason: 2,
 	PartyIdentities: []PartyIdentity{
