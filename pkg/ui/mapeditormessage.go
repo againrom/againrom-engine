@@ -204,9 +204,6 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		}
 		speaker := 2*i + 1
 		head := popupRow{Kind: popupCard, Label: strconv.Itoa(number), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Span: 1}
-		if pic := choicePicture(o.fields[speaker], o.buf[speaker]); pic != nil {
-			head.Icons = []*image.RGBA{pic}
-		}
 		var acts []string
 		if live > 1 {
 			head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
@@ -220,7 +217,7 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		}
 		textRow = len(s.Rows)
 		o.rowField[textRow] = 2 * i
-		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*i, Lines: 3})
+		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*i, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker])})
 	}
 	o.rowOpen[len(s.Rows)] = -1
 	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{"+"}})

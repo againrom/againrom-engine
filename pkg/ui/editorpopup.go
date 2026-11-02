@@ -69,6 +69,9 @@ type popupRow struct {
 	// Icons are pictures drawn after the value, left to right, each square
 	// at the row's height.
 	Icons []*image.RGBA
+	// Portrait is a picture drawn in the label's column under the label,
+	// fitted to the control's height.
+	Portrait *image.RGBA
 	// Span is how many rows after a card row its card holds. Struck marks a
 	// removed card: a strip with its label and buttons, no grip or value.
 	Span   int
@@ -1400,6 +1403,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			label.Min.X += 18
 		}
 		bodyText(label, editorClip(body, row.Label, label.Dx()-2), ink.Label)
+		drawRowPortrait(dst, l, rr, row)
 		if row.Edit != nil {
 			drawEditRow(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
@@ -1615,6 +1619,20 @@ func drawRowIcons(dst *image.RGBA, body *text.Font, l popupLayout, rr popupRowRe
 		}
 		x += side + 2
 	}
+}
+
+// drawRowPortrait draws a row's portrait in the column the label takes, fitted
+// to the control's height.
+func drawRowPortrait(dst *image.RGBA, l popupLayout, rr popupRowRect, row popupRow) {
+	if row.Portrait == nil || row.Portrait.Bounds().Empty() || rr.Control.Empty() {
+		return
+	}
+	box := image.Rect(rr.Rect.Min.X+2, rr.Control.Min.Y, rr.Label.Max.X-2, rr.Control.Max.Y)
+	if box.Empty() {
+		return
+	}
+	clip := dst.SubImage(box.Intersect(l.Rect)).(*image.RGBA)
+	editorBlit(clip, row.Portrait, addPreviewRect(row.Portrait.Bounds().Size(), box), false)
 }
 
 // drawPopupGrid paints a grid's shown cells, each a push button holding its

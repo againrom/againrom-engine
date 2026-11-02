@@ -1544,3 +1544,4 @@ pkg/game.TestReleaseOwnedStockDispatchesOnBothShippedMaps
 pkg/game.TestReleaseEditorEmptyMaterializationPreservesHumanItems
 pkg/game.TestReleaseMapEditorFieldChoicesKeepTheirLists
 pkg/game.TestReleaseMapEditorUnitSackBytes
+pkg/game.TestReleaseDialogueSpeakerIsNamedByItsRecordsLine

@@ -246,7 +246,8 @@ func (s *mapInspectionEdits) creatureSpeaker(sp *editorSpeakers, unit int, ids [
 // npcName is NPC record e's name in UTF-8. With roles, as the message popup
 // names a speaker, a speaker whose person depends on the first hero is its
 // role's word; otherwise the record's name, its npcnames.txt line, or its
-// section.
+// section. The npcnames.txt line is the one the game writes as a placed
+// person's name: line n, counted from 1, for record n.
 func (x *MapInspector) npcName(e data.NPCEntry, roles bool) string {
 	id := int64(e.ID)
 	if roles {
@@ -255,11 +256,7 @@ func (x *MapInspector) npcName(e data.NPCEntry, roles bool) string {
 		}
 	}
 	name := e.Name
-	line := id
-	if !roles {
-		line--
-	}
-	if name == "" && line >= 0 && line < int64(len(x.table.NPCNames)) {
+	if line := id - 1; name == "" && line >= 0 && line < int64(len(x.table.NPCNames)) {
 		name = x.table.NPCNames[line]
 	}
 	if name == "" {

@@ -3824,5 +3824,9 @@ var Committed = Baseline{
 	//
 	// It rose a further amount for the doc comments of the wizard's never-comparison
 	// test and effect-time words test, and this note.
-	CommentBytes: 10381585,
+
+	// It rose for the dialogue page's speaker portrait and speaker label: the
+	// doc comments of drawRowPortrait, popupRow.Portrait and npcName, the
+	// new tests, and this note.
+	CommentBytes: 10382649,
 }

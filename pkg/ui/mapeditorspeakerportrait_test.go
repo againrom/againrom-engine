@@ -93,31 +93,48 @@ func portraitPixels(pic *image.RGBA, r image.Rectangle) int {
 	return n
 }
 
-// A page card shows its chosen speaker's portrait inside the speaker field,
-// after the name; a card whose speaker has no face shows none.
+// A page card shows its chosen speaker's portrait in the empty column under
+// its number, beside its text and not in the speaker field; a card whose
+// speaker has no face shows none.
 func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
 	e, face := speakerPortraitEditor(t, "en")
 	s, _, ok := e.messageSpec()
 	if !ok {
 		t.Fatal("the message editor builds no popup")
 	}
-	first, second := s.Rows[e.fieldRow(1)], s.Rows[e.fieldRow(3)]
-	if len(first.Icons) != 1 || first.Icons[0] != face {
-		t.Fatalf("speaker 5's card carries %v, want its portrait", first.Icons)
+	first, second := s.Rows[e.fieldRow(0)], s.Rows[e.fieldRow(2)]
+	if first.Portrait != face {
+		t.Fatalf("speaker 5's text row carries %v, want its portrait", first.Portrait)
 	}
-	if len(second.Icons) != 0 {
-		t.Fatalf("speaker 6's card carries %v, want no portrait", second.Icons)
+	if second.Portrait != nil {
+		t.Fatalf("speaker 6's text row carries %v, want no portrait", second.Portrait)
+	}
+	for _, head := range []int{e.fieldRow(1), e.fieldRow(3)} {
+		if len(s.Rows[head].Icons) != 0 {
+			t.Fatalf("the speaker field %d carries the small face %v", head, s.Rows[head].Icons)
+		}
 	}
 	pic := e.ChromeImage()
 	l := layoutPopup(s, e.font, e.bodyFont())
+	column := func(rr popupRowRect) image.Rectangle {
+		return image.Rect(rr.Rect.Min.X, rr.Control.Min.Y, rr.Control.Min.X, rr.Control.Max.Y)
+	}
 	for _, rr := range l.Rows {
 		switch rr.Index {
-		case e.fieldRow(1):
-			if portraitPixels(pic, rr.Control) == 0 {
-				t.Error("speaker 5's card draws no portrait in its speaker field")
+		case e.fieldRow(0):
+			n := portraitPixels(pic, column(rr))
+			if n == 0 {
+				t.Error("speaker 5's card draws no portrait under its number")
 			}
-		case e.fieldRow(3):
-			if n := portraitPixels(pic, rr.Control); n != 0 {
+			if all := portraitPixels(pic, rr.Rect); all != n {
+				t.Errorf("speaker 5's portrait leaves its column: %d of %d pixels outside", all-n, all)
+			}
+		case e.fieldRow(1):
+			if n := portraitPixels(pic, rr.Rect); n != 0 {
+				t.Errorf("speaker 5's speaker field draws %d portrait pixels", n)
+			}
+		case e.fieldRow(2):
+			if n := portraitPixels(pic, rr.Rect); n != 0 {
 				t.Errorf("speaker 6's card draws %d portrait pixels", n)
 			}
 		}
