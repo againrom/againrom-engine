@@ -103,8 +103,11 @@ func init() {
 		if c.Catalog != name {
 			panic(fmt.Sprintf("town catalog %q is registered as %q", c.Catalog, name))
 		}
-		if err := checkOfferBank(c.Offers, c.OfferTable); err != nil {
+		if err := checkOfferRows(c.Offers, c.OfferTable); err != nil {
 			panic(err)
+		}
+		if h := c.HeroSlots; h != nil && max(h.Mage, h.Female) >= innBankSlots {
+			panic(fmt.Sprintf("town catalog %q: hero-slots %+v pass the bank, 0 to %d", name, *h, innBankSlots-1))
 		}
 		if c.Mercenaries != nil {
 			if tavernRule != nil {

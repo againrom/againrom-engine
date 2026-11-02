@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/herokind"
 	"againrom/pkg/locale"
 )
 
@@ -79,6 +80,11 @@ type Mission struct {
 	Gold    int
 	Carry   string
 
+	// Class and Sex name the starting heroes a guest mission plays for, as
+	// herokind.Parse reads them; both empty is every hero. Missions after one
+	// win whose heroes do not overlap are its alternatives (Heroes).
+	Class, Sex string
+
 	// Party are the members of a guest party declared as data; empty for
 	// the guest form above. PartyLine is the line that declares them.
 	Party     []GuestMember
@@ -125,16 +131,40 @@ type MissionData struct {
 // Empty reports that no mod declares a mission.
 func (d MissionData) Empty() bool { return len(d.Missions) == 0 }
 
-// AfterWin returns the guest mission that plays after mission n is won: a
-// main mission's, or the next link of a chain after a guest mission.
-func (d MissionData) AfterWin(n int) (Mission, bool) {
+// Heroes is the set of starting heroes the mission plays for.
+func (m Mission) Heroes() herokind.Set { return herokind.Named(m.Class, m.Sex) }
+
+// after is the guest missions that play after mission n is won, for any
+// starting hero.
+func (d MissionData) after(n int) []Mission {
+	var out []Mission
 	for _, m := range d.Missions {
 		if m.Kind != MissionReplace && !m.Off && m.After == n {
-			return m, true
+			out = append(out, m)
 		}
+	}
+	return out
+}
+
+// AfterWin returns the guest mission that plays after mission n is won for a
+// starting hero of kind k: a main mission's, or the next link of a chain
+// after a guest mission. The hero chooses among the missions after n by
+// their class and sex.
+func (d MissionData) AfterWin(n int, k herokind.Kind) (Mission, bool) {
+	missions := d.after(n)
+	sets := make([]herokind.Set, len(missions))
+	for i, m := range missions {
+		sets[i] = m.Heroes()
+	}
+	if i := herokind.Choose(k, sets, -1); i >= 0 {
+		return missions[i], true
 	}
 	return Mission{}, false
 }
+
+// Follows reports that a guest mission plays after mission n for some
+// starting hero.
+func (d MissionData) Follows(n int) bool { return len(d.after(n)) > 0 }
 
 // ByNumber returns the guest mission that runs as mission n.
 func (d MissionData) ByNumber(n int) (Mission, bool) {
@@ -219,8 +249,8 @@ func MergeMissions(d MissionData) (MissionData, []Override, error) {
 	return out, l.Overrides, nil
 }
 
-// checkChains refuses two guest missions after one mission and a cycle of
-// guest missions, at the line of the later mission.
+// checkChains refuses two guest missions after one mission for one starting
+// hero and a cycle of guest missions, at the line of the later mission.
 func (d MissionData) checkChains() error {
 	at := func(m Mission) Source { return Source{Mod: m.Mod, File: m.File, Line: m.Line} }
 	for i, m := range d.Missions {
@@ -228,9 +258,9 @@ func (d MissionData) checkChains() error {
 			continue
 		}
 		for _, first := range d.Missions[:i] {
-			if first.Kind != MissionReplace && first.After == m.After {
-				return at(m).Errorf("mod %q already plays a mission after mission %d (mission %d, %s:%d); one mission follows one win",
-					first.Mod, m.After, first.Number, first.File, first.Line)
+			if first.Kind != MissionReplace && first.After == m.After && first.Heroes().Overlaps(m.Heroes()) {
+				return at(m).Errorf("mod %q already plays a mission after mission %d%s (mission %d, %s:%d); one mission follows one win",
+					first.Mod, m.After, forHeroes(first.Heroes()&m.Heroes()), first.Number, first.File, first.Line)
 			}
 		}
 	}
@@ -255,6 +285,15 @@ func (d MissionData) checkChains() error {
 	return nil
 }
 
+// forHeroes names the starting heroes two missions after one win share, ""
+// for every hero.
+func forHeroes(shared herokind.Set) string {
+	if shared == herokind.Every {
+		return ""
+	}
+	return " for " + shared.String()
+}
+
 func cycleText(numbers []int) string {
 	parts := make([]string, len(numbers))
 	for i, n := range numbers {
@@ -265,8 +304,8 @@ func cycleText(numbers []int) string {
 
 // ParseMissions reads data/missions.toml of the mod id: [[mission]] tables
 // with the keys kind, key, number, map, texts, title, briefing, after, guest,
-// chapter, gold, carry, party and off. A replacing mission takes no key of
-// the guest. title and briefing are text keys of the mod read through look;
+// chapter, gold, carry, party, class, sex and off. A replacing mission takes
+// no key of the guest. title and briefing are text keys of the mod read through look;
 // "{lang}" in map or texts becomes lang. A refusal names the file and the
 // line.
 func ParseMissions(id, file string, data []byte, look func(string) (string, bool), lang string) (MissionData, error) {
@@ -282,7 +321,11 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 		return MissionData{}, bad(p.line, "%s is outside a [[mission]] table", p.key)
 	}
 	var out MissionData
-	keys, numbers, afters := map[string]int{}, map[int]int{}, map[int]int{}
+	type afterAt struct {
+		line   int
+		heroes herokind.Set
+	}
+	keys, numbers, afters := map[string]int{}, map[int]int{}, map[int][]afterAt{}
 	for _, t := range tables[1:] {
 		if t.name != "mission" || !t.array {
 			return MissionData{}, bad(t.line, "unknown table %q (this file holds [[mission]])", t.name)
@@ -368,6 +411,20 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			case "party":
 				m.PartyLine = p.line
 				m.Party, err = parseGuestParty(file, p)
+			case "class", "sex":
+				var word string
+				if word, err = str(); err == nil {
+					class, sex := m.Class, m.Sex
+					if p.key == "class" {
+						class = word
+					} else {
+						sex = word
+					}
+					if _, perr := herokind.Parse(class, sex); perr != nil {
+						err = bad(p.line, "%v", perr)
+					}
+					m.Class, m.Sex = class, sex
+				}
 			case OffField:
 				if p.val.kind != tomlBool {
 					err = bad(p.line, "off must be true or false, not %s", p.val.kind)
@@ -403,6 +460,9 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 		if m.Kind == MissionReplace {
 			need = need[:3]
 			for _, p := range t.pairs {
+				if p.key == "class" || p.key == "sex" {
+					return MissionData{}, bad(p.line, "%s belongs to a guest mission; a replacing mission plays for every starting hero", p.key)
+				}
 				if slices.Contains(guestOnly, p.key) {
 					return MissionData{}, bad(p.line, "%s belongs to a guest mission; a replacing mission takes the campaign's", p.key)
 				}
@@ -437,10 +497,12 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 			out.Missions = append(out.Missions, m)
 			continue
 		}
-		if first, dup := afters[m.After]; dup {
-			return MissionData{}, bad(t.line, "a mission already plays after mission %d at line %d", m.After, first)
+		for _, first := range afters[m.After] {
+			if shared := first.heroes & m.Heroes(); shared != 0 {
+				return MissionData{}, bad(t.line, "a mission already plays after mission %d%s at line %d", m.After, forHeroes(shared), first.line)
+			}
 		}
-		afters[m.After] = t.line
+		afters[m.After] = append(afters[m.After], afterAt{t.line, m.Heroes()})
 		if m.Number == m.After {
 			return MissionData{}, bad(t.line, "mission %d cannot play after itself", m.Number)
 		}
@@ -450,7 +512,7 @@ func ParseMissions(id, file string, data []byte, look func(string) (string, bool
 }
 
 // guestOnly are the keys only a guest mission takes.
-var guestOnly = []string{"after", "guest", "chapter", "gold", "carry", "party"}
+var guestOnly = []string{"after", "guest", "chapter", "gold", "carry", "party", "class", "sex"}
 
 // guestFormOnly are the keys of the guest form a mission with a party does
 // not take.

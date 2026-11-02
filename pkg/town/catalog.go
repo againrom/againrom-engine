@@ -25,6 +25,9 @@ type Catalog struct {
 	// Mercenaries is the rule the towns' taverns build their mercenary
 	// roster and price their squads by; nil for towns with none.
 	Mercenaries *MercenaryRule `json:"mercenaries,omitempty"`
+	// HeroSlots are the bank slots an inn row's class and sex are read in;
+	// nil for a catalog whose rows state neither.
+	HeroSlots *HeroSlots `json:"hero-slots,omitempty"`
 }
 
 // maxTavernValue bounds an NPC record and a mission: a save holds each in
@@ -215,6 +218,9 @@ func (c *Catalog) Validate() error {
 			listed[m] = e.ID
 		}
 		seen[e.ID] = true
+	}
+	if h := c.HeroSlots; h != nil && (h.Mage < 0 || h.Female < 0 || h.Mage == h.Female) {
+		return fmt.Errorf("town catalog %s: hero-slots %+v are negative or one slot", c.Catalog, *h)
 	}
 	if err := c.validateOffers(seen); err != nil {
 		return err

@@ -51,8 +51,9 @@ type guestMission struct {
 	member *mapload.PartyMember
 	// chain is the links from the first to mission; empty is mission alone.
 	chain []mod.Mission
-	// hero is the waiting party's starting hero, which a later link's npc
-	// records resolve against; nil for a chain of one link.
+	// hero is the waiting party's starting hero, which chooses a later link
+	// and which its npc records resolve against; nil when no link follows the
+	// first for any hero.
 	hero *guestHero
 }
 
@@ -574,7 +575,7 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 		return 0, ""
 	}
 	missions := f.Table.Mods.Missions
-	m, ok := missions.AfterWin(n)
+	m, ok := missions.AfterWin(n, mapload.StartingHeroKind(f.Carried))
 	if !ok {
 		return 0, ""
 	}
@@ -585,19 +586,9 @@ func (f *FrontEnd) startGuestMission(n int, w *sim.World) (int, string) {
 		return 0, fmt.Sprintf("mod %q: %v", m.Mod, err)
 	}
 	g := &guestMission{mission: m, start: party[0], rest: party[1:], chain: missions.Chain(m)}
-	if _, more := missions.AfterWin(m.Number); more {
-		hero := guestHero{}
-		if len(f.Carried) > 0 {
-			p := f.Carried[0]
-			for _, c := range f.Carried {
-				if c.StartingHero {
-					p = c
-					break
-				}
-			}
-			hero = guestHero{Mage: p.Mage, FigureDir: p.FigureDir}
-		}
-		g.hero = &hero
+	if missions.Follows(m.Number) {
+		p := mapload.StartingHero(f.Carried)
+		g.hero = &guestHero{Mage: p.Mage, FigureDir: p.FigureDir}
 	}
 	f.Town.Arrive()
 	f.retainReturnCity(in, n, w)
@@ -649,7 +640,7 @@ func (f *FrontEnd) finishGuestMission(n int, party []mapload.PartyMember,
 		}
 	}
 	missions := f.Table.Mods.Missions
-	if next, ok := missions.AfterWin(n); ok {
+	if next, ok := missions.AfterWin(n, mapload.StartingHeroKind(g.heroParty(f.Carried))); ok {
 		town, _ := f.townInstall().campaign.NextMission(g.links()[0].After)
 		start, err := f.guestParty(next, town.Mission, g.heroParty(f.Carried), f.Carried)
 		if err != nil {
@@ -679,8 +670,9 @@ func (f *FrontEnd) finishGuestMission(n int, party []mapload.PartyMember,
 // currentGuest is the supplement's record of a guest party: the mod and the
 // link under way, the stash while the chain runs, the party at the link's
 // start (Start and Party), the guest who joins as she ended her link once it
-// is won, and the waiting party's starting hero for a chain of more links.
-// A save of a chain of one link writes neither Party nor Hero.
+// is won, and the waiting party's starting hero when a link follows the
+// first for some hero. A save of a chain of one link writes neither Party
+// nor Hero.
 type currentGuest struct {
 	Mod    string
 	Key    string

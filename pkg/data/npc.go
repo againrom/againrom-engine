@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/herokind"
 	"againrom/pkg/namefold"
 )
 
@@ -183,14 +184,7 @@ func (n *NPCDefs) CampaignServerID(id int32, mission int, playerMage, playerFema
 	if !ok || mission < 0 {
 		return 0, false
 	}
-	selector := int32(0)
-	if female {
-		selector++
-	}
-	if mage {
-		selector += 2
-	}
-	return npcComposed + selector + 4*int32(mission/40), true
+	return npcComposed + int32(herokind.Of(mage, female)) + 4*int32(mission/40), true
 }
 
 // CampaignCompanionForRow reverses the registry's companion construction for

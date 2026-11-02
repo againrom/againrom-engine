@@ -3208,6 +3208,15 @@ package storyguard
 // CommentBytes rises with the doc comments of the control layout descriptor in
 // pkg/ui/controllayout.go and its test, and the guard in
 // internal/archtest/controllayout.go and its test, and this paragraph.
+//
+// CommentBytes rises with the doc comments of the chooser by the starting
+// hero in pkg/herokind and its test, its readers in pkg/mapload/placedhero.go,
+// pkg/mod/missions.go, pkg/town/inn.go, pkg/town/catalog.go,
+// pkg/game/innoffers.go, pkg/game/secondinn.go and pkg/game/modmission.go,
+// their tests in pkg/mod, pkg/town, pkg/mapload and pkg/game, the dag entry
+// in internal/archtest/dag.go, and this paragraph. It rises further with the
+// doc comment of heroAsGates in pkg/game/innoffers.go and the comments of its
+// test, pkg/game/heroinnmod_test.go.
 var Committed = Baseline{
 	TestIdentCount: 4460,
 	TestFileCount:  264,
@@ -3766,5 +3775,5 @@ var Committed = Baseline{
 	// in pkg/game's mapinspectionnpc.go, pkg/mapload's borderplacement.go,
 	// pkg/ui's editorpopup.go, mapeditormessage.go and mapeditorparampick.go,
 	// the new tests in both mapeditorspeakerpick_test.go files, and this note.
-	CommentBytes: 10332292,
+	CommentBytes: 10339828,
 }

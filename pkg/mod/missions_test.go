@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"againrom/pkg/herokind"
 )
 
 const goodMission = `# one mission
@@ -41,10 +43,10 @@ func TestParseMissionsReadsAMission(t *testing.T) {
 		m.Guest != 22 || m.Chapter != 30 || m.Gold != 50 || m.Carry != CarryJoin {
 		t.Fatalf("%+v", m)
 	}
-	if got, ok := d.AfterWin(20); !ok || got.Key != "prologue" {
+	if got, ok := d.AfterWin(20, herokind.FemaleMage); !ok || got.Key != "prologue" {
 		t.Fatalf("AfterWin: %+v %v", got, ok)
 	}
-	if _, ok := d.AfterWin(10); ok {
+	if _, ok := d.AfterWin(10, herokind.MaleFighter); ok {
 		t.Fatal("AfterWin answered for a mission no declaration names")
 	}
 	if got, ok := d.Find("m", "prologue"); !ok || got.Number != 25 {

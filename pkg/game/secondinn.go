@@ -8,11 +8,13 @@ import (
 )
 
 // innOptions is EnterInn: the inn rows of the campaign's town catalog the
-// current town, the stage in slot 768 and the bank admit, in row order,
-// then the hire options of the hire bank (R2-ENGINE-215, R2-ENGINE-217,
-// R2-ENGINE-221). It changes no state.
+// current town, the stage in slot 768, the starting hero the catalog's
+// hero slots hold and the bank admit, in row order, then the hire options
+// of the hire bank (R2-ENGINE-215, R2-ENGINE-217, R2-ENGINE-221). It
+// changes no state.
 func (c *secondCampaign) innOptions() []innOffer {
-	return innOffers(c.offerRows(), innState{town: c.current.id, stage: int(c.bank[768]), bank: &c.bank, hire: true})
+	hero := bankHero(secondBook().catalog.HeroSlots, &c.bank)
+	return innOffers(c.offerRows(), innState{town: c.current.id, stage: int(c.bank[768]), bank: &c.bank, hero: hero, hire: true})
 }
 
 // offerRows are the inn rows the campaign admits: the rows of the book its

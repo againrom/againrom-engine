@@ -456,14 +456,17 @@ map; see below.
 | `party` | instead of `guest`, `chapter` and `carry`: 1 to 8 members, an array of `{ character = "...", level = 1..4, weapon = "...", shield = "...", armour = ["...", ...] }` (see Guest parties) |
 | `gold` | optional, 0..1000000, default 0; the guest party's purse |
 | `carry` | optional; only `"join"`: the guest joins in the town of `chapter` through its own grant, as he or she ended the chain |
+| `class` | optional, guest missions only; `"fighter"` or `"mage"`: the mission plays only when the starting hero is of that class (see Missions by starting hero) |
+| `sex` | optional, guest missions only; `"male"` or `"female"`: the mission plays only when the starting hero is of that sex |
 | `off` | `true` switches off the mission of `number` another mod declares; the table holds only `number`, `off` and `kind` |
 
 `{lang}` in `map` or `texts` becomes the language the game runs in (`en`,
 `ru`). Missions merge by `number`: a mod that loads after another (its
 `load-after` names that mod) replaces that mod's mission of the same number
 as a whole, and the check names the override; without that order two mods
-cannot declare one number. One mission follows one win: two guest missions
-after one mission are refused at load, naming both files and lines. Nothing
+cannot declare one number. One mission follows one win for each starting
+hero: two guest missions after one mission whose `class` and `sex` admit one
+hero are refused at load, naming both files and lines. Nothing
 but the state of the guest who joins carries back: the chain's purse, loot,
 payment and every other member stay behind. A SAVE inside a guest mission
 names the mod and the mission; a LOAD without that mod refuses.
@@ -534,6 +537,54 @@ map    = "mission/{lang}/map.alm"
 after  = 25
 gold   = 100
 party  = [{ character = "npc22" }, { character = "sellsword", level = 2, weapon = "Iron Short Sword", armour = ["Hard Leather Mail"] }]
+```
+
+### Missions by starting hero
+
+`class` and `sex` choose a guest mission by the starting hero the player
+made: a fighter or a mage, male or female. A mission that names neither
+plays for every hero; one that names one plays for the two heroes of that
+class or sex; one that names both plays for one hero. Several guest missions
+may follow one win when no hero is admitted by two of them; each has its own
+`number`, map and texts. When the win comes, the hero's own mission opens.
+A hero no mission admits goes on to the town as if no mod mission followed
+the win. Two missions that admit one hero are refused at load with both
+files and lines and the hero they share, for example "a mission already
+plays after mission 20 for a female fighter at line 1". A later link of a
+chain is chosen by the starting hero of the waiting party, not by the guest.
+A SAVE inside any of the missions names that mission, so a LOAD plays the
+same map; the town SAV after its win keeps that mission's guest. A replacing
+mission plays for every hero and takes neither key.
+
+```toml
+[[mission]]
+key     = "fighter"
+number  = 25
+map     = "maps/fighter.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "fighter"
+
+[[mission]]
+key     = "mage_male"
+number  = 27
+map     = "maps/mage_male.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "mage"
+sex     = "male"
+
+[[mission]]
+key     = "mage_female"
+number  = 28
+map     = "maps/mage_female.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "mage"
+sex     = "female"
 ```
 
 ### Guest parties
@@ -786,7 +837,18 @@ and 110), the town 3 talks of NPC records 5 and 675 after stage 60, and the
 town 2 mission talks of NPC records 2022 and 22 (R2-ENGINE-161,
 R2-ENGINE-215 to R2-ENGINE-228). The inn shows, in row order, every row the
 party's town, the stage (bank slot 768) and the bank admit, then the hire
-actors of the hire bank, which no row states. A table adds a row when no
+actors of the hire bank, which no row states. The four-way mission talks of
+NPC record 2022 (topics 74 to 77, 84 to 87 and 93 to 96) and topics 81 and
+82 of layer 0 also name the starting hero they show for, `class` and `sex`,
+read in the bank slots the catalog's `hero-slots` names (776 nonzero for a
+mage, 781 for a female hero, R2-ENGINE-217, R2-ENGINE-424); the same chooser
+picks a guest mission by `class` and `sex` (see Missions by starting hero).
+A mod's table does not set `class` or `sex`. A row of the table that names
+neither `zero` nor `nonzero` keeps a layer 0 row's `class` and `sex`. A row
+that names `zero`, `nonzero` or both turns them back into slot gates first,
+a fighter or male hero in `zero` and a mage or female hero in `nonzero`, and
+then replaces the lists it names: the gate on the hero slots in a list it
+names goes, the one in a list it does not name stays. A table adds a row when no
 layer holds its key, changes the fields it names when one does, or switches
 the row off with `off = true`. A row a mod adds comes after the rows of
 layer 0.

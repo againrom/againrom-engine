@@ -60,6 +60,7 @@ func (d *editorModDocument) selected(p editorPackageSpec) (mod.Mission, error) {
 	m.Party = mod.CloneMission(mod.Mission{Party: p.Party}).Party
 	if m.Kind == mod.MissionReplace {
 		m.After, m.Guest, m.Chapter, m.Gold, m.Carry, m.Party = 0, 0, 0, 0, "", nil
+		m.Class, m.Sex = "", ""
 	}
 	if len(m.Party) != 0 {
 		m.Guest, m.Chapter, m.Carry = 0, 0, ""

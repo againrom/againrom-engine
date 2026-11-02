@@ -68,7 +68,7 @@ func TestSetModMissionsServesAReplacingMapOverTheInstalledMission(t *testing.T) 
 		t.Fatalf("recorded %+v", f.Table.Mods.Missions)
 	}
 	// The guest after mission 20 still plays: the replacement is no guest.
-	if got, ok := f.Table.Mods.Missions.AfterWin(20); !ok || got.Key != "prologue" {
+	if got, ok := f.Table.Mods.Missions.AfterWin(20, mapload.StartingHeroKind(nil)); !ok || got.Key != "prologue" {
 		t.Fatalf("AfterWin(20) = %+v", got)
 	}
 }

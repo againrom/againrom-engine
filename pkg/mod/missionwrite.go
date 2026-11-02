@@ -25,6 +25,11 @@ func missionPairs(m Mission) []missionPair {
 	}
 	if m.Kind != MissionReplace {
 		p = append(p, missionPair{"after", strconv.Itoa(m.After)})
+		for _, v := range []missionPair{{"class", m.Class}, {"sex", m.Sex}} {
+			if v.value != "" {
+				p = append(p, missionPair{v.key, strconv.Quote(v.value)})
+			}
+		}
 		if len(m.Party) != 0 {
 			var members []string
 			for _, g := range m.Party {

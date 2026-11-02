@@ -26,6 +26,19 @@ type OfferRow struct {
 	Nonzero []int `json:"nonzero,omitempty"`
 	One     []int `json:"one,omitempty"`
 	Any     []int `json:"any,omitempty"`
+	// Class and Sex name the starting heroes an inn row is offered to; both
+	// empty offers it to every hero. The game reads the words, and the
+	// catalog's HeroSlots are where the campaign holds the hero's class and
+	// sex.
+	Class string `json:"class,omitempty"`
+	Sex   string `json:"sex,omitempty"`
+}
+
+// HeroSlots are the bank slots that hold the starting hero's class and sex,
+// nonzero for a mage and for a female hero.
+type HeroSlots struct {
+	Mage   int `json:"mage"`
+	Female int `json:"female"`
 }
 
 // OfferTable names a catalog's row shape by its mod table: a tavern row is
@@ -87,7 +100,7 @@ func ChapterOffer(id, chapter, npc, mission int) OfferRow {
 func (r OfferRow) Equal(o OfferRow) bool {
 	return r.Kind == o.Kind && r.Topic == o.Topic && r.NPC == o.NPC && r.Town == o.Town && r.After == o.After &&
 		slices.Equal(r.Stages, o.Stages) && slices.Equal(r.Zero, o.Zero) && slices.Equal(r.Nonzero, o.Nonzero) &&
-		slices.Equal(r.One, o.One) && slices.Equal(r.Any, o.Any)
+		slices.Equal(r.One, o.One) && slices.Equal(r.Any, o.Any) && r.Class == o.Class && r.Sex == o.Sex
 }
 
 func (r OfferRow) Gates() [][]int { return [][]int{r.Zero, r.Nonzero, r.One, r.Any} }
@@ -146,6 +159,10 @@ func (c *Catalog) validateOffers(towns map[int]bool) error {
 			return bad("a tavern row states no stage floor or bank gate")
 		case r.After < 0:
 			return bad("after %d is negative", r.After)
+		case tavern && (r.Class != "" || r.Sex != ""):
+			return bad("a tavern row is offered to every starting hero; it states no class or sex")
+		case (r.Class != "" || r.Sex != "") && c.HeroSlots == nil:
+			return bad("class %q and sex %q are stated, but the catalog names no hero-slots", r.Class, r.Sex)
 		case !tavern && seen[k]:
 			return bad("the row is named twice")
 		}

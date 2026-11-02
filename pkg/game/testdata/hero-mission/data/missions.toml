@@ -1,0 +1,31 @@
+# After mission 20 is won, companion 22 plays one of three missions, chosen
+# by the starting hero's class and sex. The three name heroes no two share,
+# so one win opens one of them for every hero.
+[[mission]]
+key     = "fighter"
+number  = 25
+map     = "maps/fighter.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "fighter"
+
+[[mission]]
+key     = "mage_male"
+number  = 27
+map     = "maps/mage_male.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "mage"
+sex     = "male"
+
+[[mission]]
+key     = "mage_female"
+number  = 28
+map     = "maps/mage_female.alm"
+after   = 20
+guest   = 22
+chapter = 30
+class   = "mage"
+sex     = "female"

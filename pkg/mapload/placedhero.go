@@ -6,6 +6,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/herokind"
 	"againrom/pkg/sim"
 )
 
@@ -89,15 +90,9 @@ func placedHeroName(u alm.Unit, t *Table, party []PartyMember) string {
 	id := int32(u.ClassSubID)
 	line := int(id)
 	if _, composed := t.composedNPCIndex(id); composed {
-		primary := partyPrimary(party)
-		mage, female, _ := t.NPC.ComposedArchetype(id, primary.Mage, data.FigureDir(primary.FigureDir).Female())
-		line = 21
-		if female {
-			line++
-		}
-		if mage {
-			line += 2
-		}
+		hero := StartingHeroKind(party)
+		mage, female, _ := t.NPC.ComposedArchetype(id, hero.Mage(), hero.Female())
+		line = 21 + int(herokind.Of(mage, female))
 	}
 	if line < 1 || line > len(t.NPCNames) {
 		return ""
@@ -121,7 +116,17 @@ func placedHeroFace(name string, column int32) uint8 {
 	return uint8(face) & 0x3f
 }
 
-func partyPrimary(party []PartyMember) PartyMember {
+// StartingHeroKind is the one reading of the party's starting hero's class
+// and sex that a choice by the hero takes: the member marked as the starting
+// hero, else the first.
+func StartingHeroKind(party []PartyMember) herokind.Kind {
+	p := StartingHero(party)
+	return herokind.Of(p.Mage, data.FigureDir(p.FigureDir).Female())
+}
+
+// StartingHero is the party's starting hero: the member marked so, else the
+// first; the zero member for no party.
+func StartingHero(party []PartyMember) PartyMember {
 	if len(party) == 0 {
 		return PartyMember{}
 	}

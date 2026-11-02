@@ -171,7 +171,11 @@ func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) 
 	key := table.Key
 	patches := make([]mod.Patch[town.OfferKey, town.OfferRow], 0, len(d.Offers))
 	for _, r := range d.Offers {
-		patches = append(patches, mod.Patch[town.OfferKey, town.OfferRow]{Source: r.Source, Key: r.Key(), Fields: r.Fields, Off: r.Off, Apply: r.Apply})
+		apply := func(row *town.OfferRow) {
+			heroAsGates(row, r, book.catalog.HeroSlots)
+			r.Apply(row)
+		}
+		patches = append(patches, mod.Patch[town.OfferKey, town.OfferRow]{Source: r.Source, Key: r.Key(), Fields: r.Fields, Off: r.Off, Apply: apply})
 	}
 	layer0 := map[town.OfferKey]town.OfferRow{}
 	for _, r := range base {
@@ -182,7 +186,7 @@ func layerOffers(book *townBook, d mod.TownData, c Campaign, in modTownInstall) 
 		cat.Offers = l.Records
 		err := cat.Validate()
 		if err == nil {
-			err = checkOfferBank(cat.Offers, table)
+			err = checkOfferRows(cat.Offers, table)
 		}
 		for i := 0; err == nil && i < len(l.Records); i++ {
 			r := l.Records[i]

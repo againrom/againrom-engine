@@ -1,0 +1,8 @@
+id          = "hero-mission"
+title       = "Hero mission"
+version     = "1.0.0"
+author      = "Againrom"
+description = "After mission 20 companion 22 plays a mission whose map the starting hero chooses: one for a fighter, one for a male mage, one for a female mage. The tests that read this mod write its three maps beside it."
+api         = 1
+applies-to  = ["rom1"]
+entry       = "main.star"

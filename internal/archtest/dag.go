@@ -75,10 +75,13 @@ var allow = map[string][]string{
 	"pkg/vfs":       {"pkg/formats/res", "pkg/installpath", "pkg/namefold"},
 	// The data tier classifies a spell row's damage pair by asking the
 	// simulation's spell-arm table, the one owner of which arm heals or drains.
-	"pkg/data":    {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold", "pkg/sim"},
-	"pkg/sim":     {"pkg/rules", "pkg/random", "pkg/intmath"},
-	"pkg/rules":   {},
-	"pkg/intmath": {},
+	"pkg/data": {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold", "pkg/sim", "pkg/herokind"},
+	"pkg/sim":  {"pkg/rules", "pkg/random", "pkg/intmath"},
+	// The chooser by the starting hero's class and sex is a leaf every tier
+	// that chooses a record by the hero can name.
+	"pkg/herokind": {},
+	"pkg/rules":    {},
+	"pkg/intmath":  {},
 	// The random service is a leaf: its generators and named streams import
 	// nothing of this tree, so every tier that draws can name it.
 	"pkg/random": {},
@@ -92,7 +95,7 @@ var allow = map[string][]string{
 	// The shop stock generator of both games is a leaf: each game supplies
 	// its rules as a profile.
 	"pkg/shopstock": {},
-	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random"},
+	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind"},
 	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
 	"pkg/editormcp": {},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
@@ -399,7 +402,7 @@ var allow = map[string][]string{
 	// town catalog's entry format from pkg/town, and reads and writes a
 	// packed mod's RES through pkg/formats/res.
 	"pkg/ini": {},
-	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res", "pkg/namefold"},
+	"pkg/mod": {"pkg/rules", "pkg/locale", "pkg/base", "pkg/town", "pkg/formats/res", "pkg/namefold", "pkg/herokind"},
 	// The install languages: one record per language, read by every surface
 	// that depends on the install's language. A stdlib-only leaf.
 	"pkg/locale": {},

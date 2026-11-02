@@ -58,7 +58,7 @@ func mergedDataLines(t *testing.T, name, base string, entries []mod.Entry) []str
 	// carry before; the comparison reads the records without them.
 	added := map[string][]string{"companions": {"Fields", "Off", "Order"}, "bodies": {"Off", "OffLine", "Order"},
 		"characters": {"Key", "Row", "RowLine", "FaceLine", "Off", "OffLine", "Order"},
-		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order"},
+		"missions":   {"Party", "PartyLine", "Off", "OffLine", "Order", "Class", "Sex"},
 		"items":      {"Mods", "Order"}}
 	// Lists a kind gained, read without them when a mod declares none.
 	addedLists := map[string][]string{"items": {"Materials", "Weapons"}, "towns": {"Tavern"}}

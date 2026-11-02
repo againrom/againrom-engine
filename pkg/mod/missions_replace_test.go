@@ -3,6 +3,8 @@ package mod
 import (
 	"strings"
 	"testing"
+
+	"againrom/pkg/herokind"
 )
 
 const replacingMission = `[[mission]]
@@ -33,7 +35,7 @@ func TestParseMissionsReadsAReplacingMission(t *testing.T) {
 	if _, ok := d.ByNumber(20); ok {
 		t.Fatal("ByNumber found a replacing mission")
 	}
-	if _, ok := d.AfterWin(0); ok {
+	if _, ok := d.AfterWin(0, herokind.MaleFighter); ok {
 		t.Fatal("AfterWin found a replacing mission")
 	}
 	// Loss control: the guest declaration is found by the guest lookups and
