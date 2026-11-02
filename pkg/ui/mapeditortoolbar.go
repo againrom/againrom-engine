@@ -33,7 +33,8 @@ const (
 
 // toolButton is one editor command as data: the menu row key it performs, its icon (nil for a row with no toolbar button),
 // its tip's word, the key row whose label the tip names, its group and kind, its column and row in the floating window, a
-// switch's state and when it is disabled; the bar menu whose row it is, and the word of a heading over it in that menu.
+// switch's state and when it is disabled; the bar menu whose row it is, and the word of a heading over it in that menu;
+// whether a rule row stands over it; a row with no icon names its menu word as its word.
 type toolButton struct {
 	key         string
 	icon        *editorIcon
@@ -46,6 +47,7 @@ type toolButton struct {
 	off         func(e *MapEditor) bool
 	menu        string
 	headingWord string
+	ruleBefore  bool
 }
 
 // onToolbar reports that the row has a toolbar button.
@@ -75,7 +77,21 @@ var toolButtons []toolButton
 func init() {
 	noMap := func(e *MapEditor) bool { return e.doc == nil }
 	noBrush := func(e *MapEditor) bool { return e.brushHost() == nil || e.catalog }
+	noEdit := func(e *MapEditor) bool { return !e.editable() }
+	noRandom := func(e *MapEditor) bool { return e.doc == nil || e.catalog }
+	noPanel := func(e *MapEditor) bool { _, ok := e.mapPanel(); return !ok }
 	toolButtons = []toolButton{
+		{key: "new", word: "editor.menu.new", kind: toolAction, menu: "map"},
+		{key: "open", word: "editor.menu.open", kind: toolAction, menu: "map"},
+		{key: "saveas", word: "editor.menu.save", kind: toolAction, off: noEdit, menu: "map"},
+		{key: "saveto", word: "editor.menu.saveas", kind: toolAction, off: noEdit, menu: "map"},
+		{key: "catalog", word: "editor.menu.builtin", kind: toolAction, menu: "map"},
+		{key: "testplay", word: "editor.menu.testplay", kind: toolAction, off: noEdit, menu: "map"},
+		{key: "panel", word: "editor.menu.panel", kind: toolAction, off: noPanel, menu: "map"},
+		{key: "records", word: "editor.view.records", kind: toolAction, off: noMap, menu: "map"},
+		{key: "randomterrain", word: "editor.tools.randomterrain", headingWord: "editor.menu.generate", kind: toolAction, off: noRandom, menu: "map"},
+		{key: "randomheights", word: "editor.tools.randomheights", kind: toolAction, off: noRandom, menu: "map"},
+		{key: "close", word: "editor.menu.exit", ruleBefore: true, kind: toolAction, menu: "map"},
 		{key: "select", icon: &iconSelect, word: "editor.tool.select", kind: toolPick, cell: image.Pt(1, 0), off: noMap, menu: "tools"},
 		{key: brushMenuKeys[brushTerrain], icon: &iconTerrain, word: "editor.tool.terrain", keyRow: "terrain", kind: toolPick, cell: image.Pt(1, 1), off: noBrush, menu: "tools", headingWord: "editor.tool.brushes"},
 		{key: brushMenuKeys[brushHeight], icon: &iconHeight, word: "editor.tool.height", keyRow: "height", kind: toolPick, cell: image.Pt(1, 2), off: noBrush, menu: "tools"},

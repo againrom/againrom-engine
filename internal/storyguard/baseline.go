@@ -3787,5 +3787,5 @@ var Committed = Baseline{
 	// replaces the card's value and the words for a differing value: doc
 	// comments in editorpopup.go and mapeditorplain.go and the new test
 	// mapeditorunitbasicvalue_test.go.
-	CommentBytes: 10349301,
+	CommentBytes: 10350120,
 }

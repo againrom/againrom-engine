@@ -22,10 +22,11 @@ func menuEditor(t *testing.T, lang string) (*MapEditor, *groupsProbe, *[][]byte)
 }
 
 // tableMenus are the bar menus whose rows the toolbar's table gives.
-var tableMenus = []string{"tools", "view", "window"}
+var tableMenus = []string{"map", "tools", "view", "window"}
 
 // menuRowKeys are each table menu's row keys in order, "" for a heading.
 var menuRowKeys = map[string][]string{
+	"map":    mapRowKeys,
 	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
 	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel"},
@@ -57,10 +58,11 @@ func assertMenuMarks(t *testing.T, e *MapEditor, how string) {
 				continue
 			}
 			mark := ""
-			if it.key != "fit" {
+			b, _ := toolRow(it.key)
+			if b.kind != toolAction {
 				mark = markWord(on, "")
 			}
-			if !strings.HasPrefix(it.label, mark) || it.key == "fit" && strings.HasPrefix(it.label, "[") || it.off != off {
+			if !strings.HasPrefix(it.label, mark) || b.kind == toolAction && strings.HasPrefix(it.label, "[") || it.off != off {
 				t.Errorf("%s: %s row %s reads %q disabled %v, the toolbar shows on %v disabled %v", how, menu, it.key, it.label, it.off, on, off)
 			}
 		}
@@ -205,6 +207,9 @@ func TestMapEditorMenuRowsAreDisabledWhereTheirButtonsAre(t *testing.T) {
 func TestMapEditorMenuRowPressDoesWhatItsButtonDoes(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		for _, b := range toolButtons {
+			if b.menu == "map" {
+				continue
+			}
 			t.Run(fmt.Sprintf("%q/%s", lang, b.key), func(t *testing.T) {
 				want, wp, _ := menuEditor(t, lang)
 				got, gp, _ := menuEditor(t, lang)
@@ -392,4 +397,14 @@ func TestMapEditorHiddenToolbarProfileRoundTrip(t *testing.T) {
 			t.Errorf("%s: the toolbar reads shown %v floats %v", name, h.toolbarOn(), h.toolbarFloats())
 		}
 	}
+}
+
+// toolRow is the table row of key.
+func toolRow(key string) (toolButton, bool) {
+	for _, b := range toolButtons {
+		if b.key == key {
+			return b, true
+		}
+	}
+	return toolButton{}, false
 }

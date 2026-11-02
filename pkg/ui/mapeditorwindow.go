@@ -396,36 +396,22 @@ func markWord(on bool, id string) string {
 	return CheckSpec{On: on, Style: CheckText}.Mark() + id
 }
 
-// menuItems is the rows of bar menu menu. The Map menu's rows are its own;
-// the Tools, View and Window menus take theirs from the toolbar's table, in
-// table order, with a heading row over a row that names one: a row reads
-// as its button's tip, a tool or switch row carries the mark while its
-// button shows on, and a row is disabled while its button is.
+// menuItems is the rows of bar menu menu, every menu taking them from the
+// toolbar's table in table order, with a heading row over a row that names
+// one and a rule row over a row that asks for one: a row reads as its
+// button's tip, a tool or switch row carries the mark while its button shows
+// on, and a row is disabled while its action would do nothing.
 func (e *MapEditor) menuItems(menu string) []menuItem {
 	if menu == searchKey {
 		return e.searchItems()
-	}
-	if menu == "map" {
-		return []menuItem{
-			{key: "new", label: e.word("editor.menu.new")},
-			{key: "open", label: e.word("editor.menu.open")},
-			{key: "saveas", label: e.word("editor.menu.save")},
-			{key: "saveto", label: e.word("editor.menu.saveas")},
-			{key: "catalog", label: e.word("editor.menu.builtin")},
-			{key: "testplay", label: e.word("editor.menu.testplay")},
-			{key: "panel", label: e.word("editor.menu.panel")},
-			{key: "records", label: e.word("editor.view.records")},
-			{label: e.word("editor.menu.generate")},
-			{key: "randomterrain", label: e.word("editor.tools.randomterrain")},
-			{key: "randomheights", label: e.word("editor.tools.randomheights")},
-			{},
-			{key: "close", label: e.word("editor.menu.exit")},
-		}
 	}
 	var out []menuItem
 	for _, t := range e.toolbarEntries() {
 		if t.menu != menu {
 			continue
+		}
+		if t.ruleBefore {
+			out = append(out, menuItem{})
 		}
 		if t.headingWord != "" {
 			out = append(out, menuItem{label: e.word(t.headingWord)})
