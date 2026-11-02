@@ -379,7 +379,7 @@ func (e *MapEditor) drawToolbar(pic *image.RGBA, floating bool) {
 	}
 	scale := e.toolSizeNow().scale
 	if s, ok := e.toolbarSpec(); ok {
-		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		e.drawWindow(pic, s)
 	} else {
 		drawFrame(pic, stripFrame(e.toolbarRect(), edgeBottomBit))
 		drawIcon(pic, e.toolbarGrip(), &iconGrip, false, scale)

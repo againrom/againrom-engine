@@ -934,9 +934,22 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 			s.LabelWidth = s.Width - 2*popupPad - 3*relationSide
 		}
 	}
-	if m != nil && m.Len() > 0 {
+	counter := m != nil && m.Len() > 0
+	if counter {
+		s.Notes = append(s.Notes, "")
+	}
+	if p := e.places[popList]; kind == "brush" && m != nil && p.size == (image.Point{}) && !p.slack {
+		// A brush window nobody sized or dragged shows the list rows that keep
+		// it above the map's bottom edge, never fewer than listWindow's least:
+		// its button rows and grid are more than listWindow allows for.
+		for s.ListRows > 3 && layoutPopup(s, e.font, e.bodyFont()).Rect.Max.Y > s.Room.Max.Y {
+			s.ListRows--
+		}
+		m.SetWindow(s.ListRows)
+	}
+	if counter {
 		top, n := m.Visible()
-		s.Notes = append(s.Notes, fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len()))
+		s.Notes[len(s.Notes)-1] = fmt.Sprintf("%d-%d / %d", top+1, top+n, m.Len())
 	}
 	if palette && len(s.Rows) == 0 && len(s.Notes) == 0 && len(s.Buttons) == 0 && s.Grid == nil {
 		return popupSpec{}, false
@@ -1431,6 +1444,7 @@ func (e *MapEditor) ChromeImage() *image.RGBA {
 // that float over the map are left out: the docked panels, the bar and the
 // strip are drawn as they are, and chromeFaded draws the floating windows.
 func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
+	e.chromeWindows = e.chromeWindows[:0]
 	pic := image.NewRGBA(image.Rect(0, 0, e.window.X, e.window.Y))
 	bar := image.Rect(0, 0, e.window.X, e.barHeight())
 	drawFrame(pic, stripFrame(bar, edgeBottomBit))
@@ -1462,6 +1476,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 	}
 	if b, ok := e.openMenuEntry(); ok {
 		d := e.menuDropdown(b, true)
+		e.noteDropdown(d, e.font)
 		drawDropdown(pic, e.font, nil, d, func(row, width int) string { return editorClip(e.font, d.List.Rows()[row].Text, width) }, e.pointer, e.pointerOK)
 	}
 	e.drawTip(pic)
@@ -1480,21 +1495,57 @@ func (e *MapEditor) drawFloating(pic *image.RGBA, only bool) {
 		e.drawListWindow(pic, s)
 	}
 	if s, _, ok := e.objectSpec(); ok && !e.panels.hosted {
-		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		e.drawWindow(pic, s)
 		e.drawObjectPreview(pic, s)
 	}
 	if s, ok := e.promptSpec(); ok {
-		drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+		e.drawWindow(pic, s)
 		e.drawAddPreview(pic, s)
 	}
 	e.drawOpenDropdown(pic)
 	e.drawAreaDropdown(pic)
 }
 
+// ChromeWindow is one panel, floating window or open drop-down list the
+// chrome drew: its window rectangle, and Text, the count of the frame's
+// captured text calls drawn before it. A glyph whose TextFates index is below
+// Text lies under the window.
+type ChromeWindow struct {
+	Rect image.Rectangle
+	Text int
+}
+
+// ChromeWindows are the panels, floating windows and open drop-down lists the
+// last drawn frame's chrome drew, in draw order. They are noted only while the
+// chrome's text is captured; drawing never calls this.
+func (e *MapEditor) ChromeWindows() []ChromeWindow { return slices.Clone(e.chromeWindows) }
+
+// drawWindow draws popup s as one window of the chrome.
+func (e *MapEditor) drawWindow(pic *image.RGBA, s popupSpec) {
+	l := layoutPopup(s, e.font, e.bodyFont())
+	e.noteWindow(l.Rect)
+	drawPopup(pic, e.font, e.bodyFont(), nil, s, l, editorPopupInk, e.pointer, e.pointerOK)
+}
+
+// noteDropdown notes the open list of drop-down d, laid out in f, as the
+// frame drawDropdown draws around it.
+func (e *MapEditor) noteDropdown(d dropdown, f *text.Font) {
+	if d.Open && d.List != nil {
+		l := d.listBox(f)
+		e.noteWindow(l.Rect.Union(l.Bar()).Inset(-2))
+	}
+}
+
+func (e *MapEditor) noteWindow(r image.Rectangle) {
+	if text.Capturing() {
+		e.chromeWindows = append(e.chromeWindows, ChromeWindow{r, text.CapturedLen()})
+	}
+}
+
 // drawListWindow draws the list popup s with the links and the brush picture
 // that belong to it.
 func (e *MapEditor) drawListWindow(pic *image.RGBA, s popupSpec) {
-	drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+	e.drawWindow(pic, s)
 	e.drawGoalLinks(pic, s)
 	e.drawBrushPreview(pic, s)
 }
@@ -1730,7 +1781,12 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 	blit = image.NewRGBA(pic.Bounds())
 	copy(blit.Pix, pic.Pix)
 	kept = textsmooth.Settle(blit, calls)
+	composed := len(e.chromeWindows)
 	if layer := e.chromeFaded(); layer != nil {
+		// The faded windows lie over every call the chrome captured.
+		for i := composed; i < len(e.chromeWindows); i++ {
+			e.chromeWindows[i].Text = len(calls)
+		}
 		// The faded windows keep their text as plain pixels, so it fades
 		// with them.
 		draw.Draw(pic, pic.Bounds(), layer, image.Point{}, draw.Over)

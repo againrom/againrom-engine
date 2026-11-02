@@ -148,6 +148,7 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 		t.Fatal(err)
 	}
 	closeMapPanel(t, e)
+	showTree(e)
 	_ = e.Key("scripts")
 	_ = e.Key("escape")
 	r := scriptsTreeRow(t, e, len(e.Document().Script.Triggers))
@@ -177,6 +178,7 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 			continue
 		}
 		closeMapPanel(t, e)
+		showTree(e)
 		_ = e.Key("scripts")
 		_ = e.Key("escape")
 		shot := func(name string) {

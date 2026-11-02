@@ -1000,7 +1000,7 @@ func (e *MapEditor) drawSidePanels(pic *image.RGBA, part sidePanelPart) {
 	wanted := func(floats bool) bool { return part == panelsAll || (part == panelsFloating) == floats }
 	draw := func(s popupSpec, floats bool) {
 		if wanted(floats) {
-			drawPopup(pic, e.font, e.bodyFont(), nil, s, layoutPopup(s, e.font, e.bodyFont()), editorPopupInk, e.pointer, e.pointerOK)
+			e.drawWindow(pic, s)
 		}
 	}
 	if s, ok := e.stripSpec(panelLeft); ok {

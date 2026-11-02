@@ -3847,5 +3847,10 @@ var Committed = Baseline{
 	// It rose for the Druids' town release tests' Player groups: the doc
 	// comment of playerGroups and the corrected test comments in
 	// pkg/game/seconddruidstown_release_test.go, and this note.
-	CommentBytes: 10393013,
+
+	// It rose for the map editor frame fixes: the doc comments of
+	// ChromeWindow, ChromeWindows, drawWindow, noteDropdown, keepInRoom and
+	// underLaterWindow, the brush list fit, the card rest, the area labels,
+	// the release tests' panel order, and this note.
+	CommentBytes: 10395245,
 }

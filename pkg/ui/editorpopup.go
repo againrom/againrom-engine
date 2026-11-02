@@ -1049,7 +1049,9 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 		if len(l.Buttons) > 0 {
 			bottom = l.Buttons[0].Min.Y - popupPad
 		}
-		l.CardRest = image.Rect(r.Max.X-popupPad-cardAside(s), l.Card.Max.Y+popupPad, r.Max.X-popupPad, bottom)
+		// No room under the card leaves it empty, never turned over the buttons.
+		top := l.Card.Max.Y + popupPad
+		l.CardRest = image.Rect(r.Max.X-popupPad-cardAside(s), top, r.Max.X-popupPad, max(top, bottom))
 	}
 	return l
 }

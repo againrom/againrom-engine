@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"slices"
 )
 
 // The triggers on the map: every place a trigger's conditions and actions
@@ -173,14 +174,8 @@ func (e *MapEditor) areaLabels() []areaLabel {
 				r = r.Sub(image.Pt(r.Max.X-p.Min.X, 0)) // to the popup's left, beside its area
 			}
 		}
-		for moved := 0; moved < 8; moved++ {
-			clash := false
-			for _, l := range out {
-				clash = clash || l.rect.Overlaps(r)
-			}
-			if !clash {
-				break
-			}
+		// Down past every label already placed; below the map it is left out.
+		for r.Min.Y < area.Max.Y && slices.ContainsFunc(out, func(l areaLabel) bool { return l.rect.Overlaps(r) }) {
 			r = r.Add(image.Pt(0, h))
 		}
 		covered := false

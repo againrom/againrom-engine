@@ -151,6 +151,25 @@ func (e *MapEditor) placeSpec(id editorPopupID, s *popupSpec) {
 	}
 }
 
+// keepInRoom moves spec s of popup id, while nobody dragged or sized it, left
+// and up by what its laid out window hangs past the map area's right and
+// bottom edges, never past the map area's left or top edge: a window wider or
+// taller than its home allows opens clear of the docked panels and strips at
+// the right and below.
+func (e *MapEditor) keepInRoom(id editorPopupID, s *popupSpec) {
+	p := e.places[e.storeRow(id)]
+	if p.slack || p.size != (image.Point{}) {
+		return
+	}
+	room, r := e.mapArea(), layoutPopup(*s, e.font, e.bodyFont()).Rect
+	d := image.Pt(min(0, room.Max.X-r.Max.X), min(0, room.Max.Y-r.Max.Y))
+	if d == (image.Point{}) {
+		return
+	}
+	at := r.Min.Add(d)
+	s.At = image.Pt(max(at.X, min(r.Min.X, room.Min.X)), max(at.Y, min(r.Min.Y, room.Min.Y)))
+}
+
 // floatPlace stands popup id's window at rectangle r: the corner and size of
 // a floating side panel's or the toolbar's window, which may hang past the
 // window's edges.

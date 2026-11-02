@@ -223,6 +223,7 @@ type MapEditor struct {
 	textSmoothingEnabled        bool
 	textOverlay                 textOverlay
 	textLayers                  []textLayer
+	chromeWindows               []ChromeWindow // what ChromeWindows reads: the windows the last captured chrome drew
 	textCaptured, textKept      int
 	placementKey                string
 	placementDoc, placementView *InspectionDocument

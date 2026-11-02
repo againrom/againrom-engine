@@ -40,6 +40,7 @@ func (e *MapEditor) listSpec() (popupSpec, bool) {
 	e.adoptKept(popList, &s)
 	e.placeSpec(popList, &s)
 	if e.places[popList].size == (image.Point{}) {
+		e.keepInRoom(popList, &s)
 		return s, true
 	}
 	if s.List != nil {
@@ -70,6 +71,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		e.slackSpec(popObject, &s)
 	}
 	if e.places[e.storeRow(popObject)].size == (image.Point{}) && s.Size == (image.Point{}) {
+		e.keepInRoom(popObject, &s)
 		return e.objectInputRows(s), links, true
 	}
 	e.placeSpec(popObject, &s)
@@ -78,6 +80,7 @@ func (e *MapEditor) objectSpec() (popupSpec, []int, bool) {
 		e.objectTop = max(0, min(e.objectTop, popupRowCount(s)-s.MaxRows))
 		s.Top = e.objectTop
 	}
+	e.keepInRoom(popObject, &s)
 	return e.objectInputRows(s), links, true
 }
 

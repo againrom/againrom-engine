@@ -336,6 +336,9 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 	}
 	e := openGroupMap(t, x)
 	closeMapPanel(t, e)
+	// The left panel shows before a category entry, as F6 shows it: an entry
+	// leaves the panels as they are and its palette opens beside them.
+	showTree(e)
 	c := &editorClicker{t: t, now: time.Unix(40, 0)}
 	r, ok := e.BarRect("units")
 	c.click(e, r, ok, "the Units entry")
@@ -384,7 +387,6 @@ func TestReleaseMapEditorObjectsAndGroupsFrames(t *testing.T) {
 
 	r, ok = e.BarRect("groups")
 	c.click(e, r, ok, "the Groups entry")
-	showTree(e)
 	r, ok = e.GroupsRowRect(2, 2, false)
 	c.click(e, r, ok, "group 2's row")
 	if e.GroupBadges() == 0 || len(e.SelectedRecords()) == 0 {

@@ -103,7 +103,7 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability drawa
  - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
-== toolbar-en-1280x800 63ef81a7366d0b80 panels=[260 520 26] map=(260,58)-(760,758)
+== toolbar-en-1280x800 b7ce0002cd9c8dbc panels=[260 520 26] map=(260,58)-(760,758)
 toolbar select brush.terrain* brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -128,7 +128,7 @@ toolbar select brush.terrain* brush.height brush.objects brush.passability drawa
    Structure #0  hall  30,30
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== toolbar-ru-1280x800 92b1a9e1c0e102c2 panels=[260 520 26] map=(260,58)-(760,758)
+== toolbar-ru-1280x800 b24c77bb483bd59e panels=[260 520 26] map=(260,58)-(760,758)
 toolbar select brush.terrain* brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры

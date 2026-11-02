@@ -10,14 +10,16 @@ import (
 
 	"againrom/internal/firstgame"
 	"againrom/internal/witness"
+	"againrom/pkg/render/text"
 	"againrom/pkg/render/textsmooth"
 	"againrom/pkg/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // writeEditorFrame draws the editor headless, checks that the window's text
-// overlay keeps every glyph outside cover, the hover lines and the open
-// menu's list, and writes the frame as a PNG to path when write is set.
+// overlay keeps every glyph outside cover, the hover lines, the open menu's
+// list and a window the chrome drew after the glyph, and writes the frame as a
+// PNG to path when write is set. A glyph its own window's parts hide fails.
 func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, cover image.Rectangle) {
 	t.Helper()
 	screen := ebiten.NewImage(1280, 800)
@@ -32,8 +34,9 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 		menu = menu.Union(r)
 	}
 	covers := append(e.PopupTipRects(), cover, menu)
-	for _, ft := range e.TextFates() {
-		if ft.Fate == textsmooth.Hidden && slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) {
+	windows := e.ChromeWindows()
+	for i, ft := range e.TextFates() {
+		if ft.Fate == textsmooth.Hidden && (slices.ContainsFunc(covers, image.Pt(ft.Call.X, ft.Call.Y).In) || underLaterWindow(ft.Call, i, windows)) {
 			continue
 		}
 		if ft.Fate != textsmooth.Kept && ft.Fate != textsmooth.Blank && ft.Fate != textsmooth.Repeat {
@@ -48,6 +51,28 @@ func writeEditorFrame(t *testing.T, e *ui.MapEditor, path string, write bool, co
 		return
 	}
 	witness.PNG(t, path, pic)
+}
+
+// underLaterWindow reports whether every painted cell of glyph call c, the
+// frame's text call i, that its clip shows lies in a window the chrome drew
+// after the call.
+func underLaterWindow(c text.DrawCall, i int, windows []ui.ChromeWindow) bool {
+	g := c.Glyph
+	if g == nil || g.Width <= 0 {
+		return false
+	}
+	cells := 0
+	for k, p := range g.Pixels[:min(len(g.Pixels), g.Width*g.Height)] {
+		at := image.Pt(c.X+k%g.Width, c.Y+k/g.Width)
+		if !p.Painted || !c.Clip.Empty() && !at.In(c.Clip) {
+			continue
+		}
+		if !slices.ContainsFunc(windows, func(w ui.ChromeWindow) bool { return w.Text > i && at.In(w.Rect) }) {
+			return false
+		}
+		cells++
+	}
+	return cells > 0
 }
 
 // TestReleaseMapEditorOwnerFrames writes the editor's popups, rendered
@@ -127,10 +152,12 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	e.Select(first(e, "Structure"), true)
 	shot(e, "structure", image.Rectangle{})
 
+	// The left panel shows before a category entry, as F6 shows it: the entry
+	// leaves the panels as they are and its palette opens beside them.
 	e = opened()
+	showTree(e)
 	r, ok = e.BarRect("groups")
 	click(e, r, ok, "the Groups entry")
-	showTree(e)
 	r, ok = e.GroupsRowRect(2, 15, false)
 	click(e, r, ok, "the second group")
 	if len(e.GroupMembers()) == 0 {
@@ -139,6 +166,7 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	shot(e, "groups", image.Rectangle{})
 
 	e = opened()
+	showTree(e)
 	r, ok = e.BarRect("scripts")
 	click(e, r, ok, "the Scripts entry")
 	r, ok = treeMemberRect(e, "scripts", 0)
