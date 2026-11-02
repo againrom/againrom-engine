@@ -3852,5 +3852,16 @@ var Committed = Baseline{
 	// ChromeWindow, ChromeWindows, drawWindow, noteDropdown, keepInRoom and
 	// underLaterWindow, the brush list fit, the card rest, the area labels,
 	// the release tests' panel order, and this note.
-	CommentBytes: 10395240,
+
+	// It rose for the script lists' Add steps and variable labels: doc
+	// comments in pkg/ui's mapeditoradd.go, mapeditorscriptadd.go,
+	// mapeditorscriptauthor.go and mapeditorwizard.go, pkg/game's
+	// maptextpages.go, mapinspectionworkspace.go and
+	// mapinspectionscriptchoices.go, the label file guard
+	// internal/archtest/maplabels_test.go, the tests
+	// mapeditorscriptadd_test.go, mapeditorscriptadd_release_test.go and
+	// pkg/ui's mapeditorscriptauthor_test.go, the fixed button width of the
+	// Scripts popups (fitButtons) with its tests mapeditorscriptfit_test.go
+	// and mapeditormodlabels_test.go, and this note.
+	CommentBytes: 10410579,
 }

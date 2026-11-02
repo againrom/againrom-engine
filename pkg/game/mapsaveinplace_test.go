@@ -131,7 +131,7 @@ func TestSaveInPlaceRewritesOwnTextsFolderOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	pages := map[string][]byte{"title.txt": []byte("fresh")}
-	if _, err := writeEditedMapPages("", path, path, []byte("new"), pages, "en", true); err != nil {
+	if _, err := writeEditedMapPages("", path, path, []byte("new"), pages, nil, "en", true); err != nil {
 		t.Fatal(err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(folder, "title.txt")); string(b) != "fresh" {
@@ -155,7 +155,7 @@ func TestSaveInPlaceRewritesOwnTextsFolderOnly(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "two.text"), []byte("file"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writeEditedMapPages("", other, other, []byte("new"), pages, "en", true); err == nil {
+	if _, err := writeEditedMapPages("", other, other, []byte("new"), pages, nil, "en", true); err == nil {
 		t.Fatal("a texts path that is a file was replaced")
 	}
 	s := inPlaceEdits(t, other)

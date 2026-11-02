@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/render/text"
 )
 
 // sackField reports that f, on record r, writes the unit's sack: an
@@ -42,7 +44,7 @@ func objectParameter(t uint32) bool {
 func (e *MapEditor) objectPlace() objectPlace {
 	p := objectPlace{index: -1, top: e.objectTop, group: e.groupSel, details: e.triggerDetails, section: e.obj.section}
 	if v, ok := e.scriptVariableRow(e.selected); ok {
-		p.kind, p.register = "Variable", v.register
+		p.kind, p.register = KindVariable, v.register
 		return p
 	}
 	if e.selected >= 0 && e.selected < len(e.doc.Records) {
@@ -77,16 +79,17 @@ func (e *MapEditor) objectBackButton(s *popupSpec) {
 	}
 	s.Buttons = append(s.Buttons, e.word("editor.trigger.back"))
 	s.Disabled = append(s.Disabled, false)
-	fitButtons(s)
+	fitButtons(s, e.bodyFont())
 }
 
-// fitButtons widens s so its whole button row lies inside the popup.
-func fitButtons(s *popupSpec) {
-	bw := popupButtonW
-	if s.ButtonW > 0 {
-		bw = s.ButtonW
+// fitButtons widens s so its whole button row lies inside the popup, each
+// button at the width popupButtonWidths gives it in the font body.
+func fitButtons(s *popupSpec, body *text.Font) {
+	row := popupPad
+	for _, bw := range popupButtonWidths(*s, body) {
+		row += bw + popupPad
 	}
-	s.Width = max(s.Width, len(s.Buttons)*(bw+popupPad)+popupPad)
+	s.Width = max(s.Width, row)
 }
 
 func (e *MapEditor) backObject() {
@@ -110,7 +113,7 @@ func (e *MapEditor) backObject() {
 		}
 		return
 	}
-	if p.kind == "Variable" {
+	if p.kind == KindVariable {
 		for i, v := range e.scriptVariables() {
 			if v.register == p.register {
 				e.Select(-2-i, false)

@@ -541,7 +541,7 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.back")}
 		s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
-		fitButtons(&s)
+		fitButtons(&s, e.bodyFont())
 	} else {
 		s.Title = fmt.Sprintf(e.word("editor.node.action"), v.node.ID)
 		if v.condition {
@@ -577,6 +577,11 @@ func (e *MapEditor) scriptSpec(v scriptView) (popupSpec, []int) {
 		}
 		s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel")}
 		s.Disabled = []bool{!e.objectDirty(), false}
+		if e.listedCondition(v) {
+			s.Buttons, s.Disabled = append(s.Buttons, e.word("editor.scripts.totrigger")), append(s.Disabled, false)
+			s.ButtonFit = true
+			fitButtons(&s, e.bodyFont())
+		}
 
 	}
 	if o.note != "" {
@@ -737,6 +742,8 @@ func (e *MapEditor) scriptButton(v scriptView, n int) {
 			return
 		}
 		e.ShowTriggerDetails(false)
+	case n == 2 && e.listedCondition(v):
+		e.addToTrigger(v)
 	case v.node != nil && n == 2:
 		e.backObject()
 	}
@@ -988,6 +995,15 @@ func (e *MapEditor) PopupButtonRect(n int) (image.Rectangle, bool) {
 		return image.Rectangle{}, false
 	}
 	return l.Buttons[n], true
+}
+
+// PopupButtons are the captions of the object popup's button row.
+func (e *MapEditor) PopupButtons() []string {
+	s, _, ok := e.objectSpec()
+	if !ok {
+		return nil
+	}
+	return s.Buttons
 }
 
 // RowButtonRect is the window rectangle of button k of the shown row that

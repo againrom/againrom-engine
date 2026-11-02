@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -324,4 +325,49 @@ func scriptCoordinateAllowed(view *alm.Map, k mapedit.Kind, index int, key strin
 		return fmt.Errorf("coordinate %d is outside 0..%d", value, limit-1)
 	}
 	return nil
+}
+
+// NewVariable labels the register scriptTargets offers as the new variable,
+// so the variable is listed before any node addresses it.
+func (s *mapInspectionEdits) NewVariable(label string) (*ui.InspectionDocument, uint32, error) {
+	if !labelAllowed(strings.TrimSpace(label)) {
+		return nil, 0, fmt.Errorf(s.inspector.word("editor.labels.bad"), maxLabelRunes)
+	}
+	for _, t := range s.scriptTargets[ui.ScriptVariableParameter] {
+		if t.Record == -1 {
+			d, err := s.LabelVariable(t.Value, label)
+			return d, t.Value, err
+		}
+	}
+	return nil, 0, errors.New(s.inspector.word("editor.labels.noregister"))
+}
+
+// LabelVariable sets the label of a variable register; an empty label
+// clears it. The labels are workspace edits, saved in the labels file.
+func (s *mapInspectionEdits) LabelVariable(register uint32, label string) (*ui.InspectionDocument, error) {
+	label = strings.TrimSpace(label)
+	if label != "" && !labelAllowed(label) {
+		return nil, fmt.Errorf(s.inspector.word("editor.labels.bad"), maxLabelRunes)
+	}
+	variable := false
+	for _, t := range s.scriptTargets[ui.ScriptVariableParameter] {
+		variable = variable || t.Value == register
+	}
+	if !variable {
+		return nil, fmt.Errorf(s.inspector.word("editor.labels.notvariable"), register)
+	}
+	return s.changeWorkspace(func(w *editorWorkspaceState) error {
+		if label == "" {
+			delete(w.Labels, register)
+			if len(w.Labels) == 0 {
+				w.Labels = nil
+			}
+			return nil
+		}
+		if w.Labels == nil {
+			w.Labels = map[uint32]string{}
+		}
+		w.Labels[register] = label
+		return nil
+	})
 }

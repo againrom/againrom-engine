@@ -63,7 +63,7 @@ func TestMapEditorAddKindsAreRowsOfOneBuilder(t *testing.T) {
 		has(k.Word)
 		for _, st := range k.Steps {
 			has(st.Word)
-			if st.Key == "" || st.Control > addKind {
+			if st.Key == "" || st.Control > addItem {
 				t.Errorf("%s step %+v is not a builder step", k.Kind, st)
 			}
 			for _, next := range st.Kinds {
@@ -199,6 +199,9 @@ func TestMapEditorAddCancelAtEveryStepWritesNothing(t *testing.T) {
 	for _, k := range addKinds {
 		if len(k.Steps) == 0 {
 			continue
+		}
+		if e, _ := newModesEditor(t, "full"); !e.addKindOpen(k.Kind) {
+			continue // the modes map has no script to place a check in
 		}
 		for at := 0; at < 16; at++ {
 			probe, _ := newModesEditor(t, "full")

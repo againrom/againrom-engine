@@ -62,6 +62,9 @@ type InspectionDocument struct {
 	AddedRecord   RecordRef
 	SourceBytes   []byte // exact current model bytes, not a re-encoded map
 	ScriptNotice  string
+	// OpenNote is, on the document an open answers, what the host could
+	// not read beside the map, in the editor's words (UTF-8); empty: all.
+	OpenNote string
 	// AgainromOnly marks a map whose script holds an Againrom operation: the
 	// original cannot play its Againrom nodes (DIV-4009).
 	AgainromOnly bool
@@ -312,7 +315,7 @@ func (e *MapEditor) openMap(source string) error {
 	e.objectBack = nil
 	e.messagePage = 0
 	e.listWheel, e.objectWheel = 0, 0
-	e.message = ""
+	e.message = next.OpenNote
 	e.brush.endStroke()
 	e.clearSelection()
 	e.Fit()

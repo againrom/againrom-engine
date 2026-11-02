@@ -388,10 +388,11 @@ func (e *MapEditor) wizardRows(t *InspectionTrigger) []wizRow {
 	return rows
 }
 
-// keptPlan is trigger index as it stands, every pair and action kept.
-func (e *MapEditor) keptPlan(index int) (WizardTrigger, error) {
+// keptPlan is trigger index as it stands, every pair and action kept, with
+// the rows added after them.
+func (e *MapEditor) keptPlan(index int, added ...wizRow) (WizardTrigger, error) {
 	t := &e.doc.Script.Triggers[index]
-	return e.rowsPlan(WizardTrigger{Index: index, Name: t.Name, Once: t.Once}, e.wizardRows(t))
+	return e.rowsPlan(WizardTrigger{Index: index, Name: t.Name, Once: t.Once}, append(e.wizardRows(t), added...))
 }
 
 // constantValue is the value of the constant condition id, false when id
@@ -685,43 +686,61 @@ func (e *MapEditor) wizardFields(v scriptView) {
 			continue
 		}
 		it := items[row.item]
-		for k, p := range it.params {
-			f := InspectionField{Key: w.wizardKey(r, fmt.Sprintf("p%d", k)), Label: e.word(p.labelWord)}
-			value := text(k + 1)
-			n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
-			switch p.kind {
-			case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation:
-				f.Value = n
-				f.Choices = e.wizardChoices(p.kind, n)
-			case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
-				f.Value = n
-				f.Choices = e.registryChoices(row.condition, it, k, n)
-			case wpCommand:
-				f.Value = n
-				for _, c := range e.doc.Script.Catalog.GroupCommands {
-					if e.commandItem(row.condition, row.item, c) >= 0 {
-						f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
-					}
-				}
-			default:
-				f.Text, f.TextValue = true, value
-			}
+		for k := range it.params {
+			f := e.paramField(row.condition, row.item, k, text(k+1))
+			f.Key = w.wizardKey(r, fmt.Sprintf("p%d", k))
 			o.fields = append(o.fields, f)
 			o.buf = append(o.buf, row.vals[k+1])
 		}
 		if it.chooseCmp {
-			var cmps []InspectionChoice
-			for c := int64(0); c <= 5; c++ {
-				cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
-			}
-			n, _ := strconv.ParseInt(text(len(it.params)+1), 10, 64)
-			if n < 0 || n > 5 {
-				cmps = append(cmps, InspectionChoice{n, e.cmpWord(n)})
-			}
-			o.fields = append(o.fields, InspectionField{Key: w.wizardKey(r, "cmp"), Label: e.word("editor.trigger.comparison"), Value: n, Choices: cmps})
+			f := e.cmpField(text(len(it.params) + 1))
+			f.Key = w.wizardKey(r, "cmp")
+			o.fields = append(o.fields, f)
 			o.buf = append(o.buf, row.vals[len(it.params)+1])
 		}
 	}
+}
+
+// paramField is the field of parameter k of item i whose text is value: a
+// choice of what the parameter can name, or typed text. The wizard's rows
+// and the Add window's condition steps ask a parameter through it.
+func (e *MapEditor) paramField(condition bool, i, k int, value string) InspectionField {
+	it := wizItems(condition)[i]
+	p := it.params[k]
+	f := InspectionField{Label: e.word(p.labelWord)}
+	n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	switch p.kind {
+	case wpUnit, wpPlayer, wpGroup, wpMessage, wpRelation:
+		f.Value = n
+		f.Choices = e.wizardChoices(p.kind, n)
+	case wpVariable, wpItem, wpStructure, wpSpell, wpProperty:
+		f.Value = n
+		f.Choices = e.registryChoices(condition, it, k, n)
+	case wpCommand:
+		f.Value = n
+		for _, c := range e.doc.Script.Catalog.GroupCommands {
+			if e.commandItem(condition, i, c) >= 0 {
+				f.Choices = append(f.Choices, InspectionChoice{int64(c), e.commandName(c)})
+			}
+		}
+	default:
+		f.Text, f.TextValue = true, value
+	}
+	return f
+}
+
+// cmpField is the comparison field whose text is value: the six codes, and a
+// code outside them the row was read with.
+func (e *MapEditor) cmpField(value string) InspectionField {
+	var cmps []InspectionChoice
+	for c := int64(0); c <= 5; c++ {
+		cmps = append(cmps, InspectionChoice{c, e.cmpWord(c)})
+	}
+	n, _ := strconv.ParseInt(value, 10, 64)
+	if n < 0 || n > 5 {
+		cmps = append(cmps, InspectionChoice{n, e.cmpWord(n)})
+	}
+	return InspectionField{Label: e.word("editor.trigger.comparison"), Value: n, Choices: cmps}
 }
 
 // wizHeading is the choice value of the first subject heading; the others
@@ -1126,7 +1145,7 @@ func (e *MapEditor) wizardSpec(v scriptView, s *popupSpec, add func(popupRow, in
 	}
 	s.Buttons = []string{e.word("editor.button.apply"), e.word("editor.button.cancel"), e.word("editor.trigger.new"), e.word("editor.trigger.delete"), e.word("editor.wizard.details")}
 	s.Disabled = []bool{!e.objectDirty(), false, false, false, false}
-	fitButtons(s)
+	fitButtons(s, e.bodyFont())
 }
 
 // wizardRowButton is a press on button k of a wizard row: remove the row,
@@ -1333,52 +1352,13 @@ func (e *MapEditor) rowsPlan(t WizardTrigger, rows []wizRow) (WizardTrigger, err
 func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, error) {
 	it := wizItems(row.condition)[row.item]
 	n, rn := WizardNode{Opcode: it.opcode}, WizardNode{Opcode: scriptConstantOp}
-	label := func(k int) string { return e.word(it.params[k].labelWord) }
 	_, at, fixed := it.itemSlots(false)
 	_, rat, _ := it.itemSlots(true)
 	right := it.right
 	for k, p := range it.params {
-		text := strings.TrimSpace(row.vals[k+1])
-		var nums []int64
-		for _, part := range strings.Split(text, ",") {
-			x, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
-			if err != nil {
-				nums = nil
-				break
-			}
-			if x < math.MinInt32 || x > math.MaxInt32 {
-				return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.range"))
-			}
-			nums = append(nums, x)
-		}
-		want := len(p.types())
-		if len(nums) != want {
-			switch p.kind {
-			case wpCell:
-				return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.node.cell"))
-			case wpBox:
-				return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.badbox"))
-			}
-			return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.object.number"))
-		}
-		switch p.kind {
-		case wpCell, wpBox:
-			for c, x := range nums {
-				limit := e.doc.Width
-				if c%2 == 1 {
-					limit = e.doc.Height
-				}
-				if x < 0 || x >= int64(min(limit, 256)) {
-					return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.outside"))
-				}
-			}
-			if p.kind == wpBox && (nums[0] > nums[2] || nums[1] > nums[3]) {
-				return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.wizard.badbox"))
-			}
-		case wpUnit, wpPlayer:
-			if nums[0] <= 0 {
-				return n, rn, 0, fmt.Errorf("%s: %s", label(k), e.word("editor.node.unset"))
-			}
+		nums, err := e.wizardParam(it, k, row.vals[k+1])
+		if err != nil {
+			return n, rn, 0, err
 		}
 		switch {
 		case p.right:
@@ -1416,6 +1396,85 @@ func (e *MapEditor) wizardNode(row wizRow) (WizardNode, WizardNode, uint32, erro
 		cmp = uint32(c)
 	}
 	return n, rn, cmp, nil
+}
+
+// wizardParam is the numbers text gives parameter k of item it, or why the
+// parameter refuses it: a number out of range, a cell or box off the map, an
+// unset unit or player.
+func (e *MapEditor) wizardParam(it wizItem, k int, text string) ([]int64, error) {
+	p := it.params[k]
+	label := e.word(p.labelWord)
+	var nums []int64
+	for _, part := range strings.Split(strings.TrimSpace(text), ",") {
+		x, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+		if err != nil {
+			nums = nil
+			break
+		}
+		if x < math.MinInt32 || x > math.MaxInt32 {
+			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.range"))
+		}
+		nums = append(nums, x)
+	}
+	if len(nums) != len(p.types()) {
+		switch p.kind {
+		case wpCell:
+			return nil, fmt.Errorf("%s: %s", label, e.word("editor.node.cell"))
+		case wpBox:
+			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.badbox"))
+		}
+		return nil, fmt.Errorf("%s: %s", label, e.word("editor.object.number"))
+	}
+	switch p.kind {
+	case wpCell, wpBox:
+		for c, x := range nums {
+			limit := e.doc.Width
+			if c%2 == 1 {
+				limit = e.doc.Height
+			}
+			if x < 0 || x >= int64(min(limit, 256)) {
+				return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.outside"))
+			}
+		}
+		if p.kind == wpBox && (nums[0] > nums[2] || nums[1] > nums[3]) {
+			return nil, fmt.Errorf("%s: %s", label, e.word("editor.wizard.badbox"))
+		}
+	case wpUnit, wpPlayer:
+		if nums[0] <= 0 {
+			return nil, fmt.Errorf("%s: %s", label, e.word("editor.node.unset"))
+		}
+	}
+	return nums, nil
+}
+
+// loneRow is the wizard row a condition no pair names reads as: the first
+// item that reads node n as its check, alone on its side, and writes it back
+// as it stands, with the item's own comparison and the defaults of the
+// parameters the node does not hold. The row names n, so the trigger takes n
+// itself; false when no item reads n so.
+func (e *MapEditor) loneRow(n InspectionScriptNode) (wizRow, bool) {
+	for i, it := range wizConditions {
+		if it.twoNodes() || it.holds {
+			continue
+		}
+		vals := e.wizardDefaults(true, i)
+		params := make([]string, len(it.params))
+		if !e.readParams(it, n, false, params) {
+			continue
+		}
+		_, at, _ := it.itemSlots(false)
+		for k := range it.params {
+			if at[k] >= 0 {
+				vals[k+1] = params[k]
+			}
+		}
+		row := wizRow{condition: true, item: i, origItem: -2, left: n.ID, vals: vals}
+		node, _, _, err := e.wizardNode(row)
+		if err == nil && node.Opcode == n.Opcode && node.Types == n.Types && node.Values == n.Values {
+			return row, true
+		}
+	}
+	return wizRow{}, false
 }
 
 // applyWizard writes the rows through the host as one edit.

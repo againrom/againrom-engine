@@ -2224,8 +2224,8 @@ func (e *MapEditor) objectPress(p image.Point) {
 			e.backObject()
 			return
 		}
-		if _, ok := e.scriptVariableRow(e.selected); ok {
-			e.cancelPopup()
+		if v, ok := e.scriptVariableRow(e.selected); ok {
+			e.variableButton(v, n)
 			return
 		}
 		if e.groupSel.set && e.selected < 0 {

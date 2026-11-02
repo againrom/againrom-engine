@@ -216,10 +216,19 @@ func (x *MapInspector) inspect(b []byte, source string) (*ui.InspectionDocument,
 		return nil, err
 	}
 	s := &mapInspectionEdits{inspector: x, model: model, source: source, saved: model.Bytes()}
-	return s.project(model)
+	d, err := s.project(model)
+	if err == nil {
+		d.OpenNote = s.openNote
+	}
+	return d, err
 }
 
-func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages map[string][]byte) (*ui.InspectionDocument, error) {
+func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *editorWorkspaceState) (*ui.InspectionDocument, error) {
+	var pages map[string][]byte
+	var labels map[uint32]string
+	if w != nil {
+		pages, labels = w.Pages, w.Labels
+	}
 	m, err := model.Map()
 	if err != nil {
 		return nil, err
@@ -413,6 +422,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, pages 
 	script, scriptErr := m.Script()
 	if scriptErr == nil {
 		inspectScript(d, m, script, x.inspectionUTF8)
+		d.Script.Labels = liveLabels(script, labels)
 		d.Script.Targets = x.scriptTargets(d, m, script, pages)
 		inspectScriptUses(d)
 		d.ScriptNotice = fmt.Sprintf("%d triggers / %d conditions / %d actions", len(script.Triggers), len(script.Conditions), len(script.Actions))

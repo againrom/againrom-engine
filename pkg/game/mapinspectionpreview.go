@@ -39,11 +39,7 @@ func (s *mapInspectionEdits) PreviewPlacement(r ui.InspectionNewRecord) (*ui.Ins
 		}
 		placement = err
 	}
-	var pages map[string][]byte
-	if s.workspace != nil {
-		pages = s.workspace.Pages
-	}
-	d, err := s.inspector.inspectModel(m, s.source, pages)
+	d, err := s.inspector.inspectModel(m, s.source, s.workspace)
 	if err != nil {
 		return nil, err
 	}

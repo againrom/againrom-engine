@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -27,6 +28,9 @@ type editorWorkspaceState struct {
 	Pages   map[string][]byte
 	Package editorPackageSpec
 	Project *editorModDocument
+	// Labels are the mapmaker's names of variable registers, UTF-8; the
+	// labels file beside the map holds them.
+	Labels map[uint32]string `json:",omitempty"`
 }
 
 type editorWorkspaceSnapshot struct {
@@ -47,6 +51,7 @@ func cloneWorkspace(w *editorWorkspaceState) *editorWorkspaceState {
 	for name, b := range w.Pages {
 		next.Pages[name] = bytes.Clone(b)
 	}
+	next.Labels = maps.Clone(w.Labels)
 	return &next
 }
 
@@ -103,9 +108,45 @@ func (s *mapInspectionEdits) prepareWorkspace() error {
 			}
 		}
 	}
+	if labels, err := x.mapLabels(s.source); err != nil {
+		s.labelsUnread = true
+		s.openNote = fmt.Sprintf(words.For(x.pageLanguage()).Text("editor.labels.unread"), err)
+	} else if _, sc, err := wizardScript(s.model); err == nil {
+		w.Labels = liveLabels(sc, labels)
+	}
 	s.workspace, s.workspaceImage = w, workspaceBytes(w)
 	s.savedWorkspace = s.workspaceImage
 	return nil
+}
+
+// liveLabels is the labels whose registers are still variables: a register a
+// node addresses, or one no check result takes, at or above the condition
+// count. A label of any other register is dropped.
+func liveLabels(sc alm.Script, labels map[uint32]string) map[uint32]string {
+	addressed := variableRegisters(sc)
+	var out map[uint32]string
+	for r, label := range labels {
+		if r < 100 && (addressed[r] || uint64(r) >= uint64(len(sc.Conditions))) {
+			if out == nil {
+				out = map[uint32]string{}
+			}
+			out[r] = label
+		}
+	}
+	return out
+}
+
+// labelsForSave is what the save writes for the labels file: the live labels,
+// or, with none, the file the open could not read left as it is.
+func (s *mapInspectionEdits) labelsForSave() []byte {
+	var labels map[uint32]string
+	if _, sc, err := wizardScript(s.model); err == nil && s.workspace != nil {
+		labels = liveLabels(sc, s.workspace.Labels)
+	}
+	if len(labels) == 0 && s.labelsUnread {
+		return []byte{}
+	}
+	return encodeMapLabels(labels)
 }
 
 func (s *mapInspectionEdits) rememberWorkspace(mapEdit bool) {
@@ -169,7 +210,10 @@ func (s *mapInspectionEdits) changeWorkspace(apply func(*editorWorkspaceState) e
 	if bytes.Equal(image, s.workspaceImage) {
 		return nil, nil
 	}
+	old := s.workspace
+	s.workspace = next
 	d, err := s.project(s.model)
+	s.workspace = old
 	if err != nil {
 		return nil, err
 	}

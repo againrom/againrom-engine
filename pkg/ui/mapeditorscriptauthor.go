@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 )
@@ -88,28 +89,40 @@ func (e *MapEditor) scriptRowText(id, section int) string {
 	return strings.TrimSpace(title + "  " + caption)
 }
 
+// scriptVariableView is one variable: its register, the preset constant or
+// the check sharing its register (-1 none), the triggers that change and
+// read it, whether any node addresses it, and its label.
 type scriptVariableView struct {
 	register         uint32
 	constant, shared int
 	readers, writers []int
+	addressed        bool
+	label            string
 }
 
+// scriptVariables are the variables in register order: each register a node
+// addresses and each labelled register, the set the host's variable choices
+// list as records -2 and below.
 func (e *MapEditor) scriptVariables() []scriptVariableView {
 	if e.doc == nil || e.doc.Script == nil {
 		return nil
 	}
 	m := e.doc.Script
-	registers := map[uint32]bool{}
+	addressed := map[uint32]bool{}
 	for _, nodes := range [][]InspectionScriptNode{m.Conditions, m.Actions} {
 		for _, n := range nodes {
 			if n.AddressesVariable {
-				registers[n.VariableRegister] = true
+				addressed[n.VariableRegister] = true
 			}
 		}
 	}
+	registers := maps.Clone(addressed)
+	for r := range m.Labels {
+		registers[r] = true
+	}
 	var out []scriptVariableView
 	for register := range registers {
-		v := scriptVariableView{register: register, constant: -1, shared: -1}
+		v := scriptVariableView{register: register, constant: -1, shared: -1, addressed: addressed[register], label: m.Labels[register]}
 		if uint64(register) < uint64(len(m.Conditions)) {
 			n := m.Conditions[register]
 			if n.Opcode == 0x10002 {
@@ -156,7 +169,9 @@ func (e *MapEditor) scriptVariableRow(id int) (scriptVariableView, bool) {
 
 func (e *MapEditor) variableTitle(v scriptVariableView) string {
 	title := fmt.Sprintf(e.word("editor.scripts.variable"), v.register)
-	if v.constant >= 0 {
+	if v.label != "" {
+		title += "  " + e.editorHostText(v.label)
+	} else if v.constant >= 0 {
 		n, _ := e.scriptViewOf(v.constant)
 		if n.node.Label != "" {
 			title += "  " + e.editorHostText(n.node.Label)
@@ -172,7 +187,16 @@ func (e *MapEditor) variableTitle(v scriptVariableView) string {
 func (e *MapEditor) variableSpec(v scriptVariableView) (popupSpec, []int, bool) {
 	e.loadObject()
 	s := popupSpec{Title: e.variableTitle(v), At: e.placedCorner(popObject, homeObjectWindow), Width: e.popupWide(popObject, 420), Bounds: e.popupBounds(), Buttons: []string{e.word("editor.button.cancel")}}
+	if _, ok := e.variableLabels(); ok {
+		s.Buttons = []string{e.word("editor.labels.edit"), e.word("editor.labels.clear"), e.word("editor.button.cancel")}
+		s.Disabled = []bool{false, v.label == "", false}
+		s.ButtonFit = true
+		fitButtons(&s, e.bodyFont())
+	}
 	var links []int
+	if !v.addressed {
+		s.Rows, links = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.labels.unused")}), append(links, 0)
+	}
 	for _, group := range []struct {
 		title string
 		ids   []int

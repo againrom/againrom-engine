@@ -11,8 +11,8 @@ func TestEditorFieldChoicesCycleWithoutCommitting(t *testing.T) {
 	if !ok || r.kind != "Script" || e.prompt.path != "0" {
 		t.Fatalf("A in the script list opened %v", e.prompt.kind)
 	}
-	_ = e.Key("down")
-	if e.prompt.path != "1" {
+	_ = e.Key("down") // past Condition, shut on a map whose script the editor does not read
+	if e.prompt.path != "2" {
 		t.Fatalf("choice %q", e.prompt.path)
 	}
 	_ = e.Key("up")

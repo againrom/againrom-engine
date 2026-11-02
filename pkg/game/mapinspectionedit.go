@@ -38,6 +38,8 @@ type mapInspectionEdits struct {
 
 	errorsAllowed bool                   // the user confirmed the next save with the report's errors
 	saveNote      string                 // what the last save did not write
+	openNote      string                 // what the open could not read beside the map
+	labelsUnread  bool                   // the labels file beside the map could not be read
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
@@ -75,7 +77,7 @@ func (s *mapInspectionEdits) project(m *mapedit.Editor) (*ui.InspectionDocument,
 	if err := s.prepareWorkspace(); err != nil {
 		return nil, err
 	}
-	d, err := s.inspector.inspectModel(m, s.source, s.workspace.Pages)
+	d, err := s.inspector.inspectModel(m, s.source, s.workspace)
 	if err == nil {
 		d.Edits = s
 		if d.Script != nil {
@@ -839,8 +841,12 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		s.noteUnwritten(err)
 	}
 	maps, grant := s.inspector.mapsFolder()
-	target, err := writeEditedMapPages(root, s.source, path, b, pages, s.inspector.pageLanguage(), overwrite, grant)
-	if err != nil && len(pages) > 0 {
+	labels := s.labelsForSave()
+	target, err := writeEditedMapPages(root, s.source, path, b, pages, labels, s.inspector.pageLanguage(), overwrite, grant)
+	if errors.As(err, new(labelsUnwritten)) && target != "" {
+		s.noteUnwritten(err)
+		err = nil
+	} else if err != nil && len(pages) > 0 {
 		s.noteUnwritten(err)
 		target, err = writeEditedMap(root, s.source, path, b, overwrite, grant)
 	}
@@ -848,6 +854,7 @@ func (s *mapInspectionEdits) save(path string, overwrite bool) (string, error) {
 		return "", s.inspector.fenceRefusal(err, maps)
 	}
 	s.saved, s.source = s.model.Bytes(), target
+	s.labelsUnread = s.labelsUnread && overwrite && labels != nil && len(labels) == 0
 	if s.saveNote == "" {
 		s.checkpointPages()
 	}
@@ -875,9 +882,15 @@ func (s *mapInspectionEdits) pagesForSave() (map[string][]byte, error) {
 
 // noteUnwritten records that the pages were not written, and why.
 func (s *mapInspectionEdits) noteUnwritten(err error) {
-	if s.saveNote == "" {
-		s.saveNote = fmt.Sprintf(words.For(s.inspector.pageLanguage()).Text("editor.save.pages"), err)
+	if s.saveNote != "" {
+		return
 	}
+	t := words.For(s.inspector.pageLanguage())
+	format := t.Text("editor.save.pages")
+	if errors.As(err, new(labelsUnwritten)) {
+		format = t.Text("editor.save.labels")
+	}
+	s.saveNote = fmt.Sprintf(format, err)
 }
 
 // mapOutputDirectory is the physical folder a map save of abs writes into.

@@ -188,12 +188,12 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 		{"Player", nil}, {"Player", map[string]any{"name": "Rivals", "colour": 4, "control": 2}},
 		{"Trigger", nil}, {"Trigger", map[string]any{"name": "Gate", "once": 2}},
 		{"Enchantment", nil}, {"Enchantment", map[string]any{"template": 2, "link": 7, "spell": 2, "power": 9}},
-		{"Action", nil}, {"Condition", nil},
+		{"Action", nil},
 	} {
 		w, wh := newWalkEditor(t)
-		if c.kind == "Action" || c.kind == "Condition" {
+		if c.kind == "Action" {
 			w.openAdd("Script")
-			w.prompt.path = map[string]string{"Action": "0", "Condition": "1"}[c.kind]
+			w.prompt.path = "0"
 			_ = w.Key("enter")
 		} else {
 			w.openAdd(RecordKind(c.kind))

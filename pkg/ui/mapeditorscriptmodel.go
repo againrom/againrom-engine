@@ -11,6 +11,9 @@ type InspectionScriptModel struct {
 	Areas               []InspectionArea
 	// Targets are named values by host parameter kind.
 	Targets map[uint32][]InspectionScriptTarget
+	// Labels are the mapmaker's names of variable registers (UTF-8); a
+	// labelled register is a variable before any node addresses it.
+	Labels map[uint32]string
 	// Catalog is what the host's decoder knows of the operations.
 	Catalog InspectionScriptCatalog
 }

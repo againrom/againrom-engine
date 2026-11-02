@@ -507,9 +507,9 @@ func (e *MapEditor) keyDrawArea(string) error {
 // trigger first, then each trigger by number and name.
 func (e *MapEditor) areaDrawn(h *areaHandle) {
 	e.leave(leavePick)
-	rows := []PickerRow{{Text: e.word("editor.area.newtrigger"), Choosable: true}}
-	for i, t := range e.doc.Script.Triggers {
-		rows = append(rows, PickerRow{Text: fmt.Sprintf("T%d %s", i+1, e.editorHostText(t.Name)), Choosable: true})
+	var rows []PickerRow
+	for _, c := range e.triggerChoices() {
+		rows = append(rows, PickerRow{Text: c.Label, Choosable: true})
 	}
 	choice := NewPicker(rows).SetWindow(min(10, len(rows)))
 	choice.Select(0)
@@ -634,8 +634,8 @@ func (e *MapEditor) areaCreate() {
 		return
 	}
 	trigger := a.choice.Selection() - 1
-	if trigger >= 0 && trigger < len(e.doc.Script.Triggers) && !freePair(e.doc.Script.Triggers[trigger]) {
-		a.note = fmt.Sprintf(e.word("editor.area.full"), trigger+1)
+	if note := e.triggerFull(trigger); note != "" {
+		a.note = note
 		return
 	}
 	ch, err := e.commandAddBoxArea(boxArea{Box: a.box, Trigger: trigger})

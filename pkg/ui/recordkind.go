@@ -24,6 +24,9 @@ const (
 	// KindDrop is the cell the script drops the party on; the host admits a
 	// cell for it as for a record, but the map holds no record of it.
 	KindDrop RecordKind = "Drop"
+	// KindVariable is a register the script reads and writes as a variable;
+	// the map holds no record of it, and its label is the editor's own.
+	KindVariable RecordKind = "Variable"
 )
 
 // recordKindRow is what one record kind can do.
@@ -61,6 +64,7 @@ var recordKinds = map[RecordKind]recordKindRow{
 	KindScript:      {},
 	KindMod:         {},
 	KindDrop:        {},
+	KindVariable:    {},
 }
 
 // Owned reports a kind whose records carry an owner slot.

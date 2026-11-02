@@ -104,6 +104,10 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 			}
 		}
 	}
+	// A labelled register is a variable before any node addresses it.
+	for r := range d.Script.Labels {
+		registers[r] = true
+	}
 	var vars []uint32
 	for r := range registers {
 		vars = append(vars, r)
@@ -113,6 +117,9 @@ func (x *MapInspector) scriptTargets(d *ui.InspectionDocument, m *alm.Map, sc al
 		name := x.inspectionUTF8(fmt.Sprintf(x.word("editor.scripts.variable"), r))
 		if uint64(r) < uint64(len(sc.Conditions)) && sc.Conditions[r].Opcode == 0x10002 && sc.Conditions[r].Label != "" {
 			name = x.inspectionUTF8(sc.Conditions[r].Label)
+		}
+		if label, ok := d.Script.Labels[r]; ok {
+			name = x.inspectionUTF8(label)
 		}
 		add(ui.ScriptVariableParameter, r, -2-i, name, "", 0)
 	}

@@ -403,7 +403,7 @@ func TestScriptNewVariableAndOpenStack(t *testing.T) {
 	if e.Selected() >= -1 {
 		t.Fatal("lost variable on Back")
 	}
-	r, ok = e.PopupButtonRect(1)
+	r, ok = e.PopupButtonRect(3) // after Label..., Clear label and Cancel
 	trigClick(t, e, r, ok, "Back to action")
 	if e.Selected() != trigRecord(t, e, "Action", 1) {
 		t.Fatal("lost action on Back")

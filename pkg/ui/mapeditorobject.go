@@ -1044,7 +1044,7 @@ func (e *MapEditor) groupSpec() (popupSpec, []int, bool) {
 		{Kind: popupHeading, Label: e.word("editor.group.members")},
 	}
 	s.Buttons, s.Disabled, s.ButtonFit = []string{e.word("editor.group.delete")}, []bool{false}, true
-	fitButtons(&s)
+	fitButtons(&s, e.bodyFont())
 	for _, id := range g.members {
 		if id < len(e.doc.Records) {
 			s.Rows = append(s.Rows, popupRow{Kind: popupLink, Label: editorClip(e.bodyFont(), e.recordSummary(id), s.Width-2*popupPad-8)})

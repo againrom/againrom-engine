@@ -5,21 +5,43 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/editormcp"
 	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
 
+// bareConditions holds the MCP call of each editor that added a bare
+// condition: the Add window places a condition as a wizard item's check in a
+// trigger, and add_record still adds the constant node Details then edits.
+var bareConditions sync.Map
+
 func scriptWindowAdd(t *testing.T, e *ui.MapEditor, kind string) int {
 	t.Helper()
 	if err := e.Key("scripts"); err != nil {
 		t.Fatal(err)
 	}
-	addWindow(t, e, "player", map[string]string{"kind": map[string]string{"Action": "0", "Condition": "1", "Trigger": "2"}[kind]})
+	if kind == "Condition" {
+		call, ok := bareConditions.Load(e)
+		if !ok {
+			_, must := editorMCP(t, e)
+			call = must
+			bareConditions.Store(e, must)
+			t.Cleanup(func() { bareConditions.Delete(e) })
+		}
+		call.(func(string, any) editormcp.Result)("add_record", map[string]any{"kind": "Condition"})
+		index := len(e.Document().Script.Conditions) - 1
+		if !e.Select(recordOf(e.Document(), kind, index), false) {
+			t.Fatalf("no new Condition %d: %s", index, e.Message())
+		}
+		return index
+	}
+	addWindow(t, e, "player", map[string]string{"kind": map[string]string{"Action": "0", "Trigger": "2"}[kind]})
 	if e.Selected() < 0 || string(e.Document().Records[e.Selected()].Kind) != kind {
 		t.Fatalf("no new %s selected: %d %s", kind, e.Selected(), e.Message())
 	}

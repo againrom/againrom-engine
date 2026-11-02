@@ -848,7 +848,7 @@ func (e *MapEditor) decodePaint(raw json.RawMessage) (BrushStroke, error) {
 func addCommandKinds() []RecordKind {
 	var out []RecordKind
 	for _, k := range addKinds {
-		if len(k.Steps) > 0 && k.Kind != KindScript {
+		if k.Kind != KindScript && slices.ContainsFunc(k.Steps, func(st addStep) bool { return !st.Editor }) {
 			out = append(out, k.Kind)
 		}
 	}
@@ -914,6 +914,12 @@ func (e *MapEditor) newRecordOf(kind RecordKind, x, y *int, values map[string]js
 		return err
 	}
 	for i, st := range r.steps {
+		if st.Editor {
+			// The editor's own steps are the window's; a command adds the
+			// host's record without them.
+			r.skip[i] = true
+			continue
+		}
 		if st.Control == addCell {
 			onCell = true
 			if x == nil || y == nil {

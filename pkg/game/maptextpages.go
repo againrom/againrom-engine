@@ -2,12 +2,17 @@ package game
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
@@ -215,7 +220,134 @@ func (x *MapInspector) editorPages(source string) *modPages {
 	return p
 }
 
-func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+// mapLabelFile is the variable labels file beside the map at path: the map's
+// stem with .variables. Only the editor reads it; the game never does.
+func mapLabelFile(path string) string {
+	return strings.TrimSuffix(path, filepath.Ext(path)) + ".variables"
+}
+
+// mapLabelsFile is the labels file: one entry per labelled register, in
+// register order.
+type mapLabelsFile struct {
+	Variables []mapLabelEntry `json:"variables"`
+}
+
+type mapLabelEntry struct {
+	Register uint32 `json:"register"`
+	Label    string `json:"label"`
+}
+
+const (
+	maxLabelFileBytes = 64 << 10
+	maxLabelRunes     = 64
+)
+
+// labelAllowed says whether text can be a variable label: 1 to maxLabelRunes
+// characters of UTF-8 with no control character and not only spaces.
+func labelAllowed(text string) bool {
+	if !utf8.ValidString(text) || strings.TrimSpace(text) == "" || utf8.RuneCountInString(text) > maxLabelRunes {
+		return false
+	}
+	return !strings.ContainsFunc(text, unicode.IsControl)
+}
+
+// mapLabels reads the labels file beside the map source names. No file is no
+// labels; a file that is not a labels file is an error and no labels.
+func (x *MapInspector) mapLabels(source string) (map[uint32]string, error) {
+	path, ok := mapHostPath(ui.ParseMapSource(source), x.archives)
+	if !ok {
+		return nil, nil
+	}
+	name := mapLabelFile(path)
+	fi, err := os.Lstat(name)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !fi.Mode().IsRegular() || fi.Size() > maxLabelFileBytes {
+		return nil, fmt.Errorf("%s is not an ordinary file of at most %d bytes", name, maxLabelFileBytes)
+	}
+	b, err := os.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+	var f mapLabelsFile
+	if err := dec.Decode(&f); err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("%s: data after the labels", name)
+	}
+	out := map[uint32]string{}
+	for _, v := range f.Variables {
+		if _, twice := out[v.Register]; twice || v.Register >= 100 || !labelAllowed(v.Label) {
+			return nil, fmt.Errorf("%s: register %d", name, v.Register)
+		}
+		out[v.Register] = v.Label
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, nil
+}
+
+// encodeMapLabels is the labels file of labels; nil when there are none.
+func encodeMapLabels(labels map[uint32]string) []byte {
+	if len(labels) == 0 {
+		return nil
+	}
+	var f mapLabelsFile
+	for r, label := range labels {
+		f.Variables = append(f.Variables, mapLabelEntry{Register: r, Label: label})
+	}
+	slices.SortFunc(f.Variables, func(a, b mapLabelEntry) int { return cmp.Compare(a.Register, b.Register) })
+	b, _ := json.MarshalIndent(f, "", "  ")
+	return append(b, '\n')
+}
+
+// labelsUnwritten is a save whose map is written and whose labels file is
+// not.
+type labelsUnwritten struct{ err error }
+
+func (e labelsUnwritten) Error() string { return e.err.Error() }
+func (e labelsUnwritten) Unwrap() error { return e.err }
+
+// placeMapLabels writes labels beside the written map target, or removes the
+// map's old labels file when labels is nil. Empty, not nil, labels leave the
+// file as it is: one the open could not read. A new map does not take over a
+// file already there.
+func placeMapLabels(target string, labels []byte, overwrite bool, lang string) error {
+	if labels != nil && len(labels) == 0 {
+		return nil
+	}
+	path := mapLabelFile(target)
+	fi, err := os.Lstat(path)
+	switch {
+	case err != nil && !errors.Is(err, os.ErrNotExist):
+		return labelsUnwritten{err}
+	case labels == nil && (err != nil || !overwrite || !fi.Mode().IsRegular()):
+		return nil // nothing to write and no own file to remove
+	case err == nil && (!overwrite || !fi.Mode().IsRegular()):
+		return labelsUnwritten{fmt.Errorf(words.For(lang).Text("editor.labels.inway"), path)}
+	case labels == nil:
+		if err := os.Remove(path); err != nil {
+			return labelsUnwritten{err}
+		}
+		return nil
+	}
+	if err := replaceMapFile(filepath.Dir(path), path, labels); err != nil {
+		return labelsUnwritten{err}
+	}
+	return nil
+}
+
+// writeEditedMapPages writes the map and what the editor keeps beside it: the
+// texts folder of pages and the labels file of labels.
+func writeEditedMapPages(root, source, path string, data []byte, pages map[string][]byte, labels []byte, lang string, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
@@ -239,7 +371,11 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		return "", fmt.Errorf(words.For(lang).Text("editor.pages.new-folder"), folder)
 	}
 	if len(pages) == 0 {
-		return writeEditedMap(root, source, path, data, overwrite, grants...)
+		target, err := writeEditedMap(root, source, path, data, overwrite, grants...)
+		if err != nil {
+			return "", err
+		}
+		return target, placeMapLabels(target, labels, overwrite, lang)
 	}
 	if !locale.Known(lang) {
 		return "", fmt.Errorf("unsupported page language %q", lang)
@@ -276,7 +412,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 			return "", err
 		}
 		_ = os.RemoveAll(old)
-		return target, nil
+		return target, placeMapLabels(target, labels, overwrite, lang)
 	}
 	if err := os.Rename(stage, folder); err != nil {
 		if !overwrite {
@@ -284,5 +420,5 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		}
 		return "", err
 	}
-	return target, nil
+	return target, placeMapLabels(target, labels, overwrite, lang)
 }

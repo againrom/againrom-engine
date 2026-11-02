@@ -152,6 +152,7 @@ func (s *mapInspectionEdits) activateWorkspaceMission(index int, flush bool) (*u
 	w.Project.Selected = index - 1
 	w.Package = modPackageSpec(entry, s.workspace.Package.ID, s.workspace.Package.Title)
 	w.Pages = next.workspace.Pages
+	w.Labels = next.workspace.Labels
 	for _, folder := range []string{strings.ReplaceAll(entry.Texts, "{lang}", x.pageLanguage()), filepath.ToSlash(filepath.Join(mapTextFolder(entry.Map), x.pageLanguage()))} {
 		for name, b := range w.Project.Files {
 			if folder != "" && filepath.ToSlash(filepath.Dir(name)) == folder {

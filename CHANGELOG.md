@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] In the map editor's Scripts list, Add then Condition (RU «Условие») offers the trigger wizard's conditions with their fields and puts the condition into the first free pair of a trigger you pick or of a new trigger (RU «Новый триггер»), as the wizard writes it; a trigger with three pairs taken is refused. A condition no trigger uses has "Add to trigger" (RU «Добавить в триггер») in its window. Add then New variable (RU «Новая переменная») asks a label and lists the variable at once; the variable window edits and clears the label, and the label shows wherever the variable is chosen or named. The labels are kept in a file beside the map named like it with the ending .variables, which the game never reads; a map with no label writes none.
+
 ## 0.145.0
 
 ### For players

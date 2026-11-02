@@ -154,7 +154,16 @@ func addCases(in addInputs) []addCase {
 					ui.InspectionFieldValue{Key: "name", Text: true, TextValue: "Wizard"}, ui.InspectionFieldValue{Key: "colour", Value: 3}, ui.InspectionFieldValue{Key: "control", Value: 1})
 			}},
 		script(0, "Action", nil),
-		script(1, "Condition", nil),
+		// A condition is the wizard's Always check placed in a new trigger:
+		// the wizard writes it as a constant 1 compared by == with a constant 1.
+		{"condition", []string{"scripts", "player"}, map[string]string{"kind": "1", "check": "8", "trigger": "-1"},
+			func(t *testing.T, s *mapInspectionEdits) {
+				one := ui.WizardNode{Opcode: 0x10002}
+				one.Types[0], one.Values[0] = 1, 1
+				if _, err := s.WriteTrigger(ui.WizardTrigger{Index: -1, Once: 1, Pairs: []ui.WizardPair{{Left: one, Right: one}}}); err != nil {
+					t.Fatal(err)
+				}
+			}},
 		script(2, "Trigger", map[string]string{"name": "Gate", "once": "0"},
 			ui.InspectionFieldValue{Key: "name", Text: true, TextValue: "Gate"}, ui.InspectionFieldValue{Key: "once", Value: 0}),
 	}

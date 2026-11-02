@@ -37,6 +37,9 @@ type InspectionNewStep struct {
 	Value   int64
 	Text    string
 	Absent  bool
+	// Shut are the choice values the list shows but does not take: its
+	// headings.
+	Shut []int64
 }
 
 // InspectionNewRecords is implemented by a host that adds records through
@@ -62,18 +65,22 @@ const (
 	addCell                      // a cell picked on the map or typed x,y
 	addMany                      // one or more of the host's choices
 	addKind                      // the record kind the window goes on as
+	addItem                      // the wizard condition item the window goes on with
 )
 
 // addStep is one step: the host's key for its value, its label's word and
 // its control. An optional step is left out when the host marks it Absent
 // or a choice step is offered fewer than two choices; a kind step offers
-// Kinds.
+// Kinds. An Editor step is the editor's own, offered and checked from the
+// wizard's item table and the script the editor holds (scriptStepOffer),
+// not by the host; the host's add takes no value of it.
 type addStep struct {
 	Key      string
 	Word     string
 	Control  addControl
 	Optional bool
 	Kinds    []RecordKind
+	Editor   bool
 }
 
 // addKindRow is one record kind the window adds: the kind the host adds, the
@@ -116,11 +123,20 @@ var addKinds = []addKindRow{
 	{Kind: KindTrigger, Word: "editor.add.trigger", ChoiceWord: "editor.add.kind.trigger", Steps: []addStep{
 		addNamed, {Key: "once", Word: "editor.trigger.once", Control: addChoice}}},
 	{Kind: KindScript, Word: "editor.add.script", Filters: []int{editorScriptsFilter}, Steps: []addStep{
-		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []RecordKind{KindAction, KindCondition, KindTrigger, KindMessage}}}},
+		{Key: "kind", Word: "editor.add.record", Control: addKind, Kinds: []RecordKind{KindAction, KindCondition, KindTrigger, KindMessage, KindVariable}}}},
 	{Kind: KindMessage, Word: "editor.message.new", ChoiceWord: "editor.message.new"},
 	{Kind: KindAction, Word: "editor.add.action", ChoiceWord: "editor.add.kind.action"},
-	{Kind: KindCondition, Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition"},
+	// A condition is a wizard item's check, with its parameters, placed in a
+	// trigger's first free pair as that item's row.
+	{Kind: KindCondition, Word: "editor.add.condition", ChoiceWord: "editor.add.kind.condition", Steps: []addStep{
+		{Key: "check", Word: "editor.wizard.condition", Control: addItem, Editor: true}, addTrigger}},
+	{Kind: KindVariable, Word: "editor.add.variable", ChoiceWord: "editor.add.kind.variable", Steps: []addStep{addLabel}},
 }
+
+var (
+	addTrigger = addStep{Key: "trigger", Word: "editor.area.trigger", Control: addChoice, Editor: true}
+	addLabel   = addStep{Key: "label", Word: "editor.labels.label", Control: addName, Editor: true}
+)
 
 func addKindOf(kind RecordKind) (addKindRow, bool) {
 	for _, k := range addKinds {
@@ -166,6 +182,11 @@ type addRun struct {
 	repeat bool
 	placed int
 	stroke *placeStroke
+	// listed is the condition no pair names that the window puts into a
+	// trigger, 0 for a new one; relabel names the variable register the
+	// window labels, nil for a new variable.
+	listed  uint32
+	relabel *uint32
 }
 
 func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
@@ -179,15 +200,24 @@ func (e *MapEditor) addHost() (InspectionNewRecords, bool) {
 // openAdd opens the Add window on kind's first step.
 func (e *MapEditor) openAdd(kind RecordKind) {
 	row, ok := addKindOf(kind)
-	if _, host := e.addHost(); !ok || !host {
+	if !ok || !e.addKindOpen(kind) {
+		return
+	}
+	run := &addRun{kind: row.Kind, title: e.word(row.Word)}
+	run.setSteps(row.Steps)
+	e.openAddRun(run)
+}
+
+// openAddRun opens the Add window on run's first step.
+func (e *MapEditor) openAddRun(run *addRun) {
+	row, _ := addKindOf(run.kind)
+	if _, host := e.addHost(); !host {
 		return
 	}
 	e.rememberCancel()
 	restore := e.cancelRestore
 	e.leave(leaveDrag | leavePick | leavePrompt | leaveBrush)
 	e.cancelRestore = restore
-	run := &addRun{kind: row.Kind, title: e.word(row.Word)}
-	run.setSteps(row.Steps)
 	e.openPrompt(editorPrompt{kind: promptAdd, add: run})
 	e.enterAddStep(0, 1)
 	if row.Kind.Placed() {
@@ -319,7 +349,12 @@ func (e *MapEditor) addOffer(host InspectionNewRecords, r *addRun, i int) (Inspe
 		for n, k := range st.Kinds {
 			row, _ := addKindOf(k)
 			offer.Choices = append(offer.Choices, InspectionChoice{Value: int64(n), Label: e.word(row.ChoiceWord)})
+			if !e.addKindOpen(k) {
+				offer.Shut = append(offer.Shut, int64(n))
+			}
 		}
+	} else if st.Editor {
+		offer = e.scriptStepOffer(r, i)
 	} else {
 		offer = host.NewRecordStep(e.addRecord(r, i), st.Key)
 	}
@@ -377,7 +412,7 @@ func (e *MapEditor) addList() {
 	rows := make([]PickerRow, len(r.offer.Choices))
 	sel := 0
 	for k, c := range r.offer.Choices {
-		rows[k] = PickerRow{Text: c.Label, Choosable: true}
+		rows[k] = PickerRow{Text: c.Label, Choosable: !slices.Contains(r.offer.Shut, c.Value)}
 		if strconv.FormatInt(c.Value, 10) == strings.TrimSpace(e.prompt.path) {
 			sel = k
 		}
@@ -416,11 +451,11 @@ func (e *MapEditor) addNext() {
 	st, text := r.steps[r.at], strings.TrimSpace(e.prompt.path)
 	switch st.Control {
 	case addKind:
-		if _, ok := r.choiceAt(text); !ok {
+		if c, ok := r.choiceAt(text); !ok || slices.Contains(r.offer.Shut, c.Value) {
 			r.note = e.word("editor.add.choose")
 			return
 		}
-	case addChoice, addSprites:
+	case addChoice, addSprites, addItem:
 		// A typed value off the list stands when the host's check passes it.
 		if _, err := strconv.ParseInt(text, 10, 64); err != nil {
 			r.note = e.word("editor.add.choose")
@@ -447,7 +482,12 @@ func (e *MapEditor) addNext() {
 			return
 		}
 	}
-	if st.Control != addKind && st.Control != addMany {
+	if st.Editor {
+		if note := e.scriptStepRefusal(r, r.at, text); note != "" {
+			r.note = note
+			return
+		}
+	} else if st.Control != addKind && st.Control != addMany {
 		if err := host.CheckNewRecord(e.addRecord(r, r.at+1), st.Key); err != nil {
 			r.note = e.editorHostText(err.Error())
 			return
@@ -468,6 +508,9 @@ func (e *MapEditor) addNext() {
 		next, _ := addKindOf(st.Kinds[c.Value])
 		r.kind, r.title = next.Kind, e.word(next.Word)
 		r.setSteps(append(append([]addStep(nil), r.steps[:r.at+1]...), next.Steps...))
+	}
+	if st.Control == addItem {
+		r.setSteps(e.itemSteps(r, r.at))
 	}
 	if r.at+1 < len(r.steps) {
 		e.enterAddStep(r.at+1, 1)
@@ -525,6 +568,9 @@ func (r *addRun) first() int {
 // its last step with the reason.
 func (e *MapEditor) addFinish() {
 	r, _ := e.addRunning()
+	if e.scriptAddFinish(r) {
+		return
+	}
 	if r.kind == KindMessage {
 		if _, ok := e.doc.Edits.(InspectionMessages); ok {
 			e.leave(leavePrompt)
@@ -565,7 +611,10 @@ func (e *MapEditor) addMove(delta int) {
 	if !ok || r.list == nil {
 		return
 	}
-	if _, ok := r.choiceAt(e.prompt.path); ok || r.steps[r.at].Control == addMany && e.prompt.path != "" {
+	switch _, ok := r.choiceAt(e.prompt.path); {
+	case ok && len(r.offer.Shut) > 0:
+		r.list.MoveChoice(delta) // a heading is not a value
+	case ok || r.steps[r.at].Control == addMany && e.prompt.path != "":
 		editorListStep(r.list, delta)
 	}
 	e.addTake(r.list.Selection())
@@ -574,7 +623,7 @@ func (e *MapEditor) addMove(delta int) {
 // addTake makes choice row k the asked step's value.
 func (e *MapEditor) addTake(k int) {
 	r, _ := e.addRunning()
-	if k < 0 || k >= len(r.offer.Choices) {
+	if k < 0 || k >= len(r.offer.Choices) || slices.Contains(r.offer.Shut, r.offer.Choices[k].Value) {
 		return
 	}
 	r.list.Select(k)
@@ -679,7 +728,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 			row.Focus = true
 			row.Value = e.addValueText(r, i)
 			switch st.Control {
-			case addChoice, addSprites, addKind:
+			case addChoice, addSprites, addKind, addItem:
 				row.Kind = popupChoice
 			case addCell:
 				row.Kind = popupPick
