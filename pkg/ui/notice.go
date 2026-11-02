@@ -758,13 +758,14 @@ func drawNoticeWindow(dst *image.RGBA, l NoticeLayout, pic *image.RGBA) {
 }
 
 // blitNoticeWindow composites win of pic over dst with win's top-left corner at
-// origin, keeping only what lands inside clip. win is stated in the picture's own
+// origin, keeping only what lands inside clip and dst. win is stated in the picture's own
 // top-down pixels and is cut, not refused, where it leaves the picture: what
 // survives is drawn where it would have landed. A nil pic draws nothing.
 func blitNoticeWindow(dst *image.RGBA, clip image.Rectangle, origin image.Point, win image.Rectangle, pic *image.RGBA) {
 	if pic == nil {
 		return
 	}
+	clip = clip.Intersect(dst.Bounds())
 	// The window is stated in the PICTURE's own top-down pixels, so it is
 	// offset by the picture's own origin before it is intersected: a picture
 	// handed over as a sub-image carries a non-zero Min and its window is

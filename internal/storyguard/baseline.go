@@ -3891,5 +3891,9 @@ var Committed = Baseline{
 	// LightSources, SetLightSources, buildLightPlane and mergeLight in
 	// pkg/ui/objectlight.go, mapWorld.lightSources in pkg/game/spelllight.go,
 	// the guard internal/archtest/lightplane.go, the new tests, and this note.
-	CommentBytes: 10436062,
+
+	//
+	// It rose for the person window drag fix: blitNoticeWindow's doc comment,
+	// the new test's, and this note.
+	CommentBytes: 10436251,
 }
