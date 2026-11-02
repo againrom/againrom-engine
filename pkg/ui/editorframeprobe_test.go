@@ -1,3 +1,5 @@
+//go:build frameprobe
+
 package ui_test
 
 import (
@@ -19,10 +21,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// The editor frame-time probe. It runs the shipped editor, built through
-// the same opener cmd/mapedit uses, inside an offscreen unfocused window at
-// 1920x1080 and times Update and Draw per frame, feeding input only through
-// the editor's input seam. Gate: AGAINROM_FRAME_PROBE=1.
+// The editor frame-time probe. It runs the shipped editor, built by
+// cmd/mapedit's opener, inside an offscreen unfocused window at 1920x1080
+// and times Update and Draw per frame, feeding input only through its
+// input seam. Gate: AGAINROM_FRAME_PROBE=1.
 //
 //	AGAINROM_ASSETS     install root
 //	AGAINROM_FRAME_OUT  directory for the raw files

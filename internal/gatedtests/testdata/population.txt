@@ -1547,4 +1547,3 @@ pkg/game.TestReleaseMapEditorUnitSackBytes
 pkg/game.TestReleaseDialogueSpeakerIsNamedByItsRecordsLine
 pkg/game.TestReleaseDialogueHeroSpeakersHaveTheFaceOfAMaleHero
 pkg/game.TestReleaseMapEditorSpeakerPickNamesWhyEveryRefusedUnit
-pkg/ui.TestEditorFrameProbe

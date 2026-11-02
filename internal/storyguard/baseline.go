@@ -3852,5 +3852,5 @@ var Committed = Baseline{
 	// ChromeWindow, ChromeWindows, drawWindow, noteDropdown, keepInRoom and
 	// underLaterWindow, the brush list fit, the card rest, the area labels,
 	// the release tests' panel order, and this note.
-	CommentBytes: 10395245,
+	CommentBytes: 10395240,
 }
