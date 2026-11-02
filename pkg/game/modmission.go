@@ -11,6 +11,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
@@ -376,13 +377,7 @@ func guestSpec(t *mapload.Table, c mod.Character, g mod.GuestMember, town int) (
 		_, _, composed := t.NPC.ComposedArchetype(c.NPC, false, false)
 		if !direct && !composed {
 			portrait := CatalogFaces(t)[c.NPC]
-			selector := 0
-			if portrait.Tokens.Has(data.NPCTokenFemale) {
-				selector++
-			}
-			if portrait.Tokens.Has(data.NPCTokenMage) {
-				selector += 2
-			}
+			selector := herokind.Of(portrait.Tokens.Has(data.NPCTokenMage), portrait.Tokens.Has(data.NPCTokenFemale)).Index()
 			// DIV-4003: a dialogue-only record borrows an archetype's row.
 			level := g.Level
 			if level == 0 {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/random"
 	"againrom/pkg/sim"
@@ -221,13 +222,7 @@ func (in townInstall) character(s mapload.CharacterSpec, name string, party []ma
 // companionName is the npcnames line the town names a companion by: the line
 // of the composed archetype (female +1, mage +2) after line 21.
 func (in townInstall) companionName(member mapload.PartyMember) string {
-	selector := 0
-	if data.FigureDir(member.FigureDir).Female() {
-		selector++
-	}
-	if member.Mage {
-		selector += 2
-	}
+	selector := herokind.Of(member.Mage, data.FigureDir(member.FigureDir).Female()).Index()
 	fallback := member.Name
 	for _, base := range data.ChargenBaseNames() {
 		if member.Name == base || strings.HasPrefix(member.Name, base+"_") {

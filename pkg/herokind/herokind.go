@@ -33,6 +33,29 @@ func Of(mage, female bool) Kind {
 	return k
 }
 
+// Index is the kind's place in the selector order, 0..3: the order the
+// composed archetype rows, the base names and the persisted type ids share.
+func (k Kind) Index() int { return int(k) }
+
+// Order is a table's own order of the four kinds: entry i is the kind the
+// table keeps at place i. A table that keeps the kinds in an order other than
+// the selector order declares it as data and reads through In.
+type Order [kinds]Kind
+
+// PictureOrder is the order of the four hero pictures: male fighter, male
+// mage, female fighter, female mage (the face and installed-name tables).
+var PictureOrder = Order{MaleFighter, MaleMage, FemaleFighter, FemaleMage}
+
+// In is the place of k in the order o, 0..3; a kind the order omits answers 0.
+func (k Kind) In(o Order) int {
+	for i, c := range o {
+		if c == k {
+			return i
+		}
+	}
+	return 0
+}
+
 func (k Kind) Mage() bool   { return k&2 != 0 }
 func (k Kind) Female() bool { return k&1 != 0 }
 

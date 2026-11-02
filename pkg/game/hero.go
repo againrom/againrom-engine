@@ -5,6 +5,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/databin"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -513,13 +514,7 @@ const fallbackHeroName = "Danath"
 // female fighter, female mage, so his class and sex select one; a nil table, or
 // one that read no names, names him fallbackHeroName.
 func defaultHeroName(t *mapload.Table, mage, female bool) string {
-	i := 0
-	if mage {
-		i++
-	}
-	if female {
-		i += 2
-	}
+	i := herokind.Of(mage, female).In(herokind.PictureOrder)
 	if t != nil && t.HeroNames[i] != "" {
 		return t.HeroNames[i]
 	}

@@ -1,5 +1,7 @@
 package sim
 
+import "againrom/pkg/herokind"
+
 // The server type id band, and what crosses a mission boundary.
 //
 // EVERY ACTOR CARRIES A SERVER TYPE ID (Entity.TypeID). Which arm built it
@@ -34,14 +36,7 @@ const (
 
 // HeroTypeID preserves both axes of the player-character constructor type.
 func HeroTypeID(mage, female bool) int32 {
-	typeID := HumanTypeID
-	if female {
-		typeID++
-	}
-	if mage {
-		typeID += 2
-	}
-	return typeID
+	return HumanTypeID + int32(herokind.Of(mage, female).Index())
 }
 
 // InPersistBand reports whether typeID is inside the band — whether an actor

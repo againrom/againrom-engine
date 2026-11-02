@@ -1,5 +1,7 @@
 package data
 
+import "againrom/pkg/herokind"
+
 // ChargenBaseNames is the four shipped Humans rows a generated character may
 // start from, in ARCHETYPE order — fighter male, fighter female, mage
 // male, mage female: the order archetypeSlot indexes into directly.
@@ -19,14 +21,7 @@ func ChargenBaseNames() []string {
 // that expression is written once rather than at every call site that needs
 // it.
 func archetypeSlot(class, female bool) int {
-	slot := 0
-	if class {
-		slot = 2
-	}
-	if female {
-		slot++
-	}
-	return slot
+	return herokind.Of(class, female).Index()
 }
 
 // ChargenBase is the base row a generated character with archetype (class,

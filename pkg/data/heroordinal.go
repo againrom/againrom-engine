@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/herokind"
 )
 
 // Ordinal k reads section npc(21+k) (TRIG-HEROTPL-076).
@@ -26,14 +27,7 @@ type HeroTraits struct {
 }
 
 func (t HeroTraits) archetype() int {
-	i := 0
-	if t.Mage {
-		i += 2
-	}
-	if t.Female {
-		i++
-	}
-	return i
+	return herokind.Of(t.Mage, t.Female).Index()
 }
 
 // HeroArchetype is one of npc.reg's four archetype sections: the four

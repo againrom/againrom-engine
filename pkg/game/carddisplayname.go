@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -39,13 +40,7 @@ func companionNameRow(p mapload.PartyMember) int {
 		}
 	}
 	if selector < 0 {
-		selector = 0
-		if data.FigureDir(p.FigureDir).Female() {
-			selector++
-		}
-		if p.Mage {
-			selector += 2
-		}
+		selector = herokind.Of(p.Mage, data.FigureDir(p.FigureDir).Female()).Index()
 	}
 	return 20 + selector
 }

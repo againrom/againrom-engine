@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"againrom/pkg/formats/reg"
+	"againrom/pkg/herokind"
 	"againrom/pkg/namefold"
 )
 
@@ -250,13 +251,7 @@ func (v NPCFace) SynthesisedFigure(primary FigureDir, hasPrimary bool) (FigureDi
 	}
 	mage := t.Has(NPCTokenMage) || t.Has(NPCTokenMyClass) && primary.Mage() || t.Has(NPCTokenNotMyClass) && !primary.Mage()
 	female := t.Has(NPCTokenFemale) || t.Has(NPCTokenMySex) && primary.Female() || t.Has(NPCTokenNotMySex) && !primary.Female()
-	index := 0
-	if mage {
-		index |= 1
-	}
-	if female {
-		index |= 2
-	}
+	index := herokind.Of(mage, female).In(herokind.PictureOrder)
 	return FigureDirFor(mage, female), v.ArchetypeFaces[index], t.Has(NPCTokenHero), true
 }
 

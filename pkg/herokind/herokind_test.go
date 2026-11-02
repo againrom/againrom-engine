@@ -73,3 +73,20 @@ func TestChooseTakesTheAlternativeOfTheHeroElseTheDefault(t *testing.T) {
 		t.Error("every hero overlaps nothing")
 	}
 }
+
+func TestAnOrderPlacesTheFourKinds(t *testing.T) {
+	for _, c := range []struct {
+		k        Kind
+		selector int
+		picture  int
+	}{
+		{MaleFighter, 0, 0}, {FemaleFighter, 1, 2}, {MaleMage, 2, 1}, {FemaleMage, 3, 3},
+	} {
+		if c.k.Index() != c.selector || c.k.In(PictureOrder) != c.picture {
+			t.Errorf("%v: Index %d, In(PictureOrder) %d; want %d, %d", c.k, c.k.Index(), c.k.In(PictureOrder), c.selector, c.picture)
+		}
+		if PictureOrder[c.picture] != c.k {
+			t.Errorf("PictureOrder[%d] = %v, want %v", c.picture, PictureOrder[c.picture], c.k)
+		}
+	}
+}

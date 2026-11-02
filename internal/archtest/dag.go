@@ -76,7 +76,7 @@ var allow = map[string][]string{
 	// The data tier classifies a spell row's damage pair by asking the
 	// simulation's spell-arm table, the one owner of which arm heals or drains.
 	"pkg/data": {"pkg/vfs", "pkg/formats/reg", "pkg/rules", "pkg/namefold", "pkg/sim", "pkg/herokind"},
-	"pkg/sim":  {"pkg/rules", "pkg/random", "pkg/intmath"},
+	"pkg/sim":  {"pkg/rules", "pkg/random", "pkg/intmath", "pkg/herokind"},
 	// The chooser by the starting hero's class and sex is a leaf every tier
 	// that chooses a record by the hero can name.
 	"pkg/herokind": {},

@@ -2,6 +2,7 @@ package game
 
 import (
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 )
@@ -82,12 +83,9 @@ func (mw *mapWorld) unitVoice(e sim.Entity, r *unitVoiceRules, tiered bool) unit
 	if tier < 0 {
 		return unitVoice{tier: -1}
 	}
-	sex, by := 0, 0
+	sex, by := 0, herokind.Of(mage, female).Index()
 	if female {
-		sex, by = 1, 1
-	}
-	if mage {
-		by += 2
+		sex = 1
 	}
 	if names, ok := r.named[word]; identified && ok {
 		return unitVoice{name: names[by], tier: tier}
