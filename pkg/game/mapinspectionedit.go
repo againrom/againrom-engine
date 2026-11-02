@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
@@ -40,6 +41,8 @@ type mapInspectionEdits struct {
 	reported      []ui.InspectionFinding // the report of the bytes in reportedFor
 	reportedFor   []byte
 	reportedTexts string // the texts folder stamp the report was made under
+	stamp         textsStampKeep
+	clock         func() time.Time // nil: the wall clock; a test sets it
 
 	facts    *ui.InspectionMapFacts // the Map panel's facts of the bytes in factsFor
 	factsFor []byte

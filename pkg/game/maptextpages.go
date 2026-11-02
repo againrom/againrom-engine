@@ -165,7 +165,7 @@ func (x *MapInspector) editorPages(source string) *modPages {
 			p.entry = mod.Mission{Kind: mod.MissionReplace, Number: n}
 		}
 		if x.archives != nil && x.archives.Containers != nil {
-			p.files, p.err = installedPages(x.archives.Containers, n)
+			p.files, p.err = x.installKeep.pages(x.archives.Containers, n)
 			if p.err != nil {
 				return p
 			}

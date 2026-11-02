@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"againrom/internal/synth"
 	"againrom/pkg/mod"
@@ -390,15 +391,19 @@ func TestMapPagesDiskEditsRefreshReport(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := d.Edits.(*mapInspectionEdits)
+	now := time.Unix(1000, 0)
+	s.clock = func() time.Time { return now }
 	f.x.rules = []mapRule{{ID: "page", run: func(c *mapCheck) []mapHit { return []mapHit{{Text: string(c.pages.files["event01.txt"])}} }}}
 	if got := s.Report(); len(got) != 1 || got[0].Text != "Before" {
 		t.Fatalf("initial report=%v", got)
 	}
 	writeTestPlayInput(t, filepath.Join(dir, "map.text", "en", "event01.txt"), []byte("After!"))
+	now = now.Add(2 * time.Second)
 	if got := s.Report(); len(got) != 1 || got[0].Text != "After!" {
 		t.Fatalf("stale report=%v", got)
 	}
 	stamp := s.textsStamp()
+	now = now.Add(2 * time.Second)
 	writeTestPlayInput(t, filepath.Join(dir, "map.text", "ru", "event01.txt"), []byte("Other"))
 	if stamp == s.textsStamp() {
 		t.Fatal("other-language tree absent from cache stamp")

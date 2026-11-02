@@ -25,6 +25,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor draws large maps faster: a 256 by 256 map with 5483 records at full zoom now takes about 17 ms a frame on an idle machine (a frame every 95 ms before), and the same map at the fitted zoom about 80 ms (150 ms before). The map check no longer re-reads the install's text pages on every frame; a page file changed on disk outside the editor shows in the report within a second. Nothing the editor draws, saves or reports changes.
 - [BASE] A mod can add new terrain: up to 19 new ground types, each with its own pictures, its land kind (such as grass, water or mountain) and a name the map editor's terrain list shows; the editor paints them and the game draws them, walks on them and shows them on the minimap. See "New terrain tiles" in docs/MODS.md.
 - [BASE] Esc no longer closes the map editor, with or without unsaved changes; close it with the window's close button or Exit in the map menu.
 - [BASE] While you drag a unit, structure, sack or other map object with the mouse, the windows and panels floating over the map turn almost see-through and ignore the mouse, so you can drop the object on a cell under them; they return when you let go. The top bar, the status line and the side panels docked beside the map stay as they are.

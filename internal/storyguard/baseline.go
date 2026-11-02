@@ -3839,5 +3839,9 @@ var Committed = Baseline{
 	//
 	// It rose a further amount for the armed pick button: the doc comments of
 	// popupRow.Armed and markArmedPick, the new test, and this note.
-	CommentBytes: 10388483,
+
+	// It rose for the editor frame-time work: the doc comments of the frame
+	// probe test and its seam, installPagesKeep, textsStampKeep, chromeHitKeep
+	// and rectSave, the new tests, and this note.
+	CommentBytes: 10392582,
 }

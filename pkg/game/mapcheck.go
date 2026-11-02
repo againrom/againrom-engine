@@ -738,7 +738,19 @@ func (s *mapInspectionEdits) Report() []ui.InspectionFinding {
 }
 
 // textsStamp includes workspace and disk pages in the report cache key.
+// The stamp is kept while the editor's own state is unchanged, for at most a
+// second, so a page file changed on disk shows within that second.
 func (s *mapInspectionEdits) textsStamp() string {
+	now := s.stampNow()
+	if s.stamp.fresh(s, now) {
+		return s.stamp.value
+	}
+	value := s.hashTexts()
+	s.stamp.keep(s, now, value)
+	return value
+}
+
+func (s *mapInspectionEdits) hashTexts() string {
 	p := s.currentPages()
 	tree := map[string][]byte{}
 	var err error

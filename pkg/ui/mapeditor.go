@@ -200,6 +200,7 @@ type InspectionOpener func(string) (*InspectionDocument, error)
 // mission or simulation ticking seam. Host callbacks own edits and file writes.
 type MapEditor struct {
 	mcp                         editorMCP
+	hitKeep                     chromeHitKeep // the chrome hit answer within one hover sample
 	doc                         *InspectionDocument
 	font                        *text.Font
 	maps                        []EditorMap

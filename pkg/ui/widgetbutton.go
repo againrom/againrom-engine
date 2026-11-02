@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"slices"
 
 	"againrom/pkg/render/backdrop"
 	"againrom/pkg/render/latch"
@@ -234,9 +233,10 @@ func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
 		y := top + (bottom-top)/2 - raise
 		ink := b.ink()
 		flat := quantize(messageShadowColor)
-		before := slices.Clone(dst.Pix)
+		lw, lh := f.Measure(label)
+		before := saveRect(dst, image.Rect(x, y, x+lw+shadow, y+lh+shadow))
 		calls = text.Record(func() { f.DrawFlat(dst, label, x+shadow, y+shadow, flat); f.Draw(dst, label, x, y, ink) })
-		copy(dst.Pix, before)
+		before.restore()
 		for i := range calls {
 			c := &calls[i]
 			if c.Glyph == nil || c.Glyph.Width <= 0 {
@@ -385,4 +385,36 @@ func (a *App) pointerFrame() (image.Point, bool) {
 func (a *App) hovered(r image.Rectangle) bool {
 	p, ok := a.pointerFrame()
 	return ok && p.In(r)
+}
+
+// rectSave holds the pixels of a rectangle of a picture, to put them back.
+type rectSave struct {
+	dst  *image.RGBA
+	rect image.Rectangle
+	pix  []uint8
+}
+
+// saveRect keeps the part of dst inside r.
+func saveRect(dst *image.RGBA, r image.Rectangle) rectSave {
+	r = r.Intersect(dst.Bounds())
+	s := rectSave{dst: dst, rect: r}
+	if r.Empty() {
+		return s
+	}
+	row := r.Dx() * 4
+	s.pix = make([]uint8, row*r.Dy())
+	for y := 0; y < r.Dy(); y++ {
+		at := dst.PixOffset(r.Min.X, r.Min.Y+y)
+		copy(s.pix[y*row:(y+1)*row], dst.Pix[at:at+row])
+	}
+	return s
+}
+
+// restore puts the kept pixels back.
+func (s rectSave) restore() {
+	row := s.rect.Dx() * 4
+	for y := 0; y < s.rect.Dy(); y++ {
+		at := s.dst.PixOffset(s.rect.Min.X, s.rect.Min.Y+y)
+		copy(s.dst.Pix[at:at+row], s.pix[y*row:(y+1)*row])
+	}
 }

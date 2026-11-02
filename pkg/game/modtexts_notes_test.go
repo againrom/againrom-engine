@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"againrom/internal/synth"
 	"againrom/pkg/mod"
@@ -116,7 +117,8 @@ func TestMapRuleModMessageTextNamesADroppedCharacterOncePerFile(t *testing.T) {
 func TestMapReportFollowsThePagesAddedToTheTextsFolder(t *testing.T) {
 	x, dir, host := modTextRuleFixture(t)
 	m := built(t, withScript(cleanOptions(), messageScript(3, 7)), nil, nil)
-	s := &mapInspectionEdits{inspector: x, model: m, source: host, saved: m.Bytes()}
+	now := time.Unix(1000, 0)
+	s := &mapInspectionEdits{inspector: x, model: m, source: host, saved: m.Bytes(), clock: func() time.Time { return now }}
 	rule := func() []string {
 		var out []string
 		for _, r := range ofRule(s.Report(), "mod-message-text") {
@@ -131,6 +133,7 @@ func TestMapReportFollowsThePagesAddedToTheTextsFolder(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "t", n), []byte("<part=1>\r\nHi\r\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
+		now = now.Add(2 * textsStampLife)
 		if n == "event03.txt" {
 			if got := rule(); len(got) != 1 {
 				t.Fatalf("after one page: %v", got)

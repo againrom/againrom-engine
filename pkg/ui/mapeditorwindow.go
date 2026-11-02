@@ -1734,8 +1734,21 @@ func (e *MapEditor) chromePicture() (pic, blit *image.RGBA, calls, kept []text.D
 	return pic, blit, calls, text.MarkErased(kept)
 }
 
-// chromeHit is the foremost chrome part under p.
+// chromeHit is the foremost chrome part under p. Within a hover sample (chromePointer)
+// it is built once: the popup specs under it cannot change before the sample
+// ends.
 func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
+	if e.hitKeep.on && e.hitKeep.held && e.hitKeep.at == p {
+		return e.hitKeep.id
+	}
+	id := e.chromeHitBuilt(p)
+	if e.hitKeep.on {
+		e.hitKeep.at, e.hitKeep.id, e.hitKeep.held = p, id, true
+	}
+	return id
+}
+
+func (e *MapEditor) chromeHitBuilt(p image.Point) editorPopupID {
 	if b, ok := e.openMenuEntry(); ok && e.menuDropdown(b, true).Covers(e.font, p) {
 		return popMenu
 	}
@@ -1795,6 +1808,8 @@ func (e *MapEditor) chromeHit(p image.Point) editorPopupID {
 func (e *MapEditor) chromePointer(in Input, now time.Time) bool {
 	p := image.Pt(in.CursorX, in.CursorY)
 	e.pointer, e.pointerOK = p, true
+	e.hitKeep = chromeHitKeep{on: !in.PrimaryDown && !in.SecondaryDown && !wheeled(in) && e.drag == popNone && !e.uiDown && !e.down}
+	defer func() { e.hitKeep = chromeHitKeep{} }()
 	e.observeTip(p, now, in.PrimaryDown)
 	pressed := in.PrimaryDown && !e.down
 	if pressed && e.tree.typing && !p.In(e.treeSearchBox()) {
@@ -2206,4 +2221,13 @@ func (e *MapEditor) gridLines() []editorLine {
 		out = append(out, editorLine{float32(s.X0), float32(s.Y0), float32(s.X1), float32(s.Y1), color.RGBA{0x60, 0x58, 0x48, 255}})
 	}
 	return out
+}
+
+// chromeHitKeep holds the chrome hit of one point for the length of a hover
+// sample, a pointer sample with no button, wheel or drag, which changes no
+// popup.
+type chromeHitKeep struct {
+	on, held bool
+	at       image.Point
+	id       editorPopupID
 }
