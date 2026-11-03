@@ -122,6 +122,7 @@ const (
 // R2-ENGINE-453, R2-ENGINE-454); Invisibility's P << 4 (R2-ENGINE-022).
 type secondArmRow struct {
 	drawnDuration, blankCurse, keepsLarger, powerDuration bool
+	firstStageDelay                                       uint8
 	raise                                                 *corpseRaiseProfile
 }
 
@@ -162,7 +163,7 @@ var spellArms = [...]spellArm{
 	{arm: 19, creatureAim: creatureAimVictimCell},
 	{arm: 20, applies: true, atActor: true, stoneCurse: true, attachAward: true, lastingDuration: true, durationLaw: lawSegmented,
 		second: secondArmRow{drawnDuration: true, blankCurse: true, keepsLarger: true}, creatureAim: creatureAimVictim},
-	{arm: 21, creatureAim: creatureAimVictimCell},
+	{arm: 21, creatureAim: creatureAimVictimCell, second: secondArmRow{firstStageDelay: 1}},
 	{arm: 22, magnitude: halfPower, formulaMagnitude: true, lastingDuration: true, autoCast: autoCastPlace{3, 1, autoCastNoRole},
 		creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionProtection}},
 	{arm: 23, applies: true, atActor: true, own: ownEffect{EffectBless, true}, opposite: 27, formulaMagnitude: true, lastingDuration: true,

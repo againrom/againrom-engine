@@ -248,7 +248,7 @@ func (w *World) removeAttachedAt(i int) bool {
 	e := w.attached[i]
 	if ti := indexOfEntity(w.entities, e.Target); ti >= 0 && w.entities[ti].ActorLoad.Source.Class != 0 {
 		n := w.sourceMutationCopy(ti)
-		if e.Mode&EffectContinuous == 0 && e.Kind != EffectNone {
+		if e.Mode&EffectContinuous == 0 && (e.Kind != EffectNone || w.blankEffectRow(e.Spell)) {
 			if _, ok := n.sourceEffectOnCandidate(ti, e.Kind, -e.Magnitude); !ok {
 				return false
 			}

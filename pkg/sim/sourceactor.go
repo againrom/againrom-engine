@@ -168,6 +168,11 @@ func (w *World) sourceEffectOnCandidate(i int, kind EffectKind, amount int32) (i
 func (w *World) sourceEffectIn(i int, kind EffectKind, amount int32, isolate bool) (int32, bool) {
 	var key uint8
 	switch kind {
+	case EffectNone:
+		if w.deriveSource(i) {
+			return 0, true
+		}
+		return 0, false
 	case EffectHealth:
 		key = 6
 	case EffectHealthRegeneration:

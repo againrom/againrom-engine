@@ -40,15 +40,35 @@ func (w *World) CellPlanes(s CellPlaneStart) *SavedCellPlanes {
 	width := int(w.bounds.Width)
 	for at, grid := range w.grid {
 		key := uint16(at/width)<<8 | uint16(at%width)
-		stat := grid&3 | (grid&8)>>1
-		// A fresh grid still holds the map's raw domain value in bits 0..1;
-		// domain 2 or an Overlay cell is the bit a loaded grid carries as bit 3.
-		if grid&2 != 0 || (at < len(s.Overlay) && s.Overlay[at] != 0) {
-			stat |= 4
-		}
+		stat := cellTerrain(grid, at < len(s.Overlay) && s.Overlay[at] != 0)
 		planes.Static[key] = planes.Static[key]&^7 | stat
 		planes.Dynamic[key] = planes.Dynamic[key]&^7 | planes.Static[key]&7
 		planes.Cost[key], planes.Height[key], planes.CostKnown[key] = w.cost[at], w.height[at], 1
 	}
 	return planes
+}
+
+func cellTerrain(grid byte, overlay bool) byte {
+	stat := grid&3 | (grid&8)>>1
+	if grid&2 != 0 || overlay {
+		stat |= 4
+	}
+	return stat
+}
+
+func cellDynamic(stat byte, ground, air bool) byte {
+	if ground {
+		stat |= 0x40
+	}
+	if air {
+		stat |= 0x80
+	}
+	return stat
+}
+
+func cellBuildingBits(value byte, blocking bool) byte {
+	if blocking {
+		return value | 5
+	}
+	return value & 0xfa
 }

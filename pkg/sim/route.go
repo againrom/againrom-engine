@@ -490,8 +490,31 @@ func (win window) holds(x, y int32) bool {
 // The domain arrives as a value rather than as an entity index for the same
 // reason: an index would tie the terrain question to a world's entity slice,
 // where what it actually depends on is one byte of one mover.
-func (w *World) terrainOpen(d Domain, x, y int32) bool {
+func (w *World) terrainOpen(d Domain, x, y int32, mask ...byte) bool {
 	i, ok := w.cellIndex(x, y)
+	if !ok {
+		return false
+	}
+	if len(mask) != 0 && mask[0] != 0 {
+		key, inside := savedPlaneKey(x, y)
+		if !inside {
+			return false
+		}
+		if w.savedCellPlanes != nil {
+			return w.savedCellPlanes.Dynamic[key]&mask[0] == 0
+		}
+		ground, air := w.cellLayerOccupants(x, y)
+		dyn := cellDynamic(cellTerrain(w.grid[i], false), len(ground) != 0, len(air) != 0)
+		if si, present := w.structureSlots[key]; present {
+			s := w.structures[si]
+			bit := uint32((y-s.Row)*int32(s.Width)+x-s.Col) & 31
+			dyn = cellBuildingBits(dyn, s.Blocking&(uint32(1)<<bit) != 0)
+		}
+		if w.grid[i]&blockMagicWall != 0 {
+			dyn |= 5
+		}
+		return dyn&mask[0] == 0
+	}
 	if key, inside := savedPlaneKey(x, y); ok && inside && w.savedCellPlanes != nil {
 		return w.savedCellPlanes.Static[key]&savedStaticMask(d) == 0 && (d == DomainAir || w.grid[i]&blockMagicWall == 0)
 	}
@@ -507,20 +530,19 @@ func footprintSide(side uint8) int32 {
 	return int32(side)
 }
 
-// terrainOpenFootprint reports whether every cell of e's square footprint is
-// in bounds and open to its movement domain at anchor (x, y).
-func (w *World) terrainOpenFootprint(e Entity, x, y int32) bool {
-	return w.terrainOpenSize(e.Domain, e.TokenSize, x, y)
+// terrainOpenFootprint tests every body cell with domain bits or a P2 mask.
+func (w *World) terrainOpenFootprint(e Entity, x, y int32, mask ...byte) bool {
+	return w.terrainOpenSize(e.Domain, e.TokenSize, x, y, mask...)
 }
 
 // terrainOpenSize reads only the two actor fields that affect static admission.
 // Route relaxation asks this for every neighbour; passing the complete Entity
 // at that site copies its unrelated combat and inventory state for each offer.
-func (w *World) terrainOpenSize(domain Domain, size uint8, x, y int32) bool {
-	if w.savedCellPlanes != nil {
+func (w *World) terrainOpenSize(domain Domain, size uint8, x, y int32, mask ...byte) bool {
+	if w.savedCellPlanes != nil || len(mask) != 0 && mask[0] != 0 {
 		for dy := int32(0); dy < footprintSide(size); dy++ {
 			for dx := int32(0); dx < footprintSide(size); dx++ {
-				if !w.terrainOpen(domain, x+dx, y+dy) {
+				if !w.terrainOpen(domain, x+dx, y+dy, mask...) {
 					return false
 				}
 			}

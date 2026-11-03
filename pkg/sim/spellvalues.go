@@ -250,7 +250,7 @@ func spellRecordDurationUnder(r Rules, rule SpellRule, power int32) uint16 {
 // (spellRecordDuration).
 func areaLife(rule SpellRule, power uint16) uint16 {
 	if areaModeFor(rule) == areaModeRing {
-		return ringLife(rule.arm())
+		return ringLife(rule.arm()) + uint16(rule.secondArm().firstStageDelay)
 	}
 	v := (int64(rule.AreaDuration) << 4)
 	if v > 0 {

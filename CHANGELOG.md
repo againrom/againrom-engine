@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Monsters' Teleport checks occupied cells, Acid Stream keeps its original edge aim, and Blizzard starts its pulses after the spell lands. Stone Curse refreshes a creature's mana reserve when its hold starts and ends.
 - [ROM2] Trolls and other non-human speakers in the second game's missions now show their portraits.
 - [ROM2] A mage made in the generator now starts with a staff that casts the chosen school's spell; before, the staff was empty.
 - [ROM2] Townsfolk speak their lines aloud in the towns' talks, and characters cry out in their own voices when wounded or killed; before, the town talks and these cries were silent.

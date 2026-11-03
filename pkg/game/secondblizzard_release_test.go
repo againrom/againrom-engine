@@ -27,9 +27,9 @@ type secondBlizzardArea struct {
 }
 
 // secondBlizzardWatch follows every Blizzard area of one World tick by tick
-// and fails on any departure from the claims' schedule: a new area stands at
-// pulse 1 with countdown 2; k ticks later it holds pulse 1+k/3 and countdown
-// 2-k%3; it is gone after its 32nd pulse, 93 ticks after the landing; every
+// and checks the next-tick first pulse: insertion has stage/countdown zero;
+// k ticks later stage is (k+2)/3 and countdown is 2-(k+2)%3.
+// Pulse 32 removes it 94 ticks after insertion; every
 // painted cell lies -2..3 from a Blizzard anchor (R2-ENGINE-391,
 // R2-ENGINE-392).
 type secondBlizzardWatch struct {
@@ -80,7 +80,7 @@ func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Rep
 		k := now - a.Landing
 		found := false
 		for i, s := range rows {
-			if claimed[i] || s.Key != a.Key || k >= 93 || s.Mode != sim.AreaModeRing || uint64(s.Stage) != 1+k/3 || uint64(s.Remaining) != 2-k%3 {
+			if claimed[i] || s.Key != a.Key || k >= 94 || s.Mode != sim.AreaModeRing || uint64(s.Stage) != (k+2)/3 || uint64(s.Remaining) != 2-(k+2)%3 {
 				continue
 			}
 			claimed[i] = true
@@ -89,8 +89,8 @@ func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Rep
 			break
 		}
 		if !found {
-			if k != 93 {
-				t.Fatalf("tick %d: Blizzard %04x landed at %d ended after %d ticks, want 93", now, a.Key, a.Landing, k)
+			if k != 94 {
+				t.Fatalf("tick %d: Blizzard %04x landed at %d ended after %d ticks, want 94", now, a.Key, a.Landing, k)
 			}
 			a.Done = now
 		}
@@ -99,7 +99,7 @@ func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Rep
 		if claimed[i] {
 			continue
 		}
-		if s.Mode != sim.AreaModeRing || s.Stage != 1 || s.Remaining != 2 {
+		if s.Mode != sim.AreaModeRing || s.Stage != 0 || s.Remaining != 0 {
 			t.Fatalf("tick %d: Blizzard %04x matches no standing area and is no landing: mode %d pulse %d countdown %d", now, s.Key, s.Mode, s.Stage, s.Remaining)
 		}
 		b.areas = append(b.areas, &secondBlizzardArea{Key: s.Key, Landing: now, Power: s.Policy.Power})
@@ -115,7 +115,7 @@ func (b *secondBlizzardWatch) observe(t *testing.T, w *sim.World, report sim.Rep
 		var owner *secondBlizzardArea
 		for _, a := range b.areas {
 			ax, ay := int32(a.Key&0xff), int32(a.Key>>8)
-			if dx, dy := c.X-ax, c.Y-ay; dx >= -2 && dx <= 3 && dy >= -2 && dy <= 3 && (now-a.Landing)%3 == 0 && now-a.Landing <= 93 {
+			if dx, dy := c.X-ax, c.Y-ay; dx >= -2 && dx <= 3 && dy >= -2 && dy <= 3 && (now-a.Landing)%3 == 1 && now-a.Landing <= 94 {
 				owner = a
 			}
 		}

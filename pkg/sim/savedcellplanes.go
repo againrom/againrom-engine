@@ -349,24 +349,13 @@ func (w *World) recomputeSavedCell(key uint16) string {
 	}
 	c.Payload = w.savedCellPayload(*c)
 	cost, stat := w.savedCellCost(*c), c.Payload[1]|0x20
-	dyn := stat
+	dyn := cellDynamic(stat, cellSlotTaken(c.Ground), cellSlotTaken(c.Air))
 	carry := p.Static[key] & 0x10
-	if cellSlotTaken(c.Ground) {
-		dyn |= 0x40
-	}
-	if cellSlotTaken(c.Air) {
-		dyn |= 0x80
-	}
 	if buildingKey := binary.LittleEndian.Uint32(c.Payload[12:]); buildingKey != 0 {
 		b, s, _ := w.savedCellBuilding(buildingKey)
 		bit := uint32((int32(key>>8)-b.Row)*int32(b.Width)+int32(key&255)-b.Col) & 31
-		if s.Blocking&(uint32(1)<<bit) != 0 {
-			stat |= 5
-			dyn |= 5
-		} else {
-			stat &= 0xfa
-			dyn &= 0xfa
-		}
+		blocking := s.Blocking&(uint32(1)<<bit) != 0
+		stat, dyn = cellBuildingBits(stat, blocking), cellBuildingBits(dyn, blocking)
 	}
 	if layer, arm := areaBlockingLayer(); binary.LittleEndian.Uint32(c.Payload[20+4*layer:]) != 0 || w.nativeAreaLayerPresent(key, arm) {
 		stat |= 5

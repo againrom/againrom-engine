@@ -24,15 +24,17 @@ type creatureAimProfile struct {
 	aims []creatureAim
 	// scanBeyond: a scan aim casts only when caster and victim stand more
 	// than this many cells apart (R2-ENGINE-651, R2-ENGINE-654).
-	scanBeyond int64
-	// offMapVictimStops: a victim off the map stops the planner before the
-	// draw, with no attack (R2-ENGINE-655, DIV-4385).
-	offMapVictimStops bool
+	scanBeyond      int64
+	absentSkipsDraw bool
+	scanMasks       [3]byte
+	stepOffsets     *[8][2]int32
+	packedStep      bool
 }
 
 var firstGameCreatureAim = creatureAimProfile{}
 
-var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2, offMapVictimStops: true}
+var secondGameCreatureAim = creatureAimProfile{aims: secondCreatureAims[:], scanBeyond: 2,
+	absentSkipsDraw: true, scanMasks: [3]byte{0x41, 0x44, 0x82}, stepOffsets: &stepOf, packedStep: true}
 
 func (p *creatureAimProfile) byArm() bool { return p.aims == nil }
 
@@ -78,16 +80,15 @@ func (w *World) creatureAim(id uint32) creatureAim {
 }
 
 // creatureScanCell is the first cell of the 3 by 3 around the victim, rows
-// outer and columns inner, where the caster's whole footprint is open terrain,
-// and whether the scan found one. The packed cell 0 is no cell
-// (R2-ENGINE-654, DIV-4386).
+// outer and columns inner. The profile selects terrain or P2 mask admission;
+// packed cell zero means no cell (R2-ENGINE-654, R2-ENGINE-809).
 func (w *World) creatureScanCell(caster, victim Entity) (int32, int32, bool) {
 	if (cell{x: caster.X, y: caster.Y}).chebyshevTo(cell{x: victim.X, y: victim.Y}) <= w.game.creatureAim.scanBeyond {
 		return 0, 0, false
 	}
 	for y := victim.Y - 1; y <= victim.Y+1; y++ {
 		for x := victim.X - 1; x <= victim.X+1; x++ {
-			if w.terrainOpenFootprint(caster, x, y) {
+			if w.terrainOpenFootprint(caster, x, y, w.game.creatureAim.scanMasks[caster.Domain]) {
 				return x, y, x != 0 || y != 0
 			}
 		}
@@ -107,12 +108,19 @@ func (w *World) creatureKeepsPick(i int, victim EntityID, id uint32) bool {
 }
 
 // creatureStepCell is the cell one step from the caster toward the victim,
-// along the eight-way heading the original's direction helper names for the
-// two positions (MAGIC-238). The original adds the step with no clamp; the
-// engine keeps the cell inside the map, one axis at a time.
+// along the centre heading. The profile supplies offsets and edge packing;
+// the first game keeps its per-axis clamp (MAGIC-238, R2-ENGINE-810).
 func (w *World) creatureStepCell(caster, victim Entity) (int32, int32) {
-	step := stepOf[w.headingBetween(caster, victim)>>5]
+	p := w.game.creatureAim
+	offsets := p.stepOffsets
+	if offsets == nil {
+		offsets = &stepOf
+	}
+	step := offsets[w.headingBetween(caster, victim)>>5]
 	x, y := caster.X+step[0], caster.Y+step[1]
+	if p.packedStep {
+		return keyCell(uint16(y<<8 | x))
+	}
 	x = max(0, min(x, w.bounds.Width-1))
 	y = max(0, min(y, w.bounds.Height-1))
 	return x, y
@@ -167,7 +175,7 @@ func (w *World) creatureEngageCast(i int, victim EntityID) bool {
 	if !e.hasCreatureSpells() {
 		return w.mageEngageCast(i, victim)
 	}
-	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.game.creatureAim.offMapVictimStops {
+	if vi := indexOfEntity(w.entities, victim); vi >= 0 && w.entities[vi].OffMap && w.game.creatureAim.absentSkipsDraw {
 		return true
 	}
 	w.engageDrew = append(w.engageDrew, e.ID)

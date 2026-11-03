@@ -53,19 +53,18 @@ func blizzardDraw(w *World, r *rng, n int64) int64 {
 	return int64(r.uniform(int32(n)))
 }
 
-// blizzardLanding casts Blizzard at (x, y) and steps until the area stands. It
-// returns the landing tick's report and the area's power.
+// blizzardLanding returns the first area update's report and power.
 func blizzardLanding(t *testing.T, w *World, x, y int32) (Report, uint16) {
 	t.Helper()
 	cmds := []Command{CastAt(1, 7, CellPoint{X: x, Y: y})}
 	for range 60 {
-		report := StepReported(w, cmds)
+		StepReported(w, cmds)
 		cmds = nil
 		if areas := w.CellEffects(); len(areas) == 1 {
 			if areas[0].Spell != 7 || areas[0].Mode != AreaModeRing || areas[0].X != x || areas[0].Y != y {
 				t.Fatalf("Blizzard stands as %+v", areas[0])
 			}
-			return report, areas[0].Power
+			return StepReported(w, nil), areas[0].Power
 		}
 	}
 	t.Fatal("Blizzard never landed")
@@ -89,7 +88,7 @@ func (m *blizzardModel) update() bool {
 }
 
 // TestSecondBlizzardPulseScheduleAndCellDraws drives a real cast on both
-// streams. The landing is area update 1; each later update is one tick. Every
+// streams. The tick after insertion is update 1; each later update is one tick. Every
 // attempt takes exactly two draws, x then y, offsets -2..3, also when the cell
 // falls outside 8..dimension-9; between attempts no draw is taken; the 32nd
 // attempt on update 94 is the last, and the saved pulse counter and countdown

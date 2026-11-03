@@ -34,8 +34,9 @@ func (w *World) NativeAreaSaveStates() ([]AreaSaveState, error) {
 			if ringStageDraws(w.spellArm(e.Spell)) {
 				row.Policy.RingCells = slices.Clone(e.Cells)
 			}
-			row.Stage = e.Phase/3 + 1
-			row.Remaining = 2 - uint16(e.Phase%3)
+			phase := uint16(e.Phase) + 3 - uint16(rule.secondArm().firstStageDelay)
+			row.Stage = uint8(phase / 3)
+			row.Remaining = 2 - phase%3
 		}
 		payload := areaSavePayload(w, e, rule)
 		row.Payload = payload

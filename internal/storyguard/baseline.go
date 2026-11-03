@@ -3965,5 +3965,5 @@ var Committed = Baseline{
 	// secondtownspeech_release_test.go, and this note.
 
 	// It rose for the grid-only frame of a structure whose variable map layout is unknown.
-	CommentBytes: 10488763,
+	CommentBytes: 10488054,
 }

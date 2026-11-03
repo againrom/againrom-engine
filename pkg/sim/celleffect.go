@@ -186,8 +186,9 @@ func (w *World) tickCellEffect(index int, obs *castObs) bool {
 			}
 		case areaModeRing:
 			e.Phase++
-			if e.Phase%3 == 0 {
-				stage := int(e.Phase / 3)
+			phase := int(e.Phase) - int(rule.secondArm().firstStageDelay)
+			if phase >= 0 && phase%3 == 0 {
+				stage := phase / 3
 				cells := w.ringStageCells(e, stage)
 				e.Cells = canonicalCells(cells)
 				obs.recordPaint(w, e, cells)
@@ -370,16 +371,16 @@ func (w *World) landAreaAimed(aim areaAim, rule SpellRule, power uint16, caster 
 		return true
 	}
 	if mode == areaModeRing {
-		// Stage zero executes now; the last stage executes three ticks per
-		// stage later. The extra one keeps the generic lifetime guard from
-		// removing the record before that terminal execution. A row with no
-		// stage program was refused above.
+		// R2-ENGINE-812: an ordinary actor inserts after the area pass.
+		// The row's delay keeps stage zero for the next area update.
 		e.Remaining = spellDurationOf(w.rules, rule, int32(power), durationArea)
 		e.Phase = 0
-		cells := w.ringStageCells(e, 0)
-		e.Cells = canonicalCells(cells)
-		obs.recordPaint(w, e, cells)
-		w.applyAreaCells(e, rule, cells)
+		if rule.secondArm().firstStageDelay == 0 {
+			cells := w.ringStageCells(e, 0)
+			e.Cells = canonicalCells(cells)
+			obs.recordPaint(w, e, cells)
+			w.applyAreaCells(e, rule, cells)
+		}
 		return w.addAreaEffect(e)
 	}
 	// A cloud stores the raw counter V0, while areaLife reports the V0+1
