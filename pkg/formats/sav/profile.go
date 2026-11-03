@@ -42,7 +42,8 @@ type Profile struct {
 	// mainSkill is that Humanoid's 24-byte experience block opens with the
 	// main skill, then the experiences of skills 1..5 (R2-ENGINE-320); the
 	// first game's block is six experiences.
-	mainSkill bool
+	mainSkill        bool
+	packedActorState bool
 	// shortcutBytes is the width the state store's SpellBook/Shortcuts must
 	// have; negative admits any width (DIV-4154).
 	shortcutBytes int
@@ -73,7 +74,7 @@ var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgr
 // experiences (R2-ENGINE-320).
 var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgrammes(), group: groupProgramme,
 	cellLen: secondCellLen, sessionLen: secondSessionLen, session: secondSessionLayout, leafState: true,
-	extraList: true, maxSpellID: 29, mainSkill: true, shortcutBytes: -1, scenarioTail: true, form: secondForm}
+	extraList: true, maxSpellID: 29, mainSkill: true, packedActorState: true, shortcutBytes: -1, scenarioTail: true, form: secondForm}
 
 // secondForm is the second game's records written from an engine document:
 // the trailer's two words are 0xBADFACE1 (R2-SESSION-018); Player's 2,560

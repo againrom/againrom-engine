@@ -310,6 +310,9 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 		// Saved stock rebuilds it for matched and newly created actors alike.
 		e.WeaponSpell, e.WeaponSpellLevel, e.WeaponSpellSource = 0, 0, sim.WeaponSpellNone
 		e.ID, e.SourceBinding, e.MapUnitID = binding.ID, s, a.MapUnitID
+		if a.PackedTemplateState {
+			e.SuppressRewards = a.DisplayBacking&0xff000000 != 0
+		}
 		e.X, e.Y, e.PostX, e.PostY = int32(a.Cell&255), int32(a.Cell>>8), int32(a.Cell&255), int32(a.Cell>>8)
 		if a.CurrentEntity {
 			e.OffMap = a.CurrentOffMap

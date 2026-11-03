@@ -80,6 +80,8 @@ type ActorRecord struct {
 	Mover        [180]byte
 	StaticRoute  []uint16
 	DynamicRoute []uint16
+
+	PackedTemplateState bool
 }
 
 // DesiredFacing is Mover[1], the direction the unit is turning toward, in
@@ -285,6 +287,7 @@ func currentActorGraph(players []*Record, current []uint16, dead ...[]*Record) (
 			TokenOwnerSlot: actor.OwnerSlot, TypeID: uint16(record.value("T0E")), DefRow: uint16(record.value("T0C")),
 			TokenSize: uint8(record.value("U49")), Domain: uint8(record.value("U4A")),
 			Face: uint8(record.value("U4B")), ClassSelector: uint8(record.value("U4C")), DisplayBacking: record.value("U148"), DyingTimer: int8(record.value("U6C"))}
+		entry.PackedTemplateState = record.profile().packedActorState
 		entry.HasOrder = len(record.Raw["U158"]) != 0
 		if entry.HasOrder && (len(record.Raw["U158"]) != len(entry.Order) || len(record.Raw["U50"]) != 4 || len(record.Raw["U158_90"]) != 2*record.Counts["U158_90"]) {
 			return SavedActorGraph{}, fmt.Errorf("sav: actor %d has incomplete order operands: raw %d state %d ring %d/%d", record.Index, len(record.Raw["U158"]), len(record.Raw["U50"]), len(record.Raw["U158_90"]), record.Counts["U158_90"])

@@ -149,15 +149,18 @@ const (
 // formHolding is what the holders' sources read: the document being
 // formed, the snapshot, the installed table and the hero's record.
 type formHolding struct {
-	doc   *sav.DocumentData
-	s     Snapshot
-	table *mapload.Table
-	hero  uint16
+	doc     *sav.DocumentData
+	s       Snapshot
+	table   *mapload.Table
+	hero    uint16
+	rewards map[int]bool
 }
 
 // secondFormHolders are the fields the second game's records hold that the
 // engine's records keep elsewhere.
 var secondFormHolders = []savedFormHolder{
+	{class: "Unit", field: "U148", site: holderValue, value: secondActorTemplateKey},
+	{class: "Human", field: "U148", site: holderValue, value: secondActorTemplateKey},
 	// R2-ENGINE-319, R2-ENGINE-320: the experience block opens with the main
 	// skill.
 	{class: "Human", field: "H1CC", site: holderFirstWord, value: secondMainSkillHeld},
@@ -177,6 +180,45 @@ var secondFormHolders = []savedFormHolder{
 	{class: "Human", field: "Inventory20", site: holderPresentValue, value: secondBagWeight},
 }
 
+func secondActorTemplateKey(h *formHolding, i int) (uint32, bool) {
+	r := &h.doc.Objects[i]
+	packed, err := savedStructureValue(r, "U148")
+	if err != nil {
+		return packed, false
+	}
+	if marked, present := h.rewards[i]; present {
+		packed &= 0x00ffffff
+		if marked {
+			packed |= 1 << 24
+		}
+	}
+	if uint16(packed) != 0 || h.table == nil {
+		return packed, true
+	}
+	if r.Class == "Human" && uint16(i+1) == h.hero {
+		if id, ok := mapload.PartyIdentity(nativeCityHeroOf(h.s.Party), h.table); ok {
+			return packed | uint32(uint16(id)), true
+		}
+	}
+	rows, serverID := h.table.Units, data.UnitServerID
+	if r.Class == "Human" {
+		rows, serverID = h.table.Humans, data.HumanServerID
+	}
+	row, err := savedStructureValue(r, "T0C")
+	if err != nil || rows == nil || row == 0 || uint64(row) >= uint64(rows.Len()) {
+		return packed, true
+	}
+	key, ok := serverID(rows.EntryParams(int(row)))
+	if !ok || key <= 0 {
+		return packed, true
+	}
+	word := uint16(key)
+	if r.Class == "Human" {
+		word = mapload.PersonNPCWord(key)
+	}
+	return packed | uint32(word), true
+}
+
 // writeSecondTownHolders writes each holder's field in doc's records from
 // its source, in the holders' order.
 func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s Snapshot, table *mapload.Table) error {
@@ -185,6 +227,18 @@ func writeSecondTownHolders(doc *sav.DocumentData, holders []savedFormHolder, s 
 		return err
 	}
 	h := &formHolding{doc: doc, s: s, table: table, hero: hero}
+	actions, err := readCurrentActions(doc)
+	if err != nil {
+		return err
+	}
+	if actions != nil {
+		h.rewards = make(map[int]bool)
+		for _, b := range actions.Bindings {
+			if v, present := actions.Values[b.ID]; present && !b.Structure && !b.Missing && b.Object != 0 {
+				h.rewards[int(b.Object)-1] = v.SuppressRewards
+			}
+		}
+	}
 	for _, holder := range holders {
 		if holder.site == holderRecords {
 			if err := holder.records(h); err != nil {
