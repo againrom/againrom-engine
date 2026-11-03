@@ -304,7 +304,7 @@ func TestReleaseSecondTownOneEpisodes(t *testing.T) {
 	t.Logf("tavern frames under inn hover: %v", frames)
 }
 
-// The inn is a page: three panels, the seat grid and three buttons at the
+// The inn is a page: three panels, the seat grid and three original buttons at the
 // rectangles R2-ENGINE-246 and R2-ENGINE-247 measured; a seat click selects
 // (R2-SESSION-213), Talk runs TalkTo for the selected seat, and Exit and
 // Escape return to the square (R2-ENGINE-250).
@@ -320,7 +320,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	for _, r := range s.Rows() {
 		rows = append(rows, r.Text)
 	}
-	if len(speakers) != 3 || strings.Join(rows, ",") != "TALK 207,TALK 2108,TALK 517,EXIT" {
+	if len(speakers) != 3 || strings.Join(rows, ",") != "TALK 207,TALK 2108,TALK 517,"+f.Words.TavernSleep+",EXIT" {
 		t.Fatalf("inn rows %v", rows)
 	}
 	view := s.TownSquareView().Scene
@@ -341,10 +341,13 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 0 {
 		t.Errorf("talk button with seat 0 selected: %+v %v", ctl, ok)
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 161)); !ok || ctl.Door != 3 {
+	if ctl, ok := view.ControlAt(image.Pt(554, 161)); !ok || ctl.Door != 4 {
 		t.Errorf("exit button: %+v %v", ctl, ok)
 	}
-	for _, p := range []image.Point{{483, 67}, {624, 67}, {554, 43}, {554, 185}} {
+	if ctl, ok := view.ControlAt(image.Pt(554, 205)); !ok || ctl.Door != 3 {
+		t.Errorf("Sleep button: %+v %v", ctl, ok)
+	}
+	for _, p := range []image.Point{{483, 67}, {624, 67}, {554, 43}, {554, 231}} {
 		if _, ok := view.ControlAt(p); ok {
 			t.Errorf("%v outside every button answers", p)
 		}
@@ -379,7 +382,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	}{
 		{"left stats", art.scene.Pictures("left-stats")[0], image.Pt(0, 0), image.Pt(80, 100)},
 		{"left picture", art.scene.Pictures("left-picture")[0], image.Pt(0, 238), image.Pt(80, 300)},
-		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(560, 220)},
+		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(630, 220)},
 		{"hire button", art.page.Picture("button/0/0"), image.Pt(484, 44), image.Pt(490, 50)},
 	} {
 		if probe.pic == nil {

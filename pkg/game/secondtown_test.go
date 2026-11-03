@@ -99,8 +99,8 @@ func TestRom2TownDescriptionShape(t *testing.T) {
 			t.Errorf("campaign room %q is not in the description", name)
 		}
 	}
-	if r := d.Room("inn"); r == nil || r.Page != "inn" || r.Seats == nil || r.Seats.Count() != 18 || len(r.Buttons) != 3 {
-		t.Fatal("the inn is not an inn page with 18 seats and 3 buttons")
+	if r := d.Room("inn"); r == nil || r.Page != "inn" || r.Seats == nil || r.Seats.Count() != 18 || len(r.Buttons) != 4 {
+		t.Fatal("the inn is not an inn page with 18 seats and 4 buttons")
 	}
 	if TownDescription(p) != nil {
 		t.Error("the second game reads a room description")

@@ -194,7 +194,7 @@ func (t *townScreen) Rows() []ui.TownRow {
 		case "tavern":
 			return t.tavernRows()
 		case "inn":
-			return append(t.state().innRows(), ui.TownRow{Text: secondInnExit, Choosable: true})
+			return append(t.state().innRows(t.in.Words.TavernSleep), ui.TownRow{Text: secondInnExit, Choosable: true})
 		}
 	}
 	return t.squareRows()
@@ -242,7 +242,7 @@ func (t *townScreen) fallbackRows() []ui.TownRow {
 	if t.roomName() != "inn" {
 		return []ui.TownRow{{Text: "TAVERN", Choosable: true}, gates}
 	}
-	return append(c.innRows(), gates)
+	return append(c.innRows(t.in.Words.TavernSleep), gates)
 }
 
 func (t *townScreen) Choose(i int) ui.TownAction {
@@ -277,6 +277,9 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 				if r.Seats != nil {
 					t.selectSeat(t.scene(d, room), r.Seats, i)
 				}
+				return t.innAct(t.state(), i)
+			}
+			if i == len(rows)-2 {
 				return t.innAct(t.state(), i)
 			}
 			t.raiseShownRoomEvent(roomEventLeave)

@@ -3947,5 +3947,8 @@ var Committed = Baseline{
 	// It rose for the one item identity rule pkg/sim/itemunit.go and its rows,
 	// the scan internal/archtest/itemunit.go and its test, less the comments
 	// of the removed WornItemEqual and of shopItemEqual's body.
-	CommentBytes: 10483746,
+	// It rose for the inn Sleep plaque's caption encoding (engineWord in
+	// pkg/game/secondtown.go and its test), the restored innAct and innRows
+	// citations and the cmd/innsleep reason line.
+	CommentBytes: 10484142,
 }

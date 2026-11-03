@@ -397,7 +397,7 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 	for _, r := range s.Rows() {
 		rows = append(rows, r.Text)
 	}
-	if len(rows) != len(c.speakers())+1 || rows[len(rows)-1] != secondInnExit {
+	if len(rows) != len(c.speakers())+2 || rows[len(rows)-1] != secondInnExit {
 		t.Fatalf("inn rows %v for %d speakers", rows, len(c.speakers()))
 	}
 	d, _ := s.composedTown()

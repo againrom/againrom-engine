@@ -104,9 +104,9 @@ func (c *secondCampaign) innSeats() ([]innOffer, int) {
 	return append(hires, c.speakers()...), len(hires)
 }
 
-// innRows is one list row per inn seat: HIRE or FIRE for a hire actor as
-// its caption reads (R2-ENGINE-246), TALK for a talk actor.
-func (c *secondCampaign) innRows() []ui.TownRow {
+// innRows lists HIRE or FIRE per hire seat (R2-ENGINE-246), TALK per speaker,
+// then Sleep.
+func (c *secondCampaign) innRows(sleep string) []ui.TownRow {
 	seats, hires := c.innSeats()
 	rows := make([]ui.TownRow, len(seats))
 	for i, o := range seats {
@@ -119,7 +119,7 @@ func (c *secondCampaign) innRows() []ui.TownRow {
 		}
 		rows[i] = ui.TownRow{Text: fmt.Sprintf("%s %d", verb, o.npc), Choosable: true}
 	}
-	return rows
+	return append(rows, ui.TownRow{Text: sleep, Choosable: true})
 }
 
 // enterInn starts a visit of the inn page: the page's copy of the high

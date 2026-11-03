@@ -67,7 +67,7 @@ func TestReleaseSecondStageFortyInnOffersItsMissions(t *testing.T) {
 	c := secondStageFortyInn(t, f, app)
 	rows := []ui.TownRow{{Text: "HIRE 1", Choosable: true}, {Text: "HIRE 2", Choosable: true}, {Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true},
 		{Text: "TALK 2015", Choosable: true}, {Text: "TALK 2111", Choosable: true}, {Text: "TALK 2004", Choosable: true},
-		{Text: "EXIT", Choosable: true}}
+		{Text: f.Words.TavernSleep, Choosable: true}, {Text: "EXIT", Choosable: true}}
 	if got := f.TownScreen().Rows(); !reflect.DeepEqual(got, rows) {
 		t.Fatal("stage 40 inn rows", got)
 	}

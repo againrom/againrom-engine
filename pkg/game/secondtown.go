@@ -341,9 +341,22 @@ func (v townRoomView) Paint(dst *image.RGBA) {
 		if caption != nil && *caption < len(words.Hover) {
 			rb.Caption = words.Hover[*caption]
 		}
+		if b.Word != "" {
+			rb.Caption = v.t.in.engineWord(b.Word)
+		}
 		buttons = append(buttons, rb)
 	}
 	ui.DrawRoomButtons(dst, font, v.t.in.roomButtonStyle(v.d), buttons)
+}
+
+// engineWord is an engine word in the install's code page, the form a button
+// font draws; the install encoding Words.TavernSleep already uses.
+func (in *InstallResources) engineWord(word string) string {
+	selector := 0
+	if f := in.Font.Value(); f != nil {
+		selector = f.Selector
+	}
+	return encodeEngineWord(in.Words.Engine.Text(word), selector)
 }
 
 // roomButtonStyle is the description's room button style in the generator
@@ -466,6 +479,8 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
 			}
 		case "exit":
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats + 1}, true
+		case "sleep":
 			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats}, true
 		}
 	}

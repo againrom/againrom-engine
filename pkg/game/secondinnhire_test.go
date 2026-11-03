@@ -36,8 +36,8 @@ func TestSecondInnHireToggle(t *testing.T) {
 func TestSecondInnHireAndFire(t *testing.T) {
 	c := innAt(2, 30, map[int]int32{532: 1, 552: 2, 533: 2, 553: 2, 513: 1})
 	c.enterInn()
-	if rows := c.innRows(); !reflect.DeepEqual(rows, []ui.TownRow{{Text: "HIRE 1", Choosable: true}, {Text: "FIRE 2", Choosable: true},
-		{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}}) {
+	if rows := c.innRows("Sleep"); !reflect.DeepEqual(rows, []ui.TownRow{{Text: "HIRE 1", Choosable: true}, {Text: "FIRE 2", Choosable: true},
+		{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "Sleep", Choosable: true}}) {
 		t.Fatal("rows", rows)
 	}
 	if key := c.hireOrFire(1); key != "npc1accept30" || c.bank[512] != 1 || !c.hired(1) {
@@ -134,7 +134,7 @@ func TestSecondInnHireRouting(t *testing.T) {
 	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 1 {
 		t.Fatalf("talk button on a talk seat %+v %v", ctl, ok)
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 161)); !ok || ctl.Door != 4 {
+	if ctl, ok := view.ControlAt(image.Pt(554, 161)); !ok || ctl.Door != 5 {
 		t.Fatalf("exit %+v %v", ctl, ok)
 	}
 }

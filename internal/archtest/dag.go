@@ -258,6 +258,8 @@ var allow = map[string][]string{
 	// and runs the campaign session that opens a town, and pkg/ui composes the
 	// screen whose pixels are the evidence. It names no simulation type.
 	"cmd/shopdump": {"pkg/ui", "pkg/game"},
+	// a read-only installed-data witness over the headless app seams.
+	"cmd/innsleep": {"pkg/ui", "pkg/game", "pkg/vfs"},
 	// screenshot composes named screens through the single seam pkg/ui/app.go's
 	// Draw itself now also goes through (composeScreen, HeadlessFrame,
 	// ComposeTownScreen), reaching them the same two ways cmd/shopdump and

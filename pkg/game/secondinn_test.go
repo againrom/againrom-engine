@@ -290,7 +290,7 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
-	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "EXIT", Choosable: true}}
+	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: f.Words.TavernSleep, Choosable: true}, {Text: "EXIT", Choosable: true}}
 	if c.room != secondTownInn || !reflect.DeepEqual(screen.Rows(), want) {
 		t.Fatal("inn rows", screen.Rows())
 	}
@@ -305,7 +305,7 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	}
 	// Slots 533 and 553 make hire 2 a town 2 hire actor, seated first
 	// (R2-ENGINE-221, R2-ENGINE-497).
-	if rows := screen.Rows(); rows[0] != (ui.TownRow{Text: "HIRE 2", Choosable: true}) || len(rows) != 5 {
+	if rows := screen.Rows(); rows[0] != (ui.TownRow{Text: "HIRE 2", Choosable: true}) || len(rows) != 6 {
 		t.Fatal("inn rows after TALK 22", rows)
 	}
 	screen.Choose(3)
@@ -315,7 +315,7 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	if !screen.CanSave() {
 		t.Fatal("quiet town 2 inn is not a save point")
 	}
-	screen.Choose(4)
+	screen.Choose(len(screen.Rows()) - 1)
 	if c.room != secondTownSquare || c.current != (partyPlace{2, 2}) {
 		t.Fatal("EXIT from the inn", c)
 	}

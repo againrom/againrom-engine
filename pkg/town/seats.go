@@ -74,7 +74,7 @@ func (s *SeatSpec) Seat(i int) image.Rectangle {
 
 // ButtonSpec is one page button: the action its page binds by Name, its hit
 // rectangle, the page art it shows released and pressed, drawn at the
-// rectangle's corner, and the main text slot of its caption, if it has one.
+// rectangle's corner, and its main text slot or engine word.
 // A button with If exists only while the host's condition holds: it is not
 // drawn, hit or chosen otherwise.
 type ButtonSpec struct {
@@ -83,6 +83,7 @@ type ButtonSpec struct {
 	Off     string   `json:"off"`
 	On      string   `json:"on"`
 	Caption *int     `json:"caption"`
+	Word    string   `json:"word"`
 	If      string   `json:"if"`
 	Cite    []string `json:"cite"`
 }

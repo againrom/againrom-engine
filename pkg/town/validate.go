@@ -215,6 +215,9 @@ func validateControls(r RoomSpec, fail func(string, ...any) error) error {
 		if b.Caption != nil && *b.Caption < 0 {
 			return fail("%s has negative caption slot %d", where, *b.Caption)
 		}
+		if b.Caption != nil && b.Word != "" {
+			return fail("%s has both a caption slot and an engine word", where)
+		}
 		for _, name := range []string{b.Off, b.On} {
 			if err := needArt(where, name); err != nil {
 				return err

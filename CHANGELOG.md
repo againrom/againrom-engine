@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] The inn has a Sleep button that restocks the town's shop, as the first game's tavern does.
 - [ROM2] In the English edition, Sagita, Hildarius, Galinel, Iglez and Dina now answer when selected or ordered.
 - [ROM2] A character escorting you now heals you with Heal when you are wounded, and an unarmed mage with auto-healing on heals with Heal; before, they never did. The spellbook and item popups of the second game state the caption of their own spell, not another spell's.
 - [ROM2] A spell in flight in a loaded mission save now finishes: it lands and does its damage, and a save made before it lands keeps it; before, it hung in the air, never landed and was dropped from the next save.
