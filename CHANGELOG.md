@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] Trolls, ogres and dragons speaking in the second game now show their whole head in the portrait, as in the original.
+
 ### For map makers and modders
 
 - [BASE] The map editor's top bar has a File menu with Undo, Redo and Search, a Map button for the map panel, and Tools, View and Window at its right end. Every button shows when it is pressed.

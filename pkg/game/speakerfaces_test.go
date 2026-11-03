@@ -10,7 +10,74 @@ import (
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
+	"againrom/pkg/ui"
 )
+
+func TestSpeakerPortraitTypeWindow(t *testing.T) {
+	picture := image.NewRGBA(image.Rect(0, 0, 160, 240))
+	for y := 0; y < 240; y++ {
+		for x := 0; x < 160; x++ {
+			picture.SetRGBA(x, y, color.RGBA{R: uint8(x + 1), G: uint8(y + 1), B: 32, A: 255})
+		}
+	}
+	for _, tc := range []struct {
+		name        string
+		game        base.Game
+		class       int32
+		registry    bool
+		defaultOnly bool
+		want        image.Rectangle
+	}{
+		{"ogre", base.GameROM2, 66, false, false, image.Rect(10, 44, 82, 140)},
+		{"troll", base.GameROM2, 68, false, false, image.Rect(15, 21, 87, 117)},
+		{"dragon", base.GameROM2, 71, false, false, image.Rect(7, 49, 79, 145)},
+		{"sentinel Y", base.GameROM2, 67, false, false, image.Rect(36, 8, 108, 100)},
+		{"below table", base.GameROM2, 63, false, false, image.Rect(36, 8, 108, 100)},
+		{"above table", base.GameROM2, 103, false, false, image.Rect(36, 8, 108, 100)},
+		{"registry", base.GameROM2, 68, true, false, image.Rect(40, 10, 112, 106)},
+		{"first game creature", base.GameROM1, 68, true, false, image.Rect(40, 10, 112, 106)},
+		{"first game default", base.GameROM1, 68, true, true, image.Rect(36, 8, 108, 100)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			params := make([]int32, 56)
+			for i := range params {
+				params[i] = -1
+			}
+			params[29], params[30], params[55] = tc.class, 1, 623
+			table := readUnder(tc.game, &mapload.Table{Units: &fixtureCollection{
+				names: []string{"", "Creature"}, params: [][]int32{nil, params},
+			}})
+			if tc.registry {
+				table.NPCCatalog = &data.NPCCatalog{Faces: map[int32]data.NPCFace{
+					623: {Kind: data.NPCPortrait, Class: tc.class, Face: 1, HasWindow: !tc.defaultOnly, WindowX: 40, WindowY: 10},
+				}}
+			}
+			r := speakerResolver{npcFaces: speakerFaces(table),
+				units:     &terrain.UnitSet{Classes: map[int32]*terrain.UnitClass{tc.class: {Portrait: "Creature"}}},
+				portraits: map[string]*image.RGBA{"graphics/infowindow/Creature.bmp": picture},
+			}
+			pic, window, ok := r.SpeakerFace(623)
+			if !ok || pic != picture {
+				t.Fatal("speaker lost its class picture")
+			}
+			if got := ui.AuthoredDialogueLayout().WithFaceWindow(window).PortraitWindow; got != tc.want {
+				t.Errorf("source window = %v, want %v", got, tc.want)
+			}
+			pane := ui.SpeakerPortrait(pic, window)
+			for y := 0; y < 96; y++ {
+				for x := 0; x < 96; x++ {
+					var want color.RGBA
+					if x >= 12 && x < 84 && y < tc.want.Dy() {
+						want = picture.RGBAAt(tc.want.Min.X+x-12, tc.want.Min.Y+y)
+					}
+					if got := pane.RGBAAt(x, y); got != want {
+						t.Fatalf("pane (%d,%d) = %v, want %v", x, y, got, want)
+					}
+				}
+			}
+		})
+	}
+}
 
 // The second game's speaker table adds the Humans rows and the player's key
 // beside the registry's records, which win; the first game's is the
@@ -108,10 +175,13 @@ func TestSpeakerFacesNonHumanPortrait(t *testing.T) {
 	for _, key := range []int{517, 624, 97} {
 		before := speakerResolver{src: r.src, units: r.units,
 			npcFaces: map[int32]data.NPCFace{int32(key): existing[int32(key)]}, portraits: map[string]*image.RGBA{}, cast: r.cast}
-		got, _, ok := r.SpeakerFace(key)
-		old, _, oldOK := before.SpeakerFace(key)
+		got, window, ok := r.SpeakerFace(key)
+		old, oldWindow, oldOK := before.SpeakerFace(key)
 		if !ok || !oldOK || got.Bounds() != old.Bounds() || string(got.Pix) != string(old.Pix) {
 			t.Errorf("existing speaker %d lost its picture", key)
+		}
+		if window != oldWindow || string(ui.SpeakerPortrait(got, window).Pix) != string(ui.SpeakerPortrait(old, oldWindow).Pix) {
+			t.Errorf("existing speaker %d moved its pane pixels", key)
 		}
 	}
 	if _, held := CatalogFaces(table)[623]; held {

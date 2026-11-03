@@ -108,6 +108,7 @@ type gameFiles struct {
 	// no other record.
 	fallbackSpeakers bool
 	unitSpeakers     bool
+	portraitWindows  portraitWindowProfile
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
 	manaSpellcaster bool
@@ -181,6 +182,7 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
+	portraitWindows:   portraitWindowProfile{fallback: ui.AuthoredDialogueLayout().PortraitWindow},
 	missionPackClosed: true,
 	purseMoneyWord:    true,
 	missionScreen:     ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true},
@@ -227,6 +229,50 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
+	portraitWindows: portraitWindowProfile{
+		fallback: ui.AuthoredDialogueLayout().PortraitWindow,
+		byType: map[int32]image.Point{
+			64:  {X: 30, Y: 72},
+			65:  {X: 26, Y: 23},
+			66:  {X: 10, Y: 44},
+			67:  {X: -1, Y: -1},
+			68:  {X: 15, Y: 21},
+			69:  {X: 32, Y: 21},
+			70:  {X: -1, Y: -1},
+			71:  {X: 7, Y: 49},
+			72:  {X: -1, Y: -1},
+			73:  {X: -1, Y: -1},
+			74:  {X: 8, Y: 72},
+			75:  {X: -1, Y: -1},
+			76:  {X: -1, Y: -1},
+			77:  {X: -1, Y: -1},
+			78:  {X: -1, Y: -1},
+			79:  {X: 30, Y: 72},
+			80:  {X: 23, Y: 31},
+			81:  {X: 43, Y: 7},
+			82:  {X: 37, Y: 28},
+			83:  {X: 37, Y: 28},
+			84:  {X: 37, Y: 28},
+			85:  {X: 37, Y: 28},
+			86:  {X: 37, Y: 28},
+			87:  {X: 37, Y: 28},
+			88:  {X: 37, Y: 28},
+			89:  {X: 37, Y: 24},
+			90:  {X: 37, Y: 24},
+			91:  {X: 37, Y: 24},
+			92:  {X: 37, Y: 24},
+			93:  {X: 37, Y: 15},
+			94:  {X: 37, Y: 15},
+			95:  {X: 37, Y: 15},
+			96:  {X: 37, Y: 15},
+			97:  {X: 35, Y: 15},
+			98:  {X: 35, Y: 15},
+			99:  {X: 35, Y: 14},
+			100: {X: 35, Y: 21},
+			101: {X: 32, Y: 18},
+			102: {X: 15, Y: 21},
+		},
+	},
 	planeCosts:          terrainCostsAddress,
 	missionPackClosed:   true,
 	missionHeroSelected: true,
@@ -294,9 +340,13 @@ func speakerFaces(t *mapload.Table) map[int32]data.NPCFace { return npcFaceList(
 // come from the catalog.
 func CatalogFaces(t *mapload.Table) map[int32]data.NPCFace { return npcFaceList(t, false) }
 
-// npcFaceList is the one source of an NPC face list, and the only reader of
-// the catalog's portraits. whole adds the rows the campaign builds beside the
-// catalog.
+type portraitWindowProfile struct {
+	fallback image.Rectangle
+	byType   map[int32]image.Point
+}
+
+// npcFaceList builds speaker records. R2-ENGINE-819's BMP coordinates and final
+// pixels are Medium; native conversion and clip are Unknown (DIV-4467).
 func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 	if t == nil {
 		return nil
@@ -338,8 +388,16 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 			}
 			def, err := data.NewUnitDef(t.Units.EntryName(row), params)
 			if err == nil {
-				out[key] = data.NPCFace{Kind: data.NPCPortrait, Class: def.TypeID, HasClass: true, Face: int(def.Face),
+				rec := data.NPCFace{Kind: data.NPCPortrait, Class: def.TypeID, HasClass: true, Face: int(def.Face),
 					Tokens: data.NPCTokens(data.NPCTokenNotHuman) | data.NPCTokens(data.NPCTokenPicture) | data.NPCTokens(data.NPCTokenFace)}
+				window := files.portraitWindows.fallback
+				if origin, found := files.portraitWindows.byType[def.TypeID]; found && origin.Y != -1 {
+					window = ui.NoticeFaceWindow(origin.X, origin.Y)
+				}
+				if window != ui.AuthoredDialogueLayout().PortraitWindow {
+					rec.WindowX, rec.WindowY, rec.HasWindow = window.Min.X, window.Min.Y, true
+				}
+				out[key] = rec
 			}
 		}
 	}
