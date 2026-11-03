@@ -3932,5 +3932,7 @@ var Committed = Baseline{
 
 	// It rose for the held path's refused bind: savworldeffects.go, the
 	// refused-cloud test and its fixture, and this note.
-	CommentBytes: 10475209,
+	// It rose for the second-game escort heal and popup caption tests and the
+	// healSpell doc comment, less the comment of the removed healArmAsID.
+	CommentBytes: 10476220,
 }

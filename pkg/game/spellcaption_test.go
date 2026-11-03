@@ -24,8 +24,14 @@ func knower(id uint16, p int32) spellKnower {
 
 func captionLine(t *testing.T, ks ...spellKnower) string {
 	t.Helper()
+	return captionLineIn(t, originalBookIDs, ks...)
+}
+
+// captionLineIn is the caption a book of rows states.
+func captionLineIn(t *testing.T, book []uint16, ks ...spellKnower) string {
+	t.Helper()
 	w := captionWords()
-	lines := spellPopupLines(ks, "n", &w)
+	lines := spellPopupLines(ks, "n", &w, book)
 	// name and the mana line come first; the caption, when present, is last.
 	if len(lines) <= 2 {
 		return ""
@@ -97,18 +103,18 @@ func TestSpellPopupFoldsDamageRangeDurationAndMana(t *testing.T) {
 	ruleB.DamageMin, ruleB.DamageMax = 3, 4
 	a := spellKnower{ruleA, sim.SpellCharacteristics{ManaCost: 5, Range: 6, Duration: 16, DamageMin: 2, DamageMax: 4}}
 	b := spellKnower{ruleB, sim.SpellCharacteristics{ManaCost: 9, Range: 8, Duration: 32, DamageMin: 3, DamageMax: 4}}
-	got := spellPopupLines([]spellKnower{a, b}, "Fire", &w)
+	got := spellPopupLines([]spellKnower{a, b}, "Fire", &w, originalBookIDs)
 	want := []string{"Fire", "Mana cost: 9", "Damage: 5-8", "Range: 6-8", "Duration:   1.0-  2.0"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("fold = %q, want %q", got, want)
 	}
-	got = spellPopupLines([]spellKnower{a, a}, "Fire", &w)
+	got = spellPopupLines([]spellKnower{a, a}, "Fire", &w, originalBookIDs)
 	want = []string{"Fire", "Mana cost: 5", "Damage: 4-8", "Range: 6", "Duration:   1.0"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("equal knowers = %q, want %q", got, want)
 	}
 	zero := spellKnower{rule, sim.SpellCharacteristics{ManaCost: 5}}
-	got = spellPopupLines([]spellKnower{zero}, "Fire", &w)
+	got = spellPopupLines([]spellKnower{zero}, "Fire", &w, originalBookIDs)
 	if want := []string{"Fire", "Mana cost: 5"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("zero maxima = %q, want %q", got, want)
 	}

@@ -230,7 +230,7 @@ func (t *shopController) fillTownBook(v *ui.ShopScreenView) {
 		names := spellNamesFrom(t.in.Table, t.in.Words.SpellBookNames)
 		v.Spells, v.SpellCatalog = selectedSpellbook(mapload.TableRules(t.in.Table), []sim.Entity{e}, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, spellBookRows(t.in.Table))
 		if !v.SpellCatalog {
-			v.Spells = spellbookOf(mapload.TableRules(t.in.Table), e, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon)
+			v.Spells = spellbookOf(mapload.TableRules(t.in.Table), e, mapload.SpellRules(t.in.Table), names, t.in.Words, t.shopSpellIcon, spellBookRows(t.in.Table))
 		}
 	}
 }

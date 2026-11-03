@@ -146,7 +146,7 @@ func TestReleaseModSpellKeysEditTheInstalledTable(t *testing.T) {
 			sim.LearnBookSpell(&e, id, rules)
 		}
 		out := map[uint16][]string{}
-		for _, s := range spellbookOf(sim.Rules{}, e, rules, spellNamesFrom(front.Table, [29]string{}), testSpellPopupWords(), nil) {
+		for _, s := range spellbookOf(sim.Rules{}, e, rules, spellNamesFrom(front.Table, [29]string{}), testSpellPopupWords(), nil, spellBookRows(front.Table)) {
 			out[uint16(s.ID)] = s.Info
 		}
 		return out

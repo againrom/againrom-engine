@@ -214,7 +214,7 @@ func TestReleaseSelfSpellKindsAreShieldAndFireSacrifice(t *testing.T) {
 	f.SetDeterministicFrames(true)
 	mage := sim.Entity{KnownSpells: ^uint32(0)}
 	var self, point []uint32
-	for _, e := range spellbookOf(sim.Rules{}, mage, mapload.SpellRules(f.Table), nil, ui.Words{}, nil) {
+	for _, e := range spellbookOf(sim.Rules{}, mage, mapload.SpellRules(f.Table), nil, ui.Words{}, nil, spellBookRows(f.Table)) {
 		if e.SelfOnly {
 			self = append(self, e.ID)
 		}

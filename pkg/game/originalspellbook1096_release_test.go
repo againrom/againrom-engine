@@ -44,7 +44,7 @@ func TestReleaseOriginalSpellbook1096SourceMembershipAppAndNative(t *testing.T) 
 	}
 	id := f.live.mission.ids[0]
 	e := releaseEntity(t, f.live, id)
-	rows := spellbookOf(sim.Rules{}, e, f.live.world.Spells(), f.live.spellNames, f.live.view.Words(), nil)
+	rows := spellbookOf(sim.Rules{}, e, f.live.world.Spells(), f.live.spellNames, f.live.view.Words(), nil, f.live.spells().BookRows)
 	if e.KnownSpells != known || len(rows) != 28 {
 		t.Fatalf("book mask=%#x rows=%d, want28", e.KnownSpells, len(rows))
 	}

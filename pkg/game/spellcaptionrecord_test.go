@@ -41,9 +41,9 @@ func spellCaptionAnswers(rule sim.SpellRule) string {
 	return strings.Join(parts, " ")
 }
 
-// spellCaptionRecord is each row id's caption answers as the popup gave them
-// before the arm table held them, the same in both games: the key is the row
-// id read as an arm.
+// spellCaptionRecord is each arm's caption answers as the popup gave them
+// before the arm table held them, the same in both games: the key is the arm
+// a row runs.
 var spellCaptionRecord = map[uint16]string{
 	5:  "183=-1073741824 183=-50 183=0 183=0 183=0 183=7 183=7 183=9 183=10 183=14 183=15 183=49 183=50 183=50 183=99 183=100 183=100 183=100 183=100 183=100 183=-7 183=0 183=3 183=99 183=100 183=100",
 	7:  "182=143165575 182=5 182=-1 182=-1 182=-1 182=-1 182=-2 182=-2 182=-2 182=-2 182=-3 182=-7 182=-7 182=-7 182=-14 182=-14 182=-18 182=-67 182=-35791395 182=-143165577 182=-7 182=0 182=3 182=99 182=100 182=150",
@@ -69,7 +69,7 @@ func spellCaptionProbeIDs() []uint16 {
 }
 
 // TestSpellCaptionsKeepTheirRecord asks every caption block about every
-// probed row id in both games, the second game's row running its own arm.
+// probed row id in both games: a row states the caption of the arm it runs.
 func TestSpellCaptionsKeepTheirRecord(t *testing.T) {
 	for _, id := range spellCaptionProbeIDs() {
 		for _, second := range []bool{false, true} {
@@ -77,7 +77,7 @@ func TestSpellCaptionsKeepTheirRecord(t *testing.T) {
 			if second {
 				rule.Arm = sim.SecondGameSpellArm(id)
 			}
-			if got, want := spellCaptionAnswers(rule), spellCaptionRecord[id]; got != want {
+			if got, want := spellCaptionAnswers(rule), spellCaptionRecord[rule.Arm]; got != want {
 				t.Errorf("id %d second=%v: captions %q, record %q", id, second, got, want)
 			}
 		}

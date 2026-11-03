@@ -50,7 +50,7 @@ var spellArmCapabilities = map[string]func(row spellArm, rule SpellRule) int{
 	"creatureAim":   func(r spellArm, _ SpellRule) int { return int(r.creatureAim) },
 	"burst":         func(r spellArm, _ SpellRule) int { return boolAnswer(r.burst) },
 	"speedFlight":   func(r spellArm, _ SpellRule) int { return boolAnswer(r.speedFlight) },
-	"healID":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.heals && uint32(r.arm) == healArmAsID()) },
+	"healID":        func(r spellArm, _ SpellRule) int { return boolAnswer(r.heals && uint32(r.arm) == uint32(healingArm)) },
 	"caption": func(r spellArm, _ SpellRule) int {
 		return int(r.caption.kind)*2 + boolAnswer(r.caption.negate)
 	},

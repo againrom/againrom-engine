@@ -79,7 +79,7 @@ func TestScrollDescriptionFieldGrammarAndCaptionPrecedence(t *testing.T) {
 		{"slow is a valid descriptor", 28, sim.SpellCharacteristics{Power: 80}, []string{"C182: -6"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := spellDetailsLines([]spellKnower{{sim.SpellRule{ID: tc.id}, tc.c}}, nil, &words, scrollDetails)
+			got := spellDetailsLines([]spellKnower{{sim.SpellRule{ID: tc.id}, tc.c}}, nil, &words, scrollDetails, nil)
 			if !slices.Equal(got, tc.want) {
 				t.Fatalf("details = %q, want %q", got, tc.want)
 			}
@@ -92,7 +92,7 @@ func TestScrollDescriptionFieldGrammarAndCaptionPrecedence(t *testing.T) {
 		for _, id := range ids[:end] {
 			knowers = append(knowers, knower(id, 80))
 		}
-		got := spellDetailsLines(knowers, nil, &words, scrollDetails)
+		got := spellDetailsLines(knowers, nil, &words, scrollDetails, nil)
 		if !slices.Equal(got, []string{want[end-1]}) {
 			t.Fatalf("caption prefix%d = %q, want only %q", end, got, want[end-1])
 		}
@@ -190,7 +190,7 @@ func TestScrollDescriptionChangesPreserveTheSpellbookCaptionPopulation(t *testin
 			}
 			got := spellInfoLines(sim.SpellRule{ID: id}, sim.SpellCharacteristics{
 				Power: 80, ManaCost: 9, DamageMin: 2, DamageMax: 5, Range: 8, Duration: 16,
-			}, name, &words)
+			}, name, &words, originalBookIDs)
 			if !slices.Equal(got, want) {
 				t.Fatalf("book popup = %q, want %q", got, want)
 			}

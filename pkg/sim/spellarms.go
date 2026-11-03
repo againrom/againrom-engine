@@ -203,11 +203,10 @@ func ownScaledMagnitude[T int32 | int64](power T) T { return power*4/5 + 20 }
 
 // SpellCaptionOf is the caption a row states and its number for one
 // knower's characteristics: a mod magnitude when one is held, else the
-// row's own magnitude at the knower's power. The row id is read as an arm
-// in both games, as the popup reads it, so a second-game row states the
-// caption of the first-game arm its id names.
+// row's own magnitude at the knower's power. The caption is the one of the
+// arm the row runs, in both games.
 func SpellCaptionOf(rule SpellRule, c SpellCharacteristics) (SpellCaption, int64) {
-	row := spellArmOf(rule.ID)
+	row := spellArmOf(rule.arm())
 	kind := row.caption.kind
 	switch {
 	case kind == SpellCaptionNone:
@@ -331,12 +330,6 @@ var (
 func rowIDBursts(id uint16) bool       { return spellArmOf(id).burst }
 func rowIDFliesBySpeed(id uint16) bool { return spellArmOf(id).speedFlight }
 
-// healArmAsID is the heal arm read as a row id. An escort's heal and the
-// unarmed auto-heal ask a caster's book for this id in both games, so a
-// second-game caster asks for id 6, which is Poison Cloud there
-// (AI-FOLLOWHEAL-118).
-func healArmAsID() uint32 { return uint32(healingArm) }
-
 // autoCastArmsAt is the arms of auto-cast level 1..3, in the level's order.
 func autoCastArmsAt(level int8) []uint16 {
 	var at []spellArm
@@ -366,6 +359,10 @@ func (w *World) cursingSpell() uint16    { return w.armSpellID(cursingArm) }
 
 // controlSpiritSpell is the id of the first row running Control Spirit.
 func (w *World) controlSpiritSpell() uint16 { return w.spellIDOfArm(spiritArm) }
+
+// healSpell is the id of the first row running Heal: an escort's heal and the
+// unarmed auto-heal ask a caster's book for it (AI-FOLLOWHEAL-118).
+func (w *World) healSpell() uint16 { return w.spellIDOfArm(healingArm) }
 
 // holdsStoneCurse reports a target that carries Stone Curse's effect.
 func (w *World) holdsStoneCurse(target EntityID) bool { return w.HasEffectArm(target, stoneCurseArm) }

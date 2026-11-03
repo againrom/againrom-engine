@@ -6,8 +6,8 @@ import "testing"
 // sites gave it before the arm table held it. creatureAim is the first
 // game's aim of the arm (the second game's aims are keyed by row id, in their
 // own table). healID is the spell id an escort's heal and the unarmed
-// auto-heal ask a caster's book for: the first game's Heal id, asked in both
-// games.
+// auto-heal ask a caster's book for: the row running Heal's arm. This probe's
+// rows carry no arm, so the row id is the arm in both games.
 var spellArmSiteRecord = map[string]armAnswers{
 	"creatureAim": bothGames(map[uint16]int{
 		1: int(creatureAimVictim), 11: int(creatureAimVictim), 13: int(creatureAimVictim), 14: int(creatureAimVictim),

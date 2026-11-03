@@ -97,7 +97,7 @@ func TestReleaseSpellbookPopupStatesTheCastAtTheActorsPower(t *testing.T) {
 			if castLo, castHi := sim.SpellDamagePair(sim.Rules{}, r, c.Power); castLo != int64(lo) || castHi != int64(hi) {
 				t.Fatalf("skill plus Mind %d, spell %d: the cast's pair %d-%d, the record %d-%d", sum, r.ID, castLo, castHi, lo, hi)
 			}
-			lines := spellInfoLines(r, c, "x", &f.Words)
+			lines := spellInfoLines(r, c, "x", &f.Words, originalBookIDs)
 			joined := "\n" + strings.Join(lines, "\n") + "\n"
 			if sum == 30 && r.DamageMin > 0 {
 				damageIDs = append(damageIDs, r.ID)

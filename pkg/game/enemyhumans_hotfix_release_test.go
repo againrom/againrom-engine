@@ -91,7 +91,7 @@ func TestReleaseSavedEnemyHumanPortraitsAndBooks(t *testing.T) {
 			checkInspectionFigure(t, pic, want, "selected enemy equipped figure")
 		}
 		mage := releaseEntityByID(t, mw.world, 49)
-		book := spellbookOf(sim.Rules{}, mage, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil)
+		book := spellbookOf(sim.Rules{}, mage, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil, mw.spells().BookRows)
 		if mage.KnownSpells != 0x2042 || mage.Book.State != sim.BookPresent || len(book) != 3 {
 			t.Fatalf("mage book: %x %+v %v", mage.KnownSpells, mage.Book, book)
 		}

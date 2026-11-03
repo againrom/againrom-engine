@@ -85,7 +85,7 @@ func (w *World) escortHeal(i, ti int) bool {
 	if !(floor == 0 && target.HP < target.MaxHP || int64(floor) < int64(e.MaxMana)+3 && target.HP < target.MaxHP>>1) {
 		return false
 	}
-	heal := healArmAsID()
+	heal := uint32(w.healSpell())
 	rule, ok := w.bookSpell(e, heal)
 	mana := e.Mana
 	if rule.bookInstance {

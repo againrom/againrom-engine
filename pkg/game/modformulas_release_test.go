@@ -104,7 +104,7 @@ func formulasMission(t *testing.T, f *FrontEnd) (casterID, allyID sim.EntityID) 
 func popupOf(mw *mapWorld, casterID sim.EntityID) map[uint32][]string {
 	caster, _ := mw.entity(casterID)
 	out := map[uint32][]string{}
-	for _, s := range spellbookOf(mw.world.Rules(), caster, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil) {
+	for _, s := range spellbookOf(mw.world.Rules(), caster, mw.world.Spells(), mw.spellNames, mw.view.Words(), nil, mw.spells().BookRows) {
 		out[s.ID] = s.Info
 	}
 	return out

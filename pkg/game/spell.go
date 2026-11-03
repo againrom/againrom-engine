@@ -6,6 +6,7 @@ package game
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strings"
 
 	"againrom/pkg/data"
@@ -90,7 +91,7 @@ func spellSelfKind(rule sim.SpellRule) bool {
 }
 
 func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uint16]string,
-	w ui.Words, icon func(uint16) *image.RGBA) []ui.SpellEntry {
+	w ui.Words, icon func(uint16) *image.RGBA, rows []uint16) []ui.SpellEntry {
 	var book []ui.SpellEntry
 	for _, rule := range table {
 		var known bool
@@ -105,7 +106,7 @@ func spellbookOf(r sim.Rules, e sim.Entity, table []sim.SpellRule, names map[uin
 		auto := e.AutoSpell != 0 && uint32(e.AutoSpell) == uint32(rule.ID)
 		characteristics := sim.SpellCharacteristicsFor(r, e, rule)
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], PointTarget: !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: spellSelfKind(rule),
-			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w)}
+			Autocast: auto, Info: spellInfoLines(rule, characteristics, names[rule.ID], &w, rows)}
 		// THE ICON IS OPTIONAL AND ITS ABSENCE IS ORDINARY (0141;
 		// `MAGIC-ICON-024`). Four shipped spells are in no slot of the icon
 		// strip and therefore have no picture at all, and an install whose
@@ -166,7 +167,7 @@ func selectedSpellbook(r sim.Rules, selected []sim.Entity, table []sim.SpellRule
 		}
 		entry := ui.SpellEntry{ID: uint32(rule.ID), Name: names[rule.ID], Unavailable: !known,
 			PointTarget: known && !rule.TargetsUnit && (rule.Area || sim.SpellArmPointTarget(rule.ArmID())), SelfOnly: known && spellSelfKind(rule),
-			Info: spellPopupLines(knowers, names[rule.ID], &w)}
+			Info: spellPopupLines(knowers, names[rule.ID], &w, rows)}
 		// Autocast remains the existing primary-unit gesture, not a new
 		// group policy inferred from the book-command population claim.
 		entry.Autocast = known && selected[0].AutoSpell != 0 && uint32(selected[0].AutoSpell) == entry.ID
@@ -284,8 +285,8 @@ type spellKnower struct {
 }
 
 // spellInfoLines is the popup of a spell known by one actor.
-func spellInfoLines(rule sim.SpellRule, c sim.SpellCharacteristics, name string, w *ui.Words) []string {
-	return spellPopupLines([]spellKnower{{rule, c}}, name, w)
+func spellInfoLines(rule sim.SpellRule, c sim.SpellCharacteristics, name string, w *ui.Words, book []uint16) []string {
+	return spellPopupLines([]spellKnower{{rule, c}}, name, w, book)
 }
 
 // spellPopupLines composes the book popup (TEXT-080, TEXT-081): name and mana
@@ -296,7 +297,8 @@ func spellInfoLines(rule sim.SpellRule, c sim.SpellCharacteristics, name string,
 // every display push at the power the actor's cast takes: the damage pair the
 // cast rolls in, and the record's range and duration (TEXT-096), so a row that
 // carries damage columns states them whatever its effect arm (DIV-1882).
-func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
+// book is the book's own rows; only a row of it states a caption (DIV-4436).
+func spellPopupLines(knowers []spellKnower, name string, w *ui.Words, book []uint16) []string {
 	if name == "" {
 		name = "spell"
 	}
@@ -317,7 +319,7 @@ func spellPopupLines(knowers []spellKnower, name string, w *ui.Words) []string {
 		return lines
 	}
 	lines = add(lines, spellLabelManaCost, fmt.Sprintf("%d", knowers[len(knowers)-1].c.ManaCost))
-	return spellDetailsLines(knowers, lines, w, spellbookDetails)
+	return spellDetailsLines(knowers, lines, w, spellbookDetails, book)
 }
 
 type spellDetailContext uint8
@@ -332,7 +334,7 @@ const (
 	weaponDetails
 )
 
-func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, context spellDetailContext) []string {
+func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, context spellDetailContext, book []uint16) []string {
 	add := func(lines []string, i int, value string) []string {
 		if i >= 0 && i < len(w.Hover) && w.Hover[i] != "" {
 			lines = append(lines, w.Hover[i]+": "+value)
@@ -383,7 +385,7 @@ func spellDetailsLines(knowers []spellKnower, lines []string, w *ui.Words, conte
 		}
 		lo, hi, held := int64(0), int64(0), false
 		for _, k := range knowers {
-			if context == spellbookDetails && !inOriginalBook(k.rule.ID) {
+			if context == spellbookDetails && !slices.Contains(book, k.rule.ID) {
 				continue
 			}
 			v, ok := block.value(k.rule, k.c)
@@ -442,15 +444,6 @@ func (b spellCaption) value(rule sim.SpellRule, c sim.SpellCharacteristics) (int
 		return 0, false
 	}
 	return v, true
-}
-
-func inOriginalBook(id uint16) bool {
-	for _, b := range originalBookIDs {
-		if b == id {
-			return true
-		}
-	}
-	return false
 }
 
 // spellCaptions are the book and item caption blocks, one per caption a

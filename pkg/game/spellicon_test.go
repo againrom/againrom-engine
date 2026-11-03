@@ -189,7 +189,7 @@ func TestSpellbookOfCarriesTheIconAndIsTotalWithout(t *testing.T) {
 	table := []sim.SpellRule{{ID: 1}, {ID: 2}}
 	names := map[uint16]string{1: "Fire Arrow", 2: "Shield"}
 
-	with := spellbookOf(sim.Rules{}, e, table, names, ui.Words{}, lookup)
+	with := spellbookOf(sim.Rules{}, e, table, names, ui.Words{}, lookup, originalBookIDs)
 	if len(with) != 2 {
 		t.Fatalf("book of %d, want 2", len(with))
 	}
@@ -200,7 +200,7 @@ func TestSpellbookOfCarriesTheIconAndIsTotalWithout(t *testing.T) {
 		t.Error("spell 2's icon did not reach the entry")
 	}
 
-	without := spellbookOf(sim.Rules{}, e, table, names, ui.Words{}, nil)
+	without := spellbookOf(sim.Rules{}, e, table, names, ui.Words{}, nil, originalBookIDs)
 	if len(without) != 2 || without[0].Icon != nil || without[1].Icon != nil {
 		t.Error("a nil lookup put an icon on an entry")
 	}

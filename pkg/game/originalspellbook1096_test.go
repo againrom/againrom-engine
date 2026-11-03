@@ -72,7 +72,7 @@ func assertSpellbook1096(t *testing.T, f *FrontEnd, masks ...uint32) {
 		if e.KnownSpells != masks[i] {
 			t.Fatalf("entity %d book=%#x want%#x", i, e.KnownSpells, masks[i])
 		}
-		rows := spellbookOf(sim.Rules{}, e, f.live.world.Spells(), nil, f.live.view.Words(), nil)
+		rows := spellbookOf(sim.Rules{}, e, f.live.world.Spells(), nil, f.live.view.Words(), nil, f.live.spells().BookRows)
 		var shown uint32
 		for _, row := range rows {
 			shown |= uint32(1) << row.ID

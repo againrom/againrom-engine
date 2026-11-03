@@ -81,12 +81,12 @@ func TestThePopupStatesTheTabledDamageRangeDurationAndMagnitude(t *testing.T) {
 	sim.LearnBookSpell(&mage, 1, rules)
 	sim.RefreshBook(r, &mage, rules)
 	names := map[uint16]string{1: "Fire Arrow"}
-	got := spellbookOf(r, mage, rules[:1], names, testSpellPopupWords(), nil)[0].Info
+	got := spellbookOf(r, mage, rules[:1], names, testSpellPopupWords(), nil, originalBookIDs)[0].Info
 	want := []string{"Fire Arrow", "Mana cost: 3", "Damage: 8-16", "Range: 13"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("tabled popup %q, want %q", got, want)
 	}
-	got = spellbookOf(sim.Rules{}, mage, rules[:1], names, testSpellPopupWords(), nil)[0].Info
+	got = spellbookOf(sim.Rules{}, mage, rules[:1], names, testSpellPopupWords(), nil, originalBookIDs)[0].Info
 	// Skill plus Mind of 2 casts at power 0: the cast's 4-8, where the
 	// original's record level 100 would state 17-34 (DIV-1882).
 	if want := []string{"Fire Arrow", "Mana cost: 3", "Damage: 4-8", "Range: 13"}; !reflect.DeepEqual(got, want) {
@@ -113,7 +113,7 @@ func TestCaptionsReadTheMagnitudeTableAndTheRayRule(t *testing.T) {
 		t.Fatal(err)
 	}
 	caption := func(r sim.Rules, rule sim.SpellRule) string {
-		lines := spellInfoLines(rule, sim.SpellCharacteristicsFor(r, e, rule), "x", &words)
+		lines := spellInfoLines(rule, sim.SpellCharacteristicsFor(r, e, rule), "x", &words, originalBookIDs)
 		return lines[len(lines)-1]
 	}
 	school := func(id uint16, school uint8) sim.SpellRule {

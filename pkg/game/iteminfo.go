@@ -207,7 +207,7 @@ func castWeaponInfoLines(item sim.ItemInstance, table *mapload.Table, words ui.W
 				}
 			}
 			knower.c.Range = int64(uint8(w.Range))
-			lines = spellDetailsLines([]spellKnower{knower}, lines, &labels, weaponDetails)
+			lines = spellDetailsLines([]spellKnower{knower}, lines, &labels, weaponDetails, nil)
 		case 42:
 			lines[len(lines)-1] += itemSpellFragment(uint16(effect.Operand), table, words)
 		default:
@@ -331,7 +331,7 @@ func itemInstanceInfoLinesWithWeaponDamage(item sim.ItemInstance, table *mapload
 				for _, rule := range mapload.SpellRules(table) {
 					if rule.ID == id {
 						c := sim.SpellCharacteristicsAtPower(mapload.TableRules(table), rule, power)
-						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words, scrollDetails)
+						lines = spellDetailsLines([]spellKnower{{rule, c}}, lines, &words, scrollDetails, nil)
 						break
 					}
 				}
