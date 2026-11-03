@@ -79,10 +79,11 @@ func (f *FrontEnd) secondGeneratorCampaign() (*secondGenerator, error) {
 
 // generatorCampaignWeapon is the weapon a campaign part equips for a class, a
 // sex and a chosen school skill: the fighter's weapon of that skill, or the
-// mage's staff casting that school's spell (R2-ENGINE-290).
-func generatorCampaignWeapon(g *secondGenerator, t *mapload.Table, mage, female bool, skill int) *data.Weapon {
+// mage's staff casting that school's spell (R2-ENGINE-290). The cell is the
+// equipment cell the weapon came from, effects included.
+func generatorCampaignWeapon(g *secondGenerator, t *mapload.Table, mage, female bool, skill int) (*data.Weapon, string) {
 	if t == nil || skill < 0 || skill >= len(g.FighterWeapons) {
-		return nil
+		return nil, ""
 	}
 	cell := g.FighterWeapons[skill]
 	if mage {
@@ -94,9 +95,9 @@ func generatorCampaignWeapon(g *secondGenerator, t *mapload.Table, mage, female 
 	}
 	_, _, w, err := mapload.HumanRowEquipment([]string{cell}, t)
 	if err != nil {
-		return nil
+		return nil, ""
 	}
-	return w
+	return w, cell
 }
 
 // startGeneratedTown is the town start of a generator result: a new campaign

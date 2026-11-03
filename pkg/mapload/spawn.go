@@ -844,13 +844,26 @@ func HumanRowEquipment(cells []string, t *Table) (worn [sim.EquipSlots]sim.ItemI
 // no corpse — so handing it a name here would apply a placement's rule to
 // a character who was never placed.
 func GeneratedWornSet(cells []string, weapon string, t *Table) (worn [sim.EquipSlots]uint16, carried []uint16) {
+	items, carriedItems := GeneratedWornItems(cells, weapon, t)
+	for i := range items {
+		worn[i] = items[i].Code
+	}
+	for _, item := range carriedItems {
+		carried = append(carried, item.Code)
+	}
+	return worn, carried
+}
+
+// GeneratedWornItems is GeneratedWornSet's resolution as item instances: the
+// weapon cell may carry effects (a castSpell staff), and the instance keeps
+// them where the code alone cannot.
+func GeneratedWornItems(cells []string, weapon string, t *Table) (worn [sim.EquipSlots]sim.ItemInstance, carried []sim.ItemInstance) {
 	row := make([]string, cellCount)
 	copy(row, cells)
 	row[cellWeapon] = weapon
 
-	rawWorn, carried, wep := wearRow(row, t)
-	worn = startingLoadout("", wep, t, rawWorn)
-	return worn, carried
+	rawWorn, carried, wep, _ := wearRowItems(row, t)
+	return startingLoadoutItems("", wep, t, rawWorn), carried
 }
 
 // SpeakerOutfit is the worn set the row behind one dialogue speaker record

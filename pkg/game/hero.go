@@ -301,6 +301,10 @@ type partyInputs struct {
 	// end authors.
 	Weapon *data.Weapon
 
+	// WeaponCell is the weapon's equipment cell with its effects (a castSpell
+	// staff), or empty when the weapon's name is the whole cell.
+	WeaponCell string
+
 	// Cells is the resolved base row's own ten equipment cell strings
 	// (chargenProfile's fourth return), or nil for a character with no base
 	// row. GeneratedWornSet is called over it EITHER WAY: a character with no
@@ -357,11 +361,19 @@ type partyInputs struct {
 // precedent: a name or a directory that fell back is not a second error this
 // function has an answer for.
 func assembleParty(in partyInputs) []mapload.PartyMember {
-	weaponName := ""
-	if in.Weapon != nil {
+	weaponName := in.WeaponCell
+	if weaponName == "" && in.Weapon != nil {
 		weaponName = in.Weapon.Name
 	}
-	worn, carried := mapload.GeneratedWornSet(in.Cells, weaponName, in.Table)
+	wornItems, carriedStates := mapload.GeneratedWornItems(in.Cells, weaponName, in.Table)
+	var worn [sim.EquipSlots]uint16
+	var carried []uint16
+	for i := range wornItems {
+		worn[i] = wornItems[i].Code
+	}
+	for _, item := range carriedStates {
+		carried = append(carried, item.Code)
+	}
 	carriedItems := make([]sim.ItemInstance, len(carried))
 	for i, code := range carried {
 		carriedItems[i] = mapload.ItemInstanceFromCode(code, in.Table)
@@ -390,6 +402,16 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		Carried:      carried,
 		CarriedItems: carriedItems,
 	}}
+	if len(wornItems[0].Effects) > 0 {
+		// A weapon with effects keeps them on the worn item; the other slots
+		// are the plain items their codes name.
+		for i := range wornItems {
+			if wornItems[i].Code != 0 && i != 0 {
+				wornItems[i] = mapload.ItemInstanceFromCode(wornItems[i].Code, in.Table)
+			}
+		}
+		out[0].WornItems = wornItems
+	}
 	look := heroAppearance(nil, 0, out[0], in.List)
 	out[0].Class, out[0].Body, out[0].BodyDir = look.Class, string(look.Body), look.Dir
 	if in.Documents {

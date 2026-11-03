@@ -576,27 +576,29 @@ func (f *FrontEnd) generatorParty(res ui.ChargenResult) []mapload.PartyMember {
 	}
 
 	var w *data.Weapon
+	var weaponCell string
 	if outfit != nil {
-		w = generatorCampaignWeapon(outfit, f.Table, mage, female, skill)
+		w, weaponCell = generatorCampaignWeapon(outfit, f.Table, mage, female, skill)
 	} else {
 		shapes, materials, weapons := f.tableWeapons()
 		w, _ = resolveWeaponForSlot(mage, female, shapes, materials, weapons, slot)
 	}
 
 	party := assembleParty(partyInputs{
-		Name:      res.Name,
-		Spread:    spread,
-		Slot:      slot,
-		Mage:      mage,
-		Profile:   profile,
-		Dir:       data.FigureDirFor(mage, female),
-		Face:      face,
-		Book:      book,
-		Weapon:    w,
-		Cells:     cells,
-		List:      f.Bodies,
-		Table:     f.Table,
-		Documents: p.documents,
+		Name:       res.Name,
+		Spread:     spread,
+		Slot:       slot,
+		Mage:       mage,
+		Profile:    profile,
+		Dir:        data.FigureDirFor(mage, female),
+		Face:       face,
+		Book:       book,
+		Weapon:     w,
+		WeaponCell: weaponCell,
+		Cells:      cells,
+		List:       f.Bodies,
+		Table:      f.Table,
+		Documents:  p.documents,
 	})
 	if outfit != nil {
 		h := &party[0].Hero
