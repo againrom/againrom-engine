@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"againrom/pkg/base"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
@@ -397,27 +398,13 @@ func writeTestModFile(guard func(string) error, top, folder, rel string, data []
 	if st, err := os.Lstat(target); err == nil && !st.Mode().IsRegular() {
 		return fmt.Errorf("%s is not a file", target)
 	}
-	tmp, err := os.CreateTemp(dir, ".testplay-*")
-	if err != nil {
-		return err
-	}
-	_, writeErr := tmp.Write(data)
-	if writeErr == nil && durable {
-		writeErr = tmp.Sync()
-	}
-	closeErr := tmp.Close()
-	if writeErr == nil {
-		writeErr = closeErr
-	}
-	if writeErr == nil {
-		writeErr = os.Rename(tmp.Name(), target)
-	}
-	if writeErr != nil {
-		// This exact file was created by this call, never an input.
-		_ = os.Remove(tmp.Name())
-		return writeErr
-	}
-	return nil
+	_, err = hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},
+		Dir:   dir,
+		Temp:  ".testplay-*",
+		Sync:  durable,
+	})
+	return err
 }
 
 // TestPlayRefusal is the campaign's refusal of every test play, nil when the

@@ -99,7 +99,7 @@ var allow = map[string][]string{
 	// names, the town package's type.
 	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town"},
 	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
-	"pkg/editormcp": {},
+	"pkg/editormcp": {"pkg/hostfile"},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
 	// Terrain decodes bitmaps through the format leaf and reads the tile-group
 	// mask constant from the map format, its one owner; menus bind loader sets.
@@ -233,7 +233,7 @@ var allow = map[string][]string{
 	"cmd/terraintool": {"pkg/render/terrain", "pkg/formats/res", "pkg/formats/alm", "pkg/game", "pkg/base"},
 	// The read-only editor receives authored content from the game loader and
 	// drives only UI inspection and camera input, not simulation or file formats.
-	"cmd/mapedit": {"pkg/game", "pkg/ui", "pkg/launch", "pkg/pathdialog", "internal/appicon", "internal/buildinfo", "internal/versionres"},
+	"cmd/mapedit": {"pkg/game", "pkg/hostfile", "pkg/ui", "pkg/launch", "pkg/pathdialog", "internal/appicon", "internal/buildinfo", "internal/versionres"},
 	// mapview's -blocked tint draws the plane a PLACED STRUCTURE reaches, so
 	// the tool reaches the tier that derives one and the two tiers it takes a
 	// definition table out of an archive with. pkg/data is not on the row: a
@@ -422,11 +422,14 @@ var allow = map[string][]string{
 	// The resource name folding policies: archive ASCII, mod tree and host
 	// Unicode. A stdlib-only leaf every name comparison names its policy in.
 	"pkg/namefold": {},
+	// The host-file transaction writes every file a player or a modder keeps
+	// and fences writes under an install; it reads install names only.
+	"pkg/hostfile": {"pkg/installpath", "pkg/namefold"},
 	// The mod runtime runs a mod's Starlark script and hands the simulation
 	// nothing but a finished rules.Rules value. It is the only package that
 	// may import the interpreter, and no package below pkg/sim may reach it.
 	"pkg/modrt":   {"pkg/mod", "pkg/rules", "pkg/locale"},
-	"cmd/starter": {"pkg/base", "pkg/game", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
+	"cmd/starter": {"pkg/base", "pkg/game", "pkg/hostfile", "pkg/ini", "pkg/launch", "pkg/mod", "pkg/locale", "pkg/namefold", "pkg/pathdialog", "pkg/render/textfit", "pkg/ui", "pkg/ui/heldkey", "internal/appicon", "internal/buildinfo"},
 	// The one launch of a program by another (the starter's game and editor,
 	// the editor's test play) imports only the pkg/ini leaf, to read the
 	// starter's selected base for the editor.

@@ -1,20 +1,16 @@
 package game
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"againrom/pkg/installpath"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
 )
 
@@ -40,14 +36,12 @@ type SaveStore struct {
 	profile *runtimeProfileAccess
 }
 
-// saveTempFile is the part of *os.File atomic publication uses. Name is part
-// of the seam because os.CreateTemp chooses the sibling path exclusively.
-type saveTempFile interface {
-	io.Writer
-	Name() string
-	Sync() error
-	Close() error
-}
+// saveTempFile and savePublishResult are the host-file transaction's staged
+// file and publication result.
+type (
+	saveTempFile      = hostfile.TempFile
+	savePublishResult = hostfile.PublishResult
+)
 
 // saveFileOps holds create, publish and cleanup behind one production seam, so
 // tests can fail those operations at each boundary without replacing
@@ -58,44 +52,21 @@ type saveFileOps interface {
 	Remove(path string) error
 }
 
-// savePublishResult separates the namespace commit from post-commit cleanup.
-// A nil error with committed set means the final path exists and Write must
-// report success. cleanupErr says the private source name could not be removed;
-// after the active registration is retired, the ordinary next-save recovery
-// owns that hidden residue. Returning the cleanup error as a publication error
-// would contradict the visible final row on systems which publish by hard
-// link.
-type savePublishResult struct {
-	committed  bool
-	cleanupErr error
+// osSaveFileOps is the operating system's file seam.
+type osSaveFileOps = hostfile.OS
+
+// claimOps is a save store's seam as the transaction's: a claimed save is
+// never published by replacement.
+type claimOps struct{ saveFileOps }
+
+func (claimOps) Replace(string, string) error {
+	return errors.New("a claimed save never replaces a file")
 }
-
-type osSaveFileOps struct{}
-
-var (
-	saveTempMu     sync.Mutex
-	activeSaveTemp = make(map[uint64]saveTempIdentity)
-	nextSaveTempID uint64
-)
 
 type saveDirectoryIdentity struct {
 	path string
 	info os.FileInfo
 }
-
-type saveTempIdentity struct {
-	dir  os.FileInfo
-	name string
-}
-
-func (osSaveFileOps) CreateTemp(dir, pattern string) (saveTempFile, error) {
-	return os.CreateTemp(dir, pattern)
-}
-
-func (osSaveFileOps) Publish(oldPath, newPath string) (savePublishResult, error) {
-	return publishSaveFile(oldPath, newPath)
-}
-func (osSaveFileOps) Remove(path string) error { return os.Remove(path) }
 
 func (s SaveStore) fileOps() saveFileOps {
 	if s.files != nil {
@@ -178,20 +149,9 @@ func saveDirFor(exe, wd string, roots ...string) string {
 	return filepath.Join(filepath.Dir(exe), "saves")
 }
 
-// insideDir reports whether path is parent itself or lies under it.
-//
-// THE COMPARISON IS CASE-INSENSITIVE because both sides are read off the same
-// Windows machine through different APIs and neither promises the other's
-// casing. Cutting the prefix can split a multi-byte rune, in which case EqualFold
-// answers false and the caller keeps the plain beside-the-binary rule — the
-// behaviour that shipped, which is the safe direction to fail in.
-func insideDir(parent, path string) bool {
-	p, c := filepath.Clean(parent), filepath.Clean(path)
-	if p == "" || p == "." || len(c) < len(p) || !namefold.HostEqual(c[:len(p)], p) {
-		return false
-	}
-	return len(c) == len(p) || os.IsPathSeparator(c[len(p)]) || os.IsPathSeparator(p[len(p)-1])
-}
+// insideDir reports whether path is parent itself or lies under it, as the
+// install fence compares them.
+func insideDir(parent, path string) bool { return hostfile.InsideDir(parent, path) }
 
 // SaveEntry is one row of what is on disk: the bare file name the store reads
 // back by, and the label out of that file's own header.
@@ -310,141 +270,48 @@ func (s SaveStore) write(data []byte, tempBase, ext string, validate func(saveDi
 			return "", err
 		}
 	}
-	files := s.fileOps()
-	// Recovery and exclusive creation share one short lock with registration.
-	// A concurrent writer may continue writing outside the lock, but its path
-	// is then known as active and recovery will skip it.
-	saveTempMu.Lock()
-	if err := recoverSaveTemps(dir, files); err != nil {
-		saveTempMu.Unlock()
-		return "", err
-	}
-	tmp, err := files.CreateTemp(dir.path, saveTempPatternFor(tempBase, ext))
-	if err != nil {
-		saveTempMu.Unlock()
-		return "", fmt.Errorf("create temporary save: %w", err)
-	}
-	tmpName := filepath.Base(tmp.Name())
-	tmpPath := filepath.Join(dir.path, tmpName)
-	nextSaveTempID++
-	tmpID := nextSaveTempID
-	activeSaveTemp[tmpID] = saveTempIdentity{dir: dir.info, name: tmpName}
-	saveTempMu.Unlock()
-	retireTemp := func(reap bool) error {
-		saveTempMu.Lock()
-		defer saveTempMu.Unlock()
-		delete(activeSaveTemp, tmpID)
-		if reap {
-			return recoverSaveTemps(dir, files)
-		}
-		return nil
-	}
-	closeAttempted := false
-	fail := func(primary error) error {
-		failures := []error{primary}
-		if !closeAttempted {
-			closeAttempted = true
-			if err := tmp.Close(); err != nil {
-				failures = append(failures, fmt.Errorf("close failed temporary save during cleanup: %w", err))
+	// Publication cleanup can fail for more than one concurrent writer.
+	// Retirement and recovery share the transaction's lock, so the last
+	// writer to leave the active set sees every earlier retired alias, skips
+	// paths still active and reaps all paths the OS now permits.
+	result, err := hostfile.Commit(hostfile.Set{
+		Files:   []hostfile.File{{Path: dir.path, Data: data, Overwrite: hostfile.Refuse}},
+		Dir:     dir.path,
+		Temp:    saveTempPatternFor(tempBase, ext),
+		Sync:    true,
+		Claim:   nameAt,
+		Recover: isOwnedSaveTempName,
+		DirInfo: dir.info,
+		Ops:     claimOps{s.fileOps()},
+		Check: func(step hostfile.Step, _ int) error {
+			if step != hostfile.StepPublish || validate == nil {
+				return nil
 			}
-		}
-		if err := files.Remove(tmpPath); err != nil && !errors.Is(err, os.ErrNotExist) {
-			failures = append(failures, fmt.Errorf(
-				"remove failed temporary save %s; it remains hidden and the next save will retry cleanup: %w",
-				filepath.Base(tmpPath), err,
-			))
-		}
-		_ = retireTemp(false)
-		return errors.Join(failures...)
-	}
-
-	if _, err := io.Copy(tmp, bytes.NewReader(data)); err != nil {
-		return "", fail(fmt.Errorf("write temporary save: %w", err))
-	}
-	if err := tmp.Sync(); err != nil {
-		return "", fail(fmt.Errorf("synchronize temporary save: %w", err))
-	}
-	closeAttempted = true
-	if err := tmp.Close(); err != nil {
-		return "", fail(fmt.Errorf("close temporary save: %w", err))
-	}
-	// THE NAME IS RESERVED BY PUBLICATION ITSELF. A preceding Stat would be a
-	// TOCTOU check: two processes can both observe a missing path and then both
-	// rename onto it. publishSaveFile refuses an existing destination in the
-	// same operation that creates the final name.
-	for at := 0; ; at++ {
-		name, ok := nameAt(at)
-		if !ok {
-			return "", fail(fmt.Errorf("no free original save name in game0000.sav through game9999.sav"))
-		}
-		if validate != nil {
 			current, err := resolveSaveDirectory(dir.path)
 			if err != nil {
-				return "", fail(err)
+				return err
 			}
 			if !os.SameFile(dir.info, current.info) {
-				return "", fail(errors.New("save directory changed before publication"))
+				return errors.New("save directory changed before publication")
 			}
-			if err := validate(current); err != nil {
-				return "", fail(err)
-			}
-		}
-		published, err := files.Publish(tmpPath, filepath.Join(dir.path, name))
-		if err != nil {
-			if isPublishCollision(err) {
-				continue
-			}
-			return "", fail(fmt.Errorf("publish save %s: %w", name, err))
-		}
-		if !published.committed {
-			return "", fail(fmt.Errorf("publish save %s returned without committing a final path", name))
-		}
-		// cleanupErr is deliberately not a returned error: the final path is
-		// already committed. Retiring the registration makes the hidden source
-		// name eligible for recoverSaveTemps before this process's next write.
-		if published.cleanupErr != nil {
-			// Publication cleanup can fail for more than one concurrent
-			// writer. Retirement and recovery share saveTempMu, so the last
-			// writer to leave the active set sees every earlier retired alias,
-			// skips paths still active and reaps all paths the OS now permits.
-			// A continuing refusal cannot turn this committed final row into a
-			// returned failure; the next writer performs the same recovery.
-			_ = retireTemp(true)
-			return name, nil
-		}
-		_ = retireTemp(true)
-		return name, nil
-	}
-}
-
-// recoverSaveTemps removes only this process's hidden sibling namespace. A
-// prior failure can leave one there only when the operating system refused
-// cleanup. An in-process registry excludes active callers, and another process
-// has a different owner token and remains untouched. Recovery runs before a
-// new temporary file is created, so repeated refusals do not accumulate files
-// or reach final-name publication. The caller holds saveTempMu.
-func recoverSaveTemps(dir saveDirectoryIdentity, files saveFileOps) error {
-	entries, err := os.ReadDir(dir.path)
+			return validate(current)
+		},
+		Words: hostfile.Words{
+			Create:       "create temporary save: %w",
+			Write:        "write temporary save: %w",
+			Sync:         "synchronize temporary save: %w",
+			Close:        "close temporary save: %w",
+			Publish:      "publish save %s: %w",
+			NoCommit:     "publish save %s returned without committing a final path",
+			NoName:       "no free original save name in game0000.sav through game9999.sav",
+			Cleanup:      "remove failed temporary save %s; it remains hidden and the next save will retry cleanup: %w",
+			CloseCleanup: "close failed temporary save during cleanup: %w",
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("inspect temporary saves before writing: %w", err)
+		return "", err
 	}
-	var failures []error
-	for _, entry := range entries {
-		if entry.IsDir() || !isOwnedSaveTempName(entry.Name()) {
-			continue
-		}
-		path := filepath.Join(dir.path, entry.Name())
-		if saveTempIsActive(dir.info, entry.Name()) {
-			continue
-		}
-		if err := files.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			failures = append(failures, fmt.Errorf("remove hidden temporary save %s: %w", entry.Name(), err))
-		}
-	}
-	if len(failures) != 0 {
-		return fmt.Errorf("recover temporary saves before writing; no new save was started: %w", errors.Join(failures...))
-	}
-	return nil
+	return result.Name, nil
 }
 
 func resolveSaveDirectory(dir string) (saveDirectoryIdentity, error) {
@@ -472,21 +339,7 @@ func resolveSaveDirectory(dir string) (saveDirectoryIdentity, error) {
 	return saveDirectoryIdentity{path: resolved, info: info}, nil
 }
 
-func saveTempIsActive(dir os.FileInfo, name string) bool {
-	for _, active := range activeSaveTemp {
-		if os.SameFile(dir, active.dir) && sameSaveName(name, active.name) {
-			return true
-		}
-	}
-	return false
-}
-
-func sameSaveName(a, b string) bool {
-	if runtime.GOOS == "windows" {
-		return namefold.HostEqual(a, b)
-	}
-	return a == b
-}
+func sameSaveName(a, b string) bool { return hostfile.SameName(a, b) }
 
 func saveTempPatternFor(base, ext string) string {
 	return "." + base + ext + ".tmp-" + strconv.Itoa(os.Getpid()) + "-*"
@@ -510,220 +363,31 @@ func isOwnedSaveTempName(name string) bool {
 	return false
 }
 
-// refuseOriginalWriteTarget is the runtime half of the preserved-install rule.
-// The explicit originalDir fence catches the configured install and every
-// physical descendant. The archive census catches an install accidentally
-// supplied without that context, including the upper-case filenames shipped by
-// the RU distribution. Missing target directories are resolved through their
-// nearest existing parent so a symlink/junction cannot hide a future child.
+// installFence is the host-file transaction's preserved-install fence over
+// this game's archives. The names below bind it for the game's writers.
+var installFence = hostfile.Fence{Archives: []string{MainArchive, GraphicsArchive, ScenarioArchive, WorldArchive, MoviesArchive}}
+
+var errWriteUnderInstall = hostfile.ErrWriteUnderInstall
+
 func refuseOriginalWriteTarget(target, originalDir string) error {
-	return refuseOriginalWriteTargets(target, []string{originalDir})
+	return installFence.RefuseOriginalWriteTarget(target, originalDir)
 }
 
-// refuseOriginalWriteTargets is refuseOriginalWriteTarget for each of roots in
-// order, with the archive census, which does not depend on the root, run once
-// where the first root's check ran it. With no roots it is the census alone.
 func refuseOriginalWriteTargets(target string, roots []string) error {
-	resolvedTarget, err := resolveOriginalWriteTarget(target)
-	if err != nil {
-		return err
-	}
-	for i, root := range roots {
-		if err := refuseUnderOriginal(target, resolvedTarget, root); err != nil {
-			return err
-		}
-		if i == 0 {
-			if err := refuseInstallAncestor(target, resolvedTarget); err != nil {
-				return err
-			}
-		}
-	}
-	if len(roots) == 0 {
-		return refuseInstallAncestor(target, resolvedTarget)
-	}
-	return nil
-}
-
-// resolveOriginalWriteTarget is the resolved spelling both halves of
-// refuseOriginalWriteTarget compare.
-func resolveOriginalWriteTarget(target string) (string, error) {
-	if target == "" {
-		return "", errors.New("no save directory configured")
-	}
-	resolvedTarget, err := resolvePathForSaveSafety(target)
-	if err != nil {
-		return "", fmt.Errorf("resolve original-save target %s: %w", target, err)
-	}
-	return resolvedTarget, nil
-}
-
-// errWriteUnderInstall is the start of every install-fence refusal, so a
-// caller can tell a refusal by the fence from a failure to inspect the target.
-var errWriteUnderInstall = errors.New("refusing to write original-format save under")
-
-// refuseUnderOriginal is the explicit fence: target, resolved or physical,
-// lies in originalDir.
-func refuseUnderOriginal(target, resolvedTarget, originalDir string) error {
-	if originalDir != "" {
-		resolvedOriginal, err := resolvePathForSaveSafety(originalDir)
-		if err != nil {
-			return fmt.Errorf("resolve read-only game install %s: %w", originalDir, err)
-		}
-		physical, err := sameOrDescendantPhysical(originalDir, target)
-		if err != nil {
-			return fmt.Errorf("compare original-save target with read-only game install: %w", err)
-		}
-		if insideDir(resolvedOriginal, resolvedTarget) || physical {
-			return fmt.Errorf("%w read-only game install %s", errWriteUnderInstall, originalDir)
-		}
-	}
-	return nil
-}
-
-// refuseInstallAncestor is the archive census: an ancestor of the resolved
-// target holds the required archives. It does not depend on originalDir.
-func refuseInstallAncestor(target, resolvedTarget string) error {
-	installDir, install, err := requiredArchiveAncestor(resolvedTarget)
-	if err != nil {
-		return fmt.Errorf("inspect original-save target ancestors for %s: %w", target, err)
-	}
-	if install {
-		return fmt.Errorf("%w game install %s", errWriteUnderInstall, installDir)
-	}
-	return nil
+	return installFence.RefuseOriginalWriteTargets(target, roots)
 }
 
 func requiredArchiveAncestor(target string) (string, bool, error) {
-	for probe := filepath.Clean(target); ; probe = filepath.Dir(probe) {
-		install, err := directoryHasRequiredArchives(probe)
-		if err != nil {
-			return "", false, err
-		}
-		if install {
-			return probe, true, nil
-		}
-		parent := filepath.Dir(probe)
-		if parent == probe {
-			return "", false, nil
-		}
-	}
+	return installFence.InstallAncestor(target)
 }
 
-func resolvePathForSaveSafety(path string) (string, error) {
-	abs, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-	abs = filepath.Clean(abs)
-	probe := abs
-	for {
-		if _, err := os.Lstat(probe); err == nil {
-			resolved, err := filepath.EvalSymlinks(probe)
-			if err != nil {
-				// Windows can deny reparse-point metadata for an otherwise
-				// readable directory. Physical identity is still checked by
-				// sameOrDescendantPhysical below; retain the absolute spelling.
-				resolved = probe
-			}
-			rel, err := filepath.Rel(probe, abs)
-			if err != nil {
-				return "", err
-			}
-			return filepath.Clean(filepath.Join(resolved, rel)), nil
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return "", err
-		}
-		parent := filepath.Dir(probe)
-		if parent == probe {
-			return abs, nil
-		}
-		probe = parent
-	}
-}
+func resolvePathForSaveSafety(path string) (string, error) { return hostfile.ResolvePath(path) }
 
 func sameOrDescendantPhysical(parent, child string) (bool, error) {
-	parentInfo, err := os.Stat(parent)
-	if errors.Is(err, os.ErrNotExist) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	absChild, err := filepath.Abs(child)
-	if err != nil {
-		return false, err
-	}
-	for probe := filepath.Clean(absChild); ; probe = filepath.Dir(probe) {
-		info, err := os.Stat(probe)
-		if err == nil && os.SameFile(parentInfo, info) {
-			return true, nil
-		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return false, err
-		}
-		parentProbe := filepath.Dir(probe)
-		if parentProbe == probe {
-			return false, nil
-		}
-	}
+	return hostfile.SameOrDescendantPhysical(parent, child)
 }
 
-func directoryHasRequiredArchives(dir string) (bool, error) {
-	want := map[string]bool{
-		namefold.Host(MainArchive):     false,
-		namefold.Host(GraphicsArchive): false,
-		namefold.Host(ScenarioArchive): false,
-		namefold.Host(WorldArchive):    false,
-		namefold.Host(MoviesArchive):   false,
-	}
-	// The shipped game and the supported runtime are Windows, where a direct
-	// lookup is case-insensitive. Besides being cheaper, these probes still
-	// work when the sandbox permits naming a child but refuses enumerating a
-	// broad ancestor such as the user profile. The install name resolver below
-	// supplies the same case-insensitive census on case-sensitive filesystems.
-	direct, absent := 0, 0
-	for name := range want {
-		info, err := os.Stat(filepath.Join(dir, name))
-		if err == nil && !info.IsDir() {
-			want[name] = true
-			direct++
-			continue
-		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, os.ErrPermission) {
-			return false, err
-		}
-		if errors.Is(err, os.ErrNotExist) {
-			absent++
-		}
-	}
-	if direct == len(want) {
-		return true, nil
-	}
-	if runtime.GOOS == "windows" && absent == len(want) {
-		return false, nil
-	}
-	files := installpath.New(dir)
-	for name, found := range want {
-		if found {
-			continue
-		}
-		e, err := files.Resolve(name)
-		if errors.Is(err, fs.ErrNotExist) || (errors.Is(err, os.ErrPermission) && direct == 0) {
-			return false, nil
-		}
-		if errors.Is(err, installpath.ErrAmbiguous) {
-			// Two spellings of a required archive still mark an install.
-			continue
-		}
-		if err != nil {
-			return false, err
-		}
-		if e.Dir {
-			return false, nil
-		}
-	}
-	return true, nil
-}
+func directoryHasRequiredArchives(dir string) (bool, error) { return installFence.IsInstall(dir) }
 
 // originalSaveExt is what a save file is called. SAV is the only save format;
 // the original game and this one name it the same way.

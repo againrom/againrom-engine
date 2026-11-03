@@ -319,7 +319,7 @@ func TestAutosaveInFlightSurvivesLeavingTheMission(t *testing.T) {
 
 type panickingSaveFiles struct{ osSaveFileOps }
 
-// CreateTemp runs with saveTempMu held; the test releases it after the panic.
+// CreateTemp runs with the transaction's lock held, which the panic releases.
 func (panickingSaveFiles) CreateTemp(dir, pattern string) (saveTempFile, error) {
 	panic("injected write panic")
 }
@@ -343,7 +343,6 @@ func TestAutosaveMissionStartPanicIsShownToThePlayer(t *testing.T) {
 		t.Fatal(err)
 	}
 	app.FlushBackground()
-	saveTempMu.Unlock()
 	if err := app.HeadlessStep(); err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 //go:build windows
 
-package game
+package hostfile
 
 import (
 	"errors"
@@ -18,7 +18,7 @@ const (
 
 var windowsMoveFileExW = syscall.NewLazyDLL("kernel32.dll").NewProc("MoveFileExW")
 
-// publishSaveFile makes one complete temporary file visible under a final
+// publishFile makes one complete temporary file visible under a final
 // name without replacing a path another process already published.
 //
 // os.Rename on Windows calls MoveFileEx with MOVEFILE_REPLACE_EXISTING. That
@@ -28,14 +28,14 @@ var windowsMoveFileExW = syscall.NewLazyDLL("kernel32.dll").NewProc("MoveFileExW
 // completed on disk. The source and destination are siblings, so the operation
 // is a same-volume rename and the complete closed file appears as one namespace
 // change.
-func publishSaveFile(oldPath, newPath string) (savePublishResult, error) {
+func publishFile(oldPath, newPath string) (PublishResult, error) {
 	oldName, err := syscall.UTF16PtrFromString(oldPath)
 	if err != nil {
-		return savePublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: err}
+		return PublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: err}
 	}
 	newName, err := syscall.UTF16PtrFromString(newPath)
 	if err != nil {
-		return savePublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: err}
+		return PublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: err}
 	}
 	ok, _, callErr := windowsMoveFileExW.Call(
 		uintptr(unsafe.Pointer(oldName)),
@@ -47,12 +47,14 @@ func publishSaveFile(oldPath, newPath string) (savePublishResult, error) {
 		if callErr == syscall.Errno(0) {
 			callErr = syscall.EINVAL
 		}
-		return savePublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: callErr}
+		return PublishResult{}, &os.LinkError{Op: "publish", Old: oldPath, New: newPath, Err: callErr}
 	}
-	return savePublishResult{committed: true}, nil
+	return PublishResult{Committed: true}, nil
 }
 
-func isPublishCollision(err error) bool {
+// IsCollision reports whether a publication failed because the final name
+// already exists.
+func IsCollision(err error) bool {
 	return errors.Is(err, os.ErrExist) ||
 		errors.Is(err, syscall.ERROR_FILE_EXISTS) ||
 		errors.Is(err, syscall.ERROR_ALREADY_EXISTS)

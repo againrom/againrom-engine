@@ -1,6 +1,6 @@
 //go:build windows
 
-package game
+package hostfile
 
 import (
 	"testing"

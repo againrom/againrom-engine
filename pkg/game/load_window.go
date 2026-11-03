@@ -2,11 +2,11 @@ package game
 
 import (
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
@@ -85,56 +85,21 @@ func deleteNamedSaveSet(dir saveDirectoryIdentity, targets []namedSaveTarget, fe
 			return err
 		}
 	}
-	backups := make([]string, len(targets))
-	defer func() {
-		for _, path := range backups {
-			if path != "" {
-				_ = files.Remove(path)
-			}
-		}
-	}()
+	rows := make([]hostfile.File, len(targets))
 	for i, target := range targets {
-		if err := checkDirectory(); err != nil {
-			return err
-		}
-		var err error
-		backups[i], err = stageNamedSave(dir.path, target.old, files)
-		if err != nil {
-			return err
-		}
+		rows[i] = hostfile.File{Path: target.path, Remove: true, Prior: target.old}
 	}
-	removed := 0
-	rollback := func(primary error) error {
-		failures := []error{primary}
-		for i := removed - 1; i >= 0; i-- {
-			err := checkDirectory()
-			if err == nil {
-				var result savePublishResult
-				result, err = files.Publish(backups[i], targets[i].path)
-				if err == nil && !result.committed {
-					err = fmt.Errorf("restore did not commit")
-				}
+	_, err := hostfile.Commit(hostfile.Set{
+		Files: rows, Dir: dir.path, Temp: namedSaveStage, Sync: true, Ops: files,
+		Check: func(step hostfile.Step, i int) error {
+			if err := checkDirectory(); err != nil || step != hostfile.StepPublish {
+				return err
 			}
-			if err != nil {
-				failures = append(failures, fmt.Errorf("restore %s from %s: %w", targets[i].path, backups[i], err))
-				backups[i] = ""
-			}
-		}
-		return errors.Join(failures...)
-	}
-	for _, target := range targets {
-		if err := checkDirectory(); err != nil {
-			return rollback(err)
-		}
-		if err := checkNamedSaveTarget(target); err != nil {
-			return rollback(err)
-		}
-		if err := files.Remove(target.path); err != nil {
-			return rollback(err)
-		}
-		removed++
-	}
-	return nil
+			return checkNamedSaveTarget(targets[i])
+		},
+		Words: hostfile.Words{Restore: "restore %s from %s: %w", RestoreNoCommit: "restore did not commit"},
+	})
+	return err
 }
 
 // LOAD tokens distinguish authored SAVs from read-only install saves even when

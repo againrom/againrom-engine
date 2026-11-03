@@ -10,6 +10,7 @@ import (
 
 	basepkg "againrom/pkg/base"
 	"againrom/pkg/game"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/ini"
 	"againrom/pkg/launch"
 	"againrom/pkg/locale"
@@ -948,10 +949,13 @@ func (a *app) wheel(p image.Point, lines int) {
 
 func (a *app) save() {
 	a.s.store(a.file)
-	err := os.MkdirAll(filepath.Dir(a.iniPath), 0o755)
-	if err == nil {
-		err = os.WriteFile(a.iniPath, a.file.Bytes(), 0o644)
-	}
+	// starter.ini is written in place, its folders made and kept.
+	_, err := hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{
+			Path: a.iniPath, Data: a.file.Bytes(), Perm: 0o644, Staging: hostfile.Direct, Overwrite: hostfile.Replace,
+		}},
+		Dirs: hostfile.Parents, DirPerm: 0o755,
+	})
 	if err != nil {
 		a.fail(cSaveFailed, err)
 		return

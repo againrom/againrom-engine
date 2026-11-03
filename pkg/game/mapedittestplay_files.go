@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"maps"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -151,7 +151,7 @@ func testPlayTargets(folder string, old []string, files map[string][]byte) error
 }
 
 func stageMissionPackage(profileDir, folder, root, id, record string, old []string, files map[string][]byte, guard func(string) error, plans ...missionPackagePlan) (stage string, err error) {
-	stage, err = os.MkdirTemp(profileDir, ".testplay-*")
+	stage, err = hostfile.NewStage(profileDir, ".testplay-*")
 	if err != nil {
 		return "", err
 	}
@@ -229,29 +229,22 @@ func stageMissionPackage(profileDir, folder, root, id, record string, old []stri
 	return stage, err
 }
 
+// installMissionPackage renames the staged package stage/id to folder. An
+// owned folder there waits in the stage until the swap is done and returns
+// when it fails; the stage is removed unless it still holds that folder. The
+// waiting place is inside the stage, so it is not cleared first: a package
+// whose ID is previous fails on the rename, and the old package stays.
 func installMissionPackage(stage, folder, id string, owned bool) error {
-	cleanup := true
-	defer func() {
-		if cleanup {
-			_ = os.RemoveAll(stage)
-		}
-	}()
-	backup := filepath.Join(stage, "previous")
+	row := hostfile.File{Path: folder, Folder: filepath.Join(stage, id)}
 	if owned {
-		if err := os.Rename(folder, backup); err != nil {
-			return err
-		}
+		row.Backup = filepath.Join(stage, "previous")
 	}
-	if err := os.Rename(filepath.Join(stage, id), folder); err != nil {
-		if owned {
-			if restore := os.Rename(backup, folder); restore != nil {
-				cleanup = false
-				return fmt.Errorf("package replacement failed: %v; old package retained at %s: %v", err, backup, restore)
-			}
-		}
-		return err
-	}
-	return nil
+	_, err := hostfile.Commit(hostfile.Set{
+		Files:   []hostfile.File{row},
+		Discard: stage,
+		Words:   hostfile.Words{RestoreFolder: "package replacement failed: %v; old package retained at %s: %v"},
+	})
+	return err
 }
 
 func copyRetainedTestMod(folder, dest string, old []string, record string, guard func(string) error) error {
@@ -285,16 +278,14 @@ func copyRetainedTestMod(folder, dest string, old []string, record string, guard
 		if !d.Type().IsRegular() {
 			return fmt.Errorf("%s is not a file of the test mod", path)
 		}
-		in, err := os.Open(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		defer in.Close()
-		out, err := os.OpenFile(filepath.Join(dest, rel), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(out, in)
-		return errors.Join(err, out.Close())
+		_, err = hostfile.Commit(hostfile.Set{Files: []hostfile.File{{
+			Path: filepath.Join(dest, rel), Data: data, Perm: 0o644,
+			Staging: hostfile.Direct, Overwrite: hostfile.Refuse,
+		}}})
+		return err
 	})
 }

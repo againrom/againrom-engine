@@ -19,6 +19,7 @@ import (
 
 	"againrom/internal/appicon"
 	"againrom/pkg/game"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/launch"
 	"againrom/pkg/pathdialog"
 	"againrom/pkg/ui"
@@ -237,17 +238,13 @@ func runAs(self string, args []string, out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		f, err := os.OpenFile(*snapshot, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-		if err != nil {
+		// The picture is encoded into a new file; a failed encoding leaves
+		// what it wrote.
+		if _, err := hostfile.Commit(hostfile.Set{Files: []hostfile.File{{
+			Path: *snapshot, Perm: 0600, Staging: hostfile.Direct, Overwrite: hostfile.Refuse, Keep: true,
+			Stream: func(w io.Writer) error { return png.Encode(w, pic) },
+		}}}); err != nil {
 			return err
-		}
-		err = png.Encode(f, pic)
-		closeErr := f.Close()
-		if err != nil {
-			return err
-		}
-		if closeErr != nil {
-			return closeErr
 		}
 		fmt.Fprintln(out, note)
 		return nil

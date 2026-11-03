@@ -3913,5 +3913,12 @@ var Committed = Baseline{
 	// comments they replace, and this note.
 	// CommentBytes rose by the doc comments of the cover record in
 	// pkg/ui/cover.go and the scan in internal/archtest/coverscreen.go.
-	CommentBytes: 10451267,
+	// It rose by the doc comments of the host-file transaction in
+	// pkg/hostfile, its callers' policy notes, the host-file record tests,
+	// the guard internal/archtest/hostfile.go and its test, and this note.
+
+	// It rose a further 963 bytes for the host-file correction: the comments
+	// of recoveryError and File.Stale in pkg/hostfile, the notes in
+	// installMissionPackage and the record tests, and this note.
+	CommentBytes: 10462579,
 }

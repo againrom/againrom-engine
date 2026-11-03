@@ -14,6 +14,7 @@ import (
 	"againrom/internal/synth"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
@@ -361,7 +362,7 @@ func (o *faultSaveOps) Publish(oldPath, newPath string) (savePublishResult, erro
 	if o.fail == "publish" {
 		return savePublishResult{}, errSaveBoundary
 	}
-	return publishSaveFile(oldPath, newPath)
+	return hostfile.OS{}.Publish(oldPath, newPath)
 }
 
 func (o *faultSaveOps) Remove(path string) error {

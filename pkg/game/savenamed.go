@@ -3,14 +3,13 @@ package game
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
@@ -28,16 +27,10 @@ type namedSaveTarget struct {
 	old     []byte
 }
 
-type namedSaveFileOps interface {
-	CreateTemp(string, string) (saveTempFile, error)
-	Publish(string, string) (savePublishResult, error)
-	Replace(string, string) error
-	Remove(string) error
-}
+// namedSaveFileOps is the host-file transaction's file seam.
+type namedSaveFileOps = hostfile.Ops
 
-type osNamedSaveFiles struct{ osSaveFileOps }
-
-func (osNamedSaveFiles) Replace(oldPath, newPath string) error { return os.Rename(oldPath, newPath) }
+type osNamedSaveFiles struct{ hostfile.OS }
 
 var namedSaveMu sync.Mutex
 
@@ -258,89 +251,43 @@ func checkNamedSaveTarget(target namedSaveTarget) error {
 	return nil
 }
 
-func stageNamedSave(dir string, data []byte, files namedSaveFileOps) (string, error) {
-	f, err := files.CreateTemp(dir, ".save-dialog-*")
-	if err != nil {
-		return "", err
-	}
-	path := f.Name()
-	_, writeErr := io.Copy(f, bytes.NewReader(data))
-	syncErr := f.Sync()
-	closeErr := f.Close()
-	if err := errors.Join(writeErr, syncErr, closeErr); err != nil {
-		_ = files.Remove(path)
-		return "", err
-	}
-	return path, nil
-}
+// namedSaveStage is the staging pattern of a named save set's files and
+// backups.
+const namedSaveStage = ".save-dialog-*"
 
-// Both payloads and replacement backups are durable before either final path
-// changes. A publication error restores every changed path before returning.
+// commitNamedSaveSet publishes targets as one host-file set. Both payloads
+// and replacement backups are durable before either final path changes. A
+// publication error restores every changed path before returning.
 func commitNamedSaveSet(dir saveDirectoryIdentity, targets []namedSaveTarget, fences []string, files namedSaveFileOps, profiles ...*runtimeProfileAccess) error {
-	staged := make([]string, len(targets))
-	backups := make([]string, len(targets))
-	cleanup := func() {
-		for _, path := range append(staged, backups...) {
-			if path != "" {
-				_ = files.Remove(path)
-			}
-		}
-	}
-	defer cleanup()
+	rows := make([]hostfile.File, len(targets))
 	for i, target := range targets {
-		var err error
-		staged[i], err = stageNamedSave(dir.path, target.data, files)
-		if err != nil {
-			return fmt.Errorf("prepare save files: %w", err)
-		}
+		rows[i] = hostfile.File{Path: target.path, Data: target.data, Overwrite: hostfile.Backup, Seen: hostfile.SeenAbsent, Prior: target.old}
 		if target.before != nil {
-			backups[i], err = stageNamedSave(dir.path, target.old, files)
-			if err != nil {
-				return fmt.Errorf("prepare overwrite backup: %w", err)
-			}
+			rows[i].Seen = hostfile.SeenPresent
 		}
 	}
-	committed := 0
-	rollback := func(primary error) error {
-		failures := []error{primary}
-		for i := committed - 1; i >= 0; i-- {
-			var err error
-			if targets[i].before == nil {
-				err = files.Remove(targets[i].path)
-			} else {
-				err = files.Replace(backups[i], targets[i].path)
+	_, err := hostfile.Commit(hostfile.Set{
+		Files: rows, Dir: dir.path, Temp: namedSaveStage, Sync: true, Ops: files,
+		Check: func(step hostfile.Step, i int) error {
+			if step != hostfile.StepPublish {
+				return nil
 			}
-			if err != nil {
-				failures = append(failures, fmt.Errorf("restore %s from %s: %w", targets[i].path, backups[i], err))
-				backups[i] = "" // preserve the recovery file named by the error
+			current, err := resolveSaveDirectory(dir.path)
+			if err != nil || !os.SameFile(dir.info, current.info) {
+				return fmt.Errorf("save directory changed before publication")
 			}
-		}
-		return errors.Join(failures...)
-	}
-	for i, target := range targets {
-		current, err := resolveSaveDirectory(dir.path)
-		if err != nil || !os.SameFile(dir.info, current.info) {
-			return rollback(fmt.Errorf("save directory changed before publication"))
-		}
-		if _, err := namedSaveDirectory(dir.path, fences, profiles...); err != nil {
-			return rollback(err)
-		}
-		if err := checkNamedSaveTarget(target); err != nil {
-			return rollback(err)
-		}
-		if target.before != nil {
-			err = files.Replace(staged[i], target.path)
-		} else {
-			var result savePublishResult
-			result, err = files.Publish(staged[i], target.path)
-			if err == nil && !result.committed {
-				err = fmt.Errorf("save publication did not commit")
+			if _, err := namedSaveDirectory(dir.path, fences, profiles...); err != nil {
+				return err
 			}
-		}
-		if err != nil {
-			return rollback(fmt.Errorf("publish %s: %w", target.path, err))
-		}
-		committed++
-	}
-	return nil
+			return checkNamedSaveTarget(targets[i])
+		},
+		Words: hostfile.Words{
+			Stage:       "prepare save files: %w",
+			StageBackup: "prepare overwrite backup: %w",
+			Publish:     "publish %s: %w",
+			NoCommit:    "save publication did not commit",
+			Restore:     "restore %s from %s: %w",
+		},
+	})
+	return err
 }

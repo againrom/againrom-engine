@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/modrt"
@@ -320,25 +321,13 @@ func writeModMap(root, dir, rel string, data []byte) (string, error) {
 	// The new map is written beside the old one and moved over it, so a failed
 	// write leaves the old map whole. A leading dot keeps it out of the mod's
 	// content digest.
-	tmp, err := os.CreateTemp(parent, ".mapedit-*.alm")
-	if err != nil {
+	if _, err := hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},
+		Dir:   parent,
+		Temp:  ".mapedit-*.alm",
+		Sync:  true,
+	}); err != nil {
 		return "", err
-	}
-	_, writeErr := tmp.Write(data)
-	if writeErr == nil {
-		writeErr = tmp.Sync()
-	}
-	closeErr := tmp.Close()
-	if writeErr == nil {
-		writeErr = closeErr
-	}
-	if writeErr == nil {
-		writeErr = os.Rename(tmp.Name(), target)
-	}
-	if writeErr != nil {
-		// This exact file was created by this call, never an input.
-		_ = os.Remove(tmp.Name())
-		return "", writeErr
 	}
 	return target, nil
 }

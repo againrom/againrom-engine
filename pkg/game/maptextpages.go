@@ -14,6 +14,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mod"
 	"againrom/pkg/ui"
@@ -372,7 +373,7 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 	if !locale.Known(lang) {
 		return "", fmt.Errorf("unsupported page language %q", lang)
 	}
-	stage, err := os.MkdirTemp(parent, ".map-pages-")
+	stage, err := hostfile.NewStage(parent, ".map-pages-")
 	if err != nil {
 		return "", err
 	}
@@ -381,35 +382,34 @@ func writeEditedMapPages(root, source, path string, data []byte, pages map[strin
 		if !pageTreeName(name) || len(b) > mod.MaxFileBytes {
 			return "", fmt.Errorf(words.For(lang).Text("editor.pages.invalid"), name)
 		}
-		target := filepath.Join(stage, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
-			return "", err
-		}
-		if err := os.WriteFile(target, b, 0600); err != nil {
+		if _, err := hostfile.Commit(hostfile.Set{
+			Files: []hostfile.File{{
+				Path: filepath.Join(stage, filepath.FromSlash(name)), Data: b, Perm: 0600,
+				Staging: hostfile.Direct, Overwrite: hostfile.Replace,
+			}},
+			Dirs: hostfile.Parents, DirPerm: 0700,
+		}); err != nil {
 			return "", err
 		}
 	}
-	target, err := writeEditedMap(root, source, path, data, overwrite, grants...)
+	mapParent, target, err := editedMapTarget(root, source, path, overwrite, grants...)
 	if err != nil {
 		return "", err
 	}
-	if overwrite && existing != nil {
-		old := folder + ".old"
-		_ = os.RemoveAll(old)
-		if err := os.Rename(folder, old); err != nil {
-			return "", err
-		}
-		if err := os.Rename(stage, folder); err != nil {
-			_ = os.Rename(old, folder)
-			return "", err
-		}
-		_ = os.RemoveAll(old)
-		return target, placeMapLabels(target, labels, overwrite, lang)
+	// One Set writes the map, then renames the staged folder into place. An
+	// existing folder waits at its backup until the swap is done and returns
+	// when it fails. A failed swap removes a new map; a replaced map stays.
+	set, err := editedMapSet(mapParent, target, data, overwrite)
+	if err != nil {
+		return "", err
 	}
-	if err := os.Rename(stage, folder); err != nil {
-		if !overwrite {
-			_ = os.Remove(target)
-		}
+	pagesRow := hostfile.File{Path: folder, Folder: stage}
+	if overwrite && existing != nil {
+		pagesRow.Backup = folder + ".old"
+		pagesRow.Stale = true
+	}
+	set.Files = append(set.Files, pagesRow)
+	if _, err := hostfile.Commit(set); err != nil {
 		return "", err
 	}
 	return target, placeMapLabels(target, labels, overwrite, lang)

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/mod"
 )
 
@@ -172,67 +172,21 @@ func baseDumpFolderState(dir string) (missing bool, err error) {
 // writeNewFiles creates each file of order, a slash path inside dir, with
 // its bytes; dir is made first when missing. A file already there is
 // refused. On any failure the files and folders made so far are removed.
-func writeNewFiles(dir string, missing bool, order []string, files map[string][]byte) (err error) {
-	var made []string
-	defer func() {
-		if err == nil {
-			return
-		}
-		for i := len(made) - 1; i >= 0; i-- {
-			os.Remove(made[i])
-		}
-	}()
-	mkdir := func(p string) error {
-		if _, err := os.Lstat(p); err == nil {
-			return nil
-		}
-		if err := os.Mkdir(p, 0o755); err != nil {
-			return err
-		}
-		made = append(made, p)
-		return nil
-	}
-	if missing {
-		if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
-			return err
-		}
-		if err := mkdir(dir); err != nil {
-			return err
+func writeNewFiles(dir string, missing bool, order []string, files map[string][]byte) error {
+	rows := make([]hostfile.File, len(order))
+	for i, rel := range order {
+		rows[i] = hostfile.File{
+			Path: filepath.Join(dir, filepath.FromSlash(rel)), Data: files[rel], Perm: 0o644,
+			Staging: hostfile.Direct, Overwrite: hostfile.Refuse,
 		}
 	}
-	for _, rel := range order {
-		full := filepath.Join(dir, filepath.FromSlash(rel))
-		for _, sub := range baseDumpParents(rel) {
-			if err := mkdir(filepath.Join(dir, filepath.FromSlash(sub))); err != nil {
-				return err
-			}
-		}
-		out, err := os.OpenFile(full, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-		if errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("%s: %w", full, ErrBaseDumpExists)
-		}
-		if err != nil {
-			return err
-		}
-		made = append(made, full)
-		_, werr := out.Write(files[rel])
-		if cerr := out.Close(); werr == nil {
-			werr = cerr
-		}
-		if werr != nil {
-			return werr
-		}
+	done, err := hostfile.Commit(hostfile.Set{
+		Files: rows, Dirs: hostfile.Owned, DirPerm: 0o755, Root: dir, MakeRoot: missing,
+	})
+	if errors.Is(err, os.ErrExist) && done.Done < len(rows) {
+		return fmt.Errorf("%s: %w", rows[done.Done].Path, ErrBaseDumpExists)
 	}
-	return nil
-}
-
-// baseDumpParents are the folders of slash path rel, outermost first.
-func baseDumpParents(rel string) []string {
-	var out []string
-	for d := path.Dir(rel); d != "." && d != "/"; d = path.Dir(d) {
-		out = append([]string{d}, out...)
-	}
-	return out
+	return err
 }
 
 // baseDumpManifest is the dump mod's mod.toml.

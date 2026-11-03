@@ -17,6 +17,7 @@ import (
 
 	"againrom/internal/synth"
 	"againrom/pkg/data"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/vfs"
@@ -34,7 +35,7 @@ func (o *saveRendezvousOps) CreateTemp(dir, pattern string) (saveTempFile, error
 func (o *saveRendezvousOps) Publish(oldPath, newPath string) (savePublishResult, error) {
 	o.ready <- struct{}{}
 	<-o.release
-	return publishSaveFile(oldPath, newPath)
+	return hostfile.OS{}.Publish(oldPath, newPath)
 }
 
 func (o *saveRendezvousOps) Remove(path string) error { return os.Remove(path) }
@@ -54,7 +55,7 @@ func (o *linkedCleanupOps) CreateTemp(dir, pattern string) (saveTempFile, error)
 }
 
 func (o *linkedCleanupOps) Publish(oldPath, newPath string) (savePublishResult, error) {
-	return publishLinkedSave(oldPath, newPath, os.Link, func(path string) error {
+	return hostfile.PublishLinked(oldPath, newPath, os.Link, func(path string) error {
 		o.publishRemovePaths = append(o.publishRemovePaths, path)
 		if o.publishRemoveFailures > 0 {
 			o.publishRemoveFailures--
@@ -84,7 +85,7 @@ func (o *concurrentLinkedCleanupOps) CreateTemp(dir, pattern string) (saveTempFi
 }
 
 func (o *concurrentLinkedCleanupOps) Publish(oldPath, newPath string) (savePublishResult, error) {
-	return publishLinkedSave(oldPath, newPath, os.Link, func(string) error {
+	return hostfile.PublishLinked(oldPath, newPath, os.Link, func(string) error {
 		o.ready <- struct{}{}
 		<-o.release
 		return errSaveRemoveBoundary
@@ -161,7 +162,7 @@ func TestLinkedPublicationMakesLinkCreationTheCommitPoint(t *testing.T) {
 	oldPath, newPath := "private.tmp", "final.ags"
 	visible := false
 	var removePaths []string
-	result, err := publishLinkedSave(oldPath, newPath,
+	result, err := hostfile.PublishLinked(oldPath, newPath,
 		func(old, new string) error {
 			if old != oldPath || new != newPath {
 				t.Fatalf("link = (%q, %q), want (%q, %q)", old, new, oldPath, newPath)
@@ -179,7 +180,7 @@ func TestLinkedPublicationMakesLinkCreationTheCommitPoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("publishLinkedSave = %v, want committed success", err)
 	}
-	if !result.committed || !errors.Is(result.cleanupErr, errSaveRemoveBoundary) {
+	if !result.Committed || !errors.Is(result.CleanupErr, errSaveRemoveBoundary) {
 		t.Fatalf("result = %+v, want committed with private-name cleanup error", result)
 	}
 	if !visible {
@@ -505,11 +506,11 @@ func TestPublicationRefusesAndPreservesAnExistingSave(t *testing.T) {
 	if err := os.WriteFile(dst, []byte("old"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, err := publishSaveFile(src, dst)
-	if !isPublishCollision(err) {
+	result, err := hostfile.OS{}.Publish(src, dst)
+	if !hostfile.IsCollision(err) {
 		t.Fatalf("publication onto an existing save = %v, want a collision", err)
 	}
-	if result.committed {
+	if result.Committed {
 		t.Fatal("publication collision reported a committed final path")
 	}
 	for path, want := range map[string]string{src: "new", dst: "old"} {

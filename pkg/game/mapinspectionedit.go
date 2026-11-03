@@ -13,6 +13,7 @@ import (
 
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/hostfile"
 	"againrom/pkg/locale"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
@@ -910,26 +911,43 @@ func mapOutputDirectory(abs string) (string, error) {
 // writeEditedMap writes a host file, never an input or a preserved install,
 // even through an alias.
 func writeEditedMap(root, source, path string, data []byte, overwrite bool, grants ...*runtimeProfileAccess) (string, error) {
+	parent, target, err := editedMapTarget(root, source, path, overwrite, grants...)
+	if err != nil {
+		return "", err
+	}
+	set, err := editedMapSet(parent, target, data, overwrite)
+	if err != nil {
+		return "", err
+	}
+	if _, err := hostfile.Commit(set); err != nil {
+		return "", err
+	}
+	return target, nil
+}
+
+// editedMapTarget validates an edited map's path against its fences and its
+// source and returns the resolved folder and file it is written to.
+func editedMapTarget(root, source, path string, overwrite bool, grants ...*runtimeProfileAccess) (parent, target string, err error) {
 	if strings.TrimSpace(path) == "" || !namefold.HostEqual(filepath.Ext(path), ".alm") {
-		return "", fmt.Errorf("Save As needs an explicit new .alm path")
+		return "", "", fmt.Errorf("Save As needs an explicit new .alm path")
 	}
 	// Require a resolvable existing parent. Unlike the shared save-directory
 	// helper, an ambiguous reparse point fails closed for this explicit writer.
 	abs, err := filepath.Abs(path)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	base := filepath.Base(abs)
 	if !editorOrdinaryFilename(base) {
-		return "", fmt.Errorf("Save As needs an ordinary new filename, not a device or alternate stream")
+		return "", "", fmt.Errorf("Save As needs an ordinary new filename, not a device or alternate stream")
 	}
-	parent, err := mapOutputDirectory(abs)
+	parent, err = mapOutputDirectory(abs)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	target := filepath.Join(parent, base)
+	target = filepath.Join(parent, base)
 	if err := fenceEditorWrite(root, parent, "Save As", grants...); err != nil {
-		return "", err
+		return "", "", err
 	}
 	input := source
 	switch src := ui.ParseMapSource(source); src.Kind {
@@ -941,79 +959,60 @@ func writeEditedMap(root, source, path string, data []byte, overwrite bool, gran
 	if input != "" && !overwrite {
 		resolvedInput, err := resolvePathForSaveSafety(input)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if sameSaveName(target, resolvedInput) {
-			return "", fmt.Errorf("Save As cannot replace the source map %s; Save writes over the map's own file", target)
+			return "", "", fmt.Errorf("Save As cannot replace the source map %s; Save writes over the map's own file", target)
 		}
 		if a, err := os.Stat(input); err == nil {
 			if b, err := os.Stat(target); err == nil && os.SameFile(a, b) {
-				return "", fmt.Errorf("Save As cannot replace a source alias")
+				return "", "", fmt.Errorf("Save As cannot replace a source alias")
 			}
 		}
 	}
-	if overwrite {
-		if err := replaceMapFile(parent, target, data); err != nil {
-			return "", err
-		}
-		return target, nil
-	}
-	f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		return "", fmt.Errorf("create new map: %w", err)
-	}
-	_, writeErr := f.Write(data)
-	if writeErr == nil {
-		writeErr = f.Sync()
-	}
-	closeErr := f.Close()
-	if writeErr != nil || closeErr != nil {
-		// This exact file was created exclusively by this call, never an input.
-		_ = os.Remove(target)
-		if writeErr != nil {
-			return "", writeErr
-		}
-		return "", closeErr
-	}
-	return target, nil
+	return parent, target, nil
 }
 
-// replaceMapFile writes data to a temporary file beside target and renames it
-// over target, so a crash leaves the old or the new file whole. An existing
-// target must be an ordinary file, not a link or a directory.
-func replaceMapFile(parent, target string, data []byte) error {
+// editedMapSet is the Set that writes data at target in folder parent. A new
+// map is created exclusively and synchronized; a failed write removes it.
+// With overwrite the bytes go to a temporary file beside target, keep the
+// mode of the file they replace and are renamed over it, so a crash leaves
+// the old or the new file whole. An existing target must be an ordinary
+// file, not a link or a directory.
+func editedMapSet(parent, target string, data []byte, overwrite bool) (hostfile.Set, error) {
+	if !overwrite {
+		return hostfile.Set{
+			Files: []hostfile.File{{Path: target, Data: data, Perm: 0600, Staging: hostfile.Direct, Overwrite: hostfile.Refuse}},
+			Sync:  true,
+			Words: hostfile.Words{Create: "create new map: %w"},
+		}, nil
+	}
 	perm := os.FileMode(0600)
 	if fi, err := os.Lstat(target); err == nil {
 		if !fi.Mode().IsRegular() {
-			return fmt.Errorf("Save cannot replace %s: not an ordinary file", filepath.Base(target))
+			return hostfile.Set{}, fmt.Errorf("Save cannot replace %s: not an ordinary file", filepath.Base(target))
 		}
 		perm = fi.Mode().Perm()
 	} else if !errors.Is(err, os.ErrNotExist) {
+		return hostfile.Set{}, err
+	}
+	return hostfile.Set{
+		Files: []hostfile.File{{Path: target, Data: data, Perm: perm, Overwrite: hostfile.Replace}},
+		Dir:   parent,
+		Temp:  ".map-save-",
+		Sync:  true,
+		Words: hostfile.Words{Create: "create temporary map: %w"},
+	}, nil
+}
+
+// replaceMapFile writes data over target through its replacing Set.
+func replaceMapFile(parent, target string, data []byte) error {
+	set, err := editedMapSet(parent, target, data, true)
+	if err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(parent, ".map-save-")
-	if err != nil {
-		return fmt.Errorf("create temporary map: %w", err)
-	}
-	tmp := f.Name()
-	_, werr := f.Write(data)
-	if werr == nil {
-		werr = f.Sync()
-	}
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr == nil {
-		werr = os.Chmod(tmp, perm)
-	}
-	if werr == nil {
-		werr = os.Rename(tmp, target)
-	}
-	if werr != nil {
-		_ = os.Remove(tmp)
-		return werr
-	}
-	return nil
+	_, err = hostfile.Commit(set)
+	return err
 }
 
 // fenceEditorWrite refuses a map write into the resolved directory parent

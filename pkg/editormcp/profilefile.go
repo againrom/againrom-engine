@@ -1,9 +1,11 @@
 package editormcp
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"againrom/pkg/hostfile"
 )
 
 // WriteProfileFile replaces file in the editor profile with content: it
@@ -14,24 +16,15 @@ func WriteProfileFile(file, pattern, what string, content []byte) error {
 	if old, err := os.ReadFile(file); err == nil && string(old) == string(content) {
 		return nil
 	}
-	f, err := os.CreateTemp(filepath.Dir(file), pattern)
-	if err != nil {
-		return err
-	}
-	tmp := f.Name()
-	_, werr := f.Write(content)
-	if werr == nil {
-		werr = f.Sync()
-	}
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr == nil {
-		werr = os.Rename(tmp, file)
-	}
-	if werr != nil {
-		_ = os.Remove(tmp)
-		return fmt.Errorf("write %s: %v", what, werr)
-	}
-	return nil
+	// A failure to create the temporary file is returned as it is; every
+	// later failure names what.
+	wrap := "write " + strings.ReplaceAll(what, "%", "%%") + ": "
+	_, err := hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{Path: file, Data: content, Overwrite: hostfile.Replace}},
+		Dir:   filepath.Dir(file),
+		Temp:  pattern,
+		Sync:  true,
+		Words: hostfile.Words{Write: wrap + "%v", Sync: wrap + "%v", Close: wrap + "%v", Publish: wrap + "%[2]v"},
+	})
+	return err
 }

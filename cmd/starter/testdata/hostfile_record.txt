@@ -1,0 +1,81 @@
+settings saved to $T/starter.ini
+[starter]
+againrom =
+close-on-play = false
+last-base =
+[mods]
+dir =
+enabled =
+accept-unmarked = false
+[options]
+sound = default
+volume =
+movies = true
+video = normal
+markers = false
+chicken = false
+window = false
+saves =
+mission =
+picker = false
+skill =
+shop-stock-multiplier = 1
+extra =
+
+-rw-rw-rw-
+settings saved to $T/starter.ini
+; old
+old = 1
+[starter]
+againrom =
+close-on-play = false
+last-base =
+[mods]
+dir =
+enabled =
+accept-unmarked = false
+[options]
+sound = default
+volume =
+movies = true
+video = normal
+markers = false
+chicken = false
+window = false
+saves =
+mission =
+picker = false
+skill =
+shop-stock-multiplier = 1
+extra =
+
+-rw-rw-rw-
+settings saved to $T/new/deeper/starter.ini
+[starter]
+againrom =
+close-on-play = false
+last-base =
+[mods]
+dir =
+enabled =
+accept-unmarked = false
+[options]
+sound = default
+volume =
+movies = true
+video = normal
+markers = false
+chicken = false
+window = false
+saves =
+mission =
+picker = false
+skill =
+shop-stock-multiplier = 1
+extra =
+
+-rw-rw-rw-
+bad=yes
+blocked
+new
+starter.ini

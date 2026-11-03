@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
@@ -77,18 +78,24 @@ func AssembleModMission(root, lang string, mission int, out string) ([]string, e
 	for name, b := range pages {
 		files["mission/"+lang+"/text/"+name] = b
 	}
-	var written []string
+	// Each file is written in place over what the mod folder holds, its
+	// folders made and kept; the files written before a failure stay.
+	rels := make([]string, 0, len(files))
+	rows := make([]hostfile.File, 0, len(files))
 	for rel, b := range files {
-		p := filepath.Join(out, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-			return written, err
-		}
-		if err := os.WriteFile(p, b, 0o644); err != nil {
-			return written, err
-		}
-		written = append(written, rel)
+		rels = append(rels, rel)
+		rows = append(rows, hostfile.File{
+			Path: filepath.Join(out, filepath.FromSlash(rel)), Data: b, Perm: 0o644,
+			Staging: hostfile.Direct, Overwrite: hostfile.Replace,
+		})
 	}
-	return written, nil
+	done, err := hostfile.Commit(hostfile.Set{Files: rows, Dirs: hostfile.Parents, DirPerm: 0o755})
+	if err != nil && done.Done == 0 {
+		return nil, err
+	} else if err != nil {
+		return rels[:done.Done], err
+	}
+	return rels, nil
 }
 
 // installedPages is the text pages of installed mission n a mod mission

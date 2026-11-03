@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/namefold"
 	"againrom/pkg/ui"
 )
@@ -122,23 +123,17 @@ func (f *FrontEnd) writeHeadlessFrame(app *ui.App, path string) (HeadlessFrame, 
 	if err := png.Encode(&encoded, pix); err != nil {
 		return HeadlessFrame{}, "", err
 	}
-	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
-		return HeadlessFrame{}, "", err
-	}
-	out, err := os.OpenFile(abs, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	_, err = hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{
+			Path: abs, Data: encoded.Bytes(), Perm: 0o644, Staging: hostfile.Direct, Overwrite: hostfile.Refuse,
+		}},
+		Dirs: hostfile.Parents, DirPerm: 0o755,
+	})
 	if errors.Is(err, os.ErrExist) {
 		return HeadlessFrame{}, "", fmt.Errorf("%s: %w", abs, ErrHeadlessFrameExists)
 	}
 	if err != nil {
 		return HeadlessFrame{}, "", err
-	}
-	_, werr := out.Write(encoded.Bytes())
-	if cerr := out.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(abs)
-		return HeadlessFrame{}, "", werr
 	}
 	b := pix.Bounds()
 	return HeadlessFrame{Path: abs, Width: b.Dx(), Height: b.Dy()}, note, nil

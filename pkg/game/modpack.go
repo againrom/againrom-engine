@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"againrom/pkg/hostfile"
 	"againrom/pkg/mod"
 )
 
@@ -53,42 +54,22 @@ func PackMod(folder, outDir string, replace bool) (string, error) {
 		return "", err
 	}
 	if !replace {
-		return target, createPackedFile(target, data)
+		// A new file is created exclusively; a failed write removes it.
+		_, err := hostfile.Commit(hostfile.Set{Files: []hostfile.File{{
+			Path: target, Data: data, Perm: 0o644, Staging: hostfile.Direct, Overwrite: hostfile.Refuse,
+		}}})
+		if errors.Is(err, os.ErrExist) {
+			return target, fmt.Errorf("%s exists: %w", target, ErrPackExists)
+		}
+		return target, err
 	}
-	tmp, err := os.CreateTemp(outDir, "."+mod.PackedName(m.ID)+".*")
-	if err != nil {
+	// A replacement is staged beside the target and renamed over it whole.
+	if _, err := hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{Path: target, Data: data, Overwrite: hostfile.Replace}},
+		Dir:   outDir,
+		Temp:  "." + mod.PackedName(m.ID) + ".*",
+	}); err != nil {
 		return "", err
 	}
-	_, werr := tmp.Write(data)
-	if cerr := tmp.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr == nil {
-		werr = os.Rename(tmp.Name(), target)
-	}
-	if werr != nil {
-		os.Remove(tmp.Name())
-		return "", werr
-	}
 	return target, nil
-}
-
-// createPackedFile creates path with data; an existing file is refused, and a
-// failed write removes what it made.
-func createPackedFile(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if errors.Is(err, os.ErrExist) {
-		return fmt.Errorf("%s exists: %w", path, ErrPackExists)
-	}
-	if err != nil {
-		return err
-	}
-	_, werr := f.Write(data)
-	if cerr := f.Close(); werr == nil {
-		werr = cerr
-	}
-	if werr != nil {
-		os.Remove(path)
-	}
-	return werr
 }

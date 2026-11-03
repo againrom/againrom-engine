@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"againrom/pkg/formats/fame"
+	"againrom/pkg/hostfile"
 )
 
 // The mutable hall belongs to the player profile. OriginalDir is a read-only
@@ -127,64 +128,50 @@ func (s fameStore) add(row fame.Record) ([]fame.Record, error) {
 	if files == nil {
 		files = osNamedSaveFiles{}
 	}
-	tmp, err := files.CreateTemp(identity.path, ".againrom-fame-*.tmp")
-	if err != nil {
-		return nil, err
+	seen := hostfile.SeenAbsent
+	if before != nil {
+		seen = hostfile.SeenPresent
 	}
-	tmpPath := tmp.Name()
-	closed := false
-	defer func() {
-		if !closed {
-			_ = tmp.Close()
-		}
-		_ = files.Remove(tmpPath)
-	}()
-	if _, err = io.Copy(tmp, bytes.NewReader(data)); err != nil {
-		return nil, err
-	}
-	if err = tmp.Sync(); err != nil {
-		return nil, err
-	}
-	closed = true
-	if err = tmp.Close(); err != nil {
-		return nil, err
-	}
-	current, err := resolveSaveDirectory(dir)
-	if err != nil {
-		return nil, err
-	}
-	if !os.SameFile(identity.info, current.info) {
-		return nil, fmt.Errorf("hall directory changed")
-	}
-	if _, err = namedSaveDirectory(current.path, []string{s.OriginalDir}, s.profile); err != nil {
-		return nil, err
-	}
-	if before == nil {
-		result, err := files.Publish(tmpPath, path)
-		if !result.committed {
-			if err == nil {
-				err = fmt.Errorf("hall publication did not commit")
+	_, err = hostfile.Commit(hostfile.Set{
+		Files: []hostfile.File{{Path: path, Data: data, Overwrite: hostfile.Replace, Seen: seen}},
+		Dir:   identity.path, Temp: ".againrom-fame-*.tmp", Sync: true, Ops: files,
+		Check: func(step hostfile.Step, _ int) error {
+			if step != hostfile.StepPublish {
+				return nil
 			}
-			return nil, err
-		}
-	} else {
-		now, err := os.Lstat(path)
-		if err != nil {
-			return nil, err
-		}
-		if !now.Mode().IsRegular() || !os.SameFile(before, now) {
-			return nil, fmt.Errorf("hall table changed")
-		}
-		_, actual, err := readFameFile(path)
-		if err != nil {
-			return nil, err
-		}
-		if !bytes.Equal(old, actual) {
-			return nil, fmt.Errorf("hall table changed")
-		}
-		if err := files.Replace(tmpPath, path); err != nil {
-			return nil, err
-		}
+			current, err := resolveSaveDirectory(dir)
+			if err != nil {
+				return err
+			}
+			if !os.SameFile(identity.info, current.info) {
+				return fmt.Errorf("hall directory changed")
+			}
+			if _, err = namedSaveDirectory(current.path, []string{s.OriginalDir}, s.profile); err != nil {
+				return err
+			}
+			if before == nil {
+				return nil
+			}
+			now, err := os.Lstat(path)
+			if err != nil {
+				return err
+			}
+			if !now.Mode().IsRegular() || !os.SameFile(before, now) {
+				return fmt.Errorf("hall table changed")
+			}
+			_, actual, err := readFameFile(path)
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(old, actual) {
+				return fmt.Errorf("hall table changed")
+			}
+			return nil
+		},
+		Words: hostfile.Words{NoCommit: "hall publication did not commit"},
+	})
+	if err != nil {
+		return nil, err
 	}
 	return rows, nil
 }
