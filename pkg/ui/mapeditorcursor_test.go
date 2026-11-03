@@ -52,7 +52,7 @@ func TestMapEditorWindowCursorFollowsResizableBorders(t *testing.T) {
 	if got := at(image.Pt(r.Max.X-3, r.Max.Y-3)); got != ebiten.CursorShapeNWSEResize {
 		t.Fatalf("corner again: %d", got)
 	}
-	e.menu = "map"
+	e.menu = "file"
 	if got := at(image.Pt(r.Max.X-3, r.Max.Y-3)); got != ebiten.CursorShapeDefault {
 		t.Errorf("with a menu open the border does not resize: cursor %d", got)
 	}

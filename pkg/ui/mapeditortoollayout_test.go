@@ -19,12 +19,10 @@ func menuKeys(e *MapEditor, menu string) []string {
 	return out
 }
 
-// The Map menu reads Create new map, Open... (the file dialog), Save, Save
-// as..., then Built-in maps... (the installed maps' list) below them, in EN
-// and RU; All records and the Generate group stand above Exit.
+// Owner items 1, 3, 4, 6: File keeps its file rows before the moved rows.
 func TestMapEditorMapMenuNamesItsRowsAndPutsTheBuiltInMapsBelow(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
-	if got, want := menuKeys(e, "map"), []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "panel", "records", "", "randomterrain", "randomheights", "", "close"}; !slices.Equal(got, want) {
+	if got, want := menuKeys(e, "file"), []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}; !slices.Equal(got, want) {
 		t.Fatalf("the Map menu's rows are %v, want %v", got, want)
 	}
 	for _, c := range []struct {
@@ -36,7 +34,7 @@ func TestMapEditorMapMenuNamesItsRowsAndPutsTheBuiltInMapsBelow(t *testing.T) {
 	} {
 		e.SetWords(words.For(c.lang))
 		var got []string
-		for _, it := range e.menuItems("map")[:5] {
+		for _, it := range e.menuItems("file")[:5] {
 			got = append(got, it.label)
 		}
 		if !slices.Equal(got, c.want) {
@@ -44,8 +42,8 @@ func TestMapEditorMapMenuNamesItsRowsAndPutsTheBuiltInMapsBelow(t *testing.T) {
 		}
 	}
 	// The Open row opens the file dialog's route, the Built-in maps row the list.
-	chromeClick(e, barPoint(t, e, "map"))
-	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "catalog")))
+	chromeClick(e, barPoint(t, e, "file"))
+	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "file", "catalog")))
 	if !e.catalog {
 		t.Fatal("Built-in maps... did not show the map list")
 	}
@@ -80,16 +78,14 @@ func TestMapEditorMapListSplitsSingleAndMultiplayerMaps(t *testing.T) {
 	}
 }
 
-// The bar lists the Map, Tools, View and Window menus, then the panels
-// Scripts (Scenario), Players, Groups, Units, Sacks, Structures, Objects and
-// Trees, then Undo, Redo and Save; there is no Brushes entry.
+// Owner items 1, 4, 5, 6: File and Map lead the palettes; the utility menus end the bar.
 func TestMapEditorBarListsThePanelsInTheirOrder(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	var got []string
 	for _, b := range e.barEntries() {
 		got = append(got, b.key)
 	}
-	want := []string{"map", "tools", "view", "window", "scripts", "players", "groups", "units", "sacks", "structures", "search", "objects", "trees", "undo", "redo", "save"}
+	want := []string{"file", "panel", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "tools", "view", "window"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("the bar reads %v, want %v", got, want)
 	}
@@ -98,7 +94,7 @@ func TestMapEditorBarListsThePanelsInTheirOrder(t *testing.T) {
 	for _, b := range e.barEntries()[:13] {
 		labels = append(labels, b.label)
 	}
-	if want := []string{"Карта", "Инструменты", "Вид", "Окно", "Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Поиск (Ctrl+F)", "Объекты", "Деревья"}; !slices.Equal(labels, want) {
+	if want := []string{"Файл", "Карта", "Сценарий", "Игроки", "Группы", "Отряды", "Мешки", "Постройки", "Объекты", "Деревья", "Инструменты", "Вид", "Окно"}; !slices.Equal(labels, want) {
 		t.Fatalf("the Russian panels read %q, want %q", labels, want)
 	}
 }
@@ -154,7 +150,7 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 		t.Fatalf("the Units list's buttons are %q", s.Buttons)
 	}
 	for _, key := range []string{"drop", "dropzones", "drawarea"} {
-		for _, menu := range []string{"map"} {
+		for _, menu := range []string{"file"} {
 			if slices.Contains(menuKeys(e, menu), key) {
 				t.Errorf("%s lists %s", menu, key)
 			}
@@ -171,21 +167,19 @@ func TestMapEditorScenarioListHoldsTheDropZoneToggle(t *testing.T) {
 	}
 }
 
-// The Map menu holds random terrain and random heights under a Generate
-// heading, on a map that takes a brush and on one that takes none; the Map
-// menu holds no brush row and there is no Brushes menu. RU names the heading Генерация. A
-// press on a heading does nothing.
+// Owner item 3: Tools holds Generate on a map with or without a brush host.
+// File holds no brush. The Generate heading acts in neither language.
 func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 	e, _ := passEditor(t)
 	ro, _ := brushEditor(t)
 	ro.doc.Edits = nil // a document that cannot be edited takes no brush
 	for _, m := range []*MapEditor{e, ro} {
-		keys := menuKeys(m, "map")
+		keys := menuKeys(m, "tools")
 		at := slices.Index(keys, "randomterrain")
 		if at < 1 || keys[at-1] != "" || keys[at+1] != "randomheights" {
 			t.Fatalf("Map rows %v hold no Generate group", keys)
 		}
-		for _, menu := range []string{"map"} {
+		for _, menu := range []string{"file"} {
 			for _, k := range menuKeys(m, menu) {
 				if strings.HasPrefix(k, "brush.") {
 					t.Errorf("%s lists %s", menu, k)
@@ -196,17 +190,17 @@ func TestMapEditorMapMenuHoldsTheGenerateGroup(t *testing.T) {
 	if e.menuItems("brushes") != nil || e.menuItems("layers") != nil {
 		t.Fatal("a Brushes or Layers menu remains")
 	}
-	at := slices.Index(menuKeys(e, "map"), "randomterrain")
+	at := slices.Index(menuKeys(e, "tools"), "randomterrain")
 	for _, c := range []struct{ lang, generate string }{{"", "Generate"}, {"russian", "Генерация"}} {
 		e.SetWords(words.For(c.lang))
-		if got := e.menuItems("map")[at-1].label; got != c.generate {
+		if got := e.menuItems("tools")[at-1].label; got != c.generate {
 			t.Errorf("%q: the Generate heading reads %q", c.lang, got)
 		}
 		if e.brushModeWord(brushOff) != "" {
 			t.Errorf("%q: the brush off reads %q", c.lang, e.brushModeWord(brushOff))
 		}
 	}
-	chromeClick(e, barPoint(t, e, "map"))
+	chromeClick(e, barPoint(t, e, "tools"))
 	b, _ := e.openMenuEntry()
 	rows := e.menuDropdown(b, true).List.Rows()
 	if rows[at-1].Choosable || !rows[at].Choosable {

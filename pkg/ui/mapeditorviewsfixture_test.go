@@ -173,7 +173,7 @@ func cardFont() *text.Font {
 // floating.
 var wideWidths = []int{360, 520, 800, 0}
 
-// wideEditor is the editor over a wideHost in language lang at 1280x800,
+// wideEditor is the editor over a wideHost in language lang at 1920x1080,
 // in the installed fonts' size, after the profile with the right panel
 // restored at width (0 minimizes it) and the view named view loads. set
 // changes the host's values first.
@@ -202,7 +202,7 @@ func wideEditor(t *testing.T, lang string, width int, view string, set map[strin
 	}
 	e.SetCardFont(cardFont())
 	e.SetPanelProfile([]byte(fmt.Sprintf(`{"left":{"minimized":false,"width":260},"right":{%s,"view":%q}}`, right, view)), nil, nil)
-	e.Layout(1280, 800)
+	e.Layout(1920, 1080) // Owner item 5: supported editor window.
 	if err := e.Open("views"); err != nil {
 		t.Fatal(err)
 	}

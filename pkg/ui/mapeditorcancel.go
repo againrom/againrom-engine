@@ -9,6 +9,7 @@ func (e *MapEditor) rememberCancel() {
 
 func (e *MapEditor) cancelCheckpoint() func() {
 	mode, chrome := e.editorMode, e.editorChrome
+	chrome.buttonPress = buttonPress{}
 	mode.brush.endStroke()
 	previousCancel, previousList := e.cancelRestore, e.listRestore
 	var restoreCamera func()
@@ -30,8 +31,10 @@ func (e *MapEditor) cancelCheckpoint() func() {
 		chrome.obj.choice = &choice
 	}
 	return func() {
+		press := e.buttonPress
 		e.restoreMode(mode)
 		e.editorChrome = chrome
+		e.buttonPress = press
 		e.cancelRestore, e.listRestore = previousCancel, previousList
 		e.selected, e.filter, e.focusedReference = selected, filter, focused
 		e.message = message
@@ -39,7 +42,7 @@ func (e *MapEditor) cancelCheckpoint() func() {
 			restoreCamera()
 		}
 		e.scroll = editorScroll{}
-		e.drag, e.dragEdge, e.dragCard, e.uiDown = popNone, 0, 0, false
+		e.drag, e.dragEdge, e.dragCard, e.uiDown = popNone, 0, 0, press.latch.Holds()
 	}
 }
 

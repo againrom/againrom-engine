@@ -137,7 +137,7 @@ func TestRandomCommandsTakeTheTypedSeed(t *testing.T) {
 		t.Fatalf("a refused seed ran a command: %q", h.calls.lines)
 	}
 	var keys []string
-	for _, it := range e.menuItems("map") {
+	for _, it := range e.menuItems("tools") { // Owner item 3.
 		keys = append(keys, it.key)
 	}
 	if !slices.Contains(keys, "randomterrain") || !slices.Contains(keys, "randomheights") {

@@ -78,8 +78,10 @@ type pushButton struct {
 	Face *plaqueFace
 	// Style, when set, makes the button a flat box: a fill and a border, no
 	// bevel and no label art. Selected picks the style's selected fill.
-	Style    *pushButtonStyle
-	Selected bool
+	Style        *pushButtonStyle
+	Selected     bool
+	Press        *buttonPress
+	FeedbackOnly bool
 }
 
 // pushButtonStyle is a flat push button's look: the fill at rest, the fill
@@ -185,7 +187,13 @@ func (b pushButton) sunk() bool { return b.Pressed && b.Inside }
 // next character in the ink (TEXT-079). A button with a Style is a flat box
 // instead: its fill, then its border on the four edges.
 func drawPushButton(dst *image.RGBA, f *text.Font, b pushButton) {
+	if b.Press != nil {
+		b.Press.apply(&b, f)
+	}
 	recordWidget(widgetPushButton, b.Rect, b)
+	if b.FeedbackOnly && !b.sunk() {
+		return
+	}
 	if b.Style != nil {
 		if dst == nil {
 			return
@@ -371,6 +379,56 @@ func dialogueButton(b image.Rectangle, label string, l NoticeLayout) pushButton 
 // buttonLatch is the one press latch (MENU-116, DIALOGUE-045): every push
 // button latches on the press and activates on a release inside.
 type buttonLatch = latch.Latch
+
+// buttonPress captures the topmost painted button before its press acts.
+// A button that closes keeps its face until release; activation still belongs
+// to the editor's existing press route.
+type buttonPress struct {
+	latch           buttonLatch
+	pointer         image.Point
+	button          pushButton
+	font            *text.Font
+	back            *image.RGBA
+	capturing, seen bool
+}
+
+func (p *buttonPress) cover(r image.Rectangle) {
+	if p != nil && p.capturing && p.pointer.In(r) {
+		p.button, p.font = pushButton{}, nil
+	}
+}
+
+func (p *buttonPress) apply(b *pushButton, f *text.Font) {
+	if p.capturing && p.pointer.In(b.Rect) {
+		p.button, p.font = pushButton{}, nil
+		if !b.Disabled {
+			p.button, p.font = *b, f
+			p.button.Press = nil
+		}
+	}
+	if p.latch.Pressed(1) && b.Rect == p.button.Rect && b.Label == p.button.Label {
+		b.Pressed, b.Inside, p.seen = true, p.pointer.In(b.Rect), true
+	}
+}
+
+func (p *buttonPress) begin(pic *image.RGBA) {
+	p.capturing = false
+	p.latch.Press(1, !p.button.Rect.Empty())
+	if p.latch.Holds() {
+		p.back = image.NewRGBA(p.button.Rect)
+		draw.Draw(p.back, p.back.Bounds(), pic, p.back.Bounds().Min, draw.Src)
+	}
+}
+
+func (p *buttonPress) finish(pic *image.RGBA) {
+	if p.latch.Holds() && !p.seen && p.pointer.In(p.button.Rect) {
+		draw.Draw(pic, p.back.Bounds(), p.back, p.back.Bounds().Min, draw.Src)
+		b := p.button
+		b.Pressed, b.Inside = true, true
+		drawPushButton(pic, p.font, b)
+	}
+	p.seen = false
+}
 
 // pointerFrame is the pointer's last frame position, the hover source every
 // widget painter reads.

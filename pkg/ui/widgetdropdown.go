@@ -32,8 +32,10 @@ type dropdown struct {
 	Icon *editorIcon
 	// Edit, when set, draws the closed box as that text field: a search
 	// field whose open list holds its hits, its text in EditFont.
-	Edit     *popupRow
-	EditFont *text.Font
+	Edit               *popupRow
+	EditFont           *text.Font
+	Press              *buttonPress
+	Button, ButtonRows bool
 }
 
 // button is the arrow button at the closed box's right end.
@@ -90,9 +92,12 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 	if dst == nil || d.Rect.Dx() < 8 || d.Rect.Dy() < 4 {
 		return
 	}
+	d.Press.cover(d.Rect)
 	switch {
+	case d.Button:
+		drawPushButton(dst, f, pushButton{Rect: d.Rect, Label: d.Text + " v", Literal: true, LabelRaise: labelRaise(f), Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled, Press: d.Press})
 	case d.Icon != nil:
-		drawIconButton(dst, iconButton{Rect: d.Rect, Icon: d.Icon, On: d.Open, Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled})
+		drawIconButton(dst, iconButton{Rect: d.Rect, Icon: d.Icon, On: d.Open, Hover: pointerOK && pointer.In(d.Rect), Disabled: d.Disabled, Press: d.Press})
 	case d.Edit != nil:
 		drawEditRow(dst, d.EditFont, *d.Edit, d.Rect, popupInk{Ground: d.Fill, Edge: d.Ink}, d.Ink)
 	default:
@@ -102,8 +107,17 @@ func drawDropdown(dst *image.RGBA, f *text.Font, frames []*image.RGBA, d dropdow
 		return
 	}
 	l := d.listBox(f)
+	d.Press.cover(l.Rect.Union(l.Bar()).Inset(-2))
 	drawFrame(dst, panelFrame(l.Rect.Union(l.Bar()).Inset(-2), d.Fill, d.Ink))
 	drawListBox(dst, f, frames, l, d.List, rowText, pointer, pointerOK)
+	if d.ButtonRows && d.Press != nil {
+		top, count := d.List.Visible()
+		for i := range count {
+			if d.List.Rows()[top+i].Choosable {
+				drawPushButton(dst, f, pushButton{Rect: l.Row(i), FeedbackOnly: true, Press: d.Press})
+			}
+		}
+	}
 }
 
 // drawDropdownBox is the closed box: an edit field's well with the text and
@@ -127,7 +141,7 @@ func drawDropdownBox(dst *image.RGBA, f *text.Font, d dropdown, pointer image.Po
 		label = "^"
 	}
 	drawPushButton(dst, f, pushButton{Rect: arrow, Label: label, Literal: true, LabelRaise: labelRaise(f), Focus: d.Focus,
-		Hover: pointerOK && pointer.In(arrow), Disabled: d.Disabled})
+		Hover: pointerOK && pointer.In(arrow), Disabled: d.Disabled, Press: d.Press})
 }
 
 // dropdownStep moves the highlighted choice by delta, wrapping at both ends:

@@ -79,19 +79,18 @@ func init() {
 	noBrush := func(e *MapEditor) bool { return e.brushHost() == nil || e.catalog }
 	noEdit := func(e *MapEditor) bool { return !e.editable() }
 	noRandom := func(e *MapEditor) bool { return e.doc == nil || e.catalog }
-	noPanel := func(e *MapEditor) bool { _, ok := e.mapPanel(); return !ok }
 	toolButtons = []toolButton{
-		{key: "new", word: "editor.menu.new", kind: toolAction, menu: "map"},
-		{key: "open", word: "editor.menu.open", kind: toolAction, menu: "map"},
-		{key: "saveas", word: "editor.menu.save", kind: toolAction, off: noEdit, menu: "map"},
-		{key: "saveto", word: "editor.menu.saveas", kind: toolAction, off: noEdit, menu: "map"},
-		{key: "catalog", word: "editor.menu.builtin", kind: toolAction, menu: "map"},
-		{key: "testplay", word: "editor.menu.testplay", kind: toolAction, off: noEdit, menu: "map"},
-		{key: "panel", word: "editor.menu.panel", kind: toolAction, off: noPanel, menu: "map"},
-		{key: "records", word: "editor.view.records", kind: toolAction, off: noMap, menu: "map"},
-		{key: "randomterrain", word: "editor.tools.randomterrain", headingWord: "editor.menu.generate", kind: toolAction, off: noRandom, menu: "map"},
-		{key: "randomheights", word: "editor.tools.randomheights", kind: toolAction, off: noRandom, menu: "map"},
-		{key: "close", word: "editor.menu.exit", ruleBefore: true, kind: toolAction, menu: "map"},
+		{key: "new", word: "editor.menu.new", kind: toolAction, menu: "file"},
+		{key: "open", word: "editor.menu.open", kind: toolAction, menu: "file"},
+		{key: "saveas", word: "editor.menu.save", kind: toolAction, off: noEdit, menu: "file"},
+		{key: "saveto", word: "editor.menu.saveas", kind: toolAction, off: noEdit, menu: "file"},
+		{key: "catalog", word: "editor.menu.builtin", kind: toolAction, menu: "file"},
+		{key: "testplay", word: "editor.menu.testplay", kind: toolAction, off: noEdit, menu: "file"},
+		{key: "undo", word: "editor.bar.undo", keyRow: "undo", kind: toolAction, off: func(e *MapEditor) bool { return !e.editable() || !e.doc.Edits.CanUndo() }, menu: "file"},
+		{key: "redo", word: "editor.bar.redo", keyRow: "redo", kind: toolAction, off: func(e *MapEditor) bool { return !e.editable() || !e.doc.Edits.CanRedo() }, menu: "file"},
+		{key: searchKey, word: "editor.bar.search", kind: toolAction, off: noMap, menu: "file"},
+		{key: "records", word: "editor.view.records", kind: toolAction, off: noMap, menu: "file"},
+		{key: "close", word: "editor.menu.exit", ruleBefore: true, kind: toolAction, menu: "file"},
 		{key: "select", icon: &iconSelect, word: "editor.tool.select", kind: toolPick, cell: image.Pt(1, 0), off: noMap, menu: "tools"},
 		{key: brushMenuKeys[brushTerrain], icon: &iconTerrain, word: "editor.tool.terrain", keyRow: "terrain", kind: toolPick, cell: image.Pt(1, 1), off: noBrush, menu: "tools", headingWord: "editor.tool.brushes"},
 		{key: brushMenuKeys[brushHeight], icon: &iconHeight, word: "editor.tool.height", keyRow: "height", kind: toolPick, cell: image.Pt(1, 2), off: noBrush, menu: "tools"},
@@ -99,6 +98,8 @@ func init() {
 		{key: brushMenuKeys[brushPassability], icon: &iconPassability, word: "editor.tool.passability", keyRow: "passability", kind: toolPick, cell: image.Pt(1, 4), off: noBrush, menu: "tools"},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, cell: image.Pt(1, 5), off: func(e *MapEditor) bool { return !e.editable() }, menu: "tools"},
 		{key: "newtrigger", word: "editor.tool.newtrigger", keyRow: "newtrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.triggerNowOpen() }, menu: "tools"},
+		{key: "randomterrain", word: "editor.tools.randomterrain", headingWord: "editor.menu.generate", kind: toolAction, off: noRandom, menu: "tools"},
+		{key: "randomheights", word: "editor.tools.randomheights", kind: toolAction, off: noRandom, menu: "tools"},
 		{key: "border", icon: &iconBorder, word: "editor.tool.border", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 0), on: func(e *MapEditor) bool { return !e.view.hideBorder }, off: noMap, menu: "view"},
 		{key: "areas", icon: &iconAreas, word: "editor.tool.areas", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 1), on: func(e *MapEditor) bool { return !e.view.hideAreas }, off: noMap, menu: "view"},
 		{key: "drops", icon: &iconDrops, word: "editor.tool.drops", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 2), on: func(e *MapEditor) bool { return !e.view.hideDrops }, off: noMap, menu: "view"},
@@ -389,6 +390,6 @@ func (e *MapEditor) drawToolbar(pic *image.RGBA, floating bool) {
 		if !t.onToolbar() {
 			continue
 		}
-		drawIconButton(pic, iconButton{Rect: t.rect, Icon: t.icon, On: t.shown, Hover: e.pointerOK && e.pointer.In(t.rect), Disabled: t.closed, Scale: scale})
+		drawIconButton(pic, iconButton{Rect: t.rect, Icon: t.icon, On: t.shown, Hover: e.pointerOK && e.pointer.In(t.rect), Disabled: t.closed, Scale: scale, Press: &e.buttonPress})
 	}
 }

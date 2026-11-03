@@ -257,7 +257,7 @@ func TestScriptsRawSectionsAndEveryNodeRemainReachable(t *testing.T) {
 		InspectionRecord{Kind: "Section", Section: 7, Index: 10, Label: "Raw script"},
 		InspectionRecord{Kind: "Section", Section: 7, Index: 11, Label: "Duplicate script"})
 	found := false
-	for _, item := range e.menuItems("map") {
+	for _, item := range e.menuItems("file") {
 		if item.key == "records" {
 			found = true
 			e.menuAct(item.key)

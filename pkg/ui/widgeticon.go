@@ -78,6 +78,7 @@ type iconButton struct {
 	Icon                *editorIcon
 	On, Hover, Disabled bool
 	Scale               int
+	Press               *buttonPress
 }
 
 // iconOnFill is the well an icon button that is on shows behind its icon.
@@ -92,6 +93,6 @@ func drawIconButton(dst *image.RGBA, b iconButton) {
 	if b.On {
 		draw.Draw(dst, b.Rect.Inset(1), image.NewUniform(iconOnFill), image.Point{}, draw.Src)
 	}
-	drawPushButton(dst, nil, pushButton{Rect: b.Rect, Pressed: b.On, Inside: b.On, Hover: b.Hover, Disabled: b.Disabled})
+	drawPushButton(dst, nil, pushButton{Rect: b.Rect, Pressed: b.On, Inside: b.On, Hover: b.Hover, Disabled: b.Disabled, Press: b.Press})
 	drawIcon(dst, b.Rect.Inset(2), b.Icon, b.Disabled, b.Scale)
 }

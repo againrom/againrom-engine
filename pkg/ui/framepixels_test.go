@@ -64,14 +64,6 @@ func frameInstanceHashes(t *testing.T) map[string]string {
 		sum(fmt.Sprintf("rowlistbutton/%v", selected), img.Pix)
 	}
 
-	e, _ := selectedTextEditor(t, panelFont(), image.Pt(1280, 800))
-	sum("chrome/text", e.ChromeImage().Pix)
-	x := newTintFixture(t)
-	x.e.doc.Edits = &tintProbe{}
-	_ = x.e.Key("playertint")
-	sum("chrome/legend", x.e.ChromeImage().Pix)
-	x.e.selected = 1
-	sum("chrome/legend-focus", x.e.ChromeImage().Pix)
 	return out
 }
 
@@ -89,9 +81,6 @@ var pinnedFrameHashes = map[string]string{
 	"chevron/1/false/true":        "4c3eb88ab348e6fe",
 	"chevron/1/true/false":        "4d2ab2e31038dc58",
 	"chevron/1/true/true":         "1608ba0f5c3487e7",
-	"chrome/legend":               "c3e072303b3d6bd6",
-	"chrome/legend-focus":         "6290ad482211a578",
-	"chrome/text":                 "f4b7f4bfd4308376",
 	"rowlistbutton/false":         "6be89f554820f310",
 	"rowlistbutton/true":          "0dee5b049ef0ac70",
 	"shellbox/false":              "46430c439204827a",

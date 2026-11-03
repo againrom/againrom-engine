@@ -56,24 +56,17 @@ func treeHitLabels(e *MapEditor, query string) []string {
 	return out
 }
 
-// Ctrl+F puts the typing in the bar's search field, after the category
-// entries, its hint the search word; typed text goes to it and no key it
+// Owner item 6: Ctrl+F opens the search field below File; typed text goes to it and no key it
 // binds acts; Esc leaves it and empties it.
 func TestMapEditorBarSearchTakesCtrlF(t *testing.T) {
 	for _, c := range []struct{ lang, hint string }{{"en", "Search (Ctrl+F)"}, {"ru", "Поиск (Ctrl+F)"}} {
 		t.Run(c.lang, func(t *testing.T) {
 			e, _, _ := menuEditor(t, c.lang)
-			var keys []string
-			for _, b := range e.barEntries() {
-				keys = append(keys, b.key)
+			// Owner item 6: the field opens below File, not in the bar.
+			if _, ok := e.BarRect("search"); ok {
+				t.Fatal("Search remains in the bar")
 			}
-			if got := strings.Join(keys, " "); !strings.Contains(got, "structures search objects") {
-				t.Fatalf("bar entries %s", got)
-			}
-			box, _ := e.BarRect("search")
-			if box.Dx() < 200 || box.Max.X > e.window.X {
-				t.Fatalf("the search field stands at %v in a window %v", box, e.window)
-			}
+			box := e.searchEntry().rect
 			if row := e.searchRow(); row.Hint != c.hint || row.Kind != popupEdit {
 				t.Fatalf("the field's row %+v", row)
 			}
@@ -101,7 +94,8 @@ func TestMapEditorBarSearchTakesCtrlF(t *testing.T) {
 			if _, ok := searchText(e); ok || e.menu != "" || e.searchRow().Value != "" {
 				t.Fatalf("Esc left the field typing, menu %q", e.menu)
 			}
-			// A press on the field focuses it as Ctrl+F does.
+			// Owner item 6: File opens the same field after Esc.
+			openMenuRow(t, e, "file", "search")
 			chromeClick(e, center(box))
 			if _, ok := searchText(e); !ok {
 				t.Fatal("a press on the field did not focus it")
@@ -146,8 +140,11 @@ func TestMapEditorBarSearchMatchesTheTreeSearch(t *testing.T) {
 		if got != want {
 			t.Errorf("query %q lists\n%s\nthe tree keeps\n%s", q, got, want)
 		}
-		if want == "" && e.menu == "search" {
-			t.Errorf("query %q opened an empty list", q)
+		if want == "" {
+			b, _ := e.openMenuEntry()
+			if e.menuDropdown(b, true).Open {
+				t.Errorf("query %q opened an empty list", q)
+			}
 		}
 	}
 	if got := strings.Join(searchLabels(e), "\n"); !strings.Contains(got, "Units: Unit #1  unit1  P1  12,10") {

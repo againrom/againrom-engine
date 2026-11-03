@@ -117,10 +117,10 @@ func TestMapEditorDialogOpenLoadsChosenBytes(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				bar, _ := e.BarRect("map")
+				bar, _ := e.BarRect("file")
 				for _, r := range []image.Rectangle{bar, {}} {
 					if r.Empty() {
-						n, _ := e.MenuRow("map", "open")
+						n, _ := e.MenuRow("file", "open")
 						r, _ = e.MenuRowRect(n)
 					}
 					in := ui.Input{CursorX: (r.Min.X + r.Max.X) / 2, CursorY: (r.Min.Y + r.Max.Y) / 2, PrimaryDown: true}

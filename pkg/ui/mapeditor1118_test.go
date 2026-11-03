@@ -89,28 +89,28 @@ func TestMapEditor1118CaptureOriginalIdentityPreviewAndRetainView(t *testing.T) 
 	if e.markerLines()[0].x0 != float32(tx-5) {
 		t.Fatal("committed marker remained at old cell")
 	}
-	for _, b := range e.barEntries() {
-		if b.key == "undo" && b.disabled || b.key == "redo" && !b.disabled {
-			t.Fatalf("bar entry %s disabled=%v", b.key, b.disabled)
+	for _, b := range e.menuItems("file") {
+		if b.key == "undo" && b.off || b.key == "redo" && !b.off {
+			t.Fatalf("owner item 4: File row %s disabled=%v", b.key, b.off)
 		}
 	}
-	chromeClick(e, barPoint(t, e, "undo"))
-	chromeClick(e, barPoint(t, e, "redo"))
+	openMenuRow(t, e, "file", "undo")
+	openMenuRow(t, e, "file", "redo")
 	if p.redo != 0 {
 		t.Fatal("disabled Redo dispatched")
 	}
 	p.dirty = false // next probe state enables Redo
-	chromeClick(e, barPoint(t, e, "redo"))
+	openMenuRow(t, e, "file", "redo")
 	if p.undo != 1 || p.redo != 1 {
 		t.Fatal("visible Undo/Redo entries do not dispatch")
 	}
 	p.dirty = true
-	chromeClick(e, barPoint(t, e, "save"))
+	openMenuRow(t, e, "file", "saveas")
 	if e.prompt.kind != promptSave || e.prompt.path != "" {
 		t.Fatal("Save did not open an explicit empty path field")
 	}
 	e.TextInput("new.alm")
-	chromeClick(e, barPoint(t, e, "map")) // the prompt owns the window
+	chromeClick(e, barPoint(t, e, "file")) // the prompt owns the window
 	if !e.prompt.open() || e.catalog || e.menu != "" {
 		t.Fatal("a bar click escaped the path prompt")
 	}

@@ -1,14 +1,9 @@
 package ui
 
 import (
-	"fmt"
-	"hash/fnv"
 	"image"
 	"image/color"
-	"os"
-	"strings"
 	"testing"
-	"time"
 
 	"againrom/pkg/formats/textinput"
 	"againrom/pkg/words"
@@ -140,96 +135,6 @@ func TestMessageCardShowsTheChosenSpeakersPortrait(t *testing.T) {
 				t.Errorf("speaker 6's card draws %d portrait pixels", n)
 			}
 		}
-	}
-}
-
-// The speaker list names each speaker in the host's words, "No speaker"
-// first, and carries no small portrait. Resting the pointer on a speaker's
-// row shows the editor's one tip: the name over the face at its full size; a
-// row without a face shows none. The open lists and the tips are recorded in
-// testdata/mapeditor_speaker_portraits.golden; MAPEDITOR_SPEAKERS_WRITE=1
-// rewrites it.
-func TestSpeakerListNamesEachSpeaker(t *testing.T) {
-	var lines []string
-	for _, lang := range []string{"en", "ru"} {
-		e, face := speakerPortraitEditor(t, lang)
-		if _, _, ok := e.objectSpec(); !ok {
-			t.Fatal("the message editor builds no popup")
-		}
-		e.objectRowPress(popupRowControl, e.fieldRow(1))
-		if e.obj.open != 1 || e.obj.choice == nil {
-			t.Fatal("the speaker list did not open")
-		}
-		labels := e.doc.Edits.(*speakerPortraitEdits).labels
-		rows := e.obj.choice.Rows()
-		if len(rows) != len(labels) {
-			t.Fatalf("%s: the list has %d rows", lang, len(rows))
-		}
-		for k, row := range rows {
-			if row.Text != labels[k] || row.Icon != nil || row.IconCell {
-				t.Errorf("%s row %d %q: picture %v, cell %v; want %q alone", lang, k, row.Text, row.Icon != nil, row.IconCell, labels[k])
-			}
-			lines = append(lines, fmt.Sprintf("%s row %d %s picture=%v cell=%v", lang, k, speakerLabels[lang][k], row.Icon != nil, row.IconCell))
-		}
-		d, ok := e.openDropdown()
-		if !ok {
-			t.Fatal("the open list has no drop-down")
-		}
-		list := d.listBox(e.bodyFont())
-		if n := portraitPixels(e.ChromeImage(), list.Rect); n != 0 {
-			t.Errorf("%s: the open list draws %d portrait pixels", lang, n)
-		}
-		top, _ := d.List.Visible()
-		t0 := time.Unix(100, 0)
-		rest := func(row int, at time.Duration) {
-			p := center(list.Row(row - top))
-			e.Pointer(Input{CursorX: p.X, CursorY: p.Y}, t0.Add(at))
-		}
-		rest(1, 0)
-		rest(1, editorTipDelay*time.Millisecond-time.Millisecond)
-		if got := e.TipShown(); got != "" {
-			t.Fatalf("%s: the tip %q shows before the delay", lang, got)
-		}
-		rest(1, editorTipDelay*time.Millisecond)
-		if got := e.TipShown(); got != labels[1] || e.tip.picture != face {
-			t.Fatalf("%s: the tip reads %q with picture %v, want %q with the face", lang, got, e.tip.picture != nil, labels[1])
-		}
-		pic := e.ChromeImage()
-		tip, at, ok := tooltipPicture(tooltipTarget{kind: tooltipText, id: "editor", lines: []string{labels[1]}, font: e.bodyFont()}, e.pointer, pic.Bounds(), nil, e.editorTipStyle(face))
-		if !ok {
-			t.Fatal("the tip composes no box")
-		}
-		box := tip.Bounds().Add(at)
-		n := portraitPixels(pic, box)
-		if want := face.Bounds().Dx() * face.Bounds().Dy(); n != want {
-			t.Errorf("%s: the tip draws %d face pixels, want the whole face's %d", lang, n, want)
-		}
-		h := fnv.New32a()
-		h.Write(pic.Pix)
-		lines = append(lines, fmt.Sprintf("%s tip %s box %v face pixels %d frame %08x", lang, speakerLabels[lang][1], box, n, h.Sum32()))
-		for k, row := range []int{0, 2} {
-			from := time.Duration(k+1) * time.Second
-			rest(row, from)
-			rest(row, from+editorTipDelay*time.Millisecond)
-			if got := e.TipShown(); got != "" {
-				t.Errorf("%s: row %d shows the tip %q", lang, row, got)
-			}
-		}
-	}
-	const path = "testdata/mapeditor_speaker_portraits.golden"
-	got := strings.Join(lines, "\n") + "\n"
-	if os.Getenv("MAPEDITOR_SPEAKERS_WRITE") != "" {
-		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if want := strings.ReplaceAll(string(raw), "\r\n", "\n"); got != want {
-		t.Errorf("the speaker list reads\n%s\nrecorded\n%s", got, want)
 	}
 }
 

@@ -100,7 +100,7 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 		t.Fatalf("the group boxes %d lines, want one box", n)
 	}
 	// Undo brings unit 0 back.
-	chromeClick(e, barPoint(t, e, "undo"))
+	openMenuRow(t, e, "file", "undo")
 	if got := fmt.Sprint(e.GroupMembers(), groupLinks(t, e)); got != "[0 2] [0 2]" {
 		t.Fatalf("after Undo: members and links %s", got)
 	}
@@ -108,7 +108,7 @@ func TestEditorGroupPopupFollowsUndoRedoAndEdits(t *testing.T) {
 		t.Fatalf("the group boxes %d lines after Undo, want two boxes", n)
 	}
 	// Redo moves it out again.
-	chromeClick(e, barPoint(t, e, "redo"))
+	openMenuRow(t, e, "file", "redo")
 	if got := fmt.Sprint(e.GroupMembers(), groupLinks(t, e)); got != "[2] [2]" {
 		t.Fatalf("after Redo: members and links %s", got)
 	}
@@ -173,7 +173,7 @@ func assertTypedValueDropped(t *testing.T, e *MapEditor, h *popupHost, calls int
 func TestEditorBarButtonsActWhileAFieldIsFocused(t *testing.T) {
 	t.Run("undo", func(t *testing.T) {
 		e, h, saved := focusedUnit(t, true)
-		chromeClick(e, barPoint(t, e, "undo"))
+		openMenuRow(t, e, "file", "undo")
 		if string(e.doc.SourceBytes) == saved || h.cursor != 1 {
 			t.Fatalf("Undo did not act: cursor %d", h.cursor)
 		}
@@ -181,13 +181,13 @@ func TestEditorBarButtonsActWhileAFieldIsFocused(t *testing.T) {
 	})
 	t.Run("redo", func(t *testing.T) {
 		e, h, saved := focusedUnit(t, true)
-		chromeClick(e, barPoint(t, e, "undo"))
+		openMenuRow(t, e, "file", "undo")
 		chromeClick(e, center(fieldRowRect(t, e, 0).Control))
 		e.TextInput("7")
 		if !e.objectTyping() {
 			t.Fatal("the field is not focused")
 		}
-		chromeClick(e, barPoint(t, e, "redo"))
+		openMenuRow(t, e, "file", "redo")
 		if string(e.doc.SourceBytes) != saved || h.cursor != 2 {
 			t.Fatalf("Redo did not act: cursor %d", h.cursor)
 		}
@@ -196,7 +196,7 @@ func TestEditorBarButtonsActWhileAFieldIsFocused(t *testing.T) {
 	t.Run("save", func(t *testing.T) {
 		e, h, _ := focusedUnit(t, true)
 		h.target = "mod"
-		chromeClick(e, barPoint(t, e, "save"))
+		openMenuRow(t, e, "file", "saveas")
 		if h.saves != 1 {
 			t.Fatalf("Save did not act: %d saves", h.saves)
 		}
@@ -251,9 +251,9 @@ func TestEditorMapMenuRowsActWhileAFieldIsFocused(t *testing.T) {
 			e, h, _ := focusedUnit(t, row.dirt)
 			h.target = "mod"
 			calls := len(h.calls)
-			e.menu, e.menuModel = "map", nil
+			e.menu, e.menuModel = "file", nil
 			n := -1
-			for i, it := range e.menuItems("map") {
+			for i, it := range e.menuItems("file") {
 				if it.key == row.key {
 					n = i
 				}

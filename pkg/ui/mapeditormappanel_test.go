@@ -231,7 +231,7 @@ func TestMapPanelModeWords(t *testing.T) {
 }
 
 // The panel opens first with each map, Esc and its close button close it, and
-// the Map menu brings it back over a records list.
+// the Map entry brings it back over a records list (owner item 1).
 func TestMapPanelOpensFirstAndFromTheMapMenu(t *testing.T) {
 	e, _ := mapPanelEditor(t, &mapPanelEdits{facts: playable()}, nil)
 	_ = e.Key("escape")
@@ -239,13 +239,13 @@ func TestMapPanelOpensFirstAndFromTheMapMenu(t *testing.T) {
 		t.Fatal("Esc did not close the panel")
 	}
 	e.showRecords(1)
-	e.menuAct("panel")
+	chromeClick(e, barPoint(t, e, "panel"))
 	if !e.PanelOpen() || e.listShown {
 		t.Fatalf("the Map menu did not bring the panel back: %q", e.listKind())
 	}
-	items := e.menuItems("map")
-	if !slices.Contains(items, menuItem{key: "panel", label: "Map panel"}) {
-		t.Fatalf("map menu %v", items)
+	items := e.menuItems("file")
+	if slices.ContainsFunc(items, func(it menuItem) bool { return it.key == "panel" }) {
+		t.Fatalf("owner item 1: panel remains in File: %v", items)
 	}
 	s, _ := e.panelSpec()
 	l := layoutPopup(s, e.font, e.bodyFont())
@@ -381,7 +381,7 @@ func TestNewMapAsksSingleOrMultiplayer(t *testing.T) {
 func TestMapPanelWordsAreTheBooks(t *testing.T) {
 	e, _ := mapPanelEditor(t, &mapPanelEdits{facts: playable()}, nil)
 	for _, id := range []string{"editor.panel.title", "editor.panel.start.none", "editor.panel.victory.none", "editor.mode.single", "editor.mode.multi",
-		"editor.notice.testplay", "editor.notice.modsave", "editor.notice.continue", "editor.newmap.title", "editor.menu.panel"} {
+		"editor.notice.testplay", "editor.notice.modsave", "editor.notice.continue", "editor.newmap.title", "editor.bar.map"} {
 		if w := e.word(id); w == "" || w == id {
 			t.Errorf("%s has no English word: %q", id, w)
 		}

@@ -271,7 +271,13 @@ func TestMapEditorOneClickJoinEndsWithTheWizardSession(t *testing.T) {
 			e, _, _ := scriptAddEditor(t, l, b)
 			newTriggerClick(t, e)
 			added := slices.Clone(e.Document().SourceBytes)
-			sr, sok := e.BarRect("save")
+			sr, sok := e.BarRect("file")
+			trigClick(t, e, sr, sok, "File")
+			n, ok := e.MenuRow("file", "saveas")
+			if !ok {
+				t.Fatal("owner item 4: File has no Save row")
+			}
+			sr, sok = e.MenuRowRect(n)
 			trigClick(t, e, sr, sok, "Save")
 			if e.Dirty() {
 				t.Fatalf("Save left the map dirty (%s)", e.Message())

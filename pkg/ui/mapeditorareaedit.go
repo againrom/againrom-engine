@@ -571,6 +571,7 @@ func (e *MapEditor) drawAreaDropdown(pic *image.RGBA) {
 	}
 	rows := d.List.Rows()
 	e.noteDropdown(d, e.bodyFont())
+	d.Press = &e.buttonPress
 	drawDropdown(pic, e.bodyFont(), nil, d, func(row, width int) string { return editorClip(e.bodyFont(), rows[row].Text, width) }, e.pointer, e.pointerOK)
 }
 

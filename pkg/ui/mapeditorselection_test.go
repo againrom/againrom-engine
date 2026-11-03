@@ -217,7 +217,7 @@ func brushWords(t *testing.T, e *MapEditor) []string {
 	t.Helper()
 	var out []string
 	for _, b := range toolButtons {
-		if b.group == toolLeft {
+		if b.onToolbar() && b.group == toolLeft {
 			out = append(out, e.word(b.word))
 		}
 	}

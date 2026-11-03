@@ -5,26 +5,29 @@ import (
 	"testing"
 )
 
-// mapRowKeys are the Map menu's rows in order: "" is the Generate heading
-// and then the rule over Exit.
-var mapRowKeys = []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "panel", "records", "", "randomterrain", "randomheights", "", "close"}
+// Owner items 1, 3, 4, 6 move the panel and generation out, history and search in.
+var mapRowKeys = []string{"new", "open", "saveas", "saveto", "catalog", "testplay", "undo", "redo", "search", "records", "", "close"}
 
-// The Map menu's rows are rows of the toolbar's one table, with no toolbar
-// button, and read as they always did: Create new map, Open, Save, Save as,
-// Built-in maps, Test play, Map panel, All records, the Generate heading over
-// the two random commands, a rule, Exit; in EN and RU.
+// Owner items 1, 3, 4, 6: File reads the command table, including history
+// with its keys and Search, without the Map panel or Generate group.
 func TestMapEditorMapMenuRowsAreRowsOfTheTable(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		e, _, _ := menuEditor(t, lang)
-		items := e.menuItems("map")
-		if got := menuKeys(e, "map"); !slices.Equal(got, mapRowKeys) {
+		items := e.menuItems("file")
+		if got := menuKeys(e, "file"); !slices.Equal(got, mapRowKeys) {
 			t.Fatalf("%q: the Map menu holds %v, want %v", lang, got, mapRowKeys)
 		}
-		words := []string{"editor.menu.new", "editor.menu.open", "editor.menu.save", "editor.menu.saveas", "editor.menu.builtin", "editor.menu.testplay", "editor.menu.panel", "editor.view.records", "editor.menu.generate", "editor.tools.randomterrain", "editor.tools.randomheights", "", "editor.menu.exit"}
+		words := []string{"editor.menu.new", "editor.menu.open", "editor.menu.save", "editor.menu.saveas", "editor.menu.builtin", "editor.menu.testplay", "editor.bar.undo", "editor.bar.redo", "editor.bar.search", "editor.view.records", "", "editor.menu.exit"}
 		for i, w := range words {
 			want := ""
 			if w != "" {
 				want = e.word(w)
+			}
+			if items[i].key == "undo" {
+				want += " (Ctrl+Z)"
+			}
+			if items[i].key == "redo" {
+				want += " (Ctrl+Y / Ctrl+Shift+Z)"
 			}
 			if items[i].label != want {
 				t.Errorf("%q: Map row %d reads %q, want %q", lang, i, items[i].label, want)
@@ -38,21 +41,19 @@ func TestMapEditorMapMenuRowsAreRowsOfTheTable(t *testing.T) {
 			if k == "" {
 				continue
 			}
-			if b, ok := table[k]; !ok || b.menu != "map" || b.onToolbar() {
+			if b, ok := table[k]; !ok || b.menu != "file" || b.onToolbar() {
 				t.Errorf("%q: Map row %s is not a menu-only row of the table", lang, k)
 			}
 		}
 	}
 }
 
-// A Map row is drawn disabled exactly when its action would do nothing: Save,
-// Save as and Test play on a map that cannot be edited, the Map panel on a map
-// with no panel, All records with no map, the random commands with no map or
-// in the built-in list; New, Open, Built-in maps and Exit always act.
+// Owner item 4 keeps history's disabled states in File. Save, Save as and
+// Test play require edits; Search and All records require a map.
 func TestMapEditorMapRowIsDisabledWhenItsActionDoesNothing(t *testing.T) {
 	off := func(e *MapEditor) map[string]bool {
 		out := map[string]bool{}
-		for _, it := range e.menuItems("map") {
+		for _, it := range e.menuItems("file") {
 			if it.key != "" {
 				out[it.key] = it.off
 			}
@@ -62,13 +63,13 @@ func TestMapEditorMapRowIsDisabledWhenItsActionDoesNothing(t *testing.T) {
 	always := []string{"new", "open", "catalog", "close"}
 	e, _, _ := menuEditor(t, "")
 	for k, o := range off(e) {
-		if o && k != "panel" {
+		if o && k != "undo" && k != "redo" {
 			t.Errorf("an editable map shows %s disabled", k)
 		}
 	}
 	e.doc.Edits = nil
 	got := off(e)
-	for _, k := range []string{"saveas", "saveto", "testplay", "panel"} {
+	for _, k := range []string{"saveas", "saveto", "testplay", "undo", "redo"} {
 		if !got[k] {
 			t.Errorf("a map that cannot be edited shows %s choosable", k)
 		}
@@ -83,7 +84,7 @@ func TestMapEditorMapRowIsDisabledWhenItsActionDoesNothing(t *testing.T) {
 	}
 	e.doc = nil
 	got = off(e)
-	for _, k := range []string{"saveas", "saveto", "testplay", "panel", "records", "randomterrain", "randomheights"} {
+	for _, k := range []string{"saveas", "saveto", "testplay", "undo", "redo", "records", "search"} {
 		if !got[k] {
 			t.Errorf("no map shows %s choosable", k)
 		}
@@ -95,7 +96,7 @@ func TestMapEditorMapRowIsDisabledWhenItsActionDoesNothing(t *testing.T) {
 	}
 	c, _, _ := menuEditor(t, "")
 	c.catalog = true
-	if got := off(c); !got["randomterrain"] || !got["randomheights"] || got["saveas"] {
+	if got := off(c); got["saveas"] {
 		t.Errorf("the built-in list shows random %v/%v, save %v", got["randomterrain"], got["randomheights"], got["saveas"])
 	}
 }

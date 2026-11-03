@@ -145,6 +145,7 @@
 "help.speed" = "End - скорость игры по умолчанию"
 
 # Слова редактора карт.
+"editor.bar.file" = "Файл"
 "editor.bar.map" = "Карта"
 "editor.bar.tools" = "Инструменты"
 "editor.bar.view" = "Вид"
@@ -159,7 +160,6 @@
 "editor.bar.search" = "Поиск (Ctrl+F)"
 "editor.bar.undo" = "Отменить"
 "editor.bar.redo" = "Вернуть"
-"editor.bar.save" = "Сохранить"
 "editor.menu.new" = "Создать новую карту"
 "editor.menu.open" = "Открыть..."
 "editor.menu.builtin" = "Встроенные карты..."
@@ -491,7 +491,6 @@
 "editor.leave.saveas" = "Сохранить как"
 "editor.leave.close" = "Закрыть без сохранения"
 "editor.leave.open" = "Открыть без сохранения"
-"editor.menu.panel" = "Панель карты"
 "editor.panel.title" = "Карта"
 "editor.panel.size" = "Размер"
 "editor.panel.name" = "Название"

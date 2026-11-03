@@ -161,9 +161,7 @@ func TestDialogueMessageOverlapWarningIncludesRepeatedActionSlots(t *testing.T) 
 	if len(hits) != 1 || hits[0].Error || hits[0].Kind != "Trigger" || hits[0].Index != 0 || !strings.Contains(hits[0].Text, "will not see the second") {
 		t.Fatal("missing plain warning", hits)
 	}
-	r, ok := e.BarRect("map")
-	messageClick(t, e, r, ok)
-	r, ok = e.MenuRowRect(6)
+	r, ok := e.BarRect("panel")
 	messageClick(t, e, r, ok)
 	if lines := e.PanelLines(); len(lines) == 0 || !strings.Contains(strings.Join(lines, " "), "second") {
 		t.Fatal("Map panel hides message warning", e.PanelLines())

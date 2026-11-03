@@ -126,9 +126,9 @@ func TestReleaseMapEditorOwnerFrames(t *testing.T) {
 	shot(fresh(), "map-picker", image.Rectangle{})
 
 	e := opened()
-	r, ok := e.BarRect("map")
-	click(e, r, ok, "the Map entry")
-	shot(e, "map-menu", image.Rectangle{})
+	r, ok := e.BarRect("file")
+	click(e, r, ok, "the File entry")
+	shot(e, "file-menu", image.Rectangle{})
 
 	e = opened()
 	unit := first(e, "Unit")

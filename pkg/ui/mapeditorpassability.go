@@ -314,7 +314,7 @@ func blendOver(under, c color.RGBA) color.RGBA {
 // StatusLine is the text of the status strip, for a headless driver.
 func (e *MapEditor) StatusLine() string { return e.statusText() }
 
-// MenuRow is the row of the bar menu menu ("map", "view", "tools") whose
+// MenuRow is the row of the bar menu menu ("file", "view", "tools") whose
 // action is key, for a headless driver that presses it.
 func (e *MapEditor) MenuRow(menu, key string) (int, bool) {
 	for i, it := range e.menuItems(menu) {

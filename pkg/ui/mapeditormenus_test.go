@@ -22,12 +22,12 @@ func menuEditor(t *testing.T, lang string) (*MapEditor, *groupsProbe, *[][]byte)
 }
 
 // tableMenus are the bar menus whose rows the toolbar's table gives.
-var tableMenus = []string{"map", "tools", "view", "window"}
+var tableMenus = []string{"file", "tools", "view", "window"}
 
 // menuRowKeys are each table menu's row keys in order, "" for a heading.
 var menuRowKeys = map[string][]string{
-	"map":    mapRowKeys,
-	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea", "newtrigger"},
+	"file":   mapRowKeys,
+	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea", "newtrigger", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
 	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel"},
 }
@@ -69,7 +69,7 @@ func assertMenuMarks(t *testing.T, e *MapEditor, how string) {
 	}
 }
 
-// The bar holds the Tools, View and Window menus right after Map, in EN and
+// Owner item 5 puts Tools, View and Window at the right end, in EN and
 // RU, each opening the one drop-down on its rows in order: Select, the
 // Brushes heading over the four brushes, Draw trigger area; the eight layer
 // switches, grid, fit map and report; the toolbar and the three panels. A
@@ -86,19 +86,22 @@ func TestMapEditorToolsViewAndWindowMenusListTheToolbarRows(t *testing.T) {
 		report   string
 		panel    string
 	}{
-		{"", []string{"Map", "Tools", "View", "Window"}, "Brushes", "[ ] Terrain brush (T)", "[x] Select", "[x] Toolbar", "[ ] Report panel (F8)", "[x] Objects and scenarios panel (F6)"},
-		{"russian", []string{"Карта", "Инструменты", "Вид", "Окно"}, "Кисти", "[ ] Кисть ландшафта (T)", "[x] Выбор", "[x] Панель инструментов", "[ ] Панель отчета (F8)", "[x] Панель объектов и сценариев (F6)"},
+		{"", []string{"File", "Tools", "View", "Window"}, "Brushes", "[ ] Terrain brush (T)", "[x] Select", "[x] Toolbar", "[ ] Report panel (F8)", "[x] Objects and scenarios panel (F6)"},
+		{"russian", []string{"Файл", "Инструменты", "Вид", "Окно"}, "Кисти", "[ ] Кисть ландшафта (T)", "[x] Выбор", "[x] Панель инструментов", "[ ] Панель отчета (F8)", "[x] Панель объектов и сценариев (F6)"},
 	} {
 		t.Run(fmt.Sprintf("%q", c.lang), func(t *testing.T) {
 			e, _, _ := menuEditor(t, c.lang)
 			var keys, labels []string
-			for _, b := range e.barEntries()[:4] {
+			for _, b := range e.barEntries() {
+				if !b.menu {
+					continue
+				}
 				keys, labels = append(keys, b.key), append(labels, b.label)
 				if !b.menu || b.disabled {
 					t.Errorf("bar entry %s menu %v disabled %v", b.key, b.menu, b.disabled)
 				}
 			}
-			if !slices.Equal(keys, []string{"map", "tools", "view", "window"}) || !slices.Equal(labels, c.bar) {
+			if !slices.Equal(keys, []string{"file", "tools", "view", "window"}) || !slices.Equal(labels, c.bar) {
 				t.Fatalf("the bar starts %v %q", keys, labels)
 			}
 			for _, menu := range tableMenus {
@@ -207,7 +210,7 @@ func TestMapEditorMenuRowsAreDisabledWhereTheirButtonsAre(t *testing.T) {
 func TestMapEditorMenuRowPressDoesWhatItsButtonDoes(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		for _, b := range toolButtons {
-			if b.menu == "map" {
+			if b.menu == "file" {
 				continue
 			}
 			t.Run(fmt.Sprintf("%q/%s", lang, b.key), func(t *testing.T) {

@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] The map editor's top bar has a File menu with Undo, Redo and Search, a Map button for the map panel, and Tools, View and Window at its right end. Every button shows when it is pressed.
+
 ## 0.146.1
 
 ### For players

@@ -413,7 +413,7 @@ func TestMapEditorPlainSackShowsItemNamesAndIcons(t *testing.T) {
 
 const plainViewsGolden = "testdata/mapeditor_plain_views.golden"
 
-// The plain view of a unit, a structure and a sack at 1280x800 in English
+// The plain view of a unit, a structure and a sack at 1920x1080 in English
 // and Russian, in the right panel and floating, and the structure with its
 // placement block open. MAPEDITOR_VIEWS_WRITE=1 rewrites the record;
 // AGAINROM_VIEWS_PNG names a folder for the pictures.
@@ -431,13 +431,14 @@ func TestMapEditorPlainViewGolden(t *testing.T) {
 				open   bool
 			}{{"unit", viewsUnit, false}, {"structure", viewsStructure, false}, {"structure-placement", viewsStructure, true}, {"sack", viewsSack, false}} {
 				e, _, _ := plainEditor(t, lang, profile, c.record)
+				e.Layout(1920, 1080) // Owner item 5: supported editor window.
 				if c.open {
 					e.toggleBlock("placement")
 				}
 				pic := e.ChromeImage()
 				h := fnv.New64a()
 				h.Write(pic.Pix)
-				name := fmt.Sprintf("%s-%s-%s-1280x800", c.name, lang, place)
+				name := fmt.Sprintf("%s-%s-%s-1920x1080", c.name, lang, place)
 				front, _ := e.PopupRect()
 				s, _, _ := e.objectSpec()
 				fmt.Fprintf(&out, "== %s %016x window=%v\n%s", name, h.Sum64(), front, rowsText(s))

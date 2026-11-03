@@ -73,9 +73,10 @@ var widgetLatchDebt = map[string]string{}
 // widgetNotALatch is every field the latch rule matches that is not a push
 // button latch, or that holds the kit latch inside a wider record.
 var widgetNotALatch = map[string]string{
-	"pkg/ui/mapeditor.go:press":     "map editor drag origin, a point",
-	"pkg/ui/mapeditormove.go:press": "map editor move origin, a point",
-	"pkg/ui/app.go:dialoguePress":   "dialogue pointer capture holding the kit latch",
+	"pkg/ui/mapeditor.go:press":             "map editor drag origin, a point",
+	"pkg/ui/mapeditormove.go:press":         "map editor move origin, a point",
+	"pkg/ui/app.go:dialoguePress":           "dialogue pointer capture holding the kit latch",
+	"pkg/ui/mapeditorwindow.go:buttonPress": "map editor pressed-button capture holding the kit latch",
 }
 
 var (

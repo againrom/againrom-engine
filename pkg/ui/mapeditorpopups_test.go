@@ -211,8 +211,8 @@ func TestEditorMapPickerOpensByListAndMenu(t *testing.T) {
 	if e.doc == nil || e.catalog {
 		t.Fatal("a double click did not open the map")
 	}
-	chromeClick(e, barPoint(t, e, "map"))
-	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "catalog")))
+	chromeClick(e, barPoint(t, e, "file"))
+	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "file", "catalog")))
 	if !e.catalog || e.menu != "" {
 		t.Fatal("Map > Open did not show the picker")
 	}
@@ -220,8 +220,8 @@ func TestEditorMapPickerOpensByListAndMenu(t *testing.T) {
 	if e.catalog || e.doc == nil {
 		t.Fatal("Esc did not close the picker over the open map")
 	}
-	chromeClick(e, barPoint(t, e, "map"))
-	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "map", "catalog")))
+	chromeClick(e, barPoint(t, e, "file"))
+	chromeClick(e, menuPoint(t, e, menuKeyRow(t, e, "file", "catalog")))
 	l := listLayout(t, e)
 	chromeClick(e, center(l.Close))
 	if e.catalog {
@@ -285,7 +285,7 @@ func TestEditorObjectPopupApplyIsOneUndoStep(t *testing.T) {
 	if e.selected != 2 || e.obj.buf[0] != "42" {
 		t.Fatal("Apply lost the selection or the popup's values")
 	}
-	chromeClick(e, barPoint(t, e, "undo"))
+	openMenuRow(t, e, "file", "undo")
 	if string(e.doc.SourceBytes) != original {
 		t.Fatal("one Undo did not restore the bytes")
 	}

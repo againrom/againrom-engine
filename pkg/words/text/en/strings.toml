@@ -148,6 +148,7 @@
 "help.speed" = "End - default game speed"
 
 # The map editor's own words.
+"editor.bar.file" = "File"
 "editor.bar.map" = "Map"
 "editor.bar.tools" = "Tools"
 "editor.bar.view" = "View"
@@ -162,7 +163,6 @@
 "editor.bar.trees" = "Trees"
 "editor.bar.undo" = "Undo"
 "editor.bar.redo" = "Redo"
-"editor.bar.save" = "Save"
 "editor.menu.new" = "Create new map"
 "editor.menu.open" = "Open..."
 "editor.menu.builtin" = "Built-in maps..."
@@ -528,7 +528,6 @@
 "editor.leave.saveas" = "Save As"
 "editor.leave.close" = "Close without saving"
 "editor.leave.open" = "Open without saving"
-"editor.menu.panel" = "Map panel"
 "editor.panel.title" = "Map"
 "editor.panel.size" = "Size"
 "editor.panel.name" = "Name"

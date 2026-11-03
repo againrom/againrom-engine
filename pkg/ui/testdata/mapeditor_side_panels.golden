@@ -1,4 +1,4 @@
-== trigger-en-1280x800 ae9b7c24bb18446c panels=[260 520 26] map=(260,58)-(760,758)
+== trigger-en-1920x1080 402612eff2829ff4 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -31,7 +31,7 @@ title "Trigger 1"
 3 "  Group" "" [On map] ""
 0 "" "" [Add action] ""
 0 "With no condition the trigger never runs." "" [] ""
-== trigger-ru-1280x800 7e72cf490233f258 panels=[260 520 26] map=(260,58)-(760,758)
+== trigger-ru-1920x1080 8838d384c31634d4 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры
@@ -64,7 +64,7 @@ title "Триггер 1"
 3 "  Группа" "" [На карте] ""
 0 "" "" [Добавить действие] ""
 0 "Без условия триггер не сработает." "" [] ""
-== search-en-1280x800 f4034aa0ead15533 panels=[260 520 26] map=(260,58)-(760,758)
+== search-en-1920x1080 2cedd3a348f5047b panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Units (5)
    Unit #0  unit0  P1  10,10
@@ -80,8 +80,8 @@ title "Unit #3"
 0 "Used by: none" "" [] ""
 1 "Data" "" [] ""
 0 "unit3" "" [] ""
-== defaults-en-1024x768 bb167e425f6f3631 panels=[260 16 26] map=(260,58)-(1008,726)
-toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel
+== defaults-en-1920x1080 067c293998930535 panels=[260 520 26] map=(260,58)-(1400,1038)
+toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
      Trigger 1  Hide them
@@ -103,7 +103,9 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability drawa
  - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
-== toolbar-en-1280x800 b7ce0002cd9c8dbc panels=[260 520 26] map=(260,58)-(760,758)
+title "Properties"
+0 "Select an object on the map or in the tree." "" [] ""
+== toolbar-en-1920x1080 fd92019ab00e5d25 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select brush.terrain* brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -128,7 +130,7 @@ toolbar select brush.terrain* brush.height brush.objects brush.passability drawa
    Structure #0  hall  30,30
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== toolbar-ru-1280x800 b24c77bb483bd59e panels=[260 520 26] map=(260,58)-(760,758)
+== toolbar-ru-1920x1080 1343ac5dfd684909 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select brush.terrain* brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report objectspanel* propertiespanel*
  - Сценарий (1)
    Триггеры
@@ -153,7 +155,7 @@ toolbar select brush.terrain* brush.height brush.objects brush.passability drawa
    Structure #0  hall  30,30
 title "Свойства"
 0 "Выберите объект на карте или в дереве." "" [] ""
-== layers-en-1280x800 f9200408713a0c4a panels=[260 520 26] map=(260,58)-(760,758)
+== layers-en-1920x1080 cd017c379d7e2552 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview* playertint grid fit report objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -178,7 +180,7 @@ toolbar select* brush.terrain brush.height brush.objects brush.passability drawa
    Structure #0  hall  30,30
 title "Properties"
 0 "Select an object on the map or in the tree." "" [] ""
-== report-en-1280x800 30357f3db2468d76 panels=[260 520 180] map=(260,58)-(760,604)
+== report-en-1920x1080 b81fbbf2b16a5d4e panels=[260 520 180] map=(260,58)-(1400,884)
 toolbar select* brush.terrain brush.height brush.objects brush.passability drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report* objectspanel* propertiespanel*
  - Scripts (1)
    Triggers
@@ -209,7 +211,7 @@ title "Unit #0"
 0 "Used by: none" "" [] ""
 1 "Data" "" [] ""
 0 "unit0" "" [] ""
-== nobrush-en-1280x800 db5aad2044c80988 panels=[260 520 26] map=(260,58)-(760,758)
+== nobrush-en-1920x1080 1083db9669173524 panels=[260 520 26] map=(260,58)-(1400,1038)
 toolbar select* brush.terrain- brush.height- brush.objects- brush.passability- drawarea border* areas* drops* footprints* issues* heightlabels passview playertint grid fit report- objectspanel* propertiespanel*
  - Scripts (1)
    Triggers

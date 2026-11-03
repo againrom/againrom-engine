@@ -9,7 +9,7 @@ import (
 
 // The Map panel lists what a map needs to be played, one line per need, each
 // stating the map's value and opening the place that sets it. It stands in the
-// list popup when a map opens and under any list shown there; the Map menu
+// list popup when a map opens and under any list shown there; the Map entry
 // brings it back. Its two checks are rows of the host's rule table, so the
 // report, Save, Test play and the mod load read the same findings.
 

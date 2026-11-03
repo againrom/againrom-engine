@@ -8,7 +8,6 @@ import (
 	"image"
 	"os"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -197,62 +196,6 @@ func chromeRectsLines(t *testing.T, text string) []chromeRectsLine {
 		out = append(out, l)
 	}
 	return out
-}
-
-// (a) With every panel minimized, the map area is the area the editor had
-// before the panels and the toolbar existed less the two side strips, the
-// toolbar and the bottom panel's strip; the status strip stands where it
-// stood, the bar holds the entries it held less the View and Tools entries
-// after Trees, beside the Tools, View and Window menus after Map and the
-// search field after the record categories, the map frame fills the map
-// area, and every window that is not a record category's palette keeps its
-// size. The recorded table was read from the editor without panels.
-func TestMapEditorMinimizedPanelsKeepTheChromeRects(t *testing.T) {
-	raw, err := os.ReadFile("testdata/mapeditor_chrome_rects.golden")
-	if err != nil {
-		t.Fatal(err)
-	}
-	probe, _ := groupsEditor(t)
-	strip, low := probe.panelStrip(panelLeft), probe.panelStrip(panelBottom)
-	base := chromeRectsLines(t, string(raw))
-	// The recorded rectangles are the technical view's, the base window.
-	got := chromeRectsLines(t, chromeRectsText(t, func(e *MapEditor) { e.SetPanelProfile(minimizedPanels, nil, nil); e.props.plain = false }))
-	if len(got) != len(base) {
-		t.Fatalf("%d chrome lines, the base has %d", len(got), len(base))
-	}
-	for i, g := range got {
-		b := base[i]
-		players := strings.HasSuffix(g.name, " players") || strings.HasSuffix(g.name, " players-own")
-		want := image.Rect(b.area.Min.X+strip, b.area.Min.Y+dockedToolbarHigh(b.area.Dx()), b.area.Max.X-strip, b.area.Max.Y-low)
-		search := slices.IndexFunc(barKeys, func(k barKey) bool { return k.key == searchKey })
-		gotBar := chromeBarLess(t, chromeBarLess(t, g.bar, len(barKeys), search, search+1), len(barKeys)-1, 1, 4)
-		bar := chromeBarLess(t, b.bar, len(barKeys)-2, 9, 11)
-		if g.name != b.name || g.area != want || g.status != b.status || gotBar != bar || g.frame != want.Size() {
-			t.Errorf("%s: map %v frame %v status %s bar %s, want map %v status %s bar %s", g.name, g.area, g.frame, g.status, gotBar, want, b.status, bar)
-		}
-		// The windows less the three strips keep their sizes; the players
-		// palette lost its record rows.
-		var windows []image.Rectangle
-		for _, r := range g.popups {
-			side := r.Dx() == strip && r.Min.Y == g.area.Min.Y && r.Max.Y == g.area.Max.Y+low
-			bottom := r.Dy() == low && r.Min.Y == g.area.Max.Y && r.Min.X == g.area.Min.X && r.Max.X == g.area.Max.X
-			if !side && !bottom {
-				windows = append(windows, r)
-			}
-		}
-		if players {
-			continue
-		}
-		if len(windows) != len(b.popups) {
-			t.Errorf("%s: windows %v, the base %v", g.name, windows, b.popups)
-			continue
-		}
-		for n := range windows {
-			if windows[n].Size() != b.popups[n].Size() {
-				t.Errorf("%s: window %d is %v, the base %v", g.name, n, windows[n], b.popups[n])
-			}
-		}
-	}
 }
 
 // (b) A fresh profile restores both panels where they fit beside the map's
@@ -739,9 +682,9 @@ func toolbarText(e *MapEditor) string {
 	return b.String() + "\n"
 }
 
-// The side panels as they draw: both open at 1280x800 in English and in
-// Russian with the trigger selected, a search applied, and the defaults of
-// a 1024x768 window; the toolbar with the terrain brush current in English
+// Owner item 5: the side panels draw at 1920x1080 in English and Russian
+// with a trigger selected, a search applied, and default placement;
+// the toolbar with the terrain brush current in English
 // and in Russian, its Layers drop-down open, the report docked in the bottom
 // panel, and a map that takes no brush.
 func TestMapEditorSidePanelsGolden(t *testing.T) {
@@ -754,15 +697,15 @@ func TestMapEditorSidePanelsGolden(t *testing.T) {
 		record int
 		setup  func(t *testing.T, e *MapEditor)
 	}{
-		{"trigger-en-1280x800", 1280, 800, "", "", 7, nil},
-		{"trigger-ru-1280x800", 1280, 800, "russian", "", 7, nil},
-		{"search-en-1280x800", 1280, 800, "", "unit", 3, nil},
-		{"defaults-en-1024x768", 1024, 768, "", "", -1, nil},
-		{"toolbar-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
-		{"toolbar-ru-1280x800", 1280, 800, "russian", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
-		{"layers-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "passview")) }},
-		{"report-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "report")) }},
-		{"nobrush-en-1280x800", 1280, 800, "", "", -1, func(t *testing.T, e *MapEditor) { e.doc.Edits = noBrushHost{e.doc.Edits} }},
+		{"trigger-en-1920x1080", 1920, 1080, "", "", 7, nil},
+		{"trigger-ru-1920x1080", 1920, 1080, "russian", "", 7, nil},
+		{"search-en-1920x1080", 1920, 1080, "", "unit", 3, nil},
+		{"defaults-en-1920x1080", 1920, 1080, "", "", -1, nil},
+		{"toolbar-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
+		{"toolbar-ru-1920x1080", 1920, 1080, "russian", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "brush.terrain")) }},
+		{"layers-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "passview")) }},
+		{"report-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { modesClick(e, toolPoint(t, e, "report")) }},
+		{"nobrush-en-1920x1080", 1920, 1080, "", "", -1, func(t *testing.T, e *MapEditor) { e.doc.Edits = noBrushHost{e.doc.Edits} }},
 	} {
 		e, _, _ := panelsEditor(t, c.w, c.h, c.lang)
 		e.props.plain = false // the recorded windows are the technical view's

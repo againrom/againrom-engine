@@ -6,18 +6,19 @@ import (
 	"strings"
 )
 
-// The bar's search field: the editor's one text field in the bar after the
-// record categories, and Ctrl+F. Typing lists the members of every category
-// the tree's search keeps for the same text, each under its category's
-// word, in the bar's one drop-down, as the open bar menu searchKey. Choosing
-// a hit selects it as a press on its tree row does; no side panel changes.
+// File's Search row and Ctrl+F open the same field below File. Its hits use
+// the bar's drop-down and choose the same member as the tree.
 
-// searchKey is the search field's bar entry, its key row and its text input.
+// searchKey names the field's drop-down, key row and text input.
 const searchKey = "search"
 
-// searchFieldW is the search field's width in the bar, and searchFieldMinW
-// the least it narrows to in a narrow window before the bar takes a row.
-const searchFieldW, searchFieldMinW = 220, 80
+const searchFieldW = 220
+
+func (e *MapEditor) searchEntry() barEntry {
+	y := e.barHeight() + 3
+	return barEntry{key: searchKey, label: e.word("editor.bar.search"), menu: true, field: true,
+		rect: image.Rect(4, y, 4+searchFieldW, y+e.barRowHeight()-6)}
+}
 
 // searchRows is the most hits the open list shows at once.
 const searchRows = 16
@@ -64,12 +65,11 @@ func (e *MapEditor) searchItems() []menuItem {
 	return out
 }
 
-// searchFollow opens the hit list while the field takes the typed text and
-// the text finds a member, the first hit highlighted, and closes it
-// otherwise.
+// searchFollow keeps the field open while typing, with the first hit
+// highlighted when there are hits.
 func (e *MapEditor) searchFollow() {
 	switch {
-	case e.searchTyping() && len(e.searchHits()) > 0:
+	case e.searchTyping():
 		e.menu, e.menuModel = searchKey, nil
 	case e.menu == searchKey:
 		e.menu = ""
@@ -144,10 +144,10 @@ func (e *MapEditor) searchRow() popupRow {
 // searchInputAt is the search field's text view under p: a press there makes
 // the field take the typed text; while it does, a drag keeps it.
 func (e *MapEditor) searchInputAt(p image.Point, press bool) (*editorTextView, image.Rectangle, bool) {
-	box, ok := e.BarRect(searchKey)
-	if !ok {
+	if !e.searchTyping() {
 		return nil, image.Rectangle{}, false
 	}
+	box := e.searchEntry().rect
 	if press {
 		if !p.In(box) || e.doc == nil || e.prompt.open() {
 			return nil, image.Rectangle{}, false
@@ -171,7 +171,7 @@ func (e *MapEditor) searchPressOff(p image.Point) {
 	if !e.search.typing {
 		return
 	}
-	if box, ok := e.BarRect(searchKey); ok && p.In(box) {
+	if p.In(e.searchEntry().rect) {
 		return
 	}
 	if b, ok := e.openMenuEntry(); ok && b.key == searchKey && e.menuDropdown(b, true).Covers(e.font, p) {

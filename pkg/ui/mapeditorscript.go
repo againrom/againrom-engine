@@ -107,7 +107,7 @@ func (e *MapEditor) drawGoalLinks(pic *image.RGBA, s popupSpec) {
 	l := layoutPopup(s, e.font, e.bodyFont())
 	for row := range e.report.goals {
 		if r := e.goalButton(l, row); !r.Empty() {
-			drawPushButton(pic, e.bodyFont(), pushButton{Rect: r, Label: e.word("editor.button.open"), Literal: true,
+			drawPushButton(pic, e.bodyFont(), pushButton{Press: &e.buttonPress, Rect: r, Label: e.word("editor.button.open"), Literal: true,
 				LabelRaise: labelRaise(e.bodyFont()), Hover: e.pointerOK && e.pointer.In(r)})
 		}
 	}

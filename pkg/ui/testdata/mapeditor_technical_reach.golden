@@ -1,19 +1,19 @@
-en panel 360 Unit identity: 3 button lines, rows 0..3, fields owner
-en panel 360 Unit equipment: 3 button lines, rows 0..3, fields
-en panel 360 Unit inventory: 3 button lines, rows 0..3, fields
-en panel 360 Unit stats: 3 button lines, rows 0..3, fields
+en panel 360 Unit identity: 3 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+en panel 360 Unit equipment: 3 button lines, rows 0..15, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10
+en panel 360 Unit inventory: 3 button lines, rows 0..6, fields
+en panel 360 Unit stats: 3 button lines, rows 0..14, fields hp mana
 en panel 360 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 en panel 360 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-en panel 520 Unit identity: 2 button lines, rows 0..7, fields owner class tier definition group
-en panel 520 Unit equipment: 2 button lines, rows 0..7, fields gear wear1 wear2
+en panel 520 Unit identity: 2 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+en panel 520 Unit equipment: 2 button lines, rows 0..17, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
 en panel 520 Unit inventory: 2 button lines, rows 0..6, fields
-en panel 520 Unit stats: 2 button lines, rows 0..7, fields
+en panel 520 Unit stats: 2 button lines, rows 0..20, fields hp mana body mind spirit
 en panel 520 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 en panel 520 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-en panel 800 Unit identity: 2 button lines, rows 0..7, fields owner class tier definition group
-en panel 800 Unit equipment: 2 button lines, rows 0..7, fields gear wear1 wear2
-en panel 800 Unit inventory: 2 button lines, rows 0..6, fields
-en panel 800 Unit stats: 2 button lines, rows 0..7, fields
+en panel 800 Unit identity: 1 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+en panel 800 Unit equipment: 1 button lines, rows 0..17, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
+en panel 800 Unit inventory: 1 button lines, rows 0..6, fields
+en panel 800 Unit stats: 1 button lines, rows 0..32, fields hp mana body mind spirit reaction defence absorption skill.blade
 en panel 800 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 en panel 800 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
 en panel 0 Unit identity: 1 button lines, rows 0..29, fields owner class tier definition group face sex npc npcflag gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
@@ -22,22 +22,22 @@ en panel 0 Unit inventory: 1 button lines, rows 0..29, fields owner class tier d
 en panel 0 Unit stats: 1 button lines, rows 0..44, fields owner class tier definition group face sex npc npcflag gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12 hp mana body mind spirit
 en panel 0 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 en panel 0 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-ru panel 360 Unit identity: 3 button lines, rows 0..3, fields owner
-ru panel 360 Unit equipment: 3 button lines, rows 0..3, fields
-ru panel 360 Unit inventory: 3 button lines, rows 0..3, fields
-ru panel 360 Unit stats: 3 button lines, rows 0..3, fields
+ru panel 360 Unit identity: 3 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+ru panel 360 Unit equipment: 3 button lines, rows 0..15, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10
+ru panel 360 Unit inventory: 3 button lines, rows 0..6, fields
+ru panel 360 Unit stats: 3 button lines, rows 0..14, fields hp mana
 ru panel 360 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 ru panel 360 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-ru panel 520 Unit identity: 2 button lines, rows 0..7, fields owner class tier definition group
-ru panel 520 Unit equipment: 2 button lines, rows 0..7, fields gear wear1 wear2
+ru panel 520 Unit identity: 2 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+ru panel 520 Unit equipment: 2 button lines, rows 0..17, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
 ru panel 520 Unit inventory: 2 button lines, rows 0..6, fields
-ru panel 520 Unit stats: 2 button lines, rows 0..7, fields
+ru panel 520 Unit stats: 2 button lines, rows 0..20, fields hp mana body mind spirit
 ru panel 520 Structure : 1 button lines, rows 0..13, fields kind owner identity placement width height
 ru panel 520 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
-ru panel 800 Unit identity: 2 button lines, rows 0..8, fields owner class tier definition group face
-ru panel 800 Unit equipment: 2 button lines, rows 0..8, fields gear wear1 wear2 wear4
-ru panel 800 Unit inventory: 2 button lines, rows 0..6, fields
-ru panel 800 Unit stats: 2 button lines, rows 0..8, fields
+ru panel 800 Unit identity: 1 button lines, rows 0..12, fields owner class tier definition group face sex npc npcflag
+ru panel 800 Unit equipment: 1 button lines, rows 0..17, fields gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12
+ru panel 800 Unit inventory: 1 button lines, rows 0..6, fields
+ru panel 800 Unit stats: 1 button lines, rows 0..33, fields hp mana body mind spirit reaction defence absorption skill.blade skill.axe
 ru panel 800 Structure : 1 button lines, rows 0..12, fields kind owner identity placement width height
 ru panel 800 Sack : 1 button lines, rows 0..15, fields gold item1 item2 item3 additem use1 recipe1 use2 recipe2 use3 recipe3
 ru panel 0 Unit identity: 1 button lines, rows 0..29, fields owner class tier definition group face sex npc npcflag gear wear1 wear2 wear4 wear5 wear6 wear7 wear8 wear9 wear10 wear12

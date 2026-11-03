@@ -311,7 +311,7 @@ func newModesEditor(t *testing.T, host string) (*MapEditor, *modesCalls) {
 
 var modesKeys = []string{"close", "escape", "open", "catalog", "enter", "report", "terrain", "height", "objects", "passability", "radiusup", "radiusdown", "up", "down", "saveas", "new", "unit", "structure", "stock", "recipe", "clone", "delete", "field", "tab", "sack", "drop", "goals", "undo", "redo", "backspace", "fit", "triggers", "pageup", "pagedown", "home", "end", "players", "player", "testplay", "scripts", "help", "metadata", "pages", "package", "selectall", "newline", "drawarea", "newtrigger", "bogus", "left", "right", "ctrl+left", "ctrl+right", "shift+left", "shift+right", "shift+home", "shift+end", "ctrl+shift+left", "ctrl+shift+right", "copy", "cut", "paste", "passview", "cardup", "carddown", "applyobject", "backtab"}
 
-var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:tool-fit", "ui:bar-undo", "ui:bar-redo", "ui:bar-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
+var modesGestures = []string{"ui:select0", "ui:select2", "ui:click-cell", "ui:click-unit", "ui:text-7", "ui:text-bad", "ui:text-plain", "ui:drag-unit", "ui:press-unit", "ui:press-cell", "ui:menu-maps", "ui:menu-open", "ui:tool-fit", "ui:file-undo", "ui:file-redo", "ui:file-save", "ui:bar-units", "ui:list-row0", "ui:wheel-list"}
 
 func modesPress(e *MapEditor, p image.Point, down bool) {
 	e.Pointer(Input{CursorX: p.X, CursorY: p.Y, PrimaryDown: down}, time.Unix(1, 0))
@@ -371,21 +371,24 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:press-cell":
 		modesPress(e, cell(25, 20), true)
 	case "ui:menu-maps":
-		n, _ := e.MenuRow("map", "catalog")
-		menu("map", n)
+		n, _ := e.MenuRow("file", "catalog")
+		menu("file", n)
 	case "ui:menu-open":
-		n, _ := e.MenuRow("map", "open")
-		menu("map", n)
+		n, _ := e.MenuRow("file", "open")
+		menu("file", n)
 	case "ui:tool-fit":
 		if r, ok := e.ToolbarRect("fit"); ok {
 			modesClick(e, center(r))
 		}
-	case "ui:bar-undo":
-		modesClick(e, bar("undo"))
-	case "ui:bar-redo":
-		modesClick(e, bar("redo"))
-	case "ui:bar-save":
-		modesClick(e, bar("save"))
+	case "ui:file-undo":
+		n, _ := e.MenuRow("file", "undo")
+		menu("file", n)
+	case "ui:file-redo":
+		n, _ := e.MenuRow("file", "redo")
+		menu("file", n)
+	case "ui:file-save":
+		n, _ := e.MenuRow("file", "saveas")
+		menu("file", n)
 	case "ui:bar-units":
 		modesClick(e, bar("units"))
 	case "ui:list-row0":

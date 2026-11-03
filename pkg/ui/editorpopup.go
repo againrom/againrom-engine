@@ -1299,10 +1299,15 @@ type popupInk struct {
 // drawPopup is the one editor popup painter: the frame, the title bar and its
 // close button, each shown row's label and control, the list box, the notes
 // and the buttons, each through the widget kit's builder.
-func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s popupSpec, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool) {
+func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s popupSpec, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool, press ...*buttonPress) {
+	var held *buttonPress
+	if len(press) > 0 {
+		held = press[0]
+	}
 	if dst == nil {
 		return
 	}
+	held.cover(l.Rect)
 	drawFrame(dst, panelFrame(l.Rect, ink.Ground, ink.Edge))
 	if !l.RowBar.Empty() {
 		drawVScrollBar(dst, frames, vScrollBar{Rect: l.RowBar, Pos: s.Top, Count: popupRowCount(s) - s.MaxRows + 1}.withPointer(pointer, pointerOK))
@@ -1335,7 +1340,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	titleEnd := l.Close.Min.X
 	if !l.TitleButton.Empty() {
 		titleEnd = l.TitleButton.Min.X
-		drawPushButton(dst, body, pushButton{Rect: l.TitleButton, Label: s.TitleButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.TitleButton)})
+		drawPushButton(dst, body, pushButton{Press: held, Rect: l.TitleButton, Label: s.TitleButton, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.TitleButton)})
 	}
 	if title != nil {
 		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, titleEnd-2, l.Title.Max.Y)).(*image.RGBA)
@@ -1345,9 +1350,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	if s.CloseLabel != "" {
 		closeLabel = s.CloseLabel
 	}
-	drawPushButton(dst, body, pushButton{Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
+	drawPushButton(dst, body, pushButton{Press: held, Rect: l.Close, Label: closeLabel, Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(l.Close)})
 	for i, tab := range l.Tabs {
-		drawPushButton(dst, body, pushButton{Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i, Hover: pointerOK && pointer.In(tab)})
+		drawPushButton(dst, body, pushButton{Press: held, Rect: tab, Label: s.Tabs[i], Literal: true, LabelRaise: labelRaise(body), Focus: s.ActiveTab == i, Hover: pointerOK && pointer.In(tab)})
 	}
 	bodyText := func(r image.Rectangle, s string, c color.RGBA) {
 		if body == nil || s == "" {
@@ -1396,7 +1401,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			if row.Struck {
 				bodyText(label, editorClip(body, row.Label, label.Dx()-2), popupHintInk)
 				for k, b := range rr.Buttons {
-					drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
+					drawPushButton(dst, body, pushButton{Press: held, Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Hover: pointerOK && pointer.In(b)})
 				}
 				continue
 			}
@@ -1414,7 +1419,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			drawEditRow(dst, body, row, rr.Control, ink, value)
 			drawRowIcons(dst, body, l, rr, row)
 			for k, b := range rr.Buttons {
-				drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
+				drawPushButton(dst, body, pushButton{Press: held, Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 			}
 			continue
 		}
@@ -1450,22 +1455,22 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			drawEditRow(dst, body, row, rr.Control, ink, value)
 		case popupSwitch:
 			// A long value ends in an ellipsis inside its button.
-			drawPushButton(dst, body, pushButton{Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
+			drawPushButton(dst, body, pushButton{Press: held, Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
 		case popupChoice, popupCard:
-			drawDropdown(dst, body, frames, dropdown{Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
+			drawDropdown(dst, body, frames, dropdown{Press: held, Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
 		default:
 			bodyText(rr.Control, editorClip(body, row.Value, rr.Control.Dx()-2), value)
 		}
 		drawRowIcons(dst, body, l, rr, row)
 		for k, b := range rr.Buttons {
-			drawPushButton(dst, body, pushButton{Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
+			drawPushButton(dst, body, pushButton{Press: held, Rect: b, Label: rowButtons(s, row)[k], Literal: true, LabelRaise: labelRaise(body), Focus: row.Kind == popupPick && s.PickArmed || k < len(row.Armed) && row.Armed[k], Disabled: k < len(row.Disabled) && row.Disabled[k], Hover: pointerOK && pointer.In(b)})
 		}
 	}
 	if !l.Marker.Empty() {
 		draw.Draw(dst, l.Marker.Intersect(l.Rect), &image.Uniform{C: ink.Title}, image.Point{}, draw.Src)
 	}
 	if g := s.Grid; g != nil {
-		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK)
+		drawPopupGrid(dst, body, frames, g, l, ink, pointer, pointerOK, held)
 	}
 	if l.HasList && s.ListText != nil {
 		box := l.List
@@ -1477,7 +1482,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	for i, r := range l.Buttons {
 		disabled := i < len(s.Disabled) && s.Disabled[i]
-		drawPushButton(dst, body, pushButton{Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Focus: s.ButtonFocus != nil && *s.ButtonFocus == i, Hover: pointerOK && pointer.In(r)})
+		drawPushButton(dst, body, pushButton{Press: held, Rect: r, Label: s.Buttons[i], Literal: true, LabelRaise: labelRaise(body), Disabled: disabled, Focus: s.ButtonFocus != nil && *s.ButtonFocus == i, Hover: pointerOK && pointer.In(r)})
 	}
 	if tip, ok := popupTipAt(dst.Bounds(), title, body, s, l, pointer, pointerOK); ok {
 		drawFrame(dst, panelFrame(tip.Rect, ink.TitleGround, ink.Edge))
@@ -1661,7 +1666,11 @@ func drawRowPortrait(dst *image.RGBA, l popupLayout, rr popupRowRect, row popupR
 // drawPopupGrid paints a grid's shown cells, each a push button holding its
 // picture, sunk and framed while chosen and ticked while marked, and the
 // grid's bar.
-func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *popupGrid, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool) {
+func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *popupGrid, l popupLayout, ink popupInk, pointer image.Point, pointerOK bool, press ...*buttonPress) {
+	var held *buttonPress
+	if len(press) > 0 {
+		held = press[0]
+	}
 	head := func(r image.Rectangle, s string, centre bool) {
 		if body == nil || s == "" {
 			return
@@ -1693,7 +1702,7 @@ func drawPopupGrid(dst *image.RGBA, body *text.Font, frames []*image.RGBA, g *po
 		if cell.Icon == nil && cell.Label != "" {
 			label, raise = cell.Label, labelRaise(body)
 		}
-		drawPushButton(dst, body, pushButton{Rect: c, Label: label, Literal: true, LabelRaise: raise, Pressed: cell.Pressed, Inside: cell.Pressed, Hover: pointerOK && pointer.In(c)})
+		drawPushButton(dst, body, pushButton{Press: held, Rect: c, Label: label, Literal: true, LabelRaise: raise, Pressed: cell.Pressed, Inside: cell.Pressed, Hover: pointerOK && pointer.In(c)})
 		if cell.Pressed {
 			drawFrame(dst, panelFrame(c, ink.TitleGround, ink.Edge))
 		}

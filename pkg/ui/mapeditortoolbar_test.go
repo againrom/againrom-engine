@@ -44,10 +44,12 @@ func toolState(e *MapEditor, calls *modesCalls) string {
 // the row whose key is key.
 func openMenuRow(t *testing.T, e *MapEditor, menu, key string) {
 	t.Helper()
-	if _, ok := e.ToolbarRect(menu); ok {
-		modesClick(e, toolPoint(t, e, menu))
-	} else {
-		modesClick(e, barPoint(t, e, menu))
+	if e.menu != menu {
+		if _, ok := e.ToolbarRect(menu); ok {
+			modesClick(e, toolPoint(t, e, menu))
+		} else {
+			modesClick(e, barPoint(t, e, menu))
+		}
 	}
 	if e.menu != menu {
 		t.Fatalf("pressing %s opened menu %q", menu, e.menu)
@@ -83,10 +85,10 @@ var baseViewToolsRows = []struct{ key, place, menu string }{
 	{"drops", "toolbar", "view"}, {"footprints", "toolbar", "view"}, {"issues", "toolbar", "view"}, {"grid", "toolbar", "view"},
 	{"passview", "toolbar", "view"}, {"heightlabels", "toolbar", "view"}, {"border", "toolbar", "view"}, {"areas", "toolbar", "view"},
 	{"playertint", "toolbar", "view"}, {"report", "toolbar", "view"}, {"fit", "toolbar", "view"}, {"drawarea", "toolbar", "tools"},
-	{"records", "map", ""}, {"objectspanel", "toolbar", "window"}, {"propertiespanel", "toolbar", "window"},
+	{"records", "file", ""}, {"objectspanel", "toolbar", "window"}, {"propertiespanel", "toolbar", "window"},
 	{"newtrigger", "tools", ""}, {"brush.terrain", "toolbar", "tools"}, {"brush.height", "toolbar", "tools"},
 	{"brush.objects", "toolbar", "tools"}, {"brush.passability", "toolbar", "tools"},
-	{"randomterrain", "map", ""}, {"randomheights", "map", ""},
+	{"randomterrain", "tools", ""}, {"randomheights", "tools", ""},
 }
 
 // (a) Every row key of the old View and Tools menus stands at its places,
@@ -588,13 +590,13 @@ func TestMapEditorBottomPanelOpensResizesAndKeepsItsState(t *testing.T) {
 	}
 }
 
-// (f) The Map menu's Generate group runs random landscape and random
+// (f) Owner item 3: Tools' Generate group runs random landscape and random
 // heights as their keys do, and the Scenario palette's Add, choosing
 // Trigger, walks the trigger steps the trigger popup's New walks and adds
 // the same trigger.
 func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	e, _, _ := terrainEditor(t)
-	items := e.menuItems("map")
+	items := e.menuItems("tools") // Owner item 3.
 	at := -1
 	for i, it := range items {
 		if it.key == "" && it.label == e.word("editor.menu.generate") {
@@ -607,7 +609,7 @@ func TestMapEditorGenerateAndAddDoWhatTheirRowsDid(t *testing.T) {
 	for _, key := range []string{"randomterrain", "randomheights"} {
 		byRow, rowHost, _ := terrainEditor(t)
 		byKey, keyHost, _ := terrainEditor(t)
-		openMenuRow(t, byRow, "map", key)
+		openMenuRow(t, byRow, "tools", key)
 		if err := byKey.Key(key); err != nil {
 			t.Fatal(err)
 		}
