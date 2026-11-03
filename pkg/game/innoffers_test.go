@@ -261,7 +261,7 @@ func TestSecondGameModLoadsWithoutAScenario(t *testing.T) {
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
-	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 4321", Choosable: true}, {Text: "EXIT", Choosable: true}}
+	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 4321", Choosable: true}, {Text: "Sleep", Choosable: true}, {Text: "EXIT", Choosable: true}}
 	if c.room != secondTownInn || !reflect.DeepEqual(screen.Rows(), want) {
 		t.Fatal("inn rows", screen.Rows())
 	}
