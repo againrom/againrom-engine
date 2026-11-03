@@ -301,7 +301,7 @@ func TestReleaseSecondDinaTalksDrawHerPortrait(t *testing.T) {
 	if err != nil || len(payload) == 0 {
 		t.Fatalf("no npc23talk49 section: %v", err)
 	}
-	s.setTownDialogue(payload)
+	s.setTownDialogue("npc23talk49", payload)
 	lines := 0
 	for page := 0; page < 64; page++ {
 		v := s.view()

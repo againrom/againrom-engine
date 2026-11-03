@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/namefold"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
@@ -354,6 +357,74 @@ func (f *FrontEnd) witnessSpeechFocus(t *townScreen, voice audio.Voice, report i
 		backend = "native-cache-cuts"
 	}
 	fmt.Fprintf(report, "focus: backend=%s before=%d immediate=%d paused=%d resumed=%d buffer=%d generation=%d owner=retained SAV=unchanged operations=stop,play,stop,destroy\n", backend, phaseBefore, immediate, phase, resumed, buffer, id.Generation)
+	return nil
+}
+
+// SecondTownSpeechCensus walks every town.txt section of the second-game
+// install at root through the town talk's page reader and speech name
+// builder, for each hero sex and class and either answer of the npcalive=
+// and npcdead= gates. It reports the distinct section and name pairs, names
+// and sections, then each requested name speech.res lacks and each archive
+// name outside the three shop directories no page requests, with the count of
+// archive names inside them. It plays nothing and writes
+// only report.
+func SecondTownSpeechCensus(root string, report io.Writer) error {
+	archives, err := OpenArchives(root)
+	if err != nil {
+		return err
+	}
+	in := &InstallResources{Archives: archives}
+	body := installText(archives.Containers, townTextSource.at(), in.textCode())
+	if err := body.err(); err != nil {
+		return fmt.Errorf("speech census: %w", err)
+	}
+	bank := OpenSpeech(root)
+	profile := townTalkRules["section"]
+	rows, names, sections := map[string]bool{}, map[string]bool{}, map[string]bool{}
+	for _, key := range body.sectionKeys() {
+		folded := namefold.ArchiveText(key)
+		payload := []byte(body.section(key))
+		for hero := 0; hero < 8; hero++ {
+			audience := EventAudience{HeroFemale: hero&1 != 0, HeroMage: hero&2 != 0, tags: secondEventTags{},
+				NPCPresent: func(int) bool { return hero&4 != 0 }}
+			var c talkCursor
+			c.openSection(key, payload)
+			var d townDialogueState
+			for ; d.lookup(c, audience, profile) && c.part < 1000; c.next() {
+				if name, ok := townSpeechTagPath(profile.speech, c.key, d.tag, d.displayPart, audience); ok {
+					rows[folded+" "+name] = true
+					names[name] = true
+					sections[folded] = true
+				}
+			}
+		}
+	}
+	fmt.Fprintf(report, "town speech census: root=%s sections=%d rows=%d names=%d\n", filepath.Base(root), len(sections), len(rows), len(names))
+	missing := 0
+	for _, name := range slices.Sorted(maps.Keys(names)) {
+		if !bank.has(name) {
+			missing++
+			fmt.Fprintf(report, "missing: %s\n", name)
+		}
+	}
+	unrequested, shop, archive := 0, 0, 0
+	if bank.src != nil {
+		for _, e := range bank.src.Entries() {
+			if !strings.HasSuffix(e.Address, ".wav") {
+				continue
+			}
+			archive++
+			dir, _, _ := strings.Cut(strings.TrimPrefix(e.Address, "speech/"), "/")
+			switch {
+			case dir == "shop" || dir == "shop_kaarg" || dir == "shop_druid":
+				shop++
+			case !names[e.Address]:
+				unrequested++
+				fmt.Fprintf(report, "unrequested: %s\n", e.Address)
+			}
+		}
+	}
+	fmt.Fprintf(report, "town speech census: archive=%d missing=%d shop-directories=%d unrequested-outside-shop=%d\n", archive, missing, shop, unrequested)
 	return nil
 }
 

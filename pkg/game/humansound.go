@@ -23,12 +23,16 @@ const (
 	voiceArmNone
 )
 
-// voiceBank is the bank e's wounds and fall play from (ANIM-094, ANIM-096):
-// the first game's voice in both games, as the second game's wound voice
-// (R2-ENGINE-721) is not built. It is "" for an actor its drawn class's Sound
-// array voices.
+// voiceBank is the bank e's wounds and fall play from under the mission's
+// game's rules (ANIM-094, ANIM-096, R2-ENGINE-721), with the rules' dir. It
+// is "" for an actor its drawn class's Sound array voices.
 func (mw *mapWorld) voiceBank(e sim.Entity) string {
-	return mw.unitVoice(e, &firstGameVoices, false).name
+	r := mw.unitVoiceRules()
+	v := mw.unitVoice(e, r, false)
+	if v.name == "" {
+		return ""
+	}
+	return r.dir + v.name
 }
 
 // unitVoice is one unit's voice under one game's rules.
@@ -53,7 +57,8 @@ type unitVoice struct {
 // picks its own voice by sex and mage; otherwise the arm chooses among the
 // rules' voices: the mage pair, the hero pair where the rules have one, a
 // shown weapon, then none. The weapon is read only where the voice or, when
-// tiered, the tier needs it.
+// tiered, the tier needs it. Untiered, the wound voice, also admits the
+// rules' wound words (R2-ENGINE-721).
 func (mw *mapWorld) unitVoice(e sim.Entity, r *unitVoiceRules, tiered bool) unitVoice {
 	fig, person := mw.figures[e.ID]
 	t := e.TypeID
@@ -74,10 +79,13 @@ func (mw *mapWorld) unitVoice(e sim.Entity, r *unitVoiceRules, tiered bool) unit
 		}
 	}
 	word, identified := uint16(0), false
-	if r.named != nil || r.hires[1] != 0 {
+	if r.named != nil || r.hires[1] != 0 || r.woundWords[1] != 0 {
 		word, identified = mw.identityWord(e.ID)
 	}
 	if tier < 0 && identified && word >= r.hires[0] && word <= r.hires[1] {
+		tier = 1
+	}
+	if tier < 0 && !tiered && identified && word >= r.woundWords[0] && word <= r.woundWords[1] {
 		tier = 1
 	}
 	if tier < 0 {

@@ -9,15 +9,20 @@ import (
 )
 
 // talkCursor is the page cursor of a town conversation in either game: the
-// text it reads and the part it has reached, counted from 1.
+// text it reads and the part it has reached, counted from 1. key is the
+// section the text was cut from, "" for a whole file.
 type talkCursor struct {
 	payload []byte
 	part    int
+	key     string
 }
 
-func (c *talkCursor) open(payload []byte) { c.payload, c.part = payload, 1 }
+func (c *talkCursor) open(payload []byte) { c.payload, c.part, c.key = payload, 1, "" }
 
-func (c *talkCursor) close() { c.payload, c.part = nil, 0 }
+// openSection opens the text of section key.
+func (c *talkCursor) openSection(key string, payload []byte) { c.open(payload); c.key = key }
+
+func (c *talkCursor) close() { c.payload, c.part, c.key = nil, 0, "" }
 
 // next is the page turn: the cursor moves to the following part.
 func (c *talkCursor) next() { c.part++ }
@@ -40,14 +45,23 @@ type townTalkProfile struct {
 	standingFace bool
 	// mercenaryFaces shows a mercenary candidate or a platoon unit picture.
 	mercenaryFaces bool
+	// speech names the recording each page asks for.
+	speech townSpeechNames
 }
 
 var firstTownTalkProfile = townTalkProfile{
 	window:         ui.TownTalkProfile{CountShows: true, NeedsFont: true, ExposesFrame: true, ButtonNeedsArea: true},
 	openBeforePart: true, standingFace: true, mercenaryFaces: true,
+	speech: townSpeechNames{leafDirs: []string{"inn", "shop", "training"}},
 }
 
-var secondTownTalkProfile = townTalkProfile{trim: true}
+// secondTownTalkProfile's speech is R2-ENGINE-802's: the families and their
+// formats, the hero's letters and the plain letter.
+var secondTownTalkProfile = townTalkProfile{trim: true, speech: townSpeechNames{
+	families: []townSpeechFamily{{"talk", "talk", ""}, {"about", "about", "t000"}, {"accept", "accept", ""},
+		{"reject", "reject", ""}, {"keeper", "town", ""}, {"man", "town", ""}, {"guard", "town", ""}},
+	heroNPC: 21, heroLetters: "fams", plainLetter: 't',
+}}
 
 // townTalkRules is each host talk rule's profile; an unnamed rule takes the
 // first game's.

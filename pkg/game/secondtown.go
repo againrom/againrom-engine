@@ -297,7 +297,7 @@ func (t *townScreen) openTownText(key string) ui.TownAction {
 		return ui.TownAction{Msg: err.Error()}
 	}
 	if payload != nil {
-		t.setTownDialogue(payload)
+		t.setTownDialogue(key, payload)
 	}
 	return ui.TownAction{}
 }

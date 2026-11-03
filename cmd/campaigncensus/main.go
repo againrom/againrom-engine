@@ -1,8 +1,9 @@
 // Command campaigncensus prints the second game's campaign support census:
 // one tab-separated row per campaign map of a lawful ROM2 install, then the
-// totals. It reads the install and writes nothing but its output.
+// totals. With -speech it prints the town speech census instead. It reads the
+// install and writes nothing but its output.
 //
-//	go run ./cmd/campaigncensus -assets <root>
+//	go run ./cmd/campaigncensus -assets <root> [-speech]
 package main
 
 import (
@@ -24,6 +25,7 @@ func main() {
 func run(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("campaigncensus", flag.ContinueOnError)
 	assets := fs.String("assets", "", "ROM2 install root (default $AGAINROM_ASSETS)")
+	speech := fs.Bool("speech", false, "print the town speech census")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -33,6 +35,9 @@ func run(args []string, out io.Writer) error {
 	}
 	if root == "" {
 		return fmt.Errorf("pass -assets or set AGAINROM_ASSETS to a ROM2 install root")
+	}
+	if *speech {
+		return game.SecondTownSpeechCensus(root, out)
 	}
 	archives, err := game.OpenArchives(root)
 	if err != nil {

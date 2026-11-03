@@ -5423,6 +5423,7 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 			// A human's wounds and fall take his voice bank instead, whatever
 			// that class is (ANIM-096).
 			Sound: soundSlots(mw.sounds, clientClass), Voice: mw.voiceBank(e),
+			HurtLeaves:  mw.unitVoiceRules().wounds,
 			CorpseStage: uint8(e.Decay),
 			// THE DECODED EFFECT MARKS (1002; MAGIC-MARK-059,
 			// MAGIC-MARK-060). Rebuilt every tick from the client's own

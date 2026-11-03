@@ -184,7 +184,7 @@ func TestSecondTownScreenTalkFollowsData(t *testing.T) {
 		s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: newSecondCampaign()}},
 			in: &InstallResources{NPCFaces: map[int32]data.NPCFace{42: {HasWindow: true, WindowX: x, WindowY: 3}}}},
 			art: fakeTownArt{}, tags: secondEventTags{}}
-		s.setTownDialogue([]byte(payload))
+		s.setTownDialogue("", []byte(payload))
 		v := s.view()
 		if !v.Open || v.Page.Text != "One" || v.Page.FaceWindow != ui.NoticeFaceWindow(x, 3) || !v.Page.Portrait {
 			t.Errorf("window x %d: text %q window %v portrait %v", x, v.Page.Text, v.Page.FaceWindow, v.Page.Portrait)

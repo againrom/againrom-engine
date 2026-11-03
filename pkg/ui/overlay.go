@@ -685,6 +685,9 @@ type MapEntity struct {
 	// entity whose drawn class's Sound array voices them (ANIM-094). The game
 	// tier chooses it; sound.go names the recording.
 	Voice string
+	// HurtLeaves names Voice's recording of each hurt event; nil names
+	// FirstGameHurtLeaves.
+	HurtLeaves *HurtLeaves
 }
 
 // SpellLightCell is one live spell-light input as presentation receives it.

@@ -222,7 +222,8 @@ func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
 
 // talk opens a speaker's conversation and runs its TalkTo.
 func (t *townScreen) talk(c *secondCampaign, o innOffer) ui.TownAction {
-	payload, err := readSecondTownTalk(t.in, secondTalkKey(o.npc, o.topic))
+	key := secondTalkKey(o.npc, o.topic)
+	payload, err := readSecondTownTalk(t.in, key)
 	if err != nil {
 		return ui.TownAction{Msg: err.Error()}
 	}
@@ -232,7 +233,7 @@ func (t *townScreen) talk(c *secondCampaign, o innOffer) ui.TownAction {
 		return ui.TownAction{}
 	}
 	c.talking = &o
-	t.setTownDialogue(payload)
+	t.setTownDialogue(key, payload)
 	return ui.TownAction{}
 }
 
@@ -243,14 +244,15 @@ func (t *townScreen) endInnTalk(o innOffer) {
 	t.composed.patrons = nil
 }
 
-// setTownDialogue opens a conversation and its speaker resolver.
-func (t *townScreen) setTownDialogue(payload []byte) {
+// setTownDialogue opens section key's conversation and its speaker resolver.
+func (t *townScreen) setTownDialogue(key string, payload []byte) {
 	if t.adapter == nil {
 		t.adapter = destinationTownCampaign{t}
 		t.defaults = townDescriptions["rom2-town1"]
 	}
 	c := t.state()
-	c.talk.open(payload)
+	c.talk.openSection(key, payload)
+	t.resetTownSpeech()
 	t.resolver = t.townSpeakers()
 	t.openTalk(t, payload, false)
 }

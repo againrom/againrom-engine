@@ -89,7 +89,7 @@ func TestReleaseTownSpeakersPlayTheirInstalledLines(t *testing.T) {
 			}
 			for n := 0; s.room == roomTalk && n < 64; n++ {
 				textPath, _ := s.townTextPath()
-				leafName, _ := townSpeechTagPath(textPath, s.dialogue.tag, s.dialogue.displayPart)
+				leafName, _ := townSpeechTagPath(firstTownTalkProfile.speech, textPath, s.dialogue.tag, s.dialogue.displayPart, s.talkAudience())
 				before := len(r.samples)
 				s.TownDialogueActive(true)
 				started := len(r.samples) - before

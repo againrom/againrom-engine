@@ -149,7 +149,7 @@ func TestSecondTownTalkCursorThroughTheSeat(t *testing.T) {
 	s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: c}}, in: &InstallResources{}},
 		art: fakeTownArt{}, tags: secondEventTags{}}
 	for round := 0; round < 2; round++ {
-		s.setTownDialogue([]byte("<part=1>\r\nOne\r\n<part=2>\r\nTwo\r\n"))
+		s.setTownDialogue("", []byte("<part=1>\r\nOne\r\n<part=2>\r\nTwo\r\n"))
 		for part, text := range []string{"One", "Two\r\n"} {
 			body, ok := s.dialogueBody()
 			if c.talk.part != part+1 || !ok || body != text || s.TownDialogueShows() != 1 {

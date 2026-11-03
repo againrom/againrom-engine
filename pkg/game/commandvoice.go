@@ -41,6 +41,11 @@ type unitVoiceRules struct {
 	// hires are the identity words, lo to hi, that put a unit no person
 	// figure draws in the armed tier; zero puts none.
 	hires [2]uint16
+	// woundWords are the identity words, lo to hi, that voice a unit's
+	// wounds and fall whatever figure draws it; zero hi voices none. wounds
+	// names the voice's recording of each hurt event.
+	woundWords [2]uint16
+	wounds     *ui.HurtLeaves
 	// selection is the selection reply's recording, gestures each order
 	// gesture's; a gesture the map has no entry for asks nobody.
 	selection voiceRecording
@@ -70,6 +75,7 @@ var commandLeaves = voiceRecording{
 var firstGameVoices = unitVoiceRules{
 	voices:    humanVoiceBanks,
 	heroArm:   true,
+	wounds:    &ui.FirstGameHurtLeaves,
 	selection: voiceRecording{leaves: []string{"select1", "select2"}, drawn: true},
 	gestures: map[ui.VoiceGesture]voiceRecording{
 		ui.VoiceMove: commandLeaves, ui.VoiceAttack: commandLeaves, ui.VoiceSwarm: commandLeaves,
@@ -90,8 +96,10 @@ func sameVoice(name string) [4]string { return [4]string{name, name, name, name}
 
 // secondGameVoices: R2-ENGINE-717 (the selection and the twelve order
 // senders; patrol, town and a cast have none), R2-ENGINE-718 (the voices by
-// identity word), R2-ENGINE-719 (hires 1..20 in the armed tier), R2-ASSET-185;
-// DIV-4347, DIV-4348.
+// identity word), R2-ENGINE-719 (hires 1..20 in the armed tier), R2-ASSET-185,
+// R2-ENGINE-721 (easy, hard and dead of the voice for a person or a word at
+// most 23; word 0 keeps the drawn class's Sound array); DIV-4347, DIV-4348,
+// DIV-4456.
 var secondGameVoices = unitVoiceRules{
 	dir:    "characters/",
 	voices: [2][4]string{{"m_mage", "", "m_fighter", "m_peasant"}, {"f_mage", "", "f_fighter", "f_peasant"}},
@@ -100,8 +108,10 @@ var secondGameVoices = unitVoiceRules{
 		4: sameVoice("troll"), 5: sameVoice("orc"), 6: sameVoice("mage"),
 		21: {"aldor", "sagita", "hildarius", "galinel"}, 22: sameVoice("igles"), 23: sameVoice("dina"),
 	},
-	hires:     [2]uint16{1, 20},
-	selection: numberedVoice("select"),
+	hires:      [2]uint16{1, 20},
+	woundWords: [2]uint16{1, 23},
+	wounds:     &ui.HurtLeaves{1: "easy", 2: "hard", 3: "dead"},
+	selection:  numberedVoice("select"),
 	gestures: map[ui.VoiceGesture]voiceRecording{
 		ui.VoiceMove: numberedVoice("move"), ui.VoiceAttack: numberedVoice("attack"), ui.VoiceSwarm: numberedVoice("swarm"),
 		ui.VoiceGuard: {leaves: []string{"defend/1"}}, ui.VoiceStandGround: {leaves: []string{"defend/1"}},

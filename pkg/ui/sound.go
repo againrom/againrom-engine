@@ -47,7 +47,7 @@ func playUISound(p audio.Player, b SoundBank, slot UISoundSlot) {
 // The hurt events a strike, a wound, a bleed and a fall emit (ANIM-095),
 // numbered as the hurt hook's own argument. Event 0 plays Sound[1] of the
 // drawn class on the effects device, whoever the entity is. Events 1 to 3 play
-// on the speech device: a bank-voiced entity plays hurtLeaves[k] from its Voice
+// on the speech device: a bank-voiced entity plays its HurtLeaves[k] from its Voice
 // bank, a class-voiced one Sound[k+1] of its drawn class (ANIM-094,
 // ANIM-128).
 const (
@@ -57,8 +57,12 @@ const (
 	hurtDie  = 3
 )
 
-// hurtLeaves names each event's recording in a human voice bank (ANIM-094).
-var hurtLeaves = [...]string{hurtEasy: "easy", hurtHard: "hard", hurtDie: "die"}
+// HurtLeaves names a voice's recording of each hurt event, indexed by the
+// event; event 0 has none.
+type HurtLeaves [4]string
+
+// FirstGameHurtLeaves are the first game's human voice bank leaves (ANIM-094).
+var FirstGameHurtLeaves = HurtLeaves{hurtEasy: "easy", hurtHard: "hard", hurtDie: "die"}
 
 // GruntThrottle is the hurt hook's gate: a wound is silent within 1500 ms of
 // the drawable's last voice, and a voiced wound stores the time (ANIM-094).
@@ -270,7 +274,11 @@ func (v *Viewer) playHurt(e soundEntity, k int) {
 		v.PlayEffectAtFine(source, slot, e.Owner, e.Cell, fine)
 	case e.Voice != "":
 		if bank, ok := v.soundBank.(VoiceBank); ok {
-			name := e.Voice + "/" + hurtLeaves[k] + ".wav"
+			leaves := FirstGameHurtLeaves
+			if e.HurtLeaves != nil {
+				leaves = *e.HurtLeaves
+			}
+			name := e.Voice + "/" + leaves[k] + ".wav"
 			v.placeAndPlay(v.speechPlayer, e.Owner, e.Cell, fine, source, "voice:"+name, group,
 				func() (audio.Sample, bool) { return bank.VoiceSample(name) })
 		}
@@ -327,11 +335,12 @@ type soundEntity struct {
 	Cell         image.Point
 	Sound        []int
 	Voice        string
+	HurtLeaves   *HurtLeaves
 }
 
 func soundEntityOf(e MapEntity) soundEntity {
 	return soundEntity{ID: e.ID, Owner: e.Owner, HP: e.HP, MaxHP: e.MaxHP, Life: e.Life,
-		FinePosition: e.FinePosition, FineX: e.FineX, FineY: e.FineY, Cell: e.Cell, Sound: e.Sound, Voice: e.Voice}
+		FinePosition: e.FinePosition, FineX: e.FineX, FineY: e.FineY, Cell: e.Cell, Sound: e.Sound, Voice: e.Voice, HurtLeaves: e.HurtLeaves}
 }
 
 // AppendDamageMessages copies messages into the pending client stream. Snapshot

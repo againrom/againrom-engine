@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 
@@ -66,29 +67,83 @@ func TownSpeechPath(textPath string, payload []byte, part int, audience EventAud
 	if !ok {
 		return "", false
 	}
-	return townSpeechTagPath(textPath, tag, part)
+	return townSpeechTagPath(firstTownTalkProfile.speech, textPath, tag, part, audience)
 }
 
-func townSpeechTagPath(textPath, tag string, part int) (string, bool) {
+// townSpeechNames is one game's rule for the recording a town dialogue page
+// asks speech.res for. A rule with families names it from the section key the
+// page was cut from; one without, from the text file's leaf.
+type townSpeechNames struct {
+	// leafDirs are the main/text/ directories whose pages ask
+	// speech/<dir>/<leaf>p<part>; sound= replaces <leaf>p<part>.
+	leafDirs []string
+	// families are the section-key words in the order they are tried; sound=
+	// names the recording under speech/.
+	families []townSpeechFamily
+	// heroNPC's pages and a header with an iam* token take heroLetters by
+	// female + 2 × mage of the hero; other pages take plainLetter.
+	heroNPC     int
+	heroLetters string
+	plainLetter byte
+}
+
+// townSpeechFamily is a key word's recording, dir/<npc><middle>p<part>: the
+// header's NPC in four digits, then fixed or, when fixed is "", the page's
+// letter and the key's trailing digits padded with 0 to three.
+type townSpeechFamily struct{ word, dir, fixed string }
+
+// townSpeechTagPath is the one name of a town page's recording: source is the
+// text path or the section key, tag the page's accepted header.
+func townSpeechTagPath(names townSpeechNames, source, tag string, part int, audience EventAudience) (string, bool) {
 	if part < 1 {
 		return "", false
 	}
-	textPath = namefold.ArchiveText(strings.ReplaceAll(textPath, `\`, "/"))
-	if !strings.HasPrefix(textPath, "main/text/") || path.Clean(textPath) != textPath {
-		return "", false
+	dir, name := "", ""
+	if names.families == nil {
+		textPath := namefold.ArchiveText(strings.ReplaceAll(source, `\`, "/"))
+		relative, ok := strings.CutPrefix(textPath, "main/text/")
+		if !ok || path.Clean(textPath) != textPath || !slices.ContainsFunc(names.leafDirs, func(d string) bool { return strings.HasPrefix(relative, d+"/") }) {
+			return "", false
+		}
+		dir, name = path.Dir(relative)+"/", fmt.Sprintf("%sp%d", strings.TrimSuffix(path.Base(relative), ".txt"), part)
+	} else {
+		name = names.sectionName(namefold.ArchiveText(source), tag, part, audience)
 	}
-	relative := strings.TrimPrefix(textPath, "main/text/")
-	if !strings.HasPrefix(relative, "inn/") && !strings.HasPrefix(relative, "shop/") && !strings.HasPrefix(relative, "training/") {
-		return "", false
-	}
-	name := fmt.Sprintf("%sp%d", strings.TrimSuffix(path.Base(relative), ".txt"), part)
 	if value := townSpeechOverride(tag); value != "" {
 		name = namefold.ArchiveText(strings.ReplaceAll(value, `\`, "/"))
 	}
-	if name == "" || path.Clean(name) != name || strings.ContainsAny(name, ":/") {
+	full := "speech/" + dir + name + ".wav"
+	if name == "" || path.Clean(name) != name || path.Clean(full) != full || strings.Contains(name, ":") || dir != "" && strings.Contains(name, "/") {
 		return "", false
 	}
-	return "speech/" + path.Dir(relative) + "/" + name + ".wav", true
+	return full, true
+}
+
+// sectionName is the family default of key's page, "" when key has no family.
+func (names townSpeechNames) sectionName(key, tag string, part int, audience EventAudience) string {
+	at := slices.IndexFunc(names.families, func(f townSpeechFamily) bool { return strings.Contains(key, f.word) })
+	if at < 0 {
+		return ""
+	}
+	f := names.families[at]
+	npc, _ := audience.tagRules().speaker(tag)
+	middle := f.fixed
+	if middle == "" {
+		letter := names.plainLetter
+		if npc == names.heroNPC || slices.ContainsFunc(eventArms[:4], func(a eventArm) bool { return containsFold(tag, a.lit) }) {
+			by := 0
+			if audience.HeroFemale {
+				by++
+			}
+			if audience.HeroMage {
+				by += 2
+			}
+			letter = names.heroLetters[by]
+		}
+		digits := key[len(strings.TrimRight(key, "0123456789")):]
+		middle = string(letter) + strings.Repeat("0", max(0, 3-len(digits))) + digits
+	}
+	return fmt.Sprintf("%s/%04d%sp%02d", f.dir, npc, middle, part)
 }
 
 func townSpeechOverride(tag string) string {
@@ -107,13 +162,25 @@ func townSpeechOverride(tag string) string {
 	return value
 }
 
+// townSpeechSource is what the profile's speech rule names a page's recording
+// from: the open section's key under families, else the text path.
+func (t *townScreen) townSpeechSource() (string, bool) {
+	if t.talkProfile().speech.families == nil {
+		return t.townTextPath()
+	}
+	if c := t.campaignTalk(); c != nil && c.key != "" {
+		return c.key, true
+	}
+	return "", false
+}
+
 func (t *townScreen) townSpeechPath() (string, bool) {
-	textPath, ok := t.townTextPath()
+	textPath, ok := t.townSpeechSource()
 	if !ok {
 		return "", false
 	}
 	tag := t.dialogue.tag
-	name, ok := townSpeechTagPath(textPath, tag, t.dialogue.displayPart)
+	name, ok := townSpeechTagPath(t.talkProfile().speech, textPath, tag, t.dialogue.displayPart, t.talkAudience())
 	if !ok {
 		return "", false
 	}
@@ -203,7 +270,7 @@ func (t *townScreen) TownDialogueActive(active bool) {
 		t.pauseTownSpeech()
 		return
 	}
-	if t.room != roomTalk {
+	if !t.campaignTown().talking() {
 		if t.speech.room != t.room {
 			t.stopTownSpeech()
 		} else if t.resumeTownSpeech() {
@@ -215,7 +282,7 @@ func (t *townScreen) TownDialogueActive(active bool) {
 		t.stopTownSpeech()
 		return
 	}
-	textPath, ok := t.townTextPath()
+	textPath, ok := t.townSpeechSource()
 	if !ok {
 		t.stopTownSpeech()
 		return

@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] Townsfolk speak their lines aloud in the towns' talks, and characters cry out in their own voices when wounded or killed; before, the town talks and these cries were silent.
 - [ROM2] The shops of the second game list their goods in the original's order.
 - [ROM2] The inn has a Sleep button that restocks the town's shop, as the first game's tavern does.
 - [ROM2] In the English edition, Sagita, Hildarius, Galinel, Iglez and Dina now answer when selected or ordered.

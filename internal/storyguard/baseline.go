@@ -3954,5 +3954,14 @@ var Committed = Baseline{
 	// It fell with the shared save screen and its description-driven input and paint.
 	// It rose for the doc comments of the shared page-part painters and list input
 	// helpers that LOAD and SAVE both call.
-	CommentBytes: 10480940,
+
+	// It rose for the second game's town speech names and wound leaves:
+	// townSpeechNames, townSpeechFamily, sectionName and townSpeechSource in
+	// pkg/game/speech.go, the census in pkg/game/speech_witness.go and
+	// cmd/campaigncensus, the section key and speech rule in
+	// pkg/game/towntalk.go, woundWords and wounds in pkg/game/commandvoice.go,
+	// HurtLeaves in pkg/ui/sound.go and overlay.go, the tests
+	// pkg/game/secondtownspeech_test.go, secondhurtvoice_test.go and
+	// secondtownspeech_release_test.go, and this note.
+	CommentBytes: 10486939,
 }
