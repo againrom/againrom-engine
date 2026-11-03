@@ -504,16 +504,13 @@ func (w *World) terrainOpen(d Domain, x, y int32, mask ...byte) bool {
 			return w.savedCellPlanes.Dynamic[key]&mask[0] == 0
 		}
 		ground, air := w.cellLayerOccupants(x, y)
-		dyn := cellDynamic(cellTerrain(w.grid[i], false), len(ground) != 0, len(air) != 0)
+		parts := cellPlaneParts{ground: len(ground) != 0, air: len(air) != 0, area: w.grid[i]&blockMagicWall != 0}
 		if si, present := w.structureSlots[key]; present {
 			s := w.structures[si]
 			bit := uint32((y-s.Row)*int32(s.Width)+x-s.Col) & 31
-			dyn = cellBuildingBits(dyn, s.Blocking&(uint32(1)<<bit) != 0)
+			parts.footprint, parts.blocking = true, s.Blocking&(uint32(1)<<bit) != 0
 		}
-		if w.grid[i]&blockMagicWall != 0 {
-			dyn |= 5
-		}
-		return dyn&mask[0] == 0
+		return parts.dynamic(cellTerrain(w.grid[i], false))&mask[0] == 0
 	}
 	if key, inside := savedPlaneKey(x, y); ok && inside && w.savedCellPlanes != nil {
 		return w.savedCellPlanes.Static[key]&savedStaticMask(d) == 0 && (d == DomainAir || w.grid[i]&blockMagicWall == 0)

@@ -16,6 +16,11 @@ const cellAdmissionFile = "pkg/game/mapcelladmission.go"
 
 var cellAdmissionNames = []string{"ringRefuses", "insideMap(", "cellError(", "InBorderRing("}
 
+// cellPlaneFile holds cellPlaneParts, the one recipe of a cell's P2 bytes.
+const cellPlaneFile = "pkg/sim/cellplanes.go"
+
+var cellPlaneNames = []string{"cellDynamic(", "cellBuildingBits("}
+
 // groundArmTableFile holds the one arm table {bit, word ID}.
 const groundArmTableFile = "pkg/mapload/groundarms.go"
 
@@ -25,12 +30,16 @@ var groundArmWords = map[string]bool{`"editor.pass.border"`: true, `"editor.pass
 // cellAdmissionSpellers are the pkg/game files outside the admission file
 // that spell one of cellAdmissionNames.
 func cellAdmissionSpellers(files map[string]string) []string {
+	return spellersOutside(files, "pkg/game/", cellAdmissionFile, cellAdmissionNames)
+}
+
+func spellersOutside(files map[string]string, dir, owner string, names []string) []string {
 	var out []string
 	for name, source := range files {
-		if !strings.HasPrefix(name, "pkg/game/") || name == cellAdmissionFile {
+		if !strings.HasPrefix(name, dir) || name == owner {
 			continue
 		}
-		for _, n := range cellAdmissionNames {
+		for _, n := range names {
 			if strings.Contains(source, n) {
 				out = append(out, name+":"+n)
 			}
@@ -74,6 +83,13 @@ func TestCellAdmissionScansNameEachSpeller(t *testing.T) {
 	if len(got) != 2 || got[0] != "pkg/game/mapcheck.go:InBorderRing(" || got[1] != "pkg/game/x.go:insideMap(" {
 		t.Fatalf("cellAdmissionSpellers = %v", got)
 	}
+	planes := spellersOutside(map[string]string{
+		cellPlaneFile:      "package sim\nfunc f() { cellDynamic(0, true, false) }\n",
+		"pkg/sim/route.go": "package sim\nfunc g() { cellBuildingBits(0, true) }\n",
+	}, "pkg/sim/", cellPlaneFile, cellPlaneNames)
+	if len(planes) != 1 || planes[0] != "pkg/sim/route.go:cellBuildingBits(" {
+		t.Fatalf("cell plane spellers = %v", planes)
+	}
 	words := groundArmWordSpellers(t, map[string]string{
 		groundArmTableFile: "package mapload\nvar w = \"editor.pass.water\"\n",
 		"pkg/ui/x.go":      "package ui\nvar w = \"editor.pass.water\"\nvar o = \"editor.pass.open\"\n",
@@ -98,13 +114,16 @@ func TestCellAdmissionIsOneTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, f := range []string{cellAdmissionFile, groundArmTableFile} {
+	for _, f := range []string{cellAdmissionFile, groundArmTableFile, cellPlaneFile} {
 		if _, ok := files[f]; !ok {
 			t.Fatalf("%s is missing; the scan guards nothing", f)
 		}
 	}
 	for _, s := range cellAdmissionSpellers(files) {
 		t.Errorf("a cell admission is judged outside %s: %s", cellAdmissionFile, s)
+	}
+	for _, s := range spellersOutside(files, "pkg/sim/", cellPlaneFile, cellPlaneNames) {
+		t.Errorf("a cell's P2 byte is built outside %s: %s", cellPlaneFile, s)
 	}
 	for _, s := range groundArmWordSpellers(t, files) {
 		t.Errorf("a passability arm word is spelled outside %s: %s", groundArmTableFile, s)

@@ -348,21 +348,17 @@ func (w *World) recomputeSavedCell(key uint16) string {
 		return issue
 	}
 	c.Payload = w.savedCellPayload(*c)
-	cost, stat := w.savedCellCost(*c), c.Payload[1]|0x20
-	dyn := cellDynamic(stat, cellSlotTaken(c.Ground), cellSlotTaken(c.Air))
-	carry := p.Static[key] & 0x10
+	cost, terrain := w.savedCellCost(*c), c.Payload[1]|0x20
+	parts := cellPlaneParts{ground: cellSlotTaken(c.Ground), air: cellSlotTaken(c.Air), keep: p.Static[key] & 0x10}
 	if buildingKey := binary.LittleEndian.Uint32(c.Payload[12:]); buildingKey != 0 {
 		b, s, _ := w.savedCellBuilding(buildingKey)
 		bit := uint32((int32(key>>8)-b.Row)*int32(b.Width)+int32(key&255)-b.Col) & 31
-		blocking := s.Blocking&(uint32(1)<<bit) != 0
-		stat, dyn = cellBuildingBits(stat, blocking), cellBuildingBits(dyn, blocking)
+		parts.footprint, parts.blocking = true, s.Blocking&(uint32(1)<<bit) != 0
 	}
-	if layer, arm := areaBlockingLayer(); binary.LittleEndian.Uint32(c.Payload[20+4*layer:]) != 0 || w.nativeAreaLayerPresent(key, arm) {
-		stat |= 5
-		dyn |= 5
-	}
+	layer, arm := areaBlockingLayer()
+	parts.area = binary.LittleEndian.Uint32(c.Payload[20+4*layer:]) != 0 || w.nativeAreaLayerPresent(key, arm)
 	w.writeSavedCost(key, cost)
-	p.Static[key], p.Dynamic[key] = stat|carry, dyn|carry
+	p.Static[key], p.Dynamic[key] = parts.static(terrain), parts.dynamic(terrain)
 	w.syncSavedStructureCell(*c)
 	w.syncNativeSavedPlaneCell(key)
 	return ""
@@ -421,9 +417,9 @@ func (w *World) deleteEmptySavedCell(key uint16) bool {
 	if !motionCellDeletionEligible(c.Payload) || cellSlotTaken(c.Ground) || cellSlotTaken(c.Air) || w.nativeAreaCellPresent(key) {
 		return false
 	}
-	carry := p.Static[key] & 0x10
+	parts := cellPlaneParts{keep: p.Static[key] & 0x10}
 	w.writeSavedCost(key, c.Payload[0])
-	p.Static[key], p.Dynamic[key] = c.Payload[1]|carry, c.Payload[1]|carry
+	p.Static[key], p.Dynamic[key] = parts.static(c.Payload[1]), parts.dynamic(c.Payload[1])
 	at := sort.Search(len(w.cellRecords), func(i int) bool { return w.cellRecords[i].Cell >= key })
 	w.cellRecords = append(w.cellRecords[:at], w.cellRecords[at+1:]...)
 	w.removeCurrentCellRecord(key)

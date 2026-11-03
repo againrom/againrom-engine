@@ -3973,5 +3973,7 @@ var Committed = Baseline{
 	// pkg/ui/mapeditorwindow.go, the tests chargen_test.go,
 	// savloadedlinks_test.go, secondtownsave_release_test.go,
 	// secondtownspeech_release_test.go and mapeditorruined_test.go, and this note.
-	CommentBytes: 10487044,
+
+	// It rose for cellPlaneParts, the one P2 byte recipe in pkg/sim/cellplanes.go, and its guard.
+	CommentBytes: 10487390,
 }

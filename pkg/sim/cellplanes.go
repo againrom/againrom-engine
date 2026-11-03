@@ -72,3 +72,27 @@ func cellBuildingBits(value byte, blocking bool) byte {
 	}
 	return value & 0xfa
 }
+
+// cellPlaneParts are a cell's P2 inputs beside its terrain byte, each read
+// from its own source. dynamic is the one Dynamic recipe; static is it without
+// the occupied layers.
+type cellPlaneParts struct {
+	ground, air, footprint, blocking, area bool
+	keep                                   byte
+}
+
+func (c cellPlaneParts) dynamic(terrain byte) byte {
+	v := cellDynamic(terrain, c.ground, c.air)
+	if c.footprint {
+		v = cellBuildingBits(v, c.blocking)
+	}
+	if c.area {
+		v |= 5
+	}
+	return v | c.keep
+}
+
+func (c cellPlaneParts) static(terrain byte) byte {
+	c.ground, c.air = false, false
+	return c.dynamic(terrain)
+}
