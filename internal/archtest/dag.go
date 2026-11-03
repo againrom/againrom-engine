@@ -171,6 +171,7 @@ var allow = map[string][]string{
 	"pkg/game":           {"pkg/"},
 	"cmd/againrom":       {"pkg/", "internal/appicon", "internal/buildinfo"},
 	"cmd/restool":        {"pkg/formats/res", "pkg/vfs"},
+	"cmd/wavcheck":       {"pkg/formats/res", "pkg/formats/wav"},
 	"cmd/regtool":        {"pkg/formats/reg", "pkg/formats/res", "pkg/namefold"},
 	// classdump's -databin verb reaches the definition table through the vfs
 	// tier and resolves a map's placements through the map-loading tier, so its

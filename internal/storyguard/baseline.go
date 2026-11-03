@@ -3934,5 +3934,8 @@ var Committed = Baseline{
 	// refused-cloud test and its fixture, and this note.
 	// It rose for the second-game escort heal and popup caption tests and the
 	// healSpell doc comment, less the comment of the removed healArmAsID.
-	CommentBytes: 10476220,
+	// It rose for the WAV decoder's Microsoft ADPCM arm in
+	// pkg/formats/wav/adpcm.go, cmd/wavcheck and the ADPCM tests in
+	// pkg/formats/wav and pkg/audio.
+	CommentBytes: 10477736,
 }

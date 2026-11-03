@@ -19,12 +19,14 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] In the English edition, Sagita, Hildarius, Galinel, Iglez and Dina now answer when selected or ordered.
 - [ROM2] A character escorting you now heals you with Heal when you are wounded, and an unarmed mage with auto-healing on heals with Heal; before, they never did. The spellbook and item popups of the second game state the caption of their own spell, not another spell's.
 - [ROM2] A spell in flight in a loaded mission save now finishes: it lands and does its damage, and a save made before it lands keeps it; before, it hung in the air, never landed and was dropped from the next save.
 - [BASE] Saving after loading a save of the original game keeps each character's current target, spell and aim point as that save held them, and each building's data as the original wrote it; before, some characters lost the target or spell and each building's data was rewritten.
 
 ### For map makers and modders
 
+- [BASE] A mod's sound may be a 4-bit Microsoft ADPCM WAV, mono or stereo.
 - [BASE] The map editor no longer quits when you drag a character window in its detailed mode down or to the side past the editor's edge; the window stops with its title row inside the editor, as the other editor windows do.
 - [BASE] In the map editor each placeable thing lists in one palette: Structures holds what can be selected, destroyed or switched and the bridges, Objects the decoration (fences and the like included), Trees the trees and bushes; before, every object listed in both Objects and Trees. A palette with nothing in a part says so, and what you place writes the same map as before, trees included: the Trees window plants a forest on open cells or paints one tree kind on every cell you cover.
 - [BASE] In the map editor a new trigger takes one click: the Scenario palette (RU «Сценарий») lists New trigger (RU «Новый триггер») first and then the scripts' records as the tree lists them, a record row opening the record; New trigger, F4 or Tools, New trigger adds a trigger named Trigger that fires once and opens it at once with its name selected, so you type the name and press Apply; one undo takes the new trigger out, with its name, until you save or close its window, and Cancel keeps it.

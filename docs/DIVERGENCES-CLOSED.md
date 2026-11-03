@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 Microsoft ADPCM voices
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4349 | ROM2 map voices / the English edition's 4-bit recordings | Complete the second game's sounds and music | `R2-ASSET-185`: EN has 53 format-tag-2 unit recordings and 35 PCM recordings; RU has 198 PCM recordings. `R2-ENGINE-718`, `R2-ENGINE-719`: the chosen speaker and gesture select its recording | The one WAV decoder accepts 4-bit Microsoft ADPCM mono and stereo, including partial final blocks. All 53 EN compressed unit recordings decode, including `characters/igles/select/1.wav` with 17350 frames. PCM sample bytes retain their existing path. Speech archive decoding is supported too; its ROM2 request boundary is DIV-4438 | FIDELITY-DEBT | The PCM-only refusal is removed in `wav.Parse`, so the existing voice bank can return the recordings of Sagita, Hildarius, Galinel, Iglez and Dina | None for decoding; the unrelated speech request boundary remains in DIV-4438 | CLOSED |
+
 ## Reacquisition direction
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

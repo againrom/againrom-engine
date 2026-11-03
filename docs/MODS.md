@@ -113,7 +113,7 @@ mod reader takes a path with such a component (see "Packed mods").
 | kind | extension | rule |
 |---|---|---|
 | picture | `.bmp` | the bit depth (8 or 24) and the size of the install's picture at that path |
-| sound | `.wav` | a WAV the game decodes |
+| sound | `.wav` | 8-bit or 16-bit PCM, or 4-bit Microsoft ADPCM; mono or stereo |
 | text | `.txt` | UTF-8; the game writes it into the install's bytes, so one file reads right on English and Russian. A character the install's alphabet has no byte for is refused |
 
 Each file is at most 16 MiB. `againrom -check` and the launch refuse, naming
