@@ -81,7 +81,7 @@ func (w *World) SetDerived(id EntityID, d DerivedBlock) bool {
 			return false
 		}
 		next := NewActor(*d.InitialPlacement, ActorPlacement{ID: e.ID, X: e.X, Y: e.Y, Facing: e.Facing,
-			Owner: e.Owner, Group: e.Group, MapUnitID: e.MapUnitID, ClientClassFixed: e.ClientClassFixed})
+			Owner: e.Owner, Group: e.Group, MapUnitID: e.MapUnitID, ClientClassFixed: e.ClientClassFixed, SuppressRewards: e.SuppressRewards})
 		next.standAtPost()
 		if !next.Alive() {
 			PrepareAuthoredBody(&next)

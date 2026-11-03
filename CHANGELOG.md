@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A character escorting you now heals you with Heal when you are wounded, and an unarmed mage with auto-healing on heals with Heal; before, they never did. The spellbook and item popups of the second game state the caption of their own spell, not another spell's.
 - [ROM2] A spell in flight in a loaded mission save now finishes: it lands and does its damage, and a save made before it lands keeps it; before, it hung in the air, never landed and was dropped from the next save.
 - [ROM2] Animate Dead raises a zombie, a skeleton or a ghost from the corpse as in the original.
+- [ROM2] A creature you summon gives no experience and drops nothing when it dies, as in the original, and so does a map unit the original marks the same way. Protection from Fire, Water, Air and Earth, Bless and Shield cast by a creature or a hero show only the held mark, as in the original; before, a cast picture flew first.
 - [BASE] Saving after loading a save of the original game keeps each character's current target, spell and aim point as that save held them, and each building's data as the original wrote it; before, some characters lost the target or spell and each building's data was rewritten.
 
 ### For map makers and modders

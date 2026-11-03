@@ -61,6 +61,9 @@ type ActorPlacement struct {
 	Group            uint32
 	MapUnitID        uint16
 	ClientClassFixed bool
+	// SuppressRewards is the placed unit's reward mark; the second game's
+	// rule reads it.
+	SuppressRewards bool
 }
 
 // NewActor is the one constructor of an actor Entity. Every origin (map
@@ -71,6 +74,7 @@ func NewActor(d ActorDefinition, at ActorPlacement) Entity {
 	return Entity{
 		ID: at.ID, X: at.X, Y: at.Y, Facing: at.Facing, DesiredFacing: at.Facing,
 		Owner: at.Owner, Group: at.Group, MapUnitID: at.MapUnitID, ClientClassFixed: at.ClientClassFixed,
+		SuppressRewards: at.SuppressRewards,
 
 		Class: d.Class, TypeID: d.TypeID, Humanoid: d.Humanoid, Domain: d.Domain,
 		HP: d.HP, MaxHP: d.MaxHP, Mana: d.Mana, MaxMana: d.MaxMana,

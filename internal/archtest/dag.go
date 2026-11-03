@@ -286,6 +286,10 @@ var allow = map[string][]string{
 	// campaigncensus prints the second game's campaign support census. Every
 	// install read, map decode and world run crosses through pkg/game.
 	"cmd/campaigncensus": {"pkg/game"},
+	// rewardmarkwitness counts the second game's type-6 rows with the reward
+	// bit and the units a started mission places with the mark. It reads the
+	// map file through pkg/formats/alm and the loaded world through pkg/game.
+	"cmd/rewardmarkwitness": {"pkg/game", "pkg/formats/alm", "pkg/mapload"},
 	// mapunitcensus is 1029's own instrument. It opens an install through
 	// pkg/game (OpenArchives, MissionMap) and decodes each campaign map with
 	// pkg/formats/alm to read the one field the story added to the entity

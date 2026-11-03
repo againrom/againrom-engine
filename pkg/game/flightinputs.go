@@ -42,7 +42,7 @@ func flightPictures(spells *data.SpellPresentation) map[int32]sim.FlightPicture 
 	out := make(map[int32]sim.FlightPicture)
 	for _, e := range spells.Effects() {
 		out[e.ID] = sim.FlightPicture{LifeTicks: int32(e.LifeTicks), LifeDivisor: int32(e.LifeDivisor),
-			LifePhases: e.LifePhases, SecondRecord: e.SecondRecord, CellLife: int32(spells.CellLife(e.ID))}
+			LifePhases: e.LifePhases, UnitLifeZero: e.UnitLifeZero, SecondRecord: e.SecondRecord, CellLife: int32(spells.CellLife(e.ID))}
 	}
 	return out
 }

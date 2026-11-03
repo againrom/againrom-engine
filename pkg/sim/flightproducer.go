@@ -34,6 +34,7 @@ type FlightPicture struct {
 	Homes                    bool
 	LifeTicks, LifeDivisor   int32
 	LifePhases, SecondRecord bool
+	UnitLifeZero             bool
 	CellLife                 int32
 	Drawn                    bool
 }
@@ -164,6 +165,15 @@ func (c FlightClass) castOffset(facing uint8, second bool) (int32, int32) {
 // shotTick is the run's swing count a class's shot leaves on (SAV-1153).
 func (c FlightClass) shotTick() int64 { return max(int64(c.ShootDelay)-1, 0) }
 
+// unitSegments is the life of a unit caster's cast object: 0 for a picture
+// whose unit cast ends on its first update.
+func (p FlightPicture) unitSegments(dx, dy int32) int32 {
+	if p.UnitLifeZero {
+		return 0
+	}
+	return p.segments(dx, dy)
+}
+
 func (p FlightPicture) segments(dx, dy int32) int32 {
 	if p.LifeDivisor > 0 {
 		return max(1, int32(256*isqrt64(int64(dx)*int64(dx)+int64(dy)*int64(dy)))/p.LifeDivisor)
@@ -204,7 +214,7 @@ func (w *World) produceCast(ev *CastEvent, obs *castObs) {
 	}
 	dx, dy := c.castOffset(ev.Facing, p.SecondRecord)
 	rec := CastRecord{Caster: ev.Caster, Picture: picture, Phases: p.Phases, X: x + dx, Y: y + dy, AimX: ev.ToX*256 + 128, AimY: ev.ToY*256 + 128,
-		Dir: ProjectileDirection(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Segments: p.segments(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Owner: ev.Owner, Mark: w.flightMarks(obs)}
+		Dir: ProjectileDirection(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Segments: p.unitSegments(ev.ToX-ev.FromX, ev.ToY-ev.FromY), Owner: ev.Owner, Mark: w.flightMarks(obs)}
 	target, _ := w.Entity(ev.Target)
 	if !ev.AtCell && p.Homes && (ev.Target != 0 || ProjectileTargetKey(target) != 0) {
 		rec.Target, rec.HasTarget = ev.Target, true

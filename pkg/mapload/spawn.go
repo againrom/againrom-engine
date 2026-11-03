@@ -396,6 +396,9 @@ func Resolve(u alm.Unit, t *Table) Resolution {
 type UnitKeys interface {
 	resolve(u alm.Unit, t *Table) Resolution
 	classPlacementFields() bool
+	// placedRewardMark reports whether a placement is built with the reward
+	// mark: the second game's row bit 8; the first game has none.
+	placedRewardMark(u alm.Unit) bool
 	cheatPlacement(name string, t, local *Table, placement alm.Unit) (int, alm.Unit, error)
 	// humanPlacement is the placement that resolves the Humans row with
 	// server id id.
@@ -420,6 +423,9 @@ type serverKeys struct{}
 
 func (classKeys) classPlacementFields() bool  { return true }
 func (serverKeys) classPlacementFields() bool { return false }
+
+func (classKeys) placedRewardMark(alm.Unit) bool    { return false }
+func (serverKeys) placedRewardMark(u alm.Unit) bool { return u.RewardMarkROM2() }
 
 func (t *Table) ClassPlacementFields() bool {
 	return t != nil && t.unitKeys().classPlacementFields()

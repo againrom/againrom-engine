@@ -3938,5 +3938,7 @@ var Committed = Baseline{
 	// pkg/formats/wav/adpcm.go, cmd/wavcheck and the ADPCM tests in
 	// pkg/formats/wav and pkg/audio.
 	// It fell with the separate raise mark and the skipped-check correction.
-	CommentBytes: 10477692,
+	// It rose by the doc comments of the summoned mark, the placed reward mark
+	// and the unit-caster cast life, with cmd/rewardmarkwitness and its tests.
+	CommentBytes: 10479929,
 }

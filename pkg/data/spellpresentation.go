@@ -63,6 +63,10 @@ type EffectPresentation struct {
 	LifeTicks   int
 	LifeDivisor int
 	LifePhases  bool
+	// UnitLifeZero gives a unit caster's cast object life 0: the record ends
+	// on its first update and only the held mark draws. A caster that is not a
+	// unit keeps the life above.
+	UnitLifeZero bool
 	// Trail is which of the two trail sheets the object leaves, with
 	// HasTrail.
 	HasTrail bool
@@ -280,25 +284,25 @@ var secondSpellPresentation = SpellPresentation{
 		{ID: 12, LifeDivisor: 384, HasTrail: true, Trail: 1, LightKind: LightPoint, Light: LightStep{1, 16}},
 		{ID: 13, LightKind: LightBurst},
 		{ID: 15, Overlay: true},
-		{ID: 16, LifePhases: true},
+		{ID: 16, LifePhases: true, UnitLifeZero: true},
 		{ID: 18, LifeDivisor: 200, LightKind: LightPoint, Light: LightStep{0, 16}},
 		{ID: 20, LifePhases: true},
 		{ID: 21, Overlay: true},
 		// The original's counter starts at -1 and voices at 8, with frame 8
 		// (R2-ENGINE-446), so the cue waits 9.
 		{ID: 23, SoundDelay: 9, FallFrames: 8, FallLift: 28, FallStep: 4},
-		{ID: 24, LifePhases: true},
+		{ID: 24, LifePhases: true, UnitLifeZero: true},
 		{ID: 28, LifeTicks: 13, LightKind: LightPath},
 		{ID: 30, LifeTicks: 13, Chain: true, LightKind: LightPath},
-		{ID: 34, LifePhases: true},
+		{ID: 34, LifePhases: true, UnitLifeZero: true},
 		{ID: 40, LifeDivisor: 200, LightKind: LightPoint, Light: LightStep{0, 16}},
 		{ID: 43, Overlay: true},
-		{ID: 46, LifePhases: true},
-		{ID: 48, LifePhases: true},
+		{ID: 46, LifePhases: true, UnitLifeZero: true},
+		{ID: 48, LifePhases: true, UnitLifeZero: true},
 		{ID: 54, LifeTicks: 21, SecondRecord: true},
 		{ID: 56, LifeTicks: 1, Hidden: true},
 		{ID: 60, LifePhases: true},
-		{ID: 62, LifePhases: true},
+		{ID: 62, LifePhases: true, UnitLifeZero: true},
 		{ID: 64, LifePhases: true},
 	},
 }

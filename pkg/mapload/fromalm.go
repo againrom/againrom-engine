@@ -315,7 +315,7 @@ func FromALMRoster(m *alm.Map, t *Table, diff Difficulty) (*sim.World, map[sim.E
 			def.NativeTraining = sim.NativeTraining{Present: true, Levels: member.Hero.Skill}
 		}
 		ents[i] = sim.NewActor(def, sim.ActorPlacement{ID: sim.EntityID(i), X: x, Y: y,
-			Owner: u.Owner, Group: u.GroupID, MapUnitID: u.UnitID})
+			Owner: u.Owner, Group: u.GroupID, MapUnitID: u.UnitID, SuppressRewards: t.unitKeys().placedRewardMark(u)})
 		if u.HasCurrentHP {
 			// An authored body arrives already fallen; this applies the
 			// death-time combat adjustment without running clearFelled, which

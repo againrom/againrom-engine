@@ -244,7 +244,7 @@ func TestFirstGameKeyedActorsMeetNoWorldPass(t *testing.T) {
 func TestSummonKeysRoundTripTheByteFormAndAKeylessFormHasNoSection(t *testing.T) {
 	w := summonedWorld(t, 0x31, 3)
 	form, err := w.MarshalBinary()
-	if err != nil || form[0] != summonKeyFormVersion {
+	if err != nil || form[0] != rewardMarkFormVersion {
 		t.Fatalf("keyed form version %d: %v", form[0], err)
 	}
 	cold := cloneWorld(t, w)

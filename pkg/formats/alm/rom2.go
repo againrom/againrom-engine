@@ -98,6 +98,15 @@ func (m *Map) decodeExtension(f recordFrame) error {
 	return nil
 }
 
+// rom2RewardMarkBit is bit 8 of a second-game type-6 record's dword 0x10, the
+// bit the actor builder stores into actor +0x1a0.
+const rom2RewardMarkBit = 8
+
+// RewardMarkROM2 reports whether a second-game record carries bit 8 of dword
+// 0x10, which the decode keeps in DefID. The first game reads that dword as a
+// definition id, so only the second game's placement asks.
+func (u Unit) RewardMarkROM2() bool { return u.DefID&rom2RewardMarkBit != 0 }
+
 func (m *Map) decodeUnitsROM2(p []byte) error {
 	n := int(m.Meta.Count6)
 	if uint64(len(p)) != uint64(rom2UnitSize)*uint64(m.Meta.Count6) {

@@ -117,6 +117,9 @@ var SummonCreatureNames = [...]string{"Squirrel", "Turtle", "Foot_Animated"}
 // summonSkill is the Astral skill slot the Summon level reads.
 const summonSkill = 5
 
+// summonCreation is how Summon's creature is built: with the summoned mark.
+var summonCreation = actorCreationProfile{suppressRewards: true}
+
 // summonRadius is the radius of the placement search around the caster.
 const summonRadius = 6
 
@@ -137,8 +140,9 @@ func SummonCreatureName(astral, k int32) string {
 // places it alone in a new group by the positioning search around the
 // caster's cell. A failed placement aborts the cast; the cost is already paid
 // at the cast's entry (R2-ENGINE-544). The creature carries the caster's key,
-// so the world pass caps it (summonCapPass); it is never a reused dead unit
-// and carries no summoned mark (DIV-4152).
+// so the world pass caps it (summonCapPass) and the summoned mark, so its
+// death pays and drops nothing (R2-ENGINE-535). It is never a reused dead
+// unit (DIV-4152).
 func (w *World) castSummon(ci int) bool {
 	caster := w.entities[ci]
 	k := 1 + w.rng.uniform(secondDrawSpan(int64(len(SummonCreatureNames))))
@@ -148,7 +152,7 @@ func (w *World) castSummon(ci int) bool {
 	}
 	actor := c.Actor
 	actor.Owner, actor.summonKey = caster.Owner, summonKeyOf(caster.ID)
-	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true)
+	id, err := w.createActor(actor, c.Pack, c.Worn, caster.X, caster.Y, secondPlacement(caster.X, caster.Y, summonRadius), true, summonCreation)
 	if err != nil {
 		return false
 	}
