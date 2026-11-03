@@ -23,7 +23,7 @@ type cityShopSelection struct {
 // the graph holds the session's own shop and party, so a deal a selector
 // answers is outside it.
 func (t *shopController) hasCityShopTopology() bool {
-	return t.dealOf == nil && t.sess.Town != nil && t.sess.Town.cityObjects != nil
+	return t.row.cityGraph && t.sess.Town != nil && t.sess.Town.cityObjects != nil
 }
 
 type shopRefusal string

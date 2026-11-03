@@ -40,17 +40,20 @@ func secondShopOpen(t *townScreen, _ string) {
 	t.shopChosen, t.shopShelf, t.shelfBase, t.packBase, t.tableBase, t.shopMember = 0, 0, 0, 0, 0, 0
 }
 
-// bindShop binds the composed town's shop room to the one shop page: the
+// bankShopRow is the composed town's shop room as the one shop page's row: the
 // second campaign's deal and bag, the campaign party as the customers whose
 // doll the pane shows, the room's art, scene and rectangles from
 // the town description and its keeper events (R2-ENGINE-269); the room's
 // pane spec adds the character panel and its book (dressShop).
-func (t *townScreen) bindBankShop() {
-	if t.adapter == nil {
-		t.adapter = destinationTownCampaign{t}
-		t.defaults = townDescriptions["rom2-town1"]
-	}
-	t.shopController = shopController{sess: t.sess, in: t.in,
+func (t *townScreen) bankShopRow() shopBinding {
+	return shopBinding{
+		adopt: func() {
+			if t.adapter == nil {
+				t.adapter = destinationTownCampaign{t}
+				t.defaults = townDescriptions["rom2-town1"]
+			}
+		},
+		fresh: true,
 		dealOf: func(s *CampaignSession) *Shop {
 			c := secondOf(s)
 			if c == nil {
@@ -66,8 +69,14 @@ func (t *townScreen) bindBankShop() {
 			}
 			return c.heroBag()
 		},
-		bagUnit:   secondshop.Unit,
-		racks:     t.shopRacks,
+		bagUnit: secondshop.Unit,
+		racks:   t.shopRacks,
+		rackLabel: func(i int) string {
+			if racks := t.shopRacks(); i >= 0 && i < len(racks) {
+				return racks[i].name
+			}
+			return ""
+		},
 		packUnits: maxSecondBagUnits,
 		value:     func(in sim.ItemInstance) int32 { return in.Price },
 		// A cell's caption describes the item as a mission holds it: a
@@ -76,11 +85,12 @@ func (t *townScreen) bindBankShop() {
 		described: func(in sim.ItemInstance) sim.ItemInstance {
 			return secondshop.MissionUnit(in, secondMissionItem(t.in.Table))
 		},
+		settle: func(act func() ui.TownAction) ui.TownAction { return act() },
 		label: func(in sim.ItemInstance) []string {
 			it, _ := secondshop.FromInstance(in)
 			return t.shopItemName(it)
 		},
-		shop: shopHost{
+		host: shopHost{
 			shown: t.bankShopShown,
 			sound: t.shownRoomSound,
 			scene: t.shopScene,

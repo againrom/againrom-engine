@@ -149,7 +149,7 @@ func (f *FrontEnd) resolveShopSnapshot(s Snapshot) (Snapshot, error) {
 	n := &CampaignSession{Town: restored, Carried: mapload.CloneParty(s.Party), Shop: cloneShopMutation(s.shop)}
 	t := &townScreen{shopController: shopController{sess: n, in: &in}, pc: &PersistenceContext{}, room: roomShop}
 	t.bindServices(&RuntimeServices{}, &in, &Presentation{})
-	t.bindShop()
+	t.bindShop(t.hostShopRow())
 	p, err := newCityObjectProjection(n.Town.cityObjects, n.Carried, in.Table)
 	if err != nil {
 		return Snapshot{}, err

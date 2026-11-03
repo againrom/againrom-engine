@@ -19,37 +19,11 @@ type shopController struct {
 	// sess and in are the campaign the page trades in and its install.
 	sess *CampaignSession
 	in   *InstallResources
-	// dealOf selects the deal of a session; nil selects the first game's,
-	// the session's Shop. The customers are the session's Carried party. A
-	// city transaction runs them over its candidate session.
-	dealOf func(*CampaignSession) *Shop
-	// bag is the one pack the strip shows and the deal trades with, the same
-	// whichever member the panel shows, and bagUnit the form an item takes
-	// on entering it; a nil bag is the shown customer's own pack.
-	bag     func(*CampaignSession) *[]sim.ItemInstance
-	bagUnit func(sim.ItemInstance) sim.ItemInstance
-	// shop is the room the page stands in.
+	// row is what the page is bound to: its deal, pack, racks, prices,
+	// captions and settle step.
+	row shopBinding
+	// shop is the room the page stands in, the row's host.
 	shop shopHost
-	// racks answers the room's four racks now; nil is the first game's
-	// (shopRoomShelves).
-	racks func() [4]shopRack
-	// value prices a customer's item put on the table; nil is the first
-	// game's table price (shopItemValue).
-	value func(sim.ItemInstance) int32
-	// packUnits bounds the units the customer's pack and his offered places
-	// hold together, what the game's SAVE writes; zero is no bound.
-	packUnits int
-	// label names an item as a cell's text, for a page with no item
-	// pictures; nil leaves the text empty.
-	label func(sim.ItemInstance) []string
-	// described is the form of an item a cell's caption describes; nil
-	// describes the item as it is.
-	described func(sim.ItemInstance) sim.ItemInstance
-	// settle runs one gesture and commits what it changed to the place the
-	// customer's goods live; nil runs it alone. wornFixed refuses every
-	// gesture that touches the doll.
-	settle    func(act func() ui.TownAction) ui.TownAction
-	wornFixed bool
 	// The shop screen's own state. shopChosen is which of the four rectangles
 	// in the merchant's room has been clicked, shopNoShelf while none has;
 	// shopShelf is the shelf that pairs with it; the two bases are the first
@@ -162,36 +136,22 @@ const (
 )
 
 func (t *shopController) rack() *[4]shopRack {
-	if t.racks != nil {
-		r := t.racks()
-		return &r
-	}
-	return &shopRoomShelves
+	r := t.row.racks()
+	return &r
 }
 
 func (t *shopController) rackName(i int) string {
-	if t.racks == nil {
-		return shopRoomShelfName(i, t.in.Table)
-	}
-	if i < 0 || i >= len(t.rack()) {
-		return ""
-	}
-	return t.rack()[i].name
+	return t.row.rackLabel(i)
 }
 
 func (t *shopController) labelled(c ui.ShopCell, item sim.ItemInstance) ui.ShopCell {
-	if t.label != nil {
-		c.Text = t.label(item)
-	}
+	c.Text = t.row.label(item)
 	return c
 }
 
 // deal is the shop the page trades with.
 func (t *shopController) deal() *Shop {
-	if t.dealOf != nil {
-		return t.dealOf(t.sess)
-	}
-	return t.sess.Shop
+	return t.row.dealOf(t.sess)
 }
 
 // customers is the customer party's slot in the session.
@@ -233,45 +193,6 @@ func (t *shopController) toggleStats() {
 func (t *shopController) leave() {
 	if t.shop.leave != nil {
 		t.shop.leave()
-	}
-}
-
-// bindShop binds the first game's town room to the page.
-func (t *townScreen) bindChapterShop() {
-	t.shop = shopHost{
-		shown: func() bool { return t.room == roomShop },
-		sound: t.shopRoomSound,
-		scene: t.shopPage,
-		events: [shopKeeperEvents]string{shopKeeperBought: "merchant-yes", shopKeeperRefused: "merchant-no",
-			shopKeeperSold: "merchant-yes", shopKeeperRack: "rack"},
-		speak: t.shopItemResponse,
-		fresh: t.nextParty,
-		dress: func(v *ui.ShopScreenView) {
-			v.Art = t.shopArt()
-			v.Scene = roomScene{t.shopPage()}
-			v.TipPanel = t.roomTipView("shop")
-			v.Character, _, _ = t.heroPane(t.chapterPane("shop"))
-			v.ButtonStyle = t.in.roomButtonStyle(t.townDescription())
-		},
-		face: func(i int) (*image.RGBA, *ui.SlotMask, [12][]string) {
-			mask, info := t.shopDollHover(i)
-			return t.shopFigure(i), mask, info
-		},
-		pane: func() *town.PaneSpec { return t.chapterPane("shop") },
-		stepped: func(from, to mapload.PartyMember) {
-			t.clearSchoolSelection()
-			t.retargetSchoolColumn(from.Mage, to.Mage)
-		},
-		stats: func() { t.townStats = !t.townStats },
-		leave: t.Back,
-		faces: t.shopFaces,
-		page: func() *town.ShopSpec {
-			if d := t.townDescription(); d != nil && d.Room("shop") != nil {
-				return d.Room("shop").Shop
-			}
-			return nil
-		},
-		covered: func() bool { return t.room == roomTalk && t.dialogueBuilding == TownShop },
 	}
 }
 

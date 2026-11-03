@@ -351,7 +351,7 @@ func TestReleaseSecondTownShopTableHoldsFive(t *testing.T) {
 	}
 	table, v := c.shop.Table(), s.ShopScreen()
 	for i, cell := range v.Table {
-		if !cell.Occupied() || int32(cell.Count) != table[i].ShopItem.Count || !slices.Equal(cell.Text, s.label(table[i].ShopItem.Instance())) {
+		if !cell.Occupied() || int32(cell.Count) != table[i].ShopItem.Count || !slices.Equal(cell.Text, s.row.label(table[i].ShopItem.Instance())) {
 			t.Fatalf("cell %d shows %q of %d, place %d holds %d", i, cell.Text, cell.Count, i, table[i].ShopItem.Count)
 		}
 	}

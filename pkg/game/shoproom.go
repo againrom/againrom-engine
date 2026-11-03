@@ -49,7 +49,7 @@ func (t *shopController) shopBuy() ui.TownAction {
 // packHolds reports whether the customer's pack may hold n units beside
 // the units he offers on the table; packUnits bounds them, zero is no bound.
 func (t *shopController) packHolds(n int) bool {
-	if t.packUnits == 0 {
+	if t.row.packUnits == 0 {
 		return true
 	}
 	for _, place := range t.deal().Table() {
@@ -57,12 +57,12 @@ func (t *shopController) packHolds(n int) bool {
 			n += int(place.ShopItem.Count)
 		}
 	}
-	return n <= t.packUnits
+	return n <= t.row.packUnits
 }
 
 // shopBuyFits reports whether the pack takes what a buy would put in it.
 func (t *shopController) shopBuyFits() bool {
-	if t.packUnits == 0 || t.hasCityShopTopology() {
+	if t.row.packUnits == 0 || t.hasCityShopTopology() {
 		return true
 	}
 	bought, _, ok := cloneShopMutation(t.deal()).Buy(int32(t.sess.Town.Gold()))
@@ -402,11 +402,11 @@ func (t *shopController) shopPartyMember(i int) *mapload.PartyMember {
 func (t *shopController) shopPackItemInstances() []sim.ItemInstance {
 	var source []sim.ItemInstance
 	party := t.shopParty()
-	if t.bag == nil && len(party) == 0 {
+	if t.row.bag == nil && len(party) == 0 {
 		return nil
 	}
-	if t.bag != nil {
-		source = *t.bag(t.sess)
+	if t.row.bag != nil {
+		source = *t.row.bag(t.sess)
 	} else if m := &party[t.shopMemberIndex()]; m.Carry != nil {
 		if len(m.Carry.ItemInstances) > 0 || len(m.Carry.Items) == 0 {
 			source = m.Carry.ItemInstances
@@ -436,7 +436,7 @@ func (t *shopController) setShopPackItemInstances(items []sim.ItemInstance) bool
 }
 
 func (t *shopController) shopHasActorContainer() bool {
-	if t.bag != nil {
+	if t.row.bag != nil {
 		return true
 	}
 	m := t.shopPartyMember(t.shopMemberIndex())
@@ -476,14 +476,12 @@ func memberWithPack(member mapload.PartyMember, items []sim.ItemInstance, table 
 }
 
 func (t *shopController) setShopPackItemInstancesRefresh(items []sim.ItemInstance, refresh bool) bool {
-	if t.bag != nil {
+	if t.row.bag != nil {
 		bag := make([]sim.ItemInstance, len(items))
 		for k := range items {
-			if bag[k] = items[k].Clone(); t.bagUnit != nil {
-				bag[k] = t.bagUnit(items[k])
-			}
+			bag[k] = t.row.bagUnit(items[k])
 		}
-		*t.bag(t.sess) = bag
+		*t.row.bag(t.sess) = bag
 		return true
 	}
 	party := t.shopParty()
@@ -1205,9 +1203,9 @@ func (t *shopController) shopParty() []mapload.PartyMember {
 // Equipped array means "wearing nothing"; minting one here for a member who has
 // never finished a mission would strip what he starts wearing.
 func (t *shopController) shopPackItems() []uint16 {
-	if t.bag != nil {
+	if t.row.bag != nil {
 		var codes []uint16
-		for _, item := range *t.bag(t.sess) {
+		for _, item := range *t.row.bag(t.sess) {
 			codes = append(codes, item.Code)
 		}
 		return codes
@@ -1232,7 +1230,7 @@ func (t *shopController) shopPackStacks() []sim.ItemStack {
 		}
 		return nil
 	}
-	if m := t.shopPartyMember(t.shopMemberIndex()); t.bag == nil && m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
+	if m := t.shopPartyMember(t.shopMemberIndex()); t.row.bag == nil && m != nil && m.Carry != nil && m.Carry.OrderedStacks != nil {
 		out := make([]sim.ItemStack, len(m.Carry.OrderedStacks))
 		for i, s := range m.Carry.OrderedStacks {
 			out[i] = sim.StackItem(s.Instance(), s.Count)
@@ -1274,9 +1272,12 @@ func (t *shopController) shopItemPrice(c data.ItemCode) int32 {
 }
 
 func (t *shopController) shopItemValue(item sim.ItemInstance) int32 {
-	if t.value != nil {
-		return t.value(item)
-	}
+	return t.row.value(item)
+}
+
+// tableItemValue is the first game's price of an item put on the table: the
+// price it carries, else the one its code's collection row gives.
+func (t *shopController) tableItemValue(item sim.ItemInstance) int32 {
 	if item.Price != 0 {
 		return item.Price
 	}

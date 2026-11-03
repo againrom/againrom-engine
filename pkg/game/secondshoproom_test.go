@@ -14,7 +14,7 @@ func TestSecondShopPageTradesThroughTheOneController(t *testing.T) {
 	c := secondShopSample()
 	sess := &CampaignSession{Town: &Town{second: c, gold: 300}}
 	sc := &townScreen{shopController: shopController{sess: sess, in: &InstallResources{}}}
-	sc.bindBankShop()
+	sc.bindShop(sc.bankShopRow())
 	sc.shop.shown = nil
 	click := func(k ui.ShopControlKind, i int, shift bool) {
 		sc.ShopClick(ui.ShopControl{Kind: k, Index: i, Shift: shift})

@@ -135,7 +135,7 @@ func TestSecondShopPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	}
 	c := secondShopSample()
 	f.Town.second, f.Town.gold = c, 300
-	screen.bindBankShop()
+	screen.bindShop(screen.bankShopRow())
 	screen.shop.shown = nil
 	screen.composed = &townSceneState{}
 	spec := &town.PaneSpec{Rect: town.Rect{480, 238, 640, 480}}

@@ -50,7 +50,7 @@ func sameIcon(a, b *image.RGBA) bool {
 // bookCell is the cell of the grid that shows the book, found by the lines
 // the page prints for it, or nil.
 func bookCell(cells []ui.ShopCell, s *townScreen, book sim.ItemInstance) *ui.ShopCell {
-	want := s.label(book)
+	want := s.row.label(book)
 	for i := range cells {
 		if cells[i].Occupied() && slices.Equal(cells[i].Text, want) {
 			return &cells[i]

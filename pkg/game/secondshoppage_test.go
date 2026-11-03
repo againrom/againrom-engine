@@ -16,7 +16,7 @@ import (
 // secondShopPage is c's shop page with gold in the purse, shown.
 func secondShopPage(c *secondCampaign, gold int) *townScreen {
 	s := &townScreen{shopController: shopController{sess: &CampaignSession{Town: &Town{second: c, gold: gold}}, in: &InstallResources{}}}
-	s.bindBankShop()
+	s.bindShop(s.bankShopRow())
 	s.shop.shown = nil
 	return s
 }

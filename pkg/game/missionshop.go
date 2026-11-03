@@ -85,9 +85,11 @@ func (t *townScreen) OpenMissionShop() bool {
 	n.originalCity = nil
 	n.Shop = mw.shop.stock
 	t.visit, t.sess = v, &n
-	t.bag = func(*CampaignSession) *[]sim.ItemInstance { return &v.bag }
-	t.settle = t.settleMissionDeal
-	t.wornFixed = true
+	row := t.hostShopRow()
+	row.bag = func(*CampaignSession) *[]sim.ItemInstance { return &v.bag }
+	row.settle = t.settleMissionDeal
+	row.wornFixed = true
+	t.bindShop(row)
 	t.shopMember = 0
 	t.squareView().EnterRoom("shop")
 	if t.room != roomShop {

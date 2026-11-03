@@ -3911,5 +3911,5 @@ var Committed = Baseline{
 	// pkg/game/savstructureproject.go and the two Building constructors, the
 	// new tests in pkg/game/savstructurecurrent_test.go, less the overlap
 	// comments they replace, and this note.
-	CommentBytes: 10446911,
+	CommentBytes: 10449942,
 }

@@ -205,7 +205,7 @@ func TestSecondShopRequestsItsRoomSounds(t *testing.T) {
 	c := secondShopSample()
 	c.current, c.available, c.room = partyPlace{2, 1}, []partyPlace{{2, 1}}, secondTownShop
 	f.Town.second, f.Town.gold = c, 300
-	screen.bindBankShop()
+	screen.bindShop(screen.bankShopRow())
 	screen.shop.shown = nil
 	screen.composed = newTownSceneState(nil)
 	d, ok := screen.composedTown()

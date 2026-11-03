@@ -831,7 +831,7 @@ func (f *FrontEnd) bindTown(t *townScreen) *townScreen {
 		t.defaults = ROM1TownDescription()
 	}
 	t.bindTalk(t)
-	t.bindShop()
+	t.bindShop(t.hostShopRow())
 	t.mapPage()
 	t.bindServices(&f.RuntimeServices, &f.InstallResources, &f.Presentation)
 	t.openMission = f.MissionOpener

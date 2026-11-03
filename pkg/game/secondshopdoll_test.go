@@ -156,7 +156,7 @@ func TestSecondShopPaneDollTakesTheDrag(t *testing.T) {
 	c.current, c.available, c.room = partyPlace{2, 1}, []partyPlace{{2, 1}}, secondTownShop
 	*c.heroBag() = []sim.ItemInstance{secondDollAxe}
 	f.Town.second, f.Town.gold = c, 500
-	screen.bindBankShop()
+	screen.bindShop(screen.bankShopRow())
 	screen.shop.shown = nil
 	screen.composed = newTownSceneState(nil)
 	d, ok := screen.composedTown()
@@ -185,7 +185,7 @@ func TestSecondShopWornItemsKeepThroughTownSaveAndColdLoad(t *testing.T) {
 	c.bank[768] = 10
 	*c.heroBag() = []sim.ItemInstance{secondDollAxe, secondDollStaff}
 	f.Town.second, f.Town.gold = c, 500
-	screen.bindBankShop()
+	screen.bindShop(screen.bankShopRow())
 	screen.shop.shown = nil
 	screen.ShopDrag(ui.ShopControl{Kind: ui.ShopControlPackCell, Index: screen.packCell(0)}, ui.ShopControl{Kind: ui.ShopControlDoll})
 	if f.Carried[0].WornItems[0].Code != secondDollAxe.Code {

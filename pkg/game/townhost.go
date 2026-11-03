@@ -42,14 +42,6 @@ func (t *townScreen) arriveWorldMap() ui.TownAction             { return t.mapPa
 
 func (t *townScreen) StartsInTown() bool { return t.hostRules().StartsInTown }
 
-func (t *townScreen) bindShop() {
-	if t.hostRules().Shop == "bank" {
-		t.bindBankShop()
-	} else {
-		t.bindChapterShop()
-	}
-}
-
 func (t *townScreen) AtTownShop() bool {
 	if t == nil {
 		return false
