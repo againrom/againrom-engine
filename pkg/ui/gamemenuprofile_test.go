@@ -14,9 +14,9 @@ var windowLeaves = []struct {
 	open func(f *flow)
 	end  func(f *flow)
 }{
-	{"save ok", func(f *flow) { f.pages.save = &savePageState{} }, func(f *flow) { f.closeSavePage("Your character is saved") }},
-	{"save cancel", func(f *flow) { f.pages.save = &savePageState{} }, func(f *flow) { f.closeSavePage("") }},
-	{"save dialog", func(f *flow) { f.saveDialog = &saveDialog{} }, func(f *flow) { f.closeSaveDialog("") }},
+	{"save ok", func(f *flow) { f.saveScreen = &savePageState{} }, func(f *flow) { f.closeSavePage("Your character is saved") }},
+	{"save cancel", func(f *flow) { f.saveScreen = &savePageState{} }, func(f *flow) { f.closeSavePage("") }},
+	{"save dialog", func(f *flow) { f.saveScreen = &savePageState{page: firstSavePage()} }, func(f *flow) { f.closeSavePage("") }},
 	{"load cancel", func(f *flow) { f.applyGameMenuAction(gameMenuLoad) }, func(f *flow) { f.closeLoad() }},
 	{"options cancel", func(f *flow) { f.applyGameMenuAction(gameMenuGameOptions) }, func(f *flow) { f.applyGameMenuAction(gameMenuOptionsCancel) }},
 	{"sound escape", func(f *flow) { f.applyGameMenuAction(gameMenuSoundOptions) }, func(f *flow) { f.escape() }},
@@ -56,7 +56,7 @@ func TestWindowLastButtonLeavesByTheGamesProfile(t *testing.T) {
 
 func TestSaveOkKeepsItsLineOnlyWhereTheMenuStays(t *testing.T) {
 	f := openMissionMenu(t)
-	f.pages.save = &savePageState{}
+	f.saveScreen = &savePageState{}
 	f.closeSavePage("Your character is saved")
 	if f.msg != "Your character is saved" {
 		t.Fatalf("first game msg = %q", f.msg)

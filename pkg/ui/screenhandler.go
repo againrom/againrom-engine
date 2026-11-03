@@ -90,11 +90,7 @@ func init() {
 	screenHandlers[ScreenSave] = ScreenHandler{
 		Step: func(a *App, in appInput, now time.Time) bool {
 			a.holdMapUnderMenu(in, now)
-			if s := a.flow.pages.save; s != nil {
-				a.stepPage(s.view(), in)
-				return false
-			}
-			a.stepSaveDialog(in)
+			a.stepSaveScreen(in)
 			return false
 		},
 		Compose: (*App).composeSaveScreen,

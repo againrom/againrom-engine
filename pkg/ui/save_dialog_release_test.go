@@ -129,7 +129,7 @@ func TestReleaseSaveDialogUsesInstalledFontWithoutClipping(t *testing.T) {
 				}
 				mustSaveAction(t, a, "delete")
 			}
-			paint, err := a.saveDialogPaint()
+			paint, err := a.savePagePaint()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -193,7 +193,7 @@ func TestReleaseSaveCaretStaysWhiteAtHome(t *testing.T) {
 	var e editField
 	var pix *image.RGBA
 	var err error
-	calls := recordWidgets(t, func() { pix, err = a.composeSaveDialogScreen() })
+	calls := recordWidgets(t, func() { pix, err = a.composeSaveScreen() })
 	if err != nil {
 		t.Fatal(err)
 	}

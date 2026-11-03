@@ -476,9 +476,9 @@ func TestCheatAltConsoleAndScreenshotUseMissionContext(t *testing.T) {
 				t.Fatalf("Alt route on %s: console=%v screenshot=%t, want admission=%t", surface, console, a.screenshot.requested, want)
 			}
 			if surface == "saveMission" {
-				before := a.flow.saveDialog.request.Name
+				before := a.flow.saveScreen.request.Name
 				a.step(appInput{AltLetter: 'H', Typed: "h", Viewer: Input{Alt: true}}, commandFrozen)
-				if a.flow.saveDialog.request.Name != before || !slices.Equal(console, []byte{'D', 'H'}) {
+				if a.flow.saveScreen.request.Name != before || !slices.Equal(console, []byte{'D', 'H'}) {
 					t.Fatal("physical Alt console changed the save label or missed its destination")
 				}
 			}

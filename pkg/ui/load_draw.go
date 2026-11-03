@@ -8,6 +8,7 @@ import (
 
 	"againrom/pkg/locale"
 	"againrom/pkg/render/frame"
+	"againrom/pkg/render/text"
 	"againrom/pkg/render/textfit"
 )
 
@@ -20,6 +21,9 @@ func (a *App) composeLoadList(header string, list *Picker) (*image.RGBA, error) 
 // composePage draws a page's frame, captions, name box, list or confirmation,
 // message line and buttons. Its host decides whether the backing is transparent.
 func (a *App) composePage(v pageView) (*image.RGBA, error) {
+	if v.save != nil {
+		return a.composeSaveScreen()
+	}
 	font := a.flow.menuFont
 	if font == nil {
 		return nil, fmt.Errorf("load list has no installed font")
@@ -27,57 +31,22 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 	pix := image.NewRGBA(image.Rect(0, 0, frame.W, frame.H))
 	a.flow.menuPlacement().backdrop.paint(a, pix)
 	drawFrame(pix, windowFrame(v.page.Panel, a.flow.menuArt))
-	label := func(value string, r image.Rectangle, selected bool) {
-		c := townShellText
-		if selected {
-			c = loadSelectedText
-		}
-		font.Draw(pix.SubImage(r).(*image.RGBA), a.flow.menuDisplayText(a.fitLoadText(value, r.Dx()-6)), r.Min.X+3, r.Min.Y+2, c)
-	}
-	for _, t := range v.page.Texts {
-		if t.Ink == (color.RGBA{}) {
-			t.Ink = townShellText
-		}
-		if t.Focus && v.listFocus() {
-			t.Ink = loadSelectedText
-		}
-		switch {
-		case t.Listing && v.confirmingInPage():
-		case t.Box != (image.Rectangle{}):
+	for _, t := range v.captions() {
+		if t.Box != (image.Rectangle{}) {
 			drawTownShellText(pix, font, t.Text, t.Box, t.Ink)
-		default:
+		} else {
 			font.Draw(pix, t.Text, t.At.X, t.At.Y, t.Ink)
 		}
 	}
-	if c := v.page.Confirm; v.confirmingInPage() {
-		font.Draw(pix, strings.ReplaceAll(c.Before, "#", " "), c.At.X, c.At.Y, townShellText)
-		if entry, _, ok := v.selected(); ok {
-			label(entry.Label, c.Label, true)
-		}
+	if v.confirmingInPage() {
+		a.drawPageQuestion(pix, font, v)
 	} else {
-		if v.save != nil {
-			a.drawPageName(pix, v)
-		}
-		pointer, pointerOK := a.pointerFrame()
-		pointerOK = pointerOK && v.ui.mismatch == nil && !v.asking()
 		list := v.list
-		drawListBox(pix, font, a.media.scroll, a.pageListBox(v), list, func(row, width int) string {
+		a.drawPageList(pix, font, v, func(row, width int) string {
 			return a.flow.menuDisplayText(a.fitLoadText(list.Rows()[row].Text, width))
-		}, pointer, pointerOK)
+		})
 	}
-	if message := a.flow.pageMessage(v); message != "" {
-		messageY := v.page.Message.Min.Y
-		if !v.confirmingInPage() {
-			messageY = max(messageY, a.pageListBox(v).Rect.Max.Y+2)
-		}
-		// Wrap the detail or refusal below the list; the row retains its full text.
-		for i, line := range noticeFlowLines(font, a.flow.menuDisplayText(message), v.page.Message.Dx()) {
-			if i >= 2 {
-				break
-			}
-			font.Draw(pix, string(line), v.page.Message.Min.X, messageY+i*(font.Height()+1), townShellText)
-		}
-	}
+	a.drawPageMessage(pix, font, v)
 	pointer, pointerOK := a.pointerFrame()
 	window := v.save == nil && v.ui.mismatch != nil
 	pageHover := pointerOK && !window && !v.asking()
@@ -96,6 +65,63 @@ func (a *App) composePage(v pageView) (*image.RGBA, error) {
 		w.compose(pix, font, w.layout(font, v.page.Panel), a.flow.menuArt, a.media.scroll, func(s string) string { return s }, pointer, pointerOK)
 	}
 	return pix, nil
+}
+
+// captionInk gives a caption its default or focus ink.
+func (v pageView) captionInk(t PageText) PageText {
+	if t.Ink == (color.RGBA{}) {
+		t.Ink = townShellText
+	}
+	if t.Focus && v.listFocus() {
+		t.Ink = loadSelectedText
+	}
+	return t
+}
+
+// captions are the texts that show now; the list heading hides while asking.
+func (v pageView) captions() []PageText {
+	var texts []PageText
+	for _, t := range v.page.Texts {
+		if !t.Listing || !v.confirmingInPage() {
+			texts = append(texts, v.captionInk(t))
+		}
+	}
+	return texts
+}
+
+// drawPageQuestion draws the in-page delete question.
+func (a *App) drawPageQuestion(pix *image.RGBA, font *text.Font, v pageView) {
+	c := v.page.Confirm
+	font.Draw(pix, strings.ReplaceAll(c.Before, "#", " "), c.At.X, c.At.Y, townShellText)
+	if entry, _, ok := v.selected(); ok {
+		font.Draw(pix.SubImage(c.Label).(*image.RGBA), a.flow.menuDisplayText(a.fitLoadText(entry.Label, c.Label.Dx()-6)),
+			c.Label.Min.X+3, c.Label.Min.Y+2, loadSelectedText)
+	}
+}
+
+// drawPageList draws the list.
+func (a *App) drawPageList(pix *image.RGBA, font *text.Font, v pageView, rowText listRowText) {
+	pointer, pointerOK := a.pointerFrame()
+	pointerOK = pointerOK && v.ui.mismatch == nil && !v.asking()
+	drawListBox(pix, font, a.media.scroll, a.pageListBox(v), v.list, rowText, pointer, pointerOK)
+}
+
+// drawPageMessage wraps the refusal or detail below the list.
+func (a *App) drawPageMessage(pix *image.RGBA, font *text.Font, v pageView) {
+	message := a.flow.pageMessage(v)
+	if message == "" {
+		return
+	}
+	y := v.page.Message.Min.Y
+	if !v.confirmingInPage() {
+		y = max(y, a.pageListBox(v).Rect.Max.Y+2)
+	}
+	for i, line := range noticeFlowLines(font, a.flow.menuDisplayText(message), v.page.Message.Dx()) {
+		if i >= 2 {
+			break
+		}
+		font.Draw(pix, string(line), v.page.Message.Min.X, y+i*(font.Height()+1), townShellText)
+	}
 }
 
 func (a *App) composeLoadScreen() (*image.RGBA, error) {

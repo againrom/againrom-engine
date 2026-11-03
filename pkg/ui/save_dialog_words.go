@@ -35,7 +35,7 @@ func (f *flow) saveWords() SaveDialogWords {
 	if w == (SaveDialogWords{}) || w == saveDialogWords(words.Book{}) {
 		w = saveDialogWords(f.words.Engine)
 	}
-	if d := f.saveDialog; d != nil && d.request.Format == SaveSAV && w.LatinNameHint != "" {
+	if d := f.saveScreen; d != nil && d.page.fileNames && d.request.Format == SaveSAV && w.LatinNameHint != "" {
 		w.KeyHint = w.LatinNameHint + "\n" + w.KeyHint
 	}
 	return w

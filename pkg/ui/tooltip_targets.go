@@ -540,8 +540,8 @@ func MapListHint(w Words, row PickerRow, column int) ([]string, bool) {
 func (a *App) pageTooltip(p image.Point) tooltipTarget {
 	var v pageView
 	switch {
-	case a.flow.screen == ScreenSave && a.flow.pages.save != nil:
-		v = a.flow.pages.save.view()
+	case a.flow.screen == ScreenSave && a.flow.saveScreen != nil:
+		v = a.flow.saveScreen.view()
 	case a.flow.screen == ScreenLoad:
 		v = a.flow.loadView()
 	default:

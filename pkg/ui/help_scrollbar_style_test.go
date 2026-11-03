@@ -544,7 +544,7 @@ func TestHelpScrollbarSkinKeepsNilFrameSaveConfirmationPixels(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustSaveAction(t, a, "save")
-	if a.flow.menuArt != nil || a.flow.saveDialog.prepared == nil || len(spy.requests) != 1 || len(spy.commits) != 0 {
+	if a.flow.menuArt != nil || a.flow.saveScreen.prepared == nil || len(spy.requests) != 1 || len(spy.commits) != 0 {
 		t.Fatal("nil-frame Save confirmation fixture did not prepare without writing")
 	}
 	before, note, err := a.HeadlessFrame()

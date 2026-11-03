@@ -52,7 +52,7 @@ func lookApp(t *testing.T, fake *pageSeamsFake) *App {
 func headingColor(t *testing.T, a *App) (got bool, gold bool) {
 	t.Helper()
 	calls := text.Record(func() {
-		if _, err := a.composePage(a.flow.pages.save.view()); err != nil {
+		if _, err := a.composePage(a.flow.saveScreen.view()); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -70,7 +70,7 @@ func TestSavePageHeadingIsGoldWhileTheListHasTheFocus(t *testing.T) {
 	if drawn, gold := headingColor(t, a); !drawn || gold {
 		t.Fatalf("heading drawn %v gold %v on a fresh page, want drawn and not gold", drawn, gold)
 	}
-	v := a.flow.pages.save.view()
+	v := a.flow.saveScreen.view()
 	a.stepPage(v, appInput{Down: true})
 	if drawn, gold := headingColor(t, a); !drawn || !gold {
 		t.Fatalf("heading drawn %v gold %v after a list key, want gold", drawn, gold)
@@ -84,15 +84,15 @@ func TestSavePageHeadingIsGoldWhileTheListHasTheFocus(t *testing.T) {
 func TestSavePageRowDetailAndNameHintAreHoverCaptions(t *testing.T) {
 	fake := &pageSeamsFake{entries: []SaveEntry{{Name: "game0000.sav", Label: "Alpha", Detail: "Alpha  01.02.2003  04:05:06"}}}
 	a := lookApp(t, fake)
-	a.flow.pages.save.list.Select(1)
-	if got := a.flow.pageMessage(a.flow.pages.save.view()); got != "" {
+	a.flow.saveScreen.list.Select(1)
+	if got := a.flow.pageMessage(a.flow.saveScreen.view()); got != "" {
 		t.Fatalf("line under the list %q, want none", got)
 	}
 	a.tooltipPoint = image.Pt(130, 105)
 	if got := a.tooltipTarget().lines; !reflect.DeepEqual(got, []string{"ENTER A NAME"}) {
 		t.Fatalf("name box caption %q", got)
 	}
-	box := a.pageListBox(a.flow.pages.save.view())
+	box := a.pageListBox(a.flow.saveScreen.view())
 	a.tooltipPoint = box.Row(1).Min.Add(image.Pt(10, 5))
 	if got := a.tooltipTarget().lines; !reflect.DeepEqual(got, []string{"Alpha  01.02.2003  04:05:06"}) {
 		t.Fatalf("row caption %q", got)
@@ -106,7 +106,7 @@ func TestSavePageRowDetailAndNameHintAreHoverCaptions(t *testing.T) {
 func TestSavePageListIsRuledAndTheFirstGamesIsNot(t *testing.T) {
 	fake := &pageSeamsFake{}
 	a := lookApp(t, fake)
-	if box := a.pageListBox(a.flow.pages.save.view()); !box.Ruled || !box.Dark || box.Rows != 7 {
+	if box := a.pageListBox(a.flow.saveScreen.view()); !box.Ruled || !box.Dark || box.Rows != 7 {
 		t.Fatalf("save list ruled %v dark %v rows %d", box.Ruled, box.Dark, box.Rows)
 	}
 	first := pageView{page: firstLoadPage(LoadWindowWords{})}
@@ -125,18 +125,18 @@ func TestSavePageDeleteLeavesTheEmptySlotChosenAndTheNameEmpty(t *testing.T) {
 	if err := a.HeadlessSaveSelect(2); err != nil {
 		t.Fatal(err)
 	}
-	if got := string(a.flow.pages.save.name); got != "Beta" {
+	if got := a.flow.saveScreen.request.Label; got != "Beta" {
 		t.Fatalf("name %q before the delete", got)
 	}
-	v := a.flow.pages.save.view()
+	v := a.flow.saveScreen.view()
 	a.flow.confirmDeletePage(v)
 	if !v.ui.confirm {
 		t.Fatal("Delete did not ask")
 	}
 	a.acceptPage(v)
-	s := a.flow.pages.save
-	if s.list.Selection() != 0 || len(s.name) != 0 {
-		t.Fatalf("after Delete and Yes: row %d name %q, want row 0 and an empty name", s.list.Selection(), string(s.name))
+	s := a.flow.saveScreen
+	if s.list.Selection() != 0 || len([]rune(s.request.Label)) != 0 {
+		t.Fatalf("after Delete and Yes: row %d name %q, want row 0 and an empty name", s.list.Selection(), s.request.Label)
 	}
 	if rows := a.HeadlessRows(); len(rows) != 2 {
 		t.Fatalf("rows %d after the delete, want Empty Slot and one save", len(rows))

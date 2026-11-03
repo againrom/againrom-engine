@@ -104,7 +104,7 @@ func TestSavePointEndingHallAndCreditsNeverSave(t *testing.T) {
 				a.SetSaveDialogSeams(SaveDialogSeams{})
 				a.flow.applyGameMenuAction(gameMenuSave)
 				dialog.install(a)
-				if a.Screen() != screen || a.flow.saveDialog != nil {
+				if a.Screen() != screen || a.flow.saveScreen != nil {
 					t.Fatal("direct SAVE entry opened a non-game save point", back, a.Screen())
 				}
 			}

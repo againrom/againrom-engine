@@ -98,12 +98,16 @@ func (v pageView) buttonAt(p image.Point) (int, bool) {
 // name; Delete while no save can be deleted or a deletion awaits
 // confirmation in the page's body.
 func (f *flow) pageButtonDisabled(v pageView, i int) bool {
+	if v.save != nil {
+		controls := [...]saveControl{saveWriteControl, saveDeleteControl, saveCancelControl}
+		return i >= 0 && i < len(controls) && f.saveControlDisabled(v.save, controls[i])
+	}
 	switch i {
 	case loadOKButton:
 		if v.confirmingInPage() {
 			return false
 		}
-		return v.page.OKNeedsSave && len(v.saves) == 0 || v.save != nil && len(v.save.name) == 0
+		return v.page.OKNeedsSave && len(v.saves) == 0
 	case loadDeleteButton:
 		return !f.canDeletePage(v) || v.confirmingInPage()
 	}
@@ -120,14 +124,14 @@ func (f *flow) canDeletePage(v pageView) bool {
 func (f *flow) pageCanDelete(v pageView, e SaveEntry) bool {
 	if v.save != nil {
 		s := f.saveDialogSeams
-		return s.CanDelete != nil && s.PrepareDelete != nil && s.CanDelete(v.save.directory, e.Name)
+		return s.CanDelete != nil && s.PrepareDelete != nil && s.CanDelete(v.save.directory.Path, e.Name)
 	}
 	return v.ui.canDelete != nil && v.ui.prepareDelete != nil && v.ui.canDelete(e.Name)
 }
 
 func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) {
 	if v.save != nil {
-		return f.saveDialogSeams.PrepareDelete(v.save.directory, e.Name)
+		return f.saveDialogSeams.PrepareDelete(v.save.directory.Path, e.Name)
 	}
 	return v.ui.prepareDelete(e.Name)
 }
@@ -135,12 +139,13 @@ func (f *flow) pagePrepareDelete(v pageView, e SaveEntry) (func() error, error) 
 // acceptPage is Ok: load or save the selection, or delete it once confirmed.
 func (a *App) acceptPage(v pageView) {
 	f := a.flow
+	if v.save != nil {
+		v.ui.resetPointer()
+		f.activateSaveControl(saveWriteControl)
+		return
+	}
 	v.ui.resetPointer()
 	if !v.ui.confirm {
-		if v.save != nil {
-			f.submitSavePage()
-			return
-		}
 		a.activatePicker(v.list, f.chooseLoad)
 		a.syncViewerLayout()
 		return
@@ -157,12 +162,6 @@ func (a *App) acceptPage(v pageView) {
 		f.msg = err.Error()
 		return
 	}
-	if v.save != nil {
-		f.refreshSavePage()
-		f.pages.save.list.Select(0)
-		f.pages.save.pick()
-		return
-	}
 	back := f.loadBack
 	f.openLoad(back)
 	if f.loadList != nil {
@@ -171,6 +170,10 @@ func (a *App) acceptPage(v pageView) {
 }
 
 func (f *flow) confirmDeletePage(v pageView) {
+	if v.save != nil {
+		f.confirmSaveDelete()
+		return
+	}
 	entry, _, ok := v.selected()
 	if !ok || !f.pageCanDelete(v, entry) {
 		return
@@ -208,13 +211,13 @@ func (a *App) stepPageQuestion(v pageView, in appInput) {
 
 // cancelPage is Cancel: it leaves a confirmation, else closes the page.
 func (f *flow) cancelPage(v pageView) {
+	if v.save != nil {
+		f.cancelSavePage()
+		return
+	}
 	if v.ui.confirm {
 		v.ui.confirm = false
 		f.msg = ""
-		return
-	}
-	if v.save != nil {
-		f.closeSavePage("")
 		return
 	}
 	f.closeLoad()
@@ -223,6 +226,10 @@ func (f *flow) cancelPage(v pageView) {
 func (a *App) stepLoadWindow(in appInput, now time.Time) { a.stepPage(a.flow.loadView(), in) }
 
 func (a *App) stepPage(v pageView, in appInput) {
+	if v.save != nil {
+		a.stepSaveScreen(in)
+		return
+	}
 	f := a.flow
 	l := v.list
 	if v.ui.mismatch != nil {
@@ -237,86 +244,36 @@ func (a *App) stepPage(v pageView, in appInput) {
 		v.ui.resetPointer()
 		return
 	}
-	if v.save != nil {
-		before := l.Selection()
-		defer func() {
-			if f.pages.save != nil && f.pages.save.list == l && l.Selection() != before {
-				f.pages.save.pick()
-			}
-		}()
-	}
 	if in.Enter {
 		a.acceptPage(v)
 		return
 	}
-	if v.save == nil && in.Delete && f.canDeletePage(v) {
+	if in.Delete && f.canDeletePage(v) {
 		v.ui.resetPointer()
 		f.confirmDeletePage(v)
 		return
 	}
 	if !v.ui.confirm {
-		if v.save != nil {
-			v.save.edit(in)
-			if in.Typed != "" || in.Backspace || in.Delete {
-				f.msg = ""
-				v.save.listFocus = false
-			}
-		}
-		if in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || wheeled(in) {
+		if pageListKeyed(in) {
 			v.ui.rowPressed = false
-			if v.save != nil {
-				v.save.listFocus = true
-			}
 		}
-		listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
-		switch {
-		case in.Home && v.save == nil:
-			l.Select(0)
-		case in.End && v.save == nil:
-			l.Select(len(l.Rows()) - 1)
-		case pickerList.wheelStep(in) != 0:
-			l.Move(pickerList.wheelStep(in))
-		}
+		stepPageListKeys(l, in, pickerList, true)
 	}
 	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
 	box := a.pageListBox(v)
-	if !v.ui.confirm {
-		if req, pos := v.ui.bar.step(listBar(box, l), p, ok, in); req != barNone {
-			v.ui.rowPressed = false
-			listBarRequest(l, req, pos)
-			return
-		}
-		if v.ui.bar.active() {
-			v.ui.rowPressed = false
-			return
-		}
+	if !v.ui.confirm && a.stepPageBar(v, l, p, ok, in, nil) {
+		return
 	}
 	if in.PrimaryPressed {
 		button, onButton := v.buttonAt(p)
-		if v.save != nil && ok && !onButton && !v.ui.confirm {
-			switch {
-			case v.page.layout().holds(pageNameControl, p):
-				v.save.listFocus = false
-			case p.In(box.Rect) || p.In(box.Bar()):
-				v.save.listFocus = true
-			}
-		}
 		v.ui.press.Press(button, ok && onButton && !f.pageButtonDisabled(v, button))
 		if !ok || onButton || v.ui.confirm {
 			v.ui.rowPressed = false
 			return
 		}
 		row, onRow := box.RowAt(p)
-		if onRow && in.PrimaryDouble && v.ui.rowPressed {
-			// Loads the first press's selection on this release (MENU-144).
-			v.ui.rowPressed, v.ui.doubled = false, true
-			return
-		}
 		top, count := l.Visible()
-		v.ui.rowPressed = onRow && row < count && top+row < l.Len()
-		if onRow && row < count {
-			l.Select(top + row)
-		}
+		v.ui.pressRow(l, onRow, onRow && row < count, top+row, in.PrimaryDouble, true)
 		return
 	}
 	if !in.PrimaryReleased {
@@ -341,4 +298,52 @@ func (a *App) stepPage(v pageView, in appInput) {
 	case loadCancelButton:
 		f.cancelPage(v)
 	}
+}
+
+// pageListKeyed reports a key or wheel step on the list.
+func pageListKeyed(in appInput) bool {
+	return in.Up || in.Down || in.PageUp || in.PageDown || in.Home || in.End || wheeled(in)
+}
+
+// stepPageListKeys moves the list; home lets Home and End pick its ends.
+func stepPageListKeys(l *Picker, in appInput, rule scrollSpec, home bool) {
+	listKey(l, in.Up, in.Down, in.PageUp, in.PageDown)
+	switch {
+	case home && in.Home:
+		l.Select(0)
+	case home && in.End:
+		l.Select(len(l.Rows()) - 1)
+	case rule.wheelStep(in) != 0:
+		l.Move(rule.wheelStep(in))
+	}
+}
+
+// stepPageBar runs the scroll bar and reports whether it took the input.
+func (a *App) stepPageBar(v pageView, l *Picker, p image.Point, ok bool, in appInput, onRequest func()) bool {
+	if req, pos := v.ui.bar.step(listBar(a.pageListBox(v), l), p, ok, in); req != barNone {
+		if onRequest != nil {
+			onRequest()
+		}
+		v.ui.rowPressed = false
+		listBarRequest(l, req, pos)
+		return true
+	}
+	if v.ui.bar.active() {
+		v.ui.rowPressed = false
+		return true
+	}
+	return false
+}
+
+// pressRow handles a press on the rows; true is a double click's second press (DIV-2870).
+func (w *loadWindow) pressRow(l *Picker, onRow, rowOK bool, index int, double, doubleAllowed bool) bool {
+	if doubleAllowed && onRow && double && w.rowPressed {
+		w.rowPressed, w.doubled = false, true
+		return true
+	}
+	w.rowPressed = rowOK
+	if rowOK {
+		l.Select(index)
+	}
+	return false
 }

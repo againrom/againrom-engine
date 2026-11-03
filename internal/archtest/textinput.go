@@ -12,7 +12,6 @@ const textModelFile = "pkg/ui/editortextmodel.go"
 
 var textInputRoutes = map[string]string{
 	"pkg/ui/chargen.go:Chargen.EditName":              "EditText",
-	"pkg/ui/save_dialog.go:flow.editSaveText":         "EditText",
 	"pkg/ui/savepage_save.go:savePageState.edit":      "EditText",
 	"pkg/ui/goldmodal.go:goldState.edit":              "EditText",
 	"pkg/ui/goldmodal.go:goldState.move":              "edit",

@@ -182,8 +182,8 @@ func openTestSavePage(t *testing.T, a *App) {
 	t.Helper()
 	a.flow.screen, a.flow.menuBack = ScreenGameMenu, ScreenMap
 	a.flow.openSaveDialog()
-	if a.Screen() != ScreenSave || a.flow.pages.save == nil {
-		t.Fatalf("save opened %v with page %v", a.Screen(), a.flow.pages.save != nil)
+	if a.Screen() != ScreenSave || a.flow.saveScreen == nil {
+		t.Fatalf("save opened %v with page %v", a.Screen(), a.flow.saveScreen != nil)
 	}
 }
 
@@ -209,7 +209,7 @@ func TestSavePageSlotRowsAndOverwriteWithoutConfirmation(t *testing.T) {
 	if want := []string{"<<< Empty Slot >>>", "Alpha", "Beta"}; !reflect.DeepEqual(rows, want) {
 		t.Fatalf("rows %q, want %q (game9999.sav hidden)", rows, want)
 	}
-	v := a.flow.pages.save.view()
+	v := a.flow.saveScreen.view()
 	if !a.flow.pageButtonDisabled(v, loadOKButton) {
 		t.Fatal("Ok is enabled with an empty name")
 	}
@@ -298,10 +298,10 @@ func TestSavePageChosenRowBeatsAnEqualLabelAboveIt(t *testing.T) {
 	}
 	// The earlier lookup order took the first row with the label before the
 	// chosen row; it names the other file, so this case tells the orders apart.
-	s := a.flow.pages.save
+	s := a.flow.saveScreen
 	first := ""
 	for _, e := range s.saves {
-		if e.Label == string(s.name) {
+		if e.Label == s.request.Label {
 			first = e.Name
 			break
 		}

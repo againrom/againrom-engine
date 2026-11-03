@@ -658,7 +658,7 @@ type flow struct {
 	// different strings.
 	saveGame        SaveGame
 	saveDialogSeams SaveDialogSeams
-	saveDialog      *saveDialog
+	saveScreen      *savePageState
 	saveList        SaveList
 	loadGame        LoadGame
 	menuList        *Picker
@@ -1571,11 +1571,7 @@ func (f *flow) escape() (exit bool) {
 		}
 		return false
 	case ScreenSave:
-		if s := f.pages.save; s != nil {
-			f.cancelPage(s.view())
-			return false
-		}
-		f.cancelSaveDialog()
+		f.cancelSavePage()
 		return false
 	case ScreenDocuments:
 		// ESCAPE IS THIS BUILD'S OWN and not the original's (DIV-304).

@@ -610,7 +610,7 @@ func TestFlow(t *testing.T) {
 			"endingSeams": false, "ending": false,
 			"endingPage": false, "endingTop": false, "endingFocus": false, "endingPress": false,
 			"saveGame": false, "saveList": false, "loadGame": false,
-			"saveDialogSeams": false, "saveDialog": false,
+			"saveDialogSeams": false, "saveScreen": false,
 			"menuList": false, "menuBack": false,
 			"loadList": false, "loadBack": false, "saves": false,
 			"stance": false, "march": false,

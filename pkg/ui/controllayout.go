@@ -41,3 +41,20 @@ func (p SavePage) layout() controlLayout {
 	}
 	return append(l, controlRow{id: pageNameControl, rect: p.NameBox})
 }
+
+func (p SavePage) saveLayout() controlLayout {
+	l := controlLayout{
+		{int(saveDirectoryControl), p.DirectoryBox},
+		{int(saveOpenControl), p.Navigation[0].Rect},
+		{int(saveUpControl), p.Navigation[1].Rect},
+		{int(saveListControl), p.List},
+		{int(saveNameControl), p.NameBox},
+	}
+	if p.directories {
+		l[3].rect.Max.X += 24
+	}
+	for i, c := range []saveControl{saveWriteControl, saveDeleteControl, saveCancelControl} {
+		l = append(l, controlRow{int(c), p.Buttons[i].Rect})
+	}
+	return l
+}

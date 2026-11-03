@@ -91,10 +91,10 @@ func TestMissionSaveLoadUseTheSharedNativeHost(t *testing.T) {
 	fake := &pageSeamsFake{entries: []SaveEntry{{Name: "game0000.sav", Label: "Alpha"}}}
 	a := lookApp(t, fake)
 	a.flow.viewer = backdropViewer(t)
-	a.flow.pages.save.page.Panel = image.Rect(82, 48, 558, 392)
+	a.flow.saveScreen.page.Panel = image.Rect(82, 48, 558, 392)
 	a.flow.pages.loadSet.Panel = image.Rect(82, 48, 558, 392)
 	for i := range 3 {
-		a.flow.pages.save.page.Buttons[i] = PageButton{Rect: image.Rect(154+i*122, 318, 250+i*122, 342), Caption: "Button"}
+		a.flow.saveScreen.page.Buttons[i] = PageButton{Rect: image.Rect(154+i*122, 318, 250+i*122, 342), Caption: "Button"}
 		a.flow.pages.loadSet.Buttons[i] = PageButton{Rect: image.Rect(154+i*122, 338, 250+i*122, 362), Caption: "Button"}
 	}
 	a.SetGameMenuProfile(GameMenuProfile{NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true})
@@ -120,7 +120,7 @@ func TestMissionSaveLoadUseTheSharedNativeHost(t *testing.T) {
 		for _, confirm := range []bool{false, true} {
 			v := a.flow.loadView()
 			if screen == ScreenSave {
-				v = a.flow.pages.save.view()
+				v = a.flow.saveScreen.view()
 			}
 			v.ui.confirm = confirm
 			if !a.flow.mapShowing() {

@@ -118,7 +118,6 @@ var CaseFoldAllowed = map[string]string{
 	"pkg/ui/picker.go#Picker.Find":                                            "matches a typed search text",
 	"pkg/ui/save_dialog_headless.go#App.HeadlessSaveAction":                   "matches an action token of a scenario script",
 	"pkg/ui/save_dialog_headless.go#App.HeadlessSaveEdit":                     "matches a format token of a scenario script",
-	"pkg/ui/save_dialog_headless.go#App.headlessSavePageAction":               "matches action tokens of a scenario script",
 }
 
 // CaseFoldSite is one use of a standard case function.

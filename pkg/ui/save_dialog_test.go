@@ -86,7 +86,7 @@ func TestSaveDialogLoadStyleHasLiteralRowsAndBar(t *testing.T) {
 		t.Fatal(err)
 	}
 	check(8)
-	if top, count := a.flow.saveDialog.list.Visible(); top != 2 || count != 7 || a.flow.saveDialog.list.Selection() != 8 || a.flow.saveDialog.request.Name != "slot-08" {
+	if top, count := a.flow.saveScreen.list.Visible(); top != 2 || count != 7 || a.flow.saveScreen.list.Selection() != 8 || a.flow.saveScreen.request.Name != "slot-08" {
 		t.Fatal("Save style changed window or selected exact name")
 	}
 	mustSaveAction(t, a, "save")
@@ -124,7 +124,7 @@ func TestSaveDialogLoadStyleEmptyRowsAndFallbackStayInert(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if a.flow.saveDialog.request.Name != "save" || len(spy.requests) != 0 {
+	if a.flow.saveScreen.request.Name != "save" || len(spy.requests) != 0 {
 		t.Fatal("empty painted Save row became actionable")
 	}
 }
@@ -227,7 +227,7 @@ func TestSaveDialogOffersOnlySAV(t *testing.T) {
 		if err := a.HeadlessSaveEdit("", "", SaveSAV); err != nil {
 			t.Fatal(err)
 		}
-		for _, c := range a.flow.saveDialog.controls() {
+		for _, c := range a.flow.saveScreen.controls() {
 			if name := saveControlName(c); name == "AGS" || name == "BOTH" {
 				t.Fatalf("obsolete output control %s", name)
 			}
@@ -260,7 +260,7 @@ func TestSaveDialogEditsUnicodeAndBrowsesDiskNames(t *testing.T) {
 	if err := a.HeadlessSaveEdit("new-folder", "путь", SaveSAV); err != nil {
 		t.Fatal(err)
 	}
-	a.flow.saveDialog.setFocus(saveNameControl)
+	a.flow.saveScreen.setFocus(saveNameControl)
 	if err := a.HeadlessKey("home"); err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +382,7 @@ func TestSaveDialogDirectoryFailureClearsOldRowsAndKeyboardScrolls(t *testing.T)
 			t.Fatal(err)
 		}
 	}
-	top, _ := a.flow.saveDialog.list.Visible()
+	top, _ := a.flow.saveScreen.list.Visible()
 	if top <= 0 {
 		t.Fatal("keyboard selection stayed outside the list window")
 	}
@@ -404,12 +404,12 @@ func TestSaveDialogPointerRequiresMatchingGestureAndEmptyRowsDoNothing(t *testin
 	}
 	a.step(appInput{CursorX: 100, CursorY: 220, PrimaryPressed: true}, headlessNow)
 	a.step(appInput{CursorX: 100, CursorY: 220, PrimaryReleased: true}, headlessNow)
-	if a.flow.saveDialog.request.Name != "save" {
+	if a.flow.saveScreen.request.Name != "save" {
 		t.Fatal("empty list space chose prior row")
 	}
 	a.step(appInput{CursorX: 100, CursorY: 100, PrimaryPressed: true}, headlessNow)
 	a.step(appInput{CursorX: 100, CursorY: 100, PrimaryReleased: true}, headlessNow)
-	if a.flow.saveDialog.request.Name != "one.ags" {
+	if a.flow.saveScreen.request.Name != "one.ags" {
 		t.Fatal("visible save row did not fill name")
 	}
 	a.step(appInput{CursorX: 300, CursorY: 444, PrimaryPressed: true}, headlessNow)
@@ -455,7 +455,7 @@ func TestComposeScreenSelectsSaveDialogComposer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := a.composeSaveDialogScreen()
+	want, err := a.composeSaveScreen()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -473,7 +473,7 @@ func TestSaveDialogDrawsFieldsAndTitleAtLiteralOrigins(t *testing.T) {
 	a.SetWords(AuthoredWords(), font, nil)
 	var pix *image.RGBA
 	var err error
-	calls := recordWidgets(t, func() { pix, err = a.composeSaveDialogScreen() })
+	calls := recordWidgets(t, func() { pix, err = a.composeSaveScreen() })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -522,7 +522,7 @@ func TestSaveDialogWrapPreservesWholePathsAndLocalizesMissionMeaning(t *testing.
 			t.Fatal(err)
 		}
 	}
-	if a.flow.saveDialog.confirmTop <= 0 {
+	if a.flow.saveScreen.confirmTop <= 0 {
 		t.Fatal("long confirmation cannot scroll")
 	}
 }

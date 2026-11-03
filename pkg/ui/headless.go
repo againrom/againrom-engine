@@ -280,11 +280,8 @@ func (a *App) HeadlessRows() []PickerRow {
 	case ScreenLoad:
 		p = a.flow.loadList
 	case ScreenSave:
-		if a.flow.saveDialog != nil {
-			p = a.flow.saveDialog.list
-		}
-		if a.flow.pages.save != nil {
-			p = a.flow.pages.save.list
+		if a.flow.saveScreen != nil {
+			p = a.flow.saveScreen.list
 		}
 	}
 	if p == nil {

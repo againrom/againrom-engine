@@ -77,8 +77,8 @@ func TestCheckSavePoint(t *testing.T) {
 func TestSavePointIsOneGate(t *testing.T) {
 	files := saveRefusalSources(t)
 	asks, vs := checkSavePoint(files)
-	if asks < 8 {
-		t.Fatalf("savePoint calls read = %d, want at least 8 (menu action, menu row, dialog, page, quick keys, Load key, Save key, autosave); the scan guards nothing", asks)
+	if asks < 7 {
+		t.Fatalf("savePoint calls read = %d, want at least 7 (menu action, menu row, save screen opening, quick keys, Load key, Save key, autosave); the scan guards nothing", asks)
 	}
 	for _, v := range vs {
 		t.Error(v)

@@ -42,16 +42,16 @@ func TestControlLayoutKeepsEveryDrawAndHitAnswer(t *testing.T) {
 	for _, mode := range []string{"form", "overwrite", "delete"} {
 		a := newSaveDialogApp(t, &saveDialogSpy{}, ScreenTown)
 		a.SetWords(AuthoredWords(), chargenTestFont(), nil)
-		d := a.flow.saveDialog
+		d := a.flow.saveScreen
 		switch mode {
 		case "overwrite":
 			d.prepared = &PreparedSave{Paths: []string{"x"}}
 		case "delete":
-			d.remove = func() error { return nil }
+			d.ui.remove = func() error { return nil }
 			d.removePath = "x"
 		}
 		got["dialog "+mode] = layoutProbe(t, func() {
-			if _, err := a.composeSaveDialogScreen(); err != nil {
+			if _, err := a.composeSaveScreen(); err != nil {
 				t.Fatal(err)
 			}
 		}, func(p image.Point) int {
@@ -65,7 +65,7 @@ func TestControlLayoutKeepsEveryDrawAndHitAnswer(t *testing.T) {
 
 	fake := &pageSeamsFake{entries: []SaveEntry{{Name: "game0001.sav", Label: "Alpha"}}}
 	a := lookApp(t, fake)
-	save := a.flow.pages.save
+	save := a.flow.saveScreen
 	for i, caption := range []string{"Ok", "Delete", "Cancel"} {
 		save.page.Buttons[i] = PageButton{Rect: image.Rect(154+i*122, 318, 250+i*122, 342), Caption: caption}
 	}

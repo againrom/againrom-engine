@@ -1,101 +1,158 @@
 package ui
 
 import (
+	"fmt"
 	"image"
 )
 
-// savePageState is an open save page: its directory, the listed saves behind
-// rows 1.., and the name box.
+// savePageState is the one open save screen built from SavePage data.
 type savePageState struct {
-	page      SavePage
-	ui        loadWindow
-	list      *Picker
-	saves     []SaveEntry
-	directory string
-	onMap     bool
-	name      []rune
-	caret     int
-	// listFocus is set by a list key or a click in the list and cleared by
-	// typing or a click in the name box.
-	listFocus bool
-	// selectAll makes the next edit replace the whole name.
-	selectAll bool
+	page         SavePage
+	ui           loadWindow
+	list         *Picker
+	saves        []SaveEntry
+	directory    SaveDirectory
+	request      SaveRequest
+	focus        saveControl
+	caret        int
+	selectedText bool
+	prepared     *PreparedSave
+	removePath   string
+	confirmTop   int
+	listFocus    bool
 }
 
 func (s *savePageState) view() pageView {
 	return pageView{page: s.page, ui: &s.ui, list: s.list, saves: s.saves, save: s}
 }
 
-// openSavePage shows the configured save page with row 0 selected and an
-// empty name box.
-func (f *flow) openSavePage() {
-	if !f.savePoint(saveMenuWindow).open() || f.pages.saveSet == nil {
+func (s *savePageState) confirming() bool {
+	return s.ui.confirm || s.prepared != nil || s.ui.remove != nil
+}
+
+func (s *savePageState) first() int {
+	first := 0
+	if s.page.directories {
+		first += len(s.directory.Directories)
+	}
+	if !s.page.fileNames {
+		first++
+	}
+	return first
+}
+
+func (f *flow) openSaveDialog() {
+	if !f.savePoint(saveMenuWindow).open() {
 		return
 	}
-	f.pages.save = &savePageState{page: *f.pages.saveSet, directory: f.saveDialogSeams.Directory, onMap: f.menuBack == ScreenMap}
+	page := firstSavePage()
+	if f.pages.saveSet != nil {
+		page = *f.pages.saveSet
+	}
+	s := &savePageState{page: page, request: SaveRequest{
+		OnMap: f.menuBack == ScreenMap, Directory: f.saveDialogSeams.Directory, Format: SaveSAV,
+	}}
+	*s.nameField() = page.initialName
+	f.saveScreen = s
 	f.msg = ""
 	f.setMenuUp(true)
 	f.setScreen(ScreenSave)
 	f.refreshSavePage()
+	s.setFocus(saveNameControl)
+	s.selectedText = page.selectNameOnOpen
 }
 
-// refreshSavePage reads the directory again: row 0 is the Empty Slot and
-// rows 1.. the saves the page does not hide, in the list's order.
 func (f *flow) refreshSavePage() {
-	s := f.pages.save
+	s := f.saveScreen
 	if s == nil {
 		return
 	}
-	s.ui.confirm, s.ui.remove = false, nil
-	s.ui.resetPointer()
-	s.saves = nil
-	if f.saveDialogSeams.List != nil {
-		dir, err := f.saveDialogSeams.List(s.directory)
-		if err != nil {
-			f.msg = err.Error()
-		}
-		if dir.Path != "" {
-			s.directory = dir.Path
-		}
-		for _, e := range dir.Entries {
-			if !s.page.hidden(e.Name) {
-				s.saves = append(s.saves, e)
-			}
-		}
-	} else {
-		f.msg = f.saveWords().Unavailable
+	s.ui.confirm, s.ui.remove, s.prepared = false, nil, nil
+	s.removePath = ""
+	if !s.page.preserveListPointer {
+		s.ui.resetPointer()
 	}
-	rows := []PickerRow{{Text: s.page.EmptySlot, Choosable: true, Ink: s.page.EmptyInk}}
-	for _, e := range s.saves {
-		rows = append(rows, PickerRow{Text: e.Label, Choosable: true})
+	s.directory = SaveDirectory{Path: s.request.Directory}
+	s.saves = nil
+	rows := []PickerRow(nil)
+	if !s.page.fileNames {
+		rows = append(rows, PickerRow{Text: s.page.EmptySlot, Choosable: true, Ink: s.page.EmptyInk})
 	}
 	s.list = NewPicker(rows).SetWindow(s.page.Rows)
-}
-
-// pick puts the selected row's label in the name box; row 0 empties it.
-func (s *savePageState) pick() {
-	s.name, s.selectAll = nil, false
-	if i := s.list.Selection() - 1; i >= 0 && i < len(s.saves) {
-		s.name = []rune(s.saves[i].Label)
+	if f.saveDialogSeams.List == nil {
+		f.msg = f.saveWords().Unavailable
+		return
 	}
-	s.caret = len(s.name)
+	dir, err := f.saveDialogSeams.List(s.request.Directory)
+	if err != nil {
+		f.msg = err.Error()
+		if s.page.stopListError {
+			return
+		}
+	}
+	s.directory = dir
+	if dir.Path != "" {
+		s.request.Directory = dir.Path
+	} else if !s.page.directories {
+		s.directory.Path = s.request.Directory
+	}
+	if s.page.directories {
+		for _, name := range dir.Directories {
+			rows = append(rows, PickerRow{Text: "[" + name + "]", Choosable: true})
+		}
+	}
+	for _, e := range dir.Entries {
+		if s.page.hidden(e.Name) {
+			continue
+		}
+		s.saves = append(s.saves, e)
+		label := e.Label
+		if s.page.fileNames {
+			label = saveListName(e.Name)
+		}
+		rows = append(rows, PickerRow{Text: label, Choosable: true})
+	}
+	s.list = NewPicker(rows).SetWindow(s.page.Rows)
+	if s.page.clearListMessage {
+		f.msg = ""
+	}
 }
 
-// target is the file Ok writes. A chosen row whose label equals the name is
-// the file. Otherwise the first listed row with that label is taken and
-// selected; row 0 writes to the file the page's slot rule names.
+func (s *savePageState) nameField() *string {
+	if s.page.fileNames {
+		return &s.request.Name
+	}
+	return &s.request.Label
+}
+
+func (s *savePageState) pick() {
+	value := ""
+	if e, ok := s.selectedSave(); ok {
+		value = e.Label
+		if s.page.fileNames {
+			value = saveFieldName(e.Name)
+		}
+	}
+	*s.nameField() = value
+	s.selectedText = s.page.activateRows
+	s.caret = len([]rune(value))
+}
+
 func (s *savePageState) target() (string, bool) {
-	label := string(s.name)
-	if i := s.list.Selection() - 1; i < 0 || i >= len(s.saves) || s.saves[i].Label != label {
+	if s.page.fileNames {
+		return s.request.Name, true
+	}
+	label := *s.nameField()
+	if e, ok := s.selectedSave(); !ok || e.Label != label {
 		for i, e := range s.saves {
 			if e.Label == label {
-				s.list.Select(i + 1)
+				s.list.Select(i + s.first())
 				break
 			}
 		}
 	}
-	if i := s.list.Selection() - 1; i >= 0 && i < len(s.saves) {
-		return s.saves[i].Name, true
+	if e, ok := s.selectedSave(); ok {
+		return e.Name, true
 	}
 	if s.page.Slot == nil {
 		return "", false
@@ -104,25 +161,28 @@ func (s *savePageState) target() (string, bool) {
 	for i, e := range s.saves {
 		listed[i] = e.Name
 	}
-	name := s.page.Slot(s.directory, listed)
+	name := s.page.Slot(s.request.Directory, listed)
 	return name, name != ""
 }
 
-// submitSavePage writes the current state under the typed label. An existing
-// file is overwritten without confirmation.
 func (f *flow) submitSavePage() {
-	s := f.pages.save
-	if s == nil || len(s.name) == 0 {
+	s := f.saveScreen
+	if s == nil || !s.page.fileNames && *s.nameField() == "" {
 		return
 	}
 	f.msg = ""
+	if s.prepared != nil {
+		f.commitSavePage(true)
+		return
+	}
 	name, ok := s.target()
 	if !ok || f.saveDialogSeams.Prepare == nil {
 		f.msg = f.saveWords().Unavailable
 		return
 	}
-	prepared, err := f.saveDialogSeams.Prepare(SaveRequest{OnMap: s.onMap, Directory: s.directory, Name: name,
-		Label: string(s.name), Format: SaveSAV})
+	request := s.request
+	request.Name = name
+	prepared, err := f.saveDialogSeams.Prepare(request)
 	if err != nil {
 		f.msg = err.Error()
 		return
@@ -131,23 +191,43 @@ func (f *flow) submitSavePage() {
 		f.msg = f.saveWords().Unavailable
 		return
 	}
-	if _, err := prepared.Commit(len(prepared.Existing) != 0); err != nil {
-		f.msg = err.Error()
+	s.prepared = &prepared
+	if s.page.overwriteQuestion && len(prepared.Existing) != 0 {
+		s.confirmTop = 0
+		s.setFocus(saveCancelControl)
 		return
 	}
-	f.saveDialogSeams.Directory = s.directory
+	f.commitSavePage(len(prepared.Existing) != 0)
+}
+
+func (f *flow) commitSavePage(overwrite bool) {
+	s := f.saveScreen
+	if s == nil || s.prepared == nil || s.prepared.Commit == nil {
+		return
+	}
+	notice := s.prepared.Notice
+	_, err := s.prepared.Commit(overwrite)
+	s.prepared = nil
+	if err != nil {
+		f.msg = err.Error()
+		if s.page.keyboardFocus {
+			s.setFocus(saveNameControl)
+		}
+		return
+	}
+	f.saveDialogSeams.Directory = s.request.Directory
 	message := f.words.SaveAcknowledgement
 	if message == "" {
 		message = AuthoredWords().SaveAcknowledgement
 	}
-	if prepared.Notice != "" {
-		message = message + " " + prepared.Notice
+	if notice != "" {
+		message += " " + notice
 	}
 	f.closeSavePage(message)
 }
 
 func (f *flow) closeSavePage(message string) {
-	f.pages.save = nil
+	f.saveScreen = nil
 	if f.pages.menu.WindowsCloseMenu {
 		f.closeGameMenu()
 		return
@@ -158,49 +238,46 @@ func (f *flow) closeSavePage(message string) {
 	f.msg = message
 }
 
-// edit applies the name box's keys: caret moves, deletion and typed text, up
-// to the page's limit.
 func (s *savePageState) edit(in appInput) {
-	state := EditText(TextInputState{Text: string(s.name), Caret: s.caret, SelectedAll: s.selectAll}, textInputKeys(in),
-		TextInputRules{Limit: s.page.NameLimit, Selection: TextStickyAllSelection, SplitLineBreaks: true, LiteralArrows: true})
-	s.name, s.caret, s.selectAll = []rune(state.Text), state.Caret, state.SelectedAll
+	field := s.editField()
+	if field == nil {
+		return
+	}
+	selection := s.page.selection
+	if selection == TextCaretSelection {
+		selection = TextStickyAllSelection
+	}
+	state := EditText(TextInputState{Text: *field, Caret: s.caret, SelectedAll: s.selectedText}, textInputKeys(in),
+		TextInputRules{Limit: s.page.NameLimit, Selection: selection, SplitLineBreaks: true, LiteralArrows: true})
+	*field, s.caret, s.selectedText = state.Text, state.Caret, state.SelectedAll
 }
 
-// composeSaveScreen draws the open save page, else the save dialog.
 func (a *App) composeSaveScreen() (*image.RGBA, error) {
-	if s := a.flow.pages.save; s != nil {
-		return a.composePage(s.view())
+	s, err := a.savePagePaint()
+	if err != nil {
+		return nil, err
 	}
-	return a.composeSaveDialogScreen()
+	if a.flow.menuFont == nil {
+		return nil, fmt.Errorf("save dialog has no installed font")
+	}
+	for _, label := range s.texts {
+		a.flow.menuFont.Draw(s.pix, a.flow.menuDisplayText(label.text), label.at.X, label.at.Y, label.color)
+	}
+	return s.pix, nil
 }
 
 func (a *App) drawSaveScreen() {
-	if s := a.flow.pages.save; s != nil {
-		a.hasMenu = false
-		if pix, err := a.composePage(s.view()); err == nil {
-			a.writeCanvas(pix)
-		}
+	a.hasMenu = false
+	if pix, err := a.composeSaveScreen(); err == nil {
+		a.writeCanvas(pix)
 		return
 	}
-	a.drawSaveDialog()
-}
-
-// drawPageName draws the save page's name box with its caret.
-func (a *App) drawPageName(pix *image.RGBA, v pageView) {
-	s, font := v.save, a.flow.menuFont
-	r := v.page.layout().rect(pageNameControl)
-	start := 0
-	caret := min(s.caret, len(s.name))
-	for start < caret && a.saveTextWidth(string(s.name[start:caret])) > r.Dx()-16 {
-		start++
+	s, err := a.savePagePaint()
+	if err != nil {
+		return
 	}
-	e := editField{Rect: r, TextH: font.Height(), Focus: true, Phase: a.blink.on(),
-		Caret: a.saveTextWidth(string(s.name[start:caret]))}
-	if s.selectAll {
-		e.SelTo = a.saveTextWidth(string(s.name[start:]))
+	a.writeCanvas(s.pix)
+	for _, label := range s.texts {
+		a.printCanvas(label.text, label.at.X, label.at.Y)
 	}
-	shown := a.saveTextFit(string(s.name[start:]), r.Dx()-12)
-	drawEditField(pix, e, func(at image.Point) {
-		font.Draw(pix, a.flow.menuDisplayText(shown), at.X, at.Y, townShellText)
-	})
 }

@@ -158,10 +158,10 @@ func TestSaveButtonsKeepClearOfTheOrnateFrame(t *testing.T) {
 			a.SetGameMenuArt(art)
 			switch state {
 			case "overwrite":
-				a.flow.saveDialog.prepared = &PreparedSave{Paths: []string{"saves/slot.sav"}, Existing: []string{"saves/slot.sav"}}
+				a.flow.saveScreen.prepared = &PreparedSave{Paths: []string{"saves/slot.sav"}, Existing: []string{"saves/slot.sav"}}
 			case "delete":
-				a.flow.saveDialog.remove = func() error { return nil }
-				a.flow.saveDialog.removePath = "saves/slot.sav"
+				a.flow.saveScreen.ui.remove = func() error { return nil }
+				a.flow.saveScreen.removePath = "saves/slot.sav"
 			}
 			bare := image.NewRGBA(image.Rect(0, 0, 640, 480))
 			drawFrameBody(bare, windowFrame(image.Rect(8, 0, 632, 480), art))

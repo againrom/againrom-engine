@@ -70,7 +70,7 @@ func (f *flow) missionCheatInput() bool {
 	case ScreenGameMenu:
 		return f.menuBack == ScreenMap
 	case ScreenSave:
-		return f.saveDialog != nil && f.saveDialog.request.OnMap || f.pages.save != nil && f.pages.save.onMap
+		return f.saveScreen != nil && f.saveScreen.request.OnMap
 	case ScreenLoad:
 		return f.loadBack == ScreenMap || f.loadBack == ScreenGameMenu && f.menuBack == ScreenMap
 	}

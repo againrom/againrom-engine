@@ -1356,11 +1356,8 @@ func (a *App) dropWidgetLatches() {
 	f.endingPress.Clear()
 	f.modUI.backPress.Clear()
 	f.modUI.press.Clear()
-	if f.saveDialog != nil {
-		f.saveDialog.press.Clear()
-	}
-	if f.pages.save != nil {
-		f.pages.save.ui.press.Clear()
+	if f.saveScreen != nil {
+		f.saveScreen.ui.press.Clear()
 	}
 	if f.docPanel != nil {
 		f.docPanel.press.Clear()

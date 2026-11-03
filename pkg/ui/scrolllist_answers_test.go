@@ -144,7 +144,7 @@ func scrollScenarios() []scrollScenario {
 		}},
 		{"save list focused", []int{0, 1, 20, 39}, func(t *testing.T) (func(int), func(appInput), func() string) {
 			a, _, _ := saveChooserStyleApp(t, 40)
-			d := a.flow.saveDialog
+			d := a.flow.saveScreen
 			rows := d.list.Rows()
 			return func(start int) {
 					d.list = NewPicker(rows)
@@ -157,7 +157,7 @@ func scrollScenarios() []scrollScenario {
 		}},
 		{"save list hovered", []int{0, 1, 20, 39}, func(t *testing.T) (func(int), func(appInput), func() string) {
 			a, _, _ := saveChooserStyleApp(t, 40)
-			d := a.flow.saveDialog
+			d := a.flow.saveScreen
 			rows := d.list.Rows()
 			at := saveListRect.Min.Add(saveListRect.Max).Div(2)
 			return func(start int) {

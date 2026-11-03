@@ -21,88 +21,12 @@ const (
 	saveCancelControl
 )
 
-type saveDialog struct {
-	request      SaveRequest
-	directory    SaveDirectory
-	list         *Picker
-	focus        saveControl
-	caret        int
-	selectedText bool
-	prepared     *PreparedSave
-	remove       func() error
-	removePath   string
-	confirmTop   int
-	press        buttonLatch
-	bar          scrollBarInput
-}
-
-// SetSaveDialogSeams opts this application into the interactive save route.
-// SetSaveSeams remains available to callers using the older automatic seam.
 func (a *App) SetSaveDialogSeams(seams SaveDialogSeams) {
 	if a != nil && a.flow != nil {
 		a.flow.saveDialogSeams = seams
 	}
 }
 
-func (f *flow) openSaveDialog() {
-	if !f.savePoint(saveMenuWindow).open() {
-		return
-	}
-	if f.pages.saveSet != nil {
-		f.openSavePage()
-		return
-	}
-	d := &saveDialog{request: SaveRequest{
-		OnMap: f.menuBack == ScreenMap, Directory: f.saveDialogSeams.Directory,
-		Name: "save", Format: SaveSAV,
-	}}
-	f.saveDialog = d
-	f.msg = ""
-	f.setMenuUp(true)
-	f.setScreen(ScreenSave)
-	f.refreshSaveDirectory()
-	d.setFocus(saveNameControl)
-	d.selectedText = true
-}
-
-func (f *flow) refreshSaveDirectory() {
-	d := f.saveDialog
-	if d == nil {
-		return
-	}
-	d.prepared = nil
-	d.remove = nil
-	d.removePath = ""
-	d.directory = SaveDirectory{Path: d.request.Directory}
-	d.list = NewPicker(nil)
-	d.list.SetWindow(saveVisibleRows)
-	if f.saveDialogSeams.List == nil {
-		f.msg = f.saveWords().Unavailable
-		return
-	}
-	dir, err := f.saveDialogSeams.List(d.request.Directory)
-	if err != nil {
-		f.msg = err.Error()
-		return
-	}
-	d.directory = dir
-	if dir.Path != "" {
-		d.request.Directory = dir.Path
-	}
-	rows := make([]PickerRow, 0, len(dir.Directories)+len(dir.Entries))
-	for _, name := range dir.Directories {
-		rows = append(rows, PickerRow{Text: "[" + name + "]", Choosable: true})
-	}
-	for _, entry := range dir.Entries {
-		rows = append(rows, PickerRow{Text: saveListName(entry.Name), Choosable: true})
-	}
-	d.list = NewPicker(rows)
-	d.list.SetWindow(saveVisibleRows)
-	f.msg = ""
-}
-
-// saveListName is a save row's text: the disk name without its one trailing
-// format suffix. SAV is the only format, so the suffix tells the player nothing.
 func saveListName(name string) string {
 	if namefold.HostEqual(filepath.Ext(name), ".sav") {
 		return name[:len(name)-len(".sav")]
@@ -110,10 +34,7 @@ func saveListName(name string) string {
 	return name
 }
 
-// saveFieldName is what choosing a row puts in the name field. The writer
-// removes one trailing format suffix from a typed name and appends ".sav", so a
-// row whose remaining name still ends in a format suffix keeps its full disk
-// name; stripping it would aim the next SAVE at a different file.
+// A name with two format suffixes must still address the listed disk file.
 func saveFieldName(name string) string {
 	shown := saveListName(name)
 	if ext := filepath.Ext(shown); namefold.HostEqual(ext, ".sav") || namefold.HostEqual(ext, ".ags") {
@@ -122,363 +43,226 @@ func saveFieldName(name string) string {
 	return shown
 }
 
-func (d *saveDialog) setFocus(c saveControl) {
-	d.focus = c
-	d.selectedText = false
-	if field := d.editField(); field != nil {
-		d.caret = len([]rune(*field))
+func (s *savePageState) setFocus(c saveControl) {
+	s.focus = c
+	s.selectedText = false
+	if field := s.editField(); field != nil {
+		s.caret = len([]rune(*field))
 	}
 }
 
-func (d *saveDialog) editField() *string {
-	switch d.focus {
-	case saveDirectoryControl:
-		return &d.request.Directory
-	case saveNameControl:
-		return &d.request.Name
+func (s *savePageState) editField() *string {
+	if s.focus == saveDirectoryControl && !s.page.DirectoryBox.Empty() {
+		return &s.request.Directory
+	}
+	if s.focus == saveNameControl || !s.page.keyboardFocus {
+		return s.nameField()
 	}
 	return nil
 }
 
-func (d *saveDialog) controls() []saveControl {
-	if d.remove != nil {
-		return []saveControl{saveCancelControl, saveDeleteControl}
-	}
-	if d.prepared != nil {
+func (s *savePageState) controls() []saveControl {
+	if s.confirming() && !s.page.Confirm.windowed() && s.page.confirmRows > 0 {
+		if s.ui.confirm || s.ui.remove != nil {
+			return []saveControl{saveCancelControl, saveDeleteControl}
+		}
 		return []saveControl{saveCancelControl, saveWriteControl}
 	}
-	return []saveControl{saveDirectoryControl, saveOpenControl, saveUpControl,
-		saveListControl, saveNameControl, saveWriteControl, saveDeleteControl, saveCancelControl}
+	if len(s.page.focusOrder) != 0 {
+		return s.page.focusOrder
+	}
+	return []saveControl{saveNameControl, saveListControl, saveWriteControl, saveDeleteControl, saveCancelControl}
 }
 
-func (d *saveDialog) moveFocus(delta int) {
-	controls := d.controls()
+func (s *savePageState) moveFocus(delta int) {
+	controls := s.controls()
 	for i, c := range controls {
-		if c == d.focus {
-			d.setFocus(controls[(i+delta+len(controls))%len(controls)])
+		if c == s.focus {
+			s.setFocus(controls[(i+delta+len(controls))%len(controls)])
 			return
 		}
 	}
-	d.setFocus(controls[0])
+	s.setFocus(controls[0])
 }
 
-func (f *flow) cancelSaveDialog() {
-	if d := f.saveDialog; d != nil && d.remove != nil {
-		d.remove, d.removePath = nil, ""
-		d.setFocus(saveListControl)
+func (f *flow) cancelSavePage() {
+	s := f.saveScreen
+	if s == nil {
+		return
+	}
+	if s.confirming() {
+		deleting := s.ui.confirm || s.ui.remove != nil
+		s.prepared, s.ui.remove, s.ui.confirm, s.removePath = nil, nil, false, ""
+		if s.page.keyboardFocus {
+			focus := saveNameControl
+			if deleting {
+				focus = saveListControl
+			}
+			s.setFocus(focus)
+		}
 		f.msg = ""
 		return
 	}
-	if d := f.saveDialog; d != nil && d.prepared != nil {
-		d.prepared = nil
-		d.setFocus(saveNameControl)
-		f.msg = ""
-		return
-	}
-	f.closeSaveDialog("")
-}
-
-func (f *flow) closeSaveDialog(message string) {
-	f.saveDialog = nil
-	if f.pages.menu.WindowsCloseMenu {
-		f.closeGameMenu()
-		return
-	}
-	f.setScreen(ScreenGameMenu)
-	f.rebuildGameMenu(gameMenuRoot, 0)
-	f.setMenuUp(true)
-	f.msg = message
-}
-
-func (f *flow) submitSaveDialog() {
-	d := f.saveDialog
-	if d == nil {
-		return
-	}
-	f.msg = ""
-	if d.prepared != nil {
-		f.commitSaveDialog(true)
-		return
-	}
-	if f.saveDialogSeams.Prepare == nil {
-		f.msg = f.saveWords().Unavailable
-		return
-	}
-	prepared, err := f.saveDialogSeams.Prepare(d.request)
-	if err != nil {
-		f.msg = err.Error()
-		return
-	}
-	if prepared.Commit == nil || len(prepared.Paths) == 0 {
-		f.msg = f.saveWords().Unavailable
-		return
-	}
-	d.prepared = &prepared
-	if len(prepared.Existing) != 0 {
-		d.confirmTop = 0
-		d.setFocus(saveCancelControl)
-		return
-	}
-	f.commitSaveDialog(false)
-}
-
-func (f *flow) commitSaveDialog(overwrite bool) {
-	d := f.saveDialog
-	if d == nil || d.prepared == nil || d.prepared.Commit == nil {
-		return
-	}
-	notice := d.prepared.Notice
-	_, err := d.prepared.Commit(overwrite)
-	// A refused publication needs a fresh target check before another attempt.
-	d.prepared = nil
-	if err != nil {
-		f.msg = err.Error()
-		d.setFocus(saveNameControl)
-		return
-	}
-	f.saveDialogSeams.Directory = d.request.Directory
-	message := f.words.SaveAcknowledgement
-	if message == "" {
-		message = AuthoredWords().SaveAcknowledgement
-	}
-	if notice != "" {
-		message = message + " " + notice
-	}
-	f.closeSaveDialog(message)
+	f.closeSavePage("")
 }
 
 func (f *flow) activateSaveControl(c saveControl) {
-	d := f.saveDialog
-	if d == nil {
+	s := f.saveScreen
+	if s == nil {
 		return
 	}
-	if d.remove != nil {
+	if s.confirming() {
 		switch c {
-		case saveDeleteControl:
-			f.commitSaveDelete()
 		case saveCancelControl:
-			f.cancelSaveDialog()
-		}
-		return
-	}
-	if d.prepared != nil {
-		switch c {
+			f.cancelSavePage()
 		case saveWriteControl:
-			f.submitSaveDialog()
-		case saveCancelControl:
-			f.cancelSaveDialog()
+			if s.ui.confirm || s.ui.remove != nil {
+				f.commitSaveDelete()
+			} else {
+				f.submitSavePage()
+			}
+		case saveDeleteControl:
+			if s.ui.confirm || s.ui.remove != nil {
+				f.commitSaveDelete()
+			}
 		}
 		return
 	}
 	switch c {
 	case saveDirectoryControl, saveOpenControl:
-		f.refreshSaveDirectory()
-		d.setFocus(saveListControl)
+		f.refreshSavePage()
+		s.setFocus(saveListControl)
 	case saveUpControl:
-		d.request.Directory = filepath.Dir(d.request.Directory)
-		f.refreshSaveDirectory()
-		d.setFocus(saveListControl)
+		s.request.Directory = filepath.Dir(s.request.Directory)
+		f.refreshSavePage()
+		s.setFocus(saveListControl)
 	case saveListControl:
-		if d.list == nil {
+		if s.list == nil {
 			return
 		}
-		i, ok := d.list.Choose()
+		i, ok := s.list.Choose()
 		if !ok {
 			return
 		}
-		if i < len(d.directory.Directories) {
-			d.request.Directory = filepath.Join(d.directory.Path, d.directory.Directories[i])
-			f.refreshSaveDirectory()
+		if s.page.directories && i < len(s.directory.Directories) {
+			s.request.Directory = filepath.Join(s.directory.Path, s.directory.Directories[i])
+			f.refreshSavePage()
 			return
 		}
-		i -= len(d.directory.Directories)
-		if i < len(d.directory.Entries) {
-			d.request.Name = saveFieldName(d.directory.Entries[i].Name)
-			d.setFocus(saveNameControl)
-			d.selectedText = true
+		s.pick()
+		if s.page.activateRows {
+			s.setFocus(saveNameControl)
+			s.selectedText = true
 			f.msg = ""
 		}
 	case saveDeleteControl:
 		f.confirmSaveDelete()
 	case saveNameControl, saveWriteControl:
-		f.submitSaveDialog()
+		f.submitSavePage()
 	case saveCancelControl:
-		f.cancelSaveDialog()
+		f.cancelSavePage()
 	}
 }
 
-func (d *saveDialog) selectedSave() (SaveEntry, bool) {
-	if d.list == nil {
+func (s *savePageState) selectedSave() (SaveEntry, bool) {
+	if s.list == nil {
 		return SaveEntry{}, false
 	}
-	i := d.list.Selection() - len(d.directory.Directories)
-	if i < 0 || i >= len(d.directory.Entries) {
+	i := s.list.Selection() - s.first()
+	if i < 0 || i >= len(s.saves) {
 		return SaveEntry{}, false
 	}
-	return d.directory.Entries[i], true
+	return s.saves[i], true
 }
 
 func (f *flow) canDeleteSave() bool {
-	d, seams := f.saveDialog, f.saveDialogSeams
-	if d == nil || seams.CanDelete == nil || seams.PrepareDelete == nil {
+	s := f.saveScreen
+	if s == nil {
 		return false
 	}
-	entry, ok := d.selectedSave()
-	return ok && seams.CanDelete(d.directory.Path, entry.Name)
+	entry, ok := s.selectedSave()
+	return ok && f.pageCanDelete(s.view(), entry)
 }
 
 func (f *flow) confirmSaveDelete() {
 	if !f.canDeleteSave() {
 		return
 	}
-	d := f.saveDialog
-	entry, _ := d.selectedSave()
-	remove, err := f.saveDialogSeams.PrepareDelete(d.directory.Path, entry.Name)
+	s := f.saveScreen
+	entry, _ := s.selectedSave()
+	remove, err := f.pagePrepareDelete(s.view(), entry)
 	if err != nil {
 		f.msg = err.Error()
 		return
 	}
-	if remove == nil {
+	if remove == nil && s.page.clearDeleteAttempt {
 		return
 	}
-	d.remove = remove
-	d.removePath = filepath.Join(d.directory.Path, entry.Name)
-	d.confirmTop = 0
-	d.setFocus(saveCancelControl)
+	s.ui.remove, s.ui.confirm = remove, true
+	s.removePath = filepath.Join(s.directory.Path, entry.Name)
+	s.confirmTop = 0
+	if s.page.keyboardFocus {
+		s.setFocus(saveCancelControl)
+	}
+	if c := s.page.Confirm; c.windowed() {
+		s.ui.question = c.question(f.menuDisplayText(entry.Label))
+	}
 	f.msg = ""
 }
 
 func (f *flow) commitSaveDelete() {
-	d := f.saveDialog
-	if d == nil || d.remove == nil {
+	s := f.saveScreen
+	if s == nil {
 		return
 	}
-	err := d.remove()
-	d.remove, d.removePath = nil, ""
-	d.setFocus(saveListControl)
+	if !s.page.clearDeleteAttempt && !f.canDeleteSave() {
+		s.ui.confirm = false
+		s.ui.remove = nil
+		return
+	}
+	if s.ui.remove == nil {
+		return
+	}
+	err := s.ui.remove()
+	if s.page.clearDeleteAttempt {
+		s.ui.remove, s.ui.confirm, s.removePath = nil, false, ""
+		s.setFocus(saveListControl)
+	}
 	if err != nil {
 		f.msg = err.Error()
 		return
 	}
-	i := d.list.Selection()
-	d.request.Directory = d.directory.Path
-	f.refreshSaveDirectory()
-	d.list.Move(i)
+	i := s.list.Selection()
+	if s.page.retainDeletedRow {
+		s.request.Directory = s.directory.Path
+	}
+	f.refreshSavePage()
+	if s.page.retainDeletedRow {
+		s.list.Move(i)
+	} else {
+		s.list.Select(0)
+		s.pick()
+	}
 }
 
 func (f *flow) editSaveText(in appInput) {
-	d := f.saveDialog
-	field := d.editField()
-	if field == nil {
+	s := f.saveScreen
+	if s.editField() == nil {
 		return
 	}
-	state := EditText(TextInputState{Text: *field, Caret: d.caret, SelectedAll: d.selectedText}, textInputKeys(in),
-		TextInputRules{Limit: 4096, Selection: TextReplaceAllSelection, SplitLineBreaks: true, LiteralArrows: true})
-	*field, d.caret, d.selectedText = state.Text, state.Caret, state.SelectedAll
-	if !in.SelectText && (in.Backspace || in.Delete || in.Typed != "") {
+	s.edit(in)
+	if (!s.page.keyboardFocus || !in.SelectText) && (in.Backspace || in.Delete || in.Typed != "") {
 		f.msg = ""
 	}
-}
-
-func (a *App) stepSaveDialog(in appInput) {
-	d := a.flow.saveDialog
-	if d == nil || in.Unfocused {
-		if d != nil {
-			d.press.Clear()
-		}
-		return
-	}
-	if in.PaneMode {
-		delta := 1
-		if in.ShiftHeld {
-			delta = -1
-		}
-		d.moveFocus(delta)
-		return
-	}
-	if d.prepared != nil || d.remove != nil {
-		wheel := confirmList.wheelStep(in)
-		if in.Up || wheel < 0 {
-			d.confirmTop -= confirmList.key
-		}
-		if in.Down || wheel > 0 {
-			d.confirmTop += confirmList.key
-		}
-		a.clampSaveConfirmationScroll()
-	} else {
-		if in.Delete && d.editField() == nil {
-			a.flow.confirmSaveDelete()
-			return
-		}
-		a.flow.editSaveText(in)
-		if d.focus == saveListControl && d.list != nil {
-			listKey(d.list, in.Up, in.Down, in.PageUp, in.PageDown)
-			if wheel := saveListFocused.wheelStep(in); wheel != 0 {
-				d.list.Move(wheel)
-			}
-		}
-		if wheeled(in) && d.focus != saveListControl {
-			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && saveDialogLayout.holds(int(saveListControl), p) {
-				d.list.Move(saveListHover.wheelStep(in))
-			}
-		}
-	}
-	if in.Enter {
-		a.flow.activateSaveControl(d.focus)
-		return
-	}
-	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
-	if d.prepared == nil && d.remove == nil && d.list != nil {
-		if req, pos := d.bar.step(listBar(a.saveListBox(), d.list), p, ok, in); req != barNone {
-			d.setFocus(saveListControl)
-			listBarRequest(d.list, req, pos)
-			return
-		}
-		if d.bar.active() {
-			return
-		}
-	}
-	if !in.PrimaryPressed && !in.PrimaryReleased {
-		return
-	}
-	if !ok {
-		d.press.Clear()
-		return
-	}
-	c, hit := d.controlAt(p)
-	row, rowOK := 0, hit && c != saveListControl
-	if hit && c == saveListControl {
-		row, rowOK = a.saveRowAt(p)
-	}
-	if in.PrimaryPressed {
-		if hit {
-			d.setFocus(c)
-			if c == saveListControl && rowOK {
-				d.list.Select(row)
-			}
-		}
-		d.press.Press(saveLatchID(c, row), rowOK)
-	}
-	if in.PrimaryReleased {
-		_, activate := d.press.Release(saveLatchID(c, row), rowOK)
-		if activate && c != saveDirectoryControl && c != saveNameControl {
-			a.playUISound(UISoundCommonControl)
-			a.flow.activateSaveControl(c)
-		}
+	if in.Backspace || in.Delete || in.Typed != "" {
+		s.listFocus = false
 	}
 }
 
-// saveLatchID is the latch's button: a control, or one row of the list.
-func saveLatchID(c saveControl, row int) int {
-	if c == saveListControl {
-		return int(c) + (row+1)<<8
-	}
-	return int(c)
-}
-
-func (d *saveDialog) controlAt(p image.Point) (saveControl, bool) {
-	for _, c := range d.controls() {
-		if saveDialogLayout.holds(int(c), p) {
+func (s *savePageState) controlAt(p image.Point) (saveControl, bool) {
+	layout := s.page.saveLayout()
+	for _, c := range s.controls() {
+		if layout.holds(int(c), p) {
 			return c, true
 		}
 	}
@@ -486,16 +270,178 @@ func (d *saveDialog) controlAt(p image.Point) (saveControl, bool) {
 }
 
 func (a *App) saveRowAt(p image.Point) (int, bool) {
-	d := a.flow.saveDialog
-	if d == nil || d.list == nil {
+	s := a.flow.saveScreen
+	if s == nil || s.list == nil {
 		return 0, false
 	}
-	i, ok := a.saveListBox().RowAt(p)
-	top, n := d.list.Visible()
+	i, ok := a.pageListBox(s.view()).RowAt(p)
+	top, n := s.list.Visible()
 	if ok && i < n {
 		return top + i, true
 	}
 	return 0, false
+}
+
+func (s *savePageState) latchID(c saveControl, row int) int {
+	ids := []int{3, 4, 5, 6, 7, 0, 1, 2}
+	if len(s.page.latchIDs) != 0 {
+		ids = s.page.latchIDs
+	}
+	if c == saveListControl {
+		return ids[c] + (row+1)<<8
+	}
+	return ids[c]
+}
+
+func (a *App) stepSaveScreen(in appInput) {
+	s := a.flow.saveScreen
+	if s == nil {
+		return
+	}
+	v := s.view()
+	if v.asking() {
+		a.stepPageQuestion(v, in)
+		return
+	}
+	if in.Unfocused || s.list == nil {
+		if s.page.preserveListPointer {
+			s.ui.press.Clear()
+		} else {
+			s.ui.resetPointer()
+		}
+		return
+	}
+	if in.PaneMode && s.page.keyboardFocus {
+		delta := 1
+		if in.ShiftHeld {
+			delta = -1
+		}
+		s.moveFocus(delta)
+		return
+	}
+	before := s.list.Selection()
+	defer func() {
+		if !s.page.activateRows && a.flow.saveScreen == s && s.list.Selection() != before {
+			s.pick()
+		}
+	}()
+	if in.Enter && !s.page.keyboardFocus {
+		a.acceptPage(v)
+		return
+	}
+	if s.confirming() {
+		wheel := confirmList.wheelStep(in)
+		if in.Up || wheel < 0 {
+			s.confirmTop -= confirmList.key
+		}
+		if in.Down || wheel > 0 {
+			s.confirmTop += confirmList.key
+		}
+		a.clampSaveConfirmationScroll()
+	} else {
+		if in.Delete && s.editField() == nil {
+			a.flow.confirmSaveDelete()
+			return
+		}
+		a.flow.editSaveText(in)
+		if !s.page.keyboardFocus && pageListKeyed(in) {
+			s.ui.rowPressed = false
+			s.listFocus = true
+		}
+		if !s.page.keyboardFocus || s.focus == saveListControl {
+			rule := s.page.wheel
+			if rule.wheel == 0 {
+				rule = pickerList
+			}
+			stepPageListKeys(s.list, in, rule, false)
+		}
+		if s.page.keyboardFocus && wheeled(in) && s.focus != saveListControl {
+			if p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY); ok && s.page.saveLayout().holds(int(saveListControl), p) {
+				s.list.Move(s.page.hoverWheel.wheelStep(in))
+			}
+		}
+	}
+	if in.Enter {
+		a.flow.activateSaveControl(s.focus)
+		return
+	}
+	p, ok := a.windowToNativeFrame(in.CursorX, in.CursorY)
+	if !s.confirming() {
+		if a.stepPageBar(v, s.list, p, ok, in, func() {
+			if s.page.keyboardFocus {
+				s.setFocus(saveListControl)
+			}
+		}) {
+			return
+		}
+	}
+	if !in.PrimaryPressed && !in.PrimaryReleased {
+		return
+	}
+	if in.PrimaryReleased && s.ui.doubled {
+		a.acceptPage(v)
+		return
+	}
+	if !ok {
+		s.ui.press.Clear()
+		s.ui.rowPressed = false
+		return
+	}
+	c, hit := s.controlAt(p)
+	box := a.pageListBox(v)
+	if !s.confirming() && !hit && (p.In(box.Rect) || p.In(box.Bar())) {
+		c, hit = saveListControl, true
+	}
+	row, rowOK := 0, hit && c != saveListControl
+	if hit && c == saveListControl {
+		row, rowOK = a.saveRowAt(p)
+	}
+	if in.PrimaryPressed {
+		if !s.page.keyboardFocus && !s.confirming() {
+			if c == saveNameControl && hit {
+				s.listFocus = false
+			}
+			box := a.pageListBox(v)
+			if p.In(box.Rect) || p.In(box.Bar()) {
+				s.listFocus = true
+			}
+		}
+		if hit && s.page.keyboardFocus {
+			s.setFocus(c)
+		}
+		_, onRow := box.RowAt(p)
+		if !s.confirming() && hit && c == saveListControl {
+			if s.ui.pressRow(s.list, onRow, rowOK, row, in.PrimaryDouble, !s.page.activateRows) {
+				return
+			}
+		} else {
+			s.ui.rowPressed = false
+		}
+		enabled := rowOK && (s.page.keyboardFocus || !a.flow.saveControlDisabled(s, c))
+		s.ui.press.Press(s.latchID(c, row), enabled && (c != saveListControl || s.page.activateRows))
+	}
+	if in.PrimaryReleased {
+		_, activate := s.ui.press.Release(s.latchID(c, row), rowOK)
+		if activate && c != saveDirectoryControl && c != saveNameControl {
+			if s.page.controlSound {
+				a.playUISound(UISoundCommonControl)
+			}
+			a.flow.activateSaveControl(c)
+		}
+	}
+}
+
+func (f *flow) saveControlDisabled(s *savePageState, c saveControl) bool {
+	switch c {
+	case saveWriteControl:
+		return !s.confirming() && !s.page.fileNames && *s.nameField() == ""
+	case saveDeleteControl:
+		if s.view().confirmingInPage() && s.page.confirmRows > 0 && s.ui.remove != nil {
+			return false
+		}
+		return !f.canDeleteSave() || s.view().confirmingInPage()
+	}
+	return false
 }
 
 func saveDialogError(action string) error {

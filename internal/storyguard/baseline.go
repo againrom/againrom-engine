@@ -3950,5 +3950,9 @@ var Committed = Baseline{
 	// It rose for the inn Sleep plaque's caption encoding (engineWord in
 	// pkg/game/secondtown.go and its test), the restored innAct and innRows
 	// citations and the cmd/innsleep reason line.
-	CommentBytes: 10484142,
+
+	// It fell with the shared save screen and its description-driven input and paint.
+	// It rose for the doc comments of the shared page-part painters and list input
+	// helpers that LOAD and SAVE both call.
+	CommentBytes: 10481859,
 }

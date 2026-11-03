@@ -91,7 +91,7 @@ var screenRegistry = map[Screen]screenEntry{
 		GeometryTests: []string{"TestEndingControlsAndSourceRowsHaveVisibleGeometry"},
 	},
 	ScreenSave: {
-		Composer:      "(*App).composeSaveDialogScreen, selected by (*App).composeScreen",
+		Composer:      "(*App).composeSaveScreen, selected by (*App).composeScreen",
 		Test:          "TestComposeScreenSelectsSaveDialogComposer",
 		GeometryTests: []string{"TestSaveDialogDrawsFieldsAndTitleAtLiteralOrigins"},
 	},

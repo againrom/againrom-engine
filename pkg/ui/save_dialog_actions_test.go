@@ -16,7 +16,7 @@ func TestSaveDialogTabSkipsFormatSelector(t *testing.T) {
 	if h.Focus != "save" {
 		t.Fatalf("Tab after name focuses %q, want save", h.Focus)
 	}
-	paint, err := a.saveDialogPaint()
+	paint, err := a.savePagePaint()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestSaveDialogDeleteUsesSelectedListedFile(t *testing.T) {
 			if len(removed) != 1 || removed[0] != want || h.Confirmation || len(h.Entries) != 2 || h.Request.Directory != "saves" {
 				t.Fatalf("delete/refresh = %v / %+v", removed, h)
 			}
-			if got := a.flow.saveDialog.list.Selection(); got != 2 {
+			if got := a.flow.saveScreen.list.Selection(); got != 2 {
 				t.Fatalf("refreshed selection = %d, want following save row 2", got)
 			}
 			if len(s.requests) != 0 || len(s.commits) != 0 {

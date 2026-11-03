@@ -39,7 +39,7 @@ func questionSaveApp(t *testing.T) (*App, *pageSeamsFake) {
 	if err := a.HeadlessSaveAction("delete"); err != nil {
 		t.Fatal(err)
 	}
-	if v := a.flow.pages.save.view(); !v.asking() {
+	if v := a.flow.saveScreen.view(); !v.asking() {
 		t.Fatal("Delete did not open the question window")
 	}
 	return a, fake
@@ -69,7 +69,7 @@ func questionAnswers(t *testing.T, a *App, v pageView) map[string]image.Rectangl
 // as the answers: no Yes or No was drawn.
 func TestSecondGameDeleteAsksInASmallWindowWithYesAndNo(t *testing.T) {
 	a, _ := questionSaveApp(t)
-	v := a.flow.pages.save.view()
+	v := a.flow.saveScreen.view()
 	font := a.flow.menuFont
 	w := &v.ui.question
 	l := w.layout(font, v.page.Panel)
@@ -123,7 +123,7 @@ func TestSecondGameDeleteNoAndEscapeKeepTheRowChosen(t *testing.T) {
 		t.Run(way, func(t *testing.T) {
 			a, fake := questionSaveApp(t)
 			if way == "no" {
-				v := a.flow.pages.save.view()
+				v := a.flow.saveScreen.view()
 				no := questionAnswers(t, a, v)["No"].Min.Add(image.Pt(4, 4))
 				for _, action := range []string{"press", "release"} {
 					if err := a.HeadlessPointer(action, no.X, no.Y); err != nil {
@@ -133,9 +133,9 @@ func TestSecondGameDeleteNoAndEscapeKeepTheRowChosen(t *testing.T) {
 			} else if err := a.HeadlessKey("escape"); err != nil {
 				t.Fatal(err)
 			}
-			s := a.flow.pages.save
-			if a.Screen() != ScreenSave || s.ui.confirm || len(fake.entries) != 2 || s.list.Selection() != 2 || string(s.name) != "Beta" {
-				t.Fatalf("after %s: screen %v asking %v saves %d row %d name %q", way, a.Screen(), s.ui.confirm, len(fake.entries), s.list.Selection(), string(s.name))
+			s := a.flow.saveScreen
+			if a.Screen() != ScreenSave || s.ui.confirm || len(fake.entries) != 2 || s.list.Selection() != 2 || s.request.Label != "Beta" {
+				t.Fatalf("after %s: screen %v asking %v saves %d row %d name %q", way, a.Screen(), s.ui.confirm, len(fake.entries), s.list.Selection(), s.request.Label)
 			}
 		})
 	}
@@ -149,15 +149,15 @@ func TestSecondGameDeleteYesDeletes(t *testing.T) {
 	for _, answer := range []string{"click", "enter"} {
 		t.Run(answer, func(t *testing.T) {
 			a, fake := questionSaveApp(t)
-			v := a.flow.pages.save.view()
-			a.flow.pages.save.page.Buttons[loadOKButton].Rect = image.Rect(120, 400, 216, 424)
+			v := a.flow.saveScreen.view()
+			a.flow.saveScreen.page.Buttons[loadOKButton].Rect = image.Rect(120, 400, 216, 424)
 			for _, action := range []string{"press", "release"} {
 				if err := a.HeadlessPointer(action, 130, 410); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if len(fake.entries) != 2 || !a.flow.pages.save.ui.confirm {
-				t.Fatalf("the page's Ok under the window deleted: %d saves, asking %v", len(fake.entries), a.flow.pages.save.ui.confirm)
+			if len(fake.entries) != 2 || !a.flow.saveScreen.ui.confirm {
+				t.Fatalf("the page's Ok under the window deleted: %d saves, asking %v", len(fake.entries), a.flow.saveScreen.ui.confirm)
 			}
 			if answer == "click" {
 				yes := questionAnswers(t, a, v)["Yes"].Min.Add(image.Pt(4, 4))
@@ -169,9 +169,9 @@ func TestSecondGameDeleteYesDeletes(t *testing.T) {
 			} else if err := a.HeadlessKey("enter"); err != nil {
 				t.Fatal(err)
 			}
-			s := a.flow.pages.save
-			if len(fake.entries) != 1 || fake.entries[0].Label != "Alpha" || s.ui.confirm || s.list.Selection() != 0 || len(s.name) != 0 {
-				t.Fatalf("after Yes: saves %+v asking %v row %d name %q", fake.entries, s.ui.confirm, s.list.Selection(), string(s.name))
+			s := a.flow.saveScreen
+			if len(fake.entries) != 1 || fake.entries[0].Label != "Alpha" || s.ui.confirm || s.list.Selection() != 0 || len([]rune(s.request.Label)) != 0 {
+				t.Fatalf("after Yes: saves %+v asking %v row %d name %q", fake.entries, s.ui.confirm, s.list.Selection(), s.request.Label)
 			}
 		})
 	}

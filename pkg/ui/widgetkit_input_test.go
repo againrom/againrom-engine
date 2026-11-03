@@ -186,10 +186,10 @@ func TestSaveCaretDrawnAfterLabel(t *testing.T) {
 	if !a.blink.on() {
 		t.Fatal("setup: blink is off")
 	}
-	if a.flow.saveDialog.caret != 0 {
+	if a.flow.saveScreen.caret != 0 {
 		t.Fatal("setup: caret not at Home")
 	}
-	pix, err := a.composeSaveDialogScreen()
+	pix, err := a.composeSaveScreen()
 	if err != nil {
 		t.Fatal(err)
 	}

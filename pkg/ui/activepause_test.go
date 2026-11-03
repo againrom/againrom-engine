@@ -301,7 +301,7 @@ func TestActivePauseTextAndOutsideMissionZero(t *testing.T) {
 	s := &saveDialogSpy{}
 	a := newSaveDialogApp(t, s, ScreenMap)
 	a.HeadlessSaveEdit("saves", "two", SaveSAV)
-	a.flow.saveDialog.setFocus(saveNameControl)
+	a.flow.saveScreen.setFocus(saveNameControl)
 	a.step(appInput{Pause: true, Typed: " words"}, cadenceAt(0))
 	a.HeadlessKey("0")
 	if a.flow.stopped {

@@ -8,10 +8,8 @@ import (
 	"againrom/pkg/namefold"
 )
 
-// SavePage is one load or save page as data: its layout, captions, list
-// rules and the save role's slot rule. The first game's LOAD window is the
-// page firstLoadPage builds; another game supplies its pages through
-// SetSavePages. One builder draws and drives every page.
+// SavePage describes a load or save screen. Its handlers read the layout,
+// captions, list rules and optional slot rule.
 type SavePage struct {
 	// Panel is the window frame's body.
 	Panel image.Rectangle
@@ -41,7 +39,7 @@ type SavePage struct {
 	// OKNeedsSave disables Ok while no save is listed.
 	OKNeedsSave bool
 
-	// The save role (SavePages.Save). Row 0 is EmptySlot, the other rows
+	// By default the save role starts with EmptySlot, followed by
 	// the listed saves except the Hidden names. NameBox holds the typed
 	// label, at most NameLimit characters when positive. Ok writes it to the
 	// selected row's file, or to the file Slot names for row 0, with no
@@ -53,6 +51,32 @@ type SavePage struct {
 	EmptyInk color.RGBA
 	Hidden   []string
 	Slot     func(directory string, listed []string) string
+
+	DirectoryBox image.Rectangle
+	Navigation   [2]PageButton
+	// The defaults are label-and-slot entry; these rows describe optional
+	// file browsing, keyboard focus and the page's additional paint.
+	fileNames, directories, overwriteQuestion, keyboardFocus bool
+	activateRows, retainDeletedRow, clearDeleteAttempt       bool
+	clearListMessage, preserveListPointer, stopListError     bool
+	initialName                                              string
+	focusOrder                                               []saveControl
+	selection                                                TextSelection
+	background, fill, border                                 color.RGBA
+	frame                                                    image.Rectangle
+	artOnly, deferredText                                    bool
+	blocks                                                   []saveTextBlock
+	empty, detail                                            PageText
+	confirmHeading, deleteHeading, scrollHint                PageText
+	confirmAt                                                image.Point
+	confirmWidth, confirmRows, confirmPitch                  int
+	confirmButtons                                           [3]PageButton
+	wheel, hoverWheel                                        scrollSpec
+	controlSound, standalone                                 bool
+	errorName                                                string
+	latchIDs                                                 []int
+	ink                                                      color.RGBA
+	fitButtons, selectNameOnOpen, reportDeletePath           bool
 }
 
 // PageText is one caption: centred in Box when Box is set, else drawn from
@@ -66,12 +90,14 @@ type PageText struct {
 	Ink     color.RGBA
 	Listing bool
 	Focus   bool
+	word    string
 }
 
 // PageButton is one push button.
 type PageButton struct {
 	Rect    image.Rectangle
 	Caption string
+	word    string
 }
 
 // PageConfirm is the delete confirmation: Before at At and the selected
@@ -97,23 +123,20 @@ func (c PageConfirm) question(label string) noticeWindow {
 	return noticeWindow{Rows: []noticeRow{{{Text: s}}}, Answers: []string{c.Yes, c.No}, Shape: c.Window}
 }
 
-// pageSeams holds a game's pages: loadSet and saveSet nil keep the first
-// game's LOAD window and the save dialog; save is the open save page.
+// pageSeams holds page descriptions; nil selects the built-in descriptions.
 // files answers whether any save file exists; hasSave is its answer when the
 // menu last showed.
 type pageSeams struct {
 	loadSet, saveSet *SavePage
 	// menu is the game's game-menu data.
 	menu    GameMenuProfile
-	save    *savePageState
 	files   func() bool
 	hasSave bool
 	// loadable answers whether the load list has a row without building it.
 	loadable func() bool
 }
 
-// SavePages are a game's load page and, when set, its save page. A nil Save
-// keeps the save dialog.
+// SavePages supplies the load page and an optional save page description.
 type SavePages struct {
 	Load SavePage
 	Save *SavePage
@@ -174,8 +197,8 @@ func (p SavePage) hidden(name string) bool {
 }
 
 // pageView is one open page: its data, its pointer state, its list and the
-// saves behind the list's rows. A save page's row 0 is its Empty Slot, so its
-// save i is row i+1.
+// saves behind the list's rows. Optional empty and directory rows precede
+// the save rows.
 type pageView struct {
 	page  SavePage
 	ui    *loadWindow
@@ -186,11 +209,23 @@ type pageView struct {
 
 // asking reports whether a deletion awaits its answer in the page's question
 // window.
-func (v pageView) asking() bool { return v.ui.confirm && v.page.Confirm.windowed() }
+func (v pageView) asking() bool {
+	confirm := v.ui.confirm
+	if v.save != nil {
+		confirm = v.save.confirming()
+	}
+	return confirm && v.page.Confirm.windowed()
+}
 
 // confirmingInPage reports whether a deletion awaits confirmation in the
 // page's own body.
-func (v pageView) confirmingInPage() bool { return v.ui.confirm && !v.page.Confirm.windowed() }
+func (v pageView) confirmingInPage() bool {
+	confirm := v.ui.confirm
+	if v.save != nil {
+		confirm = v.save.confirming()
+	}
+	return confirm && !v.page.Confirm.windowed()
+}
 
 // listFocus reports whether the list has the focus: always on a load page,
 // on a save page once a list key or a click in the list set it.
@@ -199,7 +234,7 @@ func (v pageView) listFocus() bool { return v.save == nil || v.save.listFocus }
 // first is the list row of saves[0].
 func (v pageView) first() int {
 	if v.save != nil {
-		return 1
+		return v.save.first()
 	}
 	return 0
 }

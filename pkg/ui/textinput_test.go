@@ -23,9 +23,9 @@ func TestGameFieldsUseSharedTextModel(t *testing.T) {
 	})
 	t.Run("dialog name and directory", func(t *testing.T) {
 		for _, focus := range []saveControl{saveNameControl, saveDirectoryControl} {
-			d := &saveDialog{focus: focus, caret: 1}
+			d := &savePageState{page: firstSavePage(), focus: focus, caret: 1}
 			*d.editField() = "абВ"
-			f := &flow{saveDialog: d}
+			f := &flow{saveScreen: d}
 			f.editSaveText(appInput{SelectText: true})
 			f.editSaveText(appInput{Right: true})
 			f.editSaveText(appInput{Backspace: true, Typed: "Q\n"})
@@ -35,19 +35,19 @@ func TestGameFieldsUseSharedTextModel(t *testing.T) {
 		}
 	})
 	t.Run("page sticky selection", func(t *testing.T) {
-		s := &savePageState{name: []rune("абВ"), caret: 1, page: SavePage{NameLimit: 4}}
+		s := &savePageState{request: SaveRequest{Label: "абВ"}, caret: 1, page: SavePage{NameLimit: 4}}
 		s.edit(appInput{SelectText: true})
 		s.edit(appInput{Right: true})
-		if s.caret != 2 || !s.selectAll {
-			t.Fatal("selection moved", s.caret, s.selectAll)
+		if s.caret != 2 || !s.selectedText {
+			t.Fatal("selection moved", s.caret, s.selectedText)
 		}
 		s.edit(appInput{Typed: "\n"})
-		if len(s.name) != 0 || s.selectAll {
+		if len([]rune(s.request.Label)) != 0 || s.selectedText {
 			t.Fatal("filtered edit did not clear selection")
 		}
 		s.edit(appInput{Typed: "Q12345"})
-		if string(s.name) != "Q123" {
-			t.Fatal("page cap", string(s.name))
+		if s.request.Label != "Q123" {
+			t.Fatal("page cap", s.request.Label)
 		}
 	})
 	t.Run("detached amount selection", func(t *testing.T) {
@@ -113,16 +113,16 @@ func TestSaveNameAdaptersKeepControlArrowsLiteral(t *testing.T) {
 			name = "page"
 		}
 		t.Run(name, func(t *testing.T) {
-			s := &savePageState{name: []rune("one two"), caret: 7, page: SavePage{NameLimit: 20}}
-			d := &saveDialog{focus: saveNameControl, caret: 7}
+			s := &savePageState{request: SaveRequest{Label: "one two"}, caret: 7, page: SavePage{NameLimit: 20}}
+			d := &savePageState{page: firstSavePage(), focus: saveNameControl, caret: 7}
 			*d.editField() = "one two"
-			f := &flow{saveDialog: d}
+			f := &flow{saveScreen: d}
 			for _, left := range []bool{true, false} {
 				in := appInput{Left: left, Right: !left, Viewer: Input{Ctrl: true}}
 				caret, value := 0, ""
 				if page {
 					s.edit(in)
-					caret, value = s.caret, string(s.name)
+					caret, value = s.caret, s.request.Label
 				} else {
 					f.editSaveText(in)
 					caret, value = d.caret, *d.editField()

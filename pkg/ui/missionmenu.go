@@ -264,7 +264,7 @@ func (f *flow) menuWindowShown() bool {
 	case ScreenGameMenu:
 		return true
 	case ScreenSave:
-		return f.pages.save != nil
+		return f.saveScreen != nil && !f.saveScreen.page.standalone
 	case ScreenLoad:
 		return f.loadBack == ScreenGameMenu
 	case ScreenMod:
@@ -277,8 +277,8 @@ func (f *flow) menuGeometryProfile() menuWindowPlacement { return f.menuPlacemen
 
 func (a *App) missionMenuRect() image.Rectangle {
 	f := a.flow
-	if f.screen == ScreenSave && f.pages.save != nil {
-		return windowFrame(f.pages.save.page.Panel, f.menuArt).rect()
+	if f.screen == ScreenSave && f.saveScreen != nil {
+		return windowFrame(f.saveScreen.page.Panel, f.menuArt).rect()
 	}
 	if f.screen == ScreenLoad {
 		return windowFrame(f.loadView().page.Panel, f.menuArt).rect()
