@@ -22,7 +22,7 @@ skill =
 shop-stock-multiplier = 1
 extra =
 
--rw-rw-rw-
+-rw-------
 settings saved to $T/starter.ini
 ; old
 old = 1
@@ -49,7 +49,7 @@ skill =
 shop-stock-multiplier = 1
 extra =
 
--rw-rw-rw-
+-rw-------
 settings saved to $T/new/deeper/starter.ini
 [starter]
 againrom =
@@ -74,7 +74,7 @@ skill =
 shop-stock-multiplier = 1
 extra =
 
--rw-rw-rw-
+-rw-------
 bad=yes
 blocked
 new

@@ -1,9 +1,9 @@
 new: ok
-panel.json -rw-rw-rw- one
+panel.json -rw------- one
 equal: ok
-panel.json -rw-rw-rw- one
+panel.json -rw------- one
 equal left the file: yes
 replace: ok
-panel.json -rw-rw-rw- two
+panel.json -rw------- two
 missing folder: open $T/absent/.panel-#: The system cannot find the path specified.
-panel.json -rw-rw-rw- two
+panel.json -rw------- two

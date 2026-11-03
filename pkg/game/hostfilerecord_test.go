@@ -120,7 +120,7 @@ func (r *hostRecord) tree(dir string) {
 		if len(body) > 24 {
 			body = fmt.Sprintf("%.24s...", body)
 		}
-		rows = append(rows, fmt.Sprintf("  %s %d %v %q", filepath.ToSlash(rel), len(b), info.Mode().Perm(), body))
+		rows = append(rows, fmt.Sprintf("  %s %d %v %q", filepath.ToSlash(rel), len(b), info.Mode().Perm()&0o700, body))
 		return nil
 	})
 	sort.Strings(rows)

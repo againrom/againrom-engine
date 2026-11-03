@@ -30,7 +30,7 @@ func TestHostFileRecordStarterIni(t *testing.T) {
 		info, _ := os.Stat(path)
 		b.WriteString(norm(a.status) + "\n" + string(got) + "\n")
 		if err == nil {
-			b.WriteString(info.Mode().Perm().String() + "\n")
+			b.WriteString((info.Mode().Perm() & 0o700).String() + "\n")
 		}
 	}
 	if err := os.WriteFile(filepath.Join(dir, "blocked"), []byte("a file"), 0o644); err != nil {

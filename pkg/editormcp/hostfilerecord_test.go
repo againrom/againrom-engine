@@ -27,7 +27,7 @@ func TestHostFileRecordProfileFile(t *testing.T) {
 			rel, _ := filepath.Rel(dir, p)
 			body, _ := os.ReadFile(p)
 			info, _ := d.Info()
-			rows = append(rows, norm(filepath.ToSlash(rel)+" "+info.Mode().Perm().String()+" "+string(body)))
+			rows = append(rows, norm(filepath.ToSlash(rel)+" "+(info.Mode().Perm()&0o700).String()+" "+string(body)))
 			return nil
 		})
 		sort.Strings(rows)

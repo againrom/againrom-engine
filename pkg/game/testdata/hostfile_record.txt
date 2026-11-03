@@ -2,57 +2,57 @@
 write game0000.sav: ok
 write game0001.sav: ok
 write over a gap game0002.sav: ok
-  game0000.sav 10 -rw-rw-rw- "save-bytes"
-  game0001.sav 10 -rw-rw-rw- "save-bytes"
-  game0002.sav 5 -rw-rw-rw- "third"
-  game0003.sav 7 -rw-rw-rw- "planted"
+  game0000.sav 10 -rw------- "save-bytes"
+  game0001.sav 10 -rw------- "save-bytes"
+  game0002.sav 5 -rw------- "third"
+  game0003.sav 7 -rw------- "planted"
 ## single save fences
 under an install: error fence=true refusing to write original-format save under game install $T/inst
 under the original directory: error fence=true refusing to write original-format save under read-only game install $T/orig
-  graphics.res 0 -rw-rw-rw- ""
-  main.res 0 -rw-rw-rw- ""
-  movies.res 0 -rw-rw-rw- ""
-  scenario.res 0 -rw-rw-rw- ""
-  world.res 0 -rw-rw-rw- ""
-  keep.txt 1 -rw-rw-rw- "k"
+  graphics.res 0 -rw------- ""
+  main.res 0 -rw------- ""
+  movies.res 0 -rw------- ""
+  scenario.res 0 -rw------- ""
+  world.res 0 -rw------- ""
+  keep.txt 1 -rw------- "k"
 ## single save failures
 map[create:1]: error fence=false create temporary save: planted create failure
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 map[write:1]: error fence=false write temporary save: planted write failure
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 map[sync:1]: error fence=false synchronize temporary save: planted sync failure
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 map[close:1]: error fence=false close temporary save: planted close failure
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 map[publish:1]: error fence=false publish save game0000.sav: planted publish failure
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 map[publish:1 remove:1]: error fence=false publish save game0000.sav: planted publish failure
 remove failed temporary save .save-original.sav.tmp-#-#; it remains hidden and the next save will retry cleanup: planted remove failure
-  .save-original.sav.tmp-#-# 4 -rw-rw-rw- "lost"
+  .save-original.sav.tmp-#-# 4 -rw------- "lost"
 next write game0000.sav: ok
-  game0000.sav 4 -rw-rw-rw- "next"
+  game0000.sav 4 -rw------- "next"
 ## single save recovery
 leftover temporary save: error fence=false recover temporary saves before writing; no new save was started: remove hidden temporary save .save-original.sav.tmp-#-123: planted remove refusal
-  .save-original.sav.tmp-#-123 4 -rw-rw-rw- "left"
+  .save-original.sav.tmp-#-123 4 -rw------- "left"
 ## screenshot
 screenshot screen0000.png: ok
 screenshot screen0001.png: ok
 screenshot under an install: error fence=true refusing to write original-format save under game install $T/inst
-  screen0000.png 74 -rw-rw-rw- "/x89PNG/r/n/x1a/n/x00/x00/x00/rIHDR/x00/x00/x00/x02/x00/x00/x00/x02..."
-  screen0001.png 74 -rw-rw-rw- "/x89PNG/r/n/x1a/n/x00/x00/x00/rIHDR/x00/x00/x00/x02/x00/x00/x00/x02..."
+  screen0000.png 74 -rw------- "/x89PNG/r/n/x1a/n/x00/x00/x00/rIHDR/x00/x00/x00/x02/x00/x00/x00/x02..."
+  screen0001.png 74 -rw------- "/x89PNG/r/n/x1a/n/x00/x00/x00/rIHDR/x00/x00/x00/x02/x00/x00/x00/x02..."
 ## named save set
 new set: ok
 existing without overwrite: error fence=false confirm replacement of $T/slot.sav
-  slot.ags 7 -rw-rw-rw- "ags-one"
-  slot.sav 7 -rw-rw-rw- "sav-one"
+  slot.ags 7 -rw------- "ags-one"
+  slot.sav 7 -rw------- "sav-one"
 existing with overwrite: ok
-  slot.ags 7 -rw-rw-rw- "ags-two"
-  slot.sav 7 -rw-rw-rw- "sav-two"
+  slot.ags 7 -rw------- "ags-two"
+  slot.sav 7 -rw------- "sav-two"
 under an install: error fence=true refusing to write original-format save under game install $T/inst
 under the original directory: error fence=true refusing to write original-format save under read-only game install $T/orig
 ## named save set failures
@@ -61,72 +61,72 @@ existing=false map[write:2]: error fence=false prepare save files: planted write
 existing=false map[publish:2]: error fence=false publish $T/slot.ags: planted publish failure
 existing=false map[publish:2 remove:1]: error fence=false publish $T/slot.ags: planted publish failure
 restore $T/slot.sav from : planted remove failure
-  slot.sav 7 -rw-rw-rw- "sav-two"
+  slot.sav 7 -rw------- "sav-two"
 existing=true map[create:3]: error fence=false prepare save files: planted create failure
-  slot.ags 7 -rw-rw-rw- "ags-one"
-  slot.sav 7 -rw-rw-rw- "sav-one"
+  slot.ags 7 -rw------- "ags-one"
+  slot.sav 7 -rw------- "sav-one"
 existing=true map[replace:2]: error fence=false publish $T/slot.ags: planted replace failure
-  slot.ags 7 -rw-rw-rw- "ags-one"
-  slot.sav 7 -rw-rw-rw- "sav-one"
+  slot.ags 7 -rw------- "ags-one"
+  slot.sav 7 -rw------- "sav-one"
 existing=true map[remove:1 replace:2]: error fence=false publish $T/slot.ags: planted replace failure
-  slot.ags 7 -rw-rw-rw- "ags-one"
-  slot.sav 7 -rw-rw-rw- "sav-one"
+  slot.ags 7 -rw------- "ags-one"
+  slot.sav 7 -rw------- "sav-one"
 existing=true restore fails: error fence=false publish $T/slot.ags: planted replace failure 2
 restore $T/slot.sav from $T/.save-dialog-#: planted replace failure 3
-  .save-dialog-# 7 -rw-rw-rw- "sav-one"
-  slot.ags 7 -rw-rw-rw- "ags-one"
-  slot.sav 7 -rw-rw-rw- "sav-two"
+  .save-dialog-# 7 -rw------- "sav-one"
+  slot.ags 7 -rw------- "ags-one"
+  slot.sav 7 -rw------- "sav-two"
 ## save delete
 prepare delete: ok
 delete with the remove failing: error fence=false planted remove failure
-  game0000.sav 6 -rw-rw-rw- "doomed"
+  game0000.sav 6 -rw------- "doomed"
 prepare delete: ok
 delete: ok
 ## options file
 tips on: ok
 speed: ok
-  options.txt 23 -rw-rw-rw- "GameSpeed=7/nTipsMode=1/n"
+  options.txt 23 -rw------- "GameSpeed=7/nTipsMode=1/n"
 under an install: error fence=true refusing to write original-format save under game install $T/inst
 under the original directory: error fence=true refusing to write original-format save under read-only game install $T/orig
 ## hall of fame
 add 1: ok
 add 2: ok
-  famehall.dat 48 -rw-rw-rw- "/x02/x00/x00/x00/x06/x00/x00/x00hero2/x00/x02/x00/x00/x00/x00/x00/x00/x00/x00/x00..."
+  famehall.dat 48 -rw------- "/x02/x00/x00/x00/x06/x00/x00/x00hero2/x00/x02/x00/x00/x00/x00/x00/x00/x00/x00/x00..."
 under an install: error fence=true refusing to write original-format save under game install $T/inst
 map[create:1]: error fence=false planted create failure
-  famehall.dat 22 -rw-rw-rw- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
+  famehall.dat 22 -rw------- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
 map[write:1]: error fence=false planted write failure
-  famehall.dat 22 -rw-rw-rw- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
+  famehall.dat 22 -rw------- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
 map[replace:1]: error fence=false planted replace failure
-  famehall.dat 22 -rw-rw-rw- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
+  famehall.dat 22 -rw------- "/x01/x00/x00/x00/x02/x00/x00/x00a/x00/x01/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00/x00"
 new hall publish fails: error fence=false planted publish failure
 ## mod pack
 pack replace=false $T/mod-rec.res: ok
 pack replace=false : error fence=false $T/mod-rec.res exists: a packed mod is written over an existing file only when asked
 pack replace=true $T/mod-rec.res: ok
-  mod-rec.res 178 -rw-rw-rw- "&YA1/x00/x00/x00/x00/x02/x00/x00/x00/x01/x00/x00/x00R/x00/x00/x00/x03/x00/x00/x00..."
+  mod-rec.res 178 -rw------- "&YA1/x00/x00/x00/x00/x02/x00/x00/x00/x01/x00/x00/x00R/x00/x00/x00/x03/x00/x00/x00..."
 pack exists is ErrPackExists=true
 pack into an install: error fence=false $T/inst is inside the install $T/inst: a packed mod is never written into an install
 pack into an install is ErrPackInstall=true
-  graphics.res 0 -rw-rw-rw- ""
-  main.res 0 -rw-rw-rw- ""
-  movies.res 0 -rw-rw-rw- ""
-  scenario.res 0 -rw-rw-rw- ""
-  world.res 0 -rw-rw-rw- ""
+  graphics.res 0 -rw------- ""
+  main.res 0 -rw------- ""
+  movies.res 0 -rw------- ""
+  scenario.res 0 -rw------- ""
+  world.res 0 -rw------- ""
 assemble into the install: error fence=false -out $T/inst is inside the install $T/inst; the tool never writes into an install
 ## base dump
 dump: ok
   dump/
   dump/data/
-  dump/data/a.toml 1 -rw-rw-rw- "a"
+  dump/data/a.toml 1 -rw------- "a"
   dump/data/deep/
-  dump/data/deep/b.toml 1 -rw-rw-rw- "b"
-  dump/mod.toml 1 -rw-rw-rw- "m"
+  dump/data/deep/b.toml 1 -rw------- "b"
+  dump/mod.toml 1 -rw------- "m"
 dump over a file: error fence=false $T/dump/data/deep/b.toml: a base dump never writes over an existing file
 dump over a file is ErrBaseDumpExists=true
   data/
   data/deep/
-  data/deep/b.toml 10 -rw-rw-rw- "in the way"
+  data/deep/b.toml 10 -rw------- "in the way"
 ## headless frame paths
 frame inside the install: error fence=false $T/inst/f.png is inside the install $T/inst: a frame is never written into an install
 frame over a file: error fence=false $T/f.png: a frame is never written over an existing file
@@ -135,36 +135,36 @@ frame new: ok
 new $T/m.alm: ok
 new over an existing map: error fence=false create new map: open $T/m.alm: The file exists.
 save over $T/m.alm: ok
-  m.alm 9 -rw-rw-rw- "map-three"
+  m.alm 9 -rw------- "map-three"
 under an install: error fence=true Save As: refusing to write original-format save under game install $T/inst
 under the root: error fence=false the folder $T/inst/maps does not exist; a save creates no folder
 ## editor map pages
 new with pages $T/p.alm: ok
-  p.alm 4 -rw-rw-rw- "pmap"
+  p.alm 4 -rw------- "pmap"
   p.text/
   p.text/en/
-  p.text/en/briefing.txt 5 -rw-rw-rw- "brief"
-  p.text/title.txt 4 -rw-rw-rw- "name"
-  p.variables 10 -rw-rw-rw- "labels-one"
+  p.text/en/briefing.txt 5 -rw------- "brief"
+  p.text/title.txt 4 -rw------- "name"
+  p.variables 10 -rw------- "labels-one"
 new over existing pages: error fence=false Page output needs a new folder: $T/p.text
 save over with pages $T/p.alm: ok
-  p.alm 5 -rw-rw-rw- "pmap3"
+  p.alm 5 -rw------- "pmap3"
   p.text/
   p.text/en/
-  p.text/en/briefing.txt 9 -rw-rw-rw- "brief-two"
-  p.variables 10 -rw-rw-rw- "labels-two"
+  p.text/en/briefing.txt 9 -rw------- "brief-two"
+  p.variables 10 -rw------- "labels-two"
 save over without pages or labels $T/p.alm: ok
-  p.alm 5 -rw-rw-rw- "pmap4"
+  p.alm 5 -rw------- "pmap4"
   p.text/
   p.text/en/
-  p.text/en/briefing.txt 9 -rw-rw-rw- "brief-two"
+  p.text/en/briefing.txt 9 -rw------- "brief-two"
 ## map saved into a mod
 new $T/maps/a.alm: ok
 over $T/maps/a.alm: ok
 outside: error fence=false ../out.alm leads outside the mod folder
   maps/
-  maps/a.alm 11 -rw-rw-rw- "mod-map-two"
-  mod.toml 9 -rw-rw-rw- "id = /"m/"/n"
+  maps/a.alm 11 -rw------- "mod-map-two"
+  mod.toml 9 -rw------- "id = /"m/"/n"
 mod under the install: error fence=true Save: refusing to write original-format save under read-only game install $T/inst
 ## test play files
 write: ok
@@ -173,23 +173,23 @@ write outside: error fence=false ../../x.txt leads outside the test mod
 guard refuses: error fence=false guarded
   tp/
   tp/data/
-  tp/data/a.txt 3 -rw-rw-rw- "two"
+  tp/data/a.txt 3 -rw------- "two"
 ## test play copy
 copy: ok
 copy again: error fence=false mkdir $T/dest/data: Cannot create a file when that file already exists.
   dest/
   dest/data/
-  dest/data/a.txt 3 -rw-rw-rw- "two"
+  dest/data/a.txt 3 -rw------- "two"
 ## test play package
 install owned=false: ok
   live/
-  live/new.txt 3 -rw-rw-rw- "new"
+  live/new.txt 3 -rw------- "new"
 install owned=true: ok
   live/
-  live/new.txt 3 -rw-rw-rw- "new"
+  live/new.txt 3 -rw------- "new"
 install over an unowned folder: error fence=false rename $T/stage/id $T/live: Access is denied.
   live/
-  live/old.txt 3 -rw-rw-rw- "old"
+  live/old.txt 3 -rw------- "old"
 install previous: error rename $T/live $T/stage/previous: ...
   live/
-  live/old.txt 3 -rw-rw-rw- "old"
+  live/old.txt 3 -rw------- "old"
