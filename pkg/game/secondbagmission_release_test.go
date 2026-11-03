@@ -197,7 +197,7 @@ func secondBagComeHome(t *testing.T, f *FrontEnd, app *ui.App, bag []string, rep
 		t.Fatalf("mission 20 hero packs %v and wears %v, bought %v", pack, worn, bag)
 	}
 	secondBagWin(t, f, 20)
-	(&destinationTownMap{f.TownScreen().(*townScreen)}).enterLocation(partyPlace{kind: placeTown, id: 2})
+	f.TownScreen().(*townScreen).enterLocation(partyPlace{kind: placeTown, id: 2})
 	home := secondBagForm(*c.heroBag())
 	townPack, townWorn := secondBagTown(f)
 	report("town 2 after the return", home, townPack, townWorn)

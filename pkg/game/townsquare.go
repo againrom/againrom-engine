@@ -210,7 +210,7 @@ var townHooks = map[string]townHook{
 	"tavern-selection":    {run: func(t *townScreen, _ string) { t.activateTavernSelection(t.tavernCandidates()) }, offers: "chapter-keys"},
 	"navigate": {run: func(t *townScreen, _ string) {
 		t.campaignTown().leave()
-		if t.hostRules().Leave == "room-map" {
+		if t.mapPage().policy().Build == "entry" {
 			t.enterWorldMap()
 		}
 	}, offers: ""},

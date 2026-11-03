@@ -52,7 +52,7 @@ func nonZeroTownScreen() *townScreen {
 	ts.adapter = chapterTownCampaign{ts}
 	ts.defaults = ROM1TownDescription()
 	ts.composed = newTownSceneState(nil)
-	ts.mapRoute = &chapterTownMap{ts}
+	ts.mapRoute = &worldMapPage{ts}
 	ts.mapArt = func() *worldMapAssets { return nil }
 	ts.worldMapOf = newSecondCampaign()
 	ts.worldMapAt = &secondMapOpening{from: partyPlace{kind: placeTown, id: 1}}

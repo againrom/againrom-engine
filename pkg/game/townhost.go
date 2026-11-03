@@ -9,21 +9,9 @@ import (
 	"againrom/pkg/ui"
 )
 
-type townMapPage interface {
-	worldMapCampaign
-	atMap() bool
-	tick() ui.TownAction
-}
-type chapterTownMap struct{ host *townScreen }
-type destinationTownMap struct{ host *townScreen }
-
-func (t *townScreen) mapPage() townMapPage {
+func (t *townScreen) mapPage() *worldMapPage {
 	if t.mapRoute == nil {
-		if t.hostRules().Leave == "room-map" {
-			t.mapRoute = &chapterTownMap{t}
-		} else {
-			t.mapRoute = &destinationTownMap{t}
-		}
+		t.mapRoute = &worldMapPage{host: t}
 	}
 	return t.mapRoute
 }

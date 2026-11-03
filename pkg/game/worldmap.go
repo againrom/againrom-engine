@@ -394,8 +394,9 @@ func worldMapHome(e town.Entry, a *worldMapAssets) image.Point {
 	if e.ID == 0 {
 		e = chapterTownEntry
 	}
-	if p, _, ok := townMapPoint(e, a); ok {
-		return p
+	m := (worldMapEntryBuilder{assets: a}).record(worldMapEntry{place: partyPlace{placeTown, e.ID}, town: e})
+	if m.Enabled {
+		return m.Anchor
 	}
 	return worldMapNoPoint
 }
@@ -409,76 +410,8 @@ func (t *townScreen) partyTown() town.Entry {
 }
 
 func (t *townScreen) enterWorldMap() {
-	a := t.art.worldMap()
-	home := worldMapHome(t.partyTown(), a)
-	if !t.worldPositionSet {
-		t.worldPosition, t.worldPositionSet = home, true
-		if first, restored := t.sess.Town.firstMapPoint(); restored && !first && a != nil && a.data != nil {
-			if object, ok := a.data.Missions[t.sess.Town.selectedMission()]; ok && object >= 0 && object < len(a.data.Objects) && a.data.Objects[object].Valid {
-				t.worldPosition = a.data.Objects[object].Point
-			}
-		}
-	}
-	if t.worldSelectedOnce == nil {
-		for _, mission := range t.sess.Town.selectedMarkerMissions() {
-			t.markWorldSelected(mission)
-		}
-	}
-	s := &worldMapState{assets: a, selected: -1, hovered: -1, current: t.worldPosition, homeTown: t.partyTown()}
-	var src entrySource
-	if t.in.Archives != nil {
-		src = t.in.Archives.Containers
-	}
-	for _, mission := range t.sess.Town.Available() {
-		m := ui.WorldMapMission{Number: mission, Title: fmt.Sprintf("Mission %d", mission), Enabled: true}
-		if src != nil {
-			words := a.missionText(src, mission)
-			m.Title, m.Briefing = words.title, words.brief
-		}
-		m.Payment = t.sess.Town.campaignPayment(mission)
-		object, mapped := -1, false
-		if a.data != nil {
-			object, mapped = a.data.Missions[mission]
-		}
-		if !mapped || object < 0 || a.data == nil || object >= len(a.data.Objects) {
-			m.Enabled = false
-			m.Problem = fmt.Sprintf("Mission %d has no valid map location", mission)
-		} else {
-			obj := a.data.Objects[object]
-			m.Object = object
-			m.Anchor, m.Region = obj.Point, obj.Region
-			if !obj.Valid {
-				m.Enabled = false
-				m.Problem = obj.Problem
-			}
-			// Marker is resolved in WorldMapView, gated on selection history
-			// (`DIV-128`), so a mission selected during THIS visit shows its
-			// marker immediately rather than only on the next entry.
-		}
-		s.missions = append(s.missions, m)
-	}
-	// The other open towns follow the missions, each a record of the town
-	// kind at its entry's map point.
-	for _, e := range t.sess.Town.travelTowns() {
-		m := ui.WorldMapMission{Number: e.ID, Kind: placeTown, Title: e.Name, Enabled: true}
-		if m.Title == "" {
-			m.Title = t.in.Words.WorldHomeTitle
-		}
-		if p, region, ok := townMapPoint(e, a); ok {
-			m.Anchor, m.Region = p, region
-		} else {
-			m.Enabled, m.Problem = false, fmt.Sprintf("Town %d has no valid map location", e.ID)
-		}
-		s.missions = append(s.missions, m)
-	}
-	t.worldMap = s
-	// An imported away-from-home relation has the selected mission's point
-	// (SAV-CAMPPOS-072). Apply the same homeward presentation rather than
-	// offering inaccessible scrolls indefinitely (DIV-137).
-	if s.current != home && t.sess.Town.restoredCampaign() {
-		s.returnMission = t.sess.Town.selectedMission()
-		s.route = worldMapRoute(a.mode(s.mode).graph, s.current, home, worldMapFallbackStep)
-	}
+	p := t.mapPage()
+	p.openWorldMap(p.opening(), p.records())
 }
 
 // beginWorldMapReturn is the owner-directed post-Victory trigger (DIV-137).
@@ -493,11 +426,11 @@ func (t *townScreen) beginWorldMapReturn(mission int) {
 	if a.data == nil {
 		return // Registry-less diagnostics have no mission location to traverse.
 	}
-	object, ok := a.data.Missions[mission]
-	if !ok || object < 0 || object >= len(a.data.Objects) || !a.data.Objects[object].Valid {
+	m := (worldMapEntryBuilder{assets: a}).record(worldMapEntry{place: partyPlace{id: mission}, point: "registry"})
+	if !m.Enabled {
 		return
 	}
-	t.worldPosition = a.data.Objects[object].Point
+	t.worldPosition = m.Anchor
 	t.room = roomGates
 	t.enterWorldMap() // Town.Available now excludes the completed mission.
 	t.worldMap.returnMission = mission
@@ -558,17 +491,9 @@ func (t *townScreen) arriveInTown(m ui.WorldMapMission) ui.TownAction {
 // the position it starts from — the position no longer resets to the town's
 // own point on every selection, only on a return to town).
 func (t *townScreen) selectWorldMission(i int) {
-	if t == nil || t.worldMap == nil || i < 0 || i >= len(t.worldMap.missions) {
-		return
+	if t != nil {
+		t.mapPage().chooseWorldRecord(i)
 	}
-	m := t.worldMap.missions[i]
-	if !t.worldMap.startTravel(i) || m.Kind == placeTown {
-		return
-	}
-	if t.sess != nil {
-		t.sess.Town.selectMission(m.Number)
-	}
-	t.markWorldSelected(m.Number)
 }
 
 // markWorldSelected records a registered or selected mission when its MapObject
@@ -1032,101 +957,79 @@ func (f *FrontEnd) WorldMapCriterionWitness() (string, error) {
 	return worldMapCriterionDigest(a.mode(0).path, points), nil
 }
 
-func (t *chapterTownMap) atMap() bool { return t != nil && t.host.room == roomGates }
+type worldMapEntry struct {
+	place     partyPlace
+	label     string
+	town      town.Entry
+	point     string
+	region    bool
+	text      string
+	payment   int
+	admission string
+}
 
-func (t *chapterTownMap) WorldMapView() ui.WorldMapView {
-	if t == nil || t.host.worldMap == nil {
-		return ui.WorldMapView{Hovered: -1, Selected: -1, Problem: "world map is unavailable"}
-	}
-	s, a := t.host.worldMap, t.host.worldMap.assets
-	var src entrySource
-	if t.host.in.Archives != nil {
-		src = t.host.in.Archives.Containers
-	}
-	// The home scroll names the party's town by its entry's name, when the
-	// entry gives one; the install's home title otherwise.
-	words := t.host.in.Words
-	if name := s.homeTown.Name; name != "" {
-		words.WorldHomeTitle = name
-	}
-	v := s.view(worldMapViewInput{font: t.host.art.documentFont(), detail: t.host.in.tipFont(), words: words, task: t.host.worldFlag1Frame})
-	for i := range v.Missions {
-		// `DIV-128`: a picture-bearing mission's own marker paints only once
-		// it has been selected at least once this game (`TOWN-123`/
-		// `TOWN-040`, High).
-		if v.Missions[i].Enabled && v.Missions[i].Kind != placeTown && src != nil && t.host.worldSelectedOnce[v.Missions[i].Number] {
-			obj := a.data.Objects[v.Missions[i].Object]
-			v.Missions[i].Marker = worldMapOptionalImage(a.marker(v.Missions[i].Number, obj))
+// worldMapEntryBuilder resolves every map record, including the party's home.
+// open is the only producer of the open state's record list.
+type worldMapEntryBuilder struct {
+	assets *worldMapAssets
+	in     *InstallResources
+}
+
+func (b worldMapEntryBuilder) record(e worldMapEntry) ui.WorldMapMission {
+	a := b.assets
+	objectFound := false
+	m := ui.WorldMapMission{Number: e.place.id, Kind: e.place.kind, Title: e.label, Payment: e.payment, Enabled: true}
+	if e.text == "mission-files" {
+		m.Title = fmt.Sprintf("Mission %d", m.Number)
+		if b.in != nil && b.in.Archives != nil && b.in.Archives.Containers != nil {
+			words := a.missionText(b.in.Archives.Containers, m.Number)
+			m.Title, m.Briefing = words.title, words.brief
 		}
 	}
-	if src != nil && a.data != nil {
-		shown := make(map[int]bool, len(v.Missions))
-		for _, m := range v.Missions {
-			if m.Kind != placeTown {
-				shown[m.Number] = true
-			}
+	if e.text == "town-label" && m.Title == "" {
+		m.Title = b.in.Words.WorldHomeTitle
+	}
+	if e.place.kind == placeTown {
+		m.Anchor, m.Region, m.Enabled = townMapPoint(e.town, a)
+	} else if e.point == "registry" {
+		object, mapped := -1, false
+		if a != nil && a.data != nil {
+			object, mapped = a.data.Missions[m.Number]
 		}
-		for _, mission := range sortedSelectedMissions(t.host.worldSelectedOnce) {
-			object, ok := a.data.Missions[mission]
-			if shown[mission] || !ok || object < 0 || object >= len(a.data.Objects) {
-				continue
-			}
+		m.Enabled = mapped && object >= 0 && a.data != nil && object < len(a.data.Objects)
+		if m.Enabled {
+			objectFound = true
 			obj := a.data.Objects[object]
-			if picture := worldMapOptionalImage(a.marker(mission, obj)); picture != nil {
-				v.Markers = append(v.Markers, ui.WorldMapMarker{Anchor: obj.Point, Picture: picture})
+			m.Object, m.Anchor, m.Region = object, obj.Point, obj.Region
+			if !obj.Valid {
+				m.Enabled, m.Problem = false, obj.Problem
 			}
 		}
+	} else if a != nil && a.desc != nil {
+		m.Anchor, m.Enabled = a.desc.point(e.place.kind, e.place.id)
+	} else {
+		m.Enabled = false
 	}
-	return v
-}
-
-func (t *chapterTownMap) worldMapNow() *worldMapState {
-	if t == nil {
-		return nil
+	if !e.region {
+		m.Region = image.Rectangle{}
 	}
-	return t.host.worldMap
-}
-
-func (t *chapterTownMap) chooseWorldRecord(i int) { t.host.selectWorldMission(i) }
-
-func (t *chapterTownMap) leaveWorldMap() {
-	t.host.worldMap.route, t.host.worldMap.shown, t.host.worldMap.cross, t.host.worldMap.selected = nil, 0, 0, -1
-	t.host.atSquare()
-}
-
-func (t *chapterTownMap) arriveWorldMap() ui.TownAction {
-	s := t.host.worldMap
-	i := s.selected
-	s.route, s.shown, s.selected = nil, 0, -1
-	if s.returnMission != 0 {
-		s.returnMission = 0
-		s.current = s.home()
-		t.host.worldPosition, t.host.worldPositionSet = s.current, true
-		if t.host.sess.Town.progress != nil {
-			t.host.sess.Town.progress.firstMapPoint = true
+	if !m.Enabled && !objectFound {
+		switch e.admission {
+		case "mission":
+			m.Problem = fmt.Sprintf("Mission %d has no valid map location", m.Number)
+		case "town":
+			m.Problem = fmt.Sprintf("Town %d has no valid map location", m.Number)
+		default:
+			m.Problem = fmt.Sprintf("Destination %d/%d has no map point", m.Kind, m.Number)
 		}
-		t.host.atSquare()
-		return ui.TownAction{}
 	}
-	if i < 0 || i >= len(s.missions) {
-		return ui.TownAction{}
-	}
-	m := s.missions[i]
-	if m.Kind == placeTown {
-		return t.host.arriveInTown(m)
-	}
-	s.current = m.Anchor
-	t.host.worldPosition = m.Anchor
-	if !m.Enabled {
-		return ui.TownAction{Msg: m.Problem}
-	}
-	return t.host.worldMapMissionAction(m.Number)
+	return m
 }
 
-func (t *chapterTownMap) tick() ui.TownAction {
-	if t == nil || t.host.worldMap == nil {
-		return ui.TownAction{}
+func (b worldMapEntryBuilder) open(from worldMapEntry, records []worldMapEntry) *worldMapState {
+	s := &worldMapState{assets: b.assets, selected: -1, hovered: -1, current: b.record(from).Anchor}
+	for _, e := range records {
+		s.missions = append(s.missions, b.record(e))
 	}
-	t.host.worldFlag1Frame++
-	return worldMapTick(t)
+	return s
 }

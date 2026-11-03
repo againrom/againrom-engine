@@ -62,7 +62,7 @@ type townScreen struct {
 	adapter    townCampaignAdapter
 	defaults   *town.Description
 	composed   *townSceneState
-	mapRoute   townMapPage
+	mapRoute   *worldMapPage
 	mapArt     func() *worldMapAssets
 	worldMapOf *secondCampaign
 	worldMapAt *secondMapOpening
@@ -475,7 +475,7 @@ func (f *FrontEnd) TownScreen() ui.TownScreen {
 	if d.Host.StartsInTown {
 		t.start = f.startSecondCampaign
 	}
-	if d.Host.Leave == "destinations" {
+	if WorldMapDescriptionFor(f.Base().Profile).Page.Build == "opening" {
 		t.mapArt = f.worldMapAssets
 	}
 	t.adapter = f.campaign().townAdapter(t)

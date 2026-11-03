@@ -1,5 +1,11 @@
 {
   "worldmap": "rom1",
+  "page": {
+    "open": "gates", "build": "entry", "mode": "first", "point": "retained",
+    "records": ["available-missions", "travel-towns"], "font": "document",
+    "home-title": true, "task": true, "history": true, "leave": "square",
+    "arrival": {"return-home": true, "keep-position": true, "town": "town-state", "mission": "mission-action"}
+  },
   "art": [
     {"name": "background", "format": "picture", "key": "main/graphics/global.map/gmap.bmp", "cite": ["TOWN-120"]},
     {"name": "path", "format": "mask", "key": "graphics/global.map/pathmap.bmp", "cite": ["TOWN-119"]},

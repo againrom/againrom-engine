@@ -36,7 +36,7 @@ func secondBagArrivesHome(t *testing.T, f *FrontEnd, want sim.ItemInstance) {
 	t.Helper()
 	secondBagWin(t, f, 10)
 	screen := f.TownScreen().(*townScreen)
-	if at := (&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeTown, id: 2}); at.Msg != "" {
+	if at := screen.enterLocation(partyPlace{kind: placeTown, id: 2}); at.Msg != "" {
 		t.Fatalf("the arrival at town 2 reports %q", at.Msg)
 	}
 	if got := bagLabels(*f.Town.second.heroBag()); !slices.Equal(got, bagLabels([]sim.ItemInstance{want})) {

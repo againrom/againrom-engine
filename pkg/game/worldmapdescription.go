@@ -27,8 +27,9 @@ var rom2WorldMapJSON []byte
 
 // WorldMapDescription is one map. Art names are the manifest's entry names.
 type WorldMapDescription struct {
-	Name string            `json:"worldmap"`
-	Art  []screenart.Entry `json:"art"`
+	Name string             `json:"worldmap"`
+	Art  []screenart.Entry  `json:"art"`
+	Page WorldMapPagePolicy `json:"page"`
 	// Records is where the records and their points come from: "registry"
 	// reads the install's global map registry, "catalog" is Catalog.
 	Records string                  `json:"records"`
@@ -63,6 +64,34 @@ type WorldMapDescription struct {
 	Markers   []WorldMapMarkerRule `json:"markers"`
 	Text      *WorldMapTextSpec    `json:"text"`
 	Cite      []string             `json:"cite"`
+}
+
+// WorldMapPagePolicy supplies the host conditions, record sources and actions
+// of one map opening. Location entries remain campaign operations.
+type WorldMapPagePolicy struct {
+	Open         string                `json:"open"`
+	Build        string                `json:"build"`
+	Mode         string                `json:"mode"`
+	RouteMode    string                `json:"route-mode"`
+	Point        string                `json:"point"`
+	Records      []string              `json:"records"`
+	Font         string                `json:"font"`
+	HomeTitle    bool                  `json:"home-title"`
+	Task         bool                  `json:"task"`
+	History      bool                  `json:"history"`
+	RecordText   bool                  `json:"record-text"`
+	TravelOnOpen bool                  `json:"travel-on-open"`
+	Leave        string                `json:"leave"`
+	Arrival      WorldMapArrivalPolicy `json:"arrival"`
+}
+
+type WorldMapArrivalPolicy struct {
+	ReturnHome   bool   `json:"return-home"`
+	Snap         bool   `json:"snap"`
+	ClearCross   bool   `json:"clear-cross"`
+	KeepPosition bool   `json:"keep-position"`
+	Town         string `json:"town"`
+	Mission      string `json:"mission"`
 }
 
 // WorldMapCards names the scroll-card pieces.
@@ -182,6 +211,46 @@ func decodeWorldMap(data []byte) (*WorldMapDescription, error) {
 	}
 	if len(d.Modes) == 0 {
 		return fail("no mode")
+	}
+	for _, rule := range []struct {
+		name, value string
+		allowed     []string
+	}{
+		{"open", d.Page.Open, []string{"gates", "unlocated"}},
+		{"build", d.Page.Build, []string{"entry", "opening"}},
+		{"point", d.Page.Point, []string{"retained", "from-record"}},
+		{"font", d.Page.Font, []string{"document", "install"}},
+		{"leave", d.Page.Leave, []string{"square", "none"}},
+		{"arrival town", d.Page.Arrival.Town, []string{"town-state", "mission-action", "location"}},
+		{"arrival mission", d.Page.Arrival.Mission, []string{"town-state", "mission-action", "location"}},
+	} {
+		valid := false
+		for _, allowed := range rule.allowed {
+			valid = valid || rule.value == allowed
+		}
+		if !valid {
+			return fail("page %s %q is unknown", rule.name, rule.value)
+		}
+	}
+	if len(d.Page.Records) == 0 {
+		return fail("page has no record source")
+	}
+	for _, source := range d.Page.Records {
+		if source != "available-missions" && source != "travel-towns" && source != "destinations" {
+			return fail("page record source %q is unknown", source)
+		}
+	}
+	for i, name := range []string{d.Page.Mode, d.Page.RouteMode} {
+		if i == 1 && name == "" || i == 0 && name == "first" {
+			continue
+		}
+		found := false
+		for _, m := range d.Modes {
+			found = found || m.Name == name
+		}
+		if !found {
+			return fail("page mode %q is unknown", name)
+		}
 	}
 	if !art(d.Ball) || !art(d.Cross.Art) || !art(d.Task.Art) || !art(d.RecordArt) {
 		return fail("ball, cross, task or record art names no art entry")

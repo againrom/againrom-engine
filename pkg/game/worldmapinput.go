@@ -11,6 +11,8 @@ import (
 // arriving do to the campaign. The input rules below are the builder's and
 // follow the map description's pick rule.
 type worldMapCampaign interface {
+	atMap() bool
+	tick() ui.TownAction
 	worldMapNow() *worldMapState
 	WorldMapView() ui.WorldMapView
 	chooseWorldRecord(i int)

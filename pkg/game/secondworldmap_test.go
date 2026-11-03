@@ -88,6 +88,9 @@ func TestSecondMapTargetsTheNearestRecord(t *testing.T) {
 // scrollCampaign is a campaign with no effects for the builder's input rules.
 type scrollCampaign struct{ s *worldMapState }
 
+func (c scrollCampaign) atMap() bool         { return true }
+func (c scrollCampaign) tick() ui.TownAction { return worldMapTick(c) }
+
 func (c scrollCampaign) worldMapNow() *worldMapState { return c.s }
 func (c scrollCampaign) WorldMapView() ui.WorldMapView {
 	return c.s.view(worldMapViewInput{})

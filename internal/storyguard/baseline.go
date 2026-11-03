@@ -3975,5 +3975,6 @@ var Committed = Baseline{
 	// secondtownspeech_release_test.go and mapeditorruined_test.go, and this note.
 
 	// It rose for cellPlaneParts, the one P2 byte recipe in pkg/sim/cellplanes.go, and its guard.
-	CommentBytes: 10487390,
+	// CommentBytes falls with the shared world-map page, entry builder and source guard.
+	CommentBytes: 10486698,
 }

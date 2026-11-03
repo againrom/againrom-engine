@@ -1,5 +1,10 @@
 {
   "worldmap": "rom2",
+  "page": {
+    "open": "unlocated", "build": "opening", "mode": "select", "route-mode": "route", "point": "from-record",
+    "records": ["destinations"], "font": "install", "record-text": true, "travel-on-open": true, "leave": "none",
+    "arrival": {"snap": true, "clear-cross": true, "town": "location", "mission": "location"}
+  },
   "art": [
     {"name": "gmap", "format": "picture", "key": "main/graphics/global.map/gmap.bmp", "cite": ["R2-ENGINE-429", "R2-ASSET-093"]},
     {"name": "umoir", "format": "picture", "key": "main/graphics/global.map/umoir.bmp", "cite": ["R2-ENGINE-429", "R2-ASSET-093"]},

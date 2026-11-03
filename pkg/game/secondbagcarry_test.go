@@ -107,7 +107,7 @@ func secondBagEnterFromMap(t *testing.T, f *FrontEnd, app *ui.App, screen *townS
 	for _, it := range bag {
 		*c.heroBag() = append(*c.heroBag(), it.Clone())
 	}
-	at := (&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeMission, id: 10})
+	at := screen.enterLocation(partyPlace{kind: placeMission, id: 10})
 	if at.Open == nil {
 		t.Fatalf("the map opened no mission: %s", at.Msg)
 	}
@@ -225,7 +225,7 @@ func TestSecondBagPotionsComeHome(t *testing.T) {
 		t.Fatalf("the mission pack holds %v, want two usable potions", bagLabels(items))
 	}
 	secondBagWin(t, f, 10)
-	(&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeTown, id: 2})
+	screen.enterLocation(partyPlace{kind: placeTown, id: 2})
 	if got, want := bagLabels(*f.Town.second.heroBag()), bagLabels([]sim.ItemInstance{secondBagPotion, secondBagPotion}); !slices.Equal(got, want) {
 		t.Fatalf("bag at town 2 %v, want %v", got, want)
 	}
@@ -519,7 +519,7 @@ func TestSecondBagComesHomeAsTheMissionLeftIt(t *testing.T) {
 	if len(c.party) != 0 && len(c.party[0].CarriedItems) != 0 {
 		t.Fatalf("after the victory the bag holds %d units on the map", len(c.party[0].CarriedItems))
 	}
-	if at := (&destinationTownMap{screen}).enterLocation(partyPlace{kind: placeTown, id: 2}); at.Msg != "" {
+	if at := screen.enterLocation(partyPlace{kind: placeTown, id: 2}); at.Msg != "" {
 		t.Fatalf("the arrival at town 2 reports %q", at.Msg)
 	}
 	wantBag := bagLabels(append(own, secondBagPotion, secondBagPotion))
@@ -599,7 +599,7 @@ func TestSecondBagOfAMissionFileComesHomeOnce(t *testing.T) {
 		t.Fatal("the mission hero carries no bag")
 	}
 	secondBagWin(t, f, 10)
-	(&destinationTownMap{f.TownScreen().(*townScreen)}).enterLocation(partyPlace{kind: placeTown, id: 2})
+	f.TownScreen().(*townScreen).enterLocation(partyPlace{kind: placeTown, id: 2})
 	if got := bagLabels(*c.heroBag()); !slices.Equal(got, want) {
 		t.Fatalf("bag at town 2 %v, want %v", got, want)
 	}
