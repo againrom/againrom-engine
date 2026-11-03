@@ -107,6 +107,7 @@ type gameFiles struct {
 	// fallbackSpeakers adds data.FallbackSpeakerFace for every key that has
 	// no other record.
 	fallbackSpeakers bool
+	unitSpeakers     bool
 	// manaSpellcaster holds the actor value the SPELLCASTER caption tests
 	// nonzero only for an actor with a mana pool (DIV-4086).
 	manaSpellcaster bool
@@ -273,6 +274,7 @@ var secondGameFiles = gameFiles{
 	manaSpellcaster: true,
 	// R2-ENGINE-583.
 	fallbackSpeakers: true,
+	unitSpeakers:     true,
 	flight: flightProfile{FlightProfile: sim.FlightProfile{Release: sim.ReleaseAtClient, StartFromMovedCaster: true, ShotsNeedArt: true},
 		drawnClass: true},
 	// R2-ENGINE-704: state 8 for the type's attack frame list, Sfx 554 at
@@ -285,8 +287,7 @@ var secondGameFiles = gameFiles{
 }
 
 // speakerFaces is the speaker table of t's campaign: the catalog's portraits,
-// then in the second game the Human speakers and the fallback faces for keys
-// the catalog lacks.
+// then the campaign's Human, fallback and creature rows for keys it lacks.
 func speakerFaces(t *mapload.Table) map[int32]data.NPCFace { return npcFaceList(t, true) }
 
 // CatalogFaces is the catalog's portraits alone, the rows of speakerFaces that
@@ -302,16 +303,19 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 	}
 	faces := t.NPCCatalog.Portraits()
 	files := tableFiles(t)
-	if !whole || !files.humanSpeakers || t.Humans == nil {
+	if !whole || !files.humanSpeakers || t.Humans == nil && t.Units == nil {
 		return faces
 	}
 	companions := map[int32]int32{}
 	for _, p := range tableEdition(t).PartyIdentities {
 		companions[p.ServerID] = int32(p.Identity)
 	}
-	out := data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, companions, func(row int) data.Equipment {
-		return equipmentFromSlots(mapload.RowOutfit(row, t))
-	})
+	out := map[int32]data.NPCFace{}
+	if t.Humans != nil {
+		out = data.HumanSpeakerFaces(t.Humans, files.heroSpeaker, companions, func(row int) data.Equipment {
+			return equipmentFromSlots(mapload.RowOutfit(row, t))
+		})
+	}
 	for k, v := range faces {
 		out[k] = v
 	}
@@ -319,6 +323,23 @@ func npcFaceList(t *mapload.Table, whole bool) map[int32]data.NPCFace {
 		for k := data.FallbackSpeakerFirst; k <= data.FallbackSpeakerLast; k++ {
 			if _, held := out[k]; !held {
 				out[k], _ = data.FallbackSpeakerFace(k)
+			}
+		}
+	}
+	if files.unitSpeakers && t.Units != nil {
+		for row := 1; row < t.Units.Len(); row++ {
+			params := t.Units.EntryParams(row)
+			key, ok := data.UnitServerID(params)
+			if !ok || key <= 0 || t.Units.EntryName(row) == "" {
+				continue
+			}
+			if _, held := out[key]; held {
+				continue
+			}
+			def, err := data.NewUnitDef(t.Units.EntryName(row), params)
+			if err == nil {
+				out[key] = data.NPCFace{Kind: data.NPCPortrait, Class: def.TypeID, HasClass: true, Face: int(def.Face),
+					Tokens: data.NPCTokens(data.NPCTokenNotHuman) | data.NPCTokens(data.NPCTokenPicture) | data.NPCTokens(data.NPCTokenFace)}
 			}
 		}
 	}

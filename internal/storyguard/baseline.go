@@ -3963,5 +3963,5 @@ var Committed = Baseline{
 	// HurtLeaves in pkg/ui/sound.go and overlay.go, the tests
 	// pkg/game/secondtownspeech_test.go, secondhurtvoice_test.go and
 	// secondtownspeech_release_test.go, and this note.
-	CommentBytes: 10488449,
+	CommentBytes: 10488426,
 }
