@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.146.0
+
 ### For players
 
 - [ROM2] Monsters' Teleport checks occupied cells, Acid Stream keeps its original edge aim, and Blizzard starts its pulses after the spell lands. Stone Curse refreshes a creature's mana reserve when its hold starts and ends.
