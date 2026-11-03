@@ -75,11 +75,9 @@ func TownSpeechPath(textPath string, payload []byte, part int, audience EventAud
 // asks speech.res for. A rule with families names it from the section key the
 // page was cut from; one without, from the text file's leaf.
 type townSpeechNames struct {
-	// leafDirs are the main/text/ directories whose pages ask
-	// speech/<dir>/<leaf>p<part>; sound= replaces <leaf>p<part>.
+	// leafDirs are the main/text/ directories whose pages name their leaf.
 	leafDirs []string
-	// families are the section-key words in the order they are tried; sound=
-	// names the recording under speech/.
+	// families are the section-key words in the order they are tried.
 	families []townSpeechFamily
 	// heroNPC's pages and a header with an iam* token take heroLetters at
 	// the hero's herokind index; other pages take plainLetter.
@@ -93,38 +91,57 @@ type townSpeechNames struct {
 // letter and the key's trailing digits padded with 0 to three.
 type townSpeechFamily struct{ word, dir, fixed string }
 
+// townSpeechName is speech/<dir><stem>p<part>, part padded with 0 to width;
+// sound= replaces <stem>p<part> in a leaf scope, else <dir><stem>p<part>.
+type townSpeechName struct {
+	dir, stem string
+	width     int
+	leaf      bool
+}
+
 // townSpeechTagPath is the one name of a town page's recording: source is the
 // text path or the section key, tag the page's accepted header.
 func townSpeechTagPath(names townSpeechNames, source, tag string, part int, audience EventAudience) (string, bool) {
 	if part < 1 {
 		return "", false
 	}
-	dir, name := "", ""
+	var n townSpeechName
 	if names.families == nil {
 		textPath := namefold.ArchiveText(strings.ReplaceAll(source, `\`, "/"))
 		relative, ok := strings.CutPrefix(textPath, "main/text/")
 		if !ok || path.Clean(textPath) != textPath || !slices.ContainsFunc(names.leafDirs, func(d string) bool { return strings.HasPrefix(relative, d+"/") }) {
 			return "", false
 		}
-		dir, name = path.Dir(relative)+"/", fmt.Sprintf("%sp%d", strings.TrimSuffix(path.Base(relative), ".txt"), part)
+		n = townSpeechName{dir: path.Dir(relative) + "/", stem: strings.TrimSuffix(path.Base(relative), ".txt"), width: 1, leaf: true}
 	} else {
-		name = names.sectionName(namefold.ArchiveText(source), tag, part, audience)
+		n = names.sectionName(namefold.ArchiveText(source), tag, audience)
+	}
+	return n.path(tag, part)
+}
+
+func (n townSpeechName) path(tag string, part int) (string, bool) {
+	dir, name := n.dir, ""
+	if n != (townSpeechName{}) {
+		name = fmt.Sprintf("%sp%0*d", n.stem, n.width, part)
 	}
 	if value := townSpeechOverride(tag); value != "" {
 		name = namefold.ArchiveText(strings.ReplaceAll(value, `\`, "/"))
+		if !n.leaf {
+			dir = ""
+		}
 	}
 	full := "speech/" + dir + name + ".wav"
-	if name == "" || path.Clean(name) != name || path.Clean(full) != full || strings.Contains(name, ":") || dir != "" && strings.Contains(name, "/") {
+	if name == "" || path.Clean(name) != name || path.Clean(full) != full || strings.Contains(name, ":") || n.leaf && strings.Contains(name, "/") {
 		return "", false
 	}
 	return full, true
 }
 
-// sectionName is the family default of key's page, "" when key has no family.
-func (names townSpeechNames) sectionName(key, tag string, part int, audience EventAudience) string {
+// sectionName is the family default of key's page, zero when key has no family.
+func (names townSpeechNames) sectionName(key, tag string, audience EventAudience) townSpeechName {
 	at := slices.IndexFunc(names.families, func(f townSpeechFamily) bool { return strings.Contains(key, f.word) })
 	if at < 0 {
-		return ""
+		return townSpeechName{}
 	}
 	f := names.families[at]
 	npc, _ := audience.tagRules().speaker(tag)
@@ -137,7 +154,7 @@ func (names townSpeechNames) sectionName(key, tag string, part int, audience Eve
 		digits := key[len(strings.TrimRight(key, "0123456789")):]
 		middle = string(letter) + strings.Repeat("0", max(0, 3-len(digits))) + digits
 	}
-	return fmt.Sprintf("%s/%04d%sp%02d", f.dir, npc, middle, part)
+	return townSpeechName{dir: f.dir + "/", stem: fmt.Sprintf("%04d%s", npc, middle), width: 2}
 }
 
 func townSpeechOverride(tag string) string {

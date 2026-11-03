@@ -3956,8 +3956,9 @@ var Committed = Baseline{
 	// helpers that LOAD and SAVE both call.
 
 	// It rose for the second game's town speech names and wound leaves:
-	// townSpeechNames, townSpeechFamily, sectionName and townSpeechSource in
-	// pkg/game/speech.go, the census in pkg/game/speech_witness.go and
+	// townSpeechNames, townSpeechFamily, townSpeechName, sectionName and
+	// townSpeechSource in pkg/game/speech.go, the census in
+	// pkg/game/speech_witness.go and
 	// cmd/campaigncensus, the section key and speech rule in
 	// pkg/game/towntalk.go, woundWords and wounds in pkg/game/commandvoice.go,
 	// HurtLeaves in pkg/ui/sound.go and overlay.go, the tests
@@ -3972,5 +3973,5 @@ var Committed = Baseline{
 	// pkg/ui/mapeditorwindow.go, the tests chargen_test.go,
 	// savloadedlinks_test.go, secondtownsave_release_test.go,
 	// secondtownspeech_release_test.go and mapeditorruined_test.go, and this note.
-	CommentBytes: 10486966,
+	CommentBytes: 10487044,
 }
