@@ -3,20 +3,11 @@
 //
 //	shopdump [-assets DIR] [-shelf N] [-steps N] [-hover X,Y] [-png DIR]
 //
-// It is the measuring instrument for 0157 round 3. The story's promised result
-// is what the screen looks like, and a synthetic test cannot read the install's
-// own pictures (golden rule 2), so the pixel evidence comes from a developer
-// tool and its output is what closure.md records.
-//
-// THE SESSION IS A REAL CAMPAIGN SESSION. The front end is built by
-// game.NewFrontEnd, the town is opened by finishing the campaign mission the
-// registry marks as offering it, and the shop room is entered by pressing the
-// square's own SHOP door through ui.TownScreen.Choose. Nothing here constructs
-// a shop, a party or a stock list of its own.
-//
-// It writes no game data. The PNG it can emit is the composed screen — the
-// install's pictures arranged by this build's own code — and it goes to a
-// directory the caller names, outside the repo.
+// The screen mode enters the campaign town through its registry and shop door.
+// -stock uses the installed profile, NewGame records and shared stock fill.
+// Its numeric columns are town, tab, index, ID, kind, row, flag bit, shown
+// price, server price and count. Each town starts at -seed independently.
+// No mode writes game data; -png writes only to the explicit output directory.
 package main
 
 import (
@@ -29,6 +20,8 @@ import (
 	"strings"
 
 	"againrom/pkg/game"
+	"againrom/pkg/random"
+	"againrom/pkg/secondshop"
 	"againrom/pkg/ui"
 )
 
@@ -45,6 +38,8 @@ func run() error {
 	steps := flag.Int("steps", 0, "how many times to press the party picker's next arrow")
 	hover := flag.String("hover", "", "pointer position X,Y for the characteristics box")
 	pngDir := flag.String("png", "", "directory to write shop.png into")
+	stock := flag.Bool("stock", false, "numeric ROM2 NewGame stock for towns 1 and 2")
+	seed := flag.Uint("seed", 1, "stock witness rand seed")
 	flag.Parse()
 
 	root := game.ResolveAssetRoot(*assets, os.Getenv("AGAINROM_ASSETS"))
@@ -54,6 +49,9 @@ func run() error {
 	f, err := game.NewFrontEnd(root)
 	if err != nil {
 		return err
+	}
+	if *stock {
+		return reportStock(f, uint32(*seed))
 	}
 
 	town, err := openTown(f)
@@ -112,6 +110,32 @@ func run() error {
 			return err
 		}
 		fmt.Println("wrote", out)
+	}
+	return nil
+}
+
+func reportStock(f *game.FrontEnd, seed uint32) error {
+	tables, ok := f.ShopTables()
+	if !ok {
+		return fmt.Errorf("no second-game shop tables")
+	}
+	for _, town := range []int{1, 2} {
+		rng := &random.MSVC{State: seed}
+		stock := tables.Fill(secondshop.NewGameRecords[town], func() int { return int(rng.Rand()) })
+		for tab, list := range stock {
+			tables.Sort(list)
+			for i, it := range list {
+				in, valid := tables.Instance(it)
+				if !valid {
+					return fmt.Errorf("town %d tab %d row %d has no bag form", town, tab, i)
+				}
+				flag := 0
+				if tables.ShownFlag(it) {
+					flag = 2
+				}
+				fmt.Printf("%d %d %d %d %d %d %d %d %d %d\n", town, tab, i, in.Code, tables.ShownKind(it), it.Row, flag, tables.ShownPrice(it), it.Price, it.Count)
+			}
+		}
 	}
 	return nil
 }

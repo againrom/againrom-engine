@@ -60,7 +60,7 @@ func (t Tables) Profile(r Record, rnd Rand) shopstock.Profile[Item, Item] {
 			Make:       func(it Item, src shopstock.Source) (Item, bool) { return t.make(it, cat, src) },
 			Insert:     insert,
 			Finish: func(list []Item, _ shopstock.Source) []Item {
-				t.Sort(list)
+				t.sortFill(list)
 				return list
 			},
 		})
@@ -195,11 +195,14 @@ func (t Tables) effectsPrice(effects []sim.ItemEffect) int64 {
 	return p + t.enchant().PointsPrice(points)
 }
 
-// Sort orders a category list as the fill does (R2-ENGINE-710): an
-// equipment row with the fighter bit first, then the row ascending, then the
-// price ascending. A magic item or a book sorts by price alone, the first
-// game's order (DIV-4328); items equal on every key keep their order.
-func (t Tables) Sort(list []Item) {
+// sortFill supplies the server order that the client permutes among equal
+// keys. Magic lists retain draw order where the server's slots are Unknown.
+func (t Tables) sortFill(list []Item) {
+	for _, it := range list {
+		if it.Table == Magic || it.Table == Book {
+			return
+		}
+	}
 	shopstock.SortBy(list, func(it Item) []int64 {
 		switch it.Table {
 		case Armor, Shield, Weapon:
@@ -210,7 +213,7 @@ func (t Tables) Sort(list []Item) {
 			return []int64{fighter, int64(it.Row), int64(it.Price)}
 		}
 		return []int64{1, 0, int64(it.Price)}
-	})
+	}, true)
 }
 
 // stackKey is the item but its quantity and price.

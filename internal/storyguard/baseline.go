@@ -3251,7 +3251,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1861,
 		"scclause":        505,
-		"barestorynumber": 1701,
+		"barestorynumber": 1700,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3260,7 +3260,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1673,
+		"longcommentgroups":      1672,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -3954,5 +3954,5 @@ var Committed = Baseline{
 	// It fell with the shared save screen and its description-driven input and paint.
 	// It rose for the doc comments of the shared page-part painters and list input
 	// helpers that LOAD and SAVE both call.
-	CommentBytes: 10481859,
+	CommentBytes: 10480940,
 }

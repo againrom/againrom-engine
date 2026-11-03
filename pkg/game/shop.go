@@ -196,7 +196,7 @@ func cloneShopMutation(s *Shop) *Shop {
 	n := *s
 	n.table = s.Table()
 	for i := range n.shelves {
-		n.shelves[i] = s.Shelf(ShopShelf(i))
+		n.shelves[i] = s.shelf(shopRules[ShopItem, ShopShelf]{clone: ShopItem.Clone}, ShopShelf(i))
 	}
 	return &n
 }
@@ -209,19 +209,12 @@ func (s *Shop) Ceiling() int32 {
 	return s.ceiling
 }
 
-// Shelf is what shelf holds, in the order shopsort.go puts it in (SHOP-154,
-// `DIV-4164`): the fighter flag set first, then by the code's kind and a
-// weapon's row group, then by price, cheapest first. A shop generated with no item table
-// holds its shelves in the order they were drawn.
+// Shelf clones the stock in shown order; the model keeps its server order.
 func (s *Shop) Shelf(shelf ShopShelf) []ShopItem {
 	if s == nil || shelf < 0 || shelf >= numShopShelves {
 		return nil
 	}
-	out := make([]ShopItem, len(s.shelves[shelf]))
-	for i := range out {
-		out[i] = s.shelves[shelf][i].Clone()
-	}
-	return out
+	return s.shelf(s.rules(), shelf)
 }
 
 // Table is the five places, in the order they were put down.

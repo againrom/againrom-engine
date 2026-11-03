@@ -62,6 +62,7 @@ var allow = map[string][]string{
 	// noExternalFormats below on that ground, and it depends on nothing else
 	// in this tree — both files are read by a caller and handed in whole.
 	"pkg/formats/itemname": {},
+	"pkg/formats/itempkt":  {},
 	// The save leaf reads the ORIGINAL GAME's save file. Its set was empty
 	// until 0150 and the reasoning that emptied it was about the MAP TIER: the
 	// block-plane records are a delta over a map's own terrain, and a leaf that
@@ -89,7 +90,7 @@ var allow = map[string][]string{
 	// interface and draw through a caller's rand(); they code the hero's bag
 	// as the engine's one item instance, so they read the simulation's item.
 	// Their stock is drawn by the shared stock generator.
-	"pkg/secondshop": {"pkg/sim", "pkg/shopitem", "pkg/shopstock"},
+	"pkg/secondshop": {"pkg/sim", "pkg/shopitem", "pkg/shopstock", "pkg/formats/itempkt"},
 	// The one shop item of both games holds the simulation's item unit.
 	"pkg/shopitem": {"pkg/data", "pkg/sim"},
 	// The shop stock generator of both games is a leaf: each game supplies
@@ -97,7 +98,7 @@ var allow = map[string][]string{
 	"pkg/shopstock": {},
 	// The map tier reads the starting hero in the hero slots a town catalog
 	// names, the town package's type.
-	"pkg/mapload":   {"pkg/formats/alm", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town"},
+	"pkg/mapload":   {"pkg/formats/alm", "pkg/formats/itempkt", "pkg/data", "pkg/sim", "pkg/mod", "pkg/base", "pkg/rules", "pkg/random", "pkg/herokind", "pkg/town"},
 	"pkg/mapedit":   {"pkg/formats/alm", "pkg/intmath"},
 	"pkg/editormcp": {"pkg/hostfile"},
 	"pkg/render":    {"pkg/sim", "pkg/vfs"},
@@ -257,7 +258,7 @@ var allow = map[string][]string{
 	// tiers cmd/paneldump does for the same reason: pkg/game opens the install
 	// and runs the campaign session that opens a town, and pkg/ui composes the
 	// screen whose pixels are the evidence. It names no simulation type.
-	"cmd/shopdump": {"pkg/ui", "pkg/game"},
+	"cmd/shopdump": {"pkg/ui", "pkg/game", "pkg/random", "pkg/secondshop"},
 	// a read-only installed-data witness over the headless app seams.
 	"cmd/innsleep": {"pkg/ui", "pkg/game", "pkg/vfs"},
 	// screenshot composes named screens through the single seam pkg/ui/app.go's
@@ -517,6 +518,7 @@ var noExternalFormats = map[string]bool{
 	// pkg/render/text's own, applied per drawn byte rather than once at
 	// parse time. So this format takes no text-encoding dependency either.
 	"pkg/formats/itemname": true,
+	"pkg/formats/itempkt":  true,
 }
 
 func externalAllowed(pkg, imp string) bool {

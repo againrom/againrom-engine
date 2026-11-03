@@ -34,7 +34,8 @@ type shopBinding struct {
 	racks     func() [4]shopRack
 	rackLabel func(i int) string
 	// value prices a customer's item put on the table.
-	value func(sim.ItemInstance) int32
+	value      func(sim.ItemInstance) int32
+	shownPrice func(sim.ItemInstance) int32
 	// packUnits bounds the units the customer's pack and his offered places
 	// hold together, what the game's SAVE writes; zero is no bound.
 	packUnits int

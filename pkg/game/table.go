@@ -8,6 +8,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/databin"
+	"againrom/pkg/formats/itempkt"
 	"againrom/pkg/formats/reg"
 	"againrom/pkg/mapload"
 	"againrom/pkg/vfs"
@@ -184,6 +185,15 @@ func LoadDefinitionsFor(fsys *vfs.FS, g base.Game) (*Definitions, error) {
 	// from opening. Its lines are main.res text, not world.res, so it rides
 	// beside the table rather than inside the walk above.
 	d.Table.Names, _ = readItemNamesAt(fsys, filesOf(g).itemNameKeys, InstallTextCode(fsys, g.Edition()))
+	if addr := filesOf(g).itemPacket; addr != "" {
+		raw, readErr := fsys.ReadFile(addr)
+		if readErr != nil {
+			return nil, fmt.Errorf("read %s: %w", addr, readErr)
+		}
+		if d.Table.ItemRecords, err = itempkt.Parse(raw); err != nil {
+			return nil, err
+		}
+	}
 	// NOT FATAL either: a table that read fewer than the four hero names carries
 	// none, and MissionPartyAs then names a hero started without the generator's
 	// name field itself. The generator reads the same four through the same

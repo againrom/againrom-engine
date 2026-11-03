@@ -42,7 +42,7 @@ func TestShopDealOneCoreBothGames(t *testing.T) {
 		t.Fatalf("second game: emptied entries %v, want placeholders kept", second.shelves[0])
 	}
 	bought, spent, ok := second.shopDeal.buy(r, 75)
-	if !ok || len(bought) != 2 || spent != 70 || len(second.buying()) != 1 || second.buying()[0].Row != 72 || len(second.shelves[0]) != 3 {
+	if !ok || len(bought) != 2 || spent != 50 || len(second.buying()) != 1 || second.buying()[0].Row != 70 || len(second.shelves[0]) != 3 {
 		t.Fatalf("second game: buy at 75 bought %v spent %d left %v, want the first two and the third kept", bought, spent, second.buying())
 	}
 	// Loss control: the first game's rules on the same deal refuse it whole.

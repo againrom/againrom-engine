@@ -55,6 +55,7 @@ func (s *secondShop) rules() shopRules[ShopItem, ShopShelf] {
 			return i
 		},
 		clone: ShopItem.Clone,
+		order: func(items []ShopItem) []int { return tables.Order(secondItems(items)) },
 		split: func(i ShopItem, n int64) (ShopItem, ShopItem) {
 			moved, rest := i, i
 			moved.Count, rest.Count = int32(n), i.Count-int32(n)
@@ -272,6 +273,8 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 		return secondshop.Tables{}, false
 	}
 	var out secondshop.Tables
+	out.ItemRecords = t.ItemRecords
+	out.TemplateCode = func(code uint16) uint16 { return uint16(itemTemplateCode(t, code)) }
 	ok := true
 	for _, x := range []struct {
 		dst *secondshop.Collection
@@ -289,6 +292,9 @@ func secondShopTables(t *mapload.Table) (secondshop.Tables, bool) {
 	return out, ok
 }
 
+// ShopTables exposes the installed shop profile to headless instruments.
+func (f *FrontEnd) ShopTables() (secondshop.Tables, bool) { return secondShopTables(f.Table) }
+
 // enter opens the page at location: the stock is drawn from the location's
 // record when its first category is empty (R2-ENGINE-266) or when it was
 // drawn for another location (DIV-3045); the first category shows.
@@ -304,7 +310,10 @@ func (s *secondShop) enter(tables secondshop.Tables, location int, rnd secondsho
 }
 
 // shelf is the category the page shows.
-func (s *secondShop) shelf() []secondshop.Item { return secondItems(s.shelves[s.category]) }
+func (s *secondShop) shelf() []secondshop.Item {
+	s.rules()
+	return secondItems(s.Shelf(ShopShelf(s.category)))
+}
 
 // choose shows category c.
 func (s *secondShop) choose(c int) bool {

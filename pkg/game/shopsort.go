@@ -7,37 +7,27 @@ import (
 	"againrom/pkg/sim"
 )
 
-// The first game's shelf order is SHOP-154's four keys, outermost first: the
-// fighter flag set first, the code's kind nibble ascending, for weapons a row
-// group ascending, then price ascending. The flag is the row's sutableFor
-// bit 0x1 (ITEM-SUIT-035); the weapon row group stands in as the row's
-// AttackType rank; equal elements keep their order (DIV-4164).
-//
-// THE KIND IS THE CODE'S FIELD B, NOT A NAME: weapons 1, shields 2, then the
-// armour slots (ITEM-ARMSLOT-031), so rings 4 and amulets 5 stand before
-// helms 6 and boots 12.
+// The first game's SHOP-154 profile uses the row's suitability and AttackType
+// for flag and weapon group. Equal items keep their order (DIV-4164).
 
-// shopItemOrder is one element's place in that order, computed once per element
-// rather than once per comparison.
+// shopItemOrder holds a code's first three keys.
 type shopItemOrder struct {
 	class int
 	kind  int
 	group int
 }
 
-// shopSortShelf puts items in that order, in place, keeping the order of
-// elements equal on all four keys: draw order, then a returned element.
-//
-// A NIL TABLE SORTS NOTHING and leaves the shelf exactly as it was: the flag
-// and the weapon group are cells of a definition row.
+// shopSortShelf leaves a shelf unchanged without its definition table.
 func shopSortShelf(items []ShopItem, t *mapload.Table) {
 	if t == nil {
 		return
 	}
-	shopstock.SortBy(items, func(item ShopItem) []int64 {
-		o := shopOrderOf(item.Code, t)
-		return []int64{int64(o.class), int64(o.kind), int64(o.group), int64(item.Price)}
-	})
+	shopstock.ShelfOrder[ShopItem]{
+		Flag:  func(it ShopItem) bool { return shopOrderOf(it.Code, t).class == shopFlagFighter },
+		Kind:  func(it ShopItem) int { return it.Code.B() },
+		Group: func(it ShopItem) int { return shopWeaponGroup(it.Code, t) },
+		Price: func(it ShopItem) int64 { return int64(it.Price) },
+	}.Sort(items)
 }
 
 // shopStackShelf folds every repeated item into one element carrying the

@@ -655,15 +655,23 @@ func (t *shopController) shopShelfCell(item ShopItem, purse int32) ui.ShopCell {
 	// it, which is what a default click buys.
 	back := shopCellBack(t.shopUsable(item.Code), item.Price > 0 && purse >= item.Price)
 	instance := item.Instance()
+	price := t.shownShopPrice(instance)
 	return ui.ShopCell{
 		Icon:        t.shopItemIcon(instance),
 		Count:       uint32(item.Count),
-		Price:       shopGridPrice(item.Code, item.Price, false),
-		PlaquePrice: shopClientPrice(item.Code, item.Price),
+		Price:       shopGridPrice(item.Code, price, false),
+		PlaquePrice: shopClientPrice(item.Code, price),
 		Back:        back,
 		Star:        itemShowsStarTrail(instance),
 		Info:        t.itemInfo(instance),
 	}
+}
+
+func (t *shopController) shownShopPrice(in sim.ItemInstance) int32 {
+	if t.row.shownPrice != nil {
+		return t.row.shownPrice(in)
+	}
+	return in.Price
 }
 
 // itemInfo is the caption of a cell holding instance: the item lines of the
@@ -708,6 +716,7 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 	price := place.ShopItem.Price
 	affordable := !place.Mine && t.pageRules().TableShelfBack && price > 0 && int64(t.sess.Town.Gold()) >= int64(price)
 	instance := place.ShopItem.Instance()
+	shown := t.shownShopPrice(instance)
 	useKey := ""
 	if place.Mine && t.shopDollTakes(instance) {
 		useKey = fmt.Sprintf("city:%d/from:%d/%#v", place.ShopItem.CityID, place.From, instance)
@@ -716,8 +725,8 @@ func (t *shopController) shopPlaceCell(place ShopPlace) ui.ShopCell {
 		UseItemKey:  useKey,
 		Icon:        t.shopItemIcon(instance),
 		Count:       uint32(place.ShopItem.Count),
-		Price:       shopGridPrice(place.ShopItem.Code, place.ShopItem.Price, place.Mine),
-		PlaquePrice: shopClientPrice(place.ShopItem.Code, place.ShopItem.Price),
+		Price:       shopGridPrice(place.ShopItem.Code, shown, place.Mine),
+		PlaquePrice: shopClientPrice(place.ShopItem.Code, shown),
 		Back:        shopCellBack(t.shopUsable(place.ShopItem.Code), affordable),
 		Mine:        place.Mine,
 		Star:        itemShowsStarTrail(instance),
@@ -734,12 +743,16 @@ func (t *shopController) shopPackCell(st sim.ItemStack) ui.ShopCell {
 		useKey = fmt.Sprintf("%#v", instance)
 	}
 	stored := t.shopItemValue(instance)
+	shown := t.shownShopPrice(instance)
+	if t.row.shownPrice == nil {
+		shown = stored
+	}
 	return ui.ShopCell{
 		UseItemKey:  useKey,
 		Icon:        t.shopItemIcon(instance),
 		Count:       st.Count,
-		Price:       shopGridPrice(code, stored, true),
-		PlaquePrice: shopClientPrice(code, stored),
+		Price:       shopGridPrice(code, shown, true),
+		PlaquePrice: shopClientPrice(code, shown),
 		Back:        shopCellBack(t.shopUsable(code), false),
 		Mine:        true,
 		Star:        itemShowsStarTrail(instance),

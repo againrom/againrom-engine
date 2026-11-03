@@ -7,6 +7,7 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/formats/itempkt"
 	"againrom/pkg/mod"
 	"againrom/pkg/sim"
 )
@@ -190,7 +191,8 @@ type Table struct {
 	// cell): a nil or empty Names answers every lookup false, and a caller
 	// falls back to a different name for the code, never to refusing the
 	// item itself — this is a display fact, not a placement one.
-	Names data.ItemNames
+	Names       data.ItemNames
+	ItemRecords map[uint16]itempkt.Record
 	// ItemNamer is the game's composer row for an item with neither a saved
 	// nor a shipped name; ResolveItemName asks it.
 	ItemNamer ItemNamer

@@ -8,6 +8,7 @@ package secondshop
 import (
 	"math"
 
+	"againrom/pkg/formats/itempkt"
 	"againrom/pkg/shopitem"
 )
 
@@ -26,7 +27,9 @@ type Tables struct {
 	Shapes, Materials, Armors, Shields, Weapons, MagicItems, Spells, Magic Collection
 	// Stocked are the items mods put in the shop: one unit each, filed by
 	// placement into every stock a fill draws.
-	Stocked []Item
+	Stocked      []Item
+	ItemRecords  map[uint16]itempkt.Record
+	TemplateCode func(uint16) uint16
 }
 
 // Rand answers one rand() value in 0..32767.

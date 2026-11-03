@@ -46,6 +46,7 @@ type gameFiles struct {
 	// itemNameKeys is the key half of the item-name table; the lines are
 	// main.res text/itemname.txt in both games (R2-ENGINE-267).
 	itemNameKeys string
+	itemPacket   string
 	// itemNamer names an item with neither a saved nor a shipped name.
 	itemNamer mapload.ItemNamer
 	// autoCastCaptions are the dialogs text lines of the automatic-casting
@@ -255,6 +256,7 @@ var secondGameFiles = gameFiles{
 	storedWeaponSpell:    true,
 	releasedSpellReadout: true,
 	itemNameKeys:         worldPrefix + "data/itemname.bin",
+	itemPacket:           worldPrefix + "data/itemname.pkt",
 	itemNamer:            mapload.RowItemNamer,
 	// R2-ASSET-085.
 	autoCastCaptions: []int{170, 171, 172, 173},

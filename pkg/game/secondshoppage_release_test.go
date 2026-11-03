@@ -73,7 +73,13 @@ func TestReleaseSecondShopPageInput(t *testing.T) {
 			shelf := c.shop.shelf()
 			for i := 0; i < len(v.Shelf) && i < len(shelf); i++ {
 				cell, it := v.Shelf[i], shelf[i]
-				if int(cell.Count) != int(it.Count) || int64(cell.Price) != int64(it.Price) || !slices.Equal(cell.Text, s.shopItemName(it)) {
+				shown := it.Price
+				if key, ok := c.shop.tables.NameKey(it); ok && len(it.Effects) == 0 && it.Table != secondshop.Magic {
+					if r, found := f.Table.ItemRecords[key]; found && r.HasPrice {
+						shown = int32(r.Price)
+					}
+				}
+				if int(cell.Count) != int(it.Count) || cell.Price != shown || !slices.Equal(cell.Text, s.shopItemName(it)) {
 					t.Fatalf("shelf cell %d: count %d price %d text %q, want %+v named %q", i, cell.Count, cell.Price, cell.Text, it, s.shopItemName(it))
 				}
 			}

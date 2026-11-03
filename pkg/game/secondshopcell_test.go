@@ -53,10 +53,10 @@ func TestSecondShopCellCaptionNamesTheSpell(t *testing.T) {
 		{Table: secondshop.Book, Spell: 1, Count: 2, Price: 1000},
 		{Table: secondshop.Magic, Row: 6, Count: 1, Price: 100},
 	})
-	if got := v.Shelf[0].Info; len(got) == 0 || got[0] != "Book of Fire Arrow" {
+	if got := v.Shelf[1].Info; len(got) == 0 || got[0] != "Book of Fire Arrow" {
 		t.Errorf("book caption %q, want the first line %q", got, "Book of Fire Arrow")
 	}
-	if got := v.Shelf[1].Info; len(got) == 0 || got[0] != "Scroll of Fire Arrow" {
+	if got := v.Shelf[0].Info; len(got) == 0 || got[0] != "Scroll of Fire Arrow" {
 		t.Errorf("scroll caption %q, want the first line %q", got, "Scroll of Fire Arrow")
 	}
 }

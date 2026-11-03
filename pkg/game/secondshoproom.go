@@ -79,6 +79,14 @@ func (t *townScreen) bankShopRow() shopBinding {
 		},
 		packUnits: maxSecondBagUnits,
 		value:     func(in sim.ItemInstance) int32 { return in.Price },
+		shownPrice: func(in sim.ItemInstance) int32 {
+			it, ok := secondshop.FromInstance(in)
+			if !ok {
+				return in.Price
+			}
+			tables, _ := secondShopTables(t.in.Table)
+			return tables.ShownPrice(it)
+		},
 		// A cell's caption describes the item as a mission holds it: a
 		// scroll with its spell, a potion with its payload (R2-ENGINE-711,
 		// R2-ENGINE-712).
