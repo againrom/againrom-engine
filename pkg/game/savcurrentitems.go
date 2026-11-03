@@ -226,7 +226,7 @@ func projectCurrentItemGraphMode(state *SnapshotSAVDocument, world *sim.World, f
 		retiredSacks[index] = true
 	}
 	unbound := func(value sim.ItemStack, owner uint32, held bool) ([]uint16, error) {
-		if sim.StackStateEqual(value, sim.ItemStack{}) {
+		if value.Empty() {
 			return []uint16{0}, nil
 		}
 		if value.ObjectID != 0 {
@@ -632,7 +632,7 @@ func currentUnboundSackMatchesSource(doc *sav.DocumentData, index uint16, sack s
 		for range row.Value.Count {
 			value := row.Value.Clone()
 			value.SourceEquipment.Definition = current[unit].SourceEquipment.Definition
-			if !sim.StackStateEqual(value, sim.StackItem(current[unit], row.Value.Count)) {
+			if !sim.SameUnit(value, sim.StackItem(current[unit], row.Value.Count), sim.UnitStack) {
 				return false
 			}
 			unit++

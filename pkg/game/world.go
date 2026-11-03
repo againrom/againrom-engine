@@ -2594,7 +2594,7 @@ func itemStacksEqual(a, b []sim.ItemStack) bool {
 		return false
 	}
 	for i := range a {
-		if !sim.StackStateEqual(a[i], b[i]) {
+		if !sim.SameUnit(a[i], b[i], sim.UnitStack) {
 			return false
 		}
 	}

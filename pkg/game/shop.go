@@ -128,18 +128,15 @@ func shopItemFromInstance(item sim.ItemInstance, count int32) ShopItem {
 	return ShopItem{ObjectID: item.ObjectID, Code: data.ItemCode(item.Code), Kind: item.Kind, Effects: item.Effects, Price: item.Price, Count: count, Weight: item.Weight, WeightPresent: item.WeightPresent, SourceEquipment: item.SourceEquipment}
 }
 
+// shopItemEqual is a page lot's identity: one city node, and one saved
+// object, price and item. Distinct saved nodes remain separate even when all
+// their values agree.
 func shopItemEqual(a, b ShopItem) bool {
-	if a.CityID != b.CityID {
-		return false
-	}
-	// Distinct saved nodes remain separate even when all their values agree.
-	// Unidentified items retain the existing value-based folding rule.
-	return a.ObjectID == b.ObjectID && a.Price == b.Price && sim.ItemEqual(a.Instance(), b.Instance())
+	return a.CityID == b.CityID && sim.SameUnit(a.Instance(), b.Instance(), sim.UnitPricedObject)
 }
 
 func shopItemStateEqual(a, b ShopItem) bool {
-	return a.Count == b.Count && a.Code == b.Code && a.Kind == b.Kind && a.Price == b.Price &&
-		sim.StackStateEqual(sim.StackItem(a.Instance(), uint32(a.Count)), sim.StackItem(b.Instance(), uint32(b.Count)))
+	return sim.SameUnit(sim.StackItem(a.Instance(), uint32(a.Count)), sim.StackItem(b.Instance(), uint32(b.Count)), sim.UnitStack)
 }
 
 // ShopPlace is one of the table's five places: an item, and which side of the

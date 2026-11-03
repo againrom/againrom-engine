@@ -183,7 +183,7 @@ func shopDealDiff(stacks []sim.ItemStack, held []sim.ItemInstance) (sold []int, 
 		unit := s.Instance()
 		for range s.Count {
 			j := 0
-			for j < len(held) && (used[j] || !sameShopUnit(unit, held[j])) {
+			for j < len(held) && (used[j] || !sim.SameUnit(unit, held[j], sim.UnitDeal)) {
 				j++
 			}
 			if j == len(held) {
@@ -200,11 +200,6 @@ func shopDealDiff(stacks []sim.ItemStack, held []sim.ItemInstance) (sold []int, 
 		}
 	}
 	return sold, bought
-}
-
-func sameShopUnit(a, b sim.ItemInstance) bool {
-	a.ObjectID, a.Price, b.ObjectID, b.Price = 0, 0, 0, 0
-	return a.Kind == b.Kind && sim.ItemEqual(a, b)
 }
 
 func cloneItemInstances(items []sim.ItemInstance) []sim.ItemInstance {

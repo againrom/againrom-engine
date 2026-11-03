@@ -80,7 +80,7 @@ func (mw *mapWorld) observeWeapons() {
 		if s.seen == nil {
 			s.seen, s.previous = make(map[sim.EntityID]heldPair), make(map[sim.EntityID]heldPair)
 		}
-		if old, had := s.seen[id]; had && !old.weapon.Empty() && !sim.WornItemEqual(old.weapon, cur.weapon) {
+		if old, had := s.seen[id]; had && !old.weapon.Empty() && !sim.SameUnit(old.weapon, cur.weapon, sim.UnitWorn) {
 			s.previous[id] = old
 		}
 		s.seen[id] = cur
@@ -161,23 +161,23 @@ func (mw *mapWorld) nextSwapCommand(p *weaponSwapPlan) (sim.Command, bool) {
 	freeHand := mapload.WeaponAllowsShield(data.ItemCode(w.Code), t)
 	if p.stage == swapStageWeapon {
 		p.stage = swapStageShield
-		if !sim.WornItemEqual(worn[0], w) {
+		if !sim.SameUnit(worn[0], w, sim.UnitWorn) {
 			idx := mw.packIndex(p.id, w)
 			if idx < 0 || !mw.swapWears(member, w, 1) {
 				return none, false
 			}
 			var displace sim.EquipSlot
-			if !worn[1].Empty() && (shield.Empty() || !sim.WornItemEqual(worn[1], shield) || !freeHand) {
+			if !worn[1].Empty() && (shield.Empty() || !sim.SameUnit(worn[1], shield, sim.UnitWorn) || !freeHand) {
 				displace = 2
 			}
 			return sim.EquipDisplacing(p.id, sim.ItemSlot(idx), 1, displace), true
 		}
 	}
-	if p.stage != swapStageShield || !sim.WornItemEqual(worn[0], w) {
+	if p.stage != swapStageShield || !sim.SameUnit(worn[0], w, sim.UnitWorn) {
 		return none, false
 	}
 	p.stage = swapStageDone
-	if !shield.Empty() && sim.WornItemEqual(worn[1], shield) {
+	if !shield.Empty() && sim.SameUnit(worn[1], shield, sim.UnitWorn) {
 		return none, false
 	}
 	if !shield.Empty() && freeHand && mw.swapWears(member, shield, 2) {
@@ -213,7 +213,7 @@ func (mw *mapWorld) packIndex(id sim.EntityID, item sim.ItemInstance) int {
 		return -1
 	}
 	for i, st := range stacks {
-		if st.Count > 0 && sim.WornItemEqual(st.Instance(), item) {
+		if st.Count > 0 && sim.SameUnit(st.Instance(), item, sim.UnitWorn) {
 			return i
 		}
 	}

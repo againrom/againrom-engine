@@ -141,7 +141,7 @@ func citySaleRemainders(b originalCityBinding, sales []SnapshotCitySale) ([]uint
 	return counts, nil
 }
 
-func citySaleGroups(a, b sim.ItemInstance) bool { return a.Price == b.Price && sim.ItemEqual(a, b) }
+func citySaleGroups(a, b sim.ItemInstance) bool { return sim.SameUnit(a, b, sim.UnitPriced) }
 
 // legacyCitySoldMember preserves the published WIP history policy. Such native
 // records remain retired; loading them must not invent a missing Sell boundary.

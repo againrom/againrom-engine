@@ -116,7 +116,7 @@ func cityConstructItem(v sim.ItemInstance, table *mapload.Table) sim.ItemInstanc
 // cityPackJoins reports whether incoming joins the held pack cell.
 func cityPackJoins(held, incoming sim.ItemInstance, table *mapload.Table) bool {
 	v, ok := cityJoinForm(held, incoming, table)
-	return ok && sim.CanMergeItemValues(held, v)
+	return ok && sim.SameUnit(held, v, sim.UnitMerge)
 }
 
 // cityShelfJoins reports whether an item returned to a shelf joins the shelf
@@ -127,7 +127,7 @@ func cityShelfJoins(held, incoming sim.ItemInstance, table *mapload.Table) bool 
 		!incoming.SourceEquipment.Spell.Present && v.SourceEquipment != incoming.SourceEquipment {
 		return false
 	}
-	return ok && sim.ItemEqual(held, v)
+	return ok && sim.SameUnit(held, v, sim.UnitItem)
 }
 
 func (t *shopController) validateCityShopRoots() error {
@@ -182,7 +182,7 @@ func (t *shopController) validateCityShopValues(p *cityObjectProjection) error {
 			return err
 		}
 		stack := sim.StackItem(item.Instance(), uint32(item.Count))
-		if before, exists := p.items[item.CityID]; exists && !sim.StackStateEqual(before, stack) {
+		if before, exists := p.items[item.CityID]; exists && !sim.SameUnit(before, stack, sim.UnitStack) {
 			return fmt.Errorf("bound city stock disagrees with shared Item %d", item.CityID)
 		}
 		p.items[item.CityID] = stack
@@ -492,7 +492,7 @@ func (t *shopController) cityShopMerge(target, incoming ShopItem) (ShopItem, err
 func (t *shopController) cityShopPutTable(incoming ShopPlace) error {
 	for i, place := range t.sess.Shop.table {
 		if place.ShopItem.CityID == incoming.ShopItem.CityID || place.Mine != incoming.Mine || !place.Mine && place.From != incoming.From ||
-			place.ShopItem.Price != incoming.ShopItem.Price || !sim.ItemEqual(place.ShopItem.Instance(), incoming.ShopItem.Instance()) {
+			!sim.SameUnit(place.ShopItem.Instance(), incoming.ShopItem.Instance(), sim.UnitPriced) {
 			continue
 		}
 		target, err := t.cityShopBind(place.ShopItem)

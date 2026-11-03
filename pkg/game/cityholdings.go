@@ -101,7 +101,7 @@ func checkCityEquipmentGraph(g *sav.CityEquipmentGraph, p mapload.PartyMember) e
 			}
 			item.Value.NativeRecord = want[slot].Clone().NativeRecord
 		}
-		if !sim.StackStateEqual(item.Value, sim.StackItem(want[slot], 1)) {
+		if !sim.SameUnit(item.Value, sim.StackItem(want[slot], 1), sim.UnitStack) {
 			return fmt.Errorf("city current worn slot %d differs from current item", slot)
 		}
 	}
@@ -270,7 +270,7 @@ func checkCityItemGraph(g *sav.CityItemGraph, p mapload.PartyMember) error {
 			}
 			item.Value.NativeRecord = stacks[i].Clone().NativeRecord
 		}
-		if !sim.StackStateEqual(item.Value, stacks[i]) {
+		if !sim.SameUnit(item.Value, stacks[i], sim.UnitStack) {
 			return fmt.Errorf("city current pack item %d differs from current stack", i)
 		}
 	}
@@ -288,7 +288,7 @@ func checkCityItemGraph(g *sav.CityItemGraph, p mapload.PartyMember) error {
 		return fmt.Errorf("city pack expansion omits current item")
 	}
 	for i := range items {
-		if !sim.StackStateEqual(sim.StackItem(items[i], 1), sim.StackItem(expanded[i], 1)) {
+		if !sim.SameUnit(items[i], expanded[i], sim.UnitStack) {
 			return fmt.Errorf("city pack expansion differs from current item")
 		}
 	}

@@ -313,13 +313,13 @@ func attachSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, regist
 		if owner.Kind == sim.SavedOwnerActorWorn {
 			native.Count = row.Value.Count
 		}
-		if !sim.StackStateEqual(row.Value, native) {
+		if !sim.SameUnit(row.Value, native, sim.UnitStack) {
 			return 0, fmt.Errorf("saved SAV Item %d differs at explicit owner/ordinal", index)
 		}
 		if id := byObject[index]; id != 0 {
 			previous, ok := registry.Item(id)
 			row.Value.ObjectID = id
-			if !ok || !sim.StackStateEqual(previous.Value, row.Value) {
+			if !ok || !sim.SameUnit(previous.Value, row.Value, sim.UnitStack) {
 				return 0, fmt.Errorf("saved SAV aliased Item value differs")
 			}
 			if owner.Kind == sim.SavedOwnerActorWorn {
@@ -454,7 +454,7 @@ func attachSavedItemObjects(state *SnapshotSAVDocument, world *sim.World, regist
 		}
 		for ordinal, ref := range refs {
 			if ref == 0 {
-				if !sim.StackStateEqual(pack[ordinal], sim.ItemStack{}) {
+				if !pack[ordinal].Empty() {
 					return nil, fmt.Errorf("saved SAV null Pack position carries a native Item")
 				}
 				container.Items = append(container.Items, 0)

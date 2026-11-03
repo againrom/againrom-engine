@@ -95,7 +95,7 @@ func (s *CampaignSession) followHeroPack(before mapload.PartyMember, party []map
 		old, at := cityMemberStacks(before, table), 0
 		var pack []sim.SavedObjectID
 		for _, stack := range cityMemberStacks(party[i], table) {
-			for at < len(old) && !sim.StackStateEqual(old[at], stack) {
+			for at < len(old) && !sim.SameUnit(old[at], stack, sim.UnitStack) {
 				at++
 			}
 			id := sim.SavedObjectID(0)

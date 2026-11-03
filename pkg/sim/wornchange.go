@@ -46,16 +46,6 @@ func WearWorn(h WornHolder, slot int, item ItemInstance) (ItemInstance, bool) {
 	return item, built
 }
 
-// WornItemEqual reports whether a and b are one held item across worn
-// changes: a Weapon's owned Spell is left out, because TakeOffWorn deletes it
-// and WearWorn builds it again, so the Weapon taken off is the one worn
-// before.
-func WornItemEqual(a, b ItemInstance) bool {
-	a, b = a.Clone(), b.Clone()
-	a.SourceEquipment.Spell, b.SourceEquipment.Spell = SourceItemSpell{}, SourceItemSpell{}
-	return ItemEqual(a, b)
-}
-
 // worldWornHolder is actor i of a World as a WornHolder. Its Spell store is
 // the saved-object registry when the item has an identity.
 type worldWornHolder struct {

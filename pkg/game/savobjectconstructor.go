@@ -19,7 +19,7 @@ func (c *generatedDocumentBuilder) item(item sim.ItemInstance, count uint32, own
 		observed = item.NativeRecord.Token.Identity
 	}
 	if prior, ok := c.nativeItems[observed]; observed != 0 && ok {
-		if !sim.StackStateEqual(prior.value, value) {
+		if !sim.SameUnit(prior.value, value, sim.UnitStack) {
 			return 0, fmt.Errorf("current native Item identity has conflicting values")
 		}
 		return prior.index, nil

@@ -670,9 +670,9 @@ func (t *shopController) shopTakeOnePackUnit(code uint16) bool {
 
 func shopItemMatchesSelection(candidate, selected sim.ItemInstance) bool {
 	if selected.ObjectID != 0 {
-		return candidate.ObjectID == selected.ObjectID
+		return sim.SameUnit(candidate, selected, sim.UnitObject)
 	}
-	return sim.ItemEqual(candidate, selected) && candidate.Price == selected.Price
+	return sim.SameUnit(candidate, selected, sim.UnitPriced)
 }
 
 func (t *shopController) shopTakeOnePackItem(item sim.ItemInstance) bool {

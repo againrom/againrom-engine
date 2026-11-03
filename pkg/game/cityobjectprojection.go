@@ -214,7 +214,7 @@ func newCityObjectProjection(source *cityObjectTopology, party []mapload.PartyMe
 			}
 		}
 		if old, ok := p.items[id]; ok {
-			if !sim.StackStateEqual(old, native) {
+			if !sim.SameUnit(old, native, sim.UnitStack) {
 				return 0, fmt.Errorf("city shared Item %d has conflicting current values", id)
 			}
 			return id, nil

@@ -216,7 +216,7 @@ func captureCurrentObjects(state *SnapshotSAVDocument, w *sim.World) (*currentOb
 		refs, _ := savedObjectRefs(record, "Inventory")
 		at := 0
 		for _, v := range pack {
-			if sim.StackStateEqual(v, sim.ItemStack{}) {
+			if v.Empty() {
 				if at >= len(refs) || refs[at] != 0 {
 					return nil, nil, fmt.Errorf("current null inventory position differs")
 				}

@@ -8,6 +8,7 @@ package archtest
 var CommittedSpellDeletionSites = map[string]int{
 	"pkg/game/cityobjectprojection.go": 2,
 	"pkg/game/currentobjects.go":       2,
+	"pkg/sim/itemunit.go":              2,
 	"pkg/sim/nativebasismutation.go":   2,
 	"pkg/sim/savedobjectsmutation.go":  1,
 	"pkg/sim/sourceequipmove.go":       1,

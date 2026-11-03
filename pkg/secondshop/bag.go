@@ -181,7 +181,7 @@ func KeptUnit(in sim.ItemInstance, decode func(code uint16) sim.ItemInstance) (s
 	if it.Table == Magic && len(in.Effects) == 0 && (in.Kind == 3 || in.Kind == 4) {
 		back.Effects = nil
 	}
-	if back.Code != in.Code || back.Kind != in.Kind || back.Price != in.Price || !slices.Equal(back.Effects, in.Effects) {
+	if !sim.SameUnit(back, in, sim.UnitForm) {
 		return sim.ItemInstance{}, false
 	}
 	return out, true

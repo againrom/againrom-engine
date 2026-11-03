@@ -3942,5 +3942,10 @@ var Committed = Baseline{
 	// and the unit-caster cast life, with cmd/rewardmarkwitness and its tests.
 	// It rose for the reward predicate in pkg/sim/gameprofile.go and its source
 	// guard in internal/archtest/rewardpolicy.go.
-	CommentBytes: 10480191,
+
+	// It rose for the item unit record test pkg/game/itemunit_record_test.go.
+	// It rose for the one item identity rule pkg/sim/itemunit.go and its rows,
+	// the scan internal/archtest/itemunit.go and its test, less the comments
+	// of the removed WornItemEqual and of shopItemEqual's body.
+	CommentBytes: 10483746,
 }

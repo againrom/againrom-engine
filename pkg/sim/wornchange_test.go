@@ -103,12 +103,12 @@ func TestWornChangeAsksTheHolderOnlyUnderTheRule(t *testing.T) {
 // TestWornItemEqualLeavesOutOnlyTheSpell: a Weapon with and without its Spell
 // is one held item; a different Weapon, the control, is not.
 func TestWornItemEqualLeavesOutOnlyTheSpell(t *testing.T) {
-	if !WornItemEqual(spelllessStaff(true), spelllessStaff(false)) {
+	if !SameUnit(spelllessStaff(true), spelllessStaff(false), UnitWorn) {
 		t.Fatal("the staff taken off is not the staff worn")
 	}
 	other := spelllessStaff(true)
 	other.Effects = staffEffects(6, 20)
-	if WornItemEqual(spelllessStaff(true), other) {
+	if SameUnit(spelllessStaff(true), other, UnitWorn) {
 		t.Fatal("control: a staff with another castSpell Effect is the same item")
 	}
 }
