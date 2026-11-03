@@ -7,6 +7,14 @@ import "fmt"
 // stream, and those draws stay drawn when the creation fails.
 type actorSearch func(n *World, i int) (x, y int32, ok bool)
 
+type actorCreationProfile struct {
+	// inherited keeps a prepared actor's binding, facing, placement and Group.
+	inherited bool
+	// transient skips the whole-World check; no cast-tail check replaces it.
+	transient       bool
+	suppressRewards bool
+}
+
 // createActor is the one runtime builder of an actor and its group: the cheat
 // summon and the second game's Summon spell both reach it. It gives template
 // the next entity id, binds a source actor to a generated source key, adds its
@@ -15,37 +23,46 @@ type actorSearch func(n *World, i int) (x, y int32, ok bool)
 // in a saved-group World, as a new command group in a native one. Nothing
 // changes when it fails, except that keepDraws keeps the draws the candidate
 // took: a cast that drew its placement has drawn it.
-func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]ItemInstance, anchorX, anchorY int32, search actorSearch, keepDraws bool) (EntityID, error) {
+func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]ItemInstance, anchorX, anchorY int32, search actorSearch, keepDraws bool, profiles ...actorCreationProfile) (EntityID, error) {
+	p := actorCreationProfile{}
+	if len(profiles) != 0 {
+		p = profiles[0]
+	}
 	id, available := w.NextEntityID()
 	if !available || id >= 1<<28 {
 		return 0, fmt.Errorf("sim: actor creation identity space exhausted")
 	}
 	template.ID = id
-	template.ActorLoad.Source.HasOwner = template.Owner != 0 && template.ActorLoad.Source.Class != 0
-	if template.ActorState == 0 {
-		template.ActorState = actorStateGuard
+	if p.suppressRewards {
+		template.SuppressRewards = true
 	}
-	template.OffMap = true
-	template.HasTarget = false
-	template.clearAttack()
-	template.SourceBinding.ArchiveIndex = 0
-	template.SourceBinding.GroupIndex, template.SourceBinding.GroupSelector, template.SourceBinding.GroupOwnerKey = 0, 0, 0
-	template.SourceBinding.GroupOwnerSlot, template.SourceBinding.GroupOwnerResolved = 0, false
-	if template.ActorLoad.Source.Class != 0 {
-		template.SourceBinding.Class = GeneratedUnitBinding
-		if template.Humanoid {
-			template.SourceBinding.Class = GeneratedHumanBinding
+	if !p.inherited {
+		template.ActorLoad.Source.HasOwner = template.Owner != 0 && template.ActorLoad.Source.Class != 0
+		if template.ActorState == 0 {
+			template.ActorState = actorStateGuard
 		}
-		key := uint32(0x50000000) + uint32(id)*16
-		for w.cheatActorKeyUsed(key) {
-			key += 16
-			if key == 0 {
-				return 0, fmt.Errorf("sim: actor creation source key space exhausted")
+		template.OffMap = true
+		template.HasTarget = false
+		template.clearAttack()
+		template.SourceBinding.ArchiveIndex = 0
+		template.SourceBinding.GroupIndex, template.SourceBinding.GroupSelector, template.SourceBinding.GroupOwnerKey = 0, 0, 0
+		template.SourceBinding.GroupOwnerSlot, template.SourceBinding.GroupOwnerResolved = 0, false
+		if template.ActorLoad.Source.Class != 0 {
+			template.SourceBinding.Class = GeneratedUnitBinding
+			if template.Humanoid {
+				template.SourceBinding.Class = GeneratedHumanBinding
 			}
+			key := uint32(0x50000000) + uint32(id)*16
+			for w.cheatActorKeyUsed(key) {
+				key += 16
+				if key == 0 {
+					return 0, fmt.Errorf("sim: actor creation source key space exhausted")
+				}
+			}
+			template.SourceBinding.Identity = key
+		} else {
+			template.SourceBinding = SourceBinding{}
 		}
-		template.SourceBinding.Identity, template.SourceBinding.RuntimeID = key, w.allocateRuntimeID()
-	} else {
-		template.SourceBinding = SourceBinding{}
 	}
 	var units uint64
 	for _, stack := range pack {
@@ -62,47 +79,59 @@ func (w *World) createActor(template Entity, pack []ItemStack, worn [EquipSlots]
 		return 0, err
 	}
 	n := w.sourceMutationCopy(0)
+	if p.inherited || template.ActorLoad.Source.Class != 0 {
+		template.SourceBinding.RuntimeID = n.allocateRuntimeID()
+	}
 	n.actorTraversal = append([]EntityID(nil), w.actorTraversal...)
 	n.casts = append([]scriptCast(nil), w.casts...)
 	n.entities = append(n.entities, template)
-	n.constructFacing(&n.entities[len(n.entities)-1])
+	if !p.inherited {
+		n.constructFacing(&n.entities[len(n.entities)-1])
+	}
 	n.constructMover(n.entities[len(n.entities)-1])
 	n.routes = append(n.routes, nil)
 	n.carried = append(n.carried, held[0])
 	n.equipment = append(n.equipment, equipped[0])
 	i := len(n.entities) - 1
 	px, py, found := search(&n, i)
-	if !found || !n.placeAt(i, px, py) {
+	if !found || !p.inherited && !n.placeAt(i, px, py) {
 		w.keepCandidateDraws(&n, keepDraws)
 		return 0, fmt.Errorf("sim: created actor found no free cell")
 	}
+	if p.inherited {
+		n.appendActorTraversal(id)
+	}
 	n.entities[i].PostX, n.entities[i].PostY = px, py
-	if template.ActorLoad.Source.Class != 0 && !n.deriveSource(i) {
+	if !p.inherited && template.ActorLoad.Source.Class != 0 && !n.deriveSource(i) {
 		w.keepCandidateDraws(&n, keepDraws)
 		return 0, fmt.Errorf("sim: created source actor cannot derive owned state")
 	}
-	if !n.groupDialectNative() {
-		container, owner := w.cheatSummonOwner(template.Owner, anchorX, anchorY)
-		if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
-			w.keepCandidateDraws(&n, keepDraws)
-			return 0, fmt.Errorf("sim: created actor saved group identity space exhausted")
+	if !p.inherited {
+		if !n.groupDialectNative() {
+			container, owner := w.cheatSummonOwner(template.Owner, anchorX, anchorY)
+			if !n.newSavedCommandGroup([]int{i}, orderNone, cell{x: px, y: py}, true, container, false) {
+				w.keepCandidateDraws(&n, keepDraws)
+				return 0, fmt.Errorf("sim: created actor saved group identity space exhausted")
+			}
+			if owner.Class == 1 {
+				n.savedGroupFor(id).Owner = owner
+			}
+			n.syncSavedActorCommand(i)
+		} else {
+			n.groups = append([]groupAI(nil), w.groups...)
+			n.commandGroup([]int{i}, orderNone, cell{x: px, y: py})
+			if template.Owner != 0 && n.entities[i].CommandGroup == 0 {
+				w.keepCandidateDraws(&n, keepDraws)
+				return 0, fmt.Errorf("sim: created actor native group identity space exhausted")
+			}
+			n.entities[i].Group = n.entities[i].CommandGroup
 		}
-		if owner.Class == 1 {
-			n.savedGroupFor(id).Owner = owner
-		}
-		n.syncSavedActorCommand(i)
-	} else {
-		n.groups = append([]groupAI(nil), w.groups...)
-		n.commandGroup([]int{i}, orderNone, cell{x: px, y: py})
-		if template.Owner != 0 && n.entities[i].CommandGroup == 0 {
-			w.keepCandidateDraws(&n, keepDraws)
-			return 0, fmt.Errorf("sim: created actor native group identity space exhausted")
-		}
-		n.entities[i].Group = n.entities[i].CommandGroup
 	}
-	if _, err := n.MarshalBinary(); err != nil {
-		w.keepCandidateDraws(&n, keepDraws)
-		return 0, err
+	if !p.transient {
+		if _, err := n.MarshalBinary(); err != nil {
+			w.keepCandidateDraws(&n, keepDraws)
+			return 0, err
+		}
 	}
 	*w = n
 	return id, nil

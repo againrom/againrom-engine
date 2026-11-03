@@ -258,6 +258,9 @@ type Entity struct {
 	// result because definition tables are unavailable when the actor dies, and
 	// the value changes deterministic sack state.
 	SuppressCorpseLoot bool
+	// SuppressRewards is the raised actor's mark, separate from its template's
+	// container policy (R2-ENGINE-535). It blocks death rewards and human XP.
+	SuppressRewards bool
 
 	// KillCreditSource, HasKillCredit and KillCreditSpell are the surviving
 	// damage attribution consumed when this actor later crosses below zero

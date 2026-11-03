@@ -122,6 +122,7 @@ const (
 // R2-ENGINE-453, R2-ENGINE-454); Invisibility's P << 4 (R2-ENGINE-022).
 type secondArmRow struct {
 	drawnDuration, blankCurse, keepsLarger, powerDuration bool
+	raise                                                 *corpseRaiseProfile
 }
 
 // armSummon is the second game's Summon arm. The first game has no such
@@ -168,7 +169,7 @@ var spellArms = [...]spellArm{
 		autoCast: autoCastPlace{2, 0, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionBless}},
 	{arm: 24, applies: true, atActor: true, magnitude: hasteMagnitude, formulaMagnitude: true, lastingDuration: true,
 		autoCast: autoCastPlace{2, 1, autoCastNoRole}, creatureAim: creatureAimCaster, caption: captionRow{kind: SpellCaptionSpeed}},
-	{arm: 25, applies: true, atActor: true, controlSpirit: true},
+	{arm: 25, applies: true, atActor: true, controlSpirit: true, second: secondArmRow{raise: &secondCorpseRaise}},
 	{arm: 26, applies: true, atActor: true, teleport: true, pointTarget: true, fastRange: true, manualOnly: true,
 		creatureAim: creatureAimStepCell},
 	{arm: 27, applies: true, atActor: true, own: ownEffect{EffectCurse, true}, opposite: 23, attachAward: true, formulaMagnitude: true,

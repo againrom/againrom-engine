@@ -2,6 +2,73 @@ package sim
 
 const consumedCorpseStage uint8 = 5
 
+type corpseRaiseKind struct {
+	stage      DecayStage
+	name       string
+	body       uint8
+	fullHealth bool
+}
+
+type corpseRaiseProfile struct {
+	kinds                 []corpseRaiseKind
+	prefer, excludeUndead bool
+	healthFloor           int32
+	creation              actorCreationProfile
+	placement             func(int32, int32, int32) actorSearch
+}
+
+var firstCorpseRaise = corpseRaiseProfile{
+	kinds: []corpseRaiseKind{{stage: DecayBones}}, prefer: true, healthFloor: 1,
+	creation: actorCreationProfile{inherited: true, transient: true},
+}
+
+var secondCorpseRaise = corpseRaiseProfile{
+	kinds:         []corpseRaiseKind{{2, "F_Zombie.1", 1, true}, {3, "F_Skeleton.1", 2, false}, {4, "Ghost", 0, false}},
+	excludeUndead: true, placement: secondPlacement,
+	creation: actorCreationProfile{transient: true, suppressRewards: true},
+}
+
+func RaisedCreatureNames() []string {
+	var names []string
+	for _, k := range secondCorpseRaise.kinds {
+		names = append(names, k.name)
+	}
+	return names
+}
+
+func (w *World) corpseRaiseProfile() corpseRaiseProfile {
+	for _, r := range w.spells {
+		if r.runsArm(spiritArm) && r.secondArm().raise != nil {
+			return *r.secondArm().raise
+		}
+	}
+	return firstCorpseRaise
+}
+
+func (p corpseRaiseProfile) kind(e Entity) (corpseRaiseKind, bool) {
+	if e.Alive() || p.excludeUndead && e.TypeID >= 82 && e.TypeID <= 98 {
+		return corpseRaiseKind{}, false
+	}
+	for _, k := range p.kinds {
+		if e.Decay == k.stage {
+			return k, true
+		}
+	}
+	return corpseRaiseKind{}, false
+}
+
+func (w *World) raiseTemplate(e Entity) (SpellCreature, bool) {
+	p := w.corpseRaiseProfile()
+	if p.prefer {
+		return SpellCreature{Actor: NewActor(ActorDefinition(w.ghost), ActorPlacement{})}, w.ghost.Raisable()
+	}
+	k, ok := p.kind(e)
+	if !ok {
+		return SpellCreature{}, false
+	}
+	return w.spellCreature(k.name)
+}
+
 type controlSpiritRaise struct {
 	Caster EntityID
 	X, Y   int32
@@ -9,17 +76,20 @@ type controlSpiritRaise struct {
 
 func bonesCorpse(e Entity) bool { return !e.Alive() && e.Decay == DecayBones }
 
-// controlSpiritCorpseAt is the bones corpse in cell (x, y), prefer first, else
-// the first in entity order; -1 when none (MAGIC-251).
+// controlSpiritCorpseAt applies kind priority, then entity order at the cell
+// (MAGIC-251, R2-ENGINE-780); -1 when none.
 func (w *World) controlSpiritCorpseAt(x, y int32, prefer int) int {
-	if prefer >= 0 && prefer < len(w.entities) {
+	p := w.corpseRaiseProfile()
+	if p.prefer && prefer >= 0 && prefer < len(w.entities) {
 		if e := w.entities[prefer]; bonesCorpse(e) && e.X == x && e.Y == y {
 			return prefer
 		}
 	}
-	for i, e := range w.entities {
-		if bonesCorpse(e) && e.X == x && e.Y == y {
-			return i
+	for _, k := range p.kinds {
+		for i, e := range w.entities {
+			if _, ok := p.kind(e); ok && e.Decay == k.stage && e.X == x && e.Y == y {
+				return i
+			}
 		}
 	}
 	return -1
@@ -29,16 +99,23 @@ func (w *World) controlSpiritCorpseAt(x, y int32, prefer int) int {
 // indices, so drainControlSpirit consumes the corpse later. Only the target's
 // cell is read.
 func (w *World) queueControlSpirit(ai, ti int) bool {
-	if ai < 0 || ai >= len(w.entities) || ti < 0 || ti >= len(w.entities) || !w.ghost.Raisable() {
+	if ai < 0 || ai >= len(w.entities) || ti < 0 || ti >= len(w.entities) {
 		return false
 	}
 	if _, ok := w.NextEntityID(); !ok {
 		return false
 	}
 	x, y := w.entities[ti].X, w.entities[ti].Y
+	corpse := w.controlSpiritCorpseAt(x, y, ti)
+	if corpse < 0 {
+		return false
+	}
+	if _, ok := w.raiseTemplate(w.entities[corpse]); !ok {
+		return false
+	}
 	corpses := 0
 	for _, e := range w.entities {
-		if bonesCorpse(e) && e.X == x && e.Y == y {
+		if _, ok := w.corpseRaiseProfile().kind(e); ok && e.X == x && e.Y == y {
 			corpses++
 		}
 	}
@@ -74,10 +151,14 @@ func (w *World) drainControlSpirit() {
 	}
 }
 
-// raiseControlSpirit consumes the corpse at ti and places the raised actor in
-// the corpse's cell. Placement never fails: the original's blockers are Unknown
-// (MAGIC-251). The caller's indices are stale afterwards.
+// raiseControlSpirit applies the corpse profile and the shared actor builder.
+// The caller's indices are stale afterwards (MAGIC-251, R2-ENGINE-780).
 func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) {
+	p := w.corpseRaiseProfile()
+	ti = w.controlSpiritCorpseAt(w.entities[ti].X, w.entities[ti].Y, ti)
+	if ti < 0 {
+		return false, 0
+	}
 	next, available := w.NextEntityID()
 	if !available {
 		return false, 0
@@ -86,19 +167,24 @@ func (w *World) raiseControlSpirit(ci, ti int) (consumed bool, raised EntityID) 
 	if !ok {
 		return false, 0
 	}
-	corpse := w.entities[ti]
+	corpse, caster := w.entities[ti], w.entities[ci]
 	w.entities[ti].setCurrentHealth(controlSpiritCorpseHP)
 	w.entities[ti].Decay = DecayStage(consumedCorpseStage)
 	if !w.remove([]EntityID{corpse.ID}) {
 		w.entities[ti] = corpse
 		return false, 0
 	}
-	ghost.SourceBinding.RuntimeID = w.allocateRuntimeID()
-	w.entities = append(w.entities, ghost)
-	w.constructMover(ghost)
-	w.appendActorTraversal(ghost.ID)
-	w.routes = append(w.routes, nil)
-	w.carried = append(w.carried, nil)
-	w.equipment = append(w.equipment, [EquipSlots]ItemInstance{})
-	return true, ghost.ID
+	search := actorSearch(func(*World, int) (int32, int32, bool) { return corpse.X, corpse.Y, true })
+	if p.placement != nil {
+		search = p.placement(corpse.X, corpse.Y, 0)
+	}
+	c, _ := w.raiseTemplate(corpse)
+	id, err := w.createActor(ghost, c.Pack, c.Worn, caster.X, caster.Y, search, true, p.creation)
+	if err != nil {
+		return true, 0
+	}
+	if c.Name != "" {
+		w.castObservation.recordCreatedActor(id, c.Name)
+	}
+	return true, id
 }

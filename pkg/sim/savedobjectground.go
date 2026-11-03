@@ -213,7 +213,7 @@ func (w *World) disposeSavedPack(i int) bool {
 
 func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 	e := &w.entities[i]
-	if !validCell && !e.SuppressCorpseLoot {
+	if !validCell && !e.discardsCorpseLoot() {
 		return true
 	}
 	before := w.beginLoadMutation(i)
@@ -234,7 +234,7 @@ func (w *World) terminalSavedNative(i int, x, y int32, validCell bool) bool {
 		}
 	}
 	syncWeaponItem(e, ItemInstance{})
-	if e.SuppressCorpseLoot && !w.disposeSavedPack(i) {
+	if e.discardsCorpseLoot() && !w.disposeSavedPack(i) {
 		return false
 	}
 	if validCell && !w.dropSavedPackAt(i, w.deathGold(i), x, y) {

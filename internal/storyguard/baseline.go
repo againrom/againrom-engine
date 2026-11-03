@@ -3937,5 +3937,6 @@ var Committed = Baseline{
 	// It rose for the WAV decoder's Microsoft ADPCM arm in
 	// pkg/formats/wav/adpcm.go, cmd/wavcheck and the ADPCM tests in
 	// pkg/formats/wav and pkg/audio.
-	CommentBytes: 10477736,
+	// It fell with the separate raise mark and the skipped-check correction.
+	CommentBytes: 10477692,
 }

@@ -119,13 +119,17 @@ func declareSpellCreatures(w *sim.World, t *Table, diff Difficulty) {
 		return
 	}
 	var out []sim.SpellCreature
+	var names []string
 	for k := range sim.SummonCreatureNames {
 		for level := int32(1); level <= 4; level++ {
-			name := sim.SummonCreatureName((level-1)*25, int32(k)+1)
-			e, pack, worn, err := CheatActor(name, false, t, diff)
-			if err == nil {
-				out = append(out, sim.SpellCreature{Name: name, Actor: e, Pack: pack, Worn: worn})
-			}
+			names = append(names, sim.SummonCreatureName((level-1)*25, int32(k)+1))
+		}
+	}
+	names = append(names, sim.RaisedCreatureNames()...)
+	for _, name := range names {
+		e, pack, worn, err := CheatActor(name, false, t, diff)
+		if err == nil {
+			out = append(out, sim.SpellCreature{Name: name, Actor: e, Pack: pack, Worn: worn})
 		}
 	}
 	w.DeclareSpellCreatures(out)

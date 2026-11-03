@@ -510,7 +510,7 @@ func (w *World) sourceTerminalLoot(i int, x, y int32, validCell bool) bool {
 		return false
 	}
 	e := &w.entities[i]
-	if !validCell && !e.SuppressCorpseLoot {
+	if !validCell && !e.discardsCorpseLoot() {
 		return true
 	}
 	for _, slot := range []int{2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12} {
@@ -531,7 +531,7 @@ func (w *World) sourceTerminalLoot(i int, x, y int32, validCell bool) bool {
 			return false
 		}
 	}
-	if e.SuppressCorpseLoot {
+	if e.discardsCorpseLoot() {
 		if w.savedObjects != nil && !w.disposeSavedPack(i) {
 			return false
 		}

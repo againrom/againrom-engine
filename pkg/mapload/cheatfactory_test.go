@@ -96,6 +96,30 @@ func cheatActorTable() *Table {
 	return table
 }
 
+func TestDeclareSpellCreaturesIncludesEveryRaiseTemplate(t *testing.T) {
+	table := cheatActorTable()
+	table.SpellArms = SecondGameSpellArms
+	rows := ghostResistanceCollection{{}}
+	for i, name := range sim.RaisedCreatureNames() {
+		rows = append(rows, ghostResistanceEntry{name: name, params: cheatActorParams(38, map[int]int32{0: int32(23 + i), 4: int32(40 + i), 29: int32(64 + i), 30: 2})})
+	}
+	table.Units = rows
+	w, err := sim.NewWorld(1, sim.Bounds{Width: 40, Height: 40}, sim.ModeCanonical, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	declareSpellCreatures(w, table, DifficultyNormal)
+	got := w.SpellCreatures()
+	if len(got) != 3 {
+		t.Fatalf("raise templates=%d", len(got))
+	}
+	for i, c := range got {
+		if c.Name != sim.RaisedCreatureNames()[i] || c.Actor.ActorLoad.Source.Class != 1 || c.Actor.ActorLoad.Source.Stats[0] != uint16(23+i) || c.Actor.MaxHP != int32(40+i) {
+			t.Fatalf("template %d lost its Units row", i)
+		}
+	}
+}
+
 func TestCheatActorUsesItsExactRowAndCompleteConstructor(t *testing.T) {
 	table := cheatActorTable()
 	for _, tc := range []struct {

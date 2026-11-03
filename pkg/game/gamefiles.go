@@ -146,6 +146,17 @@ type gameFiles struct {
 	generator generatorProfile
 }
 
+func (f *gameFiles) spellTakesBody(id uint32) bool {
+	if id > 0xffff {
+		return false
+	}
+	rows := []sim.SpellRule{{ID: uint16(id)}}
+	if f.spellArms != nil {
+		f.spellArms(rows)
+	}
+	return sim.SpellArmTakesBody(rows[0].ArmID())
+}
+
 // spellcasterValue is the actor value the SPELLCASTER caption tests, from
 // the value the projection gives, the actor's mana maximum and known-spell
 // mask. person is false only for a creature on the map, whose value the

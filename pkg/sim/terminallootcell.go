@@ -69,12 +69,16 @@ func (w *World) terminalLootFree(self int, x, y int32) bool {
 	return true
 }
 
+func (e Entity) discardsCorpseLoot() bool {
+	return e.SuppressCorpseLoot || e.SuppressRewards
+}
+
 func (w *World) hasTerminalLoot(i int) bool {
 	e := w.entities[i]
-	if e.TypeID > 0x40 && e.GoldChance > 0 && (e.TreasureMin != 0 || e.TreasureMax != 0) {
+	if !(w.game.suppressedRewards && e.SuppressRewards) && e.TypeID > 0x40 && e.GoldChance > 0 && (e.TreasureMin != 0 || e.TreasureMax != 0) {
 		return true
 	}
-	if e.SuppressCorpseLoot {
+	if e.discardsCorpseLoot() {
 		return false
 	}
 	if len(w.carried[i]) != 0 {

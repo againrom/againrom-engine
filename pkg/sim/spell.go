@@ -1,6 +1,7 @@
 package sim
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sort"
 )
@@ -354,7 +355,7 @@ func (w *World) ordinaryEffectPayload(ci, ti int, rule SpellRule, power int32) b
 		w.castObservation.recordRelocation(w.entities[ci], fromX, fromY)
 		return true
 	case arm.controlSpirit:
-		if ci < 0 || w.entities[ti].Alive() || w.entities[ti].Decay != DecayBones {
+		if ci < 0 || w.corpseRaiseProfile().prefer && !bonesCorpse(w.entities[ti]) || w.controlSpiritCorpseAt(w.entities[ti].X, w.entities[ti].Y, ti) < 0 {
 			return false
 		}
 		consumed, _ := w.raiseControlSpirit(ci, ti)
@@ -468,13 +469,14 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 		if ci < 0 {
 			return "control spirit has no caster"
 		}
-		if w.entities[vi].Alive() || w.entities[vi].Decay != DecayBones {
+		corpse := w.controlSpiritCorpseAt(w.entities[vi].X, w.entities[vi].Y, vi)
+		if corpse < 0 || w.corpseRaiseProfile().prefer && !bonesCorpse(w.entities[vi]) {
 			return "control spirit target is not a bones corpse"
 		}
 		if _, available := w.NextEntityID(); !available {
 			return "no entity id left to raise into"
 		}
-		if !w.ghost.Raisable() {
+		if _, ok := w.raiseTemplate(w.entities[corpse]); !ok {
 			return "no ghost template loaded"
 		}
 		return ""
@@ -508,37 +510,58 @@ func (w *World) pointEffectRefusal(ci, vi int, rule SpellRule, power int32) stri
 	return ""
 }
 
-// raisedGhost is the actor a Control Spirit cast puts where the corpse stood:
-// the world's own GhostTemplate, with the caster's Owner and Group, the
-// corpse's cell and facing, and the seven stores the arm takes off the corpse:
-// `reaction/2 + 1`, Mind, Spirit, `healthMax/2` with health equal to it, and
-// the first word of the to-hit block and of the defence block (MAGIC-249).
-// A corpse whose health maximum is 1 raises an actor with health 1 (DIV-037).
-//
-// IT GAINS NO EXPERIENCE. GainsXP stays false, on the creature arm's own rule
-// (pkg/mapload blockFor): a units row derives no class that could earn.
+// raisedGhost overlays the profile's corpse stores on its resolved template
+// (MAGIC-249, R2-ENGINE-781). Untouched fields stay the template's.
 func (w *World) raisedGhost(ci, ti int, id EntityID) (Entity, bool) {
-	if !w.ghost.Raisable() {
+	src, caster := w.entities[ti], w.entities[ci]
+	p := w.corpseRaiseProfile()
+	k, _ := p.kind(src)
+	c, ok := w.raiseTemplate(src)
+	if !ok {
 		return Entity{}, false
 	}
-	d, src, caster := ActorDefinition(w.ghost), w.entities[ti], w.entities[ci]
-	maxHP := src.MaxHP / 2
-	if maxHP < 1 {
-		maxHP = 1
+	e := c.Actor
+	e.ID, e.X, e.Y, e.Owner = id, src.X, src.Y, caster.Owner
+	if p.creation.inherited {
+		e.Group, e.Facing, e.DesiredFacing = caster.Group, src.Facing, src.Facing
 	}
-	if d.Reach == 0 {
-		d.Reach = 1
+	e.HP, e.MaxHP = max(src.MaxHP/2, p.healthFloor), max(src.MaxHP/2, p.healthFloor)
+	if k.fullHealth {
+		e.HP, e.MaxHP = src.MaxHP, src.MaxHP
 	}
-	if d.TokenSize == 0 {
-		d.TokenSize = 1
+	e.ToHit, e.Defence = src.ToHit, src.Defence
+	e.Reaction, e.Mind, e.Spirit = src.Reaction/2+1, src.Mind, src.Spirit
+	if k.body != 0 {
+		body := int32(int16(src.NativeBasis.Body))
+		if src.ActorLoad.Source.Class != 0 {
+			body = int32(int16(src.ActorLoad.Source.Stats[0]))
+		}
+		if k.body == 2 {
+			body = body/2 + 1
+		}
+		if e.ActorLoad.Source.Class != 0 {
+			e.ActorLoad.Source.Stats[0] = uint16(body)
+		} else {
+			e.NativeBasis = e.NativeBasis.WithBody(uint16(body))
+		}
 	}
-	d.HP, d.MaxHP = maxHP, maxHP
-	d.ToHit, d.Defence = src.ToHit, src.Defence
-	d.Reaction, d.Mind, d.Spirit = src.Reaction/2+1, src.Mind, src.Spirit
-	d.GainsXP = false
-	e := NewActor(d, ActorPlacement{ID: id, X: src.X, Y: src.Y, Facing: src.Facing,
-		Owner: caster.Owner, Group: caster.Group})
-	w.constructFacing(&e)
+	e.GainsXP, e.summonKey = false, 0
+	if e.ActorLoad.Source.Class != 0 {
+		s := &e.ActorLoad.Source
+		s.Stats[1], s.Stats[2], s.Stats[3] = uint16(e.Reaction), uint16(e.Mind), uint16(e.Spirit)
+		s.Stats[8], s.Stats[9] = uint16(e.HP), uint16(e.MaxHP)
+		binary.LittleEndian.PutUint16(s.Attack[:], uint16(e.ToHit))
+		binary.LittleEndian.PutUint16(s.Defence[:], uint16(e.Defence))
+	}
+	if e.Reach == 0 {
+		e.Reach = 1
+	}
+	if e.TokenSize == 0 {
+		e.TokenSize = 1
+	}
+	if p.creation.inherited {
+		w.constructFacing(&e)
+	}
 	e.standAtPost()
 	return e, true
 }

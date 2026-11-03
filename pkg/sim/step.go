@@ -1618,7 +1618,7 @@ func (w *World) dropTerminalLoot(i int) bool {
 		return true
 	}
 	before := w.beginLoadMutation(i)
-	if w.entities[i].SuppressCorpseLoot {
+	if w.entities[i].discardsCorpseLoot() {
 		w.carried[i] = nil
 		w.equipment[i] = [EquipSlots]ItemInstance{}
 		syncWeaponItem(&w.entities[i], ItemInstance{})
@@ -1706,6 +1706,9 @@ func (w *World) restoreAfterHealthGain(i int, before int32) {
 // uint32 preserves the purse and sack arithmetic's wrapping width.
 func (w *World) deathGold(i int) uint32 {
 	e := w.entities[i]
+	if w.game.suppressedRewards && e.SuppressRewards {
+		return 0
+	}
 	if e.TypeID <= 0x40 {
 		return 0
 	}

@@ -357,6 +357,7 @@ var allow = map[string][]string{
 	// type.
 	"cmd/plaquescreens": {"pkg/game", "pkg/ui"},
 	"cmd/wearcheck":     {"pkg/data", "pkg/game", "pkg/mapload"},
+	"cmd/animatecheck":  {"pkg/game", "pkg/mapload", "pkg/sim"},
 	// spellcheck is 0161's own instrument: it opens an install through
 	// game.OpenArchives and builds the projectile art bundle through
 	// game.LoadProjectiles — both pkg/game — then reads a cast's two

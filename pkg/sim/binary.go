@@ -923,6 +923,10 @@ import (
 // payment across native saves.
 const formatVersion = 95
 
+// Form132 wraps only Worlds with reward marks. Older forms default to false;
+// an unmarked World keeps its existing bytes and hash.
+const rewardMarkFormVersion byte = 132
+
 // originalRandomBit in the routing-mode byte marks a stream on the original's
 // generator; a seeded stream leaves it clear, so its bytes are unchanged.
 const originalRandomBit = 0x40
@@ -1644,7 +1648,52 @@ func (w *World) tailCapacity(body int) int {
 // terminal contents, the runtime ids, the script slots and the wide token
 // rows as the outer sections. Hash digests these bytes.
 func (w *World) encodeInto(b []byte) []byte {
-	return w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b))))))
+	return w.appendRewardMarks(w.appendSummonKeys(w.appendTokenRows(w.appendScriptSlots(w.appendRuntimeIDs(w.appendPassiveBodies(w.encodePlayInto(b)))))))
+}
+
+func (w *World) appendRewardMarks(b []byte) []byte {
+	ws := beginWrapper(b)
+	for i, e := range w.entities {
+		if e.SuppressRewards {
+			b = binary.LittleEndian.AppendUint32(b, uint32(i))
+		}
+	}
+	if len(b) == ws.at {
+		return b
+	}
+	return endWrapper(b, ws, rewardMarkFormVersion)
+}
+
+func (w *World) unmarshalRewardMarks(data []byte, proof formProof) error {
+	fail := func() error { return fmt.Errorf("malformed reward mark section") }
+	env, ok := readWrapper(data, rewardMarkFormVersion)
+	if !ok {
+		return fail()
+	}
+	s := env.section()
+	if len(s) == 0 || len(s)%4 != 0 {
+		return fail()
+	}
+	next := *w
+	if err := next.unmarshalForm(env.base(), proof); err != nil {
+		return err
+	}
+	entities := append([]Entity(nil), next.entities...)
+	prior := int64(-1)
+	for at := 0; at < len(s); at += 4 {
+		index := binary.LittleEndian.Uint32(s[at:])
+		if int64(index) <= prior || uint64(index) >= uint64(len(entities)) {
+			return fail()
+		}
+		prior = int64(index)
+		entities[index].SuppressRewards = true
+	}
+	next.entities = entities
+	if !next.marshalsTo(data, proof) {
+		return fail()
+	}
+	*w = next
+	return nil
 }
 
 // encodePlayInto writes every section except the passive terminal contents.

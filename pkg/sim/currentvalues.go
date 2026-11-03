@@ -74,6 +74,7 @@ type ActorValues struct {
 	PotionStats, PotionHeadroom                              [4]int32
 	NativeGroup                                              *uint32 `json:",omitempty"`
 	SuppressCorpseLoot                                       bool
+	SuppressRewards                                          bool `json:",omitempty"`
 	SeeInvisible                                             uint8
 	AlwaysHits                                               bool
 	Undying                                                  bool `json:",omitempty"`
@@ -116,7 +117,7 @@ func (e Entity) Values() ActorValues {
 	v := ActorValues{SourceBound: e.SourceBinding.Class != 0, LoadPresent: e.ActorLoad.Present, SourceClass: e.ActorLoad.Source.Class,
 		NativeClassPresent:      e.NativeClass.Present,
 		EquipmentRuntimePresent: e.ActorLoad.Source.EquipmentRuntimePresent, MovementPresent: e.HumanMovement.Present,
-		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SeeInvisible: e.SeeInvisible,
+		PotionStats: e.PotionStats, PotionHeadroom: e.PotionHeadroom, SuppressCorpseLoot: e.SuppressCorpseLoot, SuppressRewards: e.SuppressRewards, SeeInvisible: e.SeeInvisible,
 		AlwaysHits: e.AlwaysHits, Undying: e.Undying, DyingTime: e.DyingTime, XPValue: e.XPValue, GoldChance: e.GoldChance, TreasureMin: e.TreasureMin, TreasureMax: e.TreasureMax,
 		GainsXP: e.GainsXP, LegacyBook: e.Book.State == BookLegacy, ExtraSpells: e.KnownSpells & ^uint32(0x1ffffffe),
 		AttackNoticeCell: e.attackNotice.Cell, AttackNoticeScans: e.attackNotice.Scans, Decay: e.Decay, Dwell: e.Dwell}
@@ -300,6 +301,7 @@ func (e *Entity) restoreValues(v ActorValues) error {
 	}
 	e.PotionStats, e.PotionHeadroom = v.PotionStats, v.PotionHeadroom
 	e.SuppressCorpseLoot, e.SeeInvisible, e.AlwaysHits, e.DyingTime = v.SuppressCorpseLoot, v.SeeInvisible, v.AlwaysHits, v.DyingTime
+	e.SuppressRewards = v.SuppressRewards
 	e.Undying = v.Undying
 	e.XPValue, e.GoldChance, e.TreasureMin, e.TreasureMax, e.GainsXP = v.XPValue, v.GoldChance, v.TreasureMin, v.TreasureMax, v.GainsXP
 	mode := BookPresent
