@@ -1706,7 +1706,7 @@ func (w *World) restoreAfterHealthGain(i int, before int32) {
 // uint32 preserves the purse and sack arithmetic's wrapping width.
 func (w *World) deathGold(i int) uint32 {
 	e := w.entities[i]
-	if w.game.suppressedRewards && e.SuppressRewards {
+	if w.paysNoReward(e) {
 		return 0
 	}
 	if e.TypeID <= 0x40 {

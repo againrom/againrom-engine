@@ -3940,5 +3940,7 @@ var Committed = Baseline{
 	// It fell with the separate raise mark and the skipped-check correction.
 	// It rose by the doc comments of the summoned mark, the placed reward mark
 	// and the unit-caster cast life, with cmd/rewardmarkwitness and its tests.
-	CommentBytes: 10479929,
+	// It rose for the reward predicate in pkg/sim/gameprofile.go and its source
+	// guard in internal/archtest/rewardpolicy.go.
+	CommentBytes: 10480191,
 }

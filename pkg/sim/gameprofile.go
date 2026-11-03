@@ -165,6 +165,11 @@ func newGameProfile(d ScriptDialect) gameProfile {
 	}
 }
 
+// paysNoReward applies the profile-gated reward mark (R2-ENGINE-535).
+func (w *World) paysNoReward(e Entity) bool {
+	return w.game.suppressedRewards && e.SuppressRewards
+}
+
 // SpellGame is the game whose spell effect rules this World's driver takes.
 func (w *World) SpellGame() rules.SpellGame { return w.game.spellGame }
 

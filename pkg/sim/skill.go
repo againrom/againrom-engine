@@ -95,7 +95,7 @@ func (w *World) awardSkill(ai int, named int32, amount int64, srcIdx int) bool {
 	}
 	if srcIdx >= 0 {
 		s := &w.entities[srcIdx]
-		if w.game.suppressedRewards && s.SuppressRewards && a.Humanoid {
+		if w.paysNoReward(*s) && a.Humanoid {
 			return false
 		}
 		// The shared sink bypasses ownership and protected-relation checks only
