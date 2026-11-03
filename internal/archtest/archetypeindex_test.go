@@ -20,6 +20,8 @@ func TestCheckArchetypeIndexNamesEachCopy(t *testing.T) {
 			"package sim\nfunc f(d D) int { i := 0\n if d.Female() { i |= 1 }\n return i }\n", "herokind.Of"},
 		{"a token read", "pkg/mapload/a.go",
 			"package mapload\nfunc f(t T) int { i := 0\n if t.Has(NPCTokenMage) { i += 2 }\n return i }\n", "herokind.Of"},
+		{"a hero field read", "pkg/game/a.go",
+			"package game\nfunc f(a A) int { by := 0\n if a.HeroMage { by += 2 }\n return by }\n", "herokind.Of"},
 		{"a loop counter under the condition", "pkg/game/a.go",
 			"package game\nfunc f(mage bool) { if mage { for id := 1; id < 3; id++ { g(id) } }\n}\n", ""},
 		{"herokind itself", "pkg/herokind/a.go",

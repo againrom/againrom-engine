@@ -3972,5 +3972,5 @@ var Committed = Baseline{
 	// pkg/ui/mapeditorwindow.go, the tests chargen_test.go,
 	// savloadedlinks_test.go, secondtownsave_release_test.go,
 	// secondtownspeech_release_test.go and mapeditorruined_test.go, and this note.
-	CommentBytes: 10486999,
+	CommentBytes: 10486966,
 }

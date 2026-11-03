@@ -9,6 +9,7 @@ import (
 
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
+	"againrom/pkg/herokind"
 	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
@@ -80,8 +81,8 @@ type townSpeechNames struct {
 	// families are the section-key words in the order they are tried; sound=
 	// names the recording under speech/.
 	families []townSpeechFamily
-	// heroNPC's pages and a header with an iam* token take heroLetters by
-	// female + 2 × mage of the hero; other pages take plainLetter.
+	// heroNPC's pages and a header with an iam* token take heroLetters at
+	// the hero's herokind index; other pages take plainLetter.
 	heroNPC     int
 	heroLetters string
 	plainLetter byte
@@ -131,14 +132,7 @@ func (names townSpeechNames) sectionName(key, tag string, part int, audience Eve
 	if middle == "" {
 		letter := names.plainLetter
 		if npc == names.heroNPC || slices.ContainsFunc(eventArms[:4], func(a eventArm) bool { return containsFold(tag, a.lit) }) {
-			by := 0
-			if audience.HeroFemale {
-				by++
-			}
-			if audience.HeroMage {
-				by += 2
-			}
-			letter = names.heroLetters[by]
+			letter = names.heroLetters[herokind.Of(audience.HeroMage, audience.HeroFemale).Index()]
 		}
 		digits := key[len(strings.TrimRight(key, "0123456789")):]
 		middle = string(letter) + strings.Repeat("0", max(0, 3-len(digits))) + digits

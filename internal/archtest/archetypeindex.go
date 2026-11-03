@@ -13,13 +13,13 @@ import (
 // The archetype-index scan: a hero's class and sex turn into a place 0..3 in
 // one function, herokind.Of, and a table in another order reads it through
 // herokind.Kind.In. In pkg/data, pkg/game, pkg/sim and pkg/mapload it refuses
-// an if whose condition reads the class or the sex (mage, female, .Mage,
-// .Female(), NPCTokenMage, NPCTokenFemale) when its body adds 1 or 2 to a
-// number or ORs 1 or 2 into one: a second index function.
+// an if whose condition reads the class or the sex (a name archetypeAxisName
+// matches) when its body adds 1 or 2 to a number or ORs 1 or 2 into one: a
+// second index function.
 
 var archetypeRoots = []string{"pkg/data/", "pkg/game/", "pkg/sim/", "pkg/mapload/"}
 
-var archetypeAxisName = regexp.MustCompile(`^(?i:is)?(?i:mage|female)$|^NPCToken(Mage|Female)$`)
+var archetypeAxisName = regexp.MustCompile(`^(?i:is|hero)?(?i:mage|female)$|^NPCToken(Mage|Female)$`)
 
 // CheckArchetypeIndex reports every if that builds a hero archetype index
 // outside pkg/herokind. files is keyed by module-relative slash path.
