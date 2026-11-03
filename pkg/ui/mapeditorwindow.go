@@ -950,10 +950,12 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 				s.Notes = append(s.Notes, e.doc.ScriptNotice)
 			}
 		}
+		s.ButtonFit = e.filter == editorScriptsFilter
 		for _, b := range e.listButtons() {
 			s.Buttons = append(s.Buttons, b.label)
+			// A switch's caption carries its mark beside its word.
+			s.ButtonFit = s.ButtonFit || b.key != "add"
 		}
-		s.ButtonFit = e.filter == editorScriptsFilter
 		if g, note, ok := e.placeGridSpec(); ok {
 			s.Grid = g
 			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: editorClip(e.bodyFont(), note, s.Width-2*popupPad-8)})

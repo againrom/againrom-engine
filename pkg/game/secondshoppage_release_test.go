@@ -243,19 +243,22 @@ func TestReleaseSecondTownShopBookPartialBuy(t *testing.T) {
 	secondShopEnter(t, f, app, s)
 	c := f.Town.second
 	*c.heroBag() = nil
-	category, entry := -1, -1
+	entry := -1
 	var book secondshop.Item
-	for k, list := range c.shop.stock() {
-		for i, it := range list {
+	for k := 0; k < 4 && entry < 0; k++ {
+		if !s.shelfOpen(k) {
+			continue
+		}
+		secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[k])
+		for i, it := range c.shop.shelf() {
 			if it.Table == secondshop.Book && it.Count >= 2 && it.Price > 0 && entry < 0 {
-				category, entry, book = k, i, it
+				entry, book = i, it
 			}
 		}
 	}
 	if entry < 0 {
 		t.Fatal("town 1's shelves hold no book of two units")
 	}
-	secondShopActivate(t, f, app, []string{"SHELF 1", "SHELF 2", "SHELF 3", "SHELF 4"}[category])
 	s.ShopScroll(ui.ShopWheelShelf, entry/2)
 	at := secondShopPagePoint(t, app, "shelf", entry-s.shelfBase)
 	f.Town.gold = int(book.Price)

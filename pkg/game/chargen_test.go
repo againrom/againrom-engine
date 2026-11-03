@@ -1036,6 +1036,40 @@ func TestAC4AMageHoldsTheMagesWeaponForEverySkillChoice(t *testing.T) {
 	}
 }
 
+// The first game's generated mage holds his staff by name: the member keeps
+// the code-only worn set, and the spawn's item constructor adds the staff's
+// spell from the weapon. Only a weapon cell the caller hands (the second
+// game's generator staff) puts item instances on the member.
+func TestFirstGameGeneratedMageStaffStaysCodeOnly(t *testing.T) {
+	weapons := dbCollection{
+		{},
+		{name: "Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
+		{name: "Uncommon Wood Staff", params: chargenWeaponParams(data.SkillBlade)},
+	}
+	spell := make([]int32, 19)
+	spell[1], spell[2], spell[4], spell[6] = 3, 1, 1, 7
+	spells := dbCollection{{}, {name: "Fire Arrow", params: spell}}
+	humans := fourBaseHumans()
+	table := &mapload.Table{Humans: humans, Weapons: weapons, Spells: spells,
+		Shapes: emptyScale{}, Materials: emptyScale{}}
+	f := &FrontEnd{InstallResources: InstallResources{Table: table, Humans: humans, Bodies: data.NewBodyList("unarmed", "mage")}}
+	m := f.ChargenParty(ui.ChargenResult{Choices: []int{0, 1, 0}, Stats: []int{25, 25, 25, 25}})[0]
+	if m.Weapon == nil || m.Weapon.SpellName != "Fire_Arrow" || m.Worn[0] != uint16(m.Weapon.Code) {
+		t.Fatalf("fixture mage weapon %+v worn %04x", m.Weapon, m.Worn[0])
+	}
+	if !reflect.DeepEqual(m.WornItems, [sim.EquipSlots]sim.ItemInstance{}) {
+		t.Fatalf("first-game chargen wrote worn item instances %+v; want the code-only worn set", m.WornItems)
+	}
+	if staff := mapload.MemberItemEquipment(m, table)[0]; staff.Code != m.Worn[0] || len(staff.Effects) != 1 || staff.Effects[0].Kind != 41 {
+		t.Fatalf("spawned staff %+v, want the weapon's cast effect", staff)
+	}
+	bare := m
+	bare.Weapon, bare.Worn[0] = nil, 0
+	if staff := mapload.MemberItemEquipment(bare, table)[0]; staff.Code != 0 {
+		t.Fatalf("a member stripped of his weapon still holds %+v", staff)
+	}
+}
+
 func TestAC14NoEquipIsRefusedForAClass(t *testing.T) {
 	armors := dbCollection{
 		{},

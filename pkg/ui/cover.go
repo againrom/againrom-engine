@@ -22,7 +22,7 @@ const (
 // is held under it (stepped at the held cadence) or stands, how it is built and
 // how it is released, and whether the seam, not the player, ends it.
 type coverRow struct {
-	screen Screen
+	shows Screen
 	// holdsMap says the map is held under the screen like the in-game menu
 	// holds it. A screen that does not stand the map: it takes no tick.
 	holdsMap bool
@@ -40,7 +40,7 @@ type coverRow struct {
 
 var coverRows = [coverKinds]coverRow{
 	CoverDocuments: {
-		screen:   ScreenDocuments,
+		shows:    ScreenDocuments,
 		holdsMap: true,
 		build: func(f *flow) bool {
 			if f.docSrc == nil {
@@ -61,7 +61,7 @@ var coverRows = [coverKinds]coverRow{
 		clearsMsgOnClose: true,
 	},
 	CoverShop: {
-		screen: ScreenTown,
+		shows: ScreenTown,
 		build: func(f *flow) bool {
 			s, ok := f.town.(MissionShopScreen)
 			if f.screen != ScreenMap || !ok || !s.OpenMissionShop() {
@@ -91,7 +91,7 @@ func (f *flow) openCover(kind CoverKind, back Screen) bool {
 		return false
 	}
 	f.cover = coverShown{kind: kind, back: back, up: true}
-	f.setScreen(row.screen)
+	f.setScreen(row.shows)
 	f.msg = ""
 	return true
 }
@@ -101,7 +101,7 @@ func (f *flow) closeCover() {
 	row := &coverRows[f.cover.kind]
 	row.release(f)
 	f.cover.up = false
-	if f.screen == row.screen {
+	if f.screen == row.shows {
 		f.setScreen(f.cover.back)
 	}
 	if row.clearsMsgOnClose {
@@ -122,7 +122,7 @@ func (f *flow) settleCover() {
 // it, over back.
 func (f *flow) coverHoldsMap(back Screen) bool {
 	row := &coverRows[f.cover.kind]
-	return f.screen == row.screen && row.holdsMap && f.cover.back == back
+	return f.screen == row.shows && row.holdsMap && f.cover.back == back
 }
 
 // holdMapUnderCover holds the map under the showing screen when its row says so.

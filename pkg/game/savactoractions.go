@@ -486,6 +486,13 @@ func importSavedActorActions(ms *Mission, state *SnapshotSAVDocument) error {
 	if err := ms.World.ImportOriginalActorActions(batch); err != nil {
 		return err
 	}
+	took := map[sim.EntityID]bool{}
+	for _, a := range batch {
+		took[a.Entity] = a.HasTarget
+	}
+	for i := range state.Actors {
+		state.Actors[i].tookTarget = took[state.Actors[i].EntityID]
+	}
 	ms.World.ImportOriginalPointCasts(pointCasts)
 	if err := holdOrderResidues(state, ms.World, held); err != nil {
 		return err

@@ -25,7 +25,7 @@ var (
 // actor's book by the Spell in the same book slot, and 0 for a target the
 // document does not hold.
 func keepLoadedActionLinks(state, loaded *SnapshotSAVDocument, world *sim.World, entities []sim.Entity, e sim.Entity, r *sav.DocumentRecordData, targetHeld bool) {
-	source := loadedActorRecord(loaded, e.ID, r.Class)
+	source, tookTarget := loadedActorRecord(loaded, e.ID, r.Class)
 	if source == nil || !sameLoadedOrderWords(r, source) {
 		return
 	}
@@ -33,7 +33,7 @@ func keepLoadedActionLinks(state, loaded *SnapshotSAVDocument, world *sim.World,
 		v, _ := savedStructureValue(source, name)
 		return v
 	}
-	if key, _ := savedStructureValue(r, "U5C"); key == 0 && !targetHeld {
+	if key, _ := savedStructureValue(r, "U5C"); key == 0 && !targetHeld && !tookTarget {
 		key = loadedActorLinkKey(state, loaded, world, entities, value("U5C"))
 		if key == 0 {
 			key = loadedBodyReference(state, loaded, r, "U5C")
@@ -52,20 +52,21 @@ func keepLoadedActionLinks(state, loaded *SnapshotSAVDocument, world *sim.World,
 	savedObjectSetValue(r, "U64", loadedBookSpellKey(state, loaded, source, r, value("U64")))
 }
 
-// loadedActorRecord is the loaded record the entity was restored from.
-func loadedActorRecord(loaded *SnapshotSAVDocument, id sim.EntityID, class string) *sav.DocumentRecordData {
+// loadedActorRecord is the loaded record the entity was restored from, and
+// whether LOAD gave the entity that record's U5C as its target.
+func loadedActorRecord(loaded *SnapshotSAVDocument, id sim.EntityID, class string) (*sav.DocumentRecordData, bool) {
 	if loaded == nil || loaded.Document == nil {
-		return nil
+		return nil, false
 	}
 	for _, a := range loaded.Actors {
 		if a.EntityID == id && a.ObjectIndex != 0 && int(a.ObjectIndex) <= len(loaded.Document.Objects) {
 			if source := &loaded.Document.Objects[a.ObjectIndex-1]; source.Class == class {
-				return source
+				return source, a.tookTarget
 			}
-			return nil
+			return nil, false
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func sameLoadedOrderWords(r, source *sav.DocumentRecordData) bool {

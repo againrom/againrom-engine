@@ -3965,5 +3965,12 @@ var Committed = Baseline{
 	// secondtownspeech_release_test.go, and this note.
 
 	// It rose for the grid-only frame of a structure whose variable map layout is unknown.
-	CommentBytes: 10488054,
+
+	// It rose for the release 0.146.0 test fixes: tookTarget in
+	// pkg/game/savdocument.go, loadedActorRecord in savloadedlinks.go, the
+	// code-only weapon note in hero.go, the switch caption note in
+	// pkg/ui/mapeditorwindow.go, the tests chargen_test.go,
+	// savloadedlinks_test.go, secondtownsave_release_test.go,
+	// secondtownspeech_release_test.go and mapeditorruined_test.go, and this note.
+	CommentBytes: 10489807,
 }

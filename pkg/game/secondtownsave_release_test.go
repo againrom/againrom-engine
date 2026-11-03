@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -39,7 +41,12 @@ func secondTownSampleNow(t *testing.T, f *FrontEnd, app *ui.App) secondTownSampl
 		t.Fatal("composed first-town frame", err, note)
 	}
 	sample := secondTownSample{Campaign: captureSecondCampaign(f.Town.second), Gold: f.Town.gold, Offered: f.Offered,
-		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: screen.Rows(), Frame: sha256.Sum256(picture.Pix)}
+		Difficulty: f.Difficulty, Quick: f.quickSpells, Fame: cloneFame(f.fame), Header: screen.Header(), Rows: slices.Clone(screen.Rows()), Frame: sha256.Sum256(picture.Pix)}
+	// A row's text is in the install's code page; its quoted form survives the
+	// proof's JSON, which replaces every byte that is not UTF-8.
+	for i := range sample.Rows {
+		sample.Rows[i].Text = strconv.QuoteToASCII(sample.Rows[i].Text)
+	}
 	if s, ok := screen.(*townScreen); ok {
 		if _, composed := s.composedTown(); composed {
 			// A composed town's picture carries its animation phase and

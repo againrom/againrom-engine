@@ -14,8 +14,9 @@ import (
 // of the reply stops the last line.
 func TestReleaseSecondTownAcceptSpeaksTheClaimedRecordings(t *testing.T) {
 	f, _, s, _ := secondTownTwo(t)
+	// The town's room audio plays only when the front has a sound device.
 	speech := &tavernInteriorRecorder{}
-	f.speech.player = speech
+	f.SoundPlayer, f.speech.player = &tavernInteriorRecorder{}, speech
 	second := "speech/accept/0022t100p02.wav"
 	if f.Archives.Base.Profile.Language == "russian" {
 		second = "speech/accept/0022t100p99.wav"

@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"testing"
 
 	"againrom/pkg/data"
@@ -112,8 +111,9 @@ func TestReleaseSecondShopBookIcons(t *testing.T) {
 		}
 		entry := slices.IndexFunc(c.shop.shelf(), func(x secondshop.Item) bool { return x.Table == secondshop.Book && x.Spell == it.Spell })
 		var cell *ui.ShopCell
+		s.ShopScroll(ui.ShopWheelShelf, -len(c.shop.shelf()))
 		for top := 0; top <= entry && cell == nil; top++ {
-			s.ShopScroll(ui.ShopWheelShelf, top)
+			s.ShopScroll(ui.ShopWheelShelf, min(top, 1))
 			v := s.ShopScreen()
 			cell = bookCell(v.Shelf[:], s, book)
 		}
@@ -149,8 +149,19 @@ func TestReleaseSecondShopBookIcons(t *testing.T) {
 		t.Fatal("the first book is not on the shown shelf")
 	}
 	*c.heroBag() = nil
-	s.ShopScroll(ui.ShopWheelShelf, visible[at]/2)
-	secondShopActivate(t, f, app, "ITEM "+strconv.Itoa(at+1))
+	// The app's own shop page turns by the wheel over the shelf, one row a
+	// notch, from its top row.
+	pick, top := visible[at], secondShopPagePoint(t, app, "shelf", 0)
+	for n := range len(c.shop.shelf()) + pick/2 {
+		action := "wheel-up"
+		if n >= len(c.shop.shelf()) {
+			action = "wheel-down"
+		}
+		if err := app.HeadlessPointer(action, top.X, top.Y); err != nil {
+			t.Fatal(err)
+		}
+	}
+	shopTap(t, app, secondShopPagePoint(t, app, "shelf", pick%2), "press", "release")
 	v := s.ShopScreen()
 	want := schoolBookIcon(t, f, first.Spell)
 	if cell := bookCell(v.Table[:], s, a); cell == nil || !sameIcon(cell.Icon, want) {

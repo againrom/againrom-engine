@@ -91,6 +91,10 @@ type SnapshotSAVActor struct {
 	EntityID    sim.EntityID
 	ObjectIndex uint16
 	Retired     bool
+	// tookTarget is that LOAD gave the actor its record's U5C as the attack
+	// target: the link is then the World's to write (keepLoadedActionLinks).
+	// It is not part of any encoded form.
+	tookTarget bool
 }
 
 func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool) (*SnapshotSAVDocument, error) {

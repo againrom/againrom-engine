@@ -8,6 +8,30 @@ import (
 	"againrom/pkg/words"
 )
 
+// Each button of the Structures list holds its caption, the ruined switch's
+// mark and word included, in both languages.
+func TestMapEditorStructureListButtonsHoldTheirCaptions(t *testing.T) {
+	for _, lang := range []string{"en", "ru"} {
+		e, _ := newModesEditor(t, "full")
+		e.SetWords(words.For(lang))
+		e.Layout(640, 480)
+		chromeClick(e, barPoint(t, e, "structures"))
+		font := e.bodyFont()
+		if font == nil {
+			t.Fatal("the editor has no body font to measure captions with")
+		}
+		for _, b := range e.listButtons() {
+			r, ok := e.ListButtonKeyRect(b.key)
+			if !ok {
+				t.Fatalf("%s: no %s button", lang, b.key)
+			}
+			if need := font.Advance(b.label) + 16; r.Dx() < need {
+				t.Errorf("%s: %s button %v is narrower than its caption %q needs (%d)", lang, b.key, r, b.label, need)
+			}
+		}
+	}
+}
+
 func TestMapEditorStructureGridRuinedSwitchOnlyChangesCopies(t *testing.T) {
 	for _, lang := range []string{"en", "ru"} {
 		e, _ := newModesEditor(t, "full")

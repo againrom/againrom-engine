@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"slices"
 	"testing"
 
 	"againrom/pkg/formats/sav"
@@ -106,6 +107,49 @@ func TestSaveAfterLoadWritesLoadedActionLinksUnderNewKeys(t *testing.T) {
 	}
 	if got := loadedLinksOf(t, state, 2); got != [4]uint32{0x5300, 0, 0, 0x6101} {
 		t.Errorf("Unit naming itself and its book's Spell wrote %#x, want its own new key and the new Spell key", got)
+	}
+}
+
+// A target LOAD gave an actor is the World's link: once the World holds no
+// target, the SAVE writes none, though the order words are still the loaded
+// ones. Human 1 attacks Human 2 in the loaded record; the World it is saved
+// from has dropped that target.
+func TestSaveAfterADroppedLoadedTargetWritesNoLink(t *testing.T) {
+	entities := []sim.Entity{{ID: 1, X: 4, Y: 4, HP: 40, MaxHP: 40}, {ID: 2, X: 6, Y: 4, HP: 40, MaxHP: 40}}
+	world := func() *sim.World {
+		w, err := sim.NewWorld(1, sim.Bounds{Width: 16, Height: 16}, sim.ModeCanonical, nil, entities)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return w
+	}
+	actors := []SnapshotSAVActor{{EntityID: 1, ObjectIndex: 1}, {EntityID: 2, ObjectIndex: 2}}
+	loaded := &SnapshotSAVDocument{
+		Document: &sav.DocumentData{Objects: []sav.DocumentRecordData{
+			loadedLinksActor("Human", 0x100, 0x200, 0, 0, 0, 1, 0xb, 0),
+			loadedLinksActor("Human", 0x200, 0, 0, 0, 0, 4, 0xc, 0),
+		}},
+		Actors: slices.Clone(actors),
+	}
+	w := world()
+	if err := importSavedActorActions(&Mission{World: w}, loaded); err != nil {
+		t.Fatal(err)
+	}
+	if e := w.Entities()[0]; !e.HasAttackTarget || e.AttackTarget != 2 {
+		t.Fatalf("LOAD did not give Human 1 its loaded target: %+v", e)
+	}
+	state := &SnapshotSAVDocument{
+		Document: &sav.DocumentData{Objects: []sav.DocumentRecordData{
+			loadedLinksActor("Human", 0x5100, 0, 0, 0, 0, 1, 0xb, 0),
+			loadedLinksActor("Human", 0x5200, 0, 0, 0, 0, 4, 0xc, 0),
+		}},
+		Actors: slices.Clone(actors),
+	}
+	if err := projectSavedActorActions(state, world(), loaded); err != nil {
+		t.Fatal(err)
+	}
+	if got := loadedLinksOf(t, state, 0); got[0] != 0 {
+		t.Errorf("Human whose loaded target the World dropped wrote U5C %#x, want 0", got[0])
 	}
 }
 

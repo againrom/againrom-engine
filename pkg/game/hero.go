@@ -402,9 +402,10 @@ func assembleParty(in partyInputs) []mapload.PartyMember {
 		Carried:      carried,
 		CarriedItems: carriedItems,
 	}}
-	if len(wornItems[0].Effects) > 0 {
-		// A weapon with effects keeps them on the worn item; the other slots
-		// are the plain items their codes name.
+	if in.WeaponCell != "" && len(wornItems[0].Effects) > 0 {
+		// A weapon cell with effects keeps them on the worn item; the other
+		// slots are the plain items their codes name. A weapon handed by name
+		// stays code-only: the spawn adds its spell from the weapon.
 		for i := range wornItems {
 			if wornItems[i].Code != 0 && i != 0 {
 				wornItems[i] = mapload.ItemInstanceFromCode(wornItems[i].Code, in.Table)
