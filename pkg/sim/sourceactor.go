@@ -346,7 +346,7 @@ func (w *World) publishSource(i int, s SourceActor) {
 	e.RotationSpeed = int32(s.MoverSpeed)
 	// Keep the turn rate current in a frozen imported mover.
 	if m := w.motionFor(e.ID); m != nil {
-		m.Mover[10] = s.MoverSpeed
+		EditMoverHead(m.Mover[:], func(h *MoverHead) { h.Rate = s.MoverSpeed })
 	}
 	// Settle an active turn when a derive removes its rate (MOVE-TURN-044).
 	// ROM1's zero-rate lifecycle remains Unknown.

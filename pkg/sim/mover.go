@@ -126,45 +126,10 @@ func (w *World) stepCostWord(e Entity, c cell) uint16 {
 	return uint16(speed * 8 / cost)
 }
 
-// constructedMover is the one Mover builder. It returns the Mover an actor
-// holds once the original has built it: the constructor's bytes (MOVE-119),
-// then for a placed actor its facing, the stat default and the derived rate,
-// the mask of its domain and the occupy's stores (MOVE-120, MOVE-121). A
-// carried member placed by the join walk holds the constructor's bytes alone
-// (MOVE-122).
-func (w *World) constructedMover(e Entity, joined bool) [180]byte {
-	m := placedMover(e, joined)
-	if !joined {
-		binary.LittleEndian.PutUint16(m[0x72:], w.stepCostWord(e, cell{e.X, e.Y}))
-		m[0x82], m[0x83], m[0x84], m[0x85] = byte(e.X), byte(e.Y), 0x80, 0x80
-	}
-	return m
-}
-
-// placedMover is constructedMover before the occupy's stores.
-func placedMover(e Entity, joined bool) [180]byte {
-	var m [180]byte
-	m[5], m[8], m[9], m[10] = 0x41, ConstructorSearchRadius, 0xff, 0x10
-	if joined {
-		return m
-	}
-	m[0], m[1], m[10] = e.Facing, e.Facing, moverRate(e)
-	m[5] = MoverPassabilityMask(uint32(e.Domain) + 1)
-	return m
-}
-
-// moverRate is the rate byte +0x0a an actor holds now: its source's rate,
-// else its own turn rate.
-func moverRate(e Entity) uint8 {
-	if e.ActorLoad.Source.Class != 0 {
-		return e.SourceNow().MoverSpeed
-	}
-	return uint8(e.RotationSpeed)
-}
-
 // heldMover is the record a World keeps of an actor's Mover bytes m.
 func heldMover(e Entity, m *[180]byte, joined bool) moverRecord {
-	return moverRecord{Entity: e.ID, Mask: m[5], Joined: joined, Radius: m[8], Claim: readWalkClaim(m)}
+	h := MoverHeadOf(m[:])
+	return moverRecord{Entity: e.ID, Mask: h.Mask, Joined: joined, Radius: h.Radius, Claim: readWalkClaim(m)}
 }
 
 // builtMover is the record the builder gives e.
@@ -289,15 +254,17 @@ func (w *World) ApplyMover(id EntityID, m *[180]byte) bool {
 		return false
 	}
 	e := w.entities[i]
-	m[5], m[8], m[9] = r.Mask, r.Radius, 0xff
-	if e.Owner == SelfSlot {
-		m[9] = 0
-	}
+	EditMoverHead(m[:], func(h *MoverHead) {
+		h.Mask, h.Radius, h.SiegeRoute = r.Mask, r.Radius, constructorHead.SiegeRoute
+		if e.Owner == SelfSlot {
+			h.SiegeRoute = 0
+		}
+	})
 	cost := uint16(0)
 	if !r.Joined {
 		cost = w.stepCostWord(e, moverCell(e))
 	}
-	binary.LittleEndian.PutUint16(m[0x72:], cost)
+	putStepCost(m, cost)
 	putWalkClaim(m, r.Claim)
 	return true
 }

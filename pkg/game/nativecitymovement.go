@@ -4,6 +4,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 )
 
 // Missing Human movement starts from Unit defaults. Retained movement fields
@@ -33,6 +34,6 @@ func nativeCityInitializeHumanMovement(unit *sav.CityUnitData, table *mapload.Ta
 		return originalCityUnsupportedf("native city Human movement cannot represent size %d domain %d", size, domain)
 	}
 	unit.Scalar1[0], unit.Scalar1[1] = byte(size), byte(domain)
-	unit.Raw154[5] = [...]byte{0, 0x41, 0x44, 0x82}[domain]
+	sim.EditMoverHead(unit.Raw154, func(h *sim.MoverHead) { h.Mask = sim.MoverPassabilityMask(uint32(domain)) })
 	return nil
 }

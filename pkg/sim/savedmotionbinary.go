@@ -111,7 +111,7 @@ func splitSavedMotions(data []byte) ([]byte, *savedActorMotionState, []SavedActo
 		m := &s.Motions[i]
 		m.Entity = EntityID(binary.LittleEndian.Uint32(p))
 		m.Position = SavedActorPosition{Cell: binary.LittleEndian.Uint16(p[4:]), PackedCell: binary.LittleEndian.Uint16(p[6:]), FineX: p[8], FineY: p[9], Residue: binary.LittleEndian.Uint16(p[10:]), TerrainKey: binary.LittleEndian.Uint32(p[12:])}
-		copy(m.Mover[:], p[16:196])
+		m.Mover = MoverFrom(p[16:196])
 		if p[196] > 3 {
 			return nil, nil, nil, fmt.Errorf("invalid saved motion flags")
 		}

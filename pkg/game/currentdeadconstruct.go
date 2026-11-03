@@ -334,7 +334,7 @@ func (b *generatedDocumentBuilder) constructedSearchRadius(r *sav.DocumentRecord
 	if err != nil {
 		return err
 	}
-	mover[8] = sim.ConstructorSearchRadius
+	sim.EditMoverHead(mover, func(h *sim.MoverHead) { h.Radius = sim.ConstructorSearchRadius })
 	return nil
 }
 

@@ -28,7 +28,7 @@ func TestConstructedMoverHoldsTheConstructorAndTheOccupy(t *testing.T) {
 		t.Fatal("fixture cell has no cost byte")
 	}
 	want := uint16(int32(int16(ground.SpeedWord())) * 8 / cost)
-	if m[0] != 0x77 || m[1] != 0x77 || m[5] != 0x41 || m[8] != 5 || m[9] != 0xff || m[10] != moverRate(ground) {
+	if m[0] != 0x77 || m[1] != 0x77 || m[5] != 0x41 || m[8] != 5 || m[9] != 0xff || m[10] != MoverRate(ground) {
 		t.Fatalf("placed constructor bytes % x", m[:11])
 	}
 	if got := binary.LittleEndian.Uint16(m[0x72:]); got != want || m[0x82] != 3 || m[0x83] != 4 || m[0x84] != 0x80 || m[0x85] != 0x80 {

@@ -121,7 +121,7 @@ func readSavedActorMotion(record *sav.DocumentRecordData, entity sim.EntityID) (
 	}
 	motion.Position = sim.SavedActorPosition{Cell: binary.LittleEndian.Uint16(position), PackedCell: binary.LittleEndian.Uint16(position[2:]),
 		FineX: position[4], FineY: position[5], Residue: binary.LittleEndian.Uint16(position[6:]), TerrainKey: binary.LittleEndian.Uint32(position[8:])}
-	copy(motion.Mover[:], mover)
+	motion.Mover = sim.MoverFrom(mover)
 	action, err := savedMotionRaw(record, "U54", 4)
 	if err != nil {
 		return motion, err
@@ -232,10 +232,7 @@ func projectSavedActorMotions(state *SnapshotSAVDocument, world *sim.World) erro
 		}
 		// These two independently current fields were projected by the actor
 		// value owner. Retaining the original crossing must not undo them.
-		facing, rotationSpeed := mover[0], mover[10]
-		saved := motion.SavedMover()
-		copy(mover, saved[:])
-		mover[0], mover[10] = facing, rotationSpeed
+		sim.CopyMover(mover, motion.SavedMover(), sim.KeepFacing|sim.KeepRate)
 		action, err := sites.fixedRaw(&record, "U54", 4)
 		if err != nil {
 			return err
@@ -424,8 +421,7 @@ func documentCellKeys(cells []sim.SavedActorCell, bindings map[sim.EntityID]Snap
 // facing and rotation speed. Both sides name their claim at +06 first, so a
 // document written before that rule still matches.
 func savedMoverMatches(mover []byte, motion sim.SavedActorMotion) bool {
-	doc := sim.SavedActorMotion{}
-	copy(doc.Mover[:], mover)
+	doc := sim.SavedActorMotion{Mover: sim.MoverFrom(mover)}
 	got, want := doc.SavedMover(), motion.SavedMover()
 	return bytes.Equal(got[1:10], want[1:10]) && bytes.Equal(got[11:], want[11:])
 }

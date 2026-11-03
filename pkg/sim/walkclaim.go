@@ -40,24 +40,6 @@ func (w *World) setWalkClaim(id EntityID, c walkClaim) {
 	}
 }
 
-func putWalkClaim(m *[180]byte, c walkClaim) {
-	binary.LittleEndian.PutUint16(m[0x74:], c.Target)
-	binary.LittleEndian.PutUint16(m[0x76:], c.Claim)
-	arrived := uint32(0)
-	if c.Arrived {
-		arrived = 1
-	}
-	binary.LittleEndian.PutUint32(m[0x90:], arrived)
-}
-
-func readWalkClaim(m *[180]byte) walkClaim {
-	return walkClaim{
-		Target:  binary.LittleEndian.Uint16(m[0x74:]),
-		Claim:   binary.LittleEndian.Uint16(m[0x76:]),
-		Arrived: binary.LittleEndian.Uint32(m[0x90:]) != 0,
-	}
-}
-
 func packedCell(x, y int32) uint16 { return uint16(x) | uint16(y)<<8 }
 
 // claimsWalk reports whether actor i's walk keeps a claim: a first-game

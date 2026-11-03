@@ -31,7 +31,7 @@ func (w *World) cmdGroupRoam(group uint32) {
 					clear(o.Raw[at : at+4])
 				}
 				if m := w.motionFor(w.entities[i].ID); m != nil {
-					clear(m.Mover[0x7c:0x80])
+					clearPursuitVictim(&m.Mover)
 					m.ActorAction = 0
 				}
 			}

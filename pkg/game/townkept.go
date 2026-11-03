@@ -77,7 +77,7 @@ func keptFromMission(world *sim.World, e sim.Entity, motions map[sim.EntityID]si
 	old, imported := motions[e.ID]
 	if imported && old.Current {
 		mover := old.SavedMover()
-		mover[0] = e.Facing
+		sim.EditMoverHead(mover[:], func(h *sim.MoverHead) { h.Facing = e.Facing })
 		keepMover(k, mover)
 		k.StaticRoute, k.DynamicRoute = cloneWords(old.StaticRoute), cloneWords(old.DynamicRoute)
 		return k, nil
@@ -122,30 +122,16 @@ func keptFromCharacter(c sav.Character) *mapload.KeptActor {
 	return k
 }
 
-// keepMover puts m in the carrier without its turn-rate byte 10, which the
-// Human's current basis supplies. A Mover the constructor writes anyway stays
+// keepMover puts m in the carrier without its turn rate, which the Human's
+// current basis supplies. A Mover one of the town writer's constructors
+// writes anyway for an actor of m's mask (sim.TownConstructorMovers) stays
 // absent, so the carrier has one shape whether a mission or a LOAD filled it.
 func keepMover(k *mapload.KeptActor, m [180]byte) {
-	m[10] = 0
-	k.Mover, k.MoverPresent = m, !constructorMover(m)
+	sim.EditMoverHead(m[:], func(h *sim.MoverHead) { h.Rate = 0 })
+	k.Mover, k.MoverPresent = m, !slices.Contains(sim.TownConstructorMovers(sim.MoverHeadOf(m[:]).Mask, 0), m)
 	if !k.MoverPresent {
 		k.Mover = [180]byte{}
 	}
-}
-
-// constructorMover reports a Mover one of the town writer's constructors
-// writes: zero apart from the domain mask (byte 5) and the turn rate (byte
-// 10), and for a siege hire bytes 8 and 9 holding 5 and 255.
-func constructorMover(m [180]byte) bool {
-	if [2]byte{m[8], m[9]} != [2]byte{} && [2]byte{m[8], m[9]} != [2]byte{5, 255} {
-		return false
-	}
-	for i, b := range m {
-		if b != 0 && i != 5 && i != 8 && i != 9 && i != 10 {
-			return false
-		}
-	}
-	return true
 }
 
 // cloneWords copies a word list; an empty list is nil, as the carrier holds it.
@@ -205,10 +191,8 @@ func writeTownActor(u *sav.CityUnitData, k *mapload.KeptActor) error {
 	u.Scalar2[41] = k.Done
 	binary.LittleEndian.PutUint32(u.Scalar2[42:46], k.Deadline)
 	if k.MoverPresent {
-		// Byte 10 is the turn rate the Human's current basis supplies.
-		rate := u.Raw154[10]
-		copy(u.Raw154, k.Mover[:])
-		u.Raw154[10] = rate
+		// The turn rate is the one the Human's current basis supplies.
+		sim.CopyMover(u.Raw154, k.Mover, sim.KeepRate)
 		u.Words15c, u.Words178 = slices.Clone(k.StaticRoute), slices.Clone(k.DynamicRoute)
 	}
 	if k.OrderPresent {

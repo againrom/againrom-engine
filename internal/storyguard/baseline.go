@@ -3920,5 +3920,9 @@ var Committed = Baseline{
 	// It rose a further 963 bytes for the host-file correction: the comments
 	// of recoveryError and File.Stale in pkg/hostfile, the notes in
 	// installMissionPackage and the record tests, and this note.
-	CommentBytes: 10462579,
+	// It rose for the Mover byte record tests in pkg/sim and pkg/game.
+	// It rose for the one Mover byte producer pkg/sim/moverbytes.go and the
+	// scan internal/archtest/moverbytes.go, less the writers' moved comments.
+	// It rose for clearPursuitVictim in the producer and the clear shape.
+	CommentBytes: 10469178,
 }

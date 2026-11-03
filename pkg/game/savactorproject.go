@@ -417,7 +417,7 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	}
 	// MOVE-TURN-031 names these two bytes. Neither desired facing, turn
 	// progress, position, transit nor route storage is authored by this pass.
-	mover[0], mover[10] = e.Facing, s.MoverSpeed
+	sim.EditMoverHead(mover, func(h *sim.MoverHead) { h.Facing, h.Rate = e.Facing, s.MoverSpeed })
 	domain, err := savedStructureValue(&next, "U4A")
 	if err != nil {
 		return sav.DocumentRecordData{}, err
@@ -426,8 +426,12 @@ func savedActorValueRecord(record sav.DocumentRecordData, e sim.Entity, fresh bo
 	// reaches this pass with a zero passability mask that blocks nothing,
 	// not even the border. Every actor needs a real mask to move at all, so
 	// this one repair applies regardless of owner.
-	if fresh && mover[5] == 0 {
-		mover[5] = sim.MoverPassabilityMask(domain)
+	if fresh {
+		sim.EditMoverHead(mover, func(h *sim.MoverHead) {
+			if h.Mask == 0 {
+				h.Mask = sim.MoverPassabilityMask(domain)
+			}
+		})
 	}
 	// SAV-1096/AI-POST-042/AI-GRPGUARD-074: every AI-owned mission-start
 	// original carries the idle-turn/guard state 0x0b and its own post

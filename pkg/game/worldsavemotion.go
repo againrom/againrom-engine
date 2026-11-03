@@ -95,15 +95,10 @@ func projectMotion(state *SnapshotSAVDocument, world *sim.World) error {
 		if err != nil {
 			return err
 		}
-		saved := m.SavedMover()
-		copy(mover, saved[:])
+		sim.CopyMover(mover, m.SavedMover(), 0)
 		// Frozen crossing bytes must not override the current turn rate.
 		if live {
-			if e.ActorLoad.Source.Class != 0 {
-				mover[10] = e.SourceNow().MoverSpeed
-			} else {
-				mover[10] = uint8(e.RotationSpeed)
-			}
+			sim.EditMoverHead(mover, func(h *sim.MoverHead) { h.Rate = sim.MoverRate(e) })
 		}
 		action, err := savedMotionRaw(r, "U54", 4)
 		if err != nil {

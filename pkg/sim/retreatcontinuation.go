@@ -99,7 +99,7 @@ func (w *World) stepRetreatExecutor(i int) bool {
 	}
 	if m := w.motionFor(e.ID); m != nil && m.Current && m.Mover[0x98] != 0 {
 		e.Retreat.Failure = true
-		m.Mover[0x98] = 0
+		clearRetreatFailure(&m.Mover)
 	}
 	cleared := false
 	if entered != 0 {

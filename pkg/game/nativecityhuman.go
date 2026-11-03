@@ -6,6 +6,7 @@ import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/sav"
 	"againrom/pkg/mapload"
+	"againrom/pkg/sim"
 )
 
 const nativeCityManaReserve = 95
@@ -228,7 +229,7 @@ func nativeCityApplyHumanState(unit *sav.CityUnitData, member mapload.PartyMembe
 	copy(unit.RawD4, u.Human.Modifier[:])
 	binary.LittleEndian.PutUint16(unit.Scalar2[30:], h.ManaFloor)
 	binary.LittleEndian.PutUint16(unit.Scalar2[32:], h.Sight)
-	unit.Raw154[10] = h.MoverSpeed
+	sim.EditMoverHead(unit.Raw154, func(m *sim.MoverHead) { m.Rate = h.MoverSpeed })
 	return nil
 }
 

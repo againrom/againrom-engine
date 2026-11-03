@@ -288,7 +288,7 @@ func (w *World) motionAdmissionIssue(m SavedActorMotion, e Entity) string {
 		if binary.LittleEndian.Uint16(m.Mover[0xaa:]) != 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) != 0 {
 			return "centered mover has unsupported pending operands"
 		}
-		if pendingSavedMotionTurn(m) && m.Mover[10] == 0 {
+		if pendingSavedMotionTurn(m) && MoverHeadOf(m.Mover[:]).Rate == 0 {
 			return "centered original turn has zero RotationSpeed"
 		}
 		return ""
@@ -339,7 +339,7 @@ func (w *World) savedMotionFault() error {
 		if _, inside := w.cellIndex(w.entities[at].X, w.entities[at].Y); !inside && (m.Active || m.Issue == "") {
 			return fmt.Errorf("out-of-map saved motion lacks its inactive issue")
 		}
-		if m.Issue == "" && (!w.entities[at].Alive() || w.entities[at].OffMap || m.Position.Cell != m.Position.PackedCell || !m.Active && (m.Position.FineX != 128 || m.Position.FineY != 128 || binary.LittleEndian.Uint16(m.Mover[0xaa:]) != 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) != 0 || pendingSavedMotionTurn(m) && m.Mover[10] == 0)) {
+		if m.Issue == "" && (!w.entities[at].Alive() || w.entities[at].OffMap || m.Position.Cell != m.Position.PackedCell || !m.Active && (m.Position.FineX != 128 || m.Position.FineY != 128 || binary.LittleEndian.Uint16(m.Mover[0xaa:]) != 0 || binary.LittleEndian.Uint16(m.Mover[0xac:]) != 0 || pendingSavedMotionTurn(m) && MoverHeadOf(m.Mover[:]).Rate == 0)) {
 			return fmt.Errorf("unsupported saved motion lacks its explicit issue")
 		}
 		if m.Active && w.entities[at].OffMap {
@@ -585,16 +585,16 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 		// a negative diagonal can cross its two near-cell boundaries on
 		// adjacent ticks, without starting a second stride (DIV-1189).
 		if !nativeStride {
-			binary.LittleEndian.PutUint16(m.Mover[0xa6:], p.PackedCell)
+			putStrideOrigin(&m.Mover, p.PackedCell)
 		}
 		if w.moveMotionSlots(i, next.Cell) {
 			// SAV-CELLLEAVE-584: successful detach stores the actor's old
 			// Position bytes0/1/4/5, not the queried footprint cell.
-			copy(m.Mover[0x86:0x8a], []byte{byte(p.Cell), byte(p.Cell >> 8), p.FineX, p.FineY})
+			putLeaveCache(&m.Mover, p)
 		}
 		// SAV-CELLFAIL-583: the entry's cell and fraction cache writes
 		// occur before its per-cell loop and before the caller's snap.
-		copy(m.Mover[0x82:0x86], []byte{byte(entered.Cell), byte(entered.Cell >> 8), entered.FineX, entered.FineY})
+		putEntryCache(&m.Mover, entered.Cell, entered.FineX, entered.FineY)
 		if m.Issue == "" && !nativeStride {
 			m.Issue = "original boundary speed callback is not executed"
 		}
@@ -604,17 +604,15 @@ func (w *World) advanceSavedMotion(i int, scratch *routeScratch) bool {
 	}
 	m.Position = next
 	e.X, e.Y = int32(next.Cell&255), int32(next.Cell>>8)
-	binary.LittleEndian.PutUint16(m.Mover[0xac:], elapsed)
+	putStrideElapsed(&m.Mover, elapsed)
 	if arrives {
 		m.Active = false
 		m.ActorAction = 0 // SAV-CROSSNEXT-585: progress3 center completion
-		for _, at := range []int{0xa8, 0xaa, 0xac, 0x80, 0xa6} {
-			binary.LittleEndian.PutUint16(m.Mover[at:], 0)
-		}
+		endStride(&m.Mover)
 		if o := w.savedOrder(e.ID); o != nil {
 			o.Raw[9] = 0
 		}
-		if pendingSavedMotionTurn(*m) && m.Mover[10] == 0 && m.Issue == "" {
+		if pendingSavedMotionTurn(*m) && MoverHeadOf(m.Mover[:]).Rate == 0 && m.Issue == "" {
 			m.Issue = "centered original turn has zero RotationSpeed"
 		}
 		// A pending turn owns the following body updates before route

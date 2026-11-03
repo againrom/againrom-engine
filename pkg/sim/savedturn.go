@@ -10,7 +10,7 @@ func pendingSavedMotionTurn(m SavedActorMotion) bool {
 // only those two turn-specific refusals, on an executed body update; LOAD
 // itself does not rewrite their saved state or hash. Other issues stay deferred.
 func savedTurnQueued(m *SavedActorMotion) bool {
-	if m == nil || !m.Current || m.Active || m.Position.FineX != 128 || m.Position.FineY != 128 || !pendingSavedMotionTurn(*m) || m.Mover[10] == 0 {
+	if m == nil || !m.Current || m.Active || m.Position.FineX != 128 || m.Position.FineY != 128 || !pendingSavedMotionTurn(*m) || MoverHeadOf(m.Mover[:]).Rate == 0 {
 		return false
 	}
 	switch m.Issue {
@@ -36,22 +36,26 @@ func (w *World) advanceSavedTurn(i int, m *SavedActorMotion) bool {
 			return true
 		}
 	}
-	active := binary.LittleEndian.Uint32(m.Mover[0xa0:]) != 0
+	turn := moverTurnOf(&m.Mover)
+	active := turn.Active != 0
 	if !active {
-		m.Mover[0x9d] = 0
+		turn.Counter = 0
 	}
 	drawn := e.DrawnFacing() & 0xf0
-	desired := m.Mover[1]
+	head := MoverHeadOf(m.Mover[:])
+	desired := head.Desired
 	newDesired := e.DesiredFacing != desired
 	freshMessage := !e.TurnState.Present || newDesired
-	m.Mover[0], m.Mover[0xa4] = turnStep(m.Mover[0], desired, m.Mover[10], active)
-	w.markTurnStepped(e.ID)
-	m.Mover[0x9d]++
+	head.Facing, turn.Estimate = turnStep(head.Facing, desired, head.Rate, active)
+	turn.Counter++
 	flag := uint32(0)
-	if m.Mover[0] != m.Mover[1] {
+	if head.Facing != head.Desired {
 		flag = 1
 	}
-	binary.LittleEndian.PutUint32(m.Mover[0xa0:], flag)
+	turn.Active = flag
+	EditMoverHead(m.Mover[:], func(h *MoverHead) { h.Facing = head.Facing })
+	putMoverTurn(&m.Mover, turn)
+	w.markTurnStepped(e.ID)
 	e.Facing = m.Mover[0]
 	e.RotationSpeed = int32(m.Mover[10])
 	e.DesiredFacing, e.TurnRemaining = desired, m.Mover[0xa4]

@@ -1,9 +1,6 @@
 package sim
 
-import (
-	"encoding/binary"
-	"fmt"
-)
+import "fmt"
 
 // Native X/Y names the accepted destination. SAV Position names the current
 // near cell and fractional displacement (SAV-TOKENPOS-074). NativeStride is
@@ -29,43 +26,32 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 	// first turn. An actor with no bound source basis (a generated mission's
 	// NPCs never populate ActorLoad.Source on the live World) has nothing for
 	// SourceNow to overlay, so its own live turn rate is the value of record.
-	moverSpeed := e.SourceNow().MoverSpeed
-	if e.ActorLoad.Source.Class == 0 {
-		moverSpeed = uint8(e.RotationSpeed)
-	}
-	m.Mover[0], m.Mover[1], m.Mover[10] = e.Facing, e.DesiredFacing, moverSpeed
 	// TERR-PASS-051: the original writer sets the mover's block-test mask
 	// from the same domain U4A already carries (Domain+1); a zero mask (this
 	// array's own zero value) blocks nothing, not even the border. Every
 	// actor needs a real mask to move at all, so this one repair applies
 	// regardless of owner.
-	if fresh && m.Mover[5] == 0 {
-		m.Mover[5] = MoverPassabilityMask(uint32(e.Domain) + 1)
-	}
 	// SAV-1096 and DIV-1388 keep AI defaults separate from player bytes.
+	EditMoverHead(m.Mover[:], func(h *MoverHead) {
+		h.Facing, h.Desired, h.Rate = e.Facing, e.DesiredFacing, MoverRate(e)
+		if fresh && h.Mask == 0 {
+			h.Mask = MoverPassabilityMask(uint32(e.Domain) + 1)
+		}
+		if fresh && e.Owner != SelfSlot && h.Radius == 0 && h.SiegeRoute == 0 {
+			h.Radius, h.SiegeRoute = constructorHead.Radius, constructorHead.SiegeRoute
+		}
+	})
 	// SAV-CELLFAIL-583 names the entry-position cache. An idle native AI's
 	// occupied cell owns it; the guard post remains an independent order field.
 	// Keep the existing constructor for moving, turning or terminal actors.
 	if fresh && e.Owner != SelfSlot {
-		if m.Mover[8] == 0 && m.Mover[9] == 0 {
-			m.Mover[8], m.Mover[9] = 5, 255
+		entry := uint16(e.PostX) | uint16(e.PostY)<<8
+		if e.Alive() && !e.OffMap && e.Transit == 0 && !e.HasTarget && !e.HasAttackTarget && !e.Turning() {
+			entry = here
 		}
-		if m.Mover[0x84] == 0 && m.Mover[0x85] == 0 {
-			m.Mover[0x84], m.Mover[0x85] = 0x80, 0x80
-		}
-		if m.Mover[0x82] == 0 && m.Mover[0x83] == 0 {
-			entry := uint16(e.PostX) | uint16(e.PostY)<<8
-			if e.Alive() && !e.OffMap && e.Transit == 0 && !e.HasTarget && !e.HasAttackTarget && !e.Turning() {
-				entry = here
-			}
-			binary.LittleEndian.PutUint16(m.Mover[0x82:], entry)
-		}
+		defaultEntryCache(&m.Mover, entry)
 	}
-	for _, at := range []int{0x70, 0x80, 0xa6, 0xa8, 0xaa, 0xac, 0xae} {
-		binary.LittleEndian.PutUint16(m.Mover[at:], 0)
-	}
-	m.Mover[0xb0], m.Mover[0xb1], m.Mover[0x9d], m.Mover[0xa4] = 0, 0, 0, 0
-	binary.LittleEndian.PutUint32(m.Mover[0xa0:], 0)
+	clearMoverMotion(&m.Mover)
 	m.ActorAction = 0
 	if terminalRegistryActor(&e) {
 		m.ActorAction = 16
@@ -76,7 +62,7 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 		if err != nil {
 			return m, err
 		}
-		binary.LittleEndian.PutUint16(m.Mover[0x70:], target)
+		putMoverTarget(&m.Mover, target)
 	}
 	if e.Transit > 0 {
 		stride := e.Stride
@@ -92,37 +78,29 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 				return m, err
 			}
 			m.Position.Cell, m.Position.PackedCell, m.Position.FineX, m.Position.FineY = near, near, byte(x), byte(y)
-			binary.LittleEndian.PutUint16(m.Mover[0x80:], here)
-			binary.LittleEndian.PutUint16(m.Mover[0xa6:], uint16(stride.FromX)|uint16(stride.FromY)<<8)
-			binary.LittleEndian.PutUint16(m.Mover[0xa8:], uint16(stride.Rate))
-			binary.LittleEndian.PutUint16(m.Mover[0xaa:], e.TransitTotal)
-			binary.LittleEndian.PutUint16(m.Mover[0xac:], elapsed)
-			binary.LittleEndian.PutUint16(m.Mover[0xae:], uint16(stride.Direction))
-			m.Mover[0xb0], m.Mover[0xb1] = byte(stride.StepX), byte(stride.StepY)
+			putMoverStride(&m.Mover, moverStride{Claim: here, From: uint16(stride.FromX) | uint16(stride.FromY)<<8, Rate: uint16(stride.Rate),
+				Total: e.TransitTotal, Elapsed: elapsed, Direction: uint16(stride.Direction), StepX: byte(stride.StepX), StepY: byte(stride.StepY)})
 		} else {
 			// Historical unrated transit has no accepted fractional stride.
 			// Preserve its current destination and interval, with zero unknown
 			// direction/rate operands. The supplement retains that distinction.
-			binary.LittleEndian.PutUint16(m.Mover[0x80:], here)
-			binary.LittleEndian.PutUint16(m.Mover[0xaa:], e.TransitTotal)
-			binary.LittleEndian.PutUint16(m.Mover[0xac:], elapsed)
+			putMoverStride(&m.Mover, moverStride{Claim: here, Total: e.TransitTotal, Elapsed: elapsed})
 		}
 		m.ActorAction = 1
 		// Dynamic list includes the center still owed by this crossing.
 		m.DynamicRoute = append(m.DynamicRoute, here)
 	}
 	if e.Turning() {
-		binary.LittleEndian.PutUint32(m.Mover[0xa0:], 1)
-		m.Mover[0x9d], m.Mover[0xa4] = e.TurnTotal-e.TurnRemaining, e.TurnRemaining
+		putMoverTurn(&m.Mover, moverTurn{Active: 1, Counter: e.TurnTotal - e.TurnRemaining, Estimate: e.TurnRemaining})
 		m.ActorAction = 1
 	}
 	if e.TurnState.Present {
-		flag := uint32(0)
+		t := moverTurnOf(&m.Mover)
+		t.Active, t.Counter = 0, e.TurnState.Counter
 		if e.TurnState.Active {
-			flag = 1
+			t.Active = 1
 		}
-		binary.LittleEndian.PutUint32(m.Mover[0xa0:], flag)
-		m.Mover[0x9d] = e.TurnState.Counter
+		putMoverTurn(&m.Mover, t)
 	}
 	for _, cell := range route {
 		key, err := pack(cell[0], cell[1])
@@ -146,12 +124,6 @@ func ProjectActorMotion(e Entity, old SavedActorMotion, route [][2]int32, fresh 
 func (m SavedActorMotion) SavedMover() [180]byte {
 	nameClaimedRouteCell(&m.Mover)
 	return m.Mover
-}
-
-func nameClaimedRouteCell(mover *[180]byte) {
-	if claim := binary.LittleEndian.Uint16(mover[0x80:]); claim != 0 {
-		binary.LittleEndian.PutUint16(mover[0x06:], claim)
-	}
 }
 
 // MoverPassabilityMask is the original writer's own map from the domain byte
