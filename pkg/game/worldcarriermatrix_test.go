@@ -110,8 +110,8 @@ var carrierMatrix = map[string][]string{
 	"first loaded order words": {
 		"planted 099fbf0dfb811e14",
 		"world eac5f67528b547b2 terminal 74234e98afe7498f dead 8f9b00fc133c53f3 diaries 123a99ed4b7c36fa application c033e1dd42529178",
-		`records Player "P" 66687aadf862bd77; Unit 3ec U40 3ee U5C 0 T0E 0; Human 51000050 U40 3ee U5C 0 T0E 21; Player "P" 66687aadf862bd77; Player "" 9267d3dbed802941; Unit 3ee U40 0 U5C 0 T0E 0; Unit 3ef U40 0 U5C 0 T0E 0`,
-		"resave e6e17aca439af860",
+		`records Player "P" 66687aadf862bd77; Unit 3ec U40 3ee U5C 3ee T0E 0; Human 51000050 U40 3ee U5C 3ee T0E 21; Player "P" 66687aadf862bd77; Player "" 9267d3dbed802941; Unit 3ee U40 0 U5C 0 T0E 0; Unit 3ef U40 0 U5C 0 T0E 0`,
+		"resave 099fbf0dfb811e14",
 	},
 	"first loaded world effects": {
 		"world 03436ff699555a94 terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 123a99ed4b7c36fa application c033e1dd42529178",
