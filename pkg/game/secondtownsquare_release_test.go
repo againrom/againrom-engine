@@ -320,12 +320,12 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	for _, r := range s.Rows() {
 		rows = append(rows, r.Text)
 	}
-	if len(speakers) != 3 || strings.Join(rows, ",") != "TALK 207,TALK 2108,TALK 517,"+f.Words.TavernSleep+",EXIT" {
+	if len(speakers) != 3 || strings.Join(rows, ",") != f.Words.TavernSleep+",TALK 207,TALK 2108,TALK 517,EXIT" {
 		t.Fatalf("inn rows %v", rows)
 	}
 	view := s.TownSquareView().Scene
 	for i, at := range []image.Point{{200, 448}, {248, 448}, {296, 448}} {
-		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != i {
+		if ctl, ok := view.ControlAt(at); !ok || ctl.Kind != ui.TownSquareControlSelect || ctl.Door != i+1 {
 			t.Errorf("seat %d at %v: %+v %v", i, at, ctl, ok)
 		}
 	}
@@ -338,21 +338,21 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	if _, ok := view.ControlAt(image.Pt(554, 67)); ok {
 		t.Error("the hire button acts on a talk roster")
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 0 {
+	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 1 {
 		t.Errorf("talk button with seat 0 selected: %+v %v", ctl, ok)
 	}
 	if ctl, ok := view.ControlAt(image.Pt(554, 161)); !ok || ctl.Door != 4 {
 		t.Errorf("exit button: %+v %v", ctl, ok)
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 205)); !ok || ctl.Door != 3 {
+	if ctl, ok := view.ControlAt(image.Pt(554, 40)); !ok || ctl.Door != 0 {
 		t.Errorf("Sleep button: %+v %v", ctl, ok)
 	}
-	for _, p := range []image.Point{{483, 67}, {624, 67}, {554, 43}, {554, 231}} {
+	for _, p := range []image.Point{{482, 100}, {624, 100}, {554, 14}, {554, 230}} {
 		if _, ok := view.ControlAt(p); ok {
 			t.Errorf("%v outside every button answers", p)
 		}
 	}
-	s.SelectTownSquare(2)
+	s.SelectTownSquare(3)
 	s.TownSquareActive(true)
 	for i := 0; i < 3; i++ {
 		*now = now.Add(126 * time.Millisecond)
@@ -361,7 +361,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	if s.composed.seat != 2 || s.seatFrame(2) != 3 || s.seatFrame(0) != 0 {
 		t.Errorf("seat 2 selected: seat %d frames %d/%d", s.composed.seat, s.seatFrame(2), s.seatFrame(0))
 	}
-	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 2 {
+	if ctl, ok := view.ControlAt(image.Pt(554, 114)); !ok || ctl.Door != 3 {
 		t.Errorf("talk button with seat 2 selected: %+v %v", ctl, ok)
 	}
 
@@ -382,8 +382,7 @@ func TestReleaseSecondTownOneInnPage(t *testing.T) {
 	}{
 		{"left stats", art.scene.Pictures("left-stats")[0], image.Pt(0, 0), image.Pt(80, 100)},
 		{"left picture", art.scene.Pictures("left-picture")[0], image.Pt(0, 238), image.Pt(80, 300)},
-		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(630, 220)},
-		{"hire button", art.page.Picture("button/0/0"), image.Pt(484, 44), image.Pt(490, 50)},
+		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(464, 0), image.Pt(630, 220)},
 	} {
 		if probe.pic == nil {
 			t.Errorf("%s did not load", probe.name)

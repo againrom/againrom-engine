@@ -57,7 +57,7 @@ func TestSecondInnSleepButtonAndCardProfiles(t *testing.T) {
 		f, s := sleepTown(id)
 		d := s.townDescription()
 		r := d.Room("inn")
-		if len(r.Buttons) != 4 || r.Buttons[3].Name != "sleep" || r.Buttons[3].Word != "tavern.sleep" || r.Buttons[3].Rect.Rectangle() != image.Rect(484, 185, 624, 231) {
+		if len(r.Buttons) != 4 || r.Buttons[0].Name != "sleep" || r.Buttons[0].Word != "tavern.sleep" || r.Buttons[0].Rect.Rectangle() != ui.ShopButtonRect(0) {
 			t.Fatal("inn has no data-driven Sleep plaque", id, r.Buttons)
 		}
 		for _, lang := range []string{"english", "russian"} {

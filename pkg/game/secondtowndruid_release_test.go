@@ -545,7 +545,7 @@ func TestReleaseSecondTownDruidInnPage(t *testing.T) {
 		{"centre", art.scene.Pictures("center")[0], image.Pt(160, 0), image.Pt(300, 20)},
 		{"water", art.scene.Pictures("water")[0], image.Pt(328, 144), image.Pt(380, 190)},
 		{"left stats", art.scene.Pictures("left-stats")[0], image.Pt(0, 0), image.Pt(80, 100)},
-		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(560, 220)},
+		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(464, 0), image.Pt(560, 220)},
 	} {
 		if !druidProbe(dst, probe.pic, probe.at, probe.p) {
 			t.Errorf("%s not drawn at %v", probe.name, probe.at)

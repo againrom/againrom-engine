@@ -290,25 +290,25 @@ func TestSecondInnScreenTalksToEachSpeaker(t *testing.T) {
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
-	want := []ui.TownRow{{Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: f.Words.TavernSleep, Choosable: true}, {Text: "EXIT", Choosable: true}}
+	want := []ui.TownRow{{Text: f.Words.TavernSleep, Choosable: true}, {Text: "TALK 22", Choosable: true}, {Text: "TALK 2108", Choosable: true}, {Text: "TALK 2110", Choosable: true}, {Text: "EXIT", Choosable: true}}
 	if c.room != secondTownInn || !reflect.DeepEqual(screen.Rows(), want) {
 		t.Fatal("inn rows", screen.Rows())
 	}
-	screen.Choose(1)
+	screen.Choose(2)
 	if body, ok := screen.dialogueBody(); !ok || body == "" || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 21}, {1, 31}}) {
 		t.Fatal("TALK 2108", c.available, body)
 	}
 	screen.AdvanceTownDialogue()
-	screen.Choose(0)
+	screen.Choose(1)
 	if _, ok := screen.dialogueBody(); ok || !reflect.DeepEqual(c.available, []partyPlace{{2, 2}, {1, 21}, {1, 31}, {1, 30}}) || c.bank[533] != 1 || c.bank[553] != 2 {
 		t.Fatal("TALK 22 without a section", c.available)
 	}
 	// Slots 533 and 553 make hire 2 a town 2 hire actor, seated first
 	// (R2-ENGINE-221, R2-ENGINE-497).
-	if rows := screen.Rows(); rows[0] != (ui.TownRow{Text: "HIRE 2", Choosable: true}) || len(rows) != 6 {
+	if rows := screen.Rows(); rows[1] != (ui.TownRow{Text: "HIRE 2", Choosable: true}) || len(rows) != 6 {
 		t.Fatal("inn rows after TALK 22", rows)
 	}
-	screen.Choose(3)
+	screen.Choose(4)
 	if len(c.available) != 4 {
 		t.Fatal("kind 0 TALK changed availability")
 	}

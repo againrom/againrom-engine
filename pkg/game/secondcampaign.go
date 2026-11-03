@@ -187,10 +187,12 @@ func (t *townScreen) StartNewGame() error {
 }
 
 // innAct dispatches the selected seat's action (Hire, Fire, TALK:
-// R2-ENGINE-496; the room events: DIV-4372) or the appended Sleep row.
-func (t *townScreen) innAct(c *secondCampaign, i int) ui.TownAction {
+// R2-ENGINE-496; the room events: DIV-4372) or the first, Sleep row. i is
+// an inn row: row 0 is Sleep and row i+1 is seat i.
+func (t *townScreen) innAct(c *secondCampaign, row int) ui.TownAction {
 	seats, hires := c.innSeats()
-	if i == len(seats) {
+	i := row - 1
+	if row == 0 {
 		if tables, ok := secondShopTables(t.in.Table); ok && t.draws != nil {
 			c.shop.restock(tables, c.current.id, t.draws.stream(random.ShopStock).Raw)
 		}

@@ -273,13 +273,10 @@ func (t *townScreen) Choose(i int) ui.TownAction {
 			if i < 0 || i >= len(rows) || !rows[i].Choosable {
 				return ui.TownAction{}
 			}
-			if seats, _ := t.state().innSeats(); i < len(seats) {
-				if r.Seats != nil {
-					t.selectSeat(t.scene(d, room), r.Seats, i)
+			if seats, _ := t.state().innSeats(); i <= len(seats) {
+				if r.Seats != nil && i > 0 {
+					t.selectSeat(t.scene(d, room), r.Seats, i-1)
 				}
-				return t.innAct(t.state(), i)
-			}
-			if i == len(rows)-2 {
 				return t.innAct(t.state(), i)
 			}
 			t.raiseShownRoomEvent(roomEventLeave)

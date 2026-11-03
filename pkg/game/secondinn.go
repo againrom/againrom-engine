@@ -104,8 +104,8 @@ func (c *secondCampaign) innSeats() ([]innOffer, int) {
 	return append(hires, c.speakers()...), len(hires)
 }
 
-// innRows lists HIRE or FIRE per hire seat (R2-ENGINE-246), TALK per speaker,
-// then Sleep.
+// innRows lists Sleep first, then HIRE or FIRE per hire seat
+// (R2-ENGINE-246) and TALK per speaker. Row i+1 is seat i.
 func (c *secondCampaign) innRows(sleep string) []ui.TownRow {
 	seats, hires := c.innSeats()
 	rows := make([]ui.TownRow, len(seats))
@@ -119,7 +119,7 @@ func (c *secondCampaign) innRows(sleep string) []ui.TownRow {
 		}
 		rows[i] = ui.TownRow{Text: fmt.Sprintf("%s %d", verb, o.npc), Choosable: true}
 	}
-	return append(rows, ui.TownRow{Text: sleep, Choosable: true})
+	return append([]ui.TownRow{{Text: sleep, Choosable: true}}, rows...)
 }
 
 // enterInn starts a visit of the inn page: the page's copy of the high

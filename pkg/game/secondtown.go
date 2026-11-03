@@ -227,10 +227,10 @@ func (t *townScreen) SelectTownSquare(i int) {
 		return
 	}
 	r := d.Room(room)
-	if seats, _ := t.state().innSeats(); r == nil || r.Seats == nil || i < 0 || i >= len(seats) {
+	if seats, _ := t.state().innSeats(); r == nil || r.Seats == nil || i < 1 || i > len(seats) {
 		return
 	}
-	t.selectSeat(t.scene(d, room), r.Seats, i)
+	t.selectSeat(t.scene(d, room), r.Seats, i-1)
 }
 
 func (t *townScreen) selectSeat(s *town.Scene, seats *town.SeatSpec, i int) {
@@ -465,23 +465,23 @@ func (v townRoomView) ControlAt(p image.Point) (ui.TownSquareControl, bool) {
 	if i := page.SeatAt(p); i >= 0 {
 		// A seat click selects the seat and acts on nothing; the
 		// buttons act on the selection (R2-SESSION-203, R2-SESSION-213).
-		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i}, true
+		return ui.TownSquareControl{Kind: ui.TownSquareControlSelect, Door: i + 1}, true
 	}
 	if i := page.ButtonAt(p); i >= 0 {
 		seat := v.t.composed.seat
 		switch r.Buttons[i].Name {
 		case "hire":
 			if seat >= 0 && seat < hires {
-				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
+				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat + 1}, true
 			}
 		case "talk":
 			if seat >= hires && seat < seats {
-				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat}, true
+				return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seat + 1}, true
 			}
 		case "exit":
 			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats + 1}, true
 		case "sleep":
-			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: seats}, true
+			return ui.TownSquareControl{Kind: ui.TownSquareControlDoor, Door: 0}, true
 		}
 	}
 	return ui.TownSquareControl{}, false

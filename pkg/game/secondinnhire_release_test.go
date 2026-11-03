@@ -61,7 +61,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 	}
 	s.TownSquareActive(true)
 	rows := secondInnRows(s)
-	if len(rows) < 2 || rows[0] != "HIRE 1" || !strings.HasPrefix(rows[1], "TALK ") {
+	if len(rows) < 3 || rows[1] != "HIRE 1" || !strings.HasPrefix(rows[2], "TALK ") {
 		t.Fatalf("inn rows %v", rows)
 	}
 	words := f.Words.Hover
@@ -78,7 +78,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 	}
 	t.Logf("npc1accept30 shows %d bytes", len(body))
 	secondInnNotice(t, app)
-	if rows := secondInnRows(s); rows[0] != "FIRE 1" {
+	if rows := secondInnRows(s); rows[1] != "FIRE 1" {
 		t.Fatalf("rows after Hire %v", rows)
 	}
 	hired := secondInnSeatPaint(s)
@@ -96,7 +96,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 		t.Fatalf("cold LOAD current %v room %v slots 512/532/552 = %d/%d/%d", cc.current, cc.room, cc.bank[512], cc.bank[532], cc.bank[552])
 	}
 	cs.TownSquareActive(true)
-	if rows := secondInnRows(cs); rows[0] != "FIRE 1" {
+	if rows := secondInnRows(cs); rows[1] != "FIRE 1" {
 		t.Fatalf("cold rows %v", rows)
 	}
 	if err := coldApp.HeadlessActivate("FIRE 1"); err != nil {
@@ -105,7 +105,7 @@ func TestReleaseSecondTownInnHireSaveAndFire(t *testing.T) {
 	if _, open := cs.dialogueBody(); open || cc.bank[512] != 0 || cc.hired(1) {
 		t.Fatalf("Fire: dialogue %v, slot 512 = %d", open, cc.bank[512])
 	}
-	if rows := secondInnRows(cs); rows[0] != "HIRE 1" {
+	if rows := secondInnRows(cs); rows[1] != "HIRE 1" {
 		t.Fatalf("rows after Fire %v", rows)
 	}
 	// Loss control: the fired seat paints as the unhired one did.
@@ -125,7 +125,7 @@ func TestReleaseSecondTownInnHireRejectsKindTwo(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.TownSquareActive(true)
-	if rows := secondInnRows(s); rows[0] != "HIRE 1" {
+	if rows := secondInnRows(s); rows[1] != "HIRE 1" {
 		t.Fatalf("inn rows %v", rows)
 	}
 	before := c.bank

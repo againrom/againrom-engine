@@ -425,7 +425,7 @@ func TestReleaseSecondTownKaargInnPage(t *testing.T) {
 	}{
 		{"centre", art.scene.Pictures("center")[0], image.Pt(160, 0), image.Pt(300, 20)},
 		{"taverner " + series.Name, pic, at, at.Add(pic.Bounds().Size().Div(2))},
-		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(480, 0), image.Pt(560, 220)},
+		{"buttons area", art.scene.Pictures("upper")[0], image.Pt(464, 0), image.Pt(560, 220)},
 	} {
 		q := probe.p.Sub(probe.at).Add(probe.pic.Bounds().Min)
 		r1, g1, b1, _ := probe.pic.At(q.X, q.Y).RGBA()

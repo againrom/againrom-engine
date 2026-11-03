@@ -974,7 +974,7 @@ func (w *routeWitness) tavern() {
 		if !ok {
 			w.t.Fatalf("tavern: seat %d answers no pixel", i)
 		}
-		label := w.town.Rows()[i].Text
+		label := w.town.Rows()[i+1].Text
 		w.click(fmt.Sprintf("seat %d", i), seat.rect, seat.at, 2, nil)
 		if w.town.composed.seat != i {
 			w.t.Errorf("tavern: a click on seat %d selects seat %d", i, w.town.composed.seat)
@@ -1109,7 +1109,7 @@ func (w *routeWitness) innPane() {
 
 // innSeat is the inn page's seat i by the page's own seat rectangles.
 func (w *routeWitness) innSeat(i int) (routeRegion, bool) {
-	return routeFind(w.squareRegions(), fmt.Sprintf("control %d/%d seat %d", ui.TownSquareControlSelect, i, i))
+	return routeFind(w.squareRegions(), fmt.Sprintf("control %d/%d seat %d", ui.TownSquareControlSelect, i+1, i))
 }
 
 // shopControlRow is one control of the shop page's layout.

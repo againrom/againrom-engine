@@ -59,17 +59,17 @@ func TestSecondInnTalkAddsIdentityTwentyTwoOnce(t *testing.T) {
 	f.Town.second = c
 	app.SetTown(screen)
 	screen.Choose(0)
-	if rows := screen.Rows(); len(rows) < 2 || rows[0].Text != "TALK 22" || rows[1].Text != "TALK 2108" {
+	if rows := screen.Rows(); len(rows) < 3 || rows[1].Text != "TALK 22" || rows[2].Text != "TALK 2108" {
 		t.Fatal("inn rows", rows)
 	}
-	screen.Choose(1)
+	screen.Choose(2)
 	for _, ok := screen.dialogueBody(); ok; _, ok = screen.dialogueBody() {
 		screen.AdvanceTownDialogue()
 	}
 	if len(f.Carried) != 1 {
 		t.Fatalf("the talk with NPC 2108 carried %d members, want the hero alone", len(f.Carried))
 	}
-	screen.Choose(0)
+	screen.Choose(1)
 	if _, ok := screen.dialogueBody(); !ok || len(f.Carried) != 1 {
 		t.Fatalf("the open talk with NPC 22 carries %d members, want the hero until its end", len(f.Carried))
 	}
@@ -86,7 +86,7 @@ func TestSecondInnTalkAddsIdentityTwentyTwoOnce(t *testing.T) {
 	if row := mapload.PartyHumanRow(iglez, f.Carried[0], f.Table); row != 30 {
 		t.Fatalf("identity 22's Humans row = %d, want 30 (serverID 10220)", row)
 	}
-	screen.Choose(0)
+	screen.Choose(1)
 	for _, ok := screen.dialogueBody(); ok; _, ok = screen.dialogueBody() {
 		screen.AdvanceTownDialogue()
 	}
@@ -109,7 +109,7 @@ func TestSecondPanePickerStepsToIdentityTwentyTwo(t *testing.T) {
 	f.Town.second = innAt(2, 30, nil)
 	app.SetTown(screen)
 	screen.Choose(0)
-	screen.Choose(0)
+	screen.Choose(1)
 	screen.composed = &townSceneState{}
 	spec := &town.PaneSpec{Rect: town.Rect{480, 238, 640, 480}}
 	screen.TownSquarePane(ui.CharacterPaneNext)
@@ -209,7 +209,7 @@ func TestSecondInnTalkWithoutSectionAddsAtOnce(t *testing.T) {
 	f.Town.second = innAt(2, 30, nil)
 	app.SetTown(screen)
 	screen.Choose(0)
-	screen.Choose(0)
+	screen.Choose(1)
 	if got := carriedIdentities(f.Carried, f.Table); len(got) != 2 || got[1] != 22 {
 		t.Fatalf("identities %v after a talk without a section, want 21 and 22", got)
 	}

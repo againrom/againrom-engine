@@ -22,7 +22,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A mage made in the generator now starts with a staff that casts the chosen school's spell; before, the staff was empty.
 - [ROM2] Townsfolk speak their lines aloud in the towns' talks, and characters cry out in their own voices when wounded or killed; before, the town talks and these cries were silent.
 - [ROM2] The shops of the second game list their goods in the original's order.
-- [ROM2] The inn has a Sleep button that restocks the town's shop, as the first game's tavern does.
+- [ROM2] The inn has a Sleep button, the first of its four buttons as in the first game's tavern, that restocks the town's shop; the four buttons sit on the same panel as the shop's.
 - [ROM2] In the English edition, Sagita, Hildarius, Galinel, Iglez and Dina now answer when selected or ordered.
 - [ROM2] A character escorting you now heals you with Heal when you are wounded, and an unarmed mage with auto-healing on heals with Heal; before, they never did. The spellbook and item popups of the second game state the caption of their own spell, not another spell's.
 - [ROM2] A spell in flight in a loaded mission save now finishes: it lands and does its damage, and a save made before it lands keeps it; before, it hung in the air, never landed and was dropped from the next save.
