@@ -234,7 +234,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		return nil, err
 	}
 	// No block plane: the editor must show border cells too. No fog plane,
-	// scripts, HP filtering, mission party substitution or runtime spawns.
+	// scripts, mission party substitution or runtime spawns.
 	g := terrain.Grid{Width: m.Width, Height: m.Height, Tiles: terrain.RenderTileWords(m.Tiles),
 		Altitudes: m.Altitudes, Overlay: m.Overlay, Structures: StructureRecords(m.Objects)}
 	v, err := ui.NewViewerWithStatics(source, g, x.tiles, x.statics, true, false,
@@ -242,6 +242,11 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 	if err != nil {
 		return nil, err
 	}
+	var structures []ui.MapStructure
+	for _, s := range mapload.Structures(m, x.table) {
+		structures = append(structures, ui.MapStructure{ID: uint32(s.ID), Health: s.Field42, MaxHealth: s.MaxHealth})
+	}
+	v.SetStructures(structures)
 	v.SetAnimated(false)
 	v.SetOwnArt(true)
 	if x.panelWords != nil {

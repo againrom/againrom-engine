@@ -437,6 +437,7 @@
 "editor.group.warngo" = "Очистить"
 "editor.group.delete" = "Удалить группу"
 "editor.place.hint" = "Выберите картинку, чтобы ставить копии"
+"editor.place.ruined" = "Разрушенные"
 "editor.place.placing" = "Ставится %s: щелчок или протяжка по карте"
 "editor.palette.nostructures" = "Здесь нет ни одного вида построек."
 "editor.palette.noobjects" = "Здесь нет ни одного украшающего объекта."

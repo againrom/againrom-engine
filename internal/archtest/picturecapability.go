@@ -46,7 +46,8 @@ func pictureNamed(x ast.Expr) bool {
 }
 
 // PictureConstantTests names each ==, != or case of a Picture/picture against
-// an integer literal or package-level constant outside pkg/rules.
+// an integer literal or package-level constant outside pkg/rules. A constant
+// declared as a string literal names a picture file, not a picture number.
 func PictureConstantTests(files map[string]string) ([]string, error) {
 	names := make([]string, 0, len(files))
 	for name := range files {
@@ -73,7 +74,13 @@ func PictureConstantTests(files map[string]string) ([]string, error) {
 				continue
 			}
 			for _, s := range g.Specs {
-				for _, id := range s.(*ast.ValueSpec).Names {
+				v := s.(*ast.ValueSpec)
+				for i, id := range v.Names {
+					if i < len(v.Values) {
+						if lit, ok := v.Values[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+							continue
+						}
+					}
 					dirConsts[dir][id.Name] = true
 					allConsts[id.Name] = true
 				}

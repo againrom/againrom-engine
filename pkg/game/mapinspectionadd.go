@@ -454,9 +454,10 @@ func (s *mapInspectionEdits) freeGroup() int64 {
 	return n
 }
 
+const sharedStructurePicture = "beeh"
+
 // NewRecordPreview is a unit class's standing sprite, a structure kind's
-// information picture or, under the key "object", the picture of the object
-// class a placement byte names.
+// information picture (map art for the grid's shared picture), or an object.
 func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, value int64) *image.RGBA {
 	x := s.inspector
 	switch key {
@@ -476,11 +477,32 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 		}
 		idx, _ := terrain.SelectUnitFrame(c.Anim, len(frames), false, 0, 0, 0)
 		return frames[idx].RGBA()
-	case "kind":
+	case "kind", "kind-grid":
 		if x.structures == nil || value <= 0 || value >= int64(len(x.structures.Classes)) {
 			return nil
 		}
 		if c := x.structures.Classes[value]; c != nil {
+			if key == "kind-grid" && c.Picture == sharedStructurePicture {
+				w, h := max(3, c.TileWidth), max(2, c.TileHeight)
+				g := terrain.Grid{Width: w, Height: h, Structures: []terrain.StructureRecord{{Key: uint32(value), VariableWidth: w, VariableHeight: h}}}
+				places, _, _ := terrain.StructurePlacements(g, x.structures, nil, 0)
+				var bounds image.Rectangle
+				for _, p := range places {
+					bounds = bounds.Union(p.Rect())
+				}
+				if bounds.Empty() {
+					if c.PreviewFrame != nil {
+						return c.PreviewFrame.RGBA()
+					}
+					return nil
+				}
+				pic := image.NewRGBA(image.Rectangle{Max: bounds.Size()})
+				for _, p := range places {
+					at := p.TopLeft.Sub(bounds.Min)
+					terrain.BlitStatic(pic, p.Frame, at.X, at.Y)
+				}
+				return pic
+			}
 			return c.Portrait
 		}
 	}

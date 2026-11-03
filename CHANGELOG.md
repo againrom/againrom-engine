@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The Structures grid has a Ruined switch to place ruined buildings; bridges, graves, the teleport pad and the campfire show their own picture instead of the hive.
 - [BASE] A mod's sound may be a 4-bit Microsoft ADPCM WAV, mono or stereo.
 - [BASE] The map editor no longer quits when you drag a character window in its detailed mode down or to the side past the editor's edge; the window stops with its title row inside the editor, as the other editor windows do.
 - [BASE] In the map editor each placeable thing lists in one palette: Structures holds what can be selected, destroyed or switched and the bridges, Objects the decoration (fences and the like included), Trees the trees and bushes; before, every object listed in both Objects and Trees. A palette with nothing in a part says so, and what you place writes the same map as before, trees included: the Trees window plants a forest on open cells or paints one tree kind on every cell you cover.

@@ -280,6 +280,9 @@ func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
 			}
 		}
 	}
+	if r.repeat && !r.brush && r.kind == KindStructure && e.place.ruined {
+		out.Values = append(out.Values, InspectionFieldValue{Key: "placement", Value: 0})
+	}
 	return out
 }
 

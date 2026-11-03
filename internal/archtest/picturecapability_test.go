@@ -42,6 +42,7 @@ func TestPictureConstantScanNamesEachShape(t *testing.T) {
 		{"another name", "func f(p P) bool { return p.Kind == 7 }", 0},
 		{"switch on another name", "func f(p P) int {\nswitch p.Kind {\ncase 7:\nreturn 1\n}\nreturn 0 }", 0},
 		{"a comment", "// p.Picture == 20\nfunc f() {}", 0},
+		{"a string constant names a file", "const hive = \"beeh\"\nfunc f(p P) bool { return p.Picture == hive }", 0},
 	}
 	for _, s := range shapes {
 		want := ""

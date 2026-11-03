@@ -131,6 +131,8 @@ func LoadStructures(src terrain.EntrySource) (*terrain.StructureSet, error) {
 					sc.Frames = frames
 					sc.VariableLayout = terrain.VariableStructureVerticalNinePatch
 				}
+			} else if frames := cellSquareSheet(sheets.frames(c.SpritePath())); len(frames) > 0 {
+				sc.PreviewFrame = frames[0]
 			}
 		}
 		set.Classes[b] = sc

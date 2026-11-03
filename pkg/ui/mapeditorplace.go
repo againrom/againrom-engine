@@ -23,6 +23,7 @@ import (
 // of the document they were read for with the palette of each.
 type placeGrid struct {
 	top, brushTop int
+	ruined        bool
 	icons         map[string]*image.RGBA
 	doc           *InspectionDocument
 	kind          RecordKind
@@ -142,7 +143,11 @@ func (e *MapEditor) placeIcon(kind RecordKind, key string, value int64) *image.R
 	if e.place.icons == nil {
 		e.place.icons = map[string]*image.RGBA{}
 	}
-	pic := host.NewRecordPreview(kind, key, value)
+	previewKey := key
+	if kind == KindStructure && key == "kind" {
+		previewKey = "kind-grid"
+	}
+	pic := host.NewRecordPreview(kind, previewKey, value)
 	e.place.icons[k] = pic
 	return pic
 }

@@ -440,6 +440,7 @@
 "editor.group.warngo" = "Empty it"
 "editor.group.delete" = "Delete group"
 "editor.place.hint" = "Choose a picture to place copies"
+"editor.place.ruined" = "Ruined"
 "editor.place.placing" = "Placing %s: click or drag on the map"
 "editor.palette.nostructures" = "No structure kind lists here."
 "editor.palette.noobjects" = "No decoration object lists here."

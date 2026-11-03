@@ -1042,6 +1042,9 @@ func (e *MapEditor) listButtons() []menuItem {
 	if _, ok := e.listAdd(); ok {
 		out = append(out, menuItem{key: "add", label: e.word("editor.button.add")})
 	}
+	if kind, _, ok := e.placeGridKind(); ok && kind == KindStructure {
+		out = append(out, menuItem{key: "ruined", label: markWord(e.place.ruined, e.word("editor.place.ruined"))})
+	}
 	return out
 }
 
@@ -2201,6 +2204,8 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				case "add":
 					row, _ := e.listAdd()
 					e.openAdd(row.Kind)
+				case "ruined":
+					e.place.ruined = !e.place.ruined
 				}
 			}
 		}
