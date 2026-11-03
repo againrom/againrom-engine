@@ -141,48 +141,74 @@ func (w *World) constructedGroups(native bool) *savedGroupState {
 	slices.SortStableFunc(keys, func(a, b key) int { return cmp.Compare(rank(a.owner), rank(b.owner)) })
 	named := w.scriptNamedGroups()
 	for _, k := range keys {
-		g := SavedGroup{ID: uint32(len(s.Groups) + 1), Selector: k.group, Owner: SavedGroupReference{Class: 1, Owner: k.owner}}
 		var members []int
 		for i := range w.entities {
 			if e := &w.entities[i]; e.Owner == k.owner && effectiveGroup(e) == k.group && e.Decay < DecayBones {
 				members = append(members, i)
 			}
 		}
-		g.AI[0x45] = 1
-		state := uint32(0)
-		switch k.owner {
-		case 0:
-			// No Player holds the Group: no stance setter runs and no member
-			// gets an order block, so the Group dispatch decides nothing for
-			// it, as a Group with no Player record.
-		case SelfSlot:
-			g.AI[0x20], state = orderStandGround, uint32(actorStateAcquire)
-		default:
-			w.guardSetter(&g, members)
-			state = uint32(actorStateGuard)
-		}
-		if record := w.nativeGroupRecord(k.owner, k.group); native && record != nil {
-			g.AI[0x20], g.AI[0x38], g.AI[0x15] = record.order, record.base, record.roamCounter
-			if record.order == orderGuard {
-				g.AI[0x2d] = record.base
-			}
-			binary.LittleEndian.PutUint16(g.AI[10:], uint16(record.commandedX)|uint16(record.commandedY)<<8)
-		}
-		if named(k.group, members) {
-			binary.LittleEndian.PutUint32(g.AI[0x48:], 1)
-		}
-		for _, i := range members {
-			e := w.entities[i]
-			g.Members = append(g.Members, SavedGroupMember{Archive: e.SourceBinding.ArchiveIndex, Entity: e.ID, Bound: true})
-			if k.owner != 0 {
-				s.Orders = append(s.Orders, constructedOrder(e, state))
-			}
-		}
+		g, orders := w.constructedGroup(k.owner, k.group, members, named, native)
+		g.ID = uint32(len(s.Groups) + 1)
+		s.Orders = append(s.Orders, orders...)
 		s.Groups = append(s.Groups, g)
 	}
 	s.HighWater = uint32(len(s.Groups))
 	w.constructGroupPlayers(s)
 	return s
+}
+
+// constructedGroup is the Group constructedGroups builds for owner's Group
+// selector holding the entities at members, and its members' orders.
+func (w *World) constructedGroup(owner, selector uint32, members []int, named func(uint32, []int) bool, native bool) (SavedGroup, []SavedActorOrder) {
+	g := SavedGroup{Selector: selector, Owner: SavedGroupReference{Class: 1, Owner: owner}}
+	g.AI[0x45] = 1
+	state := uint32(0)
+	switch owner {
+	case 0:
+		// No Player holds the Group: no stance setter runs and no member
+		// gets an order block, so the Group dispatch decides nothing for
+		// it, as a Group with no Player record.
+	case SelfSlot:
+		g.AI[0x20], state = orderStandGround, uint32(actorStateAcquire)
+	default:
+		w.guardSetter(&g, members)
+		state = uint32(actorStateGuard)
+	}
+	if record := w.nativeGroupRecord(owner, selector); native && record != nil {
+		g.AI[0x20], g.AI[0x38], g.AI[0x15] = w.game.groupRoute.programme(record.order), record.base, record.roamCounter
+		if record.order == orderGuard {
+			g.AI[0x2d] = record.base
+		}
+		binary.LittleEndian.PutUint16(g.AI[10:], uint16(record.commandedX)|uint16(record.commandedY)<<8)
+	}
+	if named(selector, members) {
+		binary.LittleEndian.PutUint32(g.AI[0x48:], 1)
+	}
+	var orders []SavedActorOrder
+	for _, i := range members {
+		e := w.entities[i]
+		g.Members = append(g.Members, SavedGroupMember{Archive: e.SourceBinding.ArchiveIndex, Entity: e.ID, Bound: true})
+		if owner != 0 {
+			orders = append(orders, constructedOrder(e, state))
+		}
+	}
+	return g, orders
+}
+
+// ConstructedGroup is the Group the constructor builds from the current
+// state for owner's Group selector holding members, with the native Group
+// record's order, base, commanded cell and roam counter, and its members'
+// orders: the programme and the posts a World holding no Group registry
+// runs. A member the World does not hold is left out.
+func (w *World) ConstructedGroup(owner, selector uint32, members []EntityID) (SavedGroup, []SavedActorOrder) {
+	var at []int
+	for _, id := range members {
+		if i := indexOfEntity(w.entities, id); i >= 0 {
+			at = append(at, i)
+		}
+	}
+	g, orders := w.constructedGroup(owner, selector, at, w.scriptNamedGroups(), true)
+	return g, orders
 }
 
 // constructedOrder is a member's order block after the stance setter: the post
@@ -208,12 +234,12 @@ func constructedOrder(e Entity, state uint32) SavedActorOrder {
 }
 
 // guardSetter is the load-time guard setter with no range argument (AI-450):
-// order 1; the members' fine centroid at +0x24 and its cell word at +0x28 and
+// the guard's programme byte (1, the second game's 18); the members' fine centroid at +0x24 and its cell word at +0x28 and
 // +0x00; the widest Chebyshev distance to that cell at +0x2a, the widest sight
 // at +0x2b and the widest of their sums at +0x2c; +0x2d = +0x38 = +0x2c raised
 // to MinimalGuardRange; +0x39 zero. An empty Group keeps the centroid fields.
 func (w *World) guardSetter(g *SavedGroup, members []int) {
-	g.AI[0x20] = orderGuard
+	g.AI[0x20] = w.game.groupRoute.programme(orderGuard)
 	if n := int64(uint8(len(members))); n > 0 {
 		var sx, sy int64
 		for _, i := range members {

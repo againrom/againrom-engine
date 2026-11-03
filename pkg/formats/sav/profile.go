@@ -80,7 +80,8 @@ var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgram
 // the trailer's two words are 0xBADFACE1 (R2-SESSION-018); Player's 2,560
 // raw bytes are the zero a new Player is built with (R2-ENGINE-675) and its
 // 36 preference bytes follow the engine's 32 (DIV-4305); Unit's sixth raw
-// block is 184 zero bytes (DIV-4305); the Diary sites drop; the Token and
+// block is the engine order's command post and zero bytes (DIV-4305,
+// DIV-4471); the Diary sites drop; the Token and
 // Effect words keep their low 16 bits (R2-ENGINE-209). The town writer's
 // SpellBook/Shortcuts array has no element (R2-SESSION-285). A Building the
 // World holds as a Pointer is a Pointer record with its word (R2-ENGINE-603).
@@ -94,7 +95,7 @@ var secondForm = &documentForm{marker: 0xbadface1, global: 0xbadface1, emptyArra
 	terrain: &terrainForm{from: 0x807, to: 0xedee, above: 0x0f, buckets: 100, keyAt: 0x3a - 0x2c},
 	results: map[int]int32{901: 1}, diplomacyHead: []byte{1, 1, 0, 0}, fields: []formField{
 		{site: formRaw, name: PlayerTailName, into: []formAdd{{"PRaw2560", zeroFill(2560)}, {"PRaw36", preferenceFill}}},
-		{site: formRaw, name: "U158", into: []formAdd{{"URaw184", zeroFill(184)}}},
+		{site: formRaw, name: "U158", into: []formAdd{{"URaw184", commandFill}}},
 		{site: formInline, name: "Diary"},
 		{site: formSlot, name: "Diary"},
 		{site: formWord, name: "T0C"},

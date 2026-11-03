@@ -3976,5 +3976,11 @@ var Committed = Baseline{
 
 	// It rose for cellPlaneParts, the one P2 byte recipe in pkg/sim/cellplanes.go, and its guard.
 	// CommentBytes falls with the shared world-map page, entry builder and source guard.
-	CommentBytes: 10486698,
+
+	// It rose for the second game's Group programme and command post:
+	// programme in pkg/sim/grouproute.go, ConstructedGroup in carriers.go,
+	// projectCommandPost in pkg/game/currentworldbuild.go, the post read in
+	// originalactorregistry.go, commandFill and CommandPost in
+	// pkg/formats/sav, the test secondgrouporders_test.go, and this note.
+	CommentBytes: 10490326,
 }

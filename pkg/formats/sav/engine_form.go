@@ -115,6 +115,15 @@ func zeroFill(n int) func([]byte) []byte {
 	return func([]byte) []byte { return make([]byte, n) }
 }
 
+// commandFill is the second game's 184-byte Unit command: word +0, the
+// command post the Group's mode-1 arm moves to (R2-ENGINE-824), is the
+// engine order's post, its word +0; every other byte is zero (DIV-4305).
+func commandFill(engine []byte) []byte {
+	out := make([]byte, 184)
+	copy(out[:2], engine)
+	return out
+}
+
 // preferenceFill is the second game's 36 preference bytes: the engine's 32,
 // whose byte 0x1f is the formation, then 0xff and three zero bytes, the
 // values of every EN original (DIV-4305).

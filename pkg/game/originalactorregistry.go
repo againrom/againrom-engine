@@ -314,6 +314,11 @@ func admitOriginalActorRegistry(ms *Mission, registry *originalActorRegistry, ta
 			e.SuppressRewards = a.DisplayBacking&0xff000000 != 0
 		}
 		e.X, e.Y, e.PostX, e.PostY = int32(a.Cell&255), int32(a.Cell>>8), int32(a.Cell&255), int32(a.Cell>>8)
+		// A saved command post is the post the actor's order holds
+		// (R2-ENGINE-824); a zero post keeps the current cell.
+		if a.CommandPost != 0 {
+			e.PostX, e.PostY = int32(a.CommandPost&255), int32(a.CommandPost>>8)
+		}
 		if a.CurrentEntity {
 			e.OffMap = a.CurrentOffMap
 		} else {

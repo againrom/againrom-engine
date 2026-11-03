@@ -62,7 +62,11 @@ type ActorRecord struct {
 	Patrol         []uint16
 	ActorState     uint32
 	HasOrder       bool
-	DyingTimer     int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
+	// CommandPost is word +0 of the second game's 184-byte Unit command, the
+	// post the Group's mode-1 arm moves to (R2-ENGINE-824, R2-ENGINE-823);
+	// zero where the record holds no such command.
+	CommandPost uint16
+	DyingTimer  int8 // Unit +0x6c, serialized independently (SAV-DEADLOAD-126).
 	// Byte locators only; consumers can read independent layouts at these
 	// substructure starts without using decoded field values.
 	ControlOff, StateOff int
@@ -293,6 +297,9 @@ func currentActorGraph(players []*Record, current []uint16, dead ...[]*Record) (
 			return SavedActorGraph{}, fmt.Errorf("sav: actor %d has incomplete order operands: raw %d state %d ring %d/%d", record.Index, len(record.Raw["U158"]), len(record.Raw["U50"]), len(record.Raw["U158_90"]), record.Counts["U158_90"])
 		}
 		copy(entry.Order[:], record.Raw["U158"])
+		if command := record.Raw["URaw184"]; len(command) >= 2 {
+			entry.CommandPost = u16(command, 0)
+		}
 		if len(record.Raw["U50"]) == 4 {
 			entry.ActorState = u32(record.Raw["U50"], 0)
 		}

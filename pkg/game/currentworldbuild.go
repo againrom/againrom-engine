@@ -739,9 +739,8 @@ func projectCurrentGroups(state *SnapshotSAVDocument, w *sim.World) error {
 		var count uint32
 		for _, selector := range selectors {
 			g := sim.SavedGroup{ID: uint32(len(state.GroupBindings.Groups) + 1), Selector: selector, Owner: sim.SavedGroupReference{Class: 1, Owner: slot}}
-			order, base, _ := w.FrozenGroupAI(slot, selector)
-			g.AI[0x20], g.AI[0x38], g.AI[0x45] = order, base, 1
 			var refs []uint16
+			var ids []sim.EntityID
 			for _, e := range entities {
 				if e.Owner != slot || e.Group != selector || e.Decay >= sim.DecayBones {
 					continue
@@ -749,9 +748,20 @@ func projectCurrentGroups(state *SnapshotSAVDocument, w *sim.World) error {
 				for _, a := range state.Actors {
 					if a.EntityID == e.ID {
 						refs = append(refs, a.ObjectIndex)
+						ids = append(ids, e.ID)
 						g.Members = append(g.Members, sim.SavedGroupMember{Entity: e.ID, Bound: true})
 						break
 					}
+				}
+			}
+			// The World holds no Group registry: its Groups run the programme
+			// the constructor builds from the current state, and each member's
+			// order holds its post (R2-ENGINE-507, R2-ENGINE-824, DIV-4471).
+			constructed, orders := w.ConstructedGroup(slot, selector, ids)
+			g.AI = constructed.AI
+			for _, o := range orders {
+				if err := projectCommandPost(state, refs[slices.Index(ids, o.Entity)], o); err != nil {
+					return err
 				}
 			}
 			group := newSavedGroupRecord()
@@ -767,6 +777,25 @@ func projectCurrentGroups(state *SnapshotSAVDocument, w *sim.World) error {
 		mustSetCount(r, "Actors", count)
 	}
 	return projectCurrentPatrols(state, w)
+}
+
+// projectCommandPost writes the post o holds, its word +0, in the order of
+// the actor record at index; the record's other order bytes stay.
+func projectCommandPost(state *SnapshotSAVDocument, index uint16, o sim.SavedActorOrder) error {
+	if index == 0 || int(index) > len(state.Document.Objects) {
+		return fmt.Errorf("actor %d command post lacks its record", o.Entity)
+	}
+	next, sites, err := cloneSavedGroupFieldRecord(&state.Document.Objects[index-1])
+	if err != nil {
+		return err
+	}
+	raw, err := sites.fixedRaw(&next, "U158", 148)
+	if err != nil {
+		return err
+	}
+	copy(raw[:2], o.Raw[:2])
+	state.Document.Objects[index-1] = next
+	return nil
 }
 
 // projectCurrentPatrols writes the actor order of every living patroller from

@@ -32,6 +32,16 @@ func (p *groupRouteProfile) route(b uint8) uint8 {
 	return b
 }
 
+// programme is the programme byte a Group running order holds: the second
+// game holds its guard at 18, as every computer Group of its mission files
+// does (DIV-4285); every other order is its own byte.
+func (p *groupRouteProfile) programme(order uint8) uint8 {
+	if order == orderGuard && p.guardAt18 {
+		return secondGuardRoute
+	}
+	return order
+}
+
 var secondGameGroupRoute = groupRouteProfile{
 	guardAt18:                  true,
 	guardNeedsMembers:          true,
