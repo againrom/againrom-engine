@@ -1126,53 +1126,6 @@ func (v *Viewer) TakeInventoryEquip() (int, bool) {
 	return idx, true
 }
 
-// RaiseDocuments asks the front end to open the campaign documents panel. It
-// is the way IN to the one-shot below, and it is raised from the tier above
-// rather than from this file: the item that opens the panel is recognised by
-// its code, and this package does not read item codes.
-//
-// A STANDING REQUEST IS OVERWRITTEN, NEVER QUEUED, which is invEquipRequest's
-// own rule: the panel opens once whatever raised it twice.
-func (v *Viewer) RaiseDocuments() {
-	if v == nil {
-		return
-	}
-	v.docRequest = true
-}
-
-// TakeDocumentsRequest reads the pending documents request, if any, and clears
-// it in the SAME statement — TakeInventoryEquip's own shape, and for its own
-// reason: a request drained once cannot be drained again before the next one
-// is raised.
-//
-// THE TIER ABOVE DRAINS IT. Whether the panel actually opens is the front
-// end's question, not this file's: a collection with nothing in it refuses
-// (flow.openDocuments), and the request is spent either way.
-func (v *Viewer) TakeDocumentsRequest() bool {
-	if v == nil || !v.docRequest {
-		return false
-	}
-	v.docRequest = false
-	return true
-}
-
-// RaiseShop asks the front end to open the Shop page over the mission, the
-// documents request's shape: one standing request, spent when taken.
-func (v *Viewer) RaiseShop() {
-	if v != nil {
-		v.shopRequest = true
-	}
-}
-
-// TakeShopRequest reads the pending Shop request and clears it.
-func (v *Viewer) TakeShopRequest() bool {
-	if v == nil || !v.shopRequest {
-		return false
-	}
-	v.shopRequest = false
-	return true
-}
-
 // wornHover describes the worn box's twelve cells in window pixels —
 // wornSlotRects' own geometry moved to the box — so a press and a hover agree
 // on where each of the twelve cells is. An undrawn box gives the empty

@@ -77,15 +77,13 @@ const (
 	// frame is 1024x768, so the two are not the same picture here and the
 	// choice had to be made (DIV-299).
 	//
-	// It remembers the screen it was armed from (docBack). This build has
+	// It remembers the screen it was armed from (cover.back). This build has
 	// ONE production entry point, App.step's ScreenMap arm, which arms it
 	// with ScreenMap; DIV-298 records why, and the original's own gate
 	// (campaign+0x3dc == 1, TOWN-352's bit 0 alone) is the mission frame
-	// with nothing over it, so there is no town route to build. The field
-	// is a parameter rather than a constant because closeDocuments must
-	// return where openDocuments was called from, and a constant would be
-	// a second place to change if a later story adds a route.
-	// It is reached through openDocuments and nothing else assigns it.
+	// with nothing over it, so there is no town route to build. The back
+	// screen is a parameter rather than a constant because the close must
+	// return where openCover was called from.
 	ScreenDocuments
 	// ScreenCutscene is a presentation overlay. flow retains its destination;
 	// only App.Screen reports this value while a decoder is active.
@@ -640,8 +638,8 @@ type flow struct {
 	// because those two are the only mutations the seam has.
 	town     TownScreen
 	townList *Picker
-	// shopOverMap is set while the town's Shop page shows over a mission.
-	shopOverMap bool
+	// cover is the screen shown over the running mission, if any (cover.go).
+	cover coverShown
 
 	// save, list and load are the save/load seam, and menuList, menuBack,
 	// loadList, loadBack and saves are the two screens over them. Nothing above
@@ -708,7 +706,7 @@ type flow struct {
 	persistTooltipDelay func(int) error
 	menuExit            bool
 
-	// docSrc, docArt, docFont, docPanel and docBack are the campaign documents
+	// docSrc, docArt, docFont and docPanel are the campaign documents
 	// panel's whole seam and state. Nothing above this comment concerns that
 	// screen, so they are APPENDED here for the reason the two blocks above
 	// them were, and every existing field keeps exactly the meaning it had.
@@ -723,16 +721,10 @@ type flow struct {
 	// the panel's entry point answering that there is nothing to show —
 	// never a nil call. That is what keeps every existing test in this
 	// package, none of which installs a document source, driving unchanged.
-	//
-	// docBack is the screen the panel was armed from, held for the reason
-	// menuBack and loadBack are: closeDocuments must return where
-	// openDocuments was called from. Unlike those two it has one
-	// production call site today, which arms it with ScreenMap.
 	docSrc   DocumentSource
 	docArt   *DocumentPanelArt
 	docFont  *text.Font
 	docPanel *documentPanel
-	docBack  Screen
 
 	// modUI is the state of the screens mods declare (modscreens.go).
 	modUI modScreenState
@@ -790,44 +782,6 @@ func (f *flow) showHelp(s string) bool {
 	}
 	f.selfNotice = true
 	return true
-}
-
-// openDocuments builds the campaign documents panel over what the source
-// answers NOW and shows it, remembering the screen it was armed from.
-//
-// IT REFUSES AN EMPTY COLLECTION rather than showing an empty sheet (story
-// 1035 B2). The original's own entry point is a mission-side control, and a
-// player who has collected nothing has nothing to page through; a screen that
-// can only be left again is a screen that should not have opened. The refusal
-// is reported so the caller can leave the player where he was.
-func (f *flow) openDocuments(back Screen) bool {
-	if f.docSrc == nil {
-		return false
-	}
-	pages := f.docSrc.Documents()
-	if len(pages) == 0 {
-		return false
-	}
-	f.docPanel = newDocumentPanel(f.docArt, f.docFont, pages)
-	f.docBack = back
-	f.setScreen(ScreenDocuments)
-	f.msg = ""
-	f.setDocUp(true)
-	return true
-}
-
-// closeDocuments returns to the screen the panel was armed from and drops the
-// panel.
-//
-// THE PANEL IS DROPPED RATHER THAN KEPT for the reason openDocuments rebuilds
-// it: a kept panel is a stale collection, and a kept page position would be a
-// second piece of state to reason about. The original's OK arm posts 0x445 and
-// tears its own window down (MENU-DOC-009).
-func (f *flow) closeDocuments() {
-	f.docPanel = nil
-	f.setScreen(f.docBack)
-	f.msg = ""
-	f.setDocUp(false)
 }
 
 func (f *flow) setDocUp(up bool) {
@@ -1630,7 +1584,7 @@ func (f *flow) escape() (exit bool) {
 		// everywhere else in this method, and a panel that a stuck
 		// pointer cannot leave is worse than a key the original did not
 		// have; it reaches the same statement OK does.
-		f.closeDocuments()
+		f.closeCover()
 		return false
 	case ScreenPicker:
 		f.toMenu()
@@ -1669,7 +1623,7 @@ func (f *flow) escape() (exit bool) {
 		if f.town != nil && f.town.Back() {
 			f.refreshTown()
 			f.msg = ""
-			f.settleMissionShop()
+			f.settleCover()
 			return false
 		}
 		// AT THE SQUARE IT OPENS THE MINI-MENU, which is the map screen's own

@@ -56,7 +56,7 @@ func (f *flow) popupOpen() bool {
 	if f.mapShowing() {
 		return f.viewer != nil && f.viewer.popupOpen()
 	}
-	return f.screen == ScreenDocuments && f.docBack == ScreenMap && f.viewer != nil && f.viewer.popupOpen()
+	return f.coverHoldsMap(ScreenMap) && f.viewer != nil && f.viewer.popupOpen()
 }
 
 // mapShowing reports the mission surface, including windows hosted over it.

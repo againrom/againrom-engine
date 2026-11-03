@@ -2633,7 +2633,7 @@ func (mw *mapWorld) enqueueEquip(idx int) {
 	// The early return is what stops the drained request from also reaching
 	// the equip questions below with a code none of them can answer for.
 	if data.RaisesDocuments(code) {
-		mw.view.RaiseDocuments()
+		mw.view.RaiseCover(ui.CoverDocuments)
 		return
 	}
 	item := stacks[idx].Instance()

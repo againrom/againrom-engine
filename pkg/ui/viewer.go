@@ -996,15 +996,10 @@ type Viewer struct {
 	invEquipTap     bool
 	invEquipRequest int
 
-	// docRequest is the one-shot campaign-documents request, raised by the tier
-	// above through RaiseDocuments and drained by the App on the map arm. It is
-	// a PLAIN BOOL and not an index-plus-one, unlike invEquipRequest above it,
-	// because the request carries nothing: the panel shows the whole collection
-	// and does not open on an element.
-	docRequest bool
-	// shopRequest is docRequest's twin for the Shop page a mission Shop
-	// structure use opens, raised through RaiseShop.
-	shopRequest bool
+	// coverRequests holds one bit per CoverKind: the screens over the mission
+	// the tier above asked for through RaiseCover, drained by the App on the
+	// map arm. A bit carries nothing else: each screen shows its whole content.
+	coverRequests uint8
 
 	// Cell identities and one-shot requests store index plus one; zero
 	// means no preceding cell or pending action. TakeInventoryUnequip

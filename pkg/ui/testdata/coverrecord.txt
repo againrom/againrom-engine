@@ -1,0 +1,123 @@
+documents/armed screen=documents back=map standing=docs=false shop=false
+documents/armed popup=true docUp=true msg=""
+documents/span world=0 anim=0 ticks=31 told=true stopped=true calls=1
+documents/savepoint kind=0 row=1 shown=false open=false
+documents/savepoint kind=1 row=1 shown=false open=false
+documents/savepoint kind=2 row=0 shown=false open=true
+documents/savepoint kind=3 row=1 shown=false open=false
+documents/savepoint kind=4 row=1 shown=false open=false
+documents/savepoint kind=5 row=1 shown=false open=false
+documents/savepoint kind=6 row=1 shown=false open=false
+documents/savepoint kind=7 row=1 shown=false open=false
+documents/closed screen=map popup=false docUp=false msg=""
+documents/closed first frame world=2 anim=2 told=true stopped=false calls=2
+documents/closed second frame world=1 anim=1 screen=map
+documents/key Escape screen=map world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+documents/key Escape then screen=map
+documents/key Space screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Space then screen=documents
+documents/key Pause screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Pause then screen=documents
+documents/key PauseText screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key PauseText then screen=documents
+documents/key Faster screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Faster then screen=documents
+documents/key Slower screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Slower then screen=documents
+documents/key Unpaced screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Unpaced then screen=documents
+documents/key Paced screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key Paced then screen=documents
+documents/key F1 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F1 then screen=documents
+documents/key F2 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F2 then screen=documents
+documents/key F3 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F3 then screen=documents
+documents/key F4 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F4 then screen=documents
+documents/key ShiftF4 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key ShiftF4 then screen=documents
+documents/key F5 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F5 then screen=documents
+documents/key F6 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F6 then screen=documents
+documents/key F7 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F7 then screen=documents
+documents/key F8 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F8 then screen=documents
+documents/key F9 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F9 then screen=documents
+documents/key F10 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F10 then screen=documents
+documents/key F11 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F11 then screen=documents
+documents/key F12 screen=documents world=0 ticks=1 anim=0 told=true stopped=true calls=1 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=true menuUp=false
+documents/key F12 then screen=documents
+shop/armed screen=town back=- standing=docs=false shop=false
+shop/armed popup=false docUp=false msg=""
+shop/span world=0 anim=0 ticks=0 told=false stopped=false calls=0
+shop/savepoint kind=0 row=1 shown=false open=false
+shop/savepoint kind=1 row=1 shown=false open=false
+shop/savepoint kind=2 row=0 shown=false open=true
+shop/savepoint kind=3 row=7 shown=false open=false
+shop/savepoint kind=4 row=7 shown=false open=false
+shop/savepoint kind=5 row=7 shown=false open=false
+shop/savepoint kind=6 row=7 shown=false open=false
+shop/savepoint kind=7 row=0 shown=false open=true
+shop/closed screen=map popup=false docUp=false msg=""
+shop/closed first frame world=52 anim=2 told=false stopped=false calls=0
+shop/closed second frame world=1 anim=1 screen=map
+shop/key Escape screen=gamemenu world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=true
+shop/key Escape then screen=gamemenu
+shop/key Space screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Space then screen=town
+shop/key Pause screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Pause then screen=town
+shop/key PauseText screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key PauseText then screen=town
+shop/key Faster screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Faster then screen=town
+shop/key Slower screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Slower then screen=town
+shop/key Unpaced screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Unpaced then screen=town
+shop/key Paced screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key Paced then screen=town
+shop/key F1 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F1 then screen=town
+shop/key F2 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F2 then screen=town
+shop/key F3 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F3 then screen=town
+shop/key F4 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F4 then screen=town
+shop/key ShiftF4 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key ShiftF4 then screen=town
+shop/key F5 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F5 then screen=town
+shop/key F6 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F6 then screen=town
+shop/key F7 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F7 then screen=town
+shop/key F8 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F8 then screen=town
+shop/key F9 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F9 then screen=town
+shop/key F10 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F10 then screen=town
+shop/key F11 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F11 then screen=town
+shop/key F12 screen=town world=0 ticks=0 anim=0 told=false stopped=false calls=0 stopped=false rung=7 unpaced=false grid=false readout=false fps=false msg="" docUp=false menuUp=false
+shop/key F12 then screen=town
+order both, documents open: screen=documents standing=docs=false shop=true
+order both, documents closed: screen=town standing=docs=false shop=false shopOpen=true
+order both, next frame: screen=town standing=docs=false shop=false shopOpen=true
+order both, documents refuse: screen=town standing=docs=false shop=false shopOpen=true
+order documents twice: screen=documents standing=docs=false shop=false
+order documents twice, closed: screen=map standing=docs=false shop=false
+order shop twice: screen=town standing=docs=false shop=false
+order shop twice, closed: screen=map standing=docs=false shop=false
+documents refuse alone: screen=map standing=docs=false shop=false
+documents from the town: opened=true screen=documents back=town
+documents from the town, closed: screen=town

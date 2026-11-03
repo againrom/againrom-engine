@@ -102,7 +102,7 @@ func init() {
 	}
 	screenHandlers[ScreenDocuments] = ScreenHandler{
 		Step: func(a *App, in appInput, now time.Time) bool {
-			a.holdMapUnderDocuments(in, now)
+			a.holdMapUnderCover(in, now)
 			a.stepDocuments(in)
 			return false
 		},

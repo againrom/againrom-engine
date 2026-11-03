@@ -605,8 +605,8 @@ func TestFlow(t *testing.T) {
 			"chargen":     false, "chargenBegin": false,
 			"chargenBack": false, "chargenGate": false, "newGameChargen": false, "newGameDirect": false,
 			"town": false, "townList": false,
-			// One bool: the town screen shows the Shop page over the mission map.
-			"shopOverMap": false,
+			// One record: the screen shown over the running mission.
+			"cover":       false,
 			"endingSeams": false, "ending": false,
 			"endingPage": false, "endingTop": false, "endingFocus": false, "endingPress": false,
 			"saveGame": false, "saveList": false, "loadGame": false,
@@ -626,7 +626,7 @@ func TestFlow(t *testing.T) {
 			"words":    false, "menuFont": false,
 			"encodeMenuKey": false,
 			"docSrc":        false, "docArt": false, "docFont": false,
-			"docPanel": false, "docBack": false,
+			"docPanel":   false,
 			"selfNotice": false,
 			// One pending movie family survives the completed viewer's teardown.
 			"completedCutscene": false,

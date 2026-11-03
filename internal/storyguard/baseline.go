@@ -3911,5 +3911,7 @@ var Committed = Baseline{
 	// pkg/game/savstructureproject.go and the two Building constructors, the
 	// new tests in pkg/game/savstructurecurrent_test.go, less the overlap
 	// comments they replace, and this note.
-	CommentBytes: 10449942,
+	// CommentBytes rose by the doc comments of the cover record in
+	// pkg/ui/cover.go and the scan in internal/archtest/coverscreen.go.
+	CommentBytes: 10451267,
 }

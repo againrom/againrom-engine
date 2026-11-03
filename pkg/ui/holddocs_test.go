@@ -27,11 +27,11 @@ func TestDocumentsPanelHoldsTheMapLikeTheInGameMenu(t *testing.T) {
 			open: func(t *testing.T, h *haltFix) {
 				h.a.flow.docSrc = &fakeDocumentSource{pages: []DocumentPage{{Text: "one"}}}
 				h.a.flow.docArt = documentsTestArt()
-				if !h.a.flow.openDocuments(ScreenMap) {
-					t.Fatal("openDocuments refused a collection of one")
+				if !h.a.flow.openCover(CoverDocuments, ScreenMap) {
+					t.Fatal("openCover refused a collection of one")
 				}
 			},
-			close: func(f *flow) { f.closeDocuments() },
+			close: func(f *flow) { f.closeCover() },
 		},
 	}
 

@@ -186,7 +186,7 @@ var latchSites = []struct {
 		a := newTestApp(t, appRows(1), okLoader(t))
 		a.flow.docSrc = &fakeDocumentSource{pages: []DocumentPage{{Text: "one"}, {Text: "two"}, {Text: "three"}}}
 		a.flow.docArt = documentsTestArt()
-		if !a.flow.openDocuments(ScreenMenu) {
+		if !a.flow.openCover(CoverDocuments, ScreenMenu) {
 			t.Fatal("fixture: the documents did not open")
 		}
 		s := latchSite{app: a, inside: midOf(docControlRect(docControlRight)), elsewhere: midOf(docControlRect(docControlLeft)),
@@ -194,7 +194,7 @@ var latchSites = []struct {
 			other: midOf(docControlRect(docControlRight)), otherDone: func() bool { return a.flow.docPanel != nil && a.flow.docPanel.doc == 1 }}
 		s.leave = func(t *testing.T) { s.key(t, "escape") }
 		s.back = func(t *testing.T) {
-			if !a.flow.openDocuments(ScreenMenu) {
+			if !a.flow.openCover(CoverDocuments, ScreenMenu) {
 				t.Fatal("the documents did not reopen")
 			}
 		}

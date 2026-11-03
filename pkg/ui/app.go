@@ -1598,7 +1598,7 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 		a.stepMedia(in, now)
 		return false
 	}
-	a.flow.settleMissionShop()
+	a.flow.settleCover()
 	if a.flow.screen == ScreenTown {
 		if atTownSurface(a.flow.town) {
 			a.townSurfaceAnimationTick++
@@ -1902,15 +1902,20 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			// and the rest of the arm runs as it always did, which is what
 			// makes an unusable item do nothing rather than open an empty
 			// sheet.
-			if v.TakeDocumentsRequest() && a.flow.openDocuments(ScreenMap) {
-				a.syncViewerLayout()
-				return false
-			}
+			//
 			// A Shop structure use opens the town's Shop page over the mission
 			// on the same gate; the map's clock stands while it shows (DIV-4219).
-			if v.TakeShopRequest() && a.flow.openMissionShop() {
-				a.syncViewerLayout()
-				return false
+			// The standing requests are taken in row order, so a refused panel
+			// lets the Shop page open in the same frame.
+			for {
+				kind, ok := v.TakeCoverRequest()
+				if !ok {
+					break
+				}
+				if a.flow.openCover(kind, ScreenMap) {
+					a.syncViewerLayout()
+					return false
+				}
 			}
 
 			// THE LATTICE. It moves no camera, no selection and no world — it
@@ -3277,15 +3282,11 @@ func (a *App) holdMapUnderMenu(in appInput, now time.Time) {
 	a.holdMapUnder(a.flow.menuBack, in, now)
 }
 
-func (a *App) holdMapUnderDocuments(in appInput, now time.Time) {
-	a.holdMapUnder(a.flow.docBack, in, now)
-}
-
-// holdMapUnder is the body holdMapUnderMenu and holdMapUnderDocuments share:
+// holdMapUnder is the body holdMapUnderMenu and holdMapUnderCover share:
 // the three statements the map arm runs above its own popup gate, gated on
 // the screen the caller was armed from being the map. One implementation
 // rather than two copies with different field names, because the two
-// screens' own "back" fields (menuBack, docBack) are not the same field and
+// screens' own "back" fields (menuBack, cover.back) are not the same field and
 // must not be conflated at the call site.
 func (a *App) holdMapUnder(back Screen, in appInput, now time.Time) {
 	if back != ScreenMap {
@@ -3451,9 +3452,9 @@ func (a *App) stepDocuments(in appInput) {
 		p.step(+1)
 	case docControlOK:
 		// OK IS THE ORIGINAL'S ONE WAY OUT (MENU-DOC-009: the arm posts
-		// 0x445 and tears the window down). closeDocuments is the same
+		// 0x445 and tears the window down). closeCover is the same
 		// statement Escape reaches.
-		a.flow.closeDocuments()
+		a.flow.closeCover()
 		a.syncViewerLayout()
 	}
 }

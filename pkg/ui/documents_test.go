@@ -318,43 +318,43 @@ func TestDocumentControlAtAnswersTheThreeDecodedRectangles(t *testing.T) {
 }
 
 // TestOpenDocumentsRefusesAnEmptyCollectionAndRebuildsAtEveryOpen pins the two
-// rules flow.openDocuments carries: nothing collected does not open, and the
+// rules flow.openCover carries: nothing collected does not open, and the
 // panel is built from what the source answers NOW.
 func TestOpenDocumentsRefusesAnEmptyCollectionAndRebuildsAtEveryOpen(t *testing.T) {
 	src := &fakeDocumentSource{}
 	f := &flow{screen: ScreenMap, docSrc: src, docArt: documentsTestArt()}
 
-	if f.openDocuments(ScreenMap) {
-		t.Fatal("openDocuments opened over an empty collection")
+	if f.openCover(CoverDocuments, ScreenMap) {
+		t.Fatal("openCover opened over an empty collection")
 	}
 	if f.screen != ScreenMap || f.docPanel != nil {
 		t.Fatalf("a refused open left screen %v panel %v", f.screen, f.docPanel)
 	}
 
 	src.pages = []DocumentPage{{Text: "one"}}
-	if !f.openDocuments(ScreenMap) {
-		t.Fatal("openDocuments refused a collection of one")
+	if !f.openCover(CoverDocuments, ScreenMap) {
+		t.Fatal("openCover refused a collection of one")
 	}
-	if f.screen != ScreenDocuments || f.docBack != ScreenMap || len(f.docPanel.pages) != 1 {
-		t.Fatalf("open left screen %v back %v pages %d", f.screen, f.docBack, len(f.docPanel.pages))
+	if f.screen != ScreenDocuments || f.cover.back != ScreenMap || len(f.docPanel.pages) != 1 {
+		t.Fatalf("open left screen %v back %v pages %d", f.screen, f.cover.back, len(f.docPanel.pages))
 	}
 
-	f.closeDocuments()
+	f.closeCover()
 	if f.screen != ScreenMap || f.docPanel != nil {
 		t.Fatalf("close left screen %v panel %v", f.screen, f.docPanel)
 	}
 
 	// The collection grew between the two opens, and the second panel sees it.
 	src.pages = append(src.pages, DocumentPage{Text: "two"})
-	if !f.openDocuments(ScreenTown) {
-		t.Fatal("openDocuments refused a collection of two")
+	if !f.openCover(CoverDocuments, ScreenTown) {
+		t.Fatal("openCover refused a collection of two")
 	}
 	if len(f.docPanel.pages) != 2 {
 		t.Fatalf("the second open built %d pages, want 2 — the source is asked at every open",
 			len(f.docPanel.pages))
 	}
-	if f.docBack != ScreenTown {
-		t.Fatalf("docBack = %v, want the screen this open was armed from", f.docBack)
+	if f.cover.back != ScreenTown {
+		t.Fatalf("back = %v, want the screen this open was armed from", f.cover.back)
 	}
 }
 
