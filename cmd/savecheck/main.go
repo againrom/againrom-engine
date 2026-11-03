@@ -134,6 +134,8 @@ func reportWitness(front *game.FrontEnd, w *sim.World, ticks int, stdout io.Writ
 		len(structures), classes, len(cells), len(w.Structures()))
 	fmt.Fprintf(stdout, "savecheck: witness effects %d projectiles %d sacks %d\n",
 		len(w.SavedSpellEffects()), len(w.SavedProjectiles().Items), len(w.Sacks()))
+	var watched []sim.EntityID
+	reportEffects(w, "after LOAD", &watched, stdout)
 	if bank, ok := w.ROM2ScenarioState(); ok {
 		set := 0
 		for _, v := range bank {
@@ -147,8 +149,74 @@ func reportWitness(front *game.FrontEnd, w *sim.World, ticks int, stdout io.Writ
 		fmt.Fprintf(stdout, "savecheck: witness view %.0f/%.0f zoom %.2f selection %v structures %v book open %v inventory open %v pressed %d period %dus paused %v\n",
 			a.ViewX, a.ViewY, a.Zoom, a.Selection, a.Structures, a.SpellBookOpen, a.InventoryOpen, a.PressedSpell, a.PeriodUS, a.PlayerPaused)
 	}
-	front.LiveAdvance(ticks)
+	// The first ticks run one by one while a spell effect or projectile the
+	// file carried lives, each followed by what the World then holds.
+	left := ticks
+	for left > 0 && len(w.SavedSpellEffects())+len(w.SavedProjectiles().Items) > 0 {
+		front.LiveAdvance(1)
+		left--
+		reportEffects(w, fmt.Sprintf("after tick %d", ticks-left), &watched, stdout)
+	}
+	front.LiveAdvance(left)
 	fmt.Fprintf(stdout, "savecheck: witness after %d ticks: tick %d hash %016x\n", ticks, w.Tick(), w.Hash())
+}
+
+// reportEffects prints each top-level spell effect the World carries with
+// the effects it nests, a transport's countdown, a point's target and that
+// actor's health, and each projectile with its segments and target. Every
+// point target it has seen joins watched, whose health it prints each time.
+func reportEffects(w *sim.World, when string, watched *[]sim.EntityID, stdout io.Writer) {
+	health := func(id sim.EntityID) string {
+		for _, e := range w.Entities() {
+			if e.ID == id {
+				return fmt.Sprintf("actor %d hp %d/%d", id, e.HP, e.MaxHP)
+			}
+		}
+		return fmt.Sprintf("actor %d absent", id)
+	}
+	var roots []string
+	if g := w.SavedSpellGraph(); g != nil {
+		var node func(id uint32) string
+		node = func(id uint32) string {
+			if id == 0 || int(id) > len(g.Nodes) {
+				return "none"
+			}
+			n := g.Nodes[id-1]
+			s := fmt.Sprintf("%s spell %d", n.Value.Class, n.Spell)
+			switch n.Value.Class {
+			case "SpellTransport":
+				s += fmt.Sprintf(" countdown %d primary (%s) fallback (%s)", n.Value.ST4C, node(n.Primary), node(n.Fallback))
+			case "PointEffect":
+				s += fmt.Sprintf(" key %d", n.Value.PE44)
+				if n.HasTarget {
+					s += " " + health(n.Target)
+					if !slices.Contains(*watched, n.Target) {
+						*watched = append(*watched, n.Target)
+					}
+				}
+				if p := n.Value.PE48; p != nil {
+					s += fmt.Sprintf(" payload %s damage %d+%d school %d supported %v", p.Class, p.DirectDamage[19], p.DirectDamage[20], p.DirectDamage[21], sim.SavedAreaPayloadSupported(p))
+				}
+			}
+			return s
+		}
+		for _, id := range g.Roots {
+			roots = append(roots, node(id))
+		}
+	} else {
+		for _, e := range w.SavedSpellEffects() {
+			roots = append(roots, e.Class+" unbound")
+		}
+	}
+	var shots []string
+	for _, p := range w.SavedProjectiles().Items {
+		shots = append(shots, fmt.Sprintf("Prj%d picture %d at %d/%d segments %d target %d", p.ID, p.Picture, p.X, p.Y, p.ActionSegments, p.ActionTarget))
+	}
+	var targets []string
+	for _, id := range *watched {
+		targets = append(targets, health(id))
+	}
+	fmt.Fprintf(stdout, "savecheck: witness %s: tick %d effects %d %q projectiles %d %q targets %q\n", when, w.Tick(), len(roots), roots, len(shots), shots, targets)
 }
 
 // doSave starts a mission through the SAME opener the game's own door uses,
@@ -350,6 +418,7 @@ func doLoad(front *game.FrontEnd, store game.SaveStore, original game.OriginalSt
 	// crossing. It is off by default because every other verb here reads and
 	// writes nothing.
 	if resave {
+		reportEffects(w, "before the resave", new([]sim.EntityID), stdout)
 		save, _, _ := front.SaveSeams(store, game.OriginalStore{}, nil)
 		out, err := save(true)
 		if err != nil {

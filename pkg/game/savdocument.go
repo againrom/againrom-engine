@@ -12,9 +12,27 @@ import (
 const snapshotSAVDocumentVersion uint32 = 1
 
 func decodeSavedDocument(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObjectOrigin) {
+	state, origins, _ := decodeSavedRecord(raw)
+	return state, origins
+}
+
+// heldDocument is a document that decoded whole but that no claim admits as
+// complete: the profile places no formation block. The LOAD binds only the
+// world effects through it; the loaded state keeps their family alone.
+type heldDocument struct {
+	doc     *sav.DocumentData
+	origins []sav.DocumentObjectOrigin
+}
+
+// decodeSavedRecord is decodeSavedDocument that also returns the document a
+// partial state could not admit, when it decoded.
+func decodeSavedRecord(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObjectOrigin, *heldDocument) {
 	doc, origins, err := sav.DecodeDocumentDataWithOrigins(raw)
+	var held *heldDocument
 	if err == nil {
-		err = savedFormationBlock(&doc)
+		if err = savedFormationBlock(&doc); err != nil {
+			held = &heldDocument{doc: &doc, origins: origins}
+		}
 	}
 	if err != nil {
 		// Partial legacy inputs remain playable through the established import
@@ -23,12 +41,12 @@ func decodeSavedDocument(raw []byte) (*SnapshotSAVDocument, []sav.DocumentObject
 		if len(reason) > 4096 {
 			reason = reason[:4096]
 		}
-		return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Unavailable: reason}, nil
+		return &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Unavailable: reason}, nil, held
 	}
 	state := &SnapshotSAVDocument{Version: snapshotSAVDocumentVersion, Document: &doc}
 	// A file decode does not fail.
 	_ = decodeWorldCarriersFrom(fileRecord, carrierDecode{state: state})
-	return state, origins
+	return state, origins, nil
 }
 
 // SnapshotSAVReferenceMiss is a Token Reference the loaded file held without
@@ -58,6 +76,12 @@ type SnapshotSAVDocument struct {
 	// ReferenceMisses are the loaded file's Token Reference misses (SAV-1376),
 	// kept from LOAD because play rewrites Document; nil writes every Reference.
 	ReferenceMisses []SnapshotSAVReferenceMiss `json:",omitempty"`
+	// LoadedEffects is, beside a partial state, the world-effect family its
+	// record held: a document of the World effect list and the records it
+	// reaches, and the WorldEffects binding the World's drivers to them. A
+	// SAVE writes that family as it writes a complete document's (DIV-4175).
+	// Nil when the record held none.
+	LoadedEffects *SnapshotSAVDocument `json:",omitempty"`
 }
 
 // ObjectIndex is the DTO's local index, NOT SourceBinding.ArchiveIndex. A
@@ -80,9 +104,13 @@ func cloneSavedDocument(src *SnapshotSAVDocument, allowCurrentSackDrift ...bool)
 		if src.Unavailable == "" || len(src.Unavailable) > 4096 || strings.ContainsRune(src.Unavailable, '\x00') || len(src.Actors) != 0 || src.GroupBindings != nil || src.PlayerRoots != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.WorldEffects != nil || src.ReferenceMisses != nil {
 			return nil, fmt.Errorf("saved SAV document has invalid unavailable state")
 		}
-		return &SnapshotSAVDocument{Version: src.Version, Unavailable: src.Unavailable}, nil
+		effects, err := cloneLoadedEffects(src.LoadedEffects)
+		if err != nil {
+			return nil, err
+		}
+		return &SnapshotSAVDocument{Version: src.Version, Unavailable: src.Unavailable, LoadedEffects: effects}, nil
 	}
-	if src.Unavailable != "" || len(src.Actors) > len(src.Document.Objects) || len(src.ReferenceMisses) > len(src.Document.Objects) {
+	if src.Unavailable != "" || src.LoadedEffects != nil || len(src.Actors) > len(src.Document.Objects) || len(src.ReferenceMisses) > len(src.Document.Objects) {
 		return nil, fmt.Errorf("saved SAV document has conflicting state or too many actor bindings")
 	}
 	doc, permutation, err := sav.ReindexDocumentData(*src.Document)
@@ -348,28 +376,8 @@ func snapshotSavedDocument(ms *Mission, fresh ...bool) (*SnapshotSAVDocument, er
 	return state, nil
 }
 
-func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin) error {
-	if state == nil || state.Document == nil {
-		return restoreSavedDocument(ms, state)
-	}
-	byArchive := make(map[uint16]uint16, len(origins))
-	for _, origin := range origins {
-		if origin.ArchiveIndex == 0 || origin.ObjectIndex == 0 || byArchive[origin.ArchiveIndex] != 0 {
-			return fmt.Errorf("SAV document has an ambiguous import origin")
-		}
-		byArchive[origin.ArchiveIndex] = origin.ObjectIndex
-	}
-	bound := *state
-	for _, e := range ms.World.Entities() {
-		if e.SourceBinding.Class != 0 {
-			object := byArchive[e.SourceBinding.ArchiveIndex]
-			if object == 0 {
-				return fmt.Errorf("SAV document lacks exact import origin for actor %d", e.ID)
-			}
-			bound.Actors = append(bound.Actors, SnapshotSAVActor{EntityID: e.ID, ObjectIndex: object})
-		}
-	}
-	slices.SortFunc(bound.Actors, func(a, b SnapshotSAVActor) int {
+func sortSavedActors(actors []SnapshotSAVActor) {
+	slices.SortFunc(actors, func(a, b SnapshotSAVActor) int {
 		if a.EntityID < b.EntityID {
 			return -1
 		}
@@ -378,7 +386,43 @@ func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.
 		}
 		return 0
 	})
-	var err error
+}
+
+// savedActorBindings binds each imported actor of world to its document
+// object by the exact import origin, and returns the origins by archive
+// index.
+func savedActorBindings(world *sim.World, origins []sav.DocumentObjectOrigin) ([]SnapshotSAVActor, map[uint16]uint16, error) {
+	byArchive := make(map[uint16]uint16, len(origins))
+	for _, origin := range origins {
+		if origin.ArchiveIndex == 0 || origin.ObjectIndex == 0 || byArchive[origin.ArchiveIndex] != 0 {
+			return nil, nil, fmt.Errorf("SAV document has an ambiguous import origin")
+		}
+		byArchive[origin.ArchiveIndex] = origin.ObjectIndex
+	}
+	var actors []SnapshotSAVActor
+	for _, e := range world.Entities() {
+		if e.SourceBinding.Class != 0 {
+			object := byArchive[e.SourceBinding.ArchiveIndex]
+			if object == 0 {
+				return nil, nil, fmt.Errorf("SAV document lacks exact import origin for actor %d", e.ID)
+			}
+			actors = append(actors, SnapshotSAVActor{EntityID: e.ID, ObjectIndex: object})
+		}
+	}
+	return actors, byArchive, nil
+}
+
+func importSavedDocument(ms *Mission, state *SnapshotSAVDocument, origins []sav.DocumentObjectOrigin) error {
+	if state == nil || state.Document == nil {
+		return restoreSavedDocument(ms, state)
+	}
+	bound := *state
+	actors, byArchive, err := savedActorBindings(ms.World, origins)
+	if err != nil {
+		return err
+	}
+	bound.Actors = append(bound.Actors, actors...)
+	sortSavedActors(bound.Actors)
 	bound.GroupBindings, err = importSavedGroupBindings(state.Document, ms.World, byArchive)
 	if err != nil {
 		return err

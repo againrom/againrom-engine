@@ -3924,5 +3924,13 @@ var Committed = Baseline{
 	// It rose for the one Mover byte producer pkg/sim/moverbytes.go and the
 	// scan internal/archtest/moverbytes.go, less the writers' moved comments.
 	// It rose for clearPursuitVictim in the producer and the clear shape.
-	CommentBytes: 10469178,
+	// It rose for the second game's held world-effect family: the doc
+	// comments in pkg/game/savdocument.go, savworldeffects.go and
+	// originalrestore.go, reportEffects in cmd/savecheck/main.go, the
+	// flight tests in pkg/game/secondmissionflight_test.go and their
+	// fixture, and this note.
+
+	// It rose for the held path's refused bind: savworldeffects.go, the
+	// refused-cloud test and its fixture, and this note.
+	CommentBytes: 10475209,
 }

@@ -246,8 +246,10 @@ func worldCarrierSet() []worldCarrier {
 		{home: "World saved spell effects and projectiles (DIV-4175)",
 			absence: leaveUnboundEffectsOut,
 			build: map[carrierBuildPoint]func(carrierBuild) error{
-				keysBuild:    func(c carrierBuild) error { return c.b.reserveWorldEffectKeys(c.s.SavedDocument, c.w) },
-				effectsBuild: func(c carrierBuild) error { return c.b.currentWorldEffects(c.s.SavedDocument, c.w) }}},
+				keysBuild: func(c carrierBuild) error {
+					return c.b.reserveWorldEffectKeys(worldEffectSource(c.s.SavedDocument), c.w)
+				},
+				effectsBuild: func(c carrierBuild) error { return c.b.currentWorldEffects(worldEffectSource(c.s.SavedDocument), c.w) }}},
 		{home: "a Pointer's UseAmount, the action slot its map placement derives",
 			transform: func(c carrierLoad) { restorePointerSlots(c.w, c.m, c.table) }},
 		{home: "World ROM2 scenario state, the second game's Scenario bank",

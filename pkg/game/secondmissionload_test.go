@@ -29,14 +29,28 @@ func secondMissionStore(speed, bookOpen, pressed int32) []byte {
 
 // secondMissionWholeStore is secondMissionStore with the Character, Fog and
 // Projectiles directories each EN mission file holds, nine in all: the
-// store the complete document decode admits.
-func secondMissionWholeStore(speed, bookOpen, pressed int32) []byte {
+// store the complete document decode admits. Each of shots is a Prj
+// directory with its sixteen keys (R2-SESSION-244), and FreeIndex follows
+// the last.
+func secondMissionWholeStore(speed, bookOpen, pressed int32, shots ...sim.SavedProjectile) []byte {
+	leaf := func(name string, v int32) synth.RegNode { return synth.RegNode{Name: name, Kind: 0x02, Int: v} }
+	ids, free := []int32{}, int32(0)
+	var dirs []synth.RegNode
+	for _, p := range shots {
+		ids, free = append(ids, int32(p.ID)), int32(p.ID)+1
+		var keys []synth.RegNode
+		for i, v := range [...]int32{p.X, p.Y, p.Z, p.Picture, p.Dir, p.Phase, p.LastAction, p.Action, p.ActionDir, p.ActionTarget, p.ActionX, p.ActionY, p.ActionZ, p.ActionPhase, p.ActionSegments, p.ActionSpell} {
+			keys = append(keys, leaf(projectileFieldNames[i], v))
+		}
+		dirs = append(dirs, synth.RegNode{Name: "Prj" + strconv.Itoa(int(p.ID)), Kind: 0x01, Children: keys})
+	}
 	nodes := append(secondMissionStoreNodes(speed, bookOpen, pressed),
 		synth.RegNode{Name: "Character", Kind: 0x01, Children: []synth.RegNode{{Name: "Name", Kind: 0x00, Str: "Hero"}}},
 		synth.RegNode{Name: "Fog", Kind: 0x01, Children: []synth.RegNode{
 			{Name: "Data", Kind: 0x06, Ints: []int32{1600}}, {Name: "FirstState", Kind: 0x02}}},
 		synth.RegNode{Name: "Projectiles", Kind: 0x01, Children: []synth.RegNode{
-			{Name: "FreeIndex", Kind: 0x02}, {Name: "IDs", Kind: 0x06, Ints: []int32{}}}})
+			leaf("FreeIndex", free), {Name: "IDs", Kind: 0x06, Ints: ids}}})
+	nodes = append(nodes, dirs...)
 	slices.SortFunc(nodes, func(a, b synth.RegNode) int { return strings.Compare(a.Name, b.Name) })
 	return synth.Reg(0x11, nodes)
 }
@@ -77,12 +91,14 @@ func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondM
 // archive, the mission font, without which a notice takes no input, and the
 // map's side: 40 cells when zero, which leaves the fallback drop off the map,
 // the mission's number, 10 when zero, type-6 placements and Humans rows the
-// table holds at the given rows, the rows between them empty.
+// table holds at the given rows, the rows between them empty. graphics are
+// files of the graphics archive, which is absent when there are none.
 type secondMissionContent struct {
 	objects  []alm.Object
 	actions  []alm.ScriptNode
 	pointers []alm.StructureAction
 	main     []synth.File
+	graphics []synth.File
 	font     bool
 	side     int
 	mission  int
@@ -197,6 +213,12 @@ func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
 	if len(c.main) != 0 {
 		paths = append(paths, filepath.Join(dir, MainArchive))
 		if err := os.WriteFile(paths[1], synth.Archive(c.main), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(c.graphics) != 0 {
+		paths = append(paths, filepath.Join(dir, GraphicsArchive))
+		if err := os.WriteFile(paths[len(paths)-1], synth.Archive(c.graphics), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}

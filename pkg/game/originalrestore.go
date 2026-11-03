@@ -52,6 +52,9 @@ type originalSource struct {
 	hasBuildings      bool
 	missionDocument   *SnapshotSAVDocument
 	documentOrigins   []sav.DocumentObjectOrigin
+	// heldDocument is the decoded document a partial missionDocument could
+	// not admit; only the world effects bind through it.
+	heldDocument *heldDocument
 	// fileView is that the first frame comes from the file's state store
 	// when it has no complete document.
 	fileView bool
@@ -128,7 +131,7 @@ func decodeOriginalSource(saved []byte, mods mapload.ModContext, campaign Campai
 		hasProjectiles: hasProjectiles, diaryChars: diaryChars, diaryPlayerRec: diaryPlayerRec,
 		session: session, hasSession: hasSession, guest: guest, fileView: stated.fileView}
 	if n != 0 {
-		src.missionDocument, src.documentOrigins = decodeSavedDocument(saved)
+		src.missionDocument, src.documentOrigins, src.heldDocument = decodeSavedRecord(saved)
 		if err := validateOriginalApplicationSource(src.missionDocument.Document); err != nil {
 			return nil, err
 		}
@@ -520,7 +523,7 @@ func (src *originalSource) prepareMission(in originalInstall, plan *originalMiss
 			if err := importOriginalActorEffects(ms); err != nil {
 				return err
 			}
-			if err := importOriginalWorldEffects(ms, in.archives.Containers); err != nil {
+			if err := importOriginalWorldEffects(ms, in.archives.Containers, src.heldDocument); err != nil {
 				return err
 			}
 			if err := restoreOriginalActions(ms, in.table); err != nil {

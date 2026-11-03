@@ -262,11 +262,26 @@ func secondSavedWorldOf(mission uint32, money uint32, hero *secondOriginalHero, 
 	return secondSavedPartyOf(mission, money, party, world, extra, pointers)
 }
 
+// secondSavedFlight is one top-level SpellTransport of a fixture world as
+// game0006 holds it (R2-SESSION-260): its countdown word, nesting a
+// PointEffect with a saved target key, nesting an Effect_DirectDamage with
+// its 24 raw bytes. Both SpellEffect bytes are 0 and 1. The Token row is
+// the spell. A cloud flight is instead one top-level AreaEffect of the
+// cloud mode with no identity, nesting an Effect: a record the world-effect
+// binder refuses.
+type secondSavedFlight struct {
+	cloud     bool
+	spell     uint16
+	countdown uint16
+	target    uint32
+	damage    [24]byte
+}
+
 // secondSavedPartyOf is secondSavedWorldOf with the Player's party: the
 // first member is the hero, and each member stands in a group of his own,
 // as the original's files hold a joined companion. An empty party writes
-// one empty group.
-func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero, world bool, extra int, pointers []secondSavedPointer) []byte {
+// one empty group. The world's SpellEffects list holds flights.
+func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero, world bool, extra int, pointers []secondSavedPointer, flights ...secondSavedFlight) []byte {
 	s := &secondStream{next: 1, classes: map[string]uint16{}}
 	s.u32(0x50)
 	s.u32(0x05)
@@ -358,7 +373,45 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 			s.u32(p.word)
 		}
 	}
-	s.u32(0) // SpellEffects
+	s.u32(uint32(len(flights))) // SpellEffects
+	for i, f := range flights {
+		// Each record is the second game's Token head and the class
+		// programme: SE40 and SE41, then the nested records and fields.
+		key := 0x0e100001 + 4*uint32(i)
+		if f.cloud {
+			s.obj("AreaEffect")
+			s.token(0, f.spell, 1, 0, 0)
+			s.u8(0)
+			s.u8(1)
+			s.raw(4) // AE48
+			s.u16(0) // AE4C
+			s.obj("Effect")
+			s.token(0, 0, 0, 0, key+1)
+			s.u8(0)
+			s.u8(0)
+			s.u32(0)
+			s.u16(0)
+			continue
+		}
+		s.obj("SpellTransport")
+		s.token(0, f.spell, 0, 0, key)
+		s.u8(0)
+		s.u8(1)
+		s.obj("PointEffect")
+		s.token(0, f.spell, 0, 0, key+1)
+		s.u8(0)
+		s.u8(1)
+		s.obj("Effect_DirectDamage")
+		s.token(0, 0, 0, 0, key+2)
+		s.u8(0)
+		s.u8(0)
+		s.u32(0)
+		s.u16(0)
+		s.b = append(s.b, f.damage[:]...)
+		s.u32(f.target)
+		s.null() // no fallback
+		s.u16(f.countdown)
+	}
 	s.u16(0) // terrain blocks
 	s.u16(0) // terrain cells
 	s.raw(4 + 10374)

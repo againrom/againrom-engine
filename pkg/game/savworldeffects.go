@@ -33,8 +33,45 @@ type SnapshotSAVArea struct {
 
 const detachedProjectileTarget = sim.EntityID(math.MaxUint32)
 
-func importOriginalWorldEffects(ms *Mission, src entrySource) error {
+// importOriginalWorldEffects binds the loaded file's world effects and
+// projectiles to the World's drivers. A partial state binds them through the
+// document it held, its actors by their exact import origins, and keeps only
+// their family (DIV-4175). A held document the binder refuses keeps its
+// records carried and unbound, as a partial state did before; the LOAD is
+// not refused for them. The binder reads the World and writes it only in its
+// two closing imports, so the drivers the first import armed are put back
+// when the second refuses, and a refused bind leaves the World as it was.
+func importOriginalWorldEffects(ms *Mission, src entrySource, held *heldDocument) error {
 	state := ms.savedDocument
+	if state == nil || state.Document != nil || held == nil || held.doc.World == nil {
+		return bindOriginalWorldEffects(ms, src, state)
+	}
+	before := ms.World.SavedWorldEffectDrivers()
+	view, err := bindHeldWorldEffects(ms, src, state, held)
+	if err != nil {
+		if restore := ms.World.ImportOriginalWorldEffectDrivers(before); restore != nil {
+			return restore
+		}
+		return nil
+	}
+	state.LoadedEffects, err = loadedEffectFamily(view)
+	return err
+}
+
+func bindHeldWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocument, held *heldDocument) (*SnapshotSAVDocument, error) {
+	actors, _, err := savedActorBindings(ms.World, held.origins)
+	if err != nil {
+		return nil, err
+	}
+	sortSavedActors(actors)
+	view := &SnapshotSAVDocument{Version: state.Version, Document: held.doc, Actors: actors}
+	if err := bindOriginalWorldEffects(ms, src, view); err != nil {
+		return nil, err
+	}
+	return view, nil
+}
+
+func bindOriginalWorldEffects(ms *Mission, src entrySource, state *SnapshotSAVDocument) error {
 	if state == nil || state.Document == nil {
 		return nil
 	}
@@ -246,6 +283,71 @@ func importOriginalWorldEffects(ms *Mission, src entrySource) error {
 	return nil
 }
 
+// loadedEffectFamily keeps of a bound state only its World effect list and
+// the records it reaches, renumbered in visit order, with its WorldEffects
+// remapped to them. Nil when the state bound no world effect or projectile.
+func loadedEffectFamily(state *SnapshotSAVDocument) (*SnapshotSAVDocument, error) {
+	if state.WorldEffects == nil {
+		return nil, nil
+	}
+	family, err := worldEffectRecords(state.Document)
+	if err != nil {
+		return nil, err
+	}
+	moved := make([]uint16, len(state.Document.Objects)+1)
+	for i, index := range family {
+		moved[index] = uint16(i + 1)
+	}
+	doc := &sav.DocumentData{Version: state.Document.Version, FileVersion: state.Document.FileVersion, Game: state.Document.Game, World: &sav.DocumentWorldData{}}
+	for _, index := range family {
+		r := cloneEffectRecord(state.Document.Objects[index-1])
+		for i := range r.RefSlots {
+			for j, child := range r.RefSlots[i].Objects {
+				r.RefSlots[i].Objects[j] = moved[child]
+			}
+		}
+		doc.Objects = append(doc.Objects, r)
+	}
+	for _, root := range state.Document.World.Effects {
+		doc.World.Effects = append(doc.World.Effects, moved[root])
+	}
+	out := &SnapshotSAVDocument{Version: state.Version, Document: doc, WorldEffects: state.WorldEffects}
+	return out, remapSavedWorldEffects(out, moved)
+}
+
+// cloneLoadedEffects copies a partial state's world-effect family; every
+// record it holds is one its effect list reaches.
+func cloneLoadedEffects(src *SnapshotSAVDocument) (*SnapshotSAVDocument, error) {
+	if src == nil {
+		return nil, nil
+	}
+	if src.Version != snapshotSAVDocumentVersion || src.Document == nil || src.Document.World == nil || src.WorldEffects == nil || src.Unavailable != "" || len(src.Actors) != 0 || src.LoadedEffects != nil ||
+		src.GroupBindings != nil || src.PlayerRoots != nil || src.PlayerPurses != nil || src.Objects != nil || src.ActorEffects != nil || src.ReferenceMisses != nil {
+		return nil, fmt.Errorf("saved SAV world-effect family is invalid")
+	}
+	meta, err := cloneSavedWorldEffects(src.WorldEffects, src.Document)
+	if err != nil {
+		return nil, err
+	}
+	out, err := loadedEffectFamily(&SnapshotSAVDocument{Version: src.Version, Document: src.Document, WorldEffects: meta})
+	if err != nil {
+		return nil, err
+	}
+	if out == nil || len(out.Document.Objects) != len(src.Document.Objects) {
+		return nil, fmt.Errorf("saved SAV world-effect family holds a record its list does not reach")
+	}
+	return out, nil
+}
+
+// worldEffectSource is the loaded state whose world-effect family a SAVE
+// writes: a complete document's own, or the family a partial state kept.
+func worldEffectSource(loaded *SnapshotSAVDocument) *SnapshotSAVDocument {
+	if loaded != nil && loaded.Document == nil {
+		return loaded.LoadedEffects
+	}
+	return loaded
+}
+
 func cloneSavedWorldEffects(src *SnapshotSAVWorldEffects, doc *sav.DocumentData) (*SnapshotSAVWorldEffects, error) {
 	if src == nil {
 		return nil, nil
@@ -348,6 +450,15 @@ func remapSavedWorldEffects(state *SnapshotSAVDocument, permutation []uint16) er
 }
 
 func validateSavedWorldEffectsWorld(state *SnapshotSAVDocument, world *sim.World) error {
+	if state != nil && state.Document == nil && state.LoadedEffects != nil {
+		// A partial state's World binds its graph to the family it kept and
+		// its projectiles to no record; the SAVE checks the document it
+		// writes from both.
+		if g := world.SavedSpellGraph(); g != nil && (state.LoadedEffects == nil || len(state.LoadedEffects.WorldEffects.SpellNodes) != len(g.Nodes)) {
+			return fmt.Errorf("spell graph document lost")
+		}
+		return nil
+	}
 	if err := validateSavedSpellGraph(state, world); err != nil {
 		return err
 	}
@@ -530,16 +641,18 @@ const unboundProjectileConsumers = "projectile picture-specific notification, vi
 const unboundCarriedWorldEffects = "legacy native world effects have no current continuation bindings"
 
 // leaveUnboundEffectsOut drops from a SAVE's copy of the World what a LOAD
-// without a decoded document carried with no continuation: the file's spell
-// effects and each projectile no driver row moves. Every writer of the
-// document then reads the same projectiles. Any game's such LOAD takes it
-// (DIV-4175); the World's loaded-record carrier names that LOAD.
+// without a complete document carried with no continuation: each projectile
+// no driver row moves, and the file's spell effects when no spell graph or
+// area driver binds them. A partial legacy input whose document did not
+// decode binds none (DIV-4175); the World's loaded-record carrier names that
+// LOAD. Every writer of the document then reads the same effects.
 func leaveUnboundEffectsOut(w *sim.World) bool {
 	if w.LoadedRecord() != sim.LoadedWithoutDocument {
 		return false
 	}
 	driven := map[uint16]bool{}
-	if d := w.SavedWorldEffectDrivers(); d != nil {
+	d := w.SavedWorldEffectDrivers()
+	if d != nil {
 		for _, p := range d.Projectiles {
 			driven[p.ID] = true
 		}
@@ -548,7 +661,9 @@ func leaveUnboundEffectsOut(w *sim.World) bool {
 	store.Items = slices.DeleteFunc(store.Items, func(p sim.SavedProjectile) bool { return !driven[p.ID] })
 	store.IDs = slices.DeleteFunc(store.IDs, func(id uint16) bool { return !driven[id] })
 	w.SetSavedProjectiles(store)
-	w.SetSavedSpellEffects(nil)
+	if w.SavedSpellGraph() == nil && (d == nil || len(d.Areas) == 0) {
+		w.SetSavedSpellEffects(nil)
+	}
 	return true
 }
 

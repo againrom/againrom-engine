@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] A spell in flight in a loaded mission save now finishes: it lands and does its damage, and a save made before it lands keeps it; before, it hung in the air, never landed and was dropped from the next save.
 - [BASE] Saving after loading a save of the original game keeps each character's current target, spell and aim point as that save held them, and each building's data as the original wrote it; before, some characters lost the target or spell and each building's data was rewritten.
 
 ### For map makers and modders
