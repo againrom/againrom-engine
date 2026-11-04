@@ -28,8 +28,9 @@ const (
 	popupSwitch                      // a label and a button that switches its value
 	popupMultiline
 	// popupCard heads a card: a grip with the card's number (its label), a
-	// drop-down (its value) and a small cross (its button); the card holds
-	// the Span rows after it. A drag from the grip moves the card.
+	// drop-down (its value, none when empty) and a small cross (its button);
+	// the card holds the Span rows after it. A drag from the grip moves the
+	// card.
 	popupCard
 )
 
@@ -930,6 +931,10 @@ func layoutPopup(s popupSpec, title, body *text.Font) popupLayout {
 			} else {
 				rr.Grip = rr.Label
 			}
+			if !row.Struck && row.Value == "" {
+				// A card with no drop-down: its number's line runs across.
+				rr.Label, rr.Control = line, image.Rectangle{}
+			}
 		}
 		if ws := rowButtonWidths(s, row, body, pitch); len(ws) > 0 {
 			rr.Buttons = make([]image.Rectangle, len(ws))
@@ -1457,7 +1462,9 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 			// A long value ends in an ellipsis inside its button.
 			drawPushButton(dst, body, pushButton{Press: held, Rect: rr.Control, Label: editorClip(body, row.Value, rr.Control.Dx()-12), Literal: true, LabelRaise: labelRaise(body), Focus: row.Focus, Hover: pointerOK && pointer.In(rr.Control)})
 		case popupChoice, popupCard:
-			drawDropdown(dst, body, frames, dropdown{Press: held, Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
+			if !rr.Control.Empty() {
+				drawDropdown(dst, body, frames, dropdown{Press: held, Rect: rr.Control, Text: row.Value, Focus: row.Focus, Fill: ink.Ground, Ink: value}, nil, pointer, pointerOK)
+			}
 		default:
 			bodyText(rr.Control, editorClip(body, row.Value, rr.Control.Dx()-2), value)
 		}

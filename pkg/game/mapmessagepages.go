@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"math/bits"
 	"slices"
 	"strconv"
 	"strings"
 
+	"againrom/pkg/data"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mod"
 	"againrom/pkg/render/textfit"
@@ -199,7 +202,72 @@ func (s *mapInspectionEdits) MessageFields(page uint32, source ...int) []ui.Insp
 	if !found {
 		choices = append(choices, ui.InspectionChoice{Value: speaker, Label: strconv.FormatInt(speaker, 10)})
 	}
-	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: s.npcPortraits(choices), IconTip: true, IconNotes: s.inspector.heroFaceNotes()}}
+	icons, notes := s.npcPortraits(choices), x.heroFaceNotes()
+	if len(source) > 1 {
+		s.heroFaces(ui.HeroAudience(source[1]), &icons, notes)
+	}
+	return []ui.InspectionField{workspaceText("body", x.inspectionUTF8(x.word("editor.pages.body")), body), {Key: "speaker", Label: x.inspectionUTF8(x.word("editor.message.speaker")), Value: speaker, Choices: choices, Icons: icons, IconTip: true, IconNotes: notes}}
+}
+
+// heroFaces gives the speakers whose person depends on the player's hero the
+// face the dialogue shows the heroes of a branch cell: the face the speaker
+// resolution gives a starting hero of each of them, when it gives one face
+// for all. Otherwise such a speaker keeps the list's face and says the face
+// for these heroes is not known. A cell of every hero changes nothing.
+func (s *mapInspectionEdits) heroFaces(heroes ui.HeroAudience, icons *map[int64]*image.RGBA, notes map[int64]string) {
+	if heroes == 0 || heroes == ui.EveryHero {
+		return
+	}
+	x := s.inspector
+	for _, role := range speakerRoles {
+		face, known := s.heroFace(role.ID, heroes)
+		if !known {
+			notes[role.ID] = x.inspectionUTF8(x.word("editor.message.herofaceunknown"))
+			continue
+		}
+		if *icons == nil {
+			*icons = map[int64]*image.RGBA{}
+		}
+		(*icons)[role.ID], notes[role.ID] = face, x.inspectionUTF8(x.word("editor.message.herofacecell"))
+	}
+}
+
+// heroFace is the one face speaker id shows every hero of heroes, through
+// the speaker resolution over the mission start with a planted starting hero
+// of each. There is none without an install or a mission world, for the
+// player's own hero (the face the player chooses), or when two of the heroes
+// see different faces.
+func (s *mapInspectionEdits) heroFace(id int64, heroes ui.HeroAudience) (*image.RGBA, bool) {
+	x := s.inspector
+	if x == nil || x.table == nil || x.archives == nil {
+		return nil, false
+	}
+	sp := s.missionStart()
+	rec, ok := sp.records[int32(id)]
+	if sp.world == nil || !ok || rec.Tokens.Has(data.NPCTokenMe) {
+		return nil, false
+	}
+	var face *image.RGBA
+	for h := range 4 {
+		if heroes&(1<<h) == 0 {
+			continue
+		}
+		key := heroFaceKey{id, h}
+		pic, tried := sp.heroFaces[key]
+		if !tried {
+			r := s.speakerResolver(sp)
+			r.cast = newSpeakerCast(plantedHero(h < 2, h%2 == 0), &speakerWorld{actors: sp.cast.actors, alive: sp.cast.alive, worn: sp.cast.worn})
+			if f, window, ok := r.SpeakerFace(int(id)); ok {
+				pic = ui.SpeakerPortrait(f, window)
+			}
+			sp.heroFaces[key] = pic
+		}
+		if pic == nil || face != nil && (face.Rect != pic.Rect || !bytes.Equal(face.Pix, pic.Pix)) {
+			return nil, false
+		}
+		face = pic
+	}
+	return face, face != nil
 }
 
 func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64) (*ui.InspectionDocument, error) {
@@ -214,14 +282,97 @@ func (s *mapInspectionEdits) SetMessage(page uint32, body string, speaker int64)
 	d := decodeMessageMarkup(raw)
 	parts := s.MessageParts(page)
 	if open, _, _, ok := eventPartRange([]byte(raw), 1, EventAudience{}); ok {
+		edited := false
 		for i := range parts {
 			if parts[i].Source >= 0 && d.Tags[parts[i].Source].Open == open {
-				parts[i].Body, parts[i].Speaker = body, speaker
-				return s.SetMessageParts(page, parts)
+				parts[i].Body, parts[i].Speaker, edited = body, speaker, true
 			}
+		}
+		if edited {
+			return s.SetMessageParts(page, parts)
 		}
 	}
 	return s.SetMessageParts(page, []ui.InspectionMessagePart{{Source: -1, Number: 1, Body: body, Speaker: speaker}})
+}
+
+// heroAudiences are the audiences of the four starting heroes in the cells'
+// order (ui.HeroAudience's bits), each as a mission on this map reads its
+// dialogue for that hero: the hero's sex and class, the speaker records of
+// the mission start, and the tag rules of the editor's game.
+func (s *mapInspectionEdits) heroAudiences() [4]EventAudience {
+	records := s.missionStart().records
+	var out [4]EventAudience
+	for h := range out {
+		out[h] = partyAudience(plantedHero(h < 2, h%2 == 0), records)
+		out[h].tags = s.inspector.eventTags()
+	}
+	return out
+}
+
+// messageCells are page d's parts as the dialog editor's cells, by part
+// number in the order the numbers first appear. A number has one cell per
+// hero audience the reader tells apart (ui.HeroCells): each the tag the
+// reader gives those heroes, or Ends when it gives none. The number's tags
+// no hero reaches follow, each Never.
+func messageCells(d messageMarkupDocument, heroes [4]EventAudience) []ui.InspectionMessagePart {
+	var order []int
+	groups := map[int][]int{}
+	for _, i := range d.pages() {
+		n := d.Tags[i].Number
+		if _, ok := groups[n]; !ok {
+			order = append(order, n)
+		}
+		groups[n] = append(groups[n], i)
+	}
+	at := map[int]int{}
+	for i, tag := range d.Tags {
+		at[tag.Open] = i
+	}
+	rules := heroes[0].tagRules()
+	cell := func(source, n int) ui.InspectionMessagePart {
+		tag := d.Tags[source]
+		_, body, _ := tag.text()
+		speaker := int64(-1)
+		if id, named := rules.speaker(tag.Tag); named {
+			speaker = int64(id)
+		}
+		return ui.InspectionMessagePart{Source: source, Number: n, Body: body, Tag: tag.Tag, Speaker: speaker, Other: tagOthers(tag.Tag)}
+	}
+	var out []ui.InspectionMessagePart
+	for _, n := range order {
+		var got [4]int
+		for h, aud := range heroes {
+			got[h] = -1
+			if open, _, _, ok := eventPartRange([]byte(d.Raw), n, aud); ok {
+				got[h] = at[open]
+			}
+		}
+		reached := map[int]bool{}
+		for _, h := range ui.HeroCells(got[0] != got[2] || got[1] != got[3], got[0] != got[1] || got[2] != got[3]) {
+			source := got[bits.TrailingZeros8(uint8(h))]
+			part := ui.InspectionMessagePart{Source: -1, Number: n, Speaker: -1, Ends: true}
+			if source >= 0 {
+				part, reached[source] = cell(source, n), true
+			}
+			part.Heroes = h
+			out = append(out, part)
+		}
+		for _, i := range groups[n] {
+			if !reached[i] {
+				part := cell(i, n)
+				part.Never = true
+				out = append(out, part)
+			}
+		}
+	}
+	return out
+}
+
+// tagOthers are a tag's conditions besides its part number, speaker and hero
+// literals, as the dialog editor lists them.
+func tagOthers(tag string) string {
+	rest := setHeroArms(setMessageAttribute(setMessageAttribute(tag, partMark, -1), speakerTag, -1))
+	return strings.Join(strings.FieldsFunc(rest, func(r rune) bool { return r == ',' || r == ' ' }), ", ")
 }
 
 func (s *mapInspectionEdits) MessageParts(page uint32) []ui.InspectionMessagePart {
@@ -236,22 +387,18 @@ func (s *mapInspectionEdits) MessageParts(page uint32) []ui.InspectionMessagePar
 		return nil
 	}
 	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
-	var out []ui.InspectionMessagePart
-	for _, i := range d.pages() {
-		tag := d.Tags[i]
-		speaker := int64(-1)
-		if id, named := tagSpeaker(tag.Tag); named {
-			speaker = int64(id)
-		}
-		_, body, _ := tag.text()
-		out = append(out, ui.InspectionMessagePart{Source: i, Number: tag.Number, Body: body, Speaker: speaker, Tag: tag.Tag})
-	}
+	out := messageCells(d, s.heroAudiences())
 	if len(out) == 0 {
 		out = append(out, ui.InspectionMessagePart{Source: -1, Number: 1, Body: d.Raw, Speaker: -1})
 	}
 	return out
 }
 
+// SetMessageParts writes parts to the page through the dialogue writer. When
+// they are the dialog editor's cells, every write is read again for the four
+// heroes, and one under which a hero would read other than its cell is
+// refused with nothing written: a speaker can open or close the speaker gate
+// and so move its tag to another cell's heroes.
 func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionMessagePart) (*ui.InspectionDocument, error) {
 	if s.prepareWorkspace() != nil || len(parts) == 0 {
 		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
@@ -261,13 +408,7 @@ func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionM
 		return nil, errors.New(s.inspector.word("editor.message.unavailable"))
 	}
 	d := decodeMessageMarkup(s.inspector.messageUTF8(raw))
-	indices := d.pages()
-	renumber := len(indices) != len(parts)
-	edits := make([]messagePageEdit, len(parts))
-	for i, part := range parts {
-		if i < len(indices) && indices[i] != part.Source {
-			renumber = true
-		}
+	for _, part := range parts {
 		fields := s.MessageFields(page, part.Source)
 		valid := false
 		if len(fields) == 2 {
@@ -278,10 +419,12 @@ func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionM
 		if !valid {
 			return nil, errors.New(s.inspector.word("editor.message.badspeaker"))
 		}
-		if part.Source >= 0 && part.Source < len(d.Tags) {
-			part.Number = d.Tags[part.Source].Number
-		}
-		edits[i] = messagePageEdit{part.Source, part.Number, part.Body, part.Speaker}
+	}
+	cells := slices.ContainsFunc(parts, func(p ui.InspectionMessagePart) bool { return p.Heroes != 0 || p.Never || p.Ends })
+	edits, renumber := tagEdits(d, parts)
+	heroes := s.heroAudiences()
+	if cells {
+		edits, renumber = cellEdits(d, messageCells(d, heroes), parts)
 	}
 	value, err := d.write(edits, renumber)
 	if err != nil {
@@ -290,10 +433,218 @@ func (s *mapInspectionEdits) SetMessageParts(page uint32, parts []ui.InspectionM
 	if value == d.Raw {
 		return nil, nil
 	}
+	if cells && !slices.Equal(cellReadings(parts), cellReadings(messageCells(decodeMessageMarkup(value), heroes))) {
+		return nil, errors.New(s.inspector.word("editor.message.unreached"))
+	}
 	previous := s.page
 	s.page = messageFilename(page)
 	defer func() { s.page = previous }()
 	return s.SetWorkspaceField("pages", "body", value)
+}
+
+// tagEdits are the writer's edits for parts that are each one tag as
+// written, in order; the page is renumbered unless they are its tags in
+// order.
+func tagEdits(d messageMarkupDocument, parts []ui.InspectionMessagePart) ([]messagePageEdit, bool) {
+	indices := d.pages()
+	renumber := len(indices) != len(parts)
+	edits := make([]messagePageEdit, len(parts))
+	for i, part := range parts {
+		if i < len(indices) && indices[i] != part.Source {
+			renumber = true
+		}
+		if part.Source >= 0 && part.Source < len(d.Tags) {
+			part.Number = d.Tags[part.Source].Number
+		}
+		edits[i] = messagePageEdit{Source: part.Source, Number: part.Number, Body: part.Body, Speaker: part.Speaker}
+	}
+	return edits, renumber
+}
+
+// cellEdits are the writer's edits for the dialog editor's cells, read the
+// page's cells as messageCells reads them. Cells standing as read write
+// each tag in place, so an untouched page writes its own bytes. Otherwise a
+// part number whose cells stand as read keeps its tags, and any other is
+// written cell by cell: each cell one tag naming its heroes by the hero
+// literals (heroLiterals), its never-shown tags after; the page is then
+// renumbered, as any change of its parts renumbers it.
+func cellEdits(d messageMarkupDocument, read, cells []ui.InspectionMessagePart) ([]messagePageEdit, bool) {
+	if sameCells(read, cells) {
+		texts := map[int]ui.InspectionMessagePart{}
+		for _, c := range cells {
+			if _, ok := texts[c.Source]; !ok && c.Source >= 0 {
+				texts[c.Source] = c
+			}
+		}
+		var edits []messagePageEdit
+		for _, i := range d.pages() {
+			edits = append(edits, messagePageEdit{Source: i, Number: d.Tags[i].Number, Body: texts[i].Body, Speaker: texts[i].Speaker})
+		}
+		return edits, false
+	}
+	byNumber := map[int][]ui.InspectionMessagePart{}
+	for _, c := range read {
+		byNumber[c.Number] = append(byNumber[c.Number], c)
+	}
+	var edits []messagePageEdit
+	used := map[int]bool{}
+	// A tag a second cell takes is copied: a new tag after the same line
+	// break, its text the cell's.
+	emit := func(c ui.InspectionMessagePart, tag string) {
+		e := messagePageEdit{Source: c.Source, Number: c.Number, Body: c.Body, Speaker: c.Speaker, Tag: tag}
+		if c.Source >= 0 && used[c.Source] {
+			e.Source = -1
+			e.Separator, _, _ = d.Tags[c.Source].text()
+			if e.Tag == "" {
+				e.Tag = d.Tags[c.Source].Tag
+			}
+		}
+		if c.Source >= 0 {
+			used[c.Source] = true
+		}
+		edits = append(edits, e)
+	}
+	for _, group := range cellGroups(cells) {
+		if sameCells(byNumber[group[0].Number], group) {
+			sources := map[int]bool{}
+			var kept []ui.InspectionMessagePart
+			for _, c := range group {
+				if !sources[c.Source] {
+					sources[c.Source] = true
+					kept = append(kept, c)
+				}
+			}
+			slices.SortStableFunc(kept, func(a, b ui.InspectionMessagePart) int { return a.Source - b.Source })
+			for _, c := range kept {
+				if c.Source >= 0 {
+					emit(c, "")
+				}
+			}
+			continue
+		}
+		var heroes []ui.HeroAudience
+		for _, c := range group {
+			if !c.Never {
+				heroes = append(heroes, c.Heroes)
+			}
+		}
+		sex, class := ui.HeroSplit(heroes)
+		for _, c := range group {
+			if c.Never || c.Ends && c.Body == "" {
+				continue
+			}
+			tag := partMark + "1"
+			if c.Source >= 0 {
+				tag = d.Tags[c.Source].Tag
+			}
+			emit(c, setHeroArms(tag, heroLiterals(c.Heroes, sex, class)...))
+		}
+		for _, c := range group {
+			if c.Never {
+				emit(c, "")
+			}
+		}
+	}
+	return edits, true
+}
+
+// sameCells reports that cells stand as read: the same tags for the same
+// heroes in the same order, no text where a dialogue ends, and one text and
+// speaker for each tag however many cells hold it.
+func sameCells(read, cells []ui.InspectionMessagePart) bool {
+	if len(read) != len(cells) {
+		return false
+	}
+	texts := map[int]ui.InspectionMessagePart{}
+	for i, c := range cells {
+		r := read[i]
+		if c.Source != r.Source || c.Number != r.Number || c.Heroes != r.Heroes || c.Never != r.Never || c.Ends != r.Ends || c.Ends && c.Body != "" {
+			return false
+		}
+		if t, ok := texts[c.Source]; ok && c.Source >= 0 && (t.Body != c.Body || t.Speaker != c.Speaker) {
+			return false
+		}
+		texts[c.Source] = c
+	}
+	return true
+}
+
+// cellGroups are cells cut into runs of one part number.
+func cellGroups(cells []ui.InspectionMessagePart) [][]ui.InspectionMessagePart {
+	var out [][]ui.InspectionMessagePart
+	for i, c := range cells {
+		if i == 0 || cells[i-1].Number != c.Number {
+			out = append(out, nil)
+		}
+		out[len(out)-1] = append(out[len(out)-1], c)
+	}
+	return out
+}
+
+// heroLiterals are the hero literals naming the heroes of a cell of a part
+// told apart by sex, by class, or both: its sex's literal when by sex, its
+// class's when by class. A cell of every hero names none.
+func heroLiterals(h ui.HeroAudience, sex, class bool) []string {
+	if h == 0 {
+		h = ui.EveryHero
+	}
+	women, men := h&(ui.HeroWomanMage|ui.HeroWomanFighter) != 0, h&(ui.HeroManMage|ui.HeroManFighter) != 0
+	mages, fighters := h&(ui.HeroWomanMage|ui.HeroManMage) != 0, h&(ui.HeroWomanFighter|ui.HeroManFighter) != 0
+	// eventArms opens with iamfemale, iammale, iammage and iamfighter.
+	var lits []string
+	if sex && women != men {
+		lit := eventArms[1].lit
+		if women {
+			lit = eventArms[0].lit
+		}
+		lits = append(lits, lit)
+	}
+	if class && mages != fighters {
+		lit := eventArms[3].lit
+		if mages {
+			lit = eventArms[2].lit
+		}
+		lits = append(lits, lit)
+	}
+	return lits
+}
+
+// heroReading is what one part gives one hero: its text and speaker, or
+// nothing.
+type heroReading struct {
+	shown   bool
+	body    string
+	speaker int64
+}
+
+// cellReadings are what each part of cells gives each of the four heroes,
+// part by part in order; a part that gives no hero anything is left out, as
+// it writes no tag.
+func cellReadings(cells []ui.InspectionMessagePart) [][4]heroReading {
+	var out [][4]heroReading
+	for _, group := range cellGroups(cells) {
+		var r [4]heroReading
+		shown := false
+		for h := range r {
+			for _, c := range group {
+				held := c.Heroes
+				if held == 0 {
+					held = ui.EveryHero
+				}
+				if c.Never || held&(1<<h) == 0 {
+					continue
+				}
+				if !c.Ends || c.Body != "" {
+					r[h], shown = heroReading{true, strings.Trim(c.Body, "\r\n"), c.Speaker}, true
+				}
+				break
+			}
+		}
+		if shown {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // newMessagePage is the text of a new message page: part 1, empty.

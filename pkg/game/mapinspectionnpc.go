@@ -87,6 +87,16 @@ type editorSpeakers struct {
 	records map[int32]data.NPCFace
 	cast    speakerCast
 	faces   map[int64]*image.RGBA
+	// heroFaces are the faces tried for a speaker with a planted starting
+	// hero, nil for none.
+	heroFaces map[heroFaceKey]*image.RGBA
+}
+
+// heroFaceKey is a speaker and a planted starting hero, a bit of
+// ui.HeroAudience.
+type heroFaceKey struct {
+	speaker int64
+	hero    int
 }
 
 // missionStart is the map's editorSpeakers, built again when the map's
@@ -96,7 +106,7 @@ func (s *mapInspectionEdits) missionStart() *editorSpeakers {
 	if sp := s.speakers; sp != nil && sp.table == t && bytes.Equal(sp.from, b) {
 		return sp
 	}
-	sp := &editorSpeakers{from: b, table: t, faces: map[int64]*image.RGBA{}}
+	sp := &editorSpeakers{from: b, table: t, faces: map[int64]*image.RGBA{}, heroFaces: map[heroFaceKey]*image.RGBA{}}
 	s.speakers = sp
 	authored, err := s.model.Map()
 	if err != nil || t == nil {
@@ -357,9 +367,21 @@ func (x *MapInspector) editorHeroLabels() ui.HeroLabels {
 // editorHero is the player's hero the editor's speakers are built with: a
 // man, a fighter, the first face. A map has no player yet, and a speaker whose
 // face the game takes from the player's hero is shown as it is for a man.
-func editorHero() []mapload.PartyMember {
+func editorHero() []mapload.PartyMember { return plantedHero(false, false) }
+
+// plantedHero is a party of one starting hero of that sex and class, the
+// first face: the hero the editor reads a dialogue's branch for.
+func plantedHero(female, mage bool) []mapload.PartyMember {
 	return []mapload.PartyMember{{
 		PlayerCharacter: true, StartingHero: true,
-		FigureDir: string(data.FigureDirManFighter), FigureFace: 1,
+		FigureDir: string(data.FigureDirFor(mage, female)), Mage: mage, FigureFace: 1,
 	}}
+}
+
+// eventTags are the tag rules of the game the editor's install is.
+func (x *MapInspector) eventTags() eventTags {
+	if x == nil || x.archives == nil {
+		return firstEventTags{}
+	}
+	return campaignOf(x.archives.Game()).eventTags()
 }

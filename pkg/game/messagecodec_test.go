@@ -18,7 +18,7 @@ func TestMessageCodecKeepsAttributesAndOtherPages(t *testing.T) {
 		if n, ok := tagSpeaker(tag.Tag); ok {
 			speaker = int64(n)
 		}
-		edits = append(edits, messagePageEdit{i, tag.Number, strings.TrimPrefix(strings.TrimPrefix(tag.Body, "\r\n"), "\n"), speaker})
+		edits = append(edits, messagePageEdit{Source: i, Number: tag.Number, Body: strings.TrimPrefix(strings.TrimPrefix(tag.Body, "\r\n"), "\n"), Speaker: speaker})
 	}
 	if got, err := d.write(edits, false); err != nil || got != raw {
 		t.Fatal("writer round trip", err, got)
@@ -42,7 +42,7 @@ func TestMessageCodecKeepsAttributesAndOtherPages(t *testing.T) {
 
 func TestMessageCodecRenumbersConditionalArmsTogether(t *testing.T) {
 	d := decodeMessageMarkup("<part=1 iamfemale npc=21>\nHer<part=1 iammale npc=21>\nHis<part=2 tips=7>\nNext")
-	got, err := d.write([]messagePageEdit{{2, 2, "Next", -1}, {0, 1, "Her", 21}, {1, 1, "His", 21}}, true)
+	got, err := d.write([]messagePageEdit{{Source: 2, Number: 2, Body: "Next", Speaker: -1}, {Source: 0, Number: 1, Body: "Her", Speaker: 21}, {Source: 1, Number: 1, Body: "His", Speaker: 21}}, true)
 	if err != nil || got != "<part=1 tips=7>\nNext\r\n<part=2 iamfemale npc=21>\nHer\r\n<part=2 iammale npc=21>\nHis" {
 		t.Fatal(err, got)
 	}
@@ -50,7 +50,7 @@ func TestMessageCodecRenumbersConditionalArmsTogether(t *testing.T) {
 
 func TestMessageCodecRemovalKeepsOpaqueMarkup(t *testing.T) {
 	d := decodeMessageMarkup("prefix<part=1>\nOne<opaque key=x>Keep<part=2>\nTwo<trailer>Tail")
-	got, err := d.write([]messagePageEdit{{2, 2, "Two", -1}}, true)
+	got, err := d.write([]messagePageEdit{{Source: 2, Number: 2, Body: "Two", Speaker: -1}}, true)
 	if err != nil || got != "prefix<opaque key=x>Keep<part=1>\nTwo<trailer>Tail" {
 		t.Fatal("page removal discarded undecoded markup", err, got)
 	}
@@ -59,7 +59,7 @@ func TestMessageCodecRemovalKeepsOpaqueMarkup(t *testing.T) {
 func TestMessageCodecKeepsPageDelimitersWhenTextReplaced(t *testing.T) {
 	raw := "<part=1 npc=21>\r\nOne\r\n<part=2 tips=7>\r\nTwo\r\n<part=3>\r\nThree"
 	d := decodeMessageMarkup(raw)
-	got, err := d.write([]messagePageEdit{{0, 1, "One", 21}, {1, 2, "Replacement", -1}, {2, 3, "Three", -1}}, false)
+	got, err := d.write([]messagePageEdit{{Source: 0, Number: 1, Body: "One", Speaker: 21}, {Source: 1, Number: 2, Body: "Replacement", Speaker: -1}, {Source: 2, Number: 3, Body: "Three", Speaker: -1}}, false)
 	if err != nil || got != strings.Replace(raw, "Two", "Replacement", 1) {
 		t.Fatal("editing text changed a delimiter", err, got)
 	}

@@ -11,6 +11,9 @@ import (
 
 // InspectionMessages edits message pages and their owner as one history entry.
 type InspectionMessages interface {
+	// MessageFields are the text and speaker fields of page, or of its tag
+	// source[0]; source[1], when given, is the HeroAudience of that tag's
+	// cell, whose heroes' faces its hero-dependent speakers show.
 	MessageFields(page uint32, source ...int) []InspectionField
 	MessageParts(page uint32) []InspectionMessagePart
 	SetMessageParts(page uint32, parts []InspectionMessagePart) (*InspectionDocument, error)
@@ -50,10 +53,100 @@ type SpeakerMiss struct {
 	Cell   image.Point
 }
 
+// InspectionMessagePart is one cell of a dialogue's part: the tag Source
+// holds and the heroes it reaches. Heroes zero is a part written as one tag
+// whatever it reaches. Never marks a tag no hero reaches; Ends a cell no tag
+// reaches, where its heroes' dialogue ends. Other is the tag's conditions
+// that are not its number, speaker or hero literals.
 type InspectionMessagePart struct {
 	Source, Number int
 	Body, Tag      string
 	Speaker        int64
+	Heroes         HeroAudience
+	Never, Ends    bool
+	Other          string
+}
+
+// HeroAudience is a set of the four starting heroes a dialogue tells apart,
+// one bit each in the cells' fixed order: women before men, mages before
+// fighters.
+type HeroAudience uint8
+
+const (
+	HeroWomanMage HeroAudience = 1 << iota
+	HeroWomanFighter
+	HeroManMage
+	HeroManFighter
+	EveryHero = HeroWomanMage | HeroWomanFighter | HeroManMage | HeroManFighter
+)
+
+// HeroCells are the cells of a part told apart by the hero's sex, class,
+// both or neither, in order.
+func HeroCells(sex, class bool) []HeroAudience {
+	switch {
+	case sex && class:
+		return []HeroAudience{HeroWomanMage, HeroWomanFighter, HeroManMage, HeroManFighter}
+	case sex:
+		return []HeroAudience{HeroWomanMage | HeroWomanFighter, HeroManMage | HeroManFighter}
+	case class:
+		return []HeroAudience{HeroWomanMage | HeroManMage, HeroWomanFighter | HeroManFighter}
+	}
+	return []HeroAudience{EveryHero}
+}
+
+// HeroSplit is whether cells tell the heroes apart by sex and by class: a
+// cell holding one sex, or one class, of the heroes.
+func HeroSplit(cells []HeroAudience) (sex, class bool) {
+	for _, h := range cells {
+		women, men := h&(HeroWomanMage|HeroWomanFighter), h&(HeroManMage|HeroManFighter)
+		mages, fighters := h&(HeroWomanMage|HeroManMage), h&(HeroWomanFighter|HeroManFighter)
+		sex = sex || h != 0 && (women == 0 || men == 0)
+		class = class || h != 0 && (mages == 0 || fighters == 0)
+	}
+	return sex, class
+}
+
+// messageTags are cells as the tags they hold: each tag once, in the page's
+// order, and no cell where a dialogue ends. The editor's commands read and
+// name a page's parts by tag.
+func messageTags(cells []InspectionMessagePart) []InspectionMessagePart {
+	var out []InspectionMessagePart
+	seen := map[int]bool{}
+	for _, c := range cells {
+		if c.Ends || c.Source >= 0 && seen[c.Source] {
+			continue
+		}
+		seen[c.Source] = true
+		c.Heroes, c.Never, c.Other = 0, false, ""
+		out = append(out, c)
+	}
+	slices.SortStableFunc(out, func(a, b InspectionMessagePart) int { return a.Source - b.Source })
+	return out
+}
+
+// heroWords label the cells HeroCells makes, by their heroes.
+var heroWords = []struct {
+	Heroes HeroAudience
+	Word   string
+}{
+	{Heroes: HeroWomanMage, Word: "editor.message.hero.womanmage"},
+	{Heroes: HeroWomanFighter, Word: "editor.message.hero.womanfighter"},
+	{Heroes: HeroManMage, Word: "editor.message.hero.manmage"},
+	{Heroes: HeroManFighter, Word: "editor.message.hero.manfighter"},
+	{Heroes: HeroWomanMage | HeroWomanFighter, Word: "editor.message.hero.woman"},
+	{Heroes: HeroManMage | HeroManFighter, Word: "editor.message.hero.man"},
+	{Heroes: HeroWomanMage | HeroManMage, Word: "editor.message.hero.mage"},
+	{Heroes: HeroWomanFighter | HeroManFighter, Word: "editor.message.hero.fighter"},
+}
+
+// heroWord is the word that labels a cell of heroes h, empty for none.
+func heroWord(h HeroAudience) string {
+	for _, w := range heroWords {
+		if w.Heroes == h {
+			return w.Word
+		}
+	}
+	return ""
 }
 
 // NewMessagePage is the message popup's page while it writes a new message:
@@ -72,9 +165,10 @@ type InspectionMessageOwner struct {
 // The dialog editor: the message popup as one card per page, in order. A
 // card holds the page's number on a grip, its speaker and its text; the
 // grip drags the card, Alt+Up and Alt+Down move it, its cross strikes it
-// until Apply or Cancel, and "+" adds an empty card at the end. Cards of one
-// page number move and are struck together. Opened from a trigger's Start
-// dialog, it also chooses which dialog the action starts.
+// until Apply or Cancel, and "+" adds an empty card at the end. A part the
+// game tells apart by the hero's sex or class is one card holding a cell
+// per hero audience (InspectionMessagePart.Heroes). Opened from a trigger's
+// Start dialog, it also chooses which dialog the action starts.
 
 // beginMessage opens the message popup on a message not yet made.
 func (e *MapEditor) beginMessage(owner InspectionMessageOwner, back bool) {
@@ -215,8 +309,12 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 	numbers := map[int]int{}
 	textRow := -1
 	pickCard := ""
-	for i, part := range o.messageParts {
-		o.rowOpen[len(s.Rows)] = i
+	for i, end := 0, 0; i < len(o.messageParts); i = end {
+		part := o.messageParts[i]
+		for end = i + 1; end < len(o.messageParts) && o.messageParts[end].Number == part.Number; end++ {
+		}
+		head := len(s.Rows)
+		o.rowOpen[head] = i
 		if o.messageGone[part.Number] {
 			s.Rows = append(s.Rows, popupRow{Kind: popupCard, Struck: true, Label: e.word("editor.message.removed"), Buttons: []string{e.word("editor.message.restore")}})
 			continue
@@ -228,28 +326,17 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 			}
 			number = numbers[number]
 		}
-		speaker := 2*i + 1
-		head := popupRow{Kind: popupCard, Label: strconv.Itoa(number), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Span: 1}
-		if speaker == o.pickField {
-			pickCard = head.Label
+		for f := 2*i + 1; f < 2*end; f += 2 {
+			if f == o.pickField {
+				pickCard = strconv.Itoa(number)
+			}
 		}
-		var acts []string
-		if live > 1 {
-			head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
-		}
-		head.Buttons, o.rowActs[len(s.Rows)] = append(head.Buttons, e.actWord(actPickParam)), append(acts, actPickParam)
-		o.rowField[len(s.Rows)] = speaker
-		s.Rows = append(s.Rows, head)
-		lines := strings.Split(o.buf[2*i], "\n")
-		for k := range lines {
-			lines[k] = e.editorHostText(strings.TrimSuffix(lines[k], "\r"))
-		}
-		textRow = len(s.Rows)
-		o.rowField[textRow] = 2 * i
-		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*i, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker]), PortraitTip: choiceNote(o.fields[speaker], o.buf[speaker])})
+		textRow = e.messageCard(&s, i, end, number, live)
+		s.Rows[head].Span = len(s.Rows) - head - 1
 	}
 	o.rowOpen[len(s.Rows)] = -1
 	s.Rows = append(s.Rows, popupRow{Kind: popupText, Buttons: []string{"+"}})
+	s.LabelWidth = e.messageLabelWidth(s)
 	if note := e.dialogSharedNote(); note != "" {
 		s.Notes = append(s.Notes, note)
 	}
@@ -278,6 +365,180 @@ func (e *MapEditor) messageSpec() (popupSpec, []int, bool) {
 		s.Top = e.objectTop
 	}
 	return s, make([]int, len(s.Rows)), true
+}
+
+// The dialog editor's own row actions: a card's split by the hero's sex or
+// class, and the cross of a tag no hero reaches.
+const (
+	actSplitSex    = "splitsex"
+	actSplitClass  = "splitclass"
+	actDropVariant = "dropvariant"
+)
+
+// messageCard appends the rows of the card of cells i to end, one part
+// number, and returns its last text row. A part of one variant keeps its
+// speaker on the card's head and its text under it. A part told apart by the
+// hero is one frame of stacked rows: its number alone on the head, then per
+// cell its audience label with its speaker, and its text. Each cell shows
+// the conditions its tag holds besides, or that its heroes' dialogue ends;
+// the tags no hero reaches close the card, each with a cross.
+func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
+	o := &e.obj
+	var heroes []HeroAudience
+	first := -1
+	for c := i; c < end; c++ {
+		if !o.messageParts[c].Never {
+			heroes = append(heroes, o.messageParts[c].Heroes)
+			if first < 0 {
+				first = c
+			}
+		}
+	}
+	sex, class := HeroSplit(heroes)
+	branched := sex || class
+	head := popupRow{Kind: popupCard, Label: strconv.Itoa(number)}
+	var acts []string
+	if live > 1 {
+		head.Buttons, acts = []string{"x"}, []string{actRemoveRow}
+	}
+	if !branched && first >= 0 {
+		speaker := 2*first + 1
+		head.Value, head.Focus = choiceText(o.fields[speaker], o.buf[speaker]), o.focus == speaker
+		head.Buttons, acts = append(head.Buttons, e.actWord(actPickParam)), append(acts, actPickParam)
+		o.rowField[len(s.Rows)] = speaker
+	}
+	head.Buttons, acts = append(head.Buttons, e.word("editor.message.bysex"), e.word("editor.message.byclass")), append(acts, actSplitSex, actSplitClass)
+	head.Armed = make([]bool, len(head.Buttons))
+	head.Armed[len(head.Buttons)-2], head.Armed[len(head.Buttons)-1] = sex, class
+	o.rowActs[len(s.Rows)] = acts
+	s.Rows = append(s.Rows, head)
+	textRow := -1
+	for c := i; c < end; c++ {
+		part := o.messageParts[c]
+		if part.Never {
+			continue
+		}
+		speaker := 2*c + 1
+		if branched {
+			o.rowField[len(s.Rows)], o.rowActs[len(s.Rows)] = speaker, []string{actPickParam}
+			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(heroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
+		}
+		if part.Other != "" {
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other)})
+		}
+		if part.Ends {
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.ends")})
+		}
+		lines := strings.Split(o.buf[2*c], "\n")
+		for k := range lines {
+			lines[k] = e.editorHostText(strings.TrimSuffix(lines[k], "\r"))
+		}
+		textRow = len(s.Rows)
+		o.rowField[textRow] = 2 * c
+		s.Rows = append(s.Rows, popupRow{Kind: popupMultiline, Value: strings.Join(lines, "\n"), Focus: o.focus == 2*c, Lines: 3, Portrait: choicePicture(o.fields[speaker], o.buf[speaker]), PortraitTip: choiceNote(o.fields[speaker], o.buf[speaker])})
+	}
+	for c := i; c < end; c++ {
+		if part := o.messageParts[c]; part.Never {
+			line, _, _ := strings.Cut(part.Body, "\n")
+			o.rowOpen[len(s.Rows)], o.rowActs[len(s.Rows)] = c, []string{actDropVariant}
+			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: fmt.Sprintf(e.word("editor.message.never"), e.editorHostText(strings.TrimSuffix(line, "\r"))), Buttons: []string{"x"}})
+		}
+	}
+	return textRow
+}
+
+// messageLabelWidth is the label column of the dialog editor: wide enough
+// for the longest label beside a control, from the 64 pixels of a card's
+// portrait, up to two fifths of the popup.
+func (e *MapEditor) messageLabelWidth(s popupSpec) int {
+	w := 64
+	if body := e.bodyFont(); body != nil {
+		for _, row := range s.Rows {
+			if rowHasControl(row) && row.Kind != popupMultiline {
+				w = max(w, body.Advance(row.Label)+8)
+			}
+		}
+	}
+	return min(w, s.Width*2/5)
+}
+
+// splitMessageCard tells the heroes of the card holding cell at apart by
+// sex, or by class, or merges them back where the card already does. Each
+// new cell takes the text and speaker of the first cell that held one of
+// its heroes, a cell with a tag before one where the dialogue ends; the
+// card's never-shown tags stay after its cells.
+func (e *MapEditor) splitMessageCard(at int, bySex bool) {
+	o := &e.obj
+	if at < 0 || at >= len(o.messageParts) || !e.captureMessageParts() {
+		return
+	}
+	start, end := at, at+1
+	for start > 0 && o.messageParts[start-1].Number == o.messageParts[at].Number {
+		start--
+	}
+	for end < len(o.messageParts) && o.messageParts[end].Number == o.messageParts[at].Number {
+		end++
+	}
+	group := o.messageParts[start:end]
+	var heroes []HeroAudience
+	for _, c := range group {
+		if !c.Never {
+			heroes = append(heroes, c.Heroes)
+		}
+	}
+	sex, class := HeroSplit(heroes)
+	if bySex {
+		sex = !sex
+	} else {
+		class = !class
+	}
+	var cells, never []InspectionMessagePart
+	for _, h := range HeroCells(sex, class) {
+		pick := -1
+		for k, c := range group {
+			held := c.Heroes
+			if held == 0 {
+				held = EveryHero
+			}
+			if !c.Never && held&h != 0 && (pick < 0 || group[pick].Ends && !c.Ends) {
+				pick = k
+			}
+		}
+		if pick >= 0 {
+			cell := group[pick]
+			cell.Heroes = h
+			cells = append(cells, cell)
+		}
+	}
+	for _, c := range group {
+		if c.Never {
+			never = append(never, c)
+		}
+	}
+	e.reshapeMessageCards(slices.Concat(o.messageParts[:start], cells, never, o.messageParts[end:]))
+}
+
+// dropMessageVariant takes the never-shown tag of cell at off its card, until
+// Apply or Cancel.
+func (e *MapEditor) dropMessageVariant(at int) {
+	o := &e.obj
+	if at < 0 || at >= len(o.messageParts) || !o.messageParts[at].Never || !e.captureMessageParts() {
+		return
+	}
+	e.reshapeMessageCards(slices.Delete(slices.Clone(o.messageParts), at, at+1))
+}
+
+// reshapeMessageCards puts parts in the cards' place after a split, a merge
+// or a dropped tag. A speaker pick armed on a card ends: its field moved.
+func (e *MapEditor) reshapeMessageCards(parts []InspectionMessagePart) {
+	o := &e.obj
+	if e.pick == pickParamUnit && o.pickField >= 0 && o.pickField < 2*len(o.messageParts) {
+		e.leave(leavePick)
+		o.pickField = -1
+	}
+	gone := o.messageGone
+	e.loadMessageFields(parts)
+	o.messageGone, o.messageChanged, o.open, o.focus = gone, true, -1, -1
 }
 
 // fitMessageText grows the text box of row k until it shows the whole
@@ -486,7 +747,7 @@ func (e *MapEditor) loadMessageFields(parts []InspectionMessagePart) {
 	o := &e.obj
 	o.messageParts, o.fields, o.buf = slices.Clone(parts), nil, nil
 	for _, part := range parts {
-		fields := host.MessageFields(e.messagePage, part.Source)
+		fields := host.MessageFields(e.messagePage, part.Source, int(part.Heroes))
 		if len(fields) != 2 {
 			continue
 		}
@@ -528,15 +789,30 @@ func (e *MapEditor) captureMessageParts() bool {
 	return true
 }
 
-// messageRowButton is a press on a card's cross, its "on the map" button or
-// Restore, or on "+".
+// messageRowButton is a press on a card's cross, its "on the map" button,
+// its split by sex or class or Restore, on a never-shown tag's cross, or on
+// "+".
 func (e *MapEditor) messageRowButton(row, button int) {
 	o := &e.obj
-	if acts := o.rowActs[row]; button >= 0 && button < len(acts) && acts[button] == actPickParam {
-		if f, ok := o.rowField[row]; ok {
-			e.armParamPick(f, false)
+	if acts := o.rowActs[row]; button >= 0 && button < len(acts) {
+		at, open := o.rowOpen[row]
+		switch acts[button] {
+		case actPickParam:
+			if f, ok := o.rowField[row]; ok {
+				e.armParamPick(f, false)
+			}
+			return
+		case actSplitSex, actSplitClass:
+			if open {
+				e.splitMessageCard(at, acts[button] == actSplitSex)
+			}
+			return
+		case actDropVariant:
+			if open {
+				e.dropMessageVariant(at)
+			}
+			return
 		}
-		return
 	}
 	at, ok := o.rowOpen[row]
 	if !ok || button != 0 || !e.captureMessageParts() {
@@ -684,9 +960,23 @@ func (e *MapEditor) dropCard() {
 		return
 	}
 	l := layoutPopup(s, e.font, e.bodyFont())
-	if at, ok := e.obj.rowOpen[row]; ok && at >= 0 && l.Drop >= 0 {
-		e.moveMessageCard(at, l.Drop)
+	at, ok := e.obj.rowOpen[row]
+	if !ok || at < 0 || l.Drop < 0 {
+		return
 	}
+	// The drop counts cards; a card holds every cell of its part number.
+	to, card := len(e.obj.messageParts), 0
+	for i, r := range s.Rows {
+		if r.Kind != popupCard {
+			continue
+		}
+		if card == l.Drop {
+			to = e.obj.rowOpen[i]
+			break
+		}
+		card++
+	}
+	e.moveMessageCard(at, to)
 }
 
 // CardRects are the window rectangles of card c of the dialog editor, when

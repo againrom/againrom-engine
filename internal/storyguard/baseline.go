@@ -3982,5 +3982,14 @@ var Committed = Baseline{
 	// projectCommandPost in pkg/game/currentworldbuild.go, the post read in
 	// originalactorregistry.go, commandFill and CommandPost in
 	// pkg/formats/sav, the test secondgrouporders_test.go, and this note.
-	CommentBytes: 10490326,
+
+	// It rose for the dialog editor's hero cells: HeroAudience, HeroCells,
+	// the stacked card and its split in pkg/ui/mapeditormessage.go, the empty
+	// card head in editorpopup.go, messageCells, cellEdits, heroFaces and
+	// cellReadings in pkg/game/mapmessagepages.go, setHeroArms in
+	// messagecodec.go, plantedHero in mapinspectionnpc.go, the tests
+	// pkg/game/mapmessagevariants_test.go, and this note. It rose again for
+	// SetMessageParts' and setMessageAttribute's doc comments and the cell
+	// notes in mapmessageparts_release_test.go and dialoguepages_release_test.go.
+	CommentBytes: 10502120,
 }

@@ -32,7 +32,7 @@ func messageFirstLine(body string) (string, []string) {
 func TestReleaseMessagePickerParts(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
-	maps, pages, absent, textEdits, speakerEdits, outOfOrder := 0, 0, 0, 0, 0, 0
+	maps, pages, absent, textEdits, speakerEdits, outOfOrder, refusedSpeakers := 0, 0, 0, 0, 0, 0, 0
 	for _, entry := range x.Maps {
 		key := "loose/" + entry.Source
 		if entry.FromArchive {
@@ -115,18 +115,35 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 				}
 				textEdits++
 				checkUndo()
-				other := int64(-1)
+				// A speaker that would move part 1's tag to other heroes is
+				// refused whole; the first speaker the page takes is kept.
+				other, applied, refused := int64(-1), false, 0
 				for _, choice := range fields[1].Choices {
-					if choice.Value >= 0 && choice.Value != fields[1].Value {
-						other = choice.Value
+					if choice.Value < 0 || choice.Value == fields[1].Value {
+						continue
+					}
+					_, err := s.SetMessage(row.Value, fields[0].TextValue, choice.Value)
+					if err == nil {
+						other, applied = choice.Value, true
 						break
 					}
+					if err.Error() != x.word("editor.message.unreached") || !bytes.Equal(before, s.workspace.Pages[name]) {
+						t.Fatal("a refused speaker Apply changed bytes or failed otherwise", err)
+					}
+					refused++
 				}
-				if other == fields[1].Value {
+				if !applied && refused > 0 {
+					refusedSpeakers++
+					t.Logf("%s page=%d: every other speaker of part 1 would reach other heroes; %d refused, bytes kept", key, row.Value, refused)
+					return
+				}
+				if !applied && other == fields[1].Value {
 					t.Fatal("speaker loss control has no alternative")
 				}
-				if _, err := s.SetMessage(row.Value, fields[0].TextValue, other); err != nil {
-					t.Fatal(err)
+				if !applied {
+					if _, err := s.SetMessage(row.Value, fields[0].TextValue, other); err != nil {
+						t.Fatal(err)
+					}
 				}
 				after = x.messageUTF8(s.workspace.Pages[name])
 				afterTag, afterTail, ok := eventPartTail([]byte(after), 1, EventAudience{})
@@ -145,5 +162,5 @@ func TestReleaseMessagePickerParts(t *testing.T) {
 	if pages == 0 || textEdits == 0 || speakerEdits == 0 || x.pageLanguage() == "ru" && outOfOrder < 2 {
 		t.Fatal("empty page/edit/out-of-order population", pages, textEdits, speakerEdits, outOfOrder)
 	}
-	t.Logf("lang=%s maps=%d pages=%d absent_part1=%d text_apply=%d speaker_apply=%d nonfirst_part1=%d", x.pageLanguage(), maps, pages, absent, textEdits, speakerEdits, outOfOrder)
+	t.Logf("lang=%s maps=%d pages=%d absent_part1=%d text_apply=%d speaker_apply=%d speaker_refused=%d nonfirst_part1=%d", x.pageLanguage(), maps, pages, absent, textEdits, speakerEdits, refusedSpeakers, outOfOrder)
 }

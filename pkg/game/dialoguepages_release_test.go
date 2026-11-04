@@ -50,10 +50,22 @@ func TestReleaseMessageCodecCensus(t *testing.T) {
 			if doc, err := s.SetMessageParts(number, parts); err != nil || doc != nil || !bytes.Equal(before, s.workspace.Pages[name]) {
 				t.Fatalf("%s/%s unchanged Apply: %v", key, name, err)
 			}
+			// The parts are the dialog editor's cells: a tag several heroes
+			// read is edited in every cell holding it, and a cell where the
+			// dialogue ends holds no tag.
+			edited := map[int]bool{}
 			for i := range parts {
+				if parts[i].Source < 0 || edited[parts[i].Source] {
+					continue
+				}
+				edited[parts[i].Source] = true
 				pages++
 				next := slices.Clone(parts)
-				next[i].Body += "!"
+				for j := range next {
+					if next[j].Source == parts[i].Source {
+						next[j].Body += "!"
+					}
+				}
 				if _, err := s.SetMessageParts(number, next); err != nil {
 					t.Fatal(key, name, i, err)
 				}

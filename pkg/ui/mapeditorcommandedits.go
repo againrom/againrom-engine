@@ -480,7 +480,7 @@ func (e *MapEditor) messageParts(host InspectionMessages, page uint32, args []me
 	if len(args) == 0 {
 		return nil, fmt.Errorf("parts must name at least one part")
 	}
-	current := host.MessageParts(page)
+	current := messageTags(host.MessageParts(page))
 	if len(current) == 0 {
 		return nil, fmt.Errorf("the map has no message page %d", page)
 	}

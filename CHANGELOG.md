@@ -26,6 +26,7 @@ modder or developer can notice gets no entry.
 ### For map makers and modders
 
 - [BASE] The map editor's top bar has a File menu with Undo, Redo and Search, a Map button for the map panel, and Tools, View and Window at its right end. Every button shows when it is pressed.
+- [ROM1] The map editor's dialogue editor shows each dialogue part as one card with a cell for each hero who sees a different text: by sex, by class, or both. A part can be split by sex or by class and merged back, each cell edits its own text and speaker, a hero-dependent speaker shows the face that hero's dialogue gets, a tag no hero reaches shows as never shown, and an untouched page saves byte for byte.
 
 ## 0.146.1
 

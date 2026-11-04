@@ -85,7 +85,7 @@ func (e *MapEditor) readMessages(raw json.RawMessage) (any, error) {
 	}
 	var parts []InspectionMessagePart
 	if *a.Page > 0 && *a.Page < int64(NewMessagePage) {
-		parts = host.MessageParts(uint32(*a.Page))
+		parts = messageTags(host.MessageParts(uint32(*a.Page)))
 	}
 	if len(parts) == 0 {
 		return nil, fmt.Errorf("the map has no message page %d", *a.Page)
