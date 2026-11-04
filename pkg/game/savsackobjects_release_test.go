@@ -102,7 +102,7 @@ func TestReleaseOriginalSackObjects1115NativeContinuation(t *testing.T) {
 	}
 	purse := f.live.world.Purse(owner)
 	livePlaceAndWalk(t, f.live, id, 13, 40)
-	f.live.takeSackFor(id)
+	f.live.pickUpUnderfoot(id)
 	font := f.Font.Value()
 	if font == nil {
 		t.Fatal("installed pickup font is absent")

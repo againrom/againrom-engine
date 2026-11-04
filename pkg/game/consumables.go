@@ -25,7 +25,6 @@ func (mw *mapWorld) useScroll(owner uint32, index int, key string, target uint32
 	if atCell {
 		cmd = sim.UseScrollAt(id, sim.ItemSlot(index), sim.CellPoint{X: int32(x), Y: int32(y)})
 	}
-	mw.cancelPickup(id)
 	mw.pending = append(mw.pending, cmd)
 	mw.commanded[id] = true
 }

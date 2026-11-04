@@ -172,11 +172,8 @@ func HeroAudience(party []mapload.PartyMember) EventAudience {
 		return EventAudience{}
 	}
 	subject := party[0]
-	for _, m := range party {
-		if primaryPlayerHero(m) {
-			subject = m
-			break
-		}
+	if i, ok := startingHeroIndex(party); ok {
+		subject = party[i]
 	}
 	return EventAudience{
 		HeroFemale: data.FigureDir(subject.FigureDir).Female(),

@@ -232,7 +232,7 @@ func TestSackTakeNamesEachLinesOwnHolder(t *testing.T) {
 			t.Fatal(err)
 		}
 		mw := namedGrabWorld(t, w, []sim.EntityID{7, 8}, []string{"Gord", "Ann"})
-		mw.takeSackFor(taker)
+		mw.pickUpUnderfoot(taker)
 		return mw.view.MessageLines()
 	}
 	doc := itemName(data.QuestDocumentCode, eqDefsTable(t))

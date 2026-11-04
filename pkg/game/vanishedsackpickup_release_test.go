@@ -57,7 +57,7 @@ func TestReleaseAPickupWhoseSackWentCompletesAfterColdLoad(t *testing.T) {
 	if arena.live.world.Purse(sim.SelfSlot) != gold || cold.live.world.Purse(sim.SelfSlot) != gold {
 		t.Fatal("a pickup with no sack transferred gold")
 	}
-	if arena.live.pickup.set || cold.live.pickup.set {
+	if standingPickup(arena.live).set || standingPickup(cold.live).set {
 		t.Fatal("the standing order is still armed after it completed")
 	}
 	e := arena.get(hero)

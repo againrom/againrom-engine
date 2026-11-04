@@ -37,13 +37,13 @@ func TestPickup1117UnderfootSupersedesOlderQueuedOrdersOnlyAfterSuccess(t *testi
 		before := pickupForm1117(t, w)
 		mw.grab(0, 0, 0, false)
 		if !succeeds {
-			if !bytes.Equal(before, pickupForm1117(t, w)) || !reflect.DeepEqual(queued, mw.pending) || !mw.pickup.set {
+			if !bytes.Equal(before, pickupForm1117(t, w)) || !reflect.DeepEqual(queued, mw.pending) || !standingPickup(mw).set {
 				t.Fatal("failed underfoot key changed earlier order")
 			}
 			continue
 		}
-		if mw.pickup.set || !reflect.DeepEqual(kept, mw.pending) {
-			t.Fatalf("successful key retained earlier approach or discarded peer/inventory: %+v %+v", mw.pickup, mw.pending)
+		if standingPickup(mw).set || !reflect.DeepEqual(kept, mw.pending) {
+			t.Fatalf("successful key retained earlier approach or discarded peer/inventory: %+v %+v", standingPickup(mw), mw.pending)
 		}
 		// A later order is not one of the superseded predecessors.
 		mw.enqueue(poHeroID, poSackX, poSackY)
@@ -79,9 +79,9 @@ func TestPickup1117DeadOffMapAndMissingActorsCannotTake(t *testing.T) {
 				id = 123
 			}
 			before := pickupForm1117(t, w)
-			mw.takeSackFor(id)
+			mw.pickUpUnderfoot(id)
 			mw.orderPickup(id, 3, 3)
-			if !bytes.Equal(before, pickupForm1117(t, w)) || mw.pickup.set || len(mw.pending) != 0 {
+			if !bytes.Equal(before, pickupForm1117(t, w)) || standingPickup(mw).set || len(mw.pending) != 0 {
 				t.Fatal("invalid actor took or ordered a sack")
 			}
 		})

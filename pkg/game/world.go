@@ -418,9 +418,6 @@ type mapWorld struct {
 	invSubject    ui.InventorySubject
 	invSubjectSet bool
 
-	// DIV-330
-	pickup pickupIntent
-
 	invCodes []sim.ItemStack
 
 	// invIconCache is buildInventoryPack's own cache, keyed by item code: built
@@ -3591,7 +3588,6 @@ func (mw *mapWorld) march(entity uint32, patrol bool, x, y int) {
 func (mw *mapWorld) queueGroup(build func(tag uint32) sim.Command) {
 	probe := build(0)
 	id := probe.Entity
-	mw.cancelPickup(id)
 	if !mw.joinsGroup(probe.Kind, mw.groupTag, id, probe.X, probe.Y) {
 		mw.groupTag++
 	}
@@ -3652,7 +3648,6 @@ func (mw *mapWorld) joinsGroup(kind uint8, tag uint32, id sim.EntityID, x, y int
 // exactly where they were.
 func (mw *mapWorld) strike(entity, victim uint32) {
 	id := sim.EntityID(entity)
-	mw.cancelPickup(id)
 	cmd := sim.Attack(id, sim.EntityID(victim))
 	mw.pending, mw.commanded[id] = append(mw.pending, cmd), true
 }
@@ -3670,7 +3665,6 @@ func (mw *mapWorld) strike(entity, victim uint32) {
 // where affect's blow is not one and leaves the set alone.
 func (mw *mapWorld) castAt(entity, victim, spell uint32) {
 	id := sim.EntityID(entity)
-	mw.cancelPickup(id)
 	cmd := sim.Cast(id, sim.EntityID(victim), sim.SpellID(spell))
 	mw.pending, mw.commanded[id] = append(mw.pending, cmd), true
 }
@@ -3690,7 +3684,6 @@ func (mw *mapWorld) attackOrCast(entity, victim, spell uint32, x, y int, cell bo
 				return
 			}
 			id := sim.EntityID(entity)
-			mw.cancelPickup(id)
 			mw.pending = append(mw.pending, sim.CastAt(id, sim.SpellID(spell), sim.CellPoint{X: int32(x), Y: int32(y)}))
 			mw.commanded[id] = true
 			return
@@ -3700,7 +3693,6 @@ func (mw *mapWorld) attackOrCast(entity, victim, spell uint32, x, y int, cell bo
 	}
 	if cell {
 		id := sim.EntityID(entity)
-		mw.cancelPickup(id)
 		mw.pending = append(mw.pending, sim.AttackStructure(id, sim.StructureID(victim)))
 		mw.commanded[id] = true
 		return
@@ -3763,249 +3755,73 @@ func (mw *mapWorld) grab(entity uint32, col, row int, aimed bool) {
 		if !mw.invSubjectSet {
 			return
 		}
-		mw.takeSackFor(sim.EntityID(mw.invSubject.ID))
+		mw.pickUpUnderfoot(sim.EntityID(mw.invSubject.ID))
 		return
 	}
 	mw.orderPickup(sim.EntityID(entity), int32(col), int32(row))
 }
 
-// pickupIntent is one standing pick-up order: which entity was told to take a
-// sack, and the cell the sack was standing on when the order was given. set
-// tells an armed order from the zero value, on invSubjectSet's own grounds --
-// entity 0 is a real id.
-type pickupIntent struct {
-	id   sim.EntityID
-	x, y int32
-	set  bool
-}
-
-// orderPickup refuses absent sacks (ITEM-PICK-016), then queues the cell in
-// canonical state beside any physical progress (AI-356). Arm presentation
-// after queueGroup, which cancels its predecessor's presentation latch.
+// orderPickup queues the World's pickup order for the sack at (x, y) when the
+// World admits it (ITEM-PICK-016). queueGroup is the one queue every order
+// reaches, so a later order for the same entity overwrites this one in the
+// World as the original's does (AI-CMD-032, AI-STATE-011).
 func (mw *mapWorld) orderPickup(id sim.EntityID, x, y int32) {
-	if _, ok := mw.sackAt(x, y); !ok {
-		return
+	if order, ok := mw.world.OrderSackPickup(id, sim.CellPoint{X: x, Y: y}); ok {
+		mw.queueGroup(func(uint32) sim.Command { return order })
 	}
-	if e, ok := mw.entity(id); !ok || !e.Alive() || e.OffMap {
-		return
-	}
-	mw.queueGroup(func(tag uint32) sim.Command { return sim.PickUp(id, sim.CellPoint{X: x, Y: y}) })
-	mw.pickup = pickupIntent{id: id, x: x, y: y, set: true}
 }
 
-// settlePickup reconstructs the presentation latch from canonical pending
-// state after LOAD. Transfer waits for both arrival and physical completion.
-// Removal, refusal or arrival disarms the request; a failed transfer never loops.
-// A sack gone before arrival is not tested on the walk: the arrival completes
-// the pickup without a transfer, as a taken sack's does (AI-645).
+// settlePickup is the World's after-Step settle of a pending pickup order,
+// once per Step, and the pickup lines when it took the sack.
 func (mw *mapWorld) settlePickup() {
-	mw.pickup = pickupIntent{}
-	for i, actors := 0, mw.world.EntityView(); i < len(actors); i++ {
-		if p := actors[i].PendingOrder; p.Kind == sim.PendingPickup {
-			mw.pickup = pickupIntent{id: actors[i].ID, x: p.X, y: p.Y, set: true}
-			break
-		}
-	}
-	if !mw.pickup.set {
-		return
-	}
-	e, ok := mw.entity(mw.pickup.id)
-	if !ok || !e.Alive() || e.OffMap {
-		mw.world.CancelSackPickup(mw.pickup.id)
-		mw.pickup = pickupIntent{}
-		return
-	}
-	if e.X != mw.pickup.x || e.Y != mw.pickup.y || !sackPickupArrived(mw.world, e) {
-		return
-	}
-	id := mw.pickup.id
-	mw.pickup = pickupIntent{}
-	if _, ok := mw.sackAt(e.X, e.Y); !ok {
-		mw.world.CompleteSackPickup(id)
-		return
-	}
-	mw.takeSackFor(id)
-	mw.world.CancelSackPickup(id)
-}
-
-// cancelPickup drops a standing pick-up order for one entity. It is called from
-// queueGroup, the one place move, stance, march and the two attack arms all
-// reach, and from strike and castAt, which append their own command.
-//
-// A LATER ORDER CANCELS AN EARLIER PICK-UP because the original's does: `0x21`
-// writes `actor+0x50 = 2` and every other order arm writes that same field, so
-// a second order overwrites the pick-up state rather than queuing behind it
-// (`AI-CMD-032`, `AI-STATE-011`). Here the field is on the driver, so the
-// overwrite has to be performed rather than inherited.
-func (mw *mapWorld) cancelPickup(id sim.EntityID) {
-	if mw.pickup.set && mw.pickup.id == id {
-		mw.pickup = pickupIntent{}
+	if taken, outcome := mw.world.SettleSackPickup(mw.questDocuments()); outcome == sim.SackPickupTaken {
+		mw.tookSack(taken)
 	}
 }
 
-// takeSackFor is the transfer half of the pick-up, for ONE NAMED ENTITY: the
-// sack under that entity's own current cell, taken all-or-nothing, with the
-// message line posted only when TakeSack actually succeeded.
-//
-// IT IS NAMED BY ITS CALLER AND NAMES NOBODY ITSELF, which is what closed
-// `DIV-292`. Until this story's round 4 the whole function was grab's body and
-// answered the "which character" question once, for the inventory window's
-// subject, whatever the click had named. The KEY still acts for the window's
-// subject, which is MapGrab's own doc and correct; the CLICK now acts for the
-//
-// EACH LINE IS A CARRIED ITEM THE TAKE REACHED. The taker's container, and
-// the primary hero's when quest documents move to him, are read before and
-// after the take; each stack it created or merged units into posts one line
-// stating that Item's count (SAV-1114, reachedStacks).
-//
-// THE LOG IS POSTED ONLY WHEN TakeSack ACTUALLY SUCCEEDED. A read that found
-// a sack's codes but a take that then refused them — the owner-past-
-// relationSlots refusal TakeSack's own doc states, the only one reachable
-// once this function's own two guards below have already passed — must not
-// tell the player something was picked up when the world moved nothing, so
-// the error gates the post exactly where the caller-visible failure used to
-// be silently discarded.
-//
-// EACH ITEM IS NAMED THROUGH itemName, below (0151): the code's raw bits
-// looked up in invParty.table's own Names first — the shipped table an
-// armour, a shield or a magic item is named through and a weapon usually
-// is too — then, when Names carries no line for it, the same recovery the
-// equip half uses, data.WeaponFromCode against Shapes, Materials and
-// Weapons, the identical call enqueueEquip and rearm already make. A code
-// that resolves through neither prints its own seven-digit digits
-// (data.ItemCode.Name) rather than being dropped, so a gap in what this
-// build can name is visible on screen instead of silently missing a line.
-//
-// AN ERROR IS STILL DISCARDED as a caller-visible failure. "There is no sack
-// here" remains the ordinary answer to pressing the key with nothing under
-// the subject, not a failure this driver reports anywhere — the same silence
-// affect keeps for an entity the world no longer holds.
-// unit the cursor's gate named.
-func (mw *mapWorld) takeSackFor(id sim.EntityID) {
-	if e, ok := mw.entity(id); ok && e.HasAttackTarget && e.AttackPhase != sim.AttackReady && !(e.PendingOrder.Kind == sim.PendingPickup && e.PendingOrder.RowAdmitted) {
-		mw.orderPickup(id, e.X, e.Y)
-		return
+// pickUpUnderfoot is the pickup key for one named entity: the World's take of
+// the sack under it, or, for an entity mid-strike, the World's pickup order
+// for its cell (DIV-292: the key acts for the window's subject, the click for
+// the unit the cursor named).
+func (mw *mapWorld) pickUpUnderfoot(id sim.EntityID) {
+	switch taken, outcome := mw.world.PickUpSackUnderfoot(id, mw.questDocuments()); outcome {
+	case sim.SackPickupOrder:
+		mw.queueGroup(func(uint32) sim.Command { return taken.Order })
+	case sim.SackPickupTaken:
+		mw.tookSack(taken)
 	}
-	primary, primaryOK := mw.primaryPartyID()
-	mw.announceTake(id, primary, primaryOK, func() bool {
-		if _, ok := takeSackUnderfoot(mw.world, id, primary, primaryOK); !ok {
-			return false
-		}
-		mw.cancelPickup(id)
-		mw.cancelQueuedPickupPredecessors(id)
-		return true
-	})
 }
 
-// announceTake runs one pickup and, when it took the sack, posts the ordinary
-// pickup lines: the purse gain, then each stack it reached in the taker's pack
-// and in the primary hero's.
-func (mw *mapWorld) announceTake(id, primary sim.EntityID, primaryOK bool, take func() bool) bool {
-	holders := []sim.EntityID{id}
-	if primaryOK && primary != id {
-		holders = append(holders, primary)
-	}
-	before := make([][]sim.ItemStack, len(holders))
-	for k, holder := range holders {
-		before[k], _ = mw.world.CarriedStacks(holder)
-	}
-	purse := mw.world.Purse(sim.SelfSlot)
-	if !take() {
-		return false
-	}
+// tookSack drops the taker's queued orders older than the take, which would
+// overwrite its completion on the next tick, and posts the pickup lines.
+func (mw *mapWorld) tookSack(taken sim.SackPickup) {
+	mw.cancelQueuedPickupPredecessors(taken.Taker)
+	mw.announcePickup(taken)
+}
+
+// announcePickup posts the ordinary pickup lines of one take: the purse gain,
+// then each stack it reached in each holder's pack (SAV-1114, reachedStacks).
+func (mw *mapWorld) announcePickup(taken sim.SackPickup) {
 	var reached []namedStack
-	for k, holder := range holders {
-		after, _ := mw.world.CarriedStacks(holder)
-		reached = append(reached, mw.named(reachedStacks(before[k], after), holder)...)
+	for _, h := range taken.Holders {
+		reached = append(reached, mw.named(reachedStacks(h.Before, h.After), h.Holder)...)
 	}
 	words := mw.view.Words()
-	announce(mw.view, pickupLinesForTake(reached, purseGain(purse, mw.world.Purse(sim.SelfSlot)), mw.shownName(id), mw.invParty.table, &words))
-	return true
+	announce(mw.view, pickupLinesForTake(reached, purseGain(taken.Purse.Before, taken.Purse.After), mw.shownName(taken.Taker), mw.invParty.table, &words))
 }
 
-// cheatPickupAll is #pickup all: every ground sack, first to last, is the
-// hero's ordinary pickup (MENU-108, R2-ENGINE-301). Quest documents go to the
-// primary hero, the pickup completes on the next Step and each sack posts its
-// pickup lines. Without a primary hero the hero takes the documents.
+// cheatPickupAll is #pickup all over the World's pickup, with each sack's
+// pickup lines.
 func (mw *mapWorld) cheatPickupAll(hero sim.EntityID) error {
-	primary, primaryOK := mw.primaryPartyID()
-	if !primaryOK {
-		primary, primaryOK = hero, true
-	}
-	return mw.world.CheatPickupAll(hero, func(sack sim.Sack) error {
-		if !mw.announceTake(hero, primary, primaryOK, func() bool { return takeSack(mw.world, hero, sack, primary, primaryOK) }) {
-			return fmt.Errorf("game: cheat pickup refused the sack at (%d,%d)", sack.X, sack.Y)
-		}
-		return nil
-	})
+	return mw.world.CheatPickupAll(hero, mw.questDocuments(), mw.announcePickup)
 }
 
 // PickUpUnderfoot is the pickup key's world half for a mission driven without
-// a map: the actor takes the sack on its own cell, quest documents go to the
-// starting hero, and the pickup completes on the next Step.
+// a map: the World's take of the sack on the actor's cell, quest documents to
+// the starting hero, the pickup completing on the next Step.
 func (m *Mission) PickUpUnderfoot(id sim.EntityID) (sim.Sack, bool) {
-	var primary sim.EntityID
-	primaryOK := false
-	for i, p := range m.Party {
-		if i < len(m.Start.IDs) && primaryPlayerHero(p) {
-			primary, primaryOK = m.Start.IDs[i], true
-			break
-		}
-	}
-	return takeSackUnderfoot(m.World, id, primary, primaryOK)
-}
-
-// takeSackUnderfoot is the world half of takeSackFor, shared with the headless
-// scenario's pick-up step: it reports the sack it took and whether it took one.
-func takeSackUnderfoot(w *sim.World, id, primary sim.EntityID, primaryOK bool) (sim.Sack, bool) {
-	e, ok := w.Entity(id)
-	if !ok || !e.Alive() || e.OffMap || !sackPickupArrived(w, e) {
-		return sim.Sack{}, false
-	}
-	for _, sack := range w.Sacks() {
-		if sack.X == e.X && sack.Y == e.Y {
-			return sack, takeSack(w, id, sack, primary, primaryOK)
-		}
-	}
-	return sim.Sack{}, false
-}
-
-// takeSack is the ordinary pickup of one ground sack by id: the take, quest
-// documents moved to the primary hero, and the pickup completion. A sack with
-// documents and no primary hero to hold them is refused.
-func takeSack(w *sim.World, id sim.EntityID, sack sim.Sack, primary sim.EntityID, primaryOK bool) bool {
-	var documents uint32
-	for _, code := range sack.Items {
-		if code == uint16(data.QuestDocumentCode) {
-			documents++
-		}
-	}
-	if documents > 0 {
-		if !primaryOK {
-			return false
-		}
-		if _, ok := w.Carried(primary); !ok {
-			return false
-		}
-	}
-	if err := w.TakeSack(id, sack.X, sack.Y); err != nil {
-		return false
-	}
-	if documents > 0 && id != primary {
-		if err := w.MoveCarried(id, primary, uint16(data.QuestDocumentCode), documents); err != nil {
-			return false
-		}
-	}
-	w.CompleteSackPickup(id)
-	return true
-}
-
-func sackPickupArrived(w *sim.World, e sim.Entity) bool {
-	if e.Transit != 0 || e.AttackPhase != sim.AttackReady && !(e.PendingOrder.Kind == sim.PendingPickup && e.PendingOrder.RowAdmitted) || w.ActorOrderProgress(e.ID) != 0 {
-		return false
-	}
-	x, y, present := w.ActorFinePosition(e.ID)
-	return !present || x == 128 && y == 128
+	taken, outcome := m.World.PickUpSackUnderfoot(id, questDocuments(m.Party, m.Start.IDs))
+	return taken.Sack, outcome == sim.SackPickupTaken
 }
 
 // The underfoot key transfers synchronously. Older orders still queued for
@@ -4031,22 +3847,48 @@ func (mw *mapWorld) cancelQueuedPickupPredecessors(id sim.EntityID) {
 	mw.pendingIgnored = ignored
 }
 
-// primaryPartyID is the explicitly marked starting player's entity, paired by
-// the mission start's parallel party/id slices. No position is inferred when
-// the marker is absent.
+// questDocuments is where this window's pickups send quest documents.
+func (mw *mapWorld) questDocuments() sim.SackDocuments {
+	if mw == nil || mw.mission == nil {
+		return questDocuments(nil, nil)
+	}
+	return questDocuments(mw.mission.party, mw.mission.ids)
+}
+
+// primaryPartyID is this window's starting hero.
 func (mw *mapWorld) primaryPartyID() (sim.EntityID, bool) {
 	if mw == nil || mw.mission == nil {
 		return 0, false
 	}
-	for i, p := range mw.mission.party {
-		if i >= len(mw.mission.ids) {
-			break
-		}
-		if primaryPlayerHero(p) {
-			return mw.mission.ids[i], true
-		}
+	return startingHero(mw.mission.party, mw.mission.ids)
+}
+
+// questDocuments is where a sack pickup sends the quest documents it takes:
+// the party's starting hero.
+func questDocuments(party []mapload.PartyMember, ids []sim.EntityID) sim.SackDocuments {
+	holder, held := startingHero(party, ids)
+	return sim.SackDocuments{Code: uint16(data.QuestDocumentCode), Holder: holder, Held: held}
+}
+
+// startingHero is the entity of the party member the mission start marked,
+// paired by the start's parallel member and id lists. No position is inferred
+// when the marker is absent.
+func startingHero(party []mapload.PartyMember, ids []sim.EntityID) (sim.EntityID, bool) {
+	if i, ok := startingHeroIndex(party); ok && i < len(ids) {
+		return ids[i], true
 	}
 	return 0, false
+}
+
+// startingHeroIndex is the index of the first party member marked as the
+// starting hero.
+func startingHeroIndex(party []mapload.PartyMember) (int, bool) {
+	for i, p := range party {
+		if primaryPlayerHero(p) {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 // sackAt is the ground sack at (x, y), or the zero value when none stands

@@ -106,11 +106,11 @@ func TestAMemberAtMinusTenAtTheWinDoesNotCrossToTheNextMission(t *testing.T) {
 		t.Fatalf("setup: live party %v ids %v, want the villager joined as the fourth member", got, mw.mission.ids)
 	}
 	mw.orderPickup(1, 30, 32)
-	for tick := 0; tick < 400 && mw.pickup.set; tick++ {
+	for tick := 0; tick < 400 && standingPickup(mw).set; tick++ {
 		mw.tick()
 	}
 	mw.orderPickup(3, 41, 45)
-	for tick := 0; tick < 400 && mw.pickup.set; tick++ {
+	for tick := 0; tick < 400 && standingPickup(mw).set; tick++ {
 		mw.tick()
 	}
 	mw.enqueue(3, 41, 42)

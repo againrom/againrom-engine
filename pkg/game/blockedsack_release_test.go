@@ -24,7 +24,7 @@ func TestReleaseDropOntoGroundBlockedCellSAVRoundTrip(t *testing.T) {
 		f.live.pending = append(f.live.pending, sim.MoveTo(hero, at))
 		for range 600 {
 			f.live.tick()
-			if e, _ := f.live.entity(hero); e.X == at.X && e.Y == at.Y && !e.HasTarget && sackPickupArrived(f.live.world, e) {
+			if e, _ := f.live.entity(hero); e.X == at.X && e.Y == at.Y && !e.HasTarget && f.live.world.SackPickupArrived(e.ID) {
 				return
 			}
 		}
@@ -39,7 +39,7 @@ func TestReleaseDropOntoGroundBlockedCellSAVRoundTrip(t *testing.T) {
 	}
 	const weapon = 4358
 	walk(sim.CellPoint{X: 20, Y: 65})
-	f.live.takeSackFor(hero)
+	f.live.pickUpUnderfoot(hero)
 	walk(stand)
 	carried := func(code uint16) (sim.ItemSlot, bool) {
 		pack, _ := f.live.world.CarriedStacks(hero)

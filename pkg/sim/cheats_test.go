@@ -96,7 +96,7 @@ func TestCheatKillGoldItemAndPickupUseOrdinaryState(t *testing.T) {
 	if !w.CheatAddItem(1, StackItem(PlainItem(0xe03), 2)) || w.CheatAddItem(1, ItemStack{}) {
 		t.Fatal("item insertion or empty item guard differs")
 	}
-	if err := w.CheatPickupAll(1, cheatTake(w)); err != nil {
+	if err := w.cheatPickupEach(1, cheatTake(w)); err != nil {
 		t.Fatal(err)
 	}
 	carried, _ := w.Carried(1)
@@ -167,14 +167,14 @@ func TestCheatPickupRefusesAggregateExpansionBeforeAnyTransfer(t *testing.T) {
 	w.sacks = []Sack{makeSack(5, 4, 7, []ItemInstance{PlainItem(0xe01)}), makeSack(10, 10, 9, []ItemInstance{item})}
 	hash := w.Hash()
 	if allocations := testing.AllocsPerRun(10, func() {
-		if err := w.CheatPickupAll(1, cheatTake(w)); err == nil {
+		if err := w.cheatPickupEach(1, cheatTake(w)); err == nil {
 			t.Fatal("over-capacity pickup accepted")
 		}
 	}); allocations > 2 || w.Hash() != hash || w.Purse(SelfSlot) != 0 || len(w.sacks) != 2 {
 		t.Fatal("refused pickup allocated inventory or transferred a sack", allocations)
 	}
 	w.carried[0][0].Count--
-	if err := w.CheatPickupAll(1, cheatTake(w)); err != nil || len(w.sacks) != 0 || w.Purse(SelfSlot) != 16 {
+	if err := w.cheatPickupEach(1, cheatTake(w)); err != nil || len(w.sacks) != 0 || w.Purse(SelfSlot) != 16 {
 		t.Fatal("pickup within ordinary capacity failed", err)
 	}
 	cheatCold(t, w)
@@ -185,7 +185,7 @@ func TestCheatPickupRefusesAggregateExpansionBeforeAnyTransfer(t *testing.T) {
 func TestCheatPickupStopsAtATakeThatLeavesTheSack(t *testing.T) {
 	w := cheatWorld(t)
 	calls := 0
-	err := w.CheatPickupAll(1, func(Sack) error { calls++; return nil })
+	err := w.cheatPickupEach(1, func(Sack) error { calls++; return nil })
 	if err == nil || calls != 1 || len(w.sacks) == 0 {
 		t.Fatalf("a take that moved nothing: err %v, calls %d, sacks %d", err, calls, len(w.sacks))
 	}

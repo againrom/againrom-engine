@@ -311,8 +311,8 @@ func messagePickUp(t *testing.T, app *ui.App, live *mapWorld, hero sim.EntityID,
 			t.Fatal(err)
 		}
 	}
-	if !live.pickup.set || live.pickup.id != hero || live.pickup.x != x || live.pickup.y != y {
-		t.Fatalf("a click on (%d,%d) armed %+v, want a pickup order for %d", x, y, live.pickup, hero)
+	if o := standingPickup(live); !o.set || o.id != hero || o.x != x || o.y != y {
+		t.Fatalf("a click on (%d,%d) armed %+v, want a pickup order for %d", x, y, o, hero)
 	}
 	for n := 0; n < 3000; n++ {
 		if _, standing := live.sackAt(x, y); !standing {

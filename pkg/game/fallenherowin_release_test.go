@@ -139,7 +139,7 @@ func TestReleaseFallenHeroWinKeepsHisMission(t *testing.T) {
 	}
 
 	f.live.orderPickup(hero, 87, 104)
-	for i := 0; i < 256 && f.live.pickup.set; i++ {
+	for i := 0; i < 256 && standingPickup(f.live).set; i++ {
 		step("pickup")
 	}
 	for i := 0; i < 2048; i++ {

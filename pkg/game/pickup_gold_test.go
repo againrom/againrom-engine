@@ -84,7 +84,7 @@ func TestGoldPickupPostsOnlyAfterSuccessfulTransfer(t *testing.T) {
 	mw := grabWorld(t, w, 7, missionSource{})
 	mw.invParty.table = eqDefsTable(t)
 	before := w.Purse(sim.SelfSlot)
-	mw.takeSackFor(7)
+	mw.pickUpUnderfoot(7)
 	rows := mw.view.MessageLines()
 	if w.Purse(sim.SelfSlot) != before+500 || len(w.Sacks()) != 0 || len(rows) != 2 {
 		t.Fatal("pickup did not transfer and post once", w.Purse(sim.SelfSlot), rows)
@@ -92,7 +92,7 @@ func TestGoldPickupPostsOnlyAfterSuccessfulTransfer(t *testing.T) {
 	if rows[0].Text != "Picked up 500 gold" || rows[1].Text != "Picked up Sword (now 2 pieces)" {
 		t.Fatalf("the take posted %+v, want the gold line then the item line", rows)
 	}
-	mw.takeSackFor(7)
+	mw.pickUpUnderfoot(7)
 	if len(mw.view.MessageLines()) != 2 || w.Purse(sim.SelfSlot) != before+500 {
 		t.Fatal("empty ground repeated the gold line or the transfer")
 	}

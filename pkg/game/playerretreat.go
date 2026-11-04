@@ -12,7 +12,6 @@ func (mw *mapWorld) playerRetreat(entities []uint32) {
 	mw.groupTag++
 	for _, entity := range entities {
 		id := sim.EntityID(entity)
-		mw.cancelPickup(id)
 		mw.pending = append(mw.pending, sim.GroupRetreat(id, sim.SelfSlot, mw.groupTag))
 		mw.commanded[id] = true
 	}

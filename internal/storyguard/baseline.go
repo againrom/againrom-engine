@@ -3251,7 +3251,7 @@ var Committed = Baseline{
 		"expmention":      0,
 		"acclause":        1861,
 		"scclause":        505,
-		"barestorynumber": 1700,
+		"barestorynumber": 1699,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3260,7 +3260,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1672,
+		"longcommentgroups":      1671,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4018,5 +4018,12 @@ var Committed = Baseline{
 	// Add unit list gesture in mapeditormodes_test.go; the unit popup's
 	// speaker line as an asker in internal/archtest/editorpalettes_test.go;
 	// and this note.
-	CommentBytes: 10517853,
+
+	// It rose by the doc comments of the sack pickup record test in
+	// pkg/game/sackpickuprecord_test.go, and this note.
+
+	// It rose by the sack pickup transaction in pkg/sim/sackpickup.go and its
+	// guard internal/archtest/sackpickup.go with its test, net of the pickup
+	// latch and the takes removed from pkg/game/world.go, and this note.
+	CommentBytes: 10520864,
 }

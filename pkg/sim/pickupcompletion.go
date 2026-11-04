@@ -6,8 +6,8 @@ import (
 )
 
 // CompleteSackPickup records a successful gameplay pickup for completion on the
-// next Step. The caller must first finish TakeSack and any quest-item routing.
-// TakeSack itself remains a pure inventory transfer, including for tools.
+// next Step. The pickup (sackpickup.go) calls it after TakeSack and the quest
+// documents' move. TakeSack itself remains a pure inventory transfer.
 //
 // AI-356 separates completion state from any still-running physical body.
 func (w *World) CompleteSackPickup(id EntityID) bool {
@@ -45,7 +45,8 @@ func (w *World) CompleteSackPickup(id EntityID) bool {
 	return true
 }
 
-func (w *World) CancelSackPickup(id EntityID) {
+// cancelSackPickup ends a pickup order the settle cannot finish.
+func (w *World) cancelSackPickup(id EntityID) {
 	if i := indexOfEntity(w.entities, id); i >= 0 && w.entities[i].PendingOrder.Kind == PendingPickup {
 		w.entities[i].PendingOrder = PendingOrder{}
 	}

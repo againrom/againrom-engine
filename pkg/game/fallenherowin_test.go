@@ -77,7 +77,7 @@ func fallenHeroWinEarn(t *testing.T, ms *Mission, mw *mapWorld) (entry, earned s
 		mw.tick()
 	}
 	mw.orderPickup(1, 20, 17)
-	for tick := 0; tick < 400 && mw.pickup.set; tick++ {
+	for tick := 0; tick < 400 && standingPickup(mw).set; tick++ {
 		mw.tick()
 	}
 	earned, _ = mw.entity(1)

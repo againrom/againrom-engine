@@ -49,7 +49,7 @@ func TestPickupArrivalWaitsForRatedStride(t *testing.T) {
 			t.Fatalf("fixture lost the sixteen-tick eastward stride at payment %d: %+v", paid, e)
 		}
 		requirePickupArrivalGround(t, w, mw)
-		if !mw.pickup.set {
+		if !standingPickup(mw).set {
 			t.Fatal("crossing consumed the pending pickup order")
 		}
 	}
@@ -60,8 +60,8 @@ func TestPickupArrivalWaitsForRatedStride(t *testing.T) {
 	}
 	requirePickupArrivalTaken(t, w)
 	rows := mw.view.MessageLines()
-	if mw.pickup.set || !reflect.DeepEqual(rows, announced("Picked up 500 gold", "Picked up Sword")) {
-		t.Fatal("arrival did not consume its order and post gold then item once", mw.pickup, rows)
+	if standingPickup(mw).set || !reflect.DeepEqual(rows, announced("Picked up 500 gold", "Picked up Sword")) {
+		t.Fatal("arrival did not consume its order and post gold then item once", standingPickup(mw), rows)
 	}
 	sim.Step(w, []sim.Command{sim.DropCarried(7, 0, sim.CellPoint{X: 4, Y: 3})})
 	for range 3 {

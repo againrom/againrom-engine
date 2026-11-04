@@ -21,8 +21,8 @@ func init() {
 	worldWriters = append(worldWriters, "CheatGod", "CheatSpell", "CheatKillPlayer", "CheatPickupAll", "CheatAddGold", "CheatAddItem", "CheatCurse", "CheatSummon", "SetSafeMode")
 	worldMethods = append(worldMethods, "PlayerParticipants", "RestorePlayerParticipants", "SetPlayerParticipant", "CurrentPlayers", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
 	worldWriters = append(worldWriters, "RestorePlayerParticipants", "SetPlayerParticipant", "RestoreCurrentPlayers", "RestoreCurrentPlayerIdentities", "RestoreCurrentPlayerRegistryAbsent")
-	worldMethods = append(worldMethods, "ActorOrderProgress", "CancelSackPickup")
-	worldWriters = append(worldWriters, "CancelSackPickup", "ReleaseUnitShot")
+	worldMethods = append(worldMethods, "ActorOrderProgress", "OrderSackPickup", "PickUpSackUnderfoot", "SettleSackPickup", "SackPickupArrived")
+	worldWriters = append(worldWriters, "PickUpSackUnderfoot", "SettleSackPickup", "ReleaseUnitShot")
 	worldMethods = append(worldMethods, "RestoreAppliedPotionEffect", "RestoreCarriedPotionEffect", "DropPotionEffect")
 	worldWriters = append(worldWriters, "RestoreAppliedPotionEffect", "RestoreCarriedPotionEffect", "DropPotionEffect")
 	worldMethods = append(worldMethods, "Actions", "RestoreActions")
@@ -154,6 +154,8 @@ var worldArgReaders = map[string][]reflect.Value{
 	"ROM2ScenarioValue":    {reflect.ValueOf(int32(753))},
 	"CellPlanes":           {reflect.ValueOf(CellPlaneStart{Base: &SavedCellPlanes{}, Overlay: []byte{1}})},
 	"ActorOrderProgress":   {reflect.ValueOf(EntityID(7))},
+	"OrderSackPickup":      {reflect.ValueOf(EntityID(7)), reflect.ValueOf(CellPoint{X: 4, Y: 5})},
+	"SackPickupArrived":    {reflect.ValueOf(EntityID(7))},
 	"SackValue":            {reflect.ValueOf(int32(2)), reflect.ValueOf(int32(2))},
 	"Entity":               {reflect.ValueOf(EntityID(7))},
 	"KnowledgeLevel":       {reflect.ValueOf(Entity{})},

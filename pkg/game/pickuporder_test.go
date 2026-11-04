@@ -7,6 +7,52 @@ import (
 	"againrom/pkg/sim"
 )
 
+// standingPickupOrder is the pickup order the window holds for one actor.
+type standingPickupOrder struct {
+	id   sim.EntityID
+	x, y int32
+	set  bool
+}
+
+// standingPickup reads the pickup order the window holds: the last pickup
+// queued, else the World's pending pickup of the first actor holding one, the
+// order the after-Step settle reads; either only while no later order for
+// that actor is queued.
+func standingPickup(mw *mapWorld) standingPickupOrder {
+	overwritten := func(id sim.EntityID, queue []sim.Command) bool {
+		for _, c := range queue {
+			if c.Entity != id {
+				continue
+			}
+			switch c.Kind {
+			case sim.KindMoveTo, sim.KindPickUp, sim.KindGroupMoveTo, sim.KindGroupSwarmTo,
+				sim.KindGroupStance, sim.KindGroupPatrolTo, sim.KindGroupDefend,
+				sim.KindGroupRetreat, sim.KindAttack, sim.KindAttackStructure,
+				sim.KindCast, sim.KindCastAt, sim.KindUseScroll, sim.KindUseScrollAt, sim.KindUseStructure:
+				return true
+			}
+		}
+		return false
+	}
+	for i := len(mw.pending) - 1; i >= 0; i-- {
+		if c := mw.pending[i]; c.Kind == sim.KindPickUp {
+			if overwritten(c.Entity, mw.pending[i+1:]) {
+				return standingPickupOrder{}
+			}
+			return standingPickupOrder{id: c.Entity, x: c.X, y: c.Y, set: true}
+		}
+	}
+	for _, e := range mw.world.EntityView() {
+		if p := e.PendingOrder; p.Kind == sim.PendingPickup {
+			if overwritten(e.ID, mw.pending) {
+				return standingPickupOrder{}
+			}
+			return standingPickupOrder{id: e.ID, x: p.X, y: p.Y, set: true}
+		}
+	}
+	return standingPickupOrder{}
+}
+
 // The two cells the cases below use.
 const (
 	poHeroID           = 7
@@ -83,7 +129,7 @@ func TestThePickupOrderWalksTheOrderedUnitToTheSackAndTakesItOnArrival(t *testin
 	if !ok || len(codes) != 1 || codes[0] != eqSwordCode {
 		t.Errorf("Carried(%d) = %v,%v after arrival, want the sack's one code", poHeroID, codes, ok)
 	}
-	if mw.pickup.set {
+	if standingPickup(mw).set {
 		t.Error("the standing order is still armed after it completed")
 	}
 }
@@ -98,7 +144,7 @@ func TestThePickupOrderRefusesACellWithNoSackOnIt(t *testing.T) {
 
 	mw.grab(poHeroID, poEmptyX, poEmptyY, true)
 
-	if mw.pickup.set {
+	if standingPickup(mw).set {
 		t.Error("a pick-up order naming a cell with no sack armed a standing order")
 	}
 	if got := len(mw.pending); got != 0 {
@@ -111,11 +157,10 @@ func TestThePickupOrderRefusesACellWithNoSackOnIt(t *testing.T) {
 	_ = w
 }
 
-// TestALaterOrderCancelsAStandingPickup is the driver-side half of what the
-// original gets for free. `0x21` writes `actor+0x50 = 2` and every other order
-// arm writes that same field (`AI-CMD-032`, `AI-STATE-011`), so a second order
-// overwrites the pick-up rather than queuing behind it. Here the state is on
-// the driver, so the overwrite is performed by cancelPickup from queueGroup.
+// TestALaterOrderCancelsAStandingPickup: `0x21` writes `actor+0x50 = 2` and
+// every other order arm writes that same field (`AI-CMD-032`, `AI-STATE-011`),
+// so a second order overwrites the pick-up rather than queuing behind it. Here
+// the later order queued behind the pickup overwrites it in the World.
 //
 // THE UNIT IS WALKED TO THE SACK'S CELL ANYWAY, by a plain move order to the
 // same cell, so the cancel is measured against a unit that DOES arrive. Without
@@ -125,11 +170,11 @@ func TestALaterOrderCancelsAStandingPickup(t *testing.T) {
 	w, mw := poWorld(t)
 
 	mw.grab(poHeroID, poSackX, poSackY, true)
-	if !mw.pickup.set {
+	if !standingPickup(mw).set {
 		t.Fatal("setup: the standing order did not arm")
 	}
 	mw.enqueue(poHeroID, poSackX, poSackY)
-	if mw.pickup.set {
+	if standingPickup(mw).set {
 		t.Fatal("a later order left the standing pick-up armed")
 	}
 
@@ -162,7 +207,7 @@ func vanishedSackRun(t *testing.T, taken bool) (*sim.World, *mapWorld, sim.Entit
 	mw := grabWorld(t, w, poHeroID, missionSource{})
 	mw.grab(poHeroID, poSackX, poSackY, true)
 	mw.tick()
-	if e, _ := mw.entity(poHeroID); !mw.pickup.set || e.PendingOrder.Kind != sim.PendingPickup {
+	if e, _ := mw.entity(poHeroID); !standingPickup(mw).set || e.PendingOrder.Kind != sim.PendingPickup {
 		t.Fatal("setup: the standing order did not arm")
 	}
 	if taken {
@@ -178,7 +223,7 @@ func vanishedSackRun(t *testing.T, taken bool) (*sim.World, *mapWorld, sim.Entit
 		if completed < 0 && e.ActorState == 2 {
 			completed = i
 		}
-		if after < 0 && e.PendingOrder.Kind != sim.PendingPickup && !mw.pickup.set {
+		if after < 0 && e.PendingOrder.Kind != sim.PendingPickup && !standingPickup(mw).set {
 			after = i
 		}
 	}
@@ -217,7 +262,7 @@ func TestAPickupWhoseSackWentCompletesWithoutATransfer(t *testing.T) {
 		got.PendingOrder != control.PendingOrder || got.HasTarget != control.HasTarget || got.CommandGroup != control.CommandGroup {
 		t.Errorf("end state differs from a completed pickup's: got %+v, control %+v", got, control)
 	}
-	if mw.pickup.set {
+	if standingPickup(mw).set {
 		t.Error("the standing order is still armed after it completed")
 	}
 }

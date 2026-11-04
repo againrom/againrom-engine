@@ -248,11 +248,9 @@ func partyActor(id sim.EntityID, p mapload.PartyMember) speakerActor {
 // playerDirection is the figure directory of the player's own character, the
 // party member the start marked, or no answer for a party without one.
 func playerDirection(party []mapload.PartyMember) (data.FigureDir, bool) {
-	for _, m := range party {
-		if primaryPlayerHero(m) {
-			dir, _ := memberFigure(m)
-			return dir, true
-		}
+	if i, ok := startingHeroIndex(party); ok {
+		dir, _ := memberFigure(party[i])
+		return dir, true
 	}
 	return "", false
 }

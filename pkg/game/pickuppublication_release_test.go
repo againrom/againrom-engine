@@ -282,7 +282,7 @@ func TestReleasePickupPublicationClearsSavedPickupFlag(t *testing.T) {
 	// the product pickup route.
 	livePlaceAndWalk(t, f.live, hero, 42, 39)
 	carried, _ := f.live.world.CarriedStacks(hero)
-	f.live.takeSackFor(hero)
+	f.live.pickUpUnderfoot(hero)
 	if groundAt(f.live.world.Sacks(), 42, 39) != nil {
 		t.Fatal("production pickup did not consume the Sack")
 	}

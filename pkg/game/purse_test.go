@@ -306,14 +306,14 @@ func TestPurseDragDropsGoldThroughPauseSaveColdLoadAndPickup(t *testing.T) {
 		t.Fatalf("cold LOAD after the drop: purse %d ground %d/%d pending %d", cold2.live.world.Purse(sim.SelfSlot), g, n, len(cold2.live.pending))
 	}
 	assertCurrentWorldEqual(t, f.live.world, cold2.live.world, "after the drop")
-	cold2.live.takeSackFor(sim.EntityID(subject))
+	cold2.live.pickUpUnderfoot(sim.EntityID(subject))
 	if cold2.live.world.Purse(sim.SelfSlot) != 2500 {
 		t.Fatalf("the pickup returned the purse to %d, want 2500", cold2.live.world.Purse(sim.SelfSlot))
 	}
 	if _, n := purseGround(t, cold2.live.world); n != 0 {
 		t.Fatalf("the pickup left %d sacks", n)
 	}
-	cold2.live.takeSackFor(sim.EntityID(subject))
+	cold2.live.pickUpUnderfoot(sim.EntityID(subject))
 	if cold2.live.world.Purse(sim.SelfSlot) != 2500 {
 		t.Fatal("a repeated pickup changed the purse")
 	}

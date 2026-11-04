@@ -122,10 +122,10 @@ func TestReleaseThrownItemLiesAtFeetAndSurvivesSaveLoad(t *testing.T) {
 
 	target := feet
 	cold.live.orderPickup(ch, target.X, target.Y)
-	for tick := 0; tick < 400 && cold.live.pickup.set; tick++ {
+	for tick := 0; tick < 400 && standingPickup(cold.live).set; tick++ {
 		cold.live.tick()
 	}
-	if cold.live.pickup.set {
+	if standingPickup(cold.live).set {
 		t.Fatal("the hero never took the sack at its feet")
 	}
 	if left := groundAt(cold.live.world.Sacks(), target.X, target.Y); left != nil {

@@ -7,7 +7,6 @@ import (
 )
 
 func (mw *mapWorld) useStructure(entity, structure uint32) {
-	mw.cancelPickup(sim.EntityID(entity))
 	mw.pending = append(mw.pending, sim.UseStructure(sim.EntityID(entity), sim.StructureID(structure)))
 }
 

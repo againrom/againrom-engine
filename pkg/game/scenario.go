@@ -50,9 +50,8 @@ type PlayWorld struct {
 	// reached is what the drive actually walked into. See playCensus.
 	reached playCensus
 
-	// primary is the starting hero's entity, when the mission marks one.
-	primary   sim.EntityID
-	primaryOK bool
+	// documents is where a pickup sends quest documents: the starting hero.
+	documents sim.SackDocuments
 
 	// The announcement half. ann derives raises from the world's own latch
 	// array; mission, src and audience are what turns a raised number into the
@@ -559,19 +558,15 @@ func NewPlayWorld(ms *Mission) *PlayWorld {
 		World:  ms.World,
 		Script: mapload.ScriptUnits(ms.Map, ms.Party),
 		Party:  append([]sim.EntityID(nil), ms.Start.IDs...),
-	}
-	for i, member := range ms.Party {
-		if i < len(ms.Start.IDs) && primaryPlayerHero(member) {
-			p.primary, p.primaryOK = ms.Start.IDs[i], true
-			break
-		}
+
+		documents: questDocuments(ms.Party, ms.Start.IDs),
 	}
 	return p
 }
 
-// pickUp is the game's pick-up order over this driver: orderPickup's refusal
-// and walk, settlePickup's arrival test after each ordinary Step, and the
-// shared underfoot take.
+// pickUp is the game's pick-up order over this driver: orderPickup's refusal,
+// a walk, and on the cell the World's underfoot take after each ordinary Step,
+// which waits for the arrival test.
 func (p *PlayWorld) pickUp(id sim.EntityID, x, y int32) error {
 	sackThere := func() bool {
 		for _, s := range p.World.Sacks() {
@@ -593,18 +588,19 @@ func (p *PlayWorld) pickUp(id sim.EntityID, x, y int32) error {
 		if !sackThere() {
 			return fmt.Errorf("pick_item: the sack at (%d,%d) went before entity %d arrived", x, y, id)
 		}
-		if e.X == x && e.Y == y && sackPickupArrived(p.World, e) {
-			break
+		if e.X == x && e.Y == y {
+			switch _, outcome := p.World.PickUpSackUnderfoot(id, p.documents); outcome {
+			case sim.SackPickupTaken:
+				return nil
+			case sim.SackPickupNone, sim.SackPickupRefused:
+				return fmt.Errorf("pick_item: entity %d did not take the sack at (%d,%d)", id, x, y)
+			}
 		}
 		if n >= headlessDefaultWait {
 			return fmt.Errorf("pick_item: entity %d did not reach (%d,%d) in %d ticks", id, x, y, n)
 		}
 		p.step(nil)
 	}
-	if _, ok := takeSackUnderfoot(p.World, id, p.primary, p.primaryOK); !ok {
-		return fmt.Errorf("pick_item: entity %d did not take the sack at (%d,%d)", id, x, y)
-	}
-	return nil
 }
 
 // Resolve reads one unit reference.

@@ -16,7 +16,7 @@ func liveWalk(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) {
 	for n := 0; ; n++ {
 		mw.tick()
 		e, ok := mw.entity(id)
-		if !ok || sackPickupArrived(mw.world, e) && (e.X == x && e.Y == y || !e.HasTarget) {
+		if !ok || mw.world.SackPickupArrived(e.ID) && (e.X == x && e.Y == y || !e.HasTarget) {
 			return
 		}
 		if n >= headlessReachLimit {
@@ -76,7 +76,7 @@ func worldWalk(t *testing.T, w *sim.World, id sim.EntityID, x, y int32) {
 		sim.Step(w, order)
 		order = nil
 		e, ok := w.Entity(id)
-		if !ok || sackPickupArrived(w, e) && (e.X == x && e.Y == y || !e.HasTarget) {
+		if !ok || w.SackPickupArrived(e.ID) && (e.X == x && e.Y == y || !e.HasTarget) {
 			return
 		}
 		if n >= headlessReachLimit {
@@ -93,8 +93,7 @@ func liveTakeAt(t *testing.T, mw *mapWorld, id sim.EntityID, x, y int32) sim.Sac
 		livePlaceAndWalk(t, mw, id, x, y)
 	}
 	waitHeadlessCrossing(t, mw.world, id, func() { mw.tick() })
-	primary, ok := mw.primaryPartyID()
-	return takeUnderfoot(t, mw.world, id, x, y, primary, ok)
+	return takeUnderfoot(t, mw.world, id, x, y, mw.questDocuments())
 }
 
 // worldTakeAt is liveTakeAt over bare Steps on a mission without a map.
@@ -118,7 +117,7 @@ func waitHeadlessCrossing(t *testing.T, w *sim.World, id sim.EntityID, step func
 	t.Helper()
 	for n := 0; ; n++ {
 		e, ok := w.Entity(id)
-		if !ok || sackPickupArrived(w, e) {
+		if !ok || w.SackPickupArrived(e.ID) {
 			return
 		}
 		if n >= headlessReachLimit {
@@ -129,13 +128,14 @@ func waitHeadlessCrossing(t *testing.T, w *sim.World, id sim.EntityID, step func
 	}
 }
 
-func takeUnderfoot(t *testing.T, w *sim.World, id sim.EntityID, x, y int32, primary sim.EntityID, primaryOK bool) sim.Sack {
+func takeUnderfoot(t *testing.T, w *sim.World, id sim.EntityID, x, y int32, docs sim.SackDocuments) sim.Sack {
 	t.Helper()
 	if e, _ := w.Entity(id); e.X != x || e.Y != y {
 		t.Fatalf("actor %d stopped at (%d,%d), short of the sack at (%d,%d)", id, e.X, e.Y, x, y)
 	}
-	sack, ok := takeSackUnderfoot(w, id, primary, primaryOK)
-	if !ok {
+	taken, outcome := w.PickUpSackUnderfoot(id, docs)
+	sack := taken.Sack
+	if outcome != sim.SackPickupTaken {
 		t.Fatalf("actor %d took no sack at (%d,%d)", id, x, y)
 	}
 	return sack

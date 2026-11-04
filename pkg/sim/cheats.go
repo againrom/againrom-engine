@@ -75,11 +75,11 @@ func (w *World) CheatKillPlayer(owner uint32) int {
 	return killed
 }
 
-// CheatPickupAll refuses before any transfer when the hero is absent or the
+// cheatPickupEach refuses before any transfer when the hero is absent or the
 // holdings would exceed the bounded item and effect values, then hands every
-// ground sack, first to last, to take: the caller's ordinary pickup of one
-// sack by the hero (MENU-108). A take that leaves the sack stops the command.
-func (w *World) CheatPickupAll(hero EntityID, take func(Sack) error) error {
+// ground sack, first to last, to take: CheatPickupAll's pickup of one sack by
+// the hero (MENU-108). A take that leaves the sack stops the command.
+func (w *World) cheatPickupEach(hero EntityID, take func(Sack) error) error {
 	if indexOfEntity(w.entities, hero) < 0 {
 		return fmt.Errorf("sim: cheat pickup names absent entity %d", hero)
 	}
