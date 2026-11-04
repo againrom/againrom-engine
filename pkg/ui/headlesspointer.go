@@ -249,7 +249,7 @@ func (a *App) HeadlessDollBoxPoint() (int, int, error) {
 //
 // The scan excludes the window's edge-scroll bands. A generic ground gesture
 // must not pan the camera after release and hide the next actor to inspect.
-// A cell argument requests an ordinary move point through the hover and tip gates.
+// A cell argument requests a press on that cell through the hover and tip gates.
 func (a *App) HeadlessGroundPoint(cells ...image.Point) (int, int, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
@@ -297,8 +297,10 @@ func (a *App) HeadlessGroundPoint(cells ...image.Point) (int, int, error) {
 				if _, hit := v.hoverAt(fx, fy); hit {
 					continue
 				}
-				if v.gestureCursorAt(fx, fy) != "move" {
-					continue
+				if _, armed := v.armedMissionCursorAt(fx, fy); !armed {
+					if c := v.gestureCursorAt(fx, fy); c != "move" && c != "pickup" {
+						continue
+					}
 				}
 				if _, blocked := TipPanelEventAt(v.MissionTip(), image.Pt(fx, fy), false); blocked {
 					continue
