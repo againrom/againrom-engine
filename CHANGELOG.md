@@ -34,6 +34,7 @@ modder or developer can notice gets no entry.
 
 - [BASE] The Magic Symbol (Магический символ in the Russian editor) is listed in the map editor's Objects palette, not in Structures; its picture, placement and map data are unchanged.
 - [BASE] A wooden bridge placed in the map editor now spans a 3 by 3 area that stays open to walkers, as the bridges of the installed maps do; before, it was one closed cell. Its width and height fields resize it.
+- [BASE] The map editor no longer lists the Horizontal Wooden Bridge among the structures you can place; no installed map uses it and the map format cannot size it. A map that already holds one still opens and saves unchanged.
 - [BASE] A click on the Scenario branch of the map editor tree, on its Scenario button or on its key now leaves the trigger or other record that was open and opens no trigger window; a click on a trigger row still opens that trigger.
 - [BASE] The map editor of the Russian game shows the trap and spell texts in Russian: the spell name beside a trap on the map, the field names of a trap's window and its range message were drawn as question marks.
 - [BASE] The map editor's Units palette shows a picture on every creature and person again; most entries were empty after the choice of who a unit is replaced the class list.

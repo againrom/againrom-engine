@@ -23,7 +23,7 @@ func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 	}
 	s := objectEdits(t, e)
 	kinds, objects := map[int64]int{}, map[int]int{}
-	want := map[ui.Palette][2]int{ui.PaletteStructures: {48, 0}, ui.PaletteObjects: {18, 33}, ui.PaletteTrees: {0, 42}}
+	want := map[ui.Palette][2]int{ui.PaletteStructures: {47, 0}, ui.PaletteObjects: {18, 33}, ui.PaletteTrees: {0, 42}}
 	for _, p := range []ui.Palette{ui.PaletteStructures, ui.PaletteObjects, ui.PaletteTrees} {
 		k, o := e.PaletteHolds(p)
 		if got := [2]int{len(k), len(o)}; got != want[p] {
@@ -47,8 +47,8 @@ func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 			t.Errorf("object class %d %s lists in %d palettes", r.Code, r.Name, objects[r.Code])
 		}
 	}
-	if len(step.Choices) != 66 || len(s.BrushObjects()) != 76 {
-		t.Errorf("the Add window offers %d structure kinds and the brush %d rows, want 66 and 76", len(step.Choices), len(s.BrushObjects()))
+	if len(step.Choices) != 65 || len(s.BrushObjects()) != 76 {
+		t.Errorf("the Add window offers %d structure kinds and the brush %d rows, want 65 and 76", len(step.Choices), len(s.BrushObjects()))
 	}
 	_, unsettled := structurePalettes(x.structures, x.table)
 	var ids []int64

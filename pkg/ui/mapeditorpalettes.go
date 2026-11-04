@@ -21,6 +21,7 @@ const (
 	PaletteStructures         // what can be selected, destroyed or switched, bridges, and what the data does not settle
 	PaletteObjects            // decoration, no trees
 	PaletteTrees              // trees
+	PaletteNone               // a kind the editor does not offer to place
 )
 
 // in is the palette p names for a record whose own kind lists in own.

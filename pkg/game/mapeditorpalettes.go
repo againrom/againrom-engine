@@ -38,8 +38,13 @@ func structurePalette(c *terrain.StructureClass, inTable bool) (ui.Palette, stri
 		return ui.PaletteStructures, "structures.reg: no class"
 	case objectsKinds[c.ID]:
 		return ui.PaletteObjects, ""
+	case c.VariableSize && c.VariableLayout != terrain.VariableStructureVerticalNinePatch:
+		// A variable-size class the map format gives no extension and the
+		// renderer no layout (TERR-STRUCT-105): the Horizontal Wooden Bridge.
+		// A placed record of it still loads and
+		// saves unchanged; only the palettes stop offering it.
+		return ui.PaletteNone, ""
 	case c.VariableSize:
-		// The two wooden bridges (TERR-STRUCT-105).
 		return ui.PaletteStructures, ""
 	case c.Usable:
 		// A hover hit and the target of the use order (UNIT-153,

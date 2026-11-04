@@ -28,7 +28,8 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 		why     string
 	}{
 		{"no class", nil, true, ui.PaletteStructures, "structures.reg: no class"},
-		{"a bridge", &terrain.StructureClass{VariableSize: true, Indestructible: true}, true, ui.PaletteStructures, ""},
+		{"the vertical bridge", &terrain.StructureClass{VariableSize: true, VariableLayout: terrain.VariableStructureVerticalNinePatch, Indestructible: true}, true, ui.PaletteStructures, ""},
+		{"the horizontal bridge: variable size, no layout", &terrain.StructureClass{VariableSize: true, Indestructible: true}, true, ui.PaletteNone, ""},
 		{"a usable gate", &terrain.StructureClass{Usable: true, Indestructible: true}, true, ui.PaletteStructures, ""},
 		{"a house that can be destroyed", &terrain.StructureClass{}, true, ui.PaletteStructures, ""},
 		{"a flat mark", &terrain.StructureClass{Flat: true, Indestructible: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
@@ -243,5 +244,22 @@ func TestEditorPaletteRoutesWriteTheSameBytes(t *testing.T) {
 	}
 	if got := saveTyped(t, n); !bytes.Equal(got, opened) {
 		t.Fatalf("a save with no edit wrote %d bytes, not the opened %d", len(got), len(opened))
+	}
+}
+
+// A variable-size class without a layout lists in no palette and the kind
+// step does not offer it.
+func TestEditorPalettesDropAKindWithoutLayout(t *testing.T) {
+	x := paletteInspector()
+	x.structures.Classes[37] = &terrain.StructureClass{ID: 37, Name: "Horizontal Bridge", VariableSize: true, Indestructible: true}
+	palettes, _ := structurePalettes(x.structures, x.table)
+	if palettes[37] != ui.PaletteNone {
+		t.Fatalf("kind 37 lists in palette %d, want none", palettes[37])
+	}
+	for _, p := range []ui.Palette{ui.PaletteStructures, ui.PaletteObjects, ui.PaletteTrees} {
+		kinds, _ := x.Editor().PaletteHolds(p)
+		if slices.Contains(kinds, 37) {
+			t.Errorf("palette %d holds kind 37", p)
+		}
 	}
 }
