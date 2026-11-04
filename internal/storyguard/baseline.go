@@ -4057,5 +4057,5 @@ var Committed = Baseline{
 	// It rose for the structure pick gate's doc comment in pkg/ui/structureuse.go,
 	// the mission screen datum's doc in pkg/ui/missionscreen.go, the two tests'
 	// comments and this note.
-	CommentBytes: 10542694,
+	CommentBytes: 10542552,
 }

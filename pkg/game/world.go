@@ -1991,7 +1991,8 @@ func (mw *mapWorld) openDialogue(event int) bool {
 		return false
 	}
 	audience := mw.eventAudience(event)
-	body, ok := dialoguePart(payload, 1, audience)
+	r := readDialoguePart(payload, 1, audience, nil)
+	body, ok := r.text, r.ok
 	fallback := m.files().dialogueDefault
 	if !ok && fallback == "" {
 		return false
@@ -2010,6 +2011,7 @@ func (mw *mapWorld) openDialogue(event int) bool {
 		page = m.dialogueOf(body, 1)
 	}
 	mw.view.SetDialogue(page)
+	mw.view.QueueMusicTune(r.musicTune())
 	return true
 }
 
@@ -2096,8 +2098,10 @@ func (mw *mapWorld) advanceNotice(actions ...ui.NoticeAction) (ui.NoticeDest, st
 		}
 	} else {
 		m.noteTips(m.part)
-		if body, ok := dialoguePart(m.payload, m.part, m.dialogueAudience); ok {
-			mw.view.PageDialogue(m.dialogueOf(body, m.part))
+		r := readDialoguePart(m.payload, m.part, m.dialogueAudience, nil)
+		if r.ok {
+			mw.view.PageDialogue(m.dialogueOf(r.text, m.part))
+			mw.view.QueueMusicTune(r.musicTune())
 			return ui.NoticeStay, "", nil
 		}
 	}

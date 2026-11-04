@@ -162,6 +162,8 @@ func (s *townTalkSeat) turnTownTalk() bool {
 
 func (s *townTalkSeat) TownDialogueRevision() uint64 { return s.talkWindow.Revision() }
 
+func (s *townTalkSeat) TakeMusicTune() (int, bool) { return s.dialogue.TakeMusicTune() }
+
 func (s *townTalkSeat) TownDialogueButtonState() ui.DialogueButtonState {
 	return s.talkWindow.ButtonState()
 }

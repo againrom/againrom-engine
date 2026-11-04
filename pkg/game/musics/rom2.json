@@ -26,5 +26,6 @@
     "2": {"track": "b16.wav", "cite": ["R2-ENGINE-231"]},
     "3": {"track": "b15.wav", "cite": ["R2-ENGINE-231"]}
   },
-  "areas": {"period": 16, "cite": ["R2-ASSET-084", "R2-ENGINE-336", "DIV-2861"]}
+  "areas": {"period": 16, "cite": ["R2-ASSET-084", "R2-ENGINE-336", "DIV-2861"]},
+  "fade": {"duration-ms": 2000, "threshold": 8000, "interval-ms": 100, "cite": ["R2-ENGINE-839", "R2-ENGINE-840", "R2-ENGINE-341", "DIV-4486"]}
 }

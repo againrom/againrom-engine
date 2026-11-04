@@ -59,14 +59,25 @@ func dialoguePart(payload []byte, part int, audience EventAudience) (string, boo
 // tips is the `tips=` value the accepted tag carries, and whether it carries
 // one (TRIG-TIPS-087). Tags are case-folded, so `Tips=3` counts.
 func (r dialogueRead) tips() (int, bool) {
+	return r.number("tips=")
+}
+
+func (r dialogueRead) number(key string) (int, bool) {
 	if !r.accepted {
 		return 0, false
 	}
-	at := indexFold(r.tag, "tips=")
+	at := indexFold(r.tag, key)
 	if at < 0 {
 		return 0, false
 	}
-	return dialogueInteger(r.tag[at+5:])
+	return dialogueInteger(r.tag[at+len(key):])
+}
+
+func (r dialogueRead) musicTune() int {
+	if n, ok := r.number("tune="); ok && n >= 0 && r.ok {
+		return n
+	}
+	return -1
 }
 
 func dialoguePartTips(payload []byte, part int, audience EventAudience) (int, bool) {

@@ -3,6 +3,7 @@ package ui
 import (
 	"math"
 	"slices"
+	"time"
 
 	"againrom/pkg/audio"
 	"againrom/pkg/random"
@@ -105,10 +106,14 @@ type MusicController struct {
 	areaTick     uint64
 	preferences  MusicPreferences
 	log          []string
+	hold         bool
+	heldIndex    int
+	fade         *musicFade
+	now          func() time.Time
 }
 
 func NewMusicController(desc *MusicDescription, source MusicSource, device MusicDevice, draws *random.Stream) *MusicController {
-	return &MusicController{desc: desc, source: source, device: device, draws: draws, pick: -1, preferences: DefaultMusicPreferences()}
+	return &MusicController{desc: desc, source: source, device: device, draws: draws, pick: -1, preferences: DefaultMusicPreferences(), now: time.Now}
 }
 
 // TownMusicScreen exposes only the town room's static music identity and the
@@ -153,6 +158,22 @@ func (a *App) updateMusic() {
 	}
 	a.syncMusic()
 	a.music.observeAreas()
+	var cues interface{ TakeMusicTune() (int, bool) }
+	if a.flow != nil {
+		switch a.flow.screen {
+		case ScreenMap:
+			if a.flow.viewer != nil {
+				cues = a.flow.viewer
+			}
+		case ScreenTown:
+			cues, _ = a.flow.town.(interface{ TakeMusicTune() (int, bool) })
+		}
+	}
+	if cues != nil {
+		if index, ok := cues.TakeMusicTune(); ok {
+			a.music.Tune(index)
+		}
+	}
 	a.music.Update()
 }
 
@@ -285,7 +306,7 @@ func (m *MusicController) RequestScene(scene MusicScene, mageFirst bool) {
 
 func (m *MusicController) replaceRequest(next musicRequest) {
 	if m.set && m.device != nil {
-		m.device.Stop()
+		m.stopSelection()
 		m.record("stop")
 	}
 	m.record("request:" + m.sceneKey(next))
@@ -311,10 +332,16 @@ func (m *MusicController) replaceRequest(next musicRequest) {
 	}
 }
 
-// pause stops the player and keeps its list and position. A device that
-// cannot hold its stream is stopped, and the next resume starts the held
-// entry again.
+// pause keeps the stream's position, or reselects the held entry.
+// A device without Pause restarts the ordinary entry on resume.
 func (m *MusicController) pause() {
+	if m.hold {
+		m.fade = nil
+		m.resetVolume()
+		if m.selectIndex(m.heldIndex, m.active) {
+			return
+		}
+	}
 	if !m.active {
 		return
 	}
@@ -350,10 +377,18 @@ func (m *MusicController) resume() {
 	m.record("resume:" + m.Playing())
 }
 
-// Update advances the ordinary list after EOF: to the area pick when one is
-// set, else to the next entry. A one-entry list therefore reloads the same
-// file; a shuffled list repeats only after every entry.
+// Update advances fades and the current list on the presentation clock.
 func (m *MusicController) Update() {
+	if m == nil {
+		return
+	}
+	m.UpdateAt(m.now())
+}
+
+func (m *MusicController) UpdateAt(now time.Time) {
+	if m != nil {
+		m.stepFade(now)
+	}
 	if m == nil || !m.active || m.device == nil || !m.device.Ended() {
 		return
 	}
@@ -361,7 +396,7 @@ func (m *MusicController) Update() {
 	if len(m.order) != 0 {
 		if m.pick >= 0 && m.pick < len(m.order) {
 			m.position = m.pick
-		} else {
+		} else if !m.hold {
 			m.position = (m.position + 1) % len(m.order)
 		}
 		m.startCurrent()
@@ -496,6 +531,8 @@ func (m *MusicController) Stop() {
 		m.record("stop")
 	}
 	m.order, m.active, m.set, m.paused, m.resumeStarts, m.lastSet, m.pick = nil, false, false, false, false, false, -1
+	m.hold, m.fade = false, nil
+	m.resetVolume()
 }
 
 func (m *MusicController) shuffle(tracks []string) []string {
@@ -544,7 +581,7 @@ func (m *MusicController) startCurrent() {
 	}
 	for tried := 0; tried < len(m.order); tried++ {
 		name := m.order[m.position]
-		if m.startName(name) {
+		if m.selectName(name, true) {
 			return
 		}
 		m.position = (m.position + 1) % len(m.order)

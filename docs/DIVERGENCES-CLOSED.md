@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 dialogue music and music off
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-2864 | ROM2 dialogue / `tune=` and the music fade | Complete the second game's sounds and music | `R2-ENGINE-341`: tune=N fades to current-list index N and sets hold; shipped data carries no tag. `R2-ENGINE-337`, `R2-ENGINE-338`, `R2-ENGINE-839`, `R2-ENGINE-840`: fade arithmetic, state-1 fade/state-2 stop, held stop, area-pick priority and list replacement under hold. `R2-ENGINE-340`: music-off panel action | One dialogue reader queues tune=N from accepted town and mission pages into MusicController. Its ROM2 profile enables the fade with D=2000 and F=8000. Held stop clears fade, restores configured gain and reselects the held entry from its start; EOF chooses the area pick first, else repeats the current entry while hold is set. A new list keeps hold and its index but its own selection wins. Changing Random Order clears hold. Ordinary music off arms fade before playback is disabled; the fade continues while disabled, and another off during fade stops immediately. ROM1's profile enables none of this arithmetic | FIDELITY-DEBT | The missing tag, hold and fade paths are implemented; timing and open arithmetic edges remain explicitly in DIV-4486 | None for these paths; DIV-4486 bounds remaining fidelity | CLOSED |
+
 ## ROM2 pick-up key
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

@@ -27,6 +27,14 @@ type MusicDescription struct {
 	Scenes   map[string]MusicSceneSpec   `json:"scenes"`
 	Towns    map[string]MusicTrackChoice `json:"towns"`
 	Areas    *MusicAreaSpec              `json:"areas"`
+	Fade     *MusicFadeSpec              `json:"fade"`
+}
+
+type MusicFadeSpec struct {
+	DurationMS int      `json:"duration-ms"`
+	Threshold  int      `json:"threshold"`
+	IntervalMS int      `json:"interval-ms"`
+	Cite       []string `json:"cite"`
 }
 
 // MusicArchiveSpec is the archive's path under the install root, '/'
@@ -121,6 +129,8 @@ func (d *MusicDescription) validate() error {
 		return fmt.Errorf("unlisted rule %q", d.Unlisted)
 	case d.Areas != nil && d.Areas.Period <= 0:
 		return fmt.Errorf("area period %d", d.Areas.Period)
+	case d.Fade != nil && (d.Fade.DurationMS <= 0 || d.Fade.Threshold <= 0 || d.Fade.IntervalMS <= 0):
+		return fmt.Errorf("invalid fade")
 	}
 	for name, scene := range d.Scenes {
 		if _, ok := musicSceneNames[name]; !ok {

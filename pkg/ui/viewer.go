@@ -148,6 +148,8 @@ type Viewer struct {
 	set                 *terrain.Tileset
 	cam                 *camera.Camera
 
+	MusicCue
+
 	// place is the mission frame's fit into the current window, and canvas is
 	// the frame-sized image the screen is composed on before it is placed.
 	//

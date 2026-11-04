@@ -4,11 +4,14 @@ import (
 	"image"
 	"strconv"
 	"strings"
+
+	"againrom/pkg/ui"
 )
 
 // townDialogueState is the page of a town talk; shown is set once a part
 // reads.
 type townDialogueState struct {
+	ui.MusicCue
 	text        string
 	tag         string
 	displayPart int
@@ -59,6 +62,7 @@ func (d *townDialogueState) lookup(c talkCursor, audience EventAudience, p townT
 		return false
 	}
 	d.text, d.tag, d.displayPart, d.shown = r.text, r.tag, c.part, true
+	d.QueueMusicTune(r.musicTune())
 	if !p.standingFace {
 		d.speaker, d.portrait = rules.speaker(r.tag)
 		if !d.portrait {

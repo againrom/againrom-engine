@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"math"
 	"sync"
+	"time"
 
 	"againrom/pkg/audio"
 )
@@ -14,7 +16,10 @@ type musicDevice struct {
 	st  audio.Settings
 	pl  *devicePlayer
 	// paused: pl is held at its position and has not ended.
-	paused bool
+	paused     bool
+	duration   time.Duration
+	volume     int
+	fadeVolume bool
 }
 
 // OpenMusic opens a retained player on the process-wide audio context. Failure
@@ -28,6 +33,10 @@ func OpenMusic(st audio.Settings) (MusicDevice, error) {
 }
 
 func (d *musicDevice) Start(track audio.Track) {
+	d.SelectMusic(track, true)
+}
+
+func (d *musicDevice) SelectMusic(track audio.Track, playing bool) {
 	if d == nil || track.Rate != audio.DeviceRate || len(track.StereoPCM) < 4 || len(track.StereoPCM)%4 != 0 {
 		return
 	}
@@ -35,8 +44,12 @@ func (d *musicDevice) Start(track audio.Track) {
 	defer d.mu.Unlock()
 	d.stopLocked()
 	d.pl = newDevicePlayer(d.ctx.NewPlayerFromBytes(track.StereoPCM))
-	d.pl.SetVolume(musicVolume(d.st))
-	d.pl.Play()
+	d.duration = time.Duration(track.Frames()) * time.Second / time.Duration(track.Rate)
+	d.applyVolumeLocked()
+	d.paused = !playing
+	if playing {
+		d.pl.Play()
+	}
 }
 
 func (d *musicDevice) Stop() {
@@ -103,10 +116,58 @@ func (d *musicDevice) SetSettings(st audio.Settings) {
 	}
 	d.mu.Lock()
 	d.st = st
-	if d.pl != nil {
-		d.pl.SetVolume(musicVolume(st))
-	}
+	d.applyVolumeLocked()
 	d.mu.Unlock()
+}
+
+func (d *musicDevice) MusicVolume() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.fadeVolume {
+		return d.volume
+	}
+	gain := musicVolume(d.st)
+	if gain <= 0 {
+		return -10000
+	}
+	return max(-10000, int(math.Round(2000*math.Log10(gain))))
+}
+
+func (d *musicDevice) SetMusicVolume(volume int) {
+	d.mu.Lock()
+	d.volume, d.fadeVolume = volume, true
+	d.applyVolumeLocked()
+	d.mu.Unlock()
+}
+
+func (d *musicDevice) ResetMusicVolume() {
+	d.mu.Lock()
+	d.fadeVolume = false
+	d.applyVolumeLocked()
+	d.mu.Unlock()
+}
+
+func (d *musicDevice) applyVolumeLocked() {
+	if d.pl == nil {
+		return
+	}
+	gain := musicVolume(d.st)
+	if d.fadeVolume {
+		gain = float64(audio.SpatialPlacement(audio.SpatialTerms{Attenuation: d.volume}).Left) / audio.GainUnit
+		if d.st.Muted || d.st.Master <= 0 {
+			gain = 0
+		}
+	}
+	d.pl.SetVolume(gain)
+}
+
+func (d *musicDevice) MusicTimes() (time.Duration, time.Duration) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.pl == nil {
+		return -1, -1
+	}
+	return max(0, d.duration-d.pl.Position()), -1
 }
 
 func musicVolume(st audio.Settings) float64 {
