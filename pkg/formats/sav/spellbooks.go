@@ -18,9 +18,9 @@ type ActorSpellbook struct {
 	HasSpellbook bool
 	SpellCount   int
 	Spells       []SavedSpell
-	// CreatureSpells are the three class spell slot pairs the order block
-	// carries raw at +0x78..+0x8c (SAV-1066). Absent when the record has no
-	// complete order block.
+	// CreatureSpells are the three class spell slot pairs the record's
+	// profile places in its order block (creatureSpellWindow). Absent when
+	// the record has no complete block.
 	CreatureSpells    [CreatureSpellSlots]SavedCreatureSpell
 	HasCreatureSpells bool
 	// Corpse marks a dead-list record of decay stage 2..4 outside the current
@@ -33,7 +33,8 @@ type ActorSpellbook struct {
 const CreatureSpellSlots = 3
 
 // Order block offsets of the three spell ids and the three scaled
-// probabilities (SAV-1066).
+// probabilities in the first game's records and every engine document
+// (SAV-1066).
 const (
 	CreatureSpellIDOffset        = 0x78
 	CreatureSpellThresholdOffset = 0x84
@@ -41,6 +42,62 @@ const (
 
 // SavedCreatureSpell is one slot pair read raw from the order block.
 type SavedCreatureSpell struct{ ID, Threshold uint32 }
+
+// creatureSpellWindow is where a profile's Unit record holds the three slot
+// pairs: the raw member, its width and the offsets of the ids and the
+// thresholds.
+type creatureSpellWindow struct {
+	block           string
+	width           int
+	ids, thresholds int
+}
+
+// firstCreatureSpells is the first game's order block U158, the block every
+// engine document writes; secondCreatureSpells is the second game's command
+// block, the ids at +0x7c and the thresholds at +0x88 (R2-ENGINE-652,
+// R2-ENGINE-832).
+var (
+	firstCreatureSpells  = creatureSpellWindow{block: "U158", width: 148, ids: CreatureSpellIDOffset, thresholds: CreatureSpellThresholdOffset}
+	secondCreatureSpells = creatureSpellWindow{block: "URaw184", width: 184, ids: 0x7c, thresholds: 0x88}
+)
+
+// slots reads the window's pairs from b; false when b is not the block's
+// width.
+func (w creatureSpellWindow) slots(b []byte) ([CreatureSpellSlots]SavedCreatureSpell, bool) {
+	var out [CreatureSpellSlots]SavedCreatureSpell
+	if len(b) != w.width {
+		return out, false
+	}
+	for i := range out {
+		out[i] = SavedCreatureSpell{ID: binary.LittleEndian.Uint32(b[w.ids+4*i:]),
+			Threshold: binary.LittleEndian.Uint32(b[w.thresholds+4*i:])}
+	}
+	return out, true
+}
+
+// put writes slots into b, a block of the window's width.
+func (w creatureSpellWindow) put(b []byte, slots [CreatureSpellSlots]SavedCreatureSpell) {
+	for i, s := range slots {
+		binary.LittleEndian.PutUint32(b[w.ids+4*i:], s.ID)
+		binary.LittleEndian.PutUint32(b[w.thresholds+4*i:], s.Threshold)
+	}
+}
+
+// CreatureSpellBlock is the raw member and width of the block holding p's
+// creature spell slots.
+func (p *Profile) CreatureSpellBlock() (string, int) {
+	return p.creatureSpells.block, p.creatureSpells.width
+}
+
+// PutCreatureSpells writes slots into block, p's CreatureSpellBlock, at
+// p's offsets.
+func (p *Profile) PutCreatureSpells(block []byte, slots [CreatureSpellSlots]SavedCreatureSpell) error {
+	if len(block) != p.creatureSpells.width {
+		return fmt.Errorf("sav: %s block of %d bytes, want %d", p.creatureSpells.block, len(block), p.creatureSpells.width)
+	}
+	p.creatureSpells.put(block, slots)
+	return nil
+}
 
 func (a ActorSpellbook) KnownSpells() uint32 { return savedSpellMembership(a.Spells) }
 
@@ -84,14 +141,8 @@ func (f *File) ActorSpellbooks(current ...uint16) ([]ActorSpellbook, error) {
 			Stage: uint8(r.value("Stage")), HP: int16(r.value("Health")),
 			HasSpellbook: r.value("HasSpellbook") == 1, SpellCount: r.Counts["Spells"], Spells: spells,
 			Corpse: i >= population, Identity: r.value("Identity")}
-		if order := r.Raw["U158"]; len(order) == 148 {
-			book.HasCreatureSpells = true
-			for i := range book.CreatureSpells {
-				book.CreatureSpells[i] = SavedCreatureSpell{
-					ID:        binary.LittleEndian.Uint32(order[CreatureSpellIDOffset+4*i:]),
-					Threshold: binary.LittleEndian.Uint32(order[CreatureSpellThresholdOffset+4*i:])}
-			}
-		}
+		window := r.profile().creatureSpells
+		book.CreatureSpells, book.HasCreatureSpells = window.slots(r.Raw[window.block])
 		out = append(out, book)
 	}
 	return out, nil

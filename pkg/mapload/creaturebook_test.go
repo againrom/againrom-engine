@@ -40,7 +40,7 @@ func TestFixedCreatureBooks(t *testing.T) {
 		var known uint32
 		var book sim.Spellbook
 		// A table without spell rows inserts nothing and still writes the skills.
-		FirstGameCreatureBooks.add(c.typeID, c.face, nil, &known, &book, &skill)
+		FirstGameCreatureBooks.add(c.typeID, c.face, nil, nil, &known, &book, &skill)
 		if skill != c.skill || known != 0 || book != (sim.Spellbook{}) {
 			t.Fatalf("type %#x face %d skills %v known %b, want %v", c.typeID, c.face, skill, known, c.skill)
 		}
@@ -118,11 +118,59 @@ func TestEveryCreatureGetsTodaysBookOnBothGames(t *testing.T) {
 						want[i] = v
 					}
 				}
-				tc.table.creatureBooks().add(typeID, face, tc.table, &known, &book, &skill)
+				tc.table.creatureBooks().add(typeID, face, nil, tc.table, &known, &book, &skill)
 				if known != knownWant || book != bookWant || skill != want {
 					t.Fatalf("second %v type %#x face %d: known %b book %v skill %v, want %b %v", tc.second, typeID, face, known, book, skill, knownWant, want)
 				}
 			}
+		}
+	}
+}
+
+// The second game's Units cells: Spell Power at 54 is every school skill; a
+// knownSpells mask at 56 neither 0 nor -1 replaces the book with its spells
+// 1 to 28, spell 29 dropped, and cells 57..61 are the school skills
+// (R2-ENGINE-652). The first game reads neither cell.
+func TestSecondCreatureBooksReadPowerAndMask(t *testing.T) {
+	spells := make(itemTestCollection, 30)
+	for id := 1; id < len(spells); id++ {
+		spells[id].params = make([]int32, 21)
+	}
+	table := &Table{Spells: spells, CreatureBooks: ClassCellBooks}
+	rules := SpellRules(table)
+	row := func(mask int32) []int32 {
+		p := make([]int32, 62)
+		for i := range p {
+			p[i] = -1
+		}
+		p[54], p[56] = 30, mask
+		copy(p[57:], []int32{40, 50, 60, 70, 80})
+		return p
+	}
+	slot := sim.Spellbook{State: sim.BookPresent}
+	slot.Slots[13] = bookSpell(rules[13])
+	for _, c := range []struct {
+		name      string
+		mask      int32
+		books     *CreatureBooks
+		knownWant uint32
+		skillWant [data.SkillSlots]int32
+	}{
+		{"no mask", -1, ClassCellBooks, 1 << 14, [6]int32{7, 30, 30, 30, 30, 30}},
+		{"zero mask", 0, ClassCellBooks, 1 << 14, [6]int32{7, 30, 30, 30, 30, 30}},
+		{"mask", 1<<3 | 1<<24 | 1<<29, ClassCellBooks, 1<<3 | 1<<24, [6]int32{7, 40, 50, 60, 70, 80}},
+		{"first game", 1<<3 | 1<<24, FirstGameCreatureBooks, 1 << 14, [6]int32{7, 1, 2, 3, 4, 5}},
+	} {
+		known, book, skill := uint32(1<<14), slot, [data.SkillSlots]int32{7, 1, 2, 3, 4, 5}
+		c.books.add(0x46, 1, row(c.mask), table, &known, &book, &skill)
+		bookWant := sim.Spellbook{State: sim.BookPresent}
+		for id := 1; id <= 28; id++ {
+			if c.knownWant&(1<<uint(id)) != 0 {
+				bookWant.Slots[id-1] = bookSpell(rules[id-1])
+			}
+		}
+		if known != c.knownWant || book != bookWant || skill != c.skillWant {
+			t.Fatalf("%s: known %#x book %v skill %v, want %#x %v %v", c.name, known, book, skill, c.knownWant, bookWant, c.skillWant)
 		}
 	}
 }

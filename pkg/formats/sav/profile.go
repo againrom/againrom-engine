@@ -58,12 +58,14 @@ type Profile struct {
 	// (PlayerTail); empty where no claim places one. R2-SESSION-020 leaves
 	// the second game's 2,560 and 36 Player bytes unnamed.
 	playerFormation string
+	// creatureSpells is where a Unit record holds its class spell slots.
+	creatureSpells creatureSpellWindow
 }
 
 // FirstGame is the first game's profile, the one every engine document uses.
 var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgramme,
 	cellLen: cellRecLen, cellTail: true, sessionLen: sessionLen, session: firstSessionLayout, maxSpellID: 28,
-	shortcutBytes: 16, playerFormation: PlayerTailName}
+	shortcutBytes: 16, playerFormation: PlayerTailName, creatureSpells: firstCreatureSpells}
 
 // SecondGame is the second game's `Bsg&` profile. Its Token head stores the
 // +0x0c word as u16 (38 bytes, R2-ENGINE-209); Unit carries a 184-byte sixth
@@ -74,14 +76,16 @@ var FirstGame = &Profile{Magic: Magic, programmes: programmes, group: groupProgr
 // experiences (R2-ENGINE-320).
 var SecondGame = &Profile{Game: "rom2", Magic: "Bsg&", programmes: secondProgrammes(), group: groupProgramme,
 	cellLen: secondCellLen, sessionLen: secondSessionLen, session: secondSessionLayout, leafState: true,
-	extraList: true, maxSpellID: 29, mainSkill: true, packedActorState: true, shortcutBytes: -1, scenarioTail: true, form: secondForm}
+	extraList: true, maxSpellID: 29, mainSkill: true, packedActorState: true, shortcutBytes: -1, scenarioTail: true, form: secondForm,
+	creatureSpells: secondCreatureSpells}
 
 // secondForm is the second game's records written from an engine document:
 // the trailer's two words are 0xBADFACE1 (R2-SESSION-018); Player's 2,560
 // raw bytes are the zero a new Player is built with (R2-ENGINE-675) and its
 // 36 preference bytes follow the engine's 32 (DIV-4305); Unit's sixth raw
-// block is the engine order's command post, the command word and zero bytes
-// (DIV-4305, DIV-4471, DIV-4479); the Diary sites drop; the Token and
+// block is the engine order's command post and creature spell slots, the
+// command word and zero bytes (DIV-4305, DIV-4471, DIV-4479, DIV-4490); the
+// Diary sites drop; the Token and
 // Effect words keep their low 16 bits (R2-ENGINE-209). The town writer's
 // SpellBook/Shortcuts array has no element (R2-SESSION-285). A Building the
 // World holds as a Pointer is a Pointer record with its word (R2-ENGINE-603).

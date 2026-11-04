@@ -94,20 +94,24 @@ func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondM
 // table holds at the given rows, the rows between them empty. graphics are
 // files of the graphics archive, which is absent when there are none.
 // players is the type-5 roster's record count, one when zero, and stances
-// the relation words its records hold, by record and column.
+// the relation words its records hold, by record and column. creatures are
+// Units rows the table holds at the given rows, the rows between them empty,
+// and spells replace the fixture's spell rows at the given ids.
 type secondMissionContent struct {
-	players  int
-	stances  map[[2]int]uint16
-	objects  []alm.Object
-	actions  []alm.ScriptNode
-	pointers []alm.StructureAction
-	main     []synth.File
-	graphics []synth.File
-	font     bool
-	side     int
-	mission  int
-	units    []alm.Unit
-	humans   map[int]dbEntry
+	players   int
+	stances   map[[2]int]uint16
+	objects   []alm.Object
+	actions   []alm.ScriptNode
+	pointers  []alm.StructureAction
+	main      []synth.File
+	graphics  []synth.File
+	font      bool
+	side      int
+	mission   int
+	units     []alm.Unit
+	humans    map[int]dbEntry
+	creatures map[int]dbEntry
+	spells    map[int]dbEntry
 }
 
 // secondMissionMapOf is secondMissionMap with c's objects, action nodes and
@@ -259,6 +263,9 @@ func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
 		}
 		rows = append(rows, row)
 	}
+	for id, row := range c.spells {
+		rows[id] = row
+	}
 	f.Table.Spells = rows
 	if len(c.humans) != 0 {
 		humans := slices.Clone(f.Table.Humans.(dbCollection))
@@ -269,6 +276,16 @@ func secondMissionFrontOf(t *testing.T, c secondMissionContent) *FrontEnd {
 			humans[row] = e
 		}
 		f.Table.Humans = humans
+	}
+	if len(c.creatures) != 0 {
+		units := slices.Clone(f.Table.Units.(dbCollection))
+		for row, e := range c.creatures {
+			for len(units) <= row {
+				units = append(units, dbEntry{})
+			}
+			units[row] = e
+		}
+		f.Table.Units = units
 	}
 	f.Table = readUnder(base.GameROM2, f.Table)
 	return f

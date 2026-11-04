@@ -107,6 +107,43 @@ func TestImportOriginalCreatureSlotsKeepClassSlotsOverAZeroSource(t *testing.T) 
 	}
 }
 
+// A source naming no spell leaves a creature its class built a book of
+// spells for holding that book; a source naming spells replaces it; a Human
+// and a creature with no class book take the source whole.
+func TestImportOriginalBookKeepsAClassBookOverNoSpell(t *testing.T) {
+	class := Spellbook{State: BookPresent}
+	class.Slots[5] = BookSpell{Range: 4, ManaCost: 9}
+	creature := func(id EntityID, x int32) Entity {
+		e := spMage(id, x, 2, 30, 50, 17, 1<<6)
+		e.Book = class
+		return e
+	}
+	human := creature(2, 8)
+	human.Humanoid = true
+	plain := spMage(3, 11, 2, 30, 50, 17, 1<<6)
+	w := spWorld(t, 1105, nil, creature(0, 2), creature(1, 5), human, plain)
+	empty := Spellbook{State: BookPresent}
+	named := Spellbook{State: BookPresent}
+	named.Slots[0] = BookSpell{Range: 1}
+	if err := w.ImportOriginalActorSpellbooks([]OriginalActorSpellbook{
+		{ID: 0, Book: empty},
+		{ID: 1, KnownSpells: 1 << 1, Book: named},
+		{ID: 2, Book: empty},
+		{ID: 3, Book: Spellbook{State: BookAbsent}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		id    EntityID
+		known uint32
+		book  Spellbook
+	}{{0, 1 << 6, class}, {1, 1 << 1, named}, {2, 0, empty}, {3, 0, Spellbook{State: BookAbsent}}} {
+		if e := w.entities[c.id]; e.KnownSpells != c.known || e.Book != c.book {
+			t.Fatalf("entity %d holds %#x %v, want %#x %v", c.id, e.KnownSpells, e.Book, c.known, c.book)
+		}
+	}
+}
+
 // A book naming a spell past its slots imports in a native mode only when
 // that spell is a row of the world's spell table.
 func TestImportOriginalBookPastItsSlotsNeedsATableSpell(t *testing.T) {

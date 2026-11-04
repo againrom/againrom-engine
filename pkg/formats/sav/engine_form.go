@@ -129,12 +129,16 @@ const commandWord = 65500
 
 // commandFill is the second game's 184-byte Unit command: word +0, the
 // command post the Group's mode-1 arm moves to (R2-ENGINE-824), is the
-// engine order's post, its word +0; word +0x16 is commandWord; every other
-// byte is zero (DIV-4305).
+// engine order's post, its word +0; word +0x16 is commandWord; the three
+// creature spell slots are the engine order's, in the second game's window;
+// every other byte is zero (DIV-4305, DIV-4490).
 func commandFill(engine []byte) []byte {
-	out := make([]byte, 184)
+	out := make([]byte, secondCreatureSpells.width)
 	copy(out[:2], engine)
 	put16(out, 0x16, commandWord)
+	if slots, ok := firstCreatureSpells.slots(engine); ok {
+		secondCreatureSpells.put(out, slots)
+	}
 	return out
 }
 

@@ -4057,5 +4057,14 @@ var Committed = Baseline{
 	// It rose for the structure pick gate's doc comment in pkg/ui/structureuse.go,
 	// the mission screen datum's doc in pkg/ui/missionscreen.go, the two tests'
 	// comments and this note.
-	CommentBytes: 10542552,
+
+	// It rose for the creature spell window a SAV profile holds: its docs in
+	// pkg/formats/sav, the command fill, the slot projection, the second
+	// game's slot test, and this note.
+	// It rose for the second game's Units power and knownSpells cells: the
+	// creature book source's fields and add in pkg/mapload, the importer's
+	// kept class book in pkg/sim, their tests, the mask test, and this note.
+	// It rose for the second game's bat cast test, its fixture's spell rows,
+	// and this note.
+	CommentBytes: 10549012,
 }

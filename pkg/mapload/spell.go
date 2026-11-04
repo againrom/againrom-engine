@@ -52,9 +52,16 @@ type CreatureBookRow struct {
 }
 
 // CreatureBooks is a game's creature book source: a spawn's class cells, then
+// the Units row's power and knownSpells cells where the game has them, then
 // the first row its class and face match.
 type CreatureBooks struct {
 	Rows []CreatureBookRow
+	// PowerCell, when nonzero, is the Units cell each school skill takes.
+	PowerCell int
+	// KnownCell, when nonzero, is the Units knownSpells mask cell. A row
+	// whose mask is neither 0 nor -1 gets a new book of the mask's spells,
+	// and the five cells after the mask are its school skills.
+	KnownCell int
 }
 
 var (
@@ -67,9 +74,10 @@ var (
 		{0x47, 4, []int32{2, 8, 11, 14, 17, 20}, [6]int32{-1, 90, 90, 90, 0, -1}},
 		{0x48, 0, []int32{2, 8, 11, 14, 17, 20}, [6]int32{-1, 99, 99, 99, 20, -1}},
 	}}
-	// ClassCellBooks: the class cells alone; no second-game claim states a
-	// fixed book.
-	ClassCellBooks = &CreatureBooks{}
+	// ClassCellBooks: the class cells, then Spell Power at cell 54 and the
+	// knownSpells mask at cell 56 with its five school skills (R2-ENGINE-652);
+	// no second-game claim states a fixed book.
+	ClassCellBooks = &CreatureBooks{PowerCell: 54, KnownCell: 56}
 )
 
 // creatureBooks is t's book source; nil is the first game's.
@@ -89,20 +97,42 @@ func (b *CreatureBooks) rowFor(typeID, face int32) (CreatureBookRow, bool) {
 	return CreatureBookRow{}, false
 }
 
-// add inserts the matched row's spells into book and writes its skill words.
-// Each entry is the installed spell row, as a class cell spell is.
-func (b *CreatureBooks) add(typeID, face int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
+// add applies params' power and mask cells, then inserts the matched row's
+// spells into book and writes its skill words. Each spell is the installed
+// spell row, as a class cell spell is; a mask names spells 1 to 29 and the
+// book holds 1 to 28 (DIV-2621).
+func (b *CreatureBooks) add(typeID, face int32, params []int32, t *Table, known *uint32, book *sim.Spellbook, skill *[data.SkillSlots]int32) {
+	rules := SpellRules(t)
+	insert := func(id int32) {
+		if id < 1 || id > 28 || int(id) > len(rules) || rules[id-1].ID != uint16(id) {
+			return
+		}
+		book.Slots[id-1] = bookSpell(rules[id-1])
+		*known |= uint32(1) << uint(id)
+	}
+	if b.PowerCell > 0 && b.PowerCell < len(params) {
+		for i := 1; i < len(skill); i++ {
+			skill[i] = params[b.PowerCell]
+		}
+	}
+	if b.KnownCell > 0 && b.KnownCell < len(params) && params[b.KnownCell] != 0 && params[b.KnownCell] != -1 {
+		mask := uint32(params[b.KnownCell])
+		*book, *known = sim.Spellbook{State: sim.BookPresent}, 0
+		for id := int32(1); id <= 29; id++ {
+			if mask&(uint32(1)<<uint(id)) != 0 {
+				insert(id)
+			}
+		}
+		for i := 1; i < len(skill) && b.KnownCell+i < len(params); i++ {
+			skill[i] = params[b.KnownCell+i]
+		}
+	}
 	fixed, ok := b.rowFor(typeID, face)
 	if !ok {
 		return
 	}
-	rules := SpellRules(t)
 	for _, id := range fixed.Spells {
-		if int(id) > len(rules) || rules[id-1].ID != uint16(id) {
-			continue
-		}
-		book.Slots[id-1] = bookSpell(rules[id-1])
-		*known |= uint32(1) << uint(id)
+		insert(id)
 	}
 	for i, v := range fixed.Skill {
 		if v >= 0 && i < len(skill) {

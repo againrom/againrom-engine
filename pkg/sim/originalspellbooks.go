@@ -6,7 +6,10 @@ import (
 )
 
 // OriginalActorSpellbook changes only the persisted book and membership.
-// The importer resolves identity; it must not refresh source parameters.
+// The importer resolves identity; it must not refresh source parameters. A
+// source naming no spell over a creature its class built a book of spells for
+// keeps the class's book: no original record of such a class holds none
+// (DIV-1729).
 type OriginalActorSpellbook struct {
 	ID          EntityID
 	KnownSpells uint32
@@ -90,7 +93,9 @@ func (w *World) ImportOriginalActorSpellbooks(books []OriginalActorSpellbook) er
 	}
 	for i, book := range books {
 		e := &w.entities[indices[i]]
-		e.KnownSpells, e.Book = book.KnownSpells, book.Book
+		if book.KnownSpells != 0 || e.Humanoid || e.KnownSpells == 0 || !e.Book.HasInstances() {
+			e.KnownSpells, e.Book = book.KnownSpells, book.Book
+		}
 		if book.HasCreatureSpells && (book.CreatureSpells != [CreatureSpellSlots]CreatureSpell{} || !e.hasCreatureSpells()) {
 			e.CreatureSpells = book.CreatureSpells
 		}
