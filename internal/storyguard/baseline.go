@@ -4027,5 +4027,27 @@ var Committed = Baseline{
 	// latch and the takes removed from pkg/game/world.go, and this note.
 
 	// Trap stroke history and byte-preserving cell spell saves.
-	CommentBytes: 10523628,
+
+	// It rose for the Scenario entry that opens no trigger: chooseFirstOf
+	// and showRecords in pkg/ui/mapeditorwindow.go, the new test
+	// mapeditorscenarioclick_test.go, mapeditorfollow_test.go, and this note.
+
+	// It rose for a placed unit's authored speed, sight and facing: the
+	// carrier in pkg/formats/alm, the field table, the spawn and the facing
+	// draw, the Human derive's authored base, their tests, and this note.
+
+	// It rose for the unit window's speed, sight and facing rows: the facing
+	// choices and the Add window's facing step, the card's sight number, the
+	// editor map's authored facing, the window tests, and this note.
+
+	// It rose for a placed unit's authored name: the names page in
+	// pkg/game/mapunitnames.go, the workspace stage of one Undo step, the
+	// name's last stage in the drawn name, the basic view's name row, their
+	// tests, and this note.
+
+	// It rose for the editor output digest's note on the unit's new fields,
+	// a ui test's facing step, and this note.
+	// It rose for the unit name page's mod document sync in change, the
+	// Scenario entry's group comment, the new mod name test, and this note.
+	CommentBytes: 10534753,
 }

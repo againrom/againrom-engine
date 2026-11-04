@@ -972,10 +972,11 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty, equipment ...[sim.EquipSlot
 			nativeClass: sim.NativeClass{Present: true, Fighter: h.Profile().Fighter},
 			humanoid:    true,
 			// The row's speed and sight move with a stored Reaction and Mind
-			// as the derivation moves them (HERO-SPEED-008, HERO-SIGHT-007).
-			speed:    h.Speed + riderBonus(typeID) + loadout.Mod.Speed + der.Speed - template.Speed,
+			// as the derivation moves them (HERO-SPEED-008, HERO-SIGHT-007);
+			// an authored value replaces that base and equipment adds to it.
+			speed:    storedStat(h.Speed+riderBonus(typeID)+der.Speed-template.Speed, u.Tail.Speed) + loadout.Mod.Speed,
 			speedMod: loadout.Mod.Speed,
-			sight:    sightOf(h.ScanRange + loadout.Mod.Sight + der.Sight - template.Sight), dying: h.DyingTime,
+			sight:    sightOf(storedStat(h.ScanRange+der.Sight-template.Sight, u.Tail.Sight) + loadout.Mod.Sight), dying: h.DyingTime,
 			combat: der.Combat, protection: der.Protection,
 			resistance: data.DamageKindResistance(der.Resistance), tokenSize: uint8(h.TokenSize), skill: der.Skill, skillXP: skillXP,
 			capacity: der.Capacity,
@@ -1001,7 +1002,7 @@ func blockFor(u alm.Unit, t *Table, diff Difficulty, equipment ...[sim.EquipSlot
 			// ever reads KnownSpells from.
 			knownSpells:        h.KnownSpells | taught,
 			healthRegeneration: der.HealthRegeneration, manaRegeneration: der.ManaRegeneration,
-			rotationSpeed:      HumanTurnRate(der.Speed),
+			rotationSpeed:      HumanTurnRate(storedStat(der.Speed-loadout.Mod.Speed, u.Tail.Speed) + loadout.Mod.Speed),
 			secondaryDamage:    der.SecondaryDamage,
 			suppressCorpseLoot: SuppressesCorpseLoot(personRowName(u, t)),
 			worn:               hworn, carried: hcarried}, nil

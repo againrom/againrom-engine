@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-// A bar entry that picks a record itself opens no branch, but the same
-// record selected afterwards by another route opens its branch: a press on
-// a trigger's area label for Scripts, a press on the player's row for
-// Players.
+// A bar entry opens no branch, but a record of its category selected
+// afterwards by another route opens its branch: a press on a trigger's area
+// label for Scripts, whose entry selects nothing, a press on the player's
+// row for Players.
 func TestMapEditorTreeFollowsALaterSelectionOfTheEntrysRecord(t *testing.T) {
 	t.Run("scripts", func(t *testing.T) {
 		e, _, _ := panelsEditor(t, 1920, 1080, "")
@@ -17,7 +17,7 @@ func TestMapEditorTreeFollowsALaterSelectionOfTheEntrysRecord(t *testing.T) {
 		e.treeSpec()
 		chromeClick(e, barPoint(t, e, "scripts"))
 		e.treeSpec()
-		if e.selected != 7 || !e.tree.closed["scripts"] {
+		if e.selected != -1 || !e.tree.closed["scripts"] {
 			t.Fatalf("the Scripts entry selected %d, branch closed %v", e.selected, e.tree.closed["scripts"])
 		}
 		r, ok := e.AreaLabelRect(0)

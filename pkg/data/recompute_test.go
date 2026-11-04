@@ -419,3 +419,19 @@ func TestSkillCurveNeverGoesFlat(t *testing.T) {
 		prev = s
 	}
 }
+
+// TestRecomputeKeepsAnAuthoredSpeedAndSight: an authored base replaces the
+// derived one and the worn items' terms still add to it.
+func TestRecomputeKeepsAnAuthoredSpeedAndSight(t *testing.T) {
+	h := data.Hero{Body: 30, Reaction: 30, Mind: 30, Spirit: 30}
+	l := data.Loadout{Mod: data.EquipMod{Speed: 2, Sight: 1}}
+	plain := h.Recompute(data.Profile{}, l)
+	h.AuthoredSpeed, h.AuthoredSight = 31, 9
+	got := h.Recompute(data.Profile{}, l)
+	if got.Speed != 33 || got.Sight != 10 || got.SpeedModifier != plain.SpeedModifier {
+		t.Fatalf("speed %d sight %d, want 33 and 10 (derived %d and %d)", got.Speed, got.Sight, plain.Speed, plain.Sight)
+	}
+	if got.HealthMax != plain.HealthMax || got.Capacity != plain.Capacity {
+		t.Fatalf("the authored base moved another value: %+v vs %+v", got, plain)
+	}
+}

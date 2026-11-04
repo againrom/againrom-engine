@@ -129,3 +129,27 @@ func tailFields(e sim.Entity) tailView {
 	return tailView{e.HP, e.MaxHP, e.Mana, e.MaxMana, e.Mind, e.Spirit, e.Reaction, e.Defence, e.Absorption,
 		e.NativeBasis.Body, e.Skill, e.Protection}
 }
+
+// TestPlacementTailSpeedAndSightReplaceTheKindsValue: an authored speed and
+// sight replace the creature row's values and the Human's base, to which the
+// Human's equipment still adds; the Human's roster hero carries both, so
+// every later recompute derives from them.
+func TestPlacementTailSpeedAndSightReplaceTheKindsValue(t *testing.T) {
+	_, creature := tailWorld(t, mapload.DifficultyNormal, 2, alm.UnitTail{Mana: -1, Speed: 40, Sight: 15})
+	if creature.Humanoid || creature.Speed != 40 || creature.ScanRange != 15 {
+		t.Fatalf("creature speed %d sight %d, want 40 and 15", creature.Speed, creature.ScanRange)
+	}
+	base, human := tailWorld(t, mapload.DifficultyNormal, 0, alm.UnitTail{Mana: -1, Speed: 30, Sight: 9})
+	if !human.Humanoid || human.Speed-human.SpeedModifier != 30 || human.SpeedModifier != base.SpeedModifier || human.ScanRange != 9 {
+		t.Fatalf("Human speed %d (modifier %d, template %d) sight %d, want base 30 and 9", human.Speed, human.SpeedModifier, base.SpeedModifier, human.ScanRange)
+	}
+	m := fixtureMap()
+	m.Units[0].Tail = alm.UnitTail{Mana: -1, Speed: 30, Sight: 9}
+	_, roster, err := mapload.FromALMRoster(m, fixtureTable(), mapload.DifficultyNormal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h := roster[0].Hero; h.AuthoredSpeed != 30 || h.AuthoredSight != 9 {
+		t.Fatalf("roster hero carries speed %d sight %d, want 30 and 9", h.AuthoredSpeed, h.AuthoredSight)
+	}
+}

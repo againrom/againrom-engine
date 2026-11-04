@@ -227,6 +227,9 @@ type mapWorld struct {
 	// ranged, facing's precedent.
 	tiers      map[sim.EntityID]int
 	actorNames map[sim.EntityID]string
+	// authoredNames are the names the map's names page gives its placed
+	// units, by map unit id, in the font's bytes.
+	authoredNames map[uint16]string
 
 	// walk is the WALK ODOMETER: how far each entity has walked since it last
 	// stood still, and how many ticks of its current crossing have run. It
@@ -5396,7 +5399,12 @@ func (mw *mapWorld) entityDraws() []ui.MapEntity {
 
 // drawnFacing is the sheet facing, 0..15, entity e draws in (ANIM-DIR-006).
 func drawnFacing(e sim.Entity) int {
-	return ((int(e.DrawnFacing()) >> 4) + 8) & 15
+	return sheetFacing(e.DrawnFacing())
+}
+
+// sheetFacing is the sheet's facing, 0..15, that draws facing byte f.
+func sheetFacing(f uint8) int {
+	return ((int(f) >> 4) + 8) & 15
 }
 
 // corpseFrame is the body a unit of class c that is not alive draws: its

@@ -527,7 +527,6 @@ func TestReleaseMapEditorTriggerFrames(t *testing.T) {
 	e := open(key)
 	r, ok := e.BarRect("scripts")
 	trigClick(t, e, r, ok, "the Scripts entry")
-	_ = e.Key("escape")
 	shot(e, "trigger-list", image.Rectangle{})
 
 	e = open(key)

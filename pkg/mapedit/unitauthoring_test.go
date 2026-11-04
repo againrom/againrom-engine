@@ -201,12 +201,16 @@ func TestUnitFieldTableNamesFieldsInsideTheRecord(t *testing.T) {
 			}
 			byteMax = int64(f.Mask)
 		}
+		// Sight and facing hold only what the game's use of them admits.
+		if n, ok := map[string]int64{"sight": alm.SightCells, "facing": alm.FacingDirections}[f.Key]; ok {
+			byteMax = n
+		}
 		if f.Width == 1 && (f.Min != 0 || f.Max != byteMax) || f.Bit != 0 && f.Max != 1 {
 			t.Fatalf("an override byte or bit holds more than its width: %+v", f)
 		}
 		seen[f.Key] = true
 	}
-	if len(seen) != 28 || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] || !seen["face"] || !seen["sex"] || !seen["npc"] || !seen["npcflag"] {
+	if len(seen) != 31 || !seen["speed"] || !seen["sight"] || !seen["facing"] || !seen["group"] || !seen["tier"] || !seen["mana"] || !seen["protection.astral"] || !seen["gear"] || !seen["face"] || !seen["sex"] || !seen["npc"] || !seen["npcflag"] {
 		t.Fatalf("table has %d fields", len(seen))
 	}
 }

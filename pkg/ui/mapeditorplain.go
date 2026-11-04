@@ -27,7 +27,7 @@ const (
 	plainItem                   // the field's control showing the item's name and picture
 	plainCode                   // a line stating the field's number; the control stands elsewhere
 	plainBits                   // the field's control, then its word and known bits
-	plainName                   // a line with the unit's name from its card
+	plainName                   // the field's control, or a line with the card's name when the host gives none
 	plainUses                   // the script nodes that name the record
 	plainPanel                  // the field's input on the card, at the place the card draws its panel field
 )
@@ -85,12 +85,13 @@ var plainViews = map[RecordKind]plainView{
 			{id: "card", card: true},
 		},
 		rows: []plainRow{
-			{key: "", word: "editor.plain.name", order: 1, block: "main", show: plainName},
+			{key: "name", word: "editor.plain.name", order: 1, block: "main", show: plainName},
 			{key: "owner", word: "editor.plain.player", order: 2, block: "main"},
 			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
 			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
-			{key: "speaker", order: 5, block: "main"},
-			{key: "keys", order: 6, block: "keys"},
+			{key: "facing", word: "editor.plain.facing", order: 5, block: "main"},
+			{key: "speaker", order: 6, block: "main"},
+			{key: "keys", order: 7, block: "keys"},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},
@@ -99,6 +100,8 @@ var plainViews = map[RecordKind]plainView{
 			{key: "spirit", block: "card", show: plainPanel, panel: PanelFieldSpirit},
 			{key: "absorption", block: "card", show: plainPanel, panel: PanelFieldAbsorption},
 			{key: "defence", block: "card", show: plainPanel, panel: PanelFieldDefence},
+			{key: "sight", block: "card", show: plainPanel, panel: PanelFieldSight},
+			{key: "speed", block: "card", show: plainPanel, panel: PanelFieldMoveSpeed},
 			{key: "skill.blade", block: "card", show: plainPanel, panel: PanelFieldSkillBlade},
 			{key: "skill.axe", block: "card", show: plainPanel, panel: PanelFieldSkillAxe},
 			{key: "skill.bludgeon", block: "card", show: plainPanel, panel: PanelFieldSkillBludgeon},
@@ -201,7 +204,7 @@ func plainEntries(v plainView, fields []InspectionField) []plainEntry {
 	var out []plainEntry
 	edited := map[int]bool{}
 	for r, row := range v.rows {
-		if row.key == "" {
+		if row.key == "" || row.show == plainName && !slices.ContainsFunc(fields, func(f InspectionField) bool { return f.Key == row.key }) {
 			out = append(out, plainEntry{row: r, field: -1, block: row.block})
 			continue
 		}
@@ -430,7 +433,11 @@ func (e *MapEditor) plainFieldRows(s *popupSpec, links *[]int, v plainView, fiel
 		text := func(value string) {
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: label, Value: value}), append(*links, 0)
 		}
-		switch row.show {
+		show := row.show
+		if show == plainName && p.field >= 0 {
+			show = plainField
+		}
+		switch show {
 		case plainName:
 			if s.Card != nil && s.Card.Name != "" {
 				text(s.Card.Name)
@@ -531,7 +538,7 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 				row := &s.Rows[n]
 				box.Min.X = max(min(box.Min.X, box.Max.X-least), start*cardScale)
 				row.Place, row.Buttons, row.Tip = box, nil, strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
-				if stored := strings.TrimSpace(row.Value); stored != "" && stored != number {
+				if stored := strings.TrimSpace(row.Value); stored != "" && !sameNumber(stored, number) {
 					name := strings.TrimSpace(label)
 					if name == "" {
 						name = e.editorHostText(o.fields[i].Label)
@@ -568,6 +575,17 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 			s.Rows, *links = append(s.Rows, popupRow{Kind: popupText, Label: part}), append(*links, 0)
 		}
 	}
+}
+
+// sameNumber reports that a stored value and the card's text of it name one
+// number: the card writes sight with one decimal.
+func sameNumber(stored, shown string) bool {
+	a, errA := strconv.ParseFloat(stored, 64)
+	b, errB := strconv.ParseFloat(shown, 64)
+	if errA != nil || errB != nil {
+		return stored == shown
+	}
+	return a == b
 }
 
 // InspectionItemLook is implemented by edits whose host names and pictures

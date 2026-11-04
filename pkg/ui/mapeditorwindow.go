@@ -593,7 +593,8 @@ func (e *MapEditor) ExitAsked() bool { return e.exitAsked }
 // showRecords opens the list popup on the records filter shows. A record
 // category's filter opens its palette by every route, its bar entry, its key
 // and an MCP call, and leaves the side panels and the tree's branches as
-// they are, also when the Players or Scripts entry selects a record.
+// they are, also when the Players entry selects a record or the Scenario
+// entry clears one.
 func (e *MapEditor) showRecords(filter int) {
 	if e.doc == nil {
 		return
@@ -624,17 +625,22 @@ func (e *MapEditor) openRecords(filter int) {
 	e.filter, e.listShown = filter, true
 }
 
-// chooseFirstOf selects the first player or script record when the
-// Players or Scripts entry opens and the selection is none of them; an
-// empty Scripts list clears the selection.
+// chooseFirstOf selects the first player record when the Players entry
+// opens and the selection is none of them. The Scenario entry clears the
+// selected record when it is none of its records and opens none: a trigger
+// opens only from its own row. A pasted group stays selected, so Del still
+// deletes it while the Scenario list shows.
 func (e *MapEditor) chooseFirstOf(filter int) {
 	if filter != editorPlayersFilter && filter != editorScriptsFilter {
 		return
 	}
-	if rows := e.recordsOf(filter); len(rows) > 0 && !e.selectedIn(rows) {
-		e.selectUnfollowed(rows[0])
-	} else if len(rows) == 0 && filter == editorScriptsFilter {
+	rows := e.recordsOf(filter)
+	switch {
+	case e.selectedIn(rows):
+	case filter == editorScriptsFilter:
 		e.selected = -1
+	case len(rows) > 0:
+		e.selectUnfollowed(rows[0])
 	}
 }
 

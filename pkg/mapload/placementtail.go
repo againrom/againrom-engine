@@ -39,6 +39,10 @@ func (b spawnBlock) withTailStats(t alm.UnitTail) spawnBlock {
 	b.mind = storedStat(b.mind, t.Mind)
 	b.spirit = storedStat(b.spirit, t.Spirit)
 	b.reaction = storedStat(b.reaction, t.Reaction)
+	b.speed = storedStat(b.speed, t.Speed)
+	if t.Sight != 0 {
+		b.sight = t.Sight
+	}
 	return b
 }
 
@@ -96,4 +100,23 @@ func storesShooting(t alm.UnitTail) bool {
 // arms, and the NPC arm passes zero (ALM-FLAGPATH-109, UNIT-PLACEGEAR-098).
 func skipsGear(u alm.Unit, arm Arm) bool {
 	return u.Tail.SkipGear && (arm == ArmHumansByType || arm == ArmServerID)
+}
+
+// authoredFacings maps each placement of m whose record authors a facing to
+// that direction, keyed by the placement's entity id.
+func authoredFacings(m *alm.Map) map[sim.EntityID]int {
+	if m == nil {
+		return nil
+	}
+	var out map[sim.EntityID]int
+	for i, u := range m.Units {
+		if u.Tail.Facing == 0 || u.Tail.Facing > alm.FacingDirections {
+			continue
+		}
+		if out == nil {
+			out = make(map[sim.EntityID]int)
+		}
+		out[sim.EntityID(i)] = int(u.Tail.Facing) - 1
+	}
+	return out
 }

@@ -148,9 +148,10 @@ func showField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string) bool
 // table and this table place it.
 var gameFieldShapes = map[ui.RecordKind]map[string]string{
 	ui.KindUnit: {
-		"identity": "main", "owner": "main", "group": "main", "speaker": "main", "keys": "keys",
+		"identity": "main", "name": "main", "owner": "main", "group": "main", "speaker": "main", "keys": "keys",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "spirit": "card", "reaction": "card",
 		"defence": "card", "absorption": "card", "skill.*": "card", "protection.*": "card",
+		"speed": "card", "sight": "card", "facing": "main",
 		"face": "", "sex": "",
 		"gear": "", "wear#": "", "wearmaterial#": "", "weartier#": "", "wearrecipe#": "",
 		"sack": "", "holdings": "", "resolved": "", "overrides": "",

@@ -361,6 +361,8 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 			out.Choices = s.RecordChoices(r.Kind, -1, "owner")
 		case "group":
 			out.Value = s.newUnitGroup(r)
+		case "facing":
+			out.Choices = s.RecordChoices(ui.KindUnit, -1, key)
 		case "control":
 			out.Choices = []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.human"))},
 				{Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.computer"))}}

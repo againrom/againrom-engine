@@ -128,3 +128,34 @@ func TestOriginalStreamDrawsAFacingForAWithdrawnRingPlacement(t *testing.T) {
 		t.Error("the unrecorded withdrawal drew the same facings and drop on every seed; the control has no force")
 	}
 }
+
+// TestAuthoredFacingReplacesTheDrawnByteAndKeepsTheStream: a placement whose
+// record authors a facing still draws its constructor value, so the next
+// placement, the drop pick and the World stream are those of the same map
+// without it; the authored direction is the byte the direction code reads,
+// direction d at d*32 (facing 8, north-west, is 0xE0).
+func TestAuthoredFacingReplacesTheDrawnByteAndKeepsTheStream(t *testing.T) {
+	const state = 0x1234567
+	for _, seed := range []uint32{state, state + 1} {
+		plain, plainStart := facingStart(t, facingMap(t), sim.NewOriginalDraws(seed))
+		m := facingMap(t)
+		m.Units[0].Tail.Facing = 8
+		w, st := facingStart(t, m, sim.NewOriginalDraws(seed))
+		ents := w.Entities()
+		if ents[0].Facing != 0xE0 || ents[0].DesiredFacing != 0xE0 {
+			t.Errorf("state %#x: authored placement faces %#x wanting %#x, want 0xe0", seed, ents[0].Facing, ents[0].DesiredFacing)
+		}
+		if ents[1].Facing != plain.Entities()[1].Facing || st.Drop != plainStart.Drop || w.RandomState() != plain.RandomState() {
+			t.Errorf("state %#x: the authored facing moved the stream: next facing %#x/%#x drop %v/%v", seed,
+				ents[1].Facing, plain.Entities()[1].Facing, st.Drop, plainStart.Drop)
+		}
+	}
+	for dir := 1; dir <= alm.FacingDirections; dir++ {
+		m := facingMap(t)
+		m.Units[1].Tail.Facing = uint8(dir)
+		w, _ := facingStart(t, m, sim.NewOriginalDraws(state))
+		if got := w.Entities()[1].Facing; got != uint8((dir-1)*32) || sim.FacingDir(got) != dir-1 {
+			t.Errorf("facing %d: byte %#x, want %#x", dir, got, (dir-1)*32)
+		}
+	}
+}

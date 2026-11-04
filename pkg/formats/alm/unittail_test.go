@@ -15,7 +15,8 @@ func TestUnitTailDecode(t *testing.T) {
 	for i, b := range []byte{15, 41, 32, 20} {
 		rec[0x2c+i] = b
 	}
-	rec[0x30], rec[0x35] = 9, 9 // read by no spawner instruction
+	rec[0x30], rec[0x33], rec[0x34] = 9, 3, 5 // speed, facing, sight
+	rec[0x35] = 9                             // read by no spawner instruction
 	rec[0x31], rec[0x32] = 7, 240
 	for i := 0; i < 5; i++ {
 		rec[0x36+i] = byte(10 + i)
@@ -26,7 +27,7 @@ func TestUnitTailDecode(t *testing.T) {
 	u := openOK(t, buildMap(p)).Units[0]
 	want := alm.UnitTail{Body: 15, Mind: 41, Spirit: 32, Reaction: 20, Mana: -5, HasMana: true,
 		Defence: 7, Absorption: 240, Skill: [5]uint8{10, 11, 12, 13, 14},
-		Protection: [5]uint8{90, 91, 92, 93, 94}, SkipGear: true}
+		Protection: [5]uint8{90, 91, 92, 93, 94}, SkipGear: true, Speed: 9, Facing: 3, Sight: 5}
 	if u.Tail != want || u.CurrentHP != 77 || !u.HasCurrentHP {
 		t.Fatalf("tail = %+v hp %d/%v, want %+v hp 77", u.Tail, u.CurrentHP, u.HasCurrentHP, want)
 	}

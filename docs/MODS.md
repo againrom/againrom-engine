@@ -522,7 +522,7 @@ map; see below.
 | `key` | required; 1 to 32 of a-z, 0-9 and `_`, starting with a letter |
 | `number` | required; the mission number the mission runs as, 1..65535; a `guest` row may not use a campaign number or one of the install's `scenario` container; a `replace` row must (see Replacing a campaign mission) |
 | `map` | required; the map file inside the mod folder (at most 1 MiB) |
-| `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files: `eventNN.txt`, `tipsNN.txt` and `briefmap.txt`, the world map's mission text. Write them in UTF-8; the game encodes each into the running install's bytes, so one folder reads right on the English and the Russian base. Typographic quotes, dashes, the ellipsis and the no-break space are written as their plain forms (`"`, `'`, `-`, `...`, a space); any other character the install has no byte for is dropped, and the map check names it when the editor saves into the mod. A file that is not valid UTF-8 is served byte for byte, as mods written before UTF-8 were. A short install-encoded Russian file whose high bytes happen to form valid UTF-8 (CP866 `e2 a0 ac`) is read as UTF-8; whole sentences are not |
+| `texts` | optional; a folder inside the mod whose `*.txt` files (at most 64) serve as the mission's `main/text/battle/m<number>/` files: `eventNN.txt`, `tipsNN.txt`, `briefmap.txt`, the world map's mission text, and `units.txt`, the names of the map's placed units. Write them in UTF-8; the game encodes each into the running install's bytes, so one folder reads right on the English and the Russian base. Typographic quotes, dashes, the ellipsis and the no-break space are written as their plain forms (`"`, `'`, `-`, `...`, a space); any other character the install has no byte for is dropped, and the map check names it when the editor saves into the mod. A file that is not valid UTF-8 is served byte for byte, as mods written before UTF-8 were. A short install-encoded Russian file whose high bytes happen to form valid UTF-8 (CP866 `e2 a0 ac`) is read as UTF-8; whole sentences are not |
 | `title`, `briefing` | optional; text keys of the mod's `text/<lang>/strings.toml`, written into the mission's `title.txt` and `briefing.txt` |
 | `after` | required; the mission whose win starts this mission: a campaign mission whose successor is a town, or a guest mission of the active mods |
 | `guest` | the guest form: the campaign companion who plays it, as the town of `chapter` would grant him or her over the party |
@@ -1552,6 +1552,20 @@ warns when the map has none and its fallback landing cells leave the map).
 file and prints that report; `-new` alone opens the window on it, with
 `-check` it prints the report.
 
+A unit's window, in both views, sets the unit's Name, Speed, Sight and
+Facing (DIV-4481, DIV-4482). An empty Name, Speed or Sight shows the kind's
+value and keeps it. Speed is 1..255 and Sight 1..19 cells; both replace the
+kind's value, and a person's equipment still adds to them. Facing is the
+original's random draw or one of the eight directions; the Add window asks
+it too, and the map draws the unit facing that way. The three are bytes of
+the unit's record (+0x30 speed, +0x33 facing, +0x34 sight), which a shipped
+map holds at 0. The name, 1 to 32 characters, goes into the mission page
+`units.txt`: one line `<unit id>=<name>` per named unit, in UTF-8, written
+to `<stem>.text/<lang>/units.txt` beside the map and among a mod's mission
+texts. The game's card and message lines show that name, and a saved game
+shows it again after loading. A person keeps an authored speed and sight
+only until his first equip, training or potion after a load.
+
 After the size, N asks for the starting height, 0..126, 64 by default; every
 height cell of the new map holds it, and another number is refused with the
 question kept. From a terminal, `-new 32x32/altitude40` gives the same.
@@ -1694,7 +1708,7 @@ of one message for a conversation.
 
 X edits mission pages. Enter after the page name continues directly into its
 body. Tab still switches the fields. Supported pages are `title.txt`, `briefing.txt`, `briefmap.txt`,
-`eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed
+`units.txt`, `eventNN.txt` and `tipsNN.txt`; numbers use at least two digits and can exceed
 99. Shift+Enter inserts a new line, Ctrl+A selects the field and Enter applies
 it. Pages use UTF-8; an unrepresentable character or an oversized page is
 refused with the entered text retained. Map, page and route changes share

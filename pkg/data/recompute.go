@@ -344,6 +344,7 @@ func (h Hero) recompute(p Profile, l Loadout, live *[SkillSlots]int32) Derived {
 	// first game, the five school slots in the second (R2-ENGINE-579).
 	in := HumanInput{Skill: h.Skill, Active: activeSkill(l.Weapon), Experience: l.Rules.PoolExperience(skillXP),
 		Fighter: p.Fighter, ManaPool: p.ManaColumn, Rider: p.Rider, TrainingCap: l.Rules.SkillCap(),
+		Speed: h.AuthoredSpeed, Sight: h.AuthoredSight,
 		Terms: HumanTerms{HealthMax: mod.HealthMax, ManaMax: mod.ManaMax, Sight: mod.Sight << 8, SkillBonus: mod.SkillBonus,
 			ToHit: mod.ToHit + combat.ToHit, DamageBase: mod.DamageBase + combat.DamageBase, DamageSpread: mod.DamageSpread + combat.DamageSpread,
 			Defence: mod.Defence + combat.Defence, Absorption: mod.Absorption + combat.Absorption,

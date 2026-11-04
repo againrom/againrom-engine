@@ -32,6 +32,8 @@ modder or developer can notice gets no entry.
 - [ROM1] Traps, unit spells and casting structures have named marks on the editor map and a shared palette; traps show their source and target cells and can be moved and edited on the map.
 - [ROM1] Trap area fills a dragged rectangle with one spell and power. Delete removes the whole stroke, with one Undo; sets last while the map stays open.
 - [ROM1] Saving an untouched map or changing only its cell spells preserves every unrelated byte.
+- [ROM1] The map editor's unit window, in both views, gives a placed unit its own name, speed and sight, and chooses the direction it faces when the map starts; the Add window asks the direction too. The game shows the name and uses the speed, sight and direction, and a saved game keeps them; after a load, a person keeps his authored speed and sight only until his next equip, training or potion.
+- [ROM1] Choosing Scenario in the map editor, from the top bar, with F2 or in the record tree, shows the scenario's records and no longer opens the first trigger.
 
 ## 0.146.1
 

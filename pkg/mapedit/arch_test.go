@@ -36,7 +36,7 @@ var almReferences = nameTable{
 	"unit.go/(*Editor).highestScriptTarget": {"alm.ScriptNode"},
 	"meta.go/(*Editor).SetEncodedName":      {"alm.EncodeName", "alm.MapNameText"},
 	"meta.go/(*Editor).SetName":             {"alm.EncodeName"},
-	"field.go/" + fileScope:                 {"alm.TextField"},
+	"field.go/" + fileScope:                 {"alm.FacingDirections", "alm.SightCells", "alm.TextField"},
 	"player.go/" + fileScope:                {"alm.PlayerNameText"},
 	"script.go/nodeFields":                  {"alm.ScriptLabelText"},
 	"script.go/triggerFields":               {"alm.ScriptLabelText"},

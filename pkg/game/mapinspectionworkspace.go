@@ -308,7 +308,7 @@ func (s *mapInspectionEdits) SetWorkspaceField(scope, key, value string) (*ui.In
 		if key == "page" {
 			name := strings.ToLower(strings.TrimSpace(value))
 			if !missionPageName(name) {
-				return nil, fmt.Errorf("use title.txt, briefing.txt, briefmap.txt or a canonical numbered event/tips page (01, 02, ..., 100, ...)")
+				return nil, fmt.Errorf("use title.txt, briefing.txt, briefmap.txt, %s or a canonical numbered event/tips page (01, 02, ..., 100, ...)", unitNamesPage)
 			}
 			s.page = name
 			return nil, nil

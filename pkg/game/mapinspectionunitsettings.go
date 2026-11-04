@@ -3,8 +3,10 @@ package game
 import (
 	"againrom/pkg/mapedit"
 	"fmt"
+	"maps"
 	"strconv"
 
+	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/sim"
@@ -16,11 +18,16 @@ type inspectionUnitViews struct {
 	actual   []unitSheet
 	entities []ui.MapEntity
 	pictures map[uint32]*ui.InspectionUnitPreview
+	// names is the names page the entities were drawn under; kindNames is
+	// each unit's name without its authored one, in the font's bytes.
+	names     map[uint16]string
+	kindNames map[int]string
 }
 
 func (s *mapInspectionEdits) unitViewCache() *inspectionUnitViews {
-	if s.unitViews == nil || s.unitViews.model != s.model {
-		s.unitViews = &inspectionUnitViews{model: s.model}
+	names := s.authoredUnitNames()
+	if s.unitViews == nil || s.unitViews.model != s.model || !maps.Equal(s.unitViews.names, names) {
+		s.unitViews = &inspectionUnitViews{model: s.model, names: names}
 	}
 	return s.unitViews
 }
@@ -38,14 +45,51 @@ func (s *mapInspectionEdits) unitViewSheets() []unitSheet {
 	return c.actual
 }
 
+// unitWorld opens the model's map as the game would and fills c with each
+// unit's drawn entity under the names page and its name without it.
+func (s *mapInspectionEdits) unitWorld(c *inspectionUnitViews) (*mapWorld, *alm.Map, error) {
+	m, err := s.model.Map()
+	if err != nil {
+		return nil, nil, err
+	}
+	v, err := ui.NewViewer("", terrain.Grid{Width: m.Width, Height: m.Height, Tiles: terrain.RenderTileWords(m.Tiles), Altitudes: m.Altitudes}, s.inspector.tiles)
+	if err != nil {
+		return nil, nil, err
+	}
+	if s.inspector.panelWords != nil {
+		v.SetWords(*s.inspector.panelWords)
+	}
+	mw, err := openMapWorld(m, s.inspector.table, s.inspector.units, v)
+	if err != nil {
+		return nil, nil, err
+	}
+	mw.authoredNames = make(map[uint16]string, len(c.names))
+	for id, name := range c.names {
+		mw.authoredNames[id] = s.inspector.inspectionUTF8(name)
+	}
+	c.entities = mw.entityDraws()
+	// The same builder without the names page is the name an empty field
+	// leaves the unit.
+	mw.authoredNames, c.kindNames = nil, make(map[int]string, len(c.entities))
+	for _, entity := range c.entities {
+		c.kindNames[int(entity.ID)] = mw.shownName(sim.EntityID(entity.ID))
+	}
+	return mw, m, nil
+}
+
 func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionFieldValue) (ui.MapEntity, []ui.InspectionField, *ui.InspectionUnitPreview, error) {
 	trial := *s
 	if len(values) > 0 {
 		trial.model = s.model.Clone()
 		trial.batch = trial.model
+		trial.stage = &workspaceStage{root: s}
 		if _, err := trial.SetFields(ui.KindUnit, index, values); err != nil {
 			return ui.MapEntity{}, nil, nil, err
 		}
+		if trial.stage.next != nil {
+			trial.workspace = trial.stage.next
+		}
+		trial.stage = nil
 	}
 	c := trial.unitViewCache()
 	if c.entities != nil {
@@ -57,22 +101,10 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 			}
 		}
 	}
-	m, err := trial.model.Map()
+	mw, m, err := trial.unitWorld(c)
 	if err != nil {
 		return ui.MapEntity{}, nil, nil, err
 	}
-	v, err := ui.NewViewer("", terrain.Grid{Width: m.Width, Height: m.Height, Tiles: terrain.RenderTileWords(m.Tiles), Altitudes: m.Altitudes}, s.inspector.tiles)
-	if err != nil {
-		return ui.MapEntity{}, nil, nil, err
-	}
-	if s.inspector.panelWords != nil {
-		v.SetWords(*s.inspector.panelWords)
-	}
-	mw, err := openMapWorld(m, s.inspector.table, s.inspector.units, v)
-	if err != nil {
-		return ui.MapEntity{}, nil, nil, err
-	}
-	c.entities = mw.entityDraws()
 	if c.pictures == nil {
 		c.pictures = make(map[uint32]*ui.InspectionUnitPreview)
 	}
@@ -123,6 +155,10 @@ func (u *unitTemplateView) describe(row *ui.InspectionField) {
 	if row.Key == "gear" {
 		row.Group = x.word("editor.unit.group.equipment")
 		row.Choices = []ui.InspectionChoice{{Value: 0, Label: x.inspectionUTF8(x.word("editor.unit.meaning.gear"))}, {Value: 1, Label: x.inspectionUTF8(x.word("editor.unit.meaning.skipgear"))}}
+		return
+	}
+	if row.Key == "facing" {
+		row.Meaning = x.word("editor.unit.facing.note")
 		return
 	}
 	if group := overrideGroup(x, row.Key); group != "" {
@@ -180,7 +216,7 @@ func (u *unitTemplateView) meaning(key string, value int64) string {
 	// typed: an NPC-arm placement skips the stores (DIV-3580), and the
 	// derivation or a lone Shooting byte (DIV-3581) can leave another value.
 	actual, _ := overrideTemplate(u.actual, key)
-	if mapload.Resolve(u.m.Units[u.index], x.table).Arm == mapload.ArmNPC && key != "hp" && key != "mana" && key != "body" && key != "mind" && key != "spirit" && key != "reaction" {
+	if mapload.Resolve(u.m.Units[u.index], x.table).Arm == mapload.ArmNPC && key != "hp" && key != "mana" && key != "body" && key != "mind" && key != "spirit" && key != "reaction" && key != "speed" && key != "sight" {
 		return fmt.Sprintf(x.word("editor.unit.meaning.ignored"), actual)
 	}
 	if actual != value {

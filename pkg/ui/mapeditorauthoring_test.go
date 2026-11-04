@@ -77,8 +77,8 @@ func TestMapEditorNewRecordNamesAreVisibleBeforeCommit(t *testing.T) {
 			}
 			_ = e.Key("backspace")
 			steps := []string{"enter", "enter", "ui:text-cell", "enter"}
-			if key == "unit" { // the group step comes before the cell
-				steps = append([]string{"enter"}, steps...)
+			if key == "unit" { // the group and facing steps come before the cell
+				steps = append([]string{"enter", "enter"}, steps...)
 			}
 			for _, k := range steps {
 				if k == "ui:text-cell" {

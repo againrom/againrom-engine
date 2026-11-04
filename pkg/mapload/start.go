@@ -735,7 +735,7 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 	// The spawner constructs every map actor, and the constructor draws its
 	// facing, before the join walk draws the drop cell (MOVE-119, MOVE-122).
 	if !second {
-		base.ConstructPlacementFacings(draws, withdrawnBefore(m))
+		base.ConstructPlacementFacings(draws, withdrawnBefore(m), authoredFacings(m))
 	}
 	cells := DropCells(m)
 	// The map's person roster travels with the start (0159 D-9). It keys on

@@ -1189,6 +1189,7 @@ func rosterTemplate(u alm.Unit, t *Table, id sim.EntityID, rows ...int) (PartyMe
 	// The statistics carry the record's stat stores. The skill levels stay
 	// the row's: the skill stores reach the live levels, not the trained base.
 	hero := humanWithTailStats(d, u.Tail).Hero()
+	hero.AuthoredSpeed, hero.AuthoredSight = int32(u.Tail.Speed), int32(u.Tail.Sight)
 	name := t.humans().EntryName(r.Index)
 	p := PartyMember{
 		ID:                 fmt.Sprintf("join:%d", uint32(id)),

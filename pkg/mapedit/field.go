@@ -29,6 +29,7 @@ const (
 	CheckUnitGear // flag bit 7, offered where the Human constructor reads it (ALM-FLAGPATH-109)
 	CheckUnitLook
 	CheckUnitNPC
+	CheckUnitFacing // a choice: 0 the constructor's draw, 1..8 a direction clockwise from north
 )
 
 // Field is one settable field of a record, at a record-relative
@@ -81,6 +82,11 @@ var unitFields = []Field{
 	overrideByte("reaction", "Reaction", alm.UnitReaction),
 	overrideByte("defence", "Defence", alm.UnitDefence),
 	overrideByte("absorption", "Absorption", alm.UnitAbsorption),
+	// Againrom's own overrides in bytes the original never reads
+	// (ALM-UNITREAD-227); a map carrying them plays there as without them.
+	overrideByte("speed", "Speed", alm.UnitSpeed),
+	{Key: "sight", Label: "Sight (0 = template)", Offset: alm.UnitSight, Width: 1, Min: 0, Max: alm.SightCells},
+	{Key: "facing", Label: "Facing (0 = random)", Offset: alm.UnitFacing, Width: 1, Min: 0, Max: alm.FacingDirections, Check: CheckUnitFacing},
 	overrideByte("skill.blade", "Blade skill", alm.UnitSkills),
 	overrideByte("skill.axe", "Axe skill", alm.UnitSkills+1),
 	overrideByte("skill.bludgeon", "Bludgeon skill", alm.UnitSkills+2),

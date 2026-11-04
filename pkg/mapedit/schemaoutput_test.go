@@ -13,8 +13,9 @@ import (
 
 // editorOutputDigest is the SHA-256 of every byte image, field list and error
 // the scripted session in TestEditorOutputKeepsItsBytes produces, taken on the
-// tree whose editor spelled its own record offsets.
-const editorOutputDigest = "6a7852a2c3734f2ec9032c9eda9ee7dffb63a115fab69bdb9673536cecb9c0fd"
+// tree whose editor spelled its own record offsets, then with the unit's
+// speed, sight and facing fields, without which it is unchanged.
+const editorOutputDigest = "cf1f6c2032cf029ff62274cf1b9a97f79fdaed7b79a7bb20c218868e6c2b1550"
 
 func TestEditorOutputKeepsItsBytes(t *testing.T) {
 	e, err := mapedit.NewMap(alm.DefaultNewMap())

@@ -312,6 +312,10 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		tier := tiers[sim.EntityID(i)]
 		if frames := c.TierFrames(tier); len(frames) > 0 {
 			idx, mirror := terrain.SelectUnitFrame(c.Anim, len(frames), false, 0, 0, 0)
+			// An authored facing draws the unit as the mission starts it.
+			if d := int(u.Tail.Facing); d >= 1 && d <= alm.FacingDirections {
+				idx, mirror = terrain.SelectUnitFacingFrame(c.Anim, len(frames), false, sheetFacing(sim.DirectionFacing(d-1)), 0, 0)
+			}
 			e.Frame, e.Mirror = frames[idx], mirror
 			shade := u.Owner
 			if u.Owner > 0 && uint64(u.Owner) <= uint64(len(m.Groups)) {

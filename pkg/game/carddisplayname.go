@@ -85,6 +85,10 @@ func (mw *mapWorld) drawnName(e *sim.Entity, c *terrain.UnitClass, words *ui.Wor
 			name = className
 		}
 	}
+	// The map's own name for the placed unit is its last stage.
+	if authored, ok := mw.authoredName(e); ok {
+		name = authored
+	}
 	return name, nameIndex, definitionCharName
 }
 

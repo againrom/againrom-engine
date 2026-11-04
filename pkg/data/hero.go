@@ -90,6 +90,10 @@ type Hero struct {
 	// 1 to 5 and writes exactly one; nothing here enforces that, because a
 	// hero who has trained is an ordinary hero and this type is not a screen.
 	Skill [SkillSlots]int32
+
+	// Speed and Sight are a map author's base speed and whole-cell sight,
+	// which replace the ones the statistics derive; 0 derives each.
+	AuthoredSpeed, AuthoredSight int32
 }
 
 // NewHero is a hero built from a point spread and the one slot he trained: the

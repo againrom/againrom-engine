@@ -362,7 +362,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 	if native {
 		count := 0
 		for _, f := range o.fields {
-			if f.Inherit && f.Value != f.Absent {
+			if f.Inherit && (f.Value != f.Absent || f.Text && f.TextValue != "") {
 				count++
 			}
 		}

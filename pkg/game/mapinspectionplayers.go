@@ -24,6 +24,9 @@ func (s *mapInspectionEdits) SetTextField(kind ui.RecordKind, index int, key, va
 		return nil, err
 	}
 	return s.change(func(m *mapedit.Editor) (bool, error) {
+		if k == mapedit.KindUnit && key == unitNameField {
+			return s.setUnitName(m, index, value)
+		}
 		return setTextFieldOn(m, k, index, key, value)
 	})
 }

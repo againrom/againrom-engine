@@ -715,6 +715,7 @@ var (
 	itemNameTextSource    = &textSource{address: ItemNameTextAddress, codec: fontBytes}
 	heroPictureSource     = &textSource{address: HeroPictureAddress}
 	missionPageDirSource  = &textSource{address: mainPrefix + "text/battle/m%d/", numbered: true}
+	unitNamesSource       = &textSource{address: mainPrefix + "text/battle/m%d/" + unitNamesPage, numbered: true, codec: fontBytes, limit: 1 << 20}
 	innNPCTextSource      = &textSource{address: mainPrefix + "text/inn/npc/npc%02dm%d.txt", numbered: true, zeroFirst: true}
 	innMercenarySource    = &textSource{address: mainPrefix + "text/inn/mercenary/npc%02d.txt", numbered: true}
 	shopTalkTextSource    = &textSource{address: mainPrefix + "text/shop/npc31m%d.txt", numbered: true}

@@ -14,7 +14,7 @@ import (
 )
 
 func missionPageName(name string) bool {
-	if name == "title.txt" || name == "briefing.txt" || name == "briefmap.txt" {
+	if name == "title.txt" || name == "briefing.txt" || name == "briefmap.txt" || name == unitNamesPage {
 		return true
 	}
 	prefixes := []string{"event"}

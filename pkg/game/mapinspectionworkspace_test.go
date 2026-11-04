@@ -294,7 +294,7 @@ func TestMapEditorWorkspaceCreatesSavesAndReopensBothRoutes(t *testing.T) {
 }
 
 func TestMissionPageNamesUseTheRuntimeNumberDomain(t *testing.T) {
-	for _, name := range []string{"title.txt", "briefing.txt", "briefmap.txt", "event00.txt", "event01.txt", "event99.txt", "event100.txt", "event2147483647.txt", "tips01.txt", "tips100.txt", "tips2147483647.txt"} {
+	for _, name := range []string{"title.txt", "briefing.txt", "briefmap.txt", "units.txt", "event00.txt", "event01.txt", "event99.txt", "event100.txt", "event2147483647.txt", "tips01.txt", "tips100.txt", "tips2147483647.txt"} {
 		if !missionPageName(name) {
 			t.Errorf("refused canonical runtime filename %s", name)
 		}

@@ -49,8 +49,10 @@ func (w *World) constructFacing(e *Entity) {
 // placement the loader refuses is constructed first and deleted after
 // (MOVE-120, MOVE-141), so it draws its facing too and keeps no actor:
 // withdrawnBefore lists, in record order, how many World actors precede each
-// such placement. It runs on an unadvanced World only.
-func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int) {
+// such placement. It runs on an unadvanced World only. An actor authored
+// lists draws its value too, so the stream after the start is unchanged, and
+// then faces the listed direction, 0 north clockwise to 7 north-west.
+func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int, authored map[EntityID]int) {
 	if w == nil || w.tick != 0 || w.game.nativeFacing || d == nil {
 		return
 	}
@@ -65,10 +67,17 @@ func (w *World) ConstructPlacementFacings(d *Draws, withdrawnBefore []int) {
 		discard(i)
 		e := &w.entities[i]
 		e.Facing = constructorFacing(&d.r, e.ID)
+		if dir, ok := authored[e.ID]; ok {
+			e.Facing = DirectionFacing(dir)
+		}
 		e.DesiredFacing = e.Facing
 	}
 	discard(len(w.entities))
 }
+
+// DirectionFacing is the facing byte of direction d, 0 north clockwise to 7
+// north-west.
+func DirectionFacing(d int) uint8 { return facingOfDir(d & (directions - 1)) }
 
 // moverRecord is the part of an actor's Mover a first-game World holds and
 // SAVE cannot take from the actor itself: the block-test mask (+0x05) and

@@ -194,6 +194,13 @@ func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key s
 	if key == "sex" {
 		return []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.male"))}, {Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.female"))}}
 	}
+	if key == "facing" && kind == string(ui.KindUnit) {
+		out := []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.facing.random"))}}
+		for d := int64(1); d <= alm.FacingDirections; d++ {
+			out = append(out, ui.InspectionChoice{Value: d, Label: s.inspector.inspectionUTF8(s.inspector.word(fmt.Sprintf("editor.unit.facing.%d", d)))})
+		}
+		return out
+	}
 	if key == "recipeitem" {
 		m, err := s.model.Map()
 		if err != nil {

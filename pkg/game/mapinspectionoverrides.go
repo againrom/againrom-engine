@@ -14,7 +14,7 @@ import (
 // record's override block, which the spawner stores after the constructor
 // (UNIT-PLACE-034). Health and mana are absent at -1, every other at 0.
 var overrideKeys = []string{"hp", "mana", "body", "mind", "spirit", "reaction", "defence", "absorption",
-	"skill.blade", "skill.axe", "skill.bludgeon", "skill.pike", "skill.shooting",
+	"speed", "sight", "skill.blade", "skill.axe", "skill.bludgeon", "skill.pike", "skill.shooting",
 	"protection.fire", "protection.water", "protection.air", "protection.earth", "protection.astral"}
 
 // overrideGroup is the unit popup group key shows under; "" for a key that
@@ -27,6 +27,8 @@ func overrideGroup(x *MapInspector, key string) string {
 		return x.word("editor.unit.group.attributes")
 	case key == "defence" || key == "absorption":
 		return x.word("editor.unit.group.defence")
+	case key == "speed" || key == "sight":
+		return x.word("editor.unit.group.motion")
 	case strings.HasPrefix(key, "skill."):
 		return x.word("editor.unit.group.skills")
 	case strings.HasPrefix(key, "protection."):
@@ -46,7 +48,7 @@ func overrideAbsent(key string) int64 {
 // overrideTemplate is the value the template actor v holds for key.
 func overrideTemplate(v unitValues, key string) (int64, bool) {
 	stats := map[string]int32{"hp": v.HP, "mana": v.Mana, "body": v.Body, "mind": v.Mind, "spirit": v.Spirit,
-		"reaction": v.Reaction, "defence": v.Defence, "absorption": v.Absorption}
+		"reaction": v.Reaction, "defence": v.Defence, "absorption": v.Absorption, "speed": v.Speed, "sight": v.Sight}
 	for i, name := range []string{"blade", "axe", "bludgeon", "pike", "shooting"} {
 		stats["skill."+name] = v.Skill[i+1]
 	}
@@ -96,6 +98,10 @@ func (x *MapInspector) overrideName(key string) string {
 		return x.word("editor.unit.override.protection.earth")
 	case "protection.astral":
 		return x.word("editor.unit.override.protection.astral")
+	case "speed":
+		return x.word("editor.unit.override.speed")
+	case "sight":
+		return x.word("editor.unit.override.sight")
 	case "gear":
 		return x.word("editor.unit.override.gear")
 	}
@@ -193,6 +199,8 @@ func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 		return x.word("editor.unit.field.face"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
 	case "sex":
 		return x.word("editor.unit.field.sex"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
+	case "facing":
+		return x.word("editor.unit.field.facing"), true
 	}
 	if f.Check == mapedit.CheckUnitGear {
 		return x.overrideName(f.Key), gearOffered(u.m.Units[u.index], x.table)

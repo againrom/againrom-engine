@@ -238,7 +238,7 @@ func TestMapEditorAddCancelAtEveryStepWritesNothing(t *testing.T) {
 func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
 	_ = e.Key("unit")
-	addAdvance(t, e, 3) // class, owner, group; the modes host offers no tier
+	addAdvance(t, e, 4) // class, owner, group, facing; the modes host offers no tier
 	if key, _, _ := e.AddStep(); key != "cell" {
 		t.Fatal("the window asks", key)
 	}
@@ -310,7 +310,7 @@ func TestMapEditorAddIdentityBackAndRefusal(t *testing.T) {
 	if key, _, _ := e.AddStep(); key != "identity" || e.prompt.path != "3" {
 		t.Fatal("Back did not return to the identity with its value", key, e.prompt.path)
 	}
-	addAdvance(t, e, 3)
+	addAdvance(t, e, 4)
 	for _, bad := range []string{"", "x", "60,1", "-1,0"} {
 		e.prompt.path = bad
 		_ = e.Key("enter")

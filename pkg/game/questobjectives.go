@@ -59,11 +59,12 @@ type objectivesProfile struct {
 
 // loadMissionText reads the per-mission text the game's objectives row names.
 func loadMissionText(mw *mapWorld, src entrySource, ms *Mission, t *mapload.Table) {
+	code := InstallTextCode(src, tableEdition(t))
+	mw.authoredNames = missionUnitNames(src, code, ms.Number)
 	row := mw.mission.files().objectives
 	if row == (objectivesProfile{}) {
 		return
 	}
-	code := InstallTextCode(src, tableEdition(t))
 	if row.subobjectives {
 		mw.mission.objectiveLabels = secondGameObjectiveLabels(src, code, ms.Number)
 	}

@@ -31,6 +31,9 @@ type HumanInput struct {
 	Load                     int32
 	TrainingCap              int32
 	Terms                    HumanTerms
+	// Speed and Sight are an authored base speed and whole-cell sight that
+	// replace the derived ones before the terms add; 0 derives each.
+	Speed, Sight int32
 }
 
 // HumanOutput is the derived block. Sight is in 1/256 cell; its high byte is
@@ -104,8 +107,14 @@ func DeriveHuman(in HumanInput) (HumanOutput, error) {
 	if out.Sight, err = humanFTOL((float64(mind+reaction)/float64(sightDivisor) + float64(sightBase)) * 256); err != nil {
 		return out, err
 	}
+	if in.Sight != 0 {
+		out.Sight = in.Sight << 8
+	}
 	out.Capacity = body*capacityMultiplier + capacityAddend
 	out.BaseSpeed = HumanBaseSpeed(reaction, in.Rider)
+	if in.Speed != 0 {
+		out.BaseSpeed = in.Speed
+	}
 	speed, kept, ok := rules.HumanSpeed(int16(out.BaseSpeed), int16(in.Terms.Speed), in.Load, out.Capacity)
 	if !ok {
 		return out, fmt.Errorf("Human derive would divide by zero capacity")

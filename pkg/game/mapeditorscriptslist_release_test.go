@@ -151,7 +151,6 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 	closeMapPanel(t, e)
 	showTree(e)
 	_ = e.Key("scripts")
-	_ = e.Key("escape")
 	r := scriptsTreeRow(t, e, len(e.Document().Script.Triggers))
 	writeEditorFrame(t, e, filepath.Join(dir, "scripts-variables-list-"+lang+".png"), dir != "", image.Rectangle{})
 	trigClick(t, e, r, true, "variable row")
@@ -181,7 +180,6 @@ func TestReleaseMapEditorScriptsListFrames(t *testing.T) {
 		closeMapPanel(t, e)
 		showTree(e)
 		_ = e.Key("scripts")
-		_ = e.Key("escape")
 		shot := func(name string) {
 			writeEditorFrame(t, e, filepath.Join(dir, name+"-"+lang+".png"), dir != "", image.Rectangle{})
 		}

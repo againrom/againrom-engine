@@ -96,8 +96,11 @@ const (
 	UnitMind        = 0x2d
 	UnitSpirit      = 0x2e
 	UnitReaction    = 0x2f
+	UnitSpeed       = 0x30 // an Againrom override, unread by the original (ALM-UNITREAD-227)
 	UnitDefence     = 0x31
 	UnitAbsorption  = 0x32
+	UnitFacing      = 0x33 // an Againrom override, unread by the original (ALM-UNITREAD-227)
+	UnitSight       = 0x34 // an Againrom override, unread by the original (ALM-UNITREAD-227)
 	UnitSkills      = 0x36
 	UnitProtections = 0x3b
 	UnitID          = 0x40

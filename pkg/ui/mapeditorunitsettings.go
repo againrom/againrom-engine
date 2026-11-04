@@ -58,6 +58,10 @@ func (e *MapEditor) unitSettings() (*PanelSubject, []InspectionField) {
 			if o.buf[i] == fieldInput(f) {
 				continue
 			}
+			if f.Text {
+				values = append(values, InspectionFieldValue{Key: f.Key, Text: true, TextValue: o.buf[i], Step: uint32(len(o.pending) + 1)})
+				continue
+			}
 			v, err := fieldNumber(f, o.buf[i])
 			if err != nil {
 				valid = false

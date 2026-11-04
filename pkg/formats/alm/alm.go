@@ -194,14 +194,26 @@ type UnitTail struct {
 	Skill                        [5]uint8 // +0x36..+0x3a: skill slots 1..5
 	Protection                   [5]uint8 // +0x3b..+0x3f: fire, water, air, earth, astral
 	SkipGear                     bool     // +0x0c bit 7
+	// Speed, Facing and Sight are Againrom's own overrides in bytes no
+	// holder of the record reads (ALM-UNITREAD-227); every shipped record
+	// holds 0 in each. Speed and Sight are absent at 0. Facing is 0 for the
+	// constructor's draw, else 1 plus a direction clockwise from north.
+	Speed, Facing, Sight uint8 // +0x30, +0x33, +0x34
 }
+
+// FacingDirections is how many directions an authored Facing names.
+const FacingDirections = 8
+
+// SightCells is the largest authored Sight: the rings the sight march walks.
+const SightCells = 19
 
 // decodeUnitTail reads rec's override block.
 func decodeUnitTail(rec []byte) UnitTail {
 	mana := int16(binary.LittleEndian.Uint16(rec[UnitMana:]))
 	t := UnitTail{Body: rec[UnitBody], Mind: rec[UnitMind], Spirit: rec[UnitSpirit], Reaction: rec[UnitReaction],
 		Mana: mana, HasMana: mana != -1, Defence: rec[UnitDefence], Absorption: rec[UnitAbsorption],
-		SkipGear: binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagSkipGear != 0}
+		SkipGear: binary.LittleEndian.Uint32(rec[UnitFlags:])&UnitFlagSkipGear != 0,
+		Speed:    rec[UnitSpeed], Facing: rec[UnitFacing], Sight: rec[UnitSight]}
 	copy(t.Skill[:], rec[UnitSkills:])
 	copy(t.Protection[:], rec[UnitProtections:])
 	return t

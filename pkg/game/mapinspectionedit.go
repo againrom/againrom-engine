@@ -56,6 +56,9 @@ type mapInspectionEdits struct {
 	// calls of one new record; nil otherwise.
 	batch         *mapedit.Editor
 	scriptTargets map[uint32][]ui.InspectionScriptTarget
+	// stage is the workspace the change in progress writes a unit's name
+	// into; nil outside a change.
+	stage *workspaceStage
 }
 
 func (s *mapInspectionEdits) Dirty() bool {
@@ -93,15 +96,30 @@ func (s *mapInspectionEdits) change(apply func(*mapedit.Editor) (bool, error)) (
 		_, err := apply(s.batch)
 		return nil, err
 	}
+	stage := &workspaceStage{root: s}
+	s.stage = stage
+	defer func() { s.stage = nil }()
 	next := s.model.Clone()
 	changed, err := apply(next)
-	if err != nil || !changed {
+	named := stage.staged(s.workspaceImage)
+	if err != nil || !changed && !named {
 		return nil, err
 	}
+	// A unit's name changes the workspace and the map as one step, and an
+	// owned mod's document follows it as it follows a page edit.
+	old := s.workspace
+	if named {
+		s.syncModDocument(stage.next, old.Pages, false)
+		s.workspace = stage.next
+	}
 	d, err := s.project(next)
+	s.workspace = old
 	if err == nil {
 		s.rememberWorkspace(true)
 		s.model = next
+		if named {
+			s.workspace, s.workspaceImage = stage.next, workspaceBytes(stage.next)
+		}
 	}
 	return d, err
 }
@@ -324,6 +342,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 			out = append(out, s.stockRecipeFields(index, element)...)
 		}
 	}
+	if k == mapedit.KindUnit {
+		out = append(out, s.nameField(index))
+	}
 	if k == mapedit.KindTrigger {
 		out = append(out, ui.InspectionField{Key: "order", Label: "Trigger order (0 first)", Value: int64(index)})
 	}
@@ -352,7 +373,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 				if f.Inherit {
 					f.Section = "stats"
 				}
-				if f.Key == "face" || f.Key == "sex" {
+				if f.Key == "face" || f.Key == "sex" || f.Key == unitNameField {
 					f.Section = "identity"
 				}
 				if f.Key == "gear" {
@@ -439,7 +460,9 @@ func (s *mapInspectionEdits) SetFields(kind ui.RecordKind, index int, values []u
 		for _, v := range ordered {
 			var c bool
 			var err error
-			if v.Text {
+			if k == mapedit.KindUnit && v.Key == unitNameField {
+				c, err = s.setUnitName(m, index, v.TextValue)
+			} else if v.Text {
 				c, err = setTextFieldOn(m, k, index, v.Key, v.TextValue)
 			} else if v.New {
 				c, err = s.setNewNodeOn(m, k, index, v.Key)

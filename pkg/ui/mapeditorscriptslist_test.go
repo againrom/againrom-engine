@@ -236,7 +236,7 @@ func TestScriptsBarAndF2OpenOneListAndAddWizard(t *testing.T) {
 		} else {
 			_ = e.Key("scripts")
 		}
-		if e.filter != editorScriptsFilter || e.listKind() != "records" || e.Selected() != 2 {
+		if e.filter != editorScriptsFilter || e.listKind() != "records" || e.Selected() != -1 {
 			t.Fatal("entry did not open Scripts", bar, e.filter, e.Selected())
 		}
 		for _, b := range e.barEntries() {
