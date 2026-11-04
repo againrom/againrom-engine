@@ -10,6 +10,8 @@ import (
 	"againrom/pkg/audio"
 	"againrom/pkg/data"
 	"againrom/pkg/herokind"
+	"againrom/pkg/locale"
+	"againrom/pkg/mapload"
 	"againrom/pkg/namefold"
 	"againrom/pkg/vfs"
 )
@@ -81,9 +83,10 @@ type townSpeechNames struct {
 	families []townSpeechFamily
 	// heroNPC's pages and a header with an iam* token take heroLetters at
 	// the hero's herokind index; other pages take plainLetter.
-	heroNPC     int
-	heroLetters string
-	plainLetter byte
+	heroNPC      int
+	heroLetters  string
+	plainLetter  byte
+	heroFallback bool
 }
 
 // townSpeechFamily is a key word's recording, dir/<npc><middle>p<part>: the
@@ -191,7 +194,24 @@ func (t *townScreen) townSpeechPath() (string, bool) {
 		return "", false
 	}
 	tag := t.dialogue.tag
-	name, ok := townSpeechTagPath(t.talkProfile().speech, textPath, tag, t.dialogue.displayPart, t.talkAudience())
+	names, audience := t.talkProfile().speech, t.talkAudience()
+	if names.heroNPC != 0 {
+		if names.heroFallback && t.in.Archives != nil {
+			if language, known := locale.ByEntry(t.in.Archives.Base.Profile.Language); known && language.SecondSpeechHeroFallback != 0 {
+				if at := strings.IndexByte(names.heroLetters, language.SecondSpeechHeroFallback); at >= 0 {
+					audience.HeroFemale, audience.HeroMage = at&1 != 0, at&2 != 0
+				}
+			}
+		}
+		for _, member := range t.sess.Carried {
+			if word, found := mapload.PartyIdentity(member, t.in.Table); found && word == names.heroNPC {
+				hero := HeroAudience([]mapload.PartyMember{member})
+				audience.HeroFemale, audience.HeroMage = hero.HeroFemale, hero.HeroMage
+				break
+			}
+		}
+	}
+	name, ok := townSpeechTagPath(names, textPath, tag, t.dialogue.displayPart, audience)
 	if !ok {
 		return "", false
 	}
@@ -282,7 +302,7 @@ func (t *townScreen) TownDialogueActive(active bool) {
 		return
 	}
 	if !t.campaignTown().talking() {
-		if t.speech.room != t.room {
+		if t.speech.room != townRoomNames[t.roomName()] {
 			t.stopTownSpeech()
 		} else if t.resumeTownSpeech() {
 			t.advanceTownResponse()
@@ -320,7 +340,7 @@ func (t *townScreen) TownDialogueActive(active bool) {
 func (t *townScreen) startTownVoice(name string) bool {
 	if sample, found := t.in.SpeechBank.Sample(name); found {
 		source := "town-dialogue"
-		if t.room != roomTalk {
+		if !t.campaignTown().talking() {
 			source = "town-response"
 		}
 		t.speech.voice = audio.Dispatch(t.roomSoundPlayer(audio.SpeechChannel), sample,

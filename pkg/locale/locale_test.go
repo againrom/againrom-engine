@@ -39,7 +39,7 @@ func TestLookupsReachOneRecordPerLanguage(t *testing.T) {
 func TestShippedRecords(t *testing.T) {
 	en, _ := ByEntry("english")
 	ru, _ := ByEntry("russian")
-	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123}) {
+	if en != (Locale{Entry: "english", Selector: 0, Code: "en", BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123, SecondSpeechHeroFallback: 's'}) {
 		t.Fatalf("english = %+v", en)
 	}
 	if ru != (Locale{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: 866, WindowsCodePage: 1251, FontRemap: true, Counterpart: "en", SecondSaveNameLimit: 127}) {

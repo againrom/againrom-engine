@@ -4089,5 +4089,5 @@ var Committed = Baseline{
 	// Disjoint rectangle cover and host-resolved structure fences.
 
 	// Shared hover, cursor hotspots, row zero and moving overlap.
-	CommentBytes: 10524631,
+	CommentBytes: 10524397,
 }

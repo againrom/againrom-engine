@@ -182,7 +182,7 @@ events ["merchant-yes" "merchant-no" "merchant-yes" "rack"]
 hooks shown,sound,scene,speak,fresh,dress,stepped,stats,leave,page,covered,faces,face,pane
 shownRoom false
 wornFixed false
-rules {MoneyLast:true ShelfGems:true TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[SHOP-SCREEN-036 SHOP-SCREEN-033 owner]}
+rules {SpeechDir: MoneyLast:true ShelfGems:true TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[SHOP-SCREEN-036 SHOP-SCREEN-033 owner]}
 book true
 pack [e1c]
 hasActorContainer true
@@ -210,10 +210,10 @@ deal second campaign shop
 cityGraph false
 packUnits 8192
 events ["bought" "refused" "sold" "category-changed"]
-hooks shown,sound,scene,dress,stats,leave,chose,page,faces,face,pane
+hooks shown,sound,scene,speak,dress,stats,leave,chose,page,faces,face,pane
 shownRoom false
 wornFixed false
-rules {MoneyLast:false ShelfGems:false TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[]}
+rules {SpeechDir: MoneyLast:false ShelfGems:false TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[]}
 book false
 pack [e46 e46 e46 e46]
 hasActorContainer true
@@ -245,7 +245,7 @@ events ["merchant-yes" "merchant-no" "merchant-yes" "rack"]
 hooks shown,sound,scene,speak,fresh,dress,stepped,stats,leave,page,covered,faces,face,pane
 shownRoom true
 wornFixed true
-rules {MoneyLast:true ShelfGems:true TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[SHOP-SCREEN-036 SHOP-SCREEN-033 owner]}
+rules {SpeechDir: MoneyLast:true ShelfGems:true TableShelfBack:false LabelOffset:[[0 0] [0 0] [0 0] [0 0]] Cite:[SHOP-SCREEN-036 SHOP-SCREEN-033 owner]}
 book true
 pack [e1c e03]
 hasActorContainer true

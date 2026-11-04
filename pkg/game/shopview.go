@@ -278,6 +278,9 @@ func (t *shopController) ShopDrag(from, to ui.ShopControl) ui.TownAction {
 	if !t.shownRoom() || t.row.wornFixed && (from.Kind == ui.ShopControlDoll || to.Kind == ui.ShopControlDoll) {
 		return ui.TownAction{}
 	}
+	previous := t.speechTableRelease
+	t.speechTableRelease = from.Kind == ui.ShopControlShelfCell && to.Kind == ui.ShopControlTableCell
+	defer func() { t.speechTableRelease = previous }()
 	return t.shopTableSounds(from.Kind == ui.ShopControlTableCell, func() ui.TownAction { return t.shopDrag(from, to) })
 }
 

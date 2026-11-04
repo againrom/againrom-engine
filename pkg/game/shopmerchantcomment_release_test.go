@@ -170,7 +170,7 @@ func TestReleaseShopMerchantDescribesOnlyHisSaleStock(t *testing.T) {
 			break
 		}
 		present := func(n string) bool { _, ok := f.SpeechBank.Sample(n); return ok }
-		if n, ok := shopItemSpeech(shelf[i], rules.SpellGameFirst, present, func(int) int { return 0 }); ok {
+		if n, ok := shopItemSpeech(shelf[i], rules.SpellGameFirst, firstShopSpeech, present, func(int) int { return 0 }); ok {
 			sample, _ := f.SpeechBank.Sample(n)
 			cell, name, want = i, n, sample
 			break
@@ -277,7 +277,7 @@ func TestReleaseShopMerchantSpeaksOneLinePerItem(t *testing.T) {
 	for draw := 0; draw < 3; draw++ {
 		f.ShopRandom = func(int) int { return draw }
 		for _, item := range items {
-			want, ok := shopItemSpeech(item, rules.SpellGameFirst, present, f.ShopRandom)
+			want, ok := shopItemSpeech(item, rules.SpellGameFirst, firstShopSpeech, present, f.ShopRandom)
 			if !ok {
 				t.Fatalf("%#04x names no recording", uint16(item.Code))
 			}

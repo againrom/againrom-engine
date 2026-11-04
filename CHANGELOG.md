@@ -17,6 +17,10 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For players
+
+- [ROM2] A merchant in the second game sometimes speaks about an item you move from the shelf to the table.
+
 ### For map makers and modders
 
 - [BASE] A unit's stat inputs leave space around the card's labels, neighbouring inputs and edges in English and Russian.

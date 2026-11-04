@@ -49,6 +49,7 @@ type shopBinding struct {
 	// the doll.
 	settle    func(act func() ui.TownAction) ui.TownAction
 	wornFixed bool
+	speech    shopSpeechRules
 	// host is the room the page stands in.
 	host shopHost
 }
@@ -76,6 +77,7 @@ func (t *townScreen) hostShopRow() shopBinding {
 func (t *townScreen) chapterShopRow() shopBinding {
 	return shopBinding{
 		adopt:     func() {},
+		speech:    firstShopSpeech,
 		dealOf:    func(s *CampaignSession) *Shop { return s.Shop },
 		cityGraph: true,
 		bagUnit:   sim.ItemInstance.Clone,

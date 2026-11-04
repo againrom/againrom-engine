@@ -23,7 +23,8 @@ type shopController struct {
 	// captions and settle step.
 	row shopBinding
 	// shop is the room the page stands in, the row's host.
-	shop shopHost
+	shop               shopHost
+	speechTableRelease bool
 	// The shop screen's own state. shopChosen is which of the four rectangles
 	// in the merchant's room has been clicked, shopNoShelf while none has;
 	// shopShelf is the shelf that pairs with it; the two bases are the first
@@ -179,6 +180,9 @@ func (t *shopController) keeper(e shopKeeperEvent, args ...int) {
 }
 
 func (t *shopController) say(item ShopItem) {
+	if t.row.speech.tableRelease && !t.speechTableRelease {
+		return
+	}
 	if t.shop.speak != nil {
 		t.shop.speak(item)
 	}

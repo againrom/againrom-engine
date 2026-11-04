@@ -97,8 +97,8 @@ func sameVoice(name string) [4]string { return [4]string{name, name, name, name}
 // secondGameVoices: R2-ENGINE-717 (the selection and the twelve order
 // senders; patrol, town and a cast have none), R2-ENGINE-718 (the voices by
 // identity word), R2-ENGINE-719 (hires 1..20 in the armed tier), R2-ASSET-185,
-// R2-ENGINE-721 (easy, hard and dead of the voice for a person or a word at
-// most 23; word 0 keeps the drawn class's Sound array); DIV-4347, DIV-4348,
+// R2-ENGINE-721 (easy, hard and dead for a person or a known word 0..23);
+// R2-ENGINE-864 (unresolved creature words stay Unknown); DIV-4347, DIV-4348,
 // DIV-4456.
 var secondGameVoices = unitVoiceRules{
 	dir:    "characters/",
@@ -109,7 +109,7 @@ var secondGameVoices = unitVoiceRules{
 		21: {"aldor", "sagita", "hildarius", "galinel"}, 22: sameVoice("igles"), 23: sameVoice("dina"),
 	},
 	hires:      [2]uint16{1, 20},
-	woundWords: [2]uint16{1, 23},
+	woundWords: [2]uint16{0, 23},
 	wounds:     &ui.HurtLeaves{1: "easy", 2: "hard", 3: "dead"},
 	selection:  numberedVoice("select"),
 	gestures: map[ui.VoiceGesture]voiceRecording{

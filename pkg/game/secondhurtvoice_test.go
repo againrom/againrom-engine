@@ -16,6 +16,18 @@ import (
 // the order their markers are numbered.
 var secondHurtVoices = []string{"aldor", "galinel", "igles", "troll", "f_peasant", "m_peasant"}
 
+func TestSecondGameExplicitZeroWordUsesGenericHurtVoice(t *testing.T) {
+	mw, _, _ := hurtVoiceFight(t, sim.Entity{ID: 0, X: 4, Y: 4, Owner: sim.SelfSlot, TypeID: 0x40, Class: 14, HP: 100, MaxHP: 100}, figureID{}, 20, 40)
+	e, _ := mw.world.Entity(0)
+	second := base.GameROM2.Edition()
+	heard, want, _ := secondHurtFightPlays(t, e, figureID{}, func(mw *mapWorld) {
+		mw.mission = &missionNotices{table: &mapload.Table{Edition: &second}, npcKeys: map[sim.EntityID]uint16{0: 0}}
+	}, secondHurtSource("m_peasant"))
+	if !slices.Equal(heard, want) {
+		t.Fatalf("explicit word 0 heard %v, want %v", heard, want)
+	}
+}
+
 // secondHurtBank holds the drawn classes' slots of hurtVoiceBank and, for
 // each voice, easy, hard and dead under characters/, voice v's leaf l
 // (1 easy, 2 hard, 3 dead) carrying marker 9000 + 10v + l.

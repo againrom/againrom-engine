@@ -70,6 +70,7 @@ var secondTownTalkProfile = townTalkProfile{trim: true, speech: townSpeechNames{
 	families: []townSpeechFamily{{"talk", "talk", ""}, {"about", "about", "t000"}, {"accept", "accept", ""},
 		{"reject", "reject", ""}, {"keeper", "town", ""}, {"man", "town", ""}, {"guard", "town", ""}},
 	heroNPC: 21, heroLetters: "fams", plainLetter: 't',
+	heroFallback: true,
 }}
 
 // townTalkRules is each host talk rule's profile; an unnamed rule takes the

@@ -2,19 +2,25 @@ package game
 
 import (
 	"fmt"
+	"slices"
 
 	"againrom/pkg/audio"
+	"againrom/pkg/random"
 	"againrom/pkg/rules"
 )
 
 // Responses are optional presentation around an explicit item/skill choice.
 // DIV-1263 records the inferred installed names and authored trigger/tier rules.
 func (t *townScreen) startTownResponse(names []string) {
-	if t == nil || t.sess == nil || (t.room != roomShop && t.room != roomSchool) {
+	if t == nil || t.sess == nil {
+		return
+	}
+	room := townRoomNames[t.roomName()]
+	if room != roomShop && room != roomSchool {
 		return
 	}
 	t.resetTownSpeech()
-	t.speech.room, t.speech.pending = t.room, names
+	t.speech.room, t.speech.pending = room, names
 	t.advanceTownResponse()
 }
 
@@ -90,13 +96,49 @@ func (t *townScreen) speakSchoolTraining(slot int) {
 // shopItemSpeechPercent bounds the tray draw (SHOP-109).
 const shopItemSpeechPercent = 30
 
-// shopItemResponse is the tray's speech request for a merchant stack moved
-// onto the table (SHOP-109): one scaled draw per placement; from 30 up it
-// requests nothing and leaves a playing recording. Below 30 the stack speaks
-// one recording: effect, else spell, else a drawn class/row part. A recording
-// the install lacks is passed over, and a stack with none stops the previous.
+type shopSpeechRules struct {
+	dir           string
+	effects       [][2]uint8
+	bookTag       uint8
+	kindMask      int
+	numberMask    int
+	kinds         [2]int
+	filterMissing bool
+	rawScaled     bool
+	tableRelease  bool
+}
+
+var firstShopSpeech = shopSpeechRules{
+	dir: "shop", effects: [][2]uint8{{1, 40}}, kindMask: 255, numberMask: 255,
+	kinds: [2]int{1, 13}, filterMissing: true,
+}
+
+var secondShopSpeech = shopSpeechRules{
+	dir: "shop", effects: [][2]uint8{{2, 11}, {21, 25}, {27, 31}, {33, 37}},
+	bookTag: 42, kindMask: 15, numberMask: 31, kinds: [2]int{0, 15}, rawScaled: true, tableRelease: true,
+}
+
+// shopItemResponse requests one table item's recording (SHOP-109, R2-ENGINE-862).
 func (t *townScreen) shopItemResponse(item ShopItem) {
-	if t.sceneDraw("idle", 100) >= shopItemSpeechPercent {
+	if t.draws == nil {
+		return
+	}
+	rules := t.row.speech
+	if rules.effects == nil {
+		rules = firstShopSpeech
+	}
+	if d := t.townDescription(); d != nil {
+		if room := d.Room("shop"); room != nil && room.Shop != nil && room.Shop.SpeechDir != "" {
+			rules.dir = room.Shop.SpeechDir
+		}
+	}
+	draw := func(n int) int {
+		if rules.rawScaled {
+			return sceneRawFrom(t.draws, "idle") * n / random.RandMax % n
+		}
+		return t.sceneDraw("idle", n)
+	}
+	if draw(100) >= shopItemSpeechPercent {
 		return
 	}
 	present := func(name string) bool {
@@ -104,40 +146,53 @@ func (t *townScreen) shopItemResponse(item ShopItem) {
 		return found
 	}
 	var names []string
-	if name, ok := shopItemSpeech(item, spellGame(t.in.Table), present, func(n int) int { return t.sceneDraw("idle", n) }); ok {
+	if name, ok := shopItemSpeech(item, spellGame(t.in.Table), rules, present, draw); ok {
 		names = []string{name}
 	}
 	t.startTownResponse(names)
 }
 
 // shopItemSpeech names the one recording of an item of game, or none.
-func shopItemSpeech(item ShopItem, game rules.SpellGame, present func(string) bool, draw func(int) int) (string, bool) {
+func shopItemSpeech(item ShopItem, game rules.SpellGame, names shopSpeechRules, present func(string) bool, draw func(int) int) (string, bool) {
+	accept := func(name string) bool { return !names.filterMissing || present(name) }
 	for _, effect := range item.Effects {
-		if effect.Kind > 0 && effect.Kind < 41 {
-			if name := fmt.Sprintf("speech/shop/effects/%02d.wav", effect.Kind); present(name) {
+		if slices.ContainsFunc(names.effects, func(span [2]uint8) bool { return effect.Kind >= span[0] && effect.Kind <= span[1] }) {
+			if name := fmt.Sprintf("speech/%s/effects/%02d.wav", names.dir, effect.Kind); accept(name) {
 				return name, true
 			}
 		}
 	}
-	instance := item.Instance()
-	spell, ok := instance.BookSpell(game)
-	if !ok {
-		var cast uint16
-		if cast, _, ok = instance.CastSpell(); ok {
-			spell, ok = cast, cast > 0 && cast < 32
+	spell, ok := 0, false
+	if names.bookTag != 0 {
+		for _, effect := range item.Effects {
+			if effect.Kind == names.bookTag {
+				spell = int(effect.Operand)
+			}
+		}
+		ok = spell != 0
+	} else {
+		instance := item.Instance()
+		book, found := instance.BookSpell(game)
+		spell, ok = int(book), found
+		if !ok {
+			var cast uint16
+			if cast, _, ok = instance.CastSpell(); ok {
+				spell, ok = int(cast), cast > 0 && cast < 32
+			}
 		}
 	}
 	if ok {
-		if name := fmt.Sprintf("speech/shop/books/%02d.wav", spell); present(name) {
+		if name := fmt.Sprintf("speech/%s/books/%02d.wav", names.dir, spell); accept(name) {
 			return name, true
 		}
 	}
-	if item.Code.B() <= 0 || item.Code.B() >= 14 {
+	kind, number := int(item.Code.B())&names.kindMask, int(item.Code.D())&names.numberMask
+	if kind < names.kinds[0] || kind > names.kinds[1] {
 		return "", false
 	}
 	var parts []string
 	for part := 1; part <= 3; part++ {
-		if name := fmt.Sprintf("speech/shop/s%02di%02dp%d.wav", item.Code.B(), item.Code.D(), part); present(name) {
+		if name := fmt.Sprintf("speech/%s/s%02di%02dp%d.wav", names.dir, kind, number, part); accept(name) {
 			parts = append(parts, name)
 		}
 	}

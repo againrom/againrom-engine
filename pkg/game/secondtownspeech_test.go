@@ -160,3 +160,35 @@ func TestSecondTownHeroPagesTakeTheHerosLetter(t *testing.T) {
 		}
 	}
 }
+
+func TestSecondTownSpeechMissingHeroUsesEnglishFallback(t *testing.T) {
+	for _, tc := range []struct {
+		language string
+		present  bool
+		want     string
+	}{
+		{"english", false, "talk/0021s007p02.wav"},
+		{"english", true, "talk/0021f007p02.wav"},
+		{"russian", false, "talk/0021f007p02.wav"},
+		{"russian", true, "talk/0021f007p02.wav"},
+	} {
+		s, speech := secondSpeechTown(t, secondSpeechHero(false, false))
+		second := base.GameROM2.Edition()
+		s.in.Table = &mapload.Table{Edition: &second}
+		s.in.Archives.Base.Profile.Language = tc.language
+		if !tc.present {
+			s.sess.Carried[0].StartingHero = false
+			s.sess.Carried[0].CompanionNPC = 22
+		}
+		s.openTownText("npc5talk7")
+		s.TownDialogueActive(true)
+		s.AdvanceTownDialogue()
+		s.TownDialogueActive(true)
+		if got := secondSpeechHeard(speech, 1); got != tc.want {
+			t.Fatalf("%s NPC-21 present=%v played %q, want %q", tc.language, tc.present, got, tc.want)
+		}
+		if speech.voices[0].stops != 1 {
+			t.Fatal("first page kept playing")
+		}
+	}
+}

@@ -53,7 +53,8 @@ func (t *townScreen) bankShopRow() shopBinding {
 				t.defaults = townDescriptions["rom2-town1"]
 			}
 		},
-		fresh: true,
+		fresh:  true,
+		speech: secondShopSpeech,
 		dealOf: func(s *CampaignSession) *Shop {
 			c := secondOf(s)
 			if c == nil {
@@ -102,6 +103,7 @@ func (t *townScreen) bankShopRow() shopBinding {
 			shown: t.bankShopShown,
 			sound: t.shownRoomSound,
 			scene: t.shopScene,
+			speak: t.shopItemResponse,
 			events: [shopKeeperEvents]string{shopKeeperBought: secondShopBought, shopKeeperRefused: secondShopRefused,
 				shopKeeperSold: secondShopSold, shopKeeperRack: secondShopCategoryChanged},
 			dress: t.dressShop,

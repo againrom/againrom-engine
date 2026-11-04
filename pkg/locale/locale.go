@@ -31,6 +31,8 @@ type Locale struct {
 	Counterpart string
 	// SecondSaveNameLimit is the second game's save-name box length (R2-ENGINE-443).
 	SecondSaveNameLimit int
+	// SecondSpeechHeroFallback is the known no-actor letter; zero is Unknown.
+	SecondSpeechHeroFallback byte
 }
 
 // Fallback is the code of the reference language: the engine's own words are
@@ -44,7 +46,7 @@ const (
 )
 
 var table = [...]Locale{
-	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123},
+	{Entry: "english", Selector: 0, Code: Fallback, BaseID: "rom1-en", Counterpart: "ru", SecondSaveNameLimit: 123, SecondSpeechHeroFallback: 's'},
 	{Entry: "russian", Selector: 1, Code: "ru", BaseID: "rom1-ru", CodePage: DOSCyrillic, WindowsCodePage: WindowsCyrillic, FontRemap: true, Counterpart: Fallback, SecondSaveNameLimit: 127},
 }
 

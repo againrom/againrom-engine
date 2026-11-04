@@ -310,7 +310,7 @@
        {"name": "plaque-player", "format": "picture", "key": "graphics/interface/costm%d.bmp", "index": [{"count": 7, "base": 1, "cite": ["R2-ENGINE-249"]}], "transparent": "black", "cite": ["R2-ENGINE-249"]}
      ],
      "pane": {"rect": [480, 238, 640, 480], "book": true, "book_offset": [0, 2], "cite": ["R2-ENGINE-249", "R2-SESSION-204", "R2-SESSION-217"]},
-     "shop": {"money-last": true, "table-shelf-back": true,
+     "shop": {"speech-dir": "shop_kaarg", "money-last": true, "table-shelf-back": true,
        "cite": ["R2-ENGINE-354", "R2-SESSION-206", "R2-ENGINE-402", "DIV-4090", "DIV-4092"]},
      "buttons": [
        {"name": "shelf/0", "rect": [169, 5, 229, 207], "caption": 62, "cite": ["R2-ENGINE-269", "R2-ENGINE-354"]},
