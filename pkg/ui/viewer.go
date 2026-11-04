@@ -1176,21 +1176,9 @@ type Viewer struct {
 	cursorX, cursorY int
 	hasCursor        bool
 
-	// hoverLitID/hoverLitOK cache one frame's hoverInspection() unit subject,
-	// for spellSpriteFactor's own max-composed hover gain (hotfix, owner
-	// report 1, DIV-1349: hovering any unit should brighten its own sprite,
-	// as if it were lit — most visible at night, same as the owner's report
-	// on structure light masks).
-	//
-	// REFRESHED ONCE PER FRAME, FROM drawFrame, NEVER FROM INSIDE
-	// planeSprites/spellSpriteFactor. hoverInspection calls inspectionAt,
-	// which itself calls planeSprites to pixel-test the topmost sprite under
-	// the cursor — reading hoverInspection from inside the very pass that
-	// FEEDS it would recurse into planeSprites a second time on every
-	// candidate cell. Caching the answer once, before that pass runs, is
-	// what breaks the cycle.
-	hoverLitID uint32
-	hoverLitOK bool
+	// hover is the frame's paired object/ID hit, shared by every reader.
+	hover        hoverCache
+	hoverProfile HoverProfile
 
 	// winCursorX/winCursorY is the SAME observation one door earlier: the
 	// cursor position as the window reported it, before step maps it onto the
@@ -2360,6 +2348,7 @@ func (v *Viewer) SetUnshaded(on bool) { v.unshaded = on }
 // once, exactly as the overlay setters already do when they used to move the
 // mode.
 func (v *Viewer) SetFlat(on bool) {
+	v.hover.valid = false
 	v.flat = on
 	v.syncWorld()
 }
@@ -2394,6 +2383,7 @@ type MapStructure struct {
 // SetStructures adopts the current inspection snapshot and destroyed set.
 // Placement and passability do not change when health reaches zero.
 func (v *Viewer) SetStructures(structures []MapStructure) {
+	v.hover.valid = false
 	v.structureStates = structures
 	if len(structures) == 0 {
 		clear(v.ruinedStructureIDs)
@@ -2485,6 +2475,7 @@ func (v *Viewer) SetSacks(sacks []MapSack) {
 // A front-end that never calls it leaves the zero pair, which is "not told" and
 // draws no displacement at all.
 func (v *Viewer) SetPhase(elapsedUS, periodUS int) {
+	v.hover.valid = false
 	v.phaseUS, v.phasePeriodUS = elapsedUS, periodUS
 }
 
@@ -2859,6 +2850,8 @@ func (v *Viewer) Update() error {
 // parameters is what makes that behaviour reachable in a test at all: before this
 // split, no test in the repo could drive a pan, a drag or a zoom.
 func (v *Viewer) step(in Input, now time.Time) {
+	v.hover.valid = false
+	defer func() { v.refreshHoverLighting(); v.advanceCursorManager(now) }()
 	defer v.updateTooltip(in, now)
 	v.syncMapViewport()
 	v.advanceAnimation(now)
@@ -2898,19 +2891,6 @@ func (v *Viewer) step(in Input, now time.Time) {
 	v.cursorX, v.cursorY, v.hasCursor = in.CursorX, in.CursorY, true
 
 	v.primaryDown = in.PrimaryDown
-
-	// The cursor manager's own clock (B3; AI-CURSOR-172), advanced from the
-	// same timestamp every other per-tick animation in this method uses.
-	//
-	// IT STANDS BELOW THE THREE STATEMENTS ABOVE AND ABOVE THE POPUP RETURN
-	// BELOW, and both halves are load-bearing. Below the position, because
-	// mapCursorName's edge, minimap and hover branches are all functions of the
-	// cursor's own position: run above it, each chose a name for the PREVIOUS
-	// tick's position while mapCursorPresent placed the picture at this one
-	// (adversarial pass 1). Above the popup return, because a mission-end
-	// notice is a popup and skipping the call under one would carry the
-	// animated attack sword onto the map list (advanceCursorManager's own doc).
-	v.advanceCursorManager(now)
 
 	// A POPUP PINS THE MAP AND DROPS THE GESTURE. All four of the player's ways
 	// to the camera are below this line — the pan keys and the edge-scroll
@@ -3370,10 +3350,8 @@ var blitColumnLayer = func(screen, img *ebiten.Image, op *ebiten.DrawImageOption
 // drawFrame composes the mission screen onto one frame-sized destination.
 func (v *Viewer) drawFrame(screen *ebiten.Image) {
 	mapSurface := screen.SubImage(image.Rect(0, 0, v.cam.ViewW, v.cam.ViewH).Intersect(screen.Bounds())).(*ebiten.Image)
-	// THE HOVER-LIGHTING CACHE, before either terrain or the plane sprites —
-	// both read it, and hoverLitID's own doc states why it cannot be read
-	// lazily from inside planeSprites itself (hotfix, owner report 1,
-	// DIV-1349).
+	// Resolve the frame hit before sprite and panel composition.
+
 	v.refreshHoverLighting()
 
 	if v.Mode() == ModeDisplaced {

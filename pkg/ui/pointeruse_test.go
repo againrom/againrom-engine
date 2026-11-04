@@ -73,7 +73,7 @@ func TestUsableStructureInExploredGroundPicksByGameData(t *testing.T) {
 			t.Fatal(err)
 		}
 		_ = a.HeadlessStep()
-		got, hit := v.inspectionAt(x, y)
+		got, hit := v.hoverAt(x, y)
 		if hit != admit || hit && got != ref {
 			t.Fatalf("admit %v: pick %+v hit %v", admit, got, hit)
 		}

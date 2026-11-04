@@ -60,7 +60,7 @@ func TestATapTakesALargeUnitWhereItIsDrawn(t *testing.T) {
 		side             int
 		centreHit, inTop bool
 	}{
-		{1, false, true},
+		{1, true, true},
 		{2, true, false},
 		{3, true, false},
 	} {

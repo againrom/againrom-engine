@@ -207,7 +207,8 @@ const (
 // spell is the book's selection as this frame began: state read from the
 // viewer, used only under the cast cursor.
 type gesture struct {
-	// Explicit physical attack hit, resolved with the visible sprite identity.
+	hit InspectionSubject
+	// The structure target admitted from the shared hover hit.
 	structure InspectionSubject
 	tap       bool
 	boxed     bool
@@ -298,13 +299,8 @@ func (v *Viewer) marked() []uint32 {
 	return ids
 }
 
-// topAt is the entity a single point names: the lowest id whose DRAWN
-// rectangle holds it, and whether any does.
-//
-// It is a minimum over the whole selectable set and not the first match, so the
-// tie is settled over ids and never quietly becomes slice position. Attack and
-// cast targeting deliberately use targetAt below: selection and combat have
-// different populations at both the finishable and terminal corpse boundaries.
+// topAt is the minimum-ID selectable footprint hit, retained for selection
+// instruments. Live map taps consume the shared hover hit instead.
 func topAt(ents []MapEntity, at func(MapEntity) (screenRect, bool), x, y float64) (uint32, bool) {
 	var best uint32
 	hit := false
@@ -316,25 +312,16 @@ func topAt(ents []MapEntity, at func(MapEntity) (screenRect, bool), x, y float64
 	return best, hit
 }
 
-// targetAt is the attack/cast hit-test. It deliberately differs from topAt:
-// selection reads Selectable while combat reads Untargetable. Control Spirit
-// asks with allowCorpse and owns the one exception after the -10 boundary.
-func targetAt(ents []MapEntity, at func(MapEntity) (screenRect, bool), x, y float64, allowCorpse bool) (uint32, bool) {
-	var best uint32
-	hit := false
+func gestureVictim(ents []MapEntity, hit InspectionSubject, allowCorpse bool) (uint32, bool) {
+	if hit.Kind != InspectionUnit {
+		return 0, false
+	}
 	for _, e := range ents {
-		if e.Untargetable && !allowCorpse {
-			continue
-		}
-		r, ok := at(e)
-		if !ok || !r.meets(x, y, x, y) {
-			continue
-		}
-		if !hit || e.ID < best {
-			best, hit = e.ID, true
+		if e.ID == hit.ID {
+			return e.ID, !e.Untargetable || allowCorpse
 		}
 	}
-	return best, hit
+	return 0, false
 }
 
 // canArmAttack is the whole of what decides whether an attack may be armed
@@ -564,7 +551,7 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 	}
 
 	if len(present) == 0 {
-		next, added := clickSelection(cur, present, ents, at, localOwner, float64(g.x), float64(g.y), g.shift)
+		next, added := clickSelection(cur, present, ents, localOwner, g.hit, g.shift)
 		return next, added, nil, false
 	}
 
@@ -586,7 +573,7 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 		// eight edge arrows and the five minimap cursors have no arm.
 		return cur, nil, nil, false
 	case orderKindSelect:
-		next, added := clickSelection(cur, present, ents, at, localOwner, float64(g.x), float64(g.y), g.shift)
+		next, added := clickSelection(cur, present, ents, localOwner, g.hit, g.shift)
 		return next, added, nil, false
 	case orderKindPickup:
 		// PICKUP IS ONE ORDER AND NOT ONE PER SELECTED UNIT. Its own cursor
@@ -624,7 +611,7 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 			return cur, nil, orders, true
 		}
 		allowCorpse := kind == orderKindCast && g.bodySpell
-		if victim, hit := targetAt(ents, at, float64(g.x), float64(g.y), allowCorpse); hit {
+		if victim, hit := gestureVictim(ents, g.hit, allowCorpse); hit {
 			orders := make([]order, 0, len(present))
 			for _, e := range present {
 				orders = append(orders, order{kind: kind, entity: e.ID, victim: victim, spell: g.spell})
@@ -668,8 +655,14 @@ func decide(cur selection, ents []MapEntity, groundAt func(x, y float64) (col, r
 
 // clickSelection returns the next selection and the unit the click added or
 // selected again. A Shift click that toggles its unit off adds none.
-func clickSelection(cur selection, present []MapEntity, ents []MapEntity, at func(MapEntity) (screenRect, bool), localOwner uint32, x, y float64, shift bool) (selection, []uint32) {
-	best, hit := topAt(ents, at, x, y)
+func clickSelection(cur selection, present []MapEntity, ents []MapEntity, localOwner uint32, subject InspectionSubject, shift bool) (selection, []uint32) {
+	best, hit := subject.ID, false
+	for _, e := range ents {
+		if subject.Kind == InspectionUnit && e.ID == best && selectableEntity(e) {
+			hit = true
+			break
+		}
+	}
 	if !shift {
 		if !hit {
 			return nil, nil
@@ -1509,8 +1502,10 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// was made under). Resolving it here from this frame's own coordinates is
 	// what keeps a headless drive -- which delivers a press and a release with
 	// no hover tick between them -- deciding the same arm a played frame does.
+	v.hoverAt(in.CursorX, in.CursorY)
 	g := gesture{
 		cursor:    v.gestureCursorAt(in.CursorX, in.CursorY),
+		hit:       v.hover.hit.subject,
 		spell:     v.selectedSpell,
 		pointCast: v.bookTargetsPoint(v.selectedSpell),
 		bodySpell: v.spellNamesBody(v.selectedSpell),
@@ -1538,17 +1533,16 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 		v.itemCast = nil
 	}
 
-	// Hover inspection is read-only. Only an explicit attack cursor can consume
-	// this identity, on the acting release. Do not fall back to selected subject.
+	// Physical structure orders use the hover hit, never the selected fallback.
 	if g.tap && g.cursor == "attack" {
-		if ref, hit := v.inspectionAt(g.x, g.y); hit && ref.Kind == InspectionStructure {
+		if ref, hit := v.hoverAt(g.x, g.y); hit && ref.Kind == InspectionStructure {
 			if s, exists := v.structureState(ref); exists && s.MaxHealth != 0 && int16(s.Health) > 0 {
 				g.structure = ref
 			}
 		}
 	}
 	if g.tap && g.cursor == "town" {
-		if ref, hit := v.inspectionAt(g.x, g.y); hit && v.usableStructure(ref) {
+		if ref, hit := v.hoverAt(g.x, g.y); hit && v.usableStructure(ref) {
 			g.structure = ref
 		}
 	}
@@ -1562,7 +1556,7 @@ func (v *Viewer) command(in appInput) ([]order, bool) {
 	// the class allows (MISSION-065); one that missed everything clears it.
 	if g.tap && !g.shift && !ok && (!hadUnits || g.cursor == "select") {
 		v.selStructure = InspectionSubject{}
-		if ref, hit := v.inspectionAt(g.x, g.y); hit && len(sel) == 0 && v.selectableStructure(ref) {
+		if ref, hit := v.hoverAt(g.x, g.y); hit && len(sel) == 0 && v.selectableStructure(ref) {
 			v.selStructure = ref
 		}
 	}
@@ -1751,7 +1745,7 @@ func (v *Viewer) attackMode() bool { return v.armed || v.attackHeld }
 // second copy of it. ZERO IS NONE ESTABLISHED, so a caller that pushes nothing
 // leaves the gate open, which is what every caller written before this story
 // does.
-func (v *Viewer) SetLocalOwner(owner uint32) { v.localOwner = owner }
+func (v *Viewer) SetLocalOwner(owner uint32) { v.localOwner = owner; v.hover.valid = false }
 
 // LocalOwner is the slot last pushed, and it exists for AttackArmed's own reason
 // one function down: what the tier above pushed is otherwise observable only

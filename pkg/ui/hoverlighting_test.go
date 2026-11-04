@@ -1,7 +1,6 @@
 package ui
 
-// Hover brightening (owner report 1, hotfix DIV-1349): hovering any unit
-// brightens that unit's OWN sprite, as if it were lit, and no other unit's.
+// Hover selects shading zero only for the stored unit hit.
 
 import (
 	"image"
@@ -10,10 +9,7 @@ import (
 	"againrom/pkg/render/terrain"
 )
 
-// hoverEntityBrightness runs the full entity draw pass and returns the
-// Brightness the given unit's own Inspection subject carries, mirroring
-// TestSpellLightingAffectsOnlyTerrainAndActors' own reconstruction (never a
-// second copy of drawPlaneSprite's own >0 && !=1 sentinel rule).
+// hoverEntityBrightness reads the production sprite submission's residual gain.
 func hoverEntityBrightness(v *Viewer, id uint32) (float32, bool) {
 	for _, s := range v.planeSprites() {
 		if s.Inspection.Kind == InspectionUnit && s.Inspection.ID == id {
@@ -23,12 +19,7 @@ func hoverEntityBrightness(v *Viewer, id uint32) (float32, bool) {
 	return 0, false
 }
 
-// giveEntitiesArt equips inspectionFixture's two bare entities (Selected id1,
-// Visitor id7 — neither carries Art or Frame in that fixture, so
-// terrain.UnitPlace refuses both and planeSprites' entity arm never submits
-// them) with the minimal drawable UnitPlace accepts, structureFrame's own
-// tile-sized frame reused as the sprite, matching
-// TestInspectionUsesDrawDepthAndOpaquePixels' own precedent for this fixture.
+// giveEntitiesArt supplies drawable synthetic canvases.
 func giveEntitiesArt(v *Viewer) {
 	f := structureFrame()
 	for i := range f.Pixels {
@@ -41,11 +32,6 @@ func giveEntitiesArt(v *Viewer) {
 	}
 }
 
-// TestHoverBrightensOnlyTheHoveredUnitsSprite is the owner's own words as a
-// test: hovering unit 7 brightens unit 7's OWN sprite and leaves unit 1 --
-// sharing no cell with it, so a cell-keyed highlight could not be confused
-// for this -- at the normal-draw sentinel (statics.go's own Brightness==0
-// meaning "unchanged", drawPlaneSprite's own `>0 && !=1` gate).
 func TestHoverBrightensOnlyTheHoveredUnitsSprite(t *testing.T) {
 	a, v := inspectionFixture(t, image.Pt(1024, 768))
 	giveEntitiesArt(v)
@@ -56,8 +42,20 @@ func TestHoverBrightensOnlyTheHoveredUnitsSprite(t *testing.T) {
 	if !ok7 {
 		t.Fatal("hovered unit 7 submitted no Inspection-tagged sprite")
 	}
-	if got7 <= 1 {
-		t.Fatalf("hovered unit brightness = %v, want strictly brighter than 1", got7)
+	if got7 != 0 {
+		t.Fatalf("hovered unit gain = %v, want no authored gain", got7)
+	}
+	foundZero := false
+	for _, s := range v.planeSprites() {
+		if s.Inspection == (InspectionSubject{InspectionUnit, 7}) {
+			foundZero = s.ShadeZero
+		}
+		if s.Inspection == (InspectionSubject{InspectionUnit, 1}) && s.ShadeZero {
+			t.Fatal("unhovered unit changed shading")
+		}
+	}
+	if !foundZero {
+		t.Fatal("hovered unit did not select shading zero")
 	}
 
 	got1, ok1 := hoverEntityBrightness(v, 1)

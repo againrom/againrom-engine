@@ -596,7 +596,7 @@ func TestHoverDuringADollDragNamesTheExposedSlot(t *testing.T) {
 // case: a gesture that began on a pack cell and is carried well past
 // TapSlop, off both inventory boxes and onto the map itself, builds no
 // box-select outline — v.invGrab's own latch, which keeps the WHOLE gesture
-// inside the swallow branch in command.go once it began there, so decide()
+// inside the swallow branch in command.go once it began there, so decideFixture()
 // (the map's own box-select build) is never reached for it. marqueeRects
 // (marquee_test.go) reads the same overlay pass the map screen actually
 // draws from.

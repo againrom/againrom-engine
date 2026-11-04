@@ -26,6 +26,7 @@ type MissionScreen struct {
 
 // SetMissionScreen adopts the game's mission screen layout data.
 func (v *Viewer) SetMissionScreen(s MissionScreen) {
+	v.hover.valid = false
 	v.missionScreen = s
 	v.syncMapViewport()
 }

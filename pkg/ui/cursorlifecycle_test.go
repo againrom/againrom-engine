@@ -435,7 +435,7 @@ func TestEveryAnimationFrameReachesTheUpload(t *testing.T) {
 // that file falls through to the story-0080 arm. Adversarial pass 2 measured
 // it: a panic in the manager arm left the whole package at exit 0. The two arms
 // are indistinguishable to pointer_test.go's origin assertion because
-// AttackPointerHotspot and the attack registration's hotspot are the same
+// The fallback and animated picture read the same registered hotspot
 // (3,3), so which arm answered is established here by the PICTURE, and only
 // then does the origin assertion measure the manager arm's own subtraction.
 //

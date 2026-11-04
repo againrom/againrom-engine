@@ -183,7 +183,7 @@ func TestInspectionGatesAndFogDoNotLeakOrChangeInventory(t *testing.T) {
 	}
 }
 
-func TestInspectionUsesDrawDepthAndOpaquePixels(t *testing.T) {
+func TestInspectionUsesRegisteredRectanglesRegardlessOfPixels(t *testing.T) {
 	a, v := inspectionFixture(t, image.Pt(1024, 768))
 	f := structureFrame()
 	for i := range f.Pixels {
@@ -195,11 +195,11 @@ func TestInspectionUsesDrawDepthAndOpaquePixels(t *testing.T) {
 	v.entities[1].Frame = f
 	v.entities[1].Art = &terrain.UnitClass{Width: 32, Height: 32}
 	inspectionHover(t, a, v, InspectionSubject{InspectionUnit, 7})
-	// Transparent unit pixels expose the building, and only the building.
+	// Transparent sprite pixels keep the unit's registered rectangle.
 	for i := range f.Pixels {
 		f.Pixels[i].Opaque = false
 	}
-	inspectionHover(t, a, v, InspectionSubject{InspectionStructure, 7})
+	inspectionHover(t, a, v, InspectionSubject{InspectionUnit, 7})
 	// Hidden units must not occlude visible structure pixels.
 	v.entities[1].Cell = image.Pt(6, 5)
 	v.entities[1].Art.CenterY = -32

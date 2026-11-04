@@ -43,10 +43,10 @@ func TestThePointerIsDrawnExactlyWhileTheModeIsUp(t *testing.T) {
 		if !ok {
 			t.Fatal("no pointer with the mode up")
 		}
-		if got != pic {
-			t.Errorf("the pointer is %v, want the picture that was set", got)
+		if got != nil {
+			t.Error("without a registry the authored mark must stand")
 		}
-		want := image.Pt(x-AttackPointerHotspot.X, y-AttackPointerHotspot.Y)
+		want := image.Pt(x, y)
 		if at != want {
 			t.Errorf("the pointer goes at %v, want the cursor less the hotspot %v", at, want)
 		}

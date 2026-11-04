@@ -127,8 +127,9 @@ func unitSet(src terrain.EntrySource, classes *data.UnitClasses) *terrain.UnitSe
 			Anim:    unitAnim(c.Anim()),
 			// The registry's own TileSize, carried across unconverted: the
 			// scale every effect-mark offset is multiplied by (1002).
-			TileSize:  int(c.TileSize),
-			Selection: image.Rectangle{Min: image.Pt(int(c.SelectionX1), int(c.SelectionY1)), Max: image.Pt(int(c.SelectionX2), int(c.SelectionY2))},
+			TileSize:     int(c.TileSize),
+			Selection:    image.Rectangle{Min: image.Pt(int(c.SelectionX1), int(c.SelectionY1)), Max: image.Pt(int(c.SelectionX2), int(c.SelectionY2))},
+			SelectionSet: true,
 			// The class's own name text, ASSIGNED AND NOT CONVERTED. DescText is the
 			// registry's bytes and this is the one site that could apply an encoding
 			// to them; what makes that wrong rather than merely unnecessary is that

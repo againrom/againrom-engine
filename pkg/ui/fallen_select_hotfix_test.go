@@ -24,7 +24,7 @@ func TestFinishableBodyCanBeClickedSelectedAndOrderedWhileTerminalCorpseCannot(t
 	}
 
 	ground := func(float64, float64) (int, int, bool) { return 6, 6, true }
-	_, _, orders, ok := decide(selection{fallen.ID}, []MapEntity{fallen}, ground, placed, 1,
+	_, _, orders, ok := decideFixture(selection{fallen.ID}, []MapEntity{fallen}, ground, placed, 1,
 		gesture{tap: true, x: 5, y: 5, cursor: "move"})
 	want := []order{{kind: orderKindMove, entity: fallen.ID, x: 6, y: 6}}
 	if !ok || !reflect.DeepEqual(orders, want) {

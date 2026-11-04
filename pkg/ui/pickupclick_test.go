@@ -104,7 +104,7 @@ func TestAClickUnderThePickupCursorPastTheMapExtentOrdersNothing(t *testing.T) {
 	x, y := cellPoint(v, pcSackCol, pcSackRow)
 	g := gesture{tap: true, x: x, y: y, cursor: "pickup"}
 	nowhere := func(px, py float64) (col, row int, inside bool) { return 0, 0, false }
-	_, _, ords, ok := decide(selection{pcHeroID}, pcEntities(), nowhere, v.entityPickRect, 0, g)
+	_, _, ords, ok := decideFixture(selection{pcHeroID}, pcEntities(), nowhere, v.entityPickRect, 0, g)
 	if ok || len(ords) != 0 {
 		t.Fatalf("decide with no resolvable cell = %+v,%v, want no orders, false", ords, ok)
 	}

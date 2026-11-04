@@ -106,7 +106,7 @@ func TestABoxTakesTheUnitWhereItIsDrawn(t *testing.T) {
 	})
 }
 
-func TestATapAndAOnePointBoxAskOneQuestion(t *testing.T) {
+func TestSelectionPointAndMarqueeShareTheFootprint(t *testing.T) {
 	ents := []MapEntity{
 		{ID: 20, Cell: image.Pt(0, 0)},
 		{ID: 6, Cell: image.Pt(0, 1)},
@@ -121,7 +121,9 @@ func TestATapAndAOnePointBoxAskOneQuestion(t *testing.T) {
 	for y := -8; y < cliffCanvasH+8; y += 3 {
 		for x := -8; x < cliffW*32+8; x += 3 {
 			vt := hitViewer(t, ents)
-			hitTapAt(vt, x, y)
+			if id, hit := topAt(vt.entities, vt.entityPickRect, float64(x), float64(y)); hit {
+				vt.sel = selection{id}
+			}
 
 			// THE BOX SIDE IS READ OFF THE HIT TEST AND NOT OFF A RELEASE. A
 			// one-point rectangle covers no AREA, and the decoded rectangle form

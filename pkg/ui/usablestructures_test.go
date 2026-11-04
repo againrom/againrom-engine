@@ -84,7 +84,7 @@ func checkStructureAdmission(t *testing.T, kind uint16) {
 			if err := a.HeadlessPointer("hover", x, y); err != nil {
 				t.Fatal(err)
 			}
-			if _, got := v.inspectionAt(v.cursorX, v.cursorY); got != want {
+			if _, got := v.hoverAt(v.cursorX, v.cursorY); got != want {
 				t.Fatalf("UI hit=%v simulation=%v", got, want)
 			}
 			cursor, ok := v.missionHoverCursor()

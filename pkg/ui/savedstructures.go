@@ -12,6 +12,7 @@ func (v *Viewer) SetStructureRecords(records []terrain.StructureRecord) {
 	if slices.Equal(v.grid.Structures, records) {
 		return
 	}
+	v.hover.valid = false
 	v.grid.Structures = slices.Clone(records)
 	v.structuresFlat, v.structureCounts, v.structureAnimFlat = terrain.StructurePlacements(v.grid, v.structureSet, nil, 0)
 	v.structuresDisplaced, v.structureAnimDisplaced = nil, nil

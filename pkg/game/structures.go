@@ -93,8 +93,9 @@ func LoadStructures(src terrain.EntrySource) (*terrain.StructureSet, error) {
 		}
 		sc := &terrain.StructureClass{
 			ID: c.ID, Name: c.DescText, Picture: c.Picture,
-			Portrait:  portrait,
-			Selection: image.Rectangle{Min: image.Pt(int(c.SelectionX1), int(c.SelectionY1)), Max: image.Pt(int(c.SelectionX2), int(c.SelectionY2))},
+			Portrait:     portrait,
+			Selection:    image.Rectangle{Min: image.Pt(int(c.SelectionX1), int(c.SelectionY1)), Max: image.Pt(int(c.SelectionX2), int(c.SelectionY2))},
+			SelectionSet: true,
 			// The three flags are the registry's own scalars as BOOLEANS: the render
 			// tier never sees the int32 and so cannot come to read one of them as a
 			// count. Each is "non-zero", which is the same answer at the Go zero an

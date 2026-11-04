@@ -18,6 +18,8 @@ import (
 // differently, each a value the one body calls. The last three are handed to
 // the definition table for the placement decoder.
 type gameFiles struct {
+	hover          ui.HoverProfile
+	cursorHotspots [28]image.Point
 	table          databin.Layout
 	openMap        func([]byte) (*alm.Map, error)
 	compileScript  func(*alm.Map, mapload.ScriptRefs) (*sim.Script, mapload.ScriptReport, error)
@@ -182,6 +184,8 @@ func (g *gameFiles) spellcasterValue(value, maxMana int32, spells uint32, person
 const terrainCostsAddress = worldPrefix + "data/map.reg"
 
 var firstGameFiles = gameFiles{
+	hover:             ui.KindRectangleHover,
+	cursorHotspots:    firstCursorHotspots,
 	portraitWindows:   portraitWindowProfile{fallback: ui.AuthoredDialogueLayout().PortraitWindow},
 	missionPackClosed: true,
 	purseMoneyWord:    true,
@@ -229,6 +233,8 @@ var secondGameMenu = ui.GameMenuProfile{Rows: ui.SecondGameMenuRows, TownRootPan
 	NativeMissionWindows: true, MissionBackdrop: color.RGBA{A: 64}, WindowsCloseMenu: true, EndQuestFocus: 1, AbortGameFocus: 2}
 
 var secondGameFiles = gameFiles{
+	hover:          ui.KindRectangleHover,
+	cursorHotspots: secondCursorHotspots,
 	portraitWindows: portraitWindowProfile{
 		fallback: ui.AuthoredDialogueLayout().PortraitWindow,
 		byType: map[int32]image.Point{

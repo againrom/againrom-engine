@@ -29,15 +29,15 @@ func pickRace1115App(t *testing.T) (*App, *int) {
 }
 
 func TestHeadlessSelect1115PrefersInteriorOverMovingOcclusionEdge(t *testing.T) {
-	t.Run("exposed edge becomes lower ID on release", func(t *testing.T) {
+	t.Run("last registration keeps the edge on release", func(t *testing.T) {
 		a, ticks := pickRace1115App(t)
 		v := a.flow.viewer
 		// Unit1 occupies [y288,y320); unit2 occupies [y312,y344).
-		// y320 is the first unique scan row, then unit1 moves down one pixel
-		// on the acting release. A point near unit2's middle remains visible.
+		// The pointer box meets both; the later registration keeps unit2 hit
+		// when unit1 moves down one pixel on the acting release.
 		sx, sy := v.cam.WorldToScreen(320, 320)
-		if got, ok := topAt(v.entities, v.entityPickRect, sx, sy); !ok || got != 2 {
-			t.Fatalf("edge before press=%d,%t", got, ok)
+		if got, ok := v.hoverAt(int(sx), int(sy)); !ok || got != (InspectionSubject{InspectionUnit, 2}) {
+			t.Fatalf("edge before press=%v,%t", got, ok)
 		}
 		wx, wy, err := v.frameToWindow(image.Pt(int(sx), int(sy)), "literal exposed edge")
 		if err != nil {
@@ -46,13 +46,13 @@ func TestHeadlessSelect1115PrefersInteriorOverMovingOcclusionEdge(t *testing.T) 
 		if err := a.HeadlessPointer("press", wx, wy); err != nil {
 			t.Fatal(err)
 		}
-		if got, ok := topAt(v.entities, v.entityPickRect, sx, sy); !ok || got != 2 {
-			t.Fatalf("edge after press=%d,%t", got, ok)
+		if got, ok := v.hoverAt(int(sx), int(sy)); !ok || got != (InspectionSubject{InspectionUnit, 2}) {
+			t.Fatalf("edge after press=%v,%t", got, ok)
 		}
 		if err := a.HeadlessPointer("release", wx, wy); err != nil {
 			t.Fatal(err)
 		}
-		if got, ok := v.SelectedUnit(); !ok || got != 1 || *ticks != 2 {
+		if got, ok := v.SelectedUnit(); !ok || got != 2 || *ticks != 2 {
 			t.Fatalf("production edge selected=%d,%t ticks=%d", got, ok, *ticks)
 		}
 	})

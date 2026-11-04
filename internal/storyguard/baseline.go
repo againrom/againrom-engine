@@ -3249,9 +3249,9 @@ var Committed = Baseline{
 		"rom1address":     0,
 		"funaddr":         0,
 		"expmention":      0,
-		"acclause":        1857,
+		"acclause":        1856,
 		"scclause":        501,
-		"barestorynumber": 1682,
+		"barestorynumber": 1678,
 	},
 	Counts: map[string]int{
 		"dirnames":               0,
@@ -3260,7 +3260,7 @@ var Committed = Baseline{
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
 		"stringliterals.test":    30,
-		"longcommentgroups":      1659,
+		"longcommentgroups":      1651,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
 	// then for the second game's route witness and its two pkg/ui hooks, then
@@ -4087,5 +4087,7 @@ var Committed = Baseline{
 	// Rectangle brush policy and cover docs in pkg/mapedit/rectanglebrush.go.
 
 	// Disjoint rectangle cover and host-resolved structure fences.
-	CommentBytes: 10537925,
+
+	// Shared hover, cursor hotspots, row zero and moving overlap.
+	CommentBytes: 10525232,
 }

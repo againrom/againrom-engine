@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"againrom/internal/synth"
+	"againrom/pkg/base"
 	"againrom/pkg/vfs"
 )
 
@@ -136,6 +137,27 @@ func TestCursorRegistrationsSlotOrderAndArrowTrap(t *testing.T) {
 			t.Errorf("slot %d = %q, want %q", i, cursorRegistrations[i].name, name)
 		}
 	}
+	src := mapSource{}
+	for _, f := range regAllSlotsArchive(t) {
+		src[graphicsPrefix+f.Path] = f.Data
+	}
+	for _, tc := range []struct {
+		game base.Game
+		hot  []image.Point
+	}{
+		{base.ROM1, []image.Point{{5, 5}, {15, 15}, {21, 21}, {3, 3}, {15, 13}, {3, 4}, {8, 25}, {15, 15}, {12, 13}, {15, 5}, {16, 25}, {6, 16}, {25, 15}, {8, 9}, {8, 23}, {22, 8}, {23, 22}, {2, 2}, {}, {}, {}, {}, {}, {38, 36}, {16, 16}, {16, 16}, {16, 16}, {16, 16}}},
+		{base.ROM2, []image.Point{{4, 4}, {2, 3}, {2, 3}, {3, 3}, {16, 16}, {3, 3}, {8, 25}, {16, 16}, {16, 12}, {16, 6}, {16, 28}, {5, 16}, {26, 16}, {8, 9}, {8, 24}, {23, 9}, {23, 24}, {1, 1}, {}, {}, {}, {}, {}, {38, 36}, {16, 16}, {16, 16}, {16, 16}, {16, 16}}},
+	} {
+		registry, err := LoadCursorRegistry(src, tc.game)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, slot := range registry.Slots {
+			if slot.Hotspot != tc.hot[i] {
+				t.Errorf("game=%v slot=%s hotspot=%v want=%v", tc.game, slot.Name, slot.Hotspot, tc.hot[i])
+			}
+		}
+	}
 }
 
 // TestCursorRegistrationsNameOneSheetEach is the half of "every slot has art of
@@ -199,8 +221,8 @@ func TestLoadCursorRegistryPreservesOrderHotspotAndPeriod(t *testing.T) {
 		if got.Name != row.name {
 			t.Errorf("slot %d name = %q, want %q (order not preserved)", i, got.Name, row.name)
 		}
-		if got.Hotspot != image.Pt(row.hotspotX, row.hotspotY) {
-			t.Errorf("slot %d (%s) hotspot = %v, want %v", i, row.name, got.Hotspot, image.Pt(row.hotspotX, row.hotspotY))
+		if got.Hotspot != firstCursorHotspots[i] {
+			t.Errorf("slot %d (%s) hotspot = %v, want %v", i, row.name, got.Hotspot, firstCursorHotspots[i])
 		}
 		if got.PeriodMillis != row.periodMillis {
 			t.Errorf("slot %d (%s) period = %d, want %d", i, row.name, got.PeriodMillis, row.periodMillis)

@@ -1286,7 +1286,7 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 		if e.ID != id {
 			continue
 		}
-		r, ok := v.entityPickRect(e)
+		r, ok := v.hoverEntityRect(e)
 		if !ok {
 			return fmt.Errorf("headless select entity %d: entity is outside the current view", id)
 		}
@@ -1296,9 +1296,7 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 	if chosen == nil {
 		return fmt.Errorf("headless select entity %d: entity is not present", id)
 	}
-	// Search the entity's actual pick rectangle because its centre may be
-	// covered by a lower-id entity.  The same topAt used by the command path is
-	// the oracle; no scenario-only picking rule is introduced.
+	// Search the kind rectangle with the same hover walk as a live map tap.
 	x0, x1 := int(math.Floor(chosen.X)), int(math.Ceil(chosen.X+chosen.W))
 	y0, y1 := int(math.Floor(chosen.Y)), int(math.Ceil(chosen.Y+chosen.H))
 	px, py, found := 0, 0, false
@@ -1308,7 +1306,7 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 	cx, cy := chosen.X+chosen.W/2, chosen.Y+chosen.H/2
 	for y := y0; y <= y1; y++ {
 		for x := x0; x <= x1; x++ {
-			if got, ok := topAt(v.entities, v.entityPickRect, float64(x), float64(y)); ok && got == id {
+			if got, ok := v.hoverAt(x, y); ok && got == (InspectionSubject{InspectionUnit, id}) {
 				// A downscaled window cannot address every frame pixel. Keep
 				// searching inside the same actor for a real pointer location.
 				if _, _, ok := v.place.FrameToWindow(image.Pt(x, y)); !ok {

@@ -47,7 +47,8 @@ type UnitClass struct {
 	// Selection is the class's `units.reg` selection box, SelectionX1..Y2
 	// (REG-UNITS-049), in canvas pixels as the registry holds it. The status
 	// bars of a class wider than one cell span its top edge (DIV-1460).
-	Selection image.Rectangle
+	Selection    image.Rectangle
+	SelectionSet bool
 
 	// Name is this class's own name text, as the registry handed it over —
 	// the loader's bytes, with NO character encoding applied and nothing

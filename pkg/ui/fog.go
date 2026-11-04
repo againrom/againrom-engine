@@ -15,6 +15,7 @@ const (
 // SetFog projects an ordinary fog sample without changing its backing slice.
 // Cheat exploration and transient visibility live only in the client plane.
 func (v *Viewer) SetFog(plane []byte, cols, rows int) {
+	v.hover.valid = false
 	v.cheatFogSource = plane
 	if len(v.cheatExplored) != 0 {
 		plane = append([]byte(nil), plane...)

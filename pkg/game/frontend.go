@@ -708,7 +708,7 @@ func NewModFrontEnd(root string, files mod.FileData) (*FrontEnd, error) {
 	// The attack pointer and the cursor registry, off the same container
 	// filesystem and under the same carried-error rule (docs/1030-cursor-lifecycle
 	// B1). The pointer is frame 0 of the registry's own decoded attack sheet.
-	cursors := loadCursorArt(archives.Containers)
+	cursors := loadCursorArt(archives.Containers, archives.Game())
 	pointer, pointerErr := cursors.pointer, cursors.pointerErr
 	cursorRegistry, cursorRegistryErr := cursors.registry, cursors.registryErr
 

@@ -38,6 +38,7 @@ type StructureClass struct {
 	Name, Picture string
 	Portrait      *image.RGBA
 	Selection     image.Rectangle
+	SelectionSet  bool
 	// PreviewFrame is sheet frame 0 for an unknown variable layout's grid.
 	// Class 37's frame-to-patch mapping is open (structure-art R-1), so its
 	// thumbnail leaves Frames nil and supplies no guessed map layout.

@@ -17,13 +17,13 @@ func (a *App) HeadlessEntityPoint(id uint32) (int, int, error) {
 		if e.ID != id {
 			continue
 		}
-		r, ok := v.entityPickRect(e)
+		r, ok := v.hoverEntityRect(e)
 		if !ok {
 			break
 		}
 		for y := int(math.Floor(r.Y)); y <= int(math.Ceil(r.Y+r.H)); y++ {
 			for x := int(math.Floor(r.X)); x <= int(math.Ceil(r.X+r.W)); x++ {
-				if hit, ok := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); ok && hit == id {
+				if hit, ok := v.hoverAt(x, y); ok && hit == (InspectionSubject{InspectionUnit, id}) {
 					return v.frameToWindow(image.Pt(x, y), "entity point")
 				}
 			}

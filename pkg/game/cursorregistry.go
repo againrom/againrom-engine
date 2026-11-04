@@ -4,28 +4,15 @@ import (
 	"fmt"
 	"image"
 
+	"againrom/pkg/base"
 	"againrom/pkg/formats/spr16"
 	"againrom/pkg/formats/spr256"
 	"againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
 
-// The 28-cursor registry (docs/1030-cursor-lifecycle B1). This is the tier
-// that reaches both the formats and the drawing tiers at once, on
-// AttackCursorPath's own reason above: what crosses out of it is 28 RESOLVED
-// SLOTS, each a name, a set of premultiplied pictures, a hotspot, a frame
-// count and a period — no archive, no container, no per-format knowledge —
-// so pkg/ui gains nothing about .16a or .256 for carrying them.
-//
-// SLOT ORDER, NAMES, ART PATHS, HOTSPOTS AND PERIOD ARGUMENTS are
-// `SPR16A-CURSOR-067` (order and names) and `SPR16A-CURSOR-046` /
-// `SPR256-CURSOR-046` (each registration's own art, hotspot and period),
-// transcribed here as the complete join `cursor-construction.tsv` gives it.
-// The table below is in slot order, which the two claims agree is
-// construction order: slots 9-16, the eight arrow cursors, are NOT in
-// arrow-number order (arrow0, arrow4, arrow6, arrow2, arrow7, arrow5,
-// arrow1, arrow3) — transcribed exactly as decoded rather than sorted,
-// since sorting them would silently rebuild the wrong registry.
+// Cursor art and periods use SPR16A-CURSOR-046 and SPR256-CURSOR-046.
+// AI-771 and R2-ENGINE-852 supply each game's hotspots through gameFiles.
 type cursorFormat int
 
 const (
@@ -33,54 +20,56 @@ const (
 	cursor256
 )
 
-// cursorRegistration is one row of the 28-slot table before its art is
-// resolved: the data G2 names as executable constants (hotspot, period) next
-// to the data it names as file bytes (the path, and the frame count the
-// decoded sheet itself carries).
+// cursorRegistration names one art sheet and animation period.
 type cursorRegistration struct {
 	name         string
 	path         string // relative to graphicsPrefix
 	format       cursorFormat
-	hotspotX     int
-	hotspotY     int
 	periodMillis int64
 }
 
-// cursorRegistrations is the 28 rows, in slot order (SPR16A-CURSOR-067). Period
-// arguments and hotspots are `SPR16A-CURSOR-046`'s and `SPR256-CURSOR-046`'s;
-// frame counts are not listed here because they are a property of the decoded
-// sheet, read at load and not asserted twice (G2: "no byte of any shipped
-// file" changes when this table is edited, which would not be true of a
-// second, independent frame-count literal).
+// cursorRegistrations keeps constructor slot order, including the unsorted arrows.
 var cursorRegistrations = []cursorRegistration{
-	{"default", "cursors/default/sprites.16a", cursor16a, 5, 5, 2000000000},
-	{"move", "cursors/move/sprites.16a", cursor16a, 15, 15, 100},
-	{"swarm", "cursors/swarm/sprites.16a", cursor16a, 21, 21, 100},
-	{"attack", "cursors/attack/sprites.16a", cursor16a, 3, 3, 100},
-	{"defend", "cursors/defend/sprites.16a", cursor16a, 15, 13, 100},
-	{"select", "cursors/select/sprites.16a", cursor16a, 3, 4, 100},
-	{"patrol", "cursors/patrol/sprites.16a", cursor16a, 8, 25, 100},
-	{"cast", "cursors/cast/sprites.16a", cursor16a, 15, 15, 100},
-	{"pickup", "cursors/pickup/sprites.16a", cursor16a, 12, 13, 66},
-	{"arrow0", "cursors/arrow0/sprites.16a", cursor16a, 15, 5, 2000000000},
-	{"arrow4", "cursors/arrow4/sprites.16a", cursor16a, 16, 25, 2000000000},
-	{"arrow6", "cursors/arrow6/sprites.16a", cursor16a, 6, 16, 2000000000},
-	{"arrow2", "cursors/arrow2/sprites.16a", cursor16a, 25, 15, 2000000000},
-	{"arrow7", "cursors/arrow7/sprites.16a", cursor16a, 8, 9, 2000000000},
-	{"arrow5", "cursors/arrow5/sprites.16a", cursor16a, 8, 23, 2000000000},
-	{"arrow1", "cursors/arrow1/sprites.16a", cursor16a, 22, 8, 2000000000},
-	{"arrow3", "cursors/arrow3/sprites.16a", cursor16a, 23, 22, 2000000000},
-	{"sdefault", "cursors/sdefault/sprites.16a", cursor16a, 2, 2, 2000000000},
-	{"smove", "cursors/smove.256", cursor256, 0, 0, 2000000000},
-	{"sattack", "cursors/sattack.256", cursor256, 0, 0, 2000000000},
-	{"sdefend", "cursors/sdefend.256", cursor256, 0, 0, 2000000000},
-	{"spatrol", "cursors/spatrol.256", cursor256, 0, 0, 2000000000},
-	{"scast", "cursors/scast.256", cursor256, 0, 0, 2000000000},
-	{"cantput", "cursors/cantput/sprites.16a", cursor16a, 38, 36, 2000000000},
-	{"town", "cursors/town/sprites.16a", cursor16a, 16, 16, 2000000000},
-	{"dice", "cursors/dice/sprites.16a", cursor16a, 16, 16, 100},
-	{"wait", "cursors/wait/sprites.16a", cursor16a, 16, 16, 100},
-	{"backpack", "cursors/backpack/sprites.16a", cursor16a, 16, 16, 100},
+	{"default", "cursors/default/sprites.16a", cursor16a, 2000000000},
+	{"move", "cursors/move/sprites.16a", cursor16a, 100},
+	{"swarm", "cursors/swarm/sprites.16a", cursor16a, 100},
+	{"attack", "cursors/attack/sprites.16a", cursor16a, 100},
+	{"defend", "cursors/defend/sprites.16a", cursor16a, 100},
+	{"select", "cursors/select/sprites.16a", cursor16a, 100},
+	{"patrol", "cursors/patrol/sprites.16a", cursor16a, 100},
+	{"cast", "cursors/cast/sprites.16a", cursor16a, 100},
+	{"pickup", "cursors/pickup/sprites.16a", cursor16a, 66},
+	{"arrow0", "cursors/arrow0/sprites.16a", cursor16a, 2000000000},
+	{"arrow4", "cursors/arrow4/sprites.16a", cursor16a, 2000000000},
+	{"arrow6", "cursors/arrow6/sprites.16a", cursor16a, 2000000000},
+	{"arrow2", "cursors/arrow2/sprites.16a", cursor16a, 2000000000},
+	{"arrow7", "cursors/arrow7/sprites.16a", cursor16a, 2000000000},
+	{"arrow5", "cursors/arrow5/sprites.16a", cursor16a, 2000000000},
+	{"arrow1", "cursors/arrow1/sprites.16a", cursor16a, 2000000000},
+	{"arrow3", "cursors/arrow3/sprites.16a", cursor16a, 2000000000},
+	{"sdefault", "cursors/sdefault/sprites.16a", cursor16a, 2000000000},
+	{"smove", "cursors/smove.256", cursor256, 2000000000},
+	{"sattack", "cursors/sattack.256", cursor256, 2000000000},
+	{"sdefend", "cursors/sdefend.256", cursor256, 2000000000},
+	{"spatrol", "cursors/spatrol.256", cursor256, 2000000000},
+	{"scast", "cursors/scast.256", cursor256, 2000000000},
+	{"cantput", "cursors/cantput/sprites.16a", cursor16a, 2000000000},
+	{"town", "cursors/town/sprites.16a", cursor16a, 2000000000},
+	{"dice", "cursors/dice/sprites.16a", cursor16a, 100},
+	{"wait", "cursors/wait/sprites.16a", cursor16a, 100},
+	{"backpack", "cursors/backpack/sprites.16a", cursor16a, 100},
+}
+
+// AI-771 and R2-ENGINE-852, in cursor registration order.
+var firstCursorHotspots = [28]image.Point{
+	{5, 5}, {15, 15}, {21, 21}, {3, 3}, {15, 13}, {3, 4}, {8, 25}, {15, 15}, {12, 13},
+	{15, 5}, {16, 25}, {6, 16}, {25, 15}, {8, 9}, {8, 23}, {22, 8}, {23, 22},
+	{2, 2}, {}, {}, {}, {}, {}, {38, 36}, {16, 16}, {16, 16}, {16, 16}, {16, 16},
+}
+var secondCursorHotspots = [28]image.Point{
+	{4, 4}, {2, 3}, {2, 3}, {3, 3}, {16, 16}, {3, 3}, {8, 25}, {16, 16}, {16, 12},
+	{16, 6}, {16, 28}, {5, 16}, {26, 16}, {8, 9}, {8, 24}, {23, 9}, {23, 24},
+	{1, 1}, {}, {}, {}, {}, {}, {38, 36}, {16, 16}, {16, 16}, {16, 16}, {16, 16},
 }
 
 // attackSlot is the registration AttackCursorPath names: the sheet the attack
@@ -97,8 +86,8 @@ var attackRegistration = cursorRegistrations[attackSlot]
 // own rule: every failure is an error and none is a partial picture, named by
 // the slot and the address it failed at, so a caller cannot silently run 27
 // of 28 cursors.
-func LoadCursorRegistry(src terrain.EntrySource) (*ui.CursorRegistry, error) {
-	art := loadCursorArt(src)
+func LoadCursorRegistry(src terrain.EntrySource, games ...base.Game) (*ui.CursorRegistry, error) {
+	art := loadCursorArt(src, games...)
 	return art.registry, art.registryErr
 }
 
@@ -113,7 +102,12 @@ type cursorArt struct {
 
 // loadCursorArt decodes every registration once: the attack pointer is frame 0
 // of the same decoded attack sheet the registry's slot holds.
-func loadCursorArt(src terrain.EntrySource) cursorArt {
+func loadCursorArt(src terrain.EntrySource, games ...base.Game) cursorArt {
+	var g base.Game
+	if len(games) != 0 {
+		g = games[0]
+	}
+	hotspots := filesOf(g).cursorHotspots
 	if src == nil {
 		return cursorArt{
 			pointerErr:  fmt.Errorf("%s: no graphics archive", AttackCursorPath),
@@ -136,7 +130,7 @@ func loadCursorArt(src terrain.EntrySource) cursorArt {
 		slots[i] = ui.CursorSlot{
 			Name:         reg.name,
 			Frames:       frames,
-			Hotspot:      image.Pt(reg.hotspotX, reg.hotspotY),
+			Hotspot:      hotspots[i],
 			FrameCount:   len(frames),
 			PeriodMillis: reg.periodMillis,
 		}

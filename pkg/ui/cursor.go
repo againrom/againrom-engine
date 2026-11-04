@@ -15,45 +15,11 @@ const (
 	AttackAuthoredWidth = 2
 )
 
-// SetAttackPointer adopts the picture drawn at the cursor while the attack
-// mode is up, or nil for none.
-//
-// ONE PICTURE CROSSES AND NOTHING ELSE — no archive, no container, no frame set,
-// no animation. The tier that owns the install resolves the art whole and hands
-// over the result, exactly as it hands over a font, so this package gains no
-// format knowledge and no import for it. It cannot tell where a picture came
-// from, which is what leaves a synthetic one in a test and the game's own art in
-// a mission on one path.
-//
-// NIL IS "NONE SUPPLIED" and is the ordinary state: it is what the standalone
-// developer viewer holds, what a front-end whose install would not yield the art
-// holds, and what every viewer built before this story holds. The authored
-// pointer is what makes that state visible rather than silent.
-//
-// THE UPLOAD IS NOT MARKED HERE any more. It used to set a "fresh" flag that
-// the draw path cleared at the first upload, which was correct while one
-// picture per viewer was all there ever was: the manager then began handing
-// the draw path frames 1..9 of the ten-frame attack sheet and none of them was
-// ever written to the texture. cursorTexture compares the source picture
-// instead, so every frame that reaches the draw path reaches the screen.
+// SetAttackPointer supplies a still picture. A resolved attack slot owns its hotspot;
+// without a slot the pointer uses the authored cross.
 func (v *Viewer) SetAttackPointer(pic *image.RGBA) {
 	v.attackPointer = pic
 }
-
-// AttackPointerHotspot is the pixel of the attack sheet's own frames that names
-// the cursor point: (3,3), the `attack` registration's hotspot argument
-// (SPR16A-CURSOR-046, transcribed in pkg/game/cursorregistry.go).
-//
-// IT IS NOT AUTHORED any more. This build placed the picture's top-left at
-// the cursor point and said so — "that hotspot is OURS: nothing read gives
-// one" — which was true when it was written and stopped being true when
-// the cursor registry was decoded. Where an authored value stands in for a
-// decoded fact and no owner directive drove the difference, the decoded
-// value wins (owner). It is used only for the story-0080 fallback picture,
-// which arrives through SetAttackPointer with no registration behind it; a
-// viewer drawing through the shared manager reads that slot's own hotspot
-// instead.
-var AttackPointerHotspot = image.Pt(3, 3)
 
 func (v *Viewer) SetCursorManager(mgr *CursorManager) { v.cursorMgr = mgr }
 
@@ -81,14 +47,7 @@ func (v *Viewer) SetCursorManager(mgr *CursorManager) { v.cursorMgr = mgr }
 // list, which runs no transition of its own, and the list was then drawn
 // under the animated attack sword.
 //
-// IT IS ONE FRAME BEHIND THE MODE, and that is a property of where it has to
-// stand rather than a choice. Neither edge is visible: on the frame the mode
-// goes up the manager still names whatever mapCursorName last picked, so
-// attackPointerPresent falls back to the static story-0080 picture, which is
-// frame 0 of the same sheet; on the frame it comes down nothing is drawn
-// either way. What matters is that the lowering runs at all under a popup
-// — the mission-end notice is one — so a mission that ends does not
-// carry the sword to the map list.
+// The manager advances after the camera and pointer settle in step.
 func (v *Viewer) advanceCursorManager(now time.Time) {
 	if v.cursorMgr == nil {
 		return
@@ -127,26 +86,8 @@ func (v *Viewer) gameAreaAt(x, y int) bool {
 	return v.mapSurfaceCaptures(x, y) && !v.groundSurfaceCaptures(x, y)
 }
 
-// attackPointerPresent is the picture to draw at the cursor, where it goes,
-// and whether a pointer is drawn at all.
-//
-// THE THREE ANSWERS OF AC-5 ARE THIS FUNCTION'S THREE RETURNS. A false bool is
-// "no pointer, and the system one is visible"; a true bool with a picture is the
-// game's own art; a true bool with NIL is the authored cross. Splitting the last
-// two across a field test inside Draw would put one third of the contract where
-// no test without a window could reach it.
-//
-// The cursor must have been OBSERVED. Without that test a viewer that has never
-// been stepped would draw its pointer at (0, 0) — a real pixel, in the corner,
-// under nobody's hand — which is the readout's own reason for the same test.
-//
-// THE POINT IS WHERE THE THING GOES, and it is not the cursor position. For a
-// picture it is the cursor position less the registration's own hotspot, so
-// that the hotspot pixel — the blade tip, (3,3) — lands on the pixel a press
-// names. For the authored cross, which has no art and no registration, it is
-// the cursor position itself, which is the cross's centre. What a press
-// actually names is the system cursor's position either way; the offset is
-// what makes the drawn pointer agree with it.
+// attackPointerPresent places the animated attack slot or its still picture
+// at the pointer minus the registered hotspot. Without a slot it draws the cross.
 func (v *Viewer) attackPointerPresent() (*image.RGBA, image.Point, bool) {
 	if !v.attackShown() || !v.hasCursor {
 		return nil, image.Point{}, false
@@ -162,10 +103,16 @@ func (v *Viewer) attackPointerPresent() (*image.RGBA, image.Point, bool) {
 			return pic, image.Pt(v.cursorX-hot.X, v.cursorY-hot.Y), true
 		}
 	}
-	if v.attackPointer == nil {
-		return nil, image.Pt(v.cursorX, v.cursorY), true
+	if v.cursorMgr != nil {
+		if slot, ok := v.cursorMgr.registry.Slot("attack"); ok && len(slot.Frames) > 0 {
+			pic := v.attackPointer
+			if pic == nil {
+				pic = slot.Frames[0]
+			}
+			return pic, image.Pt(v.cursorX-slot.Hotspot.X, v.cursorY-slot.Hotspot.Y), true
+		}
 	}
-	return v.attackPointer, image.Pt(v.cursorX-AttackPointerHotspot.X, v.cursorY-AttackPointerHotspot.Y), true
+	return nil, image.Pt(v.cursorX, v.cursorY), true
 }
 
 // pointerModeChange adopts whether the system pointer should be hidden and

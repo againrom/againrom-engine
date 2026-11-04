@@ -87,8 +87,8 @@ func tintPixels(src *image.RGBA, c color.RGBA, focus bool) *image.RGBA {
 
 // tintedPixels is the picture of f the painter draws under tint t: the lit
 // picture, grey when stone, with the colour blended over it.
-func (v *Viewer) tintedPixels(f *terrain.StaticFrame, stone bool, c color.RGBA, focus bool) *image.RGBA {
-	src := v.spritePixels(f)
+func (v *Viewer) tintedPixels(f *terrain.StaticFrame, stone bool, c color.RGBA, focus bool, rows ...int) *image.RGBA {
+	src := v.spritePixels(f, rows...)
 	if stone {
 		src = grayscaleRGBA(src)
 	}
@@ -97,12 +97,12 @@ func (v *Viewer) tintedPixels(f *terrain.StaticFrame, stone bool, c color.RGBA, 
 
 // tintedImage is f's texture under a tint, built on its first draw and cached
 // under the picture and the colour.
-func (v *Viewer) tintedImage(f *terrain.StaticFrame, stone bool, c color.RGBA, focus bool) *ebiten.Image {
-	key := spriteTintKey{sprite: v.spriteKey(f), stone: stone, color: c, focus: focus}
+func (v *Viewer) tintedImage(f *terrain.StaticFrame, stone bool, c color.RGBA, focus bool, rows ...int) *ebiten.Image {
+	key := spriteTintKey{sprite: v.spriteKey(f, rows...), stone: stone, color: c, focus: focus}
 	if img, ok := v.tintedImages[key]; ok {
 		return img
 	}
-	img := ebiten.NewImageFromImage(v.tintedPixels(f, stone, c, focus))
+	img := ebiten.NewImageFromImage(v.tintedPixels(f, stone, c, focus, rows...))
 	if v.tintedImages == nil {
 		v.tintedImages = make(map[spriteTintKey]*ebiten.Image)
 	}

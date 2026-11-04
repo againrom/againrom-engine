@@ -742,6 +742,7 @@ const (
 // There is no show parameter: passing entities is what turns the two entity
 // passes on, passing none is what turns them off.
 func (v *Viewer) SetEntities(entities []MapEntity) {
+	v.hover.valid = false
 	v.entities = entities
 	v.sel = keepOwnedSelection(v.sel, entities, v.localOwner)
 	for _, entity := range entities {

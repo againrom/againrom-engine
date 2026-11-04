@@ -18,6 +18,7 @@ type HeadlessArtDraw struct {
 	Geometry   ebiten.GeoM
 	ColorScale ebiten.ColorScale
 	Filter     ebiten.Filter
+	Shading    int
 }
 
 type headlessArtTarget struct {
@@ -41,11 +42,13 @@ func (r *headlessArtTarget) DrawImage(img *ebiten.Image, op *ebiten.DrawImageOpt
 	for key, tex := range r.v.staticImages {
 		if tex == img {
 			d.Kind, d.Frame, d.Pixels = "sprite", key.frame, headlessSpritePixels(key)
+			d.Shading = key.row
 		}
 	}
 	for key, tex := range r.v.stoneImages {
 		if tex == img {
 			d.Kind, d.Frame, d.Pixels = "stone", key.frame, grayscaleRGBA(headlessSpritePixels(key))
+			d.Shading = key.row
 		}
 	}
 	if d.Pixels == nil {

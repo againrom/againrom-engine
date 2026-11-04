@@ -11,28 +11,23 @@ package ui
 // hover all reach the world through one table rather than through three that
 // agree today.
 
-// The hover mask bits, named as `AI-CURSOR-231` numbers them. Four of the seven
-// are reachable in this build and three are not; the three are named here
-// anyway so that the arms that read them are transcriptions of the decoded
-// cascade rather than a smaller cascade written from what happens to be
-// implementable (`DIV-284`).
-import "slices"
+// AI-CURSOR-231 supplies the capability bits; DIV-284 bounds their admission.
+import (
+	"againrom/pkg/render/terrain"
+	"slices"
+)
 
 const (
 	// hoverMaskUnit is `0x1`, set for a hit whose exact class name is `CUnit`.
-	// Every drawable this build's hover hit test can reach is one.
+	// Air units use their separate capability below.
 	hoverMaskUnit uint32 = 0x1
-	// hoverMaskAirUnit is `0x2`, a hit `CAirUnit`. NEVER SET HERE: this build
-	// draws no separate flying-unit class and `MapEntity` carries no field to
-	// distinguish one (`DIV-284`). Every arm below that reads `0x23` therefore
-	// reduces to `0x1` plus `0x2`'s absence, which is the same set this build
-	// can produce.
+	// hoverMaskAirUnit is the CAirUnit capability.
 	hoverMaskAirUnit uint32 = 0x2
 	// hoverMaskHostile is `0x4`, set for every class the hit test names when
 	// the local participant is hostile to the hit object's owner.
 	hoverMaskHostile uint32 = 0x4
 	// hoverMaskStructure is `0x20`, set for EVERY hit `CStructure`
-	// (`AI-CURSOR-231`). Visible inspection pixels provide a tagged identity.
+	// (`AI-CURSOR-231`). The shared rectangle hit provides its tagged identity.
 	hoverMaskStructure uint32 = 0x20
 	// hoverMaskDrawable is `0x40`: the hovered cell's four corners OR to
 	// `0xc000` and the cell carries a drawable on the `CMapView+0x98` plane.
@@ -171,48 +166,27 @@ func (v *Viewer) selectionSummary() uint32 {
 	return m
 }
 
-// hoverMask is the hover hit test restated over the surfaces this build has:
-// the entity under the pointer, the sack under the pointer's cell, and
-// whether the pointer's cell is under fog.
-//
-// IT ANSWERS FOR THE MAP SURFACE ALONE. A pointer that is not over the drawn
-// map has no cell and hits nothing, which is `hoverMaskFogged` set and nothing
-// else — the same answer a fully fogged cell gives, and the answer that makes
-// every cursor arm below fall to the ground arm rather than to a unit arm.
-//
-// THE ENTITY HIT IS THE ATTACK PRESS'S POPULATION, not the selection hit:
-// targetAt includes a body in the -1 through -9 finishing band and excludes an
-// untargetable -10 corpse. Selection continues to use topAt and cannot select a
-// body. The fog gate is the entity's own: an entity the party cannot see must
-// not change the cursor. The sack's gate is fogGateSack, its own counterpart.
+// hoverMask adds cell capabilities to the stored object hit (AI-CURSOR-231).
 func (v *Viewer) hoverMask(x, y int) (mask uint32, hit uint32, hasHit bool) {
 	col, row, inside := v.groundCellAt(float64(x), float64(y))
-	if !inside {
-		return hoverMaskFogged, 0, false
-	}
-	if !v.fogGateSack(col, row) {
+	if !inside || !v.fogGateSack(col, row) {
 		mask |= hoverMaskFogged
 	} else {
 		mask |= hoverMaskDrawable & sackMaskAt(v, col, row)
 	}
-	if id, ok := targetAt(v.entities, v.entityPickRect, float64(x), float64(y), false); ok {
-		for _, e := range v.entities {
-			if e.ID != id {
-				continue
-			}
-			if !v.fogGateEntity(e.Owner, e.Cell.X, e.Cell.Y) {
-				break
-			}
+	if ref, ok := v.hoverAt(x, y); ok {
+		switch ref.Kind {
+		case InspectionUnit:
+			e := v.hover.hit.entity
 			mask |= hoverMaskUnit
+			if e.DrawCategory == terrain.UnitAir {
+				mask = mask&^hoverMaskUnit | hoverMaskAirUnit
+			}
 			if e.Hostile {
 				mask |= hoverMaskHostile
 			}
-			hit, hasHit = id, true
-			break
-		}
-	}
-	if !hasHit {
-		if ref, ok := v.inspectionAt(x, y); ok && ref.Kind == InspectionStructure && v.structureHoverHit(ref) {
+			hit, hasHit = ref.ID, true
+		case InspectionStructure:
 			mask |= hoverMaskStructure
 			if v.usableStructure(ref) {
 				mask |= hoverMaskStructureCell
@@ -225,6 +199,9 @@ func (v *Viewer) hoverMask(x, y int) (mask uint32, hit uint32, hasHit bool) {
 // structureHoverHit keeps pooled physical hits and admitted uses.
 // AI-CURSOR-231, REG-STR-080.
 func (v *Viewer) structureHoverHit(ref InspectionSubject) bool {
+	if _, ok := v.inspectionPanel(ref); !ok {
+		return false
+	}
 	c := v.structureInfo[ref.ID]
 	if c == nil || v.usableStructure(ref) || !c.Indestructible {
 		return true

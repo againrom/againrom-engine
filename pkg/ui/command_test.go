@@ -164,7 +164,7 @@ func TestATapSelectsAndReplacesAndOnlyTheRightClickClears(t *testing.T) {
 	}
 }
 
-func TestTapHitsTheLowerIdOnASharedCell(t *testing.T) {
+func TestTapHitsTheLastRegisteredOnASharedCell(t *testing.T) {
 	const col, row = 6, 6
 	for _, tc := range []struct {
 		name string
@@ -180,8 +180,8 @@ func TestTapHitsTheLowerIdOnASharedCell(t *testing.T) {
 			x, y := cellPoint(v, col, row)
 			tapAt(v, x, y)
 
-			if want := (selection{7}); !slices.Equal(v.sel, want) {
-				t.Errorf("selection = %+v, want %+v — the LOWER id is hit, in either slice order", v.sel, want)
+			if want := (selection{tc.ents[len(tc.ents)-1].ID}); !slices.Equal(v.sel, want) {
+				t.Errorf("selection = %+v, want %+v — the last registered rectangle wins", v.sel, want)
 			}
 		})
 	}
@@ -817,7 +817,7 @@ func TestATapOverANonIdentityCameraYieldsASetOfOne(t *testing.T) {
 		}
 	})
 
-	t.Run("two units on one cell: the lower id, as a set of one", func(t *testing.T) {
+	t.Run("two units on one cell: the last registered, as a set of one", func(t *testing.T) {
 		for _, tc := range []struct {
 			name string
 			ents []MapEntity
@@ -830,7 +830,7 @@ func TestATapOverANonIdentityCameraYieldsASetOfOne(t *testing.T) {
 				v.SetEntities(tc.ents)
 				x, y := cellPoint(v, 5, 5)
 				tapAt(v, x, y)
-				if want := (selection{7}); !slices.Equal(v.sel, want) {
+				if want := (selection{tc.ents[len(tc.ents)-1].ID}); !slices.Equal(v.sel, want) {
 					t.Errorf("selection = %+v, want %+v", v.sel, want)
 				}
 			})

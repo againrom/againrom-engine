@@ -38,6 +38,8 @@ func TestCellArtCompositionKeepsActorDepthAgainstTreesAndBuildings(t *testing.T)
 					v.showStaticArt = false
 					v.showStructureArt = true
 					class := &terrain.StructureClass{TileWidth: 2, TileHeight: 1, FullHeight: 3}
+					class.Selection = image.Rect(-16, 0, 48, 96)
+					v.grid.Structures = []terrain.StructureRecord{{ID: 7, X: uint32(tc.scenery.X << 8), Y: uint32(tc.scenery.Y << 8)}}
 					v.structuresFlat = []terrain.StructurePlacement{{StructureID: 7, Cell: tc.scenery, TopLeft: p.TopLeft, Frame: p.Frame, Class: class}}
 					v.structureInfo = map[uint32]*terrain.StructureClass{7: class}
 					v.SetStructures([]MapStructure{{ID: 7, Cell: tc.scenery, Health: 10, MaxHealth: 10}})
@@ -70,15 +72,12 @@ func TestCellArtCompositionKeepsActorDepthAgainstTreesAndBuildings(t *testing.T)
 						}
 					}
 				}
-				// Inspection must follow the composed opaque body at this pixel.
-				// A foreground tree has no card and still hides the actor's card.
+				// Registered rectangles have their own phase order, independent of pixels.
 				at := shared.Min.Add(image.Pt(shared.Dx()/2, shared.Dy()/2))
-				got, found := v.inspectionAt(at.X, at.Y)
-				wantSubject, wantFound := InspectionSubject{}, false
-				if tc.frontActor {
-					wantSubject, wantFound = InspectionSubject{Kind: InspectionUnit, ID: 11}, true
-				} else if building {
-					wantSubject, wantFound = InspectionSubject{Kind: InspectionStructure, ID: 7}, true
+				got, found := v.hoverAt(at.X, at.Y)
+				wantSubject, wantFound := InspectionSubject{Kind: InspectionUnit, ID: 11}, true
+				if building && tc.category == terrain.UnitAlternate {
+					wantSubject = InspectionSubject{Kind: InspectionStructure, ID: 7}
 				}
 				if found != wantFound || found && got != wantSubject {
 					t.Fatalf("inspection at composed pixel %v=(%v,%v), want (%v,%v)", at, got, found, wantSubject, wantFound)

@@ -257,6 +257,7 @@ func LoadMapViewerFor(g base.Game, tiles *terrain.Tileset, data []byte, fallback
 	viewer.SetSpellBookShown(!files.missionBookClosed)
 	viewer.SetPackShown(!files.missionPackClosed)
 	viewer.SetMissionScreen(files.missionScreen)
+	viewer.SetHoverProfile(files.hover)
 
 	// Cells are derived once and handed over per overlay. An overlay that was
 	// not asked for is left at its zero state rather than set to "off with

@@ -38,6 +38,7 @@ type staticScreenRect struct {
 	Stone, Translucent bool
 	SackOutline        bool
 	Brightness         float32
+	ShadeZero          bool
 	Inspection         InspectionSubject
 	Tint               spriteTint
 }
@@ -194,6 +195,7 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 		var mirror bool
 		var stone, translucent bool
 		var brightness float32
+		var shadeZero bool
 		var front []staticScreenRect
 		var back []staticScreenRect
 		var order artOrder
@@ -211,16 +213,9 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 					inspection = InspectionSubject{Kind: InspectionUnit, ID: marked[ref.Index].ID}
 				}
 				stone, translucent = marked[ref.Index].Stone, marked[ref.Index].Translucent
-				// Hover (DIV-1349) is composed by MAX with the cell-keyed
-				// spell and stamp light (spellSpriteFactor), the same rule
-				// spellLightingCells already uses
-				// for its own overlapping sources (pkg/game/world.go), so a
-				// hovered unit standing in an already-lit cell is never
-				// DIMMED by taking the hover gain over the higher one it
-				// already had.
 				factor := v.spellSpriteFactor(marked[ref.Index].Cell)
-				if hover, engaged := v.hoverSpriteFactor(marked[ref.Index].ID); engaged && hover > factor {
-					factor = hover
+				if _, shadeZero = v.hoverSpriteFactor(marked[ref.Index].ID); shadeZero {
+					factor = 1
 				}
 				if factor != 1 {
 					brightness = factor
@@ -284,7 +279,7 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 		out = append(out, back...)
 		if r, ok := spriteScreenRect(rect, v.cam); f != nil && ok {
 			out = append(out, staticScreenRect{screenRect: r, Frame: f, Mirror: mirror,
-				Stone: stone, Translucent: translucent, Brightness: brightness, Inspection: inspection,
+				Stone: stone, Translucent: translucent, Brightness: brightness, ShadeZero: shadeZero, Inspection: inspection,
 				Tint: v.tintOf(inspection)})
 		}
 		if ref.Kind == terrain.PlaneSack && v.sackHighlight && f != nil {
@@ -359,22 +354,26 @@ func (v *Viewer) drawPlaneSprite(target imageTarget, s staticScreenRect) {
 	if s.Brightness > 0 && s.Brightness != 1 {
 		op.ColorScale.Scale(s.Brightness, s.Brightness, s.Brightness, 1)
 	}
-	img := v.staticImage(s.Frame)
+	row := v.spriteRow()
+	if s.ShadeZero {
+		row = 0
+	}
+	img := v.staticImage(s.Frame, row)
 	if s.Stone {
-		img = v.stoneImage(s.Frame)
+		img = v.stoneImage(s.Frame, row)
 	}
 	if s.Tint.On {
-		img = v.tintedImage(s.Frame, s.Stone, s.Tint.Color, s.Tint.Focus)
+		img = v.tintedImage(s.Frame, s.Stone, s.Tint.Color, s.Tint.Focus, row)
 	}
 	target.DrawImage(img, &op)
 }
 
-func (v *Viewer) stoneImage(f *terrain.StaticFrame) *ebiten.Image {
-	key := v.spriteKey(f)
+func (v *Viewer) stoneImage(f *terrain.StaticFrame, rows ...int) *ebiten.Image {
+	key := v.spriteKey(f, rows...)
 	if img, ok := v.stoneImages[key]; ok {
 		return img
 	}
-	img := ebiten.NewImageFromImage(grayscaleRGBA(v.spritePixels(f)))
+	img := ebiten.NewImageFromImage(grayscaleRGBA(v.spritePixels(f, rows...)))
 	if v.stoneImages == nil {
 		v.stoneImages = make(map[spriteTextureKey]*ebiten.Image)
 	}
@@ -469,12 +468,12 @@ func (v *Viewer) drawSprite(target imageTarget, f *terrain.StaticFrame, r image.
 // tool's output are one palette walk applied twice and cannot disagree per
 // pixel. Transparent frame pixels arrive as alpha 0 rather than as black at
 // every row, which is what lets a sprite's holes show the terrain beneath.
-func (v *Viewer) staticImage(f *terrain.StaticFrame) *ebiten.Image {
-	key := v.spriteKey(f)
+func (v *Viewer) staticImage(f *terrain.StaticFrame, rows ...int) *ebiten.Image {
+	key := v.spriteKey(f, rows...)
 	if img, ok := v.staticImages[key]; ok {
 		return img
 	}
-	img := ebiten.NewImageFromImage(v.spritePixels(f))
+	img := ebiten.NewImageFromImage(v.spritePixels(f, rows...))
 	if v.staticImages == nil {
 		v.staticImages = make(map[spriteTextureKey]*ebiten.Image)
 	}
@@ -543,31 +542,18 @@ func (v *Viewer) spriteRow() int {
 
 // spriteKey is the cache key one frame takes in the viewer's current state:
 // the frame, the row, and the tint.
-func (v *Viewer) spriteKey(f *terrain.StaticFrame) spriteTextureKey {
-	return spriteTextureKey{frame: f, row: v.spriteRow(), tint: v.lightTint()}
+func (v *Viewer) spriteKey(f *terrain.StaticFrame, rows ...int) spriteTextureKey {
+	row := v.spriteRow()
+	if len(rows) != 0 {
+		row = rows[0]
+	}
+	return spriteTextureKey{frame: f, row: row, tint: v.lightTint()}
 }
 
-// spritePixels is the CPU image a frame's texture is built from right now:
-// the render tier's lit blit onto a transparent canvas, or its unshaded one
-// under the diagnostic.
-//
-// IT UPLOADS NOTHING. Separating it from staticImage is what makes the whole of
-// this story's window half reachable with no graphics context: an *ebiten.Image
-// cannot be read back before the game starts, so with the pixels produced inside
-// the upload a test could assert only that drawing did not panic.
-//
-// Both sprite passes reach it through staticImage and neither learns a row of
-// its own, which is what makes "one rule for every sprite" structural rather
-// than a discipline: the only things this is handed are a frame and the viewer's
-// own state, so there is no place for a class or an owner to be consulted.
-//
-// THE TINT IS lightTint's, and from 0100 on the cache above is keyed by it
-// as well as by frame and row. 0092 DD-3a named the cost this deferred and
-// the story that would have to pay it: every band carried (0,0,0) then, so a
-// constant tint baked into pixels outside the key could not desynchronise
-// from itself. It varies now, so it rides the key.
-func (v *Viewer) spritePixels(f *terrain.StaticFrame) *image.RGBA {
-	row := v.spriteRow()
+// spritePixels resolves a frame at the supplied shading row, or the current
+// scene row when none is supplied. The unshaded diagnostic bypasses the ramp.
+func (v *Viewer) spritePixels(f *terrain.StaticFrame, rows ...int) *image.RGBA {
+	row := v.spriteKey(f, rows...).row
 	if row == spriteUnlit {
 		return f.RGBA()
 	}
