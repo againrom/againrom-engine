@@ -3991,5 +3991,10 @@ var Committed = Baseline{
 	// pkg/game/mapmessagevariants_test.go, and this note. It rose again for
 	// SetMessageParts' and setMessageAttribute's doc comments and the cell
 	// notes in mapmessageparts_release_test.go and dialoguepages_release_test.go.
-	CommentBytes: 10502120,
+
+	// It rose for the second game's session sight and command word:
+	// RevealsOwner in pkg/sim/sight.go, sightBit, Sees, sight and
+	// commandWord in pkg/formats/sav, the fixture roster and the tests
+	// secondsessionsight_test.go and engine_form_test.go, and this note.
+	CommentBytes: 10505398,
 }

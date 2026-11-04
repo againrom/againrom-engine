@@ -59,8 +59,8 @@ func secondGuardGroup(t *testing.T, doc sav.DocumentData) []byte {
 
 // secondMemberPosts is the command posts of each Player's Group members'
 // records, sorted, by the Player's slot, and the knights' by map unit ID.
-// Every command block byte past word +0 is the zero it was before the post
-// had a source.
+// Every command block byte past words +0 and +0x16 is the zero it was
+// before the post had a source.
 func secondMemberPosts(t *testing.T, doc sav.DocumentData) (map[uint32][]uint16, map[uint16]uint16) {
 	t.Helper()
 	bySlot, knights := map[uint32][]uint16{}, map[uint16]uint16{}
@@ -78,9 +78,9 @@ func secondMemberPosts(t *testing.T, doc sav.DocumentData) (map[uint32][]uint16,
 					if len(block) != 184 {
 						t.Fatalf("%s record %d holds a %d-byte command block", a.Class, m, len(block))
 					}
-					for at, b := range block[2:] {
-						if b != 0 {
-							t.Fatalf("%s record %d command block byte %#x is %#x; only word +0 has a source", a.Class, m, at+2, b)
+					for at, b := range block {
+						if at >= 2 && (at < 0x16 || at > 0x17) && b != 0 {
+							t.Fatalf("%s record %d command block byte %#x is %#x; only words +0 and +0x16 have a source", a.Class, m, at, b)
 						}
 					}
 					post := binary.LittleEndian.Uint16(block)
@@ -135,9 +135,9 @@ func secondGuardKnights(t *testing.T, w *sim.World) map[uint16]uint16 {
 // and each member, the party among them, the post the World holds for it
 // (R2-ENGINE-507, R2-ENGINE-824). The engine's LOAD of the file and the
 // LOAD of its records alone, as of the original's file, restore both. Every
-// command block byte past word +0 stays zero and the Group's replaced list
-// pointer stays zero. Fails while the SAVE writes programme byte 1, group
-// post 0 and command post 0 (R2-SESSION-337).
+// command block byte past words +0 and +0x16 stays zero and the Group's
+// replaced list pointer stays zero. Fails while the SAVE writes programme
+// byte 1, group post 0 and command post 0 (R2-SESSION-337).
 func TestSecondMissionGroupWritesItsProgrammeAndPosts(t *testing.T) {
 	c := secondGuardMission()
 	f, app, screen, _ := secondBagFrontOf(t, secondBagSample(), c)

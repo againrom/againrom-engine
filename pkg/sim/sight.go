@@ -436,6 +436,11 @@ func (w *World) Sight(owner uint32) []byte {
 // is known to (DIV-4182).
 func fogRevealed(viewer, owner uint32) bool { return owner == viewer }
 
+// RevealsOwner reports whether the fog stamp of viewer takes the bodies of
+// owner: the stamp's owner gate, which a SAV writer asks for the sight a
+// session matrix stores (R2-ENGINE-826).
+func (w *World) RevealsOwner(viewer, owner uint32) bool { return fogRevealed(viewer, owner) }
+
 // fogStamp ORs one body's fog stamp into stamp, the one walk of both games
 // (R2-ENGINE-643..646; TERR-FOG-266 states the first game's with the same
 // data). It returns unless the owner gate passes, the body is below the third

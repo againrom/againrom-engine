@@ -19,6 +19,7 @@ modder or developer can notice gets no entry.
 
 ### For players
 
+- [ROM2] When the original game loads a mission saved in Againrom, the player now sees around their own units again, and the monsters no longer walk off towards a corner of the map at the start.
 - [ROM2] Trolls, ogres and dragons speaking in the second game now show their whole head in the portrait, as in the original.
 - [ROM2] Saves now keep the character and creature identities the original game needs when loading a mission.
 - [ROM2] A mission save now writes each enemy group's guard order and each unit's post, as the original's own saves hold them; before, they were written empty.

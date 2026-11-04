@@ -112,7 +112,7 @@ func init() {
 	worldMethods = append(worldMethods, "AutoHealing", "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "AutoCast", "AutoCastCasts", "AutoCastLevelOfSpell", "AutoCastStored", "SetAutoCast")
 	worldWriters = append(worldWriters, "SetAutoCast")
-	worldMethods = append(worldMethods, "FrozenGroupAI", "ConstructedGroup")
+	worldMethods = append(worldMethods, "FrozenGroupAI", "ConstructedGroup", "RevealsOwner")
 	worldWriters = append(worldWriters, "ImportAutoHealing", "SetAutoHealing")
 	worldMethods = append(worldMethods, "CurrentWorldEffectOrder", "NativeSpellDeliverySaveStates", "SavedSpellGraph", "ImportSavedSpellGraph")
 	worldWriters = append(worldWriters, "ImportSavedSpellGraph")
@@ -205,6 +205,7 @@ var worldArgReaders = map[string][]reflect.Value{
 	"ScriptTriggerBlocked": {reflect.ValueOf(int32(0))},
 	"Sight":                {reflect.ValueOf(uint32(0))},
 	"SightOf":              {reflect.ValueOf(uint32(0)), reflect.ValueOf([]EntityID(nil))},
+	"RevealsOwner":         {reflect.ValueOf(uint32(1)), reflect.ValueOf(uint32(1))},
 	"Spell":                {reflect.ValueOf(uint32(1))},
 	"RateSpeed":            {reflect.ValueOf(EntityID(7))},
 	"GroupRateTerm":        {reflect.ValueOf(EntityID(7))},

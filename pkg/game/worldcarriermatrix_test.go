@@ -85,15 +85,15 @@ var carrierMatrix = map[string][]string{
 	},
 	"second original mission": {
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
-		"save 0d32b6fb17ad34ef",
+		"save edc1dd2e693679c0",
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
-		"resave 0d32b6fb17ad34ef",
+		"resave edc1dd2e693679c0",
 	},
 	"second town Diary": {
 		"knowledge 378644cc182d8ae5 gold 500",
-		"save 3021d0ed58910ed8",
+		"save 64167438e24952d9",
 		"knowledge 378644cc182d8ae5 gold 500",
-		"resave 3021d0ed58910ed8",
+		"resave 64167438e24952d9",
 	},
 	"first loaded Player name": {
 		"planted 6dcab427302e0a73",
@@ -130,10 +130,10 @@ var carrierMatrix = map[string][]string{
 	// The second game's LOAD of its own SAVE with planted Player names and
 	// tails writes the hero's name and no tail again.
 	"second loaded Player name and unknown spans": {
-		"planted 768ac09a4a1c2875",
+		"planted f16e236d9bce1ba6",
 		"world 30a4c9b222372ade terminal 74234e98afe7498f dead 4f53cda18c2baa0c diaries 4f53cda18c2baa0c application d480409aa297d471",
 		`records Player "Gildarius" ; Human ff00001 U40 0 U5C 0 T0E 0`,
-		"resave 0d32b6fb17ad34ef",
+		"resave edc1dd2e693679c0",
 	},
 }
 

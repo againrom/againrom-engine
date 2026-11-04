@@ -117,8 +117,8 @@ func TestEngineTownDocumentWritesTheSecondGameForm(t *testing.T) {
 	if p := documentRaw(t, player, "PRaw36"); len(p) != 36 || p[0x1f] != 2 || p[0x20] != 0xff {
 		t.Fatalf("Player's preference bytes % x", p)
 	}
-	if u := documentRaw(t, human, "URaw184"); len(u) != 184 || slices.ContainsFunc(u, func(b byte) bool { return b != 0 }) {
-		t.Fatal("Unit's sixth raw block is not 184 zero bytes")
+	if u := documentRaw(t, human, "URaw184"); len(u) != 184 || u16(u, 0x16) != 65500 || slices.ContainsFunc(slices.Concat(u[:0x16], u[0x18:]), func(b byte) bool { return b != 0 }) {
+		t.Fatal("Unit's sixth raw block is not the command word 65500 at +0x16 and zero bytes")
 	}
 	if len(player.Inline) != 0 || slices.ContainsFunc(human.RefSlots, func(v DocumentRefsData) bool { return v.Name == "Diary" }) {
 		t.Fatal("a Diary site survived")
@@ -231,6 +231,68 @@ func TestSecondMissionWorldFollowsTheTerrainAndSessionRules(t *testing.T) {
 	if len(doc.World.Blocks) != 3 || doc.World.Cells[0].Cell != 0x0630 {
 		t.Error("the input document changed")
 	}
+}
+
+// A mission document's session matrix holds bit 0x10 of M[owner][viewer]
+// for each pair of the document's Player slots in which the World's fog
+// lets viewer see by owner's bodies (R2-ENGINE-826); a slot no Player holds
+// and every other bit keep the engine's bytes, and no fog writes no bit.
+func TestSecondMissionSessionHoldsTheWorldsSight(t *testing.T) {
+	sees := func(viewer, owner uint32) bool { return viewer == owner || viewer == 2 && owner == 3 }
+	stances := func(m *[50][50]uint8) {
+		m[2][2], m[3][3], m[3][2], m[2][3], m[5][5] = 2, 2, 1, 2, 2
+	}
+	diff := func(name string, got, want [50][50]uint8) {
+		for a := range got {
+			for b := range got[a] {
+				if got[a][b] != want[a][b] {
+					t.Errorf("%s: M[%d][%d] is %#02x, want %#02x", name, a, b, got[a][b], want[a][b])
+				}
+			}
+		}
+	}
+
+	// The fixture's one Player record, listed twice, at slot 2.
+	doc := documentDataFixture(t)
+	player := slices.IndexFunc(doc.Objects, func(r DocumentRecordData) bool { return r.Class == "Player" })
+	if doc.World == nil || player < 0 {
+		t.Fatal("the fixture has no world half or no Player record")
+	}
+	at := slices.IndexFunc(doc.Objects[player].Values, func(v DocumentValueData) bool { return v.Name == "Slot" })
+	if at < 0 {
+		t.Fatal("the Player record holds no Slot")
+	}
+	doc.Objects[player].Values[at].Value = 2
+	stances(&doc.World.Session.Diplomacy)
+	before := doc.World.Session.Diplomacy
+	out, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{Sees: sees})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := before
+	want[2][2] = 0x12
+	diff("one Player", out.World.Session.Diplomacy, want)
+	if doc.World.Session.Diplomacy != before {
+		t.Error("the input document changed")
+	}
+	blind, _, err := DocumentInProfile(doc, SecondGame, ProfileKeeps{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	diff("no fog", blind.World.Session.Diplomacy, before)
+
+	// Two Players, slots 2 and 3; slot 2 sees by slot 3's bodies.
+	two := DocumentData{World: &DocumentWorldData{}, Players: []uint16{0, 1, 2},
+		Objects: []DocumentRecordData{{Class: "Player", Values: []DocumentValueData{{Name: "Slot", Value: 2}}},
+			{Class: "Player", Values: []DocumentValueData{{Name: "Slot", Value: 3}}}}}
+	stances(&two.World.Session.Diplomacy)
+	want = two.World.Session.Diplomacy
+	want[2][2], want[3][3], want[3][2] = 0x12, 0x12, 0x11
+	secondForm.sight(&two, sees)
+	diff("two Players", two.World.Session.Diplomacy, want)
+	firstGame := two.World.Session.Diplomacy
+	(&documentForm{}).sight(&two, sees)
+	diff("a form with no sight bit", two.World.Session.Diplomacy, firstGame)
 }
 
 // A town file whose engine document leaf is present but does not validate

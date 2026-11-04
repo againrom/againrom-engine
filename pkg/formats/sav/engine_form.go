@@ -28,6 +28,9 @@ type documentForm struct {
 	// diplomacy block's first bytes.
 	results       map[int]int32
 	diplomacyHead []byte
+	// sightBit is the bit of the matrix cell M[owner][viewer] that lets
+	// viewer see by owner's bodies; zero where the profile stores none.
+	sightBit uint8
 }
 
 // terrainForm is how the profile's terrain serializer writes the key list
@@ -50,9 +53,13 @@ type formRetype struct{ from, to, word string }
 
 // ProfileKeeps are values a profile's records hold that the engine's
 // records keep in the World: the +0x6c word of each Building the second
-// game holds as a Pointer, by Token Identity (R2-ENGINE-603).
+// game holds as a Pointer, by Token Identity (R2-ENGINE-603), and the
+// sight its session matrix holds.
 type ProfileKeeps struct {
 	Pointers map[uint32]uint32
+	// Sees answers whether Player slot viewer sees by the bodies of slot
+	// owner, the World's fog; nil sees nothing.
+	Sees func(viewer, owner uint32) bool
 }
 
 // retype writes each record keeps names as the Pointer class with its word.
@@ -115,12 +122,19 @@ func zeroFill(n int) func([]byte) []byte {
 	return func([]byte) []byte { return make([]byte, n) }
 }
 
+// commandWord is word +0x16 of the second game's Unit command, 65500 in
+// every original-made record (R2-SESSION-339). The engine holds no state
+// for it: its meaning and the original's writer are Unknown (DIV-4479).
+const commandWord = 65500
+
 // commandFill is the second game's 184-byte Unit command: word +0, the
 // command post the Group's mode-1 arm moves to (R2-ENGINE-824), is the
-// engine order's post, its word +0; every other byte is zero (DIV-4305).
+// engine order's post, its word +0; word +0x16 is commandWord; every other
+// byte is zero (DIV-4305).
 func commandFill(engine []byte) []byte {
 	out := make([]byte, 184)
 	copy(out[:2], engine)
+	put16(out, 0x16, commandWord)
 	return out
 }
 
@@ -153,6 +167,7 @@ func DocumentInProfile(data DocumentData, p *Profile, keeps ProfileKeeps) (Docum
 	}
 	if out.World != nil {
 		p.worldForm(out.World)
+		p.form.sight(&out, keeps.Sees)
 	}
 	for i := range out.Objects {
 		if _, ok := p.programmes[out.Objects[i].Class]; !ok && !slices.Contains(p.form.dropClasses, out.Objects[i].Class) {
@@ -248,6 +263,34 @@ func (p *Profile) worldForm(w *DocumentWorldData) {
 	copy(w.Session.DiplomacyHeader[:], p.form.diplomacyHead)
 	if t := p.form.terrain; t != nil {
 		t.write(w, p.cellRest())
+	}
+}
+
+// sight ORs the form's sight bit into M[owner][viewer] of the session
+// matrix for each pair of the document's Player slots in which sees lets
+// viewer see by owner's bodies. A slot past the 50x50 the World's relation
+// holds has no cell there.
+func (f *documentForm) sight(data *DocumentData, sees func(viewer, owner uint32) bool) {
+	if f.sightBit == 0 || sees == nil || data.World == nil {
+		return
+	}
+	var slots []uint32
+	for _, p := range data.Players {
+		if p == 0 || int(p) > len(data.Objects) {
+			continue
+		}
+		for _, v := range data.Objects[p-1].Values {
+			if v.Name == "Slot" && v.Value < diplomacySide {
+				slots = append(slots, v.Value)
+			}
+		}
+	}
+	for _, owner := range slots {
+		for _, viewer := range slots {
+			if sees(viewer, owner) {
+				data.World.Session.Diplomacy[owner][viewer] |= f.sightBit
+			}
+		}
 	}
 }
 

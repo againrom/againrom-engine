@@ -93,7 +93,11 @@ func secondMissionMap(w, h int) []byte { return secondMissionMapOf(w, h, secondM
 // the mission's number, 10 when zero, type-6 placements and Humans rows the
 // table holds at the given rows, the rows between them empty. graphics are
 // files of the graphics archive, which is absent when there are none.
+// players is the type-5 roster's record count, one when zero, and stances
+// the relation words its records hold, by record and column.
 type secondMissionContent struct {
+	players  int
+	stances  map[[2]int]uint16
 	objects  []alm.Object
 	actions  []alm.ScriptNode
 	pointers []alm.StructureAction
@@ -113,13 +117,20 @@ func secondMissionMapOf(w, h int, c secondMissionContent) []byte {
 	meta := make([]byte, 660)
 	le.PutUint32(meta[0x00:], uint32(w))
 	le.PutUint32(meta[0x04:], uint32(h))
-	le.PutUint32(meta[0x1c:], 1) // one type-5 group record
+	players := max(c.players, 1)
+	le.PutUint32(meta[0x1c:], uint32(players))
 	le.PutUint32(meta[0x20:], uint32(len(c.objects)))
 	le.PutUint32(meta[0x24:], uint32(len(c.units)))
 	le.PutUint32(meta[0x3c:], uint32(len(c.pointers)))
 	copy(meta[0x44:], "second")
-	group := make([]byte, 76)
+	group := make([]byte, 76*players)
 	copy(group[0x0c:], "Self")
+	for i := 1; i < players; i++ {
+		copy(group[76*i+0x0c:], "Player"+strconv.Itoa(i+1))
+	}
+	for at, w := range c.stances {
+		le.PutUint16(group[76*at[0]+alm.GroupRelations+2*at[1]:], w)
+	}
 	var objects []byte
 	for _, o := range c.objects {
 		rec := make([]byte, 20)
