@@ -43,12 +43,10 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "right", prefix: true, script: true, supply: scriptLinkChoices},
 	{kinds: []ui.RecordKind{ui.KindTrigger}, field: "action", prefix: true, script: true, supply: scriptLinkChoices},
 	{scripted: true, prefix: true, script: true, supply: noChoices},
-	{field: "npc", supply: npcFieldChoices},
 	{kinds: []ui.RecordKind{ui.KindEnchantment}, field: "castkind", supply: castKindChoices},
 	{field: "owner", supply: ownerChoices},
 	{field: "face", supply: faceChoices},
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
-	{field: "tier", supply: tierFieldChoices},
 	{field: "recipeitem", supply: recipeItemChoices},
 	{kinds: []ui.RecordKind{ui.KindSack, ui.KindStock}, field: "recipe", prefix: true, supply: stockRecipeChoices},
 	{field: "recipe", prefix: true, supply: recipeChoices},
@@ -151,24 +149,6 @@ func scriptLinkChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionC
 	return out
 }
 
-func npcFieldChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
-	m, err := s.model.Map()
-	if err != nil || a.index < 0 || a.index >= len(m.AuthoredUnits) {
-		return nil
-	}
-	out := []ui.InspectionChoice{{Value: -1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.npc.none"))}}
-	for _, choice := range s.inspector.npcChoices(math.MaxUint16, false) {
-		u := m.AuthoredUnits[a.index]
-		u.Flags |= 1
-		u.ClassSubID = uint16(choice.Value)
-		r := mapload.Resolve(u, s.inspector.table)
-		if r.Arm == mapload.ArmNPC && r.Found() {
-			out = append(out, choice)
-		}
-	}
-	return out
-}
-
 func castKindChoices(s *mapInspectionEdits, _ fieldChoiceAsk) []ui.InspectionChoice {
 	var out []ui.InspectionChoice
 	for i := 0; i < 4; i++ {
@@ -221,14 +201,6 @@ func faceChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice 
 	}
 	s.inspector.recordPictures[cache] = pictures
 	return append(out, choices...)
-}
-
-func tierFieldChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {
-	m, err := s.model.Map()
-	if err != nil || a.index < 0 || a.index >= len(m.AuthoredUnits) {
-		return nil
-	}
-	return tierChoices(s.inspector.tiersOf(m.AuthoredUnits[a.index]))
 }
 
 func recipeItemChoices(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice {

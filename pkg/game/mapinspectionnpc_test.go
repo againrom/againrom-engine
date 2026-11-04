@@ -35,21 +35,29 @@ func nativeIdentityEditor(t *testing.T) (*FrontEnd, *mapInspectionEdits, []byte)
 	return f, s, raw
 }
 
+// namedIdentity is the identity choice value of npc record npc.
+func namedIdentity(npc int32) int64 {
+	return identityChoiceValue(mapload.Identity{Kind: mapload.UnitNamed, NPC: npc})
+}
+
 func TestEditorNativeNPCIdentityPreviewSaveUndoAndClone(t *testing.T) {
 	_, s, raw := nativeIdentityEditor(t)
 	fields := s.Fields("Unit", 0)
-	f := fields[fieldIndex(t, fields, "npc")]
-	if f.Value != -1 {
+	f := fields[fieldIndex(t, fields, "identity")]
+	if id, ok := s.inspector.identityOf(f.Value); !ok || id.Kind != mapload.UnitPerson {
 		t.Fatal("ordinary face key exposed as NPC identity", f.Value)
 	}
 	seen := map[int64]string{}
 	for _, c := range f.Choices {
-		seen[c.Value] = c.Label
+		if id, ok := s.inspector.identityOf(c.Value); ok && id.Kind == mapload.UnitNamed {
+			seen[c.Value] = c.Label
+		}
 	}
-	if len(seen) != 4 || !strings.Contains(seen[8], "Courier native name") {
+	// Records 0, 7 and 8 reach a Humans row; record 9's server id reaches none.
+	if len(seen) != 3 || !strings.Contains(seen[namedIdentity(8)], "Courier native name") {
 		t.Fatal("wrong native identity catalog", seen)
 	}
-	_, previewFields, pic, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "npc", Value: 8}})
+	_, previewFields, pic, err := s.UnitSettings(0, []ui.InspectionFieldValue{{Key: "identity", Value: namedIdentity(8)}})
 	if err != nil || pic == nil || pic.Doll.RGBAAt(0, 0).R != 140 {
 		t.Fatal("NPC draft preview", err)
 	}
@@ -61,7 +69,7 @@ func TestEditorNativeNPCIdentityPreviewSaveUndoAndClone(t *testing.T) {
 	if !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
 		t.Fatal("NPC draft changed records")
 	}
-	if _, err := s.SetField("Unit", 0, "npc", 8); err != nil {
+	if _, err := s.SetField("Unit", 0, "identity", namedIdentity(8)); err != nil {
 		t.Fatal(err)
 	}
 	after := s.model.Bytes()
@@ -89,7 +97,7 @@ func TestEditorNativeNPCIdentityPreviewSaveUndoAndClone(t *testing.T) {
 		t.Fatal(err)
 	}
 	reopened := doc.Edits.(*mapInspectionEdits)
-	if got := reopened.Fields("Unit", 0)[fieldIndex(t, reopened.Fields("Unit", 0), "npc")].Value; got != 8 {
+	if got := reopened.Fields("Unit", 0)[fieldIndex(t, reopened.Fields("Unit", 0), "identity")].Value; got != namedIdentity(8) {
 		t.Fatal("NPC identity lost on reopen", got)
 	}
 	if _, err := reopened.Clone("Unit", 0, image.Pt(12, 8)); err != nil {
@@ -103,27 +111,34 @@ func TestEditorNativeNPCIdentityPreviewSaveUndoAndClone(t *testing.T) {
 
 func TestEditorNativeNPCIdentityZeroNoneAndBadRecords(t *testing.T) {
 	_, s, raw := nativeIdentityEditor(t)
-	for _, id := range []int64{9, 65536, -2} {
-		if _, err := s.SetField("Unit", 0, "npc", id); err == nil || !bytes.Equal(raw, s.model.Bytes()) {
-			t.Fatal("invalid NPC mutated records", id, err)
+	fields := s.Fields("Unit", 0)
+	person := fields[fieldIndex(t, fields, "identity")].Value
+	for _, id := range []int64{namedIdentity(9), int64(mapload.UnitNamed)<<32 | 65536, identityHeading(mapload.UnitNamed), identityNone} {
+		if _, err := s.SetField("Unit", 0, "identity", id); err == nil || !bytes.Equal(raw, s.model.Bytes()) {
+			t.Fatal("invalid identity mutated records", id, err)
 		}
 	}
-	if _, err := s.SetField("Unit", 0, "npc", -1); err != nil || !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
-		t.Fatal("None changed an ordinary face key", err)
+	for _, key := range []string{"npc", "npcflag", "class", "tier", "definition"} {
+		if _, err := s.SetField("Unit", 0, key, 8); err == nil || !bytes.Equal(raw, s.model.Bytes()) {
+			t.Fatal("a raw map key was written", key, err)
+		}
 	}
-	if _, err := s.SetField("Unit", 0, "npc", 0); err != nil {
+	if _, err := s.SetField("Unit", 0, "identity", person); err != nil || !bytes.Equal(raw, s.model.Bytes()) || s.CanUndo() {
+		t.Fatal("choosing the unit's own identity changed an ordinary face key", err)
+	}
+	if _, err := s.SetField("Unit", 0, "identity", namedIdentity(0)); err != nil {
 		t.Fatal(err)
 	}
 	m, _ := s.model.Map()
 	if m.Units[0].Flags&1 == 0 || m.Units[0].ClassSubID != 0 {
-		t.Fatal("NPC zero confused with None")
+		t.Fatal("NPC zero confused with a person")
 	}
-	if _, err := s.SetField("Unit", 0, "npc", -1); err != nil {
+	if _, err := s.SetField("Unit", 0, "identity", person); err != nil {
 		t.Fatal(err)
 	}
 	m, _ = s.model.Map()
 	if m.Units[0].Flags&1 != 0 || m.Units[0].ClassSubID != 0 || !gearOffered(m.Units[0], s.inspector.table) {
-		t.Fatal("None retained NPC mode")
+		t.Fatal("the person retained NPC mode")
 	}
 	u := alm.Unit{ClassID: 3, Flags: 0x10, ServerID: 1234}
 	table := *s.inspector.table
@@ -135,7 +150,7 @@ func TestEditorNativeNPCIdentityZeroNoneAndBadRecords(t *testing.T) {
 
 func TestEditorNativeNPCIdentitySurvivesMissionSAV(t *testing.T) {
 	f, s, _ := nativeIdentityEditor(t)
-	if _, err := s.SetField("Unit", 0, "npc", 8); err != nil {
+	if _, err := s.SetField("Unit", 0, "identity", namedIdentity(8)); err != nil {
 		t.Fatal(err)
 	}
 	cold := nativeEditorMissionSAV(t, f, s, nativeIdentityEditor)

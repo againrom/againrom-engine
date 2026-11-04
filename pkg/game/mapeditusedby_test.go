@@ -219,7 +219,7 @@ func TestScriptUsedByBackPreservesDraft(t *testing.T) {
 func TestScriptUsedByRebuildAfterApplyUndoRedo(t *testing.T) {
 	e := usedByEditor(t)
 	e.Select(trigRecord(t, e, "Action", 0), false)
-	trigChoose(t, e, 2, "Unit 11:")
+	trigChoose(t, e, 2, "unit 11 at")
 	r, ok := e.PopupButtonRect(0)
 	trigClick(t, e, r, ok, "Apply")
 	check := func(old, next int) {

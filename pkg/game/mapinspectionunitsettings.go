@@ -86,8 +86,8 @@ func (s *mapInspectionEdits) UnitSettings(index int, values []ui.InspectionField
 			r := speakerResolver{src: s.inspector.archives.artSource(), figure: &fig, equipment: mw.equipmentOf(id),
 				npcFaces: speakerFaces(s.inspector.table)}
 			speaker := -1
-			if m.Units[index].Flags&1 != 0 {
-				speaker = int(m.Units[index].ClassSubID)
+			if id, _ := mapload.Identify(m.Units[index], s.inspector.table); id.Kind == mapload.UnitNamed {
+				speaker = int(id.NPC)
 			}
 			pic, window, _ := r.SpeakerFace(speaker)
 			if pic != nil {
@@ -115,10 +115,6 @@ func (u *unitTemplateView) describe(row *ui.InspectionField) {
 		return
 	}
 	x := u.s.inspector
-	if row.Key == "npc" {
-		row.Meaning = x.word("editor.unit.npc.note")
-		return
-	}
 	if row.Key == "face" || row.Key == "sex" {
 		row.Group = x.word("editor.unit.look")
 		row.Meaning = x.word("editor.unit.look.note")

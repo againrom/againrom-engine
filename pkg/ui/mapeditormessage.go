@@ -42,6 +42,7 @@ const (
 	SpeakerNoFit                    // no speaker record's terms fit the person
 	SpeakerNotFirst                 // a record fits, but its first unit is another
 	SpeakerNoPicture                // no speaker record carries the creature's picture
+	SpeakerByHero                   // the start composes the unit from the starting hero
 )
 
 // SpeakerMiss is the answer of UnitSpeaker when no record shows the unit.
@@ -51,6 +52,45 @@ type SpeakerMiss struct {
 	Cause  SpeakerCause
 	Record int64
 	Cell   image.Point
+	// Unit is that unit's name (InspectionRecord.Name); empty names it by
+	// its cell.
+	Unit string
+}
+
+// WordText gives an editor word by its id.
+type WordText func(id string) string
+
+// Text is word id.
+func (w WordText) Text(id string) string { return w(id) }
+
+// SpeakerMissText says in whole sentences why no speaker shows a unit: no
+// unit at all when miss is nil, else the cause. words gives the editor's
+// words in the font's bytes; record names miss's record.
+func SpeakerMissText(words WordText, miss *SpeakerMiss, record string) string {
+	if miss == nil {
+		return words.Text("editor.speaker.why.nounit")
+	}
+	switch miss.Cause {
+	case SpeakerBorder:
+		return words.Text("editor.speaker.why.border")
+	case SpeakerNoPlacement:
+		return words.Text("editor.speaker.why.noplacement")
+	case SpeakerDown:
+		return words.Text("editor.speaker.why.down")
+	case SpeakerNoFit:
+		return words.Text("editor.speaker.why.nofit")
+	case SpeakerNotFirst:
+		unit := miss.Unit
+		if unit == "" {
+			unit = fmt.Sprintf(words.Text("editor.speaker.why.atcell"), miss.Cell.X, miss.Cell.Y)
+		}
+		return fmt.Sprintf(words.Text("editor.speaker.why.notfirst"), record, unit)
+	case SpeakerNoPicture:
+		return words.Text("editor.speaker.why.nopicture")
+	case SpeakerByHero:
+		return words.Text("editor.speaker.why.byhero")
+	}
+	return words.Text("editor.speaker.why.nomission")
 }
 
 // InspectionMessagePart is one cell of a dialogue's part: the tag Source
@@ -139,8 +179,20 @@ var heroWords = []struct {
 	{Heroes: HeroWomanFighter | HeroManFighter, Word: "editor.message.hero.fighter"},
 }
 
-// heroWord is the word that labels a cell of heroes h, empty for none.
-func heroWord(h HeroAudience) string {
+// HeroOf is the one hero of the class and sex given.
+func HeroOf(mage, female bool) HeroAudience {
+	h := HeroWomanMage
+	if !mage {
+		h <<= 1
+	}
+	if !female {
+		h <<= 2
+	}
+	return h
+}
+
+// HeroWord is the word that labels a cell of heroes h, empty for none.
+func HeroWord(h HeroAudience) string {
 	for _, w := range heroWords {
 		if w.Heroes == h {
 			return w.Word
@@ -421,7 +473,7 @@ func (e *MapEditor) messageCard(s *popupSpec, i, end, number, live int) int {
 		speaker := 2*c + 1
 		if branched {
 			o.rowField[len(s.Rows)], o.rowActs[len(s.Rows)] = speaker, []string{actPickParam}
-			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(heroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
+			s.Rows = append(s.Rows, popupRow{Kind: popupChoice, Label: e.word(HeroWord(part.Heroes)), Value: choiceText(o.fields[speaker], o.buf[speaker]), Focus: o.focus == speaker, Buttons: []string{e.actWord(actPickParam)}})
 		}
 		if part.Other != "" {
 			s.Rows = append(s.Rows, popupRow{Kind: popupText, Label: e.word("editor.message.other"), Value: e.editorHostText(part.Other)})

@@ -269,6 +269,9 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		}
 	}
 	template := s.unitTemplate(k, index)
+	if template != nil && s.inspector.table.ClassPlacementFields() {
+		out = append(out, s.identityField(template.m.AuthoredUnits[index]))
+	}
 	for _, f := range fields {
 		if f.Key == "prependitem" || strings.HasPrefix(f.Key, "duplicate") {
 			continue
@@ -276,12 +279,6 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
 			row.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
-		}
-		if f.Check == mapedit.CheckUnitTier {
-			if !s.unitMultiTier(index) {
-				continue
-			}
-			row.Label = s.inspector.word("editor.unit.tier")
 		}
 		if k == mapedit.KindUnit {
 			label, offered := template.label(f)
@@ -312,6 +309,12 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 	}
 	if k == mapedit.KindTrigger {
 		out = append(out, ui.InspectionField{Key: "order", Label: "Trigger order (0 first)", Value: int64(index)})
+	}
+	if template != nil {
+		out = append(out, s.speakerField(index))
+		if keys, ok := s.inspector.keysField(template.m.AuthoredUnits[index]); ok {
+			out = append(out, keys)
+		}
 	}
 	if k == mapedit.KindUnit {
 		out = append(out, s.equipmentFields(template)...)
@@ -479,6 +482,12 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 	if slot, recipe := equipmentField(key); k == mapedit.KindUnit && slot > 0 {
 		return s.setEquipment(m, index, slot, recipe, value)
 	}
+	if k == mapedit.KindUnit && key == "identity" {
+		return s.setIdentity(m, index, value)
+	}
+	if k == mapedit.KindUnit && unitKeyFields[key] {
+		return false, fmt.Errorf("the unit's %s key is read-only: choose who the unit is, and the editor writes its keys", key)
+	}
 	if k == mapedit.KindLoot {
 		if handled, changed, err := s.setStockItem(m, index, key, value); handled {
 			return changed, err
@@ -526,15 +535,6 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 			return false, err
 		}
 	}
-	if f.Check == mapedit.CheckUnitNPC {
-		if key != "npc" {
-			return false, fmt.Errorf("choose an NPC record to change the NPC flag")
-		}
-		value, look, err = s.inspector.npcFields(m, index, value)
-		if err != nil {
-			return false, err
-		}
-	}
 	if old, err := m.FieldValue(k, index, key); err != nil || old == value && len(look) == 0 {
 		return false, err
 	}
@@ -568,10 +568,6 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		}
 	case mapedit.CheckRosterSlot:
 		err = rosterSlotError(view, uint32(value))
-	case mapedit.CheckClassKey, mapedit.CheckDefinitionID:
-		err = checkUnitField(f, view, view.AuthoredUnits[index], s.inspector.table)
-	case mapedit.CheckUnitTier:
-		err = s.inspector.tierError(view.AuthoredUnits[index])
 	case mapedit.CheckUnitGear:
 		err = s.inspector.gearError(view.AuthoredUnits[index])
 	case mapedit.CheckItemRecipe:
@@ -722,34 +718,6 @@ func (x *MapInspector) checkItem(code int64) error {
 	}
 	if _, ok := mapload.ShippedItemName(t, data.ItemCode(code)); !ok {
 		return fmt.Errorf("item code %d names no installed item", code)
-	}
-	return nil
-}
-
-// checkUnitField runs a field's reference check against the edited map and
-// the installed tables (DIV-3117). The tables are the install's; a row a mod
-// adds is not consulted.
-func checkUnitField(f mapedit.UnitField, m *alm.Map, u alm.Unit, t *mapload.Table) error {
-	switch f.Check {
-	case mapedit.CheckRosterSlot:
-		return rosterSlotError(m, u.Owner)
-	case mapedit.CheckClassKey:
-		if t == nil {
-			return fmt.Errorf("no installed tables to check class %d against", u.ClassID)
-		}
-		if mapload.Resolve(alm.Unit{ClassID: u.ClassID, ClassSubID: u.ClassSubID}, t).Index == data.NotFound {
-			return fmt.Errorf("class %d (secondary key %d) names no installed definition", u.ClassID, u.ClassSubID)
-		}
-	case mapedit.CheckDefinitionID:
-		if u.DefID == 0 {
-			return nil
-		}
-		if t == nil {
-			return fmt.Errorf("no installed tables to check definition id %d against", u.DefID)
-		}
-		if mapload.Resolve(alm.Unit{DefID: u.DefID}, t).Index == data.NotFound {
-			return fmt.Errorf("definition id %d names no installed definition", u.DefID)
-		}
 	}
 	return nil
 }

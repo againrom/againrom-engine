@@ -198,7 +198,7 @@ func playerMissionMap(t *testing.T, x *MapInspector, class int16, edited bool) s
 		}
 	}
 	apply(s.SetDropCell(image.Pt(16, 16)))
-	apply(s.AddUnit(image.Pt(19, 16), int64(class)))
+	apply(s.AddUnitIdentity(image.Pt(19, 16), classIdentity(t, x, int64(class))))
 	apply(s.SetField("Player", 0, "relation1", 0))
 	apply(s.SetField("Player", 1, "relation0", 0))
 	if edited {

@@ -206,7 +206,7 @@ func TestMapEditorMCPShortResults(t *testing.T) {
 func plantedError(t *testing.T, e *ui.MapEditor, must func(string, any) editormcp.Result) string {
 	t.Helper()
 	must("new_map", map[string]any{"width": 32, "height": 32, "discard": true})
-	rep := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 10, "y": 10, "values": map[string]any{"class": 40}}))
+	rep := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 10, "y": 10, "values": map[string]any{"identity": 1}}))
 	must("write_trigger", map[string]any{"name": "Chief", "conditions": []any{map[string]any{"item": "c.unitdead", "params": []any{rep["script_id"]}}}, "actions": []any{map[string]any{"item": "a.win"}}})
 	m, err := mapedit.New(e.Document().SourceBytes)
 	if err != nil {

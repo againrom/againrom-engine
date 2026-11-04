@@ -66,7 +66,7 @@ func TestScriptParameterChoicesAndTypedBytes(t *testing.T) {
 		value       int64
 		name        string
 	}{
-		{"unit", 4, 0, 1002, 11, "Unit 11: class 40"},
+		{"unit", 4, 0, 1002, 11, "Nobody (class key 40), unit 11 at 15,14"},
 		{"group", 2, 1, 2, 21, "Group 21 (units: 1)"},
 		{"player", 3, 2, 2, 2, "Player 2: New Player 2"},
 		{"structure", 9, 3, 2, 2, "Structure 2: kind 1"},
@@ -133,7 +133,7 @@ func TestScriptParameterChoicesAndTypedBytes(t *testing.T) {
 func TestScriptParameterSummaryUsesRecordNames(t *testing.T) {
 	e := parameterEditor(t)
 	e.Select(trigRecord(t, e, "Trigger", 0), false)
-	want := "Unit 10 class 40 (12,14), Group 20 (units: 1), Player 1: Self, Structure 1 kind 1 (8,8), Item 11 Tooth"
+	want := "Unit Nobody (class key 40), unit 10 at 12,14, Group 20 (units: 1), Player 1: Self, Structure 1 kind 1 (8,8), Item 11 Tooth"
 	for _, line := range e.PopupLines() {
 		if line == want {
 			return
@@ -297,7 +297,7 @@ func TestScriptParameterUnknownValueAndHeroHaveNoOpen(t *testing.T) {
 func TestScriptParameterPickCancelAndDirtyNavigation(t *testing.T) {
 	e := parameterEditor(t)
 	before := bytes.Clone(e.Document().SourceBytes)
-	trigChoose(t, e, 2, "Unit 11:")
+	trigChoose(t, e, 2, "unit 11 at")
 	for i, line := range e.PopupLines() {
 		if line == "Open Unit" {
 			r, ok := e.PopupRowRect(i)
@@ -314,7 +314,7 @@ func TestScriptParameterPickCancelAndDirtyNavigation(t *testing.T) {
 		t.Fatal("Cancel wrote bytes")
 	}
 	e.Select(trigRecord(t, e, "Action", 0), false)
-	if !strings.Contains(trigLines(e), "Unit 10:") {
+	if !strings.Contains(trigLines(e), "unit 10 at 12,14") {
 		t.Fatal("Cancel retained pick", trigLines(e))
 	}
 }

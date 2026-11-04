@@ -13,15 +13,19 @@ import (
 // palette a structure kind or an object class lists in.
 const paletteTableFile = "pkg/game/mapeditorpalettes.go"
 
-// speakerPickFile is the one place that asks the host which speaker record
-// shows a unit: the map editor's parameter pick.
-const speakerPickFile = "pkg/ui/mapeditorparampick.go"
+// speakerPickFile and speakerLineFile are the places that ask the host which
+// speaker record shows a unit: the map editor's parameter pick and the unit
+// popup's speaker line.
+const (
+	speakerPickFile = "pkg/ui/mapeditorparampick.go"
+	speakerLineFile = "pkg/game/mapinspectionidentity.go"
+)
 
 var paletteNames = map[string]bool{"PaletteStructures": true, "PaletteObjects": true, "PaletteTrees": true}
 
 // checkEditorPalettes reports, in one non-test source file, a palette named
 // outside pkg/ui and the palette table, and a speaker asked for a unit
-// outside the parameter pick.
+// outside the parameter pick and the unit popup's speaker line.
 func checkEditorPalettes(name, src string) []string {
 	f, err := parser.ParseFile(token.NewFileSet(), name, src, parser.SkipObjectResolution)
 	if err != nil {
@@ -35,8 +39,8 @@ func checkEditorPalettes(name, src string) []string {
 				out = append(out, name+": names "+n.Sel.Name+" outside the palette table")
 			}
 		case *ast.CallExpr:
-			if sel, ok := n.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "UnitSpeaker" && name != speakerPickFile {
-				out = append(out, name+": asks UnitSpeaker outside the parameter pick")
+			if sel, ok := n.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "UnitSpeaker" && name != speakerPickFile && name != speakerLineFile {
+				out = append(out, name+": asks UnitSpeaker outside the parameter pick and the unit popup")
 			}
 		}
 		return true
@@ -57,7 +61,7 @@ func TestEditorPalettesAndSpeakerPickHaveOneBuilder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{paletteTableFile, speakerPickFile} {
+	for _, want := range []string{paletteTableFile, speakerPickFile, speakerLineFile} {
 		if _, ok := files[want]; !ok {
 			t.Fatalf("%s is missing: the guard has nothing to hold", want)
 		}
@@ -78,6 +82,7 @@ func TestEditorPaletteGuardSeesASecondBuilder(t *testing.T) {
 		{"pkg/ui/mapeditorplace.go", "package ui\nfunc f() { _ = x.PaletteObjects }", 0},
 		{"pkg/game/mapinspectionbrush.go", "package game\nfunc f() { _ = ui.PaletteTrees }", 1},
 		{speakerPickFile, "package ui\nfunc f() { h.UnitSpeaker(1) }", 0},
+		{speakerLineFile, "package game\nfunc f() { s.UnitSpeaker(1) }", 0},
 		{"pkg/ui/mapeditormessage.go", "package ui\nfunc f() { h.UnitSpeaker(1) }", 1},
 		{"pkg/game/mapinspectionnpc.go", "package game\nfunc (s *edits) UnitSpeaker(int) {}", 0},
 	} {

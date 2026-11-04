@@ -183,11 +183,8 @@ func TestPlayArgs(root, modsDir string, n int, ids ...string) ([]string, error) 
 func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPackageSpec) (mod.Mission, error) {
 	var m mod.Mission
 	if pkg == nil {
-		c, err := LoadCampaign(x.archives.Containers)
-		if err != nil {
-			return mod.Mission{}, err
-		}
-		if m, err = testPlayGuest(c, x.archives.Containers); err != nil {
+		var err error
+		if m, err = x.testPlayGuestMission(); err != nil {
 			return mod.Mission{}, err
 		}
 	}
@@ -212,6 +209,36 @@ func (x *MapInspector) testPlayMission(source string, b []byte, pkg *editorPacka
 		m.Texts = testPlayTexts
 	}
 	return m, nil
+}
+
+// testPlayGuestMission is testPlayGuest of the install's campaign.
+func (x *MapInspector) testPlayGuestMission() (mod.Mission, error) {
+	if x.archives == nil {
+		return mod.Mission{}, errors.New("no install is open")
+	}
+	c, err := LoadCampaign(x.archives.Containers)
+	if err != nil {
+		return mod.Mission{}, err
+	}
+	return testPlayGuest(c, x.archives.Containers)
+}
+
+// testPlayNumber is the mission number test play starts the map of
+// workspace w as: the open package's mission, else the campaign's guest
+// mission; 0, the standalone start, when test play has no mission for it.
+// The guest number is read once.
+func (x *MapInspector) testPlayNumber(w *editorWorkspaceState) int {
+	if w != nil {
+		return w.Package.mission(nil, nil).Number
+	}
+	if x.guestNumber == nil {
+		n := 0
+		if m, err := x.testPlayGuestMission(); err == nil {
+			n = m.Number
+		}
+		x.guestNumber = &n
+	}
+	return *x.guestNumber
 }
 
 // testPlayGuest is the guest declaration the test mod plays its map under:

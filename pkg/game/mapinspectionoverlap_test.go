@@ -118,7 +118,7 @@ func TestMapEditorAddRefusesAnOverlappingStructureOrUnit(t *testing.T) {
 		other     string
 	}{
 		{"Structure", "kind", 5, image.Pt(11, 11), image.Pt(10, 13), "structure 0"},
-		{"Unit", "class", 40, image.Pt(13, 21), image.Pt(16, 20), "unit 0"},
+		{"Unit", "identity", 1, image.Pt(13, 21), image.Pt(16, 20), "unit 0"},
 	} {
 		s := overlapHost(t, raw)
 		add := func(cell image.Point) error {

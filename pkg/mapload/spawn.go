@@ -333,6 +333,8 @@ func (a Arm) String() string {
 type Resolution struct {
 	Arm   Arm
 	Index int
+	// NPC is the npc record the npc arm looked up; 0 on every other arm.
+	NPC int32
 }
 
 // Found reports whether the search reached an entry. The searched collections
@@ -411,6 +413,11 @@ type UnitKeys interface {
 	// clientHero reports whether the client draws a person placement with
 	// the hero class while the server keeps the row's type id.
 	clientHero(u alm.Unit, r Resolution) bool
+	// identities is every identity a placement's keys can name, in the
+	// order of its kinds, in a start of mission; place keys u to id
+	// (identity.go).
+	identities(t *Table, mission int) []Identity
+	place(u alm.Unit, id Identity, t *Table) alm.Unit
 }
 
 func (classKeys) humanPlacement(id int32) alm.Unit { return alm.Unit{DefID: uint32(id)} }
@@ -460,14 +467,15 @@ func (classKeys) resolve(u alm.Unit, t *Table) Resolution {
 		// the byte cast only inside the definition search, which this arm does
 		// not reach. The lookup answers no entry for an absent section, a
 		// section with no definition id, and the composition sentinel alike.
-		if index, ok := t.composedNPCIndex(int32(u.ClassSubID)); ok {
-			return Resolution{Arm: ArmNPC, Index: index}
+		npc := int32(u.ClassSubID)
+		if index, ok := t.composedNPCIndex(npc); ok {
+			return Resolution{Arm: ArmNPC, Index: index, NPC: npc}
 		}
-		sid, ok := t.npc().ServerID(int32(u.ClassSubID))
+		sid, ok := t.npc().ServerID(npc)
 		if !ok {
-			return Resolution{Arm: ArmNPC, Index: data.NotFound}
+			return Resolution{Arm: ArmNPC, Index: data.NotFound, NPC: npc}
 		}
-		return Resolution{Arm: ArmNPC, Index: data.FindHumanByServerID(t.humans(), sid)}
+		return Resolution{Arm: ArmNPC, Index: data.FindHumanByServerID(t.humans(), sid), NPC: npc}
 	}
 	if u.DefID != 0 && u.DefID != defIDUnwritten {
 		// The id is compared as the dword the record stores, which is what

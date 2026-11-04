@@ -73,7 +73,7 @@ func TestReleaseTestPlayOfANewMapStartsAtOnce(t *testing.T) {
 	if !isEdits {
 		t.Fatal("the new map has no inspection edits")
 	}
-	if _, err := s.AddUnitTier(image.Pt(30, 30), int64(in.class), int64(in.tier)); err != nil {
+	if _, err := s.AddUnitIdentity(image.Pt(30, 30), in.identity); err != nil {
 		t.Fatal(err)
 	}
 	check("unit")

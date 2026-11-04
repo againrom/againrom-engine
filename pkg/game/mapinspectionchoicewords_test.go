@@ -27,7 +27,7 @@ func TestEditorNativeChoiceWordsUseFontBytesInBothLanguages(t *testing.T) {
 					t.Fatalf("%s choice %d is not font-encoded: %q != %q", key, choice, f.Choices[choice].Label, want)
 				}
 			}
-			check("npc", 0, "editor.unit.npc.none")
+			check("identity", 0, "editor.unit.identity.persons")
 			check("face", 0, "editor.unit.look.inherit")
 			check("sex", 0, "editor.unit.look.male")
 			check("sex", 1, "editor.unit.look.female")
@@ -41,7 +41,7 @@ func TestEditorNativeChoiceWordsUseFontBytesInBothLanguages(t *testing.T) {
 			check("carry1", 0, "editor.inventory.remove")
 			check("carry1", 1, "editor.inventory.duplicate")
 			check("carryrecipe1", 0, "editor.equipment.newrecipe")
-			if _, err := s.SetField("Unit", 0, "npc", 8); err != nil {
+			if _, err := s.SetField("Unit", 0, "identity", namedIdentity(8)); err != nil {
 				t.Fatal(err)
 			}
 			check("wear1", 1, "editor.equipment.npcempty")

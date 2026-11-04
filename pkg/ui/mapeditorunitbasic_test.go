@@ -32,7 +32,7 @@ func (h *cardHost) UnitSettings(index int, values []InspectionFieldValue) (MapEn
 		return fallback
 	}
 	band := CharacterBandCreature
-	if value("class", 0) == 300 {
+	if value("identity", 0) == 300 {
 		band = CharacterBandPerson
 	}
 	entity.Name = map[CharacterBand]string{CharacterBandPerson: "Guard", CharacterBandCreature: "Wolf"}[band]
@@ -59,7 +59,7 @@ func cardEditor(t *testing.T, lang string, class int64, panel bool) (*MapEditor,
 	if panel {
 		width = 520
 	}
-	e := wideEditor(t, lang, width, "plain", map[string]int64{"Unit/class": class})
+	e := wideEditor(t, lang, width, "plain", map[string]int64{"Unit/identity": class})
 	h := &cardHost{wideHost: e.doc.Edits.(*wideHost)}
 	e.open = func(string) (*InspectionDocument, error) {
 		d := wideDocument(h.wideHost)
@@ -115,7 +115,7 @@ func drawnCells(e *MapEditor, s popupSpec) []drawnCell {
 }
 
 // A unit's basic view is its card drawn twice its size under the name,
-// the player, the group, the kind, the tier and the NPC record: each stat
+// the player, the group, who the unit is and its dialogue line: each stat
 // the card draws is the field's input at the place the card draws it, and
 // each other value the card draws a line whose tip says the map does not
 // store it. Equipment, the bag, the look and the map file fields are not
@@ -143,6 +143,7 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 				}
 				var main []string
 				keys := map[string]bool{}
+				speaker := false
 				for _, rr := range l.Rows {
 					row := s.Rows[rr.Index]
 					if i, ok := e.obj.rowField[rr.Index]; ok {
@@ -155,12 +156,16 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 						if i, ok := e.obj.rowField[rr.Index]; ok {
 							main = append(main, e.obj.fields[i].Key)
 						}
+						speaker = speaker || strings.HasPrefix(row.Label, "A mission-start dialogue")
 					}
 				}
-				if want := []string{"owner", "group", "class", "tier", "npc"}; !slices.Equal(main, want) {
+				if want := []string{"owner", "group", "identity"}; !slices.Equal(main, want) {
 					t.Errorf("%s: rows above the card edit %q, want %q", name, main, want)
 				}
-				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "definition", "npcflag"} {
+				if !speaker {
+					t.Errorf("%s: no line above the card says whether a dialogue shows the unit", name)
+				}
+				for _, key := range []string{"face", "sex", "gear", "wear1", "carry1", "keys"} {
 					if keys[key] {
 						t.Errorf("%s: the basic view shows %s", name, key)
 					}

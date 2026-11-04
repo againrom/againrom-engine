@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"image"
-	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -29,7 +28,7 @@ func referenceFieldChoices(s *mapInspectionEdits, kind string, index int, key st
 }
 
 var addDialogAsks = [][2]string{{"Enchantment", "castkind"}, {"Enchantment", "range"}, {"Enchantment", "spell"},
-	{"Unit", "class"}, {"Structure", "kind"}, {"Sack", "item"}, {"Unit", "owner"}, {"Structure", "owner"}}
+	{"Structure", "kind"}, {"Sack", "item"}, {"Unit", "owner"}, {"Structure", "owner"}}
 
 func checkFieldChoices(t *testing.T, name string, s *mapInspectionEdits, d *ui.InspectionDocument, faceRecords int) (asked int) {
 	t.Helper()
@@ -51,6 +50,10 @@ func checkFieldChoices(t *testing.T, name string, s *mapInspectionEdits, d *ui.I
 			}
 		}
 		for _, f := range fields {
+			if k == mapedit.KindUnit && unitKeyFields[f.Key] {
+				// The identity field writes the unit's map keys; no list asks for them.
+				continue
+			}
 			if f.Key == "face" {
 				if faces >= faceRecords {
 					continue
@@ -137,23 +140,6 @@ func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key s
 			return rows
 		}
 	}
-	if key == "npc" {
-		m, err := s.model.Map()
-		if err != nil || index < 0 || index >= len(m.AuthoredUnits) {
-			return nil
-		}
-		out := []ui.InspectionChoice{{Value: -1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.npc.none"))}}
-		for _, choice := range s.inspector.npcChoices(math.MaxUint16, false) {
-			u := m.AuthoredUnits[index]
-			u.Flags |= 1
-			u.ClassSubID = uint16(choice.Value)
-			r := mapload.Resolve(u, s.inspector.table)
-			if r.Arm == mapload.ArmNPC && r.Found() {
-				out = append(out, choice)
-			}
-		}
-		return out
-	}
 	if kind == "Enchantment" && key == "castkind" {
 		var out []ui.InspectionChoice
 		for i := 0; i < 4; i++ {
@@ -207,13 +193,6 @@ func referenceRecordChoices(s *mapInspectionEdits, kind string, index int, key s
 	}
 	if key == "sex" {
 		return []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.male"))}, {Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.unit.look.female"))}}
-	}
-	if key == "tier" {
-		m, err := s.model.Map()
-		if err != nil || index < 0 || index >= len(m.AuthoredUnits) {
-			return nil
-		}
-		return tierChoices(s.inspector.tiersOf(m.AuthoredUnits[index]))
 	}
 	if key == "recipeitem" {
 		m, err := s.model.Map()

@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 
-	"againrom/pkg/formats/alm"
 	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/render/terrain"
@@ -52,9 +51,9 @@ var newRecordKinds = map[ui.RecordKind]newRecordKind{
 			}
 			return s.batch.AddSpellFrom(int(v), uint32(r.Cell.X), uint32(r.Cell.Y), uint32(link))
 		}},
-	ui.KindUnit: {edit: ui.KindUnit, required: []string{"class"}, optional: []string{"tier"}, spatial: true,
+	ui.KindUnit: {edit: ui.KindUnit, required: []string{"identity"}, spatial: true,
 		add: func(s *mapInspectionEdits, r ui.InspectionNewRecord) (int, error) {
-			_, err := s.AddUnitTier(r.Cell, recordValue(r, "class"), recordValue(r, "tier"))
+			_, err := s.AddUnitIdentity(r.Cell, recordValue(r, "identity"))
 			return s.newIndex(s.batch, ui.KindUnit), err
 		}},
 	ui.KindStructure: {edit: ui.KindStructure, required: []string{"kind"}, spatial: true,
@@ -256,22 +255,9 @@ func (s *mapInspectionEdits) checkNewValue(r ui.InspectionNewRecord, key string)
 	}
 	for _, v := range recordValues(r, key) {
 		switch key {
-		case "class":
-			if v < math.MinInt16 || v > math.MaxInt16 {
-				return fmt.Errorf("class key %d is outside %d..%d", v, math.MinInt16, math.MaxInt16)
-			}
-			if _, err := s.inspector.secondaryKey(int16(v)); err != nil {
-				return err
-			}
-		case "tier":
-			class := recordValue(r, "class")
-			if v < 0 || v > math.MaxUint16 || class < math.MinInt16 || class > math.MaxInt16 {
-				return fmt.Errorf("tier %d is outside 0..%d", v, math.MaxUint16)
-			}
-			if v != 0 {
-				if err := s.inspector.tierError(alm.Unit{ClassID: int16(class), ClassSubID: uint16(v)}); err != nil {
-					return err
-				}
+		case "identity":
+			if _, ok := s.identityOf(v); r.Kind == ui.KindUnit && !ok {
+				return fmt.Errorf("choose who the new unit is: a creature, a person or a named character")
 			}
 		case "owner":
 			if v < 1 || v > math.MaxUint32 {
@@ -347,11 +333,14 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		}
 		out.Value, out.Text = s.newFieldDefault(r, key)
 		out.Choices = s.RecordChoices(ui.KindEnchantment, -1, key)
-	case "class":
-		out.Choices = s.RecordChoices(ui.KindUnit, -1, "class")
-		first()
-	case "tier":
-		out.Choices, out.Value = s.UnitTiers(recordValue(r, "class"))
+	case "identity":
+		out.Choices, out.Shut = s.inspector.identityChoices(s.mission())
+		for _, c := range out.Choices {
+			if !slices.Contains(out.Shut, c.Value) {
+				out.Value = c.Value
+				break
+			}
+		}
 	case "kind":
 		out.Choices = s.RecordChoices(ui.KindStructure, -1, "kind")
 		out.Palettes, _ = structurePalettes(s.inspector.structures, s.inspector.table)
@@ -429,7 +418,7 @@ func (s *mapInspectionEdits) newFieldDefault(r ui.InspectionNewRecord, key strin
 }
 
 // newUnitGroup is the group the Add window's group step starts a new unit
-// in, given the values the record holds before the step (class, tier and
+// in, given the values the record holds before the step (identity and
 // owner): the lowest group no unit of the map carries, so that a new unit
 // is a script group of its own until it is given another.
 func (s *mapInspectionEdits) newUnitGroup(r ui.InspectionNewRecord) int64 {
@@ -466,6 +455,8 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 			return nil
 		}
 		return s.BrushObjectIcon(int(value))
+	case "identity":
+		return s.identityPicture(value)
 	case "class":
 		if x.units == nil || value < math.MinInt16 || value > math.MaxInt16 {
 			return nil

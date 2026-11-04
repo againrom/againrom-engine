@@ -9,16 +9,16 @@ import (
 )
 
 // A unit added by Enter, by add_record and by a click on the same cell is
-// one record. Class 1 leaves the optional tier step out; class 2 asks it,
-// and every other step is left at the window's default. The click comes at
-// the class step and at the step after it.
+// one record. Each identity is tried, every other step is left at the
+// window's default, and the click comes at the identity step and at the
+// step after it.
 func TestEditorAddPlacementBuildsTheRecordEnterAndAddRecordBuild(t *testing.T) {
 	cell := image.Pt(25, 20)
 	for _, c := range []struct {
 		class  int
 		before int
 	}{{1, 0}, {1, 1}, {2, 0}, {2, 1}} {
-		name := "class " + strconv.Itoa(c.class) + " click after " + strconv.Itoa(c.before) + " steps"
+		name := "identity " + strconv.Itoa(c.class) + " click after " + strconv.Itoa(c.before) + " steps"
 		start := func() (*MapEditor, *walkHost) {
 			e, host := newWalkEditor(t)
 			e.openAdd("Unit")
@@ -56,7 +56,7 @@ func TestEditorAddPlacementBuildsTheRecordEnterAndAddRecordBuild(t *testing.T) {
 		class, _ := json.Marshal(c.class)
 		command, err := func() (InspectionNewRecord, error) {
 			e, _ := newWalkEditor(t)
-			return e.newRecordOf("Unit", x, y, map[string]json.RawMessage{"class": class}, nil)
+			return e.newRecordOf("Unit", x, y, map[string]json.RawMessage{"identity": class}, nil)
 		}()
 		if err != nil {
 			t.Fatalf("%s: add_record refused: %v", name, err)
@@ -78,10 +78,5 @@ func TestEditorAddPlacementPreviewIsTheClickedRecord(t *testing.T) {
 	modesClick(e, e.CellPoint(cell))
 	if len(host.added) != 1 || !reflect.DeepEqual(host.added[0], want) {
 		t.Fatalf("the click added %v, the preview held %+v", host.added, want)
-	}
-	for _, v := range want.Values {
-		if v.Key == "tier" {
-			t.Fatalf("the preview holds the tier of a skipped step: %+v", want)
-		}
 	}
 }

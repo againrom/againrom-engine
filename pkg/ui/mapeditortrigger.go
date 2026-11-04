@@ -174,6 +174,11 @@ func (e *MapEditor) targetText(t, v uint32) string {
 				return fmt.Sprintf("%d (%s)", v, fmt.Sprintf(e.word("editor.param.members"), target.Members))
 			case scriptPlayer:
 				return target.Name
+			case scriptUnit:
+				// A placed unit's one name holds its number and cell.
+				if r := target.Record; r >= 0 && r < len(e.doc.Records) && e.doc.Records[r].Name != "" {
+					return e.doc.Records[r].Name
+				}
 			}
 			s := strconv.FormatUint(uint64(v), 10)
 			if target.Name != "" {

@@ -449,7 +449,7 @@ func TestMapEditorPaletteGridsNameTheirCells(t *testing.T) {
 	e, _ := newModesEditor(t, "full")
 	e.showRecords(1)
 	g, _, _ := e.placeGridSpec()
-	for i, c := range e.placeChoices("Unit", "class") {
+	for i, c := range e.placeChoices("Unit", "identity") {
 		if g.Cells[i].Tip != c.Label {
 			t.Errorf("unit cell %d names %q, want %q", i, g.Cells[i].Tip, c.Label)
 		}

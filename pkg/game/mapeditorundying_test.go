@@ -87,7 +87,7 @@ func TestEditorAuthorsTheUndyingNodesAndMarksTheMap(t *testing.T) {
 	re.Select(trigRecord(t, re, "Trigger", 0), true)
 	trigDetails(t, re)
 	lines := trigLines(re)
-	for _, want := range []string{"Health below (Againrom)", "Set undying (Againrom)", "Unit 10", "-25"} {
+	for _, want := range []string{"Health below (Againrom)", "Set undying (Againrom)", "unit 10 at 12,14", "-25"} {
 		if !strings.Contains(lines, want) {
 			t.Fatalf("the reopened trigger lacks %q:\n%s", want, lines)
 		}

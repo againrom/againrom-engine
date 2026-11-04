@@ -222,11 +222,8 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 		miss.why = e.speakerWhy(nil)
 	}
 	refused := false
-	for _, id := range e.hitsAt(p) {
+	for _, id := range e.recordHitsAt(p, record) {
 		r := e.doc.Records[id]
-		if r.Kind != record {
-			continue
-		}
 		if target == targetSpeaker {
 			if host, ok := e.doc.Edits.(InspectionMessages); ok {
 				n, why := host.UnitSpeaker(r.Index)
@@ -254,32 +251,41 @@ func (e *MapEditor) unitValueAt(p image.Point, target paramTarget) (pickedValue,
 	return miss, false
 }
 
+// recordHitsAt are the records of kind under p that a pick names: those
+// standing on the cell under p when any does, else those whose footprint
+// covers it. A unit inside a larger unit's outline is the one picked on its
+// own cell.
+func (e *MapEditor) recordHitsAt(p image.Point, kind RecordKind) []int {
+	var on, over []int
+	cx, cy, _ := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
+	for _, id := range e.hitsAt(p) {
+		r := e.doc.Records[id]
+		if r.Kind != kind {
+			continue
+		}
+		if r.Cell == image.Pt(cx, cy) {
+			on = append(on, id)
+		}
+		over = append(over, id)
+	}
+	if len(on) > 0 {
+		return on
+	}
+	return over
+}
+
 // speakerWhy says in whole sentences why the speaker pick found no speaker:
 // no unit under the pointer when miss is nil, else the host's cause for the
 // unit.
 func (e *MapEditor) speakerWhy(miss *SpeakerMiss) string {
-	if miss == nil {
-		return e.word("editor.speaker.why.nounit")
-	}
-	switch miss.Cause {
-	case SpeakerBorder:
-		return e.word("editor.speaker.why.border")
-	case SpeakerNoPlacement:
-		return e.word("editor.speaker.why.noplacement")
-	case SpeakerDown:
-		return e.word("editor.speaker.why.down")
-	case SpeakerNoFit:
-		return e.word("editor.speaker.why.nofit")
-	case SpeakerNotFirst:
-		record := strconv.FormatInt(miss.Record, 10)
+	record := ""
+	if miss != nil {
+		record = strconv.FormatInt(miss.Record, 10)
 		if o := &e.obj; o.pickField >= 0 && o.pickField < len(o.fields) {
 			record = choiceText(o.fields[o.pickField], record)
 		}
-		return fmt.Sprintf(e.word("editor.speaker.why.notfirst"), record, miss.Cell.X, miss.Cell.Y)
-	case SpeakerNoPicture:
-		return e.word("editor.speaker.why.nopicture")
 	}
-	return e.word("editor.speaker.why.nomission")
+	return SpeakerMissText(e.word, miss, record)
 }
 
 // areaValueAt is the trigger area under p that the field of target can

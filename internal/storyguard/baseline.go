@@ -3996,5 +3996,27 @@ var Committed = Baseline{
 	// RevealsOwner in pkg/sim/sight.go, sightBit, Sees, sight and
 	// commandWord in pkg/formats/sav, the fixture roster and the tests
 	// secondsessionsight_test.go and engine_form_test.go, and this note.
-	CommentBytes: 10505398,
+
+	// It rose for who a placed unit is: Identity, Identify, Identities and
+	// Place in pkg/mapload/identity.go with notes in spawn.go and
+	// pkg/data/defsearch.go; the identity choice, keys line and unitLabel in
+	// pkg/game/mapinspectionidentity.go with notes in mapinspection.go,
+	// mapinspectionoverrides.go and mapinspectiontiers.go; WordText and the
+	// speaker line in pkg/ui/mapeditormessage.go, the on-cell pick in
+	// mapeditorparampick.go, mapeditor.go and mapeditorplain.go; the tests
+	// pkg/game/mapinspectionunitidentity_test.go, the pick test and the
+	// release-test helpers in pkg/game/mapeditunittiers_release_test.go and
+	// mapeditauthoring_release_test.go, the E prompt test in
+	// mapinspectionunits_test.go; and this note.
+
+	// It rose again, net of the comments of the deleted AddUnit, AddUnitTier
+	// and unit key checks, for the companion composed from the starting hero:
+	// HeroRow, IdentifyAt and tableForHero in pkg/mapload, testPlayNumber in
+	// pkg/game/mapedittestplay.go, HeroOf and SpeakerByHero in
+	// pkg/ui/mapeditormessage.go; the tests mapinspectioncomposed_test.go,
+	// mapinspectionaddidentity_test.go and mapeditorcommandname_test.go; the
+	// Add unit list gesture in mapeditormodes_test.go; the unit popup's
+	// speaker line as an asker in internal/archtest/editorpalettes_test.go;
+	// and this note.
+	CommentBytes: 10517853,
 }

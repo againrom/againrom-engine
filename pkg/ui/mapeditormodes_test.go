@@ -355,7 +355,16 @@ func modesAct(e *MapEditor, name string) string {
 	case "ui:click-cell":
 		modesClick(e, cell(25, 20))
 	case "ui:click-unit":
-		modesClick(e, cell(10, 10))
+		// Over the Add unit window the click aims at its list's second entry
+		// when cell 10,10 misses the list, so the gesture still changes the
+		// unit choice whatever the window's height.
+		p := cell(10, 10)
+		if r, ok := e.PromptRect(); ok && p.In(r) && modesTitle(e) == "Add unit" && !modesOnListRow(e, p) {
+			if row, ok := e.PromptListRowRect(1); ok {
+				p = center(row)
+			}
+		}
+		modesClick(e, p)
 	case "ui:text-7":
 		e.TextInput("7")
 	case "ui:text-bad":
@@ -722,6 +731,20 @@ func modesTitle(e *MapEditor) string {
 		return ""
 	}
 	return editorClip(e.font, e.promptTitle(), 300)
+}
+
+func modesOnListRow(e *MapEditor, p image.Point) bool {
+	s, ok := e.promptSpec()
+	if !ok || s.List == nil {
+		return false
+	}
+	top, count := s.List.Visible()
+	for n := top; n < top+count; n++ {
+		if r, ok := e.PromptListRowRect(n); ok && p.In(r) {
+			return true
+		}
+	}
+	return false
 }
 
 func modesPathSteps(name string) []string {

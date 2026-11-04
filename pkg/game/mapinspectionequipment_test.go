@@ -37,7 +37,7 @@ func TestEditorWornRowsPreviewDisplacementAndNPCEmpty(t *testing.T) {
 	if err != nil || !strings.Contains(fields[fieldIndex(t, fields, "wear1")].Meaning, "Sword") || !bytes.Equal(raw, s.model.Bytes()) {
 		t.Fatal("draft did not disclose displacement without writes", err)
 	}
-	if _, err := s.SetField("Unit", 0, "npc", 8); err != nil {
+	if _, err := s.SetField("Unit", 0, "identity", namedIdentity(8)); err != nil {
 		t.Fatal(err)
 	}
 	named := s.model.Bytes()
@@ -62,7 +62,7 @@ func TestEditorWornEquipmentSurvivesMissionSAV(t *testing.T) {
 	for _, npc := range []bool{false, true} {
 		f, s, _ := nativeEquipmentEditor(t)
 		if npc {
-			if _, err := s.SetField("Unit", 0, "npc", 8); err != nil {
+			if _, err := s.SetField("Unit", 0, "identity", namedIdentity(8)); err != nil {
 				t.Fatal(err)
 			}
 		} else if _, err := s.SetField("Unit", 0, "wear7", 0); err != nil {

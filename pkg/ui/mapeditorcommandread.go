@@ -140,6 +140,7 @@ func (e *MapEditor) readUnitSettings(raw json.RawMessage) (any, error) {
 func (e *MapEditor) plainRecord(r InspectionRecord) InspectionRecord {
 	r.Preview = nil
 	r.Label = e.mcpDisplay(r.Label)
+	r.Name = e.mcpDisplay(r.Name)
 	r.Hover = e.mcpDisplay(r.Hover)
 	r.Definition = e.mcpDisplay(r.Definition)
 	r.Warning = e.mcpDisplay(r.Warning)

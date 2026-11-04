@@ -44,7 +44,7 @@ func TestReleaseMapEditorPlayerNamesKeepSAVBytes(t *testing.T) {
 				}
 			}
 			apply(s.SetDropCell(image.Pt(16, 16)))
-			apply(s.AddUnit(image.Pt(19, 16), int64(class)))
+			apply(s.AddUnitIdentity(image.Pt(19, 16), classIdentity(t, x, int64(class))))
 			if err := e.Key("players"); err != nil {
 				t.Fatal(err)
 			}

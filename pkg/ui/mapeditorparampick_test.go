@@ -33,6 +33,13 @@ var (
 // writes.
 func paramPickEditor(t *testing.T) (*MapEditor, *wizardWrites) {
 	t.Helper()
+	return paramPickEditorWith(t, nil)
+}
+
+// paramPickEditorWith is paramPickEditor whose document more changes before
+// it opens.
+func paramPickEditorWith(t *testing.T, more func(*InspectionDocument)) (*MapEditor, *wizardWrites) {
+	t.Helper()
 	host := &wizardWrites{editorTextEdits: &editorTextEdits{}}
 	build := func(string) (*InspectionDocument, error) {
 		v, err := NewViewer("params", terrain.Grid{Width: 64, Height: 64, Tiles: make([]uint16, 64*64)}, &terrain.Tileset{})
@@ -62,6 +69,9 @@ func paramPickEditor(t *testing.T) (*MapEditor, *wizardWrites) {
 				{Trigger: 0, Node: 1, Shape: AreaBox, Rect: image.Rect(22, 22, 24, 24), Slots: [4]int{-1, -1, -1, -1}},
 				{Trigger: 0, Node: 1, Shape: AreaSquare, Rect: image.Rect(32, 32, 39, 39), Centre: cellSquareAreaC, Radius: 3, Slots: [4]int{-1, -1, -1, -1}},
 			},
+		}
+		if more != nil {
+			more(d)
 		}
 		return d, nil
 	}
@@ -222,6 +232,28 @@ func TestTriggerNodeParametersTakeAClickOnTheMap(t *testing.T) {
 	if got := fieldText(t, e, "value0"); got != "7" {
 		t.Fatalf("Cancel kept the picked unit: %q", got)
 	}
+}
+
+// A click on a small unit's cell inside a larger unit's outline stores the
+// small unit, whichever the records list first; a cell only the larger unit
+// covers stores the larger one.
+func TestTriggerUnitPickTakesTheUnitOnTheClickedCell(t *testing.T) {
+	big, small := image.Pt(5, 14), image.Pt(6, 15)
+	e, _ := paramPickEditorWith(t, func(d *InspectionDocument) {
+		d.Records = append(d.Records,
+			InspectionRecord{Kind: "Unit", Index: 2, Spatial: true, Cell: big, Size: image.Pt(3, 3), Player: 2},
+			InspectionRecord{Kind: "Unit", Index: 3, Spatial: true, Cell: small, Size: image.Pt(1, 1), Player: 2})
+		d.Script.Targets[scriptUnit] = append(d.Script.Targets[scriptUnit],
+			InspectionScriptTarget{Value: 102, Record: 5, Name: "Dragon"},
+			InspectionScriptTarget{Value: 103, Record: 6, Name: "Squirrel"})
+	})
+	e.Select(1, false)
+	if _, _, ok := e.objectSpec(); !ok {
+		t.Fatal("the condition opens no popup")
+	}
+	pickCase(t, e, "value0", testPickParam, cellStructure, small, "103")
+	pickCase(t, e, "value0", testPickParam, cellStructure, image.Pt(7, 16), "102")
+	pickCase(t, e, "value0", testPickParam, cellStructure, big, "102")
 }
 
 // The popup's other fields offer no map pick: a number, a player, a cell

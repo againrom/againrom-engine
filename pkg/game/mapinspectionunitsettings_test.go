@@ -97,6 +97,7 @@ func TestEditorUnitMeaningsAndCardUseGameProjectionWithoutWriting(t *testing.T) 
 				if len(f.Choices) != 2 || f.Group == "" {
 					t.Errorf("gear choices %+v", f)
 				}
+			case f.ReadOnly && len(f.Lines) > 0: // its lines are its words
 			case !override:
 				if f.Meaning == "" {
 					t.Errorf("%s=%d has no meaning", f.Key, f.Value)

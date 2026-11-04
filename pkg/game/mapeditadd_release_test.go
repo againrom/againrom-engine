@@ -18,14 +18,15 @@ import (
 // addInputs are the values each kind's Add window is given on one
 // installed map.
 type addInputs struct {
-	key     string
-	cell    image.Point
-	class   int16
-	tier    uint16
-	kind    int64
-	items   []int64
-	members []int
-	group   int64
+	key      string
+	cell     image.Point
+	class    int16
+	tier     uint16
+	identity int64
+	kind     int64
+	items    []int64
+	members  []int
+	group    int64
 }
 
 // addInputsOf picks the inputs: the first installed map with two players
@@ -38,6 +39,7 @@ func addInputsOf(t *testing.T, x *MapInspector) addInputs {
 	var in addInputs
 	class, tiers := fourTierClass(t, x)
 	in.class, in.tier = class, tiers[2].Face
+	_, in.identity = creatureIdentity(tiers[2])
 	keys, maps := installedMapBytes(t, x)
 	for n, b := range maps {
 		m, err := alm.Open(b)
@@ -132,10 +134,10 @@ func addCases(in addInputs) []addCase {
 			}}
 	}
 	return []addCase{
-		{"unit", []string{"unit"}, map[string]string{"class": fmt.Sprint(in.class), "tier": fmt.Sprint(in.tier), "owner": "1", "cell": cell},
+		{"unit", []string{"unit"}, map[string]string{"identity": fmt.Sprint(in.identity), "owner": "1", "cell": cell},
 			func(t *testing.T, s *mapInspectionEdits) {
 				// The window's group step starts the unit in the lowest free group.
-				routeAdd(t, s, "Unit", func() error { _, err := s.AddUnitTier(in.cell, int64(in.class), int64(in.tier)); return err },
+				routeAdd(t, s, "Unit", func() error { _, err := s.AddUnitIdentity(in.cell, in.identity); return err },
 					ui.InspectionFieldValue{Key: "owner", Value: 1}, ui.InspectionFieldValue{Key: "group", Value: in.group})
 			}},
 		{"structure", []string{"structure"}, map[string]string{"kind": fmt.Sprint(in.kind), "owner": "2", "cell": cell},

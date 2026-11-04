@@ -67,43 +67,6 @@ type tierCache struct {
 	byKey map[alm.Unit][]unitTier
 }
 
-// unitMultiTier reports that unit index of the model is a creature whose
-// class has more than one tier: the only placement the tier field is offered
-// for.
-func (s *mapInspectionEdits) unitMultiTier(index int) bool {
-	m, err := s.model.Map()
-	return err == nil && index >= 0 && index < len(m.AuthoredUnits) && len(s.inspector.tiersOf(m.AuthoredUnits[index])) > 1
-}
-
-// tierChoices are the tier field's choices, "<key>: <row name>" as every
-// catalogue choice is written.
-func tierChoices(tiers []unitTier) []ui.InspectionChoice {
-	out := make([]ui.InspectionChoice, len(tiers))
-	for i, t := range tiers {
-		out[i] = ui.InspectionChoice{Value: int64(t.Face), Label: fmt.Sprintf("%d: %s", t.Face, t.Name)}
-	}
-	return out
-}
-
-// tierError refuses a secondary key that selects no Units row of the unit's
-// class, naming the keys that do.
-func (x *MapInspector) tierError(u alm.Unit) error {
-	tiers := x.tiersOf(u)
-	for _, t := range tiers {
-		if t.Face == u.ClassSubID {
-			return nil
-		}
-	}
-	var keys []uint16
-	for _, t := range tiers {
-		keys = append(keys, t.Face)
-	}
-	if len(keys) == 0 {
-		return fmt.Errorf("class %d has no Units rows, so it has no tier", u.ClassID)
-	}
-	return fmt.Errorf("tier %d names no Units row of class %d; its tiers are %v", u.ClassSubID, u.ClassID, keys)
-}
-
 // word is the install language's editor word id as UTF-8 text.
 func (x *MapInspector) word(id string) string {
 	lang := ""
@@ -113,61 +76,46 @@ func (x *MapInspector) word(id string) string {
 	return words.For(lang).Text(id)
 }
 
-// UnitTiers are the tiers a new unit of class may take, with the default the
-// add takes when none is chosen; none for a class with one tier or none.
-func (s *mapInspectionEdits) UnitTiers(class int64) ([]ui.InspectionChoice, int64) {
-	if class < math.MinInt16 || class > math.MaxInt16 {
-		return nil, 0
-	}
-	tiers := s.inspector.tiersOf(alm.Unit{ClassID: int16(class)})
-	if len(tiers) < 2 {
-		return nil, 0
-	}
-	face, err := s.inspector.secondaryKey(int16(class))
-	if err != nil {
-		return nil, 0
-	}
-	return tierChoices(tiers), int64(face)
-}
-
-// AddUnitTier is AddUnit with the secondary key tier: 0 takes the key of the
-// class's first installed definition row (DIV-3209), any other value must
-// select a Units row of the class.
-func (s *mapInspectionEdits) AddUnitTier(cell image.Point, class, tier int64) (*ui.InspectionDocument, error) {
+// AddUnitIdentity adds a unit at cell who is the identity choice value: a
+// new record with that identity's class and secondary keys, keyed to it by
+// the identity field's writer, as one edit, owned by the map's second roster
+// slot when it has one and the first otherwise (DIV-3209).
+func (s *mapInspectionEdits) AddUnitIdentity(cell image.Point, value int64) (*ui.InspectionDocument, error) {
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := s.admitCell(m, cell, "unit cell", ui.KindUnit, admitAdd); err != nil {
 			return false, err
 		}
-		if class < math.MinInt16 || class > math.MaxInt16 {
-			return false, fmt.Errorf("class key %d is outside %d..%d", class, math.MinInt16, math.MaxInt16)
+		id, ok := s.identityOf(value)
+		if !ok {
+			return false, fmt.Errorf("choose who the new unit is: a creature, a person or a named character")
 		}
-		if tier < 0 || tier > math.MaxUint16 {
-			return false, fmt.Errorf("tier %d is outside 0..%d", tier, math.MaxUint16)
+		keys, ok := mapload.Place(alm.Unit{}, id, s.inspector.table, s.mission())
+		if !ok {
+			return false, fmt.Errorf("the installed tables cannot key a unit to that choice")
 		}
-		secondary := uint16(tier)
-		if tier == 0 {
-			key, err := s.inspector.secondaryKey(int16(class))
-			if err != nil {
-				return false, err
-			}
-			secondary = key
-		} else if err := s.inspector.tierError(alm.Unit{ClassID: int16(class), ClassSubID: secondary}); err != nil {
-			return false, err
-		}
-		view, err := m.Map()
+		i, err := placeNewUnit(m, cell, keys.ClassID, keys.ClassSubID)
 		if err != nil {
 			return false, err
 		}
-		owner := uint32(min(2, max(1, len(view.Groups))))
-		x, y := cellWords(cell, newUnitFraction, newUnitFraction)
-		rec, err := m.NewUnitRecord(x, y, int16(class), secondary, owner)
-		if err != nil {
-			return false, err
-		}
-		i, err := m.PlaceUnit(rec)
-		if err != nil {
+		if _, err := s.setIdentity(m, i, value); err != nil {
 			return false, err
 		}
 		return true, s.checkPlacement(admissionOf(ui.KindUnit, admitAdd), mapedit.KindUnit, m, i, image.Rectangle{})
 	})
+}
+
+// placeNewUnit appends a new unit record with the class and secondary keys
+// at cell, owned by the map's second player (its first when it has one).
+func placeNewUnit(m *mapedit.Editor, cell image.Point, class int16, secondary uint16) (int, error) {
+	view, err := m.Map()
+	if err != nil {
+		return -1, err
+	}
+	owner := uint32(min(2, max(1, len(view.Groups))))
+	x, y := cellWords(cell, newUnitFraction, newUnitFraction)
+	rec, err := m.NewUnitRecord(x, y, class, secondary, owner)
+	if err != nil {
+		return -1, err
+	}
+	return m.PlaceUnit(rec)
 }

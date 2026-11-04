@@ -72,8 +72,8 @@ func TestMapEditorMCPVictoryTriggerNamesTheUnitAddRecordReports(t *testing.T) {
 	if hut := commandReport(t, must("add_record", map[string]any{"kind": "Structure", "x": 16, "y": 9, "values": map[string]any{"kind": 5}})); hut["script_id"] == nil {
 		t.Fatalf("add_record of a structure reports %v", hut)
 	}
-	first := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 10, "y": 10, "values": map[string]any{"class": 40}}))
-	second := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 14, "y": 14, "values": map[string]any{"class": 40}}))
+	first := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 10, "y": 10, "values": map[string]any{"identity": 1}}))
+	second := commandReport(t, must("add_record", map[string]any{"kind": "Unit", "x": 14, "y": 14, "values": map[string]any{"identity": 1}}))
 	id, ok := second["script_id"].(float64)
 	if !ok || id <= 0 || id == first["script_id"] {
 		t.Fatalf("add_record reports script ids %v and %v", first["script_id"], second["script_id"])
@@ -95,7 +95,7 @@ func TestMapEditorMCPVictoryTriggerNamesTheUnitAddRecordReports(t *testing.T) {
 	if r := tool("set_field", map[string]any{"kind": "Unit", "index": 1, "key": "script_id", "value": 77}); !r.IsError {
 		t.Fatal("set_field wrote the script ID")
 	}
-	must("add_record", map[string]any{"kind": "Unit", "x": 18, "y": 18, "values": map[string]any{"class": 40, "group": 1}})
+	must("add_record", map[string]any{"kind": "Unit", "x": 18, "y": 18, "values": map[string]any{"identity": 1, "group": 1}})
 	if m := mustMap(t, e.Document().SourceBytes); len(m.Units) != 3 || m.Units[0].GroupID != 1 || m.Units[1].GroupID != 2 || m.Units[2].GroupID != 1 {
 		t.Fatalf("the units' groups %+v", m.Units)
 	}
@@ -221,7 +221,7 @@ func TestMapEditorMCPRefusesTheBorderRingForPlacements(t *testing.T) {
 	}
 	before := bytes.Clone(e.Document().SourceBytes)
 	for _, c := range []commandCall{
-		{"add_record", map[string]any{"kind": "Unit", "x": 4, "y": 4, "values": map[string]any{"class": 40}}},
+		{"add_record", map[string]any{"kind": "Unit", "x": 4, "y": 4, "values": map[string]any{"identity": 1}}},
 		{"add_record", map[string]any{"kind": "Structure", "x": 4, "y": 4, "values": map[string]any{"kind": 5}}},
 		{"add_drop_zone", map[string]any{"x": 4, "y": 4}},
 	} {
@@ -233,7 +233,7 @@ func TestMapEditorMCPRefusesTheBorderRingForPlacements(t *testing.T) {
 			t.Fatalf("%s %v changed the map", c.name, c.args)
 		}
 	}
-	must("add_record", map[string]any{"kind": "Unit", "x": 20, "y": 20, "values": map[string]any{"class": 40}})
+	must("add_record", map[string]any{"kind": "Unit", "x": 20, "y": 20, "values": map[string]any{"identity": 1}})
 	if r := tool("move_record", map[string]any{"kind": "Unit", "index": 0, "x": 60, "y": 20}); !r.IsError || !strings.Contains(r.Content[0].Text, "8,8..55,55") {
 		t.Fatalf("move_record into the ring: %+v", r)
 	}

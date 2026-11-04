@@ -3,6 +3,7 @@ package mapload
 import (
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
+	"againrom/pkg/herokind"
 	"againrom/pkg/random"
 	"againrom/pkg/rules"
 	"againrom/pkg/sim"
@@ -1095,10 +1096,18 @@ func startMission(m *alm.Map, t *Table, diff Difficulty, party []PartyMember,
 }
 
 func tableForPartyNPCs(t *Table, party []PartyMember, mission int) *Table {
-	if t == nil || t.NPC == nil || t.Humans == nil || len(party) == 0 {
+	if len(party) == 0 {
 		return t
 	}
-	hero := StartingHeroKind(HeroHold{Party: party})
+	return tableForHero(t, StartingHeroKind(HeroHold{Party: party}), mission)
+}
+
+// tableForHero is t with the npc records a start of mission composes for a
+// starting hero of kind hero resolved to their Humans rows.
+func tableForHero(t *Table, hero herokind.Kind, mission int) *Table {
+	if t == nil || t.NPC == nil || t.Humans == nil {
+		return t
+	}
 	playerMage, playerFemale := hero.Mage(), hero.Female()
 	resolved := make(map[int32]int)
 	for id := int32(21); id <= 24; id++ { // REG-SCN-098: the npc21..24 branch

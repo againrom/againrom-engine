@@ -157,18 +157,21 @@ func TestMapEditorPlainViewRowsOfEachKind(t *testing.T) {
 }
 
 // unitRows are the fixture unit's basic rows: the name, the player, the
-// group, the kind and the tier, then a row on the card for each value the
-// card draws, in the card's order: the field's input where the fixture has
-// the field, else a line stating the value, then a line of words for a stat
-// whose card value differs from the stored one.
+// group, who the unit is, the lines of its dialogue line and the folded
+// map keys, then a row on the card for each value the card draws, in the
+// card's order: the field's input where the fixture has the field, else a
+// line stating the value, then a line of words for a stat whose card value
+// differs from the stored one.
 func unitRows() []string {
 	return []string{
 		"4 Position | 10,10  1x1",
 		"0 Name | Guard",
 		"3 Player | Self",
 		"2 Group | 2",
-		"3 Kind | 300: Fighter",
-		"2 Tier | 1",
+		"3 Who | 300: Fighter",
+		"0 In a dialogue |",
+		"0 A mission-start dialogue does not show it. |",
+		"1 + Map keys (for modders) |",
 		"0  | Guard",
 		"2 Body | 12",
 		"0 AGILITY | 0",
@@ -201,10 +204,10 @@ var plainShapes = map[RecordKind]map[string]string{
 	// detailed view only. The fixture's skill.fire is no skill the card
 	// draws.
 	KindUnit: {
-		"owner": "main", "class": "main", "tier": "main", "group": "main",
+		"identity": "main", "owner": "main", "group": "main", "speaker": "main", "keys": "keys",
 		"hp": "card", "mana": "card", "body": "card", "mind": "card", "protection.*": "card",
 		"face": "", "sex": "", "gear": "", "wear#": "", "wearmaterial#": "", "wearrecipe#": "",
-		"sack": "", "holdings": "", "skill.*": "", "resolved": "", "definition": "",
+		"sack": "", "holdings": "", "skill.*": "", "resolved": "",
 	},
 	KindStructure: {
 		"kind": "main", "owner": "main", "identity": "main", "width": "main", "height": "main",
@@ -252,8 +255,9 @@ func TestMapEditorEveryFieldHasAPlace(t *testing.T) {
 			if got := blocks[f.Key]; !listed || got != want {
 				t.Errorf("%s %s: plain block %q, the table %q (listed %v)", kind, f.Key, got, want, listed)
 			}
-			// A unit's field in no block of the basic view has no row there.
-			if i := slices.IndexFunc(e.ObjectFields(), func(g InspectionField) bool { return g.Key == f.Key }); kind == KindUnit && (want == "") != (e.fieldRow(i) < 0) {
+			// A unit's field in no block of the basic view has no row there;
+			// a read-only field shows lines, never an input row.
+			if i := slices.IndexFunc(e.ObjectFields(), func(g InspectionField) bool { return g.Key == f.Key }); kind == KindUnit && !f.ReadOnly && (want == "") != (e.fieldRow(i) < 0) {
 				t.Errorf("%s %s: block %q, basic view row %d", kind, f.Key, want, e.fieldRow(i))
 			}
 		}

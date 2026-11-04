@@ -40,7 +40,7 @@ func TestEditorDraftPortraitFollowsFaceSexAndNPC(t *testing.T) {
 		{name: "face", values: []ui.InspectionFieldValue{{Key: "face", Value: 7}}, red: 140, green: 140},
 		{name: "sex", values: []ui.InspectionFieldValue{{Key: "sex", Value: 0}}, red: 40, green: 60},
 		{name: "face and sex", values: []ui.InspectionFieldValue{{Key: "face", Value: 7}, {Key: "sex", Value: 0}}, red: 140, green: 60},
-		{name: "NPC", values: []ui.InspectionFieldValue{{Key: "npc", Value: 8}}, red: 140, green: 60, window: ui.NoticeFaceWindow(40, 10)},
+		{name: "NPC", values: []ui.InspectionFieldValue{{Key: "identity", Value: namedIdentity(8)}}, red: 140, green: 60, window: ui.NoticeFaceWindow(40, 10)},
 		{name: "return to inherited", red: 40, green: 140},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

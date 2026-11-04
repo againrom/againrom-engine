@@ -127,11 +127,11 @@ func TestReleaseMapEditorNewMapPlaysAsModMission(t *testing.T) {
 	if m, err := s.model.Map(); err != nil || !slices.Equal(mapload.DropCells(m), []mapload.Cell{{X: 16, Y: 16}}) {
 		t.Fatalf("the new map's drop cell: %v", err)
 	}
-	if d, err := s.AddUnit(foe, int64(class)); err != nil || d == nil {
+	if d, err := s.AddUnitIdentity(foe, classIdentity(t, x, int64(class))); err != nil || d == nil {
 		t.Fatalf("add a unit: %v", err)
 	}
 	// A second unit is placed and undone; the history holds the edits.
-	if d, err := s.AddUnit(image.Pt(20, 20), int64(class)); err != nil || d == nil {
+	if d, err := s.AddUnitIdentity(image.Pt(20, 20), classIdentity(t, x, int64(class))); err != nil || d == nil {
 		t.Fatalf("add a second unit: %v", err)
 	}
 	if err := e.Key("undo"); err != nil {

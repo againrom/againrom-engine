@@ -278,38 +278,37 @@ func TestMapEditorAddCellPickedOnTheMap(t *testing.T) {
 	}
 }
 
-// tierHost offers a tier step with three tiers and refuses a cell off the
-// left half of the map.
-type tierHost struct{ *modesFull }
+// identityHost offers the unit's identity step with two kinds under their
+// headings, which the list shows but does not take.
+type identityHost struct{ *modesFull }
 
-func (h *tierHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
-	if key == "tier" {
-		return InspectionNewStep{Choices: []InspectionChoice{{Value: 1, Label: "Tier 1"}, {Value: 2, Label: "Tier 2"}, {Value: 3, Label: "Tier 3"}}, Value: 1}
+func (h *identityHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
+	if key == "identity" {
+		return InspectionNewStep{Choices: []InspectionChoice{{Value: -2, Label: "Creatures"}, {Value: 1, Label: "Wolf"}, {Value: 2, Label: "Bear"}, {Value: -3, Label: "Persons"}, {Value: 3, Label: "Guard"}}, Value: 1, Shut: []int64{-2, -3}}
 	}
 	return h.modesFull.NewRecordStep(r, key)
 }
 
-// The tier step shows when the host offers two or more tiers; Back walks the
+// The identity step walks its choices past the kind headings; Back walks the
 // asked steps and keeps their values; an invalid value says why and stays.
-func TestMapEditorAddTierBackAndRefusal(t *testing.T) {
+func TestMapEditorAddIdentityBackAndRefusal(t *testing.T) {
 	e, calls := newModesEditor(t, "full")
-	host := &tierHost{e.doc.Edits.(*modesFull)}
+	host := &identityHost{e.doc.Edits.(*modesFull)}
 	host.self, e.doc.Edits = host, host
 	_ = e.Key("unit")
-	addAdvance(t, e, 1)
-	if key, _, _ := e.AddStep(); key != "tier" {
-		t.Fatal("the tier step is not asked:", key)
+	if key, _, _ := e.AddStep(); key != "identity" {
+		t.Fatal("the identity step is not asked first:", key)
 	}
 	_ = e.Key("down")
 	_ = e.Key("down")
-	if e.prompt.path != "3" || addFocus(t, e).Value != "Tier 3" {
-		t.Fatal("Down did not walk the tiers", e.prompt.path)
+	if e.prompt.path != "3" || addFocus(t, e).Value != "Guard" {
+		t.Fatal("Down did not walk the choices past the heading", e.prompt.path)
 	}
 	_ = e.Key("enter")
 	s, _ := e.addSpec()
 	modesClick(e, center(layoutPopup(s, e.font, e.bodyFont()).Buttons[0]))
-	if key, _, _ := e.AddStep(); key != "tier" || e.prompt.path != "3" {
-		t.Fatal("Back did not return to the tier with its value", key, e.prompt.path)
+	if key, _, _ := e.AddStep(); key != "identity" || e.prompt.path != "3" {
+		t.Fatal("Back did not return to the identity with its value", key, e.prompt.path)
 	}
 	addAdvance(t, e, 3)
 	for _, bad := range []string{"", "x", "60,1", "-1,0"} {
@@ -321,8 +320,8 @@ func TestMapEditorAddTierBackAndRefusal(t *testing.T) {
 	}
 	e.prompt.path = "1,1"
 	_ = e.Key("enter")
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "{tier 3 false  false}") {
-		t.Fatal("the tier did not reach the add", calls.lines)
+	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "{identity 3 false  false}") {
+		t.Fatal("the identity did not reach the add", calls.lines)
 	}
 }
 

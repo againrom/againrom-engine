@@ -69,27 +69,43 @@ func (c *editorClicker) click(e *ui.MapEditor, r image.Rectangle, ok bool, what 
 	c.now = c.now.Add(time.Second)
 }
 
-// chooseTier opens the tier drop-down of the selected unit's popup, chooses
-// choice row k and presses Apply.
-func chooseTier(t *testing.T, c *editorClicker, e *ui.MapEditor, fields []ui.InspectionField, k int) {
+// chooseIdentity opens the identity drop-down of the selected unit's popup,
+// chooses the choice of value and presses Apply. A row the list does not
+// show is chosen by typing its label.
+func chooseIdentity(t *testing.T, c *editorClicker, e *ui.MapEditor, fields []ui.InspectionField, value int64) {
 	t.Helper()
-	n := fieldIndex(t, fields, "tier")
+	n := fieldIndex(t, fields, "identity")
 	r, ok := e.FieldRect(n)
-	c.click(e, r, ok, "the tier field")
+	c.click(e, r, ok, "the identity field")
 	if got := len(e.DropdownChoices()); got != len(fields[n].Choices) {
-		t.Fatalf("the open tier list has %d rows, the field %d choices", got, len(fields[n].Choices))
+		t.Fatalf("the open identity list has %d rows, the field %d choices", got, len(fields[n].Choices))
 	}
-	r, ok = e.DropdownRowRect(k)
-	c.click(e, r, ok, "the tier row")
+	k := slices.IndexFunc(fields[n].Choices, func(ch ui.InspectionChoice) bool { return ch.Value == value })
+	if k < 0 {
+		t.Fatalf("the identity field offers no choice %d", value)
+	}
+	if r, ok = e.DropdownRowRect(k); ok {
+		c.click(e, r, ok, "the identity row")
+	} else {
+		e.TextInput(fields[n].Choices[k].Label)
+		_ = e.Key("enter")
+	}
 	r, ok = e.PopupButtonRect(0)
 	c.click(e, r, ok, "Apply")
 }
 
-// TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes chooses another tier
-// for an installed creature through its popup: the map's bytes are those of
-// SetField of +0x0a with the same value on the installed bytes, one Undo
-// restores the installed bytes and Redo the edit; the unit then draws with the
-// chosen tier's palette; a key that selects no row of the class is refused.
+// creatureIdentity is the identity choice value of tier tr's Units row.
+func creatureIdentity(tr unitTier) (mapload.Identity, int64) {
+	id := mapload.Identity{Kind: mapload.UnitCreature, Row: tr.Index}
+	return id, identityChoiceValue(id)
+}
+
+// TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes chooses another
+// Units row of an installed creature's class through its popup's identity
+// choice: the map's bytes are those of SetField of the row's keys on the
+// installed bytes, one Undo restores the installed bytes and Redo the edit;
+// the unit then draws with the chosen tier's palette; the raw secondary key
+// is refused.
 func TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -105,19 +121,35 @@ func TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes(t *testing.T) {
 	}
 	e.Select(rec, true)
 	fields := objectEdits(t, e).Fields("Unit", i)
-	tf := fields[fieldIndex(t, fields, "tier")]
-	k := slices.IndexFunc(tf.Choices, func(c ui.InspectionChoice) bool { return c.Value != tf.Value })
-	if k < 0 {
-		t.Fatalf("the tier field offers no other tier: %+v", tf)
+	installed, err := alm.Open(raw)
+	if err != nil {
+		t.Fatal(err)
 	}
-	want := tf.Choices[k].Value
+	u := installed.Units[i]
+	tiers := x.tiersOf(u)
+	now := mapload.Resolve(u, x.table).Index
+	k := slices.IndexFunc(tiers, func(tr unitTier) bool { return tr.Index != now })
+	if k < 0 {
+		t.Fatalf("the class offers no other tier: %+v", tiers)
+	}
+	id, value := creatureIdentity(tiers[k])
+	placed, ok := mapload.Place(u, id, x.table, 0)
+	if !ok {
+		t.Fatalf("Units row %d keys no unit", id.Row)
+	}
+	want := int64(placed.ClassSubID)
 	c := &editorClicker{t: t, now: time.Unix(1, 0)}
-	chooseTier(t, c, e, fields, k)
+	chooseIdentity(t, c, e, fields, value)
 	edited := e.Document().SourceBytes
 
 	witness, err := mapedit.New(raw)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if placed.ClassID != u.ClassID {
+		if err := witness.SetField(mapedit.KindUnit, i, "class", int64(placed.ClassID)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := witness.SetField(mapedit.KindUnit, i, "tier", want); err != nil {
 		t.Fatal(err)
@@ -144,7 +176,7 @@ func TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes(t *testing.T) {
 	if tier == 0 || preview == nil || len(frames) == 0 || preview.Palette != frames[0].Palette {
 		t.Fatalf("the unit does not draw with tier %d's palette", tier)
 	}
-	t.Logf("%s unit %d: tier %d -> %d, %d bytes", key, i, tf.Value, want, changed)
+	t.Logf("%s unit %d: tier %d -> %d, %d bytes", key, i, u.ClassSubID, want, changed)
 
 	if err := e.Key("undo"); err != nil || !bytes.Equal(e.Document().SourceBytes, raw) {
 		t.Fatalf("Undo does not restore the installed bytes: %v", err)
@@ -153,19 +185,12 @@ func TestReleaseMapEditorUnitTierPopupWritesTheSetFieldBytes(t *testing.T) {
 		t.Fatalf("Redo does not restore the edit: %v", err)
 	}
 
-	bad := int64(-1)
-	for v := int64(0); v <= 255; v++ {
-		if !slices.ContainsFunc(tf.Choices, func(c ui.InspectionChoice) bool { return c.Value == v }) {
-			bad = v
-			break
-		}
-	}
 	before := e.Document().SourceBytes
-	if _, err := objectEdits(t, e).SetField("Unit", i, "tier", bad); err == nil || !strings.Contains(err.Error(), "names no Units row") {
-		t.Fatalf("tier %d was not refused with its reason: %v", bad, err)
+	if _, err := objectEdits(t, e).SetField("Unit", i, "tier", int64(u.ClassSubID)); err == nil || !strings.Contains(err.Error(), "read-only") {
+		t.Fatalf("the raw secondary key was not refused with its reason: %v", err)
 	}
 	if !bytes.Equal(e.Document().SourceBytes, before) {
-		t.Fatal("a refused tier wrote")
+		t.Fatal("a refused secondary key wrote")
 	}
 }
 
@@ -190,9 +215,9 @@ func fourTierClass(t *testing.T, x *MapInspector) (int16, []unitTier) {
 }
 
 // TestReleaseMapEditorNewUnitTakesTheChosenTier adds a unit through the Add
-// window's class, tier and cell steps: the record the map gains is the
-// one NewUnitRecord builds with the chosen tier, and the default tier the
-// tier step offers is the key a unit added without a tier takes.
+// window's identity and cell steps, choosing the third Units row of a
+// four-tier class: the record the map gains is the one NewUnitRecord builds
+// with that row's class and secondary keys.
 func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -204,19 +229,17 @@ func TestReleaseMapEditorNewUnitTakesTheChosenTier(t *testing.T) {
 	}
 	before := e.Document().SourceBytes
 	cell := image.Pt(12, 14)
-	host := objectEdits(t, e)
-	choices, def := host.UnitTiers(int64(class))
-	defKey, err := x.secondaryKey(class)
-	if err != nil || len(choices) != 4 || def != int64(defKey) {
-		t.Fatalf("UnitTiers(%d) = %d choices, default %d; AddUnit's key %d (%v)", class, len(choices), def, defKey, err)
+	id, value := creatureIdentity(tiers[2])
+	keys, ok := mapload.Place(alm.Unit{}, id, x.table, 0)
+	if !ok || keys.ClassID != class {
+		t.Fatalf("Units row %d keys class %d (%v), want class %d", id.Row, keys.ClassID, ok, class)
 	}
 	_ = e.Key("unit")
-	addStepsN(t, e, map[string]string{"class": fmt.Sprint(class)}, 1)
-	if key, _, _ := e.AddStep(); key != "tier" || !bytes.Equal(e.Document().SourceBytes, before) {
-		t.Fatalf("after the class the Add window asks %q; the map changed: %v", key, !bytes.Equal(e.Document().SourceBytes, before))
+	if key, _, _ := e.AddStep(); key != "identity" || !bytes.Equal(e.Document().SourceBytes, before) {
+		t.Fatalf("the Add window first asks %q; the map changed: %v", key, !bytes.Equal(e.Document().SourceBytes, before))
 	}
-	want := tiers[2].Face
-	addSteps(t, e, map[string]string{"tier": fmt.Sprint(want), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
+	want := keys.ClassSubID
+	addSteps(t, e, map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	witness, err := mapedit.New(before)
 	if err != nil {
 		t.Fatal(err)
@@ -545,15 +568,16 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 		closeMapPanel(t, e)
 		return e
 	}
-	addUnit := func(e *ui.MapEditor, cell image.Point, class int16, tier uint16) {
+	addUnit := func(e *ui.MapEditor, cell image.Point, tr unitTier) {
 		t.Helper()
-		addWindow(t, e, "unit", map[string]string{"class": fmt.Sprint(class), "tier": fmt.Sprint(tier), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
+		_, value := creatureIdentity(tr)
+		addWindow(t, e, "unit", map[string]string{"identity": fmt.Sprint(value), "cell": fmt.Sprintf("%d,%d", cell.X, cell.Y)})
 	}
 
-	class, tiers := fourTierClass(t, x)
+	_, tiers := fourTierClass(t, x)
 	e := opened(NewMapSource("32x32"))
 	for n, tr := range tiers {
-		addUnit(e, image.Pt(12+2*n, 14), class, tr.Face)
+		addUnit(e, image.Pt(12+2*n, 14), tr)
 	}
 	if m, _ := alm.Open(e.Document().SourceBytes); len(m.Units) != 4 {
 		t.Fatalf("the new map holds %d units, want 4", len(m.Units))
@@ -564,7 +588,6 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 
 	e = opened(NewMapSource("32x32"))
 	_ = e.Key("unit")
-	addStepsN(t, e, map[string]string{"class": fmt.Sprint(class)}, 1)
 	_ = e.Key("down")
 	shot(e, "new-unit-tier", image.Rectangle{})
 
@@ -575,8 +598,8 @@ func TestReleaseMapEditorUnitTierFrames(t *testing.T) {
 	rec := recordOf(e.Document(), "Unit", i)
 	e.Select(rec, true)
 	fields := objectEdits(t, e).Fields("Unit", i)
-	r, ok := e.FieldRect(fieldIndex(t, fields, "tier"))
-	c.click(e, r, ok, "the tier field")
+	r, ok := e.FieldRect(fieldIndex(t, fields, "identity"))
+	c.click(e, r, ok, "the identity field")
 	shot(e, "creature-tier-dropdown", image.Rect(r.Min.X, r.Max.Y, 1280, 800))
 
 	e = opened(key)

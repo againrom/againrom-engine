@@ -772,14 +772,17 @@ func (e *MapEditor) listRows(kind string) ([]PickerRow, int) {
 }
 
 // recordSummary is a record's list row: kind and index, name, player and
-// cell.
+// cell; a placed unit's name, which holds its cell, and player.
 func (e *MapEditor) recordSummary(id int) string {
 	r := e.doc.Records[id]
 	s := fmt.Sprintf("%s #%d  %s", r.Kind, r.Index, r.Label)
+	if r.Name != "" {
+		s = r.Name
+	}
 	if r.Player > 0 {
 		s += fmt.Sprintf("  P%d", r.Player)
 	}
-	if r.Spatial {
+	if r.Spatial && r.Name == "" {
 		s += fmt.Sprintf("  %d,%d", r.Cell.X, r.Cell.Y)
 	}
 	if r.Warning != "" {
@@ -1214,7 +1217,11 @@ func (e *MapEditor) objectSpecRows() (popupSpec, []int, bool) {
 		r.Cell = *e.obj.move
 	}
 	wide := e.popupWide(popObject, 420)
-	s := popupSpec{Title: fmt.Sprintf("%s #%d", r.Kind, r.Index), At: e.placedCorner(popObject, homeObjectMap), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
+	title := fmt.Sprintf("%s #%d", r.Kind, r.Index)
+	if r.Name != "" {
+		title = r.Name
+	}
+	s := popupSpec{Title: title, At: e.placedCorner(popObject, homeObjectMap), Width: wide, Bounds: e.popupBounds(), NoteInk: editorWarning}
 	var links []int
 	add := func(row popupRow, link int) {
 		s.Rows, links = append(s.Rows, row), append(links, link)

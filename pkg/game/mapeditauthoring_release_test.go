@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -32,13 +33,31 @@ func recordFieldInput(t *testing.T, e *ui.MapEditor, key string, value int64) {
 	t.Fatalf("%s %d has no field %s", r.Kind, r.Index, key)
 }
 
-// recordAddInput adds a unit of class value, a structure of kind value or a
-// sack of item value on cell through the Add window, every other step at its
-// default.
+// classIdentity is the identity choice of the Units row a unit of class
+// takes at the class's first installed definition key.
+func classIdentity(t *testing.T, x *MapInspector, class int64) int64 {
+	t.Helper()
+	sub, err := x.secondaryKey(int16(class))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, ok := mapload.Identify(alm.Unit{ClassID: int16(class), ClassSubID: sub}, x.table)
+	if !ok {
+		t.Fatalf("class %d key %d is no one", class, sub)
+	}
+	return identityChoiceValue(id)
+}
+
+// recordAddInput adds a unit of class value (the identity classIdentity
+// names), a structure of kind value or a sack of item value on cell through
+// the Add window, every other step at its default.
 func recordAddInput(t *testing.T, e *ui.MapEditor, key string, cell image.Point, value int64) {
 	t.Helper()
+	if key == "unit" {
+		value = classIdentity(t, e.Document().Edits.(*mapInspectionEdits).inspector, value)
+	}
 	v, c := strconv.FormatInt(value, 10), fmt.Sprintf("%d,%d", cell.X, cell.Y)
-	values := map[string]map[string]string{"unit": {"class": v, "cell": c}, "structure": {"kind": v, "cell": c}, "sack": {"cell": c, "item": v}}[key]
+	values := map[string]map[string]string{"unit": {"identity": v, "cell": c}, "structure": {"kind": v, "cell": c}, "sack": {"cell": c, "item": v}}[key]
 	if values == nil {
 		t.Fatalf("no Add window for %s", key)
 	}
@@ -143,9 +162,9 @@ func authoredRecordsMod(t *testing.T, arm string) (string, uint16) {
 			t.Fatal("the Add window ended before its cell step")
 		}
 		switch key {
-		case "class":
+		case "identity":
 			_ = e.Key("clear")
-			e.TextInput(strconv.FormatInt(int64(class), 10))
+			e.TextInput(strconv.FormatInt(classIdentity(t, x, int64(class)), 10))
 		case "cell":
 			_ = e.Key("clear")
 			e.TextInput("25,20")
@@ -425,8 +444,12 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 	for _, c := range []struct {
 		key, kind, field string
 		cell             image.Point
-	}{{"structure", "Structure", "kind", image.Pt(10, 18)}, {"unit", "Unit", "class", image.Pt(20, 20)}, {"sack", "Sack", "item", image.Pt(17, 12)}} {
+	}{{"structure", "Structure", "kind", image.Pt(10, 18)}, {"unit", "Unit", "identity", image.Pt(20, 20)}, {"sack", "Sack", "item", image.Pt(17, 12)}} {
 		rows := s.RecordChoices(ui.RecordKind(c.kind), -1, c.field)
+		if c.kind == "Unit" {
+			choices, shut := s.inspector.identityChoices(s.mission())
+			rows = slices.DeleteFunc(choices, func(ch ui.InspectionChoice) bool { return slices.Contains(shut, ch.Value) })
+		}
 		if len(rows) == 0 || rows[0].Label == "" || strings.Contains(rows[0].Label, "raw ") {
 			t.Fatalf("%s has no visible installed name: %+v", c.kind, rows)
 		}
@@ -461,7 +484,13 @@ func TestReleaseMapEditorNamedRecordChoicesUseExistingPrompts(t *testing.T) {
 	}
 	m, _ := alm.Open(e.Document().SourceBytes)
 	loot, _ := m.Loot()
-	if len(m.Objects) != 1 || int64(m.Objects[0].Kind) != chosen["Structure"] || len(m.Units) != 1 || int64(m.Units[0].ClassID) != chosen["Unit"] ||
+	unitIs := int64(-1)
+	if len(m.Units) == 1 {
+		if id, ok := mapload.Identify(m.Units[0], x.table); ok {
+			unitIs = identityChoiceValue(id)
+		}
+	}
+	if len(m.Objects) != 1 || int64(m.Objects[0].Kind) != chosen["Structure"] || len(m.Units) != 1 || unitIs != chosen["Unit"] ||
 		len(loot.Records) != 1 || int64(loot.Records[0].Elements[0].ItemCode()) != chosen["Sack"] {
 		t.Fatal("the keyboard choices did not reach the existing record constructors", m.Objects, m.Units, loot)
 	}

@@ -224,8 +224,8 @@ empty text and inherits.
 | --- | --- | --- |
 | `new_map` | `width`, `height`; optional `altitude` (0..126, default 64), `multiplayer`, `discard` | The catalogue's New question. Sizes are multiples of 8 from 32 to 256. Unsaved changes still ask; `"discard":true` drops them as the question's Open button does. |
 | `paint` | `plane` (`terrain`, `height`, `objects`, `passability`), `cells` (`[[x,y],...]`, the stroke in order); optional `value`, `radius` (default 0), `shape` (`circle`, `square`), `fill` (`pattern`, `random`, `variant`) and `variant` for terrain; `set`, `flat`, `mode` (`step`, `level`, `smooth`) for height; `forest` (`{"kinds":[...],"share":25,"thin":false}`) for objects; `verbose` | One brush stroke. `value` is a terrain class or object code from `brushes`, a height change (-31..31, not 0), the height with `set`, or 1 to close and 0 to open a cell. With `forest` the stroke is the object brush's Forest stroke and `value` is left out: it plants the object classes `kinds` over `share` per cent (1..100, default 25) of the open cells it covers, or with `thin` removes that share of those classes. A forest stroke draws from the window's stroke seed, so two strokes over one map plant different cells. A height stroke works as Height brush below states. |
-| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key; `parts` for a `Message` | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. A unit's steps are class, tier, owner, group and cell; a unit, structure or drop zone is refused on a cell of the border ring. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`, `Message`. A `Message` takes `parts` alone (see `write_message`) and adds a new message page and an action that shows it, as the Add window's New message and the message editor's Apply do. |
-| `set_field` | `kind`, `index`, `key`; `value` (number) or `text` | The field prompt (F). `record` lists the keys. |
+| `add_record` | `kind`; optional `x`, `y` for a record on a cell; optional `values` by step key; `parts` for a `Message` | The Add window, step by step with its defaults and checks. `add_steps` lists the steps and choices. A unit's steps are identity (who the unit is: a creature's Units row, a person's Humans row or a named character's NPC record, each choice's value as `add_steps` lists it), owner, group and cell; a unit, structure or drop zone is refused on a cell of the border ring. Kinds: `Enchantment`, `Unit`, `Structure`, `Sack`, `Player`, `Trigger`, `Action`, `Condition`, `Message`. A `Message` takes `parts` alone (see `write_message`) and adds a new message page and an action that shows it, as the Add window's New message and the message editor's Apply do. |
+| `set_field` | `kind`, `index`, `key`; `value` (number) or `text` | The field prompt (F). `record` lists the keys. A unit's `identity` takes an identity value: the kind in the high 32 bits (0 creature, 1 person, 2 named character) and, in the low 32 bits, the Units row, the Humans row or the npc record; `record` and `add_steps` list each value. A unit's `class`, `tier`, `definition`, `npc` and `npcflag` are read-only, and `set_field` refuses them with "the unit's ... key is read-only"; the identity writes them. |
 | `set_fields` | `kind`, `index`, `fields` (a list of `{"key","value"}` for a number or `{"key","text"}` for a text) | A script record popup's Apply: one edit. |
 | `set_object` | `kind`, `index`; optional `fields`, `cell` (`[x,y]`) | The object popup's Apply: fields and a move as one edit. |
 | `move_record` | `kind`, `index`, `x`, `y` | A drag on the map. A unit or structure is refused on a cell of the border ring. |
@@ -344,9 +344,9 @@ brushes       {}
 paint         {"plane":"terrain","value":<sand class>,"radius":4,"shape":"square","cells":[[16,16]]}
 paint         {"plane":"height","value":6,"radius":2,"cells":[[8,24]]}
 add_record    {"kind":"Player","values":{"name":"Rivals"}}
-add_steps     {"kind":"Unit","x":12,"y":12,"values":{"class":40}}
-add_record    {"kind":"Unit","x":12,"y":12,"values":{"class":40,"owner":<first owner>}}
-add_record    {"kind":"Unit","x":20,"y":20,"values":{"class":40,"owner":<last owner>}}
+add_steps     {"kind":"Unit","x":12,"y":12}
+add_record    {"kind":"Unit","x":12,"y":12,"values":{"identity":<creature>,"owner":<first owner>}}
+add_record    {"kind":"Unit","x":20,"y":20,"values":{"identity":<creature>,"owner":<last owner>}}
 add_record    {"kind":"Structure","x":10,"y":17,"values":{"kind":5,"owner":<first owner>}}
 add_drop_zone {"x":13,"y":14}
 trigger_items {}
@@ -356,7 +356,7 @@ save_as       {"path":"C:\\Maps\\small.alm"}
 ```
 
 The values in angle brackets come from the reads before them: `brushes`
-names the classes, `add_steps` the owner choices, `trigger_items` the
+names the classes, `add_steps` the identity and owner choices, `trigger_items` the
 condition's default hero. `TestMapEditorMCPBuildsAPlayableMapFromEmpty`
 runs this session on a synthetic table.
 
@@ -365,10 +365,10 @@ runs this session on a synthetic table.
 ```text
 new_map       {"width":32,"height":32}
 add_record    {"kind":"Structure","x":16,"y":9,"values":{"kind":5}}
-add_record    {"kind":"Unit","x":10,"y":10,"values":{"class":40}}
-add_record    {"kind":"Unit","x":14,"y":14,"values":{"class":40}}
+add_record    {"kind":"Unit","x":10,"y":10,"values":{"identity":<creature>}}
+add_record    {"kind":"Unit","x":14,"y":14,"values":{"identity":<creature>}}
 record        {"kind":"Unit","index":1}
-add_record    {"kind":"Unit","x":18,"y":18,"values":{"class":40,"group":1}}
+add_record    {"kind":"Unit","x":18,"y":18,"values":{"identity":<creature>,"group":1}}
 trigger_items {}
 write_trigger {"name":"Chief","conditions":[{"item":"c.unitdead","params":[<chief>]}],"actions":[{"item":"a.win"}]}
 check         {}

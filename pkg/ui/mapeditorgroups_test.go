@@ -132,7 +132,7 @@ func TestMapEditorPlaceGridChoosesAndPlacesCopies(t *testing.T) {
 	}
 	e.Fit()
 	modesClick(e, e.CellPoint(image.Pt(40, 20)))
-	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Unit (40,20) true [{class 2") {
+	if len(calls.lines) != 1 || !strings.Contains(calls.lines[0], "AddRecord Unit (40,20) true [{identity 2") {
 		t.Fatalf("a click placed %v", calls.lines)
 	}
 	if _, ok := e.addRunning(); !ok || e.pick != pickAddCell {

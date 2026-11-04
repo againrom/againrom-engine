@@ -52,9 +52,13 @@ func TestMapEditorPlainBlocksTakeTheTreeFold(t *testing.T) {
 			}
 			e.toggleBlock(id)
 		}
-		// A unit's basic view is the card and the rows over it: no block
-		// opens and closes.
-		if (blocks == 0) != (record == viewsUnit) {
+		// A unit's basic view is the card and the rows over it; only its
+		// map keys open and close.
+		shape := blocks > 0
+		if record == viewsUnit {
+			shape = blocks == 1
+		}
+		if !shape {
 			t.Errorf("%s: %d blocks that open and close", e.doc.Records[record].Kind, blocks)
 		}
 	}

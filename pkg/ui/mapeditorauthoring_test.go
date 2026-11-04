@@ -9,7 +9,7 @@ import (
 type namedRecordHost struct{ *modesFull }
 
 func (h *namedRecordHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
-	if key == "class" || key == "kind" || key == "item" {
+	if key == "identity" || key == "kind" || key == "item" {
 		return InspectionNewStep{Choices: []InspectionChoice{{Value: 10, Label: "10: First named record"}, {Value: 20, Label: "20: Second named record"}}, Value: 10}
 	}
 	return h.modesFull.NewRecordStep(r, key)
@@ -18,7 +18,7 @@ func (h *namedRecordHost) NewRecordStep(r InspectionNewRecord, key string) Inspe
 // CheckNewRecord refuses a named value off the list, as a host's table does.
 func (h *namedRecordHost) CheckNewRecord(r InspectionNewRecord, key string) error {
 	for _, v := range r.Values {
-		if v.Key == key && (key == "class" || key == "kind" || key == "item") && v.Value != 10 && v.Value != 20 {
+		if v.Key == key && (key == "identity" || key == "kind" || key == "item") && v.Value != 10 && v.Value != 20 {
 			return fmt.Errorf("no record %d", v.Value)
 		}
 	}

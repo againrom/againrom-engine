@@ -17,14 +17,16 @@ import (
 )
 
 // unitPicks are the installed map's records the release test edits: S is
-// cloned onto Cell, D deleted, C changed to Owner, Class, Def and HP. Each is
-// an interior creature whose unit id no other record shares.
+// cloned onto Cell, D deleted, C changed to Owner, the creature Identity of
+// another class (whose keys are Class and Sub) and HP. Each is an interior
+// creature whose unit id no other record shares.
 type unitPicks struct {
 	S, D, C       int
 	Cell          image.Point
 	Owner         uint32
 	Class         int16
-	Def           uint32
+	Sub           uint16
+	Identity      int64
 	HP            int16
 	SID, DID, CID uint16
 	CloneID       uint16
@@ -64,17 +66,15 @@ func pickUnits(t *testing.T, m *alm.Map, table *mapload.Table) unitPicks {
 	for _, u := range m.Units {
 		probe := alm.Unit{ClassID: u.ClassID, ClassSubID: c.ClassSubID}
 		if u.ClassID >= 0x1a && u.ClassID != c.ClassID && mapload.Resolve(probe, table).Index != data.NotFound {
-			p.Class = u.ClassID
-			break
+			id, _ := mapload.Identify(probe, table)
+			if placed, ok := mapload.Place(c, id, table, 0); ok {
+				p.Class, p.Sub, p.Identity = placed.ClassID, placed.ClassSubID, identityChoiceValue(id)
+				break
+			}
 		}
 	}
-	for i := 1; i < table.Humans.Len() && p.Def == 0; i++ {
-		if v := table.Humans.EntryParams(i)[0x18]; v > 0 {
-			p.Def = uint32(v)
-		}
-	}
-	if p.Class == 0 || p.Def == 0 {
-		t.Fatalf("no second class (%d) or definition id (%d) to set", p.Class, p.Def)
+	if p.Class == 0 {
+		t.Fatal("no second creature class to set")
 	}
 	p.HP = 7
 	return p
@@ -176,7 +176,7 @@ func TestReleaseMapEditorUnitAuthoringPlaysAsModMission(t *testing.T) {
 		for _, f := range []struct {
 			key string
 			v   int64
-		}{{"owner", int64(p.Owner)}, {"class", int64(p.Class)}, {"definition", int64(p.Def)}, {"hp", int64(p.HP)}} {
+		}{{"owner", int64(p.Owner)}, {"identity", p.Identity}, {"hp", int64(p.HP)}} {
 			apply(docs.SetField("Unit", p.C, f.key, f.v))
 		}
 		apply(docs.Delete("Unit", p.D))
@@ -196,11 +196,11 @@ func TestReleaseMapEditorUnitAuthoringPlaysAsModMission(t *testing.T) {
 	found := false
 	for _, u := range built.Units {
 		if u.UnitID == p.CID {
-			found = u.DefID == p.Def
+			found = u.ClassID == p.Class && u.ClassSubID == p.Sub
 		}
 	}
 	if !found {
-		t.Fatalf("the built map does not carry definition id %d on unit %d", p.Def, p.CID)
+		t.Fatalf("the built map does not carry class %d key %d on unit %d", p.Class, p.Sub, p.CID)
 	}
 	if len(after) != len(before) {
 		t.Fatalf("world holds %d entities, want %d (one clone, one delete)", len(after), len(before))

@@ -44,6 +44,14 @@ type MapInspector struct {
 	rules          []mapRule        // the map report's rule table; nil is mapRules
 	recordOptions  map[string][]ui.InspectionChoice
 	recordPictures map[string]map[int64]*image.RGBA
+	// identities are the identity choice's identities by value, built with
+	// recordOptions["identity"].
+	identities map[int64]mapload.Identity
+	// identityMission is the mission number the identity choices were
+	// built for; guestNumber is the test play guest mission's, nil until
+	// first asked.
+	identityMission int
+	guestNumber     *int
 	// speakerPictures and speakerFigures are the speaker list's class
 	// portraits by address and composed figures by figure and worn set.
 	speakerPictures map[string]*image.RGBA
@@ -332,6 +340,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			r.Warning = joinInspectionWarning(r.Warning, "Definition unresolved")
 		}
 		r.Definition = x.unitDefinition(u, resolved)
+		r.Name = x.unitLabel(u, x.testPlayNumber(w))
 		r.Details = []string{fmt.Sprintf("X/Y raw: %d / %d", u.X, u.Y), fmt.Sprintf("Class/sub: %d / %d", u.ClassID, u.ClassSubID),
 			fmt.Sprintf("Owner: %d  Unit: %d", u.Owner, u.UnitID), fmt.Sprintf("Group: %d  Flags: %#x", u.GroupID, u.Flags),
 			fmt.Sprintf("Definition: %d (%s row %d)", u.DefID, resolved.Arm, resolved.Index), fmt.Sprintf("HP raw: %d (-1 = default)", u.CurrentHP),
@@ -344,7 +353,7 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 			}
 			r.Lines = append(r.Lines, x.overrideLines(model, i, template)...)
 			v := sheets[i].Values
-			r.Hover = r.Label + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
+			r.Hover = r.Name + x.inspectionUTF8("  "+fmt.Sprintf(x.word("editor.unit.hover"), v.HP, v.MaxHP))
 		} else {
 			r.Lines = append(r.Lines, ui.InspectionLine{Text: x.inspectionUTF8(fmt.Sprintf(x.word("editor.unit.unavailable"), sheetErr)), Role: "warning"})
 		}

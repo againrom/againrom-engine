@@ -11,47 +11,10 @@ import (
 	"againrom/pkg/base"
 	"againrom/pkg/data"
 	"againrom/pkg/formats/alm"
-	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	"againrom/pkg/sim"
 	"againrom/pkg/ui"
 )
-
-func (x *MapInspector) npcFields(m *mapedit.Editor, index int, value int64) (int64, []mapedit.FieldSet, error) {
-	if !x.table.ClassPlacementFields() || value < -1 || value > math.MaxUint16 {
-		return 0, nil, fmt.Errorf("NPC record is outside this placement's native key domain")
-	}
-	view, err := m.Map()
-	if err != nil {
-		return 0, nil, err
-	}
-	u := view.AuthoredUnits[index]
-	if mapload.Resolve(u, x.table).Arm == mapload.ArmUnits {
-		return 0, nil, fmt.Errorf("a creature placement cannot take an NPC record")
-	}
-	if value == -1 && u.Flags&1 == 0 {
-		return int64(u.ClassSubID), nil, nil
-	}
-	probe := u
-	flag := int64(0)
-	if value >= 0 {
-		if _, ok := x.table.NPCCatalog.Entry(int32(value)); !ok {
-			return 0, nil, fmt.Errorf("NPC record %d does not exist", value)
-		}
-		probe.Flags |= 1
-		probe.ClassSubID, flag = uint16(value), 1
-	} else {
-		probe.Flags &^= 1
-		probe.ClassSubID = 0
-	}
-	if !mapload.Resolve(probe, x.table).Found() {
-		return 0, nil, fmt.Errorf("NPC choice %d resolves to no Human definition", value)
-	}
-	if probe.Flags == u.Flags {
-		return int64(probe.ClassSubID), nil, nil
-	}
-	return int64(probe.ClassSubID), []mapedit.FieldSet{{Key: "npcflag", Value: flag}}, nil
-}
 
 func (x *MapInspector) npcChoices(maxID int64, roles bool) []ui.InspectionChoice {
 	var choices []ui.InspectionChoice
@@ -213,6 +176,11 @@ func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, ui.SpeakerMiss) {
 	}
 	u := sp.m.Units[unit]
 	r := mapload.Resolve(u, x.table)
+	// The mission start here has no starting hero, so it builds no unit for
+	// an npc record the start composes from the hero.
+	if _, rows, _ := mapload.IdentifyAt(u, x.table, s.mission()); len(rows) > 0 {
+		return 0, ui.SpeakerMiss{Cause: ui.SpeakerByHero}
+	}
 	if r.Arm == mapload.ArmUnits {
 		return s.creatureSpeaker(sp, unit, ids)
 	}
@@ -224,7 +192,7 @@ func (s *mapInspectionEdits) UnitSpeaker(unit int) (int64, ui.SpeakerMiss) {
 		a, ok := sp.cast.resolveNPC(int32(id), rec)
 		return ok && a.id == sim.EntityID(unit)
 	}
-	if own := int64(u.ClassSubID); r.Arm == mapload.ArmNPC && slices.Contains(ids, own) && shows(own) {
+	if own := int64(r.NPC); r.Arm == mapload.ArmNPC && slices.Contains(ids, own) && shows(own) {
 		return own, ui.SpeakerMiss{}
 	}
 	for _, id := range ids {
@@ -266,7 +234,7 @@ func (s *mapInspectionEdits) personMiss(sp *editorSpeakers, unit int, ids []int6
 		return ui.SpeakerMiss{Cause: ui.SpeakerNoFit}
 	}
 	at := sp.m.Units[first.id]
-	return ui.SpeakerMiss{Cause: ui.SpeakerNotFirst, Record: best, Cell: image.Pt(int(at.X>>8), int(at.Y>>8))}
+	return ui.SpeakerMiss{Cause: ui.SpeakerNotFirst, Record: best, Cell: image.Pt(int(at.X>>8), int(at.Y>>8)), Unit: s.inspector.unitLabel(at, s.mission())}
 }
 
 // creatureSpeaker is the lowest of ids whose dialogue picture is the one the

@@ -152,7 +152,7 @@ func plainWordsOf(e *MapEditor, record int, placement, kind int64) []string {
 	switch record {
 	case viewsUnit:
 		var out []string
-		for _, id := range []string{"position", "name", "player", "group", "kind", "tier"} {
+		for _, id := range []string{"position", "name", "player", "group", "who"} {
 			out = append(out, w("editor.plain."+id))
 		}
 		return out

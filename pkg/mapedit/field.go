@@ -18,8 +18,6 @@ type FieldCheck int
 const (
 	CheckRangeOnly       FieldCheck = iota // the range below is the whole rule
 	CheckRosterSlot                        // a 1-based slot in the type-5 roster (ALM-OWN-039)
-	CheckClassKey                          // a class key the installed tables hold (ALM-CLS-038)
-	CheckDefinitionID                      // zero, or a definition id the installed tables hold
 	CheckStructureKind                     // an ID the installed structures.reg holds (ALM-CLS-036)
 	CheckItemCode                          // an item code the installed item tables hold; 0 passes
 	CheckScriptUnit                        // a unit id a type-6 record holds, or a hero-band value (ALM-TRIG-046)
@@ -28,7 +26,6 @@ const (
 	CheckScriptPlayer
 	CheckStructureIdentity
 	CheckItemRecipe
-	CheckUnitTier // a secondary key that selects a Units row of the unit's class (ALM-CLS-052)
 	CheckUnitGear // flag bit 7, offered where the Human constructor reads it (ALM-FLAGPATH-109)
 	CheckUnitLook
 	CheckUnitNPC
@@ -69,9 +66,9 @@ type (
 // file offsets into the record (ALM-UNIT-040).
 var unitFields = []Field{
 	{Key: "owner", Label: "Owner slot", Offset: alm.UnitOwner, Width: 4, Min: 1, Max: math.MaxUint32, Check: CheckRosterSlot},
-	{Key: "class", Label: "Class", Offset: alm.UnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16, Check: CheckClassKey},
-	{Key: "tier", Label: "Tier", Offset: alm.UnitSubID, Width: 2, Min: 0, Max: math.MaxUint16, Check: CheckUnitTier},
-	{Key: "definition", Label: "Human definition (0 = class)", Offset: alm.UnitDefinition, Width: 4, Min: 0, Max: math.MaxUint32, Check: CheckDefinitionID},
+	{Key: "class", Label: "Class", Offset: alm.UnitClass, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
+	{Key: "tier", Label: "Tier", Offset: alm.UnitSubID, Width: 2, Min: 0, Max: math.MaxUint16},
+	{Key: "definition", Label: "Human definition (0 = class)", Offset: alm.UnitDefinition, Width: 4, Min: 0, Max: math.MaxUint32},
 	{Key: "hp", Label: "Hit points (-1 = default)", Offset: alm.UnitHP, Width: 2, Signed: true, Min: math.MinInt16, Max: math.MaxInt16},
 	{Key: "group", Label: "Group id (0 = none)", Offset: alm.UnitGroup, Width: 4, Min: 0, Max: math.MaxUint32},
 	// The override block the spawner stores after the constructor

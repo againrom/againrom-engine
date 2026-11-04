@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// cellCountHost offers as many unit classes, structure kinds and tree kinds
-// as the shipped first-game data does: 33, 66 and 75.
+// cellCountHost offers 33 unit identities, and as many structure kinds and
+// tree kinds as the shipped first-game data does: 66 and 75.
 type cellCountHost struct {
 	*modesFull
 	units, structures, trees int
@@ -17,7 +17,7 @@ type cellCountHost struct {
 func (h *cellCountHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
 	n := 0
 	switch {
-	case r.Kind == "Unit" && key == "class":
+	case r.Kind == "Unit" && key == "identity":
 		n = h.units
 	case r.Kind == "Structure" && key == "kind":
 		n = h.structures

@@ -113,8 +113,17 @@ func TestEverySpeakerPlaceOffersTheOnePick(t *testing.T) {
 				click(pickLadyCell)
 				// Record 3 fits her, but a dialogue shows the paladin, the
 				// first unit it fits.
-				why := fmt.Sprintf(book.Text("editor.speaker.why.notfirst"), "3: speaker", pickPaladinCell.X, pickPaladinCell.Y)
-				want := s.inspector.inspectionUTF8(fmt.Sprintf(book.Text("editor.speaker.why.card"), "1", why))
+				// The paladin is named by the one unit label.
+				m, _ := s.model.Map()
+				paladin := ""
+				for _, u := range m.AuthoredUnits {
+					if unitCell(u) == pickPaladinCell {
+						paladin = s.inspector.unitLabel(u, s.mission())
+					}
+				}
+				enc := s.inspector.inspectionUTF8
+				why := fmt.Sprintf(enc(book.Text("editor.speaker.why.notfirst")), enc("3: speaker"), paladin)
+				want := fmt.Sprintf(enc(book.Text("editor.speaker.why.card")), "1", why)
 				if got := strings.Join(strings.Fields(strings.Join(e.PopupLines(), " ")), " "); !strings.Contains(got, want) {
 					t.Fatalf("the refused woman does not name the cause %q:\n%s", want, trigLines(e))
 				}

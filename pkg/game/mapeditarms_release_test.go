@@ -48,7 +48,7 @@ func newArmsMod(t *testing.T, withArms bool) string {
 	if err := x.SetMod(filepath.Join(root, newMapModID)); err != nil {
 		t.Fatal(err)
 	}
-	class := creatureClass(t, x)
+	unit := classIdentity(t, x, int64(creatureClass(t, x)))
 	e := x.Editor()
 	if err := e.Open(newMapSource(32, 32)); err != nil {
 		t.Fatal(err)
@@ -61,8 +61,8 @@ func newArmsMod(t *testing.T, withArms bool) string {
 	}{
 		// A new map's drop cell is its centre, 16,16; the window moves it.
 		{"drop cell", func() (*ui.InspectionDocument, error) { return s.SetDropCell(image.Pt(14, 16)) }},
-		{"enemy", func() (*ui.InspectionDocument, error) { return s.AddUnit(image.Pt(22, 22), int64(class)) }},
-		{"party unit", func() (*ui.InspectionDocument, error) { return s.AddUnit(image.Pt(12, 22), int64(class)) }},
+		{"enemy", func() (*ui.InspectionDocument, error) { return s.AddUnitIdentity(image.Pt(22, 22), unit) }},
+		{"party unit", func() (*ui.InspectionDocument, error) { return s.AddUnitIdentity(image.Pt(12, 22), unit) }},
 		{"party side", func() (*ui.InspectionDocument, error) { return s.SetField("Unit", 1, "owner", partySlot) }},
 	}
 	for _, st := range steps {

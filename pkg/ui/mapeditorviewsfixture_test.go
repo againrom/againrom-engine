@@ -35,16 +35,16 @@ func (h *wideHost) Fields(kind RecordKind, index int) []InspectionField {
 			f.Inherit, f.Inherited = true, "10"
 			return f
 		}
+		identity := field("identity", "Who it is", "identity", "")
+		identity.Choices = viewsIdentities
 		out := []InspectionField{
+			identity,
 			field("owner", "Owner slot", "identity", ""),
-			field("class", "Class", "identity", ""),
-			field("tier", "Tier", "identity", ""),
-			field("definition", "Human definition", "identity", ""),
 			field("group", "Group", "identity", ""),
 			field("face", "Face", "identity", ""),
 			field("sex", "Sex", "identity", ""),
-			field("npc", "NPC", "identity", ""),
-			field("npcflag", "NPC flag", "identity", ""),
+			{Key: "speaker", Label: "In a dialogue", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "In a dialogue"}, {Text: "A mission-start dialogue does not show it."}}},
+			{Key: "keys", Label: "Map keys", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "Map keys"}, {Text: "Class key: 300"}, {Text: "Secondary key: 0"}}},
 			field("gear", "Gear set", "equipment", "Equipment"),
 		}
 		for n, label := range wideSlots {

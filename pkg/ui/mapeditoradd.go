@@ -113,8 +113,7 @@ var addKinds = []addKindRow{
 		{Key: "castkind", Word: "editor.cast.kind", Control: addChoice, Optional: true},
 		{Key: "range", Word: "editor.cast.range", Control: addNumber, Optional: true}}},
 	{Kind: KindUnit, Word: "editor.add.unit", Filters: []int{1}, Steps: []addStep{
-		{Key: "class", Word: "editor.add.class", Control: addSprites},
-		{Key: "tier", Word: "editor.unit.tier", Control: addChoice, Optional: true},
+		{Key: "identity", Word: "editor.unit.field.identity", Control: addSprites},
 		addOwner, {Key: "group", Word: "editor.unit.field.group", Control: addNumber}, addAt}},
 	{Kind: KindStructure, Word: "editor.add.structure", Filters: []int{2}, Steps: []addStep{
 		{Key: "kind", Word: "editor.add.kind", Control: addSprites}, addOwner, addAt}},

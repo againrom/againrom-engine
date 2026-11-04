@@ -116,23 +116,23 @@ func TestPersonWindowNPCListCarriesTheSpeakerListsFaces(t *testing.T) {
 	faces := map[int32]data.NPCFace{8: {Kind: data.NPCFigure, Dir: data.FigureDirWomanFighter, Face: 7, HasWindow: true}, 7: {Kind: data.NPCNoPicture}}
 	s.inspector.table.NPCCatalog.Faces = faces
 	fields := s.Fields("Unit", 0)
-	npc := fields[fieldIndex(t, fields, "npc")]
+	npc := fields[fieldIndex(t, fields, "identity")]
 	if !npc.IconTip {
 		t.Error("the NPC list shows its faces in its rows, not at full size in the tip")
 	}
 	for _, id := range []int{8, 7} {
 		want := missionStartFace(t, s, id)
-		if got := npc.Icons[int64(id)]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
+		if got := npc.Icons[namedIdentity(int32(id))]; got == nil || !bytes.Equal(got.Pix, want.Pix) {
 			t.Fatalf("NPC %d carries no face, or not the face a dialogue shows at mission start", id)
 		}
 	}
-	for _, id := range []int64{-1, 0, 9} {
-		if _, held := npc.Icons[id]; held {
+	for _, id := range []int32{0, 9} {
+		if _, held := npc.Icons[namedIdentity(id)]; held {
 			t.Errorf("NPC %d has no face and carries a picture", id)
 		}
 	}
 	speakers := s.MessageFields(ui.NewMessagePage)
-	if len(speakers) != 2 || speakers[1].Icons[8] != npc.Icons[8] {
+	if len(speakers) != 2 || speakers[1].Icons[8] != npc.Icons[namedIdentity(8)] {
 		t.Error("the person window and the speaker list carry different pictures of NPC 8")
 	}
 }

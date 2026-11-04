@@ -48,6 +48,10 @@ type InspectionRecord struct {
 	// encoding; empty for a unit whose class alone selects it, and for any
 	// other record.
 	Definition string
+	// Name is a placed unit's one name in the editor, in the font's bytes:
+	// who it is, its number and its cell. The tree, the unit's window and
+	// the unit choices show it; empty for any other record.
+	Name string
 
 	// Footprint is the cells the record takes in the world the game builds
 	// from the map; empty: the cells of Cell and Size.

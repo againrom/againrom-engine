@@ -135,6 +135,19 @@ func UnitServerID(p []int32) (int32, bool) { return slotValue(p, unitServerIDSlo
 // HumanServerID is the server id column of a humans row.
 func HumanServerID(p []int32) (int32, bool) { return slotValue(p, humanServerIDSlot) }
 
+// UnitKeyPair is the type id and face columns of a units row, the pair
+// FindUnit compares; false for a row too short to hold them.
+func UnitKeyPair(p []int32) (typeID, face int32, ok bool) {
+	if unitFaceSlot >= len(p) {
+		return 0, 0, false
+	}
+	return p[unitTypeIDSlot], p[unitFaceSlot], true
+}
+
+// HumanTypeID is the type id column of a humans row, the key
+// FindHumanByType compares.
+func HumanTypeID(p []int32) (int32, bool) { return slotValue(p, humanTypeIDSlot) }
+
 func slotValue(p []int32, slot int) (int32, bool) {
 	if slot < len(p) {
 		return p[slot], true

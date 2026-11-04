@@ -73,23 +73,24 @@ type plainView struct {
 
 var plainViews = map[RecordKind]plainView{
 	KindUnit: {
-		// The name, the player and the group, then the fields that change
-		// what the card's lower part draws: the kind and the tier give the
-		// unit's template, the NPC record a person's. Every stat the card
-		// draws stands on it; equipment, the bag, the look, the resolved
-		// values, the overrides and the map file fields stand in the
-		// detailed view only.
+		// The name, the player and the group, then who the unit is, which
+		// gives the card's lower part its template, and whether a dialogue
+		// shows it. Every stat the card draws stands on it; the map keys
+		// behind who it is fold away; equipment, the bag, the look, the
+		// resolved values, the overrides and the map file fields stand in
+		// the detailed view only.
 		blocks: []plainBlock{
 			{id: "main"},
+			{id: "keys", word: "editor.plain.keys", fold: true},
 			{id: "card", card: true},
 		},
 		rows: []plainRow{
 			{key: "", word: "editor.plain.name", order: 1, block: "main", show: plainName},
 			{key: "owner", word: "editor.plain.player", order: 2, block: "main"},
 			{key: "group", word: "editor.plain.group", order: 3, block: "main"},
-			{key: "class", word: "editor.plain.kind", order: 4, block: "main"},
-			{key: "tier", word: "editor.plain.tier", order: 5, block: "main"},
-			{key: "npc", order: 6, block: "main"},
+			{key: "identity", word: "editor.plain.who", order: 4, block: "main"},
+			{key: "speaker", order: 5, block: "main"},
+			{key: "keys", order: 6, block: "keys"},
 			{key: "hp", block: "card", show: plainPanel, panel: PanelFieldHealth},
 			{key: "mana", block: "card", show: plainPanel, panel: PanelFieldManaCard},
 			{key: "body", block: "card", show: plainPanel, panel: PanelFieldBody},

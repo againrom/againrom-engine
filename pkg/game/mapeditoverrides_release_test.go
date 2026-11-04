@@ -78,16 +78,21 @@ func (o overrideTyper) text(key, s string) {
 	o.c.click(o.e, r, ok, "Apply")
 }
 
-// choose picks choice v of field key's drop-down and presses Apply.
+// choose picks choice v of field key's drop-down and presses Apply; a row
+// the list does not show is chosen by typing its label.
 func (o overrideTyper) choose(key string, v int64) {
 	o.t.Helper()
 	fields := objectEdits(o.t, o.e).Fields("Unit", o.i)
 	f := fields[fieldIndex(o.t, fields, key)]
 	o.field(key)
 	row := slices.IndexFunc(f.Choices, func(c ui.InspectionChoice) bool { return c.Value == v })
-	r, ok := o.e.DropdownRowRect(row)
-	o.c.click(o.e, r, ok, fmt.Sprintf("%s choice %d", key, v))
-	r, ok = o.e.PopupButtonRect(0)
+	if r, ok := o.e.DropdownRowRect(row); ok || row < 0 {
+		o.c.click(o.e, r, ok, fmt.Sprintf("%s choice %d", key, v))
+	} else {
+		o.e.TextInput(f.Choices[row].Label)
+		_ = o.e.Key("enter")
+	}
+	r, ok := o.e.PopupButtonRect(0)
 	o.c.click(o.e, r, ok, "Apply")
 }
 
@@ -371,29 +376,30 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	host := objectEdits(t, e)
 	fields := host.Fields("Unit", i)
-	npc := int64(-1)
-	for k, choice := range fields[fieldIndex(t, fields, "npc")].Choices {
-		if k >= 10 {
-			break
-		}
-		if choice.Value < 0 {
+	npc, value, tried := int32(-1), int64(0), 0
+	for _, choice := range fields[fieldIndex(t, fields, "identity")].Choices {
+		id, ok := x.identityOf(choice.Value)
+		if !ok || id.Kind != mapload.UnitNamed {
 			continue
 		}
-		if _, _, pic, err := host.UnitSettings(i, []ui.InspectionFieldValue{{Key: "npc", Value: choice.Value}}); err == nil && pic != nil {
-			npc = choice.Value
+		if tried++; tried > 10 {
+			break
+		}
+		if _, _, pic, err := host.UnitSettings(i, []ui.InspectionFieldValue{{Key: "identity", Value: choice.Value}}); err == nil && pic != nil {
+			npc, value = id.NPC, choice.Value
 			break
 		}
 	}
 	if npc < 0 {
-		t.Fatal("no drawable NPC record in the first dropdown window")
+		t.Fatal("no drawable named character among the first ten")
 	}
-	typer.choose("npc", npc)
+	typer.choose("identity", value)
 	e.Select(recordOf(e.Document(), "Unit", i), true)
 	named, err := alm.Open(e.Document().SourceBytes)
-	if err != nil || named.Units[i].Flags&1 == 0 || int64(named.Units[i].ClassSubID) != npc {
-		t.Fatal("NPC dropdown did not write native identity", err)
+	if err != nil || named.Units[i].Flags&1 == 0 || int32(named.Units[i].ClassSubID) != npc {
+		t.Fatal("the identity choice did not write the named character", err)
 	}
-	fieldShot(e, i, "npc", "human-npc-record-doll")
+	fieldShot(e, i, "identity", "human-npc-record-doll")
 	_ = e.Key("undo")
 	if !bytes.Equal(beforeLook, e.Document().SourceBytes) {
 		t.Fatal("NPC Undo changed unrelated native bytes")

@@ -119,9 +119,9 @@ func TestMapEditorCommandsMatchTheWindowRoutes(t *testing.T) {
 				return []commandCall{{"move_record", recordArgs(e, 0, map[string]any{"x": 13, "y": 14})}}
 			}},
 		{"add unit", authoring, func(t *testing.T, e *ui.MapEditor) {
-			addWindow(t, e, "unit", map[string]string{"class": "40", "cell": "9,10"})
+			addWindow(t, e, "unit", map[string]string{"identity": "1", "cell": "9,10"})
 		}, func(t *testing.T, e *ui.MapEditor) []commandCall {
-			return []commandCall{{"add_record", map[string]any{"kind": "Unit", "x": 9, "y": 10, "values": map[string]any{"class": 40}}}}
+			return []commandCall{{"add_record", map[string]any{"kind": "Unit", "x": 9, "y": 10, "values": map[string]any{"identity": 1}}}}
 		}},
 		{"add structure", built, func(t *testing.T, e *ui.MapEditor) {
 			addWindow(t, e, "structure", map[string]string{"kind": "5", "cell": "10,12"})
@@ -357,7 +357,7 @@ func TestMapEditorMCPBuildsAPlayableMapFromEmpty(t *testing.T) {
 			Choices []ui.InspectionChoice
 		}
 	}
-	if err := json.Unmarshal([]byte(must("add_steps", map[string]any{"kind": "Unit", "x": 12, "y": 12, "values": map[string]any{"class": 40}}).Content[0].Text), &steps); err != nil {
+	if err := json.Unmarshal([]byte(must("add_steps", map[string]any{"kind": "Unit", "x": 12, "y": 12, "values": map[string]any{"identity": 1}}).Content[0].Text), &steps); err != nil {
 		t.Fatal(err)
 	}
 	var owners []ui.InspectionChoice
@@ -371,8 +371,8 @@ func TestMapEditorMCPBuildsAPlayableMapFromEmpty(t *testing.T) {
 	}
 	a, b := owners[0].Value, owners[len(owners)-1].Value
 	for _, add := range []map[string]any{
-		{"kind": "Unit", "x": 12, "y": 12, "values": map[string]any{"class": 40, "owner": a}},
-		{"kind": "Unit", "x": 20, "y": 20, "values": map[string]any{"class": 40, "owner": b}},
+		{"kind": "Unit", "x": 12, "y": 12, "values": map[string]any{"identity": 1, "owner": a}},
+		{"kind": "Unit", "x": 20, "y": 20, "values": map[string]any{"identity": 1, "owner": b}},
 		{"kind": "Structure", "x": 10, "y": 17, "values": map[string]any{"kind": 5, "owner": a}},
 		{"kind": "Structure", "x": 21, "y": 12, "values": map[string]any{"kind": 1, "owner": b}},
 	} {

@@ -3,7 +3,6 @@ package game
 import (
 	"errors"
 	"fmt"
-	"image"
 	"io/fs"
 	"math"
 	"os"
@@ -129,14 +128,6 @@ func (x *MapInspector) WriteNewMap(source, path string) (string, []ui.Inspection
 // newUnitFraction is the position within its cell a new unit's words carry,
 // the cell's centre as a new sack's.
 const newUnitFraction = 128
-
-// AddUnit places a new unit of the class key on cell, owned by the map's
-// second roster slot when it has one and the first otherwise, as one edit
-// (DIV-3209). The class is checked against the installed tables as a field
-// edit's is.
-func (s *mapInspectionEdits) AddUnit(cell image.Point, class int64) (*ui.InspectionDocument, error) {
-	return s.AddUnitTier(cell, class, 0)
-}
 
 // secondaryKey is the secondary key of the first installed definition row that
 // has the class key, so a new unit resolves to a definition (DIV-3209). A key

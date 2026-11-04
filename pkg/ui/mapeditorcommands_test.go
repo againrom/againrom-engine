@@ -134,9 +134,8 @@ func TestEditorCommandToolsRefuseBadArgumentsAndKeepTheMap(t *testing.T) {
 	}
 }
 
-// walkHost offers a tier only to class 2, one cast kind and no range, so
-// the walk asks some optional steps and leaves others out, and keeps each
-// record it is asked to add.
+// walkHost offers one cast kind and no range, so the walk leaves those
+// optional steps out, and keeps each record it is asked to add.
 type walkHost struct {
 	*modesFull
 	added []InspectionNewRecord
@@ -144,13 +143,6 @@ type walkHost struct {
 
 func (h *walkHost) NewRecordStep(r InspectionNewRecord, key string) InspectionNewStep {
 	switch key {
-	case "tier":
-		for _, v := range r.Values {
-			if v.Key == "class" && v.Value == 2 {
-				return InspectionNewStep{Choices: []InspectionChoice{{Value: 1, Label: "Tier 1"}, {Value: 2, Label: "Tier 2"}}, Value: 1}
-			}
-		}
-		return InspectionNewStep{}
 	case "castkind":
 		return InspectionNewStep{Choices: []InspectionChoice{{Value: 4, Label: "Only"}}, Value: 4}
 	case "range":
@@ -182,7 +174,7 @@ func TestEditorAddRecordCommandBuildsTheAddWindowsRecord(t *testing.T) {
 		kind   string
 		values map[string]any
 	}{
-		{"Unit", nil}, {"Unit", map[string]any{"class": 2, "tier": 2, "owner": 2}},
+		{"Unit", nil}, {"Unit", map[string]any{"identity": 2, "owner": 2}},
 		{"Structure", nil}, {"Structure", map[string]any{"kind": 2, "owner": 2}},
 		{"Sack", nil}, {"Sack", map[string]any{"item": []int{2, 1}}},
 		{"Player", nil}, {"Player", map[string]any{"name": "Rivals", "colour": 4, "control": 2}},

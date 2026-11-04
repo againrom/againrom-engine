@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -48,7 +49,7 @@ func (e *MapEditor) placeGridKind() (kind RecordKind, key string, ok bool) {
 	}
 	switch e.filter {
 	case 1:
-		return KindUnit, "class", true
+		return KindUnit, "identity", true
 	case 2:
 		return KindStructure, "kind", true
 	}
@@ -82,7 +83,12 @@ func (e *MapEditor) placeChoices(kind RecordKind, key string) []InspectionChoice
 	if e.place.doc != e.doc || e.place.kind != kind {
 		step := host.NewRecordStep(InspectionNewRecord{Kind: kind}, key)
 		e.place.doc, e.place.kind = e.doc, kind
-		e.place.choices, e.place.palettes = step.Choices, step.Palettes
+		e.place.choices, e.place.palettes = nil, step.Palettes
+		for _, c := range step.Choices {
+			if !slices.Contains(step.Shut, c.Value) {
+				e.place.choices = append(e.place.choices, c)
+			}
+		}
 	}
 	return e.place.choices
 }

@@ -289,7 +289,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 	r, ok := e.RowButtonRect(2, 0, false)
 	trigClick(t, e, r, ok, "Edit pair 1 left")
 	got := trigLines(e)
-	for _, want := range []string{"Operation", "Unit near cell", "Parameters", "Unit 10", "Cell 5,6", "Radius 2"} {
+	for _, want := range []string{"Operation", "Unit near cell", "Parameters", "unit 10 at 12,14", "Cell 5,6", "Radius 2"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("the condition popup lacks %q:\n%s", want, got)
 		}
@@ -315,7 +315,7 @@ func TestNodePopupEditsByMeaningAndWritesTheFieldCallBytes(t *testing.T) {
 
 	// A new operation brings its parameters: unit alive keeps the unit.
 	trigChoose(t, e, 1, "Unit alive")
-	if got := trigLines(e); strings.Contains(got, "Radius") || !strings.Contains(got, "Unit 13") {
+	if got := trigLines(e); strings.Contains(got, "Radius") || !strings.Contains(got, "unit 13 at 21,14") {
 		t.Fatalf("the operation's parameters:\n%s", got)
 	}
 	r, ok = e.PopupButtonRect(0)

@@ -168,30 +168,31 @@ func (u *unitTemplateView) stock() (int, error) {
 	return u.model.UnitStock(u.index)
 }
 
+// unitKeyFields are the unit record's map keys the identity field writes:
+// the class and secondary keys, the definition id and the npc flag. On a
+// class-key table no other edit writes them.
+var unitKeyFields = map[string]bool{"class": true, "tier": true, "definition": true, "npc": true, "npcflag": true}
+
 // label is the unit popup's label for field f. offered is false for a field
-// the placement does not take.
+// the placement does not take, and for the unit's map keys, which the
+// identity field writes.
 func (u *unitTemplateView) label(f mapedit.Field) (label string, offered bool) {
 	if u == nil {
 		return "", true
+	}
+	if unitKeyFields[f.Key] {
+		return "", false
 	}
 	x := u.s.inspector
 	switch f.Key {
 	case "owner":
 		return x.word("editor.unit.field.owner"), true
-	case "class":
-		return x.word("editor.unit.field.class"), true
-	case "definition":
-		return x.word("editor.unit.field.definition"), true
 	case "group":
 		return x.word("editor.unit.field.group"), true
 	case "face":
 		return x.word("editor.unit.field.face"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
 	case "sex":
 		return x.word("editor.unit.field.sex"), x.table.ClassPlacementFields() && gearOffered(u.m.Units[u.index], x.table)
-	case "npcflag":
-		return "", false
-	case "npc":
-		return x.word("editor.unit.field.npc"), x.table.ClassPlacementFields() && len(x.table.NPCCatalog.Records()) > 0 && mapload.Resolve(u.m.Units[u.index], x.table).Arm != mapload.ArmUnits
 	}
 	if f.Check == mapedit.CheckUnitGear {
 		return x.overrideName(f.Key), gearOffered(u.m.Units[u.index], x.table)

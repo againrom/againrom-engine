@@ -5,6 +5,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -139,19 +140,24 @@ func TestMapEditorDeletesTheSelectedUnit(t *testing.T) {
 	}
 }
 
+// The E prompt sets who the unit is (refusing a row the tables lack), its
+// owner and its hit points, each one Undo step.
 func TestMapEditorSetsUnitFieldsWithChecks(t *testing.T) {
 	b, e := openAuthoring(t)
 	e.Select(1, true)
+	person := func(row int) string {
+		return strconv.FormatInt(identityChoiceValue(mapload.Identity{Kind: mapload.UnitPerson, Row: row}), 10)
+	}
 	steps := []struct {
 		field  int
 		refuse string
 		accept string
 		check  func(alm.Unit) bool
 	}{
-		{0, "2", "1", func(u alm.Unit) bool { return u.Owner == 1 }},
-		{1, "42", "41", func(u alm.Unit) bool { return u.ClassID == 41 }},
-		{2, "999", "1234", func(u alm.Unit) bool { return u.DefID == 1234 }},
-		{3, "40000", "15", func(u alm.Unit) bool { return u.HasCurrentHP && u.CurrentHP == 15 }},
+		{0, "7", "2", func(u alm.Unit) bool { return u.ClassID == 41 && u.ClassSubID == 2 }},
+		{1, "2", "1", func(u alm.Unit) bool { return u.Owner == 1 }},
+		{2, "40000", "15", func(u alm.Unit) bool { return u.HasCurrentHP && u.CurrentHP == 15 }},
+		{0, person(7), person(1), func(u alm.Unit) bool { return u.ClassID == 5 && u.DefID == 1234 && u.Flags&1 == 0 }},
 	}
 	history := [][]byte{b}
 	for _, s := range steps {

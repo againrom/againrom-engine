@@ -44,13 +44,14 @@ func (h *viewsHost) SaveAs(string) (string, error)                       { retur
 
 func (h *viewsHost) value(kind RecordKind, key string) int64 { return h.values[string(kind)+"/"+key] }
 
+// viewsIdentities are the fixture unit's identity choices.
+var viewsIdentities = []InspectionChoice{{300, "300: Fighter"}, {301, "301: Archer"}}
+
 // viewsChoices are a field's choices by key shape.
 func viewsChoices(key string) []InspectionChoice {
 	switch {
 	case key == "owner":
 		return []InspectionChoice{{1, "Self"}, {2, "Enemy"}}
-	case key == "class":
-		return []InspectionChoice{{300, "300: Fighter"}, {301, "301: Archer"}}
 	case key == "kind":
 		return []InspectionChoice{{51, "51: Hall"}, {52, "52: Tower"}}
 	case key == "wear1" || key == "wear2" || key == "carry1":
@@ -75,11 +76,11 @@ func (h *viewsHost) Fields(kind RecordKind, index int) []InspectionField {
 		material.Parent = "wear1"
 		recipe := field("wearrecipe1", "Slot 1 recipe", "equipment")
 		recipe.Parent = "wear1"
+		identity := field("identity", "Who it is", "identity")
+		identity.Choices = viewsIdentities
 		return []InspectionField{
+			identity,
 			field("owner", "Owner slot", "identity"),
-			field("class", "Class", "identity"),
-			field("tier", "Tier", "identity"),
-			field("definition", "Definition id", "identity"),
 			field("group", "Group", "identity"),
 			field("face", "Face", "identity"),
 			field("sex", "Sex", "identity"),
@@ -96,6 +97,8 @@ func (h *viewsHost) Fields(kind RecordKind, index int) []InspectionField {
 			field("carry1", "Carried item 1", "inventory"),
 			field("carryadd", "Add carried item", "inventory"),
 			{Key: "holdings", ReadOnly: true, Section: "inventory", Lines: []InspectionLine{{Text: "Corpse: Sword"}}},
+			{Key: "speaker", Label: "In a dialogue", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "In a dialogue"}, {Text: "A mission-start dialogue does not show it."}}},
+			{Key: "keys", Label: "Map keys", ReadOnly: true, Section: "identity", Lines: []InspectionLine{{Text: "Map keys"}, {Text: "Class key: 300"}}},
 		}
 	case KindStructure:
 		return []InspectionField{
@@ -199,7 +202,7 @@ func viewsDocument(h *viewsHost) *InspectionDocument {
 func viewsEditor(t *testing.T, lang string) (*MapEditor, *viewsHost) {
 	t.Helper()
 	h := &viewsHost{values: map[string]int64{
-		"Unit/owner": 1, "Unit/class": 300, "Unit/tier": 1, "Unit/definition": 1234, "Unit/group": 2, "Unit/face": 7, "Unit/sex": 0,
+		"Unit/owner": 1, "Unit/identity": 300, "Unit/group": 2, "Unit/face": 7, "Unit/sex": 0,
 		"Unit/hp": 40, "Unit/mana": 0, "Unit/body": 12, "Unit/wear1": 0x101, "Unit/wear2": -1, "Unit/carry1": 0x102,
 		"Structure/kind": 51, "Structure/owner": 1, "Structure/identity": 3, "Structure/placement": 5,
 		"Sack/gold": 30, "Sack/item1": 0x101, "Sack/item2": 0x102, "Sack/recipe1": 1,

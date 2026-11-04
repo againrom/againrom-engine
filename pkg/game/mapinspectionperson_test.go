@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"againrom/pkg/mapedit"
+	"againrom/pkg/mapload"
 	"againrom/pkg/ui"
 )
 
@@ -16,6 +17,10 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 	for _, size := range []image.Point{{1280, 800}, {800, 600}, {640, 480}} {
 		t.Run(size.String(), func(t *testing.T) {
 			f, s, raw := nativeInventoryEditor(t)
+			courier := figureRow(3, 7, 0)
+			courier[24] = 4321
+			f.Table.Humans.(dbCollection)[2] = dbEntry{name: "Courier", params: courier}
+			s.unitViews, s.inspector.recordOptions = nil, nil
 			doc, err := s.project(s.model)
 			if err != nil {
 				t.Fatal(err)
@@ -90,7 +95,7 @@ func TestEditorPersonWindowNativeDraftSaveAndColdLoad(t *testing.T) {
 			e.Select(recordOf(doc, "Unit", 0), false)
 			choose("face", 7)
 			choose("sex", 0)
-			choose("definition", 4321)
+			choose("identity", identityChoiceValue(mapload.Identity{Kind: mapload.UnitPerson, Row: 2}))
 			choose("wear1", 0x102)
 			choose("wearmaterial1", 1)
 			choose("weartier1", 1)
