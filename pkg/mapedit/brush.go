@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/binary"
 	"fmt"
+	"image"
 	"math"
 	"slices"
 
@@ -19,6 +20,7 @@ const (
 	PlaneHeight                      // type 2, one height byte per cell
 	PlaneObject                      // type 3, one static-object class code per cell
 	PlaneImpassable                  // type 1, bit 13 of each tile word alone
+	PlaneStructure
 )
 
 // BrushShape names the cells a brush covers around a centre.
@@ -75,7 +77,8 @@ type Brush struct {
 	Relative bool
 	// Once, on the height plane without Set, adds the change to each cell
 	// the stroke covers once, however many centres cover it.
-	Once bool
+	Once       bool
+	Rectangles RectangleBrush
 }
 
 // Scatter is the forest form of an object stroke. Each covered cell is drawn
@@ -139,6 +142,16 @@ func (b Brush) effective() Brush {
 func (b Brush) walk(c Cell, w, h int, fn func(x, y, d2 int)) {
 	b = b.effective()
 	r := b.Radius
+	if b.Plane == PlaneStructure {
+		size := image.Pt(max(2*r+1, b.Rectangles.Minimum.X), max(2*r+1, b.Rectangles.Minimum.Y))
+		x0, y0 := max(0, min(c.X-size.X/2, w-size.X)), max(0, min(c.Y-(size.Y-1)/2, h-size.Y))
+		for y := y0; y < min(h, y0+size.Y); y++ {
+			for x := x0; x < min(w, x0+size.X); x++ {
+				fn(x, y, 0)
+			}
+		}
+		return
+	}
 	for dy := -r; dy <= r; dy++ {
 		for dx := -r; dx <= r; dx++ {
 			d2 := dx*dx + dy*dy
@@ -236,6 +249,11 @@ func (e *Editor) Paint(b Brush, at []Cell, class func(uint16) uint8) (bool, erro
 	case PlaneImpassable:
 		var err error
 		if ed, err = e.impassableStroke(f, b, at, w, h); err != nil {
+			return false, err
+		}
+	case PlaneStructure:
+		var err error
+		if ed, err = e.rectangleStroke(b, at, w, h); err != nil {
 			return false, err
 		}
 	default:

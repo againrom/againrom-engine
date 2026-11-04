@@ -4084,5 +4084,8 @@ var Committed = Baseline{
 	// It rises for the second game's structure +4 key: secondStructureKey and
 	// its holder rows in pkg/game/savform.go, and the tests in
 	// secondstructureid_test.go and secondoriginalfile_test.go.
-	CommentBytes: 10537210,
+	// Rectangle brush policy and cover docs in pkg/mapedit/rectanglebrush.go.
+
+	// Disjoint rectangle cover and host-resolved structure fences.
+	CommentBytes: 10537925,
 }

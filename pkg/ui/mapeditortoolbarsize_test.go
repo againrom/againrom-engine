@@ -9,10 +9,10 @@ import (
 )
 
 // dockedToolbarHigh is the docked toolbar row's height in a window width
-// pixels wide: 36-pixel buttons where the 744-pixel row fits, else 22-pixel
+// pixels wide: 36-pixel buttons where the 782-pixel row fits, else 22-pixel
 // ones, with 3 pixels above and below them.
 func dockedToolbarHigh(width int) int {
-	if width >= 744 {
+	if width >= 782 {
 		return 42
 	}
 	return 28
@@ -39,6 +39,7 @@ var toolbarFloatGrid = map[string]image.Point{
 	"border": {0, 0}, "areas": {0, 1}, "drops": {0, 2}, "footprints": {0, 3}, "issues": {0, 4}, "heightlabels": {0, 5},
 	"passview": {0, 6}, "playertint": {0, 7}, "grid": {0, 8}, "fit": {0, 9}, "report": {0, 10}, "objectspanel": {0, 11}, "propertiespanel": {0, 12},
 	"select": {1, 0}, "brush.terrain": {1, 1}, "brush.height": {1, 2}, "brush.objects": {1, 3}, "brush.passability": {1, 4}, "drawarea": {1, 5},
+	"brush.bridge": {1, 6},
 }
 
 // scaledIconMiss is the first inked pixel of icon ic that pic does not show
@@ -132,7 +133,7 @@ func TestMapEditorToolbarDrawsIconsAtTwiceTheirSize(t *testing.T) {
 
 // At 640x480, in English and in Russian, the docked row takes today's
 // 22-pixel buttons: each lies whole inside the window, none overlaps another
-// and the groups stand apart. The larger buttons start at 744 pixels wide.
+// and the groups stand apart. The larger buttons start at 782 pixels wide.
 func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 	for _, lang := range []string{"", "russian"} {
 		e, _, _ := panelsEditor(t, 640, 480, lang)
@@ -157,7 +158,7 @@ func TestMapEditorToolbarTakesTodaysSizeWhereTheLargerDoesNotFit(t *testing.T) {
 		if right.Min.X < left.Max.X+toolGroupGap {
 			t.Errorf("%q: the groups %v and %v stand closer than %d", lang, left, right, toolGroupGap)
 		}
-		for _, c := range []struct{ width, side int }{{743, 22}, {744, 36}} {
+		for _, c := range []struct{ width, side int }{{781, 22}, {782, 36}} {
 			e.Layout(c.width, 600)
 			if r, _ := e.ToolbarRect("select"); r.Dx() != c.side || e.toolbarRect().Dy() != dockedToolbarHigh(c.width) {
 				t.Errorf("%q: at %d wide select is %v in a row %d high, want side %d", lang, c.width, r, e.toolbarRect().Dy(), c.side)

@@ -199,6 +199,7 @@ func TestMapEditorEveryKeyTheHelpNamesActs(t *testing.T) {
 		screenHeight:      {"height"},
 		screenObjects:     {"objects"},
 		screenPassability: {"passability"},
+		screenBridge:      {"bridge"},
 		screenPlayers:     {"players"},
 		screenPrompt:      {"ui:select0", "field"},
 		screenMove:        {"ui:select0", "ui:pick-move"},

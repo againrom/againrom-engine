@@ -26,7 +26,8 @@ const (
 	screenHeight                        // the height brush
 	screenObjects                       // the objects brush
 	screenPassability                   // the passability brush
-	screenPlayers                       // the roster list
+	screenBridge
+	screenPlayers // the roster list
 	screenPrompt
 	screenMove
 	screenAdd       // the Add window
@@ -134,7 +135,8 @@ var (
 
 func init() {
 	keys := func(line helpLine) []helpEntry { return []helpEntry{{screenKeys, line}} }
-	brushes := []helpEntry{{screenTerrain, lineTerrain}, {screenHeight, lineHeight}, {screenObjects, lineObjects}, {screenPassability, linePassBrush}}
+	bridgeLine := helpLine{Word: "editor.keys.bridge"}
+	brushes := []helpEntry{{screenTerrain, lineTerrain}, {screenHeight, lineHeight}, {screenObjects, lineObjects}, {screenPassability, linePassBrush}, {screenBridge, bridgeLine}}
 	editorKeyRows = []keyRow{
 		{key: "enter", label: "Enter", live: promptHears, act: (*MapEditor).keyEnter, help: []helpEntry{{screenGoals, lineTarget}, {screenPrompt, linePrompt}, {screenAdd, lineAddNext}}},
 		{key: "clone", label: "C", act: (*MapEditor).recordKey, help: keys(lineMove)},
@@ -151,6 +153,8 @@ func init() {
 		{key: "height", label: "H", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenHeight, lineHeight}}},
 		{key: "objects", label: "B", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, lineBrush}, {screenObjects, lineObjects}}},
 		{key: "passability", label: "Q", act: (*MapEditor).brushKeyRow, help: []helpEntry{{screenKeys, linePassability}, {screenPassability, linePassBrush}}},
+		{key: "bridge", act: (*MapEditor).brushKeyRow, unlisted: "Tools menu and toolbar"},
+		{label: "Drag", help: []helpEntry{{screenBridge, bridgeLine}}},
 		{key: "radiusdown", label: "[", act: (*MapEditor).brushKeyRow, help: brushes},
 		{key: "radiusup", label: "]", act: (*MapEditor).brushKeyRow, help: brushes},
 		{key: "new", label: "N", act: (*MapEditor).keyNew, help: keys(lineNew)},
@@ -308,7 +312,7 @@ func (e *MapEditor) allHelpLines() []string {
 }
 
 // brushScreens is the help screen of each brush mode.
-var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects, brushPassability: screenPassability}
+var brushScreens = map[brushMode]helpScreen{brushTerrain: screenTerrain, brushHeight: screenHeight, brushObjects: screenObjects, brushPassability: screenPassability, brushBridge: screenBridge}
 
 // pickScreens is the help screen of each armed pick.
 var pickScreens = map[pickKind]helpScreen{pickClone: screenClone, pickDrop: screenDrop, pickGoal: screenGoal, pickMove: screenMove, pickAddCell: screenAddCell}

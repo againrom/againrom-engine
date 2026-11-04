@@ -96,6 +96,7 @@ func init() {
 		{key: brushMenuKeys[brushHeight], icon: &iconHeight, word: "editor.tool.height", keyRow: "height", kind: toolPick, cell: image.Pt(1, 2), off: noBrush, menu: "tools"},
 		{key: brushMenuKeys[brushObjects], icon: &iconObjects, word: "editor.tool.objects", keyRow: "objects", kind: toolPick, cell: image.Pt(1, 3), off: noBrush, menu: "tools"},
 		{key: brushMenuKeys[brushPassability], icon: &iconPassability, word: "editor.tool.passability", keyRow: "passability", kind: toolPick, cell: image.Pt(1, 4), off: noBrush, menu: "tools"},
+		{key: brushMenuKeys[brushBridge], icon: &iconBridge, word: "editor.tool.bridge", kind: toolPick, cell: image.Pt(1, 6), off: noBrush, menu: "tools"},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, cell: image.Pt(1, 5), off: func(e *MapEditor) bool { return !e.editable() }, menu: "tools"},
 		{key: "newtrigger", word: "editor.tool.newtrigger", keyRow: "newtrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.triggerNowOpen() }, menu: "tools"},
 		{key: "traparea", word: "editor.cast.area", kind: toolPick, off: noEdit, menu: "tools"},

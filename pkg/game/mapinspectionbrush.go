@@ -130,6 +130,10 @@ var brushPlanes = map[ui.BrushPlane]mapedit.Brush{
 	ui.BrushPlaneHeight:      {Plane: mapedit.PlaneHeight, Falloff: mapedit.FalloffCosine},
 	ui.BrushPlaneObjects:     {Plane: mapedit.PlaneObject},
 	ui.BrushPlanePassability: {Plane: mapedit.PlaneImpassable},
+	ui.BrushPlaneBridge: {Plane: mapedit.PlaneStructure, Rectangles: mapedit.RectangleBrush{
+		Kind: alm.ObjectExtKind, Owner: 1, Minimum: image.Pt(3, 2), MaxSpan: 255,
+		Delete: func(m *mapedit.Editor, i int) error { return deleteObject(m, mapedit.KindStructure, i) },
+	}},
 }
 
 // paintStroke runs a window stroke on the model as one brush of its plane. A
@@ -151,6 +155,15 @@ func paintStroke(m *mapedit.Editor, op ui.BrushStroke, table *mapload.Table) (bo
 		case ui.HeightModeLevel:
 			b.Set, b.Flat, b.Relative = true, true, true
 		}
+	}
+	if op.Plane == ui.BrushPlaneBridge {
+		doc, err := m.Map()
+		if err != nil {
+			return false, err
+		}
+		other := *doc
+		other.Objects = slices.DeleteFunc(slices.Clone(doc.Objects), func(o alm.Object) bool { return o.Kind == b.Rectangles.Kind })
+		b.Rectangles.Fenced = mapload.StructureCells(&other, table)
 	}
 	if op.Plane == ui.BrushPlaneObjects && len(op.Forest.Kinds) > 0 {
 		var fenced []bool
@@ -220,7 +233,8 @@ func strokeCells(op ui.BrushStroke) []mapedit.Cell {
 // model's own brush walk, so the marker shows what Paint writes.
 func (s *mapInspectionEdits) BrushCells(op ui.BrushStroke) []image.Point {
 	w, h := s.model.GridSize()
-	b := mapedit.Brush{Plane: brushPlanes[op.Plane].Plane, Radius: op.Radius, Shape: brushShapes[op.Shape], Set: op.Set, Flat: op.Flat}
+	b := brushPlanes[op.Plane]
+	b.Radius, b.Shape, b.Set, b.Flat = op.Radius, brushShapes[op.Shape], op.Set, op.Flat
 	var out []image.Point
 	for _, c := range b.Footprint(strokeCells(op), w, h) {
 		out = append(out, image.Pt(c.X, c.Y))

@@ -36,6 +36,7 @@ const (
 	BrushPlaneHeight
 	BrushPlaneObjects
 	BrushPlanePassability
+	BrushPlaneBridge
 )
 
 // BrushShape names the cells a brush covers around each centre.
@@ -128,6 +129,7 @@ const (
 	brushHeight
 	brushObjects
 	brushPassability
+	brushBridge
 	brushModeCount
 )
 
@@ -141,7 +143,7 @@ const (
 )
 
 // brushKeyModes is the brush mode each brush key switches.
-var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability}
+var brushKeyModes = map[string]brushMode{"terrain": brushTerrain, "height": brushHeight, "objects": brushObjects, "passability": brushPassability, "bridge": brushBridge}
 
 // brushModeWord is the word the list title gives mode.
 func (e *MapEditor) brushModeWord(mode brushMode) string {
@@ -154,6 +156,8 @@ func (e *MapEditor) brushModeWord(mode brushMode) string {
 		return e.word("editor.brush.objects")
 	case brushPassability:
 		return e.word("editor.brush.passability")
+	case brushBridge:
+		return e.word("editor.brush.bridge")
 	}
 	return ""
 }
@@ -278,6 +282,8 @@ func (e *MapEditor) brushActive() bool {
 
 func (e *MapEditor) brushRows() []string {
 	switch e.brush.mode {
+	case brushBridge:
+		return []string{e.word("editor.brush.bridge.hint")}
 	case brushTerrain:
 		var rows []string
 		if h := e.brushHost(); h != nil {
@@ -399,6 +405,9 @@ func (e *MapEditor) brushPopupRows() []popupRow {
 		{Kind: popupText, Label: e.word("editor.brush.shape"), Value: e.brushShapeWord(e.brush.shape),
 			Buttons: []string{e.brushShapeWord(BrushCircle), e.brushShapeWord(BrushSquare)}},
 	}
+	if e.brush.mode == brushBridge {
+		rows[1] = popupRow{Kind: popupText, Value: e.word("editor.brush.bridge.floor")}
+	}
 	if e.brush.mode == brushHeight {
 		rows = append(rows, popupRow{Kind: popupText, Label: e.word("editor.brush.strength"), Value: fmt.Sprint(e.brushStrength()), Buttons: []string{"-", "+"}})
 	}
@@ -502,7 +511,7 @@ func (e *MapEditor) brushRowButton(row, k int) {
 // mode on or off, the bracket keys set the radius, Up and Down choose the row.
 func (e *MapEditor) brushKey(key string) bool {
 	switch key {
-	case "terrain", "height", "objects", "passability":
+	case "terrain", "height", "objects", "passability", "bridge":
 		mode := brushKeyModes[key]
 		if e.brushHost() == nil || e.catalog {
 			return true
@@ -655,7 +664,7 @@ func (e *MapEditor) brushPointer(in Input, p image.Point, rail int) bool {
 		}
 		return true
 	}
-	thin := e.forestOn() && in.SecondaryDown && !rightWas && !in.PrimaryDown
+	thin := e.brushErases() && in.SecondaryDown && !rightWas && !in.PrimaryDown
 	if (in.PrimaryDown && !e.down || thin) && on {
 		e.down = in.PrimaryDown
 		e.brush.down = true
@@ -702,6 +711,11 @@ func (e *MapEditor) brushCommit() {
 	op := BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: cells}
 	sel := e.brush.sel[e.brush.mode]
 	switch e.brush.mode {
+	case brushBridge:
+		op.Plane, op.Value = BrushPlaneBridge, 1
+		if thin {
+			op.Value = 0
+		}
 	case brushHeight:
 		op.Plane = BrushPlaneHeight
 		switch {
@@ -844,6 +858,9 @@ func (e *MapEditor) brushMarkerLines() []editorLine {
 		centres = []image.Point{e.brush.hover}
 	}
 	marker := BrushStroke{Radius: e.brushRadius(), Shape: e.brush.shape, Cells: centres}
+	if e.brush.mode == brushBridge {
+		marker.Plane = BrushPlaneBridge
+	}
 	if e.settingHeight() || e.samplingHeight() {
 		marker.Plane, marker.Set, marker.Flat = BrushPlaneHeight, true, e.samplingHeight()
 	}

@@ -445,7 +445,7 @@ func (e *MapEditor) Pointer(in Input, now time.Time) {
 	}
 	// A right press clears the brush as Esc does; in Forest mode the right
 	// button thins instead.
-	if in.SecondaryDown && e.brushActive() && !e.forestOn() && !e.brush.down {
+	if in.SecondaryDown && e.brushActive() && !e.brushErases() && !e.brush.down {
 		if e.listKind() == "brush" {
 			e.cancelPopup(popList)
 		} else {

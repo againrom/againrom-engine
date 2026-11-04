@@ -33,6 +33,7 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The map editor's Bridge tool paints wooden bridges with a left drag and erases them with a right drag, joining the bridges the stroke meets into one shape of bridges; each stroke undoes in one step, and pieces smaller than 3 by 2 cells are removed.
 - [BASE] The Magic Symbol (Магический символ in the Russian editor) is listed in the map editor's Objects palette, not in Structures; its picture, placement and map data are unchanged.
 - [BASE] A wooden bridge placed in the map editor now spans a 3 by 3 area that stays open to walkers, as the bridges of the installed maps do; before, it was one closed cell. Its width and height fields resize it.
 - [BASE] The map editor no longer lists the Horizontal Wooden Bridge among the structures you can place; no installed map uses it and the map format cannot size it. A map that already holds one still opens and saves unchanged.

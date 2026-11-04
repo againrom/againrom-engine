@@ -27,7 +27,7 @@ var tableMenus = []string{"file", "tools", "view", "window"}
 // menuRowKeys are each table menu's row keys in order, "" for a heading.
 var menuRowKeys = map[string][]string{
 	"file":   mapRowKeys,
-	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea", "newtrigger", "traparea", "", "randomterrain", "randomheights"},
+	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge", "drawarea", "newtrigger", "traparea", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
 	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel"},
 }

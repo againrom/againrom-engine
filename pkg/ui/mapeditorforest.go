@@ -51,6 +51,10 @@ func (e *MapEditor) forestOn() bool {
 	return e.brush.mode == brushObjects && e.brush.forest.on
 }
 
+func (e *MapEditor) brushErases() bool {
+	return e.forestOn() || e.brush.mode == brushBridge
+}
+
 // forestShare is the share a forest stroke takes.
 func (e *MapEditor) forestShare() int {
 	if s := e.brush.forest.share; s >= 1 && s <= 100 {

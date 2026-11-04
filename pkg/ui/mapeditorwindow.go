@@ -438,7 +438,7 @@ func (e *MapEditor) menuItems(menu string) []menuItem {
 }
 
 // brushMenuKeys is the row key of each brush mode: its toolbar button's.
-var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability"}
+var brushMenuKeys = map[brushMode]string{brushTerrain: "brush.terrain", brushHeight: "brush.height", brushObjects: "brush.objects", brushPassability: "brush.passability", brushBridge: "brush.bridge"}
 
 // menuDropdown is the open menu as a drop-down anchored on its bar entry,
 // whose list ends inside the window and is wide enough for its longest row;
@@ -562,7 +562,7 @@ func (e *MapEditor) menuAct(key string) {
 		e.view.passability = !e.view.passability
 	case "border":
 		e.view.hideBorder = !e.view.hideBorder
-	case "brush.terrain", "brush.height", "brush.objects", "brush.passability":
+	case "brush.terrain", "brush.height", "brush.objects", "brush.passability", "brush.bridge":
 		for mode, k := range brushMenuKeys {
 			if k == key {
 				e.chooseBrush(mode)
