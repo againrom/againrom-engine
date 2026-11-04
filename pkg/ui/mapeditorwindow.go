@@ -573,7 +573,7 @@ func (e *MapEditor) menuAct(key string) {
 	case "toolbar":
 		e.toggleToolbar()
 	case "select":
-		if e.pick == pickArea {
+		if e.pick == pickArea || e.pick == pickTrapArea {
 			e.leave(leavePick)
 		}
 		e.chooseBrush(brushOff)
@@ -813,6 +813,8 @@ func (e *MapEditor) listTitle(kind string) string {
 		return e.word("editor.list.scripts")
 	case editorGroupsFilter:
 		return e.word("editor.bar.groups")
+	case editorCellSpellsFilter:
+		return e.word("editor.cast.palette")
 	}
 	return e.word("editor.list.records")
 }
@@ -890,7 +892,7 @@ func (e *MapEditor) listSpecBase() (popupSpec, bool) {
 	// New trigger.
 	palette := e.paletteShown()
 	var m *Picker
-	if !palette || e.filter == editorScriptsFilter {
+	if !palette || e.paletteListsRecords() {
 		m = e.syncList(kind, e.listWindow())
 	}
 	s := popupSpec{Title: e.listTitle(kind), At: e.placedCorner(popList, homeListMap), Width: e.popupWide(popList, 400), Bounds: e.popupBounds(), Room: e.mapArea(), List: m, ListRows: e.listWindow(), NoteInk: editorPaper}
@@ -1025,6 +1027,12 @@ func (e *MapEditor) dockedNoteWidth() int {
 // the Scenario list the drop zone tool's switch, then Add where the list adds.
 func (e *MapEditor) listButtons() []menuItem {
 	var out []menuItem
+	if e.filter == editorCellSpellsFilter {
+		out = append(out, menuItem{key: "traparea", label: e.word("editor.cast.area")})
+		if e.selected >= 0 && e.selected < len(e.doc.Records) && e.doc.Records[e.selected].SetSize > 0 {
+			out = append(out, menuItem{key: "delete", label: e.word("editor.cast.removeset")})
+		}
+	}
 	if _, ok := e.script(); ok && e.listKind() == "records" && e.filter == editorScriptsFilter {
 		out = append(out, menuItem{key: "drop", label: markWord(e.pick == pickDrop, e.word("editor.tools.dropzones"))})
 	}
@@ -1509,6 +1517,7 @@ func (e *MapEditor) chromeCompose(fade bool) *image.RGBA {
 		f.Draw(pic.SubImage(status).(*image.RGBA), editorClip(f, e.statusFitted(f, status.Dx()-16), status.Dx()-16), 8, status.Min.Y+5, editorPaper)
 	}
 	e.drawHeightLabels(pic)
+	e.drawMarkerLabels(pic)
 	e.drawAreaLabels(pic)
 	e.drawGroupBadges(pic)
 	e.drawPlayerLegend(pic)
@@ -1789,6 +1798,8 @@ func (e *MapEditor) statusParts(note string) ([]string, []string) {
 		parts = append(parts, e.word("editor.wizard.drawbox"))
 	case e.pick == pickArea:
 		parts = append(parts, e.word("editor.area.draw"))
+	case e.pick == pickTrapArea:
+		parts = append(parts, e.word("editor.cast.areahint"))
 	case e.pick == pickPaste:
 		parts = append(parts, e.word("editor.selection.armed"))
 	}
@@ -2204,6 +2215,10 @@ func (e *MapEditor) chromePress(target editorPopupID, p image.Point, double bool
 				switch bs[n].key {
 				case "drop":
 					e.scriptKey("drop")
+				case "traparea":
+					_ = e.Key("traparea")
+				case "delete":
+					_ = e.Key("delete")
 				case "add":
 					row, _ := e.listAdd()
 					e.openAdd(row.Kind)

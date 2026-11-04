@@ -98,6 +98,7 @@ func init() {
 		{key: brushMenuKeys[brushPassability], icon: &iconPassability, word: "editor.tool.passability", keyRow: "passability", kind: toolPick, cell: image.Pt(1, 4), off: noBrush, menu: "tools"},
 		{key: "drawarea", icon: &iconDrawArea, word: "editor.tool.drawarea", keyRow: "drawarea", kind: toolPick, cell: image.Pt(1, 5), off: func(e *MapEditor) bool { return !e.editable() }, menu: "tools"},
 		{key: "newtrigger", word: "editor.tool.newtrigger", keyRow: "newtrigger", kind: toolAction, off: func(e *MapEditor) bool { return !e.triggerNowOpen() }, menu: "tools"},
+		{key: "traparea", word: "editor.cast.area", kind: toolPick, off: noEdit, menu: "tools"},
 		{key: "randomterrain", word: "editor.tools.randomterrain", headingWord: "editor.menu.generate", kind: toolAction, off: noRandom, menu: "tools"},
 		{key: "randomheights", word: "editor.tools.randomheights", kind: toolAction, off: noRandom, menu: "tools"},
 		{key: "border", icon: &iconBorder, word: "editor.tool.border", group: toolRight, kind: toolSwitch, cell: image.Pt(0, 0), on: func(e *MapEditor) bool { return !e.view.hideBorder }, off: noMap, menu: "view"},
@@ -248,6 +249,8 @@ func (e *MapEditor) currentTool() string {
 	switch {
 	case e.pick == pickArea:
 		return "drawarea"
+	case e.pick == pickTrapArea:
+		return "traparea"
 	case e.brushActive():
 		return brushMenuKeys[e.brush.mode]
 	}

@@ -1065,9 +1065,10 @@ func (e *MapEditor) panelButtonPress(i int, p image.Point) bool {
 // and the tree's branches are this table in its order; each category's
 // floating window is its palette, the records popup without its list.
 type editorCategory struct {
-	key, word string
-	filter    int
-	members   categoryMembers
+	key, word   string
+	filter      int
+	members     categoryMembers
+	listRecords bool
 }
 
 // categoryMembers is how the tree reads a category's members.
@@ -1086,6 +1087,7 @@ var editorCategories = []editorCategory{
 	{key: "units", word: "editor.bar.units", filter: 1},
 	{key: "sacks", word: "editor.bar.sacks", filter: 3},
 	{key: "structures", word: "editor.bar.structures", filter: 2},
+	{key: "cellspells", word: "editor.cast.palette", filter: editorCellSpellsFilter, listRecords: true},
 }
 
 // categoryByKey is the category whose key is key.

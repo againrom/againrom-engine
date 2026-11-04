@@ -425,10 +425,16 @@ func (x *MapInspector) inspectModel(model *mapedit.Editor, source string, w *edi
 		}
 		add(r)
 	}
+	spellSetSizes := map[int]int{}
+	for _, set := range model.SpellSets() {
+		for _, i := range set {
+			spellSetSizes[i] = len(set)
+		}
+	}
 	for i, e := range m.Enchantments {
 		// These coordinates can name item metadata, not a world placement.
 		// Do not fabricate a spatial marker from an undecided interpretation.
-		add(x.inspectionEnchantment(i, e, m))
+		add(x.inspectionEnchantment(i, e, m, spellSetSizes[i]))
 	}
 	for i, g := range m.Groups {
 		add(inspectionPlayer(model, i, x.inspectionUTF8(alm.PlayerNameText.Decode([]byte(g.Name)))))

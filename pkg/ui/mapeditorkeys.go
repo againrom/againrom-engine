@@ -159,6 +159,8 @@ func init() {
 		{key: "stock", label: "K", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "recipe", label: "I", act: (*MapEditor).keyRecords, help: keys(lineStructure)},
 		{key: "casts", label: "F3", act: func(e *MapEditor, _ string) error { e.openAdd(KindEnchantment); return nil }, help: keys(helpLine{Word: "editor.keys.casts"})},
+		{key: "cellspells", act: func(e *MapEditor, _ string) error { e.showRecords(editorCellSpellsFilter); return nil }, unlisted: "palette entry"},
+		{key: "traparea", act: (*MapEditor).keyTrapArea, unlisted: "Tools menu and cell spell palette"},
 		{key: "players", label: "P", act: (*MapEditor).keyPlayers, help: []helpEntry{{screenKeys, linePlayers}, {screenPlayers, lineRoster}}},
 		{key: "player", label: "A", act: (*MapEditor).keyAdd, help: []helpEntry{{screenPlayers, lineRoster}}},
 		{key: "testplay", label: "F5", act: (*MapEditor).keyTestPlay, help: keys(linePlayers)},
@@ -611,7 +613,7 @@ func (e *MapEditor) keyStep(key string) error {
 	if e.brushKey(key) {
 		return nil
 	}
-	if e.listView() && (e.filter == editorPlayersFilter || e.filter == editorScriptsFilter) {
+	if e.listView() && (e.filter == editorPlayersFilter || e.paletteListsRecords()) {
 		e.stepPlayer(delta)
 		return nil
 	}
@@ -688,7 +690,7 @@ func (e *MapEditor) keyFit(string) error {
 // cursor.
 func (e *MapEditor) keyPage(key string) error {
 	m := e.model
-	if e.paletteShown() && e.filter != editorScriptsFilter {
+	if e.paletteShown() && !e.paletteListsRecords() {
 		m = nil // no palette but Scenario's has a list
 	}
 	add := false

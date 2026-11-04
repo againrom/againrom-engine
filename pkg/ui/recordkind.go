@@ -58,7 +58,7 @@ var recordKinds = map[RecordKind]recordKindRow{
 	KindTrigger:     {scripted: true, fielded: true},
 	KindCondition:   {scripted: true, fielded: true},
 	KindAction:      {scripted: true, fielded: true},
-	KindEnchantment: {fielded: true},
+	KindEnchantment: {fielded: true, listed: true, rank: 4, filter: editorCellSpellsFilter},
 	KindSection:     {},
 	KindMessage:     {},
 	KindScript:      {},

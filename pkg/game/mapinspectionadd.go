@@ -161,6 +161,9 @@ func (s *mapInspectionEdits) AddRecord(r ui.InspectionNewRecord) (*ui.Inspection
 	}
 	index := -1
 	next, err := s.change(func(m *mapedit.Editor) (bool, error) {
+		if !r.Area.Empty() {
+			return s.addTrapArea(m, k, r, &index)
+		}
 		var err error
 		index, err = s.addOn(m, k, r)
 		return err == nil, err
@@ -236,6 +239,9 @@ func (s *mapInspectionEdits) CheckNewRecord(r ui.InspectionNewRecord, key string
 	}
 	if !k.complete(r) {
 		return nil
+	}
+	if !r.Area.Empty() {
+		return s.checkTrapArea(r)
 	}
 	_, _, err = s.trialAdd(k, r)
 	return err
@@ -313,13 +319,11 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		if err != nil {
 			return out
 		}
-		for _, kind := range []uint16{0, 8, 4} {
-			out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(mapedit.SpellConstructor(kind)), Label: s.inspector.inspectionUTF8(s.inspector.word(castWords[spellNewWord[kind]].Word))})
-		}
+		out.Choices = s.inspector.cellSpellPalette()
 		for i := 0; i < s.model.Count(mapedit.KindEnchantment); i++ {
 			fields, err := s.model.Fields(mapedit.KindEnchantment, i)
 			if err == nil && len(fields) > 0 && fields[0].Key == "spell" {
-				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view).Label)})
+				out.Choices = append(out.Choices, ui.InspectionChoice{Value: int64(i), Label: fmt.Sprintf("#%d: %s", i, s.inspector.inspectionEnchantment(i, view.Enchantments[i], view, 0).Label)})
 			}
 		}
 		first()

@@ -4025,5 +4025,7 @@ var Committed = Baseline{
 	// It rose by the sack pickup transaction in pkg/sim/sackpickup.go and its
 	// guard internal/archtest/sackpickup.go with its test, net of the pickup
 	// latch and the takes removed from pkg/game/world.go, and this note.
-	CommentBytes: 10523685,
+
+	// Trap stroke history and byte-preserving cell spell saves.
+	CommentBytes: 10523628,
 }

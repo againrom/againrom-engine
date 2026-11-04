@@ -158,6 +158,11 @@ func cellWords(cell image.Point, x, y uint32) (uint32, uint32) {
 // Move moves the record onto cell, keeping its fraction within the cell, as
 // one edit. A Scenery record, a map object, moves as moveScenery moves it.
 func (s *mapInspectionEdits) Move(kind ui.RecordKind, index int, cell image.Point) (*ui.InspectionDocument, error) {
+	if kind == ui.KindEnchantment {
+		return s.SetFields(kind, index, []ui.InspectionFieldValue{
+			{Key: "triggerx", Value: int64(cell.X)}, {Key: "triggery", Value: int64(cell.Y)},
+		})
+	}
 	if kind == ui.KindScenery {
 		return s.moveScenery(index, cell)
 	}
@@ -221,6 +226,18 @@ func (s *mapInspectionEdits) Delete(kind ui.RecordKind, index int) (*ui.Inspecti
 	return s.change(func(m *mapedit.Editor) (bool, error) {
 		if err := scriptDeleteAllowed(m, k, index); err != nil {
 			return false, err
+		}
+		if k == mapedit.KindEnchantment {
+			if set := m.SpellSet(index); len(set) > 0 {
+				mark := m.Mark()
+				for j := len(set) - 1; j >= 0; j-- {
+					if err := deleteObject(m, k, set[j]); err != nil {
+						return false, err
+					}
+				}
+				m.Squash(mark)
+				return true, nil
+			}
 		}
 		err := deleteObject(m, k, index)
 		return err == nil, err

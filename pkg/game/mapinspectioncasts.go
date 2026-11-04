@@ -25,7 +25,7 @@ var castWords = map[string]struct{ Word string }{
 // spellNewWord names the Add window's choice of each kind's new record.
 var spellNewWord = map[uint16]string{0: "newtrap", 8: "newbook", 4: "newcaster"}
 
-func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map) ui.InspectionRecord {
+func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Map, setSize int) ui.InspectionRecord {
 	r := ui.InspectionRecord{Kind: ui.KindEnchantment, Section: 9, Index: i, Label: fmt.Sprintf("item recipe %d / tag %d", i+1, e.Tag),
 		Details: []string{fmt.Sprintf("X/Y raw: %d / %d", e.X, e.Y), fmt.Sprintf("A/B/C: %d / %d / %d", e.A, e.B, e.C), fmt.Sprintf("Spell raw: %d", e.SpellRaw), fmt.Sprintf("Elements: %v", e.Elements)}}
 	if e.X == 0 && e.Y == 0 {
@@ -42,6 +42,10 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 	r.Label = fmt.Sprintf(word("unknown"), e.A)
 	switch {
 	case e.A < 4 && len(e.Elements) >= 2:
+		r.Cell, r.Size, r.Spatial = image.Pt(int(e.X), int(e.Y)), image.Pt(1, 1), true
+		for _, cell := range e.Elements[:2] {
+			r.LinkedCells = append(r.LinkedCells, image.Pt(int(cell.Kind), int(cell.Low)))
+		}
 		from, to := "tile", "tile"
 		if e.A&1 != 0 {
 			from = "structure"
@@ -51,12 +55,40 @@ func (x *MapInspector) inspectionEnchantment(i int, e alm.Enchantment, m *alm.Ma
 		}
 		r.Label = fmt.Sprintf(word("trap"), word(from), word(to), spell, uint16(e.SpellRaw>>16))
 	case e.A == 8:
+		r.Cell, r.Spatial = image.Pt(int(e.X), int(e.Y)), true
 		r.Label = fmt.Sprintf(word("book"), uint32(e.B)|uint32(e.C)<<16, spell, uint16(e.SpellRaw>>16))
+		if m != nil {
+			for _, u := range m.Units {
+				if uint32(u.UnitID) == uint32(e.B)|uint32(e.C)<<16 {
+					r.Cell, r.Spatial = image.Pt(int(u.X>>8), int(u.Y>>8)), true
+					break
+				}
+			}
+		}
+		r.FixedCell = true
 	case e.A == 4:
+		r.Cell, r.Spatial = image.Pt(int(e.X), int(e.Y)), true
 		r.Label = fmt.Sprintf(word("caster"), uint32(e.B)|uint32(e.C)<<16, spell, uint16(e.SpellRaw>>16), e.Tag)
+		if m != nil {
+			for _, o := range m.Objects {
+				if structureBindingID(o) == uint32(e.B)|uint32(e.C)<<16 {
+					r.Cell, r.Spatial = image.Pt(int(o.X>>8), int(o.Y>>8)), true
+					break
+				}
+			}
+		}
+		r.FixedCell = true
+	}
+	if r.Spatial {
+		r.Size, r.Marker = image.Pt(1, 1), spell
 	}
 	if !spellBound(m, e) {
 		r.Label = fmt.Sprintf(word("unbound"), r.Label)
+	}
+	r.SetSize = setSize
+	if setSize > 0 {
+		note := fmt.Sprintf(x.inspectionUTF8(x.word("editor.cast.set")), setSize)
+		r.Label += " / " + note
 	}
 	return r
 }

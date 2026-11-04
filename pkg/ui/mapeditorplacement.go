@@ -84,7 +84,7 @@ func (e *MapEditor) placement() (placementFrame, bool) {
 	if f, ok := e.dragPlacement(); ok {
 		return f, true
 	}
-	if e.pick == pickNone || e.pick == pickArea || e.pick == pickGoal || e.doc == nil || !e.hoverOK {
+	if e.pick == pickNone || e.pick == pickArea || e.pick == pickTrapArea || e.pick == pickGoal || e.doc == nil || !e.hoverOK {
 		return placementFrame{}, false
 	}
 	f := placementFrame{Cell: e.hoverCell}

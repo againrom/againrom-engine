@@ -68,7 +68,11 @@ func TestRecordKindAnswersMatchTheStringRules(t *testing.T) {
 		if k.String() != w {
 			t.Errorf("%q: word id %q", w, k.String())
 		}
-		if got, want := k.DragRank(), oldDragRank[w]; got != want {
+		wantRank := oldDragRank[w]
+		if k == KindEnchantment {
+			wantRank = 4
+		}
+		if got, want := k.DragRank(), wantRank; got != want {
 			t.Errorf("%q: drag rank %d, was %d", w, got, want)
 		}
 		if got, want := k.Placed(), oldDragRank[w] > 0; got != want {
@@ -105,7 +109,11 @@ func TestRecordKindListFilterMatchesTheStringRules(t *testing.T) {
 		}
 		var want []int
 		for i, r := range records {
-			if oldListShows(filter, string(r.Kind), r.Spatial, r.Warning) {
+			show := oldListShows(filter, string(r.Kind), r.Spatial, r.Warning)
+			if filter == editorCellSpellsFilter {
+				show = r.Kind == KindEnchantment && r.Spatial
+			}
+			if show {
 				want = append(want, i)
 			}
 		}

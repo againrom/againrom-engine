@@ -31,7 +31,8 @@ const (
 	// pickPaste is the paste brush: the copied records, and the terrain of
 	// an area copy, follow the pointer translucent until a click pastes
 	// them there.
-	pickPaste pickKind = "paste"
+	pickPaste    pickKind = "paste"
+	pickTrapArea pickKind = "traparea"
 )
 
 // promptKind is the text prompt in the rail.

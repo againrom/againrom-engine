@@ -37,10 +37,10 @@ func TestMapEditorTreeBranchesAreTheBarsRecordEntries(t *testing.T) {
 		}
 		tree = append(tree, r.branch+" "+word)
 	}
-	if want := []string{"scripts", "players", "groups", "units", "sacks", "structures"}; len(bar) != len(want) || !slices.Equal(bar, tree) {
+	if want := []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"}; len(bar) != len(want) || !slices.Equal(bar, tree) {
 		t.Fatalf("bar %q, tree %q, want the keys %q", bar, tree, want)
 	}
-	for i, k := range []string{"scripts", "players", "groups", "units", "sacks", "structures"} {
+	for i, k := range []string{"scripts", "players", "groups", "units", "sacks", "structures", "cellspells"} {
 		if !strings.HasPrefix(bar[i], k+" ") {
 			t.Fatalf("bar entry %d is %q, want %s", i, bar[i], k)
 		}
@@ -72,6 +72,12 @@ func TestMapEditorPalettesHoldNoRecordRow(t *testing.T) {
 				add := e.word("editor.button.add")
 				if !slices.Contains(s.Notes, e.word("editor.scripts.hint")) || len(s.Buttons) != 2 || s.Buttons[1] != add || s.List == nil {
 					t.Errorf("the scripts palette %q %q, list %v", s.Notes, s.Buttons, s.List != nil)
+				}
+				return
+			}
+			if c.listRecords {
+				if s.List == nil || len(s.Buttons) == 0 {
+					t.Fatal("record palette lost its list or Add")
 				}
 				return
 			}

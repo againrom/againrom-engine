@@ -318,6 +318,9 @@ func (e *MapEditor) dragRecord(in Input, p image.Point, rail int) bool {
 	if e.recordDrag == nil && !e.down && in.PrimaryDown && inside && e.editable() && e.free() {
 		hit := -1
 		for _, i := range e.hitsAt(p) {
+			if e.doc.Records[i].FixedCell {
+				continue
+			}
 			rank := e.doc.Records[i].Kind.DragRank()
 			if rank == 0 || hit >= 0 && hit == e.selected {
 				continue // the selected record wins

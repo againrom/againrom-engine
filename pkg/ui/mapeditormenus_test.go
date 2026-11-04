@@ -27,7 +27,7 @@ var tableMenus = []string{"file", "tools", "view", "window"}
 // menuRowKeys are each table menu's row keys in order, "" for a heading.
 var menuRowKeys = map[string][]string{
 	"file":   mapRowKeys,
-	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea", "newtrigger", "", "randomterrain", "randomheights"},
+	"tools":  {"select", "", "brush.terrain", "brush.height", "brush.objects", "brush.passability", "drawarea", "newtrigger", "traparea", "", "randomterrain", "randomheights"},
 	"view":   {"border", "areas", "drops", "footprints", "issues", "heightlabels", "passview", "playertint", "grid", "fit", "report"},
 	"window": {"toolbar", "objectspanel", "propertiespanel", "reportpanel"},
 }
@@ -226,6 +226,10 @@ func TestMapEditorMenuRowPressDoesWhatItsButtonDoes(t *testing.T) {
 						// focused field takes the key; a menu press is a click.
 						want.endFieldTyping()
 						_ = want.Key(b.keyRow)
+					case editorKeyByName[b.key] != nil:
+						// A row with no button and no shortcut presses its
+						// own unlisted key row.
+						_ = want.Key(b.key)
 					}
 					openMenuRow(t, got, b.menu, b.key)
 					if b.key == "toolbar" {

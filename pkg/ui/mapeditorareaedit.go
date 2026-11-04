@@ -234,7 +234,7 @@ func (e *MapEditor) areaHandleAt(p image.Point) (*areaHandle, bool) {
 // handle of the selected trigger's areas. A trigger popup with unapplied
 // changes refuses a handle.
 func (e *MapEditor) areaPress(p image.Point) (*areaHandle, bool) {
-	if e.pick == pickArea {
+	if e.pick == pickArea || e.pick == pickTrapArea {
 		x, y, ok := e.doc.Viewer.groundCellAt(float64(p.X), float64(p.Y))
 		if !ok || e.blocksCanvas() {
 			return nil, false
@@ -345,6 +345,10 @@ func (e *MapEditor) dragArea(d *editorRecordDrag, in Input, p image.Point, insid
 	case h.kind == handleDrawSquare:
 		e.wizardAreaDrawn(h)
 	case h.kind == handleDraw:
+		if e.pick == pickTrapArea {
+			e.trapAreaDrawn(e.areaPreview(h))
+			return true
+		}
 		if _, ok := e.wizardDrawing(); ok {
 			e.wizardAreaDrawn(h)
 			return true

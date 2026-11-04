@@ -16,7 +16,7 @@ func TestMapEditorBarLayout(t *testing.T) {
 		for _, b := range e.barEntries() {
 			keys = append(keys, b.key)
 		}
-		want := []string{"file", "panel", "scripts", "players", "groups", "units", "sacks", "structures", "objects", "trees", "tools", "view", "window"}
+		want := []string{"file", "panel", "scripts", "players", "groups", "units", "sacks", "structures", "cellspells", "objects", "trees", "tools", "view", "window"}
 		if !slices.Equal(keys, want) {
 			t.Fatalf("owner items 1, 4, 5, 6: bar %v, want %v", keys, want)
 		}

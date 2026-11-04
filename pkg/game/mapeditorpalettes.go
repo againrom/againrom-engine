@@ -2,10 +2,19 @@ package game
 
 import (
 	"againrom/pkg/data"
+	"againrom/pkg/mapedit"
 	"againrom/pkg/mapload"
 	terrain "againrom/pkg/render/terrain"
 	"againrom/pkg/ui"
 )
+
+func (x *MapInspector) cellSpellPalette() []ui.InspectionChoice {
+	var out []ui.InspectionChoice
+	for _, kind := range []uint16{0, 8, 4} {
+		out = append(out, ui.InspectionChoice{Value: int64(mapedit.SpellConstructor(kind)), Label: x.inspectionUTF8(x.word(castWords[spellNewWord[kind]].Word))})
+	}
+	return out
+}
 
 // The map editor's bar lists placeable records in three palettes, and each
 // record in exactly one (owner rule): Structures holds what a plain click

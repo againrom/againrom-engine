@@ -1,6 +1,7 @@
 package mapedit
 
 import (
+	"bytes"
 	"cmp"
 	"encoding/binary"
 	"fmt"
@@ -11,18 +12,15 @@ import (
 
 // Editor is a headless edit session over one accepted ROM1 .alm map.
 //
-// Its whole state is the accepted bytes, an ordered log of the edits applied
-// to them and a cursor into that log. Nothing derived is stored: record spans,
-// the map dimensions, the unit count and every field offset are computed from
-// the current bytes where they are used. A length-changing edit therefore has
-// no cached index to invalidate, which removes the stale-index failure instead
-// of defending against it — the reason to pay for a record walk per call.
+// Bytes and their edit log own map state. Session-only record sets follow the
+// same history; they are never serialized. Decoded values are read on demand.
 //
 // An Editor is a single-goroutine session and is not safe for concurrent use.
 type Editor struct {
-	data   []byte // the accepted stream; the only thing this model really holds
+	data   []byte // the accepted stream
 	log    []edit // the accepted mutations, oldest first
 	cursor int    // len(log) with nothing undone; the redo boundary otherwise
+	setsAt []spellSets
 }
 
 // New loads an ALM byte stream into a fresh edit model.
@@ -45,7 +43,7 @@ func New(data []byte) (*Editor, error) {
 	if err != nil {
 		return nil, fmt.Errorf("mapedit: %w", err)
 	}
-	return &Editor{data: doc.Write()}, nil
+	return &Editor{data: doc.Write(), setsAt: []spellSets{nil}}, nil
 }
 
 // Bytes returns the current serialized map in a fresh buffer. Mutating it
@@ -53,15 +51,38 @@ func New(data []byte) (*Editor, error) {
 // out before an edit still holds the bytes as they were when it was taken.
 func (e *Editor) Bytes() []byte { return cloneBytes(e.data) }
 
-// SaveBytes returns the bytes a save writes: the edited stream in the form
-// the original editor's save leaves it (alm.SaveForm). The session keeps its
-// own bytes; only the written file differs.
-func (e *Editor) SaveBytes() ([]byte, error) { return alm.SaveForm(e.data) }
+// SaveBytes preserves an untouched map and type-9-only edits verbatim.
+// Other edits use the original editor's save form (DIV-4485).
+func (e *Editor) SaveBytes() ([]byte, error) {
+	if e.onlySpellEdits() {
+		return e.Bytes(), nil
+	}
+	return alm.SaveForm(e.data)
+}
+
+func (e *Editor) onlySpellEdits() bool {
+	base := e.Clone()
+	for base.Undo() {
+	}
+	if bytes.Equal(base.data, e.data) {
+		return true
+	}
+	a, err := base.walkSection(KindEnchantment, "compare spell edits")
+	if err != nil {
+		return false
+	}
+	b, err := e.walkSection(KindEnchantment, "compare spell edits")
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(base.data[:a.span.headerOff], e.data[:b.span.headerOff]) &&
+		bytes.Equal(base.data[a.span.abs(a.starts[len(a.starts)-1]):], e.data[b.span.abs(b.starts[len(b.starts)-1]):])
+}
 
 // Clone preserves the complete undo/redo branch for a transactional edit.
 // Parts are immutable after creation; the log slice and current bytes are not.
 func (e *Editor) Clone() *Editor {
-	return &Editor{data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor}
+	return &Editor{data: e.Bytes(), log: slices.Clone(e.log), cursor: e.cursor, setsAt: slices.Clone(e.setsAt)}
 }
 
 // Map returns the interpreted view of the current bytes: alm.Open of a fresh
@@ -120,6 +141,7 @@ func (e *Editor) Squash(mark int) {
 		before.Undo()
 	}
 	e.log = append(e.log[:mark], edit{replace(0, before.data, e.data)})
+	e.setsAt = append(e.setsAt[:mark+1], e.setsAt[e.cursor])
 	e.cursor = len(e.log)
 }
 
@@ -155,8 +177,10 @@ func replace(off int, removed, inserted []byte) part {
 // A setter has finished rejecting before it calls this; nothing below can
 // fail, which is why a rejection can have written and recorded nothing.
 func (e *Editor) apply(ed edit) {
+	sets := e.shiftSpellSets(ed)
 	e.splice(ed, forward)
 	e.log = append(e.log[:e.cursor], ed)
+	e.setsAt = append(e.setsAt[:e.cursor+1], sets)
 	e.cursor = len(e.log)
 }
 

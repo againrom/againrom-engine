@@ -363,6 +363,7 @@ func TestMapEditorTreeRowsFollowTheMap(t *testing.T) {
  - Sacks (0)
  - Structures (1)
    Structure #0  hall  30,30
+ - Traps and spells (0)
 `
 	got := treeText(e)
 	if got != want {

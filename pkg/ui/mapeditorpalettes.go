@@ -7,6 +7,15 @@ package ui
 // Structures for a structure kind, Objects for an object class.
 type Palette uint8
 
+const editorCellSpellsFilter = 11
+
+func (e *MapEditor) paletteListsRecords() bool {
+	if c, ok := categoryOf(e.filter); ok {
+		return c.listRecords || c.members == membersScripts
+	}
+	return false
+}
+
 const (
 	PaletteOwn        Palette = iota
 	PaletteStructures         // what can be selected, destroyed or switched, bridges, and what the data does not settle

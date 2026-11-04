@@ -92,12 +92,17 @@ func (e *MapEditor) areaOutline(r image.Rectangle, ink color.RGBA) []editorLine 
 // areaLines outline every trigger area, the highlighted trigger's in gold and
 // doubled, a square's centre crossed.
 func (e *MapEditor) areaLines() []editorLine {
+	var out, top, handles []editorLine
+	drag := e.areaDrag()
+	if drag != nil && (drag.kind == handleDraw || drag.kind == handleDrawSquare) {
+		for _, l := range e.areaOutline(e.areaPreview(drag), editorGold) {
+			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
+		}
+	}
 	if !e.areasShown() {
-		return nil
+		return top
 	}
 	sel := e.selectedTrigger()
-	drag := e.areaDrag()
-	var out, top, handles []editorLine
 	for i, a := range e.doc.Script.Areas {
 		if drag != nil && drag.area == i {
 			a.Rect, a.Radius = e.areaPreview(drag), drag.radius // preview only; no write until release
@@ -122,11 +127,6 @@ func (e *MapEditor) areaLines() []editorLine {
 		}
 		for _, l := range lines {
 			l.color = editorGold
-			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
-		}
-	}
-	if drag != nil && (drag.kind == handleDraw || drag.kind == handleDrawSquare) {
-		for _, l := range e.areaOutline(e.areaPreview(drag), editorGold) {
 			top = append(top, l, editorLine{l.x0 + 1, l.y0 + 1, l.x1 + 1, l.y1 + 1, editorGold})
 		}
 	}

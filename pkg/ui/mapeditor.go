@@ -32,6 +32,10 @@ type InspectionRecord struct {
 	Label          string
 	Cell, Size     image.Point
 	Spatial        bool
+	Marker         string
+	LinkedCells    []image.Point
+	FixedCell      bool
+	SetSize        int
 	Details        []string
 	Warning        string
 	Preview        *terrain.StaticFrame
@@ -415,6 +419,8 @@ func (e *MapEditor) recordsOf(filter int) []int {
 	for i, r := range e.doc.Records {
 		show := filter == 0
 		switch filter {
+		case editorCellSpellsFilter:
+			show = r.Kind == KindEnchantment && r.Spatial
 		case 5:
 			show = !r.Spatial
 		case 6:
@@ -783,16 +789,22 @@ func (e *MapEditor) markerLines() []editorLine {
 		}
 		issue := !e.view.hideIssues && (r.Warning != "" || e.report.flagged[findingKey(r.Kind, r.Index)])
 		chosen := i == e.selected || member
-		if !r.Spatial || (!issue && !chosen) {
+		if !r.Spatial || (!issue && !chosen && r.Marker == "") {
 			continue
 		}
 		wx, wy := e.cellCenter(r.Cell)
 		x, y := v.cam.WorldToScreen(wx, wy)
 		c := editorWarning
-		if chosen {
+		if chosen || r.Marker != "" && !issue {
 			c = editorGold
 		}
 		out = append(out, editorLine{float32(x - 5), float32(y), float32(x + 5), float32(y), c}, editorLine{float32(x), float32(y - 5), float32(x), float32(y + 5), c})
+		for _, cell := range r.LinkedCells {
+			wx, wy := e.cellCenter(cell)
+			tx, ty := v.cam.WorldToScreen(wx, wy)
+			out = append(out, editorLine{float32(x), float32(y), float32(tx), float32(ty), c})
+			out = append(out, e.cellBoxLines(image.Rectangle{Min: cell, Max: cell.Add(image.Pt(1, 1))}, c)...)
+		}
 		if chosen && !e.view.hideFootprints {
 			if dragRefused {
 				c = editorWarning

@@ -27,6 +27,7 @@ type InspectionNewRecord struct {
 	HasCell bool
 	Values  []InspectionFieldValue
 	Clip    InspectionClip
+	Area    image.Rectangle
 }
 
 // InspectionNewStep is what the host offers one step: its choices, none for
@@ -105,7 +106,7 @@ var (
 
 // addKinds is every kind the Add window creates, as data.
 var addKinds = []addKindRow{
-	{Kind: KindEnchantment, Word: "editor.cast.add", Filters: []int{5}, Steps: []addStep{
+	{Kind: KindEnchantment, Word: "editor.cast.add", Filters: []int{5, editorCellSpellsFilter}, Steps: []addStep{
 		{Key: "template", Word: "editor.cast.template", Control: addChoice},
 		{Key: "link", Word: "editor.cast.link", Control: addNumber}, addAt,
 		{Key: "spell", Word: "editor.cast.spell", Control: addChoice},
@@ -166,6 +167,7 @@ func addKindFor(filter int) (addKindRow, bool) {
 // chosen values, the labels a kept step's choices read as, the steps left
 // out, the asked step's offer and list, and why the last step did not go on.
 type addRun struct {
+	seed       InspectionNewRecord
 	kind       RecordKind
 	title      string
 	steps      []addStep
@@ -255,7 +257,8 @@ func (e *MapEditor) addText(r *addRun, i int) string {
 
 // addRecord is the record of every step before upTo that the window kept.
 func (e *MapEditor) addRecord(r *addRun, upTo int) InspectionNewRecord {
-	out := InspectionNewRecord{Kind: r.kind}
+	out := r.seed
+	out.Kind, out.Values = r.kind, slices.Clone(r.seed.Values)
 	for i := 0; i < upTo && i < len(r.steps); i++ {
 		st, text := r.steps[i], strings.TrimSpace(e.addText(r, i))
 		if r.skip[i] {
