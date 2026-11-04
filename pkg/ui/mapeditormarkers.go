@@ -27,7 +27,7 @@ func (e *MapEditor) markerLabels() []recordMarkerLabel {
 		}
 		wx, wy := e.cellCenter(r.Cell)
 		x, y := e.doc.Viewer.cam.WorldToScreen(wx, wy)
-		label := e.editorHostText(r.Marker)
+		label := r.Marker
 		width := 6
 		if f != nil {
 			width += f.Advance(label)

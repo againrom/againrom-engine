@@ -1490,6 +1490,9 @@ func (e *MapEditor) treeChoose(n int) {
 		}
 		if c, ok := categoryByKey(r.branch); ok {
 			e.openPalette(c)
+			if c.filter == editorScriptsFilter {
+				e.chooseFirstOf(c.filter)
+			}
 		}
 		return
 	}

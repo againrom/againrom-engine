@@ -32,6 +32,11 @@ modder or developer can notice gets no entry.
 
 ### For map makers and modders
 
+- [BASE] The Magic Symbol (Магический символ in the Russian editor) is listed in the map editor's Objects palette, not in Structures; its picture, placement and map data are unchanged.
+- [BASE] A wooden bridge placed in the map editor now spans a 3 by 3 area that stays open to walkers, as the bridges of the installed maps do; before, it was one closed cell. Its width and height fields resize it.
+- [BASE] A click on the Scenario branch of the map editor tree, on its Scenario button or on its key now leaves the trigger or other record that was open and opens no trigger window; a click on a trigger row still opens that trigger.
+- [BASE] The map editor of the Russian game shows the trap and spell texts in Russian: the spell name beside a trap on the map, the field names of a trap's window and its range message were drawn as question marks.
+- [BASE] The map editor's Units palette shows a picture on every creature and person again; most entries were empty after the choice of who a unit is replaced the class list.
 - [BASE] The map editor's top bar has a File menu with Undo, Redo and Search, a Map button for the map panel, and Tools, View and Window at its right end. Every button shows when it is pressed.
 - [ROM1] The map editor's dialogue editor shows each dialogue part as one card with a cell for each hero who sees a different text: by sex, by class, or both. A part can be split by sex or by class and merged back, each cell edits its own text and speaker, a hero-dependent speaker shows the face that hero's dialogue gets, a tag no hero reaches shows as never shown, and an untouched page saves byte for byte.
 - [ROM1] The map editor sets who a unit is with one choice, a creature, a person or a named character, in the unit window and in the Add window, and shows only the settings the game reads for it; the raw map keys stay visible read-only under Map keys. The unit window says whether a dialogue shows the unit as a speaker, and a trigger's unit field names each unit by who it is, its number and its cell, and a click on the map takes the unit standing on that cell.

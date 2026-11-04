@@ -113,8 +113,18 @@ func (e *Editor) NewStructureRecord(x, y, kind uint32, owner uint16) ([]byte, er
 	if err := renumberStructure(e, w, rec); err != nil {
 		return nil, err
 	}
-	return reshapeStructure(rec), nil
+	rec = reshapeStructure(rec)
+	if len(rec) > alm.ObjectSize {
+		// A bridge with a zero extension is one closed table cell. A new
+		// one spans the smallest rectangle an installed map uses; the
+		// width and height fields resize it.
+		rec[alm.ObjectWidth], rec[alm.ObjectHeight] = newBridgeSpan, newBridgeSpan
+	}
+	return rec, nil
 }
+
+// newBridgeSpan is the width and height of a newly placed wooden bridge.
+const newBridgeSpan = 3
 
 func renumberStructure(e *Editor, w walk, rec []byte) error {
 	highest := uint32(0)

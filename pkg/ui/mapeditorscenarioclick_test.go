@@ -84,3 +84,49 @@ func TestScenarioEntryOpensNoTrigger(t *testing.T) {
 		}
 	}
 }
+
+// TestScenarioClickClosesTheOpenTrigger: with a trigger's popup open from its
+// tree row, a click on the Scenario branch, the bar's Scenario entry or its
+// key leaves that trigger and opens no popup; the trigger's row opens it again.
+func TestScenarioClickClosesTheOpenTrigger(t *testing.T) {
+	for _, route := range []string{"branch", "bar", "key"} {
+		e := scriptsListEditor(t)
+		e.selected = -1
+		e.showPanel(panelLeft, true)
+		e.treeSpec()
+		clickTreeRow(t, e, e.TreeMemberRow("scripts", 0))
+		if e.Selected() != 2 || e.selectedTrigger() != 0 {
+			t.Fatalf("%s: the trigger row selected %d", route, e.Selected())
+		}
+		switch route {
+		case "branch":
+			clickTreeRow(t, e, e.TreeBranchRow("scripts"))
+		case "bar":
+			chromeClick(e, barPoint(t, e, "scripts"))
+		default:
+			_ = e.Key("scripts")
+		}
+		e.treeSpec()
+		scenarioOpensNothing(t, e, route)
+		if route == "branch" {
+			clickTreeRow(t, e, e.TreeBranchRow("scripts"))
+			e.treeSpec()
+		}
+		clickTreeRow(t, e, e.TreeMemberRow("scripts", 0))
+		if e.Selected() != 2 || e.selectedTrigger() != 0 {
+			t.Fatalf("%s: the trigger row did not open the trigger again", route)
+		}
+	}
+}
+
+// TestScenarioBranchClickLeavesAnotherRecord: the Scenario branch click
+// deselects a record of another kind as the bar's entry does.
+func TestScenarioBranchClickLeavesAnotherRecord(t *testing.T) {
+	e := scriptsListEditor(t)
+	e.showPanel(panelLeft, true)
+	e.Select(0, false)
+	e.treeSpec()
+	clickTreeRow(t, e, e.TreeBranchRow("scripts"))
+	e.treeSpec()
+	scenarioOpensNothing(t, e, "the branch click")
+}

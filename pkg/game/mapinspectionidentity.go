@@ -141,16 +141,17 @@ func (s *mapInspectionEdits) identityPictures(choices []ui.InspectionChoice) map
 	pictures, ok := x.recordPictures["identity"]
 	if !ok {
 		pictures = map[int64]*image.RGBA{}
-		for _, c := range choices {
-			id, ok := x.identityOf(c.Value)
-			if !ok || id.Kind == mapload.UnitNamed {
-				continue
-			}
-			if pic := s.identityFigure(id); pic != nil {
-				pictures[c.Value] = pic
-			}
-		}
 		x.recordPictures["identity"] = pictures
+	}
+	for _, c := range choices {
+		if _, done := pictures[c.Value]; done {
+			continue
+		}
+		id, ok := x.identityOf(c.Value)
+		if !ok || id.Kind == mapload.UnitNamed {
+			continue
+		}
+		pictures[c.Value] = s.identityFigure(id)
 	}
 	out := map[int64]*image.RGBA{}
 	var named []ui.InspectionChoice

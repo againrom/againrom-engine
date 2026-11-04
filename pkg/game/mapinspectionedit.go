@@ -313,7 +313,7 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 		}
 		row := ui.InspectionField{Key: f.Key, Label: f.Label, Text: f.Text != nil, Toward: f.Toward}
 		if strings.HasPrefix(f.Label, "editor.cast.") {
-			row.Label = s.inspector.inspectionUTF8(s.inspector.word(f.Label))
+			row.Label = s.inspector.word(f.Label)
 		}
 		if k == mapedit.KindUnit {
 			label, offered := template.label(f)
@@ -579,7 +579,7 @@ func (s *mapInspectionEdits) setField(m *mapedit.Editor, kind ui.RecordKind, k m
 		return false, err
 	}
 	if k == mapedit.KindEnchantment && strings.HasPrefix(f.Label, "editor.cast.") && (value < f.Min || value > f.Max) {
-		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.inspectionUTF8(s.inspector.word(f.Label)), value, f.Min, f.Max)
+		return false, fmt.Errorf("%s: %d is outside %d..%d", s.inspector.word(f.Label), value, f.Min, f.Max)
 	}
 	was := s.footprintOf(m, k, index)
 	if err := m.SetFields(k, index, append(look, mapedit.FieldSet{Key: key, Value: value})...); err != nil {

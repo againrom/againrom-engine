@@ -4073,5 +4073,5 @@ var Committed = Baseline{
 	// It rose for a Pointer's word in pkg/sim/structureuse.go, the second
 	// form's keeps in pkg/game/savform.go, the signpost SAV tests, and this
 	// note.
-	CommentBytes: 10554424,
+	CommentBytes: 10556019,
 }

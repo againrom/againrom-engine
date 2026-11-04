@@ -35,7 +35,7 @@ func TestEditorPaletteTableSettlesEachRecord(t *testing.T) {
 		{"no Buildings entry", &terrain.StructureClass{Indestructible: true}, false, ui.PaletteStructures, "Buildings: no maximum health"},
 		{"Well 1: indestructible, health, not usable", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},
 		{"Magic Well: usable with health", &terrain.StructureClass{Indestructible: true, Usable: true}, true, ui.PaletteStructures, ""},
-		{"Magic Symbol: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
+		{"Magic Symbol: flat, no health, owner's choice", &terrain.StructureClass{ID: 27, Indestructible: true, Flat: true}, true, ui.PaletteObjects, ""},
 		{"Horizontal or vertical bridge: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
 		{"Teleport Pad or Campfire: flat, no health", &terrain.StructureClass{Indestructible: true, Flat: true}, true, ui.PaletteStructures, "Flat: no field marks a fixed bridge"},
 		{"a fence", &terrain.StructureClass{Indestructible: true}, true, ui.PaletteObjects, ""},

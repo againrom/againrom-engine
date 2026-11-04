@@ -33,3 +33,25 @@ func TestEditorSpatialRecordMarkerAndJoinedCells(t *testing.T) {
 		t.Fatal("spell label did not reach chrome painter")
 	}
 }
+
+// A spell name on the map is the install's text, already in the font's bytes;
+// the label draws it as given and does not convert it a second time.
+func TestEditorSpatialRecordMarkerKeepsTheInstallTextBytes(t *testing.T) {
+	e := newMapEditorFixture(t)
+	e.Layout(1280, 800)
+	e.SetHostTextEncoder(func(s string) string {
+		out := []byte(s)
+		for i, b := range out {
+			if b >= 0x80 {
+				out[i] = '?'
+			}
+		}
+		return string(out)
+	})
+	marker := "13: \x8c\xae\xab\xad\xa8\xef"
+	e.doc.Records = []InspectionRecord{{Kind: KindEnchantment, Index: 0, Spatial: true, Cell: image.Pt(20, 20), Size: image.Pt(1, 1), Marker: marker}}
+	e.selected = -1
+	if labels := e.markerLabels(); len(labels) != 1 || labels[0].text != marker {
+		t.Fatalf("marker label %v, want the install text %q", labels, marker)
+	}
+}

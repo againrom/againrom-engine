@@ -10,10 +10,10 @@ import (
 
 // Over an installed original, every structure kind of the Add window and
 // every object class of the object brush lists in exactly one of the bar's
-// three palettes, and each palette holds the census count (EN = RU): 49
-// structure kinds in Structures, 33 object classes and 17 structure kinds in
-// Objects, 42 object classes in Trees. The five kinds the class data does not
-// settle list in Structures.
+// three palettes, and each palette holds the census count (EN = RU): 48
+// structure kinds in Structures, 33 object classes and 18 structure kinds in
+// Objects (the Magic Symbol, kind 27, among them), 42 object classes in
+// Trees. The four kinds the class data does not settle list in Structures.
 func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	x := installedInspector(t)
@@ -23,7 +23,7 @@ func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 	}
 	s := objectEdits(t, e)
 	kinds, objects := map[int64]int{}, map[int]int{}
-	want := map[ui.Palette][2]int{ui.PaletteStructures: {49, 0}, ui.PaletteObjects: {17, 33}, ui.PaletteTrees: {0, 42}}
+	want := map[ui.Palette][2]int{ui.PaletteStructures: {48, 0}, ui.PaletteObjects: {18, 33}, ui.PaletteTrees: {0, 42}}
 	for _, p := range []ui.Palette{ui.PaletteStructures, ui.PaletteObjects, ui.PaletteTrees} {
 		k, o := e.PaletteHolds(p)
 		if got := [2]int{len(k), len(o)}; got != want[p] {
@@ -66,7 +66,10 @@ func TestReleaseMapEditorEachPaletteRecordListsInOnePalette(t *testing.T) {
 	if objectKinds, _ := e.PaletteHolds(ui.PaletteObjects); !slices.Contains(objectKinds, 8) {
 		t.Error("Well 1 (kind 8) does not list in Objects")
 	}
-	if !slices.Equal(ids, []int64{27, 38, 48, 52, 53}) {
-		t.Errorf("the unsettled kinds are %v, want 27, 38, 48, 52 and 53", ids)
+	if objectKinds, _ := e.PaletteHolds(ui.PaletteObjects); !slices.Contains(objectKinds, 27) {
+		t.Error("the Magic Symbol (kind 27) does not list in Objects")
+	}
+	if !slices.Equal(ids, []int64{38, 48, 52, 53}) {
+		t.Errorf("the unsettled kinds are %v, want 38, 48, 52 and 53", ids)
 	}
 }

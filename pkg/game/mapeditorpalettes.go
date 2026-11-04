@@ -24,6 +24,11 @@ func (x *MapInspector) cellSpellPalette() []ui.InspectionChoice {
 // that decides it; a placed record keeps its own record kind whatever
 // palette placed it.
 
+// objectsKinds are the structure kinds the owner placed in Objects, which
+// their class fields cannot separate from the fixed bridges and floor marks
+// that list in Structures: the Magic Symbol (structures.reg ID 27).
+var objectsKinds = map[int32]bool{27: true}
+
 // structurePalette is the palette structure kind c lists in, given
 // whether the Buildings table has an entry for it, and when the data does
 // not settle it, the field that fails.
@@ -31,6 +36,8 @@ func structurePalette(c *terrain.StructureClass, inTable bool) (ui.Palette, stri
 	switch {
 	case c == nil:
 		return ui.PaletteStructures, "structures.reg: no class"
+	case objectsKinds[c.ID]:
+		return ui.PaletteObjects, ""
 	case c.VariableSize:
 		// The two wooden bridges (TERR-STRUCT-105).
 		return ui.PaletteStructures, ""
