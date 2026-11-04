@@ -670,7 +670,7 @@
 "editor.brush.bridge" = "Bridge"
 "editor.brush.bridge.hint" = "Left drag paints, right drag erases."
 "editor.brush.bridge.floor" = "Rectangular brush, at least 3 by 2 cells"
-"editor.keys.bridge" = "Drag: paint / Right drag: erase / [ ]: size"
+"editor.keys.bridge" = "Drag + / RMB - / [ ] size"
 "editor.tool.drawarea" = "Draw trigger area"
 "editor.tool.newtrigger" = "New trigger"
 "editor.tool.border" = "Map border"

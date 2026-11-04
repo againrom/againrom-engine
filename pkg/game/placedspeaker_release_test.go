@@ -266,6 +266,7 @@ func (r placedSpeakerRoute) advance() {
 
 func (r placedSpeakerRoute) selectHero() {
 	r.t.Helper()
+	r.live.view.SetFogReveal(true)
 	h, ok := r.live.entity(r.hero)
 	if !ok || !h.Alive() {
 		r.t.Fatal("the entering hero is gone")

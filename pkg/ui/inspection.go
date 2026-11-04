@@ -15,14 +15,15 @@ func (v *Viewer) InspectionPanel() (PanelSubject, bool) { return v.panelSubject(
 // It never moves the camera, reveals fog, changes selection or injects a subject.
 func (v *Viewer) InspectionPoint(ref InspectionSubject) (int, int, error) {
 	var rects []screenRect
+	best, point, found := math.Inf(1), image.Point{}, false
 	for _, entry := range v.hoverRegistrations() {
 		if entry.hit.subject == ref {
 			rects = append(rects, entry.hit.rect)
 		}
 	}
 	for _, r := range rects {
-		for y := max(0, int(r.Y)); y < min(v.frameH, int(math.Ceil(r.Y+r.H))); y++ {
-			for x := max(0, int(r.X)); x < min(v.frameW, int(math.Ceil(r.X+r.W))); x++ {
+		for y := max(0, int(math.Floor(r.Y))); y <= min(v.frameH-1, int(math.Ceil(r.Y+r.H))); y++ {
+			for x := max(0, int(math.Floor(r.X))); x <= min(v.frameW-1, int(math.Ceil(r.X+r.W))); x++ {
 				if !v.mapSurfaceCaptures(x, y) || v.groundSurfaceCaptures(x, y) {
 					continue
 				}
@@ -40,11 +41,23 @@ func (v *Viewer) InspectionPoint(ref InspectionSubject) (int, int, error) {
 				// Downscaling can map adjacent frame pixels to the same window
 				// pixel. Validate the delivered coordinate, not the source one.
 				fx, fy := v.windowToFrame(wx, wy)
+				if _, blocked := TipPanelEventAt(v.MissionTip(), image.Pt(fx, fy), false); blocked {
+					continue
+				}
+				if _, blocked := TipPanelEventAt(v.MissionTip(), image.Pt(fx, fy), true); blocked {
+					continue
+				}
 				if got, ok := v.hoverAt(fx, fy); ok && got == ref {
-					return wx, wy, nil
+					dx, dy := float64(fx)-r.X-r.W/2, float64(fy)-r.Y-r.H/2
+					if distance := dx*dx + dy*dy; distance < best {
+						best, point, found = distance, image.Pt(wx, wy), true
+					}
 				}
 			}
 		}
+	}
+	if found {
+		return point.X, point.Y, nil
 	}
 	return 0, 0, fmt.Errorf("inspection %d:%d has no exposed pixel in the current view", ref.Kind, ref.ID)
 }

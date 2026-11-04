@@ -617,7 +617,7 @@
 "editor.brush.bridge" = "Мост"
 "editor.brush.bridge.hint" = "Левая кнопка рисует, правая стирает."
 "editor.brush.bridge.floor" = "Прямоугольная кисть, не меньше 3 на 2 клетки"
-"editor.keys.bridge" = "Тянуть: рисовать / Правой: стирать / [ ]: размер"
+"editor.keys.bridge" = "ЛКМ + / ПКМ - / [ ] размер"
 "editor.tool.drawarea" = "Нарисовать область триггера"
 "editor.tool.newtrigger" = "Новый триггер"
 "editor.tool.border" = "Граница карты"

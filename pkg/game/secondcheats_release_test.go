@@ -296,7 +296,11 @@ func TestReleaseSecondCampaignCheatCommands(t *testing.T) {
 		got := secondCheatLines(t, f, a, fmt.Sprintf("#summon %d %s", c.count, c.name))
 		var added []sim.EntityID
 		for _, e := range mw.world.Entities() {
-			if !known[e.ID] && e.Owner == sim.SelfSlot && e.Group != 0 {
+			if !known[e.ID] && e.Owner == sim.SelfSlot {
+				g, h := savedGroupOf(mw.world, e.ID), savedGroupOf(mw.world, id)
+				if g == nil || h == nil || g.ID == h.ID || len(g.Members) != 1 || g.OwnerID != h.OwnerID || g.ContainerID != h.ContainerID {
+					t.Fatalf("#summon actor %d Group %+v; hero Group %+v", e.ID, g, h)
+				}
 				added = append(added, e.ID)
 			}
 		}

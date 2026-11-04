@@ -22,10 +22,11 @@ import (
 // overrideTyper sets one field of a selected unit through its popup: it
 // scrolls the field into view, types the value and presses Apply.
 type overrideTyper struct {
-	t *testing.T
-	c *editorClicker
-	e *ui.MapEditor
-	i int
+	t      *testing.T
+	c      *editorClicker
+	e      *ui.MapEditor
+	i      int
+	decode func([]byte) string
 }
 
 func (o overrideTyper) section(section string) {
@@ -89,7 +90,11 @@ func (o overrideTyper) choose(key string, v int64) {
 	if r, ok := o.e.DropdownRowRect(row); ok || row < 0 {
 		o.c.click(o.e, r, ok, fmt.Sprintf("%s choice %d", key, v))
 	} else {
-		o.e.TextInput(f.Choices[row].Label)
+		label := f.Choices[row].Label
+		if o.decode != nil {
+			label = o.decode([]byte(label))
+		}
+		o.e.TextInput(label)
 		_ = o.e.Key("enter")
 	}
 	r, ok := o.e.PopupButtonRect(0)
@@ -145,7 +150,7 @@ func TestReleaseMapEditorOverridePopupWritesTheSetFieldBytes(t *testing.T) {
 		v     int64
 		width int
 	}
-	typer := overrideTyper{t: t, c: &editorClicker{t: t, now: time.Unix(1, 0)}, e: e, i: i}
+	typer := overrideTyper{t: t, c: &editorClicker{t: t, now: time.Unix(1, 0)}, e: e, i: i, decode: x.messageUTF8}
 	for _, c := range []fieldCase{{"body", 33, 1}, {"absorption", 240, 1}, {"skill.pike", 7, 1},
 		{"protection.astral", 55, 1}, {"hp", 50, 2}, {"mana", 7, 2}, {"gear", 1, 1}} {
 		before := e.Document().SourceBytes
@@ -321,7 +326,7 @@ func TestReleaseMapEditorOverrideFrames(t *testing.T) {
 		// hides; the frames show the window alone, as the owner frames do.
 		closeMapPanel(t, e)
 		e.Select(recordOf(e.Document(), "Unit", i), true)
-		return e, overrideTyper{t: t, c: c, e: e, i: i}
+		return e, overrideTyper{t: t, c: c, e: e, i: i, decode: x.messageUTF8}
 	}
 	fieldShot := func(e *ui.MapEditor, i int, key, name string) {
 		t.Helper()

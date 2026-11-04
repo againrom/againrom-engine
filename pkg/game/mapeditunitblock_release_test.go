@@ -109,7 +109,7 @@ func TestReleaseEditorUnitBlockFrames(t *testing.T) {
 	closeMapPanel(t, e)
 	rec := recordOf(e.Document(), "Unit", i)
 	e.Select(rec, true)
-	typer := overrideTyper{t: t, c: c, e: e, i: i}
+	typer := overrideTyper{t: t, c: c, e: e, i: i, decode: x.messageUTF8}
 	vitals := x.inspectionUTF8(x.word("editor.unit.group.vitals"))
 	sectionTo(t, c, e, vitals)
 	shot(e, "unit-inherited")

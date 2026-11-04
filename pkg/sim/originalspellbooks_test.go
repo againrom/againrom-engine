@@ -107,10 +107,10 @@ func TestImportOriginalCreatureSlotsKeepClassSlotsOverAZeroSource(t *testing.T) 
 	}
 }
 
-// A source naming no spell leaves a creature its class built a book of
+// A second-game source naming no spell leaves a creature its class built a book of
 // spells for holding that book; a source naming spells replaces it; a Human
 // and a creature with no class book take the source whole.
-func TestImportOriginalBookKeepsAClassBookOverNoSpell(t *testing.T) {
+func TestImportOriginalSecondGameBookKeepsAClassBookOverNoSpell(t *testing.T) {
 	class := Spellbook{State: BookPresent}
 	class.Slots[5] = BookSpell{Range: 4, ManaCost: 9}
 	creature := func(id EntityID, x int32) Entity {
@@ -122,6 +122,7 @@ func TestImportOriginalBookKeepsAClassBookOverNoSpell(t *testing.T) {
 	human.Humanoid = true
 	plain := spMage(3, 11, 2, 30, 50, 17, 1<<6)
 	w := spWorld(t, 1105, nil, creature(0, 2), creature(1, 5), human, plain)
+	w.game = newGameProfile(ScriptROM2)
 	empty := Spellbook{State: BookPresent}
 	named := Spellbook{State: BookPresent}
 	named.Slots[0] = BookSpell{Range: 1}
@@ -141,6 +142,20 @@ func TestImportOriginalBookKeepsAClassBookOverNoSpell(t *testing.T) {
 		if e := w.entities[c.id]; e.KnownSpells != c.known || e.Book != c.book {
 			t.Fatalf("entity %d holds %#x %v, want %#x %v", c.id, e.KnownSpells, e.Book, c.known, c.book)
 		}
+	}
+}
+
+func TestImportOriginalExplicitEmptyBookReplacesTheClassBook(t *testing.T) {
+	e := spMage(0, 2, 2, 30, 50, 17, 1<<6)
+	e.Book = Spellbook{State: BookPresent}
+	e.Book.Slots[5] = BookSpell{Range: 4, ManaCost: 9}
+	w := spWorld(t, 1105, nil, e)
+	empty := Spellbook{State: BookPresent}
+	if err := w.ImportOriginalActorSpellbooks([]OriginalActorSpellbook{{ID: 0, Book: empty}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := w.entities[0]; got.KnownSpells != 0 || got.Book != empty {
+		t.Fatalf("saved empty book became %#x %+v", got.KnownSpells, got.Book)
 	}
 }
 

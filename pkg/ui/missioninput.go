@@ -187,16 +187,18 @@ func (v *Viewer) hoverMask(x, y int) (mask uint32, hit uint32, hasHit bool) {
 			}
 			hit, hasHit = ref.ID, true
 		case InspectionStructure:
-			mask |= hoverMaskStructure
-			if v.usableStructure(ref) {
-				mask |= hoverMaskStructureCell
+			if v.structureHoverHit(ref) {
+				mask |= hoverMaskStructure
+				if v.usableStructure(ref) {
+					mask |= hoverMaskStructureCell
+				}
 			}
 		}
 	}
 	return mask, hit, hasHit
 }
 
-// structureHoverHit keeps pooled physical hits and admitted uses.
+// structureHoverHit gates structure cursor capabilities.
 // AI-CURSOR-231, REG-STR-080.
 func (v *Viewer) structureHoverHit(ref InspectionSubject) bool {
 	if _, ok := v.inspectionPanel(ref); !ok {

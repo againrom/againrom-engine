@@ -98,11 +98,12 @@ func (v *Viewer) hoverRegistrations() []hoverRegistration {
 			c := v.structureInfo[record.ID]
 			col, row := terrain.AnchorCell(record.X, record.Y)
 			cell := image.Pt(col, row)
-			if c == nil || !v.structureHoverHit(ref) || !v.structurePickGate(ref, cell.X, cell.Y) {
+			_, admitted := v.inspectionPanel(ref)
+			if c == nil || !admitted || !v.structurePickGate(ref, cell.X, cell.Y) {
 				continue
 			}
 			bounds := p.StructureRectangle(c).Canon()
-			if bounds.Empty() && !c.SelectionSet {
+			if bounds.Empty() && (!c.SelectionSet || v.usableStructure(ref)) {
 				w, h := (cellSpace{}).corner(c.TileWidth, c.FullHeight)
 				bounds = image.Rect(0, 0, int(w), int(h))
 			}

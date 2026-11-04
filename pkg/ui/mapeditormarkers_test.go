@@ -55,3 +55,42 @@ func TestEditorSpatialRecordMarkerKeepsTheInstallTextBytes(t *testing.T) {
 		t.Fatalf("marker label %v, want the install text %q", labels, marker)
 	}
 }
+
+func TestEditorMarkerCaptureKeepsOnlyVisibleGlyphs(t *testing.T) {
+	e := newMapEditorFixture(t)
+	e.Layout(1280, 800)
+	cell := image.Pt(20, 20)
+	e.doc.Viewer.cam.SetZoom(1)
+	e.doc.Records = []InspectionRecord{{Kind: KindEnchantment, Spatial: true, Cell: cell, Marker: "A long spell marker"}}
+	area := e.mapArea()
+	ox, oy := e.mapOrigin()
+	wx, wy := e.cellCenter(cell)
+	for _, edge := range []bool{false, true} {
+		x, y := area.Min.X+100, area.Min.Y+100
+		if edge {
+			x, y = area.Max.X-10, area.Max.Y-3
+		}
+		e.doc.Viewer.cam.X = wx - float64(x) + 7 + ox
+		e.doc.Viewer.cam.Y = wy - float64(y) - float64(fontHeight(e.bodyFont(), 15)) - 2 + oy
+		pic := image.NewRGBA(image.Rectangle{Max: e.window})
+		calls := text.Record(func() { e.drawMarkerLabels(pic) })
+		if !edge && len(calls) == 0 {
+			t.Fatal("the control label drew no glyph")
+		}
+		for _, call := range calls {
+			painted, ink := 0, 0
+			for i, p := range call.Glyph.Pixels {
+				if p.Painted {
+					ink++
+				}
+				at := image.Pt(call.X+i%call.Glyph.Width, call.Y+i/call.Glyph.Width)
+				if p.Painted && at.In(call.Clip) {
+					painted++
+				}
+			}
+			if ink != 0 && painted == 0 {
+				t.Errorf("edge=%v: wholly clipped glyph at %d,%d", edge, call.X, call.Y)
+			}
+		}
+	}
+}

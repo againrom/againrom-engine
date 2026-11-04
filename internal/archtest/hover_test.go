@@ -28,10 +28,12 @@ func TestHoverHasOneRectangleWalkAndHotspotSource(t *testing.T) {
 		}
 	}
 	for name, required := range map[string]string{
-		"hoverhit.go":   "func registeredHover(",
-		"inspection.go": "return v.hoverAt(v.cursorX, v.cursorY)",
-		"castcursor.go": "ref, hit := v.hoverAt(x, y)",
-		"command.go":    "hit:       v.hover.hit.subject",
+		"hoverhit.go":       "func registeredHover(",
+		"inspection.go":     "return v.hoverAt(v.cursorX, v.cursorY)",
+		"castcursor.go":     "ref, hit := v.hoverAt(x, y)",
+		"command.go":        "hit:       v.hover.hit.subject",
+		"headlessentity.go": "return v.InspectionPoint(InspectionSubject{InspectionUnit, id})",
+		"headless.go":       "v.InspectionPoint(InspectionSubject{InspectionUnit, id})",
 	} {
 		b, err := os.ReadFile(filepath.Join(root, "pkg", "ui", name))
 		if err != nil {

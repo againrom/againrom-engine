@@ -78,21 +78,15 @@ func pressDropCell(t *testing.T, app *ui.App, x, y int) {
 			t.Fatal(err)
 		}
 	}
-	for py := 100; py < 560; py += 4 {
-		for px := 160; px < 750; px += 4 {
-			cx, cy, err := app.HeadlessDropCell(px, py)
-			if err == nil && cx == x && cy == y {
-				if err := app.HeadlessPointer("press", px, py); err != nil {
-					t.Fatal(err)
-				}
-				if err := app.HeadlessPointer("release", px, py); err != nil {
-					t.Fatal(err)
-				}
-				return
-			}
+	px, py, err := app.HeadlessGroundPoint(image.Pt(x, y))
+	if err != nil {
+		t.Fatalf("cell (%d,%d): %v", x, y, err)
+	}
+	for _, edge := range []string{"press", "release"} {
+		if err := app.HeadlessPointer(edge, px, py); err != nil {
+			t.Fatal(err)
 		}
 	}
-	t.Fatalf("cell (%d,%d) has no visible ground pointer witness", x, y)
 }
 
 func entryStep1084(app *ui.App) error {

@@ -77,8 +77,8 @@ var fogWalkTable = map[string]struct {
 		"the unit a cast cursor may stand over: it asks fogGateEntity before it reports a hit, so a unit in the fog changes no cursor and no click arm"},
 	"spellCasterHolds": {fogWalkNotADraw,
 		"filters the already-selected units down to those that cast the selected spell; the selection is units the player holds and sees, and it emits no map pixel"},
-	"hoverMask": {fogWalkGated,
-		"the mission map's own hover hit test (story 1034): it asks fogGateEntity before it reports a hit at all, so a unit in the fog changes no cursor and no click arm -- the gate hoverHostilityCursor carried, moved to the one function that now names the snapshot for every cursor arm"},
+	"hoverRegistrations": {fogWalkGated,
+		"the shared hover rectangles ask fogGateEntity before admitting a unit to the cursor, card, highlight or click"},
 
 	// --- no map pixels ---
 	"beginSoundEntry":        {fogWalkNotADraw, "queues stage-one audio subjects; playHurt applies the existing visibility and placement gates when consumed"},
@@ -91,7 +91,6 @@ var fogWalkTable = map[string]struct {
 	"issuePlayerRetreat":     {fogWalkNotADraw, "checks the owned selection and queues immediate Retreat; draws no map pixels"},
 	"ArmItemCast":            {fogWalkNotADraw, "validates the owned selected actor; emits no map pixels"},
 	"releaseItemCast":        {fogWalkNotADraw, "dispatches a target from the fog-gated hoverMask; emits no map pixels"},
-	"HeadlessEntityPoint":    {fogWalkNotADraw, "read-only test point lookup through the production pick rectangle; sends no event or pixel"},
 	"selectionSummary": {fogWalkNotADraw,
 		"this build's `view+0x144` (story 1034): a flags word derived from the SELECTION -- units the player already holds and can already see. It emits no map pixel and reports nothing about an unselected entity, so there is no unit in the fog for it to reveal"},
 	"missionHoverCursor": {fogWalkNotADraw,
@@ -129,8 +128,6 @@ var fogWalkTable = map[string]struct {
 	"readoutSubjectOf":  {fogWalkNotADraw, "the debug readout's counts and its selected-unit line; a developer's box, off by default"},
 	"SelectedUnit": {fogWalkNotADraw,
 		"the entity id the panel and the spellbook both describe -- an id lookup, not a glyph; pkg/game's per-tick push is its one caller across the seam"},
-	"headlessSelectEntityOnce": {fogWalkNotADraw,
-		"a production hit-test input adapter for a no-window scenario; it selects through command and emits no map pixels"},
 	"HeadlessDollSlotPoint": {fogWalkNotADraw,
 		"a scenario's doll-slot pixel oracle; it counts the selected entities only to say WHY a frame drew no doll box, and emits no map pixel"},
 	"composeCommandPanel": {fogWalkNotADraw,

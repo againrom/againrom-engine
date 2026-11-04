@@ -683,6 +683,7 @@ func TestReleaseJoinedHeroHandoverTickComposesExactPanePopulation(t *testing.T) 
 			f.live.view.Camera().CenterOn(
 				float64(before.X*camera.CellSize+camera.CellSize/2),
 				float64(before.Y*camera.CellSize+camera.CellSize/2))
+			f.live.view.SetFogReveal(true)
 			if err := app.HeadlessSelectEntity(uint32(joinID)); err != nil {
 				t.Fatalf("preselect mission %d npc%d before handover: %v", tc.mission, tc.npc, err)
 			}
@@ -858,6 +859,7 @@ func TestReleaseCampaignJoinRoutesAreImmediateInteractiveAndPersistent(t *testin
 			f.live.view.Camera().CenterOn(
 				float64(beforeJoin.X*camera.CellSize+camera.CellSize/2),
 				float64(beforeJoin.Y*camera.CellSize+camera.CellSize/2))
+			f.live.view.SetFogReveal(true)
 			if err := app.HeadlessSelectEntity(uint32(joinID)); err != nil {
 				t.Fatalf("preselect mission %d npc%d before handover: %v", tc.mission, tc.npc, err)
 			}

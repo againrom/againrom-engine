@@ -3259,7 +3259,7 @@ var Committed = Baseline{
 		"structtags.nontest":     0,
 		"structtags.test":        0,
 		"stringliterals.nontest": 1,
-		"stringliterals.test":    30,
+		"stringliterals.test":    29,
 		"longcommentgroups":      1651,
 	},
 	// CommentBytes rose for the Forest guard hotfix: new doc comments and tests,
@@ -4089,5 +4089,5 @@ var Committed = Baseline{
 	// Disjoint rectangle cover and host-resolved structure fences.
 
 	// Shared hover, cursor hotspots, row zero and moving overlap.
-	CommentBytes: 10525232,
+	CommentBytes: 10524633,
 }

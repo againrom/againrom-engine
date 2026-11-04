@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"image"
+	"math"
 	"slices"
 	"strings"
 
@@ -248,15 +249,33 @@ func (a *App) HeadlessDollBoxPoint() (int, int, error) {
 //
 // The scan excludes the window's edge-scroll bands. A generic ground gesture
 // must not pan the camera after release and hide the next actor to inspect.
-func (a *App) HeadlessGroundPoint() (int, int, error) {
+// A cell argument requests an ordinary move point through the hover and tip gates.
+func (a *App) HeadlessGroundPoint(cells ...image.Point) (int, int, error) {
 	v, err := a.headlessViewer()
 	if err != nil {
 		return 0, 0, err
 	}
-	for y := 4; y < v.cam.ViewH; y += 4 {
-		for x := 4; x < v.cam.ViewW; x += 4 {
+	step := 4
+	if len(cells) != 0 {
+		step = 1
+	}
+	xMin, xMax := step, v.cam.ViewW
+	if len(cells) != 0 {
+		x0, _ := v.cellScreenCorner(cells[0].X, cells[0].Y)
+		x1, _ := v.cellScreenCorner(cells[0].X+1, cells[0].Y)
+		xMin = max(step, int(math.Floor(min(x0, x1)))-1)
+		xMax = min(xMax, int(math.Ceil(max(x0, x1)))+1)
+	}
+	for y := step; y < v.cam.ViewH; y += step {
+		for x := xMin; x < xMax; x += step {
 			if v.groundSurfaceCaptures(x, y) {
 				continue
+			}
+			if len(cells) != 0 {
+				col, row, inside := v.groundCellAt(float64(x), float64(y))
+				if !inside || image.Pt(col, row) != cells[0] {
+					continue
+				}
 			}
 			wx, wy, err := v.frameToWindow(image.Pt(x, y), "headless ground point")
 			if err != nil {
@@ -268,6 +287,25 @@ func (a *App) HeadlessGroundPoint() (int, int, error) {
 			left, right, top, bottom := missionEdgeBands(wx, wy, win.X, win.Y, EdgeMargin)
 			if left || right || top || bottom {
 				continue
+			}
+			if len(cells) != 0 {
+				fx, fy := v.windowToFrame(wx, wy)
+				col, row, inside := v.groundCellAt(float64(fx), float64(fy))
+				if !inside || image.Pt(col, row) != cells[0] || !v.gameAreaAt(fx, fy) {
+					continue
+				}
+				if _, hit := v.hoverAt(fx, fy); hit {
+					continue
+				}
+				if v.gestureCursorAt(fx, fy) != "move" {
+					continue
+				}
+				if _, blocked := TipPanelEventAt(v.MissionTip(), image.Pt(fx, fy), false); blocked {
+					continue
+				}
+				if _, blocked := TipPanelEventAt(v.MissionTip(), image.Pt(fx, fy), true); blocked {
+					continue
+				}
 			}
 			return wx, wy, nil
 		}

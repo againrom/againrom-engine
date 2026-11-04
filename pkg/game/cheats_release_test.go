@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"fmt"
+	"image"
 	"reflect"
 	"slices"
 	"strconv"
@@ -370,8 +371,7 @@ func cheatNearbyMovePoint(t *testing.T, f *FrontEnd, a *ui.App, actor sim.Entity
 	if err != nil {
 		t.Fatal(err)
 	}
-	var destination sim.CellPoint
-	found := false
+	before := f.live.world.Hash()
 	for _, offset := range [][2]int32{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {-1, 1}, {1, -1}, {-1, -1}} {
 		var scratch sim.World
 		if err := scratch.UnmarshalBinary(raw); err != nil {
@@ -384,40 +384,23 @@ func cheatNearbyMovePoint(t *testing.T, f *FrontEnd, a *ui.App, actor sim.Entity
 			sim.Step(&scratch, nil)
 		}
 		moved, present := scratch.Entity(actor.ID)
-		if present && (moved.X != actor.X || moved.Y != actor.Y) {
-			destination, found = at, true
-			break
+		if !present || moved.X == actor.X && moved.Y == actor.Y {
+			continue
 		}
-		t.Logf("neighbor (%d,%d): position=(%d,%d) HP=%d state=%d target=%t (%d,%d) pending=%+v route=%v", at.X, at.Y, moved.X, moved.Y, moved.HP, moved.ActorState, moved.HasTarget, moved.TargetX, moved.TargetY, moved.PendingOrder, scratch.Route(actor.ID))
-	}
-	if !found {
-		t.Fatalf("cold summoned actor did not move toward any of eight neighboring cells within 32 ticks: actor=%+v", actor)
-	}
-	before := f.live.world.Hash()
-	inspectionCentre(f.live, int(destination.X), int(destination.Y))
-	for y := 100; y < 560; y += 4 {
-		for x := 160; x < 740; x += 4 {
-			cx, cy, err := a.HeadlessDropCell(x, y)
-			if err != nil || int32(cx) != destination.X || int32(cy) != destination.Y {
-				continue
-			}
-			if err := a.HeadlessPointer("hover", x, y); err != nil {
-				t.Fatal(err)
-			}
-			if cursor, present := a.HeadlessMapCursor(); !present || cursor != "move" {
-				continue
-			}
-			if f.live.world.Hash() != before {
-				t.Fatal("move-point search changed the stopped cold world")
-			}
-			t.Logf("cold summoned move target=(%d,%d), source=(%d,%d)", cx, cy, actor.X, actor.Y)
-			return x, y
+		inspectionCentre(f.live, int(at.X), int(at.Y))
+		x, y, err := a.HeadlessGroundPoint(image.Pt(int(at.X), int(at.Y)))
+		if err != nil {
+			continue
 		}
+		if f.live.world.Hash() != before {
+			t.Fatal("move-point search changed the stopped cold world")
+		}
+		t.Logf("cold summoned move target=(%d,%d), source=(%d,%d)", at.X, at.Y, actor.X, actor.Y)
+		return x, y
 	}
-	t.Fatalf("no ordinary move cursor for reachable neighboring cell (%d,%d)", destination.X, destination.Y)
+	t.Fatal("none of eight neighboring cells is reachable through an ordinary ground move point")
 	return 0, 0
 }
-
 func TestReleaseCheatSummonUsesAppAndOrdinarySAV(t *testing.T) {
 	firstgame.SkipOnSecondGame(t)
 	for _, hero := range []bool{false, true} {

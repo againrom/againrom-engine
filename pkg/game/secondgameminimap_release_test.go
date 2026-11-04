@@ -154,9 +154,9 @@ func TestReleaseSecondGameMinimapMarks(t *testing.T) {
 	}
 	t.Logf("mounds with a 4x2 mark: %v", shown)
 
-	// The hero holds a place the creatures come to; the creature's mark goes
+	// The hero attacks the observed creature; its mark goes
 	// once its body is past the first corpse stage (MISSION-085).
-	mw.enqueue(uint32(hero.ID), start.X+13, start.Y)
+	mw.pending = append(mw.pending, sim.Attack(hero.ID, seen.ID))
 	gone := false
 	for n := 0; n < 3000 && !gone; n++ {
 		e, ok := mw.entity(seen.ID)

@@ -3,8 +3,27 @@ package ui
 import (
 	"image"
 	"image/color"
+	"strings"
 	"testing"
+
+	"againrom/pkg/render/text"
 )
+
+func TestPopupTitleFitsBeforeItsControls(t *testing.T) {
+	f := solidFont15()
+	s := popupSpec{Title: strings.Repeat("Long title ", 20), TitleButton: "View", Width: 240, Bounds: image.Rect(0, 0, 300, 200)}
+	l := layoutPopup(s, f, f)
+	dst := image.NewRGBA(s.Bounds)
+	calls := text.Record(func() { drawPopup(dst, f, f, nil, s, l, editorPopupInk, image.Point{}, false, nil) })
+	if len(calls) == 0 {
+		t.Fatal("the popup drew no text")
+	}
+	for _, c := range calls {
+		if c.X >= c.Clip.Max.X {
+			t.Fatalf("glyph at %d beyond its reserved clip %v", c.X, c.Clip)
+		}
+	}
+}
 
 func popupFixture() popupSpec {
 	rows := []popupRow{

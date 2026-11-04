@@ -1291,7 +1291,7 @@
 1290 release320,180 screen3+detailed+focus0 frame=640x480:79c5264c81e0d0e6 msg="" snd=[]
 1291 press554,41 screen3+detailed+focus0 frame=640x480:c61bc15f7c1ec1eb msg="" snd=[]
 1292 release554,41 screen2 frame=none msg="" snd=[music-stop,music B00.wav,music-start]
-1293 accept screen2 members=1 party=bca8f42a57b5e584 msg=""
+1293 accept screen2 members=1 party=c6f99149067953d5 msg=""
 1294 new-game screen3+precreate+focus0 frame=640x480:2487329ba0c19f25 msg="" snd=[start main-menu:chrgen/ok.wav,start fixed-interface:registry:2]
 1295 press568,218 screen0 frame=640x480:0a0c4e4a0cf2a531 msg="" snd=[start character-precreate:chrgen/ok.wav,stop character-precreate:chrgen/ok.wav]
 1296 release568,218 screen0 frame=640x480:982f24d7374301aa msg="" snd=[]

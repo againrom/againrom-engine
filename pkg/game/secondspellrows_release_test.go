@@ -68,10 +68,11 @@ func TestReleaseSecondCampaignStoneCurseAndSummonSurviveSAVEAndColdLOAD(t *testi
 		}
 	}
 	hero = releaseEntity(t, mw, id)
-	if creature.ID == 0 || creature.Owner != hero.Owner || creature.Group == hero.Group || creature.Group == 0 {
-		t.Fatalf("Summon made actor %d owner %d group %d for hero owner %d group %d", creature.ID, creature.Owner, creature.Group, hero.Owner, hero.Group)
+	g, h := savedGroupOf(mw.world, creature.ID), savedGroupOf(mw.world, id)
+	if creature.ID == 0 || creature.Owner != hero.Owner || g == nil || h == nil || g.ID == h.ID || len(g.Members) != 1 || g.OwnerID != h.OwnerID || g.ContainerID != h.ContainerID {
+		t.Fatalf("Summon made actor %d owner %d Group %+v for hero owner %d Group %+v", creature.ID, creature.Owner, g, hero.Owner, h)
 	}
-	t.Logf("summoned actor %d type %d at %d,%d (%+d,%+d from the hero), group %d; hero mana %d", creature.ID, creature.TypeID, creature.X, creature.Y, creature.X-hero.X, creature.Y-hero.Y, creature.Group, hero.Mana)
+	t.Logf("summoned actor %d type %d at %d,%d (%+d,%+d from the hero), group %d; hero mana %d", creature.ID, creature.TypeID, creature.X, creature.Y, creature.X-hero.X, creature.Y-hero.Y, g.ID, hero.Mana)
 
 	// Each cast queues on the first tick the mana allows; the check reads
 	// the curse, 0..26 ticks here (R2-ENGINE-025), as it lands.

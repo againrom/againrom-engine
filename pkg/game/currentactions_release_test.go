@@ -332,6 +332,7 @@ func TestReleaseCurrentActionScrollSAV(t *testing.T) {
 			id := f.live.mission.ids[0]
 			e, _ := f.live.entity(id)
 			f.live.view.Camera().CenterOn(float64(e.X*32), float64(e.Y*32))
+			f.live.view.ClearMissionTip()
 			if err := app.HeadlessSelectEntity(uint32(id)); err != nil {
 				t.Fatal(err)
 			}

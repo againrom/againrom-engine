@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -1281,59 +1280,15 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 		return fmt.Errorf("headless select entity %d: map is not open", id)
 	}
 	v := a.flow.viewer
-	var chosen *screenRect
-	for _, e := range v.entities {
-		if e.ID != id {
-			continue
-		}
-		r, ok := v.hoverEntityRect(e)
-		if !ok {
-			return fmt.Errorf("headless select entity %d: entity is outside the current view", id)
-		}
-		chosen = &r
-		break
-	}
-	if chosen == nil {
-		return fmt.Errorf("headless select entity %d: entity is not present", id)
-	}
-	// Search the kind rectangle with the same hover walk as a live map tap.
-	x0, x1 := int(math.Floor(chosen.X)), int(math.Ceil(chosen.X+chosen.W))
-	y0, y1 := int(math.Floor(chosen.Y)), int(math.Ceil(chosen.Y+chosen.H))
-	px, py, found := 0, 0, false
-	// A first exposed edge pixel can be covered by a moving neighbour on
-	// release. Prefer the interior without pausing either production frame.
-	bestDistance := math.Inf(1)
-	cx, cy := chosen.X+chosen.W/2, chosen.Y+chosen.H/2
-	for y := y0; y <= y1; y++ {
-		for x := x0; x <= x1; x++ {
-			if got, ok := v.hoverAt(x, y); ok && got == (InspectionSubject{InspectionUnit, id}) {
-				// A downscaled window cannot address every frame pixel. Keep
-				// searching inside the same actor for a real pointer location.
-				if _, _, ok := v.place.FrameToWindow(image.Pt(x, y)); !ok {
-					continue
-				}
-				dx, dy := float64(x)-cx, float64(y)-cy
-				if distance := dx*dx + dy*dy; distance < bestDistance {
-					px, py, found, bestDistance = x, y, true, distance
-				}
-			}
-		}
-	}
-	if !found {
-		return fmt.Errorf("headless select entity %d: every visible point is obscured", id)
-	}
-	// px, py CAME FROM entityPickRect, WHICH IS FRAME SPACE (1026 B4). The two
-	// step calls below take window pixels, so the point is converted here by
-	// the same placement the production press will be resolved by.
-	wx, wy, err := v.frameToWindow(image.Pt(px, py), fmt.Sprintf("headless select entity %d", id))
+	vx, vy, err := v.InspectionPoint(InspectionSubject{InspectionUnit, id})
 	if err != nil {
-		return err
+		return fmt.Errorf("headless select entity %d: %w", id, err)
 	}
-	press := appInput{CursorX: wx, CursorY: wy, PrimaryPressed: true,
-		Viewer: Input{CursorX: wx, CursorY: wy, PrimaryDown: true}}
+	press := appInput{CursorX: vx, CursorY: vy, PrimaryPressed: true,
+		Viewer: Input{CursorX: vx, CursorY: vy, PrimaryDown: true}}
 	a.step(press, a.headlessAt())
-	release := appInput{CursorX: wx, CursorY: wy, PrimaryReleased: true,
-		Viewer: Input{CursorX: wx, CursorY: wy}}
+	release := appInput{CursorX: vx, CursorY: vy, PrimaryReleased: true,
+		Viewer: Input{CursorX: vx, CursorY: vy}}
 	a.step(release, a.headlessAt())
 	got, ok := v.SelectedUnit()
 	if !ok || got != id {

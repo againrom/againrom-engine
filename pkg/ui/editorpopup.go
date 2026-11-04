@@ -1349,7 +1349,7 @@ func drawPopup(dst *image.RGBA, title, body *text.Font, frames []*image.RGBA, s 
 	}
 	if title != nil {
 		clip := dst.SubImage(image.Rect(l.Title.Min.X+popupPad, l.Title.Min.Y, titleEnd-2, l.Title.Max.Y)).(*image.RGBA)
-		title.Draw(clip, s.Title, l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
+		title.Draw(clip, editorClip(title, s.Title, clip.Bounds().Dx()), l.Title.Min.X+popupPad, l.Title.Min.Y+popupRowExtra/2, ink.Title)
 	}
 	closeLabel := "x"
 	if s.CloseLabel != "" {

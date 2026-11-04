@@ -60,6 +60,7 @@ func TestReleaseUnitRepliesPlayInstalledRecordings(t *testing.T) {
 	if a.HeadlessNoticeOpen() {
 		t.Fatal("notice did not close")
 	}
+	f.live.view.ClearMissionTip()
 	clock := func() {
 		t.Helper()
 		if err := headlessReplyClock(a); err != nil {

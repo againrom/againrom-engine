@@ -34,6 +34,7 @@ func newSackFeetRig(t *testing.T, mission int) sackFeetRig {
 			t.Fatal(err)
 		}
 	}
+	r.live.view.ClearMissionTip()
 	if err := app.HeadlessSelectEntity(uint32(r.hero)); err != nil {
 		t.Fatal(err)
 	}

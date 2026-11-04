@@ -90,6 +90,7 @@ func trainingEquip(t *testing.T, f *FrontEnd, app *ui.App, id sim.EntityID, equi
 	t.Helper()
 	e := releaseEntity(t, f.live, id)
 	f.live.view.Camera().CenterOn(float64(e.X*32), float64(e.Y*32))
+	f.live.view.ClearMissionTip()
 	if err := app.HeadlessSelectEntity(uint32(id)); err != nil {
 		t.Fatal(err)
 	}

@@ -100,6 +100,7 @@ func releaseFarOrder(t *testing.T, f *FrontEnd, mission int, foe sim.EntityID) (
 		t.Fatal(err)
 	}
 	live := f.live
+	live.view.SetFogReveal(true)
 	for k := 0; k < 16 && live.mission.open; k++ {
 		if err := app.HeadlessKey("enter"); err != nil {
 			t.Fatal(err)

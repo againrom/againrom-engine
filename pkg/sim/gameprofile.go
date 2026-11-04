@@ -16,8 +16,9 @@ type gameProfile struct {
 	// groupRoute: the saved Group AI's routes and handler rules.
 	groupRoute groupRouteProfile
 	// creatureAim: the creature slot cast's aims and planner gates.
-	creatureAim       creatureAimProfile
-	suppressedRewards bool
+	creatureAim            creatureAimProfile
+	suppressedRewards      bool
+	fillsEmptyCreatureBook bool
 
 	// nativeTick: the World keeps its native uint64 tick and no session
 	// clock; the step ends by raising it and runs no session tick arms.
@@ -132,6 +133,7 @@ func newGameProfile(d ScriptDialect) gameProfile {
 		groupRoute:                 secondGameGroupRoute,
 		creatureAim:                secondGameCreatureAim,
 		suppressedRewards:          true,
+		fillsEmptyCreatureBook:     true,
 		nativeTick:                 true,
 		bankedScript:               true,
 		activityMask:               true,

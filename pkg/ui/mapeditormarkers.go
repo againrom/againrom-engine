@@ -18,6 +18,10 @@ func (e *MapEditor) markerLabels() []recordMarkerLabel {
 	ox, oy := e.mapOrigin()
 	area := e.mapArea()
 	var out []recordMarkerLabel
+	var occupied []image.Rectangle
+	for _, l := range e.areaLabels() {
+		occupied = append(occupied, l.rect)
+	}
 	for i, r := range e.doc.Records {
 		if !r.Spatial || r.Marker == "" {
 			continue
@@ -34,8 +38,8 @@ func (e *MapEditor) markerLabels() []recordMarkerLabel {
 		}
 		at := image.Pt(int(x+ox)+7, int(y+oy)-fontHeight(f, 15)-2)
 		rect := image.Rectangle{Min: at, Max: at.Add(image.Pt(width, fontHeight(f, 15)+2))}
-		for j := 0; j < len(out); {
-			if rect.Overlaps(out[j].rect) {
+		for j := 0; j < len(occupied); {
+			if rect.Overlaps(occupied[j]) {
 				rect = rect.Add(image.Pt(0, fontHeight(f, 15)+2))
 				j = 0
 			} else {
@@ -45,16 +49,28 @@ func (e *MapEditor) markerLabels() []recordMarkerLabel {
 		if !rect.Overlaps(area) {
 			continue
 		}
-		out = append(out, recordMarkerLabel{rect: rect.Intersect(area), text: label})
+		out = append(out, recordMarkerLabel{rect: rect, text: label})
+		occupied = append(occupied, rect)
 	}
 	return out
 }
 
 func (e *MapEditor) drawMarkerLabels(pic *image.RGBA) {
 	for _, l := range e.markerLabels() {
-		draw.Draw(pic, l.rect, image.NewUniform(editorInk), image.Point{}, draw.Src)
+		clip := l.rect.Intersect(e.mapArea())
+		draw.Draw(pic, clip, image.NewUniform(editorInk), image.Point{}, draw.Src)
 		if f := e.bodyFont(); f != nil {
-			f.Draw(pic.SubImage(l.rect).(*image.RGBA), l.text, l.rect.Min.X+3, l.rect.Min.Y+1, editorPaper)
+			x, y := l.rect.Min.X+3, l.rect.Min.Y+1
+			if y < clip.Min.Y || y+f.Height() > clip.Max.Y {
+				continue
+			}
+			label := l.text
+			for len(label) > 0 && x < clip.Min.X {
+				x += f.Advance(label[:1])
+				label = label[1:]
+			}
+			label = editorClip(f, label, clip.Max.X-x)
+			f.Draw(pic.SubImage(clip).(*image.RGBA), label, x, y, editorPaper)
 		}
 	}
 }
