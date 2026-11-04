@@ -356,12 +356,26 @@ func (e *MapEditor) ListRowCount() int {
 // FieldRect is the window rectangle of the control of field n of the object
 // popup, when that row is shown.
 func (e *MapEditor) FieldRect(n int) (image.Rectangle, bool) {
+	return e.fieldControlRect(n, -1)
+}
+
+func (e *MapEditor) FieldChoiceRect(n, choice int) (image.Rectangle, bool) {
+	return e.fieldControlRect(n, choice)
+}
+
+func (e *MapEditor) fieldControlRect(n, choice int) (image.Rectangle, bool) {
 	s, _, ok := e.objectSpec()
 	if !ok || n < 0 || n >= len(e.obj.fields) {
 		return image.Rectangle{}, false
 	}
 	for _, r := range layoutPopup(s, e.font, e.bodyFont()).Rows {
 		if r.Index == e.fieldRow(n) {
+			if choice >= 0 {
+				if s.Rows[r.Index].Kind != popupDirection || choice >= len(r.Buttons) {
+					return image.Rectangle{}, false
+				}
+				return r.Buttons[choice], true
+			}
 			return r.Control, true
 		}
 	}
@@ -2246,7 +2260,8 @@ func (e *MapEditor) objectPress(p image.Point) {
 		return
 	}
 	s, links, _ := e.objectSpec()
-	switch part, n := layoutPopup(s, e.font, e.bodyFont()).hit(p); part {
+	l := layoutPopup(s, e.font, e.bodyFont())
+	switch part, n := l.hit(p); part {
 	case popupTab:
 		e.obj.section, e.obj.open, e.obj.focus, e.objectTop = n, -1, -1, 0
 	case popupClose:
@@ -2261,6 +2276,13 @@ func (e *MapEditor) objectPress(p image.Point) {
 			e.drag, e.dragFrom, e.dragEdge, e.dragCard = popObject, p, 0, n+1
 		}
 	case popupRowButton:
+		if s.Rows[n].Kind == popupDirection {
+			if _, k, ok := l.rowButtonAt(p); ok {
+				e.objectRowPress(part, n)
+				e.chooseObjectChoice(k)
+			}
+			return
+		}
 		if e.messagePage != 0 {
 			if row, k, ok := layoutPopup(s, e.font, e.bodyFont()).rowButtonAt(p); ok {
 				e.messageRowButton(row, k)

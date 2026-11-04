@@ -186,8 +186,10 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 					value := image.Rectangle{Min: c.box.Min.Mul(2), Max: c.box.Max.Mul(2)}.Add(l.Card.Min)
 					var at popupRowRect
 					found := false
+					key, editable := cardKeys[c.field]
 					for r, rr := range placed {
-						if r.Max == value.Max && r.Min.Y == value.Min.Y && r.Min.X <= value.Min.X {
+						i, edits := e.obj.rowField[rr.Index]
+						if editable && edits && e.obj.fields[i].Key == key || !editable && r == value {
 							at, found = rr, true
 						}
 					}
@@ -197,13 +199,13 @@ func TestMapEditorUnitBasicViewIsTheCardWithItsInputs(t *testing.T) {
 					}
 					row := s.Rows[at.Index]
 					i, edits := e.obj.rowField[at.Index]
-					if key, ok := cardKeys[c.field]; ok {
+					if editable {
 						inputs++
 						if !edits || e.obj.fields[i].Key != key || row.Kind != popupEdit || at.Control != at.Rect || !strings.Contains(row.Tip, e.editorHostText(e.obj.fields[i].Label)) {
 							t.Errorf("%s: %q is not the %s input: %+v", name, c.label, key, row)
 						}
-						if at.Rect.Dx() < e.bodyFont().Advance("0000")+2*editTextX && at.Rect.Min.X > l.Card.Min.X+2*c.box.Min.X-e.bodyFont().Advance("0000") {
-							t.Errorf("%s: the %s input %v holds no four digits", name, key, at.Rect)
+						if at.Rect.Min.Y != value.Min.Y+1 || at.Rect.Max.Y != value.Max.Y-1 || at.Rect.Dx() < e.bodyFont().Advance(row.Value)+2*editTextX {
+							t.Errorf("%s: the %s input %v leaves its card row or clips its value", name, key, at.Rect)
 						}
 						continue
 					}
@@ -272,7 +274,7 @@ func TestMapEditorUnitBasicViewTypedValueRedrawsTheCard(t *testing.T) {
 		}
 		r, _ := e.FieldRect(cardFieldIndex(t, e, "body"))
 		for _, c := range drawnCells(e, s) {
-			if c.field == PanelFieldBody && (r.Max != c.box.Max.Mul(2).Add(card.Min) || c.value != "77") {
+			if c.field == PanelFieldBody && (r.Min.Y != 2*c.box.Min.Y+card.Min.Y+1 || r.Max.Y != 2*c.box.Max.Y+card.Min.Y-1 || c.value != "77") {
 				t.Fatalf("%s: the body input %v, the card's value %q at %v", lang, r, c.value, c.box)
 			}
 		}

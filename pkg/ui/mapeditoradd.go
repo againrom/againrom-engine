@@ -34,10 +34,11 @@ type InspectionNewRecord struct {
 // a typed value, the value or text the step starts at, and Absent when the
 // record as asked so far has no such value.
 type InspectionNewStep struct {
-	Choices []InspectionChoice
-	Value   int64
-	Text    string
-	Absent  bool
+	Choices   []InspectionChoice
+	ChoicePad []image.Point
+	Value     int64
+	Text      string
+	Absent    bool
 	// Palettes is the bar palette each choice of a structure kind step
 	// lists in, by value; a value it lacks lists in its own kind's palette.
 	Palettes map[int64]Palette
@@ -748,7 +749,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 			row.Value = e.addValueText(r, i)
 			switch st.Control {
 			case addChoice, addSprites, addKind, addItem:
-				row.Kind = popupChoice
+				row = row.withChoices(r.offer.Choices, r.offer.ChoicePad, e.prompt.path)
 			case addCell:
 				row.Kind = popupPick
 				act.button = "pick"
@@ -767,7 +768,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 			act.button = "pick"
 		}
 		_, chosen := r.choiceAt(e.prompt.path)
-		if row.Focus && !(row.Kind == popupChoice && chosen) && body != nil {
+		if row.Focus && row.Kind != popupDirection && !(row.Kind == popupChoice && chosen) && body != nil {
 			// A typed value keeps its end, where the caret stands.
 			row.Value = textfit.Spec{Measure: body.Advance, Unit: textfit.Byte, Side: textfit.Start}.Fit(row.Value, w/2)
 			row.Caret = body.Advance(row.Value)
@@ -789,7 +790,7 @@ func (e *MapEditor) addSpec() (popupSpec, []addRowAct) {
 			}
 		}
 	}
-	if r.list != nil {
+	if r.list != nil && len(r.offer.ChoicePad) == 0 {
 		s.List, s.ListRows = r.list, min(addListRows, r.list.Len())
 		list := r.list
 		s.ListText = func(row, width int) string {
@@ -858,6 +859,12 @@ func (e *MapEditor) addPress(p image.Point, double bool) {
 			e.cancelPopup()
 		}
 	case popupRowButton:
+		if s.Rows[n].Kind == popupDirection {
+			if _, k, ok := l.rowButtonAt(p); ok {
+				e.addTake(k)
+			}
+			return
+		}
 		a := acts[n]
 		switch a.button {
 		case "pick":

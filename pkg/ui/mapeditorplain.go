@@ -510,7 +510,7 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 	// A stat whose stored value differs from the card's value, the one the
 	// game uses, is stated in words beside the card.
 	var differ []string
-	cell := func(f PanelField, label, value string, pen, start, y int) {
+	cell := func(f PanelField, label, value string, pen, start, end, y int) {
 		if value == "" {
 			return
 		}
@@ -536,7 +536,14 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 				}
 				s.Rows, *links = s.Rows[:n+1], (*links)[:n+1]
 				row := &s.Rows[n]
-				box.Min.X = max(min(box.Min.X, box.Max.X-least), start*cardScale)
+				limit := end * cardScale
+				if pair {
+					limit = min(limit, box.Max.X)
+				}
+				box.Min.X = max(min(box.Min.X, limit-least), start*cardScale)
+				box.Max.X = min(max(box.Max.X, box.Min.X+least), limit)
+				box.Min.Y++
+				box.Max.Y--
 				row.Place, row.Buttons, row.Tip = box, nil, strings.Join(slices.DeleteFunc(tip, func(t string) bool { return t == "" }), " ")
 				if stored := strings.TrimSpace(row.Value); stored != "" && !sameNumber(stored, number) {
 					name := strings.TrimSpace(label)
@@ -559,15 +566,21 @@ func (e *MapEditor) plainCardRows(s *popupSpec, links *[]int, v plainView, entri
 		left := r.At.X + r.Indent
 		labelEnd := left
 		if r.Label != "" {
-			labelEnd += font.Advance(r.Label) + 1
+			width, _ := font.Measure(r.Label)
+			labelEnd += width + layout.LabelGap
 		}
-		cell(r.Field, r.Label, r.Value, left+r.ValueX, labelEnd, r.At.Y)
+		end := layout.Size.X - layout.Pad.X
+		if r.Right {
+			end = r.At.X + r.RightX - max(1, layout.ColumnGap/2)
+		}
+		cell(r.Field, r.Label, r.Value, left+r.ValueX, labelEnd, end, r.At.Y)
 		if r.Right {
 			right := r.At.X + r.RightX
 			if r.RightLabel != "" {
-				right += font.Advance(r.RightLabel) + 1
+				width, _ := font.Measure(r.RightLabel)
+				right += width + layout.LabelGap
 			}
-			cell(r.RightField, r.RightLabel, r.RightValue, r.At.X+r.RightX+r.RightValueX, right, r.At.Y)
+			cell(r.RightField, r.RightLabel, r.RightValue, r.At.X+r.RightX+r.RightValueX, right, layout.Size.X-layout.Pad.X, r.At.Y)
 		}
 	}
 	for _, line := range differ {

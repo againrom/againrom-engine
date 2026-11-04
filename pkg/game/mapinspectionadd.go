@@ -366,7 +366,8 @@ func (s *mapInspectionEdits) NewRecordStep(r ui.InspectionNewRecord, key string)
 		case "group":
 			out.Value = s.newUnitGroup(r)
 		case "facing":
-			out.Choices = s.RecordChoices(ui.KindUnit, -1, key)
+			offer := s.fieldChoiceOffer(fieldChoiceAsk{kind: ui.KindUnit, index: -1, key: key})
+			out.Choices, out.ChoicePad = offer.Choices, offer.ChoicePad
 		case "control":
 			out.Choices = []ui.InspectionChoice{{Value: 0, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.human"))},
 				{Value: 1, Label: s.inspector.inspectionUTF8(s.inspector.word("editor.add.control.computer"))}}

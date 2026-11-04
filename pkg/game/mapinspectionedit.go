@@ -324,7 +324,8 @@ func (s *mapInspectionEdits) Fields(kind ui.RecordKind, index int) []ui.Inspecti
 				row.Label = label
 			}
 		}
-		row.Choices = s.fieldChoices(fieldChoiceAsk{kind: kind, index: index, key: f.Key, script: script})
+		offer := s.fieldChoiceOffer(fieldChoiceAsk{kind: kind, index: index, key: f.Key, script: script})
+		row.Choices, row.ChoicePad = offer.Choices, offer.ChoicePad
 		if f.Text != nil {
 			row.TextValue, err = s.model.TextFieldValue(k, index, f.Key)
 		} else {

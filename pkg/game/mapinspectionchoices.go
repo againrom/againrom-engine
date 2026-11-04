@@ -29,6 +29,7 @@ type fieldChoiceRow struct {
 	field    string
 	prefix   bool
 	script   bool
+	pad      []image.Point
 	supply   func(s *mapInspectionEdits, a fieldChoiceAsk) []ui.InspectionChoice
 }
 
@@ -47,7 +48,7 @@ var fieldChoiceRows = []fieldChoiceRow{
 	{field: "owner", supply: ownerChoices},
 	{field: "face", supply: faceChoices},
 	{field: "sex", supply: wordChoices("editor.unit.look.male", "editor.unit.look.female")},
-	{kinds: []ui.RecordKind{ui.KindUnit}, field: "facing", supply: wordChoices("editor.unit.facing.random",
+	{kinds: []ui.RecordKind{ui.KindUnit}, field: "facing", pad: []image.Point{{0, 0}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}}, supply: wordChoices("editor.unit.facing.random",
 		"editor.unit.facing.1", "editor.unit.facing.2", "editor.unit.facing.3", "editor.unit.facing.4",
 		"editor.unit.facing.5", "editor.unit.facing.6", "editor.unit.facing.7", "editor.unit.facing.8")},
 	{field: "recipeitem", supply: recipeItemChoices},
@@ -72,13 +73,17 @@ func (r fieldChoiceRow) serves(a fieldChoiceAsk) bool {
 	return a.key == r.field
 }
 
-func (s *mapInspectionEdits) fieldChoices(a fieldChoiceAsk) []ui.InspectionChoice {
+func (s *mapInspectionEdits) fieldChoiceOffer(a fieldChoiceAsk) ui.InspectionNewStep {
 	for _, r := range fieldChoiceRows {
 		if r.serves(a) {
-			return r.supply(s, a)
+			return ui.InspectionNewStep{Choices: r.supply(s, a), ChoicePad: r.pad}
 		}
 	}
-	return nil
+	return ui.InspectionNewStep{}
+}
+
+func (s *mapInspectionEdits) fieldChoices(a fieldChoiceAsk) []ui.InspectionChoice {
+	return s.fieldChoiceOffer(a).Choices
 }
 
 func (s *mapInspectionEdits) RecordChoices(kind ui.RecordKind, index int, key string) []ui.InspectionChoice {

@@ -268,6 +268,12 @@ func chooseField(t *testing.T, e *ui.MapEditor, c *editorClicker, key string, va
 	if at < 0 {
 		t.Fatalf("%s offers no choice %d", key, value)
 	}
+	if r, ok := e.FieldChoiceRect(n, at); ok {
+		c.click(e, r, true, key)
+		r, ok = e.PopupButtonRect(0)
+		c.click(e, r, ok, "Apply")
+		return
+	}
 	r, ok := e.FieldRect(n)
 	c.click(e, r, ok, key)
 	row := slices.Index(e.DropdownChoices(), f.Choices[at].Label)

@@ -17,6 +17,12 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+### For map makers and modders
+
+- [BASE] A unit's stat inputs leave space around the card's labels, neighbouring inputs and edges in English and Russian.
+- [BASE] Scrolling to a unit's direction buttons keeps their rows and hover tips clear of the character card.
+- [BASE] Choose a unit's facing on nine compass buttons in the Add window and unit panel; the middle dot keeps the original's random direction.
+
 ## 0.147.0
 
 ### For players

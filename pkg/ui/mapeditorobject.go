@@ -264,6 +264,7 @@ func (e *MapEditor) objectFieldRows(s *popupSpec, links *[]int) {
 		row := popupRow{Kind: popupEdit, Label: label, Value: o.buf[i], Focus: i == o.focus}
 		if len(f.Choices) > 0 {
 			row.Kind, row.Value = popupChoice, choiceText(f, o.buf[i])
+			row = row.withChoices(f.Choices, f.ChoicePad, o.buf[i])
 		} else if f.Text {
 			row.Value = e.editorHostText(o.buf[i])
 		}
@@ -585,6 +586,9 @@ func (e *MapEditor) objectRowPress(part popupPart, n int) {
 		return
 	}
 	if len(o.fields[i].Choices) > 0 {
+		if len(o.fields[i].ChoicePad) > 0 && part != popupRowButton {
+			return
+		}
 		if o.open == i {
 			o.open = -1
 			return

@@ -3,6 +3,7 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"os"
 	"path/filepath"
 	"slices"
@@ -71,7 +72,7 @@ func TestEditorAddWindowAsksTheUnitsFacing(t *testing.T) {
 		_, e := openAuthoring(t)
 		s := e.Document().Edits.(*mapInspectionEdits)
 		step := s.NewRecordStep(ui.InspectionNewRecord{Kind: ui.KindUnit}, "facing")
-		if len(step.Choices) != 1+alm.FacingDirections || step.Value != 0 {
+		if len(step.Choices) != 1+alm.FacingDirections || len(step.ChoicePad) != 9 || step.Value != 0 {
 			t.Fatalf("the facing step offers %v at %d", step.Choices, step.Value)
 		}
 		before := s.model.Count(mapedit.KindUnit)
@@ -83,6 +84,47 @@ func TestEditorAddWindowAsksTheUnitsFacing(t *testing.T) {
 		rec, _ := s.model.UnitRecord(before)
 		if rec[alm.UnitFacing] != c.want {
 			t.Fatalf("%v: the new unit's facing byte is %d, want %d", c.values, rec[alm.UnitFacing], c.want)
+		}
+	}
+}
+
+func TestEditorFacingPadWritesTheSameBytesInBothUnitViews(t *testing.T) {
+	for _, lang := range []string{"", "russian"} {
+		for _, docked := range []bool{false, true} {
+			for _, plain := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/docked=%v/plain=%v", lang, docked, plain), func(t *testing.T) {
+					s, _ := viewsMap(t)
+					base := s.model.Clone()
+					s.inspector.archives.Base.Profile.Language = lang
+					e, c := motionWindow(t, s, lang, plain, docked)
+					f := e.ObjectFields()[fieldIndex(t, e.ObjectFields(), "facing")]
+					wantPad := []image.Point{{0, 0}, {0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}}
+					if !slices.Equal(f.ChoicePad, wantPad) {
+						t.Fatal("production facing choices lost compass positions", f.ChoicePad)
+					}
+					for n := range 9 {
+						chooseField(t, e, c, "facing", int64(n))
+						want := base.Clone()
+						if err := want.SetField(mapedit.KindUnit, 0, "facing", int64(n)); err != nil {
+							t.Fatal(err)
+						}
+						if !bytes.Equal(s.model.Bytes(), want.Bytes()) {
+							t.Fatalf("pad value %d changed bytes beyond the old setter", n)
+						}
+						got, err := s.model.SaveBytes()
+						if err != nil {
+							t.Fatal(err)
+						}
+						old, err := want.SaveBytes()
+						if err != nil {
+							t.Fatal(err)
+						}
+						if !bytes.Equal(got, old) {
+							t.Fatalf("saved pad value %d differs from the old setter", n)
+						}
+					}
+				})
+			}
 		}
 	}
 }
