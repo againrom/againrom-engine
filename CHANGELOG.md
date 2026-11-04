@@ -28,6 +28,7 @@ modder or developer can notice gets no entry.
 - [ROM2] A road sign you have seen and walked away from shows the use cursor again and opens its message on a click.
 - [ROM2] Turning music off fades the melody out over up to two seconds instead of cutting it off; a dialogue page with a tune tag fades to the melody it names.
 - [ROM2] The dragon's spell book now lists its spells, and a mission save keeps each creature's spells, such as the bats' Darkness; before, the book was empty and the save wrote no creature spells.
+- [ROM2] A mission save now keeps each road sign's message, so the original game, loading the save, opens the sign's text on a click; a save made before by Againrom gets it on its next save.
 
 ### For map makers and modders
 

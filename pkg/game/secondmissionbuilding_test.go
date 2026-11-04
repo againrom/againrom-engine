@@ -63,18 +63,18 @@ func secondRecordValue(r sav.DocumentRecordData, name string) (uint32, bool) {
 }
 
 // A second-game mission LOADed from a file whose Building is row 330 holds
-// the row; its SAVE writes the row in the Building's +0xc, and the file's
-// LOAD holds it again with the World hash of the play that saved it. Its
-// records alone LOAD the row too. Fails while a structure keeps one byte of
-// the row (330 > 74).
+// the row; its SAVE writes the row in the record's +0xc, a Pointer record
+// for the Building's Pointer kind, and the file's LOAD holds it again with
+// the World hash of the play that saved it. Its records alone LOAD the row
+// too. Fails while a structure keeps one byte of the row (330 > 74).
 func TestSecondMissionKeepsABuildingRowAbove255(t *testing.T) {
 	p := pointerSaveRecord()
 	p.building, p.token0C, p.word = true, 330, 0
 	f, raw := secondBuildingMission(t, p)
 	checkSecondStructure(t, "the LOAD", f.live.world, sim.SavedBuilding, 330, 0)
 	r := secondFileStructure(t, "the SAVE", raw)
-	if row, _ := secondRecordValue(r, "T0C"); r.Class != "Building" || row != 330 {
-		t.Fatalf("the SAVE writes a %s of row %d, want a Building of row 330", r.Class, row)
+	if row, _ := secondRecordValue(r, "T0C"); r.Class != "Pointer" || row != 330 {
+		t.Fatalf("the SAVE writes a %s of row %d, want a Pointer of row 330", r.Class, row)
 	}
 	cold := secondMissionLoadBytesOf(t, pointerSaveMission(), raw)
 	if cold.live == nil {
@@ -88,15 +88,17 @@ func TestSecondMissionKeepsABuildingRowAbove255(t *testing.T) {
 	if bare.live == nil {
 		t.Fatal("the SAVE's records alone do not LOAD")
 	}
-	checkSecondStructure(t, "the records' LOAD", bare.live.world, sim.SavedBuilding, 330, 0)
+	checkSecondStructure(t, "the records' LOAD", bare.live.world, sim.SavedPointer, 330, 1)
 }
 
 // A Pointer the loaded file held (a Building and its +0x6c word,
-// R2-ENGINE-603) SAVEs as a Pointer record with the same word, and the
-// file's LOAD holds the Pointer with the World hash of the play that saved
-// it. A LOAD of its records alone SAVEs the Pointer again. Fails while a
+// R2-ENGINE-603) SAVEs as a Pointer record whose word is the World's action
+// slot, which the map gives (1), not the word read, and the file's LOAD
+// holds the Pointer with the World hash of the play that saved it. A LOAD
+// of its records alone SAVEs the Pointer again (DIV-4498). Fails while a
 // SAVE writes each Pointer as a Building (DIV-4172).
 func TestSecondMissionWritesAPointerBackAsAPointer(t *testing.T) {
+	const slot = 1
 	p := pointerSaveRecord()
 	p.word = 0x01020304
 	f, raw := secondBuildingMission(t, p)
@@ -104,8 +106,8 @@ func TestSecondMissionWritesAPointerBackAsAPointer(t *testing.T) {
 	check := func(name string, raw []byte) {
 		t.Helper()
 		r := secondFileStructure(t, name, raw)
-		if word, ok := secondRecordValue(r, "P6C"); r.Class != "Pointer" || !ok || word != p.word {
-			t.Fatalf("%s writes a %s with word %#x (%v), want a Pointer with %#x", name, r.Class, word, ok, p.word)
+		if word, ok := secondRecordValue(r, "P6C"); r.Class != "Pointer" || !ok || word != slot {
+			t.Fatalf("%s writes a %s with word %#x (%v), want a Pointer with %#x", name, r.Class, word, ok, slot)
 		}
 	}
 	check("the SAVE", raw)

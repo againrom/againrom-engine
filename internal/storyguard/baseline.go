@@ -4069,5 +4069,9 @@ var Committed = Baseline{
 	// It rose for the second game's guard leash tests in
 	// pkg/sim/secondguardleash_test.go, the stored circle's claims and this
 	// note, net of the three Group route rules removed.
-	CommentBytes: 10551869,
+
+	// It rose for a Pointer's word in pkg/sim/structureuse.go, the second
+	// form's keeps in pkg/game/savform.go, the signpost SAV tests, and this
+	// note.
+	CommentBytes: 10554424,
 }

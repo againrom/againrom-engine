@@ -96,8 +96,9 @@ func (form savedForm) write(f *FrontEnd, s Snapshot, doc sav.DocumentData) (sav.
 }
 
 // secondFormKeeps is what the second game's records hold that a mission's
-// World keeps beside the engine's records: each Pointer's word, by its
-// Token key, and the fog's owner gate for the session matrix's sight.
+// World keeps beside the engine's records: the word of each structure of a
+// Pointer kind, its action slot, by its Token key, and the fog's owner gate
+// for the session matrix's sight.
 func secondFormKeeps(s Snapshot) (sav.ProfileKeeps, error) {
 	if len(s.World) == 0 {
 		return sav.ProfileKeeps{}, nil
@@ -108,12 +109,17 @@ func secondFormKeeps(s Snapshot) (sav.ProfileKeeps, error) {
 	}
 	keeps := sav.ProfileKeeps{Sees: w.RevealsOwner}
 	source, _, _ := w.SavedStructures()
+	live := w.Structures()
 	for _, st := range source {
-		if st.Class == sim.SavedPointer {
+		at := slices.IndexFunc(live, func(l sim.Structure) bool { return l.ID == st.ID })
+		if at < 0 {
+			continue
+		}
+		if word, ok := live[at].PointerWord(); ok {
 			if keeps.Pointers == nil {
 				keeps.Pointers = map[uint32]uint32{}
 			}
-			keeps.Pointers[st.SourceKey] = st.Pointer6C
+			keeps.Pointers[st.SourceKey] = word
 		}
 	}
 	return keeps, nil

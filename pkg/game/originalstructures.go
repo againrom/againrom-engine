@@ -76,8 +76,8 @@ func applyOriginalStructuresCurrent(ms *Mission, source []sav.Building, present 
 			ss.Class = sim.SavedBuilding
 		case "Pointer":
 			// The second game's Pointer is a Building with one more word
-			// (R2-ENGINE-603); it keeps the Building's policy, and the word,
-			// which has no consumer here, is kept for its SAVE (DIV-4172).
+			// (R2-ENGINE-603); it keeps the Building's policy and the word as
+			// read. A SAVE writes the action slot instead (DIV-4498).
 			ss.Class, ss.Pointer6C = sim.SavedPointer, s.Pointer6C
 		case "Outpost":
 			ss.Class = sim.SavedOutpost

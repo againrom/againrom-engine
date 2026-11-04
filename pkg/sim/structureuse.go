@@ -26,6 +26,20 @@ func (s Structure) pointerSlot() int32 {
 	return s.UseAmount
 }
 
+// PointerWord is the +0x6c word of a Pointer's record: its action slot, or
+// -1, the constructor's value, which the type-4 pass keeps when no type-11c
+// record names the Pointer (R2-ENGINE-512, R2-ENGINE-517). It is false for
+// a structure of another kind.
+func (s Structure) PointerWord() (uint32, bool) {
+	if !PointerKind(s.Kind) {
+		return 0, false
+	}
+	if slot := s.pointerSlot(); slot > 0 {
+		return uint32(slot), true
+	}
+	return 0xffffffff, true
+}
+
 func (s Structure) Usable() bool {
 	if s.Width == 0 || s.Height == 0 {
 		return false
