@@ -268,9 +268,8 @@ func (m *MusicController) SetScene(scene MusicScene, mageFirst bool) {
 }
 
 // requestFrom applies the shown screen's request. An unchanged request does
-// nothing unless fresh. A silent request clears or pauses as the description
-// says; a scene that keeps, and silence, hold an equal list, resuming it when
-// paused; any other request sets its list.
+// nothing unless fresh. Silence clears or pauses; a kept key resumes its
+// entry under the description's comparison rule; other requests set a list.
 func (m *MusicController) requestFrom(next musicRequest, fresh bool) {
 	if !fresh && m.lastSet && m.last == next {
 		return
@@ -281,11 +280,18 @@ func (m *MusicController) requestFrom(next musicRequest, fresh bool) {
 		m.pause()
 		return
 	}
-	if m.set && (len(tracks) == 0 || m.desc.sceneSpec(next.scene).Keep) && slices.Equal(tracks, m.requestTracks(m.request)) {
+	sameList := slices.Equal(tracks, m.requestTracks(m.request))
+	sameKey := sameList
+	if m.desc != nil && m.desc.SameKey == MusicSameKeyEntry && len(tracks) != 0 {
+		sameKey = len(tracks) == 1 && m.position >= 0 && m.position < len(m.order) && tracks[0] == m.order[m.position]
+	}
+	if m.set && (len(tracks) == 0 || m.desc.sceneSpec(next.scene).Keep) && sameKey {
 		if fresh {
 			m.record("skip:" + m.sceneKey(next))
 		}
-		m.request = next
+		if sameList {
+			m.request = next
+		}
 		m.resume()
 		return
 	}

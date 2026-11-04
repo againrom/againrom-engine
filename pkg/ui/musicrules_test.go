@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"maps"
 	"os"
 	"slices"
 	"testing"
@@ -175,6 +176,84 @@ func TestTownTrackRequestKeepsItsKey(t *testing.T) {
 	}
 	if want := []string{"request:b14.wav", "skip:b14.wav", "stop", "request:b16.wav"}; !slices.Equal(m.RequestLog(), want) {
 		t.Fatalf("log = %v, want %v", m.RequestLog(), want)
+	}
+}
+
+type trackTownMusic struct {
+	recordingTownMusic
+	track string
+}
+
+func (t *trackTownMusic) TownMusicTrack() (string, bool) { return t.track, true }
+
+func TestTownRequestKeepsTheSelectedEntryByProfile(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		desc   *MusicDescription
+		held   string
+		key    string
+		paused bool
+		keep   bool
+	}{
+		{"second-playing", secondMusic, "b14.wav", "b14.wav", false, true},
+		{"second-paused", secondMusic, "b14.wav", "b14.wav", true, true},
+		{"second-case-differs", secondMusic, "B14.wav", "b14.wav", false, false},
+		{"second-other-entry-matches", secondMusic, "b16.wav", "b14.wav", false, false},
+		{"first-playing", firstMusic, "town.wav", "town.wav", false, false},
+		{"first-paused", firstMusic, "town.wav", "town.wav", true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			desc := *tc.desc
+			desc.Scenes = maps.Clone(desc.Scenes)
+			list := []string{"menu.wav", tc.held, "map.wav"}
+			if tc.held != tc.key {
+				list[0] = tc.key
+			}
+			desc.Scenes["mission"] = MusicSceneSpec{Tracks: list}
+			source, device := &recordingMusicSource{}, &pausingMusicDevice{}
+			a := newTestApp(t, appRows(1), okLoader(t))
+			if err := a.OpenMission(okOpener(t)); err != nil {
+				t.Fatal(err)
+			}
+			a.SetMusic(&desc, source, device, nil)
+			if !a.music.Play(1) {
+				t.Fatal("mission entry could not be selected")
+			}
+			if tc.paused {
+				a.music.SetScene(MusicSilent, false)
+			}
+			before, loads := len(device.events), len(source.loads)
+			a.SetTown(&trackTownMusic{recordingTownMusic: recordingTownMusic{scene: MusicTown}, track: tc.key})
+			if !a.flow.showTown("") {
+				t.Fatal("town did not open")
+			}
+			a.syncMusic()
+			if a.music.Playing() != tc.key || !a.music.active || a.music.paused {
+				t.Fatalf("town playback: %q active %v paused %v", a.music.Playing(), a.music.active, a.music.paused)
+			}
+			wantList, wantEvents := []string{tc.key}, []string{"stop", "start:" + tc.key}
+			if tc.keep {
+				wantList, wantEvents = list, nil
+				if tc.paused {
+					wantEvents = []string{"resume"}
+				}
+				if len(source.loads) != loads {
+					t.Fatalf("same key reloaded the track: %v", source.loads[loads:])
+				}
+			}
+			if !slices.Equal(a.music.Candidates(), wantList) || !slices.Equal(device.events[before:], wantEvents) {
+				t.Fatalf("town list %v events %v, want %v / %v", a.music.Candidates(), device.events[before:], wantList, wantEvents)
+			}
+			device.ended = true
+			a.updateMusic()
+			wantNext := tc.key
+			if tc.keep {
+				wantNext = "map.wav"
+			}
+			if a.music.Playing() != wantNext {
+				t.Fatalf("next entry = %q, want %q", a.music.Playing(), wantNext)
+			}
+		})
 	}
 }
 

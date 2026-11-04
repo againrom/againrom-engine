@@ -22,6 +22,7 @@ type MusicDescription struct {
 	Archive  MusicArchiveSpec            `json:"archive"`
 	Tracks   []string                    `json:"tracks"`
 	List     string                      `json:"list"`
+	SameKey  string                      `json:"same-key"`
 	Silence  string                      `json:"silence"`
 	Unlisted string                      `json:"unlisted"`
 	Scenes   map[string]MusicSceneSpec   `json:"scenes"`
@@ -44,9 +45,8 @@ type MusicArchiveSpec struct {
 	Cite []string `json:"cite"`
 }
 
-// MusicSceneSpec is one scene's list. Keep: a fresh request whose list equals
-// the list the player holds keeps it, resuming it when a silent request
-// paused it; otherwise a fresh request sets the list and starts it.
+// MusicSceneSpec is one scene's list. Keep skips list replacement when the
+// description's same-key rule matches, resuming a paused entry.
 // MageFirst is the school's list when the selected member is a mage.
 type MusicSceneSpec struct {
 	Tracks    []string `json:"tracks"`
@@ -76,6 +76,7 @@ type MusicAreaSpec struct {
 const (
 	MusicListShuffled = "shuffled"
 	MusicListOrdered  = "ordered"
+	MusicSameKeyEntry = "entry"
 )
 
 // The silence rules. Clear: a silent request stops the player and drops its
@@ -123,6 +124,8 @@ func (d *MusicDescription) validate() error {
 		return fmt.Errorf("no archive path")
 	case d.List != MusicListShuffled && d.List != MusicListOrdered:
 		return fmt.Errorf("list rule %q", d.List)
+	case d.SameKey != "" && d.SameKey != MusicSameKeyEntry:
+		return fmt.Errorf("same-key rule %q", d.SameKey)
 	case d.Silence != MusicSilenceClear && d.Silence != MusicSilencePause:
 		return fmt.Errorf("silence rule %q", d.Silence)
 	case d.Unlisted != MusicUnlistedSilence && d.Unlisted != MusicUnlistedKeep:
