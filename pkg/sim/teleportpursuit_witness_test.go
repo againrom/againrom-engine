@@ -58,7 +58,7 @@ func (w *World) tpGroupSees(g *SavedGroup, hero int) (sees, kept bool) {
 	ag := aiGroup{group: g.ID, owner: w.entities[members[0]].Owner, members: members}
 	cands := w.groupCandidates(ag, false)
 	sees = containsIndex(cands, hero)
-	kept = containsIndex(w.clipCircle(g.AI[0x20], w.storedCircle(g, members), cands), hero)
+	kept = containsIndex(w.clipCircle(g.AI[0x20], w.storedCircle(g), cands), hero)
 	return sees, kept
 }
 

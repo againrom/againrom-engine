@@ -4066,5 +4066,8 @@ var Committed = Baseline{
 	// kept class book in pkg/sim, their tests, the mask test, and this note.
 	// It rose for the second game's bat cast test, its fixture's spell rows,
 	// and this note.
-	CommentBytes: 10549012,
+	// It rose for the second game's guard leash tests in
+	// pkg/sim/secondguardleash_test.go, the stored circle's claims and this
+	// note, net of the three Group route rules removed.
+	CommentBytes: 10551869,
 }

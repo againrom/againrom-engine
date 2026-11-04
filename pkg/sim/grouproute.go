@@ -9,20 +9,11 @@ const secondGuardRoute uint8 = 0x12
 type groupRouteProfile struct {
 	// guardAt18: programme byte 18 takes the guard route (DIV-4285).
 	guardAt18 bool
-	// guardNeedsMembers: the guard order, as every other, decides only over
-	// living members; else it runs over dying members too.
-	guardNeedsMembers bool
 	// constructsForOlderRegistry: a non-native registry gets its orders built.
 	constructsForOlderRegistry bool
 	// noHumanHealArm: a human's unit with no target takes no heal arm; else
 	// it does (AI-ACQUIRE-002, AI-349).
 	noHumanHealArm bool
-	// engagedFoesUnclipped: all engaged foes stay (DIV-1523); else they must
-	// lie in the clipped list (AI-GRPGUARD-074, AI-REISSUE-077).
-	engagedFoesUnclipped bool
-	// heldCircle: a registry Group's circle is the held one, not the stored
-	// one (AI-740, AI-741).
-	heldCircle bool
 }
 
 func (p *groupRouteProfile) route(b uint8) uint8 {
@@ -44,11 +35,8 @@ func (p *groupRouteProfile) programme(order uint8) uint8 {
 
 var secondGameGroupRoute = groupRouteProfile{
 	guardAt18:                  true,
-	guardNeedsMembers:          true,
 	constructsForOlderRegistry: true,
 	noHumanHealArm:             true,
-	engagedFoesUnclipped:       true,
-	heldCircle:                 true,
 }
 
 func (w *World) savedRoute(g *SavedGroup) uint8 {

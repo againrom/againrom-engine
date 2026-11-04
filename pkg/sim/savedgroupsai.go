@@ -250,7 +250,7 @@ func (w *World) savedRoam(g *SavedGroup, members []int) {
 
 func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 	members, complete := w.savedLiving(g)
-	guard := order == orderGuard && !w.game.groupRoute.guardNeedsMembers
+	guard := order == orderGuard
 	if !complete || len(members) == 0 && !guard {
 		return
 	}
@@ -262,7 +262,7 @@ func (w *World) savedDecision(g *SavedGroup, order uint8, obs *castObs) {
 		return
 	}
 	ag := aiGroup{group: g.ID, owner: w.entities[members[0]].Owner, members: members}
-	cands := w.clipCircle(order, w.storedCircle(g, members), w.candidates(ag))
+	cands := w.clipCircle(order, w.storedCircle(g), w.candidates(ag))
 	if guard {
 		// The latch block follows the clip; Guard's scoring draws nothing, so
 		// its draw precedes every engage as AI-741 orders them.

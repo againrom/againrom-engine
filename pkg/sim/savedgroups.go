@@ -563,7 +563,7 @@ func (w *World) savedGroupPassTraced(obs *castObs, withdrawals *withdrawalObs) {
 					w.savedAcquire(i, w.savedOrder(w.entities[i].ID))
 				}
 			})
-		} else if (len(members) > 0 || order == orderGuard && !w.game.groupRoute.guardNeedsMembers) && (validGroupOrder(order) || order == 0x11) {
+		} else if (len(members) > 0 || order == orderGuard) && (validGroupOrder(order) || order == 0x11) {
 			if order == 0x11 {
 				w.savedRoam(g, members)
 				order = orderSwarm2

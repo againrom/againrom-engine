@@ -51,7 +51,7 @@ func TestLiveGuardCentreFloorsTheWholeCellMean(t *testing.T) {
 	r := int32(g.AI[0x2d])
 	at := indexOfEntity(w.entities, 50)
 	w.entities[at].X, w.entities[at].Y = 10-r, 10
-	if kept := w.clipCircle(orderGuard, w.storedCircle(g, members), []int{at}); len(kept) != 1 {
+	if kept := w.clipCircle(orderGuard, w.storedCircle(g), []int{at}); len(kept) != 1 {
 		t.Fatalf("a unit %d cells from the floored centre was clipped at radius %d", r, r)
 	}
 }
@@ -150,7 +150,6 @@ func TestLiveGuardClipsItsFirstPassAtTheBase(t *testing.T) {
 	foe := indexOfEntity(w.entities, 50)
 	w.entities[foe].X, w.entities[foe].Y = w.entities[m2].X+reach, 20
 	w.entities[foe].HP, w.entities[foe].MaxHP = 1<<20, 1<<20
-	members, _ := w.savedLiving(g)
 	w.guardGeometry(g)
 	if d := int64(w.entities[foe].X) - int64(g.AI[0x28]); d != int64(base)+2 {
 		t.Fatalf("the foe stands %d from the centre, want B + 2 = %d", d, base+2)
@@ -164,7 +163,7 @@ func TestLiveGuardClipsItsFirstPassAtTheBase(t *testing.T) {
 	if r := int32(g.AI[0x2d]); r < base+3 {
 		t.Fatalf("the latch rolled radius %d, want at least B + 3", r)
 	}
-	if kept := w.clipCircle(orderGuard, w.storedCircle(g, members), []int{foe}); len(kept) != 1 {
+	if kept := w.clipCircle(orderGuard, w.storedCircle(g), []int{foe}); len(kept) != 1 {
 		t.Fatal("the rolled radius does not keep the foe for the next pass")
 	}
 	w.savedDecision(g, orderGuard, nil)
