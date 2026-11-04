@@ -225,9 +225,29 @@ var secondFormHolders = []savedFormHolder{
 	// R2-ENGINE-403: an Item holds its row at +0xc, from which LOAD
 	// rebuilds its descriptor; a magic item's ID names that row.
 	{class: "Item", field: "T0C", site: holderValue, value: secondMagicItemRow},
+	// R2-ENGINE-857: a mission's structure holds its map id plus 0x6000 at
+	// +4, the key the original finds a clicked structure by. A town holds
+	// no map structure.
+	{class: "Building", field: "RuntimeID", site: holderValue, value: secondStructureKey},
+	{class: "Outpost", field: "RuntimeID", site: holderValue, value: secondStructureKey},
+	{class: "Tavern", field: "RuntimeID", site: holderValue, value: secondStructureKey},
+	{class: "Shop", field: "RuntimeID", site: holderValue, value: secondStructureKey},
 	// R2-ENGINE-402: a bag's weight is the sum of its Items' unit weight
 	// times quantity.
 	{class: "Human", field: "Inventory20", site: holderPresentValue, value: secondBagWeight},
+}
+
+// secondStructureKey is a mission structure's +4: 0x6000 plus its map id, the
+// record's +8 (R2-ENGINE-857).
+func secondStructureKey(h *formHolding, i int) (uint32, bool) {
+	if h.s.Mission == 0 {
+		return 0, false
+	}
+	id, err := savedStructureValue(&h.doc.Objects[i], "T08")
+	if err != nil {
+		return 0, false
+	}
+	return 0x6000 + id, true
 }
 
 func secondActorTemplateKey(h *formHolding, i int) (uint32, bool) {

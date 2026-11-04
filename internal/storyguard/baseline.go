@@ -4081,5 +4081,8 @@ var Committed = Baseline{
 	// release test, the decoded profile's choice in pkg/sim/binary.go, and
 	// this note.
 	// It rises for guard B's programme gate and the join-window regression tests.
-	CommentBytes: 10568127,
+	// It rises for the second game's structure +4 key: secondStructureKey and
+	// its holder rows in pkg/game/savform.go, and the tests in
+	// secondstructureid_test.go and secondoriginalfile_test.go.
+	CommentBytes: 10569473,
 }

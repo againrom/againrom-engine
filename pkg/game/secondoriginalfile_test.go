@@ -251,6 +251,8 @@ type secondSavedPointer struct {
 	token0C        uint16
 	word           uint32
 	building       bool
+	// runtime is the record's +4; zero gives 300 plus the record's index.
+	runtime uint32
 }
 
 // secondSavedWorldOf is secondSavedWorld with pointers in the Buildings.
@@ -354,7 +356,11 @@ func secondSavedPartyOf(mission uint32, money uint32, party []secondOriginalHero
 		s.u8(0x80)
 		s.u8(0x80)
 		s.raw(6)
-		s.u32(uint32(300 + i))
+		if p.runtime != 0 {
+			s.u32(p.runtime)
+		} else {
+			s.u32(uint32(300 + i))
+		}
 		s.u16(p.token0C)
 		s.u16(uint16(p.kind))
 		s.u32(p.id)
