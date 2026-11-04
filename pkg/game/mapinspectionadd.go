@@ -484,7 +484,9 @@ func (s *mapInspectionEdits) NewRecordPreview(kind ui.RecordKind, key string, va
 			return nil
 		}
 		if c := x.structures.Classes[value]; c != nil {
-			if key == "kind-grid" && c.Picture == sharedStructurePicture {
+			_, inTable := mapload.StructureMaxHealth(x.table, byte(value))
+			palette, _ := structurePalette(c, inTable)
+			if key == "kind-grid" && (structureGridMapPalettes[palette] || c.Picture == sharedStructurePicture) {
 				w, h := max(3, c.TileWidth), max(2, c.TileHeight)
 				g := terrain.Grid{Width: w, Height: h, Structures: []terrain.StructureRecord{{Key: uint32(value), VariableWidth: w, VariableHeight: h}}}
 				places, _, _ := terrain.StructurePlacements(g, x.structures, nil, 0)

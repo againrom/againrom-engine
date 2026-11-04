@@ -29,6 +29,8 @@ func (x *MapInspector) cellSpellPalette() []ui.InspectionChoice {
 // that list in Structures: the Magic Symbol (structures.reg ID 27).
 var objectsKinds = map[int32]bool{27: true}
 
+var structureGridMapPalettes = map[ui.Palette]bool{ui.PaletteObjects: true}
+
 // structurePalette is the palette structure kind c lists in, given
 // whether the Buildings table has an entry for it, and when the data does
 // not settle it, the field that fails.
