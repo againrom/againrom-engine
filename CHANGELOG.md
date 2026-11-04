@@ -23,6 +23,7 @@ modder or developer can notice gets no entry.
 - [ROM2] Trolls, ogres and dragons speaking in the second game now show their whole head in the portrait, as in the original.
 - [ROM2] Saves now keep the character and creature identities the original game needs when loading a mission.
 - [ROM2] A mission save now writes each enemy group's guard order and each unit's post, as the original's own saves hold them; before, they were written empty.
+- [ROM2] P now picks up the item under the selected unit, and the unit answers with its pick-up reply, as in the original; the first game keeps P for Patrol.
 
 ### For map makers and modders
 

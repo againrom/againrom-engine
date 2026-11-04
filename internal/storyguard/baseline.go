@@ -4054,5 +4054,5 @@ var Committed = Baseline{
 	// docs in pkg/game/routewitness.go and routewitness_first.go, the stage
 	// kinds' walks, the guard internal/archtest/routewalk.go with its test,
 	// the stage-row tests, net of the per-game walks removed, and this note.
-	CommentBytes: 10541843,
+	CommentBytes: 10541792,
 }

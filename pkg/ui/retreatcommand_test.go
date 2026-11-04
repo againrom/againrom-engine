@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"againrom/pkg/render/frame"
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func TestRetreatBindingIsCtrlWAndPlainFStaysGrab(t *testing.T) {
@@ -18,13 +19,12 @@ func TestRetreatBindingIsCtrlWAndPlainFStaysGrab(t *testing.T) {
 		!strings.Contains(retreat, "ctrlHeld()") || strings.Contains(retreat, "!ctrlHeld()") {
 		t.Errorf("Retreat binding = %q, want Ctrl+W press edge", retreat)
 	}
-	grab, ok := bindings["Grab"]
-	if !ok {
-		t.Fatal("readAppInput has no Grab binding")
-	}
-	if !strings.Contains(grab, "inpututil.IsKeyJustPressed(ebiten.KeyF)") ||
-		!strings.Contains(grab, "!ctrlHeld()") {
-		t.Errorf("Grab binding = %q, want plain F with Ctrl excluded", grab)
+	for _, ctrl := range []bool{false, true} {
+		var in appInput
+		in.readMissionKeys(missionKeyPatrol, onlyKey(ebiten.KeyF), ctrl)
+		if in.Grab == ctrl || in.GrabReply || in.Patrol {
+			t.Errorf("F with Ctrl %v: %+v", ctrl, in)
+		}
 	}
 }
 

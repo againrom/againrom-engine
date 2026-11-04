@@ -59,7 +59,8 @@ type Edition struct {
 
 	// Options names the Game Options column a stepping option row reads its
 	// offered values and its new-game value from.
-	Options string
+	Options     string
+	MissionKeys string
 
 	// CompanionObjectiveMission is the mission whose persistent companion the
 	// compiled script must keep alive; zero for none.
@@ -208,6 +209,7 @@ var secondEdition = Edition{
 	WorldMap:     "rom2",
 	Tips:         "rom2",
 	Options:      "rom2",
+	MissionKeys:  "pickup-p",
 	Spells:       "rom2",
 	TextCodePage: WindowsText,
 	Cutscenes: map[string]CutsceneArchive{

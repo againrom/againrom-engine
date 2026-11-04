@@ -178,9 +178,11 @@ func (a *App) HeadlessKey(name string) error {
 		in.PlayerRetreat = true
 	case "d", "defend":
 		in.Defend = true
-	case "p", "patrol":
+	case "p", "f":
+		in.missionKeyNamed(a.missionKeys, strings.ToLower(strings.TrimSpace(name)))
+	case "patrol":
 		in.Patrol = true
-	case "f", "grab":
+	case "grab":
 		in.Grab = true
 	case "e", "select-all":
 		in.SelectAll = true
@@ -221,7 +223,7 @@ func (a *App) HeadlessKey(name string) error {
 		}
 		in.Viewer.Alt = true
 		in.AltLetter = readAltLetter(true, onlyKey(altLetterKeys[key[4]-'a']))
-		in.setAltLetter(key[4])
+		in.setAltLetter(key[4], a.missionKeys)
 	}
 	if a.step(in, a.headlessAt()) {
 		return fmt.Errorf("headless key %q requested application exit", name)
@@ -1343,7 +1345,8 @@ func (a *App) headlessSelectEntityOnce(id uint32) error {
 }
 
 // setAltLetter raises the plain-letter field of a headless Alt chord's key.
-func (in *appInput) setAltLetter(letter byte) {
+func (in *appInput) setAltLetter(letter byte, keys missionKeyAction) {
+	in.missionKeyNamed(keys, string(letter))
 	switch letter {
 	case 'b', 'q':
 		in.Book = true
@@ -1353,13 +1356,9 @@ func (in *appInput) setAltLetter(letter byte) {
 		in.Defend = true
 	case 'e':
 		in.SelectAll = true
-	case 'f':
-		in.Grab = true
 	case 'i':
 		in.Inventory = true
 	case 'j':
 		in.Doll = true
-	case 'p':
-		in.Patrol = true
 	}
 }

@@ -11,6 +11,12 @@ come from the same sequence and are never reissued.
 Nothing is appended here directly. A row is written in `DIVERGENCES.md`, and it arrives here only by
 being closed.
 
+## ROM2 pick-up key
+
+| ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |
+|---|---|---|---|---|---|---|---|---|
+| DIV-4455 | ROM2 map voices / the pick-up key | Bind P to pick up in the second game; keep F and the first game unchanged | `R2-ENGINE-806` (High, EN): P reaches the type 0x13 sender, with a nonempty selection, selection flags outside mask 0x24 and a zero unnamed input global; `R2-ENGINE-717` gives the pickup gesture and `R2-ENGINE-719` its speaker picker | One pickup/patrol binding reader serves physical and headless keys. ROM2 P reaches the existing F action and asks the command reply once over the selected units; empty or foreign selections and modal input ask nobody. F stays silent and ROM1 P stays Patrol. The existing picker, voice bank, preference and timestamp gates serve the reply | FIDELITY-DEBT | The missing P binding and reply are implemented. The unknown meaning of 0x13 and the unnamed input global remain in DIV-4488 | None for the binding and reply; DIV-4488 bounds their remaining fidelity | CLOSED |
+
 ## ROM2 Microsoft ADPCM voices
 
 | ID | Subsystem | Owner directive | ROM1 behaviour (claims) | Implemented behaviour | Type | Reason | Revisit condition | Status |

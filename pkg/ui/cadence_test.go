@@ -388,7 +388,7 @@ func TestTheCadenceKeysActOnTheMapScreenAlone(t *testing.T) {
 	// is the sequence every "held" run below drives. Headless, with no key down,
 	// the sampler reads all three as not pressed.
 	t.Run("the sampler reads a key nobody is pressing as unpressed", func(t *testing.T) {
-		in := readAppInput()
+		in := readAppInput(missionKeyPatrol)
 		if in.Pause || in.Faster || in.Slower {
 			t.Errorf("readAppInput with no key down returned Pause %v, Faster %v, Slower %v, want all false",
 				in.Pause, in.Faster, in.Slower)

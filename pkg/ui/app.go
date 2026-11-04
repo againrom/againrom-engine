@@ -464,6 +464,7 @@ type appInput struct {
 	PlayerRetreat bool
 	StandGround   bool
 	Patrol        bool
+	GrabReply     bool
 	March         bool
 	Defend        bool
 	// Move is the command panel's own Move cell and its keyboard mirror
@@ -526,7 +527,7 @@ func onlyKey(key ebiten.Key) func(ebiten.Key) bool {
 // the arrow keys, Enter and the wheel. The menu screen deliberately reads no
 // keys but Esc — it is driven by the pointer, and keyboard navigation of the
 // brooch is not part of this front-end.
-func readAppInput() appInput {
+func readAppInput(keys missionKeyAction) appInput {
 	cx, cy := ebiten.CursorPosition()
 	_, wy := ebiten.Wheel()
 	shiftHeld := heldkey.Pressed(ebiten.KeyShiftLeft) || heldkey.Pressed(ebiten.KeyShiftRight)
@@ -580,8 +581,6 @@ func readAppInput() appInput {
 		Unpaced: inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) && ctrlHeld(),
 		Paced:   inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) && ctrlHeld(),
 		Kill:    inpututil.IsKeyJustPressed(ebiten.KeyK),
-		// DIV-236
-		Grab: inpututil.IsKeyJustPressed(ebiten.KeyF) && !ctrlHeld(),
 		// L IS SPLIT BY THE MODIFIER. Bare L chips; Ctrl+L flips the damage
 		// numerals, which is the decoded binding. The same Ctrl read AttackHeld
 		// below makes decides both, so the two cannot come to overlap or to leave
@@ -682,15 +681,12 @@ func readAppInput() appInput {
 		// B3/B4 for Move). `MENU-COMBAT-019` names the original's eight cells and
 		// accelerators — Attack/A, Move/M, Guard/G, Defend/D, Cast/C, Swarm/S,
 		// Stand Ground/T, Retreat/R — and Guard, Stand Ground and Move take
-		// exactly those three letters. Patrol matches no cell of the eight and
-		// keeps the free-letter assignment this project already gave it, disclosed
-		// as an addition (`DIV- 231`).
+		// exactly those three letters. The edition supplies pickup and Patrol.
 		//
 		// DIV-237
 		Guard:         inpututil.IsKeyJustPressed(ebiten.KeyG),
 		PlayerRetreat: inpututil.IsKeyJustPressed(ebiten.KeyR),
 		StandGround:   inpututil.IsKeyJustPressed(ebiten.KeyT),
-		Patrol:        inpututil.IsKeyJustPressed(ebiten.KeyP),
 		// S, NOT H. `keyboard.tsv` gives S "arm Swarm | mode 6" and `AI-PANEL-123`
 		// gives the panel's Swarm cell the same mode and click opcode `0x1a`;
 		// `commandSwarm` -- which this field raises -- IS that order, so S is not
@@ -732,6 +728,7 @@ func readAppInput() appInput {
 		GroupKey:   groupDigit() >= 0 && !barePauseKey(),
 		GroupDigit: max(groupDigit(), 0),
 	}
+	in.readMissionKeys(keys, inpututil.IsKeyJustPressed, ctrlHeld())
 	in.Enter, in.WindowToggle = splitAltEnter(altHeld(), in.Enter)
 	return in
 }
@@ -813,6 +810,7 @@ type App struct {
 	title          string
 	assets         *menu.Assets
 	flow           *flow
+	missionKeys    missionKeyAction
 	mapEntry       func(*Viewer)
 	// windowed is the form the game window has now: a decorated window when
 	// true, the whole screen when false. window is the window system a
@@ -1296,7 +1294,7 @@ func (a *App) Layout(outsideWidth, outsideHeight int) (int, int) {
 // Update gathers one tick of input and hands it to step. It holds no logic, so
 // nothing the front-end decides is out of a test's reach.
 func (a *App) Update() error {
-	if a.step(readAppInput(), time.Now()) {
+	if a.step(readAppInput(a.missionKeys), time.Now()) {
 		return ebiten.Termination
 	}
 	return nil
@@ -2375,6 +2373,9 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 			if in.Grab {
 				if grab := a.flow.grab; grab != nil {
 					grab(0, 0, 0, false)
+					if in.GrabReply && !in.Viewer.Ctrl && v.selectionSummary()&selSummaryNeutral == 0 {
+						v.replyOrder(VoicePickup, v.marked(), now)
+					}
 				}
 			}
 
@@ -2414,13 +2415,13 @@ func (a *App) step(in appInput, now time.Time) (exit bool) {
 						for _, id := range marked {
 							stance(id, true)
 						}
-						v.replyStance(VoiceGuard, marked, now)
+						v.replyOrder(VoiceGuard, marked, now)
 					}
 					if in.StandGround || pendingStandGround {
 						for _, id := range marked {
 							stance(id, false)
 						}
-						v.replyStance(VoiceStandGround, marked, now)
+						v.replyOrder(VoiceStandGround, marked, now)
 					}
 				}
 			}

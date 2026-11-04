@@ -226,7 +226,7 @@ func TestTheArmsAreExclusive(t *testing.T) {
 func TestTheFourKeysAreBoundOnceEach(t *testing.T) {
 	fset := token.NewFileSet()
 	seen := map[string]int{}
-	for _, name := range []string{"app.go", "viewer.go"} {
+	for _, name := range []string{"app.go", "viewer.go", "missionbindings.go"} {
 		f, err := parser.ParseFile(fset, name, nil, 0)
 		if err != nil {
 			t.Fatalf("parse %s: %v", name, err)

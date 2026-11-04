@@ -31,8 +31,8 @@ func (v *Viewer) SetCommandAcknowledgment(reply func(VoiceGesture, []uint32, tim
 	v.commandAcknowledgment = reply
 }
 
-// replyStance asks the command reply for a guard or stand ground gesture.
-func (v *Viewer) replyStance(g VoiceGesture, ids []uint32, now time.Time) {
+// replyOrder asks the shared command reply for a key or stance gesture.
+func (v *Viewer) replyOrder(g VoiceGesture, ids []uint32, now time.Time) {
 	if len(ids) != 0 && v.commandAcknowledgment != nil {
 		v.commandAcknowledgment(g, ids, now)
 	}

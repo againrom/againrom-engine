@@ -1002,6 +1002,7 @@ func (f *FrontEnd) App(title string) *ui.App {
 	a.SetTextSmoothing(!f.smoothingOff.text)
 	a.SetFrameSmoothing(!f.smoothingOff.frame)
 	edition := f.Base().Profile.Edition()
+	a.SetMissionKeys(edition.MissionKeys)
 	if f.Cutscenes != nil {
 		a.SetCutscenes(f.Cutscenes)
 	} else if _, ok := edition.Cutscenes[edition.DefaultCutscenes]; ok && f.Archives != nil {
