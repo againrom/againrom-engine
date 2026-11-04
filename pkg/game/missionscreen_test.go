@@ -17,7 +17,7 @@ func TestMissionScreenIsEachGamesData(t *testing.T) {
 		want  ui.MissionScreen
 	}{
 		{"first", &firstGameFiles, ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true}},
-		{"second", &secondGameFiles, ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}}},
+		{"second", &secondGameFiles, ui.MissionScreen{ColumnW: ui.MissionPanelW, NoticeOnScreen: true, PickUsableInExploredGround: true, MinimapLocal: color.RGBA{R: 82, G: 121, B: 231, A: 0xff}}},
 	} {
 		if tc.files.missionScreen != tc.want {
 			t.Errorf("%s game: mission screen %+v, want %+v", tc.name, tc.files.missionScreen, tc.want)

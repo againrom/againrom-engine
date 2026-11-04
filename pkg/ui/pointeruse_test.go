@@ -48,3 +48,34 @@ func TestPointerWithASlotAnswersHoverClickAndCard(t *testing.T) {
 		t.Fatal("a Pointer without a slot showed a card")
 	}
 }
+
+// A usable structure on explored ground out of current sight is picked only
+// where the game's mission screen data admits it.
+func TestUsableStructureInExploredGroundPicksByGameData(t *testing.T) {
+	for _, admit := range []bool{false, true} {
+		a, v := inspectionFixture(t, image.Pt(1024, 768))
+		v.entities[0].PlayerCharacter = true
+		v.SetMissionScreen(MissionScreen{ColumnW: MissionPanelW, PickUsableInExploredGround: admit})
+		v.SetStructures([]MapStructure{{ID: 7, Kind: 0x4a, Size: image.Pt(1, 1), Cell: image.Pt(6, 6),
+			UseAdmission: sim.Structure{Kind: 0x4a, UseAmount: 24, Width: 1, Height: 1}}})
+		ref := InspectionSubject{InspectionStructure, 7}
+		x, y, err := v.InspectionPoint(ref)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fog := make([]byte, 1024)
+		for i := range fog {
+			fog[i] = FogVisible
+		}
+		fog[6*32+6] = FogExplored
+		v.SetFog(fog, 32, 32)
+		if err := a.HeadlessPointer("hover", x, y); err != nil {
+			t.Fatal(err)
+		}
+		_ = a.HeadlessStep()
+		got, hit := v.inspectionAt(x, y)
+		if hit != admit || hit && got != ref {
+			t.Fatalf("admit %v: pick %+v hit %v", admit, got, hit)
+		}
+	}
+}

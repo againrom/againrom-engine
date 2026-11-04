@@ -160,7 +160,7 @@ func (v *Viewer) inspectionAt(x, y int) (InspectionSubject, bool) {
 			if ok && inspectionPixel(staticScreenRect{screenRect: r, Frame: p.Frame}, x, y) {
 				ref := InspectionSubject{Kind: InspectionStructure, ID: p.StructureID}
 				_, exists := v.inspectionPanel(ref)
-				return ref, exists && v.fogGateSack(p.Cell.X, p.Cell.Y)
+				return ref, exists && v.structurePickGate(ref, p.Cell.X, p.Cell.Y)
 			}
 		}
 	}

@@ -256,7 +256,7 @@ func (v *Viewer) planeSprites() []staticScreenRect {
 			}
 			p := structures[ref.Index]
 			order = artOrder{phase: artMainCell, cell: p.Cell, index: ref.Index, part: 1}
-			if v.fogGateSack(p.Cell.X, p.Cell.Y) {
+			if v.structurePickGate(InspectionSubject{Kind: InspectionStructure, ID: p.StructureID}, p.Cell.X, p.Cell.Y) {
 				inspection = InspectionSubject{Kind: InspectionStructure, ID: p.StructureID}
 			}
 			// The EARLY pass already drew it. Skipping here, rather than

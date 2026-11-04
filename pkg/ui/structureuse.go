@@ -20,3 +20,10 @@ func (v *Viewer) usableStructure(ref InspectionSubject) bool {
 	s, ok := v.structureState(ref)
 	return ok && s.UseAdmission != nil && s.UseAdmission.Usable()
 }
+
+// structurePickGate reports whether the structure at (col,row) may be picked
+// now: in current sight, or, when the game's mission screen data admits it, a
+// usable structure on an explored cell, where it stays drawn.
+func (v *Viewer) structurePickGate(ref InspectionSubject, col, row int) bool {
+	return v.fogGateSack(col, row) || v.missionScreen.PickUsableInExploredGround && v.usableStructure(ref) && v.fogGateGround(col, row)
+}
