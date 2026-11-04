@@ -21,6 +21,7 @@ type mapPanelEdits struct {
 	plays    int
 	modSaves int
 	mode     int64
+	size     int
 }
 
 func (p *mapPanelEdits) Dirty() bool                        { return false }
@@ -88,11 +89,15 @@ func mapPanelEditor(t *testing.T, p *mapPanelEdits, maps []EditorMap) (*MapEdito
 	opened := &[]string{}
 	open := func(source string) (*InspectionDocument, error) {
 		*opened = append(*opened, source)
-		v, err := NewViewer("editor", terrain.Grid{Width: 50, Height: 50, Tiles: make([]uint16, 2500)}, &terrain.Tileset{})
+		side := p.size
+		if side == 0 {
+			side = 50
+		}
+		v, err := NewViewer("editor", terrain.Grid{Width: side, Height: side, Tiles: make([]uint16, side*side)}, &terrain.Tileset{})
 		if err != nil {
 			return nil, err
 		}
-		return &InspectionDocument{Viewer: v, Source: source, Width: 50, Height: 50, SourceBytes: []byte("map"), Edits: p}, nil
+		return &InspectionDocument{Viewer: v, Source: source, Width: side, Height: side, SourceBytes: []byte("map"), Edits: p}, nil
 	}
 	e := NewMapEditor(panelFont(), maps, open)
 	e.Layout(1024, 768)

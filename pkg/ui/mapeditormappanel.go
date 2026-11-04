@@ -299,6 +299,9 @@ func (e *MapEditor) panelFollow(link panelLink) {
 		e.showRecords(editorPlayersFilter)
 	case linkStart:
 		e.scriptKey("drop")
+		if e.pick == pickDrop {
+			e.listRestore = nil
+		}
 	case linkGoals:
 		if len(e.report.goals) == 0 {
 			e.scriptKey("goals")

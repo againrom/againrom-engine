@@ -16,7 +16,10 @@ func (e *MapEditor) cancelCheckpoint() func() {
 	if e.doc != nil {
 		view := e.doc.Viewer
 		cam := *view.cam
-		restoreCamera = func() { *view.cam = cam }
+		restoreCamera = func() {
+			*view.cam = cam
+			e.Layout(e.window.X, e.window.Y)
+		}
 	}
 	selected, filter, focused := e.selected, e.filter, e.focusedReference
 	message := e.message
@@ -32,9 +35,11 @@ func (e *MapEditor) cancelCheckpoint() func() {
 	}
 	return func() {
 		press := e.buttonPress
+		chromeImage, passInk := e.chromeImage, e.passInk
 		e.restoreMode(mode)
 		e.editorChrome = chrome
 		e.buttonPress = press
+		e.chromeImage, e.passInk = chromeImage, passInk
 		e.cancelRestore, e.listRestore = previousCancel, previousList
 		e.selected, e.filter, e.focusedReference = selected, filter, focused
 		e.message = message
