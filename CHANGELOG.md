@@ -17,6 +17,8 @@ modder or developer can notice gets no entry.
 
 ## Unreleased
 
+## 0.147.0
+
 ### For players
 
 - [BASE] Hovering a unit or building now keeps its cursor and information card together across the whole target area. The hovered unit lights up and the pointer stays in place when the cursor changes.
